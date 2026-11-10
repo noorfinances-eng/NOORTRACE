@@ -1,7 +1,7 @@
 {
   "version": 0,
   "id": "redemarrage-reprise",
-  "description": "La trace de référence interrompue à 14:00:02.500 et redémarrée : la file porte le jeton de K4 envoyee (réponse non reçue), l'ancre de la période envoyee sans reçu, le jeton de clôture en attente_registre et la preuve OpenTimestamps en_attente. Transitions d'EX-8.12 : envoyee devient a_reprendre et repart aussitôt avec un nouveau nonce (tentative 2) ; l'ancre est renvoyée ; l'inclusion est interrogée ; la mise à niveau est reprogrammée à max(due_at, now). La réponse à la tentative 1 de K4, arrivée après le redémarrage, est conservée sans changer l'état (EX-8.5).",
+  "description": "La trace de référence interrompue à 14:00:02.500 et redémarrée : la file porte le jeton de K4 envoyee (réponse non reçue), l'ancre de la période envoyee sans reçu, le jeton de clôture en attente_registre et la preuve OpenTimestamps en_attente. Transitions d'EX-8.12 : envoyee devient a_reprendre et repart aussitôt avec un nouveau nonce (tentative 2) ; l'ancre est renvoyée ; l'inclusion est interrogée ; la mise à niveau est reprogrammée à max(due_at, now). La réponse à la tentative 1 de K4, arrivée après le redémarrage, est conservée sans changer l'état (EX-8.5). La file relue a été écrite avant la révision 0.6 : ses lignes ne portent pas attempts_total, qui vaut alors le nombre de leurs tentatives (EX-8.5, règle 7) ; chaque ligne réécrite le porte, une demande que le redémarrage ne réécrit pas garde sa ligne telle quelle.",
   "config": {
     "checkpoint_interval_s": 60,
     "rfc3161": {
@@ -574,7 +574,9 @@
       "detail": {
         "event": "anchor_retry",
         "kind": "ancre_registre_periode",
-        "mode": "renvoi"
+        "mode": "renvoi",
+        "attempt": 1,
+        "attempt_id": "ancre_registre_periode:a864281e05663ee5:1"
       }
     },
     {
@@ -670,6 +672,7 @@
         "event": "anchor_response_rejected",
         "error_code": "tentative_close",
         "attempt": 1,
+        "attempt_id": "jeton_point:804585ae4e9601a9:1",
         "provider": "tsa-interne",
         "kept": true
       }
@@ -714,6 +717,7 @@
         ],
         "d_jeton_s": 304,
         "d_point_s": 300,
+        "d_admission_s": 0,
         "d_attente_s": 2,
         "d_releve_s": 0,
         "d_tsa_s": 2
@@ -1025,6 +1029,7 @@
           "detail": "ancre incluse au bloc 21087"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x906e615b692493ef817e85d0ed12e9c98e860de2fb0cb904fe3ddfecfd20c25a",
         "size": 4096,
@@ -1111,6 +1116,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x2be26388aab7e646d8a3a81d220456c2bf39f45832a2138659478e7f2cbeabb3",
         "size": 3082,
@@ -1171,6 +1177,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 2,
       "result": {
         "sha256": "0x4ed48fb5662da6fe4b5b5ce2756453caa64dcb4be12802056d1fdff8bd4513f4",
         "size": 2104,

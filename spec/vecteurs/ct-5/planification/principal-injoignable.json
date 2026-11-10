@@ -450,6 +450,7 @@
         "event": "anchor_response_rejected",
         "error_code": "erreur_transport",
         "attempt": 1,
+        "attempt_id": "jeton_periode:a864281e05663ee5:1",
         "provider": "qtsa-principal"
       }
     },
@@ -509,6 +510,7 @@
         "event": "anchor_response_rejected",
         "error_code": "http_503",
         "attempt": 2,
+        "attempt_id": "jeton_periode:a864281e05663ee5:2",
         "provider": "qtsa-principal"
       }
     },
@@ -568,6 +570,7 @@
         "event": "anchor_response_rejected",
         "error_code": "http_408",
         "attempt": 3,
+        "attempt_id": "jeton_periode:a864281e05663ee5:3",
         "provider": "qtsa-principal"
       }
     },
@@ -627,6 +630,7 @@
         "event": "anchor_response_rejected",
         "error_code": "delai",
         "attempt": 4,
+        "attempt_id": "jeton_periode:a864281e05663ee5:4",
         "provider": "qtsa-principal"
       }
     },
@@ -686,6 +690,7 @@
         "event": "anchor_response_rejected",
         "error_code": "http_503",
         "attempt": 5,
+        "attempt_id": "jeton_periode:a864281e05663ee5:5",
         "provider": "qtsa-principal"
       }
     },
@@ -743,7 +748,9 @@
       "detail": {
         "event": "anchor_fallback",
         "to": "qtsa-secours",
-        "reason": "delai"
+        "reason": "delai",
+        "attempt": 6,
+        "attempt_id": "jeton_periode:a864281e05663ee5:6"
       }
     },
     {
@@ -823,6 +830,7 @@
         "event": "anchor_response_rejected",
         "error_code": "demande_close",
         "attempt": 6,
+        "attempt_id": "jeton_periode:a864281e05663ee5:6",
         "provider": "qtsa-principal",
         "kept": true
       }
@@ -872,6 +880,7 @@
           "detail": "ancre incluse au bloc 21087"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x906e615b692493ef817e85d0ed12e9c98e860de2fb0cb904fe3ddfecfd20c25a",
         "size": 4096,
@@ -1005,6 +1014,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 7,
       "result": {
         "sha256": "0xbf8c62fd6c5ed773a10a2cbcc0c40baba3aecfa439bf58e32b0d44b1c07f19f9",
         "size": 3082,
@@ -1048,6 +1058,7 @@
           "detail": "2 calendriers ; attestation en attente"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x9c6433e33949ee9a14685c8929590f0e32f6c611b3b9ea99294cee22a9ba2355",
         "size": 233,

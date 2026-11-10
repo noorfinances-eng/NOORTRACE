@@ -14,9 +14,9 @@
 //                     HTTP représentées, classées selon EX-5.10 à EX-5.12 ;
 //   ots/              fichiers .ots en attente (EX-6.4), paire de mise à niveau
 //                     (EX-6.6) sur les preuves de CT-6 ;
-//   planification/    les vingt-deux traces normatives de §8.10, rejouées par
+//   planification/    les vingt-quatre traces normatives de §8.10, rejouées par
 //                     scripts/lib/ancrage.mjs (rejouerTrace) ;
-//   reprise/          files NDJSON avant et après le redémarrage de deux traces ;
+//   reprise/          files NDJSON avant et après le redémarrage des traces qui partent d'une file ;
 //   cout/             les onze cas de la formule de coût (§12.3) ;
 //   INDEX.md          chaque cas et son attendu.
 //
@@ -280,7 +280,7 @@ function demande({ kind, sujet, deadlines = [], state, created_at, due_at = null
 const sujetPoint = (nom) => ({ kind: "point", org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: POINTS[nom].periode === 1 ? PERIOD_START_1 : PERIOD_START_2, hash: POINTS[nom].hash, tree_size: POINTS[nom].tree_size, declared_at: POINTS[nom].ts });
 const tentative = ({ n, provider = null, started_at, nonce = null, kind, hash, outcome = "en_cours", error_code = null, http_status = null, pki_status = null, failure_info = null, retry_after_s = null, next_at = null, detail }) => ({ n, provider, started_at, nonce, correlation_id: A.identifiantCorrelation(kind, hash, n), outcome, error_code, http_status, pki_status, failure_info, retry_after_s, next_at, detail });
 
-/** Les vingt-deux traces normatives (A.3), dans l'ordre d'A.3. */
+/** Les vingt-quatre traces normatives (A.3), dans l'ordre d'A.3 (les deux dernières : révision 0.6). */
 export function traces(ex) {
   const liste = [];
   const ajouter = (s, controles) => {
@@ -488,9 +488,11 @@ export function traces(ex) {
     jp.attempts = [];
     jp.result = null;
     const fileAvant = [copie(ANCRE("K1")), copie(JETON("K1")), copie(ANCRE("K2")), copie(JETON("K2")), ap, copie(ANCRE("K4")), jp, k4, copie(OP1)];
+    // File écrite avant la révision 0.6 : aucune ligne ne porte attempts_total (EX-8.5, règle 7, lecture).
+    for (const d of fileAvant) delete d.attempts_total;
     const s = new Scenario(
       "redemarrage-reprise",
-      "La trace de référence interrompue à 14:00:02.500 et redémarrée : la file porte le jeton de K4 envoyee (réponse non reçue), l'ancre de la période envoyee sans reçu, le jeton de clôture en attente_registre et la preuve OpenTimestamps en_attente. Transitions d'EX-8.12 : envoyee devient a_reprendre et repart aussitôt avec un nouveau nonce (tentative 2) ; l'ancre est renvoyée ; l'inclusion est interrogée ; la mise à niveau est reprogrammée à max(due_at, now). La réponse à la tentative 1 de K4, arrivée après le redémarrage, est conservée sans changer l'état (EX-8.5).",
+      "La trace de référence interrompue à 14:00:02.500 et redémarrée : la file porte le jeton de K4 envoyee (réponse non reçue), l'ancre de la période envoyee sans reçu, le jeton de clôture en attente_registre et la preuve OpenTimestamps en_attente. Transitions d'EX-8.12 : envoyee devient a_reprendre et repart aussitôt avec un nouveau nonce (tentative 2) ; l'ancre est renvoyée ; l'inclusion est interrogée ; la mise à niveau est reprogrammée à max(due_at, now). La réponse à la tentative 1 de K4, arrivée après le redémarrage, est conservée sans changer l'état (EX-8.5). La file relue a été écrite avant la révision 0.6 : ses lignes ne portent pas attempts_total, qui vaut alors le nombre de leurs tentatives (EX-8.5, règle 7) ; chaque ligne réécrite le porte, une demande que le redémarrage ne réécrit pas garde sa ligne telle quelle.",
       configuration(),
       { queue_before: fileAvant },
     );
@@ -858,7 +860,47 @@ export function traces(ex) {
     });
   }
 
-  exiger(liste.length === 22, "vingt-deux traces attendues");
+  // 23 et 24. file-fenetre-32 (révision 0.6 ; EX-8.5 règle 7, EX-8.12) : une demande de plus de 32 tentatives.
+  const configFenetre = () => configuration({ prestataires: ["principal", "interne"] });
+  let fenetre;
+  {
+    const s = new Scenario(
+      "file-fenetre-32",
+      "Clôture de la période 1 de référence, sans prestataire de secours (aucune relève) : après l'inclusion de l'ancre de la période, le principal répond 39 fois HTTP 503 avec Retry-After 5 s (attente de 5 s, bornée par [initial_ms, max_ms], EX-8.9) ; la tentative 40 part à 14:03:56 et reste sans réponse. Révision 0.6 (EX-8.5, règle 7) : chaque ligne de la file porte au plus les 32 dernières tentatives, par n croissant, et attempts_total ; la file à l'arrêt porte les tentatives 9 à 40, attempts_total 40, sans renumérotation (n et attempt_id restent uniques). La réponse accordée à la tentative 3, sortie de la fenêtre, arrive tard : elle est conservée (stocker) sans être promue, consignée tentative_close avec son rang et son attempt_id (EX-8.15), et l'état ne change pas.",
+      configFenetre(),
+    );
+    s.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" }).inclusion("2026-11-03T14:00:02.000Z", AP1, 21087);
+    let envoi = "2026-11-03T14:00:02.000Z";
+    for (let k = 1; k < 40; k++) {
+      s.echec(plusMs(envoi, 1000), PH1, k, { http_status: 503, retry_after_s: 5 });
+      envoi = plusMs(envoi, 6000);
+    }
+    s.tic(envoi).granted(plusMs(envoi, 500), PH1, 3, { gen_time: "2026-11-03T14:00:15Z", nom: "periode 1 tentative 3", size: 3082 }).arret(plusMs(envoi, 4000));
+    ajouter(s, (t) => [
+      ["40 requêtes, rangs 1 à 40", JSON.stringify(actions(t, "envoyer_rfc3161", (a) => a.request_id === PH1).map((a) => a.detail.attempt)) === JSON.stringify(Array.from({ length: 40 }, (_, i) => i + 1))],
+      ["file à l'arrêt : tentatives 9 à 40, attempts_total 40, envoyee", JSON.stringify(dem(t, PH1).attempts.map((a) => a.n)) === JSON.stringify(Array.from({ length: 32 }, (_, i) => i + 9)) && dem(t, PH1).attempts_total === 40 && dem(t, PH1).state === "envoyee"],
+      ["aucune ligne écrite de plus de 32 tentatives", s.lignes.every((l) => JSON.parse(l).attempts.length <= 32)],
+      ["réponse à la tentative 3 conservée, non promue", actions(t, "stocker", (a) => a.request_id === PH1).length === 1 && actions(t, "journaliser", (a) => a.detail.event === "anchor_response_rejected" && a.detail.error_code === "tentative_close" && a.detail.attempt === 3 && a.detail.attempt_id === A.identifiantCorrelation("jeton_periode", ex.periodHash[1], 3)).length === 1 && dem(t, PH1).result === null],
+    ]);
+    fenetre = s.trace;
+  }
+  {
+    const s = new Scenario(
+      "file-fenetre-32-redemarrage",
+      "La trace file-fenetre-32 interrompue et redémarrée à 14:05 sur sa file : le jeton de clôture est envoyee, sa ligne porte les tentatives 9 à 40 et attempts_total 40. Transitions d'EX-8.12 : la tentative 40, en cours, est close (redemarrage) et la demande repart aussitôt au rang attempts_total + 1 = 41, nouveau nonce et nouvel attempt_id, jamais au rang « nombre de tentatives portées + 1 » (révision 0.6 ; EX-8.5, règle 7). La réponse à la tentative 40, reçue après le redémarrage, est conservée sans promotion ; le jeton de la tentative 41 est promu, et la file à l'arrêt porte les tentatives 10 à 41, attempts_total 41.",
+      configFenetre(),
+      { queue_before: JSON.parse(JSON.stringify(fenetre.queue_after)) },
+    );
+    s.demarrage("2026-11-03T14:05:00.000Z").granted("2026-11-03T14:05:01.000Z", PH1, 40, { gen_time: "2026-11-03T14:03:57Z", nom: "periode 1 tentative 40", size: 3082 });
+    s.granted("2026-11-03T14:05:02.000Z", PH1, 41, { gen_time: "2026-11-03T14:05:01Z", nom: "periode 1 tentative 41", size: 3082 }).arret("2026-11-03T14:06:00.000Z");
+    ajouter(s, (t) => [
+      ["reprise au rang 41", JSON.stringify(actions(t, "envoyer_rfc3161").map((a) => a.detail.attempt)) === "[41]" && actions(t, "envoyer_rfc3161")[0].t === "2026-11-03T14:05:00.000Z"],
+      ["réponse à la tentative 40 conservée, non promue", actions(t, "journaliser", (a) => a.detail.event === "anchor_response_rejected" && a.detail.error_code === "tentative_close" && a.detail.attempt === 40).length === 1],
+      ["jeton de la tentative 41 promu ; tentatives 10 à 41, attempts_total 41", dem(t, PH1).state === "obtenue" && dem(t, PH1).result.sha256 === shaTexte("jeton periode 1 tentative 41") && JSON.stringify(dem(t, PH1).attempts.map((a) => a.n)) === JSON.stringify(Array.from({ length: 32 }, (_, i) => i + 10)) && dem(t, PH1).attempts_total === 41],
+    ]);
+  }
+
+  exiger(liste.length === 24, "vingt-quatre traces attendues");
   return liste;
 }
 
@@ -1347,6 +1389,8 @@ function index({ constantes: c, requetes, reponses, ots, traces: tr, cout, repri
   L.push("");
   L.push("Chaque trace est conforme à la racine de `planificateur-ancrage-v0.schema.json` ; `rejouerTrace` de `scripts/lib/ancrage.mjs` rend `expected` et `queue_after` à l'identique (formes canoniques JCS v0, dans l'ordre). La trace de référence est, forme canonique pour forme canonique, l'exemple de CT-5 §8.10.");
   L.push("");
+  L.push("Révision 0.6 de CT-5 : chaque ligne de file écrite par le planificateur (`queue_after`, fichiers de `reprise/`) porte au plus 32 tentatives et `attempts_total` (EX-8.5, règle 7) ; une demande relue d'une file écrite avant la révision et que la trace ne réécrit pas garde sa ligne sans `attempts_total` (`redemarrage-reprise`). Chaque ligne `checkpoint_countersigned` porte `d_admission_s` (instant d'admission du point moins `checkpoint_ts`, tronqués à la seconde depuis `D_k`) et `d_attente_s` compté depuis l'admission (EX-3.5, 8.9) : 0 quand l'entrée `point_produit` a `t = checkpoint_ts`. Les lignes `anchor_retry`, `anchor_fallback` et `anchor_response_rejected` d'une tentative portent son rang (`attempt`) et son `attempt_id` (EX-8.15). Le compactage de la file (EX-8.5, règle 5) n'est pas une action de trace : il ne change ni `expected` ni `queue_after`.");
+  L.push("");
   L.push("| Trace | Entrées | Actions | File au départ | File à l'arrêt | Règles exercées |");
   L.push("|---|---|---|---|---|---|");
   const regles = {
@@ -1372,6 +1416,8 @@ function index({ constantes: c, requetes, reponses, ots, traces: tr, cout, repri
     "reponse-hors-profil": "EX-5.10, EX-5.12 (réponse hors profil, permanente)",
     "point-manquant": "EX-4.1, EX-4.3, 8.9 (point_manquant, AN-2)",
     "point-manquant-saut-horloge": "EX-4.1, 8.9 (point_manquant après un saut d'horloge : délai compté depuis le checkpoint_ts du dernier point admis ; révision 0.4), EX-4.3",
+    "file-fenetre-32": "EX-8.5 règle 7 (fenêtre de 32 tentatives, attempts_total, réponse à une tentative sortie de la fenêtre), EX-8.9, EX-8.15 (révision 0.6)",
+    "file-fenetre-32-redemarrage": "EX-8.5 règle 7, EX-8.12 (reprise au rang attempts_total + 1 ; révision 0.6)",
   };
   for (const { trace: t } of tr) L.push(`| \`${t.id}.json\` | ${t.inputs.length} | ${t.expected.length} | ${t.queue_before.length} | ${t.queue_after.length} | ${regles[t.id]} |`);
   L.push("");
@@ -1379,7 +1425,7 @@ function index({ constantes: c, requetes, reponses, ots, traces: tr, cout, repri
   L.push("");
   L.push("## reprise/ (EX-8.12, AN-33)");
   L.push("");
-  L.push("Files NDJSON (une demande par ligne, JCS intégral) avant et après le `demarrage` de deux traces : une seule demande par `id`, la dernière ligne fait foi.");
+  L.push("Files NDJSON (une demande par ligne, JCS intégral) avant et après le `demarrage` des traces qui partent d'une file non vide : une seule demande par `id`, la dernière ligne fait foi.");
   L.push("");
   for (const r of reprise) L.push(`- \`${r.id}.avant.ndjson\` (${r.avant} ligne(s)), \`${r.id}.apres.ndjson\` (${r.apres} ligne(s)) : file de \`planification/${r.id}.json\`.`);
   L.push("");

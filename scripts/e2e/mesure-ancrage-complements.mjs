@@ -219,7 +219,18 @@ export async function mesurerPlanificateur({ dir, log }) {
       await d.fermer();
     }
   }
-  // Régime de panne : prestataire des points coupé pendant une heure simulée, c_T = 60 s (une demande par point), file bornée à max_pending.
+  resultats.panne = await mesurerPanne({ dir, log });
+  return resultats;
+}
+
+/**
+ * Régime de panne (TM-17) : prestataire des points coupé pendant une heure simulée, c_T = 60 s (une demande par point),
+ * file bornée à max_pending, clôture pendant la panne ; relève la taille du fichier courant de la file, ses lignes, le
+ * plus grand nombre de tentatives par ligne et les compactages (CT-5 révision 0.6, EX-8.5 règles 5 et 7).
+ */
+export async function mesurerPanne({ dir, log }) {
+  const TOUTES = Object.fromEntries(Array.from({ length: 59 }, (_, i) => [i + 1, 1]));
+  const resultats = {};
   {
     const horloge = new HorlogeReglable(PERIODE * 1000);
     const rep = path.join(dir, "panne");
@@ -238,32 +249,69 @@ export async function mesurerPlanificateur({ dir, log }) {
       transport.pannes.add(d.interne.prestataire.url);
       transport.pannes.add(d.principal.prestataire.url);
       let maxActives = 0;
-      let maxLignes = 0;
       let maxRss = process.memoryUsage().rss;
+      // Révision 0.6 de CT-5 (EX-8.5, règles 5 et 7) : taille du fichier courant (maximum, relevé par la couche de
+      // fichier après chaque ligne), lignes, plus grand nombre de tentatives porté par une ligne, compactages.
+      let maxTentativesLigne = 0;
+      let maxLignesFichier = 0;
+      const fichierCourant = () => {
+        const f = path.join(c.configuration.queue.path, "file-1.ndjson");
+        return fs.existsSync(f) ? fs.readFileSync(f, "utf8").split("\n").filter(Boolean) : [];
+      };
+      const relever = () => {
+        maxActives = Math.max(maxActives, c.composant.etat().actives);
+        maxRss = Math.max(maxRss, process.memoryUsage().rss);
+        for (const x of c.composant.demandes()) maxTentativesLigne = Math.max(maxTentativesLigne, x.attempts.length);
+        maxLignesFichier = Math.max(maxLignesFichier, fichierCourant().length);
+      };
       for (let k = 0; k < c.serie.points.length - 1; k++) {
         const point = c.serie.points[k];
         await horloge.aller(N.decoderHorodatage(point.checkpoint_ts), calme);
         c.remis.push(point);
         await c.composant.remettrePoint(remisePoint(point));
         await calme();
-        maxActives = Math.max(maxActives, c.composant.etat().actives);
-        maxRss = Math.max(maxRss, process.memoryUsage().rss);
+        relever();
       }
+      // Clôture pendant la panne : compactage de la clôture (EX-8.5, règle 5).
+      const cloture = c.serie.points.at(-1);
+      await horloge.aller(N.decoderHorodatage(cloture.checkpoint_ts), calme);
+      c.remis.push(cloture);
+      await c.composant.remettrePoint(remisePoint(cloture));
+      await c.composant.remettreCloture(remiseCloture(c.serie));
+      await calme();
+      relever();
       const relue = lireFiles(c.configuration.queue.path);
-      maxLignes = relue.fichiers.reduce((a, f) => a + fs.readFileSync(path.join(c.configuration.queue.path, f), "utf8").split("\n").filter(Boolean).length, 0);
+      const lignesCourantes = fichierCourant();
+      for (const l of lignesCourantes) maxTentativesLigne = Math.max(maxTentativesLigne, JSON.parse(l).attempts.length);
+      const ligneMax = lignesCourantes.reduce((a, l) => Math.max(a, Buffer.byteLength(l) + 1), 0);
+      const lignesFichiers = relue.fichiers.reduce((a, f) => a + fs.readFileSync(path.join(c.configuration.queue.path, f), "utf8").split("\n").filter(Boolean).length, 0);
       const demandes = c.composant.demandes();
       const taille = relue.fichiers.reduce((a, f) => a + fs.statSync(path.join(c.configuration.queue.path, f)).size, 0);
+      const mesuresFile = c.composant.etat().file ?? {};
+      const compactages = journal.de("anchor_queue_compacted").map((l) => l.data);
+      const echecsCompactage = journal.de("anchor_queue_compaction_failed").map((l) => l.data);
+      // Borne de la règle 5 : avant chaque compactage la taille dépassait max(compact_bytes, 2 × S_0) d'au plus une ligne.
+      const depassements = [];
+      let s0 = 0;
+      for (const k of compactages) {
+        const borne = Math.max(mesuresFile.compact_bytes, 2 * s0) + ligneMax;
+        if (k.bytes_before > borne) depassements.push({ bytes_before: k.bytes_before, borne });
+        s0 = k.bytes_after;
+      }
+      if ((mesuresFile.taille ?? 0) > Math.max(mesuresFile.compact_bytes, 2 * (mesuresFile.s0 ?? 0)) + ligneMax) depassements.push({ taille: mesuresFile.taille, borne: Math.max(mesuresFile.compact_bytes, 2 * (mesuresFile.s0 ?? 0)) + ligneMax });
       resultats.panne = {
-        heure_simulee: true, demandes_en_file: demandes.length, demandes_actives_max: maxActives, lignes_file: maxLignes, octets_file: taille, rss_max_octets: maxRss,
-        tentatives: demandes.reduce((a, x) => a + x.attempts.length, 0), anchor_retry: journal.de("anchor_retry").length, file_pleine: journal.de("anchor_queue_full").length, max_pending: 1000,
+        heure_simulee: true, demandes_en_file: demandes.length, demandes_actives_max: maxActives, lignes_file: lignesFichiers, octets_file: taille, rss_max_octets: maxRss,
+        tentatives: demandes.reduce((a, x) => a + (x.attempts_total ?? x.attempts.length), 0), anchor_retry: journal.de("anchor_retry").length, file_pleine: journal.de("anchor_queue_full").length, max_pending: 1000,
+        fichier_courant_octets_max: mesuresFile.taille_max ?? null, fichier_courant_lignes_max: maxLignesFichier, ligne_octets_max: ligneMax, tentatives_par_ligne_max: maxTentativesLigne,
+        compact_bytes: mesuresFile.compact_bytes ?? null, s0: mesuresFile.s0 ?? null, compactages: compactages.length, compactages_en_echec: echecsCompactage.length, compactages_detail: compactages, echecs_detail: echecsCompactage, depassements,
       };
-      log(`TM-17 panne : ${demandes.length} demandes en file (max actives ${maxActives}), ${maxLignes} lignes (${taille} octets), RSS max ${maxRss} octets, ${resultats.panne.tentatives} tentatives`);
+      log(`TM-17 panne : ${demandes.length} demandes en file (max actives ${maxActives}), ${lignesFichiers} lignes (${taille} octets), fichier courant au plus ${mesuresFile.taille_max} octets et ${maxLignesFichier} lignes, ${maxTentativesLigne} tentatives au plus par ligne, ${compactages.length} compactage(s), ${echecsCompactage.length} en échec, RSS max ${maxRss} octets, ${resultats.panne.tentatives} tentatives`);
       await c.composant.arreter({ attendre: false });
     } finally {
       await d.fermer();
     }
   }
-  return resultats;
+  return resultats.panne;
 }
 
 export async function complements({ sortie, reseauPublic = false, log = () => {} }) {

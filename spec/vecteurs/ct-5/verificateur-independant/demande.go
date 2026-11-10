@@ -88,17 +88,92 @@ func (r *Resultat) valeur() *Value {
 
 // Demande est une entrée de la file (`$defs/demande`).
 type Demande struct {
-	Version    int64
-	ID         string
-	Kind       string
-	Subject    *Sujet
-	Deadlines  []int64
-	State      string
-	CreatedAt  string
-	DueAt      *string
-	Attempts   []*Tentative
-	Result     *Resultat
-	ReplacedBy *string
+	Version   int64
+	ID        string
+	Kind      string
+	Subject   *Sujet
+	Deadlines []int64
+	State     string
+	CreatedAt string
+	DueAt     *string
+	Attempts  []*Tentative
+	// AttemptsTotal est le nombre de tentatives depuis la création (EX-8.5,
+	// règle 7 ; révision 0.6) ; nil pour une ligne écrite avant la révision.
+	AttemptsTotal *int64
+	Result        *Resultat
+	ReplacedBy    *string
+}
+
+// FenetreTentatives est le nombre maximal de tentatives qu'une ligne de file
+// porte (EX-8.5, règle 7 ; révision 0.6 ; maxItems de `$defs/demande`).
+const FenetreTentatives = 32
+
+// Total rend attempts_total : le membre lu ou écrit, sinon, pour une ligne
+// d'avant la révision 0.6 qui portait toutes ses tentatives, leur nombre.
+func (d *Demande) Total() int64 {
+	if d.AttemptsTotal != nil {
+		return *d.AttemptsTotal
+	}
+	return int64(len(d.Attempts))
+}
+
+// Fenetre réduit les tentatives à celles qu'une ligne porte (EX-8.5, règle
+// 7) : les tentatives en cours toujours, puis les plus récentes par rang
+// décroissant jusqu'à 32 ; rangées par rang croissant, jamais renumérotées.
+func Fenetre(l []*Tentative) []*Tentative {
+	garde := map[*Tentative]bool{}
+	for _, a := range l {
+		if a.Outcome == "en_cours" {
+			garde[a] = true
+		}
+	}
+	autres := []*Tentative{}
+	for _, a := range l {
+		if a.Outcome != "en_cours" {
+			autres = append(autres, a)
+		}
+	}
+	sort.SliceStable(autres, func(i, j int) bool { return autres[i].N > autres[j].N })
+	for _, a := range autres {
+		if len(garde) >= FenetreTentatives {
+			break
+		}
+		garde[a] = true
+	}
+	out := []*Tentative{}
+	for _, a := range l {
+		if garde[a] {
+			out = append(out, a)
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].N < out[j].N })
+	return out
+}
+
+// ControlerLigneEcrite dit si une ligne écrite par un planificateur de la
+// révision 0.6 respecte `$defs/demande` révisé et la règle 7 d'EX-8.5 : au plus
+// 32 tentatives, rangs strictement croissants, attempts_total présent (0 à
+// 100 000) et égal au plus grand rang (0 sans tentative).
+func ControlerLigneEcrite(d *Demande) error {
+	if len(d.Attempts) > FenetreTentatives {
+		return fmt.Errorf("%s : %d tentatives, au plus %d", d.ID, len(d.Attempts), FenetreTentatives)
+	}
+	if d.AttemptsTotal == nil {
+		return fmt.Errorf("%s : attempts_total absent", d.ID)
+	}
+	var max int64
+	for i, a := range d.Attempts {
+		if i > 0 && a.N <= d.Attempts[i-1].N {
+			return fmt.Errorf("%s : rangs non strictement croissants", d.ID)
+		}
+		if a.N > max {
+			max = a.N
+		}
+	}
+	if *d.AttemptsTotal != max || *d.AttemptsTotal > 100000 {
+		return fmt.Errorf("%s : attempts_total %d, plus grand rang %d", d.ID, *d.AttemptsTotal, max)
+	}
+	return nil
 }
 
 // Valeur rend la demande en valeur JSON (clés du schéma).
@@ -107,7 +182,12 @@ func (d *Demande) Valeur() *Value {
 	for _, a := range d.Attempts {
 		att.Arr = append(att.Arr, a.valeur())
 	}
-	return vObj("version", vInt(d.Version), "id", vStr(d.ID), "kind", vStr(d.Kind), "subject", d.Subject.valeur(), "deadlines", vEntiers(d.Deadlines), "state", vStr(d.State), "created_at", vStr(d.CreatedAt), "due_at", vStrOuNul(d.DueAt), "attempts", att, "result", d.Result.valeur(), "replaced_by", vStrOuNul(d.ReplacedBy))
+	o := vObj("version", vInt(d.Version), "id", vStr(d.ID), "kind", vStr(d.Kind), "subject", d.Subject.valeur(), "deadlines", vEntiers(d.Deadlines), "state", vStr(d.State), "created_at", vStr(d.CreatedAt), "due_at", vStrOuNul(d.DueAt), "attempts", att)
+	if d.AttemptsTotal != nil {
+		o.Obj = append(o.Obj, Member{Key: "attempts_total", Val: vInt(*d.AttemptsTotal)})
+	}
+	o.Obj = append(o.Obj, Member{Key: "result", Val: d.Result.valeur()}, Member{Key: "replaced_by", Val: vStrOuNul(d.ReplacedBy)})
+	return o
 }
 
 // LigneFile rend la ligne NDJSON d'une demande (forme canonique JCS).
@@ -198,11 +278,24 @@ func TentativeDe(v *Value) (*Tentative, error) {
 
 // DemandeDe lit une demande (ligne de file ou entrée de queue_before).
 func DemandeDe(v *Value) (*Demande, error) {
-	if err := clesExactes(v, "demande", "version", "id", "kind", "subject", "deadlines", "state", "created_at", "due_at", "attempts", "result", "replaced_by"); err != nil {
+	// attempts_total (révision 0.6) est facultatif à la lecture : une ligne écrite
+	// avant la révision ne le porte pas (EX-8.5, règle 7).
+	cles := []string{"version", "id", "kind", "subject", "deadlines", "state", "created_at", "due_at", "attempts", "result", "replaced_by"}
+	if v != nil && v.Kind == KindObject && v.Has("attempts_total") {
+		cles = append(cles, "attempts_total")
+	}
+	if err := clesExactes(v, "demande", cles...); err != nil {
 		return nil, err
 	}
 	d := &Demande{DueAt: ptrChaine(v, "due_at"), ReplacedBy: ptrChaine(v, "replaced_by")}
 	var ok bool
+	if v.Has("attempts_total") {
+		n, ok := entierDe(v, "attempts_total")
+		if !ok || n < 0 || n > 100000 {
+			return nil, fmt.Errorf("attempts_total : entier de 0 à 100 000 attendu")
+		}
+		d.AttemptsTotal = &n
+	}
 	if d.Version, ok = entierDe(v, "version"); !ok {
 		return nil, fmt.Errorf("version : entier attendu")
 	}
@@ -233,6 +326,9 @@ func DemandeDe(v *Value) (*Demande, error) {
 	at := v.Get("attempts")
 	if at == nil || at.Kind != KindArray {
 		return nil, fmt.Errorf("attempts : liste attendue")
+	}
+	if len(at.Arr) > 100000 {
+		return nil, fmt.Errorf("attempts : au plus 100 000 éléments")
 	}
 	d.Attempts = []*Tentative{}
 	for _, x := range at.Arr {

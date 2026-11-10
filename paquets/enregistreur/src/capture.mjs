@@ -51,6 +51,27 @@ export function redactionDe(partiel, nomRedaction) {
   return refs.some((r) => r.redacted === true) ? nomRedaction ?? null : null;
 }
 
+/**
+ * Événement partiel d'un événement en attente relu au redémarrage dont au
+ * moins une pièce manque (CT-2 EX-14.18 pas 3 et 4, révision 0.7) :
+ * `execution.is_error = true`, `execution.result` = référence de la pièce de
+ * remplacement (`pieceAttentePiecesPerdues`), toutes les autres références
+ * gardées telles quelles, `policy.redaction` recalculé selon EX-10.16 sur les
+ * références de l'événement scellé (le nom gardé est celui de l'événement
+ * partiel, à défaut `nomRedaction`) ; aucun autre membre ne change.
+ * @param {object} partiel événement partiel de la ligne d'attente
+ * @param {{reference: object}} piece pièce de remplacement
+ * @param {string|null} [nomRedaction]
+ * @returns {object}
+ */
+export function partielPiecesPerdues(partiel, piece, nomRedaction = null) {
+  const p = structuredClone(partiel);
+  p.execution.is_error = true;
+  p.execution.result = { ...piece.reference };
+  p.policy.redaction = redactionDe(p, partiel.policy?.redaction ?? nomRedaction);
+  return p;
+}
+
 function code(p, policyVersion, recorder) {
   return { model: p?.model ?? null, prompt_version: p?.prompt_version ?? null, policy_version: policyVersion, recorder };
 }

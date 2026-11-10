@@ -377,7 +377,10 @@ describe("enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon r�
     expect(enVol.length).to.be.at.most(2);
     // Chaque requête RFC 3161 partie a d'abord sa ligne `envoyee` dans la file (AN-32).
     const lignesFile = fs.readFileSync(path.join(m.documentAncrage.queue.path, relue.fichiers[0]), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-    const nonces = new Set(lignesFile.filter((l) => l.state === "envoyee").flatMap((l) => l.attempts.map((a) => a.nonce)).filter(Boolean));
+    // Révision 0.6 de CT-5 (EX-8.5 règle 5, EX-8.14) : la file a été compactée à la clôture (les lignes `envoyee`
+    // remplacées ne sont plus conservées) ; chaque tentative garde dans la dernière ligne de sa demande le nonce
+    // que sa ligne `envoyee` a consigné avant l'envoi (AN-32, éprouvé ligne à ligne par les traces).
+    const nonces = new Set(lignesFile.flatMap((l) => l.attempts.map((a) => a.nonce)).filter(Boolean));
     const depot = DepotAncres.ouvrir({ racine: m.config.storage.root, orgId: m.config.recorder.org_id, journalId: m.config.recorder.journal_id });
     for (const e of depot.lireAcquisitions(PERIODE).enregistrements) expect(nonces.has(e.nonce), e.attempt_id).to.equal(true);
   });

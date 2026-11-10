@@ -718,7 +718,8 @@
         ],
         "d_jeton_s": 9304,
         "d_point_s": 240,
-        "d_attente_s": 9062,
+        "d_admission_s": 9060,
+        "d_attente_s": 2,
         "d_releve_s": 0,
         "d_tsa_s": 2
       }
@@ -1004,6 +1005,7 @@
           "detail": "ancre incluse au bloc 30359"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x76ca537cca9e9984cb16be11b31e8b397b5184cfad2f84d28c6eff6a116cf1a8",
         "size": 4096,
@@ -1059,6 +1061,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xe3ea9eab3823010842136de065fd1fdf61af943654731c7558a0d630878e34a2",
         "size": 2104,
@@ -1102,6 +1105,7 @@
           "detail": "ancre incluse au bloc 30361"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xd0096cd5feb0c658c7f263b417ba81d65548baea361ec77ec917814f7c217c13",
         "size": 4096,
@@ -1145,6 +1149,7 @@
           "detail": "ancre incluse au bloc 30360"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x78a601a92037559b27372e627fa37c00cab45682b598a19d47f7c8c187b2ca73",
         "size": 4096,
@@ -1188,6 +1193,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xb1e0badba1f2305cb1f955f9dce1847b2fc4706498e4304974d888d22e629e41",
         "size": 3082,
@@ -1231,6 +1237,7 @@
           "detail": "2 calendriers ; attestation en attente"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x994ce628449187e8c3e055071f4144cce89958108291f7f1dff253140fbda8cd",
         "size": 233,

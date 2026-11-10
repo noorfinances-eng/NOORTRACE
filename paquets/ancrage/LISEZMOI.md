@@ -117,7 +117,8 @@ lui-même.
 ## Fichiers sur disque
 
 ```text
-<queue.path>/file-<epoque>.ndjson                       file durable (une ligne JCS intégral par état d'une demande, EX-8.5)
+<queue.path>/file-<epoque>.ndjson                       file durable (une ligne JCS intégral par état d'une demande, 32 tentatives au plus et attempts_total, compactée à la clôture et au-delà de queue.compact_bytes, EX-8.5 règles 5 et 7)
+<queue.path>/file-<epoque>.ndjson.compactage            fichier neuf d'un compactage, renommé sur le fichier courant ; resté d'un arrêt, supprimé au démarrage (EX-8.12)
 <racine>/<org_id>/<journal_id>/ancres/periode-<period_start>/
   rfc3161/<objet>-<provider_id>-<attempt_id>.tsq        requête telle qu'envoyée
   rfc3161/<objet>-<provider_id>-<attempt_id>.tsr        réponse telle que reçue (réponse d'erreur comprise)
@@ -132,7 +133,9 @@ lui-même.
 
 `<objet>` vaut `manifeste` ou `point-<checkpointHash sans 0x>` ;
 `<attempt_id>` est `<kind>:<16 premiers hex de l'empreinte>:<n>` ; rien n'est
-jamais réécrit ni supprimé ; le jeton remis au dossier est le `.der` de la
+jamais réécrit ni supprimé, hors le fichier courant de la file, remplacé par
+sa forme compactée (renommage atomique), et le `.compactage` resté d'un arrêt
+(CT-5 révision 0.6, EX-8.5 règle 5, EX-8.14) ; le jeton remis au dossier est le `.der` de la
 tentative que la dernière ligne d'`acquisitions.ndjson` marque `promoted`
 sans `revoked` (EX-5.8, `DepotAncres.promu`).
 
@@ -146,8 +149,8 @@ sans `revoked` (EX-5.8, `DepotAncres.promu`).
 | `ct-6/dossiers/*` | 91 jetons de période, 17 jetons de points | `rfc3161` | conformes |
 | `ct-5/ots/*` | 3 preuves, paire de mise à niveau | `ots` | octets identiques ; resérialisés à l'identique par `python-opentimestamps` |
 | `ct-6/ots/attendu.json` (CT-6 révision 0.5), dossiers | 13 preuves, 21 cas O-1 à O-5, O-7, dont `o1-attestation-en-double` (O-1 `echoue`, `doublon`) ; preuves des dossiers | `ots` | identiques |
-| `ct-5/planification/*.json` (CT-5 révision 0.4) | 22 traces | `planificateur` | `expected` et `queue_after` identiques (JCS) |
-| `ct-5/reprise/*.ndjson` | 6 scénarios | `planificateur` | relecture et fusion des époques octet pour octet |
+| `ct-5/planification/*.json` (CT-5 révision 0.6) | 24 traces, dont `file-fenetre-32` et `file-fenetre-32-redemarrage` | `planificateur`, binaire (`trace`) | `expected` et `queue_after` identiques (JCS) |
+| `ct-5/reprise/*.ndjson` | 7 scénarios, dont `file-fenetre-32-redemarrage` | `planificateur` | relecture et fusion des époques octet pour octet |
 | `ct-5/cout/cout.json`, `ct-5/completude/completude.json`, `ct-5/constantes.json` | 11, 6 cas ; constantes | `planificateur`, binaire | égaux |
 | `ct-1/points-de-controle/*`, `manifestes/`, `cles/` | 3 séries valides, 10 invalides | `planificateur`, binaire | admises ; refusées sur la règle attendue |
 | `ct-4/*` (sauf `inscription`), `ct-6/registre/*` | identifiants, doctypes, empreintes, condensés, appels, transactions, demandes, capture (17), manifestes (24), trie, attendu | `registre` | octet pour octet |
@@ -213,7 +216,7 @@ mémoire comme transport, horloge réglable, nœud factice du registre, 1 500
 captures mutées, 21 jetons mutés de la relecture en fixture
 `test/fixtures/ancrage-h1/`) et `test/enregistreur-ancrage-corrections-h1.test.js`
 (R-G-1). L'alignement sur CT-5 révision 0.5 (règles de la révision 0.4) et CT-6 révision 0.5 est éprouvé
-par les vecteurs eux-mêmes (22 traces, 41 cas RFC 3161, 21 cas OpenTimestamps)
+par les vecteurs eux-mêmes (24 traces, 41 cas RFC 3161, 21 cas OpenTimestamps)
 et, hors traces, par `test/ancrage-planificateur-unites.test.js` (règle de
 `point_manquant` depuis le `checkpoint_ts` déclaré, point de clôture sans
 minuterie, alertes `contresignature_tardive` et `jeton_anterieur_au_point`
@@ -952,6 +955,75 @@ par lot. Chaque lecture est vérifiée par les vecteurs quand ils la couvrent.
    OpenTimestamps) rendaient déjà l'attendu ; les essais comptent désormais
    ces cas et nomment ces vecteurs.
 
+### Révision 0.6 de CT-5 (D2 : taille de la file ; D3 : décomposition de `d_jeton`)
+
+Texte : CT-5 révision 0.6 (EX-8.5 règles 5 et 7, EX-8.12, EX-4.8, EX-8.2,
+EX-8.14, EX-5.15, EX-8.15, EX-3.5) ; schémas `ancrage-v0` (`queue.compact_bytes`)
+et `planificateur-ancrage-v0` (`attempts` ≤ 32, `attempts_total`).
+
+| Exigence | Code | Essai |
+|---|---|---|
+| Copies des schémas | `src/planificateur/schemas-ancrage.mjs`, régénéré à l'identique de `spec/schemas/` | `test/ancrage-planificateur-configuration.test.js` (« les schémas embarqués sont identiques… ») |
+| EX-8.5 règle 7 (écriture) : 32 tentatives au plus, `en_cours` toujours, `attempts_total` toujours écrit, `n` jamais renuméroté | `Planificateur.fenetrer`, `nouvelleTentative` (`src/planificateur/planificateur.mjs`) ; `controlerDemande` refuse plus de 32 | `test/ancrage-planificateur-fenetre.test.js` (« relève : la tentative en_cours ancienne… ») ; traces `file-fenetre-32*` |
+| EX-8.5 règle 7 (lecture des lignes d'avant 0.6) | `validerLigneDemande`, `totalTentatives` (`src/planificateur/file.mjs`), `chargerDemande` | `test/ancrage-file-compactage.test.js` (« une ligne sans attempts_total… ») ; `test/ancrage-planificateur-fenetre.test.js` (« lecture d'une file d'avant la révision… ») |
+| EX-8.12 : rang `attempts_total + 1`, file compactée relue, `.compactage` supprimé | `nouvelleTentative` ; `supprimerResidusCompactage` à `FileDurable.ouvrir` | `test/ancrage-planificateur-fenetre.test.js` (« EX-8.12 : reprise… rang 41 ») ; `test/ancrage-file-compactage.test.js` (« un file-<epoch>.ndjson.compactage resté d'un arrêt… ») ; `test/ancrage-composant-compactage.test.js` (« au démarrage, le .compactage… ») |
+| EX-8.5 règle 5 : déclencheurs (clôture ; taille > `compact_bytes` et > `2 × S_0` ; une tentative par minute après échec), procédé (a) à (f), échec non bloquant, borne | `FileDurable.compacter`, `declencher`, `dernieresLignes` ; `ComposantAncrage.remettreCloture` | `test/ancrage-file-compactage.test.js` (procédé, déclencheur, ENOSPC, pas en échec, arrêt à chaque pas, concurrence) ; `test/ancrage-planificateur-fenetre.test.js` (panne de l'étape 5) ; `test/ancrage-composant-compactage.test.js` (clôture, ENOSPC) |
+| EX-4.8, AN-1, EX-8.2 : `queue.compact_bytes` facultative, défaut, bornes ; hors projection | `src/composant.mjs` (`demarrer`) ; schéma ; `projection` inchangée | `test/ancrage-composant-compactage.test.js` (« sans la clé… », « 1 048 575 et 1 073 741 825… ») |
+| EX-8.14, EX-5.15 : file conservée sous sa dernière forme compactée, seul `.compactage` supprimé | `FileDurable` | `test/ancrage-composant-compactage.test.js` (« à la clôture… aucun fichier n'a disparu hors le .compactage ») |
+| EX-8.15 : `attempt` et `attempt_id` sur `anchor_retry`, `anchor_fallback`, `anchor_response_rejected` ; `anchor_queue_compacted`, `anchor_queue_compaction_failed` | `journaliserTentative`, `tentativeDe` ; `EVENEMENTS_JOURNAL` ; ligne `anchor_retry` du composant | traces (24) ; `test/ancrage-planificateur-fenetre.test.js` (panne : chaque tentative sortie se lit au journal) ; `test/ancrage-composant-compactage.test.js` (« prestataire des points coupé… ») |
+| EX-3.5, 8.9 : `d_admission_s`, `d_attente_s` depuis l'admission, cinq instants tronqués | `promouvoir` (`admisA` à `pointProduit`, au repli de clôture et, pour une demande relue, `created_at`) | `test/ancrage-planificateur-fenetre.test.js` (« point produit 0,2 s après D_1… », « dans chaque trace… ») ; `test/ancrage-planificateur-traces.test.js` (« les cinq composantes… ») |
+
+Lectures et choix :
+
+1. **Fenêtre en mémoire.** La demande en mémoire est la ligne écrite : la
+   fenêtre s'applique à chaque écriture, la file rendue par `file()` est donc
+   celle de la file durable. Ce que la règle 7 retire de la ligne reste dans
+   la mémoire du processus pour les seules règles qui comptent des
+   tentatives : la série d'échecs transitoires consécutifs chez un
+   prestataire (attente d'EX-8.9), le nombre d'échecs transitoires
+   (OpenTimestamps), l'admission d'une transaction par un nœud (EX-9.5) et
+   le nonce de la requête (borne d'une réponse tardive à une tentative
+   sortie). Après un redémarrage ces tentatives sont inconnues : les
+   attentes restent exactes au-delà de 21 échecs (bornes du schéma : facteur
+   ≥ 2 et `initial_ms` ≥ 100, l'attente vaut alors `retry.max_ms`), une ancre
+   qui a des tentatives sorties n'est pas tenue pour « encore à envoyer »
+   (une transaction a pu partir, CT-4 §8.6), la borne d'une réponse à une
+   tentative sortie est nulle.
+2. **Demande relue non réécrite.** Une ligne d'avant 0.6 relue garde sa forme
+   (sans `attempts_total`) tant qu'elle n'est pas réécrite ; `file()` la rend
+   telle quelle, comme la dernière ligne de la file durable.
+3. **Instant d'admission d'une demande relue.** Une demande de point est
+   créée à l'admission du point ; relue de la file, son instant d'admission
+   est son `created_at` ; un point relu du stockage au démarrage
+   (`stockage_relu`) est admis à l'instant de sa relecture. Les traces
+   régénérées (`redemarrage-reprise` : `d_admission_s` 0) le confirment.
+4. **Premier envoi** : gardé en mémoire depuis la tentative de rang 1 ; pour
+   une demande relue dont la tentative 1 est sortie, la plus ancienne
+   tentative de la ligne.
+5. **Pas (e) en échec.** Le renommage étant fait, l'ancien descripteur
+   désigne un fichier sans nom : la ligne `anchor_queue_compaction_failed`
+   (`step` `repertoire`) est consignée et l'ajout continue sur le fichier
+   courant (le neuf, valide), non sur l'ancien descripteur, pour ne perdre
+   aucune ligne.
+6. **`S_0` à l'ouverture** vaut 0 (aucun compactage précédent dans le
+   processus) : une file d'avant 0.6 plus grande que `compact_bytes` est
+   compactée dès l'ouverture.
+7. **Compactage à la clôture** : appelé par le composant après le
+   traitement de `periode_close` (les trois demandes écrites), sous le verrou
+   qui sérialise les écritures ; la reconstruction d'une clôture par
+   `stockage_relu` n'en déclenche pas.
+
+Essais existants mis à jour : `test/ancrage-planificateur-traces.test.js`
+(24 traces au lieu de 22, 7 files de reprise au lieu de 6, cinq composantes
+de `d_jeton`) ; `test/ancrage-composant-cli.test.js` (24 traces) ;
+`test/ancrage-composant-parcours.test.js` et
+`test/enregistreur-ancrage-parcours.test.js` (AN-32 : la file étant compactée
+à la clôture, les lignes `envoyee` remplacées ne sont plus dans le fichier ;
+l'essai vérifie que chaque nonce d'`acquisitions.ndjson` figure dans les
+tentatives de la file, l'ordre ligne `envoyee` puis envoi étant éprouvé par
+les 24 traces). Aucun essai existant ne portait de ligne de plus de
+32 tentatives ni n'exigeait l'absence d'`attempts_total`.
+
 ## Écarts au contrat initial retenus
 
 `INTERFACES.md` est le contrat final et décrit exactement le code livré. Les
@@ -976,7 +1048,9 @@ profil ; `Envoyeur.envoi`, `oublierIndex`, `envoisSansIssueParHash`,
 `reason: demande_non_conforme` et `path`) et ceux de l'alignement sur les
 textes révisés (minuterie de `point_manquant` depuis le `checkpoint_ts`
 déclaré, alertes `jeton_anterieur_au_point` et `contresignature_tardive` du
-planificateur, 22 traces) y sont tous reportés, aux rubriques A à F.
+planificateur, 22 traces), puis ceux de la révision 0.6 de CT-5 (fenêtre de
+32 tentatives, compactage, `d_admission_s`, `attempt`/`attempt_id`,
+24 traces) y sont tous reportés, aux rubriques A à F.
 
 ## Restes
 
@@ -987,17 +1061,10 @@ planificateur, 22 traces) y sont tous reportés, aux rubriques A à F.
   test : `test/plan-de-tests.test.js` échoue tant qu'ils ne sont pas
   régénérés par l'outillage de la référence, hors salle blanche) ; clé
   `anchoring.registry.instance` dans CT-2 (lecture F2-4).
-- Croissance de la file en panne longue, point de texte à trancher dans
-  CT-5 (EX-8.5 : « une ligne par état successif d'une demande », chaque
-  ligne portant toutes ses tentatives). Le composant suit la règle ; la file
-  croît donc comme le carré du nombre de tentatives d'une demande. Mesure
-  (TM-17, une heure simulée, prestataires coupés, `c_T` 60 s,
-  `retry.max_ms` 60 s) : 59 demandes, 1 886 tentatives, 3 831 lignes,
-  30,9 Mo. Estimation non mesurée pour une panne d'une journée : environ
-  250 octets par tentative et au plus 1 440 tentatives par demande, soit
-  environ 260 Mo de file par demande active. Pistes pour une révision : ne réécrire que la dernière
-  tentative (les précédentes sont dans `acquisitions.ndjson`), ou compacter
-  la file au changement d'époque.
+- Croissance de la file en panne longue : tranchée par la révision 0.6 de
+  CT-5 (fenêtre de 32 tentatives et compactage, voir « Révision 0.6 de
+  CT-5 » plus haut) ; la taille sous ces règles reste à remesurer par la
+  campagne (TM-17).
 - Alertes de supervision laissées à CT-8 : `prestataire_injoignable` (aucun
   `obtenue` depuis 15 min) et le volume de requêtes se lisent dans les
   métriques exposées ; le composant ne les lève pas lui-même.

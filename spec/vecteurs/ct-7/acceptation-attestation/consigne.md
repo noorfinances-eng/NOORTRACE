@@ -1,7 +1,7 @@
 # Épreuve à l'aveugle de l'administrateur du client (CT-7, EX-9.4)
 
 Vous recevez la section 7 de la spécification CT-7
-(`spec/CT-7-securite-et-conformite.md`, version 0.2) et rien d'autre de la
+(`spec/CT-7-securite-et-conformite.md`, version 0.3) et rien d'autre de la
 spécification. Vous disposez aussi de :
 
 - l'attestation de l'exemple :

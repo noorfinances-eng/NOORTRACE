@@ -3,7 +3,7 @@
 Cœur du démon `noortrace`, premier lot de l'étape 4 de la phase 2 : tout ce
 qui transforme une capture en événement CT-1 scellé et durable, et la
 clôture des périodes, tels que les fixe la spécification normative
-[CT-2 version 0.6](../../spec/CT-2-enregistreur.md) (sections 3, 7, 8, 9, 11,
+[CT-2 version 0.7](../../spec/CT-2-enregistreur.md) (sections 3, 7, 8, 9, 11,
 12, 14, 15, 17, annexes A et B), avec [CT-1](../../spec/CT-1-evenements-et-formats.md)
 pour les formats et [CT-3](../../spec/CT-3-approbations.md) §12 pour
 l'interface du service d'approbation.
@@ -37,7 +37,9 @@ ci-dessous).
   schéma et E-1 à E-7 avant signature (EX-7.1).
 - **Écrivain unique** (§3.4, EX-7.8) : `seq`, `ts` (EX-7.9, recul et saut en
   avant d'EX-7.13, mode dégradé « horloge »), `prev_hash`, annonce de
-  politique exigée (EX-9.1), pièces exigées sur disque (EX-8.9), signature
+  politique exigée (EX-9.1), pièces exigées sur disque (EX-8.9 ; seule
+  exception, révision 0.7 : les pièces perdues d'un événement en attente
+  relu au redémarrage, EX-14.18), signature
   vérifiée (EX-11.6), validation groupée (EX-12.7), bail vérifié avant chaque
   signature et chaque fdatasync, puis après (EX-13.6, EX-13.10 (2)).
 - **Pièces** (§8) : JCS intégral (§8.1, écrit ici : le noyau ne fait que JCS
@@ -2692,6 +2694,64 @@ Lectures du lot « signataires », reprise :
      lireHashesPeriode … » de `test/enregistreur-ancrage-exigences.test.js`
      (racine égale à celle du manifeste, nombre de segments relus).
 
+### Corrections de CT-2 révision 0.7 (pièces d'événements en attente perdues)
+
+Essais : `test/enregistreur-coeur-pieces-perdues.test.js` (chaque titre nomme
+l'exigence ; sortie avant correction : refus de démarrer
+`pièce non stockée avant le scellement (EX-8.9)`, et pièce à deux membres
+produite par la sortie du mode dégradé).
+
+212. **EX-14.18 (nouvelle), EX-8.9 (exception unique), EX-12.10 pas 5,
+     EX-9.8 pas 3.** Le rejeu du fichier d'attente au démarrage
+     (`coeur._reprendreAttente`) cherchait les pièces de la liste `pieces`
+     de la ligne ; quand l'une manquait, il remplaçait le résultat par la
+     pièce à deux membres puis l'écrivain refusait de sceller (les autres
+     références manquantes restaient exigées) : le démon refusait de
+     démarrer. Désormais, une pièce manque quand une référence sans `value`
+     de l'événement partiel (`intent`, `execution.arguments`,
+     `execution.result`, éléments de `context`) désigne un `sha256` sans
+     fichier sous `pieces/` (`coeur._piecesManquantes`) ; l'événement est
+     scellé à sa place (ordre de `captured_at`, `ts = max(captured_at, ts
+     précédent)`, `policy_version` de capture), `execution.is_error = true`,
+     `execution.result` = référence de la pièce JCS intégral
+     `{"missing_pieces","noortrace_attente":"pieces perdues pendant le mode degrade","pending_id","result"}`
+     (`pieceAttentePiecesPerdues`, `src/pieces.mjs`), écrite avant le
+     scellement ; autres références gardées, `policy.redaction` recalculé
+     (`partielPiecesPerdues`, `src/capture.mjs`) ; l'écrivain ne réclame pas
+     les seules pièces nommées (`sceller(…, { piecesPerdues })`,
+     `src/ecrivain.mjs`). Aucun mode dégradé n'est entré. Le même chemin sert
+     la bascule (13.5) : le repreneur rejoue les fichiers d'attente des
+     époques inférieures.
+213. **EX-14.18 pas 6, EX-17.2, 17.4.** Ligne `pending_pieces_lost`
+     (composant `noyau`, niveau `error`, `seq` nul ; `data` : `events`,
+     `seqs` croissants, `pieces` = nombre de `sha256` distincts manquants),
+     une par rejeu où au moins un événement a été scellé selon EX-14.18.
+     L'alerte « Pièces en attente perdues » n'est pas levée par le démon :
+     les alertes de 17.4 sont des règles d'exploitation (CT-8) sur le journal
+     d'exploitation et les métriques ; la ligne en est la condition.
+214. **EX-14.10 (modifiée).** `coeur.viderAttente` écrivait les pièces
+     gardées en mémoire en ignorant les échecs, puis scellait l'événement
+     avec la pièce à deux membres `{"noortrace_attente":"resultat perdu
+     pendant le mode degrade","pending_id"}` quand une écriture avait échoué
+     (événement scellé avant ses pièces). Désormais chaque événement est
+     scellé après l'écriture de toutes ses pièces ; un échec laisse cet
+     événement et les suivants en attente, dans leur ordre, jusqu'au tic
+     suivant. `pieceAttentePerdue` est retirée. Défaut corrigé au passage :
+     un échec retirait de la file, sans les sceller, les événements qui
+     suivaient l'événement fautif (l'essai de la jauge
+     `noortrace_pending_oldest_ms` de
+     `test/enregistreur-coeur-attente-bornes.test.js` passait grâce à ce
+     retrait ; il passe sans changement).
+215. **§14.2, ligne « Pièces d'événements en attente perdues » (TE-16).**
+     Rejouée sur le démon réel `bin/noortrace` (même fichier d'essai) : santé
+     `ok`, lecture et écriture relayées, `pending_pieces_lost` au journal
+     d'exploitation. Le dossier exporté d'un tel événement est vérifié par
+     les deux vérificateurs (binaire Go, `scripts/verify/dossier.mjs` en
+     boîte noire) : verdict `valide`, E-6 réussi, que les pièces absentes
+     soient non fournies ou que seules les pièces présentes soient fournies
+     (`--pieces`) ; une pièce fausse fournie sous un `sha256` manquant fait
+     échouer E-6 (témoin).
+
 ## À corriger dans CT-2
 
 - **Signataires** (lot « signataires » ; lectures 175, 176, 177, 181) : le
@@ -2755,6 +2815,7 @@ npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-reprise.tes
 npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-config.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-approbations.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-attente-bornes.test.js
+NOORTRACE_VERIFIER_BIN=<binaire noortrace-verifier> npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-pieces-perdues.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-redaction.test.js
 NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-redaction-parcours.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-vecteurs.test.js

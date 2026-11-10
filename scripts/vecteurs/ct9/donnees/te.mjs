@@ -913,7 +913,8 @@ export const TE = [
       "CT-2 EX-14.9",
       "CT-2 EX-14.10",
       "CT-2 EX-14.11",
-      "CT-2 EX-14.12"
+      "CT-2 EX-14.12",
+      "CT-2 EX-14.18"
     ],
     "preconditions": [
       "Enregistreur `paquets/enregistreur` (étape 4) : démon réel `bin/noortrace --config` et son cœur monté en cours de processus avec des dépendances coupables (stockage, signataire, bail, horloge, service d'approbation simulé, serveur d'outils et fournisseur simulés) ; composant d'ancrage de l'étape 5 branché et support WORM S3 à Object Lock en conteneur pour les lignes « Ancrage », « Registre » et « Support WORM ».",

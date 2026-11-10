@@ -1,7 +1,8 @@
 # CT-5 — Ancrage
 
-Version 0.5, 2026-11-10 (la version 0.4 est du 2026-11-09, la version 0.3 du
-2026-11-03, la version 0.2 du 2026-10-26, la version 0.1 du 2026-10-25). Spécification normative, soumise à la revue de la porte 1 du
+Version 0.6, 2026-11-10 (la version 0.5 est du même jour, la version 0.4 du
+2026-11-09, la version 0.3 du 2026-11-03, la version 0.2 du 2026-10-26, la
+version 0.1 du 2026-10-25). Spécification normative, soumise à la revue de la porte 1 du
 plan de projet (document interne). Elle met en œuvre les points 2
 et 3 de la section « Ancrage » de l'[architecture cible](../ARCHITECTURE.md)
 (horodatage qualifié RFC 3161, ancrage public OpenTimestamps) et son option
@@ -85,6 +86,61 @@ touchées : en-tête et cette note ; 5.3 (EX-5.9, dernière phrase du
 paragraphe) ; 14 (ligne « Retrait de la qualification du principal »). Aucune
 règle, aucun schéma, aucun vecteur, aucun outil ne change ; l'implémentation
 de référence et ses vecteurs n'exercent toujours pas le retrait.
+
+**Révision 0.6** (2026-11-10), à la suite des mesures de l'étape 5 de la
+construction. Deux décisions du porteur, sans règle nouvelle (les exigences
+s'inscrivent dans les règles existantes, dont le texte est complété).
+(D2) **Taille de la file pendant une longue panne.** La campagne de l'étape 5
+(mesure TM-17 du plan de tests, panne d'une heure simulée) a relevé 59 demandes, 3 831 lignes,
+30,9 Mo et 1 886 tentatives : chaque tentative réécrivait la ligne de sa
+demande avec toutes ses tentatives, et la taille croissait comme le carré
+de leur nombre. Une ligne de la file ne porte plus que les **32 dernières**
+tentatives de la demande, avec le compteur `attempts_total` (nombre total
+de tentatives depuis la création), sans renumérotation ; l'historique
+complet reste au journal d'exploitation et, pour les jetons, dans
+`acquisitions.ndjson` (EX-8.5, règle 7) ; la file est **compactée** (fichier
+neuf puis renommage atomique, sans perte d'une ligne écrite avant) à chaque
+clôture de période et dès que sa taille dépasse la clé nouvelle
+`queue.compact_bytes` (défaut 16 777 216), ce qui la borne (EX-8.5, règle 5,
+réécrite) ; la relecture accepte une file compactée (EX-8.12) ; un échec du
+compactage laisse l'ancienne file valide et ne bloque rien. (D3)
+**Décomposition de `d_jeton`.** La campagne a mesuré entre `checkpoint_ts`
+et l'admission du point par le composant d'ancrage un délai (médiane
+d'environ 0,7 s, 6,1 s au plus avant une correction de l'enregistreur qui
+l'a réduit, non encore remesuré) que la décomposition n'avait pas et qu'elle
+comptait dans `d_attente`, dont la borne `≤ squat_wait_s` ne tenait donc pas
+telle qu'écrite. Un cinquième terme, `d_admission` = instant d'admission −
+`checkpoint_ts`, est rapporté à part (`d_admission_s` de la ligne
+`checkpoint_countersigned`), avec la borne de conception `d_admission ≤ 10 s`
+au 99e centile, que la mesure TM-13 du plan de tests éprouve ; `d_attente` est compté depuis
+l'admission, borne inchangée ; le pire cas sans relève passe de `366 s +
+d_tsa` à `376 s + d_tsa` (EX-3.5). Sections touchées : en-tête et cette note ;
+3.3 (table, EX-3.5) ; 3.6 (P-3) ; 4.2 (exemple) ; 4.4 (EX-4.8 et sa table,
+exemple) ; 5.5 (EX-5.15) ; 8.2 ; 8.4 (EX-8.4, règle 4) ; 8.5 (EX-8.5, règles 5
+et 7) ; 8.7 (EX-8.12) ; 8.8 (EX-8.14) ; 8.9 (EX-8.15) ; 8.10 (trace de
+référence) ; 13 ; 14 ; 15. Règles modifiées : EX-3.5, EX-4.8, EX-5.15,
+EX-8.2, EX-8.4, EX-8.5, EX-8.12, EX-8.14, EX-8.15 ; aucune n'est ajoutée ni
+retirée. Schémas : `ancrage-v0` reçoit le membre facultatif
+`queue.compact_bytes` (entier de 1 048 576 à 1 073 741 824, défaut
+16 777 216), sans changement d'`$id` ; dans `planificateur-ancrage-v0`,
+`$defs/demande` borne `attempts` à 32 éléments (au lieu de 100 000) et
+reçoit le membre facultatif `attempts_total` (entier de 0 à 100 000),
+facultatif pour que les files écrites avant la révision restent valides ;
+la projection `$defs/configuration` ne change pas (`queue.compact_bytes` est
+lu par la couche de fichier, comme `queue.path`). Ce qui change pour le
+planificateur et l'implémentation de référence : la fenêtre de 32 tentatives
+et `attempts_total` à chaque ligne écrite ; le rang `n + 1` d'une reprise
+tiré d'`attempts_total` ; le compactage et sa relecture ; `d_admission_s` sur
+`checkpoint_countersigned`, `d_attente_s` compté depuis l'admission ; les
+lignes `anchor_queue_compacted` et `anchor_queue_compaction_failed`. Vecteurs
+`spec/vecteurs/ct-5` : chaque ligne de file écrite par le planificateur
+(`queue_after`, fichiers de `reprise/`) porte `attempts_total`, chaque ligne
+`checkpoint_countersigned` des traces porte `d_admission_s`, et une trace
+doit exercer une demande de plus de 32 tentatives ; la trace de référence de
+8.10 est imprimée sous sa forme nouvelle. Vérificateur Go indépendant : il
+rejoue les traces à l'identique sous ces règles et valide les lignes de file
+contre le schéma révisé. Aucun autre schéma, aucune autre trace, aucun outil
+ne change ; CT-1, CT-4 et CT-6 ne changent pas.
 
 La spécification a deux parties. La **partie A** (sections 0 à 6) dit ce que
 l'ancrage prouve et ne prouve pas, quelle fenêtre de réécriture il laisse,
@@ -332,7 +388,7 @@ chose différente (3.2) :
 | Fenêtre | Ancre | Borne, points de contrôle en service (CT-5) | Borne, ancres horaires seules (CT-6 §3.4, CT-1 §10.9) | Valeurs par défaut |
 |---|---|---|---|---|
 | `W_ordre` : durée de conception après laquelle l'empreinte d'un point qui engage l'événement figure au registre ; l'ancre fixe l'ordre relatif de deux versions présentées ensemble et l'unicité de l'empreinte (sous H6 et H7), ne date rien et n'empêche aucune autre version d'être ancrée (ci-dessous) | registre | `W_ordre ≤ c_K + d_registre` : l'événement est engagé par le premier point aligné qui le suit, produit au plus `c_K` après lui (CT-1 §10.5, règle 1), dont l'ancre est incluse `d_registre` plus tard (4.3) ; durée mesurée par l'exploitant (P-2), qu'aucun dossier ne prouve | `W_ordre ≤ 3600 + d_clôture + d_registre` | `60 s + d_registre` ; `d_registre` est de l'ordre d'un intervalle de bloc en fonctionnement nominal (CT-4 §9.5 : 1,10 à 1,14 bloc par seconde mesurés sur le réseau de développement), alerte au-delà de `registry.inclusion_alert_s` (défaut 60 s) |
-| `W_date` : après `T`, une réécriture est contredite par un jeton dont la date fait foi selon son autorité | RFC 3161 | `W_date ≤ c_T + d_jeton` : l'événement est engagé par le premier point dont `checkpoint_ts ≥ D_k`, `D_k` étant la première échéance qui suit `t_e` (`D_k − t_e ≤ c_T`), et le jeton de ce point porte `genTime + précision = D_k + d_jeton` (4.2), avec `d_jeton = d_point + d_attente + d_relève + d_tsa` (EX-3.5) | `W_date ≤ 3600 + d_clôture + d_jeton` | `300 s + d_jeton` par le prestataire désigné pour les points ; pour la clôture, `3600 s + d_clôture + d_jeton` par le prestataire qualifié, comme avant |
+| `W_date` : après `T`, une réécriture est contredite par un jeton dont la date fait foi selon son autorité | RFC 3161 | `W_date ≤ c_T + d_jeton` : l'événement est engagé par le premier point dont `checkpoint_ts ≥ D_k`, `D_k` étant la première échéance qui suit `t_e` (`D_k − t_e ≤ c_T`), et le jeton de ce point porte `genTime + précision = D_k + d_jeton` (4.2), avec `d_jeton = d_point + d_admission + d_attente + d_relève + d_tsa` (EX-3.5) | `W_date ≤ 3600 + d_clôture + d_jeton` | `300 s + d_jeton` par le prestataire désigné pour les points ; pour la clôture, `3600 s + d_clôture + d_jeton` par le prestataire qualifié, comme avant |
 | `W_bitcoin` : après `T`, une réécriture est contredite sans aucune autorité | OpenTimestamps | avec l'option `mi_periode` (EX-6.1) : `W_bitcoin ≤ k_m × c_T + d_point + d_bitcoin` pour les événements de `ts < D_{k_m}`, `k_m = ⌈n_T / 2⌉` (`d_point` : délai entre `D_{k_m}` et le point sélectionné, EX-3.5), soit 1800 s pour `c_T = 300` (`D_6`) et 2160 s pour `c_T = 720` (`D_3`) ; avec `n_T` impair, « la première moitié » se lit « avant `D_{k_m}` » ; `3600 + d_clôture + d_bitcoin` pour les autres événements ; sans `mi_periode` (le défaut), `3600 + d_clôture + d_bitcoin` pour tous | `W_bitcoin ≤ 3600 + d_clôture + d_bitcoin` | `d_bitcoin` se compte en heures (6.5) : cette fenêtre n'est pas celle qui borne la réécriture, c'est celle qui survit à la défaillance d'une autorité |
 
 **EX-3.3** Avec la configuration par défaut de la section 4 (`c_K = 60 s`,
@@ -367,21 +423,41 @@ ou « postérieure à l'inclusion de cette ancre », et aucune date n'est prouv�
 La seule borne de réécriture au point qu'un dossier prouve est donc celle de
 la date (K-7).
 
-**EX-3.5** (révision 0.2 ; numéro attribué selon la section 0, placé ici
-parce qu'il décompose le `d_jeton` d'EX-3.3) `d_jeton` se décompose en quatre délais, que la
-supervision rapporte séparément (8.9 : `d_point_s`, `d_attente_s`,
-`d_releve_s`, `d_tsa_s` de la ligne `checkpoint_countersigned`) : `d_point = checkpoint_ts − D_k`, le
+**EX-3.5** (révision 0.2, complétée par la révision 0.6 ; numéro attribué
+selon la section 0, placé ici parce qu'il décompose le `d_jeton` d'EX-3.3)
+`d_jeton` se décompose en cinq délais, que la supervision rapporte
+séparément (8.9 : `d_point_s`, `d_admission_s`, `d_attente_s`, `d_releve_s`,
+`d_tsa_s` de la ligne `checkpoint_countersigned`) : `d_point = checkpoint_ts − D_k`, le
 décalage du point sélectionné, au plus la tolérance d'alignement de CT-1
 §10.5, règle 1 (1 s), puisque les points sont produits aux instants
 `period_start + j × c_K` et que `c_T` est un multiple de `c_K` ;
+`d_admission = instant d'admission − checkpoint_ts` (révision 0.6), où
+l'instant d'admission est celui, lu sur l'horloge de l'enregistreur
+(EX-4.13), où le composant d'ancrage admet le point après les vérifications
+d'EX-4.1 (AN-3) : il compte la remise du point par l'enregistreur après sa
+production (EX-4.12, EX-8.1) et son admission ; borne de conception
+**`d_admission ≤ 10 s` au 99e centile**, que la mesure TM-13 du plan de tests
+éprouve et pourra faire réviser (la campagne de l'étape 5 a relevé une
+médiane d'environ 0,7 s et 6,1 s au plus, avant une correction de
+l'enregistreur qui a réduit ce délai et n'a pas été remesurée) ; un point
+relu au démarrage (EX-8.12) et reconstruit depuis le stockage est admis à
+l'instant de sa relecture, et son `d_admission` compte l'arrêt : la borne vaut
+en fonctionnement nominal ; pour un point dont les demandes sont relues de la
+file, l'instant d'admission est le plus ancien `created_at` de ses demandes,
+non l'instant du redémarrage, qui rendrait `d_attente` négatif pour une demande
+déjà envoyée ;
 `d_attente ≤ registry.squat_wait_s`, l'attente de l'inclusion de l'ancre du
-point au registre (EX-4.7) ; `d_relève`, nul sauf relève par le secours
-(`rfc3161.checkpoints.fallback_after_s` au plus, EX-5.7) ; `d_tsa = genTime +
-précision − instant d'envoi`, le délai propre à l'autorité. La borne de date
-s'écrit donc `W_date ≤ c_T + d_point + d_attente + d_relève + d_tsa`. La
+point au registre (EX-4.7), comptée **depuis l'admission** jusqu'au premier
+envoi de la demande, borne inchangée (la révision 0.2 ne nommait pas
+l'admission, et la campagne de l'étape 5 comptait `d_admission` dans
+`d_attente`, dont la borne ne tenait donc pas telle qu'écrite) ; `d_relève`,
+nul sauf relève par le secours (`rfc3161.checkpoints.fallback_after_s` au
+plus, EX-5.7) ; `d_tsa = genTime + précision − instant d'envoi`, le délai
+propre à l'autorité. La borne de date s'écrit donc `W_date ≤ c_T + d_point +
+d_admission + d_attente + d_relève + d_tsa`. La
 valeur qui fait foi est le `d_jeton` mesuré, `genTime + précision − D_k`
 (EX-5.11) : il contient tout, y compris les attentes de reprise chez le même
-prestataire (EX-8.9), qui s'ajoutent aux quatre termes nommés quand `d_tsa`
+prestataire (EX-8.9), qui s'ajoutent aux cinq termes nommés quand `d_tsa`
 est compté depuis l'envoi de la tentative promue. Avant une relève, elles
 tiennent dans `rfc3161.checkpoints.fallback_after_s` (terme `d_relève`) ;
 sans relève, rien ne les borne, et l'échéance finit `remplacee` si une
@@ -389,7 +465,10 @@ sans relève, rien ne les borne, et l'échéance finit `remplacee` si une
 (production interrompue, alerte `point_manquant`, 8.9) reporte la sélection
 d'au plus `c_K` + 1 s, à cause de la tolérance d'alignement de CT-1 §10.5,
 règle 1. Le pire cas sans relève et sans reprise est donc `c_T + c_K + 1 s +
-squat_wait_s + d_tsa`, soit `366 s + d_tsa` aux valeurs par défaut.
+d_admission + squat_wait_s + d_tsa`, soit `376 s + d_tsa` aux valeurs par
+défaut, `d_admission` pris à sa borne de conception de 10 s (99e centile ;
+au-delà, c'est le `d_admission` mesuré qui s'ajoute) ; la révision 0.2,
+sans ce terme, écrivait `366 s + d_tsa`.
 
 L'ancre au registre ne fixe pas de position absolue : le registre accepte
 toute empreinte nouvelle, et qui détient à la fois la clé de l'enregistreur et
@@ -472,7 +551,7 @@ sur les vecteurs. Elles s'énoncent sans référence à un produit.
 |---|---|---|
 | P-1 | Tout nouvel événement est engagé par une tête d'arbre signée par l'enregistreur au plus `c_K = 60 s` (plus la tolérance d'alignement de 1 s) après son `ts` ; les points sont produits aux instants `period_start + j × c_K` et à la clôture (CT-1 §10.5, règle 1 ; CT-2 révision 0.4). | Série des points d'une période : `checkpoint_ts(premier point de tree_size > i) − ts(événement i) ≤ c_K + 1 s` pour tout `i` ; constat de cadence (`constaterCadence`, AN-2) sans écart. |
 | P-2 | Cette tête est ancrée au registre et son ancre incluse dans un bloc au plus `c_K + d_registre` après l'événement, avec `d_registre ≤ registry.inclusion_alert_s = 60 s` en fonctionnement nominal (fenêtre d'ordre). | Pour chaque ancre de point : instant de réception du reçu d'inclusion, sur l'horloge de l'enregistreur (jamais l'horodatage du bloc, que le proposant choisit), moins `checkpoint_ts` : au plus `inclusion_alert_s`. Avec P-1 (`checkpoint_ts − ts ≤ c_K + 1 s`), cela donne `c_K + 1 s + d_registre` après le `ts` de l'événement. Ces instants (`ts`, `checkpoint_ts`, réception du reçu) sont tous lus sur l'horloge de l'enregistreur : c'est une durée de conception mesurée, non prouvée (3.3). |
-| P-3 | Cette tête, ou une tête postérieure qui l'engage par préfixe (preuve de cohérence, CT-1 §10.7), est contresignée par une autorité RFC 3161 au plus `c_T + d_jeton` après l'événement, avec `c_T = 300 s` par défaut et `d_jeton = d_point + d_attente + d_relève + d_tsa` (EX-3.5). Lecture : `W_date ≤ c_T (300 s) + d_jeton`, avec `d_jeton = d_point (≤ 1 s) + d_attente (≤ squat_wait_s) + d_relève (≤ fallback_after_s) + d_tsa`. | Pour chaque échéance `D_k` satisfaite : `genTime + précision − D_k = d_jeton`, rapporté avec ses quatre composantes (8.9) ; aucune échéance non satisfaite avant la suivante en fonctionnement nominal. |
+| P-3 | Cette tête, ou une tête postérieure qui l'engage par préfixe (preuve de cohérence, CT-1 §10.7), est contresignée par une autorité RFC 3161 au plus `c_T + d_jeton` après l'événement, avec `c_T = 300 s` par défaut et `d_jeton = d_point + d_admission + d_attente + d_relève + d_tsa` (EX-3.5). Lecture : `W_date ≤ c_T (300 s) + d_jeton`, avec `d_jeton = d_point (≤ 1 s) + d_admission (≤ 10 s au 99e centile) + d_attente (≤ squat_wait_s) + d_relève (≤ fallback_after_s) + d_tsa`. | Pour chaque échéance `D_k` satisfaite : `genTime + précision − D_k = d_jeton`, rapporté avec ses cinq composantes (8.9) ; aucune échéance non satisfaite avant la suivante en fonctionnement nominal. |
 | P-4 | La clôture horaire est contresignée par un prestataire qualifié (CT-6 EX-13.4) et horodatée par OpenTimestamps auprès d'au moins deux calendriers (CT-6 EX-13.5). | Parties `jeton-rfc3161.der` et `preuve.ots` du dossier ; T-11 réussie avec le fichier d'ancres du réviseur. |
 | P-5 | Un dossier se vérifie hors ligne, sans réseau ni concours du fournisseur, points de contrôle compris (CT-6 §14.2 ; CT-1 §11.2 : ancres du point embarquées en base64). | Vérificateur de CT-6 (révision 0.2) sur les dossiers des vecteurs CT-5 et CT-6, sans réseau. |
 | P-6 | Les points, leurs ancres (jetons, preuves, enregistrements d'acquisition) et les manifestes reçoivent une copie en stockage à verrou d'objet, mode sans contournement par aucun rôle du client, rétention au moins égale à la rétention des événements (CT-2 §12.6, §12.7 ; 5.5). | Pour chaque fichier : une version dont le SHA-256 égale celui de l'original, et le mode et la date de rétention rendus par l'API du support (R2-F36 : lecture déclarative, qui complète les ancres sans les remplacer, CT-2 §12.6). |
@@ -631,7 +710,7 @@ extérieur borne `W_date`, EX-7.3). La série de l'exemple n'est pas alignée
 (CT-1 §10.8) ; un enregistreur à la cadence nominale produit un point à chaque
 instant `period_start + j × c_K` : `D_k` sélectionne alors le point produit à
 `D_k` lui-même (`d_point` ≤ 1 s), si les points sont produits aux instants
-`D_k`, et `d_jeton` se réduit à `d_attente + d_tsa` (EX-3.5).
+`D_k`, et `d_jeton` se réduit à `d_admission + d_attente + d_tsa` (EX-3.5).
 
 ### 4.3 Ancre des points au registre
 
@@ -688,7 +767,9 @@ l'instance pour le nombre de journaux cible relève de CT-8.
 **EX-4.8** La configuration de l'ancrage est un document JSON unique,
 `ancrage-v0`, schéma `spec/schemas/ancrage-v0.schema.json` (JSON Schema draft
 2020-12, sans référence croisée, compilable en mode strict). Toutes les clés
-sont présentes ; une valeur qui ne s'applique pas vaut `null` ou une liste
+sont présentes, sauf `queue.compact_bytes` (révision 0.6), facultative pour
+que les documents écrits avant cette révision restent valides : absente, elle
+vaut son défaut ; une valeur qui ne s'applique pas vaut `null` ou une liste
 vide. Il est désigné par la configuration de l'enregistreur (CT-2 §15, clé
 `anchoring` ; proposition d'alignement en section 14) et validé au démarrage
 comme elle (CT-2 §15.4) : une configuration invalide empêche le démarrage du
@@ -711,7 +792,7 @@ CT-2 §15.2), jamais écrits en clair. Aucun prix n'y figure.
 | `rfc3161.crl_capture` | `enabled`, `delay_s` (CT-6 EX-13.12 ; 5.4) | `true`, 600 |
 | `registry` | `checkpoints` (EX-4.6), `squat_wait_s` (EX-4.7), `inclusion_alert_s` (3.3) ; le point RPC et la clé de chaîne restent dans `anchoring.registry` de CT-2 | `nouveaux_evenements`, 5, 60 |
 | `opentimestamps` | `enabled`, `calendars[]`, `min_responses`, `timeout_ms`, `checkpoint` (`aucun`, `mi_periode`), `upgrade` (`whitelist[]`, `first_after_s`, `interval_s`, `give_up_after_s`), `headers_source` (`null`, `bitcoin_rpc`, `fichier`) (section 6) | `true`, les quatre agrégateurs publics (6.2), 2, 5000, `aucun`, (les quatre calendriers publics, 21600, 1800, 1209600), `null` |
-| `queue` | `path`, `max_pending`, `anchor_pending_alert_s` (section 8) | sous `storage.root`, 100000, 7200 |
+| `queue` | `path`, `max_pending`, `anchor_pending_alert_s` (section 8) ; `compact_bytes` (révision 0.6, facultative : taille au-delà de laquelle la file est compactée, EX-8.5, règle 5 ; de 1 048 576 à 1 073 741 824) | sous `storage.root`, 100000, 7200 ; 16777216 |
 
 Exemple complet, valide contre le schéma (point d'accès des prestataires
 fictifs ; les certificats d'autorité sont ceux de l'AC de test des vecteurs
@@ -826,7 +907,7 @@ R1-F26 et R1-F42, données ici à titre d'exemple de la forme) :
     },
     "headers_source": { "type": "fichier", "network": "mainnet", "path": "/var/lib/noortrace/bitcoin/entetes-bitcoin.json" }
   },
-  "queue": { "path": "/var/lib/noortrace/ancrage", "max_pending": 100000, "anchor_pending_alert_s": 7200 }
+  "queue": { "path": "/var/lib/noortrace/ancrage", "max_pending": 100000, "anchor_pending_alert_s": 7200, "compact_bytes": 16777216 }
 }
 ```
 
@@ -1302,7 +1383,8 @@ compare les SHA-256). Toute écriture est synchronisée sur le disque avant que
 la demande soit dite `obtenue` (EX-5.10, étape 9), et un fichier existant
 n'est jamais réécrit (CT-4 EX-9.3, même règle).
 
-**EX-5.15 (AN-15, conservation)** Les fichiers de 5.5 et la file sont
+**EX-5.15 (AN-15, conservation)** Les fichiers de 5.5 et la file (sous sa
+dernière forme compactée, EX-8.5 règle 5 et EX-8.14 ; révision 0.6) sont
 conservés **au moins dix ans** (`rfc3161.retention_years ≥ 10`), durée que le
 plan fixe ; elle couvre la rétention des événements de CT-2 EX-12.19 (dix ans
 à compter de la fin de l'exercice, CO art. 958f), et son ajustement à toute
@@ -1768,12 +1850,15 @@ countersign_idle}` (300, `principal`, 120, faux) ;
 250) ; `registry.{checkpoints, squat_wait_s, inclusion_alert_s}`
 (`nouveaux_evenements`, 5, 60) ; `opentimestamps.{enabled, calendars,
 min_responses, timeout_ms, checkpoint, upgrade.{first_after_s, interval_s,
-give_up_after_s}}` ; `queue.{path, max_pending, anchor_pending_alert_s}`
-(sous `storage.root`, 100 000, 7200). Les traces normatives de 8.10 portent
-cette **projection** de la configuration (`$defs/configuration` de
-`planificateur-ancrage-v0.schema.json`, mêmes chemins et mêmes bornes que
-`ancrage-v0`, `qualified` réduit à un booléen) ; le document complet est validé
-par AN-1.
+give_up_after_s}}` ; `queue.{path, max_pending, anchor_pending_alert_s,
+compact_bytes}` (sous `storage.root`, 100 000, 7200, 16 777 216). Les traces
+normatives de 8.10 portent cette **projection** de la configuration
+(`$defs/configuration` de `planificateur-ancrage-v0.schema.json`, mêmes
+chemins et mêmes bornes que `ancrage-v0`, `qualified` réduit à un booléen) ;
+`queue.path` et `queue.compact_bytes` n'y sont pas : ils sont lus par la
+couche de fichier qui tient la file (EX-8.5), non par le planificateur à
+horloge injectée, dont aucune action ne dépend d'eux ; le document complet est
+validé par AN-1.
 
 ### 8.2 Objets
 
@@ -1781,8 +1866,10 @@ Une **demande** est l'unité de la file : une sorte (`kind`), un sujet (une
 période ou un point : `org_id`, `journal_id`, `period_start`, l'empreinte
 ancrée `hash`, `tree_size` pour un point, l'instant déclaré par
 l'enregistreur), pour une demande de point les indices `k` des échéances
-qu'elle sert (EX-4.3), un état (8.3), une échéance interne `due_at`, la liste
-de ses tentatives et, quand elle aboutit, un résultat (fichier conservé,
+qu'elle sert (EX-4.3), un état (8.3), une échéance interne `due_at`, ses
+tentatives (au plus les 32 dernières, avec leur nombre total
+`attempts_total`, EX-8.5, règle 7 ; révision 0.6) et, quand elle aboutit, un
+résultat (fichier conservé,
 SHA-256, taille, prestataire, `received_at` de la tentative promue, borne
 « au plus tard » tirée de l'ancre). Sa clé d'idempotence est
 `id = <kind>:<hash>` ; il n'existe jamais deux demandes de même `id` dans la
@@ -1885,7 +1972,8 @@ que l'action qui en découle soit entreprise (8.5) ; la dernière ligne d'un
    contresigné parce que `countersign_idle` est vrai), la requête part
    aussitôt.
 4. Les fenêtres de 3.3 s'en déduisent : `W_date ≤ c_T + d_jeton`, avec
-   `d_jeton = d_point + d_attente + d_relève + d_tsa` (EX-3.5) ; `W_ordre ≤
+   `d_jeton = d_point + d_admission + d_attente + d_relève + d_tsa` (EX-3.5) ;
+   `W_ordre ≤
    c_K + d_registre`.
 
 ### 8.5 File d'attente durable
@@ -1944,15 +2032,97 @@ intégral par tentative, et c'est ce fichier que l'exportateur lit (section
    seule `jeton_periode` reste active du fait de la panne : l'ancre au
    registre est obtenue, et `ots_periode` suit son cours ordinaire
    (`en_attente` jusqu'à la mise à niveau, EX-8.11), panne ou non.
-5. **Compaction.** Un fichier de file dont toutes les demandes sont finales
-   PEUT être compacté en un fichier `file-<epoch>.<n>.compact.ndjson` qui ne
-   garde que la dernière ligne de chaque `id` ; l'original est conservé selon
-   EX-5.15. La compaction n'a jamais lieu sur le fichier courant.
+5. **Compactage** (réécrit par la révision 0.6). Le fichier courant
+   `file-<epoch>.ndjson` est **compacté** à chaque clôture de période, après
+   l'écriture des trois demandes de la clôture (EX-8.4, règle 2), et dès que
+   sa taille dépasse à la fois `queue.compact_bytes` (défaut 16 777 216) et
+   le double de la taille que lui a laissée le compactage précédent (la
+   seconde condition évite de recompacter à chaque ligne une file que ses
+   demandes rendent plus grande que `compact_bytes`). Compacter, c'est,
+   **entre deux écritures** de la file, par le fil qui l'écrit (aucune ligne
+   n'est ajoutée pendant l'opération, de sorte qu'aucune ligne écrite avant
+   n'est perdue) : (a) relire le fichier selon la règle 3 ; (b) écrire dans
+   un fichier neuf du même répertoire, `file-<epoch>.ndjson.compactage`, la
+   **dernière ligne de chaque `id`**, octets recopiés tels quels, dans l'ordre
+   où ces dernières lignes figurent dans le fichier ; une ligne tronquée en
+   fin de fichier n'est pas recopiée (elle est déjà ignorée, règle 3) ; (c)
+   `fdatasync` du fichier neuf ; (d) le renommer sur `file-<epoch>.ndjson`
+   (`rename`, atomique) ; (e) `fsync` du répertoire ; (f) rouvrir le
+   descripteur d'ajout sur le fichier renommé. Le compactage **ne change
+   aucun état** : la dernière ligne de chaque `id` fait foi avant comme après
+   (règle 3), aucune ligne n'est réécrite ni ajoutée, aucune action de
+   `$defs/action_attendue` n'est produite, et `queue_after` d'une trace est le
+   même avec ou sans compactage ; les demandes finales sont gardées, sans quoi
+   la reconstruction d'EX-8.12 les recréerait. Un arrêt pendant l'opération
+   laisse l'ancien fichier ou le nouveau sous le nom courant, tous deux
+   valides ; un fichier `.compactage` trouvé au démarrage est ignoré puis
+   supprimé (ce fichier temporaire est le seul que le composant supprime,
+   EX-8.14). **Échec.** Une erreur à
+   l'un des pas (a) à (d) (disque plein, `EIO`, autre) laisse l'ancien fichier
+   en place et valide : le fichier neuf est supprimé s'il existe, l'ajout
+   continue sur l'ancien descripteur ; une erreur au pas (e) survient quand
+   le renommage est fait : le fichier compacté est le fichier courant, l'ajout
+   continue sur lui (rouvert au pas (f)), et seule la durabilité du renommage
+   reste incertaine jusqu'au compactage suivant ; une erreur au pas (f) laisse
+   le fichier compacté en place, le descripteur est rouvert à l'écriture
+   suivante, et si cette réouverture échoue la ligne est gardée en mémoire et
+   consignée comme un échec d'écriture de la file (EX-8.1). Dans tous ces cas,
+   la ligne `anchor_queue_compaction_failed` (pas en échec, `errno`, taille du
+   fichier) est consignée (8.9), et rien n'est bloqué ni retardé ; le compactage est
+   tenté de nouveau au déclencheur suivant, au plus une fois par minute
+   (horloge monotone) sur dépassement de taille. Un compactage
+   réussi est consigné `anchor_queue_compacted` (taille avant et après, nombre
+   de demandes). **Borne.** Juste après un compactage, la file a une ligne par
+   demande de l'époque, de 32 tentatives au plus (règle 7) : sa taille `S_0`
+   est au plus le nombre de ses demandes fois la taille d'une ligne à 32
+   tentatives (de l'ordre de 12,5 Ko pour des tentatives ordinaires d'environ
+   360 octets, 47 Ko au plus quand chaque `detail` atteint 1 024 caractères) ;
+   elle ne dépasse ensuite jamais `max(compact_bytes, 2 × S_0)` plus une
+   ligne. Pendant une panne, les demandes actives sont au plus `max_pending`,
+   d'où une taille de l'ordre de `max_pending` lignes de 32 tentatives ; pour
+   les 59 demandes de la panne mesurée à l'étape 5 (mesure TM-17 du plan de
+   tests), `S_0` reste
+   sous 1 Mo, et la file sous 16 777 216 octets plus une ligne aux valeurs par
+   défaut, au lieu de 30,9 Mo. En régime nominal, `S_0` croît avec les
+   demandes finales de l'époque (de l'ordre de soixante-dix par heure à la
+   cadence par défaut, d'une à trois tentatives chacune). Les fichiers des
+   époques antérieures ne sont plus écrits et ne sont pas compactés par cette
+   règle ; un tel fichier dont toutes les demandes sont finales PEUT être
+   compacté en un fichier `file-<epoch>.<n>.compact.ndjson` qui ne garde que
+   la dernière ligne de chaque `id`, l'original étant conservé selon EX-5.15
+   (règle des versions 0.1 à 0.5, inchangée pour ces fichiers).
 6. **Plusieurs époques.** À la lecture, tous les fichiers `file-*.ndjson` du
    répertoire, compactés ou non, sont relus et leurs lignes fusionnées par
    `id` (dernière ligne lue, dans l'ordre des époques puis des lignes) ;
    une ligne tronquée est signalée par fichier (`lireFiles` ; traces
    `bascule-epoque` et `bascule-epoque-fichier-perdu`).
+7. **Tentatives portées par une ligne** (révision 0.6). Chaque ligne écrite
+   porte au plus **32** tentatives dans `attempts`, rangées par `n`
+   croissant : les tentatives `en_cours` de la demande (au plus une par
+   prestataire), puis les plus récentes, par `n` décroissant, jusqu'à 32 ; et
+   `attempts_total`, nombre de tentatives de la demande depuis sa création
+   (0 sans tentative), toujours écrit. Le rang `n` n'est jamais renuméroté :
+   il continue de compter depuis 1 au fil des tentatives, de sorte
+   qu'`attempts_total` est le plus grand `n` de la demande et que la
+   tentative suivante a le rang `attempts_total + 1`, reprise au démarrage
+   comprise (EX-8.12) ; `n` et l'`attempt_id` qui en dérive (EX-5.13) restent
+   uniques. Les tentatives sorties de la fenêtre ne sont plus dans la file :
+   leur historique complet reste au journal d'exploitation (lignes
+   `anchor_retry`, `anchor_fallback`, `anchor_response_rejected`,
+   `checkpoint_countersigned`, `period_timestamped`, `ots_submitted`, 8.9, dont
+   celles d'une tentative portent son rang `n` dans `attempt` et son
+   `attempt_id`, EX-8.15) et, pour les jetons RFC 3161,
+   dans `acquisitions.ndjson`, une ligne par tentative (EX-5.13, EX-5.14), que
+   l'exportateur lit. Une réponse à une tentative sortie de la fenêtre se
+   traite comme une réponse à une tentative qui n'est plus en cours (nonce
+   différent de celui de la tentative en cours, règle 2) : conservée, non
+   promue ; une tentative en cours n'en sort jamais. À la lecture, une ligne
+   sans `attempts_total` (écrite avant la révision 0.6, qui portait toutes
+   ses tentatives) vaut `attempts_total` égal au nombre de ses tentatives ;
+   une telle ligne qui porte plus de 32 tentatives est lue telle quelle, et
+   la ligne suivante de la demande les réduit à la fenêtre. Une ligne de la
+   file ne grossit donc plus avec le nombre de tentatives au-delà de 32, ce
+   qui, avec la règle 5, borne la file.
 
 ### 8.6 Requête, acquisition et relève
 
@@ -2049,11 +2219,14 @@ attente n'est jamais supprimée (R1-F59).
 
 ### 8.7 Reprise au démarrage et références
 
-**EX-8.12** Au démarrage, le planificateur relit la file (8.5) et, pour chaque
+**EX-8.12** Au démarrage, le planificateur relit la file (8.5) — une file
+compactée (EX-8.5, règle 5) se relit comme toute autre, une ligne par
+demande, et un fichier `.compactage` resté d'un arrêt est ignoré puis
+supprimé (révision 0.6) — et, pour chaque
 demande non finale : `envoyee` → `a_reprendre` immédiatement (la réponse a pu
 se perdre ; nouvelle tentative, nouveau nonce, nouvel `attempt_id`, de même
-préfixe `<kind>:<16 premiers hex de l'empreinte>` et de rang `n + 1` (annexe
-A.2), l'`attempt_id`
+préfixe `<kind>:<16 premiers hex de l'empreinte>` et de rang `n + 1`, `n`
+étant `attempts_total` (EX-8.5, règle 7 ; annexe A.2), l'`attempt_id`
 restant unique par tentative, EX-5.13 ; une réponse tardive à l'ancien nonce est conservée, non promue) ;
 `attente_registre` → interroge l'inclusion (`lookup(empreinte)` de CT-4 OP-9
 et l'index de capture) ; `a_reprendre` → garde `due_at` ; `en_attente` → mise
@@ -2096,8 +2269,15 @@ n'est pas exigé par cette version.
 les pièces d'horodatage, au moins `rfc3161.retention_years` ans, dix au moins
 (EX-5.15 ; CT-2 §12.7), et copiés vers le support WORM avec le répertoire
 `ancres/` de chaque période (EX-5.15 ; CT-2 EX-12.16 : copie conditionnelle à
-l'absence, `sha256` recalculé, jamais l'ETag ; P-6). Rien dans le
-planificateur ne supprime un fichier ; la fin de rétention est un acte
+l'absence, `sha256` recalculé, jamais l'ETag ; P-6). Révision 0.6 : le fichier
+courant est conservé sous sa dernière forme compactée (EX-8.5, règle 5) ; les
+lignes qu'un compactage a remplacées ne le sont pas, ni les tentatives
+sorties de la fenêtre de 32 (règle 7) : ce qui en fait foi est conservé
+ailleurs, dans `acquisitions.ndjson` (une ligne par tentative RFC 3161) et
+dans le journal d'exploitation (CT-2 EX-9.6 : conservé avec le journal, pour
+la même durée). Rien dans le
+planificateur ne supprime un fichier, hors le fichier temporaire
+`.compactage` d'EX-8.5 (règle 5) ; la fin de rétention est un acte
 d'exploitation (CT-8).
 
 ### 8.9 Supervision
@@ -2115,7 +2295,7 @@ identifiant de compte) :
 | `noortrace_anchoring_deadlines_total` | compteur | `state` (`satisfaite`, `sans_objet`, `remplacee`) | échéances de points (EX-4.3, EX-4.4) |
 | `noortrace_anchoring_window_s` | jauge | `journal` (identifiant abrégé) | âge, en secondes, du dernier point ou manifeste contresigné par un prestataire **extérieur** : borne courante de `W_date` (3.3) |
 | `noortrace_anchoring_d_jeton_s` | histogramme | `kind`, `provider` | `d_jeton` d'EX-5.11 (`genTime + précision − D_k`, ou `− period_end`) |
-| `noortrace_anchoring_d_point_s` | histogramme | — | `d_point` d'EX-3.5 (`checkpoint_ts − D_k` du point sélectionné) ; `d_attente`, `d_relève` et `d_tsa` se lisent sur les lignes `checkpoint_countersigned` (`d_attente_s`, `d_releve_s`, `d_tsa_s`) |
+| `noortrace_anchoring_d_point_s` | histogramme | — | `d_point` d'EX-3.5 (`checkpoint_ts − D_k` du point sélectionné) ; `d_admission`, `d_attente`, `d_relève` et `d_tsa` se lisent sur les lignes `checkpoint_countersigned` (`d_admission_s`, `d_attente_s`, `d_releve_s`, `d_tsa_s` ; `d_admission_s` depuis la révision 0.6) |
 | `noortrace_anchoring_d_registre_s` | histogramme | `kind` | `d_registre` de P-2 (instant du reçu − `checkpoint_ts` ou `generated_at`) |
 | `noortrace_anchoring_ots_pending_age_s` | jauge | — | âge de la preuve en attente la plus ancienne |
 
@@ -2155,14 +2335,19 @@ ensemble). Journal d'exploitation (CT-2 §17.3, format
 d'EX-9.5) : `anchoring_started`, `anchoring_stopped`, `anchoring_queue_rebuilt`
 (`recreated`, `periods`, `checkpoints`), `anchor_pending` et
 `registry_pending` (existent), `checkpoint_countersigned` (avec `tree_size`,
-`provider`, `deadlines`, `d_jeton_s`, `d_point_s`, `d_attente_s`,
-`d_releve_s`, `d_tsa_s`, et `closing_fallback` pour le repli de clôture ;
-les quatre composantes sont les différences de quatre instants comptés en
-secondes entières, tronquées, depuis `D_k` (depuis `period_end` pour le
-repli) : `checkpoint_ts` du point, premier envoi de la demande, envoi de la
-tentative promue, `genTime + précision` du jeton ; leur somme est donc
-exactement `d_jeton_s`, et `d_releve_s` porte ensemble la relève et les
-attentes de reprise, EX-3.5), `checkpoint_closing_fallback` (`tree_size`,
+`provider`, `deadlines`, `d_jeton_s`, `d_point_s`, `d_admission_s`
+(révision 0.6), `d_attente_s`, `d_releve_s`, `d_tsa_s`, et `closing_fallback`
+pour le repli de clôture ; les cinq composantes sont les différences
+successives de cinq instants comptés en secondes entières, tronquées, depuis
+`D_k` (depuis `period_end` pour le repli) : `checkpoint_ts` du point, instant
+d'admission du point par le composant (EX-3.5, y compris pour un point relu
+au démarrage), premier envoi de la demande (après un redémarrage, si la
+tentative de rang 1 est sortie de la fenêtre de la règle 7 d'EX-8.5, l'envoi
+de la plus ancienne tentative portée par la ligne), envoi de
+la tentative promue, `genTime + précision` du jeton ; `d_point_s` est le
+premier de ces instants, chaque composante suivante la différence avec le
+précédent ; leur somme est donc exactement `d_jeton_s`, et `d_releve_s` porte
+ensemble la relève et les attentes de reprise, EX-3.5), `checkpoint_closing_fallback` (`tree_size`,
 `period_request`, `squat_wait_s`, EX-4.2), `point_manquant`
 (`last_checkpoint_ts`, `gap_s`), `checkpoint_not_anchored` (point sans
 nouvel événement), `checkpoint_anchor_late`, `deadline_sans_objet`,
@@ -2171,8 +2356,16 @@ nouvel événement), `checkpoint_anchor_late`, `deadline_sans_objet`,
 `anchor_replaced`, `anchor_refused`, `ots_submitted`, `ots_upgraded`,
 `ots_complete`, `anchor_queue_full`, `anchor_queue_write_failed`,
 `anchor_queue_truncated_line`, `anchor_duplicate_ignored`,
-`ordre_ancres_non_respecte`. Aucune ligne ne porte un secret, un jeton ni une
-pièce.
+`ordre_ancres_non_respecte`, et, depuis la révision 0.6,
+`anchor_queue_compacted` (`bytes_before`, `bytes_after`, `requests` ;
+EX-8.5, règle 5) et `anchor_queue_compaction_failed` (`step` : `relecture`,
+`ecriture`, `fdatasync`, `renommage` ou `repertoire` ; `errno` ; `bytes` ;
+jamais bloquante, sans alerte propre) ; les lignes qui rendent compte d'une
+tentative (`anchor_retry`, `anchor_fallback`, `anchor_response_rejected`)
+portent son rang `n` dans le membre `attempt` et son identifiant dans le
+membre `attempt_id` (EX-5.13), de sorte que l'historique
+des tentatives sorties de la fenêtre de la file (EX-8.5, règle 7) s'y lit.
+Aucune ligne ne porte un secret, un jeton ni une pièce.
 
 ### 8.10 Traces normatives
 
@@ -2834,6 +3027,7 @@ période : sans politique, nonce à bit haut).
         ],
         "d_jeton_s": 125,
         "d_point_s": 120,
+        "d_admission_s": 0,
         "d_attente_s": 3,
         "d_releve_s": 0,
         "d_tsa_s": 2
@@ -3026,6 +3220,7 @@ période : sans politique, nonce à bit haut).
         ],
         "d_jeton_s": 184,
         "d_point_s": 180,
+        "d_admission_s": 0,
         "d_attente_s": 2,
         "d_releve_s": 0,
         "d_tsa_s": 2
@@ -3307,6 +3502,7 @@ période : sans politique, nonce à bit haut).
         ],
         "d_jeton_s": 303,
         "d_point_s": 300,
+        "d_admission_s": 0,
         "d_attente_s": 2,
         "d_releve_s": 0,
         "d_tsa_s": 1
@@ -3434,6 +3630,7 @@ période : sans politique, nonce à bit haut).
           "detail": "ancre incluse au bloc 20001"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xd781c9f6d2119900b31def6351c1628402f99d947580b9c8844fb5d1dbdaf976",
         "size": 4096,
@@ -3486,6 +3683,7 @@ période : sans politique, nonce à bit haut).
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x9c4cd8444c868abd119d0722ff94ad4db74be85aac0f61736b2bb99eabf5397b",
         "size": 2104,
@@ -3529,6 +3727,7 @@ période : sans politique, nonce à bit haut).
           "detail": "ancre incluse au bloc 20660"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x13527153088884e754778e40e50d8eacf9d927af09c2e3e07b61d92ab4cf480b",
         "size": 4096,
@@ -3575,6 +3774,7 @@ période : sans politique, nonce à bit haut).
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xdf609f6978c714743257fa993063aadc33ecbe9c7177ad993d7fda99573a8a0a",
         "size": 2104,
@@ -3618,6 +3818,7 @@ période : sans politique, nonce à bit haut).
           "detail": "ancre incluse au bloc 21087"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x906e615b692493ef817e85d0ed12e9c98e860de2fb0cb904fe3ddfecfd20c25a",
         "size": 4096,
@@ -3661,6 +3862,7 @@ période : sans politique, nonce à bit haut).
           "detail": "ancre incluse au bloc 21085"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x873b4cf5eb73f0f4aa2f6170bda40bd892c5676267b69d53ae552eff403964e4",
         "size": 4096,
@@ -3704,6 +3906,7 @@ période : sans politique, nonce à bit haut).
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x2be26388aab7e646d8a3a81d220456c2bf39f45832a2138659478e7f2cbeabb3",
         "size": 3082,
@@ -3749,6 +3952,7 @@ période : sans politique, nonce à bit haut).
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xbd2962cc35dc49ee94680cb7b547faabe605d7ffcaf53087c18129c72acb3501",
         "size": 2104,
@@ -3792,6 +3996,7 @@ période : sans politique, nonce à bit haut).
           "detail": "2 calendriers ; attestation en attente"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x9c6433e33949ee9a14685c8929590f0e32f6c611b3b9ea99294cee22a9ba2355",
         "size": 233,
@@ -4412,9 +4617,9 @@ pas reste dit par CT-6 §7 et CT-1 §10.9.
 | **Rejeu d'un jeton** : un jeton obtenu sur une empreinte est présenté pour une autre, ou une réponse ancienne est renvoyée au client | Le jeton engage son `messageImprint` (T-2 de CT-6 le compare à l'empreinte recalculée du sujet) ; deux sujets n'ont jamais la même empreinte (`periodHash` porte un nonce, CT-1 §10.1 ; deux points diffèrent par `checkpoint_ts` ou `prev_checkpoint_hash`, CT-1 §10.5) ; une réponse ancienne ne porte pas le nonce de la requête courante (R1-F1, R1-F2) | nonce frais à chaque tentative et égalité stricte exigée (EX-5.3, EX-5.10 étape 4 : `nonce_different` est une erreur permanente, alertée, qui déclenche la relève) ; réponse tardive `reponse_tardive`, non promue sauf la troisième, avec avertissement (EX-5.11, R1-F13) ; `openssl ts -verify -queryfile` reproduit le refus (« nonce mismatch », annexe B.3) ; un canal sans nonce n'est admis ni comme principal ni comme secours (EX-5.16) |
 | **Prestataire menteur ou compromis** : `genTime` faux, antidaté ou postdaté | Hypothèse H4 de CT-6 : rien dans un jeton ne prouve que l'heure est juste ; seul Bitcoin donne une borne indépendante (CT-6 §3.4, contrôle 5) ; un prestataire qualifié arrête son service au-delà de sa dérive admise (R1-F19, R1-F38), ce qu'il déclare | `\|genTime − sent_at\| ≤ clock_tolerance_s` à l'acquisition, sinon le jeton est promu mais marqué `horloge_suspecte` et alerté (EX-5.11) : un prestataire qui ment de plus de deux minutes est vu à l'instant où une autre tentative est encore utile, et le réviseur juge avec ses ancres (CT-6 AV-T-4) ; deux prestataires qualifiés d'exploitants distincts (EX-11.2) ; preuve OpenTimestamps sur chaque clôture (EX-6.2) ; `noortrace_anchoring_d_jeton_s` rend visible un jeton tardif ; le vérificateur n'y ajoute rien (CT-6 §7.2) |
 | **Horloge de l'enregistreur** fausse ou manipulée | `checkpoint_ts` et `generated_at` sont déclaratifs (CT-1 §10.5, CT-2 EX-7.10) ; CT-2 bloque l'écrivain sur un saut d'horloge (EX-7.13) ; le planificateur lit l'horloge pour ses échéances, la relève (EX-8.8) et les attentes (EX-8.9) | les attentes se calculent sur l'horloge monotone du processus, les échéances `D_k` et les instants consignés sur l'horloge de l'enregistreur (EX-4.13, H8) ; aucune échéance n'est datée par un prestataire ; une horloge locale fausse fait marquer `horloge_suspecte` des jetons justes, sur tous les prestataires à la fois : symptôme reconnaissable (EX-5.11) ; CT-1 §10.9 : seule la contresignature extérieure date |
-| **Perte ou corruption de la file** | La file est le seul état du planificateur ; sa perte ferait oublier des demandes | écriture avant envoi, `fdatasync`, dernière ligne fait foi, ligne tronquée ignorée (EX-8.5) ; les sujets sont durables ailleurs (segments, manifestes, points : CT-2 §12) et, à chaque démarrage, une **reconstruction** confronte ces objets (entrée `stockage_relu`) aux demandes relues de tous les fichiers `file-*.ndjson` et recrée celles qui manquent (`anchoring_queue_rebuilt`, alerte `file_perdue`, EX-8.12 ; traces `file-perdue`, `bascule-epoque-fichier-perdu`) ; les fichiers de file sont copiés vers le WORM (EX-8.14) ; une perte ne fait perdre que du temps (fenêtre), jamais un événement |
+| **Perte ou corruption de la file** | La file est le seul état du planificateur ; sa perte ferait oublier des demandes | écriture avant envoi, `fdatasync`, dernière ligne fait foi, ligne tronquée ignorée (EX-8.5) ; révision 0.6 : 32 tentatives au plus par ligne et compactage par fichier neuf et renommage atomique, qui laisse l'ancienne file valide en cas d'échec (EX-8.5, règles 5 et 7), de sorte qu'une longue panne ne remplit plus le disque ; les sujets sont durables ailleurs (segments, manifestes, points : CT-2 §12) et, à chaque démarrage, une **reconstruction** confronte ces objets (entrée `stockage_relu`) aux demandes relues de tous les fichiers `file-*.ndjson` et recrée celles qui manquent (`anchoring_queue_rebuilt`, alerte `file_perdue`, EX-8.12 ; traces `file-perdue`, `bascule-epoque-fichier-perdu`) ; les fichiers de file sont copiés vers le WORM (EX-8.14) ; une perte ne fait perdre que du temps (fenêtre), jamais un événement |
 | **Points antidatés ou insérés** par qui tient la clé de l'enregistreur | Il peut signer un point à n'importe quel `checkpoint_ts` (CT-1 §10.9) ; il ne peut pas obtenir d'un prestataire extérieur un `genTime` antérieur à l'horloge de celui-ci, ni insérer un point dans une série déjà contresignée sans casser `prev_checkpoint_hash` et la cohérence RFC 9162 des têtes (R2-F21 : un signataire ne doit jamais signer un point incohérent avec un point antérieur ; R2 conséquence 21) ; au registre, une empreinte ne s'ancre qu'une fois (CT-4 §8.3) | admission de chaque point par AN-3 avant toute ancre (signature, place dans la série, CT-1 §10.5) ; série vérifiée par `ancrage.mjs` (AN-2, AN-3 ; 10.2) : chaînage, monotonie de `tree_size` et de `checkpoint_ts`, échéances, cadence ; pour chaque point contresigné, l'alerte `jeton_anterieur_au_point` si `genTime + accuracy < checkpoint_ts − clock_tolerance_s` et l'alerte `contresignature_tardive` si `genTime + accuracy − checkpoint_ts > c_T` (AN-2, 8.9 ; `tableEcheances` et le planificateur) ; CT-6 révision 0.2 rapporte `checkpoint_ts` et `rewrite_window_end` dans `facts.checkpoint` (CT-6 EX-6.17), signale par AV-K-2 un `checkpoint_ts` postérieur au jeton (CT-6 EX-9.22) et par AV-K-4 un jeton postérieur de plus de 3600 s au point (CT-6 §7.9), sans changer de verdict : un grand écart peut signaler un point produit après coup |
-| **Prestataire injoignable longtemps** (jours) | La RFC ne fixe aucune reprise (R1-F9) ; les prestataires n'en recommandent aucune (R1-F73) ; RFC 9162 et les clients de transparence rejouent les 5xx avec `Retry-After` et backoff, jamais les 4xx (R1-F68, R1-F70) | file durable bornée, attente plafonnée à `retry.max_ms`, relève par le secours pour la clôture (EX-5.7, EX-8.8) et, avec `provider_role = principal` (le défaut), pour les demandes de points aussi, au bout de `checkpoints.fallback_after_s` (120 s) ou dès une erreur permanente ; échéances closes `remplacee` sans rattrapage pour les points (EX-4.4) seulement sans secours, ou avec un prestataire des points `second_rang` ou `interne` ; repli sur le serveur interne, non qualifié (section 7), **par décision de l'exploitant**, qui recharge la configuration avec `provider_role = interne` : aucune bascule automatique, chaque demande part d'abord au rôle configuré et attend `fallback_after_s` avant la relève (EX-5.7, EX-8.8) ; alertes à 15 min et `anchor_pending_alert_s` (8.9) ; la fenêtre de réécriture pour la date se dégrade vers `3600 s + d` puis `n × 3600 s + d`, ce que `noortrace_anchoring_window_s` affiche et que le dossier montre (`upper_bound`) : rien n'est caché au réviseur. Cette dégradation est celle du régime sans secours, qui s'applique en version 0 : aucun secours utilisable n'est documenté (EX-11.3). Avec un secours conforme et joignable, la relève maintient `W_date ≤ c_T + d_point + d_attente + checkpoints.fallback_after_s + d_tsa`, soit 426 s + `d_tsa` par défaut (EX-3.5), et la clôture reste qualifiée |
+| **Prestataire injoignable longtemps** (jours) | La RFC ne fixe aucune reprise (R1-F9) ; les prestataires n'en recommandent aucune (R1-F73) ; RFC 9162 et les clients de transparence rejouent les 5xx avec `Retry-After` et backoff, jamais les 4xx (R1-F68, R1-F70) | file durable bornée, attente plafonnée à `retry.max_ms`, relève par le secours pour la clôture (EX-5.7, EX-8.8) et, avec `provider_role = principal` (le défaut), pour les demandes de points aussi, au bout de `checkpoints.fallback_after_s` (120 s) ou dès une erreur permanente ; échéances closes `remplacee` sans rattrapage pour les points (EX-4.4) seulement sans secours, ou avec un prestataire des points `second_rang` ou `interne` ; repli sur le serveur interne, non qualifié (section 7), **par décision de l'exploitant**, qui recharge la configuration avec `provider_role = interne` : aucune bascule automatique, chaque demande part d'abord au rôle configuré et attend `fallback_after_s` avant la relève (EX-5.7, EX-8.8) ; alertes à 15 min et `anchor_pending_alert_s` (8.9) ; la fenêtre de réécriture pour la date se dégrade vers `3600 s + d` puis `n × 3600 s + d`, ce que `noortrace_anchoring_window_s` affiche et que le dossier montre (`upper_bound`) : rien n'est caché au réviseur. Cette dégradation est celle du régime sans secours, qui s'applique en version 0 : aucun secours utilisable n'est documenté (EX-11.3). Avec un secours conforme et joignable, la relève maintient `W_date ≤ c_T + d_point + d_admission + d_attente + checkpoints.fallback_after_s + d_tsa`, soit 436 s + `d_tsa` par défaut, `d_admission` à sa borne de 10 s (EX-3.5 ; 426 s avant la révision 0.6, sans ce terme), et la clôture reste qualifiée |
 | **Série réécrite et ancrée à part** par qui tient la clé de l'enregistreur et la clé de chaîne | le registre accepte toute empreinte nouvelle : il fixe l'ordre relatif et l'unicité des empreintes, pas une position, et ne date rien (3.3) | contrôle de complétude au registre sur la série publiée (EX-10.7, AN-61) : toute ancre de point émise par la clé de chaîne du journal dans la fenêtre de la période doit correspondre à un point publié, dans l'ordre des `checkpoint_ts` ; `W_ordre` reste une durée de conception mesurée (P-2), non une garantie du dossier |
 | **Empreinte prise au registre** (`empreinte_squattee`) | qui voit l'empreinte avant l'inclusion peut l'ancrer le premier (CT-4 §8.3) ; l'horodateur la voit | ancre d'abord, jeton ensuite : sans borne pour la période (CT-4 EX-8.4), bornée à `squat_wait_s` pour un point (EX-4.7, EX-8.4, EX-9.6) ; aucun nouvel essai sur `empreinte_squattee`, incident consigné (EX-9.7, CT-4 EX-8.6) |
 | **Fuite par les empreintes** : le prestataire ou le calendrier apprend quelque chose du journal | la TSA reçoit 32 octets et ne les examine pas (CT-6 §9.1) ; des jetons sur la même empreinte se corrèlent (RFC 3161 §4 point 5, R1-F13) ; un calendrier reçoit un condensé noncé (section 6) | une empreinte par sujet, jamais répétée ; le prestataire voit la cadence et le nombre de points d'un compte, pas leur contenu : un client qui tient cette cadence pour sensible choisit le serveur interne pour les points (section 7) ; `org_id` et `journal_id` ne sont jamais envoyés à un prestataire |
@@ -4458,6 +4663,8 @@ sont pas modifiés par ce lot : la dernière ligne dit ce qui doit y changer.
 | CT-6 §5.4, §6.5, §6.7, §7.9, §9.9, §10.9, §11.9, §12.5, §13.4, annexe A | contrôle 4 sur `periodHash` seul ; `registre.json` à trois rôles ; aucune exigence pour les points | K-1 à K-9 rattachées aux contrôles 3 (K-1, K-2, K-4, K-5), 6 (K-3), 2 (K-6), 4 (K-7), 8 (K-8) et 5 (K-9), une K- `non_execute` étant sans effet sur le statut du contrôle (EX-5.7, EX-5.8) ; raisons de non-exécution `partie_absente` (ancre `null`), `ancre_absente`, `piece_hors_dossier` (K-6), `prerequis_en_echec` (EX-5.9) ; fragment FK de l'énoncé « l'événement est couvert par le point de contrôle du journal […], horodaté au plus tard le … ; une réécriture postérieure à cet instant serait détectée » (EX-6.16) et `facts.checkpoint` avec `rewrite_window_end` et `rewrite_window_ms` (EX-6.17) ; section 7.9 (ce que le verdict prouve de nouveau : fenêtre de réécriture bornée au point) ; rôle `ancre_point_de_controle` de `registre.json` (une entrée au plus, 17 entrées au plus), vérification R-11 à part, R-9 inchangée (§11.9) ; AV-K-1 à AV-K-3 ; EX-13.14 à EX-13.19 (§13.4) ; vecteurs EX-A.13 à EX-A.17 | fait (CT-6 révision 0.2, 2026-10-25 ; code et vecteurs faits) |
 | `scripts/lib/ancrage.mjs`, vérificateur Go, traces (révision 0.2) | — | ligne `envoyee` écrite avant l'envoi (EX-8.5, AN-32) ; dernier point contresigné et échéances rendues sur refus (EX-4.3) ; repli de clôture (EX-4.2) ; reconstruction de la file et fichiers d'époque (EX-8.12, EX-8.5 règle 6) ; alertes `point_manquant`, `jeton_anterieur_au_point`, `contresignature_tardive`, `reponse_tardive_promue` ; classement des étapes 1 et 5 (EX-5.10) ; admission avec racine et `last_hash` (AN-3) ; `constaterCadence`, `verifierCompletudeRegistre` (AN-61), `lireFiles` ; quatre composantes de `d_jeton` sur la ligne `checkpoint_countersigned` (EX-3.5, 8.9) ; neuf traces nouvelles (vingt et une) et la famille `completude` | fait |
 | `scripts/lib/ancrage.mjs`, vérificateur Go, traces (révision 0.4) | `Retry-After` suivi sans borne ; `point_manquant` armé à l'admission du point ; `verifierConfiguration` sans validation de schéma | `calculerAttente` borné par `[retry.initial_ms, retry.max_ms]`, `retry_after_s` plafonné à 604 800 s (EX-8.9) ; minuterie de cadence armée `2 × c_K` après le `checkpoint_ts` du dernier point admis, aucune pour le point de clôture (EX-4.1, 8.9) ; schéma `ancrage-v0` validé avant les huit règles, violations de règle `schema`, aucune levée sur un document de forme quelconque (EX-4.9) ; trace `point-manquant-saut-horloge`, trace `file-perdue` recalculée | fait |
+| `spec/schemas/ancrage-v0.schema.json`, `spec/schemas/planificateur-ancrage-v0.schema.json` (révision 0.6) | `queue` sans `compact_bytes` ; `attempts` jusqu'à 100 000 éléments | membre facultatif `queue.compact_bytes` (1 048 576 à 1 073 741 824) ; `$defs/demande` : `attempts` au plus 32 éléments, membre facultatif `attempts_total` (0 à 100 000) ; mêmes `$id` | fait ; copies des schémas dans `paquets/ancrage` : à faire |
+| `scripts/lib/ancrage.mjs`, composant d'ancrage `paquets/ancrage`, vérificateur Go, traces (révision 0.6) | lignes de file avec toutes les tentatives ; compaction facultative des seuls fichiers finis ; `d_jeton` en quatre composantes, l'admission comptée dans `d_attente` | fenêtre de 32 tentatives et `attempts_total` (EX-8.5, règle 7), rang de reprise `attempts_total + 1` (EX-8.12), compactage du fichier courant et sa relecture, lignes `anchor_queue_compacted` et `anchor_queue_compaction_failed` (EX-8.5, règle 5) ; `d_admission_s` sur `checkpoint_countersigned`, `d_attente_s` compté depuis l'admission (EX-3.5, 8.9) ; vecteurs : `attempts_total` dans les files, `d_admission_s` dans les traces, une trace d'une demande de plus de 32 tentatives ; trace de référence de 8.10 imprimée sous sa forme nouvelle | à faire |
 | Retrait de la qualification du principal (EX-5.9) | — | relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée | fait pour le composant d'ancrage (révision 0.5 : relève éprouvée, TI-16 et TC-24 de CT-9) ; aucune entrée du planificateur de référence ne porte le retrait, l'exploitant l'applique en provoquant la relève |
 | CT-8 | — | alertes de 8.9, sauvegarde du répertoire d'ancres et de la file, fin de rétention (EX-5.15, EX-8.14), source d'en-têtes Bitcoin (EX-6.8), capacité de capture et dimensionnement (EX-9.9, 12.4), exploitation du serveur interne (7.2), réétablissement de `qualified` tous les trente jours (EX-5.9) | proposition |
 | CT-9 | — | tests attachés aux EX- et AN- des deux parties (AN-1 à AN-61) ; mesures P-1 à P-6 de 3.6 ; épreuve à l'aveugle (un relecteur qui n'a que CT-5 et CT-1 §9 à §11 dit la cadence des points, ce qu'un point prouve et ne prouve pas, la fenêtre, le coût pour un prix unitaire donné, la conduite quand le prestataire est injoignable ; un second relecteur lit CT-6 §7 révisée) | proposition |
@@ -4506,9 +4713,14 @@ sont pas modifiés par ce lot : la dernière ligne dit ce qui doit y changer.
   client n'emploie que POST.
 - **Les mesures en charge** du planificateur (débit de points, nombre de
   journaux par instance, taille de la file en régime de panne) : CT-2 §16, à
-  mesurer en phase 2 ; les ordres de grandeur de 12.4 et 9.3 sont calculés,
-  non mesurés en charge (seule la taille de la capture d'une transaction d'un
-  bloc plein, EX-9.9, est mesurée).
+  mesurer en phase 2 sur le système de référence ; les ordres de grandeur de
+  12.4 et 9.3 sont calculés, non mesurés en charge (seule la taille de la
+  capture d'une transaction d'un bloc plein, EX-9.9, est mesurée). La
+  campagne de l'étape 5, hors du système de référence, a relevé une file de
+  30,9 Mo pour 59 demandes après une heure de panne simulée (mesure TM-17 du
+  plan de tests), ce
+  qui a conduit à la fenêtre de 32 tentatives et au compactage de la révision
+  0.6 (EX-8.5, règles 5 et 7) ; la taille sous ces règles reste à remesurer.
 - **Les points de contrôle de plusieurs enregistreurs** d'un même journal
   (bascule de CT-2 §13) : la série d'une période est produite par l'écrivain
   en titre ; le point du nouvel écrivain chaîne le dernier point copié du

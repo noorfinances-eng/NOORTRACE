@@ -323,7 +323,9 @@ export class Ecrivain {
    * ajout, fdatasync. Rend l'événement complet une fois durable.
    * @param {object} partiel les huit champs de CT-1 §5.3
    * @param {{completer?: (e: object, tsIso: string) => void, avantAjout?: (e: object) => Promise<void>,
-   *   leverIntention?: string, captureA?: number, verifierPieces?: boolean}} [options]
+   *   leverIntention?: string, captureA?: number, verifierPieces?: boolean, piecesPerdues?: Set<string>}} [options]
+   *   `piecesPerdues` : `sha256` des pièces manquantes d'un événement en attente
+   *   relu au redémarrage (CT-2 EX-14.18), seule exception à EX-8.9
    * @returns {Promise<object>}
    */
   sceller(partiel, options = {}) {
@@ -641,6 +643,10 @@ export class Ecrivain {
     if (options.verifierPieces !== false) {
       for (const { reference } of referencesEvenement(e)) {
         if ("value" in reference) continue;
+        // Exception unique à EX-8.9 (CT-2 EX-14.18 pas 5, révision 0.7) : les
+        // pièces d'un événement en attente perdues avec le processus, nommées par
+        // le rejeu du fichier d'attente, ne sont pas exigées.
+        if (options.piecesPerdues?.has(reference.sha256)) continue;
         if (!(await existe(this.pieces.chemin(reference.sha256)))) {
           throw new ErreurConstruction("pièce non stockée avant le scellement (EX-8.9)", [reference.sha256]);
         }

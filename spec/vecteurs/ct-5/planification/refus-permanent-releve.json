@@ -459,6 +459,7 @@
         "event": "anchor_response_rejected",
         "error_code": "echec_unacceptedPolicy",
         "attempt": 1,
+        "attempt_id": "jeton_point:fbc4715789d5bfee:1",
         "provider": "tsa-second-rang"
       }
     },
@@ -963,6 +964,7 @@
         ],
         "d_jeton_s": 303,
         "d_point_s": 300,
+        "d_admission_s": 0,
         "d_attente_s": 2,
         "d_releve_s": 0,
         "d_tsa_s": 1
@@ -1025,6 +1027,7 @@
         "event": "anchor_response_rejected",
         "error_code": "echec_unacceptedPolicy",
         "attempt": 1,
+        "attempt_id": "jeton_periode:a864281e05663ee5:1",
         "provider": "qtsa-principal"
       }
     },
@@ -1051,7 +1054,9 @@
       "detail": {
         "event": "anchor_fallback",
         "to": "qtsa-secours",
-        "reason": "echec_unacceptedPolicy"
+        "reason": "echec_unacceptedPolicy",
+        "attempt": 1,
+        "attempt_id": "jeton_periode:a864281e05663ee5:1"
       }
     },
     {
@@ -1158,6 +1163,7 @@
           "detail": "ancre incluse au bloc 20001"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xd781c9f6d2119900b31def6351c1628402f99d947580b9c8844fb5d1dbdaf976",
         "size": 4096,
@@ -1210,6 +1216,7 @@
           "detail": "PKIStatus 2 (rejection) ; unacceptedPolicy"
         }
       ],
+      "attempts_total": 1,
       "result": null,
       "replaced_by": null
     },
@@ -1247,6 +1254,7 @@
           "detail": "ancre incluse au bloc 21087"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x906e615b692493ef817e85d0ed12e9c98e860de2fb0cb904fe3ddfecfd20c25a",
         "size": 4096,
@@ -1290,6 +1298,7 @@
           "detail": "ancre incluse au bloc 21085"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x873b4cf5eb73f0f4aa2f6170bda40bd892c5676267b69d53ae552eff403964e4",
         "size": 4096,
@@ -1348,6 +1357,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 2,
       "result": {
         "sha256": "0xbf8c62fd6c5ed773a10a2cbcc0c40baba3aecfa439bf58e32b0d44b1c07f19f9",
         "size": 3082,
@@ -1403,6 +1413,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x57600e3746664ee09ece961b03105f1a0cd3d77353729b055bc359d7891f6e04",
         "size": 2104,
@@ -1446,6 +1457,7 @@
           "detail": "2 calendriers ; attestation en attente"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x9c6433e33949ee9a14685c8929590f0e32f6c611b3b9ea99294cee22a9ba2355",
         "size": 233,

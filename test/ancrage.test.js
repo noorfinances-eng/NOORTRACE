@@ -7,7 +7,7 @@ import * as J from "../scripts/lib/journal.mjs";
 import * as A from "../scripts/lib/ancrage.mjs";
 import * as O from "../scripts/lib/ots.mjs";
 import * as V from "../scripts/lib/verificateur.mjs";
-import { genererCt5 } from "../scripts/vecteurs/generer-ct5.mjs";
+import { genererCt5, configuration, ORG_ID, JOURNAL_ID, PERIOD_START_1, PERIOD_HASH_1, GENERATED_AT_1, POINTS } from "../scripts/vecteurs/generer-ct5.mjs";
 import { verifierRepertoire } from "../scripts/vecteurs/generer-ct6.mjs";
 
 // L'IMPLÉMENTATION DE RÉFÉRENCE DE CT-5 (scripts/lib/ancrage.mjs) et ses
@@ -61,7 +61,7 @@ describe("CT-5 : génération déterministe de spec/vecteurs/ct-5 (EX-A.1, EX-A.
       const produits = lister(sortie);
       expect(produits).to.deep.equal(lister(CT5).filter((f) => !conservee(f)));
       for (const f of produits) expect(J.sha256(lire(sortie, f)), f).to.equal(J.sha256(lire(CT5, f)));
-      expect(produits.filter((f) => f.startsWith("planification/"))).to.have.length(22);
+      expect(produits.filter((f) => f.startsWith("planification/"))).to.have.length(24);
     } finally {
       fs.rmSync(sortie, { recursive: true, force: true });
     }
@@ -97,7 +97,7 @@ describe("CT-5 : schémas ancrage-v0 et planificateur-ancrage-v0 (EX-4.8, EX-8.1
     expect(J.canonicaliserJCS(planificateur[0])).to.equal(J.canonicaliserJCS(REFERENCE));
   });
 
-  it("les vingt-deux traces sont conformes à la racine du schéma ; requetes.json, cout.json et completude.json à $defs/fichier_vecteurs ; chaque demande des files à $defs/demande", function () {
+  it("les vingt-quatre traces sont conformes à la racine du schéma ; requetes.json, cout.json et completude.json à $defs/fichier_vecteurs ; chaque demande des files à $defs/demande", function () {
     for (const f of TRACES) {
       const trace = lireJSON(CT5, "planification", f);
       expect(valider(trace, SCHEMA_PLANIFICATEUR), f).to.deep.equal([]);
@@ -266,7 +266,7 @@ describe("CT-5 : familles planification et reprise (EX-8.12, EX-8.16, EX-A.6)", 
   this.timeout(120_000);
 
   it("chaque trace est reproduite à l'identique par rejouerTrace (actions et file finale)", function () {
-    expect(TRACES).to.have.length(22);
+    expect(TRACES).to.have.length(24);
     for (const f of TRACES) {
       const trace = lireJSON(CT5, "planification", f);
       const ecarts = A.verifierTrace(trace);
@@ -303,7 +303,7 @@ describe("CT-5 : familles planification et reprise (EX-8.12, EX-8.16, EX-A.6)", 
 
   it("reprise/ : chaque file avant est la forme canonique de queue_before ; relue puis rejouée, elle donne la file après, une demande par id ; les fichiers d'époques relus ensemble (lireFiles) donnent la file avant", function () {
     const noms = fs.readdirSync(path.join(CT5, "reprise")).filter((f) => f.endsWith(".avant.ndjson")).map((f) => f.replace(/\.avant\.ndjson$/, "")).sort();
-    expect(noms).to.deep.equal(["bascule-epoque", "bascule-epoque-fichier-perdu", "file-pleine", "redemarrage-reprise", "refus-puis-preuve-de-vie-redemarrage", "registre-indisponible"]);
+    expect(noms).to.deep.equal(["bascule-epoque", "bascule-epoque-fichier-perdu", "file-fenetre-32-redemarrage", "file-pleine", "redemarrage-reprise", "refus-puis-preuve-de-vie-redemarrage", "registre-indisponible"]);
     const epoques = fs.readdirSync(path.join(CT5, "reprise")).filter((f) => /\.epoque-\d+\.ndjson$/.test(f)).sort();
     expect(epoques).to.deep.equal(["bascule-epoque.epoque-1.ndjson", "bascule-epoque.epoque-2.ndjson"]);
     const relue = A.lireFiles(epoques.map((f, i) => ({ nom: `file-${i + 1}.ndjson`, texte: lire(CT5, "reprise", f).toString("utf8") })));
@@ -569,15 +569,15 @@ describe("CT-5 : série des points, échéances, admission et complétude au reg
     expect(A.admettrePoint(lastFaux, { serie: serie.slice(0, i), evenements }).regle).to.equal("last_hash");
   });
 
-  it("planification/ : chaque ligne checkpoint_countersigned porte les quatre composantes de d_jeton, dont la somme est d_jeton_s (EX-3.5, 8.9)", function () {
+  it("planification/ : chaque ligne checkpoint_countersigned porte les cinq composantes de d_jeton (révision 0.6 : d_admission_s), dont la somme est d_jeton_s (EX-3.5, 8.9)", function () {
     const dir = path.join(CT5, "planification");
     let n = 0;
     for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".json"))) {
       const trace = lireJSON(CT5, "planification", f);
       for (const a of trace.expected.filter((x) => x.action === "journaliser" && x.detail.event === "checkpoint_countersigned")) {
         const d = a.detail;
-        for (const k of ["d_point_s", "d_attente_s", "d_releve_s", "d_tsa_s"]) expect(Number.isInteger(d[k]) && d[k] >= 0, `${f} ${k}`).to.equal(true);
-        expect(d.d_point_s + d.d_attente_s + d.d_releve_s + d.d_tsa_s, f).to.equal(d.d_jeton_s);
+        for (const k of ["d_point_s", "d_admission_s", "d_attente_s", "d_releve_s", "d_tsa_s"]) expect(Number.isInteger(d[k]) && d[k] >= 0, `${f} ${k}`).to.equal(true);
+        expect(d.d_point_s + d.d_admission_s + d.d_attente_s + d.d_releve_s + d.d_tsa_s, f).to.equal(d.d_jeton_s);
         n++;
       }
     }
@@ -661,5 +661,235 @@ describe("CT-5 : les dossiers de CT-1 et de CT-6 gardent leur verdict ; aucun se
     const constantes = lireJSON(CT5, "constantes.json");
     expect(constantes.test_authority.ca).to.match(/^\.\.\/ct-6\/rfc3161\/cles\/ac-test\.pem$/);
     expect(JSON.stringify(constantes)).not.to.match(/BEGIN/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Révision 0.6 de CT-5 : fenêtre de 32 tentatives et attempts_total (EX-8.5,
+// règle 7), rang de reprise (EX-8.12), compactage de la file (EX-8.5, règle 5,
+// partie que porte la référence : le texte compacté et sa relecture),
+// d_admission (EX-3.5, 8.9), lignes d'une tentative avec son rang et son
+// attempt_id (EX-8.15).
+
+const PH1 = `jeton_periode:${PERIOD_HASH_1}`;
+const AP1 = `ancre_registre_periode:${PERIOD_HASH_1}`;
+const plus = (t, ms) => A.iso(A.ms(t) + ms);
+/** Réponse HTTP 503 avec Retry-After (transitoire, attente bornée par [initial_ms, max_ms], sans gigue). */
+const echec503 = (request_id, attempt, retry_after_s = 5) => ({ request_id, attempt, transport: "reponse", http_status: 503, pki_status: null, failure_info: null, retry_after_s, nonce_in_response: null, imprint_matches: null, checks_passed: [], gen_time: null, accuracy_s: null, token_sha256: null, token_size: null });
+const nonceVecteurs = (sorte, hash, n) => A.hexNonce(A.nonceDepuisEtiquette(A.ETIQUETTES.nonceTsa({ journal: "journal-principal", sorte, hash, n })));
+const jetonAccorde = (request_id, attempt, { gen_time, sorte, hash, nom }) => ({ request_id, attempt, transport: "reponse", http_status: 200, pki_status: 0, failure_info: null, retry_after_s: null, nonce_in_response: nonceVecteurs(sorte, hash, attempt), imprint_matches: true, checks_passed: ["T-1", "T-2", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9"], gen_time, accuracy_s: 1, token_sha256: J.sha256(Buffer.from(`jeton ${nom}`)), token_size: 2104 });
+const clotureP1 = { org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: PERIOD_START_1, period_hash: PERIOD_HASH_1, generated_at: GENERATED_AT_1 };
+const derniereLigne = (p, id) => JSON.parse([...p.lignes].reverse().find((l) => JSON.parse(l).id === id));
+
+/**
+ * Clôture de la période 1, ancre incluse à 14:00:02, jeton de clôture chez le
+ * principal (aucun secours : aucune relève) : `n` tentatives, les `n − 1`
+ * premières en échec 503 Retry-After 5 s, la dernière en cours.
+ */
+function planificateurTentatives(n, { prestataires = ["principal", "interne"] } = {}) {
+  const p = A.creerPlanificateur(configuration({ prestataires }));
+  p.recevoir({ t: "2026-11-03T13:59:00.000Z", type: "demarrage", data: {} });
+  p.recevoir({ t: GENERATED_AT_1, type: "periode_close", data: clotureP1 });
+  p.recevoir({ t: "2026-11-03T14:00:01.000Z", type: "reponse_ots", data: { request_id: `ots_periode:${PERIOD_HASH_1}`, calendars_answered: 2, attestation: "en_attente", proof_sha256: J.sha256(Buffer.from("preuve")), proof_size: 233 } });
+  p.recevoir({ t: "2026-11-03T14:00:02.000Z", type: "inclusion_registre", data: { request_id: AP1, block_number: 21087, capture_sha256: J.sha256(Buffer.from("capture")) } });
+  let envoi = "2026-11-03T14:00:02.000Z";
+  for (let k = 1; k < n; k++) {
+    p.recevoir({ t: plus(envoi, 1000), type: "reponse_rfc3161", data: echec503(PH1, k) });
+    envoi = plus(envoi, 6000);
+  }
+  p.recevoir({ t: envoi, type: "tic", data: {} });
+  return { p, envoi };
+}
+/** Tentative d'une ligne de file (forme de $defs/tentative). */
+const tentativeLigne = (kind, hash, n, { provider = "qtsa-principal", started_at, outcome = "echec_transitoire", nonce = null }) => ({ n, provider, started_at, nonce, correlation_id: A.identifiantCorrelation(kind, hash, n), outcome, error_code: outcome === "en_cours" ? null : "http_503", http_status: outcome === "en_cours" ? null : 503, pki_status: null, failure_info: null, retry_after_s: outcome === "en_cours" ? null : 5, next_at: null, detail: outcome === "en_cours" ? "requete envoyee" : "http 503 ; Retry-After 5 s" });
+/** Demande jeton_periode de la période 1 portant les tentatives `rangs`, écrite avant (sans attempts_total) ou depuis la révision 0.6. */
+function ligneJetonPeriode({ rangs, state, attempts_total, due_at = null, enCours = null }) {
+  const d = { version: 0, id: PH1, kind: "jeton_periode", subject: { kind: "periode", org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: PERIOD_START_1, hash: PERIOD_HASH_1, tree_size: null, declared_at: GENERATED_AT_1 }, deadlines: [], state, created_at: GENERATED_AT_1, due_at, attempts: rangs.map((n) => tentativeLigne("jeton_periode", PERIOD_HASH_1, n, { started_at: A.iso(A.ms("2026-11-03T14:00:02.000Z") + (n - 1) * 6000), outcome: n === enCours ? "en_cours" : "echec_transitoire", nonce: nonceVecteurs("periode", PERIOD_HASH_1, n) })) };
+  if (attempts_total !== undefined) d.attempts_total = attempts_total;
+  d.result = null;
+  d.replaced_by = null;
+  return d;
+}
+
+describe("CT-5 révision 0.6 : fenêtre de 32 tentatives, attempts_total, rang de reprise, compactage, d_admission (EX-8.5 règles 5 et 7, EX-8.12, EX-3.5, EX-8.15)", function () {
+  this.timeout(120_000);
+  const rangs = (d) => d.attempts.map((a) => a.n);
+  const intervalle = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+
+  it("EX-8.5, règle 7 : une demande à 40 tentatives est écrite avec les 32 dernières (n 9 à 40, par n croissant) et attempts_total 40 ; chaque ligne écrite porte attempts_total (0 sans tentative), au plus 32 tentatives, et reste conforme à $defs/demande", function () {
+    const { p } = planificateurTentatives(40);
+    const d = derniereLigne(p, PH1);
+    expect(rangs(d)).to.deep.equal(intervalle(9, 40));
+    expect([d.attempts_total, d.state, d.attempts[31].outcome]).to.deep.equal([40, "envoyee", "en_cours"]);
+    // n jamais renuméroté : la tentative 40 garde son attempt_id et son nonce.
+    expect([d.attempts[31].correlation_id, d.attempts[31].nonce]).to.deep.equal([A.identifiantCorrelation("jeton_periode", PERIOD_HASH_1, 40), nonceVecteurs("periode", PERIOD_HASH_1, 40)]);
+    expect(p.actions.filter((a) => a.action === "envoyer_rfc3161" && a.request_id === PH1).map((a) => a.detail.attempt)).to.deep.equal(intervalle(1, 40));
+    for (const l of p.lignes) {
+      const x = JSON.parse(l);
+      expect(x.attempts.length, x.id).to.be.at.most(32);
+      expect(x.attempts_total, x.id).to.equal(x.attempts.length ? Math.max(...rangs(x)) : 0);
+      expect(valider(x, SCHEMA_PLANIFICATEUR, "#/$defs/demande"), x.id).to.deep.equal([]);
+    }
+    // La file rendue (queue_after d'une trace) est la dernière ligne de chaque id.
+    expect(J.canonicaliserJCS(p.file().find((x) => x.id === PH1))).to.equal(J.canonicaliserJCS(d));
+  });
+
+  it("EX-8.5, règle 7 : la tentative en cours la plus ancienne (principal, sans réponse) reste dans la fenêtre quand le secours a fait 35 tentatives de plus après la relève", function () {
+    const p = A.creerPlanificateur(configuration());
+    p.recevoir({ t: "2026-11-03T13:59:00.000Z", type: "demarrage", data: {} });
+    p.recevoir({ t: GENERATED_AT_1, type: "periode_close", data: clotureP1 });
+    p.recevoir({ t: "2026-11-03T14:00:02.000Z", type: "inclusion_registre", data: { request_id: AP1, block_number: 21087, capture_sha256: J.sha256(Buffer.from("capture")) } });
+    // Tentative 1 chez le principal à 14:00:02, sans réponse ; relève par le secours à 14:05:02 (manifest.fallback_after_s).
+    let envoi = "2026-11-03T14:05:02.000Z";
+    for (let n = 2; n <= 36; n++) {
+      p.recevoir({ t: plus(envoi, 1000), type: "reponse_rfc3161", data: echec503(PH1, n) });
+      envoi = plus(envoi, 6000);
+    }
+    p.recevoir({ t: envoi, type: "tic", data: {} });
+    const d = derniereLigne(p, PH1);
+    expect(d.attempts_total).to.equal(37);
+    expect(rangs(d)).to.deep.equal([1, ...intervalle(7, 37)]);
+    expect([d.attempts[0].provider, d.attempts[0].outcome, d.attempts[31].provider, d.attempts[31].outcome]).to.deep.equal(["qtsa-principal", "en_cours", "qtsa-secours", "en_cours"]);
+  });
+
+  it("EX-8.5, règle 7 et EX-8.15 : une réponse à une tentative sortie de la fenêtre est conservée (stocker), non promue, consignée tentative_close avec son rang et son attempt_id ; l'état ne change pas", function () {
+    const { p, envoi } = planificateurTentatives(40);
+    const t = plus(envoi, 500);
+    const depart = p.actions.length;
+    p.recevoir({ t, type: "reponse_rfc3161", data: jetonAccorde(PH1, 3, { gen_time: "2026-11-03T14:00:15Z", sorte: "periode", hash: PERIOD_HASH_1, nom: "periode 1 tentative 3" }) });
+    const actions = p.actions.slice(depart);
+    expect(actions.map((a) => a.action)).to.deep.equal(["stocker", "journaliser"]);
+    expect(actions[1].detail).to.deep.equal({ event: "anchor_response_rejected", error_code: "tentative_close", attempt: 3, attempt_id: A.identifiantCorrelation("jeton_periode", PERIOD_HASH_1, 3), provider: null, kept: true });
+    const d = p.file().find((x) => x.id === PH1);
+    expect([d.state, d.result, d.attempts_total]).to.deep.equal(["envoyee", null, 40]);
+  });
+
+  it("EX-8.5, règle 7 (lecture) : une ligne d'avant la révision 0.6 à 40 tentatives, sans attempts_total, est relue sans erreur ; la ligne suivante porte 32 tentatives et attempts_total 41", function () {
+    const ancienne = ligneJetonPeriode({ rangs: intervalle(1, 40), state: "a_reprendre", due_at: "2026-11-03T14:04:00.000Z" });
+    const texte = A.ecrireFile([ancienne]);
+    const lue = A.lireFile(texte);
+    expect([lue.errors, lue.truncated, lue.demandes.length]).to.deep.equal([[], false, 1]);
+    const p = A.creerPlanificateur(configuration({ prestataires: ["principal", "interne"] }));
+    p.charger(lue.demandes);
+    const actions = p.recevoir({ t: "2026-11-03T14:05:00.000Z", type: "demarrage", data: {} });
+    expect(actions.filter((a) => a.action === "envoyer_rfc3161").map((a) => a.detail.attempt)).to.deep.equal([41]);
+    const d = derniereLigne(p, PH1);
+    expect([rangs(d), d.attempts_total, d.state]).to.deep.equal([intervalle(10, 41), 41, "envoyee"]);
+  });
+
+  it("EX-8.12 : reprise au démarrage d'une demande envoyee de 40 tentatives (fenêtre n 9 à 40) au rang attempts_total + 1 = 41, nouveau nonce et nouvel attempt_id", function () {
+    const ligne = ligneJetonPeriode({ rangs: intervalle(9, 40), state: "envoyee", attempts_total: 40, enCours: 40 });
+    expect(valider(ligne, SCHEMA_PLANIFICATEUR, "#/$defs/demande")).to.deep.equal([]);
+    const p = A.creerPlanificateur(configuration({ prestataires: ["principal", "interne"] }));
+    p.charger([A.ligneFile(ligne)]);
+    const actions = p.recevoir({ t: "2026-11-03T14:05:00.000Z", type: "demarrage", data: {} });
+    const envoi = actions.find((a) => a.action === "envoyer_rfc3161");
+    expect([envoi.detail.attempt, envoi.detail.nonce]).to.deep.equal([41, nonceVecteurs("periode", PERIOD_HASH_1, 41)]);
+    const d = derniereLigne(p, PH1);
+    expect([rangs(d), d.attempts_total, d.attempts[31].correlation_id]).to.deep.equal([intervalle(10, 41), 41, A.identifiantCorrelation("jeton_periode", PERIOD_HASH_1, 41)]);
+    // La tentative 40, en cours à l'arrêt, est close par la reprise (EX-8.12) et reste dans la fenêtre.
+    expect([d.attempts[30].n, d.attempts[30].outcome, d.attempts[30].error_code]).to.deep.equal([40, "echec_transitoire", "redemarrage"]);
+  });
+
+  it("EX-3.5 et 8.9 : point admis 3,6 s après D_1 (checkpoint_ts − D_1 = 0,2 s) : d_point_s 0, d_admission_s 3, d_attente_s 2 (premier envoi à 5 s, compté depuis l'admission), d_releve_s 0, d_tsa_s 1 ; somme égale à d_jeton_s", function () {
+    const p = A.creerPlanificateur(configuration());
+    const K = POINTS.K1;
+    p.recevoir({ t: "2026-11-03T13:04:00.000Z", type: "demarrage", data: {} });
+    p.recevoir({ t: "2026-11-03T13:05:03.600Z", type: "point_produit", data: { org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: PERIOD_START_1, tree_size: K.tree_size, checkpoint_hash: K.hash, checkpoint_ts: "2026-11-03T13:05:00.200Z" } });
+    p.recevoir({ t: "2026-11-03T13:05:05.000Z", type: "inclusion_registre", data: { request_id: `ancre_registre_point:${K.hash}`, block_number: 20001, capture_sha256: J.sha256(Buffer.from("capture K1")) } });
+    const actions = p.recevoir({ t: "2026-11-03T13:05:06.000Z", type: "reponse_rfc3161", data: jetonAccorde(`jeton_point:${K.hash}`, 1, { gen_time: "2026-11-03T13:05:05Z", sorte: "point", hash: K.hash, nom: "K1 admission" }) });
+    const ligne = actions.find((a) => a.action === "journaliser" && a.detail.event === "checkpoint_countersigned").detail;
+    expect(ligne).to.deep.equal({ event: "checkpoint_countersigned", tree_size: 2, provider: "tsa-interne", deadlines: [1], d_jeton_s: 6, d_point_s: 0, d_admission_s: 3, d_attente_s: 2, d_releve_s: 0, d_tsa_s: 1 });
+  });
+
+  it("vecteurs : file-fenetre-32 (n 9 à 40, attempts_total 40, réponse hors fenêtre conservée) et file-fenetre-32-redemarrage (tentative 41) ; attempts_total sur chaque demande de queue_after, au plus 32 tentatives ; redemarrage-reprise relit des lignes d'avant 0.6 ; d_admission_s sur chaque checkpoint_countersigned (0 quand point_produit a t = checkpoint_ts, 120 s pour le point relu de file-perdue)", function () {
+    const a = lireJSON(CT5, "planification", "file-fenetre-32.json");
+    const b = lireJSON(CT5, "planification", "file-fenetre-32-redemarrage.json");
+    const da = a.queue_after.find((d) => d.id === PH1);
+    expect([rangs(da), da.attempts_total, da.state]).to.deep.equal([intervalle(9, 40), 40, "envoyee"]);
+    expect(a.expected.filter((x) => x.action === "journaliser" && x.detail.event === "anchor_response_rejected" && x.detail.error_code === "tentative_close").map((x) => [x.detail.attempt, x.detail.attempt_id])).to.deep.equal([[3, A.identifiantCorrelation("jeton_periode", PERIOD_HASH_1, 3)]]);
+    expect(J.canonicaliserJCS(b.queue_before)).to.equal(J.canonicaliserJCS(a.queue_after));
+    expect(b.expected.filter((x) => x.action === "envoyer_rfc3161").map((x) => x.detail.attempt)).to.deep.equal([41]);
+    const db = b.queue_after.find((d) => d.id === PH1);
+    expect([rangs(db), db.attempts_total, db.state]).to.deep.equal([intervalle(10, 41), 41, "obtenue"]);
+    for (const f of TRACES) {
+      const trace = lireJSON(CT5, "planification", f);
+      // attempts_total sur chaque demande écrite par le planificateur 0.6 ; une ligne relue d'avant 0.6 et jamais réécrite reste telle quelle.
+      const ecrites = new Set(trace.expected.filter((y) => y.action === "ecrire_file").map((y) => y.request_id));
+      for (const d of trace.queue_after) {
+        const avant = trace.queue_before.find((x) => x.id === d.id);
+        if (ecrites.has(d.id) || !avant || avant.attempts_total !== undefined) expect(Number.isInteger(d.attempts_total), `${f} ${d.id}`).to.equal(true);
+        else expect(J.canonicaliserJCS(d), `${f} ${d.id}`).to.equal(J.canonicaliserJCS(avant));
+        expect(d.attempts.length, `${f} ${d.id}`).to.be.at.most(32);
+      }
+      for (const x of trace.expected.filter((y) => y.action === "journaliser" && y.detail.event === "checkpoint_countersigned")) {
+        expect(Number.isInteger(x.detail.d_admission_s), `${f} d_admission_s`).to.equal(true);
+        const entree = trace.inputs.find((e) => e.type === "point_produit" && e.data.tree_size === x.detail.tree_size && e.t === e.data.checkpoint_ts && `jeton_point:${e.data.checkpoint_hash}` === x.request_id);
+        if (entree) expect(x.detail.d_admission_s, `${f} ${x.request_id}`).to.equal(0);
+      }
+    }
+    const rr = lireJSON(CT5, "planification", "redemarrage-reprise.json");
+    expect(rr.queue_before.every((d) => d.attempts_total === undefined)).to.equal(true);
+    const perdue = lireJSON(CT5, "planification", "file-perdue.json").expected.find((x) => x.action === "journaliser" && x.detail.event === "checkpoint_countersigned" && x.request_id === `jeton_point:${POINTS.K3.hash}`);
+    expect([perdue.detail.d_point_s, perdue.detail.d_admission_s]).to.deep.equal([240, 120]);
+  });
+
+  it("EX-8.15 : anchor_fallback (relève), anchor_retry (renvoi d'une ancre) et anchor_response_rejected portent le rang de la tentative (attempt) et son attempt_id", function () {
+    let vus = { anchor_fallback: 0, anchor_retry: 0, anchor_response_rejected: 0 };
+    for (const f of TRACES) {
+      const trace = lireJSON(CT5, "planification", f);
+      for (const x of trace.expected.filter((y) => y.action === "journaliser" && Object.hasOwn(vus, y.detail.event))) {
+        if (x.detail.error_code === "tentative_inconnue") continue;
+        const [kind, hash] = x.request_id.split(":");
+        expect(Number.isInteger(x.detail.attempt), `${f} ${x.detail.event}`).to.equal(true);
+        expect(x.detail.attempt_id, `${f} ${x.detail.event}`).to.equal(A.identifiantCorrelation(kind, hash, x.detail.attempt));
+        vus[x.detail.event]++;
+      }
+    }
+    expect(Object.values(vus).every((n) => n > 0), JSON.stringify(vus)).to.equal(true);
+  });
+
+  it("EX-8.5, règle 5 (texte compacté) : dernière ligne de chaque id, octets recopiés tels quels, dans l'ordre où ces dernières lignes figurent ; ligne tronquée finale non recopiée ; même état avant et après ; tailles et nombre de demandes", function () {
+    const { p } = planificateurTentatives(40);
+    const texte = p.lignes.map((l) => l + "\n").join("") + '{"version":0,"id":"tronq';
+    const r = A.compacterFile(texte);
+    const avant = A.lireFile(texte);
+    const apres = A.lireFile(r.texte);
+    expect([avant.truncated, apres.truncated, apres.errors]).to.deep.equal([true, false, []]);
+    // Même état : la dernière ligne de chaque id (l'ordre de première apparition, lui, suit les dernières lignes).
+    const parId = (x) => J.canonicaliserJCS(Object.fromEntries(x.demandes.map((d) => [d.id, d])));
+    expect(parId(apres)).to.equal(parId(avant));
+    const lignes = r.texte.toString("utf8").split("\n").filter(Boolean);
+    const dernieres = new Map();
+    p.lignes.forEach((l, i) => dernieres.set(JSON.parse(l).id, i));
+    const ordre = [...dernieres.entries()].sort((x, y) => x[1] - y[1]).map(([, i]) => p.lignes[i]);
+    expect(lignes).to.deep.equal(ordre);
+    expect([r.requests, r.bytes_before, r.bytes_after]).to.deep.equal([avant.demandes.length, Buffer.byteLength(texte), Buffer.byteLength(r.texte)]);
+    // Idempotent : recompacter un fichier compacté ne change aucun octet.
+    expect(A.compacterFile(r.texte).texte.equals(r.texte)).to.equal(true);
+  });
+
+  it("EX-8.12 (révision 0.6) : un fichier file-<epoch>.ndjson.compactage resté d'un arrêt est ignoré à la relecture (et nommé dans ignored) ; l'état est celui du fichier courant", function () {
+    const { p } = planificateurTentatives(3);
+    const courant = p.lignes.map((l) => l + "\n").join("");
+    const r = A.lireFiles([{ nom: "file-1.ndjson.compactage", texte: "{illisible" }, { nom: "file-1.ndjson", texte: courant }]);
+    expect([r.files, r.ignored, r.errors, r.truncated]).to.deep.equal([["file-1.ndjson"], ["file-1.ndjson.compactage"], [], []]);
+    expect(J.canonicaliserJCS(r.demandes)).to.equal(J.canonicaliserJCS(A.lireFile(courant).demandes));
+  });
+
+  it("EX-4.8 et AN-1 : queue.compact_bytes facultative (défaut 16 777 216, hors de la projection d'EX-8.2) ; 1 048 575 et 1 073 741 825 refusés par la règle schema", function () {
+    expect(A.COMPACT_BYTES_DEFAUT).to.equal(16777216);
+    const ex = blocsSpec("ancrage")[0];
+    expect(ex.queue.compact_bytes).to.equal(16777216);
+    const sans = JSON.parse(JSON.stringify(ex));
+    delete sans.queue.compact_bytes;
+    expect(A.projeterConfiguration(sans)).to.deep.equal(A.projeterConfiguration(ex));
+    const regles = (doc) => A.verifierConfiguration(doc, { lecteurCertificat: () => true, checkpoint_interval_s: 60 }).violations.map((v) => v.rule);
+    expect(regles(sans)).to.deep.equal([]);
+    for (const v of [1048575, 1073741825]) {
+      const doc = JSON.parse(JSON.stringify(ex));
+      doc.queue.compact_bytes = v;
+      expect(regles(doc), String(v)).to.deep.equal(["schema"]);
+    }
   });
 });

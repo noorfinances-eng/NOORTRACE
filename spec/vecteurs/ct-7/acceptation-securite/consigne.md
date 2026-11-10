@@ -1,7 +1,7 @@
 # Épreuve à l'aveugle du responsable de la sécurité (CT-7, EX-9.1)
 
 Vous recevez la spécification CT-7 (`spec/CT-7-securite-et-conformite.md`,
-version 0.2) sans sa section 9 ni son annexe A.15, et rien d'autre. Répondez
+version 0.3) sans sa section 9 ni son annexe A.15, et rien d'autre. Répondez
 seul et par écrit. Pour chacun des six scénarios d'attaque ci-dessous,
 donnez :
 

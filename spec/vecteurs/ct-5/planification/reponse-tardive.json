@@ -728,6 +728,7 @@
         "event": "anchor_response_rejected",
         "error_code": "reponse_tardive",
         "attempt": 1,
+        "attempt_id": "jeton_periode:3ed80e52f0d52f18:1",
         "provider": "qtsa-principal"
       }
     },
@@ -797,6 +798,7 @@
         "event": "anchor_response_rejected",
         "error_code": "reponse_tardive",
         "attempt": 2,
+        "attempt_id": "jeton_periode:3ed80e52f0d52f18:2",
         "provider": "qtsa-principal"
       }
     },
@@ -933,6 +935,7 @@
           "detail": "ancre incluse au bloc 24700"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x8aa8371308ea7572fd572dd515b301b3604265258cefbf089be1dce35213633e",
         "size": 4096,
@@ -1006,6 +1009,7 @@
           "detail": "granted ; T-1 a T-9 reussies ; avertissement reponse_tardive"
         }
       ],
+      "attempts_total": 3,
       "result": {
         "sha256": "0x7885c87a0d4f6d447160fcf8ffb4c14fda095d1392e352b3dca577138016fc5c",
         "size": 3082,
@@ -1049,6 +1053,7 @@
           "detail": "2 calendriers ; attestation en attente"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xf6f171d4fd51cf28c7887f8a8fae36f3ae4e9ac06f7cbf6d272bb4992ec0c8e6",
         "size": 233,

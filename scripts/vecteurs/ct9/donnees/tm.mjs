@@ -643,7 +643,7 @@ export const TM = [
   {
     "id": "TM-13",
     "level": "TM",
-    "title": "P-3 : contresignature RFC 3161 au plus `c_T + d_jeton` après l'événement, `d_jeton` rapporté avec ses quatre composantes (CT-5 EX-3.5)",
+    "title": "P-3 : contresignature RFC 3161 au plus `c_T + d_jeton` après l'événement, `d_jeton` rapporté avec ses cinq composantes, dont `d_admission` (CT-5 EX-3.5, révision 0.6)",
     "specs": [
       "CT-5"
     ],
@@ -659,13 +659,13 @@ export const TM = [
       "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
     ],
     "steps": [
-      "Pour chaque échéance `D_k` satisfaite : `genTime + précision − D_k = d_jeton`, lu sur la ligne `checkpoint_countersigned` avec `d_point`, `d_attente`, `d_releve`, `d_tsa`.",
+      "Pour chaque échéance `D_k` satisfaite : `genTime + précision − D_k = d_jeton`, lu sur la ligne `checkpoint_countersigned` avec `d_point`, `d_admission`, `d_attente`, `d_releve`, `d_tsa` (`d_admission` = instant d'admission du point par le composant d'ancrage − `checkpoint_ts` ; `d_attente` compté depuis l'admission, CT-5 EX-3.5).",
       "Vérifier qu'aucune échéance n'est non satisfaite avant la suivante en fonctionnement nominal.",
-      "Rapport : lignes `p3_d_jeton`, `p3_d_point`, `p3_d_attente`, `p3_d_releve`, `p3_d_tsa`.",
+      "Rapport : lignes `p3_d_jeton`, `p3_d_point`, `p3_d_admission`, `p3_d_attente`, `p3_d_releve`, `p3_d_tsa`.",
       "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
       "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
     ],
-    "oracle": "`d_point ≤ 1` s, `d_attente ≤ squat_wait_s`, `d_releve ≤ fallback_after_s` (120 s), `d_tsa` publié ; zéro échéance manquée sur une période ; sinon `met` faux.",
+    "oracle": "`d_point ≤ 1` s, `d_admission ≤ 10` s au 99e centile (borne de conception de CT-5 EX-3.5), `d_attente ≤ squat_wait_s`, `d_releve ≤ fallback_after_s` (120 s), `d_tsa` publié ; zéro échéance manquée sur une période ; sinon `met` faux.",
     "status": {
       "state": "executable",
       "tests": [
@@ -681,10 +681,10 @@ export const TM = [
       "measured": null,
       "quantity": "d_jeton : délai entre l'échéance de contresignature et genTime + précision",
       "unit": "s",
-      "target": "c_T (300 s) + d_jeton ; d_point ≤ 1 s, d_attente ≤ squat_wait_s, d_releve ≤ fallback_after_s (120 s), d_tsa publié",
+      "target": "c_T (300 s) + d_jeton ; d_point ≤ 1 s, d_admission ≤ 10 s au 99e centile, d_attente ≤ squat_wait_s, d_releve ≤ fallback_after_s (120 s), d_tsa publié",
       "comparison": "au_plus",
       "source": "CT-5 P-3",
-      "failure_threshold": "une échéance non satisfaite avant la suivante, ou une composante au-delà de sa borne",
+      "failure_threshold": "une échéance non satisfaite avant la suivante, une composante au-delà de sa borne, ou un 99e centile de d_admission au-delà de 10 s",
       "method": "releve",
       "percentiles": [
         "p50",
@@ -885,13 +885,14 @@ export const TM = [
   {
     "id": "TM-17",
     "level": "TM",
-    "title": "Mesures en charge du planificateur d'ancrage : débit de points, journaux par instance, taille de la file en régime de panne (CT-5 §15)",
+    "title": "Mesures en charge du planificateur d'ancrage : débit de points, journaux par instance, taille de la file en régime de panne, bornée par la fenêtre de 32 tentatives et le compactage (CT-5 §15, EX-8.5)",
     "specs": [
       "CT-5"
     ],
     "covers": [
       "CT-5 §15",
       "CT-5 §8.5",
+      "CT-5 EX-8.5",
       "CT-5 §12.4"
     ],
     "preconditions": [
@@ -901,12 +902,12 @@ export const TM = [
     ],
     "steps": [
       "Relever le nombre de points produits et ancrés par seconde pour J = 1 et J = 10.",
-      "Couper le prestataire simulé une heure ; relever la taille maximale de la file durable et la mémoire du composant.",
+      "Couper le prestataire simulé une heure ; relever la taille maximale de la file durable (octets du fichier courant et nombre de lignes), le plus grand nombre de tentatives porté par une ligne, `attempts_total` des demandes, les compactages consignés (`anchor_queue_compacted`, `anchor_queue_compaction_failed`) et la mémoire du composant.",
       "Rapport : lignes `planificateur_debit_points`, `planificateur_journaux`, `planificateur_file_panne`.",
       "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
       "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
     ],
-    "oracle": "Lignes présentes, `met` null ; la file reste bornée (`queue` de CT-5 §8.5) sinon `notes` le dit.",
+    "oracle": "Lignes présentes, `met` null ; aucune ligne de la file ne porte plus de 32 tentatives, et la taille du fichier courant ne dépasse jamais `max(queue.compact_bytes, 2 × S_0)` plus une ligne, `S_0` étant sa taille juste après le compactage précédent (CT-5 EX-8.5, règles 5 et 7 ; 16 777 216 octets plus une ligne aux valeurs par défaut pour la panne de l'étape 5) ; sinon `notes` le dit.",
     "status": {
       "state": "executable",
       "tests": [
@@ -929,7 +930,7 @@ export const TM = [
       "target": null,
       "comparison": "aucune_cible",
       "source": "CT-5 §15",
-      "failure_threshold": "aucun : mesure publiée ; une file non bornée est une lacune à tracer",
+      "failure_threshold": "aucun : mesure publiée ; une file en panne au-delà de max(queue.compact_bytes, 2 × S_0) plus une ligne, ou une ligne de plus de 32 tentatives (CT-5 EX-8.5, règles 5 et 7), est une lacune à tracer",
       "method": "releve",
       "percentiles": [
         "max"

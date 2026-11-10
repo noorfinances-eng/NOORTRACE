@@ -21,7 +21,8 @@ Règles communes :
 2. **Une pièce est écrite avant l'événement qui la cite** (EX-8.9, EX-12.6) :
    `await coeur.ecrirePiece(piece)` rend sa référence. L'écrivain refuse de
    sceller un événement dont une référence sans `value` n'est pas stockée
-   (`ErreurConstruction`, EX-7.1).
+   (`ErreurConstruction`, EX-7.1). Seule exception (CT-2 révision 0.7,
+   EX-14.18) : le rejeu du fichier d'attente au démarrage, voir k).
 3. **Rien n'est rendu à l'hôte avant que la promesse du cœur soit résolue**
    (EX-4.19, EX-12.6) : un événement rendu par le cœur est durable (fdatasync
    rendu sur le segment qui le contient, validation groupée d'EX-12.7).
@@ -1250,3 +1251,35 @@ await coeur.rotationUrgence();   // → { accepte, raison?, evenement? } ; noort
 - `ClientKms` prend son identité d'`IdentiteAws` (variables, ou IMDSv2) ;
   `ClientCloudKms` de `JetonGoogle` (fichier de compte de service) ou de
   `JetonMetadonneesGoogle` (lecture 193).
+
+## k) CT-2 révision 0.7 : pièces d'événements en attente perdues (EX-14.18, EX-8.9, EX-14.10)
+
+```js
+import { pieceAttentePiecesPerdues, TEXTE_ATTENTE, partielPiecesPerdues } from "@noortrace/enregistreur";
+
+// Pièce « résultat » (« réponse » d'un échange de modèle) de remplacement, JCS intégral,
+// redacted: false, sans media_type :
+// {"missing_pieces":[{"length","sha256"}…],"noortrace_attente":TEXTE_ATTENTE,"pending_id","result":<référence d'origine>}
+const piece = pieceAttentePiecesPerdues({ pending_id, manquantes /* références manquantes */, resultat /* execution.result d'origine */ });
+// Événement partiel scellé : is_error vrai, result remplacé, autres références gardées,
+// policy.redaction recalculé (EX-10.16).
+const partiel = partielPiecesPerdues(partielDeLaLigne, piece, coeur.nomRedaction);
+await ecrivain.sceller(partiel, { captureA, piecesPerdues: new Set(manquantes.map((r) => r.sha256)) });
+```
+
+- `pieceAttentePerdue(pendingId)` (pièce à deux membres des versions 0.1 à
+  0.6) est **retirée** : aucune autre forme n'est produite.
+- `ecrivain.sceller` prend l'option `piecesPerdues` (`Set` de `sha256`) :
+  les seules références dispensées de la vérification d'EX-8.9. Le cœur ne
+  la passe qu'au rejeu du fichier d'attente (`_reprendreAttente`, démarrage
+  et bascule) ; tout autre scellement d'un événement dont une pièce manque
+  reste refusé (`ErreurConstruction`, « pièce non stockée avant le
+  scellement (EX-8.9) »), y compris la reprise d'une intention (EX-12.14).
+- Journal d'exploitation : `pending_pieces_lost` (`noyau`, `error`, `seq`
+  nul ; `data` : `events`, `seqs`, `pieces`), une ligne par rejeu ; aucun
+  `sha256` dans la ligne.
+- `coeur.viderAttente()` (sortie d'un mode dégradé sans redémarrage,
+  EX-14.10) écrit les pièces de chaque événement avant de le sceller ; un
+  échec d'écriture laisse l'événement et les suivants dans `coeur.attente`,
+  dans l'ordre de `captured_at`.
+- Essais : `test/enregistreur-coeur-pieces-perdues.test.js`.

@@ -210,7 +210,8 @@
       "properties": {
         "path": { "$ref": "#/$defs/chemin_absolu", "description": "Répertoire de la file d'attente durable (CT-5 §8.5) ; les enregistrements d'acquisition sont écrits par période dans le répertoire d'ancres (CT-5 §5.5). Sous storage.root de CT-2 par défaut." },
         "max_pending": { "type": "integer", "minimum": 100, "maximum": 10000000, "description": "Nombre maximal de demandes en attente avant alerte critique. Défaut 100000." },
-        "anchor_pending_alert_s": { "type": "integer", "minimum": 60, "maximum": 604800, "description": "Âge de la plus ancienne demande non satisfaite au-delà duquel l'alerte « ancre en retard » est levée (CT-2 §17.4 : 2 h). Défaut 7200." }
+        "anchor_pending_alert_s": { "type": "integer", "minimum": 60, "maximum": 604800, "description": "Âge de la plus ancienne demande non satisfaite au-delà duquel l'alerte « ancre en retard » est levée (CT-2 §17.4 : 2 h). Défaut 7200." },
+        "compact_bytes": { "type": "integer", "minimum": 1048576, "maximum": 1073741824, "description": "Révision 0.6 de CT-5, facultative (absente : 16777216) : taille en octets du fichier courant de la file au-delà de laquelle il est compacté, s'il dépasse aussi le double de la taille laissée par le compactage précédent ; le compactage a lieu aussi à chaque clôture (CT-5 EX-8.5, règle 5). Borne basse : une vingtaine de lignes de 32 tentatives au plus grand ; borne haute : la réserve d'espace libre par défaut de l'enregistreur (CT-2 storage.min_free_bytes, 1 GiB), que la copie temporaire du compactage ne doit pas épuiser." }
       }
     }
   },

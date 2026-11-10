@@ -273,7 +273,10 @@ describe("ancrage, composant F1 : une période entière hors réseau public (CT-
     expect(relue.demandes.every((d) => ETATS_FINAUX.includes(d.state))).to.equal(true);
     // Chaque requête reçue par les serveurs RFC 3161 porte un nonce qu'une ligne envoyee de la file a consigné d'abord.
     const lignes = fs.readFileSync(path.join(configuration.queue.path, "file-1.ndjson"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-    const nonces = new Set(lignes.filter((l) => l.state === "envoyee").flatMap((l) => l.attempts.map((a) => a.nonce)).filter(Boolean));
+    // Révision 0.6 de CT-5 (EX-8.5 règle 5, EX-8.14) : la file a été compactée à la clôture (les lignes `envoyee`
+    // remplacées ne sont plus conservées) ; chaque tentative garde dans la dernière ligne de sa demande le nonce
+    // que sa ligne `envoyee` a consigné avant l'envoi (AN-32, éprouvé ligne à ligne par les traces).
+    const nonces = new Set(lignes.flatMap((l) => l.attempts.map((a) => a.nonce)).filter(Boolean));
     const depot = DepotAncres.ouvrir({ racine: path.join(dir, "stockage"), orgId: ORG, journalId: JOURNAL });
     for (const e of depot.lireAcquisitions(PERIODE).enregistrements) expect(nonces.has(e.nonce), e.attempt_id).to.equal(true);
     const captures = fs.readdirSync(path.join(dir, "captures")).filter((n) => n.startsWith("capture-"));

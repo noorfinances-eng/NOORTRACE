@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -315,5 +316,60 @@ func TestVerifierCompletude(t *testing.T) {
 	r, _ = VerifierCompletude(journaux, []AncreCapturee{a1, a2}, []string{cle}, 0, 20)
 	if r.Complet || len(r.HorsOrdre) != 1 || r.HorsOrdre[0] != a1.Fingerprint {
 		t.Errorf("hors ordre : %+v", r)
+	}
+}
+
+// Révision 0.6 de CT-5 (EX-8.5, règle 7) : fenêtre de 32 tentatives (les
+// tentatives en cours toujours, puis les plus récentes), attempts_total
+// facultatif à la lecture, refus d'une ligne écrite de plus de 32
+// tentatives ou sans attempts_total.
+func TestFenetreTentatives06(t *testing.T) {
+	var l []*Tentative
+	for n := int64(1); n <= 40; n++ {
+		issue := "echec_transitoire"
+		if n == 1 || n == 40 {
+			issue = "en_cours"
+		}
+		l = append(l, &Tentative{N: n, Outcome: issue})
+	}
+	f := Fenetre(l)
+	if len(f) != 32 || f[0].N != 1 || f[1].N != 10 || f[31].N != 40 {
+		t.Fatalf("fenêtre : %d tentatives, rangs %d, %d … %d", len(f), f[0].N, f[1].N, f[len(f)-1].N)
+	}
+	ligne := func(attempts, total string) string {
+		return `{"version":0,"id":"jeton_periode:0x01","kind":"jeton_periode","subject":{"kind":"periode","org_id":"0x02","journal_id":"0x03","period_start":0,"hash":"0x01","tree_size":null,"declared_at":"2026-11-03T14:00:00Z"},"deadlines":[],"state":"a_reprendre","created_at":"2026-11-03T14:00:00Z","due_at":null,"attempts":[` + attempts + `]` + total + `,"result":null,"replaced_by":null}`
+	}
+	tentative := func(n int) string {
+		return `{"n":` + strconv.Itoa(n) + `,"provider":"p","started_at":"2026-11-03T14:00:00Z","nonce":null,"correlation_id":"c","outcome":"echec_transitoire","error_code":null,"http_status":null,"pki_status":null,"failure_info":null,"retry_after_s":null,"next_at":null,"detail":"x"}`
+	}
+	var parts []string
+	for n := 1; n <= 33; n++ {
+		parts = append(parts, tentative(n))
+	}
+	// Ligne d'avant la révision : 33 tentatives, sans attempts_total ; lue telle quelle, total = 33.
+	v, err := ParseJSON([]byte(ligne(strings.Join(parts, ","), "")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := DemandeDe(v)
+	if err != nil || d.Total() != 33 || d.AttemptsTotal != nil {
+		t.Fatalf("lecture d'une ligne d'avant 0.6 : %v", err)
+	}
+	if ControlerLigneEcrite(d) == nil {
+		t.Error("une ligne écrite de 33 tentatives est acceptée")
+	}
+	// Ligne de la révision 0.6 : tentatives 2 à 33, attempts_total 33.
+	v, _ = ParseJSON([]byte(ligne(strings.Join(parts[1:], ","), `,"attempts_total":33`)))
+	if d, err = DemandeDe(v); err != nil || ControlerLigneEcrite(d) != nil || LigneFile(d) != canon(v) {
+		t.Fatalf("ligne 0.6 : %v", err)
+	}
+	// attempts_total différent du plus grand rang : refusé.
+	v, _ = ParseJSON([]byte(ligne(strings.Join(parts[1:], ","), `,"attempts_total":40`)))
+	if d, err = DemandeDe(v); err != nil || ControlerLigneEcrite(d) == nil {
+		t.Error("attempts_total 40 pour un plus grand rang 33 accepté")
+	}
+	v, _ = ParseJSON([]byte(ligne(tentative(1), `,"attempts_total":-1`)))
+	if _, err = DemandeDe(v); err == nil {
+		t.Error("attempts_total négatif accepté")
 	}
 }

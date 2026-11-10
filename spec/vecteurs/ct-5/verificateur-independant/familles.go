@@ -581,6 +581,7 @@ func famillePlanification(rap *Rapport, racine string) {
 			continue
 		}
 		confronterTrace(rap, fam, id, trace, rejeu)
+		controlerLignes(rap, fam, id, trace, rejeu)
 		invariants, err := VerifierInvariants(trace, rejeu)
 		if err != nil {
 			rap.Erreur("planification/%s : invariants : %s", id, err.Error())
@@ -588,6 +589,58 @@ func famillePlanification(rap *Rapport, racine string) {
 		}
 		rapporterInvariants(rap, fam, id, invariants)
 	}
+}
+
+// controlerLignes confronte à `$defs/demande` révisé (révision 0.6 de CT-5,
+// EX-8.5 règle 7) chaque ligne que le rejeu écrit (au plus 32 tentatives par
+// rang croissant, attempts_total égal au plus grand rang) et chaque demande de
+// queue_before et de queue_after (au plus 32 tentatives, maxItems du schéma ;
+// attempts_total facultatif à la lecture, présent sur toute demande que la
+// trace réécrit).
+func controlerLignes(rap *Rapport, fam, id string, trace *Value, rejeu *Rejeu) {
+	ecarts := []string{}
+	for i, l := range rejeu.Lignes {
+		v, err := ParseJSON([]byte(l))
+		var d *Demande
+		if err == nil {
+			d, err = DemandeDe(v)
+		}
+		if err == nil {
+			err = ControlerLigneEcrite(d)
+		}
+		if err != nil {
+			ecarts = append(ecarts, fmt.Sprintf("ligne écrite %d : %s", i+1, err.Error()))
+		}
+	}
+	ecrites := map[string]bool{}
+	for _, a := range rejeu.Actions {
+		if chaineOu(a, "", "action") == "ecrire_file" {
+			ecrites[chaineOu(a, "", "request_id")] = true
+		}
+	}
+	for _, cle := range []string{"queue_before", "queue_after"} {
+		q := trace.Get(cle)
+		if q == nil || q.Kind != KindArray {
+			continue
+		}
+		for i, v := range q.Arr {
+			d, err := DemandeDe(v)
+			if err == nil && len(d.Attempts) > FenetreTentatives {
+				err = fmt.Errorf("%d tentatives, au plus %d", len(d.Attempts), FenetreTentatives)
+			}
+			if err == nil && cle == "queue_after" && ecrites[d.ID] {
+				err = ControlerLigneEcrite(d)
+			}
+			if err != nil {
+				ecarts = append(ecarts, fmt.Sprintf("%s[%d] : %s", cle, i, err.Error()))
+			}
+		}
+	}
+	obtenu := "aucune ligne non conforme"
+	if len(ecarts) > 0 {
+		obtenu = fmt.Sprintf("%d ligne(s) non conforme(s) : %s", len(ecarts), strings.Join(ecarts, " ; "))
+	}
+	rap.Comparer(fam, id, "lignes de file conformes à $defs/demande révisé (au plus 32 tentatives, attempts_total ; EX-8.5, règle 7)", "aucune ligne non conforme", obtenu)
 }
 
 // rapporterInvariants confronte chaque invariant de la section 8.11 à sa

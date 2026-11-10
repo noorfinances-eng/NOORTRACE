@@ -7,7 +7,7 @@
 // a joué. Il fixe la sérialisation : JCS intégral pour une pièce JSON (8.1),
 // UTF-8 sans guillemets pour une pièce texte (8.2), règles de 8.3 pour une
 // pièce non JSON, et les formes fixes du cœur (erreur JSON-RPC, reprise,
-// résultat perdu, déclaration de source, document d'ensemble de politique).
+// pièces d'attente perdues, déclaration de source, document d'ensemble de politique).
 
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -130,14 +130,35 @@ export function pieceReprise(intentionSha256) {
   return pieceJson({ intention_sha256: intentionSha256, noortrace_reprise: TEXTE_REPRISE });
 }
 
+/** Texte fixe de la pièce « résultat » d'un événement en attente dont des pièces manquent (EX-14.18). */
+export const TEXTE_ATTENTE = "pieces perdues pendant le mode degrade";
+
 /**
- * Pièce « résultat » d'un événement en attente dont le résultat a été perdu
- * (EX-14.10).
- * @param {string} pendingId
+ * Pièce « résultat » (pièce « réponse » d'un échange de modèle) d'un
+ * événement en attente relu au redémarrage dont au moins une pièce manque
+ * (CT-2 EX-14.18 pas 3, révision 0.7) : JCS intégral de
+ * `{"missing_pieces":[{"length","sha256"}…],"noortrace_attente":…,"pending_id":…,"result":<référence d'origine>}`,
+ * `redacted: false`, sans `media_type`. `missing_pieces` : une entrée par
+ * `sha256` distinct, tirée de la référence qui le désigne, triée par `sha256`
+ * croissant ; `result` : la référence d'origine de `execution.result`
+ * (`sha256`, `length`, `redacted`, et `media_type` si elle en a un). Elle
+ * remplace la pièce à deux membres `{"noortrace_attente":"resultat perdu
+ * pendant le mode degrade","pending_id"}` des versions 0.1 à 0.6 (EX-14.10),
+ * qui n'est plus produite.
+ * @param {{pending_id: string, manquantes: {sha256: string, length: number}[], resultat: object|null}} p
  * @returns {Piece}
  */
-export function pieceAttentePerdue(pendingId) {
-  return pieceJson({ noortrace_attente: "resultat perdu pendant le mode degrade", pending_id: pendingId });
+export function pieceAttentePiecesPerdues(p) {
+  const parSha = new Map();
+  for (const r of p.manquantes) if (!parSha.has(r.sha256)) parSha.set(r.sha256, { length: r.length, sha256: r.sha256 });
+  const missing_pieces = [...parSha.values()].sort((a, b) => (a.sha256 < b.sha256 ? -1 : a.sha256 > b.sha256 ? 1 : 0));
+  const r = p.resultat;
+  let result = r ?? null;
+  if (r !== null && typeof r === "object") {
+    result = { sha256: r.sha256, length: r.length, redacted: r.redacted };
+    if (r.media_type !== undefined) result.media_type = r.media_type;
+  }
+  return pieceJson({ missing_pieces, noortrace_attente: TEXTE_ATTENTE, pending_id: p.pending_id, result });
 }
 
 /**

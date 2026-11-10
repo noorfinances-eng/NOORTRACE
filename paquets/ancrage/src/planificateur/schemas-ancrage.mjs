@@ -406,6 +406,12 @@ export const SCHEMA_ANCRAGE = Object.freeze({
           "minimum": 60,
           "maximum": 604800,
           "description": "Âge de la plus ancienne demande non satisfaite au-delà duquel l'alerte « ancre en retard » est levée (CT-2 §17.4 : 2 h). Défaut 7200."
+        },
+        "compact_bytes": {
+          "type": "integer",
+          "minimum": 1048576,
+          "maximum": 1073741824,
+          "description": "Révision 0.6 de CT-5, facultative (absente : 16777216) : taille en octets du fichier courant de la file au-delà de laquelle il est compacté, s'il dépasse aussi le double de la taille laissée par le compactage précédent ; le compactage a lieu aussi à chaque clôture (CT-5 EX-8.5, règle 5). Borne basse : une vingtaine de lignes de 32 tentatives au plus grand ; borne haute : la réserve d'espace libre par défaut de l'enregistreur (CT-2 storage.min_free_bytes, 1 GiB), que la copie temporaire du compactage ne doit pas épuiser."
         }
       }
     }
@@ -1465,10 +1471,17 @@ export const SCHEMA_PLANIFICATEUR = Object.freeze({
         },
         "attempts": {
           "type": "array",
-          "maxItems": 100000,
+          "maxItems": 32,
           "items": {
             "$ref": "#/$defs/tentative"
-          }
+          },
+          "description": "Révision 0.6 de CT-5 : au plus les 32 dernières tentatives de la demande, par n croissant, les tentatives en cours toujours comprises (EX-8.5, règle 7) ; l'historique complet est au journal d'exploitation et, pour les jetons, dans acquisitions.ndjson."
+        },
+        "attempts_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000,
+          "description": "Révision 0.6 de CT-5 : nombre de tentatives de la demande depuis sa création, égal au plus grand rang n (pas de renumérotation) ; toujours écrit par une implémentation de la révision 0.6, facultatif pour que les lignes écrites avant restent valides (absent : nombre d'éléments d'attempts) (EX-8.5, règle 7)."
         },
         "result": {
           "oneOf": [

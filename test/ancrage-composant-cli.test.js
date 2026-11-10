@@ -1,7 +1,7 @@
 // Binaire `noortrace-ancrage` (lot F1 ; CT-5 EX-8.13, EX-10.6, EX-10.7,
 // EX-12.1, EX-12.2, AN-1, AN-2, AN-3, AN-42, AN-54, AN-59, AN-61) : chaque
 // commande sur les vecteurs publiés (`configuration` sur l'exemple d'EX-4.8,
-// `trace` sur les vingt-deux traces, `cout` sur les onze cas, `completude`
+// `trace` sur les vingt-quatre traces, `cout` sur les onze cas, `completude`
 // sur les six cas, `serie` sur les séries valides et invalides de CT-1,
 // `fiche` sur l'autorité de test, `acquisitions` sur un fichier
 // d'enregistrements), codes de retour 0, 1, 2, messages en français, aucune
@@ -84,9 +84,9 @@ describe("ancrage, composant F1 : binaire noortrace-ancrage", function () {
     expect(ok.stdout + prod.stdout).to.not.include("NOORTRACE_TSA_PRINCIPAL");
   });
 
-  it("trace (AN-42) : chacune des vingt-deux traces de planification/ est rejouée conforme (code 0) ; une trace altérée donne un écart et le code 1", function () {
+  it("trace (AN-42) : chacune des vingt-quatre traces de planification/ (révision 0.6 de CT-5 : file-fenetre-32 et file-fenetre-32-redemarrage en plus) est rejouée conforme (code 0) ; une trace altérée donne un écart et le code 1", function () {
     const traces = fs.readdirSync(path.join(CT5, "planification")).filter((f) => f.endsWith(".json")).sort();
-    expect(traces).to.have.lengthOf(22);
+    expect(traces).to.have.lengthOf(24);
     for (const f of traces) {
       const r = bin(["trace", path.join(CT5, "planification", f)]);
       expect(r.code, `${f} : ${r.stdout} ${r.stderr}`).to.equal(0);

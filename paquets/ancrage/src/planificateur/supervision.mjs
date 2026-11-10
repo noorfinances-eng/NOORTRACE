@@ -30,7 +30,12 @@ export const EVENEMENTS_JOURNAL = Object.freeze([
   "checkpoint_closing_fallback", "point_manquant", "checkpoint_not_anchored", "checkpoint_anchor_late", "deadline_sans_objet", "period_timestamped",
   "anchor_retry", "anchor_fallback", "anchor_response_rejected", "anchor_replaced", "anchor_refused", "ots_submitted", "ots_upgraded", "ots_complete",
   "anchor_queue_full", "anchor_queue_write_failed", "anchor_queue_truncated_line", "anchor_duplicate_ignored", "ordre_ancres_non_respecte",
+  // Révision 0.6 (EX-8.5, règle 5) :
+  "anchor_queue_compacted", "anchor_queue_compaction_failed",
 ]);
+
+/** Lignes qui rendent compte d'une tentative : elles portent son rang `n` (`attempt`) et son `attempt_id` (EX-8.15, révision 0.6). */
+export const EVENEMENTS_TENTATIVE = Object.freeze(["anchor_retry", "anchor_fallback", "anchor_response_rejected"]);
 
 /** Clés qui ne vont jamais dans une ligne du journal (AN-43, CT-2 EX-9.6). */
 const CLES_INTERDITES = new Set(["token", "jeton", "secret", "password", "mot_de_passe", "authorization", "cookie", "piece", "proof", "preuve", "der", "ots", "private_key", "cle_privee", "account", "compte", "url"]);

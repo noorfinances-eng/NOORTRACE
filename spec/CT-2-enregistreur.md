@@ -1,7 +1,8 @@
 # CT-2 — Enregistreur
 
-Version 0.6, 2026-10-27 (révision 0.6, minimale ; version 0.5 du 2026-10-26,
-version 0.4 du même jour, version 0.3 du 2026-10-23). Spécification normative,
+Version 0.7, 2026-11-10 (révision 0.7, minimale ; version 0.6 du 2026-10-27,
+version 0.5 du 2026-10-26, version 0.4 du même jour, version 0.3 du
+2026-10-23). Spécification normative,
 soumise à revue. Elle met en œuvre la section « Capture : où l'enregistreur se
 place » et la section « Journal : comment un événement est écrit » de
 l'[architecture cible](../ARCHITECTURE.md), s'appuie sur le format d'événement
@@ -20,7 +21,10 @@ OpenTelemetry (6.5 à 6.8), le gel juridique des copies WORM (12.11) et le coût
 annuel par agent (16.4), et ajoute des fichiers d'intégration (19.5.7 à
 19.5.11) ; la révision 0.6, du 2026-10-27, minimale, ajoute le mode observation,
 où la politique d'approbation est évaluée sans être appliquée et où aucune panne
-ne bloque un appel (14.6) ; la section 0.4 dit ce que chacune change.
+ne bloque un appel (14.6) ; la révision 0.7, du 2026-11-10, minimale, dit
+ce que devient au redémarrage un événement en attente dont les pièces
+n'étaient gardées qu'en mémoire (14.5) ; la section 0.4 dit ce que chacune
+change.
 
 ## 0. En-tête, conventions, lecture
 
@@ -155,6 +159,47 @@ hors de la plage réservée et rend les issues d'approbation comme des
 résultats d'outil (4.4, « Codes d'erreur de l'enregistreur »).
 
 ### 0.4 Révisions
+
+**Révision 0.7** (2026-11-10, minimale). Redémarrage du démon avec des
+événements en attente dont les pièces n'étaient gardées qu'en mémoire (mode
+dégradé « stockage », lecture ou échange passants, EX-14.8) : jusqu'ici, la
+lecture d'EX-8.9 (une pièce référencée existe avant le scellement) laissait
+le démon refuser de démarrer. Le texte constate d'abord ce qui est durable :
+la file d'attente ne l'est que par son fichier, et au mieux (EX-14.8 :
+`fdatasync` tenté sans que son échec change le comportement) ; les pièces
+gardées en mémoire n'y sont pas, la ligne n'en portant que les `sha256`. La
+règle nouvelle ne vaut donc que pour les événements dont la ligne a atteint le
+fichier d'attente ; les autres sont perdus sans trace dans la chaîne (13.5).
+Pour eux (EX-14.18, nouvelle) : le démon démarre ; chaque événement relu dont
+une pièce manque est scellé avec `is_error: true` et sa pièce « résultat »
+remplacée par un objet `noortrace_attente` qui garde la référence d'origine et
+la liste des pièces manquantes ; les autres références sont gardées
+(`sha256`, `length`) ; les pièces manquantes sont lues comme des pièces
+purgées, par la règle existante (EX-12.20, CT-1 §11.4, CT-6 EX-4.6, sans
+changement) ; ligne `pending_pieces_lost` du journal d'exploitation et
+alerte majeure. Règles modifiées : EX-8.9 (exception explicite, unique, qui
+nomme EX-14.18) ; EX-14.10 (les pièces gardées en mémoire d'un événement sont
+écrites avant son scellement, comme EX-8.9 le demande, ce que la phrase « puis
+les pièces gardées en mémoire sont écrites » laissait lire autrement ; la pièce
+`noortrace_attente` à deux membres des versions 0.1 à 0.6 est remplacée par
+celle d'EX-14.18) ; EX-17.2 (nom `pending_pieces_lost`) ; pas 5 d'EX-12.10
+(renvoi). Tables touchées : 8.2 (pièces « résultat » et « réponse »), 14.2
+(ligne « Pièces d'événements en attente perdues »), 17.4 (alerte « Pièces en
+attente perdues ») ; 13.5 (pertes admises). Ce qui change pour une
+implémentation : le rejeu du fichier d'attente au démarrage (EX-12.10, pas 5 ;
+EX-9.8, pas 3) cherche chaque pièce référencée sans `value` dans `pieces/` ;
+pour un événement dont une pièce manque, il écrit la pièce de remplacement,
+scelle l'événement, consigne `pending_pieces_lost` et lève l'alerte, au lieu
+de refuser le démarrage ; à la sortie d'un mode dégradé sans redémarrage, les
+pièces gardées en mémoire d'un événement sont écrites avant lui. Aucun schéma
+ne change : ni `configuration-enregistreur-v0` (aucune clé nouvelle), ni un
+schéma de ligne du journal d'exploitation, qui n'en a pas (9.2). Aucun vecteur
+de `spec/vecteurs/ct-2` ne change.
+
+- Règles ajoutées : EX-14.18.
+- Règles modifiées : EX-8.9, EX-12.10 (pas 5, renvoi), EX-14.10, EX-17.2 ;
+  tables de 8.2, 14.2 et 17.4 ; section 13.5.
+- Règles retirées : aucune.
 
 **Révision 0.6** (2026-10-27, minimale). Mode observation, pour la parité avec
 un déploiement progressif de la politique, exprimée en exigences mesurables par
@@ -5539,9 +5584,9 @@ référence.
 | Pièce | Source | Rédaction (portée, section 10) | Sérialisation | `media_type` |
 |---|---|---|---|---|
 | arguments | valeur de `params.arguments` du `tools/call` (ou de `debutAppel`) ; `{}` si absent | `arguments` | JCS intégral | absent (JSON implicite) |
-| résultat | valeur du membre `result` de la réponse JSON-RPC (objet `CallToolResult` entier) ; pour une erreur JSON-RPC, `{"noortrace_jsonrpc_error": <error>}` ; pour un délai, une annulation, une taille dépassée, la même forme avec le code de l'enregistreur (4.4) ; pour une reprise, l'objet de la section 12.5 ; pour un événement en attente dont le résultat a été perdu, l'objet `noortrace_attente` de la section 14.5 | `resultat` | JCS intégral | absent |
+| résultat | valeur du membre `result` de la réponse JSON-RPC (objet `CallToolResult` entier) ; pour une erreur JSON-RPC, `{"noortrace_jsonrpc_error": <error>}` ; pour un délai, une annulation, une taille dépassée, la même forme avec le code de l'enregistreur (4.4) ; pour une reprise, l'objet de la section 12.5 ; pour un événement en attente dont une pièce manque au redémarrage, l'objet `noortrace_attente` d'EX-14.18 (révision 0.7), qui n'est pas rédigé | `resultat` | JCS intégral | absent |
 | requête | corps JSON de la requête de modèle, le prompt système remplacé par `[REDIGE:prompt-systeme]` si `model.prompt_in_request: "reference"` (défaut), ou laissé en place et rédigé par les règles `prompt_systeme` avec `"inline"` (EX-8.5) ; pour un sampling, `params` de `CreateMessageRequest` ; pour `echangeModele`, `request` | `requete` et, pour le prompt, `prompt_systeme` | JCS intégral | absent |
-| réponse | corps JSON de la réponse hors flux, ou forme consolidée (5.4 ; pour Gemini, 5.4.5), ou `{"noortrace_http_error": …}` (5.3.1 ; pour Gemini, corps lu quel que soit le `Content-Type`, EX-5.31) ; pour un sampling, `CreateMessageResult` ; pour `echangeModele`, `response`, ou sa forme consolidée si c'est un tableau de morceaux Gemini (EX-6.8) | `reponse` | JCS intégral | absent |
+| réponse | corps JSON de la réponse hors flux, ou forme consolidée (5.4 ; pour Gemini, 5.4.5), ou `{"noortrace_http_error": …}` (5.3.1 ; pour Gemini, corps lu quel que soit le `Content-Type`, EX-5.31) ; pour un sampling, `CreateMessageResult` ; pour `echangeModele`, `response`, ou sa forme consolidée si c'est un tableau de morceaux Gemini (EX-6.8) ; pour un échange en attente dont une pièce manque au redémarrage, l'objet `noortrace_attente` d'EX-14.18 (révision 0.7), qui n'est pas rédigé | `reponse` | JCS intégral | absent |
 | prompt système | texte UTF-8 extrait selon 5.5 | `prompt_systeme` | **octets UTF-8 du texte rédigé**, sans guillemets ni échappement, sans saut de ligne final (c'est la convention de CT-1 §5.5 : `prompt systeme fictif v3`, 24 octets) | `text/plain` |
 | intention (`intent` en référence) | texte de l'assistant, extrait de la réponse rédigée (EX-5.21) | déjà rédigé par la portée `reponse` (EX-10.18) | octets UTF-8 du texte | `text/plain` |
 | document de contexte | octets remis par `declarerContexte` | `contexte` (règle de 8.3 pour un document non JSON) | JCS intégral si `media_type` est `application/json` ou de suffixe `+json` et que les octets s'analysent, sinon règle de 8.3 | déclaré par l'appelant (assaini, EX-8.7) |
@@ -5665,7 +5710,12 @@ que l'événement qui la référence soit scellé ; deux pièces identiques ne s
 stockées qu'une fois (adressage par contenu) ; une pièce existante n'est jamais
 réécrite. `length` est la taille du fichier. Le vérificateur de CT-1 qui
 reçoit la pièce la hache et compare (E-6) : la pièce stockée est exactement ce
-qui a été haché (CT-1 §5.4).
+qui a été haché (CT-1 §5.4). Révision 0.7 : cette règle a une exception, une
+seule, qu'EX-14.18 nomme : un événement en attente relu du fichier d'attente
+au redémarrage, dont une pièce gardée en mémoire (EX-14.8) a été perdue avec
+le processus, est scellé sans cette pièce, qui n'existera jamais ; aucun autre
+cas, ni la sortie d'un mode dégradé sans redémarrage (EX-14.10), ni une reprise
+(EX-12.14), ne scelle un événement avant ses pièces.
 
 **EX-8.10** Les pièces PEUVENT être purgées après la rétention (section 12)
 sans casser la chaîne : le journal garde les références ; un dossier exporté
@@ -7743,9 +7793,10 @@ relit le journal avant d'écrire :
 4. l'état de l'écrivain est alors : dernier `seq`, dernier `hash`, clé
    courante (dernière rotation lue), époque de l'en-tête ; si le bail courant
    a une époque supérieure, un nouveau segment est ouvert (EX-13.9) ;
-5. rejouer le journal d'intention (12.5) puis le fichier d'attente (14.5),
-   puis produire l'événement de politique s'il y a lieu, dans l'ordre unique
-   d'EX-9.8.
+5. rejouer le journal d'intention (12.5) puis le fichier d'attente (14.5 ;
+   un événement en attente dont une pièce manque suit EX-14.18 et n'empêche
+   pas le démarrage, révision 0.7), puis produire l'événement de politique
+   s'il y a lieu, dans l'ordre unique d'EX-9.8.
 
 **EX-12.11** Une ligne dont le `hash` recalculé diffère **n'est pas** une
 troncature : c'est une altération ou une corruption de média. L'écrivain NE
@@ -9110,7 +9161,10 @@ ment :
   échanges nouveaux et attend la fin de ceux en cours dans ce délai.
 - **Les événements en attente du mode dégradé** (14.5) : ils sont dans le
   fichier d'attente de `A` (`fdatasync` au mieux) ; perdus si ce fichier n'est
-  pas accessible à `B`.
+  pas accessible à `B`. Leurs pièces gardées en mémoire (EX-14.8) ne sont pas
+  dans ce fichier et sont perdues avec `A` : `B` scelle ces événements selon
+  EX-14.18 (`is_error: true`, références gardées, pièces absentes).
+  La même règle vaut pour un redémarrage d'une instance seule.
 - **La fenêtre `ttl_ms`** : pendant au plus `lease.ttl_ms`, aucun écrivain ;
   les hôtes reçoivent `-31010` ou ne joignent personne.
 - **Le segment ouvert de `A`** : si le volume de `A` est perdu, les événements
@@ -9243,6 +9297,7 @@ remplace.
 | **Horloge qui avance brutalement** (saut en avant, EX-7.13) | Avance murale supérieure à l'avance monotone + `clock.max_forward_ms`, ou écart à l'horloge du magasin de bail | **bloquant pour tout** : aucun `ts` n'est posé dans le futur ; sortie quand l'horloge revient dans la tolérance ou sur confirmation de l'exploitant | **bloquant** | bloquant (`503`) | `-31010` | `horloge` | `clock_forward_jump` (écart) | `clock.max_forward_ms` |
 | **Disque presque plein** : espace libre du volume sous `storage.min_free_bytes` (défaut 1 GiB) | Vérification avant ouverture de segment, avant l'écriture de chaque pièce, et toutes les 10 s | bloquant (préventif : mieux vaut refuser que tronquer) | passant, en attente | comme le stockage indisponible | `-31010` | `stockage` | `disk_low` (octets libres) | `storage.min_free_bytes` |
 | **Mémoire** : file d'attente d'événements ou tampon de flux au-delà des limites (`limits.*`, 14.5) | Compteurs internes | bloquant quand `pending_max_events`, `pending_max_ms` ou `limits.pending_max_bytes` est atteint (14.5) ; `-31013` pour une taille de message dépassée ou un quota (EX-4.47) | idem | bloquant (`503`) | `-31010` ou `-31013` | `attente` | `pending_limit_reached` | `policy.failure.pending_max_events`, `pending_max_ms`, `limits.*` |
+| **Pièces d'événements en attente perdues** (révision 0.7) : arrêt du démon pendant un mode dégradé, avant l'écriture des pièces gardées en mémoire (EX-14.8) ; seules les lignes du fichier d'attente survivent, sans les pièces | Rejeu du fichier d'attente au démarrage (EX-12.10, pas 5 ; EX-9.8, pas 3) | **le démon démarre** ; chaque événement relu dont une pièce manque est scellé selon EX-14.18 (`is_error: true`, pièce « résultat » remplacée, références gardées, pièces absentes lues comme purgées) ; un événement dont la ligne n'a pas atteint le fichier est perdu (13.5) | idem | idem | aucune (l'hôte a reçu sa réponse avant l'arrêt) | — | `pending_pieces_lost` (nombre d'événements, `seq`, nombre de pièces) | — |
 | **Bail perdu** (EX-13.6, EX-13.10) | Vérification avant `fdatasync`, avant signature, et après `fdatasync` | bloquant | **bloquant** (l'instance n'est plus l'écrivain ; une lecture passante ne pourrait jamais être écrite par elle) | bloquant (`503`) | `-31010` (`-31017` après relais) | `bail` | `lease_lost`, `lease_lost_after_write` | `lease.*` |
 | **Bail non détenu** (instance passive, 13.4) | Au démarrage et tant que l'acquisition échoue | bloquant | bloquant | bloquant (`503`) | `-31010` | `bail_non_detenu` | `lease_standby` | — |
 | **Configuration invalide au démarrage** (15.4) | Validation | le démon **ne démarre pas** : rien n'écoute, l'hôte ne joint personne (préférable à un démon qui relaie sans politique) | idem | idem | aucune (pas de connexion) ; code de retour du processus non nul et rapport sur `stderr` | — | `config_invalid` (erreurs de validation) | — |
@@ -9325,12 +9380,17 @@ avant tout nouvel événement), dans l'ordre de `captured_at`, chacun avec la
 ts précédent)` (l'instant de capture, pas celui du scellement : un événement
 en attente est une capture retardée, et sa date de capture est connue ; c'est
 l'**unique** exception à la règle 7.4 qui lit `ts` à l'instant du scellement),
-puis les pièces gardées en mémoire sont écrites. Le journal d'exploitation
-reçoit `pending_flushed` (nombre, délai maximal). Un événement en attente
-dont la pièce « résultat » a été perdue (mémoire libérée par un redémarrage
-sans fichier d'attente) est scellé avec `is_error: true` et une pièce
+chacun après l'écriture des pièces gardées en mémoire qu'il référence (EX-8.9 ;
+révision 0.7 : la version 0.6 écrivait « puis les pièces gardées en mémoire
+sont écrites », que l'on pouvait lire comme un scellement avant les pièces).
+Le journal d'exploitation reçoit `pending_flushed` (nombre, délai maximal). Un
+événement en attente dont une pièce a été perdue (arrêt du démon avant la
+sortie du mode : les pièces gardées en mémoire ne sont pas dans le fichier
+d'attente) est scellé selon EX-14.18 : la perte est dite dans la chaîne plutôt
+que tue. La pièce
 `{"noortrace_attente":"resultat perdu pendant le mode degrade","pending_id":"…"}`
-: la perte est dite dans la chaîne plutôt que tue.
+des versions 0.1 à 0.6, qui ne gardait pas la référence d'origine du résultat,
+n'est plus produite (révision 0.7).
 
 **EX-14.11** Le mode dégradé est **visible** : `GET /healthz` rend `degraded`
 avec les raisons, la métrique `noortrace_degraded{reason}` vaut 1, et une
@@ -9351,6 +9411,79 @@ mode `miroir`, rien n'est bloqué : l'échange observé pendant un mode dégrad�
 « horloge », il est mis en attente aussi, dans la borne de 14.5, puis perdu
 au-delà, chaque perte étant consignée (`exchange_lost`) : un miroir est une
 preuve passive, il ne peut pas refuser ce qu'il voit passer.
+
+**EX-14.18** (révision 0.7) **Redémarrage avec des événements en attente
+dont les pièces manquent.** Ce qui est durable d'une file d'attente est ce que
+dit EX-14.8, et rien de plus : la ligne de chaque événement dans
+`attente/attente-<epoch>.ndjson`, écrite et synchronisée **au mieux** (un
+échec de `write` ou de `fdatasync` ne change pas le comportement), qui porte
+l'événement partiel, ses références et les `sha256` de ses pièces, jamais les
+pièces gardées en mémoire. Un arrêt du démon pendant un mode dégradé, ou
+après sa sortie et avant l'écriture des pièces, perd donc sans trace dans la
+chaîne les événements dont la ligne n'a pas atteint le fichier (13.5), et
+laisse, pour ceux dont la ligne y est, des références à des pièces qui
+n'existent plus. Cette règle ne vaut que pour ces derniers. Au rejeu du
+fichier d'attente (EX-12.10, pas 5 ; EX-9.8, pas 3), l'écrivain :
+
+1. **démarre** : une pièce manquante d'un événement en attente n'est ni une
+   anomalie du journal (EX-12.10, EX-12.11), ni une configuration invalide
+   (15.4) ; elle ne met le démon dans aucun mode dégradé et ne bloque aucun
+   appel ;
+2. tient une pièce pour **manquante** quand une référence de l'événement
+   partiel qui n'a pas de `value` (`intent`, `execution.arguments`,
+   `execution.result`, éléments de `context`) désigne un `sha256` sans fichier
+   sous `pieces/` (EX-12.1) au moment du rejeu ; un fichier présent sous ce nom
+   est la pièce (EX-8.9 : écrite par renommage atomique, jamais réécrite) ;
+3. scelle chaque événement relu dont au moins une pièce manque, à la place que
+   lui donne EX-9.8 (pas 3), avec le `ts` et la `policy_version` d'EX-14.10, et
+   avec `execution.is_error = true` et `execution.result` remplacé par la
+   référence (`redacted: false`, sans `media_type` ni `value`) à la pièce JCS
+   intégral (8.1) de l'objet
+
+   ```text
+   {"missing_pieces":[{"length":<longueur>,"sha256":"0x…"}],"noortrace_attente":"pieces perdues pendant le mode degrade","pending_id":"…","result":{"length":<longueur>,"redacted":<booléen>,"sha256":"0x…"}}
+   ```
+
+   où `pending_id` est celui de la ligne d'attente, `result` la référence
+   d'origine de `execution.result` telle que l'événement partiel la porte
+   (`sha256`, `length`, `redacted`, et `media_type` si elle en a un), et
+   `missing_pieces` la liste des pièces manquantes, une entrée `{ "length",
+   "sha256" }` par `sha256` distinct, tirée de la référence qui le désigne,
+   triée par `sha256` croissant ; la pièce d'origine du résultat y figure
+   quand elle manque. Le remplacement a lieu dès qu'une pièce manque, même
+   quand la pièce « résultat » d'origine est présente : il dit dans la chaîne
+   pourquoi l'événement est en erreur. La pièce de remplacement est écrite
+   selon EX-8.9, avant le scellement ;
+4. garde toutes les autres références telles qu'elles sont (`sha256`,
+   `length`, `redacted`, `media_type`), qu'elles désignent une pièce présente
+   ou manquante ; recalcule `policy.redaction` selon EX-10.16 sur les
+   références de l'événement scellé ; ne change aucun autre membre. Un lecteur
+   reconnaît le cas à la clé `noortrace_attente` de la pièce « résultat » (la
+   pièce « réponse » d'un échange de modèle, 8.2), comme il reconnaît une
+   reprise à `noortrace_reprise` (EX-12.14) ;
+5. **par exception à EX-8.9**, la seule (EX-8.9 la nomme) : n'écrit pas les
+   pièces manquantes, qui n'existent plus, et scelle l'événement qui les
+   référence sans elles. Elles sont traitées comme des pièces purgées, par la
+   règle existante, inchangée : la chaîne garde leurs références (EX-8.10,
+   EX-12.20) ; un dossier exporté déclare la pièce absente (EX-8.10) ; le
+   vérificateur la lit comme une pièce purgée : E-6 sur une pièce fournie à
+   part devient « non exécuté, pièce absente » (CT-1 §11.4), et une pièce
+   référencée mais non fournie n'est pas une erreur (CT-6 EX-4.6) ; la copie
+   WORM des pièces (`copy_pieces`, EX-12.16), qui copie des fichiers, n'en a
+   aucun à copier, et un gel qui couvre l'événement l'inscrit alors comme
+   pièce absente (`piece_absente`, EX-12.35, pas 4). Une pièce de même
+   `sha256` écrite plus tard pour un autre événement sert aussi celui-ci
+   (adressage par contenu, EX-8.9) ;
+6. consigne, une fois par rejeu où au moins une pièce manque, la ligne
+   `pending_pieces_lost` du journal d'exploitation (composant `noyau`,
+   niveau `error`, `seq` nul ; `data` : `events`, nombre d'événements scellés
+   selon cette règle ; `seqs`, la liste croissante de leurs `seq`, une entrée
+   par événement, au plus le nombre de lignes du fichier d'attente ;
+   `pieces`, nombre de `sha256` distincts manquants, tous événements
+   confondus ; les `sha256` eux-mêmes ne sont pas dans la ligne : chaque
+   pièce de remplacement porte les siens), et lève
+   l'alerte « Pièces en attente perdues » (17.4, majeure). Rien n'est consigné
+   quand aucune pièce ne manque.
 
 ### 14.6 Mode observation (révision 0.6)
 
@@ -10751,6 +10884,8 @@ cette spécification, en plus de ceux de 9.2 (`tool_call_relayed`,
 `approval_response_invalid`, `approval_candidates`, `approval_deferred`,
 `approval_expired_deferred`, `approval_remise_refused`,
 `approval_relay_refused`, `identifiant_en_collision`,
+`pending_pieces_lost` (révision 0.7 : `events`, `seqs`, `pieces` ;
+EX-14.18),
 `redaction_budget_exceeded`, `effect_omitted`, `anchor_pending`,
 `registry_pending`, `clock_backstep`, `disk_low`, `pending_limit_reached`,
 `worm_copy_failed`, `pieces_purged`, `integrity_check`, `auth_failed`,
@@ -10843,6 +10978,7 @@ les règles Prometheus) :
 | Span OpenTelemetry rejoué avec un autre contenu | `increase(noortrace_otel_conflicts_total[1h]) > 0` (EX-6.33) | mineure |
 | Latence | `histogram_quantile(0.99, noortrace_relay_latency_ms) > 50` sur 15 min | mineure |
 | Disque | `disk_low` dans le journal, ou espace libre < 2 × `min_free_bytes` | majeure |
+| Pièces en attente perdues (révision 0.7) | `pending_pieces_lost` dans le journal d'exploitation (EX-14.18) | majeure : des événements scellés au redémarrage n'ont pas toutes leurs pièces ; leurs dossiers les déclarent absentes comme des pièces purgées, et le contenu ne pourra jamais être produit |
 
 **EX-17.8** **Mode observation (révision 0.6).** Le journal d'exploitation
 reçoit `observation_would_block` (composant `politique` ; `data` : `would`,

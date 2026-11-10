@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "modele-menace",
   "spec": "CT-7",
-  "spec_version": "0.2",
-  "date": "2026-11-03",
+  "spec_version": "0.3",
+  "date": "2026-11-10",
   "components": [
     {
       "id": "hote_agent",

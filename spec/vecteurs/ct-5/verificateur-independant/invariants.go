@@ -641,8 +641,16 @@ func (a *analyseTrace) an37() {
 			if rejet == nil || chaineOu(rejet.detail, "", "class") != "transitoire" {
 				continue
 			}
+			// prestataire de la tentative : lu sur sa requête (envoyer_rfc3161), la
+			// file finale ne portant plus les tentatives sorties de la fenêtre de 32
+			// (EX-8.5, règle 7 ; révision 0.6)
 			prov := ""
-			if d := a.finale[id]; d != nil {
+			for _, x := range a.actions {
+				if x.action == "envoyer_rfc3161" && x.id == id && entierOu(x.detail, -1, "attempt") == entierOu(e.data, 0, "attempt") {
+					prov = chaineOu(x.detail, "", "provider")
+				}
+			}
+			if d := a.avant[id]; prov == "" && d != nil {
 				for _, att := range d.Attempts {
 					if att.N == entierOu(e.data, 0, "attempt") && att.Provider != nil {
 						prov = *att.Provider

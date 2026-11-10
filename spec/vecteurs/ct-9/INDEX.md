@@ -17,7 +17,7 @@ npm run tests:couverture   # code 0 : règles (a) à (d) et EX-4.4 tiennent
 
 ## `catalogue.json`
 
-Catalogue CT-9 0.4 du 2026-11-10 (schéma `plan-de-tests-v0`, racine) : 322
+Catalogue CT-9 0.5 du 2026-11-10 (schéma `plan-de-tests-v0`, racine) : 322
 entrées, 6 justifications NC-, 82 risques acceptés, 122 lignes TC-. Une ligne
 par entrée : identifiant, niveau, état, titre.
 
@@ -290,11 +290,11 @@ par entrée : identifiant, niveau, état, titre.
 | TM-10 | TM- | exécutable | P-1 sur les vecteurs : cadence des points d'une série publiée, `checkpoint_ts − ts ≤ c_K + 1 s` (CT-5 §3.6, AN-2) |
 | TM-11 | TM- | exécutable, complément à écrire | P-1 sur le réseau de développement : série réelle produite par l'enregistreur, `checkpoint_ts − ts ≤ 61 s` |
 | TM-12 | TM- | exécutable | P-2 : inclusion de l'ancre du point au registre, reçu reçu au plus `inclusion_alert_s` (60 s) après `checkpoint_ts` |
-| TM-13 | TM- | exécutable | P-3 : contresignature RFC 3161 au plus `c_T + d_jeton` après l'événement, `d_jeton` rapporté avec ses quatre composantes (CT-5 EX-3.5) |
+| TM-13 | TM- | exécutable | P-3 : contresignature RFC 3161 au plus `c_T + d_jeton` après l'événement, `d_jeton` rapporté avec ses cinq composantes, dont `d_admission` (CT-5 EX-3.5, révision 0.6) |
 | TM-14 | TM- | exécutable, complément à écrire | P-4 : clôture horaire contresignée par un prestataire qualifié et horodatée par OpenTimestamps auprès d'au moins deux calendriers |
 | TM-15 | TM- | exécutable | P-5 : un dossier se vérifie hors ligne, sans réseau ni concours du fournisseur, points de contrôle compris |
 | TM-16 | TM- | exécutable | P-6 : copie à verrou d'objet des points, ancres et manifestes, SHA-256 égal, mode et rétention lus par l'API du support |
-| TM-17 | TM- | exécutable, complément à écrire | Mesures en charge du planificateur d'ancrage : débit de points, journaux par instance, taille de la file en régime de panne (CT-5 §15) |
+| TM-17 | TM- | exécutable, complément à écrire | Mesures en charge du planificateur d'ancrage : débit de points, journaux par instance, taille de la file en régime de panne, bornée par la fenêtre de 32 tentatives et le compactage (CT-5 §15, EX-8.5) |
 | TM-18 | TM- | exécutable | AN-26 : numéros de série du serveur RFC 3161 interne strictement croissants à travers un redémarrage |
 | TM-19 | TM- | exécutable | AN-24 : précision déclarée (`accuracy`) d'au plus 1 s dans chaque jeton émis par le serveur interne ; écart d'horloge journalisé |
 | TM-20 | TM- | exécutable | EX-7.18 de CT-7 : les six exigences de parité de l'attestation de périmètre, constatées sur tous les vecteurs |
@@ -350,7 +350,7 @@ par entrée : identifiant, niveau, état, titre.
 
 Sortie de l'outil de couverture (`node scripts/tests/couverture.mjs --json`,
 forme `rapport_couverture`) sur le dépôt et ce catalogue : verdict `reussi` ;
-2350 identifiants définis par CT-1 à CT-8, 2211 couverts par une entrée, 139 par
+2351 identifiants définis par CT-1 à CT-8, 2212 couverts par une entrée, 139 par
 une justification NC-, 0 non couvert(s) ; 98 menaces sur 98 avec un TA- ; 122
 occurrences de « CT-9 » et 122 lignes TC- ; 224 entrées exécutables citant 489
 titres ou étapes, 0 absent(s) ; 15 tables du texte comparées, 0 différence(s).

@@ -705,6 +705,7 @@
         ],
         "d_jeton_s": 125,
         "d_point_s": 120,
+        "d_admission_s": 0,
         "d_attente_s": 3,
         "d_releve_s": 0,
         "d_tsa_s": 2
@@ -973,6 +974,7 @@
         ],
         "d_jeton_s": 184,
         "d_point_s": 180,
+        "d_admission_s": 0,
         "d_attente_s": 2,
         "d_releve_s": 0,
         "d_tsa_s": 2
@@ -1254,6 +1256,7 @@
         ],
         "d_jeton_s": 303,
         "d_point_s": 300,
+        "d_admission_s": 0,
         "d_attente_s": 2,
         "d_releve_s": 0,
         "d_tsa_s": 1
@@ -1414,6 +1417,7 @@
           "detail": "ancre incluse au bloc 20001"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xd781c9f6d2119900b31def6351c1628402f99d947580b9c8844fb5d1dbdaf976",
         "size": 4096,
@@ -1466,6 +1470,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x9c4cd8444c868abd119d0722ff94ad4db74be85aac0f61736b2bb99eabf5397b",
         "size": 2104,
@@ -1539,6 +1544,7 @@
           "detail": "mise a niveau : attestation Bitcoin"
         }
       ],
+      "attempts_total": 3,
       "result": {
         "sha256": "0x3791c76564b5b6374a0446df5821ff26f0f1d98812056e14ff56d27104827d63",
         "size": 316,
@@ -1582,6 +1588,7 @@
           "detail": "ancre incluse au bloc 20660"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x13527153088884e754778e40e50d8eacf9d927af09c2e3e07b61d92ab4cf480b",
         "size": 4096,
@@ -1628,6 +1635,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xdf609f6978c714743257fa993063aadc33ecbe9c7177ad993d7fda99573a8a0a",
         "size": 2104,
@@ -1671,6 +1679,7 @@
           "detail": "ancre incluse au bloc 21087"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x906e615b692493ef817e85d0ed12e9c98e860de2fb0cb904fe3ddfecfd20c25a",
         "size": 4096,
@@ -1714,6 +1723,7 @@
           "detail": "ancre incluse au bloc 21085"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x873b4cf5eb73f0f4aa2f6170bda40bd892c5676267b69d53ae552eff403964e4",
         "size": 4096,
@@ -1757,6 +1767,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x2be26388aab7e646d8a3a81d220456c2bf39f45832a2138659478e7f2cbeabb3",
         "size": 3082,
@@ -1802,6 +1813,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xbd2962cc35dc49ee94680cb7b547faabe605d7ffcaf53087c18129c72acb3501",
         "size": 2104,
@@ -1860,6 +1872,7 @@
           "detail": "mise a niveau : engagement en attente"
         }
       ],
+      "attempts_total": 2,
       "result": {
         "sha256": "0x9c6433e33949ee9a14685c8929590f0e32f6c611b3b9ea99294cee22a9ba2355",
         "size": 233,

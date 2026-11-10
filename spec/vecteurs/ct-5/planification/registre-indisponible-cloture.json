@@ -1326,6 +1326,7 @@
         ],
         "d_jeton_s": 2,
         "d_point_s": 0,
+        "d_admission_s": 0,
         "d_attente_s": 0,
         "d_releve_s": 0,
         "d_tsa_s": 2
@@ -1719,6 +1720,7 @@
         ],
         "d_jeton_s": 2,
         "d_point_s": 0,
+        "d_admission_s": 0,
         "d_attente_s": 0,
         "d_releve_s": 0,
         "d_tsa_s": 2
@@ -2335,6 +2337,7 @@
         "deadlines": [],
         "d_jeton_s": 12,
         "d_point_s": 0,
+        "d_admission_s": 0,
         "d_attente_s": 10,
         "d_releve_s": 0,
         "d_tsa_s": 2,
@@ -2589,6 +2592,7 @@
           "detail": "ancre incluse au bloc 30013"
         }
       ],
+      "attempts_total": 3,
       "result": {
         "sha256": "0xe6923a14c31d7b64aabaa67e7dcb099ca48e20ddb886153e551ba5cbcd8701cc",
         "size": 4096,
@@ -2634,6 +2638,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xc428f2ee9a2be7444280b7ba1f1809cd9763dca27e5109d63420295e423a5a2a",
         "size": 2104,
@@ -2661,6 +2666,7 @@
       "created_at": "2026-11-05T09:32:00.000Z",
       "due_at": null,
       "attempts": [],
+      "attempts_total": 0,
       "result": null,
       "replaced_by": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe"
     },
@@ -2700,6 +2706,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x5d1d24562a372a83277305897704fef0c0c6efe0b92024f8b7467025c55b6d7b",
         "size": 2104,
@@ -2743,6 +2750,7 @@
           "detail": "ancre incluse au bloc 31201"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x8d5735744103133677b5557a957e7fb33eb4e3839773630a2ce1e4a6cd180ecc",
         "size": 4096,
@@ -2786,6 +2794,7 @@
           "detail": "ancre incluse au bloc 31203"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x3ef639fa43a2ef589be55ea7a69754256fec06eb524e490b8ae8d979cab6ed28",
         "size": 4096,
@@ -2829,6 +2838,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x60c908cc1952d1d343c7b63ce1f4640bfd8926b1fc9e5003cd13d49747a11fbe",
         "size": 3082,
@@ -2872,6 +2882,7 @@
           "detail": "2 calendriers ; attestation en attente"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xca13b040ec3090109fecf4f667335dacfa35723176dc4756b418d17b9d54b5dc",
         "size": 233,
@@ -2915,6 +2926,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x666d1872c1f8c142a0b3a32c7a399ac16a902b554b89ecad13a667a666e3b466",
         "size": 2104,

@@ -23,7 +23,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { decoderHorodatage, ecrireHorodatage, empreinteAncre, hacherManifeste, hacherPoint, hexVersOctets, octetsVersHex, sha256Hex, utf8 } from "@noortrace/noyau";
-import { FileDurable, Supervision, admettreManifeste, admettrePoint, creerPlanificateur, lireFiles, noncesAleatoires, validerConfiguration } from "./planificateur/index.mjs";
+import { COMPACT_BYTES_DEFAUT, FileDurable, Supervision, admettreManifeste, admettrePoint, creerPlanificateur, lireFiles, noncesAleatoires, validerConfiguration } from "./planificateur/index.mjs";
 import {
   DepotAncres, acquerir, attenteReprise, capturerCrls, construireFiche, epreuveAcceptation, tirerNonce, transportHttps as transportRfc3161,
   verifierFiche, verifierJeton, verifierRevocation,
@@ -275,6 +275,8 @@ export class ComposantAncrage {
       ecritures_en_attente: this.ecrituresEnAttente.length,
       file_en_panne: this.fileTolerante ? this.fileTolerante.enPanne : false,
       file_lignes_abandonnees: this.fileTolerante ? this.fileTolerante.abandonnees : 0,
+      // Révision 0.6 (EX-8.5, règle 5 ; mesure TM-17) : taille du fichier courant, `S_0`, seuil, compactages.
+      file: typeof this.file?.mesures === "function" ? this.file.mesures() : null,
       arret_demande: this.arretDemande,
     };
   }
@@ -311,7 +313,17 @@ export class ComposantAncrage {
     }
     if (relue.tronquees.length) this.supervision.consigner("error", "alerte_file_perdue", { severity: "critique", reason: "anchor_queue_truncated_line", count: relue.tronquees.length });
     const ouvrir = this.clients.file?.ouvrir ?? ((p) => FileDurable.ouvrir(p));
-    this.file = ouvrir({ repertoire: c.queue.path, epoque: this.contexte.epoque, fdatasync: true });
+    // Révision 0.6 : `queue.compact_bytes` (facultative, défaut 16 777 216) est lue ici, par la couche de fichier,
+    // hors de la projection du planificateur (EX-4.8, EX-8.2) ; un `.compactage` resté d'un arrêt est supprimé à
+    // l'ouverture (EX-8.12) ; compactages et échecs sont consignés (EX-8.5, règle 5 ; 8.9).
+    this.file = ouvrir({
+      repertoire: c.queue.path, epoque: this.contexte.epoque, fdatasync: true,
+      compactBytes: c.queue.compact_bytes ?? COMPACT_BYTES_DEFAUT,
+      monotone: () => this.horloge.monotone(),
+      journal: (niveau, evenement, champs) => this.supervision.consigner(niveau, evenement, champs),
+      ...(this.clients.file?.crochet ? { crochet: this.clients.file.crochet } : {}),
+    });
+    if (typeof this.file.declencher === "function") this.file.declencher();
     this.fileTolerante = new FileTolerante(this.file, {
       maxPending: c.queue.max_pending,
       surEchec: (erreur, info) => {
@@ -510,6 +522,9 @@ export class ComposantAncrage {
       }
       this.clotures.set(admission.empreinte, { manifeste, periodMeta: periodMetaRegistre(manifeste, admission.empreinte), periodStart: manifeste.period_start });
       await this.#traiter({ type: "periode_close", data: entreePeriode(manifeste, admission.empreinte) });
+      // EX-8.5, règle 5 (révision 0.6) : compactage à chaque clôture, après l'écriture des trois demandes, entre deux
+      // écritures (sous le verrou de `#serialiser`) ; un échec est consigné et ne bloque rien.
+      if (!this.arrete && typeof this.file?.compacter === "function") this.file.compacter({ declencheur: "cloture" });
       return { admis: true, empreinte: admission.empreinte };
     });
   }
@@ -750,7 +765,9 @@ export class ComposantAncrage {
           if (at !== null && (prochain === null || at < prochain)) prochain = at;
           // EX-8.15 `anchor_retry` : reprise d'une demande RFC 3161 ou OpenTimestamps (le planificateur ne la consigne que pour le registre).
           if (["backoff", "retry_after", "immediat"].includes(a.detail.reason) && a.request_id && !a.request_id.startsWith("ancre_registre_")) {
-            this.supervision.consigner("warning", "anchor_retry", { request_id: a.request_id, kind: a.request_id.split(":")[0], mode: "reprise", reason: a.detail.reason, next_at: a.detail.next_at });
+            // Révision 0.6 : rang `n` (`attempt`) et `attempt_id` de la tentative reprise (EX-8.15).
+            const tentative = this.planificateur.tentativeDe(a);
+            this.supervision.consigner("warning", "anchor_retry", { request_id: a.request_id, kind: a.request_id.split(":")[0], mode: "reprise", reason: a.detail.reason, next_at: a.detail.next_at, attempt: tentative?.n ?? null, attempt_id: tentative?.attempt_id ?? null });
           }
           break;
         }

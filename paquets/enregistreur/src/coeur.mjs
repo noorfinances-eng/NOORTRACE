@@ -9,7 +9,7 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
-import { decoderHorodatage, ecrireHorodatage, encoderBase64, sha256Hex, octetsVersHex } from "@noortrace/noyau";
+import { decoderHorodatage, ecrireHorodatage, encoderBase64, sha256Hex, octetsVersHex, referencesEvenement } from "@noortrace/noyau";
 import { ErreurConstruction, ErreurEnregistreur } from "./erreurs.mjs";
 import { JournalExploitation, instanceExploitation } from "./journal-exploitation.mjs";
 import { Metriques, servirSupervision, sante } from "./supervision.mjs";
@@ -19,12 +19,12 @@ import { SignataireVerifie } from "./signataires.mjs";
 import { signataireDepuisConfiguration } from "./signataires/fabrique.mjs";
 import { lireSecretsVault } from "./secrets-vault.mjs";
 import { magasinBailDepuisConfiguration, controleCleMac, taillesAnterieures, SurveillanceFourche, verifierEpoqueOuverture } from "./ha/index.mjs";
-import { MagasinPieces, empreintePolitique, piecePolitique, pieceReprise, pieceAttentePerdue, Piece } from "./pieces.mjs";
+import { MagasinPieces, empreintePolitique, piecePolitique, pieceReprise, pieceAttentePiecesPerdues, Piece } from "./pieces.mjs";
 import { ecrireAtomique, existe, creerRepertoire, FichierAjout, decouperLignes } from "./fichiers.mjs";
 import { relireJournal, planifierReprise, partielReprise, ErreurRelecture } from "./reprise.mjs";
 import { relireIntentions, ErreurIntentions, objetContexte } from "./intentions.mjs";
 import { Ecrivain } from "./ecrivain.mjs";
-import { partielAppelOutil, partielDecision, partielEchange, partielPolitique, repriseDeRetenue } from "./capture.mjs";
+import { partielAppelOutil, partielDecision, partielEchange, partielPolitique, partielPiecesPerdues, repriseDeRetenue } from "./capture.mjs";
 import { evaluerEffets } from "./effets.mjs";
 import {
   FichiersApprobations, ErreurServiceApprobation, approvalExpiration, delaiExpiration, macRelais, validerReponseEvaluer,
@@ -1676,36 +1676,32 @@ export class Coeur {
 
   /**
    * Scelle les événements en attente (EX-14.10), dans l'ordre de
-   * `captured_at`, `ts = max(captured_at, ts précédent)`.
+   * `captured_at`, `ts = max(captured_at, ts précédent)`, chacun **après**
+   * l'écriture des pièces gardées en mémoire qu'il référence (EX-8.9 ;
+   * révision 0.7). Une écriture de pièce qui échoue laisse cet événement et
+   * les suivants en attente, dans leur ordre, jusqu'au tic suivant : aucun
+   * n'est scellé sans ses pièces, et la pièce à deux membres des versions 0.1
+   * à 0.6 n'est plus produite. (Jusqu'ici, un échec gardait l'événement fautif
+   * et retirait de la file, sans les sceller, ceux qui le suivaient.)
    */
   async viderAttente() {
     const liste = this.attente.splice(0).sort((x, y) => x.captured_at - y.captured_at);
     let n = 0;
     let maxDelai = 0;
-    for (const x of liste) {
+    for (let i = 0; i < liste.length; i++) {
+      const x = liste[i];
       try {
-        let partiel = x.partiel;
-        const manquantes = [];
-        for (const p of x.pieces) {
-          try {
-            await this.pieces.ecrire(p);
-          } catch {
-            manquantes.push(p);
-          }
-        }
-        if (manquantes.length) {
-          const perdue = pieceAttentePerdue(x.pending_id);
-          await this.pieces.ecrire(perdue);
-          partiel = { ...partiel, execution: { ...partiel.execution, result: perdue.reference, is_error: true } };
-        }
-        const e = await this.ecrivain.sceller(partiel, { captureA: x.captured_at, leverIntention: x.intent_id ?? undefined, sorteMetrique: "attente" });
+        for (const p of x.pieces) await this.pieces.ecrire(p);
+        const e = await this.ecrivain.sceller(x.partiel, { captureA: x.captured_at, leverIntention: x.intent_id ?? undefined, sorteMetrique: "attente" });
         // Scellé depuis l'attente, démon en marche : inscrit au registre de
         // recouvrement comme tout appel ou échange scellé (EX-6.34, lecture 125).
         if (x.host) this._notifierScelle({ genre: x.genre, host: x.host, appel: null, evenement: e });
         n++;
         maxDelai = Math.max(maxDelai, this.horlogeBrute.murale() - x.captured_at);
       } catch {
-        this.attente.unshift(x);
+        // Cet événement et tous les suivants restent en attente, dans l'ordre ;
+        // nouvel essai au tic suivant.
+        this.attente.unshift(...liste.slice(i));
         break;
       }
     }
@@ -1722,8 +1718,8 @@ export class Coeur {
    * reste au fichier), laisse au fichier une ligne dont l'événement est déjà
    * dans la chaîne. Chaque ligne est donc d'abord cherchée dans la chaîne
    * durable (relecture d'EX-12.10) : l'événement scellé depuis l'attente porte
-   * les huit champs de l'événement partiel de la ligne (ou le résultat perdu
-   * d'EX-14.10) ; s'il a une intention, c'est l'événement que désigne sa
+   * les huit champs de l'événement partiel de la ligne (ou, quand des pièces
+   * manquent, ceux de sa forme d'EX-14.18, révision 0.7) ; s'il a une intention, c'est l'événement que désigne sa
    * levée, ou à défaut un événement de `ts` au moins égal à `written_at` ;
    * sans intention, son `ts` vaut `max(captured_at, ts précédent)` (ou le
    * début de période qui suit une clôture). Une ligne retrouvée n'est pas
@@ -1732,6 +1728,15 @@ export class Coeur {
    * événement de reprise d'un repreneur, 13.4 pas 6) n'est pas scellée :
    * l'événement en attente prend la place de l'événement de reprise, jamais
    * en plus (EX-4.46, 13.5) ; ligne `pending_superseded`.
+   *
+   * Révision 0.7 (EX-14.18) : une ligne dont une pièce référencée manque (pièces
+   * gardées en mémoire, perdues avec le processus, EX-14.8) n'empêche plus le
+   * démarrage : l'événement est scellé avec `is_error: true` et sa pièce
+   * « résultat » remplacée (pièce écrite avant le scellement), les pièces
+   * manquantes ne sont pas exigées (exception unique à EX-8.9) ; une ligne
+   * `pending_pieces_lost` est consignée par rejeu. Le même chemin sert la
+   * bascule (13.5) : le repreneur rejoue les fichiers d'attente d'époque
+   * inférieure.
    * @param {number} epoque
    * @param {object} etat état relu (`evenements`)
    */
@@ -1764,13 +1769,22 @@ export class Coeur {
     const huit = (e) => jcsIntegral({ delegation: e.delegation, code: e.code, intent: e.intent, policy: e.policy, approval: e.approval, execution: e.execution, effects: e.effects, context: e.context });
     let n = 0;
     let deja = 0;
+    // EX-14.18 pas 6 : `seq` des événements scellés avec des pièces manquantes,
+    // `sha256` distincts manquants, tous événements confondus.
+    const seqsPerdus = [];
+    const shaPerdus = new Set();
     for (const x of lignes) {
+      // EX-14.18 pas 2 : une pièce manque quand une référence sans `value` désigne
+      // un `sha256` sans fichier sous `pieces/` au moment du rejeu.
+      const manquantes = await this._piecesManquantes(x.event);
+      let remplacement = null;
       let partiel = x.event;
-      const presentes = await Promise.all((x.pieces ?? []).map((s) => existe(this.pieces.chemin(s))));
-      const perdue = pieceAttentePerdue(x.pending_id);
-      const variante = { ...partiel, execution: { ...partiel.execution, result: perdue.reference, is_error: true } };
-      if (presentes.some((p) => !p)) partiel = variante;
-      const formes = new Set([huit(x.event), huit(variante)]);
+      if (manquantes.length) {
+        // EX-14.18 pas 3 et 4 : is_error, pièce « résultat » remplacée, autres références gardées.
+        remplacement = pieceAttentePiecesPerdues({ pending_id: x.pending_id, manquantes, resultat: x.event.execution?.result ?? null });
+        partiel = partielPiecesPerdues(x.event, remplacement, this.nomRedaction);
+      }
+      const formes = new Set([huit(x.event), huit(partiel)]);
       const capture = decoderHorodatage(x.captured_at);
       const conforme = (e) => !pris.has(e.seq) && formes.has(huit(e));
       let trouve = null;
@@ -1809,12 +1823,43 @@ export class Coeur {
         this.journal.consigner("info", "noyau", "pending_already_sealed", { pending_id: x.pending_id }, { seq: trouve.seq });
         continue;
       }
-      if (partiel === variante) await this.pieces.ecrire(perdue);
-      await this.ecrivain.sceller(partiel, { captureA: capture, leverIntention: x.intent_id ?? undefined, sorteMetrique: "attente" });
+      // EX-14.18 pas 3 : la pièce de remplacement est écrite selon EX-8.9, avant le scellement ;
+      // pas 5 : les pièces manquantes, qui n'existent plus, ne sont pas exigées (exception unique).
+      if (remplacement) await this.pieces.ecrire(remplacement);
+      const piecesPerdues = remplacement ? new Set(manquantes.map((r) => r.sha256)) : undefined;
+      const e = await this.ecrivain.sceller(partiel, { captureA: capture, leverIntention: x.intent_id ?? undefined, sorteMetrique: "attente", piecesPerdues });
+      if (remplacement) {
+        seqsPerdus.push(e.seq);
+        for (const s of piecesPerdues) shaPerdus.add(s);
+      }
       n++;
     }
     for (const nom of noms) if (Number(nom.slice(8, 28)) < epoque) await fs.rm(path.join(dir, nom), { force: true });
     if (n) this.journal.consigner("info", "noyau", "pending_flushed", { count: n });
+    // EX-14.18 pas 6, EX-17.2 : une ligne par rejeu où une pièce manque, sans aucun
+    // `sha256` (chaque pièce de remplacement porte les siens) ; condition de l'alerte
+    // « Pièces en attente perdues » (17.4, majeure). Rien quand rien ne manque.
+    if (seqsPerdus.length) {
+      this.journal.consigner("error", "noyau", "pending_pieces_lost", { events: seqsPerdus.length, seqs: [...seqsPerdus].sort((a, b) => a - b), pieces: shaPerdus.size });
+    }
+  }
+
+  /**
+   * Références de l'événement partiel d'une ligne d'attente qui désignent une
+   * pièce manquante (CT-2 EX-14.18 pas 2) : sans `value` (`intent`,
+   * `execution.arguments`, `execution.result`, éléments de `context`), et
+   * sans fichier sous `pieces/<xx>/` ; un fichier présent est la pièce
+   * (EX-8.9 : écrite par renommage atomique, jamais réécrite).
+   * @param {object} partiel
+   * @returns {Promise<object[]>}
+   */
+  async _piecesManquantes(partiel) {
+    const manquantes = [];
+    for (const { reference } of referencesEvenement(partiel)) {
+      if ("value" in reference) continue;
+      if (!(await existe(this.pieces.chemin(reference.sha256)))) manquantes.push(reference);
+    }
+    return manquantes;
   }
 
   // ------------------------------------------------------------ reprise des intentions

@@ -2,7 +2,7 @@
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.4",
+  "spec_version": "0.5",
   "date": "2026-11-10",
   "levels": [
     {
@@ -8123,7 +8123,8 @@
         "CT-2 EX-14.9",
         "CT-2 EX-14.10",
         "CT-2 EX-14.11",
-        "CT-2 EX-14.12"
+        "CT-2 EX-14.12",
+        "CT-2 EX-14.18"
       ],
       "preconditions": [
         "Enregistreur `paquets/enregistreur` (étape 4) : démon réel `bin/noortrace --config` et son cœur monté en cours de processus avec des dépendances coupables (stockage, signataire, bail, horloge, service d'approbation simulé, serveur d'outils et fournisseur simulés) ; composant d'ancrage de l'étape 5 branché et support WORM S3 à Object Lock en conteneur pour les lignes « Ancrage », « Registre » et « Support WORM ».",
@@ -15023,7 +15024,7 @@
     {
       "id": "TM-13",
       "level": "TM",
-      "title": "P-3 : contresignature RFC 3161 au plus `c_T + d_jeton` après l'événement, `d_jeton` rapporté avec ses quatre composantes (CT-5 EX-3.5)",
+      "title": "P-3 : contresignature RFC 3161 au plus `c_T + d_jeton` après l'événement, `d_jeton` rapporté avec ses cinq composantes, dont `d_admission` (CT-5 EX-3.5, révision 0.6)",
       "specs": [
         "CT-5"
       ],
@@ -15039,13 +15040,13 @@
         "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
       ],
       "steps": [
-        "Pour chaque échéance `D_k` satisfaite : `genTime + précision − D_k = d_jeton`, lu sur la ligne `checkpoint_countersigned` avec `d_point`, `d_attente`, `d_releve`, `d_tsa`.",
+        "Pour chaque échéance `D_k` satisfaite : `genTime + précision − D_k = d_jeton`, lu sur la ligne `checkpoint_countersigned` avec `d_point`, `d_admission`, `d_attente`, `d_releve`, `d_tsa` (`d_admission` = instant d'admission du point par le composant d'ancrage − `checkpoint_ts` ; `d_attente` compté depuis l'admission, CT-5 EX-3.5).",
         "Vérifier qu'aucune échéance n'est non satisfaite avant la suivante en fonctionnement nominal.",
-        "Rapport : lignes `p3_d_jeton`, `p3_d_point`, `p3_d_attente`, `p3_d_releve`, `p3_d_tsa`.",
+        "Rapport : lignes `p3_d_jeton`, `p3_d_point`, `p3_d_admission`, `p3_d_attente`, `p3_d_releve`, `p3_d_tsa`.",
         "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
         "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
       ],
-      "oracle": "`d_point ≤ 1` s, `d_attente ≤ squat_wait_s`, `d_releve ≤ fallback_after_s` (120 s), `d_tsa` publié ; zéro échéance manquée sur une période ; sinon `met` faux.",
+      "oracle": "`d_point ≤ 1` s, `d_admission ≤ 10` s au 99e centile (borne de conception de CT-5 EX-3.5), `d_attente ≤ squat_wait_s`, `d_releve ≤ fallback_after_s` (120 s), `d_tsa` publié ; zéro échéance manquée sur une période ; sinon `met` faux.",
       "status": {
         "state": "executable",
         "tests": [
@@ -15062,10 +15063,10 @@
         "measured": null,
         "quantity": "d_jeton : délai entre l'échéance de contresignature et genTime + précision",
         "unit": "s",
-        "target": "c_T (300 s) + d_jeton ; d_point ≤ 1 s, d_attente ≤ squat_wait_s, d_releve ≤ fallback_after_s (120 s), d_tsa publié",
+        "target": "c_T (300 s) + d_jeton ; d_point ≤ 1 s, d_admission ≤ 10 s au 99e centile, d_attente ≤ squat_wait_s, d_releve ≤ fallback_after_s (120 s), d_tsa publié",
         "comparison": "au_plus",
         "source": "CT-5 P-3",
-        "failure_threshold": "une échéance non satisfaite avant la suivante, ou une composante au-delà de sa borne",
+        "failure_threshold": "une échéance non satisfaite avant la suivante, une composante au-delà de sa borne, ou un 99e centile de d_admission au-delà de 10 s",
         "method": "releve",
         "percentiles": [
           "p50",
@@ -15268,13 +15269,14 @@
     {
       "id": "TM-17",
       "level": "TM",
-      "title": "Mesures en charge du planificateur d'ancrage : débit de points, journaux par instance, taille de la file en régime de panne (CT-5 §15)",
+      "title": "Mesures en charge du planificateur d'ancrage : débit de points, journaux par instance, taille de la file en régime de panne, bornée par la fenêtre de 32 tentatives et le compactage (CT-5 §15, EX-8.5)",
       "specs": [
         "CT-5"
       ],
       "covers": [
         "CT-5 §15",
         "CT-5 §8.5",
+        "CT-5 EX-8.5",
         "CT-5 §12.4"
       ],
       "preconditions": [
@@ -15284,12 +15286,12 @@
       ],
       "steps": [
         "Relever le nombre de points produits et ancrés par seconde pour J = 1 et J = 10.",
-        "Couper le prestataire simulé une heure ; relever la taille maximale de la file durable et la mémoire du composant.",
+        "Couper le prestataire simulé une heure ; relever la taille maximale de la file durable (octets du fichier courant et nombre de lignes), le plus grand nombre de tentatives porté par une ligne, `attempts_total` des demandes, les compactages consignés (`anchor_queue_compacted`, `anchor_queue_compaction_failed`) et la mémoire du composant.",
         "Rapport : lignes `planificateur_debit_points`, `planificateur_journaux`, `planificateur_file_panne`.",
         "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
         "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
       ],
-      "oracle": "Lignes présentes, `met` null ; la file reste bornée (`queue` de CT-5 §8.5) sinon `notes` le dit.",
+      "oracle": "Lignes présentes, `met` null ; aucune ligne de la file ne porte plus de 32 tentatives, et la taille du fichier courant ne dépasse jamais `max(queue.compact_bytes, 2 × S_0)` plus une ligne, `S_0` étant sa taille juste après le compactage précédent (CT-5 EX-8.5, règles 5 et 7 ; 16 777 216 octets plus une ligne aux valeurs par défaut pour la panne de l'étape 5) ; sinon `notes` le dit.",
       "status": {
         "state": "executable",
         "tests": [
@@ -15313,7 +15315,7 @@
         "target": null,
         "comparison": "aucune_cible",
         "source": "CT-5 §15",
-        "failure_threshold": "aucun : mesure publiée ; une file non bornée est une lacune à tracer",
+        "failure_threshold": "aucun : mesure publiée ; une file en panne au-delà de max(queue.compact_bytes, 2 × S_0) plus une ligne, ou une ligne de plus de 32 tentatives (CT-5 EX-8.5, règles 5 et 7), est une lacune à tracer",
         "method": "releve",
         "percentiles": [
           "max"
@@ -19104,49 +19106,49 @@
     {
       "id": "TC-4",
       "key": "CT-2 §0.1",
-      "line": 37,
+      "line": 41,
       "delegated": "Rattachement des tests aux identifiants EX-.",
       "response": "§5.1, règle (a) ; membre `covers` de chaque entrée (§4.1)."
     },
     {
       "id": "TC-5",
       "key": "CT-2 §1",
-      "line": 527,
+      "line": 572,
       "delegated": "Périmètre : les tests sont hors de CT-2.",
       "response": "Ce document."
     },
     {
       "id": "TC-6",
       "key": "CT-2 §1",
-      "line": 540,
+      "line": 585,
       "delegated": "Lit les EX-, les vecteurs (annexe B), la méthode de mesure (16) ; fixe les tests.",
       "response": "§7 (TV- de `ct-2`), §6 (TU- de CT-2), §11 (TM- de CT-2 §16)."
     },
     {
       "id": "TC-7",
       "key": "CT-2 §10.4",
-      "line": 6880,
+      "line": 6930,
       "delegated": "Réappliquer la politique à une pièce stockée : égalité des octets (idempotence).",
       "response": "TV- `ct-2/redaction/` (§7), oracle « la seconde application ne change aucun octet »."
     },
     {
       "id": "TC-8",
       "key": "CT-2 §15.6",
-      "line": 10365,
+      "line": 10498,
       "delegated": "Règles de configuration que le schéma n'exprime pas : tests de CT-9.",
       "response": "TU- configuration et contrôles de démarrage (§6) ; TV- `ct-2/pieces-*` ; TE- installation (§9) pour la commande du démon."
     },
     {
       "id": "TC-9",
       "key": "CT-2 §16.2",
-      "line": 10423,
+      "line": 10556,
       "delegated": "Seuil de régression des mesures de performance, à décider par CT-9.",
       "response": "§11.4 : seuil de régression EX-11.15 ; proposition PD- à CT-2 EX-16.2 pas 7 (§17.2)."
     },
     {
       "id": "TC-10",
       "key": "CT-2 §21",
-      "line": 12257,
+      "line": 12393,
       "delegated": "« Les tests » hors de CT-2.",
       "response": "Ce document."
     },
@@ -19216,70 +19218,70 @@
     {
       "id": "TC-20",
       "key": "CT-5 §0",
-      "line": 111,
+      "line": 167,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-21",
       "key": "CT-5 §1",
-      "line": 225,
+      "line": 281,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-22",
       "key": "CT-5 §1",
-      "line": 249,
+      "line": 305,
       "delegated": "EX-, AN-, vecteurs `ct-5`, épreuve à l'aveugle à deux relecteurs.",
       "response": "TR-4 (relecteur CT-5 et CT-1 §9 à §11) et TR-5 (second relecteur, CT-6 §7) en §12 ; consigne et grille sous spec/vecteurs/ct-9/ (EX-12.7) ; EX-, AN- et vecteurs ct-5 : TV- (§7)."
     },
     {
       "id": "TC-23",
       "key": "CT-5 §3.6",
-      "line": 468,
+      "line": 547,
       "delegated": "Mesures P-1 à P-6 sur le réseau de développement et sur les vecteurs.",
       "response": "TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15), sur le réseau de développement (TM-11 à TM-14, exécutables depuis l'étape 5 par la campagne de `scripts/e2e/mesure-ancrage.mjs`, rapport `mesures/rapport-2026-11-10-ancrage.json` ; compléments à l'étape 8 : charge de TM-3 pour TM-11, prestataire qualifié réel pour TM-14) et sur le support WORM (TM-16, exécutable depuis l'étape 4, `ancres/` compris depuis l'étape 5)."
     },
     {
       "id": "TC-24",
       "key": "CT-5 §5.3",
-      "line": 1171,
+      "line": 1252,
       "delegated": "Test à écrire : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
       "response": "TI-16 (§8), exécutable depuis l'étape 5 : relève de la clôture par le secours qualifié après retrait de `qualified`, sans rechargement, sur le composant d'ancrage (`test/ancrage-composant-pannes.test.js`, serveurs internes déclarés qualifiés par un instantané d'exemple) ; complément à l'étape 8 : prestataire qualifié réel."
     },
     {
       "id": "TC-25",
       "key": "CT-5 §7.2",
-      "line": 1680,
+      "line": 1762,
       "delegated": "AN-24 à AN-32 du serveur interne vérifiées sur un jeton émis.",
       "response": "TI-17 (§8), exécutable depuis l'étape 5 : AN-22 à AN-31 vérifiées sur les jetons émis par le serveur interne de référence du paquet d'ancrage (`test/ancrage-tsa-interne-*.test.js`, `test/enregistreur-ancrage-exigences.test.js`, `test/enregistreur-ancrage-parcours.test.js`) ; TM-18 (AN-26) et TM-19 (AN-24) en §11 pour les exigences mesurables, sur les mêmes essais et dans le rapport de la campagne de l'étape 5."
     },
     {
       "id": "TC-26",
       "key": "CT-5 §7.2",
-      "line": 1689,
+      "line": 1771,
       "delegated": "Épreuve de redémarrage du serveur interne (AN-26).",
       "response": "TI-17 (§8) et TM-18 (AN-26) en §11, exécutables depuis l'étape 5 : quatre jetons avant et quatre après un redémarrage du serveur interne (compteur de série durable), numéros strictement croissants, et le relevé `an26_serie_croissante` de la campagne (dix jetons, redémarrage, dix jetons) ; TM-19 (AN-24)."
     },
     {
       "id": "TC-27",
       "key": "CT-5 §9.3",
-      "line": 3962,
+      "line": 4167,
       "delegated": "Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
       "response": "TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
     },
     {
       "id": "TC-28",
       "key": "CT-5 §14",
-      "line": 4461,
+      "line": 4668,
       "delegated": "Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
       "response": "TI-16 (§8), exécutable depuis l'étape 5 (`test/ancrage-composant-pannes.test.js` : relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée ; rechargement sans principal qualifié refusé) ; mesures en charge du planificateur : TM-17 (§11)."
     },
     {
       "id": "TC-29",
       "key": "CT-5 §14",
-      "line": 4463,
+      "line": 4670,
       "delegated": "Tests EX- et AN-1 à AN-61, mesures P-1 à P-6, épreuve à l'aveugle.",
       "response": "§6, §7, §8 (TI-16, TI-17), §9 (TE-12), §11 (TM-10 à TM-19), §12 (TR-4, TR-5) ; état « proposition » levé par ce document."
     },
@@ -19307,560 +19309,560 @@
     {
       "id": "TC-33",
       "key": "CT-7 §0.1",
-      "line": 59,
+      "line": 71,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-34",
       "key": "CT-7 §0.2",
-      "line": 176,
+      "line": 188,
       "delegated": "Revue de code de l'enregistreur, périmètre fixé par CT-7 (3.2, 3.4).",
       "response": "§13 (TQ- enregistreur)."
     },
     {
       "id": "TC-35",
       "key": "CT-7 §0.3",
-      "line": 279,
+      "line": 291,
       "delegated": "Ce que l'auteur de CT-9 lit dans CT-7.",
       "response": "Ce document ; annexe A."
     },
     {
       "id": "TC-36",
       "key": "CT-7 §1",
-      "line": 287,
+      "line": 299,
       "delegated": "Un test par menace.",
       "response": "§10 : un TA- par menace, TA-1 à TA-98, même numéro que la menace (EX-10.1) ; cinq scénarios TA-99 à TA-103 (§10.5)."
     },
     {
       "id": "TC-37",
       "key": "CT-7 §1",
-      "line": 312,
+      "line": 324,
       "delegated": "Revue de code.",
       "response": "§13 (TQ-)."
     },
     {
       "id": "TC-38",
       "key": "CT-7 §1",
-      "line": 328,
+      "line": 340,
       "delegated": "Colonne « Test de CT-9 » de 3.4.",
       "response": "TR-6, TR-7, TR-8 (les trois épreuves de la section 9) en §12 ; un TA- par menace (§10, table 10.4 imprimée depuis `catalogue.json`) ; CR-, AT-, RV-, MX- et vecteurs ct-7 : TV- (§7), TU- (§6)."
     },
     {
       "id": "TC-39",
       "key": "CT-7 §1",
-      "line": 328,
+      "line": 340,
       "delegated": "Colonne « Test de CT-9 » de 3.4.",
       "response": "TR-6, TR-7, TR-8 (les trois épreuves de la section 9) en §12 ; un TA- par menace (§10, table 10.4 imprimée depuis `catalogue.json`) ; CR-, AT-, RV-, MX- et vecteurs ct-7 : TV- (§7), TU- (§6)."
     },
     {
       "id": "TC-40",
       "key": "CT-7 §3.1",
-      "line": 420,
+      "line": 432,
       "delegated": "Le test que CT-9 doit écrire (colonnes de 3.4).",
       "response": "EX-10.2 : le membre `threat_test_text` de chaque TA- est la cellule « Test de CT-9 » de 3.4 ; l'oracle du TA- la précise."
     },
     {
       "id": "TC-41",
       "key": "CT-7 §3.1",
-      "line": 431,
+      "line": 443,
       "delegated": "Critère : le test échoue si la réponse est retirée.",
       "response": "EX-10.1, EX-10.3 : réponse retirée nommée (`response_removed`), mutant tué ; §10.8 pour les mutants exécutés le 2026-11-01."
     },
     {
       "id": "TC-42",
       "key": "CT-7 §3.4",
-      "line": 674,
+      "line": 686,
       "delegated": "Préfixe fixe de la colonne.",
       "response": "EX-10.2 : `threat_test_text` commence par ce préfixe fixe (contrôlé par le schéma)."
     },
     {
       "id": "TC-43",
       "key": "CT-7 §3.4",
-      "line": 714,
+      "line": 726,
       "delegated": "Les tests de MN-22 et MN-9 valent pour l'agent.",
       "response": "TA-22 et TA-9 (phase 2, étapes 8 et 4) ; scénario TA-99 (§10.5)."
     },
     {
       "id": "TC-44",
       "key": "CT-7 §3.4",
-      "line": 736,
+      "line": 748,
       "delegated": "En-tête de la table 3.4.",
       "response": "§10 ; index des TA- par menace (annexe A)."
     },
     {
       "id": "TC-45",
       "key": "CT-7 §3.8",
-      "line": 1117,
+      "line": 1130,
       "delegated": "Cellule « Test de CT-9 » = membre `test` privé du préfixe.",
       "response": "EX-10.2 : le catalogue lit `menaces.json`, jamais la table du texte ; l'outil de couverture compare `threat_test_text` au membre `test`."
     },
     {
       "id": "TC-46",
       "key": "CT-7 §4.1",
-      "line": 1230,
+      "line": 1243,
       "delegated": "Inventaire CLE- à jour, contrôlé par la revue de CT-9.",
       "response": "TQ- inventaire des clés (§13)."
     },
     {
       "id": "TC-47",
       "key": "CT-7 §7.9",
-      "line": 2950,
+      "line": 2963,
       "delegated": "Parité de l'attestation : exigences mesurées par CT-9 (EX-7.18).",
       "response": "TM-20 (EX-7.18, six points constatés sur les vecteurs, exécutable) en §11."
     },
     {
       "id": "TC-48",
       "key": "CT-7 §7.9",
-      "line": 2959,
+      "line": 2972,
       "delegated": "Test sur tous les rapports des vecteurs : aucun « prouvé » appliqué au périmètre.",
       "response": "TV- `ct-6/dossiers/` (§7), exécutable : `test/verificateur.test.js`, it « EX-7.3 de CT-6, EX-7.18 point 3 de CT-7 : aucun texte des rapports n'applique « prouvé », … »."
     },
     {
       "id": "TC-49",
       "key": "CT-7 §7.10",
-      "line": 2976,
+      "line": 2989,
       "delegated": "Tests des menaces de l'attestation MN-78 à MN-91, MN-98.",
       "response": "TA-78 à TA-91 et TA-98 (§10.4) : tous exécutables sauf TA-88 (phase 2, étape 4, après PA-10)."
     },
     {
       "id": "TC-50",
       "key": "CT-7 §10",
-      "line": 3860,
+      "line": 3873,
       "delegated": "Revue de code, non faite.",
       "response": "§13 (TQ-), état « à écrire », étape 8."
     },
     {
       "id": "TC-51",
       "key": "CT-7 §A.11",
-      "line": 4324,
+      "line": 4348,
       "delegated": "Menaces reliées à un test déjà possible (vecteurs de CT-1 à CT-6).",
       "response": "§10.4 : état « exécutable » avec le fichier et le titre exact du test du dépôt (règle de couverture (d), EX-5.4)."
     },
     {
       "id": "TC-52",
       "key": "CT-7 §A.11",
-      "line": 4325,
+      "line": 4349,
       "delegated": "Les autres tests sont écrits par CT-9.",
       "response": "§10.4 : états « à écrire » (étape de la phase 2 et blocage nommés) ou « exécutable » avec complément à écrire ; chaque entrée a ses préconditions, ses pas et son oracle."
     },
     {
       "id": "TC-53",
       "key": "CT-8 « en-tête »",
-      "line": 24,
+      "line": 25,
       "delegated": "Convention « à mesurer (CT-9, porte 2) ».",
       "response": "§11 : chaque cible « à mesurer (CT-9, porte 2) » a sa ligne TM-21 à TM-40 avec cible, source et seuil d'échec ; colonne mesure vide en 0.1 (EX-11.16)."
     },
     {
       "id": "TC-54",
       "key": "CT-8 « en-tête »",
-      "line": 35,
+      "line": 36,
       "delegated": "Critère du plan (moins d'une journée) mesuré à la porte 2.",
       "response": "TM-22 (durée de chaque pas IC-1 à IC-18, durée totale, attente relevée à part) et TM-23 (informations manquantes)."
     },
     {
       "id": "TC-55",
       "key": "CT-8 « en-tête »",
-      "line": 37,
+      "line": 38,
       "delegated": "Ce que CT-9 chronomètre (EX-8.1).",
       "response": "TM- EX-8.1 (§11)."
     },
     {
       "id": "TC-56",
       "key": "CT-8 §0.1",
-      "line": 56,
+      "line": 57,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-57",
       "key": "CT-8 §0.1",
-      "line": 81,
+      "line": 82,
       "delegated": "Convention « cible ».",
       "response": "§2 (terminologie) et §11.4 : une cible devient une mesure par un rapport de mesure (EX-11.11) sur le système de référence (EX-11.1)."
     },
     {
       "id": "TC-58",
       "key": "CT-8 §0.2",
-      "line": 258,
+      "line": 260,
       "delegated": "Ordre d'écriture (traçabilité TC-104 de CT-8).",
       "response": "Ce document ; aucune réponse attendue."
     },
     {
       "id": "TC-59",
       "key": "CT-8 §0.3",
-      "line": 281,
+      "line": 283,
       "delegated": "Ce que l'auteur de CT-9 lit dans CT-8.",
       "response": "Ce document ; annexe A."
     },
     {
       "id": "TC-60",
       "key": "CT-8 §1",
-      "line": 342,
+      "line": 362,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-61",
       "key": "CT-8 §1",
-      "line": 356,
+      "line": 376,
       "delegated": "Onze familles, budgets, cibles, vecteurs `ct-8`, épreuves §14.",
       "response": "Mesures de la porte 2 : TM-21 à TM-40 (§11) ; épreuves de §14 : TR-9, TR-10, TR-11 (§12) ; EX-, CO-, IP-, IR-, IC-, DM-, SV-, PV-, CA-, OB-, PR- et vecteurs ct-8 : TV- (§7), TE- (§9)."
     },
     {
       "id": "TC-62",
       "key": "CT-8 §2",
-      "line": 365,
+      "line": 385,
       "delegated": "Budget de temps chronométré par CT-9.",
       "response": "TM-21 (IR-1 à IR-8) et TM-22 (IC-1 à IC-18) : chaque pas chronométré contre son budget, la somme contre la cible (EX-11.3, méthode `chronometre`)."
     },
     {
       "id": "TC-63",
       "key": "CT-8 §3.3",
-      "line": 490,
+      "line": 510,
       "delegated": "Épreuve de construction : volume nommé neuf.",
       "response": "TE- construction des images (§9), étape 7."
     },
     {
       "id": "TC-64",
       "key": "CT-8 §3.4",
-      "line": 593,
+      "line": 613,
       "delegated": "Cible : pose de l'attribut immuable sous 60 s.",
       "response": "TM-26 (compagnon : pose des attributs ≤ 60 s)."
     },
     {
       "id": "TC-65",
       "key": "CT-8 §3.4",
-      "line": 602,
+      "line": 622,
       "delegated": "Épreuve de construction : compagnon, ouverture en lecture.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-66",
       "key": "CT-8 §3.5",
-      "line": 621,
+      "line": 641,
       "delegated": "Cible : TTL DNS ≤ 30 s.",
       "response": "TM-27 (TTL DNS du répartiteur ≤ 30 s)."
     },
     {
       "id": "TC-67",
       "key": "CT-8 §3.6",
-      "line": 639,
+      "line": 659,
       "delegated": "Mesure : égalité de deux constructions des images.",
       "response": "TM-28 (égalité des condensés de deux constructions)."
     },
     {
       "id": "TC-68",
       "key": "CT-8 §3.6",
-      "line": 661,
+      "line": 681,
       "delegated": "Revue de code et RA-22.",
       "response": "TQ- chaîne de construction et de publication (§13)."
     },
     {
       "id": "TC-69",
       "key": "CT-8 §4.4",
-      "line": 1651,
+      "line": 1671,
       "delegated": "Épreuves de construction : images, `docker compose up`, `docker inspect`.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-70",
       "key": "CT-8 §5.3",
-      "line": 1761,
+      "line": 1781,
       "delegated": "Épreuve d'intégration ICAP.",
       "response": "TI-19 (mode ICAP, §8) : serveur ICAP et épreuve avec Squid (ssl-bump) livrés à l'étape 4."
     },
     {
       "id": "TC-71",
       "key": "CT-8 §6.2",
-      "line": 1858,
+      "line": 1878,
       "delegated": "Seuils « cible » du contrôle préalable.",
       "response": "TM-29 (seuils cibles IP-2, IP-3 confrontés à la consommation observée)."
     },
     {
       "id": "TC-72",
       "key": "CT-8 §7.1",
-      "line": 2324,
+      "line": 2344,
       "delegated": "Chronométrage IR-1 à IR-8 (900 s).",
       "response": "TM-21 (900 s, pas par pas, chaque durée publiée atteinte ou non) ; TR-9 ; critère de la porte 2 « installation par une personne extérieure en 15 min » (§14)."
     },
     {
       "id": "TC-73",
       "key": "CT-8 §7.2",
-      "line": 2502,
+      "line": 2522,
       "delegated": "Mesure : taille des images téléchargées.",
       "response": "TM-24 (taille des images et durée du téléchargement, relevées à part du budget d'IR-6)."
     },
     {
       "id": "TC-74",
       "key": "CT-8 §8.1",
-      "line": 2575,
+      "line": 2595,
       "delegated": "Titre « Durée et ce que CT-9 mesure ».",
       "response": "§11 : TM-22, TM-23 ; TE- d'A pour les verdicts du contrôle préalable final et du premier dossier."
     },
     {
       "id": "TC-75",
       "key": "CT-8 §8.1",
-      "line": 2587,
+      "line": 2607,
       "delegated": "Le système de référence est fixé par CT-9.",
       "response": "EX-11.1 (système de référence fixé en §11.1) ; TM-22 (durées), TM-23 (informations manquantes) ; verdicts IC-14 et IC-15 : TE-."
     },
     {
       "id": "TC-76",
       "key": "CT-8 §8.1",
-      "line": 2587,
+      "line": 2607,
       "delegated": "Le système de référence est fixé par CT-9.",
       "response": "EX-11.1 (système de référence fixé en §11.1) ; TM-22 (durées), TM-23 (informations manquantes) ; verdicts IC-14 et IC-15 : TE-."
     },
     {
       "id": "TC-77",
       "key": "CT-8 §8.3",
-      "line": 2677,
+      "line": 2697,
       "delegated": "Coefficients `f_pic`, `b_o`, `n_crl`, `b_crl` avant les mesures.",
       "response": "TM-33 (f_pic, b_o, b_acq, b_crl, n_crl) et TM-9 (m_0) ; IC-1 refait après mesure."
     },
     {
       "id": "TC-78",
       "key": "CT-8 §8.3",
-      "line": 2700,
+      "line": 2720,
       "delegated": "Script de préparation de l'hôte éprouvé sur le système de référence.",
       "response": "Le script de préparation de l'hôte est éprouvé pendant TM-22 (IC-2) sur le système de référence d'EX-11.1 ; TE- (§9)."
     },
     {
       "id": "TC-79",
       "key": "CT-8 §8.3",
-      "line": 2920,
+      "line": 2940,
       "delegated": "Attente d'IC-16 et IC-17 relevée à part.",
       "response": "TM-22 : ligne `ic_attente_cloture` relevée à part, dans la durée totale, hors de la durée du pas IC-15."
     },
     {
       "id": "TC-80",
       "key": "CT-8 §8.3",
-      "line": 2949,
+      "line": 2969,
       "delegated": "Durées reportées pour CT-9 (procès-verbal IC-18).",
       "response": "TM-22 : les durées du procès-verbal d'IC-18 sont la source des lignes `ic_1` à `ic_18` et `ic_total`."
     },
     {
       "id": "TC-81",
       "key": "CT-8 §9",
-      "line": 2983,
+      "line": 3003,
       "delegated": "Débit et latence de CT-2 §16.1 à mesurer.",
       "response": "TM-1 à TM-4 (cibles de CT-2 §16.1) en §11."
     },
     {
       "id": "TC-82",
       "key": "CT-8 §9.2",
-      "line": 3032,
+      "line": 3052,
       "delegated": "EX-9.1 : chaque coefficient a une source citée ou est marqué « à mesurer (CT-9) ».",
       "response": "Coefficients marqués « à mesurer (CT-9) » : TM-30 (`b_ots` mis à niveau), TM-32 (`blocs_par_s` en production), TM-33 (`f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`) et TM-9 (`m_0`) ; `b_cap` a pour source la mesure TM-31 (§11)."
     },
     {
       "id": "TC-83",
       "key": "CT-8 §9.2",
-      "line": 3051,
+      "line": 3071,
       "delegated": "`b_ots` preuve mise à niveau.",
       "response": "TM-30 (octets d'une preuve .ots mise à niveau)."
     },
     {
       "id": "TC-84",
       "key": "CT-8 §9.2",
-      "line": 3052,
+      "line": 3072,
       "delegated": "`b_cap` = 123 761 octets : mesure TM-31 de CT-9 du 2026-11-02, transaction d'un bloc plein de 64 ancres (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
       "response": "TM-31 (rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json` : ligne `b_cap_bloc_plein`, index relevé dans `notes`) ; réserve du bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
     },
     {
       "id": "TC-85",
       "key": "CT-8 §9.2",
-      "line": 3055,
+      "line": 3075,
       "delegated": "`blocs_par_s` en production.",
       "response": "TM-32 (blocs_par_s sur l'instance de production)."
     },
     {
       "id": "TC-86",
       "key": "CT-8 §9.2",
-      "line": 3057,
+      "line": 3077,
       "delegated": "Six coefficients sans valeur par défaut à mesurer : `f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`, `m_0`.",
       "response": "TM-33 (`f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`) et TM-9 (`m_0`)."
     },
     {
       "id": "TC-87",
       "key": "CT-8 §9.3",
-      "line": 3152,
+      "line": 3172,
       "delegated": "`m_0` à mesurer.",
       "response": "TM-9 (mémoire sous charge comparée à M_tamp)."
     },
     {
       "id": "TC-88",
       "key": "CT-8 §9.3",
-      "line": 3157,
+      "line": 3177,
       "delegated": "Mesure de la mémoire au-delà de `M_tamp`.",
       "response": "TM- mémoire (§11)."
     },
     {
       "id": "TC-89",
       "key": "CT-8 §10",
-      "line": 3418,
+      "line": 3439,
       "delegated": "Seuils d'alerte cibles.",
       "response": "TM-34 (seuils d'alerte cibles : faux positifs et faux négatifs)."
     },
     {
       "id": "TC-90",
       "key": "CT-8 §10.6",
-      "line": 3669,
+      "line": 3692,
       "delegated": "Seuil mempool `<M>`.",
       "response": "TM-35 (seuil <M> de la mempool)."
     },
     {
       "id": "TC-91",
       "key": "CT-8 §10.11",
-      "line": 3782,
+      "line": 3805,
       "delegated": "Durées des runbooks non mesurées.",
       "response": "TM-36 (durées de RB-1 à RB-8, publiées sans cible)."
     },
     {
       "id": "TC-92",
       "key": "CT-8 §10.11",
-      "line": 3817,
+      "line": 3840,
       "delegated": "Un test de CT-9 par correction d'incident.",
       "response": "§3.2 (règle d'ajout d'une entrée) ; TE- runbooks (§9), oracle."
     },
     {
       "id": "TC-93",
       "key": "CT-8 §11",
-      "line": 4193,
+      "line": 4224,
       "delegated": "RPO et RTO cibles.",
       "response": "TM-37 (RPO et RTO par composant, exercices de restauration)."
     },
     {
       "id": "TC-94",
       "key": "CT-8 §11.2",
-      "line": 4251,
+      "line": 4282,
       "delegated": "Fréquence de sauvegarde de l'état du service (15 min).",
       "response": "TM-37 : ligne `sauvegarde_etat_service_cadence` (cible 15 min)."
     },
     {
       "id": "TC-95",
       "key": "CT-8 §11.3",
-      "line": 4285,
+      "line": 4316,
       "delegated": "Table RPO/RTO : cibles à mesurer.",
       "response": "TM-37 (table d'EX-11.5, toutes les cibles sauf la borne du bail)."
     },
     {
       "id": "TC-96",
       "key": "CT-8 §11.10",
-      "line": 4668,
+      "line": 4699,
       "delegated": "Journal d'accès des supports WORM : disponibilité et format vérifiés en CT-9.",
       "response": "TM-39 (journal d'accès du support WORM : disponibilité et format par fournisseur)."
     },
     {
       "id": "TC-97",
       "key": "CT-8 §12.2",
-      "line": 4889,
+      "line": 4920,
       "delegated": "Latence en mode observation.",
       "response": "TM-38 (latence ajoutée en mode observation, paire avec et sans)."
     },
     {
       "id": "TC-98",
       "key": "CT-8 §12.2",
-      "line": 4901,
+      "line": 4932,
       "delegated": "Durée d'écriture lente, cible de CT-2 §16.1.",
       "response": "TM-38 : ligne `observation_ecriture` (durée d'écriture, cible de CT-2 §16.1)."
     },
     {
       "id": "TC-99",
       "key": "CT-8 §13.1",
-      "line": 5355,
+      "line": 5386,
       "delegated": "Parité du paquet réviseur mesurée par CT-9 (EX-13.1).",
       "response": "TM-25 (point 7) en §11 ; points 1 à 6 : TV- ct-8/paquets/ (§7) et TR-10 (§12)."
     },
     {
       "id": "TC-100",
       "key": "CT-8 §13.1",
-      "line": 5387,
+      "line": 5418,
       "delegated": "Temps du réviseur < 30 min.",
       "response": "TM-25 (temps du réviseur < 30 min), relevé pendant TR-10."
     },
     {
       "id": "TC-101",
       "key": "CT-8 §14",
-      "line": 6999,
+      "line": 7030,
       "delegated": "Conduite des trois épreuves de CT-8 §14.",
       "response": "TR-9, TR-10, TR-11 en §12, conduites selon le protocole commun de 12.1."
     },
     {
       "id": "TC-102",
       "key": "CT-8 §14.2",
-      "line": 7102,
+      "line": 7133,
       "delegated": "Durée de l'épreuve (b), mesure de CT-9.",
       "response": "EX-12.4 : consignation `consignation_rejeu` (schéma, §12.1), CT-8 EX-14.10 généralisée à toutes les épreuves TR-."
     },
     {
       "id": "TC-103",
       "key": "CT-8 §14.2",
-      "line": 7104,
+      "line": 7135,
       "delegated": "Consignation EX-14.10 par CT-9.",
       "response": "§12.1 (protocole commun) : consignation champ par champ."
     },
     {
       "id": "TC-104",
       "key": "CT-8 §15",
-      "line": 7136,
+      "line": 7167,
       "delegated": "Conformité des images à leur description : épreuve de construction.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-105",
       "key": "CT-8 §15",
-      "line": 7152,
+      "line": 7183,
       "delegated": "Script de préparation éprouvé sur le système de référence.",
       "response": "EX-11.1 : système de référence de la porte 2 fixé en §11.1."
     },
     {
       "id": "TC-106",
       "key": "CT-8 §15",
-      "line": 7153,
+      "line": 7184,
       "delegated": "Système de référence fixé par CT-9.",
       "response": "§11.1."
     },
     {
       "id": "TC-107",
       "key": "CT-8 §15",
-      "line": 7176,
+      "line": 7207,
       "delegated": "Cibles des sections 10 à 12 à mesurer.",
       "response": "TM-37 (RPO, RTO, restauration), TM-38 (latence en observation), TM-35 (mempool) en §11."
     },
     {
       "id": "TC-108",
       "key": "CT-8 §15",
-      "line": 7184,
+      "line": 7215,
       "delegated": "Journal d'accès des supports : CT-9 l'établit.",
       "response": "TM-39 (journal d'accès par fournisseur) établit la source `journal_acces_support` avant que CT-8 EX-11.19 la tienne pour acquise."
     },
     {
       "id": "TC-109",
       "key": "CT-8 §15",
-      "line": 7213,
+      "line": 7244,
       "delegated": "Budgets IR et IC à mesurer.",
       "response": "TM-21 (900 s) et TM-22 (450 min, 480 avec la réserve) en §11 ; porte 2 en §14."
     },
     {
       "id": "TC-110",
       "key": "CT-8 §B.2",
-      "line": 8150,
+      "line": 8181,
       "delegated": "Ordre des champs de `chronyc -c tracking` à relever.",
       "response": "TM-40 (ordre des champs de chronyc -c tracking relevé sur chrony 4.6)."
     },
     {
       "id": "TC-111",
       "key": "CT-8 §B.4",
-      "line": 8205,
+      "line": 8236,
       "delegated": "Latence en observation.",
       "response": "TM-38 (latence en observation)."
     },
     {
       "id": "TC-112",
       "key": "CT-8 §B.5",
-      "line": 8253,
+      "line": 8284,
       "delegated": "Temps du réviseur.",
       "response": "TM-25 (temps du réviseur)."
     },

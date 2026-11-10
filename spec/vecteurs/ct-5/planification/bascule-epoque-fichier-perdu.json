@@ -96,6 +96,7 @@
           "started_at": "2026-11-05T10:05:00.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:05:00.000Z",
       "deadlines": [],
       "due_at": null,
@@ -139,6 +140,7 @@
           "started_at": "2026-11-05T10:05:02.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:05:00.000Z",
       "deadlines": [
         1
@@ -528,6 +530,7 @@
           "started_at": "2026-11-05T10:05:00.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:05:00.000Z",
       "deadlines": [],
       "due_at": null,
@@ -571,6 +574,7 @@
           "started_at": "2026-11-05T10:05:02.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:05:00.000Z",
       "deadlines": [
         1
@@ -632,6 +636,7 @@
           "detail": "ancre incluse au bloc 30460"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xf61d2c1e4e48c3741d47c09a7164502436a995dbdcd9d404f32231f3d5f6a7e7",
         "size": 4096,
@@ -675,6 +680,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x60c908cc1952d1d343c7b63ce1f4640bfd8926b1fc9e5003cd13d49747a11fbe",
         "size": 3082,
@@ -718,6 +724,7 @@
           "detail": "2 calendriers ; attestation en attente"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xca13b040ec3090109fecf4f667335dacfa35723176dc4756b418d17b9d54b5dc",
         "size": 233,

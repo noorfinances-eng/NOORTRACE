@@ -9,10 +9,18 @@
 // résultats lui sont remis (EX-8.6, EX-8.8 à EX-8.11) et il en tire les
 // transitions. Deux entrées de même instant sont traitées dans l'ordre de la
 // liste ; une action produite à l'instant d'une entrée porte cet instant.
+//
+// Révision 0.6 de CT-5 : chaque ligne écrite porte au plus 32 tentatives et
+// `attempts_total` (EX-8.5, règle 7 ; `fenetrer`), le rang d'une tentative
+// nouvelle est `attempts_total + 1` (EX-8.12) ; la ligne
+// `checkpoint_countersigned` porte `d_admission_s` et compte `d_attente_s`
+// depuis l'admission du point (EX-3.5, 8.9). Les lignes `anchor_retry`,
+// `anchor_fallback` et `anchor_response_rejected` portent le rang `n`
+// (`attempt`) et l'`attempt_id` de leur tentative (EX-8.15).
 
 import { DOC_TYPE_POINT, decoderHorodatage, ecrireHorodatage, empreinteAncre, keccak256, octetsVersHex, utf8 } from "@noortrace/noyau";
 import { ID_SCHEMA_PLANIFICATEUR, REGISTRE_ANCRAGE, validerProjection } from "./configuration.mjs";
-import { ETATS_FINAUX, estFinale, trierDemandes } from "./file.mjs";
+import { ETATS_FINAUX, FENETRE_TENTATIVES, estFinale, totalTentatives, trierDemandes, validerLigneDemande } from "./file.mjs";
 import { construireRequete, nonceEntier, nonceHex } from "./requete-der.mjs";
 // Table unique des attentes de reprise après une erreur HTTP transitoire (EX-8.9 révisée ; R-C-1 à R-C-3) : le lot A
 // la possède, le planificateur l'appelle, pour que le client et la file ne divergent jamais.
@@ -41,6 +49,8 @@ export const TAILLE_CAPTURE_REPRESENTEE = 4096;
 const JOUR_S = 86400;
 
 const REF_ENTREE = `${ID_SCHEMA_PLANIFICATEUR}#/$defs/evenement_entree`;
+/** Codes d'échec d'une ancre qu'aucun nœud n'a admise (EX-9.5 : aucune transaction en mempool, aucun nonce consommé). */
+const CODES_ANCRE_NON_ADMISE = Object.freeze(["noeud_injoignable", "transaction_refusee", "registre_absent", "exception_client", "reprise_impossible"]);
 
 const ms = (h) => {
   const v = decoderHorodatage(h);
@@ -147,6 +157,8 @@ export class Planificateur {
     this.actions = [];
     this.dernierEnvoi = new Map(); // prestataire → ms du dernier envoi
     this.compteurs = { ecritures: 0 };
+    /** Tentative reprise par une action `programmer` (rang et `attempt_id`, pour la ligne `anchor_retry` du composant ; EX-8.15). */
+    this.tentativesActions = new WeakMap();
     if (Array.isArray(options.fileInitiale)) for (const d of options.fileInitiale) this.chargerDemande(d);
     this.nT = 3600 / this.config.rfc3161.checkpoints.interval_s;
   }
@@ -271,7 +283,7 @@ export class Planificateur {
     this.annulerTimers(req.id, ["releve"]);
     i.releve = true;
     this.emettre("releve", req.id, { provider: secours.id });
-    this.emettre("journaliser", req.id, { event: "anchor_fallback", to: secours.id, reason });
+    this.journaliserTentative(req, { event: "anchor_fallback", to: secours.id, reason }, this.derniereTentative(req));
     if (req.state === "envoyee" || req.state === "a_reprendre") {
       if (req.state === "a_reprendre") this.ecrire(req, "a_envoyer");
       this.envoyerRfc3161(req, secours.id);
@@ -308,7 +320,7 @@ export class Planificateur {
     }
     req.result = null;
     this.emettre("alerter", req.id, { code: "revoque", severity: "critique" });
-    this.emettre("journaliser", req.id, { event: "anchor_response_rejected", error_code: "revoque", attempt: a?.n ?? null, provider: provider ?? null, kept: true });
+    this.journaliserTentative(req, { event: "anchor_response_rejected", error_code: "revoque", attempt: a?.n ?? null, provider: provider ?? null, kept: true }, a);
     i.epuises.add(provider);
     i.revoques.add(provider); // lecture H1-b : après une révocation, l'alternance d'EX-8.9 ne revient jamais à ce prestataire
     const { prestataire: secours } = this.releveDe(req);
@@ -316,13 +328,13 @@ export class Planificateur {
       i.releve = true;
       this.ecrire(req, "a_reprendre");
       this.emettre("releve", req.id, { provider: secours.id });
-      this.emettre("journaliser", req.id, { event: "anchor_fallback", to: secours.id, reason: "revoque" });
+      this.journaliserTentative(req, { event: "anchor_fallback", to: secours.id, reason: "revoque" }, a);
       this.envoyerRfc3161(req, secours.id);
     } else {
       const at = this.now + this.config.rfc3161.retry.max_ms;
       if (a) a.next_at = this.horodatage(at);
       req.due_at = this.horodatage(at);
-      this.emettre("journaliser", req.id, { event: "anchor_retry", kind: req.kind, mode: "reprise", error_code: "revoque" });
+      this.journaliserTentative(req, { event: "anchor_retry", kind: req.kind, mode: "reprise", error_code: "revoque" }, a);
       this.ecrire(req, "a_reprendre");
       this.programmer(req, at, "backoff", "reprise", { provider: null });
     }
@@ -345,7 +357,38 @@ export class Planificateur {
   // ----- outils -----
 
   emettre(action, request_id, detail) {
-    this.actions.push({ t: ecrireHorodatage(this.now), action, request_id, detail });
+    const a = { t: ecrireHorodatage(this.now), action, request_id, detail };
+    this.actions.push(a);
+    return a;
+  }
+
+  /**
+   * Ligne `anchor_retry`, `anchor_fallback` ou `anchor_response_rejected` :
+   * elle porte le rang `n` de sa tentative (`attempt`) et son `attempt_id`
+   * (EX-8.15, révision 0.6), de sorte que l'historique des tentatives sorties
+   * de la fenêtre de la file (EX-8.5, règle 7) se lit au journal ;
+   * `attempt_id` est nul pour un rang qui ne désigne aucune tentative.
+   */
+  journaliserTentative(req, detail, tentative) {
+    const n = typeof tentative === "number" ? tentative : tentative?.n ?? null;
+    const existe = req && Number.isSafeInteger(n) && n >= 1 && n <= totalTentatives(req);
+    return this.emettre("journaliser", req?.id ?? null, { ...detail, attempt: Number.isSafeInteger(n) ? n : null, attempt_id: existe ? this.correlation(req, n) : null });
+  }
+
+  associerTentative(action, req, tentative) {
+    if (!req) return;
+    const n = typeof tentative === "number" ? tentative : tentative?.n ?? null;
+    if (!Number.isSafeInteger(n) || n < 1) return;
+    this.tentativesActions.set(action, { n, attempt_id: this.correlation(req, n) });
+  }
+
+  /**
+   * Tentative reprise par une action `programmer` : `{n, attempt_id}`, ou
+   * null (la ligne `anchor_retry` que le composant consigne, EX-8.15).
+   * @param {object} action
+   */
+  tentativeDe(action) {
+    return this.tentativesActions.get(action) ?? null;
   }
 
   horodatage(msValeur) {
@@ -355,7 +398,13 @@ export class Planificateur {
   interneDe(id) {
     let i = this.interne.get(id);
     if (!i) {
-      i = { epuises: new Set(), revoques: new Set(), releve: false, releveImmediate: false, alerteRegistre: false, alerteAttente: false, inclusionLate: 0, repli: false, nonceOts: null, soumisA: null, giveUp: false, http408: new Set(), relevable: null, epuisementAlerte: false };
+      i = {
+        epuises: new Set(), revoques: new Set(), releve: false, releveImmediate: false, alerteRegistre: false, alerteAttente: false, inclusionLate: 0, repli: false, nonceOts: null, soumisA: null, giveUp: false, http408: new Set(), relevable: null, epuisementAlerte: false,
+        // Révision 0.6 : instant d'admission du point (EX-3.5), premier envoi de la demande, et ce que la mémoire garde
+        // des tentatives sorties de la fenêtre de 32 (EX-8.5, règle 7) pour les attentes de reprise d'EX-8.9.
+        // `inconnues` : tentatives sorties de la fenêtre avant un redémarrage, dont la mémoire ne sait rien.
+        admisA: null, premierEnvoi: null, horsFenetre: { transitoires: 0, consecutifs: new Map(), admiseParNoeud: false, inconnues: 0, nonces: new Map() },
+      };
       this.interne.set(id, i);
     }
     return i;
@@ -411,7 +460,8 @@ export class Planificateur {
   }
 
   programmer(req, at, raison, type, donnees = {}) {
-    this.emettre("programmer", req.id, { next_at: this.horodatage(at), reason: raison });
+    const action = this.emettre("programmer", req.id, { next_at: this.horodatage(at), reason: raison });
+    this.associerTentative(action, req, this.derniereTentative(req));
     this.timers.push({ at, id: req.id, type, seq: this.seqTimer++, ...donnees });
   }
 
@@ -422,6 +472,7 @@ export class Planificateur {
   ecrire(req, state) {
     req.state = state;
     if (ETATS_FINAUX.includes(state)) req.due_at = null;
+    this.fenetrer(req);
     this.emettre("ecrire_file", req.id, { state });
     if (this.fileDurable) this.fileDurable.ecrire(structuredClone(req));
     this.compteurs.ecritures += 1;
@@ -444,6 +495,7 @@ export class Planificateur {
       created_at: this.horodatage(this.now),
       due_at: null,
       attempts: [],
+      attempts_total: 0,
       result: null,
       replaced_by: null,
     };
@@ -453,10 +505,11 @@ export class Planificateur {
   }
 
   chargerDemande(d) {
-    const v = REGISTRE_ANCRAGE.valider(`${ID_SCHEMA_PLANIFICATEUR}#/$defs/demande`, d);
+    // Lecture des lignes d'avant la révision 0.6 (EX-8.5, règle 7) : sans `attempts_total`, plus de 32 tentatives admises.
+    const v = validerLigneDemande(d);
     if (!v.valide) throw new ErreurPlanificateur(`demande de la file non conforme : ${v.erreurs[0]}`);
     this.demandes.set(d.id, structuredClone(d));
-    this.interneDe(d.id);
+    this.interneDe(d.id).horsFenetre.inconnues = Math.max(0, totalTentatives(d) - d.attempts.length);
   }
 
   demandesTriees() {
@@ -472,8 +525,37 @@ export class Planificateur {
     return `${req.kind}:${req.subject.hash.slice(2, 18)}:${n}`;
   }
 
+  /**
+   * Fenêtre de 32 tentatives (EX-8.5, règle 7 ; révision 0.6), appliquée à
+   * chaque ligne écrite : les tentatives `en_cours` toujours, puis les plus
+   * récentes jusqu'à 32, rangées par `n` croissant ; `attempts_total` toujours
+   * écrit, `n` jamais renuméroté. Ce que la mémoire garde des tentatives
+   * sorties (échecs transitoires consécutifs par prestataire, admission d'une
+   * transaction par un nœud) sert aux attentes d'EX-8.9 et à EX-9.5.
+   */
+  fenetrer(req) {
+    req.attempts_total = totalTentatives(req);
+    if (req.attempts.length <= FENETRE_TENTATIVES) return;
+    const enCours = req.attempts.filter((a) => a.outcome === "en_cours");
+    const autres = req.attempts.filter((a) => a.outcome !== "en_cours").sort((a, b) => b.n - a.n).slice(0, Math.max(0, FENETRE_TENTATIVES - enCours.length));
+    const gardees = new Set([...enCours, ...autres]);
+    const sorties = req.attempts.filter((a) => !gardees.has(a)).sort((a, b) => a.n - b.n);
+    const h = this.interneDe(req.id).horsFenetre;
+    for (const a of sorties) {
+      const transitoire = a.outcome === "echec_transitoire" || a.outcome === "reponse_tardive";
+      if (a.outcome === "echec_transitoire") h.transitoires += 1;
+      const cle = a.provider ?? "";
+      h.consecutifs.set(cle, transitoire ? (h.consecutifs.get(cle) ?? 0) + 1 : 0);
+      if (a.outcome === "obtenue" || !CODES_ANCRE_NON_ADMISE.includes(a.error_code)) h.admiseParNoeud = true;
+      // Nonce d'une requête RFC 3161 sortie de la fenêtre : une réponse tardive se rapporte encore à sa requête.
+      if (a.nonce) h.nonces.set(a.n, a.nonce);
+    }
+    req.attempts = [...gardees].sort((a, b) => a.n - b.n);
+  }
+
   nouvelleTentative(req, { provider = null, nonce = null, detail }) {
-    const n = req.attempts.length + 1;
+    const n = totalTentatives(req) + 1;
+    req.attempts_total = n;
     const a = {
       n,
       provider,
@@ -490,6 +572,7 @@ export class Planificateur {
       detail,
     };
     req.attempts.push(a);
+    if (n === 1) this.interneDe(req.id).premierEnvoi = this.now;
     return a;
   }
 
@@ -622,6 +705,10 @@ export class Planificateur {
       if (d.state === "obtenue") for (const k of d.deadlines) p.echeances.set(k, { state: "satisfaite", request: d.id });
       else if (!estFinale(d)) for (const k of d.deadlines) p.echeances.set(k, { state: "ouverte", request: d.id });
       if (d.deadlines.length === 0 && d.kind === "jeton_point") this.interneDe(d.id).repli = true;
+      // EX-3.5 (révision 0.6) : la demande d'un point est créée à son admission ; relue de la file, elle garde
+      // l'instant de cette admission (`created_at`). Un point relu du stockage au démarrage (`stockage_relu`) est
+      // admis à l'instant de sa relecture, auquel sa demande est créée.
+      this.interneDe(d.id).admisA = ms(d.created_at);
     }
     for (const p of this.periodes.values()) if (p.points.size) this.activerEcheances(p);
     // Transitions de reprise, dans l'ordre de la file.
@@ -630,7 +717,7 @@ export class Planificateur {
       const i = this.interneDe(d.id);
       if (d.kind.startsWith("ancre_registre_")) {
         if (d.state === "envoyee") {
-          this.emettre("journaliser", d.id, { event: "anchor_retry", kind: d.kind, mode: "renvoi" });
+          this.journaliserTentative(d, { event: "anchor_retry", kind: d.kind, mode: "renvoi" }, this.derniereTentative(d));
           this.emettre("envoyer_registre", d.id, { fingerprint: this.empreinte(d), doc_type: this.docType(d) });
           this.timers.push({ at: this.now + this.config.registry.inclusion_alert_s * 1000, id: d.id, type: "recu", seq: this.seqTimer++ });
         } else if (d.state === "a_reprendre") {
@@ -694,7 +781,10 @@ export class Planificateur {
     const ts = ms(data.checkpoint_ts);
     p.dernierTs = ts;
     p.manquantSignale = false;
-    p.dernierPoint = { hash: data.checkpoint_hash, tree_size: data.tree_size, checkpoint_ts: ts, declared_at: data.checkpoint_ts };
+    // Instant d'admission (EX-3.5, révision 0.6) : celui de l'entrée `point_produit`, que le composant date sur
+    // l'horloge de l'enregistreur après les vérifications d'EX-4.1 (AN-3) ; pour un point relu au démarrage
+    // (`stockage_relu`), l'instant de sa relecture.
+    p.dernierPoint = { hash: data.checkpoint_hash, tree_size: data.tree_size, checkpoint_ts: ts, declared_at: data.checkpoint_ts, admisA: this.now };
     p.points.set(data.checkpoint_hash, { hash: data.checkpoint_hash, tree_size: data.tree_size, checkpoint_ts: ts });
     this.activerEcheances(p);
     const sujet = { kind: "point", org_id: data.org_id, journal_id: data.journal_id, period_start: data.period_start, hash: data.checkpoint_hash, tree_size: data.tree_size, declared_at: data.checkpoint_ts };
@@ -752,6 +842,7 @@ export class Planificateur {
         const id = `jeton_point:${data.checkpoint_hash}`;
         for (const k of selection) this.emettre("echeance", id, { k, state: "ouverte" });
         jeton = this.nouvelleDemande("jeton_point", sujet, selection);
+        this.interneDe(id).admisA = this.now;
         compte.creees += 1;
         for (const k of selection) p.echeances.set(k, { state: "ouverte", request: id });
         this.ecrireJetonPointInitial(jeton);
@@ -794,7 +885,11 @@ export class Planificateur {
   ancreEncoreAEnvoyer(d) {
     if (d.state === "a_envoyer") return true;
     if (d.state !== "a_reprendre") return false;
-    return d.attempts.every((a) => a.outcome !== "obtenue" && ["noeud_injoignable", "transaction_refusee", "registre_absent", "exception_client", "reprise_impossible"].includes(a.error_code));
+    // Révision 0.6 : les tentatives sorties de la fenêtre de 32 comptent aussi ; inconnues (relues après un
+    // redémarrage), l'ancre n'est pas tenue pour « encore à envoyer » : une transaction a pu partir (CT-4 §8.6).
+    const h = this.interneDe(d.id).horsFenetre;
+    if (h.admiseParNoeud || h.inconnues > 0) return false;
+    return d.attempts.every((a) => a.outcome !== "obtenue" && CODES_ANCRE_NON_ADMISE.includes(a.error_code));
   }
 
   /** Dernier point contresigné de la période : plus grand tree_size dont le jeton est obtenu ou la demande active (EX-4.3). */
@@ -875,6 +970,7 @@ export class Planificateur {
     const jeton = this.nouvelleDemande("jeton_point", sujet, []);
     if (!jeton) return;
     this.interneDe(jeton.id).repli = true;
+    this.interneDe(jeton.id).admisA = point.admisA ?? this.now;
     this.ecrireJetonPointInitial(jeton);
     if (jeton.state === "a_envoyer") this.envoyerRfc3161(jeton, null);
   }
@@ -1024,12 +1120,13 @@ export class Planificateur {
       a.error_code = code;
       a.detail = `registre : ${code}`;
       const r = this.config.rfc3161.retry;
-      const k = d.attempts.filter((x) => x.outcome !== "obtenue").length;
+      // Toutes les tentatives d'une ancre non finale ont échoué : celles sorties de la fenêtre comptent (EX-8.5, règle 7).
+      const k = d.attempts.filter((x) => x.outcome !== "obtenue").length + Math.max(0, totalTentatives(d) - d.attempts.length);
       const dAttente = permanent ? r.max_ms : Math.min(r.max_ms, r.initial_ms * r.factor ** Math.max(0, k - 1)) + this.gigue();
       const at = this.now + dAttente;
       a.next_at = this.horodatage(at);
       d.due_at = a.next_at;
-      this.emettre("journaliser", d.id, { event: "anchor_retry", kind: d.kind, mode: "reprise", error_code: code });
+      this.journaliserTentative(d, { event: "anchor_retry", kind: d.kind, mode: "reprise", error_code: code }, a);
       this.ecrire(d, "a_reprendre");
       this.programmer(d, at, "backoff", "reprise_registre");
     }
@@ -1156,7 +1253,7 @@ export class Planificateur {
       return;
     }
     void depuisAttente;
-    const nonce = this.nonceRfc3161(req, req.attempts.length + 1);
+    const nonce = this.nonceRfc3161(req, totalTentatives(req) + 1);
     const nonceH = nonceHex(nonceEntier(nonce));
     const requete = construireRequete({ imprint: req.subject.hash, nonce: nonceH, policy_oid: p.policy_oid });
     this.nouvelleTentative(req, { provider: p.id, nonce: nonceH, detail: "requete envoyee" });
@@ -1164,7 +1261,7 @@ export class Planificateur {
     this.ecrire(req, "envoyee");
     this.emettre("envoyer_rfc3161", req.id, {
       provider: p.id,
-      attempt: req.attempts.length,
+      attempt: req.attempts_total,
       digest: req.subject.hash,
       nonce: nonceH,
       policy_oid: p.policy_oid,
@@ -1199,7 +1296,7 @@ export class Planificateur {
     if (!secours || i.releve || i.epuises.has(secours.id) || i.revoques.has(secours.id)) return;
     i.releve = true;
     this.emettre("releve", req.id, { provider: secours.id });
-    this.emettre("journaliser", req.id, { event: "anchor_fallback", to: secours.id, reason: "delai" });
+    this.journaliserTentative(req, { event: "anchor_fallback", to: secours.id, reason: "delai" }, this.derniereTentative(req));
     this.envoyerRfc3161(req, secours.id);
   }
 
@@ -1213,16 +1310,29 @@ export class Planificateur {
     const r = this.config.rfc3161.retry;
     const i = this.interneDe(req.id);
     let k = 0;
+    let rompu = false;
     for (let j = req.attempts.length - 1; j >= 0; j--) {
       const a = req.attempts[j];
       if (a.provider !== p.id) continue;
       if (a.outcome === "echec_transitoire" || a.outcome === "reponse_tardive") k += 1;
-      else break;
+      else {
+        rompu = true;
+        break;
+      }
     }
+    // Révision 0.6 : la série se poursuit dans les tentatives sorties de la fenêtre de 32 (EX-8.5, règle 7) ; au-delà
+    // de 21 échecs l'attente est de toute façon `retry.max_ms` (bornes du schéma : facteur ≥ 2, initial_ms ≥ 100).
+    if (!rompu) k += i.horsFenetre.consecutifs.get(p.id) ?? 0;
     const premier408 = codeHttp === 408 && !i.http408.has(p.id);
     if (codeHttp === 408) i.http408.add(p.id);
     const a = attenteTransitoire({ httpStatus: codeHttp, retryAfterS: bornerRetryAfter(data.retry_after_s ?? null), retry: r, k: Math.max(1, k), premier408 });
     return { d: a.raison === "backoff" ? a.attenteMs + this.gigue() : a.attenteMs, raison: a.raison };
+  }
+
+  /** Échecs transitoires d'une demande sortis de la fenêtre de 32 (mémoire ; inconnus d'une file relue comptés transitoires). */
+  transitoiresHorsFenetre(req) {
+    const h = this.interneDe(req.id).horsFenetre;
+    return h.transitoires + h.inconnues;
   }
 
   /** Classement d'une réponse RFC 3161 (EX-5.10 étapes 1 à 8, EX-5.12), sans vérifier de jeton. */
@@ -1295,9 +1405,13 @@ export class Planificateur {
       : null);
     if (estFinale(req) || !attempt || attempt.outcome !== "en_cours") {
       // Réponse à une demande close ou à une tentative remplacée : conservée comme pièce, jamais promue (EX-5.8, EX-5.11, EX-8.5).
-      if (jeton) this.emettre("stocker", req.id, { sha256: data.token_sha256, size: data.token_size, bound: borneValable(attempt) });
-      const code = !attempt ? "tentative_inconnue" : estFinale(req) ? "demande_close" : "tentative_close";
-      this.emettre("journaliser", req.id, { event: "anchor_response_rejected", error_code: code, attempt: data.attempt, provider: attempt?.provider ?? null, kept: jeton });
+      // Révision 0.6 : une tentative sortie de la fenêtre de 32 (rang au plus `attempts_total`) se traite comme une
+      // tentative qui n'est plus en cours (EX-8.5, règle 7) : conservée, non promue.
+      const sortie = !attempt && Number.isSafeInteger(data.attempt) && data.attempt >= 1 && data.attempt <= totalTentatives(req);
+      const horsFenetre = sortie ? { n: data.attempt, nonce: this.interneDe(req.id).horsFenetre.nonces.get(data.attempt) ?? null } : null;
+      if (jeton) this.emettre("stocker", req.id, { sha256: data.token_sha256, size: data.token_size, bound: borneValable(attempt ?? (horsFenetre?.nonce ? horsFenetre : null)) });
+      const code = !attempt && !sortie ? "tentative_inconnue" : estFinale(req) ? "demande_close" : "tentative_close";
+      this.journaliserTentative(req, { event: "anchor_response_rejected", error_code: code, attempt: data.attempt, provider: attempt?.provider ?? null, kept: jeton }, attempt ?? (sortie ? data.attempt : null));
       return;
     }
     const p = this.prestataireParId(attempt.provider);
@@ -1317,7 +1431,7 @@ export class Planificateur {
     attempt.error_code = verdict.code;
     attempt.detail = verdict.detail;
     this.emettre("rejeter_reponse", req.id, { error_code: verdict.code, class: verdict.classe });
-    this.emettre("journaliser", req.id, { event: "anchor_response_rejected", error_code: verdict.code, attempt: attempt.n, provider: attempt.provider });
+    this.journaliserTentative(req, { event: "anchor_response_rejected", error_code: verdict.code, attempt: attempt.n, provider: attempt.provider }, attempt);
     if (verdict.revocation) this.emettre("alerter", req.id, { code: "revoque", severity: "critique" });
 
     if (verdict.classe === "transitoire") {
@@ -1351,7 +1465,7 @@ export class Planificateur {
       i.releve = true;
       this.ecrire(req, "a_envoyer");
       this.emettre("releve", req.id, { provider: secours.id });
-      this.emettre("journaliser", req.id, { event: "anchor_fallback", to: secours.id, reason: code });
+      this.journaliserTentative(req, { event: "anchor_fallback", to: secours.id, reason: code }, attempt);
       this.envoyerRfc3161(req, secours.id);
       return;
     }
@@ -1407,9 +1521,10 @@ export class Planificateur {
       this.emettre("journaliser", req.id, { event: "anchor_response_rejected", error_code: "demande_close", attempt, provider: null, kept: false });
       return this.actions;
     }
-    const a = (attempt !== null ? req.attempts.find((x) => x.n === attempt) : null) ?? this.derniereTentative(req);
+    // Révision 0.6 : une tentative désignée qui est sortie de la fenêtre n'est plus en cours (EX-8.5, règle 7).
+    const a = attempt !== null ? req.attempts.find((x) => x.n === attempt) ?? null : this.derniereTentative(req);
     if (!a || a.outcome !== "en_cours") {
-      this.emettre("journaliser", req.id, { event: "anchor_response_rejected", error_code: "tentative_close", attempt, provider: a?.provider ?? null, kept: false });
+      this.journaliserTentative(req, { event: "anchor_response_rejected", error_code: "tentative_close", attempt, provider: a?.provider ?? null, kept: false }, a ?? attempt);
       return this.actions;
     }
     if (req.kind.startsWith("jeton_")) {
@@ -1419,7 +1534,7 @@ export class Planificateur {
       a.detail = `reponse hors schema : ${texte}`.slice(0, 1024);
       a.next_at = null;
       this.emettre("rejeter_reponse", req.id, { error_code: code, class: "permanente" });
-      this.emettre("journaliser", req.id, { event: "anchor_response_rejected", error_code: code, attempt: a.n, provider: a.provider, detail: texte });
+      this.journaliserTentative(req, { event: "anchor_response_rejected", error_code: code, attempt: a.n, provider: a.provider, detail: texte }, a);
       if (p) this.apresPermanente(req, a, p, code);
       else {
         // Prestataire retiré de la configuration : la demande repart au pas retry.max_ms chez le prestataire désigné.
@@ -1438,7 +1553,7 @@ export class Planificateur {
     a.error_code = code;
     a.detail = `reponse hors schema : ${texte}`.slice(0, 1024);
     this.emettre("rejeter_reponse", req.id, { error_code: code, class: "transitoire" });
-    this.emettre("journaliser", req.id, { event: "anchor_response_rejected", error_code: code, attempt: a.n, provider: null, detail: texte });
+    this.journaliserTentative(req, { event: "anchor_response_rejected", error_code: code, attempt: a.n, provider: null, detail: texte }, a);
     if (req.state === "en_attente") {
       const at = this.now + Math.max(60, this.config.opentimestamps.upgrade.interval_s) * 1000;
       a.next_at = this.horodatage(at);
@@ -1446,7 +1561,7 @@ export class Planificateur {
       this.ecrire(req, "en_attente");
       this.programmer(req, at, "mise_a_niveau", "mise_a_niveau");
     } else {
-      const k = req.attempts.filter((x) => x.outcome === "echec_transitoire").length;
+      const k = req.attempts.filter((x) => x.outcome === "echec_transitoire").length + this.transitoiresHorsFenetre(req);
       const at = this.now + Math.min(r.max_ms, r.initial_ms * r.factor ** Math.max(0, k - 1)) + this.gigue();
       a.next_at = this.horodatage(at);
       req.due_at = a.next_at;
@@ -1478,7 +1593,11 @@ export class Planificateur {
     this.annulerTimers(req.id);
     this.ecrire(req, "obtenue");
     const p = this.periodeDe(req.subject.org_id, req.subject.journal_id, req.subject.period_start);
-    const premierEnvoi = ms(req.attempts[0].started_at);
+    const i0 = this.interneDe(req.id);
+    // Premier envoi de la demande : gardé en mémoire depuis la tentative de rang 1 ; pour une demande relue dont la
+    // tentative de rang 1 est sortie de la fenêtre de 32 (EX-8.5, règle 7), la plus ancienne tentative de la ligne.
+    const premiere = req.attempts.find((x) => x.n === 1) ?? req.attempts.reduce((m, x) => (m === null || x.n < m.n ? x : m), null);
+    const premierEnvoi = i0.premierEnvoi ?? ms(premiere.started_at);
     const envoiPromu = ms(attempt.started_at);
     const alertes = avertissements.map((a) => ({ code: a === "reponse_tardive" ? "reponse_tardive_promue" : a, severity: "mineure" }));
     if (req.kind === "jeton_point") {
@@ -1488,7 +1607,12 @@ export class Planificateur {
       }
       const i = this.interneDe(req.id);
       const origine = req.deadlines.length ? (p.period_start + Math.max(...req.deadlines) * this.config.rfc3161.checkpoints.interval_s) * 1000 : (p.period_start + 3600) * 1000;
+      // Cinq instants tronqués à la seconde depuis D_k (depuis period_end pour le repli) : checkpoint_ts, admission,
+      // premier envoi, envoi de la tentative promue, genTime + précision ; chaque composante est la différence avec
+      // le précédent, leur somme est d_jeton_s (EX-3.5, 8.9 ; révision 0.6).
+      const admission = i.admisA ?? this.tDemarrage ?? ms(req.created_at);
       const t0 = sEntieres(ms(req.subject.declared_at) - origine);
+      const tA = sEntieres(admission - origine);
       const t1 = sEntieres(premierEnvoi - origine);
       const t2 = sEntieres(envoiPromu - origine);
       const t3 = sEntieres(borne - origine);
@@ -1499,7 +1623,8 @@ export class Planificateur {
         deadlines: req.deadlines,
         d_jeton_s: t3,
         d_point_s: t0,
-        d_attente_s: t1 - t0,
+        d_admission_s: tA - t0,
+        d_attente_s: t1 - tA,
         d_releve_s: t2 - t1,
         d_tsa_s: t3 - t2,
       };
@@ -1586,7 +1711,7 @@ export class Planificateur {
     if (req.state !== "en_attente") return;
     this.nouvelleTentative(req, { detail: "mise a niveau demandee" });
     this.ecrire(req, "en_attente");
-    this.emettre("mettre_a_niveau_ots", req.id, { attempt: req.attempts.length });
+    this.emettre("mettre_a_niveau_ots", req.id, { attempt: req.attempts_total });
   }
 
   reponseOts(data) {
@@ -1596,14 +1721,14 @@ export class Planificateur {
       return;
     }
     if (estFinale(req)) {
-      this.emettre("journaliser", req.id, { event: "anchor_response_rejected", error_code: "demande_close", attempt: req.attempts.length, provider: null, kept: data.proof_sha256 !== null });
+      this.journaliserTentative(req, { event: "anchor_response_rejected", error_code: "demande_close", attempt: totalTentatives(req), provider: null, kept: data.proof_sha256 !== null }, totalTentatives(req));
       return;
     }
     const i = this.interneDe(req.id);
     const o = this.config.opentimestamps;
     const attempt = this.derniereTentative(req);
     if (!attempt || attempt.outcome !== "en_cours") {
-      this.emettre("journaliser", req.id, { event: "anchor_response_rejected", error_code: "tentative_close", attempt: req.attempts.length, provider: null, kept: data.proof_sha256 !== null });
+      this.journaliserTentative(req, { event: "anchor_response_rejected", error_code: "tentative_close", attempt: totalTentatives(req), provider: null, kept: data.proof_sha256 !== null }, totalTentatives(req));
       return;
     }
     const preuve = data.proof_sha256 !== null && data.proof_sha256 !== undefined;
@@ -1640,12 +1765,12 @@ export class Planificateur {
       attempt.error_code = "calendriers_insuffisants";
       attempt.detail = `${data.calendars_answered} calendrier(s) ; au moins ${o.min_responses} attendus`;
       const r = this.config.rfc3161.retry;
-      const k = req.attempts.filter((a) => a.outcome === "echec_transitoire").length;
+      const k = req.attempts.filter((a) => a.outcome === "echec_transitoire").length + this.transitoiresHorsFenetre(req);
       const at = this.now + Math.min(r.max_ms, r.initial_ms * r.factor ** Math.max(0, k - 1)) + this.gigue();
       attempt.next_at = this.horodatage(at);
       req.due_at = attempt.next_at;
       this.emettre("rejeter_reponse", req.id, { error_code: "calendriers_insuffisants", class: "transitoire" });
-      this.emettre("journaliser", req.id, { event: "anchor_response_rejected", error_code: "calendriers_insuffisants", attempt: attempt.n, provider: null });
+      this.journaliserTentative(req, { event: "anchor_response_rejected", error_code: "calendriers_insuffisants", attempt: attempt.n, provider: null }, attempt);
       this.ecrire(req, "a_reprendre");
       this.programmer(req, at, "backoff", "reprise_ots");
       return;

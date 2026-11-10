@@ -105,8 +105,13 @@ export const MEMBRES_JSON_MAX = 100000;
 
 /** Texte de la pièce « résultat » d'un événement de reprise (EX-12.14). */
 export const TEXTE_REPRISE = "resultat inconnu : enregistreur arrete pendant le relais";
-/** Texte de la pièce « résultat » d'un événement en attente dont le résultat a été perdu (EX-14.10). */
-export const TEXTE_ATTENTE = "resultat perdu pendant le mode degrade";
+/**
+ * Texte de la pièce « résultat » d'un événement en attente scellé au rejeu
+ * alors que des pièces manquent (EX-14.18 ; révision 0.7 de CT-2). La pièce
+ * à deux membres des versions 0.1 à 0.6 (« resultat perdu pendant le mode
+ * degrade ») n'est plus produite (EX-14.10).
+ */
+export const TEXTE_ATTENTE = "pieces perdues pendant le mode degrade";
 
 /** Délégation des événements du journal sur lui-même (CT-1 §5.3, EX-15.6). */
 export const DELEGATION_JOURNAL = Object.freeze({ launched_by: "noortrace-enregistreur", on_behalf_of: null, scope: "journal:administration", run_id: null });
@@ -1757,9 +1762,68 @@ export function pieceReprise(intention_sha256) {
   return pieceJSON({ intention_sha256, noortrace_reprise: TEXTE_REPRISE });
 }
 
-/** Pièce « résultat » d'un événement en attente dont le résultat a été perdu (EX-14.10). */
-export function pieceAttente(pending_id) {
-  return pieceJSON({ noortrace_attente: TEXTE_ATTENTE, pending_id });
+/** Référence CT-1 §5.4 réduite à ses membres de forme (sha256, length, redacted, media_type s'il existe), sans value. */
+const formeReference = (r) => {
+  const o = { sha256: r.sha256, length: r.length, redacted: r.redacted };
+  if (r.media_type !== undefined) o.media_type = r.media_type;
+  return o;
+};
+/** Vrai pour une référence qui désigne une pièce stockée (objet sans value). */
+const referenceStockee = (r) => r !== null && typeof r === "object" && typeof r.sha256 === "string" && !Object.hasOwn(r, "value");
+
+/**
+ * Pièces manquantes d'un événement en attente au rejeu (EX-14.18, pas 2 ;
+ * révision 0.7) : parmi les références sans `value` (`intent`,
+ * `execution.arguments`, `execution.result`, éléments de `context`), celles
+ * dont `existe(sha256)` est faux (aucun fichier sous `pieces/<xx>/`) ; une
+ * entrée `{ length, sha256 }` par `sha256` distinct, tirée de la première
+ * référence qui le désigne, triée par `sha256` croissant. Une référence en
+ * ligne n'est jamais manquante.
+ */
+export function piecesManquantes(partiel, existe) {
+  const refs = [typeof partiel.intent === "object" ? partiel.intent : null, partiel.execution?.arguments, partiel.execution?.result, ...(partiel.context ?? [])];
+  const vues = new Map();
+  for (const r of refs) {
+    if (!referenceStockee(r) || vues.has(r.sha256) || existe(r.sha256)) continue;
+    vues.set(r.sha256, { length: r.length, sha256: r.sha256 });
+  }
+  return [...vues.values()].sort((a, b) => (a.sha256 < b.sha256 ? -1 : a.sha256 > b.sha256 ? 1 : 0));
+}
+
+/**
+ * Pièce « résultat » de remplacement d'un événement en attente dont des
+ * pièces manquent (EX-14.18, pas 3 ; révision 0.7) : JCS intégral de
+ * `{"missing_pieces":[…],"noortrace_attente":"pieces perdues pendant le mode
+ * degrade","pending_id":…,"result":<référence d'origine>}`, `result` étant la
+ * référence d'origine de `execution.result` (sha256, length, redacted et
+ * media_type s'il en a un ; null si l'événement partiel n'en a pas). Sa
+ * référence est `redacted: false`, sans media_type ni value.
+ */
+export function pieceAttente({ pending_id, result, missing_pieces }) {
+  return pieceJSON({ missing_pieces: missing_pieces.map((m) => ({ length: m.length, sha256: m.sha256 })), noortrace_attente: TEXTE_ATTENTE, pending_id, result: result === null || result === undefined ? null : formeReference(result) });
+}
+
+/**
+ * Événement partiel relu du fichier d'attente au rejeu (EX-14.18, pas 3 et 4 ;
+ * révision 0.7) : rend null si aucune pièce ne manque (scellé comme avant) ;
+ * sinon { partiel, piece, manquantes } où `partiel` est l'événement à sceller
+ * (ts et policy_version d'EX-14.10, fixés par l'écrivain) : `execution.is_error`
+ * vrai, `execution.result` remplacé par la référence à `piece` (la pièce
+ * « réponse » pour un échange de modèle), toutes les autres références et
+ * tous les autres membres gardés, `policy.redaction` recalculé (EX-10.16,
+ * EX-10.20) sur les références scellées, avec le nom que portait l'événement.
+ * La pièce de remplacement est à écrire (EX-8.9) avant le scellement ; les
+ * pièces manquantes ne sont pas écrites (pas 5).
+ */
+export function partielAttentePiecesPerdues(partiel, { pending_id, existe }) {
+  const manquantes = piecesManquantes(partiel, existe);
+  if (manquantes.length === 0) return null;
+  const piece = pieceAttente({ pending_id, result: partiel.execution.result, missing_pieces: manquantes });
+  const p = copieJSON(partiel);
+  p.execution.result = { sha256: piece.reference.sha256, length: piece.reference.length, redacted: false };
+  p.execution.is_error = true;
+  p.policy.redaction = redactionDe(partiel.policy.redaction, referencesPartiel(p));
+  return { partiel: p, piece, manquantes };
 }
 
 // ---------------------------------------------------------------------------

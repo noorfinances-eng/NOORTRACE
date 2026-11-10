@@ -391,6 +391,7 @@
         "event": "anchor_response_rejected",
         "error_code": "type_contenu",
         "attempt": 1,
+        "attempt_id": "jeton_periode:a864281e05663ee5:1",
         "provider": "qtsa-principal"
       }
     },
@@ -417,7 +418,9 @@
       "detail": {
         "event": "anchor_fallback",
         "to": "qtsa-secours",
-        "reason": "type_contenu"
+        "reason": "type_contenu",
+        "attempt": 1,
+        "attempt_id": "jeton_periode:a864281e05663ee5:1"
       }
     },
     {
@@ -469,6 +472,7 @@
         "event": "anchor_response_rejected",
         "error_code": "politique_refusee",
         "attempt": 2,
+        "attempt_id": "jeton_periode:a864281e05663ee5:2",
         "provider": "qtsa-secours"
       }
     },
@@ -537,6 +541,7 @@
         "event": "anchor_response_rejected",
         "error_code": "taille",
         "attempt": 3,
+        "attempt_id": "jeton_periode:a864281e05663ee5:3",
         "provider": "qtsa-principal"
       }
     },
@@ -661,6 +666,7 @@
           "detail": "ancre incluse au bloc 21087"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x906e615b692493ef817e85d0ed12e9c98e860de2fb0cb904fe3ddfecfd20c25a",
         "size": 4096,
@@ -749,6 +755,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 4,
       "result": {
         "sha256": "0x19d8b6909391e28e2df323903c2176e64f4d38dae87609cc461375ca865511ab",
         "size": 3082,
@@ -792,6 +799,7 @@
           "detail": "2 calendriers ; attestation en attente"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x9c6433e33949ee9a14685c8929590f0e32f6c611b3b9ea99294cee22a9ba2355",
         "size": 233,

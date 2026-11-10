@@ -4542,6 +4542,454 @@
           "apres": "bf3524e988f532efbd527fc903cdb66f4b1e9145b8def322336ffeed8cade99e"
         }
       ]
+    },
+    {
+      "id": "MC-24",
+      "date": "2026-11-10",
+      "etape": 5,
+      "motif": "Trois décisions après les mesures de l'étape 5 : CT-2 0.7 (événements en attente dont les pièces sont perdues au redémarrage, EX-14.18), CT-5 0.6 (fenêtre de 32 tentatives par ligne de file, attempts_total, compactage de la file ; composante d_admission de d_jeton), schémas ancrage-v0 et planificateur-ancrage-v0, vecteurs ct-5 ; renvois alignés : CT-7 0.3 (d_jeton en cinq composantes, relecture EX-8.20 du 2026-11-10, vecteurs ct-7), CT-8 0.3 (règle de l'alerte « Pièces en attente perdues », RB-1) ; CT-9 0.5 et vecteurs ct-9 régénérés.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-2-enregistreur.md",
+          "avant": "05e521f65269d2dd26cac167867f219f60d932b748b3eb1d030c25252b752b44",
+          "apres": "0c7e0747d726238abb12fa4181a278fba970222b62f6f71fc9cf10913dc3bb99"
+        },
+        {
+          "chemin": "spec/CT-5-ancrage.md",
+          "avant": "9701018cabd14fbea667682d8d94c8a025b7f52c8344c1b0657c60b0ad8199ac",
+          "apres": "392c042b7236c90196eb07fd3988ad7a6d5306468f215adecf20bd973fd176c8"
+        },
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "ccb10a358f3ca482b03166316a2dde61a461e283cd885da0f3ff98dfc9736e68",
+          "apres": "71d3c2502e72c478ea20be533bc4d94a27749a7fe5eb1bd1d7b06136e92cb274"
+        },
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "1bf7d98510af3f341ff9f79293c6a8ddcb77e35c046ca97d7fae9a165a34013a",
+          "apres": "5cc0ee937b426c1b8a001d0ff1cb42061644adf575ce36e2c4739c7257e0b915"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "2c7bbedc652abceb5f5724395d155ea39ec6e2343897129e03ce716b9e2e2cdb",
+          "apres": "0539627fbf6bd450c9c97932033f6afb248fb6a13285f7562237c8d1b1e1e2cb"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "271f341e339dd4fa82a1e646927f61ed32a572b88dc1d13d78f2f80e49147844",
+          "apres": "11d636f742149b215d19c0df70cee98c658869fb87d2bc4a06bc7683f3ce7103"
+        },
+        {
+          "chemin": "spec/schemas/ancrage-v0.schema.json",
+          "avant": "77c8ee4ded56cb78b25cf111113d3b1c192b9ba7ab15f1602c78992e4c95eeec",
+          "apres": "1bd6a516e59c7e7c574a77ac82313806d2e3bbcdef51edf5ab029b19b0a18fe6"
+        },
+        {
+          "chemin": "spec/schemas/planificateur-ancrage-v0.schema.json",
+          "avant": "7c98ec330170df17a09092b1a6e507fea5655d48085cf5f4153cf485f5e46d4b",
+          "apres": "f13a54658d04270d876192565a4dfff6da9055d125d125128b16981e23d04217"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/INDEX.md",
+          "avant": "cced0be04a2204b5340dd697bbca5d25b88bc2a1f9e9871882392937c9db68b6",
+          "apres": "79514bd43006d84fe6057fa614d9b5eba1331899f2111564f189b8f0e958c9aa"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/bascule-epoque-fichier-perdu.json",
+          "avant": "71bb854bf700ec4e35291d078690536eb2b7c231ef0f754c4e64cbeea9557ea4",
+          "apres": "c757b7a6b32449d10e76ab84a0a2a91304d31fc620a789934a8266842a4e095e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/bascule-epoque.json",
+          "avant": "0dcd7111e56a8a4722bc8a55c3d82ef571fdb586fb816f8d1a3cf137060aac34",
+          "apres": "83ec245158164201d31a463cff0cd4cb85f3fcf02e904affcb90c9a521db5a4f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/echeance-remplacee.json",
+          "avant": "fa72656af77f1526ff833f6f68d513f9a85cdfb0a2a5849ae02200cee0d28892",
+          "apres": "d08abd316fc389e0736f452bd3b8cb8c746dc550018e0839030aa7cd40c0505b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/file-fenetre-32-redemarrage.json",
+          "avant": null,
+          "apres": "1861dab0c2e68eb9237cd2ad15dc4d13f23210fb560787f27df6d91dcaa329ea"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/file-fenetre-32.json",
+          "avant": null,
+          "apres": "008958fd22bb5526d1c0f3cfd9d3a2a0e3abeb264a24a8f2bb8c3505dfa97270"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/file-perdue.json",
+          "avant": "408217122c17332288de514af1ce641584a036fc58acc2ee0d93960e3bb97444",
+          "apres": "ca07040dc5c0f41b4a626e23ed517f3f693be01f78a047646082ff7e78350d13"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/file-pleine.json",
+          "avant": "d80eb2f45c120aae8ff3a784d155a32daf9a441c421bbbc0697184ff41ab8575",
+          "apres": "e30e9076a727aa82c6133ed4cf3cc558568c23dfd93c0da6754f6d5bb939d118"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/heure-nominale-reference.json",
+          "avant": "0f4971bd1fabdf26023d1fea401e8f9f975479bdfd7c1cbecc19cdd2e12c66a3",
+          "apres": "478ac3e7e58a3a4c2bf33760c3b12f02f7a41be49582e13a1c25fd5c8e999ba0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/horloge-suspecte.json",
+          "avant": "9f32773aeba441f59abfcf938f0ef296d63847088f3523c0052651de59fa4b5c",
+          "apres": "fdaeb9d49cfc8fc88767fc1c3e205047e4ef57ac60d9d2e94a4d2caac7615243"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/mi-periode-impair.json",
+          "avant": "1898faadaa9b58f763e91cf129c9105645beecf4df8e2355d08e1b0ac6027258",
+          "apres": "66b666e147e5b2b85dd2d8cae1c4af871c3ea095300bb52215514cc0130e8e8c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/ots-mise-a-niveau.json",
+          "avant": "d9fc8da645690523288869dcd1f077b46e73159ad0bc64b9a97a9fc1ecac71af",
+          "apres": "abf074f514c1b22a9e5653c2f09337bb5e63dde88cca82f5fe27b04fadd89c3e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/point-manquant-saut-horloge.json",
+          "avant": "048c07f2369bfa2bd440c8d2401c3eaf31abd15b5acab15d39db003b7bf738bd",
+          "apres": "e11deb11ec538e65313a4dc798de310aaed4197ed2d5ec4e9f493eab48d77bf8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/point-manquant.json",
+          "avant": "19fb8e7c92edcaed2f7fdc65803593ba7c5f768aac92686ececdc333e9d07853",
+          "apres": "67c5977f5702aa65acbffe761bf00000f61c2f88d03b31e3f968b2fc89a31bb7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/prestataire-min-interval.json",
+          "avant": "b7618e80be31e20e0aec56b6ae5d95f267d0712f5fa89dab8dcbc229273219f5",
+          "apres": "5b112ea1afdd510d50cf441f07089f4758f6cbb50f804ddd930ea53dffb8ba3b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/preuve-de-vie.json",
+          "avant": "a5611521b2d7dacbb3d5345238d1ce5564d7dac0f887c222fca2135212b022bb",
+          "apres": "72640397ac5b135f5614790543cda22d91fc38bb67ae732a1b151f6968120908"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/principal-injoignable.json",
+          "avant": "f88b268d09b94152421193564239a5c1006b756345ceb37f7a154cb2be26f495",
+          "apres": "b14d9d064a40c7299dd2a40caeccbaec7f397d44475f7990c9a83570b66f94b0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-reprise.json",
+          "avant": "0e0059b6e1d97511e95d77ed58f01190a9b01660f47fc46db785b2591de071d3",
+          "apres": "e3c7a16c80257f6b9e7bbab6ac80adf93662354539cdc78cd2c143d4be1a8a1d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/refus-permanent-releve.json",
+          "avant": "dcbdcd3acf8c91c6c0b4cf3c59a6fd08dd46360d0feb83ac59be222e9e6ee3f3",
+          "apres": "b2e256acf8c445eba12fe0717f6a22146a7ace305964522f9dde4d39bd291cfb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/refus-puis-preuve-de-vie-redemarrage.json",
+          "avant": "2cb3c286969e6f63963be30e65f62fdd25a6673f3c359f10b5db9dbd72a49f37",
+          "apres": "2bb7a666169e4ea21663180d89bde9b5e627d054ad758d0a81f73b20de9eab17"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/refus-puis-preuve-de-vie.json",
+          "avant": "da2137d5835ce4cb61fc85d6381922f5a4b2f6cb4395857c7aea3ffa5082e47a",
+          "apres": "5bdc231616fd79a66b26c412b6ffdab70ac39622a26116ab63f3e470b917b07c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-indisponible-cloture.json",
+          "avant": "62ea297552161c04a8f08d799421c80b0a5558217d9e153cd713a85cea05d381",
+          "apres": "81504146e983b4a38bd32d794f1384cbf96ecaa5e0b3da25eeff2b284edc6d9a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-indisponible.json",
+          "avant": "8f3ce466bbbdd71921c80a1bb00eb7586cceee3b04675202e1f93f2e289f6b30",
+          "apres": "c8770d820768c2567b74ce4389ebde0dc8440b9f5ffe256eaa1e58731a1122a0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/reponse-hors-profil.json",
+          "avant": "6b020bf70ac288ebf148c105955a833ef8f22c7fc6bf7d956ed4c74d48d207a0",
+          "apres": "955eaf07218e76b64235f3b11af2868426776e813136cc9464cc20445ea16f69"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/reponse-tardive.json",
+          "avant": "3dd0cbb6d5f9bbf94d54250c0c9a2ef336f36c0f7c5665c28f9f3cbe52ca4947",
+          "apres": "57af65a3885f870d661826b959496edee7f849b58162dd1079a6f70356a1e55f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/bascule-epoque-fichier-perdu.apres.ndjson",
+          "avant": "5447080db9890a7994c116805de52a03c1b2cf0a1209443c63e6dbcc6260db60",
+          "apres": "d902caf97c58faa3dd199b724d87c0f25f8234b71332dd8b380754689dc923a7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/bascule-epoque-fichier-perdu.avant.ndjson",
+          "avant": "d223178497f88c1de89cafbd8b3b3b96de07774229dcaa877ff1939eabbb769d",
+          "apres": "730561adcf983c92a3afc35555b888b80e063865858912d41bf0460b59ef1a7e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/bascule-epoque.apres.ndjson",
+          "avant": "aa461a91421223eddb314f60e15a23e2940ac925ceca0580809e6686878b8d98",
+          "apres": "23581c2d0b386d4f7c8c552756d77fdfe4043ea6e5c4830dcea602cd25b20203"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/bascule-epoque.avant.ndjson",
+          "avant": "2ff5da7c4b30cd03123d07ba96d42536cc6ed6f281c295eaad7794682f2755a9",
+          "apres": "a1466d17f040a8acedea6db9b58211bd93449f0873d4b22b76206ed564f77517"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/bascule-epoque.epoque-1.ndjson",
+          "avant": "f69b65b6948e3d121c11de2861b6b1845c7bf5730c20f95f5c5b74fb789f92a6",
+          "apres": "60d6986de29d55f699c0a94015391ffb3eaf40fc9acd8b106d0aae2488cbc09f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/bascule-epoque.epoque-2.ndjson",
+          "avant": "8e19eec8382e9a7e8e4d1bb75fa473bbaf1e91a17837a5ef9c7e226dd856627a",
+          "apres": "cab0d1180d677de4af58c98fd605c252700b24e76fdc45bc0aa93a08cf09d5fe"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/file-fenetre-32-redemarrage.apres.ndjson",
+          "avant": null,
+          "apres": "34c83efc375ec2e7564d0cb405b435dd9910ad601ad5e25622116eed1b0137d1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/file-fenetre-32-redemarrage.avant.ndjson",
+          "avant": null,
+          "apres": "4fcecdff1df2507d7e0ba88200f96ca313a54c45bbba0c4d40d348ff7da2e585"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/file-pleine.apres.ndjson",
+          "avant": "b3ad7c260b80df9adde84104776b76f9e0b14faf40e207eed14575dbd8064e98",
+          "apres": "a8a34f4e8c0a90d39735792c9bfec8940e3453424c35d9b1044d7d4e54ff8cfb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-reprise.apres.ndjson",
+          "avant": "94127dfe0c00e8f4e8ef96f620d3445341e8b3294a1feb3a754c1dfec52238e4",
+          "apres": "aed247a6c443e2d84796ecc129616ed2d5a7ced36122a7c0c83b22171623087b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/refus-puis-preuve-de-vie-redemarrage.apres.ndjson",
+          "avant": "e3c485469ba12e4bc0aeff97c0a0a5d5a452c8db5107893edfc717a4ef7178be",
+          "apres": "6e34c15088918dcba6a42990631c9f73eda43f24465961b01bb1d1a37716f1fa"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/refus-puis-preuve-de-vie-redemarrage.avant.ndjson",
+          "avant": "f2476b316a6d3be3470f75e0bea7d24ffd6877710c91c4ae31822a02c9c44e98",
+          "apres": "b3e888b15023b5b37b2fe1dc9b0c170c5c22ba63ef68370dd1042b8dcdc42a63"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/registre-indisponible.apres.ndjson",
+          "avant": "0b3348ea1947ed2ac72eb90889dd5589c8cc4bd8dd58f2166cc83ee479823e9b",
+          "apres": "f5d11231b7925488d82ec7c042b9a71e9704b2ae664f14e92cf6df488d82b934"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/README.md",
+          "avant": "1f01504cfffa8affd2dd1b464f0f701e2cf93371112ffd89bdcc3b64222684b9",
+          "apres": "dc2ef90232d3e3953fbdfa55f43cb3eae70a3489164fca8dd8606e909840a400"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/demande.go",
+          "avant": "9b326d13fffc785010491f4381387c7d27c84d4ec3705f42ec53d01e0b4f194f",
+          "apres": "22553c885722d551480e40a4e197aec8e983fbaf2c83ddd6264b01668489df33"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/familles.go",
+          "avant": "133cdf13011c7691bec5c30abb0110f31e742773c83a999dd2ef41612770c560",
+          "apres": "316fcd5f2c7aacb6b9b0fc3ef44fa01d987fd2bb968544502cb9241b47b5f34a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/invariants.go",
+          "avant": "5113d0dfae6072321556feec83da3c847d127b77e0c0783c96f7c3cadfe2eef6",
+          "apres": "eecd766a467bd2729c70e2310b55a34f71e33b5abb085e86910ef4fba49f8ef7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/planificateur.go",
+          "avant": "f755f1e6e8364764b168307788f0063de92541cc50ed3fa2d599105311de9ecd",
+          "apres": "010b8de1191b9638e0b7546f47dd7a20acfdac4064f5dcb12d5f8b91a568eaa5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/verificateur_test.go",
+          "avant": "a72f939746fac53a7bcb588025dfb66b3a610a7f86ebbf399073115514035ae2",
+          "apres": "fd946d050449c6784dd5cfe3113fd6ea48829f3486f912826bfc3d955ce77da4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/acceptation-attestation/consigne.md",
+          "avant": "0f32e38290fa953b596b131f809c0fe334d18c1b12d61fd4a9ac266092d70da6",
+          "apres": "38d5d52f78b95e3eff614ab1c4eceb9a7802d106ddd5fb8f9337e6c981b8016a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/acceptation-conformite/consigne.md",
+          "avant": "78b347dd5bc320cea4f86f04b7648747aee2f6fae27a517e2f92e6006e34e673",
+          "apres": "85e57d4a214bbf25652aa18470617ac5e0b680524ea879a54a5fe26e2e409f4e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/acceptation-securite/consigne.md",
+          "avant": "284955c9d274e5c0cfadd740449d2249da41a6026d7fdc78dc07a15039851c61",
+          "apres": "c09b089bfec2fa3b3ed966c159fb7b22888490c0ab26edf6418e681f73863a7f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice-conformite.json",
+          "avant": "3afa1727a290715ca2450c9bf5e9c8ed54d89fcd24aae123276bd1f322569ebd",
+          "apres": "b062340d0ba0dc28925227ad8479e12e924da7203de6f596fbf63d849d0a00f7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/clause-orpheline.json",
+          "avant": "e323e74f90c069657185c122828fa708abd9fa145aeb8da3cb0d0ef03949295c",
+          "apres": "f1d753c066d3e30b8cc4cd87096ca8ae19764510d07bb55f671c9baacdacbca3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/couvert-avec-contribution.json",
+          "avant": "40786e801276bf810096b49b454244856351ffb215e402be16f096c9b709a82f",
+          "apres": "7cdf32e974ee159b8939909f2572e45d85416735526fa728ea322456d0259525"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/fait-hors-annexe.json",
+          "avant": "6f20cc3ad310c50af9f1119031385ec26acf2bfaecbeb9e20e6221d898aef22d",
+          "apres": "7e6a4bac3dc8033415b95cab7e0c4b87fbfb6db848851d7e9abbdb23db53a2c0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/ia-date-passee.json",
+          "avant": "90abf69c3a19d5ec26289950a5cdfac263827cf695aea4631242f533d7188fe7",
+          "apres": "fe0a01e9541b3dbab0e9a193eb29f59b72ef1e240e4dd35fc52530d9bd152aff"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/ia-sans-date.json",
+          "avant": "32c2fc0de64cfcd10a6487008fc97a000b578b374cce8b1f5b16db3077f1ac72",
+          "apres": "7d0e5cc48ecf1468ef1d51986c128d87b9b9c560fa9d4b3fb55d89129941c95d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/lacune-ligne-inconnue.json",
+          "avant": "bce4cb2b05bd66b5d9cd111c9eeb3588759378fb285ad9a37b4c489900df678d",
+          "apres": "eb23d3cb698106b4932d50fd155bec9d4b401558cfa5624a04862e59acaa8a9a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/lignes-permutees.json",
+          "avant": "0d2948e3bcd10ee4bec06afa403add02669ab14528be6b68b4e99944e56fc34b",
+          "apres": "af655b43458a54a15b8e26fc73a4b8a8495760553d39438771369c848d9e2fbd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/mot-interdit.json",
+          "avant": "dadf65a264b6835026fa51927330777c391442dfb21cd5e7426decfd4e591dbc",
+          "apres": "0c5a9b81eb44c5678c253cb54eb1129ebc96cf1e2577359ad26b4836dd8b1653"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/renvoi-inexistant.json",
+          "avant": "a2156e71f4627689dfb6bb07ec817f60ec43efe3554a536ade5e00e538255d57",
+          "apres": "63516c2ee7b2fcd73f522d9646f749d4ec70533b7491bdcb95d3313992a0b4ce"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/section-inexistante.json",
+          "avant": "d384784473446aa351fa5e676ae55fdbf4273f75bf0445bc03bf3cca30f73a94",
+          "apres": "5498ab5060a0f6a13632ce601ebec635e5bab55aaba07add7673ad7638b8e8af"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/statut-force.json",
+          "avant": "64393dc4ffa0ea0472e2b90272aa2d045bf8b3906df392816da8f82a938b0fb7",
+          "apres": "df4e67c7bb47b0eba8030c09acd471fd08b8b4f890a235826382d77196a35072"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/texte-inconnu.json",
+          "avant": "b1486529eb77ff3577438c9e23b02c1791db9951cffef452500d4f36dee2fdee",
+          "apres": "1a9141cf7fddec135931333de7ef53e334653af93722d397490f9b8b881f5317"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/menaces.json",
+          "avant": "ed826d4094bd0ced5e19851ea173085c5b7661690fc4c19ccea10c438851b23f",
+          "apres": "0b0b1997e16b09173363d85093f069e5e171c28febc342944f07142e1159e85e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "55684ddcca93bb2deed3de320970c92d3f2d23583ec77dc981ddc031c9da156e",
+          "apres": "bab8ed76835cc4eef3ba76286812ddb7942777365aef114fd1509124ab1b0f5a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-a-ecrire-sans-etape.json",
+          "avant": "eac1baeb66699c3aabdc3b8d823b9053ba33ed125882c9125364db14c81f2e57",
+          "apres": "4071a05af6943df2af992e7984f3bf99dcabb3a152cab821f51f3d8ce5711841"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-executable-sans-titre.json",
+          "avant": "e29efd557a6400d1f3e9ee82a683c079ddec407e132e54248b47422a46b69883",
+          "apres": "b301c70e2c283028c8975e215e71081bbefcf59d63ddd7a394889aab68f17b1f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-identifiant-sans-specification.json",
+          "avant": "9b79ef0eb30d6d841b845c683b34bbd5a81bd014d812747d1179d67999373fa6",
+          "apres": "087908c012e58774dc9da1e3c93cfd684403eff31e6c1f494b2076ef05b2f84b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-complement-sans-etape.json",
+          "avant": "114710daabb802bb0f4825a4064438aa7216a2a23d2eb79b649f2718b0836baa",
+          "apres": "ce6bcc5cd12df45268ceb5ba2596f6c52f11eb52045e0121c2631dcf2ccf7c1d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-prefixe-test.json",
+          "avant": "5ad60bf7cfef9377c6ce49234cdd9778f0ec67bf1081616112b6049228804374",
+          "apres": "1b6c46e3b0af57b526bc7035ad5d9b46a2158df5051f2319e31f12553114b980"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-sans-adversarial.json",
+          "avant": "79959cc376a3f4b09e550b9310170345be5e7ae6cbbea12cd565212f22a22885",
+          "apres": "72895cad0255ac97cd9c328828a48e31e7fdb3dbdacad51492977e482c2ce695"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-scenario-sans-composition.json",
+          "avant": "bfaef6265253af5104e36d7f12cc9fc78ab643b4a913671f35b27d684fe2e6cb",
+          "apres": "cee5712d9e6cf7aac92b1944bb5494b4094d500dde921ab22ac8f27f5710ed6a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-titre-vide.json",
+          "avant": "fd5cbdf87e198ada0db5d6f6e371460012d27c4fb811a60f62039d0e63246078",
+          "apres": "2af5054aa9e1d54cc0ccb420f097224f18ad792aa0b10e3b3f92be231e44ffaf"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-tm-mesure-inventee.json",
+          "avant": "f401fd226a420a7d8c0ca3a157d1f926a47a8aacdf7fdae683e40dafd706b0d2",
+          "apres": "88b39eb013c8dd2a2b9d3035f0a1c0c6edbc10238ac168842ee635566915bd73"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-minimal.json",
+          "avant": "b58ff448210814a21f59c307089d2daa34a5aa46608f26f1a4ab10c5069a8fdf",
+          "apres": "9122a906b19aa050470da1a4cd1b1ad53faba3d4495686acd8af3256845a4471"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-ta.json",
+          "avant": "44050076563bba37af8d6807a8c26db4e6d46c0e5cafea62404c26e519eee5ba",
+          "apres": "174ad053a5744efa59e7665cfcf78173f943fad820edbdbcc027d6db87939d02"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "969262f8a0128364dccb6213c283679989ca018f22d64fff33c5a1df5d0d9d2d",
+          "apres": "8ec5d27f2e49117e90ee39edac780198f16eafc40718704a9a3a08c20cde0fce"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "c76dde901c802035ece7228afd5f0fe82ea66aaef654a823a3f10f81f51816d5",
+          "apres": "0250080092032510772515ea3fa3bb640ed3ea2a5b37df0e45dca63a1e902e9c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "bf3524e988f532efbd527fc903cdb66f4b1e9145b8def322336ffeed8cade99e",
+          "apres": "12cb5871ee4d52ae1438dc12561bbf9da8294def1f96ebb9b4729cf36b236079"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "eafc820055c40197c332caf19f311bba27fe91ce1b1ceb31abd78623520b0201",
+          "apres": "56065dbe171118722bcfd3888ca9a64430299fde216cb94b37ee39a5fb156d4b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "7c5be502ad2b3b25a0d857b8eb257d3583880356a01bd42f6ed7c35658daced1",
+          "apres": "5852bc2a98cda4eb10b4e71318135f7b4244367357015845efe1d716601566c5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "a0414bd63ab3fc85392caf1d0c57b0da14a02a7daf6b9489f7b7f435cba8f357",
+          "apres": "93fef8ba029d93eaf15104b8569b85fdf7bc5733ec5554962265a58e810a3067"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "582db92c1bae655ea6259d2fa2b95e76ae25b2adab3f7d40404685fbcf7500d8",
+          "apres": "b7668ddd6399e4b057188d235a133efdde651a3335ebaf79f43efa064d4ce7b1"
+        }
+      ]
     }
   ]
 }

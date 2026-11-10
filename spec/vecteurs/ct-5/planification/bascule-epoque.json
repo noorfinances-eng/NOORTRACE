@@ -96,6 +96,7 @@
           "started_at": "2026-11-05T09:58:00.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T09:58:00.000Z",
       "deadlines": [],
       "due_at": null,
@@ -139,6 +140,7 @@
           "started_at": "2026-11-05T09:58:02.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T09:58:00.000Z",
       "deadlines": [
         1,
@@ -194,6 +196,7 @@
           "started_at": "2026-11-05T10:00:00.300Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:00:00.300Z",
       "deadlines": [],
       "due_at": null,
@@ -237,6 +240,7 @@
           "started_at": "2026-11-05T10:00:01.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:00:00.300Z",
       "deadlines": [],
       "due_at": null,
@@ -258,6 +262,7 @@
     },
     {
       "attempts": [],
+      "attempts_total": 0,
       "created_at": "2026-11-05T10:00:00.300Z",
       "deadlines": [],
       "due_at": null,
@@ -295,6 +300,7 @@
           "started_at": "2026-11-05T10:00:00.300Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:00:00.300Z",
       "deadlines": [],
       "due_at": null,
@@ -338,6 +344,7 @@
           "started_at": "2026-11-05T10:05:00.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:05:00.000Z",
       "deadlines": [],
       "due_at": null,
@@ -381,6 +388,7 @@
           "started_at": "2026-11-05T10:05:02.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:05:00.000Z",
       "deadlines": [
         1
@@ -542,7 +550,9 @@
       "detail": {
         "event": "anchor_retry",
         "kind": "ancre_registre_periode",
-        "mode": "renvoi"
+        "mode": "renvoi",
+        "attempt": 1,
+        "attempt_id": "ancre_registre_periode:ae22426f25529379:1"
       }
     },
     {
@@ -741,6 +751,7 @@
           "started_at": "2026-11-05T09:58:00.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T09:58:00.000Z",
       "deadlines": [],
       "due_at": null,
@@ -784,6 +795,7 @@
           "started_at": "2026-11-05T09:58:02.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T09:58:00.000Z",
       "deadlines": [
         1,
@@ -839,6 +851,7 @@
           "started_at": "2026-11-05T10:00:01.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:00:00.300Z",
       "deadlines": [],
       "due_at": null,
@@ -882,6 +895,7 @@
           "started_at": "2026-11-05T10:00:00.300Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:00:00.300Z",
       "deadlines": [],
       "due_at": null,
@@ -925,6 +939,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:00:00.300Z",
       "deadlines": [],
       "due_at": null,
@@ -983,6 +998,7 @@
           "detail": "mise a niveau demandee"
         }
       ],
+      "attempts_total": 2,
       "created_at": "2026-11-05T10:00:00.300Z",
       "deadlines": [],
       "due_at": "2026-11-05T10:06:00.000Z",
@@ -1026,6 +1042,7 @@
           "started_at": "2026-11-05T10:05:00.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:05:00.000Z",
       "deadlines": [],
       "due_at": null,
@@ -1069,6 +1086,7 @@
           "started_at": "2026-11-05T10:05:02.000Z"
         }
       ],
+      "attempts_total": 1,
       "created_at": "2026-11-05T10:05:00.000Z",
       "deadlines": [
         1

@@ -268,11 +268,13 @@ import {
   creerPlanificateur, Planificateur, ErreurPlanificateur, // EX-8.13 : machine à états déterministe, horloge injectée, sans réseau
   rejouerTrace, comparerTrace, noncesVecteurs, noncesAleatoires, // EX-8.16, AN-42
   FileDurable, lireFiles, decoderFile, trierDemandes, estFinale, ETATS_FINAUX, idCoherent, ErreurDemandeNonConforme, // EX-8.5, EX-8.2
+  dernieresLignes, validerLigneDemande, totalTentatives, supprimerResidusCompactage, // EX-8.5 règles 5 et 7, EX-8.12 (CT-5 révision 0.6)
+  FENETRE_TENTATIVES, COMPACT_BYTES_DEFAUT, DELAI_APRES_ECHEC_MS, SUFFIXE_COMPACTAGE, // 32 ; 16 777 216 ; 60 000 ; ".compactage"
   echeances, tableEcheances, constaterCadence, // EX-4.2, EX-4.3, AN-2
   admettrePoint, admettreManifeste, verifierSerie, // AN-3
   pointsAAncrer, compterJetons, cout,          // AN-4, EX-4.6, EX-4.11, EX-12.1, EX-12.2, AN-59
   verifierCompletudeRegistre,                  // EX-10.7, AN-61
-  Supervision, METRIQUES_ANCRAGE, EVENEMENTS_JOURNAL, MAX_LIGNES_DEFAUT, normaliserValeurEtiquette, // 8.9 : métriques (noms exacts d'EX-8.15) et lignes de journal
+  Supervision, METRIQUES_ANCRAGE, EVENEMENTS_JOURNAL, EVENEMENTS_TENTATIVE, MAX_LIGNES_DEFAUT, normaliserValeurEtiquette, // 8.9 : métriques (noms exacts d'EX-8.15) et lignes de journal
   requeteTimeStampReq, relireTimeStampReq,     // EX-5.1 (noms distincts de ceux de src/rfc3161/ à l'agrégation)
   SCHEMA_ANCRAGE, SCHEMA_PLANIFICATEUR, REGISTRE_ANCRAGE, PROFILS,
 } from "@noortrace/ancrage/planificateur";
@@ -319,9 +321,39 @@ Contrat :
   nœud (`noeud_injoignable`, `transaction_refusee`) ; elle passe `remplacee`
   quand un point plus récent est admis. Une ancre dont une transaction est
   partie (`recu_absent`) suit la reprise de CT-4 §8.6.
-- `rejouerTrace(trace)` rend, pour chacune des 22 traces de
-  `spec/vecteurs/ct-5/planification/` (CT-5 révision 0.4), `expected` et
+- `rejouerTrace(trace)` rend, pour chacune des 24 traces de
+  `spec/vecteurs/ct-5/planification/` (CT-5 révision 0.6, dont
+  `file-fenetre-32` et `file-fenetre-32-redemarrage`), `expected` et
   `queue_after` à l'identique (AN-42).
+- **Révision 0.6 de CT-5 (D2, D3).** Fenêtre de 32 tentatives (EX-8.5,
+  règle 7) : chaque ligne écrite porte au plus 32 tentatives rangées par `n`
+  croissant (les `en_cours`, puis les plus récentes) et `attempts_total`
+  (toujours écrit, 0 sans tentative, plus grand `n`) ; `n` n'est jamais
+  renuméroté et une tentative nouvelle a le rang `attempts_total + 1`,
+  reprise au démarrage comprise (EX-8.12) ; une demande relue sans
+  `attempts_total` (avant 0.6) vaut le nombre de ses tentatives
+  (`totalTentatives`), et garde sa forme lue tant qu'elle n'est pas
+  réécrite. Une réponse à une tentative sortie de la fenêtre (rang au plus
+  `attempts_total`) est conservée (`stocker`, borne calculée avec le nonce
+  que la mémoire garde de la tentative, nulle s'il est inconnu) et consignée
+  `tentative_close`, non promue. La mémoire du planificateur garde, des
+  tentatives sorties, les échecs transitoires consécutifs par prestataire
+  (attente d'EX-8.9), le compte des échecs transitoires, l'admission d'une
+  transaction par un nœud (EX-9.5) et les nonces ; après un redémarrage,
+  les tentatives sorties sont inconnues : une ancre qui en a n'est pas tenue
+  pour « encore à envoyer ». Lignes `anchor_retry`, `anchor_fallback`,
+  `anchor_response_rejected` : membres `attempt` (rang `n`) et `attempt_id`
+  (`<kind>:<16 hex>:<n>`, nul pour un rang qui ne désigne aucune tentative)
+  (EX-8.15) ; `tentativeDe(action)` rend la tentative reprise par une action
+  `programmer` (la ligne `anchor_retry` du composant). Ligne
+  `checkpoint_countersigned` (EX-3.5, 8.9) : `d_admission_s` après
+  `d_point_s` ; cinq instants tronqués à la seconde depuis `D_k` (depuis
+  `period_end` pour le repli) : `checkpoint_ts`, admission (instant de
+  l'entrée `point_produit`, ou de `stockage_relu` pour un point relu ; pour
+  une demande relue de la file, son `created_at`), premier envoi, envoi de
+  la tentative promue, `genTime + précision` ; chaque composante est la
+  différence avec l'instant précédent, `d_attente_s` court donc depuis
+  l'admission et la somme vaut `d_jeton_s`.
 - Alertes de cadence et du jeton d'un point (EX-4.1, 8.9, AN-2) :
   `point_manquant` (ligne `point_manquant` avec `last_checkpoint_ts`, `gap_s`,
   puis alerte majeure) quand aucun point n'est admis pendant `2 × c_K` après
@@ -336,9 +368,34 @@ Contrat :
   `reponse_tardive_promue`) : `jeton_anterieur_au_point` (majeure) si
   `genTime + précision < checkpoint_ts − clock_tolerance_s`, puis
   `contresignature_tardive` (mineure) si `genTime + précision − checkpoint_ts > c_T`.
-- `FileDurable.ouvrir({ repertoire, epoque, fdatasync: true })` écrit
+- `FileDurable.ouvrir({ repertoire, epoque, fdatasync: true, compactBytes = 16777216, monotone, journal, crochet })` écrit
   `file-<epoch>.ndjson` (JCS intégral d'une `$defs/demande` par ligne) et
-  garantit la règle 1 d'EX-8.5 ; une demande que le schéma `$defs/demande`
+  garantit la règle 1 d'EX-8.5 ; à l'ouverture, tout
+  `file-<n>.ndjson.compactage` du répertoire est supprimé (EX-8.12 ;
+  `residus` : noms supprimés ; seul fichier que le composant supprime,
+  EX-8.14). Compactage du fichier courant (EX-8.5, règle 5, révision 0.6) :
+  `compacter({ declencheur })` (appelé par le composant à chaque clôture) et
+  `declencher()` (après chaque ligne : taille > `compactBytes` et > `2 × S_0`,
+  au plus une tentative par minute de `monotone()` après un échec) :
+  relecture (règle 3), fichier neuf `.compactage` avec la dernière ligne de
+  chaque `id`, octets tels quels, dans l'ordre où elles figurent
+  (`dernieresLignes`), `fdatasync`, `rename`, `fsync` du répertoire,
+  réouverture du descripteur ; `journal(niveau, evenement, champs)` reçoit
+  `anchor_queue_compacted` (`bytes_before`, `bytes_after`, `requests`) ou
+  `anchor_queue_compaction_failed` (`step` : `relecture`, `ecriture`,
+  `fdatasync`, `renommage`, `repertoire` ; `errno` ; `bytes`), jamais une
+  exception ; après un échec aux pas (a) à (d), l'ancien fichier reste en
+  place et l'ajout continue sur l'ancien descripteur ; après un échec au pas
+  (e), le renommage étant fait, l'ajout continue sur le fichier courant (le
+  neuf). Une ligne demandée pendant un compactage est écrite juste après lui
+  (`{ differee: true }`). `mesures()` rend `{ taille, taille_max, s0, seuil,
+  compact_bytes, compactages, echecs, lignes }` ; `seuil()` vaut
+  `max(compactBytes, 2 × S_0)` ; `crochet(pas)` (essais) est appelé avant
+  chaque pas. À l'écriture, une ligne de plus de 32 tentatives est refusée
+  (`ErreurDemandeNonConforme`) ; à la lecture, `validerLigneDemande` admet une
+  ligne sans `attempts_total` de plus de 32 tentatives (avant 0.6). La
+  méthode statique `FileDurable.compacter(repertoire, epoque, { courante })`
+  reste celle des fichiers d'époques antérieures (`file-<epoch>.<n>.compact.ndjson`) ; une demande que le schéma `$defs/demande`
   refuse lève `ErreurDemandeNonConforme` (`chemin` de l'écart) et n'est pas
   écrite ; `lireFiles(repertoire) → { demandes, parId, tronquees, fichiers }`
   fusionne tous les fichiers `file-*.ndjson` (règle 6 ; lignes tronquées ou
@@ -487,7 +544,7 @@ composant.remettreCloture({ manifeste, signature, periodHash, fingerprint, perio
 composant.recharger(configuration);        // → { accepte, erreurs } (EX-4.9 : refusé sans changer l'ancienne)
 composant.retirerQualification(providerId); // EX-5.9 ; → actions
 composant.metriques();                     // texte au format d'exposition (EX-8.15)
-composant.etat();                          // { demarre, arrete, configuration_valide, en_vol, attentes_horloge, demandes, actives, qualifications_retirees, t10_en_attente, clotures_en_attente, ecritures_en_attente, file_en_panne, file_lignes_abandonnees, arret_demande }
+composant.etat();                          // { demarre, arrete, configuration_valide, en_vol, attentes_horloge, demandes, actives, qualifications_retirees, t10_en_attente, clotures_en_attente, ecritures_en_attente, file_en_panne, file_lignes_abandonnees, file: FileDurable.mesures() | null, arret_demande }
 composant.demandes();                      // la file, rangée comme queue_after
 composant.tic();                           // un tic de l'horloge injectée (tests)
 await composant.fiche(providerId, { epreuve }); // → { fiche, verification } (EX-10.6, EX-11.4)
@@ -536,11 +593,14 @@ await composant.arreter({ attendre });
   `rfc3161: { transport }` (`transportHttps()` de `src/rfc3161/`), `ots: { transport }`
   (`transportHttps()` de `src/ots/`), `registre: { envoyeur } | { rpc | points, identifiants, instance, repertoireEnvois, delais }`
   (sans registre : `sansRegistre`, hors production seulement),
-  `bitcoinRpc: { appeler }`, `file: { ouvrir }` (fabrique de `FileDurable`,
-  tests).
+  `bitcoinRpc: { appeler }`, `file: { ouvrir, crochet }` (fabrique de `FileDurable`
+  et crochet des pas du compactage, tests).
 - **Ce que fait le composant** : AN-1 et secrets à la construction
   (`configurationValide()`), refus de démarrer sinon (l'enregistreur
-  continue, EX-4.8) ; `FileDurable` sous `queue.path` (époque du contexte),
+  continue, EX-4.8) ; `FileDurable` sous `queue.path` (époque du contexte ;
+  `queue.compact_bytes`, facultative, défaut 16 777 216, lue ici et non par la
+  projection, EX-4.8, EX-8.2 ; compactage à chaque clôture après le
+  traitement de `periode_close` et sur dépassement de taille, CT-5 révision 0.6),
   relecture de tous les `file-*.ndjson` (`anchor_queue_truncated_line`,
   `file_perdue`), `demarrage` puis `stockage_relu` borné aux périodes closes
   sans leurs trois demandes finales et au dernier point de chaque période
@@ -572,7 +632,8 @@ await composant.arreter({ attendre });
   minuterie sur l'horloge injectée ; `stocker`, `alerter`, `journaliser` →
   `Supervision` ; `releve`, `remplacer`, `rejeter_reponse`, `echeance` →
   consignés (`planificateur_<action>`, niveau `debug`) ; `anchor_retry` pour
-  chaque reprise programmée d'une demande RFC 3161 ou OpenTimestamps. T-10
+  chaque reprise programmée d'une demande RFC 3161 ou OpenTimestamps, avec
+  `attempt` et `attempt_id` de la tentative reprise (EX-8.15, révision 0.6). T-10
   différée : à `genTime + crl_capture.delay_s`, `capturerCrls` puis
   `verifierRevocation`, `.crl.pem` écrit (toutes les CRL du chemin dans un
   seul fichier PEM), ligne d'acquisition ajoutée (`checks.T-10`, `revoked`,

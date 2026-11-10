@@ -702,8 +702,59 @@ describe("CT-2 : construction des événements, écrivain, segment, intention, r
     expect(sans[0].sans_contexte).to.equal(true);
     expect([sans[0].partiel.delegation, sans[0].partiel.code.model, sans[0].partiel.code.policy_version, sans[0].partiel.intent, sans[0].partiel.policy.decision]).to.deep.equal([{ launched_by: "agent", on_behalf_of: null, scope: "s", run_id: null }, null, "v1", null, "autorise"]);
     expect(() => C.reprise(`${li}\n`, ecr.evenements.slice(0, 1), { resoudreHote: () => null })).to.throw(C.ErreurModeDegrade, /intention_irreconstructible/);
-    const p = C.pieceAttente("att-1");
-    expect(p.octets.toString()).to.equal('{"noortrace_attente":"resultat perdu pendant le mode degrade","pending_id":"att-1"}');
+  });
+
+  it("CT-2 0.7, EX-14.18 et EX-14.10 : événement en attente dont des pièces manquent au rejeu : pièce de remplacement (octets exacts, missing_pieces trié, result d'origine avec media_type), is_error vrai, autres membres gardés, policy.redaction recalculé, chaîne valide ; rien ne manque : null ; la pièce à deux membres n'est plus produite", function () {
+    const ecr = nouvelEcrivain();
+    ecr.sceller(politique("v1"), { ts_lu: "2026-11-10T10:00:00.000Z" });
+    const delegation = { launched_by: "agent", on_behalf_of: null, scope: "s", run_id: "r" };
+    const code = { model: null, prompt_version: null, policy_version: "v1", recorder: "0.1.0" };
+    const args = C.pieceJSON({ iban: "CH9300762011623852957" }, { politique: PII, portee: "arguments" });
+    const res = C.pieceJSON({ content: [{ type: "text", text: "paiement accepte" }], isError: false }, { media_type: "application/json" });
+    const intention = C.pieceTexte("payer la facture 42");
+    const doc = { ...C.pieceTexte("conditions generales").reference, kind: "autre" };
+    expect(args.reference.redacted).to.equal(true);
+    const partiel = C.partielAppelOutil({ delegation, code, intent: intention.reference, policy: { rule: null, decision: "autorise", ticket: null }, tool: "demo__pay", arguments: args.reference, status: "executee", result: res.reference, duration_ms: 12, is_error: false, context: [doc], nomRedaction: "pii-v1" });
+    // Aucune pièce ne manque : rien ne change (pas 2).
+    expect(C.partielAttentePiecesPerdues(partiel, { pending_id: "att-7", existe: () => true })).to.equal(null);
+    const toutes = C.partielAttentePiecesPerdues(partiel, { pending_id: "att-7", existe: () => false });
+    expect(toutes.manquantes.map((m) => m.sha256).sort()).to.deep.equal([intention.reference.sha256, args.reference.sha256, res.reference.sha256, doc.sha256].sort());
+    // Arguments et intention manquants, résultat présent : le résultat est remplacé quand même (pas 3).
+    const presentes = new Set([res.reference.sha256, doc.sha256]);
+    const r = C.partielAttentePiecesPerdues(partiel, { pending_id: "att-7", existe: (h) => presentes.has(h) });
+    const tri = [args.reference, intention.reference].map((x) => ({ length: x.length, sha256: x.sha256 })).sort((x, y) => (x.sha256 < y.sha256 ? -1 : 1));
+    const attendu = `{"missing_pieces":[{"length":${tri[0].length},"sha256":"${tri[0].sha256}"},{"length":${tri[1].length},"sha256":"${tri[1].sha256}"}],"noortrace_attente":"pieces perdues pendant le mode degrade","pending_id":"att-7","result":{"length":${res.reference.length},"media_type":"application/json","redacted":false,"sha256":"${res.reference.sha256}"}}`;
+    expect(r.piece.octets.toString()).to.equal(attendu);
+    expect(r.manquantes).to.deep.equal(tri);
+    expect(r.partiel.execution.result).to.deep.equal({ sha256: J.sha256(Buffer.from(attendu)), length: Buffer.byteLength(attendu), redacted: false });
+    expect(r.partiel.execution.is_error).to.equal(true);
+    // Pas 4 : égalité membre à membre hors is_error, result et policy.redaction ; arguments encore rédigés : nom gardé.
+    const sans = (x) => ({ ...x, execution: { ...x.execution, is_error: null, result: null }, policy: { ...x.policy, redaction: null } });
+    expect(sans(r.partiel)).to.deep.equal(sans(partiel));
+    expect(r.partiel.policy.redaction).to.equal("pii-v1");
+    const ev = ecr.sceller(r.partiel, { captured_at: "2026-11-10T10:00:05.000Z" });
+    expect([ev.seq, ev.execution.is_error, ev.execution.result.sha256]).to.deep.equal([2, true, J.sha256(Buffer.from(attendu))]);
+    expect(J.verifierChaine(ecr.evenements, { clesPubliques: { "rec-test-01": CLE_01.clePublique } }).valide).to.equal(true);
+    // Résultat d'origine seule pièce rédigée, et manquant : policy.redaction devient null ; la pièce résultat figure dans missing_pieces.
+    const resRedige = { ...res.reference, redacted: true };
+    // Arguments en ligne (value) : jamais comptés manquants (pas 2).
+    const argsClairs = { reference: J.referenceEnLigne({ montant: "12.50" }) };
+    const p2 = C.partielAppelOutil({ delegation, code, policy: { rule: null, decision: "autorise", ticket: null }, tool: "demo__pay", arguments: argsClairs.reference, status: "executee", result: resRedige, duration_ms: 3, is_error: false, nomRedaction: "pii-v1" });
+    expect(p2.policy.redaction).to.equal("pii-v1");
+    const r2 = C.partielAttentePiecesPerdues(p2, { pending_id: "att-8", existe: () => false });
+    expect(r2.piece.octets.toString()).to.equal(`{"missing_pieces":[{"length":${res.reference.length},"sha256":"${res.reference.sha256}"}],"noortrace_attente":"pieces perdues pendant le mode degrade","pending_id":"att-8","result":{"length":${res.reference.length},"media_type":"application/json","redacted":true,"sha256":"${res.reference.sha256}"}}`);
+    expect([r2.partiel.policy.redaction, r2.partiel.execution.arguments]).to.deep.equal([null, argsClairs.reference]);
+    expect(J.verifierChaine([...ecr.evenements, ecr.sceller(r2.partiel, { captured_at: "2026-11-10T10:00:06.000Z" })], { clesPubliques: { "rec-test-01": CLE_01.clePublique } }).valide).to.equal(true);
+    // Échange de modèle : c'est la pièce « réponse » (execution.result) qui est remplacée, la requête reste référencée.
+    const requete = C.pieceJSON({ model: "m", messages: [] });
+    const reponse = C.pieceJSON({ id: "r1", content: [] });
+    const p3 = C.partielEchangeModele({ delegation, code, requete: requete.reference, reponse: reponse.reference, duration_ms: 40, is_error: false });
+    const r3 = C.partielAttentePiecesPerdues(p3, { pending_id: "att-9", existe: () => false });
+    expect(JSON.parse(r3.piece.octets.toString()).result).to.deep.equal(reponse.reference);
+    expect([r3.partiel.execution.arguments, r3.partiel.execution.is_error, r3.manquantes.length]).to.deep.equal([requete.reference, true, 2]);
+    // La pièce à deux membres des versions 0.1 à 0.6 n'est plus produite (EX-14.10).
+    expect(C.TEXTE_ATTENTE).to.equal("pieces perdues pendant le mode degrade");
+    expect(r.piece.octets.toString()).not.to.include("resultat perdu");
   });
 
   it("gabarits d'effets : pointeur non résolu, montant hors format, devise fixe, troncature (EX-7.6)", function () {

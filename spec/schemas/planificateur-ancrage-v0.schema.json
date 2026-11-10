@@ -753,10 +753,17 @@
         },
         "attempts": {
           "type": "array",
-          "maxItems": 100000,
+          "maxItems": 32,
           "items": {
             "$ref": "#/$defs/tentative"
-          }
+          },
+          "description": "Révision 0.6 de CT-5 : au plus les 32 dernières tentatives de la demande, par n croissant, les tentatives en cours toujours comprises (EX-8.5, règle 7) ; l'historique complet est au journal d'exploitation et, pour les jetons, dans acquisitions.ndjson."
+        },
+        "attempts_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000,
+          "description": "Révision 0.6 de CT-5 : nombre de tentatives de la demande depuis sa création, égal au plus grand rang n (pas de renumérotation) ; toujours écrit par une implémentation de la révision 0.6, facultatif pour que les lignes écrites avant restent valides (absent : nombre d'éléments d'attempts) (EX-8.5, règle 7)."
         },
         "result": {
           "oneOf": [

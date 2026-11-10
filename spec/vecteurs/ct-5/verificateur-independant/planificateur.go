@@ -85,6 +85,7 @@ type etatInterne struct {
 	differe       *int64
 	renvois       int64
 	soumisA       *int64
+	premierEnvoi  *int64 // instant de la tentative de rang 1 d'un jeton, retenu dans ce processus (EX-3.5)
 }
 
 // Ecriture relie une action ecrire_file (indice dans Actions) à la ligne
@@ -116,6 +117,7 @@ type Planificateur struct {
 	relues        int64
 	horloge       *int64
 	demarre       bool
+	admissions    map[string]int64 // instant d'admission de chaque point, par empreinte (EX-3.5, révision 0.6)
 }
 
 func sortePeriode(kind string) bool      { return len(kind) > 8 && kind[len(kind)-8:] == "_periode" }
@@ -126,7 +128,7 @@ func idDemande(kind, hash string) string { return kind + ":" + hash }
 // (document ancrage-v0 ou projection) ; refuse une configuration hors d'AN-1.
 func NouveauPlanificateur(config *Value, aleatoire Aleatoire) (*Planificateur, error) {
 	cfg := ProjeterConfiguration(config)
-	p := &Planificateur{cfg: cfg, prestataires: map[string]*Prestataire{}, roles: map[string]*Prestataire{}, aleatoire: aleatoire, demandes: map[string]*Demande{}, interne: map[string]*etatInterne{}, periodes: map[string]*periode{}, Actions: []*Value{}, Lignes: []string{}, dernierEnvoi: map[string]int64{}}
+	p := &Planificateur{cfg: cfg, prestataires: map[string]*Prestataire{}, roles: map[string]*Prestataire{}, aleatoire: aleatoire, demandes: map[string]*Demande{}, interne: map[string]*etatInterne{}, periodes: map[string]*periode{}, Actions: []*Value{}, Lignes: []string{}, dernierEnvoi: map[string]int64{}, admissions: map[string]int64{}}
 	for _, pr := range cfg.Providers {
 		if pr.ID == "" || !dans(pr.Role, Roles) {
 			return nil, refus("AN-1", "prestataire mal formé : %s (%s)", pr.ID, pr.Role)
@@ -194,11 +196,38 @@ func (p *Planificateur) emettre(t int64, action string, requestID *string, detai
 }
 func (p *Planificateur) ecrire(d *Demande, t int64, state string) {
 	d.State = state
+	// EX-8.5, règle 7 (révision 0.6) : la ligne porte au plus 32 tentatives et
+	// toujours attempts_total, plus grand rang de la demande.
+	d.Attempts = Fenetre(d.Attempts)
+	total := d.Total()
+	for _, a := range d.Attempts {
+		if a.N > total {
+			total = a.N
+		}
+	}
+	d.AttemptsTotal = ptrI(total)
 	p.emettre(t, "ecrire_file", &d.ID, vObj("state", vStr(state)))
 	ligne := LigneFile(d)
 	p.Lignes = append(p.Lignes, ligne)
 	p.Ecritures = append(p.Ecritures, Ecriture{Action: len(p.Actions) - 1, Ligne: ligne})
 }
+
+// ajouterTentative ajoute la tentative de rang attempts_total + 1 (jamais de
+// renumérotation, EX-8.5 règle 7, EX-8.12) et rend son rang.
+func (p *Planificateur) ajouterTentative(d *Demande, provider *string, t int64, nonce *string, detail string) int64 {
+	n := d.Total() + 1
+	d.Attempts = append(d.Attempts, p.tentative(d, n, provider, t, nonce, detail))
+	d.AttemptsTotal = ptrI(n)
+	return n
+}
+
+// avecRang ajoute à une ligne du journal le rang et l'attempt_id de la
+// tentative dont elle rend compte (EX-8.15, révision 0.6).
+func avecRang(o *Value, d *Demande, n int64) *Value {
+	o.Obj = append(o.Obj, Member{Key: "attempt", Val: vInt(n)}, Member{Key: "attempt_id", Val: vStr(IdentifiantCorrelation(d.Kind, d.Subject.Hash, n))})
+	return o
+}
+
 func (p *Planificateur) programmer(d *Demande, t int64, at int64, reason string) {
 	d.DueAt = ptrS(Iso(at))
 	p.emettre(t, "programmer", &d.ID, vObj("next_at", vStr(Iso(at)), "reason", vStr(reason)))
@@ -355,8 +384,7 @@ func (p *Planificateur) declencher(m *minuterie) {
 		if s.miseANiveauAt == nil || *s.miseANiveauAt != t {
 			return
 		}
-		n := int64(len(d.Attempts)) + 1
-		d.Attempts = append(d.Attempts, p.tentative(d, n, nil, t, nil, "mise a niveau demandee"))
+		n := p.ajouterTentative(d, nil, t, nil, "mise a niveau demandee")
 		s.enCours[""] = n
 		p.ecrire(d, t, "en_attente") // EX-8.5, règle 1 : la ligne précède la requête
 		p.emettre(t, "mettre_a_niveau_ots", &d.ID, vObj("attempt", vInt(n)))
@@ -377,8 +405,7 @@ func (p *Planificateur) declencher(m *minuterie) {
 		}
 		p.alerter(t, &d.ID, "inclusion_late", sev)
 		p.cloreTentativeRegistre(d, t, "recu_absent", "")
-		n := int64(len(d.Attempts)) + 1
-		d.Attempts = append(d.Attempts, p.tentative(d, n, nil, t, nil, detail))
+		p.ajouterTentative(d, nil, t, nil, detail)
 		p.ecrire(d, t, "envoyee")
 		p.emettre(t, "envoyer_registre", &d.ID, p.detailRegistre(d))
 		s.inclusionAt = ptrI(t + p.cfg.InclusionAlertS*1000)
@@ -536,7 +563,12 @@ func (p *Planificateur) demarrer(t int64) {
 		}
 		if prefixe(d.Kind, "ancre_registre_") {
 			if d.State == "envoyee" {
-				p.journaliser(t, &d.ID, vObj("event", vStr("anchor_retry"), "kind", vStr(d.Kind), "mode", vStr("renvoi")))
+				ligne := vObj("event", vStr("anchor_retry"), "kind", vStr(d.Kind), "mode", vStr("renvoi"))
+				if len(d.Attempts) > 0 {
+					// la tentative renvoyée telle quelle (EX-8.12) : la dernière de la ligne
+					ligne = avecRang(ligne, d, d.Attempts[len(d.Attempts)-1].N)
+				}
+				p.journaliser(t, &d.ID, ligne)
 				p.emettre(t, "envoyer_registre", &d.ID, p.detailRegistre(d))
 				s.inclusionAt = ptrI(t + p.cfg.InclusionAlertS*1000)
 				p.timer(*s.inclusionAt, "inclusion", d.ID, 0, "")
@@ -573,9 +605,13 @@ func (p *Planificateur) demarrer(t int64) {
 				p.timer(at, "reprise", d.ID, 0, "")
 			case "en_attente":
 				at := dueOuT()
+				// première soumission : la tentative de rang 1 si la ligne la porte encore
+				// (EX-8.5, règle 7), sinon la création de la demande
 				debut := d.CreatedAt
-				if len(d.Attempts) > 0 {
-					debut = d.Attempts[0].StartedAt
+				for _, a := range d.Attempts {
+					if a.N == 1 {
+						debut = a.StartedAt
+					}
 				}
 				v, err := Ms(debut)
 				if err != nil {
@@ -660,7 +696,7 @@ func (p *Planificateur) creer(kind string, sujet *Sujet, deadlines []int64, t in
 		return nil
 	}
 	copieSujet := *sujet
-	d := &Demande{Version: 0, ID: id, Kind: kind, Subject: &copieSujet, Deadlines: append([]int64{}, deadlines...), State: "a_envoyer", CreatedAt: Iso(t), Attempts: []*Tentative{}}
+	d := &Demande{Version: 0, ID: id, Kind: kind, Subject: &copieSujet, Deadlines: append([]int64{}, deadlines...), State: "a_envoyer", CreatedAt: Iso(t), Attempts: []*Tentative{}, AttemptsTotal: ptrI(0)}
 	p.demandes[id] = d
 	p.int(id)
 	return d
@@ -721,6 +757,9 @@ func (p *Planificateur) pointProduit(t int64, data *Value) {
 		p.journaliser(t, nil, vObj("event", vStr("anchor_duplicate_ignored"), "checkpoint_hash", vStr(sujet.Hash)))
 		return
 	}
+	// EX-3.5 (révision 0.6) : le point est admis à l'instant de cette entrée,
+	// ou de sa relecture au démarrage (reconstruction d'EX-8.12).
+	p.admissions[sujet.Hash] = t
 	// cadence (EX-4.1, 8.9, révision 0.4 de CT-5) : dernier point admis de la période ouverte ; la
 	// minuterie point_manquant est armée 2 × c_K après le checkpoint_ts déclaré du point, non après
 	// son admission (un point reçu longtemps après sa production, saut d'horloge ou arrêt, lève
@@ -1091,13 +1130,16 @@ func (p *Planificateur) retirerPrete(e *prete) {
 
 func (p *Planificateur) envoyerRfc3161(d *Demande, pr *Prestataire, t int64) {
 	s := p.int(d.ID)
-	n := int64(len(d.Attempts)) + 1
+	n := d.Total() + 1
 	nonce := p.aleatoire.NonceTsa(d.Subject, n)
 	requete, err := ConstruireRequete(d.Subject.Hash, nonce, pr.PolicyOID, true)
 	if err != nil {
 		panic(err)
 	}
-	d.Attempts = append(d.Attempts, p.tentative(d, n, ptrS(pr.ID), t, ptrS(HexNonce(nonce)), "requete envoyee"))
+	p.ajouterTentative(d, ptrS(pr.ID), t, ptrS(HexNonce(nonce)), "requete envoyee")
+	if n == 1 {
+		s.premierEnvoi = ptrI(t)
+	}
 	p.dernierEnvoi[pr.ID] = t
 	d.DueAt = nil
 	s.differe = nil
@@ -1112,8 +1154,7 @@ func (p *Planificateur) envoyerRfc3161(d *Demande, pr *Prestataire, t int64) {
 
 func (p *Planificateur) envoyerRegistre(d *Demande, t int64) {
 	s := p.int(d.ID)
-	n := int64(len(d.Attempts)) + 1
-	d.Attempts = append(d.Attempts, p.tentative(d, n, nil, t, nil, "transaction envoyee"))
+	p.ajouterTentative(d, nil, t, nil, "transaction envoyee")
 	d.DueAt = nil
 	p.ecrire(d, t, "envoyee")
 	p.emettre(t, "envoyer_registre", &d.ID, p.detailRegistre(d))
@@ -1123,10 +1164,9 @@ func (p *Planificateur) envoyerRegistre(d *Demande, t int64) {
 
 func (p *Planificateur) soumettreOts(d *Demande, t int64) {
 	s := p.int(d.ID)
-	n := int64(len(d.Attempts)) + 1
 	nonce := p.aleatoire.NonceOts(d.Subject)
 	cals := p.cfg.Calendars
-	d.Attempts = append(d.Attempts, p.tentative(d, n, nil, t, nil, fmt.Sprintf("soumission a %d calendriers", len(cals))))
+	n := p.ajouterTentative(d, nil, t, nil, fmt.Sprintf("soumission a %d calendriers", len(cals)))
 	d.DueAt = nil
 	p.ecrire(d, t, "envoyee")
 	p.emettre(t, "soumettre_ots", &d.ID, vObj("digest", vStr(d.Subject.Hash), "nonce", vStr("0x"+hex.EncodeToString(nonce)), "calendars", vChaines(cals)))
@@ -1139,7 +1179,18 @@ func (p *Planificateur) soumettreOts(d *Demande, t int64) {
 func (p *Planificateur) relever(d *Demande, t int64, cause string) {
 	secours := p.roles["secours"]
 	p.emettre(t, "releve", &d.ID, vObj("provider", vStr(secours.ID)))
-	p.journaliser(t, &d.ID, vObj("event", vStr("anchor_fallback"), "to", vStr(secours.ID), "reason", vStr(cause)))
+	ligne := vObj("event", vStr("anchor_fallback"), "to", vStr(secours.ID), "reason", vStr(cause))
+	// EX-8.15 (révision 0.6) : la tentative dont l'issue déclenche la relève, la plus récente
+	var derniere *Tentative
+	for _, a := range d.Attempts {
+		if derniere == nil || a.N > derniere.N {
+			derniere = a
+		}
+	}
+	if derniere != nil {
+		ligne = avecRang(ligne, d, derniere.N)
+	}
+	p.journaliser(t, &d.ID, ligne)
 	p.pret(d, secours)
 }
 
@@ -1215,9 +1266,9 @@ func (p *Planificateur) echecRegistre(t int64, data *Value) {
 		return
 	}
 	p.cloreTentativeRegistre(d, t, code, "registre : "+code)
-	p.journaliser(t, &d.ID, vObj("event", vStr("anchor_retry"), "kind", vStr(d.Kind), "error_code", vStr(code)))
-	n := int64(len(d.Attempts)) + 1
-	d.Attempts = append(d.Attempts, p.tentative(d, n, nil, t, nil, "renvoi des memes octets"))
+	// EX-8.15 (révision 0.6) : la tentative que ce renvoi ouvre
+	p.journaliser(t, &d.ID, avecRang(vObj("event", vStr("anchor_retry"), "kind", vStr(d.Kind), "error_code", vStr(code)), d, d.Total()+1))
+	p.ajouterTentative(d, nil, t, nil, "renvoi des memes octets")
 	p.ecrire(d, t, "envoyee")
 	p.emettre(t, "envoyer_registre", &d.ID, p.detailRegistre(d))
 	s := p.int(d.ID)
@@ -1469,13 +1520,16 @@ func (p *Planificateur) reponseRfc3161(t int64, data *Value) {
 	pki := ptrEntier(data, "pki_status")
 	tokenSHA := ptrChaine(data, "token_sha256")
 	jeton := pki != nil && *pki <= 1 && tokenSHA != nil
-	if d == nil || att == nil || !prefixe(d.Kind, "jeton_") {
+	// EX-8.5, règle 7 (révision 0.6) : rang connu (1 à attempts_total) d'une
+	// tentative que la ligne ne porte plus ; traitée comme une tentative close.
+	horsFenetre := d != nil && att == nil && attempt != nil && *attempt >= 1 && *attempt <= d.Total()
+	if d == nil || (att == nil && !horsFenetre) || !prefixe(d.Kind, "jeton_") {
 		p.journaliser(t, requestID, vObj("event", vStr("anchor_response_rejected"), "error_code", vStr("tentative_inconnue"), "attempt", vIntOuNul(attempt)))
 		return
 	}
 	tokenSize := ptrEntier(data, "token_size")
 	accuracyMs := int64(nombreOu(data, 0, "accuracy_s") * 1000)
-	if EtatsFinaux[d.State] || att.Outcome != "en_cours" {
+	if EtatsFinaux[d.State] || horsFenetre || att.Outcome != "en_cours" {
 		if jeton {
 			var bound *Value = vNull()
 			if g, ok := chaineDe(data, "gen_time"); ok {
@@ -1491,7 +1545,13 @@ func (p *Planificateur) reponseRfc3161(t int64, data *Value) {
 		if EtatsFinaux[d.State] {
 			code = "demande_close"
 		}
-		p.journaliser(t, &d.ID, vObj("event", vStr("anchor_response_rejected"), "error_code", vStr(code), "attempt", vInt(att.N), "provider", vStrOuNul(att.Provider), "kept", vBool(jeton)))
+		var fournisseur *string
+		if att != nil {
+			fournisseur = att.Provider
+		}
+		ligne := avecRang(vObj("event", vStr("anchor_response_rejected"), "error_code", vStr(code)), d, *attempt)
+		ligne.Obj = append(ligne.Obj, Member{Key: "provider", Val: vStrOuNul(fournisseur)}, Member{Key: "kept", Val: vBool(jeton)})
+		p.journaliser(t, &d.ID, ligne)
 		return
 	}
 	s := p.int(d.ID)
@@ -1541,7 +1601,9 @@ func (p *Planificateur) reponseRfc3161(t int64, data *Value) {
 	}
 	att.Outcome = r.issue
 	p.emettre(t, "rejeter_reponse", &d.ID, vObj("error_code", vStrOuNul(r.code), "class", vStr(classe)))
-	p.journaliser(t, &d.ID, vObj("event", vStr("anchor_response_rejected"), "error_code", vStrOuNul(r.code), "attempt", vInt(att.N), "provider", vStr(pr.ID)))
+	rejet := avecRang(vObj("event", vStr("anchor_response_rejected"), "error_code", vStrOuNul(r.code)), d, att.N)
+	rejet.Obj = append(rejet.Obj, Member{Key: "provider", Val: vStr(pr.ID)})
+	p.journaliser(t, &d.ID, rejet)
 	if r.critique {
 		p.alerter(t, &d.ID, "revoque", "critique")
 	}
@@ -1634,6 +1696,51 @@ func (p *Planificateur) attenteReprise(d *Demande, prID string, data *Value) (in
 
 // satisfaire : jeton promu, échéances satisfaites, journal, EX-4.4 sur les
 // demandes antérieures de la période.
+// instantAdmission rend l'instant d'admission du point d'une demande
+// jeton_point (EX-3.5, révision 0.6) : celui de l'entrée qui l'a admis dans ce
+// rejeu ; pour un point admis avant le démarrage, dont les demandes viennent de
+// la file, la plus ancienne création de ses demandes (créées à l'admission).
+func (p *Planificateur) instantAdmission(d *Demande) int64 {
+	if v, ok := p.admissions[d.Subject.Hash]; ok {
+		return v
+	}
+	m, err := Ms(d.CreatedAt)
+	if err != nil {
+		panic(refus("", "%s", err.Error()))
+	}
+	for _, kind := range []string{"ancre_registre_point", "jeton_point", "ots_point"} {
+		if x := p.demandes[idDemande(kind, d.Subject.Hash)]; x != nil {
+			if v, err := Ms(x.CreatedAt); err == nil && v < m {
+				m = v
+			}
+		}
+	}
+	return m
+}
+
+// premierEnvoi rend l'instant du premier envoi d'un jeton (EX-3.5) : la
+// tentative de rang 1 si la ligne la porte encore, sinon l'instant retenu dans
+// ce rejeu, sinon la plus ancienne tentative portée.
+func (p *Planificateur) premierEnvoi(d *Demande) int64 {
+	for _, a := range d.Attempts {
+		if a.N == 1 {
+			v, err := Ms(a.StartedAt)
+			if err != nil {
+				panic(refus("", "%s", err.Error()))
+			}
+			return v
+		}
+	}
+	if s := p.int(d.ID); s.premierEnvoi != nil {
+		return *s.premierEnvoi
+	}
+	v, err := Ms(d.Attempts[0].StartedAt)
+	if err != nil {
+		panic(refus("", "%s", err.Error()))
+	}
+	return v
+}
+
 func (p *Planificateur) satisfaire(d *Demande, t int64, pr *Prestataire, r *classement) {
 	per := p.periode(d.Subject, t, false, false)
 	var kmax int64
@@ -1662,9 +1769,10 @@ func (p *Planificateur) satisfaire(d *Demande, t int64, pr *Prestataire, r *clas
 		if err != nil {
 			panic(refus("", "%s", err.Error()))
 		}
-		// EX-3.5 et 8.9 : quatre composantes de d_jeton, différences des
-		// instants tronqués à la seconde depuis la référence (point, premier
-		// envoi, envoi de la tentative promue, borne du jeton).
+		// EX-3.5 et 8.9 (révision 0.6) : cinq composantes de d_jeton,
+		// différences successives des instants tronqués à la seconde depuis la
+		// référence (point, admission, premier envoi, envoi de la tentative
+		// promue, borne du jeton).
 		var promue *Tentative
 		for _, a := range d.Attempts {
 			if a.Outcome == "obtenue" {
@@ -1675,16 +1783,14 @@ func (p *Planificateur) satisfaire(d *Demande, t int64, pr *Prestataire, r *clas
 		if promue == nil {
 			panic(refus("", "jeton promu sans tentative obtenue"))
 		}
-		premier, err := Ms(d.Attempts[0].StartedAt)
-		if err != nil {
-			panic(refus("", "%s", err.Error()))
-		}
+		premier := p.premierEnvoi(d)
+		admission := p.instantAdmission(d)
 		envoiPromu, err := Ms(promue.StartedAt)
 		if err != nil {
 			panic(refus("", "%s", err.Error()))
 		}
-		s1, s2, s3, s4 := (tsPoint-reference)/1000, (premier-reference)/1000, (envoiPromu-reference)/1000, (*r.bound-reference)/1000
-		ligne := vObj("event", vStr("checkpoint_countersigned"), "tree_size", vIntOuNul(d.Subject.TreeSize), "provider", vStr(pr.ID), "deadlines", vEntiers(d.Deadlines), "d_jeton_s", vInt(s4), "d_point_s", vInt(s1), "d_attente_s", vInt(s2-s1), "d_releve_s", vInt(s3-s2), "d_tsa_s", vInt(s4-s3))
+		s1, sA, s2, s3, s4 := (tsPoint-reference)/1000, (admission-reference)/1000, (premier-reference)/1000, (envoiPromu-reference)/1000, (*r.bound-reference)/1000
+		ligne := vObj("event", vStr("checkpoint_countersigned"), "tree_size", vIntOuNul(d.Subject.TreeSize), "provider", vStr(pr.ID), "deadlines", vEntiers(d.Deadlines), "d_jeton_s", vInt(s4), "d_point_s", vInt(s1), "d_admission_s", vInt(sA-s1), "d_attente_s", vInt(s2-sA), "d_releve_s", vInt(s3-s2), "d_tsa_s", vInt(s4-s3))
 		if repli {
 			ligne.Obj = append(ligne.Obj, Member{Key: "closing_fallback", Val: vBool(true)})
 		}

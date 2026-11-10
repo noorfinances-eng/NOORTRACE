@@ -93,6 +93,39 @@ chaîne, remplacement des ancres non parties). Les nonces et les gigues
 viennent d'une source dérivée des étiquettes d'A.2 et de `jitter_ms`
 (EX-8.13) ; l'horloge n'est jamais lue.
 
+## Révision 0.6 de CT-5
+
+Le module rejoue les traces sous les règles de la révision 0.6 :
+
+- **Fenêtre de 32 tentatives** (EX-8.5, règle 7) : chaque ligne écrite porte
+  au plus 32 tentatives par rang croissant (les tentatives en cours toujours,
+  puis les plus récentes) et `attempts_total`, plus grand rang ; une tentative
+  nouvelle a le rang `attempts_total + 1`, au démarrage compris (EX-8.12),
+  jamais « nombre de tentatives portées + 1 » (`Fenetre`, `Demande.Total`,
+  `ajouterTentative`). Une réponse à une tentative de rang connu que la ligne
+  ne porte plus est traitée comme une réponse à une tentative close
+  (`tentative_close`, conservée, non promue, prestataire `null`).
+- **Lecture** : `attempts_total` est facultatif (une ligne d'avant la révision
+  ne le porte pas, il vaut alors le nombre de ses tentatives) ; une telle
+  ligne de plus de 32 tentatives est lue telle quelle. **Écriture** :
+  `ControlerLigneEcrite` refuse une ligne de plus de 32 tentatives, sans
+  `attempts_total`, ou dont `attempts_total` n'est pas le plus grand rang ;
+  chaque trace confronte ses lignes écrites et ses files (`queue_before`,
+  `queue_after`) à `$defs/demande` révisé (`maxItems` 32).
+- **`d_admission_s`** (EX-3.5, 8.9) sur `checkpoint_countersigned` : cinq
+  instants tronqués à la seconde depuis `D_k` (depuis `period_end` pour le
+  repli) — `checkpoint_ts`, admission du point (instant de l'entrée
+  `point_produit`, ou de la reconstruction au démarrage), premier envoi,
+  envoi de la tentative promue, borne du jeton ; `d_attente_s` compté depuis
+  l'admission.
+- **Lignes d'une tentative** (EX-8.15) : `anchor_retry`, `anchor_fallback` et
+  `anchor_response_rejected` portent `attempt` (rang) et `attempt_id`.
+- AN-37 lit le prestataire d'une tentative sur sa requête (`envoyer_rfc3161`),
+  la file finale ne portant plus les tentatives sorties de la fenêtre.
+
+Le compactage de la file (EX-8.5, règle 5) n'est pas une action de trace et
+ne change ni `expected` ni `queue_after` : il n'est pas recalculé ici.
+
 ## Interprétations retenues
 
 - EX-8.5, règle 1, dit que la ligne `envoyee` est écrite avant que la requête
@@ -107,6 +140,16 @@ viennent d'une source dérivée des étiquettes d'A.2 et de `jitter_ms`
 - Les jetons représentés des traces (`SHA-256(UTF-8("jeton <nom>"))`, A.2) ne
   sont pas recalculés : le `<nom>` n'est pas fixé par la spécification ; ce
   sont des entrées, recopiées telles quelles dans `stocker` et `result`.
+- Révision 0.6 : l'instant d'admission d'un point dont les demandes viennent
+  de la file relue (admis avant le démarrage) est la plus ancienne date de
+  création de ses demandes, créées à son admission (EX-8.4, règle 1) ; le
+  premier envoi d'un jeton est la tentative de rang 1 si la ligne la porte
+  encore, sinon l'instant retenu pendant le rejeu, sinon la plus ancienne
+  tentative portée (le texte ne dit pas d'où le tirer quand la fenêtre l'a
+  retiré et que le processus a redémarré). La ligne `anchor_fallback` porte la
+  tentative la plus récente, dont l'issue (délai de relève ou erreur
+  permanente) déclenche la relève ; `anchor_retry` porte la tentative qu'il
+  renvoie (au démarrage) ou qu'il ouvre (après `echec_registre`).
 
 ## Tests du module
 
@@ -115,7 +158,8 @@ d'EX-5.1 (69 octets, nonce de CT-1 §13) et refus d'AN-5 et AN-6, exemple
 minimal d'EX-6.4 (195 octets) et resérialisation, formule de coût sur le
 premier cas de 12.3, attente de reprise d'EX-8.9 et sa suite 5 s, 10 s, …,
 300 s, table des transitions d'EX-8.3, invariants de la section 8.11 sur la
-trace de référence, rejeu des douze traces publiées et confrontation complète
+trace de référence, fenêtre de 32 tentatives et lecture des lignes d'avant
+la révision 0.6 (`TestFenetreTentatives06`), rejeu des traces publiées et confrontation complète
 des vecteurs (ces deux derniers ignorés quand les vecteurs sont absents, en
 échec quand le rapport porte une discordance).
 

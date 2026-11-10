@@ -112,6 +112,7 @@
           "detail": "ancre incluse au bloc 30013"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xe6923a14c31d7b64aabaa67e7dcb099ca48e20ddb886153e551ba5cbcd8701cc",
         "size": 4096,
@@ -157,6 +158,7 @@
           "detail": "PKIStatus 2 (rejection) ; unacceptedPolicy"
         }
       ],
+      "attempts_total": 1,
       "result": null,
       "replaced_by": null
     }
@@ -460,6 +462,7 @@
         ],
         "d_jeton_s": 62,
         "d_point_s": 60,
+        "d_admission_s": 0,
         "d_attente_s": 0,
         "d_releve_s": 0,
         "d_tsa_s": 2
@@ -662,6 +665,7 @@
           "detail": "ancre incluse au bloc 30013"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0xe6923a14c31d7b64aabaa67e7dcb099ca48e20ddb886153e551ba5cbcd8701cc",
         "size": 4096,
@@ -707,6 +711,7 @@
           "detail": "PKIStatus 2 (rejection) ; unacceptedPolicy"
         }
       ],
+      "attempts_total": 1,
       "result": null,
       "replaced_by": null
     },
@@ -748,6 +753,7 @@
           "detail": "granted ; T-1 a T-9 reussies"
         }
       ],
+      "attempts_total": 1,
       "result": {
         "sha256": "0x36d22103a7612e1309fc8ec819089779b32f836933edfc49993fd5a54c8b43f8",
         "size": 2104,

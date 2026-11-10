@@ -1,8 +1,9 @@
 # CT-8 — Déploiement et exploitation
 
-Version 0.2, 2026-11-03 (révision 0.2 : coefficient `b_cap` mesuré sur un bloc
-plein et dimensionnement qui en dépend, 0.4) ; version 0.1 du 2026-10-27,
-première rédaction. Spécification normative, soumise à
+Version 0.3, 2026-11-10 (révision 0.3 : règle de l'alerte « Pièces en attente
+perdues » de CT-2 révision 0.7 et runbook RB-1, 0.4) ; version 0.2 du
+2026-11-03 (coefficient `b_cap` mesuré sur un bloc plein et dimensionnement qui
+en dépend) ; version 0.1 du 2026-10-27, première rédaction. Spécification normative, soumise à
 la revue de la porte 1 du plan de projet (document interne). Elle répond, un par
 un, aux renvois que CT-2 à CT-7 font à CT-8 (table de traçabilité, section
 0.2) : les topologies et les paquets (section 3), les fichiers de conteneur de
@@ -123,9 +124,10 @@ lignes. La table les reprend toutes, une ligne par occurrence, dans l'ordre des
 fichiers (CT-1 à CT-7, puis `spec/README.md`) puis des lignes ; la colonne
 « Spécification, section » nomme le dernier titre de niveau 2 à 4 qui précède
 l'occurrence (hors bloc de code) : « CT-n §s » quand ce titre commence par un
-numéro, son texte entre guillemets sinon. Les numéros de ligne sont ceux du
-2026-10-27, indicatifs : le contrôle de l'annexe A.2 ne les lit pas, et une
-retouche qui ne touche à aucun « CT-8 » peut les décaler sans régénération.
+numéro, son texte entre guillemets sinon. Les numéros de ligne, recalculés le
+2026-11-10 (révision 0.3), sont indicatifs : le contrôle de l'annexe A.2 ne les
+lit pas, et une retouche qui ne touche à aucun « CT-8 » peut les décaler sans
+régénération.
 
 **EX-0.1** Toute occurrence de « CT-8 » dans une spécification de `spec/` DOIT
 avoir sa ligne dans cette table, avec une réponse qui nomme une section, une
@@ -152,47 +154,47 @@ de CT-7 sont figés.
 
 | Id | Spécification, section (ligne) | Ce qui est délégué à CT-8 | Réponse de CT-8 |
 |---|---|---|---|
-| TC-1 | CT-2 §0.4 (l. 161) | Note de la révision 0.6 : la parité du mode observation, exprimée en exigences mesurables. | Section 12 (EX-12.1 à EX-12.16). |
-| TC-2 | CT-2 §0.4 (l. 179) | Note de la révision 0.6 : les cas du mode observation. | Annexe A.8 (vecteurs du mode observation). |
-| TC-3 | CT-2 §1 (l. 527) | Le déploiement, la sauvegarde et l'exploitation du service. | Ce document : §3 à §9 (déploiement), §10 (observabilité et runbooks), §11 (sauvegarde, reprise, mises à jour). |
-| TC-4 | CT-2 §1 (l. 539) | Table des relations : CT-8 reçoit les métriques et la santé (CT-2 §17) et la disposition du stockage (CT-2 §12) ; il fait le déploiement, la sauvegarde, la restauration. | Déploiement : §3 à §8 ; volumes et disposition : EX-3.5 ; santé et métriques : 10.2 ; sauvegarde et restauration du répertoire de CT-2 §12.1 : 11.2 à 11.4. |
-| TC-5 | CT-2 §3.4 (l. 744) | Lancement d'un serveur d'outils stdio par l'orchestrateur, un conteneur par serveur. | Pont stdio, un conteneur par serveur, sous un utilisateur distinct : EX-3.7 et EX-3.8 (§3.4) ; service `pont-fichiers` du fichier de production (§4.3). |
-| TC-6 | CT-2 §9.2 (l. 5824) | Archivage des fichiers tournés du journal d'exploitation avec le journal. | 11.11 (EX-11.22, EX-11.23) ; tâche TP-6 (EX-8.6) ; volume : DM-18 (§9.3). |
-| TC-7 | CT-2 §10.7 (l. 7095) | L'accès au coffre des originaux, acte d'exploitation du client (avec CT-7). | EX-11.19 (source « coffre » du journal des consultations et des accès, 11.10) ; secret `cle-coffre` admis au seul service `enregistreur` (§4.1, CO-9). |
-| TC-8 | CT-2 §11.2 (l. 7350) | Procédure de mise à jour qui prévoit le descellement TPM lié aux PCR. | EX-11.10 (descellement TPM, 11.5). |
-| TC-9 | CT-2 §12.3 (l. 7715) | Faire du stockage à cache d'écriture protégé (EX-12.9) une exigence de déploiement. | EX-6.4 (vérification IP-13, bloquante en production) et pas IC-2 (§8.3). |
-| TC-10 | CT-2 §12.4 (l. 7754) | Restauration depuis la copie WORM après `segment_corrupted`. | Chemin B d'EX-11.6 (11.4) ; runbooks RB-1 (EX-10.16) et RB-5 (EX-10.20). |
-| TC-11 | CT-2 §12.6 (l. 8005) | Tâche planifiée de `poser` à chaque clôture et alerte de retard ; support sans mode Compliance à valider. | Tâche planifiée : TP-1 (EX-8.6) et EX-11.17 ; alerte de retard : règle `noortrace_gel_pose_en_retard` (10.4) ; support à valider : EX-3.4. |
-| TC-12 | CT-2 §12.6 (l. 8026) | Service compagnon ou tâche d'orchestrateur qui pose les attributs `a` et `i` (CAP_LINUX_IMMUTABLE), hors du démon. | Service `attributs` : EX-3.9 (§3.4), image `noortrace/attributs`, seule exception de CO-4 et CO-6 (§4.4). |
-| TC-13 | CT-2 §12.6 (l. 8140) | Moyen exact de soustraire `<prefix>gels/` aux droits de l'écrivain. | EX-8.4 (pas IC-9) : registre des gels dans un bucket distinct, ou politique de l'écrivain limitée aux sous-préfixes copiés ; contrôle par le rôle Lecteur. |
-| TC-14 | CT-2 §12.7 (l. 8210) | La fin de rétention, acte d'exploitation. | EX-11.15 (11.7) ; procès-verbal `fin_de_retention` (11.9). |
-| TC-15 | CT-2 §12.8 (l. 8250) | Titre « Sauvegarde et restauration (renvoi à CT-8) ». | §11. |
-| TC-16 | CT-2 §12.8 (l. 8255) | Sauvegarde du journal, restauration, reconstruction depuis WORM, migration de support avec procès-verbal (Olico art. 10 al. 2 et 3). | EX-11.2 à EX-11.8 (11.2 à 11.4) ; migration de support avec procès-verbal : EX-11.13 et EX-11.14 (11.6). |
-| TC-17 | CT-2 §12.11 (l. 8523) | `--motif` et `--reference` de l'outil de gel ne portent que des identifiants de dossier. | EX-11.16, point 2 (11.8) ; même règle pour `reason` d'un procès-verbal (11.9). |
-| TC-18 | CT-2 §12.11 (l. 8698) | Procédure de levée qui répartit pose, demande et levée entre trois personnes, proposée à CT-8. | EX-11.16 (11.8) ; rôles posés à la création du support : EX-8.4 (pas IC-9). |
-| TC-19 | CT-2 §12.11 (l. 8702) | Séparation des rôles sur le support, que CT-8 fait poser. | EX-8.4 (pas IC-9) : cinq rôles de CT-2 EX-18.9 créés et vérifiés à la création du support ; leur emploi dans la levée : EX-11.16. |
-| TC-20 | CT-2 §12.11 (l. 8915) | Fin de rétention après la levée d'un gel. | EX-11.15, point 4 (11.7). |
-| TC-21 | CT-2 §13.4 (l. 9082) | Bascule d'adresse (VIP, DNS, répartiteur) à la reprise d'une instance. | EX-3.11 (§3.5) ; pas et vérification : RB-2 (EX-10.17). |
-| TC-22 | CT-2 §13.5 (l. 9123) | Volume bloc répliqué de façon synchrone pour qui n'admet pas la perte du segment ouvert. | EX-3.12 (§3.5) ; objectif de point de reprise du segment ouvert : 11.3. |
-| TC-23 | CT-2 §14.6 (l. 9365) | CT-2 EX-14.13 : l'exploitation du mode observation, le passage au mode bloquant et ce que le mode prouve. | 12.1 à 12.7 ; passage : EX-12.11 et EX-12.12 ; preuve : EX-12.14. |
-| TC-24 | CT-2 §17.4 (l. 10812) | Règles Prometheus des alertes prescrites. | EX-10.1 et EX-10.6 ; règles des tables de 10.4 à 10.7 ; fichier `deploiement/observabilite/regles-noortrace.yml`. |
-| TC-25 | CT-2 §17.4 (l. 10829) | Alerte « Gel levé » à rapprocher de la procédure de levée. | Règle `noortrace_gel_leve` (10.4) ; procédure de levée : EX-11.16, point 5. |
-| TC-26 | CT-2 §18.3 (l. 11018) | Système de fichiers racine en lecture seule « quand le conteneur le permet ». | Toujours dans les fichiers de référence : CO-5 (§4.4) ; écritures limitées aux volumes décrits (CO-11). |
-| TC-27 | CT-2 §18.3 (l. 11034) | Poser les cinq rôles du support WORM à sa création. | EX-8.4 (pas IC-9). |
-| TC-28 | CT-2 §18.3 (l. 11052) | Procédure de levée sur Azure et GCS, sans séparation pose et levée. | EX-11.16, point 4 ; activation approuvée du rôle de levée posée au pas IC-9 (EX-8.4). |
-| TC-29 | CT-2 §18.4 (l. 11063) | Empreinte et attestation de provenance de l'image publiée. | EX-3.13 à EX-3.15 (§3.6). |
-| TC-30 | CT-2 §19.6 (l. 12153) | Détail opérationnel du raccord ICAP. | Flux FL-4 (§5.1), EX-5.4 et pas IC-12 (§8.3). |
-| TC-31 | CT-2 §21 (l. 12253) | Sauvegarde, restauration, migration de support, règles d'alerte Prometheus, empaquetage `.mcpb`, déploiement. | Déploiement : §3 à §8 ; paquets, dont le connecteur et `.mcpb` : EX-3.6 ; règles d'alerte : 10.4 à 10.7 ; sauvegarde, restauration, migration : §11. |
-| TC-32 | CT-2 §21 (l. 12325) | Création du support, procédure de levée à deux personnes et fin de rétention, restées à la charge du client. | Création du support : EX-8.4 ; levée : EX-11.16 ; fin de rétention : EX-11.15. |
-| TC-33 | CT-2 §21 (l. 12328) | Même délégation, « proposées à CT-8 (section 22) ». | Comme la ligne précédente. |
-| TC-34 | CT-2 §21 (l. 12351) | Un mode « avertir », proposition pour une version ultérieure (pratique `warn`). | Introduction de la section 12 ; hors de la version 0.1 (§15). |
-| TC-35 | CT-2 §22 (l. 12411) | Ligne CT-8 de l'alignement : création du support (rétention par défaut, rôles, restriction hors `<prefix>gels/`, politiques d'organisation), levée à deux personnes, relecture par le Lecteur, fin de rétention. | EX-8.4 et EX-8.5 (pas IC-9) ; levée à deux personnes : EX-11.16 ; relecture par le Lecteur : EX-10.9 et TP-4 ; fin de rétention : EX-11.15. |
-| TC-36 | CT-2 §22 (l. 12411) | État de la ligne : « proposition (CT-8 à écrire) ». | Ce document répond ; l'état est mis à jour par la table « Révision 0.6 » de CT-2 §22. |
-| TC-37 | CT-2 §22 (l. 12419) | Alignement, révision 0.6 : cas du mode observation (CT-8 annexe A). | Annexe A.8. |
-| TC-38 | CT-2 §22 (l. 12419) | Même ligne, état « à faire (CT-8) ». | Annexe A.1 et A.8 : vecteurs produits par le générateur de CT-8. |
-| TC-39 | CT-2 §22 (l. 12422) | Alignement, révision 0.6 : la ligne CT-8 de la révision 0.5. | EX-8.4 et EX-8.5 (pas IC-9), EX-11.16, EX-10.9 et TP-4, EX-11.15. |
-| TC-40 | CT-2 §22 (l. 12422) | Même ligne, état antérieur « proposition, CT-8 à écrire ». | Ce document. |
-| TC-41 | CT-2 §22 (l. 12422) | Même ligne, état attendu « répondue par CT-8 0.1 ». | Ce document, version 0.1. |
+| TC-1 | CT-2 §0.4 (l. 206) | Note de la révision 0.6 : la parité du mode observation, exprimée en exigences mesurables. | Section 12 (EX-12.1 à EX-12.16). |
+| TC-2 | CT-2 §0.4 (l. 224) | Note de la révision 0.6 : les cas du mode observation. | Annexe A.8 (vecteurs du mode observation). |
+| TC-3 | CT-2 §1 (l. 572) | Le déploiement, la sauvegarde et l'exploitation du service. | Ce document : §3 à §9 (déploiement), §10 (observabilité et runbooks), §11 (sauvegarde, reprise, mises à jour). |
+| TC-4 | CT-2 §1 (l. 584) | Table des relations : CT-8 reçoit les métriques et la santé (CT-2 §17) et la disposition du stockage (CT-2 §12) ; il fait le déploiement, la sauvegarde, la restauration. | Déploiement : §3 à §8 ; volumes et disposition : EX-3.5 ; santé et métriques : 10.2 ; sauvegarde et restauration du répertoire de CT-2 §12.1 : 11.2 à 11.4. |
+| TC-5 | CT-2 §3.4 (l. 789) | Lancement d'un serveur d'outils stdio par l'orchestrateur, un conteneur par serveur. | Pont stdio, un conteneur par serveur, sous un utilisateur distinct : EX-3.7 et EX-3.8 (§3.4) ; service `pont-fichiers` du fichier de production (§4.3). |
+| TC-6 | CT-2 §9.2 (l. 5874) | Archivage des fichiers tournés du journal d'exploitation avec le journal. | 11.11 (EX-11.22, EX-11.23) ; tâche TP-6 (EX-8.6) ; volume : DM-18 (§9.3). |
+| TC-7 | CT-2 §10.7 (l. 7145) | L'accès au coffre des originaux, acte d'exploitation du client (avec CT-7). | EX-11.19 (source « coffre » du journal des consultations et des accès, 11.10) ; secret `cle-coffre` admis au seul service `enregistreur` (§4.1, CO-9). |
+| TC-8 | CT-2 §11.2 (l. 7400) | Procédure de mise à jour qui prévoit le descellement TPM lié aux PCR. | EX-11.10 (descellement TPM, 11.5). |
+| TC-9 | CT-2 §12.3 (l. 7765) | Faire du stockage à cache d'écriture protégé (EX-12.9) une exigence de déploiement. | EX-6.4 (vérification IP-13, bloquante en production) et pas IC-2 (§8.3). |
+| TC-10 | CT-2 §12.4 (l. 7805) | Restauration depuis la copie WORM après `segment_corrupted`. | Chemin B d'EX-11.6 (11.4) ; runbooks RB-1 (EX-10.16) et RB-5 (EX-10.20). |
+| TC-11 | CT-2 §12.6 (l. 8056) | Tâche planifiée de `poser` à chaque clôture et alerte de retard ; support sans mode Compliance à valider. | Tâche planifiée : TP-1 (EX-8.6) et EX-11.17 ; alerte de retard : règle `noortrace_gel_pose_en_retard` (10.4) ; support à valider : EX-3.4. |
+| TC-12 | CT-2 §12.6 (l. 8077) | Service compagnon ou tâche d'orchestrateur qui pose les attributs `a` et `i` (CAP_LINUX_IMMUTABLE), hors du démon. | Service `attributs` : EX-3.9 (§3.4), image `noortrace/attributs`, seule exception de CO-4 et CO-6 (§4.4). |
+| TC-13 | CT-2 §12.6 (l. 8191) | Moyen exact de soustraire `<prefix>gels/` aux droits de l'écrivain. | EX-8.4 (pas IC-9) : registre des gels dans un bucket distinct, ou politique de l'écrivain limitée aux sous-préfixes copiés ; contrôle par le rôle Lecteur. |
+| TC-14 | CT-2 §12.7 (l. 8261) | La fin de rétention, acte d'exploitation. | EX-11.15 (11.7) ; procès-verbal `fin_de_retention` (11.9). |
+| TC-15 | CT-2 §12.8 (l. 8301) | Titre « Sauvegarde et restauration (renvoi à CT-8) ». | §11. |
+| TC-16 | CT-2 §12.8 (l. 8306) | Sauvegarde du journal, restauration, reconstruction depuis WORM, migration de support avec procès-verbal (Olico art. 10 al. 2 et 3). | EX-11.2 à EX-11.8 (11.2 à 11.4) ; migration de support avec procès-verbal : EX-11.13 et EX-11.14 (11.6). |
+| TC-17 | CT-2 §12.11 (l. 8574) | `--motif` et `--reference` de l'outil de gel ne portent que des identifiants de dossier. | EX-11.16, point 2 (11.8) ; même règle pour `reason` d'un procès-verbal (11.9). |
+| TC-18 | CT-2 §12.11 (l. 8749) | Procédure de levée qui répartit pose, demande et levée entre trois personnes, proposée à CT-8. | EX-11.16 (11.8) ; rôles posés à la création du support : EX-8.4 (pas IC-9). |
+| TC-19 | CT-2 §12.11 (l. 8753) | Séparation des rôles sur le support, que CT-8 fait poser. | EX-8.4 (pas IC-9) : cinq rôles de CT-2 EX-18.9 créés et vérifiés à la création du support ; leur emploi dans la levée : EX-11.16. |
+| TC-20 | CT-2 §12.11 (l. 8966) | Fin de rétention après la levée d'un gel. | EX-11.15, point 4 (11.7). |
+| TC-21 | CT-2 §13.4 (l. 9133) | Bascule d'adresse (VIP, DNS, répartiteur) à la reprise d'une instance. | EX-3.11 (§3.5) ; pas et vérification : RB-2 (EX-10.17). |
+| TC-22 | CT-2 §13.5 (l. 9177) | Volume bloc répliqué de façon synchrone pour qui n'admet pas la perte du segment ouvert. | EX-3.12 (§3.5) ; objectif de point de reprise du segment ouvert : 11.3. |
+| TC-23 | CT-2 §14.6 (l. 9498) | CT-2 EX-14.13 : l'exploitation du mode observation, le passage au mode bloquant et ce que le mode prouve. | 12.1 à 12.7 ; passage : EX-12.11 et EX-12.12 ; preuve : EX-12.14. |
+| TC-24 | CT-2 §17.4 (l. 10947) | Règles Prometheus des alertes prescrites. | EX-10.1 et EX-10.6 ; règles des tables de 10.4 à 10.7 ; fichier `deploiement/observabilite/regles-noortrace.yml`. |
+| TC-25 | CT-2 §17.4 (l. 10964) | Alerte « Gel levé » à rapprocher de la procédure de levée. | Règle `noortrace_gel_leve` (10.4) ; procédure de levée : EX-11.16, point 5. |
+| TC-26 | CT-2 §18.3 (l. 11154) | Système de fichiers racine en lecture seule « quand le conteneur le permet ». | Toujours dans les fichiers de référence : CO-5 (§4.4) ; écritures limitées aux volumes décrits (CO-11). |
+| TC-27 | CT-2 §18.3 (l. 11170) | Poser les cinq rôles du support WORM à sa création. | EX-8.4 (pas IC-9). |
+| TC-28 | CT-2 §18.3 (l. 11188) | Procédure de levée sur Azure et GCS, sans séparation pose et levée. | EX-11.16, point 4 ; activation approuvée du rôle de levée posée au pas IC-9 (EX-8.4). |
+| TC-29 | CT-2 §18.4 (l. 11199) | Empreinte et attestation de provenance de l'image publiée. | EX-3.13 à EX-3.15 (§3.6). |
+| TC-30 | CT-2 §19.6 (l. 12289) | Détail opérationnel du raccord ICAP. | Flux FL-4 (§5.1), EX-5.4 et pas IC-12 (§8.3). |
+| TC-31 | CT-2 §21 (l. 12389) | Sauvegarde, restauration, migration de support, règles d'alerte Prometheus, empaquetage `.mcpb`, déploiement. | Déploiement : §3 à §8 ; paquets, dont le connecteur et `.mcpb` : EX-3.6 ; règles d'alerte : 10.4 à 10.7 ; sauvegarde, restauration, migration : §11. |
+| TC-32 | CT-2 §21 (l. 12461) | Création du support, procédure de levée à deux personnes et fin de rétention, restées à la charge du client. | Création du support : EX-8.4 ; levée : EX-11.16 ; fin de rétention : EX-11.15. |
+| TC-33 | CT-2 §21 (l. 12464) | Même délégation, « proposées à CT-8 (section 22) ». | Comme la ligne précédente. |
+| TC-34 | CT-2 §21 (l. 12487) | Un mode « avertir », proposition pour une version ultérieure (pratique `warn`). | Introduction de la section 12 ; hors de la version 0.1 (§15). |
+| TC-35 | CT-2 §22 (l. 12547) | Ligne CT-8 de l'alignement : création du support (rétention par défaut, rôles, restriction hors `<prefix>gels/`, politiques d'organisation), levée à deux personnes, relecture par le Lecteur, fin de rétention. | EX-8.4 et EX-8.5 (pas IC-9) ; levée à deux personnes : EX-11.16 ; relecture par le Lecteur : EX-10.9 et TP-4 ; fin de rétention : EX-11.15. |
+| TC-36 | CT-2 §22 (l. 12547) | État de la ligne : « proposition (CT-8 à écrire) ». | Ce document répond ; l'état est mis à jour par la table « Révision 0.6 » de CT-2 §22. |
+| TC-37 | CT-2 §22 (l. 12555) | Alignement, révision 0.6 : cas du mode observation (CT-8 annexe A). | Annexe A.8. |
+| TC-38 | CT-2 §22 (l. 12555) | Même ligne, état « à faire (CT-8) ». | Annexe A.1 et A.8 : vecteurs produits par le générateur de CT-8. |
+| TC-39 | CT-2 §22 (l. 12558) | Alignement, révision 0.6 : la ligne CT-8 de la révision 0.5. | EX-8.4 et EX-8.5 (pas IC-9), EX-11.16, EX-10.9 et TP-4, EX-11.15. |
+| TC-40 | CT-2 §22 (l. 12558) | Même ligne, état antérieur « proposition, CT-8 à écrire ». | Ce document. |
+| TC-41 | CT-2 §22 (l. 12558) | Même ligne, état attendu « répondue par CT-8 0.1 ». | Ce document, version 0.1. |
 | TC-42 | CT-3 §0 (l. 259) | Note de la version 0.4 : le mode observation demandé par CT-8. | Section 12. |
 | TC-43 | CT-3 §0 (l. 268) | Note de la version 0.4 : l'exception d'EX-11.1 pour l'installation rapide. | EX-7.3 et 7.3 : configuration de l'installation rapide en mode observation. |
 | TC-44 | CT-3 §1 (l. 309) | L'exploitation du service d'approbation et de la console. | Composants `approbation` et `console` : §3 et §4 ; supervision du service : 10.2 et 10.7 ; sauvegarde de son état : 11.2 ; mise à jour : EX-11.12. |
@@ -213,46 +215,46 @@ de CT-7 sont figés.
 | TC-59 | CT-4 §10.2 (l. 3595) | Proposition de sauvegarde des validateurs. | EX-11.1, point 3, et ligne « Validateur » de la table d'EX-11.2 ; écart entre CT-4 EX-10.9 et CT-7 EX-4.4 : PD-16. |
 | TC-60 | CT-4 §12 (l. 3785) | Menace d'empoisonnement de la mempool : alerte de CT-8. | Règle `noortrace_registre_mempool` (10.6). |
 | TC-61 | CT-4 §13 (l. 3834) | Alignement : interdire la restauration de `db/leveldb` et de l'état de consensus ; superviser mempool, `transaction underpriced`, `noor_bft_equivocations_total`. | Restauration interdite : EX-11.1, point 3 ; supervision : règles `noortrace_registre_mempool`, `noortrace_registre_sous_tarif` et `noortrace_registre_equivocation` (10.6) ; relais jamais pour capture ni soumission : EX-3.6. |
-| TC-62 | CT-5 §1 (l. 190) | La supervision au-delà des métriques et alertes de CT-5 §8. | 10.5 (règles du composant d'ancrage) et EX-10.9 (relectures hors du composant). |
-| TC-63 | CT-5 §1 (l. 213) | Table des relations : métriques, alertes et procédures de la file (§8), serveur interne (§7), rétention des jetons (5.5), fichier d'en-têtes Bitcoin (6.6) ; supervision, sauvegarde de la file, publication des pièces aux réviseurs. | Composant d'ancrage dans le démon : EX-3.2 ; serveur interne : FL-21 et §15 ; règles : 10.5 ; runbooks RB-3 et RB-4 (EX-10.18, EX-10.19) ; sauvegarde de la file et des ancres : 11.2 ; rétention : EX-11.15 ; en-têtes : TP-3 et EX-11.24 ; publication des pièces aux réviseurs : paquet réviseur (13.2, EX-13.5, EX-13.7, 13.7) et EX-13.37, pas 1. |
-| TC-64 | CT-5 §4.3 (l. 648) | Capacité de l'instance du registre pour le nombre de journaux cible. | DM-20 à DM-22 (§9.3), sortie `registry_journals_max` et `registry_capacity_share`. |
-| TC-65 | CT-5 §5.3 (l. 1123) | Réétablissement du statut qualifié au plus tous les trente jours. | Tâche TP-2 d'EX-8.6 ; table des tâches périodiques d'EX-11.24. |
-| TC-66 | CT-5 §5.5 (l. 1270) | Fin de rétention des jetons, acte d'exploitation. | EX-11.15. |
-| TC-67 | CT-5 §6.5 (l. 1519) | Tenue du fichier d'en-têtes Bitcoin par l'exploitation (`fichier`). | Tâche TP-3 d'EX-8.6 et EX-11.24 ; flux FL-20 pour la source `bitcoin_rpc` ; fichier de la période joint au paquet réviseur sous `entetes/` (EX-13.5). |
-| TC-68 | CT-5 §8.8 (l. 2054) | Fin de rétention des fichiers du planificateur. | EX-11.15. |
-| TC-69 | CT-5 §8.9 (l. 2075) | Règles des alertes prescrites de l'ancrage. | EX-10.1 ; table de 10.5. |
-| TC-70 | CT-5 §12.4 (l. 4336) | Dimensionnement : environ 650 Mo par an d'ancres par journal ; 187,1 Mo par jour de captures quand chaque transaction est dans un bloc plein d'ancres (CT-5 0.3 ; 10 Mo par jour en CT-5 0.2). | DM-9 et DM-11 (§9.3) recalculent ces deux grandeurs fichier par fichier ; écarts expliqués en §9.5. |
-| TC-71 | CT-5 §14 (l. 4400) | Ligne CT-2 de l'alignement : métriques, journal et alerte de CT-5 §8.9, « proposition (CT-2 §17, CT-8) ». | Table de 10.5 ; noms de lignes et de membres à fixer : PD-11. |
-| TC-72 | CT-5 §14 (l. 4406) | Ligne CT-8 : alertes de 8.9, sauvegarde des ancres et de la file, fin de rétention, source d'en-têtes, capacité de capture et dimensionnement, serveur interne, réétablissement de `qualified`. | Alertes : 10.5 ; sauvegarde des ancres et de la file : 11.2 ; fin de rétention : EX-11.15 ; en-têtes et `qualified` : TP-2, TP-3 (EX-8.6) et EX-11.24 ; capacité et dimensionnement : §9 ; serveur interne : FL-21. |
-| TC-73 | CT-5 §15 (l. 4433) | L'exploitation d'un nœud Bitcoin pour la source d'en-têtes. | Hors de la version 0.1 (§15) ; flux FL-20 quand le client en exploite un ; tâche « en-têtes Bitcoin » d'EX-11.24. |
-| TC-74 | CT-7 §0.2 (l. 184) | TR-43 : construction reproductible et publication du code de la console (avec CT-8). | EX-3.13 et EX-3.14 (§3.6). |
-| TC-75 | CT-7 §0.2 (l. 184) | TR-43, réponse de CT-7 : « la construction reproductible relève de CT-8 ». | EX-3.13 et EX-3.14 (§3.6). |
-| TC-76 | CT-7 §0.2 (l. 185) | TR-44 : publication des empreintes de la console et construction reproductible (avec CT-8). | EX-3.13 et EX-3.14 (§3.6). |
-| TC-77 | CT-7 §0.2 (l. 185) | TR-44, réponse de CT-7 : « CT-8 pour la construction ». | EX-3.13 et EX-3.14 (§3.6). |
-| TC-78 | CT-7 §0.2 (l. 249) | Renvoi hors de `spec/` (`test/approbation.test.js`) : construction reproductible et publication. | EX-3.13 et EX-3.14 (§3.6). |
-| TC-79 | CT-7 §0.2 (l. 252) | Renvoi hors de `spec/` (`console/LISEZMOI.md`) : empreintes et construction reproductible. | EX-3.13 et EX-3.14 (§3.6). |
-| TC-80 | CT-7 §1 (l. 314) | Hors du périmètre de CT-7 : la construction reproductible et l'exploitation. | Construction : §3.6 ; exploitation : §10 et §11. |
-| TC-81 | CT-7 §1 (l. 327) | Table des relations : construction reproductible et publication de l'image et de la console (EX-3.9, EX-3.14), procédure de levée d'un gel, supervision tierce (CT-2 EX-17.7), journal des consultations et procès-verbal de migration (PA-15). | Construction et publication : §3.6 ; levée d'un gel : EX-11.16 ; supervision tierce : EX-10.9 ; journal des consultations : 11.10 ; procès-verbal de migration : 11.6 et 11.9. |
-| TC-82 | CT-7 §3.4 (l. 729) | Détection d'une version publiée malveillante par la construction reproductible. | EX-3.13 (deux constructions indépendantes identiques) et EX-3.15 (§3.6) ; ce qu'elle ne détecte pas : §3.6, dernier alinéa. |
-| TC-83 | CT-7 §3.4 (l. 732) | « La construction reproductible relève de CT-8, à écrire (section 11) ». | EX-3.13 à EX-3.15 (§3.6). |
-| TC-84 | CT-7 §3.4 (l. 799) | MN-55 : alerte de CT-8 sur la taille de la mempool. | Règle `noortrace_registre_mempool` (10.6). |
-| TC-85 | CT-7 §3.7 (l. 1040) | EX-3.9 de CT-7 : la construction reproductible du code de la console. | EX-3.13 et EX-3.14 (§3.6). |
-| TC-86 | CT-7 §3.7 (l. 1087) | EX-3.14 de CT-7 : empreinte d'une version publiée de l'image de l'enregistreur. | EX-3.13 à EX-3.15 (§3.6) ; épinglage par condensé en production : IP-12 et pas IC-6. |
-| TC-87 | CT-7 §6.2 (l. 2070) | PA-15 adressée à CT-8. | PA-15 : 11.6, 11.9, 11.10 et 11.11. |
-| TC-88 | CT-7 §8.4 (l. 3435) | MC-54 : archivage des fichiers tournés du journal d'exploitation (L-9). | EX-11.22 et EX-11.23 (11.11). |
-| TC-89 | CT-7 §8.4 (l. 3437) | MC-56 : procès-verbal de migration de support (L-2). | EX-11.13 et EX-11.14 (11.6) ; schéma `proces-verbal-exploitation-v0` (11.9). |
-| TC-90 | CT-7 §8.4 (l. 3445) | Archivage au-delà de `logging.keep_files` (L-9). | EX-11.22. |
-| TC-91 | CT-7 §8.8.2 (l. 3620) | Rétention : archivage des fichiers tournés relevant de CT-8 (L-9). | EX-11.22 et EX-11.23 ; volume : DM-18 (§9.3). |
-| TC-92 | CT-7 §8.8.3 (l. 3691) | EX-8.15 de CT-7 : journal des consultations et des accès (PA-15). | EX-11.19 à EX-11.21 ; schéma `consultation-v0` ; la remise d'un paquet réviseur y est consignée (EX-13.37, pas 4). |
-| TC-93 | CT-7 §8.8.3 (l. 3695) | EX-8.16 de CT-7 : fin de rétention consignée. | EX-11.15. |
-| TC-94 | CT-7 §8.9 (l. 3726) | L-1 : consultations et accès (PA-15). | Comme pour CT-7 EX-8.15 : EX-11.19 à EX-11.21 et EX-13.37, pas 4 ; la collecte reste `releve_du_client` (EX-11.19). |
-| TC-95 | CT-7 §8.9 (l. 3727) | L-2 : procès-verbal de migration (PA-15). | EX-11.13 et EX-11.14. |
-| TC-96 | CT-7 §8.9 (l. 3734) | L-9 : archivage des fichiers tournés. | EX-11.22 et EX-11.23. |
-| TC-97 | CT-7 §8.11 (l. 3765) | PA-15 : journal des consultations et des accès, procès-verbal de migration, archivage des fichiers tournés. | Les trois points de PA-15 : 11.6 et 11.9 (procès-verbal de migration), 11.10 (journal des consultations et des accès), 11.11 (archivage). |
-| TC-98 | CT-7 §9 (l. 3828) | Synthèse Olico : archivage au-delà de `keep_files` (L-9). | EX-11.22. |
-| TC-99 | CT-7 §10 (l. 3863) | Ce que CT-7 ne couvre pas : la construction reproductible de l'image et de la console. | EX-3.13 et EX-3.14 (§3.6). |
-| TC-100 | CT-7 §11 (l. 3926) | Alignement : PA-15 « à faire (révisions à décider ; CT-8 à écrire) ». | §11 répond à CT-7 PA-15 ; l'état de la ligne de CT-7 §11 reste à aligner par l'éditeur de CT-7 (§16, PD-1). |
-| TC-101 | CT-7 §11 (l. 3926) | Même ligne, « CT-8 à écrire ». | Ce document ; même mise à jour (PD-1). |
+| TC-62 | CT-5 §1 (l. 281) | La supervision au-delà des métriques et alertes de CT-5 §8. | 10.5 (règles du composant d'ancrage) et EX-10.9 (relectures hors du composant). |
+| TC-63 | CT-5 §1 (l. 304) | Table des relations : métriques, alertes et procédures de la file (§8), serveur interne (§7), rétention des jetons (5.5), fichier d'en-têtes Bitcoin (6.6) ; supervision, sauvegarde de la file, publication des pièces aux réviseurs. | Composant d'ancrage dans le démon : EX-3.2 ; serveur interne : FL-21 et §15 ; règles : 10.5 ; runbooks RB-3 et RB-4 (EX-10.18, EX-10.19) ; sauvegarde de la file et des ancres : 11.2 ; rétention : EX-11.15 ; en-têtes : TP-3 et EX-11.24 ; publication des pièces aux réviseurs : paquet réviseur (13.2, EX-13.5, EX-13.7, 13.7) et EX-13.37, pas 1. |
+| TC-64 | CT-5 §4.3 (l. 763) | Capacité de l'instance du registre pour le nombre de journaux cible. | DM-20 à DM-22 (§9.3), sortie `registry_journals_max` et `registry_capacity_share`. |
+| TC-65 | CT-5 §5.3 (l. 1240) | Réétablissement du statut qualifié au plus tous les trente jours. | Tâche TP-2 d'EX-8.6 ; table des tâches périodiques d'EX-11.24. |
+| TC-66 | CT-5 §5.5 (l. 1392) | Fin de rétention des jetons, acte d'exploitation. | EX-11.15. |
+| TC-67 | CT-5 §6.5 (l. 1641) | Tenue du fichier d'en-têtes Bitcoin par l'exploitation (`fichier`). | Tâche TP-3 d'EX-8.6 et EX-11.24 ; flux FL-20 pour la source `bitcoin_rpc` ; fichier de la période joint au paquet réviseur sous `entetes/` (EX-13.5). |
+| TC-68 | CT-5 §8.8 (l. 2281) | Fin de rétention des fichiers du planificateur. | EX-11.15. |
+| TC-69 | CT-5 §8.9 (l. 2302) | Règles des alertes prescrites de l'ancrage. | EX-10.1 ; table de 10.5. |
+| TC-70 | CT-5 §12.4 (l. 4596) | Dimensionnement : environ 650 Mo par an d'ancres par journal ; 187,1 Mo par jour de captures quand chaque transaction est dans un bloc plein d'ancres (CT-5 0.3 ; 10 Mo par jour en CT-5 0.2). | DM-9 et DM-11 (§9.3) recalculent ces deux grandeurs fichier par fichier ; écarts expliqués en §9.5. |
+| TC-71 | CT-5 §14 (l. 4660) | Ligne CT-2 de l'alignement : métriques, journal et alerte de CT-5 §8.9, « proposition (CT-2 §17, CT-8) ». | Table de 10.5 ; noms de lignes et de membres à fixer : PD-11. |
+| TC-72 | CT-5 §14 (l. 4669) | Ligne CT-8 : alertes de 8.9, sauvegarde des ancres et de la file, fin de rétention, source d'en-têtes, capacité de capture et dimensionnement, serveur interne, réétablissement de `qualified`. | Alertes : 10.5 ; sauvegarde des ancres et de la file : 11.2 ; fin de rétention : EX-11.15 ; en-têtes et `qualified` : TP-2, TP-3 (EX-8.6) et EX-11.24 ; capacité et dimensionnement : §9 ; serveur interne : FL-21. |
+| TC-73 | CT-5 §15 (l. 4696) | L'exploitation d'un nœud Bitcoin pour la source d'en-têtes. | Hors de la version 0.1 (§15) ; flux FL-20 quand le client en exploite un ; tâche « en-têtes Bitcoin » d'EX-11.24. |
+| TC-74 | CT-7 §0.2 (l. 196) | TR-43 : construction reproductible et publication du code de la console (avec CT-8). | EX-3.13 et EX-3.14 (§3.6). |
+| TC-75 | CT-7 §0.2 (l. 196) | TR-43, réponse de CT-7 : « la construction reproductible relève de CT-8 ». | EX-3.13 et EX-3.14 (§3.6). |
+| TC-76 | CT-7 §0.2 (l. 197) | TR-44 : publication des empreintes de la console et construction reproductible (avec CT-8). | EX-3.13 et EX-3.14 (§3.6). |
+| TC-77 | CT-7 §0.2 (l. 197) | TR-44, réponse de CT-7 : « CT-8 pour la construction ». | EX-3.13 et EX-3.14 (§3.6). |
+| TC-78 | CT-7 §0.2 (l. 261) | Renvoi hors de `spec/` (`test/approbation.test.js`) : construction reproductible et publication. | EX-3.13 et EX-3.14 (§3.6). |
+| TC-79 | CT-7 §0.2 (l. 264) | Renvoi hors de `spec/` (`console/LISEZMOI.md`) : empreintes et construction reproductible. | EX-3.13 et EX-3.14 (§3.6). |
+| TC-80 | CT-7 §1 (l. 326) | Hors du périmètre de CT-7 : la construction reproductible et l'exploitation. | Construction : §3.6 ; exploitation : §10 et §11. |
+| TC-81 | CT-7 §1 (l. 339) | Table des relations : construction reproductible et publication de l'image et de la console (EX-3.9, EX-3.14), procédure de levée d'un gel, supervision tierce (CT-2 EX-17.7), journal des consultations et procès-verbal de migration (PA-15). | Construction et publication : §3.6 ; levée d'un gel : EX-11.16 ; supervision tierce : EX-10.9 ; journal des consultations : 11.10 ; procès-verbal de migration : 11.6 et 11.9. |
+| TC-82 | CT-7 §3.4 (l. 741) | Détection d'une version publiée malveillante par la construction reproductible. | EX-3.13 (deux constructions indépendantes identiques) et EX-3.15 (§3.6) ; ce qu'elle ne détecte pas : §3.6, dernier alinéa. |
+| TC-83 | CT-7 §3.4 (l. 744) | « La construction reproductible relève de CT-8, à écrire (section 11) ». | EX-3.13 à EX-3.15 (§3.6). |
+| TC-84 | CT-7 §3.4 (l. 811) | MN-55 : alerte de CT-8 sur la taille de la mempool. | Règle `noortrace_registre_mempool` (10.6). |
+| TC-85 | CT-7 §3.7 (l. 1053) | EX-3.9 de CT-7 : la construction reproductible du code de la console. | EX-3.13 et EX-3.14 (§3.6). |
+| TC-86 | CT-7 §3.7 (l. 1100) | EX-3.14 de CT-7 : empreinte d'une version publiée de l'image de l'enregistreur. | EX-3.13 à EX-3.15 (§3.6) ; épinglage par condensé en production : IP-12 et pas IC-6. |
+| TC-87 | CT-7 §6.2 (l. 2083) | PA-15 adressée à CT-8. | PA-15 : 11.6, 11.9, 11.10 et 11.11. |
+| TC-88 | CT-7 §8.4 (l. 3448) | MC-54 : archivage des fichiers tournés du journal d'exploitation (L-9). | EX-11.22 et EX-11.23 (11.11). |
+| TC-89 | CT-7 §8.4 (l. 3450) | MC-56 : procès-verbal de migration de support (L-2). | EX-11.13 et EX-11.14 (11.6) ; schéma `proces-verbal-exploitation-v0` (11.9). |
+| TC-90 | CT-7 §8.4 (l. 3458) | Archivage au-delà de `logging.keep_files` (L-9). | EX-11.22. |
+| TC-91 | CT-7 §8.8.2 (l. 3633) | Rétention : archivage des fichiers tournés relevant de CT-8 (L-9). | EX-11.22 et EX-11.23 ; volume : DM-18 (§9.3). |
+| TC-92 | CT-7 §8.8.3 (l. 3704) | EX-8.15 de CT-7 : journal des consultations et des accès (PA-15). | EX-11.19 à EX-11.21 ; schéma `consultation-v0` ; la remise d'un paquet réviseur y est consignée (EX-13.37, pas 4). |
+| TC-93 | CT-7 §8.8.3 (l. 3708) | EX-8.16 de CT-7 : fin de rétention consignée. | EX-11.15. |
+| TC-94 | CT-7 §8.9 (l. 3739) | L-1 : consultations et accès (PA-15). | Comme pour CT-7 EX-8.15 : EX-11.19 à EX-11.21 et EX-13.37, pas 4 ; la collecte reste `releve_du_client` (EX-11.19). |
+| TC-95 | CT-7 §8.9 (l. 3740) | L-2 : procès-verbal de migration (PA-15). | EX-11.13 et EX-11.14. |
+| TC-96 | CT-7 §8.9 (l. 3747) | L-9 : archivage des fichiers tournés. | EX-11.22 et EX-11.23. |
+| TC-97 | CT-7 §8.11 (l. 3778) | PA-15 : journal des consultations et des accès, procès-verbal de migration, archivage des fichiers tournés. | Les trois points de PA-15 : 11.6 et 11.9 (procès-verbal de migration), 11.10 (journal des consultations et des accès), 11.11 (archivage). |
+| TC-98 | CT-7 §9 (l. 3841) | Synthèse Olico : archivage au-delà de `keep_files` (L-9). | EX-11.22. |
+| TC-99 | CT-7 §10 (l. 3876) | Ce que CT-7 ne couvre pas : la construction reproductible de l'image et de la console. | EX-3.13 et EX-3.14 (§3.6). |
+| TC-100 | CT-7 §11 (l. 3939) | Alignement : PA-15 « à faire (révisions à décider ; CT-8 à écrire) ». | §11 répond à CT-7 PA-15 ; l'état de la ligne de CT-7 §11 reste à aligner par l'éditeur de CT-7 (§16, PD-1). |
+| TC-101 | CT-7 §11 (l. 3939) | Même ligne, « CT-8 à écrire ». | Ce document ; même mise à jour (PD-1). |
 | TC-102 | `spec/README.md` « Spécifications » (l. 22) | Ligne CT-8 de la table des spécifications. | Ce document, version 0.1. |
 | TC-103 | `spec/README.md` « Spécifications » (l. 22) | Lien vers ce document. | Ce document. |
 | TC-104 | `spec/README.md` « Spécifications » (l. 26) | Ordre d'écriture : CT-7, CT-8, CT-9. | Ce document ; aucune réponse attendue. |
@@ -284,6 +286,24 @@ La section 14 décrit les épreuves à l'aveugle ; elle n'est remise à aucun
 participant, et aucune autre section n'en reprend les éléments attendus.
 
 ### 0.4 Révisions
+
+**Révision 0.3** (2026-11-10). La révision 0.7 de CT-2 prescrit une alerte
+nouvelle, « Pièces en attente perdues » (CT-2 §17.4, majeure) : au redémarrage,
+un événement en attente dont les pièces n'étaient gardées qu'en mémoire est
+scellé en erreur, références gardées et pièces absentes lues comme purgées, et
+la ligne `pending_pieces_lost` est consignée au journal d'exploitation (CT-2
+EX-14.18). EX-10.1 lui veut une règle : `noortrace_pieces_attente_perdues`
+(10.4), lue par l'extracteur de 10.3 comme les autres alertes portées par une
+ligne de journal. Le runbook RB-1 (10.12), qui couvre l'arrêt du démon pendant
+un mode dégradé, nomme la règle et la ligne, dit l'effet sur la preuve et
+ajoute à son pas 4 les `seq` touchés, recopiés au paquet d'incident
+(EX-10.15). Sections touchées : en-tête et 0.4 (cette note) ; 0.2
+(numéros « (l. N) » de la table recalculés, et la phrase qui les date) ; 10
+(préambule : 32 lignes de CT-2 §17.4) ; 10.3 (préambule) ; 10.4 (une règle) ;
+10.12 (RB-1 : détection, impact sur la preuve, pas 4, événements journalisés).
+Aucun identifiant n'est ajouté ni retiré ; aucune exigence ne change de sens :
+EX-10.1 s'applique à une alerte de plus. Les fichiers de
+`deploiement/observabilite/` restent à produire (10, « État au 2026-10-27 »).
 
 **Révision 0.2** (2026-11-03). Le coefficient `b_cap` de 9.2 valait 11 096
 octets : la somme de l'en-tête, du certificat de commit et du reçu les plus
@@ -3404,9 +3424,10 @@ EX-4.6).
 
 Cette section dit comment l'exploitant voit l'état de chaque composant et
 reçoit les alertes que les autres spécifications prescrivent sans en donner
-les règles : CT-2 §17.4 (31 lignes, comptées par `awk` sur ses deux tables le
-2026-10-27 : 29 dans la table générale, 2 dans celle d'EX-17.8 de la révision
-0.6), CT-5 §8.9 (19 alertes nommées), CT-4 EX-4.20, EX-8.3, EX-8.18,
+les règles : CT-2 §17.4 (32 lignes : 31 comptées par `awk` sur ses deux tables
+le 2026-10-27, 29 dans la table générale et 2 dans celle d'EX-17.8 de la
+révision 0.6, et la ligne « Pièces en attente perdues » que la révision 0.7
+ajoute à la table générale), CT-5 §8.9 (19 alertes nommées), CT-4 EX-4.20, EX-8.3, EX-8.18,
 EX-9.4, EX-9.6, EX-10.8 et §13, CT-7 EX-3.9 et MN-55. Elle reprend la forme
 du gabarit d'observabilité de noorchain-core (`ops/observability/`, lu en
 entier, R8-F42) sans en reprendre les noms fautifs : ce gabarit cite
@@ -3483,7 +3504,8 @@ tenir le bail.
 
 Plusieurs alertes prescrites portent sur une ligne d'un journal et non sur une
 métrique : `worm_lock_config_check`, `worm_legal_hold_observed`,
-`journal_fork`, `relay_mac_key_mismatch`, `disk_low` (CT-2 §17.4), les lignes
+`journal_fork`, `relay_mac_key_mismatch`, `disk_low`, `pending_pieces_lost`
+(CT-2 §17.4), les lignes
 du composant d'ancrage (CT-5 EX-8.15) et les enregistrements d'acquisition
 (CT-5 EX-5.13) (R8 conséquence 2). Prometheus ne lit pas de journal ; CT-8
 les rend comptables par un extracteur.
@@ -3578,6 +3600,7 @@ clause `for` (R8-F54).
 | `noortrace_latence` | `histogram_quantile(0.99, sum by (le) (rate(noortrace_relay_latency_ms_bucket[15m]))) > 50` | — | mineure | CT-2 §17.4 Latence | aucun |
 | `noortrace_disque_ligne` | `increase(noortrace_journal_lignes_total{event="disk_low"}[5m]) > 0` | — | majeure | CT-2 §17.4 Disque | RB-1 |
 | `noortrace_disque_espace` | `node_filesystem_avail_bytes{mountpoint="<racine>"} < 2147483648` (2 × `min_free_bytes`, défaut 1 GiB) | — | majeure | CT-2 §17.4 Disque | RB-1 |
+| `noortrace_pieces_attente_perdues` | `increase(noortrace_journal_lignes_total{event="pending_pieces_lost"}[5m]) > 0` | — | majeure | CT-2 §17.4 Pièces en attente perdues | RB-1 |
 | `noortrace_gel_pose_en_retard` | `time() - noortrace_journal_derniere_ligne_s{source="gel",event="worm_legal_hold_set"} > 7200` (seulement pour un support sans mode Compliance validé, EX-11.17) | — | majeure (gravité fixée par CT-8) | CT-2 §12.6 (tâche de `poser` et alerte de retard) | RB-5 |
 
 Les expressions des histogrammes sont la forme exécutable des conditions de
@@ -3823,15 +3846,21 @@ segment corrompu, démon arrêté.
 
 - **Détection.** `noortrace_mode_degrade_majeur` (raison `stockage` ou
   `attente`), `noortrace_disque_*`, `noortrace_attente_*`,
-  `noortrace_controle_integrite` ; lignes `storage_unavailable`,
-  `segment_corrupted`, `segment_truncated`, `disk_low`,
-  `pending_limit_reached` ; `noortrace-ctl etat` (phase 2, EX-10.14) muet.
+  `noortrace_controle_integrite`, `noortrace_pieces_attente_perdues` ; lignes
+  `storage_unavailable`, `segment_corrupted`, `segment_truncated`, `disk_low`,
+  `pending_limit_reached`, `pending_pieces_lost` ; `noortrace-ctl etat`
+  (phase 2, EX-10.14) muet.
 - **Impact sur la preuve.** Aucun appel d'écriture n'est relayé sans
   événement durable (CT-2 EX-14.2) ; les lectures passantes ont des
   événements en attente, scellés plus tard avec leur `ts` de capture (CT-2
   EX-14.10) ; au-delà des bornes de CT-2 EX-14.9, les lectures sont bloquées
   aussi. En mode observation (section 12), rien n'est bloqué et les
-  événements au-delà des bornes sont perdus et comptés (CT-2 EX-14.16).
+  événements au-delà des bornes sont perdus et comptés (CT-2 EX-14.16). Si
+  le démon s'est arrêté pendant le mode dégradé avant d'écrire les pièces
+  qu'il gardait en mémoire, chaque événement relu dont une pièce manque est
+  scellé au redémarrage en erreur, références gardées, et son dossier déclare
+  ces pièces absentes comme des pièces purgées : leur contenu ne pourra jamais
+  être produit (CT-2 EX-14.18).
 - **Invariants.** Ne jamais modifier, tronquer ni supprimer à la main une
   ligne d'un segment ; ne jamais copier un segment de la copie WORM
   par-dessus l'original ; ne jamais lancer un second démon sur le même
@@ -3854,7 +3883,9 @@ segment corrompu, démon arrêté.
      sont alors perdues et listées au procès-verbal `restauration` ; porte :
      `verifier-journal.mjs` rend `valide` sur le répertoire reconstruit.
   4. Redémarrer ; porte : `noortrace-ctl etat` rend `ok`, la ligne
-     `pending_flushed` est consignée si des événements attendaient.
+     `pending_flushed` est consignée si des événements attendaient ; si la
+     ligne `pending_pieces_lost` l'est aussi, ses `seq` et son nombre de
+     pièces absentes vont au paquet d'incident (EX-10.15).
   5. Exporter et vérifier le dossier du premier événement scellé après la
      reprise ; porte : `dossier.mjs` rend le code 0.
 - **Vérification de sortie.** `noortrace_degraded` vaut 0 pour toutes les
@@ -3862,7 +3893,7 @@ segment corrompu, démon arrêté.
   `valide`.
 - **Événements journalisés.** `degraded_enter`, `degraded_exit`,
   `storage_unavailable`, `segment_truncated` ou `segment_corrupted`,
-  `pending_flushed` ; dans la chaîne : événements de reprise et événements
+  `pending_flushed`, `pending_pieces_lost` ; dans la chaîne : événements de reprise et événements
   en attente (CT-2 EX-9.8), jamais un événement « panne » (CT-2 EX-14.7).
 - **Après l'incident.** Procès-verbal `restauration` si le chemin B a servi
   (11.9) ; cause du disque plein rapprochée du dimensionnement (section 9).

@@ -1,4 +1,4 @@
-// Planificateur d'ancrage (CT-5 §8, lot C) : rejeu des vingt-deux traces
+// Planificateur d'ancrage (CT-5 §8, lot C) : rejeu des vingt-quatre traces
 // normatives de spec/vecteurs/ct-5/planification (EX-8.16, AN-42) et des
 // files de spec/vecteurs/ct-5/reprise (EX-8.5 règles 3 et 6, EX-8.12, AN-33).
 // Chaque trace est validée contre le schéma planificateur-ancrage-v0, rejouée
@@ -44,8 +44,8 @@ const TRANSITIONS = {
 describe("ancrage, planificateur : traces normatives de CT-5 §8.10", function () {
   this.timeout(60000);
 
-  it("vingt-deux traces sont publiées, toutes conformes à la racine du schéma planificateur-ancrage-v0", function () {
-    expect(TRACES).to.have.lengthOf(22);
+  it("vingt-quatre traces sont publiées (révision 0.6 de CT-5 : file-fenetre-32 et file-fenetre-32-redemarrage en plus), toutes conformes à la racine du schéma planificateur-ancrage-v0", function () {
+    expect(TRACES).to.have.lengthOf(24);
     for (const f of TRACES) {
       const v = REGISTRE_ANCRAGE.valider(ID_SCHEMA_PLANIFICATEUR, lire("planification", f));
       expect(v.valide, `${f} : ${v.erreurs[0]}`).to.equal(true);
@@ -156,8 +156,8 @@ describe("ancrage, planificateur : traces normatives de CT-5 §8.10", function (
       fs.rmSync(dir, { recursive: true, force: true });
     });
 
-    it("six traces ont une file avant et après", function () {
-      expect(REPRISES).to.have.lengthOf(6);
+    it("sept traces ont une file avant et après (révision 0.6 : file-fenetre-32-redemarrage en plus)", function () {
+      expect(REPRISES).to.have.lengthOf(7);
     });
 
     for (const nom of REPRISES) {
@@ -229,13 +229,13 @@ describe("ancrage, planificateur : traces normatives de CT-5 §8.10", function (
       expect(r.file.some((d) => d.subject.hash.startsWith("0x3feb86ac"))).to.equal(false);
     });
 
-    it("EX-3.5, EX-8.15 : les quatre composantes de d_jeton sont des secondes entières dont la somme est d_jeton_s", function () {
+    it("EX-3.5, EX-8.15 (révision 0.6) : les cinq composantes de d_jeton, d_admission_s compris, sont des secondes entières dont la somme est d_jeton_s", function () {
       for (const f of TRACES) {
         for (const a of rejouerTrace(lire("planification", f)).actions) {
           if (a.action !== "journaliser" || a.detail.event !== "checkpoint_countersigned") continue;
           const d = a.detail;
-          for (const k of ["d_jeton_s", "d_point_s", "d_attente_s", "d_releve_s", "d_tsa_s"]) expect(Number.isInteger(d[k]), `${f} ${k}`).to.equal(true);
-          expect(d.d_point_s + d.d_attente_s + d.d_releve_s + d.d_tsa_s).to.equal(d.d_jeton_s);
+          for (const k of ["d_jeton_s", "d_point_s", "d_admission_s", "d_attente_s", "d_releve_s", "d_tsa_s"]) expect(Number.isInteger(d[k]), `${f} ${k}`).to.equal(true);
+          expect(d.d_point_s + d.d_admission_s + d.d_attente_s + d.d_releve_s + d.d_tsa_s).to.equal(d.d_jeton_s);
         }
       }
     });

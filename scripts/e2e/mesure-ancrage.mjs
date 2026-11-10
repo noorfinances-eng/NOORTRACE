@@ -16,7 +16,7 @@
 //        [--verificateur-go <binaire>] [--journal-du-parcours]
 //   node scripts/e2e/mesure-ancrage.mjs complements --sortie <répertoire> [--reseau-public]
 //   node scripts/e2e/mesure-ancrage.mjs rapport --collecte <répertoire> [--collecte <répertoire>] [--complements <répertoire>]
-//        [--p6 <rapport TM-16>] --sortie-rapport <fichier> [--sortie <répertoire>]
+//        [--p6 <rapport TM-16>] --sortie-rapport <fichier> [--sortie <répertoire>] [--note <texte>]…
 //
 // `collecter` : une configuration (`defaut` : c_K 60 s, c_T 300 s, points
 // chez le serveur interne ; `porte2` : c_K 60 s, c_T 60 s, points chez le
@@ -69,6 +69,14 @@ class Echec extends Error {
 const lireJson = (f) => JSON.parse(fs.readFileSync(f, "utf8"));
 const ecrireJson = (f, o) => fs.writeFileSync(f, `${JSON.stringify(o, null, 2)}\n`);
 const log = (m) => process.stderr.write(`mesure-ancrage ${new Date().toISOString()} : ${m}\n`);
+
+/** État de l'arbre de travail à la collecte : propre, ou nombre de chemins modifiés ou nouveaux (`git status --porcelain`). */
+function etatArbre() {
+  const r = spawnSync("git", ["status", "--porcelain"], { cwd: RACINE, encoding: "utf8" });
+  if (r.status !== 0) return null;
+  const n = r.stdout.split("\n").filter((l) => l.trim() !== "").length;
+  return { propre: n === 0, chemins_modifies: n };
+}
 
 /** Configurations mesurées : paramètres du document `ancrage-v0` et de l'enregistreur. */
 export const CONFIGURATIONS = Object.freeze({
@@ -408,6 +416,7 @@ export async function collecter(o) {
     const collecte = {
       version: 0, kind: "collecte-mesure-ancrage", configuration: o.configuration, parametres: conf, period_start: P,
       debut: debut.toISOString(), fin: new Date().toISOString(), evenements_par_s: evParS, commit: spawnSync("git", ["rev-parse", "HEAD"], { cwd: RACINE, encoding: "utf8" }).stdout.trim(),
+      arbre: etatArbre(),
       reseau: { deja_debout: reseau.deja_debout, demarre_ici: reseau.demarre }, parcours: { repertoire: o.parcours, org_id: parcours.orgId, journal_id: parcours.journalId, chain_key: parcours.cleChaine.adresse(), journal_neuf: parcours.neuf === true },
       evenements: { emis: evenements.length, en_erreur: erreurs.length, dans_la_periode: dansP.length, dossiers_verifies: verifications.filter((v) => v.verdict !== null).length, exports_erreur: erreurExports },
       go, preuves, jetons, systeme: systeme(),
@@ -439,6 +448,7 @@ export async function principal(argv) {
     options: {
       parcours: { type: "string" }, configuration: { type: "string" }, sortie: { type: "string" }, "evenements-par-s": { type: "string" }, "garder-reseau": { type: "boolean" },
       "verificateur-go": { type: "string" }, "reseau-public": { type: "boolean" }, "essai-charge-s": { type: "string" }, "journal-du-parcours": { type: "boolean" }, collecte: { type: "string", multiple: true }, complements: { type: "string" }, p6: { type: "string" }, "sortie-rapport": { type: "string" },
+      note: { type: "string", multiple: true },
     },
   });
   if (action === "collecter") {
@@ -455,7 +465,7 @@ export async function principal(argv) {
   if (action === "rapport") {
     const { rapport } = await import("./mesure-ancrage-rapport.mjs");
     if (!o["sortie-rapport"] || !o.collecte?.length) throw new Echec("--collecte <répertoire> (au moins un) et --sortie-rapport <fichier> attendus", 2);
-    await rapport({ collectes: o.collecte, complements: o.complements ?? null, p6: o.p6 ?? null, sortieRapport: o["sortie-rapport"], sortie: o.sortie ?? null, schema: SCHEMA, catalogue: CATALOGUE, log });
+    await rapport({ collectes: o.collecte, complements: o.complements ?? null, p6: o.p6 ?? null, sortieRapport: o["sortie-rapport"], sortie: o.sortie ?? null, notesOperateur: o.note ?? [], schema: SCHEMA, catalogue: CATALOGUE, log });
     return 0;
   }
   throw new Echec("usage : node scripts/e2e/mesure-ancrage.mjs collecter|complements|rapport …", 2);

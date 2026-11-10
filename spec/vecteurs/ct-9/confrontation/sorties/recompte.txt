@@ -6,8 +6,8 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
 1. Identifiants définis par CT-1 à CT-8 (5.2)
   CT-1 : 44 identifiants (0 EX-, 44 de famille), 8 familles
     familles : A 4, AT 7, C 3, D 2, E 11, K 9, M 3, P 5
-  CT-2 : 335 identifiants (324 EX-, 11 de famille), 19 familles
-    familles : EX-10 24, EX-11 19, EX-12 41, EX-13 10, EX-14 17, EX-15 8, EX-16 6, EX-17 8, EX-18 9, EX-19 6, EX-3 6, EX-4 51, EX-5 36, EX-6 41, EX-7 23, EX-8 11, EX-9 8, RL 4, SG 7
+  CT-2 : 336 identifiants (325 EX-, 11 de famille), 19 familles
+    familles : EX-10 24, EX-11 19, EX-12 41, EX-13 10, EX-14 18, EX-15 8, EX-16 6, EX-17 8, EX-18 9, EX-19 6, EX-3 6, EX-4 51, EX-5 36, EX-6 41, EX-7 23, EX-8 11, EX-9 8, RL 4, SG 7
   CT-3 : 259 identifiants (203 EX-, 56 de famille), 18 familles
     familles : AN 10, AP 17, CS 9, EX-10 11, EX-11 15, EX-12 20, EX-13 37, EX-14 2, EX-3 5, EX-4 14, EX-5 10, EX-6 8, EX-7 29, EX-8 11, EX-9 22, EX-A 19, SG 7, TK 13
   CT-4 : 181 identifiants (136 EX-, 45 de famille), 14 familles
@@ -20,20 +20,20 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
     familles : AT 7, CL 6, CLE 29, CR 12, EX-0 1, EX-3 15, EX-4 10, EX-5 12, EX-6 3, EX-7 18, EX-8 20, EX-9 5, EX-A 31, EX-C 2, JS 12, L 10, MC 58, MN 98, MX 9, PA 20, RA 82, RV 9, T 10, TR 101
   CT-8 : 497 identifiants (198 EX-, 299 de famille), 30 familles
     familles : AV-PR 4, CA 6, CO 14, DM 22, EX-0 2, EX-10 23, EX-11 24, EX-12 16, EX-13 38, EX-14 12, EX-3 15, EX-4 4, EX-5 7, EX-6 6, EX-7 4, EX-8 7, EX-9 4, EX-A 36, FL 31, IC 18, IP 13, IR 8, OB 6, PD 16, PR 12, PV 10, RB 8, SV 8, TC 115, TP 8
-  total : 2350 identifiants ; couverture.json : 2350 ; table de 5.2 : 2350
+  total : 2351 identifiants ; couverture.json : 2351 ; table de 5.2 : 2351
   comparaison par spécification (total et familles) : égale
 
 2. Règle (a) : couverture de chaque identifiant (5.1, EX-5.5)
   CT-1 : 44 identifiants, 44 par une entrée, 0 par un NC-, 0 non couvert(s)
-  CT-2 : 335 identifiants, 335 par une entrée, 0 par un NC-, 0 non couvert(s)
+  CT-2 : 336 identifiants, 336 par une entrée, 0 par un NC-, 0 non couvert(s)
   CT-3 : 259 identifiants, 259 par une entrée, 0 par un NC-, 0 non couvert(s)
   CT-4 : 181 identifiants, 174 par une entrée, 7 par un NC-, 0 non couvert(s)
   CT-5 : 174 identifiants, 162 par une entrée, 12 par un NC-, 0 non couvert(s)
   CT-6 : 280 identifiants, 280 par une entrée, 0 par un NC-, 0 non couvert(s)
   CT-7 : 580 identifiants, 476 par une entrée, 104 par un NC-, 0 non couvert(s)
   CT-8 : 497 identifiants, 481 par une entrée, 16 par un NC-, 0 non couvert(s)
-  total : 2211 par une entrée, 139 par un NC-, 0 non couvert(s), 0 cité(s) inconnu(s)
-  couverture.json : 2211, 139, 0, 0
+  total : 2212 par une entrée, 139 par un NC-, 0 non couvert(s), 0 cité(s) inconnu(s)
+  couverture.json : 2212, 139, 0, 0
   chiffres par spécification de 5.5 : 8 lignes lues, égaux au recompte
 
 3. Occurrences de « CT-9 » et lignes TC- (0.2, règle (c))
@@ -59,7 +59,7 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
   index-ta-par-menace.json : 98 menaces, 0 défaut(s) (test, état, scénarios)
 
 5. Titres de tests et étapes de CI cités par les entrées exécutables (règle (d), EX-4.2)
-  test/*.test.js : 109 fichiers, 556 describe, 2292 it ; ci.yml : 55 étapes « - name: »
+  test/*.test.js : 113 fichiers, 572 describe, 2341 it ; ci.yml : 55 étapes « - name: »
   224 entrées exécutables citent 489 titres ou étapes ; 0 absent(s)
   couverture.json : 224 exécutables, 489 cités, 0 absent(s)
 
@@ -73,7 +73,7 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
 
 7. Lignes TM- et TR- du texte (11.5, 12.2) et du catalogue
   TM- : 44 lignes dans le texte, 44 entrées ; mêmes identifiants dans le même ordre : oui ; 0 ligne(s) mal formée(s) ; 0 état(s) en désaccord ; 0 mesure(s) non vide(s)
-    covers : 91 identifiants distincts, 0 inconnu(s)
+    covers : 92 identifiants distincts, 0 inconnu(s)
   TR- : 15 lignes dans le texte, 15 entrées ; mêmes identifiants dans le même ordre : oui ; 0 ligne(s) mal formée(s) ; 0 état(s) en désaccord
     covers : 29 identifiants distincts, 0 inconnu(s)
   table des chiffres par niveau (5.5) : 9 lignes ; égale au recompte sur le catalogue : oui

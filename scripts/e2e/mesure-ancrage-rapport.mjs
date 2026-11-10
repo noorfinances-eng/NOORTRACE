@@ -61,11 +61,14 @@ export function lireCollecte(repertoire) {
   const hashesP = new Set(points.map((p) => N.hacherPoint(p)));
   const contresignes = journal.filter((l) => l.event === "checkpoint_countersigned" && ms(l.ts) >= debutP && ms(l.ts) < finP + 1200000);
   void hashesP;
-  const p3 = { d_jeton: [], d_point: [], d_attente: [], d_releve: [], d_tsa: [] };
+  // Révision 0.6 de CT-5 (EX-3.5, 8.9) : d_admission_s (checkpoint_ts → admission du point par le composant) et
+  // d_attente_s compté depuis l'admission ; une collecte d'avant la révision n'a pas de d_admission_s (série vide).
+  const p3 = { d_jeton: [], d_point: [], d_admission: [], d_attente: [], d_releve: [], d_tsa: [] };
   for (const l of contresignes) {
     if (!Array.isArray(l.data.deadlines) || l.data.deadlines.length === 0) continue;
     p3.d_jeton.push(l.data.d_jeton_s);
     p3.d_point.push(l.data.d_point_s);
+    if (Number.isInteger(l.data.d_admission_s)) p3.d_admission.push(l.data.d_admission_s);
     p3.d_attente.push(l.data.d_attente_s);
     p3.d_releve.push(l.data.d_releve_s);
     p3.d_tsa.push(l.data.d_tsa_s);
@@ -137,7 +140,7 @@ export function validerParOutilDeReference(cheminRapport, nomPublie = path.basen
   }
 }
 
-export async function rapport({ collectes, complements = null, p6 = null, sortieRapport, sortie = null, catalogue: cheminCatalogue, log = () => {} }) {
+export async function rapport({ collectes, complements = null, p6 = null, sortieRapport, sortie = null, notesOperateur = [], catalogue: cheminCatalogue, log = () => {} }) {
   const catalogue = lireJson(cheminCatalogue);
   const entree = (id) => catalogue.tests.find((t) => t.id === id);
   const cible = (id) => entree(id).measure.target;
@@ -169,11 +172,23 @@ export async function rapport({ collectes, complements = null, p6 = null, sortie
     ajouter(ligne({ name: `p2_inclusion${suffixe}`, test_id: "TM-12", unit: unite("TM-12"), serie: x.p2, target: cible("TM-12"), conditions: [...C, "registry.checkpoints nouveaux_evenements, inclusion_alert_s 60 s, squat_wait_s 5 s", `d_registre par ancre de point = ces échantillons (reçu d'inclusion sur l'horloge de l'enregistreur − checkpoint_ts) ; ${x.ancres.length} ancres de points dans la file, ${x.incluses.length} incluses, ${x.ancres.filter((d) => d.state === "remplacee").length} remplacées (EX-9.5)`] }));
     notes.push(`TM-12 (${x.c.configuration}) : ${x.p2.length} ancres de points incluses, d_registre p50 ${agreger(x.p2).p50} s, p99 ${agreger(x.p2).p99} s, max ${agreger(x.p2).max} s (cible 60 s ${agreger(x.p2).max <= 60 ? "tenue en valeur" : "dépassée en valeur"}).`);
     // TM-13
-    for (const [k, nom] of [["d_jeton", "p3_d_jeton"], ["d_point", "p3_d_point"], ["d_attente", "p3_d_attente"], ["d_releve", "p3_d_releve"], ["d_tsa", "p3_d_tsa"]]) {
+    for (const [k, nom] of [["d_jeton", "p3_d_jeton"], ["d_point", "p3_d_point"], ["d_admission", "p3_d_admission"], ["d_attente", "p3_d_attente"], ["d_releve", "p3_d_releve"], ["d_tsa", "p3_d_tsa"]]) {
+      if (k === "d_admission" && x.p3.d_admission.length === 0) {
+        notes.push(`TM-13 (${x.c.configuration}) : aucune ligne checkpoint_countersigned ne porte d_admission_s (collecte d'avant la révision 0.6 de CT-5) : ligne p3_d_admission non publiée.`);
+        continue;
+      }
       if (suffixe && k !== "d_jeton") continue;
       ajouter(ligne({ name: `${nom}${suffixe}`, test_id: "TM-13", unit: unite("TM-13"), serie: x.p3[k], target: cible("TM-13"), conditions: [...C, `c_T = ${x.c.parametres.c_T} s${x.c.parametres.c_T !== 300 ? " (hors de la condition c_T = 300 s de TM-13 : publié à titre de comparaison)" : ""}, prestataire des points : ${x.c.parametres.provider_role} (serveur interne de référence, EX-7.4), fallback_after_s 120 s`, `secondes entières tronquées des lignes checkpoint_countersigned (CT-5 EX-8.15) ; ${x.contresignes} lignes, ${x.tardives} échéance(s) remplacée(s) (checkpoint_anchor_late), ${x.sansObjet} sans_objet`] }));
     }
-    notes.push(`TM-13 (${x.c.configuration}) : ${x.p3.d_jeton.length} échéances satisfaites ; d_jeton max ${agreger(x.p3.d_jeton).max} s = d_point max ${agreger(x.p3.d_point).max} s (borne 1 s) + d_attente max ${agreger(x.p3.d_attente).max} s (borne squat_wait_s 5 s ${agreger(x.p3.d_attente).max <= 5 ? "tenue" : "dépassée"} en valeur ; décomposé depuis la file sur ${x.attentePropre.length} jetons de points : attente propre de l'ancre au registre, admission → premier envoi, max ${agreger(x.attentePropre).max} s ${agreger(x.attentePropre).max <= 5 ? "≤" : ">"} squat_wait_s ; délai d'admission du point, checkpoint_ts → admission par le composant, p50 ${agreger(x.admission).p50} s, max ${agreger(x.admission).max} s, compté dans d_attente par la décomposition d'EX-3.5 ; secondes entières tronquées) + d_releve max ${agreger(x.p3.d_releve).max} s (borne 120 s) + d_tsa max ${agreger(x.p3.d_tsa).max} s ; ${x.tardives} échéance non satisfaite avant la suivante.`);
+    {
+      // Révision 0.6 de CT-5 (EX-3.5) : cinq composantes ; d_admission ≤ 10 s au 99e centile (borne de conception) ;
+      // d_attente compté depuis l'admission, borné par squat_wait_s.
+      const adm = agreger(x.p3.d_admission);
+      const texteAdmission = x.p3.d_admission.length
+        ? `d_admission p50 ${adm.p50} s, p99 ${adm.p99} s, max ${adm.max} s (borne de conception p99 ≤ 10 s ${adm.p99 <= 10 ? "tenue" : "dépassée"} en valeur)`
+        : "d_admission non rapporté par cette collecte (avant la révision 0.6)";
+      notes.push(`TM-13 (${x.c.configuration}) : ${x.p3.d_jeton.length} échéances satisfaites ; d_jeton max ${agreger(x.p3.d_jeton).max} s = d_point max ${agreger(x.p3.d_point).max} s (borne 1 s) + ${texteAdmission} + d_attente max ${agreger(x.p3.d_attente).max} s, ${x.p3.d_admission.length ? "compté depuis l'admission" : "compté depuis checkpoint_ts, admission comprise (décomposition d'avant la révision 0.6)"} (borne squat_wait_s 5 s ${agreger(x.p3.d_attente).max <= 5 ? "tenue" : "dépassée"} en valeur ; recoupé sur la file, ${x.attentePropre.length} jetons de points : création de la demande → premier envoi, max ${agreger(x.attentePropre).max} s, et checkpoint_ts → création de la demande, p50 ${agreger(x.admission).p50} s, max ${agreger(x.admission).max} s ; secondes entières tronquées) + d_releve max ${agreger(x.p3.d_releve).max} s (borne 120 s) + d_tsa max ${agreger(x.p3.d_tsa).max} s ; ${x.tardives} échéance non satisfaite avant la suivante.`);
+    }
     // TM-14
     const v0 = x.verifications[0] ?? null;
     const calendriers = x.preuves.filter((p) => p.fichier.startsWith("manifeste-")).map((p) => p.attestations_en_attente ?? (p.hauteurs_attestees && typeof p.hauteurs_attestees === "object" ? 2 : p.hauteurs_attestees)).filter((v) => typeof v === "number");
@@ -208,8 +223,19 @@ export async function rapport({ collectes, complements = null, p6 = null, sortie
     const t = comp.tm17;
     ajouter(ligne({ name: "planificateur_debit_points", test_id: "TM-17", unit: unite("TM-17"), value: t.J1.points_par_s, n: t.J1.points_admis, target: cible("TM-17"), conditions: [...Cc, "ACCÉLÉRÉ : une heure de points (c_K 60 s, c_T 300 s, points chez le serveur interne) rejouée à l'horloge réglable du composant, serveurs internes de référence réels sur la boucle locale, sans registre ni OpenTimestamps ; points admis par seconde de temps réel ; la vitesse du rejeu est celle du harnais (une attente de calme de 8 ms au moins après chaque minuterie servie, 3 600 tics par heure simulée et par composant) : borne inférieure du débit du planificateur, non son débit propre ; ne compte pour aucune cible", `J = 1 : ${t.J1.points_admis} points admis, ${t.J1.jetons_obtenus} jetons obtenus en ${t.J1.duree_s} s`] }));
     ajouter(ligne({ name: "planificateur_journaux", test_id: "TM-17", unit: unite("TM-17"), value: t.J10.journaux, n: t.J10.points_admis, target: cible("TM-17"), conditions: [...Cc, "ACCÉLÉRÉ : dix journaux servis par dix composants sur le même décor (maxima de CT-5 §4.6), une heure simulée chacun, horloge réglable partagée ; la vitesse du rejeu est celle du harnais (une attente de calme des dix composants après chacune des 36 000 minuteries servies), non celle du planificateur ; ne compte pour aucune cible", `J = 10 : ${t.J10.points_admis} points admis et ${t.J10.jetons_obtenus} jetons obtenus en ${t.J10.duree_s} s de temps réel (${t.J10.points_par_s} points/s agrégés), RSS ${t.J10.rss_octets} octets`] }));
-    ajouter(ligne({ name: "planificateur_file_panne", test_id: "TM-17", unit: unite("TM-17"), value: t.panne.demandes_actives_max, n: t.panne.demandes_en_file, target: cible("TM-17"), conditions: [...Cc, "ACCÉLÉRÉ : prestataire des points et principal coupés pendant une heure SIMULÉE à l'horloge réglable (c_T 60 s : une demande par point), queue.max_pending 1000 ; valeur = nombre maximal de demandes actives ; ne compte pour aucune cible", `${t.panne.demandes_en_file} demandes dans la file (${t.panne.lignes_file} lignes, ${t.panne.octets_file} octets), ${t.panne.tentatives} tentatives, ${t.panne.anchor_retry} reprises programmées, file pleine ${t.panne.file_pleine} fois ; RSS maximal du processus ${t.panne.rss_max_octets} octets`] }));
-    notes.push(`TM-17 : débit J = 1 : ${t.J1.points_par_s} points/s (${t.J1.duree_s} s de temps réel pour une heure simulée, ${t.J1.jetons_obtenus} jetons) ; J = 10 : ${t.J10.points_par_s} points/s agrégés (${t.J10.duree_s} s, ${t.J10.jetons_obtenus} jetons) : ces débits mesurent le harnais à horloge réglable (attente de calme après chaque minuterie), non le planificateur, et ne sont qu'une borne inférieure ; panne d'une heure simulée (c_T 60 s, une demande par point, prestataires coupés) : ${t.panne.demandes_actives_max} demandes actives au plus (file bornée par max_pending ${t.panne.max_pending}, ${t.panne.file_pleine} franchissement), ${t.panne.tentatives} tentatives reprises au pas retry.max_ms, file durable de ${t.panne.lignes_file} lignes et ${t.panne.octets_file} octets (une ligne JCS par état d'une demande, EX-8.5 : chaque reprise récrit la demande avec toutes ses tentatives, d'où une croissance en octets à tracer pour une panne longue), RSS max du processus d'essai ${t.panne.rss_max_octets} octets. Lignes accélérées, sans valeur pour une cible (TM-17 n'en a pas).`);
+    {
+      const pn = t.panne;
+      // Révision 0.6 de CT-5 (EX-8.5, règles 5 et 7) : taille du fichier courant bornée par max(compact_bytes, 2 × S_0)
+      // plus une ligne, au plus 32 tentatives par ligne ; un dépassement est noté (TM-17 : lacune à tracer).
+      const fenetre = typeof pn.tentatives_par_ligne_max === "number";
+      const texteFichier = fenetre
+        ? `fichier courant : au plus ${pn.fichier_courant_octets_max} octets et ${pn.fichier_courant_lignes_max} lignes (compact_bytes ${pn.compact_bytes}, S_0 final ${pn.s0}, ligne la plus longue ${pn.ligne_octets_max} octets) ; au plus ${pn.tentatives_par_ligne_max} tentatives par ligne ; ${pn.compactages} compactage(s) (anchor_queue_compacted), ${pn.compactages_en_echec} en échec (anchor_queue_compaction_failed)`
+        : "collecte d'avant la révision 0.6 : taille du fichier courant, tentatives par ligne et compactages non relevés";
+      ajouter(ligne({ name: "planificateur_file_panne", test_id: "TM-17", unit: unite("TM-17"), value: pn.demandes_actives_max, n: pn.demandes_en_file, target: cible("TM-17"), conditions: [...Cc, "ACCÉLÉRÉ : prestataire des points et principal coupés pendant une heure SIMULÉE à l'horloge réglable (c_T 60 s : une demande par point), queue.max_pending 1000, clôture pendant la panne ; valeur = nombre maximal de demandes actives ; ne compte pour aucune cible", `${pn.demandes_en_file} demandes dans la file (${pn.lignes_file} lignes, ${pn.octets_file} octets), ${pn.tentatives} tentatives (attempts_total), ${pn.anchor_retry} reprises programmées, file pleine ${pn.file_pleine} fois ; RSS maximal du processus ${pn.rss_max_octets} octets`, texteFichier] }));
+      if (fenetre && pn.tentatives_par_ligne_max > 32) notes.push(`TM-17 : LACUNE : une ligne de la file porte ${pn.tentatives_par_ligne_max} tentatives, au-delà de 32 (CT-5 EX-8.5, règle 7).`);
+      if (fenetre && pn.depassements.length) notes.push(`TM-17 : LACUNE : taille du fichier courant au-delà de max(queue.compact_bytes, 2 × S_0) plus une ligne (CT-5 EX-8.5, règle 5) : ${JSON.stringify(pn.depassements)}.`);
+    }
+    notes.push(`TM-17 : débit J = 1 : ${t.J1.points_par_s} points/s (${t.J1.duree_s} s de temps réel pour une heure simulée, ${t.J1.jetons_obtenus} jetons) ; J = 10 : ${t.J10.points_par_s} points/s agrégés (${t.J10.duree_s} s, ${t.J10.jetons_obtenus} jetons) : ces débits mesurent le harnais à horloge réglable (attente de calme après chaque minuterie), non le planificateur, et ne sont qu'une borne inférieure ; panne d'une heure simulée (c_T 60 s, une demande par point, prestataires coupés) : ${t.panne.demandes_actives_max} demandes actives au plus (file bornée par max_pending ${t.panne.max_pending}, ${t.panne.file_pleine} franchissement), ${t.panne.tentatives} tentatives reprises au pas retry.max_ms, file durable de ${t.panne.lignes_file} lignes et ${t.panne.octets_file} octets (révision 0.6 de CT-5 : 32 tentatives au plus par ligne et compactage, EX-8.5 règles 5 et 7${typeof t.panne.tentatives_par_ligne_max === "number" ? ` ; fichier courant au plus ${t.panne.fichier_courant_octets_max} octets, ${t.panne.tentatives_par_ligne_max} tentatives au plus par ligne, ${t.panne.compactages} compactage(s), ${t.panne.compactages_en_echec} en échec, ${t.panne.depassements.length ? "borne max(compact_bytes, 2 × S_0) + une ligne DÉPASSÉE" : "borne max(compact_bytes, 2 × S_0) + une ligne tenue"}` : ""}), RSS max du processus d'essai ${t.panne.rss_max_octets} octets. Lignes accélérées, sans valeur pour une cible (TM-17 n'en a pas).`);
     notes.push(`TM-18 : ${comp.tm18.non_croissantes} paire non croissante sur ${comp.tm18.jetons} jetons, redémarrage après le dixième.`);
   }
   if (p6Releve) {
@@ -222,7 +248,11 @@ export async function rapport({ collectes, complements = null, p6 = null, sortie
   // Rapport.
   const sys = systeme();
   const base = defaut ?? porte2;
-  const commit = spawnSync("git", ["rev-parse", "HEAD"], { cwd: RACINE, encoding: "utf8" }).stdout.trim();
+  // Commit et arbre de travail relevés à la collecte, pas à l'écriture du rapport.
+  const commits = [...new Set(lues.map((x) => x.c.commit))];
+  if (commits.length !== 1) throw new Error(`collectes faites sur des commits différents : ${commits.join(", ")}`);
+  const commit = commits[0];
+  const arbres = lues.map((x) => `${x.c.configuration} : ${x.c.arbre ? (x.c.arbre.propre ? "arbre de travail propre" : `${x.c.arbre.chemins_modifies} chemin(s) modifié(s) ou nouveau(x) non commité(s)`) : "état de l'arbre de travail non relevé par la collecte"}`);
   const configuration = { outil: "scripts/e2e/mesure-ancrage.mjs", collectes: lues.map((x) => ({ configuration: x.c.configuration, parametres: x.c.parametres, period_start: x.P, evenements_par_s: x.c.evenements_par_s, document_ancrage: lireJson(path.join(collectes[lues.indexOf(x)], "configuration-ancrage.json")) })) };
   if (sortie) {
     fs.mkdirSync(sortie, { recursive: true });
@@ -244,8 +274,9 @@ export async function rapport({ collectes, complements = null, p6 = null, sortie
     counts_for_targets: false,
     results,
     notes: [
-      `Campagne de mesures de l'étape 5 (TM-11 à TM-14, TM-16 à TM-19, TM-30, TM-41, TM-42) faite du ${debut} au ${lues.map((x) => x.c.fin).sort().at(-1)} sur le réseau de développement, hors du système de référence de CT-9 §11.1 (machine virtuelle KVM, disque virtuel) : counts_for_targets faux, met null sur chaque ligne (EX-11.2) ; les notes disent, à titre indicatif, si la cible est tenue en valeur.`,
-      `Commit ${commit} + travail : l'arbre de travail porte les lots de l'étape 5 non commités (paquets/ancrage, branchement dans l'enregistreur, épreuves CT-9 de l'étape 5).`,
+      `Campagne de mesures de l'ancrage (TM-11 à TM-14, TM-16 à TM-19, TM-30, TM-41, TM-42) faite du ${debut} au ${lues.map((x) => x.c.fin).sort().at(-1)} sur le réseau de développement, hors du système de référence de CT-9 §11.1 (machine virtuelle KVM, disque virtuel) : counts_for_targets faux, met null sur chaque ligne (EX-11.2) ; les notes disent, à titre indicatif, si la cible est tenue en valeur.`,
+      `Commit ${commit} relevé à la collecte ; ${arbres.join(" ; ")}.`,
+      ...notesOperateur,
       `method.clock murale : les délais entre composants sont lus sur l'horloge de l'enregistreur (EX-11.5) ; method.repetitions : nombre d'événements de la période mesurée ; échantillons publiés dans chaque ligne, dans l'ordre de collecte, aucun retiré.`,
       ...notes,
     ].join(" "),

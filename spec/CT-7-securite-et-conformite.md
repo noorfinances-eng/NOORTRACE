@@ -1,6 +1,18 @@
 # CT-7 — Sécurité et conformité
 
-Version 0.2, 2026-11-03 (révision 0.2 : rattachement des trois attaques que la
+Version 0.3, 2026-11-10 (révision 0.3 : `d_jeton` décomposé en cinq
+composantes dans les grandeurs des bornes de la section 3.5, `d_admission`
+compris, comme le fait la révision 0.6 de CT-5 (EX-3.5) ; relecture qu'exige
+EX-8.20, le 2026-11-10, des textes T-2 et T-8 sur leurs sources primaires :
+statuts et dates d'application inchangés, citations identiques, deux pages de
+la FINMA changées sans toucher la circulaire 2018/3 (S18, S20) ; matrice
+datée du 2026-11-10 (`spec_version` 0.3), `read_on` de T-2, de T-8 et de leurs
+lignes au 2026-11-10 ; numéros de ligne de la table 0.2 recalculés. Sections
+touchées : en-tête, 0.1 (notes de recherche), 0.2, 2 (applicabilité), 3.5,
+3.8 (exemple : `spec_version` et `date`), 8 (préambule), 8.2 (table des
+textes, dernier alinéa), 8.3 (membres et exemples), 8.9 (L-8), 10, 11, annexe
+B (préambule, B.2). Aucune exigence n'est ajoutée, retirée ni modifiée. Version 0.2 du
+2026-11-03 : rattachement des trois attaques que la
 révision 0.4 de CT-6 ajoute à sa table des attaques considérées, CT-6 §15.5,
 qui passe de 23 à 26 lignes : le faux jeton dont le `sid` ne désigne aucun
 certificat et le faux jeton qui déclare un algorithme ou une clé hors de la
@@ -104,14 +116,14 @@ Les faits externes (publications du NIST, pratiques publiées de cérémonies,
 règlements) viennent de deux notes de recherche du lot CT-7, R6 (réglementation)
 et R7 (sécurité et cérémonies), internes et non publiées, relues le 2026-10-26
 sur les sources primaires qu'elles citent ; les sources de T-2 et de T-8 ont été
-relues le 2026-11-03 (EX-8.20, annexe B.2). Chaque fait porte le renvoi du fait
+relues le 2026-11-03, puis le 2026-11-10 (EX-8.20, annexe B.2). Chaque fait porte le renvoi du fait
 dans sa note (« R7-F4 ») ou d'un point non vérifié. L'annexe B donne, pour
 chaque renvoi, l'objet du fait, la source primaire publique, son URL et la date
 de lecture. Ce qui n'a pas pu être vérifié est écrit « non vérifié ».
 
 ### 0.2 Ce que les autres spécifications délèguent à CT-7
 
-Chaque occurrence de « CT-7 » dans `spec/*.md` au 2026-11-03 est un renvoi. La
+Chaque occurrence de « CT-7 » dans `spec/*.md` au 2026-11-10 est un renvoi. La
 table les reprend toutes, une ligne par occurrence, dans l'ordre des fichiers
 (CT-1 à CT-6, puis `spec/README.md`) puis des lignes ; la colonne «
 Spécification, section » nomme le dernier titre de niveau 2 à 4 qui précède
@@ -120,7 +132,7 @@ entre guillemets sinon, et « en-tête » avant le premier titre. Le vérificate
 de renvois compte, spécification par spécification et section par section, les
 occurrences de « CT-7 » et les lignes de cette table : une occurrence nouvelle
 sans ligne, ou une ligne sans occurrence, fait échouer RV-7 (annexe A). Les
-numéros de ligne sont ceux du 2026-11-03 (révision 0.2), recalculés sur l'état
+numéros de ligne sont ceux du 2026-11-10 (révision 0.3), recalculés sur l'état
 de CT-1 à CT-6 et de `spec/README.md` à cette date, pour la lecture
 seulement : RV-7 compte les occurrences par section, pas par ligne, et la
 table se régénère après toute retouche qui ajoute, retire ou déplace un
@@ -164,19 +176,19 @@ lignes, comme ceux de `spec/README.md`.
 | TR-23 | CT-1 §17 (l. 2999) | Les propositions à CT-2 qui permettent l'inscription. | 6.2, PA-8 et PA-9 ; tant qu'elles ne sont pas adoptées, risque accepté RA-72 (MN-85). |
 | TR-24 | CT-1 §17 (l. 2999) | La décision attendue de CT-2. | 6.2 ; aucune proposition n'est appliquée avant son adoption (CT-7 EX-6.3). |
 | TR-25 | CT-1 « Annexe B — Récapitulatif des valeurs » (l. 3390) | Le préfixe de domaine `P_P`. | 7.2 (CT-7 EX-7.6) ; distinct de tous les autres préfixes (CT-7 EX-7.7). |
-| TR-26 | CT-2 §1 (l. 526) | Hors périmètre de CT-2 : la cérémonie des clés, l'analyse de conformité et la revue de sécurité. | Revue de sécurité : section 3 (modèle de menace, MN-7 à MN-29 pour l'enregistreur) ; cérémonie : section 5 ; conformité : section 8 (avertissement, matrice en 8.4 et `matrice-conformite.json`, rétention en 8.8, lacunes en 8.9) et modèles de clauses de l'annexe C. |
-| TR-27 | CT-2 §1 (l. 538) | Table des relations : CT-2 fournit la surface d'attaque (§18) et les classes de garde (§11) ; il attend la cérémonie des clés et la revue. | §18 consolidé ligne par ligne en 3.3 ; classes admises par usage et environnement en 4.3 (CT-7 EX-4.2) ; cérémonie en section 5 ; revue en section 3. |
-| TR-28 | CT-2 §10.7 (l. 7095) | L'accès au coffre des originaux est un acte d'exploitation du client. | Déchiffrement à deux personnes, consigné (CT-7 EX-3.11) ; clé du coffre inventoriée (CLE-18) ; menace MN-24, risque RA-21. La durée de conservation des originaux relève du client et n'a pas de plancher (CT-7 EX-8.18). |
-| TR-29 | CT-2 §11.1 (l. 7286) | EX-11.4 : la cérémonie qui crée la clé et pose les droits d'administration et d'usage. | Cérémonie de création (CT-7 EX-5.1), étape « remettre la seule identité d'usage » du script de 5.4 ; menace MN-32. |
-| TR-30 | CT-2 §11.3 (l. 7452) | EX-11.19 (1) : le support de secp256k1 par chaque backend se vérifie à la cérémonie. | Étape du script de 5.4 : signer un condensé d'essai et recouvrer l'adresse ; CR-5 contrôle que l'adresse déclarée dérive de la clé publique déclarée. |
-| TR-31 | CT-2 §11.4 (l. 7490) | EX-11.15 : la rotation planifiée crée les nouvelles clés par l'identité d'administration, en cérémonie. | Cérémonie d'objet `rotation` (CT-7 EX-5.1) ; période de crypto au plus 730 jours, fondée sur R7-F4 (4.4, CT-7 EX-4.3). |
-| TR-32 | CT-2 §11.6 (l. 7549) | Titre de §11.6 : cérémonie minimale, renvoi à CT-7. | Section 5. |
-| TR-33 | CT-2 §11.6 (l. 7554) | Création, droits, preuve d'origine, sauvegarde et procès-verbal sont la cérémonie de CT-7 ; CT-2 n'en fixe que les sorties (`key_id`, clé publique, classe, backend, preuve d'origine). | Procès-verbal `ceremonie-cles-v0` (5.6) : `key_id`, `public_key`, `fingerprint`, `custody_class`, `backend`, `origin_proof_sha256` de chaque clé ; aucune sauvegarde de la clé de l'enregistreur (CT-7 EX-4.4, CR-7). |
-| TR-34 | CT-2 §11.6 (l. 7561) | Corrélation permise entre un événement (`recorder_key_id`, `ts`) et l'appel de signature dans les journaux du backend. | Rapprochement au moins mensuel des appels de signature et des objets signés, exigé pour les classes A et B (CT-7 EX-3.7) ; menace MN-31, risque RA-27. |
-| TR-35 | CT-2 §18 (l. 10964) | Analyse de menace complète, revue de code et conformité de l'enregistreur. | Analyse de menace : section 3 ; conformité : section 8 ; la revue de code est une épreuve de CT-9, dont CT-7 fixe le périmètre (composants de 3.2 et menaces de 3.4) : section 10. Les lignes MC-15 à MC-24, MC-35 à MC-40 et MC-51 à MC-58 de la matrice portent sur l'enregistreur. |
-| TR-36 | CT-2 §18.5 (l. 11127) | Ce qu'une compromission de l'enregistreur fait à l'agent et à l'hôte (« l'inverse relève de CT-7 et de l'exploitation »). | Menace MN-25, risque RA-22 ; empreinte de l'image en cours (CT-7 EX-3.14, PA-4). |
-| TR-37 | CT-2 §20 (l. 12177) | Décision 2 : la cérémonie n'est pas réglée par CT-2. | Section 5. |
-| TR-38 | CT-2 §21 (l. 12254) | Hors de CT-2 : la cérémonie des clés et la revue de sécurité. | Sections 3 et 5. |
+| TR-26 | CT-2 §1 (l. 571) | Hors périmètre de CT-2 : la cérémonie des clés, l'analyse de conformité et la revue de sécurité. | Revue de sécurité : section 3 (modèle de menace, MN-7 à MN-29 pour l'enregistreur) ; cérémonie : section 5 ; conformité : section 8 (avertissement, matrice en 8.4 et `matrice-conformite.json`, rétention en 8.8, lacunes en 8.9) et modèles de clauses de l'annexe C. |
+| TR-27 | CT-2 §1 (l. 583) | Table des relations : CT-2 fournit la surface d'attaque (§18) et les classes de garde (§11) ; il attend la cérémonie des clés et la revue. | §18 consolidé ligne par ligne en 3.3 ; classes admises par usage et environnement en 4.3 (CT-7 EX-4.2) ; cérémonie en section 5 ; revue en section 3. |
+| TR-28 | CT-2 §10.7 (l. 7145) | L'accès au coffre des originaux est un acte d'exploitation du client. | Déchiffrement à deux personnes, consigné (CT-7 EX-3.11) ; clé du coffre inventoriée (CLE-18) ; menace MN-24, risque RA-21. La durée de conservation des originaux relève du client et n'a pas de plancher (CT-7 EX-8.18). |
+| TR-29 | CT-2 §11.1 (l. 7336) | EX-11.4 : la cérémonie qui crée la clé et pose les droits d'administration et d'usage. | Cérémonie de création (CT-7 EX-5.1), étape « remettre la seule identité d'usage » du script de 5.4 ; menace MN-32. |
+| TR-30 | CT-2 §11.3 (l. 7502) | EX-11.19 (1) : le support de secp256k1 par chaque backend se vérifie à la cérémonie. | Étape du script de 5.4 : signer un condensé d'essai et recouvrer l'adresse ; CR-5 contrôle que l'adresse déclarée dérive de la clé publique déclarée. |
+| TR-31 | CT-2 §11.4 (l. 7540) | EX-11.15 : la rotation planifiée crée les nouvelles clés par l'identité d'administration, en cérémonie. | Cérémonie d'objet `rotation` (CT-7 EX-5.1) ; période de crypto au plus 730 jours, fondée sur R7-F4 (4.4, CT-7 EX-4.3). |
+| TR-32 | CT-2 §11.6 (l. 7599) | Titre de §11.6 : cérémonie minimale, renvoi à CT-7. | Section 5. |
+| TR-33 | CT-2 §11.6 (l. 7604) | Création, droits, preuve d'origine, sauvegarde et procès-verbal sont la cérémonie de CT-7 ; CT-2 n'en fixe que les sorties (`key_id`, clé publique, classe, backend, preuve d'origine). | Procès-verbal `ceremonie-cles-v0` (5.6) : `key_id`, `public_key`, `fingerprint`, `custody_class`, `backend`, `origin_proof_sha256` de chaque clé ; aucune sauvegarde de la clé de l'enregistreur (CT-7 EX-4.4, CR-7). |
+| TR-34 | CT-2 §11.6 (l. 7611) | Corrélation permise entre un événement (`recorder_key_id`, `ts`) et l'appel de signature dans les journaux du backend. | Rapprochement au moins mensuel des appels de signature et des objets signés, exigé pour les classes A et B (CT-7 EX-3.7) ; menace MN-31, risque RA-27. |
+| TR-35 | CT-2 §18 (l. 11100) | Analyse de menace complète, revue de code et conformité de l'enregistreur. | Analyse de menace : section 3 ; conformité : section 8 ; la revue de code est une épreuve de CT-9, dont CT-7 fixe le périmètre (composants de 3.2 et menaces de 3.4) : section 10. Les lignes MC-15 à MC-24, MC-35 à MC-40 et MC-51 à MC-58 de la matrice portent sur l'enregistreur. |
+| TR-36 | CT-2 §18.5 (l. 11263) | Ce qu'une compromission de l'enregistreur fait à l'agent et à l'hôte (« l'inverse relève de CT-7 et de l'exploitation »). | Menace MN-25, risque RA-22 ; empreinte de l'image en cours (CT-7 EX-3.14, PA-4). |
+| TR-37 | CT-2 §20 (l. 12313) | Décision 2 : la cérémonie n'est pas réglée par CT-2. | Section 5. |
+| TR-38 | CT-2 §21 (l. 12390) | Hors de CT-2 : la cérémonie des clés et la revue de sécurité. | Sections 3 et 5. |
 | TR-39 | CT-3 §1 (l. 308) | Hors périmètre de CT-3 : la cérémonie des clés d'approbateur et la revue de sécurité. | Clés d'approbateur : 4.2 (CLE-3, la clé naît chez l'approbateur) et cérémonie d'inscription des membres (5.1, CR-8) ; revue : MN-44 à MN-52. |
 | TR-40 | CT-3 §1 (l. 335) | Table des relations : surface du service et de la console ; garde des clés d'approbateur (EX-3.4, §9, §13) ; une personne, une clé (8.6, 13.4) ; publication des empreintes de la page (EX-13.35). | Surface : MN-44 à MN-52 ; garde : CLE-3 et MN-35 ; une personne, une clé : CR-2, CR-8, MN-36, RA-32 ; empreintes : CT-7 EX-3.9. |
 | TR-41 | CT-3 §8.6 (l. 2418) | EX-8.11 : « une personne, une clé » est tenue à l'inscription des membres, en cérémonie ; rien ne la vérifie en version 0. | Cérémonie d'objet `inscription_membres` (CT-7 EX-5.1) : chaque membre signe le procès-verbal avec sa clé devant un témoin qui vérifie son identité ; CR-8 et CR-11 ; reste déclaré : RA-32. |
@@ -200,35 +212,35 @@ lignes, comme ceux de `spec/README.md`.
 | TR-59 | CT-4 §12 (l. 3789) | Ligne « Clé de gouvernance compromise » : garde en classe A à C (EX-8.21, CT-7). | MN-37 (consolidée en 3.3) ; 4.3. |
 | TR-60 | CT-4 §12 (l. 3790) | Ligne « Clé de l'administrateur du registre » : garde en module (EX-5.4, CT-7). | MN-38 (consolidée en 3.3) ; 4.3, 4.4. |
 | TR-61 | CT-4 §12 (l. 3791) | Ligne « Trésorerie » : cérémonie CT-7. | MN-40 (consolidée en 3.3) ; 5.1. |
-| TR-62 | CT-5 §1 (l. 189) | Hors périmètre de CT-5 : la cérémonie des identifiants de prestataire. | Les identifiants d'accès ne sont pas des clés de signature : aucune cérémonie, création et rotation consignées (4.2, ligne CLE-11 ; 4.6) ; un certificat client se crée comme une clé de classe C ou D sur le poste du client. |
-| TR-63 | CT-5 §1 (l. 212) | Table des relations : garde et rotation des secrets de l'ancrage ; procédure de statut qualifié d'un prestataire (5.3). | 4.2 (CLE-10 à CLE-12) et 4.6 ; constat du statut qualifié à deux personnes (CT-7 EX-4.5) ; MN-65. |
-| TR-64 | CT-5 §3.4 (l. 408) | Ligne « Composant d'ancrage compromis » : rotation des identifiants (CT-7). | MN-63 (consolidée en 3.3) ; conduite de 4.6 pour CLE-11. |
-| TR-65 | CT-5 §5.5 (l. 1269) | Ajustement de la rétention à toute durée légale plus longue que dix ans. | 8.8, CT-7 EX-8.12 : le client porte les trois paramètres de durée à la plus longue durée légale qui s'applique ; aucune durée de plus de dix ans dans les textes lus ; durées sectorielles non recherchées (lacune L-7) ; cohérence des paramètres : CT-7 EX-8.13, PA-13. |
-| TR-66 | CT-5 §15 (l. 4443) | Garde en module de la clé du serveur interne et sa cérémonie. | Classe A à C exigée (4.3, CR-6) ; cérémonie de création (5.1) ; MN-42, RA-38. |
-| TR-67 | CT-6 « en-tête » (l. 21) | La définition de l'attestation vérifiée par la révision 0.3. | Section 7. |
-| TR-68 | CT-6 §1 (l. 175) | L'attestation que vérifie la partie facultative. | Section 7 ; vérifications : 7.7. |
-| TR-69 | CT-6 §1 (l. 209) | Ce que CT-6 reprend de CT-7 : l'attestation, `D_P`, la règle « déclaré, jamais prouvé ». | 7.2 (CT-7 EX-7.6) et CT-7 EX-7.1 ; ce que CT-7 attend du rapport : CT-7 EX-7.17. |
-| TR-70 | CT-6 §2 (l. 248) | La définition du terme. | Section 7 ; terme défini en section 2. |
-| TR-71 | CT-6 §3.2 (l. 354) | Le périmètre reste une déclaration. | CT-7 EX-7.1. |
-| TR-72 | CT-6 §3.4 (l. 435) | L'opérateur qui déclare faux. | Menace MN-78 (3.4), risque accepté RA-68 (3.5). |
-| TR-73 | CT-6 §3.4 (l. 437) | L'attestation jointe sans inscription. | Menace MN-85, risque accepté RA-72. |
-| TR-74 | CT-6 §4.2 (l. 496) | Le format de la partie. | Section 7 (7.1 à 7.6). |
-| TR-75 | CT-6 §4.5 (l. 761) | La taille de l'exemple avec inscription. | 7.5. |
-| TR-76 | CT-6 §5.5 (l. 1049) | L'attestation jointe au dossier. | Section 7. |
-| TR-77 | CT-6 §5.5 (l. 1052) | La portée des vérifications AT-. | CT-7 EX-7.1. |
-| TR-78 | CT-6 §5.5 (l. 1084) | Le motif de l'absence d'effet sur le verdict. | CT-7 EX-7.1 ; menaces MN-78 et MN-89. |
-| TR-79 | CT-6 §6.5 (l. 1589) | L'exemple du fragment FP. | 7.5 ; dossiers : annexe A.7. |
-| TR-80 | CT-6 §7.2 (l. 2146) | Le détenteur de la clé et sa classe se constatent hors du vérificateur : procès-verbal d'inscription (CT-2 EX-11.13) et cérémonie des clés. | Le réviseur vérifie le procès-verbal (CR-1 à CR-12) et n'en tire la clé publique et la classe de garde de la ligne `recorders` de son fichier d'ancres qu'aux conditions de CT-7 EX-5.10 : un signataire connu de lui par un canal indépendant du client et un `D_C` ancré en production (5.9, CT-7 EX-5.11). |
-| TR-81 | CT-6 §7.10 (l. 2755) | AT-7 ne compare que des noms de version ; un nom réannoncé avec un autre contenu la fait réussir tant que CT-2 ne l'interdit pas. | PA-9 (6.2) ; menace MN-91, risque accepté RA-75 ; CT-7 EX-7.11. |
-| TR-82 | CT-6 §7.10 (l. 2756) | Ce qu'une conformité réglementaire supposerait. | Section 8 : correspondance technique, pas un avis juridique (CT-7 EX-8.1). |
-| TR-83 | CT-6 §12.5 (l. 5594) | Ligne `recorders` : procès-verbal d'inscription de la clé et cérémonie des clés. | 5.9 (même réponse). |
-| TR-84 | CT-6 §16 (l. 6132) | Le schéma `attestation-perimetre-v0`. | 7.1 ; `spec/schemas/attestation-perimetre-v0.schema.json`. |
-| TR-85 | CT-6 §16 (l. 6134) | Les dossiers de la famille `ct-6`. | Annexe A.7 (EX-A.10). |
-| TR-86 | CT-6 « A.8 Confrontation par des implémentations tierces » (l. 6749) | Les dossiers avec la partie. | Annexe A.7. |
-| TR-87 | CT-6 « B.6 Notes du lot CT-7 (révision 0.3) » (l. 7165) | Les notes de recherche du lot. | Annexe B.1 (R7). |
-| TR-88 | CT-6 « B.6 Notes du lot CT-7 (révision 0.3) » (l. 7167) | Les faits R7-F51 à R7-F53. | Annexe B.1. |
-| TR-89 | CT-6 « B.6 Notes du lot CT-7 (révision 0.3) » (l. 7174) | Les extraits exacts des sources. | Annexe B.1, extraits cités par la section 7. |
-| TR-90 | spec/README.md « Spécifications » (l. 21) | L'état de CT-7. | Ce document, version 0.2 du 2026-11-03 (version 0.1 du 2026-10-26). |
+| TR-62 | CT-5 §1 (l. 280) | Hors périmètre de CT-5 : la cérémonie des identifiants de prestataire. | Les identifiants d'accès ne sont pas des clés de signature : aucune cérémonie, création et rotation consignées (4.2, ligne CLE-11 ; 4.6) ; un certificat client se crée comme une clé de classe C ou D sur le poste du client. |
+| TR-63 | CT-5 §1 (l. 303) | Table des relations : garde et rotation des secrets de l'ancrage ; procédure de statut qualifié d'un prestataire (5.3). | 4.2 (CLE-10 à CLE-12) et 4.6 ; constat du statut qualifié à deux personnes (CT-7 EX-4.5) ; MN-65. |
+| TR-64 | CT-5 §3.4 (l. 522) | Ligne « Composant d'ancrage compromis » : rotation des identifiants (CT-7). | MN-63 (consolidée en 3.3) ; conduite de 4.6 pour CLE-11. |
+| TR-65 | CT-5 §5.5 (l. 1391) | Ajustement de la rétention à toute durée légale plus longue que dix ans. | 8.8, CT-7 EX-8.12 : le client porte les trois paramètres de durée à la plus longue durée légale qui s'applique ; aucune durée de plus de dix ans dans les textes lus ; durées sectorielles non recherchées (lacune L-7) ; cohérence des paramètres : CT-7 EX-8.13, PA-13. |
+| TR-66 | CT-5 §15 (l. 4706) | Garde en module de la clé du serveur interne et sa cérémonie. | Classe A à C exigée (4.3, CR-6) ; cérémonie de création (5.1) ; MN-42, RA-38. |
+| TR-67 | CT-6 « en-tête » (l. 31) | La définition de l'attestation vérifiée par la révision 0.3. | Section 7. |
+| TR-68 | CT-6 §1 (l. 185) | L'attestation que vérifie la partie facultative. | Section 7 ; vérifications : 7.7. |
+| TR-69 | CT-6 §1 (l. 219) | Ce que CT-6 reprend de CT-7 : l'attestation, `D_P`, la règle « déclaré, jamais prouvé ». | 7.2 (CT-7 EX-7.6) et CT-7 EX-7.1 ; ce que CT-7 attend du rapport : CT-7 EX-7.17. |
+| TR-70 | CT-6 §2 (l. 258) | La définition du terme. | Section 7 ; terme défini en section 2. |
+| TR-71 | CT-6 §3.2 (l. 364) | Le périmètre reste une déclaration. | CT-7 EX-7.1. |
+| TR-72 | CT-6 §3.4 (l. 445) | L'opérateur qui déclare faux. | Menace MN-78 (3.4), risque accepté RA-68 (3.5). |
+| TR-73 | CT-6 §3.4 (l. 447) | L'attestation jointe sans inscription. | Menace MN-85, risque accepté RA-72. |
+| TR-74 | CT-6 §4.2 (l. 506) | Le format de la partie. | Section 7 (7.1 à 7.6). |
+| TR-75 | CT-6 §4.5 (l. 771) | La taille de l'exemple avec inscription. | 7.5. |
+| TR-76 | CT-6 §5.5 (l. 1059) | L'attestation jointe au dossier. | Section 7. |
+| TR-77 | CT-6 §5.5 (l. 1062) | La portée des vérifications AT-. | CT-7 EX-7.1. |
+| TR-78 | CT-6 §5.5 (l. 1094) | Le motif de l'absence d'effet sur le verdict. | CT-7 EX-7.1 ; menaces MN-78 et MN-89. |
+| TR-79 | CT-6 §6.5 (l. 1599) | L'exemple du fragment FP. | 7.5 ; dossiers : annexe A.7. |
+| TR-80 | CT-6 §7.2 (l. 2156) | Le détenteur de la clé et sa classe se constatent hors du vérificateur : procès-verbal d'inscription (CT-2 EX-11.13) et cérémonie des clés. | Le réviseur vérifie le procès-verbal (CR-1 à CR-12) et n'en tire la clé publique et la classe de garde de la ligne `recorders` de son fichier d'ancres qu'aux conditions de CT-7 EX-5.10 : un signataire connu de lui par un canal indépendant du client et un `D_C` ancré en production (5.9, CT-7 EX-5.11). |
+| TR-81 | CT-6 §7.10 (l. 2765) | AT-7 ne compare que des noms de version ; un nom réannoncé avec un autre contenu la fait réussir tant que CT-2 ne l'interdit pas. | PA-9 (6.2) ; menace MN-91, risque accepté RA-75 ; CT-7 EX-7.11. |
+| TR-82 | CT-6 §7.10 (l. 2766) | Ce qu'une conformité réglementaire supposerait. | Section 8 : correspondance technique, pas un avis juridique (CT-7 EX-8.1). |
+| TR-83 | CT-6 §12.5 (l. 5626) | Ligne `recorders` : procès-verbal d'inscription de la clé et cérémonie des clés. | 5.9 (même réponse). |
+| TR-84 | CT-6 §16 (l. 6164) | Le schéma `attestation-perimetre-v0`. | 7.1 ; `spec/schemas/attestation-perimetre-v0.schema.json`. |
+| TR-85 | CT-6 §16 (l. 6166) | Les dossiers de la famille `ct-6`. | Annexe A.7 (EX-A.10). |
+| TR-86 | CT-6 « A.8 Confrontation par des implémentations tierces » (l. 6803) | Les dossiers avec la partie. | Annexe A.7. |
+| TR-87 | CT-6 « B.6 Notes du lot CT-7 (révision 0.3) » (l. 7253) | Les notes de recherche du lot. | Annexe B.1 (R7). |
+| TR-88 | CT-6 « B.6 Notes du lot CT-7 (révision 0.3) » (l. 7255) | Les faits R7-F51 à R7-F53. | Annexe B.1. |
+| TR-89 | CT-6 « B.6 Notes du lot CT-7 (révision 0.3) » (l. 7262) | Les extraits exacts des sources. | Annexe B.1, extraits cités par la section 7. |
+| TR-90 | spec/README.md « Spécifications » (l. 21) | L'état de CT-7. | Ce document, version 0.3 du 2026-11-10 (version 0.2 du 2026-11-03, version 0.1 du 2026-10-26). |
 | TR-91 | spec/README.md « Spécifications » (l. 21) | Le lien vers ce document. | Ce document. |
 | TR-92 | spec/README.md « Spécifications » (l. 26) | Ordre d'écriture : CT-7 après CT-3, CT-4 et CT-5. | Respecté (section 1) : CT-7 0.1 reprend CT-2 0.5, CT-3 0.3, CT-4 0.4 et CT-5 0.2 en l'état, et accompagne CT-1 0.4 et CT-6 0.3. |
 | TR-93 | spec/README.md « Schémas (`schemas/`) » (l. 40) | Le schéma de l'attestation. | 7.1. |
@@ -354,7 +366,7 @@ de CT-1 v0 et de CT-2 à CT-5, que CT-7 propose sans les appliquer (6.2, 6.3,
 | Pièce (de la matrice) | Ce qui répond ou contribue à un passage : une partie du dossier (CT-1 §11), un contrôle ou une vérification de CT-6 ou de CT-1, une exigence EX- d'une spécification, une section, une clause de l'annexe C. À distinguer des pièces jointes d'un événement (CT-1 §5.4), purgeables par `pieces_days`, et des pièces comptables de l'Olico et du CO. |
 | Relation | Pour un élément d'un passage : `repond_a` (une pièce de NOORTRACE fait ce que l'élément demande, sous la condition écrite s'il y en a une), `contribue_a` (une pièce aide le client sans faire tout ce qui est demandé), `ne_couvre_pas` (NOORTRACE ne fait pas ce qui est demandé), `releve_du_client` (ce qui est demandé est un acte, une décision ou une qualification du client). |
 | Statut d'une ligne | `couvert`, `partiel` ou `hors_perimetre`, dérivé des relations de ses éléments (EX-8.3). |
-| Applicabilité | État du texte à la date `read_on` de sa dernière lecture (2026-11-03 pour T-2 et T-8, relus selon EX-8.20 ; 2026-10-26 pour les autres textes) tel que les sources lues l'établissent : `en_vigueur`, `vigueur_a_confirmer`, `pas_encore_applicable` (avec ses dates), `publie` (communication ou recommandation, sans force obligatoire propre). |
+| Applicabilité | État du texte à la date `read_on` de sa dernière lecture (2026-11-10 pour T-2 et T-8, relus selon EX-8.20 ; 2026-10-26 pour les autres textes) tel que les sources lues l'établissent : `en_vigueur`, `vigueur_a_confirmer`, `pas_encore_applicable` (avec ses dates), `publie` (communication ou recommandation, sans force obligatoire propre). |
 | Composant tiers | Service qu'un autre que le client exploite et dont NOORTRACE dépend pour une ancre ou une fonction (8.6). |
 | Lacune | Écart entre un passage et ce que NOORTRACE fait, nommé, borné, attribué et suivi d'une réponse (8.9). |
 | Plancher de conservation | Durée minimale qu'une spécification impose à un paramètre de rétention ; elle n'est ni une durée recommandée, ni une durée maximale (8.8). |
@@ -949,7 +961,8 @@ reprises de CT-5 :
 - `c_T` : cadence des contresignatures RFC 3161 des points
   (`rfc3161.checkpoints.interval_s`, 300 s par défaut ; CT-5 P-3) ;
 - `d_jeton` : délai d'obtention du jeton, `genTime + précision − D_k` mesuré,
-  qui se décompose en `d_point + d_attente + d_relève + d_tsa` (CT-5 EX-3.5) ;
+  qui se décompose en `d_point + d_admission + d_attente + d_relève + d_tsa`
+  (CT-5 EX-3.5, révision 0.6) ;
 - `d` : délai d'obtention de l'ancre, entre une échéance et l'instant que
   l'ancre prouve (CT-5 §2) ;
 - `n` : dans la borne dégradée `n × 3600 s + d` de CT-5 §13, le nombre de
@@ -1126,8 +1139,8 @@ tables) :
   "version": 0,
   "kind": "modele-menace",
   "spec": "CT-7",
-  "spec_version": "0.2",
-  "date": "2026-11-03",
+  "spec_version": "0.3",
+  "date": "2026-11-10",
   "components": [
     {
       "id": "hote_agent",
@@ -3016,7 +3029,7 @@ pièces de preuve de NOORTRACE. Pour chaque passage, elle cite le texte
 exactement, dit ce qu'il exige, puis, élément par élément, quelle pièce y répond
 ou y contribue, ce qu'elle ne couvre pas et ce qui relève du client. Elle dit
 aussi quand le texte s'applique : les quatre articles retenus du règlement (UE)
-2024/1689 (art. 12, 14, 19 et 26) ne s'appliquent pas encore au 2026-11-03 (T-8,
+2024/1689 (art. 12, 14, 19 et 26) ne s'appliquent pas encore au 2026-11-10 (T-8,
 EX-8.4) ; la matrice ne retient aucun autre article de ce règlement.
 
 Un responsable de la conformité qui ne lit que cette section trouve, pour un
@@ -3092,19 +3105,19 @@ reste relève du client. Ce n'est jamais « le client est conforme ».
 
 Dix textes, lus le 2026-10-26 sur leurs sources primaires (annexe B, R6) ; les
 deux textes `vigueur_a_confirmer` et `pas_encore_applicable`, T-2 et T-8, ont été
-relus le 2026-11-03 (EX-8.20, annexe B.2). La colonne « Applicabilité » donne
+relus le 2026-11-03, puis le 2026-11-10 (EX-8.20, annexe B.2). La colonne « Applicabilité » donne
 l'état du texte à la date `read_on` de sa dernière lecture :
 
 | Texte | Source | Titre | Nature | Version | Destinataires | Applicabilité | Note |
 |---|---|---|---|---|---|---|---|
 | T-1 | S1 | Communication FINMA sur la surveillance 08/2024, « Gouvernance et gestion des risques en lien avec l'utilisation de l'intelligence artificielle » | `communication_surveillance` | 18 décembre 2024 | assujettis à la surveillance de la FINMA qui utilisent l'IA | `publie` | Une communication sur la surveillance décrit des constats et des points évalués ; elle ne crée pas d'obligation nouvelle. Le texte ne contient aucune occurrence de « journal », « traçab », « trace », « enregistr » ni « piste » (R6-F10). |
-| T-2 | S2 | Circulaire FINMA 2018/3 « Outsourcing » | `circulaire` | du 21 septembre 2017, en vigueur le 1er avril 2018, dernière modification du 4 novembre 2020 | entreprises assujetties qui externalisent une fonction essentielle (Cm 3 et 4) | `vigueur_a_confirmer` | Vigueur déduite de documents de la FINMA, non lue dans un acte (R6-F13, NV-1). Relue le 2026-11-03 (EX-8.20, annexe B.2) : fichier de la circulaire identique à celui lu le 2026-10-26 ; la circulaire figure, avec sa dernière modification du 4 novembre 2020, dans l'aperçu des circulaires actuelles de la FINMA (S18) ; aucune audition en cours (S20) ni aucun projet réglementaire de la FINMA (S4) ne la vise. Les chiffres marginaux ont été lus sur le rendu des pages. Les catégories d'assujettis visées par la circulaire, dont les entreprises d'assurance, n'ont pas été lues (non vérifié) : savoir si elle s'applique au client relève de lui (NV-8). |
+| T-2 | S2 | Circulaire FINMA 2018/3 « Outsourcing » | `circulaire` | du 21 septembre 2017, en vigueur le 1er avril 2018, dernière modification du 4 novembre 2020 | entreprises assujetties qui externalisent une fonction essentielle (Cm 3 et 4) | `vigueur_a_confirmer` | Vigueur déduite de documents de la FINMA, non lue dans un acte (R6-F13, NV-1). Relue le 2026-11-03, puis le 2026-11-10 (EX-8.20, annexe B.2) : fichier de la circulaire identique à celui lu le 2026-10-26 ; la circulaire figure, avec sa dernière modification du 4 novembre 2020, dans l'aperçu des circulaires actuelles de la FINMA (S18) ; aucune des auditions en cours (S20) ni aucun projet réglementaire de la FINMA (S4) ne la vise. Les chiffres marginaux ont été lus sur le rendu des pages. Les catégories d'assujettis visées par la circulaire, dont les entreprises d'assurance, n'ont pas été lues (non vérifié) : savoir si elle s'applique au client relève de lui (NV-8). |
 | T-3 | S5 | Ordonnance sur la protection des données (OPDo, RS 235.11) | `ordonnance` | état le 1er décembre 2025 | responsables du traitement et sous-traitants privés (art. 4 al. 1) ; organes fédéraux (art. 4 al. 2) | `en_vigueur` : à partir du 2025-12-01 (art. 4, nouvelle teneur du 29 octobre 2025 (RO 2025 694)) | Le délai du 31 décembre 2026 de l'art. 46 al. 1 vise l'examen de l'art. 4 al. 2, organes fédéraux seulement (R6-F27). |
 | T-4 | S6 | PFPDT, « Recommandations techniques du PFPDT relative à la journalisation prévue à l'art. 4 OPDo » | `recommandation` | version 1.1 du 15 octobre 2026 | responsables du traitement soumis à l'art. 4 OPDo | `publie` | Recommandations de l'autorité de surveillance ; elles précisent l'art. 4 OPDo sans s'y substituer. |
 | T-5 | S8 | PFPDT, « Update - La loi actuelle sur la protection des données est directement applicable à l'IA » | `recommandation` | publiée le 8 mai 2025 | fabricants, fournisseurs et exploitants de systèmes d'IA | `publie` | Même teneur dans la page « IA et protection des données » du 24 septembre 2025 (S9). Aucun guide du PFPDT propre à la journalisation des systèmes d'IA trouvé (NV-7). |
 | T-6 | S10 | Règlement (UE) 2022/2554 (DORA) | `reglement_ue` | JO L 333 du 27.12.2022 | entités financières au sens du règlement | `en_vigueur` : à partir du 2025-01-17 (tout le règlement (art. 64)) | La qualification du client comme entité financière relève du client (NV-8). Normes techniques sur la sous-traitance et la politique contractuelle non lues (NV-4). L'applicabilité territoriale de ce texte à une entreprise établie en Suisse n'a pas été recherchée (non vérifié) ; elle relève du client et de ses conseils (EX-8.1, NV-8). |
 | T-7 | S11 | Règlement délégué (UE) 2024/1774 (cadre de gestion du risque lié aux TIC) | `reglement_delegue_ue` | JO L du 25.6.2024 | entités financières au sens du règlement (UE) 2022/2554 | `en_vigueur` | Entrée en vigueur le vingtième jour suivant la publication (art. 42) ; le texte ne fixe pas de date d'application distincte, aucune autre date lue (NV-5). L'applicabilité territoriale de ce texte à une entreprise établie en Suisse n'a pas été recherchée (non vérifié) ; elle relève du client et de ses conseils (EX-8.1, NV-8). |
-| T-8 | S12 | Règlement (UE) 2024/1689 sur l'intelligence artificielle | `reglement_ue` | JO L du 12.7.2024 ; consolidation du 27.07.2026 (règlement (UE) 2026/1744), dernière au 2026-11-03, articles cités identiques | fournisseurs (art. 12, 14, 19) et déployeurs (art. 26) de systèmes d'IA à haut risque | `pas_encore_applicable` : à partir du 2027-12-02 (systèmes à haut risque de l'annexe III) ; à partir du 2028-08-02 (systèmes à haut risque de l'annexe I) | Art. 113 point c), tel que modifié par le règlement (UE) 2026/1744 : aucun des art. 12, 14, 19 et 26 ne s'applique au 2026-11-03 (R6-F55, R6-F56). Relu le 2026-11-03 (EX-8.20, annexe B.2) : aucun acte modificatif publié après le règlement (UE) 2026/1744, qui a adopté la proposition COM(2025) 836 (S21) ; la proposition COM(2025) 1023 (S25), non adoptée, ferait passer les dispositifs médicaux de la section A à la section B de l'annexe I, hors des art. 12, 14, 19 et 26 (art. 2 § 2). Le classement d'un système à haut risque relève du client (NV-8). L'art. 12 ne mentionne ni intégrité ni protection contre la manipulation des journaux (constat de lecture, R6-F50) ; NV-10 reste un point non vérifié parce que les normes harmonisées qui préciseraient ce point n'ont pas été lues. L'applicabilité territoriale de ce texte à une entreprise établie en Suisse n'a pas été recherchée (non vérifié) ; elle relève du client et de ses conseils (EX-8.1, NV-8). |
+| T-8 | S12 | Règlement (UE) 2024/1689 sur l'intelligence artificielle | `reglement_ue` | JO L du 12.7.2024 ; consolidation du 27.07.2026 (règlement (UE) 2026/1744), dernière au 2026-11-10, articles cités identiques | fournisseurs (art. 12, 14, 19) et déployeurs (art. 26) de systèmes d'IA à haut risque | `pas_encore_applicable` : à partir du 2027-12-02 (systèmes à haut risque de l'annexe III) ; à partir du 2028-08-02 (systèmes à haut risque de l'annexe I) | Art. 113 point c), tel que modifié par le règlement (UE) 2026/1744 : aucun des art. 12, 14, 19 et 26 ne s'applique au 2026-11-10 (R6-F55, R6-F56). Relu le 2026-11-03, puis le 2026-11-10 (EX-8.20, annexe B.2) : aucun acte modificatif publié après le règlement (UE) 2026/1744, qui a adopté la proposition COM(2025) 836 (S21) ; la proposition COM(2025) 1023 (S25), non adoptée, ferait passer les dispositifs médicaux de la section A à la section B de l'annexe I, hors des art. 12, 14, 19 et 26 (art. 2 § 2). Le classement d'un système à haut risque relève du client (NV-8). L'art. 12 ne mentionne ni intégrité ni protection contre la manipulation des journaux (constat de lecture, R6-F50) ; NV-10 reste un point non vérifié parce que les normes harmonisées qui préciseraient ce point n'ont pas été lues. L'applicabilité territoriale de ce texte à une entreprise établie en Suisse n'a pas été recherchée (non vérifié) ; elle relève du client et de ses conseils (EX-8.1, NV-8). |
 | T-9 | S15 | Ordonnance concernant la tenue et la conservation des livres de comptes (Olico, en allemand GeBüV, RS 221.431) | `ordonnance` | état le 1er janvier 2013 | entreprises tenues de tenir et conserver des livres | `en_vigueur` | Vise les livres et pièces comptables : un journal d'agent n'en fait partie que si le client l'y range (qualification qui relève du client). |
 | T-10 | S16 | Code des obligations (RS 220), art. 958f | `loi` | état le 1er octobre 2026 (même texte de l'art. 958f au 1er juillet 2027) | entreprises tenues de tenir une comptabilité | `en_vigueur` | Même remarque que pour l'Olico : la qualification du journal relève du client. |
 
@@ -3115,10 +3128,10 @@ vigueur : les art. 12, 14, 19 et 26 du règlement (UE) 2024/1689 s'appliquent
 à partir du 2 décembre 2027 pour les systèmes de l'annexe III et du 2 août 2028
 pour ceux de l'annexe I (art. 113 point c), tel que modifié par le règlement
 (UE) 2026/1744 ; R6-F55, R6-F56) ; leur texte est identique dans la
-consolidation du 27.07.2026 (R6-F57), la dernière au 2026-11-03 (annexe B.2).
+consolidation du 27.07.2026 (R6-F57), la dernière au 2026-11-10 (annexe B.2).
 Une ligne d'un texte `vigueur_a_confirmer` DOIT dire que la vigueur est à
 confirmer : c'est le cas de la circulaire FINMA 2018/3, dont la vigueur, au
-2026-10-26 comme à la relecture du 2026-11-03, est déduite de documents de la
+2026-10-26 comme aux relectures du 2026-11-03 et du 2026-11-10, est déduite de documents de la
 FINMA et non lue dans un acte (R6-F13, annexe B.2 ; lacune L-8). L'art. 4 OPDo s'applique dans sa
 nouvelle teneur depuis le 1er décembre 2025 (R6-F24) ; le délai du 31 décembre
 2026 de l'art. 46 al. 1 OPDo vise les seuls organes fédéraux (R6-F27) et la
@@ -3130,19 +3143,19 @@ distincte (R6-F48, point non vérifié NV-5). Les valeurs `en_vigueur` ou
 Pour les textes de l'Union (T-6, T-7, T-8), l'applicabilité territoriale à une
 entreprise établie en Suisse n'a pas été recherchée (non vérifié) ; elle relève
 du client et de ses conseils (EX-8.1, NV-8). Pour la circulaire FINMA 2018/3, la
-vigueur au 2026-11-03 n'a pas été lue dans un acte (NV-1), et les catégories
+vigueur au 2026-11-10 n'a pas été lue dans un acte (NV-1), et les catégories
 d'assujettis visées, dont les entreprises d'assurance, n'ont pas été lues (non
 vérifié) ; savoir si elle s'applique au client relève de lui (NV-8).
 
-La matrice est datée du 2026-11-03 (`date`), jour de la relecture qu'EX-8.20
-impose à la version 0.2. L'applicabilité d'un texte et de ses lignes est celle
-de la date `read_on` de sa dernière lecture : 2026-11-03 pour T-2 et T-8 et
+La matrice est datée du 2026-11-10 (`date`), jour de la relecture qu'EX-8.20
+impose à la version 0.3. L'applicabilité d'un texte et de ses lignes est celle
+de la date `read_on` de sa dernière lecture : 2026-11-10 pour T-2 et T-8 et
 leurs lignes (MC-7 à MC-14, MC-42 à MC-50), relus sur leurs sources primaires
 (annexe B.2) ; 2026-10-26 pour les huit autres textes et leurs lignes,
 qu'EX-8.20 ne fait pas relire. R6-F66, lu le 2026-10-27 et cité par l'annexe C
 (CL-5), complète la lecture de DORA art. 30 sans changer d'applicabilité. Les
 numéros de ligne de 0.2 désignent l'état des autres spécifications au
-2026-11-03 (révision 0.2).
+2026-11-10 (révision 0.3).
 
 ### 8.3 Forme lisible par machine : `matrice-conformite.json`
 
@@ -3152,7 +3165,7 @@ matrice ; son schéma est `spec/schemas/matrice-conformite-v0.schema.json`
 
 | Membre | Contenu |
 |---|---|
-| `version`, `family`, `spec`, `spec_version`, `date` | `0`, `"matrice-conformite"`, `"CT-7"`, `"0.2"`, `"2026-11-03"` |
+| `version`, `family`, `spec`, `spec_version`, `date` | `0`, `"matrice-conformite"`, `"CT-7"`, `"0.3"`, `"2026-11-10"` |
 | `warning` | l'avertissement, constante du schéma |
 | `texts[]` | `id` (T-), `source` (annexe B), `title`, `nature`, `version`, `url`, `read_on`, `addressee`, `applicability` (`status`, `from[]` : `{date, scope}`, `note`) |
 | `rows[]` | `id` (MC-), `text`, `reference` (article, alinéa, lettre, chiffre marginal), `facts` (renvois aux faits de la note R6 ou R7, annexe B), `quote` (citation exacte, segments joints par « […] »), `source_url`, `read_on`, `requirement`, `applicability`, `elements[]` (`element`, `relation`, `pieces[]`, `condition`), `status` |
@@ -3187,8 +3200,8 @@ fichier publié, qui en a 58) :
   "version": 0,
   "family": "matrice-conformite",
   "spec": "CT-7",
-  "spec_version": "0.2",
-  "date": "2026-11-03",
+  "spec_version": "0.3",
+  "date": "2026-11-10",
   "warning": "Cette matrice établit une correspondance technique entre des passages de textes et des pièces de preuve produites par NOORTRACE. Elle n'est pas un avis juridique et ne dit jamais qu'un client est conforme : la qualification du client, l'applicabilité de chaque texte et la conformité relèvent du client et de ses conseils.",
   "texts": [
     {
@@ -3304,7 +3317,7 @@ Une ligne `partiel` d'un texte pas encore applicable :
   ],
   "quote": "6. Les déployeurs de systèmes d’IA à haut risque assurent la tenue des journaux générés automatiquement par ce système d’IA à haut risque dans la mesure où ces journaux se trouvent sous leur contrôle, pendant une période adaptée à la destination du système d’IA à haut risque, d’au moins six mois, sauf disposition contraire dans le droit de l’Union ou le droit national applicable, en particulier dans le droit de l’Union sur la protection des données à caractère personnel.",
   "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
-  "read_on": "2026-11-03",
+  "read_on": "2026-11-10",
   "requirement": "Le déployeur tient les journaux sous son contrôle pendant une période adaptée, d'au moins six mois.",
   "applicability": "pas_encore_applicable",
   "elements": [
@@ -3730,7 +3743,7 @@ et `gaps` de `matrice-conformite.json` disent la même chose (MX-8).
 | L-5 | Plancher de dix ans pour les données personnelles en ligne des événements | MC-23, MC-47, MC-50 | `proposition` | Touche les valeurs en ligne de CT-2 EX-10.2 (`delegation`, `intent`, `effects`, `code.model`, nom de prompt, motifs et adresses d'approbation) et, hors chaîne, `participants[].name` et `affiliation` des procès-verbaux (section 5), `prepared_by.identity` et les signataires des attestations (section 7) ; les pièces sont purgeables et rédigées. | proposition PA-12 à CT-2 et PA-13 à CT-5 ; risque accepté par le client tant qu'elles ne sont pas adoptées | CT-7 EX-8.14 |
 | L-6 | Sorties ignorées, remplacées ou inversées hors approbation non capturées | MC-3, MC-44 | `risque_accepte` | Seuls les refus et expirations d'approbation sont journalisés et signés. | client (journalisation de l'application) ; proposition PA-16 pour une version 1 | CT-7 EX-8.19 |
 | L-7 | Durées sectorielles de conservation non recherchées | MC-57 | `releve_du_client` | Les paramètres de durée acceptent toute valeur supérieure au plancher. | client (NV-6) | CT-7 EX-8.12 |
-| L-8 | Vigueur de la circulaire FINMA 2018/3 au 2026-11-03 non lue dans un acte | MC-7, MC-8, MC-9, MC-10, MC-11, MC-12, MC-13, MC-14 | `renvoi` | Les lignes restent valables comme correspondance technique ; leur statut juridique est à confirmer. Pour la circulaire FINMA 2018/3, la vigueur au 2026-11-03 n'a pas été lue dans un acte (NV-1 ; relecture d'EX-8.20, annexe B.2), et les catégories d'assujettis visées, dont les entreprises d'assurance, n'ont pas été lues (non vérifié) ; savoir si elle s'applique au client relève de lui (NV-8). | prochaine révision de CT-7 (NV-1) | CT-7 EX-8.4 |
+| L-8 | Vigueur de la circulaire FINMA 2018/3 au 2026-11-10 non lue dans un acte | MC-7, MC-8, MC-9, MC-10, MC-11, MC-12, MC-13, MC-14 | `renvoi` | Les lignes restent valables comme correspondance technique ; leur statut juridique est à confirmer. Pour la circulaire FINMA 2018/3, la vigueur au 2026-11-10 n'a pas été lue dans un acte (NV-1 ; relectures d'EX-8.20, annexe B.2), et les catégories d'assujettis visées, dont les entreprises d'assurance, n'ont pas été lues (non vérifié) ; savoir si elle s'applique au client relève de lui (NV-8). | prochaine révision de CT-7 (NV-1) | CT-7 EX-8.4 |
 | L-9 | Archivage du journal d'exploitation au-delà de `logging.keep_files` non spécifié | MC-54 | `renvoi` | Le démon ne garde que `logging.keep_files` fichiers tournés ; la durée du journal (CT-2 EX-9.6) n'est tenue pour le journal d'exploitation que si le client archive les fichiers tournés. | CT-8 ; proposition PA-15 étendue à l'archivage des fichiers tournés | CT-7 EX-8.19 |
 | L-10 | Contrôle périodique de l'intégrité et de la lisibilité des segments anciens et de leurs copies WORM non spécifié | MC-21, MC-55 | `proposition` | Segments fermés du jour et de l'heure contrôlés (CT-2 EX-17.5) ; tout dossier exporté se revérifie entièrement (CT-6 §5.1). | proposition PA-17 à CT-2 (EX-17.5) | CT-7 EX-8.19 |
 
@@ -3899,10 +3912,10 @@ conformité » échoue, quels que soient ses autres éléments.
   conformité relèvent du client et de ses conseils (NV-8).
 - **Les durées de conservation sectorielles** (droit bancaire, droit des
   assurances, LBA) : non recherchées (lacune L-7, NV-6).
-- **La vigueur de la circulaire FINMA 2018/3 au 2026-11-03** et une date
+- **La vigueur de la circulaire FINMA 2018/3 au 2026-11-10** et une date
   d'application propre du règlement délégué (UE) 2024/1774 : non lues dans
-  un acte (lacune L-8, NV-1, NV-5) ; la relecture d'EX-8.20 du 2026-11-03 n'a
-  trouvé aucun acte qui établisse la première (annexe B.2), et la prochaine
+  un acte (lacune L-8, NV-1, NV-5) ; les relectures d'EX-8.20 du 2026-11-03 et
+  du 2026-11-10 n'ont trouvé aucun acte qui établisse la première (annexe B.2), et la prochaine
   version de CT-7 relit la circulaire (EX-8.20).
 
 ## 11. Alignement avec le dépôt
@@ -3936,9 +3949,20 @@ suit la révision 0.4 de CT-6. Mêmes conventions que la table précédente.
 | `spec/vecteurs/ct-7/verificateur-independant/` | clés `ed25519` de `ct-6` contrôlées par `spki_sha256`, comme les clés `rsa` ; clé privée RSA d'exposant 2³¹ + 1 lue sans borne d'exposant (EX-A.7) | fait : n et e lus dans `RSAPrivateKey`, `SubjectPublicKeyInfo` `rsaEncryption` à paramètres `NULL` construit ; un test pour chaque règle ; 0 discordance |
 | `spec/schemas/ceremonie-cles-v0.schema.json` | description de `$defs/cles_de_test` alignée sur EX-A.7 (une clé de `ct-6`, Ed25519 comprise, n'a que `spki_sha256`), sans changement de contrainte | fait |
 | `scripts/vecteurs/generer-ct7.mjs` | consignes des épreuves de la section 9 : le document remis est la version 0.2 | fait (trois consignes ; deux générations identiques) |
-| `spec/README.md` | CT-7 version 0.2 du 2026-11-03 | à faire |
-| Plan de tests | tests adversariaux de MN-61 et MN-68 : couverture égale aux renvois nouveaux de leur réponse ; numéros de ligne des renvois vers ce document | à faire (régénération du catalogue) |
+| `spec/README.md` | CT-7 version 0.2 du 2026-11-03 | fait |
+| Plan de tests | tests adversariaux de MN-61 et MN-68 : couverture égale aux renvois nouveaux de leur réponse ; numéros de ligne des renvois vers ce document | fait (révision 0.3 du plan de tests, catalogue régénéré) |
 | Section 8, annexe B.2 ; `scripts/conformite/matrice-donnees.mjs`, `spec/vecteurs/ct-7/matrice-conformite.json` et `matrice/invalides/` | relecture d'EX-8.20 des textes `vigueur_a_confirmer` (T-2) et `pas_encore_applicable` (T-8) pour la version 0.2, sur leurs sources primaires : statuts et dates inchangés, citations identiques ; matrice datée du 2026-11-03, `spec_version` 0.2 ; `read_on` du 2026-11-03 pour T-2, T-8, MC-7 à MC-14 et MC-42 à MC-50 ; notes de T-2 et T-8, version de T-8 et lacune L-8 mises à jour ; sources S18 à S25 ; fichiers régénérés par `npm run vecteurs:ct7` | fait (relecture du 2026-11-03, annexe B.2) |
+
+La révision 0.3 (2026-11-10) ne clôt aucune décision de l'architecture ; elle
+suit la révision 0.6 de CT-5. Mêmes conventions que les tables précédentes.
+
+| Emplacement | Attendu par CT-7 0.3 | État |
+|---|---|---|
+| Section 3.5 (grandeurs des bornes) | `d_jeton` décomposé en cinq composantes, `d_point + d_admission + d_attente + d_relève + d_tsa` (CT-5 EX-3.5, révision 0.6) | fait |
+| Section 8, annexe B.2 ; `scripts/conformite/matrice-donnees.mjs`, `spec/vecteurs/ct-7/matrice-conformite.json` et `matrice/invalides/` | relecture d'EX-8.20 des textes T-2 et T-8 pour la version 0.3 : statuts et dates inchangés, citations identiques ; matrice datée du 2026-11-10, `spec_version` 0.3 ; `read_on` du 2026-11-10 pour T-2, T-8, MC-7 à MC-14 et MC-42 à MC-50 ; notes de T-2 et T-8, version de T-8 et lacune L-8 mises à jour ; lignes S18 et S20 de B.2 ; fichiers régénérés par `npm run vecteurs:ct7` | fait (relecture du 2026-11-10, annexe B.2) |
+| `spec/vecteurs/ct-7/menaces.json` ; `scripts/vecteurs/generer-ct7.mjs` et les trois consignes `acceptation-*/consigne.md` | `spec_version` 0.3 et `date` 2026-11-10 ; consignes des épreuves de la section 9 : le document remis est la version 0.3 ; `INDEX.md` inchangé | fait (deux générations identiques) |
+| Section 0.2 | numéros de ligne recalculés sur l'état des autres spécifications au 2026-11-10 (CT-2 révision 0.7, CT-5 révision 0.6) | fait |
+| `spec/README.md` ; plan de tests | CT-7 version 0.3 du 2026-11-10 ; numéros de ligne des renvois vers ce document | fait (`spec/README.md` ; révision 0.5 du plan de tests) |
 
 ## Annexe A — Vecteurs, implémentation, intégration continue
 
@@ -4470,7 +4494,7 @@ famille `matrice` n'ajoute rien à `ct-1` ni à `ct-6`.
 Les faits externes de CT-7 viennent de deux notes de recherche internes du
 lot, non publiées : R6 (réglementation) et R7 (sécurité et cérémonies),
 relues le 2026-10-26 sur les sources primaires qu'elles citent ; les sources des
-textes T-2 et T-8 ont été relues le 2026-11-03 selon EX-8.20 (B.2). Un fait porte
+textes T-2 et T-8 ont été relues le 2026-11-03, puis le 2026-11-10, selon EX-8.20 (B.2). Un fait porte
 le renvoi « R6-Fn » ou « R7-Fn » ; un point non vérifié porte « NV-n » (R6) ou
 renvoie à la section 2 de R7. Cette annexe donne, pour chaque renvoi, l'objet
 du fait, la source primaire publique, son URL, la date de lecture et, quand le
@@ -4536,8 +4560,11 @@ Extraits cités par la section 7 (attestation de périmètre) :
 
 Toutes les sources sont lues le 2026-10-26 (R6-F66 le 2026-10-27), en français,
 langue officielle de chacune ; S2 à S4 et S12 à S14 sont relues, et S18 à S25
-lues, le 2026-11-03 (relecture d'EX-8.20, ci-dessous), en français sauf S24,
-publiée en allemand seulement. Les citations de la section 8 sont recopiées mot
+lues, le 2026-11-03, puis toutes relues le 2026-11-10 (relectures d'EX-8.20,
+ci-dessous), en français sauf S24, publiée en allemand seulement. Les lignes de
+S18 et de S20, dont le contenu a changé entre ces deux dates, décrivent le
+fichier lu le 2026-11-10 ; celles des autres sources valent pour les deux
+lectures, leurs fichiers étant identiques octet pour octet. Les citations de la section 8 sont recopiées mot
 pour mot ; « […] » marque une coupe ; un appel de note, une note de bas de page
 ou un numéro de page qu'un saut de page intercale sont omis. Pour la circulaire
 FINMA 2018/3, les chiffres marginaux ont été lus sur le rendu des pages, la
@@ -4567,9 +4594,9 @@ français.
 | S15 | Olico (RS 221.431), état le 1.1.2013, FR | https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2002/216/20130101/fr/html/fedlex-data-admin-ch-eli-cc-2002-216-20130101-fr-html-6.html | `f3826ca042ffa06b9ec37945666148ea8e46583b4895879f3e4692e42b667452` |
 | S16 | Code des obligations, état le 1.10.2026, FR | https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/27/317_321_377/20261001/fr/html/fedlex-data-admin-ch-eli-cc-27-317_321_377-20261001-fr-html-3.html | `706344c71bcdd08aa450796e9d88263acf762c933058277e4975339b2a8bd75e` |
 | S17 | Code des obligations, état le 1.7.2027 (comparaison de l'art. 958f) | https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/27/317_321_377/20270701/fr/html/fedlex-data-admin-ch-eli-cc-27-317_321_377-20270701-fr-html-4.html | `e3aaba1989e08e8558ebfbf6042e1b9733ceddc3aeb75ee5f5fe7030a898376e` |
-| S18 | FINMA, « Pratique de la FINMA en matière de surveillance », aperçu des circulaires actuelles de la FINMA, FR : 38 documents, dont « 2018/03 Circulaire FINMA Outsourcing (21.09.2017) », dernière modification du 04.11.2020, lien vers le fichier de S2 ; la page reçoit la liste par une requête POST à https://www.finma.ch/fr/api/search/getresult (source `{3009DAA1-E9A3-4CF1-B0F0-8059B9A37AFA}`) ; le SHA-256 est celui de la réponse JSON lue | https://www.finma.ch/fr/documentation/circulaires/ | `3eb84d4eb78641d5c0ea3b0289ab00742a34bf981b6fface2083203ffdad3aab` |
+| S18 | FINMA, « Pratique de la FINMA en matière de surveillance », aperçu des circulaires actuelles de la FINMA, FR : 37 documents, dont « 2018/03 Circulaire FINMA Outsourcing (21.09.2017) », dernière modification du 04.11.2020, lien vers le fichier de S2 ; la page reçoit la liste par une requête POST à https://www.finma.ch/fr/api/search/getresult (source `{3009DAA1-E9A3-4CF1-B0F0-8059B9A37AFA}`) ; le SHA-256 est celui de la réponse JSON lue | https://www.finma.ch/fr/documentation/circulaires/ | `1a8355db26dbd626c7fe472748e3d6050a0e12c9c033739efbaf73e513f5434c` |
 | S19 | FINMA, archives, « Circulaires », FR : « Les versions actuelles des circulaires se trouvent ici » (renvoi à l'aperçu de S18) ; « Les ordonnances de la FINMA, elles, sont disponibles dans le Recueil officiel du droit fédéral. » | https://www.finma.ch/fr/documentation/circulaires/archiv/ | `c8677be8454f8143afbea0006c369e5079c88ae69c030022fbc429b2fad6a489` |
-| S20 | FINMA, « Auditions de la FINMA en cours », FR : une seule audition, « Circulaire 2017/6 «Transmission directe» (30.9.2026–27.11.2026) » | https://www.finma.ch/fr/documentation/auditions/auditions-en-cours/ | `df091f5f2035e17fdee36845146ab20a5e9941eb7e65b80ba5546bdabf94f70f` |
+| S20 | FINMA, « Auditions de la FINMA en cours », FR : deux auditions, « Circulaire 2019/2 «Risques de taux – banques» (4.11.2026-15.1.2027) » et « Circulaire 2017/6 «Transmission directe» (30.9.2026–27.11.2026) » | https://www.finma.ch/fr/documentation/auditions/auditions-en-cours/ | `693b0e89aede172bd8d137dc269993271709a024a47f19f998c52b8e3867af74` |
 | S21 | Proposition de règlement du Parlement européen et du Conseil modifiant les règlements (UE) 2024/1689 et (UE) 2018/1139 (train de mesures omnibus numérique sur l'IA), COM(2025) 836 final du 19.11.2025, procédure 2025/0359(COD), FR | http://publications.europa.eu/resource/celex/52025PC0836 | `38af7ff0491c5018f61dd5fb6b0d5dfe698a2ca6f5710dd644ed5f8b510fd881` |
 | S22 | Rectificatif au règlement (UE) 2024/1689, JO L 2025/90802 du 9.10.2025, FR (art. 10 § 2 seulement ; ELI http://data.europa.eu/eli/reg/2024/1689/corrigendum/2025-10-09/oj) | http://publications.europa.eu/resource/celex/32024R1689R%2801%29 | `327317ca859cbc419d83df8fd453f9fa0faad66e5bdaea32586eb0be11dff71f` |
 | S23 | Décision d'exécution (UE) 2026/2274 de la Commission du 12 octobre 2026 concernant les normes harmonisées relatives aux systèmes d'IA à haut risque, JO L du 14.10.2026, FR | http://publications.europa.eu/resource/celex/32026D2274 | `af0f0bab43452ff27a4bb34a5ba64bcb6c908e9d75f79746a2c065e18a1bd173` |
@@ -4729,8 +4756,54 @@ des circulaires actuelles, archives, auditions en cours, projets réglementaires
   `pas_encore_applicable` et dates du 2027-12-02 (annexe III) et du 2028-08-02
   (annexe I) maintenus.
 
+Relecture du 2026-11-10 (EX-8.20), pour la version 0.3, des mêmes textes T-2
+et T-8, par la même méthode : S2 à S4, S12 à S14 et S18 à S25 téléchargées à
+nouveau à leur URL officielle et leur SHA-256 comparé à celui de la lecture du
+2026-11-03 ; citations recherchées par script, segment par segment (EX-8.6) ;
+versions, consolidations, actes modificatifs, rectificatifs, décisions de
+publication de normes harmonisées et propositions cherchés par le point SPARQL
+de l'Office des publications (mêmes questions, documents datés jusqu'au
+10 novembre 2026), et sur le site de la FINMA.
+
+- **T-2, circulaire FINMA 2018/3.** S2, S3, S4 et S19 sont identiques octet
+  pour octet aux fichiers lus le 2026-11-03 ; S4 reste l'état au
+  1er septembre 2026 et ne nomme pas la circulaire 2018/3. Les huit citations
+  de MC-7 à MC-14 figurent mot pour mot dans S2 ; les chiffres marginaux n'ont
+  pas été relus sur le rendu des pages, la lecture du 2026-10-26 valant pour ce
+  fichier identique. S18 a changé (SHA-256 du 2026-11-03 :
+  `3eb84d4eb78641d5c0ea3b0289ab00742a34bf981b6fface2083203ffdad3aab`) : la
+  liste compte 37 documents au lieu de 38, l'ancienne version de la circulaire
+  2016/7 (« valable jusqu'au 30.10.2026 ») en étant retirée ; l'entrée « 2018/03
+  Circulaire FINMA Outsourcing (21.09.2017) » est identique dans tous ses
+  champs, dernière modification du 04.11.2020 et lien vers le fichier de S2.
+  S20 a changé (SHA-256 du 2026-11-03 :
+  `df091f5f2035e17fdee36845146ab20a5e9941eb7e65b80ba5546bdabf94f70f`) : une
+  seconde audition, sur la circulaire 2019/2 « Risques de taux – banques »
+  (4.11.2026-15.1.2027), s'ajoute à celle de la circulaire 2017/6 ; aucune ne
+  vise la circulaire 2018/3. Aucun acte qui abroge ou modifie la circulaire
+  n'a été trouvé ; le Recueil officiel du droit fédéral n'a pas été consulté
+  (non vérifié). Statut `vigueur_a_confirmer` maintenu, sans date (NV-1,
+  lacune L-8).
+- **T-8, règlement (UE) 2024/1689.** S12 à S14 et S21 à S25 sont identiques
+  octet pour octet aux fichiers lus le 2026-11-03. La consolidation du
+  27.07.2026 (S13) reste la dernière ; le règlement (UE) 2026/1744 reste le
+  seul acte modificatif ; les rectificatifs restent R(01) à R(04) pour le
+  règlement (UE) 2024/1689 et R(01), en allemand seulement, pour le règlement
+  (UE) 2026/1744 ; la décision d'exécution (UE) 2026/2274 (S23) reste la seule
+  décision de publication de normes harmonisées à l'appui du règlement. La
+  proposition COM(2025) 1023 (S25) n'est pas adoptée au 2026-11-10 : aucun acte
+  adopté ni position du Parlement européen n'est rattaché à sa procédure
+  2025/0404(COD), dont le dernier document est un document de travail du
+  Conseil du 5 novembre 2026, non lu (non vérifié). Le texte de l'art. 113,
+  troisième alinéa, point c), cité ci-dessus, figure mot pour mot dans S13 ;
+  les neuf citations de MC-42 à MC-50 figurent mot pour mot dans S12 et S13.
+  Le site EUR-Lex et le registre du Conseil n'ont pas été consultés, et
+  l'Office des publications peut indexer un acte avec retard (non vérifié).
+  Statut `pas_encore_applicable` et dates du 2027-12-02 (annexe III) et du
+  2028-08-02 (annexe I) maintenus.
+
 Non vérifié (R6, section 2), et sur quoi aucune ligne de la matrice ne fonde une
-relation `repond_a` : la vigueur de la circulaire FINMA 2018/3 au 2026-11-03,
+relation `repond_a` : la vigueur de la circulaire FINMA 2018/3 au 2026-11-10,
 déduite et non lue dans un acte (NV-1, lacune L-8) ; l'absence de communication
 FINMA propre à l'IA postérieure au 18 décembre 2024 (NV-2) ; le contenu de la
 circulaire FINMA 2023/1 « Risques et résilience opérationnels – banques »
