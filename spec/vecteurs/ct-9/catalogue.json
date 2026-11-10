@@ -8288,7 +8288,7 @@
           {
             "file": "test/enregistreur-journal-soi.test.js",
             "describe": "TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3 à Object Lock en conteneur) : worm_legal_hold_observed, worm_copy_failed puis reprise, copie conforme d'ancres/",
-            "it": "JS-10 perte d'une copie WORM : support suspendu (docker pause) pendant la clôture → worm_copy_failed (injoignable) ; support repris → le balayage de la supervision copie ce qui manque, noortrace_worm_copy_pending retombe"
+            "it": "JS-10 perte d'une copie WORM : support coupé (partition TCP entre le démon et le support) pendant la clôture → worm_copy_failed (injoignable) ; support rétabli → le balayage de la supervision copie ce qui manque, noortrace_worm_copy_pending retombe"
           },
           {
             "file": "test/enregistreur-coeur-config.test.js",

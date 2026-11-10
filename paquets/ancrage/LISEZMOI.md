@@ -770,6 +770,21 @@ par lot. Chaque lecture est vérifiée par les vecteurs quand ils la couvrent.
     de la période jamais renvoyée ; après : renvoi au reçu de l'ancre du
     point) ; JS-11 passe quatre fois sur quatre. Les traces de CT-5
     rejouées sont inchangées.
+16. **`Content-Length` de la soumission OpenTimestamps** (EX-6.2 : « `POST
+    <url>/digest`, corps = les 32 octets, en-tête `Accept` »). Le transport
+    par défaut posait `Content-Length` à la main en plus du corps
+    `Uint8Array` ; `fetch` le calcule déjà. Selon la version d'undici
+    embarquée par Node, l'en-tête partait deux fois, et un serveur qui reçoit
+    deux `Content-Length` répond `400` (le serveur HTTP de Node le fait avant
+    tout gestionnaire) : sur l'intégration continue (Node 22 plus récent que
+    celui de la machine de construction), aucune soumission n'atteignait les
+    calendriers factices, `calendriers_insuffisants` à chaque essai ; un vrai
+    calendrier derrière un frontal strict aurait fait de même. Lecture
+    retenue : l'en-tête n'est pas posé, `fetch` l'écrit une fois. Essai :
+    « POST : méthode, Accept, corps de 32 octets sans Content-Length posé à
+    la main … » de `test/ancrage-ots-calendriers.test.js` ; constat du
+    serveur de Node (deux `Content-Length` : `400 Bad Request`, gestionnaire
+    jamais appelé) reproduit sur la machine de construction.
 
 ### Lot H1 (corrections après la relecture adversariale de l'étape 5)
 

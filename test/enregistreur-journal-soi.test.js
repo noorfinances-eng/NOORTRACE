@@ -32,7 +32,7 @@ import {
   monterDemon, Demon, repertoireTemporaire, portLibre, enAttente, GRAINE_CLE_CHAINE,
 } from "./fixtures/enregistreur-ancrage/outils.mjs";
 import {
-  IMAGES, dockerDisponible, demarrerS3, arreterTout, certificats, mandataireTls, creerBucketVerrouille, identifiantsRole, fichierSecret, suspendre,
+  IMAGES, dockerDisponible, demarrerS3, arreterTout, certificats, mandataireTls, creerBucketVerrouille, identifiantsRole, fichierSecret, PartitionTcp,
 } from "./fixtures/enregistreur-worm/outils.mjs";
 
 const BASE = Date.UTC(2026, 10, 6, 9, 0, 2); // 2026-11-06T09:00:02Z, période [09:00, 10:00)
@@ -448,6 +448,7 @@ describe("TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3
   let dir;
   let tls;
   let prox;
+  let partition;
   let s3;
   let m;
   let demon;
@@ -458,7 +459,12 @@ describe("TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3
     dir = repertoireTemporaire("noortrace-te14-worm-");
     s3 = await demarrerS3(`noortrace-test-te14-${process.pid}`);
     tls = certificats(path.join(dir, "tls-worm"));
-    prox = await mandataireTls(tls, { port: s3.port });
+    // Démon → mandataire TLS → partition TCP coupable → support : couper la partition rend le support injoignable sans
+    // qu'aucune requête n'y arrive plus tard (une requête gardée en tampon par docker pause était traitée à la reprise,
+    // en même temps que la copie du balayage, et la clé recevait une seconde version).
+    partition = new PartitionTcp({ port: s3.port });
+    await partition.ecouter();
+    prox = await mandataireTls(tls, { port: partition.port });
     const bucket = `noortrace-te14-${process.pid}`;
     await creerBucketVerrouille(prox.origine, bucket, { ca: tls.caPem, jours: 4018, mode: "COMPLIANCE" });
     m = await monterDemon({
@@ -484,6 +490,7 @@ describe("TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3
     if (demon?.p) await demon.arreter().catch(() => {});
     await m?.fermer?.();
     await prox?.fermer();
+    await partition?.fermer();
     arreterTout();
     if (dir) fs.rmSync(dir, { recursive: true, force: true });
   });
@@ -500,11 +507,11 @@ describe("TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3
     return true;
   }
 
-  it("JS-10 perte d'une copie WORM : support suspendu (docker pause) pendant la clôture → worm_copy_failed (injoignable) ; support repris → le balayage de la supervision copie ce qui manque, noortrace_worm_copy_pending retombe", async function () {
+  it("JS-10 perte d'une copie WORM : support coupé (partition TCP entre le démon et le support) pendant la clôture → worm_copy_failed (injoignable) ; support rétabli → le balayage de la supervision copie ce qui manque, noortrace_worm_copy_pending retombe", async function () {
     if (!pret.call(this)) return;
-    // Le support est suspendu avant toute copie (aucune requête en vol au moment de la pause : une copie acceptée par le support
+    // Le support est coupé avant toute copie (aucune requête en vol au moment de la coupure : une copie acceptée par le support
     // mais sans réponse donnerait une seconde version au balayage, worm_versions_unexpected) ; il le reste pendant la clôture.
-    suspendre(s3.nom, true);
+    partition.couper();
     try {
       await demon.evenement(1);
       await demon.attendre((l) => l.filter((x) => x.event === "checkpoint_written").length >= 2, 60000, "deux points");
@@ -515,7 +522,7 @@ describe("TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3
       expect(echec.component).to.equal("worm");
       expect(["injoignable", "erreur", "statut"]).to.include(echec.data.raison);
     } finally {
-      suspendre(s3.nom, false);
+      partition.retablir();
     }
     await demon.attendre((l) => l.some((x) => x.event === "period_timestamped"), 180000, "period_timestamped");
     const r = await demon.commande({ cmd: "worm", action: "balayer" });

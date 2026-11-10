@@ -338,8 +338,10 @@ export function transportHttps({ fetch: fetchInjecte, tailleMax = BORNES.REPONSE
     return { status: reponse.status, entetes, corps };
   };
   return {
-    post: (url, octets, entetes, delaiMs, options) =>
-      executer(url, { method: "POST", headers: { ...entetes, "Content-Length": String(octets.length) }, body: octets }, delaiMs, options),
+    // Content-Length n'est pas posé : fetch le calcule pour un corps Uint8Array. Posé à la main, certaines versions
+    // d'undici l'envoient en plus du leur, et un serveur qui reçoit deux Content-Length rend 400 (le serveur HTTP de
+    // Node le fait avant tout gestionnaire) : la soumission échouait sur tous les calendriers.
+    post: (url, octets, entetes, delaiMs, options) => executer(url, { method: "POST", headers: { ...entetes }, body: octets }, delaiMs, options),
     get: (url, entetes, delaiMs, options) => executer(url, { method: "GET", headers: { ...entetes } }, delaiMs, options),
   };
 }

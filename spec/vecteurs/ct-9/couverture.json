@@ -43,7 +43,7 @@
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "de6c48396e7cd4a1277a1a7e735fd256efb1918ea109e601e88f5926ab263800"
+      "sha256": "969262f8a0128364dccb6213c283679989ca018f22d64fff33c5a1df5d0d9d2d"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -80,7 +80,7 @@
       },
       {
         "file": "test/ancrage-ots-calendriers.test.js",
-        "sha256": "fffa2e3823d167517bed0173a0802c53659d0e9c580c3185cb70f10587596555"
+        "sha256": "a1a4a440373100389ffb45b1cdcd603ec94210dc3b427410d60e74fcea93ef3f"
       },
       {
         "file": "test/ancrage-ots.test.js",
@@ -140,7 +140,7 @@
       },
       {
         "file": "test/ancrage-tsa-interne-autorite.test.js",
-        "sha256": "97101154250d44b69642987539351602e556861d81cf046ef4e56e461a38e867"
+        "sha256": "68634b393d9916decb46576a964475f84ef561aa929a09f3acb8d0f76e761196"
       },
       {
         "file": "test/ancrage-tsa-interne-der.test.js",
@@ -260,7 +260,7 @@
       },
       {
         "file": "test/enregistreur-journal-soi.test.js",
-        "sha256": "245175c29b76dd6c3d440d2f953a1cd94dcd8f8b4735d6152910444e5665a85b"
+        "sha256": "183ef9719ef5c25888b0fa5bc40924a3b2334c515e814779944bc05088162ea6"
       },
       {
         "file": "test/enregistreur-mcp-client-reference.test.js",

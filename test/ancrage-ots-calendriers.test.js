@@ -402,13 +402,14 @@ describe("ancrage lot B : transport par défaut (EX-6.2, EX-6.6 : HTTPS, Accept,
     expect(local.corps).to.have.length(3);
   });
 
-  it("POST : méthode, Accept, Content-Length, corps ; GET : en-têtes de réponse en minuscules ; redirect error", async () => {
+  it("POST : méthode, Accept, corps de 32 octets sans Content-Length posé à la main (fetch le calcule ; un double Content-Length est refusé en 400) ; GET : en-têtes de réponse en minuscules ; redirect error", async () => {
     let vu = null;
     const t = transportHttps({ fetch: fauxFetch((url, init) => { vu = { url, init }; return new Response(new Uint8Array([1, 2]), { status: 200, headers: { "Cache-Control": "public, max-age=60" } }); }) });
     const r = await t.post("https://a.pool.opentimestamps.org/digest", new Uint8Array(32), { Accept: ACCEPT_OTS }, 2500);
     expect(vu.init.method).to.equal("POST");
     expect(vu.init.headers.Accept).to.equal(ACCEPT_OTS);
-    expect(vu.init.headers["Content-Length"]).to.equal("32");
+    expect(Object.keys(vu.init.headers).map((k) => k.toLowerCase())).to.not.include("content-length");
+    expect(vu.init.body).to.have.length(32);
     expect(vu.init.redirect).to.equal("error");
     expect(vu.init.signal).to.be.instanceOf(AbortSignal);
     expect(r.entetes["cache-control"]).to.equal("public, max-age=60");

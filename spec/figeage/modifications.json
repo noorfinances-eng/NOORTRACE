@@ -4524,6 +4524,24 @@
           "apres": "30b7ac3b6725d7f9691f819600c90e2820374c70e91de27f9f670b71fc85b58f"
         }
       ]
+    },
+    {
+      "id": "MC-23",
+      "date": "2026-11-10",
+      "etape": 5,
+      "motif": "Étape 5, après la première intégration continue du commit de l'étape : le titre de l'essai JS-10 de TE-14 que cite le catalogue de CT-9 change (support coupé par une partition TCP entre le démon et le support, au lieu de docker pause, qui gardait une requête en tampon et la faisait traiter à la reprise en même temps que la copie du balayage, d'où une seconde version de la clé et une anomalie au gel de JS-9) ; catalogue.json et couverture.json régénérés (deux générations identiques), aucune règle, aucun chiffre ni aucun texte de CT-9 ne change.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "de6c48396e7cd4a1277a1a7e735fd256efb1918ea109e601e88f5926ab263800",
+          "apres": "969262f8a0128364dccb6213c283679989ca018f22d64fff33c5a1df5d0d9d2d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "e1228be55ad1ede08e10a04b5952f00f18c0eb16640cd1e28b9736cc43f7cffd",
+          "apres": "bf3524e988f532efbd527fc903cdb66f4b1e9145b8def322336ffeed8cade99e"
+        }
+      ]
     }
   ]
 }

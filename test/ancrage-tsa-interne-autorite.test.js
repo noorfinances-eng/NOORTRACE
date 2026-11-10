@@ -18,6 +18,9 @@ import { CLES_CT6, AUTORITE_TEST, POLITIQUE_TEST, lireRequete, cheminRequete, re
 const H = horlogeFixe("2026-11-03T13:53:02Z");
 const cle = (nom) => fs.readFileSync(path.join(CLES_CT6, nom));
 
+// Nom de l'AC tel qu'openssl -text l'imprime : « O = …, CN = … » jusqu'à OpenSSL 3.0, sans espaces autour de « = » ensuite.
+const NOM_AC = /Issuer: ?O ?= ?NOORTRACE developpement, ?CN ?= ?AC interne de developpement\n/;
+
 describe("ancrage lot E — initialiserAutorite (AN-22, AN-31) : RSA 3072 et P-256", function () {
   this.timeout(120000);
   let rep;
@@ -65,8 +68,8 @@ describe("ancrage lot E — initialiserAutorite (AN-22, AN-31) : RSA 3072 et P-2
         expect(t).to.include(algorithme === "rsa-3072" ? "Public-Key: (3072 bit)" : "Public-Key: (256 bit)");
         expect(t).to.include(algorithme === "rsa-3072" ? "Signature Algorithm: sha256WithRSAEncryption" : "Signature Algorithm: ecdsa-with-SHA256");
         expect(t).to.include("Version: 3 (0x2)");
-        expect(t).to.include("Issuer: O = NOORTRACE developpement, CN = AC interne de developpement");
-        expect(t).to.include("Subject: O = NOORTRACE developpement, CN = TSA interne non qualifiee");
+        expect(t).to.match(NOM_AC, "émetteur : l'AC");
+        expect(t).to.match(/Subject: O ?= ?NOORTRACE developpement, ?CN ?= ?TSA interne non qualifiee\n/);
         const c = lireCertificatX509(fs.readFileSync(r.fichiers.unite));
         expect(defautsUnite(c)).to.deep.equal([]);
         expect(c.extensions.map((e) => e.oid)).to.deep.equal(["2.5.29.19", "2.5.29.15", "2.5.29.37", "2.5.29.14", "2.5.29.35", "2.5.29.31"]);
@@ -88,7 +91,7 @@ describe("ancrage lot E — initialiserAutorite (AN-22, AN-31) : RSA 3072 et P-2
       it("CRL vide signée (openssl crl -text) : v2, émetteur l'AC, thisUpdate et nextUpdate, numéro 1, aucun certificat révoqué ; openssl verify -crl_check accepte l'unité", function () {
         const t = openssl(["crl", "-in", r.fichiers.crl, "-noout", "-text"]);
         expect(t).to.include("Version 2 (0x1)");
-        expect(t).to.include("Issuer: O = NOORTRACE developpement, CN = AC interne de developpement");
+        expect(t).to.match(NOM_AC, "émetteur : l'AC");
         expect(t).to.include("Last Update: Nov  3 13:53:02 2026 GMT");
         expect(t).to.include("Next Update: Dec  3 13:53:02 2026 GMT");
         expect(t).to.match(/X509v3 CRL Number:\s*\n\s*1\s*\n/);
