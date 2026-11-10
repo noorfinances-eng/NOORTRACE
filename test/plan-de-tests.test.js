@@ -107,7 +107,7 @@ describe("CT-9 : catalogue, schéma et cas (section 4, annexe A.2, EX-4.3, EX-A.
   it("catalogue.json valide contre la racine, couverture.json contre rapport_couverture, et index-ta-par-menace.json est l'index que le catalogue donne (EX-A.13)", function () {
     expect(valider(CATALOGUE, "racine")).to.deep.equal([]);
     expect(valider(COUVERTURE, "rapport_couverture")).to.deep.equal([]);
-    expect(CATALOGUE).to.include({ version: 0, kind: "plan-de-tests", spec: "CT-9", spec_version: "0.5", date: "2026-11-10" });
+    expect(CATALOGUE).to.include({ version: 0, kind: "plan-de-tests", spec: "CT-9", spec_version: "0.6", date: "2026-11-10" });
     const index = lire(CT9, "index-ta-par-menace.json");
     expect(index.index).to.deep.equal(P.indexParMenace(CATALOGUE));
     expect(Object.keys(index.index)).to.have.length(MENACES.threats.length);
@@ -614,6 +614,39 @@ describe("CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'an
     }
     // Section 14, ligne 6 : w_date_porte_2 et w_ordre dans le même rapport ; w_date_defaut publiée à côté (11.6).
     for (const n of ["w_date_porte_2", "w_ordre", "w_date_defaut"]) expect(r.results.some((l) => l.name === n), n).to.equal(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Révision 0.6 : mesure de d_admission (CT-5 révision 0.6, EX-3.5), deux
+// campagnes du 2026-11-10 ; rapports écrits par l'ingénieur de la campagne.
+describe("CT-9 : rapports de la mesure de d_admission (TM-13 ; CT-5 EX-3.5, révisions 0.6 et 0.7 ; EX-11.11, EX-11.16)", function () {
+  this.timeout(120_000);
+  const RAPPORTS = ["rapport-2026-11-10-admission-1.json", "rapport-2026-11-10-admission-2.json"];
+
+  it("mesures/rapport-2026-11-10-admission-1.json et -2.json : conformes à rapport_mesure et acceptés par scripts/tests/mesures.mjs ; ligne p3_d_admission en secondes, un échantillon par échéance satisfaite de la configuration par défaut ; le dépassement de la première campagne est écrit dans ses notes, la seconde n'a aucun échantillon au-delà de 10 s", function () {
+    expect(parId.get("TM-13").status.tests.some((x) => x.file === "test/plan-de-tests.test.js" && x.it === this.test.title), "TM-13 ne cite pas ce cas").to.equal(true);
+    expect(verifierFamilles(R).errors).to.deep.equal([]);
+    const lus = RAPPORTS.map((f) => {
+      const chemin = path.join(CT9, "mesures", f);
+      expect(fs.existsSync(chemin), `mesures/${f} non publié`).to.equal(true);
+      const r = lire(chemin);
+      expect(valider(r, "rapport_mesure"), f).to.deep.equal([]);
+      const l = r.results.find((x) => x.name === "p3_d_admission");
+      expect(l, `${f} : ligne p3_d_admission absente`).to.not.equal(undefined);
+      expect(l.test_id, f).to.equal("TM-13");
+      expect(l.unit, f).to.equal("s");
+      expect(l.samples, f).to.have.length(l.n);
+      expect(l.n, f).to.be.at.least(1);
+      for (const x of r.results) if (!r.counts_for_targets || !r.system.reference) expect(x.met, `${f} ${x.name}`).to.equal(null);
+      return { f, r, l };
+    });
+    const [premiere, seconde] = lus;
+    expect(premiere.r.notes).to.match(/Dépassement de d_admission \(porte2\) : un seul point sur 59/);
+    expect(premiere.r.notes).to.match(/suspendus ensemble/);
+    expect(Math.max(...seconde.l.samples)).to.be.at.most(10);
+    expect(seconde.r.notes).to.match(/defaut : arbre de travail propre ; porte2 : arbre de travail propre/);
+    expect(seconde.r.notes).to.match(/TM-13 \(porte2\) : 59 échéances satisfaites ; .*d_admission p50 0 s, p99 0 s, max 0 s/);
   });
 });
 

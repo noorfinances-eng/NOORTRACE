@@ -1,7 +1,8 @@
 # CT-9 — Plan de tests
 
-Version 0.5, 2026-11-10 (révision 0.5, alignement sur CT-2 (0.7), CT-5
-(0.6), CT-7 (0.3) et CT-8 (0.3) ; révision 0.4 du même jour, fermeture de l'étape 5 de la phase 2
+Version 0.6, 2026-11-10 (révision 0.6, rapports de la mesure de
+`d_admission` et alignement sur CT-5 (0.7) ; révision 0.5 du même jour,
+alignement sur CT-2 (0.7), CT-5 (0.6), CT-7 (0.3) et CT-8 (0.3) ; révision 0.4 du même jour, fermeture de l'étape 5 de la phase 2
 et alignement sur CT-5 (0.5) et CT-6 (0.5) ; révision 0.3 du 2026-11-03,
 alignement sur les révisions du même jour de CT-1 (0.5), CT-4 (0.5), CT-5
 (0.3), CT-6 (0.4), CT-7 (0.2) et CT-8 (0.2) ; révision 0.2 du même jour,
@@ -169,16 +170,16 @@ les lignes.
 | TC-17 | CT-4 §1 (l. 230) | EX-, RG-, vecteurs `ct-4`, épreuve d'acceptation sur le réseau de développement. | TR-3 (§7.12, relecteur sur le réseau de développement) en §12 ; EX-, RG- et vecteurs ct-4 : TV- (§7), TE- (§9). |
 | TC-18 | CT-4 §9.2 (l. 3210) | Taille du certificat et de la capture d'une transaction d'un bloc plein de 64 ancres : mesure TM-31 de CT-9 du 2026-11-02 (certificat 32 587 octets ; capture 109 479 octets, 123 761 avec son index) ; bloc plein qui mêle des clôtures non mesuré. | TM-31 (§11, rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json`, ligne `b_cap_bloc_plein` ; index et certificat relevés dans `notes`) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8). |
 | TC-19 | CT-4 §B.1 (l. 4249) | Point non vérifié 14 de R1 (taille d'un certificat de bloc plein) clos par la mesure TM-31 de CT-9 et son rapport. | TM-31 (§11) : rapport du 2026-11-02, certificat de 32 587 octets pour 64 transactions d'ancre (`notes`). |
-| TC-20 | CT-5 §0 (l. 167) | Rattachement aux EX-. | §5.1, règle (a). |
-| TC-21 | CT-5 §1 (l. 281) | Périmètre. | Ce document. |
-| TC-22 | CT-5 §1 (l. 305) | EX-, AN-, vecteurs `ct-5`, épreuve à l'aveugle à deux relecteurs. | TR-4 (relecteur CT-5 et CT-1 §9 à §11) et TR-5 (second relecteur, CT-6 §7) en §12 ; consigne et grille sous spec/vecteurs/ct-9/ (EX-12.7) ; EX-, AN- et vecteurs ct-5 : TV- (§7). |
-| TC-23 | CT-5 §3.6 (l. 547) | Mesures P-1 à P-6 sur le réseau de développement et sur les vecteurs. | TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15), sur le réseau de développement (TM-11 à TM-14, exécutables depuis l'étape 5 par la campagne de `scripts/e2e/mesure-ancrage.mjs`, rapport `mesures/rapport-2026-11-10-ancrage.json` ; compléments à l'étape 8 : charge de TM-3 pour TM-11, prestataire qualifié réel pour TM-14) et sur le support WORM (TM-16, exécutable depuis l'étape 4, `ancres/` compris depuis l'étape 5). |
-| TC-24 | CT-5 §5.3 (l. 1252) | Test à écrire : relève par le secours qualifié après retrait de `qualified` (EX-5.9). | TI-16 (§8), exécutable depuis l'étape 5 : relève de la clôture par le secours qualifié après retrait de `qualified`, sans rechargement, sur le composant d'ancrage (`test/ancrage-composant-pannes.test.js`, serveurs internes déclarés qualifiés par un instantané d'exemple) ; complément à l'étape 8 : prestataire qualifié réel. |
-| TC-25 | CT-5 §7.2 (l. 1762) | AN-24 à AN-32 du serveur interne vérifiées sur un jeton émis. | TI-17 (§8), exécutable depuis l'étape 5 : AN-22 à AN-31 vérifiées sur les jetons émis par le serveur interne de référence du paquet d'ancrage (`test/ancrage-tsa-interne-*.test.js`, `test/enregistreur-ancrage-exigences.test.js`, `test/enregistreur-ancrage-parcours.test.js`) ; TM-18 (AN-26) et TM-19 (AN-24) en §11 pour les exigences mesurables, sur les mêmes essais et dans le rapport de la campagne de l'étape 5. |
-| TC-26 | CT-5 §7.2 (l. 1771) | Épreuve de redémarrage du serveur interne (AN-26). | TI-17 (§8) et TM-18 (AN-26) en §11, exécutables depuis l'étape 5 : quatre jetons avant et quatre après un redémarrage du serveur interne (compteur de série durable), numéros strictement croissants, et le relevé `an26_serie_croissante` de la campagne (dix jetons, redémarrage, dix jetons) ; TM-19 (AN-24). |
-| TC-27 | CT-5 §9.3 (l. 4167) | Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index). | TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8). |
-| TC-28 | CT-5 §14 (l. 4668) | Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9). | TI-16 (§8), exécutable depuis l'étape 5 (`test/ancrage-composant-pannes.test.js` : relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée ; rechargement sans principal qualifié refusé) ; mesures en charge du planificateur : TM-17 (§11). |
-| TC-29 | CT-5 §14 (l. 4670) | Tests EX- et AN-1 à AN-61, mesures P-1 à P-6, épreuve à l'aveugle. | §6, §7, §8 (TI-16, TI-17), §9 (TE-12), §11 (TM-10 à TM-19), §12 (TR-4, TR-5) ; état « proposition » levé par ce document. |
+| TC-20 | CT-5 §0 (l. 184) | Rattachement aux EX-. | §5.1, règle (a). |
+| TC-21 | CT-5 §1 (l. 298) | Périmètre. | Ce document. |
+| TC-22 | CT-5 §1 (l. 322) | EX-, AN-, vecteurs `ct-5`, épreuve à l'aveugle à deux relecteurs. | TR-4 (relecteur CT-5 et CT-1 §9 à §11) et TR-5 (second relecteur, CT-6 §7) en §12 ; consigne et grille sous spec/vecteurs/ct-9/ (EX-12.7) ; EX-, AN- et vecteurs ct-5 : TV- (§7). |
+| TC-23 | CT-5 §3.6 (l. 566) | Mesures P-1 à P-6 sur le réseau de développement et sur les vecteurs. | TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15), sur le réseau de développement (TM-11 à TM-14, exécutables depuis l'étape 5 par la campagne de `scripts/e2e/mesure-ancrage.mjs`, rapport `mesures/rapport-2026-11-10-ancrage.json` ; compléments à l'étape 8 : charge de TM-3 pour TM-11, prestataire qualifié réel pour TM-14) et sur le support WORM (TM-16, exécutable depuis l'étape 4, `ancres/` compris depuis l'étape 5). |
+| TC-24 | CT-5 §5.3 (l. 1271) | Test à écrire : relève par le secours qualifié après retrait de `qualified` (EX-5.9). | TI-16 (§8), exécutable depuis l'étape 5 : relève de la clôture par le secours qualifié après retrait de `qualified`, sans rechargement, sur le composant d'ancrage (`test/ancrage-composant-pannes.test.js`, serveurs internes déclarés qualifiés par un instantané d'exemple) ; complément à l'étape 8 : prestataire qualifié réel. |
+| TC-25 | CT-5 §7.2 (l. 1781) | AN-24 à AN-32 du serveur interne vérifiées sur un jeton émis. | TI-17 (§8), exécutable depuis l'étape 5 : AN-22 à AN-31 vérifiées sur les jetons émis par le serveur interne de référence du paquet d'ancrage (`test/ancrage-tsa-interne-*.test.js`, `test/enregistreur-ancrage-exigences.test.js`, `test/enregistreur-ancrage-parcours.test.js`) ; TM-18 (AN-26) et TM-19 (AN-24) en §11 pour les exigences mesurables, sur les mêmes essais et dans le rapport de la campagne de l'étape 5. |
+| TC-26 | CT-5 §7.2 (l. 1790) | Épreuve de redémarrage du serveur interne (AN-26). | TI-17 (§8) et TM-18 (AN-26) en §11, exécutables depuis l'étape 5 : quatre jetons avant et quatre après un redémarrage du serveur interne (compteur de série durable), numéros strictement croissants, et le relevé `an26_serie_croissante` de la campagne (dix jetons, redémarrage, dix jetons) ; TM-19 (AN-24). |
+| TC-27 | CT-5 §9.3 (l. 4186) | Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index). | TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8). |
+| TC-28 | CT-5 §14 (l. 4687) | Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9). | TI-16 (§8), exécutable depuis l'étape 5 (`test/ancrage-composant-pannes.test.js` : relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée ; rechargement sans principal qualifié refusé) ; mesures en charge du planificateur : TM-17 (§11). |
+| TC-29 | CT-5 §14 (l. 4689) | Tests EX- et AN-1 à AN-61, mesures P-1 à P-6, épreuve à l'aveugle. | §6, §7, §8 (TI-16, TI-17), §9 (TE-12), §11 (TM-10 à TM-19), §12 (TR-4, TR-5) ; état « proposition » levé par ce document. |
 | TC-30 | CT-6 §0 (l. 70) | Rattachement aux EX-. | §5.1, règle (a). |
 | TC-31 | CT-6 §1 (l. 218) | EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`. | §6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10). |
 | TC-32 | CT-6 §6.9 (l. 1863) | Exécution des V- par comparaison du rapport à `attendu.json`. | TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`. |
@@ -296,6 +297,27 @@ renvois des sections 0 à 14 à la section 15 (0.3, 5.1, EX-4.6) ne portent aucu
 règle : ce qu'un auteur d'entrée applique est en 3, 4 et 5.
 
 ### 0.4 Révisions
+
+**Révision 0.6** (2026-11-10, rapports de la mesure de `d_admission`).
+Aucune règle n'est ajoutée ni retirée. Deux campagnes de TM-13 sur le réseau
+de développement, faites par `scripts/e2e/mesure-ancrage.mjs` le même jour
+pour éprouver la borne de conception de `d_admission` (CT-5 EX-3.5,
+révision 0.6), sont publiées : `mesures/rapport-2026-11-10-admission-1.json`
+(période de 20 h à 21 h UTC, code des révisions non encore commité, ce que ses
+notes disent) et `mesures/rapport-2026-11-10-admission-2.json` (période de
+22 h à 23 h UTC, code commité, arbre de travail propre). L'outil de rapport
+relève désormais le commit et l'état de l'arbre de travail à la collecte, et
+reçoit l'option `--note` pour ce que la collecte ne relève pas ; ses notes ne
+disent plus que l'arbre porte les lots de l'étape 5. L'entrée TM-13 cite les
+deux rapports et un second essai de `test/plan-de-tests.test.js`, qui les
+relit : ligne `p3_d_admission`, dépassement de la première campagne (un point
+à 20 s pendant une suspension des deux démons ensemble) écrit dans ses notes,
+aucun échantillon au-delà de 10 s dans la seconde. Le catalogue garde 322
+entrées (`spec_version` 0.6) ; TM-13 cite un test de plus, d'où 490 titres
+ou étapes cités au lieu de 489 (5.5). Inventaire (5.2) : version de CT-5.
+Sections touchées : en-tête, 0.2 (numéros de ligne), 0.4, 5.2, 5.5, 11.3
+(paragraphe des rapports), A.4 (essais du fichier de tests). Aucune spécification CT-1 à CT-8
+n'est modifiée par cette révision.
 
 **Révision 0.5** (2026-11-10, alignement sur CT-2 (0.7) et CT-5 (0.6),
 écrites après les mesures de l'étape 5 de la phase 2, et sur CT-7 (0.3) et
@@ -960,7 +982,7 @@ comptées sous leur spécification) :
 | CT-2 (0.7) | 325 | 11 | 336 | SG 7, RL 4 |
 | CT-3 (0.4) | 203 | 56 | 259 | AP 17, TK 13, SG 7, AN 10, CS 9 |
 | CT-4 (0.5) | 136 | 45 | 181 | RG 20, OP 12, CP 6, SU 7 |
-| CT-5 (0.6) | 95 | 79 | 174 | P 6, AN 61, NV 12 |
+| CT-5 (0.7) | 95 | 79 | 174 | P 6, AN 61, NV 12 |
 | CT-6 (0.5) | 211 | 69 | 280 | T 11, O 7, R 11, N 4, V 10, K 2, AT 7, AV-T 4, AV-K 4, AV-R 3, AV-O 3, AV-AT 3 |
 | CT-7 (0.3) | 117 | 463 | 580 | TR 101, MN 98, RA 82, CLE 29, CR 12, JS 12, PA 20, AT 7, T 10, MC 58, L 10, CL 6, RV 9, MX 9 |
 | CT-8 (0.3) | 198 | 299 | 497 | TC 115, CO 14, FL 31, IP 13, IR 8, IC 18, TP 8, DM 22, SV 8, RB 8, PV 10, CA 6, OB 6, PR 12, AV-PR 4, PD 16 |
@@ -1074,7 +1096,7 @@ jamais corrigé à la main) :
 - 98 menaces sur 98 avec un TA- (règle (b)) ;
 - 122 occurrences de « CT-9 » et 122 lignes TC-, sans manque ni orpheline
   (règle (c)) ;
-- 224 entrées exécutables citant 489 titres de tests ou étapes de CI, tous
+- 224 entrées exécutables citant 490 titres de tests ou étapes de CI, tous
   trouvés mot pour mot (règle (d)) ; verdict `reussi`.
 
 Par spécification (identifiants, couverts par une entrée, par une
@@ -2122,7 +2144,11 @@ Le rapport de la campagne de l'étape 5 (révision 0.4) est
 texte ni dans le catalogue. Ses lignes principales portent le `result_name`
 de TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41 et TM-42 (et, avec le relevé
 d'`ancres/` sur le support WORM, `p6_copie_worm` de TM-16) ; ses lignes
-supplémentaires (EX-11.11) sont les suivantes :
+supplémentaires (EX-11.11) sont les suivantes. Les deux rapports de la
+mesure de `d_admission` (révision 0.6),
+`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-admission-1.json` et
+`rapport-2026-11-10-admission-2.json`, sont écrits par le même outil et
+portent les mêmes lignes ; leurs valeurs ne sont pas non plus recopiées.
 
 | Ligne | Test | Ce qu'elle porte |
 |---|---|---|
@@ -3058,7 +3084,11 @@ l'étape 5 (`mesures/rapport-2026-11-10-ancrage.json`, 11.3) : forme
 `result_name` de chacune des entrées TM- qui le citent, à l'unité du
 catalogue, avec sa valeur et son effectif, lignes supplémentaires nommées
 par la table de 11.3, `met` nul hors du système de référence ; tant que le
-rapport n'est pas publié, ce cas échoue en le nommant.
+rapport n'est pas publié, ce cas échoue en le nommant. Depuis la révision
+0.6, il relit aussi les deux rapports de la mesure de `d_admission`
+(11.3) : forme, ligne `p3_d_admission` et ses échantillons, dépassement de la
+première campagne écrit dans ses notes, aucun échantillon au-delà de 10 s
+dans la seconde.
 
 ### A.5 Intégration continue
 

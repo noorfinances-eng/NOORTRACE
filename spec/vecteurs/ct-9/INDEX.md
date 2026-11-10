@@ -17,7 +17,7 @@ npm run tests:couverture   # code 0 : règles (a) à (d) et EX-4.4 tiennent
 
 ## `catalogue.json`
 
-Catalogue CT-9 0.5 du 2026-11-10 (schéma `plan-de-tests-v0`, racine) : 322
+Catalogue CT-9 0.6 du 2026-11-10 (schéma `plan-de-tests-v0`, racine) : 322
 entrées, 6 justifications NC-, 82 risques acceptés, 122 lignes TC-. Une ligne
 par entrée : identifiant, niveau, état, titre.
 
@@ -352,7 +352,7 @@ Sortie de l'outil de couverture (`node scripts/tests/couverture.mjs --json`,
 forme `rapport_couverture`) sur le dépôt et ce catalogue : verdict `reussi` ;
 2351 identifiants définis par CT-1 à CT-8, 2212 couverts par une entrée, 139 par
 une justification NC-, 0 non couvert(s) ; 98 menaces sur 98 avec un TA- ; 122
-occurrences de « CT-9 » et 122 lignes TC- ; 224 entrées exécutables citant 489
+occurrences de « CT-9 » et 122 lignes TC- ; 224 entrées exécutables citant 490
 titres ou étapes, 0 absent(s) ; 15 tables du texte comparées, 0 différence(s).
 
 ## `index-ta-par-menace.json`

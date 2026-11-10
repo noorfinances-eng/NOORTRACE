@@ -663,7 +663,8 @@ export const TM = [
       "Vérifier qu'aucune échéance n'est non satisfaite avant la suivante en fonctionnement nominal.",
       "Rapport : lignes `p3_d_jeton`, `p3_d_point`, `p3_d_admission`, `p3_d_attente`, `p3_d_releve`, `p3_d_tsa`.",
       "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
-      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
+      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif.",
+      "Mesure de `d_admission` (CT-5 révision 0.6) : deux campagnes par les mêmes commandes, rapports `spec/vecteurs/ct-9/mesures/rapport-2026-11-10-admission-1.json` et `rapport-2026-11-10-admission-2.json` (`rapport --note` pour ce que la collecte ne relève pas) ; relus par le second essai cité : ligne `p3_d_admission`, dépassement de la première campagne écrit dans ses notes, aucun échantillon au-delà de 10 s dans la seconde."
     ],
     "oracle": "`d_point ≤ 1` s, `d_admission ≤ 10` s au 99e centile (borne de conception de CT-5 EX-3.5), `d_attente ≤ squat_wait_s`, `d_releve ≤ fallback_after_s` (120 s), `d_tsa` publié ; zéro échéance manquée sur une période ; sinon `met` faux.",
     "status": {
@@ -673,6 +674,11 @@ export const TM = [
           "file": "test/plan-de-tests.test.js",
           "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
           "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+        },
+        {
+          "file": "test/plan-de-tests.test.js",
+          "describe": "CT-9 : rapports de la mesure de d_admission (TM-13 ; CT-5 EX-3.5, révisions 0.6 et 0.7 ; EX-11.11, EX-11.16)",
+          "it": "mesures/rapport-2026-11-10-admission-1.json et -2.json : conformes à rapport_mesure et acceptés par scripts/tests/mesures.mjs ; ligne p3_d_admission en secondes, un échantillon par échéance satisfaite de la configuration par défaut ; le dépassement de la première campagne est écrit dans ses notes, la seconde n'a aucun échantillon au-delà de 10 s"
         }
       ]
     },

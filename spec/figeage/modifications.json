@@ -4990,6 +4990,124 @@
           "apres": "b7668ddd6399e4b057188d235a133efdde651a3335ebaf79f43efa064d4ce7b1"
         }
       ]
+    },
+    {
+      "id": "MC-25",
+      "date": "2026-11-10",
+      "etape": 5,
+      "motif": "Mesure de d_admission (TM-13) : deux campagnes du 2026-11-10 publiées (rapports mesures/rapport-2026-11-10-admission-1.json et -2.json de CT-9) ; CT-5 0.7, textuelle (résultat de la mesure dans EX-3.5, borne de 10 s maintenue ; états de trois lignes de §14) ; CT-9 0.6 (TM-13 cite les deux rapports et un second essai) ; vecteurs ct-9 régénérés.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-5-ancrage.md",
+          "avant": "392c042b7236c90196eb07fd3988ad7a6d5306468f215adecf20bd973fd176c8",
+          "apres": "a4980378045e1f8883eab2b5407b748c81e0dfeabe46c2bcac3ddff19e611c6c"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "0539627fbf6bd450c9c97932033f6afb248fb6a13285f7562237c8d1b1e1e2cb",
+          "apres": "f7a622e1c2b078e7e3bc39d76cb054ed55f978ca0039f1e09fc38a16a1d5b399"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "11d636f742149b215d19c0df70cee98c658869fb87d2bc4a06bc7683f3ce7103",
+          "apres": "33fa220eb6079758a12cab4253d68e23eb22ee1b0b9d29231f347e561a95cd52"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "bab8ed76835cc4eef3ba76286812ddb7942777365aef114fd1509124ab1b0f5a",
+          "apres": "9025fa45c467501f28d9c8a3798ac47a58a9444cf2095a802478b5109b0ea4ed"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-a-ecrire-sans-etape.json",
+          "avant": "4071a05af6943df2af992e7984f3bf99dcabb3a152cab821f51f3d8ce5711841",
+          "apres": "9b9eeb6f1126aa3fb786ffaf198784b78fab9c0b3ba9420eb8cfaee7d0b005ce"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-executable-sans-titre.json",
+          "avant": "b301c70e2c283028c8975e215e71081bbefcf59d63ddd7a394889aab68f17b1f",
+          "apres": "bf6ae7a96c3a2f008c52d7b075817d404c11485c3717ea6a318fd910ea2b7d63"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-identifiant-sans-specification.json",
+          "avant": "087908c012e58774dc9da1e3c93cfd684403eff31e6c1f494b2076ef05b2f84b",
+          "apres": "9017bb37305c8666b815dd16aab2877904a9e3ecdb70336143f8933fe5a1a072"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-complement-sans-etape.json",
+          "avant": "ce6bcc5cd12df45268ceb5ba2596f6c52f11eb52045e0121c2631dcf2ccf7c1d",
+          "apres": "d8377f27a67e69da8b8ebb8ec799e4fdbe36466791d495d7f9f9d3d6c2324a6e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-prefixe-test.json",
+          "avant": "1b6c46e3b0af57b526bc7035ad5d9b46a2158df5051f2319e31f12553114b980",
+          "apres": "803abb42e2edf8e438a5e665a849eae9eefd85278e52ca89c30214bbc85c9096"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-sans-adversarial.json",
+          "avant": "72895cad0255ac97cd9c328828a48e31e7fdb3dbdacad51492977e482c2ce695",
+          "apres": "8d5f85135d91cfb33c668d003bb7f05201bef2286e74905ee827fa5dfa27c380"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-scenario-sans-composition.json",
+          "avant": "cee5712d9e6cf7aac92b1944bb5494b4094d500dde921ab22ac8f27f5710ed6a",
+          "apres": "559e788e71d0243886b1550230e8ff77f1b9b074e9a1ebfb660ef34f37b49552"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-titre-vide.json",
+          "avant": "2af5054aa9e1d54cc0ccb420f097224f18ad792aa0b10e3b3f92be231e44ffaf",
+          "apres": "f88e06a79b3d9e2d6b9d4b0113bc081d7d13e15d591302017a7cf0ea7751fc36"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-tm-mesure-inventee.json",
+          "avant": "88b39eb013c8dd2a2b9d3035f0a1c0c6edbc10238ac168842ee635566915bd73",
+          "apres": "5cf92a065448bb39e692f21dc5d36822a5d59595ebede772ec530ec3ec4402b9"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-minimal.json",
+          "avant": "9122a906b19aa050470da1a4cd1b1ad53faba3d4495686acd8af3256845a4471",
+          "apres": "9c1b9f514fd267660b1606bc5d8c0195cd3068982dc12c2cd108e6cec7ea64eb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-ta.json",
+          "avant": "174ad053a5744efa59e7665cfcf78173f943fad820edbdbcc027d6db87939d02",
+          "apres": "7d014514fd61f3b5b8473f9d7b987c43bf983a41871c053690f3ccec5fb24cc1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "8ec5d27f2e49117e90ee39edac780198f16eafc40718704a9a3a08c20cde0fce",
+          "apres": "782890669455984800cd7363bc0dd68e6728cae57115c043600a3a175a83ecd2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "0250080092032510772515ea3fa3bb640ed3ea2a5b37df0e45dca63a1e902e9c",
+          "apres": "ea344c9a3b898bc0871af59bf1ae16afe1750f2f2ee0dcca87fe7b54e12d1a0a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "12cb5871ee4d52ae1438dc12561bbf9da8294def1f96ebb9b4729cf36b236079",
+          "apres": "5406cf01865c22af596885874ebc21b3f622c703f32d6b9e60328bad654a28e7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "93fef8ba029d93eaf15104b8569b85fdf7bc5733ec5554962265a58e810a3067",
+          "apres": "5da92653036a7dcdbb01c209c72e1beb4c06086ca4a5ebee3dc6fc00f29b8557"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "b7668ddd6399e4b057188d235a133efdde651a3335ebaf79f43efa064d4ce7b1",
+          "apres": "30ecf2b2f1058a532f346da2e1a065828c3e39f3bc2aa8558a9604ed1d4106ab"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/rapport-2026-11-10-admission-1.json",
+          "avant": null,
+          "apres": "48f29b79aa0e59590cfb6165ebf5511698ae234eedb78fe7040e3fa93f3333ef"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/rapport-2026-11-10-admission-2.json",
+          "avant": null,
+          "apres": "a0af6bf090d9966b6e031af8fd077d749ce634c89b5b14bd481244a7bee54639"
+        }
+      ]
     }
   ]
 }

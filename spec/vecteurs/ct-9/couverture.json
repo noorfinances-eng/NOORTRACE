@@ -26,7 +26,7 @@
       },
       {
         "file": "spec/CT-5-ancrage.md",
-        "sha256": "392c042b7236c90196eb07fd3988ad7a6d5306468f215adecf20bd973fd176c8"
+        "sha256": "a4980378045e1f8883eab2b5407b748c81e0dfeabe46c2bcac3ddff19e611c6c"
       },
       {
         "file": "spec/CT-6-verificateur.md",
@@ -43,7 +43,7 @@
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "8ec5d27f2e49117e90ee39edac780198f16eafc40718704a9a3a08c20cde0fce"
+      "sha256": "782890669455984800cd7363bc0dd68e6728cae57115c043600a3a175a83ecd2"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -472,7 +472,7 @@
       },
       {
         "file": "test/plan-de-tests.test.js",
-        "sha256": "769ebf1696935b5ed75c13602931f651a5f5b77e3639ea7bbaf44a63643e8d76"
+        "sha256": "359ad81ebe76dfb0187690176bedeee09d5ed88a2165b98464fc02136f9ad79a"
       },
       {
         "file": "test/recorderRegistry.test.js",
@@ -760,7 +760,7 @@
   },
   "executable": {
     "total": 224,
-    "titles_checked": 489,
+    "titles_checked": 490,
     "titles_missing": []
   },
   "text_tables": {

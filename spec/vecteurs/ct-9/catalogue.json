@@ -2,7 +2,7 @@
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.5",
+  "spec_version": "0.6",
   "date": "2026-11-10",
   "levels": [
     {
@@ -15044,7 +15044,8 @@
         "Vérifier qu'aucune échéance n'est non satisfaite avant la suivante en fonctionnement nominal.",
         "Rapport : lignes `p3_d_jeton`, `p3_d_point`, `p3_d_admission`, `p3_d_attente`, `p3_d_releve`, `p3_d_tsa`.",
         "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
-        "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
+        "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif.",
+        "Mesure de `d_admission` (CT-5 révision 0.6) : deux campagnes par les mêmes commandes, rapports `spec/vecteurs/ct-9/mesures/rapport-2026-11-10-admission-1.json` et `rapport-2026-11-10-admission-2.json` (`rapport --note` pour ce que la collecte ne relève pas) ; relus par le second essai cité : ligne `p3_d_admission`, dépassement de la première campagne écrit dans ses notes, aucun échantillon au-delà de 10 s dans la seconde."
       ],
       "oracle": "`d_point ≤ 1` s, `d_admission ≤ 10` s au 99e centile (borne de conception de CT-5 EX-3.5), `d_attente ≤ squat_wait_s`, `d_releve ≤ fallback_after_s` (120 s), `d_tsa` publié ; zéro échéance manquée sur une période ; sinon `met` faux.",
       "status": {
@@ -15054,6 +15055,11 @@
             "file": "test/plan-de-tests.test.js",
             "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
             "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+          },
+          {
+            "file": "test/plan-de-tests.test.js",
+            "describe": "CT-9 : rapports de la mesure de d_admission (TM-13 ; CT-5 EX-3.5, révisions 0.6 et 0.7 ; EX-11.11, EX-11.16)",
+            "it": "mesures/rapport-2026-11-10-admission-1.json et -2.json : conformes à rapport_mesure et acceptés par scripts/tests/mesures.mjs ; ligne p3_d_admission en secondes, un échantillon par échéance satisfaite de la configuration par défaut ; le dépassement de la première campagne est écrit dans ses notes, la seconde n'a aucun échantillon au-delà de 10 s"
           }
         ],
         "command": "npx hardhat --config hardhat.config.mjs test test/plan-de-tests.test.js"
@@ -19218,70 +19224,70 @@
     {
       "id": "TC-20",
       "key": "CT-5 §0",
-      "line": 167,
+      "line": 184,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-21",
       "key": "CT-5 §1",
-      "line": 281,
+      "line": 298,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-22",
       "key": "CT-5 §1",
-      "line": 305,
+      "line": 322,
       "delegated": "EX-, AN-, vecteurs `ct-5`, épreuve à l'aveugle à deux relecteurs.",
       "response": "TR-4 (relecteur CT-5 et CT-1 §9 à §11) et TR-5 (second relecteur, CT-6 §7) en §12 ; consigne et grille sous spec/vecteurs/ct-9/ (EX-12.7) ; EX-, AN- et vecteurs ct-5 : TV- (§7)."
     },
     {
       "id": "TC-23",
       "key": "CT-5 §3.6",
-      "line": 547,
+      "line": 566,
       "delegated": "Mesures P-1 à P-6 sur le réseau de développement et sur les vecteurs.",
       "response": "TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15), sur le réseau de développement (TM-11 à TM-14, exécutables depuis l'étape 5 par la campagne de `scripts/e2e/mesure-ancrage.mjs`, rapport `mesures/rapport-2026-11-10-ancrage.json` ; compléments à l'étape 8 : charge de TM-3 pour TM-11, prestataire qualifié réel pour TM-14) et sur le support WORM (TM-16, exécutable depuis l'étape 4, `ancres/` compris depuis l'étape 5)."
     },
     {
       "id": "TC-24",
       "key": "CT-5 §5.3",
-      "line": 1252,
+      "line": 1271,
       "delegated": "Test à écrire : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
       "response": "TI-16 (§8), exécutable depuis l'étape 5 : relève de la clôture par le secours qualifié après retrait de `qualified`, sans rechargement, sur le composant d'ancrage (`test/ancrage-composant-pannes.test.js`, serveurs internes déclarés qualifiés par un instantané d'exemple) ; complément à l'étape 8 : prestataire qualifié réel."
     },
     {
       "id": "TC-25",
       "key": "CT-5 §7.2",
-      "line": 1762,
+      "line": 1781,
       "delegated": "AN-24 à AN-32 du serveur interne vérifiées sur un jeton émis.",
       "response": "TI-17 (§8), exécutable depuis l'étape 5 : AN-22 à AN-31 vérifiées sur les jetons émis par le serveur interne de référence du paquet d'ancrage (`test/ancrage-tsa-interne-*.test.js`, `test/enregistreur-ancrage-exigences.test.js`, `test/enregistreur-ancrage-parcours.test.js`) ; TM-18 (AN-26) et TM-19 (AN-24) en §11 pour les exigences mesurables, sur les mêmes essais et dans le rapport de la campagne de l'étape 5."
     },
     {
       "id": "TC-26",
       "key": "CT-5 §7.2",
-      "line": 1771,
+      "line": 1790,
       "delegated": "Épreuve de redémarrage du serveur interne (AN-26).",
       "response": "TI-17 (§8) et TM-18 (AN-26) en §11, exécutables depuis l'étape 5 : quatre jetons avant et quatre après un redémarrage du serveur interne (compteur de série durable), numéros strictement croissants, et le relevé `an26_serie_croissante` de la campagne (dix jetons, redémarrage, dix jetons) ; TM-19 (AN-24)."
     },
     {
       "id": "TC-27",
       "key": "CT-5 §9.3",
-      "line": 4167,
+      "line": 4186,
       "delegated": "Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
       "response": "TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
     },
     {
       "id": "TC-28",
       "key": "CT-5 §14",
-      "line": 4668,
+      "line": 4687,
       "delegated": "Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
       "response": "TI-16 (§8), exécutable depuis l'étape 5 (`test/ancrage-composant-pannes.test.js` : relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée ; rechargement sans principal qualifié refusé) ; mesures en charge du planificateur : TM-17 (§11)."
     },
     {
       "id": "TC-29",
       "key": "CT-5 §14",
-      "line": 4670,
+      "line": 4689,
       "delegated": "Tests EX- et AN-1 à AN-61, mesures P-1 à P-6, épreuve à l'aveugle.",
       "response": "§6, §7, §8 (TI-16, TI-17), §9 (TE-12), §11 (TM-10 à TM-19), §12 (TR-4, TR-5) ; état « proposition » levé par ce document."
     },
