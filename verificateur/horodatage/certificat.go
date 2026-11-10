@@ -165,6 +165,9 @@ func analyserCertificat(der []byte) (*certificat, *defaut) {
 		return nil, illisible("subjectPublicKeyInfo", "subjectPublicKeyInfo")
 	}
 	c.spki = []byte(spki)
+	if d := controlerSPKI(c.spki); d != nil {
+		return nil, d
+	}
 	for _, n := range []uint8{1, 2} {
 		if t.PeekASN1Tag(ctx(n, false)) {
 			if c.version < 2 || !t.SkipASN1(ctx(n, false)) {
@@ -191,6 +194,43 @@ func analyserCertificat(der []byte) (*certificat, *defaut) {
 		return nil, d
 	}
 	return c, nil
+}
+
+// controlerSPKI lit le SubjectPublicKeyInfo selon le profil de §9.3 (EX-9.4,
+// EX-9.7, révision 0.5) : SEQUENCE { AlgorithmIdentifier, BIT STRING sans bit
+// inutilisé } ; pour rsaEncryption, les octets de la BIT STRING sont une
+// RSAPublicKey DER (RFC 8017 : SEQUENCE de deux INTEGER) lue par le même
+// profil. Une longueur non minimale ou une structure fausse rend le
+// certificat illisible (T-1), au lieu d'une clé « illisible » jugée par T-5.
+func controlerSPKI(spki []byte) *defaut {
+	s := cryptobyte.String(spki)
+	var seq cryptobyte.String
+	if !s.ReadASN1(&seq, casn1.SEQUENCE) || !s.Empty() {
+		return illisible("subjectPublicKeyInfo", "subjectPublicKeyInfo")
+	}
+	a, ok := lireAlgo(&seq)
+	var bits asn1.BitString
+	if !ok || !seq.ReadASN1BitString(&bits) || !seq.Empty() || bits.BitLength%8 != 0 {
+		return illisible("subjectPublicKeyInfo : algorithme ou subjectPublicKey", "subjectPublicKeyInfo: algorithm or subjectPublicKey")
+	}
+	if !a.oid.Equal(oidRSA) {
+		return nil
+	}
+	if d := verifierProfil(bits.Bytes, 0); d != nil {
+		return prefixer(d, "certificat illisible : RSAPublicKey : ", "unreadable certificate: RSAPublicKey: ")
+	}
+	k := cryptobyte.String(bits.Bytes)
+	var rk cryptobyte.String
+	if !k.ReadASN1(&rk, casn1.SEQUENCE) || !k.Empty() {
+		return illisible("RSAPublicKey n'est pas une SEQUENCE seule", "RSAPublicKey is not a single SEQUENCE")
+	}
+	if _, ok := lireEntier(&rk, casn1.INTEGER); !ok {
+		return illisible("RSAPublicKey.modulus", "RSAPublicKey.modulus")
+	}
+	if _, ok := lireEntier(&rk, casn1.INTEGER); !ok || !rk.Empty() {
+		return illisible("RSAPublicKey.publicExponent, ou éléments en trop", "RSAPublicKey.publicExponent, or extra elements")
+	}
+	return nil
 }
 
 // decoderExtensions refuse un critical encodé à FALSE et une extension en

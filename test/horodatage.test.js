@@ -145,8 +145,9 @@ describe("CT-6 contrôle 4 : vecteurs spec/vecteurs/ct-6/rfc3161 (annexe A.3)", 
   });
 
   it("chaque cas de attendu.json est rejoué : statuts T-1 à T-11, contrôle 4, avertissements et faits identiques", function () {
-    // Révision 0.4 (EX-A.22) : quinze cas de plus (jetons t4-*, t5-*, t7-intermediaire-rsa-8200, rsa-8192, serie-168-bits).
-    expect(ATTENDU.cases.length).to.equal(39);
+    // Révision 0.4 (EX-A.22) : quinze cas de plus (jetons t4-*, t5-*, t7-intermediaire-rsa-8200, rsa-8192, serie-168-bits) ;
+    // révision 0.5 (EX-A.25) : deux cas de plus (t1-cle-longueur-non-minimale, t1-extension-mal-formee).
+    expect(ATTENDU.cases.length).to.equal(41);
     for (const c of ATTENDU.cases) {
       const ancres = c.anchors ? ANCRES[path.basename(c.anchors, ".json")] : null;
       const r = H.verifierJeton(fs.readFileSync(path.join(VECTEURS, c.token)), { periodHash: c.dossier_period_hash, ancres });
@@ -160,7 +161,7 @@ describe("CT-6 contrôle 4 : vecteurs spec/vecteurs/ct-6/rfc3161 (annexe A.3)", 
 
   it("une variante par vérification visée : la seule vérification en échec est la cible", function () {
     const cibles = ATTENDU.tokens.filter((j) => j.target);
-    expect(cibles.map((j) => j.target)).to.deep.equal(["T-1", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9", "T-1", "T-1", "T-4", "T-4", "T-5", "T-5", "T-7", "T-5", "T-5", "T-6"]);
+    expect(cibles.map((j) => j.target)).to.deep.equal(["T-1", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9", "T-1", "T-1", "T-4", "T-4", "T-5", "T-5", "T-7", "T-5", "T-5", "T-1", "T-1", "T-6"]);
     // Le jeton du point de contrôle (EX-A.13) se vérifie sur checkpoint_hash, non sur le period_hash de la période 1.
     for (const j of cibles) expect(echecs(verifier(fs.readFileSync(path.join(VECTEURS, j.file)), j.checkpoint ? { periodHash: j.checkpoint.checkpoint_hash } : {})), j.file).to.deep.equal([j.target]);
     expect(echecs(verifier(jetonFichier("periode-2")))).to.deep.equal(["T-2"]);
@@ -238,6 +239,59 @@ describe("CT-6 contrôle 4 : T-1, structure du jeton (EX-9.7)", function () {
   it("subjectKeyIdentifier comme sid (SignerInfo version 3) est accepté", function () {
     const r = verifier(jeton({ sid: "ski" }));
     expect(r.status).to.equal("reussi");
+  });
+});
+
+describe("CT-6 révision 0.5 : lecture du SubjectPublicKeyInfo et des extensions connues selon §9.3 (EX-9.4, EX-9.7)", function () {
+  const RELECTURE = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "test", "fixtures", "horodatage", "lecture-9-3-relecture-etape-5.json"), "utf8"));
+
+  it("les dix-huit certificats et jetons mutés de la relecture de l'étape 5 sont illisibles (ErreurDER) ; pour un jeton, T-1 échoue et T-2 à T-11 héritent", function () {
+    expect(RELECTURE.cases).to.have.length(18);
+    for (const c of RELECTURE.cases) {
+      const octets = Buffer.from(c.hex, "hex");
+      const etiquette = `${c.objet} ${c.base} ${c.mutation} ${c.position}`;
+      if (c.objet === "certificat") expect(() => H.lireCertificat(octets), etiquette).to.throw(H.ErreurDER);
+      else {
+        expect(() => H.lireJeton(octets), etiquette).to.throw(H.ErreurDER);
+        const r = verifier(octets);
+        expect(statuts(r)["T-1"], etiquette).to.equal("echoue");
+        expect(r.checks.slice(1).every((x) => x.status === "non_execute" && x.reason === "prerequis_en_echec"), etiquette).to.equal(true);
+        expect(r.checks[0].detail, etiquette).to.match(/certificates\[0\]|certificat/);
+      }
+    }
+  });
+
+  it("vecteurs t1-cle-longueur-non-minimale et t1-extension-mal-formee (EX-A.25) : T-1 nomme la RSAPublicKey ou keyUsage ; les certificats sont refusés comme ancre (N-1)", function () {
+    const cle = verifier(jetonFichier("t1-cle-longueur-non-minimale"));
+    expect(echecs(cle)).to.deep.equal(["T-1"]);
+    expect(cle.checks[0].detail).to.match(/RSAPublicKey illisible \(longueur non minimale/);
+    const ext = verifier(jetonFichier("t1-extension-mal-formee"));
+    expect(echecs(ext)).to.deep.equal(["T-1"]);
+    expect(ext.checks[0].detail).to.match(/keyUsage : étiquette 0x02 au lieu de 0x03/);
+    for (const nom of ["tsa-cle-longueur-non-minimale", "tsa-extension-mal-formee"]) {
+      const pem = fs.readFileSync(path.join(VECTEURS, "cles", `${nom}.pem`), "utf8");
+      expect(() => H.lireCertificat(H.decoderPEM(pem, "CERTIFICATE")), nom).to.throw(H.ErreurDER);
+      expect(H.controlerAncresTsa(ancresAvec({ certificat: H.decoderPEM(pem, "CERTIFICATE") })), nom).to.have.length(1);
+    }
+    // Même clé que tsa-test : seule la forme diffère ; tsa-test.pem reste lu et ses extensions décodées à la lecture.
+    const tsa = H.lireCertificat(MATERIEL.certs["tsa-test"]);
+    expect([tsa.cle.verdict, tsa.cle.bits, [...tsa.ku], tsa.eku.oids, tsa.bc, tsa.ski.length]).to.deep.equal(["admis", 3072, [0], [H.OID.idKpTimeStamping], null, 20]);
+  });
+
+  it("SubjectPublicKeyInfo construit : bit inutilisé, algorithme mal formé, RSAPublicKey à un seul INTEGER ou avec un octet en trop : certificat illisible ; une clé EC est lue sans décoder la BIT STRING", function () {
+    const spki = H.lireDER(pub(MATERIEL.cles["tsa-test"]).export({ type: "spki", format: "der" }));
+    const alg = spki.enfants[0].octets();
+    const rsa = H.lireDER(spki.enfants[1].valeur().subarray(1));
+    const [n, e] = rsa.enfants.map((x) => x.octets());
+    const cert = (spkiBrut) => G.construireCertificat({ numero: 60, emetteur: G.nom(G.SUJETS.ac), sujet: G.nom(G.SUJETS.tsa), debut: "2026-06-01T00:00:00Z", fin: "2027-06-01T00:00:00Z", clePublique: pub(MATERIEL.cles["tsa-test"]), cleEmetteur: MATERIEL.cles["ac-test"], spkiBrut, extensions: [{ oid: H.OID.keyUsage, critique: true, valeur: G.bits(Buffer.from([0x80]), 7) }] });
+    expect(() => H.lireCertificat(cert(G.seq(alg, G.bits(rsa.octets(), 1))))).to.throw(H.ErreurDER, /bit\(s\) inutilisé/);
+    expect(() => H.lireCertificat(cert(G.seq(G.seq(G.oid(H.OID.rsaEncryption), G.nul(), G.nul()), G.bits(rsa.octets()))))).to.throw(H.ErreurDER, /AlgorithmIdentifier mal formé/);
+    expect(() => H.lireCertificat(cert(G.seq(alg, G.bits(G.seq(n)))))).to.throw(H.ErreurDER, /RSAPublicKey à 1 élément/);
+    expect(() => H.lireCertificat(cert(G.seq(alg, G.bits(Buffer.concat([rsa.octets(), Buffer.from([0])])))))).to.throw(H.ErreurDER, /RSAPublicKey illisible/);
+    expect(() => H.lireCertificat(cert(G.seq(alg, G.bits(G.seq(n, e)))))).not.to.throw();
+    const ec = crypto.generateKeyPairSync("ec", { namedCurve: "P-256" }).publicKey;
+    const c = H.lireCertificat(certTsa(ec));
+    expect([c.cle.verdict, c.cle.courbe]).to.deep.equal(["admis", "P-256"]);
   });
 });
 
@@ -602,7 +656,8 @@ describe("CT-6 contrôle 4 : génération déterministe des vecteurs rfc3161", f
       const la = lister(path.join(a, "rfc3161"));
       expect(la).to.deep.equal(lister(path.join(b, "rfc3161")));
       expect(la).to.deep.equal(lister(VECTEURS));
-      expect(Object.keys(la).length).to.equal(50);
+      // Révision 0.5 (EX-A.25) : deux certificats et deux jetons de plus.
+      expect(Object.keys(la).length).to.equal(54);
     } finally {
       fs.rmSync(a, { recursive: true, force: true });
       fs.rmSync(b, { recursive: true, force: true });

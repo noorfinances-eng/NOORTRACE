@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.3",
-  "date": "2026-11-03",
+  "spec_version": "0.4",
+  "date": "2026-11-10",
   "levels": [
     {
       "id": "TU",
@@ -4562,14 +4562,16 @@
         "CT-6 EX-9.20",
         "CT-6 EX-A.4",
         "CT-6 EX-A.5",
-        "CT-6 EX-A.22"
+        "CT-6 EX-A.22",
+        "CT-6 EX-A.25"
       ],
       "preconditions": [
         "Vecteurs `ct-6/rfc3161` présents au commit éprouvé, régénérés sans différence (TV- de génération déterministe de la même famille).",
         "`npm ci` fait ; aucun réseau."
       ],
       "steps": [
-        "Vérifier les SHA-256 ; rejouer chaque cas d'`attendu.json` (trente-neuf, dont les quinze des jetons de la révision 0.4 de CT-6, EX-A.22 : `sid` introuvable, jeton sans certificat, clés RSA de 8200 et 8192 bits, exposant 2³¹ + 1, intermédiaire de 8200 bits, algorithme inconnu, clé Ed25519 rattachée ou non, numéro de série de 168 bits) ; une variante par vérification ; `openssl ts -verify` sur les jetons valides et sur deux cas refusés."
+        "Vérifier les SHA-256 ; rejouer chaque cas d'`attendu.json` (quarante et un, dont les quinze des jetons de la révision 0.4 de CT-6, EX-A.22 : `sid` introuvable, jeton sans certificat, clés RSA de 8200 et 8192 bits, exposant 2³¹ + 1, intermédiaire de 8200 bits, algorithme inconnu, clé Ed25519 rattachée ou non, numéro de série de 168 bits, et les deux de la révision 0.5, EX-A.25 : `t1-cle-longueur-non-minimale` et `t1-extension-mal-formee`) ; une variante par vérification ; `openssl ts -verify` sur les jetons valides et sur deux cas refusés.",
+        "Révision 0.5 de CT-6 (EX-A.25) : les deux jetons rendent T-1 `echoue` (détail nommant la `RSAPublicKey` ou `keyUsage`), T-2 à T-11 `prerequis_en_echec` ; `tsa-cle-longueur-non-minimale.pem` et `tsa-extension-mal-formee.pem` sont illisibles selon §9.3 et refusés comme ancre (N-1)."
       ],
       "oracle": "Statuts, avertissements, faits, résumé et proposition égaux ; `Verification: OK` d'openssl où attendu.",
       "status": {
@@ -4582,6 +4584,11 @@
           {
             "file": "test/horodatage.test.js",
             "describe": "CT-6 contrôle 4 : confrontation à openssl ts -verify (annexe A.3)"
+          },
+          {
+            "file": "test/horodatage.test.js",
+            "describe": "CT-6 révision 0.5 : lecture du SubjectPublicKeyInfo et des extensions connues selon §9.3 (EX-9.4, EX-9.7)",
+            "it": "vecteurs t1-cle-longueur-non-minimale et t1-extension-mal-formee (EX-A.25) : T-1 nomme la RSAPublicKey ou keyUsage ; les certificats sont refusés comme ancre (N-1)"
           }
         ],
         "command": "npx hardhat --config hardhat.config.mjs test test/horodatage.test.js"
@@ -4609,14 +4616,16 @@
         "CT-6 EX-10.15",
         "CT-6 EX-A.6",
         "CT-6 EX-A.7",
-        "CT-6 EX-4.5"
+        "CT-6 EX-4.5",
+        "CT-6 EX-A.26"
       ],
       "preconditions": [
         "Vecteurs `ct-6/ots` présents au commit éprouvé, régénérés sans différence (TV- de génération déterministe de la même famille).",
         "`npm ci` fait ; aucun réseau."
       ],
       "steps": [
-        "Vérifier les SHA-256 ; rejouer chaque cas ; une variante par vérification ; cas sans en-têtes, `periodHash` incalculable, opération hors profil, attestation hors des en-têtes."
+        "Vérifier les SHA-256 ; rejouer chaque cas ; une variante par vérification ; cas sans en-têtes, `periodHash` incalculable, opération hors profil, attestation hors des en-têtes.",
+        "Révision 0.5 de CT-6 (EX-A.26) : `preuves/o1-attestation-en-double.ots` (vingt et unième cas d'`attendu.json`) rend O-1 `echoue` (raison `doublon` dans le détail), O-2 à O-7 `prerequis_en_echec`, contrôle 5 `echoue`, aucune attestation relevée ; `python_opentimestamps.parsing` vaut `acceptee_en_ecrasant`."
       ],
       "oracle": "Statuts, avertissements et faits égaux à `attendu.json`.",
       "status": {
@@ -4625,6 +4634,11 @@
           {
             "file": "test/ots.test.js",
             "describe": "CT-6 contrôle 5 : vecteurs spec/vecteurs/ct-6/ots (annexe A.4)"
+          },
+          {
+            "file": "test/ots.test.js",
+            "describe": "CT-6 contrôle 5 : format .ots (§10.2, EX-10.2)",
+            "it": "forme canonique d'un nœud (révision 0.5) : deux attestations identiques ou deux opérations identiques sous un même nœud rendent le fichier illisible (doublon) ; des branches sœurs distinctes sont lues"
           }
         ],
         "command": "npx hardhat --config hardhat.config.mjs test test/ots.test.js"
@@ -4950,13 +4964,16 @@
         "CT-6 EX-A.17",
         "CT-6 EX-A.18",
         "CT-6 EX-A.19",
-        "CT-6 EX-A.20"
+        "CT-6 EX-A.20",
+        "CT-6 EX-A.25",
+        "CT-6 EX-A.26"
       ],
       "preconditions": [
         "Sorties publiées sous `spec/vecteurs/ct-6/confrontation/sorties/` ; la confrontation du registre n'est pas rejouée en CI (copie de noorchain-core exigée)."
       ],
       "steps": [
-        "Vérifier que chaque sortie porte sur les vecteurs du dépôt ; rejouer `confronter_rfc3161.py` quand `python3` et `openssl` sont présents."
+        "Vérifier que chaque sortie porte sur les vecteurs du dépôt ; rejouer `confronter_rfc3161.py` quand `python3` et `openssl` sont présents.",
+        "Révision 0.5 de CT-6 : les sorties republiées portent les vecteurs d'EX-A.25 (`Verification: OK` d'`openssl ts -verify` pour `t1-cle-longueur-non-minimale.der`, `certificate verify error` pour `t1-extension-mal-formee.der` ; longueur non minimale relevée par `openssl asn1parse`, extension indécodable par `openssl x509 -purpose`) et d'EX-A.26 (`o1-attestation-en-double.ots` lue `acceptee_en_ecrasant` par python-opentimestamps, concordante avec l'attendu)."
       ],
       "oracle": "Aucune discordance.",
       "status": {
@@ -5005,14 +5022,16 @@
         "CT-6 EX-9.24",
         "CT-6 EX-A.22",
         "CT-6 EX-A.23",
-        "CT-6 EX-A.24"
+        "CT-6 EX-A.24",
+        "CT-6 EX-A.25",
+        "CT-6 EX-A.26"
       ],
       "preconditions": [
         "Module Go `verificateur/` (binaire `noortrace-verifier`), écrit depuis le seul texte de CT-6, étape 2 du plan (CT-6 §14 : « le binaire est construit en phase 2 ») ; Go 1.27.3, dépendances vendorisées."
       ],
       "steps": [
-        "`go test ./...` dans `verificateur/` : chaque dossier de `spec/vecteurs/ct-1/dossiers` et de `spec/vecteurs/ct-6/dossiers` rejoué ; code, `failed_checks`, statuts, raisons, avertissements, énoncé et borne comparés à son `attendu.json` ; chaque jeton de `spec/vecteurs/ct-6/rfc3161/attendu.json` rejoué, ceux d'EX-A.22 compris.",
-        "Le même `go test ./...` exécute les tests des règles de la révision 0.4 de CT-6 et de la révision 0.5 de CT-1 : `moteur/revision04_test.go` (codage, profondeur et forme canonique d'EX-4.16 ; événement prouvé inexploitable d'EX-5.15 ; désignation membre par membre d'EX-6.22 ; EX-9.24 de bout en bout), `moteur/ordinaire_unix_test.go` (lien symbolique et tube nommé, EX-4.17), `horodatage/revision04_test.go` (bornes RSA d'EX-9.23, clé hors de la version 0 d'EX-9.24), `dossier/revision05_test.go` et `dossier/correctifs_test.go` (EX-5.13, EX-5.14, EX-5.16 à EX-5.20).",
+        "`go test ./...` dans `verificateur/` : chaque dossier de `spec/vecteurs/ct-1/dossiers` et de `spec/vecteurs/ct-6/dossiers` rejoué ; code, `failed_checks`, statuts, raisons, avertissements, énoncé et borne comparés à son `attendu.json` ; chaque jeton de `spec/vecteurs/ct-6/rfc3161/attendu.json` rejoué, ceux d'EX-A.22 et d'EX-A.25 compris ; chaque preuve de `spec/vecteurs/ct-6/ots/attendu.json` rejouée, celle d'EX-A.26 comprise.",
+        "Le même `go test ./...` exécute les tests des règles de la révision 0.4 de CT-6 et de la révision 0.5 de CT-1 : `moteur/revision04_test.go` (codage, profondeur et forme canonique d'EX-4.16 ; événement prouvé inexploitable d'EX-5.15 ; désignation membre par membre d'EX-6.22 ; EX-9.24 de bout en bout), `moteur/ordinaire_unix_test.go` (lien symbolique et tube nommé, EX-4.17), `horodatage/revision04_test.go` (bornes RSA d'EX-9.23, clé hors de la version 0 d'EX-9.24), `dossier/revision05_test.go` et `dossier/correctifs_test.go` (EX-5.13, EX-5.14, EX-5.16 à EX-5.20) ; pour la révision 0.5 de CT-6, `horodatage/revision05_test.go` (certificats et jetons d'EX-A.25 illisibles selon §9.3, T-1 en échec) et `ots/format_test.go` (`TestFormatDoublon` : doublon sous un même nœud, vecteur d'EX-A.26).",
         "Construire deux fois par la recette d'EX-14.6 dans des répertoires et des caches différents ; comparer les SHA-256.",
         "Appliquer les quatre preuves d'absence de réseau d'EX-14.5 (`verificateur/scripts/verifier-sans-reseau.sh`)."
       ],
@@ -6915,16 +6934,42 @@
         "CT-5 EX-6.10"
       ],
       "preconditions": [
-        "Composant d'ancrage de l'étape 5 ; accès à un prestataire de test et à deux calendriers ; aucun prix dans le dépôt."
+        "Composant d'ancrage `paquets/ancrage` de l'étape 5 : client RFC 3161 et transport de production (`acquerir`, `transportHttps`), client OpenTimestamps (`soumettre`), composant et planificateur (`creerComposantAncrage`) ; aucun prix dans le dépôt.",
+        "Prestataires réels : autorités RFC 3161 publiques sans compte SwissSign (`https://tsa.swisssign.net`) et DFN (`https://zeitstempel.dfn.de`), non déclarées `qualified` ; agrégateurs OpenTimestamps publics d'EX-6.2 (`a.pool.opentimestamps.org`, `b.pool.opentimestamps.org`, `a.pool.eternitywall.com`, `ots.btc.catallaxy.com`) ; services publics, sans version publiée : l'essai consigne la date et la réponse de chacun. Les cas (i) et (ii) sont en attente hors `NOORTRACE_TSA_PUBLIQUE=1`, le cas (iii) hors `NOORTRACE_RESEAU_PUBLIC=1` (EX-3.11) ; la condition est nommée dans le titre.",
+        "Retrait de la qualification (CT-5 EX-5.9) éprouvé hors réseau : composant à horloge réglable, serveurs RFC 3161 internes de référence du paquet d'ancrage en principal et en secours, déclarés qualifiés par un instantané d'exemple (CT-5 EX-4.8)."
       ],
       "steps": [
-        "Acquérir un jeton et une preuve `.ots` pour une racine ; retirer la qualification du principal dans la configuration sans recharger (CT-5 EX-5.9) ; respecter `min_interval_ms` ; relire la fiche de prestataire."
+        "(i) Pour chaque autorité publique : acquérir un jeton par le transport de production (CT-5 EX-5.10, étapes 1 à 9), le déposer (EX-5.14, AN-28) ; capturer les CRL des points de distribution du chemin après `genTime` et évaluer T-10 ; construire la fiche de prestataire (CT-5 §11), l'écrire et la relire.",
+        "(ii) Servir l'autorité SwissSign au composant par un relais HTTP local (rôle `interne`, `min_interval_ms` 15000) ; remettre deux points consécutifs et relever, dans le journal du relais et dans `acquisitions.ndjson`, l'écart entre les requêtes.",
+        "(iii) Soumettre la racine d'un manifeste synthétique aux agrégateurs publics (`min_responses` 2) ; écrire la preuve en attente au dépôt (EX-6.5) et l'évaluer par O-1 à O-7.",
+        "Retirer la qualification du principal sans recharger pendant que la clôture attend sa réponse (`retirerQualification`) ; relever la relève par le secours, puis recharger avec et sans principal qualifié."
       ],
-      "oracle": "Jeton accepté par T-1 à T-10 ; relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée (test « à écrire » de CT-5 §14) ; aucune requête sous `min_interval_ms`.",
+      "oracle": "(i) Jeton `obtenue`, nonce recopié, empreinte égale, T-1 à T-9 réussies ; T-10 `reussi` quand une CRL postérieure à `genTime` est publiée pour chaque certificat du chemin, sinon `crl_indisponible` consigné (la capture différée d'EX-5.10, étape 10, réessaie) ; fiche relue conforme (AN-54), sans secret, `qualified` nul. (ii) Aucune requête sous `min_interval_ms` (EX-5.5, EX-8.7), la seconde reprogrammée (`anchor_retry`, `backoff`), deux jetons obtenus. (iii) Au moins deux réponses valables, attestation `en_attente`, fichier `.ots` déposé, O-1 et O-3 réussies, O-7 non exécutée. Retrait : la demande de clôture part aussi au secours, dont le jeton est promu avec `qualified` non nul (`anchor_fallback`, raison `qualification_retiree`) ; aucun rôle ne change ; l'instantané du principal reste nul jusqu'au rechargement ; un rechargement sans principal qualifié est refusé en production (AN-1, règle 4).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Composant d'ancrage non construit ; le planificateur à horloge injectée (TV-) ne parle à aucun prestataire."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/ancrage-prestataires-reels.test.js",
+            "describe": "TI-16 (i) : autorités RFC 3161 publiques (SwissSign, DFN) par le transport de production : jeton acquis et déposé, T-1 à T-9, T-10 par les CRL publiées, fiche relue conforme (CT-5 §5, §10.2, §11)"
+          },
+          {
+            "file": "test/ancrage-prestataires-reels.test.js",
+            "describe": "TI-16 (ii) : min_interval_ms (EX-5.5, EX-8.7) tenu par le composant sur une autorité publique réelle servie par un relais local (rôle interne) : deux points consécutifs, deux requêtes espacées d'au moins min_interval_ms, mesurées dans le journal"
+          },
+          {
+            "file": "test/ancrage-prestataires-reels.test.js",
+            "describe": "TI-16 (iii) : preuve OpenTimestamps d'une racine auprès de deux calendriers publics (EX-6.2 : agrégateurs, min_responses 2) : preuve en attente écrite au dépôt (EX-6.5), O-1 et O-3 réussies"
+          },
+          {
+            "file": "test/ancrage-composant-pannes.test.js",
+            "describe": "retrait de la qualification (EX-5.9 ; TC-24 de CT-9) et rechargement (EX-4.9)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/ancrage-prestataires-reels.test.js && npx hardhat --config hardhat.config.mjs test test/ancrage-composant-pannes.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Prestataire qualifié réel : les autorités publiques éprouvées ne sont pas déclarées `qualified`, et la relève par le secours est éprouvée sur des serveurs internes déclarés qualifiés par un instantané d'exemple ; la fiche d'un prestataire qualifié réel (CT-5 EX-5.9, `qualified` non nul) et sa relève par un secours qualifié réel attendent le prestataire à contracter pour la porte 2 (section 14, ligne 10 et ligne d'arrêt 4), étape 8."
+        }
       },
       "threats": [
         "MN-62",
@@ -6957,16 +7002,61 @@
         "CT-7 CLE-10"
       ],
       "preconditions": [
-        "Serveur interne de l'étape 5 (optionnel, CT-5 §7) ; client RFC 3161 du composant d'ancrage."
+        "Serveur RFC 3161 interne de référence du paquet d'ancrage (`noortrace-tsa-interne` : `initialiserAutorite`, `Autorite`, serveur HTTP local et serveur TLS à authentification du client, compteur de série durable) et client RFC 3161 du composant d'ancrage (étape 5) ; démon `noortrace` avec le composant branché pour l'essai de bout en bout.",
+        "OpenSSL de la distribution (`openssl ts -verify`, `ts -reply -text`, `asn1parse`, `x509`, `crl`, `verify`), relevé le 2026-11-10 : OpenSSL 3.0.13 (30 janvier 2024) ; autorité de test de CT-6 (`spec/vecteurs/ct-6/rfc3161/cles/`) et requêtes des vecteurs `ct-5`."
       ],
       "steps": [
-        "Émettre un jeton ; l'évaluer par T-1 à T-10 ; redémarrer le serveur ; émettre un second jeton ; demander un condensé non SHA-2, une politique autre que la privée."
+        "Initialiser une autorité (RSA 3072 et P-256) ; relire l'unité, l'AC et la CRL par `openssl x509`, `crl` et `verify` ; construire une `Autorite` avec des clés et des certificats hors profil.",
+        "Émettre des jetons (six requêtes des vecteurs `ct-5`) ; les relire par `openssl ts -reply -text` et `asn1parse` et les vérifier par `openssl ts -verify` ; demander un condensé SHA-1 ou MD5, une politique étrangère, une requête mal formée ; servir en HTTP local et en TLS à authentification du client.",
+        "Émettre quatre jetons, redémarrer le serveur (compteur de série durable), en émettre quatre autres, par le client du composant ; évaluer chaque jeton par T-1 à T-9 ; relever le journal des jetons hors du serveur."
       ],
-      "oracle": "EKU critique et unique, `ESSCertIDv2` SHA-256, nonce repris, `serialNumber` strictement croissant à travers le redémarrage, `badAlg` et `unacceptedPolicy` rendus, journal des jetons hors du serveur.",
+      "oracle": "EKU critique et unique, unité non AC, `ESSCertIDv2` SHA-256 et certificat de l'unité inclus (T-8, T-4), nonce recopié (« nonce mismatch » sinon), `serialNumber` strictement croissant à travers le redémarrage (un second émetteur sur le même compteur refusé), `accuracy` ≤ 1 s, `badAlg` et `unacceptedPolicy` rendus et lus par le client, `timeNotAvailable` au-delà de la précision, écoute en clair limitée à 127.0.0.1, ::1 et localhost, client anonyme refusé en TLS, journal des jetons hors du serveur (AN-28) ; `Verification: OK` d'`openssl ts -verify` sur chaque réponse accordée ; clés hors profil refusées (AN-31, CT-6 EX-9.23).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Serveur non construit (CT-5 §7.2 : « vérifiées par CT-9 sur un jeton émis »)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-ancrage-exigences.test.js",
+            "describe": "enregistreur + ancrage (lot F2), TI-17 : serveur RFC 3161 interne du lot E éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)"
+          },
+          {
+            "file": "test/enregistreur-ancrage-parcours.test.js",
+            "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
+            "it": "TI-17 sur les jetons reçus du serveur interne : AN-22 (T-8), AN-24 (accuracy ≤ 1 s, TM-19), AN-25 (nonce recopié), AN-26 (numéros de série strictement croissants, TM-18 : 0 paire non croissante), AN-29 (politique privée), AN-30 (certificat de l'unité inclus) ; AN-28 : une ligne d'acquisition par jeton reçu"
+          },
+          {
+            "file": "test/ancrage-tsa-interne-autorite.test.js",
+            "describe": "ancrage lot E — initialiserAutorite (AN-22, AN-31) : RSA 3072 et P-256"
+          },
+          {
+            "file": "test/ancrage-tsa-interne-autorite.test.js",
+            "describe": "ancrage lot E — classe Autorite : contrôles à la construction (AN-22, AN-30, AN-31 ; CT-6 EX-9.23)"
+          },
+          {
+            "file": "test/ancrage-tsa-interne-reponse.test.js",
+            "describe": "ancrage lot E — réponses granted : six requêtes des vecteurs CT-5, autorité de test de CT-6"
+          },
+          {
+            "file": "test/ancrage-tsa-interne-reponse.test.js",
+            "describe": "ancrage lot E — refus (PKIStatus 2, failInfo nommé, aucun jeton)"
+          },
+          {
+            "file": "test/ancrage-tsa-interne-reponse.test.js",
+            "describe": "ancrage lot E — numéros de série (AN-26) : croissance stricte, durabilité, émetteur unique"
+          },
+          {
+            "file": "test/ancrage-tsa-interne-serveur.test.js",
+            "describe": "ancrage lot E — serveur HTTP en clair sur une adresse locale (AN-27)"
+          },
+          {
+            "file": "test/ancrage-tsa-interne-serveur.test.js",
+            "describe": "ancrage lot E — serveur TLS avec authentification du client (AN-27)"
+          },
+          {
+            "file": "test/ancrage-tsa-interne-serveur.test.js",
+            "describe": "ancrage lot E — binaire noortrace-tsa-interne (init, servir, crl)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-exigences.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-parcours.test.js && npx hardhat --config hardhat.config.mjs test test/ancrage-tsa-interne-autorite.test.js && npx hardhat --config hardhat.config.mjs test test/ancrage-tsa-interne-reponse.test.js && npx hardhat --config hardhat.config.mjs test test/ancrage-tsa-interne-serveur.test.js"
       },
       "threats": [
         "MN-42"
@@ -7849,16 +7939,29 @@
         "CT-1 §10.9"
       ],
       "preconditions": [
-        "Enregistreur et composant d'ancrage (étapes 4 et 5) ; réseau de développement ; prestataire de test et calendriers."
+        "Démon `noortrace` réel (processus enfant) de l'enregistreur (étape 4) avec le composant d'ancrage de l'étape 5 branché (`anchoring.ancrage`, document `ancrage-v0` validé, secrets résolus, clé de chaîne de classe D) ; vérificateur JavaScript de référence (`scripts/verify/dossier.mjs`, boîte noire) et binaire Go de CT-6 (go1.27.3), même fichier d'ancres.",
+        "Variante hors réseau public : serveurs RFC 3161 internes de référence du paquet d'ancrage (points en HTTP local, principal en TLS mutuel avec un `qualified` d'exemple), calendriers OpenTimestamps factices en TLS (chaîne regtest), nœud noorcore factice en JSON-RPC, horloge hybride à cadence réduite admise par le schéma (`checkpoint_interval_s` 10).",
+        "Variante sur le réseau de développement réel : quatre validateurs noorcore (`chain/scripts/dev-net.sh`), client inscrit par le parcours de référence (`npm run e2e:registre`) ; en attente quand le réseau n'est pas debout, et son cas des calendriers publics hors `NOORTRACE_RESEAU_PUBLIC=1`, condition nommée dans le titre (EX-3.11) ; `unshare -n` pour la vérification sans réseau."
       ],
       "steps": [
-        "Laisser une période recevoir ses points, ses ancres de point et ses trois ancres de clôture ; exporter le dossier avec `points-de-controle.json` ; vérifier sans réseau (`unshare -n`)."
+        "Laisser une période recevoir ses points (remis au composant, ancrés au registre), un point contresigné et soumis aux calendriers à l'échéance médiane, et ses trois ancres de clôture (ancre au registre incluse et capturée, jeton du principal, preuve OpenTimestamps) ; relayer la clôture `submitPeriod` après la demande signée des approbateurs.",
+        "Exporter le dossier d'un événement avec `points-de-controle.json`, avant puis après la mise à niveau OpenTimestamps ; le vérifier par les deux vérificateurs, sans réseau (`unshare -n`) sur le réseau de développement.",
+        "`noortrace-ctl ancrage` (état, métriques, retrait de qualification) et `noortrace-ctl reload` ; arrêt propre."
       ],
-      "oracle": "Contrôles 4, 5 et 8 et K-7 à K-9 réussis ; P-5 de CT-5 tenue (aucun réseau) ; énoncé du vérificateur conforme à CT-6 §7.9.",
+      "oracle": "Contrôles 4, 5 et 8 et K-7 à K-9 réussis après la mise à niveau (avant elle : contrôle 5 et K-9 non exécutés, preuve en attente) ; P-5 de CT-5 tenue (aucun réseau) ; énoncé du vérificateur conforme à CT-6 §7.9 (fragment FK), même verdict et même énoncé entre les deux vérificateurs ; le dossier antérieur est inchangé et un réexport est dû (CT-5 EX-10.5) ; file durable à états finaux à l'arrêt.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Composant d'ancrage non construit ; « une racine reçoit ses trois ancres » est le critère de l'étape 5."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-ancrage-parcours.test.js",
+            "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs"
+          },
+          {
+            "file": "test/enregistreur-ancrage-parcours.test.js",
+            "describe": "enregistreur + ancrage (lot F2), TE-12 sur le réseau de développement réel : démon réel, ancres des points et de la période incluses sur noorcore, clôture submitPeriod relayée, dossier vérifié sans réseau par les deux vérificateurs (CT-4 §7.4, §8.2, §8.6, §9.4 ; CT-5 P-5 ; CT-6 §7.9)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-parcours.test.js"
       },
       "threats": [
         "MN-17",
@@ -7935,17 +8038,35 @@
         "CT-2 EX-17.4"
       ],
       "preconditions": [
-        "Démon de l'étape 4 avec journal d'exploitation."
+        "Démon `noortrace` réel (processus enfant) de l'étape 4 avec son journal d'exploitation et le composant d'ancrage de l'étape 5 branché (registre factice coupable pour JS-11) ; `noortrace-ctl`.",
+        "Pour JS-9 et JS-10 : support WORM S3 à Object Lock de LocalStack en conteneur Docker (image épinglée par condensé), derrière un mandataire TLS, bucket verrouillé en COMPLIANCE ; sans Docker, ces cas sont en attente (EX-3.11)."
       ],
       "steps": [
-        "Provoquer chaque situation de la table de CT-7 §6.1 (démarrage, arrêt, bail, rotation, politique, configuration, saut d'horloge, gel, perte WORM, ancrage dégradé, attestation).",
+        "Provoquer chaque situation de la table de CT-7 §6.1 (démarrage, arrêt, bail, rotation de la clé de l'enregistreur, rotation de la clé de chaîne, politique, configuration, saut d'horloge, gel, perte WORM, ancrage dégradé, attestation) ; relire la chaîne et le journal d'exploitation.",
         "Forcer la rotation du journal d'exploitation par `supervision.ops_log.rotate_max_bytes`, puis simuler un disque plein pendant le relais."
       ],
-      "oracle": "Chaque situation produit l'événement ou la ligne que la table nomme (« porté » ou « aucun » selon la colonne) ; aucun secret dans les lignes. Rotation : au plus `keep_files` fichiers conservés ; disque plein : chaque ligne non écrite incrémente `noortrace_ops_log_dropped_total` d'une unité et le relais continue (CT-2 EX-9.7, EX-17.4).",
+      "oracle": "Chaque situation produit l'événement ou la ligne que la table nomme (« porté » ou « aucun » selon la colonne) ; aucun secret dans les lignes, la file durable ni `acquisitions.ndjson`. JS-5 : aucun événement ne porte la rotation de la clé de chaîne, et la rotation d'urgence est refusée (`registre_non_branche`) ; la révocation et l'inscription au registre que la table nomme pour JS-5 sont le complément. Rotation : au plus `keep_files` fichiers conservés ; disque plein : chaque ligne non écrite incrémente `noortrace_ops_log_dropped_total` d'une unité et le relais continue (CT-2 EX-9.7, EX-17.4).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Les situations JS-5 (rotation de la clé de chaîne au registre) et JS-11 (ancrage dégradé : anchor_pending, registry_pending) exigent le composant d'ancrage de l'étape 5 ; CT-7 §6.2 et §6.3 restent des propositions PA- à CT-2 et CT-1. La version 0.1 rattachait l'entrée à l'étape 4 ; les autres situations (démarrage, arrêt, bail, rotation de clé, politique, configuration, horloge, gel et copies WORM, rotation et disque plein du journal d'exploitation) sont observables sur le démon de l'étape 4 et s'écrivent avec l'entrée."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-journal-soi.test.js",
+            "describe": "TE-14 : journal de l'enregistreur sur lui-même, JS-1 à JS-12 de CT-7 §6.1 observés sur le démon réel (CT-2 EX-17.1 à EX-17.4, EX-18.6 ; CT-7 EX-6.1 à EX-6.3)"
+          },
+          {
+            "file": "test/enregistreur-journal-soi.test.js",
+            "describe": "TE-14 : rotation du journal d'exploitation par supervision.ops_log.rotate_max_bytes et keep_files (EX-9.7, EX-17.4) sur un démon réel"
+          },
+          {
+            "file": "test/enregistreur-journal-soi.test.js",
+            "describe": "TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3 à Object Lock en conteneur) : worm_legal_hold_observed, worm_copy_failed puis reprise, copie conforme d'ancres/"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-journal-soi.test.js",
+        "complement": {
+          "phase2_step": 7,
+          "blocking": "JS-5, colonne du journal : rotation d'urgence de la clé de chaîne relayée au registre (révocation et nouvelle inscription signées par les approbateurs au seuil, CT-4 §7, CT-2 EX-11.16, EX-11.19 point 4) ; le démon de l'étape 5 la refuse en le nommant (`registre_non_branche`, lecture 202 du LISEZMOI de `paquets/enregistreur`), reste rattaché, comme la clé de chaîne des classes A à C, à l'étape 7 (paquets et exploitation)."
+        }
       },
       "threats": [
         "MN-18",
@@ -8005,16 +8126,240 @@
         "CT-2 EX-14.12"
       ],
       "preconditions": [
-        "Démon de l'étape 4 ; hôte de test ; serveur d'outils et fournisseur simulés dont on peut couper chaque dépendance (stockage, signataire, bail, horloge, service d'approbation, ancrage)."
+        "Enregistreur `paquets/enregistreur` (étape 4) : démon réel `bin/noortrace --config` et son cœur monté en cours de processus avec des dépendances coupables (stockage, signataire, bail, horloge, service d'approbation simulé, serveur d'outils et fournisseur simulés) ; composant d'ancrage de l'étape 5 branché et support WORM S3 à Object Lock en conteneur pour les lignes « Ancrage », « Registre » et « Support WORM ».",
+        "Ligne « clé indisponible » rejouée sur le démon réel en configuration de production avec un signataire de classe B (Vault Transit réel en conteneur, suspendu puis repris) : démon lancé par le superutilisateur et Docker exigés, sinon les cas sont en attente, condition nommée (EX-3.11) ; le travail « parcours-superutilisateur » de `ci.yml` les joue sans attente."
       ],
       "steps": [
-        "Pour chaque ligne de la matrice de CT-2 §14.2, couper la dépendance pendant un appel de lecture puis d'écriture ; relever ce qui est rendu à l'hôte, ce qui est journalisé et les événements en attente ; rétablir la dépendance."
+        "Pour chaque ligne de la matrice de CT-2 §14.2, couper la dépendance pendant un appel de lecture puis d'écriture ; relever ce qui est rendu à l'hôte, ce qui est journalisé et les événements en attente ; rétablir la dépendance.",
+        "Clôturer et exporter le dossier d'un événement scellé après chaque rétablissement ; le vérifier par les deux vérificateurs de CT-6."
       ],
-      "oracle": "Comportement égal, ligne par ligne, à la matrice de §14.2 ; événements en attente rejoués à l'identique ; aucun appel d'écriture relayé sans événement durable. Les TA- des scénarios « l'enregistreur tombe » et « un prestataire est injoignable » retirent la réponse de chaque ligne.",
+      "oracle": "Comportement égal, ligne par ligne, à la matrice de §14.2 (colonnes E, L et M, rendu à l'hôte, raison, journal d'exploitation) ; événements en attente rejoués à l'identique ; aucun appel d'écriture relayé sans événement durable. Lignes éprouvées par les essais cités : « Stockage indisponible », « Clé indisponible » et « Panne après relais » (démon réel, signataire de classe B suspendu), « Serveur d'outils injoignable », « Délai du serveur d'outils » (dossiers acceptés par le binaire Go), « Fournisseur de modèle », les cinq lignes du service d'approbation et des décisions, « Rédaction au-delà de la borne de temps », « Ancrage » et « Ancrage des points », « Support WORM », « Registre », les deux lignes d'horloge, « Mémoire » (quotas, -31013 et 503), « Bail perdu », « Bail non détenu », les deux lignes de configuration. Les TA- des scénarios « l'enregistreur tombe » et « un prestataire est injoignable » retirent la réponse de chaque ligne.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Livrable de l'étape 4 manquant : la ligne « signataire » de la matrice de CT-2 §14.2 exige un signataire coupable ; le démon ne livre que la classe D (graine en mémoire), les classes A, B et C relevant de lots suivants (LISEZMOI du paquet) ; la ligne « ancrage » attend le composant de l'étape 5. Les colonnes du démon déjà livrées sont éprouvées ligne à ligne par les tests du paquet (enregistreur-*-exigences), pas par un rejeu de la matrice entière."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-signataires-parcours.test.js",
+            "describe": "CT-9 TE-16, ligne « clé indisponible » de la matrice de CT-2 §14.2 (et « panne après relais »), rejouée sur le démon réel : Vault suspendu pendant une lecture puis une écriture, puis rétabli"
+          },
+          {
+            "file": "test/enregistreur-mcp-exigences.test.js",
+            "describe": "approbation au pas 3 à 7 (EX-4.49, EX-4.50, EX-7.16, 14.2)",
+            "it": "14.2, EX-14.6, EX-14.8 : mode dégradé « stockage » : lecture passante relayée, réponse normale, événement en attente ; écriture bloquée ; « clé » bloque tout"
+          },
+          {
+            "file": "test/enregistreur-coeur-reprise.test.js",
+            "describe": "enregistreur, cœur : non-régression de la relecture A (stockage, reprise, bail)",
+            "it": "R-A-3 (EX-12.8) : fdatasync en erreur (EIO) pour un groupe de trois événements → refusés, segment tronqué à la dernière ligne synchronisée, la chaîne reprend sans eux"
+          },
+          {
+            "file": "test/enregistreur-modele-exigences.test.js",
+            "describe": "§14 (colonne M), EX-14.16, §13.5 : pannes et arrêt",
+            "it": "stockage indisponible avec failure.modele passant : relayé, pièces gardées en mémoire, événement en attente ; bloquant sinon"
+          },
+          {
+            "file": "test/enregistreur-modele-exigences.test.js",
+            "describe": "§14 (colonne M), EX-14.16, §13.5 : pannes et arrêt",
+            "it": "mode dégradé « clé » : 503 au format de la route, rien n'est relayé, call_blocked compté"
+          },
+          {
+            "file": "test/enregistreur-mcp-exigences.test.js",
+            "describe": "4.4 relais de tools/call (EX-4.19 à EX-4.24, EX-4.43 à EX-4.48)",
+            "it": "EX-4.46 : panne du stockage après relais → -31017 avec intent_id, événement gardé en attente"
+          },
+          {
+            "file": "test/enregistreur-mcp-exigences.test.js",
+            "describe": "4.4 relais de tools/call (EX-4.19 à EX-4.24, EX-4.43 à EX-4.48)",
+            "it": "EX-4.33, EX-4.48 : le serveur meurt pendant l'appel → -31014 et événement ; relance au prochain appel"
+          },
+          {
+            "file": "test/enregistreur-mcp-exigences.test.js",
+            "describe": "4.3 agrégation (EX-4.9 à EX-4.18)",
+            "it": "EX-4.18 : serveur injoignable omis de la liste, santé `serveur:<alias>`, appel → -31014 sans événement"
+          },
+          {
+            "file": "test/enregistreur-mcp-parcours.test.js",
+            "describe": "enregistreur, frontal MCP : parcours de bout en bout (hôtes, connecteur, serveurs stdio, journal vérifié)",
+            "it": "l'hôte reçoit la liste agrégée, les résultats relayés, le signal d'approbation, les erreurs de la table de 4.4"
+          },
+          {
+            "file": "test/enregistreur-mcp-parcours.test.js",
+            "describe": "enregistreur, frontal MCP : parcours de bout en bout (hôtes, connecteur, serveurs stdio, journal vérifié)",
+            "it": "chaque appel a produit un événement scellé ; délégation, politique, approbation et effets conformes (7.2)"
+          },
+          {
+            "file": "test/enregistreur-mcp-parcours.test.js",
+            "describe": "enregistreur, frontal MCP : parcours de bout en bout (hôtes, connecteur, serveurs stdio, journal vérifié)",
+            "it": "le dossier de chaque appel est accepté par le binaire Go noortrace-verifier (go1.27.3)"
+          },
+          {
+            "file": "test/enregistreur-modele-exigences.test.js",
+            "describe": "EX-5.24 : délais du fournisseur",
+            "it": "connexion impossible : 504 au format de la route, événement is_error, pièce noortrace_timeout phase connexion"
+          },
+          {
+            "file": "test/enregistreur-modele-exigences.test.js",
+            "describe": "EX-5.24 : délais du fournisseur",
+            "it": "premier octet au-delà du délai : 504 ; silence au-delà d'idle_timeout_ms pendant un flux : flux clos, forme incomplète"
+          },
+          {
+            "file": "test/enregistreur-mcp-exigences.test.js",
+            "describe": "approbation au pas 3 à 7 (EX-4.49, EX-4.50, EX-7.16, 14.2)",
+            "it": "14.2 : service d'approbation indisponible : écriture et outil susceptible bloqués (-31010 approbation) ; autre lecture passante, decision autorise, rule null"
+          },
+          {
+            "file": "test/enregistreur-politique-exigences.test.js",
+            "describe": "pas 3 : evaluer, charger et matrice de 14.2 (service d'approbation)",
+            "it": "14.2, service indisponible, colonne E : une écriture est bloquée (-31010, approbation), sans pièce d'événement ni intention"
+          },
+          {
+            "file": "test/enregistreur-politique-exigences.test.js",
+            "describe": "pas 3 : evaluer, charger et matrice de 14.2 (service d'approbation)",
+            "it": "EX-7.4 : sans réponse dans policy.approval.timeout_ms (service muet), indisponibilité : -31010 en moins de 3 s"
+          },
+          {
+            "file": "test/enregistreur-politique-exigences.test.js",
+            "describe": "pas 3 : evaluer, charger et matrice de 14.2 (service d'approbation)",
+            "it": "EX-7.16 : réponse hors des combinaisons (membre manquant, ticket incohérent, rule nulle, jeu absent ou inexploitable, approval non scellé) : -31010, approval_response_invalid"
+          },
+          {
+            "file": "test/enregistreur-politique-exigences.test.js",
+            "describe": "14.2 : lectures susceptibles, lectures bloquantes, avant le premier charger",
+            "it": "failure.approval_service.lecture bloquant : une lecture non susceptible est bloquée pendant l'indisponibilité"
+          },
+          {
+            "file": "test/enregistreur-politique-exigences.test.js",
+            "describe": "pas 5 et 6, mode erreur (EX-4.49, EX-7.12, EX-7.17 à EX-7.22, EX-12.23, CT-3 EX-11.3)",
+            "it": "RL-3 : un service compromis qui sert de nouveau l'approbation consommée : -31010 approbation, approval_relay_refused, aucune intention"
+          },
+          {
+            "file": "test/enregistreur-politique-exigences.test.js",
+            "describe": "pas 5 et 6, mode erreur (EX-4.49, EX-7.12, EX-7.17 à EX-7.22, EX-12.23, CT-3 EX-11.3)",
+            "it": "EX-7.17 : la retenue d'un ticket déjà décidé n'est pas scellée : -31010, identifiant_en_collision"
+          },
+          {
+            "file": "test/enregistreur-sdk-exigences.test.js",
+            "describe": "EX-6.4, EX-6.7 : approbation par le SDK (table d'EX-6.7)",
+            "it": "EX-6.7, EX-10.23 : pièce « arguments » au-delà de la borne de temps : -31010 redaction pour une écriture, avant l'intention"
+          },
+          {
+            "file": "test/enregistreur-coeur-approbations.test.js",
+            "describe": "enregistreur, cœur : interface du service d'approbation (§7.5)",
+            "it": "remises refusées : SG-2 (ticket inconnu), SG-5 (signature), SG-6 (seuil), SG-7 (auto-approbation), SG-3 (déjà décidé)"
+          },
+          {
+            "file": "test/enregistreur-politique-exigences.test.js",
+            "describe": "mode dégradé et entrées hostiles (14.2, EX-7.5, EX-7.19, EX-9.4)",
+            "it": "décision pour un ticket inconnu (SG-2) et remise rejouée (SG-3, avec la décision scellée) : refusées, rien n'est scellé"
+          },
+          {
+            "file": "test/enregistreur-politique-exigences.test.js",
+            "describe": "pas 5 et 6, mode erreur (EX-4.49, EX-7.12, EX-7.17 à EX-7.22, EX-12.23, CT-3 EX-11.3)",
+            "it": "ré-émission en attente : aucun événement, approval_pending, signal en_attente (CT-3 EX-7.19)"
+          },
+          {
+            "file": "test/enregistreur-mcp-exigences.test.js",
+            "describe": "approbation au pas 3 à 7 (EX-4.49, EX-4.50, EX-7.16, 14.2)",
+            "it": "EX-4.50 : mode retenir : la requête est retenue jusqu'à la décision approuvée (acquitter held), puis relayée ; délai de rétention → en_attente"
+          },
+          {
+            "file": "test/enregistreur-politique-exigences.test.js",
+            "describe": "mode dégradé et entrées hostiles (14.2, EX-7.5, EX-7.19, EX-9.4)",
+            "it": "décision remise pendant un mode dégradé : acquitter temporaire, rien n'est inscrit ; ré-émission en_attente ; scellée à la représentation, après la sortie"
+          },
+          {
+            "file": "test/enregistreur-politique-exigences.test.js",
+            "describe": "mode dégradé et entrées hostiles (14.2, EX-7.5, EX-7.19, EX-9.4)",
+            "it": "expiration atteinte pendant un mode dégradé : différée (approval_expired_deferred), scellée à la sortie ; ré-émission : signal expire"
+          },
+          {
+            "file": "test/enregistreur-ancrage-exigences.test.js",
+            "describe": "enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence",
+            "it": "le composant est attaché après l'écrivain (anchoring_attached, contexte depuis le stockage) ; EX-4.12 : avec un prestataire qui ne répond jamais, le tic qui produit et remet un point rend la main sans attendre le réseau"
+          },
+          {
+            "file": "test/enregistreur-journal-soi.test.js",
+            "describe": "TE-14 : journal de l'enregistreur sur lui-même, JS-1 à JS-12 de CT-7 §6.1 observés sur le démon réel (CT-2 EX-17.1 à EX-17.4, EX-18.6 ; CT-7 EX-6.1 à EX-6.3)"
+          },
+          {
+            "file": "test/enregistreur-worm-exigences.test.js",
+            "describe": "copies de l'écrivain (EX-12.16, EX-12.17, EX-12.29, EX-12.30, EX-12.32, EX-12.33)",
+            "it": "panne du support (14.2 « Support WORM ») : copie en échec consignée, jamais bloquante ; le balayage de la supervision la réessaie (EX-12.16) et met à jour noortrace_worm_copy_pending"
+          },
+          {
+            "file": "test/enregistreur-journal-soi.test.js",
+            "describe": "TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3 à Object Lock en conteneur) : worm_legal_hold_observed, worm_copy_failed puis reprise, copie conforme d'ancres/",
+            "it": "JS-10 perte d'une copie WORM : support suspendu (docker pause) pendant la clôture → worm_copy_failed (injoignable) ; support repris → le balayage de la supervision copie ce qui manque, noortrace_worm_copy_pending retombe"
+          },
+          {
+            "file": "test/enregistreur-coeur-config.test.js",
+            "describe": "horloge (EX-7.9, EX-7.13, 14.2)"
+          },
+          {
+            "file": "test/enregistreur-coeur-config.test.js",
+            "describe": "horloge au tic (R-A-2, EX-7.13, EX-12.24)",
+            "it": "saut en avant détecté par le tic lui-même (aucun scellement entre-temps) : mode dégradé « horloge », clock_forward_jump, rien n'est clos"
+          },
+          {
+            "file": "test/enregistreur-modele-securite.test.js",
+            "describe": "EX-4.47 : quotas de la connexion d'hôte sur la passerelle",
+            "it": "requêtes en cours (max_concurrent) : la seconde, pendant un flux, est bloquée (503) ; l'échange suivant passe"
+          },
+          {
+            "file": "test/enregistreur-mcp-exigences.test.js",
+            "describe": "4.4 relais de tools/call (EX-4.19 à EX-4.24, EX-4.43 à EX-4.48)",
+            "it": "entrées hostiles : requête au-delà de request_max_bytes → -31013 (requete), sans pièce ; `_meta` piégé relayé tel quel mais jamais journalisé"
+          },
+          {
+            "file": "test/enregistreur-ha-exigences.test.js",
+            "describe": "cœur et magasin réseau (EX-13.1, EX-13.5, EX-13.6, EX-13.9, EX-13.10, 13.4)",
+            "it": "EX-13.6, 14.2 « Bail perdu » : le bail repris par une autre instance → renouvellement refusé, lease_lost, mode dégradé « bail » : écritures et lectures bloquées (raison bail), santé down"
+          },
+          {
+            "file": "test/enregistreur-ha-exigences.test.js",
+            "describe": "cœur et magasin réseau (EX-13.1, EX-13.5, EX-13.6, EX-13.9, EX-13.10, 13.4)",
+            "it": "EX-13.10 (2) : bail perdu pendant une écriture — repris après le contrôle d'avant fdatasync : la revérification après fdatasync échoue, lease_lost_after_write avec le seq, l'événement n'est pas rendu comme acquis"
+          },
+          {
+            "file": "test/enregistreur-ha-exigences.test.js",
+            "describe": "cœur et magasin réseau (EX-13.1, EX-13.5, EX-13.6, EX-13.9, EX-13.10, 13.4)",
+            "it": "13.4 pas 1, EX-17.1, 14.2 « Bail non détenu » : instance passive — lease_standby, santé standby, /readyz 503, -31010 bail_non_detenu sans parler au service d'approbation ; elle prend le bail quand l'active le rend, avec une époque plus grande"
+          },
+          {
+            "file": "test/enregistreur-coeur-config.test.js",
+            "describe": "démon bin/noortrace",
+            "it": "refuse une configuration invalide : code 2, rapport sur stderr, rien n'est ouvert"
+          },
+          {
+            "file": "test/enregistreur-ancrage-parcours.test.js",
+            "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
+            "it": "noortrace-ctl ancrage etat | metriques | retirer-qualification <id> (SIGURG et demande écrite, réponse au journal) ; noortrace-ctl reload recharge le document ancrage-v0 avec la politique (EX-4.9) ; un rechargement d'un document invalide est refusé sans changer l'ancien"
+          },
+          {
+            "file": "test/enregistreur-coeur-attente-bornes.test.js",
+            "describe": "enregistreur, CT-2 §14.2 lignes « Mémoire » et « Disque presque plein » sur le chemin du relais (EX-14.9, EX-14.10)",
+            "it": "CT-2 §14.2 ligne « Mémoire », EX-14.9 : ${b.nom} atteinte → la lecture suivante est refusée (-31010, reason attente), pending_limit_reached, mode dégradé attente ; EX-14.10 : stockage revenu, file scellée, sortie du mode attente"
+          },
+          {
+            "file": "test/enregistreur-coeur-attente-bornes.test.js",
+            "describe": "enregistreur, CT-2 §14.2 lignes « Mémoire » et « Disque presque plein » sur le chemin du relais (EX-14.9, EX-14.10)",
+            "it": "CT-2 §14.2 ligne « Mémoire », EX-14.9 : ${b.nom} atteinte → l'échange suivant est bloqué (503 noortrace_degrade, non relayé), pending_limit_reached, mode dégradé attente ; EX-14.10 : stockage revenu, file scellée, sortie du mode attente"
+          },
+          {
+            "file": "test/enregistreur-coeur-attente-bornes.test.js",
+            "describe": "enregistreur, CT-2 §14.2 lignes « Mémoire » et « Disque presque plein » sur le chemin du relais (EX-14.9, EX-14.10)",
+            "it": "CT-2 §14.2 ligne « Disque presque plein », colonne E : écriture -31010 reason stockage sans relais, ligne disk_low (octets libres) ; puis espace libre au-dessus de min_free_bytes (nouveau cœur, le rechargement étant refusé) : régime normal"
+          },
+          {
+            "file": "test/enregistreur-coeur-attente-bornes.test.js",
+            "describe": "enregistreur, CT-2 §14.2 lignes « Mémoire » et « Disque presque plein » sur le chemin du relais (EX-14.9, EX-14.10)",
+            "it": "CT-2 §14.2 ligne « Disque presque plein », colonne M « comme le stockage indisponible » : échange de modèle bloqué (503 noortrace_degrade), ligne disk_low"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-signataires-parcours.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-exigences.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-reprise.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-exigences.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-parcours.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-politique-exigences.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-sdk-exigences.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-approbations.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-exigences.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-journal-soi.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-exigences.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-config.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-securite.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-ha-exigences.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-parcours.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-attente-bornes.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Partie non écrite, possible dès maintenant sur le dépôt (EX-3.10) : le rejeu de la matrice entière sur le démon réel, ligne par ligne, chaque ligne finie par un dossier vérifié par les deux vérificateurs de CT-6 (EX-3.5) — seules « Clé indisponible » et « Panne après relais » sont rejouées ainsi (essai TE-16 de test/enregistreur-signataires-parcours.test.js), les autres lignes sont éprouvées une à une par les essais du paquet, le plus souvent sur le cœur en cours de processus et sans dossier vérifié ; les lignes « Disque presque plein » (`storage.min_free_bytes`, `disk_low`, -31010 `stockage`) et « Mémoire » (bornes `pending_max_events`, `pending_max_ms` et `limits.pending_max_bytes`, `pending_limit_reached`, -31010 `attente`) sont éprouvées sur le chemin du relais par test/enregistreur-coeur-attente-bornes.test.js, sur le cœur en cours de processus et sans dossier vérifié. Étape 8 (tests de bout en bout). Les versions 0.2 à 0.4 rattachaient l'entrée à l'étape 4, faute de signataires des classes A à C (livrés à l'étape 4) et du composant d'ancrage (livré à l'étape 5)."
+        }
       },
       "threats": [
         "MN-10",
@@ -10309,18 +10654,33 @@
         "CT-7 §4.6"
       ],
       "preconditions": [
-        "Composant de la phase 2 qui résout des références de secrets (enregistreur, étape 4 ; composant d'ancrage, étape 5 ; CT-5 EX-4.8, AN-43) ; prestataire RFC 3161 de test exigeant une authentification ; configuration dont `providers[principal].auth` porte une référence de secret (`env`, `file` ou `vault`) dont la valeur résolue est une chaîne marqueur injectée par le test."
+        "Démon de l'enregistreur (`paquets/enregistreur`, étape 4) avec le composant d'ancrage (`paquets/ancrage`, étape 5) branché (`anchoring.ancrage`, document `ancrage-v0`), en cours de processus à horloge réglable ; serveurs RFC 3161 internes de référence du paquet d'ancrage, le principal en TLS mutuel ; `providers[principal].auth` porte une référence de secret `file` dont la valeur résolue porte une chaîne marqueur injectée par l'essai (CT-5 EX-4.8, AN-43)."
       ],
       "steps": [
-        "Démarrer le composant ; laisser partir une requête RFC 3161 authentifiée vers le prestataire de test.",
-        "Relire la file durable, les traces et le journal d'exploitation ; chercher la chaîne marqueur.",
-        "Mutant : un `journaliser` ou une mise en file qui recopie la valeur résolue du secret."
+        "Démarrer le démon avec le composant ; laisser partir des requêtes RFC 3161 authentifiées vers le principal (points contresignés, clôture).",
+        "Relire la file durable, les traces du planificateur, `acquisitions.ndjson`, le journal d'exploitation et les métriques ; y chercher la chaîne marqueur, le secret TLS et la clé de chaîne.",
+        "Présenter une chaîne en clair à la place de la référence, puis une référence `env` absente ; relever le refus.",
+        "Mutant (complément) : copie du paquet `paquets/ancrage` (EX-10.5) dont la journalisation ou la mise en file recopie la valeur résolue du secret."
       ],
-      "oracle": "Le marqueur n'apparaît dans aucun fichier (file, traces, journal) ; le mutant l'y fait apparaître et le test échoue. Le planificateur de référence ne manipule aucun secret en version 0 (la projection `planificateur-ancrage-v0` exclut les secrets) : il n'y a rien à retirer aujourd'hui ; l'hygiène des vecteurs `ct-5` est TV-44.",
+      "oracle": "Le marqueur, le secret TLS et la clé de chaîne n'apparaissent dans aucun fichier (file, traces, `acquisitions.ndjson`, journal d'exploitation, métriques) ; seule la référence (`file`) figure dans la configuration d'ancrage en vigueur ; une chaîne en clair est refusée par le schéma `ancrage-v0` (AN-1) ; une référence `env` absente refuse le démarrage de l'ancrage (`secret_non_resolu`, pointeur consigné, jamais une valeur) sans arrêter l'enregistreur. Avec le mutant du complément, le marqueur apparaît et le test échoue.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Le test porte sur une requête RFC 3161 authentifiée vers un prestataire (providers[principal].auth, CT-5 EX-4.8, AN-43) : seul le composant d'ancrage de l'étape 5 en émet ; le démon de l'étape 4 résout ses propres références de secrets mais ne parle à aucun prestataire d'horodatage. La version 0.1 rattachait à tort l'entrée à l'étape 4."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-ancrage-exigences.test.js",
+            "describe": "enregistreur + ancrage (lot F2) : branchement d'anchoring.ancrage, configuration refusée, secrets, clé de chaîne (CT-5 EX-4.8, EX-4.9 ; CT-2 §15.2, EX-11.19 ; TA-41)",
+            "it": "TA-41 : une chaîne en clair à la place d'une référence de secret est refusée (schéma ancrage-v0, AN-1) ; une référence env absente refuse le démarrage de l'ancrage sans arrêter l'enregistreur (secret_non_resolu, pointeur consigné, jamais une valeur) ; resoudreSecretsAncrage ne touche qu'aux pointeurs d'ancrage-v0"
+          },
+          {
+            "file": "test/enregistreur-ancrage-exigences.test.js",
+            "describe": "enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-exigences.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Mutant du composant livré : une copie du paquet `paquets/ancrage` (EX-10.5) dont la journalisation ou la mise en file recopie la valeur résolue d'une référence de secret, rejouée par le même essai, qui doit alors trouver le marqueur ; les essais de l'étape 5 éprouvent la réponse sans ce mutant. Possible dès maintenant sur le composant livré et non écrit : étape 8 (EX-3.10). Les versions 0.1 et 0.2 rattachaient l'entrée aux étapes 4 puis 5."
+        }
       },
       "threats": [
         "MN-41"
@@ -10331,7 +10691,7 @@
         "response_removed": {
           "what": "Secrets par référence, jamais dans la file, les traces ni le journal (CT-5 EX-4.8, AN-43)",
           "how": "Journaliser ou mettre en file la valeur résolue d'une référence de secret au lieu de la référence",
-          "where": "composant de la phase 2 qui résout les références de secrets (enregistreur, étape 4 ; composant d'ancrage, étape 5)"
+          "where": "paquets/ancrage (file durable, traces du planificateur, acquisitions.ndjson, journal) et paquets/enregistreur (resoudreSecretsAncrage, journal d'exploitation)"
         },
         "attack": "Un planificateur qui consigne la valeur de l'identifiant d'accès au prestataire dans la file, une trace ou le journal.",
         "expected_with_response": "Aucun fichier ne contient la valeur du secret : seule la référence (`env`, `file`, `vault`) y figure.",
@@ -10339,7 +10699,8 @@
         "execution": "phase_2",
         "accepted_risk": "RA-37",
         "threat_test_text": "Le test échoue si la réponse est retirée : aucune ligne de la file ni du journal d'exploitation des vecteurs `ct-5/` ne contient un secret (AN-43) ; si un secret y est écrit, le test échoue."
-      }
+      },
+      "notes": "L'essai « AN-43 et TA-41 : des requêtes RFC 3161 authentifiées sont parties vers le principal… » de test/enregistreur-ancrage-exigences.test.js porte l'oracle du marqueur ; son titre (417 caractères) dépasse la borne de 400 de `titre_test` (plan-de-tests-v0) : il est cité par son describe, qui désigne tous ses it (EX-4.2), et se joue avec eux."
     },
     {
       "id": "TA-42",
@@ -11508,7 +11869,7 @@
         "Fabriquer le mutant (copie de scripts/ avec le remplacement nommé) et rejouer.",
         "Comparer : la référence rend l'attendu des vecteurs, le mutant ne le rend plus."
       ],
-      "oracle": "verifierTrace vide pour la référence ; le mutant diverge au pas 47 (journaliser anchor_fallback attendu, ecrire_file obtenu) ; le test éprouve le mécanisme, pas l'existence d'un secours utilisable (CT-5 EX-11.3).",
+      "oracle": "verifierTrace vide pour la référence ; le mutant diverge au pas 47 (journaliser anchor_fallback attendu, ecrire_file obtenu) ; le test éprouve le mécanisme, pas l'existence d'un secours utilisable (CT-5 EX-11.3). Sur le composant livré (essai cité de l'étape 5) : la demande de clôture en cours relevée vers le secours par `retirerQualification`, `anchor_fallback` consigné (raison `qualification_retiree`), jeton du secours promu.",
       "status": {
         "state": "executable",
         "tests": [
@@ -11521,12 +11882,17 @@
             "file": "test/ancrage.test.js",
             "describe": "CT-5 : familles planification et reprise (EX-8.12, EX-8.16, EX-A.6)",
             "it": "chaque trace est reproduite à l'identique par rejouerTrace (actions et file finale)"
+          },
+          {
+            "file": "test/enregistreur-ancrage-exigences.test.js",
+            "describe": "enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence",
+            "it": "TA-62 (complément) : relève d'une demande en cours : le principal ne répond pas à la clôture, retirerQualification relève la demande envoyee vers le secours (anchor_fallback consigné, reason qualification_retiree), le jeton du secours est promu ; la file garde la tentative pendante comme envoyée"
           }
         ],
-        "command": "npx mocha --timeout 600000 test/adversarial.test.js && npx hardhat --config hardhat.config.mjs test test/ancrage.test.js",
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js && npx hardhat --config hardhat.config.mjs test test/ancrage.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-exigences.test.js",
         "complement": {
-          "phase2_step": 5,
-          "blocking": "Le retrait de la relève elle-même (`this.relever`) sur `principal-injoignable.json` épuise les gigues injectées de la trace figée et lève avant l'oracle (EX-10.6) : mutant à poser sur le composant d'ancrage de l'étape 5 (ou sur une trace ad hoc de la bibliothèque) ; le texte de test de MN-62 (« si la relève est retirée ») est à aligner (PD-24). La version 0.1 rattachait à tort ce complément à l'étape 4 : la relève est le fait du composant d'ancrage."
+          "phase2_step": 8,
+          "blocking": "Le retrait de la relève elle-même (`this.relever`) sur `principal-injoignable.json` épuise les gigues injectées de la trace figée et lève avant l'oracle (EX-10.6) ; depuis l'étape 5, la relève d'une demande en cours est éprouvée sur le composant d'ancrage livré (essai cité), sans mutant : le mutant qui retire la relève du composant (copie du paquet `paquets/ancrage`, EX-10.5), possible dès maintenant et non écrit, est dû à l'étape 8 ; le texte de test de MN-62 (« si la relève est retirée ») est à aligner (PD-24). Les versions 0.1 et 0.2 rattachaient ce complément aux étapes 4 puis 5."
         }
       },
       "threats": [
@@ -14544,17 +14910,30 @@
       ],
       "preconditions": [
         "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-        "Enregistreur produisant les points (`checkpoint_interval_s` 60) pendant une heure de charge de TM-3 ; composant d'ancrage en service."
+        "Enregistreur produisant les points (`checkpoint_interval_s` 60) pendant une heure de charge de TM-3 ; composant d'ancrage en service.",
+        "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
       ],
       "steps": [
         "Lire la série `points/periode-<ps>.ndjson` et les événements de la période ; pour chaque événement, délai jusqu'au premier point de `tree_size` supérieur.",
-        "`constaterCadence` sur la série ; rapport : ligne `p1_cadence`, `p99` et `max`."
+        "`constaterCadence` sur la série ; rapport : ligne `p1_cadence`, `p99` et `max`.",
+        "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+        "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
       ],
       "oracle": "`max ≤ 61` s et aucun écart de cadence ; sinon `met` faux.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Enregistreur (étape 4) et composant d'ancrage (étape 5) non construits."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/plan-de-tests.test.js",
+            "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+            "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/plan-de-tests.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Charge de TM-3 : la campagne de l'étape 5 mesure sous la charge à cadence fixe de l'outil (`--evenements-par-s`, un événement par seconde par défaut), hors de la condition « une période complète sous la charge de TM-3 » (500 événements par seconde, 16 connexions, harnais de CT-2 EX-16.2) ; la mesure sous cette charge suit le harnais, étape 8 (mesures de performance)."
+        }
       },
       "threats": [],
       "measure": {
@@ -14596,17 +14975,26 @@
       ],
       "preconditions": [
         "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-        "Réseau de développement lancé par `chain/scripts/dev-net.sh start` ; composant d'ancrage avec `registry.checkpoints` `nouveaux_evenements`."
+        "Réseau de développement lancé par `chain/scripts/dev-net.sh start` ; composant d'ancrage avec `registry.checkpoints` `nouveaux_evenements`.",
+        "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
       ],
       "steps": [
         "Pour chaque ancre de point d'une période : instant de réception du reçu d'inclusion sur l'horloge de l'enregistreur moins `checkpoint_ts` (jamais l'horodatage du bloc).",
-        "Rapport : ligne `p2_inclusion`, `p50`, `p99`, `max` ; `d_registre` publié."
+        "Rapport : ligne `p2_inclusion`, `p50`, `p99`, `max` ; `d_registre` publié.",
+        "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+        "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
       ],
       "oracle": "`max ≤ 60` s ; sinon `met` faux et l'alerte `inclusion_alert_s` doit s'être levée (sinon TA- de la supervision).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Composant d'ancrage non construit ; le réseau de développement existe."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/plan-de-tests.test.js",
+            "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+            "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/plan-de-tests.test.js"
       },
       "threats": [],
       "measure": {
@@ -14647,18 +15035,27 @@
       ],
       "preconditions": [
         "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-        "Composant d'ancrage avec un prestataire RFC 3161 joignable (serveur interne de référence admis pour la mesure, CT-5 EX-7.4) ; `c_T` 300 s."
+        "Composant d'ancrage avec un prestataire RFC 3161 joignable (serveur interne de référence admis pour la mesure, CT-5 EX-7.4) ; `c_T` 300 s.",
+        "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
       ],
       "steps": [
         "Pour chaque échéance `D_k` satisfaite : `genTime + précision − D_k = d_jeton`, lu sur la ligne `checkpoint_countersigned` avec `d_point`, `d_attente`, `d_releve`, `d_tsa`.",
         "Vérifier qu'aucune échéance n'est non satisfaite avant la suivante en fonctionnement nominal.",
-        "Rapport : lignes `p3_d_jeton`, `p3_d_point`, `p3_d_attente`, `p3_d_releve`, `p3_d_tsa`."
+        "Rapport : lignes `p3_d_jeton`, `p3_d_point`, `p3_d_attente`, `p3_d_releve`, `p3_d_tsa`.",
+        "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+        "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
       ],
       "oracle": "`d_point ≤ 1` s, `d_attente ≤ squat_wait_s`, `d_releve ≤ fallback_after_s` (120 s), `d_tsa` publié ; zéro échéance manquée sur une période ; sinon `met` faux.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Composant d'ancrage non construit."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/plan-de-tests.test.js",
+            "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+            "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/plan-de-tests.test.js"
       },
       "threats": [],
       "measure": {
@@ -14701,18 +15098,31 @@
       ],
       "preconditions": [
         "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-        "Un prestataire qualifié réel désigné `principal` pour la clôture (aucun prix dans le dépôt) ; deux calendriers OpenTimestamps joignables ; fichier d'ancres du réviseur."
+        "Un prestataire qualifié réel désigné `principal` pour la clôture (aucun prix dans le dépôt) ; deux calendriers OpenTimestamps joignables ; fichier d'ancres du réviseur.",
+        "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
       ],
       "steps": [
         "Exporter le dossier d'un événement d'une période close ; compter les parties `jeton-rfc3161.der` et `preuve.ots` et les calendriers de la preuve.",
         "Vérifier le dossier avec le fichier d'ancres : T-11 `reussi`.",
-        "Rapport : ligne `p4_cloture`, `text_value` « jeton qualifié ; 2 calendriers ; T-11 reussi »."
+        "Rapport : ligne `p4_cloture`, `text_value` « jeton qualifié ; 2 calendriers ; T-11 reussi ».",
+        "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+        "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
       ],
       "oracle": "Les deux parties présentes, au moins deux calendriers, T-11 `reussi` ; sinon `met` faux.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Composant d'ancrage non construit ; prestataire qualifié à contracter (porte 2)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/plan-de-tests.test.js",
+            "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+            "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/plan-de-tests.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Prestataire qualifié réel : la campagne de l'étape 5 désigne pour principal le serveur interne de référence déclaré qualifié par un instantané d'exemple (CT-5 EX-4.8), dans la configuration et dans le fichier d'ancres de test du réviseur ; T-11 n'y réussit que par cette déclaration. La mesure avec un prestataire qualifié réel attend le prestataire à contracter pour la porte 2 (section 14, ligne 10), étape 8."
+        }
       },
       "threats": [],
       "measure": {
@@ -14806,12 +15216,13 @@
       ],
       "preconditions": [
         "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; hors de lui, le rapport est publié sans compter pour la cible (EX-11.2).",
-        "Support WORM réel des tests du lot WORM : S3 à Object Lock de LocalStack 4.0 (image épinglée par condensé) en conteneur Docker, derrière un mandataire TLS, bucket verrouillé en COMPLIANCE par l'exploitant (EX-12.30), configuré dans `storage.seal.worm` ; une période close par le démon de l'étape 4 ; sans Docker, le test est en attente (EX-3.11)."
+        "Support WORM réel des tests du lot WORM : S3 à Object Lock de LocalStack 4.0 (image épinglée par condensé) en conteneur Docker, derrière un mandataire TLS, bucket verrouillé en COMPLIANCE par l'exploitant (EX-12.30), configuré dans `storage.seal.worm` ; une période close par le démon de l'étape 4 ; sans Docker, le test est en attente (EX-3.11).",
+        "Depuis l'étape 5 : une période close par le démon avec le composant d'ancrage branché, répertoire `ancres/periode-<P>/` compris (pièces RFC 3161, preuves `.ots`, nonces, `acquisitions.ndjson`), sur le même support WORM en conteneur ; sur un support en mémoire, la copie de la file sous `queue.path` quand son époque est fermée (CT-5 EX-5.15, EX-8.14)."
       ],
       "steps": [
         "Pour chaque fichier de `points/`, `ancres/periode-*/` et des manifestes (manifeste et signature) : lire la version copiée par l'API du support (ListObjectVersions, GET avec versionId), comparer son SHA-256 à l'original.",
         "Lire le mode de verrou et la date de rétention rendus par l'API (HEAD avec versionId) ; comparer à la rétention des événements (365 × events_years jours depuis la création de la version, tolérance d'une heure d'EX-12.33).",
-        "Rapport : ligne `p6_copie_worm`, `value` = nombre de fichiers sans copie conforme ; publié sous spec/vecteurs/ct-9/mesures/ (EX-11.11)."
+        "Rapport : ligne `p6_copie_worm`, `value` = nombre de fichiers sans copie conforme ; publié sous spec/vecteurs/ct-9/mesures/ (EX-11.11) ; le relevé d'`ancres/` de l'étape 5 (`NOORTRACE_RAPPORT_TM16_ANCRES`) entre dans le rapport de la campagne de l'étape 5 par l'option `--p6` de `scripts/e2e/mesure-ancrage.mjs rapport`."
       ],
       "oracle": "`value = 0` fichier manquant ; mode sans contournement ; rétention ≥ celle des événements ; sinon `met` faux.",
       "status": {
@@ -14821,13 +15232,19 @@
             "file": "test/enregistreur-worm-mesure-p6.test.js",
             "describe": "TM-16 — P-6 de CT-5 mesurée sur le support WORM réel (S3 à Object Lock en conteneur) : copie conforme des points, des ancres et des manifestes",
             "it": "TM-16 : une période close copiée sur le support ; chaque fichier de points/, d'ancres/periode-*/ et de manifestes/ lu par l'API du support (version au même SHA-256, mode COMPLIANCE, rétention au moins égale à celle des événements) ; rapport conforme à plan-de-tests-v0#/$defs/rapport_mesure, ligne p6_copie_worm à 0 fichier non conforme"
+          },
+          {
+            "file": "test/enregistreur-journal-soi.test.js",
+            "describe": "TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3 à Object Lock en conteneur) : worm_legal_hold_observed, worm_copy_failed puis reprise, copie conforme d'ancres/",
+            "it": "complément TM-16 (P-6, ancres/) : chaque fichier de points/, d'ancres/periode-<P>/ et de manifestes/ a une version au même SHA-256 sur le support, en mode COMPLIANCE, rétention au moins égale à celle des événements ; ligne p6_copie_worm à 0 fichier non conforme, publiée hors du système de référence (le rapport la dit)"
+          },
+          {
+            "file": "test/enregistreur-ancrage-exigences.test.js",
+            "describe": "enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence",
+            "it": "EX-5.15, EX-8.14, TM-16 : la copie WORM couvre le répertoire ancres/ (rfc3161/, ots/, entetes-bitcoin.json, acquisitions.ndjson une fois la période close et la T-10 différée décidée) et la file sous queue.path quand son époque est fermée ; SHA-256 égaux ; 0 fichier non conforme"
           }
         ],
-        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-mesure-p6.test.js",
-        "complement": {
-          "phase2_step": 5,
-          "blocking": "Partie à écrire : le répertoire `ancres/` n'existe pas avant le composant d'ancrage de l'étape 5 (CT-5 §5.5) ; la mesure de l'étape 4 porte sur les points et les manifestes, et le rapport le dit."
-        }
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-mesure-p6.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-journal-soi.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-exigences.test.js"
       },
       "threats": [],
       "measure": {
@@ -14862,18 +15279,31 @@
       ],
       "preconditions": [
         "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-        "Composant d'ancrage avec `J` journaux (1 puis 10, maxima de CT-5 §4.6) ; prestataire simulé injoignable pendant une heure pour le régime de panne."
+        "Composant d'ancrage avec `J` journaux (1 puis 10, maxima de CT-5 §4.6) ; prestataire simulé injoignable pendant une heure pour le régime de panne.",
+        "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
       ],
       "steps": [
         "Relever le nombre de points produits et ancrés par seconde pour J = 1 et J = 10.",
         "Couper le prestataire simulé une heure ; relever la taille maximale de la file durable et la mémoire du composant.",
-        "Rapport : lignes `planificateur_debit_points`, `planificateur_journaux`, `planificateur_file_panne`."
+        "Rapport : lignes `planificateur_debit_points`, `planificateur_journaux`, `planificateur_file_panne`.",
+        "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+        "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
       ],
       "oracle": "Lignes présentes, `met` null ; la file reste bornée (`queue` de CT-5 §8.5) sinon `notes` le dit.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Composant d'ancrage non construit."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/plan-de-tests.test.js",
+            "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+            "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/plan-de-tests.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Mesure en temps réel (EX-11.5 : aucune horloge manipulée pendant une mesure) : les trois lignes de l'étape 5 (`complements`) rejouent une heure de points à l'horloge réglable du composant, sur la boucle locale ; leurs débits sont ceux du harnais (attente de calme après chaque minuterie servie) et ne bornent le planificateur que par en dessous. Le relevé en temps réel, J = 1 puis J = 10, et la panne réelle d'une heure sont dus à l'étape 8 (mesures de performance)."
+        }
       },
       "threats": [],
       "measure": {
@@ -14910,17 +15340,35 @@
       ],
       "preconditions": [
         "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-        "Serveur interne de référence (CT-5 EX-7.4) en service ; client de la section 5."
+        "Serveur RFC 3161 interne de référence du paquet d'ancrage (CT-5 EX-7.4), compteur de série durable ; client de la section 5 (composant d'ancrage de l'étape 5).",
+        "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
       ],
       "steps": [
         "Émettre dix jetons, redémarrer le serveur, émettre dix jetons ; lire `serialNumber` de chaque jeton (T-1).",
-        "Rapport : ligne `an26_serie_croissante`, `value` = nombre de paires consécutives non croissantes."
+        "Rapport : ligne `an26_serie_croissante`, `value` = nombre de paires consécutives non croissantes.",
+        "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+        "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
       ],
       "oracle": "`value = 0` ; sinon `met` faux.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Serveur interne non déployé comme service (CT-8 §15) ; l'autorité de test des vecteurs ne tourne pas."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-ancrage-exigences.test.js",
+            "describe": "enregistreur + ancrage (lot F2), TI-17 : serveur RFC 3161 interne du lot E éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)"
+          },
+          {
+            "file": "test/enregistreur-ancrage-parcours.test.js",
+            "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
+            "it": "TI-17 sur les jetons reçus du serveur interne : AN-22 (T-8), AN-24 (accuracy ≤ 1 s, TM-19), AN-25 (nonce recopié), AN-26 (numéros de série strictement croissants, TM-18 : 0 paire non croissante), AN-29 (politique privée), AN-30 (certificat de l'unité inclus) ; AN-28 : une ligne d'acquisition par jeton reçu"
+          },
+          {
+            "file": "test/plan-de-tests.test.js",
+            "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+            "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-exigences.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-parcours.test.js && npx hardhat --config hardhat.config.mjs test test/plan-de-tests.test.js"
       },
       "threats": [],
       "measure": {
@@ -14954,17 +15402,35 @@
       ],
       "preconditions": [
         "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-        "Serveur interne de référence en service ; journal d'exploitation `tsa_clock_offset`."
+        "Serveur interne de référence en service ; journal d'exploitation `tsa_clock_offset`.",
+        "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
       ],
       "steps": [
         "Sur chaque jeton émis pendant TM-13, lire `accuracy` (T-1) ; relever `tsa_clock_offset` dans le journal.",
-        "Rapport : lignes `an24_accuracy` (`max`) et `an24_clock_offset` (`max`)."
+        "Rapport : lignes `an24_accuracy` (`max`) et `an24_clock_offset` (`max`).",
+        "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+        "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
       ],
       "oracle": "`accuracy` présent et ≤ 1 s sur tous les jetons ; `tsa_clock_offset` présent ; sinon `met` faux.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Serveur interne non déployé comme service."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-ancrage-exigences.test.js",
+            "describe": "enregistreur + ancrage (lot F2), TI-17 : serveur RFC 3161 interne du lot E éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)"
+          },
+          {
+            "file": "test/enregistreur-ancrage-parcours.test.js",
+            "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
+            "it": "TI-17 sur les jetons reçus du serveur interne : AN-22 (T-8), AN-24 (accuracy ≤ 1 s, TM-19), AN-25 (nonce recopié), AN-26 (numéros de série strictement croissants, TM-18 : 0 paire non croissante), AN-29 (politique privée), AN-30 (certificat de l'unité inclus) ; AN-28 : une ligne d'acquisition par jeton reçu"
+          },
+          {
+            "file": "test/plan-de-tests.test.js",
+            "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+            "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-exigences.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-parcours.test.js && npx hardhat --config hardhat.config.mjs test test/plan-de-tests.test.js"
       },
       "threats": [],
       "measure": {
@@ -15507,16 +15973,29 @@
         "CT-5 §6.4"
       ],
       "preconditions": [
-        "Composant d'ancrage avec mise à niveau OpenTimestamps auprès de deux calendriers réels ; une preuve mise à niveau après inclusion dans Bitcoin."
+        "Composant d'ancrage avec mise à niveau OpenTimestamps auprès de deux calendriers réels ; une preuve mise à niveau après inclusion dans Bitcoin.",
+        "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
       ],
       "steps": [
-        "Mesurer la taille en octets de dix preuves `.ots` mises à niveau ; rapport : ligne `b_ots_mis_a_niveau`, `max` et `mean`."
+        "Mesurer la taille en octets de dix preuves `.ots` mises à niveau ; rapport : ligne `b_ots_mis_a_niveau`, `max` et `mean`.",
+        "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+        "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
       ],
       "oracle": "Ligne présente, `met` null ; la valeur remplace 233 dans les entrées du calculateur (membre `coefficients`).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Composant d'ancrage non construit ; mise à niveau réelle requise."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/plan-de-tests.test.js",
+            "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+            "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/plan-de-tests.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Mise à niveau réelle : la campagne de l'étape 5 mesure dix preuves mises à niveau par les deux calendriers factices (chemin Bitcoin complet sur une chaîne regtest, CT-5 EX-6.9) et, avec `--reseau-public`, des preuves en attente des agrégateurs publics ; la taille d'une preuve mise à niveau par deux calendriers réels après inclusion dans Bitcoin (plusieurs heures d'attente) n'est pas relevée : possible dès maintenant, non faite, étape 8."
+        }
       },
       "threats": [],
       "measure": {
@@ -16044,16 +16523,29 @@
       ],
       "preconditions": [
         "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-        "Mêmes conditions que TM-11 et TM-12 ; horloge de l'enregistreur."
+        "Mêmes conditions que TM-11 et TM-12 ; horloge de l'enregistreur.",
+        "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
       ],
       "steps": [
-        "Pour chaque événement d'une période : instant de réception du reçu d'inclusion de l'ancre du premier point de `tree_size` supérieur, moins `ts` ; rapport : ligne `w_ordre`, `p50`, `p99`, `max`."
+        "Pour chaque événement d'une période : instant de réception du reçu d'inclusion de l'ancre du premier point de `tree_size` supérieur, moins `ts` ; rapport : ligne `w_ordre`, `p50`, `p99`, `max`.",
+        "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+        "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
       ],
       "oracle": "`p99 ≤ 120` s (60 s + `inclusion_alert_s`) ; publié avec `d_registre` ; cette durée est de conception, aucun dossier ne la prouve (CT-5 §3.3).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Composant d'ancrage non construit."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/plan-de-tests.test.js",
+            "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+            "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/plan-de-tests.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Charge de TM-3 : la campagne de l'étape 5 mesure sous la charge à cadence fixe de l'outil (`--evenements-par-s`, un événement par seconde par défaut), hors de la condition « une période complète sous la charge de TM-3 » (500 événements par seconde, 16 connexions, harnais de CT-2 EX-16.2) ; la mesure sous cette charge suit le harnais, étape 8 (mesures de performance)."
+        }
       },
       "threats": [
         "MN-17"
@@ -16100,18 +16592,27 @@
       ],
       "preconditions": [
         "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-        "Composant d'ancrage et prestataire joignable ; deux configurations : par défaut (`c_K` 60 s, `c_T` 300 s) et celle de la porte 2 (`c_T` 60 s, points chez le principal, cas `cadence-une-minute-principal` de CT-5 §12.3)."
+        "Composant d'ancrage et prestataire joignable ; deux configurations : par défaut (`c_K` 60 s, `c_T` 300 s) et celle de la porte 2 (`c_T` 60 s, points chez le principal, cas `cadence-une-minute-principal` de CT-5 §12.3).",
+        "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
       ],
       "steps": [
         "Pour chaque événement d'une période, exporter le dossier et lire `facts.checkpoint.rewrite_window_ms` (CT-6 EX-6.17) du premier point contresigné qui l'engage ; convertir en s.",
         "Publier les deux configurations : ligne `w_date_defaut` (cible de conception 300 s + d_jeton) et ligne `w_date_porte_2` (cible du plan : 300 s).",
-        "Rapport : `p50`, `p99`, `max` pour chaque ligne."
+        "Rapport : `p50`, `p99`, `max` pour chaque ligne.",
+        "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+        "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
       ],
       "oracle": "`w_date_porte_2` : `p99 ≤ 300` s (critère de la porte 2) ; `w_date_defaut` : `p99 ≤ 300 + d_jeton` s avec le `d_jeton` de TM-13 ; sinon `met` faux.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 5,
-        "blocking": "Composant d'ancrage non construit ; la configuration de la porte 2 (c_T = 60 s) est à confirmer par le plan."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/plan-de-tests.test.js",
+            "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+            "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/plan-de-tests.test.js"
       },
       "threats": [
         "MN-17"
@@ -18072,7 +18573,7 @@
       "owner": "client",
       "threat": "MN-41",
       "test": "TA-41",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-41 éprouve la réponse qui borne le risque (Secrets par référence, jamais dans la file, les traces ni le journal (CT-5 EX-4.8, AN-43)) : avec elle, Aucun fichier ne contient la valeur du secret : seule la référence (`env`, `file`, `vault`) y figure ; sans elle, le test échoue.",
       "not_tested": "l'usage des identifiants volés avant leur rotation"
     },
@@ -18715,91 +19216,91 @@
     {
       "id": "TC-20",
       "key": "CT-5 §0",
-      "line": 76,
+      "line": 111,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-21",
       "key": "CT-5 §1",
-      "line": 190,
+      "line": 225,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-22",
       "key": "CT-5 §1",
-      "line": 214,
+      "line": 249,
       "delegated": "EX-, AN-, vecteurs `ct-5`, épreuve à l'aveugle à deux relecteurs.",
       "response": "TR-4 (relecteur CT-5 et CT-1 §9 à §11) et TR-5 (second relecteur, CT-6 §7) en §12 ; consigne et grille sous spec/vecteurs/ct-9/ (EX-12.7) ; EX-, AN- et vecteurs ct-5 : TV- (§7)."
     },
     {
       "id": "TC-23",
       "key": "CT-5 §3.6",
-      "line": 433,
+      "line": 468,
       "delegated": "Mesures P-1 à P-6 sur le réseau de développement et sur les vecteurs.",
-      "response": "TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15 exécutables), sur le réseau de développement (TM-11 à TM-14, à écrire, étape 5) et sur le support WORM (TM-16, exécutable depuis l'étape 4 sur un S3 à Object Lock en conteneur, complément `ancres/` à l'étape 5)."
+      "response": "TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15), sur le réseau de développement (TM-11 à TM-14, exécutables depuis l'étape 5 par la campagne de `scripts/e2e/mesure-ancrage.mjs`, rapport `mesures/rapport-2026-11-10-ancrage.json` ; compléments à l'étape 8 : charge de TM-3 pour TM-11, prestataire qualifié réel pour TM-14) et sur le support WORM (TM-16, exécutable depuis l'étape 4, `ancres/` compris depuis l'étape 5)."
     },
     {
       "id": "TC-24",
       "key": "CT-5 §5.3",
-      "line": 1133,
+      "line": 1171,
       "delegated": "Test à écrire : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
-      "response": "TI- prestataires réels (§8), étape 5 ; oracle « relève de la clôture tant que la configuration n'est pas rechargée »."
+      "response": "TI-16 (§8), exécutable depuis l'étape 5 : relève de la clôture par le secours qualifié après retrait de `qualified`, sans rechargement, sur le composant d'ancrage (`test/ancrage-composant-pannes.test.js`, serveurs internes déclarés qualifiés par un instantané d'exemple) ; complément à l'étape 8 : prestataire qualifié réel."
     },
     {
       "id": "TC-25",
       "key": "CT-5 §7.2",
-      "line": 1640,
+      "line": 1680,
       "delegated": "AN-24 à AN-32 du serveur interne vérifiées sur un jeton émis.",
-      "response": "TM-18 (AN-26) et TM-19 (AN-24) en §11 pour les exigences mesurables sur un jeton émis ; AN-22, AN-23, AN-25, AN-27 à AN-31 : TI- prestataires et serveur interne (§8)."
+      "response": "TI-17 (§8), exécutable depuis l'étape 5 : AN-22 à AN-31 vérifiées sur les jetons émis par le serveur interne de référence du paquet d'ancrage (`test/ancrage-tsa-interne-*.test.js`, `test/enregistreur-ancrage-exigences.test.js`, `test/enregistreur-ancrage-parcours.test.js`) ; TM-18 (AN-26) et TM-19 (AN-24) en §11 pour les exigences mesurables, sur les mêmes essais et dans le rapport de la campagne de l'étape 5."
     },
     {
       "id": "TC-26",
       "key": "CT-5 §7.2",
-      "line": 1649,
+      "line": 1689,
       "delegated": "Épreuve de redémarrage du serveur interne (AN-26).",
-      "response": "TM-18 (AN-26, épreuve de redémarrage du serveur interne) et TM-19 (AN-24) en §11."
+      "response": "TI-17 (§8) et TM-18 (AN-26) en §11, exécutables depuis l'étape 5 : quatre jetons avant et quatre après un redémarrage du serveur interne (compteur de série durable), numéros strictement croissants, et le relevé `an26_serie_croissante` de la campagne (dix jetons, redémarrage, dix jetons) ; TM-19 (AN-24)."
     },
     {
       "id": "TC-27",
       "key": "CT-5 §9.3",
-      "line": 3907,
+      "line": 3962,
       "delegated": "Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
       "response": "TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
     },
     {
       "id": "TC-28",
       "key": "CT-5 §14",
-      "line": 4405,
+      "line": 4461,
       "delegated": "Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
-      "response": "TM-10 à TM-17 (P-1 à P-6, mesures en charge) en §11 ; TR-4 et TR-5 en §12 ; l'état « proposition » est levé par ce document."
+      "response": "TI-16 (§8), exécutable depuis l'étape 5 (`test/ancrage-composant-pannes.test.js` : relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée ; rechargement sans principal qualifié refusé) ; mesures en charge du planificateur : TM-17 (§11)."
     },
     {
       "id": "TC-29",
       "key": "CT-5 §14",
-      "line": 4407,
+      "line": 4463,
       "delegated": "Tests EX- et AN-1 à AN-61, mesures P-1 à P-6, épreuve à l'aveugle.",
-      "response": "§6, §7, §8, §11, §12 ; état « proposition » levé par ce document."
+      "response": "§6, §7, §8 (TI-16, TI-17), §9 (TE-12), §11 (TM-10 à TM-19), §12 (TR-4, TR-5) ; état « proposition » levé par ce document."
     },
     {
       "id": "TC-30",
       "key": "CT-6 §0",
-      "line": 60,
+      "line": 70,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-31",
       "key": "CT-6 §1",
-      "line": 208,
+      "line": 218,
       "delegated": "EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`.",
       "response": "§6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10)."
     },
     {
       "id": "TC-32",
       "key": "CT-6 §6.9",
-      "line": 1853,
+      "line": 1863,
       "delegated": "Exécution des V- par comparaison du rapport à `attendu.json`.",
       "response": "TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`."
     },

@@ -241,6 +241,55 @@ def x509_lisible(pem):
     return False, "; ".join(erreurs(s) + erreurs(s2)) or s.strip().splitlines()[0]
 
 
+def hl_minimal(longueur):
+    """Longueur minimale de l'en-tête (étiquette d'un octet, longueur sous forme minimale, X.690 §10.1)
+    d'un élément DER dont la valeur fait `longueur` octets."""
+    if longueur < 0x80:
+        return 2
+    if longueur < 0x100:
+        return 3
+    if longueur < 0x10000:
+        return 4
+    if longueur < 0x1000000:
+        return 5
+    return 6
+
+
+def longueurs_non_minimales(lignes):
+    """Éléments d'une sortie d'openssl asn1parse dont l'en-tête (hl) dépasse la longueur minimale pour la
+    valeur (l) : une longueur longue non minimale, qu'openssl lit sans la refuser et que le profil de CT-6
+    §9.3 (EX-9.4) interdit."""
+    hors = []
+    for l in lignes:
+        m = re.match(r"\s*(\d+):d=\s*(\d+)\s+hl=\s*(\d+)\s+l=\s*(\d+)\s+(\S+):\s*(.*)", l)
+        if m and int(m.group(3)) != hl_minimal(int(m.group(4))):
+            hors.append("octet %s : %s, hl=%s pour l=%s (hl minimal %d)" % (m.group(1), m.group(6).strip(), m.group(3), m.group(4), hl_minimal(int(m.group(4)))))
+    return hors
+
+
+def defauts_lecture_9_3(pem):
+    """Défauts de lecture d'un certificat selon CT-6 §9.3 qu'openssl ne refuse pas lui-même mais relève
+    (révision 0.5, EX-9.4, EX-9.7) : longueurs DER non minimales dans le certificat (openssl asn1parse) et
+    dans la RSAPublicKey de sa clé (asn1parse -strparse de la BIT STRING du SubjectPublicKeyInfo), et
+    extension connue indécodable (openssl x509 -purpose : X509_check_purpose rend −1, « WARNING code=-1 »,
+    quand ossl_x509v3_cache_extensions a marqué le certificat invalide). Rend la liste des défauts."""
+    defauts = []
+    der = ecrire("certificat-9-3.der", der_de(pem))
+    lignes = ossl(["asn1parse", "-inform", "DER", "-in", der])[1].splitlines()
+    defauts += ["longueur non minimale dans le certificat (%s)" % x for x in longueurs_non_minimales(lignes)]
+    i = next((k for k, l in enumerate(lignes) if "d=4 " in l and l.rstrip().endswith(":rsaEncryption")), None)
+    if i is not None:
+        bs = next((l for l in lignes[i:] if "d=3 " in l and "BIT STRING" in l), None)
+        if bs:
+            off = int(re.match(r"\s*(\d+):", bs).group(1))
+            sous = ossl(["asn1parse", "-inform", "DER", "-in", der, "-strparse", str(off)])[1].splitlines()
+            defauts += ["longueur non minimale dans la RSAPublicKey (%s)" % x for x in longueurs_non_minimales(sous)]
+    code, s = ossl(["x509", "-noout", "-purpose"], entree=pem.encode())
+    if code == 0 and "code=-1" in s:
+        defauts.append("extension connue indécodable (openssl x509 -purpose : WARNING code=-1, ossl_x509v3_cache_extensions)")
+    return defauts
+
+
 def cle_publique(pem):
     """Clé publique (PEM) d'un certificat, extraite par openssl asn1parse (SubjectPublicKeyInfo,
     profondeur 2 de TBSCertificate) puis openssl pkey : vaut aussi pour un certificat qu'openssl x509 refuse."""
@@ -374,6 +423,8 @@ for fichier, attendu in ATTENDU["keys"]["files"].items():
         comparer(fichier + " SHA-256 du DER (%s)" % ("openssl x509" if lisible else "openssl asn1parse"), attendu, sha256_ossl(der_de(pem)))
         if not lisible:
             dire("  %s : openssl x509 refuse de lire le certificat : %s" % (fichier, raison))
+        for d93 in defauts_lecture_9_3(pem):
+            dire("  %s : lu par openssl, mais hors du profil de CT-6 §9.3 (EX-9.4, EX-9.7) : %s" % (fichier, d93))
         defauts = default_encode(der_de(pem))
         if defauts:
             dire("  %s : valeur DEFAULT encodée relevée par openssl asn1parse (X.690 §11.5) : %s" % (fichier, "; ".join(defauts)))
@@ -505,10 +556,14 @@ def statut_openssl(cas):
     # T-1 : structure ; asn1parse lit tout le fichier en DER, ts/cms lisent la structure, x509 lit
     # chaque certificat ; aucune valeur DEFAULT encodée (X.690 §11.5) dans TSTInfo ni dans les
     # certificats, relevée sur la sortie d'asn1parse (openssl lit ces valeurs sans les refuser)
-    lisibles = t["code"] == 0 and c["code"] == 0 and all(x509_lisible(p)[0] for p in certs)
+    # Révision 0.5 (EX-9.4, EX-9.7) : un certificat qu'openssl lit mais qui sort du profil de §9.3 (longueur non
+    # minimale, dans le certificat ou dans sa RSAPublicKey ; extension connue indécodable) est illisible pour T-1.
+    hors_profil = [d93 for p in certs for d93 in defauts_lecture_9_3(p)]
+    lisibles = t["code"] == 0 and c["code"] == 0 and all(x509_lisible(p)[0] for p in certs) and not hors_profil
     if not lisibles:
-        raison = "; ".join(t["erreurs"] or c["erreurs"]) or "certificat illisible"
-        res["T-1"] = ("echoue", "openssl ts -text, cms -print et pkcs7 -print_certs refusent le jeton : %s" % raison)
+        raison = "; ".join(t["erreurs"] or c["erreurs"] or hors_profil) or "certificat illisible"
+        moyen = "openssl ts -text, cms -print et pkcs7 -print_certs refusent le jeton : %s" if not hors_profil else "certificat du jeton lu par openssl mais hors du profil de §9.3 (asn1parse, x509 -purpose) : %s"
+        res["T-1"] = ("echoue", moyen % raison)
         # le jeton n'est pas lu : openssl ne peut établir aucune autre vérification
         for i in ("T-2", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9", "T-10"):
             res[i] = (None, "jeton illisible par openssl")

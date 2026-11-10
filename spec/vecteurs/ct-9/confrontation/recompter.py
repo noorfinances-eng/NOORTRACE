@@ -251,6 +251,49 @@ def lignes_table(bloc):
 
 
 # ---------------------------------------------------------------------------
+def fin_chaine(source, j, q):
+    """Indice du délimiteur fermant d'une chaîne ouverte en j (ou du saut de
+    ligne qui termine une chaîne simple). Dans un gabarit, une interpolation
+    ${…} est une expression : ses accolades sont équilibrées et les chaînes et
+    gabarits qu'elle contient sont sautés (un gabarit imbriqué dont le texte
+    porte « \\} » ne ferme rien)."""
+    n = len(source)
+    k = j + 1
+    while k < n:
+        d = source[k]
+        if d == "\\":
+            k += 2
+            continue
+        if q == "`" and source.startswith("${", k):
+            k = fin_interpolation(source, k + 2)
+            continue
+        if d == q:
+            return k
+        if q != "`" and d == "\n":
+            return k
+        k += 1
+    return n
+
+
+def fin_interpolation(source, k):
+    """k suit « ${ » ; rend l'indice qui suit l'accolade fermante."""
+    n = len(source)
+    profondeur = 1
+    while k < n:
+        d = source[k]
+        if d in "\"'`":
+            k = fin_chaine(source, k, d) + 1
+            continue
+        if d == "{":
+            profondeur += 1
+        elif d == "}":
+            profondeur -= 1
+            if profondeur == 0:
+                return k + 1
+        k += 1
+    return n
+
+
 def masquer(source):
     """Masque du source : commentaires, rationnelles et intérieurs de chaînes
     remplacés par des espaces (les sauts de ligne sont gardés). Retourne le
@@ -278,24 +321,7 @@ def masquer(source):
             i = j
             continue
         if c in "\"'`":
-            j = i + 1
-            profondeur = 0
-            while j < n:
-                d = source[j]
-                if d == "\\":
-                    j += 2
-                    continue
-                if c == "`" and source.startswith("${", j):
-                    profondeur += 1
-                    j += 2
-                    continue
-                if c == "`" and profondeur and d == "}":
-                    profondeur -= 1
-                elif d == c and not profondeur:
-                    break
-                elif c != "`" and d == "\n":
-                    break
-                j += 1
+            j = fin_chaine(source, i, c)
             chaines[i] = (i + 1, j)
             for k in range(i + 1, j):
                 if masque[k] != "\n":

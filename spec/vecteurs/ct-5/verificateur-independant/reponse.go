@@ -246,13 +246,19 @@ func EvaluerReponse(requete, reponse []byte, http HTTP, sentAt, receivedAt strin
 	return res, nil
 }
 
+// RetryAfterMaxS : plafond de retry_after_s consigné dans une tentative
+// ($defs/tentative du schéma planificateur-ancrage-v0, EX-8.9).
+const RetryAfterMaxS int64 = 604800
+
 // CalculerAttente rend l'attente de reprise d'EX-8.9 : k est le rang de
 // l'échec transitoire consécutif (1 pour le premier), premier408Servi dit si
 // le rejeu immédiat du premier 408 a déjà eu lieu, gigue un entier de
-// [0, jitter_ms]. Rend (délai en millisecondes, raison).
+// [0, jitter_ms]. Rend (délai en millisecondes, raison). Un Retry-After n'est
+// suivi que sur 429 et 503 et il est borné : au moins retry.initial_ms, au plus
+// retry.max_ms (révision 0.4 de CT-5).
 func CalculerAttente(httpStatus *int64, retryAfterS *int64, k int64, premier408Servi bool, retry Reprise, gigue int64) (float64, string) {
 	if httpStatus != nil && (*httpStatus == 429 || *httpStatus == 503) && retryAfterS != nil {
-		return float64(*retryAfterS) * 1000, "retry_after"
+		return math.Min(retry.MaxMs, math.Max(retry.InitialMs, float64(*retryAfterS)*1000)), "retry_after"
 	}
 	if httpStatus != nil && *httpStatus == 408 && !premier408Servi {
 		return 0, "immediat"

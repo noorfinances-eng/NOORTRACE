@@ -201,11 +201,40 @@ export function empreintePolitique(politique) {
 export class MagasinPieces {
   /**
    * @param {string} repertoireJournal `<root>/<org>/<journal>`
-   * @param {{minOctetsLibres?: number}} [options] `storage.min_free_bytes` (14.2, « disque presque plein »)
+   * @param {{minOctetsLibres?: number, journal?: {consigner: Function}|null, octetsLibres?: (chemin: string) => Promise<number|null>}} [options]
+   *   `storage.min_free_bytes` (14.2, « disque presque plein ») ; journal
+   *   d'exploitation (ligne `disk_low`) ; mesure de l'espace libre (essais)
    */
   constructor(repertoireJournal, options = {}) {
     this.racine = path.join(repertoireJournal, "pieces");
+    this.repertoireJournal = repertoireJournal;
     this.minOctetsLibres = options.minOctetsLibres ?? 0;
+    this.journal = options.journal ?? null;
+    this.mesurer = options.octetsLibres ?? octetsLibres;
+    /** Vrai depuis le dernier constat « disque presque plein », jusqu'au contrôle suivant réussi. */
+    this.disqueBas = false;
+  }
+
+  /**
+   * Contrôle « disque presque plein » (14.2) : avant l'ouverture d'un
+   * segment, avant l'écriture de chaque pièce et toutes les 10 s. Sous
+   * `storage.min_free_bytes` (plus `supplement`), lève `ErreurEnregistreur`
+   * de raison `stockage` (`donnees.event = "disk_low"`) ; la ligne `disk_low`
+   * (octets libres) est consignée à l'entrée sous le seuil, une fois jusqu'au
+   * retour au-dessus.
+   * @param {number} [supplement] octets à écrire
+   * @param {string} [chemin] répertoire du volume (défaut : celui du journal)
+   */
+  async verifierEspace(supplement = 0, chemin = this.repertoireJournal) {
+    if (!(this.minOctetsLibres > 0)) return;
+    const libres = await this.mesurer(chemin);
+    if (libres === null || libres >= this.minOctetsLibres + supplement) {
+      this.disqueBas = false;
+      return;
+    }
+    if (!this.disqueBas) this.journal?.consigner("error", "stockage", "disk_low", { free_bytes: libres, min_free_bytes: this.minOctetsLibres });
+    this.disqueBas = true;
+    throw new ErreurEnregistreur("stockage", "noortrace: stockage indisponible", { donnees: { event: "disk_low", libres } });
   }
 
   /**
@@ -229,12 +258,7 @@ export class MagasinPieces {
     const chemin = this.chemin(piece.sha256);
     try {
       await creerRepertoire(path.dirname(chemin));
-      if (this.minOctetsLibres > 0) {
-        const libres = await octetsLibres(path.dirname(chemin));
-        if (libres !== null && libres < this.minOctetsLibres + piece.octets.length) {
-          throw new ErreurEnregistreur("stockage", "noortrace: stockage indisponible", { donnees: { event: "disk_low", libres } });
-        }
-      }
+      await this.verifierEspace(piece.octets.length, path.dirname(chemin));
       const ecrite = await ecrireAtomique(chemin, piece.octets, { jamaisReecrire: true });
       return { ecrite, reference: piece.reference };
     } catch (e) {

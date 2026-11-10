@@ -136,7 +136,12 @@ export class MoteurEchanges {
       this.metriques.compter("noortrace_observation_would_block_total", { reason: raisons[0] });
       return null;
     }
-    if (raisons.every((r) => r === "stockage") && this.config.policy.failure?.modele === "passant") return null;
+    // Bornes d'EX-14.9, contrôlées avant l'envoi : au-delà, l'échange passant devient bloquant.
+    // Avec `stockage` et `attente` actifs, la raison est `attente`, la plus restrictive
+    // (EX-14.4) : le stockage seul laisserait passer l'échange, la borne le bloque.
+    if (raisons.every((r) => r === "stockage" || r === "attente") && this.config.policy.failure?.modele === "passant") {
+      return raisons.includes("attente") || c.attenteBornee() ? "attente" : null;
+    }
     return raisons[0];
   }
 

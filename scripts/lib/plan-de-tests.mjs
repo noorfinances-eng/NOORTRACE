@@ -143,20 +143,39 @@ export function titresTests(source) {
   let i = 0;
   let dernier = null; // dernier caractère significatif (pour distinguer / de regex)
   const n = source.length;
+  // Fin d'une chaîne dont le délimiteur ouvrant q est en j : indice du
+  // délimiteur fermant (ou du saut de ligne qui termine une chaîne simple).
+  // Dans un gabarit, une interpolation ${…} est une expression : ses
+  // accolades sont équilibrées et les chaînes et gabarits qu'elle contient
+  // (gabarit imbriqué dont le texte porte « \} », par exemple) sont sautés.
+  const finChaine = (j, q) => {
+    let k = j + 1;
+    while (k < n) {
+      const c = source[k];
+      if (c === "\\") { k += 2; continue; }
+      if (q === "`" && c === "$" && source[k + 1] === "{") { k = finInterpolation(k + 2); continue; }
+      if (c === q) return k;
+      if (q !== "`" && c === "\n") return k;
+      k++;
+    }
+    return n;
+  };
+  const finInterpolation = (k) => {
+    // k suit « ${ » ; rend l'indice qui suit l'accolade fermante.
+    let prof = 1;
+    while (k < n) {
+      const c = source[k];
+      if (DELIMITEURS.has(c)) { k = finChaine(k, c) + 1; continue; }
+      if (c === "{") prof++;
+      else if (c === "}" && --prof === 0) return k + 1;
+      k++;
+    }
+    return n;
+  };
   const lireChaine = (q) => {
     // i sur le délimiteur ouvrant ; rend le texte source entre délimiteurs.
-    let j = i + 1;
-    let s = "";
-    let gabarit = 0; // profondeur ${ } dans un gabarit
-    while (j < n) {
-      const c = source[j];
-      if (c === "\\") { s += c + (source[j + 1] ?? ""); j += 2; continue; }
-      if (q === "`" && c === "$" && source[j + 1] === "{") { gabarit++; s += "${"; j += 2; continue; }
-      if (q === "`" && gabarit && c === "}") { gabarit--; s += c; j++; continue; }
-      if (c === q && !gabarit) break;
-      if (q !== "`" && c === "\n") break;
-      s += c; j++;
-    }
+    const j = finChaine(i, q);
+    const s = source.slice(i + 1, Math.min(j, n));
     i = j + 1;
     return s;
   };

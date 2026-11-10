@@ -180,10 +180,15 @@ func TestFormatTaille(t *testing.T) {
 	gros := fichierOTS(empreinteTest, attInconnue([8]byte{1}, make([]byte, MaxCharge)))
 	gros = append(gros, make([]byte, TailleMax)...)
 	doitRefuser(t, gros, "plus de 256 Kio")
-	// Fichier de 256 Kio exactement, fait de fourches larges : lu.
+	// Fichier de 256 Kio exactement, fait de fourches larges : lu. Chaque branche
+	// porte un argument distinct : deux opérations identiques sous un même nœud
+	// seraient un doublon (forme non canonique, §10.2, révision 0.5).
 	var arbre []byte
-	unite := enc(fourche(), opSHA(), attBitcoin(1))
-	for len(arbre)+len(unite)+20 < TailleMax-len(fichierOTS(empreinteTest)) {
+	for i := 0; ; i++ {
+		unite := enc(fourche(), opAp([]byte{byte(i >> 16), byte(i >> 8), byte(i)}), attBitcoin(1))
+		if len(arbre)+len(unite)+20 >= TailleMax-len(fichierOTS(empreinteTest)) {
+			break
+		}
 		arbre = append(arbre, unite...)
 	}
 	b := fichierOTS(empreinteTest, arbre, attBitcoin(2))
@@ -230,4 +235,28 @@ func TestExecutionBornes(t *testing.T) {
 	if x.Defaut != nil || x.HorsProfil != 1 || x.Attestations[0].OpHorsProfil != opRIPEMD160 || x.Attestations[0].Calcule {
 		t.Fatalf("exécution : %+v", x)
 	}
+}
+
+// Forme canonique d'un nœud (§10.2, révision 0.5) : deux attestations
+// identiques ou deux opérations identiques sous un même nœud rendent le
+// fichier illisible (O-1, doublon) ; des branches sœurs distinctes sont lues.
+func TestFormatDoublon(t *testing.T) {
+	doitRefuser(t, fichierOTS(empreinteTest, fourche(), attBitcoin(1001), attBitcoin(1001)), "doublon : deux attestations identiques")
+	doitRefuser(t, fichierOTS(empreinteTest, fourche(), attAttente("a"), attAttente("a")), "doublon : deux attestations identiques")
+	doitRefuser(t, fichierOTS(empreinteTest, fourche(), attInconnue([8]byte{9}, []byte{1}), attInconnue([8]byte{9}, []byte{1})), "doublon : deux attestations identiques")
+	doitRefuser(t, fichierOTS(empreinteTest, fourche(), opSHA(), attBitcoin(1), opSHA(), attBitcoin(2)), "doublon : deux opérations 08 identiques")
+	doitRefuser(t, fichierOTS(empreinteTest, fourche(), opAp([]byte{7}), attBitcoin(1), opAp([]byte{7}), attBitcoin(2)), "doublon : deux opérations f0 identiques")
+	// Un doublon sous un nœud profond est vu aussi.
+	doitRefuser(t, fichierOTS(empreinteTest, opSHA(), fourche(), attBitcoin(5), attBitcoin(5)), "doublon")
+	// Branches sœurs distinctes : attestations de hauteurs différentes, charges différentes, arguments différents, f0 et f1 de même argument.
+	p := doitLire(t, fichierOTS(empreinteTest, fourche(), attBitcoin(1001), fourche(), attBitcoin(1002), fourche(), attInconnue([8]byte{9}, []byte{1}), fourche(), attInconnue([8]byte{9}, []byte{2}), fourche(), opAp([]byte{7}), attBitcoin(1), fourche(), opAp([]byte{8}), attBitcoin(2), fourche(), opPre([]byte{7}), attBitcoin(3), opSHA(), attBitcoin(4)))
+	if len(p.Arbre) != 8 {
+		t.Fatalf("%d branches", len(p.Arbre))
+	}
+	// Le vecteur o1-attestation-en-double.ots de l'annexe A.4 (révision 0.5).
+	b, err := os.ReadFile(filepath.Join(repOTS, "preuves", "o1-attestation-en-double.ots"))
+	if err != nil {
+		t.Skip("vecteurs absents")
+	}
+	doitRefuser(t, b, "doublon : deux attestations identiques")
 }

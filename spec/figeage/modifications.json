@@ -4185,6 +4185,345 @@
           "apres": "d98c3f96bc646b4cd3e3f8b50dd00a49696c0fddc085ccb2812424b9e28e6107"
         }
       ]
+    },
+    {
+      "id": "MC-20",
+      "date": "2026-11-09",
+      "etape": 5,
+      "motif": "Corrections après la relecture adversariale de l'étape 5 (lot H2). CT-5 révision 0.4 (textuelle, minimale) : l'attente tirée d'un Retry-After (429 et 503 seulement) est bornée par [retry.initial_ms, retry.max_ms] et retry_after_s plafonné à 604 800 s (EX-8.9, table d'EX-5.12) ; l'alerte point_manquant court depuis le checkpoint_ts du dernier point admis, aucune minuterie pour le point de clôture (EX-4.1, 8.9) ; trace point-manquant-saut-horloge ajoutée (vingt-deux traces), trace file-perdue recalculée (alerte à 13:56 et non 13:58), INDEX régénéré, vérificateur Go indépendant aligné (cadence, CalculerAttente borné). CT-6 révision 0.5 (textuelle, minimale) : deux attestations ou deux opérations identiques sous un même nœud d'une preuve .ots rendent le fichier inexploitable, O-1 en échec, raison doublon (§10.2, EX-10.2, EX-10.5) ; la lecture selon §9.3 d'un certificat comprend son SubjectPublicKeyInfo, sa RSAPublicKey et ses extensions connues, T-1 en échec (EX-9.7, précision) ; vecteurs o1-attestation-en-double.ots, tsa-cle-longueur-non-minimale.pem, tsa-extension-mal-formee.pem, t1-cle-longueur-non-minimale.der, t1-extension-mal-formee.der (A.3, A.4, A.10, EX-A.25, EX-A.26), attendus et INDEX régénérés, 93 dossiers inchangés ; confrontations python-opentimestamps (lecture acceptee_en_ecrasant) et OpenSSL (longueurs non minimales, extension indécodable) étendues, sorties republiées ; README : versions 0.4 et 0.5. Aucun schéma ne change.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-5-ancrage.md",
+          "avant": "34805eea8234cce008a6e562942f5f15880d37b9cb6d78f6ffce598671a91c47",
+          "apres": "7a89234c25640faf23a463b573f3b83e85342752ab5c1245bc5f67e66949dbdb"
+        },
+        {
+          "chemin": "spec/CT-6-verificateur.md",
+          "avant": "27b0ae8037aa38e77c710788db52542204f8b95fc32ef6e4d28e8a99955af1e6",
+          "apres": "642273717b560bcfad36747dcfe50d910772e08dbe57ae9468446aa303fe3617"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "7aaed906c81e18bf1175f7abf61a557c9e28294f3978a46d6fa5c92dea1695dc",
+          "apres": "b037f0fb88bd24bd150f69249fde6faf5802ab67b46439edef41540cffd1b83c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/INDEX.md",
+          "avant": "0e074024be74aeb6b50a92e017c76f9958d8658081aa64dcfdf6afcb9d07b6a5",
+          "apres": "cced0be04a2204b5340dd697bbca5d25b88bc2a1f9e9871882392937c9db68b6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/file-perdue.json",
+          "avant": "2eea73761186fb92b3fdce9d8f298040b18256fc08e816b984b61b473392ad2b",
+          "apres": "408217122c17332288de514af1ce641584a036fc58acc2ee0d93960e3bb97444"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/point-manquant-saut-horloge.json",
+          "avant": null,
+          "apres": "048c07f2369bfa2bd440c8d2401c3eaf31abd15b5acab15d39db003b7bf738bd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/planificateur.go",
+          "avant": "7290b2980ecb0bf8cd71a159c31102832215080f65dde7adbaadde43e19c5cc1",
+          "apres": "f755f1e6e8364764b168307788f0063de92541cc50ed3fa2d599105311de9ecd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/reponse.go",
+          "avant": "95fcb9206ad978147e580e716b16ca0e5f1a15b0f85fb7c994108d59c81406f3",
+          "apres": "7a739e168354b93debbb2d4b9a3878ed895a39d69d5c5b725d76fbfa5e7fb269"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/INDEX.md",
+          "avant": "15ca052e146ce7a1a67824741e2190cf5e33a643de0907560a40844c2a2ce454",
+          "apres": "e5eb12ac1527fc7ee61e82b81bb6e4a33818647a1099a990c5a779e835818103"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/confrontation/ots/LISEZMOI.md",
+          "avant": "bad12672dbb4e34b42c958bb2a592a15161cbc71a3ee0b66030212254a146c8c",
+          "apres": "16f56dbc8111208c1e6b21f363651cc0102e9ab02dc4ccff798d0e78b1a2ab13"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/confrontation/ots/confronter_ots.py",
+          "avant": "2e1a7d0e13cdec0954bbbff2f18345f7ae143132985ce445e4570f488e6ecde7",
+          "apres": "950830fcdf421657cf1c884ad445dc8e0915523fa299e3a22ff21d6b08ea83c6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/confrontation/rfc3161/LISEZMOI.md",
+          "avant": "95d8624cf5a558e55d69c05f9c92576966f9b66d897057e4aae357b6862fc573",
+          "apres": "1c506317c453190cba7817e9825901ebac047fec7e82580f9904fb5affad1a19"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/confrontation/rfc3161/confronter_rfc3161.py",
+          "avant": "a80a4ff7b22c241dd28e7204de4a52997407fbcfdb5ee965846608d737432459",
+          "apres": "138cfc1e597c59a48a149988889690b4fa5906476eadf2ad59436e4dfc636883"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/confrontation/sorties/ots.txt",
+          "avant": "b26ec50d337de0ae27352ecc5d32dfabfae62af38e96253a92123d49602dae43",
+          "apres": "6eaed4ff3d19436d8bbda7349a294eb461aa8ecdeb8402340d7732883dec9c49"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/confrontation/sorties/rfc3161.txt",
+          "avant": "5076ae5feb32d221b685d1208dcd106e7ecd8a35a246c9e7bb34aab90872bf87",
+          "apres": "1e7e2b7f6d9463283042e23e432cd67e0a346ffa3dce2b69d5d8f2dc6f37e117"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/ots/attendu.json",
+          "avant": "d58f15ecbb39c539311cb73b84336bff4cdef107f1c5fcdc9b62b39631d15a5e",
+          "apres": "7619d9ff5a07473eecc233c2d4518e9c0018b648e8f09fd675ad2e1b2d437dd8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/ots/preuves/o1-attestation-en-double.ots",
+          "avant": null,
+          "apres": "c2a566642aefc2e73095730ec9513ebcb21dcbce547eb89f9d64f62daa355718"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/rfc3161/attendu.json",
+          "avant": "d98c3f96bc646b4cd3e3f8b50dd00a49696c0fddc085ccb2812424b9e28e6107",
+          "apres": "5f78fe592cd174f64052d6383eb5e219b983b65356a85c14142a71d259a546ec"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/rfc3161/cles/tsa-cle-longueur-non-minimale.pem",
+          "avant": null,
+          "apres": "8bb8d409479da450fac95960cabe05e8b6eddc9edd86760556c35c2ee32af523"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/rfc3161/cles/tsa-extension-mal-formee.pem",
+          "avant": null,
+          "apres": "158e47113c0149da34870ba726d27ae284d942b77b850e664c1689b6b7ff08a3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/rfc3161/jetons/t1-cle-longueur-non-minimale.der",
+          "avant": null,
+          "apres": "8c30b44e03e071e038a158ba3d65fe84a2ab774fac7c4902837824df9af07eea"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/rfc3161/jetons/t1-extension-mal-formee.der",
+          "avant": null,
+          "apres": "1ad52fedc8e13db0ca28729a6076312df5a19f9fc708ea188013dc8e3557175d"
+        }
+      ]
+    },
+    {
+      "id": "MC-21",
+      "date": "2026-11-10",
+      "etape": 5,
+      "motif": "Fermeture de l'étape 5 dans CT-9, révision 0.4 (textuelle ; aucune règle ajoutée ni retirée, aucun schéma changé). Inventaire (5.2) : CT-5 en 0.4, CT-6 en 0.5 (211 EX-, 280 identifiants ; total 2350) ; CT-6 EX-A.25 et EX-A.26 couverts par TV-48, TV-49, TV-54 et TV-55, qui éprouvent déjà ces vecteurs. Entrées de l'étape 5 passées exécutables (EX-3.12) : TI-16, TI-17, TE-12, TE-14, TA-41 sur les essais du composant d'ancrage et de son branchement dans l'enregistreur ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41 et TM-42 par la campagne de scripts/e2e/mesure-ancrage.mjs, dont le rapport mesures/rapport-2026-11-10-ancrage.json, non encore publié, est relu par un cas nouveau de test/plan-de-tests.test.js ; compléments nommés (prestataire qualifié réel, charge de TM-3, relevé en temps réel, mise à niveau réelle, mutants du composant : étape 8 ; rotation de la clé de chaîne au registre : étape 7) ; complément ancres/ de TM-16 écrit ; complément de TA-62 reporté à l'étape 8 avec sa raison. Lecture des titres (EX-4.2, EX-5.6) corrigée dans les trois lecteurs (outil de couverture, vérificateur Go, recompter.py) : une interpolation d'un gabarit est lue comme une expression, gabarits imbriqués compris (test/enregistreur-journal-soi.test.js n'était pas lu). Table TC (numéros de ligne relus, six réponses de CT-5 alignées), tables et chiffres de 5.5, EX-11.16, lignes supplémentaires du rapport de l'étape 5 (11.3), section 16 et EX-A.10 alignés ; vecteurs ct-9 régénérés (deux générations identiques), sortie du recomptage republiée ; README : version 0.4.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "a2ee727f19b8a7b9ea8a60e4087a9ef9328bcea17d22f329accd8fec357853e8",
+          "apres": "e2db40f84d19513519a9e68897ac5872be6801ff2133e181ef17bb75236c5b9e"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "b037f0fb88bd24bd150f69249fde6faf5802ab67b46439edef41540cffd1b83c",
+          "apres": "dbe95a4fc1202481cc29117a9f66015b826268728c32edaa68320e346a103120"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "16c44e0db1880eb15f7e342d0e52a80d9658bab35d35c10be619c8ca4d460231",
+          "apres": "7d99b056ba2a8ff35caf756f2a4887efa4c69aecbf0558c91553bbe8f7bf2e52"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-a-ecrire-sans-etape.json",
+          "avant": "5c27f709cb815c8cb12ee281c3a20285b39cf1146fdec5d707bde487cb82597c",
+          "apres": "eac1baeb66699c3aabdc3b8d823b9053ba33ed125882c9125364db14c81f2e57"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-executable-sans-titre.json",
+          "avant": "ef06d9d98bc7bd420beb39f21358bd647fc50fa4b088f8ff3f51651f86d46e01",
+          "apres": "e29efd557a6400d1f3e9ee82a683c079ddec407e132e54248b47422a46b69883"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-identifiant-sans-specification.json",
+          "avant": "3492fdd8fb2b21733b787667ccaa8290e595e5edac5f27af62bf646146774942",
+          "apres": "9b79ef0eb30d6d841b845c683b34bbd5a81bd014d812747d1179d67999373fa6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-complement-sans-etape.json",
+          "avant": "5ccaf50a01b9f074d5f44a45a3c9c6b5a381ab56a65de3cf0cfc4d7c8e734c7e",
+          "apres": "114710daabb802bb0f4825a4064438aa7216a2a23d2eb79b649f2718b0836baa"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-prefixe-test.json",
+          "avant": "91123987e8ae5d2142ab8e1ef3548861070060fcb6879af27c6d4460dde4b0e0",
+          "apres": "5ad60bf7cfef9377c6ce49234cdd9778f0ec67bf1081616112b6049228804374"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-sans-adversarial.json",
+          "avant": "670d0acabdaf4f3b8bdd61bec9d494a520e4e1f0582d93c6c277d263e4da127c",
+          "apres": "79959cc376a3f4b09e550b9310170345be5e7ae6cbbea12cd565212f22a22885"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-scenario-sans-composition.json",
+          "avant": "dd93c1c9685ad6d45426d36da0681199c3fbb79909eecd951bd8e1c5a0d875d7",
+          "apres": "bfaef6265253af5104e36d7f12cc9fc78ab643b4a913671f35b27d684fe2e6cb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-titre-vide.json",
+          "avant": "7c5d43a71d2cf8ed85b2e9fb29e9c54c10b2bf1e0abca8319e9100f282b17c86",
+          "apres": "fd5cbdf87e198ada0db5d6f6e371460012d27c4fb811a60f62039d0e63246078"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-tm-mesure-inventee.json",
+          "avant": "bf0a48fc9cbc33dbbf8ee8a04dc3631773a9cf3a72338173a57b2597376936ca",
+          "apres": "f401fd226a420a7d8c0ca3a157d1f926a47a8aacdf7fdae683e40dafd706b0d2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-minimal.json",
+          "avant": "e3211fa482db068cbb5743651d0d92409a0b189874911bbb0e2da04f7b20c380",
+          "apres": "b58ff448210814a21f59c307089d2daa34a5aa46608f26f1a4ab10c5069a8fdf"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-ta.json",
+          "avant": "0336c68ffa2bdd01c04493aa095c97dea57d20bffa7fa6b56dcef74a24d2556f",
+          "apres": "44050076563bba37af8d6807a8c26db4e6d46c0e5cafea62404c26e519eee5ba"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "4b3761a9fdfa4a6d58cb7eb6f1ae6a3d27e7e9493722fd7b1843ce7190cd7834",
+          "apres": "f32247f4bddc26ad1767221fcbb76baeff9f1975b6ab29b28d3c2394992a014b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/LISEZMOI.md",
+          "avant": "8961cf34ee033e4432d6bb1c5f5812d6ea43ae2d21485fca9784206a0f7948fa",
+          "apres": "811e3aa22d9484d0fecec1ab9a75b66fe73a11433d76478117c33586a3953b21"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/recompter.py",
+          "avant": "f323da6a27fa05c82e9e10e1df0c809377363548ab63e1785a801fcb190d9046",
+          "apres": "64f5a8c69283829b04b1a5ea77585521f0f04425ae85310d85d450472c8cbf38"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "4da393420bde528da39b97395388e84d19d73460e818be13119765d08ee424d6",
+          "apres": "d0efbd985b1e58bf1976afa3957690651590a1bdd7a0780656495fef866216d7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "955719e5409072d3a176ed7db911b2d0d728d47dfd7098fb8fba9549aab76ce4",
+          "apres": "1ca18564b4ff97db53929294b7f417907e6846c07a235b578796cf7cdea5fe57"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "c817964287802f6d4a8a311abd59ac39146426efb278309a6fab10acb72efcfa",
+          "apres": "3e8427c6407e51f92bbb382810357199cc8d366e3df5f4b075ab0550255e1de7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "ebf1f1f5b311615f8c567a529507c31815926921569205b260c6a561eaf10bd2",
+          "apres": "5e4c8cbcaf5f628beab84526ab02995e26fb85da6a6118f30366240e6f50f50b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/index-ta-par-menace.json",
+          "avant": "ab3574d90c89718edc29ff799703f42a07a42927e395699c73fe91e2a515b7a4",
+          "apres": "ada74867011a1150e056b5cfde14b711ec09a95c5cef5825d39a1fc4d3385360"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/README.md",
+          "avant": "45f93785e8e152e84de6208d4da0812df3cd8c864edacb97df8cf501159cde33",
+          "apres": "1f8b447bb1c8cd23035d63fa2a2e7f97b95bfb6a3e7dc1b2503eae9783cbd532"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/couverture.go",
+          "avant": "f1793d946b41eaae87c1eec6f8dd18f9e36639d163631537fce69840572c1726",
+          "apres": "cd014213809b45e2a1c4210b64b4f49da71f98e9ab95dc93405780f706cbdbb9"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/titres.go",
+          "avant": "4c2718bcbc5343d3748834b2fa239ae544648f5e7e1763886354a38b6834ea28",
+          "apres": "376a23987d20ad9bd356db0c695d8d5b830b60e9c888ee09f763310a34268102"
+        }
+      ]
+    },
+    {
+      "id": "MC-22",
+      "date": "2026-11-10",
+      "etape": 5,
+      "motif": "Fermeture de l'étape 5, suite de MC-21. CT-5 révision 0.5 (textuelle ; aucune règle, aucun schéma, aucun vecteur, aucun outil ne change) : le test de la relève de la clôture par le secours qualifié après retrait de qualified (EX-5.9), dit « à écrire » jusqu'ici, est écrit pour le composant d'ancrage de production (5.3 et ligne « Retrait de la qualification du principal » de 14). CT-9 : inventaire (5.2) avec CT-5 en 0.5 ; rapport de la campagne de mesures de l'étape 5 publié (mesures/rapport-2026-11-10-ancrage.json, validé par scripts/tests/mesures.mjs et relu par test/plan-de-tests.test.js) ; TE-16 cite les essais nouveaux des lignes « Mémoire » (bornes pending_max_events, pending_max_ms et limits.pending_max_bytes) et « Disque presque plein » de CT-2 §14.2 sur le chemin du relais (test/enregistreur-coeur-attente-bornes.test.js), son complément d'étape 8 se réduit au rejeu de la matrice entière fini par des dossiers vérifiés ; table TE et chiffres de 5.5 alignés (224 entrées exécutables, 489 titres cités) ; vecteurs ct-9 régénérés (deux générations identiques), sortie du recomptage republiée ; README : CT-5 en 0.5. CT-7 (EX-A.7, RV-9) : cles-de-test.json et INDEX.md régénérés par generer-ct7.mjs pour les deux certificats de test ajoutés à ct-6/rfc3161/cles/ (tsa-cle-longueur-non-minimale.pem, tsa-extension-mal-formee.pem ; 53 clés dont 23 de ct-6) ; le vérificateur Go indépendant de CT-7 lit la clé RSA d'un certificat dans sa RSAPublicKey (forme longue non minimale admise à la lecture) et hache le SubjectPublicKeyInfo DER de la clé, comme le dit EX-A.7, au lieu des octets du fichier (un essai de plus, README) ; 0 discordance.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-5-ancrage.md",
+          "avant": "7a89234c25640faf23a463b573f3b83e85342752ab5c1245bc5f67e66949dbdb",
+          "apres": "9701018cabd14fbea667682d8d94c8a025b7f52c8344c1b0657c60b0ad8199ac"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "e2db40f84d19513519a9e68897ac5872be6801ff2133e181ef17bb75236c5b9e",
+          "apres": "2c7bbedc652abceb5f5724395d155ea39ec6e2343897129e03ce716b9e2e2cdb"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "dbe95a4fc1202481cc29117a9f66015b826268728c32edaa68320e346a103120",
+          "apres": "271f341e339dd4fa82a1e646927f61ed32a572b88dc1d13d78f2f80e49147844"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/INDEX.md",
+          "avant": "bd67dff50bca82ed7ef3041b945de05533a5ac3c8a01b8f62f729b6e6c72f0d0",
+          "apres": "3fe50b1eb18e3dbc75883b76340386b585b93ec2d091858c98d869c2e05a8b9e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/cles-de-test.json",
+          "avant": "47c69523ac1165f0444cd772ad0d09a583370dc926ad67e370458790cc17564a",
+          "apres": "e941856a78b483391916abe54eeadeb0abce1b3a2caa92303a35f5b6acb3c2c4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/verificateur-independant/README.md",
+          "avant": "e516af157661eaef094e0b9858c16b36a2bf2ce5f591110ae6599474ce92e41a",
+          "apres": "eb9c092a81c5e3034edfc1f43f51ec9c97019f04e7b472e58805405408576488"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/verificateur-independant/cles.go",
+          "avant": "0db1552d08d05024f3d4b87c1f6b3b61024454c03078fa0952be51d3c1c146bd",
+          "apres": "e5f3b7977b2d680513e7ce5d87b103c18ac28d0cfacc1cd9009e2dcc9543db90"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/verificateur-independant/cles_test.go",
+          "avant": "ad5b32d94a3767647f2fec45609795980edb39d168528c7c1116c7f809489164",
+          "apres": "a7c2f1a2608dd05e86766981b213cb69cde09cf17c25638687881bb449ec5926"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "7d99b056ba2a8ff35caf756f2a4887efa4c69aecbf0558c91553bbe8f7bf2e52",
+          "apres": "55684ddcca93bb2deed3de320970c92d3f2d23583ec77dc981ddc031c9da156e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "f32247f4bddc26ad1767221fcbb76baeff9f1975b6ab29b28d3c2394992a014b",
+          "apres": "de6c48396e7cd4a1277a1a7e735fd256efb1918ea109e601e88f5926ab263800"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/LISEZMOI.md",
+          "avant": "811e3aa22d9484d0fecec1ab9a75b66fe73a11433d76478117c33586a3953b21",
+          "apres": "1d1687276cd86a1935c8f06eca4cbd25b093935922ed4e707feb561c477ba6d9"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "d0efbd985b1e58bf1976afa3957690651590a1bdd7a0780656495fef866216d7",
+          "apres": "c76dde901c802035ece7228afd5f0fe82ea66aaef654a823a3f10f81f51816d5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "1ca18564b4ff97db53929294b7f417907e6846c07a235b578796cf7cdea5fe57",
+          "apres": "e1228be55ad1ede08e10a04b5952f00f18c0eb16640cd1e28b9736cc43f7cffd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "3e8427c6407e51f92bbb382810357199cc8d366e3df5f4b075ab0550255e1de7",
+          "apres": "a0414bd63ab3fc85392caf1d0c57b0da14a02a7daf6b9489f7b7f435cba8f357"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "5e4c8cbcaf5f628beab84526ab02995e26fb85da6a6118f30366240e6f50f50b",
+          "apres": "582db92c1bae655ea6259d2fa2b95e76ae25b2adab3f7d40404685fbcf7500d8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json",
+          "avant": null,
+          "apres": "30b7ac3b6725d7f9691f819600c90e2820374c70e91de27f9f670b71fc85b58f"
+        }
+      ]
     }
   ]
 }

@@ -255,8 +255,8 @@ Hardhat 1 à 8 du mnémonique public de `spec/vecteurs/ct-3/constantes.json`.
 
 Les clés publiques de test publiées par les vecteurs (EX-4.10, EX-A.7),
 recalculées depuis `ct-1/cles/cles-test.json`, `ct-3/constantes.json` (comptes
-Hardhat 0 à 9), `ct-4/constantes.json` et `ct-6/rfc3161/cles/` : 51 clés (ct-1 :
-2, ct-3 : 10, ct-4 : 18, ct-6 : 21). Aucune ne sert en production ; RV-9 les
+Hardhat 0 à 9), `ct-4/constantes.json` et `ct-6/rfc3161/cles/` : 53 clés (ct-1 :
+2, ct-3 : 10, ct-4 : 18, ct-6 : 23). Aucune ne sert en production ; RV-9 les
 recalcule.
 
 ## attestations/

@@ -61,7 +61,7 @@ racine introuvable.
 | croises | `attestations/croises.json` | chaque signature est celle du compte 1 sur le message d'origine (recouvrée, reproduite par RFC 6979) ; `D_P` et `D_C` des messages et des cibles recalculés ; texte d'inscription en `noortrace/inscription/v0` ; adresse recouvrée sur le message présenté, statut `echoue`, vérification qui refuse (CT-1 AT-3, CT-1 E-9, CT-7 CR-11, CT-3 AN-) |
 | matrice | `matrice-conformite.json`, `matrice/invalides/`, texte de CT-7 (annexes B et C, §8.3, A.8) | MX-1 (schéma `matrice-conformite-v0`), MX-2, MX-3 (statut d'EX-8.3), MX-5 (`serves`, sous-sections de l'annexe C), MX-9 (dates des textes pas encore applicables, faits des tables de l'annexe B) sur le fichier publié ; exemples annotés de 8.3 conformes et égaux aux lignes du fichier ; pour chaque cas de A.8, l'ensemble exact des MX- exécutées ici en échec ; `attendu.json` égal à la table d'EX-A.14 |
 | menaces | `menaces.json`, texte de CT-7 §3.2 à §3.5 et §3.8 | RV-1 (schéma `modele-menace-v0`) ; RV-2 (réponse écrite, préfixe du test, MN- et RA- sans trou) ; RV-4 (`refs` recalculés par l'expression du texte, aucun `EX-` sans `CT-n`) ; RV-5 (tables 3.2, 3.4, 3.5 égales au fichier cellule par cellule) ; RV-8 (risques acceptés : nom, borne, porteur, menaces) ; table des tables sources de 3.3 et `sources` de chaque menace dans l'ordre du rattachement ; exemple de 3.8 conforme et égal au fichier |
-| cles-de-test | `cles-de-test.json`, `../ct-6/rfc3161/cles/*.pem` | `ct-1` : clé Ed25519 depuis la graine SHA-256 de l'étiquette (CT-1 §13) ; `ct-3` : clé publique et adresse au chemin de dérivation ; `ct-6`, quel que soit l'algorithme (`rsa`, `ecdsa_p256`, `ed25519`, EX-A.7 révision 0.2) : `algorithm` égal au type de la clé lu dans le `SubjectPublicKeyInfo`, `public_key` et `address` nuls, `spki_sha256` = SHA-256 du `SubjectPublicKeyInfo` du certificat (lu sans décoder les noms) ou de la clé privée PKCS#8 (RSA lue dans `RSAPrivateKey`, sans borne d'exposant) ; `ct-4` : point de la courbe et adresse dérivée, longueur Ed25519 ; présence des quatre sources |
+| cles-de-test | `cles-de-test.json`, `../ct-6/rfc3161/cles/*.pem` | `ct-1` : clé Ed25519 depuis la graine SHA-256 de l'étiquette (CT-1 §13) ; `ct-3` : clé publique et adresse au chemin de dérivation ; `ct-6`, quel que soit l'algorithme (`rsa`, `ecdsa_p256`, `ed25519`, EX-A.7 révision 0.2) : `algorithm` égal au type de la clé lu dans le `SubjectPublicKeyInfo`, `public_key` et `address` nuls, `spki_sha256` = SHA-256 du `SubjectPublicKeyInfo` du certificat (lu sans décoder les noms ; clé RSA relue dans `RSAPublicKey` et réencodée en DER) ou de la clé privée PKCS#8 (RSA lue dans `RSAPrivateKey`, sans borne d'exposant) ; `ct-4` : point de la courbe et adresse dérivée, longueur Ed25519 ; présence des quatre sources |
 
 ## Tests du module (`go test`)
 
@@ -93,6 +93,13 @@ racine introuvable.
   refusé ; si les vecteurs sont présents, `tsa-exposant.cle.pem` et
   `tsa-exposant.pem` ont l'empreinte écrite par CT-7,
   `0xa3cfdccaa39200b68d9ce981156cb2a6f461e3808e93bd4b68a4600775f863e4`.
+- Clé RSA d'un certificat dont la `RSAPublicKey` porte une longueur longue
+  non minimale (`30 83 00 01 8a`, comme `tsa-cle-longueur-non-minimale.pem`
+  de CT-6), construite dans le test : `spki_sha256` est le SHA-256 du
+  `SubjectPublicKeyInfo` DER de la clé (EX-A.7), égal à celui de
+  `crypto/x509` pour la même clé, et non celui des octets du certificat ; un
+  `SubjectPublicKeyInfo` déjà DER est rendu inchangé ; une `RSAPublicKey`
+  tronquée est refusée.
 - Les vecteurs publiés, s'ils sont présents : tout doit concorder.
 
 ## Limites (hors périmètre)
@@ -138,7 +145,11 @@ racine introuvable.
   `publicExponent`, tous deux strictement positifs, puis on construit
   `SubjectPublicKeyInfo` ::= { { `rsaEncryption`, `NULL` }, BIT STRING de
   `RSAPublicKey` { n, e } } en DER ; `x509.ParsePKCS8PrivateKey`, qui refuse
-  l'exposant 2³¹ + 1, n'est employé que pour les autres algorithmes. Le type
+  l'exposant 2³¹ + 1, n'est employé que pour les autres algorithmes. La clé
+  `rsaEncryption` d'un certificat est lue de même dans sa `RSAPublicKey`
+  (longueurs de forme longue non minimale admises à la lecture, le texte
+  hachant le `SubjectPublicKeyInfo` DER de la clé et non les octets du
+  fichier) et son `SubjectPublicKeyInfo` reconstruit en DER. Le type
   de la clé (`rsa`, `ecdsa_p256` pour `id-ecPublicKey` sur P-256, `ed25519`)
   est lu dans l'identifiant d'algorithme du `SubjectPublicKeyInfo`.
 - CR-5 : `fingerprint` est nul si et seulement si `public_key` l'est ; une

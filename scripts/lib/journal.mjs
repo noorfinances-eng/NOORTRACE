@@ -18,6 +18,7 @@ import { Signature, getBytes, hashMessage, keccak256, recoverAddress, solidityPa
 // securite.mjs importe aussi ce module : ni l'un ni l'autre ne lit de valeur
 // de l'autre au chargement.
 import * as S from "./securite.mjs";
+import * as O from "./ots.mjs";
 
 // ---------------------------------------------------------------------------
 // Constantes du format v0
@@ -1801,16 +1802,21 @@ export function verifierSeriePointsDeControle(points, manifeste, { evenements = 
  * ancre au registre ; (4) à défaut, un point sans ancre. À rang égal, le plus
  * petit tree_size, puis le premier de la série (plus petit checkpoint_ts).
  * `ancres` (facultatif) : Map ou objet indexé par checkpointHash, valeurs
- * { rfc3161, ots, registry } (booléens) ; sans `ancres`, tous les points sont
- * de rang (4) et le choix est le point de plus petit tree_size, le premier de
- * la série à tree_size égal. null si aucun point ne couvre l'indice.
+ * { rfc3161, ots, registry } ; `rfc3161` et `registry` sont des booléens ;
+ * `ots` est soit `true` (preuve complète, jugée par l'appelant), soit les octets
+ * du fichier .ots (ou { proof: base64 }), auquel cas la preuve ne compte que si
+ * elle est complète : lisible et porteuse d'une attestation Bitcoin (CT-5
+ * EX-10.2, EX-6.7 ; une preuve en attente ne donne pas le rang (2)). Sans
+ * `ancres`, tous les points sont de rang (4) et le choix est le point de plus
+ * petit tree_size, le premier de la série à tree_size égal. null si aucun point
+ * ne couvre l'indice.
  */
 export function choisirPointCouvrant(points, leaf_index, ancres = null) {
   const rang = (p) => {
     if (!ancres) return 3;
     const h = typeof p.checkpoint_hash === "string" ? p.checkpoint_hash : hachagePointDeControle(p);
     const a = (ancres instanceof Map ? ancres.get(h) : ancres[h]) ?? {};
-    return a.rfc3161 ? 0 : a.ots ? 1 : a.registry ? 2 : 3;
+    return a.rfc3161 ? 0 : preuveOtsComplete(a.ots) ? 1 : a.registry ? 2 : 3;
   };
   let choisi = null;
   let rangChoisi = Infinity;
@@ -1823,6 +1829,27 @@ export function choisirPointCouvrant(points, leaf_index, ancres = null) {
     }
   }
   return choisi;
+}
+
+/**
+ * Une preuve .ots « complète » au sens de CT-5 EX-10.2 et EX-6.7 : `true`
+ * (jugement de l'appelant), ou des octets (Buffer, Uint8Array ou { proof:
+ * base64 }) qui se lisent (O-1) et portent au moins une attestation Bitcoin.
+ * Une preuve en attente, illisible ou d'une autre forme ne compte pas.
+ */
+function preuveOtsComplete(v) {
+  if (v === true) return true;
+  if (!v) return false;
+  let octets = null;
+  if (Buffer.isBuffer(v) || v instanceof Uint8Array) octets = Buffer.from(v);
+  else if (estObjet(v) && typeof v.proof === "string") octets = Buffer.from(v.proof, "base64");
+  else return false;
+  try {
+    return O.executer(O.lireOts(octets)).attestations.some((a) => a.genre === "bitcoin");
+  } catch (err) {
+    if (err instanceof O.ErreurOts) return false;
+    throw err;
+  }
 }
 
 /** Empreinte de l'ancre d'un point au registre : keccak256(org_id || journal_id || checkpointHash), 96 octets (CT-1 §10.6). */

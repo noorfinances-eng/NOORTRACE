@@ -134,6 +134,9 @@ export function preuvesTest(manifestes, point = null) {
   preuves["o4-mauvaise-hauteur"] = { octets: O.encoderOts(e1, O.chemin(tout1, [bitcoin(1002)])), alteration: "attestation Bitcoin à la hauteur 1002 au lieu de 1001", cible: "O-4", periode: 1 };
   preuves["o7-en-attente"] = { octets: O.encoderOts(e1, O.chemin(ops1.calendrier, [enAttente(URI_CALENDRIER)])), alteration: `seulement une attestation en attente du calendrier ${URI_CALENDRIER}`, cible: "O-7", periode: 1 };
   preuves["deux-attestations"] = { octets: O.encoderOts(e1, O.chemin(tout1, [bitcoin(1001), bitcoin(1002)])), alteration: "attestations Bitcoin aux hauteurs 1001 et 1002", cible: null, periode: 1 };
+  // Révision 0.5 (CT-6 §10.2, EX-10.2) : deux attestations identiques sous un même nœud, forme non canonique que la
+  // bibliothèque officielle n'écrit jamais (ensemble `attestations`) et relit en écrasant le doublon : O-1 en échec.
+  preuves["o1-attestation-en-double"] = { octets: O.encoderOts(e1, O.chemin(tout1, [bitcoin(1001), bitcoin(1001)])), alteration: "l'attestation Bitcoin à 1001 écrite deux fois sous le même nœud (doublon, forme non canonique)", cible: "O-1", periode: 1 };
   preuves["attente-uri-vide"] = {
     octets: O.encoderOts(e1, O.chemin(ops1.calendrier, [enAttente(""), ...O.chemin(ops1.bitcoin, [bitcoin(1001)])])),
     alteration: "au bout des opérations du calendrier, une attestation en attente d'URI vide (0 octet), que la bibliothèque de référence admet (EX-10.2), à côté de la branche Bitcoin attestée à 1001",
@@ -210,6 +213,9 @@ const ancresBitcoin = (bitcoinAncre) => ({ version: 0, label: "ancre Bitcoin de 
 const PYTHON_PRESUME = {
   "o1-octet-en-trop": { parsing: "refusee", source: "R2-F67 (TrailingGarbageError)" },
   "o3-resultat-trop-long": { parsing: "refusee", source: "R2-F13, R2-F67 (message de plus de 4096 octets)" },
+  // Lue sans refus, mais l'ensemble `attestations` de Timestamp absorbe le doublon : la resérialisation n'écrit
+  // l'attestation qu'une fois et diffère du fichier (limite de la bibliothèque, décrite dans confrontation/ots).
+  "o1-attestation-en-double": { parsing: "acceptee_en_ecrasant", source: "timestamp.py (Timestamp.attestations est un ensemble ; merge et deserialize écrasent le doublon) ; CT-6 §10.2, révision 0.5" },
 };
 
 /**
@@ -257,6 +263,7 @@ export function genererOts({ racine = path.join(PROJECT_ROOT, "spec", "vecteurs"
     ["periode-1", 1, null, ancres, [], "non_execute", "partie_absente"],
     ["periode-1", 1, "chaine", null, [], "non_execute", "ancre_absente"],
     ["o1-octet-en-trop", 1, "chaine", ancres, ["O-1"], "echoue", null],
+    ["o1-attestation-en-double", 1, "chaine", ancres, ["O-1"], "echoue", null],
     ["o3-resultat-trop-long", 1, "chaine", ancres, ["O-3"], "echoue", null],
     ["o4-mauvaise-hauteur", 1, "chaine", ancres, ["O-4"], "echoue", null],
     ["o7-en-attente", 1, "chaine", ancres, [], "non_execute", "partie_absente"],

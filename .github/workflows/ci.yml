@@ -526,6 +526,45 @@ jobs:
             npx hardhat --config hardhat.config.mjs test test/enregistreur-signataires-parcours.test.js 2>&1 | tee "$RUNNER_TEMP/parcours.txt"
           if grep -E '[0-9]+ pending' "$RUNNER_TEMP/parcours.txt"; then exit 1; fi
 
+  # Composant d'ancrage de CT-5 (paquets/ancrage) et son branchement dans
+  # l'enregistreur (anchoring.ancrage), avec le binaire vérificateur Go de
+  # CT-6 §14 (dossiers exportés vérifiés par les deux vérificateurs) et
+  # python-opentimestamps 0.4.5 (relecture des preuves produites). Les essais
+  # contre le réseau de développement noorcore (quatre validateurs construits
+  # depuis noorchain-core, absent de ce dépôt) et contre les prestataires et
+  # calendriers publics restent en attente ici : la dernière étape refuse toute
+  # autre attente que celles-là, chacune nommée par sa condition.
+  ancrage:
+    name: composant d'ancrage de CT-5 et branchement dans l'enregistreur, avec le binaire vérificateur Go et python-opentimestamps
+    runs-on: ubuntu-24.04
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.27.3
+          cache: false
+      - run: npm ci
+      - name: binaire vérificateur Go construit par verificateur/scripts/construire.sh (go1.27.3) et python-opentimestamps 0.4.5
+        run: |
+          test "$(go env GOVERSION)" = go1.27.3
+          GOFLAGS=-mod=vendor verificateur/scripts/construire.sh -o "$RUNNER_TEMP/noortrace-verifier"
+          test -x "$RUNNER_TEMP/noortrace-verifier"
+          python3 -m venv "$RUNNER_TEMP/venv-ots"
+          "$RUNNER_TEMP/venv-ots/bin/pip" install --only-binary :all: opentimestamps==0.4.5 python-bitcoinlib==0.12.2
+          openssl version
+      - name: essais du composant d'ancrage et du branchement, attentes limitées au réseau de développement et au réseau public
+        run: |
+          set -o pipefail
+          NOORTRACE_VERIFIER_BIN="$RUNNER_TEMP/noortrace-verifier" NOORTRACE_GO_BIN="$(dirname "$(command -v go)")" NOORTRACE_OTS_PYTHON="$RUNNER_TEMP/venv-ots/bin/python" \
+            npx hardhat --config hardhat.config.mjs test $(ls test/ancrage-*.test.js test/enregistreur-ancrage-*.test.js) test/enregistreur-journal-soi.test.js 2>&1 | tee "$RUNNER_TEMP/ancrage.txt"
+          node scripts/tests/attentes-ancrage.mjs "$RUNNER_TEMP/ancrage.txt"
+
   # Confrontation des vecteurs CT-2, CT-3, CT-5, CT-6 et CT-7 par des
   # implémentations tierces (spec/CT-6-verificateur.md, annexe A.8 ;
   # spec/CT-5-ancrage.md, annexe A.6 ; spec/CT-2-enregistreur.md, annexes B.5

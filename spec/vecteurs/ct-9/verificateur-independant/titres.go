@@ -60,44 +60,65 @@ func AnalyserTitres(source string) TitresFichier {
 	i := 0
 	dernier := "" // dernier lexème significatif, pour distinguer « / » d'une regex
 	avantRegex := map[string]bool{"(": true, ",": true, "=": true, ":": true, "[": true, "!": true, "&": true, "|": true, "?": true, "{": true, "}": true, ";": true, "+": true, "-": true, "*": true, "%": true, "<": true, ">": true, "~": true, "^": true, "": true, "return": true}
-	lireChaine := func(q byte) string {
-		// i est sur le délimiteur ouvrant ; rend le texte source entre délimiteurs.
-		j := i + 1
-		var b strings.Builder
-		gabarit := 0
-		for j < n {
-			c := source[j]
-			if c == '\\' {
-				b.WriteByte(c)
-				if j+1 < n {
-					b.WriteByte(source[j+1])
+	// finChaine rend l'indice du délimiteur fermant d'une chaîne ouverte en j
+	// (ou du saut de ligne qui termine une chaîne simple). Dans un gabarit,
+	// une interpolation ${…} est une expression : ses accolades sont
+	// équilibrées et les chaînes et gabarits qu'elle contient sont sautés
+	// (un gabarit imbriqué dont le texte porte « \} » ne ferme rien).
+	var finChaine func(j int, q byte) int
+	finInterpolation := func(k int) int {
+		// k suit « ${ » ; rend l'indice qui suit l'accolade fermante.
+		p := 1
+		for k < n {
+			c := source[k]
+			if estDelimiteur(c) {
+				k = finChaine(k, c) + 1
+				continue
+			}
+			if c == '{' {
+				p++
+			} else if c == '}' {
+				p--
+				if p == 0 {
+					return k + 1
 				}
-				j += 2
+			}
+			k++
+		}
+		return n
+	}
+	finChaine = func(j int, q byte) int {
+		k := j + 1
+		for k < n {
+			c := source[k]
+			if c == '\\' {
+				k += 2
 				continue
 			}
-			if q == '`' && c == '$' && j+1 < n && source[j+1] == '{' {
-				gabarit++
-				b.WriteString("${")
-				j += 2
+			if q == '`' && c == '$' && k+1 < n && source[k+1] == '{' {
+				k = finInterpolation(k + 2)
 				continue
 			}
-			if q == '`' && gabarit > 0 && c == '}' {
-				gabarit--
-				b.WriteByte(c)
-				j++
-				continue
-			}
-			if c == q && gabarit == 0 {
-				break
+			if c == q {
+				return k
 			}
 			if q != '`' && c == '\n' {
-				break
+				return k
 			}
-			b.WriteByte(c)
-			j++
+			k++
 		}
+		return n
+	}
+	lireChaine := func(q byte) string {
+		// i est sur le délimiteur ouvrant ; rend le texte source entre délimiteurs.
+		j := finChaine(i, q)
+		fin := j
+		if fin > n {
+			fin = n
+		}
+		s := source[i+1 : fin]
 		i = j + 1
-		return b.String()
+		return s
 	}
 	for i < n {
 		c := source[i]

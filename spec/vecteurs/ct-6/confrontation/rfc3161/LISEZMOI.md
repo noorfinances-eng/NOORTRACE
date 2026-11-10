@@ -14,6 +14,7 @@ sorties texte et les comparer à `rfc3161/attendu.json`.
 | structure CMS : versions, `SignerInfo`, `eContentType`, algorithmes | `openssl cms -cmsout -print` |
 | lecture DER du fichier entier, octets de `eContent`, `message-digest`, `certHash` ESS ; champs de `TSTInfo` d'un jeton qu'`openssl ts` refuse | `openssl asn1parse` (et `-strparse`) |
 | certificat lisible ou non ; valeur DEFAULT encodée (`BOOLEAN :0`, X.690 §11.5) dans un certificat ou dans `TSTInfo` ; clé publique de chaque certificat | `openssl x509`, `openssl crl2pkcs7 -certfile`, `openssl asn1parse` (et `-strparse`), `openssl pkey -pubin` |
+| longueur DER non minimale dans un certificat ou dans la `RSAPublicKey` de sa clé (`hl` imprimé supérieur à l'en-tête minimal pour `l`) ; extension connue indécodable (`WARNING code=-1` de `X509_check_purpose`, `ossl_x509v3_cache_extensions`) : défauts de lecture selon CT-6 §9.3 qu'OpenSSL lit sans les refuser (révision 0.5, EX-A.25) | `openssl asn1parse` (et `-strparse` de la `BIT STRING` du `SubjectPublicKeyInfo`), `openssl x509 -purpose` |
 | vérification du jeton à `genTime` contre l'autorité de test | `openssl ts -verify -digest <periodHash> -token_in -CAfile ac-test.pem -attime <genTime>` |
 | politique admise | `openssl ts -verify -queryfile` sur une requête portant la politique de l'ancre |
 | signature des seuls attributs signés ; vérification CMS complète | `openssl cms -verify` (`-noverify -no_content_verify`, puis `-purpose timestampsign`) |
@@ -48,6 +49,22 @@ sorties texte et les comparer à `rfc3161/attendu.json`.
   (« BOOLEAN :0 ») ; le programme applique X.690 §11.5 à cette sortie, comme
   EX-9.21. Le paquet `crypto/x509` de Go 1.24.7 l'accepte aussi
   (`parseExtension`, `src/crypto/x509/parser.go`, lignes 205 à 209, lu).
+- T-1, longueur non minimale (révision 0.5) : OpenSSL lit
+  `tsa-cle-longueur-non-minimale.pem`, dont la `RSAPublicKey` porte une
+  longueur longue non minimale, et `openssl ts -verify` répond
+  « Verification: OK » pour `t1-cle-longueur-non-minimale.der` ; `openssl
+  asn1parse -strparse` de la clé imprime `hl=5` pour une valeur de 394 octets,
+  qui tient sur quatre. Le programme relève toute longueur dont l'en-tête
+  dépasse le minimum (X.690 §10.1) dans la sortie d'`asn1parse` du certificat et
+  de sa clé, et tient le certificat pour illisible (T-1), comme EX-9.4.
+- T-1, extension connue mal formée (révision 0.5) : OpenSSL lit
+  `tsa-extension-mal-formee.pem` (valeur de `keyUsage` en `INTEGER`) et
+  `openssl ts -text` lit le jeton `t1-extension-mal-formee.der` ; `openssl
+  x509 -text` imprime la valeur sans la décoder, `openssl x509 -purpose`
+  signale `WARNING code=-1` (certificat marqué invalide par
+  `ossl_x509v3_cache_extensions`) et `openssl ts -verify` échoue
+  (« certificate verify error »). Le programme tient ce certificat pour
+  illisible (T-1), comme EX-9.7.
 - T-1, nom illisible : OpenSSL refuse de lire `tsa-cn-utf8-invalide.pem` et
   le jeton `t1-cn-utf8-invalide.der` (« invalid utf8string ») ; c'est aussi
   la règle de EX-9.4. `openssl x509` ne donne que la raison de son chargeur

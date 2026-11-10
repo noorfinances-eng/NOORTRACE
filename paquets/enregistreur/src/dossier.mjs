@@ -1,12 +1,15 @@
-// Export d'un dossier de preuve minimal (CT-1 §11) depuis le stockage du
-// cœur (segments, manifestes, séries de points, fichiers des approbations).
-// L'exportateur complet (ligne de commande de CT-6, pièces jointes, parties
-// réservées de CT-4 et CT-5) est un lot suivant : ce module produit les
-// douze parties v0, les cinq parties réservées absentes avec la raison
-// « hors périmètre CT-1 », et la treizième partie `points-de-controle.json`
-// sans ancre. Les fichiers sont écrits par `JSON.stringify(objet, null, 2)`
-// suivi d'un saut de ligne (CT-1 §11.1) ; le manifeste et sa signature sont
-// copiés octet pour octet depuis `manifestes/`.
+// Export d'un dossier de preuve (CT-1 §11) depuis le stockage du cœur
+// (segments, manifestes, séries de points, fichiers des approbations). Sans
+// composant d'ancrage, ce module produit les douze parties v0, les cinq
+// parties réservées absentes avec la raison « hors périmètre CT-1 », et la
+// treizième partie `points-de-controle.json` sans ancre. Avec le composant
+// d'ancrage branché (`anchoring.ancrage`, lot F2), l'assemblage des sept
+// parties de CT-1 est le même et l'exportateur du composant (CT-5 §10,
+// `@noortrace/ancrage`) complète le dossier : point couvrant d'EX-10.2 avec
+// ses ancres embarquées, `jeton-rfc3161.der`, `preuve.ots`, parties du
+// registre et `entetes-bitcoin.json` à côté. Les fichiers sont écrits par
+// `JSON.stringify(objet, null, 2)` suivi d'un saut de ligne (CT-1 §11.1) ; le
+// manifeste et sa signature sont copiés octet pour octet depuis `manifestes/`.
 
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -57,12 +60,13 @@ export async function clesDuJournal(p) {
 }
 
 /**
- * Exporte le dossier d'un événement.
- * @param {{repertoire: string, seq: number, destination: string, generated_at: number,
- *   clePublique: (keyId: string) => Promise<string>, jeuDecision: (decision: object) => object|null}} p
- * @returns {Promise<{dossier: object, fichiers: Map<string, Uint8Array>}>}
+ * Assemble les sept parties de CT-1 d'un dossier (événement, voisins, chemin,
+ * manifeste, signature, clés, approbations) et ce que l'exportateur du
+ * composant d'ancrage attend en plus (hashes de la période, indice de feuille,
+ * manifeste, série des points).
+ * @param {{repertoire: string, seq: number, clePublique: (keyId: string) => Promise<string>, jeuDecision: (decision: object) => object|null}} p
  */
-export async function exporterDossier(p) {
+export async function assemblerBase(p) {
   const journalJson = JSON.parse(await fs.readFile(path.join(p.repertoire, "journal.json"), "utf8"));
   const evenements = await lireEvenements(p.repertoire);
   const e = evenements.find((x) => x.seq === p.seq);
@@ -78,25 +82,46 @@ export async function exporterDossier(p) {
   const cles = await clesDuJournal({ org_id: e.org_id, journal_id: e.journal_id, evenements, creeLe: journalJson.created_at, clePublique: p.clePublique });
 
   const fichiers = new Map();
+  const raisons = {};
   fichiers.set("evenement.json", octetsJsonLisible(e));
   fichiers.set("voisins.json", octetsJsonLisible({ version: 0, previous: precedent, next: suivant }));
   fichiers.set("chemin.json", octetsJsonLisible(chemin));
   fichiers.set("manifeste.json", m.octetsManifeste);
   fichiers.set("manifeste.sig", m.octetsSignature);
   fichiers.set("cles.json", octetsJsonLisible(cles));
+  let approbations = null;
   if (e.approval) {
     const ticket = e.approval.ticket;
     const decisions = evenements.filter((x) => x.execution.tool === "noortrace.approbation.decision" && x.approval?.ticket === ticket);
     const jeu = decisions.length ? p.jeuDecision(decisions[decisions.length - 1]) : null;
     if (jeu) {
-      fichiers.set(
-        "approbations.json",
-        octetsJsonLisible({ version: 0, ticket, request_hash: e.approval.request_hash, approver_set: jeu, events: decisions }),
-      );
-    }
+      approbations = { version: 0, ticket, request_hash: e.approval.request_hash, approver_set: jeu, events: decisions };
+      fichiers.set("approbations.json", octetsJsonLisible(approbations));
+    } else raisons.approbations = "jeu d'approbateurs introuvable";
   }
   const serie = await relireSerie(path.join(p.repertoire, "points", nomSerie(start)));
-  const point = choisirPoint(serie, leaf);
+  return { evenement: e, evenements, hashes, leafIndex: leaf, manifeste: m.manifeste, signature: m.signature, cles, approbations, serie, periodStart: start, fichiers, raisons };
+}
+
+/**
+ * Exporte le dossier d'un événement. Avec `exportateur` (branchement du
+ * composant d'ancrage, `exporterDossier(base, { destination, generated_at })`),
+ * le dossier reçoit ses ancres (CT-5 §10) ; sans lui, la treizième partie
+ * porte le point couvrant sans ancre et les parties réservées sont absentes
+ * (« hors périmètre CT-1 »).
+ * @param {{repertoire: string, seq: number, destination: string, generated_at: number,
+ *   clePublique: (keyId: string) => Promise<string>, jeuDecision: (decision: object) => object|null,
+ *   exportateur?: {exporterDossier: Function}|null}} p
+ * @returns {Promise<{dossier: object, fichiers: Map<string, Uint8Array>}>}
+ */
+export async function exporterDossier(p) {
+  const base = await assemblerBase(p);
+  if (p.exportateur) {
+    const r = p.exportateur.exporterDossier(base, { destination: p.destination, generated_at: p.generated_at });
+    return { dossier: r.dossier, fichiers: r.fichiers, point: r.point, raisons: r.raisons, resume: r.resume };
+  }
+  const { fichiers, raisons, serie, leafIndex, hashes, evenement: e } = base;
+  const point = choisirPoint(serie, leafIndex);
   if (point) {
     fichiers.set(
       "points-de-controle.json",
@@ -116,7 +141,7 @@ export async function exporterDossier(p) {
     generated_at: ecrireHorodatage(p.generated_at),
     fichiers,
     points: true,
-    raisons: e.approval && !fichiers.has("approbations.json") ? { approbations: "jeu d'approbateurs introuvable" } : undefined,
+    raisons: Object.keys(raisons).length ? raisons : undefined,
   });
   await fs.mkdir(p.destination, { recursive: true, mode: 0o700 });
   for (const [nom, octets] of fichiers) await fs.writeFile(path.join(p.destination, nom), octets);

@@ -13,7 +13,9 @@
 //     sans les bornes de CT-6 EX-9.23 : une clé privée RSA est lue dans sa
 //     structure RSAPrivateKey (RFC 8017 A.1.2), dont on tire n et e, puis le
 //     SubjectPublicKeyInfo rsaEncryption à paramètres NULL est construit ;
-//     crypto/x509 refuserait l'exposant 2³¹ + 1 de tsa-exposant.cle.pem.
+//     crypto/x509 refuserait l'exposant 2³¹ + 1 de tsa-exposant.cle.pem. La
+//     clé RSA d'un certificat est lue de même dans sa RSAPublicKey (longueurs
+//     non minimales admises) et son SubjectPublicKeyInfo DER reconstruit.
 // Pour ct-4, dont CT-7 ne donne pas la dérivation (CT-4 annexe A.2), seule
 // la cohérence interne est recalculée : point de la courbe et adresse
 // dérivée pour secp256k1, longueur pour Ed25519 ; la dérivation depuis
@@ -238,7 +240,73 @@ func spkiDeCertificat(der []byte) ([]byte, error) {
 	if len(champs) < 6 {
 		return nil, fmt.Errorf("tbsCertificate de %d champs", len(champs))
 	}
-	return champs[5].FullBytes, nil
+	return spkiCanonique(champs[5].FullBytes)
+}
+
+// spkiCanonique rend le SubjectPublicKeyInfo DER de la clé d'un
+// SubjectPublicKeyInfo lu dans un certificat. Une clé rsaEncryption est lue
+// dans sa structure RSAPublicKey ::= SEQUENCE { n, e } (RFC 8017 A.1.1), dont
+// les longueurs peuvent être d'une forme longue non minimale, contraire au DER
+// (tsa-cle-longueur-non-minimale.pem : 30 83 00 01 8a), puis son
+// SubjectPublicKeyInfo DER est construit par spkiRSA : EX-A.7 hache le
+// SubjectPublicKeyInfo DER de la clé publique, non les octets du fichier. Les
+// autres algorithmes sont rendus tels quels.
+func spkiCanonique(spki []byte) ([]byte, error) {
+	el, err := elementsDe(spki)
+	if err != nil || len(el) != 2 {
+		return spki, nil
+	}
+	var algo identifiantAlgorithme
+	if r, err := asn1.Unmarshal(el[0].FullBytes, &algo); err != nil || len(r) != 0 || !algo.Algorithm.Equal(oidRSAEncryption) {
+		return spki, nil
+	}
+	var bits asn1.BitString
+	if r, err := asn1.Unmarshal(el[1].FullBytes, &bits); err != nil || len(r) != 0 || bits.BitLength%8 != 0 {
+		return nil, errors.New("subjectPublicKey : BIT STRING illisible")
+	}
+	_, seq, reste, err := tlvTolerant(bits.Bytes)
+	if err != nil || len(reste) != 0 {
+		return nil, errors.New("RSAPublicKey : SEQUENCE illisible")
+	}
+	var entiers []*big.Int
+	for len(seq) > 0 {
+		etiquette, contenu, r, err := tlvTolerant(seq)
+		if err != nil || etiquette != 0x02 || len(contenu) == 0 || contenu[0]&0x80 != 0 {
+			return nil, errors.New("RSAPublicKey : INTEGER positif attendu")
+		}
+		entiers = append(entiers, new(big.Int).SetBytes(contenu))
+		seq = r
+	}
+	if len(entiers) != 2 || entiers[0].Sign() <= 0 || entiers[1].Sign() <= 0 {
+		return nil, errors.New("RSAPublicKey : deux INTEGER positifs attendus (n, e)")
+	}
+	return spkiRSA(entiers[0], entiers[1])
+}
+
+// tlvTolerant lit un élément TLV d'étiquette sur un octet, de longueur courte
+// ou longue (forme longue non minimale admise) ; rend l'étiquette, le contenu
+// et les octets qui suivent.
+func tlvTolerant(b []byte) (byte, []byte, []byte, error) {
+	if len(b) < 2 {
+		return 0, nil, nil, errors.New("élément tronqué")
+	}
+	etiquette, l := b[0], int(b[1])
+	i := 2
+	if l&0x80 != 0 {
+		n := l & 0x7f
+		if n == 0 || n > 4 || len(b) < 2+n {
+			return 0, nil, nil, errors.New("longueur illisible")
+		}
+		l = 0
+		for _, o := range b[2 : 2+n] {
+			l = l<<8 | int(o)
+		}
+		i = 2 + n
+	}
+	if l > len(b)-i {
+		return 0, nil, nil, errors.New("contenu tronqué")
+	}
+	return etiquette, b[i : i+l], b[i+l:], nil
 }
 
 // VerifierClesDeTest confronte cles-de-test.json aux clés recalculées.

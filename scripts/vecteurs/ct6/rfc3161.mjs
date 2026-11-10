@@ -279,12 +279,27 @@ const ski = (clePublique) => {
   const spki = H.lireDER(clePublique.export({ type: "spki", format: "der" }));
   return crypto.createHash("sha1").update(spki.enfants[1].valeur().subarray(1)).digest();
 };
+/**
+ * SubjectPublicKeyInfo d'une clé RSA dont la SEQUENCE RSAPublicKey est encodée
+ * avec une longueur longue non minimale (un octet 00 de tête en plus) : même
+ * clé, mêmes valeurs, forme contraire au DER (X.690 §10.1 ; CT-6 EX-9.4).
+ */
+function spkiLongueurNonMinimale(clePublique) {
+  const spki = H.lireDER(clePublique.export({ type: "spki", format: "der" }));
+  const alg = spki.enfants[0].octets();
+  const rsa = H.lireDER(spki.enfants[1].valeur().subarray(1));
+  const corps = rsa.valeur();
+  if (corps.length < 0x100 || corps.length > 0xffff) throw new Error("spkiLongueurNonMinimale : RSAPublicKey de deux octets de longueur attendue");
+  const nonMinimale = Buffer.concat([Buffer.from([0x30, 0x83, 0x00, corps.length >> 8, corps.length & 0xff]), corps]);
+  return seq(alg, bits(nonMinimale));
+}
 
 /** Certificat X.509 v3 signé en sha256WithRSAEncryption. */
-export function construireCertificat({ numero, emetteur, sujet, debut, fin, clePublique, extensions = [], cleEmetteur }) {
+export function construireCertificat({ numero, emetteur, sujet, debut, fin, clePublique, extensions = [], cleEmetteur, spkiBrut = null }) {
   // Révision 0.4 : un émetteur Ed25519 (certificat auto-signé de t5-cle-ed25519-non-rattachee) signe en Ed25519 (RFC 8410).
   const ed = cleEmetteur.asymmetricKeyType === "ed25519";
   const alg = ed ? ALG.ed25519 : ALG.sha256WithRSAEncryption;
+  // spkiBrut (révision 0.5, tsa-cle-longueur-non-minimale.pem) : SubjectPublicKeyInfo fourni octet pour octet.
   const tbs = seq(
     explicite(0, entier(2)),
     entier(numero),
@@ -292,7 +307,7 @@ export function construireCertificat({ numero, emetteur, sujet, debut, fin, cleP
     emetteur,
     seq(temps(debut), temps(fin)),
     sujet,
-    clePublique.export({ type: "spki", format: "der" }),
+    spkiBrut ?? clePublique.export({ type: "spki", format: "der" }),
     explicite(3, seq(...extensions.map(extension))),
   );
   return seq(tbs, alg, bits(crypto.sign(ed ? null : "sha256", tbs, cleEmetteur)));
@@ -438,7 +453,7 @@ export function materielTest(cles) {
       { oid: OID.subjectKeyIdentifier, valeur: octets(skiAc) },
     ],
   });
-  const tsa = (numero, debut, fin, ekuCritique = true, { sujet = nomTsa, skiCritiqueExplicite = false, clePublique = pubTsa, emetteur = nomAc, cleEmetteur = cles["ac-test"], skiEmetteur = skiAc } = {}) =>
+  const tsa = (numero, debut, fin, ekuCritique = true, { sujet = nomTsa, skiCritiqueExplicite = false, clePublique = pubTsa, emetteur = nomAc, cleEmetteur = cles["ac-test"], skiEmetteur = skiAc, spkiBrut = null, keyUsageValeur = null } = {}) =>
     construireCertificat({
       numero,
       emetteur,
@@ -447,8 +462,9 @@ export function materielTest(cles) {
       fin,
       clePublique,
       cleEmetteur,
+      spkiBrut,
       extensions: [
-        { oid: OID.keyUsage, critique: true, valeur: bits(Buffer.from([0x80]), 7) }, // digitalSignature
+        { oid: OID.keyUsage, critique: true, valeur: keyUsageValeur ?? bits(Buffer.from([0x80]), 7) }, // digitalSignature
         { oid: OID.extKeyUsage, critique: ekuCritique, valeur: seq(oid(OID.idKpTimeStamping)) },
         { oid: OID.subjectKeyIdentifier, critiqueExplicite: skiCritiqueExplicite, valeur: octets(clePublique === pubTsa ? skiTsa : ski(clePublique)) },
         { oid: OID.authorityKeyIdentifier, valeur: seq(implicite(0, skiEmetteur)) },
@@ -487,6 +503,11 @@ export function materielTest(cles) {
     "tsa-par-intermediaire-8200": tsa(1, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { emetteur: nomInter, cleEmetteur: cles["intermediaire-8200"], skiEmetteur: ski(pub("intermediaire-8200")) }),
     "tsa-ed25519": tsa(12, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { clePublique: pub("tsa-ed25519") }),
     "tsa-ed25519-auto-signe": tsa(13, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { clePublique: pub("tsa-ed25519"), emetteur: nomTsa, cleEmetteur: cles["tsa-ed25519"], skiEmetteur: ski(pub("tsa-ed25519")) }),
+    // Révision 0.5 (EX-9.4, EX-9.7) : deux certificats de l'unité, clé de tsa-test, dont la lecture selon §9.3 échoue.
+    // La RSAPublicKey porte une longueur longue non minimale (30 83 00 01 8a au lieu de 30 82 01 8a) ;
+    // la valeur de keyUsage est un INTEGER (02 02 07 80) au lieu d'une BIT STRING.
+    "tsa-cle-longueur-non-minimale": tsa(14, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { spkiBrut: spkiLongueurNonMinimale(pubTsa) }),
+    "tsa-extension-mal-formee": tsa(15, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { keyUsageValeur: tlv(0x02, Buffer.from([0x07, 0x80])) }),
   };
   const crls = {
     "crl-vide": construireCRL({ emetteur: nomAc, thisUpdate: CRL_THIS_UPDATE, nextUpdate: CRL_NEXT_UPDATE, numeroCrl: 1, skiEmetteur: skiAc, cleEmetteur: cles["ac-test"] }),
@@ -618,6 +639,9 @@ export function jetonsTest(materiel, manifestes, point = null) {
     "t5-cle-ed25519": { octets: base(1, { certificats: [certs["tsa-ed25519"]], signataire: certs["tsa-ed25519"], hash: "sha512", algSignature: ALG.ed25519, signer: (attrs) => crypto.sign(null, attrs, cles["tsa-ed25519"]) }), alteration: "signé en Ed25519 (RFC 8419 : digestAlgorithm SHA-512, signatureAlgorithm id-Ed25519) par tsa-ed25519, certificat émis par l'AC (mêmes extensions que tsa-test.pem) : clé et algorithme hors de la version 0, rattachés à l'autorité (EX-9.24, cas 2)", cible: null },
     "t5-cle-ed25519-non-rattachee": { octets: base(1, { certificats: [certs["tsa-ed25519-auto-signe"]], signataire: certs["tsa-ed25519-auto-signe"], hash: "sha512", algSignature: ALG.ed25519, signer: (attrs) => crypto.sign(null, attrs, cles["tsa-ed25519"]) }), alteration: "comme t5-cle-ed25519.der, certificat de l'unité auto-signé (tsa-ed25519-auto-signe.pem) : rattaché à aucune autorité (EX-9.24, cas 2)", cible: "T-5" },
     "serie-168-bits": { octets: base(1, { serie: BigInt("0x01" + "ab".repeat(20)) }), alteration: "periode-1.der réémis avec un serialNumber de 21 octets (0x01 suivi de vingt octets 0xab), re-signé : accepté (EX-9.15, révision 0.4)", cible: null },
+    // Révision 0.5 (EX-9.4, EX-9.7) : un certificat de l'unité dont la lecture selon §9.3 échoue rend le jeton inexploitable (T-1).
+    "t1-cle-longueur-non-minimale": { octets: base(1, { certificats: [certs["tsa-cle-longueur-non-minimale"]], signataire: certs["tsa-cle-longueur-non-minimale"] }), alteration: "signé par la même clé, certificates = [tsa-cle-longueur-non-minimale.pem] : la RSAPublicKey du SubjectPublicKeyInfo porte une longueur longue non minimale (30 83 00 01 8a), contraire au DER (EX-9.4) : certificat illisible", cible: "T-1" },
+    "t1-extension-mal-formee": { octets: base(1, { certificats: [certs["tsa-extension-mal-formee"]], signataire: certs["tsa-extension-mal-formee"] }), alteration: "signé par la même clé, certificates = [tsa-extension-mal-formee.pem] : la valeur de l'extension keyUsage est un INTEGER (02 02 07 80) au lieu d'une BIT STRING : certificat illisible (EX-9.7)", cible: "T-1" },
     ...(point
       ? (() => {
           const k7 = Buffer.from(jetonPoint());
@@ -733,6 +757,9 @@ const OPENSSL_PRESUME = {
   "t5-exposant": { resultat: "Verification: OK (OpenSSL n'applique pas la borne d'exposant d'EX-9.23)", source: "relevé par la confrontation (A.8, EX-A.22)" },
   "t7-intermediaire-rsa-8200": { resultat: "Verification: OK (OpenSSL n'applique pas la borne de 8192 bits d'EX-9.23 aux clés du chemin)", source: "relevé par la confrontation (A.8, EX-A.22)" },
   "rsa-8192": { resultat: "Verification: OK", source: "relevé par la confrontation (A.8, EX-A.22)" },
+  // Révision 0.5 (EX-A.25), relevés par la confrontation (A.8) avec OpenSSL 3.0.13.
+  "t1-cle-longueur-non-minimale": { resultat: "Verification: OK (OpenSSL lit la longueur longue non minimale de la RSAPublicKey ; openssl asn1parse -strparse de la clé l'imprime hl=5 pour une longueur de 394 octets, qui tient sur 4)", source: "relevé par la confrontation (A.8, EX-A.25)" },
+  "t1-extension-mal-formee": { resultat: "certificate verify error (ossl_x509v3_cache_extensions : invalid certificate ; openssl ts -text lit le jeton et imprime la valeur de keyUsage sans la décoder)", source: "relevé par la confrontation (A.8, EX-A.25)" },
   "t5-algorithme-inconnu": { resultat: "invalid padding / signature failure (OpenSSL vérifie la signature RSA altérée)", source: "relevé par la confrontation (A.8, EX-A.22)" },
   "t5-cle-ed25519": { resultat: "signature failure (openssl ts -verify ne vérifie pas une signature Ed25519 de jeton : « operation not supported for this keytype » avec OpenSSL 3.0.13, « invalid eddsa instance for attempted operation » avec OpenSSL 3.5.5)", source: "relevé par la confrontation (A.8, EX-A.22)" },
   "t5-cle-ed25519-non-rattachee": { resultat: "self-signed certificate", source: "relevé par la confrontation (A.8, EX-A.22)" },

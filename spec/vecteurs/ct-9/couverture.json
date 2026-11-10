@@ -1,7 +1,7 @@
 {
   "version": 0,
   "kind": "rapport-couverture",
-  "date": "2026-11-03",
+  "date": "2026-11-10",
   "tool": {
     "name": "scripts/tests/couverture.mjs",
     "command": "node scripts/tests/couverture.mjs --json"
@@ -26,11 +26,11 @@
       },
       {
         "file": "spec/CT-5-ancrage.md",
-        "sha256": "34805eea8234cce008a6e562942f5f15880d37b9cb6d78f6ffce598671a91c47"
+        "sha256": "9701018cabd14fbea667682d8d94c8a025b7f52c8344c1b0657c60b0ad8199ac"
       },
       {
         "file": "spec/CT-6-verificateur.md",
-        "sha256": "27b0ae8037aa38e77c710788db52542204f8b95fc32ef6e4d28e8a99955af1e6"
+        "sha256": "642273717b560bcfad36747dcfe50d910772e08dbe57ae9468446aa303fe3617"
       },
       {
         "file": "spec/CT-7-securite-et-conformite.md",
@@ -43,7 +43,7 @@
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "4b3761a9fdfa4a6d58cb7eb6f1ae6a3d27e7e9493722fd7b1843ce7190cd7834"
+      "sha256": "de6c48396e7cd4a1277a1a7e735fd256efb1918ea109e601e88f5926ab263800"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -55,8 +55,108 @@
         "sha256": "ec34969d18e34c593c77abf3576dd1b8e2fafbdf3aca2e6f87fcffab045bd561"
       },
       {
+        "file": "test/ancrage-composant-cli.test.js",
+        "sha256": "3fff524954979935a88f1badf6e990009023332eb50033b5806de1b654aa8a90"
+      },
+      {
+        "file": "test/ancrage-composant-pannes.test.js",
+        "sha256": "7b10a6cbe6d6afdb148fb7d7697914d54d40ec3b30088c36a40ec3956ba8f44c"
+      },
+      {
+        "file": "test/ancrage-composant-parcours.test.js",
+        "sha256": "3c3d34b87c79d12540dd8847eae171c493fa4b6ff4f412dd8af84014d8a65a46"
+      },
+      {
+        "file": "test/ancrage-composant-reseau.test.js",
+        "sha256": "4c3ab815e46892cfa0470dcb0522109b6f41426ba71cb3bb14baa77537f94b0b"
+      },
+      {
+        "file": "test/ancrage-corrections-h1.test.js",
+        "sha256": "81db7a085d22999124a3c72c4db90c87b772a83175c3b0ab2afe1a4513cbde2b"
+      },
+      {
+        "file": "test/ancrage-exportateur.test.js",
+        "sha256": "74a938674bd27142ee3600df55bb24c090d53795805257217b8bfe0720b3be71"
+      },
+      {
+        "file": "test/ancrage-ots-calendriers.test.js",
+        "sha256": "fffa2e3823d167517bed0173a0802c53659d0e9c580c3185cb70f10587596555"
+      },
+      {
+        "file": "test/ancrage-ots.test.js",
+        "sha256": "ac50e7ddc38cb8cbe45b982f8d2ac9686de3da8ed071684d6d1f922eec9ffac1"
+      },
+      {
+        "file": "test/ancrage-planificateur-configuration.test.js",
+        "sha256": "9a890538acea8f23a106dace99a4395ac30618046b2bf2464c3fbf5fa32f20a9"
+      },
+      {
+        "file": "test/ancrage-planificateur-file.test.js",
+        "sha256": "929e37bf6e9955cd60e6331d769bfe2350426bc7b27a9adc03551a624c885f94"
+      },
+      {
+        "file": "test/ancrage-planificateur-traces.test.js",
+        "sha256": "6a19fb353fea8b10e62ded9dbe03b9d42c5e7cc8ae9ce8f9b985a51844ec807d"
+      },
+      {
+        "file": "test/ancrage-planificateur-unites.test.js",
+        "sha256": "de09ddc4a1042c00948765d6facd92080404370707c86930632ba4828d8d6003"
+      },
+      {
+        "file": "test/ancrage-prestataires-reels.test.js",
+        "sha256": "18f3094cfd601f3cd03304e90c5b8cd1fafdb1294f460ec0d9c01fcc1754659c"
+      },
+      {
+        "file": "test/ancrage-registre-capture.test.js",
+        "sha256": "83e27ce2c883bed677cdd895f4f16a98fbecb9983d8b4b6617a3b7035d2dd1ed"
+      },
+      {
+        "file": "test/ancrage-registre-encodage.test.js",
+        "sha256": "13e7e40aefed71ec36b60b529bd3c3bcd66d5ac6250c6b79ebf403c7758cc2bb"
+      },
+      {
+        "file": "test/ancrage-registre-envoyeur.test.js",
+        "sha256": "f57dc82ac3e248216d3960294d7ce9fee4a33949d56b0bc439b0efa534b2068c"
+      },
+      {
+        "file": "test/ancrage-registre-manifeste.test.js",
+        "sha256": "b8e7e048fc92ea5e358d21b6afc288c022230f1a2dba9b3710058c66cf0ed00f"
+      },
+      {
+        "file": "test/ancrage-registre-reseau.test.js",
+        "sha256": "053552444c94bbbda878de9785d9210fcbf422efc7738358e1286bf21b0bd53a"
+      },
+      {
+        "file": "test/ancrage-rfc3161-exigences.test.js",
+        "sha256": "840486050d954b871ebb03d1109e3011a49fc9f8883bcf1f4fb06a14ea596953"
+      },
+      {
+        "file": "test/ancrage-rfc3161-reseau.test.js",
+        "sha256": "7bef5326fa33b269d818c23c7bf9df9affc798b6d01422a569f3479651fd15a9"
+      },
+      {
+        "file": "test/ancrage-rfc3161-vecteurs.test.js",
+        "sha256": "a76fd042f30d877211700c84752b5cc6dc8b4b7045a96e7e4622eddd4f825b5c"
+      },
+      {
+        "file": "test/ancrage-tsa-interne-autorite.test.js",
+        "sha256": "97101154250d44b69642987539351602e556861d81cf046ef4e56e461a38e867"
+      },
+      {
+        "file": "test/ancrage-tsa-interne-der.test.js",
+        "sha256": "5348f3880dec4b4f04f6b68999eb3bfe52bb4a244e6b9394f4ae072403ac4379"
+      },
+      {
+        "file": "test/ancrage-tsa-interne-reponse.test.js",
+        "sha256": "a86d367528e63b9d2618038c6ae48f8d33e990dd43642cac39402ddb7823f459"
+      },
+      {
+        "file": "test/ancrage-tsa-interne-serveur.test.js",
+        "sha256": "8b618ee2a5934363afdecb0384fad9963cb1166431776460d4cef2487ebd7488"
+      },
+      {
         "file": "test/ancrage.test.js",
-        "sha256": "f350c1203944f4e4ba39daad4e239fdd5ad9e187e04f6c9ec8dc18b960108baf"
+        "sha256": "2f7d0388de5756756f63635f8afb8c69eb475ca6d7fc3ef9c8c113b37f940286"
       },
       {
         "file": "test/approbation-service-exigences.test.js",
@@ -107,12 +207,28 @@
         "sha256": "a6dc6b4150c05861b95931a5f069156f67ef0cf5d9e9aab2ddce998c6732c7bd"
       },
       {
+        "file": "test/enregistreur-ancrage-corrections-h1.test.js",
+        "sha256": "be96d0d1734a452a67b07534e7a2867d929eba00dcb988ab19f95ac9cdfdc4f0"
+      },
+      {
+        "file": "test/enregistreur-ancrage-exigences.test.js",
+        "sha256": "9f3faf67499fdddb6d76b0ac989915063fcc20634ec27a2dca9f05de2dfb94b5"
+      },
+      {
+        "file": "test/enregistreur-ancrage-parcours.test.js",
+        "sha256": "fa01bfb77bbcc3cbeb23d4f8948b38dc7fb9abff22e8265b086841984d6fad63"
+      },
+      {
         "file": "test/enregistreur-coeur-annexe-a.test.js",
         "sha256": "70b8318fdb359fc05c692b4ed9c3a16ce35694a5dc78cb12d87122c4428911f0"
       },
       {
         "file": "test/enregistreur-coeur-approbations.test.js",
         "sha256": "ebb3e30756e6e992b5be43cc80b430f346bbb0324bec99a6ededb8c6c2d2c270"
+      },
+      {
+        "file": "test/enregistreur-coeur-attente-bornes.test.js",
+        "sha256": "e5179acc5f52cc9870fb8fb75501397ab8fe64688be781971b0867f27f41401c"
       },
       {
         "file": "test/enregistreur-coeur-config.test.js",
@@ -141,6 +257,10 @@
       {
         "file": "test/enregistreur-ha-parcours.test.js",
         "sha256": "5bb3619a8e44a28dfe64fa1ea90d4ad21d47cad093d4636afdd429fb998ed0ad"
+      },
+      {
+        "file": "test/enregistreur-journal-soi.test.js",
+        "sha256": "245175c29b76dd6c3d440d2f953a1cd94dcd8f8b4735d6152910444e5665a85b"
       },
       {
         "file": "test/enregistreur-mcp-client-reference.test.js",
@@ -300,11 +420,11 @@
       },
       {
         "file": "test/horodatage.test.js",
-        "sha256": "dbf61e5592dcb49fb4290851b1034b17fd78e8aba4a959b7d704cd0c1b5f87a8"
+        "sha256": "0afda006be41a36a44b0c45b9866534fcdcd3fcacad5a47e9c8052796ef79c76"
       },
       {
         "file": "test/journal.test.js",
-        "sha256": "780b26f42a1d4f18785dc5d84ae0ec7a4de3347a21ba1d34bafdc4cf1f9988dc"
+        "sha256": "4f6417c0663c94c43c2b6dace676694b5e3db4bc033bd2aa76bcbbbf5c5124cd"
       },
       {
         "file": "test/noyau-proprietes.test.js",
@@ -324,7 +444,7 @@
       },
       {
         "file": "test/ots.test.js",
-        "sha256": "98138bfeb5961e899ef9497ada15aa63229a532c206e9738c6a568cd466e4a8e"
+        "sha256": "857755fb117c2bded5f924aff792666dc517c6b181eee2c8e85267825a46158b"
       },
       {
         "file": "test/paquet-reviseur.test.js",
@@ -336,7 +456,7 @@
       },
       {
         "file": "test/plan-de-tests.test.js",
-        "sha256": "700cee4579ba4dc22d43446e474216d53ccf7d229fc62f557cec720783d91d2f"
+        "sha256": "a71a5d28a530d2d0b0d923ada6414b0d650c31e57ddb59db74b31f3afcaf423c"
       },
       {
         "file": "test/recorderRegistry.test.js",
@@ -369,8 +489,8 @@
     ]
   },
   "identifiers": {
-    "total": 2348,
-    "covered_by_tests": 2209,
+    "total": 2350,
+    "covered_by_tests": 2211,
     "covered_by_nc": 139,
     "uncovered": 0,
     "unknown_cited": [],
@@ -501,8 +621,8 @@
       },
       {
         "spec": "CT-6",
-        "total": 278,
-        "covered_by_tests": 278,
+        "total": 280,
+        "covered_by_tests": 280,
         "covered_by_nc": 0,
         "uncovered": 0,
         "uncovered_ids": [],
@@ -520,7 +640,7 @@
           "EX-13": 19,
           "EX-14": 11,
           "EX-15": 3,
-          "EX-A": 24,
+          "EX-A": 26,
           "K": 2,
           "AT": 7,
           "AV-AT": 3,
@@ -623,8 +743,8 @@
     "orphans": []
   },
   "executable": {
-    "total": 208,
-    "titles_checked": 405,
+    "total": 224,
+    "titles_checked": 489,
     "titles_missing": []
   },
   "text_tables": {

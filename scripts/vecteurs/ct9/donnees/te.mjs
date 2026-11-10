@@ -730,16 +730,28 @@ export const TE = [
       "CT-1 §10.9"
     ],
     "preconditions": [
-      "Enregistreur et composant d'ancrage (étapes 4 et 5) ; réseau de développement ; prestataire de test et calendriers."
+      "Démon `noortrace` réel (processus enfant) de l'enregistreur (étape 4) avec le composant d'ancrage de l'étape 5 branché (`anchoring.ancrage`, document `ancrage-v0` validé, secrets résolus, clé de chaîne de classe D) ; vérificateur JavaScript de référence (`scripts/verify/dossier.mjs`, boîte noire) et binaire Go de CT-6 (go1.27.3), même fichier d'ancres.",
+      "Variante hors réseau public : serveurs RFC 3161 internes de référence du paquet d'ancrage (points en HTTP local, principal en TLS mutuel avec un `qualified` d'exemple), calendriers OpenTimestamps factices en TLS (chaîne regtest), nœud noorcore factice en JSON-RPC, horloge hybride à cadence réduite admise par le schéma (`checkpoint_interval_s` 10).",
+      "Variante sur le réseau de développement réel : quatre validateurs noorcore (`chain/scripts/dev-net.sh`), client inscrit par le parcours de référence (`npm run e2e:registre`) ; en attente quand le réseau n'est pas debout, et son cas des calendriers publics hors `NOORTRACE_RESEAU_PUBLIC=1`, condition nommée dans le titre (EX-3.11) ; `unshare -n` pour la vérification sans réseau."
     ],
     "steps": [
-      "Laisser une période recevoir ses points, ses ancres de point et ses trois ancres de clôture ; exporter le dossier avec `points-de-controle.json` ; vérifier sans réseau (`unshare -n`)."
+      "Laisser une période recevoir ses points (remis au composant, ancrés au registre), un point contresigné et soumis aux calendriers à l'échéance médiane, et ses trois ancres de clôture (ancre au registre incluse et capturée, jeton du principal, preuve OpenTimestamps) ; relayer la clôture `submitPeriod` après la demande signée des approbateurs.",
+      "Exporter le dossier d'un événement avec `points-de-controle.json`, avant puis après la mise à niveau OpenTimestamps ; le vérifier par les deux vérificateurs, sans réseau (`unshare -n`) sur le réseau de développement.",
+      "`noortrace-ctl ancrage` (état, métriques, retrait de qualification) et `noortrace-ctl reload` ; arrêt propre."
     ],
-    "oracle": "Contrôles 4, 5 et 8 et K-7 à K-9 réussis ; P-5 de CT-5 tenue (aucun réseau) ; énoncé du vérificateur conforme à CT-6 §7.9.",
+    "oracle": "Contrôles 4, 5 et 8 et K-7 à K-9 réussis après la mise à niveau (avant elle : contrôle 5 et K-9 non exécutés, preuve en attente) ; P-5 de CT-5 tenue (aucun réseau) ; énoncé du vérificateur conforme à CT-6 §7.9 (fragment FK), même verdict et même énoncé entre les deux vérificateurs ; le dossier antérieur est inchangé et un réexport est dû (CT-5 EX-10.5) ; file durable à états finaux à l'arrêt.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Composant d'ancrage non construit ; « une racine reçoit ses trois ancres » est le critère de l'étape 5."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-ancrage-parcours.test.js",
+          "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs"
+        },
+        {
+          "file": "test/enregistreur-ancrage-parcours.test.js",
+          "describe": "enregistreur + ancrage (lot F2), TE-12 sur le réseau de développement réel : démon réel, ancres des points et de la période incluses sur noorcore, clôture submitPeriod relayée, dossier vérifié sans réseau par les deux vérificateurs (CT-4 §7.4, §8.2, §8.6, §9.4 ; CT-5 P-5 ; CT-6 §7.9)"
+        }
+      ]
     },
     "threats": [
       "MN-17",
@@ -817,17 +829,34 @@ export const TE = [
       "CT-2 EX-17.4"
     ],
     "preconditions": [
-      "Démon de l'étape 4 avec journal d'exploitation."
+      "Démon `noortrace` réel (processus enfant) de l'étape 4 avec son journal d'exploitation et le composant d'ancrage de l'étape 5 branché (registre factice coupable pour JS-11) ; `noortrace-ctl`.",
+      "Pour JS-9 et JS-10 : support WORM S3 à Object Lock de LocalStack en conteneur Docker (image épinglée par condensé), derrière un mandataire TLS, bucket verrouillé en COMPLIANCE ; sans Docker, ces cas sont en attente (EX-3.11)."
     ],
     "steps": [
-      "Provoquer chaque situation de la table de CT-7 §6.1 (démarrage, arrêt, bail, rotation, politique, configuration, saut d'horloge, gel, perte WORM, ancrage dégradé, attestation).",
+      "Provoquer chaque situation de la table de CT-7 §6.1 (démarrage, arrêt, bail, rotation de la clé de l'enregistreur, rotation de la clé de chaîne, politique, configuration, saut d'horloge, gel, perte WORM, ancrage dégradé, attestation) ; relire la chaîne et le journal d'exploitation.",
       "Forcer la rotation du journal d'exploitation par `supervision.ops_log.rotate_max_bytes`, puis simuler un disque plein pendant le relais."
     ],
-    "oracle": "Chaque situation produit l'événement ou la ligne que la table nomme (« porté » ou « aucun » selon la colonne) ; aucun secret dans les lignes. Rotation : au plus `keep_files` fichiers conservés ; disque plein : chaque ligne non écrite incrémente `noortrace_ops_log_dropped_total` d'une unité et le relais continue (CT-2 EX-9.7, EX-17.4).",
+    "oracle": "Chaque situation produit l'événement ou la ligne que la table nomme (« porté » ou « aucun » selon la colonne) ; aucun secret dans les lignes, la file durable ni `acquisitions.ndjson`. JS-5 : aucun événement ne porte la rotation de la clé de chaîne, et la rotation d'urgence est refusée (`registre_non_branche`) ; la révocation et l'inscription au registre que la table nomme pour JS-5 sont le complément. Rotation : au plus `keep_files` fichiers conservés ; disque plein : chaque ligne non écrite incrémente `noortrace_ops_log_dropped_total` d'une unité et le relais continue (CT-2 EX-9.7, EX-17.4).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Les situations JS-5 (rotation de la clé de chaîne au registre) et JS-11 (ancrage dégradé : anchor_pending, registry_pending) exigent le composant d'ancrage de l'étape 5 ; CT-7 §6.2 et §6.3 restent des propositions PA- à CT-2 et CT-1. La version 0.1 rattachait l'entrée à l'étape 4 ; les autres situations (démarrage, arrêt, bail, rotation de clé, politique, configuration, horloge, gel et copies WORM, rotation et disque plein du journal d'exploitation) sont observables sur le démon de l'étape 4 et s'écrivent avec l'entrée."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-journal-soi.test.js",
+          "describe": "TE-14 : journal de l'enregistreur sur lui-même, JS-1 à JS-12 de CT-7 §6.1 observés sur le démon réel (CT-2 EX-17.1 à EX-17.4, EX-18.6 ; CT-7 EX-6.1 à EX-6.3)"
+        },
+        {
+          "file": "test/enregistreur-journal-soi.test.js",
+          "describe": "TE-14 : rotation du journal d'exploitation par supervision.ops_log.rotate_max_bytes et keep_files (EX-9.7, EX-17.4) sur un démon réel"
+        },
+        {
+          "file": "test/enregistreur-journal-soi.test.js",
+          "describe": "TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3 à Object Lock en conteneur) : worm_legal_hold_observed, worm_copy_failed puis reprise, copie conforme d'ancres/"
+        }
+      ],
+      "complement": {
+        "phase2_step": 7,
+        "blocking": "JS-5, colonne du journal : rotation d'urgence de la clé de chaîne relayée au registre (révocation et nouvelle inscription signées par les approbateurs au seuil, CT-4 §7, CT-2 EX-11.16, EX-11.19 point 4) ; le démon de l'étape 5 la refuse en le nommant (`registre_non_branche`, lecture 202 du LISEZMOI de `paquets/enregistreur`), reste rattaché, comme la clé de chaîne des classes A à C, à l'étape 7 (paquets et exploitation)."
+      }
     },
     "threats": [
       "MN-18",
@@ -887,16 +916,239 @@ export const TE = [
       "CT-2 EX-14.12"
     ],
     "preconditions": [
-      "Démon de l'étape 4 ; hôte de test ; serveur d'outils et fournisseur simulés dont on peut couper chaque dépendance (stockage, signataire, bail, horloge, service d'approbation, ancrage)."
+      "Enregistreur `paquets/enregistreur` (étape 4) : démon réel `bin/noortrace --config` et son cœur monté en cours de processus avec des dépendances coupables (stockage, signataire, bail, horloge, service d'approbation simulé, serveur d'outils et fournisseur simulés) ; composant d'ancrage de l'étape 5 branché et support WORM S3 à Object Lock en conteneur pour les lignes « Ancrage », « Registre » et « Support WORM ».",
+      "Ligne « clé indisponible » rejouée sur le démon réel en configuration de production avec un signataire de classe B (Vault Transit réel en conteneur, suspendu puis repris) : démon lancé par le superutilisateur et Docker exigés, sinon les cas sont en attente, condition nommée (EX-3.11) ; le travail « parcours-superutilisateur » de `ci.yml` les joue sans attente."
     ],
     "steps": [
-      "Pour chaque ligne de la matrice de CT-2 §14.2, couper la dépendance pendant un appel de lecture puis d'écriture ; relever ce qui est rendu à l'hôte, ce qui est journalisé et les événements en attente ; rétablir la dépendance."
+      "Pour chaque ligne de la matrice de CT-2 §14.2, couper la dépendance pendant un appel de lecture puis d'écriture ; relever ce qui est rendu à l'hôte, ce qui est journalisé et les événements en attente ; rétablir la dépendance.",
+      "Clôturer et exporter le dossier d'un événement scellé après chaque rétablissement ; le vérifier par les deux vérificateurs de CT-6."
     ],
-    "oracle": "Comportement égal, ligne par ligne, à la matrice de §14.2 ; événements en attente rejoués à l'identique ; aucun appel d'écriture relayé sans événement durable. Les TA- des scénarios « l'enregistreur tombe » et « un prestataire est injoignable » retirent la réponse de chaque ligne.",
+    "oracle": "Comportement égal, ligne par ligne, à la matrice de §14.2 (colonnes E, L et M, rendu à l'hôte, raison, journal d'exploitation) ; événements en attente rejoués à l'identique ; aucun appel d'écriture relayé sans événement durable. Lignes éprouvées par les essais cités : « Stockage indisponible », « Clé indisponible » et « Panne après relais » (démon réel, signataire de classe B suspendu), « Serveur d'outils injoignable », « Délai du serveur d'outils » (dossiers acceptés par le binaire Go), « Fournisseur de modèle », les cinq lignes du service d'approbation et des décisions, « Rédaction au-delà de la borne de temps », « Ancrage » et « Ancrage des points », « Support WORM », « Registre », les deux lignes d'horloge, « Mémoire » (quotas, -31013 et 503), « Bail perdu », « Bail non détenu », les deux lignes de configuration. Les TA- des scénarios « l'enregistreur tombe » et « un prestataire est injoignable » retirent la réponse de chaque ligne.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Livrable de l'étape 4 manquant : la ligne « signataire » de la matrice de CT-2 §14.2 exige un signataire coupable ; le démon ne livre que la classe D (graine en mémoire), les classes A, B et C relevant de lots suivants (LISEZMOI du paquet) ; la ligne « ancrage » attend le composant de l'étape 5. Les colonnes du démon déjà livrées sont éprouvées ligne à ligne par les tests du paquet (enregistreur-*-exigences), pas par un rejeu de la matrice entière."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-signataires-parcours.test.js",
+          "describe": "CT-9 TE-16, ligne « clé indisponible » de la matrice de CT-2 §14.2 (et « panne après relais »), rejouée sur le démon réel : Vault suspendu pendant une lecture puis une écriture, puis rétabli"
+        },
+        {
+          "file": "test/enregistreur-mcp-exigences.test.js",
+          "describe": "approbation au pas 3 à 7 (EX-4.49, EX-4.50, EX-7.16, 14.2)",
+          "it": "14.2, EX-14.6, EX-14.8 : mode dégradé « stockage » : lecture passante relayée, réponse normale, événement en attente ; écriture bloquée ; « clé » bloque tout"
+        },
+        {
+          "file": "test/enregistreur-coeur-reprise.test.js",
+          "describe": "enregistreur, cœur : non-régression de la relecture A (stockage, reprise, bail)",
+          "it": "R-A-3 (EX-12.8) : fdatasync en erreur (EIO) pour un groupe de trois événements → refusés, segment tronqué à la dernière ligne synchronisée, la chaîne reprend sans eux"
+        },
+        {
+          "file": "test/enregistreur-modele-exigences.test.js",
+          "describe": "§14 (colonne M), EX-14.16, §13.5 : pannes et arrêt",
+          "it": "stockage indisponible avec failure.modele passant : relayé, pièces gardées en mémoire, événement en attente ; bloquant sinon"
+        },
+        {
+          "file": "test/enregistreur-modele-exigences.test.js",
+          "describe": "§14 (colonne M), EX-14.16, §13.5 : pannes et arrêt",
+          "it": "mode dégradé « clé » : 503 au format de la route, rien n'est relayé, call_blocked compté"
+        },
+        {
+          "file": "test/enregistreur-mcp-exigences.test.js",
+          "describe": "4.4 relais de tools/call (EX-4.19 à EX-4.24, EX-4.43 à EX-4.48)",
+          "it": "EX-4.46 : panne du stockage après relais → -31017 avec intent_id, événement gardé en attente"
+        },
+        {
+          "file": "test/enregistreur-mcp-exigences.test.js",
+          "describe": "4.4 relais de tools/call (EX-4.19 à EX-4.24, EX-4.43 à EX-4.48)",
+          "it": "EX-4.33, EX-4.48 : le serveur meurt pendant l'appel → -31014 et événement ; relance au prochain appel"
+        },
+        {
+          "file": "test/enregistreur-mcp-exigences.test.js",
+          "describe": "4.3 agrégation (EX-4.9 à EX-4.18)",
+          "it": "EX-4.18 : serveur injoignable omis de la liste, santé `serveur:<alias>`, appel → -31014 sans événement"
+        },
+        {
+          "file": "test/enregistreur-mcp-parcours.test.js",
+          "describe": "enregistreur, frontal MCP : parcours de bout en bout (hôtes, connecteur, serveurs stdio, journal vérifié)",
+          "it": "l'hôte reçoit la liste agrégée, les résultats relayés, le signal d'approbation, les erreurs de la table de 4.4"
+        },
+        {
+          "file": "test/enregistreur-mcp-parcours.test.js",
+          "describe": "enregistreur, frontal MCP : parcours de bout en bout (hôtes, connecteur, serveurs stdio, journal vérifié)",
+          "it": "chaque appel a produit un événement scellé ; délégation, politique, approbation et effets conformes (7.2)"
+        },
+        {
+          "file": "test/enregistreur-mcp-parcours.test.js",
+          "describe": "enregistreur, frontal MCP : parcours de bout en bout (hôtes, connecteur, serveurs stdio, journal vérifié)",
+          "it": "le dossier de chaque appel est accepté par le binaire Go noortrace-verifier (go1.27.3)"
+        },
+        {
+          "file": "test/enregistreur-modele-exigences.test.js",
+          "describe": "EX-5.24 : délais du fournisseur",
+          "it": "connexion impossible : 504 au format de la route, événement is_error, pièce noortrace_timeout phase connexion"
+        },
+        {
+          "file": "test/enregistreur-modele-exigences.test.js",
+          "describe": "EX-5.24 : délais du fournisseur",
+          "it": "premier octet au-delà du délai : 504 ; silence au-delà d'idle_timeout_ms pendant un flux : flux clos, forme incomplète"
+        },
+        {
+          "file": "test/enregistreur-mcp-exigences.test.js",
+          "describe": "approbation au pas 3 à 7 (EX-4.49, EX-4.50, EX-7.16, 14.2)",
+          "it": "14.2 : service d'approbation indisponible : écriture et outil susceptible bloqués (-31010 approbation) ; autre lecture passante, decision autorise, rule null"
+        },
+        {
+          "file": "test/enregistreur-politique-exigences.test.js",
+          "describe": "pas 3 : evaluer, charger et matrice de 14.2 (service d'approbation)",
+          "it": "14.2, service indisponible, colonne E : une écriture est bloquée (-31010, approbation), sans pièce d'événement ni intention"
+        },
+        {
+          "file": "test/enregistreur-politique-exigences.test.js",
+          "describe": "pas 3 : evaluer, charger et matrice de 14.2 (service d'approbation)",
+          "it": "EX-7.4 : sans réponse dans policy.approval.timeout_ms (service muet), indisponibilité : -31010 en moins de 3 s"
+        },
+        {
+          "file": "test/enregistreur-politique-exigences.test.js",
+          "describe": "pas 3 : evaluer, charger et matrice de 14.2 (service d'approbation)",
+          "it": "EX-7.16 : réponse hors des combinaisons (membre manquant, ticket incohérent, rule nulle, jeu absent ou inexploitable, approval non scellé) : -31010, approval_response_invalid"
+        },
+        {
+          "file": "test/enregistreur-politique-exigences.test.js",
+          "describe": "14.2 : lectures susceptibles, lectures bloquantes, avant le premier charger",
+          "it": "failure.approval_service.lecture bloquant : une lecture non susceptible est bloquée pendant l'indisponibilité"
+        },
+        {
+          "file": "test/enregistreur-politique-exigences.test.js",
+          "describe": "pas 5 et 6, mode erreur (EX-4.49, EX-7.12, EX-7.17 à EX-7.22, EX-12.23, CT-3 EX-11.3)",
+          "it": "RL-3 : un service compromis qui sert de nouveau l'approbation consommée : -31010 approbation, approval_relay_refused, aucune intention"
+        },
+        {
+          "file": "test/enregistreur-politique-exigences.test.js",
+          "describe": "pas 5 et 6, mode erreur (EX-4.49, EX-7.12, EX-7.17 à EX-7.22, EX-12.23, CT-3 EX-11.3)",
+          "it": "EX-7.17 : la retenue d'un ticket déjà décidé n'est pas scellée : -31010, identifiant_en_collision"
+        },
+        {
+          "file": "test/enregistreur-sdk-exigences.test.js",
+          "describe": "EX-6.4, EX-6.7 : approbation par le SDK (table d'EX-6.7)",
+          "it": "EX-6.7, EX-10.23 : pièce « arguments » au-delà de la borne de temps : -31010 redaction pour une écriture, avant l'intention"
+        },
+        {
+          "file": "test/enregistreur-coeur-approbations.test.js",
+          "describe": "enregistreur, cœur : interface du service d'approbation (§7.5)",
+          "it": "remises refusées : SG-2 (ticket inconnu), SG-5 (signature), SG-6 (seuil), SG-7 (auto-approbation), SG-3 (déjà décidé)"
+        },
+        {
+          "file": "test/enregistreur-politique-exigences.test.js",
+          "describe": "mode dégradé et entrées hostiles (14.2, EX-7.5, EX-7.19, EX-9.4)",
+          "it": "décision pour un ticket inconnu (SG-2) et remise rejouée (SG-3, avec la décision scellée) : refusées, rien n'est scellé"
+        },
+        {
+          "file": "test/enregistreur-politique-exigences.test.js",
+          "describe": "pas 5 et 6, mode erreur (EX-4.49, EX-7.12, EX-7.17 à EX-7.22, EX-12.23, CT-3 EX-11.3)",
+          "it": "ré-émission en attente : aucun événement, approval_pending, signal en_attente (CT-3 EX-7.19)"
+        },
+        {
+          "file": "test/enregistreur-mcp-exigences.test.js",
+          "describe": "approbation au pas 3 à 7 (EX-4.49, EX-4.50, EX-7.16, 14.2)",
+          "it": "EX-4.50 : mode retenir : la requête est retenue jusqu'à la décision approuvée (acquitter held), puis relayée ; délai de rétention → en_attente"
+        },
+        {
+          "file": "test/enregistreur-politique-exigences.test.js",
+          "describe": "mode dégradé et entrées hostiles (14.2, EX-7.5, EX-7.19, EX-9.4)",
+          "it": "décision remise pendant un mode dégradé : acquitter temporaire, rien n'est inscrit ; ré-émission en_attente ; scellée à la représentation, après la sortie"
+        },
+        {
+          "file": "test/enregistreur-politique-exigences.test.js",
+          "describe": "mode dégradé et entrées hostiles (14.2, EX-7.5, EX-7.19, EX-9.4)",
+          "it": "expiration atteinte pendant un mode dégradé : différée (approval_expired_deferred), scellée à la sortie ; ré-émission : signal expire"
+        },
+        {
+          "file": "test/enregistreur-ancrage-exigences.test.js",
+          "describe": "enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence",
+          "it": "le composant est attaché après l'écrivain (anchoring_attached, contexte depuis le stockage) ; EX-4.12 : avec un prestataire qui ne répond jamais, le tic qui produit et remet un point rend la main sans attendre le réseau"
+        },
+        {
+          "file": "test/enregistreur-journal-soi.test.js",
+          "describe": "TE-14 : journal de l'enregistreur sur lui-même, JS-1 à JS-12 de CT-7 §6.1 observés sur le démon réel (CT-2 EX-17.1 à EX-17.4, EX-18.6 ; CT-7 EX-6.1 à EX-6.3)"
+        },
+        {
+          "file": "test/enregistreur-worm-exigences.test.js",
+          "describe": "copies de l'écrivain (EX-12.16, EX-12.17, EX-12.29, EX-12.30, EX-12.32, EX-12.33)",
+          "it": "panne du support (14.2 « Support WORM ») : copie en échec consignée, jamais bloquante ; le balayage de la supervision la réessaie (EX-12.16) et met à jour noortrace_worm_copy_pending"
+        },
+        {
+          "file": "test/enregistreur-journal-soi.test.js",
+          "describe": "TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3 à Object Lock en conteneur) : worm_legal_hold_observed, worm_copy_failed puis reprise, copie conforme d'ancres/",
+          "it": "JS-10 perte d'une copie WORM : support suspendu (docker pause) pendant la clôture → worm_copy_failed (injoignable) ; support repris → le balayage de la supervision copie ce qui manque, noortrace_worm_copy_pending retombe"
+        },
+        {
+          "file": "test/enregistreur-coeur-config.test.js",
+          "describe": "horloge (EX-7.9, EX-7.13, 14.2)"
+        },
+        {
+          "file": "test/enregistreur-coeur-config.test.js",
+          "describe": "horloge au tic (R-A-2, EX-7.13, EX-12.24)",
+          "it": "saut en avant détecté par le tic lui-même (aucun scellement entre-temps) : mode dégradé « horloge », clock_forward_jump, rien n'est clos"
+        },
+        {
+          "file": "test/enregistreur-modele-securite.test.js",
+          "describe": "EX-4.47 : quotas de la connexion d'hôte sur la passerelle",
+          "it": "requêtes en cours (max_concurrent) : la seconde, pendant un flux, est bloquée (503) ; l'échange suivant passe"
+        },
+        {
+          "file": "test/enregistreur-mcp-exigences.test.js",
+          "describe": "4.4 relais de tools/call (EX-4.19 à EX-4.24, EX-4.43 à EX-4.48)",
+          "it": "entrées hostiles : requête au-delà de request_max_bytes → -31013 (requete), sans pièce ; `_meta` piégé relayé tel quel mais jamais journalisé"
+        },
+        {
+          "file": "test/enregistreur-ha-exigences.test.js",
+          "describe": "cœur et magasin réseau (EX-13.1, EX-13.5, EX-13.6, EX-13.9, EX-13.10, 13.4)",
+          "it": "EX-13.6, 14.2 « Bail perdu » : le bail repris par une autre instance → renouvellement refusé, lease_lost, mode dégradé « bail » : écritures et lectures bloquées (raison bail), santé down"
+        },
+        {
+          "file": "test/enregistreur-ha-exigences.test.js",
+          "describe": "cœur et magasin réseau (EX-13.1, EX-13.5, EX-13.6, EX-13.9, EX-13.10, 13.4)",
+          "it": "EX-13.10 (2) : bail perdu pendant une écriture — repris après le contrôle d'avant fdatasync : la revérification après fdatasync échoue, lease_lost_after_write avec le seq, l'événement n'est pas rendu comme acquis"
+        },
+        {
+          "file": "test/enregistreur-ha-exigences.test.js",
+          "describe": "cœur et magasin réseau (EX-13.1, EX-13.5, EX-13.6, EX-13.9, EX-13.10, 13.4)",
+          "it": "13.4 pas 1, EX-17.1, 14.2 « Bail non détenu » : instance passive — lease_standby, santé standby, /readyz 503, -31010 bail_non_detenu sans parler au service d'approbation ; elle prend le bail quand l'active le rend, avec une époque plus grande"
+        },
+        {
+          "file": "test/enregistreur-coeur-config.test.js",
+          "describe": "démon bin/noortrace",
+          "it": "refuse une configuration invalide : code 2, rapport sur stderr, rien n'est ouvert"
+        },
+        {
+          "file": "test/enregistreur-ancrage-parcours.test.js",
+          "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
+          "it": "noortrace-ctl ancrage etat | metriques | retirer-qualification <id> (SIGURG et demande écrite, réponse au journal) ; noortrace-ctl reload recharge le document ancrage-v0 avec la politique (EX-4.9) ; un rechargement d'un document invalide est refusé sans changer l'ancien"
+        },
+        {
+          "file": "test/enregistreur-coeur-attente-bornes.test.js",
+          "describe": "enregistreur, CT-2 §14.2 lignes « Mémoire » et « Disque presque plein » sur le chemin du relais (EX-14.9, EX-14.10)",
+          "it": "CT-2 §14.2 ligne « Mémoire », EX-14.9 : ${b.nom} atteinte → la lecture suivante est refusée (-31010, reason attente), pending_limit_reached, mode dégradé attente ; EX-14.10 : stockage revenu, file scellée, sortie du mode attente"
+        },
+        {
+          "file": "test/enregistreur-coeur-attente-bornes.test.js",
+          "describe": "enregistreur, CT-2 §14.2 lignes « Mémoire » et « Disque presque plein » sur le chemin du relais (EX-14.9, EX-14.10)",
+          "it": "CT-2 §14.2 ligne « Mémoire », EX-14.9 : ${b.nom} atteinte → l'échange suivant est bloqué (503 noortrace_degrade, non relayé), pending_limit_reached, mode dégradé attente ; EX-14.10 : stockage revenu, file scellée, sortie du mode attente"
+        },
+        {
+          "file": "test/enregistreur-coeur-attente-bornes.test.js",
+          "describe": "enregistreur, CT-2 §14.2 lignes « Mémoire » et « Disque presque plein » sur le chemin du relais (EX-14.9, EX-14.10)",
+          "it": "CT-2 §14.2 ligne « Disque presque plein », colonne E : écriture -31010 reason stockage sans relais, ligne disk_low (octets libres) ; puis espace libre au-dessus de min_free_bytes (nouveau cœur, le rechargement étant refusé) : régime normal"
+        },
+        {
+          "file": "test/enregistreur-coeur-attente-bornes.test.js",
+          "describe": "enregistreur, CT-2 §14.2 lignes « Mémoire » et « Disque presque plein » sur le chemin du relais (EX-14.9, EX-14.10)",
+          "it": "CT-2 §14.2 ligne « Disque presque plein », colonne M « comme le stockage indisponible » : échange de modèle bloqué (503 noortrace_degrade), ligne disk_low"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Partie non écrite, possible dès maintenant sur le dépôt (EX-3.10) : le rejeu de la matrice entière sur le démon réel, ligne par ligne, chaque ligne finie par un dossier vérifié par les deux vérificateurs de CT-6 (EX-3.5) — seules « Clé indisponible » et « Panne après relais » sont rejouées ainsi (essai TE-16 de test/enregistreur-signataires-parcours.test.js), les autres lignes sont éprouvées une à une par les essais du paquet, le plus souvent sur le cœur en cours de processus et sans dossier vérifié ; les lignes « Disque presque plein » (`storage.min_free_bytes`, `disk_low`, -31010 `stockage`) et « Mémoire » (bornes `pending_max_events`, `pending_max_ms` et `limits.pending_max_bytes`, `pending_limit_reached`, -31010 `attente`) sont éprouvées sur le chemin du relais par test/enregistreur-coeur-attente-bornes.test.js, sur le cœur en cours de processus et sans dossier vérifié. Étape 8 (tests de bout en bout). Les versions 0.2 à 0.4 rattachaient l'entrée à l'étape 4, faute de signataires des classes A à C (livrés à l'étape 4) et du composant d'ancrage (livré à l'étape 5)."
+      }
     },
     "threats": [
       "MN-10",

@@ -17,6 +17,7 @@
 // injecté (dérivés d'étiquettes dans les vecteurs, annexe A.2).
 
 import crypto from "node:crypto";
+import fs from "node:fs";
 import * as J from "./journal.mjs";
 import { DOC_TYPE_PERIODE, anchorFingerprint, journalIdOf } from "./noortrace.mjs";
 import * as O from "./ots.mjs";
@@ -448,14 +449,20 @@ export function construireReponseTsa({ status, status_string = null, fail_info =
   return tlv(0x30, token ? Buffer.concat([psi, Buffer.from(token)]) : psi);
 }
 
+/** Plafond de `retry_after_s` consigné dans une tentative ($defs/tentative du schéma planificateur-ancrage-v0, EX-8.9). */
+export const RETRY_AFTER_MAX_S = 604800;
+
 /**
  * Attente de reprise d'EX-8.9, hors état : `k` est le rang de l'échec
  * transitoire consécutif (1 pour le premier), `premier_408_servi` dit si le
  * rejeu immédiat du premier 408 a déjà eu lieu, `gigue` un entier de
- * [0, jitter_ms]. Rend { delay_ms, reason }.
+ * [0, jitter_ms]. Rend { delay_ms, reason }. Un `Retry-After` n'est suivi que
+ * sur 429 et 503, et borné : au moins `retry.initial_ms`, au plus `retry.max_ms`
+ * (révision 0.4 : un `Retry-After` nul ferait tourner la reprise sans attente,
+ * un `Retry-After` de plusieurs jours endormirait la demande).
  */
 export function calculerAttente({ http_status = null, retry_after_s = null, k = 1, premier_408_servi = false, retry = DEFAUTS_CONFIGURATION.retry, gigue = 0 } = {}) {
-  if ((http_status === 429 || http_status === 503) && retry_after_s !== null && retry_after_s !== undefined) return { delay_ms: retry_after_s * 1000, reason: "retry_after" };
+  if ((http_status === 429 || http_status === 503) && retry_after_s !== null && retry_after_s !== undefined) return { delay_ms: Math.min(retry.max_ms, Math.max(retry.initial_ms, retry_after_s * 1000)), reason: "retry_after" };
   if (http_status === 408 && !premier_408_servi) return { delay_ms: 0, reason: "immediat" };
   const base = Math.min(retry.max_ms, retry.initial_ms * retry.factor ** (k - 1));
   return { delay_ms: base + gigue, reason: "backoff" };
@@ -690,15 +697,29 @@ function hoteDeUrl(url) {
   }
 }
 
+let schemaAncrageCache = null;
+/** Le schéma ancrage-v0 du dépôt (spec/schemas), lu une fois. */
+function schemaAncrage() {
+  schemaAncrageCache ??= JSON.parse(fs.readFileSync(new URL("../../spec/schemas/ancrage-v0.schema.json", import.meta.url), "utf8"));
+  return schemaAncrageCache;
+}
+
 /**
- * Règles d'EX-4.9 (AN-1), hors schéma : rend { valide, violations: [{ rule,
- * message }] }, toutes les règles violées étant listées. `checkpoint_interval_s`
- * est la valeur de l'enregistreur (CT-2) quand elle est connue ; `profil`
- * « production » applique la règle 4. `lecteurCertificat` lit un PEM (règle 8).
+ * Validation d'EX-4.9 (AN-1) : le document est d'abord validé contre le schéma
+ * `ancrage-v0` (violations de règle `schema`, une par erreur, et aucune autre
+ * règle n'est évaluée tant qu'il n'est pas conforme), puis les huit règles
+ * hors schéma s'appliquent. Rend { valide, violations: [{ rule, message }] },
+ * toutes les règles violées étant listées ; ne lève jamais sur un document de
+ * forme quelconque. `checkpoint_interval_s` est la valeur de l'enregistreur
+ * (CT-2) quand elle est connue ; `profil` « production » applique la règle 4 ;
+ * `lecteurCertificat` lit un PEM (règle 8) ; `schema` remplace le schéma lu
+ * dans spec/schemas.
  */
-export function verifierConfiguration(doc, { profil = "production", checkpoint_interval_s = null, lecteurCertificat = null } = {}) {
+export function verifierConfiguration(doc, { profil = "production", checkpoint_interval_s = null, lecteurCertificat = null, schema = null } = {}) {
   const violations = [];
   const v = (rule, message) => violations.push({ rule, message });
+  for (const e of J.validerSchema(doc, schema ?? schemaAncrage())) v("schema", `${e.chemin || "/"} : ${e.message}`);
+  if (violations.length) return { valide: false, violations };
   const cK = doc?.checkpoint_interval_s;
   const r = doc?.rfc3161 ?? {};
   const providers = Array.isArray(r.providers) ? r.providers : [];
@@ -1290,7 +1311,7 @@ class Planificateur {
         break;
       }
       case "cadence": {
-        // EX-8.15 : aucun point admis pendant plus de 2 × c_K (alerte point_manquant, majeure).
+        // EX-8.15 : aucun point admis pendant 2 × c_K après le checkpoint_ts du dernier point admis (alerte point_manquant, majeure).
         const p = this.periodes.get(m.id);
         if (!p || p.close || p.dernierPointAt !== m.depuis) return;
         this.journaliser(t, null, { event: "point_manquant", last_checkpoint_ts: p.dernierPoint.declared_at, gap_s: Math.trunc((t - m.depuis) / 1000) });
@@ -1561,8 +1582,12 @@ class Planificateur {
     // c'est aussi le point de clôture quand la période se ferme (repli d'EX-4.2).
     if (!p.close) {
       p.dernierPoint = { ...sujet };
-      p.dernierPointAt = t;
-      this.timer(t + 2 * this.cfg.checkpoint_interval_s * 1000, "cadence", this.cle(p), { depuis: t });
+      // Le délai de 2 × c_K court depuis le checkpoint_ts déclaré du point (EX-4.1, 8.9) : un point admis
+      // longtemps après sa production (saut d'horloge, arrêt du processus) lève l'alerte dès sa relecture,
+      // et deux points reçus au même instant restent distingués. Le point de clôture (checkpoint_ts ≥
+      // period_end) n'attend aucun point après lui : aucune minuterie.
+      p.dernierPointAt = tsPoint;
+      if (tsPoint < this.finPeriode(p)) this.timer(tsPoint + 2 * this.cfg.checkpoint_interval_s * 1000, "cadence", this.cle(p), { depuis: tsPoint });
     }
     if (this.actives() >= this.cfg.queue.max_pending) {
       this.journaliser(t, null, { event: "anchor_queue_full", tree_size: sujet.tree_size, active: this.actives(), max_pending: this.cfg.queue.max_pending });
@@ -1947,7 +1972,8 @@ class Planificateur {
     att.http_status = data.http_status ?? null;
     att.pki_status = data.pki_status ?? null;
     att.failure_info = data.failure_info ?? null;
-    att.retry_after_s = data.retry_after_s ?? null;
+    // Valeur lue, plafonnée à la borne du schéma ($defs/tentative : au plus 604 800 s, EX-8.9).
+    att.retry_after_s = data.retry_after_s === null || data.retry_after_s === undefined ? null : Math.min(data.retry_after_s, RETRY_AFTER_MAX_S);
     att.error_code = r.code;
     att.detail = r.detail;
     s.enCours.delete(pr.id);

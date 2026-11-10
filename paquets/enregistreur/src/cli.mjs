@@ -7,9 +7,16 @@
 // ligne par erreur : pointeur JSON, règle, valeur sauf pour un secret) et
 // code de retour 2 ; le démon ne démarre pas (14.2, « Configuration invalide
 // au démarrage »). SIGTERM et SIGINT arrêtent proprement (code 0) ; SIGHUP
-// recharge la politique (EX-15.5) ; SIGUSR2 porte la confirmation de
-// l'exploitant après un saut d'horloge (EX-7.13) : `noortrace-ctl reload` et
-// `noortrace-ctl clock --accept` les envoient (src/ctl-demon.mjs).
+// recharge la politique (EX-15.5) et le document `ancrage-v0` (CT-5 EX-4.9) ;
+// SIGUSR2 porte la confirmation de l'exploitant après un saut d'horloge
+// (EX-7.13) ; SIGURG, avec la demande écrite à côté du journal
+// d'exploitation, porte `noortrace-ctl cle rotation-urgence` et
+// `noortrace-ctl ancrage <etat|metriques|retirer-qualification>` :
+// `noortrace-ctl` les envoie (src/ctl-demon.mjs). Avec `anchoring.ancrage`,
+// le composant d'ancrage de CT-5 est branché avant le cœur
+// (src/ancrage-demon.mjs, lot F2) : une configuration d'ancrage invalide
+// n'empêche pas le démon de démarrer (CT-5 EX-4.8) ; une clé de chaîne d'une
+// classe non servie (A à C) le refuse (`demarrage_refuse : ancrage`).
 
 import fs from "node:fs";
 import { validerConfiguration, resoudreSecrets, ligneRapport } from "./configuration.mjs";
@@ -31,6 +38,7 @@ import { controleConnecteurTcp } from "./mcp/prise-tcp.mjs";
 import { demarrerOtel } from "./otel/demon.mjs";
 import { controleOtel } from "./otel/configuration.mjs";
 import { controleWorm, supportWormDepuisConfiguration } from "./worm/configuration.mjs";
+import { preparerAncrage, ErreurBranchementAncrage } from "./ancrage-demon.mjs";
 
 const USAGE = "usage : noortrace --config <fichier> | noortrace validate-config <fichier>";
 
@@ -49,7 +57,9 @@ function rapporter(flux, titre, liste) {
 /**
  * Exécute la ligne de commande.
  * @param {string[]} argv arguments après le nom du programme
- * @param {{stdout?: NodeJS.WritableStream, stderr?: NodeJS.WritableStream, env?: NodeJS.ProcessEnv}} [io]
+ * @param {{stdout?: NodeJS.WritableStream, stderr?: NodeJS.WritableStream, env?: NodeJS.ProcessEnv,
+ *   horloge?: {murale: () => number, monotone: () => number, programmer?: Function}}} [io]
+ *   `horloge` : horloge injectée (essais du démon réel à l'horloge réglable, CT-2 §7.4 ; `programmer` pour le composant d'ancrage)
  * @returns {Promise<number|{coeur: Coeur}>} code de retour, ou le cœur démarré
  */
 export async function principal(argv, io = {}) {
@@ -112,6 +122,16 @@ export async function principal(argv, io = {}) {
       peer_user: svc.peer_user ?? null,
     });
   }
+  // Composant d'ancrage de CT-5 (`anchoring.ancrage`, lot F2) : document `ancrage-v0` lu, ses secrets résolus (pas 4), clé de
+  // chaîne et manifeste d'instance ; `null` quand `anchoring.ancrage` est `null` ou absent (comportement inchangé).
+  let ancrage = null;
+  try {
+    ancrage = await preparerAncrage({ config: v.config, secrets: s.secrets, env: io.env ?? process.env, horloge: io.horloge ?? null });
+  } catch (e) {
+    if (!(e instanceof ErreurBranchementAncrage)) throw e;
+    stderr.write(`demarrage_refuse : ancrage : ${e.raison} : ${e.message}\n`);
+    return 2;
+  }
   let coeur;
   let redaction;
   try {
@@ -119,7 +139,7 @@ export async function principal(argv, io = {}) {
     // Copies WORM (§12.6, lot WORM) ; bail détenu par une autre instance : instance
     // passive (13.4), les frontaux s'ouvrent et rendent -31010 bail_non_detenu.
     const worm = supportWormDepuisConfiguration(v.config, s.secrets);
-    coeur = await Coeur.demarrer({ config: v.config, secrets: s.secrets, octetsConfig: octets, service, redaction, worm, env: io.env ?? process.env, attendreBail: true, reglesSupplementaires: REGLES_SUPPLEMENTAIRES, minuteurs: true, supervision: true });
+    coeur = await Coeur.demarrer({ config: v.config, secrets: s.secrets, octetsConfig: octets, service, redaction, worm, ancrage, horloge: io.horloge ?? undefined, env: io.env ?? process.env, attendreBail: true, reglesSupplementaires: REGLES_SUPPLEMENTAIRES, minuteurs: true, supervision: true });
   } catch (e) {
     const raison = e instanceof ErreurEnregistreur ? e.raison : "demarrage";
     stderr.write(`demarrage_refuse : ${raison} : ${e.message}\n`);
@@ -199,7 +219,20 @@ export async function lancer() {
     process.exitCode = r;
     return;
   }
+  superviserProcessus(r, { argv: process.argv, relancer: lancer });
+}
+
+/**
+ * Installe les signaux du processus du démon sur un démarrage réussi
+ * (SIGTERM, SIGINT, SIGHUP, SIGUSR2, SIGURG, veille du bail) ; partagé entre
+ * `lancer` et les essais qui démarrent le démon réel avec une horloge
+ * injectée (`principal(argv, { horloge })`, lot F2).
+ * @param {{coeur: Coeur, mcp: object|null, modele: object|null, sdk: object|null, otel: object|null}} r
+ * @param {{argv?: string[], relancer?: () => void, env?: NodeJS.ProcessEnv}} [o] `argv` : ligne de commande portant `--config`
+ */
+export function superviserProcessus(r, o = {}) {
   const { coeur, mcp, modele, sdk, otel } = r;
+  const argvDemon = o.argv ?? process.argv;
   let arret = false;
   const arreter = async () => {
     if (arret) return;
@@ -239,8 +272,8 @@ export async function lancer() {
     await modele?.arreter().catch(() => {});
     await coeur.arreter().catch(() => {});
     await coeur.o.redaction?.fermer?.().catch?.(() => {});
-    for (const s of ["SIGTERM", "SIGINT", "SIGHUP", "SIGUSR2"]) process.removeAllListeners(s);
-    lancer();
+    for (const s of ["SIGTERM", "SIGINT", "SIGHUP", "SIGUSR2", "SIGURG"]) process.removeAllListeners(s);
+    (o.relancer ?? lancer)();
   }, 250);
   veille.unref?.();
   // `noortrace-ctl clock --accept` (EX-7.13) : confirmation de l'exploitant, consignée par le cœur.
@@ -250,20 +283,28 @@ export async function lancer() {
   });
   // `noortrace-ctl cle rotation-urgence` (CT-8 EX-10.14, CT-2 EX-11.16) : SIGURG
   // n'agit qu'avec la demande écrite par noortrace-ctl à côté du journal d'exploitation.
+  // `noortrace-ctl ancrage <etat|metriques|retirer-qualification> [id]` partage le signal et le fichier de demande :
+  // la demande dit ce qu'elle porte (`demande: "rotation-urgence"` ou `"ancrage"`).
   process.on("SIGURG", async () => {
     const f = fichierDemandeRotation(coeur.config.supervision.ops_log.path);
+    let demande = null;
     try {
+      demande = JSON.parse(fs.readFileSync(f, "utf8"));
       fs.rmSync(f);
     } catch {
       coeur.journal.consigner("warning", "signataire", "key_rotation_emergency_ignored", { raison: "sans_demande" });
       return;
     }
+    if (demande?.demande === "ancrage") {
+      await coeur.commandeAncrage({ commande: demande.commande, id: demande.id ?? null }).catch((e) => coeur.journal.consigner("warning", "ancrage", "anchoring_ctl_refused", { command: String(demande.commande ?? "").slice(0, 64), raison: "erreur", erreur: String(e?.message ?? e).slice(0, 200) }));
+      return;
+    }
     await coeur.rotationUrgence().catch((e) => coeur.journal.consigner("error", "signataire", "key_rotation_emergency_refused", { raison: "erreur", erreur: String(e?.message ?? e) }));
   });
   process.on("SIGHUP", async () => {
-    const k = process.argv.indexOf("--config");
+    const k = argvDemon.indexOf("--config");
     try {
-      const res = await coeur.recharger(new Uint8Array(fs.readFileSync(process.argv[k + 1])));
+      const res = await coeur.recharger(new Uint8Array(fs.readFileSync(argvDemon[k + 1])), { env: o.env });
       process.stderr.write(res.accepte ? "noortrace: politique rechargee\n" : `noortrace: rechargement refuse (${res.raison})\n`);
     } catch (e) {
       process.stderr.write(`noortrace: rechargement refuse (${e.message})\n`);

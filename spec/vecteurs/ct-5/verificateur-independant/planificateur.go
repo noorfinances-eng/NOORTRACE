@@ -393,7 +393,7 @@ func (p *Planificateur) declencher(m *minuterie) {
 		}
 		p.repliCloture(d, t)
 	case "cadence":
-		// EX-8.15 : aucun point admis pendant 2 × c_K (alerte point_manquant).
+		// EX-8.15 : aucun point admis pendant 2 × c_K après le checkpoint_ts du dernier point admis (alerte point_manquant).
 		per := p.periodes[m.id]
 		if per == nil || per.close || per.dernierPointAt == nil || *per.dernierPointAt != m.k {
 			return
@@ -721,12 +721,17 @@ func (p *Planificateur) pointProduit(t int64, data *Value) {
 		p.journaliser(t, nil, vObj("event", vStr("anchor_duplicate_ignored"), "checkpoint_hash", vStr(sujet.Hash)))
 		return
 	}
-	// cadence (EX-8.15) : dernier point admis de la période ouverte, armé à 2 × c_K
+	// cadence (EX-4.1, 8.9, révision 0.4 de CT-5) : dernier point admis de la période ouverte ; la
+	// minuterie point_manquant est armée 2 × c_K après le checkpoint_ts déclaré du point, non après
+	// son admission (un point reçu longtemps après sa production, saut d'horloge ou arrêt, lève
+	// l'alerte dès sa relecture) ; le point de clôture (checkpoint_ts ≥ period_end) n'en arme aucune.
 	if !per.close {
 		copie := *sujet
 		per.dernierPoint = &copie
-		per.dernierPointAt = ptrI(t)
-		p.timer(t+2*p.cfg.CheckpointIntervalS*1000, "cadence", cle(sujet), t, "")
+		per.dernierPointAt = ptrI(tsPoint)
+		if tsPoint < p.finPeriode(per) {
+			p.timer(tsPoint+2*p.cfg.CheckpointIntervalS*1000, "cadence", cle(sujet), tsPoint, "")
+		}
 	}
 	if p.actives() >= p.cfg.MaxPending {
 		p.journaliser(t, nil, vObj("event", vStr("anchor_queue_full"), "tree_size", vInt(treeSize), "active", vInt(p.actives()), "max_pending", vInt(p.cfg.MaxPending)))
@@ -1502,7 +1507,11 @@ func (p *Planificateur) reponseRfc3161(t int64, data *Value) {
 	att.HTTPStatus = ptrEntier(data, "http_status")
 	att.PKIStatus = pki
 	att.FailureInfo = ptrChaine(data, "failure_info")
+	// Valeur lue, plafonnée à la borne de $defs/tentative (604 800 s, EX-8.9).
 	att.RetryAfterS = ptrEntier(data, "retry_after_s")
+	if att.RetryAfterS != nil && *att.RetryAfterS > RetryAfterMaxS {
+		att.RetryAfterS = ptrI(RetryAfterMaxS)
+	}
 	att.ErrorCode = r.code
 	att.Detail = r.detail
 	delete(s.enCours, pr.ID)

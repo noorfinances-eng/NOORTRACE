@@ -437,6 +437,25 @@
       }
     },
     {
+      "t": "2026-11-03T13:56:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "point_manquant",
+        "last_checkpoint_ts": "2026-11-03T13:54:00.000Z",
+        "gap_s": 120
+      }
+    },
+    {
+      "t": "2026-11-03T13:56:00.000Z",
+      "action": "alerter",
+      "request_id": null,
+      "detail": {
+        "code": "point_manquant",
+        "severity": "majeure"
+      }
+    },
+    {
       "t": "2026-11-03T13:56:02.000Z",
       "action": "stocker",
       "request_id": "ancre_registre_point:0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
@@ -609,25 +628,6 @@
         "d_attente_s": 122,
         "d_releve_s": 0,
         "d_tsa_s": 2
-      }
-    },
-    {
-      "t": "2026-11-03T13:58:00.000Z",
-      "action": "journaliser",
-      "request_id": null,
-      "detail": {
-        "event": "point_manquant",
-        "last_checkpoint_ts": "2026-11-03T13:54:00.000Z",
-        "gap_s": 120
-      }
-    },
-    {
-      "t": "2026-11-03T13:58:00.000Z",
-      "action": "alerter",
-      "request_id": null,
-      "detail": {
-        "code": "point_manquant",
-        "severity": "majeure"
       }
     },
     {

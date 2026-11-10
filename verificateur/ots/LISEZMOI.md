@@ -28,16 +28,18 @@ Fichier de 256 Kio ; `varuint` de forme minimale et de 9 octets au plus ;
 arguments de 1 à 4096 octets ; messages et résultats de 1 à 4096 octets ;
 charge d'attestation de 0 à 8192 octets ; URI de 0 à 1000 octets dans
 `A-Z a-z 0-9 - . _ / :` ; hauteur inférieure à 2³² ; 255 opérations par
-chemin. La récursion de l'analyseur et de l'exécution passe par une
+chemin ; aucun doublon sous un même nœud (deux attestations identiques ou
+deux opérations identiques : forme non canonique, O-1 en échec, §10.2,
+révision 0.5). La récursion de l'analyseur et de l'exécution passe par une
 opération à chaque niveau et s'arrête donc à 255 ; l'exécution ne garde que
 les messages du chemin courant et les résultats de 32 octets. Les boucles
 sur les en-têtes sont itératives et bornées par leur nombre.
 
 ## Tests
 
-- `vecteurs_test.go` : les douze preuves de `spec/vecteurs/ct-6/ots/preuves`
+- `vecteurs_test.go` : les treize preuves de `spec/vecteurs/ct-6/ots/preuves`
   (lecture, attestations, résultats des opérations), les cinq fichiers
-  d'en-têtes (hauteurs, hachages affichés), les vingt cas de
+  d'en-têtes (hauteurs, hachages affichés), les vingt et un cas de
   `ots/attendu.json` (statuts de O-1 à O-7, statut du contrôle ou de K-9,
   avertissements triés comme le moteur, faits octet pour octet), et les
   soixante et onze dossiers de `ct-6/dossiers` qui portent `preuve.ots` :
@@ -47,7 +49,9 @@ sur les en-têtes sont itératives et bornées par leur nombre.
   (troncature à chaque longueur, octets en trop, étiquettes inconnues,
   longueurs absurdes, `varuint` non minimaux ou de 10 octets, charges et URI
   aux bornes, 255 et 256 opérations, 100 000 opérations imbriquées, fichier
-  de 256 Kio à 20 000 attestations, résultats de 4096 et 4097 octets).
+  de 256 Kio à 20 000 attestations, résultats de 4096 et 4097 octets,
+  doublons sous un même nœud et branches sœurs distinctes,
+  `TestFormatDoublon`).
 - `entetes_test.go` : `SetCompact` et `GetCompact` (cas de Bitcoin Core),
   réajustement sur les quatre cas de `pow_tests.cpp` de Bitcoin Core
   (recalculés indépendamment), travail, en-tête réel du bloc 358391 de §10.3,
@@ -63,6 +67,16 @@ sur les en-têtes sont itératives et bornées par leur nombre.
 go test ./ots
 go test -run '^$' -fuzz FuzzAnalyser -fuzztime 60s ./ots
 ```
+
+## Révision 0.5 de CT-6
+
+- **§10.2, EX-10.2, EX-10.5 (forme canonique d'un nœud)** : `arbre` refuse,
+  dès la lecture, deux attestations identiques (même étiquette, même charge :
+  `attestationLue.Charge` garde la charge lue) ou deux opérations identiques
+  (même étiquette, même argument) sous un même nœud (`doublon`,
+  `memeBranche`) : O-1 échoue, détail « doublon : … (forme non canonique) ».
+  La bibliothèque de référence n'écrit jamais un tel fichier et écrase le
+  doublon à la relecture. Vecteur `o1-attestation-en-double.ots` (EX-A.26).
 
 ## Lectures
 

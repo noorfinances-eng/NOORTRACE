@@ -1,6 +1,16 @@
 # CT-6 — Vérificateur
 
-Version 0.4, 2026-11-03 (révision 0.4 : passages que le texte ne tranchait
+Version 0.5, 2026-11-09 (révision 0.5, textuelle et minimale, après la
+relecture adversariale de l'étape 5 de la construction : forme canonique d'une
+preuve `.ots` ou d'une réponse de calendrier, deux attestations identiques ou
+deux opérations identiques sous un même nœud rendant le fichier inexploitable,
+O-1 en échec, raison `doublon` (§10.2, EX-10.2, EX-10.5) ; lecture selon §9.3
+du `SubjectPublicKeyInfo` et des extensions connues d'un certificat dès sa
+lecture, T-1 en échec et non T-5 ni T-8 (EX-9.7, précision sans règle
+nouvelle) ; vecteurs `o1-attestation-en-double.ots`,
+`t1-cle-longueur-non-minimale.der` et `t1-extension-mal-formee.der` (A.3, A.4,
+A.10) ; binaire, référence JavaScript et confrontations alignés. Révision 0.4,
+2026-11-03 : passages que le texte ne tranchait
 pas, relevés par la construction du binaire Go et par la bibliothèque noyau
 de CT-1, tranchés dans le texte ; erreurs corrigées : sept parties JSON limitées
 à 16 Mio, et non six (EX-4.13), Keccak-256 et dépendances (EX-14.1), lignes `go` et
@@ -3774,6 +3784,16 @@ n'est pas authentifié, et un chemin valide à cet instant ne prouverait rien.
 [0]` (R1 F2.06), et porte `signedAttrs` (R1 F2.07). Les octets de valeur de
 `eContent` sont un `TSTInfo` complet, sans octet en trop, dont `version` = 1
 (R1 F1.06). Toute défaillance de lecture selon 9.3 met T-1 en échec.
+Précision (révision 0.5) : la lecture selon 9.3 d'un `Certificate` comprend son
+`SubjectPublicKeyInfo` — `AlgorithmIdentifier` et `BIT STRING` sans bit
+inutilisé et, pour `rsaEncryption`, la `RSAPublicKey` (RFC 8017 : `SEQUENCE` de
+deux `INTEGER`) que porte la `BIT STRING`, lue par le même lecteur — et les
+valeurs des extensions que les vérifications emploient (`basicConstraints`,
+`keyUsage`, `extKeyUsage`, `subjectKeyIdentifier`) : une longueur non minimale
+ou une structure fausse en l'un de ces points rend le certificat illisible et
+met T-1 en échec, non T-5 (clé « illisible ») ni T-8 (extension « illisible »).
+OpenSSL 3.0.13 lit l'un et l'autre sans les refuser (vecteurs
+`t1-cle-longueur-non-minimale`, `t1-extension-mal-formee`, A.3, A.8).
 
 **EX-9.8 (T-2, empreinte)** Dans `messageImprint`, `hashAlgorithm.algorithm`
 = SHA-256 (2.16.840.1.101.3.4.2.1), paramètres absents ou `NULL` (`05 00`)
@@ -4341,7 +4361,18 @@ R2-F67) ; le fichier ne dépasse pas 256 Kio (EX-4.13). La forme minimale
 des `varuint` est plus stricte que `python-opentimestamps`, qui accepte une
 forme non minimale sans borne (R2-F07, R2-F67) : le fichier étant figé par son
 SHA-256 dans `dossier.json`, cette tolérance n'apporte rien et ouvre une
-divergence entre analyseurs.
+divergence entre analyseurs. Forme canonique d'un nœud (révision 0.5) : sous
+un même nœud de l'arbre, deux attestations identiques (même étiquette, même
+charge) ou deux opérations identiques (même étiquette, même argument) rendent
+le fichier inexploitable, O-1 en échec, raison `doublon`. La bibliothèque de
+référence tient les attestations d'un nœud pour un ensemble et ses opérations
+pour un dictionnaire (`Timestamp.attestations`, `Timestamp.ops`,
+`timestamp.py`) : `serialize` n'écrit jamais un tel fichier, et `merge` comme
+`deserialize` écrasent le doublon à la relecture, de sorte que la
+resérialisation du fichier diffère de ses octets ; le fichier étant figé par
+son SHA-256 dans `dossier.json`, une telle forme n'a aucune lecture canonique
+(vecteur `o1-attestation-en-double.ots`, A.4). La même règle vaut pour une
+réponse de calendrier (CT-5 EX-6.2, étape 3), lue par le même analyseur.
 
 ### 10.3 Le fichier d'en-têtes Bitcoin
 
@@ -4399,7 +4430,8 @@ dernier en-tête ; `c` la hauteur du point de contrôle de l'ancre.
 
 **EX-10.5 (O-1, format)** Le fichier suit 10.2 : en-tête magique, version
 `01`, opération `08`, 32 octets d'empreinte, arbre conforme à la grammaire,
-charges utiles connues consommées exactement, lecture stricte de EX-10.2, fin
+charges utiles connues consommées exactement, lecture stricte de EX-10.2
+(forme minimale des `varuint`, aucun doublon sous un même nœud), fin
 de fichier exacte. Une étiquette d'opération inconnue rend le fichier illisible
 (R2-F15).
 
@@ -6223,6 +6255,17 @@ faire » : encore attendu) :
 | CT-1 §11.4 (révision 0.5) | P-1, D-1, E-2, E-3, A-1 à A-4, E-9 sans les cas d'EX-5.13 à EX-5.20 | mêmes règles, du côté de CT-1 | fait (CT-1 révision 0.5) |
 | `spec/README.md` | CT-6 version 0.3 | CT-6 version 0.4 | fait |
 
+Alignement de la révision 0.5 avec le dépôt (relecture adversariale de
+l'étape 5 de la construction, 2026-11-09) :
+
+| Emplacement | Avant | Attendu par la révision 0.5 | État |
+|---|---|---|---|
+| `verificateur/` (binaire Go), paquets `ots` et `horodatage` | arbre `.ots` lu sans contrôle des doublons ; `SubjectPublicKeyInfo` lu à T-5 (`lireCle`), clé RSA mal formée « refusée » par T-5 | deux attestations ou deux opérations identiques sous un même nœud : O-1 en échec, `doublon` (§10.2) ; `SubjectPublicKeyInfo` et `RSAPublicKey` lus selon §9.3 à la lecture du certificat, T-1 en échec (EX-9.7) | fait (`ots/format.go`, `horodatage/certificat.go` ; `ots/format_test.go`, `horodatage/revision05_test.go`, rejeu des vecteurs) |
+| `scripts/lib/ots.mjs`, `scripts/lib/horodatage.mjs` (référence JavaScript) | idem ; extensions connues décodées par T-7 et T-8, une valeur mal formée jugée là | mêmes règles ; `basicConstraints`, `keyUsage`, `extKeyUsage` et `subjectKeyIdentifier` décodées à la lecture du certificat | fait (`test/ots.test.js`, `test/horodatage.test.js`) |
+| `scripts/vecteurs/ct6/*`, `spec/vecteurs/ct-6/` | 12 preuves, 26 jetons, 20 et 39 cas | `o1-attestation-en-double.ots` (21 cas), `tsa-cle-longueur-non-minimale.pem`, `tsa-extension-mal-formee.pem`, `t1-cle-longueur-non-minimale.der`, `t1-extension-mal-formee.der` (28 jetons, 41 cas) ; les 93 dossiers inchangés | fait |
+| `confrontation/ots`, `confrontation/rfc3161` | lecture `acceptee` ou `refusee` ; T-1 établi par les seuls chargeurs d'OpenSSL | lecture `acceptee_en_ecrasant` (resérialisation différente) tenue pour O-1 en échec ; longueurs non minimales (`asn1parse`, `hl`) et extension connue indécodable (`x509 -purpose`, `code=-1`) tenues pour T-1 en échec | fait (`sorties/ots.txt`, `sorties/rfc3161.txt`) |
+| `spec/README.md` | CT-6 version 0.4 | CT-6 version 0.5 | fait |
+
 ## 17. Ce que cette version ne couvre pas
 
 - **Le statut qualifié établi par le vérificateur** : la lecture des listes de
@@ -6399,6 +6442,8 @@ le `periodHash` de la période 1 :
 | `t1-default-explicite.der` | `certificates` = [`tsa-critique-faux.pem`], signé par la même clé | T-1 (EX-9.21) |
 | `t1-cn-utf8-invalide.der` | `certificates` = [`tsa-cn-utf8-invalide.pem`], champ `tsa` absent | T-1 (EX-9.4) |
 | `periode-1-unite-sans-cn.der` | `certificates` = [`tsa-sans-cn.pem`], `tsa` = son sujet | aucune : jeton valide, `tsu_subject_cn` nul (EX-9.19) |
+| `t1-cle-longueur-non-minimale.der` | signé par la même clé, `certificates` = [`tsa-cle-longueur-non-minimale.pem`] : la `RSAPublicKey` du `SubjectPublicKeyInfo` porte une longueur longue non minimale (`30 83 00 01 8a`) (révision 0.5) | T-1 (EX-9.4, EX-9.7) |
+| `t1-extension-mal-formee.der` | signé par la même clé, `certificates` = [`tsa-extension-mal-formee.pem`] : la valeur de `keyUsage` est un `INTEGER` (`02 02 07 80`) au lieu d'une `BIT STRING` (révision 0.5) | T-1 (EX-9.7) |
 
 T-2 se teste avec `periode-2.der` dans un dossier de la période 1 ; T-10 avec
 `periode-1.der` et l'ancre `ancres-tsa-revoquee.json` (certificat du chemin
@@ -6425,7 +6470,12 @@ le code lu (R1 F5.12). Résultats relevés par la confrontation (A.8, OpenSSL
 `t1-default-explicite` et `periode-1-unite-sans-cn` ; `digest failure` pour
 `t3` ; `ess cert id not found` pour `t4` ; `invalid padding` et `signature
 failure` pour `t6` ; `invalid utf8string` pour `t1-cn-utf8-invalide`, qu'OpenSSL
-ne lit pas.
+ne lit pas. Révision 0.5 : `Verification: OK` pour `t1-cle-longueur-non-minimale`
+(OpenSSL lit la longueur longue non minimale ; `openssl asn1parse -strparse` de
+la clé l'imprime `hl=5` pour une valeur de 394 octets, qui tient sur quatre) et
+`certificate verify error` pour `t1-extension-mal-formee` (OpenSSL lit le jeton
+et imprime la valeur de `keyUsage` sans la décoder, puis
+`ossl_x509v3_cache_extensions` marque le certificat invalide à la vérification).
 
 **EX-A.13** (révision 0.2) `jetons/point-periode-1.der` : jeton sur le
 `checkpointHash` du **point couvrant** de l'événement seq 7 de la période 1,
@@ -6472,7 +6522,11 @@ calendrier et la transaction Bitcoin, et une attestation Bitcoin à la hauteur
 octets, O-3), `o4-mauvaise-hauteur.ots` (attestation à 1002, O-4),
 `o7-en-attente.ots` (seulement une attestation en attente d'URI
 `https://alice.btc.calendar.opentimestamps.org`, O-7), `deux-attestations.ots`
-(attestations à 1001 et 1002, AV-O-1), `attente-uri-vide.ots` (à côté de la
+(attestations à 1001 et 1002, AV-O-1), `o1-attestation-en-double.ots`
+(révision 0.5 : l'attestation à 1001 écrite deux fois sous le même nœud,
+forme non canonique, O-1, raison `doublon` ; `python-opentimestamps` la relit
+sans refus mais en écrasant le doublon, et sa resérialisation diffère du
+fichier : `attendu.json` le note `acceptee_en_ecrasant`), `attente-uri-vide.ots` (à côté de la
 branche attestée à 1001, une attestation en attente d'URI vide, que la
 bibliothèque de référence admet : O-1 réussie, AV-O-2) et
 `branche-hors-profil.ots` (à côté de la branche attestée à 1001, une branche
@@ -6718,7 +6772,7 @@ sous-répertoire a son `LISEZMOI.md` (commande, versions, limites de l'outil) :
 | Famille | Programme et sortie | Outil tiers | Ce qu'il confirme |
 |---|---|---|---|
 | `rfc3161/` | `confrontation/rfc3161/confronter_rfc3161.py`, `sorties/rfc3161.txt` | OpenSSL 3.0.13 : `ts -verify … -token_in -attime <genTime>`, `ts -reply -text`, `cms -verify` et `-cmsout -print`, `asn1parse`, `x509`, `crl`, `verify -partial_chain`, `verify -crl_check` | SHA-256 des clés, certificats, CRL et jetons ; champs de `TSTInfo` ; statut de T-1 à T-10 cas par cas (T-5 et T-11 hors outil) ; faits de EX-9.19 ; résultats d'`openssl ts -verify` inscrits dans `attendu.json` (A.3) |
-| `ots/` | `confrontation/ots/confronter_ots.py`, `sorties/ots.txt` | `python-opentimestamps` 0.4.5 (paquet PyPI `opentimestamps`, LGPL-3.0 ou ultérieure, R2-F59) et `python-bitcoinlib` 0.12.2, installés par `pip` dans un environnement virtuel et employés hors ligne (`DetachedTimestampFile.deserialize`, `verify_against_blockheader`, `CheckProofOfWork`) | lecture des `.ots`, résultat des opérations égal aux octets 36 à 67 des en-têtes ; rejet de `o1` et `o3` (R2-F67) ; statut de O-1 à O-7, du contrôle 5, avertissements et faits, cas par cas |
+| `ots/` | `confrontation/ots/confronter_ots.py`, `sorties/ots.txt` | `python-opentimestamps` 0.4.5 (paquet PyPI `opentimestamps`, LGPL-3.0 ou ultérieure, R2-F59) et `python-bitcoinlib` 0.12.2, installés par `pip` dans un environnement virtuel et employés hors ligne (`DetachedTimestampFile.deserialize`, `serialize`, `verify_against_blockheader`, `CheckProofOfWork`) | lecture des `.ots`, résultat des opérations égal aux octets 36 à 67 des en-têtes ; rejet de `o1` et `o3` (R2-F67) ; relecture en écrasant de `o1-attestation-en-double` (resérialisation différente du fichier : forme non canonique, révision 0.5) ; statut de O-1 à O-7, du contrôle 5, avertissements et faits, cas par cas |
 | `registre/` | `confrontation/registre/main.go`, `sorties/registre.txt` | go-ethereum v1.17.0 (version que noorchain-core épingle) : `types.DeriveSha`, `abi` ; `node.BFTBlockHash` et `consensus.VerifyEnvelope` de noorcore, dont le module est employé en lecture seule, sur une copie locale de noorchain-core | hachages BFT, racines des reçus, journaux décodés, enveloppes des certificats ; statut de R-1 à R-10 et N-4 de chaque jeu de parties et de chaque variante |
 | certificats | `sorties/registre-certificats.txt` | `scripts/verify/certificat-commit.mjs --chaine noortrace-2124-dev` | chaque certificat capturé, contre `validators.json` |
 
@@ -6845,6 +6899,40 @@ de vote toléré, un événement inexploitable avec les parties réservées, ni 
 des cas d'EX-4.11, EX-4.12, EX-4.16 et EX-4.17). La liste `not_executed` de
 chaque attendu est exhaustive : un vérificateur conforme rend exactement ces
 statuts.
+
+### A.10 Vecteurs de la révision 0.5
+
+**EX-A.25** (révision 0.5) `rfc3161/` reçoit deux certificats de l'unité
+construits sur la clé de `tsa-test` (mêmes champs que `tsa-test.pem`, émis par
+l'AC, numéros 14 et 15), dont la lecture selon §9.3 échoue :
+`tsa-cle-longueur-non-minimale.pem`, dont la `RSAPublicKey` du
+`SubjectPublicKeyInfo` est encodée avec une longueur longue non minimale
+(`30 83 00 01 8a` au lieu de `30 82 01 8a`, X.690 §10.1), et
+`tsa-extension-mal-formee.pem`, dont la valeur de l'extension `keyUsage` est un
+`INTEGER` (`02 02 07 80`) au lieu d'une `BIT STRING`. Jetons
+`t1-cle-longueur-non-minimale.der` et `t1-extension-mal-formee.der` : le jeton
+de `periode-1.der` signé par la même clé, `certificates` réduit au certificat
+en cause. Attendu avec `ancres-test.json` : T-1 `echoue`, T-2 à T-11
+`non_execute`, `prerequis_en_echec`, contrôle 4 `echoue`. Résultats
+d'`openssl ts -verify` relevés par la confrontation (A.8) : `Verification: OK`
+pour le premier, `certificate verify error` pour le second (A.3) ; dans les
+deux cas OpenSSL lit le certificat, et c'est le programme de confrontation qui
+relève la longueur non minimale (`openssl asn1parse -strparse` de la clé,
+`hl=5` pour une valeur de 394 octets) et l'extension indécodable (`openssl
+x509 -purpose` : `WARNING code=-1`). Ces deux jetons tiennent lieu de vecteurs
+normatifs pour les dix-huit mutations de la campagne différentielle de
+l'étape 5 (longueurs non minimales dans la clé, extensions connues mal
+formées) que la référence lisait et que le composant de production refusait.
+
+**EX-A.26** (révision 0.5) `ots/preuves/o1-attestation-en-double.ots` : la
+preuve de la période 1 dont l'attestation Bitcoin à 1001 est écrite deux fois
+sous le même nœud. Attendu : O-1 `echoue` (raison `doublon` dans le détail),
+O-2 à O-7 `non_execute`, `prerequis_en_echec`, contrôle 5 `echoue`, aucune
+attestation relevée. `python-opentimestamps` la relit sans refus mais sa
+resérialisation diffère du fichier (`attendu.json` : `parsing` =
+`acceptee_en_ecrasant`) ; `confronter_ots.py` tient cette forme pour
+inexploitable, ce qui concorde avec l'attendu sans discordance (A.8). Les
+93 dossiers de `dossiers/` ne changent pas.
 
 ## Annexe B — Sources des faits externes
 

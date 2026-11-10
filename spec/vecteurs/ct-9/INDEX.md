@@ -17,7 +17,7 @@ npm run tests:couverture   # code 0 : règles (a) à (d) et EX-4.4 tiennent
 
 ## `catalogue.json`
 
-Catalogue CT-9 0.3 du 2026-11-03 (schéma `plan-de-tests-v0`, racine) : 322
+Catalogue CT-9 0.4 du 2026-11-10 (schéma `plan-de-tests-v0`, racine) : 322
 entrées, 6 justifications NC-, 82 risques acceptés, 122 lignes TC-. Une ligne
 par entrée : identifiant, niveau, état, titre.
 
@@ -153,8 +153,8 @@ par entrée : identifiant, niveau, état, titre.
 | TI-13 | TI- | exécutable | SDK Python et TypeScript : interface publique, versions de langage, aucune exception vers l'agent |
 | TI-14 | TI- | à écrire (étape 6) | Canal réel noyau ↔ service d'approbation et console ↔ service : authentification, `evaluer`, `GET /v0/etat`, sessions |
 | TI-15 | TI- | à écrire (étape 7) | Supports WORM réels (S3, Azure, GCS) : requêtes exactes, verrou, rétention, journal d'accès |
-| TI-16 | TI- | à écrire (étape 5) | Prestataires RFC 3161 et calendriers OpenTimestamps réels : fiche de prestataire, `min_interval_ms`, qualification |
-| TI-17 | TI- | à écrire (étape 5) | Serveur RFC 3161 interne : AN-22 à AN-31 vérifiées sur un jeton émis, épreuve de redémarrage (AN-26) |
+| TI-16 | TI- | exécutable, complément à écrire | Prestataires RFC 3161 et calendriers OpenTimestamps réels : fiche de prestataire, `min_interval_ms`, qualification |
+| TI-17 | TI- | exécutable | Serveur RFC 3161 interne : AN-22 à AN-31 vérifiées sur un jeton émis, épreuve de redémarrage (AN-26) |
 | TI-18 | TI- | exécutable | Nœud noorcore et certificat de commit : JSON-RPC `noor_getCommitCertificate`, parité Go/JavaScript, confrontation go-ethereum |
 | TI-19 | TI- | exécutable | Mode ICAP : raccord à un mandataire existant, sources admises |
 | TI-20 | TI- | exécutable | Export des pièces d'un dossier vers un paquet réviseur lu par des outils tiers (GNU tar, `tarfile`) |
@@ -169,11 +169,11 @@ par entrée : identifiant, niveau, état, titre.
 | TE-9 | TE- | à écrire (étape 7) | Sauvegarde et reprise : chemins A, B et C, continuité de la chaîne, procès-verbaux |
 | TE-10 | TE- | à écrire (étape 7) | Mode observation de bout en bout : capture sans blocage, rapport d'observation, passage au mode bloquant |
 | TE-11 | TE- | exécutable | Haute disponibilité à écrivain unique : bascule du bail, pertes admises, jeton de clôture (CT-2 §13) |
-| TE-12 | TE- | à écrire (étape 5) | Ancrage complet d'une racine : point de contrôle, ancre au registre, jeton RFC 3161, preuve OpenTimestamps, dossier vérifié hors ligne |
+| TE-12 | TE- | exécutable | Ancrage complet d'une racine : point de contrôle, ancre au registre, jeton RFC 3161, preuve OpenTimestamps, dossier vérifié hors ligne |
 | TE-13 | TE- | à écrire (étape 6) | Console : un approbateur s'inscrit, signe une décision depuis son portefeuille, le dossier exporté passe le vérificateur |
-| TE-14 | TE- | à écrire (étape 5) | Journal de l'enregistreur sur lui-même : JS-1 à JS-12 observés sur le démon |
+| TE-14 | TE- | exécutable, complément à écrire | Journal de l'enregistreur sur lui-même : JS-1 à JS-12 observés sur le démon |
 | TE-15 | TE- | à écrire (étape 7) | Construction des images de référence : reproductibilité, `docker inspect`, volume nommé, compagnon d'immuabilité |
-| TE-16 | TE- | à écrire (étape 4) | Matrice des pannes de CT-2 §14 rejouée sur le démon : classification des outils, ce qui est rendu à l'hôte, ce qui est journalisé, mode dégradé |
+| TE-16 | TE- | exécutable, complément à écrire | Matrice des pannes de CT-2 §14 rejouée sur le démon : classification des outils, ce qui est rendu à l'hôte, ce qui est journalisé, mode dégradé |
 | TE-17 | TE- | à écrire (étape 7) | Supervision en charge : alertes prescrites levées sur incident, métriques `noortrace_*`, dossier produit sous charge vérifié |
 | TA-1 | TA- | à écrire (étape 8) | Réponse retirée : Règle de sortie du pare-feu : seul le mandataire joint le serveur d'outils HTTP (CT-2 EX-4.1, §4.9) |
 | TA-2 | TA- | exécutable | Réponse retirée : launched_by tiré de la configuration de la connexion d'hôte, jamais de l'hôte (CT-2 EX-7.2, EX-7.3) |
@@ -215,7 +215,7 @@ par entrée : identifiant, niveau, état, titre.
 | TA-38 | TA- | exécutable | Réponse retirée : Jeu épinglé par la politique (CT-3 EX-8.1, EX-8.6) ; garde matérielle de la clé de l'exploitant (CT-4 EX-5.4) |
 | TA-39 | TA- | exécutable | Réponse retirée : Aucune sauvegarde ni réplication de la clé de validateur (CT-4 EX-10.7, EX-10.9 ; CT-7 EX-4.4) ; CR-7 |
 | TA-40 | TA- | exécutable, complément à écrire | Réponse retirée : Destinataires admis et plafond quotidien de l'approvisionnement (CT-4 EX-8.20) |
-| TA-41 | TA- | à écrire (étape 5) | Réponse retirée : Secrets par référence, jamais dans la file, les traces ni le journal (CT-5 EX-4.8, AN-43) |
+| TA-41 | TA- | exécutable, complément à écrire | Réponse retirée : Secrets par référence, jamais dans la file, les traces ni le journal (CT-5 EX-4.8, AN-43) |
 | TA-42 | TA- | exécutable, complément à écrire | Réponse retirée : Clé du serveur RFC 3161 interne hors de l'hôte, classe A à C (CT-5 EX-7.3) ; CR-6 |
 | TA-43 | TA- | exécutable, complément à écrire | Réponse retirée : Références de secrets, fichiers 0400, jamais écrits ni journalisés (CT-2 EX-15.3, EX-18.4, EX-17.3) |
 | TA-44 | TA- | exécutable | Réponse retirée : Vérification de toute remise par le noyau : SG-5 signatures, SG-6 jeu (CT-2 EX-7.5 ; CT-3 SG-5, SG-6) |
@@ -288,15 +288,15 @@ par entrée : identifiant, niveau, état, titre.
 | TM-8 | TM- | à écrire (étape 8) | Reprise : relecture du dernier segment et du journal d'intention au démarrage (CT-2 EX-12.10) : ≤ 2 s pour 256 MiB |
 | TM-9 | TM- | à écrire (étape 8) | Mémoire résidente à vide et sous charge ; `m_0` et `M_tamp` du dimensionnement (CT-2 §16.1 ; CT-8 §9.2, §9.3) |
 | TM-10 | TM- | exécutable | P-1 sur les vecteurs : cadence des points d'une série publiée, `checkpoint_ts − ts ≤ c_K + 1 s` (CT-5 §3.6, AN-2) |
-| TM-11 | TM- | à écrire (étape 5) | P-1 sur le réseau de développement : série réelle produite par l'enregistreur, `checkpoint_ts − ts ≤ 61 s` |
-| TM-12 | TM- | à écrire (étape 5) | P-2 : inclusion de l'ancre du point au registre, reçu reçu au plus `inclusion_alert_s` (60 s) après `checkpoint_ts` |
-| TM-13 | TM- | à écrire (étape 5) | P-3 : contresignature RFC 3161 au plus `c_T + d_jeton` après l'événement, `d_jeton` rapporté avec ses quatre composantes (CT-5 EX-3.5) |
-| TM-14 | TM- | à écrire (étape 5) | P-4 : clôture horaire contresignée par un prestataire qualifié et horodatée par OpenTimestamps auprès d'au moins deux calendriers |
+| TM-11 | TM- | exécutable, complément à écrire | P-1 sur le réseau de développement : série réelle produite par l'enregistreur, `checkpoint_ts − ts ≤ 61 s` |
+| TM-12 | TM- | exécutable | P-2 : inclusion de l'ancre du point au registre, reçu reçu au plus `inclusion_alert_s` (60 s) après `checkpoint_ts` |
+| TM-13 | TM- | exécutable | P-3 : contresignature RFC 3161 au plus `c_T + d_jeton` après l'événement, `d_jeton` rapporté avec ses quatre composantes (CT-5 EX-3.5) |
+| TM-14 | TM- | exécutable, complément à écrire | P-4 : clôture horaire contresignée par un prestataire qualifié et horodatée par OpenTimestamps auprès d'au moins deux calendriers |
 | TM-15 | TM- | exécutable | P-5 : un dossier se vérifie hors ligne, sans réseau ni concours du fournisseur, points de contrôle compris |
-| TM-16 | TM- | exécutable, complément à écrire | P-6 : copie à verrou d'objet des points, ancres et manifestes, SHA-256 égal, mode et rétention lus par l'API du support |
-| TM-17 | TM- | à écrire (étape 5) | Mesures en charge du planificateur d'ancrage : débit de points, journaux par instance, taille de la file en régime de panne (CT-5 §15) |
-| TM-18 | TM- | à écrire (étape 5) | AN-26 : numéros de série du serveur RFC 3161 interne strictement croissants à travers un redémarrage |
-| TM-19 | TM- | à écrire (étape 5) | AN-24 : précision déclarée (`accuracy`) d'au plus 1 s dans chaque jeton émis par le serveur interne ; écart d'horloge journalisé |
+| TM-16 | TM- | exécutable | P-6 : copie à verrou d'objet des points, ancres et manifestes, SHA-256 égal, mode et rétention lus par l'API du support |
+| TM-17 | TM- | exécutable, complément à écrire | Mesures en charge du planificateur d'ancrage : débit de points, journaux par instance, taille de la file en régime de panne (CT-5 §15) |
+| TM-18 | TM- | exécutable | AN-26 : numéros de série du serveur RFC 3161 interne strictement croissants à travers un redémarrage |
+| TM-19 | TM- | exécutable | AN-24 : précision déclarée (`accuracy`) d'au plus 1 s dans chaque jeton émis par le serveur interne ; écart d'horloge journalisé |
 | TM-20 | TM- | exécutable | EX-7.18 de CT-7 : les six exigences de parité de l'attestation de périmètre, constatées sur tous les vecteurs |
 | TM-21 | TM- | à écrire (étape 7) | EX-7.1 de CT-8 : installation rapide IR-1 à IR-8 en 900 s au plus, pas par pas, par une personne extérieure |
 | TM-22 | TM- | à écrire (étape 7) | EX-8.1 de CT-8 : installation complète IC-1 à IC-18, durée totale sous 480 min (cible 450 min), pas par pas, attente de clôture relevée à part |
@@ -307,7 +307,7 @@ par entrée : identifiant, niveau, état, titre.
 | TM-27 | TM- | à écrire (étape 7) | CT-8 §3.5 : durée de vie DNS du nom du répartiteur d'au plus 30 secondes |
 | TM-28 | TM- | à écrire (étape 7) | EX-3.13 de CT-8 : égalité des condensés de deux constructions indépendantes de chaque image, du binaire du vérificateur et de la console |
 | TM-29 | TM- | à écrire (étape 7) | EX-6.2 de CT-8 : seuils « cible » du contrôle préalable (IP-2 processeurs et mémoire, IP-3 espace libre) confrontés à la consommation observée |
-| TM-30 | TM- | à écrire (étape 5) | Coefficient `b_ots` de CT-8 §9.2 : octets d'une preuve OpenTimestamps mise à niveau (défaut 233 en attente) |
+| TM-30 | TM- | exécutable, complément à écrire | Coefficient `b_ots` de CT-8 §9.2 : octets d'une preuve OpenTimestamps mise à niveau (défaut 233 en attente) |
 | TM-31 | TM- | exécutable | Coefficient `b_cap` de CT-8 §9.2 : octets de la capture d'une transaction d'un bloc plein de 64 ancres (mesure du 2026-11-02 reprise par CT-8 révision 0.2) |
 | TM-32 | TM- | à écrire (étape 3) | Coefficient `blocs_par_s` de CT-8 §9.2 sur l'instance de production du registre (réseau de développement : 1,10 le 2026-10-25) |
 | TM-33 | TM- | à écrire (étape 7) | Coefficients sans valeur par défaut de CT-8 §9.2 : `f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl` (hypothèses de 9.5 jusqu'à la mesure) |
@@ -318,8 +318,8 @@ par entrée : identifiant, niveau, état, titre.
 | TM-38 | TM- | à écrire (étape 8) | Mode observation (CT-8 §12.2) : latence ajoutée et durée d'écriture, cibles de CT-2 §16.1, par paire avec et sans l'enregistreur |
 | TM-39 | TM- | à écrire (étape 7) | EX-11.19 de CT-8 : disponibilité et format du journal d'accès aux objets chez chaque fournisseur de support WORM |
 | TM-40 | TM- | à écrire (étape 7) | IP-5 de CT-8 : ordre des champs de `chronyc -c tracking` relevé sur chrony 4.6 |
-| TM-41 | TM- | à écrire (étape 5) | Fenêtre d'ordre observée `W_ordre` : délai entre un événement et l'inclusion au registre du premier point qui l'engage (CT-5 §3.3 : 60 s + d_registre) |
-| TM-42 | TM- | à écrire (étape 5) | Fenêtre de réécriture pour la date, observée : `rewrite_window_end − ts` du premier point contresigné qui engage l'événement ; critère de la porte 2 : au plus 5 minutes |
+| TM-41 | TM- | exécutable, complément à écrire | Fenêtre d'ordre observée `W_ordre` : délai entre un événement et l'inclusion au registre du premier point qui l'engage (CT-5 §3.3 : 60 s + d_registre) |
+| TM-42 | TM- | exécutable | Fenêtre de réécriture pour la date, observée : `rewrite_window_end − ts` du premier point contresigné qui engage l'événement ; critère de la porte 2 : au plus 5 minutes |
 | TM-43 | TM- | à écrire (étape 8) | EX-19.1 de CT-2 : la démonstration de référence se déroule en moins de deux minutes, temps mesuré et imprimé par `verificateur` |
 | TM-44 | TM- | à écrire (étape 8) | Capture d'une transaction d'un bloc plein qui mêle des clôtures : octets (réserve de CT-8 §9.2, que TM-31, mesuré sur un bloc d'ancres seules, ne lève pas) |
 | TR-1 | TR- | à écrire (étape 8) | CT-3 annexe A.5 : trois relecteurs (approbateur, auditeur, développeur) tirent la même décision sur dix cas d'une politique |
@@ -350,9 +350,9 @@ par entrée : identifiant, niveau, état, titre.
 
 Sortie de l'outil de couverture (`node scripts/tests/couverture.mjs --json`,
 forme `rapport_couverture`) sur le dépôt et ce catalogue : verdict `reussi` ;
-2348 identifiants définis par CT-1 à CT-8, 2209 couverts par une entrée, 139 par
+2350 identifiants définis par CT-1 à CT-8, 2211 couverts par une entrée, 139 par
 une justification NC-, 0 non couvert(s) ; 98 menaces sur 98 avec un TA- ; 122
-occurrences de « CT-9 » et 122 lignes TC- ; 208 entrées exécutables citant 405
+occurrences de « CT-9 » et 122 lignes TC- ; 224 entrées exécutables citant 489
 titres ou étapes, 0 absent(s) ; 15 tables du texte comparées, 0 différence(s).
 
 ## `index-ta-par-menace.json`

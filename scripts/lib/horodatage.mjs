@@ -12,8 +12,10 @@
 //   - un lecteur DER borné (§9.3, EX-9.4) : longueurs définies minimales,
 //     étiquettes de numéro < 31, BOOLEAN 00 ou ff, types universels de forme
 //     correcte, profondeur 32, aucun octet en trop ;
-//   - la lecture d'un certificat X.509, d'une CRL, d'un TimeStampToken et de
-//     son TSTInfo ;
+//   - la lecture d'un certificat X.509 (SubjectPublicKeyInfo et RSAPublicKey,
+//     basicConstraints, keyUsage, extKeyUsage et subjectKeyIdentifier lus par
+//     le même lecteur : une défaillance rend le certificat illisible, EX-9.7),
+//     d'une CRL, d'un TimeStampToken et de son TSTInfo ;
 //   - les vérifications T-1 à T-11 (verifierJeton) et le statut du contrôle 4
 //     (EX-9.18), les faits rapportés (EX-9.19) et la proposition de l'énoncé
 //     (EX-9.20) ;
@@ -662,6 +664,26 @@ export function lireCertificat(entree, { quoi = "certificat" } = {}) {
   const sujetN = tbs[i++];
   controlerNom(sujetN, `${quoi} : subject`);
   const spkiN = attendre(tbs[i++], 0x30, `${quoi} : subjectPublicKeyInfo`);
+  // SubjectPublicKeyInfo lu selon 9.3 (EX-9.4, EX-9.7) : AlgorithmIdentifier et BIT STRING sans bit inutilisé ;
+  // pour rsaEncryption, les octets de la BIT STRING sont une RSAPublicKey DER (RFC 8017) lue par le même
+  // lecteur borné : une longueur non minimale ou une structure fausse rend le certificat illisible (T-1).
+  const spkiE = sequence(spkiN, `${quoi} : subjectPublicKeyInfo`);
+  if (spkiE.length !== 2) throw new ErreurDER(`${quoi} : subjectPublicKeyInfo mal formé`);
+  const algCle = algorithme(spkiE[0], `${quoi} : subjectPublicKeyInfo.algorithm`);
+  const cleBits = bitString(spkiE[1], `${quoi} : subjectPublicKey`);
+  if (cleBits.inutilises !== 0) throw new ErreurDER(`${quoi} : subjectPublicKey avec ${cleBits.inutilises} bit(s) inutilisé(s)`);
+  if (algCle.oid === OID.rsaEncryption) {
+    let rk;
+    try {
+      rk = sequence(lireDER(cleBits.octets), `${quoi} : RSAPublicKey`);
+    } catch (err) {
+      if (!(err instanceof ErreurDER)) throw err;
+      throw new ErreurDER(`${quoi} : RSAPublicKey illisible (${err.message})`);
+    }
+    if (rk.length !== 2) throw new ErreurDER(`${quoi} : RSAPublicKey à ${rk.length} élément(s), deux INTEGER attendus`);
+    entier(rk[0], `${quoi} : RSAPublicKey.modulus`);
+    entier(rk[1], `${quoi} : RSAPublicKey.publicExponent`);
+  }
   let extensions = [];
   while (i < tbs.length) {
     const n = tbs[i++];
@@ -676,20 +698,10 @@ export function lireCertificat(entree, { quoi = "certificat" } = {}) {
     }
     throw new ErreurDER(`${quoi} : élément inattendu dans TBSCertificate`);
   }
-  // basicConstraints lu dès la lecture : cA codé explicitement à FALSE est une
-  // valeur DEFAULT encodée et rend le certificat illisible (EX-9.21).
-  const bcExt = extensions.find((e) => e.oid === OID.basicConstraints);
-  if (bcExt) {
-    let cAFauxExplicite = false;
-    try {
-      const e = sequence(lireDER(bcExt.valeur), `${quoi} : basicConstraints`);
-      cAFauxExplicite = e[0]?.etiquette === 0x01 && !booleen(e[0], `${quoi} : cA`);
-    } catch (err) {
-      // Une extension mal formée est jugée par T-7 et T-8, qui la lisent.
-      if (!(err instanceof ErreurDER)) throw err;
-    }
-    if (cAFauxExplicite) throw new ErreurDER(`${quoi} : cA codé explicitement à FALSE (valeur DEFAULT encodée)`);
-  }
+  // Extensions connues décodées dès la lecture (EX-9.7 : « toute défaillance de lecture selon 9.3 met T-1
+  // en échec ») : basicConstraints (cA codé explicitement à FALSE est une valeur DEFAULT encodée, EX-9.21),
+  // keyUsage, extKeyUsage et subjectKeyIdentifier ; une valeur mal formée rend le certificat illisible.
+  const connues = decoderExtensionsConnues(extensions, quoi);
   const algorithmeSignature = algorithme(algN, `${quoi} : signatureAlgorithm`);
   // Les deux AlgorithmIdentifier doivent être identiques (RFC 5280 §4.1.1.2).
   if (!egalOctets(algN.octets(), algInterneN.octets())) throw new ErreurDER(`${quoi} : signatureAlgorithm différent de TBSCertificate.signature`);
@@ -710,6 +722,7 @@ export function lireCertificat(entree, { quoi = "certificat" } = {}) {
     cle: regleCle(spkiN.octets()),
     extensions,
     extension: (id) => extensions.find((e) => e.oid === id) ?? null,
+    ...connues,
     algorithmeSignature,
     signatureInutilises: sig.inutilises,
     signature: Buffer.from(sig.octets),
@@ -719,37 +732,58 @@ export function lireCertificat(entree, { quoi = "certificat" } = {}) {
 const egalOctets = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)) === 0;
 
 /** basicConstraints : { cA, pathLen } ou null. */
-function contraintesDeBase(cert) {
-  const ext = cert.extension(OID.basicConstraints);
-  if (!ext) return null;
-  const e = sequence(lireDER(ext.valeur), "basicConstraints");
-  let k = 0;
-  let cA = false;
-  if (e[k]?.etiquette === 0x01) cA = booleen(e[k++], "cA");
-  const pathLen = e[k] ? petitEntier(e[k++], "pathLenConstraint") : null;
-  if (k !== e.length) throw new ErreurDER("basicConstraints mal formé");
-  return { cA, pathLen, critique: ext.critique };
+/**
+ * Décode à la lecture du certificat les quatre extensions que les vérifications
+ * emploient (EX-9.7, EX-9.21) : rend { bc, ku, eku, ski } (null pour une
+ * extension absente) ; lève ErreurDER pour une valeur mal formée.
+ */
+function decoderExtensionsConnues(extensions, quoi) {
+  const trouver = (id) => extensions.find((e) => e.oid === id) ?? null;
+  // Valeur d'extension lue comme une structure DER complète (profondeur comptée depuis sa racine).
+  const valeur = (ext, nom) => {
+    try {
+      return lireDER(ext.valeur);
+    } catch (err) {
+      if (!(err instanceof ErreurDER)) throw err;
+      throw new ErreurDER(`${quoi} : ${nom} : ${err.message}`);
+    }
+  };
+  const bcExt = trouver(OID.basicConstraints);
+  let bc = null;
+  if (bcExt) {
+    const e = sequence(valeur(bcExt, "basicConstraints"), `${quoi} : basicConstraints`);
+    let k = 0;
+    let cA = false;
+    if (e[k]?.etiquette === 0x01) {
+      cA = booleen(e[k++], `${quoi} : cA`);
+      // Valeur DEFAULT encodée (X.690 §11.5) : cA explicite à FALSE (EX-9.21).
+      if (!cA) throw new ErreurDER(`${quoi} : cA codé explicitement à FALSE (valeur DEFAULT encodée)`);
+    }
+    const pathLen = e[k] ? petitEntier(e[k++], `${quoi} : pathLenConstraint`) : null;
+    if (k !== e.length) throw new ErreurDER(`${quoi} : basicConstraints mal formé`);
+    bc = { cA, pathLen, critique: bcExt.critique };
+  }
+  const kuExt = trouver(OID.keyUsage);
+  let ku = null;
+  if (kuExt) {
+    const { octets } = bitString(valeur(kuExt, "keyUsage"), `${quoi} : keyUsage`);
+    ku = new Set();
+    for (let i = 0; i < octets.length * 8; i++) if (octets[i >> 3] & (0x80 >> (i & 7))) ku.add(i);
+  }
+  const ekuExt = trouver(OID.extKeyUsage);
+  const eku = ekuExt ? { critique: ekuExt.critique, oids: sequence(valeur(ekuExt, "extKeyUsage"), `${quoi} : extKeyUsage`).map((n) => oid(n, `${quoi} : KeyPurposeId`)) } : null;
+  const skiExt = trouver(OID.subjectKeyIdentifier);
+  const ski = skiExt ? Buffer.from(octetString(valeur(skiExt, "subjectKeyIdentifier"), `${quoi} : subjectKeyIdentifier`)) : null;
+  return { bc, ku, eku, ski };
 }
-/** keyUsage : ensemble des numéros de bits positionnés, ou null. */
-function usagesCle(cert) {
-  const ext = cert.extension(OID.keyUsage);
-  if (!ext) return null;
-  const { octets } = bitString(lireDER(ext.valeur), "keyUsage");
-  const bits = new Set();
-  for (let i = 0; i < octets.length * 8; i++) if (octets[i >> 3] & (0x80 >> (i & 7))) bits.add(i);
-  return bits;
-}
-/** extKeyUsage : { critique, oids }, ou null. */
-function usagesEtendus(cert) {
-  const ext = cert.extension(OID.extKeyUsage);
-  if (!ext) return null;
-  return { critique: ext.critique, oids: sequence(lireDER(ext.valeur), "extKeyUsage").map((n) => oid(n, "KeyPurposeId")) };
-}
-/** Valeur de subjectKeyIdentifier, ou null. */
-function identifiantCleSujet(cert) {
-  const ext = cert.extension(OID.subjectKeyIdentifier);
-  return ext ? Buffer.from(octetString(lireDER(ext.valeur), "subjectKeyIdentifier")) : null;
-}
+/** basicConstraints : { cA, pathLen, critique }, ou null (décodé à la lecture). */
+const contraintesDeBase = (cert) => cert.bc;
+/** keyUsage : ensemble des numéros de bits positionnés, ou null (décodé à la lecture). */
+const usagesCle = (cert) => cert.ku;
+/** extKeyUsage : { critique, oids }, ou null (décodé à la lecture). */
+const usagesEtendus = (cert) => cert.eku;
+/** Valeur de subjectKeyIdentifier, ou null (décodée à la lecture). */
+const identifiantCleSujet = (cert) => cert.ski;
 
 /**
  * Lit une CRL X.509 (RFC 5280 §5). Rend { der, tbs, emetteur, thisUpdate,

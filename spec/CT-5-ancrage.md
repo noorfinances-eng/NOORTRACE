@@ -1,7 +1,7 @@
 # CT-5 — Ancrage
 
-Version 0.3, 2026-11-03 (la version 0.2 est du 2026-10-26, la version 0.1 du
-2026-10-25). Spécification normative, soumise à la revue de la porte 1 du
+Version 0.5, 2026-11-10 (la version 0.4 est du 2026-11-09, la version 0.3 du
+2026-11-03, la version 0.2 du 2026-10-26, la version 0.1 du 2026-10-25). Spécification normative, soumise à la revue de la porte 1 du
 plan de projet (document interne). Elle met en œuvre les points 2
 et 3 de la section « Ancrage » de l'[architecture cible](../ARCHITECTURE.md)
 (horodatage qualifié RFC 3161, ancrage public OpenTimestamps) et son option
@@ -50,6 +50,41 @@ fois l'ancien ordre de grandeur. Sections touchées : en-tête et cette note ;
 9.3 (EX-9.9) ; 12.4 ; 15 (mesures en charge). Aucune règle n'est ajoutée ni
 retirée, EX-9.9 garde son effet normatif ; aucun schéma, aucun vecteur de
 `spec/vecteurs/ct-5`, aucun outil ne change.
+
+**Révision 0.4** (2026-11-09), minimale et textuelle, après la relecture
+adversariale de l'étape 5 de la construction (composant d'ancrage de production
+confronté à l'implémentation de référence). Trois précisions, sans règle
+nouvelle : (1) EX-8.9 et la table d'EX-5.12 : l'attente tirée d'un en-tête
+`Retry-After` (429 et 503 seulement) est **bornée**, au moins `retry.initial_ms`,
+au plus `retry.max_ms`, et la valeur consignée `retry_after_s` est celle lue,
+plafonnée à 604 800 s (borne de `$defs/tentative` du schéma
+`planificateur-ancrage-v0`) : un `Retry-After` nul faisait tourner la reprise
+sans attente et grossir la file à chaque tentative (démontré : 1 366 requêtes
+en deux minutes, chaque ligne de file réécrivant toutes les tentatives), un
+`Retry-After` hors borne rendait la ligne de file non conforme au schéma ; (2)
+EX-4.1 et 8.9 : le délai de `2 × c_K` de l'alerte `point_manquant` court depuis
+le `checkpoint_ts` du dernier point admis, non depuis son admission, de sorte
+qu'un point reçu longtemps après sa production (saut d'horloge, arrêt du
+processus) la lève dès sa relecture, et le point de clôture n'arme aucune
+minuterie ; (3) EX-4.9 était déjà clair (« valide le document contre son
+schéma, puis applique les règles ») : l'implémentation de référence s'y
+conforme. Sections touchées : en-tête et cette note ; 4.2 (EX-4.1) ; 5.4
+(EX-5.12) ; 8.9 (EX-8.9, alertes) ; 8.10 ; 14 ; annexe A (A.3, A.4). Vecteurs :
+une trace de plus, `point-manquant-saut-horloge` (vingt-deux traces), et la
+trace `file-perdue` recalculée (l'alerte `point_manquant` du point K3 relu au
+redémarrage de 13:56 est due à 13:56, deux minutes après son `checkpoint_ts`
+13:54, et non à 13:58) ; les vingt autres traces et les vingt-huit réponses
+ne changent pas. Aucun schéma ne change ; l'implémentation de référence
+(`scripts/lib/ancrage.mjs`) et le vérificateur Go indépendant sont alignés.
+
+**Révision 0.5** (2026-11-10), textuelle, à la fermeture de l'étape 5 de la
+construction : le test de la relève de la clôture par le secours qualifié
+après retrait de `qualified` (EX-5.9), que les révisions précédentes disaient
+« à écrire », est écrit pour le composant d'ancrage de production. Sections
+touchées : en-tête et cette note ; 5.3 (EX-5.9, dernière phrase du
+paragraphe) ; 14 (ligne « Retrait de la qualification du principal »). Aucune
+règle, aucun schéma, aucun vecteur, aucun outil ne change ; l'implémentation
+de référence et ses vecteurs n'exercent toujours pas le retrait.
 
 La spécification a deux parties. La **partie A** (sections 0 à 6) dit ce que
 l'ancrage prouve et ne prouve pas, quelle fenêtre de réécriture il laisse,
@@ -473,7 +508,8 @@ les événements de la période lui sont remis, `root` et `last_hash` sont
 recalculés, `admettrePoint`), puis décide de ses ancres. L'alignement n'est
 pas une condition d'admission : un point hors cadence est admis et ancré, et
 l'écart est constaté (`constaterCadence`, AN-2) et alerté (`point_manquant`
-quand aucun point n'est admis pendant `2 × c_K`, 8.9). Il lit
+quand aucun point n'est admis pendant `2 × c_K` après le `checkpoint_ts` du
+dernier point admis, 8.9). Il lit
 `checkpoint_interval_s` dans sa configuration (4.4) et refuse au démarrage une
 valeur différente de celle de l'enregistreur (AN-1).
 
@@ -1130,7 +1166,9 @@ s'applique comme pour une erreur permanente du principal (EX-5.7) ; AN-1
 désigné. Cette règle est normative pour le composant d'ancrage ; dans la
 version 0, ni la référence ni les vecteurs ne l'exercent (aucune entrée du
 planificateur ne porte le retrait) : l'exploitant l'applique en provoquant la
-relève, et le test reste à écrire (CT-9, section 14). Les jetons déjà promus
+relève ; le composant d'ancrage de production l'éprouve (relève par le
+secours tant que la configuration n'est pas rechargée, refus du rechargement
+sans principal qualifié : entrées TI-16 et TC-24 de CT-9). Les jetons déjà promus
 gardent l'instantané `qualified` consigné à leur acquisition (EX-5.13). Pour le réviseur, tout ceci est déclaratif : il établit lui-même
 le statut dans son fichier d'ancres (CT-6 §12.5, T-11) ; l'instantané de
 `qualified` au moment de l'acquisition est consigné (5.4) et transmis
@@ -1189,8 +1227,9 @@ manifeste.
 classée `transitoire` ou `permanente` ; la file (section 8) rejoue une erreur
 transitoire avec l'attente de `retry` (initiale `initial_ms`, multipliée par
 `factor` à chaque échec, plafonnée à `max_ms`, plus une gigue uniforme dans
-`[0, jitter_ms]`), en respectant un en-tête `Retry-After` quand il est présent
-(secondes ou date RFC 1123), et ne rejoue **jamais** une erreur permanente
+`[0, jitter_ms]`), en respectant, sur 429 et 503, un en-tête `Retry-After` quand
+il est présent (secondes ou date RFC 1123 ; borné par EX-8.9), et ne rejoue
+**jamais** une erreur permanente
 sans modification (changement de prestataire, de politique ou de
 configuration) :
 
@@ -1198,7 +1237,8 @@ configuration) :
 |---|---|---|
 | Erreur de transport : résolution de nom, connexion, TLS, réinitialisation, délai `request_timeout_ms` | transitoire | rejouer ; nouveau nonce |
 | HTTP 408 | transitoire | rejouer immédiatement une fois, puis avec attente |
-| HTTP 429, 500, 502, 503, 504 | transitoire | rejouer après `Retry-After` ou l'attente de `retry` |
+| HTTP 429, 503 | transitoire | rejouer après `Retry-After` quand la réponse en porte un, borné par `[retry.initial_ms, retry.max_ms]` (EX-8.9), sinon après l'attente de `retry` |
+| HTTP 500, 502, 504 | transitoire | rejouer après l'attente de `retry` (un `Retry-After` porté par ces réponses n'est pas suivi, EX-8.9) |
 | Autre HTTP 4xx ou 5xx, `Content-Type` non admis, corps trop long, réponse illisible | permanente | ne pas rejouer ; alerte ; relève (EX-5.7) |
 | `PKIStatus` 2 (`rejection`) avec `badAlg`, `badRequest`, `badDataFormat`, `unacceptedPolicy`, `unacceptedExtension`, `addInfoNotAvailable` | permanente | la requête est en cause : alerte nominative ; relève |
 | `PKIStatus` 2 avec `timeNotAvailable` ou `systemFailure`, `PKIStatus` 3 (`waiting`) | transitoire | rejouer ; nouveau nonce |
@@ -1959,8 +1999,15 @@ l'alerte `prestataires_epuises` est critique.
 
 **EX-8.9** Attente de reprise (EX-5.12). Après une `echec_transitoire` ou une
 `reponse_tardive`, la tentative suivante est programmée à `now + d`, où : `d =
-Retry-After` si la réponse 429 ou 503 en porte un (secondes ou date RFC 1123 ;
-RFC 9162 §4, R1-F68 ; R1-F70) ; `d = 0` sur le premier 408 d'une demande chez
+min(retry.max_ms, max(retry.initial_ms, Retry-After))` si la réponse 429 ou 503
+en porte un (secondes ou date RFC 1123, ramenée à un délai depuis la
+réception ; RFC 9162 §4, R1-F68 ; R1-F70 ; révision 0.4 : la borne basse
+empêche un `Retry-After` nul de faire rejouer sans attente, la borne haute
+empêche un `Retry-After` de plusieurs jours d'endormir la demande au-delà de
+`retry.max_ms` ; la valeur consignée `retry_after_s` de la tentative est celle
+lue, plafonnée à 604 800 s, borne de `$defs/tentative` du schéma
+`planificateur-ancrage-v0` ; un `Retry-After` porté par une réponse 408, 500,
+502 ou 504 n'est pas suivi) ; `d = 0` sur le premier 408 d'une demande chez
 un prestataire (R1-F70), puis la règle générale ; sinon `d = min(retry.max_ms,
 retry.initial_ms × retry.factor^(k−1)) + gigue`, `k` étant le nombre
 d'échecs transitoires consécutifs de cette demande chez ce prestataire et la
@@ -2088,7 +2135,11 @@ qu'il a été sollicité : majeure pour le principal) ; `prestataires_epuises`
 incident de CT-4 §8.3) ; `horloge_suspecte` et `revoque` (EX-5.11, EX-5.12 :
 mineure et critique) ; `reponse_tardive_promue` (troisième réponse tardive
 promue, EX-5.11 : mineure) ; `point_manquant` (aucun point admis pendant
-`2 × c_K`, EX-4.1, AN-2 : majeure ; elle ne porte que sur la production des
+`2 × c_K` après le `checkpoint_ts` du dernier point admis, EX-4.1, AN-2 :
+majeure ; révision 0.4 : le délai court depuis l'instant déclaré du point, non
+depuis son admission, de sorte qu'un point reçu longtemps après sa production,
+après un saut d'horloge ou un arrêt, la lève dès sa relecture, et le point de
+clôture n'arme aucune minuterie ; elle ne porte que sur la production des
 points, jamais sur leur contresignature, que `prestataire_injoignable` et
 `noortrace_anchoring_window_s` suivent, 3.3) ; `jeton_anterieur_au_point`
 (`genTime + précision < checkpoint_ts −
@@ -3772,7 +3823,11 @@ d'EX-8.12), `ots-mise-a-niveau` (soumission, 404 en attente, puis attestation
 Bitcoin : `complete`, réexport), `preuve-de-vie` (`countersign_idle` vrai),
 `file-pleine` (`max_pending` atteint : points non ancrés, clôture toujours
 servie), `prestataire-min-interval` (`min_interval_ms` respecté entre deux
-demandes vers le même prestataire).
+demandes vers le même prestataire) ; les neuf traces de la révision 0.2 sont
+listées en A.3 ; révision 0.4 : `point-manquant-saut-horloge` (le point de
+09:59 du journal des vecteurs reçu à 12:30 : alertes `point_manquant` dues à
+09:02 et à 10:01 émises à la reprise, aucune après le point de clôture,
+contresignature tardive).
 
 ### 8.11 Vérifications
 
@@ -4402,7 +4457,8 @@ sont pas modifiés par ce lot : la dernière ligne dit ce qui doit y changer.
 | CT-4 §6.9 (RG-3, vecteur `doctypes.json`), exemple d'EX-4.19 et ligne « Débit d'une clé » de §12 recalculés, outil `ancrer --point` | un libellé dans le vecteur ; budget à deux opérations par période | section 9.5 | à faire (CT-4, révision suivante ; vecteurs ct-4 et outil inchangés par ce lot) |
 | CT-6 §5.4, §6.5, §6.7, §7.9, §9.9, §10.9, §11.9, §12.5, §13.4, annexe A | contrôle 4 sur `periodHash` seul ; `registre.json` à trois rôles ; aucune exigence pour les points | K-1 à K-9 rattachées aux contrôles 3 (K-1, K-2, K-4, K-5), 6 (K-3), 2 (K-6), 4 (K-7), 8 (K-8) et 5 (K-9), une K- `non_execute` étant sans effet sur le statut du contrôle (EX-5.7, EX-5.8) ; raisons de non-exécution `partie_absente` (ancre `null`), `ancre_absente`, `piece_hors_dossier` (K-6), `prerequis_en_echec` (EX-5.9) ; fragment FK de l'énoncé « l'événement est couvert par le point de contrôle du journal […], horodaté au plus tard le … ; une réécriture postérieure à cet instant serait détectée » (EX-6.16) et `facts.checkpoint` avec `rewrite_window_end` et `rewrite_window_ms` (EX-6.17) ; section 7.9 (ce que le verdict prouve de nouveau : fenêtre de réécriture bornée au point) ; rôle `ancre_point_de_controle` de `registre.json` (une entrée au plus, 17 entrées au plus), vérification R-11 à part, R-9 inchangée (§11.9) ; AV-K-1 à AV-K-3 ; EX-13.14 à EX-13.19 (§13.4) ; vecteurs EX-A.13 à EX-A.17 | fait (CT-6 révision 0.2, 2026-10-25 ; code et vecteurs faits) |
 | `scripts/lib/ancrage.mjs`, vérificateur Go, traces (révision 0.2) | — | ligne `envoyee` écrite avant l'envoi (EX-8.5, AN-32) ; dernier point contresigné et échéances rendues sur refus (EX-4.3) ; repli de clôture (EX-4.2) ; reconstruction de la file et fichiers d'époque (EX-8.12, EX-8.5 règle 6) ; alertes `point_manquant`, `jeton_anterieur_au_point`, `contresignature_tardive`, `reponse_tardive_promue` ; classement des étapes 1 et 5 (EX-5.10) ; admission avec racine et `last_hash` (AN-3) ; `constaterCadence`, `verifierCompletudeRegistre` (AN-61), `lireFiles` ; quatre composantes de `d_jeton` sur la ligne `checkpoint_countersigned` (EX-3.5, 8.9) ; neuf traces nouvelles (vingt et une) et la famille `completude` | fait |
-| Retrait de la qualification du principal (EX-5.9) | — | relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée | à faire (règle normative pour le composant d'ancrage ; aucune entrée du planificateur ne porte le retrait, la règle est appliquée par l'exploitant, qui provoque la relève ; test à écrire, CT-9) |
+| `scripts/lib/ancrage.mjs`, vérificateur Go, traces (révision 0.4) | `Retry-After` suivi sans borne ; `point_manquant` armé à l'admission du point ; `verifierConfiguration` sans validation de schéma | `calculerAttente` borné par `[retry.initial_ms, retry.max_ms]`, `retry_after_s` plafonné à 604 800 s (EX-8.9) ; minuterie de cadence armée `2 × c_K` après le `checkpoint_ts` du dernier point admis, aucune pour le point de clôture (EX-4.1, 8.9) ; schéma `ancrage-v0` validé avant les huit règles, violations de règle `schema`, aucune levée sur un document de forme quelconque (EX-4.9) ; trace `point-manquant-saut-horloge`, trace `file-perdue` recalculée | fait |
+| Retrait de la qualification du principal (EX-5.9) | — | relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée | fait pour le composant d'ancrage (révision 0.5 : relève éprouvée, TI-16 et TC-24 de CT-9) ; aucune entrée du planificateur de référence ne porte le retrait, l'exploitant l'applique en provoquant la relève |
 | CT-8 | — | alertes de 8.9, sauvegarde du répertoire d'ancres et de la file, fin de rétention (EX-5.15, EX-8.14), source d'en-têtes Bitcoin (EX-6.8), capacité de capture et dimensionnement (EX-9.9, 12.4), exploitation du serveur interne (7.2), réétablissement de `qualified` tous les trente jours (EX-5.9) | proposition |
 | CT-9 | — | tests attachés aux EX- et AN- des deux parties (AN-1 à AN-61) ; mesures P-1 à P-6 de 3.6 ; épreuve à l'aveugle (un relecteur qui n'a que CT-5 et CT-1 §9 à §11 dit la cadence des points, ce qu'un point prouve et ne prouve pas, la fenêtre, le coût pour un prix unitaire donné, la conduite quand le prestataire est injoignable ; un second relecteur lit CT-6 §7 révisée) | proposition |
 | `spec/README.md` | CT-5 « à écrire » | CT-5 version 0.2 en revue ; lignes des schémas `ancrage-v0` (4.4) et `planificateur-ancrage-v0` (8.10) ; section « CT-5 (`vecteurs/ct-5/`) » avec la table de l'annexe A.4 ; versions de CT-1 (0.3), CT-4 (0.3) et CT-6 (0.2) ; `-r spec/schemas/point-de-controle-v0.schema.json` dans les commandes qui chargent le schéma de dossier | fait |
@@ -4550,6 +4606,7 @@ spec/vecteurs/ct-5/
     refus-puis-preuve-de-vie.json, refus-puis-preuve-de-vie-redemarrage.json, file-perdue.json,
     bascule-epoque.json, bascule-epoque-fichier-perdu.json, registre-indisponible-cloture.json,
     mi-periode-impair.json, reponse-hors-profil.json, point-manquant.json   (révision 0.2 : vingt et une traces)
+    point-manquant-saut-horloge.json   (révision 0.4 : vingt-deux traces)
   reprise/
     <trace>.avant.ndjson, <trace>.apres.ndjson    files avant et après le démarrage des traces qui en ont une, une demande par ligne (JCS intégral)
     <trace>.epoque-<n>.ndjson                     fichiers d'époque relus ensemble (bascule-epoque, EX-8.5 règle 6)
@@ -4568,7 +4625,7 @@ spec/vecteurs/ct-5/
 | `requetes` | `requete-point-k2` (EX-5.1 : 69 octets, nonce `0x74a6f4979421411e`) ; `point-k2-exemple` (69 octets, nonce `0x018032ff0d74cfda`, SHA-256 `0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a`) ; `point-k2-exemple-politique-interne` (81 octets, `reqPolicy` `1.3.6.1.4.1.99999.1.1`) ; `periode-1-reference` (70 octets : nonce `0xf144cca6ec50dcdb` à bit haut, octet `00` de tête dans l'INTEGER) ; `periode-1-reference-tentative-2` (70 octets, nonce `0xe514f7e31f6ba99e`) ; `periode-1-vecteurs` (69 octets, nonce `0x29ccc3c9db80e87b`) ; cas refusés par le constructeur : condensé de 31 octets, nonce nul, nonce encodé avec un zéro superflu, `certReq` faux (EX-5.1, AN-5, AN-6) | EX-5.1, EX-5.3, EX-8.6 | octets DER exacts ; `openssl ts -query -in -text` lit `Version: 1`, `Hash Algorithm: sha256`, les 32 octets, `Policy OID`, `Nonce`, `Certificate required: yes` (A.6) |
 | `reponses` | réponse `granted` de l'autorité de test à chaque requête de `requetes/` (`genTime` fixé, `serialNumber` 1001 et suivants, `accuracy` 1 s ; pour `requete-point-k2`, le jeton de CT-1 §11.2 lui-même) ; `granted` avec nonce différent ; `granted` sans nonce ; `granted` sur une autre empreinte ; `granted` avec une politique hors `accepted_policies` ; rejet `unacceptedPolicy` (50 octets) ; rejet `badAlg` ; `waiting` (statut 3) ; statut 5 ; jeton dont T-6 échoue (signature altérée) ; réponse HTTP représentée 503 avec `Retry-After: 30`, 429, 408, 404, 401, corps de plus de 128 Kio ; réponse arrivée après `max_response_delay_s` (une, deux, puis trois fois) ; `genTime` hors `clock_tolerance_s` | EX-5.10 à EX-5.12, AN-8 à AN-11 | issue d'EX-5.13 (`obtenue`, `echec_transitoire`, `echec_permanente`, `reponse_tardive`), code d'EX-5.10 (`statut_2`, `echec_unacceptedPolicy`, `nonce_absent`, `nonce_different`, `empreinte_differente`, `politique_refusee`, `verification_T-6`, `reponse_tardive`, `http_503`…), avertissement `horloge_suspecte`, attente de reprise ; `openssl ts -verify -queryfile` : « Verification: OK » ou « nonce mismatch » (A.6) |
 | `ots` | `point-k2-minimal.ots`, l'exemple d'EX-6.4 (195 octets, deux attestations en attente sœurs, triées par URI comme la bibliothèque officielle) ; `point-k2-en-attente.ots` (233 octets : deux branches de calendrier à opérations propres, A.2) ; `periode-1-en-attente.ots` ; paire de mise à niveau | EX-6.2 à EX-6.7, AN-17 à AN-19, EX-8.11 | octets exacts ; lecture par `ots.mjs` : O-1 à O-3 réussies, O-7 `non_execute` (`partie_absente`) ; réécriture identique par la bibliothèque officielle (A.6) |
-| `planification` | les vingt et une traces de 8.10 et A.3 | EX-4.1 à EX-4.7, EX-5.7, EX-5.10, EX-5.11, EX-5.12, EX-6.1, EX-8.3 à EX-8.12, EX-9.5 ; AN-2, AN-4, AN-12, AN-13 et les AN- des sections 8, 9 et 11 | `expected` et `queue_after` reproduits à l'identique par `rejouerTrace` |
+| `planification` | les vingt-deux traces de 8.10 et A.3 | EX-4.1 à EX-4.7, EX-5.7, EX-5.10, EX-5.11, EX-5.12, EX-6.1, EX-8.3 à EX-8.12, EX-9.5 ; AN-2, AN-4, AN-12, AN-13 et les AN- des sections 8, 9 et 11 | `expected` et `queue_after` reproduits à l'identique par `rejouerTrace` |
 | `reprise` | files avant et après `demarrage` (six traces), fichiers d'époque | EX-8.5 (règle 6), EX-8.12, AN-33 | lignes finales égales ; une seule demande par `id` ; fusion des époques par `lireFiles` |
 | `cout` | les onze cas de 12.3 | EX-4.11, EX-12.1, EX-12.2, AN-4 | six grandeurs par cas ; avec `a = 1`, égalité avec la table de 4.6 |
 | `completude` | `serie-publiee-complete`, `serie-reecrite-ancres-orphelines`, `ancres-hors-ordre`, `periode-suivante-dans-la-fenetre`, `periode-suivante-non-servie`, `emetteur-doctype-et-fenetre` | EX-10.7, AN-61 | `complete`, `orphans`, `out_of_order`, `attached` reproduits par `verifierCompletudeRegistre` |

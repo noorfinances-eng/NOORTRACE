@@ -116,22 +116,22 @@ export const TC_REPONSES = [
   {
     "key": "CT-5 §3.6",
     "delegated": "Mesures P-1 à P-6 sur le réseau de développement et sur les vecteurs.",
-    "response": "TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15 exécutables), sur le réseau de développement (TM-11 à TM-14, à écrire, étape 5) et sur le support WORM (TM-16, exécutable depuis l'étape 4 sur un S3 à Object Lock en conteneur, complément `ancres/` à l'étape 5)."
+    "response": "TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15), sur le réseau de développement (TM-11 à TM-14, exécutables depuis l'étape 5 par la campagne de `scripts/e2e/mesure-ancrage.mjs`, rapport `mesures/rapport-2026-11-10-ancrage.json` ; compléments à l'étape 8 : charge de TM-3 pour TM-11, prestataire qualifié réel pour TM-14) et sur le support WORM (TM-16, exécutable depuis l'étape 4, `ancres/` compris depuis l'étape 5)."
   },
   {
     "key": "CT-5 §5.3",
     "delegated": "Test à écrire : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
-    "response": "TI- prestataires réels (§8), étape 5 ; oracle « relève de la clôture tant que la configuration n'est pas rechargée »."
+    "response": "TI-16 (§8), exécutable depuis l'étape 5 : relève de la clôture par le secours qualifié après retrait de `qualified`, sans rechargement, sur le composant d'ancrage (`test/ancrage-composant-pannes.test.js`, serveurs internes déclarés qualifiés par un instantané d'exemple) ; complément à l'étape 8 : prestataire qualifié réel."
   },
   {
     "key": "CT-5 §7.2",
     "delegated": "AN-24 à AN-32 du serveur interne vérifiées sur un jeton émis.",
-    "response": "TM-18 (AN-26) et TM-19 (AN-24) en §11 pour les exigences mesurables sur un jeton émis ; AN-22, AN-23, AN-25, AN-27 à AN-31 : TI- prestataires et serveur interne (§8)."
+    "response": "TI-17 (§8), exécutable depuis l'étape 5 : AN-22 à AN-31 vérifiées sur les jetons émis par le serveur interne de référence du paquet d'ancrage (`test/ancrage-tsa-interne-*.test.js`, `test/enregistreur-ancrage-exigences.test.js`, `test/enregistreur-ancrage-parcours.test.js`) ; TM-18 (AN-26) et TM-19 (AN-24) en §11 pour les exigences mesurables, sur les mêmes essais et dans le rapport de la campagne de l'étape 5."
   },
   {
     "key": "CT-5 §7.2",
     "delegated": "Épreuve de redémarrage du serveur interne (AN-26).",
-    "response": "TM-18 (AN-26, épreuve de redémarrage du serveur interne) et TM-19 (AN-24) en §11."
+    "response": "TI-17 (§8) et TM-18 (AN-26) en §11, exécutables depuis l'étape 5 : quatre jetons avant et quatre après un redémarrage du serveur interne (compteur de série durable), numéros strictement croissants, et le relevé `an26_serie_croissante` de la campagne (dix jetons, redémarrage, dix jetons) ; TM-19 (AN-24)."
   },
   {
     "key": "CT-5 §9.3",
@@ -141,12 +141,12 @@ export const TC_REPONSES = [
   {
     "key": "CT-5 §14",
     "delegated": "Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
-    "response": "TM-10 à TM-17 (P-1 à P-6, mesures en charge) en §11 ; TR-4 et TR-5 en §12 ; l'état « proposition » est levé par ce document."
+    "response": "TI-16 (§8), exécutable depuis l'étape 5 (`test/ancrage-composant-pannes.test.js` : relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée ; rechargement sans principal qualifié refusé) ; mesures en charge du planificateur : TM-17 (§11)."
   },
   {
     "key": "CT-5 §14",
     "delegated": "Tests EX- et AN-1 à AN-61, mesures P-1 à P-6, épreuve à l'aveugle.",
-    "response": "§6, §7, §8, §11, §12 ; état « proposition » levé par ce document."
+    "response": "§6, §7, §8 (TI-16, TI-17), §9 (TE-12), §11 (TM-10 à TM-19), §12 (TR-4, TR-5) ; état « proposition » levé par ce document."
   },
   {
     "key": "CT-6 §0",

@@ -61,7 +61,7 @@ describe("CT-5 : génération déterministe de spec/vecteurs/ct-5 (EX-A.1, EX-A.
       const produits = lister(sortie);
       expect(produits).to.deep.equal(lister(CT5).filter((f) => !conservee(f)));
       for (const f of produits) expect(J.sha256(lire(sortie, f)), f).to.equal(J.sha256(lire(CT5, f)));
-      expect(produits.filter((f) => f.startsWith("planification/"))).to.have.length(21);
+      expect(produits.filter((f) => f.startsWith("planification/"))).to.have.length(22);
     } finally {
       fs.rmSync(sortie, { recursive: true, force: true });
     }
@@ -97,7 +97,7 @@ describe("CT-5 : schémas ancrage-v0 et planificateur-ancrage-v0 (EX-4.8, EX-8.1
     expect(J.canonicaliserJCS(planificateur[0])).to.equal(J.canonicaliserJCS(REFERENCE));
   });
 
-  it("les vingt et une traces sont conformes à la racine du schéma ; requetes.json, cout.json et completude.json à $defs/fichier_vecteurs ; chaque demande des files à $defs/demande", function () {
+  it("les vingt-deux traces sont conformes à la racine du schéma ; requetes.json, cout.json et completude.json à $defs/fichier_vecteurs ; chaque demande des files à $defs/demande", function () {
     for (const f of TRACES) {
       const trace = lireJSON(CT5, "planification", f);
       expect(valider(trace, SCHEMA_PLANIFICATEUR), f).to.deep.equal([]);
@@ -266,7 +266,7 @@ describe("CT-5 : familles planification et reprise (EX-8.12, EX-8.16, EX-A.6)", 
   this.timeout(120_000);
 
   it("chaque trace est reproduite à l'identique par rejouerTrace (actions et file finale)", function () {
-    expect(TRACES).to.have.length(21);
+    expect(TRACES).to.have.length(22);
     for (const f of TRACES) {
       const trace = lireJSON(CT5, "planification", f);
       const ecarts = A.verifierTrace(trace);
@@ -329,6 +329,153 @@ describe("CT-5 : familles planification et reprise (EX-8.12, EX-8.16, EX-A.6)", 
     const texte = lire(CT5, "reprise", "redemarrage-reprise.avant.ndjson").toString("utf8");
     const tronquee = A.lireFile(texte.slice(0, -40));
     expect([tronquee.truncated, tronquee.demandes.length]).to.deep.equal([true, texte.split("\n").filter(Boolean).length - 1]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Révision 0.4 de CT-5 : corrections de la référence après la relecture
+// adversariale de l'étape 5 (Retry-After borné et plafonné, point_manquant
+// depuis le checkpoint_ts du dernier point admis, schéma avant les règles
+// d'EX-4.9).
+
+/** Générateur pseudo-aléatoire déterministe (congruence linéaire) pour les mutations. */
+function rng(graine) {
+  let x = graine >>> 0;
+  return () => {
+    x = (Math.imul(x, 1103515245) + 12345) >>> 0;
+    return x / 4294967296;
+  };
+}
+/** Une mutation d'un document JSON : suppression, type ou borne, décalage, clé en trop, doublon, etc. (campagne T9 de la relecture). */
+function muterJson(base, r) {
+  const v = structuredClone(base);
+  const chemins = [];
+  const parcourir = (o, chemin) => {
+    if (o && typeof o === "object") for (const k of Object.keys(o)) { chemins.push([...chemin, k]); parcourir(o[k], [...chemin, k]); }
+  };
+  parcourir(v, []);
+  const chemin = chemins[Math.floor(r() * chemins.length)];
+  let parent = v;
+  for (const k of chemin.slice(0, -1)) parent = parent[k];
+  const k = chemin[chemin.length - 1];
+  const ancien = parent[k];
+  const nouvelles = [null, 0, -1, 1e21, "", "x".repeat(2000), true, [], {}, 9007199254740992, "0x" + "g".repeat(64), 1.5];
+  switch (Math.floor(r() * 12)) {
+    case 0: if (Array.isArray(parent)) parent.splice(Number(k), 1); else delete parent[k]; break;
+    case 1: parent[k] = nouvelles[Math.floor(r() * nouvelles.length)]; break;
+    case 2: parent[k] = typeof ancien === "number" ? ancien + (r() < 0.5 ? 1 : -1) : typeof ancien === "string" && ancien.length ? ancien.slice(0, -1) : 0; break;
+    case 3: parent[k] = typeof ancien === "string" && /^0x[0-9a-f]+$/.test(ancien) ? ancien.slice(0, 3) + (ancien[3] === "0" ? "1" : "0") + ancien.slice(4) : String(ancien); break;
+    case 4: if (!Array.isArray(parent)) parent["cle_inconnue_" + Math.floor(r() * 1000)] = 1; break;
+    case 5: if (!Array.isArray(parent)) parent["__proto__"] = { pollue: true }; break;
+    case 6: parent[k] = typeof ancien === "number" ? -ancien : ancien === null ? 0 : null; break;
+    case 7: parent[k] = typeof ancien === "string" ? ancien.toUpperCase() : [ancien]; break;
+    case 8: parent[k] = typeof ancien === "number" ? ancien * 1000 : ancien + ancien; break;
+    case 9: if (Array.isArray(ancien) && ancien.length) ancien.push(ancien[0]); else parent[k] = "\u0000" + String(ancien); break;
+    case 10: parent[k] = typeof ancien === "string" ? ancien + " " : String(ancien); break;
+    default: parent[k] = typeof ancien === "number" ? Number.MAX_SAFE_INTEGER : "../../" + String(ancien);
+  }
+  return v;
+}
+
+describe("CT-5 révision 0.4 : corrections de la référence après la relecture adversariale de l'étape 5 (EX-8.9, EX-4.1, EX-4.9)", function () {
+  this.timeout(120_000);
+  const retry = REFERENCE.config.rfc3161.retry;
+
+  it("calculerAttente (EX-8.9) : Retry-After suivi sur 429 et 503 seulement, borné par [initial_ms, max_ms] ; 408, 500, 502 et 504 ne le suivent pas", function () {
+    expect(A.calculerAttente({ http_status: 503, retry_after_s: 0, retry })).to.deep.equal({ delay_ms: retry.initial_ms, reason: "retry_after" });
+    expect(A.calculerAttente({ http_status: 503, retry_after_s: 30, retry })).to.deep.equal({ delay_ms: 30000, reason: "retry_after" });
+    expect(A.calculerAttente({ http_status: 503, retry_after_s: 700000, retry })).to.deep.equal({ delay_ms: retry.max_ms, reason: "retry_after" });
+    expect(A.calculerAttente({ http_status: 429, retry_after_s: 315360000, retry })).to.deep.equal({ delay_ms: retry.max_ms, reason: "retry_after" });
+    for (const s of [408, 500, 502, 504]) expect(A.calculerAttente({ http_status: s, retry_after_s: 7, k: 2, premier_408_servi: true, retry, gigue: 3 }), String(s)).to.deep.equal({ delay_ms: retry.initial_ms * retry.factor + 3, reason: "backoff" });
+    expect(A.calculerAttente({ http_status: 408, retry_after_s: 7, retry })).to.deep.equal({ delay_ms: 0, reason: "immediat" });
+    expect(A.RETRY_AFTER_MAX_S).to.equal(604800);
+  });
+
+  it("planificateur : Retry-After nul, de dix ans ou porté par un 500 ; attente bornée, retry_after_s plafonné à 604 800 s, chaque ligne de file conforme à $defs/demande", function () {
+    const close = REFERENCE.inputs.find((e) => e.type === "periode_close");
+    const incl = REFERENCE.inputs.find((e) => e.type === "inclusion_registre" && e.data.request_id.startsWith("ancre_registre_periode:"));
+    const id = `jeton_periode:${close.data.period_hash}`;
+    const reponse = (t, http_status, retry_after_s) => ({ t, type: "reponse_rfc3161", data: { request_id: id, attempt: 1, transport: "reponse", http_status, pki_status: null, failure_info: null, retry_after_s, nonce_in_response: null, imprint_matches: null, checks_passed: [], gen_time: null, accuracy_s: null, token_sha256: null, token_size: null } });
+    const t1 = A.iso(A.ms(incl.t) + 1000);
+    const jouer = (http_status, retry_after_s) => {
+      const p = A.creerPlanificateur(REFERENCE.config, { aleatoire: A.aleatoireVecteurs({ gigues: [0, 0, 0, 0] }) });
+      const actions = [];
+      for (const e of [{ t: close.t, type: "demarrage", data: {} }, close, incl, reponse(t1, http_status, retry_after_s)]) actions.push(...p.recevoir(e));
+      // La dernière programmation de la demande est celle de la reprise (EX-8.9) ; les lignes de file restent conformes au schéma.
+      const prog = actions.filter((a) => a.action === "programmer" && a.request_id === id && A.ms(a.t) === A.ms(t1)).map((a) => a.detail);
+      const d = p.file().find((x) => x.id === id);
+      for (const x of p.file()) expect(valider(x, SCHEMA_PLANIFICATEUR, "#/$defs/demande"), x.id).to.deep.equal([]);
+      return { prog, tentative: d.attempts[0], state: d.state };
+    };
+    const nul = jouer(503, 0);
+    expect(nul.prog).to.deep.equal([{ next_at: A.iso(A.ms(t1) + retry.initial_ms), reason: "retry_after" }]);
+    expect([nul.tentative.retry_after_s, nul.state]).to.deep.equal([0, "a_reprendre"]);
+    const dixAns = jouer(429, 315360000);
+    expect(dixAns.prog).to.deep.equal([{ next_at: A.iso(A.ms(t1) + retry.max_ms), reason: "retry_after" }]);
+    expect(dixAns.tentative.retry_after_s).to.equal(604800);
+    const horsBorne = jouer(503, 700000);
+    expect([horsBorne.prog[0].reason, horsBorne.tentative.retry_after_s]).to.deep.equal(["retry_after", 604800]);
+    const cinqCents = jouer(500, 7);
+    expect(cinqCents.prog).to.deep.equal([{ next_at: A.iso(A.ms(t1) + retry.initial_ms), reason: "backoff" }]);
+    expect(cinqCents.tentative.retry_after_s).to.equal(7);
+  });
+
+  it("point_manquant après un saut d'horloge (EX-4.1, 8.9) : délai compté depuis le checkpoint_ts du dernier point admis ; aucune minuterie pour le point de clôture ; trace point-manquant-saut-horloge", function () {
+    const base = lireJSON(CT5, "planification", "point-manquant.json");
+    // L'horloge saute de 2 h 31 min avant le point de 09:59 : toutes les entrées suivantes sont reçues à 12:30 ou après.
+    const saut = 2 * 3600 * 1000 + 31 * 60 * 1000;
+    const i = base.inputs.findIndex((e) => e.type === "point_produit" && e.data.checkpoint_ts === "2026-11-05T09:59:00.000Z");
+    const inputs = base.inputs.map((e, k) => (k >= i ? { ...e, t: A.iso(A.ms(e.t) + saut) } : e));
+    const { actions } = A.rejouerTrace({ ...base, inputs });
+    const alertes = actions.filter((a) => a.action === "alerter" && a.detail.code === "point_manquant");
+    expect(alertes.map((a) => a.t)).to.deep.equal(["2026-11-05T09:02:00.000Z", "2026-11-05T10:01:00.000Z"]);
+    const journal = actions.filter((a) => a.action === "journaliser" && a.detail.event === "point_manquant").map((a) => a.detail);
+    expect(journal).to.deep.equal([{ event: "point_manquant", last_checkpoint_ts: "2026-11-05T09:00:00.000Z", gap_s: 120 }, { event: "point_manquant", last_checkpoint_ts: "2026-11-05T09:59:00.000Z", gap_s: 120 }]);
+    // La première alerte est due à 09:02 et émise au tic de 09:30, avant le saut ; la seconde est émise après le saut,
+    // après toute action datée de 09:30, quoique datée 10:01 : la minuterie court depuis le checkpoint_ts du point.
+    const dernier0930 = actions.map((a) => a.t).lastIndexOf("2026-11-05T09:30:00.000Z");
+    expect(actions.indexOf(alertes[0])).to.be.below(dernier0930);
+    expect(actions.indexOf(alertes[1])).to.be.above(dernier0930);
+    // Le vecteur publié exerce la même règle et se rejoue à l'identique.
+    const trace = lireJSON(CT5, "planification", "point-manquant-saut-horloge.json");
+    expect(A.verifierTrace(trace)).to.deep.equal([]);
+    expect(trace.expected.filter((a) => a.action === "alerter" && a.detail.code === "point_manquant").map((a) => a.t)).to.deep.equal(["2026-11-05T09:02:00.000Z", "2026-11-05T10:01:00.000Z"]);
+    expect(trace.expected.filter((a) => a.action === "alerter" && a.detail.code === "contresignature_tardive")).to.have.length(1);
+    // La trace file-perdue : le point K3 relu au redémarrage de 13:56 (checkpoint_ts 13:54) est alerté à 13:56, non à 13:58.
+    const perdue = lireJSON(CT5, "planification", "file-perdue.json");
+    expect(perdue.expected.filter((a) => a.action === "alerter" && a.detail.code === "point_manquant").map((a) => a.t)).to.deep.equal(["2026-11-03T13:56:00.000Z"]);
+  });
+
+  it("verifierConfiguration (EX-4.9) : schéma ancrage-v0 validé avant les huit règles ; 2 000 documents mutés : aucune levée, refus de règle « schema » exactement quand le schéma refuse", function () {
+    const exemple = blocsSpec("ancrage")[0];
+    const r = rng(909);
+    let refusesSchema = 0;
+    for (const profil of ["developpement", "production"]) {
+      for (let i = 0; i < 1000; i++) {
+        const doc = muterJson(exemple, r);
+        const erreursSchema = valider(doc, SCHEMA_ANCRAGE);
+        let res;
+        expect(() => (res = A.verifierConfiguration(doc, { profil, checkpoint_interval_s: 60, lecteurCertificat: () => true })), `${profil} ${i}`).not.to.throw();
+        const regles = res.violations.map((v) => v.rule);
+        if (erreursSchema.length) {
+          refusesSchema++;
+          expect(res.valide, `${profil} ${i}`).to.equal(false);
+          expect(regles.every((x) => x === "schema") && regles.length === erreursSchema.length, `${profil} ${i} ${JSON.stringify(res.violations)}`).to.equal(true);
+        } else expect(regles.includes("schema"), `${profil} ${i}`).to.equal(false);
+      }
+    }
+    expect(refusesSchema).to.be.above(1000);
+    // Cas nommés par la relecture : providers[i] nul ou de type faux, document nul, clé en trop.
+    const nul = structuredClone(exemple);
+    nul.rfc3161.providers[0] = null;
+    expect(A.verifierConfiguration(nul, { checkpoint_interval_s: 60 }).violations).to.deep.equal([{ rule: "schema", message: "/rfc3161/providers/0 : type object attendu" }]);
+    const faux = structuredClone(exemple);
+    faux.rfc3161.providers[1] = 7;
+    expect(A.verifierConfiguration(faux, { checkpoint_interval_s: 60 }).violations.map((v) => v.rule)).to.deep.equal(["schema"]);
+    expect(A.verifierConfiguration(null, { checkpoint_interval_s: 60 }).violations).to.deep.equal([{ rule: "schema", message: "/ : type object attendu" }]);
+    expect(A.verifierConfiguration({ ...exemple, inconnue: 1 }, { checkpoint_interval_s: 60, lecteurCertificat: () => true }).violations).to.deep.equal([{ rule: "schema", message: "/inconnue : membre non admis" }]);
+    // Un document conforme au schéma passe aux huit règles, comme avant.
+    expect(A.verifierConfiguration(exemple, { checkpoint_interval_s: 60, lecteurCertificat: () => true })).to.deep.equal({ valide: true, violations: [] });
   });
 });
 

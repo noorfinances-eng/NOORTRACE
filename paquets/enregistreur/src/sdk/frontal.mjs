@@ -473,8 +473,15 @@ export class FrontalSdk {
         await this._ecrirePieces(hote, piecesAEcrire);
       } catch (e) {
         if (!(e instanceof ErreurEnregistreur)) throw e;
-        if (!observation) throw new Rendu(this._bloque(m, hote, e.raison, classe, nom));
-        blocagesEvites.push(e.raison);
+        if (observation) {
+          blocagesEvites.push(e.raison);
+        } else {
+          // Panne constatée par cette écriture (14.2, colonne L ; EX-14.8) : une
+          // lecture passante sans ticket passe, pièces gardées en mémoire avec
+          // l'événement en attente ; sinon bloquée par la panne constatée.
+          const apres = this._etatPanne(classeEffective);
+          if (!(apres.passant === true && reponse.decision === "autorise" && reponse.ticket_state === null)) throw new Rendu(this._bloque(m, hote, apres.bloque ?? e.raison, classe, nom));
+        }
         passant = true;
       }
     }
@@ -579,7 +586,8 @@ export class FrontalSdk {
     const lecturePassante = (this.config.policy.failure?.lecture ?? "passant") === "passant";
     if (r.includes("stockage") || c.intervention) {
       if (classeEffective === "ecriture" || !lecturePassante) return { bloque: "stockage" };
-      if (r.includes("attente")) return { bloque: "attente" };
+      // Bornes d'EX-14.9, contrôlées avant le relais : au-delà, la lecture passante devient bloquante.
+      if (r.includes("attente") || c.attenteBornee()) return { bloque: "attente" };
       return { passant: true };
     }
     if (r.includes("attente") && classeEffective !== "ecriture") return { bloque: "attente" };

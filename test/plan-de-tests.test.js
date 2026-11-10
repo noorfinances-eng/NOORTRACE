@@ -107,7 +107,7 @@ describe("CT-9 : catalogue, schéma et cas (section 4, annexe A.2, EX-4.3, EX-A.
   it("catalogue.json valide contre la racine, couverture.json contre rapport_couverture, et index-ta-par-menace.json est l'index que le catalogue donne (EX-A.13)", function () {
     expect(valider(CATALOGUE, "racine")).to.deep.equal([]);
     expect(valider(COUVERTURE, "rapport_couverture")).to.deep.equal([]);
-    expect(CATALOGUE).to.include({ version: 0, kind: "plan-de-tests", spec: "CT-9", spec_version: "0.3", date: "2026-11-03" });
+    expect(CATALOGUE).to.include({ version: 0, kind: "plan-de-tests", spec: "CT-9", spec_version: "0.4", date: "2026-11-10" });
     const index = lire(CT9, "index-ta-par-menace.json");
     expect(index.index).to.deep.equal(P.indexParMenace(CATALOGUE));
     expect(Object.keys(index.index)).to.have.length(MENACES.threats.length);
@@ -171,7 +171,7 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
   this.timeout(300_000);
   const INV = P.inventaire(R);
 
-  it("règle (a) rejouée : chaque identifiant défini par CT-1 à CT-8 est couvert par covers, par threats d'un TA- ou par un NC-, et chaque identifiant cité existe ; 2348 identifiants", function () {
+  it("règle (a) rejouée : chaque identifiant défini par CT-1 à CT-8 est couvert par covers, par threats d'un TA- ou par un NC-, et chaque identifiant cité existe ; 2350 identifiants", function () {
     const couverts = new Set();
     const connu = (id) => { const m = /^(CT-[1-8]) (.+)$/.exec(id); return Boolean(m && INV[m[1]]?.ids.has(m[2])); };
     for (const t of CATALOGUE.tests) {
@@ -185,7 +185,7 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
     for (const [ct] of P.SPECIFICATIONS) for (const x of INV[ct].ids) { total++; const id = `${ct} ${x}`; if (couverts.has(id)) parEntree++; else if (parNC.has(id)) parJustification++; else nonCouverts.push(id); }
     expect(nonCouverts).to.deep.equal([]);
     expect([total, parEntree, parJustification]).to.deep.equal([COUVERTURE.identifiers.total, COUVERTURE.identifiers.covered_by_tests, COUVERTURE.identifiers.covered_by_nc]);
-    expect(total).to.equal(2348);
+    expect(total).to.equal(2350);
     expect(COUVERTURE.identifiers.unknown_cited).to.deep.equal([]);
     // EX-4.1 : specs est l'ensemble des spécifications de covers (entrées à covers non vide).
     for (const t of CATALOGUE.tests) if (t.covers.length) expect(t.specs, t.id).to.deep.equal([...new Set(t.covers.map((c) => c.split(" ")[0]))].sort((x, y) => Number(x.slice(3)) - Number(y.slice(3))));
@@ -230,7 +230,7 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
     expect(COUVERTURE.traceability).to.deep.equal({ occurrences: 122, rows: 122, missing: [], orphans: [] });
   });
 
-  it("règle (d) rejouée : chaque titre de describe/it et chaque étape de CI cités par une entrée exécutable existent mot pour mot (208 entrées, 405 citations)", function () {
+  it("règle (d) rejouée : chaque titre de describe/it et chaque étape de CI cités par une entrée exécutable existent mot pour mot (224 entrées, 485 citations)", function () {
     const index = P.indexTitres(R);
     const ci = P.etapesCI(texte(R, P.CI));
     let entrees = 0, citations = 0;
@@ -391,11 +391,13 @@ describe("CT-9 : tests adversariaux (section 10, EX-10.1, EX-10.7, EX-10.8, EX-A
     }
   });
 
-  it("chaque entrée TA- exécutable est d'exécution vecteurs_et_depot, ou phase_2 quand elle ne cite que des it du démon de l'étape 4 ; celles qui citent test/adversarial.test.js y ont leur it, et chaque it du fichier correspond à une entrée exécutable qui le cite", function () {
+  it("chaque entrée TA- exécutable est d'exécution vecteurs_et_depot, ou phase_2 quand elle ne cite que des it du démon de l'étape 4 ou des essais des composants de l'étape 5 ; celles qui citent test/adversarial.test.js y ont leur it, et chaque it du fichier correspond à une entrée exécutable qui le cite", function () {
     const exe = TA.filter((t) => t.status.state === "executable");
-    expect(exe).to.have.length(79);
+    expect(exe).to.have.length(80);
+    // Révision 0.4 : essais du composant d'ancrage et de son branchement dans le démon (étape 5).
+    const ETAPE_5 = /^test\/(ancrage-|enregistreur-ancrage-|enregistreur-journal-soi\.test\.js$)/;
     for (const t of exe) {
-      const surDemon = (t.status.tests ?? []).length > 0 && t.status.tests.every((x) => x.file === ADV && x.describe === DEMON_DESCRIBE);
+      const surDemon = (t.status.tests ?? []).length > 0 && t.status.tests.every((x) => (x.file === ADV && x.describe === DEMON_DESCRIBE) || ETAPE_5.test(x.file));
       expect(t.adversarial.execution, t.id).to.equal(surDemon ? "phase_2" : "vecteurs_et_depot");
     }
     const cites = new Set();
@@ -468,10 +470,10 @@ describe("CT-9 : mesures TM- (section 11, EX-11.14, EX-11.16, annexe A.7, EX-A.9
       expect(m.failure_threshold.length, t.id).to.be.greaterThan(0);
       expect(m.percentiles, t.id).to.be.an("array");
     }
-    // EX-11.16 : six entrées exécutables, résultat dans le rapport sur les
-    // vecteurs, dans les rapports de campagne de TM-31 (étape 3) et de TM-16
-    // (étape 4) et dans les tests cités.
-    expect(TM.filter((t) => t.status.state === "executable").map((t) => t.id)).to.deep.equal(["TM-6", "TM-10", "TM-15", "TM-16", "TM-20", "TM-31"]);
+    // EX-11.16 : seize entrées exécutables, résultat dans le rapport sur les
+    // vecteurs, dans les rapports de campagne de TM-31 (étape 3), de TM-16
+    // (étape 4) et de l'étape 5, et dans les tests cités.
+    expect(TM.filter((t) => t.status.state === "executable").map((t) => t.id)).to.deep.equal(["TM-6", "TM-10", "TM-11", "TM-12", "TM-13", "TM-14", "TM-15", "TM-16", "TM-17", "TM-18", "TM-19", "TM-20", "TM-30", "TM-31", "TM-41", "TM-42"]);
     // EX-11.14 : TM-22 a pour cible 450 min et un seuil d'échec à 480 min ;
     // les sources en « moins de » (TM-25, TM-35, TM-43) emploient
     // strictement_inferieur.
@@ -574,6 +576,44 @@ describe("CT-9 : mesures TM- (section 11, EX-11.14, EX-11.16, annexe A.7, EX-A.9
     expect(comparerCampagne(lire(CT9, "mesures", "rapport-2026-11-01-vecteurs.json"), base).errors.length).to.be.greaterThan(0);
     expect(mesures(["--reference", path.join(d, "reference.json")]).code).to.equal(2);
     expect(mesures(["--racine", path.join(d, "nulle-part")]).code).to.equal(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Révision 0.4 : campagne de mesures de l'étape 5 (composant d'ancrage). Le
+// rapport est écrit par l'ingénieur de la campagne (EX-11.11), jamais par le
+// générateur ; tant qu'il n'est pas publié, ce cas échoue en le nommant.
+describe("CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)", function () {
+  this.timeout(120_000);
+  const RAPPORT = "rapport-2026-11-10-ancrage.json";
+  const ENTREES = ["TM-11", "TM-12", "TM-13", "TM-14", "TM-17", "TM-18", "TM-19", "TM-30", "TM-41", "TM-42"];
+
+  it("mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence", function () {
+    for (const id of ENTREES) expect(parId.get(id).status.tests.some((x) => x.file === "test/plan-de-tests.test.js" && x.it === this.test.title), `${id} ne cite pas ce cas`).to.equal(true);
+    const chemin = path.join(CT9, "mesures", RAPPORT);
+    expect(fs.existsSync(chemin), `mesures/${RAPPORT} non publié : la campagne de l'étape 5 (scripts/e2e/mesure-ancrage.mjs collecter, complements, rapport) n'a pas encore écrit son rapport`).to.equal(true);
+    const r = lire(chemin);
+    expect(valider(r, "rapport_mesure")).to.deep.equal([]);
+    expect(verifierFamilles(R).errors).to.deep.equal([]);
+    const s113 = TEXTE.slice(TEXTE.indexOf("### 11.3 "), TEXTE.indexOf("### 11.4 "));
+    const nommees = new Map([...s113.matchAll(/^\| `([a-z0-9_]+)` \| (TM-[0-9]+) \|/gm)].map((m) => [m[1], m[2]]));
+    for (const l of r.results) {
+      const t = parId.get(l.test_id);
+      expect(t?.level, l.name).to.equal("TM");
+      expect(l.unit, l.name).to.equal(t.measure.unit);
+      if (l.name !== t.measure.result_name) expect(nommees.get(l.name), `${l.name} : ligne supplémentaire non nommée par la table de 11.3`).to.equal(l.test_id);
+      if (!r.counts_for_targets || !r.system.reference) expect(l.met, l.name).to.equal(null);
+    }
+    for (const id of ENTREES) {
+      const t = parId.get(id);
+      const l = r.results.find((x) => x.name === t.measure.result_name);
+      expect(l, `${id} : ligne ${t.measure.result_name} absente`).to.not.equal(undefined);
+      expect(l.test_id, l.name).to.equal(id);
+      expect(l.n, `${l.name} : effectif`).to.be.a("number").and.to.be.at.least(1);
+      expect([l.value, l.max, l.text_value].some((v) => v !== null), `${l.name} : aucune valeur`).to.equal(true);
+    }
+    // Section 14, ligne 6 : w_date_porte_2 et w_ordre dans le même rapport ; w_date_defaut publiée à côté (11.6).
+    for (const n of ["w_date_porte_2", "w_ordre", "w_date_defaut"]) expect(r.results.some((l) => l.name === n), n).to.equal(true);
   });
 });
 

@@ -55,8 +55,24 @@ const coeur = await Coeur.demarrer({
   redaction,           // Redacteur, ou ses crochets (section e)
   reglesSupplementaires, // règles du pas 3 d'EX-15.4 des lots, rejouées au rechargement (section e)
   minuteurs, supervision,
+  octetsLibres,        // (chemin) => Promise<number|null> : mesure de l'espace libre (essais ; défaut fs.statfs)
 });
 ```
+
+**Disque presque plein** (14.2) : `MagasinPieces(repertoire, { minOctetsLibres,
+journal, octetsLibres })` porte le contrôle, `await pieces.verifierEspace(supplement?,
+chemin?)`, qui lève `ErreurEnregistreur("stockage")` (`donnees.event = "disk_low"`)
+sous `storage.min_free_bytes` et consigne `disk_low` (`free_bytes`,
+`min_free_bytes`) à l'entrée sous le seuil, une fois jusqu'au retour
+au-dessus. Il est appelé avant l'écriture de chaque pièce, par l'écrivain
+avant l'ouverture de chaque segment, et par `coeur.tic()` toutes les
+`CONTROLE_DISQUE_MS` (10 000) à l'horloge monotone du cœur. Au démarrage, un
+disque sous le seuil laisse le démon démarrer en mode dégradé « stockage »,
+sans segment ouvert ; les pas 2 à 4 d'EX-9.8 sont faits au tic qui ouvre le
+nouveau segment. Un échec d'écriture d'une pièce par `coeur.ecrirePiece`
+ferme le segment (`ecrivain.signalerPanneStockage`) : la sortie du mode suit
+EX-14.11 au tic. `coeur.tic()` tient aussi `noortrace_pending_oldest_ms`
+(§17).
 
 Une **délégation** est l'objet `{ launched_by, on_behalf_of, scope, run_id }`
 de CT-1 §5.3, résolu par le frontal selon 7.2 et EX-7.2 (valeurs déclarées
@@ -140,7 +156,11 @@ await coeur.terminerRelais(relais, { resultat, resultatRedige, argumentsRediges,
 - Pas 14 : réponse à l'hôte après la résolution de `terminerRelais`.
 - Lecture passante en mode dégradé « stockage » (EX-14.8) :
   `coeur.mettreEnAttente(partiel, pieces, { captured_at })` ; bornes
-  d'EX-14.9 (`ErreurEnregistreur("attente")`).
+  d'EX-14.9 (`ErreurEnregistreur("attente")`). Avant le relais (pas 7),
+  `coeur.attenteBornee()` rend la borne atteinte (`"pending_max_events"`,
+  `"pending_max_bytes"`, `"pending_max_ms"`) ou `null` ; atteinte, le mode
+  dégradé `attente` est entré et `pending_limit_reached` (`events`, `limit`)
+  consigné. Le frontal MCP, le SDK et le frontal modèle l'interrogent.
 
 ### Sections de CT-2 à couvrir
 
@@ -983,6 +1003,106 @@ EX-11.19 ; CT-5 §8.
 
 `spec/vecteurs/ct-5/*` ; `spec/vecteurs/ct-1/points-de-controle/` (forme des
 séries).
+
+### Mise en œuvre (`src/ancrage-demon.mjs`)
+
+Le composant de CT-5 (`@noortrace/ancrage`, dépendance d'espace de travail,
+aligné sur CT-5 révision 0.5 et CT-6 révision 0.5) est branché ; la rubrique
+F.3 d'`INTERFACES.md` du composant dit ce que l'enregistreur lui fournit,
+membre par membre. Signatures :
+
+```js
+import { preparerAncrage, BranchementAncrage, ErreurBranchementAncrage,
+         resoudreSecretsAncrage, cleChaineDepuisConfiguration, instanceDepuisManifeste,
+         FICHIER_INSTANCE_REGISTRE, REPERTOIRE_REGISTRE, CLASSES_CLE_CHAINE_SERVIES } from "@noortrace/enregistreur";
+
+const ancrage = await preparerAncrage({ config, secrets, env, horloge, aleatoire, clients });
+// null quand anchoring.ancrage est null ; lève ErreurBranchementAncrage (raison classe_cle_chaine) pour une clé de chaîne de classe A à C
+const coeur = await Coeur.demarrer({ config, secrets, ancrage, horloge, ... });   // lier(coeur) après l'écrivain : anchoring_attached
+ancrage.etat()                       // état du composant (demarre, arrete, …) + { attached, reason, document, registry }
+ancrage.metriques()                  // texte Prometheus d'EX-8.15, concaténé à /metrics par le cœur
+await ancrage.recharger()            // à noortrace-ctl reload, après la politique
+ancrage.retirerQualification(id)     // EX-5.9
+await coeur.exporterDossier(seq, destination)   // par l'exportateur du composant quand il est démarré
+await coeur.reexportsDus()           // EX-10.5
+await coeur.commandeAncrage({ commande: "etat" | "metriques" | "retirer-qualification", id })
+```
+
+- **Démarrage** (`cli.mjs`, avant `Coeur.demarrer`) : document `ancrage-v0`
+  lu en JSON strict ; secrets des pointeurs `/rfc3161/providers/<i>/auth/secret`
+  et `/opentimestamps/headers_source/auth` résolus par `resoudreSecret`
+  (`env`, `file`, `vault`) ; clé de chaîne de `anchoring.registry.chain_key`
+  construite (classe D, `SignataireChaineFichier`, adresse confrontée) ;
+  manifeste d'instance lu dans `instance-registre.json` à côté du document.
+  Une classe A, B ou C refuse le démarrage du démon
+  (`demarrage_refuse : ancrage : classe_cle_chaine`, code 2) ; tout autre
+  défaut laisse le démon démarrer, `anchoring_not_started` nomme la raison
+  (`document_illisible`, `configuration_invalide` et ses règles d'AN-1,
+  `secret_non_resolu` et son pointeur, `instance_registre_absente`,
+  `rpc_url_absente`, `demarrage_impossible`) et chaque remise donne
+  `anchor_pending`. Profil du composant : `production` si
+  `recorder.environment` l'est, `developpement` sinon.
+- **Contexte** : `org_id`, `journal_id`, époque du bail, `storage.root`,
+  `clePublique` (signataire pour la clé courante, index des clés des
+  segments pour les autres), `lireSerie` (série relue, lecture seule),
+  `lireHashesPeriode` (hashes des événements de la période depuis les
+  segments, triés par `seq` ; `BranchementAncrage.segmentsLus`, `Map` de
+  chemin → taille, `mtimeMs` et bornes `ts` des événements du segment : un
+  segment inchangé dont les bornes sont hors de la période n'est pas relu ;
+  `segmentsRelus` compte les relectures), `listerPeriodes` (manifestes et signatures), `listerPoints`,
+  `cleChaine`, `instance`, `signaturesCloture` (demande signée
+  `<journal>/registre/demande-cloture-<period_hash>.json`, forme
+  `demande_signature` de CT-4 vérifiée par `verifierDemande`, sinon `null`
+  → `period_close_delegated`). Envois et captures du registre sous
+  `<journal>/registre/`.
+- **Horloge** : celle du cœur étendue de `programmer` (`setTimeout`, ou la
+  minuterie de l'horloge injectée par `principal(argv, { horloge })`) ;
+  **aléa** : `crypto.randomBytes` ; **journal** : `JournalExploitation` du
+  cœur, composant `ancrage` ; **métriques** : `/metrics` de la supervision
+  concatène `ancrage.metriques()`.
+- **Cycle dans le cœur** : `lier` après `ecrivain.demarrer` (jamais
+  bloquant : une exception est consignée `anchoring_not_started`
+  `exception`) ; `recharger` après la politique dans `Coeur.recharger` ;
+  `arreter` après `ecrivain.fermer()` (`anchoring_stopped` avant `shutdown`) ;
+  `anchoring.ancrage` `null` : `preparerAncrage` rend `null` et rien ne
+  change.
+- **Export** (`dossier.mjs`) : `assemblerBase` (sept parties de CT-1,
+  hashes, indice de feuille, série, manifeste, raisons) puis
+  `exportateur.exporterDossier(base, { destination, generated_at })` du
+  branchement quand le composant est démarré (treize parties, ancres du
+  point couvrant, `entetes-bitcoin.json` à côté, `dossier_exported`) ; sans
+  ancrage, l'export de CT-1 §11 du cœur. Le branchement garde, pour
+  `reexportsDus`, le résumé du dernier dossier de chaque événement
+  (`BranchementAncrage.produits`, `Map` de clé `<hash>:<seq>`, le plus
+  récent par `generated_at` ; `dossiersProduits` en rend les valeurs) : la
+  mémoire gardée croît avec le nombre d'événements exportés, non avec le
+  nombre d'exports, et aucun résumé ne retient le texte
+  d'`acquisitions.ndjson` (épreuves de l'étape 5).
+- **Copie WORM** (`worm/copies.mjs`, `fichiersACopier`) : `ancres/` et la
+  file sous `queue.path` par la règle des fichiers fermés (lecture 93) ;
+  `registre/` de même.
+- **`noortrace-ctl ancrage etat | metriques | retirer-qualification <id>`**
+  (`ctl-demon.mjs`) : fichier de demande `{ demande: "ancrage", commande, id }`
+  et SIGURG, réponse au journal (`anchoring_state`, `anchoring_metrics`,
+  `provider_qualification_withdrawn`, refus `anchoring_ctl_refused`) ;
+  `metriques` lit aussi `/metrics`.
+- **Lignes du journal d'exploitation ajoutées** : `anchoring_attached`,
+  `anchoring_not_started`, `anchoring_state`, `anchoring_metrics`,
+  `anchoring_ctl_refused`, `period_close_request_refused`,
+  `dossier_exported` (et celles du composant, CT-5 EX-8.15, composant
+  `ancrage`).
+- **Essais** : `test/enregistreur-ancrage-parcours.test.js` (TE-12 hors
+  réseau public sur un démon réel ; variante sur le réseau de développement,
+  en attente quand il n'est pas debout), `test/enregistreur-ancrage-exigences.test.js`
+  (`anchoring.ancrage` nul, EX-4.8, TA-41, EX-11.19, EX-4.12, TA-62, AN-43,
+  TM-16, export et réexport, TI-17) ; fixtures
+  `test/fixtures/enregistreur-ancrage/` (`demon.mjs` : démon réel enfant à
+  horloge réglable ; `outils.mjs`).
+- **Restes** : clé de chaîne de classe A à C (étape 7) ; rotation d'urgence
+  relayée au registre (`registre_non_branche` de `Coeur.rotationUrgence` :
+  l'`Envoyeur` du composant n'envoie ni inscription ni révocation, et CT-4
+  §7 les fait signer par les approbateurs au seuil ; lecture 202) ; clé
+  `anchoring.registry.instance` à inscrire dans CT-2 (lecture 199).
 
 ## h) Corrections de la relecture A (cœur, stockage, bail, WORM, haute disponibilité)
 

@@ -886,6 +886,15 @@ describe("CT-1 : preuve de cohérence RFC 9162 §2.1.4 et points de contrôle (r
     expect(J.choisirPointCouvrant(points, 6, { [h(points.at(-1))]: { rfc3161: true } })).to.equal(points.at(-1));
     // Aucun point ne couvre la feuille 9 (tree_size 9 au plus).
     expect(J.choisirPointCouvrant(points, 9)).to.equal(null);
+    // Révision 0.4 de CT-5 (EX-10.2, « une preuve .ots complète ») : les octets d'une preuve en attente ne donnent
+    // pas le rang (2) ; ceux d'une preuve complète (attestation Bitcoin), ou true, le donnent ; une preuve illisible non plus.
+    const enAttente = fs.readFileSync(path.join(SPEC, "vecteurs", "ct-5", "ots", "point-k2-en-attente.ots"));
+    const complete = fs.readFileSync(path.join(SPEC, "vecteurs", "ct-6", "ots", "preuves", "periode-1.ots"));
+    expect(J.choisirPointCouvrant(points, 6, { [h(a("09:40"))]: { ots: enAttente } })).to.equal(a("09:32"));
+    expect(J.choisirPointCouvrant(points, 6, { [h(a("09:32"))]: { registry: true }, [h(a("09:40"))]: { ots: enAttente } })).to.equal(a("09:32"));
+    expect(J.choisirPointCouvrant(points, 6, { [h(a("09:32"))]: { registry: true }, [h(a("09:40"))]: { ots: complete } })).to.equal(a("09:40"));
+    expect(J.choisirPointCouvrant(points, 6, { [h(a("09:32"))]: { registry: true }, [h(a("09:40"))]: { ots: { proof: complete.toString("base64") } } })).to.equal(a("09:40"));
+    expect(J.choisirPointCouvrant(points, 6, { [h(a("09:32"))]: { registry: true }, [h(a("09:40"))]: { ots: complete.subarray(0, 40) } })).to.equal(a("09:32"));
   });
 });
 

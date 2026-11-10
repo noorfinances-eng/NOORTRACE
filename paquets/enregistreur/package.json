@@ -1,7 +1,7 @@
 {
   "name": "@noortrace/enregistreur",
   "version": "0.1.0",
-  "description": "Démon enregistreur NOORTRACE (noortrace, CT-2 version 0.6) : construction et scellement des événements CT-1, pièces, écrivain unique, segments en ajout seul, journal d’intention et reprise, clôture des périodes et points de contrôle, signataires, configuration, supervision ; rédaction ; frontal MCP et connecteur ; frontal modèle (passerelle, ICAP, miroir) ; moteur de politique et rétention des appels.",
+  "description": "Démon enregistreur NOORTRACE (noortrace, CT-2 version 0.6) : construction et scellement des événements CT-1, pièces, écrivain unique, segments en ajout seul, journal d’intention et reprise, clôture des périodes et points de contrôle, signataires, configuration, supervision ; rédaction ; frontal MCP et connecteur ; frontal modèle (passerelle, ICAP, miroir) ; moteur de politique et rétention des appels ; branchement du composant d’ancrage de CT-5 (anchoring.ancrage) et exportateur des dossiers avec leurs ancres.",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -28,6 +28,7 @@
     "INTERFACES.md"
   ],
   "dependencies": {
-    "@noortrace/noyau": "0.1.0"
+    "@noortrace/noyau": "0.1.0",
+    "@noortrace/ancrage": "0.1.0"
   }
 }

@@ -340,6 +340,19 @@
       }
     },
     {
+      "file": "preuves/o1-attestation-en-double.ots",
+      "sha256": "0xc2a566642aefc2e73095730ec9513ebcb21dcbce547eb89f9d64f62daa355718",
+      "size": 329,
+      "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "alteration": "l'attestation Bitcoin à 1001 écrite deux fois sous le même nœud (doublon, forme non canonique)",
+      "target": "O-1",
+      "attestations": [],
+      "python_opentimestamps": {
+        "parsing": "acceptee_en_ecrasant",
+        "source": "timestamp.py (Timestamp.attestations est un ensemble ; merge et deserialize écrasent le doublon) ; CT-6 §10.2, révision 0.5"
+      }
+    },
+    {
       "file": "preuves/attente-uri-vide.ots",
       "sha256": "0x7d872b32550ab04bc69a8f01c013a26880654f54a3f506c19a1889dff5468252",
       "size": 328,
@@ -901,6 +914,56 @@
     },
     {
       "proof": "preuves/o1-octet-en-trop.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-3",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-4",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-5",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-7",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "O-1"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "proof": "preuves/o1-attestation-en-double.ots",
       "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
       "headers": "entetes/chaine.json",
       "anchors": "bitcoin de ancres/ancres-test.json",

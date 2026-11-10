@@ -85,7 +85,7 @@ Entrées : ots/attendu.json, ots/preuves/*.ots, ots/entetes/*.json, ancres/ancre
   SHA-256 et taille : vecteur ('0xf70b77c15a5226d537f34d7288a5b296cad3c0dbd5b0d2fc79d679e5dc3cff1f', 316) ; outil ('0xf70b77c15a5226d537f34d7288a5b296cad3c0dbd5b0d2fc79d679e5dc3cff1f', 316) : concorde
   lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
   lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
-  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  réécriture par la bibliothèque identique aux octets du fichier (sinon : doublon écrasé à la relecture, forme non canonique) : vecteur True ; outil True : concorde
   opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
   empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}] ; outil [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}] : concorde
@@ -94,7 +94,7 @@ Entrées : ots/attendu.json, ots/preuves/*.ots, ots/entetes/*.json, ancres/ancre
   SHA-256 et taille : vecteur ('0xeb16dead539d000f78234d1cedda4a9168800e013a3e78e1a97ea6081bb710e0', 316) ; outil ('0xeb16dead539d000f78234d1cedda4a9168800e013a3e78e1a97ea6081bb710e0', 316) : concorde
   lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
   lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
-  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  réécriture par la bibliothèque identique aux octets du fichier (sinon : doublon écrasé à la relecture, forme non canonique) : vecteur True ; outil True : concorde
   opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
   empreinte du fichier : vecteur 0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19 ; outil 0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19 : concorde
   attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1002, 'uri': None, 'result': '0x27b309c8a6d9ae8140d9194ee9423d666c5a20428921f9cda6e4b96f1ba2142a'}] ; outil [{'kind': 'bitcoin', 'height': 1002, 'uri': None, 'result': '0x27b309c8a6d9ae8140d9194ee9423d666c5a20428921f9cda6e4b96f1ba2142a'}] : concorde
@@ -103,7 +103,7 @@ Entrées : ots/attendu.json, ots/preuves/*.ots, ots/entetes/*.json, ancres/ancre
   SHA-256 et taille : vecteur ('0x4a061d21b2305142a9a8be8592b0eed9aa2d24a001a7a97b54ab8b534f387c6d', 316) ; outil ('0x4a061d21b2305142a9a8be8592b0eed9aa2d24a001a7a97b54ab8b534f387c6d', 316) : concorde
   lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
   lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
-  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  réécriture par la bibliothèque identique aux octets du fichier (sinon : doublon écrasé à la relecture, forme non canonique) : vecteur True ; outil True : concorde
   opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
   empreinte du fichier : vecteur 0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594 ; outil 0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594 : concorde
   attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1003, 'uri': None, 'result': '0xe7e968409fde386c8e145a92db9b6c3c7b9439a6437b0e4289c7a47081ae50b3'}] ; outil [{'kind': 'bitcoin', 'height': 1003, 'uri': None, 'result': '0xe7e968409fde386c8e145a92db9b6c3c7b9439a6437b0e4289c7a47081ae50b3'}] : concorde
@@ -126,7 +126,7 @@ Entrées : ots/attendu.json, ots/preuves/*.ots, ots/entetes/*.json, ancres/ancre
   SHA-256 et taille : vecteur ('0x305dc8022c1a34354b7ad6a1e8a1ec799a6af7fb75f92285e8ff0439d8bc4e44', 316) ; outil ('0x305dc8022c1a34354b7ad6a1e8a1ec799a6af7fb75f92285e8ff0439d8bc4e44', 316) : concorde
   lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
   lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
-  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  réécriture par la bibliothèque identique aux octets du fichier (sinon : doublon écrasé à la relecture, forme non canonique) : vecteur True ; outil True : concorde
   opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
   empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1002, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}] ; outil [{'kind': 'bitcoin', 'height': 1002, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}] : concorde
@@ -135,7 +135,7 @@ Entrées : ots/attendu.json, ots/preuves/*.ots, ots/entetes/*.json, ancres/ancre
   SHA-256 et taille : vecteur ('0xa928d3f5bdb6a2eaa7173eae9bb6bfe2fd57513983369c953b263ddcfba39b26', 210) ; outil ('0xa928d3f5bdb6a2eaa7173eae9bb6bfe2fd57513983369c953b263ddcfba39b26', 210) : concorde
   lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
   lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
-  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  réécriture par la bibliothèque identique aux octets du fichier (sinon : doublon écrasé à la relecture, forme non canonique) : vecteur True ; outil True : concorde
   opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
   empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'en_attente', 'height': None, 'uri': 'https://alice.btc.calendar.opentimestamps.org', 'result': '0x3def099ee13c9296582949d9d40832947b2a8f882823242b36bedcc81651a20e'}] ; outil [{'kind': 'en_attente', 'height': None, 'uri': 'https://alice.btc.calendar.opentimestamps.org', 'result': '0x3def099ee13c9296582949d9d40832947b2a8f882823242b36bedcc81651a20e'}] : concorde
@@ -144,16 +144,23 @@ Entrées : ots/attendu.json, ots/preuves/*.ots, ots/entetes/*.json, ancres/ancre
   SHA-256 et taille : vecteur ('0xd3a21c0afb5e8d4d8e1df7ca90c6720b630bc917819c6dd890e0cc293cae7a32', 329) ; outil ('0xd3a21c0afb5e8d4d8e1df7ca90c6720b630bc917819c6dd890e0cc293cae7a32', 329) : concorde
   lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
   lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
-  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  réécriture par la bibliothèque identique aux octets du fichier (sinon : doublon écrasé à la relecture, forme non canonique) : vecteur True ; outil True : concorde
   opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
   empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}, {'kind': 'bitcoin', 'height': 1002, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}] ; outil [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}, {'kind': 'bitcoin', 'height': 1002, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}] : concorde
   opérations hors profil {f0, f1, 08} : aucune ; longueurs hors de 1 à 4096 : aucune ; plus long chemin : 16 opérations
+-- preuves/o1-attestation-en-double.ots (cible : O-1 ; altération : l'attestation Bitcoin à 1001 écrite deux fois sous le même nœud (doublon, forme non canonique))
+  SHA-256 et taille : vecteur ('0xc2a566642aefc2e73095730ec9513ebcb21dcbce547eb89f9d64f62daa355718', 329) ; outil ('0xc2a566642aefc2e73095730ec9513ebcb21dcbce547eb89f9d64f62daa355718', 329) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee_en_ecrasant
+  lecture par python-opentimestamps présumée par attendu.json (timestamp.py (Timestamp.attestations est un ensemble ; merge et deserialize écrasent le doublon) ; CT-6 §10.2, révision 0.5) : vecteur acceptee_en_ecrasant ; outil acceptee_en_ecrasant : concorde
+  réécriture par la bibliothèque identique aux octets du fichier (sinon : doublon écrasé à la relecture, forme non canonique) : vecteur False ; outil False : concorde
+  la bibliothèque relit le fichier en écrasant un doublon : forme non canonique, inexploitable pour CT-6 (O-1, §10.2) ; aucune attestation n'est relevée
+  attestations : vecteur [] ; outil [] : concorde
 -- preuves/attente-uri-vide.ots (cible : aucune ; altération : au bout des opérations du calendrier, une attestation en attente d'URI vide (0 octet), que la bibliothèque de référence admet (EX-10.2), à côté de la branche Bitcoin attestée à 1001)
   SHA-256 et taille : vecteur ('0x7d872b32550ab04bc69a8f01c013a26880654f54a3f506c19a1889dff5468252', 328) ; outil ('0x7d872b32550ab04bc69a8f01c013a26880654f54a3f506c19a1889dff5468252', 328) : concorde
   lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
   lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
-  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  réécriture par la bibliothèque identique aux octets du fichier (sinon : doublon écrasé à la relecture, forme non canonique) : vecteur True ; outil True : concorde
   opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
   empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}, {'kind': 'en_attente', 'height': None, 'uri': '', 'result': '0x3def099ee13c9296582949d9d40832947b2a8f882823242b36bedcc81651a20e'}] ; outil [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}, {'kind': 'en_attente', 'height': None, 'uri': '', 'result': '0x3def099ee13c9296582949d9d40832947b2a8f882823242b36bedcc81651a20e'}] : concorde
@@ -162,7 +169,7 @@ Entrées : ots/attendu.json, ots/preuves/*.ots, ots/entetes/*.json, ancres/ancre
   SHA-256 et taille : vecteur ('0x63c1ff77939ab1a9ecc659d356eb598d576e730f811a57997d033fd4892a0062', 330) ; outil ('0x63c1ff77939ab1a9ecc659d356eb598d576e730f811a57997d033fd4892a0062', 330) : concorde
   lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
   lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
-  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  réécriture par la bibliothèque identique aux octets du fichier (sinon : doublon écrasé à la relecture, forme non canonique) : vecteur True ; outil True : concorde
   opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
   empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   résultat calculé par la bibliothèque sous l'opération hors profil (attestation bitcoin 1003) : 0x82a1c963939b552f8fa6b2ea7b0832301d7c0158, noté null (EX-10.7)
@@ -172,7 +179,7 @@ Entrées : ots/attendu.json, ots/preuves/*.ots, ots/entetes/*.json, ancres/ancre
   SHA-256 et taille : vecteur ('0x559c12fd7a8b11d11cc2f804be2b23ee5d97b797ad3209901d2d9590156d3961', 316) ; outil ('0x559c12fd7a8b11d11cc2f804be2b23ee5d97b797ad3209901d2d9590156d3961', 316) : concorde
   lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
   lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
-  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  réécriture par la bibliothèque identique aux octets du fichier (sinon : doublon écrasé à la relecture, forme non canonique) : vecteur True ; outil True : concorde
   opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
   empreinte du fichier : vecteur 0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4 ; outil 0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4 : concorde
   attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1004, 'uri': None, 'result': '0x65b1d35513bc9d638497085ece4e631e1ff22fcd6466886b7b5caec64a63bb81'}] ; outil [{'kind': 'bitcoin', 'height': 1004, 'uri': None, 'result': '0x65b1d35513bc9d638497085ece4e631e1ff22fcd6466886b7b5caec64a63bb81'}] : concorde
@@ -181,7 +188,7 @@ Entrées : ots/attendu.json, ots/preuves/*.ots, ots/entetes/*.json, ancres/ancre
   SHA-256 et taille : vecteur ('0x5c69f4a86b49d23f5a5fc655d787b50d14941e4a80aba235c4fb0ce22e021246', 210) ; outil ('0x5c69f4a86b49d23f5a5fc655d787b50d14941e4a80aba235c4fb0ce22e021246', 210) : concorde
   lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
   lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
-  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  réécriture par la bibliothèque identique aux octets du fichier (sinon : doublon écrasé à la relecture, forme non canonique) : vecteur True ; outil True : concorde
   opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
   empreinte du fichier : vecteur 0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4 ; outil 0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4 : concorde
   attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'en_attente', 'height': None, 'uri': 'https://alice.btc.calendar.opentimestamps.org', 'result': '0x90134da02939e8711b5b009dfa607b1ec63573bd5b2a6454a959478158526b6f'}] ; outil [{'kind': 'en_attente', 'height': None, 'uri': 'https://alice.btc.calendar.opentimestamps.org', 'result': '0x90134da02939e8711b5b009dfa607b1ec63573bd5b2a6454a959478158526b6f'}] : concorde
@@ -299,6 +306,16 @@ Entrées : ots/attendu.json, ots/preuves/*.ots, ots/entetes/*.json, ancres/ancre
   statut du contrôle 5 : vecteur ('non_execute', 'ancre_absente') ; outil ('non_execute', 'ancre_absente') : concorde
   avertissements (liste exacte, ordre de EX-6.15) : vecteur [] ; outil [] : concorde
 -- preuves/o1-octet-en-trop.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu echoue                           outil echoue                           concorde
+  O-2  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-3  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-4  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-5  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-6  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-7  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  statut du contrôle 5 : vecteur ('echoue', None) ; outil ('echoue', None) : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur [] ; outil [] : concorde
+-- preuves/o1-attestation-en-double.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
   O-1  attendu echoue                           outil echoue                           concorde
   O-2  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
   O-3  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
@@ -459,5 +476,5 @@ Entrées : ots/attendu.json, ots/preuves/*.ots, ots/entetes/*.json, ancres/ancre
   statut du contrôle 5 : vecteur ('echoue', None) ; outil ('echoue', None) : concorde
   avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-3'] ; outil ['AV-O-3'] : concorde
 
-Bilan des vérifications O- : 140 concordances, 0 discordances
+Bilan des vérifications O- : 147 concordances, 0 discordances
 Discordances au total : 0

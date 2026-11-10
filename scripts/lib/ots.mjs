@@ -147,7 +147,28 @@ function lireArbre(l, profondeur) {
       continue;
     }
     branches.push(lireBranche(l, etiquette, profondeur));
+    controlerDoublons(branches);
     return branches;
+  }
+}
+
+/**
+ * Forme canonique d'un nœud (CT-6 §10.2, révision 0.5) : la bibliothèque
+ * officielle tient les attestations d'un nœud pour un ensemble et ses
+ * opérations pour un dictionnaire (timestamp.py : `attestations`, `ops`) ; sa
+ * sérialisation n'écrit jamais deux attestations identiques ni deux opérations
+ * identiques sous un même nœud, et sa relecture écrase le doublon. Un tel
+ * fichier est inexploitable : O-1 en échec, raison `doublon`.
+ */
+function controlerDoublons(branches) {
+  const vus = new Set();
+  for (const b of branches) {
+    const cle = b.type === "attestation" ? `a:${encoderAttestation(b.attestation).toString("hex")}` : `o:${b.op.toString(16)}:${b.argument ? b.argument.toString("hex") : ""}`;
+    if (vus.has(cle)) {
+      if (b.type === "attestation") throw new ErreurOts(`doublon : deux attestations identiques sous un même nœud (${b.attestation.genre === "bitcoin" ? `Bitcoin, hauteur ${b.attestation.hauteur}` : b.attestation.genre === "en_attente" ? `en attente, URI ${b.attestation.uri}` : "inconnue"}) : forme non canonique`);
+      throw new ErreurOts(`doublon : deux opérations 0x${b.op.toString(16).padStart(2, "0")} identiques sous un même nœud : forme non canonique`);
+    }
+    vus.add(cle);
   }
 }
 

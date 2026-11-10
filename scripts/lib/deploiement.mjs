@@ -1101,7 +1101,7 @@ export function messageOptions(err) {
 export const OUTILS_ARCHIVE = Object.freeze(["configurer-rapide.mjs", "consultations.mjs", "controle-prealable.mjs", "dimensionner.mjs", "proces-verbal.mjs", "rapport-observation.mjs", "verifier-conteneurs.mjs", "verifier-journal.mjs"]);
 
 /** Bibliothèques de scripts/lib/ que ces outils importent, directement ou non. */
-export const BIBLIOTHEQUES_ARCHIVE = Object.freeze(["approbation.mjs", "capture.mjs", "console.mjs", "deploiement.mjs", "exploitation.mjs", "journal.mjs", "noortrace.mjs", "securite.mjs"]);
+export const BIBLIOTHEQUES_ARCHIVE = Object.freeze(["approbation.mjs", "capture.mjs", "console.mjs", "deploiement.mjs", "exploitation.mjs", "journal.mjs", "noortrace.mjs", "ots.mjs", "securite.mjs"]);
 
 /** package.json engendré pour la copie de la distribution ESM d'ethers (même forme que le paquet réviseur, CT-8 EX-13.21). */
 function paquetEthersArchive(version) {

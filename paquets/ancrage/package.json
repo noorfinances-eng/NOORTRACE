@@ -1,0 +1,36 @@
+{
+  "name": "@noortrace/ancrage",
+  "version": "0.1.0",
+  "description": "Composant d’ancrage NOORTRACE (CT-5 version 0.3) : client RFC 3161 et vérification des jetons à l’acquisition, client OpenTimestamps, ancre des points et des périodes au registre de CT-4, planificateur à file durable, serveur RFC 3161 interne non qualifié, remise des pièces à l’exportateur.",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "noortrace-ancrage": "bin/noortrace-ancrage",
+    "noortrace-tsa-interne": "bin/noortrace-tsa-interne"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./rfc3161": "./src/rfc3161/index.mjs",
+    "./ots": "./src/ots/index.mjs",
+    "./planificateur": "./src/planificateur/index.mjs",
+    "./registre": "./src/registre/index.mjs",
+    "./serveur-interne": "./src/serveur-interne/index.mjs",
+    "./exportateur": "./src/exportateur.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "src",
+    "LISEZMOI.md",
+    "INTERFACES.md"
+  ],
+  "dependencies": {
+    "@noortrace/noyau": "0.1.0",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0"
+  }
+}

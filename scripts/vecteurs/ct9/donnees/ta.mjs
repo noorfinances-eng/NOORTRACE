@@ -1365,28 +1365,43 @@ export const TA = [
   {
     "id": "TA-41",
     "preconditions": [
-      "Composant de la phase 2 qui résout des références de secrets (enregistreur, étape 4 ; composant d'ancrage, étape 5 ; CT-5 EX-4.8, AN-43) ; prestataire RFC 3161 de test exigeant une authentification ; configuration dont `providers[principal].auth` porte une référence de secret (`env`, `file` ou `vault`) dont la valeur résolue est une chaîne marqueur injectée par le test."
+      "Démon de l'enregistreur (`paquets/enregistreur`, étape 4) avec le composant d'ancrage (`paquets/ancrage`, étape 5) branché (`anchoring.ancrage`, document `ancrage-v0`), en cours de processus à horloge réglable ; serveurs RFC 3161 internes de référence du paquet d'ancrage, le principal en TLS mutuel ; `providers[principal].auth` porte une référence de secret `file` dont la valeur résolue porte une chaîne marqueur injectée par l'essai (CT-5 EX-4.8, AN-43)."
     ],
     "steps": [
-      "Démarrer le composant ; laisser partir une requête RFC 3161 authentifiée vers le prestataire de test.",
-      "Relire la file durable, les traces et le journal d'exploitation ; chercher la chaîne marqueur.",
-      "Mutant : un `journaliser` ou une mise en file qui recopie la valeur résolue du secret."
+      "Démarrer le démon avec le composant ; laisser partir des requêtes RFC 3161 authentifiées vers le principal (points contresignés, clôture).",
+      "Relire la file durable, les traces du planificateur, `acquisitions.ndjson`, le journal d'exploitation et les métriques ; y chercher la chaîne marqueur, le secret TLS et la clé de chaîne.",
+      "Présenter une chaîne en clair à la place de la référence, puis une référence `env` absente ; relever le refus.",
+      "Mutant (complément) : copie du paquet `paquets/ancrage` (EX-10.5) dont la journalisation ou la mise en file recopie la valeur résolue du secret."
     ],
-    "oracle": "Le marqueur n'apparaît dans aucun fichier (file, traces, journal) ; le mutant l'y fait apparaître et le test échoue. Le planificateur de référence ne manipule aucun secret en version 0 (la projection `planificateur-ancrage-v0` exclut les secrets) : il n'y a rien à retirer aujourd'hui ; l'hygiène des vecteurs `ct-5` est TV-44.",
+    "oracle": "Le marqueur, le secret TLS et la clé de chaîne n'apparaissent dans aucun fichier (file, traces, `acquisitions.ndjson`, journal d'exploitation, métriques) ; seule la référence (`file`) figure dans la configuration d'ancrage en vigueur ; une chaîne en clair est refusée par le schéma `ancrage-v0` (AN-1) ; une référence `env` absente refuse le démarrage de l'ancrage (`secret_non_resolu`, pointeur consigné, jamais une valeur) sans arrêter l'enregistreur. Avec le mutant du complément, le marqueur apparaît et le test échoue.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Le test porte sur une requête RFC 3161 authentifiée vers un prestataire (providers[principal].auth, CT-5 EX-4.8, AN-43) : seul le composant d'ancrage de l'étape 5 en émet ; le démon de l'étape 4 résout ses propres références de secrets mais ne parle à aucun prestataire d'horodatage. La version 0.1 rattachait à tort l'entrée à l'étape 4."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-ancrage-exigences.test.js",
+          "describe": "enregistreur + ancrage (lot F2) : branchement d'anchoring.ancrage, configuration refusée, secrets, clé de chaîne (CT-5 EX-4.8, EX-4.9 ; CT-2 §15.2, EX-11.19 ; TA-41)",
+          "it": "TA-41 : une chaîne en clair à la place d'une référence de secret est refusée (schéma ancrage-v0, AN-1) ; une référence env absente refuse le démarrage de l'ancrage sans arrêter l'enregistreur (secret_non_resolu, pointeur consigné, jamais une valeur) ; resoudreSecretsAncrage ne touche qu'aux pointeurs d'ancrage-v0"
+        },
+        {
+          "file": "test/enregistreur-ancrage-exigences.test.js",
+          "describe": "enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Mutant du composant livré : une copie du paquet `paquets/ancrage` (EX-10.5) dont la journalisation ou la mise en file recopie la valeur résolue d'une référence de secret, rejouée par le même essai, qui doit alors trouver le marqueur ; les essais de l'étape 5 éprouvent la réponse sans ce mutant. Possible dès maintenant sur le composant livré et non écrit : étape 8 (EX-3.10). Les versions 0.1 et 0.2 rattachaient l'entrée aux étapes 4 puis 5."
+      }
     },
     "response_removed": {
       "what": "Secrets par référence, jamais dans la file, les traces ni le journal (CT-5 EX-4.8, AN-43)",
       "how": "Journaliser ou mettre en file la valeur résolue d'une référence de secret au lieu de la référence",
-      "where": "composant de la phase 2 qui résout les références de secrets (enregistreur, étape 4 ; composant d'ancrage, étape 5)"
+      "where": "paquets/ancrage (file durable, traces du planificateur, acquisitions.ndjson, journal) et paquets/enregistreur (resoudreSecretsAncrage, journal d'exploitation)"
     },
     "attack": "Un planificateur qui consigne la valeur de l'identifiant d'accès au prestataire dans la file, une trace ou le journal.",
     "expected_with_response": "Aucun fichier ne contient la valeur du secret : seule la référence (`env`, `file`, `vault`) y figure.",
     "expected_without_response": "La valeur marqueur apparaît dans la file ou le journal ; le test échoue.",
-    "execution": "phase_2"
+    "execution": "phase_2",
+    "notes": "L'essai « AN-43 et TA-41 : des requêtes RFC 3161 authentifiées sont parties vers le principal… » de test/enregistreur-ancrage-exigences.test.js porte l'oracle du marqueur ; son titre (417 caractères) dépasse la borne de 400 de `titre_test` (plan-de-tests-v0) : il est cité par son describe, qui désigne tous ses it (EX-4.2), et se joue avec eux."
   },
   {
     "id": "TA-42",
@@ -2082,7 +2097,7 @@ export const TA = [
       "Fabriquer le mutant (copie de scripts/ avec le remplacement nommé) et rejouer.",
       "Comparer : la référence rend l'attendu des vecteurs, le mutant ne le rend plus."
     ],
-    "oracle": "verifierTrace vide pour la référence ; le mutant diverge au pas 47 (journaliser anchor_fallback attendu, ecrire_file obtenu) ; le test éprouve le mécanisme, pas l'existence d'un secours utilisable (CT-5 EX-11.3).",
+    "oracle": "verifierTrace vide pour la référence ; le mutant diverge au pas 47 (journaliser anchor_fallback attendu, ecrire_file obtenu) ; le test éprouve le mécanisme, pas l'existence d'un secours utilisable (CT-5 EX-11.3). Sur le composant livré (essai cité de l'étape 5) : la demande de clôture en cours relevée vers le secours par `retirerQualification`, `anchor_fallback` consigné (raison `qualification_retiree`), jeton du secours promu.",
     "status": {
       "state": "executable",
       "tests": [
@@ -2095,11 +2110,16 @@ export const TA = [
           "file": "test/ancrage.test.js",
           "describe": "CT-5 : familles planification et reprise (EX-8.12, EX-8.16, EX-A.6)",
           "it": "chaque trace est reproduite à l'identique par rejouerTrace (actions et file finale)"
+        },
+        {
+          "file": "test/enregistreur-ancrage-exigences.test.js",
+          "describe": "enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence",
+          "it": "TA-62 (complément) : relève d'une demande en cours : le principal ne répond pas à la clôture, retirerQualification relève la demande envoyee vers le secours (anchor_fallback consigné, reason qualification_retiree), le jeton du secours est promu ; la file garde la tentative pendante comme envoyée"
         }
       ],
       "complement": {
-        "phase2_step": 5,
-        "blocking": "Le retrait de la relève elle-même (`this.relever`) sur `principal-injoignable.json` épuise les gigues injectées de la trace figée et lève avant l'oracle (EX-10.6) : mutant à poser sur le composant d'ancrage de l'étape 5 (ou sur une trace ad hoc de la bibliothèque) ; le texte de test de MN-62 (« si la relève est retirée ») est à aligner (PD-24). La version 0.1 rattachait à tort ce complément à l'étape 4 : la relève est le fait du composant d'ancrage."
+        "phase2_step": 8,
+        "blocking": "Le retrait de la relève elle-même (`this.relever`) sur `principal-injoignable.json` épuise les gigues injectées de la trace figée et lève avant l'oracle (EX-10.6) ; depuis l'étape 5, la relève d'une demande en cours est éprouvée sur le composant d'ancrage livré (essai cité), sans mutant : le mutant qui retire la relève du composant (copie du paquet `paquets/ancrage`, EX-10.5), possible dès maintenant et non écrit, est dû à l'étape 8 ; le texte de test de MN-62 (« si la relève est retirée ») est à aligner (PD-24). Les versions 0.1 et 0.2 rattachaient ce complément aux étapes 4 puis 5."
       }
     },
     "response_removed": {

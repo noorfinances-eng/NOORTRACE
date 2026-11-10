@@ -218,6 +218,7 @@ export class ServiceCopiesWorm extends SupportWorm {
     const r = [];
     const lister = async (d) => (await fs.readdir(path.join(this.repertoire, d)).catch(() => [])).sort();
     const courant = this.coeur?.ecrivain?.segment?.nom ?? null;
+    const epoque = this.coeur?.ecrivain?.epoque ?? 0;
     const ajouter = (rel, nature) => r.push({ cle: cleObjetWorm(this.prefixe, rel), chemin: path.join(this.repertoire, rel), nature });
     const segments = (await lister("segments")).filter((n) => MOTIF_SEGMENT.test(n) && n !== courant);
     for (const n of segments) ajouter(`segments/${n}`, "segment");
@@ -230,12 +231,55 @@ export class ServiceCopiesWorm extends SupportWorm {
         if (await fs.stat(path.join(this.repertoire, serie)).then(() => true, () => false)) ajouter(serie, "points");
       }
     }
+    // Répertoire `ancres/` de CT-5 (EX-5.15, EX-8.14 ; lecture 93, complétée par le lot F2) : chaque fichier fermé est
+    // copié une fois sous sa clé. Sont fermés dès leur création les pièces écrites en création exclusive (`rfc3161/*`,
+    // `ots/*.ots`, `ots/*.nonce`, `entetes-bitcoin.json`) ; `acquisitions.ndjson` (ajout seul) l'est quand la période est
+    // close, que le jeton de clôture de la période est obtenu et promu (un enregistrement `obtenue` `promoted` non révoqué
+    // d'objet `manifeste` ; EX-4.5 : il est toujours obtenu, quel que soit le délai, et sa ligne vient après la clôture ;
+    // correction R-G-1) et que la T-10 différée de chaque jeton promu est décidée (ou la capture des CRL désactivée) ;
+    // après une révocation (`revoked`), la nouvelle promotion est attendue ; un fichier de file `file-<epoque>.ndjson`
+    // (ajout seul) l'est quand son époque est inférieure à celle de l'écrivain.
+    const configurationAncrage = this.coeur?.o?.ancrage?.configuration ?? null;
+    const crlCapture = configurationAncrage?.rfc3161?.crl_capture?.enabled !== false;
+    const manifestesClos = new Set(manifestes.filter((n) => /^periode-[0-9]{10}\.json$/.test(n)).map((n) => n.slice(8, 18)));
+    const acquisitionsFermees = async (rel, periode) => {
+      if (!manifestesClos.has(periode)) return false;
+      let texte;
+      try {
+        texte = await fs.readFile(path.join(this.repertoire, rel), "utf8");
+      } catch {
+        return false;
+      }
+      const lignes = texte.split("\n");
+      if (lignes[lignes.length - 1] !== "") return false; // dernière ligne tronquée : une écriture est en cours
+      const dernieres = new Map();
+      for (const l of lignes.filter(Boolean)) {
+        try {
+          const e = JSON.parse(l);
+          if (!e || typeof e !== "object") return false;
+          dernieres.set(typeof e.attempt_id === "string" ? e.attempt_id : Symbol("x"), e);
+        } catch {
+          return false;
+        }
+      }
+      const promus = [...dernieres.values()].filter((e) => e.outcome === "obtenue" && e.promoted === true && e.revoked !== true);
+      const t10Decidee = (e) => e.checks?.["T-10"] !== undefined && e.checks["T-10"] !== "non_execute";
+      if (!promus.some((e) => e.object === "manifeste")) return false;
+      if (!crlCapture) return true;
+      return promus.every(t10Decidee);
+    };
     const parcourir = async (rel) => {
       for (const n of await lister(rel)) {
         const sous = `${rel}/${n}`;
         const st = await fs.stat(path.join(this.repertoire, sous)).catch(() => null);
         if (st?.isDirectory()) await parcourir(sous);
-        else if (st?.isFile()) ajouter(sous, "ancre");
+        else if (!st?.isFile()) continue;
+        else if (n === "acquisitions.ndjson") {
+          const periode = /^ancres\/periode-([0-9]{10})\//.exec(`${sous}/`)?.[1] ?? null;
+          if (periode && (await acquisitionsFermees(sous, periode))) ajouter(sous, "ancre");
+        } else if (/^file-[0-9]+\.ndjson$/.test(n)) {
+          if (Number(n.slice(5, -7)) < epoque) ajouter(sous, "ancre");
+        } else ajouter(sous, "ancre");
       }
     };
     await parcourir("ancres");

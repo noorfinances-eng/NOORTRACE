@@ -10,7 +10,7 @@ section « Contrôle 4 » ; `interface.go` n'est pas modifié.
 | Fichier | Contenu |
 |---|---|
 | `der.go` | Lecteur DER borné (§9.3, EX-9.4) : étiquettes et longueurs selon `cryptobyte`, BOOLEAN `00`/`ff`, profondeur 32, noms (UTF8String valide, BMPString paire), temps, extensions. |
-| `certificat.go` | Certificats et CRL lus strictement (EX-9.21 : `critical`, `cA`, `version` encodés à leur valeur `DEFAULT`) ; `ControleurAncres`. |
+| `certificat.go` | Certificats et CRL lus strictement (EX-9.21 : `critical`, `cA`, `version` encodés à leur valeur `DEFAULT` ; révision 0.5 : `SubjectPublicKeyInfo` et `RSAPublicKey` lus selon §9.3, `controlerSPKI`) ; `ControleurAncres`. |
 | `jeton.go` | `ContentInfo`, `SignedData`, `SignerInfo`, `TSTInfo` (T-1, EX-9.7). |
 | `algorithmes.go` | Identifiants de §9.4, table d'EX-9.11, clés, vérification des signatures (`crypto/rsa`, `crypto/ecdsa`). |
 | `instant.go` | `genTime` à pleine précision, `genTime + accuracy`, bornes d'EX-9.15. |
@@ -53,6 +53,19 @@ K-7 :
   version 0, non vérifiée : aucune date établie ».
 - **EX-9.15** : `serialNumber` de toute taille et de tout signe, sans effet
   sur T-9 (le paquet était conforme).
+
+## Révision 0.5 de CT-6
+
+- **EX-9.4, EX-9.7 (précision)** : la lecture selon §9.3 d'un certificat
+  comprend son `SubjectPublicKeyInfo` (`AlgorithmIdentifier`, `BIT STRING`
+  sans bit inutilisé) et, pour `rsaEncryption`, la `RSAPublicKey` de la
+  `BIT STRING` (`SEQUENCE` de deux `INTEGER`, profil de `verifierProfil`) :
+  une longueur non minimale ou une structure fausse rend le certificat
+  illisible dès `analyserCertificat` (`controlerSPKI`), donc T-1 en échec, là
+  où `lireCle` rendait une clé « refusée » jugée par T-5. Les quatre
+  extensions connues étaient déjà décodées à la lecture (`decoderExtensions`).
+  Vecteurs `t1-cle-longueur-non-minimale.der`, `t1-extension-mal-formee.der`
+  (EX-A.25) ; `revision05_test.go`.
 
 ## Lectures
 

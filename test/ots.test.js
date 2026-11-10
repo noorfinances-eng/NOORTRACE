@@ -90,6 +90,27 @@ describe("CT-6 contrôle 5 : format .ots (§10.2, EX-10.2)", function () {
     expect(lu.arbre[1].attestation.charge.toString("hex")).to.equal("cafe");
   });
 
+  it("forme canonique d'un nœud (révision 0.5) : deux attestations identiques ou deux opérations identiques sous un même nœud rendent le fichier illisible (doublon) ; des branches sœurs distinctes sont lues", function () {
+    const inconnue = (charge) => ({ type: "attestation", attestation: { genre: "inconnue", etiquette: Buffer.from("30fe8087b5c7ead7", "hex"), charge: Buffer.from(charge, "hex") } });
+    const op = (code, argument, arbre) => ({ type: "operation", op: code, argument, arbre });
+    expect(() => O.lireOts(O.encoderOts(E1, [bitcoin(1001), bitcoin(1001)]))).to.throw(O.ErreurOts, /doublon : deux attestations identiques .*Bitcoin, hauteur 1001/);
+    expect(() => O.lireOts(O.encoderOts(E1, [attente("https://a.example"), attente("https://a.example")]))).to.throw(O.ErreurOts, /doublon : deux attestations identiques .*en attente/);
+    expect(() => O.lireOts(O.encoderOts(E1, [inconnue("cafe"), inconnue("cafe")]))).to.throw(O.ErreurOts, /doublon : deux attestations identiques .*inconnue/);
+    expect(() => O.lireOts(O.encoderOts(E1, [op(O.OP.sha256, null, [bitcoin(1)]), op(O.OP.sha256, null, [bitcoin(2)])]))).to.throw(O.ErreurOts, /doublon : deux opérations 0x08 identiques/);
+    expect(() => O.lireOts(O.encoderOts(E1, [op(O.OP.append, Buffer.from([7]), [bitcoin(1)]), op(O.OP.append, Buffer.from([7]), [bitcoin(2)])]))).to.throw(O.ErreurOts, /doublon : deux opérations 0xf0 identiques/);
+    // Un doublon sous un nœud profond est vu aussi ; O-1 échoue, O-2 à O-7 héritent.
+    const profond = O.encoderOts(E1, O.chemin(TOUT1, [bitcoin(1001), bitcoin(1001)]));
+    const r = verifier(profond);
+    expect(echecs(r)).to.deep.equal(["O-1"]);
+    expect(r.checks[0].detail).to.match(/doublon/);
+    // Branches sœurs distinctes : hauteurs, charges, arguments différents ; f0 et f1 de même argument.
+    const lu = O.lireOts(O.encoderOts(E1, [bitcoin(1001), bitcoin(1002), inconnue("01"), inconnue("02"), op(O.OP.append, Buffer.from([7]), [bitcoin(1)]), op(O.OP.append, Buffer.from([8]), [bitcoin(2)]), op(O.OP.prepend, Buffer.from([7]), [bitcoin(3)]), op(O.OP.sha256, null, [bitcoin(4)])]));
+    expect(lu.arbre).to.have.length(8);
+    // Le vecteur o1-attestation-en-double.ots (EX-A.26) : lu par python-opentimestamps en écrasant le doublon (attendu.json).
+    expect(() => O.lireOts(preuve("o1-attestation-en-double"))).to.throw(O.ErreurOts, /doublon/);
+    expect(ATTENDU.proofs.find((p) => p.file === "preuves/o1-attestation-en-double.ots").python_opentimestamps.parsing).to.equal("acceptee_en_ecrasant");
+  });
+
   it("l'encodeur écrit dans l'ordre de python-opentimestamps : attestations triées par hauteur, puis opérations ; ff devant chaque branche sauf la dernière", function () {
     const b = O.encoderArbre([bitcoin(1002), bitcoin(1001)]);
     expect(b.toString("hex")).to.equal("ff00" + O.ETIQUETTE_BITCOIN.toString("hex") + "02e907" + "00" + O.ETIQUETTE_BITCOIN.toString("hex") + "02ea07");
@@ -194,7 +215,8 @@ describe("CT-6 contrôle 5 : vecteurs spec/vecteurs/ct-6/ots (annexe A.4)", func
   });
 
   it("chaque cas de attendu.json est rejoué : statuts O-1 à O-7, contrôle 5, avertissements et faits identiques", function () {
-    expect(ATTENDU.cases.length).to.equal(20);
+    // Révision 0.5 (EX-A.26) : un cas de plus (o1-attestation-en-double).
+    expect(ATTENDU.cases.length).to.equal(21);
     for (const c of ATTENDU.cases) {
       const r = O.verifierPreuve(fs.readFileSync(path.join(VECTEURS, c.proof)), { periodHash: c.dossier_period_hash, entetes: c.headers ? lireJSON(c.headers) : null, ancres: c.anchors ? ANCRES : null });
       const etiquette = `${c.proof} ${c.headers} ${c.anchors}`;
@@ -289,7 +311,9 @@ describe("CT-6 contrôle 5 : vecteurs spec/vecteurs/ct-6/ots (annexe A.4)", func
 
   it("attestation en attente et attestation inconnue à côté d'une attestation Bitcoin : AV-O-2, contrôle réussi ; ordre de EX-6.15 (O-5 avant O-7)", function () {
     const inconnue = { type: "attestation", attestation: { genre: "inconnue", etiquette: Buffer.from("06869a0d73d71b45", "hex"), charge: Buffer.from("01", "hex") } };
-    const r = verifier(O.encoderOts(E1, [...O.chemin(TOUT1, [bitcoin(1001)]), ...O.chemin(OPS1.calendrier, [attente(G.URI_CALENDRIER), inconnue])]));
+    // Les trois attestations sont sœurs sous les opérations du calendrier (forme canonique : deux branches qui
+    // commenceraient par la même opération seraient un doublon, §10.2, révision 0.5).
+    const r = verifier(O.encoderOts(E1, O.chemin(OPS1.calendrier, [...O.chemin(OPS1.bitcoin, [bitcoin(1001)]), attente(G.URI_CALENDRIER), inconnue])));
     expect(r.status).to.equal("reussi");
     expect(r.warnings.map((w) => [w.id, w.check])).to.deep.equal([["AV-O-3", "O-5"], ["AV-O-2", "O-7"], ["AV-O-2", "O-7"]]);
     expect(r.facts.attestations.map((a) => a.kind).sort()).to.deep.equal(["bitcoin", "en_attente", "inconnue"]);
@@ -320,7 +344,8 @@ describe("CT-6 contrôle 5 : génération déterministe des vecteurs ots", funct
       const la = lister(path.join(a, "ots"));
       expect(la).to.deep.equal(lister(path.join(b, "ots")));
       expect(la).to.deep.equal(lister(VECTEURS));
-      expect(Object.keys(la).length).to.equal(18);
+      // Révision 0.5 (EX-A.26) : une preuve de plus.
+      expect(Object.keys(la).length).to.equal(19);
     } finally {
       fs.rmSync(a, { recursive: true, force: true });
       fs.rmSync(b, { recursive: true, force: true });

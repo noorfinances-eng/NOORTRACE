@@ -599,16 +599,41 @@ export const TI = [
       "CT-5 EX-6.10"
     ],
     "preconditions": [
-      "Composant d'ancrage de l'étape 5 ; accès à un prestataire de test et à deux calendriers ; aucun prix dans le dépôt."
+      "Composant d'ancrage `paquets/ancrage` de l'étape 5 : client RFC 3161 et transport de production (`acquerir`, `transportHttps`), client OpenTimestamps (`soumettre`), composant et planificateur (`creerComposantAncrage`) ; aucun prix dans le dépôt.",
+      "Prestataires réels : autorités RFC 3161 publiques sans compte SwissSign (`https://tsa.swisssign.net`) et DFN (`https://zeitstempel.dfn.de`), non déclarées `qualified` ; agrégateurs OpenTimestamps publics d'EX-6.2 (`a.pool.opentimestamps.org`, `b.pool.opentimestamps.org`, `a.pool.eternitywall.com`, `ots.btc.catallaxy.com`) ; services publics, sans version publiée : l'essai consigne la date et la réponse de chacun. Les cas (i) et (ii) sont en attente hors `NOORTRACE_TSA_PUBLIQUE=1`, le cas (iii) hors `NOORTRACE_RESEAU_PUBLIC=1` (EX-3.11) ; la condition est nommée dans le titre.",
+      "Retrait de la qualification (CT-5 EX-5.9) éprouvé hors réseau : composant à horloge réglable, serveurs RFC 3161 internes de référence du paquet d'ancrage en principal et en secours, déclarés qualifiés par un instantané d'exemple (CT-5 EX-4.8)."
     ],
     "steps": [
-      "Acquérir un jeton et une preuve `.ots` pour une racine ; retirer la qualification du principal dans la configuration sans recharger (CT-5 EX-5.9) ; respecter `min_interval_ms` ; relire la fiche de prestataire."
+      "(i) Pour chaque autorité publique : acquérir un jeton par le transport de production (CT-5 EX-5.10, étapes 1 à 9), le déposer (EX-5.14, AN-28) ; capturer les CRL des points de distribution du chemin après `genTime` et évaluer T-10 ; construire la fiche de prestataire (CT-5 §11), l'écrire et la relire.",
+      "(ii) Servir l'autorité SwissSign au composant par un relais HTTP local (rôle `interne`, `min_interval_ms` 15000) ; remettre deux points consécutifs et relever, dans le journal du relais et dans `acquisitions.ndjson`, l'écart entre les requêtes.",
+      "(iii) Soumettre la racine d'un manifeste synthétique aux agrégateurs publics (`min_responses` 2) ; écrire la preuve en attente au dépôt (EX-6.5) et l'évaluer par O-1 à O-7.",
+      "Retirer la qualification du principal sans recharger pendant que la clôture attend sa réponse (`retirerQualification`) ; relever la relève par le secours, puis recharger avec et sans principal qualifié."
     ],
-    "oracle": "Jeton accepté par T-1 à T-10 ; relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée (test « à écrire » de CT-5 §14) ; aucune requête sous `min_interval_ms`.",
+    "oracle": "(i) Jeton `obtenue`, nonce recopié, empreinte égale, T-1 à T-9 réussies ; T-10 `reussi` quand une CRL postérieure à `genTime` est publiée pour chaque certificat du chemin, sinon `crl_indisponible` consigné (la capture différée d'EX-5.10, étape 10, réessaie) ; fiche relue conforme (AN-54), sans secret, `qualified` nul. (ii) Aucune requête sous `min_interval_ms` (EX-5.5, EX-8.7), la seconde reprogrammée (`anchor_retry`, `backoff`), deux jetons obtenus. (iii) Au moins deux réponses valables, attestation `en_attente`, fichier `.ots` déposé, O-1 et O-3 réussies, O-7 non exécutée. Retrait : la demande de clôture part aussi au secours, dont le jeton est promu avec `qualified` non nul (`anchor_fallback`, raison `qualification_retiree`) ; aucun rôle ne change ; l'instantané du principal reste nul jusqu'au rechargement ; un rechargement sans principal qualifié est refusé en production (AN-1, règle 4).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Composant d'ancrage non construit ; le planificateur à horloge injectée (TV-) ne parle à aucun prestataire."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/ancrage-prestataires-reels.test.js",
+          "describe": "TI-16 (i) : autorités RFC 3161 publiques (SwissSign, DFN) par le transport de production : jeton acquis et déposé, T-1 à T-9, T-10 par les CRL publiées, fiche relue conforme (CT-5 §5, §10.2, §11)"
+        },
+        {
+          "file": "test/ancrage-prestataires-reels.test.js",
+          "describe": "TI-16 (ii) : min_interval_ms (EX-5.5, EX-8.7) tenu par le composant sur une autorité publique réelle servie par un relais local (rôle interne) : deux points consécutifs, deux requêtes espacées d'au moins min_interval_ms, mesurées dans le journal"
+        },
+        {
+          "file": "test/ancrage-prestataires-reels.test.js",
+          "describe": "TI-16 (iii) : preuve OpenTimestamps d'une racine auprès de deux calendriers publics (EX-6.2 : agrégateurs, min_responses 2) : preuve en attente écrite au dépôt (EX-6.5), O-1 et O-3 réussies"
+        },
+        {
+          "file": "test/ancrage-composant-pannes.test.js",
+          "describe": "retrait de la qualification (EX-5.9 ; TC-24 de CT-9) et rechargement (EX-4.9)"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Prestataire qualifié réel : les autorités publiques éprouvées ne sont pas déclarées `qualified`, et la relève par le secours est éprouvée sur des serveurs internes déclarés qualifiés par un instantané d'exemple ; la fiche d'un prestataire qualifié réel (CT-5 EX-5.9, `qualified` non nul) et sa relève par un secours qualifié réel attendent le prestataire à contracter pour la porte 2 (section 14, ligne 10 et ligne d'arrêt 4), étape 8."
+      }
     },
     "threats": [
       "MN-62",
@@ -640,16 +665,60 @@ export const TI = [
       "CT-7 CLE-10"
     ],
     "preconditions": [
-      "Serveur interne de l'étape 5 (optionnel, CT-5 §7) ; client RFC 3161 du composant d'ancrage."
+      "Serveur RFC 3161 interne de référence du paquet d'ancrage (`noortrace-tsa-interne` : `initialiserAutorite`, `Autorite`, serveur HTTP local et serveur TLS à authentification du client, compteur de série durable) et client RFC 3161 du composant d'ancrage (étape 5) ; démon `noortrace` avec le composant branché pour l'essai de bout en bout.",
+      "OpenSSL de la distribution (`openssl ts -verify`, `ts -reply -text`, `asn1parse`, `x509`, `crl`, `verify`), relevé le 2026-11-10 : OpenSSL 3.0.13 (30 janvier 2024) ; autorité de test de CT-6 (`spec/vecteurs/ct-6/rfc3161/cles/`) et requêtes des vecteurs `ct-5`."
     ],
     "steps": [
-      "Émettre un jeton ; l'évaluer par T-1 à T-10 ; redémarrer le serveur ; émettre un second jeton ; demander un condensé non SHA-2, une politique autre que la privée."
+      "Initialiser une autorité (RSA 3072 et P-256) ; relire l'unité, l'AC et la CRL par `openssl x509`, `crl` et `verify` ; construire une `Autorite` avec des clés et des certificats hors profil.",
+      "Émettre des jetons (six requêtes des vecteurs `ct-5`) ; les relire par `openssl ts -reply -text` et `asn1parse` et les vérifier par `openssl ts -verify` ; demander un condensé SHA-1 ou MD5, une politique étrangère, une requête mal formée ; servir en HTTP local et en TLS à authentification du client.",
+      "Émettre quatre jetons, redémarrer le serveur (compteur de série durable), en émettre quatre autres, par le client du composant ; évaluer chaque jeton par T-1 à T-9 ; relever le journal des jetons hors du serveur."
     ],
-    "oracle": "EKU critique et unique, `ESSCertIDv2` SHA-256, nonce repris, `serialNumber` strictement croissant à travers le redémarrage, `badAlg` et `unacceptedPolicy` rendus, journal des jetons hors du serveur.",
+    "oracle": "EKU critique et unique, unité non AC, `ESSCertIDv2` SHA-256 et certificat de l'unité inclus (T-8, T-4), nonce recopié (« nonce mismatch » sinon), `serialNumber` strictement croissant à travers le redémarrage (un second émetteur sur le même compteur refusé), `accuracy` ≤ 1 s, `badAlg` et `unacceptedPolicy` rendus et lus par le client, `timeNotAvailable` au-delà de la précision, écoute en clair limitée à 127.0.0.1, ::1 et localhost, client anonyme refusé en TLS, journal des jetons hors du serveur (AN-28) ; `Verification: OK` d'`openssl ts -verify` sur chaque réponse accordée ; clés hors profil refusées (AN-31, CT-6 EX-9.23).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Serveur non construit (CT-5 §7.2 : « vérifiées par CT-9 sur un jeton émis »)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-ancrage-exigences.test.js",
+          "describe": "enregistreur + ancrage (lot F2), TI-17 : serveur RFC 3161 interne du lot E éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)"
+        },
+        {
+          "file": "test/enregistreur-ancrage-parcours.test.js",
+          "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
+          "it": "TI-17 sur les jetons reçus du serveur interne : AN-22 (T-8), AN-24 (accuracy ≤ 1 s, TM-19), AN-25 (nonce recopié), AN-26 (numéros de série strictement croissants, TM-18 : 0 paire non croissante), AN-29 (politique privée), AN-30 (certificat de l'unité inclus) ; AN-28 : une ligne d'acquisition par jeton reçu"
+        },
+        {
+          "file": "test/ancrage-tsa-interne-autorite.test.js",
+          "describe": "ancrage lot E — initialiserAutorite (AN-22, AN-31) : RSA 3072 et P-256"
+        },
+        {
+          "file": "test/ancrage-tsa-interne-autorite.test.js",
+          "describe": "ancrage lot E — classe Autorite : contrôles à la construction (AN-22, AN-30, AN-31 ; CT-6 EX-9.23)"
+        },
+        {
+          "file": "test/ancrage-tsa-interne-reponse.test.js",
+          "describe": "ancrage lot E — réponses granted : six requêtes des vecteurs CT-5, autorité de test de CT-6"
+        },
+        {
+          "file": "test/ancrage-tsa-interne-reponse.test.js",
+          "describe": "ancrage lot E — refus (PKIStatus 2, failInfo nommé, aucun jeton)"
+        },
+        {
+          "file": "test/ancrage-tsa-interne-reponse.test.js",
+          "describe": "ancrage lot E — numéros de série (AN-26) : croissance stricte, durabilité, émetteur unique"
+        },
+        {
+          "file": "test/ancrage-tsa-interne-serveur.test.js",
+          "describe": "ancrage lot E — serveur HTTP en clair sur une adresse locale (AN-27)"
+        },
+        {
+          "file": "test/ancrage-tsa-interne-serveur.test.js",
+          "describe": "ancrage lot E — serveur TLS avec authentification du client (AN-27)"
+        },
+        {
+          "file": "test/ancrage-tsa-interne-serveur.test.js",
+          "describe": "ancrage lot E — binaire noortrace-tsa-interne (init, servir, crl)"
+        }
+      ]
     },
     "threats": [
       "MN-42"

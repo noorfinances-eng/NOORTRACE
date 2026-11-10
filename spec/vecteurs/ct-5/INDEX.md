@@ -163,15 +163,16 @@ Chaque trace est conforme à la racine de `planificateur-ancrage-v0.schema.json`
 | `preuve-de-vie.json` | 20 | 64 | 0 | 4 | EX-4.3 (countersign_idle), EX-4.6, EX-8.4 règle 3 |
 | `file-pleine.json` | 12 | 45 | 100 | 103 | EX-8.5 règle 4, EX-4.4 |
 | `prestataire-min-interval.json` | 18 | 90 | 0 | 9 | EX-8.7, EX-5.5, EX-4.4 (AN-39) |
-| `refus-puis-preuve-de-vie.json` | 31 | 62 | 0 | 3 | undefined |
-| `refus-puis-preuve-de-vie-redemarrage.json` | 13 | 30 | 2 | 3 | undefined |
-| `file-perdue.json` | 12 | 72 | 0 | 7 | undefined |
-| `bascule-epoque.json` | 5 | 21 | 8 | 8 | undefined |
-| `bascule-epoque-fichier-perdu.json` | 6 | 23 | 2 | 5 | undefined |
-| `registre-indisponible-cloture.json` | 72 | 156 | 0 | 9 | undefined |
-| `mi-periode-impair.json` | 58 | 91 | 0 | 5 | undefined |
-| `reponse-hors-profil.json` | 9 | 42 | 0 | 3 | undefined |
-| `point-manquant.json` | 13 | 75 | 0 | 6 | undefined |
+| `refus-puis-preuve-de-vie.json` | 31 | 62 | 0 | 3 | EX-4.3 (countersign_idle), EX-5.12, EX-8.3, EX-8.8 |
+| `refus-puis-preuve-de-vie-redemarrage.json` | 13 | 30 | 2 | 3 | EX-4.3 (countersign_idle), EX-8.5, EX-8.12 (AN-33) |
+| `file-perdue.json` | 12 | 72 | 0 | 7 | EX-8.12 (reconstruction, file_perdue), EX-4.1 (point_manquant depuis le checkpoint_ts du point relu) |
+| `bascule-epoque.json` | 5 | 21 | 8 | 8 | EX-8.5 règle 6 (fichiers d'époque), EX-8.12 |
+| `bascule-epoque-fichier-perdu.json` | 6 | 23 | 2 | 5 | EX-8.5 règle 6, EX-8.12 (reconstruction) |
+| `registre-indisponible-cloture.json` | 72 | 156 | 0 | 9 | EX-4.2 (repli de clôture), EX-8.4, EX-8.10 |
+| `mi-periode-impair.json` | 58 | 91 | 0 | 5 | EX-6.1 (mi_periode, n_T impair) |
+| `reponse-hors-profil.json` | 9 | 42 | 0 | 3 | EX-5.10, EX-5.12 (réponse hors profil, permanente) |
+| `point-manquant.json` | 13 | 75 | 0 | 6 | EX-4.1, EX-4.3, 8.9 (point_manquant, AN-2) |
+| `point-manquant-saut-horloge.json` | 13 | 78 | 0 | 6 | EX-4.1, 8.9 (point_manquant après un saut d'horloge : délai compté depuis le checkpoint_ts du dernier point admis ; révision 0.4), EX-4.3 |
 
 - `heure-nominale-reference` : Période 1 de l'exemple de référence de CT-1 (annexe A de CT-1) : points K1 à K4 de CT-1 §10.8, clôture à 14:00:00.250Z ; échéances D_1 à D_11 toutes les 300 s, la clôture tenant lieu de D_12 (EX-4.2, EX-4.3) ; registre, prestataire principal, serveur interne pour les points et calendriers tous joignables ; aucune reprise. Les réponses des prestataires sont des entrées de la trace (jetons représentés par leur SHA-256) ; l'horloge est injectée.
 - `principal-injoignable` : Clôture de la période 1 de référence ; le prestataire principal ne répond pas : erreur de transport, 503 avec Retry-After 30 s, 408 rejoué immédiatement une fois, délai d'attente, 503 sans Retry-After ; attentes d'EX-8.9 (5 s + 100 ms de gigue, Retry-After 30 s, 0 s, 40 s + 200 ms, 80 s + 50 ms) ; relève par le secours 300 s après la première tentative (manifest.fallback_after_s, EX-8.8), jeton promu du secours ; la réponse tardive du principal à la tentative 6 est conservée sans être promue (EX-5.8, EX-8.5).
@@ -194,6 +195,7 @@ Chaque trace est conforme à la racine de `planificateur-ancrage-v0.schema.json`
 - `mi-periode-impair` : Option mi_periode avec c_T = 720 s (n_T = 5, nombre impair) sur le journal des vecteurs : l'échéance médiane est k_m = 3 (D_3 = 09:36) et le point qu'elle sélectionne reçoit une preuve OpenTimestamps en plus de son jeton (EX-6.1) ; aucune preuve pour les autres points.
 - `reponse-hors-profil` : Clôture de la période 1 de référence : le principal répond 200 avec un Content-Type text/html (type_contenu, erreur permanente : relève immédiate) ; le secours répond un jeton dont la politique est hors de accepted_policies (politique_refusee, permanente) : les deux prestataires sont épuisés, alerte prestataires_epuises, reprise au pas retry.max_ms en alternant (EX-8.8) ; le principal répond alors un corps de 200 000 octets (taille, permanente), puis le secours un jeton conforme, promu (EX-5.10, étapes 1 et 5 ; EX-8.6).
 - `point-manquant` : Journal des vecteurs, période 1, dont l'enregistreur n'a produit que trois points (09:00, 09:59 et la clôture) : 2 x c_K après le point de 09:00 sans autre point, la ligne point_manquant et l'alerte majeure sont émises (EX-8.15) ; le point de 09:59 est sélectionné par D_1 à D_11 et contresigné en une requête (EX-4.3).
+- `point-manquant-saut-horloge` : Journal des vecteurs, période 1 : le composant admet le point de 09:00, puis son horloge saute à 12:30 (arrêt du processus ou saut d'horloge) et il reçoit alors, produits à l'heure, le point de 09:59, le point de clôture et la clôture. À 12:30, l'alerte point_manquant due à 09:02 (aucun point pendant 2 x c_K après 09:00) est émise, puis celle due à 10:01 (aucun point pendant 2 x c_K après le checkpoint_ts 09:59 du point admis à 12:30) : le délai court depuis l'instant déclaré du dernier point admis, non depuis son admission (EX-4.1, 8.9) ; le point de clôture n'arme aucune minuterie de cadence. Le point de 09:59, admis 2 h 31 min après sa production, sert D_1 à D_11 (EX-4.3) et sa contresignature est tardive (contresignature_tardive, 8.9).
 
 ## reprise/ (EX-8.12, AN-33)
 

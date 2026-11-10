@@ -46,6 +46,9 @@ const sansPrefixe = (h) => h.slice(2);
 /** Envois `consommer` simultanés au plus (EX-7.20 : reprise sans rafale). */
 export const CONCURRENCE_CONSOMMER = 4;
 
+/** Cadence du contrôle « disque presque plein » (14.2 : « toutes les 10 s »), ms. */
+export const CONTROLE_DISQUE_MS = 10000;
+
 /**
  * Raisons de CT-3 §12.8 émises par le service : une erreur qui porte l'une
  * d'elles est une réponse ; toute autre (`indisponible`, réponse illisible,
@@ -189,7 +192,7 @@ export class Coeur {
     this.metriques.jauge("noortrace_lease_epoch", {}, epoque);
     this.journal.consigner("info", "bail", "lease_acquired", { epoch: epoque, store: this.bail.type, fencing: cfg.lease.fencing ?? null });
 
-    this.pieces = new MagasinPieces(this.repertoire, { minOctetsLibres: cfg.storage.min_free_bytes });
+    this.pieces = new MagasinPieces(this.repertoire, { minOctetsLibres: cfg.storage.min_free_bytes, journal: this.journal, octetsLibres: this.o.octetsLibres });
     let etat;
     try {
       // Journal reconstruit depuis les copies WORM (EX-12.17, CT-8 §11.4 chemin
@@ -260,6 +263,16 @@ export class Coeur {
       prefixeWorm: cfg.storage.seal.worm?.prefix ?? "",
     });
     await this.ecrivain.demarrer({ ...etat, cleCourante }, epoque);
+    // Composant d'ancrage de CT-5 branché (lot F2, `anchoring.ancrage`) : contexte construit depuis le stockage et
+    // l'époque du bail, démarré ici, avant les remises de la reprise ; une configuration refusée (AN-1, secrets)
+    // ne bloque jamais le démarrage (CT-5 EX-4.8 ; 14.2) : `lier` consigne et ne lève pas.
+    if (typeof this.o.ancrage?.lier === "function") {
+      try {
+        await this.o.ancrage.lier(this);
+      } catch (e) {
+        this.journal.consigner("error", "ancrage", "anchoring_not_started", { reason: "exception", detail: String(e?.message ?? e).slice(0, 200) });
+      }
+    }
 
     // Fichiers des approbations (EX-12.23) et clé du MAC de relais (EX-7.22).
     this.cleMac = this.secrets.get("/storage/relay_mac_key") ?? null;
@@ -287,6 +300,46 @@ export class Coeur {
       this.journal.consigner("warning", "politique", "policy_piece_unavailable", { policy_version: version, policy_sha256: sha });
     }
 
+    if (this.degrade.actif("stockage")) {
+      // Disque presque plein au démarrage (14.2 : vérification avant ouverture
+      // de segment) : le démon démarre en mode dégradé « stockage » (seule une
+      // configuration invalide l'empêche de démarrer, 14.2 et 15.4). Les pas 2 à
+      // 4 d'EX-9.8 attendent la sortie du mode, au tic, avant tout autre
+      // événement ; un refus de la politique (EX-10.21) reste un refus de démarrer.
+      const refusObservation = this.politique.refusEntreeObservation(cfg.policy);
+      if (refusObservation) throw new ErreurEnregistreur("politique", `${refusObservation} (EX-15.8)`, { code: 2 });
+      await this._annoncerPolitique(cfg.policy, { verifierSeulement: true });
+      this.repriseDifferee = { etat, epoque };
+      this.passif = false;
+      if (this.service) this._charger();
+    } else if (!(await this._reprendreAuDemarrage(etat, epoque))) {
+      return;
+    }
+
+    // Pas 7 : startup, puis ouverture (supervision ; les frontaux sont des lots suivants).
+    this.journal.consigner("info", "noyau", "startup", {
+      config_sha256: this.o.octetsConfig ? sha256Hex(this.o.octetsConfig) : null,
+      class: this.signataire.classe,
+      backend: this.signataire.typeBackend,
+      recorder_key_id: this.ecrivain.cleCourante,
+      servers: Object.keys(cfg.policy.servers ?? {}),
+      model_mode: cfg.model.mode,
+      epoch: epoque,
+    });
+    this.metriques.jauge("noortrace_build_info", { version: VERSION_ENREGISTREUR, protocol_versions: "2026-07-28" }, 1);
+    this.pret = true;
+    await this._servirSupervision();
+    if (this.o.minuteurs) this._armerMinuteurs();
+  }
+
+  /**
+   * Pas 2 à 4 d'EX-9.8 au démarrage (intentions restées ouvertes, événements
+   * en attente d'un arrêt précédent, événement de politique), puis `charger`,
+   * `ouvrir` et `consommer` (EX-15.4 pas 6). Au tic, à la sortie du mode
+   * « stockage » quand le démarrage a eu lieu disque presque plein.
+   * @returns {Promise<boolean>} faux si une intervention est requise (EX-12.22)
+   */
+  async _reprendreAuDemarrage(etat, epoque) {
     // EX-9.8 (2) : intentions restées ouvertes.
     await this._reprendreIntentions(etat);
     if (this.intervention) {
@@ -297,15 +350,15 @@ export class Coeur {
       this.passif = false;
       this.pret = true;
       await this._servirSupervision();
-      return;
+      return false;
     }
     // EX-9.8 (3) : événements en attente d'un arrêt précédent.
     await this._reprendreAttente(epoque, etat);
     // EX-15.8 : pas d'entrée en mode observation avec un ticket ouvert.
-    const refusObservation = this.politique.refusEntreeObservation(cfg.policy);
+    const refusObservation = this.politique.refusEntreeObservation(this.config.policy);
     if (refusObservation) throw new ErreurEnregistreur("politique", `${refusObservation} (EX-15.8)`, { code: 2 });
     // EX-9.8 (4) : événement de politique.
-    await this._annoncerPolitique(cfg.policy);
+    await this._annoncerPolitique(this.config.policy);
 
     // Instance passive : en service seulement ici, après la reprise des
     // intentions et des événements en attente et l'événement de politique
@@ -325,21 +378,7 @@ export class Coeur {
         if (this._reconnaissanceCourt(e, maintenant)) this._consommer(ticket, e);
       }
     }
-
-    // Pas 7 : startup, puis ouverture (supervision ; les frontaux sont des lots suivants).
-    this.journal.consigner("info", "noyau", "startup", {
-      config_sha256: this.o.octetsConfig ? sha256Hex(this.o.octetsConfig) : null,
-      class: this.signataire.classe,
-      backend: this.signataire.typeBackend,
-      recorder_key_id: this.ecrivain.cleCourante,
-      servers: Object.keys(cfg.policy.servers ?? {}),
-      model_mode: cfg.model.mode,
-      epoch: epoque,
-    });
-    this.metriques.jauge("noortrace_build_info", { version: VERSION_ENREGISTREUR, protocol_versions: "2026-07-28" }, 1);
-    this.pret = true;
-    await this._servirSupervision();
-    if (this.o.minuteurs) this._armerMinuteurs();
+    return true;
   }
 
   /**
@@ -418,7 +457,9 @@ export class Coeur {
       port: Number(port),
       etat: () => this.etatSante(),
       pret: () => this.pret && this.bailDetenu && !this.passif,
-      metriques: this.config.supervision.metrics ? this.metriques : null,
+      metriques: this.config.supervision.metrics
+        ? { exposer: () => this.metriques.exposer() + (typeof this.o.ancrage?.metriques === "function" ? this.o.ancrage.metriques() : "") }
+        : null,
     });
   }
 
@@ -624,13 +665,14 @@ export class Coeur {
     return this.config.policy.redaction?.name ?? null;
   }
 
-  async _annoncerPolitique(politique) {
+  async _annoncerPolitique(politique, o = {}) {
     // EX-10.21 : des règles de rédaction changées changent redaction.name.
     const refusRedaction = this.o.redaction?.verifierPolitique?.(politique, this.politiquesParVersion) ?? null;
     if (refusRedaction) throw new ErreurEnregistreur("politique", refusRedaction, { code: 2 });
     const emp = empreintePolitique(politique);
     const d = decisionPolitique(this.index, emp);
     if (d.refus) throw new ErreurEnregistreur("politique", d.refus, { code: 2 });
+    if (o.verifierSeulement) return null;
     this.politiquesParVersion.set(emp.policy_version, politique);
     if (!d.annoncer) return null;
     await this.pieces.ecrire(piecePolitique(politique));
@@ -671,9 +713,14 @@ export class Coeur {
     this.politique.actualiser();
     this.o.redaction?.recharger?.(this.config, s.secrets);
     this.candidats = null;
-    this.journal.consigner("info", "config", "config_reloaded", { policy_version: v.config.policy.version });
+    // EX-18.6 : à chaque rechargement, le sha256 des octets du document et le policy_sha256 sont consignés (comme `startup`).
+    this.journal.consigner("info", "config", "config_reloaded", { policy_version: v.config.policy.version, config_sha256: sha256Hex(octets), policy_sha256: empreintePolitique(v.config.policy).policy_sha256 });
     if (this.service) this._charger();
-    return { accepte: true, evenement: e };
+    // `anchoring.ancrage` (CT-5 EX-4.9) : relu et rechargé par le composant ; un refus laisse l'ancienne configuration
+    // d'ancrage en vigueur sans refuser le rechargement de la politique (consigné `config_reload_rejected`, composant `ancrage`).
+    let ancrage = null;
+    if (typeof this.o.ancrage?.recharger === "function") ancrage = await this.o.ancrage.recharger().catch((err) => ({ accepte: false, erreurs: [{ regle: "exception", message: String(err?.message ?? err) }] }));
+    return { accepte: true, evenement: e, ancrage };
   }
 
   // ------------------------------------------------------------ pièces et échanges
@@ -688,7 +735,14 @@ export class Coeur {
     try {
       return (await this.pieces.ecrire(piece)).reference;
     } catch (e) {
-      if (e instanceof ErreurEnregistreur) this.degrade.entrer("stockage", { event: e.donnees?.event ?? "storage_unavailable" });
+      if (e instanceof ErreurEnregistreur) {
+        // La ligne `disk_low` (octets libres) est consignée par le magasin (14.2).
+        this.degrade.entrer("stockage", { event: e.donnees?.event ?? "storage_unavailable" });
+        // Le segment est fermé comme après toute panne de stockage (EX-12.8, comme
+        // EX-7.19 pas 2) : la sortie du mode suit EX-14.11 (nouveau segment ouvert et
+        // synchronisé, au tic) sans qu'aucune écriture d'événement ne la provoque.
+        await this.ecrivain?.signalerPanneStockage(e.cause ?? { code: null }).catch(() => {});
+      }
       throw e;
     }
   }
@@ -1447,6 +1501,23 @@ export class Coeur {
    */
   async tic() {
     if (this.intervention || !this.ecrivain) return;
+    // Jauge `noortrace_pending_oldest_ms` (§17) : l'âge croît sans nouvelle mise en attente.
+    this._jaugesAttente();
+    // Disque presque plein (14.2) : contrôle toutes les 10 s (horloge monotone du cœur) ;
+    // sous le seuil, panne de stockage (segment fermé, EX-12.8), sortie par EX-14.11.
+    const mono = this.horlogeBrute.monotone();
+    if (this._dernierControleDisque === undefined || mono - this._dernierControleDisque >= CONTROLE_DISQUE_MS) {
+      this._dernierControleDisque = mono;
+      if (!this.degrade.actif("stockage")) {
+        try {
+          await this.pieces.verifierEspace();
+        } catch (e) {
+          if (!(e instanceof ErreurEnregistreur)) throw e;
+          this.degrade.entrer("stockage", { event: "disk_low" });
+          await this.ecrivain.signalerPanneStockage({ code: null }).catch(() => {});
+        }
+      }
+    }
     // EX-13.10 (3) : croissance d'un fichier d'époque inférieure (fourche).
     await this.fourche?.controler().catch(() => {});
     if (this.degrade.enModeDegrade) this.politique.noterExpirationsDifferees();
@@ -1465,7 +1536,20 @@ export class Coeur {
     }
     if (this.degrade.actif("stockage")) {
       try {
+        // Nouveau segment ouvert et synchronisé (EX-12.8, EX-14.11), espace libre
+        // vérifié avant l'ouverture (14.2).
         await this.ecrivain.reprendreStockage();
+      } catch {
+        return;
+      }
+      if (this.degrade.actif("stockage")) return;
+    }
+    if (this.repriseDifferee) {
+      // Démarrage disque presque plein : pas 2 à 4 d'EX-9.8 avant tout autre événement.
+      const { etat, epoque } = this.repriseDifferee;
+      try {
+        await this._reprendreAuDemarrage(etat, epoque);
+        this.repriseDifferee = null;
       } catch {
         return;
       }
@@ -1501,6 +1585,48 @@ export class Coeur {
   // ------------------------------------------------------------ attente (14.5)
 
   /**
+   * Jauges de la file d'attente (§17) : `noortrace_pending_events` (taille) et
+   * `noortrace_pending_oldest_ms` (âge, à l'horloge murale du cœur, de
+   * l'événement en attente le plus ancien ; 0 pour une file vide).
+   */
+  _jaugesAttente() {
+    const plusAncien = this.attente.reduce((m, x) => Math.min(m, x.captured_at), Infinity);
+    this.metriques.jauge("noortrace_pending_events", {}, this.attente.length);
+    this.metriques.jauge("noortrace_pending_oldest_ms", {}, this.attente.length ? Math.max(0, this.horlogeBrute.murale() - plusAncien) : 0);
+  }
+
+  /**
+   * Bornes de la file d'attente (EX-14.9) : nombre d'événements
+   * (`policy.failure.pending_max_events`), octets des pièces gardées en
+   * mémoire (`limits.pending_max_bytes`), âge de l'événement le plus ancien à
+   * l'horloge murale du cœur (`policy.failure.pending_max_ms`, depuis son
+   * `captured_at`). Une borne atteinte fait entrer le mode dégradé « attente »
+   * (ligne `pending_limit_reached` avec la borne, une fois par entrée) : les
+   * lectures et les échanges passants deviennent bloquants (`-31010`,
+   * `reason: "attente"`). Les frontaux l'interrogent au pas 7, avant le
+   * relais ; `mettreEnAttente` aussi.
+   * @returns {"pending_max_events"|"pending_max_bytes"|"pending_max_ms"|null} borne atteinte
+   */
+  attenteBornee() {
+    const f = this.config.policy.failure ?? {};
+    const maxEvenements = f.pending_max_events ?? 10000;
+    const maxOctets = this.config.limits.pending_max_bytes ?? 268435456;
+    const maxMs = f.pending_max_ms ?? 300000;
+    const octets = this.attente.reduce((s, x) => s + x.pieces.reduce((t, p) => t + p.octets.length, 0), 0);
+    const plusAncien = this.attente.reduce((m, x) => Math.min(m, x.captured_at), Infinity);
+    let borne = null;
+    if (this.attente.length >= maxEvenements) borne = "pending_max_events";
+    else if (octets >= maxOctets) borne = "pending_max_bytes";
+    else if (this.attente.length && this.horlogeBrute.murale() - plusAncien > maxMs) borne = "pending_max_ms";
+    if (borne === null) return null;
+    if (!this.degrade.actif("attente")) {
+      this.degrade.entrer("attente");
+      this.journal.consigner("error", "noyau", "pending_limit_reached", { events: this.attente.length, limit: borne });
+    }
+    return borne;
+  }
+
+  /**
    * Met un événement partiel en attente (EX-14.8, EX-4.46) : file en mémoire
    * et, au mieux, `attente/attente-<epoch>.ndjson`. Bornes d'EX-14.9.
    * @param {object} partiel
@@ -1512,20 +1638,12 @@ export class Coeur {
    * @returns {string} pending_id
    */
   mettreEnAttente(partiel, pieces, o = {}) {
-    const f = this.config.policy.failure ?? {};
-    const maxEvenements = f.pending_max_events ?? 10000;
-    const maxOctets = this.config.limits.pending_max_bytes ?? 268435456;
-    const octets = this.attente.reduce((s, x) => s + x.pieces.reduce((t, p) => t + p.octets.length, 0), 0);
-    if (this.attente.length >= maxEvenements || octets >= maxOctets) {
-      this.degrade.entrer("attente");
-      this.journal.consigner("error", "noyau", "pending_limit_reached", { events: this.attente.length });
-      throw new ErreurEnregistreur("attente", "noortrace: enregistreur en mode degrade (attente)");
-    }
+    if (this.attenteBornee()) throw new ErreurEnregistreur("attente", "noortrace: enregistreur en mode degrade (attente)");
     this.compteurAttente++;
     const pending_id = `p-${String(this.ecrivain?.epoque ?? 0).padStart(20, "0")}-${String(this.compteurAttente).padStart(12, "0")}`;
     const captured_at = o.captured_at ?? this.horlogeBrute.murale();
     this.attente.push({ pending_id, captured_at, partiel, pieces, intent_id: o.intent_id ?? null, host: o.host ?? null, genre: o.genre ?? "appel" });
-    this.metriques.jauge("noortrace_pending_events", {}, this.attente.length);
+    this._jaugesAttente();
     this._ecrireAttente({ pending_id, captured_at: ecrireHorodatage(captured_at), event: partiel, pieces: pieces.map((p) => p.sha256), intent_id: o.intent_id ?? null });
     return pending_id;
   }
@@ -1591,7 +1709,7 @@ export class Coeur {
         break;
       }
     }
-    this.metriques.jauge("noortrace_pending_events", {}, this.attente.length);
+    this._jaugesAttente();
     if (n) this.journal.consigner("info", "noyau", "pending_flushed", { count: n, max_delay_ms: maxDelai });
     if (!this.attente.length) this.degrade.sortir("attente");
   }
@@ -1840,8 +1958,57 @@ export class Coeur {
       generated_at: this.horlogeBrute.murale(),
       clePublique: (id) => this.signataire.clePubliqueHex(id),
       jeuDecision: (d) => this.approbations.jeuDecision(d),
+      // Ancrage branché (lot F2) : ancres du point couvrant, parties du registre, jeton-rfc3161.der, preuve.ots (CT-5 §10).
+      exportateur: typeof this.o.ancrage?.exporterDossier === "function" && this.o.ancrage.demarre ? this.o.ancrage : null,
     });
     return dossier;
+  }
+
+  /** EX-10.5 : dossiers exportés par ce démon qu'une ancre arrivée depuis rend à réexporter (vide sans composant d'ancrage). */
+  async reexportsDus() {
+    if (typeof this.o.ancrage?.reexportsDus !== "function") return [];
+    return this.o.ancrage.reexportsDus();
+  }
+
+  /**
+   * `noortrace-ctl ancrage <etat|metriques|retirer-qualification> [id]`
+   * (demande écrite à côté du journal d'exploitation, SIGURG) : la réponse
+   * est consignée (`anchoring_state`, `anchoring_metrics`,
+   * `provider_qualification_withdrawn`, ou `anchoring_ctl_refused`).
+   * @param {{commande: string, id?: string|null}} demande
+   */
+  async commandeAncrage(demande) {
+    const a = this.o.ancrage;
+    const refus = (raison) => {
+      this.journal.consigner("warning", "ancrage", "anchoring_ctl_refused", { command: String(demande?.commande ?? "").slice(0, 64), raison });
+      return { accepte: false, raison };
+    };
+    if (!a || typeof a.etat !== "function") return refus("ancrage_non_configure");
+    switch (demande?.commande) {
+      case "etat": {
+        const e = a.etat();
+        const propre = Object.fromEntries(Object.entries(e).filter(([, v]) => v === null || ["string", "number", "boolean"].includes(typeof v) || Array.isArray(v)).map(([k, v]) => [k, Array.isArray(v) ? v.join(",") : v]));
+        this.journal.consigner("info", "ancrage", "anchoring_state", propre);
+        return { accepte: true, etat: e };
+      }
+      case "metriques": {
+        const m = a.metriques();
+        this.journal.consigner("info", "ancrage", "anchoring_metrics", { lines: m.split("\n").filter(Boolean).length, bytes: Buffer.byteLength(m) });
+        return { accepte: true, metriques: m };
+      }
+      case "retirer-qualification": {
+        if (typeof demande.id !== "string" || !demande.id) return refus("identifiant_absent");
+        if (!a.demarre) return refus("composant_non_demarre");
+        try {
+          await a.retirerQualification(demande.id);
+        } catch (e) {
+          return refus(/inconnu/.test(String(e?.message)) ? "prestataire_inconnu" : "erreur");
+        }
+        return { accepte: true };
+      }
+      default:
+        return refus("commande_inconnue");
+    }
   }
 
   /** Arrêt propre : file vidée, fichiers fermés, bail libéré, graines effacées. */
@@ -1854,6 +2021,7 @@ export class Coeur {
     for (const t of this.minuteurs) clearInterval(t);
     if (this.serveur) await new Promise((r) => this.serveur.close(() => r()));
     if (this.ecrivain) await this.ecrivain.fermer().catch(() => {});
+    if (typeof this.o.ancrage?.arreter === "function") await this.o.ancrage.arreter().catch(() => {});
     await this.approbations?.fermer();
     await this.bail?.liberer();
     this.bailDetenu = false;

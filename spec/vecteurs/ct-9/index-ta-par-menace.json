@@ -1,6 +1,6 @@
 {
   "version": 0,
-  "date": "2026-11-03",
+  "date": "2026-11-10",
   "index": {
     "MN-1": {
       "test": "TA-1",
@@ -250,7 +250,7 @@
     },
     "MN-41": {
       "test": "TA-41",
-      "state": "a_ecrire",
+      "state": "executable",
       "scenarios": []
     },
     "MN-42": {

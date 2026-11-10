@@ -38,8 +38,11 @@ Ce qu'il recompte, dans l'ordre de sa sortie :
    (d), EX-4.2) : le titre est le texte source entre ses délimiteurs,
    échappements compris ; `describe(` et `it(` sont reconnus comme mots
    entiers après neutralisation des commentaires, des expressions
-   rationnelles littérales et de l'intérieur des chaînes ; un `it` doit
-   être dans le bloc d'accolades du `describe` cité (imbrication comprise) ;
+   rationnelles littérales et de l'intérieur des chaînes (dans un gabarit,
+   une interpolation `${…}` est lue comme une expression : accolades
+   équilibrées, chaînes et gabarits imbriqués sautés, révision 0.4) ; un
+   `it` doit être dans le bloc d'accolades du `describe` cité (imbrication
+   comprise) ;
 6. les `it` de `test/adversarial.test.js` : nombre (EX-A.11, 10.8), forme
    du titre « TA-n (MN-n » (EX-10.7), fin « (tué) » ou « (tués) »,
    identifiants TA- distincts cités et leur entrée au catalogue ;
@@ -80,18 +83,18 @@ sortie égale, octet pour octet, à `sorties/recompte.txt` ;
 
 Sortie publiée `sorties/recompte.txt` : **0 discordance**, 0 écart déclaré.
 
-Tous les comptes égalent `couverture.json` et le catalogue : 2348
-identifiants (CT-1 44, CT-2 335, CT-3 259, CT-4 181, CT-5 174, CT-6 278,
-CT-7 580, CT-8 497), mêmes familles ; 2209 couverts par une entrée, 139 par
+Tous les comptes égalent `couverture.json` et le catalogue : 2350
+identifiants (CT-1 44, CT-2 335, CT-3 259, CT-4 181, CT-5 174, CT-6 280,
+CT-7 580, CT-8 497), mêmes familles ; 2211 couverts par une entrée, 139 par
 un NC-, 0 non couvert, 0 cité inconnu ; 122 occurrences de « CT-9 » sur 114
 lignes, 122 lignes TC-, mêmes clés de section ; 98 menaces, 98 TA-, 82
-risques acceptés, index égal ; 446 `describe` et 1805 `it` dans 79 fichiers,
-53 étapes de CI, 208 entrées exécutables citant 405 titres ou étapes tous
+risques acceptés, index égal ; 548 `describe` et 2279 `it` dans 108 fichiers,
+55 étapes de CI, 224 entrées exécutables citant 485 titres ou étapes tous
 trouvés ; 71 `it` dans `test/adversarial.test.js`, 75 identifiants TA-
 distincts cités, 75 entrées citant le fichier (TA-17 partage les `it`
 « TA-17 et TA-61 … » et « TA-17 et TA-69 … », EX-10.7) ; 44 lignes TM- et
 15 lignes TR- égales au catalogue ; table des chiffres par niveau égale ;
-catalogue de 322 entrées (version 0.3 de CT-9).
+catalogue de 322 entrées (version 0.4 de CT-9).
 
 Formes admises comptées sans écart : les deux `it` d'EX-10.4 (TA-23, TA-72),
 dont l'oracle porte sur un vecteur et dont le mutant est la régénération

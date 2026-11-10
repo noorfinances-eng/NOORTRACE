@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+// Serveur RFC 3161 interne non qualifié (CT-5 §7) : voir src/serveur-interne/cli.mjs.
+// L'horloge et l'aléa sont construits ici, hors de src/ (règle 2 d'INTERFACES.md).
+import crypto from "node:crypto";
+import { lancer } from "../src/serveur-interne/cli.mjs";
+
+const horloge = { murale: () => Date.now(), monotone: () => performance.now() };
+const aleatoire = (n) => new Uint8Array(crypto.randomBytes(n));
+
+lancer({ argv: process.argv.slice(2), horloge, aleatoire, sortie: process.stdout, erreur: process.stderr }).then((code) => {
+  process.exitCode = code;
+});

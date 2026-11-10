@@ -14,14 +14,16 @@ tout ce qu'elle fait (JCS v0, hachage, Ed25519, EIP-191, événement, rotation,
 Merkle, manifeste, point de contrôle, dossier, schémas de CT-1) et ne le
 réécrit pas. Les vecteurs de `spec/vecteurs/ct-2` et l'annexe A sont le juge.
 
-L'ancrage, le SDK Python et les adaptateurs de cadres sont des lots
-suivants : [INTERFACES.md](INTERFACES.md) est leur contrat. La rédaction avant
+Le SDK Python et les adaptateurs de cadres sont des lots suivants :
+[INTERFACES.md](INTERFACES.md) est leur contrat. La rédaction avant
 hachage (§10), le frontal MCP (§4), le moteur de politique (§7.5, 14.2, 14.6),
 le frontal modèle (§5), le WORM, le gel juridique et la haute disponibilité
 (§12.6, §12.11, §13), le point d'entrée SDK, le SDK JavaScript et l'ingestion
-OpenTelemetry (§6) sont faits (sections « Rédaction avant hachage »,
-« Frontal MCP », « Moteur de politique », « Frontal modèle », « WORM, gel
-juridique et haute disponibilité » et « SDK et ingestion OpenTelemetry »
+OpenTelemetry (§6) et le branchement du composant d'ancrage de CT-5
+(`anchoring.ancrage`, paquet [`@noortrace/ancrage`](../ancrage/LISEZMOI.md))
+sont faits (sections « Rédaction avant hachage », « Frontal MCP », « Moteur
+de politique », « Frontal modèle », « WORM, gel juridique et haute
+disponibilité », « SDK et ingestion OpenTelemetry » et « Ancrage »
 ci-dessous).
 
 ## Ce que fait le cœur
@@ -84,7 +86,10 @@ ci-dessous).
   relecture quotidienne des segments fermés avec toutes les clés de la
   chaîne, lecture 153).
 - **Export d'un dossier minimal** (CT-1 §11) : douze parties v0 (réservées
-  absentes, « hors périmètre CT-1 ») et la treizième, `points-de-controle.json`.
+  absentes, « hors périmètre CT-1 ») et la treizième, `points-de-controle.json` ;
+  avec l'ancrage branché, l'export passe par l'exportateur du composant
+  (section « Ancrage ») : parties réservées de CT-5 et CT-4, ancres du point
+  couvrant, `entetes-bitcoin.json` à côté.
 
 ## Rédaction avant hachage (§10)
 
@@ -539,6 +544,78 @@ déjà relayé, dont l'événement est gardé en attente) ; la sortie exige
 au tic (lecture 184) ; en classe C, les graines sont effacées à l'arrêt
 (EX-11.9).
 
+## Ancrage (CT-5)
+
+Le composant d'ancrage de CT-5 est branché par `src/ancrage-demon.mjs`
+(`preparerAncrage`, `BranchementAncrage`) quand `anchoring.ancrage` désigne
+un document `ancrage-v0` ; `anchoring.ancrage` `null` : aucun composant,
+comportement inchangé (la remise d'`ancrage.mjs` reste l'interface vue du
+cœur).
+
+- **Démarrage** (§15.4, pas 4 ; CT-5 EX-4.8, EX-4.9) : le document est lu en
+  JSON strict, ses références de secrets (`auth.secret` des prestataires,
+  `headers_source.auth`) sont résolues par `resoudreSecret` (`env`, `file`,
+  `vault`), la clé de chaîne de `anchoring.registry.chain_key` est
+  construite (classe D, `SignataireChaineFichier` du composant, adresse
+  confrontée), le manifeste d'instance du registre est lu dans
+  `instance-registre.json` à côté du document (lecture 199), puis le
+  composant est construit sur un contexte dont tout vient du stockage
+  (séries `points/`, manifestes, segments, index des clés, époque du bail)
+  et démarré après l'écrivain (`anchoring_attached`). Une clé de chaîne de
+  classe A, B ou C refuse le démarrage du démon :
+  `demarrage_refuse : ancrage : classe_cle_chaine : …` (code 2 ; étape 7,
+  lecture 200). Tout autre défaut laisse le démon démarrer : points et
+  manifestes sont produits, `anchoring_not_started` est consigné avec la
+  raison (`document_illisible`, `configuration_invalide` et les règles d'AN-1
+  en défaut, `secret_non_resolu` et le pointeur, `instance_registre_absente`,
+  `rpc_url_absente`, `demarrage_impossible`) et chaque remise donne
+  `anchor_pending` (lecture 197).
+- **Horloge, journal, métriques** (§7.4, §17.2) : l'horloge du cœur étendue
+  de `programmer` ; le journal d'exploitation (composant `ancrage`) ;
+  `/metrics` expose `noortrace_anchor*` d'EX-8.15 avec les métriques du cœur.
+- **Remises** (EX-12.27) : `remettrePoint`, `remettreCloture` rendent la
+  main sans attendre le réseau (CT-5 EX-4.12 ; §14.2).
+- **Clôture au registre** (CT-4 §8.2) : `submitPeriod` est relayé quand la
+  demande signée au seuil par les approbateurs est déposée sous
+  `<journal>/registre/demande-cloture-<period_hash>.json` ; sinon
+  `period_close_delegated` (`signatures_en_attente`) et reprise au tic
+  (lecture 198).
+- **Rechargement** (EX-15.5) : `noortrace-ctl reload` recharge le document
+  `ancrage-v0` après la politique (`config_reloaded` du composant ; un
+  document invalide est refusé, l'ancien reste). La ligne `config_reloaded`
+  du cœur porte, comme `startup`, le `sha256` des octets du document de
+  configuration et le `policy_sha256` (EX-18.6 ; corrigé par les épreuves
+  CT-9 de l'étape 5, éprouvé par `test/enregistreur-journal-soi.test.js`, TE-14).
+- **Export** (CT-1 §11, CT-5 §10) : `Coeur.exporterDossier(seq, destination)`
+  passe par l'exportateur du composant quand il est démarré (`dossier_exported`) ;
+  `Coeur.reexportsDus()` liste les dossiers qu'une ancre arrivée depuis rend
+  à réexporter (EX-10.5) ; un dossier remis n'est jamais modifié. Le
+  branchement ne garde que le résumé du dernier dossier de chaque événement,
+  sans retenue du texte d'`acquisitions.ndjson` (corrigé par les épreuves
+  CT-9 de l'étape 5 : 2 799 exports d'une période à `c_T` 60 s épuisaient le
+  tas du démon ; éprouvé par `test/ancrage-exportateur.test.js` et
+  `test/enregistreur-ancrage-exigences.test.js`).
+- **Copie WORM** (EX-12.27 ; CT-5 EX-5.15, EX-8.14) : le service de copies
+  couvre `ancres/` (pièces, `acquisitions.ndjson`, `entetes-bitcoin.json`) et
+  la file `file-<epoque>.ndjson` sous `queue.path` quand il est sous le
+  répertoire du journal, par la règle des fichiers fermés (lecture 93).
+- **`noortrace-ctl ancrage etat | metriques | retirer-qualification <id>`** :
+  même canal que `cle rotation-urgence` (fichier de demande et SIGURG,
+  lecture 201) ; réponse au journal (`anchoring_state`, `anchoring_metrics`,
+  `provider_qualification_withdrawn` ; refus `anchoring_ctl_refused`).
+- **Arrêt** : `anchoring_stopped` après la fermeture de l'écrivain, avant
+  `shutdown`.
+- **Essais** : `test/enregistreur-ancrage-parcours.test.js` (TE-12 : démon
+  réel enfant du test à horloge réglable, hors réseau public ; variante sur le
+  réseau de développement, en attente quand il n'est pas debout),
+  `test/enregistreur-ancrage-exigences.test.js`,
+  `test/enregistreur-ancrage-corrections-h1.test.js` (R-G-1) ; le composant
+  lui-même suit CT-5 révision 0.5 et CT-6 révision 0.5 (`LISEZMOI.md` du
+  composant, « Vecteurs rejoués »).
+- **Restes** : clé de chaîne de classe A à C (étape 7) ; rotation d'urgence
+  au registre (`registre_non_branche`, lecture 202) ; clé
+  `anchoring.registry.instance` à inscrire dans CT-2.
+
 ## Démarrer le démon
 
 ```sh
@@ -564,6 +641,9 @@ noortrace-ctl reload [--configuration configuration.json]            # EX-15.5 :
 noortrace-ctl clock --accept [--configuration configuration.json]    # EX-7.13 : confirmation après un saut d'horloge en avant, consignée
 noortrace-ctl cle rotation-urgence [--configuration configuration.json]   # EX-11.16 (CT-8 EX-10.14), lecture 194
 noortrace-ctl cle rapprocher --configuration configuration.json --audit audit.log   # CT-7 EX-3.7, lecture 195 ; code 3 : incident
+noortrace-ctl ancrage etat [--configuration configuration.json]                     # CT-5 : état du composant d'ancrage, au journal (anchoring_state)
+noortrace-ctl ancrage metriques [--configuration configuration.json]                # noortrace_anchor* lues sur /metrics de la supervision
+noortrace-ctl ancrage retirer-qualification <id> [--configuration configuration.json]   # CT-5 EX-5.9 : retrait de `qualified`, relève des demandes en cours
 ```
 
 `noortrace-ctl reload` et `clock --accept` n'ouvrent aucune prise (EX-18.1) :
@@ -604,7 +684,9 @@ d'exploitation (`model_gateway_listening`, `model_icap_listening`,
 `model_mirror_listening`) ; le registre de corrélation est remis au frontal
 MCP. Un frontal qui ne peut pas écouter (adresse prise, certificat
 illisible) empêche le démarrage : `demarrage_refuse : frontal_modele :
-<cause>`, code 2.
+<cause>`, code 2. Une clé de chaîne d'une classe que ce lot ne sert pas
+l'empêche aussi : `demarrage_refuse : ancrage : classe_cle_chaine : <cause>`
+(section « Ancrage »).
 
 Avec `sdk.enabled`, le démon écoute sur la prise `sdk.socket` (ou
 `sdk.tcp_listen`) les méthodes `noortrace/sdk/*` ; un agent Node.js y parle
@@ -638,7 +720,11 @@ compare à `spec/schemas`). Le cœur lit : `recorder`, `signer` (classe D :
 `supervision`, `limits.pending_max_bytes`, `tools.default_timeout_ms`,
 `mcp.hosts` et `sdk.hosts` (reprise d'une intention sans contexte),
 `policy` (ensemble de politique, version, gabarits d'effets, classes,
-`approval` pour SG-4, SG-7, RL-4, EX-9.4, `failure.pending_max_events`).
+`approval` pour SG-4, SG-7, RL-4, EX-9.4, `failure.pending_max_events`),
+`anchoring.ancrage` (chemin du document `ancrage-v0` de CT-5, ou `null`) et
+`anchoring.registry` (`enabled`, `rpc_url`, `chain_key` : classe D servie,
+`address`, `secret`) ; le manifeste d'instance du registre est lu dans
+`instance-registre.json` à côté du document d'ancrage (lecture 199).
 
 Règles hors schéma vérifiées par ce lot (EX-15.4 pas 3) : classe et backend
 du signataire, classe D en production, `verify_after_sign`, alias
@@ -667,6 +753,9 @@ Sous `storage.root/<org_id>/<journal_id>/` (hexadécimal sans `0x`, EX-12.1) :
 | `manifestes/periode-<period_start:10>.json`, `.sig` | clôture | `JSON.stringify(objet, null, 2)` + `\n` |
 | `points/periode-<period_start:10>.ndjson` | points de contrôle | une ligne JCS intégral par point signé |
 | `worm/copies-<epoch:20>.ndjson` | copies WORM (lot WORM) | une ligne JCS intégral `$defs/ligne_copie` par copie contrôlée (EX-12.29) ; ajout seul, sans fdatasync propre |
+| `ancres/periode-<period_start:10>/rfc3161/*`, `ots/*`, `entetes-bitcoin.json`, `acquisitions.ndjson` | composant d'ancrage (CT-5 EX-5.14, EX-6.8, EX-5.13) | jetons, requêtes, réponses, CRL, preuves, nonces, en-têtes, enregistrements d'acquisition (ajout seul) ; copiés au WORM une fois fermés |
+| `ancres/file/file-<epoch>.ndjson` (si `queue.path` y est placé) | composant d'ancrage (CT-5 EX-8.5) | file durable, une ligne JCS intégral par état d'une demande ; copiée quand son époque est fermée |
+| `registre/envoi-*.json`, `issue-*.json`, `bloc-*.json`, `recu-*.json`, `certificat-*.json`, `capture-*.json` | composant d'ancrage (CT-4 §8.6, §9.4) | envois et captures du registre ; `demande-cloture-<period_hash>.json` y est déposée par l'exploitant (lecture 198) |
 
 Hors du répertoire du journal : la table ou la clé du magasin de bail
 `postgresql` ou `etcd` (13.2), le verrou du bail `file` (`lease.store.path`,
@@ -702,13 +791,14 @@ politiques, clés) se dérivent des segments à la reprise.
 | `bail.mjs` | bail (interface, magasin `file` : `flock(2)` tenu par `flock(1)`, lecture 148) | §13 (part du cœur), 13.2 |
 | `verification.mjs` | vérification complète d'un répertoire de journal (segments, signatures avec les clés de la chaîne, manifestes, séries, pièces) | EX-12.10 pas 2, EX-12.17, CT-8 EX-11.6 |
 | `controles.mjs` | contrôles périodiques d'EX-17.5 hors WORM (période close, signataire, relecture quotidienne) | EX-17.5 |
-| `ctl-demon.mjs`, `bin/noortrace-ctl` | `noortrace-ctl reload`, `noortrace-ctl clock --accept` | EX-15.5, EX-7.13, EX-18.1 |
+| `ctl-demon.mjs`, `bin/noortrace-ctl` | `noortrace-ctl reload`, `noortrace-ctl clock --accept`, `noortrace-ctl cle rotation-urgence`, `noortrace-ctl ancrage etat|metriques|retirer-qualification` | EX-15.5, EX-7.13, EX-18.1 ; CT-5 EX-5.9 |
 | `lui-meme.mjs` | journal sur lui-même | §9.1 |
 | `journal-exploitation.mjs` | journal d'exploitation | §9.2, §17.3 |
 | `supervision.mjs`, `degrade.mjs`, `horloge.mjs` | supervision, mode dégradé, horloge | §17, §14, §7.4 |
 | `approbations.mjs`, `service-approbation-http.mjs`, `service-approbation-factice.mjs` | interface du service d'approbation | §7.5, §12.9, CT-3 §12 |
 | `ancrage.mjs`, `worm.mjs` | remise à l'ancrage, copies WORM (interfaces) | §12.10, §12.6 |
-| `dossier.mjs` | export d'un dossier minimal | CT-1 §11 |
+| `ancrage-demon.mjs` | branchement du composant d'ancrage de CT-5 : document `ancrage-v0`, secrets, clé de chaîne, manifeste d'instance, contexte depuis le stockage, `signaturesCloture`, rechargement, export, réexports, commandes `noortrace-ctl ancrage` | §15.4 pas 4, EX-11.19, EX-12.27 ; CT-5 §4.4, §10 ; CT-4 §8.2 |
+| `dossier.mjs` | export d'un dossier minimal ; `assemblerBase` et délégation à l'exportateur du composant d'ancrage | CT-1 §11 ; CT-5 §10 |
 | `redaction-motifs.mjs` | sous-ensemble des motifs, règles a) à c), borne de temps | EX-10.6, EX-10.23 |
 | `redaction-detecteurs.mjs` | détecteurs exacts | §10.3 |
 | `redaction-moteur.mjs`, `redaction-fil.mjs` | application des règles, pièces, valeurs en ligne ; fil de calcul | §10.4, §8, EX-3.6 |
@@ -782,8 +872,11 @@ suspension pendant un gel) ; image `noortrace/attributs` du compagnon
 `restauration` de CT-8 (11.9) ; part du lot WORM non faite : copie, liste des
 versions, lecture et écriture d'un objet sur Azure et Google Cloud Storage,
 que CT-2 0.5 ne fixe pas (lecture 84), et donc le gel sur ces supports
-au-delà des requêtes de gel et de lecture d'état ; ancrage (CT-5) et
-registre (CT-4) ; exportateur complet de CT-6 ; démonstration (§19).
+au-delà des requêtes de gel et de lecture d'état ; part de l'ancrage (CT-5)
+et du registre (CT-4) non faite : clé de chaîne de classe A à C (EX-11.19,
+étape 7 : le démon refuse de démarrer avec une telle classe), rotation
+d'urgence relayée au registre (`registre_non_branche`, lecture 202), outil
+d'export hors démon ; exportateur complet de CT-6 ; démonstration (§19).
 
 ## Lectures de passages ambigus
 
@@ -1402,8 +1495,18 @@ quotas et TLS :
     est copié de la même façon »). Lecture : chaque fichier présent sous
     `ancres/` est copié une fois, sous sa clé, par le balayage horaire ; un
     fichier modifié après sa copie n'est pas recopié (même clé, `412`,
-    `objet_present_different`). Le composant d'ancrage n'est pas encore dans
-    ce paquet.
+    `objet_present_different`). Complément du lot F2 du composant (qui écrit
+    désormais `ancres/` sous le répertoire du journal, CT-5 EX-5.14 et
+    EX-12.1) : un fichier n'est copié qu'une fois fermé, pour ne jamais
+    copier un état intermédiaire. Les pièces (`rfc3161/*.tsq|.tsr|.der|.crl.pem`,
+    `ots/*.ots|.nonce`, `entetes-bitcoin.json`) le sont dès leur écriture ;
+    `acquisitions.ndjson`, en ajout seul, quand le manifeste de la période
+    existe et que la T-10 différée de chaque jeton promu est décidée (ou que
+    `rfc3161.crl_capture.enabled` est faux, lu dans le document d'ancrage
+    du composant branché) ; la file `file-<epoque>.ndjson`, quand son époque
+    est inférieure à celle de l'écrivain ; `registre/` suit la même règle
+    des fichiers fermés. `queue.path` est à placer sous le répertoire du
+    journal (`<journal>/ancres/file`) pour être dans le périmètre.
 94. **Moment de la copie des pièces** (EX-12.16 : « les pièces, sont copiés
     vers le support après fermeture »). Lecture : à la copie du segment qui
     les référence, puis par le balayage pour celles qui manquent.
@@ -2447,6 +2550,148 @@ Lectures du lot « signataires », reprise :
      journaux d'audit de Vault/OpenBao sont lus (CloudTrail, Cloud Audit Logs :
      non faits).
 
+196. **Secrets du document `ancrage-v0`** (CT-2 §15.2 : « une référence
+     d'emplacement, jamais une valeur » ; CT-5 règle `secrets` d'AN-1 ; TA-41).
+     Le schéma `ancrage-v0` refuse déjà une chaîne en clair à la place d'une
+     référence ; le démon résout les seuls pointeurs `/rfc3161/providers/<i>/auth/secret`
+     (quand `auth.method ≠ aucune`) et `/opentimestamps/headers_source/auth`
+     par `resoudreSecret` (`env`, `file`, `vault`), et une référence qui ne se
+     résout pas (`env` absente) refuse le démarrage de l'ancrage sans
+     arrêter l'enregistreur : `anchoring_not_started` `secret_non_resolu`
+     avec le pointeur, jamais la valeur ; ni la file, ni `acquisitions.ndjson`,
+     ni le journal ne portent une valeur de secret (AN-43, vérifié par
+     l'essai).
+197. **Ancrage en défaut, démon en service** (CT-5 EX-4.8 : « une
+     configuration invalide … l'enregistreur continue » ; CT-2 §14.2, lignes
+     « Ancrage » : « jamais bloquant »). Lecture : tout défaut du branchement
+     autre qu'une classe de clé de chaîne non servie (lecture 200) laisse le
+     démon démarrer ; `anchoring_not_started` nomme la raison une fois, puis
+     chaque remise de point ou de clôture est consignée `anchor_pending`
+     (`reason` : `configuration_invalide`, `composant_non_demarre`, …) ; les
+     points et les manifestes sont produits normalement.
+198. **Signatures de clôture** (CT-4 §8.2, pas 3 à 5 : « la demande de
+     clôture signée au seuil par les approbateurs » ; `contexte.signaturesCloture`
+     du composant). Le démon ne détient pas les clés des approbateurs : il
+     relaie `submitPeriod` quand l'exploitant a déposé la demande signée
+     (forme `demande_signature`, `operation` `cloture`, vérifiée par OP-6 et
+     OP-7) sous `<journal>/registre/demande-cloture-<period_hash>.json` ;
+     sans elle il rend `null` et le composant consigne `period_close_delegated`
+     (`signatures_en_attente`) puis réessaie au tic ; une demande d'une autre
+     période ou invalide est consignée `period_close_request_refused`.
+199. **Manifeste d'instance du registre** (CT-4 §4.8 ; CT-2 §15 : aucune clé
+     ne le désigne). Lu dans `instance-registre.json` à côté du document
+     `ancrage-v0` (`evm_chain_id`, `bft_chain_id`, `contracts`, `validator_sets`,
+     `fees`) ; absent avec `anchoring.registry.enabled` : `instance_registre_absente`,
+     ancrage non démarré. À inscrire dans CT-2 : `anchoring.registry.instance`.
+200. **Clé de chaîne de classe A à C** (EX-11.19 : « la clé de chaîne suit
+     les classes de §11 »). Seule la classe D est servie par ce lot ; une
+     autre classe refuse le démarrage du démon (`demarrage_refuse : ancrage :
+     classe_cle_chaine`, code 2) avec un message qui nomme l'étape 7, plutôt
+     qu'un démarrage sans registre que l'exploitant ne verrait pas.
+201. **Canal de `noortrace-ctl ancrage`** (EX-18.1 : aucune prise ; lecture
+     152). Le même fichier de demande que `cle rotation-urgence`
+     (`{ demande: "ancrage", commande, id }`) et le signal SIGURG ; le démon
+     répond au journal d'exploitation (`anchoring_state`, `anchoring_metrics`,
+     `provider_qualification_withdrawn`, refus `anchoring_ctl_refused` :
+     `ancrage_non_configure`, `composant_non_demarre`, `identifiant_absent`, `prestataire_inconnu`, `commande_inconnue`) ;
+     `metriques` lit en plus `/metrics` de `supervision.health_listen` et
+     imprime les lignes `noortrace_anchor*`.
+202. **Rotation d'urgence au registre** (EX-11.16 ; lecture 194 :
+     `registre_non_branche`). Inchangée par le lot F2 : le composant de CT-5
+     encode les appels d'inscription et de révocation et leurs condensés
+     OP-6/OP-7, mais n'envoie que `anchorCheckpoint`, `submitPeriod` et la
+     clôture, et CT-4 §7 fait signer révocation et nouvelle inscription par
+     les approbateurs au seuil : relayer la rotation exige leur outil de
+     signature et deux envois absents du lot. Le refus reste nommé.
+203. **Horloge du démon injectable** (§7.4 ; règle 2 d'`INTERFACES.md` du
+     composant). `principal(argv, io)` accepte `io.horloge` (`murale`,
+     `monotone`, `programmer`) pour les essais qui lancent le démon réel
+     en processus enfant avec une horloge réglable ; sans elle, l'horloge
+     de §7.4 et `setTimeout` du démon. `superviserProcessus` (signaux,
+     fichier de demande) est exporté de `cli.mjs` pour ces essais ; `bin/noortrace`
+     n'a pas changé.
+204. **Bornes de la file d'attente, `pending_max_ms` et contrôle avant le
+     relais** (EX-14.9 ; matrice de 14.2, ligne « Mémoire »). Correction :
+     `pending_max_ms` n'était pas codé ; `coeur.attenteBornee()` (`coeur.mjs`)
+     teste les trois bornes, dont l'âge de l'événement le plus ancien
+     (horloge murale du cœur moins son `captured_at`, défaut 300 000 comme
+     les deux autres défauts, dans le même code ; le schéma rend le membre
+     obligatoire sans défaut). De plus, les bornes n'étaient constatées
+     qu'à la mise en attente, après le relais : la lecture ou l'échange qui
+     atteignait la borne était relayé et son événement perdu
+     (`event_lost`, `exchange_lost`) hors du mode observation. Le frontal
+     MCP et le SDK (`_etatPanne`) et le frontal modèle (`blocage`) les
+     interrogent au pas 7, avant le relais : au-delà, `-31010`
+     `reason: "attente"` (`503 noortrace_degrade` pour un échange), mode
+     dégradé `attente`, ligne `pending_limit_reached` (`events`, `limit` :
+     la borne atteinte), une fois par entrée. Aucun contrôle périodique
+     n'est ajouté : EX-14.9 rend bloquantes les lectures et les échanges
+     qui se présentent, et EX-17.5 ne prescrit aucun contrôle de la file ;
+     la sortie reste celle d'EX-14.10 (file scellée, `pending_flushed`).
+     Essai : `test/enregistreur-coeur-attente-bornes.test.js`.
+205. **Ligne `disk_low`** (14.2, ligne « Disque presque plein »). Le refus
+     d'écrire une pièce sous `storage.min_free_bytes` faisait entrer le mode
+     « stockage » (`degraded_enter`, `event: "disk_low"`) sans la ligne
+     `disk_low` que la matrice nomme ; elle est consignée (`free_bytes`,
+     `min_free_bytes`) par `MagasinPieces.verifierEspace` à l'entrée sous le
+     seuil, une fois jusqu'au retour au-dessus (voir 206). Même essai.
+206. **Disque presque plein : démarrage, ouverture de segment, contrôle
+     périodique** (14.2, colonne « Détection » : « avant ouverture de
+     segment, avant l'écriture de chaque pièce, et toutes les 10 s » ;
+     EX-15.4 pas 5, EX-9.8). Le démon refusait de démarrer sur un disque
+     sous `storage.min_free_bytes` (exception à l'écriture de la pièce de
+     politique) ; seule une configuration invalide empêche le démarrage
+     (14.2, lignes « Configuration invalide »), et EX-12.10 pas 1 fait
+     d'une anomalie du stockage au démarrage un mode dégradé. Le démon
+     démarre donc en mode dégradé « stockage », sans segment ouvert ; les
+     pas 2 à 4 d'EX-9.8 (reprises, attente d'un arrêt précédent,
+     politique) sont faits au tic qui ouvre le nouveau segment, avant tout
+     autre événement, et les refus de la politique (EX-10.21, EX-15.8)
+     restent des refus de démarrer. L'écrivain vérifie l'espace avant
+     d'ouvrir chaque segment ; `coeur.tic()` le vérifie toutes les 10 s
+     (horloge monotone du cœur) et, sous le seuil, ferme le segment comme
+     après une panne (EX-12.8) ; la sortie suit EX-14.11, quand l'espace
+     revient. Essais : `test/enregistreur-coeur-attente-bornes.test.js`.
+207. **Sortie du mode « stockage » après un échec d'écriture de pièce**
+     (EX-12.8, EX-14.11). Un échec d'écriture d'une pièce faisait entrer le
+     mode « stockage » sans fermer le segment : la reprise du tic ne
+     rouvrait rien et le mode n'était jamais quitté sans
+     `degrade.sortir`. `coeur.ecrirePiece` ferme désormais le segment
+     (`ecrivain.signalerPanneStockage`, comme EX-7.19 pas 2) : le tic
+     ouvre et synchronise un nouveau segment quand le stockage répond, ce
+     qui fait sortir du mode, puis la file est scellée (EX-14.10). Les
+     essais existants qui entrent eux-mêmes dans le mode
+     (`degrade.entrer("stockage")`) en sortent eux-mêmes : ils ne sont pas
+     changés. Même essai.
+208. **Lecture qui constate la panne de stockage** (14.2, colonne L ;
+     EX-14.8 : pièces gardées en mémoire si le stockage des pièces ne
+     répond plus). Le frontal MCP et le SDK rendaient `-31010 stockage` à
+     la lecture dont l'écriture des pièces (pas 4) constatait la panne ;
+     après la panne, ils réévaluent le pas 7 : une lecture passante sans
+     ticket est relayée et son événement mis en attente ; sinon la
+     raison de la panne constatée est rendue. Même essai.
+209. **Raison de `call_blocked` côté modèle avec `stockage` et `attente`**
+     (EX-14.4 : deux pannes simultanées se traitent par la plus
+     restrictive). Avec `failure.modele: "passant"`, `stockage` seul laisse
+     passer l'échange et `attente` le bloque : la raison consignée est
+     `attente` (elle était `stockage`, première de la liste). Même essai.
+210. **Jauge `noortrace_pending_oldest_ms`** (§17). Elle n'était jamais
+     posée ; elle vaut l'âge, à l'horloge murale du cœur, de l'événement en
+     attente le plus ancien (0 pour une file vide), mise à jour à la mise en
+     attente, au scellement de la file et à chaque tic. Même essai.
+211. **Hashes de la période pour l'admission d'un point** (CT-5 EX-5.3 :
+     le composant reçoit les hashes de la période ; EX-12.8 : l'écrivain
+     ferme le segment à chaque clôture). `lireHashesPeriode` relisait tous
+     les segments du journal à chaque point : le délai d'admission croissait
+     avec l'historique (épreuves de l'étape 5, campagne de mesures). Il garde
+     désormais, par segment, taille, date de modification et bornes des
+     horodatages de ses événements, et ne relit pas un segment inchangé
+     dont les bornes sont hors de la période ; un segment modifié, nouveau
+     ou recouvrant la période est relu. Le résultat est inchangé (mêmes
+     hashes, même ordre par `seq`). Essai : « contexte du composant,
+     lireHashesPeriode … » de `test/enregistreur-ancrage-exigences.test.js`
+     (racine égale à celle du manifeste, nombre de segments relus).
+
 ## À corriger dans CT-2
 
 - **Signataires** (lot « signataires » ; lectures 175, 176, 177, 181) : le
@@ -2509,6 +2754,7 @@ NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.m
 npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-reprise.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-config.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-approbations.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-attente-bornes.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-redaction.test.js
 NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-redaction-parcours.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-vecteurs.test.js
@@ -2528,6 +2774,9 @@ npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-securite.t
 NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-parcours.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-vecteurs.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-exigences.test.js
+NOORTRACE_VERIFIER_BIN=<binaire Go de CT-6> npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-parcours.test.js
+NOORTRACE_VERIFIER_BIN=<binaire Go de CT-6> npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-exigences.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-journal-soi.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-signataires-exigences.test.js
 NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-signataires-parcours.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-attributs.test.js

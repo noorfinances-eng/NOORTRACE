@@ -54,8 +54,9 @@ périmètre) ; sans `-v`, seules les discordances sont détaillées.
   `index-ta-par-menace.json` entrée par entrée (EX-A.13).
 - **Titres des tests** (EX-4.2) par une analyse lexicale propre de
   `test/*.test.js` (commentaires, chaînes, gabarits, expressions
-  rationnelles ; appartenance d'un `it` à ses `describe` par les
-  accolades) et **étapes de CI** (`- name:` de `ci.yml`) ; existence de
+  rationnelles ; dans un gabarit, une interpolation `${…}` lue comme une
+  expression, gabarits imbriqués compris, révision 0.4 ; appartenance d'un
+  `it` à ses `describe` par les accolades) et **étapes de CI** (`- name:` de `ci.yml`) ; existence de
   chaque titre cité par une entrée exécutable (règle (d)) ; forme
   d'EX-10.7 de chaque `it` de `test/adversarial.test.js` (TA- cités,
   menaces, « (tué) », exception d'EX-10.4), nombre d'`it` et de

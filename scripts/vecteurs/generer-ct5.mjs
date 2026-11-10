@@ -14,7 +14,7 @@
 //                     HTTP représentées, classées selon EX-5.10 à EX-5.12 ;
 //   ots/              fichiers .ots en attente (EX-6.4), paire de mise à niveau
 //                     (EX-6.6) sur les preuves de CT-6 ;
-//   planification/    les douze traces normatives de §8.10, rejouées par
+//   planification/    les vingt-deux traces normatives de §8.10, rejouées par
 //                     scripts/lib/ancrage.mjs (rejouerTrace) ;
 //   reprise/          files NDJSON avant et après le redémarrage de deux traces ;
 //   cout/             les onze cas de la formule de coût (§12.3) ;
@@ -218,9 +218,9 @@ class Scenario {
   pointSerie(p, { t = null } = {}) {
     return this.entree(t ?? p.checkpoint_ts, "point_produit", donneesPoint(p));
   }
-  /** Clôture d'une période du journal des vecteurs (clotureSinistres). */
-  clotureSerie(c) {
-    return this.entree(c.generated_at, "periode_close", c);
+  /** Clôture d'une période du journal des vecteurs (clotureSinistres), reçue à `t` (son generated_at par défaut). */
+  clotureSerie(c, { t = null } = {}) {
+    return this.entree(t ?? c.generated_at, "periode_close", c);
   }
   /** Objets durables sans ancre obtenue relus dans le stockage (EX-8.12). */
   stockage(t, { periods = [], checkpoints = [] }) {
@@ -280,7 +280,7 @@ function demande({ kind, sujet, deadlines = [], state, created_at, due_at = null
 const sujetPoint = (nom) => ({ kind: "point", org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: POINTS[nom].periode === 1 ? PERIOD_START_1 : PERIOD_START_2, hash: POINTS[nom].hash, tree_size: POINTS[nom].tree_size, declared_at: POINTS[nom].ts });
 const tentative = ({ n, provider = null, started_at, nonce = null, kind, hash, outcome = "en_cours", error_code = null, http_status = null, pki_status = null, failure_info = null, retry_after_s = null, next_at = null, detail }) => ({ n, provider, started_at, nonce, correlation_id: A.identifiantCorrelation(kind, hash, n), outcome, error_code, http_status, pki_status, failure_info, retry_after_s, next_at, detail });
 
-/** Les douze traces normatives (A.3), dans l'ordre d'A.3. */
+/** Les vingt-deux traces normatives (A.3), dans l'ordre d'A.3. */
 export function traces(ex) {
   const liste = [];
   const ajouter = (s, controles) => {
@@ -833,7 +833,32 @@ export function traces(ex) {
     ]);
   }
 
-  exiger(liste.length === 21, "vingt et une traces attendues");
+  // 22. point-manquant-saut-horloge (révision 0.4 ; EX-4.1, 8.9) : le délai de 2 × c_K court depuis le
+  // checkpoint_ts du dernier point admis, de sorte qu'un point reçu longtemps après sa production
+  // (saut d'horloge, arrêt) lève l'alerte dès sa relecture ; le point de clôture n'en arme aucune.
+  {
+    const s = new Scenario(
+      "point-manquant-saut-horloge",
+      "Journal des vecteurs, période 1 : le composant admet le point de 09:00, puis son horloge saute à 12:30 (arrêt du processus ou saut d'horloge) et il reçoit alors, produits à l'heure, le point de 09:59, le point de clôture et la clôture. À 12:30, l'alerte point_manquant due à 09:02 (aucun point pendant 2 x c_K après 09:00) est émise, puis celle due à 10:01 (aucun point pendant 2 x c_K après le checkpoint_ts 09:59 du point admis à 12:30) : le délai court depuis l'instant déclaré du dernier point admis, non depuis son admission (EX-4.1, 8.9) ; le point de clôture n'arme aucune minuterie de cadence. Le point de 09:59, admis 2 h 31 min après sa production, sert D_1 à D_11 (EX-4.3) et sa contresignature est tardive (contresignature_tardive, 8.9).",
+      configuration(),
+    );
+    s.demarrage(jour("08:59:30")).pointSerie(pt(S1, "09:00")).tic(jour("09:01:00")).pointSerie(pt(S1, "09:59"), { t: jour("12:30:00") });
+    s.inclusion(jour("12:30:02"), AS(pt(S1, "09:59")), 30359).granted(jour("12:30:04"), JS(pt(S1, "09:59")), 1, { gen_time: "2026-11-05T12:30:03Z", nom: "sinistres point 09:59 tardif", journal: SIN });
+    s.pointSerie(clotureS1, { t: jour("12:30:10") }).clotureSerie(C1, { t: jour("12:30:10") }).ots(jour("12:30:11"), OPS1, { nom: "en attente sinistres periode 1 tardive" });
+    s.inclusion(jour("12:30:12"), AS(clotureS1), 30360).inclusion(jour("12:30:13"), APS1, 30361).granted(jour("12:30:14"), PHS1, 1, { gen_time: "2026-11-05T12:30:14Z", nom: "sinistres periode 1 tardive", size: 3082, journal: SIN }).arret(jour("12:31:00"));
+    ajouter(s, (t) => {
+      const alertes = actions(t, "alerter", (a) => a.detail.code === "point_manquant");
+      const derniereAvantSaut = t.expected.map((a) => a.t).filter((x) => x <= jour("09:01:00")).length;
+      return [
+        ["point_manquant due à 09:02 puis due à 10:01, et aucune après le point de clôture", JSON.stringify(alertes.map((a) => a.t)) === JSON.stringify([jour("09:02:00"), jour("10:01:00")])],
+        ["les deux alertes sont émises après le saut d'horloge (après toute action de 09:01 ou avant)", alertes.every((a) => t.expected.indexOf(a) >= derniereAvantSaut)],
+        ["le point de 09:59 sert D_1 à D_11", JSON.stringify(dem(t, JS(pt(S1, "09:59"))).deadlines) === "[1,2,3,4,5,6,7,8,9,10,11]"],
+        ["contresignature tardive du point de 09:59 (genTime − checkpoint_ts > c_T)", actions(t, "alerter", (a) => a.detail.code === "contresignature_tardive" && a.request_id === JS(pt(S1, "09:59"))).length === 1],
+      ];
+    });
+  }
+
+  exiger(liste.length === 22, "vingt-deux traces attendues");
   return liste;
 }
 
@@ -1337,6 +1362,16 @@ function index({ constantes: c, requetes, reponses, ots, traces: tr, cout, repri
     "preuve-de-vie": "EX-4.3 (countersign_idle), EX-4.6, EX-8.4 règle 3",
     "file-pleine": "EX-8.5 règle 4, EX-4.4",
     "prestataire-min-interval": "EX-8.7, EX-5.5, EX-4.4 (AN-39)",
+    "refus-puis-preuve-de-vie": "EX-4.3 (countersign_idle), EX-5.12, EX-8.3, EX-8.8",
+    "refus-puis-preuve-de-vie-redemarrage": "EX-4.3 (countersign_idle), EX-8.5, EX-8.12 (AN-33)",
+    "file-perdue": "EX-8.12 (reconstruction, file_perdue), EX-4.1 (point_manquant depuis le checkpoint_ts du point relu)",
+    "bascule-epoque": "EX-8.5 règle 6 (fichiers d'époque), EX-8.12",
+    "bascule-epoque-fichier-perdu": "EX-8.5 règle 6, EX-8.12 (reconstruction)",
+    "registre-indisponible-cloture": "EX-4.2 (repli de clôture), EX-8.4, EX-8.10",
+    "mi-periode-impair": "EX-6.1 (mi_periode, n_T impair)",
+    "reponse-hors-profil": "EX-5.10, EX-5.12 (réponse hors profil, permanente)",
+    "point-manquant": "EX-4.1, EX-4.3, 8.9 (point_manquant, AN-2)",
+    "point-manquant-saut-horloge": "EX-4.1, 8.9 (point_manquant après un saut d'horloge : délai compté depuis le checkpoint_ts du dernier point admis ; révision 0.4), EX-4.3",
   };
   for (const { trace: t } of tr) L.push(`| \`${t.id}.json\` | ${t.inputs.length} | ${t.expected.length} | ${t.queue_before.length} | ${t.queue_after.length} | ${regles[t.id]} |`);
   L.push("");

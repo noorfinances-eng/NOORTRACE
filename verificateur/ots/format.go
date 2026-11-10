@@ -96,6 +96,7 @@ type attestationLue struct {
 	Hauteur   uint32  // GenreBitcoin
 	URI       string  // GenreAttente
 	Etiquette [8]byte // toutes ; utile pour GenreInconnue
+	Charge    []byte  // charge utile telle que lue (comparaison des doublons, §10.2)
 }
 
 // branche : une branche de l'arbre, attestation (Op = 00) ou opération
@@ -267,8 +268,47 @@ func (l *lecteur) arbre(profondeur int) ([]branche, *Defaut) {
 		if d != nil {
 			return nil, d
 		}
-		return append(bs, br), nil
+		bs = append(bs, br)
+		if fr, en := doublon(bs); fr != "" {
+			return nil, l.defaut(fr, en)
+		}
+		return bs, nil
 	}
+}
+
+// doublon décrit deux branches identiques sous un même nœud (deux
+// attestations identiques, ou deux opérations de même étiquette et de même
+// argument), ou rend "". Forme non canonique (CT-6 §10.2, révision 0.5) :
+// la bibliothèque de référence tient les attestations d'un nœud pour un
+// ensemble et ses opérations pour un dictionnaire, n'écrit jamais un tel
+// fichier et écrase le doublon à la relecture ; O-1 échoue, raison doublon.
+func doublon(bs []branche) (fr, en string) {
+	for i := 1; i < len(bs); i++ {
+		for j := 0; j < i; j++ {
+			if !memeBranche(bs[i], bs[j]) {
+				continue
+			}
+			if bs[i].Op == opAttestation {
+				return "doublon : deux attestations identiques sous un même nœud (forme non canonique)",
+					"duplicate: two identical attestations under the same node (non-canonical form)"
+			}
+			return fmt.Sprintf("doublon : deux opérations %02x identiques sous un même nœud (forme non canonique)", bs[i].Op),
+				fmt.Sprintf("duplicate: two identical %02x operations under the same node (non-canonical form)", bs[i].Op)
+		}
+	}
+	return "", ""
+}
+
+// memeBranche : même étiquette et, pour une attestation, mêmes étiquette et
+// charge ; pour une opération, même argument (nul pour 08).
+func memeBranche(a, b branche) bool {
+	if a.Op != b.Op {
+		return false
+	}
+	if a.Op == opAttestation {
+		return a.Attestation.Etiquette == b.Attestation.Etiquette && bytes.Equal(a.Attestation.Charge, b.Attestation.Charge)
+	}
+	return bytes.Equal(a.Argument, b.Argument)
 }
 
 // branche lit une branche dont l'étiquette c vient d'être lue.
@@ -317,6 +357,7 @@ func (l *lecteur) attestation() (*attestationLue, *Defaut) {
 	if d != nil {
 		return nil, d
 	}
+	a.Charge = charge
 	sous := &lecteur{b: charge, base: l.base + l.pos - len(charge)}
 	switch a.Etiquette {
 	case etiquetteBitcoin:

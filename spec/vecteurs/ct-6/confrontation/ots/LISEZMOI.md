@@ -7,7 +7,7 @@ code du dépôt, avec la bibliothèque officielle `python-opentimestamps` et
 | Ce qui est recalculé | Par |
 |---|---|
 | lecture stricte des `.ots`, fin de fichier exacte | `DetachedTimestampFile.deserialize`, `StreamDeserializationContext.assert_eof` |
-| réécriture identique aux octets du fichier | `DetachedTimestampFile.serialize` |
+| réécriture identique aux octets du fichier ; une réécriture différente d'un fichier lu sans refus révèle une forme non canonique (doublon écrasé à la relecture, CT-6 §10.2, révision 0.5) | `DetachedTimestampFile.serialize` |
 | empreinte de fichier, opérations, attestations et résultat des opérations | arbre `Timestamp` de la bibliothèque (`ops`, `attestations`) |
 | résultat des opérations égal à la racine de Merkle de l'en-tête attesté | `BitcoinBlockHeaderAttestation.verify_against_blockheader` |
 | hachage des en-têtes, chaînage, preuve de travail à la cible `regtest` | `CBlockHeader.deserialize`, `GetHash`, `CheckProofOfWork` (paramètres `regtest`), et double SHA-256 de `hashlib` |
@@ -44,9 +44,26 @@ relevés le 2026-10-22 : `opentimestamps-0.4.5-py3-none-any.whl`
 `2f29a9f475f21c12169b3a6cc8820f34f11362d7ff1200a5703dce3e4e903a44`.
 
 Code de retour : 0 si tout concorde, 1 sinon. La sortie de référence est
-`../sorties/ots.txt` : 140 vérifications O- sur 140 concordantes, aucune
+`../sorties/ots.txt` : 147 vérifications O- sur 147 concordantes, aucune
 discordance sur les en-têtes, les preuves, les statuts des contrôles, les
 avertissements et les faits.
+
+## Révision 0.5 (forme canonique, EX-A.26)
+
+`attendu.json` note la lecture de chaque preuve par la bibliothèque sous
+`python_opentimestamps.parsing` : `refusee` (`DeserializationError`),
+`acceptee` (lue et réécrite à l'identique par `serialize`) ou
+`acceptee_en_ecrasant` (lue sans refus, mais réécrite différemment). La
+troisième forme est une limite de la bibliothèque, non une discordance :
+`Timestamp.attestations` est un ensemble et `Timestamp.ops` un dictionnaire
+(`timestamp.py`), de sorte que `deserialize` absorbe une attestation ou une
+opération écrite deux fois sous un même nœud et que la relecture ne rend pas
+les octets du fichier. CT-6 §10.2 tient cette forme pour inexploitable (O-1 en
+échec, raison `doublon`) ; le programme fait de même : pour une preuve lue
+`acceptee_en_ecrasant`, O-1 est `echoue`, O-2 à O-7 `prerequis_en_echec`, et
+aucune attestation n'est relevée, ce que la preuve
+`preuves/o1-attestation-en-double.ots` (l'attestation à 1001 écrite deux fois)
+confirme sans discordance.
 
 ## Révision 0.2 (points de contrôle, EX-A.17)
 

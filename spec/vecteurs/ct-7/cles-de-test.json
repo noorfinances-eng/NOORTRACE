@@ -307,6 +307,14 @@
     },
     {
       "source": "ct-6",
+      "label": "rfc3161/cles/tsa-cle-longueur-non-minimale.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x921ae23a6266d6b8b9bc23b73ca9113bc858a7cd5f368b1ee9cfe41d5196a3d4"
+    },
+    {
+      "source": "ct-6",
       "label": "rfc3161/cles/tsa-cn-utf8-invalide.pem",
       "algorithm": "rsa",
       "public_key": null,
@@ -376,6 +384,14 @@
       "public_key": null,
       "address": null,
       "spki_sha256": "0xa3cfdccaa39200b68d9ce981156cb2a6f461e3808e93bd4b68a4600775f863e4"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-extension-mal-formee.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x921ae23a6266d6b8b9bc23b73ca9113bc858a7cd5f368b1ee9cfe41d5196a3d4"
     },
     {
       "source": "ct-6",

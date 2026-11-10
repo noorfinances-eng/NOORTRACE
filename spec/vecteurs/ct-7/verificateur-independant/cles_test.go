@@ -203,3 +203,52 @@ func TestClesCT6ExposantRSA(t *testing.T) {
 		}
 	}
 }
+
+// EX-A.7 : la clé RSA d'un certificat dont la RSAPublicKey porte une longueur
+// longue non minimale (30 83 00 01 8a, tsa-cle-longueur-non-minimale.pem)
+// donne le SubjectPublicKeyInfo DER de sa clé, égal à celui de crypto/x509
+// pour la même clé encodée en DER ; un SubjectPublicKeyInfo déjà DER est
+// rendu inchangé.
+func TestClesCT6LongueurNonMinimale(t *testing.T) {
+	cle, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	spkiStd, err := x509.MarshalPKIXPublicKey(&cle.PublicKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s, err := spkiCanonique(spkiStd); err != nil || !bytes.Equal(s, spkiStd) {
+		t.Fatalf("SPKI DER : %v, rendu différent", err)
+	}
+	pub, err := asn1.Marshal(struct{ N, E *big.Int }{cle.PublicKey.N, big.NewInt(int64(cle.PublicKey.E))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pub[0] != 0x30 || pub[1] != 0x82 {
+		t.Fatalf("RSAPublicKey inattendue : % x", pub[:2])
+	}
+	// 30 82 hh ll → 30 83 00 hh ll : même contenu, longueur sur trois octets.
+	nonMinimale := append([]byte{0x30, 0x83, 0x00, pub[2], pub[3]}, pub[4:]...)
+	spkiBrut, err := asn1.Marshal(struct {
+		Algorithme identifiantAlgorithme
+		Cle        asn1.BitString
+	}{identifiantAlgorithme{oidRSAEncryption, asn1.NullRawValue}, asn1.BitString{Bytes: nonMinimale, BitLength: 8 * len(nonMinimale)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Equal(spkiBrut, spkiStd) {
+		t.Fatal("le témoin non minimal égale le DER")
+	}
+	s, err := spkiCanonique(spkiBrut)
+	if err != nil || !bytes.Equal(s, spkiStd) {
+		t.Fatalf("longueur non minimale : %v, SPKI différent du DER de la clé", err)
+	}
+	tronque, _ := asn1.Marshal(struct {
+		Algorithme identifiantAlgorithme
+		Cle        asn1.BitString
+	}{identifiantAlgorithme{oidRSAEncryption, asn1.NullRawValue}, asn1.BitString{Bytes: nonMinimale[:20], BitLength: 160}})
+	if _, err := spkiCanonique(tronque); err == nil {
+		t.Fatal("RSAPublicKey tronquée acceptée")
+	}
+}

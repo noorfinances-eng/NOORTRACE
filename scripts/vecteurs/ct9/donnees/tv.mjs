@@ -2208,14 +2208,16 @@ export const TV = [
       "CT-6 EX-9.20",
       "CT-6 EX-A.4",
       "CT-6 EX-A.5",
-      "CT-6 EX-A.22"
+      "CT-6 EX-A.22",
+      "CT-6 EX-A.25"
     ],
     "preconditions": [
       "Vecteurs `ct-6/rfc3161` présents au commit éprouvé, régénérés sans différence (TV- de génération déterministe de la même famille).",
       "`npm ci` fait ; aucun réseau."
     ],
     "steps": [
-      "Vérifier les SHA-256 ; rejouer chaque cas d'`attendu.json` (trente-neuf, dont les quinze des jetons de la révision 0.4 de CT-6, EX-A.22 : `sid` introuvable, jeton sans certificat, clés RSA de 8200 et 8192 bits, exposant 2³¹ + 1, intermédiaire de 8200 bits, algorithme inconnu, clé Ed25519 rattachée ou non, numéro de série de 168 bits) ; une variante par vérification ; `openssl ts -verify` sur les jetons valides et sur deux cas refusés."
+      "Vérifier les SHA-256 ; rejouer chaque cas d'`attendu.json` (quarante et un, dont les quinze des jetons de la révision 0.4 de CT-6, EX-A.22 : `sid` introuvable, jeton sans certificat, clés RSA de 8200 et 8192 bits, exposant 2³¹ + 1, intermédiaire de 8200 bits, algorithme inconnu, clé Ed25519 rattachée ou non, numéro de série de 168 bits, et les deux de la révision 0.5, EX-A.25 : `t1-cle-longueur-non-minimale` et `t1-extension-mal-formee`) ; une variante par vérification ; `openssl ts -verify` sur les jetons valides et sur deux cas refusés.",
+      "Révision 0.5 de CT-6 (EX-A.25) : les deux jetons rendent T-1 `echoue` (détail nommant la `RSAPublicKey` ou `keyUsage`), T-2 à T-11 `prerequis_en_echec` ; `tsa-cle-longueur-non-minimale.pem` et `tsa-extension-mal-formee.pem` sont illisibles selon §9.3 et refusés comme ancre (N-1)."
     ],
     "oracle": "Statuts, avertissements, faits, résumé et proposition égaux ; `Verification: OK` d'openssl où attendu.",
     "status": {
@@ -2228,6 +2230,11 @@ export const TV = [
         {
           "file": "test/horodatage.test.js",
           "describe": "CT-6 contrôle 4 : confrontation à openssl ts -verify (annexe A.3)"
+        },
+        {
+          "file": "test/horodatage.test.js",
+          "describe": "CT-6 révision 0.5 : lecture du SubjectPublicKeyInfo et des extensions connues selon §9.3 (EX-9.4, EX-9.7)",
+          "it": "vecteurs t1-cle-longueur-non-minimale et t1-extension-mal-formee (EX-A.25) : T-1 nomme la RSAPublicKey ou keyUsage ; les certificats sont refusés comme ancre (N-1)"
         }
       ],
       "command": "npx hardhat --config hardhat.config.mjs test test/horodatage.test.js"
@@ -2255,14 +2262,16 @@ export const TV = [
       "CT-6 EX-10.15",
       "CT-6 EX-A.6",
       "CT-6 EX-A.7",
-      "CT-6 EX-4.5"
+      "CT-6 EX-4.5",
+      "CT-6 EX-A.26"
     ],
     "preconditions": [
       "Vecteurs `ct-6/ots` présents au commit éprouvé, régénérés sans différence (TV- de génération déterministe de la même famille).",
       "`npm ci` fait ; aucun réseau."
     ],
     "steps": [
-      "Vérifier les SHA-256 ; rejouer chaque cas ; une variante par vérification ; cas sans en-têtes, `periodHash` incalculable, opération hors profil, attestation hors des en-têtes."
+      "Vérifier les SHA-256 ; rejouer chaque cas ; une variante par vérification ; cas sans en-têtes, `periodHash` incalculable, opération hors profil, attestation hors des en-têtes.",
+      "Révision 0.5 de CT-6 (EX-A.26) : `preuves/o1-attestation-en-double.ots` (vingt et unième cas d'`attendu.json`) rend O-1 `echoue` (raison `doublon` dans le détail), O-2 à O-7 `prerequis_en_echec`, contrôle 5 `echoue`, aucune attestation relevée ; `python_opentimestamps.parsing` vaut `acceptee_en_ecrasant`."
     ],
     "oracle": "Statuts, avertissements et faits égaux à `attendu.json`.",
     "status": {
@@ -2271,6 +2280,11 @@ export const TV = [
         {
           "file": "test/ots.test.js",
           "describe": "CT-6 contrôle 5 : vecteurs spec/vecteurs/ct-6/ots (annexe A.4)"
+        },
+        {
+          "file": "test/ots.test.js",
+          "describe": "CT-6 contrôle 5 : format .ots (§10.2, EX-10.2)",
+          "it": "forme canonique d'un nœud (révision 0.5) : deux attestations identiques ou deux opérations identiques sous un même nœud rendent le fichier illisible (doublon) ; des branches sœurs distinctes sont lues"
         }
       ],
       "command": "npx hardhat --config hardhat.config.mjs test test/ots.test.js"
@@ -2595,13 +2609,16 @@ export const TV = [
       "CT-6 EX-A.17",
       "CT-6 EX-A.18",
       "CT-6 EX-A.19",
-      "CT-6 EX-A.20"
+      "CT-6 EX-A.20",
+      "CT-6 EX-A.25",
+      "CT-6 EX-A.26"
     ],
     "preconditions": [
       "Sorties publiées sous `spec/vecteurs/ct-6/confrontation/sorties/` ; la confrontation du registre n'est pas rejouée en CI (copie de noorchain-core exigée)."
     ],
     "steps": [
-      "Vérifier que chaque sortie porte sur les vecteurs du dépôt ; rejouer `confronter_rfc3161.py` quand `python3` et `openssl` sont présents."
+      "Vérifier que chaque sortie porte sur les vecteurs du dépôt ; rejouer `confronter_rfc3161.py` quand `python3` et `openssl` sont présents.",
+      "Révision 0.5 de CT-6 : les sorties republiées portent les vecteurs d'EX-A.25 (`Verification: OK` d'`openssl ts -verify` pour `t1-cle-longueur-non-minimale.der`, `certificate verify error` pour `t1-extension-mal-formee.der` ; longueur non minimale relevée par `openssl asn1parse`, extension indécodable par `openssl x509 -purpose`) et d'EX-A.26 (`o1-attestation-en-double.ots` lue `acceptee_en_ecrasant` par python-opentimestamps, concordante avec l'attendu)."
     ],
     "oracle": "Aucune discordance.",
     "status": {
@@ -2650,14 +2667,16 @@ export const TV = [
       "CT-6 EX-9.24",
       "CT-6 EX-A.22",
       "CT-6 EX-A.23",
-      "CT-6 EX-A.24"
+      "CT-6 EX-A.24",
+      "CT-6 EX-A.25",
+      "CT-6 EX-A.26"
     ],
     "preconditions": [
       "Module Go `verificateur/` (binaire `noortrace-verifier`), écrit depuis le seul texte de CT-6, étape 2 du plan (CT-6 §14 : « le binaire est construit en phase 2 ») ; Go 1.27.3, dépendances vendorisées."
     ],
     "steps": [
-      "`go test ./...` dans `verificateur/` : chaque dossier de `spec/vecteurs/ct-1/dossiers` et de `spec/vecteurs/ct-6/dossiers` rejoué ; code, `failed_checks`, statuts, raisons, avertissements, énoncé et borne comparés à son `attendu.json` ; chaque jeton de `spec/vecteurs/ct-6/rfc3161/attendu.json` rejoué, ceux d'EX-A.22 compris.",
-      "Le même `go test ./...` exécute les tests des règles de la révision 0.4 de CT-6 et de la révision 0.5 de CT-1 : `moteur/revision04_test.go` (codage, profondeur et forme canonique d'EX-4.16 ; événement prouvé inexploitable d'EX-5.15 ; désignation membre par membre d'EX-6.22 ; EX-9.24 de bout en bout), `moteur/ordinaire_unix_test.go` (lien symbolique et tube nommé, EX-4.17), `horodatage/revision04_test.go` (bornes RSA d'EX-9.23, clé hors de la version 0 d'EX-9.24), `dossier/revision05_test.go` et `dossier/correctifs_test.go` (EX-5.13, EX-5.14, EX-5.16 à EX-5.20).",
+      "`go test ./...` dans `verificateur/` : chaque dossier de `spec/vecteurs/ct-1/dossiers` et de `spec/vecteurs/ct-6/dossiers` rejoué ; code, `failed_checks`, statuts, raisons, avertissements, énoncé et borne comparés à son `attendu.json` ; chaque jeton de `spec/vecteurs/ct-6/rfc3161/attendu.json` rejoué, ceux d'EX-A.22 et d'EX-A.25 compris ; chaque preuve de `spec/vecteurs/ct-6/ots/attendu.json` rejouée, celle d'EX-A.26 comprise.",
+      "Le même `go test ./...` exécute les tests des règles de la révision 0.4 de CT-6 et de la révision 0.5 de CT-1 : `moteur/revision04_test.go` (codage, profondeur et forme canonique d'EX-4.16 ; événement prouvé inexploitable d'EX-5.15 ; désignation membre par membre d'EX-6.22 ; EX-9.24 de bout en bout), `moteur/ordinaire_unix_test.go` (lien symbolique et tube nommé, EX-4.17), `horodatage/revision04_test.go` (bornes RSA d'EX-9.23, clé hors de la version 0 d'EX-9.24), `dossier/revision05_test.go` et `dossier/correctifs_test.go` (EX-5.13, EX-5.14, EX-5.16 à EX-5.20) ; pour la révision 0.5 de CT-6, `horodatage/revision05_test.go` (certificats et jetons d'EX-A.25 illisibles selon §9.3, T-1 en échec) et `ots/format_test.go` (`TestFormatDoublon` : doublon sous un même nœud, vecteur d'EX-A.26).",
       "Construire deux fois par la recette d'EX-14.6 dans des répertoires et des caches différents ; comparer les SHA-256.",
       "Appliquer les quatre preuves d'absence de réseau d'EX-14.5 (`verificateur/scripts/verifier-sans-reseau.sh`)."
     ],

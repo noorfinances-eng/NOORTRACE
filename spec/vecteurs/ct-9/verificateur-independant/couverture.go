@@ -969,7 +969,7 @@ func (d *Depot) verifierMesuresEtRejeux(rap *Rapport) {
 		}
 	}
 	sort.Strings(executables)
-	rap.Verdict(strings.Join(executables, ",") == "TM-10,TM-15,TM-16,TM-20,TM-31,TM-6", "EX-11.16", "TM- exécutables", "%v (texte : TM-6, TM-10, TM-31, TM-16, TM-15, TM-20)", executables)
+	rap.Verdict(strings.Join(executables, ",") == "TM-10,TM-11,TM-12,TM-13,TM-14,TM-15,TM-16,TM-17,TM-18,TM-19,TM-20,TM-30,TM-31,TM-41,TM-42,TM-6", "EX-11.16", "TM- exécutables", "%v (texte : TM-6, TM-10, TM-31, TM-16, TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42, TM-15, TM-20)", executables)
 	if t := d.ParID["TM-22"]; t != nil && t.Measure != nil {
 		rap.Verdict(string(t.Measure.Target) == "450" && t.Measure.Unit == "min" && strings.Contains(t.Measure.FailureThreshold, "480"), "EX-11.14", "TM-22", "cible %s %s, seuil « %s »", t.Measure.Target, t.Measure.Unit, t.Measure.FailureThreshold)
 	}

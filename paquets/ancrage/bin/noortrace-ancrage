@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+// Outil de ligne de commande du composant d'ancrage (CT-5 EX-8.13, EX-10.6, EX-10.7, AN-1) : voir src/cli.mjs.
+// L'horloge et l'aléa sont construits ici, hors de src/ (règle 2 d'INTERFACES.md).
+import crypto from "node:crypto";
+import { lancer } from "../src/cli.mjs";
+
+const horloge = { murale: () => Date.now(), monotone: () => performance.now() };
+const aleatoire = (n) => new Uint8Array(crypto.randomBytes(n));
+
+lancer({ argv: process.argv.slice(2), horloge, aleatoire, sortie: process.stdout, erreur: process.stderr, env: process.env }).then((code) => {
+  process.exitCode = code;
+});

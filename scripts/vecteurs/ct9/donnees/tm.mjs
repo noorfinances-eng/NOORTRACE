@@ -532,17 +532,29 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Enregistreur produisant les points (`checkpoint_interval_s` 60) pendant une heure de charge de TM-3 ; composant d'ancrage en service."
+      "Enregistreur produisant les points (`checkpoint_interval_s` 60) pendant une heure de charge de TM-3 ; composant d'ancrage en service.",
+      "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
     ],
     "steps": [
       "Lire la série `points/periode-<ps>.ndjson` et les événements de la période ; pour chaque événement, délai jusqu'au premier point de `tree_size` supérieur.",
-      "`constaterCadence` sur la série ; rapport : ligne `p1_cadence`, `p99` et `max`."
+      "`constaterCadence` sur la série ; rapport : ligne `p1_cadence`, `p99` et `max`.",
+      "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
     ],
     "oracle": "`max ≤ 61` s et aucun écart de cadence ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Enregistreur (étape 4) et composant d'ancrage (étape 5) non construits."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/plan-de-tests.test.js",
+          "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+          "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Charge de TM-3 : la campagne de l'étape 5 mesure sous la charge à cadence fixe de l'outil (`--evenements-par-s`, un événement par seconde par défaut), hors de la condition « une période complète sous la charge de TM-3 » (500 événements par seconde, 16 connexions, harnais de CT-2 EX-16.2) ; la mesure sous cette charge suit le harnais, étape 8 (mesures de performance)."
+      }
     },
     "threats": [],
     "measure": {
@@ -584,17 +596,25 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Réseau de développement lancé par `chain/scripts/dev-net.sh start` ; composant d'ancrage avec `registry.checkpoints` `nouveaux_evenements`."
+      "Réseau de développement lancé par `chain/scripts/dev-net.sh start` ; composant d'ancrage avec `registry.checkpoints` `nouveaux_evenements`.",
+      "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
     ],
     "steps": [
       "Pour chaque ancre de point d'une période : instant de réception du reçu d'inclusion sur l'horloge de l'enregistreur moins `checkpoint_ts` (jamais l'horodatage du bloc).",
-      "Rapport : ligne `p2_inclusion`, `p50`, `p99`, `max` ; `d_registre` publié."
+      "Rapport : ligne `p2_inclusion`, `p50`, `p99`, `max` ; `d_registre` publié.",
+      "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
     ],
     "oracle": "`max ≤ 60` s ; sinon `met` faux et l'alerte `inclusion_alert_s` doit s'être levée (sinon TA- de la supervision).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Composant d'ancrage non construit ; le réseau de développement existe."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/plan-de-tests.test.js",
+          "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+          "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+        }
+      ]
     },
     "threats": [],
     "measure": {
@@ -635,18 +655,26 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Composant d'ancrage avec un prestataire RFC 3161 joignable (serveur interne de référence admis pour la mesure, CT-5 EX-7.4) ; `c_T` 300 s."
+      "Composant d'ancrage avec un prestataire RFC 3161 joignable (serveur interne de référence admis pour la mesure, CT-5 EX-7.4) ; `c_T` 300 s.",
+      "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
     ],
     "steps": [
       "Pour chaque échéance `D_k` satisfaite : `genTime + précision − D_k = d_jeton`, lu sur la ligne `checkpoint_countersigned` avec `d_point`, `d_attente`, `d_releve`, `d_tsa`.",
       "Vérifier qu'aucune échéance n'est non satisfaite avant la suivante en fonctionnement nominal.",
-      "Rapport : lignes `p3_d_jeton`, `p3_d_point`, `p3_d_attente`, `p3_d_releve`, `p3_d_tsa`."
+      "Rapport : lignes `p3_d_jeton`, `p3_d_point`, `p3_d_attente`, `p3_d_releve`, `p3_d_tsa`.",
+      "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
     ],
     "oracle": "`d_point ≤ 1` s, `d_attente ≤ squat_wait_s`, `d_releve ≤ fallback_after_s` (120 s), `d_tsa` publié ; zéro échéance manquée sur une période ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Composant d'ancrage non construit."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/plan-de-tests.test.js",
+          "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+          "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+        }
+      ]
     },
     "threats": [],
     "measure": {
@@ -689,18 +717,30 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Un prestataire qualifié réel désigné `principal` pour la clôture (aucun prix dans le dépôt) ; deux calendriers OpenTimestamps joignables ; fichier d'ancres du réviseur."
+      "Un prestataire qualifié réel désigné `principal` pour la clôture (aucun prix dans le dépôt) ; deux calendriers OpenTimestamps joignables ; fichier d'ancres du réviseur.",
+      "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
     ],
     "steps": [
       "Exporter le dossier d'un événement d'une période close ; compter les parties `jeton-rfc3161.der` et `preuve.ots` et les calendriers de la preuve.",
       "Vérifier le dossier avec le fichier d'ancres : T-11 `reussi`.",
-      "Rapport : ligne `p4_cloture`, `text_value` « jeton qualifié ; 2 calendriers ; T-11 reussi »."
+      "Rapport : ligne `p4_cloture`, `text_value` « jeton qualifié ; 2 calendriers ; T-11 reussi ».",
+      "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
     ],
     "oracle": "Les deux parties présentes, au moins deux calendriers, T-11 `reussi` ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Composant d'ancrage non construit ; prestataire qualifié à contracter (porte 2)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/plan-de-tests.test.js",
+          "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+          "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Prestataire qualifié réel : la campagne de l'étape 5 désigne pour principal le serveur interne de référence déclaré qualifié par un instantané d'exemple (CT-5 EX-4.8), dans la configuration et dans le fichier d'ancres de test du réviseur ; T-11 n'y réussit que par cette déclaration. La mesure avec un prestataire qualifié réel attend le prestataire à contracter pour la porte 2 (section 14, ligne 10), étape 8."
+      }
     },
     "threats": [],
     "measure": {
@@ -794,12 +834,13 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; hors de lui, le rapport est publié sans compter pour la cible (EX-11.2).",
-      "Support WORM réel des tests du lot WORM : S3 à Object Lock de LocalStack 4.0 (image épinglée par condensé) en conteneur Docker, derrière un mandataire TLS, bucket verrouillé en COMPLIANCE par l'exploitant (EX-12.30), configuré dans `storage.seal.worm` ; une période close par le démon de l'étape 4 ; sans Docker, le test est en attente (EX-3.11)."
+      "Support WORM réel des tests du lot WORM : S3 à Object Lock de LocalStack 4.0 (image épinglée par condensé) en conteneur Docker, derrière un mandataire TLS, bucket verrouillé en COMPLIANCE par l'exploitant (EX-12.30), configuré dans `storage.seal.worm` ; une période close par le démon de l'étape 4 ; sans Docker, le test est en attente (EX-3.11).",
+      "Depuis l'étape 5 : une période close par le démon avec le composant d'ancrage branché, répertoire `ancres/periode-<P>/` compris (pièces RFC 3161, preuves `.ots`, nonces, `acquisitions.ndjson`), sur le même support WORM en conteneur ; sur un support en mémoire, la copie de la file sous `queue.path` quand son époque est fermée (CT-5 EX-5.15, EX-8.14)."
     ],
     "steps": [
       "Pour chaque fichier de `points/`, `ancres/periode-*/` et des manifestes (manifeste et signature) : lire la version copiée par l'API du support (ListObjectVersions, GET avec versionId), comparer son SHA-256 à l'original.",
       "Lire le mode de verrou et la date de rétention rendus par l'API (HEAD avec versionId) ; comparer à la rétention des événements (365 × events_years jours depuis la création de la version, tolérance d'une heure d'EX-12.33).",
-      "Rapport : ligne `p6_copie_worm`, `value` = nombre de fichiers sans copie conforme ; publié sous spec/vecteurs/ct-9/mesures/ (EX-11.11)."
+      "Rapport : ligne `p6_copie_worm`, `value` = nombre de fichiers sans copie conforme ; publié sous spec/vecteurs/ct-9/mesures/ (EX-11.11) ; le relevé d'`ancres/` de l'étape 5 (`NOORTRACE_RAPPORT_TM16_ANCRES`) entre dans le rapport de la campagne de l'étape 5 par l'option `--p6` de `scripts/e2e/mesure-ancrage.mjs rapport`."
     ],
     "oracle": "`value = 0` fichier manquant ; mode sans contournement ; rétention ≥ celle des événements ; sinon `met` faux.",
     "status": {
@@ -809,12 +850,18 @@ export const TM = [
           "file": "test/enregistreur-worm-mesure-p6.test.js",
           "describe": "TM-16 — P-6 de CT-5 mesurée sur le support WORM réel (S3 à Object Lock en conteneur) : copie conforme des points, des ancres et des manifestes",
           "it": "TM-16 : une période close copiée sur le support ; chaque fichier de points/, d'ancres/periode-*/ et de manifestes/ lu par l'API du support (version au même SHA-256, mode COMPLIANCE, rétention au moins égale à celle des événements) ; rapport conforme à plan-de-tests-v0#/$defs/rapport_mesure, ligne p6_copie_worm à 0 fichier non conforme"
+        },
+        {
+          "file": "test/enregistreur-journal-soi.test.js",
+          "describe": "TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3 à Object Lock en conteneur) : worm_legal_hold_observed, worm_copy_failed puis reprise, copie conforme d'ancres/",
+          "it": "complément TM-16 (P-6, ancres/) : chaque fichier de points/, d'ancres/periode-<P>/ et de manifestes/ a une version au même SHA-256 sur le support, en mode COMPLIANCE, rétention au moins égale à celle des événements ; ligne p6_copie_worm à 0 fichier non conforme, publiée hors du système de référence (le rapport la dit)"
+        },
+        {
+          "file": "test/enregistreur-ancrage-exigences.test.js",
+          "describe": "enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence",
+          "it": "EX-5.15, EX-8.14, TM-16 : la copie WORM couvre le répertoire ancres/ (rfc3161/, ots/, entetes-bitcoin.json, acquisitions.ndjson une fois la période close et la T-10 différée décidée) et la file sous queue.path quand son époque est fermée ; SHA-256 égaux ; 0 fichier non conforme"
         }
-      ],
-      "complement": {
-        "phase2_step": 5,
-        "blocking": "Partie à écrire : le répertoire `ancres/` n'existe pas avant le composant d'ancrage de l'étape 5 (CT-5 §5.5) ; la mesure de l'étape 4 porte sur les points et les manifestes, et le rapport le dit."
-      }
+      ]
     },
     "threats": [],
     "measure": {
@@ -849,18 +896,30 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Composant d'ancrage avec `J` journaux (1 puis 10, maxima de CT-5 §4.6) ; prestataire simulé injoignable pendant une heure pour le régime de panne."
+      "Composant d'ancrage avec `J` journaux (1 puis 10, maxima de CT-5 §4.6) ; prestataire simulé injoignable pendant une heure pour le régime de panne.",
+      "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
     ],
     "steps": [
       "Relever le nombre de points produits et ancrés par seconde pour J = 1 et J = 10.",
       "Couper le prestataire simulé une heure ; relever la taille maximale de la file durable et la mémoire du composant.",
-      "Rapport : lignes `planificateur_debit_points`, `planificateur_journaux`, `planificateur_file_panne`."
+      "Rapport : lignes `planificateur_debit_points`, `planificateur_journaux`, `planificateur_file_panne`.",
+      "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
     ],
     "oracle": "Lignes présentes, `met` null ; la file reste bornée (`queue` de CT-5 §8.5) sinon `notes` le dit.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Composant d'ancrage non construit."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/plan-de-tests.test.js",
+          "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+          "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Mesure en temps réel (EX-11.5 : aucune horloge manipulée pendant une mesure) : les trois lignes de l'étape 5 (`complements`) rejouent une heure de points à l'horloge réglable du composant, sur la boucle locale ; leurs débits sont ceux du harnais (attente de calme après chaque minuterie servie) et ne bornent le planificateur que par en dessous. Le relevé en temps réel, J = 1 puis J = 10, et la panne réelle d'une heure sont dus à l'étape 8 (mesures de performance)."
+      }
     },
     "threats": [],
     "measure": {
@@ -897,17 +956,34 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Serveur interne de référence (CT-5 EX-7.4) en service ; client de la section 5."
+      "Serveur RFC 3161 interne de référence du paquet d'ancrage (CT-5 EX-7.4), compteur de série durable ; client de la section 5 (composant d'ancrage de l'étape 5).",
+      "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
     ],
     "steps": [
       "Émettre dix jetons, redémarrer le serveur, émettre dix jetons ; lire `serialNumber` de chaque jeton (T-1).",
-      "Rapport : ligne `an26_serie_croissante`, `value` = nombre de paires consécutives non croissantes."
+      "Rapport : ligne `an26_serie_croissante`, `value` = nombre de paires consécutives non croissantes.",
+      "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
     ],
     "oracle": "`value = 0` ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Serveur interne non déployé comme service (CT-8 §15) ; l'autorité de test des vecteurs ne tourne pas."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-ancrage-exigences.test.js",
+          "describe": "enregistreur + ancrage (lot F2), TI-17 : serveur RFC 3161 interne du lot E éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)"
+        },
+        {
+          "file": "test/enregistreur-ancrage-parcours.test.js",
+          "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
+          "it": "TI-17 sur les jetons reçus du serveur interne : AN-22 (T-8), AN-24 (accuracy ≤ 1 s, TM-19), AN-25 (nonce recopié), AN-26 (numéros de série strictement croissants, TM-18 : 0 paire non croissante), AN-29 (politique privée), AN-30 (certificat de l'unité inclus) ; AN-28 : une ligne d'acquisition par jeton reçu"
+        },
+        {
+          "file": "test/plan-de-tests.test.js",
+          "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+          "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+        }
+      ]
     },
     "threats": [],
     "measure": {
@@ -941,17 +1017,34 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Serveur interne de référence en service ; journal d'exploitation `tsa_clock_offset`."
+      "Serveur interne de référence en service ; journal d'exploitation `tsa_clock_offset`.",
+      "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
     ],
     "steps": [
       "Sur chaque jeton émis pendant TM-13, lire `accuracy` (T-1) ; relever `tsa_clock_offset` dans le journal.",
-      "Rapport : lignes `an24_accuracy` (`max`) et `an24_clock_offset` (`max`)."
+      "Rapport : lignes `an24_accuracy` (`max`) et `an24_clock_offset` (`max`).",
+      "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
     ],
     "oracle": "`accuracy` présent et ≤ 1 s sur tous les jetons ; `tsa_clock_offset` présent ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Serveur interne non déployé comme service."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-ancrage-exigences.test.js",
+          "describe": "enregistreur + ancrage (lot F2), TI-17 : serveur RFC 3161 interne du lot E éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)"
+        },
+        {
+          "file": "test/enregistreur-ancrage-parcours.test.js",
+          "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
+          "it": "TI-17 sur les jetons reçus du serveur interne : AN-22 (T-8), AN-24 (accuracy ≤ 1 s, TM-19), AN-25 (nonce recopié), AN-26 (numéros de série strictement croissants, TM-18 : 0 paire non croissante), AN-29 (politique privée), AN-30 (certificat de l'unité inclus) ; AN-28 : une ligne d'acquisition par jeton reçu"
+        },
+        {
+          "file": "test/plan-de-tests.test.js",
+          "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+          "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+        }
+      ]
     },
     "threats": [],
     "measure": {
@@ -1494,16 +1587,28 @@ export const TM = [
       "CT-5 §6.4"
     ],
     "preconditions": [
-      "Composant d'ancrage avec mise à niveau OpenTimestamps auprès de deux calendriers réels ; une preuve mise à niveau après inclusion dans Bitcoin."
+      "Composant d'ancrage avec mise à niveau OpenTimestamps auprès de deux calendriers réels ; une preuve mise à niveau après inclusion dans Bitcoin.",
+      "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
     ],
     "steps": [
-      "Mesurer la taille en octets de dix preuves `.ots` mises à niveau ; rapport : ligne `b_ots_mis_a_niveau`, `max` et `mean`."
+      "Mesurer la taille en octets de dix preuves `.ots` mises à niveau ; rapport : ligne `b_ots_mis_a_niveau`, `max` et `mean`.",
+      "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
     ],
     "oracle": "Ligne présente, `met` null ; la valeur remplace 233 dans les entrées du calculateur (membre `coefficients`).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Composant d'ancrage non construit ; mise à niveau réelle requise."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/plan-de-tests.test.js",
+          "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+          "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Mise à niveau réelle : la campagne de l'étape 5 mesure dix preuves mises à niveau par les deux calendriers factices (chemin Bitcoin complet sur une chaîne regtest, CT-5 EX-6.9) et, avec `--reseau-public`, des preuves en attente des agrégateurs publics ; la taille d'une preuve mise à niveau par deux calendriers réels après inclusion dans Bitcoin (plusieurs heures d'attente) n'est pas relevée : possible dès maintenant, non faite, étape 8."
+      }
     },
     "threats": [],
     "measure": {
@@ -2031,16 +2136,28 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Mêmes conditions que TM-11 et TM-12 ; horloge de l'enregistreur."
+      "Mêmes conditions que TM-11 et TM-12 ; horloge de l'enregistreur.",
+      "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
     ],
     "steps": [
-      "Pour chaque événement d'une période : instant de réception du reçu d'inclusion de l'ancre du premier point de `tree_size` supérieur, moins `ts` ; rapport : ligne `w_ordre`, `p50`, `p99`, `max`."
+      "Pour chaque événement d'une période : instant de réception du reçu d'inclusion de l'ancre du premier point de `tree_size` supérieur, moins `ts` ; rapport : ligne `w_ordre`, `p50`, `p99`, `max`.",
+      "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
     ],
     "oracle": "`p99 ≤ 120` s (60 s + `inclusion_alert_s`) ; publié avec `d_registre` ; cette durée est de conception, aucun dossier ne la prouve (CT-5 §3.3).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Composant d'ancrage non construit."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/plan-de-tests.test.js",
+          "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+          "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Charge de TM-3 : la campagne de l'étape 5 mesure sous la charge à cadence fixe de l'outil (`--evenements-par-s`, un événement par seconde par défaut), hors de la condition « une période complète sous la charge de TM-3 » (500 événements par seconde, 16 connexions, harnais de CT-2 EX-16.2) ; la mesure sous cette charge suit le harnais, étape 8 (mesures de performance)."
+      }
     },
     "threats": [
       "MN-17"
@@ -2087,18 +2204,26 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Composant d'ancrage et prestataire joignable ; deux configurations : par défaut (`c_K` 60 s, `c_T` 300 s) et celle de la porte 2 (`c_T` 60 s, points chez le principal, cas `cadence-une-minute-principal` de CT-5 §12.3)."
+      "Composant d'ancrage et prestataire joignable ; deux configurations : par défaut (`c_K` 60 s, `c_T` 300 s) et celle de la porte 2 (`c_T` 60 s, points chez le principal, cas `cadence-une-minute-principal` de CT-5 §12.3).",
+      "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
     ],
     "steps": [
       "Pour chaque événement d'une période, exporter le dossier et lire `facts.checkpoint.rewrite_window_ms` (CT-6 EX-6.17) du premier point contresigné qui l'engage ; convertir en s.",
       "Publier les deux configurations : ligne `w_date_defaut` (cible de conception 300 s + d_jeton) et ligne `w_date_porte_2` (cible du plan : 300 s).",
-      "Rapport : `p50`, `p99`, `max` pour chaque ligne."
+      "Rapport : `p50`, `p99`, `max` pour chaque ligne.",
+      "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
+      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
     ],
     "oracle": "`w_date_porte_2` : `p99 ≤ 300` s (critère de la porte 2) ; `w_date_defaut` : `p99 ≤ 300 + d_jeton` s avec le `d_jeton` de TM-13 ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 5,
-      "blocking": "Composant d'ancrage non construit ; la configuration de la porte 2 (c_T = 60 s) est à confirmer par le plan."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/plan-de-tests.test.js",
+          "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
+          "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+        }
+      ]
     },
     "threats": [
       "MN-17"

@@ -134,7 +134,17 @@ export class Ecrivain {
     // Clôtures incomplètes (manifeste écrit, signature absente : arrêt brutal
     // entre les deux écritures) : complétées avant toute nouvelle écriture.
     for (const x of etat.manifestesSansSignature ?? []) await this._completerCloture(x.manifeste);
-    await this._ouvrirSegment(this.lastSeq + 1);
+    try {
+      await this._ouvrirSegment(this.lastSeq + 1);
+    } catch (e) {
+      // Disque presque plein au démarrage (14.2 : vérification avant ouverture
+      // de segment) : aucun segment ouvert, mode dégradé « stockage » ; le
+      // segment est ouvert à la sortie du mode (EX-12.8, EX-14.11).
+      if (!(e instanceof ErreurEnregistreur && e.donnees?.event === "disk_low")) throw e;
+      this.segment = null;
+      this._noterDurable();
+      this.degrade.entrer("stockage", { event: "disk_low" });
+    }
     // EX-13.5 (1) : aucun fichier d'intention sous une époque supérieure présente
     // dans le répertoire du journal (lot HA).
     await this._verifierOuverture("intentions");
@@ -189,6 +199,8 @@ export class Ecrivain {
   }
 
   async _ouvrirSegment(firstSeq) {
+    // Disque presque plein (14.2) : vérification avant l'ouverture de chaque segment.
+    await this.pieces?.verifierEspace?.();
     const nom = nomSegment(firstSeq, this.epoque);
     const dir = path.join(this.repertoire, "segments");
     // EX-13.5 (1) : l'époque de l'en-tête n'est jamais inférieure à la plus

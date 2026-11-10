@@ -57,7 +57,9 @@
       "cles/intermediaire-8200.pem": "0xf9e8f8ac115234297bfd817696c83a4eab398ee1c028931d09b34be6b4335037",
       "cles/tsa-par-intermediaire-8200.pem": "0x3ac1e377b94a494fabfe27654bec6917ebe83ab5dc75a7642f74ff8966173a9b",
       "cles/tsa-ed25519.pem": "0x3b2070b9e823b69157f06e7ab4c8d2f8d43e6e1e9033b4280a0ac6d57c3580bd",
-      "cles/tsa-ed25519-auto-signe.pem": "0xa39159bef83a32855479074287e8030987fc103259c63eac85437c860a7f7e6e"
+      "cles/tsa-ed25519-auto-signe.pem": "0xa39159bef83a32855479074287e8030987fc103259c63eac85437c860a7f7e6e",
+      "cles/tsa-cle-longueur-non-minimale.pem": "0x243795c7795d2372773329da9efba1de71ddf175d0f0d5ec9b744618e62e7327",
+      "cles/tsa-extension-mal-formee.pem": "0x17b014380b0c82f5a903597ff629c3605625d621588098c62fc48c5f0fee5123"
     }
   },
   "crls": {
@@ -399,6 +401,34 @@
         "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/serie-168-bits.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
         "presumed_result": "Verification: OK (serialNumber de 168 bits accepté)",
         "source": "relevé par la confrontation (A.8, EX-A.22)"
+      }
+    },
+    {
+      "file": "jetons/t1-cle-longueur-non-minimale.der",
+      "sha256": "0x8c30b44e03e071e038a158ba3d65fe84a2ab774fac7c4902837824df9af07eea",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": "signé par la même clé, certificates = [tsa-cle-longueur-non-minimale.pem] : la RSAPublicKey du SubjectPublicKeyInfo porte une longueur longue non minimale (30 83 00 01 8a), contraire au DER (EX-9.4) : certificat illisible",
+      "target": "T-1",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t1-cle-longueur-non-minimale.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "Verification: OK (OpenSSL lit la longueur longue non minimale de la RSAPublicKey ; openssl asn1parse -strparse de la clé l'imprime hl=5 pour une longueur de 394 octets, qui tient sur 4)",
+        "source": "relevé par la confrontation (A.8, EX-A.25)"
+      }
+    },
+    {
+      "file": "jetons/t1-extension-mal-formee.der",
+      "sha256": "0x1ad52fedc8e13db0ca28729a6076312df5a19f9fc708ea188013dc8e3557175d",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": "signé par la même clé, certificates = [tsa-extension-mal-formee.pem] : la valeur de l'extension keyUsage est un INTEGER (02 02 07 80) au lieu d'une BIT STRING : certificat illisible (EX-9.7)",
+      "target": "T-1",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t1-extension-mal-formee.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "certificate verify error (ossl_x509v3_cache_extensions : invalid certificate ; openssl ts -text lit le jeton et imprime la valeur de keyUsage sans la décoder)",
+        "source": "relevé par la confrontation (A.8, EX-A.25)"
       }
     },
     {
@@ -2439,6 +2469,144 @@
       ],
       "failed_checks": [
         "T-5"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/t1-cle-longueur-non-minimale.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-3",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-4",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-5",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-7",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-8",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-9",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "T-1"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/t1-extension-mal-formee.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-3",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-4",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-5",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-7",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-8",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-9",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "T-1"
       ],
       "control_status": "echoue",
       "control_reason": null,

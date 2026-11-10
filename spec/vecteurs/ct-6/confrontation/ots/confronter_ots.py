@@ -212,14 +212,26 @@ for p in ATTENDU["proofs"]:
     dire("-- %s (cible : %s ; altération : %s)" % (f, p["target"] or "aucune", p["alteration"] or "aucune"))
     comparer("SHA-256 et taille", (p["sha256"], p["size"]), (hexa(hashlib.sha256(octets).digest()), len(octets)))
     dtf, err = lire_strict(octets)
-    lecture = "acceptee" if dtf else "refusee"
+    # Trois lectures (CT-6 §10.2, révision 0.5) : refusée ; acceptée et réécrite à l'identique ; acceptée en
+    # écrasant (la bibliothèque relit sans refus mais sa réécriture diffère du fichier : un doublon sous un
+    # même nœud a été absorbé par l'ensemble `attestations` ou le dictionnaire `ops` de Timestamp). La
+    # troisième forme n'a aucune lecture canonique : CT-6 la tient pour inexploitable (O-1, doublon).
+    reecriture = None
+    if dtf:
+        ctx = BytesSerializationContext()
+        dtf.serialize(ctx)
+        reecriture = ctx.getbytes() == octets
+    lecture = "refusee" if not dtf else ("acceptee" if reecriture else "acceptee_en_ecrasant")
     dire("  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : %s%s" % (lecture, "" if dtf else " (" + err + ")"))
     comparer("lecture par python-opentimestamps présumée par attendu.json (%s)" % p["python_opentimestamps"]["source"],
              p["python_opentimestamps"]["parsing"], lecture)
     if dtf:
-        ctx = BytesSerializationContext()
-        dtf.serialize(ctx)
-        comparer("réécriture par la bibliothèque identique aux octets du fichier", True, ctx.getbytes() == octets)
+        comparer("réécriture par la bibliothèque identique aux octets du fichier (sinon : doublon écrasé à la relecture, forme non canonique)", lecture == "acceptee", reecriture)
+    if lecture == "acceptee_en_ecrasant":
+        dire("  la bibliothèque relit le fichier en écrasant un doublon : forme non canonique, inexploitable pour CT-6 (O-1, §10.2) ; aucune attestation n'est relevée")
+        PREUVES[f] = {"format": False, "erreur": "forme non canonique : la relecture écrase un doublon (réécriture différente du fichier)"}
+        comparer("attestations", p["attestations"], [])
+        continue
     dtf_r, err_r = lire_relache(octets)
     if dtf_r is None:
         dire("  lecture aux limites de longueur relâchées : refusée (%s)" % err_r)
