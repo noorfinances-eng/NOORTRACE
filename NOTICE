@@ -10,6 +10,11 @@ from noorchain-core, by the same copyright holder. PeriodRegistry is derived
 from noorchain-core's PoSSRegistry, and the signature loop of
 ThresholdSignatures follows the one in PoSSRegistry.
 
+Code that this repository takes from the curators-hub and foundation
+applications of noorchain-core is placed under the Apache License, Version 2.0
+by the same copyright holder. Each package that holds such code lists, in its
+LISEZMOI.md, the files it takes and what was changed.
+
 A complete reviewer package built by scripts/paquet-reviseur/construire.mjs
 (CT-8 §13) redistributes dist/ethers.js from the npm distribution of ethers,
 under the MIT license, together with its LICENSE.md.
