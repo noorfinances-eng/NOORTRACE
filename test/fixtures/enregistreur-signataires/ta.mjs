@@ -106,9 +106,49 @@ export async function jaugeCle(port) {
   }
 }
 
+/** Durée d'une période du journal (heure UTC pleine, CT-1 §10.3), en ms. */
+const PERIODE_MS = N.DUREE_PERIODE * 1000;
+
+/**
+ * Marge ajoutée à `attenteMaxMs` pour borner la fenêtre d'observation de
+ * TA-33, du démarrage du démon à la réponse du second appel : démarrage du
+ * démon, premier appel, arrêt du backend, dernier relevé de la jauge, second
+ * appel (deux essais de signature au plus, `signer.timeout_ms` chacun).
+ */
+export const MARGE_FENETRE_MS = 60000;
+
+/**
+ * Attente (ms) avant le démarrage du démon pour que la fenêtre d'observation,
+ * de durée au plus `dureeMs`, tienne dans une seule période du journal : 0 si
+ * l'heure UTC courante laisse assez de temps, sinon jusqu'à une seconde après
+ * le début de l'heure suivante.
+ *
+ * Pourquoi : le premier événement d'une heure nouvelle fait d'abord clore la
+ * période précédente (`_cloreJusqua` dans `_ecrireEvenement`, ecrivain.mjs),
+ * ce qui signe un point de clôture et un manifeste. Backend arrêté, cette
+ * signature échoue avant celle de l'événement ; or le mutant de TA-33 ne
+ * neutralise que l'échec de la signature de l'événement (et l'entrée en mode
+ * « clé » par `health()`). Si la fenêtre franchit l'heure pleine, le second
+ * appel du mutant est relayé puis refusé en `-31017` de raison `cle` sans
+ * qu'aucun événement soit écrit : le mutant survit pour une raison
+ * étrangère à la défense mesurée (intégration continue du commit e68d603,
+ * run 40 : mutant observé de part et d'autre de 14:00:00 UTC). La référence,
+ * elle, est bloquée en mode « clé » avant le relais, d'un côté comme de l'autre.
+ * @param {number} dureeMs
+ * @param {number} [maintenant] ms UNIX
+ */
+export function attenteHorsLimitePeriode(dureeMs, maintenant = Date.now()) {
+  const reste = PERIODE_MS - (maintenant % PERIODE_MS);
+  return reste > dureeMs ? 0 : reste + 1000;
+}
+
 /**
  * TA-33 : arrête le backend pendant la capture ; appelle un outil ; lit la
- * réponse de l'hôte, la jauge, le journal d'exploitation et le segment.
+ * réponse de l'hôte, la jauge, le journal d'exploitation et le segment. Le
+ * démon démarre assez tôt dans une heure UTC pour que toute l'observation
+ * tienne dans une seule période du journal (`attenteHorsLimitePeriode`) ; si
+ * elle la dépasse malgré la marge, le scénario échoue sur cette précondition
+ * au lieu de rendre une observation qui n'est pas celle de TA-33.
  * @param {object} paquet REFERENCE ou mutant
  * @param {{base: string, nom: string, tls: object, service: object, serveurService: object, attenteMaxMs: number}} o
  */
@@ -120,6 +160,10 @@ export async function scenarioTa33(paquet, o) {
   try {
     await srv.creerCle("rec-rapide-01");
     c = await configurationRapide(d, { url: srv.origine, jeton: await srv.jetonUsage(["rec-rapide-01"]), service: o.service, serveurService: o.serveurService, tls: o.tls });
+    // Une seule période du journal du démarrage du démon au second appel.
+    const attente = attenteHorsLimitePeriode(o.attenteMaxMs + MARGE_FENETRE_MS);
+    if (attente) await new Promise((r) => setTimeout(r, attente));
+    const periode = Math.floor(Date.now() / PERIODE_MS);
     const p = await demarrer(paquet, c, path.join(d, "configuration.json"));
     const obs = {};
     try {
@@ -142,6 +186,9 @@ export async function scenarioTa33(paquet, o) {
       obs.jaugeDepuisMs = premiere === null ? 0 : Date.now() - premiere;
       obs.jaugeTenue = premiere !== null && obs.jauge.slice(obs.jauge.indexOf(1)).every((g) => g === 1);
       obs.appel = await appelerOutil(c.portHttp, c.jeton, "demo__ecrire", { id: "T1", montant: "2" });
+      if (Math.floor(Date.now() / PERIODE_MS) !== periode) {
+        throw new Error(`TA-33 : précondition non tenue, l'observation (${o.nom}) a franchi une heure UTC pleine malgré une marge de ${MARGE_FENETRE_MS} ms (période close pendant la panne : voir attenteHorsLimitePeriode)`);
+      }
       await new Promise((r) => setTimeout(r, 1000));
       obs.evenementsFin = await nbEvenements(c.journal);
       obs.lignes = p.lignes();
