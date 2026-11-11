@@ -1283,3 +1283,140 @@ await ecrivain.sceller(partiel, { captureA, piecesPerdues: new Set(manquantes.ma
   échec d'écriture laisse l'événement et les suivants dans `coeur.attente`,
   dans l'ordre de `captured_at`.
 - Essais : `test/enregistreur-coeur-pieces-perdues.test.js`.
+
+## l) CT-2 révision 0.8 : export du dossier et demandes du démon (§15.7, EX-15.9 à EX-15.14)
+
+État : **à faire (étape 6)** ; seule la validation d'`exports_dir` est
+livrée (copie embarquée du schéma, pas 3 d'EX-15.4). Règles : CT-2 §15.7 et
+la table de §22 (lignes `ctl-demon.mjs`, `cli.mjs`, `journal-exploitation.mjs`,
+`configuration.mjs`, `coeur.mjs`) ; CT-1 §11 ; CT-5 §10 (EX-10.5) ; CT-7
+EX-3.16.
+
+### Commande
+
+```text
+noortrace-ctl dossier exporter (--seq <n> | --dernier | --ticket <ticket_id>) --vers <répertoire>
+                               [--configuration <fichier>] [--delai-ms <n>]
+```
+
+- `bin/noortrace-ctl` route `dossier` et `ancrage` (aujourd'hui envoyé à
+  l'outil WORM) vers `principalCtlDemon`, comme `reload`, `clock` et `cle`.
+- Domaines d'EX-15.9 (options en arguments distincts, jamais
+  `--option=valeur` ; `--seq` de 1 à 2^53 − 1 sans zéro de tête ; `--ticket`
+  au motif `^apr-[0-9a-z]+(-[0-9a-z]+)*$`, 5 à 128 caractères ; `--vers`
+  envoyé en chemin absolu normalisé, 4 096 octets au plus, composants de 1 à
+  255 octets ; `--delai-ms` de 0 à 86 400 000, défaut 120 000, compté depuis
+  le pas 3) ; tout écart : code 2, aucune demande, aucun signal.
+- Transport d'EX-15.10 : démon cherché par `/proc/<pid>/cmdline` (`noortrace
+  … --config <fichier>`, chemin réel, filtré par `--configuration`) ; taille
+  de `supervision.ops_log.path` notée ; demande écrite par création exclusive
+  (`O_CREAT | O_EXCL`, `0600`) dans `<supervision.ops_log.path>.rotation-urgence`,
+  objet `{ "demande": "dossier", "selection", "seq", "ticket", "destination",
+  "request_id", "pid", "at" }` et LF, `request_id` de 32 chiffres
+  hexadécimaux tirés de 16 octets ; fichier occupé : attente dans le délai,
+  puis code 4 ; `SIGURG` ; échec du signal : demande supprimée si elle porte
+  encore son `request_id`, code 4 ; réponse = première ligne
+  `dossier_exported` ou `dossier_export_refused` de ce `request_id` écrite
+  après la taille notée (journal tourné compris).
+- Sortie : une ligne `{ "pid", "configuration", "event", "data" }` ; refus :
+  en plus, sur la sortie d'erreur, le message de la table d'EX-15.12 précédé
+  de « noortrace-ctl dossier exporter : » ; codes 0 (`dossier_exported`), 1
+  (`dossier_export_refused`), 2 (usage, configuration illisible, démon
+  ambigu), 4 (aucun démon, fichier occupé, signal impossible, pas de réponse
+  dans le délai).
+
+### Demandes du démon (SIGURG)
+
+Le démon lit puis supprime le fichier de demande et exécute l'action que
+nomme `demande`, elle seule : `rotation-urgence` (EX-11.16), `ancrage`
+(`commande` `etat`, `metriques` ou `retirer-qualification`, `id`),
+`dossier` (export). Refus sans rien exécuter, dans cet ordre : objet JSON
+illisible (`ctl_request_refused`, `demande_illisible`) ; `demande` inconnue
+(`ctl_request_refused`, `demande_inconnue`, valeur tronquée à 64
+caractères) ; demande `dossier` hors de son domaine (`dossier_export_refused`,
+`demande_invalide`, `member` = premier membre fautif dans l'ordre du pas 3,
+puis les autres par octets croissants) ; demande périmée, quelle que soit
+`demande` (`at` plus de 600 s avant la lecture, ou avant le démarrage ; pour
+`rotation-urgence` et `ancrage`, `at` absent ou hors forme la rend périmée) :
+`dossier_export_refused` ou `ctl_request_refused`, `demande_perimee`.
+`SIGURG` sans fichier : `key_rotation_emergency_ignored` (`sans_demande`).
+Au démarrage, avant tout signal, un fichier resté en place est supprimé sans
+être exécuté (`ctl_request_refused`, `demande_perimee`). Ce changement
+précède la livraison de la commande : sans lui, une demande `dossier`
+ferait tourner la clé (`cli.mjs` l'interprète aujourd'hui comme
+`rotation-urgence`).
+
+### Export (démon)
+
+- Événement (EX-15.11) : `seq` ; `dernier` (plus grand `seq` d'une période
+  close) ; `ticket` (premier `executee` dont `execution.tool` n'est pas
+  `noortrace.approbation.decision` et dont `approval.ticket` est le ticket et
+  `approval.decision` `approuve`, jamais une continuation MRTR) ; refus
+  `evenement_inconnu`, `aucune_periode_close`, `ticket_inconnu`,
+  `ticket_non_decide`, `ticket_sans_appel_execute` (avec la `decision`
+  scellée) ; période non close : `periode_non_close` ; par ticket,
+  `approbations.json` écrit avec l'`approver_set` de la décision (EX-12.23),
+  sinon `approbations_introuvables`.
+- Destination (EX-15.12) : répertoire des exports `exports_dir`, défaut
+  `/var/lib/noortrace-exports`, lu au démarrage ; refus dans l'ordre de la
+  table : `bail_non_detenu`, `exports_indisponible` (en production :
+  propriétaire, `mode & 0007`, `mode & 0020`, bit setgid ; détail `droits`),
+  `destination_hors_exports` (lexical, puis chemin réel du parent),
+  `parent_absent`, `destination_existante`, `destination_non_vide`, raisons
+  de l'événement, `periode_non_close`, `approbations_introuvables`,
+  `lecture_impossible`, `ecriture_impossible` ; `demande_invalide` et
+  `demande_perimee` avant tous.
+- Écriture (EX-15.13) : `dossier.json`, les parties présentes et, avec le
+  composant d'ancrage, `entetes-bitcoin.json`, rien d'autre ; répertoire
+  temporaire `.noortrace-partiel-<request_id>` en `0700` dans le parent,
+  groupe vérifié en production (détail `groupe`), `fsync` de chaque fichier,
+  passage en `0750`, chemin réel du parent revérifié, `rename(2)`, `fsync`
+  du parent, puis `dossier_exported` ; fichiers en `0640` ; aucune
+  réécriture d'un dossier écrit ; restes `.noortrace-partiel-<32 hex>`
+  supprimés à l'acquisition du bail (`dossier_export_partial_removed`) ;
+  `dossier_reexport_due` à chaque ancre qui rend à réexporter un dossier
+  exporté depuis le démarrage (`reexportsDus`) ; export hors des fils
+  d'entrée-sortie des frontaux, admis en mode dégradé.
+- Journal d'exploitation (EX-15.14) : `dossier_exported` (`component`
+  `ancrage` ou `noyau`, `seq`, `request_id`, `data` : `selection`, `ticket`,
+  `seq`, `hash`, `period_start`, `destination`, `generated_at`,
+  `dossier_sha256`, `parts_present`, `files`, `bitcoin_headers`,
+  `checkpoint_rank`, `checkpoint_tree_size`, `defects`) ;
+  `dossier_export_refused` (`data` : `raison`, `selection`, `seq`, `ticket`,
+  `destination`, `exports_dir`, `period_start`, `decision`, `member`, `at`,
+  `detail`) ; `ctl_request_refused` (`raison`, `demande`, `at`) ; ces trois
+  lignes écrites quel que soit `supervision.ops_log.level`.
+
+### Signatures internes
+
+Module nouveau `src/demandes-demon.mjs` (lecture et refus des demandes) et
+`src/export-dossier.mjs` (export), appelés par le traitement de `SIGURG` de
+`cli.mjs` :
+
+```js
+import { lireDemande, DEMANDES_CONNUES } from "./demandes-demon.mjs";
+// lireDemande(octets, { maintenant, demarrage }) → { action: "rotation-urgence" | "ancrage" | "dossier", demande }
+//                                                 | { refus: { event, data } }   (EX-15.10, pas 5, refus 1 à 4)
+import { exporterDemande } from "./export-dossier.mjs";
+// exporterDemande(coeur, demande) → { event: "dossier_exported" | "dossier_export_refused", component, seq, request_id, data }
+//   (EX-15.11 à EX-15.14) ; la ligne est écrite par l'appelant, quel que soit le niveau du journal
+```
+
+`Coeur.exporterDossier(seq, destination)` garde sa signature pour les essais
+existants. `exporterDemande` choisit l'événement, applique les refus dans
+leur ordre et l'écriture atomique, et délègue l'assemblage au branchement
+d'ancrage quand le composant est démarré (`BranchementAncrage.exporterDossier`
+de `src/ancrage-demon.mjs`, qui écrit alors dans le répertoire temporaire
+fourni, n'écrit plus lui-même de ligne `dossier_exported`, et garde pour
+`reexportsDus` un résumé qui nomme la destination, jamais le répertoire
+temporaire). `paquets/ancrage/src/exportateur.mjs` ne change que si
+l'écriture dans le répertoire temporaire l'exige.
+
+### Essais
+
+`test/enregistreur-export-*.test.js` : TE-18, TA-99 (mutant qui ne vérifie
+plus le chemin réel du parent : le dossier est écrit hors du volume), chaque
+refus et son message, demandes inconnue, illisible, hors domaine et périmée
+sans effet, demandes `rotation-urgence` et `ancrage` exécutées ; le dossier
+exporté d'un appel approuvé passe `noortrace-verifier` et la référence
+JavaScript (boîte noire) avec `--exiger 7`.

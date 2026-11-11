@@ -23,6 +23,7 @@
     "INTERFACES.md"
   ],
   "dependencies": {
+    "@noortrace/console": "0.1.0",
     "@noortrace/noyau": "0.1.0"
   }
 }

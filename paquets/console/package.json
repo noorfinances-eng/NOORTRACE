@@ -1,0 +1,32 @@
+{
+  "name": "@noortrace/console",
+  "version": "0.1.0",
+  "description": "Console d'approbation d'exploitation NOORTRACE (CT-3 §13, révision 0.5) : bibliothèque commune à la page et au service d'approbation, serveur de console sans cadriciel, pages statiques à intégrité. En construction (étape 6).",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "noortrace-console": "bin/noortrace-console"
+  },
+  "exports": {
+    ".": "./src/bibliotheque/index.mjs",
+    "./annuaire": "./src/bibliotheque/annuaire.mjs",
+    "./serveur": "./src/serveur/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "src",
+    "schemas",
+    "LISEZMOI.md",
+    "INTERFACES.md"
+  ],
+  "dependencies": {
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@noortrace/approbation": "0.1.0"
+  }
+}

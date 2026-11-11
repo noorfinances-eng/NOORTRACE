@@ -113,3 +113,150 @@ Voir `LISEZMOI.md` (configuration, fichiers sur disque, lectures).
 `noortrace-approbation --config <fichier>` écrit
 `{"pret":true,"pid","noyau","console"}` sur la sortie standard quand il
 écoute ; SIGTERM l'arrête proprement.
+
+## e) Étape 6 : canal de la console complet, annuaire persisté, notifications, configuration (CT-3 révision 0.5)
+
+État : **à faire (étape 6)**, sauf mention contraire. Cette rubrique fixe ce
+que le service sert à la console d'exploitation (`@noortrace/console`,
+`paquets/console/INTERFACES.md`) ; elle remplace, une fois livrée, la liste
+des méthodes non servies de la rubrique b) et, dans la rubrique c), la forme
+des notifications et la lecture de l'annuaire. Règles : CT-3 7.10 (EX-7.30),
+10.3 (EX-10.10 à EX-10.13), 12.7 (EX-12.12), 12.9 (EX-12.13 à EX-12.21),
+13.3 à 13.8 (EX-13.7 à EX-13.19, EX-13.37, EX-13.38), 13.19 (EX-13.39 à
+EX-13.42).
+
+### e.1 Module d'annuaire importé
+
+Les règles de l'annuaire ont une seule implémentation, celle de
+`@noortrace/console/annuaire` (rubrique 1.3 de
+`paquets/console/INTERFACES.md`) : `estIdentiteCanonique`, `annuaireVide`,
+`entreeActive`, `adresseActive`, `sessionDeLOrganisation`, `adressesConnues`,
+`annuaireDeSession`, `verifierInscription`, `appliquerOperation`,
+`defisNonExpires`, `recopierAdministrateurs`, `controleCanal`,
+`verifierAnnuaireExporte`. `src/annuaire.mjs` n'en garde aucune copie : le
+prédicat `identiteCanonique`, la classe `Annuaire` et `controleCanal` de
+l'étape 4 sont retirés au profit de ces imports (le paquet dépend déjà de
+`@noortrace/console`). Le service garde l'état de l'annuaire (document
+courant, défis non expirés) et sa persistance, sans réécrire aucune règle.
+
+### e.2 Méthodes du canal de la console (EX-12.13)
+
+Sur l'écoute `console`, et sur elle seule, `POST <base>/v0/<méthode>` ;
+`session_identity` non nulle et canonique (`identite_invalide` juste après
+la forme du corps) ; méthodes du noyau refusées (`requete_invalide`) :
+
+| Méthode | Requête (`$defs`) | Réponse | Ordre des refus | État |
+|---|---|---|---|---|
+| `tickets` | `requete_tickets` (`console-service-v0`) | `reponse_tickets`, avec `contest_ms` et `contest` sur chaque ticket ; avec `related_to`, `related` (au plus 20, `refuse` ou `expire`, même `launched_by` et même `tool_announced`, scellés depuis moins de l'`expire_after_ms` du ticket `related_to`, tri par `sealed.approval.at` décroissant puis par identifiant) | point 1 d'EX-12.14 ; avec `related_to`, l'ordre de `consulter` appliqué au ticket désigné (`controleCanal(…, "consulter", …)`), puis `ticket_non_ouvert` | à faire |
+| `consulter` | `requete_consulter` (`console-approbation-v0`) | `vue_ticket` (EX-12.14, EX-12.15 : `request`, `retained_event`, `arguments_piece`, `rule`, `opening`, `effects` évalués avec `unresolved`, `deadline`, `contest`, `approver_set`, `effective_required`, `added_members`, `eligible`, `votes`, `separation` avec `requester_directory_addresses`, `digests`) | EX-12.14, points 1 à 3, puis `ticket_non_ouvert` | à faire |
+| `voter`, `recuser`, `retirer` | données des entrées de 7.4 | `reponse_voter`, `reponse_etat` | EX-12.16, EX-12.19, puis EX-9.10 et T10 | fait (étape 4) ; notification `vote_inscrit` à faire (e.4) |
+| `annuaire` | `requete_annuaire` | `annuaireDeSession` | forme, identité | à faire |
+| `preparer_inscription` | `requete_preparer_inscription` | `reponse_preparer_inscription` | EX-13.13 | à faire |
+| `inscrire` | `requete_inscrire` | `reponse_adresse` | EX-13.15, pas 1 à 13 | à faire |
+| `valider`, `revoquer` | `requete_valider`, `requete_revoquer` | `reponse_adresse` | EX-13.17 | à faire |
+| `desactiver`, `reactiver` | `requete_entree` | `reponse_entree` | EX-13.17 | à faire |
+| `lier_demandeur`, `delier_demandeur` | `requete_demandeur` | `reponse_entree` | EX-13.17 | à faire |
+| `GET /v0/etat` | — | `{ ready, set_read_at, open_tickets }` | authentifié comme le canal (EX-12.12) ; aussi sur l'écoute `etat`, sans authentification | à faire sur le canal de la console |
+
+Statut HTTP d'une erreur (étend la lecture 20 de `LISEZMOI.md`) : 400
+`requete_invalide`, `identite_invalide`, `message_invalide` ; 403
+`session_non_autorisee`, `non_administrateur`, `auto_validation`,
+`revocation_non_autorisee` ; 404 `ticket_inconnu`, `entree_inconnue`,
+`adresse_inconnue`, `nonce_inconnu`, `demandeur_inconnu` ; 409 toute autre
+raison qui refuse une entrée de ticket ou une opération de l'annuaire
+(`ticket_non_ouvert`, `ticket_clos_aux_votes`, `jeu_non_fige`,
+`signature_invalide`, `hors_jeu`, `auto_approbation`, `recuse`,
+`motif_trop_long`, `vote_identique`, `retrait_non_autorise`,
+`nonce_deja_utilise`, `inscription_expiree`, `origine_differente`,
+`organisation_differente`, `identite_differente`, `adresse_differente`,
+`identite_desactivee`, `adresse_deja_attribuee`, `etat_incompatible`,
+`demandeur_deja_lie`) ; 429 `plafond_atteint` ; 503 `non_pret`. La console
+ne s'appuie que sur `error.code`.
+
+Chaque méthode qui modifie l'annuaire, et `preparer_inscription` pour son
+défi, est persistée avec `fsync` avant sa réponse (EX-12.17) ; une opération
+refusée ne change rien et est consignée au journal du service avec sa raison
+(`operation_annuaire_refusee`). Aucune opération de l'annuaire ne touche un
+ticket (EX-12.18).
+
+### e.3 Annuaire persisté (EX-13.38, EX-7.30)
+
+- L'annuaire et ses défis non expirés sont des membres des enregistrements
+  chiffrés de l'état (`etat/journal.ndjson`, `etat/instantane.chiffre`,
+  nature `ligne` et `instantane`, EX-7.30) : `annuaire` (document
+  `annuaire-approbateurs-v0`) et `defis` (tableau de `$defs/defi`), écrits
+  en entier à chaque changement, relus à la reprise (EX-7.23).
+- Préséance au démarrage, dans l'ordre d'EX-13.38 : état persisté ; sinon
+  `console.annuaire` (document conforme et sans écart aux points 1 à 6
+  d'EX-13.19, `verifierAnnuaireExporte`) ; sinon `annuaireVide` de la
+  configuration ; `org`, `org_id`, `console_origin` égaux à la configuration,
+  sinon refus de démarrer ; `registration_ttl_ms` recopié sans opération
+  (`annuaire_ttl_recopie`) ; amorce déclarée alors qu'un annuaire est
+  persisté : `annuaire_amorce_ignoree` ; puis `recopierAdministrateurs`
+  (EX-13.37), avant de servir aucune méthode du canal, et de nouveau à
+  chaque rechargement de la configuration.
+- Identifiants d'entrée tirés au hasard (`identifiant: "aleatoire"`).
+
+### e.4 Notifications livrées par le service (13.19)
+
+- Document `$defs/notification` de `configuration-approbation-v0` (`id`
+  `ntf-` et 32 chiffres hexadécimaux tirés au hasard ; `kind` parmi
+  `ouverture`, `escalade`, `nouveau_gel`, `seuil_inatteignable`,
+  `vote_inscrit`, `operation_annuaire`, `plafond_atteint` ; destinataires et
+  `details` de la table d'EX-13.40), formé après la persistance de ce qui le
+  cause, sans aucune identité de personne ; `link` `<console_origin>/tickets/<ticket>`
+  ou `<console_origin>/inscription` (EX-13.43). Le corps est le JCS du
+  document ; la ligne de `notifications.ndjson` est ce corps, écrite avant la
+  première tentative ; rotation au-delà de 64 Mio, 8 fichiers tournés au
+  plus.
+- Livraison (EX-13.41, EX-13.42) : `POST notifications.url`,
+  `Content-Type: application/json`, `NOORTRACE-Signature:
+  sha256=<HMAC-SHA256(K, "noortrace/notification/v0\n" ‖ corps)>`, sans
+  redirection, certificat vérifié par `notifications.ca` ou le magasin du
+  système, délai `notifications.timeout_ms` ; reprises à 10 s, 60 s, 300 s et
+  1 800 s ; abandon sur tout statut hors 2xx, 408, 429 et 5xx ; file de
+  10 000 au plus, éviction `file_pleine` qui épargne `vote_inscrit` et
+  `operation_annuaire` ; jamais sur le chemin d'une réponse ni d'une
+  transition. Journal du service : `notification_livree`,
+  `notification_echec`, `notification_abandonnee`,
+  `notification_sans_destinataire`, `notification_boite_en_echec`,
+  `plafond_refus_non_notifies`.
+- Remplacé : la notification `{ ts, kind, …, link }` de l'étape 4, le lien
+  `<console_origin>/#ticket=<ticket>`, le `kind` `membres_ajoutes` (devenu
+  `nouveau_gel`) et la remise à des écouteurs en mémoire
+  (`supervision.ecouteurs`), qui ne livre rien.
+
+### e.5 Configuration (EX-10.12)
+
+- Document `configuration-approbation-v0` (copie embarquée sous `schemas/`,
+  avec `annuaire-approbateurs-v0`, `evenement-v0`, `ticket-v0`), membres
+  facultatifs à leur défaut ; règles `rpc_non_declare`, `rpc_tls`,
+  `tls_exige`, `authentification_exigee`, `jeton_exige_production`,
+  `jetons_egaux`, `escalade_non_croissante`, `webhook_http`, aux pointeurs de
+  la table ; secrets (`storage_key` brute de 32 octets prise telle quelle,
+  sinon 64 chiffres hexadécimaux ; jetons et `rpc.token` de 16 à 1 024
+  caractères ; `notifications.key` de 32 à 1 024 ; TLS en PEM) ; écoute
+  `etat` (TCP, sans TLS, `GET /v0/etat` seul, 404 `requete_invalide`
+  sinon).
+- `noortrace-approbation valider-configuration <fichier>` : rapport
+  `$defs/rapport_validation`, erreurs `{ code, pointer }` triées par
+  pointeur puis par code, `json`, `schema`, codes de retour 0, 1, 2 ; c'est
+  la commande que TA-51 éprouve (`rpc` nul ou `developpement` refusé en
+  production, `client` et `partenaire` acceptés).
+- Au démarrage, un document refusé arrête le service avant toute écoute
+  (code 1, mêmes erreurs sur la sortie d'erreur) ; `--config <fichier>`
+  reste la seule option du service.
+- La sonde `noortrace-approbation sonde --url <url>` des fichiers Compose
+  n'est pas fixée par CT-3 (15.2, « ouvert ») : elle n'est pas écrite tant
+  que le texte ne la fixe pas.
+
+### e.6 Essais
+
+Les quatre suites `test/approbation-service-*.test.js` restent vertes
+(l'appel de `controleCanal` sur une instance d'`Annuaire` y devient l'appel
+sur le document) ; nouvelles suites `test/approbation-service-*.test.js` :
+méthodes du canal et ordre des refus (vecteurs `annuaire/` côté service,
+traces rejouées sur le service réel), persistance et reprise après arrêt
+brutal (annuaire et défis relus égaux), préséance d'EX-13.38, configuration
+et `valider-configuration`, notifications reçues par un récepteur tiers
+(TI-21, TA-102), `tickets` enrichi, TE-19, TI-14, TA-51, TA-77.

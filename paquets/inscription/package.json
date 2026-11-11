@@ -1,0 +1,16 @@
+{
+  "name": "@noortrace/inscription",
+  "version": "0.1.0",
+  "description": "Inscription des clients NOORTRACE par l'exploitant (CT-4 §7.13, §7.14, révision 0.6) : application web d'exploitant, agent séparé et privilégié, paquet client. En construction (étape 6).",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@noortrace/ancrage": "0.1.0",
+    "@noortrace/approbation": "0.1.0",
+    "@noortrace/noyau": "0.1.0"
+  }
+}
