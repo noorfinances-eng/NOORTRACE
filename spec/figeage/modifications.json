@@ -5108,6 +5108,24 @@
           "apres": "a0af6bf090d9966b6e031af8fd077d749ce634c89b5b14bd481244a7bee54639"
         }
       ]
+    },
+    {
+      "id": "MC-26",
+      "date": "2026-11-11",
+      "etape": 5,
+      "motif": "Essai nouveau de test/enregistreur-modele-icap.test.js (403 ICAP perdu) : empreinte du fichier dans couverture.json et nombre d'essais du recomptage tiers (2343) mis à jour ; aucun texte ni aucune entrée du catalogue ne change.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "ea344c9a3b898bc0871af59bf1ae16afe1750f2f2ee0dcca87fe7b54e12d1a0a",
+          "apres": "48a9241c06941a8126e1f72f1997fec7f5b7c2844609cbcc66aa263c2ccf1437"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "5406cf01865c22af596885874ebc21b3f622c703f32d6b9e60328bad654a28e7",
+          "apres": "5cc3c01aa41b2cc72f225af07c3c788aa4e4d307f884acd2cd29bf91a3211ee8"
+        }
+      ]
     }
   ]
 }

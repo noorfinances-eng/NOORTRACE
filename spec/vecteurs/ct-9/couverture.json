@@ -308,7 +308,7 @@
       },
       {
         "file": "test/enregistreur-modele-icap.test.js",
-        "sha256": "f29dae0534a660beccfea0acb5c6f44985b121b5638fffc888811356d7902d66"
+        "sha256": "2bf8e747ec3b21573cb33c45ba401b841d9def87f274ed77ef6bc5288576631d"
       },
       {
         "file": "test/enregistreur-modele-miroir.test.js",
