@@ -39,6 +39,8 @@ export const SERVICE_RESPMOD = "/noortrace/respmod";
 export const ISTAG = `"noortrace-${VERSION_ENREGISTREUR}"`;
 const MOTIF_ECHANGE = /^([0-9a-f]{32})\.([0-9a-f]{32})$/;
 const TETE_MAX = 65536;
+/** Délai au-delà duquel une connexion fermée par le serveur est détruite même si le client n'a pas fermé son côté. */
+const FERMETURE_MAX_MS = 200;
 const RAISONS_ICAP = { 200: "OK", 100: "Continue", 400: "Bad Request", 403: "Forbidden", 404: "ICAP Service not found", 405: "Method not allowed for service", 501: "Method not implemented", 505: "ICAP Version not supported" };
 
 /** Erreur de lecture d'un message ICAP : réponse `400`, connexion fermée. */
@@ -296,13 +298,25 @@ export class ServeurIcap {
   }
 
   /**
-   * Ferme une connexion annoncée `Connection: close` : la réponse partie, la
-   * prise est détruite, sans attendre que le pair ferme son côté. Un client
-   * (refusé ou fautif) qui garderait sa moitié ouverte retiendrait sinon la
-   * prise indéfiniment, et l'arrêt du démon jusqu'à la fin du délai de drain.
+   * Ferme une connexion annoncée `Connection: close`. La réponse partie, le
+   * côté écriture est fermé et les octets que le client envoie encore sont lus
+   * et jetés : détruire la prise sous des octets non lus fait émettre un RST
+   * par le système, qui peut faire perdre au client la réponse déjà envoyée
+   * (un 403 de refus perdu, constaté sur TA-12). La prise est détruite quand
+   * le client ferme son côté, et au plus tard après `FERMETURE_MAX_MS` : un
+   * client qui garderait sa moitié ouverte ne retient ni la prise ni l'arrêt
+   * du démon au-delà de ce délai.
    */
   _fermer(socket) {
-    socket.end(() => socket.destroy());
+    const fin = setTimeout(() => socket.destroy(), FERMETURE_MAX_MS);
+    fin.unref();
+    socket.on("end", () => {
+      clearTimeout(fin);
+      socket.destroy();
+    });
+    socket.on("close", () => clearTimeout(fin));
+    socket.end();
+    socket.resume();
   }
 
   async _connexion(socket, chiffre) {

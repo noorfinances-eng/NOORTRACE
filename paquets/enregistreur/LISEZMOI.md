@@ -2477,10 +2477,11 @@ Lectures du lot « signataires » (classes A, B et C, §11) :
      d'`allowed_sources` ou sans certificat admis n'obtient aucune
      transaction ; EX-15.4 : un démarrage refusé s'arrête avec le code 2).
      Lecture : la réponse `403` (ou d'erreur) annoncée `Connection: close`
-     partie, la prise est détruite sans attendre que le pair ferme son côté
-     (Squid 6.13 gardait le sien : la prise retenait l'arrêt du démon jusqu'au
-     délai de drain, et un client refusé pouvait garder des prises ouvertes ;
-     défaut révélé par TI-19). Un démarrage refusé (par exemple une adresse
+     partie, la prise est détruite sans attendre au-delà de 200 ms que le pair
+     ferme son côté (Squid 6.13 gardait le sien : la prise retenait l'arrêt du
+     démon jusqu'au délai de drain, et un client refusé pouvait garder des
+     prises ouvertes ; défaut révélé par TI-19 ; délai de 200 ms : lecture
+     216). Un démarrage refusé (par exemple une adresse
      d'écoute déjà prise, `EADDRINUSE`) ferme aussi les fils de rédaction,
      sans quoi le processus restait vivant après `demarrage_refuse`.
 
@@ -2751,6 +2752,17 @@ produite par la sortie du mode dégradé).
      soient non fournies ou que seules les pièces présentes soient fournies
      (`--pieces`) ; une pièce fausse fournie sous un `sha256` manquant fait
      échouer E-6 (témoin).
+216. **Fin d'une connexion ICAP refusée, suite (EX-5.3).** Détruire la prise
+     aussitôt la réponse `403` écrite faisait émettre un RST par le système
+     quand le client envoyait encore sa transaction, et le client pouvait
+     perdre le `403` avant de l'avoir lu (TA-12 en échec une fois sur
+     l'intégration continue ; 12 réponses perdues sur 200 dans l'essai de
+     `test/enregistreur-modele-icap.test.js` qui le reproduit). Lecture : le
+     côté écriture est fermé, les octets que le client envoie encore sont lus
+     et jetés, et la prise est détruite quand le client ferme son côté, au
+     plus tard 200 ms après (`FERMETURE_MAX_MS`, `modele/icap.mjs`) ; aucun
+     `403` perdu sur 200 essais, et un client qui garde sa moitié ouverte ne
+     retient ni la prise ni l'arrêt du serveur (TI-19).
 
 ## À corriger dans CT-2
 

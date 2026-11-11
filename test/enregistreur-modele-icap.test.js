@@ -130,6 +130,29 @@ describe("enregistreur, frontal modèle : mode ICAP (EX-5.3 à EX-5.5, EX-14.12)
       expect(derniere("auth_failed").data).to.include({ transport: "icap", reason: "client_icap_refuse" });
     });
 
+    it("client refusé qui envoie encore sa transaction pendant le refus : le 403 lui parvient à chaque connexion (200 essais), la prise étant fermée après sa fin d'envoi et non détruite sous ses octets (TA-12)", async function () {
+      const s = await ouvrir((c) => {
+        c.model.icap.allowed_sources = ["192.0.2.0/24"];
+      });
+      const { port } = ad(s);
+      let perdus = 0;
+      for (let i = 0; i < 200; i++) {
+        const recu = await new Promise((res) => {
+          const c = net.connect(port, "127.0.0.1");
+          let b = "";
+          c.on("data", (d) => (b += d));
+          c.on("error", () => res(b));
+          c.on("close", () => res(b));
+          c.on("connect", () => {
+            for (let k = 0; k < 20; k++) setTimeout(() => { if (!c.destroyed && !c.writableEnded) c.write(`REQMOD icap://127.0.0.1/noortrace/reqmod ICAP/1.0\r\n${"x".repeat(4096)}`); }, k);
+            setTimeout(() => { if (!c.destroyed && !c.writableEnded) c.end(); }, 25);
+          });
+        });
+        if (!recu.startsWith("ICAP/1.0 403 Forbidden")) perdus++;
+      }
+      expect(perdus, "réponses 403 perdues").to.equal(0);
+    });
+
     it("ICAPS avec certificat client (client_ca) : certificat de l'autorité admis ; sans certificat ou d'une autre autorité : poignée de main refusée", async function () {
       if (!opensslDisponible()) this.skip();
       const certs = genererCertificats(path.join(dir, "certs"));
