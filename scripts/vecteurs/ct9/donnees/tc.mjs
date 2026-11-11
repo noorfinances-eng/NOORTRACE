@@ -181,7 +181,7 @@ export const TC_REPONSES = [
   {
     "key": "CT-7 §1",
     "delegated": "Un test par menace.",
-    "response": "§10 : un TA- par menace, TA-1 à TA-98, même numéro que la menace (EX-10.1) ; cinq scénarios TA-99 à TA-103 (§10.5)."
+    "response": "§10 : un TA- par menace, TA-1 à TA-102, même numéro que la menace (EX-10.1) ; cinq scénarios TA-103 à TA-107 (§10.5)."
   },
   {
     "key": "CT-7 §1",
@@ -216,7 +216,7 @@ export const TC_REPONSES = [
   {
     "key": "CT-7 §3.4",
     "delegated": "Les tests de MN-22 et MN-9 valent pour l'agent.",
-    "response": "TA-22 et TA-9 (phase 2, étapes 8 et 4) ; scénario TA-99 (§10.5)."
+    "response": "TA-22 et TA-9 (phase 2, étapes 8 et 4) ; scénario TA-103 (§10.5)."
   },
   {
     "key": "CT-7 §3.4",

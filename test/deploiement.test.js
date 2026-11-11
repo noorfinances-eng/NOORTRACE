@@ -137,7 +137,7 @@ describe("CT-8 §7.3 : configuration de l'installation rapide", function () {
     comparer(exemple, config, "");
     const s = section("### 7.3 ", "## 8. ");
     const membres = [...s.matchAll(/^\| (`[^|]+) \|/gm)].flatMap((m) => [...m[1].matchAll(/`([^`]+)`/g)].map((x) => x[1]));
-    expect(membres.length).to.equal(18);
+    expect(membres.length).to.equal(19);
     const prefixe = (m, d) => d === m || d.startsWith(m + ".");
     for (const d of diffs) expect(membres.some((m) => prefixe(m, d)), `membre changé sans ligne : ${d}`).to.equal(true);
     const valeur = (o, m) => m.split(".").reduce((x, k) => (x === undefined ? undefined : x[k]), o);

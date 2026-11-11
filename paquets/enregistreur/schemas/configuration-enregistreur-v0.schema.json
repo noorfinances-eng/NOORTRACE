@@ -1174,6 +1174,13 @@
       "maximum": 3600,
       "description": "Révision 0.4 de CT-2 (facultatif, défaut 60) : cadence des points de contrôle de CT-1 §10.5, diviseur de 3600 (CT-2 EX-12.24, règle hors schéma vérifiée au démarrage)."
     },
+    "exports_dir": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 4096,
+      "pattern": "^(/(?!\\.\\.?(/|$))[^/\\u0000]{1,255})+$",
+      "description": "Révision 0.8 de CT-2 (facultatif, défaut /var/lib/noortrace-exports) : répertoire des exports de noortrace-ctl dossier exporter (CT-2 EX-15.12), chemin absolu normalisé, sans composant . ni .., sans barre oblique doublée ni finale, chaque composant de 1 à 255 caractères. Ni storage.root, ni un répertoire qui le contient ou qu'il contient (règle hors schéma, CT-2 EX-15.4 pas 3) ; configuration d'exploitation, lue au démarrage (CT-2 EX-15.2)."
+    },
     "lease": {
       "type": "object",
       "additionalProperties": false,

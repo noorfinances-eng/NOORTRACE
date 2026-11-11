@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "capacite-ajoutee.yaml",
-    "sha256": "5f3346a9df723cbf8321356d73091b16d438a3c5b20eed389d5fa7673a0e152d",
+    "sha256": "ff29bce3fa8087c9e2b54456a679f8785442430c4427c3afb4c1145bb314032f",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

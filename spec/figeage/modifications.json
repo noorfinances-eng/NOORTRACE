@@ -5126,6 +5126,1142 @@
           "apres": "5cc3c01aa41b2cc72f225af07c3c788aa4e4d307f884acd2cd29bf91a3211ee8"
         }
       ]
+    },
+    {
+      "id": "MC-27",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-2 0.8 : commande d'export du dossier noortrace-ctl dossier exporter (EX-15.9 à EX-15.14) ; répertoire des exports, membre facultatif exports_dir ajouté au schéma configuration-enregistreur-v0 (ajout compatible) et contrôlé à la validation ; jeton du noyau présenté sur la prise du service d'approbation (EX-18.8) et désigné par l'exemple de 15.3, dont l'ensemble de politique passe de 6533 à 6590 octets (policy_sha256 0xc5da…030c, valeurs de 10.6) ; copie de l'exemple et valeurs de 10.6 du vérificateur indépendant de ct-2 alignées.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-2-enregistreur.md",
+          "avant": "0c7e0747d726238abb12fa4181a278fba970222b62f6f71fc9cf10913dc3bb99",
+          "apres": "c6ca491f8e81d688dc857de91b458cb2969cdb07164e42c8219912b279ec435d"
+        },
+        {
+          "chemin": "spec/schemas/configuration-enregistreur-v0.schema.json",
+          "avant": "8fddb3a47dd967ea4d612d80570d5d538734a92f6f57b0ec60ef9d03dcdbba0f",
+          "apres": "11094657cba10ff2df5fb3e8055f4c556457dcfe3a054d3672067984f6a7e8ad"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/verificateur-independant/README.md",
+          "avant": "b66599eef8a5461f2224a4b3826779a77d25e986eabbebdc3df0b0ab121cbcf8",
+          "apres": "af17d4768c6ab56c08a7006ec737f45411a9be047479d41d5cb0a056487ca69c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/verificateur-independant/specification_test.go",
+          "avant": "28dbd7b3288cd63ee8aa683cb6a9ae373ef475b8b172ef8798a434c79d5c519a",
+          "apres": "f245d8aa115726d4ed4bec4ae9cd5eaa89e62aed469dd5d085e6b15da7de68be"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/verificateur-independant/testdata/spec/configuration-exemple.json",
+          "avant": "4a7fd2bba28fa3586855a71aba82ec92e7f76caf721ba3642c4566227a11d675",
+          "apres": "e7d1b8b7491147e9ca123213068e4a87bcb944661ae37cfe427b823a243e3c17"
+        }
+      ]
+    },
+    {
+      "id": "MC-28",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-3 0.5 : notifications livrées par le service à un webhook signé, liste des tickets enrichie, documents de configuration du service et du serveur de console (schémas configuration-approbation-v0 et configuration-console-v0, nouveaux), systèmes d'identité, sessions, adresses, santé et sonde du serveur de console, chiffrement de l'état et persistance de l'annuaire (EX-7.30, EX-10.12, EX-10.13, EX-12.21, EX-13.38 à EX-13.49) ; extension compatible de console-service-v0.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-3-approbations.md",
+          "avant": "90f1bb427f93847a11993c7ded36cec5ce91eb74eaa32f1666e71814d64780cd",
+          "apres": "c7ebfee8607c63a908d4fc04c3a1d46cc0baa3a9562c1345b29ce99f5b39e014"
+        },
+        {
+          "chemin": "spec/schemas/configuration-approbation-v0.schema.json",
+          "avant": null,
+          "apres": "45b260c76d483ff35e7ba976de90d47bdf331dc22e184a2a69aec72513e3d2c6"
+        },
+        {
+          "chemin": "spec/schemas/configuration-console-v0.schema.json",
+          "avant": null,
+          "apres": "2a7d5ee9a48aaa235e617e0ffbea744a32b564d327301406e144b10bd97d67c8"
+        },
+        {
+          "chemin": "spec/schemas/console-service-v0.schema.json",
+          "avant": "57fc6c9fcea81652411e1c09f762e66782924f34c4df75eeb4a4d84484dd5200",
+          "apres": "c6198a88fbdaa05847612c6486c1a0baab097a648d4b8b6ef1eabe7b1fd835e0"
+        }
+      ]
+    },
+    {
+      "id": "MC-29",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-4 0.6 : paquet client remis par l'exploitant au client (7.13, schéma paquet-client-v0, nouveau) et application d'exploitant (7.14), EX-7.18 à EX-7.28 ; les deux exemples de 7.13 sont annotés et validés contre paquet-client-v0.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-4-registre.md",
+          "avant": "8f74f144e4275b494c3fbe02b4f15d8536c62a65526b23e2e05728965b9b14a2",
+          "apres": "afbd007d1dfe4823eed8a47273b140296e7b551e2f8af7fa5607fdb6e392dd9f"
+        },
+        {
+          "chemin": "spec/schemas/paquet-client-v0.schema.json",
+          "avant": null,
+          "apres": "320c576b28f72f614c18a6463d32053fc518528b0745b59e1ceea1336ea53f99"
+        }
+      ]
+    },
+    {
+      "id": "MC-30",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-6 0.6 : page de vérification qui exécute dans le navigateur le vérificateur compilé en WebAssembly (section 18, EX-18.1 à EX-18.13), sans règle existante modifiée ni schéma changé ; l'export du dossier reste une fonction de l'enregistreur.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-6-verificateur.md",
+          "avant": "642273717b560bcfad36747dcfe50d910772e08dbe57ae9468446aa303fe3617",
+          "apres": "6d2d7f4be08df79600b09aecef9ab3115d8c85febdeeed198c71e09bbd24284a"
+        }
+      ]
+    },
+    {
+      "id": "MC-31",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-7 0.4 : inventaire des clés et des secrets complété (CLE-30 à CLE-36, CLE-23 et CLE-25 réécrites), menaces des surfaces nouvelles MN-99 à MN-102 avec RA-83 à RA-86 et l'exigence EX-3.16, réponses de MN-43 et MN-47 complétées, relecture des textes T-2 et T-8 du 2026-11-11 sans statut changé ; vecteurs ct-7 régénérés ; numéros de ligne de la table 0.2 recalculés.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "71d3c2502e72c478ea20be533bc4d94a27749a7fe5eb1bd1d7b06136e92cb274",
+          "apres": "3edcb055945e0d56cda19bbbf14b4f49040acce049d65c8018a475624abddc31"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/INDEX.md",
+          "avant": "3fe50b1eb18e3dbc75883b76340386b585b93ec2d091858c98d869c2e05a8b9e",
+          "apres": "12c1e1901d691d5b4c588f1dc2de9cc9bf92ad3f1e06a713a5fc7ae89e8950ea"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/acceptation-attestation/consigne.md",
+          "avant": "38d5d52f78b95e3eff614ab1c4eceb9a7802d106ddd5fb8f9337e6c981b8016a",
+          "apres": "57774c1ab38f09c106f8a3899ee46fddedbb86deff6df6fe8722b8af028df6fe"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/acceptation-conformite/consigne.md",
+          "avant": "85e57d4a214bbf25652aa18470617ac5e0b680524ea879a54a5fe26e2e409f4e",
+          "apres": "251cce86aa96b88dd5d1757cc977ec310ffd07ec6201d00de92b58400bb4ffbb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/acceptation-securite/consigne.md",
+          "avant": "c09b089bfec2fa3b3ed966c159fb7b22888490c0ab26edf6418e681f73863a7f",
+          "apres": "97c407f3e2fa9768d67eb10ca54f9ce5e7e2182ba08533c300f5e3e120e1cdd5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice-conformite.json",
+          "avant": "b062340d0ba0dc28925227ad8479e12e924da7203de6f596fbf63d849d0a00f7",
+          "apres": "0572d26d0e00630b14634f40937e95c4fd408a511e2c691228e247203db1a0a8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/clause-orpheline.json",
+          "avant": "f1d753c066d3e30b8cc4cd87096ca8ae19764510d07bb55f671c9baacdacbca3",
+          "apres": "5036adfd1c2c86ac0a2df277e66d3c9a053b69fd734e093f4e467fff5e81f0fe"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/couvert-avec-contribution.json",
+          "avant": "7cdf32e974ee159b8939909f2572e45d85416735526fa728ea322456d0259525",
+          "apres": "83e36258029e146a38b1ce8b1a6ec896a54841d983d11e817b5ee3d95dba42ba"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/fait-hors-annexe.json",
+          "avant": "7e6a4bac3dc8033415b95cab7e0c4b87fbfb6db848851d7e9abbdb23db53a2c0",
+          "apres": "2d9a25957df1f8db5f567f647d6ac4ad44fc6afb785675f61f3fb3d046c7ba03"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/ia-date-passee.json",
+          "avant": "fe0a01e9541b3dbab0e9a193eb29f59b72ef1e240e4dd35fc52530d9bd152aff",
+          "apres": "240e848a26b721b56f932ab489d1df2ecc48d8218b2f78f169ee2fdc86e2388d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/ia-sans-date.json",
+          "avant": "7d0e5cc48ecf1468ef1d51986c128d87b9b9c560fa9d4b3fb55d89129941c95d",
+          "apres": "74d8d8c65566d65d6d70146c9cb6477bcd92f999dcb18a471bb9ea3c18bb2798"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/lacune-ligne-inconnue.json",
+          "avant": "eb23d3cb698106b4932d50fd155bec9d4b401558cfa5624a04862e59acaa8a9a",
+          "apres": "a1e915dcb2d4c9ee734e38bb4eb81615096e3961d1255dd5575215810970895b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/lignes-permutees.json",
+          "avant": "af655b43458a54a15b8e26fc73a4b8a8495760553d39438771369c848d9e2fbd",
+          "apres": "c766d70e0715403b93a1c152f1feae9fc2663218f08970c8267fb904c59e8551"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/mot-interdit.json",
+          "avant": "0c5a9b81eb44c5678c253cb54eb1129ebc96cf1e2577359ad26b4836dd8b1653",
+          "apres": "9084d69a67826f588b0cd9d69e61e8ee23330ddf2d48b340969cea984abc867a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/renvoi-inexistant.json",
+          "avant": "63516c2ee7b2fcd73f522d9646f749d4ec70533b7491bdcb95d3313992a0b4ce",
+          "apres": "5a669cfbe13a4abbf080df1ca5a0267e0813f85a5459f854a8d22dcda1de808c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/section-inexistante.json",
+          "avant": "5498ab5060a0f6a13632ce601ebec635e5bab55aaba07add7673ad7638b8e8af",
+          "apres": "26507a61a3b6262a7c0229ad6a3733542d2d438983d3b754c36997e449d5192d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/statut-force.json",
+          "avant": "df4e67c7bb47b0eba8030c09acd471fd08b8b4f890a235826382d77196a35072",
+          "apres": "5286080c183d25eaca7f549a0584a759cc466371e3802c5312913544fbfbeb97"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/matrice/invalides/texte-inconnu.json",
+          "avant": "1a9141cf7fddec135931333de7ef53e334653af93722d397490f9b8b881f5317",
+          "apres": "5c65ce941ee12483f2dcf1ff99ca75b5289d71266a16e6dc0c86fded495a89ac"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/menaces.json",
+          "avant": "0b0b1997e16b09173363d85093f069e5e171c28febc342944f07142e1159e85e",
+          "apres": "528fe2f96a5a2705eccfc7dd9300a73583cd2350109acd68c2a8132e291d365a"
+        }
+      ]
+    },
+    {
+      "id": "MC-32",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-8 0.4 : alignement sur CT-2 0.8, CT-3 0.5, CT-4 0.6 et CT-6 0.6 (commande d'export et volume des exports, configurations du service et du serveur de console, fichiers Compose et description des images, règles d'alerte des exports et des notifications, propositions PD-17 à PD-19, PD-18 adoptée par l'exemple de CT-2 15.3, ligne du jeton du noyau dans la table de 7.3) ; famille conteneurs régénérée depuis les fichiers de référence ; valeurs du mode observation, journal d'exemple, procès-verbaux et paquet réviseur recalculés sur la nouvelle empreinte de l'ensemble de politique ; sorties des confrontations régénérées ; numéros de ligne de la table 0.2 recalculés.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "5cc0ee937b426c1b8a001d0ff1cb42061644adf575ce36e2c4739c7257e0b915",
+          "apres": "31499317e9c0e62dddfff461a2bd561c9e4c234477edc2cce9229a2ee3406d4b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/INDEX.md",
+          "avant": "29c74e16fe202adfad8a1e9fb5ef6d664328db295fda61a6d4ba23a118f642d2",
+          "apres": "5e6969f6ebb2c1df36b5e439b3749bb0ebd6e992861b4484ec31c46d61941d85"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/acceptation-observation/evenement-seq-3.json",
+          "avant": "2c99b5b17e656210e20786cd85beac704de944b18c95e80ca14de4fa0731d98c",
+          "apres": "6e23fdd7aa6d17d5aa9d56dba9af920b0bdb77a4351da16f0dda27c55f87ac12"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/confrontation/exploitation/sorties/sha256sum.txt",
+          "avant": "039639a2151652f7c84fba3f3d29aa01b252ff12941420f85b725ef596b6b5c3",
+          "apres": "2ba2b0903d0457cb56d7c346e7d8f49ec8c63fa302883bd68902fa3edfb32f04"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/confrontation/paquets/sorties/gnutar.txt",
+          "avant": "72f52aa3492168081578a448c9ab10d29862c1691be3a93d589bb702674012eb",
+          "apres": "7d56084d327d7a34639245cbe9d8e42e8cb33006c0adf3c674daba6a0d277d36"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/confrontation/paquets/sorties/tarfile.txt",
+          "avant": "954f88e89763cc8487ea9fac22f92ba634dd72b1db325d8b904afa2e9a81c781",
+          "apres": "ef8870acdb17711d1e64daade7f2a70a8a2d2bb386d93dcb28bb6c06dafdc722"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/capacite-ajoutee.attendu.json",
+          "avant": "afe51020367650fecfa2c093792b79d1882f262cb3d45f50554628c80f7a9d3d",
+          "apres": "9480e39152f1dce8ddc636684dbb34b32f8a8bf205c2851b21b5624e67d3d2b6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/capacite-ajoutee.yaml",
+          "avant": "5f3346a9df723cbf8321356d73091b16d438a3c5b20eed389d5fa7673a0e152d",
+          "apres": "ff29bce3fa8087c9e2b54456a679f8785442430c4427c3afb4c1145bb314032f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/configuration-inscriptible.attendu.json",
+          "avant": "54fc5b595baf079ec2a3904b1b618e364c7ce7d1e272d1b7890b1888335c0a2b",
+          "apres": "95137dd1b19776f7431fc6faea5199d15b247fea6f3bf75be779b89206ab0703"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/configuration-inscriptible.yaml",
+          "avant": "3c10bb54d5cce258fa3d62b2624c8c04e07e622fcbb528d58008b36f7c99295a",
+          "apres": "222d063d58e60d9fc7c52a7f7ac6c01d52352501ae9c23edf835e4a68ed2d580"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/confinement-retire.attendu.json",
+          "avant": "8325543205a5f0182224af453df85a6328abb105fe905c8c4f17a23628d31ff7",
+          "apres": "cfa27f5b35be30a5ac8f6364c7557002ef524952a6e0cd98fad50ae5fdc0cf11"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/confinement-retire.yaml",
+          "avant": "94aae9a84d8144f0417aa52053894f71e3574b41d0168a21263e65e7ae10aab2",
+          "apres": "7fc57daa16b5a0b25e4311758df8323d440f023692281241552d6ee7173e7f8c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/construction-presente.attendu.json",
+          "avant": "d734cfb78c23e3dae72e8f6a16f1cdf00058982dfc51ea72675f43e248c9127b",
+          "apres": "ff13290afc9ca1c72e9377d101c2d94f032ead2c6b7b4d3cacbf411e8a983f74"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/construction-presente.yaml",
+          "avant": "9039274d116f9b8231a75dbad44bb33ec1cdc64a936c9238ef6c5d5480351881",
+          "apres": "2660adc0d377041d025d167d46e77746145e4736112fbe5b405f6a585ec800ce"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/dependance-sans-condition.attendu.json",
+          "avant": "63d9d316816c86fdebf01bc014fc9c5fdf1f0ee939f8559dbf154d46c1cb0e72",
+          "apres": "6e4e59ac230b801c5fa3d731147ccb8e4db9228de0a361b6b1a7bbfb16801004"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/dependance-sans-condition.yaml",
+          "avant": "9c072b4e0565e91b0d3d2161c560e8deb03d44efc0c166f8ad50e3f086da71f1",
+          "apres": "bf49e3c63184522ea265a3b1e145a050743d1f3b20f6869215948b88e842d1b7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/extension-de-service.attendu.json",
+          "avant": "fcba5e87d3e6e2cef63026b42f40222af71a6279d91d724f68c43066657c5b21",
+          "apres": "45ff7a3548e3a5c1a9eed9120f1edde486ffb8e348de37d48b3342becc0d728e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/extension-de-service.yaml",
+          "avant": "a2cbb5d72346d71e5e12e2d0050ca586a652d6d71179cf4d8ecf50cbb9096b99",
+          "apres": "9129ba426097b4d8b43bd42aefa88ad1c3bf3a3106903713696bf09fa3382c84"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/groupe-absent.attendu.json",
+          "avant": "9ecb34b5c7d51b8382ff23dd7cea95a0eab5a7ffdd5e0700f23ff9fae16be6e4",
+          "apres": "760bc7d61f142d61bd6bba9a2b713c1bc6e454fcd4788cbaa38ca0fc041f6e6d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/groupe-absent.yaml",
+          "avant": "50342b5c44caa96c8e32b72b10925d5ad501e0c2696c2dcd4c974f6c382591cc",
+          "apres": "d36525cd05dc01b97c06ebd458b8a577d8fc247079b6a77c81fec7bb82c66b01"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/image-latest.attendu.json",
+          "avant": "6c84127e87503c3fc97435c0ece593456d3c0607e6f335806130b49d1fb8b1db",
+          "apres": "1c456a3dd17638ed8362503414028ffea2f8e5d75c5a2068bf45e1bf04a35af3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/image-latest.yaml",
+          "avant": "f37d56bd99c9dcd1ca6d82945d0d5eee77dfebc03666745c3054de6d7ade4e09",
+          "apres": "44e74cf4ff52e40e42a2167494cdebcc83b452f339aae2e6be33fcf2cecee2d3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/image-sans-etiquette.attendu.json",
+          "avant": "a19580f84235bd9cf8bbe1edd3828e5b5f11f3a5502864dececa757e7f745cc3",
+          "apres": "ed88d19d44f2117785250b503ec9af3fb0cdcf372e5f923104b47e1b08e1fed7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/image-sans-etiquette.yaml",
+          "avant": "2b8e433a4e6942b9d5f016ef44c674ec1264ea7dd311f135548120c158039150",
+          "apres": "4f111ba8755df0cfa2a68e51a52fc6074837c65db265d484415ec7c201427b1a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/images.json",
+          "avant": "e19e9b8354e11f9427b3b1cbc235f74d55f664fafd156db65f5a593ea2f0551e",
+          "apres": "dac740290345af6666b25e0f226690c7ad82f9982ac124bf47434d1624db1416"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/inclusion-refusee.attendu.json",
+          "avant": "fdf1caaadde67ff5ea661b79e32dd3191236d3a79808065ca1499d24a8b34416",
+          "apres": "5adb84611900f5c8feeafe7f1192ab2fe5c833b6cf7436e87e64235ffaf3d5f4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/inclusion-refusee.yaml",
+          "avant": "6209f3aeb5014e7f719e2f97eb0628da5d5f8b9248d5a17b834cd05e04bfee9f",
+          "apres": "70de69a946cdf7a40273e0fc7f349679f1f2b0a2103825b7585aad57cd7c41ee"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/montage-remontee.attendu.json",
+          "avant": "345a0b21e6c67c8d96df670eb792a99e4de6215fc7d60d10b4c81cce8a9819c5",
+          "apres": "e46db3c477abd3417788b73c9dad95319acbeaec05ea503c6eda889a80add970"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/montage-remontee.yaml",
+          "avant": "bece684cd5fa090e74546db45ba4620a0af26ee453d81be8111185bd8c3636da",
+          "apres": "7fc4b670aae68904a66105aa42e25d6262993e9f55fbe567aef14eea402e4524"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/outil-redemarre.attendu.json",
+          "avant": "cbc250f9d27bfd6f5658043a64a8d53b449f3c8d12c97d1ef3560e04bbbc4d2e",
+          "apres": "4319f2e03b1980320809df2cca5836512c24dd02852f4f380d61801d9bc9b813"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/outil-redemarre.yaml",
+          "avant": "007e32b38a2463d7afb08c45f0e0278730a47a6cc787a77549d0d88be3ff602c",
+          "apres": "0f9c2c733e9d7fbe4c2146206638cc984c1d64ee3b295ba24d6be6ef35b7e465"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/port-non-decrit.attendu.json",
+          "avant": "a56aab90626c572563d24ec8b207629426bf22b66bf0a45458f45a75ce1e8bdd",
+          "apres": "14e848cfd5692c37c9cbc5e04416242e5e49aacd9cf88eba9a0dd9e24ee3e7be"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/port-non-decrit.yaml",
+          "avant": "07c4e2de8535707a502dea155b0316d797035d7792139934c9319f84557c95c6",
+          "apres": "e776c1830bcb9e43fe41f5d42853697343aa14a4893e0e219495fa20a84775d1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/port-toutes-interfaces.attendu.json",
+          "avant": "a5ab27db0c3eb6ee9947c7b1a8e2b1dd7738e0617b620b8b0dfe760d20162e79",
+          "apres": "6b5dd82686dc0c1725ed21a80eebfc9118767d46e767cfff46cdbb5b0481ca2c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/port-toutes-interfaces.yaml",
+          "avant": "e7998b4154bc25000c5c8d33acdbe19a68f093f8fb72474193483d39e40d24ed",
+          "apres": "35013dc94a0431b9c01944d8bfaf6957af2e702c4ba049d12cdebe70b460ba8a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/privilegie.attendu.json",
+          "avant": "ef2a792efd560b827df50d5788bfaf4436417a7b133300b86e2a84cb0c50bc9c",
+          "apres": "d5db95883b5b65f7c7f5ba3e1563b5173aee6dc446c43b6f2e070b7cdce910b8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/privilegie.yaml",
+          "avant": "02bb49b9f93c1746e65ecb5cf6cb7987410fe85ecaf873f736a2a5c539151ad1",
+          "apres": "5a70d3b453e77b3ca954ccbeed874497f3bfee7b58e0842b3774d94d95b60f7e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/racine-inscriptible.attendu.json",
+          "avant": "4f20283367fc123d43ba55f1ab89acea390880a166cc24f171d7e4b8f64e35da",
+          "apres": "e17a780daaa72be7bfb9e4f6854e398d131b50cbf57e9bbe82bc618621ce610f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/racine-inscriptible.yaml",
+          "avant": "92aed58ad65463d31e93fb58ce065b4ec16f28e28dce15fb2b0b82184d7ff51e",
+          "apres": "21f6d6d3fa9a1c3405439de7b42e3e720ddaed165062651da0ed1f97738f91e1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/reseau-hote.attendu.json",
+          "avant": "8d1fa656387b864939db8adf0a75a02b9b578e02ed1f3ef11b1636d036bdf144",
+          "apres": "70a42852d5f43eba65f5c6086d3bc3fa13d8713d100d5d9813cf45dfa3f55780"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/reseau-hote.yaml",
+          "avant": "0f12826a32b7875941b13a0009fd13e9b453b7ad30ce80892e52491ce6dd1d2a",
+          "apres": "039274bdc03c99f27084fae83c35ebca158b93f9ba0e2895fa132179ab3f0c2e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/reseau-outils-non-interne.attendu.json",
+          "avant": "2322c377beee95b1dfff68e6295451b58e537d19b867d014ad416046bd7c7b68",
+          "apres": "1ada771fad8d1ba9d0c141642ddadbef350bfaac43c7c28149a81b7ec9a400a6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/reseau-outils-non-interne.yaml",
+          "avant": "983b0fa5b1ccc117e16a740fd13fd3a853b9e1f9070c0e81ddf3399bdd13b3ff",
+          "apres": "6f0d10de1d05af6848b6c8558269aed4d3c3124d23ac96fd006f152c119917b6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/sans-no-new-privileges.attendu.json",
+          "avant": "765faed33eea7e968193084afe7bf6a1f6c049af9c46391d0a9bccf37136f27b",
+          "apres": "78c8a254be64d366f6c8dfd1c34aaa1fff22de4a0fc5d2518873511c53e52f27"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/sans-no-new-privileges.yaml",
+          "avant": "2ee9efda3901f00e8d123c5689c083f6e7978d5530e57962c13b2968a9a8876f",
+          "apres": "5d6935adf900681cafe601f4102b74a5bd1fccf48a2733044cb0845555d6ccc9"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-en-environnement.attendu.json",
+          "avant": "12b01b14266a8a2775fe22f7ba03b4e53cc0d14e16a6baf6ddc3cf1ae5e2b42d",
+          "apres": "f6f2565195b78af3203a9f1da5f9dffdd834ac06e317530aff5b86e8ef2adbd1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-en-environnement.yaml",
+          "avant": "2e2699bde8c4af732b74feb80f149aed67e63b41bfdc6c3441ff32cef4d7263e",
+          "apres": "c55f156bdf9fdee7345d14cfd36a099c98960e425ced550543ac92c4a5fa63be"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-en-ligne-de-commande.attendu.json",
+          "avant": "bb625de2cfc14eab965cbc1c32ffba0a48d9e3937a885d2352046148b128dcc1",
+          "apres": "5c87f641ac03528c6ce5dc3b682fd6d1a922253d623a31c3eb00dd85459982e0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-en-ligne-de-commande.yaml",
+          "avant": "5c34bd6ba76336ac2fbdccae7240931df12bd636a4f08ace2a64bd3a62f7dec1",
+          "apres": "7c75030bbe22c15018bcaa1f0877447bbf1bb863b319f3f03c1bf667daba2005"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-hors-repertoire.attendu.json",
+          "avant": "ada1488101ede8045182444ce7a2e91738340ff67bbefacca8d56a8289ad5359",
+          "apres": "676015d87bb6e7df4e01b6dcfcd4573c08201db36e95ab51cccc1e18cc31dc79"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-hors-repertoire.yaml",
+          "avant": "06f77214b870b5f7482710a3fd7f45487f22c55aa14a3584bf53dbd93111ce9d",
+          "apres": "f905e385175be525c9e76400d0cee7270d280e441c4ffe80de495456ae1c7df5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-partage-entre-comptes.attendu.json",
+          "avant": "f6e09dab05b9efcd8d8286c617fc58c02c07582d0572d1c15555f12c8862eecd",
+          "apres": "d4e187544c311c8860f1a0532fcfb8e691fc6d89b755d214118e39d951d61909"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-partage-entre-comptes.yaml",
+          "avant": "96185c1dbbbe0a3f05b1fe22c17f26c0624b136da45149d11672b19688ceeaf9",
+          "apres": "8fbcece189763f62149974798c5b9344c8034736dbc71726acbd58a417c767b0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/service-non-decrit.attendu.json",
+          "avant": "e498aac6169d0fd333450d7b68af50c4a4c1a2854fcab282f3953b72f80de884",
+          "apres": "d1fa14f441a1dc840891026a69d2e84804657aa0a5e3e8aecc33d996c54c08d9"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/service-non-decrit.yaml",
+          "avant": "6ae495a21114f54ed5718300d01ee73c7dc156908978ce5a1a70a307cc721e80",
+          "apres": "b6aa653aa336e8199218974128f79622f935dacd347378f93ce11929147524c0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/services-vides.attendu.json",
+          "avant": "d2a03a74e874fad894c70d80ca2a554cf4753d2142a75c257a142dd5a15b0d4f",
+          "apres": "a2ff85eff54875386be109e099c7bf09738328c22408bd2344ded05ea81488eb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/services-vides.yaml",
+          "avant": "d1677a20f4e66d0c897af4baead23dc25d4622eded1425e3c03f78cf653b83dd",
+          "apres": "3a9d2c2ced65109f409bc82f53a07b2ccd616df52468a860bb6fe6d558d5479d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/socket-du-moteur.attendu.json",
+          "avant": "7bb94ce3d0211671a3a6043e226b2dd61094c64e11fada6953c0e4ed3ed15356",
+          "apres": "25716667ad29514542af57b12e568f361db20dcee99141ba99059d5a007d18a8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/socket-du-moteur.yaml",
+          "avant": "3dfd8c6fd93818c7087b57479f7e5b120d36adcc85fb6b2597788fc61b2884d9",
+          "apres": "7d03232bd14ba6c7b65dee64840aa76322c3b3e73103f6448fe3b4b142b1e9fe"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/sonde-par-interpreteur.attendu.json",
+          "avant": "63cc5080e7774dac8069cfa85b8ff3265d2980c65455ce3342303f801a453e46",
+          "apres": "f1f4c5963fd42250558a73069427ba3082b415cdea0a983e5cb13a90a8a3ccd5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/sonde-par-interpreteur.yaml",
+          "avant": "90d971ad2e39275557cbbf925544282997ed2ebb31a84cbe0b1439340405dd02",
+          "apres": "e39b1f19e7a0fd24665398d7edbf34a56f843a44c1463aa98b28dbb31f2f6af0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/utilisateur-absent.attendu.json",
+          "avant": "a928713fa6e85808f79008a0a4bdd520281807f35407a846a11e9592bccb703f",
+          "apres": "86625b16419709ac05ae8fc7fe752581ff2396c0bfe487b70eaa65c88254a393"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/utilisateur-absent.yaml",
+          "avant": "6882e2fc2741f83aae674f9b52ccd5f8a4b6491d40300a847a95dfd4d0508d02",
+          "apres": "18b070a34b8cd91027eca2c6a7a77eb23e086b01261cd19d083f71b38f32226e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/utilisateur-root.attendu.json",
+          "avant": "5625979bd73c6f588e3dab8d5327f4cb4a44a33609a169d15da4cccb4b185b6e",
+          "apres": "0b1a05d0f185d92e41c873ae45fa956b876e32f777f73238afbcde5af920008f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/utilisateur-root.yaml",
+          "avant": "94dc565c53a6cd1a2bfc937e482b8ec8f27fb46a45a0a74b7654877cd155bf0c",
+          "apres": "a830d5ce201e644be577b98a8f7d3bdf909f0de3eee0b4721055672aef11aab8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production-condenses.attendu.json",
+          "avant": "6125f9e23023afac9ebd62bd3942ef43f48742421a78bda5972a66fa338ec93a",
+          "apres": "2e9dfa2abd4542b0f7fe1a37a6f752860b92f8278d5e02023a6efcd63b8f5f60"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production-condenses.yaml",
+          "avant": "30d2bbd5dc4641adc0d78476ebd6dd4beb980dd35ea1936539ecd8abc47b3f64",
+          "apres": "4781022b7bb6da5338939ac885a097657fed43e4b1c2e35dfab49f313ba84bc3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production.attendu.json",
+          "avant": "08d25f6d85bd5d7b996d4440a1dec62b2966cbab12a936b6c70335bed1d9a40c",
+          "apres": "6bb3f43ac31933b35dc272a2c8da390025a4c1d5be000366f9498d6817e918c1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production.yaml",
+          "avant": "fcd775b9a6cde46b93dcf58b418d5517b0c854196ee15c7eb06e59cc334481e0",
+          "apres": "6d8394e12fe5db4e4f0751944b36ff0b249001465f1017ee34c1edf1f0be5040"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-rapide.attendu.json",
+          "avant": "865ff8dd5ac9b56ff591cf477e3c567e533c54f4d1dbb44444ea5646afd73860",
+          "apres": "ba0dc620bf2315f02fb8e451b6d169634c3279b8ca1032b1c686b757d2525954"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-rapide.yaml",
+          "avant": "12011feb774e00e24336801f91c960494e17731c7d2a0162f10bb59a3f372e5f",
+          "apres": "6f2dcbc956f12aa58531438eec540dcef4f1d2b4664a3a5c08abb2e8148715f8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/variable-non-decrite.attendu.json",
+          "avant": "c47921880f908e0b076c30643862c4e8d8cc7ae68f84669bd571c5c5c5ebc91b",
+          "apres": "bcacac3d60c420a3ac7d4f213db39ff5fe8781155cce1847bc72ac001b7dee7f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/variable-non-decrite.yaml",
+          "avant": "961ee162cdd8efe11f256bb6d3819922c83e71a509e1a86a2b5faac1a5f26eed",
+          "apres": "5450a5676f2e09375a6bfe13014547e150b112d1822413215722d97e4760ef37"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/verificateur-en-reseau.attendu.json",
+          "avant": "f2defc16f675bf78bdf5f4687dff8756c7fac5df68e7d99fec2ce837ab2d8110",
+          "apres": "5fb40eeb14bd180bb12becd9e025ebc164c60d91875d88c009514bb89802bdd1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/verificateur-en-reseau.yaml",
+          "avant": "301b1c08d80a5457daaead998e5045bc45d44689fb26f5df6d2838898d34ec79",
+          "apres": "e856d2006cba987aa0ca55dd3cad8d34d0ff75669878179cb082a0e60c3753c0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/volume-lie-hote.attendu.json",
+          "avant": "dfb9c120cb6ed931785cca8f9f5e8a676b79222f3f538fef31dbd694880b88eb",
+          "apres": "b65f25110fa71cf6e4f5a4cec56ac26873c04e5d583d8c844d59cedbaf6d6028"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/volume-lie-hote.yaml",
+          "avant": "f19f7d20bc5263894112972f68db745dc12a25ffcd06bfdee9396a2d090ce2a7",
+          "apres": "2c9e071540878f9f7e2028428ac9d172424b873fd324ea45e5bcc981dedd77ec"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/yaml-cle-dupliquee.attendu.json",
+          "avant": "5dd20c12b83b6a9366854758ef08058af651f40046e54894cecc758a931dd0b2",
+          "apres": "91ac8125ef2361bba03f2673698025cc880415db1f55418264725c25bc94b62d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/yaml-cle-dupliquee.yaml",
+          "avant": "2df24013898fea7f0ed908e96ef6f5816457b0ca8af843b519c572ed94326258",
+          "apres": "a2193eec07d97c52e626dc60b55376891202e950a741150a5648d4a7a4751541"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/cle-inconnue/attendu.json",
+          "avant": "0c0fbf0d911b6ea3fc25287fb3d8b8acf73501fff8dc93f5cf14bfc9f7106f75",
+          "apres": "84f4dc8357262eadb962cb79bcf4d22ce59011f73854c74c21a484b936b2d7ad"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/cle-inconnue/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5",
+          "apres": "15097856ef2adfcf05b0c34013f2d5a3f8234d3d8acb7dc788e12b4e547022de"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/entete-discontinu/attendu.json",
+          "avant": "63ad092037e5b59348ac2c1e36b8042e01fbe7d02909fa99649903a746adb98e",
+          "apres": "d9cf07933e61f71449a779c995a2637423f6fe93be195b57fd51f30bc6642af2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/entete-discontinu/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "53f5d34581ffcdaa10eea5bd515c1410032595fd5163d3d6a6cf908c8581f857",
+          "apres": "9eb759018b3c66eb42007d7ffc2b2954564002261d79fc1af8a33b114bd38ddb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/entete-discontinu/segments/seg-0000000000000005-00000000000000000002.ndjson",
+          "avant": "cf38bb0d665f370bde04ad9ec5afe3b97340b4265f6aa8f2d23107c16f946be1",
+          "apres": "9c713687c55b575a9c4cb4dc9a2a6fa217e6bdf1c91163ecd1e2eac048ae69ea"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/entete-invalide/attendu.json",
+          "avant": "8b4d5ff5d55f7bc743e0c5d30dd3d51120b7df002e3a4a32b5bc0b7ba1edcb02",
+          "apres": "51dc67032d94a70cc311935ebb8bff940dabc8e3f126b64198eb4108438f31c4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/entete-invalide/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "41bf3e2a24b98d254be1bb9fb2e619515acb8c9d756a12c9c00fe2f17fe2aacc",
+          "apres": "b4a449192d431aeb523e225e6f110d036d9050fb0bf098d636dfa67ea1fee62e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/epoque-decroissante/attendu.json",
+          "avant": "f0af5efa08b74d6ec5ab7df08025feb69a9601bd038f36adf83acfb2f174e109",
+          "apres": "b534dd3ed3ff6955776d4dcca7639c0139445973ccae50f9d9556992e00f43e8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/epoque-decroissante/segments/seg-0000000000000001-00000000000000000002.ndjson",
+          "avant": "06d918a982c525417bde403d18d494629cb53a2339c5a765194aef5a830d50af",
+          "apres": "584522a686db792ef6548810d2b821ef1fc9e8c0213d35e77010865689c303fe"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/epoque-decroissante/segments/seg-0000000000000005-00000000000000000001.ndjson",
+          "avant": "436eb51d31fcdaf03f558fcd684de99f846fd6dc2158c54dd434a88c20447f9b",
+          "apres": "b6def33e00a757551525f858f32b91203bbbfb6e2bf2ab9eed5280ab807f7c86"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/journal-json-invalide/attendu.json",
+          "avant": "bf7473415dc17740e89ef383b33769e837f48f9abac11cf4c764febd0985940b",
+          "apres": "2c720c288330f2be7dc5f26cd66e6c4d0e9883ea0a4aeff26de79ddb43d4dcf7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/journal-json-invalide/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5",
+          "apres": "15097856ef2adfcf05b0c34013f2d5a3f8234d3d8acb7dc788e12b4e547022de"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/ligne-modifiee/attendu.json",
+          "avant": "667ace9f21459960f427e1f14fac3c1608d9f3108452fdddcb37e86b960320db",
+          "apres": "413feca624dd7efce0640d15df8f8a4c03dee677c9d169505f343627e0dc7082"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/ligne-modifiee/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "e72d4281d074b6c374378fe52504dd5a37061f02963c9173098108ca0da183e6",
+          "apres": "31c7eccf81ee0b34a2dda58e913e547fa59de641d4e57f5ec1be542d1ba4f82d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/ligne-tronquee/attendu.json",
+          "avant": "bf7fd6c2ce63a7638124920788e3adb5955eb93408c7dfd5d16a6988b4bec2e0",
+          "apres": "07de79b4e67265488053095d34221f149e4fe05e384d01f627eb5e1849aa9c8d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/ligne-tronquee/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "8feb879254f5ca1d07e5559f5ff7d7680035e63c532f545bac1b0f61b5bf871a",
+          "apres": "98cdfbcfbe235facbccf084b49ba210c5525027f898dbc77952ec2a91192468f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/manifeste-altere/attendu.json",
+          "avant": "0ebdc88bc3776a2c8e61c2186eee2bd1e0979c2078d4bb22511466d21fda853f",
+          "apres": "60e2e6cb2e0736a2041380b57c2bc28dbb4a9a0189543cd91691b3e12328eb16"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/manifeste-altere/manifestes/periode-1793865600.json",
+          "avant": "d9808544d5a31a766f761ea058194ba22f8e741ef1c9f26ba3ed205fc0f15ea4",
+          "apres": "f4996866dcca934cfe74caa9b392fa7d86a2c03a732295128bf876ae0659068c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/manifeste-altere/manifestes/periode-1793865600.sig",
+          "avant": "a540f7bdf9e9eed577f9f6144b9707f5312439043bbbb2f3087f2f899cb6a573",
+          "apres": "9ff04a77cd122984a79887d1d3a8218a839e06750c6c29e0b8d56d915906d89a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/manifeste-altere/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5",
+          "apres": "15097856ef2adfcf05b0c34013f2d5a3f8234d3d8acb7dc788e12b4e547022de"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/segment-manquant/attendu.json",
+          "avant": "868a8ae46a39ed417a091ccf3ef78e911121c011ec3a3bb8a4479caa64701222",
+          "apres": "ac5d28ec58eec901c2996bd3a0b4d9b9a5663eee778c2374e278f036aa64b62b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/segment-manquant/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "2455e12d6d2a2c67301da1e40be4b15e2bf7308f42712cea0ac5fc641721cb20",
+          "apres": "fa1faae9939d1c82ca51b5d05847cad54d6e6fa8ba810b63d1999ccafc9add57"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/segment-manquant/segments/seg-0000000000000005-00000000000000000003.ndjson",
+          "avant": "1b1632c86dc48f3eac3d0aa5c5fb935741cca5f20d71ec3ee8da4641a9632981",
+          "apres": "733cb2b81b62b0dfa7f18af6b32f5125d9cecbde5bbff667ec47e92ce07beb9c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/signature-manifeste-fausse/attendu.json",
+          "avant": "f3e6b3e0ac375b5fee5406bfb3d25e8a3ccc2ccb310a60f22235a90619d8f180",
+          "apres": "2181191a8d1edf61501bf9984f84f1a298dae6c4218eaa06d31bd7d6c37eb901"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/signature-manifeste-fausse/manifestes/periode-1793865600.json",
+          "avant": "22fee1ca5dd3499c3f75de721d3c341ee6bf91510e88caf471310661c5141afe",
+          "apres": "00c5d6f26e9cf5dadf552711645e6e3c0bc3852c5aa8c0925a9e881a34fc5b91"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/signature-manifeste-fausse/manifestes/periode-1793865600.sig",
+          "avant": "74874da7246fdcdc4e4eaf6660f989657b135442073123ab54854f0ef188b27e",
+          "apres": "88455b135cd6be0b626597858e66f32bcef5800e7b3ebbbd9b7e7ef1f41b5061"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/signature-manifeste-fausse/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5",
+          "apres": "15097856ef2adfcf05b0c34013f2d5a3f8234d3d8acb7dc788e12b4e547022de"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/valide-deux-segments/attendu.json",
+          "avant": "86d3e0f4beb7b974b626b7352d3cf23aef700e92569537bd977907ae6e32f81b",
+          "apres": "5b7fcbef1a75dc4295b1befa19189b097d2dd547efdffe81ba0f01618755e788"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/valide-deux-segments/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "53f5d34581ffcdaa10eea5bd515c1410032595fd5163d3d6a6cf908c8581f857",
+          "apres": "9eb759018b3c66eb42007d7ffc2b2954564002261d79fc1af8a33b114bd38ddb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/valide-deux-segments/segments/seg-0000000000000005-00000000000000000002.ndjson",
+          "avant": "92dba35d6200045af137877042c9e715ca6c9e585087a0e0ef0a61e193ea9068",
+          "apres": "839bacf97b06c0ef3b7d2f4c3fa7388206ffaaa1544bbd44d682eb02ea69fd7d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/valide-manifeste/attendu.json",
+          "avant": "a8417ec421ab2c9a20da86be04c2fdc79028884993fb89671170bfa3ebd4d077",
+          "apres": "bbba79f20e8468d62ff9c7e14335604d1981c05c2c98551e91600f3ec724ac6e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/valide-manifeste/manifestes/periode-1793865600.json",
+          "avant": "22fee1ca5dd3499c3f75de721d3c341ee6bf91510e88caf471310661c5141afe",
+          "apres": "00c5d6f26e9cf5dadf552711645e6e3c0bc3852c5aa8c0925a9e881a34fc5b91"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/valide-manifeste/manifestes/periode-1793865600.sig",
+          "avant": "cb8b31729992b975567f1243620a88d07a8a3077c657ba1bfc45c805d6cb552e",
+          "apres": "122407c5ff38d75056fe184e045b46b9b1db1ec9c75ae3e785279ac4aaaa0853"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/valide-manifeste/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5",
+          "apres": "15097856ef2adfcf05b0c34013f2d5a3f8234d3d8acb7dc788e12b4e547022de"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/valide/attendu.json",
+          "avant": "a84c52bc6165855c33f8dd6163ced28683bb127d9f66f6defc6197cec5c59ee3",
+          "apres": "052169f24e96d2d816563523ea0093c08d0490c48f578d4eb39093316b880475"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/journaux/valide/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5",
+          "apres": "15097856ef2adfcf05b0c34013f2d5a3f8234d3d8acb7dc788e12b4e547022de"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/dossiers/seq-1/chemin.json",
+          "avant": "3de9dcc120baa1477df76972e2d4dd7a1fc2dd61c300cb92ba429283687cde25",
+          "apres": "b29a755530bfee288be346535bf265657b562a635207785c177bc9739513930b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/dossiers/seq-1/dossier.json",
+          "avant": "462083ad2db798300937a92a56a2f297fa60231911de6ed8f4796d661135c499",
+          "apres": "8355f08fe697fb72cf39a5e636efb4923cecc29997d96fa18d40fa91e8764d48"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/dossiers/seq-1/evenement.json",
+          "avant": "30e53d419c86ad42a4274ddcadd08a8f32071e571207edbebc9ba6a03b263949",
+          "apres": "5b7ad14025cd5debde5cb1eb39e444e79b9d53ede7a9b9875089b68178aabb30"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/dossiers/seq-1/manifeste.json",
+          "avant": "22fee1ca5dd3499c3f75de721d3c341ee6bf91510e88caf471310661c5141afe",
+          "apres": "00c5d6f26e9cf5dadf552711645e6e3c0bc3852c5aa8c0925a9e881a34fc5b91"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/dossiers/seq-1/manifeste.sig",
+          "avant": "cb8b31729992b975567f1243620a88d07a8a3077c657ba1bfc45c805d6cb552e",
+          "apres": "122407c5ff38d75056fe184e045b46b9b1db1ec9c75ae3e785279ac4aaaa0853"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/dossiers/seq-1/voisins.json",
+          "avant": "86254ed6cf63552af095c6a9033603fb95de0cb99d70b86b71f0f86aaeb6fc4b",
+          "apres": "846aa0c25a20a6a3c77ff644da7c48696523eada879caac8ab53480ba7731a01"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/dossiers/seq-3/chemin.json",
+          "avant": "14838fc37b0c1874e697754e4fe394dffa03f129f3af73814fd9fb814751e7eb",
+          "apres": "0346c58dfac09ea17fbc3fe869e7ca8fdf8d242034075bb46925706e1e44c159"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/dossiers/seq-3/dossier.json",
+          "avant": "f1f61f4cf32d2a1b9bd0190bbdd3063cd625fd1dd297d8df7ebaa12e534d9cc0",
+          "apres": "5406dbcc92d73f45376bca88476bc7d3606e73bda79570a407860dd08b7bcd4d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/dossiers/seq-3/evenement.json",
+          "avant": "2c99b5b17e656210e20786cd85beac704de944b18c95e80ca14de4fa0731d98c",
+          "apres": "6e23fdd7aa6d17d5aa9d56dba9af920b0bdb77a4351da16f0dda27c55f87ac12"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/dossiers/seq-3/manifeste.json",
+          "avant": "22fee1ca5dd3499c3f75de721d3c341ee6bf91510e88caf471310661c5141afe",
+          "apres": "00c5d6f26e9cf5dadf552711645e6e3c0bc3852c5aa8c0925a9e881a34fc5b91"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/dossiers/seq-3/manifeste.sig",
+          "avant": "cb8b31729992b975567f1243620a88d07a8a3077c657ba1bfc45c805d6cb552e",
+          "apres": "122407c5ff38d75056fe184e045b46b9b1db1ec9c75ae3e785279ac4aaaa0853"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/dossiers/seq-3/voisins.json",
+          "avant": "0cf7366dee2393d80efea9bb62fde0fd26ed8538f45fa7d5bb744196054f1476",
+          "apres": "e14096296fb9cb4ab963d42f77c49dd972d884c20c46ab9dfb45968d7c94dcfb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/evenements.ndjson",
+          "avant": "3330752638e75e9406393e0cf8ba93d24f5abc89aaef69053f1f8999e41705f9",
+          "apres": "1fa660b7bccb50fb15435916408549abac957bbdb60d5f64fac2e807a9aa3959"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/invalides/marque-absente-en-observation.ndjson",
+          "avant": "717306c87fe2c13355c20fa517e4ae31cdcfd41181394c1dd74eb0fe43159b79",
+          "apres": "630b4cef514209879c05b0f758352e9faed58d3806bd080e7605bf1f2346e572"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/invalides/marque-avec-decision-a-approuver.ndjson",
+          "avant": "67c747dc46f36382a3c27b94be03b5596646d2f8945858ec30f6b0d26ceaf715",
+          "apres": "258c04b02219534a0579b0831a5a429de7e77e0c73ae41481d4ba39f9fcc2ee3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/invalides/marque-en-double.ndjson",
+          "avant": "b434ae21ff73f806501008a880208608aff9fd9a2483f9f7ea6e1e82e7f4f528",
+          "apres": "11de8afdadc2b9b64c7ed7d55eb7497050bb24da07a9e79b1974fb89f02561f4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/invalides/marque-hors-observation.ndjson",
+          "avant": "e82136351dc228109a160a4cde4e3beba4133604b92546bc82027bafd7af8228",
+          "apres": "84c69203c96c424ea1770953f68aff0fddc6e790518d458b3ad7c9b86cfd28aa"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/invalides/marque-sur-outil-reserve.ndjson",
+          "avant": "bff2b08ce41d841688a79ca1cd1a923b427bbd13f82db42159190b285f221c30",
+          "apres": "bcc1b49c1be0488bb0141b4f2d062adbe00b39c3b95a2a1a3a0f676bad415a13"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/invalides/retenue-en-observation.ndjson",
+          "avant": "e65915735b63cebd0773d6a83467c9b1f7da2389cd0a591af5f43d41f37c2018",
+          "apres": "fb40bb4625e2b5b53b22bb12dacaddf02535bb095325c1a4b63a755b356e8c5c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/journal/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5",
+          "apres": "15097856ef2adfcf05b0c34013f2d5a3f8234d3d8acb7dc788e12b4e547022de"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/politiques/3d0e81832bce1e5b653040304a65dfdc0e3912ba24e10ae44b2b78431516da36.json",
+          "avant": "3d0e81832bce1e5b653040304a65dfdc0e3912ba24e10ae44b2b78431516da36",
+          "apres": null
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/politiques/78cd21431c3fc9166386bdd513407967d05a2da496d704cbf0a5a1c31d9f1c5b.json",
+          "avant": "78cd21431c3fc9166386bdd513407967d05a2da496d704cbf0a5a1c31d9f1c5b",
+          "apres": null
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/politiques/94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912.json",
+          "avant": null,
+          "apres": "94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/observation/politiques/a4fc605ed6150d195f39f0a17f48fd9868f73a4efee469ae7764a11f682a170f.json",
+          "avant": null,
+          "apres": "a4fc605ed6150d195f39f0a17f48fd9868f73a4efee469ae7764a11f682a170f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/cas.json",
+          "avant": "0e44622a66a79180a61f72ad90490c427c1c8bbab9c628ee650630337e3cb746",
+          "apres": "77664feb916a54a9c3ca1bbe004d0be1ef9b76b040297613fb6e6d28c39b4303"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/description-observation.json",
+          "avant": "284b80fcacc55425c9d02fd68afefbd4a1228d01aa75a097f1639a5b6629446a",
+          "apres": "60190ab42791c907f9a72270b8cec7cc542d5fcb76da21d99ef4cb55b16374b5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/observation.tar",
+          "avant": "127b257aebef28bb8436f7b07fe7a3c6d4e805ce7ca9c3f3e991c53b543f9ba5",
+          "apres": "d3d6ea7fc3c69d731fe1f33b7fde85db0ff0c3ca8b9e714fe6a714a336b3e064"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/attendu.json",
+          "avant": "82ed45a715084afc90760a7fdab4ed1df2a0334922c1ab6ce77a6824b7132440",
+          "apres": "c443cf88df75e17ca555c6010feec3703cbe318f9f73db0c099bc0418a4d8234"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/invalides/pv-1-cle-en-double.json",
+          "avant": "aa231b938fae3a8aec928cce116439ee8303e3a7406bded57512c5ce6b94c41c",
+          "apres": "37c9f9ac6354143a9fa657e94ffc391a4eabaa7bd206b730d7d98e59cb6c76f7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/invalides/pv-10-secret-dans-sauvegarde.json",
+          "avant": "5d882a3e55098c3d0c1aea73cc74cb4882a6bc44abb0e25fc97b214344112e67",
+          "apres": "b541a5f8389e8d5e8d71da2e555fff3fcca0e4fc1d4fcde533e0d1a83ee767cc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/invalides/pv-2-non-trie.json",
+          "avant": "f3aee86c3737a9f8a1eec05090a79bc5981dab7a3cf674f20ce958d3deb3da1f",
+          "apres": "b77ccac8e8188a4444db45c8c52e5cefe4e3a56f34e7b6734ea09c32bdb259de"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/invalides/pv-3-totaux-faux.json",
+          "avant": "281ba5e6d3159198076840995939d55116d129b745edddce1ab61242abda94f4",
+          "apres": "0c51ce329514aae92e1de2e38939cdbeac36a3cbb61b41934d2760e3cbcb90db"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/invalides/pv-4-condense-different.json",
+          "avant": "165cabaaa3dc136c1c56b30dec3ec44668efa83ba398234800c4d77f94cbc083",
+          "apres": "bb4d331a7ba407676cc04c378b1de8f86db8d4828180ea64c43c7b6cdd3df4eb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/invalides/pv-5-sans-temoin.json",
+          "avant": "b2c9827fbe67eaceedf2db2b2cc2f9ef61160c944c58a703cc1530ad1788c7ae",
+          "apres": "d7c6f8a0136cc114e789755f8177e6249afd58d1f1a02d97ccefda725956a26c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/invalides/pv-6-destination-nulle.json",
+          "avant": "94149392456f6162fcb1aa01422236c9eaea7acac75af73c4734dacb13176e53",
+          "apres": "d48d5bd888c7312aac12b9a3818457b14ffc29776cf0996a502a2c7f0d2d7a61"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/invalides/pv-7-fichier-different.json",
+          "avant": "bd99aeb5dd9a69a7a55b820b43f48480ae6e16787cec7058f5118f2b1b79a879",
+          "apres": "a777ba9510764c1ba91c3e005acfd5a3145ea0ba6a5ac4b9df6dc3d50198c2a8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/invalides/pv-8-continuite-fausse.json",
+          "avant": "1b993e43a151a0991b53d9730ff49f7c95e5b3e2b12eecf67eda2fa27d2293d5",
+          "apres": "124d734e0c912f5825be2a0b7595cd35a399838109468173e36d918f232cf05e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/invalides/pv-9-echeance-fausse.json",
+          "avant": "8ae9ca80715fce281876633806a831724c9f130b473ddbe1ea67da6c9290e613",
+          "apres": "558ad5098ce02c8b8153503c3e603e42107b8b6a72bdf0e2a2cb3c3ca22b67ec"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/racine/segments/seg-0000000000000001-00000000000000000001.ndjson",
+          "avant": "0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5",
+          "apres": "15097856ef2adfcf05b0c34013f2d5a3f8234d3d8acb7dc788e12b4e547022de"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/valides/fin-de-retention.json",
+          "avant": "0e70a209cdf0a47d43761191d53e7541b520ec4c23530da608b54cd9e1012f45",
+          "apres": "b1c2c67a7dba8ad1a763f8fd42716019efc500a4ad3ce73558f4f9ef4fbadee4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/valides/migration-support.json",
+          "avant": "e57f24173c7a8bce14cfa555117af31e8e3e2020fef57cf726b310890f3bf3b8",
+          "apres": "354c02791cc2c49fd6c3a6b98f372e109fc4c99dbcb93e8f0992d940b584c274"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/valides/passage-mode.json",
+          "avant": "69eafffdeb3e350f2a8aec36bb391e79dffc68ceacb5e8e79cad8252b1b79594",
+          "apres": "9a3621ed6522374a7d3809872e411ed8627bbf968fba896620ccfdebfa073cbe"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/proces-verbaux/valides/sauvegarde.json",
+          "avant": "54b09d75fc4f118620928267ee398a9819939981147589bdf686fdec0fb4f51e",
+          "apres": "9b2b4220600e46726fffa6ff2be573a781d176d796ad04a354b437ac8185654d"
+        }
+      ]
+    },
+    {
+      "id": "MC-33",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-9 0.7 : alignement sur CT-2 0.8, CT-3 0.5, CT-4 0.6, CT-6 0.6, CT-7 0.4 et CT-8 0.4 ; entrées de l'étape 6 pour chaque identifiant nouveau (TE-18 à TE-23, TI-21, TI-22), TA-99 à TA-102 pour les menaces nouvelles, scénarios du plan renumérotés TA-103 à TA-107, risques acceptés RA-83 à RA-86 ; vecteurs ct-9 et recomptage régénérés ; spec/README.md : versions des sept spécifications révisées et trois schémas nouveaux.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "f7a622e1c2b078e7e3bc39d76cb054ed55f978ca0039f1e09fc38a16a1d5b399",
+          "apres": "0b8eb0ce92e374fb39d3c0437bd8e435f72a84d5f07240cb078bc14cb49cf439"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "33fa220eb6079758a12cab4253d68e23eb22ee1b0b9d29231f347e561a95cd52",
+          "apres": "babe7fd5e8c0f32385d498b0610eb5d3514f3da76c11a14037a23db81c6f331a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "9025fa45c467501f28d9c8a3798ac47a58a9444cf2095a802478b5109b0ea4ed",
+          "apres": "33147f58f8ebdbfcf7bd91af352537ed53886f1246cd170e582f5852fc38dbfa"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/acceptation-porte-2-attendu.json",
+          "avant": "00ca023c788e83394c31403ec3c5cc338ca0b9e8847674029a5d3d4927b09827",
+          "apres": "0b8fde71121be857b9cb2304ba37fbdc49c30a4d96056cd5289340b70d3a9fef"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-a-ecrire-sans-etape.json",
+          "avant": "9b9eeb6f1126aa3fb786ffaf198784b78fab9c0b3ba9420eb8cfaee7d0b005ce",
+          "apres": "8d3371fc98311ba9691d123e76c98a03c0311bccbe772dbc41c1256f195e6155"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-executable-sans-titre.json",
+          "avant": "bf6ae7a96c3a2f008c52d7b075817d404c11485c3717ea6a318fd910ea2b7d63",
+          "apres": "3ff58ca283c23898cef115073948c7a96378abb6ce657f8a5f91f2f16df5a40d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-identifiant-sans-specification.json",
+          "avant": "9017bb37305c8666b815dd16aab2877904a9e3ecdb70336143f8933fe5a1a072",
+          "apres": "3f03a7a953a587424df3dd679e0bb0e94a21a262aaf177b1e0841b08b2c9fb37"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-complement-sans-etape.json",
+          "avant": "d8377f27a67e69da8b8ebb8ec799e4fdbe36466791d495d7f9f9d3d6c2324a6e",
+          "apres": "5462f9bb27b874823e4b7b877ea608aa63e484a0a727c26ffee94b56b8cb6993"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-prefixe-test.json",
+          "avant": "803abb42e2edf8e438a5e665a849eae9eefd85278e52ca89c30214bbc85c9096",
+          "apres": "d5f2cf7aa202d946fa5419f7fa5435acfbc56dba40afac16bc7d4f609eac01c8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-sans-adversarial.json",
+          "avant": "8d5f85135d91cfb33c668d003bb7f05201bef2286e74905ee827fa5dfa27c380",
+          "apres": "e219879d189672ba78bf067deafdc5b3c422300d1bf5a1954060c51b77709e71"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-scenario-sans-composition.json",
+          "avant": "559e788e71d0243886b1550230e8ff77f1b9b074e9a1ebfb660ef34f37b49552",
+          "apres": "1c98a99e4440f719b8dfbda6f7e366ea16b4002a7d6e582a1f48013d72c58453"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-titre-vide.json",
+          "avant": "f88e06a79b3d9e2d6b9d4b0113bc081d7d13e15d591302017a7cf0ea7751fc36",
+          "apres": "bb4f233939206f93af888d023b40f7b7a5f43ae640c25154e7218a2eda9acfe6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-tm-mesure-inventee.json",
+          "avant": "5cf92a065448bb39e692f21dc5d36822a5d59595ebede772ec530ec3ec4402b9",
+          "apres": "c8a7ef161b96bca3ff70db2f5ba6a05413eff559ec38ea355ad7dcad84c9a640"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-minimal.json",
+          "avant": "9c1b9f514fd267660b1606bc5d8c0195cd3068982dc12c2cd108e6cec7ea64eb",
+          "apres": "a54cbea5f60d0fc0832bc0a7c5cafdbe0fc74a65723f3b90e09cfc8c424519dd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-ta.json",
+          "avant": "7d014514fd61f3b5b8473f9d7b987c43bf983a41871c053690f3ccec5fb24cc1",
+          "apres": "8f09fe63827de9e0b8e3c72a7c8771d19de68ac593340a764fc23bf14b320945"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "782890669455984800cd7363bc0dd68e6728cae57115c043600a3a175a83ecd2",
+          "apres": "2369677d7f0f60ee0446c08cf69afd1fe77dfae1a880789b58694e944794e872"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/LISEZMOI.md",
+          "avant": "1d1687276cd86a1935c8f06eca4cbd25b093935922ed4e707feb561c477ba6d9",
+          "apres": "0ce9bb61376e207adbeaeb52d952e5fa403fc91cb064b3028b1de474bed24f77"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "48a9241c06941a8126e1f72f1997fec7f5b7c2844609cbcc66aa263c2ccf1437",
+          "apres": "a358897e63ed55fed4771f3e9277046387f12d6029f79e3039101f0a6e95f4cf"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "5cc3c01aa41b2cc72f225af07c3c788aa4e4d307f884acd2cd29bf91a3211ee8",
+          "apres": "5ebd4e13467a8e8aac0502012a70c6619568429a056eacfa7de93180283dad74"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "56065dbe171118722bcfd3888ca9a64430299fde216cb94b37ee39a5fb156d4b",
+          "apres": "0961c448d322ac0db5d1e6b98451303eb039053a6ee4f91891813a938479e58e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-12.md",
+          "avant": "94bb1c5825999424978786bb4bb6d372f457aaa9dc7378e36deaa2bbece6f7c8",
+          "apres": "a71c66afa29e2dd2900cb194dd08ca3e00f25c94cb64ac1b98afb132d9ab285e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "5852bc2a98cda4eb10b4e71318135f7b4244367357015845efe1d716601566c5",
+          "apres": "17c7088ee74af90a1e667ac40d85cf8c30125af5c38d4d706c39fefe1fda506f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "5da92653036a7dcdbb01c209c72e1beb4c06086ca4a5ebee3dc6fc00f29b8557",
+          "apres": "82bccd9ff4272e7b17f96e7de2233ea239c5d1d743fcf24f08c40768303daa54"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "30ecf2b2f1058a532f346da2e1a065828c3e39f3bc2aa8558a9604ed1d4106ab",
+          "apres": "aac968c259984f3a3b5814a0aeccff7f78da756071b085557951f55be7a3dd08"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/index-ta-par-menace.json",
+          "avant": "ada74867011a1150e056b5cfde14b711ec09a95c5cef5825d39a1fc4d3385360",
+          "apres": "805f03eb067adf7aac216654bf6e7037b4ea080d49bb2ba09b0a438a58adcdca"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/README.md",
+          "avant": "1f8b447bb1c8cd23035d63fa2a2e7f97b95bfb6a3e7dc1b2503eae9783cbd532",
+          "apres": "b139532f51966ec1b3a8e1fe834c110b243d182bcb96938f8a80f717053019b4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/couverture.go",
+          "avant": "cd014213809b45e2a1c4210b64b4f49da71f98e9ab95dc93405780f706cbdbb9",
+          "apres": "3bcb7cc39d6fa37add993b1767e5a20c6dcf8e4c4e34ecdfa41bdbd5b4c46048"
+        }
+      ]
     }
   ]
 }

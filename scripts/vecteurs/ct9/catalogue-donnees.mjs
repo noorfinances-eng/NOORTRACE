@@ -8,7 +8,7 @@
 //     réponses aux occurrences de « CT-9 » (tc.mjs) ;
 //   - de spec/vecteurs/ct-7/menaces.json, lu par le générateur : menace,
 //     composant, `covers` (response.refs), `threat_test_text` (test) et risque
-//     accepté de chaque TA-1 à TA-98 (EX-10.2), nom, borne, porteur et menace
+//     accepté de chaque TA-1 à TA-102 (EX-10.2), nom, borne, porteur et menace
 //     de chaque risque accepté ;
 //   - des occurrences de « CT-9 » relues dans spec/*.md (0.2), auxquelles les
 //     réponses de tc.mjs sont appariées rang par rang (même clé exigée).
@@ -74,7 +74,7 @@ export function construireCatalogue({ menaces, occurrences }) {
   const erreurs = [];
   const MN = new Map(menaces.threats.map((t) => [t.id, t]));
 
-  // TA-1 à TA-98 : menace, composant, covers, texte de test et risque accepté viennent de menaces.json.
+  // TA-1 à TA-102 : menace, composant, covers, texte de test et risque accepté viennent de menaces.json.
   const ta = TA.map((d) => {
     const n = /^TA-([0-9]+)$/.exec(d.id)?.[1];
     const m = MN.get(`MN-${n}`);

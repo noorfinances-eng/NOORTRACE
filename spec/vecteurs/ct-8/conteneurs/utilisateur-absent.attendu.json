@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "utilisateur-absent.yaml",
-    "sha256": "6882e2fc2741f83aae674f9b52ccd5f8a4b6491d40300a847a95dfd4d0508d02",
+    "sha256": "18b070a34b8cd91027eca2c6a7a77eb23e086b01261cd19d083f71b38f32226e",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

@@ -12,7 +12,7 @@
         "epoch": 2,
         "events": 4,
         "length": 5993,
-        "sha256": "0x06d918a982c525417bde403d18d494629cb53a2339c5a765194aef5a830d50af"
+        "sha256": "0x584522a686db792ef6548810d2b821ef1fc9e8c0213d35e77010865689c303fe"
       },
       {
         "name": "seg-0000000000000005-00000000000000000001.ndjson",
@@ -20,12 +20,12 @@
         "epoch": 1,
         "events": 3,
         "length": 4513,
-        "sha256": "0x436eb51d31fcdaf03f558fcd684de99f846fd6dc2158c54dd434a88c20447f9b"
+        "sha256": "0xb6def33e00a757551525f858f32b91203bbbfb6e2bf2ab9eed5280ab807f7c86"
       }
     ],
     "first_seq": 1,
     "last_seq": 7,
-    "last_hash": "0x30ebe8ce1b866c67c4b5e3b08f1742ad5981200bea7cfbf47561441d4f63abeb",
+    "last_hash": "0xab6ed0df4ea7f347e065b5da3d834daecf36f3f6055f76468fe96f4fd104fa70",
     "manifests": [],
     "errors": [
       {

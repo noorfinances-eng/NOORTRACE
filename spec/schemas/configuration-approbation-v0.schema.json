@@ -1,0 +1,1071 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/configuration-approbation.schema.json",
+  "title": "Configuration du service d'approbation NOORTRACE, version 0 (CT-3 révision 0.5, 10.3)",
+  "description": "Le document JSON que lit le service d'approbation au démarrage (noortrace-approbation --config <fichier>) et que contrôle noortrace-approbation valider-configuration (CT-3 EX-10.12). Les secrets y sont toujours des références (file, env), jamais des valeurs. Un membre facultatif absent prend le défaut que donne sa description. Les règles que le schéma n'exprime pas (production, boucle locale, jetons, escalade croissante, TLS du point RPC et du webhook) sont celles d'EX-10.12, avec leurs codes. Le schéma se charge avec annuaire-approbateurs-v0, evenement-v0 et ticket-v0, qu'il référence directement ou par annuaire-approbateurs-v0. Le membre $defs/notification est le document que le service envoie au webhook de notifications (EX-13.40), $defs/rapport_validation la sortie de valider-configuration.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "environment",
+    "org",
+    "org_id",
+    "journal_id",
+    "state_dir",
+    "storage_key",
+    "noyau",
+    "administrators",
+    "console_origin"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "environment": {
+      "description": "production ou developpement ; les règles propres à la production sont celles d'EX-10.12.",
+      "enum": [
+        "production",
+        "developpement"
+      ]
+    },
+    "org": {
+      "description": "Révision 0.5 : nom court de l'organisation, recopié dans l'annuaire et dans chaque message d'inscription (EX-13.9, EX-13.12, EX-13.38).",
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/organisation"
+    },
+    "org_id": {
+      "$ref": "#/$defs/hex32"
+    },
+    "journal_id": {
+      "$ref": "#/$defs/hex32"
+    },
+    "state_dir": {
+      "description": "Répertoire de l'état du service (mode 0700) : documents des tickets et des fenêtres, annuaire et défis (EX-13.38), journal du service, boîte d'envoi des notifications.",
+      "allOf": [
+        {
+          "description": "Chemin absolu.",
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 4096,
+          "pattern": "^/"
+        }
+      ]
+    },
+    "storage_key": {
+      "description": "Clé de stockage de l'état (EX-7.24, EX-13.38) : un secret d'exactement 32 octets est la clé brute, prise telle quelle ; sinon, espaces de tête et de fin retirés, 64 chiffres hexadécimaux, préfixe 0x facultatif (EX-10.12).",
+      "$ref": "#/$defs/reference_secret"
+    },
+    "noyau": {
+      "description": "Écoute du canal du noyau (12.1, EX-12.2).",
+      "$ref": "#/$defs/ecoute"
+    },
+    "console": {
+      "description": "Écoute du canal de la console (EX-12.4), ou null : aucun canal de la console.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/ecoute_console"
+        }
+      ]
+    },
+    "etat": {
+      "description": "Révision 0.5 : écoute d'état, ou null (défaut) : TCP, sans TLS ni authentification, qui ne sert que GET /v0/etat (EX-12.12, EX-10.12).",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/tcp"
+        }
+      ]
+    },
+    "tickets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "epoch": {
+          "description": "null (défaut) : identifiants de 65 bits aléatoires ; sinon époque conservée hors du service (EX-7.1).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[0-9a-z]+(-[0-9a-z]+)*$"
+            }
+          ]
+        }
+      }
+    },
+    "max_open_tickets": {
+      "description": "Défaut 20 (14.6).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000
+    },
+    "escalation": {
+      "description": "Défaut : aucune étape. after_ms strictement croissants (règle escalade_non_croissante) et inférieurs à expire_after_ms de chaque version chargée (EX-7.13).",
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "after_ms",
+          "notify"
+        ],
+        "properties": {
+          "after_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 86399999
+          },
+          "notify": {
+            "enum": [
+              "jeu",
+              "administrateur",
+              "demandeur"
+            ]
+          }
+        }
+      }
+    },
+    "set_poll_interval_ms": {
+      "description": "Défaut 10 000 (8.2, 8.3).",
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 86400000
+    },
+    "administrators": {
+      "description": "Identités de session des administrateurs de l'annuaire, recopiées par EX-13.37 : de 1 à 64 identités canoniques distinctes (EX-13.9).",
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/liste_administrateurs"
+    },
+    "console_origin": {
+      "description": "Origine HTTPS de la console (EX-13.14), recopiée dans l'annuaire ; base du lien des notifications (EX-13.40, EX-13.43).",
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/origine"
+    },
+    "registration_ttl_ms": {
+      "description": "Révision 0.5 : validité d'un message d'inscription (EX-13.13) ; défaut 600 000.",
+      "type": "integer",
+      "minimum": 60000,
+      "maximum": 3600000
+    },
+    "rpc": {
+      "description": "Point RPC de la chaîne du registre, pour la lecture du jeu (EX-8.1), ou null (défaut). En production, il DOIT être déclaré, validator client ou partenaire (règle rpc_non_declare, EX-10.12).",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/rpc"
+        }
+      ]
+    },
+    "notifications": {
+      "description": "Révision 0.5 : webhook de notifications (EX-13.39), ou null (défaut) : la boîte d'envoi seule.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/webhook"
+        }
+      ]
+    },
+    "remise_representation_ms": {
+      "description": "Délai avant de présenter de nouveau une remise livrée et non acquittée ; défaut 30 000.",
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 600000
+    },
+    "body_max_bytes": {
+      "description": "Taille maximale d'un corps de requête, sur chaque canal ; défaut 16 777 216.",
+      "type": "integer",
+      "minimum": 1048576,
+      "maximum": 67108864
+    }
+  },
+  "$defs": {
+    "hex32": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/hex32"
+    },
+    "adresse": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/adresse"
+    },
+    "horodatage": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/horodatage"
+    },
+    "nom_outil": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/nom_outil"
+    },
+    "identifiant_ticket": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/identifiant_ticket"
+    },
+    "identifiant_entree": {
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/identifiant_entree"
+    },
+    "reference_secret": {
+      "description": "Référence de secret : exactement un membre, file (chemin du fichier, relatif au répertoire du fichier de configuration s'il n'est pas absolu) ou env (nom d'une variable d'environnement). La valeur n'est jamais écrite dans la configuration.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "file"
+          ],
+          "properties": {
+            "file": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "env"
+          ],
+          "properties": {
+            "env": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      ]
+    },
+    "tcp": {
+      "description": "Adresse d'écoute TCP. Port 0 : port choisi par le système (essais).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "host",
+        "port"
+      ],
+      "properties": {
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      }
+    },
+    "tls_serveur": {
+      "description": "Certificat et clé du serveur, en PEM, le certificat du serveur en tête de la chaîne ; client_ca : autorité des certificats clients, qui active le mTLS (EX-12.2, EX-12.4). Révision 0.5 : chacun par référence, comme tls de configuration-console-v0 (EX-10.12) ; un chemin relatif d'une référence file se résout contre le répertoire du fichier de configuration.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cert",
+        "key"
+      ],
+      "properties": {
+        "cert": {
+          "$ref": "#/$defs/reference_secret"
+        },
+        "key": {
+          "$ref": "#/$defs/reference_secret"
+        },
+        "client_ca": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/reference_secret"
+            }
+          ]
+        }
+      }
+    },
+    "ecoute": {
+      "description": "Écoute d'un canal : exactement un de socket et tcp non nul. Règles d'EX-10.12 : TLS hors de la boucle locale (tls_exige), jeton ou mTLS en TCP (authentification_exigee), jeton exigé en production (jeton_exige_production).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "socket": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "description": "Chemin absolu.",
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 4096,
+              "pattern": "^/"
+            }
+          ]
+        },
+        "socket_mode": {
+          "description": "Mode de la prise, défaut 0660 ; aucun droit pour les autres.",
+          "type": "string",
+          "pattern": "^0[0-7]{2}0$"
+        },
+        "tcp": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/tcp"
+            }
+          ]
+        },
+        "tls": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/tls_serveur"
+            }
+          ]
+        },
+        "token": {
+          "description": "Jeton porteur attendu en Authorization: Bearer : 16 à 1 024 caractères ASCII imprimables.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/reference_secret"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "socket"
+          ],
+          "properties": {
+            "socket": {
+              "type": "string"
+            },
+            "tcp": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "tcp"
+          ],
+          "properties": {
+            "tcp": {
+              "type": "object"
+            },
+            "socket": {
+              "type": "null"
+            }
+          }
+        }
+      ]
+    },
+    "ecoute_console": {
+      "description": "Écoute du canal de la console : celle de $defs/ecoute, avec jeton ou mTLS toujours exigé (authentification_exigee), jeton distinct de celui du noyau (jetons_egaux, EX-12.4), et annuaire, l'amorce facultative de l'annuaire (EX-13.38).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "socket": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "description": "Chemin absolu.",
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 4096,
+              "pattern": "^/"
+            }
+          ]
+        },
+        "socket_mode": {
+          "type": "string",
+          "pattern": "^0[0-7]{2}0$"
+        },
+        "tcp": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/tcp"
+            }
+          ]
+        },
+        "tls": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/tls_serveur"
+            }
+          ]
+        },
+        "token": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/reference_secret"
+            }
+          ]
+        },
+        "annuaire": {
+          "description": "Révision 0.5 : document annuaire-approbateurs-v0 qui n'amorce l'annuaire que si l'état du service n'en contient aucun (EX-13.38) ; null ou absent : annuaire vide.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "socket"
+          ],
+          "properties": {
+            "socket": {
+              "type": "string"
+            },
+            "tcp": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "tcp"
+          ],
+          "properties": {
+            "tcp": {
+              "type": "object"
+            },
+            "socket": {
+              "type": "null"
+            }
+          }
+        }
+      ]
+    },
+    "rpc": {
+      "description": "Déclaration du point RPC (EX-8.1, EX-10.12).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "validator"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https?://[^\\s/?#@]+(/[^\\s#]*)?$",
+          "description": "https ; http seulement vers 127.0.0.1, ::1 ou localhost hors production (règle rpc_tls, EX-10.12)."
+        },
+        "validator": {
+          "description": "client : validateur que le client opère ; partenaire : validateur partenaire ; developpement : tout autre nœud, refusé en production.",
+          "enum": [
+            "client",
+            "partenaire",
+            "developpement"
+          ]
+        },
+        "token": {
+          "description": "Révision 0.5 : jeton porteur de la garde d'admission devant le validateur, envoyé en Authorization: Bearer, ou null (défaut).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/reference_secret"
+            }
+          ]
+        },
+        "timeout_ms": {
+          "description": "Défaut 5 000.",
+          "type": "integer",
+          "minimum": 500,
+          "maximum": 60000
+        },
+        "logs_from_block": {
+          "description": "Premier bloc lu par la surveillance des journaux (EX-8.5) ; défaut 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "webhook": {
+      "description": "Webhook de notifications de l'exploitant du client (EX-13.39).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "key"
+      ],
+      "properties": {
+        "url": {
+          "description": "https ; http seulement vers 127.0.0.1, ::1 ou localhost hors production (webhook_http).",
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https?://[^\\s/?#@]+(/[^\\s#]*)?$"
+        },
+        "key": {
+          "description": "Clé HMAC-SHA256 (EX-13.41) : 32 à 1 024 caractères ASCII imprimables, espaces de tête et de fin retirés, tirée au hasard avec au moins 256 bits d'entropie (par exemple 64 chiffres hexadécimaux).",
+          "$ref": "#/$defs/reference_secret"
+        },
+        "ca": {
+          "description": "Autorité, en PEM, qui vérifie le certificat du webhook ; null ou absent : magasin du système.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/reference_secret"
+            }
+          ]
+        },
+        "timeout_ms": {
+          "description": "Délai d'une tentative, jusqu'à la réception du statut ; défaut 10 000.",
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 30000
+        }
+      }
+    },
+    "notification": {
+      "description": "Document envoyé au webhook et ligne de la boîte d'envoi (EX-13.40) : aucune identité de personne (EX-13.11) ; destinataires désignés par l'identifiant d'entrée de l'annuaire ou par un rôle. Le lien d'une notification d'un ticket est l'écran de ce ticket, celui d'une opération de l'annuaire l'écran d'inscription (EX-13.40, EX-13.43) ; le schéma n'exprime pas que le ticket du lien est le membre ticket.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "id",
+        "kind",
+        "created_at",
+        "recipients",
+        "ticket",
+        "tool",
+        "deadline",
+        "link",
+        "details"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "id": {
+          "description": "ntf- et 32 chiffres hexadécimaux minuscules tirés au hasard (128 bits).",
+          "type": "string",
+          "pattern": "^ntf-[0-9a-f]{32}$"
+        },
+        "kind": {
+          "enum": [
+            "ouverture",
+            "escalade",
+            "nouveau_gel",
+            "seuil_inatteignable",
+            "vote_inscrit",
+            "operation_annuaire",
+            "plafond_atteint"
+          ]
+        },
+        "created_at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "recipients": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entries",
+            "roles"
+          ],
+          "properties": {
+            "entries": {
+              "type": "array",
+              "maxItems": 1024,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/identifiant_entree"
+              }
+            },
+            "roles": {
+              "type": "array",
+              "maxItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "administrateur",
+                  "administrateur_jeu"
+                ]
+              }
+            }
+          },
+          "description": "Au moins un destinataire : une notification sans destinataire n'est ni formée ni inscrite (EX-13.40).",
+          "anyOf": [
+            {
+              "properties": {
+                "entries": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            },
+            {
+              "properties": {
+                "roles": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            }
+          ]
+        },
+        "ticket": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifiant_ticket"
+            }
+          ]
+        },
+        "tool": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/nom_outil"
+            }
+          ]
+        },
+        "deadline": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ]
+        },
+        "link": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 512,
+              "pattern": "^https://[a-z0-9.:-]+/(tickets/apr-[0-9a-z]+(-[0-9a-z]+)*|inscription)$"
+            }
+          ]
+        },
+        "details": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/details_nouveau_gel"
+            },
+            {
+              "$ref": "#/$defs/details_seuil_inatteignable"
+            },
+            {
+              "$ref": "#/$defs/details_vote_inscrit"
+            },
+            {
+              "$ref": "#/$defs/details_operation_annuaire"
+            },
+            {
+              "$ref": "#/$defs/details_plafond_atteint"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "ouverture",
+                  "escalade"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ticket": {
+                "type": "string"
+              },
+              "tool": {
+                "type": "string"
+              },
+              "deadline": {
+                "type": "string"
+              },
+              "details": {
+                "type": "null"
+              },
+              "link": {
+                "type": "string",
+                "pattern": "/tickets/apr-[0-9a-z]+(-[0-9a-z]+)*$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "nouveau_gel"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ticket": {
+                "type": "string"
+              },
+              "tool": {
+                "type": "string"
+              },
+              "deadline": {
+                "type": "string"
+              },
+              "details": {
+                "$ref": "#/$defs/details_nouveau_gel"
+              },
+              "link": {
+                "type": "string",
+                "pattern": "/tickets/apr-[0-9a-z]+(-[0-9a-z]+)*$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "seuil_inatteignable"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ticket": {
+                "type": "string"
+              },
+              "tool": {
+                "type": "string"
+              },
+              "deadline": {
+                "type": "string"
+              },
+              "details": {
+                "$ref": "#/$defs/details_seuil_inatteignable"
+              },
+              "link": {
+                "type": "string",
+                "pattern": "/tickets/apr-[0-9a-z]+(-[0-9a-z]+)*$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "vote_inscrit"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ticket": {
+                "type": "string"
+              },
+              "tool": {
+                "type": "string"
+              },
+              "deadline": {
+                "type": "string"
+              },
+              "details": {
+                "$ref": "#/$defs/details_vote_inscrit"
+              },
+              "link": {
+                "type": "string",
+                "pattern": "/tickets/apr-[0-9a-z]+(-[0-9a-z]+)*$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "operation_annuaire"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ticket": {
+                "type": "null"
+              },
+              "tool": {
+                "type": "null"
+              },
+              "deadline": {
+                "type": "null"
+              },
+              "details": {
+                "$ref": "#/$defs/details_operation_annuaire"
+              },
+              "link": {
+                "type": "string",
+                "pattern": "/inscription$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "plafond_atteint"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ticket": {
+                "type": "null"
+              },
+              "tool": {
+                "type": "null"
+              },
+              "deadline": {
+                "type": "null"
+              },
+              "link": {
+                "type": "null"
+              },
+              "details": {
+                "$ref": "#/$defs/details_plafond_atteint"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "details_nouveau_gel": {
+      "description": "details de nouveau_gel (EX-13.40) : membres ajoutés par le nouveau gel et seuil effectif.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "added_members",
+        "effective_required"
+      ],
+      "properties": {
+        "added_members": {
+          "type": "array",
+          "maxItems": 1024,
+          "items": {
+            "$ref": "#/$defs/adresse"
+          }
+        },
+        "effective_required": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "details_seuil_inatteignable": {
+      "description": "details de seuil_inatteignable (EX-13.40) : nombre de membres éligibles et seuil effectif.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eligible_count",
+        "effective_required"
+      ],
+      "properties": {
+        "eligible_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_required": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "details_vote_inscrit": {
+      "description": "details de vote_inscrit (EX-13.40) : adresse, décision, empreinte(D_A) et instant d'inscription du vote.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approver",
+        "decision",
+        "digest",
+        "at"
+      ],
+      "properties": {
+        "approver": {
+          "$ref": "#/$defs/adresse"
+        },
+        "decision": {
+          "enum": [
+            "approuve",
+            "refuse"
+          ]
+        },
+        "digest": {
+          "description": "empreinte(D_A) du vote (EX-9.18) : 8 + U+2026 + 8 chiffres hexadécimaux minuscules.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}…[0-9a-f]{8}$"
+        },
+        "at": {
+          "$ref": "#/$defs/horodatage"
+        }
+      }
+    },
+    "details_operation_annuaire": {
+      "description": "details de operation_annuaire (EX-13.40) : opération, entrée visée, adresse ou null, revision après l'opération, instant, et by_self vrai si l'opération vient de la session de l'entrée.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "entry",
+        "address",
+        "revision",
+        "at",
+        "by_self"
+      ],
+      "properties": {
+        "op": {
+          "enum": [
+            "inscrire",
+            "valider",
+            "revoquer",
+            "desactiver",
+            "reactiver",
+            "lier_demandeur",
+            "delier_demandeur"
+          ]
+        },
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "address": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/adresse"
+            }
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "by_self": {
+          "type": "boolean"
+        }
+      }
+    },
+    "details_plafond_atteint": {
+      "description": "details de plafond_atteint (EX-13.40).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_open_tickets"
+      ],
+      "properties": {
+        "max_open_tickets": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      }
+    },
+    "rapport_validation": {
+      "description": "Sortie de noortrace-approbation valider-configuration (EX-10.12) : une ligne JSON ; errors triées par pointer puis par code, vide si et seulement si valide. Chaque erreur a les membres code et pointer, comme les erreurs de politique d'EX-4.2.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valide",
+        "errors"
+      ],
+      "properties": {
+        "valide": {
+          "type": "boolean"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "pointer"
+            ],
+            "properties": {
+              "code": {
+                "enum": [
+                  "json",
+                  "schema",
+                  "rpc_non_declare",
+                  "rpc_tls",
+                  "tls_exige",
+                  "authentification_exigee",
+                  "jeton_exige_production",
+                  "jetons_egaux",
+                  "escalade_non_croissante",
+                  "webhook_http"
+                ]
+              },
+              "pointer": {
+                "description": "Pointeur JSON (RFC 6901) du membre fautif ; chaîne vide pour le document.",
+                "type": "string",
+                "maxLength": 1024
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

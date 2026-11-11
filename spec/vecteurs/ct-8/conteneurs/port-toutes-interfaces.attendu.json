@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "port-toutes-interfaces.yaml",
-    "sha256": "e7998b4154bc25000c5c8d33acdbe19a68f093f8fb72474193483d39e40d24ed",
+    "sha256": "35013dc94a0431b9c01944d8bfaf6957af2e702c4ba049d12cdebe70b460ba8a",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

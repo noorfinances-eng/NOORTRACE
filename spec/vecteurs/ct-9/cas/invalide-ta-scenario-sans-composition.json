@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.6",
-  "date": "2026-11-10",
+  "spec_version": "0.7",
+  "date": "2026-11-11",
   "levels": [
     {
       "id": "TU",
@@ -36,7 +36,7 @@
     {
       "id": "TA",
       "name": "Adversariaux",
-      "object": "Une entrée par menace MN-1 à MN-98 de CT-7 et les cinq scénarios du plan : la réponse retirée, l'attaque, l'observation avec et sans la réponse.",
+      "object": "Une entrée par menace MN-1 à MN-102 de CT-7 et les cinq scénarios du plan : la réponse retirée, l'attaque, l'observation avec et sans la réponse.",
       "oracle": "Le test passe avec la réponse et échoue sans elle (CT-7 EX-3.2).",
       "section": "10"
     },
@@ -106,7 +106,7 @@
   ],
   "tests": [
     {
-      "id": "TA-99",
+      "id": "TA-103",
       "level": "TA",
       "title": "Scénario du plan : l'agent supprime ou réécrit (TA-1, TA-2, TA-3, TA-4, TA-5, TA-6, TA-7, TA-9, TA-15, TA-22)",
       "specs": [

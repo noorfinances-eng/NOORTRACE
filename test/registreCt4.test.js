@@ -310,6 +310,29 @@ describe("CT-4 — vecteurs spec/vecteurs/ct-4", function () {
     }
   });
 
+  it("révision 0.6, 7.13 : le manifeste et le gabarit annotés <!-- exemple: … --> sont conformes à paquet-client-v0 ; SHA-256 et longueurs du dossier, du jeu et du gabarit sont ceux de ces documents écrits selon EX-7.18 ; captures synthétiques", function () {
+    const noms = ["paquet-client", "inscription-client", "configuration-approbation", "annuaire-approbateurs", "evenement", "ticket", "politique-approbation"];
+    const schemas = noms.map((n) => lireJSON(path.join(PROJECT_ROOT, "spec", "schemas", `${n}-v0.schema.json`)));
+    expect(J.motsClesHorsSousEnsemble(schemas[0])).to.deep.equal([]);
+    const registre = J.registreSchemas(schemas);
+    const md = fs.readFileSync(path.join(PROJECT_ROOT, "spec", "CT-4-registre.md"), "utf8");
+    const exemples = [...md.matchAll(/<!-- exemple: ([a-z-]+)(?:\/([a-z_]+))? -->\n```json\n([\s\S]*?)\n```/g)];
+    expect(exemples.map(([, nom, def]) => `${nom}/${def ?? ""}`)).to.deep.equal(["paquet-client/", "paquet-client/gabarit_service"]);
+    for (const [, nom, def, texte] of exemples) {
+      expect(J.validerSchema(JSON.parse(texte), registre[`https://noortrace.example/schemas/v0/${nom}.schema.json`], { registre, fragment: def ? `#/$defs/${def}` : "" }), `${nom}/${def ?? ""}`).to.deep.equal([]);
+    }
+    const [manifeste, gabarit] = exemples.map(([, , , t]) => JSON.parse(t));
+    const sha = (b) => "0x" + createHash("sha256").update(b).digest("hex");
+    const ecrit = (v) => JSON.stringify(v, null, 2) + "\n";
+    const dossier = fs.readFileSync(path.join(REP, "inscription", "valides", "relecteur-exemple-fini.json"));
+    const attendu = { "inscription-client.json": dossier, "jeu-approbateurs.json": Buffer.from(ecrit(JSON.parse(dossier).result.approver_set)), "gabarit-service-approbation.json": Buffer.from(ecrit(gabarit)) };
+    for (const f of manifeste.files) {
+      if (attendu[f.path]) expect([f.sha256, f.length], f.path).to.deep.equal([sha(attendu[f.path]), attendu[f.path].length]);
+      else expect(f.sha256, f.path).to.equal(sha(`noortrace/exemple/ct4/fichier/${f.path.slice("captures/".length)}`));
+    }
+    expect([manifeste.org, manifeste.org_id]).to.deep.equal([gabarit.org, gabarit.org_id]);
+  });
+
   it("les exemples annotés de CT-4 sont conformes à leurs schémas ; ceux de 7.7, 7.10 et 9.4 sont dans les vecteurs", function () {
     const cibles = {
       "instance-registre": [C.ID_SCHEMA_INSTANCE, ""],

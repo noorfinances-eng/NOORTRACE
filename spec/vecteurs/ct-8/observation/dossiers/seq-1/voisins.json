@@ -8,7 +8,7 @@
     "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
     "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
     "recorder_key_id": "rec-test-01",
-    "prev_hash": "0xff8bdc8866c6f06e51c357b1b47803bdcd42f559084bedf2df82e2ec9cc49ce8",
+    "prev_hash": "0x1fe67abac1e0d23ec9d64dc605bcca2ef54bed8a01a899814956045444d71236",
     "delegation": {
       "launched_by": "agent-sinistres",
       "on_behalf_of": "service-sinistres",
@@ -47,7 +47,7 @@
     },
     "effects": [],
     "context": [],
-    "hash": "0xb8f666e5d7c656c5e673f6d9cf00700f5deeb831b7867fa46b0277b76708519c",
-    "sig": "0x667ebcc23dd7191aa251774eeae0f06fcf4bb825aeffaa549951a77efad0a2edd347cc388701f62fce6343da2ef57322e2f9de60369ddccabba63be96913b502"
+    "hash": "0x6f9af835b97198b6f7dd3f24ddccf1a03f6fb44aa66899ace63bd8ff48e945d5",
+    "sig": "0x0d80659bad1c25f27ccd9e1e9918fba7e373843ae1a0aa619d5284aed12e97e6d864e8b8dec1dd35a3411edc3d93169a616914d5e59fa8f6775a83ffe5c30402"
   }
 }

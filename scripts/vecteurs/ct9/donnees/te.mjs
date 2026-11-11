@@ -1193,5 +1193,197 @@ export const TE = [
     "threats": [
       "MN-29"
     ]
+  },
+  {
+    "id": "TE-18",
+    "level": "TE",
+    "title": "Export du dossier par `noortrace-ctl dossier exporter` sur le démon : désignation, refus dans leur ordre, répertoire des exports et ses droits, écriture atomique, lignes du journal d'exploitation",
+    "specs": [
+      "CT-2",
+      "CT-7"
+    ],
+    "covers": [
+      "CT-2 EX-15.9",
+      "CT-2 EX-15.10",
+      "CT-2 EX-15.11",
+      "CT-2 EX-15.12",
+      "CT-2 EX-15.13",
+      "CT-2 EX-15.14",
+      "CT-7 EX-3.16"
+    ],
+    "preconditions": [
+      "Démon de l'enregistreur de l'étape 4 avec la commande d'export de CT-2 §15.7 (révision 0.8) et `noortrace-ctl` ; journal de test avec une période close et une période ouverte, un appel approuvé par ticket et sa continuation, des tickets refusé, expiré et non décidé ; répertoire des exports au compte du démon et au groupe des lecteurs, en `2750` ; les deux vérificateurs de CT-6."
+    ],
+    "steps": [
+      "Exporter par `--seq`, par `--dernier` et par `--ticket` ; rejouer chaque refus d'EX-15.12 : période non close, destination existante, non vide, hors du volume, par un lien symbolique, lien posé pendant l'écriture ; en production, répertoire des exports d'un autre propriétaire, ouvert aux autres comptes, inscriptible par son groupe ou sans bit setgid, parent d'un autre groupe ou sans bit setgid.",
+      "Interrompre un export, puis redémarrer le démon ; écrire au démon des demandes inconnue, illisible, hors de son domaine et périmée, puis des demandes `rotation-urgence` et `ancrage` ; valider des configurations dont `exports_dir` est `storage.root`, l'un de ses parents ou l'un de ses descendants.",
+      "Vérifier chaque dossier exporté par les deux vérificateurs ; lire le journal d'exploitation, `supervision.ops_log.level` valant `error`."
+    ],
+    "oracle": "Chaque refus rend, dans l'ordre d'EX-15.12, son message et son code, sans dossier ni répertoire partiel à la destination ; `--ticket` retient le premier événement `executee` qui porte l'approbation, jamais la continuation, et refuse un ticket refusé, expiré, non décidé ou inconnu (EX-15.11) ; le dossier est en `0750` et ses fichiers en `0640`, du groupe des lecteurs (EX-15.13, CT-7 EX-3.16) ; le reste `.noortrace-partiel-<request_id>` d'un export interrompu est supprimé à l'acquisition du bail ; une ligne `dossier_exported` ou `dossier_export_refused` par demande, avec son `request_id`, quel que soit le niveau du journal (EX-15.14) ; une demande inconnue, illisible, hors de son domaine ou périmée n'a aucun effet et donne `ctl_request_refused`, les demandes `rotation-urgence` et `ancrage` exécutent leur seule action (EX-15.10) ; `exports_dir` emboîté avec `storage.root` est refusé à la validation ; chaque dossier exporté : code 0 des deux vérificateurs, énoncé identique.",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 6,
+      "blocking": "Commande d'export du démon non livrée : routage de `dossier` dans `noortrace-ctl`, traitement de `SIGURG` par action nommée, écriture et droits du dossier (CT-2 §22, révision 0.8) ; seule la validation d'`exports_dir` est livrée."
+    },
+    "threats": [
+      "MN-99"
+    ]
+  },
+  {
+    "id": "TE-19",
+    "level": "TE",
+    "title": "Service d'approbation de la révision 0.5 de CT-3 : document de configuration, état chiffré, annuaire persistant, liste des tickets",
+    "specs": [
+      "CT-3"
+    ],
+    "covers": [
+      "CT-3 EX-7.30",
+      "CT-3 EX-10.12",
+      "CT-3 EX-12.21",
+      "CT-3 EX-13.38"
+    ],
+    "preconditions": [
+      "Service d'approbation de la révision 0.5 de CT-3, lancé par `noortrace-approbation --config` sur un document `configuration-approbation-v0`, avec une clé de stockage de 32 octets ; jeu d'approbateurs lu sur le réseau Hardhat en mémoire."
+    ],
+    "steps": [
+      "Contrôler par `noortrace-approbation valider-configuration` l'exemple d'EX-10.12, puis une variante par code de sa table (`rpc_non_declare`, `rpc_tls`, `tls_exige`, `authentification_exigee`, `jeton_exige_production`, `jetons_egaux`, `escalade_non_croissante`, `webhook_http`) et un secret illisible.",
+      "Démarrer ; ouvrir, décider et laisser ouverts des tickets ; inscrire et valider une adresse dans l'annuaire ; arrêter, puis reprendre ; recopier un enregistrement chiffré sous une autre nature ou un autre numéro et altérer l'instantané, puis reprendre.",
+      "Appeler `tickets` sur le canal de la console, sans puis avec `related_to`."
+    ],
+    "oracle": "Chaque variante est refusée avec son code et son pointeur, sans la valeur d'un secret, et l'exemple est accepté ; sous `state_dir/etat/`, répertoires en `0700` et fichiers en `0600`, chaque enregistrement est le base64 de `nonce ‖ chiffré ‖ étiquette` que `node:crypto` déchiffre en AES-256-GCM avec les données associées d'EX-7.30 ; un enregistrement recopié sous une autre nature ou un autre numéro ne se déchiffre pas, et le service refuse de démarrer sur un instantané altéré ; l'annuaire et les défis non expirés sont relus à la reprise selon la préséance d'EX-13.38 ; chaque ticket de `tickets` porte `contest_ms` et `contest`, et `related` suit EX-12.21 (refus de `consulter` d'abord, au plus 20 tickets, ordre, aucun argument), conforme à `console-service-v0`.",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 6,
+      "blocking": "Service d'approbation de la révision 0.5 non livré : document `configuration-approbation-v0`, chiffrement de l'état d'EX-7.30, persistance de l'annuaire et méthode `tickets` (CT-3 §15.2)."
+    },
+    "threats": []
+  },
+  {
+    "id": "TE-20",
+    "level": "TE",
+    "title": "Serveur de console : document de configuration, adresses, santé et sonde, système d'identité local, sessions, garde d'hôte et relais",
+    "specs": [
+      "CT-3"
+    ],
+    "covers": [
+      "CT-3 EX-10.13",
+      "CT-3 EX-13.43",
+      "CT-3 EX-13.44",
+      "CT-3 EX-13.47",
+      "CT-3 EX-13.48",
+      "CT-3 EX-13.49"
+    ],
+    "preconditions": [
+      "Serveur de console de la révision 0.5 de CT-3, lancé par `noortrace-console --config` sur un document `configuration-console-v0`, en `developpement` avec le système d'identité local ; service d'approbation de TE-19."
+    ],
+    "steps": [
+      "Contrôler par `noortrace-console valider-configuration` l'exemple d'EX-10.13 et une variante par code de sa table, dont le système local en `production`.",
+      "Demander chaque chemin de la table d'EX-13.43 et un chemin hors table ; lancer `noortrace-console sonde` avec le service joignable, puis injoignable ; se connecter par le système local, avec un mauvais mot de passe puis trop tôt ; dépasser `reauth_max_age_s`, puis l'âge des sessions.",
+      "Envoyer des requêtes d'un autre `Host`, sans `Origin` ou d'une autre origine, sans `Content-Type: application/json`, de plus de 65 536 octets, et relayer chaque méthode de la table d'EX-12.13 puis une méthode hors table."
+    ],
+    "oracle": "Chaque variante refusée avec son code ; les chemins servis et les 404, 405 et 413 suivent EX-13.43 ; `GET /v0/sante` est conforme à `$defs/reponse_sante` et l'appel au service gardé 5 s, la sonde rend 0 ou 1 selon EX-13.44 ; identités `utilisateur <domain> <name>`, `identifiants_refuses` et `essai_trop_tot` (EX-13.47) ; sessions en mémoire seulement, détruites à la reconnexion, `reauthentification_requise` au-delà de `reauth_max_age_s` (EX-13.48) ; `hote_refuse` (421), `origine_refusee` (403), `requete_invalide` (400) avant tout autre traitement, aucun en-tête `Access-Control-Allow-*`, réponse du service rendue telle quelle (EX-13.49).",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 6,
+      "blocking": "Serveur de console non construit (CT-3 §13.20, §13.21, révision 0.5) ; seule la console de référence existe (TU-)."
+    },
+    "threats": [
+      "MN-47"
+    ]
+  },
+  {
+    "id": "TE-21",
+    "level": "TE",
+    "title": "Paquet client produit par l'outil du registre à la fin de l'inscription, puis contrôlé à la réception par le client",
+    "specs": [
+      "CT-4"
+    ],
+    "covers": [
+      "CT-4 EX-7.18",
+      "CT-4 EX-7.19",
+      "CT-4 EX-7.20",
+      "CT-4 EX-7.21",
+      "CT-4 EX-7.22"
+    ],
+    "preconditions": [
+      "Outil de référence `scripts/registre/noortrace-registre.mjs` avec la production et le contrôle du paquet (CT-4 §7.13, révision 0.6) ; inscription d'un client fictif menée jusqu'au bout sur le réseau de développement (TE-4)."
+    ],
+    "steps": [
+      "Produire le paquet du client inscrit ; le contrôler comme le client (EX-7.22) ; rejouer le contrôle sur des copies altérées : fichier en trop, fichier manquant, ordre de la liste, SHA-256 ou longueur faux, `org_id` différent, capture incomplète, fichier qui contient une clé, une graine ou un jeton."
+    ],
+    "oracle": "Le répertoire porte exactement les fichiers d'EX-7.18, écrits selon EX-7.18 ; `paquet-client.json` et le gabarit sont conformes à `paquet-client-v0` et chaque membre non nul du gabarit à la propriété de même nom de `configuration-approbation-v0` (EX-7.19, EX-7.20) ; le paquet sain passe le contrôle ; chaque copie altérée est refusée au point d'EX-7.21 ou d'EX-7.22 qui la vise ; aucun fichier ne contient de secret.",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 6,
+      "blocking": "Production et contrôle du paquet client non livrés par l'outil de référence (CT-4 §13, révision 0.6) ; seuls les exemples de 7.13 sont validés."
+    },
+    "threats": []
+  },
+  {
+    "id": "TE-22",
+    "level": "TE",
+    "title": "Application d'exploitant : interface web et agent séparé conduisent l'inscription avec les sorties de l'outil de référence",
+    "specs": [
+      "CT-4"
+    ],
+    "covers": [
+      "CT-4 EX-7.23",
+      "CT-4 EX-7.24",
+      "CT-4 EX-7.25",
+      "CT-4 EX-7.26",
+      "CT-4 EX-7.27",
+      "CT-4 EX-7.28"
+    ],
+    "preconditions": [
+      "Application d'exploitant de CT-4 §7.14 : interface web et agent sous deux comptes du système, reliés par une prise de domaine Unix ; réseau de développement (TE-4)."
+    ],
+    "steps": [
+      "Conduire par l'application les pas de 7.1 et la production du paquet pour un client fictif, puis les mêmes pas par l'outil de référence sur un second client ; relever chaque champ de chaque page et chaque méthode de l'agent ; demander une administration du jeu et un approvisionnement sans, puis avec la confirmation hors bande ; joindre l'agent depuis un autre compte et par une adresse IP."
+    ],
+    "oracle": "Dossiers, envois, captures et paquet de mêmes formes et mêmes états que ceux de l'outil de référence (EX-7.24) ; aucun champ ni aucune méthode ne reçoit une clé, une graine, une mnémonique, un jeton ou un mot de passe (EX-7.25) ; aucune demande d'administration ni aucun approvisionnement sans confirmation consignée (EX-7.26) ; aucun condensé du registre signé par l'application (EX-7.27) ; l'agent n'écoute qu'une prise et refuse un pair d'un autre compte (EX-7.28).",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 6,
+      "blocking": "Application d'exploitant non construite (CT-4 §7.14, révision 0.6)."
+    },
+    "threats": []
+  },
+  {
+    "id": "TE-23",
+    "level": "TE",
+    "title": "Page de vérification : le vérificateur compilé en WebAssembly rend dans le navigateur le rapport du binaire",
+    "specs": [
+      "CT-6"
+    ],
+    "covers": [
+      "CT-6 EX-18.1",
+      "CT-6 EX-18.2",
+      "CT-6 EX-18.3",
+      "CT-6 EX-18.4",
+      "CT-6 EX-18.5",
+      "CT-6 EX-18.6",
+      "CT-6 EX-18.7",
+      "CT-6 EX-18.8",
+      "CT-6 EX-18.9",
+      "CT-6 EX-18.10",
+      "CT-6 EX-18.11",
+      "CT-6 EX-18.12",
+      "CT-6 EX-18.13"
+    ],
+    "preconditions": [
+      "Artefact `noortrace-verifier.wasm` et fichiers de la page construits deux fois par la recette de CT-6 §18 ; hébergement de test qui sert les en-têtes d'EX-18.12 sur une origine propre ; un navigateur de chacun des moteurs Blink, Gecko et WebKit, en sa dernière version publiée ; binaire `linux/amd64` de la même version."
+    ],
+    "steps": [
+      "Comparer les SHA-256 des deux constructions et les fichiers de la page ; vérifier dans chaque navigateur chacun des dossiers de `spec/vecteurs/ct-1/dossiers` et de `spec/vecteurs/ct-6/dossiers`, avec et sans fichier d'ancres, d'en-têtes Bitcoin et options ; servir un artefact dont un octet est changé ; relever les requêtes réseau de la page."
+    ],
+    "oracle": "Deux constructions aux mêmes octets (EX-18.4) ; rapport lisible, rapport JSON, sortie d'erreur et code égaux, octet pour octet, à ceux du binaire sur les mêmes entrées (EX-18.10) ; un artefact altéré n'est pas compilé et aucun rapport n'est affiché (EX-18.5) ; aucune requête ne quitte l'origine et aucun fichier choisi n'est envoyé (EX-18.11, EX-18.12) ; les trois moteurs donnent le même résultat (EX-18.13).",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 6,
+      "blocking": "Artefact WebAssembly et page de vérification non construits (CT-6 §18, révision 0.6)."
+    },
+    "threats": [
+      "MN-101"
+    ]
   }
 ];

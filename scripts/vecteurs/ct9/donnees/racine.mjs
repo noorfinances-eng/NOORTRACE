@@ -6,8 +6,8 @@ export const META = {
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.6",
-  "date": "2026-11-10"
+  "spec_version": "0.7",
+  "date": "2026-11-11"
 };
 
 export const LEVELS = [
@@ -42,7 +42,7 @@ export const LEVELS = [
   {
     "id": "TA",
     "name": "Adversariaux",
-    "object": "Une entrée par menace MN-1 à MN-98 de CT-7 et les cinq scénarios du plan : la réponse retirée, l'attaque, l'observation avec et sans la réponse.",
+    "object": "Une entrée par menace MN-1 à MN-102 de CT-7 et les cinq scénarios du plan : la réponse retirée, l'attaque, l'observation avec et sans la réponse.",
     "oracle": "Le test passe avec la réponse et échoue sans elle (CT-7 EX-3.2).",
     "section": "10"
   },

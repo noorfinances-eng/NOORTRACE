@@ -78,6 +78,7 @@
         "^worm-ecrivain$",
         "^jeton-hote(-[a-z0-9-]+)?$",
         "^jeton-passerelle$",
+        "^jeton-noyau-vers-service-enregistreur$",
         "^cle-fournisseur-[a-z0-9-]+$",
         "^tsa-[a-z0-9-]+$",
         "^tls-enregistreur-(certificat|cle)$",
@@ -187,6 +188,7 @@
         "./config/"
       ],
       "secrets": [
+        "^cle-stockage-approbation$",
         "^jeton-console-vers-service-approbation$",
         "^jeton-noyau-vers-service$",
         "^rpc-registre$",
@@ -243,7 +245,8 @@
       "secrets": [
         "^jeton-console-vers-service-console$",
         "^oidc-client$",
-        "^tls-console$"
+        "^tls-console$",
+        "^tls-autorite-approbation$"
       ],
       "probe": {
         "type": "commande",

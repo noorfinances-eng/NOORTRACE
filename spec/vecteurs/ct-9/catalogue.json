@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.6",
-  "date": "2026-11-10",
+  "spec_version": "0.7",
+  "date": "2026-11-11",
   "levels": [
     {
       "id": "TU",
@@ -36,7 +36,7 @@
     {
       "id": "TA",
       "name": "Adversariaux",
-      "object": "Une entrée par menace MN-1 à MN-98 de CT-7 et les cinq scénarios du plan : la réponse retirée, l'attaque, l'observation avec et sans la réponse.",
+      "object": "Une entrée par menace MN-1 à MN-102 de CT-7 et les cinq scénarios du plan : la réponse retirée, l'attaque, l'observation avec et sans la réponse.",
       "oracle": "Le test passe avec la réponse et échoue sans elle (CT-7 EX-3.2).",
       "section": "10"
     },
@@ -7215,6 +7215,62 @@
       "threats": []
     },
     {
+      "id": "TI-21",
+      "level": "TI",
+      "title": "Notifications du service d'approbation livrées à un webhook et vérifiées par un récepteur tiers",
+      "specs": [
+        "CT-3"
+      ],
+      "covers": [
+        "CT-3 EX-13.39",
+        "CT-3 EX-13.40",
+        "CT-3 EX-13.41",
+        "CT-3 EX-13.42"
+      ],
+      "preconditions": [
+        "Service d'approbation de la révision 0.5 (TE-19) avec `notifications` ; récepteur de webhook de test en HTTPS, d'autorité `notifications.ca`, écrit avec la bibliothèque standard de Python (`hmac.compare_digest` sur HMAC-SHA256), qui répond selon un scénario (2xx, 3xx, 408, 429, 5xx, silence)."
+      ],
+      "steps": [
+        "Provoquer chaque sorte de notification ; faire répondre le récepteur 503 puis 200, puis 301, puis 404, puis ne rien répondre au-delà de `notifications.timeout_ms` ; remplir la file au-delà de 10 000 notifications ; arrêter le service avec des notifications en attente et le reprendre."
+      ],
+      "oracle": "Corps égal au JCS du document `$defs/notification` de `configuration-approbation-v0`, identique à chaque tentative ; en-tête `NOORTRACE-Signature` égal au HMAC recalculé par le récepteur, exemple d'EX-13.41 compris ; reprises 10 s, 60 s, 300 s et 1 800 s après chaque tentative, abandon sans reprise sur un statut 3xx ou un 4xx autre que 408 et 429, `file_pleine` dans l'ordre d'EX-13.42 ; lignes `notification_livree`, `notification_echec` et `notification_abandonnee` au journal du service, sans corps ni clé ; aucune notification livrée par la console (EX-13.39).",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 6,
+        "blocking": "Livraison des notifications par le service non construite (CT-3 §15.2, révision 0.5)."
+      },
+      "threats": [
+        "MN-102"
+      ]
+    },
+    {
+      "id": "TI-22",
+      "level": "TI",
+      "title": "Serveur de console et fournisseur d'identité OIDC : découverte, flux par code avec PKCE, vérification du jeton d'identité",
+      "specs": [
+        "CT-3"
+      ],
+      "covers": [
+        "CT-3 EX-13.45",
+        "CT-3 EX-13.46"
+      ],
+      "preconditions": [
+        "Serveur de console de TE-20 avec le système d'identité `oidc` ; fournisseur OIDC de test qui publie sa découverte et son jeu de clés et signe ses jetons par une bibliothèque tierce de JOSE, et en sert des variantes fautives."
+      ],
+      "steps": [
+        "Se connecter par le flux par code avec PKCE `S256` et `client_secret_basic` ; puis présenter des découvertes fautives (`issuer` différent, adresse non `https`, méthodes PKCE sans `S256`, fournisseur muet) et des jetons fautifs, un par point d'EX-13.46 (JWE, `crit`, `alg` hors liste ou `none`, clé trop courte, signature, `iss`, `aud`, `azp`, `exp`, `iat`, `nonce`, `auth_time`, `sub`, identité non canonique) ; rejouer une transaction et un `state`."
+      ],
+      "oracle": "Session ouverte pour le seul jeton valide ; chaque découverte fautive rend `fournisseur_erreur` ou `fournisseur_indisponible` (EX-13.45) ; chaque jeton fautif rend 400 `jeton_invalide` au premier point en échec, `identite_invalide` au point 9, sans session ; une transaction rejouée rend `transaction_inconnue` ; la page ne vérifie aucun jeton.",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 6,
+        "blocking": "Serveur de console non construit (CT-3 §13.21, révision 0.5)."
+      },
+      "threats": [
+        "MN-100"
+      ]
+    },
+    {
       "id": "TE-1",
       "level": "TE",
       "title": "Cas de démonstration « assurance » : agent de souscription et de tarification, de la capture au dossier vérifié",
@@ -8402,6 +8458,198 @@
       },
       "threats": [
         "MN-29"
+      ]
+    },
+    {
+      "id": "TE-18",
+      "level": "TE",
+      "title": "Export du dossier par `noortrace-ctl dossier exporter` sur le démon : désignation, refus dans leur ordre, répertoire des exports et ses droits, écriture atomique, lignes du journal d'exploitation",
+      "specs": [
+        "CT-2",
+        "CT-7"
+      ],
+      "covers": [
+        "CT-2 EX-15.9",
+        "CT-2 EX-15.10",
+        "CT-2 EX-15.11",
+        "CT-2 EX-15.12",
+        "CT-2 EX-15.13",
+        "CT-2 EX-15.14",
+        "CT-7 EX-3.16"
+      ],
+      "preconditions": [
+        "Démon de l'enregistreur de l'étape 4 avec la commande d'export de CT-2 §15.7 (révision 0.8) et `noortrace-ctl` ; journal de test avec une période close et une période ouverte, un appel approuvé par ticket et sa continuation, des tickets refusé, expiré et non décidé ; répertoire des exports au compte du démon et au groupe des lecteurs, en `2750` ; les deux vérificateurs de CT-6."
+      ],
+      "steps": [
+        "Exporter par `--seq`, par `--dernier` et par `--ticket` ; rejouer chaque refus d'EX-15.12 : période non close, destination existante, non vide, hors du volume, par un lien symbolique, lien posé pendant l'écriture ; en production, répertoire des exports d'un autre propriétaire, ouvert aux autres comptes, inscriptible par son groupe ou sans bit setgid, parent d'un autre groupe ou sans bit setgid.",
+        "Interrompre un export, puis redémarrer le démon ; écrire au démon des demandes inconnue, illisible, hors de son domaine et périmée, puis des demandes `rotation-urgence` et `ancrage` ; valider des configurations dont `exports_dir` est `storage.root`, l'un de ses parents ou l'un de ses descendants.",
+        "Vérifier chaque dossier exporté par les deux vérificateurs ; lire le journal d'exploitation, `supervision.ops_log.level` valant `error`."
+      ],
+      "oracle": "Chaque refus rend, dans l'ordre d'EX-15.12, son message et son code, sans dossier ni répertoire partiel à la destination ; `--ticket` retient le premier événement `executee` qui porte l'approbation, jamais la continuation, et refuse un ticket refusé, expiré, non décidé ou inconnu (EX-15.11) ; le dossier est en `0750` et ses fichiers en `0640`, du groupe des lecteurs (EX-15.13, CT-7 EX-3.16) ; le reste `.noortrace-partiel-<request_id>` d'un export interrompu est supprimé à l'acquisition du bail ; une ligne `dossier_exported` ou `dossier_export_refused` par demande, avec son `request_id`, quel que soit le niveau du journal (EX-15.14) ; une demande inconnue, illisible, hors de son domaine ou périmée n'a aucun effet et donne `ctl_request_refused`, les demandes `rotation-urgence` et `ancrage` exécutent leur seule action (EX-15.10) ; `exports_dir` emboîté avec `storage.root` est refusé à la validation ; chaque dossier exporté : code 0 des deux vérificateurs, énoncé identique.",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 6,
+        "blocking": "Commande d'export du démon non livrée : routage de `dossier` dans `noortrace-ctl`, traitement de `SIGURG` par action nommée, écriture et droits du dossier (CT-2 §22, révision 0.8) ; seule la validation d'`exports_dir` est livrée."
+      },
+      "threats": [
+        "MN-99"
+      ]
+    },
+    {
+      "id": "TE-19",
+      "level": "TE",
+      "title": "Service d'approbation de la révision 0.5 de CT-3 : document de configuration, état chiffré, annuaire persistant, liste des tickets",
+      "specs": [
+        "CT-3"
+      ],
+      "covers": [
+        "CT-3 EX-7.30",
+        "CT-3 EX-10.12",
+        "CT-3 EX-12.21",
+        "CT-3 EX-13.38"
+      ],
+      "preconditions": [
+        "Service d'approbation de la révision 0.5 de CT-3, lancé par `noortrace-approbation --config` sur un document `configuration-approbation-v0`, avec une clé de stockage de 32 octets ; jeu d'approbateurs lu sur le réseau Hardhat en mémoire."
+      ],
+      "steps": [
+        "Contrôler par `noortrace-approbation valider-configuration` l'exemple d'EX-10.12, puis une variante par code de sa table (`rpc_non_declare`, `rpc_tls`, `tls_exige`, `authentification_exigee`, `jeton_exige_production`, `jetons_egaux`, `escalade_non_croissante`, `webhook_http`) et un secret illisible.",
+        "Démarrer ; ouvrir, décider et laisser ouverts des tickets ; inscrire et valider une adresse dans l'annuaire ; arrêter, puis reprendre ; recopier un enregistrement chiffré sous une autre nature ou un autre numéro et altérer l'instantané, puis reprendre.",
+        "Appeler `tickets` sur le canal de la console, sans puis avec `related_to`."
+      ],
+      "oracle": "Chaque variante est refusée avec son code et son pointeur, sans la valeur d'un secret, et l'exemple est accepté ; sous `state_dir/etat/`, répertoires en `0700` et fichiers en `0600`, chaque enregistrement est le base64 de `nonce ‖ chiffré ‖ étiquette` que `node:crypto` déchiffre en AES-256-GCM avec les données associées d'EX-7.30 ; un enregistrement recopié sous une autre nature ou un autre numéro ne se déchiffre pas, et le service refuse de démarrer sur un instantané altéré ; l'annuaire et les défis non expirés sont relus à la reprise selon la préséance d'EX-13.38 ; chaque ticket de `tickets` porte `contest_ms` et `contest`, et `related` suit EX-12.21 (refus de `consulter` d'abord, au plus 20 tickets, ordre, aucun argument), conforme à `console-service-v0`.",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 6,
+        "blocking": "Service d'approbation de la révision 0.5 non livré : document `configuration-approbation-v0`, chiffrement de l'état d'EX-7.30, persistance de l'annuaire et méthode `tickets` (CT-3 §15.2)."
+      },
+      "threats": []
+    },
+    {
+      "id": "TE-20",
+      "level": "TE",
+      "title": "Serveur de console : document de configuration, adresses, santé et sonde, système d'identité local, sessions, garde d'hôte et relais",
+      "specs": [
+        "CT-3"
+      ],
+      "covers": [
+        "CT-3 EX-10.13",
+        "CT-3 EX-13.43",
+        "CT-3 EX-13.44",
+        "CT-3 EX-13.47",
+        "CT-3 EX-13.48",
+        "CT-3 EX-13.49"
+      ],
+      "preconditions": [
+        "Serveur de console de la révision 0.5 de CT-3, lancé par `noortrace-console --config` sur un document `configuration-console-v0`, en `developpement` avec le système d'identité local ; service d'approbation de TE-19."
+      ],
+      "steps": [
+        "Contrôler par `noortrace-console valider-configuration` l'exemple d'EX-10.13 et une variante par code de sa table, dont le système local en `production`.",
+        "Demander chaque chemin de la table d'EX-13.43 et un chemin hors table ; lancer `noortrace-console sonde` avec le service joignable, puis injoignable ; se connecter par le système local, avec un mauvais mot de passe puis trop tôt ; dépasser `reauth_max_age_s`, puis l'âge des sessions.",
+        "Envoyer des requêtes d'un autre `Host`, sans `Origin` ou d'une autre origine, sans `Content-Type: application/json`, de plus de 65 536 octets, et relayer chaque méthode de la table d'EX-12.13 puis une méthode hors table."
+      ],
+      "oracle": "Chaque variante refusée avec son code ; les chemins servis et les 404, 405 et 413 suivent EX-13.43 ; `GET /v0/sante` est conforme à `$defs/reponse_sante` et l'appel au service gardé 5 s, la sonde rend 0 ou 1 selon EX-13.44 ; identités `utilisateur <domain> <name>`, `identifiants_refuses` et `essai_trop_tot` (EX-13.47) ; sessions en mémoire seulement, détruites à la reconnexion, `reauthentification_requise` au-delà de `reauth_max_age_s` (EX-13.48) ; `hote_refuse` (421), `origine_refusee` (403), `requete_invalide` (400) avant tout autre traitement, aucun en-tête `Access-Control-Allow-*`, réponse du service rendue telle quelle (EX-13.49).",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 6,
+        "blocking": "Serveur de console non construit (CT-3 §13.20, §13.21, révision 0.5) ; seule la console de référence existe (TU-)."
+      },
+      "threats": [
+        "MN-47"
+      ]
+    },
+    {
+      "id": "TE-21",
+      "level": "TE",
+      "title": "Paquet client produit par l'outil du registre à la fin de l'inscription, puis contrôlé à la réception par le client",
+      "specs": [
+        "CT-4"
+      ],
+      "covers": [
+        "CT-4 EX-7.18",
+        "CT-4 EX-7.19",
+        "CT-4 EX-7.20",
+        "CT-4 EX-7.21",
+        "CT-4 EX-7.22"
+      ],
+      "preconditions": [
+        "Outil de référence `scripts/registre/noortrace-registre.mjs` avec la production et le contrôle du paquet (CT-4 §7.13, révision 0.6) ; inscription d'un client fictif menée jusqu'au bout sur le réseau de développement (TE-4)."
+      ],
+      "steps": [
+        "Produire le paquet du client inscrit ; le contrôler comme le client (EX-7.22) ; rejouer le contrôle sur des copies altérées : fichier en trop, fichier manquant, ordre de la liste, SHA-256 ou longueur faux, `org_id` différent, capture incomplète, fichier qui contient une clé, une graine ou un jeton."
+      ],
+      "oracle": "Le répertoire porte exactement les fichiers d'EX-7.18, écrits selon EX-7.18 ; `paquet-client.json` et le gabarit sont conformes à `paquet-client-v0` et chaque membre non nul du gabarit à la propriété de même nom de `configuration-approbation-v0` (EX-7.19, EX-7.20) ; le paquet sain passe le contrôle ; chaque copie altérée est refusée au point d'EX-7.21 ou d'EX-7.22 qui la vise ; aucun fichier ne contient de secret.",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 6,
+        "blocking": "Production et contrôle du paquet client non livrés par l'outil de référence (CT-4 §13, révision 0.6) ; seuls les exemples de 7.13 sont validés."
+      },
+      "threats": []
+    },
+    {
+      "id": "TE-22",
+      "level": "TE",
+      "title": "Application d'exploitant : interface web et agent séparé conduisent l'inscription avec les sorties de l'outil de référence",
+      "specs": [
+        "CT-4"
+      ],
+      "covers": [
+        "CT-4 EX-7.23",
+        "CT-4 EX-7.24",
+        "CT-4 EX-7.25",
+        "CT-4 EX-7.26",
+        "CT-4 EX-7.27",
+        "CT-4 EX-7.28"
+      ],
+      "preconditions": [
+        "Application d'exploitant de CT-4 §7.14 : interface web et agent sous deux comptes du système, reliés par une prise de domaine Unix ; réseau de développement (TE-4)."
+      ],
+      "steps": [
+        "Conduire par l'application les pas de 7.1 et la production du paquet pour un client fictif, puis les mêmes pas par l'outil de référence sur un second client ; relever chaque champ de chaque page et chaque méthode de l'agent ; demander une administration du jeu et un approvisionnement sans, puis avec la confirmation hors bande ; joindre l'agent depuis un autre compte et par une adresse IP."
+      ],
+      "oracle": "Dossiers, envois, captures et paquet de mêmes formes et mêmes états que ceux de l'outil de référence (EX-7.24) ; aucun champ ni aucune méthode ne reçoit une clé, une graine, une mnémonique, un jeton ou un mot de passe (EX-7.25) ; aucune demande d'administration ni aucun approvisionnement sans confirmation consignée (EX-7.26) ; aucun condensé du registre signé par l'application (EX-7.27) ; l'agent n'écoute qu'une prise et refuse un pair d'un autre compte (EX-7.28).",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 6,
+        "blocking": "Application d'exploitant non construite (CT-4 §7.14, révision 0.6)."
+      },
+      "threats": []
+    },
+    {
+      "id": "TE-23",
+      "level": "TE",
+      "title": "Page de vérification : le vérificateur compilé en WebAssembly rend dans le navigateur le rapport du binaire",
+      "specs": [
+        "CT-6"
+      ],
+      "covers": [
+        "CT-6 EX-18.1",
+        "CT-6 EX-18.2",
+        "CT-6 EX-18.3",
+        "CT-6 EX-18.4",
+        "CT-6 EX-18.5",
+        "CT-6 EX-18.6",
+        "CT-6 EX-18.7",
+        "CT-6 EX-18.8",
+        "CT-6 EX-18.9",
+        "CT-6 EX-18.10",
+        "CT-6 EX-18.11",
+        "CT-6 EX-18.12",
+        "CT-6 EX-18.13"
+      ],
+      "preconditions": [
+        "Artefact `noortrace-verifier.wasm` et fichiers de la page construits deux fois par la recette de CT-6 §18 ; hébergement de test qui sert les en-têtes d'EX-18.12 sur une origine propre ; un navigateur de chacun des moteurs Blink, Gecko et WebKit, en sa dernière version publiée ; binaire `linux/amd64` de la même version."
+      ],
+      "steps": [
+        "Comparer les SHA-256 des deux constructions et les fichiers de la page ; vérifier dans chaque navigateur chacun des dossiers de `spec/vecteurs/ct-1/dossiers` et de `spec/vecteurs/ct-6/dossiers`, avec et sans fichier d'ancres, d'en-têtes Bitcoin et options ; servir un artefact dont un octet est changé ; relever les requêtes réseau de la page."
+      ],
+      "oracle": "Deux constructions aux mêmes octets (EX-18.4) ; rapport lisible, rapport JSON, sortie d'erreur et code égaux, octet pour octet, à ceux du binaire sur les mêmes entrées (EX-18.10) ; un artefact altéré n'est pas compilé et aucun rapport n'est affiché (EX-18.5) ; aucune requête ne quitte l'origine et aucun fichier choisi n'est envoyé (EX-18.11, EX-18.12) ; les trois moteurs donnent le même résultat (EX-18.13).",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 6,
+        "blocking": "Artefact WebAssembly et page de vérification non construits (CT-6 §18, révision 0.6)."
+      },
+      "threats": [
+        "MN-101"
       ]
     },
     {
@@ -10768,12 +11016,16 @@
       "title": "Réponse retirée : Références de secrets, fichiers 0400, jamais écrits ni journalisés (CT-2 EX-15.3, EX-18.4, EX-17.3)",
       "specs": [
         "CT-2",
+        "CT-3",
         "CT-7"
       ],
       "covers": [
         "CT-2 EX-15.3",
         "CT-2 EX-18.4",
         "CT-2 EX-17.3",
+        "CT-3 EX-10.12",
+        "CT-3 EX-10.13",
+        "CT-3 EX-13.41",
         "CT-7 §4.6"
       ],
       "preconditions": [
@@ -11015,7 +11267,9 @@
         "CT-3 EX-13.10",
         "CT-3 EX-13.8",
         "CT-3 EX-13.17",
-        "CT-3 EX-13.16"
+        "CT-3 EX-13.16",
+        "CT-3 EX-13.48",
+        "CT-3 EX-13.49"
       ],
       "preconditions": [
         "Vecteurs et bibliothèques de référence du dépôt au commit éprouvé ; Node.js 22."
@@ -13925,6 +14179,193 @@
     {
       "id": "TA-99",
       "level": "TA",
+      "title": "Réponse retirée : Chemin réel de la destination contrôlé sous le répertoire des exports (CT-2 EX-15.12, EX-15.13 ; CT-7 EX-3.16)",
+      "specs": [
+        "CT-2",
+        "CT-6",
+        "CT-7"
+      ],
+      "covers": [
+        "CT-2 EX-15.12",
+        "CT-2 EX-15.13",
+        "CT-2 EX-18.4",
+        "CT-7 EX-3.16",
+        "CT-6 §5.1"
+      ],
+      "preconditions": [
+        "Démon de l'enregistreur avec la commande d'export de CT-2 §15.7 (révision 0.8) ; répertoire des exports au compte du démon ; sous le volume, un lien symbolique vers un répertoire hors du volume."
+      ],
+      "steps": [
+        "Demander l'export d'un dossier vers une destination qui traverse le lien symbolique.",
+        "Rejouer avec le mutant du démon qui retire le contrôle du chemin réel du parent de la destination."
+      ],
+      "oracle": "Refus `destination_hors_exports`, aucun fichier hors du volume des exports ; avec le mutant, le dossier est écrit hors du volume (tué).",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 6,
+        "blocking": "Commande d'export du démon non livrée (CT-2 §22, révision 0.8)."
+      },
+      "threats": [
+        "MN-99"
+      ],
+      "adversarial": {
+        "threat": "MN-99",
+        "component": "ecrivain_stockage",
+        "response_removed": {
+          "what": "Chemin réel de la destination contrôlé sous le répertoire des exports (CT-2 EX-15.12, EX-15.13 ; CT-7 EX-3.16)",
+          "how": "Retirer le contrôle du chemin réel du parent de la destination",
+          "where": "démon de l'enregistreur (commande d'export, `paquets/enregistreur`)"
+        },
+        "attack": "Un compte qui peut écrire sous le volume des exports y pose un lien symbolique vers un répertoire hors du volume et fait exporter un dossier à travers lui.",
+        "expected_with_response": "Refus `destination_hors_exports` ; aucun dossier hors du volume.",
+        "expected_without_response": "Le dossier est écrit hors du volume ; le test échoue.",
+        "execution": "phase_2",
+        "accepted_risk": "RA-83",
+        "threat_test_text": "Le test échoue si la réponse est retirée : une demande d'export dont la destination passe par un lien symbolique qui sort du répertoire des exports est refusée (`destination_hors_exports`) ; si le contrôle des chemins réels est retiré, le dossier est écrit hors du volume et le test échoue."
+      }
+    },
+    {
+      "id": "TA-100",
+      "level": "TA",
+      "title": "Réponse retirée : Vérification du jeton d'identité par le serveur de console (CT-3 EX-13.46, point 4 : `aud`)",
+      "specs": [
+        "CT-3"
+      ],
+      "covers": [
+        "CT-3 EX-13.45",
+        "CT-3 EX-13.46",
+        "CT-3 EX-13.8",
+        "CT-3 EX-13.17",
+        "CT-3 EX-13.1"
+      ],
+      "preconditions": [
+        "Serveur de console de TE-20 avec le système d'identité `oidc` ; fournisseur OIDC de test de TI-22."
+      ],
+      "steps": [
+        "Présenter au retour de connexion un jeton d'identité valide et signé par le fournisseur, dont `aud` est un autre client.",
+        "Rejouer avec le mutant du serveur qui retire le contrôle d'`aud`."
+      ],
+      "oracle": "400 `jeton_invalide`, aucune session ouverte ; avec le mutant, une session s'ouvre (tué).",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 6,
+        "blocking": "Serveur de console non construit (CT-3 §13.21, révision 0.5)."
+      },
+      "threats": [
+        "MN-100"
+      ],
+      "adversarial": {
+        "threat": "MN-100",
+        "component": "approbation_console",
+        "response_removed": {
+          "what": "Vérification du jeton d'identité par le serveur de console (CT-3 EX-13.46, point 4 : `aud`)",
+          "how": "Retirer le contrôle d'`aud`",
+          "where": "serveur de console (phase 2, étape 6)"
+        },
+        "attack": "Un jeton d'identité émis par le fournisseur pour un autre client est présenté au serveur de console.",
+        "expected_with_response": "400 `jeton_invalide` ; aucune session.",
+        "expected_without_response": "Une session s'ouvre ; le test échoue.",
+        "execution": "phase_2",
+        "accepted_risk": "RA-84",
+        "threat_test_text": "Le test échoue si la réponse est retirée : un jeton d'identité dont `aud` n'est pas `client_id` est refusé (`jeton_invalide`) ; si le contrôle d'`aud` est retiré, une session s'ouvre et le test échoue."
+      }
+    },
+    {
+      "id": "TA-101",
+      "level": "TA",
+      "title": "Réponse retirée : Contrôle de l'empreinte de l'artefact par le travailleur (CT-6 EX-18.5)",
+      "specs": [
+        "CT-6"
+      ],
+      "covers": [
+        "CT-6 EX-18.5",
+        "CT-6 EX-18.6",
+        "CT-6 EX-18.11",
+        "CT-6 EX-18.12",
+        "CT-6 EX-18.4",
+        "CT-6 EX-14.9"
+      ],
+      "preconditions": [
+        "Page de vérification et artefact `noortrace-verifier.wasm` de TE-23, servis par l'hébergement de test."
+      ],
+      "steps": [
+        "Servir un artefact dont un octet est changé et lancer une vérification.",
+        "Rejouer avec le mutant du travailleur qui retire la comparaison du SHA-256 de l'artefact à `EMPREINTE_WASM`."
+      ],
+      "oracle": "L'artefact n'est pas compilé et aucun rapport n'est affiché ; avec le mutant, la page rend un rapport (tué).",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 6,
+        "blocking": "Artefact WebAssembly et page de vérification non construits (CT-6 §18, révision 0.6)."
+      },
+      "threats": [
+        "MN-101"
+      ],
+      "adversarial": {
+        "threat": "MN-101",
+        "component": "verificateur",
+        "response_removed": {
+          "what": "Contrôle de l'empreinte de l'artefact par le travailleur (CT-6 EX-18.5)",
+          "how": "Compiler l'artefact sans comparer son SHA-256 à `EMPREINTE_WASM`",
+          "where": "page de vérification (`travailleur.js`, phase 2, étape 6)"
+        },
+        "attack": "L'hébergeur de la page sert un artefact `noortrace-verifier.wasm` modifié.",
+        "expected_with_response": "Aucune compilation, aucun rapport affiché.",
+        "expected_without_response": "La page rend un rapport ; le test échoue.",
+        "execution": "phase_2",
+        "accepted_risk": "RA-85",
+        "threat_test_text": "Le test échoue si la réponse est retirée : un artefact dont un octet est changé n'est pas compilé et aucun rapport n'est affiché ; si le contrôle de l'empreinte par le travailleur est retiré, la page rend un rapport et le test échoue."
+      }
+    },
+    {
+      "id": "TA-102",
+      "level": "TA",
+      "title": "Réponse retirée : Signature des notifications (CT-3 EX-13.41)",
+      "specs": [
+        "CT-3"
+      ],
+      "covers": [
+        "CT-3 EX-13.42",
+        "CT-3 EX-13.41",
+        "CT-3 EX-13.40",
+        "CT-3 EX-13.39",
+        "CT-3 EX-13.45"
+      ],
+      "preconditions": [
+        "Service d'approbation de TE-19 avec `notifications` ; récepteur de webhook de TI-21."
+      ],
+      "steps": [
+        "Provoquer une notification et relever la requête reçue.",
+        "Rejouer avec le mutant du service qui envoie les notifications sans l'en-tête `NOORTRACE-Signature`."
+      ],
+      "oracle": "L'en-tête `NOORTRACE-Signature` est égal au HMAC-SHA256 recalculé sur le corps, exemple d'EX-13.41 compris ; avec le mutant, l'en-tête manque (tué).",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 6,
+        "blocking": "Livraison des notifications par le service non construite (CT-3 §15.2, révision 0.5)."
+      },
+      "threats": [
+        "MN-102"
+      ],
+      "adversarial": {
+        "threat": "MN-102",
+        "component": "reseau",
+        "response_removed": {
+          "what": "Signature des notifications (CT-3 EX-13.41)",
+          "how": "Envoyer les notifications sans l'en-tête `NOORTRACE-Signature`",
+          "where": "service d'approbation (livraison des notifications, phase 2, étape 6)"
+        },
+        "attack": "Un tiers sur le chemin réseau du webhook forge ou substitue une notification.",
+        "expected_with_response": "Chaque requête porte `NOORTRACE-Signature`, égal au HMAC-SHA256 du récepteur sur son corps.",
+        "expected_without_response": "L'en-tête manque ; le test échoue.",
+        "execution": "phase_2",
+        "accepted_risk": "RA-86",
+        "threat_test_text": "Le test échoue si la réponse est retirée : une notification envoyée porte l'en-tête `NOORTRACE-Signature`, égal au HMAC-SHA256 de l'exemple de la règle de signature sur son corps ; si la signature est retirée, l'en-tête manque et le test échoue."
+      }
+    },
+    {
+      "id": "TA-103",
+      "level": "TA",
       "title": "Scénario du plan : l'agent supprime ou réécrit (TA-1, TA-2, TA-3, TA-4, TA-5, TA-6, TA-7, TA-9, TA-15, TA-22)",
       "specs": [
         "CT-1",
@@ -14032,7 +14473,7 @@
       }
     },
     {
-      "id": "TA-100",
+      "id": "TA-104",
       "level": "TA",
       "title": "Scénario du plan : l'opérateur réécrit après coup (TA-17, TA-18, TA-19, TA-23, TA-26, TA-27, TA-28, TA-74, TA-84, TA-85, TA-86, TA-96)",
       "specs": [
@@ -14144,7 +14585,7 @@
       }
     },
     {
-      "id": "TA-101",
+      "id": "TA-105",
       "level": "TA",
       "title": "Scénario du plan : l'horloge est manipulée (TA-21, TA-60, TA-76, TA-93)",
       "specs": [
@@ -14215,7 +14656,7 @@
       }
     },
     {
-      "id": "TA-102",
+      "id": "TA-106",
       "level": "TA",
       "title": "Scénario du plan : l'enregistreur tombe (TA-10, TA-19, TA-20, TA-26, TA-29, TA-33, TA-64)",
       "specs": [
@@ -14299,7 +14740,7 @@
       }
     },
     {
-      "id": "TA-103",
+      "id": "TA-107",
       "level": "TA",
       "title": "Scénario du plan : un prestataire est injoignable (TA-55, TA-58, TA-62, TA-63, TA-76)",
       "specs": [
@@ -17527,7 +17968,8 @@
         "MN-30",
         "MN-31",
         "MN-33",
-        "MN-43"
+        "MN-43",
+        "MN-99"
       ],
       "review": {
         "components": [
@@ -17592,7 +18034,8 @@
         "MN-49",
         "MN-50",
         "MN-51",
-        "MN-52"
+        "MN-52",
+        "MN-100"
       ],
       "review": {
         "components": [
@@ -17768,7 +18211,8 @@
         "MN-80",
         "MN-81",
         "MN-83",
-        "MN-89"
+        "MN-89",
+        "MN-101"
       ],
       "review": {
         "components": [
@@ -17832,7 +18276,8 @@
         "MN-90",
         "MN-91",
         "MN-96",
-        "MN-98"
+        "MN-98",
+        "MN-102"
       ],
       "review": {
         "components": [
@@ -17889,6 +18334,13 @@
         "CT-7 CLE-27",
         "CT-7 CLE-28",
         "CT-7 CLE-29",
+        "CT-7 CLE-30",
+        "CT-7 CLE-31",
+        "CT-7 CLE-32",
+        "CT-7 CLE-33",
+        "CT-7 CLE-34",
+        "CT-7 CLE-35",
+        "CT-7 CLE-36",
         "CT-7 EX-4.1",
         "CT-7 EX-4.2",
         "CT-7 EX-4.3",
@@ -18022,9 +18474,12 @@
         "CT-8 PD-7",
         "CT-8 PD-8",
         "CT-8 PD-9",
-        "CT-8 PD-16"
+        "CT-8 PD-16",
+        "CT-8 PD-17",
+        "CT-8 PD-18",
+        "CT-8 PD-19"
       ],
-      "justification": "Proposition adressée à une autre spécification, non appliquée : il n'y a rien à tester tant qu'elle n'est pas adoptée ; quand elle l'est, la règle qu'elle crée reçoit un EX- et un test."
+      "justification": "Proposition adressée à une autre spécification : il n'y a rien à tester tant qu'elle n'est pas adoptée ; quand elle l'est, la règle qu'elle crée reçoit un EX- et un test, et la ligne de la proposition, qui n'a pas de comportement propre, reste couverte ici."
     },
     {
       "id": "NC-2",
@@ -18111,7 +18566,11 @@
         "CT-7 RA-79",
         "CT-7 RA-80",
         "CT-7 RA-81",
-        "CT-7 RA-82"
+        "CT-7 RA-82",
+        "CT-7 RA-83",
+        "CT-7 RA-84",
+        "CT-7 RA-85",
+        "CT-7 RA-86"
       ],
       "justification": "Risque accepté : réponse écrite d'une menace, nommé, borné, attribué (CT-7 §3.5), en bijection avec les menaces par `accepted_risk` (CT-7 RV-8, R10-F28). Le test d'un RA- est le TA- de sa menace ; la table TA- par menace (section des tests adversariaux) le rend lisible."
     },
@@ -19085,6 +19544,50 @@
       "test_state": "executable",
       "tested": "TA-98 éprouve la réponse qui borne le risque (Inscription exigée dès que possible (CT-7 EX-7.5) ; clause fixe de FP (CT-6 EX-6.19)) : avec elle, Clause « non inscrite au journal (ni sa date ni son rang ne sont établis) » ; sans elle, le test échoue.",
       "not_tested": "la décision du réviseur face à une attestation non inscrite"
+    },
+    {
+      "id": "RA-83",
+      "name": "Lecture des dossiers exportés",
+      "bound": "Limitée aux comptes que l'exploitant admet à lire le répertoire des exports et ses montages (CT-2 EX-15.12, CT-7 EX-3.16)",
+      "owner": "client",
+      "threat": "MN-99",
+      "test": "TA-99",
+      "test_state": "a_ecrire",
+      "tested": "TA-99 éprouve la réponse qui borne le risque (Chemin réel de la destination contrôlé sous le répertoire des exports (CT-2 EX-15.12, EX-15.13 ; CT-7 EX-3.16)) : avec elle, Refus `destination_hors_exports` ; aucun dossier hors du volume ; sans elle, le test échoue.",
+      "not_tested": "un compte que l'exploitant admet à lire le répertoire des exports, qui lit ou copie les dossiers"
+    },
+    {
+      "id": "RA-84",
+      "name": "Fournisseur d'identité compromis",
+      "bound": "Limité aux méthodes que permet une session de la console, pour toute identité, jusqu'au constat du client ; aucun vote sans la clé de l'approbateur (CT-3 EX-13.1)",
+      "owner": "client",
+      "threat": "MN-100",
+      "test": "TA-100",
+      "test_state": "a_ecrire",
+      "tested": "TA-100 éprouve la réponse qui borne le risque (Vérification du jeton d'identité par le serveur de console (CT-3 EX-13.46, point 4 : `aud`)) : avec elle, 400 `jeton_invalide` ; aucune session ; sans elle, le test échoue.",
+      "not_tested": "un fournisseur d'identité réel compromis, qui émet un jeton valide pour l'identité de son choix"
+    },
+    {
+      "id": "RA-85",
+      "name": "Hébergeur de la page de vérification cru",
+      "bound": "Limité aux vérifications faites par la page sans comparer ses empreintes aux empreintes publiées ni employer le binaire (CT-6 EX-18.2)",
+      "owner": "reviseur",
+      "threat": "MN-101",
+      "test": "TA-101",
+      "test_state": "a_ecrire",
+      "tested": "TA-101 éprouve la réponse qui borne le risque (Contrôle de l'empreinte de l'artefact par le travailleur (CT-6 EX-18.5)) : avec elle, Aucune compilation, aucun rapport affiché ; sans elle, le test échoue.",
+      "not_tested": "un hébergeur qui sert une page et un artefact cohérents mais faux à qui ne compare pas leurs empreintes aux empreintes publiées"
+    },
+    {
+      "id": "RA-86",
+      "name": "Notifications retardées ou tues par le réseau",
+      "bound": "Au plus 2 170 s plus quatre fois `notifications.timeout_ms` par notification avant la ligne `notification_abandonnee` (CT-3 EX-13.42) ; aucune connexion nouvelle à la console tant que le fournisseur d'identité est injoignable",
+      "owner": "client",
+      "threat": "MN-102",
+      "test": "TA-102",
+      "test_state": "a_ecrire",
+      "tested": "TA-102 éprouve la réponse qui borne le risque (Signature des notifications (CT-3 EX-13.41)) : avec elle, Chaque requête porte `NOORTRACE-Signature`, égal au HMAC-SHA256 du récepteur sur son corps ; sans elle, le test échoue.",
+      "not_tested": "le délai d'un relais du client vers les approbateurs et une coupure prolongée du fournisseur d'identité"
     }
   ],
   "traceability": [
@@ -19112,112 +19615,112 @@
     {
       "id": "TC-4",
       "key": "CT-2 §0.1",
-      "line": 41,
+      "line": 44,
       "delegated": "Rattachement des tests aux identifiants EX-.",
       "response": "§5.1, règle (a) ; membre `covers` de chaque entrée (§4.1)."
     },
     {
       "id": "TC-5",
       "key": "CT-2 §1",
-      "line": 572,
+      "line": 637,
       "delegated": "Périmètre : les tests sont hors de CT-2.",
       "response": "Ce document."
     },
     {
       "id": "TC-6",
       "key": "CT-2 §1",
-      "line": 585,
+      "line": 650,
       "delegated": "Lit les EX-, les vecteurs (annexe B), la méthode de mesure (16) ; fixe les tests.",
       "response": "§7 (TV- de `ct-2`), §6 (TU- de CT-2), §11 (TM- de CT-2 §16)."
     },
     {
       "id": "TC-7",
       "key": "CT-2 §10.4",
-      "line": 6930,
+      "line": 7001,
       "delegated": "Réappliquer la politique à une pièce stockée : égalité des octets (idempotence).",
       "response": "TV- `ct-2/redaction/` (§7), oracle « la seconde application ne change aucun octet »."
     },
     {
       "id": "TC-8",
       "key": "CT-2 §15.6",
-      "line": 10498,
+      "line": 10586,
       "delegated": "Règles de configuration que le schéma n'exprime pas : tests de CT-9.",
       "response": "TU- configuration et contrôles de démarrage (§6) ; TV- `ct-2/pieces-*` ; TE- installation (§9) pour la commande du démon."
     },
     {
       "id": "TC-9",
       "key": "CT-2 §16.2",
-      "line": 10556,
+      "line": 11085,
       "delegated": "Seuil de régression des mesures de performance, à décider par CT-9.",
       "response": "§11.4 : seuil de régression EX-11.15 ; proposition PD- à CT-2 EX-16.2 pas 7 (§17.2)."
     },
     {
       "id": "TC-10",
       "key": "CT-2 §21",
-      "line": 12393,
+      "line": 12945,
       "delegated": "« Les tests » hors de CT-2.",
       "response": "Ce document."
     },
     {
       "id": "TC-11",
       "key": "CT-3 §0",
-      "line": 37,
+      "line": 42,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-12",
       "key": "CT-3 §1",
-      "line": 309,
+      "line": 393,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-13",
       "key": "CT-3 §1",
-      "line": 337,
+      "line": 422,
       "delegated": "EX-, AP-, TK-, SG-, AN-, CS-, vecteurs `ct-3`, épreuve à trois relecteurs, épreuve de lecture de la console.",
       "response": "TR-1 (A.5, trois relecteurs) et TR-2 (A.11, console) en §12 ; EX-, AP-, TK-, SG-, AN-, CS- et vecteurs ct-3 : TU-, TV- (§6, §7)."
     },
     {
       "id": "TC-14",
       "key": "CT-3 §7.12",
-      "line": 2168,
+      "line": 2309,
       "delegated": "Rattachement des TK-1 à TK-13 aux tests.",
       "response": "TV- `ct-3/tickets/` et TU- tickets (§6, §7) : `covers` CT-3 TK-1 à TK-13."
     },
     {
       "id": "TC-15",
       "key": "CT-4 §0",
-      "line": 42,
+      "line": 45,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-16",
       "key": "CT-4 §1",
-      "line": 204,
+      "line": 235,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-17",
       "key": "CT-4 §1",
-      "line": 230,
+      "line": 263,
       "delegated": "EX-, RG-, vecteurs `ct-4`, épreuve d'acceptation sur le réseau de développement.",
       "response": "TR-3 (§7.12, relecteur sur le réseau de développement) en §12 ; EX-, RG- et vecteurs ct-4 : TV- (§7), TE- (§9)."
     },
     {
       "id": "TC-18",
       "key": "CT-4 §9.2",
-      "line": 3210,
+      "line": 3535,
       "delegated": "Taille du certificat et de la capture d'une transaction d'un bloc plein de 64 ancres : mesure TM-31 de CT-9 du 2026-11-02 (certificat 32 587 octets ; capture 109 479 octets, 123 761 avec son index) ; bloc plein qui mêle des clôtures non mesuré.",
       "response": "TM-31 (§11, rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json`, ligne `b_cap_bloc_plein` ; index et certificat relevés dans `notes`) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
     },
     {
       "id": "TC-19",
       "key": "CT-4 §B.1",
-      "line": 4249,
+      "line": 4592,
       "delegated": "Point non vérifié 14 de R1 (taille d'un certificat de bloc plein) clos par la mesure TM-31 de CT-9 et son rapport.",
       "response": "TM-31 (§11) : rapport du 2026-11-02, certificat de 32 587 octets pour 64 transactions d'ancre (`notes`)."
     },
@@ -19294,581 +19797,581 @@
     {
       "id": "TC-30",
       "key": "CT-6 §0",
-      "line": 70,
+      "line": 76,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-31",
       "key": "CT-6 §1",
-      "line": 218,
+      "line": 239,
       "delegated": "EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`.",
       "response": "§6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10)."
     },
     {
       "id": "TC-32",
       "key": "CT-6 §6.9",
-      "line": 1863,
+      "line": 1884,
       "delegated": "Exécution des V- par comparaison du rapport à `attendu.json`.",
       "response": "TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`."
     },
     {
       "id": "TC-33",
       "key": "CT-7 §0.1",
-      "line": 71,
+      "line": 100,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-34",
       "key": "CT-7 §0.2",
-      "line": 188,
+      "line": 217,
       "delegated": "Revue de code de l'enregistreur, périmètre fixé par CT-7 (3.2, 3.4).",
       "response": "§13 (TQ- enregistreur)."
     },
     {
       "id": "TC-35",
       "key": "CT-7 §0.3",
-      "line": 291,
+      "line": 320,
       "delegated": "Ce que l'auteur de CT-9 lit dans CT-7.",
       "response": "Ce document ; annexe A."
     },
     {
       "id": "TC-36",
       "key": "CT-7 §1",
-      "line": 299,
+      "line": 328,
       "delegated": "Un test par menace.",
-      "response": "§10 : un TA- par menace, TA-1 à TA-98, même numéro que la menace (EX-10.1) ; cinq scénarios TA-99 à TA-103 (§10.5)."
+      "response": "§10 : un TA- par menace, TA-1 à TA-102, même numéro que la menace (EX-10.1) ; cinq scénarios TA-103 à TA-107 (§10.5)."
     },
     {
       "id": "TC-37",
       "key": "CT-7 §1",
-      "line": 324,
+      "line": 353,
       "delegated": "Revue de code.",
       "response": "§13 (TQ-)."
     },
     {
       "id": "TC-38",
       "key": "CT-7 §1",
-      "line": 340,
+      "line": 369,
       "delegated": "Colonne « Test de CT-9 » de 3.4.",
       "response": "TR-6, TR-7, TR-8 (les trois épreuves de la section 9) en §12 ; un TA- par menace (§10, table 10.4 imprimée depuis `catalogue.json`) ; CR-, AT-, RV-, MX- et vecteurs ct-7 : TV- (§7), TU- (§6)."
     },
     {
       "id": "TC-39",
       "key": "CT-7 §1",
-      "line": 340,
+      "line": 369,
       "delegated": "Colonne « Test de CT-9 » de 3.4.",
       "response": "TR-6, TR-7, TR-8 (les trois épreuves de la section 9) en §12 ; un TA- par menace (§10, table 10.4 imprimée depuis `catalogue.json`) ; CR-, AT-, RV-, MX- et vecteurs ct-7 : TV- (§7), TU- (§6)."
     },
     {
       "id": "TC-40",
       "key": "CT-7 §3.1",
-      "line": 432,
+      "line": 461,
       "delegated": "Le test que CT-9 doit écrire (colonnes de 3.4).",
       "response": "EX-10.2 : le membre `threat_test_text` de chaque TA- est la cellule « Test de CT-9 » de 3.4 ; l'oracle du TA- la précise."
     },
     {
       "id": "TC-41",
       "key": "CT-7 §3.1",
-      "line": 443,
+      "line": 472,
       "delegated": "Critère : le test échoue si la réponse est retirée.",
       "response": "EX-10.1, EX-10.3 : réponse retirée nommée (`response_removed`), mutant tué ; §10.8 pour les mutants exécutés le 2026-11-01."
     },
     {
       "id": "TC-42",
       "key": "CT-7 §3.4",
-      "line": 686,
+      "line": 715,
       "delegated": "Préfixe fixe de la colonne.",
       "response": "EX-10.2 : `threat_test_text` commence par ce préfixe fixe (contrôlé par le schéma)."
     },
     {
       "id": "TC-43",
       "key": "CT-7 §3.4",
-      "line": 726,
+      "line": 764,
       "delegated": "Les tests de MN-22 et MN-9 valent pour l'agent.",
-      "response": "TA-22 et TA-9 (phase 2, étapes 8 et 4) ; scénario TA-99 (§10.5)."
+      "response": "TA-22 et TA-9 (phase 2, étapes 8 et 4) ; scénario TA-103 (§10.5)."
     },
     {
       "id": "TC-44",
       "key": "CT-7 §3.4",
-      "line": 748,
+      "line": 786,
       "delegated": "En-tête de la table 3.4.",
       "response": "§10 ; index des TA- par menace (annexe A)."
     },
     {
       "id": "TC-45",
       "key": "CT-7 §3.8",
-      "line": 1130,
+      "line": 1194,
       "delegated": "Cellule « Test de CT-9 » = membre `test` privé du préfixe.",
       "response": "EX-10.2 : le catalogue lit `menaces.json`, jamais la table du texte ; l'outil de couverture compare `threat_test_text` au membre `test`."
     },
     {
       "id": "TC-46",
       "key": "CT-7 §4.1",
-      "line": 1243,
+      "line": 1307,
       "delegated": "Inventaire CLE- à jour, contrôlé par la revue de CT-9.",
       "response": "TQ- inventaire des clés (§13)."
     },
     {
       "id": "TC-47",
       "key": "CT-7 §7.9",
-      "line": 2963,
+      "line": 3036,
       "delegated": "Parité de l'attestation : exigences mesurées par CT-9 (EX-7.18).",
       "response": "TM-20 (EX-7.18, six points constatés sur les vecteurs, exécutable) en §11."
     },
     {
       "id": "TC-48",
       "key": "CT-7 §7.9",
-      "line": 2972,
+      "line": 3045,
       "delegated": "Test sur tous les rapports des vecteurs : aucun « prouvé » appliqué au périmètre.",
       "response": "TV- `ct-6/dossiers/` (§7), exécutable : `test/verificateur.test.js`, it « EX-7.3 de CT-6, EX-7.18 point 3 de CT-7 : aucun texte des rapports n'applique « prouvé », … »."
     },
     {
       "id": "TC-49",
       "key": "CT-7 §7.10",
-      "line": 2989,
+      "line": 3062,
       "delegated": "Tests des menaces de l'attestation MN-78 à MN-91, MN-98.",
       "response": "TA-78 à TA-91 et TA-98 (§10.4) : tous exécutables sauf TA-88 (phase 2, étape 4, après PA-10)."
     },
     {
       "id": "TC-50",
       "key": "CT-7 §10",
-      "line": 3873,
+      "line": 3946,
       "delegated": "Revue de code, non faite.",
       "response": "§13 (TQ-), état « à écrire », étape 8."
     },
     {
       "id": "TC-51",
       "key": "CT-7 §A.11",
-      "line": 4348,
+      "line": 4447,
       "delegated": "Menaces reliées à un test déjà possible (vecteurs de CT-1 à CT-6).",
       "response": "§10.4 : état « exécutable » avec le fichier et le titre exact du test du dépôt (règle de couverture (d), EX-5.4)."
     },
     {
       "id": "TC-52",
       "key": "CT-7 §A.11",
-      "line": 4349,
+      "line": 4448,
       "delegated": "Les autres tests sont écrits par CT-9.",
       "response": "§10.4 : états « à écrire » (étape de la phase 2 et blocage nommés) ou « exécutable » avec complément à écrire ; chaque entrée a ses préconditions, ses pas et son oracle."
     },
     {
       "id": "TC-53",
       "key": "CT-8 « en-tête »",
-      "line": 25,
+      "line": 29,
       "delegated": "Convention « à mesurer (CT-9, porte 2) ».",
       "response": "§11 : chaque cible « à mesurer (CT-9, porte 2) » a sa ligne TM-21 à TM-40 avec cible, source et seuil d'échec ; colonne mesure vide en 0.1 (EX-11.16)."
     },
     {
       "id": "TC-54",
       "key": "CT-8 « en-tête »",
-      "line": 36,
+      "line": 40,
       "delegated": "Critère du plan (moins d'une journée) mesuré à la porte 2.",
       "response": "TM-22 (durée de chaque pas IC-1 à IC-18, durée totale, attente relevée à part) et TM-23 (informations manquantes)."
     },
     {
       "id": "TC-55",
       "key": "CT-8 « en-tête »",
-      "line": 38,
+      "line": 42,
       "delegated": "Ce que CT-9 chronomètre (EX-8.1).",
       "response": "TM- EX-8.1 (§11)."
     },
     {
       "id": "TC-56",
       "key": "CT-8 §0.1",
-      "line": 57,
+      "line": 61,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-57",
       "key": "CT-8 §0.1",
-      "line": 82,
+      "line": 86,
       "delegated": "Convention « cible ».",
       "response": "§2 (terminologie) et §11.4 : une cible devient une mesure par un rapport de mesure (EX-11.11) sur le système de référence (EX-11.1)."
     },
     {
       "id": "TC-58",
       "key": "CT-8 §0.2",
-      "line": 260,
+      "line": 265,
       "delegated": "Ordre d'écriture (traçabilité TC-104 de CT-8).",
       "response": "Ce document ; aucune réponse attendue."
     },
     {
       "id": "TC-59",
       "key": "CT-8 §0.3",
-      "line": 283,
+      "line": 288,
       "delegated": "Ce que l'auteur de CT-9 lit dans CT-8.",
       "response": "Ce document ; annexe A."
     },
     {
       "id": "TC-60",
       "key": "CT-8 §1",
-      "line": 362,
+      "line": 446,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-61",
       "key": "CT-8 §1",
-      "line": 376,
+      "line": 460,
       "delegated": "Onze familles, budgets, cibles, vecteurs `ct-8`, épreuves §14.",
       "response": "Mesures de la porte 2 : TM-21 à TM-40 (§11) ; épreuves de §14 : TR-9, TR-10, TR-11 (§12) ; EX-, CO-, IP-, IR-, IC-, DM-, SV-, PV-, CA-, OB-, PR- et vecteurs ct-8 : TV- (§7), TE- (§9)."
     },
     {
       "id": "TC-62",
       "key": "CT-8 §2",
-      "line": 385,
+      "line": 469,
       "delegated": "Budget de temps chronométré par CT-9.",
       "response": "TM-21 (IR-1 à IR-8) et TM-22 (IC-1 à IC-18) : chaque pas chronométré contre son budget, la somme contre la cible (EX-11.3, méthode `chronometre`)."
     },
     {
       "id": "TC-63",
       "key": "CT-8 §3.3",
-      "line": 510,
+      "line": 611,
       "delegated": "Épreuve de construction : volume nommé neuf.",
       "response": "TE- construction des images (§9), étape 7."
     },
     {
       "id": "TC-64",
       "key": "CT-8 §3.4",
-      "line": 613,
+      "line": 758,
       "delegated": "Cible : pose de l'attribut immuable sous 60 s.",
       "response": "TM-26 (compagnon : pose des attributs ≤ 60 s)."
     },
     {
       "id": "TC-65",
       "key": "CT-8 §3.4",
-      "line": 622,
+      "line": 767,
       "delegated": "Épreuve de construction : compagnon, ouverture en lecture.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-66",
       "key": "CT-8 §3.5",
-      "line": 641,
+      "line": 786,
       "delegated": "Cible : TTL DNS ≤ 30 s.",
       "response": "TM-27 (TTL DNS du répartiteur ≤ 30 s)."
     },
     {
       "id": "TC-67",
       "key": "CT-8 §3.6",
-      "line": 659,
+      "line": 804,
       "delegated": "Mesure : égalité de deux constructions des images.",
       "response": "TM-28 (égalité des condensés de deux constructions)."
     },
     {
       "id": "TC-68",
       "key": "CT-8 §3.6",
-      "line": 681,
+      "line": 826,
       "delegated": "Revue de code et RA-22.",
       "response": "TQ- chaîne de construction et de publication (§13)."
     },
     {
       "id": "TC-69",
       "key": "CT-8 §4.4",
-      "line": 1671,
+      "line": 1873,
       "delegated": "Épreuves de construction : images, `docker compose up`, `docker inspect`.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-70",
       "key": "CT-8 §5.3",
-      "line": 1781,
+      "line": 1983,
       "delegated": "Épreuve d'intégration ICAP.",
       "response": "TI-19 (mode ICAP, §8) : serveur ICAP et épreuve avec Squid (ssl-bump) livrés à l'étape 4."
     },
     {
       "id": "TC-71",
       "key": "CT-8 §6.2",
-      "line": 1878,
+      "line": 2080,
       "delegated": "Seuils « cible » du contrôle préalable.",
       "response": "TM-29 (seuils cibles IP-2, IP-3 confrontés à la consommation observée)."
     },
     {
       "id": "TC-72",
       "key": "CT-8 §7.1",
-      "line": 2344,
+      "line": 2553,
       "delegated": "Chronométrage IR-1 à IR-8 (900 s).",
       "response": "TM-21 (900 s, pas par pas, chaque durée publiée atteinte ou non) ; TR-9 ; critère de la porte 2 « installation par une personne extérieure en 15 min » (§14)."
     },
     {
       "id": "TC-73",
       "key": "CT-8 §7.2",
-      "line": 2522,
+      "line": 2784,
       "delegated": "Mesure : taille des images téléchargées.",
       "response": "TM-24 (taille des images et durée du téléchargement, relevées à part du budget d'IR-6)."
     },
     {
       "id": "TC-74",
       "key": "CT-8 §8.1",
-      "line": 2595,
+      "line": 2885,
       "delegated": "Titre « Durée et ce que CT-9 mesure ».",
       "response": "§11 : TM-22, TM-23 ; TE- d'A pour les verdicts du contrôle préalable final et du premier dossier."
     },
     {
       "id": "TC-75",
       "key": "CT-8 §8.1",
-      "line": 2607,
+      "line": 2897,
       "delegated": "Le système de référence est fixé par CT-9.",
       "response": "EX-11.1 (système de référence fixé en §11.1) ; TM-22 (durées), TM-23 (informations manquantes) ; verdicts IC-14 et IC-15 : TE-."
     },
     {
       "id": "TC-76",
       "key": "CT-8 §8.1",
-      "line": 2607,
+      "line": 2897,
       "delegated": "Le système de référence est fixé par CT-9.",
       "response": "EX-11.1 (système de référence fixé en §11.1) ; TM-22 (durées), TM-23 (informations manquantes) ; verdicts IC-14 et IC-15 : TE-."
     },
     {
       "id": "TC-77",
       "key": "CT-8 §8.3",
-      "line": 2697,
+      "line": 2989,
       "delegated": "Coefficients `f_pic`, `b_o`, `n_crl`, `b_crl` avant les mesures.",
       "response": "TM-33 (f_pic, b_o, b_acq, b_crl, n_crl) et TM-9 (m_0) ; IC-1 refait après mesure."
     },
     {
       "id": "TC-78",
       "key": "CT-8 §8.3",
-      "line": 2720,
+      "line": 3012,
       "delegated": "Script de préparation de l'hôte éprouvé sur le système de référence.",
       "response": "Le script de préparation de l'hôte est éprouvé pendant TM-22 (IC-2) sur le système de référence d'EX-11.1 ; TE- (§9)."
     },
     {
       "id": "TC-79",
       "key": "CT-8 §8.3",
-      "line": 2940,
+      "line": 3323,
       "delegated": "Attente d'IC-16 et IC-17 relevée à part.",
       "response": "TM-22 : ligne `ic_attente_cloture` relevée à part, dans la durée totale, hors de la durée du pas IC-15."
     },
     {
       "id": "TC-80",
       "key": "CT-8 §8.3",
-      "line": 2969,
+      "line": 3352,
       "delegated": "Durées reportées pour CT-9 (procès-verbal IC-18).",
       "response": "TM-22 : les durées du procès-verbal d'IC-18 sont la source des lignes `ic_1` à `ic_18` et `ic_total`."
     },
     {
       "id": "TC-81",
       "key": "CT-8 §9",
-      "line": 3003,
+      "line": 3386,
       "delegated": "Débit et latence de CT-2 §16.1 à mesurer.",
       "response": "TM-1 à TM-4 (cibles de CT-2 §16.1) en §11."
     },
     {
       "id": "TC-82",
       "key": "CT-8 §9.2",
-      "line": 3052,
+      "line": 3435,
       "delegated": "EX-9.1 : chaque coefficient a une source citée ou est marqué « à mesurer (CT-9) ».",
       "response": "Coefficients marqués « à mesurer (CT-9) » : TM-30 (`b_ots` mis à niveau), TM-32 (`blocs_par_s` en production), TM-33 (`f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`) et TM-9 (`m_0`) ; `b_cap` a pour source la mesure TM-31 (§11)."
     },
     {
       "id": "TC-83",
       "key": "CT-8 §9.2",
-      "line": 3071,
+      "line": 3454,
       "delegated": "`b_ots` preuve mise à niveau.",
       "response": "TM-30 (octets d'une preuve .ots mise à niveau)."
     },
     {
       "id": "TC-84",
       "key": "CT-8 §9.2",
-      "line": 3072,
+      "line": 3455,
       "delegated": "`b_cap` = 123 761 octets : mesure TM-31 de CT-9 du 2026-11-02, transaction d'un bloc plein de 64 ancres (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
       "response": "TM-31 (rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json` : ligne `b_cap_bloc_plein`, index relevé dans `notes`) ; réserve du bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
     },
     {
       "id": "TC-85",
       "key": "CT-8 §9.2",
-      "line": 3075,
+      "line": 3458,
       "delegated": "`blocs_par_s` en production.",
       "response": "TM-32 (blocs_par_s sur l'instance de production)."
     },
     {
       "id": "TC-86",
       "key": "CT-8 §9.2",
-      "line": 3077,
+      "line": 3460,
       "delegated": "Six coefficients sans valeur par défaut à mesurer : `f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`, `m_0`.",
       "response": "TM-33 (`f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`) et TM-9 (`m_0`)."
     },
     {
       "id": "TC-87",
       "key": "CT-8 §9.3",
-      "line": 3172,
+      "line": 3555,
       "delegated": "`m_0` à mesurer.",
       "response": "TM-9 (mémoire sous charge comparée à M_tamp)."
     },
     {
       "id": "TC-88",
       "key": "CT-8 §9.3",
-      "line": 3177,
+      "line": 3560,
       "delegated": "Mesure de la mémoire au-delà de `M_tamp`.",
       "response": "TM- mémoire (§11)."
     },
     {
       "id": "TC-89",
       "key": "CT-8 §10",
-      "line": 3439,
+      "line": 3822,
       "delegated": "Seuils d'alerte cibles.",
       "response": "TM-34 (seuils d'alerte cibles : faux positifs et faux négatifs)."
     },
     {
       "id": "TC-90",
       "key": "CT-8 §10.6",
-      "line": 3692,
+      "line": 4095,
       "delegated": "Seuil mempool `<M>`.",
       "response": "TM-35 (seuil <M> de la mempool)."
     },
     {
       "id": "TC-91",
       "key": "CT-8 §10.11",
-      "line": 3805,
+      "line": 4213,
       "delegated": "Durées des runbooks non mesurées.",
       "response": "TM-36 (durées de RB-1 à RB-8, publiées sans cible)."
     },
     {
       "id": "TC-92",
       "key": "CT-8 §10.11",
-      "line": 3840,
+      "line": 4263,
       "delegated": "Un test de CT-9 par correction d'incident.",
       "response": "§3.2 (règle d'ajout d'une entrée) ; TE- runbooks (§9), oracle."
     },
     {
       "id": "TC-93",
       "key": "CT-8 §11",
-      "line": 4224,
+      "line": 4654,
       "delegated": "RPO et RTO cibles.",
       "response": "TM-37 (RPO et RTO par composant, exercices de restauration)."
     },
     {
       "id": "TC-94",
       "key": "CT-8 §11.2",
-      "line": 4282,
+      "line": 4712,
       "delegated": "Fréquence de sauvegarde de l'état du service (15 min).",
       "response": "TM-37 : ligne `sauvegarde_etat_service_cadence` (cible 15 min)."
     },
     {
       "id": "TC-95",
       "key": "CT-8 §11.3",
-      "line": 4316,
+      "line": 4750,
       "delegated": "Table RPO/RTO : cibles à mesurer.",
       "response": "TM-37 (table d'EX-11.5, toutes les cibles sauf la borne du bail)."
     },
     {
       "id": "TC-96",
       "key": "CT-8 §11.10",
-      "line": 4699,
+      "line": 5138,
       "delegated": "Journal d'accès des supports WORM : disponibilité et format vérifiés en CT-9.",
       "response": "TM-39 (journal d'accès du support WORM : disponibilité et format par fournisseur)."
     },
     {
       "id": "TC-97",
       "key": "CT-8 §12.2",
-      "line": 4920,
+      "line": 5364,
       "delegated": "Latence en mode observation.",
       "response": "TM-38 (latence ajoutée en mode observation, paire avec et sans)."
     },
     {
       "id": "TC-98",
       "key": "CT-8 §12.2",
-      "line": 4932,
+      "line": 5376,
       "delegated": "Durée d'écriture lente, cible de CT-2 §16.1.",
       "response": "TM-38 : ligne `observation_ecriture` (durée d'écriture, cible de CT-2 §16.1)."
     },
     {
       "id": "TC-99",
       "key": "CT-8 §13.1",
-      "line": 5386,
+      "line": 5835,
       "delegated": "Parité du paquet réviseur mesurée par CT-9 (EX-13.1).",
       "response": "TM-25 (point 7) en §11 ; points 1 à 6 : TV- ct-8/paquets/ (§7) et TR-10 (§12)."
     },
     {
       "id": "TC-100",
       "key": "CT-8 §13.1",
-      "line": 5418,
+      "line": 5867,
       "delegated": "Temps du réviseur < 30 min.",
       "response": "TM-25 (temps du réviseur < 30 min), relevé pendant TR-10."
     },
     {
       "id": "TC-101",
       "key": "CT-8 §14",
-      "line": 7030,
+      "line": 7479,
       "delegated": "Conduite des trois épreuves de CT-8 §14.",
       "response": "TR-9, TR-10, TR-11 en §12, conduites selon le protocole commun de 12.1."
     },
     {
       "id": "TC-102",
       "key": "CT-8 §14.2",
-      "line": 7133,
+      "line": 7582,
       "delegated": "Durée de l'épreuve (b), mesure de CT-9.",
       "response": "EX-12.4 : consignation `consignation_rejeu` (schéma, §12.1), CT-8 EX-14.10 généralisée à toutes les épreuves TR-."
     },
     {
       "id": "TC-103",
       "key": "CT-8 §14.2",
-      "line": 7135,
+      "line": 7584,
       "delegated": "Consignation EX-14.10 par CT-9.",
       "response": "§12.1 (protocole commun) : consignation champ par champ."
     },
     {
       "id": "TC-104",
       "key": "CT-8 §15",
-      "line": 7167,
+      "line": 7616,
       "delegated": "Conformité des images à leur description : épreuve de construction.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-105",
       "key": "CT-8 §15",
-      "line": 7183,
+      "line": 7640,
       "delegated": "Script de préparation éprouvé sur le système de référence.",
       "response": "EX-11.1 : système de référence de la porte 2 fixé en §11.1."
     },
     {
       "id": "TC-106",
       "key": "CT-8 §15",
-      "line": 7184,
+      "line": 7641,
       "delegated": "Système de référence fixé par CT-9.",
       "response": "§11.1."
     },
     {
       "id": "TC-107",
       "key": "CT-8 §15",
-      "line": 7207,
+      "line": 7664,
       "delegated": "Cibles des sections 10 à 12 à mesurer.",
       "response": "TM-37 (RPO, RTO, restauration), TM-38 (latence en observation), TM-35 (mempool) en §11."
     },
     {
       "id": "TC-108",
       "key": "CT-8 §15",
-      "line": 7215,
+      "line": 7672,
       "delegated": "Journal d'accès des supports : CT-9 l'établit.",
       "response": "TM-39 (journal d'accès par fournisseur) établit la source `journal_acces_support` avant que CT-8 EX-11.19 la tienne pour acquise."
     },
     {
       "id": "TC-109",
       "key": "CT-8 §15",
-      "line": 7244,
+      "line": 7701,
       "delegated": "Budgets IR et IC à mesurer.",
       "response": "TM-21 (900 s) et TM-22 (450 min, 480 avec la réserve) en §11 ; porte 2 en §14."
     },
     {
       "id": "TC-110",
       "key": "CT-8 §B.2",
-      "line": 8181,
+      "line": 8658,
       "delegated": "Ordre des champs de `chronyc -c tracking` à relever.",
       "response": "TM-40 (ordre des champs de chronyc -c tracking relevé sur chrony 4.6)."
     },
     {
       "id": "TC-111",
       "key": "CT-8 §B.4",
-      "line": 8236,
+      "line": 8713,
       "delegated": "Latence en observation.",
       "response": "TM-38 (latence en observation)."
     },
     {
       "id": "TC-112",
       "key": "CT-8 §B.5",
-      "line": 8284,
+      "line": 8761,
       "delegated": "Temps du réviseur.",
       "response": "TM-25 (temps du réviseur)."
     },
@@ -19896,49 +20399,49 @@
     {
       "id": "TC-116",
       "key": "`spec/README.md` « Schémas (`schemas/`) »",
-      "line": 71,
+      "line": 74,
       "delegated": "Description du schéma `plan-de-tests-v0` : catalogue, rapport de couverture, rapport de mesure, consignation.",
       "response": "§4.2 (schéma), §5.4 (rapport de couverture), §11.3 (rapport de mesure), §12.1 (consignation) ; annexe A.2."
     },
     {
       "id": "TC-117",
       "key": "`spec/README.md` « Schémas (`schemas/`) »",
-      "line": 71,
+      "line": 74,
       "delegated": "Description du schéma `plan-de-tests-v0` : catalogue, rapport de couverture, rapport de mesure, consignation.",
       "response": "§4.2 (schéma), §5.4 (rapport de couverture), §11.3 (rapport de mesure), §12.1 (consignation) ; annexe A.2."
     },
     {
       "id": "TC-118",
       "key": "`spec/README.md` « Schémas (`schemas/`) »",
-      "line": 71,
+      "line": 74,
       "delegated": "Description du schéma `plan-de-tests-v0` : catalogue, rapport de couverture, rapport de mesure, consignation.",
       "response": "§4.2 (schéma), §5.4 (rapport de couverture), §11.3 (rapport de mesure), §12.1 (consignation) ; annexe A.2."
     },
     {
       "id": "TC-119",
       "key": "`spec/README.md` « Schémas (`schemas/`) »",
-      "line": 71,
+      "line": 74,
       "delegated": "Description du schéma `plan-de-tests-v0` : catalogue, rapport de couverture, rapport de mesure, consignation.",
       "response": "§4.2 (schéma), §5.4 (rapport de couverture), §11.3 (rapport de mesure), §12.1 (consignation) ; annexe A.2."
     },
     {
       "id": "TC-120",
       "key": "`spec/README.md` « CT-9 (`vecteurs/ct-9/`) »",
-      "line": 452,
+      "line": 455,
       "delegated": "Titre de la section des vecteurs `ct-9/`.",
       "response": "Annexe A.1 (disposition de `spec/vecteurs/ct-9/`)."
     },
     {
       "id": "TC-121",
       "key": "`spec/README.md` « CT-9 (`vecteurs/ct-9/`) »",
-      "line": 454,
+      "line": 457,
       "delegated": "Renvoi à l'annexe A pour la disposition des vecteurs.",
       "response": "Annexe A.1 ; générateur et déterminisme : EX-A.1."
     },
     {
       "id": "TC-122",
       "key": "`spec/README.md` « CT-9 (`vecteurs/ct-9/`) »",
-      "line": 454,
+      "line": 457,
       "delegated": "Renvoi à l'annexe A pour la disposition des vecteurs.",
       "response": "Annexe A.1 ; générateur et déterminisme : EX-A.1."
     }

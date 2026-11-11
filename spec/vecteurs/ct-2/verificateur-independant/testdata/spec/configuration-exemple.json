@@ -325,7 +325,7 @@
       "hold_timeout_ms": 50000,
       "expire_after_ms": 3600000,
       "timeout_ms": 2000,
-      "service": { "url": null, "socket": "/run/noortrace/approbation.sock", "token": null, "peer_user": "noortrace-approbation" }
+      "service": { "url": null, "socket": "/run/noortrace/approbation.sock", "token": { "file": "/run/secrets/jeton-noyau-vers-service-enregistreur" }, "peer_user": "noortrace-approbation" }
     },
     "redaction": {
       "version": 0,

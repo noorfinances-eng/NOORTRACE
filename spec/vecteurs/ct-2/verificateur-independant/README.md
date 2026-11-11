@@ -363,10 +363,12 @@ la famille `evenements` (`comparerDossierCT1`, `dossier_ct1_test.go`).
   lot, corps HTTP, id au-delà de 2^53, blancs retirés.
 - Valeurs imprimées par CT-2 (`testdata/spec`, blocs extraits du document) :
   exemples de 10.9 (96 et 148 octets), pseudonymes de test, empreintes de
-  `pii-v1` et de l'ensemble de politique de 15.3 (6 533 octets,
-  `0xd68b…e75c` en révision 0.5, EX-10.21, au lieu de 6 126 octets et
+  `pii-v1` et de l'ensemble de politique de 15.3 (6 590 octets,
+  `0xc5da…030c` en révision 0.8, EX-10.21, au lieu de 6 533 octets et
+  `0xd68b…e75c` de la révision 0.5 à la révision 0.7, et de 6 126 octets et
   `0xa75a…8912` en version 0.4 ; `rules` document `politique-approbation-v0`,
   mode `erreur`, entrée de `separation.identities` pour `poste-cursor`,
+  jeton du noyau sur la prise du service d'approbation (EX-18.8),
   `storage.relay_mac_key`), annexe A (définition,
   liste annoncée, résultat, ligne intention à neuf clés, événements seq 2 et
   4 et leur `context`, ligne de segment, octets relayés).

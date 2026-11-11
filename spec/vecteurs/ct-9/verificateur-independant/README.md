@@ -49,7 +49,7 @@ périmètre) ; sans `-v`, seules les discordances sont détaillées.
   fichier (occurrences, lignes) que la section 0.2 imprime.
 - **Menaces** de `menaces.json` : un TA-n par MN-n, `threats`,
   `threat_test_text`, `covers`, `component`, `accepted_risk` égaux
-  (EX-10.1, EX-10.2) ; risques acceptés (10.6) ; scénarios TA-99 à TA-103
+  (EX-10.1, EX-10.2) ; risques acceptés (10.6) ; scénarios TA-103 à TA-107
   (10.5 : composition, union des `covers` et des menaces, titre, état) ;
   `index-ta-par-menace.json` entrée par entrée (EX-A.13).
 - **Titres des tests** (EX-4.2) par une analyse lexicale propre de

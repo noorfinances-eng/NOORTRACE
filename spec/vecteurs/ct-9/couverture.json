@@ -1,7 +1,7 @@
 {
   "version": 0,
   "kind": "rapport-couverture",
-  "date": "2026-11-10",
+  "date": "2026-11-11",
   "tool": {
     "name": "scripts/tests/couverture.mjs",
     "command": "node scripts/tests/couverture.mjs --json"
@@ -14,15 +14,15 @@
       },
       {
         "file": "spec/CT-2-enregistreur.md",
-        "sha256": "0c7e0747d726238abb12fa4181a278fba970222b62f6f71fc9cf10913dc3bb99"
+        "sha256": "c6ca491f8e81d688dc857de91b458cb2969cdb07164e42c8219912b279ec435d"
       },
       {
         "file": "spec/CT-3-approbations.md",
-        "sha256": "90f1bb427f93847a11993c7ded36cec5ce91eb74eaa32f1666e71814d64780cd"
+        "sha256": "c7ebfee8607c63a908d4fc04c3a1d46cc0baa3a9562c1345b29ce99f5b39e014"
       },
       {
         "file": "spec/CT-4-registre.md",
-        "sha256": "8f74f144e4275b494c3fbe02b4f15d8536c62a65526b23e2e05728965b9b14a2"
+        "sha256": "afbd007d1dfe4823eed8a47273b140296e7b551e2f8af7fa5607fdb6e392dd9f"
       },
       {
         "file": "spec/CT-5-ancrage.md",
@@ -30,24 +30,24 @@
       },
       {
         "file": "spec/CT-6-verificateur.md",
-        "sha256": "642273717b560bcfad36747dcfe50d910772e08dbe57ae9468446aa303fe3617"
+        "sha256": "6d2d7f4be08df79600b09aecef9ab3115d8c85febdeeed198c71e09bbd24284a"
       },
       {
         "file": "spec/CT-7-securite-et-conformite.md",
-        "sha256": "71d3c2502e72c478ea20be533bc4d94a27749a7fe5eb1bd1d7b06136e92cb274"
+        "sha256": "3edcb055945e0d56cda19bbbf14b4f49040acce049d65c8018a475624abddc31"
       },
       {
         "file": "spec/CT-8-deploiement-et-exploitation.md",
-        "sha256": "5cc0ee937b426c1b8a001d0ff1cb42061644adf575ce36e2c4739c7257e0b915"
+        "sha256": "31499317e9c0e62dddfff461a2bd561c9e4c234477edc2cce9229a2ee3406d4b"
       }
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "782890669455984800cd7363bc0dd68e6728cae57115c043600a3a175a83ecd2"
+      "sha256": "2369677d7f0f60ee0446c08cf69afd1fe77dfae1a880789b58694e944794e872"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
-      "sha256": "0b0b1997e16b09173363d85093f069e5e171c28febc342944f07142e1159e85e"
+      "sha256": "528fe2f96a5a2705eccfc7dd9300a73583cd2350109acd68c2a8132e291d365a"
     },
     "tests": [
       {
@@ -172,7 +172,7 @@
       },
       {
         "file": "test/approbation-service-exigences.test.js",
-        "sha256": "fce364c59ac9140ad854104ca862ba3908268b3e93d69fcb5f72e07eb48a23ee"
+        "sha256": "958834f20b778ef58535a7755180f9aeafd0af6743285a695d9dc64f5398ca73"
       },
       {
         "file": "test/approbation-service-hostile.test.js",
@@ -188,7 +188,7 @@
       },
       {
         "file": "test/approbation.test.js",
-        "sha256": "3502d1ee3606f91dc495d4bed0f2399f719adceb0158877640848148c7ca6597"
+        "sha256": "e993d47f9e1462dec1973741e9b40b4fd13d5ed9fc6dc6f7cb971155c43838d9"
       },
       {
         "file": "test/certificatCommit.test.js",
@@ -200,7 +200,7 @@
       },
       {
         "file": "test/confrontation.test.js",
-        "sha256": "c703a0a57a800eb83fb70b27c99ac611e13e74738d8746da94cc1cb10a071f57"
+        "sha256": "72aeb327ad3c368691b31261c121dfdc3d9521cb9a1612164303a8fb5c8b31bd"
       },
       {
         "file": "test/console-primitives.test.js",
@@ -212,7 +212,7 @@
       },
       {
         "file": "test/deploiement.test.js",
-        "sha256": "79a863fec91f8aa168c38befdad1c49226e9578bdbe44d2b0c3fc101b098c95b"
+        "sha256": "e5143166b3c79a63213d4219374a278a76457255047b862d4795478b42bc4714"
       },
       {
         "file": "test/deploy.test.js",
@@ -244,7 +244,7 @@
       },
       {
         "file": "test/enregistreur-coeur-config.test.js",
-        "sha256": "19b3fa129525588241599d7d3188109495d0b5c23eb915214e8d2193a2d85577"
+        "sha256": "6563a6d02ecd685c7feb7e1336536beebaf2af9fa8206cfb40c0e02bed3e3ed3"
       },
       {
         "file": "test/enregistreur-coeur-journal.test.js",
@@ -424,11 +424,11 @@
       },
       {
         "file": "test/enregistreur.test.js",
-        "sha256": "6543c219508361b84982cb144b05985bc831858ee484948ce6080070da333ecd"
+        "sha256": "df30808ef9d9ac22fd3711195c131e592d9a10ba93c3a93bf8f914054b4974cb"
       },
       {
         "file": "test/exploitation.test.js",
-        "sha256": "15867456612b4eb0cbff32e85c36b956d61c5bd3a33a15b930bda73c95e15976"
+        "sha256": "cdbfeca935d8474683b11480ad0c91e2e9185b000dc15e3a05147e84c106be1c"
       },
       {
         "file": "test/figeage.test.js",
@@ -456,7 +456,7 @@
       },
       {
         "file": "test/observation.test.js",
-        "sha256": "7d54fbb52a05b5ff44f683d535d352b2e305a038bb8131a83db70a4dfa684ac0"
+        "sha256": "16d8a67d575eea4e7359552064f38e221a174058b4c20bd64679ef1e41f940ef"
       },
       {
         "file": "test/ots.test.js",
@@ -464,7 +464,7 @@
       },
       {
         "file": "test/paquet-reviseur.test.js",
-        "sha256": "fcb6738df1641b9c979bd570c2afd574fd5d921d978fac68d937cf2f09130547"
+        "sha256": "877f8395fd7260b99e57d3f64a54c58d2f90ff3eba37e5db76c1d728415d9de9"
       },
       {
         "file": "test/periodRegistry.test.js",
@@ -472,7 +472,7 @@
       },
       {
         "file": "test/plan-de-tests.test.js",
-        "sha256": "359ad81ebe76dfb0187690176bedeee09d5ed88a2165b98464fc02136f9ad79a"
+        "sha256": "e5f08e79e2cc7b38183d0ced0bbbb737969201c67bae723bd5ac6427019147bf"
       },
       {
         "file": "test/recorderRegistry.test.js",
@@ -488,11 +488,11 @@
       },
       {
         "file": "test/registreCt4.test.js",
-        "sha256": "050d4048e85a56d2b074c492389f8f5e03c90857a78f828f58c7b6a366126fed"
+        "sha256": "7bf1ec2867619684fcb4f26111aee51c4a6167055af51f03950f268a414c67e6"
       },
       {
         "file": "test/securite.test.js",
-        "sha256": "d8c81749e3ffd4b400522f252ce5a178dfd8ac15dfa1f28f25d7483382c866b0"
+        "sha256": "bc56fb3b610ec159ee906e5495e4cdf8ede9e6e357b8b93d3fdaa570c0b8bce1"
       },
       {
         "file": "test/thresholdSignatures.test.js",
@@ -505,9 +505,9 @@
     ]
   },
   "identifiers": {
-    "total": 2351,
-    "covered_by_tests": 2212,
-    "covered_by_nc": 139,
+    "total": 2416,
+    "covered_by_tests": 2270,
+    "covered_by_nc": 146,
     "uncovered": 0,
     "unknown_cited": [],
     "per_spec": [
@@ -531,8 +531,8 @@
       },
       {
         "spec": "CT-2",
-        "total": 336,
-        "covered_by_tests": 336,
+        "total": 342,
+        "covered_by_tests": 342,
         "covered_by_nc": 0,
         "uncovered": 0,
         "uncovered_ids": [],
@@ -549,7 +549,7 @@
           "EX-12": 41,
           "EX-13": 10,
           "EX-14": 18,
-          "EX-15": 8,
+          "EX-15": 14,
           "EX-16": 6,
           "EX-17": 8,
           "EX-18": 9,
@@ -560,8 +560,8 @@
       },
       {
         "spec": "CT-3",
-        "total": 259,
-        "covered_by_tests": 259,
+        "total": 275,
+        "covered_by_tests": 275,
         "covered_by_nc": 0,
         "uncovered": 0,
         "uncovered_ids": [],
@@ -570,13 +570,13 @@
           "EX-4": 14,
           "EX-5": 10,
           "EX-6": 8,
-          "EX-7": 29,
+          "EX-7": 30,
           "EX-8": 11,
           "EX-9": 22,
-          "EX-10": 11,
+          "EX-10": 13,
           "EX-11": 15,
-          "EX-12": 20,
-          "EX-13": 37,
+          "EX-12": 21,
+          "EX-13": 49,
           "EX-14": 2,
           "EX-A": 19,
           "AP": 17,
@@ -588,8 +588,8 @@
       },
       {
         "spec": "CT-4",
-        "total": 181,
-        "covered_by_tests": 174,
+        "total": 192,
+        "covered_by_tests": 185,
         "covered_by_nc": 7,
         "uncovered": 0,
         "uncovered_ids": [],
@@ -598,7 +598,7 @@
           "EX-4": 28,
           "EX-5": 12,
           "EX-6": 23,
-          "EX-7": 17,
+          "EX-7": 28,
           "EX-8": 21,
           "EX-9": 14,
           "EX-10": 9,
@@ -637,8 +637,8 @@
       },
       {
         "spec": "CT-6",
-        "total": 280,
-        "covered_by_tests": 280,
+        "total": 293,
+        "covered_by_tests": 293,
         "covered_by_nc": 0,
         "uncovered": 0,
         "uncovered_ids": [],
@@ -656,6 +656,7 @@
           "EX-13": 19,
           "EX-14": 11,
           "EX-15": 3,
+          "EX-18": 13,
           "EX-A": 26,
           "K": 2,
           "AT": 7,
@@ -673,14 +674,14 @@
       },
       {
         "spec": "CT-7",
-        "total": 580,
-        "covered_by_tests": 476,
-        "covered_by_nc": 104,
+        "total": 596,
+        "covered_by_tests": 488,
+        "covered_by_nc": 108,
         "uncovered": 0,
         "uncovered_ids": [],
         "families": {
           "EX-0": 1,
-          "EX-3": 15,
+          "EX-3": 16,
           "EX-4": 10,
           "EX-5": 12,
           "EX-6": 3,
@@ -690,9 +691,9 @@
           "EX-A": 31,
           "EX-C": 2,
           "TR": 101,
-          "MN": 98,
-          "RA": 82,
-          "CLE": 29,
+          "MN": 102,
+          "RA": 86,
+          "CLE": 36,
           "CR": 12,
           "JS": 12,
           "PA": 20,
@@ -707,9 +708,9 @@
       },
       {
         "spec": "CT-8",
-        "total": 497,
+        "total": 500,
         "covered_by_tests": 481,
-        "covered_by_nc": 16,
+        "covered_by_nc": 19,
         "uncovered": 0,
         "uncovered_ids": [],
         "families": {
@@ -735,7 +736,7 @@
           "IC": 18,
           "TP": 8,
           "SV": 8,
-          "PD": 16,
+          "PD": 19,
           "PV": 10,
           "CA": 6,
           "OB": 6,
@@ -748,8 +749,8 @@
     ]
   },
   "threats": {
-    "total": 98,
-    "with_ta": 98,
+    "total": 102,
+    "with_ta": 102,
     "without_ta": []
   },
   "traceability": {

@@ -180,11 +180,11 @@ Mode observation de CT-8 §12, annexe A.8 : vérifications OB-1 à OB-6. Le
 journal d'exemple de 12.4 (sept événements scellés par `rec-test-01`,
 ensemble `2026-11-05-observation`) est sous `journal/` ; empreinte :
 
-- `0x3d0e81832bce1e5b653040304a65dfdc0e3912ba24e10ae44b2b78431516da36` ;
+- `0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912` ;
 
 son segment fait 10086 octets, de SHA-256 :
 
-- `0x0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5` ;
+- `0x15097856ef2adfcf05b0c34013f2d5a3f8234d3d8acb7dc788e12b4e547022de` ;
 
 SHA-256 du rapport attendu en JCS :
 
@@ -324,7 +324,7 @@ donne, pour chaque cas, ses options et le résultat attendu de l'outil de
 vérification, que le générateur a obtenu en l'exécutant (EX-A.14).
 
 13 archives, 3 624 960 octets en tout ; SHA-256 de `cas.json` :
-`0x0e44622a66a79180a61f72ad90490c427c1c8bbab9c628ee650630337e3cb746`.
+`0x77664feb916a54a9c3ca1bbe004d0be1ef9b76b040297613fb6e6d28c39b4303`.
 
 | Cas | Archive | SHA-256 | Options | Code | Paquet | PR- en échec | Avertissements | Codes des dossiers | Ce qui change |
 |---|---|---|---|---|---|---|---|---|---|
@@ -344,7 +344,7 @@ vérification, que le générateur a obtenu en l'exécutant (EX-A.14).
 | `metadonnees-non-fixees` | `metadonnees-non-fixees.tar` (296960 octets) | `0x275277ac3f74b02b8902301de1c5441b71803d2aace807511b87421af26410a3` | — | 4 | `non_conforme` | PR-6 | — | — | paquet-reviseur/README.md au mode 0600 : PR-6. |
 | `ancres-du-reviseur-discordantes` | `valide.tar` (296960 octets) | `0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982` | `--ancres spec/vecteurs/ct-6/ancres/ancres-cle-enregistreur-autre.json` | 1 | `intact` | — | — | 1, 1, 1 | Le paquet valide, vérifié avec un fichier d'ancres du réviseur qui attribue à rec-test-01 la clé de rec-test-02 : paquet intact, N-3 échoue dans chaque dossier, code 1. |
 | `ancres-non-conformes` | `valide.tar` (296960 octets) | `0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982` | `--ancres spec/vecteurs/ct-6/ots/entetes/chaine.json` | 2 | `intact` | — | — | 2, 2, 2 | Le paquet valide, vérifié avec --ancres désignant un fichier qui n'est pas un fichier d'ancres : chaque dossier rend le code 2 (N-1), code 2. |
-| `observation` | `observation.tar` (61440 octets) | `0x127b257aebef28bb8436f7b07fe7a3c6d4e805ce7ca9c3f3e991c53b543f9ba5` | — | 0 | `intact` | — | AV-PR-4 | 0, 0 | Paquet des dossiers de seq 1 (annonce de l'ensemble, policy.rule nulle) et de seq 3 (appel marqué) du journal d'exemple de 12.4, avec la pièce de l'ensemble : les deux dossiers sont déclarés en mode observation (policy_version en -observation), seq 3 avec la marque a_approuver (EX-12.9, EX-A.15). |
+| `observation` | `observation.tar` (61440 octets) | `0xd3d6ea7fc3c69d731fe1f33b7fde85db0ff0c3ca8b9e714fe6a714a336b3e064` | — | 0 | `intact` | — | AV-PR-4 | 0, 0 | Paquet des dossiers de seq 1 (annonce de l'ensemble, policy.rule nulle) et de seq 3 (appel marqué) du journal d'exemple de 12.4, avec la pièce de l'ensemble : les deux dossiers sont déclarés en mode observation (policy_version en -observation), seq 3 avec la marque a_approuver (EX-12.9, EX-A.15). |
 
 Commande de chaque cas, depuis la racine du dépôt (code de sortie attendu en
 commentaire) :

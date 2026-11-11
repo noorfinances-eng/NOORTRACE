@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/paquet-client.schema.json",
+  "title": "Paquet client remis à l'inscription, version 0 (CT-4 §7.13, révision 0.6)",
+  "description": "Manifeste paquet-client.json du paquet que l'exploitant remet au client à la fin de l'inscription (CT-4 EX-7.12, EX-7.18 à EX-7.22) : la liste fermée des autres fichiers du paquet, leur rôle, leur SHA-256 et leur longueur ; et, dans $defs/gabarit_service, la forme du gabarit de configuration du service d'approbation, dont chaque membre non nul renvoie à la propriété de même nom de configuration-approbation-v0 (CT-3 EX-10.12). Le schéma se charge avec inscription-client-v0, configuration-approbation-v0 et les schémas que celui-ci référence (annuaire-approbateurs-v0, evenement-v0, ticket-v0). Le paquet ne contient aucune clé privée, aucune graine, aucun jeton ni aucun mot de passe (EX-7.21). Les règles que le schéma n'exprime pas (chaque fichier du répertoire listé une fois et seulement une, ordre de la liste, présence des fichiers obligatoires, SHA-256 et longueurs exacts, org_id égal à keccak256 de org et à celui du dossier, captures complètes) sont celles d'EX-7.19 et d'EX-7.22.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [ "version", "org", "org_id", "instance", "files", "prepared_by", "prepared_at", "source" ],
+  "properties": {
+    "version": { "const": 0 },
+    "org": {
+      "$ref": "https://noortrace.example/schemas/v0/inscription-client.schema.json#/$defs/nom",
+      "description": "Slug de l'organisation : organisation.slug du dossier d'inscription (RG-1)."
+    },
+    "org_id": {
+      "$ref": "https://noortrace.example/schemas/v0/inscription-client.schema.json#/$defs/hex32_non_nul",
+      "description": "organisation.org_id du dossier, keccak256(UTF-8(org)) (CT-4 §6.2)."
+    },
+    "instance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "evm_chain_id", "bft_chain_id", "manifest_sha256" ],
+      "description": "Recopie de instance.evm_chain_id, instance.bft_chain_id et instance.manifest_sha256 du dossier d'inscription.",
+      "properties": {
+        "evm_chain_id": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+        "bft_chain_id": { "type": "string", "pattern": "^noortrace-[1-9][0-9]{0,9}-[a-z0-9]{1,16}$" },
+        "manifest_sha256": {
+          "description": "SHA-256 de instance-registre.json, présent dans le paquet ; null sans manifeste d'instance (réseau de développement sans --instance, CT-4 EX-7.2), et le paquet n'a alors pas ce fichier.",
+          "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/hex32" } ]
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 4100,
+      "description": "Chaque fichier du paquet autre que paquet-client.json, une fois : inscription-client.json, instance-registre.json s'il y en a un, jeu-approbateurs.json, gabarit-service-approbation.json, puis les fichiers de captures/ dans l'ordre croissant des octets de leur chemin (EX-7.19).",
+      "items": { "$ref": "#/$defs/fichier" }
+    },
+    "prepared_by": { "type": "string", "minLength": 1, "maxLength": 256, "description": "Qui a produit le paquet (texte libre, comme prepared_by du dossier)." },
+    "prepared_at": { "$ref": "#/$defs/horodatage" },
+    "source": { "type": "string", "minLength": 1, "maxLength": 512, "description": "Outil ou application qui a produit le paquet, avec sa version." }
+  },
+  "$defs": {
+    "hex32": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" },
+    "horodatage": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
+    "role": {
+      "enum": [ "dossier", "manifeste_instance", "jeu_approbateurs", "gabarit_service", "capture_index", "capture_bloc", "capture_recu", "capture_certificat" ],
+      "description": "dossier : inscription-client.json (inscription-client-v0) ; manifeste_instance : instance-registre.json (instance-registre-v0) ; jeu_approbateurs : jeu-approbateurs.json (politique-approbation-v0#/$defs/jeu_approbateurs) ; gabarit_service : gabarit-service-approbation.json ($defs/gabarit_service) ; capture_index : index de capture (operations-registre-v0) ; capture_bloc, capture_recu, capture_certificat : réponses brutes du nœud nommées par un index (CT-4 CP-6)."
+    },
+    "fichier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "path", "role", "sha256", "length" ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "Chemin relatif au répertoire du paquet, séparateur « / »."
+        },
+        "role": { "$ref": "#/$defs/role" },
+        "sha256": { "$ref": "#/$defs/hex32", "description": "SHA-256 des octets du fichier." },
+        "length": { "type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "Longueur du fichier en octets." }
+      },
+      "allOf": [
+        { "if": { "properties": { "role": { "const": "dossier" } } }, "then": { "properties": { "path": { "const": "inscription-client.json" } } } },
+        { "if": { "properties": { "role": { "const": "manifeste_instance" } } }, "then": { "properties": { "path": { "const": "instance-registre.json" } } } },
+        { "if": { "properties": { "role": { "const": "jeu_approbateurs" } } }, "then": { "properties": { "path": { "const": "jeu-approbateurs.json" } } } },
+        { "if": { "properties": { "role": { "const": "gabarit_service" } } }, "then": { "properties": { "path": { "const": "gabarit-service-approbation.json" } } } },
+        { "if": { "properties": { "role": { "const": "capture_index" } } }, "then": { "properties": { "path": { "type": "string", "pattern": "^captures/capture-[0-9]{1,20}-[0-9]{1,5}-(jeu_approbateurs|assignation|approvisionnement|inscription|ancre|cloture)\\.json$" } } } },
+        { "if": { "properties": { "role": { "const": "capture_bloc" } } }, "then": { "properties": { "path": { "type": "string", "pattern": "^captures/bloc-[0-9]{1,20}\\.json$" } } } },
+        { "if": { "properties": { "role": { "const": "capture_recu" } } }, "then": { "properties": { "path": { "type": "string", "pattern": "^captures/recu-0x[0-9a-f]{64}\\.json$" } } } },
+        { "if": { "properties": { "role": { "const": "capture_certificat" } } }, "then": { "properties": { "path": { "type": "string", "pattern": "^captures/certificat-[0-9]{1,20}\\.json$" } } } }
+      ]
+    },
+    "gabarit_service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "version", "org", "org_id", "console_origin", "administrators" ],
+      "description": "Gabarit de configuration du service d'approbation (CT-4 EX-7.20) : les membres que l'inscription détermine (org, org_id) et ceux que le client fournit (console_origin, administrators, CT-3 table 10.3), à null tant que le client ne les a pas donnés par écrit. Ce n'est pas la configuration du service : ses autres réglages et ses secrets n'y figurent pas. Chaque membre non nul est valide contre la propriété de même nom de configuration-approbation-v0 (CT-3 EX-10.12), à laquelle il renvoie ; org et org_id y ajoutent les formes du dossier d'inscription.",
+      "properties": {
+        "version": { "$ref": "https://noortrace.example/schemas/v0/configuration-approbation.schema.json#/properties/version" },
+        "org": {
+          "allOf": [
+            { "$ref": "https://noortrace.example/schemas/v0/inscription-client.schema.json#/$defs/nom" },
+            { "$ref": "https://noortrace.example/schemas/v0/configuration-approbation.schema.json#/properties/org" }
+          ]
+        },
+        "org_id": {
+          "allOf": [
+            { "$ref": "https://noortrace.example/schemas/v0/inscription-client.schema.json#/$defs/hex32_non_nul" },
+            { "$ref": "https://noortrace.example/schemas/v0/configuration-approbation.schema.json#/properties/org_id" }
+          ]
+        },
+        "console_origin": {
+          "description": "Origine HTTPS de la console de l'organisation (CT-3 EX-13.14), ou null.",
+          "oneOf": [ { "type": "null" }, { "$ref": "https://noortrace.example/schemas/v0/configuration-approbation.schema.json#/properties/console_origin" } ]
+        },
+        "administrators": {
+          "description": "Identités de session des administrateurs de l'annuaire (CT-3 table 10.3, EX-13.9), ou null.",
+          "oneOf": [ { "type": "null" }, { "$ref": "https://noortrace.example/schemas/v0/configuration-approbation.schema.json#/properties/administrators" } ]
+        }
+      }
+    }
+  }
+}

@@ -1,54 +1,54 @@
 {
   "version": 0,
-  "date": "2026-11-10",
+  "date": "2026-11-11",
   "index": {
     "MN-1": {
       "test": "TA-1",
       "state": "a_ecrire",
       "scenarios": [
-        "TA-99"
+        "TA-103"
       ]
     },
     "MN-2": {
       "test": "TA-2",
       "state": "executable",
       "scenarios": [
-        "TA-99"
+        "TA-103"
       ]
     },
     "MN-3": {
       "test": "TA-3",
       "state": "executable",
       "scenarios": [
-        "TA-99"
+        "TA-103"
       ]
     },
     "MN-4": {
       "test": "TA-4",
       "state": "executable",
       "scenarios": [
-        "TA-99"
+        "TA-103"
       ]
     },
     "MN-5": {
       "test": "TA-5",
       "state": "executable",
       "scenarios": [
-        "TA-99"
+        "TA-103"
       ]
     },
     "MN-6": {
       "test": "TA-6",
       "state": "executable",
       "scenarios": [
-        "TA-99"
+        "TA-103"
       ]
     },
     "MN-7": {
       "test": "TA-7",
       "state": "executable",
       "scenarios": [
-        "TA-99"
+        "TA-103"
       ]
     },
     "MN-8": {
@@ -60,14 +60,14 @@
       "test": "TA-9",
       "state": "executable",
       "scenarios": [
-        "TA-99"
+        "TA-103"
       ]
     },
     "MN-10": {
       "test": "TA-10",
       "state": "executable",
       "scenarios": [
-        "TA-102"
+        "TA-106"
       ]
     },
     "MN-11": {
@@ -94,7 +94,7 @@
       "test": "TA-15",
       "state": "executable",
       "scenarios": [
-        "TA-99"
+        "TA-103"
       ]
     },
     "MN-16": {
@@ -106,50 +106,50 @@
       "test": "TA-17",
       "state": "executable",
       "scenarios": [
-        "TA-100"
+        "TA-104"
       ]
     },
     "MN-18": {
       "test": "TA-18",
       "state": "a_ecrire",
       "scenarios": [
-        "TA-100"
+        "TA-104"
       ]
     },
     "MN-19": {
       "test": "TA-19",
       "state": "executable",
       "scenarios": [
-        "TA-100",
-        "TA-102"
+        "TA-104",
+        "TA-106"
       ]
     },
     "MN-20": {
       "test": "TA-20",
       "state": "executable",
       "scenarios": [
-        "TA-102"
+        "TA-106"
       ]
     },
     "MN-21": {
       "test": "TA-21",
       "state": "executable",
       "scenarios": [
-        "TA-101"
+        "TA-105"
       ]
     },
     "MN-22": {
       "test": "TA-22",
       "state": "a_ecrire",
       "scenarios": [
-        "TA-99"
+        "TA-103"
       ]
     },
     "MN-23": {
       "test": "TA-23",
       "state": "executable",
       "scenarios": [
-        "TA-100"
+        "TA-104"
       ]
     },
     "MN-24": {
@@ -166,29 +166,29 @@
       "test": "TA-26",
       "state": "executable",
       "scenarios": [
-        "TA-100",
-        "TA-102"
+        "TA-104",
+        "TA-106"
       ]
     },
     "MN-27": {
       "test": "TA-27",
       "state": "executable",
       "scenarios": [
-        "TA-100"
+        "TA-104"
       ]
     },
     "MN-28": {
       "test": "TA-28",
       "state": "executable",
       "scenarios": [
-        "TA-100"
+        "TA-104"
       ]
     },
     "MN-29": {
       "test": "TA-29",
       "state": "a_ecrire",
       "scenarios": [
-        "TA-102"
+        "TA-106"
       ]
     },
     "MN-30": {
@@ -210,7 +210,7 @@
       "test": "TA-33",
       "state": "executable",
       "scenarios": [
-        "TA-102"
+        "TA-106"
       ]
     },
     "MN-34": {
@@ -322,7 +322,7 @@
       "test": "TA-55",
       "state": "a_ecrire",
       "scenarios": [
-        "TA-103"
+        "TA-107"
       ]
     },
     "MN-56": {
@@ -339,7 +339,7 @@
       "test": "TA-58",
       "state": "a_ecrire",
       "scenarios": [
-        "TA-103"
+        "TA-107"
       ]
     },
     "MN-59": {
@@ -351,7 +351,7 @@
       "test": "TA-60",
       "state": "executable",
       "scenarios": [
-        "TA-101"
+        "TA-105"
       ]
     },
     "MN-61": {
@@ -363,21 +363,21 @@
       "test": "TA-62",
       "state": "executable",
       "scenarios": [
-        "TA-103"
+        "TA-107"
       ]
     },
     "MN-63": {
       "test": "TA-63",
       "state": "executable",
       "scenarios": [
-        "TA-103"
+        "TA-107"
       ]
     },
     "MN-64": {
       "test": "TA-64",
       "state": "executable",
       "scenarios": [
-        "TA-102"
+        "TA-106"
       ]
     },
     "MN-65": {
@@ -429,7 +429,7 @@
       "test": "TA-74",
       "state": "executable",
       "scenarios": [
-        "TA-100"
+        "TA-104"
       ]
     },
     "MN-75": {
@@ -441,8 +441,8 @@
       "test": "TA-76",
       "state": "executable",
       "scenarios": [
-        "TA-101",
-        "TA-103"
+        "TA-105",
+        "TA-107"
       ]
     },
     "MN-77": {
@@ -484,21 +484,21 @@
       "test": "TA-84",
       "state": "executable",
       "scenarios": [
-        "TA-100"
+        "TA-104"
       ]
     },
     "MN-85": {
       "test": "TA-85",
       "state": "executable",
       "scenarios": [
-        "TA-100"
+        "TA-104"
       ]
     },
     "MN-86": {
       "test": "TA-86",
       "state": "executable",
       "scenarios": [
-        "TA-100"
+        "TA-104"
       ]
     },
     "MN-87": {
@@ -535,7 +535,7 @@
       "test": "TA-93",
       "state": "a_ecrire",
       "scenarios": [
-        "TA-101"
+        "TA-105"
       ]
     },
     "MN-94": {
@@ -552,7 +552,7 @@
       "test": "TA-96",
       "state": "a_ecrire",
       "scenarios": [
-        "TA-100"
+        "TA-104"
       ]
     },
     "MN-97": {
@@ -563,6 +563,26 @@
     "MN-98": {
       "test": "TA-98",
       "state": "executable",
+      "scenarios": []
+    },
+    "MN-99": {
+      "test": "TA-99",
+      "state": "a_ecrire",
+      "scenarios": []
+    },
+    "MN-100": {
+      "test": "TA-100",
+      "state": "a_ecrire",
+      "scenarios": []
+    },
+    "MN-101": {
+      "test": "TA-101",
+      "state": "a_ecrire",
+      "scenarios": []
+    },
+    "MN-102": {
+      "test": "TA-102",
+      "state": "a_ecrire",
       "scenarios": []
     }
   }

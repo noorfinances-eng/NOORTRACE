@@ -5,7 +5,9 @@
 # Fichier de RÉFÉRENCE : les images noortrace/* sont à construire (phase 2) ;
 # il est vérifié par analyse statique (CT-8 §4, vérifications CO-1 à CO-14),
 # jamais lancé dans le dépôt. Les secrets sont des fichiers de ./secrets/
-# créés au pas IR-2 (mode 0400), jamais une variable d'environnement.
+# créés au pas IR-2 (mode 0400), jamais une variable d'environnement ; la
+# configuration du service d'approbation, ./config/rapide/approbation.json,
+# est écrite au pas IR-3.
 #
 # Depuis le répertoire deploiement/ (les chemins relatifs ./config et ./secrets
 # se résolvent alors contre lui) :
@@ -21,7 +23,7 @@ services:
     user: "10001:10001"
     group_add:
       - "10010"
-    command: ["--configuration", "/etc/noortrace/configuration.json"]
+    command: ["--config", "/etc/noortrace/configuration.json"]
     read_only: true
     tmpfs:
       - /run/temporaire:size=67108864,mode=1777
@@ -73,7 +75,7 @@ services:
     user: "10002:10002"
     group_add:
       - "10010"
-    command: ["--prise", "/run/noortrace/approbation.sock", "--pair", "noortrace", "--etat", "/var/lib/noortrace-approbation"]
+    command: ["--config", "/etc/noortrace-approbation/configuration.json"]
     read_only: true
     tmpfs:
       - /run/temporaire:size=16777216,mode=1777
@@ -92,6 +94,14 @@ services:
       - type: volume
         source: prises
         target: /run/noortrace
+      - type: bind
+        source: ./config/rapide/approbation.json
+        target: /etc/noortrace-approbation/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+    secrets:
+      - cle-stockage-approbation
     healthcheck:
       test: ["CMD", "/usr/local/bin/noortrace-approbation", "sonde", "--url", "http://127.0.0.1:8601/v0/etat"]
       interval: 10s
@@ -142,3 +152,5 @@ secrets:
     file: ./secrets/jeton-hote
   jeton-passerelle:
     file: ./secrets/jeton-passerelle
+  cle-stockage-approbation:
+    file: ./secrets/cle-stockage-approbation

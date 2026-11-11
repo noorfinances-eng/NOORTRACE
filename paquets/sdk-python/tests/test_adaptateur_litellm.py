@@ -274,5 +274,9 @@ def test_echanges_declares_hors_passerelle(banc):
             time.sleep(0.05)
         assert g.file.echanges_perdus == 0
     assert len(echanges) == 2 and all(len(e["context"]) >= 1 for e in echanges)
-    assert echanges[0]["code"]["model"] == "openai/modele-local" and echanges[0]["execution"]["is_error"] is False
-    assert echanges[1]["execution"]["is_error"] is True
+    # Les gestionnaires appelés depuis un groupe de fils peuvent sceller les deux
+    # échanges dans l'un ou l'autre ordre : chacun est cherché par son issue.
+    reussi = [e for e in echanges if e["execution"]["is_error"] is False]
+    echoue = [e for e in echanges if e["execution"]["is_error"] is True]
+    assert len(reussi) == 1 and len(echoue) == 1
+    assert reussi[0]["code"]["model"] == "openai/modele-local"

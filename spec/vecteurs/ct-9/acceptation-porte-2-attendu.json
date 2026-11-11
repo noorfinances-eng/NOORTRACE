@@ -11,7 +11,7 @@
         {
           "element": "Les deux cas traversent la chaîne de la capture au dossier : Rapport d'exécution (EX-A.19) : `reussi` pour TE-1, TE-2, TE-12 et TE-13 ; chaque dossier exporté par ces quatre entrées : code 0 des deux vérificateurs de CT-6 (JavaScript et Go), énoncé identique (CT-6 §6.5) ; TA-99 à TA-103 `reussi` selon EX-10.9, chaque dossier qu'un scénario exporte portant le code et l'énoncé que son oracle attend, identiques entre les deux vérificateurs (TA-100 attend CT-1 K-7 ou K-8 en échec, exécutées par CT-6 §9.9 et §11.9) ; un scénario dont un test composé échoue tombe sous la ligne 4 ; un scénario qui n'exporte aucun dossier compte pour cette ligne par la seule réussite de ses tests composés et de son oracle de bout en bout (EX-10.9), l'exigence du code 0 des deux vérificateurs ne s'appliquant qu'aux dossiers effectivement exportés ; un dossier non vérifié par les deux vérificateurs rend la ligne `faux` ; répartition entre les lignes 1 et 4 : pour un scénario, la ligne 1 lit son oracle de bout en bout (EX-10.9) et les dossiers qu'il exporte, la ligne 4 lit chacun de ses tests composés avec son mutant",
           "rules": [
-            "CT-9 §14 (entrées : TE-1, TE-2 ; TE-12 (ancrage complet), TE-13 (console) ; TA-99 à TA-103 joués sur la même démonstration)",
+            "CT-9 §14 (entrées : TE-1, TE-2 ; TE-12 (ancrage complet), TE-13 (console) ; TA-103 à TA-107 joués sur la même démonstration)",
             "CT-9 EX-14.1"
           ]
         },
@@ -32,7 +32,7 @@
         {
           "element": "Les tests adversariaux passent : Rapport d'exécution : chaque TA- `reussi` avec la réponse, et son mutant tué (échec sans la réponse) ; TA-26 (PA-1) et TA-88 (PA-10) `non_applicable` pour leur partie conditionnée tant que la proposition n'est pas adoptée (EX-14.1) ; TA-2 et TA-30 `reussi` exigé (réponses codées par le démon de l'étape 4), TA-93 `reussi` exigé (réponse à coder, PD-13, PD-9 ; étape 8) ; `threats.without_ta` vide dans `couverture.json`",
           "rules": [
-            "CT-9 §14 (entrées : TA-1 à TA-98 (un par menace) et TA-99 à TA-103 (scénarios du plan), section 10)",
+            "CT-9 §14 (entrées : TA-1 à TA-102 (un par menace) et TA-103 à TA-107 (scénarios du plan), section 10)",
             "CT-9 EX-14.1"
           ]
         },

@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "montage-remontee.yaml",
-    "sha256": "bece684cd5fa090e74546db45ba4620a0af26ee453d81be8111185bd8c3636da",
+    "sha256": "7fc4b670aae68904a66105aa42e25d6262993e9f55fbe567aef14eea402e4524",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

@@ -726,7 +726,7 @@ message : sha256sum: WARNING: 1 computed checksum did NOT match
 -- résultat : tar accepte ; écarts au manifeste 2 ; verdict limite_de_l_outil
 
 == observation.tar
-sha256sum : 127b257aebef28bb8436f7b07fe7a3c6d4e805ce7ca9c3f3e991c53b543f9ba5 ; cas.json : concorde
+sha256sum : d3d6ea7fc3c69d731fe1f33b7fde85db0ff0c3ca8b9e714fe6a714a336b3e064 ; cas.json : concorde
 attendu (cas.json, cas observation) : paquet intact
 -- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 18 membres
 -rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
@@ -746,7 +746,7 @@ attendu (cas.json, cas observation) : paquet intact
 -rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-3/manifeste.json
 -rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-3/manifeste.sig
 -rw-r--r-- 0/0            3547 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-3/voisins.json
--rw-r--r-- 0/0            6550 2026-10-27 00:00:00 paquet-reviseur/pieces/3d0e81832bce1e5b653040304a65dfdc0e3912ba24e10ae44b2b78431516da36.json
+-rw-r--r-- 0/0            6607 2026-10-27 00:00:00 paquet-reviseur/pieces/94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912.json
 -- extraction (tar -xf, répertoire neuf et vide) : code 0
 -- liens extraits : aucun
 -- entrées hors de la destination : aucune

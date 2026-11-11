@@ -1,7 +1,11 @@
 # CT-6 — Vérificateur
 
-Version 0.5, 2026-11-09 (révision 0.5, textuelle et minimale, après la
-relecture adversariale de l'étape 5 de la construction : forme canonique d'une
+Version 0.6, 2026-11-11 (révision 0.6 : page de vérification, qui exécute
+dans le navigateur le binaire compilé en WebAssembly, section 18 nouvelle ;
+l'export du dossier reste hors périmètre, fonction de l'enregistreur fixée
+par CT-2 §15.7 ; aucune règle existante n'est modifiée, aucun schéma ne
+change. Version 0.5, du 2026-11-09 : révision 0.5, textuelle et
+minimale, après la relecture adversariale de l'étape 5 de la construction : forme canonique d'une
 preuve `.ots` ou d'une réponse de calendrier, deux attestations identiques ou
 deux opérations identiques sous un même nœud rendant le fichier inexploitable,
 O-1 en échec, raison `doublon` (§10.2, EX-10.2, EX-10.5) ; lecture selon §9.3
@@ -55,10 +59,12 @@ seule racine (section 16).
 
 La spécification a deux parties. La **partie A** (sections 0 à 8) dit ce que
 le vérificateur croit, ce qu'il lit, ce qu'il exécute et ce qu'il affirme ; un
-réviseur peut s'y arrêter. La **partie B** (sections 9 à 17 et annexe A) dit
+réviseur peut s'y arrêter. La **partie B** (sections 9 à 18 et annexe A) dit
 comment les contrôles 4, 5 et 8 se calculent, ce que contient le fichier
 d'ancres, ce que CT-4 et CT-5 doivent produire, comment le binaire se
-construit, et comment les vecteurs sont disposés. L'annexe B donne, pour
+construit, et comment les vecteurs sont disposés ; depuis la révision 0.6,
+la section 18 dit comment la page de vérification exécute ce binaire dans un
+navigateur. L'annexe B donne, pour
 chaque renvoi aux notes de recherche, les sources primaires publiques.
 
 ## 0. En-tête et conventions
@@ -102,6 +108,10 @@ EX-9.11 (borne haute des clés RSA, EX-9.23 ; clé ou algorithme hors de la
 version 0, EX-9.24), EX-11.14 (type du vote) et
 EX-14.1, EX-14.3 (dépendances et version de Go du binaire). Aucune règle
 n'est retirée ni renumérotée (section 16).
+La révision 0.6 ajoute EX-18.1 à EX-18.13, règles de la section 18,
+nouvelle, numérotées dans l'ordre du texte ; elle ne modifie ni ne retire
+aucune règle existante, et ne renumérote rien ; elle complète EX-8.1 d'un
+renvoi à la section 18 (« Révision 0.6 : »), sans effet normatif nouveau.
 
 Les vérifications élémentaires portent l'identifiant de leur famille :
 
@@ -171,8 +181,8 @@ CT-6 fixe, pour la version 0 du vérificateur :
    (section 12), ce que CT-4 et CT-5 doivent produire (section 13), le
    binaire (section 14), la sûreté du vérificateur (section 15), les décisions
    de l'architecture touchées (section 16), ce que la version ne couvre pas
-   (section 17), les vecteurs (annexe A) et les sources des faits externes
-   (annexe B).
+   (section 17), la page de vérification (section 18, révision 0.6), les
+   vecteurs (annexe A) et les sources des faits externes (annexe B).
 8. (révision 0.2) la vérification de la partie facultative
    `points-de-controle.json` (CT-1 révision 0.3) : rattachement des
    vérifications K-1 à K-9 aux huit contrôles et leur effet sur le statut
@@ -188,10 +198,20 @@ CT-6 fixe, pour la version 0 du vérificateur :
    l'énoncé, `facts.perimeter` et avertissements AV-AT- (sections 6.5, 6.7,
    8), ce que le verdict ne prouve pas du périmètre (section 7.10), les
    vecteurs (annexe A).
+10. (révision 0.6) la page de vérification : une page statique publique,
+   servie sur une origine distincte de toute console, qui exécute dans le
+   navigateur le binaire de la section 14 compilé en WebAssembly, sur des
+   fichiers que l'utilisateur choisit et qui ne quittent pas son poste, et
+   qui affiche octet pour octet le rapport du binaire ; la section 18 en
+   fixe la confiance, l'artefact et sa construction reproductible, les
+   fichiers, les entrées, l'exécution, l'origine et les en-têtes, et les
+   épreuves.
 
 Hors périmètre : la production des cinq parties réservées du dossier (CT-4
 pour le registre, CT-5 pour l'horodatage et OpenTimestamps ; la section 13 dit
-ce qu'elles doivent livrer) ; l'export du dossier ; la décision qu'une
+ce qu'elles doivent livrer) ; l'export du dossier, qui reste une fonction de
+l'enregistreur (CT-2 §15.7, révision 0.8 : commande `noortrace-ctl dossier
+exporter`), et que la page de vérification ne fait pas ; la décision qu'une
 autorité d'horodatage est qualifiée, que le vérificateur reprend telle que le
 réviseur la déclare (section 12) ; toute consultation d'un nœud Bitcoin ou d'un
 nœud du registre ; les preuves d'état du registre (appartenance d'une adresse
@@ -206,6 +226,7 @@ Ce que la version 0 livre :
 | L'implémentation de référence JavaScript des huit contrôles, dans `scripts/verify/dossier.mjs` (option `--ancres`) | avec CT-6 |
 | Les vecteurs `spec/vecteurs/ct-6`, leurs tests et l'intégration continue | avec CT-6 |
 | Le binaire Go, sa construction reproductible et sa diffusion | phase 2 du plan (section 14) |
+| La page de vérification et son artefact WebAssembly (révision 0.6) | phase 2, avec le binaire (section 18) |
 
 Relations avec les autres spécifications :
 
@@ -2792,6 +2813,10 @@ référence est `scripts/verify/dossier.mjs`. Les deux acceptent les mêmes
 options et rendent les mêmes codes de retour. Seule l'implémentation de
 référence accepte `--schemas` ; le binaire embarque les schémas de sa version
 et n'en lit aucun sur le disque.
+
+Révision 0.6 : la page de vérification (section 18) n'a pas d'autre interface
+que celle-ci ; elle exécute le binaire compilé en WebAssembly avec les
+arguments d'EX-18.8 et affiche ses sorties (EX-18.10).
 
 ### 8.2 Options
 
@@ -6266,6 +6291,39 @@ l'étape 5 de la construction, 2026-11-09) :
 | `confrontation/ots`, `confrontation/rfc3161` | lecture `acceptee` ou `refusee` ; T-1 établi par les seuls chargeurs d'OpenSSL | lecture `acceptee_en_ecrasant` (resérialisation différente) tenue pour O-1 en échec ; longueurs non minimales (`asn1parse`, `hl`) et extension connue indécodable (`x509 -purpose`, `code=-1`) tenues pour T-1 en échec | fait (`sorties/ots.txt`, `sorties/rfc3161.txt`) |
 | `spec/README.md` | CT-6 version 0.4 | CT-6 version 0.5 | fait |
 
+**Version 0.6** (2026-11-11). Page de vérification : section 18, nouvelle
+(EX-18.1 à EX-18.13). Une page statique publique, servie sur une origine
+distincte de toute console et de toute application d'exploitant, exécute
+dans un travailleur du navigateur le programme `cmd/noortrace-verifier`
+compilé pour `GOOS=js GOARCH=wasm`, sur un dossier (répertoire, `.zip`,
+`.tar`, `.tar.gz`), un fichier d'ancres et un fichier d'en-têtes que
+l'utilisateur choisit, sans rien envoyer ; elle affiche, octet pour octet, le
+rapport lisible, le rapport JSON, la sortie d'erreur et le code du binaire
+pour les mêmes entrées et les mêmes options, l'énoncé dans les deux langues,
+et n'affirme rien pour le code 2. Elle fixe la confiance ajoutée (l'origine et
+le navigateur), la construction reproductible de l'artefact et le contrôle de
+son empreinte, les fichiers de la page et leur intégrité, l'arbre de fichiers
+présenté au programme, la politique de sécurité des contenus et les autres
+en-têtes, et les épreuves. Le périmètre de la section 1 est complété (point
+10, table des livrables) ; l'export du dossier reste hors périmètre, fonction
+de l'enregistreur (CT-2 §15.7, révision 0.8). Sections touchées : en-tête, 0
+(liste des règles), 1, 8.1 (renvoi qui complète EX-8.1, sans effet normatif
+nouveau), 16, 17, 18 ; annexe B (B.8). Aucune règle existante n'est modifiée
+ni retirée ; aucun schéma, aucun vecteur, aucun code de retour, aucun
+contrôle ni aucun verdict ne change.
+
+Alignement de la révision 0.6 avec le dépôt :
+
+| Emplacement | Avant | Attendu par la révision 0.6 | État |
+|---|---|---|---|
+| `verificateur/` (module Go) | binaire natif seulement ; aucune construction `js/wasm` | artefact `noortrace-verifier.wasm` par la recette d'EX-18.3, deux constructions comparées (EX-18.4), `go list -deps` sous `GOOS=js GOARCH=wasm` sans `net/http`, `crypto/tls` ni `os/exec` ; aucun fichier source propre à `js` | à faire (phase 2) ; essai de faisabilité du 2026-11-11 en go1.24.7 : construction reproductible et 760 exécutions sans écart sous Node (EX-18.4) |
+| Page de vérification (fichiers de 18.3, script de construction du dépôt) | absente | fichiers et contenu de 18.3, intégrité d'EX-18.6, entrées d'EX-18.7, arbre d'EX-18.8, exécutions et affichage d'EX-18.9 et EX-18.10, contrôle d'EX-18.5 | à faire (phase 2) |
+| Hébergement de la page | — | origine distincte et en-têtes d'EX-18.11 et EX-18.12 | à faire |
+| Publication (EX-14.9) | binaires, `SHA256SUMS` | `noortrace-verifier.wasm` et les fichiers de la page dans `SHA256SUMS`, résultats des épreuves d'EX-18.13 | à faire, avec la première version publiée |
+| CT-2 §0.2, ligne « §11 Dossier » | « CT-6 en fixe la ligne de commande » (de l'export) | l'export a sa commande dans CT-2 15.7 ; CT-6 ne fixe que celle du vérificateur | fait (CT-2 révision 0.8) |
+| Plan de tests | — | cas d'EX-18.13 et des refus d'EX-18.7 | à faire |
+| `spec/README.md` | CT-6 version 0.5 | CT-6 version 0.6 (page de vérification) | fait |
+
 ## 17. Ce que cette version ne couvre pas
 
 - **Le statut qualifié établi par le vérificateur** : la lecture des listes de
@@ -6320,6 +6378,358 @@ l'étape 5 de la construction, 2026-11-09) :
   déclaré par le dossier, sans ancre d'approbateurs. **L'inclusion et la
   date de l'événement d'inscription** : elles se prouvent par son propre
   dossier.
+- (révision 0.6) Pour la **page de vérification** (section 18) : les
+  options `--pieces` et `--second-manifeste` ; la règle d'EX-4.17 sur un
+  lien symbolique d'un répertoire choisi dans le navigateur, que la page ne
+  voit pas (EX-18.8) ; un dossier dont une archive dépasse 256 Mio
+  décompressés ; un fichier d'ancres ou un dossier fourni par la page
+  elle-même, qu'elle ne fournit jamais (EX-18.2) ; la page servie depuis le
+  poste du réviseur sans les en-têtes d'EX-18.12. L'export du dossier reste
+  une fonction de l'enregistreur (CT-2 §15.7).
+
+## 18. Page de vérification (révision 0.6)
+
+La page de vérification permet à quelqu'un qui n'a pas installé le binaire de
+vérifier un dossier dans son navigateur. Elle n'est pas une implémentation de
+plus : elle exécute le binaire de la section 14, compilé en WebAssembly, sur
+des fichiers que l'utilisateur choisit et qui ne quittent pas son poste, et
+elle affiche le rapport que ce binaire écrit. Elle ne change ni les contrôles,
+ni les verdicts, ni le rapport. Les sous-sections disent ce que l'utilisateur
+croit en plus (18.1), comment l'artefact se construit et se contrôle (18.2),
+de quels fichiers la page est faite (18.3), ce qu'elle lit (18.4), comment elle
+exécute et ce qu'elle affiche (18.5), comment elle est servie (18.6) et comment
+on l'éprouve (18.7). « Le projet » désigne qui construit et publie la page,
+« l'hébergeur » qui la sert ; ce peut être le réviseur lui-même.
+
+### 18.1 Objet et confiance
+
+**EX-18.1** La page de vérification est une page statique et publique : elle
+n'exige aucun compte, sert à tout visiteur les mêmes fichiers et n'a aucune
+partie dynamique côté serveur. Elle exécute, dans un travailleur dédié du
+navigateur (Web Worker), le programme `cmd/noortrace-verifier` du module
+`verificateur/` de la section 14, compilé pour `GOOS=js GOARCH=wasm`
+(18.2), sur le dossier, le fichier d'ancres et le fichier d'en-têtes Bitcoin
+que l'utilisateur choisit (18.4). Elle ne vérifie rien que le binaire ne
+vérifie et n'écrit aucun rapport que le binaire n'écrive (EX-18.10). Elle ne
+remplace pas le binaire publié (EX-14.9), qui reste la voie d'un réviseur qui
+ne croit pas l'hébergeur. Tenu par le projet.
+
+**EX-18.2** **Ce que l'utilisateur croit en plus.** Au-delà de ce que le
+vérificateur croit (3.1), l'utilisateur de la page croit l'origine qui sert
+ses fichiers et son navigateur (moteur WebAssembly, application de la
+politique de sécurité des contenus et de l'intégrité des sous-ressources). Un
+hébergeur qui servirait d'autres fichiers pourrait exécuter un autre
+programme et afficher n'importe quel rapport, empreinte comprise.
+L'intégrité des sous-ressources (EX-18.6) protège contre un `page.css`, un
+`page.js` ou un `verificateur-wasm.js` changé sous un `index.html` intact,
+et le contrôle de l'empreinte par le travailleur (EX-18.5), contre un
+artefact changé sous un `travailleur.js` intact ; rien, dans la page, ne
+protège contre un `travailleur.js` changé, qu'aucun attribut d'intégrité ne
+couvre et qui porte lui-même l'empreinte attendue et son contrôle : seul
+`SHA256SUMS` le couvre (EX-18.4, EX-18.6) ; rien ne protège non plus contre
+l'hébergeur lui-même. Contre l'un et l'autre valent les empreintes publiées et
+signées de chaque fichier de la page, que l'utilisateur compare à ce qu'il a
+reçu, la reconstruction (EX-18.4), ou le binaire. La page ne fournit aucun
+fichier d'ancres, n'en propose aucun par défaut et n'en garde aucun d'une
+vérification à l'autre : les ancres sont celles que le réviseur prépare
+(EX-12.1, 12.5). La page affiche en permanence, dans sa langue, la phrase
+fixe : « Cette page exécute dans votre navigateur le vérificateur
+noortrace-verifier <version>, compilé en WebAssembly ; aucun fichier ne
+quitte votre poste. Elle vaut ce que vaut l'origine qui la sert : pour ne pas
+en dépendre, comparez les empreintes publiées ou employez le binaire. » (« This
+page runs the noortrace-verifier <version> verifier, compiled to WebAssembly,
+in your browser; no file leaves your computer. It is only as trustworthy as
+the origin serving it: to avoid depending on it, compare the published
+digests or use the binary. »). Tenu par le projet.
+
+### 18.2 Artefact WebAssembly
+
+**EX-18.3** **Recette.** L'artefact `noortrace-verifier.wasm` se construit
+depuis le même commit, le même répertoire `vendor/` et la même version de Go
+que les binaires de la version (go1.27.3 exactement, EX-14.3), par la recette
+d'EX-14.6 avec `GOOS=js GOARCH=wasm` :
+
+```bash
+GOTOOLCHAIN=local GOENV=off GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off CGO_ENABLED=0 \
+GOOS=js GOARCH=wasm \
+go build -trimpath -buildvcs=false -ldflags='-buildid= -X main.version=<version>' \
+  -o noortrace-verifier.wasm ./cmd/noortrace-verifier
+```
+
+`<version>` est celle des binaires de la même version ; `GOAMD64`, sans effet
+pour `GOARCH=wasm`, est omis. Le paquet principal est celui des binaires : le
+module n'a aucun fichier source propre à `js` ou à `wasm` (aucune contrainte
+de construction ne nomme `js` ni `wasm` ; le seul fichier qui change avec la
+cible est celui de contrainte `!unix`, EX-18.8), et aucun de ses paquets n'importe
+`syscall/js`, qu'emploient seuls, sous `js/wasm`, les paquets `os` et
+`syscall` de la bibliothèque standard. EX-14.1 et EX-14.5 valent pour
+l'artefact : `GOOS=js GOARCH=wasm go list -deps ./cmd/noortrace-verifier` ne
+nomme ni `net/http`, ni `crypto/tls`, ni `os/exec` ; les preuves par
+`go tool nm`, `unshare -n` et `strace` d'EX-14.5 sont propres à un binaire
+natif, et l'absence de réseau dans la page tient à la politique d'EX-18.12.
+Le fichier de soutien `wasm_exec.js` est celui de go1.27.3,
+`$(go env GOROOT)/lib/wasm/wasm_exec.js` (les fichiers de soutien de
+WebAssembly sont sous `lib/wasm` depuis Go 1.24, annexe B.8), recopié sans
+changement. Tenu par le projet.
+
+**EX-18.4** **Reproductibilité et publication.** Deux constructions
+indépendantes de l'artefact DOIVENT donner les mêmes octets, comme les
+binaires (EX-14.8) ; l'intégration continue le construit deux fois et compare
+les SHA-256. Chaque version publie `noortrace-verifier.wasm` et chaque fichier
+de la page (18.3) dans le `SHA256SUMS` signé d'EX-14.9 ; le réviseur
+reconstruit et compare par `sha256sum --strict -c SHA256SUMS`. Essai de
+faisabilité du 2026-11-11, fait avec go1.24.7, la seule chaîne alors
+installée, `go.mod` ramené à `go 1.24` pour l'essai seulement : deux
+constructions depuis deux copies des sources à deux chemins différents, avec
+deux caches vides, ont donné les mêmes 10 408 737 octets ; sur les 190
+dossiers de `spec/vecteurs/ct-1` et `spec/vecteurs/ct-6`, avec et sans
+`ancres-test.json` et `chaine.json`, en rapport lisible et en JSON (760
+exécutions), l'artefact exécuté par Node 22 (`wasm_exec_node.js`, système de
+fichiers de Node et non celui de la page) et le binaire natif de la même
+construction ont rendu les mêmes codes, la même sortie standard et la même
+sortie d'erreur, octet pour octet. Ni go1.27.3 ni un navigateur n'ont été
+essayés : non vérifié. Tenu par le projet.
+
+**EX-18.5** **Contrôle de l'empreinte par la page.** Le travailleur calcule le
+SHA-256 des octets de l'artefact qu'il reçoit (`crypto.subtle.digest`) avant
+de le compiler et le compare à la constante `EMPREINTE_WASM` que la
+construction écrit dans `travailleur.js` ; s'ils diffèrent, il ne compile
+rien, et la page affiche « artefact du vérificateur altéré : empreinte
+<calculée> au lieu de <attendue> ; aucune vérification » (« verifier
+artefact altered: digest <computed> instead of <expected>; no
+verification ») et aucun rapport. Sinon, la page affiche la version et
+l'empreinte, en hexadécimal `0x` (CT-1 §3), à côté de la phrase d'EX-18.2,
+pour que l'utilisateur la compare à la ligne `noortrace-verifier.wasm` du
+`SHA256SUMS` de la version. Tenu par la page.
+
+### 18.3 Fichiers de la page
+
+| Fichier | Contenu |
+|---|---|
+| `index.html` | la page ; aucun script ni style en ligne, aucun attribut de gestionnaire d'événement, aucune ressource d'une autre origine |
+| `page.css` | les styles ; polices du système |
+| `page.js` | fil principal : choix des fichiers, lecture des archives (EX-18.7), transmission au travailleur, affichage (EX-18.9) |
+| `verificateur-wasm.js` | l'artefact en base64 : exactement `globalThis.NOORTRACE_VERIFICATEUR_WASM = "`, puis les octets de `noortrace-verifier.wasm` en base64 (RFC 4648 §4, avec remplissage, sans saut de ligne), puis `";` et `\n` ; l'artefact est porté par un script parce que `connect-src 'none'` interdit `fetch` (EX-18.12) |
+| `travailleur.js` | le prélude du travailleur (système de fichiers et processus d'EX-18.8), puis `wasm_exec.js` de go1.27.3 sans changement (qui ne définit `globalThis.fs` et `globalThis.process` que s'ils sont absents), puis le pilote (constante `EMPREINTE_WASM`, exécutions d'EX-18.9) |
+| `noortrace-verifier.wasm` | l'artefact, publié pour comparaison et téléchargement ; la page ne le charge pas |
+
+**EX-18.6** Les fichiers de la page sont produits depuis le commit et
+l'artefact par un script du dépôt, de façon déterministe (aucune date, aucun
+aléa, aucun chemin de la machine de construction). `index.html` charge
+`page.css` par un élément `link` et `page.js` et `verificateur-wasm.js` par
+des éléments `script`, chacun avec l'attribut `integrity` (SHA-384,
+intégrité des sous-ressources) ; `page.js` crée le travailleur depuis
+`travailleur.js`, même origine, qu'aucun attribut d'intégrité ne peut
+couvrir : son contenu est couvert par `SHA256SUMS` (EX-18.4), et c'est lui qui
+contrôle l'artefact (EX-18.5). Tenu par le projet.
+
+### 18.4 Entrées
+
+**EX-18.7** **Ce que la page lit.** Le dossier, obligatoire ; le fichier
+d'ancres (`--ancres`) et le fichier d'en-têtes Bitcoin (`--entetes-bitcoin`),
+facultatifs, chacun un seul fichier lu tel quel. Options offertes :
+`--exiger` (numéros de 1 à 8 ou `tous`, que la page écrit sous la forme
+canonique d'EX-8.2, numéros croissants), `--langue` (`fr` ou `en`, la langue
+de la page par défaut) et `--detail` ; `--json` sert à la seconde exécution
+d'EX-18.9. `--pieces` et `--second-manifeste` ne sont pas offertes : elles
+restent au binaire (section 17). Formes admises du dossier :
+
+| Forme | Règle |
+|---|---|
+| répertoire | choisi par le sélecteur de répertoire du navigateur ou déposé sur la page ; le dossier est le répertoire choisi, chaque fichier lu sous son chemin relatif |
+| `.zip` | entrées stockées (méthode 0) ou comprimées par `deflate` (méthode 8) ; aucune entrée chiffrée ; pas de ZIP64 ; noms en UTF-8 (bit 11 des drapeaux) ou en ASCII |
+| `.tar` | en-têtes POSIX `ustar`, `pax` (en-têtes `x` pour `path` et `size`, en-têtes `g` ignorés) ou GNU (noms longs `L`) ; types d'entrée `0` ou NUL (fichier) et `5` (répertoire) |
+| `.tar.gz`, `.tgz` | un `.tar` comprimé par gzip (RFC 1952) |
+
+Avant tout examen, la page normalise le chemin de chaque entrée d'une
+archive : elle retire la barre oblique finale d'une entrée de répertoire et
+tout préfixe `./` répété, et ignore une entrée réduite à `.` (ou `./`),
+qu'écrit par exemple `tar -C <dossier> -cf x.tar .` ; un chemin normalisé
+vide est refusé. Dans une archive, le dossier est alors la racine si
+`dossier.json` y figure, sinon l'unique répertoire de premier niveau ; une
+archive sans `dossier.json` à sa racine qui n'a pas exactement un répertoire
+de premier niveau, et rien d'autre à ce niveau, est refusée ; une entrée de
+répertoire n'a pas à figurer dans l'archive pour qu'un fichier en dessous y
+soit admis. La page refuse aussi, avant toute exécution, une archive dont
+une entrée a, après normalisation, un chemin absolu, un composant `.`, `..`
+ou vide, une barre oblique inverse, un nom en double ou un nom qui n'est pas
+de l'UTF-8 valide ; une entrée d'un autre type que fichier ou répertoire (lien
+symbolique, lien physique, périphérique, tube) ; une forme hors de la table ;
+plus de 4 096 entrées ; plus de 256 Mio décompressés en tout (la somme des
+limites d'EX-4.13 pour un dossier est d'environ 247 Mio). Un refus affiche la
+raison, « aucun rapport » (« no report ») et aucun code : le vérificateur ne
+s'est pas exécuté. Tenu par la page.
+
+**EX-18.8** **Arbre présenté au programme.** Le travailleur présente au
+programme un système de fichiers en lecture seule :
+
+```text
+/entrees/dossier/…              les fichiers du dossier, avec leurs sous-répertoires
+/entrees/ancres.json            le fichier d'ancres, s'il est choisi
+/entrees/entetes-bitcoin.json   le fichier d'en-têtes, s'il est choisi
+```
+
+Le répertoire de travail est `/entrees`, l'environnement est vide (EX-8.3),
+et les arguments sont `noortrace-verifier dossier`, puis `--ancres ancres.json`
+et `--entetes-bitcoin entetes-bitcoin.json` pour les fichiers choisis, puis
+les options d'EX-18.7 dans cet ordre : `--exiger`, `--langue`, `--detail`,
+`--json`. Les noms que l'utilisateur a donnés à ses fichiers ne sont ni dans
+l'arbre ni dans le rapport ; la page les affiche à côté, avec la ligne de
+commande équivalente, que l'utilisateur peut rejouer avec le binaire.
+L'arbre met en œuvre, de l'interface `fs` que le paquet `syscall` de Go
+emploie sous `js/wasm` (la forme à fonctions de rappel de l'API `fs` de
+Node), les opérations de lecture (`open` en lecture, `fstat`, `lstat`,
+`stat`, `read`, `readdir`, `close`), `write` sur les descripteurs 1 et 2,
+dont le travailleur recueille les octets (EX-18.9), et l'objet
+`fs.constants`, que le paquet `syscall` lit à son initialisation (`O_WRONLY`,
+`O_RDWR`, `O_CREAT`, `O_TRUNC`, `O_APPEND`, `O_EXCL` et `O_DIRECTORY`, aux
+valeurs de Node sous Linux) ; toute autre opération, et toute ouverture en
+écriture, est refusée (`EROFS`, ou `ENOSYS` pour une opération qui n'est pas
+une écriture). Ses erreurs sont des objets dont le membre `code` est le nom
+POSIX de l'erreur (`ENOENT`, `ENOTDIR`, `EISDIR`, `EROFS`, `ENOSYS`, `EBADF`),
+que le paquet `syscall` traduit (un code qu'il ne connaît pas arrête le
+programme) ; ses répertoires ont le mode `S_IFDIR | 0555`, ses fichiers
+`S_IFREG | 0444` et leur taille exacte, chaque entrée un couple (`dev`, `ino`)
+stable, que `lstat` et `fstat` rendent à l'identique, `uid` et `gid` 0 et des
+instants nuls ; chaque objet d'état porte, numériques, tous les membres que
+lit le paquet `syscall` (`dev`, `ino`, `mode`, `nlink`, `uid`, `gid`, `rdev`,
+`size`, `blksize`, `blocks`, `atimeMs`, `mtimeMs`, `ctimeMs`) et la méthode
+`isDirectory()`. Le prélude remplace aussi l'objet `process` de `wasm_exec.js`,
+qui n'en définit un que s'il est absent : `cwd()` rend `/entrees`, `chdir`
+est refusé (`ENOSYS`), `pid` vaut 1 et `ppid` 0, `getuid`, `getgid`,
+`geteuid` et `getegid` rendent 0, `getgroups` un tableau vide et `umask`
+`0o022` ; et l'objet `path`, dont `resolve` résout un chemin relatif contre
+`process.cwd()` et normalise le résultat, comme Node, puisque le paquet
+`syscall` garde le chemin résolu d'un fichier ouvert (annexe B.8). Motif : sous `js/wasm`,
+`js` n'étant pas un système `unix` pour Go, le module compile
+`entree/ouvrir_autre.go` (contrainte `!unix`) et non `entree/ouvrir_unix.go`,
+qui ouvre avec `O_NOFOLLOW` ; le contrôle de fichier ordinaire d'EX-4.17
+repose alors sur `Lstat` avant l'ouverture, puis sur `fstat` et `os.SameFile`
+après, qui comparent ce couple (`entree/entree.go`, fonction `ouvrir`). Le
+navigateur ne présente à la page que des
+fichiers : un lien symbolique d'un répertoire choisi y est lu comme le fichier
+qu'il désigne ou omis, selon le navigateur (non vérifié), et l'arbre n'en
+contient jamais ; pour un dossier qui contient un lien, seul le binaire
+applique EX-4.17. Tenu par la page.
+
+### 18.5 Exécution et rapport
+
+**EX-18.9** **Exécutions et affichage.** Une vérification fait deux
+exécutions du programme, chacune dans une instance neuve de l'artefact
+compilé : l'une sans `--json` (rapport lisible), l'autre avec `--json`, les
+autres arguments étant les mêmes. Le travailleur recueille les octets écrits
+sur les sorties 1 et 2 et le code de sortie du programme. La page affiche :
+le rapport lisible tel quel, comme texte (jamais interprété comme du HTML),
+dans un élément préformaté ; le code et son sens selon la table de 8.3 ;
+pour les codes 0, 1 et 3, l'énoncé en français et en anglais, tiré de
+`statement.fr` et `statement.en` du rapport JSON ; pour le code 2, aucun
+énoncé, le message d'erreur (`error.message`) et la phrase « Aucune
+affirmation sur ce dossier. » (« No statement about this dossier. ») ; la
+sortie d'erreur, qui porte les avertissements (EX-8.5). Elle PEUT offrir
+d'enregistrer les deux rapports. Si les deux exécutions rendent des codes
+différents, ou si une exécution s'achève sans code de sortie (erreur du
+moteur, mémoire épuisée, compilation refusée par le navigateur), la page
+affiche « vérification non faite » (« verification not done ») avec la
+cause, aucun rapport et aucun énoncé : rien n'est affirmé, comme pour le
+code 2. Tenu par la page.
+
+**EX-18.10** **Même rapport que le binaire.** Pour les mêmes entrées et les
+mêmes options, le rapport lisible, le rapport JSON, la sortie d'erreur et le
+code que la page obtient sont, octet pour octet, ceux du binaire de la même
+version (EX-14.6, `linux/amd64`) exécuté avec les arguments d'EX-18.8 dans un
+répertoire `/entrees` qui contient les mêmes fichiers sous les mêmes noms
+(l'épreuve l'exécute dans un conteneur ou un espace de noms de montage). Il
+n'y a pas d'heure de référence à transmettre : le vérificateur ne lit ni
+l'horloge (EX-3.2) ni l'environnement (EX-8.3), et son rapport ne porte aucun
+instant qui ne vienne des entrées. Le bloc `verifier` est celui du binaire
+(`implementation` `binaire_go`, même `version`, `runtime` égal à la version de
+Go) : le rapport ne dit pas qu'il vient d'un navigateur, la page le dit à
+côté (EX-18.2, EX-18.5). Les codes 0, 1, 2 et 3, leur sens et la règle selon
+laquelle le code 2 n'affirme rien s'appliquent à l'identique (8.3, EX-8.4) ;
+l'énoncé est dans les deux langues comme EX-8.3 le dit du rapport JSON.
+Tenu par le projet.
+
+### 18.6 Origine, politique de sécurité, en-têtes
+
+**EX-18.11** **Origine.** La page est servie en HTTPS sur une origine (schéma,
+hôte, port) distincte de celle de toute console d'approbation
+(`console_origin` de CT-3) et de toute application d'exploitant (CT-4 §7.14),
+et cette origine ne sert rien d'autre : ni interface de programmation, ni
+formulaire, ni authentification. Motif : sur une même origine, un script de
+l'une agirait dans l'autre (stockage et requêtes de même origine). La page ne
+pose aucun cookie, n'emploie aucun stockage du navigateur (cookies,
+`localStorage`, `sessionStorage`, IndexedDB, Cache API) et n'enregistre aucun
+service worker ; après le chargement de `index.html`, `page.css`, `page.js`,
+`verificateur-wasm.js` et `travailleur.js`, elle ne fait aucune requête, ni
+pendant ni après une vérification (une requête que le navigateur fait de
+lui-même, pour l'icône de l'onglet par exemple, ne porte aucune donnée de
+l'utilisateur). Tenu par la page et l'hébergeur.
+
+**EX-18.12** **En-têtes.** L'hébergeur sert ces en-têtes, et la page
+fonctionne sous eux :
+
+| Réponse | En-tête | Valeur |
+|---|---|---|
+| `index.html` | `Content-Security-Policy` | `default-src 'none'; script-src 'self'; style-src 'self'; worker-src 'self'; connect-src 'none'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types noortrace-travailleur` |
+| `index.html` | `Integrity-Policy` | `blocked-destinations=(script style)` |
+| `index.html` | `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=(), usb=()` |
+| `travailleur.js` | `Content-Security-Policy` | `default-src 'none'; script-src 'wasm-unsafe-eval'` |
+| toutes | `Content-Type` | `text/html; charset=utf-8`, `text/css; charset=utf-8`, `text/javascript; charset=utf-8` ou `application/wasm`, selon le fichier |
+| toutes | `X-Content-Type-Options` | `nosniff` |
+| toutes | `Referrer-Policy` | `no-referrer` |
+| toutes | `Cross-Origin-Opener-Policy` | `same-origin` |
+| toutes | `Cross-Origin-Resource-Policy` | `same-origin` |
+| toutes | `Strict-Transport-Security` | `max-age=31536000` |
+| `noortrace-verifier.wasm` | `Content-Disposition` | `attachment` |
+
+Aucune réponse ne porte `Set-Cookie` ni `Access-Control-Allow-Origin`.
+`'unsafe-eval'` et `'unsafe-inline'` n'apparaissent dans aucune politique.
+`'wasm-unsafe-eval'`, mot-clé de CSP de niveau 3 qui autorise la compilation
+de WebAssembly sans autoriser `eval`, n'apparaît que dans la politique du
+travailleur, seul à compiler l'artefact : un travailleur dédié créé depuis une
+adresse de même origine suit la politique de la réponse qui porte son script,
+et non celle du document (annexe B.8) ; un navigateur qui appliquerait au
+travailleur la politique du document refuserait la compilation, et la page
+afficherait « vérification non faite » (EX-18.9). `connect-src 'none'` vaut
+pour le document et, par `default-src 'none'`, pour le travailleur : ni
+`fetch`, ni `XMLHttpRequest`, ni `WebSocket`, ni `EventSource`, ni
+`sendBeacon` ne partent. Le constructeur `Worker` est un point d'injection des
+types de confiance (Trusted Types) : la seule politique admise,
+`noortrace-travailleur`, créée une fois par `page.js`, rend l'adresse
+`travailleur.js` et refuse toute autre valeur ; la page n'insère jamais de
+HTML. Un navigateur qui n'offre pas les types de confiance
+(`globalThis.trustedTypes` absent) ignore les deux dernières directives :
+`page.js` passe alors au constructeur `Worker` la chaîne constante
+`travailleur.js`, écrite dans son texte, et ne construit jamais cette adresse
+depuis une donnée ; l'épreuve d'EX-18.13 se fait dans chaque moteur avec ou
+sans les types de confiance, selon ce qu'il offre. Que la destination `script` d'`Integrity-Policy` couvre ou non le
+chargement du travailleur (destination `worker`) n'a pas été vérifié :
+l'épreuve d'EX-18.13 établit que la page fonctionne sous ces en-têtes. Tenu
+par l'hébergeur et le projet.
+
+### 18.7 Épreuves
+
+**EX-18.13** Avant de publier une version de la page, le projet éprouve,
+dans un navigateur de chacun des trois moteurs Blink, Gecko et WebKit, en sa
+dernière version publiée, avec les en-têtes d'EX-18.12 : (1) l'identité d'EX-18.10 sur chacun des
+dossiers de `spec/vecteurs/ct-1/dossiers` et de `spec/vecteurs/ct-6/dossiers`,
+avec et sans `spec/vecteurs/ct-6/ancres/ancres-test.json` et
+`spec/vecteurs/ct-6/ots/entetes/chaine.json`, en français et en anglais, avec
+et sans `--exiger 4,5,8`, chaque dossier donné une fois comme répertoire et
+une fois sous chacune des formes d'archive d'EX-18.7, chaque archive
+fabriquée, depuis le répertoire parent `<parent>` du dossier `<d>`, par
+chacune des recettes suivantes : `zip -X -r d.zip <d>`
+et `zip -X -0 -r d.zip <d>` ; `tar --format=ustar -cf d.tar <d>`,
+`tar --format=pax -cf d.tar <d>` et `tar --format=gnu -cf d.tar <d>` ;
+`tar --format=ustar -C <parent>/<d> -cf d.tar .`, dont les entrées
+commencent par `./` ; `tar --format=pax -cf - <d> | gzip -n > d.tar.gz` ;
+(2) chaque refus
+d'archive d'EX-18.7 ; (3) aucune requête après le chargement (EX-18.11) et
+aucune violation de politique signalée par le navigateur ; (4) le refus d'un
+artefact dont un octet est changé (EX-18.5) ; (5) un stockage du navigateur
+vide et aucun service worker après une vérification ; (6) la présence des
+en-têtes d'EX-18.12. Les résultats sont publiés avec la version ; le plan de
+tests y rattache ses cas. Tenu par le projet.
 
 ## Annexe A — Vecteurs CT-6
 
@@ -7283,3 +7693,18 @@ essais reproductibles décrits ici ; aucun ne vient d'une note interne.
 | EX-11.14 | le nœud accepte un precommit dont le corps porte `Type` 1 ou `null`, refuse `Type` `2.0`, `"2"` ou 256 | vecteurs de parité produits par le code Go de noorcore, `test/certificatCommit.test.js` (présent dépôt ; épinglés par `core/consensus/signing_vectors_test.go`) | 2026-11-03 |
 | EX-14.1 | `golang.org/x/crypto` v0.58.0 : `sha3/legacy_hash.go` importe `golang.org/x/sys/cpu`, et le `go.mod` du module requiert `golang.org/x/sys` v0.49.0 ; `crypto/sha3` de go1.27.3 n'expose que SHA-3 et SHAKE | sources du module téléchargées par `go mod download golang.org/x/crypto@v0.58.0` (somme `h1:COkYLr4k7nDI4r6QtMML2AfzeIswWHAJthLS6K/M/54=`) ; `src/crypto/sha3/sha3.go` de go1.27.3 | 2026-11-03 |
 | EX-14.3 | go1.27.3, mode vendor : `go 1.27.3` et `toolchain go1.27.3` refusés (« updates to go.mod needed, disabled by -mod=vendor ») ; `go 1.27` ou `go 1.27.0` avec `toolchain go1.27.3`, et `go 1.27.3` seul, acceptés ; la commande `go` retire une ligne `toolchain` égale à la ligne `go` | `go build ./cmd/noortrace-verifier` sur quatre copies du module ; `src/cmd/go/internal/modload/init.go` de go1.27.3 | 2026-11-03 |
+
+### B.8 Faits de la révision 0.6
+
+Faits établis pour la section 18, sur des sources publiques ou par un essai
+décrit ici ; aucun ne vient d'une note interne.
+
+| Règle | Fait | Source ou essai | Constaté le |
+|---|---|---|---|
+| EX-18.3 | les fichiers de soutien de WebAssembly de la distribution de Go sont sous `lib/wasm` depuis Go 1.24 (« The support files for WebAssembly have been moved to `lib/wasm` from `misc/wasm` ») | notes de version de Go 1.24, https://go.dev/doc/go1.24 | 2026-11-11 |
+| EX-18.3, EX-18.6 | `wasm_exec.js` ne définit `globalThis.fs` et `globalThis.process` que s'ils sont absents, et exige `globalThis.crypto` (`getRandomValues`), `globalThis.performance` (`now`) et `TextEncoder` ; il n'emploie ni `eval` ni `Function` | lecture de `lib/wasm/wasm_exec.js` de go1.24.7 ; non relu dans go1.27.3 | 2026-11-11 |
+| EX-18.8 | sous `GOOS=js GOARCH=wasm`, le paquet `entree` compile `entree.go` et `ouvrir_autre.go` ; sous `linux/amd64`, `entree.go` et `ouvrir_unix.go` ; aucun paquet du module n'importe `syscall/js` | `go list -f '{{.GoFiles}}' ./entree` sous les deux cibles ; recherche de `syscall/js` dans les sources du module, hors `vendor/` | 2026-11-11 |
+| EX-18.8 | sous `js/wasm`, le paquet `syscall` lit `fs.constants` (`O_WRONLY`, `O_RDWR`, `O_CREAT`, `O_TRUNC`, `O_APPEND`, `O_EXCL`, et `O_DIRECTORY` s'il existe) à son initialisation, appelle les opérations de `fs` par leur nom (`open`, `fstat`, `readdir`, `read`, `write`, `close`, `stat`, `lstat`, et les opérations d'écriture), traduit une erreur par son membre `code` et s'arrête sur un code inconnu, garde le chemin d'un fichier ouvert par `path.resolve`, et emploie `process.cwd`, `chdir`, `getuid`, `getgid`, `geteuid`, `getegid`, `getgroups`, `pid`, `ppid` et `umask` ; `wasm_exec.js` ne définit `globalThis.path` que s'il est absent, et son `resolve` par défaut joint les segments sans résoudre | lecture de `src/syscall/fs_js.go` et `src/syscall/syscall_js.go` de go1.24.7 et de `lib/wasm/wasm_exec.js` de la même version ; non relu dans go1.27.3 | 2026-11-11 |
+| EX-18.4 | construction reproductible de l'artefact et identité de ses sorties avec le binaire natif, sur 760 exécutions (EX-18.4) | essai décrit en EX-18.4 (go1.24.7, `go.mod` ramené à `go 1.24`, Node 22.22.0 et `wasm_exec_node.js`) | 2026-11-11 |
+| EX-18.12 | un travailleur n'est en général pas régi par la politique du document qui le crée ; sa politique est celle de la réponse qui porte son script ; exception : un script d'origine opaque (`data:`, `blob:`) hérite de la politique du créateur | MDN, « Using Web Workers », section « Content security policy », https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers | 2026-11-11 |
+| EX-18.12 | `Integrity-Policy` : `blocked-destinations` admet `script` et `style` ; la page ne dit rien des travailleurs ; disponibilité limitée selon les navigateurs | MDN, « Integrity-Policy », https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Integrity-Policy | 2026-11-11 |

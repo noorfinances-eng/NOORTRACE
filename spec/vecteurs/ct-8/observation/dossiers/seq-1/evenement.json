@@ -29,12 +29,12 @@
   "execution": {
     "tool": "noortrace.journal.politique",
     "arguments": {
-      "sha256": "0x95105ee72a3155a9f119464f67f4aac06cb86d9e656dd801ac4cb42de978624a",
+      "sha256": "0x17f7d62700b6ab91d570ba51c476a314745b04ffb80540a0d9ae8ad971618388",
       "length": 128,
       "redacted": false,
       "value": {
         "policy_version": "2026-11-05-observation",
-        "policy_sha256": "0x3d0e81832bce1e5b653040304a65dfdc0e3912ba24e10ae44b2b78431516da36"
+        "policy_sha256": "0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912"
       }
     },
     "status": "executee",
@@ -52,6 +52,6 @@
     }
   ],
   "context": [],
-  "hash": "0xff8bdc8866c6f06e51c357b1b47803bdcd42f559084bedf2df82e2ec9cc49ce8",
-  "sig": "0xbd829c56814d522175124aa591d95f31b703a68f1d4c8fb0e6276e1cd7faaac2b7ded2579a6f7446e60ec179711beed34605f97e8dd16c19bfdd77990c13c10c"
+  "hash": "0x1fe67abac1e0d23ec9d64dc605bcca2ef54bed8a01a899814956045444d71236",
+  "sig": "0x7d6cbf049e19057ba9e72be1a8b87ba2ead2f83d5ed7ce887483d41ddd3dbbe4ae4dd223d21e8695350a14001060719a56cee3f79404def0da124a4743e0d102"
 }

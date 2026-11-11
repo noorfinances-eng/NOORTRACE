@@ -40,9 +40,12 @@ export const NON_TESTS = [
       "CT-8 PD-7",
       "CT-8 PD-8",
       "CT-8 PD-9",
-      "CT-8 PD-16"
+      "CT-8 PD-16",
+      "CT-8 PD-17",
+      "CT-8 PD-18",
+      "CT-8 PD-19"
     ],
-    "justification": "Proposition adressée à une autre spécification, non appliquée : il n'y a rien à tester tant qu'elle n'est pas adoptée ; quand elle l'est, la règle qu'elle crée reçoit un EX- et un test."
+    "justification": "Proposition adressée à une autre spécification : il n'y a rien à tester tant qu'elle n'est pas adoptée ; quand elle l'est, la règle qu'elle crée reçoit un EX- et un test, et la ligne de la proposition, qui n'a pas de comportement propre, reste couverte ici."
   },
   {
     "id": "NC-2",
@@ -129,7 +132,11 @@ export const NON_TESTS = [
       "CT-7 RA-79",
       "CT-7 RA-80",
       "CT-7 RA-81",
-      "CT-7 RA-82"
+      "CT-7 RA-82",
+      "CT-7 RA-83",
+      "CT-7 RA-84",
+      "CT-7 RA-85",
+      "CT-7 RA-86"
     ],
     "justification": "Risque accepté : réponse écrite d'une menace, nommé, borné, attribué (CT-7 §3.5), en bijection avec les menaces par `accepted_risk` (CT-7 RV-8, R10-F28). Le test d'un RA- est le TA- de sa menace ; la table TA- par menace (section des tests adversariaux) le rend lisible."
   },

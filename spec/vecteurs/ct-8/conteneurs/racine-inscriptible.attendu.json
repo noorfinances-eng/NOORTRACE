@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "racine-inscriptible.yaml",
-    "sha256": "92aed58ad65463d31e93fb58ce065b4ec16f28e28dce15fb2b0b82184d7ff51e",
+    "sha256": "21f6d6d3fa9a1c3405439de7b42e3e720ddaed165062651da0ed1f97738f91e1",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

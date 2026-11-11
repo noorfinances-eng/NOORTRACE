@@ -12,12 +12,12 @@
         "epoch": 1,
         "events": 6,
         "length": 10046,
-        "sha256": "0x8feb879254f5ca1d07e5559f5ff7d7680035e63c532f545bac1b0f61b5bf871a"
+        "sha256": "0x98cdfbcfbe235facbccf084b49ba210c5525027f898dbc77952ec2a91192468f"
       }
     ],
     "first_seq": 1,
     "last_seq": 6,
-    "last_hash": "0x6d49aeba19389afe2e86401b729f7fcfc4321015d166a2665d873037d5a65470",
+    "last_hash": "0x5656f435fe610af42eef1b835b1b78efbc22368a97a6b8e6eaed40bc506ddc8f",
     "manifests": [],
     "errors": [
       {

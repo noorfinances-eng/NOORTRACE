@@ -65,14 +65,16 @@ func TestPolitiquePiiV1Empreinte(t *testing.T) {
 	}
 }
 
-// §10.6 (EX-10.21) : membre policy de l'exemple de 15.3 en révision 0.5
-// (route Gemini et policy.otel ajoutées), 6533 octets, policy_sha256
-// 0xd68b…e75c ; valeur en ligne de l'événement de politique, 116 octets,
-// sha256 0xad8d…246d (6126 octets et 0xa75a…8912 en version 0.4, 4482
+// §10.6 (EX-10.21) : membre policy de l'exemple de 15.3 en révision 0.8
+// (jeton du noyau désigné), 6590 octets, policy_sha256 0xc5da…030c ; valeur
+// en ligne de l'événement de politique, 116 octets, sha256 0xb9af…48f0
+// (6533 octets et 0xd68b…e75c de la version 0.5 à la version 0.7, après
+// l'ajout de la route Gemini et de policy.otel ; 6126 octets et 0xa75a…8912 en version 0.4, 4482
 // octets et 0xd87b…c811 en version 0.2) ; le membre redaction est pii-v1 octet pour octet ; rules est un
 // document politique-approbation-v0, mode erreur, avec une entrée de
-// separation.identities pour poste-cursor, et storage.relay_mac_key porte un
-// encoding (15.3, EX-7.22).
+// separation.identities pour poste-cursor, le service d'approbation est joint
+// par sa prise avec le jeton du noyau (EX-18.8), et storage.relay_mac_key porte
+// un encoding (15.3, EX-7.22).
 func TestEnsembleDePolitiqueExemple(t *testing.T) {
 	conf := valeurSpec(t, "configuration-exemple.json")
 	pol := conf.Get("policy")
@@ -80,7 +82,7 @@ func TestEnsembleDePolitiqueExemple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c) != 6533 || Hex0x(SHA256(c)) != "0xd68bb713d14538549a347529a1f927a13ceffd444b351fe1b644242b2574e75c" {
+	if len(c) != 6590 || Hex0x(SHA256(c)) != "0xc5dac49797e5d273c2209e9ef6b44f77b80a2b927d2ddc8e93fc759d979b030c" {
 		t.Errorf("policy : %d octets, %s", len(c), Hex0x(SHA256(c)))
 	}
 	val := Objet("policy_version", Chaine("2026-11-01"), "policy_sha256", Chaine(Hex0x(SHA256(c))))
@@ -88,8 +90,8 @@ func TestEnsembleDePolitiqueExemple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(cv) != `{"policy_sha256":"0xd68bb713d14538549a347529a1f927a13ceffd444b351fe1b644242b2574e75c","policy_version":"2026-11-01"}` ||
-		len(cv) != 116 || Hex0x(SHA256(cv)) != "0xad8d1179be58a4670d01873b45479c8269b1f18c77cfb0e515ad86ef81aa246d" {
+	if string(cv) != `{"policy_sha256":"0xc5dac49797e5d273c2209e9ef6b44f77b80a2b927d2ddc8e93fc759d979b030c","policy_version":"2026-11-01"}` ||
+		len(cv) != 116 || Hex0x(SHA256(cv)) != "0xb9af3217820a6c1166b0b4f16480860ea0f737024a66287ec893c40de9f548f0" {
 		t.Errorf("valeur en ligne : %s (%d octets, %s)", cv, len(cv), Hex0x(SHA256(cv)))
 	}
 	if !MemeValeur(pol.Get("redaction"), valeurSpec(t, "pii-v1.json")) {
@@ -101,6 +103,9 @@ func TestEnsembleDePolitiqueExemple(t *testing.T) {
 	}
 	if r := ap.Get("rules"); !EstObjet(r) || texteOuAbsent(r.Get("version")) != "0" || chaineDe(r, "separation", "self_approval") != "interdite" {
 		t.Errorf("approval.rules : document politique-approbation-v0 attendu (15.3) : %s", texteOuAbsent(r))
+	}
+	if chaineDe(ap, "service", "token", "file") != "/run/secrets/jeton-noyau-vers-service-enregistreur" {
+		t.Errorf("approval.service.token : jeton du noyau attendu sur la prise (15.3, EX-18.8) : %s", texteOuAbsent(ap.Get("service")))
 	}
 	if k := conf.Get("storage").Get("relay_mac_key"); !EstObjet(k) || chaineDe(k, "encoding") == "" {
 		t.Errorf("storage.relay_mac_key : référence de secret avec encoding attendue (EX-7.22, EX-15.3) : %s", texteOuAbsent(k))

@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "socket-du-moteur.yaml",
-    "sha256": "3dfd8c6fd93818c7087b57479f7e5b120d36adcc85fb6b2597788fc61b2884d9",
+    "sha256": "7d03232bd14ba6c7b65dee64840aa76322c3b3e73103f6448fe3b4b142b1e9fe",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

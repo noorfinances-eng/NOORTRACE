@@ -102,7 +102,8 @@ export const TQ = [
       "MN-30",
       "MN-31",
       "MN-33",
-      "MN-43"
+      "MN-43",
+      "MN-99"
     ],
     "review": {
       "components": [
@@ -168,7 +169,8 @@ export const TQ = [
       "MN-49",
       "MN-50",
       "MN-51",
-      "MN-52"
+      "MN-52",
+      "MN-100"
     ],
     "review": {
       "components": [
@@ -345,7 +347,8 @@ export const TQ = [
       "MN-80",
       "MN-81",
       "MN-83",
-      "MN-89"
+      "MN-89",
+      "MN-101"
     ],
     "review": {
       "components": [
@@ -410,7 +413,8 @@ export const TQ = [
       "MN-90",
       "MN-91",
       "MN-96",
-      "MN-98"
+      "MN-98",
+      "MN-102"
     ],
     "review": {
       "components": [
@@ -467,6 +471,13 @@ export const TQ = [
       "CT-7 CLE-27",
       "CT-7 CLE-28",
       "CT-7 CLE-29",
+      "CT-7 CLE-30",
+      "CT-7 CLE-31",
+      "CT-7 CLE-32",
+      "CT-7 CLE-33",
+      "CT-7 CLE-34",
+      "CT-7 CLE-35",
+      "CT-7 CLE-36",
       "CT-7 EX-4.1",
       "CT-7 EX-4.2",
       "CT-7 EX-4.3",

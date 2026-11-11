@@ -252,10 +252,10 @@ describe("CT-2 : politique de rédaction (§10)", function () {
     const e1 = C.empreinteEnsemblePolitique(PII_DOC);
     expect([e1.octets.length, e1.policy_sha256]).to.deep.equal([1462, "0x9116aac6ee1d124d155ffb22acd39b1cf2270cac07b30b239e9996012d787f4e"]);
     const e2 = C.empreinteEnsemblePolitique(CONFIG.policy);
-    // Révision 0.5 : l'exemple de 15.3 porte la route Gemini, otel, policy.otel et les membres facultatifs du support WORM (EX-10.21, valeurs de 10.6).
-    expect([e2.octets.length, e2.policy_sha256, e2.policy_version]).to.deep.equal([6533, "0xd68bb713d14538549a347529a1f927a13ceffd444b351fe1b644242b2574e75c", "2026-11-01"]);
+    // Révision 0.5 : l'exemple de 15.3 porte la route Gemini, otel, policy.otel et les membres facultatifs du support WORM ; révision 0.8 : le jeton du noyau sur la prise du service d'approbation (EX-10.21, EX-18.8, valeurs de 10.6).
+    expect([e2.octets.length, e2.policy_sha256, e2.policy_version]).to.deep.equal([6590, "0xc5dac49797e5d273c2209e9ef6b44f77b80a2b927d2ddc8e93fc759d979b030c", "2026-11-01"]);
     const enLigne = J.referenceEnLigne({ policy_version: e2.policy_version, policy_sha256: e2.policy_sha256 });
-    expect([enLigne.length, enLigne.sha256]).to.deep.equal([116, "0xad8d1179be58a4670d01873b45479c8269b1f18c77cfb0e515ad86ef81aa246d"]);
+    expect([enLigne.length, enLigne.sha256]).to.deep.equal([116, "0xb9af3217820a6c1166b0b4f16480860ea0f737024a66287ec893c40de9f548f0"]);
     // Les valeurs imprimées en EX-10.21 sont celles-ci.
     const md = fs.readFileSync(path.join(SPEC, "CT-2-enregistreur.md"), "utf8");
     for (const v of [e2.policy_sha256, enLigne.sha256]) expect(md, v).to.include(v);

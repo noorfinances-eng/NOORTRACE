@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://noortrace.example/schemas/v0/console-service.schema.json",
-  "title": "Canal console → service d'approbation v0 (CT-3 révision 0.3, 12.9)",
-  "description": "Corps des requêtes et des réponses des méthodes que la console appelle sur le service (POST <base>/v0/<méthode>, EX-12.1, EX-12.4), hors consulter et voter, que définit console-approbation-v0 (CT-3 12.9, révision 0.3) ; reponse_session est la méthode session du serveur de console (EX-13.33). Les entrées recuser et retirer reprennent exactement les données de 7.4 (ticket-v0 $defs/entree). Une erreur a la forme de 12.8.",
+  "title": "Canal console → service d'approbation v0 (CT-3 révisions 0.3 et 0.5, 12.9)",
+  "description": "Corps des requêtes et des réponses des méthodes que la console appelle sur le service (POST <base>/v0/<méthode>, EX-12.1, EX-12.4), hors consulter et voter, que définit console-approbation-v0 (CT-3 12.9, révision 0.3) ; reponse_session est la méthode session du serveur de console (EX-13.33). Les entrées recuser et retirer reprennent exactement les données de 7.4 (ticket-v0 $defs/entree). Une erreur a la forme de 12.8. Révision 0.5, compatible (aucun document conforme à la révision 0.3 n'est refusé) : requete_tickets admet related_to ; chaque ticket de reponse_tickets admet contest_ms et contest, et la réponse admet related (EX-12.21) ; reponse_session admet delai_signature_ms (EX-13.48) ; définitions nouvelles du serveur de console pour sa propre page, jamais relayées au service : requete_connexion_locale (EX-13.47), reponse_sante (EX-13.44) et code_serveur_console (EX-13.49).",
   "$defs": {
     "adresse": {
       "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/adresse"
@@ -111,8 +111,13 @@
       "properties": {
         "session_identity": {
           "$ref": "#/$defs/identite_requete"
+        },
+        "related_to": {
+          "description": "Révision 0.5 : identifiant du ticket dont la console affiche l'écran ; facultatif (EX-12.21).",
+          "$ref": "#/$defs/identifiant_ticket"
         }
-      }
+      },
+      "description": "Méthode tickets (EX-12.14, EX-12.21). Sans related_to : les tickets non décidés que la session peut voir. Avec related_to (révision 0.5) : en plus, dans related, les tickets décidés refuse ou expire du même demandeur et du même outil que ce ticket ; related_to suit alors l'ordre des refus de consulter (EX-12.14)."
     },
     "reponse_tickets": {
       "type": "object",
@@ -181,11 +186,54 @@
                     "minimum": 1
                   }
                 ]
+              },
+              "contest_ms": {
+                "description": "Révision 0.5 : contest_ms du ticket, celui de la règle retenue, figé à la réservation (T1, 5.6) ; 0 : ni fenêtre ni objection (EX-10.6).",
+                "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/ms"
+              },
+              "contest": {
+                "description": "Révision 0.5 : état de la fenêtre de contestation, sous la forme exacte du membre contest de la vue du ticket (EX-12.14, EX-10.9) : fin de la fenêtre en cours, objections non levées, dernier instant où le seuil doit être atteint.",
+                "$ref": "https://noortrace.example/schemas/v0/console-approbation.schema.json#/$defs/vue_ticket/properties/contest"
+              }
+            }
+          }
+        },
+        "related": {
+          "description": "Révision 0.5 : tickets dont la décision scellée est refuse ou expire, de même launched_by et de même tool_announced que le ticket related_to, scellés depuis moins de son expire_after_ms à l'instant de la requête ; au plus 20, du plus récent au plus ancien (EX-12.21).",
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ticket",
+              "decision",
+              "decided_at",
+              "reason"
+            ],
+            "properties": {
+              "ticket": {
+                "$ref": "#/$defs/identifiant_ticket"
+              },
+              "decision": {
+                "enum": [
+                  "refuse",
+                  "expire"
+                ]
+              },
+              "decided_at": {
+                "description": "sealed.approval.at de ticket-v0 : l'instant de la décision scellée (EX-12.21).",
+                "$ref": "#/$defs/horodatage"
+              },
+              "reason": {
+                "description": "sealed.approval.reason de ticket-v0 : le motif de la décision scellée.",
+                "$ref": "#/$defs/motif"
               }
             }
           }
         }
-      }
+      },
+      "description": "Réponse de tickets (EX-12.14, EX-12.21). Depuis la révision 0.5, un service conforme porte contest_ms et contest dans chaque ticket, et related quand la requête porte related_to, et seulement alors ; le schéma les admet absents pour les documents de la révision 0.3."
     },
     "requete_annuaire": {
       "type": "object",
@@ -423,7 +471,7 @@
       "properties": {}
     },
     "reponse_session": {
-      "description": "Réponse de la méthode session que le serveur de la console sert à sa propre page (EX-13.33) : l'identité de session canonique, l'instant de la dernière authentification active et le rôle d'administrateur ; jamais transmise au service.",
+      "description": "Réponse de la méthode session que le serveur de la console sert à sa propre page (EX-13.33) : l'identité de session canonique, l'instant de la dernière authentification active et le rôle d'administrateur ; jamais transmise au service. Depuis la révision 0.5, le serveur y porte aussi delai_signature_ms.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -446,6 +494,12 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 3600
+        },
+        "delai_signature_ms": {
+          "description": "Révision 0.5 : delai_signature_ms de la configuration du serveur de console (10.3, EX-13.30), que la page applique ; absent, la page applique le défaut de 300 000 ms (EX-13.48).",
+          "type": "integer",
+          "minimum": 30000,
+          "maximum": 1800000
         }
       }
     },
@@ -454,6 +508,75 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 1024
+    },
+    "requete_connexion_locale": {
+      "description": "Corps de POST /connexion/locale, servi par le serveur de console à sa propre page pour le système d'identité local, refusé en production (EX-13.47) ; jamais relayé au service.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "password"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[!-~]{1,255}$"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      }
+    },
+    "reponse_sante": {
+      "description": "Réponse de GET /v0/sante du serveur de console, que lit la commande noortrace-console sonde (EX-13.44) ; aucune donnée de ticket ni d'identité.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "service_reachable",
+        "identity_ready",
+        "checked_at"
+      ],
+      "properties": {
+        "ready": {
+          "description": "service_reachable et identity_ready.",
+          "type": "boolean"
+        },
+        "service_reachable": {
+          "description": "GET <service>/v0/etat, sur le canal de la console et avec ses identifiants, a rendu 200 et un corps de la forme d'EX-12.12 dans les 1 000 ms ; le résultat est gardé 5 s (EX-13.44).",
+          "type": "boolean"
+        },
+        "identity_ready": {
+          "description": "OIDC : document de découverte et jeu de clés en cache, lus depuis moins de cache_s ; système local : fichier des comptes chargé.",
+          "type": "boolean"
+        },
+        "checked_at": {
+          "description": "Instant de la réponse, horloge du serveur de console.",
+          "$ref": "#/$defs/horodatage"
+        }
+      }
+    },
+    "code_serveur_console": {
+      "description": "Codes d'erreur que le serveur de console rend lui-même à sa page, sous la forme de $defs/erreur, sans relayer la requête au service (EX-13.49) ; une erreur du service est relayée telle quelle (12.8). requete_invalide (révision 0.5) : requête que le serveur refuse lui-même pour sa forme, sa méthode ou sa taille (EX-13.43, EX-13.49), avec le même code que l'erreur du service de 12.8.",
+      "enum": [
+        "requete_invalide",
+        "hote_refuse",
+        "origine_refusee",
+        "session_absente",
+        "reauthentification_requise",
+        "service_indisponible",
+        "identifiants_refuses",
+        "essai_trop_tot",
+        "transaction_inconnue",
+        "fournisseur_erreur",
+        "fournisseur_indisponible",
+        "jeton_invalide",
+        "identite_invalide"
+      ]
     }
   }
 }

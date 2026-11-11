@@ -20,7 +20,7 @@ node scripts/conformite/attestation.mjs verifier spec/vecteurs/ct-7/attestations
 ## menaces.json
 
 Le modèle de menace de CT-7 §3.8, tiré des tables 3.2 à 3.5 du texte (EX-A.4) :
-14 composants, 98 menaces (MN-1 à MN-98), dont 82 avec un risque accepté et 16
+14 composants, 102 menaces (MN-1 à MN-102), dont 86 avec un risque accepté et 16
 sans, 15 tables sources de 154 lignes. Schéma :
 `spec/schemas/modele-menace-v0.schema.json`.
 
@@ -30,16 +30,16 @@ sans, 15 tables sources de 154 lignes. Schéma :
 | `mandataire_mcp` (Mandataire MCP) | MN-7, MN-8, MN-9, MN-10 |
 | `passerelle_modele` (Passerelle du modèle et raccord ICAP) | MN-11, MN-12, MN-13, MN-14 |
 | `sdk_otel` (SDK et ingestion OpenTelemetry (chemin déclaratif)) | MN-15, MN-16 |
-| `ecrivain_stockage` (Écrivain, stockage et bail) | MN-17, MN-18, MN-19, MN-20, MN-21, MN-22, MN-23, MN-24, MN-25, MN-26, MN-84, MN-85, MN-90 |
+| `ecrivain_stockage` (Écrivain, stockage et bail) | MN-17, MN-18, MN-19, MN-20, MN-21, MN-22, MN-23, MN-24, MN-25, MN-26, MN-84, MN-85, MN-90, MN-99 |
 | `worm_gel` (Copies WORM et gel juridique) | MN-27, MN-28, MN-29 |
 | `cles` (Clés par classe de garde) | MN-30, MN-31, MN-32, MN-33, MN-34, MN-35, MN-36, MN-37, MN-38, MN-39, MN-40, MN-41, MN-42, MN-43, MN-92, MN-93, MN-94, MN-95 |
-| `approbation_console` (Service d'approbation et console) | MN-44, MN-45, MN-46, MN-47, MN-48, MN-49, MN-50, MN-51, MN-52 |
+| `approbation_console` (Service d'approbation et console) | MN-44, MN-45, MN-46, MN-47, MN-48, MN-49, MN-50, MN-51, MN-52, MN-100 |
 | `registre` (Registre (validateurs, RPC, contrats, administrateur, gouvernance, trésorerie)) | MN-53, MN-54, MN-55, MN-56, MN-57, MN-58, MN-59 |
 | `ancrage` (Composant d'ancrage, prestataires RFC 3161, calendriers OpenTimestamps) | MN-60, MN-61, MN-62, MN-63, MN-64, MN-65 |
-| `verificateur` (Vérificateur et ancres de confiance du réviseur) | MN-66, MN-67, MN-68, MN-69, MN-70, MN-79, MN-80, MN-81, MN-83, MN-89 |
+| `verificateur` (Vérificateur et ancres de confiance du réviseur) | MN-66, MN-67, MN-68, MN-69, MN-70, MN-79, MN-80, MN-81, MN-83, MN-89, MN-101 |
 | `exploitant` (Exploitant NOORTRACE) | MN-71, MN-72, MN-73, MN-97 |
 | `administrateur_client` (Administrateur du client) | MN-74, MN-75, MN-78, MN-82, MN-86, MN-87, MN-88, MN-91, MN-96, MN-98 |
-| `reseau` (Réseau) | MN-76, MN-77 |
+| `reseau` (Réseau) | MN-76, MN-77, MN-102 |
 
 ### Consolidation des tables sources (CT-7 §3.3)
 

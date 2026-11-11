@@ -197,9 +197,9 @@ describe("CT-2 révision 0.6 : configuration du mode observation (EX-15.8, EX-11
     const policy = copie(CONFIG.policy);
     policy.approval.mode = "observation";
     policy.version = "2026-11-05-observation";
-    expect(C.octetsJCSIntegral(policy).length).to.equal(6550);
-    expect(C.empreinteEnsemblePolitique(policy).policy_sha256).to.equal("0x3d0e81832bce1e5b653040304a65dfdc0e3912ba24e10ae44b2b78431516da36");
-    expect(CT8).to.include("0x3d0e81832bce1e5b653040304a65dfdc0e3912ba24e10ae44b2b78431516da36");
+    expect(C.octetsJCSIntegral(policy).length).to.equal(6607);
+    expect(C.empreinteEnsemblePolitique(policy).policy_sha256).to.equal("0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912");
+    expect(CT8).to.include("0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912");
   });
 
   it("la validation avertit en mode observation par le texte fixe d'EX-15.8, et refuse le démarrage avec des retenues sans décision", function () {

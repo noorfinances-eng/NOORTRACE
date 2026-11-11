@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "valide-rapide.yaml",
-    "sha256": "12011feb774e00e24336801f91c960494e17731c7d2a0162f10bb59a3f372e5f",
+    "sha256": "6f2dcbc956f12aa58531438eec540dcef4f1d2b4664a3a5c08abb2e8148715f8",
     "verdict": "conforme",
     "all_images_by_digest": false,
     "checks": [

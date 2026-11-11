@@ -1341,6 +1341,7 @@ describe("service d'approbation : exigences de CT-3", function () {
     // 3 à 12 et EX-14.x doit être testé ci-dessus.
     const ATTRIBUEES = {
       "EX-7.14": "annulation par l'hôte : aucun message ne la transmet au service en v0 (section 16) ; le ticket reste ouvert (testé par EX-7.16)",
+      "EX-7.30": "chiffrement de l'état de la révision 0.5 de CT-3 (données associées de nature et de numéro, disposition sous state_dir/etat) : service (étape 6) ; le chiffrement actuel est exercé par EX-7.22 à EX-7.24",
       "EX-8.10": "CT-6 inchangé : rien à faire dans le service",
       "EX-9.4": "affichage de la console (étape 6)",
       "EX-9.5": "console (étape 6)",
@@ -1355,6 +1356,8 @@ describe("service d'approbation : exigences de CT-3", function () {
       "EX-9.19": "console (étape 6)",
       "EX-9.20": "consignes de la console (étape 6)",
       "EX-9.21": "console (étape 6)",
+      "EX-10.12": "document configuration-approbation-v0 et ses règles hors schéma : service (étape 6) ; la configuration actuelle est exercée par EX-10.10",
+      "EX-10.13": "configuration du serveur de console (étape 6)",
       "EX-11.1": "configuration du démon (CT-2 §15.6)",
       "EX-11.2": "configuration du démon",
       "EX-11.3": "mandataire (frontal MCP)",
@@ -1367,6 +1370,7 @@ describe("service d'approbation : exigences de CT-3", function () {
       "EX-12.15": "vue du ticket (étape 6)",
       "EX-12.17": "méthode annuaire (étape 6)",
       "EX-12.18": "méthodes de l'annuaire (étape 6) ; l'annuaire n'est lu ici que pour le contrôle du canal",
+      "EX-12.21": "méthode tickets de la révision 0.5 (contest_ms, contest, related) : service (étape 6)",
       "EX-14.2": "regroupement des notifications et affichage de la console (étape 6)",
     };
     it("chaque EX- des sections 3 à 12 et 14.6 est testé ou attribué", function () {

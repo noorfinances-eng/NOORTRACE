@@ -12,19 +12,19 @@
         "epoch": 1,
         "events": 7,
         "length": 10085,
-        "sha256": "0xe72d4281d074b6c374378fe52504dd5a37061f02963c9173098108ca0da183e6"
+        "sha256": "0x31c7eccf81ee0b34a2dda58e913e547fa59de641d4e57f5ec1be542d1ba4f82d"
       }
     ],
     "first_seq": 1,
     "last_seq": 7,
-    "last_hash": "0x30ebe8ce1b866c67c4b5e3b08f1742ad5981200bea7cfbf47561441d4f63abeb",
+    "last_hash": "0xab6ed0df4ea7f347e065b5da3d834daecf36f3f6055f76468fe96f4fd104fa70",
     "manifests": [],
     "errors": [
       {
         "check": "E-7",
         "segment": "seg-0000000000000001-00000000000000000001.ndjson",
         "seq": 3,
-        "detail": "hash recalculé 0xfc4d69b8aed3ef17fdea3b8bfceb26e9b581d300feb917f607263097cbaa76ae différent de hash 0xf9bf8b088b139609ca54f2abfac3dbb5c4333105ad0031e718e81c82dca80287"
+        "detail": "hash recalculé 0x07ecac91f0fc4822c4fc70207a50e032f51a93b74b04a9f8fe27ef1536a9a6d8 différent de hash 0x66143fcd6bb9bad36d119ccd352e656ad950ee270d6d89bcc23cdc997b4a0f6c"
       },
       {
         "check": "E-8",
@@ -36,7 +36,7 @@
         "check": "C-2",
         "segment": "seg-0000000000000001-00000000000000000001.ndjson",
         "seq": 4,
-        "detail": "seq 4 (position 3) : prev_hash 0xf9bf8b088b139609ca54f2abfac3dbb5c4333105ad0031e718e81c82dca80287 différent du hash recalculé de l'événement précédent dans le fichier, seq 3 (0xfc4d69b8aed3ef17fdea3b8bfceb26e9b581d300feb917f607263097cbaa76ae)"
+        "detail": "seq 4 (position 3) : prev_hash 0x66143fcd6bb9bad36d119ccd352e656ad950ee270d6d89bcc23cdc997b4a0f6c différent du hash recalculé de l'événement précédent dans le fichier, seq 3 (0x07ecac91f0fc4822c4fc70207a50e032f51a93b74b04a9f8fe27ef1536a9a6d8)"
       }
     ]
   }

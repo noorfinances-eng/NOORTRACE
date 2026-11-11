@@ -39,7 +39,7 @@
     "from": "observation",
     "to": "erreur",
     "policy_version": "2026-11-05-erreur",
-    "policy_sha256": "0x78cd21431c3fc9166386bdd513407967d05a2da496d704cbf0a5a1c31d9f1c5b",
+    "policy_sha256": "0xa4fc605ed6150d195f39f0a17f48fd9868f73a4efee469ae7764a11f682a170f",
     "policy_event_seq": 8,
     "report_sha256": "0x2df5ab6987cc8345b9a6f8bee1002b97b708901ee996faa44506bd9fb4254794"
   },

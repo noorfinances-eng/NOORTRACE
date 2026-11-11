@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "image-latest.yaml",
-    "sha256": "f37d56bd99c9dcd1ca6d82945d0d5eee77dfebc03666745c3054de6d7ade4e09",
+    "sha256": "44e74cf4ff52e40e42a2167494cdebcc83b452f339aae2e6be33fcf2cecee2d3",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

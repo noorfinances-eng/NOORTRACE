@@ -84,7 +84,7 @@ export function construireCas(C) {
   { const t = entree("TA-3"); t.status.tests[0].it = ""; ajouter("invalide-ta-titre-vide", t, "invalide", "minLength"); }
   { const t = entree("TA-14"); delete t.status.complement.phase2_step; ajouter("invalide-ta-complement-sans-etape", t, "invalide", "required"); }
   { const t = entree("TA-3"); t.adversarial.threat_test_text = t.adversarial.threat_test_text.replace("Le test échoue si la réponse est retirée : ", ""); ajouter("invalide-ta-prefixe-test", t, "invalide", "pattern"); }
-  { const t = entree("TA-99"); delete t.adversarial.composition; ajouter("invalide-ta-scenario-sans-composition", t, "invalide", "required"); }
+  { const t = entree("TA-103"); delete t.adversarial.composition; ajouter("invalide-ta-scenario-sans-composition", t, "invalide", "required"); }
   for (const c of cas) if (!c.contenu.tests[0]) throw new Error(`cas ${c.file} : entrée source absente du catalogue`);
   return cas;
 }
@@ -139,7 +139,7 @@ export function construireIndex(C, rapport, cas, familles = null) {
   l.push("");
   l.push("## `index-ta-par-menace.json`");
   l.push("");
-  l.push(...plier(`Pour chaque menace MN-1 à MN-${rapport.threats.total} de \`spec/vecteurs/ct-7/menaces.json\` : son TA-, son état (\`executable\` ou \`a_ecrire\`) et les scénarios TA-99 à TA-103 qui le composent (EX-A.13).`));
+  l.push(...plier(`Pour chaque menace MN-1 à MN-${rapport.threats.total} de \`spec/vecteurs/ct-7/menaces.json\` : son TA-, son état (\`executable\` ou \`a_ecrire\`) et les scénarios TA-103 à TA-107 qui le composent (EX-A.13).`));
   l.push("");
   l.push("## `cas/`");
   l.push("");

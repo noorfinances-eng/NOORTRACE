@@ -107,7 +107,7 @@ describe("CT-9 : catalogue, schéma et cas (section 4, annexe A.2, EX-4.3, EX-A.
   it("catalogue.json valide contre la racine, couverture.json contre rapport_couverture, et index-ta-par-menace.json est l'index que le catalogue donne (EX-A.13)", function () {
     expect(valider(CATALOGUE, "racine")).to.deep.equal([]);
     expect(valider(COUVERTURE, "rapport_couverture")).to.deep.equal([]);
-    expect(CATALOGUE).to.include({ version: 0, kind: "plan-de-tests", spec: "CT-9", spec_version: "0.6", date: "2026-11-10" });
+    expect(CATALOGUE).to.include({ version: 0, kind: "plan-de-tests", spec: "CT-9", spec_version: "0.7", date: "2026-11-11" });
     const index = lire(CT9, "index-ta-par-menace.json");
     expect(index.index).to.deep.equal(P.indexParMenace(CATALOGUE));
     expect(Object.keys(index.index)).to.have.length(MENACES.threats.length);
@@ -141,8 +141,8 @@ describe("CT-9 : catalogue, schéma et cas (section 4, annexe A.2, EX-4.3, EX-A.
       expect(t.id, t.title).to.equal(`${t.level}-${compteurs[t.level]}`);
     }
     expect(new Set(CATALOGUE.tests.map((t) => t.id)).size).to.equal(CATALOGUE.tests.length);
-    expect(CATALOGUE.tests).to.have.length(322);
-    expect(compteurs).to.deep.equal({ TU: 39, TV: 76, TI: 20, TE: 17, TA: 103, TM: 44, TR: 15, TQ: 8 });
+    expect(CATALOGUE.tests).to.have.length(334);
+    expect(compteurs).to.deep.equal({ TU: 39, TV: 76, TI: 22, TE: 23, TA: 107, TM: 44, TR: 15, TQ: 8 });
     CATALOGUE.non_tests.forEach((n, i) => expect(n.id).to.equal(`NC-${i + 1}`));
     CATALOGUE.traceability.forEach((r, i) => expect(r.id).to.equal(`TC-${i + 1}`));
   });
@@ -171,7 +171,7 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
   this.timeout(300_000);
   const INV = P.inventaire(R);
 
-  it("règle (a) rejouée : chaque identifiant défini par CT-1 à CT-8 est couvert par covers, par threats d'un TA- ou par un NC-, et chaque identifiant cité existe ; 2351 identifiants", function () {
+  it("règle (a) rejouée : chaque identifiant défini par CT-1 à CT-8 est couvert par covers, par threats d'un TA- ou par un NC-, et chaque identifiant cité existe ; 2416 identifiants", function () {
     const couverts = new Set();
     const connu = (id) => { const m = /^(CT-[1-8]) (.+)$/.exec(id); return Boolean(m && INV[m[1]]?.ids.has(m[2])); };
     for (const t of CATALOGUE.tests) {
@@ -185,13 +185,13 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
     for (const [ct] of P.SPECIFICATIONS) for (const x of INV[ct].ids) { total++; const id = `${ct} ${x}`; if (couverts.has(id)) parEntree++; else if (parNC.has(id)) parJustification++; else nonCouverts.push(id); }
     expect(nonCouverts).to.deep.equal([]);
     expect([total, parEntree, parJustification]).to.deep.equal([COUVERTURE.identifiers.total, COUVERTURE.identifiers.covered_by_tests, COUVERTURE.identifiers.covered_by_nc]);
-    expect(total).to.equal(2351);
+    expect(total).to.equal(2416);
     expect(COUVERTURE.identifiers.unknown_cited).to.deep.equal([]);
     // EX-4.1 : specs est l'ensemble des spécifications de covers (entrées à covers non vide).
     for (const t of CATALOGUE.tests) if (t.covers.length) expect(t.specs, t.id).to.deep.equal([...new Set(t.covers.map((c) => c.split(" ")[0]))].sort((x, y) => Number(x.slice(3)) - Number(y.slice(3))));
   });
 
-  it("règle (b) rejouée : chaque menace MN-n a exactement un TA-n, chaque TA- sa menace, les égalités d'EX-10.2 tiennent et les 82 risques acceptés sont ceux de menaces.json", function () {
+  it("règle (b) rejouée : chaque menace MN-n a exactement un TA-n, chaque TA- sa menace, les égalités d'EX-10.2 tiennent et les 86 risques acceptés sont ceux de menaces.json", function () {
     const TA = CATALOGUE.tests.filter((t) => t.level === "TA");
     for (const m of MENACES.threats) {
       const ta = TA.filter((t) => t.adversarial.threat === m.id);
@@ -208,7 +208,7 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
     for (const t of TA) if (t.adversarial.threat) expect(MENACES.threats.some((m) => m.id === t.adversarial.threat), t.id).to.equal(true);
     const ra = MENACES.threats.filter((m) => m.residual?.accepted_risk);
     expect(CATALOGUE.accepted_risks).to.have.length(ra.length);
-    expect(ra).to.have.length(82);
+    expect(ra).to.have.length(86);
     for (const m of ra) {
       const r = CATALOGUE.accepted_risks.find((x) => x.id === m.residual.accepted_risk.id);
       expect(r, m.id).to.not.equal(undefined);
@@ -216,7 +216,7 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
       expect(r.test).to.equal(`TA-${m.id.slice(3)}`);
       expect(r.test_state).to.equal(parId.get(r.test).status.state);
     }
-    expect(COUVERTURE.threats).to.deep.equal({ total: 98, with_ta: 98, without_ta: [] });
+    expect(COUVERTURE.threats).to.deep.equal({ total: 102, with_ta: 102, without_ta: [] });
   });
 
   it("règle (c) rejouée : le compte des occurrences de « CT-9 » dans spec/CT-1-*.md à CT-8-*.md et spec/README.md égale le nombre de lignes TC-, clé par clé (122)", function () {
@@ -417,9 +417,9 @@ describe("CT-9 : tests adversariaux (section 10, EX-10.1, EX-10.7, EX-10.8, EX-A
     for (const t of TA) if (t.status.complement) expect(t.status.state, t.id).to.equal("executable");
   });
 
-  it("les scénarios TA-99 à TA-103 composent des TA- à menace, leurs menaces et leurs identifiants couverts sont l'union de ceux des composés, et l'index TA- par menace les nomme", function () {
+  it("les scénarios TA-103 à TA-107 composent des TA- à menace, leurs menaces et leurs identifiants couverts sont l'union de ceux des composés, et l'index TA- par menace les nomme", function () {
     const scenarios = TA.filter((t) => !t.adversarial.threat);
-    expect(scenarios.map((s) => s.id)).to.deep.equal(["TA-99", "TA-100", "TA-101", "TA-102", "TA-103"]);
+    expect(scenarios.map((s) => s.id)).to.deep.equal(["TA-103", "TA-104", "TA-105", "TA-106", "TA-107"]);
     const index = lire(CT9, "index-ta-par-menace.json").index;
     for (const s of scenarios) {
       expect(s.adversarial.composition.length).to.be.greaterThan(1);

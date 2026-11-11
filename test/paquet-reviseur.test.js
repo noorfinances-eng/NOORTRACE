@@ -96,7 +96,7 @@ describe("CT-8 : paquet réviseur, vecteurs de la famille paquets (annexe A.10, 
     const valide = fs.readFileSync(path.join(VECT, "valide.tar"));
     expect(valide.length).to.equal(296_960);
     expect(P.sha256(valide)).to.equal("0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982");
-    expect(P.sha256(fs.readFileSync(path.join(VECT, "cas.json")))).to.equal("0x0e44622a66a79180a61f72ad90490c427c1c8bbab9c628ee650630337e3cb746");
+    expect(P.sha256(fs.readFileSync(path.join(VECT, "cas.json")))).to.equal("0x77664feb916a54a9c3ca1bbe004d0be1ef9b76b040297613fb6e6d28c39b4303");
     expect(tars.reduce((s, f) => s + fs.statSync(path.join(VECT, f)).size, 0)).to.equal(3_624_960);
   });
 

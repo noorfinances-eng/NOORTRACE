@@ -1,6 +1,11 @@
 # CT-3 — Approbations
 
-Version 0.4, 2026-10-27 (révision 0.4, minimale : mode observation, 11.7) ;
+Version 0.5, 2026-11-11 (révision 0.5 : notifications livrées par le service à
+un webhook, liste des tickets enrichie, documents de configuration du service
+et du serveur de console, systèmes d'identité et sessions du serveur de
+console, chiffrement de l'état et persistance de l'annuaire, adresses des
+écrans ; la fin de la section 0 détaille la révision) ;
+version 0.4 du 2026-10-27 (révision 0.4, minimale : mode observation, 11.7) ;
 version 0.3 du 2026-10-26. Spécification normative, soumise à la revue de la
 porte 1 du plan de projet (document interne). La version 0.3 dit comment une
 personne nommée, authentifiée par le système d'identité du client, approuve
@@ -88,7 +93,8 @@ développeur lit les sections 4 et 6 en entier. Pour la console, un
 approbateur lit 13.17, qui en résume les pas, puis les consignes
 d'EX-9.20 ; le reste des sections 9 et 13 s'adresse à l'intégrateur et à
 l'administrateur. Un développeur qui intègre la console lit 7.4, 9, 12 et 13
-(13.9 et 13.18 donnent les messages échangés). C'est une indication de
+(13.9 et 13.18 donnent les messages échangés) ; qui l'exploite lit 10.3 et
+13.19 à 13.21. C'est une indication de
 lecture, non une règle.
 
 **Révisions.** La version 0.1 est datée du 2026-10-23. La version 0.2, de la
@@ -271,6 +277,84 @@ schéma `politique-approbation-v0`, qui refuse le nom `evaluation impossible`
 nom). Aucune autre règle ne change ; aucun vecteur de `spec/vecteurs/ct-3` ne
 change.
 
+La version 0.5, du 2026-11-11, fixe ce que la console d'exploitation
+devait deviner, sans changer les formats de CT-1 v0, la machine à états du
+ticket, l'objet signé, les parcours de signature ni leur statut (a et b
+DOIVENT être offerts, c est désactivé par défaut, d est permis, EX-13.20),
+ni aucun vecteur de `spec/vecteurs/ct-3` :
+
+1. notifications : le service les livre lui-même, à un webhook HTTPS que
+   déclare l'exploitant du client, en un document signé par HMAC-SHA256,
+   avec des reprises bornées et sans jamais bloquer un ticket ; le
+   destinataire est désigné par l'identifiant de son entrée d'annuaire ou
+   par un rôle, et le relais vers le courriel ou une messagerie est chez le
+   client ; les contacts quittent la configuration de la console (10.3,
+   13.19) ;
+2. liste des tickets : chaque ticket que rend `tickets` porte l'état de sa
+   fenêtre de contestation, et `tickets`, avec `related_to`, rend les tickets
+   refusés ou expirés récents du même demandeur et du même outil
+   (EX-12.21) ;
+3. documents de configuration du service d'approbation et du serveur de
+   console, schémas `configuration-approbation-v0` et
+   `configuration-console-v0`, commandes de validation, point RPC déclaré
+   exigé en production, bornes de chaque réglage (EX-10.12, EX-10.13), ce
+   qui adopte la proposition PD-7 de la spécification du déploiement ; une
+   même option, `--config <fichier>`, pour le service et le serveur de
+   console ; écoute d'état du service, `GET /v0/etat` exigé sur le canal de
+   la console, et commande `noortrace-console sonde` (EX-10.12, EX-12.12,
+   EX-13.44) ;
+4. systèmes d'identité du serveur de console : OIDC par le code
+   d'autorisation avec PKCE `S256` et `client_secret_basic`, transaction
+   portée par un cookie chiffré, jeton d'identité vérifié par le serveur ;
+   système local, refusé en production ; issue d'une connexion réussie ;
+   sessions en mémoire, cookie `__Host-`, garde d'hôte, contrôle de l'en-tête
+   `Origin`, méthodes et tailles admises (13.21) ;
+5. chiffrement de l'état du service (AES-256-GCM, données associées,
+   disposition sur disque) et changement de la clé de stockage sur un état
+   neuf (EX-7.30) ; persistance de l'annuaire dans cet état, et préséance de
+   l'état persisté sur l'amorce de la configuration (EX-13.38) ;
+6. adresses des écrans de la console et lien des notifications
+   (EX-13.43) ;
+7. politique de sécurité du contenu confirmée, sans assouplissement
+   (EX-13.35).
+
+- Règles ajoutées : EX-7.30 (7.10) ; EX-10.12, EX-10.13 (10.3) ; EX-12.21 (12.9) ;
+  EX-13.38 (13.4) ; EX-13.39 à EX-13.42 (13.19) ; EX-13.43, EX-13.44
+  (13.20) ; EX-13.45 à EX-13.49 (13.21).
+- Règles modifiées : EX-7.12 (canal ; notification au premier gel),
+  EX-7.13 (destinataires), EX-7.23 (annuaire et défis relus à la reprise),
+  EX-7.24 (renvoi au chiffrement d'EX-7.30),
+  EX-7.29 (notification), EX-9.17 (signalement par l'approbateur),
+  EX-10.11 (ce que règle la configuration), EX-10.10 (table : notifications, `org`, `etat`, point RPC, amorce de
+  l'annuaire, bornes, durée de session, système d'identité, parcours c),
+  EX-12.3 (webhook), EX-12.12 (`GET /v0/etat` exigé sur le canal de la
+  console), EX-12.13 (ligne `tickets`), EX-12.14 (`tickets` avec
+  `related_to`), EX-13.3 (canal, liste des
+  tickets ; notifications `vote_inscrit` et `operation_annuaire` exigées du
+  service, relais à la personne recommandé au client), EX-13.27 (membre `walletconnect`), EX-13.35 (ce qu'« au moins
+  aussi restrictif » exclut), EX-14.2 (regroupement chez le client) ;
+  sections 0 (en-tête, lecture), 1, 3.2, 9.3 (notification de chaque vote), 12.7, 13 (introduction et 13.1), 13.17
+  (« Qui prévenir, et comment », « Ce que l'organisation vous dit »),
+  13.18, 14.8, 15.2, 16 ; annexe B (B.8).
+- Règles retirées : aucune ; aucun numéro réattribué.
+- Schémas : nouveaux, `configuration-approbation-v0` (configuration du
+  service, certificats et clés TLS par référence comme dans celle du serveur
+  de console, document de notification `$defs/notification`, rapport de
+  validation) et `configuration-console-v0` (configuration du serveur de
+  console, fichier des comptes du système local, rapport de validation) ;
+  les deux rapports ont des erreurs `{ "code", "pointer" }`, comme celles
+  d'EX-4.2 ; `console-service-v0`, extension compatible : `related_to` de
+  `requete_tickets`, `contest_ms`, `contest` et `related` de
+  `reponse_tickets`, `delai_signature_ms` de `reponse_session`, et les
+  définitions du serveur de console `requete_connexion_locale`,
+  `reponse_sante` et `code_serveur_console` ; chaque document de
+  `spec/vecteurs/ct-3` qui s'en réclame reste valide. Les autres schémas ne
+  changent pas.
+- Vecteurs : aucun ne change ; les règles nouvelles n'en ont pas encore
+  (15.2). Les exemples des deux schémas nouveaux sont annotés
+  `<!-- exemple: … -->`, et non `<!-- schema: … -->`, que le test des
+  exemples de CT-3 réserve encore aux cinq schémas antérieurs (15.2).
+
 ## 1. Objet, périmètre et relations
 
 CT-3 fixe, pour la version 0 des approbations :
@@ -322,7 +406,8 @@ Ce que la version 0 livre :
 | La console de référence : bibliothèque sans interface ni dépendance `scripts/lib/console.mjs`, page minimale `console/`, test de bout en bout dans Chromium (13.15) | avec CT-3 0.3 |
 | Les familles de vecteurs `spec/vecteurs/ct-3/annuaire/` et `spec/vecteurs/ct-3/console/`, l'épreuve `acceptation-console/` et la confrontation tierce `spec/vecteurs/ct-3/confrontation/` (annexes A.10 et A.11) | avec CT-3 0.3 |
 | Le service d'approbation en processus | phase 2 du plan (section 12) |
-| La console d'exploitation (serveur de console, authentification par le système d'identité du client, notifications) | phase 2 du plan (section 13) ; la console de référence en fixe le comportement côté navigateur |
+| Les schémas `spec/schemas/configuration-approbation-v0.schema.json` (configuration du service d'approbation, document de notification) et `spec/schemas/configuration-console-v0.schema.json` (configuration du serveur de console, fichier des comptes du système local) | avec CT-3 0.5 |
+| La console d'exploitation (serveur de console, authentification par le système d'identité du client, notifications) | phase 2 du plan (section 13) ; la console de référence en fixe le comportement côté navigateur ; la révision 0.5 en fixe la configuration, les adresses, les sessions et les notifications (10.3, 13.19 à 13.21) |
 
 Relations avec les autres spécifications :
 
@@ -333,7 +418,7 @@ Relations avec les autres spécifications :
 | CT-4 | `CuratorSetRegistry` et `CuratorSet`, lus sans écriture | La console de CT-3 ne fait pas signer les condensés du registre, qui se signent hors d'elle, et le risque d'une même adresse pour les deux usages (EX-9.9, EX-9.18, 15.2) ; ce qu'un registre pourrait un jour prouver d'une décision (section 16) |
 | CT-6 | Le contrôle 7 et la provenance « déclaré par le dossier » du jeu (CT-6 EX-3.6), inchangés | Ce que chaque niveau prouve (5.7) ; ce qu'un futur contrôle pourrait recouper : réévaluation de la règle (6.8), séparation des tâches (section 10), jeu au registre (section 8) ; ce qu'un réviseur recoupe d'un annuaire exporté, déclaratif, qui ne remplace jamais le jeu du dossier (13.8) |
 | CT-7 | — | La surface du service et de la console (3.5, section 14) ; la garde des clés d'approbateur (EX-3.4, sections 9 et 13) ; l'inscription des membres du jeu, une personne et une clé (8.6, 13.4) ; la publication des empreintes de la page de la console (EX-13.35) |
-| CT-8 | — | La console d'exploitation, son serveur et son authentification par le système d'identité du client (13.3, 13.15) |
+| CT-8 | — | La console d'exploitation, son serveur et son authentification par le système d'identité du client (13.3, 13.15) ; les documents de configuration du service et du serveur de console, l'écoute d'état et la sonde du serveur de console (10.3, 13.20, 13.21) |
 | CT-9 | — | Les identifiants EX-, AP-, TK-, SG-, AN- et CS-, les vecteurs `spec/vecteurs/ct-3`, l'épreuve d'acceptation à trois relecteurs et l'épreuve de lecture de la console (annexe A) |
 
 ## 2. Terminologie
@@ -421,9 +506,9 @@ d'approbation). S'y ajoutent :
 5. `a_approuver` : le noyau scelle l'événement `retenue`, dont le `hash`
    devient le `request_hash` du ticket, et remet ce hachage au service
    (pas 6, section 12). Le service lit le jeu d'approbateurs et le seuil et
-   les fige dans le ticket (section 8), puis notifie la console
-   (section 13) ; il surveille ensuite le jeu et le fige de nouveau s'il
-   change (8.3).
+   les fige dans le ticket (section 8), puis notifie les approbateurs, par
+   le webhook de sa configuration (13.19) ; il surveille ensuite le jeu et
+   le fige de nouveau s'il change (8.3).
 6. Le mandataire applique le mode d'attente (section 11).
 7. Chaque approbateur voit la demande (sections 9 et 13) et signe l'objet `A`
    de CT-1 §6.3 avec sa propre clé ; la console transmet le vote ; le service
@@ -1909,16 +1994,20 @@ trace du ticket.
 
 ### 7.7 Notification et escalade
 
-**EX-7.12** À l'ouverture (T2), le service notifie les membres éligibles du
-jeu figé (10.1) par les canaux de la console (section 13). Une notification
-ne porte que l'identifiant du ticket, le nom annoncé de l'outil, l'échéance
-et un lien vers la console ; jamais les arguments.
+**EX-7.12** À l'ouverture, le service notifie les membres éligibles du jeu
+figé (10.1), au premier gel de ce jeu : à T2 pour un jeu statique, à la
+première lecture réussie qui suit T2 pour un jeu `registre` (8.2), avant
+laquelle il n'y a pas de membre éligible. Il livre la notification au
+webhook de sa configuration (notification `ouverture`, 13.19). Outre son
+enveloppe (EX-13.40), une notification d'ouverture ne porte que
+l'identifiant du ticket, le nom annoncé de l'outil, l'échéance et le lien
+vers l'écran du ticket de la console (EX-13.43) ; jamais les arguments.
 
 **EX-7.13** Une **escalade** est une étape de notification supplémentaire,
 fixée par la configuration du service (`after_ms` et cible), déclenchée à
 `request_ts + after_ms` si le ticket n'est pas décidé, vers les membres
 éligibles qui n'ont pas voté, l'administrateur du jeu ou le demandeur
-(contacts de la configuration du service). Une escalade NE DOIT changer ni le
+(destinataires de la notification `escalade`, EX-13.40). Une escalade NE DOIT changer ni le
 jeu, ni le seuil, ni l'échéance (EX-3.2, EX-5.7) : changer qui peut approuver
 est un changement du `CuratorSet`, visible sur la chaîne (8.3), ou un
 changement de politique, journalisé (CT-2 EX-9.1). Elle n'entre pas dans la
@@ -2064,8 +2153,9 @@ sans arguments en clair) et `votes` sont en ajout seul. Une fenêtre est
 l'objet `$defs/fenetre_ouverte` du même schéma.
 
 **EX-7.23** À la reprise, le service relit ses documents `ticket-v0`, ses
-fenêtres, la version en vigueur et les versions chargées, son jeu de repli
-et son compteur d'identifiants (avec son époque, EX-7.1), et rien d'autre ;
+fenêtres, la version en vigueur et les versions chargées, son jeu de repli,
+son compteur d'identifiants (avec son époque, EX-7.1), et son annuaire des
+approbateurs avec ses défis d'inscription (EX-13.38), et rien d'autre ;
 il reprend les minuteurs depuis leurs instants absolus, inscrits dans les
 documents (les minuteurs échus pendant l'arrêt se déclenchent aussitôt,
 dans l'ordre d'EX-7.7), relit le jeu des tickets ouverts (8.3), et
@@ -2077,7 +2167,7 @@ document s'enchaînent et mènent à son état.
 
 **EX-7.24** Les arguments en clair d'un ticket ne sont conservés que tant
 qu'il est actif (affichage à la console, clé de rapprochement), chiffrés au
-repos par le service. Ils sont effacés au passage en `consomme`, `clos` ou
+repos par le service (EX-7.30). Ils sont effacés au passage en `consomme`, `clos` ou
 `abandonne` (T3, T16, T18, T19, T20), avec l'événement `retenue` et la pièce
 « arguments » gardés pour la console (EX-9.6) : `request.arguments`,
 `request.retained_event` et `request.arguments_piece` deviennent `null`
@@ -2094,6 +2184,55 @@ condensé sans clé des arguments en clair. La valeur d'une portée de fenêtre
 (EX-5.2) est une donnée des arguments : dans le ticket, elle est effacée
 avec les arguments ; dans la fenêtre (`$defs/fenetre_ouverte`), elle
 disparaît avec la fenêtre, retirée à sa fermeture (EX-5.6).
+
+**EX-7.30** **Chiffrement de l'état (révision 0.5).** Le service DOIT
+chiffrer chaque enregistrement de son état (EX-7.22 à EX-7.24 ; l'annuaire
+et ses défis, EX-13.38) par AES-256-GCM (`AEAD_AES_256_GCM`, B.8) : clé
+`storage_key` de 32 octets (EX-10.12), nonce de 12 octets tiré d'un
+générateur cryptographique pour chaque enregistrement chiffré, étiquette
+d'authentification de 16 octets. Les données associées sont les octets
+UTF-8 de `noortrace/approbation/etat/v0`, LF, la nature de l'enregistrement
+(`ligne`, `instantane` ou `arguments`), LF, et son numéro `n` en décimal sans
+zéro de tête : un enregistrement recopié sous une autre nature ou un autre
+numéro ne se déchiffre pas. Le clair est le JSON de l'enregistrement, en
+UTF-8 ; le chiffré s'écrit en base64 (RFC 4648 §4, avec remplissage) de
+`nonce ‖ chiffré ‖ étiquette`. Disposition sous `state_dir/etat/`
+(répertoires en `0700`, fichiers en `0600`) :
+
+| Fichier | Nature | `n` | Contenu |
+|---|---|---|---|
+| `journal.ndjson` | `ligne` | numéro de l'enregistrement, de 1 en 1, jamais réattribué (EX-7.22) | une ligne `<n> <base64>` suivie de LF par enregistrement, en ajout seul ; documents entiers, jamais un delta |
+| `instantane.chiffre` | `instantane` | dernier numéro attribué au compactage | une ligne `<n> <base64>` suivie de LF : l'état complet, écrit dans un fichier temporaire synchronisé puis renommé ; le journal est ensuite vidé |
+| `arguments/t-<ticket>`, `arguments/f-<ticket>` | `arguments` | `0` | une ligne `0 <base64>` suivie de LF, dont le clair `{ "nom", "secret" }` porte le nom du fichier et les arguments en clair du ticket actif ou la valeur de la portée de la fenêtre ouverte (EX-7.24) ; supprimé au passage du ticket en `consomme`, `clos` ou `abandonne`, ou à la fermeture de la fenêtre |
+
+Le fichier `verrou` (numéro du processus qui tient le répertoire) n'est pas
+chiffré ; le journal du service et la boîte d'envoi des notifications, à la
+racine de `state_dir`, ne sont pas des enregistrements de l'état (10.4,
+EX-13.39). À la reprise (EX-7.23), le service refuse de démarrer quand
+l'instantané, un fichier d'arguments ou une ligne du journal autre que la
+dernière ne se déchiffre pas, ou quand le clair d'un fichier d'arguments
+porte un autre nom que le sien ; une dernière ligne incomplète ou
+indéchiffrable est tronquée, comme une écriture interrompue, et le journal
+du service le consigne. Un nonce tiré au hasard ne se répète, sous une même
+clé, qu'avec une probabilité inférieure à `q² / 2^97` après `q`
+enregistrements ; un nonce répété détruirait la confidentialité des deux
+enregistrements et l'intégrité de tout ce que la clé protège (RFC 5116
+§5.1.1, B.8).
+
+**Changement de clé.** La version 0 ne rechiffre pas l'état : la clé ne
+change que sur un état neuf. Le service ne distingue pas une clé changée
+d'une écriture interrompue quand le journal n'a qu'une ligne et qu'aucun
+instantané n'existe (la ligne est tronquée) : l'administrateur du client NE
+DOIT donc pas changer `storage_key` sous un `state_dir` existant. Il procède
+ainsi : (1) un administrateur de l'annuaire en exporte la dernière révision
+(méthode `annuaire`, EX-13.19) ; (2) le service est arrêté, et l'ancien
+`state_dir` est mis à part et gardé, avec son ancienne clé, aussi longtemps
+que la trace des tickets qu'il porte (EX-7.24) ; (3) le service redémarre
+avec la nouvelle clé sur un `state_dir` vide, l'export déclaré en amorce
+(`console.annuaire`, EX-13.38, point 1), et, si les identifiants sont tirés
+d'une époque, avec une époque nouvelle (EX-7.1). Les tickets ouverts à
+l'arrêt sont perdus pour le service : le noyau les expire à leur échéance
+plus `timeout_ms` (EX-12.11), et le demandeur relance sa demande.
 
 **EX-7.25** Au redémarrage du noyau, les événements `retenue` dont le
 ticket n'a pas de décision dans le journal DOIVENT être remis de nouveau
@@ -2159,7 +2298,9 @@ EX-11.7, R1-F50) et rend la remise déterministe.
 **EX-7.29** Si le nombre de membres éligibles devient inférieur au seuil
 effectif `t`, le
 ticket ne peut plus être décidé par des votes : le service le signale à la
-console et aux contacts d'escalade (EX-7.13), et le ticket expire à son
+console (`eligible` et `effective_required` de la vue, `effective_required`
+de la liste) et
+par la notification `seuil_inatteignable` (EX-13.40), et le ticket expire à son
 échéance (raison `echeance atteinte, seuil inatteignable`), sauf retrait.
 
 ### 7.12 Vérifications TK-
@@ -2658,9 +2799,10 @@ de montant élevé, l'approbateur DEVRAIT comparer les huit groupes
 `D_A` pour un second contrôle, n'est pas livré par la version 0 (section 16).
 CT-3 ne fixe pas de seuil de « montant élevé » : en version 0, l'organisation
 le dit à ses approbateurs, et comparer les huit groupes reste possible pour
-toute demande. Le service DEVRAIT notifier à l'approbateur, par un canal
-indépendant de la console, chaque vote inscrit en son nom, avec le ticket, la
-décision et l'empreinte du `D_A` signé (EX-13.3) ; c'est la limite du format
+toute demande. Le service DOIT notifier chaque vote inscrit au nom d'un
+approbateur, avec le ticket, la décision et l'empreinte du `D_A` signé, et le
+client DEVRAIT relayer cette notification à l'approbateur par un canal
+indépendant de la console (EX-13.3) ; c'est la limite du format
 v0 (CT-6 : rien ne prouve que l'approbateur a lu ce qu'il approuvait,
 R1-F62). Les
 remèdes changent l'objet signé et relèvent d'une version 1 (section 16) :
@@ -2912,8 +3054,9 @@ et compare `D_approuve` et `D_refuse` aux membres `approuve` et `refuse` de
 demander de signature, NE DOIT PAS proposer de signer la valeur du service,
 affiche les deux empreintes abrégées (la sienne et celle du service) avec la
 mention « le service a calculé un autre condensé que la console : aucune
-signature n'est demandée », et DEVRAIT le signaler au contact administrateur
-de l'organisation (10.3) : un service qui calcule un autre `D_A` que celui de
+signature n'est demandée », et DEVRAIT dire à l'approbateur de le signaler
+au contact administrateur de l'organisation, par un autre canal que la
+console (13.17, « Qui prévenir, et comment ») : un service qui calcule un autre `D_A` que celui de
 l'événement retenu est défaillant ou compromis. La comparaison porte sur les
 deux décisions : un service qui ne fausse que l'une est découvert avant que
 l'approbateur ne change d'avis.
@@ -3345,7 +3488,8 @@ concernées, qui s'exerce après la décision (5.6).
 **EX-10.10** Les réglages qui déterminent une décision sont dans l'ensemble
 de politique, donc hachés dans `policy_sha256` et annoncés dans la chaîne
 avant usage (CT-2 EX-9.1, EX-10.21) ; les autres sont dans la configuration
-du service ou de la console :
+du service (document `configuration-approbation-v0`, EX-10.12) ou dans celle
+du serveur de console (document `configuration-console-v0`, EX-10.13) :
 
 | Réglage | Où | Effet |
 |---|---|---|
@@ -3353,24 +3497,301 @@ du service ou de la console :
 | `separation.self_approval`, `separation.identities` | politique d'approbation (4.2) | séparation des tâches (10.1) |
 | `approver_set` | politique d'approbation (4.2) | source du jeu (section 8) |
 | `expire_after_ms`, `timeout_ms`, `mode`, `hold_timeout_ms` | `/policy/approval` (CT-2 §15.1) | délais (7.6), mode d'attente (section 11) |
-| `escalation` : étapes `{ "after_ms", "notify" }`, `after_ms` strictement croissants et inférieurs à `E`, `notify` ∈ {`jeu`, `administrateur`, `demandeur`} | configuration du service | escalade (EX-7.13) |
+| `escalation` : au plus 8 étapes `{ "after_ms", "notify" }`, `after_ms` de 1 à 86 399 999, strictement croissants et inférieurs à `E`, `notify` ∈ {`jeu`, `administrateur`, `demandeur`} ; défaut : aucune | configuration du service | escalade (EX-7.13), notification `escalade` (EX-13.40) |
 | `max_open_tickets` : entier de 1 à 10 000, défaut 20 | configuration du service | plafond de tickets non décidés par `launched_by` (14.6) ; un `launched_by` par personne (`${oauth_subject}`, `${peer_user}`, CT-2) évite qu'un demandeur fixe partagé ne le consomme pour tous |
-| `administrators` : identités de session des administrateurs de l'annuaire | configuration du service, recopiée dans l'annuaire | retrait d'un ticket (EX-7.15, EX-12.19), méthodes d'administration de l'annuaire (EX-13.17), lecture de toute vue (EX-12.14) |
-| `set_poll_interval_ms` : défaut 10 000 | configuration du service | lecture et surveillance du jeu (8.2, 8.3) |
-| point RPC de la chaîne du registre | configuration du service | lecture du jeu (EX-8.1) |
-| contacts : administrateur de l'organisation ; canal de notification de chaque approbateur, désigné par l'identifiant de son entrée d'annuaire | configuration de la console (13.2) | notification, escalade (7.7) |
-| annuaire des approbateurs : identités de session, adresses attribuées, alias de demandeur | état du service, document `annuaire-approbateurs-v0` (13.4), modifié seulement par les méthodes de 12.9 | identité de session et adresse attribuée (EX-13.2, EX-13.18), adresses connues pour la lecture du jeu (EX-8.1, pas 5) |
-| `console_origin` : origine HTTPS de la console | configuration du service, recopiée dans l'annuaire | message d'inscription (EX-13.12, EX-13.14) |
+| `administrators` : identités de session des administrateurs de l'annuaire, de 1 à 64 identités canoniques distinctes (EX-13.9) | configuration du service, recopiée dans l'annuaire | retrait d'un ticket (EX-7.15, EX-12.19), méthodes d'administration de l'annuaire (EX-13.17), lecture de toute vue (EX-12.14) |
+| `set_poll_interval_ms` : de 1 000 à 86 400 000, défaut 10 000 | configuration du service | lecture et surveillance du jeu (8.2, 8.3) |
+| `rpc` : point RPC de la chaîne du registre (`url` ; `validator` : `client`, `partenaire` ou `developpement` ; `token` de la garde d'admission, par référence ; `timeout_ms` de 500 à 60 000, défaut 5 000 ; `logs_from_block`) ; `url` en `https`, sauf `http` vers la boucle locale hors production ; en production, déclaré `client` ou `partenaire` (EX-10.12) | configuration du service | lecture du jeu (EX-8.1) |
+| `notifications` : webhook de l'exploitant du client (`url` ; clé HMAC `key`, par référence, tirée au hasard ; `ca` ; `timeout_ms` de 1 000 à 30 000, défaut 10 000) ; destinataires désignés par l'identifiant de leur entrée d'annuaire ou par un rôle, adresses de messagerie tenues chez le client (révision 0.5 : la configuration de la console n'a plus de contacts) | configuration du service | notifications et escalade (7.7, 13.19) |
+| `etat` : écoute d'état, sans authentification ; défaut : aucune | configuration du service | `GET /v0/etat` (EX-12.12, EX-10.12) |
+| annuaire des approbateurs : identités de session, adresses attribuées, alias de demandeur | état du service, document `annuaire-approbateurs-v0` (13.4), modifié seulement par les méthodes de 12.9 et par la recopie d'EX-13.37 ; amorcé par `console.annuaire` de la configuration du service tant qu'aucun annuaire n'est persisté (EX-13.38) | identité de session et adresse attribuée (EX-13.2, EX-13.18), adresses connues pour la lecture du jeu (EX-8.1, pas 5) |
+| `org` : nom court de l'organisation | configuration du service, recopiée dans l'annuaire | message d'inscription (EX-13.12) |
+| `console_origin` : origine HTTPS de la console | configuration du service, recopiée dans l'annuaire ; configuration du serveur de console, égale | message d'inscription (EX-13.12, EX-13.14), lien des notifications et garde d'hôte (EX-13.43, EX-13.49) |
 | `registration_ttl_ms` : de 60 000 à 3 600 000, défaut 600 000 (choix de CT-3, sans source externe) | configuration du service, recopiée dans l'annuaire | validité d'un message d'inscription (EX-13.13) |
 | `reauth_max_age_s` : de 0 à 3 600, défaut 900 (choix de CT-3, EX-13.8) | configuration du serveur de console | réauthentification avant chaque méthode de la liste d'EX-13.8 |
-| `service_timeout_ms` : défaut 10 000 ; bornes non fixées par CT-3 (choix de CT-3, sans source externe) | configuration de la console | attente d'une réponse du service à une méthode du canal ; au-delà, « service indisponible » (12.7, 13.14) |
-| `delai_signature_ms` : de 30 000 à 1 800 000, défaut 300 000 (choix de CT-3, sans source externe) | configuration de la console | attente de la réponse du portefeuille, jamais au-delà de l'échéance du ticket (EX-13.30) |
+| `service_timeout_ms` : de 1 000 à 60 000, défaut 10 000 (choix de CT-3, sans source externe) | configuration du serveur de console | attente d'une réponse du service à une méthode du canal ; au-delà, « service indisponible » (12.7, 13.14) |
+| `delai_signature_ms` : de 30 000 à 1 800 000, défaut 300 000 (choix de CT-3, sans source externe) | configuration du serveur de console, transmis à la page par la méthode `session` (EX-13.48) | attente de la réponse du portefeuille, jamais au-delà de l'échéance du ticket (EX-13.30) |
+| `session_max_age_s` : de 900 à 43 200, défaut 28 800 (choix de CT-3 ; la borne haute est le délai global de réauthentification d'AAL3, R5-F14) | configuration du serveur de console | durée de vie d'une session (EX-13.48) |
+| `identity` : système d'identité, OIDC (`issuer`, `client_id`, `client_secret` par référence, algorithmes admis, `cache_s` de 60 à 86 400, défaut 3 600) ou local, hors production | configuration du serveur de console | authentification de la personne (EX-13.45 à EX-13.47) |
+| `walletconnect` : relais et identifiant de projet, par référence ; défaut : nul, parcours désactivé | configuration du serveur de console | parcours c (EX-13.27) |
 
 **EX-10.11** Un réglage de configuration NE DOIT changer ni le jeu, ni le
 seuil, ni l'échéance, ni les éligibles, ni le décompte d'un ticket : il ne
-règle que le moment des notifications, le rythme des lectures et le plafond
-de 14.6. Ses changements sont inscrits dans le journal du service, pas dans
-la chaîne.
+règle que le moment et la livraison des notifications, le rythme des
+lectures, le plafond de 14.6, les écoutes et les canaux, et l'accès à la
+console (systèmes d'identité, sessions, réauthentification, délais). Ses
+changements sont inscrits dans le journal du service ou du serveur de
+console, pas dans la chaîne.
+
+Le tableau ne reprend ni les écoutes, ni les certificats, ni les références
+de secrets, ni les membres de pure exploitation (`state_dir`, `tickets`,
+`remise_representation_ms`, `body_max_bytes`), que fixent les deux schémas
+d'EX-10.12 et d'EX-10.13 avec leurs bornes et leurs défauts. Chaque réglage
+de configuration a des bornes : aucun ne prend une valeur que son schéma
+n'admet pas.
+
+**EX-10.12** **Configuration du service d'approbation (révision 0.5).** Le
+service lit au démarrage (`noortrace-approbation --config <fichier>`) un
+document JSON, analysé en JSON strict (clés uniques), conforme à
+`spec/schemas/configuration-approbation-v0.schema.json` (`$id`
+`https://noortrace.example/schemas/v0/configuration-approbation.schema.json`,
+JSON Schema 2020-12, `additionalProperties: false` à tous les niveaux, chargé
+avec `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0`, qu'il
+référence directement ou par `annuaire-approbateurs-v0`) ; un membre
+facultatif absent prend le défaut que donne sa description. Il
+refuse aussi le document quand l'une des règles suivantes, que le schéma
+n'exprime pas, n'est pas remplie ; une adresse de **boucle locale** est
+`127.0.0.1`, `::1` ou `localhost` :
+
+| Code (`code`) | Règle | Pointeur |
+|---|---|---|
+| `rpc_non_declare` | en `production`, `rpc` est non nul et `rpc.validator` vaut `client` ou `partenaire` : les lectures du jeu (EX-8.1, EX-8.2) visent un validateur que le client opère ou un validateur partenaire, comme l'exige EX-3.10 de la spécification de la sécurité | `/rpc` si `rpc` est nul ou absent, `/rpc/validator` sinon |
+| `rpc_tls` | `rpc.url` est `https`, ou `http` vers une adresse de boucle locale hors `production` : le jeton `rpc.token` ne part jamais en clair, et la réponse qui donne le jeu vient du nœud déclaré (EX-8.1) | `/rpc/url` |
+| `tls_exige` | une écoute `tcp` du noyau ou de la console dont `host` n'est pas une adresse de boucle locale a `tls` non nul (EX-12.2) | `/noyau`, `/console` |
+| `authentification_exigee` | une écoute `tcp` du noyau a `token` ou `tls.client_ca` non nul ; l'écoute de la console, `socket` comme `tcp`, en a un (EX-12.2, EX-12.4) | `/noyau`, `/console` |
+| `jeton_exige_production` | en `production`, une écoute `socket` du noyau ou de la console a `token` non nul : la permission de la prise ne suffit pas | `/noyau`, `/console` |
+| `jetons_egaux` | les jetons du noyau et de la console sont distincts : par leur référence à la validation, par leur valeur au démarrage (EX-12.4) | `/console/token` |
+| `escalade_non_croissante` | les `after_ms` de `escalation` sont strictement croissants (EX-10.10) | `/escalation/<k>/after_ms`, `k` la première étape fautive |
+| `webhook_http` | `notifications.url` est `https`, ou `http` vers une adresse de boucle locale hors `production` (EX-13.39) | `/notifications/url` |
+
+Au démarrage, le service résout ensuite chaque référence de secret et
+refuse de démarrer, en nommant le pointeur et jamais la valeur, sur un
+secret illisible ou mal formé : `storage_key` est la clé brute, prise telle
+quelle, quand le secret fait exactement 32 octets (une clé brute peut
+commencer ou finir par un octet d'espace, qu'aucun retrait ne doit toucher),
+et sinon, espaces de tête et de fin retirés, 64 chiffres hexadécimaux
+(préfixe `0x` facultatif) ; jetons des canaux et `rpc.token` de 16 à 1 024
+caractères ASCII imprimables, et `notifications.key` de 32 à 1 024
+(EX-13.41), espaces de tête et de fin retirés ; certificats et clés TLS en
+PEM, le certificat du serveur en tête de la chaîne (`$defs/tls_serveur`, par
+référence comme dans la configuration du serveur de console). L'écoute
+`etat`, si elle est déclarée, est
+en TCP, sans TLS ni authentification, et ne sert que `GET /v0/etat`
+(EX-12.12), dont la réponse ne porte aucune donnée de ticket ; toute autre
+requête y reçoit 404 et l'erreur `requete_invalide`. `console_origin` et
+`org` sont recopiés dans l'annuaire (EX-13.38) ; sans écoute de la console,
+le service tient tout de même son annuaire, dont il tire les adresses
+connues de la lecture du jeu (EX-8.1, pas 5). Hors production, `rpc` nul
+avec un jeu `registre` laisse le service `non_pret` (EX-8.3).
+
+La commande `noortrace-approbation valider-configuration <fichier>` fait la
+même analyse, le même contrôle du schéma et les mêmes règles, sans lire de
+secret, sans lire l'état et sans écouter ; elle écrit sur la sortie standard
+une ligne, objet `$defs/rapport_validation` du schéma, `{ "valide",
+"errors" }`, où chaque erreur est `{ "code", "pointer" }`, `code` étant celui
+de la table ci-dessus, `json` ou `schema`, comme les erreurs de politique
+d'EX-4.2, et où les erreurs sont triées par pointeur puis par code (ordre des
+unités UTF-16, comme EX-4.2) ; le rapport n'a pas de membre
+d'avertissements : la validation d'une configuration n'en produit aucun. Un fichier illisible ou hors JSON
+strict donne la seule erreur `{ "code": "json", "pointer": "" }` ; un document
+non conforme au schéma
+donne au moins une erreur `schema`, au pointeur de chaque membre fautif, et
+les règles de la table ne sont alors pas évaluées. Code de retour : 0 quand
+`valide` est vrai, 1 sinon, 2 pour un usage incorrect (aucun fichier
+désigné). Au démarrage, un document refusé arrête le service avant toute
+écoute, avec le code de retour 1 et les mêmes erreurs sur la sortie
+d'erreur ; un écart `jetons_egaux` entre deux valeurs et un secret illisible
+ne se décèlent qu'au démarrage. Le plan de tests éprouve la règle
+`rpc_non_declare` par cette commande (TA-51) : refus d'une configuration de
+production dont `rpc` est nul ou déclaré `developpement`, acceptation avec
+`client` comme avec `partenaire`.
+
+Exemple : configuration de production du service de l'organisation des
+vecteurs, chaque secret monté sous `/run/secrets/`. La commande la rend
+`{"valide":true,"errors":[]}` ; avec `"validator": "developpement"`, elle
+rend le rapport qui suit, code de retour 1.
+
+<!-- exemple: configuration-approbation -->
+```json
+{
+  "version": 0,
+  "environment": "production",
+  "org": "assureur-demo",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "state_dir": "/var/lib/noortrace-approbation",
+  "storage_key": {
+    "file": "/run/secrets/cle-stockage-approbation"
+  },
+  "noyau": {
+    "socket": "/run/noortrace/approbation.sock",
+    "socket_mode": "0660",
+    "tcp": null,
+    "tls": null,
+    "token": {
+      "file": "/run/secrets/jeton-noyau-vers-service"
+    }
+  },
+  "console": {
+    "socket": null,
+    "tcp": {
+      "host": "0.0.0.0",
+      "port": 8600
+    },
+    "tls": {
+      "cert": {
+        "file": "/run/secrets/tls-approbation"
+      },
+      "key": {
+        "file": "/run/secrets/tls-approbation"
+      },
+      "client_ca": null
+    },
+    "token": {
+      "file": "/run/secrets/jeton-console-vers-service-approbation"
+    },
+    "annuaire": null
+  },
+  "etat": {
+    "host": "0.0.0.0",
+    "port": 8601
+  },
+  "tickets": {
+    "epoch": null
+  },
+  "max_open_tickets": 20,
+  "escalation": [
+    {
+      "after_ms": 900000,
+      "notify": "jeu"
+    },
+    {
+      "after_ms": 2700000,
+      "notify": "administrateur"
+    }
+  ],
+  "set_poll_interval_ms": 10000,
+  "administrators": [
+    "oidc https://idp.assureur-demo.example admin-1"
+  ],
+  "console_origin": "https://console.assureur-demo.example",
+  "registration_ttl_ms": 600000,
+  "rpc": {
+    "url": "https://rpc.assureur-demo.example",
+    "validator": "client",
+    "token": {
+      "file": "/run/secrets/rpc-registre"
+    },
+    "timeout_ms": 5000,
+    "logs_from_block": 0
+  },
+  "notifications": {
+    "url": "https://relais.assureur-demo.example/noortrace/notifications",
+    "key": {
+      "file": "/run/secrets/notification-webhook"
+    },
+    "ca": null,
+    "timeout_ms": 10000
+  },
+  "remise_representation_ms": 30000,
+  "body_max_bytes": 16777216
+}
+```
+
+<!-- exemple: configuration-approbation/rapport_validation -->
+```json
+{
+  "valide": false,
+  "errors": [
+    {
+      "code": "rpc_non_declare",
+      "pointer": "/rpc/validator"
+    }
+  ]
+}
+```
+
+**EX-10.13** **Configuration du serveur de console (révision 0.5).** Le
+serveur de console lit au démarrage (`noortrace-console --config
+<fichier>`, la même option que le service et que le démon de CT-2) un
+document JSON, analysé en JSON strict, conforme à
+`spec/schemas/configuration-console-v0.schema.json` (`$id`
+`https://noortrace.example/schemas/v0/configuration-console.schema.json`,
+mêmes conventions ; chargé avec `configuration-approbation-v0`, dont il
+reprend `$defs/reference_secret`, et avec les trois schémas que celui-ci
+référence), et le refuse aussi quand l'une des règles suivantes n'est pas
+remplie :
+
+| Code (`code`) | Règle | Pointeur |
+|---|---|---|
+| `identite_locale_en_production` | en `production`, `identity.kind` vaut `oidc` : le système local est refusé (EX-13.47) | `/identity/kind` |
+| `tls_exige` | `service.url` est `https`, ou `http` vers une adresse de boucle locale (EX-12.2) | `/service/url` |
+| `authentification_exigee` | `service.token` ou `service.client_cert` est non nul (EX-12.4) | `/service` |
+| `certificat_client_incomplet` | `service.client_cert` et `service.client_key` sont tous deux nuls ou tous deux non nuls | `/service` |
+
+Au démarrage, il résout ses références (certificat et clé TLS en PEM, le
+certificat du serveur en tête de la chaîne ; jeton de 16 à 1 024 caractères
+ASCII imprimables ; secret du client OIDC ; fichier des comptes du système
+local, conforme à `$defs/fichier_comptes`, aux noms deux à deux distincts)
+et refuse de démarrer, en nommant le pointeur et jamais la valeur, sur une
+référence illisible ou mal formée. Il écoute en HTTPS seulement, à
+`listen`, et sert la console à l'origine `console_origin`, celle que voit le
+navigateur : avec le port de `listen` quand ce port est publié tel quel
+(`https://console.<domaine>:8700`), sans port quand un répartiteur publie la
+console sur le port 443 et relaie les connexions TLS à `listen` sans les
+terminer ; la garde d'hôte compare l'en-tête `Host` à l'autorité de cette
+origine (EX-13.49). Cette origine DOIT être celle de la configuration du
+service (EX-13.14) : un écart fait refuser
+chaque inscription (`origine_differente`, EX-13.13, EX-13.15) et rend chaque
+lien de notification étranger à la console (EX-13.40). La commande
+`noortrace-console valider-configuration <fichier>` suit les conventions de
+la commande d'EX-10.12 (rapport `$defs/rapport_validation`, erreurs
+`{ "code", "pointer" }`, codes de retour 0, 1 et 2). Le parcours c n'est offert que si `walletconnect` est non nul
+(EX-13.27).
+
+Exemple : configuration de production du serveur de console de la même
+organisation, derrière un répartiteur qui publie la console sur le port 443
+et relaie les connexions TLS à l'écoute 8700 : l'origine, sans port, est
+celle des messages d'inscription et des liens des vecteurs de
+`spec/vecteurs/ct-3`.
+
+<!-- exemple: configuration-console -->
+```json
+{
+  "version": 0,
+  "environment": "production",
+  "console_origin": "https://console.assureur-demo.example",
+  "listen": {
+    "host": "0.0.0.0",
+    "port": 8700
+  },
+  "tls": {
+    "cert": {
+      "file": "/run/secrets/tls-console"
+    },
+    "key": {
+      "file": "/run/secrets/tls-console"
+    }
+  },
+  "service": {
+    "url": "https://approbation.assureur-demo.example:8600",
+    "socket": null,
+    "token": {
+      "file": "/run/secrets/jeton-console-vers-service-console"
+    },
+    "ca": null,
+    "client_cert": null,
+    "client_key": null
+  },
+  "identity": {
+    "kind": "oidc",
+    "issuer": "https://idp.assureur-demo.example",
+    "client_id": "noortrace-console",
+    "client_secret": {
+      "file": "/run/secrets/oidc-client"
+    },
+    "id_token_signing_alg_values": [
+      "RS256"
+    ],
+    "cache_s": 3600
+  },
+  "reauth_max_age_s": 900,
+  "service_timeout_ms": 10000,
+  "delai_signature_ms": 300000,
+  "session_max_age_s": 28800,
+  "walletconnect": null
+}
+```
 
 ### 10.4 Ce qui est journalisé
 
@@ -3712,7 +4133,7 @@ relayer ou refuser n'importe quel appel.
 
 **EX-12.3** Le service NE DOIT PAS recevoir la clé du journal ni écrire
 d'événement (CT-2 EX-7.4) ; il ne joint que le noyau, le RPC du registre, la
-console et les canaux de notification.
+console et le webhook de notifications (EX-13.39).
 
 **EX-12.4** La console est cliente du service pour les entrées `voter`,
 `recuser` et `retirer` de 7.4, et pour les autres méthodes du canal de la
@@ -3983,13 +4404,18 @@ toujours de quoi former `approval`.
 | `ouvrir` | `timeout_ms` | nouvel essai jusqu'à succès ; la requête de l'hôte a déjà sa réponse (mode `erreur`) ou reste retenue |
 | `decisions` | `wait_ms + timeout_ms` | nouvel essai ; les décisions attendent dans le service |
 | `acquitter`, `consommer`, `expiration` | `timeout_ms` | nouvel essai, idempotent (EX-7.20) |
-| `consulter` (console) | `service_timeout_ms` de la configuration de la console (10.3), 10 000 ms par défaut | la console affiche le service indisponible et ne demande aucune signature (13.14) |
+| `consulter` (console) | `service_timeout_ms` de la configuration du serveur de console (10.3), 10 000 ms par défaut, de 1 000 à 60 000 | la console affiche le service indisponible et ne demande aucune signature (13.14) |
 | `voter` (console) | idem | la console renvoie le même vote, à l'identique ; `vote_identique` lui dit qu'il était inscrit (EX-12.16) |
 
 **EX-12.12** Le service DEVRAIT exposer `GET <base>/v0/etat` :
 `{ "ready": booléen, "set_read_at": horodatage ou null,
 "open_tickets": entier }` ;
-`ready` est faux tant qu'EX-8.3 n'est pas rempli.
+`ready` est faux tant qu'EX-8.3 n'est pas rempli. (Révision 0.5.) Un
+service qui a une écoute de la console DOIT servir `GET <base>/v0/etat` sur
+ce canal, authentifié comme les autres méthodes du canal (EX-12.4) : le
+serveur de console en tire sa santé (EX-13.44) ; l'écoute `etat`
+d'EX-10.12 le sert sans authentification ; sur le canal du noyau, il reste
+recommandé.
 
 ### 12.8 Erreurs et raisons
 
@@ -4084,7 +4510,7 @@ vérification ; le service la garde telle quelle dans la trace du ticket
 
 | Méthode | Requête (`$defs`) | Réponse acceptée (`$defs`) | Effet |
 |---|---|---|---|
-| `tickets` | `requete_tickets` | `reponse_tickets` | aucun ; tickets non décidés de l'organisation que la session peut voir (EX-12.14), avec leur échéance et leurs votes (EX-13.3) |
+| `tickets` | `requete_tickets` | `reponse_tickets` | aucun ; tickets non décidés de l'organisation que la session peut voir (EX-12.14), avec leur échéance, leurs votes et l'état de leur fenêtre de contestation ; avec `related_to`, en plus les tickets refusés ou expirés récents du même demandeur et du même outil (EX-12.21, EX-13.3) |
 | `consulter` | `requete_consulter` | `vue_ticket` | aucun ; vue du ticket (EX-12.14) |
 | `voter` | `requete_voter` | `reponse_voter` | entrée `voter` de 7.4 (EX-12.16) |
 | `recuser` | `requete_recuser` | `reponse_etat` | entrée `recuser` de 7.4, données identiques, à l'instant de réception |
@@ -4130,8 +4556,10 @@ raison qui s'applique :
    `session_non_autorisee`.
 
 Puis `ticket_non_ouvert` pour un ticket `reserve`, qui n'a pas encore
-d'événement `retenue`. `tickets` applique le point 1 seul : une session de
-l'organisation reçoit la liste, vide s'il le faut. Une session hors de
+d'événement `retenue`. `tickets` sans `related_to` applique le point 1
+seul : une session de l'organisation reçoit la liste, vide s'il le faut ;
+avec `related_to`, il applique au ticket désigné l'ordre de `consulter`
+(EX-12.21). Une session hors de
 l'organisation n'apprend donc pas si un ticket existe ; une session de
 l'organisation apprend seulement si un identifiant de ticket est connu,
 sans en voir les arguments. Les cas sont dans
@@ -4486,6 +4914,94 @@ se fait d'abord (EX-12.16) et ne dépend pas du ticket, de sorte que
 contrôle ne se fait que pour un ticket connu (ci-dessus), et un ticket
 inconnu reçoit `ticket_inconnu`.
 
+**EX-12.21** **Liste des tickets (révision 0.5).** Chaque ticket que rend
+`tickets` porte, en plus des membres de la révision 0.3, `contest_ms`, le
+délai de contestation figé à la réservation (T1), et `contest`, l'état de
+sa fenêtre de contestation sous la forme exacte du membre `contest` de la
+vue (EX-12.14) : fin de la fenêtre en cours (`window_end`), objections non
+levées avec leur auteur et leur instant (`objections`), dernier instant où
+le seuil doit être atteint (`last_threshold_at`, EX-10.9). Quand la requête
+porte `related_to`, un identifiant de ticket, le service applique d'abord à
+ce ticket l'ordre des refus de `consulter` (EX-12.14 : points 1 à 3, puis
+`ticket_non_ouvert`), puis rend en plus `related` : les tickets dont la
+décision scellée (`sealed` de `ticket-v0`) est `refuse` ou `expire`, dont
+`delegation.launched_by` et `tool_announced` sont égaux, octet pour octet, à
+ceux du ticket `related_to`, et dont `sealed.approval.at` est postérieur à
+l'instant de la requête diminué de l'`expire_after_ms` du ticket
+`related_to` ; au plus 20, triés par `sealed.approval.at` décroissant, puis
+par identifiant croissant ; chacun avec `ticket`, `decision`, `decided_at`
+(`sealed.approval.at`) et `reason` (`sealed.approval.reason`), sans aucun
+argument. Sans `related_to`, `related` est absent. Les tickets de `related`
+ne passent pas le contrôle de visibilité d'EX-12.14, et c'est un choix de
+CT-3 : la session voit le ticket `related_to`, dont ils ont le demandeur et
+l'outil, et `related` ne lui montre de ces tickets que la décision, son
+instant et son motif, jamais les arguments ni les votes. Le motif est un
+texte libre, écrit par un approbateur qui peut appartenir au jeu d'une autre
+règle que celle du ticket `related_to` : le montrer à toute session qui voit
+ce ticket est ce qu'EX-13.3 et EX-14.2 demandent pour qu'une demande refusée
+ne soit pas rouverte à l'insu des approbateurs.
+
+Ces réponses suffisent à la console pour afficher ce qu'EX-13.3 et EX-14.2
+exigent : la liste des tickets non décidés avec leur échéance, l'état de
+leur fenêtre de contestation et leurs votes (`votes_approuve`,
+`votes_refuse`, `effective_required`), le nombre de tickets ouverts par
+demandeur (`launched_by`), et, sur l'écran d'un ticket, les tickets refusés
+ou expirés du même demandeur et du même outil depuis moins de `E`. La vue de
+`consulter` (`$defs/vue_ticket` de `console-approbation-v0`) ne change pas :
+les tickets décidés passent par `tickets`, dont la console demande la liste
+avec `related_to` en ouvrant l'écran d'un ticket. Les membres nouveaux sont
+facultatifs dans `console-service-v0`, pour qu'un document de la révision
+0.3 y reste conforme ; un service conforme à la révision 0.5 porte toujours
+`contest_ms` et `contest`, et `related` quand la requête porte `related_to`.
+
+Requête, à l'ouverture de l'écran du ticket `apr-2201` par la session de
+l'exemple d'EX-12.14 :
+
+<!-- schema: console-service/requete_tickets -->
+```json
+{
+  "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+  "related_to": "apr-2201"
+}
+```
+
+Réponse, à l'instant `2026-11-05T09:25:00.000Z` : `apr-2201` attend un
+second vote, sans fenêtre (`contest_ms` nul) ; `apr-2188`, du même
+demandeur et du même outil, a été refusé à `08:47:31.208`, moins de `E`
+(une heure pour `apr-2201`) avant la requête :
+
+<!-- schema: console-service/reponse_tickets -->
+```json
+{
+  "tickets": [
+    {
+      "ticket": "apr-2201",
+      "state": "ouvert",
+      "tool_announced": "sap.payments.create",
+      "launched_by": "u.martin@assureur-demo.example",
+      "deadline": "2026-11-05T10:12:09.904Z",
+      "votes_approuve": 1,
+      "votes_refuse": 0,
+      "effective_required": 2,
+      "contest_ms": 0,
+      "contest": {
+        "window_end": null,
+        "objections": [],
+        "last_threshold_at": null
+      }
+    }
+  ],
+  "related": [
+    {
+      "ticket": "apr-2188",
+      "decision": "refuse",
+      "decided_at": "2026-11-05T08:47:31.208Z",
+      "reason": "Montant différent de la facture"
+    }
+  ]
+}
+```
+
 ## 13. Console d'approbation
 
 La console est l'interface où les approbateurs lisent les demandes et
@@ -4495,7 +5011,10 @@ noorchain-core ») ; cette section fixe ce qu'elle doit faire : qui est la
 personne (13.3), quelles adresses lui sont attribuées et comment (13.4 à
 13.8), comment elle signe et ce que la console fait de chaque panne (13.9 à
 13.14). Une console de référence (13.15) montre ces exigences en œuvre ;
-13.17 et 13.18 les résument pour l'approbateur et pour l'intégrateur.
+13.17 et 13.18 les résument pour l'approbateur et pour l'intégrateur. La
+révision 0.5 fixe en outre la livraison des notifications par le service
+(13.19), les adresses et la sonde du serveur de console (13.20), ses
+systèmes d'identité et ses sessions (13.21) ; leurs réglages sont en 10.3.
 
 ### 13.1 Ce que curators-hub apporte, et ce qu'il ne faut pas reprendre
 
@@ -4509,7 +5028,12 @@ personne (13.3), quelles adresses lui sont attribuées et comment (13.4 à
 | Un vote par curateur, remplacé par le suivant ; récusation (R1-F84, `lib/validation.ts`) | Repris (EX-7.26, EX-10.4) |
 | Fenêtre N2 acceptée par défaut à son terme (`sweepExpiredWindows`, `lib/validation.ts` L291-L305) | **Exclu** (10.2) |
 | Libellés en deux langues, journal d'audit | Repris |
-| Connexion par un identifiant système de 7 chiffres et un mot de passe, session de 8 heures (30 jours pour le propriétaire), aucune réauthentification avant un vote (R5-F32, R5-F33) | Remplacé : la personne est authentifiée par le système d'identité du client, et réauthentifiée depuis au plus `reauth_max_age_s` avant chaque méthode qui modifie l'annuaire ou un ticket (liste d'EX-13.8) |
+| Jeton de session signé par HMAC-SHA256, vérifié en temps constant, avec identifiant et échéance (R5-F33 ; B.8) | Repris pour le cookie de session : identifiant tiré au hasard, signé par une clé tirée au démarrage et gardée en mémoire ; sessions en mémoire, sans base, bornées par `session_max_age_s` (EX-13.48) |
+| Garde d'hôte : refus (statut 421) d'une requête dont l'hôte n'est pas celui de l'origine publique (B.8) | Repris : l'hôte est celui de `console_origin` (EX-13.49) |
+| Thème clair et sombre, appliqué avant le premier affichage (B.8) | Repris, servi comme fichier avec son intégrité, sans script en ligne (EX-13.34, point 4) |
+| File des demandes à valider, sur un écran de validation (B.8) | Repris comme patron de la liste des tickets (EX-13.3, EX-12.21) |
+| Police de caractères embarquée, servie par l'application (B.8) | **Exclu** : polices du système seulement, aucune `font-src` (EX-13.35) |
+| Connexion par un identifiant système de 7 chiffres et un mot de passe, session de 8 heures (30 jours pour le propriétaire), aucune réauthentification avant un vote (R5-F32, R5-F33) | Remplacé : la personne est authentifiée par le système d'identité du client, et réauthentifiée depuis au plus `reauth_max_age_s` avant chaque méthode qui modifie l'annuaire ou un ticket (liste d'EX-13.8) ; le hachage scrypt et le verrou progressif des mots de passe ne sont repris que pour le système local, refusé en production (EX-13.47) |
 | La session est liée à la clé par le **nom affiché** (`session.name` → `curatorByName`, R5-F34) | **Exclu** : le lien passe par l'identité de session canonique (paire émetteur et sujet, R5-F8) et l'adresse attribuée par l'annuaire (EX-13.7, EX-13.18) ; un nom affiché n'est jamais un identifiant |
 | Paire de clés d'un curateur générée par le serveur (R5-F35) ; adresse de l'organisation inscrite **sans preuve de possession** (R5-F36) | **Exclu** : la clé naît chez l'approbateur (EX-13.1) et une adresse n'est attribuée que sur un message d'inscription signé par elle (EX-13.15) |
 | Suppression d'une identité refusée tant qu'elle est membre du jeu (R5-F35) | Repris sous une autre forme : une entrée n'est jamais supprimée ; elle est désactivée, et ses adresses restent dans l'annuaire, révoquées (EX-13.17, EX-13.10) |
@@ -4549,26 +5073,38 @@ son jeu figé (avant le gel, aux membres du jeu de repli, EX-12.14) et aux
 administrateurs de l'annuaire (`administrators`, 10.3), comme EX-12.14 le
 précise.
 
-**EX-13.3** Notification : à l'ouverture et à chaque escalade (7.7), par les
-canaux configurés (courriel, messagerie, appel de webhook), avec le contenu
-minimal d'EX-7.12. Le service DEVRAIT aussi notifier à chaque approbateur,
-par un canal indépendant de la console, chaque vote inscrit en son nom ;
+**EX-13.3** Notification : à l'ouverture et à chaque escalade (7.7), avec le
+contenu minimal d'EX-7.12, livrée par le service au webhook de sa
+configuration, derrière lequel le client la relaie vers le courriel ou une
+messagerie (13.19). Le service DOIT aussi notifier à chaque approbateur
+chaque vote inscrit en son nom (notification `vote_inscrit`, EX-13.40) ;
 cette notification porte au moins le ticket, la décision, l'adresse,
 `empreinte(D_A)` du vote (EX-9.18) et l'instant de son inscription, et
 aucune identité de personne (EX-13.11). C'est ce qui rend visible la bascule
 d'un refus en approbation, ou le vote d'un autre ticket, par une console
 compromise (9.3) ; ce que fait l'approbateur d'une notification qui diffère
-ou qui manque est en EX-9.20, point 7. Le service DEVRAIT, par le même
-canal, notifier à la personne chaque opération de l'annuaire qui vise son
-entrée (inscription, validation, révocation, désactivation, alias), ce qui
-rend visible l'usage d'une session volée (14.8). Elle est recommandée, pas
-obligatoire : la console de référence n'en a pas (13.15), et
-l'organisation dit à ses approbateurs si elle l'a mise en place et dans
-quel délai elle arrive. La console liste les tickets
+ou qui manque est en EX-9.20, point 7. Le service DOIT de même notifier à la
+personne chaque opération de l'annuaire qui vise son entrée (inscription,
+validation, révocation, désactivation, réactivation, alias ; notification
+`operation_annuaire`, EX-13.40), ce qui rend visible l'usage d'une session
+volée (14.8). Il forme, inscrit et livre ces deux notifications comme les
+autres (EX-13.39 à EX-13.42) ; la console n'en livre aucune. Elles
+n'atteignent la personne par un canal indépendant de la console que si le
+client les y relaie : le client DEVRAIT déclarer le webhook
+(`notifications`, EX-10.12) et relayer `vote_inscrit` et
+`operation_annuaire` à la personne de l'entrée destinataire ; sans webhook,
+elles ne sont que dans la boîte d'envoi (EX-13.39). Leur chemin ne protège
+pas d'un service d'approbation compromis, qui peut taire un vote (EX-13.39,
+14.7). L'organisation dit à ses approbateurs si ce relais est en place et
+dans quel délai la notification arrive : au plus 2 170 s plus quatre fois
+`notifications.timeout_ms` après la première tentative, hors relais
+(EX-13.42). Le service livré ne livre encore aucune notification au webhook
+(15.2). La console liste les tickets
 ouverts avec leur échéance, l'état de la fenêtre de contestation et les
 votes exprimés, et, pour un ticket, les tickets refusés ou expirés du même
 demandeur et du même outil depuis moins de `E` (une variation cosmétique
-des arguments rouvre une demande refusée, EX-7.18, 14.7).
+des arguments rouvre une demande refusée, EX-7.18, 14.7) ; les réponses de
+`tickets` y suffisent (EX-12.21).
 
 **EX-13.4** Affichage et signature : EX-9.4 à EX-9.9 et EX-9.15 à
 EX-9.22. La console DOIT être servie avec une politique de sécurité du
@@ -5006,6 +5542,46 @@ curators-hub (R5-F37). `display_name` n'est jamais un identifiant et n'est
 servi qu'aux administrateurs et à la personne de l'entrée. L'export de
 l'annuaire à un réviseur (EX-13.19) est un acte du client, hors de
 l'enregistreur.
+
+**EX-13.38** **Persistance de l'annuaire (révision 0.5).** Le service DOIT
+tenir l'annuaire et ses défis d'inscription non expirés (EX-13.13) dans son
+état, sous `state_dir` (EX-10.12), chiffrés au repos par la clé de stockage
+`storage_key`, comme les documents de ticket (EX-7.24, EX-7.30), et les persister
+avec `fsync` avant la réponse de chaque méthode qui les change (EX-12.17).
+À la reprise, il les relit avec ses autres documents (EX-7.23). La
+préséance est la suivante :
+
+1. si l'état ne contient aucun annuaire, le service prend pour annuaire le
+   document que désigne `console.annuaire`, s'il est déclaré, et sinon
+   l'annuaire vide : `version` 0, `org`, `org_id`, `console_origin`,
+   `registration_ttl_ms` et `administrators` de la configuration,
+   `revision` 0, `updated_at` nul, `entries` et `operations` vides ; il ne le
+   persiste qu'avec la première opération acceptée, y compris une recopie
+   d'EX-13.37 ;
+2. dès qu'un annuaire est persisté, seul l'état fait foi : `console.annuaire`
+   n'est plus lu, et le service consigne `annuaire_amorce_ignoree` dans son
+   journal s'il est déclaré ;
+3. le document d'amorce DOIT être conforme à `annuaire-approbateurs-v0` et ne
+   donner aucun écart aux points 1 à 6 d'EX-13.19 (un annuaire exporté d'un
+   autre service de la même organisation, par exemple) ; sinon le service
+   refuse de démarrer ;
+4. l'annuaire, amorce ou état, DOIT avoir les `org`, `org_id` et
+   `console_origin` de la configuration, que chaque preuve d'inscription
+   reprend (EX-13.12, EX-13.19, point 4) ; sinon le service refuse de
+   démarrer : un changement d'origine ou d'organisation demande un nouvel
+   annuaire ;
+5. `registration_ttl_ms` de l'annuaire prend, à chaque démarrage, la valeur
+   de la configuration, sans opération, sans changer `revision` ni
+   `updated_at` : il ne vaut que pour les défis qui suivent, et chaque preuve
+   garde ses propres instants ; le service consigne `annuaire_ttl_recopie`
+   quand la valeur change ;
+6. la recopie d'`administrators` au démarrage (EX-13.37) est inchangée : elle
+   se fait après les points 1 à 5, sur l'annuaire retenu.
+
+Le service tire les identifiants d'entrée au hasard (64 bits, EX-13.9) :
+la configuration n'a pas d'époque d'annuaire. Une perte de l'état perd
+l'annuaire avec les tickets ; il se reconstruit depuis son dernier export
+(méthode `annuaire` d'un administrateur, EX-13.19), déclaré en amorce.
 
 ### 13.5 Inscription par preuve de possession
 
@@ -5742,7 +6318,8 @@ sur un réseau à permission (R4-F31) ; le relais par défaut du SDK est
 `wss://relay.walletconnect.org`, réglable (R4-F32).
 
 **EX-13.27** Le parcours c est **désactivé par défaut**. Une organisation
-l'active dans la configuration de la console, et alors :
+l'active dans la configuration du serveur de console (membre `walletconnect`,
+EX-10.13), et alors :
 
 1. le SDK est livré avec la console, sans script tiers (EX-13.4, EX-13.35) ; la
    politique de sécurité du contenu n'ouvre `connect-src` qu'à l'adresse du
@@ -6099,7 +6676,22 @@ interdits dans `script-src` : `'unsafe-inline'`, `'unsafe-eval'`,
 sert aux icônes des portefeuilles, qu'EIP-6963 veut en URI `data:` et
 rendues par `<img>` (R4-F6). Une console d'exploitation qui sert sa page
 depuis un cadriciel PEUT remplacer le condensé par un nonce d'au moins
-128 bits tiré à chaque réponse (R5-F40). Justification : la CSP n'est pas
+128 bits tiré à chaque réponse (R5-F40). « Au moins aussi restrictif »
+s'entend directive par directive et n'admet aucun assouplissement : la
+politique ne porte aucune source de plus dans les directives de la forme
+ci-dessus ; aucune directive autre que celles de la forme ci-dessus qui
+ouvre un type de ressource que `default-src 'none'` ferme, en particulier
+aucune `font-src` (la console
+n'emploie que les polices du système et n'en télécharge aucune), ni
+`manifest-src`, `media-src`, `worker-src`, `child-src` ou `frame-src` ; ni
+`'wasm-unsafe-eval'` ; ni `report-uri`, ni `report-to` (aucun rapport de
+violation n'est envoyé, ni à la console ni ailleurs). Les deux seuls écarts
+admis sont le nonce qui remplace le condensé de la carte d'importation et
+l'adresse du relais dans `connect-src` quand le parcours c est activé
+(EX-13.27, point 1) ; une directive qui restreint encore est admise. La page
+de vérification des dossiers n'est pas servie par la console : elle a sa
+propre origine et sa propre politique (CT-6 section 18). Justification : la
+CSP n'est pas
 une première ligne de défense mais une défense en profondeur (R5-F39) ; la
 forme stricte par nonce ou condensé est la pratique recommandée, et
 `'strict-dynamic'` la rend moins sûre (R5-F41) ; `object-src 'none'` et
@@ -6256,8 +6848,9 @@ décidé, ou révoquer votre adresse, et vous changez alors de clé.
 **Qui prévenir, et comment.** L'administrateur à prévenir (empreinte
 divergente, signature refusée dans le portefeuille, texte d'inscription
 refusé, notification qui diffère) est le contact administrateur de
-l'organisation, déclaré dans la configuration de la console (10.3), comme en
-EX-9.17 ; l'approbateur le connaît par l'organisation et non par la console,
+l'organisation, celui que l'organisation désigne et à qui le relais du
+client fait suivre les notifications adressées au rôle `administrateur`
+(EX-13.40), comme en EX-9.17 ; l'approbateur le connaît par l'organisation et non par la console,
 car une console compromise peut afficher un faux contact. Les
 administrateurs de l'annuaire, identités de session listées dans
 `administrators` (10.3), valident et révoquent les adresses et peuvent
@@ -6288,7 +6881,7 @@ EX-9.20, point 7.
 
 **Ce que l'organisation vous dit, et que CT-3 ne fixe pas.** Demandez à
 votre organisation : le contact administrateur et l'autre canal par lequel
-le prévenir (10.3, ci-dessus) ; le montant à partir duquel comparer les huit
+le prévenir (ci-dessus) ; le montant à partir duquel comparer les huit
 groupes (EX-9.18) ; les sources où confronter une valeur « non vérifiable par
 la console » (« Voter », pas 1) ; si la notification indépendante existe, et
 dans quel délai elle arrive (EX-13.3) ; si votre adresse signe aussi des
@@ -6523,17 +7116,21 @@ corps vide et rend cette identité (EX-13.33, point 3). Il vérifie la
 réauthentification avant chaque méthode de la liste d'EX-13.8.
 
 > **Réglages et formes réunis** (définis dans la table de 10.3 et dans les
-> schémas). Réglages : `reauth_max_age_s`, défaut 900, de 0 à 3 600,
-> configuration du serveur de console (EX-13.8) ; `service_timeout_ms`,
-> défaut 10 000, configuration de la console (12.7) ; `delai_signature_ms`,
-> défaut 300 000, de 30 000 à 1 800 000, configuration de la console
-> (EX-13.30) ; contact administrateur de l'organisation, configuration de la
-> console (10.3). Formes : le corps de `tickets` est `{ session_identity }`
-> (`$defs/requete_tickets` de `console-service-v0`) ; ceux de `recuser`
+> schémas). Réglages, dans la configuration du serveur de console
+> (`configuration-console-v0`, EX-10.13) : `reauth_max_age_s`, défaut 900,
+> de 0 à 3 600 (EX-13.8) ; `service_timeout_ms`, défaut 10 000, de 1 000 à
+> 60 000 (12.7) ; `delai_signature_ms`, défaut 300 000, de 30 000 à
+> 1 800 000, que la page reçoit de la méthode `session` (EX-13.30,
+> EX-13.48) ; `session_max_age_s`, défaut 28 800, de 900 à 43 200
+> (EX-13.48). La configuration de la console n'a pas de contact : les
+> notifications partent du service (13.19). Formes : le corps de `tickets`
+> est `{ session_identity }`, avec `related_to` facultatif
+> (`$defs/requete_tickets` de `console-service-v0`, EX-12.21) ; ceux de `recuser`
 > (`{ ticket, approver, session_identity }`, EX-12.16) et d'`annuaire`
 > (`{ session_identity }`, 13.9, pas 1) sont donnés plus haut. Schémas :
 > `console-approbation-v0`, `console-service-v0` et
-> `annuaire-approbateurs-v0` (`spec/schemas/`).
+> `annuaire-approbateurs-v0` (`spec/schemas/`) ; pour l'exploitant,
+> `configuration-console-v0` et `configuration-approbation-v0`.
 >
 > **Hors des sections 7.4, 9, 12 et 13**, l'intégrateur a besoin : des trois
 > schémas (`console-approbation-v0`, dont `$defs/vue_ticket`,
@@ -6617,6 +7214,594 @@ après l'ouverture d'un autre ticket (EX-13.21, EX-13.30). Chaque panne de
 de code numérique, réponse qui n'est pas une chaîne hexadécimale, délai)
 reçoit la réponse des tables d'EX-13.29 : aucune ne produit de vote, et un
 refus dans le portefeuille (4001) n'est pas un vote `refuse`.
+
+### 13.19 Notifications livrées par le service (révision 0.5)
+
+Les notifications de 7.7, d'EX-8.6, d'EX-13.3 et d'EX-14.1 partent du
+service, qui connaît les tickets et l'annuaire ; la console n'en livre
+aucune. Le canal de la version 0 est unique et minimal : un webhook, que le
+client relaie vers ses propres canaux.
+
+**EX-13.39** **Qui livre, et par quel canal.** Le service d'approbation
+DOIT livrer lui-même chaque notification ; la console n'en livre aucune, et
+aucune méthode du canal de la console n'en porte (EX-12.13). En version 0,
+le seul canal est un webhook : une URL que déclare l'exploitant du client
+(`notifications` de la configuration du service, EX-10.12), `https`, ou
+`http` vers une adresse de boucle locale hors production, à laquelle le
+service envoie une requête `POST` par notification (EX-13.41, EX-13.42). Le
+relais vers le courriel, une messagerie ou tout autre canal est chez le
+client, derrière ce webhook : c'est lui qui fait correspondre l'identifiant
+d'une entrée de l'annuaire, ou un rôle, à une adresse de messagerie, que
+NOORTRACE ne connaît pas (EX-13.11). Le service DOIT inscrire chaque
+notification dans la boîte d'envoi `notifications.ndjson` de `state_dir`, en
+ajout seul, une ligne par notification, la ligne étant le corps envoyé
+(EX-13.40), avant la première tentative ; sans webhook (`notifications`
+nul), la boîte est la seule trace. La boîte est tournée quand elle dépasse
+64 Mio : le fichier courant devient `notifications.ndjson.1`, les
+précédents prennent le numéro suivant, et au plus 8 fichiers tournés sont
+gardés, le plus ancien étant supprimé ; le service n'en garde donc pas plus
+de 576 Mio. Elle est en clair, contrairement aux documents de ticket et à
+l'annuaire (EX-7.24, EX-13.38) : elle ne porte que ce que porte le corps
+envoyé au webhook, ni argument ni identité de personne (EX-13.40). Un échec
+d'écriture de la boîte est consigné (`notification_boite_en_echec`, avec
+`id` et `kind`) et n'empêche ni la livraison de la notification ni aucune
+transition. Une notification NE DOIT jamais retarder
+ni changer un ticket, une fenêtre, l'annuaire ou la réponse d'une méthode :
+le service la forme après avoir persisté l'entrée ou l'opération qui la
+cause (EX-7.22, EX-12.17), la livre hors de la file des entrées, et un
+webhook muet, lent ou en erreur n'a d'autre effet que les lignes du journal
+du service d'EX-13.42. La notification indépendante d'EX-13.3 est celle-ci :
+son chemin (service, webhook, relais du client) ne passe ni par la page ni
+par le serveur de console ; elle ne protège donc pas d'un service
+d'approbation compromis, qui peut aussi bien taire un vote (14.7).
+
+**EX-13.40** **Document et destinataires.** Chaque notification est un
+objet `$defs/notification` de `configuration-approbation-v0` : enveloppe
+`version` (0), `id` (`ntf-` suivi de 32 chiffres hexadécimaux minuscules
+tirés au hasard, 128 bits), `kind`, `created_at` (horloge du service) et
+`recipients` ; contenu `ticket`, `tool` (nom annoncé), `deadline`, `link` et
+`details`, chaque membre sans objet valant `null`. Le corps envoyé est le
+JCS du document (CT-1 §4), en UTF-8, identique à chaque tentative ; c'est
+aussi la ligne de la boîte d'envoi.
+
+| `kind` | Cause | `recipients` | `ticket`, `tool`, `deadline` | `link` | `details` |
+|---|---|---|---|---|---|
+| `ouverture` | premier gel du jeu du ticket (EX-7.12) | les entrées actives dont l'adresse active est un membre éligible | ceux du ticket | écran du ticket | `null` |
+| `escalade` | étape d'escalade (EX-7.13) | `jeu` : les entrées actives dont l'adresse active est un membre éligible sans vote courant ; `administrateur` : le rôle `administrateur_jeu` ; `demandeur` : l'entrée active dont `requester_identities` contient le `launched_by` du ticket | ceux du ticket | écran du ticket | `null` |
+| `nouveau_gel` | nouveau gel qui change le jeu figé (EX-8.6) | les entrées actives dont l'adresse active est un membre éligible après le gel | ceux du ticket | écran du ticket | `added_members` (adresses ajoutées depuis l'ouverture), `effective_required` |
+| `seuil_inatteignable` | moins de membres éligibles que le seuil effectif (EX-7.29) | les rôles `administrateur_jeu` et `administrateur` | ceux du ticket | écran du ticket | `eligible_count`, `effective_required` |
+| `vote_inscrit` | vote accepté sur le canal de la console (EX-13.3, EX-12.16) | l'entrée active dont l'adresse active est `approver` | ceux du ticket | écran du ticket | `approver`, `decision`, `digest` = `empreinte(D_A)` du vote (EX-9.18), `at` = instant d'inscription du vote |
+| `operation_annuaire` | opération acceptée `inscrire`, `valider`, `revoquer`, `desactiver`, `reactiver`, `lier_demandeur` ou `delier_demandeur` (EX-13.3) | l'entrée visée (`entry` de l'opération) | `null` | écran d'inscription | `op`, `entry`, `address` (celle de l'opération, nulle sinon), `revision` après l'opération, `at`, `by_self` (vrai si `by` est l'identité de session de l'entrée) |
+| `plafond_atteint` | premier `evaluer` refusé par `plafond_atteint` (EX-14.1) d'un `launched_by` dans une période de 15 minutes ; les refus suivants de la période ne sont pas notifiés, et le journal du service les compte (`plafond_refus_non_notifies`, avec leur nombre, à la fin de la période) | le rôle `administrateur` | `null` | `null` | `max_open_tickets` |
+
+Les rôles sont `administrateur`, le contact administrateur de
+l'organisation (13.17, « Qui prévenir, et comment »), et
+`administrateur_jeu`, l'administrateur du jeu (3.1) ; le relais du client
+les fait correspondre à des personnes. L'opération `changer_administrateurs`
+ne vise aucune entrée et n'est pas notifiée. Un membre éligible dont
+l'adresse n'est l'adresse active d'aucune entrée active n'est pas notifié,
+comme il ne peut pas voter par la console (EX-12.18) ; une notification sans
+aucun destinataire n'est ni formée ni inscrite, et le service consigne
+`notification_sans_destinataire` avec `kind` et `ticket`. Le `link` est
+l'URL de l'écran du ticket, `<console_origin>/tickets/<ticket>`, ou celle de
+l'écran d'inscription, `<console_origin>/inscription` (EX-13.43). Un
+document ne porte aucune identité de personne (EX-13.11) : ni identité de
+session, ni `launched_by`, ni alias de demandeur, ni `display_name`, ni
+`external_id`, ni motif de vote, de retrait ou de révocation ; seulement des
+identifiants de ticket et d'entrée, des noms d'outil, des adresses, des
+empreintes, des rôles et des instants ; jamais les arguments, ni leur
+empreinte (EX-7.24).
+
+Exemple : la notification du vote du compte 1 sur `apr-2201` (EX-12.16),
+inscrit à `2026-11-05T09:25:41.000Z`, adressée à l'entrée `apb-0001` :
+
+<!-- exemple: configuration-approbation/notification -->
+```json
+{
+  "version": 0,
+  "id": "ntf-6e11d7c877333cc3e56d04ab4428c19d",
+  "kind": "vote_inscrit",
+  "created_at": "2026-11-05T09:25:41.000Z",
+  "recipients": {
+    "entries": [
+      "apb-0001"
+    ],
+    "roles": []
+  },
+  "ticket": "apr-2201",
+  "tool": "sap.payments.create",
+  "deadline": "2026-11-05T10:12:09.904Z",
+  "link": "https://console.assureur-demo.example/tickets/apr-2201",
+  "details": {
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "decision": "approuve",
+    "digest": "a57cbdad…64f7df7c",
+    "at": "2026-11-05T09:25:41.000Z"
+  }
+}
+```
+
+Son corps envoyé, le JCS de ce document, fait 472 octets (`…` en compte
+trois) :
+
+```text
+{"created_at":"2026-11-05T09:25:41.000Z","deadline":"2026-11-05T10:12:09.904Z","details":{"approver":"0x70997970c51812dc3a010c7d01b50e0d17dc79c8","at":"2026-11-05T09:25:41.000Z","decision":"approuve","digest":"a57cbdad…64f7df7c"},"id":"ntf-6e11d7c877333cc3e56d04ab4428c19d","kind":"vote_inscrit","link":"https://console.assureur-demo.example/tickets/apr-2201","recipients":{"entries":["apb-0001"],"roles":[]},"ticket":"apr-2201","tool":"sap.payments.create","version":0}
+```
+
+**EX-13.41** **Signature.** Chaque requête porte les en-têtes
+`Content-Type: application/json` et `NOORTRACE-Signature: sha256=<s>`, où
+`<s>` est fait des 64 chiffres hexadécimaux minuscules de HMAC-SHA256
+(RFC 2104, B.8) de clé `K` sur les octets `"noortrace/notification/v0\n" ‖
+corps`, `corps` étant les octets exacts du corps envoyé. `K` est la valeur
+du secret `notifications.key`, espaces de tête et de fin retirés, de 32 à
+1 024 caractères ASCII imprimables, prise en octets ASCII ; elle DOIT être
+tirée au hasard et porter au moins 256 bits d'entropie (par exemple 64
+chiffres hexadécimaux tirés d'un générateur cryptographique), ce que la
+longueur seule ne garantit pas ; elle n'est
+jamais écrite dans la configuration, la boîte d'envoi, le journal ni le
+corps. Le préfixe sépare ce MAC de tout autre usage de la clé. Le relais du
+client DEVRAIT recalculer le MAC sur les octets reçus avant toute analyse et
+refuser, après une comparaison en temps constant, une requête dont le MAC
+diffère (statut 401) ; tenir pour une seule notification deux corps de même
+`id`, la livraison étant au moins une fois (EX-13.42) ; refuser un document
+dont `created_at` a plus d'une heure, ce qui dépasse la durée de toutes les
+tentatives (EX-13.42). Exemple : avec `K` =
+`noortrace/exemple/cle-de-webhook/0123456789abcdef` (49 caractères, clé
+d'exemple qui n'est pas tirée au hasard et n'est valable nulle part), la
+requête qui envoie le corps ci-dessus porte `NOORTRACE-Signature:
+sha256=0ba22888a6596c02fee4571e5c9394192722c9ffd011d145208cf349b813354c`.
+
+**EX-13.42** **Livraison.** Le service envoie chaque notification à
+`notifications.url`, sans suivre de redirection, en vérifiant le certificat
+du webhook (autorité `notifications.ca`, sinon le magasin du système). Une
+tentative réussit sur un statut 2xx reçu dans `notifications.timeout_ms`
+(défaut 10 000, de 1 000 à 30 000), mesuré du début de la résolution du nom
+de l'hôte à la réception de la ligne de statut, connexion et négociation TLS
+comprises ; le corps de la réponse est ignoré, et au plus
+65 536 octets en sont lus. Une erreur de réseau ou de TLS, l'écoulement du
+délai, ou un statut 408, 429 ou 5xx donne une reprise ; tout autre statut,
+3xx compris, abandonne la notification sans reprise. Il y a au plus quatre
+reprises, qui partent 10 s, 60 s, 300 s puis 1 800 s après la fin de la
+tentative précédente, soit cinq tentatives au plus (choix de CT-3, sans
+source externe) ; au-delà, la notification est abandonnée. Une seule
+tentative est en cours à la fois pour une notification ; les notifications
+sont indépendantes, leur ordre d'arrivée n'est pas garanti, et la livraison
+est au moins une fois (un statut 2xx perdu fait renvoyer le même corps). Au
+plus 10 000 notifications attendent leur livraison ; au-delà, le service
+abandonne (`file_pleine`) la plus ancienne qui attend et dont le `kind`
+n'est ni `vote_inscrit` ni `operation_annuaire`, et, s'il n'y en a aucune,
+la plus ancienne qui attend : les notifications qui révèlent une console ou
+une session compromise (EX-13.3) passent en dernier. Les reprises ne
+survivent pas à un
+redémarrage du service : une notification sans ligne `notification_livree`
+ni `notification_abandonnee` à l'arrêt reste dans la boîte d'envoi, et le
+journal montre qu'elle n'a pas été livrée. Le journal du service (hors
+chaîne, 10.4) reçoit, sans le corps ni la clé : `notification_livree` (`id`,
+`kind`, `attempt`, `status`) ; `notification_echec` (`id`, `kind`,
+`attempt`, `status` ou `null`, `cause` parmi `reseau`, `tls`, `delai` et
+`statut`) ; `notification_abandonnee` (`id`, `kind`, `attempts`, `cause`
+parmi `reprises_epuisees`, `statut_definitif` et `file_pleine`) ;
+`notification_sans_destinataire` (EX-13.40) ; `notification_boite_en_echec`
+(EX-13.39) ; `plafond_refus_non_notifies` (EX-13.40). La dernière tentative part donc
+au plus 2 170 s, plus quatre fois `notifications.timeout_ms`, après la
+première : c'est le plus grand délai, hors relais du client, qu'un
+approbateur peut attendre d'une notification livrée ; l'organisation dit le
+délai de bout en bout à ses approbateurs (EX-13.3).
+
+### 13.20 Serveur de console : adresses et sonde (révision 0.5)
+
+**EX-13.43** **Adresses.** Le serveur de console DOIT servir exactement les
+chemins suivants, sous `console_origin`, par les méthodes de la table ;
+tout autre chemin reçoit 404, sauf ceux des fichiers de la page (scripts,
+feuille de style, images), que le serveur choisit hors de ceux-ci et sert
+par `GET` :
+
+| Chemin | Méthode HTTP | Ce qui est servi |
+|---|---|---|
+| `/` | `GET` | redirection 303 vers `/tickets` |
+| `/tickets` | `GET` | écran de la liste des tickets (EX-13.3) |
+| `/tickets/<ticket>` | `GET` | écran d'un ticket ; `<ticket>` est un identifiant d'EX-7.1, tel quel, sans encodage (motif `^apr-[0-9a-z]+(-[0-9a-z]+)*$`) ; un autre segment reçoit 404 |
+| `/inscription` | `GET` | écran d'inscription de son adresse (13.5) |
+| `/annuaire` | `GET` | écran de l'annuaire, pour les administrateurs (13.6) ; la page n'y offre d'action qu'à une session dont `administrator` est vrai, et le service refait chaque contrôle (EX-13.17) |
+| `/connexion` | `GET` | début de l'authentification : redirection vers le fournisseur OIDC (EX-13.45), ou, avec le système local, écran statique de connexion (EX-13.47) ; paramètre facultatif `retour` |
+| `/connexion/retour` | `GET` | adresse de retour OIDC (`redirect_uri`, EX-13.45) |
+| `/connexion/locale` | `POST` | authentification par le système local (EX-13.47) |
+| `/deconnexion` | `POST` | fin de la session (EX-13.48) |
+| `/v0/<méthode>` | `POST` | méthode `session` (EX-13.33, point 3) et méthodes relayées de 12.9 (EX-13.49) |
+| `/v0/sante` | `GET` | santé du serveur (EX-13.44) |
+
+Les chemins se comparent octet pour octet, sans barre finale. `HEAD` est
+admis partout où `GET` l'est, et rend les mêmes en-têtes sans corps. Un
+chemin de la table, ou un fichier de la page, demandé par une autre méthode
+reçoit 405, l'erreur `requete_invalide` et l'en-tête `Allow`. Un corps de
+plus de 65 536 octets reçoit 413 et `requete_invalide`, sans être relayé ;
+aucun corps du canal de la console n'approche cette borne. Les quatre
+écrans sont des documents HTML statiques, servis sans exiger de session et
+avec les en-têtes d'EX-13.35 : ils ne portent aucune donnée, que la page lit
+ensuite par la méthode `session` et les méthodes relayées, qui exigent la
+session ; une page sans session va à `/connexion?retour=<chemin de
+l'écran>`. Le serveur ne retient de `retour` qu'un chemin d'écran de la
+table (`/tickets`, `/tickets/<ticket>`, `/inscription`, `/annuaire`), et
+`/tickets` sinon : aucune redirection ouverte. Le `link` d'une notification
+est l'URL absolue d'un écran : `<console_origin>/tickets/<ticket>` ou
+`<console_origin>/inscription` (EX-13.40). Un écran servi sans session
+convient à ce lien : la navigation qui le suit vient d'un autre site, et le
+cookie de session, `SameSite=Strict`, ne l'accompagne pas, alors qu'il
+accompagne les requêtes que la page fait ensuite (EX-13.48, B.8). La
+redirection qui conclut une connexion (EX-13.45, point 5) mène de même à un
+écran servi sans session.
+
+**EX-13.44** **Santé et sonde.** `GET /v0/sante`, servi sans session, rend
+200 et un objet `$defs/reponse_sante` de `console-service-v0` :
+`service_reachable` est vrai si `GET <service>/v0/etat`, que le serveur
+appelle sur le canal de la console avec ses identifiants (EX-12.4, EX-12.12),
+a rendu 200 et un corps de la forme d'EX-12.12 dans les 1 000 ms, quelle que
+soit la valeur de son `ready` ; le résultat de cet appel est gardé 5 s, et
+une requête de santé reçue dans ce délai le reprend sans rappeler le
+service, de sorte que des requêtes anonymes de santé ne font pas plus d'un
+appel au service toutes les 5 s ; `identity_ready` est vrai, pour OIDC, si
+le serveur tient un document de découverte et un jeu de clés lus depuis
+moins de `cache_s` (EX-13.45, point 1), et, pour le système local, si le
+fichier des comptes est chargé ; `ready` est leur conjonction ;
+`checked_at` est l'instant de la réponse. La commande `noortrace-console
+sonde [--config <fichier>]` (défaut
+`/etc/noortrace-console/configuration.json`), que le Compose de production
+lance comme sonde du conteneur `console`, lit la configuration, ouvre une
+connexion TLS vers `listen.host` (`127.0.0.1` quand il vaut `0.0.0.0`,
+`::1` quand il vaut `::`) au port `listen.port`, avec l'indication de nom
+(SNI) égale à l'hôte de `console_origin` ; elle ne vérifie pas la chaîne du
+certificat présenté, mais exige qu'il soit le premier certificat de
+`tls.cert` (égalité du SHA-256 de son encodage DER) ; puis elle envoie `GET
+/v0/sante` avec l'en-tête `Host` égal à l'autorité de `console_origin`, et
+attend au plus 2 500 ms en tout. Elle n'écrit que sur ses sorties : le corps
+reçu, sur une ligne, sur la sortie standard, la raison d'un échec sur la
+sortie d'erreur ; de la configuration, elle ne lit que `console_origin`,
+`listen` et les certificats de `tls.cert`. Code de
+retour : 0 si la réponse est 200, conforme à `$defs/reponse_sante`, avec
+`ready` vrai ; 1 dans tout autre cas (configuration illisible, connexion
+refusée, certificat différent, délai écoulé, autre statut, corps non
+conforme, `ready` faux) ; elle ne rend aucune autre valeur.
+
+Exemple de réponse de santé :
+
+<!-- schema: console-service/reponse_sante -->
+```json
+{
+  "ready": true,
+  "service_reachable": true,
+  "identity_ready": true,
+  "checked_at": "2026-11-12T09:00:00.000Z"
+}
+```
+
+### 13.21 Serveur de console : systèmes d'identité et sessions (révision 0.5)
+
+Le serveur de console authentifie la personne par un seul système
+d'identité, celui de `identity` (EX-10.13) : OIDC, ou, hors production, un
+système local de comptes déclarés dans un fichier. Tout ce qui établit
+l'identité se fait dans le serveur : la page ne reçoit ni le jeton
+d'identité, ni le jeton d'accès, ni le secret du client, ni la clé des
+cookies, et ne lit l'identité que par la méthode `session` (EX-13.33,
+point 3). Les instants des jetons sont des secondes (`NumericDate`) ; la
+tolérance d'horloge de 60 s de cette section est un choix de CT-3.
+
+**EX-13.45** **OIDC : découverte, flux et authentification du client.**
+
+1. **Découverte.** Le serveur lit le document à l'adresse formée de
+   `identity.issuer`, privé de sa barre oblique finale s'il en a une, suivi
+   de `/.well-known/openid-configuration` (B.8), et exige que son membre
+   `issuer` soit égal, octet pour octet, à `identity.issuer` (B.8), que
+   `authorization_endpoint`, `token_endpoint` et `jwks_uri` soient des URL
+   `https`, et, si le document porte `code_challenge_methods_supported`,
+   que ce tableau contienne `S256` ; il lit ensuite le jeu de clés de
+   `jwks_uri`. Chaque lecture dure au plus 10 000 ms, porte au plus
+   1 048 576 octets et ne suit aucune redirection. Le serveur lit le document
+   et le jeu de clés à son démarrage, puis les relit d'avance chaque fois que
+   sa copie a la moitié de `cache_s` (défaut 3 600, de 60 à 86 400), sans
+   attendre une connexion ; une relecture en échec garde la copie précédente
+   jusqu'à `cache_s` après sa lecture, et le serveur la retente toutes les
+   60 s. Sans copie lue depuis moins de `cache_s` (premier démarrage sans
+   réponse du fournisseur, ou relectures en échec), `identity_ready` est faux
+   (EX-13.44) et les connexions sont refusées (`fournisseur_indisponible`),
+   sans toucher aux sessions ouvertes. Un jeton dont le `kid` n'est pas dans
+   le jeu en cache fait relire le jeu une fois, et au plus une fois par
+   période de 60 s. Un document qui annonce des méthodes PKCE sans `S256` fait
+   refuser les connexions (`fournisseur_erreur`) ; un document qui n'en
+   annonce aucune, ce que la découverte admet (B.8), laisse le serveur
+   envoyer quand même `code_challenge`, et la protection contre l'injection
+   d'un code d'autorisation repose alors aussi sur `nonce`, que le serveur
+   vérifie toujours (EX-13.46, point 6 ; B.8).
+2. **Demande d'authentification.** `GET /connexion` crée une transaction,
+   valable 600 s : un identifiant `tid` de 128 bits tirés au hasard ; `state`
+   et `nonce`, chacun de 128 bits tirés au hasard et encodés en base64url ;
+   `code_verifier` de 32 octets tirés au hasard encodés en base64url sans
+   remplissage (43 caractères) ; l'instant de création ; le chemin `retour`
+   (EX-13.43) ; et `sid`, l'identifiant de la session que portait le cookie
+   de session de la requête s'il en portait une valide, `null` sinon (une
+   navigation de même site vers `/connexion` porte ce cookie `Strict`). Le
+   serveur ne tient pas la transaction en mémoire : il la porte tout entière
+   dans le cookie de transaction, chiffré et authentifié (EX-13.48, point 3),
+   de sorte que des requêtes anonymes de `GET /connexion`, en nombre
+   quelconque, ne consomment aucune place du serveur ni n'évincent la
+   transaction d'une autre personne. Il pose ce cookie et répond par une
+   redirection 303
+   vers `authorization_endpoint`, avec les paramètres `response_type=code`,
+   `client_id`, `redirect_uri=<console_origin>/connexion/retour`,
+   `scope=openid`, `state`, `nonce`, `code_challenge`,
+   `code_challenge_method=S256` et `max_age=<reauth_max_age_s>`, plus
+   `prompt=login` quand `reauth_max_age_s` vaut 0 (EX-13.8, R5-F10,
+   R5-F11). `code_challenge` est BASE64URL(SHA-256(ASCII(`code_verifier`)))
+   (PKCE, méthode `S256`, B.8 ; avec le `code_verifier`
+   `dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk` de l'exemple de la RFC
+   7636, `E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM`) ; la méthode `plain`
+   n'est jamais employée. `max_age` est toujours envoyé, pour que le jeton
+   porte `auth_time` (R5-F5).
+3. **Retour.** `GET /connexion/retour` exige un cookie de transaction qui se
+   déchiffre et s'authentifie sous la clé en cours, créé depuis moins de
+   600 s, dont le `tid` n'a pas encore été présenté, et un paramètre `state`
+   égal au sien, comparé en temps constant : sinon 400,
+   `transaction_inconnue`. La transaction est consommée à sa première
+   présentation, quelle qu'en soit l'issue : le serveur garde le `tid` de
+   chaque transaction présentée jusqu'à 600 s après sa création, pour en
+   refuser une seconde présentation ; il en garde au plus 100 000, et
+   au-delà oublie le plus ancien : le code d'autorisation, à usage unique
+   chez le fournisseur (B.8), empêche encore un second échange. Une réponse qui porte `error`
+   donne `fournisseur_erreur`, la valeur d'`error` étant affichée comme du
+   texte ; une réponse qui porte `iss` exige qu'il soit égal à
+   `identity.issuer` (B.8), sinon `fournisseur_erreur`.
+4. **Échange du code.** Le serveur envoie au `token_endpoint` un `POST`
+   `application/x-www-form-urlencoded` de `grant_type=authorization_code`,
+   `code`, `redirect_uri` et `code_verifier`, authentifié par
+   `client_secret_basic` : `Authorization: Basic` suivi du base64 de
+   `client_id` et `client_secret`, chacun encodé d'abord selon l'annexe B
+   de la RFC 6749, joints par `:` (B.8). Il attend au plus 10 000 ms une
+   réponse 200 en JSON qui porte `id_token` (sinon `fournisseur_erreur`, ou
+   `fournisseur_indisponible` faute de réponse) ; il ignore le jeton
+   d'accès et le jeton de rafraîchissement, qu'il ne garde ni ne transmet.
+   Si le document de découverte porte `token_endpoint_auth_methods_supported`
+   sans `client_secret_basic`, la connexion est refusée
+   (`fournisseur_erreur`).
+5. **Succès.** Le jeton vérifié (EX-13.46), le serveur ouvre la session
+   (EX-13.48, point 1), détruit la session `sid` de la transaction si elle
+   existe encore, pose le cookie de session, efface le cookie de transaction
+   et répond par une redirection 303 vers le chemin `retour` de la
+   transaction, sous `console_origin`. Un échec à l'un des points 3 et 4 ou à
+   la vérification du jeton rend la page d'erreur d'EX-13.49, efface le
+   cookie de transaction, et n'ouvre ni ne détruit aucune session.
+
+Justification de `client_secret_basic`. Le serveur de console est un client
+confidentiel, qui tient son secret par référence (EX-10.13) et ne l'envoie
+qu'au point de jeton, en TLS ; c'est la méthode par défaut d'un fournisseur
+qui n'en annonce aucune (B.8), donc la seule qu'on puisse attendre de tout
+fournisseur ; PKCE lie de plus le code d'autorisation à la transaction du
+serveur, de sorte qu'un code intercepté ne vaut rien sans le
+`code_verifier`. `client_secret_post` mettrait le secret dans un corps,
+plus souvent journalisé ; `client_secret_jwt` n'ajoute rien avec le même
+secret partagé ; `private_key_jwt`, qui ôte au fournisseur tout secret
+partagé, est une proposition pour une version 1 (section 16).
+
+**EX-13.46** **Vérification du jeton d'identité.** Le serveur de console,
+et jamais la page, vérifie le jeton d'identité dans l'ordre suivant ; au
+premier échec, il n'ouvre aucune session et rend 400, `jeton_invalide`
+(`identite_invalide` au point 9) :
+
+1. le jeton est un JWS compact de trois parties (un JWE de cinq parties est
+   refusé), d'en-tête JSON sans `crit` ; son `alg` est dans
+   `identity.id_token_signing_alg_values`, sous-ensemble de la liste fermée
+   `RS256`, `PS256`, `ES256` (défaut `["RS256"]`, l'algorithme que tout
+   fournisseur doit savoir employer, B.8) ; `none`, `HS256`, `HS384`,
+   `HS512` et tout autre algorithme sont refusés ;
+2. la clé vient du jeu de clés en cache (EX-13.45, point 1) : celle du même
+   `kid` quand l'en-tête en porte un, sinon l'unique clé compatible (sans
+   `kid`, un jeu qui a plusieurs clés compatibles rend le jeton invalide) ;
+   elle
+   est RSA d'un module d'au moins 2 048 bits pour `RS256` et `PS256`, EC de
+   courbe `P-256` pour `ES256`, de `use` absent ou `sig`, d'`alg` absent ou
+   égal à celui de l'en-tête ; la signature est valide, celle d'`ES256`
+   étant les 64 octets `R ‖ S` (B.8) et non un encodage DER ;
+3. `iss` est égal à `identity.issuer`, octet pour octet (R5-F2) ;
+4. `aud` vaut `client_id`, ou un tableau dont `client_id` est le seul
+   élément : le serveur ne tient aucune autre audience pour fiable (R5-F3,
+   B.8) ; `azp`, s'il est présent, vaut `client_id` ;
+5. `exp` et `iat` sont présents et numériques ; l'instant du serveur est
+   antérieur à `exp` + 60 s ; `iat` est compris
+   entre l'instant du serveur − 600 s et l'instant du serveur + 60 s ;
+   `nbf`, s'il est présent, est au plus l'instant du serveur + 60 s ;
+6. `nonce` est celui de la transaction (R5-F4) ;
+7. `auth_time` est présent, numérique, au plus l'instant du serveur + 60 s,
+   et, si `reauth_max_age_s` est positif, au moins l'instant du serveur −
+   `reauth_max_age_s` − 60 s ; s'il vaut 0, au moins l'instant de création
+   de la transaction − 60 s (R5-F5, R5-F12) ;
+8. `sub` est une chaîne ;
+9. `oidc <iss> <sub>` est une identité canonique d'EX-13.7.
+
+Le jeton n'est gardé que le temps de cette vérification. `acr` et `amr` ne
+sont pas contrôlés en version 0 (EX-13.8). Le jeton reçu au point de jeton
+est vérifié par sa signature, même si OIDC admet de s'en remettre au TLS du
+point de jeton : la vérification ne dépend ainsi que du jeu de clés.
+
+**EX-13.47** **Système local (hors production).** Avec `identity.kind`
+égal à `local`, les comptes sont ceux du fichier `identity.accounts`
+(`$defs/fichier_comptes` de `configuration-console-v0`, noms deux à deux
+distincts), lu au démarrage ; l'identité de session d'un compte est
+`utilisateur <identity.domain> <name>` (EX-13.7). Le serveur DOIT refuser de
+démarrer avec ce système quand `environment` vaut `production`
+(`identite_locale_en_production`, EX-10.13). Avec ce système, `GET
+/connexion` sert l'écran statique de connexion, avec les en-têtes
+d'EX-13.35, et cet écran envoie `POST /connexion/locale`, de corps
+`$defs/requete_connexion_locale` de `console-service-v0` (`{ "name",
+"password" }`). Le serveur calcule
+scrypt(octets UTF-8 du mot de passe, sans normalisation ; `salt` ; N =
+131 072 ; r = 8 ; p = 1 ; 32 octets), ce qui demande 128 Mio de mémoire
+(128 · N · r octets), et le compare à `key` en temps constant ; pour un nom
+inconnu, il fait le même calcul sur un sel fixe et rend la même réponse. Il
+ne fait que deux calculs à la fois au plus ; une requête qui en attendrait un
+troisième reçoit `essai_trop_tot`, `retry_after_s` valant 1. **Verrou
+progressif** : pour chaque nom, connu ou non, le serveur tient en mémoire le
+nombre `f` d'échecs consécutifs et l'instant du dernier ; un succès remet `f`
+à 0 ; quand `f ≥ 5`, une requête reçue avant le dernier échec +
+min(2^(f − 5), 900) s est refusée sans calcul : 429, `essai_trop_tot`,
+`data.retry_after_s` étant le nombre de secondes restant, arrondi par excès.
+Un échec rend 401, `identifiants_refuses`, pour un nom inconnu comme pour un
+mauvais mot de passe. Le délai est donc de 1 s après le cinquième échec,
+double à chaque échec suivant, et plafonne à 900 s à partir du quinzième ;
+les compteurs sont perdus au redémarrage, et au plus 10 000 noms sont suivis :
+au-delà, le serveur oublie d'abord le plus ancien des noms dont `f` vaut
+moins de 5, et un nom verrouillé n'est oublié qu'en l'absence de tout autre,
+de sorte que des échecs sur des noms inconnus n'effacent pas le verrou d'un
+nom visé. Un succès ouvre une session (EX-13.48), détruit la session que
+portait le cookie de session de la requête, s'il en portait une, et rend
+204 avec le cookie de session ; la page navigue alors vers le paramètre
+`retour` de son adresse, retenu comme en EX-13.43 (un chemin d'écran de la
+table, `/tickets` sinon). Un échec rend l'erreur du serveur (EX-13.49), sans
+cookie. La session a pour `auth_time` l'instant de la vérification : ce
+système donne l'instant
+d'authentification, et `reauth_max_age_s` s'y applique (EX-13.33, point 3) ;
+une réauthentification refait le même appel. Le paramétrage de scrypt, le
+seuil de cinq échecs et le plafond de 900 s sont des choix de CT-3, sans
+source externe. Le fichier se fabrique hors du serveur, par tout outil qui
+calcule scrypt à ces paramètres. Exemple : compte `operateur-1`, mot de
+passe `noortrace/exemple/mot-de-passe-local`, sel égal aux 16 premiers
+octets de SHA-256(`noortrace/exemple/comptes/sel`) :
+
+<!-- exemple: configuration-console/fichier_comptes -->
+```json
+{
+  "version": 0,
+  "accounts": [
+    {
+      "name": "operateur-1",
+      "salt": "949afed430329aa2c053833496ec5638",
+      "key": "ac909267deb32caa8e88b85df48f43af9a5a9844cdc2884a1654e9442228691b"
+    }
+  ]
+}
+```
+
+**EX-13.48** **Sessions.** Le serveur de console DOIT tenir les sessions en
+mémoire, et nulle part ailleurs :
+
+1. chaque authentification réussie crée une session nouvelle, d'un
+   identifiant `sid` de 32 octets tirés au hasard, et détruit la session
+   précédente du même navigateur : celle que portait le cookie de session de
+   la requête qui a lancé la connexion, relevée dans la transaction au
+   retour OIDC (EX-13.45, points 2 et 5), puisque la navigation de retour,
+   venue d'un autre site, ne porte pas ce cookie `Strict` ; celle que porte
+   la requête `POST /connexion/locale` avec le système local (EX-13.47) ; la
+   session garde l'identité de
+   session, `auth_time`, l'instant de création et l'échéance (création +
+   `session_max_age_s`, défaut 28 800, de 900 à 43 200), et le rôle
+   `administrator` ; elle prend fin à son échéance, quelle que soit
+   l'activité, à la déconnexion ou au redémarrage du serveur ; au plus
+   10 000 sessions sont tenues, et la plus ancienne est détruite au-delà ;
+   un redémarrage les perd toutes et impose à chacun de se réauthentifier ;
+   la session n'a pas de délai d'inactivité en version 0 (section 16) ;
+2. le cookie de session est `__Host-noortrace-session`, d'attributs
+   `Secure`, `HttpOnly`, `SameSite=Strict` et `Path=/`, sans `Domain`, sans
+   `Expires` ni `Max-Age` (effacé par `Max-Age=0`), et de valeur
+   `base64url(sid) "." base64url(HMAC-SHA256(K_s, "noortrace/console/session/v0\n" ‖ sid))`,
+   `K_s` étant 32 octets tirés au hasard au démarrage, jamais écrits ; le
+   serveur vérifie le MAC en temps constant avant de chercher la session,
+   et tient un cookie invalide, inconnu ou échu pour absent ;
+3. le cookie de transaction d'EX-13.45 est `__Host-noortrace-connexion`, de
+   valeur `base64url(iv ‖ c ‖ t)`, où `c` et `t` sont le chiffré et
+   l'étiquette d'authentification de 16 octets d'AES-256-GCM (B.8) sous la
+   clé `K_t`, du JSON de la transaction (`tid`, `state`, `nonce`,
+   `code_verifier`, `created_at`, `retour`, `sid`), avec pour données
+   associées les octets de `"noortrace/console/connexion/v0"` et pour vecteur
+   d'initialisation `iv`, 12 octets tirés au hasard pour chaque cookie ;
+   `K_t` est faite de 32 octets tirés au hasard au démarrage, jamais écrits,
+   distincts de `K_s`, et un redémarrage, qui la change, impose de reprendre
+   une connexion en cours. Ses attributs sont `Secure`, `HttpOnly`,
+   `SameSite=Lax`, `Path=/` et `Max-Age=600` ; il est effacé au retour, quelle
+   qu'en soit l'issue. `Lax` et non `Strict` : le retour du
+   fournisseur est une navigation de premier niveau venue d'un autre site,
+   qu'un cookie `Strict` n'accompagne pas, alors qu'un cookie `Lax`
+   accompagne une telle navigation de méthode sûre (B.8) ;
+4. `POST /v0/session` rend `$defs/reponse_session` de `console-service-v0`,
+   avec `delai_signature_ms` de la configuration, ou 401 `session_absente` ;
+   `administrator` est vrai si l'identité figure dans `administrators` du
+   dernier annuaire que le service a rendu pour cette session : le serveur
+   appelle `annuaire` à la création de la session et met le rôle à jour à
+   chaque réponse `annuaire` qu'il relaie ; la page qui ne reçoit pas
+   `delai_signature_ms` applique 300 000 ms ;
+5. avant de relayer une méthode de la liste d'EX-13.8, le serveur exige que
+   `auth_time` date de moins de `reauth_max_age_s` secondes ; sinon il rend
+   401, `reauthentification_requise`, sans relayer. Avec 0, chaque
+   authentification ne vaut que pour la première méthode de la liste
+   relayée dans les 600 s qui la suivent. La page DEVRAIT, avant de demander
+   une signature, vérifier par `session` que la réauthentification ne sera
+   pas exigée avant l'envoi du vote, et faire réauthentifier d'abord : une
+   signature obtenue puis refusée par le serveur n'est pas envoyée, comme
+   une signature tardive (EX-13.30) ;
+6. `POST /deconnexion` détruit la session et efface les deux cookies, puis
+   rend 204 ; la session auprès du fournisseur n'est pas fermée, et la
+   connexion suivante, toujours faite avec `max_age`, n'en hérite qu'une
+   authentification de moins de `reauth_max_age_s` secondes.
+
+**EX-13.49** **Garde d'hôte, falsification inter-sites et relais.** Le
+serveur de console DOIT, avant tout autre traitement :
+
+1. refuser toute requête dont l'en-tête `Host` n'est pas l'autorité de
+   `console_origin` (hôte, et port s'il y figure), comparée en minuscules :
+   421, `hote_refuse` (garde d'hôte, 13.1) ;
+2. refuser toute requête de méthode autre que `GET` et `HEAD` dont
+   l'en-tête `Origin` est absent ou différent, octet pour octet, de
+   `console_origin` : 403, `origine_refusee`, sans relais ni effet, quel que
+   soit le cookie ; une requête `GET` ou `HEAD` n'a d'autre effet que la
+   création d'une transaction (`/connexion`) et sa conclusion
+   (`/connexion/retour`, liée au cookie de transaction et à `state`) ;
+3. exiger `Content-Type: application/json` pour un corps (400,
+   `requete_invalide`, sinon), ce qui soumet toute requête d'une autre
+   origine au contrôle préalable du navigateur, et n'envoyer aucun en-tête
+   `Access-Control-Allow-*` ; un corps qui n'est pas du JSON strict, ou que
+   `$defs/requete_connexion_locale` refuse sur `/connexion/locale`, reçoit
+   de même 400, `requete_invalide`.
+
+Le relais `POST /v0/<méthode>` n'admet que `session` et les méthodes de la
+table d'EX-12.13 (404, `requete_invalide`, sinon) ; il exige une session
+(401, `session_absente`), impose `session_identity` (13.18), vérifie la
+réauthentification (EX-13.48, point 5), attend au plus `service_timeout_ms`
+(défaut 10 000, de 1 000 à 60 000) la réponse du service (504,
+`service_indisponible`, au-delà, ou si le service est injoignable), et rend
+telle quelle, statut et corps, toute réponse du service, erreur de 12.8
+comprise. Les erreurs que le serveur rend lui-même ont la forme de
+`$defs/erreur` et un code de `$defs/code_serveur_console` de
+`console-service-v0` :
+
+| Code | Statut | Cas |
+|---|---|---|
+| `requete_invalide` | 400, 404, 405 ou 413 | point 3 (400) ; méthode hors de la table d'EX-12.13 sous `/v0/` (404) ; méthode HTTP non admise pour le chemin (405) ; corps de plus de 65 536 octets (413) (EX-13.43) |
+| `hote_refuse` | 421 | point 1 |
+| `origine_refusee` | 403 | point 2 |
+| `session_absente` | 401 | cookie de session absent, invalide, inconnu ou échu |
+| `reauthentification_requise` | 401 | EX-13.48, point 5 ; `data.reauth_max_age_s` |
+| `service_indisponible` | 504 | aucune réponse du service dans `service_timeout_ms` |
+| `identifiants_refuses` | 401 | EX-13.47 |
+| `essai_trop_tot` | 429 | EX-13.47 ; `data.retry_after_s` |
+| `transaction_inconnue` | 400 | EX-13.45, point 3 |
+| `fournisseur_erreur` | 400 | EX-13.45, points 3 et 4 |
+| `fournisseur_indisponible` | 502 | EX-13.45, points 1 et 4 |
+| `jeton_invalide` | 400 | EX-13.46, points 1 à 8 |
+| `identite_invalide` | 400 | EX-13.46, point 9 (raison de 12.8, EX-13.7) |
+
+Sur `/connexion/retour`, navigation et non requête de la page, le serveur
+rend une page HTML conforme à EX-13.35 qui affiche le code comme du texte et
+propose `/connexion`. Exemple, réponse au relais d'un `voter` dont
+l'authentification date de plus de 900 s :
+
+<!-- schema: console-service/erreur -->
+```json
+{
+  "error": {
+    "code": "reauthentification_requise",
+    "message": "authentification de plus de 900 s",
+    "data": {
+      "reauth_max_age_s": 900
+    }
+  }
+}
+```
 
 ## 14. Sûreté
 
@@ -6708,10 +7893,13 @@ dans l'algorithme de la section 6, qui reste le seul à produire une
 décision (EX-6.1).
 
 **EX-14.2** Les notifications d'un même approbateur DEVRAIENT être
-regroupées au-delà d'un débit fixé par la configuration du service, et la
-console DOIT montrer le nombre de tickets ouverts par demandeur, ainsi que
-les tickets refusés ou expirés du même demandeur et du même outil depuis
-moins de `E` (EX-13.3) : une rafale de demandes, ou la même demande
+regroupées au-delà d'un débit que l'organisation fixe ; en version 0, ce
+regroupement se fait derrière le webhook, chez le client, qui reçoit le
+destinataire de chaque notification (EX-13.39, EX-13.40) : le service envoie
+une notification par fait, et sa configuration n'a pas de réglage de débit.
+La console DOIT montrer le nombre de tickets ouverts par demandeur, ainsi
+que les tickets refusés ou expirés du même demandeur et du même outil depuis
+moins de `E` (EX-13.3, EX-12.21) : une rafale de demandes, ou la même demande
 rouverte par une variation cosmétique, ne doit pas pousser un approbateur à
 approuver sans lire.
 Les ré-émissions en attente ne produisent pas d'événement (EX-7.19) et les
@@ -6741,7 +7929,7 @@ quotas par connexion d'hôte de CT-2 (EX-4.47 de CT-2) bornent le reste.
 | Rejouer une preuve | nonce à usage unique, expiration, adresse jamais réattribuée (EX-13.13, EX-13.10) | — |
 | Faire prendre une inscription pour un vote, ou l'inverse | préimages distinctes ; vérifications sur `D_A` reconstruit et sur le texte du défi (EX-13.16) | — |
 | Administrateur malveillant | il ne valide pas sa propre adresse (`auto_validation`) ; ses opérations sont inscrites (`operations`) | il valide l'adresse d'un complice inscrite par celui-ci, lie un alias de demandeur à une mauvaise entrée : visible dans l'annuaire, sans effet sur le jeu, le seuil ni SG-7 (EX-12.18) ; il révoque ou désactive l'entrée d'un membre, qui ne peut plus voter par la console : déni de service, visible dans `operations` |
-| Session volée (jeton ou cookie de la console) | réauthentification depuis au plus `reauth_max_age_s` avant chaque méthode qui modifie l'annuaire ou un ticket (EX-13.8) ; une adresse inscrite sous la session volée attend une validation que l'administrateur ne donne qu'après vérification par un autre canal (EX-13.17) ; la clé n'est pas dans la session (EX-13.1) ; notification de chaque opération de l'annuaire qui vise la personne (EX-13.3) | dans la fenêtre de `reauth_max_age_s`, ou à chaque réauthentification réussie par l'attaquant : révoquer l'adresse active de la personne, définitivement (EX-13.10, point 2), ce qui l'empêche de voter par la console jusqu'à une rotation de clé dans le `CuratorSet` (déni de service, visible dans `operations`, cause `personne`) ; inscrire une adresse de l'attaquant, en attente ; récuser la personne sur un ticket, ou retirer un ticket qu'elle a demandé ; lire les vues qu'elle peut voir |
+| Session volée (jeton ou cookie de la console) | réauthentification depuis au plus `reauth_max_age_s` avant chaque méthode qui modifie l'annuaire ou un ticket (EX-13.8) ; une adresse inscrite sous la session volée attend une validation que l'administrateur ne donne qu'après vérification par un autre canal (EX-13.17) ; la clé n'est pas dans la session (EX-13.1) ; notification de chaque opération de l'annuaire qui vise la personne (EX-13.3) ; cookie `__Host-` `HttpOnly` et `SameSite=Strict`, contrôle de l'en-tête `Origin` sur toute requête qui n'est pas `GET` ou `HEAD`, session en mémoire bornée par `session_max_age_s` (EX-13.48, EX-13.49) | dans la fenêtre de `reauth_max_age_s`, ou à chaque réauthentification réussie par l'attaquant : révoquer l'adresse active de la personne, définitivement (EX-13.10, point 2), ce qui l'empêche de voter par la console jusqu'à une rotation de clé dans le `CuratorSet` (déni de service, visible dans `operations`, cause `personne`) ; inscrire une adresse de l'attaquant, en attente ; récuser la personne sur un ticket, ou retirer un ticket qu'elle a demandé ; lire les vues qu'elle peut voir |
 | Console compromise | présenter sous une identité de session le vote d'une adresse qui n'est pas l'adresse active de son entrée (`session_non_autorisee`, EX-12.16), ou un retrait sous une session qui n'est ni le demandeur ni un administrateur (EX-12.19) ; signer, hors du parcours d (EX-13.1) | présenter un vote signé par une adresse sous l'identité de session de son entrée sans que la personne soit connectée, le service ne voyant pas l'authentification (EX-13.8) ; omettre les contrôles d'EX-13.18 |
 | Service compromis | — | il fausse l'annuaire ; les preuves restent vérifiables (EX-13.19) et le jeu figé ne dépend pas de l'annuaire |
 
@@ -6869,6 +8057,18 @@ en dépendent le sont aussi (CT-2 §22).
 | `package.json`, `.github/workflows/ci.yml` | `vecteurs:ct1`, `ct2`, `ct6` | `vecteurs:ct3` ; régénération de `spec/vecteurs/ct-3` exigée à l'identique ; vérificateur Go de `ct-3` (`gofmt`, `go vet`, `go test`, `go run . ..`), étape sans condition (annexe A.9) | fait avec CT-3 |
 | `scripts/lib/capture.mjs`, `erreursMotifRE2` (CT-2 EX-10.6, EX-10.23) | admet les quatre motifs à retour arrière exponentiel d'OWASP ; `limits.redaction_budget_ms` absent du code | hors de CT-3, signalé à CT-2 (R2-F84) | fait avec CT-2 0.3 (règles de structure et de taille d'EX-10.6, budget d'EX-10.23 ; code, vecteurs et vérificateur Go alignés dans la même livraison, CT-2 §22) |
 | CT-2 0.6 et CT-8 §12 (mode observation) | deux modes d'attente bloquants | (révision 0.4) mode `observation` : évaluation sans effet, réponse sans ticket, marque posée par le noyau (EX-6.8, EX-11.11 à EX-11.15, EX-12.20) ; fonction `evaluerObservation` de `scripts/lib/approbation.mjs` ; cas dans `spec/vecteurs/ct-8/observation/` ; vérificateur Go de ct-8 (OB-1 à OB-4 ; OB-6 rejoué par les tests Node) | fait (texte et code, même livraison) |
+| `paquets/approbation/src/configuration.mjs` et la commande du service (révision 0.5) | code livré avant la révision 0.5 : `org`, `registration_ttl_ms`, `notifications`, `etat` et `rpc.token` absents ; `administrators` de 0 à 16 identités, sans contrôle d'unicité ; boucle locale sans `::1` ; `console.annuaire` exigé ; membres inconnus de `tcp`, `tls`, `escalation`, `rpc` et `tickets` admis, `annuaire` admis dans l'écoute du noyau ; `console_origin` facultatif, à un motif plus large que celui de l'annuaire ; `remise_representation_ms`, `body_max_bytes`, `rpc.timeout_ms` et `rpc.logs_from_block` sans borne haute ; `rpc` facultatif en production ; `tls.cert`, `tls.key` et `tls.client_ca` en chemins ; `storage_key` de 32 octets pris après retrait des espaces | `configuration-approbation-v0` et les règles d'EX-10.12, dont `rpc_tls` ; certificats et clés TLS par référence ; clé brute de 32 octets prise telle quelle ; commande `noortrace-approbation valider-configuration`, erreurs `{ "code", "pointer" }` ; écoute `etat` ; `GET /v0/etat` sur le canal de la console (EX-12.12) | à faire (phase 2) |
+| `paquets/approbation/src/supervision.mjs`, `tickets.mjs`, `service.mjs` (révision 0.5) | boîte d'envoi `{ ts, kind, …, link }` remise à des écouteurs ; lien `<console_origin>/#ticket=<ticket>` ; notification `membres_ajoutes` ; `requester` égal au `launched_by` du ticket | document `$defs/notification`, sans aucune identité de personne (EX-13.40) ; lien `<console_origin>/tickets/<ticket>` (EX-13.43) ; `nouveau_gel`, `seuil_inatteignable`, `operation_annuaire`, `plafond_atteint` ; livraison signée au webhook, reprises et journal (EX-13.41, EX-13.42) ; boîte d'envoi tournée à 64 Mio (EX-13.39) ; `plafond_atteint` une fois par `launched_by` et par 15 minutes ; éviction de la file qui épargne `vote_inscrit` et `operation_annuaire` (EX-13.42) | à faire (phase 2) |
+| `paquets/approbation/src/persistance.mjs` (révision 0.5) | AES-256-GCM, clé de 32 octets, nonce de 12 octets tiré pour chaque enregistrement, données associées `noortrace/approbation/etat/v0` ‖ nature ‖ `n`, base64 de `nonce ‖ chiffré ‖ étiquette`, disposition `etat/` (journal, instantané, fichiers d'arguments) ; une dernière ligne indéchiffrable tronquée ; aucun rechiffrement | EX-7.30, écrite d'après ce code ; l'annuaire et ses défis dans les mêmes enregistrements (EX-13.38 : ligne suivante) | fait (EX-7.30 décrit le code livré) |
+| `paquets/approbation/src/annuaire.mjs`, `demarrage.mjs` (révision 0.5) | annuaire lu de `console.annuaire`, non persisté ; annuaire vide d'organisation `organisation`, d'origine `https://console.invalid` et d'`updated_at` non nul ; administrateurs remplacés sans opération | persistance, amorce et contrôles d'EX-13.38 ; annuaire vide tiré de la configuration ; recopie d'EX-13.37 | à faire (phase 2) |
+| `paquets/approbation`, canal de la console (révision 0.5) | `tickets` non servie | `tickets` avec `contest_ms`, `contest` et `related_to` (EX-12.21) | à faire (phase 2) |
+| `spec/vecteurs/ct-3/annuaire/controles-canal.json`, `controleCanal` (révision 0.5) | `tickets` sans `related_to` | cas de `related_to`, qui suit l'ordre des refus de `consulter` (EX-12.21) ; vecteurs des notifications (EX-13.40, EX-13.41) | à faire |
+| `test/approbation.test.js`, `test/approbation-service-exigences.test.js` (révision 0.5) | matrice de couverture de la révision 0.4 ; exemples annotés `<!-- schema: … -->` de cinq schémas seulement | entrées pour EX-7.30, EX-10.12, EX-10.13, EX-12.21 et EX-13.38 à EX-13.49 ; validation des exemples annotés `<!-- exemple: … -->` des deux schémas nouveaux | fait (entrées attribuées à l'étape 6 avec leur porteur ; essai « révision 0.5 : chaque exemple JSON annoté » de `test/approbation.test.js`) |
+| `spec/README.md` (révision 0.5) | ligne CT-3 en version 0.4 ; description de `console-service-v0` de la révision 0.3 | ligne CT-3 en version 0.5 ; schémas `configuration-approbation-v0` et `configuration-console-v0` ; extension de `console-service-v0` | fait |
+| Proposition PD-7 de la spécification du déploiement (révision 0.5) | proposition | adoptée par EX-10.12 et EX-10.13 ; le Compose de production monte au service la clé de stockage et le jeton du noyau, que sa configuration exige (`storage_key`, `noyau.token` en production) | adoptée ; Compose aligné par la révision 0.4 de la spécification du déploiement |
+| Spécification du déploiement, fichiers Compose et texte (révision 0.5) | service lancé par `--config`, serveur de console par `--configuration` ; secret du webhook nommé `notification-courriel`, comme l'était l'exemple d'EX-10.12 | une seule option, `--config <fichier>`, pour le service, le serveur de console et sa sonde (`noortrace-console sonde [--config <fichier>]`), comme pour le démon de CT-2 (EX-10.12, EX-10.13, EX-13.44) ; secret du webhook nommé `notification-webhook` (exemple d'EX-10.12) ; `console_origin` avec le port de `listen` quand ce port est publié tel quel (EX-10.13) | fait (révision 0.4 de la spécification du déploiement) |
+| Spécification de la sécurité, inventaire des clés et des secrets (révision 0.5) | pas d'entrée pour la clé de stockage du service, la clé HMAC du webhook ni le secret du client OIDC ; sessions de la console décrites comme un jeton ou un témoin du système d'identité du client | une entrée pour `storage_key` (EX-7.24, EX-13.38), une pour `notifications.key` (EX-13.41), une pour `identity.client_secret` (EX-13.45) ; sessions : identifiant tiré par le serveur de console, cookie signé par `K_s`, transaction chiffrée par `K_t`, deux clés tirées au démarrage et tenues en mémoire (EX-13.48) ; fichier des comptes du système local, hors production (EX-13.47) ; algorithme de la clé de stockage et changement sur un état neuf (EX-7.30) | fait (révision 0.4 de la spécification de la sécurité) |
+| Sonde du service, `noortrace-approbation sonde --url <url>` du Compose de production (révision 0.5) | commande appelée, non spécifiée | l'écoute `etat` d'EX-10.12 sert `GET /v0/etat` sans authentification ; la commande elle-même n'est pas fixée par CT-3 0.5 | ouvert |
 
 ## 16. Ce que cette version ne couvre pas
 
@@ -6962,7 +8162,9 @@ en dépendent le sont aussi (CT-2 §22).
 - **La console d'exploitation** (phase 2 : serveur de console,
   authentification par le système d'identité du client, notifications) : la
   version 0.3 livre une console de référence (13.15), qui en fixe le
-  comportement côté navigateur sans l'être. Un **outil hors ligne**,
+  comportement côté navigateur sans l'être ; la révision 0.5 en fixe la
+  configuration, les adresses, les systèmes d'identité, les sessions et la
+  livraison des notifications (10.3, 13.19 à 13.21), sans la livrer. Un **outil hors ligne**,
   indépendant de la console, qui recalcule `D_A` depuis l'événement
   `retenue` pour un second contrôle de l'approbateur : la bibliothèque de la
   console de référence, exécutée dans Node sur une vue exportée, en fait les
@@ -6984,6 +8186,25 @@ en dépendent le sont aussi (CT-2 §22).
   par client (R5-F9, R5 NV-4).
 - **Les comptes de contrat** (ERC-1271) comme adresses d'approbateur, dont la
   signature dépend de l'état de la chaîne (R5-F19, R5 NV-8).
+- **D'autres canaux de notification** que le webhook (EX-13.39), le
+  regroupement par le service (EX-14.2) et la reprise des livraisons après
+  un redémarrage du service (EX-13.42).
+- **L'authentification du client OIDC sans secret partagé**
+  (`private_key_jwt`, ou TLS mutuel) (EX-13.45) ; un système d'identité de
+  production autre qu'OIDC, que la forme `utilisateur` d'EX-13.7 admet mais
+  que la configuration de la version 0 n'offre pas ; plusieurs systèmes
+  d'identité par console ; la déconnexion auprès du fournisseur
+  (EX-13.48).
+- **Un délai d'inactivité des sessions** du serveur de console (EX-13.48) :
+  la page peut interroger le service à intervalles réguliers, ce qui rendrait
+  un délai mesuré par le serveur sans effet sur un écran resté ouvert ; la
+  version 0 borne la session par `session_max_age_s` (12 h au plus, la borne
+  globale de réauthentification d'AAL3, R5-F14) et protège chaque
+  modification par la réauthentification d'EX-13.8, mais non la lecture
+  d'un écran laissé ouvert.
+- **Des sessions partagées entre plusieurs instances** du serveur de
+  console : tenues en mémoire, elles ne survivent ni à un redémarrage ni à
+  une répartition de charge (EX-13.48).
 - **Un mode « avertir »** : rendre à l'agent ce que la politique aurait
   exigé sans bloquer l'appel (pratique `warn`, CT-8 §12) ; le mode
   observation de la révision 0.4 ne fait que consigner.
@@ -8137,3 +9358,21 @@ public du présent dépôt ; leurs scripts et sorties ne sont pas publiés.
 | L'application Ethereum de Ledger n'affiche en hexadécimal qu'un message qui contient un octet ni imprimable ni blanc (`!isprint && !isspace`) ; sur les petits écrans, chaque blanc est affiché comme une espace (EX-13.12) | https://github.com/LedgerHQ/app-ethereum/blob/f7985b427841ace20795b548905ababf6a5b17a4/src/features/sign_message/cmd_sign_message.c L165-L206 (même révision que R2-F54) | 2026-10-26 |
 | Message d'inscription d'exemple : 516 octets, préimage EIP-191 de 545 octets, condensé `0xaf9b14a6…71c5ef`, signature du compte 1 ; recouvrements croisés avec le vote d'`apr-0001` (EX-13.16) | expérience de la révision : `scripts/lib/journal.mjs` et ethers 6.17.0 du présent dépôt, clés de test publiques de `spec/vecteurs/ct-3/constantes.json` | 2026-10-26 |
 | Chromium 141.0.7390.37 (Playwright 1.56.1) sous la politique d'EX-13.35 : script en ligne non exécuté, `innerHTML` refusé (`TypeError`), module altéré ou script d'entrée altéré bloqué par l'intégrité, module sans intégrité bloqué par `Integrity-Policy`, page encadrée non chargée | expérience de la révision (Node v22, Playwright du poste) ; chacune des cinq mesures est reproduite par le scénario « Politique du contenu » du test d'EX-13.36, sauté là où Playwright manque (EX-A.11) | 2026-10-26 |
+
+### B.8 Lectures propres à la révision 0.5
+
+| Fait | Source primaire | Consultée le |
+|---|---|---|
+| PKCE : `code_verifier` de 43 à 128 caractères non réservés ; `S256` : `code_challenge` = BASE64URL-ENCODE(SHA256(ASCII(`code_verifier`))), obligatoire pour le serveur ; exemple `dBjftJeZ…EjXk` → `E9Melhoa…stw-cM` (EX-13.45) | https://www.rfc-editor.org/rfc/rfc7636.txt, §4.1, §4.2, annexe B | 2026-11-11 |
+| Découverte OIDC : document à l'émetteur suivi de `/.well-known/openid-configuration`, la barre oblique finale d'un émetteur qui a un chemin étant retirée avant l'ajout (« any terminating / MUST be removed before appending /.well-known/openid-configuration ») ; `issuer` du document identique à l'URL de l'émetteur ; `client_secret_basic` par défaut quand `token_endpoint_auth_methods_supported` est omis (EX-13.45) | https://openid.net/specs/openid-connect-discovery-1_0.html (« incorporating errata set 2 », 15 décembre 2023), §3, §4, §4.3 | 2026-11-11 |
+| `code_challenge_methods_supported` : membre facultatif des métadonnées d'un serveur d'autorisation, liste des méthodes PKCE qu'il prend en charge (EX-13.45) | https://www.rfc-editor.org/rfc/rfc8414.txt, §2 | 2026-11-11 |
+| Code d'autorisation à usage unique : « The client MUST NOT use the authorization code more than once », et le serveur d'autorisation refuse un second usage (EX-13.45, point 3) | https://www.rfc-editor.org/rfc/rfc6749.txt, §4.1.2 | 2026-11-11 |
+| Injection d'un code d'autorisation : PKCE recommandé pour un client confidentiel ; un client OpenID Connect confidentiel PEUT s'appuyer sur `nonce` et la revendication du jeton d'identité ; le défi PKCE ou le `nonce` sont propres à la transaction et liés au navigateur qui l'a lancée (EX-13.45, point 1) | https://www.rfc-editor.org/rfc/rfc9700.txt, §2.1.1, §4.5.3 | 2026-11-11 |
+| AES-256-GCM en chiffrement authentifié avec données associées : clé de 32 octets, nonce de 12 octets, étiquette de 16 octets ajoutée au chiffré ; nonce distinct à chaque chiffrement sous une même clé ; un nonce répété sous la même clé ruine la confidentialité des deux clairs et toute l'authenticité que la clé apporte (EX-7.30, EX-13.48, point 3) | https://www.rfc-editor.org/rfc/rfc5116.txt, §3.1, §5.1, §5.1.1, §5.2 | 2026-11-11 |
+| `client_secret_basic` : identifiant et secret du client encodés selon l'annexe B (`application/x-www-form-urlencoded`) avant l'authentification HTTP Basic (EX-13.45) | https://www.rfc-editor.org/rfc/rfc6749.txt, §2.3.1, annexe B | 2026-11-11 |
+| Validation du jeton d'identité : rejet d'un jeton qui ne nomme pas le client ou qui porte d'autres audiences auxquelles il ne se fie pas ; `azp` seulement sous des extensions ; `exp` ; `iat` laissé à l'appréciation du client ; `nonce` ; `auth_time` exigé avec `max_age` ; `alg` par défaut `RS256`, que tout fournisseur doit savoir employer ; validation par TLS admise, sans obligation, pour un jeton reçu du point de jeton (EX-13.46) | OIDC Core 1.0 (même URL que R5-F1), §3.1.2.1, §3.1.3.7, §15.1 | 2026-11-11 |
+| `ES256` : signature JWS de 64 octets, `R ‖ S` (EX-13.46) | https://www.rfc-editor.org/rfc/rfc7518.txt, §3.4 | 2026-11-11 |
+| Paramètre `iss` d'une réponse d'autorisation, comparé par le client à l'émetteur attendu (EX-13.45) | https://www.rfc-editor.org/rfc/rfc9207.txt, §2.4 | 2026-11-11 |
+| HMAC (EX-13.41) | https://www.rfc-editor.org/rfc/rfc2104.txt | 2026-11-11 |
+| Cookies : préfixe `__Host-` (attribut `Secure`, `Path=/`, aucun `Domain`) ; un cookie `SameSite=Strict` n'accompagne pas une navigation de premier niveau déclenchée depuis un autre site, un cookie `Lax` l'accompagne pour une méthode sûre ; les requêtes que fait ensuite la page ainsi ouverte sont du même site (EX-13.43, EX-13.48) | https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-22.txt (projet de travail, 1er décembre 2025), §4.1.3.2, §5.6.7.1, §8.8.1 | 2026-11-11 |
+| curators-hub : jeton de session signé par HMAC, garde d'hôte (statut 421), thème clair et sombre, libellés en deux langues, file des demandes à valider, police embarquée, mots de passe hachés par scrypt et verrou progressif (13.1) | noorchain-core, dépôt privé, `lib/session-token.mjs`, `lib/host-guard.mjs`, `lib/theme.mjs`, `lib/i18n.tsx`, `app/validation/page.tsx`, `app/fonts/`, `lib/logins.mjs`, lus pour un inventaire interne de la construction (document interne) ; non recoupable publiquement | 2026-11-10 |

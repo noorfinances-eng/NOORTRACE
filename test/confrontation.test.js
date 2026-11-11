@@ -890,7 +890,7 @@ describe("CT-8 : sorties publiées de la confrontation de l'exploitation par sha
       expect(t).to.not.match(/\/home\/|\/tmp\//);
     }
     // Les valeurs d'EX-A.8 et de 11.10 figurent dans les sorties tierces.
-    expect(s).to.include("10086 octets, SHA-256 0x0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5");
+    expect(s).to.include("10086 octets, SHA-256 0x15097856ef2adfcf05b0c34013f2d5a3f8234d3d8acb7dc788e12b4e547022de");
     expect(c).to.include("ligne 1 : SHA-256 0xab57413bd76298fc388d887d5ba22088ccc4b7e3e61ad881cb6ead5782bb463a");
   });
 

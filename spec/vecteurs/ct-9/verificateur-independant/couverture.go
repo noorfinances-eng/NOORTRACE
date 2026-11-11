@@ -490,7 +490,7 @@ func (d *Depot) verifierMenaces(rap *Rapport) {
 			rap.Concorde("10.5", t.ID, "scénario de %d tests, %d menaces, covers = union des covers composés, à écrire (étape 8)", len(a.Composition), len(t.Threats))
 		}
 	}
-	rap.Verdict(len(d.scenarios()) == 5, "10.5", "scénarios", "%d scénarios (cinq attendus : TA-99 à TA-103)", len(d.scenarios()))
+	rap.Verdict(len(d.scenarios()) == 5, "10.5", "scénarios", "%d scénarios (cinq attendus : TA-103 à TA-107)", len(d.scenarios()))
 	var raMenaces []Menace
 	for _, m := range d.Menaces.Threats {
 		if m.Residual != nil && m.Residual.AcceptedRisk != nil {

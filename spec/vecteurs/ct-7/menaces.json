@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "modele-menace",
   "spec": "CT-7",
-  "spec_version": "0.3",
-  "date": "2026-11-10",
+  "spec_version": "0.4",
+  "date": "2026-11-11",
   "components": [
     {
       "id": "hote_agent",
@@ -32,7 +32,7 @@
     {
       "id": "ecrivain_stockage",
       "name": "Écrivain, stockage et bail",
-      "holds": "Les segments, le journal d'intention, les pièces, le journal d'exploitation, le bail et son époque (CT-2 §12, §13).",
+      "holds": "Les segments, le journal d'intention, les pièces, le journal d'exploitation, le bail et son époque (CT-2 §12, §13) ; les dossiers qu'il exporte dans le répertoire des exports (CT-2 §15.7).",
       "trust": "Pleine pour la chaîne qu'il écrit ; bornée par les ancres (CT-1 §10.9)."
     },
     {
@@ -50,7 +50,7 @@
     {
       "id": "approbation_console",
       "name": "Service d'approbation et console",
-      "holds": "La politique, les tickets, l'annuaire, les identifiants du canal ; aucune clé d'approbateur (CT-3 EX-3.3, CT-3 EX-3.4).",
+      "holds": "La politique, les tickets, l'annuaire, les identifiants du canal, la clé de stockage de l'état, la clé du webhook des notifications, le secret du client OIDC et les clés des cookies du serveur de console (4.2) ; aucune clé d'approbateur (CT-3 EX-3.3, CT-3 EX-3.4).",
       "trust": "Canal authentifié ; réponses non signées ; console non fiable pour l'approbateur (CT-3 §3.1)."
     },
     {
@@ -68,7 +68,7 @@
     {
       "id": "verificateur",
       "name": "Vérificateur et ancres de confiance du réviseur",
-      "holds": "Le code du vérificateur, le fichier d'ancres du réviseur, le fichier d'en-têtes Bitcoin (CT-6 §4).",
+      "holds": "Le code du vérificateur, le fichier d'ancres du réviseur, le fichier d'en-têtes Bitcoin (CT-6 §4) ; la page de vérification, qui exécute ce code dans le navigateur (CT-6 §18).",
       "trust": "Il ne croit que son code, les primitives et les ancres du réviseur (CT-6 §3.1)."
     },
     {
@@ -86,7 +86,7 @@
     {
       "id": "reseau",
       "name": "Réseau",
-      "holds": "Les liens entre l'hôte, le démon, les serveurs d'outils, les fournisseurs, les prestataires, le registre et la console.",
+      "holds": "Les liens entre l'hôte, le démon, les serveurs d'outils, les fournisseurs, les prestataires, le registre et la console ; les liens sortants du service d'approbation vers le webhook des notifications et du serveur de console vers le fournisseur d'identité.",
       "trust": "Aucune : TLS ou prise locale authentifiée partout où un secret ou une décision circule."
     }
   ],
@@ -1348,6 +1348,44 @@
       "sources": []
     },
     {
+      "id": "MN-99",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "divulgation",
+        "alteration"
+      ],
+      "actor": "Un compte du système autre que celui du démon qui lit ou écrit le répertoire des exports : un serveur d'outils stdio, l'hôte, l'agent ou un autre processus du poste.",
+      "asset": "Dossiers que le démon exporte (`noortrace-ctl dossier exporter`).",
+      "effect": "Il lit les dossiers exportés ; il fait écrire un dossier hors du volume des exports par un lien symbolique ; il dépose un dossier fabriqué à côté de ceux du démon.",
+      "response": {
+        "text": "Destination sous le répertoire des exports, contrôlée sur les chemins réels avant et pendant l'écriture, écriture atomique, aucun dossier remplacé (CT-2 EX-15.12, CT-2 EX-15.13) ; seul le démon y écrit (CT-2 EX-18.4) ; lecteurs bornés aux comptes qui vérifient ou remettent les dossiers (CT-7 EX-3.16) ; un dossier fabriqué échoue aux contrôles du réviseur, sauf ses parties déclaratives (CT-6 §5.1).",
+        "refs": [
+          "CT-2 EX-15.12",
+          "CT-2 EX-15.13",
+          "CT-2 EX-18.4",
+          "CT-7 EX-3.16",
+          "CT-6 §5.1"
+        ]
+      },
+      "detection": {
+        "text": "Une ligne `dossier_exported` ou `dossier_export_refused` par demande, avec la destination et le SHA-256 de `dossier.json` (CT-2 EX-15.14) : un dossier sans ligne `dossier_exported`, ou dont l'index a un autre SHA-256, n'est pas celui que le démon a écrit.",
+        "refs": [
+          "CT-2 EX-15.14"
+        ]
+      },
+      "residual": {
+        "text": "Qui a les droits de lecture du répertoire des exports lit les dossiers ; leur confidentialité tient aux droits que l'exploitant pose (CT-2 EX-15.12).",
+        "accepted_risk": {
+          "id": "RA-83",
+          "name": "Lecture des dossiers exportés",
+          "bound": "Limitée aux comptes que l'exploitant admet à lire le répertoire des exports et ses montages (CT-2 EX-15.12, CT-7 EX-3.16)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une demande d'export dont la destination passe par un lien symbolique qui sort du répertoire des exports est refusée (`destination_hors_exports`) ; si le contrôle des chemins réels est retiré, le dossier est écrit hors du volume et le test échoue.",
+      "sources": []
+    },
+    {
       "id": "MN-27",
       "component": "worm_gel",
       "stride": [
@@ -2076,15 +2114,18 @@
       "stride": [
         "divulgation"
       ],
-      "actor": "Une personne qui lit un secret de service : clé du MAC de relais, clé de pseudonymisation, jetons, DSN du bail, identifiants WORM ou de serveurs d'outils.",
+      "actor": "Une personne qui lit un secret de service : clé du MAC de relais, clé de pseudonymisation, jetons, DSN du bail, identifiants WORM ou de serveurs d'outils, clé de stockage et clé du webhook du service d'approbation, secret du client OIDC du serveur de console.",
       "asset": "Secrets de l'inventaire de 4.2 hors des clés de signature.",
-      "effect": "Selon le secret : forger un relais, retrouver une valeur pseudonymisée par dictionnaire, usurper un hôte ou l'écrivain.",
+      "effect": "Selon le secret : forger un relais, retrouver une valeur pseudonymisée par dictionnaire, usurper un hôte ou l'écrivain, lire l'état du service d'approbation, forger une notification, s'authentifier comme le serveur de console auprès du fournisseur d'identité.",
       "response": {
-        "text": "Références de secrets, fichiers `0400`, jamais écrits ni journalisés (CT-2 EX-15.3, CT-2 EX-18.4, CT-2 EX-17.3) ; rotation et conduite par secret (CT-7 §4.6).",
+        "text": "Références de secrets, fichiers `0400`, jamais écrits ni journalisés (CT-2 EX-15.3, CT-2 EX-18.4, CT-2 EX-17.3) ; pour le service d'approbation et le serveur de console, références résolues au démarrage, refus nommé par le pointeur et jamais par la valeur, clé du webhook jamais écrite (CT-3 EX-10.12, CT-3 EX-10.13, CT-3 EX-13.41) ; rotation et conduite par secret (CT-7 §4.6).",
         "refs": [
           "CT-2 EX-15.3",
           "CT-2 EX-18.4",
           "CT-2 EX-17.3",
+          "CT-3 EX-10.12",
+          "CT-3 EX-10.13",
+          "CT-3 EX-13.41",
           "CT-7 §4.6"
         ]
       },
@@ -2489,14 +2530,16 @@
       "asset": "Annuaire des approbateurs : inscriptions, validations, révocations.",
       "effect": "Il inscrit l'adresse d'un autre, confisque une adresse, rejoue une preuve, révoque ou désactive un membre.",
       "response": {
-        "text": "Preuve de possession sur un texte qui nomme l'identité, nonce unique, adresse jamais réattribuée (CT-3 EX-13.13, CT-3 EX-13.15, CT-3 EX-13.10) ; réauthentification récente (CT-3 EX-13.8) ; validation après vérification par un autre canal, jamais de sa propre adresse (CT-3 EX-13.17) ; séparation des domaines (CT-3 EX-13.16).",
+        "text": "Preuve de possession sur un texte qui nomme l'identité, nonce unique, adresse jamais réattribuée (CT-3 EX-13.13, CT-3 EX-13.15, CT-3 EX-13.10) ; réauthentification récente (CT-3 EX-13.8) ; validation après vérification par un autre canal, jamais de sa propre adresse (CT-3 EX-13.17) ; séparation des domaines (CT-3 EX-13.16) ; cookie de session `__Host-`, `HttpOnly` et `SameSite=Strict`, contrôle de l'en-tête `Origin`, sessions en mémoire bornées par `session_max_age_s` (CT-3 EX-13.48, CT-3 EX-13.49).",
         "refs": [
           "CT-3 EX-13.13",
           "CT-3 EX-13.15",
           "CT-3 EX-13.10",
           "CT-3 EX-13.8",
           "CT-3 EX-13.17",
-          "CT-3 EX-13.16"
+          "CT-3 EX-13.16",
+          "CT-3 EX-13.48",
+          "CT-3 EX-13.49"
         ]
       },
       "detection": {
@@ -2830,6 +2873,45 @@
           "row": "Le code d'appariement mobile est vu par un tiers"
         }
       ]
+    },
+    {
+      "id": "MN-100",
+      "component": "approbation_console",
+      "stride": [
+        "usurpation",
+        "elevation_de_privilege"
+      ],
+      "actor": "Un fournisseur d'identité compromis, ou qui se fait passer pour lui auprès du serveur de console : document de découverte, jeu de clés, point de jeton.",
+      "asset": "Identité de session des personnes de la console, administrateurs de l'annuaire compris.",
+      "effect": "Il fait ouvrir une session sous l'identité de son choix : approbateur, demandeur ou administrateur de l'annuaire.",
+      "response": {
+        "text": "Découverte et jeu de clés en HTTPS seulement, sans redirection, émetteur comparé octet pour octet, PKCE `S256`, client authentifié au point de jeton (CT-3 EX-13.45) ; jeton d'identité vérifié par le serveur seul, liste fermée d'algorithmes, `iss`, `aud`, `azp`, `nonce` et instants contrôlés (CT-3 EX-13.46) ; réauthentification récente avant chaque modification (CT-3 EX-13.8) ; validation d'une inscription après vérification par un autre canal (CT-3 EX-13.17) ; aucune clé d'approbateur dans la session, donc aucun vote sans elle (CT-3 EX-13.1).",
+        "refs": [
+          "CT-3 EX-13.45",
+          "CT-3 EX-13.46",
+          "CT-3 EX-13.8",
+          "CT-3 EX-13.17",
+          "CT-3 EX-13.1"
+        ]
+      },
+      "detection": {
+        "text": "Notification de chaque opération de l'annuaire qui vise la personne (CT-3 EX-13.3) ; `operations` de l'annuaire (CT-3 §13.6) ; journaux du fournisseur, tenus par le client.",
+        "refs": [
+          "CT-3 EX-13.3",
+          "CT-3 §13.6"
+        ]
+      },
+      "residual": {
+        "text": "Un fournisseur compromis fait, pour toute identité, ce que fait une session volée (CT-3 §14.8), méthodes d'administration de l'annuaire comprises, jusqu'à ce que le client le constate ; il ne fait voter personne sans sa clé.",
+        "accepted_risk": {
+          "id": "RA-84",
+          "name": "Fournisseur d'identité compromis",
+          "bound": "Limité aux méthodes que permet une session de la console, pour toute identité, jusqu'au constat du client ; aucun vote sans la clé de l'approbateur (CT-3 EX-13.1)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un jeton d'identité dont `aud` n'est pas `client_id` est refusé (`jeton_invalide`) ; si le contrôle d'`aud` est retiré, une session s'ouvre et le test échoue.",
+      "sources": []
     },
     {
       "id": "MN-53",
@@ -3970,6 +4052,47 @@
       "sources": []
     },
     {
+      "id": "MN-101",
+      "component": "verificateur",
+      "stride": [
+        "alteration",
+        "divulgation"
+      ],
+      "actor": "L'hébergeur de la page de vérification, ou qui change un de ses fichiers.",
+      "asset": "Rapport que la page affiche ; fichiers que l'utilisateur lui donne : dossier, fichier d'ancres, fichier d'en-têtes Bitcoin.",
+      "effect": "Il fait afficher un rapport ou une empreinte faux ; il fait envoyer hors du poste les fichiers choisis.",
+      "response": {
+        "text": "Intégrité des sous-ressources et contrôle de l'empreinte de l'artefact par le travailleur (CT-6 EX-18.5, CT-6 EX-18.6) ; aucune requête après le chargement, `connect-src 'none'`, aucun stockage, origine distincte de toute console (CT-6 EX-18.11, CT-6 EX-18.12) ; empreintes publiées et signées, reconstruction (CT-6 EX-18.4) ; binaire publié (CT-6 EX-14.9).",
+        "refs": [
+          "CT-6 EX-18.5",
+          "CT-6 EX-18.6",
+          "CT-6 EX-18.11",
+          "CT-6 EX-18.12",
+          "CT-6 EX-18.4",
+          "CT-6 EX-14.9"
+        ]
+      },
+      "detection": {
+        "text": "Comparaison de l'empreinte affichée et des fichiers reçus aux empreintes publiées (CT-6 EX-18.4, CT-6 EX-18.5) ; épreuve de chaque version dans trois moteurs de navigateur (CT-6 EX-18.13).",
+        "refs": [
+          "CT-6 EX-18.4",
+          "CT-6 EX-18.5",
+          "CT-6 EX-18.13"
+        ]
+      },
+      "residual": {
+        "text": "L'utilisateur croit l'origine qui sert la page et son navigateur : un `travailleur.js` changé ou un hébergeur qui sert d'autres fichiers fait exécuter un autre programme et afficher n'importe quel rapport (CT-6 EX-18.2), et les mêmes moyens lui permettraient d'envoyer ailleurs les fichiers choisis.",
+        "accepted_risk": {
+          "id": "RA-85",
+          "name": "Hébergeur de la page de vérification cru",
+          "bound": "Limité aux vérifications faites par la page sans comparer ses empreintes aux empreintes publiées ni employer le binaire (CT-6 EX-18.2)",
+          "owner": "reviseur"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un artefact dont un octet est changé n'est pas compilé et aucun rapport n'est affiché ; si le contrôle de l'empreinte par le travailleur est retiré, la page rend un rapport et le test échoue.",
+      "sources": []
+    },
+    {
       "id": "MN-71",
       "component": "exploitant",
       "stride": [
@@ -4556,6 +4679,45 @@
         "accepted_risk": null
       },
       "test": "Le test échoue si la réponse est retirée : une réponse du service reçue sur un canal non authentifié est traitée comme une indisponibilité ; si l'authentification du canal est retirée, la réponse est appliquée et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-102",
+      "component": "reseau",
+      "stride": [
+        "divulgation",
+        "deni_de_service"
+      ],
+      "actor": "Un intermédiaire réseau entre le service d'approbation et le webhook des notifications, ou entre le serveur de console et le fournisseur d'identité.",
+      "asset": "Notifications du service ; connexions à la console.",
+      "effect": "Il lit, retarde, coupe ou rejoue les notifications ; il coupe le fournisseur d'identité.",
+      "response": {
+        "text": "Webhook en HTTPS, certificat vérifié, aucune redirection suivie (CT-3 EX-13.42) ; MAC HMAC-SHA256 de chaque corps sous une clé tirée au hasard, que le relais du client vérifie, `id` unique et `created_at` contre le rejeu (CT-3 EX-13.41) ; documents sans identité de personne ni argument (CT-3 EX-13.40) ; boîte d'envoi, trace de chaque notification (CT-3 EX-13.39) ; découverte, jeu de clés et point de jeton en HTTPS, copie de la découverte gardée `cache_s` (CT-3 EX-13.45).",
+        "refs": [
+          "CT-3 EX-13.42",
+          "CT-3 EX-13.41",
+          "CT-3 EX-13.40",
+          "CT-3 EX-13.39",
+          "CT-3 EX-13.45"
+        ]
+      },
+      "detection": {
+        "text": "`notification_echec` et `notification_abandonnee` au journal du service (CT-3 EX-13.42) ; `identity_ready` faux à la santé du serveur de console (CT-3 EX-13.44).",
+        "refs": [
+          "CT-3 EX-13.42",
+          "CT-3 EX-13.44"
+        ]
+      },
+      "residual": {
+        "text": "Couper le webhook fait taire les notifications, dont celle d'un vote inscrit (CT-3 EX-13.3), jusqu'à l'abandon que le journal du service montre, au plus 2 170 s plus quatre fois `notifications.timeout_ms` après la première tentative (CT-3 EX-13.42) ; couper le fournisseur d'identité empêche toute connexion nouvelle, sans toucher aux sessions ouvertes (CT-3 EX-13.45).",
+        "accepted_risk": {
+          "id": "RA-86",
+          "name": "Notifications retardées ou tues par le réseau",
+          "bound": "Au plus 2 170 s plus quatre fois `notifications.timeout_ms` par notification avant la ligne `notification_abandonnee` (CT-3 EX-13.42) ; aucune connexion nouvelle à la console tant que le fournisseur d'identité est injoignable",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une notification envoyée porte l'en-tête `NOORTRACE-Signature`, égal au HMAC-SHA256 de l'exemple de la règle de signature sur son corps ; si la signature est retirée, l'en-tête manque et le test échoue.",
       "sources": []
     }
   ]

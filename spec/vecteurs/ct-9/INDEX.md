@@ -17,8 +17,8 @@ npm run tests:couverture   # code 0 : règles (a) à (d) et EX-4.4 tiennent
 
 ## `catalogue.json`
 
-Catalogue CT-9 0.6 du 2026-11-10 (schéma `plan-de-tests-v0`, racine) : 322
-entrées, 6 justifications NC-, 82 risques acceptés, 122 lignes TC-. Une ligne
+Catalogue CT-9 0.7 du 2026-11-11 (schéma `plan-de-tests-v0`, racine) : 334
+entrées, 6 justifications NC-, 86 risques acceptés, 122 lignes TC-. Une ligne
 par entrée : identifiant, niveau, état, titre.
 
 | Id | Niveau | État | Titre |
@@ -158,6 +158,8 @@ par entrée : identifiant, niveau, état, titre.
 | TI-18 | TI- | exécutable | Nœud noorcore et certificat de commit : JSON-RPC `noor_getCommitCertificate`, parité Go/JavaScript, confrontation go-ethereum |
 | TI-19 | TI- | exécutable | Mode ICAP : raccord à un mandataire existant, sources admises |
 | TI-20 | TI- | exécutable | Export des pièces d'un dossier vers un paquet réviseur lu par des outils tiers (GNU tar, `tarfile`) |
+| TI-21 | TI- | à écrire (étape 6) | Notifications du service d'approbation livrées à un webhook et vérifiées par un récepteur tiers |
+| TI-22 | TI- | à écrire (étape 6) | Serveur de console et fournisseur d'identité OIDC : découverte, flux par code avec PKCE, vérification du jeton d'identité |
 | TE-1 | TE- | à écrire (étape 8) | Cas de démonstration « assurance » : agent de souscription et de tarification, de la capture au dossier vérifié |
 | TE-2 | TE- | à écrire (étape 8) | Cas de démonstration « administration » : agent qui instruit des demandes de prestations publiques |
 | TE-3 | TE- | à écrire (étape 8) | Démonstration de référence en une commande : `docker compose up`, moins de deux minutes, verdict imprimé (CT-2 §19) |
@@ -175,6 +177,12 @@ par entrée : identifiant, niveau, état, titre.
 | TE-15 | TE- | à écrire (étape 7) | Construction des images de référence : reproductibilité, `docker inspect`, volume nommé, compagnon d'immuabilité |
 | TE-16 | TE- | exécutable, complément à écrire | Matrice des pannes de CT-2 §14 rejouée sur le démon : classification des outils, ce qui est rendu à l'hôte, ce qui est journalisé, mode dégradé |
 | TE-17 | TE- | à écrire (étape 7) | Supervision en charge : alertes prescrites levées sur incident, métriques `noortrace_*`, dossier produit sous charge vérifié |
+| TE-18 | TE- | à écrire (étape 6) | Export du dossier par `noortrace-ctl dossier exporter` sur le démon : désignation, refus dans leur ordre, répertoire des exports et ses droits, écriture atomique, lignes du journal d'exploitation |
+| TE-19 | TE- | à écrire (étape 6) | Service d'approbation de la révision 0.5 de CT-3 : document de configuration, état chiffré, annuaire persistant, liste des tickets |
+| TE-20 | TE- | à écrire (étape 6) | Serveur de console : document de configuration, adresses, santé et sonde, système d'identité local, sessions, garde d'hôte et relais |
+| TE-21 | TE- | à écrire (étape 6) | Paquet client produit par l'outil du registre à la fin de l'inscription, puis contrôlé à la réception par le client |
+| TE-22 | TE- | à écrire (étape 6) | Application d'exploitant : interface web et agent séparé conduisent l'inscription avec les sorties de l'outil de référence |
+| TE-23 | TE- | à écrire (étape 6) | Page de vérification : le vérificateur compilé en WebAssembly rend dans le navigateur le rapport du binaire |
 | TA-1 | TA- | à écrire (étape 8) | Réponse retirée : Règle de sortie du pare-feu : seul le mandataire joint le serveur d'outils HTTP (CT-2 EX-4.1, §4.9) |
 | TA-2 | TA- | exécutable | Réponse retirée : launched_by tiré de la configuration de la connexion d'hôte, jamais de l'hôte (CT-2 EX-7.2, EX-7.3) |
 | TA-3 | TA- | exécutable | Réponse retirée : Plafond max_calls d'une fenêtre d'approbation (CT-3 EX-5.2, EX-5.5) |
@@ -273,11 +281,15 @@ par entrée : identifiant, niveau, état, titre.
 | TA-96 | TA- | à écrire (étape 8) | Réponse retirée : Changements de policy annoncés dans la chaîne (CT-2 EX-9.2) ; copie WORM des fichiers tournés du journal d'exploitation (PA-18) |
 | TA-97 | TA- | à écrire (étape 8) | Réponse retirée : Comparaison du condensé à un second outil indépendant (CT-7 EX-5.8, EX-7.8, EX-A.21) |
 | TA-98 | TA- | exécutable | Réponse retirée : Inscription exigée dès que possible (CT-7 EX-7.5) ; clause fixe de FP (CT-6 EX-6.19) |
-| TA-99 | TA- | à écrire (étape 8) | Scénario du plan : l'agent supprime ou réécrit (TA-1, TA-2, TA-3, TA-4, TA-5, TA-6, TA-7, TA-9, TA-15, TA-22) |
-| TA-100 | TA- | à écrire (étape 8) | Scénario du plan : l'opérateur réécrit après coup (TA-17, TA-18, TA-19, TA-23, TA-26, TA-27, TA-28, TA-74, TA-84, TA-85, TA-86, TA-96) |
-| TA-101 | TA- | à écrire (étape 8) | Scénario du plan : l'horloge est manipulée (TA-21, TA-60, TA-76, TA-93) |
-| TA-102 | TA- | à écrire (étape 8) | Scénario du plan : l'enregistreur tombe (TA-10, TA-19, TA-20, TA-26, TA-29, TA-33, TA-64) |
-| TA-103 | TA- | à écrire (étape 8) | Scénario du plan : un prestataire est injoignable (TA-55, TA-58, TA-62, TA-63, TA-76) |
+| TA-99 | TA- | à écrire (étape 6) | Réponse retirée : Chemin réel de la destination contrôlé sous le répertoire des exports (CT-2 EX-15.12, EX-15.13 ; CT-7 EX-3.16) |
+| TA-100 | TA- | à écrire (étape 6) | Réponse retirée : Vérification du jeton d'identité par le serveur de console (CT-3 EX-13.46, point 4 : `aud`) |
+| TA-101 | TA- | à écrire (étape 6) | Réponse retirée : Contrôle de l'empreinte de l'artefact par le travailleur (CT-6 EX-18.5) |
+| TA-102 | TA- | à écrire (étape 6) | Réponse retirée : Signature des notifications (CT-3 EX-13.41) |
+| TA-103 | TA- | à écrire (étape 8) | Scénario du plan : l'agent supprime ou réécrit (TA-1, TA-2, TA-3, TA-4, TA-5, TA-6, TA-7, TA-9, TA-15, TA-22) |
+| TA-104 | TA- | à écrire (étape 8) | Scénario du plan : l'opérateur réécrit après coup (TA-17, TA-18, TA-19, TA-23, TA-26, TA-27, TA-28, TA-74, TA-84, TA-85, TA-86, TA-96) |
+| TA-105 | TA- | à écrire (étape 8) | Scénario du plan : l'horloge est manipulée (TA-21, TA-60, TA-76, TA-93) |
+| TA-106 | TA- | à écrire (étape 8) | Scénario du plan : l'enregistreur tombe (TA-10, TA-19, TA-20, TA-26, TA-29, TA-33, TA-64) |
+| TA-107 | TA- | à écrire (étape 8) | Scénario du plan : un prestataire est injoignable (TA-55, TA-58, TA-62, TA-63, TA-76) |
 | TM-1 | TM- | à écrire (étape 8) | Latence ajoutée par appel relayé (CT-2 §16.1) : p50 ≤ 5 ms, p99 ≤ 50 ms |
 | TM-2 | TM- | à écrire (étape 8) | Latence ajoutée au premier octet d'un flux SSE (CT-2 §16.1) : ≤ 10 ms pour chaque octet |
 | TM-3 | TM- | à écrire (étape 8) | Débit : événements rendus durables par seconde et par instance (CT-2 §16.1) : ≥ 500 |
@@ -350,15 +362,15 @@ par entrée : identifiant, niveau, état, titre.
 
 Sortie de l'outil de couverture (`node scripts/tests/couverture.mjs --json`,
 forme `rapport_couverture`) sur le dépôt et ce catalogue : verdict `reussi` ;
-2351 identifiants définis par CT-1 à CT-8, 2212 couverts par une entrée, 139 par
-une justification NC-, 0 non couvert(s) ; 98 menaces sur 98 avec un TA- ; 122
+2416 identifiants définis par CT-1 à CT-8, 2270 couverts par une entrée, 146 par
+une justification NC-, 0 non couvert(s) ; 102 menaces sur 102 avec un TA- ; 122
 occurrences de « CT-9 » et 122 lignes TC- ; 224 entrées exécutables citant 490
 titres ou étapes, 0 absent(s) ; 15 tables du texte comparées, 0 différence(s).
 
 ## `index-ta-par-menace.json`
 
-Pour chaque menace MN-1 à MN-98 de `spec/vecteurs/ct-7/menaces.json` : son TA-,
-son état (`executable` ou `a_ecrire`) et les scénarios TA-99 à TA-103 qui le
+Pour chaque menace MN-1 à MN-102 de `spec/vecteurs/ct-7/menaces.json` : son TA-,
+son état (`executable` ou `a_ecrire`) et les scénarios TA-103 à TA-107 qui le
 composent (EX-A.13).
 
 ## `cas/`

@@ -340,5 +340,21 @@ export const RISQUES_ACCEPTES = [
   {
     "id": "RA-82",
     "not_tested": "la décision du réviseur face à une attestation non inscrite"
+  },
+  {
+    "id": "RA-83",
+    "not_tested": "un compte que l'exploitant admet à lire le répertoire des exports, qui lit ou copie les dossiers"
+  },
+  {
+    "id": "RA-84",
+    "not_tested": "un fournisseur d'identité réel compromis, qui émet un jeton valide pour l'identité de son choix"
+  },
+  {
+    "id": "RA-85",
+    "not_tested": "un hébergeur qui sert une page et un artefact cohérents mais faux à qui ne compare pas leurs empreintes aux empreintes publiées"
+  },
+  {
+    "id": "RA-86",
+    "not_tested": "le délai d'un relais du client vers les approbateurs et une coupure prolongée du fournisseur d'identité"
   }
 ];

@@ -1,7 +1,10 @@
 # CT-4 — Registre
 
-Version 0.5, 2026-11-03 (révision 0.5 minimale, textuelle : la taille du
-certificat de commit d'un bloc plein, mesurée le 2026-11-02, remplace la
+Version 0.6, 2026-11-11 (révision 0.6 : forme du paquet client que
+l'exploitant remet au client, schéma `paquet-client-v0`, et conditions
+auxquelles une application d'exploitant conduit les pas de la section 7,
+7.13 et 7.14 ; version 0.5 du 2026-11-03, révision minimale et textuelle : la
+taille du certificat de commit d'un bloc plein, mesurée le 2026-11-02, remplace la
 mention « non mesurée », 9.2, EX-9.7 et annexe B.1 ; version 0.4 du
 2026-10-26, révision minimale et textuelle : les condensés du registre ne se
 signent pas dans la console de CT-3, qui ne fait signer que l'objet `A` des
@@ -173,6 +176,32 @@ blocs d'une transaction et 98 Go pour des blocs pleins d'ancres) ; annexe B.1
 EX-9.7 garde son effet normatif ; aucun schéma, aucun vecteur de
 `spec/vecteurs/ct-4`, aucun outil ne change.
 
+La version 0.6, du 2026-11-11, comble deux manques qu'un inventaire de la
+construction a relevés. Le paquet client (7.13, nouvelle) :
+EX-7.12 disait que l'exploitant remet le dossier et les captures, sans secret,
+et la table de 7.10 où va chaque valeur, sans en fixer la forme ; la révision
+fixe le répertoire remis, son contenu exact (dossier, captures, manifeste
+d'instance, extrait du jeu d'approbateurs pour la politique, gabarit de
+configuration du service d'approbation avec `org`, `org_id`,
+`console_origin` et `administrators`, quatre membres du document
+`configuration-approbation-v0` de CT-3 révision 0.5, sous les mêmes formes),
+son manifeste (`spec/schemas/paquet-client-v0.schema.json`, nouveau),
+l'absence de secret et son contrôle, et le contrôle à la réception (EX-7.18 à
+EX-7.22).
+L'application d'exploitant (7.14, nouvelle) : une interface web et un agent
+séparé et privilégié PEUVENT conduire les pas de la section 7, s'ils
+produisent les mêmes sorties que l'outil de référence, ne reçoivent jamais
+une clé par un formulaire et consignent la confirmation hors bande
+d'EX-8.21 (EX-7.23 à EX-7.27) ; l'interface et l'agent ne se parlent que
+par une prise locale dont l'agent vérifie le compte du pair, sans secret
+partagé (EX-7.28). La règle sur la signature de
+`registerDigest` ne change pas : aucun outil de portefeuille en version 0
+(EX-7.3, EX-7.27). Sections touchées : en-tête et cette note ; 1 (point 5,
+table des livrables) ; 7.10 (premier paragraphe, deux lignes de la table) ;
+7.13 et 7.14, nouvelles ; 13 ; 14. Règles ajoutées : EX-7.18 à EX-7.28 ;
+aucune règle n'est modifiée ni retirée ; aucun schéma existant, aucun vecteur
+de `spec/vecteurs/ct-4`, aucun outil ne change.
+
 ## 1. Objet, périmètre et relations
 
 CT-4 fixe, pour la version 0 du registre :
@@ -189,7 +218,9 @@ CT-4 fixe, pour la version 0 du registre :
 4. les conventions calculées hors chaîne : `org_id`, `journal_id`,
    `docType`, empreinte d'ancre, condensés signés, ordre des signatures,
    encodage des appels et des transactions, vérifications RG- (section 6) ;
-5. l'inscription d'un client (section 7), l'exploitation courante
+5. l'inscription d'un client (section 7, dont, depuis la révision 0.6, le
+   paquet remis au client et l'application d'exploitant, 7.13 et 7.14),
+   l'exploitation courante
    (section 8), le certificat de commit et sa capture pour le dossier
    (section 9), l'image conteneur et les topologies (section 10), la règle de
    substitution (section 11), la sûreté (section 12), l'alignement avec le
@@ -210,6 +241,8 @@ Ce que la version 0 livre :
 | Élément | Livré |
 |---|---|
 | Cette spécification ; le schéma `spec/schemas/instance-registre-v0.schema.json` (4.8) ; les schémas `inscription-client-v0` et `operations-registre-v0` de la partie B (sections 7 à 9) | avec CT-4 |
+| Le schéma `spec/schemas/paquet-client-v0.schema.json` (7.13) | avec CT-4 révision 0.6 |
+| L'outil qui produit et contrôle le paquet client (7.13), l'application d'exploitant (7.14) | phase 2 |
 | Les outils de référence JavaScript qui inscrivent un client, inscrivent une clé d'enregistreur, ancrent et soumettent une période en suivant la spécification pas à pas, sans casser `scripts/deploy` ni `scripts/e2e` (section 7) | avec CT-4 |
 | Les vecteurs `spec/vecteurs/ct-4` (annexe A), leurs tests, l'intégration continue | avec CT-4 |
 | Le vérificateur Go indépendant `spec/vecteurs/ct-4/verificateur-independant` | avec CT-4 |
@@ -2499,11 +2532,14 @@ change.
 À la fin, `result` du dossier est rempli et chaque étape est `capturee` ou
 `faite`. Le client reçoit le dossier, les captures de ses transactions
 (section 9) et la révision en vigueur du manifeste d'instance (4.8), qui porte
-le jeu de validateurs. Chaque valeur a une destination :
+le jeu de validateurs, réunis depuis la révision 0.6 dans le paquet client de
+7.13 avec l'extrait du jeu d'approbateurs et le gabarit de configuration du
+service d'approbation. Chaque valeur a une destination :
 
 | Valeur du dossier | Destination | Où elle sert |
 |---|---|---|
-| `result.approver_set` | `approver_set` de la politique d'approbation, tel quel | CT-3 §4.2 ; CT-3 EX-8.1 (jeu épinglé) |
+| `result.approver_set` | `approver_set` de la politique d'approbation, tel quel (fichier `jeu-approbateurs.json` du paquet, 7.13) | CT-3 §4.2 ; CT-3 EX-8.1 (jeu épinglé) |
+| `organisation.slug`, `organisation.org_id` | `org` et `org_id` du gabarit de configuration du service d'approbation (EX-7.20), que le service et son annuaire emploient | CT-3 EX-13.9 (annuaire) |
 | `instance.bft_chain_id`, `evm_chain_id`, `genesis_sha256` | désignation de l'instance (EX-4.1) ; `recorder.environment` et `anchoring.registry` de l'enregistreur | CT-2 §15 |
 | `instance.contracts.recorder_registry`, `period_registry`, `attestation_registry` ; `instance.bft_chain_id` | ancre `registry` du réviseur (`contracts`, `chain_id`), dérivée du manifeste par RG-20 | CT-6 §12.2, après recoupement (CT-6 §12.5, 9.7) |
 | `instance.validator_set_hash` | comparaison au jeu obtenu des opérateurs partenaires | CT-6 §12.5 |
@@ -2817,6 +2853,295 @@ l'épreuve (EX-7.2), que la seconde personne a sous la main si elle rejoue sur
 ce poste et qu'elle reçoit avec le répertoire sinon (ni l'un ni l'autre n'est
 secret). Un écart entre ce que la spécification annonce et ce que l'outil
 fait est un défaut de l'une ou de l'autre, consigné comme tel.
+
+### 7.13 Paquet client (révision 0.6)
+
+EX-7.12 dit ce que l'exploitant remet au client ; cette sous-section en fixe
+la forme. Le paquet réunit ce dont le client a besoin pour publier sa
+politique d'approbation, configurer son service d'approbation et son
+enregistreur, et contrôler l'inscription (EX-7.17) : les valeurs de la table
+de 7.10 qui viennent du dossier ou du manifeste d'instance s'y trouvent ; le
+point RPC et la référence du secret de la clé de chaîne n'y sont pas.
+
+**EX-7.18** **Contenu.** Le paquet client est un répertoire, nommé
+`paquet-client-<slug>` où `<slug>` est `organisation.slug` du dossier, qui
+contient exactement les fichiers suivants, et rien d'autre (une archive PEUT
+l'envelopper pour le transport ; elle n'est pas une partie du paquet) :
+
+| Fichier | Forme | Contenu |
+|---|---|---|
+| `paquet-client.json` | `paquet-client-v0.schema.json` | le manifeste du paquet (EX-7.19) |
+| `inscription-client.json` | `inscription-client-v0.schema.json` | le dossier d'inscription fini : chaque étape `capturee` ou `faite`, `result` rempli (7.10) |
+| `instance-registre.json` | `instance-registre-v0.schema.json` | la révision en vigueur du manifeste d'instance (4.8), dont le SHA-256 est `instance.manifest_sha256` du dossier ; absent quand ce membre est nul (réseau de développement sans `--instance`, EX-7.2) |
+| `jeu-approbateurs.json` | `politique-approbation-v0.schema.json#/$defs/jeu_approbateurs` | l'extrait du jeu d'approbateurs pour la politique : l'objet `result.approver_set` du dossier, membre pour membre, que le client recopie tel quel dans `approver_set` de sa politique d'approbation (7.10 ; CT-3 §4.2, EX-8.1) |
+| `gabarit-service-approbation.json` | `paquet-client-v0.schema.json#/$defs/gabarit_service` | le gabarit de configuration du service d'approbation (EX-7.20) |
+| `captures/<nom>` | index : `operations-registre-v0.schema.json` ; réponses brutes du nœud (CP-6) | pour chaque étape du dossier dont `capture` n'est pas nul, l'index de capture qu'elle nomme et chaque fichier que nomme cet index (`files.block`, chaque élément de `files.receipts`, `files.certificate`), sous les noms de CP-6 |
+
+Le paquet ne contient ni envoi (`envoi-*`), ni issue (`issue-*`), ni refus
+d'envoi, ni demande de signature, ni sortie de commande, ni journal de
+l'exploitant, ni fichier de clés (`.cle`, `.graine`, `cles-essai.json`). Les
+trois documents que le paquet crée (`paquet-client.json`,
+`jeu-approbateurs.json`, `gabarit-service-approbation.json`) sont écrits par
+`JSON.stringify(objet, null, 2)` suivi d'un saut de ligne, comme les parties
+du dossier de preuve (CT-1 §11.1) ; le dossier, le manifeste d'instance et les
+captures sont recopiés octet pour octet depuis l'inscription. Tenu par
+l'exploitant, ou par l'application d'exploitant qui produit le paquet (7.14).
+
+**EX-7.19** **Manifeste.** `paquet-client.json` porte `version` (`0`), `org`
+et `org_id` (ceux de `organisation` du dossier), `instance` (recopie de
+`evm_chain_id`, `bft_chain_id` et `manifest_sha256` de `instance` du
+dossier), `files`, `prepared_by`, `prepared_at` et `source` (l'outil ou
+l'application qui a produit le paquet, avec sa version). `files` liste chaque
+autre fichier du paquet une fois, avec son chemin relatif au répertoire du
+paquet (séparateur `/`), son rôle, son SHA-256 et sa longueur en octets,
+dans cet ordre : `inscription-client.json`, `instance-registre.json` s'il y en
+a un, `jeu-approbateurs.json`, `gabarit-service-approbation.json`, puis les
+fichiers de `captures/` dans l'ordre croissant des octets de leur chemin.
+Les rôles sont `dossier`, `manifeste_instance`, `jeu_approbateurs`,
+`gabarit_service`, `capture_index`, `capture_bloc`, `capture_recu` et
+`capture_certificat` ; le schéma lie chaque rôle à son nom de fichier. Tenu
+par le producteur du paquet.
+
+**EX-7.20** **Gabarit de configuration du service d'approbation.**
+`gabarit-service-approbation.json` porte `version` (`0`), `org` et `org_id`,
+ceux du dossier, que le service et son annuaire emploient (CT-3 EX-13.9), et
+`console_origin` et `administrators`, que seul le client connaît (l'origine
+HTTPS de sa console et les identités de session des administrateurs de
+l'annuaire, CT-3 table 10.3). Ces deux derniers membres valent `null` tant
+que le client ne les a pas donnés par écrit à l'exploitant ; donnés, ils sont
+recopiés tels quels, sous les formes de `annuaire-approbateurs-v0`
+(`#/$defs/origine`, `#/$defs/liste_administrateurs`). L'exploitant ne les
+déduit jamais. Le gabarit n'est pas la configuration du service : les autres
+réglages de la table 10.3 de CT-3 et les secrets du service n'y figurent
+pas, et c'est le client qui la complète. La configuration du service a son
+schéma, `configuration-approbation-v0` (CT-3 EX-10.12, révision 0.5) : les
+cinq membres du gabarit sont des membres de ce document, sous les mêmes noms,
+et chaque membre non nul du gabarit est valide contre la propriété de même
+nom de ce schéma (`configuration-approbation-v0#/properties/<membre>`), ce
+que `$defs/gabarit_service` de `paquet-client-v0` impose par référence. Le
+client recopie ces membres tels quels dans sa configuration, la complète et
+la contrôle par `noortrace-approbation valider-configuration` (CT-3
+EX-10.12) ; un gabarit dont `console_origin` ou `administrators` vaut encore
+`null` ne donne pas une configuration valide, ces deux membres étant requis.
+Tenu par le producteur du paquet.
+
+**EX-7.21** **Aucun secret.** Le paquet ne contient aucune clé privée, aucune
+graine, aucune mnémonique, aucun jeton ni aucun mot de passe : les formes de
+la table d'EX-7.18 n'ont aucun membre qui en porte. Avant la remise, le
+producteur du paquet vérifie qu'aucun fichier du paquet ne contient, comme
+texte, la valeur d'un secret qu'il a employé pour l'inscription : chaque clé
+ou graine désignée par une référence d'EX-7.3 (déployeur, administrateur du
+registre, trésorerie, relayeur, clé de chaîne, `graine:`) et le jeton
+`--jeton` : chaque clé ou graine cherchée en hexadécimal sans tenir compte de
+la casse, avec et sans `0x`, et en base64 et en base64url (RFC 4648 §4 et
+§5, avec et sans remplissage) de ses octets ; le jeton, tel quel. Une valeur
+trouvée interdit la remise ; le
+producteur consigne le nom du fichier, jamais la valeur. Le paquet n'est pas
+confidentiel à l'égard du client, mais il porte les reçus de transactions
+d'autres organisations incluses dans les mêmes blocs (EX-9.5), comme les
+dossiers de preuve. Tenu par le producteur du paquet.
+
+**EX-7.22** **Réception.** Le client, ou son outil, contrôle le paquet avant
+de s'en servir, dans cet ordre, puis fait les comparaisons d'EX-7.17 :
+
+1. `paquet-client.json` est conforme à son schéma ;
+2. chaque fichier du répertoire, `paquet-client.json` excepté, figure une
+   fois dans `files`, et chaque entrée de `files` désigne un fichier
+   ordinaire du répertoire dont le SHA-256 et la longueur sont ceux de
+   l'entrée ; `files` suit l'ordre d'EX-7.19 et compte au moins le dossier,
+   le jeu d'approbateurs et le gabarit ;
+3. chaque fichier est conforme à la forme de son rôle (table d'EX-7.18) ;
+4. `org` est le slug du dossier et `org_id` égale `keccak256(UTF-8(org))`
+   (RG-1) et `organisation.org_id` du dossier ; `instance` égale les membres
+   correspondants de `instance` du dossier ; `instance-registre.json` est
+   présent si et seulement si `manifest_sha256` n'est pas nul, et son SHA-256
+   est alors cette valeur ;
+5. `jeu-approbateurs.json` égale `result.approver_set` du dossier, membre pour
+   membre ; `org` et `org_id` du gabarit égalent ceux du manifeste ;
+6. chaque étape du dossier dont `capture` n'est pas nul a son index dans
+   `captures/`, et chaque fichier que nomme un index y figure avec le SHA-256
+   que l'index lui donne (CP-6) ; tout fichier de `captures/` est nommé par
+   un index.
+
+Un écart est un refus du paquet, signalé à l'exploitant, comme un écart
+d'EX-7.17 : aucune demande n'est signée pour l'organisation tant qu'il n'est
+pas éclairci. Tenu par le client.
+
+Exemple : manifeste du paquet de l'organisation `relecteur-exemple`, dont le
+dossier est l'exemple de 7.10. Le SHA-256 et la longueur de
+`inscription-client.json`, de `jeu-approbateurs.json` et de
+`gabarit-service-approbation.json` sont ceux de ces documents écrits selon
+EX-7.18 (le dossier de 7.10 ; `result.approver_set` de ce dossier ; le
+gabarit ci-dessous) ; ceux des fichiers de capture sont synthétiques,
+SHA-256(UTF-8(`noortrace/exemple/ct4/fichier/<nom>`)), `<nom>` étant le nom
+du fichier dans `captures/`, et longueurs fixées par rôle, chaque bloc
+synthétique de 7.10 ne portant que la transaction de son étape. Le dossier
+n'a pas de manifeste d'instance (`manifest_sha256` nul). Les deux documents
+sont valides contre leur schéma (`paquet-client-v0`, avec
+`inscription-client-v0`, `configuration-approbation-v0`,
+`annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` chargés pour les
+références) ; chaque membre du gabarit est valide contre la propriété de même
+nom de `configuration-approbation-v0`.
+
+<!-- exemple: paquet-client -->
+```json
+{
+  "version": 0,
+  "org": "relecteur-exemple",
+  "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc",
+  "instance": { "evm_chain_id": 2124, "bft_chain_id": "noortrace-2124-dev", "manifest_sha256": null },
+  "files": [
+    { "path": "inscription-client.json", "role": "dossier", "sha256": "0x3fd031d7dad94f132e1c4fb35726ac424a3dd999edfbe9f8e55f22d9a298fbeb", "length": 7417 },
+    { "path": "jeu-approbateurs.json", "role": "jeu_approbateurs", "sha256": "0xb9b93c3fab2fb3f7f9949f7ef12d485036817ada2efedf672566be17ef82b738", "length": 202 },
+    { "path": "gabarit-service-approbation.json", "role": "gabarit_service", "sha256": "0x5367ae1d8c68b66493b2f995effac3078ecaac1513a768395b8beb66501b2369", "length": 280 },
+    { "path": "captures/bloc-20000.json", "role": "capture_bloc", "sha256": "0x6ed2c60288e9ab07c51c8004f1ccff1e20aa273086735abb97e87c5173bf5a99", "length": 1536 },
+    { "path": "captures/bloc-20004.json", "role": "capture_bloc", "sha256": "0x311f555666ea156ed99c1d755ecc9186c03ca4ff56544bc3bed123ac4f9c66ba", "length": 1536 },
+    { "path": "captures/bloc-20008.json", "role": "capture_bloc", "sha256": "0x1342d2d02f460435672fdb81cb22be6fe5312793522c9af0ff34bc57b2f1172f", "length": 1536 },
+    { "path": "captures/bloc-20012.json", "role": "capture_bloc", "sha256": "0x3c89acd94893568f18b92d8d7b47b3a5476cbbcf81cc87f5e669a5a984ece84d", "length": 1536 },
+    { "path": "captures/bloc-20016.json", "role": "capture_bloc", "sha256": "0xe9850562cd060384a32274725ff26bafce808e33e14db44b6cb74163a18ecadb", "length": 1536 },
+    { "path": "captures/bloc-20020.json", "role": "capture_bloc", "sha256": "0x7344531c9166264949861ee53c6013efc600764e7a4c4c7bcd96d20ac928a327", "length": 1536 },
+    { "path": "captures/capture-20000-0-jeu_approbateurs.json", "role": "capture_index", "sha256": "0xd87502c290cfb65c913f2ce311bed0ac34907b7efcb7d654a0714fddf73fb619", "length": 2048 },
+    { "path": "captures/capture-20004-0-assignation.json", "role": "capture_index", "sha256": "0x1623cc46f68ceb724addf52acb8bc47379e2879bb1b4195e7c7061121023e585", "length": 2048 },
+    { "path": "captures/capture-20008-0-approvisionnement.json", "role": "capture_index", "sha256": "0x60de5458d92d2e1fc62ea8db4c4c3edf6f07dfce11d3a4bd224038bcd51a6ff1", "length": 2048 },
+    { "path": "captures/capture-20012-0-inscription.json", "role": "capture_index", "sha256": "0x6e1c6b18bf06ff3ab6f022221e7eda8d0691f24dc1083fe0e09e24951ca9207f", "length": 2048 },
+    { "path": "captures/capture-20016-0-ancre.json", "role": "capture_index", "sha256": "0xce0bd005f1857e15596e254c346ad92622e324eac98a13eba7e4fef955f963d0", "length": 2048 },
+    { "path": "captures/capture-20020-0-cloture.json", "role": "capture_index", "sha256": "0x4678ff3bafc84fc34b003ee2048f8813eaf9e9cee81125b362b20788668ca886", "length": 2048 },
+    { "path": "captures/certificat-20000.json", "role": "capture_certificat", "sha256": "0x35cc012b71f586e2cabd27d6a2809eea3bb70dc0aefc3ee01e5e06b1c4cdc209", "length": 7782 },
+    { "path": "captures/certificat-20004.json", "role": "capture_certificat", "sha256": "0xf255bae51deb80c04c93acecab1ae83b258d9dc8d7309eae81fff2286d0682d2", "length": 7782 },
+    { "path": "captures/certificat-20008.json", "role": "capture_certificat", "sha256": "0xd88dfe86eaae12e01887f76cb941fd9b46729298914222af705abd59d7924ec5", "length": 7782 },
+    { "path": "captures/certificat-20012.json", "role": "capture_certificat", "sha256": "0x880623c54c1fb8aec8ac0fc6382c513740a73d8e6ad770dfa2a8a5b21275cc29", "length": 7782 },
+    { "path": "captures/certificat-20016.json", "role": "capture_certificat", "sha256": "0x93cf54213c8e7dd283b0738cbdddfa989f98a4284901fb186c1a7d60046d93b2", "length": 7782 },
+    { "path": "captures/certificat-20020.json", "role": "capture_certificat", "sha256": "0x9ffb84d5f10b90bd1b59b1faee63e1c67b6af760f73b1ad1c7fb14c5952c4f2e", "length": 7782 },
+    { "path": "captures/recu-0x33a18d1e1bfd3159f60965659ae023244e61dabdafd71a9e9817f6e367c152a1.json", "role": "capture_recu", "sha256": "0x43ddd4f3fae678771cdd57f094fdc203b89d7e378d2727c71221249ac063a238", "length": 1024 },
+    { "path": "captures/recu-0x3ab07056650f93ed3c6090cfbfdc9fa456128c684660734c781d307c9cfd0d84.json", "role": "capture_recu", "sha256": "0x9df8a59b2ac43a6159a699d7bd399cdab9a3065172a0b191b95c2efb2e712bc6", "length": 1024 },
+    { "path": "captures/recu-0x4c12d0f20c60b690c8f0589a1b932e98d5ff8362aaa875433a9c307eabd302b8.json", "role": "capture_recu", "sha256": "0x487ab35306245cd647ac0ce65ebbc50e2f774bc50eabe82bbf7adb3016c4fad2", "length": 1024 },
+    { "path": "captures/recu-0x5b9b3bc12cc93abf106e78d8f21c603c40188e38af2ddde40a8f9e23129d2ab0.json", "role": "capture_recu", "sha256": "0xda4320cc8748d018c2520743fc70a8241aba299247e6003c16ffd0a99cc8059a", "length": 1024 },
+    { "path": "captures/recu-0x77e86ffd2ee0c4c67f5f5964b491a9068e3b2a6c75c2fc5403b027332aec0045.json", "role": "capture_recu", "sha256": "0x3403296dafcdb1b37eb4213705934e42a6fd877c5b316be59972e6a33d793f23", "length": 1024 },
+    { "path": "captures/recu-0xa5e2e12e2e7d0d473ef6a4ab1c44abfa7580fa662fb20f1db3f5ec809728035e.json", "role": "capture_recu", "sha256": "0xa1a02f8c7994bbcdbcc554ac22988d5972d4f91f77182afb0ba621c372bc97d4", "length": 1024 }
+  ],
+  "prepared_by": "exploitant de l'épreuve d'acceptation (exemple)",
+  "prepared_at": "2026-11-01T09:10:00.000Z",
+  "source": "exemple de CT-4 §7.13 : fichiers de captures synthétiques (SHA-256(UTF-8(\"noortrace/exemple/ct4/fichier/<nom>\")), longueurs fixées par rôle)"
+}
+```
+
+Gabarit du même paquet, dont le client a donné par écrit l'origine de sa
+console et l'identité de session de son administrateur d'annuaire :
+
+<!-- exemple: paquet-client/gabarit_service -->
+```json
+{
+  "version": 0,
+  "org": "relecteur-exemple",
+  "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc",
+  "console_origin": "https://console.relecteur-exemple.example",
+  "administrators": [
+    "oidc https://idp.relecteur-exemple.example admin-1"
+  ]
+}
+```
+
+### 7.14 Application d'exploitant (révision 0.6)
+
+**EX-7.23** **Admission.** Une application d'exploitant PEUT conduire les pas
+de 7.1, et produire le paquet de 7.13, à la place de l'outil de référence,
+aux conditions d'EX-7.24 à EX-7.28. Elle se compose de deux parties
+séparées : une **interface web**, qui ne tient aucune clé, aucune référence
+résolue ni le jeton du nœud ; et un **agent** privilégié, processus distinct
+sous un autre compte du système, seul à résoudre les références de clés
+(EX-7.3) et `--jeton`, à signer et envoyer les transactions, à écrire les
+envois, les captures et le dossier. L'interface ne remet à l'agent que des
+travaux typés (un pas de 7.1 ou une commande de la section 8, ses
+paramètres, et les clés désignées par leur rôle ou leur référence), sur le
+canal local et authentifié d'EX-7.28 ;
+chaque travail porte l'identité de l'exploitant authentifié qui l'a demandé,
+que l'agent consigne avec la sortie, en ajout seul. L'agent ne croit pas
+l'interface : il refait lui-même chaque vérification OP- et CP- avant
+d'écrire. Tenu par l'exploitant qui déploie l'application.
+
+**EX-7.24** **Mêmes sorties.** Pour chaque pas, l'application produit ce que
+produit l'outil de référence, sous les mêmes formes : le dossier
+`inscription-client-v0` avec les mêmes états et les mêmes passages
+(EX-7.16), réécrit de la même façon (fichier temporaire puis renommage) ; les
+envois, les issues, les réponses brutes et les index de capture de CP-6, sous
+les mêmes noms, dans un répertoire de captures de même disposition ; les
+demandes `demande_signature` ; les parties de 7.9 ; et, pour chaque commande
+exécutée, une sortie conforme à `operations-registre-v0#/$defs/sortie` dont
+`command` est celle de la commande correspondante de l'outil, avec les mêmes
+`checks` dans le même ordre, les mêmes `result`, `exit_code` et `error.code`,
+et des `outputs` de mêmes membres, les refus de la table de 7.11 compris :
+sur un même état de la chaîne et les mêmes entrées, l'application et l'outil
+rendent la même sortie. Seuls diffèrent les instants (`updated_at`,
+`prepared_at`, `captured_at`, `completed_at`), `prepared_by`, et ce qui
+dépend de la transaction envoyée (hachages, hauteurs, gaz). Épreuve : sur le dossier et le répertoire des captures que
+l'application a produits, l'outil de référence relancé avec les mêmes
+arguments rend `deja_fait` pour chaque étape et n'envoie rien (EX-7.13) ;
+`verifier` de 7.9 rend R-1 à R-10 `reussi` ; le paquet passe EX-7.22.
+L'application est tenue par EX-7.3 comme l'outil : elle refuse toute
+référence de clé qu'EX-7.3 refuse pour la nature de l'instance, de sorte
+qu'en production elle ne conduit que ce que l'outil y conduit, tant que la
+signature externe des clés de l'exploitant reste une proposition
+(section 14). Tenu par l'application.
+
+**EX-7.25** **Aucune clé par formulaire.** Aucune page ni aucune route de
+l'interface n'a de champ qui reçoive une clé privée, une graine, une
+mnémonique, un jeton ou le mot de passe d'une clé, et aucune méthode de
+l'agent n'en reçoit une valeur. Chaque champ de l'interface a un type
+déclaré (adresse, hachage, clé publique Ed25519, slug, nom de journal,
+seuil, montant, référence de clé, texte) ; un champ de référence de clé
+n'admet que les formes de référence que l'agent sait résoudre (EX-7.3 et les
+backends de garde de CT-2 §11) et refuse une valeur nue, par exemple 64
+chiffres hexadécimaux avec ou sans `0x`, sans la garder ni la consigner.
+L'interface n'affiche, ne consigne ni ne garde jamais une valeur résolue.
+Tenu par l'application.
+
+**EX-7.26** **Confirmation hors bande consignée.** Avant de relayer une
+demande `administration_jeu` (`administrer-jeu`) et avant tout
+approvisionnement d'une clé de chaîne (`approvisionner`, et l'étape
+`approvisionnement` du pas 5), l'agent exige la confirmation hors bande du
+client qu'impose EX-8.21 et la consigne, en ajout seul : l'exploitant qui
+l'a recueillie, la personne du client qui a confirmé, le canal (hors de
+l'application), l'instant, l'opération et son objet (organisation, clé de
+chaîne ou demande), et le SHA-256 de la pièce qui la porte, comme la demande
+écrite d'EX-8.10. Sans elle, l'agent n'exécute pas la commande (aucune
+sortie n'est produite, rien n'est envoyé) et l'interface affiche
+« confirmation hors bande absente ». Le registre de ces confirmations est
+gardé avec la copie du dossier de l'exploitant (EX-7.12) ; il n'entre pas
+dans le paquet. Tenu par l'application.
+
+**EX-7.27** **Signature des condensés du registre.** L'application ne change
+pas la règle d'EX-7.3 : les approbateurs signent `registerDigest` (et
+`periodDigest`, `revokeDigest`) hors de la console de CT-3 et hors de
+l'application, avec un outil conforme à EX-7.10, et la version 0 ne livre
+aucun outil qui signe ces condensés dans le portefeuille d'un approbateur.
+L'application prépare la demande (`condense`), la remet aux approbateurs
+hors d'elle, et relaie la demande signée qu'on lui rend, après OP-6 et OP-7 ;
+aucune de ses pages ne demande à un portefeuille de signer un condensé de 6.6.
+Tenu par l'application.
+
+**EX-7.28** **Canal entre l'interface et l'agent.** Le canal d'EX-7.23 est
+local et n'a aucun secret partagé. L'agent n'écoute qu'une prise de domaine
+Unix (`AF_UNIX`, `SOCK_STREAM`), jamais une adresse IP, pas même de boucle
+locale. La prise est dans un répertoire qui appartient au compte de l'agent,
+en mode `0750`, dont le groupe n'a pour membre que le compte du serveur de
+l'interface, et elle est elle-même en mode `0660`, de ce groupe. À chaque
+connexion, avant de lire aucun octet, l'agent obtient du noyau le compte du
+pair (`SO_PEERCRED` sous Linux, `getpeereid` sur les systèmes qui l'offrent)
+et ferme la connexion si ce compte n'est pas celui que sa configuration
+désigne pour l'interface ; il consigne ce refus (compte du pair, instant),
+en ajout seul, et n'exécute rien. Aucun jeton, mot de passe ni certificat
+n'authentifie le canal : il n'y a donc rien à garder, à transmettre à la
+page ni à faire tourner. Seul le processus serveur de l'interface ouvre la
+prise ; la page servie au navigateur ne joint jamais l'agent et ne reçoit ni
+le chemin de la prise ni aucune réponse de l'agent autre que la sortie d'un
+travail (EX-7.24), sans valeur résolue (EX-7.25). L'authentification de
+l'exploitant à l'interface est distincte de ce canal : l'identité qu'un
+travail porte (EX-7.23) est celle que l'interface a établie, et l'agent la
+consigne sans pouvoir la vérifier. Épreuve : l'agent n'a aucune prise
+d'écoute `AF_INET` ni `AF_INET6` ; une connexion à la prise depuis un autre
+compte que celui de l'interface est fermée, son refus consigné, et aucun
+travail n'est exécuté ; aucune page ni aucun script que sert l'interface ne
+contient le chemin de la prise. Tenu par l'application.
 
 ## 8. Exploitation courante
 
@@ -3841,6 +4166,11 @@ appliqué.
 | `spec/README.md` | CT-4 « à écrire » | CT-4 en revue ; schémas `instance-registre-v0`, `inscription-client-v0` et `operations-registre-v0` ; vecteurs `ct-4/` | fait |
 | `package.json`, `.github/workflows/ci.yml` | rien pour CT-4 | scripts `vecteurs:ct4` et `registre` ; étapes de A.6 | fait |
 | `README.md`, `README.fr.md`, `CHANGELOG.md`, `ARCHITECTURE.md` (« Ancrage », point 1 ; « Écrit au … », « À construire » ; « Décisions ouvertes », 6 et 7) | CT-4 absent | CT-4 écrit ; ancre avant clôture (EX-8.4) ; règle de substitution (section 11) ; outils de référence ; décisions 6 et 7 ci-dessous | fait |
+| `spec/schemas/paquet-client-v0.schema.json` (révision 0.6) | — | schéma nouveau du manifeste du paquet client et du gabarit de configuration du service d'approbation (7.13) ; ses références vers `inscription-client-v0` et `configuration-approbation-v0` (CT-3 révision 0.5) | fait |
+| Outil de référence `scripts/registre/noortrace-registre.mjs` (révision 0.6) | aucun paquet | production du paquet et son contrôle d'EX-7.21, contrôle de réception d'EX-7.22 ; une commande nouvelle exige d'ajouter son nom à l'énumération `command` de `operations-registre-v0#/$defs/sortie` (ajout compatible) | à faire (phase 2) |
+| Application d'exploitant (révision 0.6) | absente | interface web et agent séparé et privilégié d'EX-7.23 à EX-7.28 ; canal local par prise Unix, compte du pair vérifié (EX-7.28) ; épreuves d'EX-7.24 et d'EX-7.28 | à faire (phase 2) |
+| `test/registreCt4.test.js` (révision 0.6) | six exemples annotés, liste fermée | annoter l'exemple de manifeste et l'exemple de gabarit de 7.13, les ajouter à la liste, et charger `paquet-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` dans le registre des schémas du test | fait autrement : les deux exemples portent l'annotation `<!-- exemple: … -->` (celle des exemples de la révision 0.5 de CT-3), que la liste fermée des annotations `<!-- schema: … -->` (EX-A.6) ne lit pas ; un essai de ce fichier les valide contre `paquet-client-v0` chargé avec ces schémas et recalcule les SHA-256 et longueurs du manifeste |
+| `spec/README.md` (révision 0.6) | CT-4 version 0.5 ; table des schémas sans `paquet-client-v0` | CT-4 version 0.6 ; ligne `paquet-client-v0` (CT-4 §7.13), chargé avec `inscription-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` | fait |
 
 Décisions de l'architecture touchées :
 
@@ -3945,6 +4275,19 @@ Décisions de l'architecture touchées :
   sites (R1, point non vérifié 8) ; la commande de 10.2 n'est pas éprouvée.
 - **La procédure d'inscription de l'identifiant de production** au registre
   public des identifiants (décision 6).
+- (révision 0.6) **La signature du paquet client** : son manifeste n'est
+  signé par personne, comme le dossier d'inscription (EX-7.8) ; son
+  authenticité tient à la remise et aux contrôles d'EX-7.22 et d'EX-7.17.
+  **Un format d'archive** du paquet pour le transport. **Une configuration
+  complète du service d'approbation dans le paquet** : le paquet n'en porte
+  qu'un gabarit, dont CT-3 EX-10.12 fixe le schéma complet
+  (`configuration-approbation-v0`).
+  **L'authentification des exploitants** de l'application d'exploitant,
+  dont la version 0 exige seulement qu'elle soit établie par l'interface et
+  que chaque travail en porte l'identité (EX-7.23) ; le canal entre
+  l'interface et l'agent est fixé (EX-7.28). **Un outil qui signe les
+  condensés du registre dans le portefeuille d'un approbateur**, dans
+  l'application comme ailleurs (EX-7.27).
 
 ## Annexe A — Vecteurs CT-4
 

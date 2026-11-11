@@ -3379,12 +3379,112 @@ export const TA = [
     "expected_with_response": "Clause « non inscrite au journal (ni sa date ni son rang ne sont établis) ».",
     "expected_without_response": "Disparaît ; le test échoue.",
     "execution": "vecteurs_et_depot"
+  },
+  {
+    "id": "TA-99",
+    "preconditions": [
+      "Démon de l'enregistreur avec la commande d'export de CT-2 §15.7 (révision 0.8) ; répertoire des exports au compte du démon ; sous le volume, un lien symbolique vers un répertoire hors du volume."
+    ],
+    "steps": [
+      "Demander l'export d'un dossier vers une destination qui traverse le lien symbolique.",
+      "Rejouer avec le mutant du démon qui retire le contrôle du chemin réel du parent de la destination."
+    ],
+    "oracle": "Refus `destination_hors_exports`, aucun fichier hors du volume des exports ; avec le mutant, le dossier est écrit hors du volume (tué).",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 6,
+      "blocking": "Commande d'export du démon non livrée (CT-2 §22, révision 0.8)."
+    },
+    "response_removed": {
+      "what": "Chemin réel de la destination contrôlé sous le répertoire des exports (CT-2 EX-15.12, EX-15.13 ; CT-7 EX-3.16)",
+      "how": "Retirer le contrôle du chemin réel du parent de la destination",
+      "where": "démon de l'enregistreur (commande d'export, `paquets/enregistreur`)"
+    },
+    "attack": "Un compte qui peut écrire sous le volume des exports y pose un lien symbolique vers un répertoire hors du volume et fait exporter un dossier à travers lui.",
+    "expected_with_response": "Refus `destination_hors_exports` ; aucun dossier hors du volume.",
+    "expected_without_response": "Le dossier est écrit hors du volume ; le test échoue.",
+    "execution": "phase_2"
+  },
+  {
+    "id": "TA-100",
+    "preconditions": [
+      "Serveur de console de TE-20 avec le système d'identité `oidc` ; fournisseur OIDC de test de TI-22."
+    ],
+    "steps": [
+      "Présenter au retour de connexion un jeton d'identité valide et signé par le fournisseur, dont `aud` est un autre client.",
+      "Rejouer avec le mutant du serveur qui retire le contrôle d'`aud`."
+    ],
+    "oracle": "400 `jeton_invalide`, aucune session ouverte ; avec le mutant, une session s'ouvre (tué).",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 6,
+      "blocking": "Serveur de console non construit (CT-3 §13.21, révision 0.5)."
+    },
+    "response_removed": {
+      "what": "Vérification du jeton d'identité par le serveur de console (CT-3 EX-13.46, point 4 : `aud`)",
+      "how": "Retirer le contrôle d'`aud`",
+      "where": "serveur de console (phase 2, étape 6)"
+    },
+    "attack": "Un jeton d'identité émis par le fournisseur pour un autre client est présenté au serveur de console.",
+    "expected_with_response": "400 `jeton_invalide` ; aucune session.",
+    "expected_without_response": "Une session s'ouvre ; le test échoue.",
+    "execution": "phase_2"
+  },
+  {
+    "id": "TA-101",
+    "preconditions": [
+      "Page de vérification et artefact `noortrace-verifier.wasm` de TE-23, servis par l'hébergement de test."
+    ],
+    "steps": [
+      "Servir un artefact dont un octet est changé et lancer une vérification.",
+      "Rejouer avec le mutant du travailleur qui retire la comparaison du SHA-256 de l'artefact à `EMPREINTE_WASM`."
+    ],
+    "oracle": "L'artefact n'est pas compilé et aucun rapport n'est affiché ; avec le mutant, la page rend un rapport (tué).",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 6,
+      "blocking": "Artefact WebAssembly et page de vérification non construits (CT-6 §18, révision 0.6)."
+    },
+    "response_removed": {
+      "what": "Contrôle de l'empreinte de l'artefact par le travailleur (CT-6 EX-18.5)",
+      "how": "Compiler l'artefact sans comparer son SHA-256 à `EMPREINTE_WASM`",
+      "where": "page de vérification (`travailleur.js`, phase 2, étape 6)"
+    },
+    "attack": "L'hébergeur de la page sert un artefact `noortrace-verifier.wasm` modifié.",
+    "expected_with_response": "Aucune compilation, aucun rapport affiché.",
+    "expected_without_response": "La page rend un rapport ; le test échoue.",
+    "execution": "phase_2"
+  },
+  {
+    "id": "TA-102",
+    "preconditions": [
+      "Service d'approbation de TE-19 avec `notifications` ; récepteur de webhook de TI-21."
+    ],
+    "steps": [
+      "Provoquer une notification et relever la requête reçue.",
+      "Rejouer avec le mutant du service qui envoie les notifications sans l'en-tête `NOORTRACE-Signature`."
+    ],
+    "oracle": "L'en-tête `NOORTRACE-Signature` est égal au HMAC-SHA256 recalculé sur le corps, exemple d'EX-13.41 compris ; avec le mutant, l'en-tête manque (tué).",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 6,
+      "blocking": "Livraison des notifications par le service non construite (CT-3 §15.2, révision 0.5)."
+    },
+    "response_removed": {
+      "what": "Signature des notifications (CT-3 EX-13.41)",
+      "how": "Envoyer les notifications sans l'en-tête `NOORTRACE-Signature`",
+      "where": "service d'approbation (livraison des notifications, phase 2, étape 6)"
+    },
+    "attack": "Un tiers sur le chemin réseau du webhook forge ou substitue une notification.",
+    "expected_with_response": "Chaque requête porte `NOORTRACE-Signature`, égal au HMAC-SHA256 du récepteur sur son corps.",
+    "expected_without_response": "L'en-tête manque ; le test échoue.",
+    "execution": "phase_2"
   }
 ];
 
 export const SCENARIOS = [
   {
-    "id": "TA-99",
+    "id": "TA-103",
     "scenario": "l'agent supprime ou réécrit",
     "composition": [
       "TA-1",
@@ -3411,7 +3511,7 @@ export const SCENARIOS = [
     "expected_without_response": "Une tentative de l'agent aboutit sans refus ni journalisation (connexion directe au serveur d'outils, fractionnement sous le plafond, approbation rejouée, outil réservé annoncé) : le test composé concerné et le scénario échouent."
   },
   {
-    "id": "TA-100",
+    "id": "TA-104",
     "scenario": "l'opérateur réécrit après coup",
     "composition": [
       "TA-17",
@@ -3442,7 +3542,7 @@ export const SCENARIOS = [
     "expected_without_response": "Un événement réécrit couvert par un point passe le vérificateur, ou une seconde version d'un segment copié est acceptée sans alerte, ou un gel est levé par qui l'a posé : le test composé concerné et le scénario échouent."
   },
   {
-    "id": "TA-101",
+    "id": "TA-105",
     "scenario": "l'horloge est manipulée",
     "composition": [
       "TA-21",
@@ -3464,7 +3564,7 @@ export const SCENARIOS = [
     "expected_without_response": "Un événement est scellé à une date reculée ou avancée sans mode dégradé, ou un jeton à genTime décalé est promu sans horloge_suspecte, ou une réponse tardive est acceptée : le test composé concerné et le scénario échouent."
   },
   {
-    "id": "TA-102",
+    "id": "TA-106",
     "scenario": "l'enregistreur tombe",
     "composition": [
       "TA-10",
@@ -3489,7 +3589,7 @@ export const SCENARIOS = [
     "expected_without_response": "Deux écrivains actifs écrivent dans la même période, ou un segment tronqué est relu comme complet, ou la file perdue n'est pas reconstruite : le test composé concerné et le scénario échouent."
   },
   {
-    "id": "TA-103",
+    "id": "TA-107",
     "scenario": "un prestataire est injoignable",
     "composition": [
       "TA-55",

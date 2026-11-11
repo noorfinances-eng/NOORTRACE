@@ -1,0 +1,417 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/configuration-console.schema.json",
+  "title": "Configuration du serveur de console NOORTRACE, version 0 (CT-3 révision 0.5, 10.3)",
+  "description": "Le document JSON que lit le serveur de console au démarrage (noortrace-console --config <fichier>) et que contrôle noortrace-console valider-configuration (CT-3 EX-10.13). Les secrets, le certificat et la clé TLS y sont des références (file, env), jamais des valeurs. Un membre facultatif absent prend le défaut que donne sa description. Les règles que le schéma n'exprime pas sont celles d'EX-10.13, avec leurs codes. $defs/fichier_comptes est le fichier des comptes du système d'identité local (EX-13.47), $defs/rapport_validation la sortie de valider-configuration. Le schéma se charge avec configuration-approbation-v0, dont il reprend $defs/reference_secret, et avec les schémas que celui-ci référence (annuaire-approbateurs-v0, evenement-v0, ticket-v0).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "environment",
+    "console_origin",
+    "listen",
+    "tls",
+    "service",
+    "identity"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "environment": {
+      "description": "production ou developpement ; en production, le système d'identité est OIDC (identite_locale_en_production, EX-10.13).",
+      "enum": [
+        "production",
+        "developpement"
+      ]
+    },
+    "console_origin": {
+      "description": "Origine HTTPS de la console, égale à celle de la configuration du service (EX-13.14) : garde d'hôte, contrôle de l'en-tête Origin, adresse de retour OIDC (EX-13.43, EX-13.45, EX-13.49).",
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/origine"
+    },
+    "listen": {
+      "description": "Adresse d'écoute HTTPS du serveur de console (le conteneur de référence écoute sur le port 8700).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "host",
+        "port"
+      ],
+      "properties": {
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      }
+    },
+    "tls": {
+      "description": "Certificat (chaîne, en PEM, le certificat du serveur d'abord) et clé du serveur, par référence ; les deux références PEUVENT désigner le même fichier, qui porte alors la chaîne et la clé.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cert",
+        "key"
+      ],
+      "properties": {
+        "cert": {
+          "$ref": "#/$defs/reference_secret"
+        },
+        "key": {
+          "$ref": "#/$defs/reference_secret"
+        }
+      }
+    },
+    "service": {
+      "description": "Adresse et identifiants du canal de la console vers le service (EX-12.4) : exactement un de url et socket non nul ; jeton ou certificat client exigé (authentification_exigee) ; url https hors de la boucle locale (tls_exige).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^https?://[^\\s/?#@]+$"
+            }
+          ]
+        },
+        "socket": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 4096,
+              "pattern": "^/"
+            }
+          ]
+        },
+        "token": {
+          "description": "Jeton porteur du canal de la console, distinct de celui du noyau (EX-12.4).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/reference_secret"
+            }
+          ]
+        },
+        "ca": {
+          "description": "Autorité, en PEM, qui vérifie le certificat du service ; null ou absent : magasin du système.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/reference_secret"
+            }
+          ]
+        },
+        "client_cert": {
+          "description": "Certificat client pour le mTLS, avec client_key.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/reference_secret"
+            }
+          ]
+        },
+        "client_key": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/reference_secret"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "url"
+          ],
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "socket": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "socket"
+          ],
+          "properties": {
+            "socket": {
+              "type": "string"
+            },
+            "url": {
+              "type": "null"
+            }
+          }
+        }
+      ]
+    },
+    "identity": {
+      "description": "Le système d'identité du client, un seul par serveur de console (EX-13.2) : OIDC (EX-13.45, EX-13.46) ou système local (EX-13.47, hors production).",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/oidc"
+        },
+        {
+          "$ref": "#/$defs/local"
+        }
+      ]
+    },
+    "reauth_max_age_s": {
+      "description": "Défaut 900 (EX-13.8).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3600
+    },
+    "service_timeout_ms": {
+      "description": "Révision 0.5, bornes : attente d'une réponse du service à une méthode relayée (12.7) ; défaut 10 000.",
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 60000
+    },
+    "delai_signature_ms": {
+      "description": "Attente de la réponse du portefeuille, jamais au-delà de l'échéance du ticket (EX-13.30) ; défaut 300 000 ; transmis à la page par la méthode session (EX-13.48).",
+      "type": "integer",
+      "minimum": 30000,
+      "maximum": 1800000
+    },
+    "session_max_age_s": {
+      "description": "Révision 0.5 : durée de vie d'une session, à compter de sa création (EX-13.48) ; défaut 28 800.",
+      "type": "integer",
+      "minimum": 900,
+      "maximum": 43200
+    },
+    "walletconnect": {
+      "description": "Parcours c (EX-13.27), désactivé quand null (défaut).",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "relay_url",
+            "project_id"
+          ],
+          "properties": {
+            "relay_url": {
+              "description": "Adresse du relais, seule ouverte dans connect-src (EX-13.27, point 1).",
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^wss://[^\\s/?#@]+(/[^\\s#]*)?$"
+            },
+            "project_id": {
+              "description": "Identifiant de projet, par référence (EX-13.27, point 2).",
+              "allOf": [
+                {
+                  "$ref": "#/$defs/reference_secret"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "reference_secret": {
+      "$ref": "https://noortrace.example/schemas/v0/configuration-approbation.schema.json#/$defs/reference_secret"
+    },
+    "oidc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "issuer",
+        "client_id",
+        "client_secret"
+      ],
+      "properties": {
+        "kind": {
+          "const": "oidc"
+        },
+        "issuer": {
+          "description": "Identifiant de l'émetteur, comparé octet pour octet à iss (EX-13.7, EX-13.46) : URL https sans « ? » ni « # ».",
+          "type": "string",
+          "maxLength": 255,
+          "pattern": "^https://[!-\"$->@-~]+$"
+        },
+        "client_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[!-~]+$"
+        },
+        "client_secret": {
+          "description": "Secret du client, présenté par client_secret_basic (EX-13.45).",
+          "allOf": [
+            {
+              "$ref": "#/$defs/reference_secret"
+            }
+          ]
+        },
+        "id_token_signing_alg_values": {
+          "description": "Algorithmes admis pour la signature du jeton d'identité, sous-ensemble de la liste fermée d'EX-13.46 ; défaut [\"RS256\"].",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "RS256",
+              "PS256",
+              "ES256"
+            ]
+          }
+        },
+        "cache_s": {
+          "description": "Durée de vie en cache du document de découverte et du jeu de clés (EX-13.45) ; défaut 3 600.",
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        }
+      }
+    },
+    "local": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "domain",
+        "accounts"
+      ],
+      "properties": {
+        "kind": {
+          "const": "local"
+        },
+        "domain": {
+          "description": "<domaine> de l'identité utilisateur <domaine> <nom> (EX-13.7).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[!-~]{1,128}$"
+        },
+        "accounts": {
+          "description": "Fichier des comptes ($defs/fichier_comptes), par référence.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/reference_secret"
+            }
+          ]
+        }
+      }
+    },
+    "fichier_comptes": {
+      "description": "Fichier des comptes du système d'identité local (EX-13.47) : noms uniques ; clé = scrypt(mot de passe en UTF-8, sel, N = 131 072, r = 8, p = 1, 32 octets).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "accounts"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "accounts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "salt",
+              "key"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255,
+                "pattern": "^[!-~]{1,255}$"
+              },
+              "salt": {
+                "description": "16 octets tirés au hasard, en hexadécimal minuscule.",
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "key": {
+                "description": "32 octets, en hexadécimal minuscule.",
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "rapport_validation": {
+      "description": "Sortie de noortrace-console valider-configuration (EX-10.13) : une ligne JSON ; errors triées par pointer puis par code, vide si et seulement si valide. Chaque erreur a les membres code et pointer, comme les erreurs de politique d'EX-4.2.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valide",
+        "errors"
+      ],
+      "properties": {
+        "valide": {
+          "type": "boolean"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "pointer"
+            ],
+            "properties": {
+              "code": {
+                "enum": [
+                  "json",
+                  "schema",
+                  "identite_locale_en_production",
+                  "tls_exige",
+                  "authentification_exigee",
+                  "certificat_client_incomplet"
+                ]
+              },
+              "pointer": {
+                "type": "string",
+                "maxLength": 1024
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "volume-lie-hote.yaml",
-    "sha256": "f19f7d20bc5263894112972f68db745dc12a25ffcd06bfdee9396a2d090ce2a7",
+    "sha256": "2c9e071540878f9f7e2028428ac9d172424b873fd324ea45e5bcc981dedd77ec",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

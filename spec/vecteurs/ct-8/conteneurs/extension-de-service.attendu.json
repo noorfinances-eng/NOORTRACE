@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "extension-de-service.yaml",
-    "sha256": "a2cbb5d72346d71e5e12e2d0050ca586a652d6d71179cf4d8ecf50cbb9096b99",
+    "sha256": "9129ba426097b4d8b43bd42aefa88ad1c3bf3a3106903713696bf09fa3382c84",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

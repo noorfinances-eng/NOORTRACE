@@ -12,12 +12,12 @@
         "epoch": 1,
         "events": 7,
         "length": 10086,
-        "sha256": "0x0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5"
+        "sha256": "0x15097856ef2adfcf05b0c34013f2d5a3f8234d3d8acb7dc788e12b4e547022de"
       }
     ],
     "first_seq": 1,
     "last_seq": 7,
-    "last_hash": "0x30ebe8ce1b866c67c4b5e3b08f1742ad5981200bea7cfbf47561441d4f63abeb",
+    "last_hash": "0xab6ed0df4ea7f347e065b5da3d834daecf36f3f6055f76468fe96f4fd104fa70",
     "manifests": [
       {
         "period_start": 1793865600,

@@ -62,11 +62,11 @@ describe("enregistreur, cœur : configuration, démarrage et refus", function ()
   });
 
   describe("validation (EX-15.4 pas 1 à 3, EX-15.7)", function () {
-    it("l'exemple de 15.3 valide ; son ensemble de politique fait 6533 octets, policy_sha256 de EX-10.21", function () {
+    it("l'exemple de 15.3 valide ; son ensemble de politique fait 6590 octets, policy_sha256 de EX-10.21", function () {
       const c = configurationExemple();
       const v = validerConfiguration(enc(c));
       expect(v.erreurs).to.deep.equal([]);
-      expect(empreintePolitique(c.policy)).to.deep.equal({ policy_version: "2026-11-01", policy_sha256: "0xd68bb713d14538549a347529a1f927a13ceffd444b351fe1b644242b2574e75c", length: 6533 });
+      expect(empreintePolitique(c.policy)).to.deep.equal({ policy_version: "2026-11-01", policy_sha256: "0xc5dac49797e5d273c2209e9ef6b44f77b80a2b927d2ddc8e93fc759d979b030c", length: 6590 });
       const dir = repertoireTemporaire();
       const r = noortrace(["validate-config", ecrire(dir, "exemple.json", c)]);
       expect(r.status).to.equal(0);
@@ -109,6 +109,31 @@ describe("enregistreur, cœur : configuration, démarrage et refus", function ()
       const v2 = validerConfiguration(enc(c2));
       expect(v2.erreurs.map((e) => e.regle)).to.include("version_observation_sans_suffixe (EX-15.8)");
       expect(v2.avertissements.map((e) => e.regle)).to.include(AVERTISSEMENT_OBSERVATION);
+    });
+
+    it("exports_dir (révision 0.8, EX-15.1, EX-15.4 pas 3, EX-15.12) : membre facultatif admis ; ni storage.root, ni un répertoire qui le contient ou qu'il contient ; forme refusée par le schéma", function () {
+      const dir = repertoireTemporaire();
+      const { config } = configurationDev(dir);
+      const racine = config.storage.root;
+      for (const [x, attendu] of [[undefined, 0], [path.join(dir, "exports"), 0], [`${racine}-exports`, 0], [racine, 3], [path.dirname(racine), 3], [path.join(racine, "exports"), 3]]) {
+        const c = structuredClone(config);
+        if (x === undefined) delete c.exports_dir;
+        else c.exports_dir = x;
+        const v = validerConfiguration(enc(c));
+        expect(v.pas, `${x} : ${JSON.stringify(v.erreurs)}`).to.equal(attendu);
+        if (attendu === 3) expect(v.erreurs.map((e) => `${e.pointeur} ${e.regle}`)).to.deep.equal(["/exports_dir ni storage.root, ni un répertoire qui le contient ou qu'il contient (EX-15.12)"]);
+      }
+      // Défaut, absent du document : comparé à storage.root comme le membre.
+      const d = structuredClone(config);
+      d.storage.root = "/var/lib/noortrace-exports/stockage";
+      expect(validerConfiguration(enc(d)).erreurs.map((e) => e.pointeur)).to.include("/exports_dir");
+      for (const x of ["relatif/exports", "/var/lib/noortrace-exports/", "/var/lib//exports", "/var/lib/./exports", "/var/lib/../exports"]) {
+        const c = structuredClone(config);
+        c.exports_dir = x;
+        const v = validerConfiguration(enc(c));
+        expect(v.pas, x).to.equal(2);
+        expect(v.erreurs.map((e) => e.pointeur), x).to.deep.equal(["/exports_dir"]);
+      }
     });
 
     it("classe D refusée en production (EX-11.8), à la validation et par le signataire lui-même", function () {

@@ -473,7 +473,9 @@
       "service": {
         "url": null,
         "socket": "/run/noortrace/approbation.sock",
-        "token": null,
+        "token": {
+          "file": "/run/secrets/jeton-noyau-vers-service-enregistreur"
+        },
         "peer_user": "noortrace-approbation"
       }
     },

@@ -874,5 +874,61 @@ export const TI = [
       "command": "npx hardhat --config hardhat.config.mjs test test/confrontation.test.js"
     },
     "threats": []
+  },
+  {
+    "id": "TI-21",
+    "level": "TI",
+    "title": "Notifications du service d'approbation livrées à un webhook et vérifiées par un récepteur tiers",
+    "specs": [
+      "CT-3"
+    ],
+    "covers": [
+      "CT-3 EX-13.39",
+      "CT-3 EX-13.40",
+      "CT-3 EX-13.41",
+      "CT-3 EX-13.42"
+    ],
+    "preconditions": [
+      "Service d'approbation de la révision 0.5 (TE-19) avec `notifications` ; récepteur de webhook de test en HTTPS, d'autorité `notifications.ca`, écrit avec la bibliothèque standard de Python (`hmac.compare_digest` sur HMAC-SHA256), qui répond selon un scénario (2xx, 3xx, 408, 429, 5xx, silence)."
+    ],
+    "steps": [
+      "Provoquer chaque sorte de notification ; faire répondre le récepteur 503 puis 200, puis 301, puis 404, puis ne rien répondre au-delà de `notifications.timeout_ms` ; remplir la file au-delà de 10 000 notifications ; arrêter le service avec des notifications en attente et le reprendre."
+    ],
+    "oracle": "Corps égal au JCS du document `$defs/notification` de `configuration-approbation-v0`, identique à chaque tentative ; en-tête `NOORTRACE-Signature` égal au HMAC recalculé par le récepteur, exemple d'EX-13.41 compris ; reprises 10 s, 60 s, 300 s et 1 800 s après chaque tentative, abandon sans reprise sur un statut 3xx ou un 4xx autre que 408 et 429, `file_pleine` dans l'ordre d'EX-13.42 ; lignes `notification_livree`, `notification_echec` et `notification_abandonnee` au journal du service, sans corps ni clé ; aucune notification livrée par la console (EX-13.39).",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 6,
+      "blocking": "Livraison des notifications par le service non construite (CT-3 §15.2, révision 0.5)."
+    },
+    "threats": [
+      "MN-102"
+    ]
+  },
+  {
+    "id": "TI-22",
+    "level": "TI",
+    "title": "Serveur de console et fournisseur d'identité OIDC : découverte, flux par code avec PKCE, vérification du jeton d'identité",
+    "specs": [
+      "CT-3"
+    ],
+    "covers": [
+      "CT-3 EX-13.45",
+      "CT-3 EX-13.46"
+    ],
+    "preconditions": [
+      "Serveur de console de TE-20 avec le système d'identité `oidc` ; fournisseur OIDC de test qui publie sa découverte et son jeu de clés et signe ses jetons par une bibliothèque tierce de JOSE, et en sert des variantes fautives."
+    ],
+    "steps": [
+      "Se connecter par le flux par code avec PKCE `S256` et `client_secret_basic` ; puis présenter des découvertes fautives (`issuer` différent, adresse non `https`, méthodes PKCE sans `S256`, fournisseur muet) et des jetons fautifs, un par point d'EX-13.46 (JWE, `crit`, `alg` hors liste ou `none`, clé trop courte, signature, `iss`, `aud`, `azp`, `exp`, `iat`, `nonce`, `auth_time`, `sub`, identité non canonique) ; rejouer une transaction et un `state`."
+    ],
+    "oracle": "Session ouverte pour le seul jeton valide ; chaque découverte fautive rend `fournisseur_erreur` ou `fournisseur_indisponible` (EX-13.45) ; chaque jeton fautif rend 400 `jeton_invalide` au premier point en échec, `identite_invalide` au point 9, sans session ; une transaction rejouée rend `transaction_inconnue` ; la page ne vérifie aucun jeton.",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 6,
+      "blocking": "Serveur de console non construit (CT-3 §13.21, révision 0.5)."
+    },
+    "threats": [
+      "MN-100"
+    ]
   }
 ];

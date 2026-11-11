@@ -350,11 +350,11 @@ describe("CT-7 : modèle de menace et vérificateur de renvois (EX-3.1, EX-A.4, 
   const entrees = (modif = {}) => ({ specs: SPECS, readme: README, menaces: MENACES, cles: CLES, clesRecalculees: S.clesDeTest(path.join(SPEC, "vecteurs")), ...modif });
   const ids = (erreurs) => [...new Set(erreurs.map((e) => e.id))];
 
-  it("menaces.json est conforme à modele-menace-v0 et égal, octet pour octet, à ce que construireMenaces tire des tables 3.2 à 3.5 du texte (RV-5) : 98 menaces, 82 risques acceptés, 15 tables sources", function () {
+  it("menaces.json est conforme à modele-menace-v0 et égal, octet pour octet, à ce que construireMenaces tire des tables 3.2 à 3.5 du texte (RV-5) : 102 menaces, 86 risques acceptés, 15 tables sources", function () {
     expect(J.validerSchema(MENACES, JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", "modele-menace-v0.schema.json"), "utf8")))).to.deep.equal([]);
     expect(J.texteJSON(S.construireMenaces(S.lireTablesCt7(CT7), SPECS))).to.equal(fs.readFileSync(path.join(CT7_VECTEURS, "menaces.json"), "utf8"));
-    expect(MENACES.threats).to.have.length(98);
-    expect(MENACES.threats.filter((t) => t.residual.accepted_risk)).to.have.length(82);
+    expect(MENACES.threats).to.have.length(102);
+    expect(MENACES.threats.filter((t) => t.residual.accepted_risk)).to.have.length(86);
     expect(MENACES.source_tables).to.have.length(15);
     // Chaque menace a une réponse écrite (EX-3.2) et porte au moins une catégorie STRIDE (EX-3.4).
     for (const t of MENACES.threats) {

@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "privilegie.yaml",
-    "sha256": "02bb49b9f93c1746e65ecb5cf6cb7987410fe85ecaf873f736a2a5c539151ad1",
+    "sha256": "5a70d3b453e77b3ca954ccbeed874497f3bfee7b58e0842b3774d94d95b60f7e",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

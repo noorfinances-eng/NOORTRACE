@@ -113,6 +113,18 @@ describe("CT-3 : schémas et exemples de la spécification", function () {
     }
   });
 
+  it("révision 0.5 : chaque exemple JSON annoté <!-- exemple: … --> (configuration du service, notification, rapport de validation, configuration du serveur de console, fichier des comptes) est conforme à configuration-approbation-v0 ou configuration-console-v0 (EX-10.12, EX-10.13, EX-13.40, EX-13.47)", function () {
+    const nouveaux = ["configuration-approbation-v0", "configuration-console-v0"];
+    for (const f of nouveaux) expect(J.motsClesHorsSousEnsemble(JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${f}.schema.json`), "utf8"))), f).to.deep.equal([]);
+    const registre = J.registreSchemas([...FICHIERS_SCHEMAS_CONSOLE, ...nouveaux.map((f) => `${f}.schema.json`)].map((f) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", f), "utf8"))));
+    const exemples = [...MD.matchAll(/<!-- exemple: ([a-z-]+)(?:\/([a-z_]+))? -->\n```json\n([\s\S]*?)\n```/g)];
+    expect(exemples.map(([, nom, def]) => `${nom}/${def ?? ""}`).sort()).to.deep.equal(["configuration-approbation/", "configuration-approbation/notification", "configuration-approbation/rapport_validation", "configuration-console/", "configuration-console/fichier_comptes"]);
+    for (const [, nom, def, texte] of exemples) {
+      const erreurs = J.validerSchema(JSON.parse(texte), registre[`https://noortrace.example/schemas/v0/${nom}.schema.json`], { registre, fragment: def ? `#/$defs/${def}` : "" });
+      expect(erreurs, `${nom}/${def ?? ""}`).to.deep.equal([]);
+    }
+  });
+
   it("4.3 : l'exemple complet est politiques/assureur.json, valide en production (EX-4.2)", function () {
     const exemple = JSON.parse(/<!-- schema: politique-approbation -->\n```json\n([\s\S]*?)\n```/.exec(MD)[1]);
     expect(exemple).to.deep.equal(lire("politiques", "assureur.json"));
@@ -1443,6 +1455,7 @@ const COUVERTURE = {
   "EX-7.27": "traces vote-remplace, contestation-*, recusation-refus-maintenu, jeu-seuil-abaisse",
   "EX-7.28": "remises des traces (exactement le seuil effectif de signatures) ; traces vote-remplace (ordre d'acceptation, motif), jeu-seuil-abaisse",
   "EX-7.29": "trace seuil-inatteignable",
+  "EX-7.30": HORS("service d'approbation, étape 6 : chiffrement AES-256-GCM de chaque enregistrement de l'état (données associées de nature et de numéro, disposition sous state_dir/etat, refus de démarrer sur un enregistrement indéchiffrable) ; la bibliothèque ne persiste rien"),
   "EX-8.1": "EX-8.1 (réseau Hardhat, jeu_non_attendu) ; trace jeu-reassigne",
   "EX-8.2": "politiques-invalides/statique-* (AP-4) ; trace jeu-statique",
   "EX-8.3": "EX-8.3 ; trace non-pret ; trace jeu-illisible (jeu de repli)",
@@ -1487,6 +1500,8 @@ const COUVERTURE = {
   "EX-10.9": "trace contestation-apres-echeance",
   "EX-10.10": "traces (service : max_open_tickets, escalation) ; HORS : configuration de la console",
   "EX-10.11": "EX-7.13 (escalade sans effet sur l'état et l'échéance)",
+  "EX-10.12": HORS("service d'approbation, étape 6 : document configuration-approbation-v0 lu par --config, règles hors schéma de la table d'EX-10.12 (dont jeton_exige_production) et résolution des secrets ; la bibliothèque ne lit aucune configuration"),
+  "EX-10.13": HORS("serveur de console, étape 6 : document configuration-console-v0 lu par --config et règles hors schéma de la table d'EX-10.13"),
   "EX-11.1": "EX-11.1",
   "EX-11.2": "EX-11.1",
   "EX-11.3": "EX-11.3, EX-11.7",
@@ -1521,6 +1536,7 @@ const COUVERTURE = {
   "EX-12.18": "test/console.test.js : les méthodes de l'annuaire ne touchent qu'à l'annuaire (appliquerOperation) ; approbation.mjs n'en dépend pas",
   "EX-12.19": "test/console.test.js : AN-10 (controles-canal.json : retrait par le demandeur, par un administrateur, refus d'un approbateur qui présente by = launched_by) ; traces retrait (T10, retrait_non_autorise)",
   "EX-12.20": "test/observation.test.js : bloc annoté d'EX-12.20 conforme à ticket/reponse_evaluer et égal à evaluerObservation sur paiement-7400 ; reponseObservationAdmise refuse ticket, ticket_state, approval ou approver_set non nuls",
+  "EX-12.21": HORS("service d'approbation, étape 6 : méthode tickets du canal de la console (contest_ms, contest, related et ordre des refus de consulter) ; la bibliothèque ne tient aucune liste de tickets"),
   "EX-12.4": HORS("canal console → service authentifié (phase 2) ; session_identity inscrite dans les transitions"),
   "EX-13.1": "test/console.test.js : la page ne lit, ne reçoit ni ne dérive aucune clé (propriétés statiques) ; la signature est faite par le fournisseur simulé (Chromium) ; HORS : console d'exploitation (phase 2)",
   "EX-13.2": "test/console.test.js : contrôles 9 et 12 d'EX-9.15 (modeles/), controleVote (AN-8), scénario annuaire dans Chromium ; HORS : authentification de la console d'exploitation (phase 2)",
@@ -1559,6 +1575,18 @@ const COUVERTURE = {
   "EX-13.35": "test/console.test.js : en-têtes exacts, script en ligne non exécuté, innerHTML refusé, bibliothèque ou script d'entrée altérés bloqués, module sans intégrité bloqué par Integrity-Policy, page encadrée non chargée (Chromium)",
   "EX-13.36": "test/console.test.js : console de référence dans Chromium (sautée avec la raison si Playwright ou Chromium manque, sauf sous NOORTRACE_EXIGER_CHROMIUM=1, où elle échoue ; travail console-chromium de l'intégration continue)",
   "EX-13.37": "test/console.test.js : recopierAdministrateurs (opération changer_administrateurs, liste inchangée sans opération, liste invalide refusée), droits d'administrateur à partir de l'opération ; AN-9 (exports administrateurs-*)",
+  "EX-13.38": HORS("service d'approbation, étape 6 : annuaire et défis non expirés persistés chiffrés sous state_dir avant la réponse (EX-7.30), préséance à la reprise"),
+  "EX-13.39": HORS("service d'approbation, étape 6 : livraison par le service seul au webhook de notifications, boîte d'envoi ; la console n'en livre aucune"),
+  "EX-13.40": HORS("service d'approbation, étape 6 : document de notification ($defs/notification de configuration-approbation-v0) et destinataires"),
+  "EX-13.41": HORS("service d'approbation, étape 6 : en-tête NOORTRACE-Signature (HMAC-SHA256 de clé notifications.key)"),
+  "EX-13.42": HORS("service d'approbation, étape 6 : livraison au webhook (délai, reprises, abandon, file de 10 000, lignes du journal du service)"),
+  "EX-13.43": HORS("serveur de console, étape 6 : chemins et méthodes servis sous console_origin"),
+  "EX-13.44": HORS("serveur de console, étape 6 : GET /v0/sante ($defs/reponse_sante de console-service-v0) et commande noortrace-console sonde"),
+  "EX-13.45": HORS("serveur de console, étape 6 : découverte OIDC, flux par code avec PKCE et authentification du client"),
+  "EX-13.46": HORS("serveur de console, étape 6 : vérification du jeton d'identité par le serveur, jamais par la page"),
+  "EX-13.47": HORS("serveur de console, étape 6 : système d'identité local, refusé en production"),
+  "EX-13.48": HORS("serveur de console, étape 6 : sessions en mémoire, réauthentification"),
+  "EX-13.49": HORS("serveur de console, étape 6 : garde d'hôte, contrôle d'Origin, corps JSON et relais vers le service"),
   "EX-14.1": "trace plafond (défaut 20, par launched_by) ; EX-8.3, EX-14.1",
   "EX-14.2": HORS("regroupement des notifications, console (tickets refusés récents du même demandeur et du même outil)"),
   "EX-A.1": "génération déterministe ; racine étrangère et --sortie sans répertoire refusées",

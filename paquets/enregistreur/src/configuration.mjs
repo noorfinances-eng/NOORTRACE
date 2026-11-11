@@ -51,6 +51,23 @@ export const AVERTISSEMENT_OBSERVATION =
 /** Valeurs par défaut des membres facultatifs. */
 export const DEFAUTS = Object.freeze({ checkpoint_interval_s: 60 });
 
+/** Répertoire des exports quand `exports_dir` est absent (EX-15.12, révision 0.8). */
+export const REPERTOIRE_EXPORTS_DEFAUT = "/var/lib/noortrace-exports";
+
+/**
+ * Vrai si les deux chemins absolus sont égaux ou si l'un contient l'autre,
+ * comparés composant par composant (EX-15.4 pas 3, EX-15.12).
+ * @param {string} a
+ * @param {string} b
+ */
+export function cheminsEmboites(a, b) {
+  const ca = a.split("/").filter((x) => x !== "");
+  const cb = b.split("/").filter((x) => x !== "");
+  const n = Math.min(ca.length, cb.length);
+  for (let i = 0; i < n; i++) if (ca[i] !== cb[i]) return false;
+  return true;
+}
+
 function estObjet(v) {
   return v !== null && typeof v === "object" && !Array.isArray(v);
 }
@@ -131,6 +148,15 @@ export function reglesHorsSchema(c) {
   // Cadence des points de contrôle (EX-12.24).
   if (c.checkpoint_interval_s !== undefined && !cadenceAdmise(c.checkpoint_interval_s)) {
     err("/checkpoint_interval_s", "diviseur de 3600 entre 10 et 3600 attendu (EX-12.24)", c.checkpoint_interval_s);
+  }
+
+  // Répertoire des exports (révision 0.8, EX-15.4 pas 3, EX-15.12) :
+  // `exports_dir`, ou son défaut s'il est absent, n'est ni `storage.root`, ni
+  // un répertoire qui le contient, ni un répertoire qu'il contient. La
+  // validation seule : l'export (EX-15.13) n'est pas dans ce lot.
+  const exportsDir = c.exports_dir ?? REPERTOIRE_EXPORTS_DEFAUT;
+  if (typeof c.storage?.root === "string" && cheminsEmboites(exportsDir, c.storage.root)) {
+    err("/exports_dir", "ni storage.root, ni un répertoire qui le contient ou qu'il contient (EX-15.12)", exportsDir);
   }
 
   // Bail (EX-13.3, EX-13.10).
