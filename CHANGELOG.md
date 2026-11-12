@@ -6,6 +6,21 @@ is tagged.
 
 ## Unreleased
 
+- npm advisories in the development dependencies. `mocha` moves to 12.0.3 and
+  `@nomicfoundation/hardhat-toolbox-mocha-ethers` to 4.0.0, which brings
+  `@nomicfoundation/hardhat-mocha` 4.0.1; `overrides` scoped to mocha pin
+  `glob` 14.0.3 and `minimatch` 11.0.3, outside the ranges of
+  GHSA-3g3m-2fjr-6pw4 and GHSA-g3hv-75wg-m249; two more overrides pin the
+  transitive `brace-expansion` 5.0.12 and `@isaacs/nonrecursive-glob-match`
+  1.0.3, so that no package added by this change was published less than two
+  weeks before it. This clears the five mocha
+  entries of `npm audit` (`serialize-javascript`, `diff`, `glob`, `minimatch`
+  and `mocha` itself). Every development dependency is now pinned to an exact
+  version; Hardhat stays at 3.20.0. The 13 remaining high-severity entries all
+  come from one zod 3 advisory (GHSA-mrhx-c7xc-m3w5) that no Hardhat 3 release
+  lets us fix yet; `SECURITY.md` records why it is kept and when to revisit
+  it. The CI job `tests` now runs `npm audit --omit=dev --audit-level=low` and
+  fails on any advisory that reaches a production dependency.
 - Build step 6, the operating console and what surrounds it. `paquets/console`:
   the approval console of CT-3 §13, in three parts — a library run unchanged
   under Node and in the browser, shared with the approval service; a console
