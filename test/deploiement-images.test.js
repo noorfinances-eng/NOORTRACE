@@ -31,7 +31,7 @@ import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
 import * as pont from "../conteneurs/pont-stdio/noortrace-pont-stdio.mjs";
 import * as fichiers from "../conteneurs/pont-stdio/serveur-fichiers.mjs";
-import { IMAGES, controlerEpinglage, lignesFrom } from "../scripts/deploiement/construire-images.mjs";
+import { IMAGES, controlerEpinglage, lignesFrom, lireMagasin } from "../scripts/deploiement/construire-images.mjs";
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REP_IMAGES = path.join(RACINE, "conteneurs");
@@ -212,9 +212,12 @@ describe("Étape 7 : images noortrace/* et construction reproductible (CT-8 §3.
       }
     });
 
-    it("EX-3.13 : le script de construction fixe SOURCE_DATE_EPOCH et rewrite-timestamp, construit sans cache et sans attestation, ne pousse rien ; les étapes Node.js installent par npm ci --omit=dev sans dépendance facultative ni script ; les programmes de bin/ reçoivent la ligne de lancement /usr/local/bin/node", function () {
+    it("EX-3.13 : le script de construction fixe SOURCE_DATE_EPOCH et rewrite-timestamp (exportateur OCI, archive chargée), construit sans cache et sans attestation, ne pousse rien, refuse le magasin d'images classique de Docker (rewrite-timestamp y est ignoré) ; les étapes Node.js installent par npm ci --omit=dev sans dépendance facultative ni script ; les programmes de bin/ reçoivent la ligne de lancement /usr/local/bin/node", function () {
       const script = lire(RACINE, "scripts", "deploiement", "construire-images.mjs");
-      for (const m of ["rewrite-timestamp=true", "SOURCE_DATE_EPOCH", "--no-cache", "--provenance=false", "--sbom=false", "linux/amd64"]) expect(script, m).to.include(m);
+      for (const m of ["type=oci,", "rewrite-timestamp=true", "SOURCE_DATE_EPOCH", "--no-cache", "--provenance=false", "--sbom=false", "linux/amd64", '"load", "-i"']) expect(script, m).to.include(m);
+      // Sorties de `docker info --format '{{.Driver}} {{json .DriverStatus}}'` : Docker 29 (magasin containerd), Docker 28 par défaut (classique).
+      expect(lireMagasin('overlayfs [["driver-type","io.containerd.snapshotter.v1"]]\n')).to.equal("containerd");
+      expect(lireMagasin('overlay2 [["Backing Filesystem","extfs"],["Supports d_type","true"],["Using metacopy","false"],["Native Overlay Diff","true"],["userxattr","false"]]\n')).to.equal("classique (overlay2)");
       expect(/["']push["']/.test(script)).to.equal(false);
       for (const nom of ["enregistreur", "attributs", "approbation", "console"]) {
         const t = dockerfile(nom);

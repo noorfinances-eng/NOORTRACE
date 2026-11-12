@@ -698,8 +698,12 @@ jobs:
   # construction double, sans cache, depuis deux copies des sources, par
   # scripts/deploiement/construire-images.mjs (bases épinglées par condensé,
   # npm ci depuis le verrou) ; les condensés des deux constructions doivent
-  # être égaux. Aucune publication : rien n'est poussé vers un registre, aucune
-  # étiquette n'est créée. Puis test/deploiement-images.test.js sur ces images
+  # être égaux. Le démon Docker de l'exécuteur (Docker 28, magasin d'images
+  # classique) est d'abord passé au magasin containerd : l'exportateur du
+  # magasin classique ignore rewrite-timestamp, et les six images Node.js y
+  # avaient deux condensés différents (run 45). Aucune publication : rien
+  # n'est poussé vers un registre, aucune étiquette n'est créée. Puis
+  # test/deploiement-images.test.js sur ces images
   # (TE-15, TM-24, TM-26, TM-28), sans aucun essai en attente ; et la
   # préparation de la version à blanc (TV-55, partie mécanique de TQ-8 ;
   # go1.27.3), sans rien signer ni publier, sans essai en attente.
@@ -719,6 +723,17 @@ jobs:
           go-version: 1.27.3
           cache: false
       - run: npm ci
+      - name: magasin d'images containerd du démon Docker (celui du magasin classique ignore rewrite-timestamp)
+        run: |
+          set -euo pipefail
+          conf=/etc/docker/daemon.json
+          if sudo test -s "$conf"; then sudo cat "$conf" > "$RUNNER_TEMP/daemon.json"; else echo '{}' > "$RUNNER_TEMP/daemon.json"; fi
+          node -e 'const fs = require("fs"); const f = process.argv[1]; const c = JSON.parse(fs.readFileSync(f, "utf8")); c.features = { ...(c.features ?? {}), "containerd-snapshotter": true }; fs.writeFileSync(f, JSON.stringify(c, null, 2) + "\n");' "$RUNNER_TEMP/daemon.json"
+          sudo install -m 0644 "$RUNNER_TEMP/daemon.json" "$conf"
+          cat "$conf"
+          sudo systemctl restart docker
+          docker info --format '{{.ServerVersion}} {{.Driver}} {{json .DriverStatus}}' | tee "$RUNNER_TEMP/magasin.txt"
+          grep -F io.containerd.snapshotter.v1 "$RUNNER_TEMP/magasin.txt"
       - name: images noortrace/*, deux constructions sans cache aux mêmes condensés (CT-8 EX-3.13), sans publication
         run: |
           set -euo pipefail

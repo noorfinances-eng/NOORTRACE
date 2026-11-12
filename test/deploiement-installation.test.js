@@ -214,9 +214,13 @@ describe("CT-8 IC-2 : préparation de l'hôte (deploiement/hote/preparer-hote.sh
     const nfs = hoteSimule(path.join(TRAVAIL, "ic2-nfs"), { fs: "nfs4", installes: ["docker.io", "docker-compose-v2", "chrony", "curl", "openssl", "ca-certificates", "xz-utils"], actifs: ["docker", "chrony"] });
     const st = path.join(TRAVAIL, "ic2-nfs", "stockage");
     fs.mkdirSync(st);
-    const n = bash(PREPARER, ["--os-release", nfs.osRelease, "--stockage", st], { env: nfs.env });
-    expect(n.status).to.equal(1);
-    expect(n.stdout).to.include("jamais NFS ni SMB");
+    // --prefixe propre à l'essai : sans lui, la vérification lit $prefixe/bin/node de la machine
+    // d'essai (/usr/local/bin/node : Node.js 20 sur l'exécuteur ubuntu-24.04 de la CI), échoue
+    // à l'étape node et n'atteint jamais l'étape stockage.
+    const n = bash(PREPARER, ["--os-release", nfs.osRelease, "--prefixe", path.join(TRAVAIL, "ic2-nfs", "prefixe"), "--stockage", st], { env: nfs.env });
+    expect(n.status, n.stdout + n.stderr).to.equal(1);
+    expect(n.stdout).to.match(/^IC-2 node +déjà fait \(v22\.23\.4\)$/m);
+    expect(n.stdout).to.match(/^IC-2 stockage +échec : .* sur nfs4 : ext4, xfs ou btrfs exigé, jamais NFS ni SMB \(CT-2 EX-12\.2\)$/m);
   });
 
   it("TE-7 (IC-2) : l'archive officielle node-v22.23.4-linux-x64.tar.xz (NOORTRACE_ARCHIVE_NODE) a le SHA-256 épinglé : installée sur l'hôte simulé sans Node.js (code 0), node --version = v22.23.4 au procès-verbal, LICENSE de Node.js dans l'arbre extrait", function () {
@@ -266,6 +270,18 @@ const CADENCES = {
   "noortrace-sauvegarde.timer": ["SAUVEGARDE", "*-*-* 01:30:00"],
 };
 
+/**
+ * `systemd-analyze verify` des unités de `rep` (service gabarit instancié pour chaque tâche, et
+ * minuteurs), avec --recursive-errors=no : code de sortie, sortie d'erreur, et lignes qui citent
+ * l'un de nos fichiers (chemin sous `rep`) ou l'une de nos unités (`notres`).
+ */
+function verifierUnites(rep, env = {}) {
+  const unitesNommees = [...Object.values(CADENCES).map(([id]) => `noortrace-tache@${id}.service`), ...Object.keys(CADENCES)];
+  const v = spawnSync("systemd-analyze", ["verify", "--man=no", "--recursive-errors=no", ...unitesNommees], { encoding: "utf8", cwd: rep, env: { ...process.env, ...env } });
+  const notres = v.stderr.split("\n").filter((l) => l.includes(`${rep}/`) || /noortrace-(tache@[A-Za-z0-9-]*\.service|tp[1-8]\.timer|sauvegarde\.timer)/.test(l));
+  return { status: v.status, stderr: v.stderr, notres };
+}
+
 describe("CT-8 EX-8.6 : tâches planifiées TP-1 à TP-8 et sauvegarde (gabarits systemd de deploiement/taches/)", function () {
   this.timeout(120000);
 
@@ -304,9 +320,37 @@ describe("CT-8 EX-8.6 : tâches planifiées TP-1 à TP-8 et sauvegarde (gabarits
       enAttente(this, "systemd-analyze absent (systemd du système de référence)");
       return;
     }
-    const v = spawnSync("systemd-analyze", ["verify", "--man=no", ...Object.values(CADENCES).map(([id]) => `noortrace-tache@${id}.service`), ...Object.keys(CADENCES)], { encoding: "utf8", cwd: unites });
+    // Seules nos unités sont jugées : --recursive-errors=no (systemd 250 et suivants) ne compte que
+    // les diagnostics des unités nommées, et toute ligne qui cite l'un de nos fichiers ou de nos
+    // unités fait échouer l'essai. Les unités du système chargées en dépendance (docker.service,
+    // sysinit.target…) ne sont pas les nôtres : leurs avertissements, propres à la machine
+    // (system-xfs_scrub.slice, walinuxagent.service sur l'exécuteur de la CI), sont écartés.
+    const v = verifierUnites(unites);
     expect(v.status, v.stderr).to.equal(0);
-    expect(v.stderr).to.equal("");
+    expect(v.notres, v.stderr).to.deep.equal([]);
+    // Unité du système bruyante (même nom que celle dont dépend le service gabarit, placée devant le
+    // chemin de recherche du système) : nos unités restent acceptées.
+    const bruit = path.join(rep, "bruit");
+    fs.mkdirSync(bruit);
+    fs.writeFileSync(path.join(bruit, "docker.service"), "[Unit]\nDescription=unité du système simulée, bruyante\n[Service]\nMemoryLimit=1G\nCleInconnueDuSysteme=1\nExecStart=/bin/true\n");
+    const vb = verifierUnites(unites, { SYSTEMD_UNIT_PATH: `${bruit}:` });
+    expect(vb.status, vb.stderr).to.equal(0);
+    expect(vb.notres, vb.stderr).to.deep.equal([]);
+    // Le bruit est bien chargé : la vérification de toutes les dépendances (ancienne forme de l'essai,
+    // qui exigeait une sortie d'erreur vide) le rapporte, comme sur l'exécuteur de la CI.
+    const toutes = spawnSync("systemd-analyze", ["verify", "--man=no", "noortrace-tache@TP-1.service"], { encoding: "utf8", cwd: unites, env: { ...process.env, SYSTEMD_UNIT_PATH: `${bruit}:` } });
+    expect(toutes.stderr).to.include(`${path.join(bruit, "docker.service")}:`);
+    // Témoin : une erreur dans nos unités fait toujours échouer la vérification.
+    const fausses = path.join(rep, "unites-fausses");
+    fs.cpSync(unites, fausses, { recursive: true });
+    const tp1 = path.join(fausses, "noortrace-tp1.timer");
+    fs.writeFileSync(tp1, fs.readFileSync(tp1, "utf8").replace("Persistent=true\n", "Persistent=true\nCleInconnue=1\n"));
+    const gabarit = path.join(fausses, "noortrace-tache@.service");
+    fs.writeFileSync(gabarit, fs.readFileSync(gabarit, "utf8").replace("ExecStart=/bin/bash ", "ExecStart=/bin/bash-absent "));
+    const vf = verifierUnites(fausses, { SYSTEMD_UNIT_PATH: `${bruit}:` });
+    expect(vf.status).to.not.equal(0);
+    expect(vf.notres.some((l) => l.includes("noortrace-tp1.timer") && l.includes("CleInconnue")), vf.stderr).to.equal(true);
+    expect(vf.notres.some((l) => l.startsWith("noortrace-tache@TP-1.service") && l.includes("/bin/bash-absent")), vf.stderr).to.equal(true);
   });
 
   it("TE-7 (TP-1 à TP-8) : executer-tache.sh consigne une ligne horodatée avec le code de sortie de chaque exécution (EX-8.6) ; tâche sans commande du client : code 3 ; tâche inconnue : code 2", function () {

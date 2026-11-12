@@ -38,7 +38,7 @@
       },
       {
         "file": "spec/CT-8-deploiement-et-exploitation.md",
-        "sha256": "62633ec4d58a844baa76ee7c3c23f336ad9b5ad6adc5867be99b37a2d4075788"
+        "sha256": "b66740731fa0b5292079f067acb2eb308071f754ecde4488c33ab0534b72b9a6"
       }
     ],
     "catalogue": {
@@ -236,11 +236,11 @@
       },
       {
         "file": "test/deploiement-images.test.js",
-        "sha256": "20e6d09d4621540ae0da9252b8f29ffcf39f3951565bb7afcfd4cfd17d980224"
+        "sha256": "7109b38d8f3358cbf495f6fb06ec62dc9cc5f458aed0ec887d3089b8364767fb"
       },
       {
         "file": "test/deploiement-installation.test.js",
-        "sha256": "b7fc424877fec395268ddb1b6b2eca809caaa6fd933c23a148d3e71210771aa8"
+        "sha256": "7019891a2a74ad02454129cb041959665c46faa6ae4752412129e66ad85dd58c"
       },
       {
         "file": "test/deploiement-supervision.test.js",

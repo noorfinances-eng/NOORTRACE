@@ -66,4 +66,7 @@ renommage, pour le collecteur de fichiers de l'exportateur de nœud
 (`127.0.0.1:9100`). Les images se construisent depuis la racine du dépôt par
 `node scripts/deploiement/construire-images.mjs --double --sortie <répertoire>`
 (outil de la personne qui construit, hors de l'archive) ; aucune image n'est
-poussée vers un registre.
+poussée vers un registre. Le démon Docker doit employer le magasin d'images
+containerd (`/etc/docker/daemon.json` : `{"features": {"containerd-snapshotter":
+true}}`, défaut de Docker 29) : avec le magasin classique, défaut de Docker 28,
+l'option `rewrite-timestamp` est ignorée et le script refuse de construire.

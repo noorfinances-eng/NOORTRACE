@@ -965,30 +965,30 @@ EX-14.8, R9-F55) ; deux fois, sans cache, depuis deux copies des sources à
 deux chemins et à deux instants (heures des fichiers différentes), et les deux
 condensés DOIVENT être égaux avant publication ; deux machines sont l'épreuve
 de la porte 2. L'heure de chaque fichier est fixée à `SOURCE_DATE_EPOCH` dans
-l'étape de construction : l'option `rewrite-timestamp` de BuildKit ne ramène
-que les heures postérieures (constaté à l'étape 7). Le même procédé vaut pour
-le binaire `noortrace-verifier` et pour la page et les scripts de la console
-(CT-3 EX-13.4). La recette est `scripts/deploiement/construire-images.mjs
---double --sortie <répertoire> [--archive] [--ca <PEM>]` (codes 0, 1 et 2),
-qui écrit le relevé `condenses.json` et, avec `--archive`, l'archive `docker
-save` des sept images. L'égalité des deux constructions est une mesure de CT-9
-(porte 2). Six images construites le 2026-11-12, `linux/amd64`, étiquette
-`0.1.0`, `SOURCE_DATE_EPOCH` 1794475464, deux constructions sans cache aux
-mêmes condensés, non publiées :
+l'étape de construction ; l'image est écrite par l'exportateur OCI de BuildKit
+(`rewrite-timestamp=true`) et chargée par `docker load`, son identifiant égal
+au condensé. Même procédé pour `noortrace-verifier` et la console (CT-3
+EX-13.4). Recette : `scripts/deploiement/construire-images.mjs --double
+--sortie <rép.> [--archive] [--ca <PEM>]` (codes 0, 1, 2), qui écrit
+`condenses.json` et, avec `--archive`, l'archive `docker save` des sept images.
+L'égalité des deux constructions est une mesure de CT-9 (porte 2). Le moteur
+DOIT employer le magasin d'images containerd : le magasin classique ignore
+`rewrite-timestamp` et les répertoires créés par COPY gardent l'heure de la
+construction (Docker Engine 28.0.4, étape 7) ; la recette le refuse. Le
+condensé dépend de la révision ; pour `a0efd61` (`linux/amd64`, `0.1.0`, époque
+1794520402), mêmes condensés en double construction, Docker 28.0.4 et 29.8.2 :
 
 | Image | Condensé |
 |---|---|
-| `noortrace/enregistreur:0.1.0` | `sha256:41342221182551f71c68b9fad7dd1cdcfcd32f7a1d3e35178a80a9cefe4d8872` (reconstruite le même jour après la révision 0.9 de CT-5, une construction : `sha256:e71be3f05ca349899101bb4b75a98dad3d4d64ff4a49d1d2f51e979cfebedb29`) |
-| `noortrace/attributs:0.1.0` | `sha256:4ea7d679534a8bad83260f15cc6e51f4fc3b299b73eec29fced907dddb5887e4` |
-| `noortrace/approbation:0.1.0` | `sha256:2406cf2b7e9d3cb45266439150e7f811940f4c4bff8ca27950882e2a3b4e7bdf` |
-| `noortrace/console:0.1.0` | `sha256:7ff00dbeb0e7e5a0bbc0f63850fb5ca097f256196c3384b4d89d044fb4f50ea1` |
-| `noortrace/pont-stdio:0.1.0` | `sha256:1b1cd77dbfd949304e0420c416af538a94ee0613811b5ce2cd04272815ce67a5` |
-| `noortrace/verificateur:0.1.0` | `sha256:323e3bb337099fb2e6912ef5d9f48d0de819eab156b5b05339029b78763ea14c` |
-| `noortrace/tsa-interne:0.1.0` (révision 0.7) | `sha256:f298a3646083b8b41709ac19dfc248d37c5b55a05dea1ffe6067fc91a4beff20` (deux constructions sans cache, mêmes condensés) |
+| `noortrace/enregistreur:0.1.0` | `sha256:e220718005da15779ccea6416b0d7aa72184dd33b4eb4e6f913f8e44805665bf` |
+| `noortrace/attributs:0.1.0` | `sha256:79e24db204b6f339efbf73b3a3bbf6add5b8b21b4a948082c9f1132526ffa407` |
+| `noortrace/approbation:0.1.0` | `sha256:8f78dc459c45693e8d1c0451e1ea62dc6ff25a95f20d72cb9c8ece7cbfa46a42` |
+| `noortrace/console:0.1.0` | `sha256:e7ef6b5dde00796088cbcc883a9291f35e3964c2e51d7dd050f31914901a5f39` |
+| `noortrace/pont-stdio:0.1.0` | `sha256:0f6ebc6ac57efd6db99b3d3314bd32bcccfeb58560313b191d000093b5b0066e` |
+| `noortrace/verificateur:0.1.0` | `sha256:d6379bfb8708bc41b3728b611f0e269c5b3f6bf461dc1b76c8e91aa6aef09a59` |
+| `noortrace/tsa-interne:0.1.0` | `sha256:15c161c14280bdf21907cc96692fa5128ddb0d85155019c77b082a9ac51dbef7` |
 
-Ces condensés valent pour l'arbre de travail de la construction (étiquette
-`org.opencontainers.image.revision` suffixée `-modifie`) ; la version publiée
-aura les siens, ceux de sa note de version.
+Non publiés ; une autre révision, ou une version publiée, a ses condensés.
 
 **EX-3.14** **Publication.** Pour chaque version, l'exploitant NOORTRACE DOIT
 publier hors des serveurs qui servent les images et la console (note de version

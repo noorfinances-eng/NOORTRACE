@@ -59,7 +59,7 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
   index-ta-par-menace.json : 102 menaces, 0 défaut(s) (test, état, scénarios)
 
 5. Titres de tests et étapes de CI cités par les entrées exécutables (règle (d), EX-4.2)
-  test/*.test.js : 146 fichiers, 706 describe, 2929 it ; ci.yml : 67 étapes « - name: »
+  test/*.test.js : 146 fichiers, 706 describe, 2929 it ; ci.yml : 68 étapes « - name: »
   252 entrées exécutables citent 605 titres ou étapes ; 0 absent(s)
   couverture.json : 252 exécutables, 605 cités, 0 absent(s)
 

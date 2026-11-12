@@ -7413,6 +7413,52 @@
           "apres": "8a258f597bd09b0a39d20ba2cfdd58af844076596d35416941a1cd7fb265a990"
         }
       ]
+    },
+    {
+      "id": "MC-56",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "Correctifs du run 45 de l'intégration continue, sans changement de texte normatif : test/deploiement-images.test.js (EX-3.13 : exportateur OCI, archive chargée, magasin d'images classique de Docker refusé) et test/deploiement-installation.test.js (TE-7 IC-2 : préfixe propre à l'essai du stockage NFS, la vérification ne lit plus le node de /usr/local/bin de la machine ; TE-7 TP-1 à TP-8 : systemd-analyze verify ne juge que nos unités, --recursive-errors=no, unité du système bruyante simulée, témoin d'unité fausse) modifiés : SHA-256 des deux fichiers dans couverture.json ; ci.yml gagne une étape nommée (magasin d'images containerd du travail images) : recompte de 67 à 68 étapes dans confrontation/sorties/recompte.txt ; vecteurs ct-9 régénérés (deux générations aux mêmes octets, couverture reussi, recompte égal à la sortie publiée, Go à 0 discordance)",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "0391bb787c3bc2c420696b93db069bd0e19e1ed46ccba8a92ca718d440793a9d",
+          "apres": "4e81fb2f2435290c9bb2e1c26fd5213c31f96e8feedf48f27de5ca7fbb2ab692"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "48973486730b1c5d3f7ee51b5cf26f916f55e7732e40ca838a198851e1644c36",
+          "apres": "ef0515b2db4a9924216b7c18588fbe1b3a5066e5b110a2cb67bd19623458b7d8"
+        }
+      ]
+    },
+    {
+      "id": "MC-57",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-8 EX-3.13 : construction par l'exportateur OCI de BuildKit avec rewrite-timestamp et chargement par docker load, magasin d'images containerd exigé (le magasin classique de Docker Engine 28.0.4 ignore rewrite-timestamp, constaté en intégration continue, run 45) ; table des condensés remplacée par ceux de la révision a0efd61, égaux en double construction sous Docker 28.0.4 et 29.8.2 ; extrait de CT-8 et couverture de CT-9 régénérés.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "62633ec4d58a844baa76ee7c3c23f336ad9b5ad6adc5867be99b37a2d4075788",
+          "apres": "b66740731fa0b5292079f067acb2eb308071f754ecde4488c33ab0534b72b9a6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "ef0515b2db4a9924216b7c18588fbe1b3a5066e5b110a2cb67bd19623458b7d8",
+          "apres": "792c18cf3dc58980fbfe89a875799bc65c6a82337d84ade7e7f0798869b7ecb4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "02fa10d9026e314b27c16ea96b58dae5bcede96bd52c3721b880e133dd0baa34",
+          "apres": "d40aa292a99291b138b81e09366e639021404f7e278a9ba86e721e3951aa2553"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "8a258f597bd09b0a39d20ba2cfdd58af844076596d35416941a1cd7fb265a990",
+          "apres": "5c6d61ffd304f2d4647e036dda9996012c741077912878f988a36242aa5dfcb0"
+        }
+      ]
     }
   ]
 }

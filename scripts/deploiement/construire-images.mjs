@@ -8,23 +8,39 @@
 // racine du dépôt, filtré par <nom>/Dockerfile.dockerignore) :
 //   - vérifie que chaque `FROM` désigne son image par étiquette exacte ET
 //     condensé (`<nom>:<étiquette>@sha256:<64 hex>`), ou une étape antérieure ;
+//   - exige le magasin d'images containerd du démon Docker (`docker info` :
+//     pilote io.containerd.snapshotter.v1) et refuse le magasin classique
+//     (pilote overlay2, celui de Docker 28 par défaut, code 1) : son
+//     exportateur ignore sans message l'option rewrite-timestamp, et chaque
+//     répertoire parent qu'un COPY crée dans l'image finale (usr/,
+//     usr/local/bin/ de `COPY … /usr/local/bin/node`, opt/) garde l'heure de
+//     la construction, d'où deux condensés différents (constaté en CI sous
+//     Docker 28.0.4) ;
 //   - construit avec BuildKit (`docker buildx build`, constructeur `default`),
 //     `--no-cache`, plate-forme linux/amd64, sans attestation (provenance et
 //     SBOM portent des instants), `SOURCE_DATE_EPOCH` = date du commit HEAD
 //     (ou la variable d'environnement si elle est posée), exportateur
-//     `type=image,rewrite-timestamp=true` : l'heure de l'image et de chaque
-//     fichier des couches est ramenée à SOURCE_DATE_EPOCH ;
-//   - étiquette le résultat `noortrace/<nom>:<version>` ;
+//     `type=oci,rewrite-timestamp=true` vers une archive de travail : toute
+//     heure de l'image ou d'un fichier des couches postérieure à
+//     SOURCE_DATE_EPOCH y est ramenée. L'exportateur `type=image` n'est pas
+//     employé : Docker 28 avec le magasin containerd le refuse avec
+//     rewrite-timestamp (« conflicts with "unpack" ») ;
+//   - charge l'archive (`docker load`) sous l'étiquette
+//     `noortrace/<nom>:<version>` et vérifie que l'identifiant de l'image
+//     chargée (`docker image inspect`) est le condensé de manifeste de la
+//     construction ;
 //   - avec --double, construit une seconde fois, sans cache, depuis une copie
 //     des fichiers du contexte à un autre chemin (heures de fichiers ramenées au
-//     2000-01-01),
-//     à un autre instant, sous l'étiquette provisoire
-//     `noortrace-reconstruction/<nom>:<version>`, compare les deux condensés
-//     de manifeste, puis retire l'étiquette provisoire ;
+//     2000-01-01), à un autre instant, et compare les deux condensés de
+//     manifeste ; l'archive de la seconde construction n'est pas chargée.
+//     « Sans cache » vaut pour chaque COPY et chaque RUN ; les images de
+//     base déjà présentes ne sont pas retirées (elles sont épinglées par
+//     condensé), et BuildKit marque CACHED la résolution des FROM et le
+//     répertoire vide de WORKDIR : d'où une seconde construction plus courte ;
 //   - avec --sortie, écrit <sortie>/condenses.json (condensés, tailles,
-//     images de base, SOURCE_DATE_EPOCH, révision) et, avec --archive,
-//     <sortie>/noortrace-images-<version>.tar (`docker save` des images
-//     étiquetées, pour un banc sans registre : `docker load -i …`).
+//     images de base, SOURCE_DATE_EPOCH, révision, magasin d'images) et,
+//     avec --archive, <sortie>/noortrace-images-<version>.tar (`docker save`
+//     des images étiquetées, pour un banc sans registre : `docker load -i …`).
 // Rien n'est poussé vers un registre (aucun `docker push`), aucune étiquette
 // git n'est posée.
 //
@@ -34,7 +50,8 @@
 // BuildKit, jamais écrit dans une couche.
 //
 // Codes : 0 construit (et, avec --double, condensés égaux) ; 1 échec de
-// construction, épinglage refusé, ou condensés différents ; 2 usage.
+// construction, épinglage refusé, magasin d'images classique ou Docker
+// injoignable, ou condensés différents ; 2 usage.
 
 import fs from "node:fs";
 import os from "node:os";
@@ -137,11 +154,14 @@ function docker(args, o = {}) {
 }
 
 /**
- * Construit une image ; rend son condensé de manifeste.
- * @param {{nom: string, contexte: string, version: string, sde: string, revision: string, etiquette: string, ca?: string|null, journal: string}} o
+ * Construit une image ; rend son condensé de manifeste. L'archive OCI de
+ * travail est chargée dans le magasin local si `charger`, puis supprimée.
+ * @param {{nom: string, contexte: string, version: string, sde: string, revision: string, etiquette: string, ca?: string|null, journal: string, charger: boolean}} o
  */
 export function construire(o) {
-  const meta = path.join(o.journal, `${o.etiquette.replace(/[/:]/g, "_")}.metadata.json`);
+  const base = o.etiquette.replace(/[/:]/g, "_");
+  const meta = path.join(o.journal, `${base}.metadata.json`);
+  const archive = path.join(o.journal, `${base}.oci.tar`);
   const args = [
     "buildx", "build", "--builder", "default", "--no-cache", "--platform", "linux/amd64",
     "--provenance=false", "--sbom=false",
@@ -149,18 +169,45 @@ export function construire(o) {
     "--build-arg", `VERSION=${o.version}`,
     "--build-arg", `REVISION=${o.revision}`,
     "--metadata-file", meta,
-    "--output", `type=image,name=${o.etiquette},rewrite-timestamp=true,unpack=false`,
+    "--output", `type=oci,dest=${archive},name=${o.etiquette},rewrite-timestamp=true`,
     "-f", path.join(o.contexte, "conteneurs", o.nom, "Dockerfile"),
   ];
   if (o.ca) args.push("--secret", `id=ca_bundle,src=${o.ca}`);
   args.push(o.contexte);
-  const r = docker(args, { env: { SOURCE_DATE_EPOCH: o.sde, BUILDX_NO_DEFAULT_ATTESTATIONS: "1" } });
-  fs.writeFileSync(path.join(o.journal, `${o.etiquette.replace(/[/:]/g, "_")}.log`), `${r.stdout}${r.stderr}`);
-  if (r.status !== 0) throw new Error(`construction de ${o.etiquette} en échec (code ${r.status}) ; journal : ${o.journal}\n${r.stderr.split("\n").slice(-15).join("\n")}`);
-  const m = JSON.parse(fs.readFileSync(meta, "utf8"));
-  const condense = m["containerimage.digest"];
-  if (!/^sha256:[0-9a-f]{64}$/.test(condense ?? "")) throw new Error(`condensé illisible pour ${o.etiquette}`);
-  return condense;
+  try {
+    const r = docker(args, { env: { SOURCE_DATE_EPOCH: o.sde, BUILDX_NO_DEFAULT_ATTESTATIONS: "1" } });
+    fs.writeFileSync(path.join(o.journal, `${base}.log`), `${r.stdout}${r.stderr}`);
+    if (r.status !== 0) throw new Error(`construction de ${o.etiquette} en échec (code ${r.status}) ; journal : ${o.journal}\n${r.stderr.split("\n").slice(-15).join("\n")}`);
+    const m = JSON.parse(fs.readFileSync(meta, "utf8"));
+    const condense = m["containerimage.digest"];
+    if (!/^sha256:[0-9a-f]{64}$/.test(condense ?? "")) throw new Error(`condensé illisible pour ${o.etiquette}`);
+    if (o.charger) {
+      const l = docker(["load", "-i", archive]);
+      if (l.status !== 0) throw new Error(`docker load de ${o.etiquette} en échec (code ${l.status}) : ${l.stderr}`);
+      const id = docker(["image", "inspect", "--format", "{{.Id}}", o.etiquette]);
+      if (id.status !== 0 || id.stdout.trim() !== condense) throw new Error(`${o.etiquette} chargée sous l'identifiant ${id.stdout.trim() || "(absent)"}, attendu ${condense}`);
+    }
+    return condense;
+  } finally {
+    fs.rmSync(archive, { force: true });
+  }
+}
+
+/**
+ * Magasin d'images du démon, d'après `docker info --format '{{.Driver}} {{json .DriverStatus}}'` :
+ * `containerd` (pilote io.containerd.snapshotter.v1) ou `classique (<pilote>)`.
+ * @param {string} sortie
+ */
+export function lireMagasin(sortie) {
+  const texte = sortie.trim();
+  if (texte.includes("io.containerd.snapshotter.v1")) return "containerd";
+  return `classique (${texte.split(/\s+/)[0] || "pilote inconnu"})`;
+}
+
+/** Magasin d'images du démon local, ou null si `docker info` échoue. */
+export function magasinImages() {
+  const r = docker(["info", "--format", "{{.Driver}} {{json .DriverStatus}}"]);
+  return r.status === 0 ? lireMagasin(r.stdout) : null;
 }
 
 /** Taille de l'image dans le magasin local (`docker image inspect`, `Size`). */
@@ -232,19 +279,31 @@ export async function principal(argv, io = {}) {
       return 1;
     }
   }
+  const magasin = magasinImages();
+  if (magasin === null) {
+    err.write("docker info en échec : Docker absent ou démon dockerd injoignable\n");
+    return 1;
+  }
+  if (magasin !== "containerd") {
+    err.write(
+      `magasin d'images ${magasin} : refusé. Son exportateur ignore rewrite-timestamp ; les répertoires que COPY crée dans l'image finale gardent l'heure de la construction, et deux constructions ne donnent pas le même condensé. ` +
+        `Activer le magasin containerd du démon (/etc/docker/daemon.json : {"features": {"containerd-snapshotter": true}}), redémarrer dockerd, puis relancer.\n`,
+    );
+    return 1;
+  }
   const sde = sourceDateEpoch();
   const rev = revision();
   const travail = fs.mkdtempSync(path.join(os.tmpdir(), "noortrace-images-"));
   const journal = path.join(travail, "journaux");
   fs.mkdirSync(journal);
-  err.write(`SOURCE_DATE_EPOCH=${sde} (${new Date(Number(sde) * 1000).toISOString()}), révision ${rev}, journaux sous ${journal}\n`);
-  const resultat = { version: 0, images_version: o.version, source_date_epoch: Number(sde), revision: rev, plateforme: "linux/amd64", bases: imagesDeBase(noms), images: {} };
+  err.write(`SOURCE_DATE_EPOCH=${sde} (${new Date(Number(sde) * 1000).toISOString()}), révision ${rev}, magasin d'images ${magasin}, journaux sous ${journal}\n`);
+  const resultat = { version: 0, images_version: o.version, source_date_epoch: Number(sde), revision: rev, plateforme: "linux/amd64", magasin_images: magasin, bases: imagesDeBase(noms), images: {} };
   let code = 0;
   try {
     for (const nom of noms) {
       const etiquette = `noortrace/${nom}:${o.version}`;
       const t0 = Date.now();
-      const c1 = construire({ nom, contexte: RACINE, version: o.version, sde, revision: rev, etiquette, ca: o.ca ?? null, journal });
+      const c1 = construire({ nom, contexte: RACINE, version: o.version, sde, revision: rev, etiquette, ca: o.ca ?? null, journal, charger: true });
       const entree = { image: `noortrace/${nom}`, tag: o.version, condense: c1, reference: `${etiquette}@${c1}`, octets: tailleImage(etiquette), duree_s: Math.round((Date.now() - t0) / 1000) };
       err.write(`${etiquette} : ${c1} (${entree.duree_s} s)\n`);
       resultat.images[nom] = entree;
@@ -254,11 +313,10 @@ export async function principal(argv, io = {}) {
       copierContexte(copie);
       for (const nom of noms) {
         const etiquette = `noortrace-reconstruction/${nom}:${o.version}`;
-        const c2 = construire({ nom, contexte: copie, version: o.version, sde, revision: rev, etiquette, ca: o.ca ?? null, journal });
+        const c2 = construire({ nom, contexte: copie, version: o.version, sde, revision: rev, etiquette, ca: o.ca ?? null, journal, charger: false });
         const e = resultat.images[nom];
         e.condense_seconde_construction = c2;
         e.egal = c2 === e.condense;
-        docker(["image", "rm", etiquette]);
         err.write(`${nom} : seconde construction ${c2} ${e.egal ? "égale" : "DIFFÉRENTE"}\n`);
         if (!e.egal) code = 1;
       }
