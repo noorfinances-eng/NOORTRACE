@@ -1,0 +1,615 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/console-service.schema.json",
+  "title": "Canal console → service d'approbation v0 (CT-3 révisions 0.3 et 0.5, 12.9)",
+  "description": "Corps des requêtes et des réponses des méthodes que la console appelle sur le service (POST <base>/v0/<méthode>, EX-12.1, EX-12.4), hors consulter et voter, que définit console-approbation-v0 (CT-3 12.9, révision 0.3) ; reponse_session est la méthode session du serveur de console (EX-13.33). Les entrées recuser et retirer reprennent exactement les données de 7.4 (ticket-v0 $defs/entree). Une erreur a la forme de 12.8. Révision 0.5, compatible (aucun document conforme à la révision 0.3 n'est refusé) : requete_tickets admet related_to ; chaque ticket de reponse_tickets admet contest_ms et contest, et la réponse admet related (EX-12.21) ; reponse_session admet delai_signature_ms (EX-13.48) ; définitions nouvelles du serveur de console pour sa propre page, jamais relayées au service : requete_connexion_locale (EX-13.47), reponse_sante (EX-13.44) et code_serveur_console (EX-13.49).",
+  "$defs": {
+    "adresse": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/adresse"
+    },
+    "hex32": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/hex32"
+    },
+    "horodatage": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/horodatage"
+    },
+    "identifiant_ticket": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/identifiant_ticket"
+    },
+    "etat": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/etat"
+    },
+    "identite_session": {
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/identite_session"
+    },
+    "identifiant_entree": {
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/identifiant_entree"
+    },
+    "motif": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      ]
+    },
+    "requete_recuser": {
+      "description": "Méthode recuser : exactement les données (data) de l'entrée recuser de 7.4 ($defs/entree de ticket-v0), sans kind ni at, at étant l'instant de réception ; le service contrôle, avant de former l'entrée, que approver est l'adresse active de l'entrée active de session_identity, sinon session_non_autorisee (EX-12.16).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket",
+        "approver",
+        "session_identity"
+      ],
+      "properties": {
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "approver": {
+          "$ref": "#/$defs/adresse"
+        },
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        }
+      }
+    },
+    "requete_retirer": {
+      "description": "Méthode retirer : les données de l'entrée retirer de 7.4, avec session_identity obligatoire sur le canal de la console. by est le launched_by du ticket quand le demandeur retire, ou l'identité de session d'un administrateur ; le service contrôle, avant de former l'entrée, que la session est celle du demandeur (alias de demandeur de son entrée active) ou d'un administrateur, sinon session_non_autorisee (EX-12.19, EX-7.15).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket",
+        "by",
+        "reason",
+        "session_identity"
+      ],
+      "properties": {
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "reason": {
+          "$ref": "#/$defs/motif"
+        },
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        }
+      }
+    },
+    "reponse_etat": {
+      "description": "Réponse de recuser et retirer acceptés (même forme que reponse_voter de console-approbation-v0) : l'état du ticket après l'entrée.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket",
+        "state"
+      ],
+      "properties": {
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "state": {
+          "$ref": "#/$defs/etat"
+        }
+      }
+    },
+    "requete_tickets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        },
+        "related_to": {
+          "description": "Révision 0.5 : identifiant du ticket dont la console affiche l'écran ; facultatif (EX-12.21).",
+          "$ref": "#/$defs/identifiant_ticket"
+        }
+      },
+      "description": "Méthode tickets (EX-12.14, EX-12.21). Sans related_to : les tickets non décidés que la session peut voir. Avec related_to (révision 0.5) : en plus, dans related, les tickets décidés refuse ou expire du même demandeur et du même outil que ce ticket ; related_to suit alors l'ordre des refus de consulter (EX-12.14)."
+    },
+    "reponse_tickets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tickets"
+      ],
+      "properties": {
+        "tickets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ticket",
+              "state",
+              "tool_announced",
+              "launched_by",
+              "deadline",
+              "votes_approuve",
+              "votes_refuse",
+              "effective_required"
+            ],
+            "properties": {
+              "ticket": {
+                "$ref": "#/$defs/identifiant_ticket"
+              },
+              "state": {
+                "$ref": "#/$defs/etat"
+              },
+              "tool_announced": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "launched_by": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "deadline": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/$defs/horodatage"
+                  }
+                ]
+              },
+              "votes_approuve": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "votes_refuse": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "effective_required": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                ]
+              },
+              "contest_ms": {
+                "description": "Révision 0.5 : contest_ms du ticket, celui de la règle retenue, figé à la réservation (T1, 5.6) ; 0 : ni fenêtre ni objection (EX-10.6).",
+                "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/ms"
+              },
+              "contest": {
+                "description": "Révision 0.5 : état de la fenêtre de contestation, sous la forme exacte du membre contest de la vue du ticket (EX-12.14, EX-10.9) : fin de la fenêtre en cours, objections non levées, dernier instant où le seuil doit être atteint.",
+                "$ref": "https://noortrace.example/schemas/v0/console-approbation.schema.json#/$defs/vue_ticket/properties/contest"
+              }
+            }
+          }
+        },
+        "related": {
+          "description": "Révision 0.5 : tickets dont la décision scellée est refuse ou expire, de même launched_by et de même tool_announced que le ticket related_to, scellés depuis moins de son expire_after_ms à l'instant de la requête ; au plus 20, du plus récent au plus ancien (EX-12.21).",
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ticket",
+              "decision",
+              "decided_at",
+              "reason"
+            ],
+            "properties": {
+              "ticket": {
+                "$ref": "#/$defs/identifiant_ticket"
+              },
+              "decision": {
+                "enum": [
+                  "refuse",
+                  "expire"
+                ]
+              },
+              "decided_at": {
+                "description": "sealed.approval.at de ticket-v0 : l'instant de la décision scellée (EX-12.21).",
+                "$ref": "#/$defs/horodatage"
+              },
+              "reason": {
+                "description": "sealed.approval.reason de ticket-v0 : le motif de la décision scellée.",
+                "$ref": "#/$defs/motif"
+              }
+            }
+          }
+        }
+      },
+      "description": "Réponse de tickets (EX-12.14, EX-12.21). Depuis la révision 0.5, un service conforme porte contest_ms et contest dans chaque ticket, et related quand la requête porte related_to, et seulement alors ; le schéma les admet absents pour les documents de la révision 0.3."
+    },
+    "requete_annuaire": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        }
+      }
+    },
+    "reponse_annuaire": {
+      "description": "Annuaire complet pour un administrateur ; pour toute autre session, le même document réduit à l'entrée de la session (entries de 0 ou 1 élément) et aux opérations qui la concernent (EX-12.17).",
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json"
+    },
+    "requete_preparer_inscription": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "address"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        },
+        "address": {
+          "$ref": "#/$defs/adresse"
+        }
+      }
+    },
+    "reponse_preparer_inscription": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fields",
+        "message"
+      ],
+      "properties": {
+        "fields": {
+          "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/champs_inscription"
+        },
+        "message": {
+          "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/message_inscription"
+        }
+      }
+    },
+    "requete_inscrire": {
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/requete_inscrire"
+    },
+    "reponse_adresse": {
+      "description": "Réponse de inscrire, valider et revoquer acceptés.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry",
+        "address",
+        "state",
+        "revision"
+      ],
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "address": {
+          "$ref": "#/$defs/adresse"
+        },
+        "state": {
+          "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/etat_adresse"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "requete_valider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "entry",
+        "address"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        },
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "address": {
+          "$ref": "#/$defs/adresse"
+        }
+      }
+    },
+    "requete_revoquer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "entry",
+        "address",
+        "reason"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        },
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "address": {
+          "$ref": "#/$defs/adresse"
+        },
+        "reason": {
+          "$ref": "#/$defs/motif"
+        }
+      }
+    },
+    "requete_entree": {
+      "description": "Méthodes desactiver et reactiver.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "entry",
+        "reason"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        },
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "reason": {
+          "$ref": "#/$defs/motif"
+        }
+      }
+    },
+    "requete_demandeur": {
+      "description": "Méthodes lier_demandeur et delier_demandeur.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "entry",
+        "launched_by"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        },
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "launched_by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "reponse_entree": {
+      "description": "Réponse de desactiver, reactiver, lier_demandeur et delier_demandeur acceptés.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry",
+        "active",
+        "requester_identities",
+        "revision"
+      ],
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "requester_identities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "erreur": {
+      "description": "Forme d'une erreur (12.8) ; code est une raison de la table 12.8, y compris celles que la révision 0.3 ajoute pour l'annuaire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message",
+            "data"
+          ],
+          "properties": {
+            "code": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            },
+            "message": {
+              "type": "string",
+              "pattern": "^[ -~]*$",
+              "maxLength": 1024
+            },
+            "data": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "requete_session": {
+      "description": "Requête de la méthode session, servie par le serveur de console à sa propre page sans être relayée au service (12.9, EX-13.33) : un objet vide.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "reponse_session": {
+      "description": "Réponse de la méthode session que le serveur de la console sert à sa propre page (EX-13.33) : l'identité de session canonique, l'instant de la dernière authentification active et le rôle d'administrateur ; jamais transmise au service. Depuis la révision 0.5, le serveur y porte aussi delai_signature_ms.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "auth_time",
+        "administrator",
+        "reauth_max_age_s"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_session"
+        },
+        "auth_time": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "administrator": {
+          "type": "boolean"
+        },
+        "reauth_max_age_s": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600
+        },
+        "delai_signature_ms": {
+          "description": "Révision 0.5 : delai_signature_ms de la configuration du serveur de console (10.3, EX-13.30), que la page applique ; absent, la page applique le défaut de 300 000 ms (EX-13.48).",
+          "type": "integer",
+          "minimum": 30000,
+          "maximum": 1800000
+        }
+      }
+    },
+    "identite_requete": {
+      "description": "Identité de session portée par une requête du canal : chaîne non vide ; le service vérifie sa forme canonique (EX-13.7) et rend identite_invalide sinon (EX-12.13).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "requete_connexion_locale": {
+      "description": "Corps de POST /connexion/locale, servi par le serveur de console à sa propre page pour le système d'identité local, refusé en production (EX-13.47) ; jamais relayé au service.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "password"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[!-~]{1,255}$"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      }
+    },
+    "reponse_sante": {
+      "description": "Réponse de GET /v0/sante du serveur de console, que lit la commande noortrace-console sonde (EX-13.44) ; aucune donnée de ticket ni d'identité.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "service_reachable",
+        "identity_ready",
+        "checked_at"
+      ],
+      "properties": {
+        "ready": {
+          "description": "service_reachable et identity_ready.",
+          "type": "boolean"
+        },
+        "service_reachable": {
+          "description": "GET <service>/v0/etat, sur le canal de la console et avec ses identifiants, a rendu 200 et un corps de la forme d'EX-12.12 dans les 1 000 ms ; le résultat est gardé 5 s (EX-13.44).",
+          "type": "boolean"
+        },
+        "identity_ready": {
+          "description": "OIDC : document de découverte et jeu de clés en cache, lus depuis moins de cache_s, et qui permettent une connexion (révision 0.6 : faux pour un document qui annonce des méthodes PKCE sans S256 ou des méthodes d'authentification au point de jeton sans client_secret_basic, EX-13.44) ; système local : fichier des comptes chargé.",
+          "type": "boolean"
+        },
+        "checked_at": {
+          "description": "Instant de la réponse, horloge du serveur de console.",
+          "$ref": "#/$defs/horodatage"
+        }
+      }
+    },
+    "reponse_etat_service": {
+      "description": "Réponse de GET <base>/v0/etat du service d'approbation (EX-12.12), sur l'écoute etat, le canal de la console ou celui du noyau ; la sonde du service la lit et rend 0 quelle que soit la valeur de ready (EX-12.22, révision 0.6) ; aucune donnée de ticket.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "set_read_at",
+        "open_tickets"
+      ],
+      "properties": {
+        "ready": {
+          "description": "Faux tant qu'EX-8.3 n'est pas rempli (jeu jamais lu).",
+          "type": "boolean"
+        },
+        "set_read_at": {
+          "description": "Instant de la dernière lecture réussie du jeu, ou null.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ]
+        },
+        "open_tickets": {
+          "description": "Nombre de tickets non décidés.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "code_serveur_console": {
+      "description": "Codes d'erreur que le serveur de console rend lui-même à sa page, sous la forme de $defs/erreur, sans relayer la requête au service (EX-13.49) ; une erreur du service est relayée telle quelle (12.8). requete_invalide (révision 0.5) : requête que le serveur refuse lui-même pour sa forme, sa méthode ou sa taille (EX-13.43, EX-13.49), avec le même code que l'erreur du service de 12.8.",
+      "enum": [
+        "requete_invalide",
+        "hote_refuse",
+        "origine_refusee",
+        "session_absente",
+        "reauthentification_requise",
+        "service_indisponible",
+        "identifiants_refuses",
+        "essai_trop_tot",
+        "transaction_inconnue",
+        "fournisseur_erreur",
+        "fournisseur_indisponible",
+        "jeton_invalide",
+        "identite_invalide"
+      ]
+    }
+  }
+}

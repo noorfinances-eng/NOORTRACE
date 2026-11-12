@@ -398,6 +398,14 @@ describe("parcours, classe C en production : enveloppe TPM 2.0 logiciel réel (s
 /** Lignes d'événements des segments d'un journal. */
 const nbEvenements = async (rep) => (fs.existsSync(path.join(rep, "segments")) ? (await lireEvenements(rep)).length : 0);
 
+/** Points de contrôle écrits dans les séries `points/periode-*.ndjson` d'un journal (CT-2 EX-12.26). */
+const nbPoints = (rep) => {
+  const d = path.join(rep, "points");
+  if (!fs.existsSync(d)) return 0;
+  return fs.readdirSync(d).filter((x) => x.endsWith(".ndjson"))
+    .reduce((n, x) => n + fs.readFileSync(path.join(d, x), "utf8").split("\n").filter(Boolean).length, 0);
+};
+
 describe("CT-9 TE-16, ligne « clé indisponible » de la matrice de CT-2 §14.2 (et « panne après relais »), rejouée sur le démon réel : Vault suspendu pendant une lecture puis une écriture, puis rétabli", function () {
   this.timeout(400000);
   const dispo = conditions(superutilisateur, () => dockerEtImage(IMAGES_SIGNATAIRES["vault-transit"]));
@@ -417,11 +425,40 @@ describe("CT-9 TE-16, ligne « clé indisponible » de la matrice de CT-2 §14.2
       const p = await demarrer(REFERENCE, c, path.join(c.dir, "configuration.json"));
       const j = c.env.NOORTRACE_TEST_JETON_HOTE;
       try {
+        // Précondition : la lecture L1 doit arriver avant que la panne soit
+        // connue. Trois signatures ou appels au signataire du démon la feraient
+        // connaître sans L1 : le premier health() (au premier tic du démon, qui
+        // peut suivre le retour de `demarrer` ; ensuite une fois par heure), le
+        // point de contrôle de chaque instant aligné (checkpoint_interval_s) et
+        // la clôture de période à l'heure pleine, qui en est un. Signataire
+        // coupé, chacun met le démon en mode « clé » : L1 serait alors bloquée
+        // (-31010), et le chemin « panne après relais » ne serait pas joué ;
+        // avant la correction de l'écrivain, une clôture en échec ne le mettait
+        // pas en mode « clé » et l'écriture E1 était relayée (-31017). On attend
+        // donc qu'un point aligné soit écrit, Vault disponible : le tic qui l'a
+        // écrit a fait avant lui le premier health() (Coeur.tic), et le point
+        // suivant est à un intervalle entier, que la suspension et L1 ne
+        // franchissent pas (vérifié après L1). Un point du premier intervalle
+        // de l'heure ne compte pas : à l'heure pleine, le même tic écrit le
+        // point de clôture, puis signe le manifeste et le premier point de la
+        // période suivante (ecrivain.mjs, _clore).
+        const intervalleMs = (c.config.checkpoint_interval_s ?? 60) * 1000;
+        const periodeMs = N.DUREE_PERIODE * 1000;
+        let points = nbPoints(c.journal);
+        await attendre(() => {
+          const n = nbPoints(c.journal);
+          if (n === points) return false;
+          points = n;
+          return Date.now() % periodeMs >= intervalleMs;
+        }, 2 * intervalleMs + 30000);
+        const instantAligne = Math.floor(Date.now() / intervalleMs);
         ev.avant = await nbEvenements(c.journal);
-        // Signataire coupé (service suspendu) ; une lecture arrive avant que la
-        // panne soit connue (health() une fois par heure) : relayée, sa signature échoue.
+        // Signataire coupé (service suspendu) ; L1, relayée, voit sa signature échouer.
         suspendreConteneur(srv.nom, true);
         ev.lecture = await appelerOutil(c.portHttp, j, "demo__lire", { id: "L1" });
+        if (Math.floor(Date.now() / intervalleMs) !== instantAligne) {
+          throw new Error(`TE-16 : précondition non tenue, un instant aligné (point de contrôle de ${intervalleMs} ms) est passé entre la suspension du signataire et la réponse à L1`);
+        }
         // Puis une écriture, et une lecture, pendant la panne.
         ev.ecriture = await appelerOutil(c.portHttp, j, "demo__ecrire", { id: "E1", montant: "5" });
         ev.lecture2 = await appelerOutil(c.portHttp, j, "demo__lire", { id: "L2" });

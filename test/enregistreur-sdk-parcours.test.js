@@ -95,6 +95,11 @@ describe("enregistreur, SDK et OpenTelemetry : parcours de bout en bout (démon 
       noyau: { tcp: { host: "127.0.0.1", port: 0 }, token: { env: "NOORTRACE_ESSAI_JETON_NOYAU" } },
       console: { tcp: { host: "127.0.0.1", port: 0 }, token: { env: "NOORTRACE_ESSAI_JETON_CONSOLE" }, annuaire: "annuaire.json" },
       tickets: { epoch: null },
+      // configuration du service de la révision 0.5 de CT-3 (EX-10.12) : organisation, administrateurs
+      // et origine de la console, ceux de l'annuaire de référence recopié ci-dessus
+      org: "assureur-demo",
+      administrators: ["oidc https://idp.assureur-demo.example admin-1"],
+      console_origin: "https://console.assureur-demo.example",
     };
     const hote = hoteSdk();
     ({ config, env } = configurationDev(dir, { sdk: { hosts: [hote] } }));

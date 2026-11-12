@@ -1,120 +1,173 @@
-// Annuaire des approbateurs, en lecture (CT-3 13.4) : forme canonique d'une
-// identité de session (EX-13.7), entrée active d'une identité et son adresse
-// active, alias de demandeur, administrateurs ; contrôle de l'identité de
-// session sur le canal de la console (EX-12.13, EX-12.14, EX-12.16,
-// EX-12.19), dans l'ordre de la fonction `controleCanal` d'EX-13.32.
+// Annuaire des approbateurs tenu par le service (CT-3 13.4 à 13.6,
+// EX-13.37, EX-13.38) : état seulement (document courant, défis
+// d'inscription non expirés) et préséance au démarrage. Aucune règle de
+// l'annuaire n'est écrite ici : elles ont une seule implémentation, le module
+// d'annuaire de la bibliothèque de la console (`@noortrace/console/annuaire`,
+// rubrique 1.3 de ses interfaces), que ce module importe et réexporte.
 //
-// Les méthodes qui modifient l'annuaire (inscription, validation,
-// révocation…) et les méthodes `tickets`, `consulter` et `annuaire` du canal
-// relèvent de l'étape 6 (console) ; à l'étape 4, le service lit l'annuaire
-// d'un fichier `annuaire-approbateurs-v0` de la configuration, s'en sert pour
-// contrôler `voter`, `recuser` et `retirer`, et en tire les adresses connues
-// de la lecture du jeu (EX-8.1, pas 5).
+// La persistance (enregistrements chiffrés `annuaire` et `defis`, EX-7.30,
+// EX-13.38) est celle du magasin d'état ; le service décide quand écrire.
 
-import fs from "node:fs";
+import {
+  estIdentiteCanonique, annuaireVide, entreeActive, adresseActive, sessionDeLOrganisation, adressesConnues,
+  annuaireDeSession, appliquerOperation, verifierInscription, defisNonExpires, recopierAdministrateurs, controleCanal,
+  verifierAnnuaireExporte,
+} from "@noortrace/console/annuaire";
 import { IDS, registreSchemas } from "./schema.mjs";
-import { lireJsonStrict } from "./json.mjs";
+import { cloner, egaliteJson } from "./json.mjs";
 
-const MOTIF_IDENTITE = /^(oidc https:\/\/[!-"$->@-~]+ [!-~]{1,255}|utilisateur [!-~]{1,128} [!-~]{1,255})$/;
+export {
+  estIdentiteCanonique, annuaireVide, entreeActive, adresseActive, sessionDeLOrganisation, adressesConnues,
+  annuaireDeSession, appliquerOperation, verifierInscription, defisNonExpires, recopierAdministrateurs, controleCanal,
+  verifierAnnuaireExporte,
+};
 
-/**
- * Identité de session canonique (EX-13.7) ?
- * @param {unknown} s
- */
-export function identiteCanonique(s) {
-  return typeof s === "string" && s.length >= 1 && s.length <= 256 && MOTIF_IDENTITE.test(s);
+/** Méthodes du canal de la console qui passent par `appliquerOperation` (EX-13.13, EX-13.15, EX-13.17). */
+export const METHODES_ANNUAIRE = Object.freeze([
+  "preparer_inscription", "inscrire", "valider", "revoquer", "desactiver", "reactiver", "lier_demandeur", "delier_demandeur",
+]);
+
+/** Erreur qui interdit le démarrage (EX-13.38, EX-13.37). */
+export class ErreurAnnuaire extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ErreurAnnuaire";
+  }
 }
 
-/** Annuaire en lecture. */
-export class Annuaire {
-  /** @param {object} document `annuaire-approbateurs-v0` */
-  constructor(document) {
-    const r = registreSchemas().valider(IDS.annuaire, document);
-    if (!r.valide) throw new Error(`annuaire non conforme : ${r.erreurs[0].pointeur} ${r.erreurs[0].regle}`);
-    this.document = document;
+/** Le document est-il conforme à `annuaire-approbateurs-v0` ? */
+export function annuaireConforme(document) {
+  return registreSchemas().estValide(IDS.annuaire, document);
+}
+
+/** Réglages de la configuration recopiés dans l'annuaire (EX-13.38). */
+function reglages(config) {
+  return {
+    org: config.org,
+    org_id: config.org_id,
+    console_origin: config.console_origin,
+    registration_ttl_ms: config.registration_ttl_ms,
+    administrators: [...config.administrators],
+  };
+}
+
+/**
+ * Annuaire retenu au démarrage, dans l'ordre d'EX-13.38 (points 1 à 6).
+ * @param {{persiste: {annuaire: object|null, defis: object[]|null}, config: object,
+ *   lireAmorce: () => unknown, at: string, journal: (type: string, detail: object) => void}} p
+ *   `persiste` : membres `annuaire` et `defis` relus de l'état (EX-7.23), null s'ils n'y sont pas ;
+ *   `lireAmorce` : lit le document de `console.annuaire` (appelée seulement s'il faut l'amorce)
+ * @returns {{document: object, defis: object[], persiste: boolean, aEcrire: boolean, changeAdministrateurs: boolean}}
+ *   `aEcrire` : l'annuaire retenu diffère de l'état persisté et doit l'être avant toute méthode
+ * @throws {ErreurAnnuaire}
+ */
+export function annuaireDeDemarrage(p) {
+  const c = p.config;
+  const amorceDeclaree = typeof c.console?.annuaire === "string";
+  let document;
+  let persiste;
+  if (p.persiste.annuaire) {
+    // point 2 : dès qu'un annuaire est persisté, seul l'état fait foi
+    document = cloner(p.persiste.annuaire);
+    persiste = true;
+    if (amorceDeclaree) p.journal("annuaire_amorce_ignoree", { amorce: c.console.annuaire });
+  } else if (amorceDeclaree) {
+    // point 1 et point 3 : amorce conforme et sans écart aux points 1 à 6 d'EX-13.19
+    let doc;
+    try {
+      doc = p.lireAmorce();
+    } catch (e) {
+      throw new ErreurAnnuaire(`amorce de l'annuaire illisible : ${e.message}`);
+    }
+    const ecarts = verifierAnnuaireExporte(doc, { conforme: annuaireConforme });
+    if (ecarts.length) {
+      throw new ErreurAnnuaire(`amorce de l'annuaire refusée (EX-13.38, point 3) : ${ecarts.map((x) => `${x.code} ${x.pointer}`).join(", ")}`);
+    }
+    document = cloner(doc);
+    persiste = false;
+  } else {
+    // point 1 : annuaire vide de la configuration
+    document = annuaireVide(reglages(c));
+    persiste = false;
+  }
+  if (!annuaireConforme(document)) throw new ErreurAnnuaire("annuaire persisté non conforme à annuaire-approbateurs-v0");
+  // point 4 : org, org_id et console_origin de la configuration
+  for (const k of ["org", "org_id", "console_origin"]) {
+    if (document[k] !== c[k]) throw new ErreurAnnuaire(`annuaire d'un autre ${k} que la configuration (EX-13.38, point 4)`);
+  }
+  let aEcrire = false;
+  // point 5 : registration_ttl_ms recopié, sans opération ni changement de revision
+  if (document.registration_ttl_ms !== c.registration_ttl_ms) {
+    p.journal("annuaire_ttl_recopie", { avant: document.registration_ttl_ms, apres: c.registration_ttl_ms });
+    document = { ...document, registration_ttl_ms: c.registration_ttl_ms };
+    if (persiste) aEcrire = true;
+  }
+  // point 6 : recopie d'administrators (EX-13.37), qui persiste l'annuaire s'il change
+  let r;
+  try {
+    r = recopierAdministrateurs(document, [...c.administrators], p.at);
+  } catch (e) {
+    throw new ErreurAnnuaire(`réglage administrators refusé (EX-13.37) : ${e.code ?? e.message}`);
+  }
+  if (r.changed) {
+    document = r.annuaire;
+    aEcrire = true;
+    persiste = true;
+  }
+  const defis = defisNonExpires(p.persiste.defis ?? [], p.at);
+  return { document, defis, persiste, aEcrire, changeAdministrateurs: r.changed };
+}
+
+/**
+ * État de l'annuaire du service : document courant, défis non expirés, et
+ * s'il est déjà persisté (EX-13.38, point 1 : l'amorce et l'annuaire vide ne
+ * le sont qu'avec la première opération acceptée).
+ */
+export class EtatAnnuaire {
+  /** @param {{document: object, defis: object[], persiste: boolean}} p */
+  constructor(p) {
+    this.document = p.document;
+    this.defis = p.defis;
+    this.persiste = p.persiste;
   }
 
-  /** Lit un fichier d'annuaire. */
-  static lire(chemin) {
-    return new Annuaire(lireJsonStrict(fs.readFileSync(chemin)));
-  }
-
-  /** Annuaire vide d'une organisation (aucune entrée). */
-  static vide(org_id, administrators = []) {
-    return new Annuaire({
-      version: 0, org: "organisation", org_id, console_origin: "https://console.invalid", registration_ttl_ms: 600000,
-      administrators, revision: 0, updated_at: "1970-01-01T00:00:00.000Z", entries: [], operations: [],
-    });
-  }
-
-  get administrators() {
-    return this.document.administrators;
-  }
-
-  /** Entrée dont l'identité de session est `identite`, ou null. */
-  entree(identite) {
-    return this.document.entries.find((e) => e.session_identity === identite) ?? null;
-  }
-
-  /** Entrée active de l'identité, ou null. */
-  entreeActive(identite) {
-    const e = this.entree(identite);
-    return e && e.active ? e : null;
-  }
-
-  /** Adresse active d'une entrée, ou null (une seule par entrée, EX-13.10). */
-  static adresseActive(e) {
-    return e?.addresses.find((a) => a.state === "active")?.address ?? null;
-  }
-
-  /** Session de l'organisation : administrateur, ou identité dont l'entrée est active (EX-12.14). */
-  sessionDeLOrganisation(identite) {
-    return this.administrators.includes(identite) || this.entreeActive(identite) !== null;
-  }
-
-  /** Toutes les adresses de l'annuaire, quel que soit leur état (EX-8.1, pas 5). */
+  /** Adresses connues pour la lecture du jeu (EX-8.1, pas 5). */
   adresses() {
-    return this.document.entries.flatMap((e) => e.addresses.map((a) => a.address));
+    return adressesConnues(this.document);
   }
-}
 
-/**
- * Contrôle de l'identité de session d'une méthode du canal de la console,
- * avant que l'entrée de 7.4 soit formée (EX-12.14, EX-12.16, EX-12.19).
- * @param {Annuaire} annuaire
- * @param {"tickets"|"consulter"|"voter"|"recuser"|"retirer"} methode
- * @param {object} requete corps de la méthode
- * @param {{launched_by: string, eligible: string[]}|null} ticket ticket connu de l'organisation, ou null
- * @returns {string|null} `identite_invalide`, `session_non_autorisee`, `ticket_inconnu`, ou null
- */
-export function controleCanal(annuaire, methode, requete, ticket) {
-  const id = requete.session_identity;
-  if (!identiteCanonique(id)) return "identite_invalide";
-  const admin = annuaire.administrators.includes(id);
-  const entree = annuaire.entreeActive(id);
-  switch (methode) {
-    case "tickets":
-      return annuaire.sessionDeLOrganisation(id) ? null : "session_non_autorisee";
-    case "consulter": {
-      if (!annuaire.sessionDeLOrganisation(id)) return "session_non_autorisee";
-      if (ticket === null) return "ticket_inconnu";
-      if (admin) return null;
-      const adresse = Annuaire.adresseActive(entree);
-      return adresse !== null && ticket.eligible.includes(adresse) ? null : "session_non_autorisee";
-    }
-    case "voter":
-    case "recuser": {
-      const adresse = Annuaire.adresseActive(entree);
-      if (adresse === null || adresse !== String(requete.approver).toLowerCase()) return "session_non_autorisee";
-      return ticket === null ? "ticket_inconnu" : null;
-    }
-    case "retirer": {
-      if (ticket === null) return "ticket_inconnu";
-      const demandeur = entree !== null && requete.by === ticket.launched_by && entree.requester_identities.includes(ticket.launched_by);
-      const administrateur = requete.by === id && admin;
-      return demandeur || administrateur ? null : "session_non_autorisee";
-    }
-    default:
-      return "requete_invalide";
+  /**
+   * Applique une méthode qui modifie l'annuaire ou ses défis, sans rien
+   * changer à l'état : rend ce que `appliquerOperation` rend, et ce qui a
+   * changé. Le service persiste, puis adopte (`adopter`).
+   * @param {string} methode
+   * @param {object} corps
+   * @param {string} at
+   * @param {{nonce?: string}} [o]
+   */
+  calculer(methode, corps, at, o = {}) {
+    const defis = defisNonExpires(this.defis, at);
+    const options = { defis, identifiant: "aleatoire" };
+    if (o.nonce !== undefined) options.nonce = o.nonce;
+    const r = appliquerOperation(this.document, methode, corps, at, options);
+    const nouveauxDefis = defisNonExpires(r.defis, at);
+    return {
+      ...r,
+      defis: nouveauxDefis,
+      annuaireChange: r.annuaire !== this.document && !egaliteJson(r.annuaire, this.document),
+      defisChanges: !egaliteJson(nouveauxDefis, this.defis),
+    };
+  }
+
+  /** Adopte un état calculé, une fois persisté. */
+  adopter({ annuaire, defis, persiste }) {
+    if (annuaire !== undefined) this.document = annuaire;
+    if (defis !== undefined) this.defis = defis;
+    if (persiste) this.persiste = true;
+  }
+
+  /** Membres de l'état complet à persister (EX-13.38) : `annuaire` seulement s'il est persisté. */
+  exporter() {
+    return this.persiste ? { annuaire: this.document, defis: this.defis } : { defis: this.defis };
   }
 }

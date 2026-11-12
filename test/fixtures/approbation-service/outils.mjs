@@ -131,6 +131,16 @@ export const OUTILS_PARCOURS = Object.freeze([
   { tool_announced: "sap__payments.create", tool_original: "payments.create", server_alias: "sap", class: "ecriture", effects: null },
 ]);
 
+/**
+ * Outils du parcours, pris dans OUTILS_PARCOURS (essais de l'étape 6) : les
+ * essais lisent le nom annoncé, le nom d'origine et l'alias du serveur ici,
+ * sans les écrire de nouveau.
+ */
+const outilParcours = (original) => OUTILS_PARCOURS.find((t) => t.tool_original === original);
+export const OUTIL_PAIEMENT = outilParcours("payments.create");
+export const OUTIL_LECTURE = outilParcours("claims.get");
+export const OUTIL_SUPPRESSION = outilParcours("claims.delete");
+
 /** Message `charger` (12.2). */
 export function messageCharger({ policy_version, rules, expire_after_ms = 3600000, mode = "erreur", environment = "developpement", org_id = ORG_ID, journal_id = JOURNAL_ID }) {
   return {
@@ -159,13 +169,16 @@ export const GRAINE_TEST = N.sha256(N.utf8("noortrace/vecteurs/v0/cle-enregistre
 /**
  * Événement `retenue` scellé (clé de test) d'une requête evaluer et sa pièce
  * « arguments » (JCS intégral des arguments, ici sans rédaction), avec le
- * message `ouvrir` de 12.4.
+ * message `ouvrir` de 12.4 ; `intentParReference` : intention portée par une
+ * référence (révision 0.6 de CT-3, EX-7.24).
  */
-export function retenue({ requete, rule, ticket, seq, ts, org_id = ORG_ID, journal_id = JOURNAL_ID, prev_hash = N.ZERO32 }) {
+export function retenue({ requete, rule, ticket, seq, ts, org_id = ORG_ID, journal_id = JOURNAL_ID, prev_hash = N.ZERO32, intentParReference = false }) {
   const octets = N.utf8(JSON.stringify(trierCles(requete.arguments)));
+  // intentParReference : l'événement porte l'intention par une référence sans valeur (CT-1 §5.4)
+  const intent = intentParReference && typeof requete.intent === "string" ? N.creerReference(N.utf8(requete.intent)) : requete.intent;
   const e = N.scellerEvenement({
     version: 0, seq, ts, org_id, journal_id, recorder_key_id: "rec-test-01", prev_hash,
-    delegation: requete.delegation, code: requete.code, intent: requete.intent,
+    delegation: requete.delegation, code: requete.code, intent,
     policy: { rule, decision: "a_approuver", ticket, redaction: null }, approval: null,
     execution: { tool: requete.tool_announced, arguments: N.creerReference(octets), status: "retenue", result: null, duration_ms: null, is_error: null },
     effects: [], context: [],
@@ -198,6 +211,7 @@ export function ecrireConfiguration(dir, o = {}) {
   const config = {
     version: 0,
     environment: o.environment ?? "developpement",
+    org: "assureur-demo",
     org_id: o.org_id ?? ORG_ID,
     journal_id: o.journal_id ?? JOURNAL_ID,
     state_dir: path.join(dir, "service"),

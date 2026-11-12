@@ -1,6 +1,6 @@
 # @noortrace/approbation — service d'approbation (CT-3)
 
-Le service d'approbation de NOORTRACE, version 0.4 de CT-3 : il valide et
+Le service d'approbation de NOORTRACE, révision 0.6 de CT-3 : il valide et
 évalue la politique d'approbation, tient les tickets et les fenêtres, lit et
 fige le jeu d'approbateurs, vérifie les votes, applique la séparation des
 tâches et la fenêtre de contestation, calcule les décisions et les remet au
@@ -11,25 +11,54 @@ signe rien (EX-3.3, EX-12.3).
 Le service est un processus à part, joint par le noyau (`noortrace`) sur le
 canal de CT-3 §12 ; le client côté démon est `ClientServiceApprobation` de
 `@noortrace/enregistreur` (rubrique d de son `INTERFACES.md`). La console
-(CT-3 §13) est l'étape 6 : ce paquet en sert seulement les entrées `voter`,
-`recuser` et `retirer` (7.4), avec le contrôle de l'identité de session
-d'EX-12.16 et d'EX-12.19 ; ce que la console utilisera est dans
-`INTERFACES.md`.
+d'exploitation (CT-3 §13, `@noortrace/console`) est cliente du canal de la
+console (12.9), que le service sert en entier depuis l'étape 6 : les quatorze
+méthodes d'EX-12.13, l'annuaire des approbateurs persisté dans l'état chiffré
+(EX-13.38), et les notifications livrées à un webhook (13.19). Les règles de
+l'annuaire ne sont pas écrites ici : elles sont celles du module d'annuaire
+de la console (`@noortrace/console/annuaire`), importé. Ce que la console et
+le démon utilisent est dans `INTERFACES.md`.
 
 ## Démarrer
 
 ```bash
 noortrace-approbation --config /etc/noortrace/approbation.json
+noortrace-approbation valider-configuration /etc/noortrace/approbation.json
 noortrace-approbation valider-politique politique.json --environment production --expire-after-ms 3600000
+noortrace-approbation sonde --url http://127.0.0.1:8601/v0/etat
 noortrace-approbation --version
 ```
 
+`valider-configuration` (EX-10.12) analyse le document en JSON strict, le
+contrôle par `configuration-approbation-v0` puis par les règles de la table
+d'EX-10.12, sans lire de secret, d'état ni d'écoute ; elle écrit une ligne
+`{"valide":…,"errors":[{"code","pointer"}…]}` (erreurs triées par pointeur
+puis par code), code 0 si le document est valide, 1 sinon, 2 sans fichier.
+`sonde` (EX-12.22, révision 0.6) envoie `GET <url>` en HTTP, sans corps,
+sans authentification ni redirection suivie, attend au plus 2 500 ms en
+tout, écrit le corps reçu sur une ligne de la sortie standard, ou la raison
+d'un échec sur la sortie d'erreur, et rend 0 sur une réponse 200 dont le
+corps, en JSON strict, est `$defs/reponse_etat_service` de
+`console-service-v0` (forme fermée d'EX-12.12), quelle que soit la valeur de
+`ready` ; 1 dans tout autre cas, usage incorrect compris (`--url` absente,
+vide ou répétée, argument inconnu) ; aucune autre valeur.
+
 Au démarrage, le service consigne l'empreinte SHA-256 de ses fichiers
 (`bin/`, `src/`, `schemas/`, `package.json`, CT-7 EX-3.10), relit son état
-(EX-7.23), déclenche les minuteurs échus pendant l'arrêt, relit le jeu des
-tickets ouverts, puis écoute ; il écrit alors sur la sortie standard une ligne
-`{"pret":true,"pid":…,"noyau":{…},"console":{…}}`. Il s'arrête proprement sur
-SIGTERM ou SIGINT. Il refuse de s'exécuter sous root en production.
+(EX-7.23), retient son annuaire dans l'ordre d'EX-13.38 et y recopie
+`administrators` (EX-13.37), déclenche les minuteurs échus pendant l'arrêt,
+relit le jeu des tickets ouverts, puis écoute ; il écrit alors sur la sortie
+standard une ligne `{"pret":true,"pid":…,"noyau":{…},"console":{…},"etat":{…}}`.
+Un refus au démarrage (EX-10.14, révision 0.6) l'arrête avant toute écoute,
+code 1, avec une ligne `$defs/rapport_validation` sur la sortie d'erreur :
+les erreurs de `valider-configuration` pour un document refusé, ou les codes
+que seul le démarrage décèle, `reference_illisible` (secret illisible ou mal
+formé, nommé par son pointeur, jamais par sa valeur), `jetons_egaux` (deux
+valeurs égales) et `ecoute_impossible` (`/noyau`, `/console` ou `/etat` :
+adresse prise, droits, adresse absente). Une cause qu'aucun code ne nomme
+(état illisible, amorce de l'annuaire refusée) est écrite en texte, code 1. Il s'arrête
+proprement sur SIGTERM ou SIGINT. Il refuse de s'exécuter sous root en
+production.
 
 ## Fonctionnement
 
@@ -46,12 +75,14 @@ n'est rendue, et une remise livrée, qu'après (EX-7.22).
 | `jeux.mjs` | jeu statique, comparaison, `source` d'EX-8.8, jeu exploitable |
 | `lecteur-jeu.mjs` | lecture au registre (EX-8.1) et surveillance des journaux (EX-8.5) par JSON-RPC |
 | `signatures.mjs` | objet A et D_A (fonctions du noyau), normalisation d'EX-9.3, recouvrement, SG-1 à SG-7 |
-| `persistance.mjs` | journal d'état chiffré en ajout seul, instantané, reprise, verrou |
-| `annuaire.mjs` | annuaire en lecture, identité canonique d'EX-13.7, `controleCanal` |
-| `transport.mjs` | HTTP/1.1, JSON strict, deux canaux, jeton porteur, mTLS, prise Unix |
-| `service.mjs` | méthodes de 12.2 à 12.6, canal de la console, `GET /v0/etat`, lecture du jeu, file unique |
-| `configuration.mjs` | document de configuration, secrets |
-| `supervision.mjs` | journal du service, boîte d'envoi des notifications, compteurs |
+| `persistance.mjs` | journal d'état chiffré en ajout seul (EX-7.30), instantané, annuaire et défis, reprise, verrou |
+| `annuaire.mjs` | état de l'annuaire (document courant, défis non expirés) et préséance au démarrage (EX-13.38) ; réexporte le module d'annuaire de la console, sans aucune règle propre |
+| `vues.mjs` | vue de `consulter` (EX-12.14, EX-12.15), liste de `tickets` (EX-12.21), effets prévus, ticket vu par `controleCanal` |
+| `notifications.mjs` | document `$defs/notification`, boîte d'envoi tournée, livraison signée au webhook, reprises, file, plafond (13.19) |
+| `transport.mjs` | HTTP/1.1, JSON strict, deux canaux, jeton porteur, mTLS, prise Unix ; écoute d'état |
+| `service.mjs` | méthodes de 12.2 à 12.6, canal de la console complet (12.9), `GET /v0/etat`, lecture du jeu, file unique, formation des notifications |
+| `configuration.mjs` | `configuration-approbation-v0`, règles d'EX-10.12, secrets, défauts |
+| `supervision.mjs` | journal du service, compteurs |
 | `schema.mjs` | validateur JSON Schema 2020-12 des schémas embarqués (`schemas/`, copies de `spec/schemas`) |
 | `demarrage.mjs`, `cli.mjs` | assemblage, ligne de commande |
 
@@ -61,60 +92,70 @@ Sous `state_dir` (mode 0700) :
 
 | Fichier | Contenu |
 |---|---|
-| `etat/journal.ndjson` | une ligne par entrée qui a un effet : `<n> <base64>`, enregistrement `{ meta, versions?, tickets?, fenetres? }` de documents entiers (`ticket-v0` `$defs/ticket` et `$defs/fenetre_ouverte`) **sans leurs arguments en clair**, chiffré AES-256-GCM (nonce de 12 octets, données associées `noortrace/approbation/etat/v0`, nature, `n`) ; `fdatasync` avant toute réponse ; une entrée sans effet n'écrit rien ; un numéro n'est jamais réattribué |
+| `etat/journal.ndjson` | une ligne par entrée ou opération qui a un effet : `<n> <base64>`, enregistrement `{ meta, versions?, tickets?, fenetres?, annuaire?, defis? }` de documents entiers (`ticket-v0` `$defs/ticket` et `$defs/fenetre_ouverte`, `annuaire-approbateurs-v0`, tableau de `$defs/defi`) **sans les arguments en clair**, chiffré AES-256-GCM (EX-7.30 : nonce de 12 octets, données associées `noortrace/approbation/etat/v0` LF nature LF `n`) ; `fdatasync` avant toute réponse ; une entrée sans effet n'écrit rien ; un numéro n'est jamais réattribué |
 | `etat/arguments/t-<ticket>`, `etat/arguments/f-<ticket>` | arguments en clair d'un ticket actif (`request.arguments`, `request.retained_event`, `request.arguments_piece`, `opening.scope.values`) ou valeurs de la portée d'une fenêtre ouverte, chiffrés (nature `arguments`) ; écrits (temporaire, `fsync`, renommage, `fsync` du répertoire) avant la ligne qui rend le ticket durable, supprimés après la ligne de son passage en `consomme`, `clos` ou `abandonne`, ou de la fermeture de la fenêtre (EX-7.24) |
 | `etat/instantane.chiffre` | l'état complet (sans arguments) au dernier compactage (toutes les 2 000 lignes) ou à la reprise après un échec d'écriture, écrit par fichier temporaire, `fsync`, renommage, `fsync` du répertoire |
 | `etat/verrou` | pid du service : un second service sur le même répertoire est refusé ; le verrou d'un processus arrêté brutalement est repris |
-| `journal-service.ndjson` | journal du service, hors chaîne (3.4, 10.4) : démarrage et empreinte, chargements, avertissements de la politique, votes inscrits, lectures du jeu, remises, acquittements, alertes ; aucun argument en clair ni empreinte d'argument (EX-7.24) |
-| `notifications.ndjson` | boîte d'envoi des notifications (EX-7.12, EX-7.13, EX-13.3), que les canaux de la console (étape 6) délivreront : ticket, outil, échéance, lien, jamais les arguments |
+| `journal-service.ndjson` | journal du service, hors chaîne (3.4, 10.4) : démarrage et empreinte, chargements, avertissements de la politique, votes inscrits, lectures du jeu, remises, acquittements, refus du canal (`canal_console_refus`), opérations de l'annuaire (`operation_annuaire`, `operation_annuaire_refusee`), `annuaire_amorce_ignoree`, `annuaire_ttl_recopie`, livraison des notifications (`notification_livree`, `notification_echec`, `notification_abandonnee`, `notification_sans_destinataire`, `notification_boite_en_echec`, `plafond_refus_non_notifies`), alertes ; aucun argument en clair ni empreinte d'argument (EX-7.24), ni corps ni clé de notification (EX-13.42) |
+| `notifications.ndjson`, `notifications.ndjson.1` à `.8` | boîte d'envoi (EX-13.39) : une ligne par notification, le corps JCS envoyé au webhook, écrite avant la première tentative, en clair (ni argument ni identité de personne) ; tournée au-delà de 64 Mio, 8 fichiers tournés au plus |
 
 État relu à la reprise (EX-7.23) : versions chargées et version en vigueur,
 jeux de repli, compteur d'identifiants, dernière date persistée, tickets
-(recomposés de leur ligne et de leur fichier d'arguments), fenêtres ; rien
-d'autre. Un fichier d'arguments d'un ticket terminé ou inconnu est supprimé. La clé de rapprochement est recalculée des arguments
+(recomposés de leur ligne et de leur fichier d'arguments), fenêtres, annuaire
+et défis d'inscription non expirés (EX-13.38) ; rien d'autre. Les reprises
+des notifications ne survivent pas à un redémarrage (EX-13.42). Un fichier d'arguments d'un ticket terminé ou inconnu est supprimé. La clé de rapprochement est recalculée des arguments
 des tickets actifs. Une dernière ligne incomplète ou indéchiffrable est
 tronquée (consigné `derniere_ligne_tronquee`) ; toute autre ligne illisible
 arrête le démarrage.
 
 ## Configuration
 
-```json
-{
-  "version": 0,
-  "environment": "production",
-  "org_id": "0x…", "journal_id": "0x…",
-  "state_dir": "/var/lib/noortrace-approbation",
-  "storage_key": { "file": "/etc/noortrace/approbation/cle-stockage" },
-  "noyau": { "socket": "/run/noortrace/approbation.sock", "socket_mode": "0660", "token": { "file": "jeton-noyau" } },
-  "console": { "tcp": { "host": "127.0.0.1", "port": 8711 }, "token": { "env": "NOORTRACE_JETON_CONSOLE" }, "annuaire": "annuaire.json" },
-  "tickets": { "epoch": null },
-  "max_open_tickets": 20,
-  "escalation": [ { "after_ms": 900000, "notify": "jeu" } ],
-  "set_poll_interval_ms": 10000,
-  "administrators": [ "oidc https://idp.exemple admin-1" ],
-  "console_origin": "https://console.exemple",
-  "rpc": { "url": "http://127.0.0.1:8645", "validator": "client", "timeout_ms": 5000, "logs_from_block": 0 },
-  "remise_representation_ms": 30000,
-  "body_max_bytes": 16777216
-}
-```
+Document `configuration-approbation-v0` (copie sous `schemas/`, CT-3
+EX-10.12) ; l'exemple d'EX-10.12 est valide tel quel. Membres requis :
+`version`, `environment`, `org`, `org_id`, `journal_id`, `state_dir`,
+`storage_key`, `noyau`, `administrators` (1 à 64 identités canoniques
+distinctes), `console_origin` ; les autres prennent le défaut de leur
+description (`console`, `etat`, `rpc`, `notifications` nuls ;
+`max_open_tickets` 20, `set_poll_interval_ms` 10 000, `registration_ttl_ms`
+600 000, `remise_representation_ms` 30 000, `body_max_bytes` 16 777 216,
+`socket_mode` 0660, `rpc.timeout_ms` 5 000, `notifications.timeout_ms`
+10 000). Règles de la table d'EX-10.12, chacune à son pointeur :
+`rpc_non_declare`, `rpc_tls`, `tls_exige`, `authentification_exigee`,
+`jeton_exige_production`, `jetons_egaux` (références égales à la validation,
+valeurs égales au démarrage), `escalade_non_croissante`, `webhook_http`,
+`origine_port_par_defaut` (`console_origin` au port 443 écrit en clair,
+révision 0.6) ; la boucle locale est `127.0.0.1`, `::1` (`[::1]` dans une
+URL) ou `localhost`, écrits exactement ainsi, en minuscules, et comparés au
+texte de l'hôte tel qu'il est écrit, avant toute normalisation : `127.1` ou
+`LOCALHOST` n'en sont pas (révision 0.6).
 
-- `storage_key` : 32 octets bruts ou 64 chiffres hexadécimaux, fichier
-  (chemin relatif au fichier de configuration) ou variable d'environnement.
-- `noyau`, `console` : exactement une écoute (`socket` ou `tcp`) ; TLS (`tls`
-  : `cert`, `key`, `client_ca` pour le mTLS) exigé hors de la boucle locale ;
-  jeton ou mTLS exigé en TCP ; jeton exigé en production ; les deux jetons
-  distincts (EX-12.4). Le jeton du noyau est la valeur que référence
-  `policy.approval.service.token` de l'enregistreur.
+Secrets, toujours par référence (`{ "file" }`, relatif au fichier de
+configuration, ou `{ "env" }`), résolus au démarrage seulement :
+`storage_key` (32 octets bruts pris tels quels, sinon 64 chiffres
+hexadécimaux, `0x` facultatif, espaces de tête et de fin retirés) ; jetons des
+canaux et `rpc.token` (16 à 1 024 caractères `[\x21-\x7e]`, espaces de tête
+et de fin retirés) ; `notifications.key` (32 à 1 024 caractères, même
+classe : sans espace intérieure, comme EX-10.12 révision 0.6 le dit des
+quatre secrets textuels, quoique la clé ne passe dans aucun en-tête) ; `tls.cert`, `tls.key`, `tls.client_ca` et `notifications.ca` en PEM
+(le premier certificat de `cert` est celui du serveur ; `cert` et `key`
+peuvent désigner le même fichier).
+
+- `noyau`, `console` : exactement une écoute (`socket` ou `tcp`). Le jeton du
+  noyau est la valeur que référence `policy.approval.service.token` de
+  l'enregistreur. `console.annuaire` : amorce de l'annuaire, lue seulement
+  tant qu'aucun annuaire n'est persisté (EX-13.38).
+- `etat` : écoute TCP sans TLS ni authentification qui ne sert que
+  `GET /v0/etat` (404 `requete_invalide` sinon).
 - `tickets.epoch` : `null` pour des identifiants de 65 bits aléatoires
   (`apr-` et 13 caractères), sinon une époque conservée hors du service et
-  changée à chaque reconstruction (`apr-<époque>-0001`, EX-7.1).
+  changée à chaque reconstruction (`apr-<époque>-0001`, EX-7.1). Les
+  identifiants d'entrée de l'annuaire sont toujours tirés au hasard (64 bits).
 - `rpc.validator` : `client` ou `partenaire` (exigé en production, CT-7
-  EX-3.10), `developpement` ailleurs. Sans `rpc`, une politique `registre`
-  laisse le service `non_pret` (alerte `jeu_registre_sans_rpc`).
-- `console.annuaire` : document `annuaire-approbateurs-v0` lu au démarrage ;
-  ses `administrators` sont remplacés par ceux de la configuration, qui font
-  foi (13.4).
+  EX-3.10), `developpement` ailleurs ; `rpc.token` est envoyé en
+  `Authorization: Bearer`. Sans `rpc`, une politique `registre` laisse le
+  service `non_pret` (alerte `jeu_registre_sans_rpc`).
+- `notifications` : webhook de l'exploitant (`url`, `key`, `ca`,
+  `timeout_ms`) ; nul, la boîte d'envoi est la seule trace.
 
 ## Lectures
 
@@ -141,10 +182,9 @@ Passages ambigus ou que le texte ne tranche pas, avec la lecture retenue.
 5. **Escalade d'un ticket « non décidé »** (EX-7.13). Lecture : les états de
    collecte (`ouvert`, `seuil_atteint`, `verification`) ; en `a_remettre`, la
    décision est calculée, une escalade n'a plus d'objet.
-6. **Notification d'ouverture** (EX-7.12 : « à l'ouverture (T2) … les membres
-   éligibles du jeu figé »). Avec un jeu `registre`, le jeu n'est figé qu'à la
-   première lecture qui suit T2. Lecture : la notification part au premier gel
-   (aussitôt pour un jeu statique).
+6. **Notification d'ouverture** (EX-7.12, révision 0.5 : « au premier gel de
+   ce jeu »). La notification part au premier gel (aussitôt pour un jeu
+   statique), formée après la persistance de l'entrée qui fige.
 7. **Lecture qui re-fige un ticket en `verification`** (T5 et T8 sont deux
    lignes). Lecture : la lecture qui change le jeu fait le nouveau gel (T5) et
    ne vaut pas confirmation ; la lecture égale suivante confirme (T8).
@@ -165,8 +205,11 @@ Passages ambigus ou que le texte ne tranche pas, avec la lecture retenue.
     `execution.arguments`.
 11. **Membres ajoutés par un nouveau gel** (EX-8.6 : « signalés à la console
     et dans la trace ») : `ticket-v0` n'a pas de membre pour eux. Lecture :
-    ils sont dans les données de la transition `jeu_lu` (`added_members`) et
-    notifiés.
+    ils sont dans les données de chaque transition `jeu_lu` (`added_members`,
+    par rapport au jeu figé précédent) ; la vue (`added_members`) et la
+    notification `nouveau_gel` (« adresses ajoutées depuis l'ouverture »)
+    donnent les membres du jeu figé courant absents du premier jeu figé du
+    ticket.
 12. **Lecture `lu` d'un autre jeu que le jeu épinglé** (trace
     `jeu-reassigne`) : traitée comme `illisible` `jeu_non_attendu`
     (`set_reassigned`), sans gel ni changement du jeu de repli.
@@ -190,12 +233,18 @@ Passages ambigus ou que le texte ne tranche pas, avec la lecture retenue.
     `auto_approbation`, `recuse`, comme pour un vote ; les traces de
     `tickets/` le confirment.
 19. **Adresses connues de la lecture du jeu** (EX-8.1, pas 5) : adresses de
-    l'annuaire lu (tous états), de `separation.identities` des versions
-    chargées, des jeux figés et du jeu de repli.
-20. **Statuts HTTP des erreurs** (12.8 : « 4xx ou 5xx ») : 400
-    (`requete_invalide`, `identite_invalide`), 403 (`session_non_autorisee`),
-    404 (`ticket_inconnu`), 409 (refus d'une entrée, `politique_inconnue`), 422
-    (`politique_invalide`), 429 (`plafond_atteint`), 503 (`non_pret`).
+    l'annuaire courant (`adressesConnues`, tous états), de
+    `separation.identities` des versions chargées, des jeux figés et du jeu de
+    repli.
+20. **Statuts HTTP des erreurs** (12.8 : « 4xx ou 5xx » ; rubrique e.2 des
+    interfaces) : 400 (`requete_invalide`, `identite_invalide`,
+    `message_invalide`), 403 (`session_non_autorisee`, `non_administrateur`,
+    `auto_validation`, `revocation_non_autorisee`), 404 (`ticket_inconnu`,
+    `entree_inconnue`, `adresse_inconnue`, `nonce_inconnu`,
+    `demandeur_inconnu`), 409 (toute autre raison qui refuse une entrée de
+    ticket ou une opération de l'annuaire, et `politique_inconnue`), 422
+    (`politique_invalide`), 429 (`plafond_atteint`), 503 (`non_pret`) ; 401
+    pour un canal non authentifié (lecture 2).
 21. **Intention dans `evaluer`** : `$defs/requete_evaluer` n'admet qu'une
     chaîne ou `null` ; une intention portée par une référence (CT-2 EX-5.21)
     est refusée (`requete_invalide`). Voir le rapport du lot pour l'interface
@@ -250,14 +299,76 @@ Passages ambigus ou que le texte ne tranche pas, avec la lecture retenue.
     repli si la version en vigueur l'épingle. La donnée de l'entrée reste
     `{ status, jeu, cause }` ; le jeu visé passe à la machine hors de
     l'entrée (relecture C, R-C-9).
-27. **Jetons distincts** (EX-12.4 : « jeton porteur distinct de celui du
-    noyau »). Lecture : distinct par sa valeur ; deux références (fichiers ou
-    variables) de même contenu sont refusées au chargement et au démarrage
-    (relecture C, R-C-8).
+27. **Jetons distincts** (EX-12.4, EX-10.12 `jetons_egaux`) : par leur
+    référence à la validation (même fichier, chemin résolu contre le
+    répertoire de la configuration, ou même variable), par leur valeur au
+    démarrage (relecture C, R-C-8).
+28. **Vue d'un ticket dont les arguments sont effacés** (EX-12.14 ne nomme
+    que `ticket_non_ouvert` après les points 1 à 3 ; `vue_ticket` exige
+    `retained_event`). Lecture : un ticket `consomme`, `clos` ou
+    `abandonne`, ou expiré sans événement `retenue`, n'a plus de vue :
+    `consulter` rend `ticket_clos_aux_votes` (409) ; `tickets` le liste
+    encore dans `related` s'il est refusé ou expiré.
+29. **Intention de la vue** : `ticket-v0` n'a pas l'intention de la requête
+    `evaluer`. Tranché par CT-3 révision 0.6 (EX-7.24, EX-12.14) : le service
+    garde l'intention de la requête `evaluer` hors du document `ticket-v0`
+    (`Machine.intentions`), la persiste dans le même fichier chiffré que les
+    arguments en clair (`arguments/t-<ticket>`, membre `intent` du clair),
+    l'efface avec eux et la rend telle quelle dans `request.intent`, y
+    compris après une reprise ; elle n'est jamais tirée de
+    `retained_event` (la lecture de l'étape 6, qui l'en tirait, rendait
+    `null` pour une intention portée par une référence). Un état écrit
+    avant ce changement n'a pas l'intention : la vue rend alors `null`.
+30. **Effets de la vue** (EX-12.14 : « le gabarit d'effets de l'outil (CT-2
+    EX-7.6) évalué sur les arguments »). Lecture : sur les valeurs rédigées
+    de la pièce « arguments » (pas 1 d'EX-7.6), comme l'événement scellé les
+    portera ; sans gabarit, l'effet par défaut d'une écriture (EX-7.6, (2)),
+    aucun pour une lecture ; un membre tiré du résultat est `null` et listé
+    dans `unresolved`, et n'entre pas dans la règle du couple
+    montant/devise.
+31. **Éligibles avant le gel** (EX-12.14 : « avant le gel, un membre du jeu
+    de repli ») : membres du jeu de repli de la version du ticket (jeu
+    statique de la politique pour une source `statique`), hors adresses du
+    demandeur sous `interdite`, comme `eligible` après le gel ; la vue rend
+    cette même liste dans `eligible` (avant l'assemblage, elle rendait la
+    liste vide du ticket ; révision 0.6).
+37. **Livraison au webhook** (EX-13.39, EX-13.42) : la tentative rend son
+    statut à la ligne de statut, mais le délai `timeout_ms` court jusqu'à la
+    fin du corps de la réponse (lu au plus jusqu'à 65 536 octets) et la
+    prise est toujours détruite ensuite : un webhook qui ne finit jamais son
+    corps ne garde aucune prise du service ouverte. Sans `notifications.ca`,
+    les autorités sont celles du magasin du système
+    (`tls.getCACertificates("system")`), et non la liste intégrée de Node.
+32. **Dernier instant du seuil** (`last_threshold_at`, EX-10.9) : échéance
+    moins `contest_ms` moins 1 ms, la fin de fenêtre devant précéder
+    l'échéance (EX-7.7) ; nul si `contest_ms` vaut 0 ou sans échéance.
+33. **`tickets`** : tickets non décidés (`reserve` à `a_remettre`, EX-14.1),
+    triés par identifiant ; `votes_approuve` et `votes_refuse` comptent les
+    votes courants.
+34. **Persistance de l'annuaire** (EX-13.38, point 1 ; EX-12.17) : tant que
+    l'annuaire n'est pas persisté, un défi est persisté seul (membre
+    `defis`) ; une inscription refusée après le pas 4 d'EX-13.15 persiste le
+    défi marqué présenté. Un `registration_ttl_ms` recopié sur un annuaire
+    persisté est persisté au démarrage, sans opération (point 5).
+35. **Rechargement de la configuration** (EX-13.37 : « quand le service
+    démarre ou recharge sa configuration ») : le service ne recharge pas sa
+    configuration en cours de route ; la recopie se fait à chaque démarrage.
+36. **Notifications et entrées refusées** : une notification n'est formée
+    qu'après la persistance réussie de ce qui la cause ; après un échec
+    d'écriture, les causes attendent l'enregistrement suivant qui réussit.
 
 ## Tests
 
 `test/approbation-service-vecteurs.test.js` (familles de `spec/vecteurs/ct-3`
 et inventaire), `test/approbation-service-exigences.test.js` (EX- et TK-,
 couverture), `test/approbation-service-hostile.test.js`,
-`test/approbation-service-parcours.test.js` (processus de bout en bout).
+`test/approbation-service-parcours.test.js` (processus de bout en bout) ;
+étape 6 : `test/approbation-service-configuration.test.js` (EX-10.12, écoute
+d'état, sonde, TA-51), `test/approbation-service-console.test.js` (canal de
+la console, traces `annuaire/traces/*`, `tickets`, TI-14, TA-77),
+`test/approbation-service-persistance.test.js` (EX-7.30, EX-13.37,
+EX-13.38, TE-19, intention relue après un arrêt brutal), `test/approbation-service-notifications.test.js` (13.19,
+TI-21, TA-102 ; récepteur tiers en Python,
+`test/fixtures/approbation-service/recepteur_webhook.py`).
+
+Aucun fichier n'est repris de noorchain-core.

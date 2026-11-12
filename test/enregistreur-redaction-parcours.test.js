@@ -170,6 +170,14 @@ class FrontalSimule {
   }
 }
 
+
+/** Attend, 30 s au plus, que le service factice ait reçu `ouvrir` du ticket (CT-2 EX-7.18), puis l'affirme. */
+async function ouvertParLeService(service, ticket) {
+  const limite = Date.now() + 30000;
+  while (!service.tickets.get(ticket)?.request && Date.now() < limite) await new Promise((r) => setTimeout(r, 5));
+  expect(service.tickets.get(ticket)?.request, "ouvrir reçu par le service dans les 30 s").to.not.equal(undefined);
+}
+
 describe("enregistreur, rédaction : parcours de bout en bout (pii-v1), journal vérifié par le noyau et par le binaire Go", function () {
   this.timeout(180000);
   let dir;
@@ -239,7 +247,9 @@ describe("enregistreur, rédaction : parcours de bout en bout (pii-v1), journal 
     horloge.aller(ms("2026-11-10T10:15:30.000Z"));
     const r1 = await f.appel({ tool: "sap__payments.create", original: "payments.create", classe: "ecriture", args: argsPaiement, runId: `run${TELEPHONE_N}`, horloge });
     ev.retenue = r1.retenue.evenement;
-    await new Promise((r) => setTimeout(r, 50));
+    // `ouvrir` part sans être attendu (CT-2 EX-7.18) : attente de son arrivée au
+    // service (condition observée, bornée), et non d'un délai fixe.
+    await ouvertParLeService(service, r1.reponse.ticket);
     // Décision : le motif de l'approbateur contient un IBAN et une adresse (EX-10.24).
     service.decider_ticket(r1.reponse.ticket, { reason: `Pièces vérifiées : IBAN ${IBAN} confirmé par ${COURRIEL}` });
     horloge.aller(ms("2026-11-10T10:20:00.000Z"));

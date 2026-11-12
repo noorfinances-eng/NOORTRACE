@@ -1,4 +1,4 @@
-# Interfaces de la page de vérification (CT-6 §18, révision 0.6)
+# Interfaces de la page de vérification (CT-6 §18, révision 0.7)
 
 Ce document est le contrat de l'étape 6 pour le paquet
 `@noortrace/verification-web` : la page statique qui exécute, dans un
@@ -54,7 +54,7 @@ déterministe (aucune date, aucun aléa, aucun chemin de la machine) :
 
 | Fichier | Contenu (EX-18.5, EX-18.6, table de 18.3) |
 |---|---|
-| `index.html` | la page ; aucun script ni style en ligne, aucun attribut de gestionnaire d'événement ; `<link rel="stylesheet" href="page.css" integrity="sha384-…">`, `<script src="verificateur-wasm.js" integrity="sha384-…"></script>`, `<script src="page.js" integrity="sha384-…"></script>`, dans cet ordre ; `lang="fr"` |
+| `index.html` | la page ; aucun script ni style en ligne, aucun attribut de gestionnaire d'événement ; `<link rel="stylesheet" href="page.css" integrity="sha384-…" crossorigin="anonymous">`, `<script src="verificateur-wasm.js" integrity="sha384-…" crossorigin="anonymous"></script>`, `<script src="page.js" integrity="sha384-…" crossorigin="anonymous"></script>`, dans cet ordre (`crossorigin="anonymous"` exigé sous `Integrity-Policy`, CT-6 0.7, EX-18.6) ; `lang="fr"` |
 | `page.css` | les styles ; polices du système |
 | `page.js` | un seul script classique, sans importation (aucune requête après le chargement, EX-18.11) : choix des fichiers, lecture des archives, transmission au travailleur, affichage |
 | `verificateur-wasm.js` | exactement `globalThis.NOORTRACE_VERIFICATEUR_WASM = "`, le base64 (RFC 4648 §4, avec remplissage, sans saut de ligne) de `noortrace-verifier.wasm`, `";`, LF |
@@ -88,8 +88,8 @@ confiance, par la chaîne constante `travailleur.js` (EX-18.12). Messages
 |---|---|
 | page → travailleur | `{ "type": "artefact", "octets": ArrayBuffer }` : les octets décodés de `NOORTRACE_VERIFICATEUR_WASM`, une fois |
 | travailleur → page | `{ "type": "artefact_pret", "version", "empreinte" }` (empreinte `0x…`, EX-18.5) ou `{ "type": "artefact_altere", "calculee", "attendue" }` (rien n'est compilé) |
-| page → travailleur | `{ "type": "verifier", "fichiers": [ { "chemin", "octets" } ], "options": { "ancres", "entetes", "exiger", "langue", "detail" } }` ; `chemin` relatif à `/entrees` : `dossier/<chemin relatif>`, `ancres.json`, `entetes-bitcoin.json` |
-| travailleur → page | `{ "type": "resultat", "executions": [ { "arguments", "code", "sortie", "erreur" }, { … } ] }` (lisible puis `--json` ; `sortie` et `erreur` en `Uint8Array`) ou `{ "type": "non_faite", "cause" }` |
+| page → travailleur | `{ "type": "verifier", "fichiers": [ { "chemin", "octets" } ], "repertoires": [ chemin ], "options": { "ancres", "entetes", "exiger", "langue", "detail" } }` ; `chemin` relatif à `/entrees` : `dossier/<chemin relatif>`, `ancres.json`, `entetes-bitcoin.json` ; `repertoires`, facultatif : les entrées de répertoire d'une archive, que l'arbre présente même vides ; `options.ancres` et `options.entetes`, booléens, concordent avec la présence d'`ancres.json` et d'`entetes-bitcoin.json` ; `options.langue` toujours donnée (EX-18.8) |
+| travailleur → page | `{ "type": "resultat", "executions": [ { "arguments", "code", "sortie", "erreur" }, { … } ] }` (lisible puis `--json` ; `sortie` et `erreur` en `Uint8Array`) ou `{ "type": "non_faite", "cause" }` ; `non_faite` aussi en réponse à `artefact`, quand `WebAssembly.compile` échoue (la page affiche alors « vérification non faite », EX-18.9, EX-18.12) |
 
 ### 3.2 Exécution
 
@@ -102,7 +102,11 @@ ancres.json`, `--entetes-bitcoin entetes-bitcoin.json`, puis `--exiger`
 `--json`), `go.env` vide, le répertoire de travail `/entrees`, et le code de
 sortie lu par `go.exit`. L'arbre en lecture seule, ses erreurs POSIX, ses
 modes, ses couples (`dev`, `ino`), ses membres d'état et les objets
-`process` et `path` sont exactement ceux d'EX-18.8.
+`process` et `path` sont exactement ceux d'EX-18.8 ; les sorties 1 et 2 sont
+recueillies par `write` et par `writeSync`, qu'emploie l'environnement
+d'exécution de Go pour ses messages d'arrêt (CT-6 0.7, EX-18.8) ; après
+chaque exécution, le pilote annule les minuteries laissées programmées
+(EX-18.9).
 
 ### 3.3 Affichage
 
@@ -151,3 +155,67 @@ Playwright ou sans navigateur, les essais de navigateur aussi, et ils
 - Gecko et WebKit : la même suite quand Playwright les a installés, en
   attente sinon ; l'épreuve complète d'EX-18.13 dans les trois moteurs, en
   leur dernière version publiée, précède la publication d'une version.
+
+## 6. État et précisions (étape 6)
+
+Fait à l'étape 6, et éprouvé par les quatre fichiers d'essai de la section 5
+(voir `LISEZMOI.md`) : `verificateur/scripts/construire-wasm.sh`,
+`src/construire.mjs`, la page, le travailleur, la lecture des archives.
+Chromium seul est éprouvé ; Gecko et WebKit restent en attente.
+
+Précisions que l'écriture a imposées, consignées ici plutôt que changées en
+silence dans les sections précédentes :
+
+1. **`crossorigin="anonymous"`** sur le `link` et les deux `script`
+   d'`index.html`. Mesure (Chromium 141.0.7390.37) : sous
+   `Integrity-Policy: blocked-destinations=(script style)`, un script classique
+   de même origine qui porte `integrity` mais pas `crossorigin` est bloqué
+   (requête en mode `no-cors`, échec « integrity ») ; avec `crossorigin`, il
+   se charge. Le même navigateur écrit, pour la valeur d'EX-18.12, « The
+   Integrity-Policy destination 'style' is not supported. » ; ce n'est pas
+   une violation, les essais le relèvent à part. Le travailleur (destination
+   `worker`) se charge sous cet en-tête sans attribut d'intégrité.
+2. **Message `verifier`** : membre facultatif `repertoires` (liste de
+   chemins relatifs à `/entrees`), pour les entrées de répertoire d'une
+   archive, que l'arbre présente même vides. `options.ancres` et
+   `options.entetes` sont des booléens, qui doivent concorder avec la
+   présence de `ancres.json` et de `entetes-bitcoin.json` dans `fichiers`.
+3. **`non_faite` après `artefact`** : si `WebAssembly.compile` échoue (par
+   exemple une politique qui refuserait `'wasm-unsafe-eval'`), le
+   travailleur répond `{ "type": "non_faite", "cause" }` et la page affiche
+   « vérification non faite » (EX-18.12, EX-18.9).
+4. **`writeSync`** : en plus de `write`, l'arbre recueille
+   `fs.writeSync` sur les descripteurs 1 et 2, qu'emploie l'environnement
+   d'exécution de Go (`runtime.wasmWrite`) pour ses messages d'arrêt.
+5. **Minuteries** : après chaque exécution, le pilote annule les minuteries
+   que le programme a laissées programmées (`go._scheduledTimeouts` de
+   `wasm_exec.js`) ; leur échéance après la sortie lèverait « Go program has
+   already exited » pendant l'exécution suivante (constaté par l'essai
+   d'identité).
+6. **`syscall/js`** (section 1) : sous go1.27.3, les paquets de la
+   bibliothèque standard qui l'importent, parmi les dépendances de
+   `cmd/noortrace-verifier`, sont `syscall` et `time` (`zoneinfo_js.go`, qui
+   lit le fuseau du navigateur), et non `os` et `syscall` ; aucun paquet du
+   module ni de `vendor/` ne l'importe. Question posée au porteur.
+7. **Refus d'EX-18.7** : une archive mal formée (sommes de contrôle, CRC-32,
+   tailles, données tronquées, flux comprimé invalide) est refusée comme
+   « archive mal formée » ; la borne de 256 Mio porte sur la somme des tailles
+   décompressées des entrées d'un ZIP et sur le flux tar (décompressé pour
+   `.tar.gz`) ; les 4 096 entrées comptent les entrées de fichier et de
+   répertoire, `.` comprise, sans les en-têtes `x`, `g` et `L`. Un répertoire
+   choisi n'est soumis à aucune de ces bornes, qu'EX-18.7 ne pose que pour
+   les archives. **Tranché par CT-6 0.7 (EX-18.7)** : un répertoire choisi
+   est soumis aux mêmes bornes, comptées sur ses fichiers et
+   sous-répertoires et sur la somme des tailles de ses fichiers, avant toute
+   lecture (`bornesRepertoire` d'`archives.js`, appelée par l'interface).
+8. **`construire-wasm.sh`** refuse de construire si `GOWASM`,
+   `GOEXPERIMENT` ou `GOFIPS140` sont posées dans l'environnement : la
+   recette d'EX-18.3 ne les nomme pas, `GOENV=off` ne les neutralise pas, et
+   elles changent l'artefact. **Tranché par CT-6 0.7 (EX-14.6, EX-18.3)** :
+   la recette les vide (`GOEXPERIMENT= GOFIPS140= GOWASM=`, écrites dans la
+   ligne `env` des deux scripts de `verificateur/scripts/`) ; un script peut
+   refuser une valeur non vide, ce que font `construire-wasm.sh` et
+   `construire.sh`.
+
+Les points 1 à 5 sont versés dans les sections 2 et 3 ci-dessus (révision
+0.7 de CT-6) ; le point 6 est inscrit dans CT-6 0.7 (EX-18.3, annexe B.9).

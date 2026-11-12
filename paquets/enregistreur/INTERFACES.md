@@ -257,7 +257,21 @@ attendu ; vrai seulement pour une décision `approuve` retenue (relecture C) ;
 le `consommer` du relais attend la fin de l'`acquitter`. Après une
 expiration par le noyau seul, `decidee` est appelé sans être attendu ;
 `etatSante()` ajoute les raisons du frontal sans faire entrer le cœur en mode
-dégradé. `test/fixtures/enregistreur-coeur/outils.mjs` : `configurationDev`
+dégradé.
+
+Continuation MRTR (EX-4.21, EX-12.23, EX-7.21 RL-3 ; écart du code relevé à
+l'étape 6, corrigé) : un appel qui porte l'approbation d'un ticket garde aussi
+son enregistrement de continuation. Le cœur offre `inscrireContinuation(evenement,
+sha256)` (ligne `continuation` avec `fdatasync`, avant le pas 14),
+`preparerRelais({ …, continuation })` (RL-1 à RL-4 en mode continuation, puis
+ligne `continuation_consommee` avant le pas 8) et
+`continuationReconstruite(sha256)` (reprise ou bascule, depuis la ligne,
+l'événement et la ligne `mac` de la `retenue`) ; un échec d'écriture de ces
+lignes met le démon en mode « stockage ». Une ligne `continuation` non
+inscrite : aucun enregistrement, `mrtr_continuation_unrecorded` consigné
+(`error`, `frontal_mcp`, `seq` de l'événement, `host` ; `data` :
+`request_state_sha256`, `reason`, CT-2 0.9, EX-4.21), la ré-émission repasse
+par le pas 3. `test/fixtures/enregistreur-coeur/outils.mjs` : `configurationDev`
 désactive `mcp.enabled` sauf `{ mcp: true }` (les serveurs de l'exemple de
 15.3 sont injoignables depuis les tests) et place `mcp.socket` sous le
 répertoire du test.
@@ -1286,8 +1300,11 @@ await ecrivain.sceller(partiel, { captureA, piecesPerdues: new Set(manquantes.ma
 
 ## l) CT-2 révision 0.8 : export du dossier et demandes du démon (§15.7, EX-15.9 à EX-15.14)
 
-État : **à faire (étape 6)** ; seule la validation d'`exports_dir` est
-livrée (copie embarquée du schéma, pas 3 d'EX-15.4). Règles : CT-2 §15.7 et
+État : **fait (étape 6)** : commande, demandes du démon, export, lignes du
+journal d'exploitation, restes supprimés à l'acquisition du bail,
+`dossier_reexport_due` ; la validation d'`exports_dir` (copie embarquée du
+schéma, pas 3 d'EX-15.4) l'était déjà. Lectures 217 à 229 du `LISEZMOI.md`.
+Règles : CT-2 §15.7 et
 la table de §22 (lignes `ctl-demon.mjs`, `cli.mjs`, `journal-exploitation.mjs`,
 `configuration.mjs`, `coeur.mjs`) ; CT-1 §11 ; CT-5 §10 (EX-10.5) ; CT-7
 EX-3.16.
@@ -1305,8 +1322,10 @@ noortrace-ctl dossier exporter (--seq <n> | --dernier | --ticket <ticket_id>) --
   `--option=valeur` ; `--seq` de 1 à 2^53 − 1 sans zéro de tête ; `--ticket`
   au motif `^apr-[0-9a-z]+(-[0-9a-z]+)*$`, 5 à 128 caractères ; `--vers`
   envoyé en chemin absolu normalisé, 4 096 octets au plus, composants de 1 à
-  255 octets ; `--delai-ms` de 0 à 86 400 000, défaut 120 000, compté depuis
-  le pas 3) ; tout écart : code 2, aucune demande, aucun signal.
+  255 octets, aucun composant qui commence par le préfixe réservé
+  `.noortrace-partiel-` (CT-2 0.9, EX-15.9 ; LISEZMOI lecture 230) ; `--delai-ms` de 0
+  à 86 400 000, défaut 120 000, compté depuis le pas 3) ; tout écart :
+  code 2, aucune demande, aucun signal.
 - Transport d'EX-15.10 : démon cherché par `/proc/<pid>/cmdline` (`noortrace
   … --config <fichier>`, chemin réel, filtré par `--configuration`) ; taille
   de `supervision.ops_log.path` notée ; demande écrite par création exclusive
@@ -1341,7 +1360,20 @@ puis les autres par octets croissants) ; demande périmée, quelle que soit
 `dossier_export_refused` ou `ctl_request_refused`, `demande_perimee`.
 `SIGURG` sans fichier : `key_rotation_emergency_ignored` (`sans_demande`).
 Au démarrage, avant tout signal, un fichier resté en place est supprimé sans
-être exécuté (`ctl_request_refused`, `demande_perimee`). Ce changement
+être exécuté (`ctl_request_refused`, `demande_perimee`). Révision 0.9
+(EX-15.15) : un fichier de demande que le démon ne peut pas supprimer n'est
+pas exécuté (`ctl_request_not_removed`, `error`, `noyau`, `data` : `path`,
+`code`) ; une erreur imprévue d'un export donne la ligne de réponse
+`dossier_export_refused`, `ecriture_impossible`, détail `erreur_interne`
+suivi du nom de l'erreur (jamais son message), répertoire temporaire
+supprimé ; d'une demande `rotation-urgence` ou `ancrage`, hors des refus que
+son action prévoit, ou avant que l'action soit connue, `ctl_request_failed`
+(`error`, `noyau`, `seq` nul, `request_id` celui de la demande quand il est
+lisible, `null` sinon, `data` : `demande`, `detail`) ; `noortrace-ctl cle
+rotation-urgence` et `ancrage` écrivent un `request_id` (32 chiffres
+hexadécimaux) dans leur demande, et ces commandes comme `dossier exporter`
+rendent le code 1 dès qu'elles lisent `ctl_request_failed` de leur
+`request_id` (CT-2 0.9). Ce changement
 précède la livraison de la commande : sans lui, une demande `dossier`
 ferait tourner la clé (`cli.mjs` l'interprète aujourd'hui comme
 `rotation-urgence`).
@@ -1371,7 +1403,12 @@ ferait tourner la clé (`cli.mjs` l'interprète aujourd'hui comme
   temporaire `.noortrace-partiel-<request_id>` en `0700` dans le parent,
   groupe vérifié en production (détail `groupe`), `fsync` de chaque fichier,
   passage en `0750`, chemin réel du parent revérifié, `rename(2)`, `fsync`
-  du parent, puis `dossier_exported` ; fichiers en `0640` ; aucune
+  du parent, puis `dossier_exported` ; `fsync` du parent en échec après le
+  renommage (révision 0.9) : `ecriture_impossible`, détail
+  `synchronisation_parent <code> <parent>`, dossier laissé en place, aucune
+  ligne `dossier_exported`, message « le dossier est en place sous
+  <destination>, mais sa durabilité n'est pas assurée : l'exporter de
+  nouveau vers une autre destination » ; fichiers en `0640` ; aucune
   réécriture d'un dossier écrit ; restes `.noortrace-partiel-<32 hex>`
   supprimés à l'acquisition du bail (`dossier_export_partial_removed`) ;
   `dossier_reexport_due` à chaque ancre qui rend à réexporter un dossier
@@ -1395,15 +1432,35 @@ Module nouveau `src/demandes-demon.mjs` (lecture et refus des demandes) et
 
 ```js
 import { lireDemande, DEMANDES_CONNUES } from "./demandes-demon.mjs";
-// lireDemande(octets, { maintenant, demarrage }) → { action: "rotation-urgence" | "ancrage" | "dossier", demande }
-//                                                 | { refus: { event, data } }   (EX-15.10, pas 5, refus 1 à 4)
+// lireDemande(octets, { maintenant, demarrage, exports_dir }) → { action: "rotation-urgence" | "ancrage" | "dossier", demande }
+//   | { refus: { event, component, seq, request_id, data } }   (EX-15.10, pas 5, refus 1 à 4)
+//   `octets` null : fichier illisible ; `demarrage` : `coeur.instantDemarrage` ; `exports_dir` repris dans
+//   `data` de `dossier_export_refused` ; `request_id` : celui de la demande, ou null hors domaine
 import { exporterDemande } from "./export-dossier.mjs";
 // exporterDemande(coeur, demande) → { event: "dossier_exported" | "dossier_export_refused", component, seq, request_id, data }
 //   (EX-15.11 à EX-15.14) ; la ligne est écrite par l'appelant, quel que soit le niveau du journal
+import { supprimerRestesExports } from "./export-dossier.mjs";
+// supprimerRestesExports(coeur) → chemins supprimés ; appelé par le cœur juste après `lease_acquired`
+import { installerDemandes, traiterDemande } from "./cli.mjs";
+// installerDemandes(coeur) : fichier resté au démarrage, puis SIGURG (appelé par `superviserProcessus`)
 ```
 
-`Coeur.exporterDossier(seq, destination)` garde sa signature pour les essais
-existants. `exporterDemande` choisit l'événement, applique les refus dans
+`BranchementAncrage.exporterDossier(base, { destination, generated_at,
+destinationFinale })` écrit dans `destination` (le répertoire temporaire,
+désigné par son descripteur) et garde un résumé qui nomme
+`destinationFinale` ; `BranchementAncrage.etatReexports()` rend `{ dus,
+etats }` et `signalerReexports()` écrit les lignes `dossier_reexport_due`
+(planifié après chaque ligne du composant). Option du cœur pour les essais
+seulement, jamais posée par le démon : `o.pointArretExport({ etape,
+request_id, temporaire })`, attendue avant la seconde vérification du parent
+(EX-15.13 point 2) ; `o.essaiSynchronisationParent({ request_id,
+destination })`, appelée avant la synchronisation du parent après le
+renommage, dont une exception est tenue pour un échec de `fsync`.
+
+`Coeur.exporterDossier(seq, destination)` garde sa signature : c'est la voie
+des essais et des parcours (destination quelconque créée au besoin, sans les
+refus d'EX-15.12), qui consigne `dossier_exported` sans `request_id`, de
+`selection` `seq`. `exporterDemande` choisit l'événement, applique les refus dans
 leur ordre et l'écriture atomique, et délègue l'assemblage au branchement
 d'ancrage quand le composant est démarré (`BranchementAncrage.exporterDossier`
 de `src/ancrage-demon.mjs`, qui écrit alors dans le répertoire temporaire
@@ -1414,7 +1471,9 @@ l'écriture dans le répertoire temporaire l'exige.
 
 ### Essais
 
-`test/enregistreur-export-*.test.js` : TE-18, TA-99 (mutant qui ne vérifie
+`test/enregistreur-demandes-demon.test.js`,
+`test/enregistreur-export-dossier.test.js` et
+`test/enregistreur-export-ancrage.test.js` (faits) : TE-18, TA-99 (mutant qui ne vérifie
 plus le chemin réel du parent : le dossier est écrit hors du volume), chaque
 refus et son message, demandes inconnue, illisible, hors domaine et périmée
 sans effet, demandes `rotation-urgence` et `ancrage` exécutées ; le dossier

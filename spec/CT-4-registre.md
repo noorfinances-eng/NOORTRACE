@@ -1,6 +1,9 @@
 # CT-4 — Registre
 
-Version 0.6, 2026-11-11 (révision 0.6 : forme du paquet client que
+Version 0.7, 2026-11-11 (révision 0.7 : commande `paquet-client` de l'outil
+de référence, codes de refus du paquet, reprise d'une étape en échec déjà
+accomplie et questions de la construction de l'étape 6 sur 7.13 et 7.14 ;
+version 0.6 du même jour, révision 0.6 : forme du paquet client que
 l'exploitant remet au client, schéma `paquet-client-v0`, et conditions
 auxquelles une application d'exploitant conduit les pas de la section 7,
 7.13 et 7.14 ; version 0.5 du 2026-11-03, révision minimale et textuelle : la
@@ -201,6 +204,32 @@ table des livrables) ; 7.10 (premier paragraphe, deux lignes de la table) ;
 7.13 et 7.14, nouvelles ; 13 ; 14. Règles ajoutées : EX-7.18 à EX-7.28 ;
 aucune règle n'est modifiée ni retirée ; aucun schéma existant, aucun vecteur
 de `spec/vecteurs/ct-4`, aucun outil ne change.
+
+La version 0.7, du 2026-11-11, tranche ce que la construction de l'étape 6
+(application d'exploitant, paquet client de l'outil de référence) a trouvé
+ouvert. Elle fixe la commande de l'outil de référence qui produit et
+contrôle le paquet, `paquet-client produire|controler`, ses sorties et un
+code de refus par point d'EX-7.22 (`paquet_manifeste` à `paquet_captures`),
+plus `secret_present` (EX-7.21) et `dossier_inacheve` ; la sortie du travail
+qui produit le paquet dans l'application est la même (EX-7.30, nouvelle) ;
+elle dit quelles références de secrets la recherche d'EX-7.21 couvre et que
+la liste de ses formes est close (EX-7.21) ; elle complète les points 3, 4
+et 6 d'EX-7.22 (forme d'une réponse brute du nœud, écriture des trois
+documents créés, dossier fini, nom du répertoire, index qu'aucune étape ne
+nomme) et dit que les comparaisons d'EX-7.17 restent au client ; elle exclut
+`source` de la comparaison d'EX-7.24 et dit qu'un travail que l'agent
+refuse pour sa forme ne produit aucune sortie (EX-7.24) ; elle complète les
+types de champs de l'interface (EX-7.25) ; une étape `echec` que sa reprise
+trouve déjà accomplie par une autre transaction passe à `capturee` par la
+capture de cette transaction, et `result.recorders[].funding` vaut `null`
+pour un approvisionnement fait sans transaction (EX-7.29, nouvelle).
+Sections touchées : en-tête et cette note ; 7.11 (EX-7.29) ; 7.13 ; 7.14 ;
+13. Règles ajoutées : EX-7.29, EX-7.30. Règles modifiées : EX-7.21,
+EX-7.22, EX-7.24, EX-7.25. Aucune règle n'est retirée. Schémas, extensions
+compatibles : `operations-registre-v0` (`command` admet `paquet-client` ;
+`error.code` admet les huit codes de EX-7.30) ; `inscription-client-v0`
+(`result.recorders[].funding` admet `null`). Aucun vecteur de
+`spec/vecteurs/ct-4` ne change.
 
 ## 1. Objet, périmètre et relations
 
@@ -2817,6 +2846,26 @@ commande `reset`, R1-F18) change le jeu de validateurs et efface les contrats :
 `deployments/noorcore.json` ne décrit plus la chaîne et OP-1 refuse
 (`code_absent`).
 
+**EX-7.29** **Étape en échec déjà accomplie (révision 0.7).** Quand la
+reprise d'une étape `echec` trouve son effet déjà en place sur la chaîne,
+avec les valeurs du dossier (`deja_fait` d'EX-7.13 : par exemple la clé
+inscrite sous le même `journalId` et la même clé Ed25519 par une transaction
+envoyée d'un autre poste), la commande rend `deja_fait` sans rien envoyer et
+l'étape reste `echec` : elle ne devine pas la transaction qui l'a
+accomplie. L'exploitant l'établit (envoi retrouvé, ou événement qu'OP-11
+attend pour cette étape, émis par le contrat avec ces valeurs) et la donne à
+`capturer --transaction <hachage> --dossier` (8.6) : OP-11 et OP-12 réussis
+sur les valeurs de l'étape, la commande capture le bloc (CP-1 à CP-6) et
+passe l'étape à `capturee`, avec ce `transaction_hash`, son `block_number`,
+son `block_hash` et sa capture ; c'est le seul passage d'`echec` à
+`capturee`. Tant qu'une étape reste `echec`, le dossier n'est pas fini et
+le paquet n'est pas produit (`dossier_inacheve`, EX-7.30). L'étape
+`approvisionnement` n'a pas d'événement : sa reprise, quand le solde de la
+clé est déjà au moins `P_k`, la fait `faite` sans transaction (EX-7.16), et
+`result.recorders[].funding` de cette clé vaut alors `null`
+(`inscription-client-v0`, révision 0.7). Tenu par l'outil et par
+l'application.
+
 ### 7.12 Épreuve d'acceptation
 
 Critère du plan : un relecteur qui n'a que la spécification crée un client,
@@ -2936,13 +2985,27 @@ registre, trésorerie, relayeur, clé de chaîne, `graine:`) et le jeton
 la casse, avec et sans `0x`, et en base64 et en base64url (RFC 4648 §4 et
 §5, avec et sans remplissage) de ses octets ; le jeton, tel quel. Une valeur
 trouvée interdit la remise ; le
-producteur consigne le nom du fichier, jamais la valeur. Le paquet n'est pas
+producteur consigne le nom du fichier, jamais la valeur. Révision 0.7 : la
+liste de ces formes est close (ni décimal, ni mnémonique : une référence
+`hardhat:` désigne une clé dérivée d'un mnémonique public, dont la clé est
+cherchée et non le mnémonique). L'application cherche chaque référence de
+clé et le jeton qu'ont employés les travaux de l'organisation, qu'elle
+connaît. L'outil de référence, dont chaque commande est un processus
+distinct, cherche les références que reçoit `paquet-client produire` ou
+`paquet-client controler` (EX-7.30) : l'exploitant lui DOIT donner chaque
+référence de clé et le jeton qu'il a employés pour cette inscription et
+qu'il détient ; une clé d'un signataire externe, qu'il ne détient pas, n'est
+pas cherchée. La sortie nomme les options cherchées et leur nombre, jamais
+une valeur. Le paquet n'est pas
 confidentiel à l'égard du client, mais il porte les reçus de transactions
 d'autres organisations incluses dans les mêmes blocs (EX-9.5), comme les
 dossiers de preuve. Tenu par le producteur du paquet.
 
 **EX-7.22** **Réception.** Le client, ou son outil, contrôle le paquet avant
-de s'en servir, dans cet ordre, puis fait les comparaisons d'EX-7.17 :
+de s'en servir, dans cet ordre, puis fait les comparaisons d'EX-7.17 (qui
+demandent ses propres clés et une lecture de `CuratorSet.admin()` auprès
+d'un validateur, et que `paquet-client controler` de l'outil de référence ne
+fait pas, révision 0.7) :
 
 1. `paquet-client.json` est conforme à son schéma ;
 2. chaque fichier du répertoire, `paquet-client.json` excepté, figure une
@@ -2951,17 +3014,23 @@ de s'en servir, dans cet ordre, puis fait les comparaisons d'EX-7.17 :
    l'entrée ; `files` suit l'ordre d'EX-7.19 et compte au moins le dossier,
    le jeu d'approbateurs et le gabarit ;
 3. chaque fichier est conforme à la forme de son rôle (table d'EX-7.18) ;
+   révision 0.7 : `paquet-client.json`, `jeu-approbateurs.json` et le
+   gabarit sont écrits selon EX-7.18 (`JSON.stringify(objet, null, 2)` et
+   un saut de ligne) ; le dossier est fini (chaque étape `capturee` ou
+   `faite`, `result` rempli) ; une réponse brute du nœud est une réponse
+   JSON-RPC 2.0 complète (`jsonrpc` `"2.0"`, `id`, `result` objet) ;
 4. `org` est le slug du dossier et `org_id` égale `keccak256(UTF-8(org))`
    (RG-1) et `organisation.org_id` du dossier ; `instance` égale les membres
    correspondants de `instance` du dossier ; `instance-registre.json` est
    présent si et seulement si `manifest_sha256` n'est pas nul, et son SHA-256
-   est alors cette valeur ;
+   est alors cette valeur ; le répertoire est nommé `paquet-client-<org>`
+   (révision 0.7) ;
 5. `jeu-approbateurs.json` égale `result.approver_set` du dossier, membre pour
    membre ; `org` et `org_id` du gabarit égalent ceux du manifeste ;
 6. chaque étape du dossier dont `capture` n'est pas nul a son index dans
    `captures/`, et chaque fichier que nomme un index y figure avec le SHA-256
    que l'index lui donne (CP-6) ; tout fichier de `captures/` est nommé par
-   un index.
+   un index, et (révision 0.7) tout index par une étape du dossier.
 
 Un écart est un refus du paquet, signalé à l'exploitant, comme un écart
 d'EX-7.17 : aucune demande n'est signée pour l'organisation tant qu'il n'est
@@ -3041,6 +3110,47 @@ console et l'identité de session de son administrateur d'annuaire :
 }
 ```
 
+**EX-7.30** **Commande `paquet-client` de l'outil de référence (révision
+0.7).** L'outil de référence produit et contrôle le paquet par une seule
+commande, à deux opérations, comme `condense <operation>` :
+
+```bash
+$R paquet-client produire --dossier <dossier> --captures <répertoire> --sortie <répertoire> \
+  [--instance <manifeste>] [--console-origin <origine>] [--administrateur-annuaire <identité>]… \
+  [--prepare-par <texte>] [références de secrets d'EX-7.21]
+$R paquet-client controler --paquet <répertoire> [références de secrets d'EX-7.21]
+```
+
+| Opération | Effet | `outputs` d'une réussite |
+|---|---|---|
+| `produire` | hors ligne : contrôle du dossier (schéma, `entree_illisible` ; fini, `dossier_inacheve`), de l'instance (`--instance` exigé si et seulement si `manifest_sha256` n'est pas nul, `usage` sinon ; SHA-256 et identifiants égaux à ceux du dossier, `chaine_differente` ; sans manifeste, réseau de développement seulement, `reseau_non_developpement`), OP-4 hors ligne, résolution des références (EX-7.3), gabarit (`console_origin` et `administrators` donnés par `--console-origin` et `--administrateur-annuaire`, `null` sans eux, EX-7.20 ; hors de leur forme, `entree_illisible`) ; captures de chaque étape contrôlées contre CP-6 et contre l'étape (`capture_incomplete`, avec `check`) ; écriture dans un répertoire temporaire sous `--sortie`, contrôle d'EX-7.22, recherche d'EX-7.21, puis renommage en `<sortie>/paquet-client-<slug>` ; un paquet existant n'est jamais remplacé (`usage`) ; tout refus laisse `--sortie` sans paquet | `{ "directory", "org", "org_id", "files", "manifest_sha256", "secrets_checked" }` : chemin du paquet, nombre de fichiers de `files`, SHA-256 de `paquet-client.json`, options de secrets cherchées (noms et nombre : `{ "count", "references" }`, chaque option cherchée `{ "option", "reference" }`, nom de l'option et référence d'EX-7.3, jamais la valeur, sans doublon, triées par option puis par référence) |
+| `controler` | points 1 à 6 d'EX-7.22, dans l'ordre, puis EX-7.21 si des références sont données | `{ "directory", "org", "org_id", "files", "manifest_sha256", "secrets_checked" }` |
+
+Un refus du paquet est une sortie `refuse` (code 1) dont `error.check` est
+`null` et dont `outputs` est `{ "requirement", "point", "file" }`
+(`EX-7.22` et le point de 1 à 6, ou `EX-7.21` et `null` ; le chemin relatif
+du fichier en cause, ou `null`) ; le message commence par
+« EX-7.22, point <n> : » ou « EX-7.21 : » et ne porte jamais une valeur
+secrète. Codes :
+
+| `error.code` | Cause |
+|---|---|
+| `paquet_manifeste` | point 1 : `paquet-client.json` absent, illisible ou hors de son schéma |
+| `paquet_fichiers` | point 2 : fichier en plus, en moins ou en double, SHA-256 ou longueur différents, ordre de `files`, lien symbolique, répertoire en plus |
+| `paquet_forme` | point 3 : fichier hors de la forme de son rôle, écriture d'EX-7.18, dossier non fini, réponse brute qui n'est pas une réponse JSON-RPC complète |
+| `paquet_organisation` | point 4 : `org`, `org_id`, `instance`, `instance-registre.json`, nom du répertoire |
+| `paquet_jeu` | point 5 |
+| `paquet_captures` | point 6 |
+| `secret_present` | EX-7.21 : la valeur d'un secret cherché figure dans un fichier |
+| `dossier_inacheve` | `produire` d'un dossier dont une étape n'est ni `capturee` ni `faite` |
+
+`checks` porte OP-4 pour `produire` et est vide pour `controler`. Le travail
+de l'application qui produit le paquet (EX-7.23) rend une sortie dont
+`command` est `paquet-client`, avec les mêmes `result`, `exit_code`,
+`error.code` et des `outputs` de mêmes membres (EX-7.24), et son contrôle
+de réception, la même sortie que `controler`. Tenu par l'outil et par
+l'application.
+
 ### 7.14 Application d'exploitant (révision 0.6)
 
 **EX-7.23** **Admission.** Une application d'exploitant PEUT conduire les pas
@@ -3073,7 +3183,14 @@ et des `outputs` de mêmes membres, les refus de la table de 7.11 compris :
 sur un même état de la chaîne et les mêmes entrées, l'application et l'outil
 rendent la même sortie. Seuls diffèrent les instants (`updated_at`,
 `prepared_at`, `captured_at`, `completed_at`), `prepared_by`, et ce qui
-dépend de la transaction envoyée (hachages, hauteurs, gaz). Épreuve : sur le dossier et le répertoire des captures que
+dépend de la transaction envoyée (hachages, hauteurs, gaz) ; et, pour le
+paquet (révision 0.7), `source` de `paquet-client.json`, qui nomme le
+producteur et sa version (EX-7.19), et donc le SHA-256 de ce manifeste
+(`outputs.manifest_sha256`). Révision 0.7 : un travail que l'agent refuse
+pour sa forme (champ hors de son type, EX-7.25) n'est pas une commande
+exécutée et ne produit aucune sortie : l'épreuve de même sortie porte sur
+les travaux bien formés ; les `outputs` dont le texte ne fixe pas les
+membres sont ceux que rend l'outil de référence. Épreuve : sur le dossier et le répertoire des captures que
 l'application a produits, l'outil de référence relancé avec les mêmes
 arguments rend `deja_fait` pour chaque étape et n'envoie rien (EX-7.13) ;
 `verifier` de 7.9 rend R-1 à R-10 `reussi` ; le paquet passe EX-7.22.
@@ -3088,7 +3205,12 @@ l'interface n'a de champ qui reçoive une clé privée, une graine, une
 mnémonique, un jeton ou le mot de passe d'une clé, et aucune méthode de
 l'agent n'en reçoit une valeur. Chaque champ de l'interface a un type
 déclaré (adresse, hachage, clé publique Ed25519, slug, nom de journal,
-seuil, montant, référence de clé, texte) ; un champ de référence de clé
+seuil, montant, référence de clé, texte ; révision 0.7 : aussi entier,
+origine HTTPS et identité de session, sous les formes
+d'`annuaire-approbateurs-v0`, document JSON contrôlé contre son schéma,
+comme une demande signée, et chemin relatif sous le répertoire du client,
+sans composant `.` ni `..`, ainsi que la liste de valeurs d'un de ces
+types ; aucun autre) ; un champ de référence de clé
 n'admet que les formes de référence que l'agent sait résoudre (EX-7.3 et les
 backends de garde de CT-2 §11) et refuse une valeur nue, par exemple 64
 chiffres hexadécimaux avec ou sans `0x`, sans la garder ni la consigner.
@@ -4167,8 +4289,9 @@ appliqué.
 | `package.json`, `.github/workflows/ci.yml` | rien pour CT-4 | scripts `vecteurs:ct4` et `registre` ; étapes de A.6 | fait |
 | `README.md`, `README.fr.md`, `CHANGELOG.md`, `ARCHITECTURE.md` (« Ancrage », point 1 ; « Écrit au … », « À construire » ; « Décisions ouvertes », 6 et 7) | CT-4 absent | CT-4 écrit ; ancre avant clôture (EX-8.4) ; règle de substitution (section 11) ; outils de référence ; décisions 6 et 7 ci-dessous | fait |
 | `spec/schemas/paquet-client-v0.schema.json` (révision 0.6) | — | schéma nouveau du manifeste du paquet client et du gabarit de configuration du service d'approbation (7.13) ; ses références vers `inscription-client-v0` et `configuration-approbation-v0` (CT-3 révision 0.5) | fait |
-| Outil de référence `scripts/registre/noortrace-registre.mjs` (révision 0.6) | aucun paquet | production du paquet et son contrôle d'EX-7.21, contrôle de réception d'EX-7.22 ; une commande nouvelle exige d'ajouter son nom à l'énumération `command` de `operations-registre-v0#/$defs/sortie` (ajout compatible) | à faire (phase 2) |
-| Application d'exploitant (révision 0.6) | absente | interface web et agent séparé et privilégié d'EX-7.23 à EX-7.28 ; canal local par prise Unix, compte du pair vérifié (EX-7.28) ; épreuves d'EX-7.24 et d'EX-7.28 | à faire (phase 2) |
+| Outil de référence `scripts/registre/noortrace-registre.mjs` (révision 0.6) | aucun paquet | production du paquet et son contrôle d'EX-7.21, contrôle de réception d'EX-7.22 ; une commande nouvelle exige d'ajouter son nom à l'énumération `command` de `operations-registre-v0#/$defs/sortie` (ajout compatible) | commande `paquet-client` écrite à l'étape 6 ; nom et codes ajoutés au schéma par la révision 0.7 (EX-7.30) ; à faire : reprise d'une étape `echec` déjà accomplie par `capturer --transaction --dossier` (EX-7.29), `funding` nul (EX-7.29) |
+| `spec/schemas/operations-registre-v0.schema.json`, `inscription-client-v0.schema.json` (révision 0.7) | `command` sans `paquet-client` ; aucun code de refus du paquet ; `funding` toujours une transaction | `paquet-client` ; `paquet_manifeste` à `paquet_captures`, `secret_present`, `dossier_inacheve` ; `funding` nul admis (extensions compatibles) | fait |
+| Application d'exploitant (révision 0.6) | absente | interface web et agent séparé et privilégié d'EX-7.23 à EX-7.28 ; canal local par prise Unix, compte du pair vérifié (EX-7.28) ; épreuves d'EX-7.24 et d'EX-7.28 | construite à l'étape 6 (`paquets/inscription`) ; à faire (révision 0.7) : sortie `paquet-client` du travail de paquet et codes d'EX-7.30, recherche d'EX-7.21 sur chaque référence employée, travail `administrer-jeu` avec la confirmation d'EX-7.26, reprise d'EX-7.29 |
 | `test/registreCt4.test.js` (révision 0.6) | six exemples annotés, liste fermée | annoter l'exemple de manifeste et l'exemple de gabarit de 7.13, les ajouter à la liste, et charger `paquet-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` dans le registre des schémas du test | fait autrement : les deux exemples portent l'annotation `<!-- exemple: … -->` (celle des exemples de la révision 0.5 de CT-3), que la liste fermée des annotations `<!-- schema: … -->` (EX-A.6) ne lit pas ; un essai de ce fichier les valide contre `paquet-client-v0` chargé avec ces schémas et recalcule les SHA-256 et longueurs du manifeste |
 | `spec/README.md` (révision 0.6) | CT-4 version 0.5 ; table des schémas sans `paquet-client-v0` | CT-4 version 0.6 ; ligne `paquet-client-v0` (CT-4 §7.13), chargé avec `inscription-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` | fait |
 

@@ -113,12 +113,13 @@ describe("CT-3 : schémas et exemples de la spécification", function () {
     }
   });
 
-  it("révision 0.5 : chaque exemple JSON annoté <!-- exemple: … --> (configuration du service, notification, rapport de validation, configuration du serveur de console, fichier des comptes) est conforme à configuration-approbation-v0 ou configuration-console-v0 (EX-10.12, EX-10.13, EX-13.40, EX-13.47)", function () {
+  it("révision 0.5 : chaque exemple JSON annoté <!-- exemple: … --> (configuration du service, notification, rapport de validation, configuration du serveur de console, fichier des comptes) est conforme à configuration-approbation-v0 ou configuration-console-v0 (EX-10.12, EX-10.13, EX-13.40, EX-13.47) ; révision 0.6 : second rapport de validation, refus au démarrage (EX-10.14)", function () {
     const nouveaux = ["configuration-approbation-v0", "configuration-console-v0"];
     for (const f of nouveaux) expect(J.motsClesHorsSousEnsemble(JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${f}.schema.json`), "utf8"))), f).to.deep.equal([]);
     const registre = J.registreSchemas([...FICHIERS_SCHEMAS_CONSOLE, ...nouveaux.map((f) => `${f}.schema.json`)].map((f) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", f), "utf8"))));
     const exemples = [...MD.matchAll(/<!-- exemple: ([a-z-]+)(?:\/([a-z_]+))? -->\n```json\n([\s\S]*?)\n```/g)];
-    expect(exemples.map(([, nom, def]) => `${nom}/${def ?? ""}`).sort()).to.deep.equal(["configuration-approbation/", "configuration-approbation/notification", "configuration-approbation/rapport_validation", "configuration-console/", "configuration-console/fichier_comptes"]);
+    // Deux rapports de validation : celui d'EX-10.12 (valider-configuration) et, depuis la révision 0.6, la ligne de refus au démarrage d'EX-10.14.
+    expect(exemples.map(([, nom, def]) => `${nom}/${def ?? ""}`).sort()).to.deep.equal(["configuration-approbation/", "configuration-approbation/notification", "configuration-approbation/rapport_validation", "configuration-approbation/rapport_validation", "configuration-console/", "configuration-console/fichier_comptes"]);
     for (const [, nom, def, texte] of exemples) {
       const erreurs = J.validerSchema(JSON.parse(texte), registre[`https://noortrace.example/schemas/v0/${nom}.schema.json`], { registre, fragment: def ? `#/$defs/${def}` : "" });
       expect(erreurs, `${nom}/${def ?? ""}`).to.deep.equal([]);
@@ -744,6 +745,8 @@ describe("CT-3 : remises et signatures (section 9, SG-1 à SG-7, annexe A.7 et A
   });
 
   it("A.8 : normalisation d'EX-9.3 ; chaque forme normalisée recouvre la même adresse que la forme d'entrée", function () {
+    // Quinze cas de recouvrement secp256k1 : plus de deux secondes sous mocha seul, dont c'est le délai par défaut.
+    this.timeout(60000);
     const doc = lire("signatures", "normalisation.json");
     expect(Object.keys(doc)).to.deep.equal(["version", "cases"]);
     const M = A.condensesVote({ decision: "approuve", journal_id: JOURNAL_ID, org_id: ORG_ID, request_hash: J.sha256(Buffer.from("noortrace/vecteurs/ct3/demande/1", "utf8")), ticket: "apr-0001" }).M;
@@ -1502,6 +1505,7 @@ const COUVERTURE = {
   "EX-10.11": "EX-7.13 (escalade sans effet sur l'état et l'échéance)",
   "EX-10.12": HORS("service d'approbation, étape 6 : document configuration-approbation-v0 lu par --config, règles hors schéma de la table d'EX-10.12 (dont jeton_exige_production) et résolution des secrets ; la bibliothèque ne lit aucune configuration"),
   "EX-10.13": HORS("serveur de console, étape 6 : document configuration-console-v0 lu par --config et règles hors schéma de la table d'EX-10.13"),
+  "EX-10.14": HORS("service d'approbation et serveur de console, étape 6 (révision 0.6) : refus au démarrage en une ligne rapport_validation (test/approbation-service-configuration.test.js) ; la bibliothèque ne démarre aucun service"),
   "EX-11.1": "EX-11.1",
   "EX-11.2": "EX-11.1",
   "EX-11.3": "EX-11.3, EX-11.7",
@@ -1537,6 +1541,7 @@ const COUVERTURE = {
   "EX-12.19": "test/console.test.js : AN-10 (controles-canal.json : retrait par le demandeur, par un administrateur, refus d'un approbateur qui présente by = launched_by) ; traces retrait (T10, retrait_non_autorise)",
   "EX-12.20": "test/observation.test.js : bloc annoté d'EX-12.20 conforme à ticket/reponse_evaluer et égal à evaluerObservation sur paiement-7400 ; reponseObservationAdmise refuse ticket, ticket_state, approval ou approver_set non nuls",
   "EX-12.21": HORS("service d'approbation, étape 6 : méthode tickets du canal de la console (contest_ms, contest, related et ordre des refus de consulter) ; la bibliothèque ne tient aucune liste de tickets"),
+  "EX-12.22": HORS("service d'approbation, étape 6 (révision 0.6) : commande sonde --url (test/approbation-service-configuration.test.js) ; la bibliothèque n'a pas de sonde"),
   "EX-12.4": HORS("canal console → service authentifié (phase 2) ; session_identity inscrite dans les transitions"),
   "EX-13.1": "test/console.test.js : la page ne lit, ne reçoit ni ne dérive aucune clé (propriétés statiques) ; la signature est faite par le fournisseur simulé (Chromium) ; HORS : console d'exploitation (phase 2)",
   "EX-13.2": "test/console.test.js : contrôles 9 et 12 d'EX-9.15 (modeles/), controleVote (AN-8), scénario annuaire dans Chromium ; HORS : authentification de la console d'exploitation (phase 2)",

@@ -52,8 +52,11 @@ Early. The nine design specifications are written, each with test vectors
 checked by implementations written separately from the reference. The design
 was frozen as version 1.0 on 2 November 2026: every later change to `spec/` is
 recorded in a change register checked by CI (`spec/figeage/`). The build has
-started: the core library, the first of its eight steps, is in `paquets/noyau/`,
-and the offline verifier binary written in Go, the second, is in `verificateur/`.
+reached the sixth of its eight steps: the core library (`paquets/noyau/`), the
+offline verifier binary written in Go (`verificateur/`), the development
+registry, the recorder (`paquets/enregistreur/`), the anchoring component
+(`paquets/ancrage/`), and the operating console with onboarding, folder export
+and the verification page.
 
 - **CT-1, formats**: event model, canonical form, hashing, signing, Merkle periods,
   period manifests, signed checkpoints with RFC 9162 consistency proofs, and
@@ -153,9 +156,18 @@ Go verifiers written from the specification alone, without reading the
 JavaScript.
 
 The registry contracts, the commit-certificate verifier and the reference approval
-console exist and are tested. The recorder, the approval service and the operating
-console, the anchoring component with its network clients, and the verifier's Go
-binary are specified, not built yet.
+console exist and are tested, and so do the recorder, the anchoring component with
+its network clients and the verifier's Go binary. Step 6 adds the approval service
+(`paquets/approbation/`), the operating console (`paquets/console/`: an approver
+enrols an address by proof of possession and signs a decision in their own
+wallet), client onboarding by the operator (`paquets/inscription/`: a web
+interface that holds no key, a separate agent that holds them), the export of an
+evidence folder by the recorder (`noortrace-ctl dossier exporter`) and the
+verification page (`paquets/verification-web/`: the Go verifier compiled to
+WebAssembly, same report as the binary). Its criterion is demonstrated: a decision
+signed from the console, the exported folder accepted by both verifiers. Packages,
+observability and runbooks (step 7) and the end-to-end, adversarial and
+performance campaign (step 8) remain.
 
 ## Layout
 
@@ -165,6 +177,10 @@ binary are specified, not built yet.
 | `scripts/lib/` | JavaScript reference implementation |
 | `verificateur/` | `noortrace-verifier`, the offline verifier binary in Go (CT-6 §14): reproducible build, no network code |
 | `paquets/noyau/` | Production core library (`@noortrace/noyau`), written from the CT-1 text alone and checked against every CT-1 vector |
+| `paquets/enregistreur/`, `paquets/ancrage/` | The recorder daemon (step 4), with evidence-folder export on request (step 6), and the anchoring component (step 5) |
+| `paquets/approbation/`, `paquets/console/` | Approval service and operating console (CT-3 §13, step 6): shared library, console server, pages loaded with their integrity |
+| `paquets/inscription/` | Client onboarding by the operator (CT-4 §7.14, step 6): a web interface that holds no key, a separate agent that holds them |
+| `paquets/verification-web/` | Verification page (CT-6 §18, step 6): the Go verifier compiled to WebAssembly, run in the browser |
 | `scripts/verify/` | Offline verifiers (evidence folder, commit certificate) |
 | `scripts/registre/` | CT-4 reference tool: client onboarding, anchoring, period closure, capture |
 | `deploiement/` | CT-8 reference deployment files: Compose files, image descriptions, quick-install configuration |

@@ -17,6 +17,10 @@
 //   { "cmd": "controles" }                              un tour des contrôles périodiques du cœur (EX-17.5)
 //   { "cmd": "worm", "action": a }                      balayer | quotidien | horaire | vider sur le support WORM branché
 //   { "cmd": "metriques" }                              exposition texte des métriques (cœur et ancrage)
+//   { "cmd": "demarrage" }                              instant du démarrage du cœur et horloge murale (CT-2 EX-15.10, demandes périmées)
+//   { "cmd": "point-arret", "repertoire": r }           point d'arrêt de l'export d'une demande `dossier` (CT-2 EX-15.13) avant la
+//                                                       seconde vérification du parent : écrit <r>/atteint-<request_id> (chemin du
+//                                                       répertoire temporaire) et attend <r>/reprendre-<request_id> ; r null : retiré
 //   { "cmd": "arreter" }                                arrêt propre, code 0
 //   node demon.mjs noortrace --config <configuration.json>
 // (le mot `noortrace` avant `--config` fait reconnaître le processus par
@@ -24,6 +28,8 @@
 // de commande). L'instant de départ de l'horloge vient de la variable
 // NOORTRACE_TEST_HORLOGE_BASE_MS. Importé sans être lancé, il ne fait rien.
 
+import fs from "node:fs";
+import path from "node:path";
 import readline from "node:readline";
 import { pathToFileURL } from "node:url";
 import { principal, superviserProcessus, pieceJson } from "@noortrace/enregistreur";
@@ -123,6 +129,43 @@ async function principalEnfant() {
         case "metriques":
           repondre({ ok: true, id: c.id, texte: coeur.metriques.exposer() + (typeof coeur.o.ancrage?.metriques === "function" ? coeur.o.ancrage.metriques() : "") });
           break;
+        case "demarrage":
+          repondre({ ok: true, id: c.id, demarrage: coeur.instantDemarrage, murale: horloge.murale(), pid: process.pid });
+          break;
+        case "point-arret": {
+          // CT-2 EX-15.13 point 2 (TE-18) : lien posé pendant l'écriture, arrêt brutal avant le renommage.
+          const rep = c.repertoire ? String(c.repertoire) : null;
+          coeur.o.pointArretExport = rep === null ? undefined : async ({ request_id, temporaire }) => {
+            fs.writeFileSync(path.join(rep, `atteint-${request_id}`), temporaire);
+            const limite = Date.now() + 120000;
+            while (!fs.existsSync(path.join(rep, `reprendre-${request_id}`)) && Date.now() < limite) await new Promise((r) => setTimeout(r, 20));
+          };
+          repondre({ ok: true, id: c.id });
+          break;
+        }
+        case "panne-export":
+          // CT-2 EX-15.15 (révision 0.9) : erreur imprévue pendant l'écriture d'un export (avant le renommage).
+          coeur.o.pointArretExport = c.actif === false ? undefined : async () => {
+            throw new TypeError("panne d'essai de l'export");
+          };
+          repondre({ ok: true, id: c.id });
+          break;
+        case "panne-synchronisation":
+          // CT-2 EX-15.13 point 2 (révision 0.9) : synchronisation du parent en échec après le renommage.
+          coeur.o.essaiSynchronisationParent = c.actif === false ? undefined : () => {
+            throw Object.assign(new Error("synchronisation d'essai"), { code: "EIO" });
+          };
+          repondre({ ok: true, id: c.id });
+          break;
+        case "panne-ancrage": {
+          // CT-2 EX-15.15 (révision 0.9) : erreur imprévue d'une demande ancrage, hors des refus prévus.
+          if (c.actif === false) delete coeur.commandeAncrage;
+          else coeur.commandeAncrage = async () => {
+            throw new TypeError("panne d'essai de l'ancrage");
+          };
+          repondre({ ok: true, id: c.id });
+          break;
+        }
         case "arreter":
           process.kill(process.pid, "SIGTERM");
           repondre({ ok: true, id: c.id });

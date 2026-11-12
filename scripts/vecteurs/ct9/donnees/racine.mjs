@@ -6,7 +6,7 @@ export const META = {
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.7",
+  "spec_version": "0.8",
   "date": "2026-11-11"
 };
 

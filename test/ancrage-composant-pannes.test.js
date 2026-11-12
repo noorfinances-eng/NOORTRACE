@@ -166,6 +166,44 @@ describe("ancrage, composant F1 : pannes et reprises (CT-5 §5.3, §8, §9)", fu
     });
   });
 
+  describe("registre absent hors production (EX-8.4 règles 2 et 3) : aucune ancre au registre n'est écrite ni reprise", function () {
+    let dir;
+    let m;
+    let composant;
+    let calme;
+    before(async function () {
+      dir = repertoireTemporaire();
+      m = await monterComposant({ dir, periodStart: PERIODE, evenements: TOUTES_LES_MINUTES, ErreurTransport, surcharges: { opentimestamps: { enabled: false } } });
+      if (m.condition) return;
+      composant = m.creer({ clients: { registre: undefined } });
+      calme = attenteCalme(composant);
+      await composant.demarrer();
+    });
+    after(async function () {
+      if (composant?.etat().demarre) await composant.arreter({ attendre: false });
+      await m?.fermer?.();
+      fs.rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("étape 6 : sans registre configuré, aucune ancre de point ni de période n'est écrite (checkpoint_not_anchored registre_absent), le jeton de la période part aussitôt à la clôture et est obtenu ; deux heures plus tard, aucune reprise registre_absent et aucune demande active", async function () {
+      if (m.condition) return enAttente(this, m.condition);
+      await rejouer(m, composant, calme, 0, 59);
+      await clore(m, composant, calme);
+      await m.horloge.avancer(2 * 3600 * 1000, calme);
+      const demandes = composant.demandes();
+      expect(demandes.filter((d) => d.kind.startsWith("ancre_registre_")).map((d) => d.id), "aucune ancre au registre").to.deep.equal([]);
+      expect(demandes.find((d) => d.kind === "jeton_periode").state).to.equal("obtenue");
+      expect(m.journal.de("checkpoint_closing_fallback")).to.deep.equal([]);
+      const nonAncres = m.journal.de("checkpoint_not_anchored");
+      expect(nonAncres.length).to.be.at.least(1);
+      expect(nonAncres.every((l) => l.data.reason === "registre_absent"), JSON.stringify(nonAncres.map((l) => l.data.reason))).to.equal(true);
+      const reprises = m.journal.de("anchor_retry").filter((l) => l.data.error_code === "registre_absent");
+      expect(reprises, "aucune reprise registre_absent").to.deep.equal([]);
+      expect(m.journal.de("registry_pending")).to.deep.equal([]);
+      expect(composant.etat().actives, "aucune demande active").to.equal(0);
+    });
+  });
+
   describe("calendriers OpenTimestamps en panne puis muets puis de retour (EX-6.2, EX-8.11)", function () {
     let dir;
     let m;

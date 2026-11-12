@@ -1,0 +1,44 @@
+/* Interface d'exploitant : mise en forme neutre, sans police ni image externe (default-src 'none'). */
+:root {
+  --fond: #ffffff;
+  --texte: #1d1d1f;
+  --discret: #5f6368;
+  --trait: #d0d4d9;
+  --accent: #1f5f8b;
+  --refus: #a3261d;
+  --succes: #1e6b3a;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #16181b;
+    --texte: #e8eaed;
+    --discret: #9aa0a6;
+    --trait: #3c4043;
+    --accent: #8ab4f8;
+    --refus: #f28b82;
+    --succes: #81c995;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.5 system-ui, sans-serif; }
+header { display: flex; gap: 1.5rem; align-items: center; padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--trait); }
+header strong { font-weight: 600; }
+nav a, header a { color: var(--accent); text-decoration: none; }
+main { max-width: 72rem; margin: 0 auto; padding: 1.5rem; }
+h1 { font-size: 1.4rem; margin: 0 0 1rem; }
+h2 { font-size: 1.1rem; margin: 2rem 0 0.75rem; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--trait); vertical-align: top; }
+code, pre, textarea, input { font-family: ui-monospace, monospace; font-size: 0.85rem; }
+pre { white-space: pre-wrap; word-break: break-all; background: color-mix(in srgb, var(--trait) 25%, transparent); padding: 0.5rem; border-radius: 4px; max-height: 28rem; overflow: auto; }
+form { display: grid; gap: 0.75rem; max-width: 46rem; margin: 0.5rem 0 1.5rem; }
+label { display: grid; gap: 0.25rem; }
+label span { color: var(--discret); font-size: 0.85rem; }
+input, textarea, select { width: 100%; padding: 0.4rem; border: 1px solid var(--trait); border-radius: 4px; background: var(--fond); color: var(--texte); }
+textarea { min-height: 6rem; }
+button { justify-self: start; padding: 0.45rem 1rem; border: 1px solid var(--accent); border-radius: 4px; background: var(--accent); color: var(--fond); cursor: pointer; }
+.refus { color: var(--refus); }
+.succes { color: var(--succes); }
+.etat { font-family: ui-monospace, monospace; }
+.discret { color: var(--discret); }

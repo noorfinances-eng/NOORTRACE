@@ -169,7 +169,7 @@ export class Ecrivain {
     const noms = nomsManifeste(P);
     const dir = path.join(this.repertoire, "manifestes");
     await this.verifierEcriture("cloture");
-    const sig = await this.signataire.signer(manifeste.recorder_key_id, messageSignatureManifeste(manifeste));
+    const sig = await this._signer(manifeste.recorder_key_id, messageSignatureManifeste(manifeste));
     const periodHash = hacherManifeste(manifeste);
     const signature = { version: 0, period_hash: periodHash, recorder_key_id: manifeste.recorder_key_id, sig: octetsVersHex(sig) };
     await ecrireAtomique(path.join(dir, noms.signature), octetsJsonLisible(signature), { jamaisReecrire: true });
@@ -583,6 +583,37 @@ export class Ecrivain {
 
   // ------------------------------------------------------------ écriture
 
+  /**
+   * Toute signature de l'écrivain (événement, contre-signature de rotation,
+   * point de contrôle, manifeste) passe par ici. Un échec du signataire, quel
+   * que soit l'objet signé (erreur ou délai du backend, signature qui ne
+   * vérifie pas, clé révoquée, message hors borne), est la panne « clé
+   * indisponible » de CT-2 14.2, détectée à l'« appel au signataire » (`sign`,
+   * EX-11.18) : mode dégradé « clé », qui bloque tout (EX-14.4, EX-14.8)
+   * jusqu'à la sortie d'EX-14.11. Sans cela, un point de contrôle ou une
+   * clôture de période en échec laissait le démon hors mode dégradé : l'appel
+   * suivant était relayé puis rendu -31017 au lieu d'être bloqué en -31010.
+   * @param {string} cle
+   * @param {Uint8Array} message
+   * @param {{rotation?: boolean}} [options]
+   * @returns {Promise<Uint8Array>}
+   */
+  async _signer(cle, message, options) {
+    let sig;
+    try {
+      sig = await this.signataire.signer(cle, message, options);
+    } catch (err) {
+      this.degrade.entrer("cle");
+      throw err;
+    }
+    return sig;
+  }
+
+  /** Le signataire vu par `signerPointDeControle` et `construireEtSignerManifeste`, à travers `_signer`. */
+  get _signataireSurveille() {
+    return { signer: (cle, message) => this._signer(cle, message) };
+  }
+
   async _ecrireEvenement(op) {
     if (!this.segment) {
       // Sortie du mode « stockage » : nouveau segment ouvert et synchronisé
@@ -624,7 +655,7 @@ export class Ecrivain {
         valid_from: tsIso,
       };
       await this.verifierEcriture("rotation");
-      const contre = await this.signataire.signer(nouvelleCle, messageRotation(R));
+      const contre = await this._signer(nouvelleCle, messageRotation(R));
       partiel = partielRotation({ ...R, counter_sig: octetsVersHex(contre) }, { policy_version: op.p.policy_version, recorder: this.recorder });
     }
     const e = envelopper(partiel, {
@@ -668,13 +699,7 @@ export class Ecrivain {
       await this._ouvrirSegment(this.lastSeq + 1);
     }
     await this.verifierEcriture("evenement");
-    let sig;
-    try {
-      sig = await this.signataire.signer(cleSignature, messageSignatureEvenement(e), { rotation: op.type === "rotation" });
-    } catch (err) {
-      this.degrade.entrer("cle");
-      throw err;
-    }
+    const sig = await this._signer(cleSignature, messageSignatureEvenement(e), { rotation: op.type === "rotation" });
     e.sig = octetsVersHex(sig);
     if (options.avantAjout) await options.avantAjout(e);
     try {
@@ -787,7 +812,7 @@ export class Ecrivain {
         nonce: this.nonce(P.start),
         generated_at: maintenant,
       },
-      this.signataire,
+      this._signataireSurveille,
     );
     const noms = nomsManifeste(P.start);
     const dir = path.join(this.repertoire, "manifestes");
@@ -828,7 +853,7 @@ export class Ecrivain {
       key_id: this.cleCourante,
     });
     await this.verifierEcriture("point");
-    const point = await signerPointDeControle(corps, this.signataire);
+    const point = await signerPointDeControle(corps, this._signataireSurveille);
     const chemin = path.join(this.repertoire, "points", nomSerie(P.start));
     const f = await FichierAjout.ouvrir(chemin, { creer: true, existantAdmis: true });
     try {

@@ -1,14 +1,18 @@
 // Service d'approbation (CT-3 §12) : méthodes du noyau (`charger`,
 // `evaluer`, `ouvrir`, `decisions`, `acquitter`, `consommer`, `expiration`),
-// entrées de la console (`voter`, `recuser`, `retirer`, 7.4), état
+// canal de la console complet (EX-12.13 : `tickets`, `consulter`, `voter`,
+// `recuser`, `retirer`, `annuaire` et les méthodes de l'annuaire), état
 // (`GET /v0/etat`, EX-12.12), minuteurs, lecture et surveillance du jeu,
-// persistance avant toute réponse (EX-7.22) et reprise (EX-7.23).
+// persistance avant toute réponse (EX-7.22, EX-12.17) et reprise (EX-7.23),
+// notifications formées après la persistance de ce qui les cause (13.19).
 //
-// Toutes les entrées passent, une à une, par une file unique : la machine
-// traite l'entrée, l'enregistrement est écrit et synchronisé, puis seulement
-// la réponse est rendue (ou la remise livrée). Le service ne détient aucune
-// clé du journal ni d'approbateur, n'écrit aucun événement et ne signe rien
-// (EX-3.3, EX-12.3).
+// Toutes les entrées et les opérations de l'annuaire passent, une à une, par
+// une file unique : la machine (ou le module d'annuaire) traite la requête,
+// l'enregistrement est écrit et synchronisé, puis seulement la réponse est
+// rendue (ou la remise livrée), et la notification formée. Le service ne
+// détient aucune clé du journal ni d'approbateur, n'écrit aucun événement et
+// ne signe rien (EX-3.3, EX-12.3). Les règles de l'annuaire sont celles du
+// module d'annuaire de la console (`annuaire.mjs`), jamais réécrites ici.
 
 import { ecrireHorodatage, hacherEvenement, verifierPiece, decoderBase64Canonique } from "@noortrace/noyau";
 import { ErreurService } from "./erreurs.mjs";
@@ -16,8 +20,12 @@ import { validerPolitique, avertissementsPolitique } from "./politique.mjs";
 import { candidats } from "./evaluation.mjs";
 import { verifierRemise, condenseA } from "./signatures.mjs";
 import { IDS, registreSchemas } from "./schema.mjs";
-import { Annuaire, controleCanal, identiteCanonique } from "./annuaire.mjs";
+import {
+  EtatAnnuaire, annuaireVide, annuaireDeSession, controleCanal, estIdentiteCanonique, adresseActive,
+} from "./annuaire.mjs";
 import { cloner, comparerChaines } from "./json.mjs";
+import { infoCanal, membresAjoutes, reponseTickets, vueTicket } from "./vues.mjs";
+import { SuiviPlafond } from "./notifications.mjs";
 
 const HEX32 = /^0x[0-9a-f]{64}$/;
 const objet = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -26,20 +34,48 @@ const invalide = (message) => new ErreurService("requete_invalide", {}, message)
 
 /** Méthodes du canal du noyau (12.2 à 12.6). */
 export const METHODES_NOYAU = Object.freeze(["charger", "evaluer", "ouvrir", "decisions", "acquitter", "consommer", "expiration"]);
-/** Méthodes du canal de la console servies à l'étape 4 (entrées de 7.4). */
-export const METHODES_CONSOLE = Object.freeze(["voter", "recuser", "retirer"]);
-/** Méthodes du canal de la console de l'étape 6 (12.9), non servies ici. */
-export const METHODES_CONSOLE_ETAPE_6 = Object.freeze([
-  "tickets", "consulter", "annuaire", "preparer_inscription", "inscrire", "valider", "revoquer", "desactiver",
-  "reactiver", "lier_demandeur", "delier_demandeur",
+/** Méthodes du canal de la console (table d'EX-12.13). */
+export const METHODES_CONSOLE = Object.freeze([
+  "tickets", "consulter", "voter", "recuser", "retirer", "annuaire", "preparer_inscription", "inscrire", "valider",
+  "revoquer", "desactiver", "reactiver", "lier_demandeur", "delier_demandeur",
 ]);
+/** Méthodes du canal de la console qui forment une entrée de 7.4. */
+export const METHODES_ENTREES_CONSOLE = Object.freeze(["voter", "recuser", "retirer"]);
+
+/** `$defs` de la requête de chaque méthode du canal de la console (EX-12.13). */
+export const REQUETES_CONSOLE = Object.freeze({
+  tickets: [IDS.consoleService, "requete_tickets"],
+  consulter: [IDS.consoleApprobation, "requete_consulter"],
+  voter: [IDS.consoleApprobation, "requete_voter"],
+  recuser: [IDS.consoleService, "requete_recuser"],
+  retirer: [IDS.consoleService, "requete_retirer"],
+  annuaire: [IDS.consoleService, "requete_annuaire"],
+  preparer_inscription: [IDS.consoleService, "requete_preparer_inscription"],
+  inscrire: [IDS.consoleService, "requete_inscrire"],
+  valider: [IDS.consoleService, "requete_valider"],
+  revoquer: [IDS.consoleService, "requete_revoquer"],
+  desactiver: [IDS.consoleService, "requete_entree"],
+  reactiver: [IDS.consoleService, "requete_entree"],
+  lier_demandeur: [IDS.consoleService, "requete_demandeur"],
+  delier_demandeur: [IDS.consoleService, "requete_demandeur"],
+});
+
+/** Types d'événements de la machine qui causent une notification (13.19). */
+const CAUSES = new Set(["notification", "seuil_inatteignable", "plafond_atteint"]);
+
+/** Empreinte abrégée d'un condensé (EX-9.18) : 8 chiffres, U+2026, 8 chiffres. */
+export const empreinte = (D) => `${D.slice(2, 10)}\u2026${D.slice(-8)}`;
 
 /** Le service d'approbation. */
 export class ServiceApprobation {
   /**
    * @param {{config: object, machine: import("./tickets.mjs").Machine, magasin: import("./persistance.mjs").MagasinEtat|null,
    *   supervision: import("./supervision.mjs").Supervision, lecteur?: import("./lecteur-jeu.mjs").LecteurJeu|null,
-   *   annuaire?: Annuaire|null, horloge?: () => number}} p
+   *   annuaire?: EtatAnnuaire|null, notifications?: import("./notifications.mjs").Notificateur|null,
+   *   horloge?: () => number, tirerNonce?: () => string|undefined, minuterie?: boolean}} p
+   *   `tirerNonce` : nonce imposé à `preparer_inscription` (essais seulement ; absent, le
+   *   module d'annuaire le tire au hasard) ; `minuterie: false` : périodes du plafond closes
+   *   par `tic()` seulement (horloge injectée des essais)
    */
   constructor(p) {
     this.config = p.config;
@@ -47,8 +83,27 @@ export class ServiceApprobation {
     this.magasin = p.magasin;
     this.supervision = p.supervision;
     this.lecteur = p.lecteur ?? null;
-    this.annuaire = p.annuaire ?? Annuaire.vide(p.config.org_id, p.config.administrators);
+    this.annuaire = p.annuaire ?? new EtatAnnuaire({
+      document: annuaireVide({
+        org: p.config.org, org_id: p.config.org_id, console_origin: p.config.console_origin,
+        registration_ttl_ms: p.config.registration_ttl_ms, administrators: p.config.administrators,
+      }),
+      defis: [],
+      persiste: false,
+    });
+    this.notifications = p.notifications ?? null;
     this.horloge = p.horloge ?? Date.now;
+    this.tirerNonce = p.tirerNonce ?? (() => undefined);
+    this.plafond = new SuiviPlafond({
+      horloge: this.horloge, journal: (type, d) => this.supervision.consigner(type, d), minuterie: p.minuterie !== false,
+    });
+    /** Causes de notification de l'entrée en cours, formées après sa persistance (EX-13.39). */
+    this.causes = [];
+    const amont = this.machine.evenement;
+    this.machine.evenement = (type, detail) => {
+      amont(type, detail);
+      if (CAUSES.has(type)) this.causes.push({ type, detail: cloner(detail) });
+    };
     this.file = Promise.resolve();
     /** remise_id → instant au plus tôt de sa prochaine présentation */
     this.prochaines = new Map();
@@ -90,6 +145,7 @@ export class ServiceApprobation {
     const r = this.machine.entree({ kind, at, data }, options);
     await this.#persister();
     for (const remise of r.remises) this.supervision.consigner("remise_calculee", { ticket: remise.ticket, remise_id: remise.remise_id, decision: remise.approval.decision });
+    this.#notifierCauses();
     this.#apres();
     if (!r.accepted) throw new ErreurService(r.reason, r.data ?? {});
     return r.response;
@@ -103,23 +159,26 @@ export class ServiceApprobation {
    * toute réponse, de sorte que rien de ce que la machine a changé ne devient
    * visible sans être durable, et qu'aucun changement n'est perdu.
    */
-  async #persister() {
+  async #persister(annuaire = {}) {
     const m = this.machine.prendreModifications();
     if (!this.magasin) return;
     if (this.magasin.enPanne) {
-      await this.magasin.reprendre(this.machine.exporter());
+      await this.magasin.reprendre(this.etatComplet());
       this.supervision.consigner("reprise", { kind: "etat_recopie" });
       return;
     }
     const enr = {};
     if (m.versions) enr.versions = this.machine.versionsChargees();
-    if (m.tickets.size) enr.tickets = [...m.tickets].map((id) => this.machine.tickets.get(id));
+    if (m.tickets.size) enr.tickets = [...m.tickets].map((id) => this.machine.ticketPersiste(this.machine.tickets.get(id)));
     if (m.fenetres) enr.fenetres = this.machine.copieFenetres();
+    // annuaire et défis (EX-13.38) : documents entiers, écrits à chaque changement
+    if (annuaire.annuaire) enr.annuaire = annuaire.annuaire;
+    if (annuaire.defis) enr.defis = annuaire.defis;
     if (!m.meta && Object.keys(enr).length === 0) return;
     enr.meta = this.machine.meta();
     try {
       await this.magasin.ajouter(enr);
-      if (this.magasin.aCompacter) await this.magasin.compacter(this.machine.exporter());
+      if (this.magasin.aCompacter) await this.magasin.compacter(this.etatComplet());
     } catch (e) {
       this.supervision.consigner("erreur", { kind: "persistance", code: e?.code ?? null, message: e?.message ?? null });
       throw e;
@@ -179,6 +238,11 @@ export class ServiceApprobation {
       const L = corps.tools.map((t) => t.tool_announced);
       for (const w of avertissementsPolitique(a.rules, { outils: L, requesters: corps.requesters })) {
         this.supervision.consigner("avertissement_politique", { policy_version: corps.policy_version, ...w });
+      }
+      // EX-10.10, EX-7.13 : chaque after_ms d'escalade est inférieur à E ; une étape au-delà ne part jamais
+      const tardives = (this.config.escalation ?? []).filter((x) => x.after_ms >= a.expire_after_ms).map((x) => x.after_ms);
+      if (tardives.length) {
+        this.supervision.consigner("avertissement", { kind: "escalade_apres_echeance", policy_version: corps.policy_version, expire_after_ms: a.expire_after_ms, after_ms: tardives });
       }
       if (a.rules.approver_set.source === "registre" && !this.lecteur) {
         this.supervision.consigner("alerte", { kind: "jeu_registre_sans_rpc", policy_version: corps.policy_version });
@@ -360,45 +424,187 @@ export class ServiceApprobation {
     });
   }
 
-  // -------------------------------------------------------------- canal de la console : voter, recuser, retirer (EX-12.13, EX-12.16, EX-12.19)
-
-  #infoTicket(id) {
-    const t = typeof id === "string" ? this.machine.tickets.get(id) : undefined;
-    return t ? { launched_by: t.request.delegation.launched_by, eligible: t.eligible } : null;
-  }
+  // -------------------------------------------------------------- canal de la console (12.9)
 
   /**
-   * Méthode du canal de la console qui forme une entrée de 7.4. Le contrôle de
-   * l'identité de session est fait avant l'entrée : un refus ne laisse aucune
-   * trace dans le ticket.
-   * @param {"voter"|"recuser"|"retirer"} methode
+   * Méthode du canal de la console (EX-12.13) : forme du corps
+   * (`requete_invalide`), identité de session canonique (`identite_invalide`),
+   * puis les refus de la méthode dans l'ordre de sa règle. Le contrôle de
+   * l'identité de session des méthodes de ticket est celui de `controleCanal`,
+   * fait avant que l'entrée soit formée : un refus ne laisse aucune trace dans
+   * le ticket (EX-12.13, EX-12.19).
+   * @param {string} methode
    * @param {object} corps
    */
   console(methode, corps) {
     return this.#executer(async () => {
-      const formes = {
-        voter: ["ticket", "approver", "decision", "signature", "reason", "session_identity"],
-        recuser: ["ticket", "approver", "session_identity"],
-        retirer: ["ticket", "by", "reason", "session_identity"],
-      };
-      if (!formes[methode] || !memesCles(corps, formes[methode])) throw invalide(`membres de ${methode}`);
-      if (!identiteCanonique(corps.session_identity)) throw new ErreurService("identite_invalide");
-      const refus = controleCanal(this.annuaire, methode, corps, this.#infoTicket(corps.ticket));
-      if (refus) {
-        this.supervision.consigner("canal_console_refus", { methode, ticket: typeof corps.ticket === "string" ? corps.ticket : null, reason: refus });
-        throw new ErreurService(refus);
+      if (this.arrete) throw new ErreurService("requete_invalide", {}, "service arrete");
+      const def = REQUETES_CONSOLE[methode];
+      if (!def) throw invalide("methode hors du canal de la console");
+      if (!registreSchemas().estValide(`${def[0]}#/$defs/${def[1]}`, corps)) throw invalide(`corps de ${methode}`);
+      if (!estIdentiteCanonique(corps.session_identity)) throw new ErreurService("identite_invalide");
+      switch (methode) {
+        case "tickets": return this.#tickets(corps);
+        case "consulter": return this.#consulter(corps);
+        case "annuaire": return annuaireDeSession(this.annuaire.document, corps.session_identity);
+        case "voter":
+        case "recuser":
+        case "retirer": return this.#entreeConsole(methode, corps);
+        default: return this.#operationAnnuaire(methode, corps);
       }
-      await this.#entree(methode, corps);
-      const t = this.machine.tickets.get(corps.ticket);
-      if (methode === "voter") {
-        // EX-13.3 : notification du vote inscrit, sans identité de personne
-        const D = condenseA({ decision: corps.decision, ticket: t.ticket, request_hash: t.request.request_hash, org_id: this.machine.org_id, journal_id: this.machine.journal_id });
-        const empreinte = `${D.slice(2, 10)}\u2026${D.slice(-8)}`; // empreinte abrégée d'EX-9.18
-        const vote = t.votes.at(-1);
-        this.supervision.notifier({ kind: "vote_inscrit", ticket: t.ticket, decision: corps.decision, approver: corps.approver, digest: empreinte, at: vote?.at ?? null });
-      }
-      return { ticket: t.ticket, state: t.state };
     });
+  }
+
+  #refusCanal(methode, ticket, reason) {
+    this.supervision.consigner("canal_console_refus", { methode, ticket: typeof ticket === "string" ? ticket : null, reason });
+    return new ErreurService(reason);
+  }
+
+  /** Refus de `consulter` appliqué à un ticket (EX-12.14 : points 1 à 3, puis `ticket_non_ouvert`). */
+  #controleConsulter(methode, ticket, session) {
+    const refus = controleCanal(this.annuaire.document, "consulter", { ticket, session_identity: session }, infoCanal(this.machine, ticket));
+    if (refus) throw this.#refusCanal(methode, ticket, refus);
+    const t = this.machine.tickets.get(ticket);
+    if (t.state === "reserve") throw this.#refusCanal(methode, ticket, "ticket_non_ouvert");
+    return t;
+  }
+
+  /** `tickets` (EX-12.14, EX-12.21). */
+  #tickets(corps) {
+    const refus = controleCanal(this.annuaire.document, "tickets", corps, null);
+    if (refus) throw this.#refusCanal("tickets", null, refus);
+    if (corps.related_to !== undefined) this.#controleConsulter("tickets", corps.related_to, corps.session_identity);
+    return reponseTickets({
+      machine: this.machine, annuaire: this.annuaire.document, session: corps.session_identity, relatedTo: corps.related_to,
+      maintenant: this.#maintenant(),
+    });
+  }
+
+  /**
+   * `consulter` (EX-12.14, EX-12.15). Un ticket dont les arguments sont
+   * effacés (EX-7.24 : `consomme`, `clos`, `abandonne`, ou expiré sans
+   * événement `retenue`) n'a plus de vue : `ticket_clos_aux_votes`.
+   */
+  #consulter(corps) {
+    const t = this.#controleConsulter("consulter", corps.ticket, corps.session_identity);
+    if (t.request.retained_event === null || t.request.arguments === null) throw this.#refusCanal("consulter", corps.ticket, "ticket_clos_aux_votes");
+    return vueTicket({ machine: this.machine, annuaire: this.annuaire.document, ticket: t, bodyMax: this.config.body_max_bytes });
+  }
+
+  /** `voter`, `recuser`, `retirer` : entrée de 7.4 après le contrôle du canal (EX-12.16, EX-12.19). */
+  async #entreeConsole(methode, corps) {
+    const refus = controleCanal(this.annuaire.document, methode, corps, infoCanal(this.machine, corps.ticket));
+    if (refus) throw this.#refusCanal(methode, corps.ticket, refus);
+    await this.#entree(methode, corps);
+    const t = this.machine.tickets.get(corps.ticket);
+    if (methode === "voter") {
+      // EX-13.3, EX-13.40 : vote_inscrit, formé après la persistance du vote
+      const D = condenseA({ decision: corps.decision, ticket: t.ticket, request_hash: t.request.request_hash, org_id: this.machine.org_id, journal_id: this.machine.journal_id });
+      const vote = t.votes.at(-1);
+      this.#notifier("vote_inscrit", {
+        entries: this.#entreesDesAdresses([corps.approver]), roles: [], ticket: t,
+        details: { approver: corps.approver, decision: corps.decision, digest: empreinte(D), at: vote.at },
+      });
+    }
+    return { ticket: t.ticket, state: t.state };
+  }
+
+  /**
+   * Méthode qui modifie l'annuaire ou ses défis (EX-13.13, EX-13.15,
+   * EX-13.17) : le module d'annuaire décide ; l'annuaire et les défis changés
+   * sont persistés avec fsync avant la réponse (EX-12.17), y compris le défi
+   * marqué présenté d'une inscription refusée (EX-13.15, pas 4) ; une
+   * opération refusée est consignée avec sa raison.
+   */
+  async #operationAnnuaire(methode, corps) {
+    const at = ecrireHorodatage(this.#maintenant());
+    const nonce = methode === "preparer_inscription" ? this.tirerNonce() : undefined;
+    const r = this.annuaire.calculer(methode, corps, at, nonce === undefined ? {} : { nonce });
+    if (r.annuaireChange || r.defisChanges) {
+      const persiste = this.annuaire.persiste || r.annuaireChange;
+      const document = r.annuaireChange ? r.annuaire : this.annuaire.document;
+      this.annuaire.adopter({ annuaire: document, defis: r.defis, persiste });
+      await this.#persister(persiste ? { annuaire: document, defis: r.defis } : { defis: r.defis });
+    }
+    if (!r.accepted) {
+      this.supervision.consigner("operation_annuaire_refusee", { methode, reason: r.reason, entry: typeof corps.entry === "string" ? corps.entry : null });
+      throw new ErreurService(r.reason, typeof corps.entry === "string" ? { entry: corps.entry } : {});
+    }
+    if (methode !== "preparer_inscription") {
+      const op = r.annuaire.operations.at(-1);
+      const e = r.annuaire.entries.find((x) => x.id === op.entry);
+      this.supervision.consigner("operation_annuaire", { methode, entry: op.entry, revision: r.annuaire.revision });
+      // EX-13.3, EX-13.40 : operation_annuaire, à l'entrée visée, après la persistance
+      this.#notifier("operation_annuaire", {
+        entries: [op.entry], roles: [], ticket: null,
+        details: { op: op.op, entry: op.entry, address: op.address, revision: r.annuaire.revision, at: op.at, by_self: e?.session_identity === op.by },
+      });
+    }
+    return r.response;
+  }
+
+  // -------------------------------------------------------------- notifications (13.19)
+
+  /** Entrées actives dont l'adresse active est l'une de `adresses` (EX-13.40). */
+  #entreesDesAdresses(adresses) {
+    const voulues = new Set(adresses);
+    return this.annuaire.document.entries.filter((e) => e.active && voulues.has(adresseActive(e))).map((e) => e.id);
+  }
+
+  /**
+   * Forme une notification (EX-13.40) : `ticket` est le document du ticket,
+   * ou null pour une opération de l'annuaire et `plafond_atteint`.
+   */
+  #notifier(kind, { entries, roles, ticket, details, lien = true }) {
+    if (!this.notifications) return;
+    const id = ticket?.ticket ?? null;
+    this.notifications.notifier({
+      kind, entries, roles, ticket: id, tool: ticket?.request.tool_announced ?? null, deadline: ticket?.deadline ?? null,
+      link: lien ? this.notifications.lien(id) : null, details,
+    });
+  }
+
+  /** Forme les notifications causées par l'entrée qui vient d'être persistée (EX-13.39). */
+  #notifierCauses() {
+    const causes = this.causes;
+    this.causes = [];
+    for (const { type, detail } of causes) {
+      try {
+        if (type === "plafond_atteint") {
+          if (this.plafond.refus(detail.launched_by)) {
+            this.#notifier("plafond_atteint", { entries: [], roles: ["administrateur"], ticket: null, lien: false, details: { max_open_tickets: detail.max_open_tickets } });
+          }
+          continue;
+        }
+        const t = this.machine.tickets.get(detail.ticket);
+        if (!t) continue;
+        if (type === "seuil_inatteignable") {
+          this.#notifier("seuil_inatteignable", {
+            entries: [], roles: ["administrateur_jeu", "administrateur"], ticket: t,
+            details: { eligible_count: detail.eligible, effective_required: detail.effective_required },
+          });
+        } else if (detail.kind === "ouverture") {
+          this.#notifier("ouverture", { entries: this.#entreesDesAdresses(detail.approvers), roles: [], ticket: t, details: null });
+        } else if (detail.kind === "nouveau_gel") {
+          this.#notifier("nouveau_gel", {
+            entries: this.#entreesDesAdresses(detail.approvers), roles: [], ticket: t,
+            details: { added_members: membresAjoutes(t), effective_required: t.effective_required },
+          });
+        } else if (detail.kind === "escalade") {
+          let entries = [];
+          let roles = [];
+          if (detail.notify === "jeu") entries = this.#entreesDesAdresses(detail.approvers);
+          else if (detail.notify === "administrateur") roles = ["administrateur_jeu"];
+          else {
+            const lb = t.request.delegation.launched_by;
+            entries = this.annuaire.document.entries.filter((e) => e.active && e.requester_identities.includes(lb)).map((e) => e.id);
+          }
+          this.#notifier("escalade", { entries, roles, ticket: t, details: null });
+        }
+      } catch (e) {
+        this.supervision.consigner("erreur", { kind: "notification", message: e.message });
+      }
+    }
   }
 
   // -------------------------------------------------------------- jeu d'approbateurs (8.1 à 8.3)
@@ -523,9 +729,21 @@ export class ServiceApprobation {
     this.supervision.consigner("lecture_jeu", { status: r.status, cause: r.cause, height: r.jeu?.height ?? null, set: r.jeu?.set ?? null, pinned: pol.set });
   }
 
-  /** Déclenche les minuteurs échus à l'instant de l'horloge du service (entrée `horloge`). */
-  tic() {
-    return this.#executer(() => this.#entree("horloge", {}));
+  /**
+   * Déclenche les minuteurs échus à l'instant de l'horloge du service : entrée
+   * `horloge` de la machine, périodes du plafond closes, tentatives de
+   * notification échues.
+   */
+  async tic() {
+    const r = await this.#executer(() => this.#entree("horloge", {}));
+    this.plafond.cloturer();
+    this.notifications?.traiter();
+    return r;
+  }
+
+  /** État complet à persister (EX-7.23) : documents de la machine, annuaire et défis (EX-13.38). */
+  etatComplet() {
+    return { ...this.machine.exporter(), ...this.annuaire.exporter() };
   }
 
   // -------------------------------------------------------------- état (EX-12.12)
@@ -558,6 +776,8 @@ export class ServiceApprobation {
     this.#reveiller();
     await this.lectureEnCours?.catch(() => {});
     await this.file.catch(() => {});
+    this.plafond.arreter();
+    await this.notifications?.arreter();
     await this.supervision.vider();
     await this.magasin?.fermer();
   }

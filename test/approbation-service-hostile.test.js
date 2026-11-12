@@ -397,7 +397,8 @@ describe("service d'approbation : non-régression de la relecture C", function (
     const config = { org_id: ORG_ID, journal_id: JOURNAL_ID_RELECTURE, set_poll_interval_ms: 30, remise_representation_ms: 30000, body_max_bytes: 1 << 24, administrators: [SESSIONS.admin] };
     const machine = new A.Machine({ org_id: ORG_ID, journal_id: JOURNAL_ID_RELECTURE, identifiants: { mode: "compteur" }, administrators: config.administrators });
     const supervision = new A.Supervision({ journal: path.join(dir, "j.ndjson"), notifications: path.join(dir, "n.ndjson") });
-    return new A.ServiceApprobation({ config, machine, magasin: null, supervision, lecteur, annuaire: A.Annuaire.lire(ANNUAIRE_REFERENCE) });
+    const annuaire = new A.EtatAnnuaire({ document: JSON.parse(fs.readFileSync(ANNUAIRE_REFERENCE, "utf8")), defis: [], persiste: false });
+    return new A.ServiceApprobation({ config, machine, magasin: null, supervision, lecteur, annuaire });
   }
   async function voter(s, t, i) {
     const sig = signerVote(i, { decision: "approuve", ticket: t.ticket, request_hash: t.request.request_hash });
@@ -626,7 +627,7 @@ describe("service d'approbation : non-régression de la relecture C", function (
     const dir = repertoireTemporaire();
     const cfg = ecrireConfiguration(dir, { socket: false });
     fs.writeFileSync(path.join(dir, "jeton-console"), cfg.jetonNoyau, { mode: 0o600 });
-    expect(() => A.chargerConfiguration(cfg.chemin)).to.throw(/distinct/);
+    expect(() => A.chargerConfiguration(cfg.chemin)).to.throw(/jetons_egaux \/console\/token/);
     fs.writeFileSync(path.join(dir, "jeton-console"), cfg.jetonConsole, { mode: 0o600 });
     expect(A.chargerConfiguration(cfg.chemin).secrets.jetonConsole).to.equal(cfg.jetonConsole);
   });

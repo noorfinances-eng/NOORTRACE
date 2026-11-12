@@ -801,7 +801,11 @@ describe("ancrage, lot H1 : corrections après la relecture adversariale de l'é
       expect(m.journal.de("anchoring_storage_unreadable")).to.deep.equal([]);
       const rebuilt = m.journal.de("anchoring_queue_rebuilt")[0].data;
       expect(rebuilt).to.include({ periods: 169, checkpoints: 1 });
-      expect(rebuilt.recreated).to.be.at.least(169 * 2);
+      // Montage sans registre : une demande jeton_periode recréée par période close, et aucune ancre au registre,
+      // qui ne pourrait jamais partir (EX-8.4 règle 2 ; étape 6 : avant, chaque période recréait aussi son ancre).
+      expect(m.composant.envoyeur).to.equal(null);
+      expect(rebuilt.recreated).to.be.at.least(169);
+      expect(m.composant.demandes().filter((d) => d.kind.startsWith("ancre_registre_"))).to.deep.equal([]);
       expect(m.composant.series.size).to.equal(1);
       expect(m.composant.series.get(ouverte)).to.have.lengthOf(30);
       expect(m.composant.points.size).to.equal(30);

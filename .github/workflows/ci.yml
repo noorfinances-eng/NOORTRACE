@@ -374,7 +374,7 @@ jobs:
           cmp "$a/noortrace-verifier" "$b/noortrace-verifier"
       - name: binaire vérificateur Go, preuves d'absence de réseau (CT-6 EX-14.5)
         run: |
-          sudo apt-get install -y --no-install-recommends strace
+          sudo apt-get -o Acquire::Retries=5 install -y --no-install-recommends strace
           sudo env "PATH=$PATH" GOTOOLCHAIN=local GOFLAGS=-mod=vendor verificateur/scripts/verifier-sans-reseau.sh
       # govulncheck sur le code et sur le binaire construit (CT-6 EX-14.11) :
       # code de retour lu hors du mode -json, qui rend toujours 0 ; une
@@ -409,6 +409,10 @@ jobs:
   # NOORTRACE_EXIGER_CHROMIUM=1 rend le saut impossible : si Playwright ou
   # Chromium ne se lancent pas, le test échoue au lieu d'être mis en attente,
   # et la dernière commande refuse toute ligne « pending » du rapport.
+  # L'installation reprend chaque téléchargement des miroirs apt jusqu'à cinq
+  # fois (Acquire::Retries), et l'installation entière au plus trois fois :
+  # une panne passagère des miroirs ne fait pas échouer le travail, un échec
+  # qui dure le fait toujours échouer.
   console-chromium:
     name: console de référence de CT-3 dans Chromium par Playwright 1.56.1, sans saut
     runs-on: ubuntu-24.04
@@ -424,12 +428,113 @@ jobs:
       - name: installer Playwright 1.56.1 hors de package.json, puis Chromium et ses dépendances
         run: |
           npm install --no-save playwright@1.56.1
-          npx playwright install --with-deps chromium
+          echo 'Acquire::Retries "5";' | sudo tee /etc/apt/apt.conf.d/80-noortrace-reprises
+          for essai in 1 2 3; do
+            if npx playwright install --with-deps chromium; then break; fi
+            if [ "$essai" = 3 ]; then echo "installation de Chromium : échec après trois essais" >&2; exit 1; fi
+            sleep 30
+          done
       - name: test/console.test.js, aucun test Chromium en attente
         run: |
           set -o pipefail
           npx hardhat --config hardhat.config.mjs test test/console.test.js 2>&1 | tee "$RUNNER_TEMP/console.txt"
           if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/console.txt"; then exit 1; fi
+
+  # Étape 6 : console d'exploitation (paquets/console), page de vérification
+  # (paquets/verification-web, CT-6 §18) et parcours du critère de livraison
+  # (TE-13) dans les navigateurs de Playwright 1.56.1, installé hors de
+  # package.json avec Chromium, Firefox et WebKit et leurs dépendances du
+  # système (les trois moteurs de TE-23, CT-9 0.8) ; ce travail n'accède au
+  # réseau que pour ces installations, jamais pendant les essais (tout se joue
+  # sur la boucle locale). go1.27.3 exactement (CT-6 EX-14.3, EX-18.3)
+  # construit l'artefact WebAssembly et le binaire noortrace-verifier ; l'arbre
+  # /entrees d'EX-18.10 est monté par unshare --root dans un espace de noms
+  # d'utilisateur, que l'AppArmor d'Ubuntu 24.04 restreint par défaut et que la
+  # première étape autorise. NOORTRACE_EXIGER_CHROMIUM=1 rend le saut de
+  # Chromium impossible ; chaque étape refuse toute ligne « pending » du
+  # rapport, sauf, pour le parcours, la variante sur le réseau de
+  # développement 2124 (quatre validateurs noorcore construits depuis
+  # noorchain-core, absent de ce dépôt), en attente avec son message ; la
+  # variante sans registre y est jouée sans saut. Les mutants des tests
+  # adversariaux de l'étape 6 sont rejoués à part, chacun devant être tué.
+  exploitation-chromium:
+    name: console d'exploitation, page de vérification et parcours TE-13 de l'étape 6 dans Chromium, Firefox et WebKit par Playwright 1.56.1 (go1.27.3), sans saut hors du réseau de développement
+    runs-on: ubuntu-24.04
+    env:
+      NOORTRACE_EXIGER_CHROMIUM: "1"
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.27.3
+          cache: false
+      - run: npm ci
+      - name: espaces de noms d'utilisateur pour unshare --root (arbre /entrees de CT-6 EX-18.10), outils des recettes d'archives
+        run: |
+          if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          unshare --map-root-user --mount true
+          zip -v | head -2
+          tar --version | head -1
+          openssl version
+          python3 --version
+      - name: installer Playwright 1.56.1 hors de package.json, puis Chromium, Firefox, WebKit et leurs dépendances
+        run: |
+          npm install --no-save playwright@1.56.1
+          echo 'Acquire::Retries "5";' | sudo tee /etc/apt/apt.conf.d/80-noortrace-reprises
+          for essai in 1 2 3; do
+            if npx playwright install --with-deps chromium firefox webkit; then break; fi
+            if [ "$essai" = 3 ]; then echo "installation des navigateurs : échec après trois essais" >&2; exit 1; fi
+            sleep 30
+          done
+      - name: binaire vérificateur Go construit par verificateur/scripts/construire.sh (go1.27.3)
+        run: |
+          test "$(go env GOVERSION)" = go1.27.3
+          GOFLAGS=-mod=vendor verificateur/scripts/construire.sh -o "$RUNNER_TEMP/noortrace-verifier"
+          test -x "$RUNNER_TEMP/noortrace-verifier"
+          sha256sum "$RUNNER_TEMP/noortrace-verifier"
+      - name: bibliothèque et pages de la console d'exploitation dans Chromium, aucun essai en attente
+        run: |
+          set -o pipefail
+          npx hardhat --config hardhat.config.mjs test $(ls test/exploitation-console-*-chromium.test.js) 2>&1 | tee "$RUNNER_TEMP/console-exploitation.txt"
+          if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/console-exploitation.txt"; then exit 1; fi
+      - name: page de vérification dans Chromium, Firefox et WebKit (TE-23, TA-101), aucun essai en attente
+        run: |
+          set -o pipefail
+          export NOORTRACE_GO_BIN="$(dirname "$(command -v go)")"
+          npx hardhat --config hardhat.config.mjs test test/verification-page-chromium.test.js 2>&1 | tee "$RUNNER_TEMP/page.txt"
+          if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/page.txt"; then exit 1; fi
+      - name: page de vérification, identité avec le binaire natif dans /entrees (CT-6 EX-18.10), aucun essai en attente
+        run: |
+          set -o pipefail
+          export NOORTRACE_GO_BIN="$(dirname "$(command -v go)")"
+          npx hardhat --config hardhat.config.mjs test test/verification-page-identite.test.js 2>&1 | tee "$RUNNER_TEMP/identite.txt"
+          if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/identite.txt"; then exit 1; fi
+      - name: parcours TE-13 de la console d'exploitation, variante sans registre sans saut ; seule la variante du réseau de développement 2124 en attente, avec son message
+        run: |
+          set -o pipefail
+          export NOORTRACE_GO_BIN="$(dirname "$(command -v go)")" NOORTRACE_VERIFIER_BIN="$RUNNER_TEMP/noortrace-verifier"
+          npx hardhat --config hardhat.config.mjs test test/exploitation-console-parcours.test.js 2>&1 | tee "$RUNNER_TEMP/parcours-te13.txt"
+          attentes=$(grep -cE '^[[:space:]]+- ' "$RUNNER_TEMP/parcours-te13.txt" || true)
+          admises=$(grep -cE "^[[:space:]]+- .* — en attente : (le réseau de développement 2124 n'est pas debout|le validateur http://127\.0\.0\.1:[0-9]+ ne répond pas eth_chainId|deployments/noorcore\.json absent|chain/runtime/validators\.json absent)" "$RUNNER_TEMP/parcours-te13.txt" || true)
+          echo "attentes : $attentes ; admises (réseau de développement 2124) : $admises"
+          test "$attentes" = "$admises"
+          if [ "$attentes" -gt 0 ]; then grep -E "^[[:space:]]+$attentes pending" "$RUNNER_TEMP/parcours-te13.txt"; fi
+          grep -E '^[[:space:]]+[0-9]+ passing' "$RUNNER_TEMP/parcours-te13.txt"
+          if grep -E '^[[:space:]]+[0-9]+ failing' "$RUNNER_TEMP/parcours-te13.txt"; then exit 1; fi
+      - name: tests adversariaux de l'étape 6, mutants du service d'approbation, du serveur de console et du démon tués (TA-51, TA-77, TA-99, TA-100, TA-102), aucun essai en attente
+        run: |
+          set -o pipefail
+          export NOORTRACE_GO_BIN="$(dirname "$(command -v go)")" NOORTRACE_VERIFIER_BIN="$RUNNER_TEMP/noortrace-verifier"
+          npx mocha --exit --timeout 600000 --grep "TA-(51|77|99|100|102) :" test/approbation-service-configuration.test.js test/approbation-service-console.test.js test/approbation-service-notifications.test.js test/exploitation-console-serveur-oidc.test.js test/enregistreur-export-dossier.test.js 2>&1 | tee "$RUNNER_TEMP/adversarial-etape6.txt"
+          grep -E '^[[:space:]]+5 passing' "$RUNNER_TEMP/adversarial-etape6.txt"
+          if grep -E '^[[:space:]]+[0-9]+ (pending|failing)' "$RUNNER_TEMP/adversarial-etape6.txt"; then exit 1; fi
 
   # Essais Python du SDK noortrace-sdk et des adaptateurs de cadres (CT-2
   # 6.4 à 6.6 ; paquets/sdk-python, LISEZMOI « Environnements d'essai ») et
@@ -509,8 +614,12 @@ jobs:
       - run: npm ci
       - name: SoftHSM2, swtpm et tpm2-tools par apt, versions imprimées
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends softhsm2 swtpm swtpm-tools tpm2-tools libtss2-tcti-swtpm0t64
+          for essai in 1 2 3; do
+            if sudo apt-get -o Acquire::Retries=5 update --error-on=any \
+              && sudo apt-get -o Acquire::Retries=5 install -y --no-install-recommends softhsm2 swtpm swtpm-tools tpm2-tools libtss2-tcti-swtpm0t64; then break; fi
+            if [ "$essai" = 3 ]; then echo "apt : échec après trois essais" >&2; exit 1; fi
+            sleep 30
+          done
           dpkg-query -W softhsm2 libsofthsm2 swtpm swtpm-tools tpm2-tools libtss2-tcti-swtpm0t64
           docker info --format '{{.ServerVersion}}'
       - name: binaire vérificateur Go construit par verificateur/scripts/construire.sh (go1.27.3)

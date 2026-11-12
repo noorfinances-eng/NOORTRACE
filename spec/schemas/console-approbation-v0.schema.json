@@ -641,7 +641,7 @@
       }
     },
     "code_console": {
-      "description": "Raisons pour lesquelles la console ne demande pas de signature, n'envoie pas de vote ni d'inscription, ou constate une panne du portefeuille (CT-3 9.6, 9.7, 13.7, 13.14). Les raisons communes avec 12.8 et EX-13.15 ont le même sens. message_invalide, origine_differente et identite_differente sont les refus, par la console, d'un texte d'inscription servi par le service (EX-13.13) ; adresse_differente est soit l'adresse d'un tel texte différente du compte choisi, soit l'adresse recouvrée d'une signature différente de l'adresse choisie (EX-9.21) ; annonce_invalide est une annonce EIP-6963 ignorée (EX-13.22, pas 2).",
+      "description": "Raisons pour lesquelles la console ne demande pas de signature, n'envoie pas de vote ni d'inscription, ou constate une panne du portefeuille (CT-3 9.6, 9.7, 13.7, 13.14). Les raisons communes avec 12.8 et EX-13.15 ont le même sens. message_invalide, origine_differente et identite_differente sont les refus, par la console, d'un texte d'inscription servi par le service (EX-13.13) ; adresse_differente est soit l'adresse d'un tel texte différente du compte choisi, soit l'adresse recouvrée d'une signature différente de l'adresse choisie (EX-9.21) ; annonce_invalide est une annonce EIP-6963 ignorée (EX-13.22, pas 2). reponse_service_invalide (révision 0.6) : réponse du serveur de console ou du service hors de la forme de son $defs, ou vue d'un autre ticket que celui que la page a demandé ; rien n'est affiché de la réponse ni signé (EX-13.29).",
       "enum": [
         "evenement_invalide",
         "piece_invalide",
@@ -681,7 +681,8 @@
         "cle_invalide",
         "message_invalide",
         "origine_differente",
-        "identite_differente"
+        "identite_differente",
+        "reponse_service_invalide"
       ]
     },
     "condenses": {
@@ -969,7 +970,7 @@
           ]
         },
         "remaining_ms": {
-          "description": "Temps restant jusqu'à deadline à l'instant du contexte, en millisecondes, nul sans échéance (le « temps restant » d'EX-9.4) ; 2 829 904 pour la vue de 12.9 à 2026-11-05T09:25:00.000Z.",
+          "description": "Temps restant jusqu'à deadline à l'instant du contexte, en millisecondes, nul sans échéance (le « temps restant » d'EX-9.4) ; 2 829 904 pour la vue de 12.9 à 2026-11-05T09:25:00.000Z. Révision 0.6 : différence signée, négative après l'échéance (EX-12.14).",
           "oneOf": [
             {
               "type": "null"

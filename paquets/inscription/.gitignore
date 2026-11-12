@@ -1,0 +1,5 @@
+# Sortie de « next build » (répertoire du projet Next : src/web), jamais versionnée.
+src/web/.next/
+src/web/next-env.d.ts
+# Traces qu'un « next build » échoué écrit sous le répertoire courant (racine du paquet).
+/.next/

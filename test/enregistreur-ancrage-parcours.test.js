@@ -231,6 +231,8 @@ describe("enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon r�
     expect(controles[7].status).to.equal("non_execute");
     expect(js.rapport.statement.fr).to.include("ancré au registre noortrace-2124-dev");
     expect(js.rapport.blocking_unexecuted).to.deep.equal([]);
+    // Étape 6 : chaque autorité d'essai a son propre nom d'émetteur ; les CRL du fichier d'ancres sont valides et aucune n'est écartée (AV-T-3).
+    expect(js.rapport.warnings.filter((w) => w.id === "AV-T-3"), JSON.stringify(js.rapport.warnings)).to.deep.equal([]);
     exports.avant = { destination, js };
     const bin = binaireGo();
     if (!bin) return enAttente(this, "vérificateur Go de CT-6 (NOORTRACE_VERIFIER_BIN, NOORTRACE_GO_BIN ou verificateur/dist/noortrace-verifier-linux-amd64) : vérification JavaScript faite, vérification Go non faite");
@@ -240,6 +242,7 @@ describe("enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon r�
     expect(statuts(go.rapport)).to.deep.equal(s);
     expect(go.rapport.statement.fr).to.equal(js.rapport.statement.fr);
     expect(go.rapport.statement.en).to.equal(js.rapport.statement.en);
+    expect(go.rapport.warnings.filter((w) => w.id === "AV-T-3"), JSON.stringify(go.rapport.warnings)).to.deep.equal([]);
   });
 
   it("mise à niveau OpenTimestamps (EX-6.6, EX-6.8) : chemin complet et en-têtes regtest, ots_complete pour la période et le point, entetes-bitcoin.json écrit ; réexport dû (EX-10.5, AN-53) ; nouveau dossier à generated_at postérieur : K-9 et contrôle 5 réussis, même verdict et même énoncé par les deux vérificateurs ; le dossier antérieur est inchangé", async function () {

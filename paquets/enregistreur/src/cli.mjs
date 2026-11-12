@@ -22,6 +22,9 @@ import fs from "node:fs";
 import { validerConfiguration, resoudreSecrets, ligneRapport } from "./configuration.mjs";
 import { lireSecretsVault } from "./secrets-vault.mjs";
 import { fichierDemandeRotation } from "./ctl-demon.mjs";
+import { lireDemande, preleverFichierDemande, tronquer64, atValide, donneesRefusExport, requestIdLisible } from "./demandes-demon.mjs";
+import { analyserJsonIntegral } from "./jcs-integral.mjs";
+import { exporterDemande, repertoireExports, detailErreurInterne, supprimerTemporaireDeDemande } from "./export-dossier.mjs";
 import { Coeur } from "./coeur.mjs";
 import { ClientServiceApprobation } from "./service-approbation-http.mjs";
 import { ErreurEnregistreur } from "./erreurs.mjs";
@@ -281,26 +284,15 @@ export function superviserProcessus(r, o = {}) {
     const r = coeur.accepterHorloge();
     process.stderr.write(r.accepte ? "noortrace: horloge acceptee\n" : `noortrace: acceptation de l'horloge refusee (${r.raison})\n`);
   });
-  // `noortrace-ctl cle rotation-urgence` (CT-8 EX-10.14, CT-2 EX-11.16) : SIGURG
-  // n'agit qu'avec la demande écrite par noortrace-ctl à côté du journal d'exploitation.
-  // `noortrace-ctl ancrage <etat|metriques|retirer-qualification> [id]` partage le signal et le fichier de demande :
-  // la demande dit ce qu'elle porte (`demande: "rotation-urgence"` ou `"ancrage"`).
-  process.on("SIGURG", async () => {
-    const f = fichierDemandeRotation(coeur.config.supervision.ops_log.path);
-    let demande = null;
-    try {
-      demande = JSON.parse(fs.readFileSync(f, "utf8"));
-      fs.rmSync(f);
-    } catch {
-      coeur.journal.consigner("warning", "signataire", "key_rotation_emergency_ignored", { raison: "sans_demande" });
-      return;
-    }
-    if (demande?.demande === "ancrage") {
-      await coeur.commandeAncrage({ commande: demande.commande, id: demande.id ?? null }).catch((e) => coeur.journal.consigner("warning", "ancrage", "anchoring_ctl_refused", { command: String(demande.commande ?? "").slice(0, 64), raison: "erreur", erreur: String(e?.message ?? e).slice(0, 200) }));
-      return;
-    }
-    await coeur.rotationUrgence().catch((e) => coeur.journal.consigner("error", "signataire", "key_rotation_emergency_refused", { raison: "erreur", erreur: String(e?.message ?? e) }));
-  });
+  // Demandes adressées au démon (CT-2 EX-15.10, pas 5) : SIGURG avec le fichier
+  // de demande écrit par noortrace-ctl à côté du journal d'exploitation. Le
+  // membre `demande` nomme l'action, et elle seule : `rotation-urgence`
+  // (`noortrace-ctl cle rotation-urgence`, CT-8 EX-10.14, CT-2 EX-11.16),
+  // `ancrage` (`noortrace-ctl ancrage <etat|metriques|retirer-qualification>`)
+  // ou `dossier` (`noortrace-ctl dossier exporter`, EX-15.11 à EX-15.14) ; une
+  // demande illisible, inconnue, hors de son domaine ou périmée est refusée
+  // sans rien exécuter (demandes-demon.mjs).
+  installerDemandes(coeur);
   process.on("SIGHUP", async () => {
     const k = argvDemon.indexOf("--config");
     try {
@@ -310,4 +302,114 @@ export function superviserProcessus(r, o = {}) {
       process.stderr.write(`noortrace: rechargement refuse (${e.message})\n`);
     }
   });
+}
+
+/**
+ * `ctl_request_failed` (EX-15.15, révision 0.9) : erreur imprévue pendant une
+ * demande `rotation-urgence` ou `ancrage`, hors des refus que son action
+ * prévoit, ou avant que l'action soit connue ; `data` : `demande` (tronquée à
+ * 64 caractères, ou null) et `detail` (au plus 200 caractères, sans pièce ni
+ * secret : le nom de l'erreur et son code, jamais son message). La clé
+ * `request_id` est celle de la demande quand elle est lisible, `null` sinon :
+ * la commande qui a écrit la demande reconnaît la ligne et s'arrête aussitôt,
+ * au lieu d'attendre la fin de son délai.
+ * @param {string|null} request_id
+ */
+function ctlRequestFailed(coeur, demande, e, request_id) {
+  coeur.journal.consigner("error", "noyau", "ctl_request_failed", { demande: tronquer64(demande), detail: detailErreurInterne(e) }, { seq: null, request_id: request_id ?? null });
+}
+
+/**
+ * Traite une demande lue (EX-15.10, pas 5) : refus consigné, ou l'action que
+ * nomme `demande`. Les lignes `ctl_request_refused`, `dossier_exported` et
+ * `dossier_export_refused` sont écrites quel que soit le niveau du journal
+ * (EX-15.14). Une erreur imprévue d'un export donne sa ligne de réponse,
+ * `dossier_export_refused` `ecriture_impossible` de détail `erreur_interne`,
+ * après suppression du répertoire temporaire ; d'une autre demande,
+ * `ctl_request_failed` (EX-15.15).
+ * @param {import("./coeur.mjs").Coeur} coeur
+ * @param {Uint8Array|null} octets
+ * @param {number} maintenant instant de la lecture
+ */
+export async function traiterDemande(coeur, octets, maintenant) {
+  const r = lireDemande(octets, { maintenant, demarrage: coeur.instantDemarrage, exports_dir: repertoireExports(coeur.config) });
+  if (r.refus) {
+    coeur.journal.consigner("warning", r.refus.component, r.refus.event, r.refus.data, { seq: r.refus.seq, request_id: r.refus.request_id });
+    return r.refus;
+  }
+  const d = r.demande;
+  if (r.action === "rotation-urgence" || r.action === "ancrage") {
+    try {
+      if (r.action === "rotation-urgence") return await coeur.rotationUrgence();
+      return await coeur.commandeAncrage({ commande: d.commande, id: d.id ?? null });
+    } catch (e) {
+      ctlRequestFailed(coeur, r.action, e, requestIdLisible(d));
+      return null;
+    }
+  }
+  let l;
+  try {
+    l = await exporterDemande(coeur, d);
+  } catch (e) {
+    // EX-15.15 : chaque demande dossier a exactement une ligne de réponse
+    supprimerTemporaireDeDemande(coeur.config, d);
+    l = {
+      event: "dossier_export_refused",
+      component: "noyau",
+      seq: null,
+      request_id: d.request_id,
+      data: donneesRefusExport("ecriture_impossible", d, { exports_dir: repertoireExports(coeur.config), detail: detailErreurInterne(e) }),
+    };
+  }
+  coeur.journal.consigner(l.event === "dossier_exported" ? "info" : "warning", l.component, l.event, l.data, { seq: l.seq, request_id: l.request_id });
+  return l;
+}
+
+/**
+ * Installe le traitement des demandes du démon : au démarrage, avant de
+ * traiter aucun signal, un fichier de demande resté en place est supprimé
+ * sans être exécuté (`ctl_request_refused`, `demande_perimee`) ; puis, à
+ * chaque SIGURG, le fichier est lu et supprimé aussitôt, et la demande
+ * traitée après les précédentes, une à une, dans l'ordre de lecture. Un
+ * SIGURG sans fichier : `key_rotation_emergency_ignored` (`sans_demande`).
+ * Une demande que le démon ne peut pas supprimer n'est jamais exécutée
+ * (elle le serait à chaque signal) : `ctl_request_not_removed`.
+ * @param {import("./coeur.mjs").Coeur} coeur
+ * @returns {{file: () => Promise<unknown>}} la file des demandes (essais)
+ */
+export function installerDemandes(coeur) {
+  const f = fichierDemandeRotation(coeur.config.supervision.ops_log.path);
+  const reste = preleverFichierDemande(f);
+  if (!reste.absent) {
+    if (reste.nonSupprime) coeur.journal.consigner("error", "noyau", "ctl_request_not_removed", { path: f, code: reste.nonSupprime });
+    else {
+      // Demande restée d'avant le démarrage : périmée, jamais exécutée, quelle qu'elle soit.
+      let objet = null;
+      try {
+        objet = reste.octets === null ? null : analyserJsonIntegral(reste.octets, { profondeurMax: 32 });
+      } catch {
+        objet = null;
+      }
+      const lisible = objet !== null && typeof objet === "object" && !Array.isArray(objet);
+      const demande = lisible ? tronquer64(objet.demande) : null;
+      const at = lisible && atValide(objet.at) ? objet.at : null;
+      coeur.journal.consigner("warning", "noyau", "ctl_request_refused", { raison: "demande_perimee", demande, at }, { seq: null, request_id: null });
+    }
+  }
+  let file = Promise.resolve();
+  process.on("SIGURG", () => {
+    const lu = preleverFichierDemande(f);
+    const maintenant = coeur.horlogeBrute.murale();
+    if (lu.absent) {
+      coeur.journal.consigner("warning", "signataire", "key_rotation_emergency_ignored", { raison: "sans_demande" });
+      return;
+    }
+    if (lu.nonSupprime) {
+      coeur.journal.consigner("error", "noyau", "ctl_request_not_removed", { path: f, code: lu.nonSupprime });
+      return;
+    }
+    // une erreur avant que l'action soit connue : ctl_request_failed, demande nulle (EX-15.15)
+    file = file.then(() => traiterDemande(coeur, lu.octets, maintenant)).catch((e) => ctlRequestFailed(coeur, null, e, lu.octets ? requestIdLisible(lu.octets) : null));
+  });
+  return { file: () => file };
 }

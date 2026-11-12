@@ -223,10 +223,13 @@ export function delaiExpiration(politique) {
 /**
  * Vérifications de relais RL-1 à RL-4 (EX-7.21), dans l'ordre.
  * @param {{ticket: string, tool: string, delegation: object, arguments: object, mac: string,
- *   approvalReponse: object|null, instant: number, timeoutOutil: number}} appel
+ *   approvalReponse: object|null, instant: number, timeoutOutil: number, continuation?: string|null}} appel
+ *   `continuation` : `sha256` du `requestState` d'une continuation MRTR (EX-4.21), sinon absent ou null
  * @param {{index: object, macs: Map<string, string>, intentionsOuvertes: Set<string>, relaisEnCours: Set<string>,
- *   politique: (version: string) => object|null}} ctx
- *   `macs` : request_hash → MAC inscrit pour la retenue ; `intentionsOuvertes`, `relaisEnCours` : tickets
+ *   politique: (version: string) => object|null, continuationsEnCours?: Set<string>,
+ *   etatContinuation?: (ticket: string, sha: string) => {inscrite: object|null, consommee: boolean}}} ctx
+ *   `macs` : request_hash → MAC inscrit pour la retenue ; `intentionsOuvertes`, `relaisEnCours` : tickets ;
+ *   `continuationsEnCours`, `etatContinuation` : RL-3 en mode continuation
  * @returns {{ok: true, retenue: object, decision: object}|{ok: false, verification: string}}
  */
 export function verifierRelais(appel, ctx) {
@@ -255,8 +258,15 @@ export function verifierRelais(appel, ctx) {
   }
   const macInscrit = ctx.macs.get(retenue.hash);
   if (!macInscrit || macInscrit !== appel.mac) return non("RL-2");
-  // RL-3
-  if (ctx.index.premiersExecutes.has(appel.ticket) || ctx.intentionsOuvertes.has(appel.ticket) || ctx.relaisEnCours.has(appel.ticket)) {
+  // RL-3. Pour une continuation MRTR (EX-4.21, `appel.continuation` : `sha256`
+  // de son `requestState`), dont le premier relais porte déjà l'approbation :
+  // ligne `continuation` inscrite pour ce ticket, sans ligne
+  // `continuation_consommee`, et aucune autre continuation en cours de ce
+  // `requestState` (au plus un relais par aller-retour MRTR).
+  if (appel.continuation) {
+    const c = ctx.etatContinuation(appel.ticket, appel.continuation);
+    if (!c.inscrite || c.consommee || ctx.continuationsEnCours.has(appel.continuation)) return non("RL-3");
+  } else if (ctx.index.premiersExecutes.has(appel.ticket) || ctx.intentionsOuvertes.has(appel.ticket) || ctx.relaisEnCours.has(appel.ticket)) {
     return non("RL-3");
   }
   // RL-4 : E de la version de la `retenue` ; politique introuvable : échec (jamais sautée).
@@ -485,6 +495,36 @@ export class FichiersApprobations {
   /** Ligne `decision`, après signature et avant ajout au segment (EX-12.23). */
   async inscrireDecision(p) {
     const ligne = { kind: "decision", ticket: p.ticket, seq: p.seq, hash: p.hash, approver_set: p.approver_set };
+    await this._io(async () => {
+      await this._ecrire(this.fA, ligne);
+      await this.fA.synchroniser();
+    });
+    this.appliquer(ligne, false);
+  }
+
+  /**
+   * Ligne `continuation` (EX-12.23, EX-4.21) d'un résultat `input_required`
+   * d'un appel qui porte l'approbation d'un ticket : `seq` et `hash` de son
+   * événement `executee`, `sha256` du `requestState` ; fdatasync avant le
+   * relais du résultat à l'hôte (4.4 pas 14).
+   * @param {{ticket: string, seq: number, hash: string, request_state_sha256: string}} p
+   */
+  async inscrireContinuation(p) {
+    const ligne = { kind: "continuation", ticket: p.ticket, seq: p.seq, hash: p.hash, request_state_sha256: p.request_state_sha256 };
+    await this._io(async () => {
+      await this._ecrire(this.fA, ligne);
+      await this.fA.synchroniser();
+    });
+    this.appliquer(ligne, false);
+  }
+
+  /**
+   * Ligne `continuation_consommee` (EX-12.23, EX-4.21) : une continuation de
+   * ce `requestState` a passé RL-3 ; fdatasync avant son intention (4.4 pas 8).
+   * @param {{ticket: string, request_state_sha256: string}} p
+   */
+  async inscrireContinuationConsommee(p) {
+    const ligne = { kind: "continuation_consommee", ticket: p.ticket, request_state_sha256: p.request_state_sha256 };
     await this._io(async () => {
       await this._ecrire(this.fA, ligne);
       await this.fA.synchroniser();

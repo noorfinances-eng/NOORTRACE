@@ -17,7 +17,7 @@ import { network } from "hardhat";
 import * as N from "@noortrace/noyau";
 import {
   Machine, LecteurJeu, demarrerService, validerPolitique, avertissementsPolitique, evaluer, candidats, normaliserSignature,
-  verifierRemise, sourceJeu, jeuStatique, identifiantAleatoire, controlerConfiguration, RAISONS_EXPIRE, chiffrer, dechiffrer,
+  verifierRemise, sourceJeu, jeuStatique, identifiantAleatoire, validerConfiguration, RAISONS_EXPIRE, chiffrer, dechiffrer,
 } from "@noortrace/approbation";
 import { ClientServiceApprobation } from "@noortrace/enregistreur";
 import {
@@ -184,7 +184,7 @@ describe("service d'approbation : exigences de CT-3", function () {
       echec() {
         // la configuration n'a aucun membre de clé de journal ni d'approbateur
         const c = { ...ecrireConfiguration(repertoireTemporaire(), { socket: false }).config, signer: { key: "x" } };
-        expect(controlerConfiguration(c)).to.include("/signer : membre inconnu");
+        expect(validerConfiguration(c).errors).to.deep.include({ code: "schema", pointer: "/signer" });
       },
     });
 
@@ -1112,7 +1112,7 @@ describe("service d'approbation : exigences de CT-3", function () {
         });
       },
       echec() {
-        expect(controlerConfiguration({ ...ecrireConfiguration(repertoireTemporaire(), { socket: false }).config, max_open_tickets: 0 })).to.include("/max_open_tickets : entier de 1 à 10 000");
+        expect(validerConfiguration({ ...ecrireConfiguration(repertoireTemporaire(), { socket: false }).config, max_open_tickets: 0 }).errors).to.deep.include({ code: "schema", pointer: "/max_open_tickets" });
       },
     });
   });
@@ -1171,7 +1171,7 @@ describe("service d'approbation : exigences de CT-3", function () {
         });
         // TLS exigé hors de la boucle locale
         const c = ecrireConfiguration(repertoireTemporaire(), { socket: false }).config;
-        expect(controlerConfiguration({ ...c, noyau: { tcp: { host: "approbation.exemple", port: 1 }, token: { file: "x" } } })).to.include("/noyau/tcp : TLS exigé hors de la boucle locale");
+        expect(validerConfiguration({ ...c, noyau: { tcp: { host: "approbation.exemple", port: 1 }, token: { file: "x" } } }).errors).to.deep.include({ code: "tls_exige", pointer: "/noyau" });
       },
     });
 
@@ -1199,8 +1199,11 @@ describe("service d'approbation : exigences de CT-3", function () {
       });
       const lancer = async (d) => {
         const cfg = ecrireConfiguration(d, { socket: false });
-        const c = { ...cfg.config, noyau: { tcp: { host: "localhost", port: 0 }, tls: { cert: path.join(d, "serveur.pem"), key: path.join(d, "serveur.key"), client_ca: path.join(d, "ca.pem") }, token: null } };
-        return demarrerService({ config: c, secrets: { cle: N.sha256(N.utf8(d)), jetonNoyau: null, jetonConsole: cfg.jetonConsole }, base: d });
+        const c = { ...cfg.config, noyau: { tcp: { host: "localhost", port: 0 }, tls: { cert: { file: "serveur.pem" }, key: { file: "serveur.key" }, client_ca: { file: "ca.pem" } }, token: null } };
+        // révision 0.5 : certificats et clés TLS par référence, résolus au démarrage (EX-10.12)
+        const lire = (f) => fs.readFileSync(path.join(d, f), "utf8");
+        const tls = { noyau: { cert: lire("serveur.pem"), key: lire("serveur.key"), ca: lire("ca.pem") }, console: null };
+        return demarrerService({ config: c, secrets: { cle: N.sha256(N.utf8(d)), jetonNoyau: null, jetonConsole: cfg.jetonConsole, tls }, base: d });
       };
       return {
         async reussite() {
@@ -1358,6 +1361,7 @@ describe("service d'approbation : exigences de CT-3", function () {
       "EX-9.21": "console (étape 6)",
       "EX-10.12": "document configuration-approbation-v0 et ses règles hors schéma : service (étape 6) ; la configuration actuelle est exercée par EX-10.10",
       "EX-10.13": "configuration du serveur de console (étape 6)",
+      "EX-10.14": "refus au démarrage du service (révision 0.6) : test/approbation-service-configuration.test.js, « EX-10.14 : refus au démarrage en une ligne … reference_illisible », « EX-10.14 : écoute impossible … », « jetons_egaux par valeur au démarrage … » ; serveur de console (étape 6)",
       "EX-11.1": "configuration du démon (CT-2 §15.6)",
       "EX-11.2": "configuration du démon",
       "EX-11.3": "mandataire (frontal MCP)",
@@ -1371,6 +1375,7 @@ describe("service d'approbation : exigences de CT-3", function () {
       "EX-12.17": "méthode annuaire (étape 6)",
       "EX-12.18": "méthodes de l'annuaire (étape 6) ; l'annuaire n'est lu ici que pour le contrôle du canal",
       "EX-12.21": "méthode tickets de la révision 0.5 (contest_ms, contest, related) : service (étape 6)",
+      "EX-12.22": "sonde du service (révision 0.6) : test/approbation-service-configuration.test.js, describe « sonde --url », dont « EX-12.22 : forme fermée de reponse_etat_service … »",
       "EX-14.2": "regroupement des notifications et affichage de la console (étape 6)",
     };
     it("chaque EX- des sections 3 à 12 et 14.6 est testé ou attribué", function () {

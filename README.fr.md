@@ -159,6 +159,20 @@ construction.
   [paquets/noyau/LISEZMOI.md](paquets/noyau/LISEZMOI.md).
 - `scripts/conception/` : contrôle du figeage de la conception v1.0 (chaque
   modification de `spec/` consignée dans `spec/figeage/modifications.json`).
+- `paquets/enregistreur/`, `paquets/ancrage/` : démon enregistreur (étape 4),
+  avec l'export du dossier sur demande (`noortrace-ctl dossier exporter`,
+  étape 6), et composant d'ancrage (étape 5).
+- `paquets/approbation/`, `paquets/console/` : service d'approbation et console
+  d'exploitation de CT-3 §13 (étape 6) : bibliothèque commune, serveur de
+  console (OIDC, sessions, relais authentifié vers le service) et pages
+  chargées avec leur intégrité, où l'approbateur inscrit son adresse et signe
+  dans son portefeuille ; voir [paquets/console/LISEZMOI.md](paquets/console/LISEZMOI.md).
+- `paquets/inscription/` : inscription des clients par l'exploitant (CT-4
+  §7.14, étape 6) : interface web qui ne tient aucune clé, agent séparé qui les
+  tient, paquet client remis et contrôlé à la réception.
+- `paquets/verification-web/` : page de vérification (CT-6 §18, étape 6) : le
+  vérificateur Go compilé en WebAssembly s'exécute dans le navigateur et rend
+  le rapport du binaire, octet pour octet.
 - `console/` : console d'approbation de référence de CT-3, page statique sous
   une politique de sécurité du contenu stricte, testée de bout en bout dans
   Chromium ; voir [console/LISEZMOI.md](console/LISEZMOI.md).
@@ -188,10 +202,16 @@ couverture du plan de tests ; l'instance de développement, les contrats du
 registre avec leurs tests, le parcours complet exécuté sur le réseau de
 développement ; la méthode RPC du certificat de commit, portée comme correctif
 sur noorcore fourni hors dépôt, et son vérificateur hors ligne ; la console
-d'approbation de référence. À construire : l'enregistreur lui-même, le service
-d'approbation, le composant d'ancrage et ses clients réseau, le binaire Go du
-vérificateur et la console d'exploitation (approbations, inscription des
-organisations, export des dossiers, page de vérification).
+d'approbation de référence ; le binaire Go du vérificateur (étape 2),
+l'enregistreur (étape 4) et le composant d'ancrage avec ses clients réseau
+(étape 5). L'étape 6 livre le service d'approbation, la console d'exploitation
+(un approbateur inscrit son adresse par preuve de possession et signe une
+décision dans son propre portefeuille), l'inscription des organisations par
+l'exploitant, l'export des dossiers par l'enregistreur et la page de
+vérification ; son critère est démontré : une décision signée depuis la
+console, le dossier exporté accepté par les deux vérificateurs. À construire :
+les paquets, l'observabilité et les runbooks (étape 7), la campagne de bout en
+bout, adversariale et de performance (étape 8).
 
 ## Licence
 

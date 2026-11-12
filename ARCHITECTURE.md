@@ -527,12 +527,24 @@ Construit en phase 2 : la bibliothèque noyau de production (`paquets/noyau`,
 étape 1), le binaire Go du vérificateur, `noortrace-verifier`
 (`verificateur/`, étape 2), et le registre de développement (étape 3) : parcours
 d'un client fictif rejouable (`npm run e2e:registre`), image du nœud avec la
-méthode du certificat de commit, images de base épinglées par condensé.
+méthode du certificat de commit, images de base épinglées par condensé ;
+l'enregistreur (`paquets/enregistreur`, étape 4 : frontal MCP, passerelle,
+stockage, bail) ; le composant d'ancrage avec ses clients RFC 3161 et
+OpenTimestamps et le serveur interne (`paquets/ancrage`, étape 5) ; à l'étape 6,
+le service d'approbation (`paquets/approbation`), la console d'exploitation
+(`paquets/console` : bibliothèque, serveur et pages ; l'approbateur s'identifie
+par le système d'identité du client, inscrit son adresse par preuve de
+possession et signe dans son portefeuille), l'inscription des clients par
+l'exploitant (`paquets/inscription` : interface web sans clé, agent séparé qui
+tient les clés), l'export du dossier par le démon (`noortrace-ctl dossier
+exporter`) et la page de vérification (`paquets/verification-web` : le binaire
+du vérificateur compilé en WebAssembly, même rapport que le binaire). Critère
+de l'étape 6 démontré (CT-9 TE-13) : une décision signée depuis la console, le
+dossier exporté accepté par les deux vérificateurs.
 
-À construire : l'enregistreur lui-même (frontal MCP, passerelle, stockage, bail),
-le service d'approbation et la console d'exploitation, le composant d'ancrage avec ses clients
-RFC 3161 et OpenTimestamps, la garde d'admission devant le RPC des validateurs de
-production (CT-4 EX-10.8), la démonstration en une commande.
+À construire : les paquets, l'observabilité et les runbooks (étape 7), la garde
+d'admission devant le RPC des validateurs de production (CT-4 EX-10.8), la
+démonstration en une commande.
 
 ## Décisions ouvertes
 

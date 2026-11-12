@@ -1,0 +1,11 @@
+#!/usr/bin/env node
+// Serveur de console NOORTRACE (CT-3 13.20, 13.21).
+import { principal } from "../src/serveur/cli.mjs";
+
+principal(process.argv.slice(2)).then(
+  (code) => process.exit(code),
+  (e) => {
+    process.stderr.write(`noortrace-console : ${e.stack ?? e}\n`);
+    process.exit(1);
+  },
+);

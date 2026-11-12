@@ -211,7 +211,7 @@
       "tag": "0.1.0",
       "status": "a_construire",
       "kind": "service",
-      "source": "CT-3 §13 (serveur de console et page de référence de console/)",
+      "source": "CT-3 §13 (serveur de console et pages de la console d'exploitation, paquets/console)",
       "user": "10003:10003",
       "passwd": [
         {

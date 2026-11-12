@@ -1,0 +1,126 @@
+/* Styles de la page de vérification (CT-6 §18) : polices du système, aucune
+   ressource d'une autre origine. */
+:root {
+  color-scheme: light dark;
+  --fond: #ffffff;
+  --texte: #1a1a1a;
+  --discret: #555555;
+  --bord: #b5b5b5;
+  --alerte: #a40000;
+  --accent: #1d4f91;
+  --pre: #f3f3f3;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #161616;
+    --texte: #e8e8e8;
+    --discret: #a8a8a8;
+    --bord: #555555;
+    --alerte: #ff8a80;
+    --accent: #9cc3ff;
+    --pre: #232323;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0 auto;
+  max-width: 64rem;
+  padding: 1rem;
+  font-family: system-ui, sans-serif;
+  line-height: 1.45;
+  color: var(--texte);
+  background: var(--fond);
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 0.5rem 0;
+}
+
+h2 {
+  font-size: 1.15rem;
+}
+
+#confiance {
+  border-left: 0.3rem solid var(--accent);
+  padding: 0.25rem 0.75rem;
+  margin: 1rem 0;
+}
+
+#phrase-fixe {
+  font-weight: 600;
+}
+
+#artefact {
+  overflow-wrap: anywhere;
+}
+
+fieldset {
+  border: 1px solid var(--bord);
+  margin: 0 0 1rem;
+  padding: 0.5rem 1rem;
+}
+
+#exiger label {
+  margin-right: 0.75rem;
+  white-space: nowrap;
+}
+
+button {
+  font: inherit;
+  padding: 0.3rem 0.8rem;
+}
+
+#verifier {
+  font-weight: 600;
+}
+
+pre {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  background: var(--pre);
+  padding: 0.75rem;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+pre.commande {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+pre.vide {
+  color: var(--discret);
+}
+
+.alerte {
+  color: var(--alerte);
+  font-weight: 600;
+}
+
+.aucun-rapport,
+.aucune-affirmation {
+  font-weight: 600;
+}
+
+.enonce,
+.message-erreur {
+  overflow-wrap: anywhere;
+}
+
+.en-cours {
+  color: var(--discret);
+}

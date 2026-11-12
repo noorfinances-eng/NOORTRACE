@@ -1,6 +1,8 @@
 # CT-6 — Vérificateur
 
-Version 0.6, 2026-11-11 (révision 0.6 : page de vérification, qui exécute
+Version 0.7, 2026-11-11 (révision 0.7 : page de vérification, constats de
+la construction de l'étape 6 inscrits dans la section 18 et dans la recette
+d'EX-14.6, détail en section 16. Révision 0.6, même date : page de vérification, qui exécute
 dans le navigateur le binaire compilé en WebAssembly, section 18 nouvelle ;
 l'export du dossier reste hors périmètre, fonction de l'enregistreur fixée
 par CT-2 §15.7 ; aucune règle existante n'est modifiée, aucun schéma ne
@@ -112,6 +114,9 @@ La révision 0.6 ajoute EX-18.1 à EX-18.13, règles de la section 18,
 nouvelle, numérotées dans l'ordre du texte ; elle ne modifie ni ne retire
 aucune règle existante, et ne renumérote rien ; elle complète EX-8.1 d'un
 renvoi à la section 18 (« Révision 0.6 : »), sans effet normatif nouveau.
+La révision 0.7 n'ajoute ni ne retire aucune règle ; elle complète en place,
+en le disant (« Révision 0.7 : »), le texte d'EX-14.6, EX-18.3, EX-18.4,
+EX-18.6 à EX-18.9, EX-18.12 et EX-18.13 (section 16).
 
 Les vérifications élémentaires portent l'identifiant de leur famille :
 
@@ -5944,6 +5949,7 @@ l'archive des sources de ce commit :
 
 ```bash
 GOTOOLCHAIN=local GOENV=off GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off CGO_ENABLED=0 \
+GOEXPERIMENT= GOFIPS140= \
 GOOS=<os> GOARCH=<arch> GOAMD64=v1 \
 go build -trimpath -buildvcs=false -ldflags='-buildid= -X main.version=<version>' -o <sortie> ./<paquet principal>
 ```
@@ -5960,7 +5966,13 @@ téléchargement d'une autre chaîne (R4 F1.18) ; `-buildvcs=false` rend
 qu'un fichier est modifié (R4 F1.09, F1.17) ; `-mod=vendor` est fixé parce que
 les modes vendor et module donnent des binaires différents (R4 F1.22) ;
 `GOAMD64` change le binaire (R4 F1.16) ; `-buildid=` vide l'identifiant de
-construction (R4 F1.12).
+construction (R4 F1.12). Révision 0.7 : `GOEXPERIMENT` et `GOFIPS140` sont
+des variables d'environnement que `GOENV=off` ne neutralise pas et qui
+changent le binaire ; la recette les vide, ce qui donne leurs valeurs par
+défaut (aucune expérience, module FIPS 140 `off`) et ne change pas un
+binaire construit sans elles ; un script qui met en œuvre la recette les
+vide de même, ou refuse de construire quand l'une est non vide dans son
+environnement.
 
 **EX-14.7** L'image de conteneur de construction est désignée par son
 empreinte (`golang:<version>@sha256:<empreinte>`, R4 F1.26), fixée dans le
@@ -6316,13 +6328,39 @@ Alignement de la révision 0.6 avec le dépôt :
 
 | Emplacement | Avant | Attendu par la révision 0.6 | État |
 |---|---|---|---|
-| `verificateur/` (module Go) | binaire natif seulement ; aucune construction `js/wasm` | artefact `noortrace-verifier.wasm` par la recette d'EX-18.3, deux constructions comparées (EX-18.4), `go list -deps` sous `GOOS=js GOARCH=wasm` sans `net/http`, `crypto/tls` ni `os/exec` ; aucun fichier source propre à `js` | à faire (phase 2) ; essai de faisabilité du 2026-11-11 en go1.24.7 : construction reproductible et 760 exécutions sans écart sous Node (EX-18.4) |
-| Page de vérification (fichiers de 18.3, script de construction du dépôt) | absente | fichiers et contenu de 18.3, intégrité d'EX-18.6, entrées d'EX-18.7, arbre d'EX-18.8, exécutions et affichage d'EX-18.9 et EX-18.10, contrôle d'EX-18.5 | à faire (phase 2) |
+| `verificateur/` (module Go) | binaire natif seulement ; aucune construction `js/wasm` | artefact `noortrace-verifier.wasm` par la recette d'EX-18.3, deux constructions comparées (EX-18.4), `go list -deps` sous `GOOS=js GOARCH=wasm` sans `net/http`, `crypto/tls` ni `os/exec` ; aucun fichier source propre à `js` | fait (étape 6 : `verificateur/scripts/construire-wasm.sh`, go1.27.3, deux constructions aux mêmes octets, 6 460 exécutions sans écart, B.9) ; essai de faisabilité du 2026-11-11 en go1.24.7 : construction reproductible et 760 exécutions sans écart sous Node (EX-18.4) |
+| Page de vérification (fichiers de 18.3, script de construction du dépôt) | absente | fichiers et contenu de 18.3, intégrité d'EX-18.6, entrées d'EX-18.7, arbre d'EX-18.8, exécutions et affichage d'EX-18.9 et EX-18.10, contrôle d'EX-18.5 | fait (étape 6 : `paquets/verification-web`) |
 | Hébergement de la page | — | origine distincte et en-têtes d'EX-18.11 et EX-18.12 | à faire |
 | Publication (EX-14.9) | binaires, `SHA256SUMS` | `noortrace-verifier.wasm` et les fichiers de la page dans `SHA256SUMS`, résultats des épreuves d'EX-18.13 | à faire, avec la première version publiée |
 | CT-2 §0.2, ligne « §11 Dossier » | « CT-6 en fixe la ligne de commande » (de l'export) | l'export a sa commande dans CT-2 15.7 ; CT-6 ne fixe que celle du vérificateur | fait (CT-2 révision 0.8) |
-| Plan de tests | — | cas d'EX-18.13 et des refus d'EX-18.7 | à faire |
+| Plan de tests | — | cas d'EX-18.13 et des refus d'EX-18.7 | fait (révision 0.8 du plan de tests : TE-23 et TA-101 exécutables) |
 | `spec/README.md` | CT-6 version 0.5 | CT-6 version 0.6 (page de vérification) | fait |
+
+Révision 0.7 (2026-11-11). La construction de la page à l'étape 6 a mesuré ce
+que la révision 0.6 laissait « non vérifié » et relevé des écarts entre le
+texte et ce que go1.27.3 et Chromium 141 font ; la révision les inscrit en
+place, sans règle nouvelle ni retirée, sans changer aucun contrôle, verdict,
+code de retour, schéma ni vecteur : recette d'EX-14.6 et d'EX-18.3 qui vide
+`GOEXPERIMENT`, `GOFIPS140` et, pour l'artefact, `GOWASM`, que `GOENV=off` ne
+neutralise pas (mêmes octets qu'avant pour une construction sans elles) ;
+paquets de la bibliothèque standard qui importent `syscall/js` sous go1.27.3
+(`syscall` et `time`, EX-18.3) ; mesures de la construction et de l'épreuve
+d'identité (EX-18.4) ; attribut `crossorigin="anonymous"` exigé par
+`Integrity-Policy` (EX-18.6) ; bornes d'une archive précisées, archive mal
+formée refusée, mêmes bornes pour un répertoire, noms d'une archive `zip -X`
+(EX-18.7) ; `writeSync` et `--langue` toujours passée (EX-18.8) ; minuteries
+d'une exécution, sens des codes en anglais (EX-18.9) ; comportement de
+Chromium 141 sous `Integrity-Policy` (EX-18.12) ; message d'une destination
+non prise en charge, qui n'est pas une violation (EX-18.13) ; faits datés en
+annexe B.9, nouvelle. Sections touchées : en-tête, 0, 14.3 (EX-14.6), 16,
+18 ; annexe B (B.9).
+
+| Emplacement | Avant | Attendu par la révision 0.7 | État |
+|---|---|---|---|
+| `verificateur/scripts/construire.sh` | `GOEXPERIMENT` et `GOFIPS140` héritées de l'environnement | vidées, ou construction refusée quand l'une est non vide (EX-14.6) | fait (étape 6 : vidées par la recette et refusées si non vides) |
+| `verificateur/scripts/construire-wasm.sh` | — | `GOWASM`, `GOEXPERIMENT` et `GOFIPS140` refusées si non vides | fait (étape 6) |
+| `paquets/verification-web` | aucune borne pour un répertoire choisi | bornes d'EX-18.7 appliquées au répertoire avant toute lecture | fait (étape 6) |
+| `spec/README.md` | CT-6 version 0.6 | CT-6 version 0.7 | fait (étape 6) |
 
 ## 17. Ce que cette version ne couvre pas
 
@@ -6451,6 +6489,7 @@ d'EX-14.6 avec `GOOS=js GOARCH=wasm` :
 
 ```bash
 GOTOOLCHAIN=local GOENV=off GOFLAGS=-mod=vendor GOPROXY=off GOSUMDB=off CGO_ENABLED=0 \
+GOEXPERIMENT= GOFIPS140= GOWASM= \
 GOOS=js GOARCH=wasm \
 go build -trimpath -buildvcs=false -ldflags='-buildid= -X main.version=<version>' \
   -o noortrace-verifier.wasm ./cmd/noortrace-verifier
@@ -6461,8 +6500,15 @@ pour `GOARCH=wasm`, est omis. Le paquet principal est celui des binaires : le
 module n'a aucun fichier source propre à `js` ou à `wasm` (aucune contrainte
 de construction ne nomme `js` ni `wasm` ; le seul fichier qui change avec la
 cible est celui de contrainte `!unix`, EX-18.8), et aucun de ses paquets n'importe
-`syscall/js`, qu'emploient seuls, sous `js/wasm`, les paquets `os` et
-`syscall` de la bibliothèque standard. EX-14.1 et EX-14.5 valent pour
+`syscall/js`, qu'emploient seuls, sous `js/wasm`, des paquets de la
+bibliothèque standard. Révision 0.7 : constaté avec go1.27.3 le 2026-11-11,
+parmi les dépendances de `cmd/noortrace-verifier`, ce sont `syscall` et
+`time` (`time/zoneinfo_js.go`, qui lit le décalage horaire du navigateur),
+et non `os` comme la révision 0.6 l'écrivait ; le vérificateur ne lit pas
+l'horloge (EX-3.2), et son rapport ne dépend pas du fuseau du navigateur
+(épreuve d'EX-18.10). `GOWASM`, comme `GOEXPERIMENT` et `GOFIPS140`
+(EX-14.6), change l'artefact et n'est pas neutralisé par `GOENV=off` : la
+recette le vide (révision 0.7). EX-14.1 et EX-14.5 valent pour
 l'artefact : `GOOS=js GOARCH=wasm go list -deps ./cmd/noortrace-verifier` ne
 nomme ni `net/http`, ni `crypto/tls`, ni `os/exec` ; les preuves par
 `go tool nm`, `unshare -n` et `strace` d'EX-14.5 sont propres à un binaire
@@ -6488,7 +6534,17 @@ exécutions), l'artefact exécuté par Node 22 (`wasm_exec_node.js`, système de
 fichiers de Node et non celui de la page) et le binaire natif de la même
 construction ont rendu les mêmes codes, la même sortie standard et la même
 sortie d'erreur, octet pour octet. Ni go1.27.3 ni un navigateur n'ont été
-essayés : non vérifié. Tenu par le projet.
+essayés : non vérifié. Révision 0.7 : mesure de la construction de l'étape 6
+(2026-11-11), avec go1.27.3 (archive `go1.27.3.linux-amd64.tar.gz` de
+SHA-256 `65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40`,
+égal à celui que publie `go.dev/dl`) : deux constructions depuis deux copies
+à deux chemins, avec deux caches vides, donnent le même artefact de
+11 762 554 octets ; l'épreuve d'identité d'EX-18.10 sous Node 22 (190
+dossiers, avec et sans ancres et `chaine.json`, en français et en anglais,
+avec et sans `--exiger 4,5,8`, et `--detail`, en lisible et en JSON :
+6 460 exécutions) ne donne aucun écart avec le binaire natif de la même
+construction ; la page fonctionne dans Chromium 141 sous les en-têtes
+d'EX-18.12. Gecko et WebKit n'ont pas été essayés. Tenu par le projet.
 
 **EX-18.5** **Contrôle de l'empreinte par la page.** Le travailleur calcule le
 SHA-256 des octets de l'artefact qu'il reçoit (`crypto.subtle.digest`) avant
@@ -6518,7 +6574,11 @@ l'artefact par un script du dépôt, de façon déterministe (aucune date, aucun
 aléa, aucun chemin de la machine de construction). `index.html` charge
 `page.css` par un élément `link` et `page.js` et `verificateur-wasm.js` par
 des éléments `script`, chacun avec l'attribut `integrity` (SHA-384,
-intégrité des sous-ressources) ; `page.js` crée le travailleur depuis
+intégrité des sous-ressources) et, révision 0.7, l'attribut
+`crossorigin="anonymous"` : sous `Integrity-Policy` (EX-18.12), un script
+classique de même origine qui porte `integrity` sans `crossorigin` est
+demandé en mode `no-cors` et bloqué (constaté dans Chromium 141 le
+2026-11-11) ; `page.js` crée le travailleur depuis
 `travailleur.js`, même origine, qu'aucun attribut d'intégrité ne peut
 couvrir : son contenu est couvert par `SHA256SUMS` (EX-18.4), et c'est lui qui
 contrôle l'artefact (EX-18.5). Tenu par le projet.
@@ -6558,7 +6618,20 @@ symbolique, lien physique, périphérique, tube) ; une forme hors de la table ;
 plus de 4 096 entrées ; plus de 256 Mio décompressés en tout (la somme des
 limites d'EX-4.13 pour un dossier est d'environ 247 Mio). Un refus affiche la
 raison, « aucun rapport » (« no report ») et aucun code : le vérificateur ne
-s'est pas exécuté. Tenu par la page.
+s'est pas exécuté. Révision 0.7 : les 4 096 entrées sont les entrées de
+fichier et de répertoire telles qu'elles figurent dans l'archive, une entrée
+`.` comprise, sans les en-têtes `x`, `g` et `L` ; les 256 Mio sont la somme
+des tailles décompressées déclarées des entrées d'un `.zip`, et la longueur
+du flux tar, après décompression pour un `.tar.gz` ou un `.tgz` ; la page
+refuse aussi, comme « archive mal formée », une archive dont un en-tête a une
+somme de contrôle fausse, dont une entrée a un CRC-32 ou une taille qui ne
+concorde pas avec ses données, dont le flux comprimé est invalide ou
+tronqué, ou qui porte, après sa fin, autre chose que des blocs nuls ; un
+répertoire choisi est soumis aux mêmes bornes, comptées sur ses fichiers et
+sous-répertoires et sur la somme des tailles de ses fichiers, avant toute
+lecture. Une archive `zip -X` (Info-ZIP 3.0) d'un dossier dont un nom n'est
+pas en ASCII n'a ni le bit 11 ni le champ Unicode, et est refusée pour ce
+nom, avec sa raison : la page ne devine pas l'encodage d'un nom. Tenu par la page.
 
 **EX-18.8** **Arbre présenté au programme.** Le travailleur présente au
 programme un système de fichiers en lecture seule :
@@ -6573,14 +6646,17 @@ Le répertoire de travail est `/entrees`, l'environnement est vide (EX-8.3),
 et les arguments sont `noortrace-verifier dossier`, puis `--ancres ancres.json`
 et `--entetes-bitcoin entetes-bitcoin.json` pour les fichiers choisis, puis
 les options d'EX-18.7 dans cet ordre : `--exiger`, `--langue`, `--detail`,
-`--json`. Les noms que l'utilisateur a donnés à ses fichiers ne sont ni dans
+`--json` ; révision 0.7 : `--langue` est toujours passée, avec la langue
+choisie ou, à défaut, celle de la page, et `--exiger tous` s'écrit `tous`. Les noms que l'utilisateur a donnés à ses fichiers ne sont ni dans
 l'arbre ni dans le rapport ; la page les affiche à côté, avec la ligne de
 commande équivalente, que l'utilisateur peut rejouer avec le binaire.
 L'arbre met en œuvre, de l'interface `fs` que le paquet `syscall` de Go
 emploie sous `js/wasm` (la forme à fonctions de rappel de l'API `fs` de
 Node), les opérations de lecture (`open` en lecture, `fstat`, `lstat`,
 `stat`, `read`, `readdir`, `close`), `write` sur les descripteurs 1 et 2,
-dont le travailleur recueille les octets (EX-18.9), et l'objet
+dont le travailleur recueille les octets (EX-18.9), ainsi que `writeSync` sur
+ces deux descripteurs, par lequel l'environnement d'exécution de Go écrit
+ses messages d'arrêt (révision 0.7), et l'objet
 `fs.constants`, que le paquet `syscall` lit à son initialisation (`O_WRONLY`,
 `O_RDWR`, `O_CREAT`, `O_TRUNC`, `O_APPEND`, `O_EXCL` et `O_DIRECTORY`, aux
 valeurs de Node sous Linux) ; toute autre opération, et toute ouverture en
@@ -6631,7 +6707,19 @@ différents, ou si une exécution s'achève sans code de sortie (erreur du
 moteur, mémoire épuisée, compilation refusée par le navigateur), la page
 affiche « vérification non faite » (« verification not done ») avec la
 cause, aucun rapport et aucun énoncé : rien n'est affirmé, comme pour le
-code 2. Tenu par la page.
+code 2. Révision 0.7 : aucune minuterie qu'une exécution laisse programmée
+ne s'exécute après sa sortie (le pilote les annule ; sous go1.27.3, leur
+échéance lèverait une erreur dans l'exécution suivante) ; la page anglaise
+donne le sens des codes de la table de 8.3 en ces termes :
+
+| Code | Sens affiché par la page anglaise |
+|---|---|
+| 0 | valid. No failed check; every check not run has an admitted reason; every control required by --exiger passed. Statement about the dossier: the statement. |
+| 1 | invalid. At least one check failed, or was not run without an admitted reason. Statement about the dossier: this dossier does not prove the event. |
+| 2 | no verdict. Unusable input: incorrect usage, unreadable dossier, schemas, anchors file or separate input, size limit exceeded, internal error of the verifier. Statement about the dossier: none. |
+| 3 | incomplete. As 0, but a control required by --exiger did not pass. Statement about the dossier: the statement, which proves less than required. |
+
+Tenu par la page.
 
 **EX-18.10** **Même rapport que le binaire.** Pour les mêmes entrées et les
 mêmes options, le rapport lisible, le rapport JSON, la sortie d'erreur et le
@@ -6704,7 +6792,14 @@ HTML. Un navigateur qui n'offre pas les types de confiance
 depuis une donnée ; l'épreuve d'EX-18.13 se fait dans chaque moteur avec ou
 sans les types de confiance, selon ce qu'il offre. Que la destination `script` d'`Integrity-Policy` couvre ou non le
 chargement du travailleur (destination `worker`) n'a pas été vérifié :
-l'épreuve d'EX-18.13 établit que la page fonctionne sous ces en-têtes. Tenu
+l'épreuve d'EX-18.13 établit que la page fonctionne sous ces en-têtes.
+Révision 0.7 : dans Chromium 141, le travailleur se charge sous cet en-tête
+sans attribut d'intégrité, et le navigateur écrit, pour la valeur
+`(script style)`, « The Integrity-Policy destination 'style' is not
+supported. » ; la valeur est gardée, `page.css` étant de toute façon
+couvert par son attribut `integrity` (EX-18.6), et la destination `style`
+prenant effet dans un navigateur qui la prend en charge. Gecko et WebKit
+n'ont pas été essayés. Tenu
 par l'hébergeur et le projet.
 
 ### 18.7 Épreuves
@@ -6725,10 +6820,21 @@ et `zip -X -0 -r d.zip <d>` ; `tar --format=ustar -cf d.tar <d>`,
 commencent par `./` ; `tar --format=pax -cf - <d> | gzip -n > d.tar.gz` ;
 (2) chaque refus
 d'archive d'EX-18.7 ; (3) aucune requête après le chargement (EX-18.11) et
-aucune violation de politique signalée par le navigateur ; (4) le refus d'un
+aucune violation de politique signalée par le navigateur (révision 0.7 : un
+message qui dit qu'une destination d'`Integrity-Policy` n'est pas prise en
+charge n'est pas une violation ; dans Gecko, qui n'offre pas les types de
+confiance, l'avertissement qu'il ignore les directives
+`require-trusted-types-for` et `trusted-types` (EX-18.12) n'en est pas une,
+ni le signalement de la demande de `/favicon.ico` que le navigateur fait de
+lui-même, hors de la page, et que `default-src 'none'` bloque avant tout
+envoi ; l'épreuve les consigne à part et n'en admet aucun autre) ; (4) le refus d'un
 artefact dont un octet est changé (EX-18.5) ; (5) un stockage du navigateur
 vide et aucun service worker après une vérification ; (6) la présence des
-en-têtes d'EX-18.12. Les résultats sont publiés avec la version ; le plan de
+en-têtes d'EX-18.12. Révision 0.7 : dans WebKit, l'en-tête `Content-Type`
+relevé par le moteur ne porte pas son paramètre `charset`, et l'artefact se
+compile sous une politique du travailleur sans `'wasm-unsafe-eval'`, de sorte
+que le refus de compilation qu'EX-18.12 décrit n'y est pas observable (faits
+en B.9). Les résultats sont publiés avec la version ; le plan de
 tests y rattache ses cas. Tenu par le projet.
 
 ## Annexe A — Vecteurs CT-6
@@ -7708,3 +7814,15 @@ décrit ici ; aucun ne vient d'une note interne.
 | EX-18.4 | construction reproductible de l'artefact et identité de ses sorties avec le binaire natif, sur 760 exécutions (EX-18.4) | essai décrit en EX-18.4 (go1.24.7, `go.mod` ramené à `go 1.24`, Node 22.22.0 et `wasm_exec_node.js`) | 2026-11-11 |
 | EX-18.12 | un travailleur n'est en général pas régi par la politique du document qui le crée ; sa politique est celle de la réponse qui porte son script ; exception : un script d'origine opaque (`data:`, `blob:`) hérite de la politique du créateur | MDN, « Using Web Workers », section « Content security policy », https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers | 2026-11-11 |
 | EX-18.12 | `Integrity-Policy` : `blocked-destinations` admet `script` et `style` ; la page ne dit rien des travailleurs ; disponibilité limitée selon les navigateurs | MDN, « Integrity-Policy », https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Integrity-Policy | 2026-11-11 |
+
+### B.9 Faits de la révision 0.7
+
+| Règle | Fait | Source | Date |
+|---|---|---|---|
+| EX-18.3 | sous `GOOS=js GOARCH=wasm`, parmi les dépendances de `cmd/noortrace-verifier`, les paquets de la bibliothèque standard qui importent `syscall/js` sont `syscall` et `time` ; aucun paquet du module ni de `vendor/` ne l'importe | `go list -deps -f '{{.ImportPath}} {{.Imports}}'` sous les deux cibles, avec go1.27.3 | 2026-11-11 |
+| EX-14.6, EX-18.3 | `GOEXPERIMENT`, `GOFIPS140` et `GOWASM` sont lues dans l'environnement, que `GOENV=off` ne neutralise pas ; vides, `go env` les rend vides et `off` ; un programme d'essai qui importe `crypto/sha256` et `time`, construit pour `js/wasm` et pour `linux/amd64` avec et sans ces trois variables vides, donne les mêmes octets | `go help environment` et `go env` de go1.27.3 ; essai de construction | 2026-11-11 |
+| EX-18.4 | archive `go1.27.3.linux-amd64.tar.gz`, SHA-256 `65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40`, 70 588 678 octets, égaux à l'entrée de `https://go.dev/dl/?mode=json&include=all` ; deux constructions de l'artefact : 11 762 554 octets identiques ; 6 460 exécutions de l'épreuve d'EX-18.10 sous Node 22, aucun écart | construction de l'étape 6 (`verificateur/scripts/construire-wasm.sh`, essais `test/verification-page-*.test.js`) | 2026-11-11 |
+| EX-18.6, EX-18.12 | dans Chromium 141.0.7390.37, sous `Integrity-Policy: blocked-destinations=(script style)`, un script classique de même origine qui porte `integrity` sans `crossorigin` est bloqué, et chargé avec `crossorigin="anonymous"` ; le travailleur se charge sans attribut d'intégrité ; le navigateur écrit « The Integrity-Policy destination 'style' is not supported. » | essai `test/verification-page-chromium.test.js` (Playwright 1.56.1) | 2026-11-11 |
+| EX-18.12, EX-18.13 | Firefox 142.0.1 de Playwright 1.56.1 (Gecko) n'offre pas `trustedTypes` et avertit qu'il ignore `require-trusted-types-for` et `trusted-types` ; il demande de lui-même `/favicon.ico`, que `default-src 'none'` bloque avant tout envoi, et le signale comme violation `img-src` ; WebKit 26.0 de Playwright 1.56.1 rend l'en-tête `Content-Type` sans son paramètre `charset` et compile l'artefact sous une politique du travailleur `default-src 'none'; script-src 'self'` ; chacun des trois moteurs rend, pour les dossiers éprouvés, le rapport du binaire octet pour octet | essai `test/verification-page-chromium.test.js` (Chromium, Firefox et WebKit de Playwright 1.56.1) | 2026-11-11 |
+| EX-18.7 | `zip -X -r` d'Info-ZIP 3.0 écrit un nom non ASCII sans le bit 11 et sans champ Unicode | essai de la construction de l'étape 6 | 2026-11-11 |
+| EX-18.9 | sous go1.27.3, `wasm_exec.js` écrit les messages d'arrêt de l'environnement d'exécution par `fs.writeSync`, et des minuteries restent programmées après la sortie du programme | essai d'identité de l'étape 6 | 2026-11-11 |

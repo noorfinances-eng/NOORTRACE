@@ -2,10 +2,10 @@
 //
 // Disposition dans le répertoire d'état :
 //   etat/journal.ndjson     une ligne par entrée traitée : l'enregistrement
-//                           { n, meta?, versions?, tickets?, fenetres? } (documents
-//                           entiers, état absolu, jamais un delta), chiffré ;
-//   etat/instantane.chiffre l'état complet { n, meta, versions, tickets, fenetres } au
-//                           dernier compactage, chiffré ;
+//                           { n, meta?, versions?, tickets?, fenetres?, annuaire?, defis? }
+//                           (documents entiers, état absolu, jamais un delta), chiffré ;
+//   etat/instantane.chiffre l'état complet { n, meta, versions, tickets, fenetres,
+//                           annuaire?, defis? } au dernier compactage, chiffré ;
 //   etat/verrou             fichier de verrou (pid), un seul service par répertoire.
 //
 // Chaque ligne est écrite puis synchronisée (fdatasync) avant que l'effet de
@@ -13,7 +13,12 @@
 // actifs et les valeurs des portées de fenêtre sont chiffrés au repos
 // (EX-7.24) : tout enregistrement l'est, en AES-256-GCM, clé de 32 octets de
 // la configuration, nonce aléatoire de 12 octets par enregistrement, données
-// associées « noortrace/approbation/etat/v0 » ‖ nature ‖ n.
+// associées « noortrace/approbation/etat/v0 » ‖ LF ‖ nature ‖ LF ‖ n (EX-7.30).
+// L'annuaire des approbateurs (`annuaire`, document `annuaire-approbateurs-v0`)
+// et ses défis d'inscription non expirés (`defis`) sont des membres des mêmes
+// enregistrements, écrits en entier à chaque changement (EX-13.38) ; le
+// dernier lu fait foi. `annuaire` n'est écrit qu'à la première opération
+// acceptée (EX-13.38, point 1).
 //
 // Reprise : l'instantané, puis les lignes du journal dont `n` le suit ; une
 // dernière ligne incomplète ou indéchiffrable (arrêt brutal pendant
@@ -112,14 +117,18 @@ function erreurPanne() {
  * @returns {{doc: object, secret: string|null}} `secret` : JSON des membres retirés, ou null s'ils sont tous nuls
  */
 function separerTicket(t) {
-  const r = t.request ?? {};
+  const { intent, ...r } = t.request ?? {};
   const s = {
     arguments: r.arguments ?? null,
     retained_event: r.retained_event ?? null,
     arguments_piece: r.arguments_piece ?? null,
     scope_values: t.opening?.scope?.values ?? null,
+    // intention de la requête evaluer, gardée et effacée avec les arguments (EX-7.24, révision 0.6)
+    intent: intent ?? null,
   };
-  if (s.arguments === null && s.retained_event === null && s.arguments_piece === null && s.scope_values === null) return { doc: t, secret: null };
+  if (s.arguments === null && s.retained_event === null && s.arguments_piece === null && s.scope_values === null) {
+    return { doc: t.request && "intent" in t.request ? { ...t, request: r } : t, secret: null };
+  }
   const doc = { ...t, request: { ...r, arguments: null, retained_event: null, arguments_piece: null } };
   if (t.opening) doc.opening = { ...t.opening, scope: { ...t.opening.scope, values: null } };
   return { doc, secret: JSON.stringify(s) };
@@ -190,12 +199,13 @@ export class MagasinEtat {
 
   /**
    * Ouvre le magasin et relit l'état (EX-7.23).
-   * @returns {Promise<{meta: object|null, versions: object[], tickets: object[], fenetres: object[], tronque: boolean}>}
+   * @returns {Promise<{meta: object|null, versions: object[], tickets: object[], fenetres: object[],
+   *   annuaire: object|null, defis: object[]|null, tronque: boolean}>}
    */
   async ouvrir() {
     await fsp.mkdir(this.dir, { recursive: true, mode: 0o700 });
     await this.#verrouiller();
-    const etat = { meta: null, versions: [], tickets: new Map(), fenetres: [] };
+    const etat = { meta: null, versions: [], tickets: new Map(), fenetres: [], annuaire: null, defis: null };
     let nInstantane = 0;
     if (fs.existsSync(this.cheminInstantane)) {
       const brut = (await fsp.readFile(this.cheminInstantane, "utf8")).trim();
@@ -206,6 +216,8 @@ export class MagasinEtat {
       etat.versions = s.versions ?? [];
       for (const t of s.tickets) etat.tickets.set(t.ticket, t);
       etat.fenetres = s.fenetres;
+      if (s.annuaire !== undefined) etat.annuaire = s.annuaire;
+      if (s.defis !== undefined) etat.defis = s.defis;
     }
     this.n = nInstantane;
     let tronque = false;
@@ -237,6 +249,8 @@ export class MagasinEtat {
           if (enr.versions) etat.versions = enr.versions;
           for (const t of enr.tickets ?? []) etat.tickets.set(t.ticket, t);
           if (enr.fenetres) etat.fenetres = enr.fenetres;
+          if (enr.annuaire) etat.annuaire = enr.annuaire;
+          if (enr.defis) etat.defis = enr.defis;
           this.n = enr.n;
         }
         this.lignes++;
@@ -270,6 +284,7 @@ export class MagasinEtat {
       t.request.arguments = x.arguments;
       t.request.retained_event = x.retained_event;
       t.request.arguments_piece = x.arguments_piece;
+      t.request.intent = x.intent ?? null;
       if (t.opening) t.opening.scope.values = x.scope_values;
       this.secrets.set(nom, fichiers.get(nom));
     }
@@ -290,8 +305,10 @@ export class MagasinEtat {
     if (purge) await this.#synchroniserRepertoire(this.dirArguments);
     this.fd = await fsp.open(this.cheminJournal, "a", 0o600);
     const docs = { meta: etat.meta, versions: etat.versions, tickets, fenetres: etat.fenetres };
+    if (etat.annuaire !== null) docs.annuaire = etat.annuaire;
+    if (etat.defis !== null) docs.defis = etat.defis;
     if (migrer) await this.reprendre(docs);
-    return { ...docs, tronque };
+    return { ...docs, annuaire: etat.annuaire, defis: etat.defis, tronque };
   }
 
   async #synchroniserRepertoire(dir) {
@@ -375,7 +392,7 @@ export class MagasinEtat {
 
   /**
    * Ajoute un enregistrement et le synchronise (EX-7.22).
-   * @param {{meta?: object, versions?: object[], tickets?: object[], fenetres?: object[]}} enr
+   * @param {{meta?: object, versions?: object[], tickets?: object[], fenetres?: object[], annuaire?: object, defis?: object[]}} enr
    */
   async ajouter(enr) {
     if (this.enPanne) throw erreurPanne();

@@ -973,14 +973,18 @@ export class FrontalMcp {
     const hoteCapture = { id: session.hote.id, launched_by: delegation.launched_by, on_behalf_of: session.hote.on_behalf_of ?? null, scope: session.hote.scope };
 
     // Continuation MRTR (EX-4.21) : héritage sans nouvel appel au service.
+    // Enregistrement gardé par ce processus, à défaut reconstruit par le cœur
+    // depuis la ligne `continuation` d'un appel approuvé (reprise, bascule) :
+    // celui-ci n'a plus de connexion d'hôte, et RL-2 compare la délégation de
+    // la ré-émission à celle de la `retenue`.
     const rs = membre(m.params, "requestState");
     let herite = null;
     if (rs) {
       const shaRs = sha256Hex(utf8(compacter(t, rs)));
       ctx.shaRequestState = shaRs;
-      const c = this.continuations.get(shaRs);
+      const c = this.continuations.get(shaRs) ?? this._continuationReconstruite(shaRs);
       const mac = macRelais(this.coeur.cleMac, ctx.argumentsClair);
-      if (c && !c.servie && c.session === session && c.tool === nom && c.mac === mac && c.policy.ticket === null) {
+      if (c && !c.servie && (c.session === session || c.session === null) && c.tool === nom && c.mac === mac) {
         c.servie = true;
         herite = c;
         // Servie une fois : retirée (une ré-émission rejouée repasse par le pas 3).
@@ -1003,7 +1007,11 @@ export class FrontalMcp {
     const moteur = this.coeur.politique;
     ctx.blocagesEvites = [];
     if (herite) {
-      reponse = { rule: herite.policy.rule, decision: herite.policy.decision, ticket: null, ticket_state: null, approval: null, approver_set: null };
+      // Une continuation d'un appel approuvé est relayée sous le ticket : RL-1
+      // à RL-4, RL-3 en mode continuation, au pas 7 (EX-4.21 condition 4, EX-7.21).
+      reponse = herite.policy.ticket === null
+        ? { rule: herite.policy.rule, decision: herite.policy.decision, ticket: null, ticket_state: null, approval: null, approver_set: null }
+        : { rule: herite.policy.rule, decision: "autorise", ticket: herite.policy.ticket, ticket_state: "approuve", approval: herite.approval, approver_set: null };
     } else {
       try {
         const issue = await moteur.evaluerAppel({
@@ -1133,6 +1141,27 @@ export class FrontalMcp {
     return this._relayer(ctx, { passant, estAnnule });
   }
 
+  /**
+   * Enregistrement de continuation reconstruit par le cœur (EX-4.21 : reprise
+   * ou bascule), sans connexion d'hôte ; null sinon.
+   * @param {string} sha
+   */
+  _continuationReconstruite(sha) {
+    const r = this.coeur.continuationReconstruite?.(sha) ?? null;
+    if (!r) return null;
+    const e = r.evenement;
+    return {
+      session: null,
+      tool: e.execution.tool,
+      mac: r.mac,
+      policy: e.policy,
+      approval: e.approval,
+      intent: e.intent,
+      code: { model: e.code.model, prompt_version: e.code.prompt_version },
+      servie: false,
+    };
+  }
+
   /** Panne au pas 7 (14.2) : `{ bloque: raison }`, `{ passant: true }` ou `{}`. */
   _etatPanne(alias, original, classeEffective) {
     const c = this.coeur;
@@ -1223,11 +1252,17 @@ export class FrontalMcp {
     // Pas 7 et 8 : RL-1 à RL-4 et intention durable (cœur).
     let relais = null;
     if (!o.passant) {
-      const reponse = ctx.herite
-        ? { rule: ctx.herite.policy.rule, decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null }
-        : ctx.reponse;
+      const sousTicket = ctx.herite && ctx.herite.policy.ticket !== null;
+      // Continuation sous ticket : aucune réponse d'evaluer à comparer (RL-1).
+      const reponse = !ctx.herite
+        ? ctx.reponse
+        : sousTicket
+          ? { ...ctx.reponse, approval: null }
+          : { rule: ctx.herite.policy.rule, decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null };
       try {
-        relais = await this.coeur.preparerRelais(ctx.capture, { reponse, argumentsEnClair: ctx.argumentsClair, upstream_id: idAmont, timeout_ms });
+        relais = await this.coeur.preparerRelais(ctx.capture, {
+          reponse, argumentsEnClair: ctx.argumentsClair, upstream_id: idAmont, timeout_ms, continuation: sousTicket ? ctx.shaRequestState : null,
+        });
       } catch (e) {
         if (!(e instanceof ErreurEnregistreur || e instanceof ErreurConstruction)) throw e;
         if (!ctx.observation) throw this._bloque(ctx, e.raison ?? "stockage");
@@ -1236,7 +1271,8 @@ export class FrontalMcp {
         o.passant = true;
         relais = null;
       }
-      if (relais && ctx.herite) relais.fixe = { policy: ctx.herite.policy, approval: ctx.herite.approval };
+      // Sous ticket, `policy` et `approval` sont ceux que le cœur a vérifiés (RL-1, EX-7.12).
+      if (relais && ctx.herite && !sousTicket) relais.fixe = { policy: ctx.herite.policy, approval: ctx.herite.approval };
     }
     // Pas 9 : envoi.
     const texteAmont = this._messageAmont(ctx, connexion, idAmont);
@@ -1342,23 +1378,39 @@ export class FrontalMcp {
           return reponseErreur(m.idBrut, CODES.NON_DURABLE, { intent_id: relais?.intention?.intent_id ?? null, reason: e.raison });
         }
       }
-      // Continuation MRTR (EX-4.21) d'un appel sans ticket.
+      // Continuation MRTR (EX-4.21) : enregistrement gardé avant le pas 14 ;
+      // pour un appel qui porte l'approbation d'un ticket, ligne `continuation`
+      // écrite et synchronisée d'abord (EX-12.23), faute de quoi aucun
+      // enregistrement n'est gardé et la ré-émission repasse par le pas 3.
       const rsNoeud = issue.issue === "reponse" && evenement ? membre(membre(issue.noeud, "result"), "requestState") : null;
-      if (rsNoeud && evenement.policy.ticket === null) {
+      const ticket = evenement?.policy?.ticket ?? null;
+      if (rsNoeud && (ticket === null || (evenement.approval?.ticket === ticket && evenement.approval.decision === "approuve"))) {
         const sha = sha256Hex(utf8(compacter(issue.texte, rsNoeud)));
-        if (this.continuations.size >= CONTINUATIONS_MAX) this.continuations.delete(this.continuations.keys().next().value);
-        this.continuations.delete(sha);
-        this.continuations.set(sha, {
-          session,
-          tool: ctx.nom,
-          mac: macRelais(this.coeur.cleMac, ctx.argumentsClair),
-          policy: { rule: evenement.policy.rule, decision: evenement.policy.decision, ticket: null },
-          approval: evenement.approval,
-          intent: evenement.intent,
-          code: { model: evenement.code.model, prompt_version: evenement.code.prompt_version },
-          servie: false,
-        });
-        this.journal.consigner("info", "frontal_mcp", "mrtr_continuation", { request_state_sha256: sha }, { seq: evenement.seq, host: session.hote.id });
+        let garde = true;
+        if (ticket !== null) {
+          try {
+            await this.coeur.inscrireContinuation(evenement, sha);
+          } catch (e) {
+            if (!(e instanceof ErreurEnregistreur)) throw e;
+            garde = false;
+            this.journal.consigner("error", "frontal_mcp", "mrtr_continuation_unrecorded", { request_state_sha256: sha, reason: e.raison ?? null }, { seq: evenement.seq, host: session.hote.id });
+          }
+        }
+        if (garde) {
+          if (this.continuations.size >= CONTINUATIONS_MAX) this.continuations.delete(this.continuations.keys().next().value);
+          this.continuations.delete(sha);
+          this.continuations.set(sha, {
+            session,
+            tool: ctx.nom,
+            mac: macRelais(this.coeur.cleMac, ctx.argumentsClair),
+            policy: ticket === null ? { rule: evenement.policy.rule, decision: evenement.policy.decision, ticket: null } : evenement.policy,
+            approval: evenement.approval,
+            intent: evenement.intent,
+            code: { model: evenement.code.model, prompt_version: evenement.code.prompt_version },
+            servie: false,
+          });
+          this.journal.consigner("info", "frontal_mcp", "mrtr_continuation", { request_state_sha256: sha }, { seq: evenement.seq, host: session.hote.id });
+        }
       }
     }
     this.journal.consigner(

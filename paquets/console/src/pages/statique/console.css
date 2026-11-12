@@ -1,0 +1,347 @@
+/*
+ * Feuille de style de la console d'approbation (contrat de l'étape 6, 3.2 ;
+ * CT-3 EX-13.35, EX-9.18). Polices du système seulement, aucune police
+ * téléchargée ; palette neutre, sans teinte (gris seulement), aucune marque ;
+ * thème clair et thème sombre par `prefers-color-scheme` seulement, sans
+ * script ni stockage : chaque encre a ses deux valeurs. Les condensés sont en
+ * chasse fixe, et un groupe de huit chiffres n'est jamais coupé.
+ */
+
+:root {
+  color-scheme: light dark;
+  --fond: #ffffff;
+  --fond-bloc: #f4f4f4;
+  --encre: #1a1a1a;
+  --encre-discrete: #555555;
+  --bordure: #c8c8c8;
+  --accent: #000000;
+  --fond-alerte: #ececec;
+  --fond-erreur: #e2e2e2;
+  --fond-bouton: #1a1a1a;
+  --encre-bouton: #ffffff;
+  --fond-bouton-inactif: #bdbdbd;
+  --police: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --police-fixe: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #121212;
+    --fond-bloc: #1e1e1e;
+    --encre: #ececec;
+    --encre-discrete: #a8a8a8;
+    --bordure: #444444;
+    --accent: #ffffff;
+    --fond-alerte: #2a2a2a;
+    --fond-erreur: #333333;
+    --fond-bouton: #ececec;
+    --encre-bouton: #121212;
+    --fond-bouton-inactif: #555555;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--encre);
+  font-family: var(--police);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+#principal {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0.5rem 0 1rem;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin: 1rem 0 0.5rem;
+}
+
+h3 {
+  font-size: 1rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+a {
+  color: var(--accent);
+}
+
+.entete {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  align-items: baseline;
+  border-bottom: 1px solid var(--bordure);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.titre-console {
+  font-weight: 700;
+  margin: 0;
+}
+
+.navigation {
+  display: flex;
+  gap: 1rem;
+}
+
+.navigation a[aria-current="page"] {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.session {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.bloc {
+  background: var(--fond-bloc);
+  border: 1px solid var(--bordure);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+}
+
+.discret {
+  color: var(--encre-discrete);
+}
+
+.fixe,
+code,
+pre {
+  font-family: var(--police-fixe);
+  overflow-wrap: anywhere;
+}
+
+pre {
+  white-space: pre-wrap;
+  margin: 0.25rem 0;
+}
+
+.definitions {
+  display: grid;
+  grid-template-columns: minmax(10rem, max-content) 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0.5rem 0;
+}
+
+.definitions dt {
+  font-weight: 600;
+}
+
+.definitions dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+
+.table th,
+.table td {
+  border: 1px solid var(--bordure);
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.marque {
+  display: inline-block;
+  border: 1px solid var(--encre);
+  border-radius: 3px;
+  padding: 0 0.3rem;
+  font-size: 0.875rem;
+}
+
+.marque-different {
+  font-weight: 700;
+  border-width: 2px;
+}
+
+.marque-non_verifiable {
+  border-style: dashed;
+}
+
+.message {
+  border-left: 4px solid var(--encre);
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+}
+
+.message-alerte {
+  background: var(--fond-alerte);
+}
+
+.message-erreur {
+  background: var(--fond-erreur);
+  border-left-width: 6px;
+}
+
+.message p {
+  margin: 0.25rem 0;
+}
+
+.bouton {
+  font: inherit;
+  background: var(--fond-bouton);
+  color: var(--encre-bouton);
+  border: 1px solid var(--fond-bouton);
+  border-radius: 4px;
+  padding: 0.4rem 0.9rem;
+  margin: 0.25rem 0.5rem 0.25rem 0;
+  cursor: pointer;
+}
+
+.bouton.principal {
+  font-weight: 700;
+}
+
+.bouton.lien {
+  background: transparent;
+  color: var(--accent);
+  border: none;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.bouton:disabled {
+  background: var(--fond-bouton-inactif);
+  border-color: var(--fond-bouton-inactif);
+  cursor: not-allowed;
+}
+
+.bouton:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.groupe-boutons {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+textarea,
+input {
+  font: inherit;
+  color: var(--encre);
+  background: var(--fond);
+  border: 1px solid var(--bordure);
+  border-radius: 4px;
+  padding: 0.3rem;
+  width: 100%;
+  max-width: 40rem;
+  display: block;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.fournisseurs,
+.comptes,
+.effets,
+.adresses,
+.alias {
+  list-style: none;
+  padding: 0;
+}
+
+.fournisseur {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.25rem 0;
+}
+
+.fournisseur img {
+  width: 32px;
+  height: 32px;
+}
+
+.fournisseur-nom {
+  font-weight: 600;
+}
+
+.fournisseur-rdns {
+  color: var(--encre-discrete);
+  overflow-wrap: anywhere;
+}
+
+.etiquette {
+  font-weight: 700;
+}
+
+.signature {
+  border-width: 2px;
+  border-color: var(--encre);
+}
+
+.d-a {
+  font-size: 0.95rem;
+}
+
+.groupes .groupe {
+  white-space: nowrap;
+}
+
+.empreinte {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin: 0.25rem 0;
+  white-space: nowrap;
+}
+
+.empreinte-secondaire {
+  font-size: 1.25rem;
+  margin: 0.25rem 0;
+  white-space: nowrap;
+}
+
+.consignes li {
+  margin: 0.25rem 0;
+}
+
+.texte-inscription {
+  background: var(--fond);
+  border: 1px solid var(--bordure);
+  padding: 0.5rem 0.5rem 0.5rem 2.5rem;
+  overflow-wrap: anywhere;
+}
+
+.action {
+  margin: 0.25rem 0;
+}
+
+.confirmation {
+  border: 1px dashed var(--encre);
+  padding: 0.5rem;
+}
+
+details summary {
+  cursor: pointer;
+}

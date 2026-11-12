@@ -17,7 +17,7 @@ npm run tests:couverture   # code 0 : règles (a) à (d) et EX-4.4 tiennent
 
 ## `catalogue.json`
 
-Catalogue CT-9 0.7 du 2026-11-11 (schéma `plan-de-tests-v0`, racine) : 334
+Catalogue CT-9 0.8 du 2026-11-11 (schéma `plan-de-tests-v0`, racine) : 334
 entrées, 6 justifications NC-, 86 risques acceptés, 122 lignes TC-. Une ligne
 par entrée : identifiant, niveau, état, titre.
 
@@ -151,15 +151,15 @@ par entrée : identifiant, niveau, état, titre.
 | TI-11 | TI- | à écrire (étape 8) | Intégration OpenTelemetry : agent instrumenté par un SDK OpenTelemetry vers le point d'entrée OTLP de l'enregistreur |
 | TI-12 | TI- | exécutable | Requêtes OTLP confrontées à `opentelemetry-proto` et réponses `ExportTraceServiceResponse` exactes |
 | TI-13 | TI- | exécutable | SDK Python et TypeScript : interface publique, versions de langage, aucune exception vers l'agent |
-| TI-14 | TI- | à écrire (étape 6) | Canal réel noyau ↔ service d'approbation et console ↔ service : authentification, `evaluer`, `GET /v0/etat`, sessions |
+| TI-14 | TI- | exécutable | Canal réel noyau ↔ service d'approbation et console ↔ service : authentification, `evaluer`, `GET /v0/etat`, sessions |
 | TI-15 | TI- | à écrire (étape 7) | Supports WORM réels (S3, Azure, GCS) : requêtes exactes, verrou, rétention, journal d'accès |
 | TI-16 | TI- | exécutable, complément à écrire | Prestataires RFC 3161 et calendriers OpenTimestamps réels : fiche de prestataire, `min_interval_ms`, qualification |
 | TI-17 | TI- | exécutable | Serveur RFC 3161 interne : AN-22 à AN-31 vérifiées sur un jeton émis, épreuve de redémarrage (AN-26) |
 | TI-18 | TI- | exécutable | Nœud noorcore et certificat de commit : JSON-RPC `noor_getCommitCertificate`, parité Go/JavaScript, confrontation go-ethereum |
 | TI-19 | TI- | exécutable | Mode ICAP : raccord à un mandataire existant, sources admises |
 | TI-20 | TI- | exécutable | Export des pièces d'un dossier vers un paquet réviseur lu par des outils tiers (GNU tar, `tarfile`) |
-| TI-21 | TI- | à écrire (étape 6) | Notifications du service d'approbation livrées à un webhook et vérifiées par un récepteur tiers |
-| TI-22 | TI- | à écrire (étape 6) | Serveur de console et fournisseur d'identité OIDC : découverte, flux par code avec PKCE, vérification du jeton d'identité |
+| TI-21 | TI- | exécutable | Notifications du service d'approbation livrées à un webhook et vérifiées par un récepteur tiers |
+| TI-22 | TI- | exécutable | Serveur de console et fournisseur d'identité OIDC : découverte, flux par code avec PKCE, vérification du jeton d'identité |
 | TE-1 | TE- | à écrire (étape 8) | Cas de démonstration « assurance » : agent de souscription et de tarification, de la capture au dossier vérifié |
 | TE-2 | TE- | à écrire (étape 8) | Cas de démonstration « administration » : agent qui instruit des demandes de prestations publiques |
 | TE-3 | TE- | à écrire (étape 8) | Démonstration de référence en une commande : `docker compose up`, moins de deux minutes, verdict imprimé (CT-2 §19) |
@@ -172,17 +172,17 @@ par entrée : identifiant, niveau, état, titre.
 | TE-10 | TE- | à écrire (étape 7) | Mode observation de bout en bout : capture sans blocage, rapport d'observation, passage au mode bloquant |
 | TE-11 | TE- | exécutable | Haute disponibilité à écrivain unique : bascule du bail, pertes admises, jeton de clôture (CT-2 §13) |
 | TE-12 | TE- | exécutable | Ancrage complet d'une racine : point de contrôle, ancre au registre, jeton RFC 3161, preuve OpenTimestamps, dossier vérifié hors ligne |
-| TE-13 | TE- | à écrire (étape 6) | Console : un approbateur s'inscrit, signe une décision depuis son portefeuille, le dossier exporté passe le vérificateur |
+| TE-13 | TE- | exécutable | Console : un approbateur s'inscrit, signe une décision depuis son portefeuille, le dossier exporté passe le vérificateur |
 | TE-14 | TE- | exécutable, complément à écrire | Journal de l'enregistreur sur lui-même : JS-1 à JS-12 observés sur le démon |
 | TE-15 | TE- | à écrire (étape 7) | Construction des images de référence : reproductibilité, `docker inspect`, volume nommé, compagnon d'immuabilité |
 | TE-16 | TE- | exécutable, complément à écrire | Matrice des pannes de CT-2 §14 rejouée sur le démon : classification des outils, ce qui est rendu à l'hôte, ce qui est journalisé, mode dégradé |
 | TE-17 | TE- | à écrire (étape 7) | Supervision en charge : alertes prescrites levées sur incident, métriques `noortrace_*`, dossier produit sous charge vérifié |
-| TE-18 | TE- | à écrire (étape 6) | Export du dossier par `noortrace-ctl dossier exporter` sur le démon : désignation, refus dans leur ordre, répertoire des exports et ses droits, écriture atomique, lignes du journal d'exploitation |
-| TE-19 | TE- | à écrire (étape 6) | Service d'approbation de la révision 0.5 de CT-3 : document de configuration, état chiffré, annuaire persistant, liste des tickets |
-| TE-20 | TE- | à écrire (étape 6) | Serveur de console : document de configuration, adresses, santé et sonde, système d'identité local, sessions, garde d'hôte et relais |
-| TE-21 | TE- | à écrire (étape 6) | Paquet client produit par l'outil du registre à la fin de l'inscription, puis contrôlé à la réception par le client |
-| TE-22 | TE- | à écrire (étape 6) | Application d'exploitant : interface web et agent séparé conduisent l'inscription avec les sorties de l'outil de référence |
-| TE-23 | TE- | à écrire (étape 6) | Page de vérification : le vérificateur compilé en WebAssembly rend dans le navigateur le rapport du binaire |
+| TE-18 | TE- | exécutable | Export du dossier par `noortrace-ctl dossier exporter` sur le démon : désignation, refus dans leur ordre, répertoire des exports et ses droits, écriture atomique, lignes du journal d'exploitation |
+| TE-19 | TE- | exécutable | Service d'approbation de la révision 0.5 de CT-3 : document de configuration, état chiffré, annuaire persistant, liste des tickets |
+| TE-20 | TE- | exécutable | Serveur de console : document de configuration, adresses, santé et sonde, système d'identité local, sessions, garde d'hôte et relais |
+| TE-21 | TE- | exécutable | Paquet client produit par l'outil du registre à la fin de l'inscription, puis contrôlé à la réception par le client |
+| TE-22 | TE- | exécutable | Application d'exploitant : interface web et agent séparé conduisent l'inscription avec les sorties de l'outil de référence |
+| TE-23 | TE- | exécutable | Page de vérification : le vérificateur compilé en WebAssembly rend dans le navigateur le rapport du binaire |
 | TA-1 | TA- | à écrire (étape 8) | Réponse retirée : Règle de sortie du pare-feu : seul le mandataire joint le serveur d'outils HTTP (CT-2 EX-4.1, §4.9) |
 | TA-2 | TA- | exécutable | Réponse retirée : launched_by tiré de la configuration de la connexion d'hôte, jamais de l'hôte (CT-2 EX-7.2, EX-7.3) |
 | TA-3 | TA- | exécutable | Réponse retirée : Plafond max_calls d'une fenêtre d'approbation (CT-3 EX-5.2, EX-5.5) |
@@ -233,7 +233,7 @@ par entrée : identifiant, niveau, état, titre.
 | TA-48 | TA- | exécutable | Réponse retirée : Séparation du demandeur vérifiée par le noyau (CT-3 EX-10.2, SG-7) ; seuil d'adresses distinctes (CT-1 A-3) |
 | TA-49 | TA- | exécutable | Réponse retirée : Normalisation et refus des formes non canoniques par le noyau, sans déléguer à une bibliothèque (CT-3 EX-9.3, EX-9.22, SG-5) |
 | TA-50 | TA- | exécutable | Réponse retirée : Seuil effectif qui ne baisse jamais, membres ajoutés signalés (CT-3 EX-8.5 à EX-8.7) |
-| TA-51 | TA- | à écrire (étape 6) | Réponse retirée : Jeu lu auprès d'un validateur du client ou partenaire (CT-3 EX-8.2 ; CT-7 EX-3.10) |
+| TA-51 | TA- | exécutable | Réponse retirée : Jeu lu auprès d'un validateur du client ou partenaire (CT-3 EX-8.2 ; CT-7 EX-3.10) |
 | TA-52 | TA- | à écrire (étape 8) | Réponse retirée : Parcours c (relais de portefeuille) désactivé par défaut, échéance bornée, code jamais journalisé (CT-3 EX-13.27) |
 | TA-53 | TA- | exécutable, complément à écrire | Réponse retirée : Réassignation sur demande écrite consignée, jeu administré par la même clé de gouvernance (CT-4 EX-8.10) ; OP-5 |
 | TA-54 | TA- | exécutable | Réponse retirée : Quorum calculé sur le jeu du réviseur (CT-6 R-2) ; au plus f validateurs par opérateur (CT-4 EX-4.12) |
@@ -259,7 +259,7 @@ par entrée : identifiant, niveau, état, titre.
 | TA-74 | TA- | exécutable | Réponse retirée : Couverture de l'événement par le point (CT-1 K-4) ; série des points publiée (CT-5 §10.2) ; ancres extérieures (CT-6 §3.4) |
 | TA-75 | TA- | à écrire (étape 7) | Réponse retirée : Relecture du registre des gels par un rôle Lecteur hors du démon (CT-2 EX-17.7, EX-18.9) ; métriques publiques (EX-17.1) |
 | TA-76 | TA- | exécutable | Réponse retirée : Réponses tardives rejetées (CT-5 EX-5.11) ; TLS vérifié, nonce (EX-5.5, EX-6.2) |
-| TA-77 | TA- | à écrire (étape 6) | Réponse retirée : Canal du service authentifié (CT-3 EX-12.2 ; CT-2 EX-18.8, EX-18.3) |
+| TA-77 | TA- | exécutable | Réponse retirée : Canal du service authentifié (CT-3 EX-12.2 ; CT-2 EX-18.8, EX-18.3) |
 | TA-78 | TA- | exécutable | Réponse retirée : Périmètre rapporté « déclaré, non prouvé », jamais compté parmi ce que le dossier prouve (CT-7 EX-7.1, EX-7.17 ; CT-6 EX-6.19, EX-7.3) |
 | TA-79 | TA- | exécutable | Réponse retirée : org_id et journal_id de l'attestation comparés à l'événement prouvé (CT-1 AT-5 ; CT-7 EX-7.16) |
 | TA-80 | TA- | exécutable | Réponse retirée : ts de l'événement dans validity (CT-1 AT-5) ; renouvellement avant validity.until (CT-7 EX-7.5) |
@@ -281,10 +281,10 @@ par entrée : identifiant, niveau, état, titre.
 | TA-96 | TA- | à écrire (étape 8) | Réponse retirée : Changements de policy annoncés dans la chaîne (CT-2 EX-9.2) ; copie WORM des fichiers tournés du journal d'exploitation (PA-18) |
 | TA-97 | TA- | à écrire (étape 8) | Réponse retirée : Comparaison du condensé à un second outil indépendant (CT-7 EX-5.8, EX-7.8, EX-A.21) |
 | TA-98 | TA- | exécutable | Réponse retirée : Inscription exigée dès que possible (CT-7 EX-7.5) ; clause fixe de FP (CT-6 EX-6.19) |
-| TA-99 | TA- | à écrire (étape 6) | Réponse retirée : Chemin réel de la destination contrôlé sous le répertoire des exports (CT-2 EX-15.12, EX-15.13 ; CT-7 EX-3.16) |
-| TA-100 | TA- | à écrire (étape 6) | Réponse retirée : Vérification du jeton d'identité par le serveur de console (CT-3 EX-13.46, point 4 : `aud`) |
-| TA-101 | TA- | à écrire (étape 6) | Réponse retirée : Contrôle de l'empreinte de l'artefact par le travailleur (CT-6 EX-18.5) |
-| TA-102 | TA- | à écrire (étape 6) | Réponse retirée : Signature des notifications (CT-3 EX-13.41) |
+| TA-99 | TA- | exécutable | Réponse retirée : Chemin réel de la destination contrôlé sous le répertoire des exports (CT-2 EX-15.12, EX-15.13 ; CT-7 EX-3.16) |
+| TA-100 | TA- | exécutable | Réponse retirée : Vérification du jeton d'identité par le serveur de console (CT-3 EX-13.46, point 4 : `aud`) |
+| TA-101 | TA- | exécutable | Réponse retirée : Contrôle de l'empreinte de l'artefact par le travailleur (CT-6 EX-18.5) |
+| TA-102 | TA- | exécutable | Réponse retirée : Signature des notifications (CT-3 EX-13.41) |
 | TA-103 | TA- | à écrire (étape 8) | Scénario du plan : l'agent supprime ou réécrit (TA-1, TA-2, TA-3, TA-4, TA-5, TA-6, TA-7, TA-9, TA-15, TA-22) |
 | TA-104 | TA- | à écrire (étape 8) | Scénario du plan : l'opérateur réécrit après coup (TA-17, TA-18, TA-19, TA-23, TA-26, TA-27, TA-28, TA-74, TA-84, TA-85, TA-86, TA-96) |
 | TA-105 | TA- | à écrire (étape 8) | Scénario du plan : l'horloge est manipulée (TA-21, TA-60, TA-76, TA-93) |
@@ -362,9 +362,9 @@ par entrée : identifiant, niveau, état, titre.
 
 Sortie de l'outil de couverture (`node scripts/tests/couverture.mjs --json`,
 forme `rapport_couverture`) sur le dépôt et ce catalogue : verdict `reussi` ;
-2416 identifiants définis par CT-1 à CT-8, 2270 couverts par une entrée, 146 par
+2421 identifiants définis par CT-1 à CT-8, 2275 couverts par une entrée, 146 par
 une justification NC-, 0 non couvert(s) ; 102 menaces sur 102 avec un TA- ; 122
-occurrences de « CT-9 » et 122 lignes TC- ; 224 entrées exécutables citant 490
+occurrences de « CT-9 » et 122 lignes TC- ; 240 entrées exécutables citant 550
 titres ou étapes, 0 absent(s) ; 15 tables du texte comparées, 0 différence(s).
 
 ## `index-ta-par-menace.json`

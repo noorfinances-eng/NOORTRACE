@@ -257,6 +257,9 @@ export class BranchementAncrage {
     this.segmentsLus = new Map();
     /** Nombre de segments relus par `lireHashesPeriode` depuis le démarrage (supervision, essais). */
     this.segmentsRelus = 0;
+    /** @type {Map<string, {generated_at: string, constat: string}>} dernier dossier_reexport_due écrit par événement (EX-15.13 point 4) */
+    this.reexportsSignales = new Map();
+    this.reexportPlanifie = false;
   }
 
   /** Résumés des dossiers exportés (EX-10.5) : le dernier de chaque événement, seul pris en compte par `reexportsDus`. */
@@ -447,6 +450,8 @@ export class BranchementAncrage {
    */
   async lier(coeur) {
     this.coeur = coeur;
+    // CT-2 EX-15.13 point 4 : dossier_reexport_due à chaque ancre arrivée (lignes du composant).
+    if (typeof coeur.journal?.abonner === "function") this.#suivreReexports(coeur);
     const refuser = (raison, data = {}) => {
       this.raison = raison;
       this.#journal("error", "anchoring_not_started", { reason: raison, ...data });
@@ -568,6 +573,7 @@ export class BranchementAncrage {
 
   /** Arrêt propre, après la fermeture de l'écrivain. */
   async arreter() {
+    this.desabonnerReexports?.();
     if (this.composant && this.composant.etat().demarre) await this.composant.arreter({ attendre: false }).catch(() => {});
   }
 
@@ -604,10 +610,17 @@ export class BranchementAncrage {
 
   /**
    * Exporte le dossier d'un événement avec ses ancres (EX-10.1 à EX-10.4) ;
-   * `base` est l'assemblage de l'enregistreur (`dossier.mjs`). Le résumé est
-   * gardé pour `reexportsDus`.
+   * `base` est l'assemblage de l'enregistreur (`dossier.mjs`). Les fichiers
+   * sont écrits dans `destination` : le répertoire temporaire de l'export
+   * (CT-2 EX-15.13, point 2), ou la destination des essais. Le résumé est
+   * gardé pour `reexportsDus` avec `destinationFinale` (la destination
+   * demandée, jamais le répertoire temporaire, EX-15.13 point 2). La ligne
+   * `dossier_exported` est écrite par l'appelant (EX-15.14 : une ligne par
+   * demande, avec son `request_id`).
+   * @param {object} base
+   * @param {{destination: string, generated_at: number, destinationFinale?: string}} o
    */
-  exporterDossier(base, { destination, generated_at }) {
+  exporterDossier(base, { destination, generated_at, destinationFinale = destination }) {
     const registre = this.coeur && this.instance && fs.existsSync(this.repertoireRegistre)
       ? { repertoireCaptures: this.repertoireRegistre, jeux: this.instance.jeux, source: `${this.instance.bftChainId}, captures de l'enregistreur (${path.basename(this.coeur.repertoire)}), export du ${ecrireHorodatage(generated_at)}`, inscriptions: this.#inscriptions(base.manifeste, base.cles) }
       : null;
@@ -627,20 +640,29 @@ export class BranchementAncrage {
       destination,
       generated_at,
     });
+    r.resume = { ...r.resume, destination: destinationFinale };
     // Un seul résumé par événement, le plus récent par generated_at (la règle de reexportsDus) : la liste ne grandit plus
     // à chaque export d'un même dossier (épreuves de l'étape 5).
     const cle = `${r.resume.hash}:${r.resume.seq}`;
     const precedent = this.produits.get(cle);
     if (!precedent || decoderHorodatage(r.resume.generated_at) >= decoderHorodatage(precedent.generated_at)) this.produits.set(cle, r.resume);
-    this.#journal("info", "dossier_exported", {
-      seq: base.evenement.seq, period_start: base.manifeste.period_start, parts_present: r.dossier.parts.filter((x) => x.present).length,
-      checkpoint_rank: r.point?.rang ?? null, checkpoint_tree_size: r.point?.tree_size ?? null, defects: r.defauts.length,
-    });
     return r;
   }
 
-  /** EX-10.5 : dossiers exportés par ce démon qu'une ancre arrivée depuis rend à réexporter. */
+  /**
+   * EX-10.5 : dossiers exportés par ce démon qu'une ancre arrivée depuis rend à réexporter.
+   * @returns {Promise<object[]>}
+   */
   async reexportsDus() {
+    return (await this.etatReexports()).dus;
+  }
+
+  /**
+   * Dossiers dus (EX-10.5) et état des ancres de chaque période d'un dossier
+   * exporté (`etatAncresPeriode`), lus dans le stockage.
+   * @returns {Promise<{dus: object[], etats: Map<number, object>}>}
+   */
+  async etatReexports() {
     const etats = new Map();
     const produits = this.dossiersProduits;
     for (const d of produits) {
@@ -652,7 +674,90 @@ export class BranchementAncrage {
         repertoireCaptures: this.instance && fs.existsSync(this.repertoireRegistre) ? this.repertoireRegistre : null, periodHash: manifeste?.periodHash ?? null,
       }));
     }
-    return reexportsDus({ dossiersProduits: produits, etatAncres: etats });
+    return { dus: reexportsDus({ dossiersProduits: produits, etatAncres: etats }), etats };
+  }
+
+  /**
+   * Ancres qui rendent un dossier dû (EX-10.5) : pour chaque raison, la
+   * valeur courante de l'ancre qui la fonde. Deux constats égaux viennent de
+   * la même arrivée ; un constat changé, d'une ancre arrivée depuis.
+   */
+  #constatDu(du, etat) {
+    const resume = this.produits.get(`${du.hash}:${du.seq}`) ?? null;
+    const pointCourant = resume?.point && etat?.points instanceof Map ? etat.points.get(resume.point.checkpointHash) ?? null : null;
+    const constat = {};
+    for (const r of du.raisons) {
+      switch (r) {
+        case "jeton_periode": constat[r] = etat?.periode?.rfc3161 ?? null; break;
+        case "ots_periode": constat[r] = etat?.periode?.ots ?? null; break;
+        case "registre_periode": constat[r] = etat?.periode?.registre ?? null; break;
+        case "entetes_bitcoin": constat[r] = etat?.periode?.entetes ?? null; break;
+        case "jeton_point": constat[r] = pointCourant?.rfc3161 ?? null; break;
+        case "ots_point": constat[r] = pointCourant?.ots ?? null; break;
+        case "registre_point": constat[r] = pointCourant?.registre ?? null; break;
+        case "point_couvrant_meilleur": constat[r] = etat?.points instanceof Map ? [...etat.points].filter(([h, c]) => h !== resume?.point?.checkpointHash && c.rfc3161).map(([h]) => h).sort() : null; break;
+        case "point_apparu": constat[r] = etat?.points instanceof Map ? [...etat.points.keys()].sort() : null; break;
+        default: constat[r] = null;
+      }
+    }
+    return JSON.stringify(constat);
+  }
+
+  /**
+   * CT-2 EX-15.13 point 4, EX-15.14 : une ligne `dossier_reexport_due` par
+   * dossier dû et par ancre arrivée, pour le seul dossier le plus récent de
+   * chaque événement exporté depuis le démarrage. Appelé après chaque ligne
+   * du composant d'ancrage (une ancre arrivée en écrit une) : un dossier dû
+   * dont le constat des ancres n'a pas changé depuis la dernière ligne n'en
+   * reçoit pas d'autre.
+   */
+  async signalerReexports() {
+    if (!this.produits.size || !this.coeur) return [];
+    const { dus, etats } = await this.etatReexports();
+    const lignes = [];
+    for (const du of dus) {
+      const cle = `${du.hash}:${du.seq}`;
+      const constat = this.#constatDu(du, etats.get(du.period_start));
+      const avant = this.reexportsSignales.get(cle);
+      if (avant && avant.generated_at === du.generated_at && avant.constat === constat) continue;
+      this.reexportsSignales.set(cle, { generated_at: du.generated_at, constat });
+      const data = { seq: du.seq, hash: du.hash, period_start: du.period_start, destination: du.destination, generated_at: du.generated_at, reasons: [...new Set(du.raisons)] };
+      this.coeur.journal.consigner("info", "ancrage", "dossier_reexport_due", data, { seq: du.seq });
+      lignes.push(data);
+    }
+    return lignes;
+  }
+
+  /** Planifie `signalerReexports` après une ligne du composant (une à la fois, jamais bloquant). */
+  #planifierReexports() {
+    if (this.reexportPlanifie || !this.produits.size) return;
+    this.reexportPlanifie = true;
+    const t = setTimeout(() => {
+      this.reexportEnCours = (this.reexportEnCours ?? Promise.resolve())
+        .then(() => {
+          this.reexportPlanifie = false;
+          return this.signalerReexports();
+        })
+        .catch((e) => {
+          this.reexportPlanifie = false;
+          // Cette ligne ne replanifie pas de constat (sinon une erreur durable bouclerait).
+          this.sansReplanifier = true;
+          try {
+            this.#journal("error", "anchoring_supervision_failed", { detail: `dossier_reexport_due : ${String(e?.message ?? e).slice(0, 180)}` });
+          } finally {
+            this.sansReplanifier = false;
+          }
+        });
+    }, 0);
+    t.unref?.();
+  }
+
+  /** Abonnement au journal d'exploitation : chaque ligne du composant (hors lignes de dossier) planifie le constat des réexports. */
+  #suivreReexports(coeur) {
+    this.desabonnerReexports?.();
+    this.desabonnerReexports = coeur.journal.abonner((l) => {
+      if (!this.sansReplanifier && l.component === "ancrage" && typeof l.event === "string" && !l.event.startsWith("dossier_")) this.#planifierReexports();
+    });
   }
 }
 

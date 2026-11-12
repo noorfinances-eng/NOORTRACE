@@ -1,7 +1,10 @@
 // Validation JSON Schema (draft 2020-12) des documents du service : politique
 // d'approbation (`politique-approbation-v0`, CT-3 EX-4.2), messages et
 // documents de ticket (`ticket-v0`), annuaire des approbateurs
-// (`annuaire-approbateurs-v0`, lu pour le contrôle du canal de la console).
+// (`annuaire-approbateurs-v0`, EX-13.38), configuration du service
+// (`configuration-approbation-v0`, EX-10.12, notifications d'EX-13.40) et
+// corps du canal de la console (`console-service-v0`,
+// `console-approbation-v0`, EX-12.13).
 // Les schémas sont des copies de spec/schemas, comparées par les tests.
 //
 // Le validateur du noyau est limité aux mots-clés des schémas de CT-1 et
@@ -19,7 +22,7 @@ import { egaliteJson } from "@noortrace/noyau";
 
 const MOTS_CLES = new Set([
   "$schema", "$id", "$ref", "$defs", "title", "description", "type", "const", "enum", "required", "properties",
-  "additionalProperties", "propertyNames", "maxProperties", "items", "minItems", "maxItems", "uniqueItems",
+  "additionalProperties", "propertyNames", "maxProperties", "prefixItems", "items", "minItems", "maxItems", "uniqueItems",
   "minLength", "maxLength", "pattern", "minimum", "maximum", "allOf", "anyOf", "oneOf", "not", "if", "then", "else",
 ]);
 
@@ -61,7 +64,7 @@ export class RegistreSchemas {
     for (const [cle, v] of Object.entries(s)) {
       if (!MOTS_CLES.has(cle)) throw new Error(`${ici} : mot-clé non pris en charge : ${cle}`);
       if (cle === "properties" || cle === "$defs") for (const [n, x] of Object.entries(v)) this.#controler(x, `${ici}/${cle}/${n}`);
-      else if (cle === "allOf" || cle === "anyOf" || cle === "oneOf") v.forEach((x, k) => this.#controler(x, `${ici}/${cle}/${k}`));
+      else if (cle === "allOf" || cle === "anyOf" || cle === "oneOf" || cle === "prefixItems") v.forEach((x, k) => this.#controler(x, `${ici}/${cle}/${k}`));
       else if (["additionalProperties", "items", "not", "if", "then", "else", "propertyNames"].includes(cle)) this.#controler(v, `${ici}/${cle}`);
       else if (cle === "pattern" && !this.motifs.has(v)) this.motifs.set(v, new RegExp(v, "u"));
     }
@@ -95,16 +98,42 @@ export class RegistreSchemas {
    * @param {unknown} instance
    * @returns {{valide: boolean, erreurs: {pointeur: string, regle: string}[]}}
    */
-  valider(ref, instance) {
+  valider(ref, instance, options = {}) {
     const { schema, base } = this.resoudre(ref, "");
     const erreurs = [];
-    this.#valeur(schema, instance, "", base, erreurs);
+    this.#detailler = options.detailler === true;
+    try {
+      this.#valeur(schema, instance, "", base, erreurs);
+    } finally {
+      this.#detailler = false;
+    }
     return { valide: erreurs.length === 0, erreurs };
   }
+
+  /**
+   * Option `detailler` de `valider` (rapport de configuration, EX-10.12) :
+   * un membre requis manquant est rapporté à son propre pointeur, et un
+   * `oneOf` ou un `anyOf` dont une seule branche admet le type de la valeur
+   * rapporte les erreurs de cette branche plutôt que son propre pointeur.
+   */
+  #detailler = false;
 
   /** @returns {boolean} */
   estValide(ref, instance) {
     return this.valider(ref, instance).valide;
+  }
+
+  /** Rapporte les erreurs de la seule branche qui admet le type de `v`, s'il y en a une seule. */
+  #brancheUnique(branches, v, pointeur, base, erreurs) {
+    const candidates = [];
+    for (const x of branches) {
+      const e = [];
+      this.#valeur(x, v, pointeur, base, e);
+      if (!e.some((y) => y.pointeur === pointeur && y.regle.startsWith("type"))) candidates.push(e);
+    }
+    if (candidates.length !== 1 || candidates[0].length === 0) return false;
+    erreurs.push(...candidates[0]);
+    return true;
   }
 
   #essai(s, v, base) {
@@ -154,12 +183,23 @@ export class RegistreSchemas {
         for (let i = 0; i < v.length && !double; i++) for (let j = i + 1; j < v.length && !double; j++) double = egaliteJson(v[i], v[j]);
         if (double) err("uniqueItems");
       }
-      if (s.items !== undefined) v.forEach((x, k) => this.#valeur(s.items, x, `${pointeur}/${k}`, base, erreurs));
+      // 2020-12 : prefixItems s'applique rang par rang, items aux éléments qui suivent
+      const prefixe = s.prefixItems ?? [];
+      prefixe.forEach((x, k) => {
+        if (k < v.length) this.#valeur(x, v[k], `${pointeur}/${k}`, base, erreurs);
+      });
+      if (s.items !== undefined) v.forEach((x, k) => {
+        if (k >= prefixe.length) this.#valeur(s.items, x, `${pointeur}/${k}`, base, erreurs);
+      });
     }
     if (estObjet(v)) {
       const cles = Object.keys(v);
       if (s.maxProperties !== undefined && cles.length > s.maxProperties) err("maxProperties");
-      for (const r of s.required ?? []) if (!Object.prototype.hasOwnProperty.call(v, r)) err(`required ${r}`);
+      for (const r of s.required ?? []) {
+        if (Object.prototype.hasOwnProperty.call(v, r)) continue;
+        if (this.#detailler) erreurs.push({ pointeur: `${pointeur}/${echapper(r)}`, regle: "required" });
+        else err(`required ${r}`);
+      }
       for (const c of cles) {
         const ici = `${pointeur}/${echapper(c)}`;
         if (s.propertyNames !== undefined && !this.#essai(s.propertyNames, c, base)) erreurs.push({ pointeur: ici, regle: "propertyNames" });
@@ -169,10 +209,12 @@ export class RegistreSchemas {
       }
     }
     for (const x of s.allOf ?? []) this.#valeur(x, v, pointeur, base, erreurs);
-    if (s.anyOf !== undefined && !s.anyOf.some((x) => this.#essai(x, v, base))) err("anyOf");
+    if (s.anyOf !== undefined && !s.anyOf.some((x) => this.#essai(x, v, base))) {
+      if (!this.#detailler || !this.#brancheUnique(s.anyOf, v, pointeur, base, erreurs)) err("anyOf");
+    }
     if (s.oneOf !== undefined) {
       const n = s.oneOf.filter((x) => this.#essai(x, v, base)).length;
-      if (n !== 1) err(`oneOf (${n})`);
+      if (n !== 1 && !(n === 0 && this.#detailler && this.#brancheUnique(s.oneOf, v, pointeur, base, erreurs))) err(`oneOf (${n})`);
     }
     if (s.not !== undefined && this.#essai(s.not, v, base)) err("not");
     if (s.if !== undefined) {
@@ -191,6 +233,9 @@ export const FICHIERS_SCHEMAS = Object.freeze([
   "politique-approbation-v0.schema.json",
   "ticket-v0.schema.json",
   "annuaire-approbateurs-v0.schema.json",
+  "configuration-approbation-v0.schema.json",
+  "console-service-v0.schema.json",
+  "console-approbation-v0.schema.json",
 ]);
 
 /** Répertoire des schémas embarqués. */
@@ -202,6 +247,9 @@ export const IDS = Object.freeze({
   ticket: "https://noortrace.example/schemas/v0/ticket.schema.json",
   evenement: "https://noortrace.example/schemas/v0/evenement.schema.json",
   annuaire: "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json",
+  configuration: "https://noortrace.example/schemas/v0/configuration-approbation.schema.json",
+  consoleService: "https://noortrace.example/schemas/v0/console-service.schema.json",
+  consoleApprobation: "https://noortrace.example/schemas/v0/console-approbation.schema.json",
 });
 
 let registre = null;

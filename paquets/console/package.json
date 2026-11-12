@@ -1,7 +1,7 @@
 {
   "name": "@noortrace/console",
   "version": "0.1.0",
-  "description": "Console d'approbation d'exploitation NOORTRACE (CT-3 §13, révision 0.5) : bibliothèque commune à la page et au service d'approbation, serveur de console sans cadriciel, pages statiques à intégrité. En construction (étape 6).",
+  "description": "Console d'approbation d'exploitation NOORTRACE (CT-3 §13, révision 0.6) : bibliothèque commune à la page et au service d'approbation, serveur de console sans cadriciel, pages statiques à intégrité. Livrée à l'étape 6.",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",

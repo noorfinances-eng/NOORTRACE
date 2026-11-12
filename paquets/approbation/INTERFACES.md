@@ -47,80 +47,73 @@ Comportements sur lesquels le démon peut compter :
 - l'`approver_set` d'une réponse `nouveau` est exploitable (EX-12.6) :
   jeu statique, ou jeu de repli avec ` repli`.
 
-## b) Canal de la console (CT-3 12.9), part de l'étape 4
+## b) Canal de la console (CT-3 12.9)
 
-Écoute distincte (`console` de la configuration), jeton distinct. Méthodes
-servies : `voter`, `recuser`, `retirer`, aux corps de 7.4 (`session_identity`
-obligatoire, forme canonique d'EX-13.7, sinon `identite_invalide`). Le
-contrôle de l'identité de session (`controleCanal`, EX-12.14, EX-12.16,
-EX-12.19) se fait sur l'annuaire lu (`console.annuaire`) avant de former
-l'entrée ; un refus ne laisse aucune trace dans le ticket. Réponse
-`{ ticket, state }` ; un vote refusé reçoit la raison d'EX-9.10. Les méthodes
-du noyau y sont refusées (`requete_invalide`, EX-12.13), et réciproquement.
+Écoute distincte (`console` de la configuration), jeton distinct (ou mTLS).
+Les quatorze méthodes d'EX-12.13 sont servies depuis l'étape 6 ; leur table,
+l'ordre de leurs refus et leurs statuts HTTP sont à la rubrique e.2. Les
+méthodes du noyau y sont refusées (`requete_invalide`, EX-12.13), et
+réciproquement ; `GET /v0/etat` y est servi, authentifié comme les autres
+méthodes (EX-12.12).
 
-Non servies à l'étape 4 (`requete_invalide`, message « non servie a l'etape
-4 ») : `tickets`, `consulter`, `annuaire`, `preparer_inscription`,
-`inscrire`, `valider`, `revoquer`, `desactiver`, `reactiver`,
-`lier_demandeur`, `delier_demandeur`.
-
-## c) Pour l'étape 6
+## c) Programmatique (console, essais)
 
 ```js
 import {
-  demarrerService, ServiceApprobation, Machine, Annuaire, controleCanal, identiteCanonique,
+  demarrerService, ServiceApprobation, Machine, EtatAnnuaire, annuaireDeDemarrage, Notificateur, signerNotification,
+  validerConfiguration, chargerConfiguration, completer, vueTicket, reponseTickets,
   condenseA, objetA, normaliserSignature, adresseDuVote, verifierRemise, evaluer, candidats,
-  validerPolitique, avertissementsPolitique, registreSchemas, IDS,
+  validerPolitique, avertissementsPolitique, registreSchemas, RegistreSchemas, lireJsonStrict, IDS,
+  // réexportés du module d'annuaire de la console, sans copie (e.1)
+  estIdentiteCanonique, controleCanal, annuaireDeSession, appliquerOperation, verifierAnnuaireExporte,
 } from "@noortrace/approbation";
 
+const { config, secrets, base } = chargerConfiguration(chemin);            // EX-10.12 ; ErreurConfiguration { erreurs }
 const inst = await demarrerService({ config, secrets, base, horloge, appelRpc, sortie });
 inst.service.machine.tickets          // Map id → document ticket-v0 (lecture seule)
 inst.service.machine.version(pv)      // version chargée : approval.rules (politique), tools (gabarits d'effets)
-inst.service.console(methode, corps)  // voter, recuser, retirer (contrôle du canal compris)
-inst.service.supervision.ecouteurs.add((notification) => …)   // canaux de notification
-inst.service.tic()                    // déclenche les minuteurs échus (horloge du service)
+inst.service.annuaire.document        // annuaire courant (annuaire-approbateurs-v0), lecture seule
+inst.service.console(methode, corps)  // les quatorze méthodes d'EX-12.13, contrôles compris
+inst.service.tic()                    // minuteurs échus, périodes du plafond, tentatives de notification (horloge du service)
 await inst.arreter()
 ```
 
-- **Vue du ticket** (`consulter`, EX-12.14) : `request` (outil, arguments,
-  délégation, version) et `request.retained_event`, `request.arguments_piece`
-  sont dans le document du ticket tant qu'il est actif ; `intent` n'est pas
-  un membre de `ticket-v0` : la vue le prend de `retained_event.intent` (une
-  chaîne, ou une référence, `intent_status`) ; `rule`, `opening`,
-  `approver_set`, `effective_required`, `eligible`, `votes`, `contest_end`,
-  `deadline` aussi ; les membres ajoutés sont dans les données des
-  transitions `jeu_lu` (`added_members`) ; `digests` : `condenseA({ decision,
-  ticket, request_hash, org_id, journal_id })` ; `effects` : les gabarits de
-  `version(pv).tools[].effects`, à évaluer selon CT-2 EX-7.6.
-- **Notifications** (`notifications.ndjson` et écouteurs) : `{ ts, kind,
-  ticket, tool?, deadline?, approvers?, notify?, requester?, decision?,
-  approver?, digest?, at?, link }` ; `kind` ∈ `ouverture`, `escalade`,
-  `membres_ajoutes`, `vote_inscrit`.
+- **Vue du ticket** (`consulter`) et **liste** (`tickets`) : `vues.mjs`
+  (`vueTicket`, `reponseTickets`) ; lectures 28 à 33 du `LISEZMOI.md`.
+- **Notifications** : documents `$defs/notification` de
+  `configuration-approbation-v0`, inscrits dans `notifications.ndjson` et
+  livrés au webhook par `Notificateur` (e.4) ; plus d'écouteur en mémoire.
 - **Persistance** (relecture C) : `MagasinEtat.ajouter` n'écrit pas les
   arguments en clair dans le journal (fichiers `etat/arguments/`, effacés au
   passage en état terminal, EX-7.24) ; après un échec d'écriture,
-  `magasin.enPanne` est vrai et seul `magasin.reprendre(machine.exporter())`
-  (état complet) rouvre les ajouts ; une entrée sans effet n'écrit rien.
-  `machine.entree({ kind: "jeu_lu", … }, { lecture: { debut, cible } })` :
-  instant du début de la lecture (EX-8.7) et jeu épinglé lu (EX-8.1) ; sans
-  `lecture`, comportement des traces de l'annexe A.6.
-- **Annuaire** : `Annuaire` est en lecture ; les opérations (13.6), leur
-  persistance (EX-12.17) et la recopie des administrateurs (EX-13.37) sont à
-  ajouter ; `controleCanal` sert déjà les cinq méthodes contrôlées.
+  `magasin.enPanne` est vrai et seul `magasin.reprendre(service.etatComplet())`
+  (état complet, annuaire et défis compris) rouvre les ajouts ; une entrée
+  sans effet n'écrit rien. `machine.entree({ kind: "jeu_lu", … }, { lecture:
+  { debut, cible } })` : instant du début de la lecture (EX-8.7) et jeu
+  épinglé lu (EX-8.1) ; sans `lecture`, comportement des traces de l'annexe
+  A.6.
+- **Essais seulement** : `demarrerService({ …, essais: { tirerNonce,
+  tailleBoite, minuterie, envoyer, compacterApres } })` impose le nonce de
+  `preparer_inscription`, la taille de rotation de la boîte, coupe les
+  minuteries réelles sous une horloge injectée (`tic()` les remplace),
+  remplace l'envoi des notifications, règle le compactage ; aucune
+  configuration ne porte ces réglages.
 
 ## d) Configuration et ligne de commande
 
 Voir `LISEZMOI.md` (configuration, fichiers sur disque, lectures).
 `noortrace-approbation --config <fichier>` écrit
-`{"pret":true,"pid","noyau","console"}` sur la sortie standard quand il
-écoute ; SIGTERM l'arrête proprement.
+`{"pret":true,"pid","noyau","console","etat"}` sur la sortie standard quand il
+écoute ; SIGTERM l'arrête proprement. `noortrace-approbation
+valider-configuration <fichier>` et `noortrace-approbation sonde --url <url>`
+sont décrites en e.5.
 
 ## e) Étape 6 : canal de la console complet, annuaire persisté, notifications, configuration (CT-3 révision 0.5)
 
-État : **à faire (étape 6)**, sauf mention contraire. Cette rubrique fixe ce
-que le service sert à la console d'exploitation (`@noortrace/console`,
-`paquets/console/INTERFACES.md`) ; elle remplace, une fois livrée, la liste
-des méthodes non servies de la rubrique b) et, dans la rubrique c), la forme
-des notifications et la lecture de l'annuaire. Règles : CT-3 7.10 (EX-7.30),
+État : **fait (étape 6)**. Cette rubrique fixe ce que le service sert à la
+console d'exploitation (`@noortrace/console`, `paquets/console/INTERFACES.md`) ;
+elle remplace la liste des méthodes non servies de l'étape 4 et, dans la
+rubrique c), la forme des notifications et la lecture de l'annuaire. Règles : CT-3 7.10 (EX-7.30),
 10.3 (EX-10.10 à EX-10.13), 12.7 (EX-12.12), 12.9 (EX-12.13 à EX-12.21),
 13.3 à 13.8 (EX-13.7 à EX-13.19, EX-13.37, EX-13.38), 13.19 (EX-13.39 à
 EX-13.42).
@@ -147,16 +140,16 @@ la forme du corps) ; méthodes du noyau refusées (`requete_invalide`) :
 
 | Méthode | Requête (`$defs`) | Réponse | Ordre des refus | État |
 |---|---|---|---|---|
-| `tickets` | `requete_tickets` (`console-service-v0`) | `reponse_tickets`, avec `contest_ms` et `contest` sur chaque ticket ; avec `related_to`, `related` (au plus 20, `refuse` ou `expire`, même `launched_by` et même `tool_announced`, scellés depuis moins de l'`expire_after_ms` du ticket `related_to`, tri par `sealed.approval.at` décroissant puis par identifiant) | point 1 d'EX-12.14 ; avec `related_to`, l'ordre de `consulter` appliqué au ticket désigné (`controleCanal(…, "consulter", …)`), puis `ticket_non_ouvert` | à faire |
-| `consulter` | `requete_consulter` (`console-approbation-v0`) | `vue_ticket` (EX-12.14, EX-12.15 : `request`, `retained_event`, `arguments_piece`, `rule`, `opening`, `effects` évalués avec `unresolved`, `deadline`, `contest`, `approver_set`, `effective_required`, `added_members`, `eligible`, `votes`, `separation` avec `requester_directory_addresses`, `digests`) | EX-12.14, points 1 à 3, puis `ticket_non_ouvert` | à faire |
-| `voter`, `recuser`, `retirer` | données des entrées de 7.4 | `reponse_voter`, `reponse_etat` | EX-12.16, EX-12.19, puis EX-9.10 et T10 | fait (étape 4) ; notification `vote_inscrit` à faire (e.4) |
-| `annuaire` | `requete_annuaire` | `annuaireDeSession` | forme, identité | à faire |
-| `preparer_inscription` | `requete_preparer_inscription` | `reponse_preparer_inscription` | EX-13.13 | à faire |
-| `inscrire` | `requete_inscrire` | `reponse_adresse` | EX-13.15, pas 1 à 13 | à faire |
-| `valider`, `revoquer` | `requete_valider`, `requete_revoquer` | `reponse_adresse` | EX-13.17 | à faire |
-| `desactiver`, `reactiver` | `requete_entree` | `reponse_entree` | EX-13.17 | à faire |
-| `lier_demandeur`, `delier_demandeur` | `requete_demandeur` | `reponse_entree` | EX-13.17 | à faire |
-| `GET /v0/etat` | — | `{ ready, set_read_at, open_tickets }` | authentifié comme le canal (EX-12.12) ; aussi sur l'écoute `etat`, sans authentification | à faire sur le canal de la console |
+| `tickets` | `requete_tickets` (`console-service-v0`) | `reponse_tickets`, avec `contest_ms` et `contest` sur chaque ticket ; avec `related_to`, `related` (au plus 20, `refuse` ou `expire`, même `launched_by` et même `tool_announced`, scellés depuis moins de l'`expire_after_ms` du ticket `related_to`, tri par `sealed.approval.at` décroissant puis par identifiant) | point 1 d'EX-12.14 ; avec `related_to`, l'ordre de `consulter` appliqué au ticket désigné (`controleCanal(…, "consulter", …)`), puis `ticket_non_ouvert` | fait |
+| `consulter` | `requete_consulter` (`console-approbation-v0`) | `vue_ticket` (EX-12.14, EX-12.15 : `request` — dont `intent`, l'intention de la requête `evaluer` gardée avec les arguments, jamais tirée de l'événement (révision 0.6) —, `retained_event`, `arguments_piece`, `rule`, `opening`, `effects` évalués avec `unresolved`, `deadline`, `contest`, `approver_set`, `effective_required`, `added_members`, `eligible` (avant le gel : membres du jeu de repli privés des adresses du demandeur sous `interdite`), `votes`, `separation` avec `requester_directory_addresses`, `digests`) | EX-12.14, points 1 à 3, puis `ticket_non_ouvert`, puis `ticket_clos_aux_votes` pour un ticket sans arguments | fait |
+| `voter`, `recuser`, `retirer` | données des entrées de 7.4 | `reponse_voter`, `reponse_etat` | EX-12.16, EX-12.19, puis EX-9.10 et T10 | fait (notification `vote_inscrit`, e.4) |
+| `annuaire` | `requete_annuaire` | `annuaireDeSession` | forme, identité | fait |
+| `preparer_inscription` | `requete_preparer_inscription` | `reponse_preparer_inscription` | EX-13.13 | fait |
+| `inscrire` | `requete_inscrire` | `reponse_adresse` | EX-13.15, pas 1 à 13 | fait |
+| `valider`, `revoquer` | `requete_valider`, `requete_revoquer` | `reponse_adresse` | EX-13.17 | fait |
+| `desactiver`, `reactiver` | `requete_entree` | `reponse_entree` | EX-13.17 | fait |
+| `lier_demandeur`, `delier_demandeur` | `requete_demandeur` | `reponse_entree` | EX-13.17 | fait |
+| `GET /v0/etat` | — | `{ ready, set_read_at, open_tickets }` | authentifié comme le canal (EX-12.12) ; aussi sur l'écoute `etat`, sans authentification | fait |
 
 Statut HTTP d'une erreur (étend la lecture 20 de `LISEZMOI.md`) : 400
 `requete_invalide`, `identite_invalide`, `message_invalide` ; 403
@@ -212,8 +205,10 @@ ticket (EX-12.18).
 - Livraison (EX-13.41, EX-13.42) : `POST notifications.url`,
   `Content-Type: application/json`, `NOORTRACE-Signature:
   sha256=<HMAC-SHA256(K, "noortrace/notification/v0\n" ‖ corps)>`, sans
-  redirection, certificat vérifié par `notifications.ca` ou le magasin du
-  système, délai `notifications.timeout_ms` ; reprises à 10 s, 60 s, 300 s et
+  redirection, certificat vérifié par `notifications.ca` ou le magasin
+  d'autorités du système (`autoritesWebhook(ca)`, `tls.getCACertificates("system")`),
+  délai `notifications.timeout_ms` appliqué jusqu'à la fin du corps de la
+  réponse, prise toujours détruite ; reprises à 10 s, 60 s, 300 s et
   1 800 s ; abandon sur tout statut hors 2xx, 408, 429 et 5xx ; file de
   10 000 au plus, éviction `file_pleine` qui épargne `vote_inscrit` et
   `operation_annuaire` ; jamais sur le chemin d'une réponse ni d'une
@@ -243,16 +238,29 @@ ticket (EX-12.18).
   pointeur puis par code, `json`, `schema`, codes de retour 0, 1, 2 ; c'est
   la commande que TA-51 éprouve (`rpc` nul ou `developpement` refusé en
   production, `client` et `partenaire` acceptés).
-- Au démarrage, un document refusé arrête le service avant toute écoute
-  (code 1, mêmes erreurs sur la sortie d'erreur) ; `--config <fichier>`
-  reste la seule option du service.
-- La sonde `noortrace-approbation sonde --url <url>` des fichiers Compose
-  n'est pas fixée par CT-3 (15.2, « ouvert ») : elle n'est pas écrite tant
-  que le texte ne la fixe pas.
+- Au démarrage (EX-10.14, révision 0.6), un refus arrête le service avant
+  toute écoute : code 1 et une ligne `$defs/rapport_validation` sur la
+  sortie d'erreur (erreurs de la validation, ou `reference_illisible`,
+  `jetons_egaux`, `ecoute_impossible` au pointeur de l'écoute), sans valeur
+  de secret ; une cause qu'aucun code ne nomme est écrite en texte.
+  `demarrerService` lève `ErreurConfiguration` pour `jetons_egaux` et
+  `ecoute_impossible` ; `resoudreSecrets` pour `reference_illisible`.
+  Règle de validation `origine_port_par_defaut` et boucle locale écrite
+  exactement (EX-10.12). `--config <fichier>` reste la seule option du
+  service.
+- La sonde `noortrace-approbation sonde --url <url>` suit EX-12.22
+  (révision 0.6, proposition PD-17 adoptée) : `GET <url>` en HTTP, sans
+  redirection suivie, 2 500 ms au plus en tout, le corps reçu sur une ligne
+  de la sortie standard, la raison d'un échec sur la sortie d'erreur ; code
+  0 sur une réponse 200 dont le corps est `$defs/reponse_etat_service` de
+  `console-service-v0` (forme fermée), quelle que soit la valeur de `ready`
+  (le conteneur `enregistreur`, qui envoie `charger`, attend que le service
+  soit sain), 1 dans tout autre cas, usage incorrect compris
+  (`argumentsSonde`), sans autre valeur.
 
 ### e.6 Essais
 
-Les quatre suites `test/approbation-service-*.test.js` restent vertes
+Fait. Les quatre suites `test/approbation-service-*.test.js` restent vertes
 (l'appel de `controleCanal` sur une instance d'`Annuaire` y devient l'appel
 sur le document) ; nouvelles suites `test/approbation-service-*.test.js` :
 méthodes du canal et ordre des refus (vecteurs `annuaire/` côté service,

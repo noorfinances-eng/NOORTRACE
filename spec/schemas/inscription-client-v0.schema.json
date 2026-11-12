@@ -234,7 +234,10 @@
             "properties": {
               "key_id": { "$ref": "#/$defs/key_id" },
               "chain_key": { "$ref": "#/$defs/adresse" },
-              "funding": { "$ref": "#/$defs/reference_transaction" },
+              "funding": {
+                "description": "Transaction d'approvisionnement de la clé de chaîne (étape approvisionnement), ou null quand l'étape est faite sans transaction, la clé ayant déjà un solde au moins égal à P_k (CT-4 EX-7.16 ; révision 0.7).",
+                "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/reference_transaction" } ]
+              },
               "registration": { "$ref": "#/$defs/reference_transaction" }
             }
           }

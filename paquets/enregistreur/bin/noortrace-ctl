@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 // noortrace-ctl : actions du lot WORM (CT-2 §12.11, EX-12.36, EX-17.6, voir
 // src/worm/ctl.mjs), et commandes adressées au démon en marche, `reload`
-// (EX-15.5), `clock --accept` (EX-7.13) et `cle rotation-urgence` (CT-8
-// EX-10.14) (voir src/ctl-demon.mjs).
+// (EX-15.5), `clock --accept` (EX-7.13), `cle rotation-urgence` (CT-8
+// EX-10.14), `ancrage etat|metriques|retirer-qualification` (CT-5 EX-5.9,
+// EX-8.15) et `dossier exporter` (CT-2 EX-15.9, EX-15.10) (voir
+// src/ctl-demon.mjs).
 import { principalCtl } from "../src/worm/ctl.mjs";
 import { principalCtlDemon } from "../src/ctl-demon.mjs";
 
 const argv = process.argv.slice(2);
-const principal = argv[0] === "reload" || argv[0] === "clock" || argv[0] === "cle" ? principalCtlDemon : principalCtl;
+const DEMON = ["reload", "clock", "cle", "ancrage", "dossier"];
+const principal = DEMON.includes(argv[0]) ? principalCtlDemon : principalCtl;
 
 principal(argv).then(
   (code) => {

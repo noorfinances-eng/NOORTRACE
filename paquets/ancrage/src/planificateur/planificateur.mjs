@@ -798,9 +798,11 @@ export class Planificateur {
       return compte;
     }
 
-    // 1. Ancre au registre (EX-4.6, EX-9.3, EX-9.5).
+    // 1. Ancre au registre (EX-4.6, EX-9.3, EX-9.5). Sans registre configuré
+    // (hors production, EX-8.4 règle 2), aucune ancre n'est écrite : elle ne
+    // pourrait jamais partir, et le jeton du point part aussitôt (règle 3).
     const regle = this.config.registry.checkpoints;
-    if (regle !== "aucun" && (regle === "tous" || data.tree_size > p.baseAncre)) {
+    if (!this.sansRegistre && regle !== "aucun" && (regle === "tous" || data.tree_size > p.baseAncre)) {
       const ancre = this.nouvelleDemande("ancre_registre_point", sujet);
       if (ancre) {
         compte.creees += 1;
@@ -818,7 +820,7 @@ export class Planificateur {
         this.dispatcherRegistre(ancre);
       }
     } else {
-      this.emettre("journaliser", null, { event: "checkpoint_not_anchored", reason: regle === "aucun" ? "registre_aucun" : "aucun_nouvel_evenement", tree_size: data.tree_size });
+      this.emettre("journaliser", null, { event: "checkpoint_not_anchored", reason: this.sansRegistre ? "registre_absent" : regle === "aucun" ? "registre_aucun" : "aucun_nouvel_evenement", tree_size: data.tree_size });
     }
 
     // 2. Échéances (EX-4.3, EX-8.4 règle 1).
@@ -923,7 +925,10 @@ export class Planificateur {
     p.periodHash = data.period_hash;
     const sujet = { kind: "periode", org_id: data.org_id, journal_id: data.journal_id, period_start: data.period_start, hash: data.period_hash, tree_size: null, declared_at: data.generated_at };
     const creees = [];
-    const ancre = this.demandes.has(`ancre_registre_periode:${data.period_hash}`) ? null : this.nouvelleDemande("ancre_registre_periode", sujet);
+    // Sans registre configuré (hors production), aucune ancre de période : le
+    // jeton de la période part aussitôt (EX-8.4, règle 2), et une ancre qui ne
+    // peut jamais partir serait reprise sans fin (registre_absent).
+    const ancre = this.sansRegistre || this.demandes.has(`ancre_registre_periode:${data.period_hash}`) ? null : this.nouvelleDemande("ancre_registre_periode", sujet);
     const jeton = this.demandes.has(`jeton_periode:${data.period_hash}`) ? null : this.nouvelleDemande("jeton_periode", sujet);
     const ots = !this.config.opentimestamps.enabled || this.demandes.has(`ots_periode:${data.period_hash}`) ? null : this.nouvelleDemande("ots_periode", sujet);
     if (ancre) {

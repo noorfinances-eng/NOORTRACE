@@ -580,6 +580,9 @@ describe("ancrage, planificateur : conduites hors traces (EX-8.3 à EX-8.11, EX-
     const envoi = actionsDe(r.actions, { action: "envoyer_rfc3161", request: "jeton_periode" })[0];
     expect(envoi.t).to.equal("2026-11-03T14:00:00.250Z");
     expect(r.file.find((d) => d.kind === "jeton_periode").state).to.equal("envoyee");
+    // Étape 6 : aucune ancre de période, qui ne pourrait jamais partir ; aucun envoi au registre.
+    expect(r.file.some((d) => d.kind === "ancre_registre_periode")).to.equal(false);
+    expect(actionsDe(r.actions, { action: "envoyer_registre" })).to.deep.equal([]);
   });
 
   it("EX-8.8 : un jeton_point du principal est relevé par le secours après checkpoints.fallback_after_s, les deux séries en parallèle, l'autre arrêtée à la promotion", function () {

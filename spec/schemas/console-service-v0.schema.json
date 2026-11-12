@@ -551,12 +551,45 @@
           "type": "boolean"
         },
         "identity_ready": {
-          "description": "OIDC : document de découverte et jeu de clés en cache, lus depuis moins de cache_s ; système local : fichier des comptes chargé.",
+          "description": "OIDC : document de découverte et jeu de clés en cache, lus depuis moins de cache_s, et qui permettent une connexion (révision 0.6 : faux pour un document qui annonce des méthodes PKCE sans S256 ou des méthodes d'authentification au point de jeton sans client_secret_basic, EX-13.44) ; système local : fichier des comptes chargé.",
           "type": "boolean"
         },
         "checked_at": {
           "description": "Instant de la réponse, horloge du serveur de console.",
           "$ref": "#/$defs/horodatage"
+        }
+      }
+    },
+    "reponse_etat_service": {
+      "description": "Réponse de GET <base>/v0/etat du service d'approbation (EX-12.12), sur l'écoute etat, le canal de la console ou celui du noyau ; la sonde du service la lit et rend 0 quelle que soit la valeur de ready (EX-12.22, révision 0.6) ; aucune donnée de ticket.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "set_read_at",
+        "open_tickets"
+      ],
+      "properties": {
+        "ready": {
+          "description": "Faux tant qu'EX-8.3 n'est pas rempli (jeu jamais lu).",
+          "type": "boolean"
+        },
+        "set_read_at": {
+          "description": "Instant de la dernière lecture réussie du jeu, ou null.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ]
+        },
+        "open_tickets": {
+          "description": "Nombre de tickets non décidés.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         }
       }
     },

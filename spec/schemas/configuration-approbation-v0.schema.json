@@ -1022,7 +1022,7 @@
       }
     },
     "rapport_validation": {
-      "description": "Sortie de noortrace-approbation valider-configuration (EX-10.12) : une ligne JSON ; errors triées par pointer puis par code, vide si et seulement si valide. Chaque erreur a les membres code et pointer, comme les erreurs de politique d'EX-4.2.",
+      "description": "Sortie de noortrace-approbation valider-configuration (EX-10.12) : une ligne JSON ; errors triées par pointer puis par code, vide si et seulement si valide. Chaque erreur a les membres code et pointer, comme les erreurs de politique d'EX-4.2. Révision 0.6 de CT-3 : origine_port_par_defaut (EX-10.12) ; reference_illisible, jetons_egaux entre deux valeurs et ecoute_impossible, que seul le démarrage décèle et que la commande de validation ne rend jamais (EX-10.14).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -1054,7 +1054,10 @@
                   "jeton_exige_production",
                   "jetons_egaux",
                   "escalade_non_croissante",
-                  "webhook_http"
+                  "webhook_http",
+                  "origine_port_par_defaut",
+                  "reference_illisible",
+                  "ecoute_impossible"
                 ]
               },
               "pointer": {

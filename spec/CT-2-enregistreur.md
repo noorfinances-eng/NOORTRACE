@@ -1,6 +1,8 @@
 # CT-2 — Enregistreur
 
-Version 0.8, 2026-11-11 (révision 0.8 : commande d'export du dossier
+Version 0.9, 2026-11-11 (révision 0.9 : questions de la construction de
+l'export à l'étape 6 tranchées dans le texte ; version 0.8 du même jour,
+révision 0.8 : commande d'export du dossier
 `noortrace-ctl dossier exporter` ; version 0.7 du 2026-11-10, version 0.6 du
 2026-10-27, version 0.5 du 2026-10-26, version 0.4 du même jour, version 0.3
 du 2026-10-23). Spécification normative,
@@ -27,6 +29,8 @@ ce que devient au redémarrage un événement en attente dont les pièces
 n'étaient gardées qu'en mémoire (14.5) ; la révision 0.8, du 2026-11-11, fixe
 la commande d'exploitation qui exporte le dossier d'un événement, son
 transport, le choix de l'événement, ses refus et sa sortie (15.7) ; la
+révision 0.9, du même jour, minimale, tranche ce que la construction de
+cette commande a trouvé ouvert (15.7, 4.4) ; la
 section 0.4 dit ce que chacune change.
 
 ## 0. En-tête, conventions, lecture
@@ -162,6 +166,60 @@ hors de la plage réservée et rend les issues d'approbation comme des
 résultats d'outil (4.4, « Codes d'erreur de l'enregistreur »).
 
 ### 0.4 Révisions
+
+**Révision 0.9** (2026-11-11, minimale). Questions de la construction de la
+commande d'export (étape 6), tranchées dans le texte de 15.7, et en 4.4 pour
+une continuation MRTR qui n'a pu être inscrite, sans changer la commande, le
+choix de l'événement, l'ordre des refus ni aucun schéma ; le transport gagne
+seulement un membre facultatif, `request_id`, dans les demandes
+`rotation-urgence` et `ancrage`, et une ligne de réponse reconnue :
+
+1. **Lignes d'une demande sans réponse.** Une demande que le démon ne peut
+   pas supprimer n'est jamais exécutée (elle le serait à chaque signal) et
+   donne `ctl_request_not_removed` ; une erreur imprévue pendant
+   l'exécution d'une demande donne, pour une demande `dossier`, le refus
+   `ecriture_impossible` de détail `erreur_interne`, de sorte que chaque
+   demande `dossier` a toujours sa ligne de réponse, et, pour une autre
+   demande, `ctl_request_failed` (EX-15.15, nouvelle ; EX-17.2).
+   `ctl_request_failed` porte le `request_id` de la demande quand il est
+   lisible ; les demandes `rotation-urgence` et `ancrage` peuvent en porter
+   un ; la commande qui reconnaît la ligne à son `request_id` s'arrête
+   aussitôt, avec le code 1, au lieu d'attendre la fin de son délai
+   (EX-15.10, pas 5 à 7 ; EX-9.5, table).
+2. **Lecture de la demande.** Fichier lu sans suivre de lien, sans attendre
+   sur un tube et 65 536 octets au plus ; troncature en points de code ;
+   instant du démarrage ; `at` postérieur à la lecture admis (EX-15.10,
+   pas 5).
+3. **Commande.** Une écriture du fichier de demande en échec pour une autre
+   cause que sa présence rend le code 4 ; la ligne de sortie standard n'est
+   écrite que si un démon a été trouvé ; `/` n'est pas une destination, ni
+   un chemin dont un composant commence par le nom réservé
+   `.noortrace-partiel-`, que le démon supprime à l'acquisition du bail
+   (EX-15.9, EX-15.10, pas 3 et 7).
+4. **Destination et écriture.** Un parent dont le chemin réel ne se résout
+   pas est `parent_absent` ; une destination qui ne peut être examinée est
+   `ecriture_impossible` à l'ordre 11 ; une synchronisation du parent en
+   échec après le renommage laisse le dossier en place sous son nom et le
+   dit ; en production, le groupe de chaque fichier écrit est vérifié ; les
+   restes d'un export interrompu sont cherchés à toute profondeur, sans
+   suivre de lien (EX-15.12, EX-15.13) ; `detail` sans code d'erreur du
+   système (EX-15.14).
+5. **Continuation MRTR non inscrite.** Quand la ligne `continuation` d'un
+   appel approuvé ne peut être inscrite, le noyau ne garde aucun
+   enregistrement de continuation, relaie le résultat et consigne
+   `mrtr_continuation_unrecorded` ; la ré-émission repasse par le pas 3
+   (EX-4.21, EX-17.2). La construction de l'étape 6 a aussi trouvé que le
+   frontal ne tenait pas la continuation d'un appel approuvé qu'EX-4.21
+   exige depuis la révision 0.3 : écart du code, corrigé, le texte ne change
+   pas sur ce point (section 22).
+
+- Règles ajoutées : EX-15.15.
+- Règles modifiées : EX-4.21 (continuation non inscrite), EX-9.5 (sens de
+  `request_id` dans la table), EX-15.9 (domaine de `--vers`), EX-15.10 (pas
+  3, 5, 6 et 7), EX-15.12 (ordre 4, ordre 11, message
+  d'`ecriture_impossible`), EX-15.13 (points 2 et 3), EX-15.14 (`detail`),
+  EX-17.2 (noms de lignes) ; section 22.
+- Règles retirées : aucune. Aucun schéma, aucun vecteur ne change.
 
 **Révision 0.8** (2026-11-11). Commande d'export du dossier. Jusqu'ici, la
 fonction existait dans le démon sans qu'aucune commande d'exploitation
@@ -1524,6 +1582,17 @@ l'enregistrement d'un tel appel se reconstruit depuis cette ligne,
 l'événement `executee` qu'elle désigne (`policy`, `approval`, `intent`,
 `code`, nom) et la ligne `mac` de la `retenue` du ticket, égale au MAC de
 l'appel puisqu'il a passé RL-2 ; celui d'un appel sans ticket est perdu.
+Révision 0.9 : si la ligne `continuation` ne peut être inscrite (fichiers
+des approbations en échec, qui font entrer le mode dégradé « stockage »
+comme pour une remise, EX-7.19), le noyau ne garde aucun enregistrement de continuation pour
+ce `requestState`, relaie le résultat, dont l'événement est déjà durable, et
+consigne `mrtr_continuation_unrecorded` : `level` `error` ; `component`
+`frontal_mcp` ; `seq` celui de l'événement `executee` ; `host` la connexion
+d'hôte ; `request_id` `null` ; `data` : `request_state_sha256` (le `sha256`
+du `requestState`) et `reason` (la raison de la matrice de 14.2 qui a fait
+échouer l'inscription, `null` si elle n'en a pas). La ré-émission repasse
+alors par le pas 3, où l'approbation déjà servie ne la couvre pas : l'échec
+est fermé.
 Une ré-émission **hérite** de
 l'appel d'origine sa `policy`, son `approval`, son `intent` et son `code` (CT-3
 n'est pas rappelé, aucun nouvel événement `retenue` n'est produit :
@@ -5917,7 +5986,7 @@ remplace rien de la chaîne.
 | `org_id`, `journal_id` | hex 32 ou `null` | journal concerné |
 | `seq` | entier ou `null` | événement de la chaîne concerné |
 | `host` | chaîne ou `null` | identité de la connexion d'hôte |
-| `request_id` | chaîne ou `null` | `id` JSON-RPC d'hôte, `request-id` du fournisseur, selon le contexte ; depuis la révision 0.8, dans les lignes qui répondent à `noortrace-ctl dossier exporter`, le `request_id` de sa demande (EX-15.10, EX-15.14) |
+| `request_id` | chaîne ou `null` | `id` JSON-RPC d'hôte, `request-id` du fournisseur, selon le contexte ; depuis la révision 0.8, dans les lignes qui répondent à `noortrace-ctl dossier exporter`, le `request_id` de sa demande (EX-15.10, EX-15.14) ; depuis la révision 0.9, dans `ctl_request_failed`, celui de la demande quand il est lisible (EX-15.15) |
 | `data` | objet | détails propres à `event` : alias, codes, tailles, `sha256`, durées, compteurs |
 
 Exemple :
@@ -10618,7 +10687,7 @@ Domaines :
 | `--seq <n>` | entier décimal de 1 à 2^53 − 1, sans signe ni zéro de tête |
 | `--dernier` | aucune valeur |
 | `--ticket <ticket_id>` | identifiant de ticket de CT-3 EX-7.1 : de 5 à 128 caractères, motif `^apr-[0-9a-z]+(-[0-9a-z]+)*$` (`ticket-v0.schema.json#/$defs/identifiant_ticket`) |
-| `--vers <répertoire>` | chemin non vide, sans octet nul ; un chemin relatif est résolu contre le répertoire de travail de la commande ; la commande envoie le chemin absolu normalisé (sans composant `.` ni `..`, sans barre oblique doublée ni finale), de 4 096 octets au plus, dont chaque composant fait de 1 à 255 octets et dont le dernier composant n'est ni `.` ni `..` |
+| `--vers <répertoire>` | chemin non vide, sans octet nul ; un chemin relatif est résolu contre le répertoire de travail de la commande ; la commande envoie le chemin absolu normalisé (sans composant `.` ni `..`, sans barre oblique doublée ni finale), de 4 096 octets au plus, dont chaque composant fait de 1 à 255 octets et dont le dernier composant n'est ni `.` ni `..` ; révision 0.9 : les longueurs portent sur le chemin rendu absolu et normalisé, « le dernier composant » sur le chemin tel qu'il est donné, et `/`, qui n'a aucun composant, n'est pas du domaine ; aucun composant ne commence par `.noortrace-partiel-`, nom réservé aux répertoires temporaires d'EX-15.13 (point 2), que le démon supprime à l'acquisition du bail : un dossier écrit sous ce nom serait effacé au démarrage suivant |
 | `--configuration <fichier>` | document de configuration du démon visé (EX-15.10, pas 1) |
 | `--delai-ms <n>` | entier décimal de 0 à 86 400 000, sans signe ni zéro de tête ; défaut 120 000 (un export lit toute une période ; les autres commandes adressées au démon attendent 10 000 ms par défaut) ; un seul délai pour toute la commande, compté depuis le début du pas 3 d'EX-15.10 |
 
@@ -10660,7 +10729,9 @@ n'ouvre aucune prise et le démon n'en écoute aucune de plus (EX-18.1) :
    depuis le début de ce pas pour toute la commande, puis s'arrête avec le
    code 4 (« fichier de demande occupé : <chemin> ; une autre commande est en
    cours, ou une demande n'a pas été lue (à supprimer si aucune commande
-   noortrace-ctl ne tourne) »).
+   noortrace-ctl ne tourne) »). Révision 0.9 : une écriture en échec pour une
+   autre cause (répertoire absent, droits, espace) rend aussi le code 4, avec
+   le code d'erreur du système et le chemin ; rien n'est signalé.
 4. **Signal.** Elle envoie `SIGURG` au démon. Si l'envoi échoue, elle
    supprime le fichier de demande s'il porte encore son `request_id`, et rend
    le code 4 : une demande que la commande abandonne ne reste pas en place.
@@ -10674,11 +10745,23 @@ n'ouvre aucune prise et le démon n'en écoute aucune de plus (EX-18.1) :
 
    | `demande` | Membres de la demande | Action | Lignes de réponse |
    |---|---|---|---|
-   | `rotation-urgence` | `demande`, `pid`, `at` | rotation d'urgence de la clé de l'enregistreur (EX-11.16), demandée par `noortrace-ctl cle rotation-urgence` | `key_rotation_emergency` ou `key_rotation_emergency_refused` |
-   | `ancrage` | `demande`, `commande` (`etat`, `metriques` ou `retirer-qualification`), `id` (l'identifiant du prestataire pour `retirer-qualification`, `null` sinon), `pid`, `at` | commande du composant d'ancrage branché : état, métriques (CT-5 EX-8.15), retrait de `qualified` d'un prestataire (CT-5 EX-5.9), demandée par `noortrace-ctl ancrage <commande> [<id>]` | `anchoring_state`, `anchoring_metrics`, `provider_qualification_withdrawn` ou `anchoring_ctl_refused` |
+   | `rotation-urgence` | `demande`, `pid`, `at` ; révision 0.9 : `request_id`, facultatif | rotation d'urgence de la clé de l'enregistreur (EX-11.16), demandée par `noortrace-ctl cle rotation-urgence` | `key_rotation_emergency` ou `key_rotation_emergency_refused` |
+   | `ancrage` | `demande`, `commande` (`etat`, `metriques` ou `retirer-qualification`), `id` (l'identifiant du prestataire pour `retirer-qualification`, `null` sinon), `pid`, `at` ; révision 0.9 : `request_id`, facultatif | commande du composant d'ancrage branché : état, métriques (CT-5 EX-8.15), retrait de `qualified` d'un prestataire (CT-5 EX-5.9), demandée par `noortrace-ctl ancrage <commande> [<id>]` | `anchoring_state`, `anchoring_metrics`, `provider_qualification_withdrawn` ou `anchoring_ctl_refused` |
    | `dossier` | ceux du pas 3 | export du dossier (EX-15.11 à EX-15.13) | `dossier_exported` ou `dossier_export_refused` (EX-15.14) |
 
-   `pid` et `at` ont partout le sens du pas 3. Le démon refuse, sans rien
+   `pid` et `at` ont partout le sens du pas 3. Révision 0.9 : `request_id`,
+   facultatif dans une demande `rotation-urgence` ou `ancrage`, a la forme du
+   pas 3 ; le démon ne le contrôle pas autrement et le reprend dans
+   `ctl_request_failed` (EX-15.15) ; les commandes du code livré l'écrivent.
+   Le démon ouvre
+   le fichier de demande sans suivre de lien symbolique et sans attendre sur
+   un tube, et en lit au plus 65 536 octets ; un fichier qui n'est pas un
+   fichier ordinaire, qui dépasse cette taille ou qui ne peut être lu est
+   tenu pour un fichier qui n'est pas un objet JSON (refus 1). Il le
+   supprime aussitôt lu, avant de l'examiner : la commande suivante peut
+   écrire sa demande pendant qu'un export s'exécute. Un fichier qu'il ne
+   peut pas supprimer n'est pas exécuté, puisqu'il le serait de nouveau à
+   chaque signal (EX-15.15). Le démon refuse, sans rien
    exécuter, dans cet ordre, et la première condition remplie donne le
    refus :
 
@@ -10686,7 +10769,9 @@ n'ouvre aucune prise et le démon n'en écoute aucune de plus (EX-18.1) :
       raison `demande_illisible` ;
    2. un objet dont `demande` n'est pas l'une de ces trois valeurs :
       `ctl_request_refused`, raison `demande_inconnue`, avec `demande` tronquée
-      à 64 caractères (`null` si ce n'est pas une chaîne) ;
+      à 64 caractères (`null` si ce n'est pas une chaîne) ; révision 0.9 :
+      les caractères se comptent en points de code, et la troncature ne
+      coupe jamais une paire de substitution ;
    3. une demande `dossier` hors de son domaine : `dossier_export_refused`,
       raison `demande_invalide`, dont `member` est le premier membre fautif,
       les membres étant examinés dans l'ordre du pas 3, puis les autres par
@@ -10709,7 +10794,12 @@ n'ouvre aucune prise et le démon n'en écoute aucune de plus (EX-18.1) :
       plus tard, à la faveur d'un signal envoyé par une autre commande. Le
       seuil de 600 s est un choix de CT-2 : il dépasse de loin le temps qui
       sépare l'écriture de la demande de sa lecture, qui suit aussitôt le
-      signal.
+      signal. Révision 0.9 : le démarrage du démon est l'instant de son
+      horloge murale où il construit son état, avant toute écoute et avant
+      d'installer le traitement de `SIGURG` ; un `at` postérieur à l'instant
+      de la lecture n'est pas périmé : la demande est supprimée à sa lecture
+      et ne peut donc s'exécuter plus tard, et la commande comme le démon
+      lisent la même horloge.
 
    Un `SIGURG` sans fichier de demande n'exécute rien et donne la ligne
    `key_rotation_emergency_ignored` (raison `sans_demande`), qu'écrit déjà le
@@ -10722,7 +10812,9 @@ n'ouvre aucune prise et le démon n'en écoute aucune de plus (EX-18.1) :
    `dossier_export_refused` (EX-15.14), dont la clé `request_id` (EX-9.5) est
    celle de la demande. La commande lit les lignes écrites après la taille
    notée au pas 2 et retient la première de ces deux lignes qui porte son
-   `request_id`. Sans elle dans le délai `--delai-ms`, compté depuis le début
+   `request_id` ; révision 0.9 : elle retient de même une ligne
+   `ctl_request_failed` de son `request_id` (EX-15.15), sans attendre la fin
+   du délai. Sans elle dans le délai `--delai-ms`, compté depuis le début
    du pas 3 (y compris quand le journal a tourné entre-temps, EX-17.4) :
    code 4 ; le démon peut encore écrire le
    dossier, et le message le dit (« pas de réponse dans le délai ; lire
@@ -10731,12 +10823,19 @@ n'ouvre aucune prise et le démon n'en écoute aucune de plus (EX-18.1) :
 7. **Sortie de la commande.** Sur la sortie standard, une ligne JSON `{ "pid",
    "configuration", "event", "data" }`, comme les autres commandes adressées
    au démon : `event` et `data` de la ligne de réponse, ou `null` sans
-   réponse. Pour un refus, la sortie d'erreur porte en plus le message de la
-   table d'EX-15.12, précédé de « noortrace-ctl dossier exporter : ». Codes :
-   0, `dossier_exported` ; 1, `dossier_export_refused` ; 2, usage, document
+   réponse. Révision 0.9 : cette ligne n'est écrite que lorsqu'un seul démon
+   a été désigné au pas 1, réponse reçue ou non (fichier de demande occupé ou
+   impossible à écrire, signal impossible, délai écoulé) ; sans démon, ou
+   avec plusieurs, la sortie standard reste vide. Pour un refus, la sortie d'erreur porte en plus le message de la
+   table d'EX-15.12, précédé de « noortrace-ctl dossier exporter : » ;
+   révision 0.9 : pour `ctl_request_failed`, « noortrace-ctl dossier
+   exporter : erreur imprévue du démon (<detail>) ; la demande n'a pas
+   abouti : lire ctl_request_failed au journal d'exploitation ». Codes :
+   0, `dossier_exported` ; 1, `dossier_export_refused` ou (révision 0.9)
+   `ctl_request_failed` ; 2, usage, document
    de configuration illisible ou démon ambigu, aucune demande envoyée ; 4,
-   aucun démon, fichier de demande occupé, signal impossible, pas de réponse
-   dans le délai.
+   aucun démon, fichier de demande occupé ou impossible à écrire (révision
+   0.9), signal impossible, pas de réponse dans le délai.
 
 **EX-15.11** **Événement exporté** (tenu par le démon). Les événements
 considérés sont les événements durables de la chaîne du journal, dans les
@@ -10813,14 +10912,14 @@ raison du refus :
 | 1 | `bail_non_detenu` | le démon ne détient pas le bail (instance passive, 13.4) : il n'a pas relu le journal (EX-12.10) |
 | 2 | `exports_indisponible` | le répertoire des exports n'existe pas ou n'est pas un répertoire ; ou son chemin réel est celui de `storage.root`, le contient ou y est contenu (`storage.root` n'a qu'un écrivain, celui qui détient le bail, section 13 ; la spécification du déploiement en fait un volume exclusif) ; ou, en `environment: "production"`, il n'appartient pas à l'utilisateur effectif du démon, ou son mode donne un droit aux autres comptes (`mode & 0007` non nul), donne l'écriture à son groupe (`mode & 0020` non nul) ou n'a pas le bit setgid (`mode & 02000` nul) |
 | 3 | `destination_hors_exports` | la destination n'est pas, lexicalement, un chemin `<répertoire des exports>/…` ; ou, son parent existant, le chemin réel de ce parent n'est ni le chemin réel du répertoire des exports ni un chemin sous lui (un lien symbolique qui sort du volume) ; un parent absent passe cet ordre et donne `parent_absent` à l'ordre 4 ; le même refus vaut quand le chemin réel du parent change pendant l'écriture (EX-15.13, point 2) |
-| 4 | `parent_absent` | le parent de la destination n'existe pas ou n'est pas un répertoire : le démon ne crée aucun répertoire intermédiaire |
+| 4 | `parent_absent` | le parent de la destination n'existe pas ou n'est pas un répertoire : le démon ne crée aucun répertoire intermédiaire ; révision 0.9 : de même quand le chemin réel du parent ne se résout pas (composant absent ou qui n'est pas un répertoire, boucle de liens, droits) |
 | 5 | `destination_existante` | la destination existe et n'est pas un répertoire : fichier, lien symbolique (examiné sans être suivi), tube, prise ou périphérique |
 | 6 | `destination_non_vide` | la destination est un répertoire qui contient au moins une entrée |
 | 7 | `evenement_inconnu`, `aucune_periode_close`, `ticket_inconnu`, `ticket_non_decide`, `ticket_sans_appel_execute` | EX-15.11, selon la désignation |
 | 8 | `periode_non_close` | EX-15.11 |
 | 9 | `approbations_introuvables` | EX-15.11, désignation par ticket |
 | 10 | `lecture_impossible` | un segment, un manifeste, une série de points ou un fichier des approbations ne peut être lu |
-| 11 | `ecriture_impossible` | une écriture, une synchronisation ou le renommage d'EX-15.13 échoue |
+| 11 | `ecriture_impossible` | une écriture, une synchronisation ou le renommage d'EX-15.13 échoue ; révision 0.9 : aussi une destination qui ne peut être examinée (erreur du système autre que « absente » aux ordres 5 et 6, les ordres 7 à 10 étant examinés avant elle), et toute erreur imprévue pendant l'export (détail `erreur_interne`, EX-15.15) |
 
 Une destination absente, ou un répertoire vide, est admise. Les refus
 `demande_invalide` et `demande_perimee` (EX-15.10, pas 5) précèdent tous les
@@ -10847,7 +10946,7 @@ commande écrit sur sa sortie d'erreur (EX-15.10, pas 7), construits depuis
 | `periode_non_close` | « la période <début> de l'événement <seq> n'est pas close » |
 | `approbations_introuvables` | « jeu d'approbateurs introuvable pour le ticket <ticket> : aucun dossier écrit » |
 | `lecture_impossible` | « lecture du journal impossible : <detail> » |
-| `ecriture_impossible` | « écriture impossible : <detail> ; la destination est inchangée » |
+| `ecriture_impossible` | « écriture impossible : <detail> ; la destination est inchangée » ; révision 0.9 : quand `detail` commence par `synchronisation_parent` (EX-15.13, point 2), « écriture impossible : <detail> ; le dossier est en place sous <destination>, mais sa durabilité n'est pas assurée : l'exporter de nouveau vers une autre destination » |
 
 **EX-15.13** **Écriture et contenu** (tenus par le démon).
 
@@ -10866,7 +10965,10 @@ commande écrit sur sa sortie d'erreur (EX-15.10, pas 7), construits depuis
    d'EX-15.12 a retenu et, en `environment: "production"`, que le groupe du
    répertoire temporaire est celui du répertoire des exports (sinon
    `ecriture_impossible`, détail `groupe` : un parent sans le bit setgid, ou
-   d'un autre groupe, donnerait au dossier un autre groupe de lecteurs), y
+   d'un autre groupe, donnerait au dossier un autre groupe de lecteurs ;
+   révision 0.9 : le groupe de chaque fichier écrit est vérifié de même, un
+   masque de création qui forcerait un changement de mode pouvant retirer le
+   bit setgid), y
    écrit les fichiers et synchronise (`fsync`) chacun, passe le répertoire en
    mode `0750` et le synchronise, vérifie de nouveau
    le chemin réel de son parent, le renomme en la destination (`rename(2)`,
@@ -10876,7 +10978,13 @@ commande écrit sur sa sortie d'erreur (EX-15.10, pas 7), construits depuis
    rend `ecriture_impossible` ; dans les deux cas, le démon supprime le
    répertoire temporaire, et la destination reste dans son état d'avant
    (absente, ou répertoire vide). Un vérificateur ne voit donc jamais un
-   dossier partiel sous le nom demandé. Une implémentation qui dispose des
+   dossier partiel sous le nom demandé. Révision 0.9 : une synchronisation du
+   parent en échec après le renommage rend `ecriture_impossible`, détail
+   `synchronisation_parent` suivi du code d'erreur du système ; le dossier,
+   complet et synchronisé fichier par fichier, reste sous son nom (le démon ne
+   modifie ni ne retire jamais un dossier écrit, point 4), mais son entrée de
+   répertoire peut ne pas survivre à un arrêt brutal : le message le dit
+   (EX-15.12), et aucune ligne `dossier_exported` n'est écrite. Une implémentation qui dispose des
    appels relatifs à un descripteur de répertoire (`openat`, `mkdirat`,
    `renameat`, avec `O_NOFOLLOW` sur chaque composant sous le répertoire des
    exports) PEUT ouvrir le parent une fois et tout faire relativement à lui,
@@ -10887,7 +10995,9 @@ commande écrit sur sa sortie d'erreur (EX-15.10, pas 7), construits depuis
    (51 octets), sous la borne d'un composant (EX-15.9). Quand il acquiert le
    bail (13), avant de lire aucune demande d'export, le démon supprime chaque
    répertoire `.noortrace-partiel-<32 chiffres hexadécimaux minuscules>` qu'il
-   trouve sous le répertoire des exports, sans suivre de lien symbolique,
+   trouve sous le répertoire des exports, à toute profondeur (une destination
+   peut être plus profonde que le répertoire des exports) et sans descendre
+   dans un reste qu'il supprime (révision 0.9), sans suivre de lien symbolique,
    reste d'un export interrompu par un arrêt brutal, et consigne
    `dossier_export_partial_removed` pour chacun (EX-15.14). Le résumé que le
    composant d'ancrage garde pour le réexport (CT-5 EX-10.5) nomme la
@@ -10964,7 +11074,13 @@ répertoire des exports tel que le démon l'a lu), `period_start` (pour
 `lecture_impossible` et `ecriture_impossible` : le code d'erreur du système
 et le nom du fichier en cause, 200 caractères au plus, ou `groupe` quand le
 groupe du dossier n'est pas celui du répertoire des exports, EX-15.13,
-point 2 ; pour `exports_indisponible` : `droits` quand le refus vient du
+point 2 ; révision 0.9 : sans code d'erreur du système, l'un des mots
+`contenu_illisible` (contenu qui n'est pas du JSON), `cle_indisponible`
+(suivi de `cle <key_id>`, clé publique introuvable) ou `erreur_interne`
+(EX-15.15) tient sa place, suivi du fichier ou de l'objet en cause ; une
+synchronisation du parent en échec après le renommage donne
+`synchronisation_parent`, le code d'erreur du système et le chemin du
+parent (EX-15.13, point 2) ; pour `exports_indisponible` : `droits` quand le refus vient du
 propriétaire ou du mode du répertoire des exports, en production, sinon
 `null` ; sinon `null`) ; pour
 une demande hors de son domaine, chaque membre de `data` qui reprend un membre
@@ -11025,6 +11141,39 @@ la ligne `dossier_export_refused` de raison `ticket_sans_appel_execute` et
 `decision` `refuse`, et le message « noortrace-ctl dossier exporter : le
 ticket <ticket> est décidé (refuse) sans appel exécuté ; le dossier de la
 décision s'exporte par --seq ».
+
+**EX-15.15** **Demande non supprimée, erreur imprévue (révision 0.9).**
+Tenu par le démon :
+
+- Un fichier de demande que le démon ne peut pas supprimer après l'avoir lu,
+  au démarrage comme à un signal, n'est pas exécuté, quelle que soit son
+  action : il le serait de nouveau à chaque signal. Le démon écrit
+  `ctl_request_not_removed` : `level` `error` ; `component` `noyau` ; `seq`
+  et `request_id` `null` ; `data` : `path` (le chemin du fichier de demande)
+  et `code` (le code d'erreur du système). La commande qui l'a écrit ne
+  reçoit pas de réponse et rend le code 4 (EX-15.10, pas 6) ; les commandes
+  suivantes trouvent le fichier occupé, et le message du pas 3 dit à
+  l'exploitant de le supprimer.
+- Une erreur imprévue qui interrompt l'exécution d'une demande `dossier`
+  après sa lecture donne sa ligne de réponse, `dossier_export_refused`,
+  raison `ecriture_impossible`, `detail` `erreur_interne` suivi d'un texte
+  d'au plus 200 caractères qui ne porte aucune pièce (EX-15.14), après
+  suppression du répertoire temporaire s'il existe : chaque demande
+  `dossier` a exactement une ligne de réponse (EX-15.10, pas 6).
+- Une erreur imprévue qui interrompt l'exécution d'une demande
+  `rotation-urgence` ou `ancrage` hors des refus que son action prévoit, ou
+  le traitement d'une demande avant que son action soit connue, donne
+  `ctl_request_failed` : `level` `error` ; `component` `noyau` ; `seq`
+  `null` ; `request_id` celui de la demande quand il est lisible (le fichier
+  se lit comme un objet JSON dont le membre `request_id` est fait de 32
+  chiffres hexadécimaux minuscules), `null` sinon ; `data` : `demande` (comme
+  pour `ctl_request_refused`, tronquée à 64 caractères, ou `null`) et
+  `detail` (texte d'au plus 200 caractères, sans pièce ni secret, EX-17.3).
+  La commande qui a écrit la demande reconnaît cette ligne à son
+  `request_id` et s'arrête aussitôt, au lieu d'attendre la fin de son délai :
+  `noortrace-ctl dossier exporter` rend le code 1 (EX-15.10, pas 6 et 7), et
+  les commandes `cle rotation-urgence` et `ancrage` du code livré, qui
+  écrivent un `request_id` dans leur demande, de même.
 
 ## 16. Objectifs de performance et de capacité, méthode de mesure
 
@@ -11464,7 +11613,15 @@ quel que soit le niveau du journal (EX-15.14) ; `dossier_reexport_due`
 (composant `ancrage`), pour un dossier exporté qu'une ancre arrivée rend à
 réexporter (EX-15.13, point 4) ; et `dossier_export_partial_removed`
 (composant `noyau`), pour le reste d'un export interrompu (EX-15.13,
-point 2).
+point 2). Révision 0.9 : `ctl_request_not_removed` (composant `noyau` ;
+`path`, `code`), pour une demande que le démon ne peut pas supprimer et
+n'exécute donc pas, et `ctl_request_failed` (composant `noyau` ; `demande`,
+`detail` ; `request_id` de la demande quand il est lisible), pour une erreur
+imprévue pendant une demande autre que `dossier` ou avant que l'action d'une
+demande soit connue (EX-15.15) ; `mrtr_continuation_unrecorded` (composant
+`frontal_mcp` ; `seq` de l'événement `executee`, `host` ;
+`request_state_sha256`, `reason`), pour une ligne `continuation` qui n'a pu
+être inscrite (EX-4.21).
 
 **EX-17.3** Ne vont **jamais** dans le journal d'exploitation : une pièce ou
 un fragment de pièce (arguments, résultats, messages, prompt), une valeur
@@ -13123,17 +13280,20 @@ Révision 0.8 :
 
 | Emplacement | Avant la révision 0.8 | Attendu par la révision 0.8 | État |
 |---|---|---|---|
-| `paquets/enregistreur/src/ctl-demon.mjs`, `paquets/enregistreur/bin/noortrace-ctl` | commandes adressées au démon : `reload`, `clock --accept`, `ancrage etat \| metriques \| retirer-qualification`, `cle rotation-urgence`, `cle rapprocher` ; fichier de demande écrit en remplacement (sans création exclusive) ; réponse reconnue à son seul nom d'événement ; `bin/noortrace-ctl` ne passe à `principalCtlDemon` que `reload`, `clock` et `cle` | `dossier exporter` (EX-15.9, EX-15.10) : domaines des options, demande `dossier` par création exclusive, `request_id`, réponse reconnue à son `request_id`, délai par défaut de 120 000 ms et délai unique pour toute la commande, suppression de sa demande quand le signal échoue, messages d'EX-15.12, codes 0, 1, 2 et 4 ; routage de `dossier` et d'`ancrage` (que le code envoie aujourd'hui à l'outil WORM) dans `bin/noortrace-ctl` | à faire (code de l'enregistreur) |
-| `paquets/enregistreur/src/cli.mjs` (traitement de `SIGURG`) | l. 298-302 : toute demande dont `demande` ne vaut pas `ancrage` déclenche la rotation d'urgence (`coeur.rotationUrgence()`), quelle que soit sa valeur ; un fichier de demande illisible donne `key_rotation_emergency_ignored`, comme un fichier absent ; aucune demande n'est jamais tenue pour périmée ; un fichier resté en place au démarrage est exécuté au premier signal | les trois valeurs connues, `rotation-urgence`, `ancrage` et `dossier`, et l'action que nomme `demande`, elle seule ; `dossier` mène à l'export ; refus dans l'ordre d'EX-15.10, pas 5 : `demande_illisible`, `demande_inconnue` (aucune action, `ctl_request_refused`), `demande_invalide`, `demande_perimee` (600 s, ou antérieure au démarrage) ; fichier de demande supprimé sans exécution au démarrage ; ce changement précède toute livraison de la commande, sans quoi une demande d'export ferait tourner la clé | à faire (code de l'enregistreur) |
-| `paquets/enregistreur/src/journal-exploitation.mjs` (`consigner`) | une ligne de niveau inférieur à `supervision.ops_log.level` n'est pas écrite dans le fichier | `dossier_exported`, `dossier_export_refused` et `ctl_request_refused` écrites quel que soit le niveau (EX-15.14) | à faire (code de l'enregistreur) |
+| `paquets/enregistreur/src/ctl-demon.mjs`, `paquets/enregistreur/bin/noortrace-ctl` | commandes adressées au démon : `reload`, `clock --accept`, `ancrage etat \| metriques \| retirer-qualification`, `cle rotation-urgence`, `cle rapprocher` ; fichier de demande écrit en remplacement (sans création exclusive) ; réponse reconnue à son seul nom d'événement ; `bin/noortrace-ctl` ne passe à `principalCtlDemon` que `reload`, `clock` et `cle` | `dossier exporter` (EX-15.9, EX-15.10) : domaines des options, demande `dossier` par création exclusive, `request_id`, réponse reconnue à son `request_id`, délai par défaut de 120 000 ms et délai unique pour toute la commande, suppression de sa demande quand le signal échoue, messages d'EX-15.12, codes 0, 1, 2 et 4 ; routage de `dossier` et d'`ancrage` (que le code envoie aujourd'hui à l'outil WORM) dans `bin/noortrace-ctl` | fait (étape 6 ; `request_id` de `ctl_request_failed`, révision 0.9) |
+| `paquets/enregistreur/src/cli.mjs` (traitement de `SIGURG`) | l. 298-302 : toute demande dont `demande` ne vaut pas `ancrage` déclenche la rotation d'urgence (`coeur.rotationUrgence()`), quelle que soit sa valeur ; un fichier de demande illisible donne `key_rotation_emergency_ignored`, comme un fichier absent ; aucune demande n'est jamais tenue pour périmée ; un fichier resté en place au démarrage est exécuté au premier signal | les trois valeurs connues, `rotation-urgence`, `ancrage` et `dossier`, et l'action que nomme `demande`, elle seule ; `dossier` mène à l'export ; refus dans l'ordre d'EX-15.10, pas 5 : `demande_illisible`, `demande_inconnue` (aucune action, `ctl_request_refused`), `demande_invalide`, `demande_perimee` (600 s, ou antérieure au démarrage) ; fichier de demande supprimé sans exécution au démarrage ; ce changement précède toute livraison de la commande, sans quoi une demande d'export ferait tourner la clé | fait (étape 6 ; essai « défaut corrigé » de `test/enregistreur-demandes-demon.test.js`) |
+| `paquets/enregistreur/src/journal-exploitation.mjs` (`consigner`) | une ligne de niveau inférieur à `supervision.ops_log.level` n'est pas écrite dans le fichier | `dossier_exported`, `dossier_export_refused` et `ctl_request_refused` écrites quel que soit le niveau (EX-15.14) | fait (étape 6) |
 | `paquets/enregistreur/src/configuration.mjs` (validation) | membre `exports_dir` inconnu, refusé comme toute clé inconnue | `exports_dir` facultatif admis, contrôlé au pas 3 d'EX-15.4 (ni `storage.root`, ni un répertoire qui le contient ou qu'il contient) et employé comme répertoire des exports (EX-15.12) | fait pour la validation (copie embarquée du schéma, pas 3, essai de `test/enregistreur-coeur-config.test.js`) ; emploi comme répertoire des exports : à faire (code de l'enregistreur) |
 | `spec/schemas/configuration-enregistreur-v0.schema.json` | aucun membre pour le répertoire des exports | membre facultatif `exports_dir`, chemin absolu normalisé (révision compatible) | fait (même révision) |
 | Exemple de 15.3 et ce qui reprend son ensemble de politique (`policy_sha256` `0xd68bb713…4e75c` de 6 533 octets avant la révision 0.8) : vérificateur `spec/vecteurs/ct-2/verificateur-independant/` (copie de l'exemple, valeurs de 10.6), tests `test/enregistreur.test.js`, `test/enregistreur-coeur-config.test.js` et `test/observation.test.js`, spécification du déploiement (7.3, 12.1, journal d'exemple et paquet réviseur du mode observation, leurs vecteurs `spec/vecteurs/ct-8` et les extraits des vecteurs du plan de tests) | `policy.approval.service.token` nul sur la prise | jeton du noyau désigné (`{ "file": "/run/secrets/jeton-noyau-vers-service-enregistreur" }`), qu'exige un service conforme à CT-3 révision 0.5 en production (EX-18.8 ; proposition PD-18 de la spécification du déploiement) ; nouvelle empreinte (`0xc5dac497…9b030c`, 6 590 octets) recalculée et reportée partout à la fois | fait (même livraison que le texte, les vecteurs et les tests) |
-| `paquets/enregistreur/src/coeur.mjs` (`exporterDossier`), `src/dossier.mjs`, `src/ancrage-demon.mjs`, exportateur du composant d'ancrage | destination créée par `mkdir` récursif en mode `0700` et écrite en place ; aucun refus d'une destination existante ; ligne `dossier_exported` écrite par le seul branchement d'ancrage, avec six membres de `data` et sans `seq` ni `request_id` de ligne | refus et ordre d'EX-15.12, choix de l'événement d'EX-15.11, répertoire temporaire `.noortrace-partiel-<request_id>` créé en `0700`, chemin réel du parent revérifié, `fsync` et renommage, modes `0750` et `0640`, en production propriétaire et mode du répertoire des exports (ordre 2) et groupe du dossier (point 2) vérifiés, aucun répertoire intermédiaire, restes supprimés à l'acquisition du bail (EX-15.13) ; une ligne `dossier_exported` ou `dossier_export_refused` par demande, avec les membres d'EX-15.14 ; résumé de réexport à la destination ; ligne `dossier_reexport_due` à chaque ancre arrivée qui rend un dossier à réexporter (`reexportsDus`, que le code calcule sans l'exposer) | à faire (code de l'enregistreur et du composant d'ancrage) |
-| Spécification du déploiement, pas IR-8 et sa proposition PD-2 | « la commande d'export est proposée à CT-2 (PD-2) » ; PD-2 « proposition » | IR-8 inchangé (`--dernier --vers /var/lib/noortrace-exports/premier` est admis par EX-15.9 et EX-15.12, le volume des exports étant le répertoire des exports par défaut) ; PD-2 adoptée pour `dossier exporter`, avec `--ticket`, proposition pour `sonde`, `etat`, `worm restaurer` et `cle rotation-urgence` ; le répertoire des exports est le membre `exports_dir` de la configuration (son défaut, `/var/lib/noortrace-exports`, quand les configurations de référence ne le posent pas), et non une variable d'environnement ; démon lancé par `--config`, la seule option qu'il accepte et que `noortrace-ctl` cherche (EX-15.10, pas 1) | à faire (éditeur de la spécification du déploiement) |
+| `paquets/enregistreur/src/coeur.mjs` (`exporterDossier`), `src/dossier.mjs`, `src/ancrage-demon.mjs`, exportateur du composant d'ancrage | destination créée par `mkdir` récursif en mode `0700` et écrite en place ; aucun refus d'une destination existante ; ligne `dossier_exported` écrite par le seul branchement d'ancrage, avec six membres de `data` et sans `seq` ni `request_id` de ligne | refus et ordre d'EX-15.12, choix de l'événement d'EX-15.11, répertoire temporaire `.noortrace-partiel-<request_id>` créé en `0700`, chemin réel du parent revérifié, `fsync` et renommage, modes `0750` et `0640`, en production propriétaire et mode du répertoire des exports (ordre 2) et groupe du dossier (point 2) vérifiés, aucun répertoire intermédiaire, restes supprimés à l'acquisition du bail (EX-15.13) ; une ligne `dossier_exported` ou `dossier_export_refused` par demande, avec les membres d'EX-15.14 ; résumé de réexport à la destination ; ligne `dossier_reexport_due` à chaque ancre arrivée qui rend un dossier à réexporter (`reexportsDus`, que le code calcule sans l'exposer) | fait (étape 6) |
+| Spécification du déploiement, pas IR-8 et sa proposition PD-2 | « la commande d'export est proposée à CT-2 (PD-2) » ; PD-2 « proposition » | IR-8 inchangé (`--dernier --vers /var/lib/noortrace-exports/premier` est admis par EX-15.9 et EX-15.12, le volume des exports étant le répertoire des exports par défaut) ; PD-2 adoptée pour `dossier exporter`, avec `--ticket`, proposition pour `sonde`, `etat`, `worm restaurer` et `cle rotation-urgence` ; le répertoire des exports est le membre `exports_dir` de la configuration (son défaut, `/var/lib/noortrace-exports`, quand les configurations de référence ne le posent pas), et non une variable d'environnement ; démon lancé par `--config`, la seule option qu'il accepte et que `noortrace-ctl` cherche (EX-15.10, pas 1) | fait (spécification du déploiement, révision 0.4) |
 | `spec/CT-6-verificateur.md`, §1 | « Hors périmètre : […] l'export du dossier » | l'export reste une fonction de l'enregistreur, fixée par CT-2 15.7 | fait (CT-6 révision 0.6) |
 | `spec/README.md`, ligne CT-2 | « version 0.7 » | « version 0.8 » (commande d'export) | fait |
-| Plan de tests | — | cas d'EX-15.9 à EX-15.14 : chaque refus et son message, désignation par ticket (premier `executee`, continuation écartée, ticket refusé, expiré, non décidé, inconnu), période non close, destination existante, non vide, hors du volume et par lien symbolique, lien posé pendant l'écriture, export interrompu sans dossier partiel et reste supprimé à l'acquisition du bail, modes, en production répertoire des exports d'un autre propriétaire, ouvert aux autres comptes, inscriptible par son groupe ou sans bit setgid (`exports_indisponible`, détail `droits`) et parent d'un autre groupe ou sans bit setgid (`ecriture_impossible`, détail `groupe`), ligne de réponse et `request_id` avec un journal de niveau `error`, demande inconnue, illisible, hors de son domaine ou périmée sans effet, demandes `rotation-urgence` et `ancrage` exécutées, ligne `dossier_reexport_due`, `exports_dir` refusé à la validation | à faire |
+| Plan de tests | — | cas d'EX-15.9 à EX-15.14 : chaque refus et son message, désignation par ticket (premier `executee`, continuation écartée, ticket refusé, expiré, non décidé, inconnu), période non close, destination existante, non vide, hors du volume et par lien symbolique, lien posé pendant l'écriture, export interrompu sans dossier partiel et reste supprimé à l'acquisition du bail, modes, en production répertoire des exports d'un autre propriétaire, ouvert aux autres comptes, inscriptible par son groupe ou sans bit setgid (`exports_indisponible`, détail `droits`) et parent d'un autre groupe ou sans bit setgid (`ecriture_impossible`, détail `groupe`), ligne de réponse et `request_id` avec un journal de niveau `error`, demande inconnue, illisible, hors de son domaine ou périmée sans effet, demandes `rotation-urgence` et `ancrage` exécutées, ligne `dossier_reexport_due`, `exports_dir` refusé à la validation | fait (révision 0.8 du plan de tests : TE-18 et TA-99 exécutables) |
+| `paquets/enregistreur/src/cli.mjs`, `src/demandes-demon.mjs`, `src/export-dossier.mjs`, `src/ctl-demon.mjs` (révision 0.9) | lecture de la demande sans lien, 64 Kio, troncature en points de code ; `ctl_request_not_removed` ; `ctl_request_failed` pour toute erreur imprévue, demande `dossier` comprise, de `data` `{ erreur }` ; synchronisation du parent en échec après le renommage rendue avec le message « la destination est inchangée » | EX-15.10, pas 5, et EX-15.15 tels qu'écrits ; erreur imprévue d'un export rendue `dossier_export_refused`, `ecriture_impossible`, `erreur_interne` ; `ctl_request_failed` de `data` `{ demande, detail }` pour les seules demandes `rotation-urgence` et `ancrage`, ou avant que l'action soit connue, portant le `request_id` lisible de la demande, que les commandes reconnaissent pour rendre aussitôt le code 1 ; `request_id` écrit dans les demandes `rotation-urgence` et `ancrage` ; aucun composant `.noortrace-partiel-…` dans une destination (EX-15.9) ; détail `synchronisation_parent` et son message (EX-15.12, EX-15.13) | fait (assemblage de l'étape 6) |
+| `paquets/enregistreur/src/mcp/frontal.mjs` (continuation MRTR) | enregistrement de continuation pour un appel sans ticket seulement ; aucune ligne `continuation` ni `continuation_consommee` | EX-4.21 tel qu'écrit depuis la révision 0.3 : continuation d'un appel qui porte un ticket approuvé, ligne `continuation` avant le pas 14, `continuation_consommee` avant le pas 8, reconstruction à la reprise ; révision 0.9 : ligne `mrtr_continuation_unrecorded` quand la ligne `continuation` ne peut être inscrite, sans enregistrement gardé | fait (écart du code relevé et corrigé à l'étape 6) |
+| `spec/README.md`, ligne CT-2 | « version 0.8 » | « version 0.9 » | fait (étape 6) |
 
 ## Annexe B — Disposition des vecteurs `spec/vecteurs/ct-2`
 

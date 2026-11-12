@@ -6,25 +6,27 @@
 // (EX-12.12).
 //
 // Deux canaux, chacun sur son écoute : celui du noyau (méthodes 12.2 à 12.6)
-// et celui de la console (méthodes de 12.9 ; à l'étape 4, `voter`,
-// `recuser`, `retirer`). Une méthode de l'autre canal est refusée
-// (`requete_invalide`, EX-12.13). Authentification : jeton porteur distinct
-// par canal, comparé en temps constant ; ou mTLS (certificat client signé par
-// l'autorité de la configuration) ; sur une prise Unix, la prise est créée
-// avec le mode de la configuration (0660 par défaut) dans un répertoire non
-// inscriptible par les autres (lecture 2 du LISEZMOI : Node.js n'expose pas
-// l'identité du pair).
+// et celui de la console (les quatorze méthodes d'EX-12.13). Une méthode de
+// l'autre canal est refusée (`requete_invalide`, EX-12.13). Authentification
+// : jeton porteur distinct par canal, comparé en temps constant ; ou mTLS
+// (certificat client signé par l'autorité de la configuration) ; sur une
+// prise Unix, la prise est créée avec le mode de la configuration (0660 par
+// défaut) dans un répertoire non inscriptible par les autres (lecture 2 du
+// LISEZMOI : Node.js n'expose pas l'identité du pair). `GET /v0/etat` est
+// servi sur chaque canal, authentifié comme ses autres méthodes (EX-12.12).
+//
+// Écoute d'état (EX-10.12) : TCP, sans TLS ni authentification ; elle ne sert
+// que `GET /v0/etat` et rend 404 `requete_invalide` à toute autre requête.
 
 import http from "node:http";
 import https from "node:https";
-import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { timingSafeEqual } from "node:crypto";
 import { ErreurJson } from "@noortrace/noyau";
 import { lireJsonStrict, jcsIntegral } from "./json.mjs";
 import { ErreurService } from "./erreurs.mjs";
-import { METHODES_NOYAU, METHODES_CONSOLE, METHODES_CONSOLE_ETAPE_6 } from "./service.mjs";
+import { METHODES_NOYAU, METHODES_CONSOLE } from "./service.mjs";
 
 /** Compare deux jetons en temps constant. */
 export function jetonsEgaux(a, b) {
@@ -60,23 +62,23 @@ function repondreErreur(res, e) {
 export class Ecoute {
   /**
    * @param {{canal: "noyau"|"console", service: import("./service.mjs").ServiceApprobation,
-   *   config: {socket?: string|null, socket_mode?: string, tcp?: {host: string, port: number}|null,
-   *     tls?: {cert: string, key: string, client_ca?: string}|null},
-   *   jeton: string|null, bodyMax: number, base?: string}} p
+   *   config: {socket?: string|null, socket_mode?: string, tcp?: {host: string, port: number}|null},
+   *   tls?: {cert: string, key: string, ca: string|null}|null, jeton: string|null, bodyMax: number}} p
+   *   `tls` : certificats et clé résolus (PEM), autorité des clients (mTLS) ou null
    */
   constructor(p) {
     this.canal = p.canal;
     this.service = p.service;
     this.config = p.config;
+    this.tls = p.tls ?? null;
     this.jeton = p.jeton;
     this.bodyMax = p.bodyMax;
-    this.base = p.base ?? process.cwd();
     this.serveur = null;
     this.adresse = null;
   }
 
   #authentifie(req) {
-    if (this.config.tls?.client_ca && !req.socket.authorized) return false;
+    if (this.tls?.ca && !req.socket.authorized) return false;
     if (this.jeton === null) return true;
     const h = req.headers.authorization;
     if (typeof h !== "string" || !h.startsWith("Bearer ")) return false;
@@ -140,7 +142,6 @@ export class Ecoute {
       return s[methode](corps);
     }
     if (METHODES_CONSOLE.includes(methode)) return s.console(methode, corps);
-    if (METHODES_CONSOLE_ETAPE_6.includes(methode)) throw new ErreurService("requete_invalide", {}, "methode du canal de la console non servie a l'etape 4");
     throw new ErreurService("requete_invalide", {}, "methode hors du canal de la console");
   }
 
@@ -150,13 +151,12 @@ export class Ecoute {
     const gestion = (req, res) => {
       this.#traiter(req, res);
     };
-    if (c.tls) {
-      const lire = (f) => fs.readFileSync(path.resolve(this.base, f));
+    if (this.tls) {
       this.serveur = https.createServer(
         {
-          cert: lire(c.tls.cert),
-          key: lire(c.tls.key),
-          ...(c.tls.client_ca ? { ca: lire(c.tls.client_ca), requestCert: true, rejectUnauthorized: true } : {}),
+          cert: this.tls.cert,
+          key: this.tls.key,
+          ...(this.tls.ca ? { ca: this.tls.ca, requestCert: true, rejectUnauthorized: true } : {}),
           minVersion: "TLSv1.2",
         },
         gestion,
@@ -189,6 +189,46 @@ export class Ecoute {
       this.serveur.closeAllConnections?.();
     });
     if (this.config.socket) await fsp.rm(this.config.socket, { force: true });
+    this.serveur = null;
+  }
+}
+
+/**
+ * Écoute d'état (EX-10.12, EX-12.12) : TCP, sans TLS ni authentification ;
+ * `GET /v0/etat` seul, dont la réponse ne porte aucune donnée de ticket ;
+ * toute autre requête reçoit 404 et `requete_invalide`.
+ */
+export class EcouteEtat {
+  /**
+   * @param {{service: import("./service.mjs").ServiceApprobation, tcp: {host: string, port: number}}} p
+   */
+  constructor(p) {
+    this.service = p.service;
+    this.tcp = p.tcp;
+    this.serveur = null;
+    this.adresse = null;
+  }
+
+  async demarrer() {
+    this.serveur = http.createServer((req, res) => {
+      req.resume();
+      const chemin = String(req.url ?? "").split("?")[0];
+      if (req.method === "GET" && chemin === "/v0/etat") return repondre(res, 200, this.service.etat());
+      repondre(res, 404, new ErreurService("requete_invalide", {}, "ecoute d'etat : GET /v0/etat seulement").corps());
+    });
+    this.serveur.requestTimeout = 10000;
+    this.serveur.headersTimeout = 10000;
+    await new Promise((ok, ko) => this.serveur.once("error", ko).listen(this.tcp.port, this.tcp.host, ok));
+    this.adresse = { host: this.tcp.host, port: this.serveur.address().port };
+    return this.adresse;
+  }
+
+  async arreter() {
+    if (!this.serveur) return;
+    await new Promise((ok) => {
+      this.serveur.close(() => ok());
+      this.serveur.closeAllConnections?.();
+    });
     this.serveur = null;
   }
 }

@@ -48,12 +48,14 @@ class ErreurNoeud extends Error {}
 /** Lecteur du jeu d'un registre `CuratorSetRegistry`. */
 export class LecteurJeu {
   /**
-   * @param {{url: string, timeout_ms?: number, org_id: string, depuis_bloc?: number,
+   * @param {{url: string, jeton?: string|null, timeout_ms?: number, org_id: string, depuis_bloc?: number,
    *   adressesConnues?: () => Iterable<string>, appel?: (methode: string, params: unknown[]) => Promise<unknown>}} p
-   *   `appel` remplace le transport HTTP (tests)
+   *   `jeton` : `rpc.token` de la garde d'admission, envoyé en `Authorization: Bearer`
+   *   (EX-10.12) ; `appel` remplace le transport HTTP (tests)
    */
   constructor(p) {
     this.url = p.url;
+    this.jeton = p.jeton ?? null;
     this.delai = p.timeout_ms ?? 5000;
     this.org_id = p.org_id;
     this.depuis = p.depuis_bloc ?? 0;
@@ -74,7 +76,8 @@ export class LecteurJeu {
     try {
       rep = await fetch(this.url, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...(this.jeton ? { authorization: `Bearer ${this.jeton}` } : {}) },
+        redirect: "error",
         body: JSON.stringify({ jsonrpc: "2.0", id: ++this.compteur, method: methode, params }),
         signal: AbortSignal.timeout(this.delai),
       });

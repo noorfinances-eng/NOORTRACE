@@ -32,6 +32,12 @@
 // --demande, --org-id, comptes du manifeste) ; reassigner exige la demande
 // écrite du client (--demande, EX-8.10) ; condense cloture exige l'ancre
 // capturée dans --captures et écrit expires_at (EX-8.4, EX-8.19).
+//
+// paquet-client produire écrit le paquet client de 7.13 (EX-7.18 à
+// EX-7.20) depuis un dossier fini et ses captures, cherche avant la remise
+// la valeur de chaque secret désigné (EX-7.21) et se contrôle comme le
+// client (EX-7.22) ; paquet-client controler est le contrôle du client à la
+// réception (EX-7.22), et, avec des références de secrets, celui d'EX-7.21.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -49,7 +55,10 @@ const MNEMONIQUE_TEST = "test test test test test test test test test test test 
 const RPC_DEFAUT = "http://127.0.0.1:8645";
 /** Ports JSON-RPC des quatre validateurs du réseau de développement (chain/scripts/dev-net.sh:40). */
 const PORTS_DEV = { 8645: "v1", 8646: "v2", 8647: "v3", 8648: "v4" };
-const COMMANDES = ["etat", "cles-essai", "inscrire-client", "approvisionner", "condense", "signer", "inscrire-cle", "revoquer-cle", "manifeste-essai", "ancrer", "clore", "administrer-jeu", "reassigner", "capturer", "exporter", "verifier", "publier-jeu"];
+// « paquet-client » (7.13, révision 0.6) n'est pas encore dans l'énumération
+// command de operations-registre-v0#/$defs/sortie : CT-4 §13 demande de l'y
+// ajouter (ajout compatible), ce que fait l'assemblage de la spécification.
+const COMMANDES = ["etat", "cles-essai", "inscrire-client", "approvisionner", "condense", "signer", "inscrire-cle", "revoquer-cle", "manifeste-essai", "ancrer", "clore", "administrer-jeu", "reassigner", "capturer", "exporter", "verifier", "publier-jeu", "paquet-client"];
 
 /** Codes d'erreur qui rendent `inutilisable` (code 2) : rien n'est affirmé (EX-7.4). */
 const INUTILISABLE = new Set(["usage", "entree_illisible", "instance_illisible", "noeud_injoignable"]);
@@ -117,8 +126,10 @@ function sortie(commande, result, checks, error, outputs) {
 const DRAPEAUX = new Set(["preparer", "sans-capture", "renvoyer", "remplacer", "force", "changement-administrateur"]);
 /** Options répétables. */
 const REPETABLES = new Set(["cle-enregistreur"]);
+/** Options répétables de paquet-client (7.13) : clés de chaîne, graines et administrateurs de l'annuaire. */
+const REPETABLES_PAQUET = new Set(["cle-chaine", "graine", "administrateur-annuaire"]);
 
-function analyserOptions(argv) {
+function analyserOptions(argv, repetables = REPETABLES) {
   const positionnels = [];
   const options = {};
   for (let i = 0; i < argv.length; i++) {
@@ -136,7 +147,7 @@ function analyserOptions(argv) {
       valeur = argv[++i];
       if (valeur === undefined) throw new Arret("usage", null, `--${nom} attend une valeur`);
     }
-    if (REPETABLES.has(nom)) (options[nom] ??= []).push(valeur);
+    if (repetables.has(nom)) (options[nom] ??= []).push(valeur);
     else options[nom] = valeur;
   }
   return { positionnels, options };
@@ -213,7 +224,10 @@ let SCHEMAS = null;
 function schemas() {
   if (SCHEMAS) return SCHEMAS;
   const rep = path.join(RACINE, "spec", "schemas");
-  const docs = ["instance-registre-v0", "inscription-client-v0", "operations-registre-v0", "registre-v0", "validateurs-v0", "ancres-confiance-v0"].map((n) => JSON.parse(fs.readFileSync(path.join(rep, `${n}.schema.json`), "utf8")));
+  // Les six derniers servent le paquet client (7.13) : paquet-client-v0 se charge avec
+  // configuration-approbation-v0 et ses références, et politique-approbation-v0 porte
+  // la forme de jeu-approbateurs.json.
+  const docs = ["instance-registre-v0", "inscription-client-v0", "operations-registre-v0", "registre-v0", "validateurs-v0", "ancres-confiance-v0", "paquet-client-v0", "configuration-approbation-v0", "annuaire-approbateurs-v0", "evenement-v0", "ticket-v0", "politique-approbation-v0"].map((n) => JSON.parse(fs.readFileSync(path.join(rep, `${n}.schema.json`), "utf8")));
   SCHEMAS = C.registreSchemasCt4(docs);
   return SCHEMAS;
 }
@@ -357,6 +371,11 @@ function cleSecp(reference, instance, { nom = "clé" } = {}) {
 
 /** Graine Ed25519 graine:<chemin> (réseau de développement seulement). */
 function graineEd25519(reference, instance) {
+  return cleEd25519DepuisGraine(graineBrute(reference, instance));
+}
+
+/** Valeur 0x… de la graine désignée par graine:<chemin> (réseau de développement seulement). */
+function graineBrute(reference, instance) {
   if (typeof reference !== "string" || !reference.startsWith("graine:")) throw new Arret("usage", null, "--graine attend graine:<chemin>");
   if (!estDeveloppement(instance)) throw new Arret("reseau_non_developpement", null, "graine: n'est admis que sur le réseau de développement (EX-7.3)");
   const f = reference.slice("graine:".length);
@@ -366,7 +385,7 @@ function graineEd25519(reference, instance) {
   let g = fs.readFileSync(f, "utf8").trim();
   if (!g.startsWith("0x")) g = "0x" + g;
   if (!/^0x[0-9a-fA-F]{64}$/.test(g)) throw new Arret("entree_illisible", null, `${f} : graine de 32 octets attendue`);
-  return cleEd25519DepuisGraine(g.toLowerCase());
+  return g.toLowerCase();
 }
 
 const adresseCle = (k) => computeAddress(k.publicKey).toLowerCase();
@@ -1036,8 +1055,10 @@ function completerResultat(d, repertoireCaptures) {
   const ass = d.steps.find((s) => s.step === "assignation");
   const lec = d.steps.find((s) => s.step === "lecture_jeu");
   const set = curatorSetDuDossier(d, repertoireCaptures);
-  const recorders = d.recorders.map((r) => ({ key_id: r.key_id, chain_key: r.chain_key, funding: ref(etape(d, "approvisionnement", r.chain_key)), registration: ref(etape(d, "inscription", r.key_id)) }));
-  if (!set || !ref(jeu) || !ref(ass) || recorders.some((r) => !r.funding || !r.registration)) return;
+  // EX-7.29 (révision 0.7) : un approvisionnement fait sans transaction (solde déjà au moins P_k, EX-7.16) a `funding` nul.
+  const sansTransaction = (r) => etape(d, "approvisionnement", r.chain_key)?.state === "faite";
+  const recorders = d.recorders.map((r) => ({ key_id: r.key_id, chain_key: r.chain_key, funding: sansTransaction(r) ? null : ref(etape(d, "approvisionnement", r.chain_key)), registration: ref(etape(d, "inscription", r.key_id)) }));
+  if (!set || !ref(jeu) || !ref(ass) || recorders.some((r, k) => (!r.funding && !sansTransaction(d.recorders[k])) || !r.registration)) return;
   const fin = [...d.steps].map((s) => s.updated_at).filter(Boolean).sort().pop();
   d.result = {
     curator_set: set,
@@ -2443,12 +2464,102 @@ function roleDeTransaction(tx, recu) {
   throw new Arret("usage", null, `rôle de la transaction non déductible (sélecteur ${sel}) : donner --role`);
 }
 
+/**
+ * EX-7.29 (révision 0.7) : avec --dossier, une transaction qu'aucune étape ne
+ * porte et qui accomplit une étape `echec` avec les valeurs de cette étape
+ * (l'événement qu'OP-11 attend pour l'étape, émis par son contrat) est la
+ * transaction établie par l'exploitant ; rend `{ etape, contrat, relecture }`
+ * (OP-12 sur les valeurs de l'étape, à la hauteur du bloc) ou null. La
+ * commande ne devine rien d'autre : sans telle étape, le dossier ne change pas.
+ * L'approvisionnement n'a pas d'événement : sa reprise est celle
+ * d'`inscrire-client` (solde au moins P_k, étape `faite`).
+ */
+function etapeEchecAccomplie(o, client, m, role, recu, rep) {
+  if (!o.dossier) return null;
+  const d = lireDossier(path.resolve(o.dossier));
+  const c = adressesContrats(m);
+  const orgId = d.organisation.org_id;
+  for (const e of d.steps) {
+    if (e.state !== "echec" || ROLE_CAPTURE_ETAPE[e.step] !== role) continue;
+    if (role === "inscription") {
+      const rec = d.recorders.find((r) => r.key_id === e.subject);
+      if (!rec) continue;
+      const ev = journaux(recu, c.recorder_registry, "RecorderRegistry").filter((x) => x.name === "RecorderRegistered");
+      if (ev.length === 1 && ev[0].args[0] === orgId && ev[0].args[1].toLowerCase() === rec.chain_key && ev[0].args[2] === rec.journal_id && ev[0].args[3] === rec.public_key) {
+        return {
+          etape: e, contrat: c.recorder_registry,
+          relecture: async (bloc) => {
+            exigerOP12(await client.vue(c.recorder_registry, "RecorderRegistry", "isActiveRecorder", [orgId, rec.chain_key], bloc), "isActiveRecorder relu faux");
+            exigerOP12((await client.vue(c.recorder_registry, "RecorderRegistry", "recorderByPubKey", [orgId, rec.public_key], bloc)).chainKey.toLowerCase() === rec.chain_key, "recorderByPubKey relu différent");
+          },
+        };
+      }
+    } else if (role === "jeu_approbateurs") {
+      const cree = recu.contractAddress ? String(recu.contractAddress).toLowerCase() : null;
+      if (!cree) continue;
+      const ev = journaux(recu, cree, "CuratorSet");
+      const ajoutes = ev.filter((x) => x.name === "CuratorAdded").map((x) => x.args[0].toLowerCase()).sort();
+      if (ev.some((x) => x.name === "AdminAccepted" && BigInt(x.args[0]) === 0n && x.args[1].toLowerCase() === d.approvers.set_admin) && egalJSON(ajoutes, [...d.approvers.members].sort()) && ev.some((x) => x.name === "ThresholdUpdated" && Number(x.args[0]) === d.approvers.threshold)) {
+        return {
+          etape: e, contrat: cree,
+          relecture: async (bloc) => {
+            exigerOP12(Number(await client.vue(cree, "CuratorSet", "getThreshold", [], bloc)) === d.approvers.threshold, "getThreshold relu différent");
+            exigerOP12(Number(await client.vue(cree, "CuratorSet", "getCuratorCount", [], bloc)) === d.approvers.members.length, "getCuratorCount relu différent");
+            for (const a of d.approvers.members) exigerOP12(await client.vue(cree, "CuratorSet", "isCurator", [a], bloc), `isCurator(${a}) relu faux`);
+            exigerOP12(String(await client.vue(cree, "CuratorSet", "admin", [], bloc)).toLowerCase() === d.approvers.set_admin, "admin relu différent de la clé de gouvernance");
+          },
+        };
+      }
+    } else if (role === "assignation") {
+      const set = curatorSetDuDossier(d, rep);
+      const ev = journaux(recu, c.curator_set_registry, "CuratorSetRegistry").filter((x) => x.name === "CuratorSetAssigned");
+      if (set && ev.length === 1 && ev[0].args[0] === orgId && ev[0].args[1].toLowerCase() === set && ev[0].args[2].toLowerCase() === C.ADRESSE_NULLE) {
+        return {
+          etape: e, contrat: c.curator_set_registry,
+          relecture: async (bloc) => exigerOP12(String(await client.vue(c.curator_set_registry, "CuratorSetRegistry", "curatorSetOf", [orgId], bloc)).toLowerCase() === set, "curatorSetOf relu différent"),
+        };
+      }
+    } else if (role === "ancre") {
+      const ev = journaux(recu, c.attestation_registry, "AttestationRegistry").filter((x) => x.name === "Anchored");
+      const empreintes = d.journals.map((j) => C.empreinteAncre({ org_id: orgId, journal_id: j.journal_id, period_hash: e.subject }).fingerprint);
+      const cles = d.recorders.map((r) => r.chain_key);
+      if (ev.length === 1 && empreintes.includes(ev[0].args[0]) && cles.includes(ev[0].args[1].toLowerCase()) && ev[0].args[2] === C.DOC_TYPE_PERIODE) {
+        const empreinte = ev[0].args[0];
+        const emetteur = ev[0].args[1].toLowerCase();
+        return {
+          etape: e, contrat: c.attestation_registry,
+          relecture: async (bloc) => {
+            const l = await client.vue(c.attestation_registry, "AttestationRegistry", "lookup", [empreinte], bloc);
+            exigerOP12(l.issuer.toLowerCase() === emetteur && l.docType.toLowerCase() === C.DOC_TYPE_PERIODE, "lookup relu différent");
+          },
+        };
+      }
+    } else if (role === "cloture") {
+      const ev = journaux(recu, c.period_registry, "PeriodRegistry").filter((x) => x.name === "PeriodSubmitted");
+      if (ev.length === 1 && ev[0].args[1] === e.subject && ev[0].args[2] === orgId && d.journals.some((j) => j.journal_id === ev[0].args[3])) {
+        const journalId = ev[0].args[3];
+        const periodId = ev[0].args[0].toString();
+        return {
+          etape: e, contrat: c.period_registry,
+          relecture: async (bloc) => {
+            const p = await periodePrecedente(client, c.period_registry, orgId, journalId, bloc);
+            exigerOP12(p && p.period_hash === e.subject && p.id === periodId, "getPeriod(latestPeriodOf) relu différent");
+          },
+        };
+      }
+    }
+  }
+  return null;
+}
+
 /** Avec --dossier : l'étape dont transaction_hash est l'un de `hachages` passe à capturee (EX-7.16, 8.6). */
-function majDossierCapture(o, hachages, r, contrat) {
+function majDossierCapture(o, hachages, r, contrat, { accomplie = null } = {}) {
   if (!o.dossier) return null;
   const f = path.resolve(o.dossier);
   const d = lireDossier(f);
-  const e = d.steps.find((s) => s.transaction_hash && hachages.includes(s.transaction_hash));
+  // EX-7.29 : l'étape `echec` accomplie par cette transaction (même étape, relue dans le dossier à jour).
+  const e = d.steps.find((s) => s.transaction_hash && hachages.includes(s.transaction_hash))
+    ?? (accomplie ? d.steps.find((s) => s.step === accomplie.etape.step && s.subject === accomplie.etape.subject && s.state === "echec") ?? null : null);
   if (!e) return null;
   majEtape(e, { state: "capturee", transaction_hash: r.transaction_hash, block_number: r.block_number, block_hash: r.block_hash, capture: r.capture, contract: e.step === "jeu_approbateurs" ? e.contract ?? contrat ?? null : undefined });
   completerResultat(d, path.resolve(exigerOption(o, "captures")));
@@ -2519,6 +2630,9 @@ async function cmdCapturer(ctx) {
   const t = await client.appel("eth_getTransactionByHash", [hash]);
   if (!t) throw new Arret("recu_absent", null, `transaction ${hash} inconnue du point --rpc alors qu'un reçu existe`, { result: "incertain" });
   const contrat = contratOption ?? (role === "approvisionnement" ? null : t.to === null ? String(recu.contractAddress).toLowerCase() : String(t.to).toLowerCase());
+  // EX-7.29 : une transaction qu'aucune étape du dossier ne porte peut accomplir une étape `echec` avec ses valeurs.
+  const porteeParEtape = o.dossier ? lireDossier(path.resolve(o.dossier)).steps.some((x) => x.transaction_hash === hash) : true;
+  const accomplie = !porteeParEtape && recu.status === "0x1" ? etapeEchecAccomplie(o, client, m, role, recu, rep) : null;
   await ctx.op("OP-11", async () => {
     if (recu.status !== "0x1") throw new Arret("transaction_annulee", "OP-11", `status ${recu.status}`, { result: "echoue" });
     const ev = C.EVENEMENT_DU_ROLE[role];
@@ -2534,7 +2648,9 @@ async function cmdCapturer(ctx) {
   ecrireIssue(rep, hash, { block_number: h, status: recu.status });
   const cap = await capturerTransaction(ctx, { instance, client, repertoire: rep, role, transactionHash: hash, contrat, logIndex: C.EVENEMENT_DU_ROLE[role] ? 0 : null, sending: lireEnvoi(rep, hash), hauteur: h });
   const r = { transaction_hash: hash, block_number: cap.index.block_number, block_hash: cap.index.block_hash, capture: cap.nom };
-  const dossier = majDossierCapture(o, [hash], r, contrat);
+  // EX-7.29 : OP-12 sur les valeurs de l'étape accomplie, à la hauteur du bloc capturé, avant le passage à capturee.
+  if (accomplie) await ctx.op("OP-12", async () => accomplie.relecture(C.quantiteRPC(h)));
+  const dossier = majDossierCapture(o, [hash], r, accomplie?.contrat ?? contrat, { accomplie });
   return { result: "reussi", outputs: { capture: cap.nom, transaction_hash: hash, block_number: cap.index.block_number, block_hash: cap.index.block_hash, sha256: sha256(fs.readFileSync(path.join(rep, cap.nom))), retention: cap.marge, dossier } };
 }
 
@@ -2678,6 +2794,506 @@ async function cmdPublierJeu(ctx) {
   return { result: "reussi", outputs: { validator_set_hash: hachage, validators: validators.length, from_height: depuis, file: sortieF } };
 }
 
+// --- paquet-client (7.13) ---------------------------------------------------
+
+const ID_SCHEMA_PAQUET = "https://noortrace.example/schemas/v0/paquet-client.schema.json";
+const ID_SCHEMA_POLITIQUE = "https://noortrace.example/schemas/v0/politique-approbation.schema.json";
+const MANIFESTE_PAQUET = "paquet-client.json";
+/** Fichiers à nom fixe du paquet, dans l'ordre d'EX-7.19, et leur rôle ; les fichiers de captures/ suivent. */
+const FICHIERS_FIXES = [
+  ["inscription-client.json", "dossier"],
+  ["instance-registre.json", "manifeste_instance"],
+  ["jeu-approbateurs.json", "jeu_approbateurs"],
+  ["gabarit-service-approbation.json", "gabarit_service"],
+];
+/** Rôle de l'index de capture de chaque étape à transaction du dossier (7.1, 9.4). */
+const ROLE_CAPTURE_ETAPE = { jeu_approbateurs: "jeu_approbateurs", assignation: "assignation", approvisionnement: "approvisionnement", inscription: "inscription", premiere_ancre: "ancre", premiere_cloture: "cloture" };
+/** Forme de chaque rôle de document (table d'EX-7.18) : schéma et fragment. */
+const FORME_DU_ROLE = {
+  dossier: [C.ID_SCHEMA_INSCRIPTION, ""],
+  manifeste_instance: [C.ID_SCHEMA_INSTANCE, ""],
+  jeu_approbateurs: [ID_SCHEMA_POLITIQUE, "#/$defs/jeu_approbateurs"],
+  gabarit_service: [ID_SCHEMA_PAQUET, "#/$defs/gabarit_service"],
+  capture_index: [C.ID_SCHEMA_OPERATIONS, ""],
+};
+
+const nomPaquet = (slug) => `paquet-client-${slug}`;
+/** Écriture des trois documents que le paquet crée (EX-7.18) : JSON.stringify(objet, null, 2) suivi d'un saut de ligne. */
+const ecritureEX718 = (v) => JSON.stringify(v, null, 2) + "\n";
+const resumeErreurs = (e) => e.slice(0, 3).map((x) => `${x.chemin} : ${x.message}`).join(" ; ");
+
+/** Ordre d'EX-7.19 : les quatre noms fixes dans leur ordre, puis captures/ dans l'ordre croissant des octets du chemin. */
+function ordrePaquet(chemins) {
+  const rang = (p) => {
+    const i = FICHIERS_FIXES.findIndex(([n]) => n === p);
+    return i === -1 ? FICHIERS_FIXES.length : i;
+  };
+  return [...chemins].sort((a, b) => rang(a) - rang(b) || Buffer.compare(Buffer.from(a, "utf8"), Buffer.from(b, "utf8")));
+}
+
+/** Ce qui manque à un dossier pour être fini (7.10, EX-7.18), ou null. */
+function inachevementDossier(d) {
+  if (!d.steps.length) return "aucune étape";
+  const e = d.steps.find((s) => s.state !== "capturee" && s.state !== "faite");
+  if (e) return `étape ${e.step} (${e.subject}) à l'état ${e.state}`;
+  const c = d.steps.find((s) => s.state === "capturee" && s.capture === null);
+  if (c) return `étape ${c.step} (${c.subject}) capturee sans index de capture`;
+  if (!d.result) return "result nul";
+  return null;
+}
+
+/** Lit un fichier sans suivre de lien symbolique ; refuse ce qui n'est pas un fichier ordinaire. */
+function lireSansLien(f) {
+  const fd = fs.openSync(f, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
+  try {
+    if (!fs.fstatSync(fd).isFile()) throw new Error("pas un fichier ordinaire");
+    return fs.readFileSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/**
+ * Inventaire du répertoire d'un paquet, sans suivre aucun lien : chemins
+ * relatifs (séparateur « / ») des fichiers ordinaires, et chaque entrée qui
+ * n'en est pas un (lien symbolique, répertoire autre que captures/, fichier
+ * spécial).
+ */
+function inventairePaquet(rep) {
+  const fichiers = [];
+  const anomalies = [];
+  const parcourir = (relatif) => {
+    for (const nom of fs.readdirSync(path.join(rep, relatif)).sort()) {
+      const r = relatif ? `${relatif}/${nom}` : nom;
+      const st = fs.lstatSync(path.join(rep, r));
+      if (st.isSymbolicLink()) anomalies.push({ chemin: r, message: `${r} est un lien symbolique` });
+      else if (st.isDirectory()) {
+        if (r === "captures") parcourir(r);
+        else anomalies.push({ chemin: r, message: `${r} est un répertoire hors de captures/` });
+      } else if (st.isFile()) fichiers.push(r);
+      else anomalies.push({ chemin: r, message: `${r} n'est pas un fichier ordinaire` });
+    }
+  };
+  parcourir("");
+  return { fichiers, anomalies };
+}
+
+/** Refus du paquet à un point d'EX-7.22 (le paquet est refusé, rien n'est affirmé de son contenu). */
+function refusPaquet(point, code, message, fichier = null) {
+  return new Arret(code, null, `EX-7.22, point ${point} : ${message}`, { result: "refuse", outputs: { requirement: "EX-7.22", point, file: fichier } });
+}
+
+/** Réponse JSON-RPC complète, telle que CP-6 l'écrit : objet jsonrpc 2.0, id, result objet. */
+function estReponseBrute(octets) {
+  try {
+    const v = JSON.parse(octets.toString("utf8"));
+    return v !== null && typeof v === "object" && !Array.isArray(v) && v.jsonrpc === "2.0" && "id" in v && v.result !== null && typeof v.result === "object";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Contrôle du paquet à la réception (EX-7.22), points 1 à 6 dans cet ordre ;
+ * le premier écart est un refus du paquet. Rend le manifeste, le dossier, le
+ * manifeste d'instance (ou null), les octets du manifeste et le nombre de
+ * fichiers listés.
+ */
+function controlerPaquet(rep) {
+  // 1. paquet-client.json est conforme à son schéma.
+  const stm = fs.lstatSync(path.join(rep, MANIFESTE_PAQUET), { throwIfNoEntry: false });
+  if (!stm || !stm.isFile()) throw refusPaquet(1, "paquet_manifeste", `${MANIFESTE_PAQUET} absent ou n'est pas un fichier ordinaire`, MANIFESTE_PAQUET);
+  let octetsManifeste;
+  let m;
+  try {
+    octetsManifeste = lireSansLien(path.join(rep, MANIFESTE_PAQUET));
+    m = JSON.parse(octetsManifeste.toString("utf8"));
+  } catch (err) {
+    throw refusPaquet(1, "paquet_manifeste", `${MANIFESTE_PAQUET} illisible (${err.message})`, MANIFESTE_PAQUET);
+  }
+  const e1 = conforme(m, ID_SCHEMA_PAQUET);
+  if (e1.length) throw refusPaquet(1, "paquet_manifeste", `${MANIFESTE_PAQUET} non conforme à paquet-client-v0 : ${resumeErreurs(e1)}`, MANIFESTE_PAQUET);
+
+  // 2. Chaque fichier du répertoire figure une fois dans files ; chaque entrée désigne un fichier ordinaire de même SHA-256 et de même longueur ; ordre d'EX-7.19.
+  const { fichiers, anomalies } = inventairePaquet(rep);
+  if (anomalies.length) throw refusPaquet(2, "paquet_fichiers", anomalies[0].message, anomalies[0].chemin);
+  const listes = m.files.map((f) => f.path);
+  const doublon = listes.find((p, i) => listes.indexOf(p) !== i);
+  if (doublon) throw refusPaquet(2, "paquet_fichiers", `${doublon} figure plus d'une fois dans files`, doublon);
+  const presents = new Set(fichiers.filter((r) => r !== MANIFESTE_PAQUET));
+  for (const r of presents) if (!listes.includes(r)) throw refusPaquet(2, "paquet_fichiers", `${r} est dans le répertoire et pas dans files (fichier en plus)`, r);
+  for (const p of listes) if (!presents.has(p)) throw refusPaquet(2, "paquet_fichiers", `${p} est dans files et pas dans le répertoire (fichier en moins)`, p);
+  for (const role of ["dossier", "jeu_approbateurs", "gabarit_service"]) if (!m.files.some((f) => f.role === role)) throw refusPaquet(2, "paquet_fichiers", `files ne compte pas le fichier de rôle ${role}`, null);
+  const ordre = ordrePaquet(listes);
+  const ecart = ordre.findIndex((p, i) => p !== listes[i]);
+  if (ecart !== -1) throw refusPaquet(2, "paquet_fichiers", `files ne suit pas l'ordre d'EX-7.19 : rang ${ecart}, ${ordre[ecart]} attendu, ${listes[ecart]} trouvé`, listes[ecart]);
+  const octets = {};
+  for (const f of m.files) {
+    let b;
+    try {
+      b = lireSansLien(path.join(rep, f.path));
+    } catch (err) {
+      throw refusPaquet(2, "paquet_fichiers", `${f.path} illisible (${err.code ?? err.message})`, f.path);
+    }
+    if (b.length !== f.length) throw refusPaquet(2, "paquet_fichiers", `${f.path} : ${b.length} octets, ${f.length} dans files`, f.path);
+    const h = sha256(b);
+    if (h !== f.sha256) throw refusPaquet(2, "paquet_fichiers", `${f.path} : SHA-256 ${h}, ${f.sha256} dans files`, f.path);
+    octets[f.path] = b;
+  }
+
+  // 3. Chaque fichier est conforme à la forme de son rôle (table d'EX-7.18).
+  if (ecritureEX718(m) !== octetsManifeste.toString("utf8")) throw refusPaquet(3, "paquet_forme", `${MANIFESTE_PAQUET} n'est pas écrit par JSON.stringify(objet, null, 2) suivi d'un saut de ligne (EX-7.18)`, MANIFESTE_PAQUET);
+  const docs = {};
+  for (const f of m.files) {
+    if (!FORME_DU_ROLE[f.role]) {
+      if (!estReponseBrute(octets[f.path])) throw refusPaquet(3, "paquet_forme", `${f.path} n'est pas une réponse JSON-RPC complète (jsonrpc 2.0, id, result), comme CP-6 l'écrit`, f.path);
+      continue;
+    }
+    let v;
+    try {
+      v = JSON.parse(octets[f.path].toString("utf8"));
+    } catch (err) {
+      throw refusPaquet(3, "paquet_forme", `${f.path} : JSON illisible (${err.message})`, f.path);
+    }
+    const [id, fragment] = FORME_DU_ROLE[f.role];
+    const e = conforme(v, id, fragment);
+    if (e.length) throw refusPaquet(3, "paquet_forme", `${f.path} non conforme à la forme du rôle ${f.role} : ${resumeErreurs(e)}`, f.path);
+    if ((f.role === "jeu_approbateurs" || f.role === "gabarit_service") && ecritureEX718(v) !== octets[f.path].toString("utf8")) throw refusPaquet(3, "paquet_forme", `${f.path} n'est pas écrit par JSON.stringify(objet, null, 2) suivi d'un saut de ligne (EX-7.18)`, f.path);
+    if (f.role === "dossier") {
+      const r = inachevementDossier(v);
+      if (r) throw refusPaquet(3, "paquet_forme", `${f.path} n'est pas un dossier fini (${r}) : chaque étape capturee ou faite et result rempli (EX-7.18, 7.10)`, f.path);
+    }
+    if (f.role === "manifeste_instance") {
+      // contains n'est pas dans le sous-ensemble de validerSchema : les quatre contrats en service se vérifient ici (RG-16).
+      for (const nom of ["AttestationRegistry", "CuratorSetRegistry", "PeriodRegistry", "RecorderRegistry"]) if (!C.contratEnService(v, nom)) throw refusPaquet(3, "paquet_forme", `${f.path} : aucun ${nom} en service (RG-16)`, f.path);
+    }
+    docs[f.path] = v;
+  }
+  const d = docs["inscription-client.json"];
+
+  // 4. Organisation et instance.
+  if (m.org !== d.organisation.slug) throw refusPaquet(4, "paquet_organisation", `org ${m.org} n'est pas le slug du dossier (${d.organisation.slug})`, MANIFESTE_PAQUET);
+  const orgId = C.keccakTexte(m.org);
+  if (m.org_id !== orgId) throw refusPaquet(4, "paquet_organisation", `org_id ${m.org_id} différent de keccak256(UTF-8(org)) = ${orgId} (RG-1)`, MANIFESTE_PAQUET);
+  if (d.organisation.org_id !== m.org_id) throw refusPaquet(4, "paquet_organisation", `org_id ${m.org_id} différent de organisation.org_id du dossier (${d.organisation.org_id})`, MANIFESTE_PAQUET);
+  const instance = { evm_chain_id: d.instance.evm_chain_id, bft_chain_id: d.instance.bft_chain_id, manifest_sha256: d.instance.manifest_sha256 };
+  if (!egalJSON(m.instance, instance)) throw refusPaquet(4, "paquet_organisation", `instance ${JSON.stringify(m.instance)} différente de celle du dossier ${JSON.stringify(instance)}`, MANIFESTE_PAQUET);
+  const fi = m.files.find((f) => f.role === "manifeste_instance") ?? null;
+  if (instance.manifest_sha256 === null && fi) throw refusPaquet(4, "paquet_organisation", "instance-registre.json présent alors que manifest_sha256 est nul", fi.path);
+  if (instance.manifest_sha256 !== null && !fi) throw refusPaquet(4, "paquet_organisation", `instance-registre.json absent alors que manifest_sha256 vaut ${instance.manifest_sha256}`, null);
+  if (fi && fi.sha256 !== instance.manifest_sha256) throw refusPaquet(4, "paquet_organisation", `SHA-256 d'instance-registre.json ${fi.sha256} différent de manifest_sha256 ${instance.manifest_sha256}`, fi.path);
+  // EX-7.18 : le répertoire est nommé paquet-client-<slug> (choix le plus strict : vérifié à la réception).
+  if (path.basename(rep) !== nomPaquet(m.org)) throw refusPaquet(4, "paquet_organisation", `répertoire ${path.basename(rep)} : ${nomPaquet(m.org)} attendu (EX-7.18)`, null);
+
+  // 5. Jeu d'approbateurs et gabarit.
+  if (!egalJSON(docs["jeu-approbateurs.json"], d.result.approver_set)) throw refusPaquet(5, "paquet_jeu", "jeu-approbateurs.json diffère de result.approver_set du dossier", "jeu-approbateurs.json");
+  const g = docs["gabarit-service-approbation.json"];
+  if (g.org !== m.org || g.org_id !== m.org_id) throw refusPaquet(5, "paquet_jeu", `org et org_id du gabarit (${g.org}, ${g.org_id}) différents de ceux du manifeste (${m.org}, ${m.org_id})`, "gabarit-service-approbation.json");
+
+  // 6. Captures : l'index de chaque étape, chaque fichier qu'il nomme avec son SHA-256 (CP-6), aucun fichier sans index.
+  const parChemin = new Map(m.files.map((f) => [f.path, f]));
+  const indexNommes = new Set();
+  for (const s of d.steps) {
+    if (s.capture === null) continue;
+    const p = `captures/${s.capture}`;
+    if (parChemin.get(p)?.role !== "capture_index") throw refusPaquet(6, "paquet_captures", `l'étape ${s.step} (${s.subject}) nomme l'index ${s.capture}, absent de captures/`, p);
+    indexNommes.add(p);
+  }
+  const nommes = new Set();
+  for (const f of m.files.filter((x) => x.role === "capture_index")) {
+    // Choix le plus strict : un index qu'aucune étape ne nomme n'appartient pas au paquet (EX-7.18).
+    if (!indexNommes.has(f.path)) throw refusPaquet(6, "paquet_captures", `${f.path} : index qu'aucune étape du dossier ne nomme`, f.path);
+    const idx = docs[f.path];
+    const designes = [["capture_bloc", idx.files.block], ...idx.files.receipts.map((r) => ["capture_recu", r]), ["capture_certificat", idx.files.certificate]];
+    for (const [role, { name, sha256: h }] of designes) {
+      const p = `captures/${name}`;
+      const e = parChemin.get(p);
+      if (!e) throw refusPaquet(6, "paquet_captures", `${f.path} nomme ${name}, absent de captures/ (capture incomplète)`, p);
+      if (e.role !== role) throw refusPaquet(6, "paquet_captures", `${p} : rôle ${e.role} dans files, ${role} pour l'index ${f.path}`, p);
+      if (e.sha256 !== h) throw refusPaquet(6, "paquet_captures", `${p} : SHA-256 ${e.sha256}, ${h} dans l'index ${f.path} (CP-6)`, p);
+      nommes.add(p);
+    }
+  }
+  for (const f of m.files) if (f.role.startsWith("capture_") && f.role !== "capture_index" && !nommes.has(f.path)) throw refusPaquet(6, "paquet_captures", `${f.path} n'est nommé par aucun index`, f.path);
+  return { manifeste: m, dossier: d, instance: fi ? docs[fi.path] : null, octetsManifeste, fichiers: m.files.length };
+}
+
+/** Octets ASCII mis en minuscules (recherche hexadécimale sans tenir compte de la casse). */
+function minusculesAscii(b) {
+  const c = Buffer.from(b);
+  for (let i = 0; i < c.length; i++) if (c[i] >= 0x41 && c[i] <= 0x5a) c[i] += 0x20;
+  return c;
+}
+
+/**
+ * Formes cherchées d'un secret (EX-7.21) : hexadécimal (comparé en
+ * minuscules, ce qui couvre les deux casses, avec et sans 0x) ; base64 et
+ * base64url (RFC 4648 §4 et §5), avec et sans remplissage.
+ */
+function formesSecret(octets) {
+  const b64 = octets.toString("base64");
+  const b64u = octets.toString("base64url");
+  const remplir = (s) => s + "=".repeat((4 - (s.length % 4)) % 4);
+  const sans = (s) => s.replace(/=+$/, "");
+  return { hexa: Buffer.from(octets.toString("hex"), "ascii"), exactes: [...new Set([b64, sans(b64), remplir(b64u), sans(b64u)])].map((s) => Buffer.from(s, "ascii")) };
+}
+
+/**
+ * Secrets employés pour l'inscription, désignés par leur référence
+ * (EX-7.3) : comptes de l'exploitant, clés de chaîne, graines, et le jeton
+ * --jeton. Les valeurs ne quittent jamais la mémoire ; seuls le nom de
+ * l'option et la référence (jamais la valeur) sont rendus. Un même couple
+ * option et référence donné deux fois n'est cherché qu'une fois.
+ */
+function secretsDesignes(o, instance) {
+  const secrets = [];
+  for (const option of ["deployeur", "administrateur", "tresorerie", "relayeur", "exploitant"]) {
+    if (o[option] === undefined) continue;
+    if (option === "exploitant" && !estDeveloppement(instance)) throw new Arret("reseau_non_developpement", null, "--exploitant n'est admis que sur le réseau de développement (EX-7.3)");
+    const k = cleSecp(o[option], instance, { nom: `--${option}` });
+    secrets.push({ nom: `--${option}`, reference: o[option], octets: Buffer.from(k.privateKey.slice(2), "hex") });
+  }
+  for (const ref of o["cle-chaine"] ?? []) secrets.push({ nom: "--cle-chaine", reference: ref, octets: Buffer.from(cleSecp(ref, instance, { nom: "--cle-chaine" }).privateKey.slice(2), "hex") });
+  for (const ref of o.graine ?? []) secrets.push({ nom: "--graine", reference: ref, octets: Buffer.from(graineBrute(ref, instance).slice(2), "hex") });
+  const jeton = jetonDe(o);
+  if (jeton) secrets.push({ nom: "--jeton", reference: o.jeton, texte: Buffer.from(jeton, "utf8") });
+  const vus = new Set();
+  return secrets.filter((x) => {
+    const cle = JSON.stringify([x.nom, x.reference]);
+    if (vus.has(cle)) return false;
+    vus.add(cle);
+    return true;
+  });
+}
+
+/**
+ * EX-7.21 : aucun fichier du paquet ne contient, comme texte, la valeur d'un
+ * secret désigné. Une valeur trouvée interdit la remise ; le refus nomme le
+ * fichier et l'option, jamais la valeur. Rend secrets_checked (EX-7.30 :
+ * options de secrets cherchées, noms et nombre) : { count, references },
+ * chaque référence { option, reference } triée par option puis par
+ * référence (ordre des unités de code), jamais une valeur.
+ */
+function resumeSecrets(secrets) {
+  const references = secrets.map((s) => ({ option: s.nom, reference: s.reference })).sort((a, b) => (a.option < b.option ? -1 : a.option > b.option ? 1 : a.reference < b.reference ? -1 : a.reference > b.reference ? 1 : 0));
+  return { count: references.length, references };
+}
+
+function chercherSecrets(rep, secrets) {
+  if (!secrets.length) return resumeSecrets(secrets);
+  const formes = secrets.map((s) => (s.texte ? { nom: s.nom, exactes: [s.texte], hexa: null } : { nom: s.nom, ...formesSecret(s.octets) }));
+  for (const r of inventairePaquet(rep).fichiers) {
+    const b = lireSansLien(path.join(rep, r));
+    const bas = minusculesAscii(b);
+    for (const f of formes) {
+      if ((f.hexa && bas.includes(f.hexa)) || f.exactes.some((x) => b.includes(x))) {
+        throw new Arret("secret_present", null, `EX-7.21 : ${r} contient la valeur du secret désigné par ${f.nom} ; remise interdite`, { result: "refuse", outputs: { requirement: "EX-7.21", point: null, file: r } });
+      }
+    }
+  }
+  return resumeSecrets(secrets);
+}
+
+/** Fichier de captures/ nommé par un index ou une étape : nom sans chemin, fichier ordinaire. */
+function lireCapturePaquet(rep, nom) {
+  if (typeof nom !== "string" || nom.includes("/") || nom.includes("\\") || nom === "." || nom === "..") throw new Arret("capture_incomplete", "CP-6", `nom de capture ${JSON.stringify(nom)} hors de la convention de CP-6`);
+  const f = path.join(rep, nom);
+  const st = fs.lstatSync(f, { throwIfNoEntry: false });
+  if (!st) throw new Arret("capture_incomplete", "CP-6", `${nom} absent de ${rep}`);
+  if (!st.isFile()) throw new Arret("capture_incomplete", "CP-6", `${nom} n'est pas un fichier ordinaire (lien symbolique ou autre)`);
+  try {
+    return lireSansLien(f);
+  } catch (err) {
+    throw new Arret("capture_incomplete", "CP-6", `${nom} illisible (${err.code ?? err.message})`);
+  }
+}
+
+/**
+ * Captures du paquet (EX-7.18) : pour chaque étape dont capture n'est pas
+ * nul, l'index qu'elle nomme et chaque fichier qu'il nomme, recopiés octet
+ * pour octet. L'index doit être celui de l'étape (rôle, transaction, bloc,
+ * instance) et ses fichiers porter les noms et SHA-256 de CP-6. Rend
+ * Map(nom → { role, octets }).
+ */
+function capturesDuPaquet(d, rep) {
+  const captures = new Map();
+  const ajouter = (nom, role, octets) => {
+    const deja = captures.get(nom);
+    if (deja && (deja.role !== role || !deja.octets.equals(octets))) throw new Arret("capture_incomplete", "CP-6", `${nom} nommé deux fois sous des rôles ou des contenus différents`);
+    captures.set(nom, { role, octets });
+  };
+  for (const s of d.steps) {
+    if (s.capture === null) continue;
+    const octIdx = lireCapturePaquet(rep, s.capture);
+    let idx;
+    try {
+      idx = JSON.parse(octIdx.toString("utf8"));
+    } catch (err) {
+      throw new Arret("capture_incomplete", "CP-6", `${s.capture} : JSON illisible (${err.message})`);
+    }
+    const e = conforme(idx, C.ID_SCHEMA_OPERATIONS);
+    if (e.length) throw new Arret("capture_incomplete", "CP-6", `${s.capture} non conforme à operations-registre-v0 : ${resumeErreurs(e)}`);
+    const quoi = `étape ${s.step} (${s.subject})`;
+    if (idx.role !== ROLE_CAPTURE_ETAPE[s.step]) throw new Arret("capture_incomplete", "CP-5", `${quoi} : l'index ${s.capture} a le rôle ${idx.role}`);
+    if (idx.transaction_hash !== s.transaction_hash || idx.block_number !== s.block_number || idx.block_hash !== s.block_hash) throw new Arret("capture_incomplete", "CP-2", `${quoi} : l'index ${s.capture} porte une autre transaction ou un autre bloc que l'étape`);
+    if (idx.evm_chain_id !== d.instance.evm_chain_id || idx.bft_chain_id !== d.instance.bft_chain_id) throw new Arret("capture_incomplete", "CP-1", `${quoi} : l'index ${s.capture} désigne une autre instance que le dossier`);
+    if (s.capture !== `capture-${idx.block_number}-${idx.transaction_index}-${idx.role}.json`) throw new Arret("capture_incomplete", "CP-6", `${quoi} : ${s.capture} n'est pas le nom de CP-6 de cet index`);
+    const recu = idx.files.receipts[idx.transaction_index];
+    if (!recu || recu.name !== `recu-${idx.transaction_hash}.json`) throw new Arret("capture_incomplete", "CP-6", `${s.capture} : le reçu de rang ${idx.transaction_index} n'est pas recu-${idx.transaction_hash}.json`);
+    const designes = [
+      [idx.files.block, "capture_bloc", (n) => n === `bloc-${idx.block_number}.json`],
+      ...idx.files.receipts.map((r) => [r, "capture_recu", (n) => /^recu-0x[0-9a-f]{64}\.json$/.test(n)]),
+      [idx.files.certificate, "capture_certificat", (n) => n === `certificat-${idx.block_number}.json`],
+    ];
+    for (const [{ name, sha256: h }, role, nomAdmis] of designes) {
+      if (!nomAdmis(name)) throw new Arret("capture_incomplete", "CP-6", `${s.capture} nomme ${name}, hors de la convention de CP-6`);
+      const b = lireCapturePaquet(rep, name);
+      if (sha256(b) !== h) throw new Arret("capture_incomplete", "CP-6", `${name} : SHA-256 ${sha256(b)}, ${h} dans l'index ${s.capture}`);
+      ajouter(name, role, b);
+    }
+    ajouter(s.capture, "capture_index", octIdx);
+  }
+  return captures;
+}
+
+/** Instance du paquet pour EX-7.3 : son manifeste d'instance, ou le réseau de développement (EX-7.2). */
+function instanceSansManifeste(d) {
+  if (d.instance.evm_chain_id !== C.RESEAU_DEVELOPPEMENT.evm_chain_id || d.instance.bft_chain_id !== C.RESEAU_DEVELOPPEMENT.bft_chain_id) {
+    throw new Arret("reseau_non_developpement", null, `dossier sans manifeste d'instance (manifest_sha256 nul) sur ${d.instance.bft_chain_id} : seul le réseau de développement 2124 s'en passe (EX-7.2)`);
+  }
+  return { manifeste: { nature: "developpement", evm_chain_id: d.instance.evm_chain_id }, manifest_sha256: null, defaut: true };
+}
+
+/** Version de l'outil de référence, pour source du manifeste (EX-7.19). */
+function versionOutil() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(RACINE, "package.json"), "utf8")).version ?? "inconnue";
+  } catch {
+    return "inconnue";
+  }
+}
+
+/**
+ * paquet-client produire : le paquet de 7.13 depuis un dossier fini et ses
+ * captures. Écrit dans un répertoire temporaire de --sortie, se contrôle
+ * comme le client (EX-7.22), cherche chaque secret désigné (EX-7.21), puis
+ * renomme en <sortie>/paquet-client-<slug> ; tout refus laisse --sortie sans
+ * paquet.
+ */
+async function paquetProduire(ctx) {
+  const o = ctx.options;
+  const fDossier = path.resolve(exigerOption(o, "dossier"));
+  const octetsDossier = lireOctets(fDossier);
+  let d;
+  try {
+    d = JSON.parse(octetsDossier.toString("utf8"));
+  } catch (err) {
+    throw new Arret("entree_illisible", null, `${fDossier} : JSON illisible (${err.message})`);
+  }
+  const ed = conforme(d, C.ID_SCHEMA_INSCRIPTION);
+  if (ed.length) throw new Arret("entree_illisible", null, `dossier non conforme à inscription-client-v0 : ${resumeErreurs(ed)}`);
+  const repCaptures = path.resolve(exigerOption(o, "captures"));
+  if (!fs.statSync(repCaptures, { throwIfNoEntry: false })?.isDirectory()) throw new Arret("entree_illisible", null, `${repCaptures} : répertoire des captures absent`);
+  const parent = path.resolve(exigerOption(o, "sortie"));
+  if (o["prepare-par"] === "" || o["prepare-par"] === true) throw new Arret("usage", null, "--prepare-par attend un texte non vide");
+  const inacheve = inachevementDossier(d);
+  if (inacheve) throw new Arret("dossier_inacheve", null, `dossier non fini (${inacheve}) : le paquet se produit à la fin de l'inscription, chaque étape capturee ou faite et result rempli (EX-7.18, 7.10)`);
+
+  // Instance : le manifeste que nomme le dossier, ou le réseau de développement sans manifeste (EX-7.2).
+  let instance;
+  let octetsInstance = null;
+  if (d.instance.manifest_sha256 === null) {
+    if (o.instance !== undefined) throw new Arret("usage", null, "le dossier n'a pas de manifeste d'instance (manifest_sha256 nul, EX-7.2) : --instance ne s'applique pas");
+    instance = instanceSansManifeste(d);
+  } else {
+    if (o.instance === undefined) throw new Arret("usage", null, `--instance est obligatoire : le dossier nomme le manifeste d'instance ${d.instance.manifest_sha256}`);
+    instance = chargerInstance(o);
+    octetsInstance = lireOctets(o.instance, "instance_illisible");
+    const mi = instance.manifeste;
+    if (sha256(octetsInstance) !== d.instance.manifest_sha256) throw new Arret("chaine_differente", null, `SHA-256 de --instance ${sha256(octetsInstance)} différent de manifest_sha256 du dossier ${d.instance.manifest_sha256} : ce n'est pas la révision de l'inscription`);
+    if (d.instance.evm_chain_id !== mi.evm_chain_id || d.instance.bft_chain_id !== mi.bft_chain_id || d.instance.genesis_sha256 !== mi.genesis.sha256 || !egalJSON(d.instance.contracts, adressesContrats(mi))) {
+      throw new Arret("chaine_differente", null, "le dossier désigne une autre instance que --instance (bft_chain_id, evm_chain_id, genesis_sha256 ou contrats, EX-4.1)");
+    }
+  }
+  // OP-4 hors ligne : le dossier remis est cohérent (slug, org_id, journaux, jeu, classes de garde en production).
+  await ctx.op("OP-4", async () => {
+    const r = C.verifierDossierInscription(d, { schemas: schemas(), nature: instance.manifeste.nature, comptes: (instance.manifeste.accounts ?? []).map((x) => x.address) });
+    if (r.status !== "reussi") throw new Arret(r.code === "entree_illisible" ? "jeu_invalide" : r.code, "OP-4", r.detail);
+  });
+  const secrets = secretsDesignes(o, instance);
+
+  // Gabarit (EX-7.20) : console_origin et administrators tels que le client les a donnés, sinon null.
+  const gabarit = { version: 0, org: d.organisation.slug, org_id: d.organisation.org_id, console_origin: o["console-origin"] ?? null, administrators: o["administrateur-annuaire"] ?? null };
+  const eg = conforme(gabarit, ID_SCHEMA_PAQUET, "#/$defs/gabarit_service");
+  if (eg.length) throw new Arret("entree_illisible", null, `gabarit hors de paquet-client-v0#/$defs/gabarit_service : ${resumeErreurs(eg)} ; --console-origin et --administrateur-annuaire se recopient tels que le client les a donnés, sous les formes de configuration-approbation-v0 (EX-7.20)`);
+
+  const captures = capturesDuPaquet(d, repCaptures);
+  const contenus = new Map([
+    ["inscription-client.json", { role: "dossier", octets: octetsDossier }],
+    ...(octetsInstance ? [["instance-registre.json", { role: "manifeste_instance", octets: octetsInstance }]] : []),
+    ["jeu-approbateurs.json", { role: "jeu_approbateurs", octets: Buffer.from(ecritureEX718(d.result.approver_set), "utf8") }],
+    ["gabarit-service-approbation.json", { role: "gabarit_service", octets: Buffer.from(ecritureEX718(gabarit), "utf8") }],
+    ...[...captures].map(([nom, c]) => [`captures/${nom}`, c]),
+  ]);
+  const files = ordrePaquet([...contenus.keys()]).map((p) => ({ path: p, role: contenus.get(p).role, sha256: sha256(contenus.get(p).octets), length: contenus.get(p).octets.length }));
+  const manifeste = {
+    version: 0,
+    org: d.organisation.slug,
+    org_id: d.organisation.org_id,
+    instance: { evm_chain_id: d.instance.evm_chain_id, bft_chain_id: d.instance.bft_chain_id, manifest_sha256: d.instance.manifest_sha256 },
+    files,
+    prepared_by: String(o["prepare-par"] ?? "exploitant (noortrace-registre.mjs paquet-client produire)").slice(0, 256),
+    prepared_at: maintenant(),
+    source: `scripts/registre/noortrace-registre.mjs paquet-client produire, version ${versionOutil()} (CT-4 §7.13, révision 0.6)`.slice(0, 512),
+  };
+  const texteManifeste = ecritureEX718(manifeste);
+
+  const nom = nomPaquet(d.organisation.slug);
+  const final = path.join(parent, nom);
+  if (fs.existsSync(final)) throw new Arret("usage", null, `${final} existe déjà`);
+  fs.mkdirSync(parent, { recursive: true });
+  const tmp = fs.mkdtempSync(path.join(parent, `.${nom}.`));
+  try {
+    const rp = path.join(tmp, nom);
+    fs.mkdirSync(path.join(rp, "captures"), { recursive: true });
+    for (const f of files) ecrireSynchronise(path.join(rp, f.path), contenus.get(f.path).octets);
+    ecrireSynchronise(path.join(rp, MANIFESTE_PAQUET), texteManifeste);
+    controlerPaquet(rp);
+    const n = chercherSecrets(rp, secrets);
+    if (fs.existsSync(final)) throw new Arret("usage", null, `${final} existe déjà`);
+    fs.renameSync(rp, final);
+    ctx.log(`paquet écrit : ${final} (${files.length} fichiers et le manifeste ; ${n} secret(s) cherché(s), aucun trouvé)`);
+    return { result: "reussi", outputs: { directory: final, org: manifeste.org, org_id: manifeste.org_id, files: files.length, manifest_sha256: sha256(Buffer.from(texteManifeste, "utf8")), secrets_checked: n } };
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+/**
+ * paquet-client controler : contrôle du client à la réception (EX-7.22,
+ * points 1 à 6) ; avec des références de secrets (celles d'EX-7.21), le
+ * contrôle du producteur avant la remise suit.
+ */
+async function paquetControler(ctx) {
+  const o = ctx.options;
+  const rep = path.resolve(exigerOption(o, "paquet"));
+  const st = fs.lstatSync(rep, { throwIfNoEntry: false });
+  if (!st) throw new Arret("entree_illisible", null, `${rep} absent`);
+  if (!st.isDirectory()) throw new Arret("entree_illisible", null, `${rep} n'est pas un répertoire (un lien symbolique n'est pas suivi)`);
+  const r = controlerPaquet(rep);
+  const instance = r.instance ? { manifeste: r.instance, manifest_sha256: r.manifeste.instance.manifest_sha256, defaut: false } : instanceSansManifeste(r.dossier);
+  const n = chercherSecrets(rep, secretsDesignes(o, instance));
+  return { result: "reussi", outputs: { directory: rep, org: r.manifeste.org, org_id: r.manifeste.org_id, files: r.fichiers, manifest_sha256: sha256(r.octetsManifeste), secrets_checked: n } };
+}
+
+async function cmdPaquetClient(ctx, positionnels) {
+  const [operation, ...reste] = positionnels;
+  if (reste.length) throw new Arret("usage", null, `paquet-client : argument en trop ${JSON.stringify(reste[0])}`);
+  if (operation === "produire") return paquetProduire(ctx);
+  if (operation === "controler") return paquetControler(ctx);
+  throw new Arret("usage", null, `paquet-client produire|controler attendu, reçu ${JSON.stringify(operation ?? "")}`);
+}
+
 // ---------------------------------------------------------------------------
 // Entrée
 // ---------------------------------------------------------------------------
@@ -2700,6 +3316,7 @@ const TABLE = {
   exporter: cmdExporter,
   verifier: cmdVerifier,
   "publier-jeu": cmdPublierJeu,
+  "paquet-client": cmdPaquetClient,
 };
 
 /**
@@ -2712,7 +3329,7 @@ export async function executer(argv, flux = { stdout: process.stdout, stderr: pr
   let resultat;
   try {
     if (!commande || !TABLE[commande]) throw new Arret("usage", null, `commande inconnue ${JSON.stringify(commande ?? "")} : ${COMMANDES.join(", ")}`);
-    const { positionnels, options } = analyserOptions(argv.slice(1));
+    const { positionnels, options } = analyserOptions(argv.slice(1), commande === "paquet-client" ? REPETABLES_PAQUET : REPETABLES);
     ctx = new Contexte(commande, options, flux);
     JETON_BEARER = jetonDe(options);
     const r = await TABLE[commande](ctx, positionnels);

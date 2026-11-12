@@ -32,6 +32,8 @@ import {
 } from "./approbations.mjs";
 import { decisionPolitique, echeanceExpiration, rotationDue } from "./lui-meme.mjs";
 import { exporterDossier } from "./dossier.mjs";
+import { supprimerRestesExports } from "./export-dossier.mjs";
+import { debutPeriode } from "./periodes.mjs";
 import { jcsIntegral, jcsIntegralOctets, analyserJsonIntegral } from "./jcs-integral.mjs";
 import { validerConfiguration, resoudreSecrets, differencesHorsPolitique } from "./configuration.mjs";
 import { MoteurPolitique } from "./politique/moteur.mjs";
@@ -117,6 +119,8 @@ export class Coeur {
     this.config = o.config;
     this.secrets = o.secrets ?? new Map();
     this.horlogeBrute = o.horloge ?? HORLOGE_SYSTEME;
+    /** Instant du démarrage (horloge murale) : une demande antérieure est périmée (CT-2 EX-15.10, pas 5). */
+    this.instantDemarrage = this.horlogeBrute.murale();
     this.org_id = this.config.recorder.org_id;
     this.journal_id = this.config.recorder.journal_id;
     this.repertoire = path.join(this.config.storage.root, sansPrefixe(this.org_id), sansPrefixe(this.journal_id));
@@ -139,6 +143,10 @@ export class Coeur {
     this.service = o.service ?? null;
     this.candidats = null;
     this.relaisEnCours = new Set();
+    /** `sha256` des `requestState` dont une continuation MRTR a passé RL-3 et n'est pas finie (EX-4.21, RL-3). */
+    this.continuationsEnCours = new Set();
+    /** `sha256` des `requestState` inscrits par ce processus : leur enregistrement est celui du frontal (EX-4.21). */
+    this.continuationsInscritesIci = new Set();
     this.attente = [];
     this.compteurAttente = 0;
     this.minuteurs = [];
@@ -191,6 +199,8 @@ export class Coeur {
     this.bailDetenu = true;
     this.metriques.jauge("noortrace_lease_epoch", {}, epoque);
     this.journal.consigner("info", "bail", "lease_acquired", { epoch: epoque, store: this.bail.type, fencing: cfg.lease.fencing ?? null });
+    // CT-2 EX-15.13 point 2 : restes d'exports interrompus supprimés à l'acquisition du bail, avant toute demande d'export.
+    supprimerRestesExports(this);
 
     this.pieces = new MagasinPieces(this.repertoire, { minOctetsLibres: cfg.storage.min_free_bytes, journal: this.journal, octetsLibres: this.o.octetsLibres });
     let etat;
@@ -1050,6 +1060,8 @@ export class Coeur {
     let fixe = { policy: { rule: o.reponse.rule, decision: "autorise", ticket: null }, approval: null };
     let a = appel;
     const ticket = o.reponse.ticket_state === "approuve" ? o.reponse.ticket : null;
+    // Continuation MRTR qui hérite de l'approbation (EX-4.21) : RL-3 en mode continuation.
+    const continuation = ticket ? o.continuation ?? null : null;
     if (ticket) {
       const mac = macRelais(this.cleMac, o.argumentsEnClair);
       const intentionsOuvertes = new Set([...this.relaisEnCours]);
@@ -1063,8 +1075,12 @@ export class Coeur {
           approvalReponse: o.reponse.approval,
           instant: this.horlogeBrute.murale(),
           timeoutOutil: o.timeout_ms ?? this.config.tools.default_timeout_ms,
+          continuation,
         },
-        { index: this.index, macs: this.approbations.macs, intentionsOuvertes, relaisEnCours: this.relaisEnCours, politique: (v2) => this.politiquesParVersion.get(v2) ?? null },
+        {
+          index: this.index, macs: this.approbations.macs, intentionsOuvertes, relaisEnCours: this.relaisEnCours, politique: (v2) => this.politiquesParVersion.get(v2) ?? null,
+          continuationsEnCours: this.continuationsEnCours, etatContinuation: (t, sha) => this._etatContinuation(t, sha),
+        },
       );
       if (!v.ok) {
         this.journal.consigner("error", "politique", "approval_relay_refused", { check: v.verification });
@@ -1074,7 +1090,21 @@ export class Coeur {
       const rep = repriseDeRetenue(v.retenue, v.decision);
       fixe = { policy: rep.policy, approval: rep.approval };
       a = { ...appel, intent: rep.intent, code: rep.code };
-      this.relaisEnCours.add(ticket);
+      if (continuation) {
+        // Usage inscrit avant l'intention, sous l'exclusion de RL-3 (EX-4.21
+        // condition 3, EX-12.23) : un `requestState` ne sert qu'une fois.
+        this.continuationsEnCours.add(continuation);
+        try {
+          await this.ecrivain.verifierEcriture("approbations");
+          await this.approbations.inscrireContinuationConsommee({ ticket, request_state_sha256: continuation });
+        } catch (e) {
+          this.continuationsEnCours.delete(continuation);
+          await this._panneFichiersApprobations(e);
+          throw e;
+        }
+      } else {
+        this.relaisEnCours.add(ticket);
+      }
     }
     const base = this._partielAppel(a, { ...fixe, status: "executee", result: null, duration_ms: 0, is_error: false });
     let intention = null;
@@ -1086,11 +1116,96 @@ export class Coeur {
           partielIntention,
         );
       } catch (e) {
-        if (ticket) this.relaisEnCours.delete(ticket);
+        this._libererRelais({ ticket, continuation });
         throw e;
       }
     }
-    return { appel: a, fixe, ticket, intention, partielIntention, debut: this.horlogeBrute.monotone() };
+    return { appel: a, fixe, ticket, continuation, intention, partielIntention, debut: this.horlogeBrute.monotone() };
+  }
+
+  /** Fin d'un relais d'un ticket approuvé : il quitte l'exclusion de RL-3 (relais ou continuation en cours). */
+  _libererRelais(relais) {
+    if (!relais.ticket) return;
+    if (relais.continuation) this.continuationsEnCours.delete(relais.continuation);
+    else this.relaisEnCours.delete(relais.ticket);
+  }
+
+  /**
+   * État d'une continuation MRTR d'un ticket dans les fichiers des
+   * approbations (RL-3 en mode continuation, EX-7.21) : ligne `continuation`
+   * dont l'événement `executee` est dans la chaîne (sinon ignorée, EX-12.23),
+   * et ligne `continuation_consommee` du même `requestState`.
+   * @param {string} ticket
+   * @param {string} sha `sha256` du `requestState`
+   * @returns {{inscrite: object|null, consommee: boolean}}
+   */
+  _etatContinuation(ticket, sha) {
+    const lignes = this.approbations.continuations.get(ticket) ?? [];
+    const inscrite = lignes.find((l) => l.kind === "continuation" && l.request_state_sha256 === sha && this.index.executeesApprouves.get(l.hash)?.seq === l.seq) ?? null;
+    const consommee = lignes.some((l) => l.kind === "continuation_consommee" && l.request_state_sha256 === sha);
+    return { inscrite, consommee };
+  }
+
+  /**
+   * Ligne `continuation` d'un résultat `input_required` qui porte un
+   * `requestState`, pour un appel qui porte l'approbation d'un ticket
+   * (EX-4.21, EX-12.23) : écrite et synchronisée avant le relais du résultat
+   * à l'hôte (4.4 pas 14). Un échec est rendu à l'appelant, qui ne garde
+   * alors aucun enregistrement : la ré-émission repasse par le pas 3.
+   * @param {object} e événement `executee` durable
+   * @param {string} sha `sha256` du `requestState`, hexadécimal `0x`
+   */
+  async inscrireContinuation(e, sha) {
+    const ticket = e.approval?.ticket ?? null;
+    if (e.execution?.status !== "executee" || e.approval?.decision !== "approuve" || e.policy?.ticket !== ticket || !ticket) {
+      throw new TypeError("continuation d'un appel qui ne porte pas une approbation (EX-4.21)");
+    }
+    this._bloquerSiIntervention();
+    try {
+      await this.ecrivain.verifierEcriture("approbations");
+      await this.approbations.inscrireContinuation({ ticket, seq: e.seq, hash: e.hash, request_state_sha256: sha });
+    } catch (err) {
+      await this._panneFichiersApprobations(err);
+      throw err;
+    }
+    this.continuationsInscritesIci.add(sha);
+  }
+
+  /**
+   * Enregistrement de continuation reconstruit à la reprise ou après une
+   * bascule (EX-4.21) depuis la ligne `continuation` d'un appel approuvé,
+   * l'événement `executee` qu'elle désigne et la ligne `mac` de la `retenue`
+   * du ticket. Rien pour un `requestState` inscrit par ce processus (son
+   * enregistrement est celui du frontal, retiré quand il a servi ou avec sa
+   * session), ni pour une continuation déjà servie.
+   * @param {string} sha
+   * @returns {{ticket: string, evenement: object, mac: string}|null}
+   */
+  continuationReconstruite(sha) {
+    // Instance passive (bail non détenu, 13.4) : rien n'est encore relu.
+    if (!this.approbations || !this.index || this.continuationsInscritesIci.has(sha)) return null;
+    for (const [ticket, lignes] of this.approbations.continuations) {
+      if (!lignes.some((l) => l.kind === "continuation" && l.request_state_sha256 === sha)) continue;
+      const { inscrite, consommee } = this._etatContinuation(ticket, sha);
+      if (!inscrite || consommee) return null;
+      const e = this.index.executeesApprouves.get(inscrite.hash);
+      const mac = this.approbations.macs.get(e.approval.request_hash) ?? null;
+      return mac ? { ticket, evenement: e, mac } : null;
+    }
+    return null;
+  }
+
+  /**
+   * Échec d'écriture des fichiers des approbations (EX-7.19 pas 2, EX-12.23) :
+   * mode dégradé « stockage », segment fermé comme après toute panne de
+   * stockage (EX-12.8), pour que la sortie suive EX-14.11.
+   * @param {unknown} e
+   */
+  async _panneFichiersApprobations(e) {
+    if (!(e instanceof ErreurEnregistreur && e.raison === "stockage")) return;
+    this.journal.consigner("error", "politique", "approval_files_unavailable", { errno: e.cause?.code ?? null });
+    await this.ecrivain.signalerPanneStockage(e.cause ?? e).catch(() => {});
+    if (!this.degrade.actif("stockage")) this.degrade.entrer("stockage");
   }
 
   /**
@@ -1123,7 +1238,7 @@ export class Coeur {
       if (relais.ticket && this.index.premiersExecutes.get(relais.ticket)?.seq === e.seq) this._consommer(relais.ticket, e);
       return e;
     } finally {
-      if (relais.ticket) this.relaisEnCours.delete(relais.ticket);
+      this._libererRelais(relais);
     }
   }
 
@@ -1168,12 +1283,12 @@ export class Coeur {
       const e = await this.ecrivain.sceller(partiel, { leverIntention: relais.intention?.intent_id });
       this._notifierScelle({ genre: "appel", host: a.host?.id ?? null, appel: a, evenement: e });
       if (relais.ticket) {
-        this.relaisEnCours.delete(relais.ticket);
+        this._libererRelais(relais);
         if (this.index.premiersExecutes.get(relais.ticket)?.seq === e.seq) this._consommer(relais.ticket, e);
       }
       return e;
     } catch (err) {
-      if (relais.ticket) this.relaisEnCours.delete(relais.ticket);
+      this._libererRelais(relais);
       if (err instanceof ErreurEnregistreur || err instanceof ErreurConstruction) {
         this.mettreEnAttente(partiel, [r.resultat], { intent_id: relais.intention?.intent_id ?? null, host: a.host?.id ?? null, genre: "appel" });
         this.metriques.compter("noortrace_calls_executed_not_durable_total", { class: a.class });
@@ -1277,11 +1392,8 @@ export class Coeur {
       } catch (e) {
         if (e instanceof ErreurEnregistreur && e.raison === "stockage") {
           // EX-7.19 pas 2 : échec d'écriture du fichier des approbations → mode
-          // dégradé « stockage » ; le segment est fermé comme après toute panne de
-          // stockage (EX-12.8), pour que la sortie suive EX-14.11 (nouveau segment).
-          this.journal.consigner("error", "politique", "approval_files_unavailable", { errno: e.cause?.code ?? null });
-          await this.ecrivain.signalerPanneStockage(e.cause ?? e).catch(() => {});
-          if (!this.degrade.actif("stockage")) this.degrade.entrer("stockage");
+          // dégradé « stockage » (_panneFichiersApprobations).
+          await this._panneFichiersApprobations(e);
         } else {
           this.journal.consigner("error", "politique", "approval_remise_unwritable", { message: e?.message ?? null });
         }
@@ -1990,13 +2102,18 @@ export class Coeur {
   // ------------------------------------------------------------ dossier, arrêt
 
   /**
-   * Exporte le dossier CT-1 d'un événement (période close).
+   * Exporte le dossier CT-1 d'un événement (période close) vers une
+   * destination quelconque, créée au besoin : voie des essais et des
+   * parcours, hors de la commande d'exploitation (`noortrace-ctl dossier
+   * exporter` passe par `exporterDemande` d'export-dossier.mjs, EX-15.12 et
+   * EX-15.13). La ligne `dossier_exported` (EX-15.14) est consignée avec
+   * `selection` `seq` et sans `request_id`.
    * @param {number} seq
    * @param {string} destination
    * @returns {Promise<object>} l'index dossier.json
    */
   async exporterDossier(seq, destination) {
-    const { dossier } = await exporterDossier({
+    const r = await exporterDossier({
       repertoire: this.repertoire,
       seq,
       destination,
@@ -2006,7 +2123,13 @@ export class Coeur {
       // Ancrage branché (lot F2) : ancres du point couvrant, parties du registre, jeton-rfc3161.der, preuve.ots (CT-5 §10).
       exportateur: typeof this.o.ancrage?.exporterDossier === "function" && this.o.ancrage.demarre ? this.o.ancrage : null,
     });
-    return dossier;
+    const d = r.dossier;
+    this.journal.consigner("info", r.composant, "dossier_exported", {
+      selection: "seq", ticket: null, seq: d.event.seq, hash: d.event.hash, period_start: debutPeriode(decoderHorodatage(JSON.parse(new TextDecoder().decode(r.fichiers.get("evenement.json"))).ts)),
+      destination, generated_at: d.generated_at, dossier_sha256: sha256Hex(r.octetsIndex), parts_present: d.parts.filter((x) => x.present).length,
+      files: r.fichiers.size + 1 + (r.entetes ? 1 : 0), bitcoin_headers: r.entetes, checkpoint_rank: r.point?.rang ?? null, checkpoint_tree_size: r.point?.tree_size ?? null, defects: r.defauts,
+    }, { seq: d.event.seq });
+    return d;
   }
 
   /** EX-10.5 : dossiers exportés par ce démon qu'une ancre arrivée depuis rend à réexporter (vide sans composant d'ancrage). */

@@ -1,10 +1,18 @@
 {
   "name": "@noortrace/verification-web",
   "version": "0.1.0",
-  "description": "Page de vérification NOORTRACE (CT-6 §18, révision 0.6) : page statique qui exécute dans le navigateur le vérificateur noortrace-verifier compilé en WebAssembly. En construction (étape 6).",
+  "description": "Page de vérification NOORTRACE (CT-6 §18, révision 0.7) : page statique qui exécute dans un travailleur du navigateur le vérificateur noortrace-verifier compilé en WebAssembly, et script déterministe qui en produit les fichiers.",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
+  "exports": {
+    "./construire": "./src/construire.mjs"
+  },
+  "files": [
+    "src/",
+    "LISEZMOI.md",
+    "INTERFACES.md"
+  ],
   "engines": {
     "node": ">=22"
   }

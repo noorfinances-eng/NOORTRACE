@@ -17,7 +17,7 @@ import * as N from "@noortrace/noyau";
 import {
   Coeur, HorlogeReglable, FrontalMcp, ServeurConnecteurs, ServeurHttpMcp, ConnexionHttp, validerConfiguration, reglesHorsSchema, lireEvenements,
   ErreurEnregistreur, analyserTexte, compacter, nombreRepresentable, ErreurTexteJson, decoderUtf8Strict, objetErreur, resultatEnregistreur,
-  verifierJwt, executerConnecteur, resoudreDelegation, QuotasHote, agreger, LecteurSse,
+  verifierJwt, executerConnecteur, resoudreDelegation, QuotasHote, agreger, LecteurSse, signataireDepuisConfiguration,
 } from "@noortrace/enregistreur";
 import { ServiceApprobationFactice } from "@noortrace/enregistreur/factice";
 import { repertoireTemporaire, secretsDev, RACINE } from "./fixtures/enregistreur-coeur/outils.mjs";
@@ -38,7 +38,8 @@ const appel = (id, nom, args, meta = META, extra = {}) => ligne({ jsonrpc: "2.0"
  * (objet `result`, `{ error }`, `null` : pas de réponse).
  */
 async function banc(o = {}) {
-  const dir = repertoireTemporaire("noortrace-mcp-ex-");
+  // `o.dir` : journal d'un banc fermé, repris par un nouveau cœur (redémarrage).
+  const dir = o.dir ?? repertoireTemporaire("noortrace-mcp-ex-");
   const servers = o.servers ?? {
     demo: serveurStdio(["/opt/mcp/demo"], { protocol: o.protocole ?? "2026-07-28", tools: o.reglages ?? {}, class_default: o.class_default ?? null, relay: o.relay ?? null }),
   };
@@ -48,7 +49,9 @@ async function banc(o = {}) {
   expect(v.erreurs, JSON.stringify(v.erreurs)).to.deep.equal([]);
   const horloge = o.horloge ?? new HorlogeReglable(ms("2026-11-10T10:20:00.000Z"));
   const service = o.service ?? new ServiceFixe(o.evaluer ?? (() => AUTORISE), o.candidats ?? []);
-  const coeur = await Coeur.demarrer({ config: v.config, secrets: secretsDev(), horloge, service });
+  // `o.signataire(config, secrets)` : backend de signature fourni par l'essai (sinon celui de la configuration).
+  const signataire = o.signataire ? await o.signataire(v.config, secretsDev()) : undefined;
+  const coeur = await Coeur.demarrer({ config: v.config, secrets: secretsDev(), horloge, service, signataire });
   const enfants = [];
   const ecrit = [];
   const repondre = o.repondre ?? ((m) => ({ content: [{ type: "text", text: `ok ${m.params.name}` }], isError: false }));
@@ -346,6 +349,110 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
       await b.fermer();
     });
 
+    // Continuation MRTR d'un appel approuvé (EX-4.21, EX-12.23, EX-7.21) : banc
+    // en mode `erreur`, ticket ouvert, décision `approuve` scellée, ré-émission
+    // approuvée relayée dont le résultat est `input_required`.
+    const RS = "etat-approuve-1";
+    const shaRs = N.sha256Hex(N.utf8(JSON.stringify(RS)));
+    const ARGS = { claim_id: "4242" };
+    const lignesApprobations = (b) => {
+      const d = path.join(b.coeur.repertoire, "approbations");
+      return fs.readdirSync(d).filter((n) => n.startsWith("approbations-")).sort()
+        .flatMap((n) => fs.readFileSync(path.join(d, n), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)));
+    };
+    async function appelApprouveInputRequired(o = {}) {
+      const service = o.service ?? new ServiceApprobationFactice({ org_id: "0x" + "00".repeat(32), journal_id: "0x" + "00".repeat(32), decider: (q) => (q.tool_announced === "demo__payments.create" ? { decision: "a_approuver", rule: "revue" } : { decision: "autorise", rule: null }) });
+      let relais = 0;
+      const b = await banc({ service, repondre: () => (++relais === 1 ? { resultType: "input_required", inputRequests: {}, requestState: RS } : { content: [{ type: "text", text: "paye" }], isError: false }) });
+      service.org_id = b.config.recorder.org_id;
+      service.journal_id = b.config.recorder.journal_id;
+      const signal = await b.recevoir(appel(1, "demo__payments.create", ARGS));
+      const { ticket } = signal.result._meta["noortrace/approval"];
+      // `ouvrir` part sans être attendu (EX-7.18) : attendre que le service l'ait reçu.
+      for (let k = 0; k < 500 && !service.tickets.get(ticket)?.request; k++) await laisserTourner(10);
+      service.decider_ticket(ticket);
+      expect((await b.coeur.traiterRemises())[0]).to.deep.include({ result: "scelle" });
+      const r = await b.recevoir(appel(2, "demo__payments.create", ARGS));
+      expect(r.result.resultType, JSON.stringify(r)).to.equal("input_required");
+      return { b, service, ticket };
+    }
+    const compter = (service, methode) => service.messages.filter((m) => m.methode === methode).length;
+
+    it("EX-4.21, EX-12.23, EX-7.21 : continuation MRTR d'un appel approuvé : ligne continuation (ticket, seq et hash de l'executee, sha256 du requestState) avant la réponse ; la ré-émission hérite sans evaluer (même policy, même approval, aucun consommer), ligne continuation_consommee ; rejouée ou sous d'autres arguments, elle repasse par le pas 3 et l'approbation déjà servie ne la couvre pas (-31010 approbation, RL-3)", async function () {
+      const { b, service, ticket } = await appelApprouveInputRequired();
+      try {
+        const [, premier] = await b.evenements();
+        expect(premier.execution.status).to.equal("executee");
+        const cont = lignesApprobations(b).filter((l) => l.kind === "continuation");
+        expect(cont, "ligne continuation écrite avant la réponse (pas 14)").to.deep.equal([{ kind: "continuation", ticket, seq: premier.seq, hash: premier.hash, request_state_sha256: shaRs }]);
+        const evaluer = compter(service, "evaluer");
+        expect(compter(service, "consommer"), "consommer du premier relais").to.equal(1);
+        const r3 = await b.recevoir(appel(3, "demo__payments.create", ARGS, META, { requestState: RS, inputResponses: {} }));
+        expect(r3.result?.isError, JSON.stringify(r3)).to.equal(false);
+        expect(compter(service, "evaluer"), "héritage : aucun nouvel evaluer").to.equal(evaluer);
+        expect(JSON.parse(b.ecrit.at(-1)).params.requestState).to.equal(RS);
+        const evts = await b.evenements();
+        expect(evts.map((e) => e.execution.status)).to.deep.equal(["retenue", "executee", "executee"]);
+        const suite = evts[2];
+        expect(suite.policy, "policy héritée").to.deep.equal(premier.policy);
+        expect(suite.approval, "approval héritée").to.deep.equal(premier.approval);
+        expect(suite.intent).to.deep.equal(premier.intent);
+        expect(suite.code.model).to.equal(premier.code.model);
+        await laisserTourner(20);
+        expect(compter(service, "consommer"), "une continuation ne donne pas de consommer (EX-7.20)").to.equal(1);
+        expect(lignesApprobations(b).filter((l) => l.kind === "continuation_consommee")).to.deep.equal([{ kind: "continuation_consommee", ticket, request_state_sha256: shaRs }]);
+        // Rejouée : pas 3 ; le service rend approuve, RL-3 refuse un second relais.
+        const r4 = await b.recevoir(appel(4, "demo__payments.create", ARGS, META, { requestState: RS, inputResponses: {} }));
+        expect(r4.error, JSON.stringify(r4)).to.deep.include({ code: -31010 });
+        expect(r4.error.data).to.deep.equal({ reason: "approbation" });
+        expect(compter(service, "evaluer")).to.equal(evaluer + 1);
+        expect(b.coeur.journal.trouver("approval_relay_refused").at(-1).data).to.deep.equal({ check: "RL-3" });
+        expect((await b.evenements()).length, "aucun événement pour un relais refusé").to.equal(3);
+      } finally {
+        await b.fermer();
+      }
+    });
+
+    it("EX-4.21 : continuation d'un appel approuvé sous d'autres arguments (MAC différent) : pas d'héritage, pas 3 (autre demande, signal en_attente), jamais un relais sous l'approbation ; la ligne continuation reste inemployée", async function () {
+      const { b, service } = await appelApprouveInputRequired();
+      try {
+        const evaluer = compter(service, "evaluer");
+        const r = await b.recevoir(appel(3, "demo__payments.create", { claim_id: "4243" }, META, { requestState: RS, inputResponses: {} }));
+        expect(compter(service, "evaluer"), "pas 3").to.equal(evaluer + 1);
+        // Autres arguments : une autre demande, ticket nouveau, signal en_attente ; jamais un relais sous l'approbation.
+        expect(r.result?._meta?.["noortrace/approval"]?.state, JSON.stringify(r)).to.equal("en_attente");
+        expect(lignesApprobations(b).filter((l) => l.kind === "continuation_consommee")).to.deep.equal([]);
+        expect((await b.evenements()).filter((e) => e.execution.status === "executee")).to.have.length(1);
+      } finally {
+        await b.fermer();
+      }
+    });
+
+    it("EX-4.21 : après un redémarrage, l'enregistrement de continuation d'un appel approuvé se reconstruit depuis la ligne continuation, l'événement executee et la ligne mac de la retenue : la ré-émission hérite (aucun evaluer, même approval, ligne continuation_consommee), une seule fois", async function () {
+      const { b, service, ticket } = await appelApprouveInputRequired();
+      await b.fermer();
+      const b2 = await banc({ dir: b.dir, service, horloge: b.horloge, repondre: () => ({ content: [{ type: "text", text: "paye" }], isError: false }) });
+      try {
+        expect(b2.frontal.continuations.size, "aucun enregistrement en mémoire").to.equal(0);
+        const evaluer = compter(service, "evaluer");
+        const r = await b2.recevoir(appel(3, "demo__payments.create", ARGS, META, { requestState: RS, inputResponses: {} }));
+        expect(r.result?.isError, JSON.stringify(r)).to.equal(false);
+        expect(compter(service, "evaluer"), "héritage sans evaluer").to.equal(evaluer);
+        const evts = await b2.evenements();
+        expect(evts.map((e) => e.execution.status)).to.deep.equal(["retenue", "executee", "executee"]);
+        expect(evts[2].approval).to.deep.equal(evts[1].approval);
+        expect(evts[2].policy).to.deep.equal(evts[1].policy);
+        await laisserTourner(20);
+        expect(service.messages.filter((m) => m.methode === "consommer" && m.corps.seq === evts[2].seq), "aucun consommer pour la continuation").to.deep.equal([]);
+        expect(lignesApprobations(b2).filter((l) => l.kind === "continuation_consommee")).to.deep.equal([{ kind: "continuation_consommee", ticket, request_state_sha256: shaRs }]);
+        const r2 = await b2.recevoir(appel(4, "demo__payments.create", ARGS, META, { requestState: RS, inputResponses: {} }));
+        expect(r2.error?.data, JSON.stringify(r2)).to.deep.equal({ reason: "approbation" });
+        expect((await b2.evenements()).length).to.equal(3);
+      } finally {
+        await b2.fermer();
+      }
+    });
+
     it("EX-4.23 : annulation par l'hôte (stdio) relayée au serveur ; événement -31012 ; aucune réponse rendue", async function () {
       const b = await banc({ repondre: () => null });
       const p = b.frontal.recevoir(b.session, appel("a-1", "demo__slow.op", {}));
@@ -547,6 +654,75 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
       expect((await b.recevoir(appel(3, "demo__claims.get", {}))).error.data).to.deep.equal({ reason: "cle" });
       b.coeur.degrade.sortir("cle");
       await b.fermer();
+    });
+
+    it("14.2 « clé indisponible » (détection : appel au signataire, EX-11.18 `sign`) : l'échec de la signature d'un point de contrôle ou d'une clôture de période met le démon en mode dégradé « clé » (degraded_enter, jauge noortrace_degraded à 1, santé down) ; l'appel suivant est bloqué avant le relais (-31010, raison cle), jamais relayé puis rendu -31017 ; sortie par health() et signature de test, l'événement en attente scellé (EX-14.10, EX-14.11)", async function () {
+      // Backend dont `sign` échoue sur commande ; `health()` répond toujours `ok`
+      // et n'est appelé qu'une fois par heure : seule la signature révèle la panne.
+      const panne = { active: false };
+      const b = await banc({
+        ajuster: (c) => (c.signer.health_interval_ms = 3600000),
+        signataire: async (config, secrets) => {
+          const reel = await signataireDepuisConfiguration(config, secrets);
+          return new Proxy(reel, {
+            get(cible, cle) {
+              if (cle === "signer" && panne.active) return async () => { throw new Error("backend de signature arrêté"); };
+              const v = cible[cle];
+              return typeof v === "function" ? v.bind(cible) : v;
+            },
+          });
+        },
+      });
+      const h = b.horloge;
+      const jauge = () => b.coeur.metriques.valeur("noortrace_degraded", { reason: "cle" });
+      const entrees = () => b.coeur.journal.trouver("degraded_enter").filter((l) => l.data?.reason === "cle").length;
+      const relayes = () => b.ecrit.filter((l) => JSON.parse(l).method === "tools/call").length;
+      try {
+        expect((await b.recevoir(appel(1, "demo__payments.create", { claim_id: "1" }))).result.isError).to.equal(false);
+        // (a) Point de contrôle aligné (10:21:00) signé pendant la panne.
+        panne.active = true;
+        h.aller(ms("2026-11-10T10:21:00.300Z"));
+        await b.coeur.tic();
+        expect(b.coeur.journal.trouver("signer_unavailable").length, "signer_unavailable consigné").to.be.at.least(1);
+        expect(b.coeur.degrade.actif("cle"), "mode « clé » après l'échec du point de contrôle").to.equal(true);
+        expect(entrees()).to.equal(1);
+        expect(jauge()).to.equal(1);
+        expect(b.coeur.sante().corps.status).to.equal("down");
+        const avant = relayes();
+        const r2 = await b.recevoir(appel(2, "demo__payments.create", { claim_id: "2" }));
+        expect(r2.error, JSON.stringify(r2)).to.deep.include({ code: -31010, message: "noortrace: appel bloque, enregistreur en mode degrade" });
+        expect(r2.error.data).to.deep.equal({ reason: "cle" });
+        expect(relayes(), "aucun relais en mode « clé »").to.equal(avant);
+        panne.active = false;
+        await b.coeur.tic();
+        expect(b.coeur.degrade.actif("cle"), "sortie : health() et signature de test (EX-14.11)").to.equal(false);
+        expect(jauge()).to.equal(0);
+        // (b) Clôture de la période de 10 h exigée par un appel relayé à 11:00:05.
+        panne.active = true;
+        h.aller(ms("2026-11-10T11:00:05.000Z"));
+        const r3 = await b.recevoir(appel(3, "demo__payments.create", { claim_id: "3" }));
+        expect(r3.error, JSON.stringify(r3)).to.deep.include({ code: -31017 });
+        expect(r3.error.data.reason).to.equal("cle");
+        expect(b.coeur.degrade.actif("cle"), "mode « clé » après l'échec de la clôture").to.equal(true);
+        expect(entrees()).to.equal(2);
+        expect(jauge()).to.equal(1);
+        const avant4 = relayes();
+        const r4 = await b.recevoir(appel(4, "demo__claims.get", {}));
+        expect(r4.error, JSON.stringify(r4)).to.deep.include({ code: -31010 });
+        expect(r4.error.data).to.deep.equal({ reason: "cle" });
+        expect(relayes(), "lecture non relayée non plus (« clé » bloque tout)").to.equal(avant4);
+        expect(b.coeur.attente.length).to.equal(1);
+        panne.active = false;
+        await b.coeur.tic();
+        expect(b.coeur.degrade.actif("cle")).to.equal(false);
+        expect(b.coeur.attente.length, "événement en attente scellé à la sortie (EX-14.10)").to.equal(0);
+        const evts = await b.evenements();
+        // Appels 1 et 3 scellés ; 2 et 4, bloqués avant le relais, n'ont aucun événement.
+        expect(evts.map((e) => e.execution.status)).to.deep.equal(["executee", "executee"]);
+      } finally {
+        panne.active = false;
+        await b.fermer();
+      }
     });
   });
 

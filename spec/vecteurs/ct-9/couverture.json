@@ -14,15 +14,15 @@
       },
       {
         "file": "spec/CT-2-enregistreur.md",
-        "sha256": "c6ca491f8e81d688dc857de91b458cb2969cdb07164e42c8219912b279ec435d"
+        "sha256": "31098d914bd598098196f78738c8f9cb210a51c7fa6da7e3be5402317c79afc7"
       },
       {
         "file": "spec/CT-3-approbations.md",
-        "sha256": "c7ebfee8607c63a908d4fc04c3a1d46cc0baa3a9562c1345b29ce99f5b39e014"
+        "sha256": "617359a837318f2da16e83903ba6dc61f9a9235755c7fe61e7cd4714b16b37f6"
       },
       {
         "file": "spec/CT-4-registre.md",
-        "sha256": "afbd007d1dfe4823eed8a47273b140296e7b551e2f8af7fa5607fdb6e392dd9f"
+        "sha256": "004581bfc3c32267a5a112e9926397bcbd25164dd67ffd96e963e22fe7879a4b"
       },
       {
         "file": "spec/CT-5-ancrage.md",
@@ -30,7 +30,7 @@
       },
       {
         "file": "spec/CT-6-verificateur.md",
-        "sha256": "6d2d7f4be08df79600b09aecef9ab3115d8c85febdeeed198c71e09bbd24284a"
+        "sha256": "36e675989df5bf1e3826883d2285de640583b4502552a94df674cbdaab2aefa0"
       },
       {
         "file": "spec/CT-7-securite-et-conformite.md",
@@ -38,12 +38,12 @@
       },
       {
         "file": "spec/CT-8-deploiement-et-exploitation.md",
-        "sha256": "31499317e9c0e62dddfff461a2bd561c9e4c234477edc2cce9229a2ee3406d4b"
+        "sha256": "ec1f0231114deb8f069eaa4edcd9ddbd96e3aaba12030510fc5d4345e062d158"
       }
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "2369677d7f0f60ee0446c08cf69afd1fe77dfae1a880789b58694e944794e872"
+      "sha256": "b710b1fa81d51fd415e8a7744594c2e45a3b1608ef483c662f79b9d5c4b4920a"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -64,7 +64,7 @@
       },
       {
         "file": "test/ancrage-composant-pannes.test.js",
-        "sha256": "7b10a6cbe6d6afdb148fb7d7697914d54d40ec3b30088c36a40ec3956ba8f44c"
+        "sha256": "e620010bf22f1800ef24df049a2886a94f18496dce40c2537ff3cf14286ed565"
       },
       {
         "file": "test/ancrage-composant-parcours.test.js",
@@ -76,7 +76,7 @@
       },
       {
         "file": "test/ancrage-corrections-h1.test.js",
-        "sha256": "81db7a085d22999124a3c72c4db90c87b772a83175c3b0ab2afe1a4513cbde2b"
+        "sha256": "6dcaccfff9f5bd787dc569037ebea64e73ce104cd6882be39f49439be4bda437"
       },
       {
         "file": "test/ancrage-exportateur.test.js",
@@ -112,7 +112,7 @@
       },
       {
         "file": "test/ancrage-planificateur-unites.test.js",
-        "sha256": "de09ddc4a1042c00948765d6facd92080404370707c86930632ba4828d8d6003"
+        "sha256": "5cb20cf4e3f0932130b4dcae6c4d18c417f5aad4ccc0cd6a8799f347eb0dd86f"
       },
       {
         "file": "test/ancrage-prestataires-reels.test.js",
@@ -171,24 +171,40 @@
         "sha256": "524ec0bf2839eb20c6563b679bc544cdad41079cd489907ba71857ff5e213ae1"
       },
       {
+        "file": "test/approbation-service-configuration.test.js",
+        "sha256": "37babc77e358ef51cc8624851cdfca248fc9587372e8f192116443640bdc52cf"
+      },
+      {
+        "file": "test/approbation-service-console.test.js",
+        "sha256": "a6460a48bc7a06a7abe0db8711e914f92febdce2ea6a4c21dcda29ac90cb7e24"
+      },
+      {
         "file": "test/approbation-service-exigences.test.js",
-        "sha256": "958834f20b778ef58535a7755180f9aeafd0af6743285a695d9dc64f5398ca73"
+        "sha256": "775c71f3fdfefa63bfeb6968152d07a2a18bcd55e4a3fdab213adc0e1bb045d6"
       },
       {
         "file": "test/approbation-service-hostile.test.js",
-        "sha256": "318fc7b3b1bc02a2a87330bd06354c58019af8b2f4adb7b2fcd337fbf480500b"
+        "sha256": "60eb41da48acc1987e9b1280200de7be411e11bdb928d6b01fe03c29f38e743f"
+      },
+      {
+        "file": "test/approbation-service-notifications.test.js",
+        "sha256": "d745d55bd9d828a0ab7895dc0adb0b955ae003a9b41e9d85d841b0f606e04103"
       },
       {
         "file": "test/approbation-service-parcours.test.js",
         "sha256": "5bfc9e604091f7e660e57719a4a7770dbf68538ef7372182c222a39301fcfc3f"
       },
       {
+        "file": "test/approbation-service-persistance.test.js",
+        "sha256": "9bdc79a5fb23ebbc00d6cc9c9b6bef421903bdec4289f0bb73416ae63916854f"
+      },
+      {
         "file": "test/approbation-service-vecteurs.test.js",
-        "sha256": "7c7a127c2e97952eb815ad0ebcc946d7b89ac902961fd157c079c52e314cdc20"
+        "sha256": "ee7bb062e4976a328ef1bec9426dd6a8f15077473fb007b171e7e4c2adeb4bbf"
       },
       {
         "file": "test/approbation.test.js",
-        "sha256": "e993d47f9e1462dec1973741e9b40b4fd13d5ed9fc6dc6f7cb971155c43838d9"
+        "sha256": "2509fe5890b6015a460d3e432cb3332f5162d6a8a33d8d0066d218b88296a5b2"
       },
       {
         "file": "test/certificatCommit.test.js",
@@ -228,7 +244,7 @@
       },
       {
         "file": "test/enregistreur-ancrage-parcours.test.js",
-        "sha256": "aa23143b781b01baebd765f59567cfb8f1244db425942e6ba1c16b89d80ac333"
+        "sha256": "beb10248a7e673e48f2ea3c12351c39c70fc48fb700f4cadd6230e87718e2115"
       },
       {
         "file": "test/enregistreur-coeur-annexe-a.test.js",
@@ -248,7 +264,7 @@
       },
       {
         "file": "test/enregistreur-coeur-journal.test.js",
-        "sha256": "656e15621d888d62b0c384fadfffefa73410c8ed5856c462324e80164ee09dc8"
+        "sha256": "de8d807e0d1c0d298ebedf5f9d5c29ba9e204f2ac683cbffb6986e638172fd87"
       },
       {
         "file": "test/enregistreur-coeur-pieces-perdues.test.js",
@@ -261,6 +277,18 @@
       {
         "file": "test/enregistreur-coeur-vecteurs.test.js",
         "sha256": "b29bd972e560b9224271f8317d3778f69a89e5dddcfb59dd576f11e42141cd1f"
+      },
+      {
+        "file": "test/enregistreur-demandes-demon.test.js",
+        "sha256": "c06cdd04ab5c3c4bff7ff343dfc793b8f2c341396c8758e3180d1bf2ce4df6d3"
+      },
+      {
+        "file": "test/enregistreur-export-ancrage.test.js",
+        "sha256": "8c7246263a8c98685304d136ccc4419281ef7b0af877b3e9db1bae596c9be88e"
+      },
+      {
+        "file": "test/enregistreur-export-dossier.test.js",
+        "sha256": "45cbc94da45388cd2897544a15c2b618f37563a3462949647200f11299564741"
       },
       {
         "file": "test/enregistreur-ha-bascule.test.js",
@@ -284,11 +312,11 @@
       },
       {
         "file": "test/enregistreur-mcp-exigences.test.js",
-        "sha256": "40e2165bed112324425969dd4d4c626153b696cd74f6bdc99166a100a3ce47f2"
+        "sha256": "98f89f128aceb58f83277123b19a1f44f606804834587a1e4bc5f7e2c33026b8"
       },
       {
         "file": "test/enregistreur-mcp-parcours.test.js",
-        "sha256": "48c7ca9f89abad67f287f198f5cb86456f3655031107353e2008be15115f020c"
+        "sha256": "023c59b2469da99294e264a279569b9a5bce35188085a12a2efca7f55a5f24f9"
       },
       {
         "file": "test/enregistreur-mcp-tls.test.js",
@@ -296,7 +324,7 @@
       },
       {
         "file": "test/enregistreur-mcp-vecteurs.test.js",
-        "sha256": "74e92f4d5cdb36fa94fc45b74de85cd766f353e8720a537f4065f48ece338920"
+        "sha256": "8505cfc01fc032f9929f3bfe90615779bcedf8f2e0f3a58ef2f8da9b89053740"
       },
       {
         "file": "test/enregistreur-modele-exigences.test.js",
@@ -356,7 +384,7 @@
       },
       {
         "file": "test/enregistreur-redaction-parcours.test.js",
-        "sha256": "235cc633c41a909d218a3af763e92b53191077564ec660b36fcc3a0295da3800"
+        "sha256": "654037989f5f446add12b95eb286ae38c0361e0268672d9d4e7c1ab137d38e8c"
       },
       {
         "file": "test/enregistreur-redaction.test.js",
@@ -380,7 +408,7 @@
       },
       {
         "file": "test/enregistreur-sdk-parcours.test.js",
-        "sha256": "b32fffd742b72c129ec96096541942fcd16485cb55320e3fcec01d6f613ef845"
+        "sha256": "4b29527bed5ec087719f7b36f0db97e9262f3368f98a6b7b55668bf0169eaf1a"
       },
       {
         "file": "test/enregistreur-sdk-python.test.js",
@@ -396,7 +424,7 @@
       },
       {
         "file": "test/enregistreur-signataires-parcours.test.js",
-        "sha256": "3074cf2c474069c0b0b39a405fafb682c32d93f005a5a13ab16e5f84b48c5402"
+        "sha256": "a996d1eed1b8c9830880424654cf57fe7d9c910ce4d564f4632463647b0ce69f"
       },
       {
         "file": "test/enregistreur-worm-attributs.test.js",
@@ -427,6 +455,38 @@
         "sha256": "df30808ef9d9ac22fd3711195c131e592d9a10ba93c3a93bf8f914054b4974cb"
       },
       {
+        "file": "test/exploitation-console-bibliotheque-chromium.test.js",
+        "sha256": "c8800802fb0eed0f53368bdd739e80db6415993c96a0218c5253695f3bddc2f6"
+      },
+      {
+        "file": "test/exploitation-console-bibliotheque.test.js",
+        "sha256": "c67938264722faa6dcd9f3e2ac772ca6cff21ee4c7c75e7ab714b4ce2aa1c76d"
+      },
+      {
+        "file": "test/exploitation-console-pages-chromium.test.js",
+        "sha256": "6de7d3d2e5cf081fd54344f17560d5fc88477fa6f1040ed7a9a1d8de51bd1802"
+      },
+      {
+        "file": "test/exploitation-console-pages.test.js",
+        "sha256": "1d4c925a769f431d76b9d5985bf80ae80ff82c73587f5edfa4e256504ab50b8f"
+      },
+      {
+        "file": "test/exploitation-console-parcours.test.js",
+        "sha256": "6ca2132c391e54554b393294c6e8cf1e2bc3f7050048a980208a42ce3459ac89"
+      },
+      {
+        "file": "test/exploitation-console-serveur-configuration.test.js",
+        "sha256": "6985500f26406cff626dbcd933d9318bf73426115ff7b8d236224750aaddbd68"
+      },
+      {
+        "file": "test/exploitation-console-serveur-http.test.js",
+        "sha256": "9e6f092ac8bd9cec85ddbe6c4b31de9fd8caafc10b1346addacbefe4b1e476a6"
+      },
+      {
+        "file": "test/exploitation-console-serveur-oidc.test.js",
+        "sha256": "cb7df1714b63b22f9794a7a7ef8ffad4bb08072ef0bccd8c24b832cfd9a242e2"
+      },
+      {
         "file": "test/exploitation.test.js",
         "sha256": "cdbfeca935d8474683b11480ad0c91e2e9185b000dc15e3a05147e84c106be1c"
       },
@@ -437,6 +497,22 @@
       {
         "file": "test/horodatage.test.js",
         "sha256": "0afda006be41a36a44b0c45b9866534fcdcd3fcacad5a47e9c8052796ef79c76"
+      },
+      {
+        "file": "test/inscription-agent.test.js",
+        "sha256": "89641b4a326068e9e4ba90811409f89ba89ab2b8affc65f3401c4ee7a62bed73"
+      },
+      {
+        "file": "test/inscription-application.test.js",
+        "sha256": "17482876be091b67519adcb4dfabd86ffdffc8c47512acef06cae3457119b4fb"
+      },
+      {
+        "file": "test/inscription-paquet.test.js",
+        "sha256": "f64f95b41436e58c7e2e23ea6dbc46bd878f02e9d01d2b21cc8ac5e0208d993e"
+      },
+      {
+        "file": "test/inscription-reseau.test.js",
+        "sha256": "b25ad373024c80a63743ddf36e742769b47976542d94281e829bb748abce64fd"
       },
       {
         "file": "test/journal.test.js",
@@ -472,7 +548,7 @@
       },
       {
         "file": "test/plan-de-tests.test.js",
-        "sha256": "e5f08e79e2cc7b38183d0ced0bbbb737969201c67bae723bd5ac6427019147bf"
+        "sha256": "cfd00c6bcc19fe44ce653a46a34df38886394243ab45eaebca0c8ac8287c22a4"
       },
       {
         "file": "test/recorderRegistry.test.js",
@@ -481,6 +557,10 @@
       {
         "file": "test/registre-dev.test.js",
         "sha256": "3216b6c489eb6f16fc16e14ad4963acb900d7f1c7c44d2ec6023059f89c13d67"
+      },
+      {
+        "file": "test/registre-paquet-client.test.js",
+        "sha256": "e296956a6d34069059dca4589c37563512ff599c83d85f98cbc123e6f3bb0815"
       },
       {
         "file": "test/registre.test.js",
@@ -501,12 +581,28 @@
       {
         "file": "test/verificateur.test.js",
         "sha256": "1af9ceda916aecd4ba7a0e66819b3c4908ab28df4e59aed7b3d52ad68e6d522a"
+      },
+      {
+        "file": "test/verification-page-chromium.test.js",
+        "sha256": "4c36afd842d30fb1e324d4bf16974cc70c53fb5b44bab00c78c1023038318ee5"
+      },
+      {
+        "file": "test/verification-page-construction.test.js",
+        "sha256": "44703441931272682b19a45de959172ac64eaceda2146fbd4bbfb9dea0f8d352"
+      },
+      {
+        "file": "test/verification-page-identite.test.js",
+        "sha256": "6726053727988def4f3359349111d29e5b62e20ff0091cda0dc0afc415c321bc"
+      },
+      {
+        "file": "test/verification-page-sources.test.js",
+        "sha256": "9e90d531107d35d7240f81baab95d5bf1d5d4da092714b5fb735a11c567d98ba"
       }
     ]
   },
   "identifiers": {
-    "total": 2416,
-    "covered_by_tests": 2270,
+    "total": 2421,
+    "covered_by_tests": 2275,
     "covered_by_nc": 146,
     "uncovered": 0,
     "unknown_cited": [],
@@ -531,8 +627,8 @@
       },
       {
         "spec": "CT-2",
-        "total": 342,
-        "covered_by_tests": 342,
+        "total": 343,
+        "covered_by_tests": 343,
         "covered_by_nc": 0,
         "uncovered": 0,
         "uncovered_ids": [],
@@ -549,7 +645,7 @@
           "EX-12": 41,
           "EX-13": 10,
           "EX-14": 18,
-          "EX-15": 14,
+          "EX-15": 15,
           "EX-16": 6,
           "EX-17": 8,
           "EX-18": 9,
@@ -560,8 +656,8 @@
       },
       {
         "spec": "CT-3",
-        "total": 275,
-        "covered_by_tests": 275,
+        "total": 277,
+        "covered_by_tests": 277,
         "covered_by_nc": 0,
         "uncovered": 0,
         "uncovered_ids": [],
@@ -573,9 +669,9 @@
           "EX-7": 30,
           "EX-8": 11,
           "EX-9": 22,
-          "EX-10": 13,
+          "EX-10": 14,
           "EX-11": 15,
-          "EX-12": 21,
+          "EX-12": 22,
           "EX-13": 49,
           "EX-14": 2,
           "EX-A": 19,
@@ -588,8 +684,8 @@
       },
       {
         "spec": "CT-4",
-        "total": 192,
-        "covered_by_tests": 185,
+        "total": 194,
+        "covered_by_tests": 187,
         "covered_by_nc": 7,
         "uncovered": 0,
         "uncovered_ids": [],
@@ -598,7 +694,7 @@
           "EX-4": 28,
           "EX-5": 12,
           "EX-6": 23,
-          "EX-7": 28,
+          "EX-7": 30,
           "EX-8": 21,
           "EX-9": 14,
           "EX-10": 9,
@@ -760,8 +856,8 @@
     "orphans": []
   },
   "executable": {
-    "total": 224,
-    "titles_checked": 490,
+    "total": 240,
+    "titles_checked": 550,
     "titles_missing": []
   },
   "text_tables": {

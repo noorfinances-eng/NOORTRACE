@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title data-libelle="titre">{{titre}}</title>
+<link rel="stylesheet" href="page.css" integrity="{{INTEGRITE_PAGE_CSS}}" crossorigin="anonymous">
+</head>
+<body>
+<header>
+<h1 data-libelle="titre">{{titre}}</h1>
+<button type="button" id="autre-langue" lang="en" data-libelle="autre_langue">{{autre_langue}}</button>
+</header>
+<main>
+<section id="confiance" aria-labelledby="phrase-fixe">
+<p id="phrase-fixe" data-libelle="phrase_fixe">{{phrase_fixe}}</p>
+<p id="artefact" role="status">{{artefact_chargement}}</p>
+</section>
+<div id="formulaire">
+<fieldset id="choix-dossier">
+<legend data-libelle="titre_dossier">{{titre_dossier}}</legend>
+<p>
+<button type="button" id="choisir-repertoire" data-libelle="choisir_repertoire">{{choisir_repertoire}}</button>
+<input type="file" id="entree-repertoire" hidden webkitdirectory multiple>
+<button type="button" id="choisir-archive" data-libelle="choisir_archive">{{choisir_archive}}</button>
+<input type="file" id="entree-archive" hidden accept=".zip,.tar,.tar.gz,.tgz">
+</p>
+<p data-libelle="deposer">{{deposer}}</p>
+<p id="dossier-choisi">{{aucun_dossier}}</p>
+</fieldset>
+<fieldset>
+<legend data-libelle="titre_entrees">{{titre_entrees}}</legend>
+<p>
+<label for="entree-ancres" data-libelle="choisir_ancres">{{choisir_ancres}}</label>
+<input type="file" id="entree-ancres">
+<button type="button" id="retirer-ancres" data-libelle="retirer">{{retirer}}</button>
+</p>
+<p>
+<label for="entree-entetes" data-libelle="choisir_entetes">{{choisir_entetes}}</label>
+<input type="file" id="entree-entetes">
+<button type="button" id="retirer-entetes" data-libelle="retirer">{{retirer}}</button>
+</p>
+</fieldset>
+<fieldset>
+<legend data-libelle="titre_options">{{titre_options}}</legend>
+<fieldset id="exiger">
+<legend data-libelle="exiger">{{exiger}}</legend>
+<label><input type="checkbox" name="exiger" value="1"> 1</label>
+<label><input type="checkbox" name="exiger" value="2"> 2</label>
+<label><input type="checkbox" name="exiger" value="3"> 3</label>
+<label><input type="checkbox" name="exiger" value="4"> 4</label>
+<label><input type="checkbox" name="exiger" value="5"> 5</label>
+<label><input type="checkbox" name="exiger" value="6"> 6</label>
+<label><input type="checkbox" name="exiger" value="7"> 7</label>
+<label><input type="checkbox" name="exiger" value="8"> 8</label>
+<label><input type="checkbox" id="exiger-tous" value="tous"> <span data-libelle="exiger_tous">{{exiger_tous}}</span></label>
+</fieldset>
+<p>
+<label for="langue-rapport" data-libelle="langue_rapport">{{langue_rapport}}</label>
+<select id="langue-rapport">
+<option value="fr" data-libelle="langue_fr">{{langue_fr}}</option>
+<option value="en" data-libelle="langue_en">{{langue_en}}</option>
+</select>
+</p>
+<p><label><input type="checkbox" id="detail"> <span data-libelle="detail">{{detail}}</span></label></p>
+</fieldset>
+<p><button type="button" id="verifier" disabled data-libelle="verifier">{{verifier}}</button></p>
+</div>
+<section id="resultat" aria-live="polite" hidden>
+<h2 data-libelle="titre_resultat">{{titre_resultat}}</h2>
+<div id="resultat-contenu"></div>
+</section>
+</main>
+<script src="verificateur-wasm.js" integrity="{{INTEGRITE_VERIFICATEUR_WASM_JS}}" crossorigin="anonymous"></script>
+<script src="page.js" integrity="{{INTEGRITE_PAGE_JS}}" crossorigin="anonymous"></script>
+</body>
+</html>

@@ -771,7 +771,7 @@ export const SCHEMA_OPERATIONS_REGISTRE = Object.freeze({
         "error",
         "outputs"
       ],
-      "description": "Sortie standard, en JSON, d'une commande de scripts/registre/noortrace-registre.mjs (7.2).",
+      "description": "Sortie standard, en JSON, d'une commande de scripts/registre/noortrace-registre.mjs (7.2). Révision 0.7 de CT-4 : commande paquet-client (production et contrôle du paquet client, EX-7.30) et ses codes dossier_inacheve, paquet_manifeste à paquet_captures (points 1 à 6 d'EX-7.22) et secret_present (EX-7.21).",
       "properties": {
         "version": {
           "const": 0
@@ -794,7 +794,8 @@ export const SCHEMA_OPERATIONS_REGISTRE = Object.freeze({
             "capturer",
             "exporter",
             "verifier",
-            "publier-jeu"
+            "publier-jeu",
+            "paquet-client"
           ]
         },
         "result": {
@@ -880,7 +881,15 @@ export const SCHEMA_OPERATIONS_REGISTRE = Object.freeze({
                     "capture_incomplete",
                     "cle_invalide",
                     "demande_existante",
-                    "demande_expiree"
+                    "demande_expiree",
+                    "dossier_inacheve",
+                    "paquet_manifeste",
+                    "paquet_fichiers",
+                    "paquet_forme",
+                    "paquet_organisation",
+                    "paquet_jeu",
+                    "paquet_captures",
+                    "secret_present"
                   ]
                 },
                 "check": {

@@ -401,7 +401,7 @@ export class ComposantAncrage {
       const demandes = this.planificateur ? [...this.planificateur.demandes.values()] : [];
       const hashesDemandes = new Set(demandes.filter((d) => !["obtenue", "complete", "sans_objet", "refusee", "remplacee"].includes(d.state)).map((d) => d.subject.hash));
       const periodesCloses = new Set(demandes.filter((d) => d.subject.kind === "periode").map((d) => d.subject.period_start));
-      const sortesPeriode = ["ancre_registre_periode", "jeton_periode", ...(this.configuration.opentimestamps.enabled ? ["ots_periode"] : [])];
+      const sortesPeriode = [...(this.envoyeur ? ["ancre_registre_periode"] : []), "jeton_periode", ...(this.configuration.opentimestamps.enabled ? ["ots_periode"] : [])];
       const finales = new Set(["obtenue", "complete", "sans_objet", "refusee", "remplacee"]);
       const manifestes = (await this.contexte.listerPeriodes?.()) ?? [];
       for (const m of manifestes) {

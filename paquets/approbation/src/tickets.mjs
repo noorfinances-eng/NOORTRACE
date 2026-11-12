@@ -141,6 +141,13 @@ export class Machine {
     this.fenetres = [];
     /** @type {Map<string, string>} clé de rapprochement → ticket actif */
     this.cles = new Map();
+    /**
+     * Intention de la requête `evaluer` de chaque ticket actif (CT-3 EX-7.24,
+     * révision 0.6) : hors du document `ticket-v0`, qui ne la porte pas ;
+     * persistée avec les arguments en clair et effacée avec eux.
+     * @type {Map<string, string|null>}
+     */
+    this.intentions = new Map();
     this.dernierAt = null;
     this.#reinitModifs();
     /** Remises calculées pendant l'entrée en cours, dans l'ordre (annexe A.6). */
@@ -296,6 +303,7 @@ export class Machine {
 
   /** Efface les arguments en clair d'un ticket terminé (EX-7.24). */
   #effacer(t) {
+    this.intentions.delete(t.ticket);
     t.request.arguments = null;
     t.request.retained_event = null;
     t.request.arguments_piece = null;
@@ -416,6 +424,8 @@ export class Machine {
         const etape = this.escalation[t.escalations];
         t.escalations += 1;
         this.#inscrire(t, at, "escalade", t.state, t.state, true, null, { notify: etape.notify });
+        // EX-7.13, EX-13.40 : cause de la notification `escalade` ; le service en forme
+        // le document après la persistance (membres éligibles sans vote courant à cet instant)
         const votants = new Set(t.votes.filter((v) => v.status === "courant").map((v) => v.approver));
         this.evenement("notification", {
           kind: "escalade",
@@ -424,7 +434,6 @@ export class Machine {
           deadline: t.deadline,
           notify: etape.notify,
           approvers: etape.notify === "jeu" ? t.eligible.filter((a) => !votants.has(a)) : [],
-          requester: etape.notify === "demandeur" ? t.request.delegation.launched_by : null,
         });
         break;
       }
@@ -562,6 +571,7 @@ export class Machine {
       transitions: [],
     };
     this.tickets.set(t.ticket, t);
+    this.intentions.set(t.ticket, d.intent ?? null);
     this.#inscrire(t, at, "evaluer", null, "reserve", true, null, null);
     if (sep.self_approval === "interdite" && !id) {
       // EX-10.5 : séparation vide pour ce demandeur, signalée à la création
@@ -654,13 +664,12 @@ export class Machine {
     }
     if (donnees) this.#inscrire(t, at, "jeu_lu", t.state, t.state, true, null, { ...donnees, added_members: ajoutes });
     else this.modifs.tickets.add(t.ticket);
-    if (!avant) {
-      // EX-7.12 : notification des membres éligibles du jeu figé, sans les arguments
-      this.evenement("notification", {
-        kind: "ouverture", ticket: t.ticket, tool: t.request.tool_announced, deadline: t.deadline, approvers: [...t.eligible],
-      });
-    }
-    if (ajoutes.length) this.evenement("notification", { kind: "membres_ajoutes", ticket: t.ticket, added_members: ajoutes, approvers: [...t.eligible] });
+    // EX-7.12, EX-8.6, EX-13.40 : causes des notifications `ouverture` (premier gel) et
+    // `nouveau_gel` (gel qui change le jeu figé), aux membres éligibles après le gel ;
+    // le service en forme le document après la persistance, sans les arguments
+    const cause = { ticket: t.ticket, tool: t.request.tool_announced, deadline: t.deadline, approvers: [...t.eligible] };
+    if (!avant) this.evenement("notification", { kind: "ouverture", ...cause });
+    else this.evenement("notification", { kind: "nouveau_gel", ...cause, added_members: ajoutes });
     if (t.eligible.length < t.effective_required && (eligAvant >= t.effective_required || !avant)) {
       this.evenement("seuil_inatteignable", { ticket: t.ticket, eligible: t.eligible.length, effective_required: t.effective_required });
     }
@@ -1123,9 +1132,31 @@ export class Machine {
     };
   }
 
-  /** Documents persistés : état général, tickets (`ticket-v0`), fenêtres. */
+  /**
+   * Intention de la requête `evaluer` d'un ticket (`request.intent` de la vue,
+   * EX-12.14), telle que le noyau l'a envoyée ; null après l'effacement des
+   * arguments (EX-7.24) ou pour un ticket inconnu.
+   * @param {string} id
+   */
+  intention(id) {
+    return this.intentions.get(id) ?? null;
+  }
+
+  /**
+   * Ticket tel qu'il est persisté : le document `ticket-v0` et, tant que le
+   * ticket a ses arguments, l'intention de sa requête dans `request.intent`,
+   * que le magasin sépare avec les arguments (EX-7.24, EX-7.30).
+   * @param {object} t
+   */
+  ticketPersiste(t) {
+    const c = cloner(t);
+    if (this.intentions.has(t.ticket)) c.request.intent = this.intentions.get(t.ticket);
+    return c;
+  }
+
+  /** Documents persistés : état général, tickets (`ticket-v0`, intention comprise), fenêtres. */
   exporter() {
-    return { meta: this.meta(), versions: this.versionsChargees(), tickets: [...this.tickets.values()].map(cloner), fenetres: this.copieFenetres() };
+    return { meta: this.meta(), versions: this.versionsChargees(), tickets: [...this.tickets.values()].map((t) => this.ticketPersiste(t)), fenetres: this.copieFenetres() };
   }
 
   /**
@@ -1145,7 +1176,15 @@ export class Machine {
       m.dernierAt = meta.dernier_at ? T(meta.dernier_at) : null;
     }
     for (const v of docs.versions ?? []) m.versions.set(v.policy_version, cloner(v));
-    for (const t of docs.tickets ?? []) m.tickets.set(t.ticket, cloner(t));
+    for (const d of docs.tickets ?? []) {
+      const t = cloner(d);
+      // intention persistée avec les arguments (EX-7.24) : hors du document ticket-v0
+      if (Object.prototype.hasOwnProperty.call(t.request, "intent")) {
+        if (t.request.arguments !== null) m.intentions.set(t.ticket, t.request.intent);
+        delete t.request.intent;
+      }
+      m.tickets.set(t.ticket, t);
+    }
     m.fenetres = trierFenetres(cloner(docs.fenetres ?? []));
     for (const t of m.tickets.values()) {
       if (!m.#actif(t) || t.request.arguments === null) continue;

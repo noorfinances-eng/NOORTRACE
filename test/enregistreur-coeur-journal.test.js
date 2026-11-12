@@ -39,6 +39,14 @@ function construireVerificateur(dir) {
   return sortie;
 }
 
+
+/** Attend, 30 s au plus, que le service factice ait reçu `ouvrir` du ticket (CT-2 EX-7.18), puis l'affirme. */
+async function ouvertParLeService(service, ticket) {
+  const limite = Date.now() + 30000;
+  while (!service.tickets.get(ticket)?.request && Date.now() < limite) await new Promise((r) => setTimeout(r, 5));
+  expect(service.tickets.get(ticket)?.request, "ouvrir reçu par le service dans les 30 s").to.not.equal(undefined);
+}
+
 describe("enregistreur, cœur : journal produit, vérifié par le noyau et par le binaire Go", function () {
   this.timeout(120000);
   let dir;
@@ -133,7 +141,9 @@ describe("enregistreur, cœur : journal produit, vérifié par le noyau et par l
     ev.refus = (await appel("sap__claims.delete", "claims.delete", "ecriture", { claim_id: "2026-81044" }, "2026-11-10T10:15:20.000Z")).refus;
     const r1 = await appel("sap__payments.create", "payments.create", "ecriture", { claim_id: "2026-81044", amount: "7400.00", currency: "CHF" }, "2026-11-10T10:15:30.000Z");
     ev.retenue = r1.retenue.evenement;
-    await new Promise((r) => setTimeout(r, 50));
+    // `ouvrir` part sans être attendu (CT-2 EX-7.18) : attente de son arrivée au
+    // service (condition observée, bornée), et non d'un délai fixe.
+    await ouvertParLeService(service, r1.reponse.ticket);
     horloge.aller(ms("2026-11-10T10:16:00.300Z"));
     await coeur.tic();
     // Ré-émission pendant l'attente : aucun événement.

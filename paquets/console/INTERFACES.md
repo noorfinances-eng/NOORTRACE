@@ -1,4 +1,4 @@
-# Interfaces de la console d'exploitation (CT-3 §13, révision 0.5)
+# Interfaces de la console d'exploitation (CT-3 §13, révision 0.6)
 
 Ce document est le contrat de l'étape 6 pour le paquet `@noortrace/console` :
 la bibliothèque de la console (section 1), le serveur de console (section 2)
@@ -14,8 +14,16 @@ La console de référence de CT-3 13.15 (`console/`, `scripts/lib/console.mjs`)
 n'est ni lue ni importée : ce paquet en satisfait les exigences (EX-13.31 à
 EX-13.36), il n'en reprend pas le code. Les modules de curators-hub que CT-3
 13.1 dit « repris » (jeton de session signé, garde d'hôte, thème, libellés)
-le sont comme patrons ; aucun fichier n'est recopié de noorchain-core à ce
-jour, et toute recopie future est inscrite dans `LISEZMOI.md`.
+le sont comme patrons ; aucun fichier n'est recopié de noorchain-core (les
+`LISEZMOI.md` des trois parties le constatent à la livraison), et toute
+recopie future est inscrite dans `LISEZMOI.md`.
+
+**État : livré (étape 6).** Les trois parties sont écrites et éprouvées ; les
+décisions de l'assemblage de l'étape 6, prises avec la révision 0.6 de CT-3,
+sont versées au corps de ce contrat aux endroits qu'elles touchent (« révision
+0.6 » ou « assemblage »). Les lectures propres à chaque partie, quand le
+texte laissait un choix, sont dans `src/bibliotheque/LISEZMOI.md`,
+`src/serveur/LISEZMOI.md` et `src/pages/LISEZMOI.md`.
 
 Décisions du porteur qui fondent ce contrat : serveur Node (`node:http`,
 `node:https`) sans cadriciel et pages statiques à intégrité ; parcours de
@@ -71,6 +79,10 @@ dépendances à version exacte :
 | `@noble/curves` | 2.4.0 | bibliothèque | recouvrement secp256k1 (EIP-191) ; déjà dans l'arbre ; licence MIT. La racine du dépôt porte `@noble/curves` 1.9.0 (dépendance d'outils de développement) : sans cette déclaration, Node résoudrait la bibliothèque contre la 1.9.0, et la page contre une autre version que celle des essais |
 | `@noortrace/approbation` | 0.1.0 (espace de travail) | serveur seulement | `RegistreSchemas` et `lireJsonStrict`, existants et stables (2.3) |
 
+Constaté à la livraison : le paquet n'importe rien d'autre que `node:*`, ces
+trois dépendances (de `@noble/hashes`, `sha2.js` et `sha3.js` ; de
+`@noble/curves`, `secp256k1.js`) et lui-même.
+
 Le serveur n'a aucune dépendance tierce : `node:crypto` vérifie RS256
 (`RSA-SHA256`, PKCS #1 v1.5), PS256 (`RSA-PSS`, sel de 32 octets, SHA-256)
 et ES256 (`dsaEncoding: "ieee-p1363"`, les 64 octets `R ‖ S` d'EX-13.46),
@@ -122,7 +134,8 @@ importe `@noortrace/approbation`, et seulement `RegistreSchemas` et
   `$defs/code_erreur_annuaire` d'`annuaire-approbateurs-v0`, ou
   `identite_invalide`) et de membre `detail` (texte ASCII, sans valeur
   secrète). Une erreur de programmation (paramètre d'un autre type) lève
-  `TypeError`.
+  `TypeError`, de même que les erreurs que la bibliothèque ne nomme pas
+  (valeur que `jcs` ne sait pas écrire, instant mal formé ; assemblage).
 - Aléa : seulement `globalThis.crypto.getRandomValues`, présent sous Node 22
   et dans Chromium ; jamais `Math.random`.
 
@@ -193,13 +206,13 @@ Livré en premier, avant le reste de la bibliothèque.
 | `analyserMessageInscription(texte)` | chaîne | `$defs/champs_inscription` | lève `message_invalide` | EX-13.12 |
 | `controleDefi(reponse, attendu)` | `$defs/reponse_preparer_inscription` ; `{ origine, identite, adresse }` (origine de la page, identité de la session, adresse choisie) | `null`, ou le premier de `message_invalide`, `origine_differente`, `identite_differente`, `adresse_differente`, dans cet ordre | — | EX-13.13 (côté console) |
 | `verifierInscription(annuaire, defis, requete, recuA, options?)` | document ; tableau de `$defs/defi` ; corps d'`inscrire` ; instant de réception ; `{ identifiant: "aleatoire" \| "compteur" }`, défaut `aleatoire` | `{ accepted, reason, entry, signature, defis }` : `defis` est un nouveau tableau, état après le pas 4 d'EX-13.15 (défi présenté marqué `used`, quel que soit le sort) ; `entry` est l'entrée qui reçoit l'adresse, existante ou à créer, ou `null` ; `signature`, la forme normalisée gardée dans la preuve, ou `null` | dans `reason`, la première raison d'EX-13.15, pas 1 à 13 | EX-13.15, EX-9.3 |
-| `appliquerOperation(annuaire, methode, requete, at, options?)` | document ; `preparer_inscription`, `inscrire`, `valider`, `revoquer`, `desactiver`, `reactiver`, `lier_demandeur` ou `delier_demandeur` ; corps de la méthode ; instant (horloge du service) ; `{ defis, nonce, identifiant }` (`defis` défaut `[]` ; `nonce` : celui que tire `preparer_inscription`, 32 chiffres hexadécimaux minuscules, tiré au hasard s'il est absent ; `identifiant` comme ci-dessus) | `{ annuaire, defis, accepted, reason, response }` : le nouvel annuaire (le même objet si refus), les défis après l'opération (défi ajouté ou remplacé ; défi présenté ; défis de l'identité effacés par `desactiver`), la réponse de la méthode (`$defs/reponse_preparer_inscription`, `reponse_adresse` ou `reponse_entree`) ou `null` | dans `reason`, la première raison de la méthode, forme et identité d'abord | EX-13.13, EX-13.15, EX-13.17, EX-13.10, EX-12.17 |
+| `appliquerOperation(annuaire, methode, requete, at, options?)` | document ; `preparer_inscription`, `inscrire`, `valider`, `revoquer`, `desactiver`, `reactiver`, `lier_demandeur` ou `delier_demandeur` ; corps de la méthode ; instant (horloge du service) ; `{ defis, nonce, identifiant }` (`defis` défaut `[]` ; `nonce` : celui que tire `preparer_inscription`, 32 chiffres hexadécimaux minuscules, tiré au hasard s'il est absent ; `identifiant` comme ci-dessus) | `{ annuaire, defis, accepted, reason, response }` : le nouvel annuaire (le même objet si refus), les défis après l'opération (défi ajouté ou remplacé ; défi présenté ; défis de l'identité effacés par `desactiver`), la réponse de la méthode (`$defs/reponse_preparer_inscription`, `reponse_adresse` ou `reponse_entree`) ou `null` | dans `reason`, la première raison de la méthode, forme et identité d'abord ; révision 0.6 : `limite_annuaire`, vérifiée en dernier, pour `inscrire` (65ᵉ adresse d'une entrée, tous états, ou 10 001ᵉ entrée ; défi présenté marqué comme pour tout refus à partir du pas 4) et `lier_demandeur` (65ᵉ alias) : une opération acceptée ne rend jamais un annuaire non conforme | EX-13.13, EX-13.15, EX-13.17, EX-13.10, EX-12.17 |
 | `defisNonExpires(defis, at)` | tableau de `$defs/defi`, instant | les défis dont `expires_at` est postérieur à `at` | — | EX-13.38 (défis persistés) |
 | `recopierAdministrateurs(annuaire, administrateurs, at)` | document, liste du réglage, instant | `{ annuaire, changed }` : l'opération `changer_administrateurs` (`by` `configuration`, `administrators` `{ before, after }`) si la liste diffère, comme liste, de la copie ; l'annuaire inchangé sinon | lève `identite_invalide` pour une liste hors de la forme d'EX-13.9 | EX-13.37 |
 | `controleVote(annuaire, session, action, adresse, ticket)` | document ; identité de session ; `voter` ou `recuser` ; adresse choisie (comparée en minuscules) ; `{ launched_by, self_approval, policy_requester_addresses, directory_requester_addresses, members }` (forme du `ticket` de `$defs/fichier_controles_vote`, `members` nul avant le gel) | `{ allowed, reason, warnings }`, `warnings` portant `separation_incomplete` et ses adresses | dans `reason`, la première condition d'EX-13.18, conditions 1 à 6 (1 à 5 pour `recuser`) | EX-13.18 |
 | `ticketDeControleVote(vue)` | `$defs/vue_ticket` | l'objet `ticket` de `controleVote`, tiré de la vue (`request.delegation.launched_by`, `separation`, `approver_set`) | — | EX-13.18, EX-12.15 |
-| `actionRetrait(annuaire, session, ticket)` | document ; identité ; `{ launched_by }` | le `by` d'un retrait que la console peut envoyer, ou `null` | — | EX-13.18, EX-7.15 |
-| `controleCanal(annuaire, methode, requete, ticket)` | document ; `tickets`, `consulter`, `voter`, `recuser` ou `retirer` ; corps ; `{ launched_by, eligible }` ou `null` (ticket inconnu dans l'organisation, et toujours pour `tickets`) | `null`, ou `identite_invalide`, `session_non_autorisee`, `ticket_inconnu` | la première, dans l'ordre d'EX-12.14 et d'EX-12.19 | EX-12.13, EX-12.14, EX-12.16, EX-12.19 |
+| `actionRetrait(annuaire, session, ticket)` | document ; identité ; `{ launched_by }` | le `by` d'un retrait que la console peut envoyer, ou `null` ; l'entrée de la session doit être **active**, comme EX-12.19 l'exige du service (révision 0.6) | — | EX-13.18, EX-7.15 |
+| `controleCanal(annuaire, methode, requete, ticket)` | document ; `tickets`, `consulter`, `voter`, `recuser` ou `retirer` ; corps ; `{ launched_by, eligible }` ou `null` (ticket inconnu dans l'organisation, et toujours pour `tickets`) | `null`, ou `requete_invalide` (forme de la requête, contrôlée d'abord : 1.2, EX-12.13 ; assemblage), `identite_invalide`, `session_non_autorisee`, `ticket_inconnu` | la première, dans l'ordre d'EX-12.14 et d'EX-12.19 | EX-12.13, EX-12.14, EX-12.16, EX-12.19 |
 | `verifierAnnuaireExporte(document, options?)` | document ; `{ conforme }`, fonction `(document) → booléen`, contrôle du schéma `annuaire-approbateurs-v0` par l'appelant | la liste complète des écarts `{ code, pointer }`, triée par pointeur puis par code (unités UTF-16) ; `[{ "code": "schema", "pointer": null }]` pour un document non conforme | — | EX-13.19, EX-13.37 |
 
 Précisions :
@@ -260,7 +273,7 @@ réexporter les fonctions de ce module ; il n'exporte plus de prédicat nommé
 | `empreinte(x)`, `groupes(x)` | `"0x"` et 64 chiffres | 8 chiffres, U+2026, 8 chiffres ; 8 groupes de 8 séparés par une espace | EX-9.18 |
 | `modeleAffichage(vue, contexte)` | `$defs/vue_ticket` ; `{ session: { session_identity, entry, addresses, is_requester }, decision, approver, reason, now }` (l'`input` de `$defs/cas_modele` sans `view`) | `$defs/modele_affichage`, `blocking` complet et ordonné selon EX-9.15 et ses sauts | EX-9.4, EX-9.6, EX-9.15 à EX-9.19, EX-12.14 |
 | `sessionDuModele(annuaire, identite, vue)` | document ; identité ; vue | l'objet `session` du contexte : `entry` `absente`, `active` ou `desactivee`, `addresses` l'adresse active (ou vide), `is_requester` | EX-9.15 (9, 12) |
-| `requeteVoter(vue, decision, signature, adresse, motif, session)` | vue du ticket signé ; décision ; signature normalisée ; adresse ; motif ou `null` ; identité de session | le corps exact de `voter` (`$defs/requete_voter`) | EX-9.21, EX-12.16 |
+| `requeteVoter(vue, decision, signature, adresse, motif, session)` | vue du ticket signé ; décision ; signature normalisée ; adresse ; motif ou `null` ; identité de session | le corps exact de `voter` (`$defs/requete_voter`), dont `ticket` est `vue.ticket` (égal à `policy.ticket` d'une vue signable ; assemblage) | EX-9.21, EX-12.16 |
 | `decouvrir(annonces)` | tableau d'`{ info, provider }` dans l'ordre d'arrivée (`provider` comparé par identité, `===`) | `{ providers, rejected }` de `$defs/cas_decouverte`, chaque fournisseur avec `uuid`, `name`, `icon`, `rdns`, `provider` | EX-13.22, points 2 et 3 |
 | `Decouverte` | `new Decouverte(cible)`, `cible` un `EventTarget` (`window` dans la page) | `lancer()` pose l'écouteur de `eip6963:announceProvider` puis émet `eip6963:requestProvider` ; `fournisseurs` (liste courante, ordre des premières annonces, aucun choix) ; `ecartees` ; `surChangement(fonction)` ; aucun minuteur (le délai de 1 000 ms est celui de la page) ; l'écouteur n'est jamais retiré | EX-13.22 |
 | `METHODES_CANAL` | — | les quatorze méthodes de la table d'EX-12.13 (`tickets`, `consulter`, `voter`, `recuser`, `retirer`, `annuaire`, `preparer_inscription`, `inscrire`, `valider`, `revoquer`, `desactiver`, `reactiver`, `lier_demandeur`, `delier_demandeur`) | EX-12.13 |
@@ -299,18 +312,21 @@ inventoriés et mis en attente par les essais, avec cette raison.
 ```text
 noortrace-console --config <fichier>                  sert la console (EX-10.13)
 noortrace-console valider-configuration <fichier>     rapport d'EX-10.13, codes 0, 1, 2
-noortrace-console sonde [--config <fichier>]          sonde d'EX-13.44 (défaut /etc/noortrace-console/configuration.json), codes 0 et 1
+noortrace-console sonde [--config <fichier>]          sonde d'EX-13.44 (défaut /etc/noortrace-console/configuration.json), codes 0 et 1, usage incorrect compris
 noortrace-console --version                           nom et version du paquet
 ```
 
 `--config` se donne comme argument distinct (`--config <fichier>`). Au
 démarrage, le serveur valide la configuration (mêmes règles que
 `valider-configuration` ; refus : code 1 et le rapport sur la sortie
-d'erreur, avant toute écoute), résout ses références, vérifie le manifeste
+d'erreur, avant toute écoute), résout ses références (refus : code 1 et une
+ligne `$defs/rapport_validation` d'EX-10.14 sur la sortie d'erreur, 2.3),
+vérifie le manifeste
 des pages (2.12), lit la découverte OIDC (EX-13.45, point 1, sans en faire
 dépendre le démarrage), puis écoute et écrit sur la sortie standard une
 ligne `{"pret":true,"pid":<n>,"ecoute":{"host":<h>,"port":<p>}}`. SIGTERM et
-SIGINT l'arrêtent proprement. Usage incorrect : code 2.
+SIGINT l'arrêtent proprement. Usage incorrect : code 2, sauf pour `sonde`,
+qui rend 1 (EX-13.44 : aucune autre valeur ; révision 0.6).
 
 ### 2.2 Interface programmatique (`@noortrace/console/serveur`)
 
@@ -322,8 +338,8 @@ const srv = await demarrerServeur({
   config,                // document validé (configuration-console-v0)
   base,                  // répertoire du fichier de configuration (références relatives)
   horloge,               // facultatif : () => millisecondes depuis l'époque (essais)
-  agentHttps,            // facultatif : https.Agent pour joindre le fournisseur OIDC et le service (essais)
-  pages,                 // facultatif : répertoire qui porte manifeste.json et ecrans/ (essais ; défaut src/pages/)
+  agentHttps,            // facultatif : https.Agent pour joindre le fournisseur OIDC et le service (essais) ; remplace aussi service.ca
+  pages,                 // facultatif : répertoire qui porte manifeste.json et ecrans/ (essais ; défaut src/pages/) ; racine du paquet : <pages>/../..
 });
 srv.adresse              // { host, port } réellement écoutés
 await srv.arreter();
@@ -336,11 +352,17 @@ await principal(argv);   // ligne de commande ; rend le code de sortie
 Document `configuration-console-v0`, analysé en JSON strict
 (`lireJsonStrict` du service), validé contre les copies embarquées sous
 `schemas/` : `configuration-console-v0`, `configuration-approbation-v0`,
-`annuaire-approbateurs-v0`, `evenement-v0`, `ticket-v0` et
-`console-service-v0`, enregistrées dans un `RegistreSchemas` du service ; un
-essai compare chaque copie à `spec/schemas` octet pour octet. Puis les règles
-d'EX-10.13 (`identite_locale_en_production`, `tls_exige`,
-`authentification_exigee`, `certificat_client_incomplet`). Rapport
+`annuaire-approbateurs-v0`, `evenement-v0`, `ticket-v0`,
+`console-service-v0` et `console-approbation-v0`, que `console-service-v0`
+désigne (sept copies, assemblage), enregistrées dans un `RegistreSchemas` du
+service ; un essai compare chaque copie à `spec/schemas` octet pour octet.
+Puis les règles d'EX-10.13 (`identite_locale_en_production`, `tls_exige`,
+`authentification_exigee`, `certificat_client_incomplet`, et, révision 0.6,
+`origine_port_par_defaut` au pointeur `/console_origin` pour une origine
+`https://…:443` écrite avec son port, et `url_illisible` au pointeur
+`/service/url` pour une adresse qui ne s'analyse pas ou dont le port est hors
+de 1 à 65 535 ; boucle locale écrite exactement : `127.0.0.1`, `::1`,
+`localhost`, en minuscules, comparés avant toute normalisation). Rapport
 `$defs/rapport_validation` : `{ "valide", "errors" }`, erreurs `{ "code",
 "pointer" }`, `json` (seule erreur, pointeur vide) pour un fichier illisible
 ou hors JSON strict, une erreur `schema` au pointeur de chaque membre fautif
@@ -350,18 +372,25 @@ schéma (`reauth_max_age_s` 900, `service_timeout_ms` 10 000,
 `delai_signature_ms` 300 000, `session_max_age_s` 28 800,
 `id_token_signing_alg_values` `["RS256"]`, `cache_s` 3 600, `walletconnect`
 nul). Un `walletconnect` non nul est accepté par la validation mais le
-serveur refuse de démarrer avec lui (code 1, « parcours c non offert par
-cette console ») : le parcours c n'est pas offert.
+serveur refuse de démarrer avec lui : le parcours c n'est pas offert (code 1,
+ligne `parcours_non_offert` au pointeur `/walletconnect`, EX-10.14).
 
 Références de secret (`{ "file" }` relatif au répertoire du fichier de
 configuration, ou `{ "env" }`) : certificat et clé TLS en PEM, le certificat
 du serveur en tête de la chaîne ; `service.token` de 16 à 1 024 caractères
-ASCII imprimables, espaces de tête et de fin retirés ; `service.ca`,
+ASCII imprimables (U+0021 à U+007E : aucune espace intérieure, révision
+0.6), espaces de tête et de fin retirés ; `service.ca`,
 `service.client_cert`, `service.client_key` en PEM ; `identity.client_secret`
 (octets lus, espaces de tête et de fin retirés) ; `identity.accounts`
 conforme à `$defs/fichier_comptes`, noms deux à deux distincts. Une
 référence illisible ou mal formée arrête le démarrage (code 1), en nommant le
-pointeur, jamais la valeur.
+pointeur, jamais la valeur : une ligne `$defs/rapport_validation` sur la
+sortie d'erreur, code `reference_illisible` (révision 0.6, EX-10.14), dont un
+nom de compte local qui formerait avec `identity.domain` une identité de plus
+de 256 caractères (pointeur `/identity/accounts`). Une écoute impossible
+(port occupé, adresse absente) donne de même `ecoute_impossible` au pointeur
+`/listen`. Ces codes ne sont jamais rendus par `valider-configuration` ; une
+cause non nommée (manifeste des pages en écart) est écrite en texte.
 
 ### 2.4 Adresses servies
 
@@ -378,7 +407,7 @@ finale (EX-13.43). `HEAD` est admis partout où `GET` l'est.
 | `GET` | `/connexion` | non | paramètre facultatif `retour` | OIDC : 303 vers `authorization_endpoint` et cookie de transaction (EX-13.45, point 2) ; local : 200, `ecrans/connexion.html` (EX-13.47) | OIDC : page d'erreur (2.6) `fournisseur_indisponible` (502) ou `fournisseur_erreur` (400) |
 | `GET` | `/connexion/retour` | cookie de transaction | paramètres `code`, `state`, `iss` ou `error` | 303 vers `retour`, cookie de session posé, cookie de transaction effacé (EX-13.45, point 5) | page d'erreur : `transaction_inconnue`, `fournisseur_erreur`, `jeton_invalide`, `identite_invalide` (400), `fournisseur_indisponible` (502) ; local : 404 |
 | `POST` | `/connexion/locale` | non | `$defs/requete_connexion_locale` | 204 et cookie de session | 401 `identifiants_refuses` ; 429 `essai_trop_tot` (`data.retry_after_s`, et en-tête `Retry-After`) ; OIDC : 404 `requete_invalide` |
-| `POST` | `/deconnexion` | non (sans effet sans session) | vide, ou `{}` | 204, les deux cookies effacés (EX-13.48, point 6) | — |
+| `POST` | `/deconnexion` | non (sans effet sans session) | vide, ou `{}` | 204, les deux cookies effacés (EX-13.48, point 6) | un autre objet : 400 `requete_invalide` (assemblage) |
 | `POST` | `/v0/session` | oui | `{}` (`$defs/requete_session`) | 200, `$defs/reponse_session` | 401 `session_absente` |
 | `POST` | `/v0/<méthode>` | oui | requête de la méthode (12.9), `session_identity` imposée (2.10) | statut et corps du service, tels quels (2.10) | 401 `session_absente`, 401 `reauthentification_requise` (`data.reauth_max_age_s`), 504 `service_indisponible`, 404 `requete_invalide` (méthode hors de la table d'EX-12.13) |
 | `GET` | `/v0/sante` | non | — | 200, `$defs/reponse_sante` (EX-13.44) | — |
@@ -400,13 +429,21 @@ donnant la réponse :
 3. requête qui annonce un corps (`Content-Length` non nul ou
    `Transfer-Encoding`) dont le type de média n'est pas `application/json`
    (casse ignorée, paramètres ignorés) : 400 `requete_invalide` ;
-4. chemin inconnu : 404 ; méthode HTTP non admise : 405 (2.4) ;
+4. chemin inconnu : 404, y compris `/connexion/locale` sous OIDC et
+   `/connexion/retour` sous le système local, pour toute méthode, avant 405
+   et 413 (assemblage) ; méthode HTTP non admise : 405 (2.4) ;
 5. corps de plus de 65 536 octets (lu jusqu'à 65 537 octets au plus) : 413
    `requete_invalide`, sans relais ;
 6. corps qui n'est pas du JSON strict, ou que `$defs/requete_session`
    (`/v0/session`) ou `$defs/requete_connexion_locale` (`/connexion/locale`)
    refuse, ou corps relayé qui n'est pas un objet : 400 `requete_invalide` ;
+   un corps annoncé sur une route `GET` doit être du JSON strict (400 sinon),
+   sans autre contrôle (assemblage) ;
 7. traitement de la route (session, réauthentification, relais).
+
+Une requête que l'analyseur HTTP de Node refuse avant tout traitement reçoit
+400 `requete_invalide`, et une erreur de programmation 500 sans corps, sous
+les en-têtes de 2.6 (assemblage).
 
 Aucune réponse ne porte d'en-tête `Access-Control-Allow-*` ni de
 `Set-Cookie` autre que les deux cookies d'EX-13.48.
@@ -436,7 +473,8 @@ Une erreur que le serveur rend lui-même a la forme `$defs/erreur` de
 `console-service-v0`, `code` dans `$defs/code_serveur_console`, `message`
 ASCII, sauf sur les navigations `GET /connexion` et `GET
 /connexion/retour`, où elle est une **page d'erreur** HTML produite par le
-serveur, sans script, sous les mêmes en-têtes : un titre, le code en texte
+serveur pour toute erreur d'une requête `GET` ou `HEAD` de ces deux chemins
+(421 et 404 du système local compris ; assemblage), sans script, sous les mêmes en-têtes : un titre, le code en texte
 (échappé), la valeur d'`error` du fournisseur le cas échéant (en texte), et
 un lien vers `/connexion` (EX-13.49, dernier paragraphe).
 
@@ -454,7 +492,9 @@ Max-Age=600`, AES-256-GCM sous `K_t`, données associées
 distinctes, jamais écrites. Une session garde : identité, `auth_time`
 (instant d'authentification), création, échéance, `administrator`, et, pour
 `reauth_max_age_s` = 0, le fait qu'une méthode de la liste d'EX-13.8 a déjà
-été relayée sur cette authentification. Le rôle `administrator` est celui du
+été relayée sur cette authentification — « relayée » dès l'envoi, réponse ou
+non, et de deux envois simultanés un seul passe — et l'exception de
+l'inscription (révision 0.6, 2.10). Le rôle `administrator` est celui du
 dernier annuaire que le service a rendu pour la session : le serveur relaie
 `annuaire` à la création de la session (faute de réponse, `false`) et met le
 rôle à jour à chaque réponse `annuaire` relayée.
@@ -471,9 +511,17 @@ entière par le cookie chiffré ; `tid` consommé à la première présentation
 vérifié par le serveur, jamais par la page, dans l'ordre des neuf points
 d'EX-13.46, tolérance d'horloge 60 s. Lectures et échanges : 10 000 ms au
 plus, 1 048 576 octets au plus, aucune redirection suivie, certificat du
-fournisseur vérifié contre le magasin du système (la configuration n'a pas
-d'autorité propre au fournisseur ; les essais passent la leur par
-`agentHttps` ou `NODE_EXTRA_CA_CERTS`).
+fournisseur vérifié contre le magasin du système, chargé explicitement
+(`tls.getCACertificates("system")`) et non la liste intégrée de Node, comme
+le certificat du webhook du service (CT-3 EX-13.42, EX-13.45). La
+configuration n'a pas d'autorité propre au fournisseur : une autorité
+interne s'installe dans le magasin du système de l'hôte ou du conteneur.
+`NODE_EXTRA_CA_CERTS` n'agit pas sur ce magasin (Node l'ajoute au magasin
+« extra », que le serveur ne lit pas) ; le magasin « system » suit les
+emplacements d'OpenSSL, que `SSL_CERT_FILE` et `SSL_CERT_DIR` désignent. Les
+essais en cours de processus passent leur autorité par `agentHttps` (2.2) ;
+pour le processus `noortrace-console`, par `SSL_CERT_FILE` et un
+`SSL_CERT_DIR` sans autre autorité.
 
 ### 2.9 Système local (hors production)
 
@@ -495,7 +543,8 @@ Le serveur est le seul client du canal de la console (CT-3 12.9, EX-12.4) :
   requête `POST <base>/v0/<méthode>`, `Content-Type: application/json`,
   `Authorization: Bearer <service.token>` si le jeton est déclaré, certificat
   client si `service.client_cert` l'est, certificat du service vérifié contre
-  `service.ca` (sinon le magasin du système) ;
+  `service.ca` (sinon le magasin du système, chargé explicitement comme en
+  2.8) ;
 - méthodes relayées : exactement les quatorze de la table d'EX-12.13
   (`METHODES_CANAL` de la bibliothèque) ; `session` n'est jamais relayée ;
 - **imposition** : le corps reçu de la page, objet JSON strict, est relayé
@@ -505,7 +554,11 @@ Le serveur est le seul client du canal de la console (CT-3 12.9, EX-12.4) :
 - **réauthentification** : avant une méthode de `METHODES_REAUTHENTIFICATION`,
   `auth_time` doit dater de moins de `reauth_max_age_s` secondes ; avec 0,
   l'authentification ne vaut que pour la première méthode de la liste relayée
-  dans les 600 s qui la suivent ; sinon 401 `reauthentification_requise`,
+  dans les 600 s qui la suivent (relayée dès l'envoi) ; révision 0.6 : quand
+  cette méthode est `preparer_inscription`, l'authentification couvre aussi
+  la première `inscrire` relayée ensuite pour la même session dans ces
+  600 s, et elle seule (une inscription compte pour une seule action,
+  EX-13.8) ; sinon 401 `reauthentification_requise`,
   `data.reauth_max_age_s`, sans relais (EX-13.48, point 5) ;
 - **délai** : `service_timeout_ms` (défaut 10 000) depuis l'envoi jusqu'à la
   fin du corps de la réponse ; au-delà, ou service injoignable, ou réponse de
@@ -521,14 +574,18 @@ Le serveur est le seul client du canal de la console (CT-3 12.9, EX-12.4) :
 Exactement EX-13.44 : `GET /v0/sante` sans session ; `service_reachable` par
 `GET <base>/v0/etat` sur le canal de la console, avec ses identifiants, 200
 et corps de la forme d'EX-12.12 dans les 1 000 ms, résultat gardé 5 s ;
-`identity_ready` (OIDC : découverte et clés lues depuis moins de `cache_s` ;
-local : fichier des comptes chargé) ; `ready` ; `checked_at`. La sonde ne lit
+`identity_ready` (OIDC : découverte et clés lues depuis moins de `cache_s`,
+et, révision 0.6, faux pour un document qui annonce des méthodes PKCE sans
+`S256` ou des authentifications sans `client_secret_basic`, puisque chaque
+connexion serait refusée `fournisseur_erreur` ; local : fichier des comptes
+chargé) ; `ready` ; `checked_at`. La sonde ne lit
 de la configuration que `console_origin`, `listen` et `tls.cert`, joint
 `listen.host` (`127.0.0.1` pour `0.0.0.0`, `::1` pour `::`) avec la SNI de
 l'hôte de `console_origin`, exige le premier certificat de `tls.cert` (SHA-256
 du DER), envoie `GET /v0/sante` avec `Host` égal à l'autorité de
 `console_origin`, attend 2 500 ms au plus, écrit le corps sur une ligne
-(sortie standard) ou la raison (sortie d'erreur) ; codes 0 et 1 seulement.
+(sortie standard) ou la raison (sortie d'erreur) ; codes 0 et 1 seulement,
+usage incorrect compris (révision 0.6).
 
 ### 2.12 Fichiers servis et manifeste
 
@@ -589,7 +646,9 @@ chargement, le module de l'écran pose d'abord la découverte EIP-6963
 puis appelle `POST /v0/session` : sur 401 `session_absente`, il navigue vers
 `/connexion?retour=<chemin de l'écran>` (encodé par
 `encodeURIComponent`) ; une identité que `analyserIdentite` refuse donne le
-seul affichage de `identite_invalide` (EX-13.7), sans autre lecture.
+seul affichage de `identite_invalide` (EX-13.7), sans autre lecture. Le
+bandeau de chaque écran porte l'action de déconnexion (`POST /deconnexion` ;
+assemblage).
 
 ### 3.2 Fichiers et chemins
 
@@ -631,7 +690,9 @@ aucun aléa, aucun chemin de la machine), les cinq écrans et
 `src/pages/manifeste.json` ; `node src/pages/construire.mjs` vérifie
 (code 1 si un fichier produit est périmé), `--ecrire` réécrit ; un essai
 exige qu'ils soient à jour. La liste des fichiers `@noble/*` est la
-fermeture des importations statiques depuis la bibliothèque. Forme du
+fermeture des importations statiques depuis la bibliothèque, trouvée par
+l'analyse lexicale du générateur, commentaires exclus : quinze fichiers,
+confrontés à ceux que Chromium charge (assemblage). Forme du
 manifeste (interne au paquet) :
 
 ```json
@@ -668,7 +729,9 @@ Toutes les lectures et actions passent par `POST /v0/<méthode>` (13.9,
 `session`. Une erreur `reauthentification_requise` fait naviguer vers
 `/connexion?retour=<écran>` ; `session_absente`, de même ;
 `service_indisponible`, ou une erreur du service, s'affiche avec son code
-(13.14).
+(13.14). Une réponse du serveur hors de sa forme, ou la vue d'un autre ticket
+que celui de l'écran, s'affiche `reponse_service_invalide` (révision 0.6) :
+rien n'est affiché du contenu, rien n'est signé.
 
 - **Tickets.** `tickets` (sans `related_to`) ; pour chaque ticket :
   identifiant (lien `/tickets/<ticket>`), outil annoncé, demandeur,
@@ -677,9 +740,15 @@ Toutes les lectures et actions passent par `POST /v0/<méthode>` (13.9,
   ouverts par demandeur (EX-14.2).
 - **Ticket et signature** (parcours a et b, 13.9 à 13.11) : pas 1,
   `consulter`, `annuaire` et `tickets` avec `related_to` ; affichage du modèle
-  (`modeleAffichage`) avec chaque marque, l'empreinte de chaque décision et
-  les consignes d'EX-9.20 (dont l'origine `console_origin` de la console
-  saine, lue dans l'annuaire) ; « Approuver » et « Refuser » chacun en un
+  (`modeleAffichage`) avec chaque marque et les consignes d'EX-9.20 (dont
+  l'origine `console_origin` de la console saine, lue dans l'annuaire),
+  `opening.when` rendu en JSON indenté ; aucune empreinte de `D_A` avant le
+  choix de la décision (sauf `empreinte_divergente`, qui montre les deux,
+  table 13.14), puis, sur l'écran de signature, la seule empreinte de la
+  décision choisie (assemblage) ; les boutons s'activent au pas 1 après les
+  contrôles d'EX-9.15, hors 8 et 13, avec l'adresse active de l'annuaire, et
+  `controleVote` ; une échéance dépassée (`remaining_ms` négatif) s'affiche
+  « échéance atteinte » et ne demande aucune signature (révision 0.6) ; « Approuver » et « Refuser » chacun en un
   clic puis une confirmation, sans présélection (EX-9.5), l'avertissement
   sur le motif (EX-13.6) ; choix explicite du fournisseur (liste de
   `Decouverte`, icône par `<img>` seulement, `rdns` « déclaré par le
@@ -694,7 +763,9 @@ Toutes les lectures et actions passent par `POST /v0/<méthode>` (13.9,
   réauthentification ne sera pas exigée avant l'envoi du vote (règle de
   3.5), et fait réauthentifier d'abord sinon ; pas 6 et 7, `verifierReponse`,
   puis nouvelles lectures, et `controleVote` de nouveau si `state` ou
-  `revision` ont changé ; pas 8, `voter` avec `requeteVoter` ; `vote_identique`
+  `revision` ont changé ; pas 8, `voter` avec `requeteVoter`, sans réponse :
+  un renvoi automatique à l'identique, puis un renvoi à l'identique sur
+  action explicite (révision 0.6, EX-13.29) ; `vote_identique`
   affiché « vote déjà inscrit » (EX-12.16) ; un autre ticket ouvert, un
   changement de décision ou d'adresse, ou `accountsChanged` qui retire
   l'adresse, abandonne l'écran de signature et ignore toute réponse tardive.
@@ -702,13 +773,21 @@ Toutes les lectures et actions passent par `POST /v0/<méthode>` (13.9,
   confirmation qui dit qu'elle est définitive et ne retire pas un refus
   (EX-13.5, EX-10.4). Objection et levée : un vote `refuse` ou `approuve`
   sur un ticket à `contest_ms > 0`, nommé comme tel. Retrait : offert
-  seulement si `actionRetrait` rend un `by`, avec un motif.
+  seulement si `actionRetrait` rend un `by`, avec un motif, que la page
+  exige (le service admet `null` d'une autre console).
 - **Mon adresse** : `annuaire` (document réduit) pour l'état de son entrée
   et de ses adresses ; inscription : découverte, choix du fournisseur,
   `eth_requestAccounts`, choix explicite du compte, `preparer_inscription`,
   `controleDefi` (aucune signature sur un écart), texte affiché ligne par
   ligne, action explicite, `personal_sign` sur `donneesPersonalSign(texte)`,
-  `verifierSignature`, `inscrire` ; pannes de la seconde table de 13.14.
+  attente bornée par `min(delai_signature_ms, Expire le − maintenant)` (un
+  défi échu à l'action : aucune signature demandée, `inscription_expiree` et
+  la consigne de recommencer ; révision 0.6, EX-13.30), `verifierSignature`,
+  `inscrire` ; pannes de la seconde table de 13.14. « Révoquer cette
+  adresse » sur sa propre adresse en attente ou active (`revoquer`, cause
+  `personne`), confirmée comme définitive, motif facultatif, sous la
+  réauthentification d'EX-13.8 : une clé perdue se révoque sans attendre un
+  administrateur (assemblage).
 - **Annuaire** (session `administrator` vraie ; sinon l'écran le dit et
   n'offre rien) : `annuaire` complet ; par entrée et par adresse, les
   actions d'EX-13.17 et leurs motifs ; avant « Valider », la consigne
@@ -728,18 +807,27 @@ d'abord quand, `A` étant `auth_time`, `M` l'instant, `W` l'attente admise
 (`echeanceAttente`) et 30 s une marge choisie par l'étape 6 :
 `reauth_max_age_s > 0` et `M + W + 30 s ≥ A + reauth_max_age_s` ; ou
 `reauth_max_age_s = 0` et (une méthode de la liste d'EX-13.8 a été envoyée
-par cette page depuis `A`, ou `M + W + 30 s ≥ A + 600 s`). Une signature
+par cette page depuis `A`, ou `M + W + 30 s ≥ A + 600 s`) ; sous 0,
+`preparer_inscription` seule envoyée depuis `A` n'impose pas la
+réauthentification avant la signature de l'inscription (2.10). Révision 0.6 :
+avant `preparer_inscription`, la page relit `session` et fait réauthentifier
+d'abord quand l'authentification ne couvrirait pas l'`inscrire` qui suit au
+terme de `min(delai_signature_ms, registration_ttl_ms)` + 30 s : la
+réauthentification, une navigation, ferait perdre le défi. Une signature
 obtenue puis refusée par le serveur n'est jamais renvoyée (EX-13.48,
 point 5).
 
 ### 3.6 Libellés et langue
 
-`<html lang="fr">`. Chaque texte affiché vient de `/statique/libelles/fr.mjs`
+`<html lang="fr">`, écrit par le générateur selon la table : ajouter
+l'anglais change aussi l'attribut des écrans (assemblage). Chaque texte
+affiché vient de `/statique/libelles/fr.mjs`
 (objet figé `{ cle: texte }`, textes à paramètres `{nom}`), par la fonction
 `t(cle, valeurs)` de `/statique/commun/libelles.mjs`, qui choisit la table
 selon `document.documentElement.lang` ; une table anglaise s'ajoutera par un
 fichier `en.mjs` de mêmes clés, sans autre changement. Chaque valeur de
-`$defs/code_console`, chaque raison de 12.8, chaque code de
+`$defs/code_console` (40, dont `reponse_service_invalide`), chaque raison de
+12.8 (dont `limite_annuaire`), chaque code de
 `$defs/code_serveur_console` et chaque avertissement du modèle ont une clé ;
 un essai le vérifie contre les énumérations des schémas. Le code reste
 affiché entre parenthèses après le texte (EX-13.29).

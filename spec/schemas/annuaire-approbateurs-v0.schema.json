@@ -778,7 +778,7 @@
       }
     },
     "code_erreur_annuaire": {
-      "description": "Raisons de refus des méthodes de l'annuaire (CT-3 12.8, révision 0.3), et des contrôles de la console avant un vote ou une récusation (EX-13.18) ; identite_inconnue, identite_desactivee, adresse_non_attribuee, session_du_demandeur, jeu_non_fige et hors_jeu ont le sens de $defs/code_console de console-approbation-v0. session_non_autorisee est le refus, par le service, d'une méthode du canal de la console dont l'identité de session n'a pas accès au ticket ou n'est pas celle de l'adresse ou du demandeur (EX-12.14, EX-12.16, EX-12.19).",
+      "description": "Raisons de refus des méthodes de l'annuaire (CT-3 12.8, révision 0.3), et des contrôles de la console avant un vote ou une récusation (EX-13.18) ; identite_inconnue, identite_desactivee, adresse_non_attribuee, session_du_demandeur, jeu_non_fige et hors_jeu ont le sens de $defs/code_console de console-approbation-v0. session_non_autorisee est le refus, par le service, d'une méthode du canal de la console dont l'identité de session n'a pas accès au ticket ou n'est pas celle de l'adresse ou du demandeur (EX-12.14, EX-12.16, EX-12.19). limite_annuaire (révision 0.6) : opération qui ferait dépasser une borne de ce schéma, 10 000 entrées, 64 adresses ou 64 alias de demandeur par entrée (EX-13.17).",
       "enum": [
         "requete_invalide",
         "identite_invalide",
@@ -801,6 +801,7 @@
         "revocation_non_autorisee",
         "demandeur_deja_lie",
         "demandeur_inconnu",
+        "limite_annuaire",
         "identite_inconnue",
         "adresse_non_attribuee",
         "session_du_demandeur",

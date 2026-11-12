@@ -149,6 +149,14 @@ describe("enregistreur, frontal MCP : parcours de bout en bout (hôtes, connecte
     appelsAttendus.push(["demo__payments.create", "retenue"]);
     r.enAttente = await a.requete("tools/call", { name: "demo__payments.create", arguments: paiement, _meta: meta });
     const ticket = r.retenue.result._meta["noortrace/approval"].ticket;
+    // `ouvrir` part sans être attendu (CT-2 EX-7.18), après la lecture de la
+    // pièce « arguments » : sans charge, il arrive au service quelques
+    // millisecondes avant cette ligne ; sous charge, après. Un service ne
+    // décide qu'un ticket ouvert (CT-3) : la décision attend son ouverture,
+    // bornée.
+    const limiteOuverture = Date.now() + 30000;
+    while (!service.tickets.get(ticket)?.request && Date.now() < limiteOuverture) await new Promise((x) => setTimeout(x, 10));
+    expect(service.tickets.get(ticket)?.request, "ouvrir reçu par le service dans les 30 s").to.not.equal(undefined);
     service.decider_ticket(ticket, { reason: "Pieces validees" });
     r.acquittements = await coeur.traiterRemises();
     r.relaye = await a.requete("tools/call", { name: "demo__payments.create", arguments: paiement, _meta: meta });

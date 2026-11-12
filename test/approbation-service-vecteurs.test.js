@@ -21,7 +21,7 @@ import fs from "node:fs";
 import path from "node:path";
 import * as N from "@noortrace/noyau";
 import {
-  validerPolitique, evaluer, candidats, Machine, verifierRemise, normaliserSignature, adresseDuVote, Annuaire, controleCanal,
+  validerPolitique, evaluer, candidats, Machine, verifierRemise, normaliserSignature, adresseDuVote, annuaireConforme, controleCanal,
   registreSchemas, IDS, FICHIERS_SCHEMAS, REPERTOIRE_SCHEMAS, jeuExploitable,
 } from "@noortrace/approbation";
 import { VECTEURS_CT3, VECTEURS_CT2, SPEC, lireCt3, machineDeTrace, signerVote } from "./fixtures/approbation-service/outils.mjs";
@@ -170,13 +170,14 @@ describe("service d'approbation : vecteurs de CT-3", function () {
   describe("annuaire : contrôle de l'identité de session sur le canal (AN-10, EX-12.14 à EX-12.19)", function () {
     it("annuaires/ : documents conformes, lus par le service", function () {
       for (const f of lister("annuaire/annuaires")) {
-        const a = new Annuaire(json(`annuaire/annuaires/${f}`));
-        expect(a.document.org_id).to.match(/^0x[0-9a-f]{64}$/);
+        const a = json(`annuaire/annuaires/${f}`);
+        expect(annuaireConforme(a), f).to.equal(true);
+        expect(a.org_id).to.match(/^0x[0-9a-f]{64}$/);
       }
     });
     it("controles-canal.json : première raison de controleCanal", function () {
       const c = json("annuaire/controles-canal.json");
-      const a = new Annuaire(json(`annuaire/${c.annuaire}`));
+      const a = json(`annuaire/${c.annuaire}`);
       for (const x of c.cases) expect(controleCanal(a, x.method, x.request, x.ticket), x.id).to.equal(x.expected.reason);
     });
   });

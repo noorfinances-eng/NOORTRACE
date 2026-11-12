@@ -6262,6 +6262,250 @@
           "apres": "3bcb7cc39d6fa37add993b1767e5a20c6dcf8e4c4e34ecdfa41bdbd5b4c46048"
         }
       ]
+    },
+    {
+      "id": "MC-34",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-2 0.9 : questions de la construction de l'étape 6 tranchées — domaine de --vers sans composant au nom réservé .noortrace-partiel- (EX-15.9), request_id de ctl_request_failed reconnu par noortrace-ctl (EX-15.10, EX-15.15 nouvelle, EX-17.2), erreur imprévue d'une demande au démon, synchronisation du parent après le renommage (EX-15.12, EX-15.13), continuation MRTR non inscrite d'un appel approuvé (EX-4.21) ; table de §22 : lignes faites à l'étape 6.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-2-enregistreur.md",
+          "avant": "c6ca491f8e81d688dc857de91b458cb2969cdb07164e42c8219912b279ec435d",
+          "apres": "31098d914bd598098196f78738c8f9cb210a51c7fa6da7e3be5402317c79afc7"
+        }
+      ]
+    },
+    {
+      "id": "MC-35",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-3 0.6 : questions de la construction de l'étape 6 tranchées — refus au démarrage en ligne de validation (EX-10.14, nouvelle), sonde du service (EX-12.22, nouvelle ; PD-17 adoptée), boucle locale écrite exactement, origine sans port par défaut et jetons sans espace intérieure (EX-10.12, EX-10.13), vue d'un ticket et intention de la requête (EX-12.14), bornes de l'annuaire (limite_annuaire, EX-13.17), inscription sous reauth_max_age_s nul (EX-13.8, EX-13.48), identity_ready (EX-13.44), code reponse_service_invalide ; extensions compatibles d'annuaire-approbateurs-v0, configuration-approbation-v0, configuration-console-v0, console-approbation-v0 et console-service-v0 ; table de 15.2 : lignes faites à l'étape 6.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-3-approbations.md",
+          "avant": "c7ebfee8607c63a908d4fc04c3a1d46cc0baa3a9562c1345b29ce99f5b39e014",
+          "apres": "617359a837318f2da16e83903ba6dc61f9a9235755c7fe61e7cd4714b16b37f6"
+        },
+        {
+          "chemin": "spec/schemas/annuaire-approbateurs-v0.schema.json",
+          "avant": "5ad07514601dea4cc6d4d419eafb4d415b502fdc94a4f8b89d5873bebfd34abe",
+          "apres": "8697efe69f122c61288473ab8f77fb1552978df4f2c2f61566452b21ec79517d"
+        },
+        {
+          "chemin": "spec/schemas/configuration-approbation-v0.schema.json",
+          "avant": "45b260c76d483ff35e7ba976de90d47bdf331dc22e184a2a69aec72513e3d2c6",
+          "apres": "da48b42a611d04b33c7a1c03482ffef1ad2ef3d3d5e01925b5af15dfb2f4cba9"
+        },
+        {
+          "chemin": "spec/schemas/configuration-console-v0.schema.json",
+          "avant": "2a7d5ee9a48aaa235e617e0ffbea744a32b564d327301406e144b10bd97d67c8",
+          "apres": "390d48d7c757d5da7dad9e603b7ecdd590ee4b48c2a10a068eea66fddf27fde5"
+        },
+        {
+          "chemin": "spec/schemas/console-approbation-v0.schema.json",
+          "avant": "d06af29568c085cd4d31fc6763819d996b56d5b39b2d4b4faa0842bb1978980d",
+          "apres": "ba68f8e16e934df52d615a2306d889557b9461d5b524ceff7c1667ce96919f4f"
+        },
+        {
+          "chemin": "spec/schemas/console-service-v0.schema.json",
+          "avant": "c6198a88fbdaa05847612c6486c1a0baab097a648d4b8b6ef1eabe7b1fd835e0",
+          "apres": "145cf40dd9be4e48bbecd7e9a355cb41671761204ef626240eb2ff581891c7d8"
+        }
+      ]
+    },
+    {
+      "id": "MC-36",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-4 0.7 : reprise d'une étape echec déjà accomplie et funding nul (EX-7.29, nouvelle), commande paquet-client de l'outil de référence et ses codes de refus (EX-7.30, nouvelle ; secrets_checked nomme les options cherchées, avec leur référence, et leur nombre), recherche des secrets (EX-7.21), réception du paquet (EX-7.22), comparaison des sorties (EX-7.24) et types des champs de l'application d'exploitant (EX-7.25) précisés ; extensions compatibles d'inscription-client-v0 (funding nul) et d'operations-registre-v0 (commande paquet-client et ses codes).",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-4-registre.md",
+          "avant": "afbd007d1dfe4823eed8a47273b140296e7b551e2f8af7fa5607fdb6e392dd9f",
+          "apres": "004581bfc3c32267a5a112e9926397bcbd25164dd67ffd96e963e22fe7879a4b"
+        },
+        {
+          "chemin": "spec/schemas/inscription-client-v0.schema.json",
+          "avant": "f96ef276e4a44a52a6443af06aa6cde2c1c79250c0e149cdfd868ad9bfd47d27",
+          "apres": "6fd1228be3f6f1250f37c49c5a40de3ad977dd48e2e43ddf81c991723af65c71"
+        },
+        {
+          "chemin": "spec/schemas/operations-registre-v0.schema.json",
+          "avant": "e45d0e3e6b7f7c00b73400595e937194a2e9c3e688a7df25329683e7e560bb02",
+          "apres": "d87311cc5c0459ab5d626ed5bfdc3ff0f13b3abbcd21a1f32a10ca892e148638"
+        }
+      ]
+    },
+    {
+      "id": "MC-37",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-6 0.7 : constats de la construction de la page de vérification avec go1.27.3 et de son épreuve dans Chromium, Firefox et WebKit de Playwright 1.56.1 — recette qui vide GOEXPERIMENT, GOFIPS140 et GOWASM (EX-14.6, EX-18.3), attribut crossorigin (EX-18.6), bornes d'une archive et d'un répertoire (EX-18.7), writeSync et --langue (EX-18.8), minuteries et codes en anglais (EX-18.9), messages des navigateurs qui ne sont pas des violations et faits propres à Gecko et à WebKit (EX-18.12, EX-18.13), faits datés en annexe B.9 ; sans règle nouvelle ni retirée ; table de 16 : lignes faites à l'étape 6.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-6-verificateur.md",
+          "avant": "6d2d7f4be08df79600b09aecef9ab3115d8c85febdeeed198c71e09bbd24284a",
+          "apres": "36e675989df5bf1e3826883d2285de640583b4502552a94df674cbdaab2aefa0"
+        }
+      ]
+    },
+    {
+      "id": "MC-38",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-8 0.5 : sonde du service d'approbation adoptée (PD-17, alignée sur CT-3 EX-12.22) et image noortrace/console servant la console d'exploitation de l'étape 6 (TC-45, 4.1, 15, 16.1, 16.2) ; source de l'image console dans deploiement/images/images.json et sa copie de la famille conteneurs régénérée ; numéros de ligne de la table 0.2 recalculés ; table de 16.1 : lignes faites à l'étape 6.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "31499317e9c0e62dddfff461a2bd561c9e4c234477edc2cce9229a2ee3406d4b",
+          "apres": "ec1f0231114deb8f069eaa4edcd9ddbd96e3aaba12030510fc5d4345e062d158"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/images.json",
+          "avant": "dac740290345af6666b25e0f226690c7ad82f9982ac124bf47434d1624db1416",
+          "apres": "fb30868f33880c9e639e2a72631a6008a034e95eaf35e8aaf41954bf7b7f9101"
+        }
+      ]
+    },
+    {
+      "id": "MC-39",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "CT-9 0.8 : alignement sur CT-2 0.9, CT-3 0.6, CT-4 0.7, CT-6 0.7 et CT-8 0.5 ; CT-2 EX-15.15, CT-3 EX-10.14 et EX-12.22, CT-4 EX-7.29 et EX-7.30 couverts ; oracles et préconditions de TE-13 et de TE-20 à TE-23 ; TE-13, TE-18 à TE-23, TI-14, TI-21, TI-22, TA-51, TA-77 et TA-99 à TA-102 rendus exécutables avec leurs essais et leurs étapes de CI ; vecteurs ct-9, couverture, extraits et recomptage régénérés ; spec/README.md : versions des six spécifications révisées et extensions des sept schémas.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "0b8eb0ce92e374fb39d3c0437bd8e435f72a84d5f07240cb078bc14cb49cf439",
+          "apres": "6a2e61ddf9e541a7e46778e9c4dcdfdd3621194739aa2fe3be166a8734082f1f"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "babe7fd5e8c0f32385d498b0610eb5d3514f3da76c11a14037a23db81c6f331a",
+          "apres": "09cb02335e4f5854281660f37dc6785d35ba3b2e032d2610d11de94b636076e5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "33147f58f8ebdbfcf7bd91af352537ed53886f1246cd170e582f5852fc38dbfa",
+          "apres": "1677d899e349323cff873e366d24aa4a0d3ef4548708381aed541912cf431e4f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-a-ecrire-sans-etape.json",
+          "avant": "8d3371fc98311ba9691d123e76c98a03c0311bccbe772dbc41c1256f195e6155",
+          "apres": "80fd103d1f49d56ff5431e4436411689b5a61b184f1071fc97079090a4476d15"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-executable-sans-titre.json",
+          "avant": "3ff58ca283c23898cef115073948c7a96378abb6ce657f8a5f91f2f16df5a40d",
+          "apres": "722f1c46f25742aa4a85c9ba641c78cb7636e5e92f8b5c263cd40e5248783507"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-identifiant-sans-specification.json",
+          "avant": "3f03a7a953a587424df3dd679e0bb0e94a21a262aaf177b1e0841b08b2c9fb37",
+          "apres": "1d41b9443abd1f8fd7265277dc764baa9d07788c875fe160d643cf0dafc096e6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-complement-sans-etape.json",
+          "avant": "5462f9bb27b874823e4b7b877ea608aa63e484a0a727c26ffee94b56b8cb6993",
+          "apres": "c3d62e05f2a72873f37a41e2c20ce078bd66458888b12996b07862e451ba5180"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-prefixe-test.json",
+          "avant": "d5f2cf7aa202d946fa5419f7fa5435acfbc56dba40afac16bc7d4f609eac01c8",
+          "apres": "4b7b8d51edf9197903a78ae3ba8ce4985119aaea59cb8884e64847cd371c8457"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-sans-adversarial.json",
+          "avant": "e219879d189672ba78bf067deafdc5b3c422300d1bf5a1954060c51b77709e71",
+          "apres": "cb44dd5f9d639cf388216060ffa5e836c62ce9039d1941e67728910a46fc3f13"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-scenario-sans-composition.json",
+          "avant": "1c98a99e4440f719b8dfbda6f7e366ea16b4002a7d6e582a1f48013d72c58453",
+          "apres": "d5c569b1c2807405740d8efd4b5858e48d5ad39f5479fdf2055bd2033158644b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-titre-vide.json",
+          "avant": "bb4f233939206f93af888d023b40f7b7a5f43ae640c25154e7218a2eda9acfe6",
+          "apres": "fb8b2387fbd1e8f4add216e67308804402f0bc8c7d4e46b0094bddc1ee2664ea"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-tm-mesure-inventee.json",
+          "avant": "c8a7ef161b96bca3ff70db2f5ba6a05413eff559ec38ea355ad7dcad84c9a640",
+          "apres": "49c02ffa2bfca2f61bab470d3effd746a2821dd5f261ce8ac2bbeffdacff063b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-minimal.json",
+          "avant": "a54cbea5f60d0fc0832bc0a7c5cafdbe0fc74a65723f3b90e09cfc8c424519dd",
+          "apres": "684989ed74f60371a2138b7dc05a5939d1ce0f5ba0928cba22d345b35016b5de"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-ta.json",
+          "avant": "8f09fe63827de9e0b8e3c72a7c8771d19de68ac593340a764fc23bf14b320945",
+          "apres": "59cb22af62c79710d1982c759008838eb51adab37eb22704c04364aa4a0d11c4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "2369677d7f0f60ee0446c08cf69afd1fe77dfae1a880789b58694e944794e872",
+          "apres": "b710b1fa81d51fd415e8a7744594c2e45a3b1608ef483c662f79b9d5c4b4920a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "a358897e63ed55fed4771f3e9277046387f12d6029f79e3039101f0a6e95f4cf",
+          "apres": "13591d3ec5582640801821886b5531401d21a2d49b8dfebc3ce05134db765c6c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "5ebd4e13467a8e8aac0502012a70c6619568429a056eacfa7de93180283dad74",
+          "apres": "3cde5964385fa2eba2713d242783293cc4d759116d2579f38bb630d84869d5b1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "17c7088ee74af90a1e667ac40d85cf8c30125af5c38d4d706c39fefe1fda506f",
+          "apres": "201be0884b5d272a61864f9fbadebbb694d436f3859e0cfa0d4deab107d02940"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "82bccd9ff4272e7b17f96e7de2233ea239c5d1d743fcf24f08c40768303daa54",
+          "apres": "6d9e2cbb7f09cfc3c0ee2e8736386a6f4b23765a1995afeec29974a6a0c37b18"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "aac968c259984f3a3b5814a0aeccff7f78da756071b085557951f55be7a3dd08",
+          "apres": "d2c5bf02d34f0cd195b9d3e56de467659b16ec9aa981365d834be57487ee872b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/index-ta-par-menace.json",
+          "avant": "805f03eb067adf7aac216654bf6e7037b4ea080d49bb2ba09b0a438a58adcdca",
+          "apres": "f4006484176cad6721e97818f6ffdc7a6b8bd722042ce54d7ccbc56025babe1b"
+        }
+      ]
+    },
+    {
+      "id": "MC-40",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "Essai R-F-3 du composant d'ancrage aligné sur l'absence d'ancre au registre sans registre configuré (EX-8.4) : empreinte du fichier d'essai dans couverture.json de CT-9.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "3cde5964385fa2eba2713d242783293cc4d759116d2579f38bb630d84869d5b1",
+          "apres": "0c5954c46ad7200f93238a5f78d7e999c956d4e05004a38d72392029d1c62173"
+        }
+      ]
+    },
+    {
+      "id": "MC-41",
+      "date": "2026-11-11",
+      "etape": 6,
+      "motif": "Essais de l'étape 6 sans occurrence nouvelle du nom d'outil des vecteurs figés : nom lu dans la politique du parcours, dans l'exemple de configuration ou dans la vue du vecteur, nom neutre pour les données construites par l'essai ; empreintes des fichiers d'essai dans couverture.json de CT-9.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "0c5954c46ad7200f93238a5f78d7e999c956d4e05004a38d72392029d1c62173",
+          "apres": "42ce6397d8ebfac13dd74b969c148851bacd5c1c10e152240e351baa8d193559"
+        }
+      ]
     }
   ]
 }

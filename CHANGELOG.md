@@ -6,6 +6,30 @@ is tagged.
 
 ## Unreleased
 
+- Build step 6, the operating console and what surrounds it. `paquets/console`:
+  the approval console of CT-3 §13, in three parts — a library run unchanged
+  under Node and in the browser, shared with the approval service; a console
+  server without framework (OIDC, local accounts outside production, sessions
+  in memory, authenticated relay to the approval service, health and probe);
+  static pages loaded with their integrity, where an approver enrols an address
+  by proof of possession and signs a decision in their own wallet. The approval
+  service (`paquets/approbation`) gains the console channel, the persisted
+  approver directory, signed webhook notifications and its configuration
+  document. Client onboarding (`paquets/inscription`): an operator web
+  interface that holds no key and a separate agent that holds them, driving the
+  CT-4 steps with the same outputs as the reference tool and producing the
+  client package, which the client checks on receipt. The recorder exports an
+  evidence folder on request (`noortrace-ctl dossier exporter`), atomically,
+  into a dedicated exports directory. The verification page
+  (`paquets/verification-web`) runs the Go verifier compiled to WebAssembly in
+  a browser worker and shows the same report as the binary, byte for byte.
+  The step's criterion is demonstrated end to end (CT-9 TE-13): an approver
+  signs a decision from the console, and the exported folder passes both
+  verifiers with `--exiger 7`, timestamp and registry controls included. A CI
+  job runs the console, the page in Chromium, Firefox and WebKit, and the
+  criterion without the development network. Specification revisions CT-2 0.9,
+  CT-3 0.6, CT-4 0.7, CT-6 0.7, CT-8 0.5 and CT-9 0.8, recorded as MC-27 to
+  MC-39 in the design-freeze register.
 - Build step 3, the development registry. `npm run e2e:registre`
   (`scripts/e2e/parcours-registre.mjs`) replays the CT-4 §7 walkthrough on the
   local noorcore network for a fictitious client: onboarding, key

@@ -2,7 +2,7 @@
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.7",
+  "spec_version": "0.8",
   "date": "2026-11-11",
   "levels": [
     {
@@ -6854,9 +6854,26 @@
       ],
       "oracle": "Sept combinaisons d'`evaluer` et refus des autres (CT-3 EX-12.6) ; canal non authentifié refusé ; mêmes sorties après reprise (TK-12).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Service non construit ; seule la partie calculable est testée (TU-)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/approbation-service-console.test.js",
+            "describe": "TI-14 : canal réel joint par le client du démon de l'étape 4",
+            "it": "sept combinaisons d'evaluer jugées par la validation du démon ; canal non authentifié refusé ; mêmes sorties après un arrêt brutal"
+          },
+          {
+            "file": "test/approbation-service-console.test.js",
+            "describe": "méthodes, vue et ordre des refus sur un service réel"
+          },
+          {
+            "file": "test/exploitation-console-parcours.test.js",
+            "describe": "TE-13 (étape 6, critère de livraison), variante sans registre (intégration continue) : jeu statique, contrôle 4 réussi, contrôle 8 non exécuté"
+          }
+        ],
+        "ci_steps": [
+          "parcours TE-13 de la console d'exploitation, variante sans registre sans saut ; seule la variante du réseau de développement 2124 en attente, avec son message"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/approbation-service-console.test.js && npx hardhat --config hardhat.config.mjs test test/exploitation-console-parcours.test.js"
       },
       "threats": [
         "MN-51",
@@ -7235,9 +7252,18 @@
       ],
       "oracle": "Corps égal au JCS du document `$defs/notification` de `configuration-approbation-v0`, identique à chaque tentative ; en-tête `NOORTRACE-Signature` égal au HMAC recalculé par le récepteur, exemple d'EX-13.41 compris ; reprises 10 s, 60 s, 300 s et 1 800 s après chaque tentative, abandon sans reprise sur un statut 3xx ou un 4xx autre que 408 et 429, `file_pleine` dans l'ordre d'EX-13.42 ; lignes `notification_livree`, `notification_echec` et `notification_abandonnee` au journal du service, sans corps ni clé ; aucune notification livrée par la console (EX-13.39).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Livraison des notifications par le service non construite (CT-3 §15.2, révision 0.5)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/approbation-service-notifications.test.js",
+            "describe": "TI-21 : le service forme, inscrit et livre chaque sorte de notification"
+          },
+          {
+            "file": "test/approbation-service-notifications.test.js",
+            "describe": "livraison (EX-13.42), sous l'horloge du service"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/approbation-service-notifications.test.js"
       },
       "threats": [
         "MN-102"
@@ -7262,9 +7288,31 @@
       ],
       "oracle": "Session ouverte pour le seul jeton valide ; chaque découverte fautive rend `fournisseur_erreur` ou `fournisseur_indisponible` (EX-13.45) ; chaque jeton fautif rend 400 `jeton_invalide` au premier point en échec, `identite_invalide` au point 9, sans session ; une transaction rejouée rend `transaction_inconnue` ; la page ne vérifie aucun jeton.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Serveur de console non construit (CT-3 §13.21, révision 0.5)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/exploitation-console-serveur-oidc.test.js",
+            "describe": "flux par code avec PKCE et client_secret_basic",
+            "it": "session ouverte pour un jeton valide : 303 vers retour, cookie de session posé, cookie de transaction effacé ; identité oidc <iss> <sub>"
+          },
+          {
+            "file": "test/exploitation-console-serveur-oidc.test.js",
+            "describe": "retour : transaction, state, error, iss (EX-13.45, point 3)"
+          },
+          {
+            "file": "test/exploitation-console-serveur-oidc.test.js",
+            "describe": "découverte et jeu de clés (EX-13.45, point 1)"
+          },
+          {
+            "file": "test/exploitation-console-serveur-oidc.test.js",
+            "describe": "vérification du jeton d'identité (EX-13.46) : un jeton fautif par point, au premier point en échec"
+          },
+          {
+            "file": "test/exploitation-console-serveur-oidc.test.js",
+            "describe": "cookie de transaction (EX-13.48, point 3)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/exploitation-console-serveur-oidc.test.js"
       },
       "threats": [
         "MN-100"
@@ -8048,16 +8096,28 @@
         "CT-3 EX-14.2"
       ],
       "preconditions": [
-        "Console et service de l'étape 6 ; portefeuille de test ; enregistreur de l'étape 4."
+        "Console et service de l'étape 6 ; portefeuille de test ; enregistreur de l'étape 4 ; variante sur le réseau de développement 2124 (contrôles 4 et 8 réussis), en attente quand il n'est pas debout, condition nommée (EX-3.11) ; variante sans registre (contrôle 4 réussi, contrôle 8 non exécuté), jouée en intégration continue."
       ],
       "steps": [
-        "Inscrire un approbateur par preuve de possession ; soumettre un appel à approuver ; signer depuis la console ; exporter le dossier."
+        "Inscrire un approbateur par preuve de possession ; soumettre un appel à approuver ; signer depuis la console ; exporter le dossier de l'appel approuvé (`--ticket`) et celui de la décision (`--seq`)."
       ],
-      "oracle": "Inscription acceptée (AN-3) ; `approbations.json` porte la signature recouvrée à l'adresse inscrite ; dossier valide avec A-1 à A-4 réussis.",
+      "oracle": "Inscription acceptée (AN-3) ; `approbations.json` porte la signature recouvrée à l'adresse inscrite ; dossier de l'appel approuvé : code 0 des deux vérificateurs avec `--exiger 7`, contrôle 7 réussi, A-1 à A-3 réussies et A-4 non exécutée avec une raison admise (`piece_hors_dossier` : la demande n'est pas l'événement voisin de l'appel, la décision étant scellée entre les deux) ; dossier de la décision : code 0 des deux vérificateurs avec `--exiger 7`, A-1 à A-4 réussies.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Console d'exploitation et service non construits ; seule la console de référence existe (TU-)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/exploitation-console-parcours.test.js",
+            "describe": "TE-13 (étape 6, critère de livraison) : un approbateur signe une décision depuis la console, le dossier exporté passe les deux vérificateurs — réseau de développement 2124"
+          },
+          {
+            "file": "test/exploitation-console-parcours.test.js",
+            "describe": "TE-13 (étape 6, critère de livraison), variante sans registre (intégration continue) : jeu statique, contrôle 4 réussi, contrôle 8 non exécuté"
+          }
+        ],
+        "ci_steps": [
+          "parcours TE-13 de la console d'exploitation, variante sans registre sans saut ; seule la variante du réseau de développement 2124 en attente, avec son message"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/exploitation-console-parcours.test.js"
       },
       "threats": [
         "MN-35",
@@ -8475,6 +8535,7 @@
         "CT-2 EX-15.12",
         "CT-2 EX-15.13",
         "CT-2 EX-15.14",
+        "CT-2 EX-15.15",
         "CT-7 EX-3.16"
       ],
       "preconditions": [
@@ -8487,9 +8548,38 @@
       ],
       "oracle": "Chaque refus rend, dans l'ordre d'EX-15.12, son message et son code, sans dossier ni répertoire partiel à la destination ; `--ticket` retient le premier événement `executee` qui porte l'approbation, jamais la continuation, et refuse un ticket refusé, expiré, non décidé ou inconnu (EX-15.11) ; le dossier est en `0750` et ses fichiers en `0640`, du groupe des lecteurs (EX-15.13, CT-7 EX-3.16) ; le reste `.noortrace-partiel-<request_id>` d'un export interrompu est supprimé à l'acquisition du bail ; une ligne `dossier_exported` ou `dossier_export_refused` par demande, avec son `request_id`, quel que soit le niveau du journal (EX-15.14) ; une demande inconnue, illisible, hors de son domaine ou périmée n'a aucun effet et donne `ctl_request_refused`, les demandes `rotation-urgence` et `ancrage` exécutent leur seule action (EX-15.10) ; `exports_dir` emboîté avec `storage.root` est refusé à la validation ; chaque dossier exporté : code 0 des deux vérificateurs, énoncé identique.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Commande d'export du démon non livrée : routage de `dossier` dans `noortrace-ctl`, traitement de `SIGURG` par action nommée, écriture et droits du dossier (CT-2 §22, révision 0.8) ; seule la validation d'`exports_dir` est livrée."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-export-dossier.test.js",
+            "describe": "TE-18 : noortrace-ctl dossier exporter sur le démon réel à horloge réglable (CT-2 EX-15.9 à EX-15.14, CT-7 EX-3.16)"
+          },
+          {
+            "file": "test/enregistreur-export-dossier.test.js",
+            "describe": "export en cours de processus (exporterDemande) : aucune période close ; en production, droits du répertoire des exports et groupe du parent (CT-2 EX-15.12 ordre 2, EX-15.13 point 2, CT-7 EX-3.16)"
+          },
+          {
+            "file": "test/enregistreur-export-ancrage.test.js",
+            "describe": "TE-18 avec le composant d'ancrage branché : dossier produit par l'exportateur de CT-5 dans le répertoire temporaire, entetes-bitcoin.json, dossier_reexport_due (CT-2 EX-15.13, EX-15.14 ; CT-5 EX-10.5)"
+          },
+          {
+            "file": "test/enregistreur-demandes-demon.test.js",
+            "describe": "demandes du démon (CT-2 EX-15.10 pas 5) : lecture et refus, sans rien exécuter"
+          },
+          {
+            "file": "test/enregistreur-demandes-demon.test.js",
+            "describe": "EX-15.15 (révision 0.9) : erreur imprévue pendant une demande (traiterDemande sur un cœur d'essai)"
+          },
+          {
+            "file": "test/enregistreur-demandes-demon.test.js",
+            "describe": "demandes du démon sur le démon réel à horloge réglable (journal d'exploitation de niveau error)"
+          },
+          {
+            "file": "test/enregistreur-demandes-demon.test.js",
+            "describe": "noortrace-ctl cle rotation-urgence et ancrage : demande par création exclusive (CT-2 EX-15.10 pas 3 et 4, table de §22)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-export-dossier.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-export-ancrage.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-demandes-demon.test.js"
       },
       "threats": [
         "MN-99"
@@ -8505,7 +8595,9 @@
       "covers": [
         "CT-3 EX-7.30",
         "CT-3 EX-10.12",
+        "CT-3 EX-10.14",
         "CT-3 EX-12.21",
+        "CT-3 EX-12.22",
         "CT-3 EX-13.38"
       ],
       "preconditions": [
@@ -8518,9 +8610,26 @@
       ],
       "oracle": "Chaque variante est refusée avec son code et son pointeur, sans la valeur d'un secret, et l'exemple est accepté ; sous `state_dir/etat/`, répertoires en `0700` et fichiers en `0600`, chaque enregistrement est le base64 de `nonce ‖ chiffré ‖ étiquette` que `node:crypto` déchiffre en AES-256-GCM avec les données associées d'EX-7.30 ; un enregistrement recopié sous une autre nature ou un autre numéro ne se déchiffre pas, et le service refuse de démarrer sur un instantané altéré ; l'annuaire et les défis non expirés sont relus à la reprise selon la préséance d'EX-13.38 ; chaque ticket de `tickets` porte `contest_ms` et `contest`, et `related` suit EX-12.21 (refus de `consulter` d'abord, au plus 20 tickets, ordre, aucun argument), conforme à `console-service-v0`.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Service d'approbation de la révision 0.5 non livré : document `configuration-approbation-v0`, chiffrement de l'état d'EX-7.30, persistance de l'annuaire et méthode `tickets` (CT-3 §15.2)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/approbation-service-configuration.test.js",
+            "describe": "service d'approbation : configuration de la révision 0.5 (EX-10.12)"
+          },
+          {
+            "file": "test/approbation-service-persistance.test.js",
+            "describe": "service d'approbation : état chiffré et annuaire persisté (EX-7.30, EX-13.37, EX-13.38)"
+          },
+          {
+            "file": "test/approbation-service-console.test.js",
+            "describe": "TE-19 : tickets enrichis (EX-12.21)"
+          },
+          {
+            "file": "test/approbation-service-console.test.js",
+            "describe": "révision 0.6 : vue avant le gel, intention de la requête (EX-12.14, EX-7.24)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/approbation-service-configuration.test.js && npx hardhat --config hardhat.config.mjs test test/approbation-service-persistance.test.js && npx hardhat --config hardhat.config.mjs test test/approbation-service-console.test.js"
       },
       "threats": []
     },
@@ -8533,6 +8642,7 @@
       ],
       "covers": [
         "CT-3 EX-10.13",
+        "CT-3 EX-10.14",
         "CT-3 EX-13.43",
         "CT-3 EX-13.44",
         "CT-3 EX-13.47",
@@ -8540,18 +8650,32 @@
         "CT-3 EX-13.49"
       ],
       "preconditions": [
-        "Serveur de console de la révision 0.5 de CT-3, lancé par `noortrace-console --config` sur un document `configuration-console-v0`, en `developpement` avec le système d'identité local ; service d'approbation de TE-19."
+        "Serveur de console de la révision 0.5 de CT-3, lancé par `noortrace-console --config` sur un document `configuration-console-v0`, en `developpement` avec le système d'identité local ; service d'approbation de TE-19, ou service simulé qui rend les réponses, les erreurs et les statuts du canal de la console (le relais vers le service réel est éprouvé par TI-14)."
       ],
       "steps": [
         "Contrôler par `noortrace-console valider-configuration` l'exemple d'EX-10.13 et une variante par code de sa table, dont le système local en `production`.",
         "Demander chaque chemin de la table d'EX-13.43 et un chemin hors table ; lancer `noortrace-console sonde` avec le service joignable, puis injoignable ; se connecter par le système local, avec un mauvais mot de passe puis trop tôt ; dépasser `reauth_max_age_s`, puis l'âge des sessions.",
         "Envoyer des requêtes d'un autre `Host`, sans `Origin` ou d'une autre origine, sans `Content-Type: application/json`, de plus de 65 536 octets, et relayer chaque méthode de la table d'EX-12.13 puis une méthode hors table."
       ],
-      "oracle": "Chaque variante refusée avec son code ; les chemins servis et les 404, 405 et 413 suivent EX-13.43 ; `GET /v0/sante` est conforme à `$defs/reponse_sante` et l'appel au service gardé 5 s, la sonde rend 0 ou 1 selon EX-13.44 ; identités `utilisateur <domain> <name>`, `identifiants_refuses` et `essai_trop_tot` (EX-13.47) ; sessions en mémoire seulement, détruites à la reconnexion, `reauthentification_requise` au-delà de `reauth_max_age_s` (EX-13.48) ; `hote_refuse` (421), `origine_refusee` (403), `requete_invalide` (400) avant tout autre traitement, aucun en-tête `Access-Control-Allow-*`, réponse du service rendue telle quelle (EX-13.49).",
+      "oracle": "Chaque variante refusée avec son code ; les chemins servis et les 404, 405 et 413 suivent EX-13.43 ; `GET /v0/sante` est conforme à `$defs/reponse_sante` et l'appel au service gardé 5 s, la sonde rend 0 ou 1 selon EX-13.44 ; identités `utilisateur <domain> <name>`, `identifiants_refuses` et `essai_trop_tot` (EX-13.47) ; sessions en mémoire seulement, détruites à la reconnexion, `reauthentification_requise` au-delà de `reauth_max_age_s` (EX-13.48) ; `hote_refuse` (421), `origine_refusee` (403), `requete_invalide` (400) avant tout autre traitement, aucun en-tête `Access-Control-Allow-*`, réponse du service rendue telle quelle (EX-13.49) ; refus au démarrage rapportés selon CT-3 EX-10.14.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Serveur de console non construit (CT-3 §13.20, §13.21, révision 0.5) ; seule la console de référence existe (TU-)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/exploitation-console-serveur-configuration.test.js",
+            "describe": "serveur de console : configuration (EX-10.13, contrat 2.3)"
+          },
+          {
+            "file": "test/exploitation-console-serveur-http.test.js",
+            "describe": "serveur de console : HTTP, système local, sessions, relais, santé, sonde (TE-20)"
+          },
+          {
+            "file": "test/exploitation-console-serveur-http.test.js",
+            "describe": "retour limité aux écrans, en-têtes de 2.6 sur chaque réponse",
+            "it": "chaque réponse reçue porte les en-têtes de 2.6, la CSP exacte (carte du manifeste), aucun Access-Control-Allow-*, aucun autre cookie"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/exploitation-console-serveur-configuration.test.js && npx hardhat --config hardhat.config.mjs test test/exploitation-console-serveur-http.test.js"
       },
       "threats": [
         "MN-47"
@@ -8569,19 +8693,38 @@
         "CT-4 EX-7.19",
         "CT-4 EX-7.20",
         "CT-4 EX-7.21",
-        "CT-4 EX-7.22"
+        "CT-4 EX-7.22",
+        "CT-4 EX-7.30"
       ],
       "preconditions": [
-        "Outil de référence `scripts/registre/noortrace-registre.mjs` avec la production et le contrôle du paquet (CT-4 §7.13, révision 0.6) ; inscription d'un client fictif menée jusqu'au bout sur le réseau de développement (TE-4)."
+        "Outil de référence `scripts/registre/noortrace-registre.mjs` avec la commande `paquet-client` (CT-4 EX-7.30) ; dossier fini des vecteurs de CT-4 et captures construites hors ligne ; sur le réseau de développement, quand il est disponible, le client fictif de TE-22 ; sans réseau de développement, la partie qui le demande est en attente, condition nommée (EX-3.11)."
       ],
       "steps": [
-        "Produire le paquet du client inscrit ; le contrôler comme le client (EX-7.22) ; rejouer le contrôle sur des copies altérées : fichier en trop, fichier manquant, ordre de la liste, SHA-256 ou longueur faux, `org_id` différent, capture incomplète, fichier qui contient une clé, une graine ou un jeton."
+        "Produire le paquet du client inscrit ; le contrôler comme le client (EX-7.22) ; rejouer le contrôle sur des copies altérées : fichier en trop, fichier manquant, ordre de la liste, SHA-256 ou longueur faux, `org_id` différent, capture incomplète, fichier qui contient une clé, une graine ou un jeton ; produire le paquet du client de TE-22 par l'outil et par l'application et les comparer."
       ],
-      "oracle": "Le répertoire porte exactement les fichiers d'EX-7.18, écrits selon EX-7.18 ; `paquet-client.json` et le gabarit sont conformes à `paquet-client-v0` et chaque membre non nul du gabarit à la propriété de même nom de `configuration-approbation-v0` (EX-7.19, EX-7.20) ; le paquet sain passe le contrôle ; chaque copie altérée est refusée au point d'EX-7.21 ou d'EX-7.22 qui la vise ; aucun fichier ne contient de secret.",
+      "oracle": "Le répertoire porte exactement les fichiers d'EX-7.18, écrits selon EX-7.18 ; `paquet-client.json` et le gabarit sont conformes à `paquet-client-v0` et chaque membre non nul du gabarit à la propriété de même nom de `configuration-approbation-v0` (EX-7.19, EX-7.20) ; le paquet sain passe le contrôle ; chaque copie altérée est refusée au point d'EX-7.21 ou d'EX-7.22 qui la vise ; aucun fichier ne contient de secret ; chaque refus porte le code d'EX-7.30 du point qu'il vise ; le paquet de l'application et celui de l'outil ne diffèrent que par les membres qu'EX-7.24 exclut, `source` compris ; `secrets_checked` nomme les options cherchées et leur nombre, égal des deux côtés.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Production et contrôle du paquet client non livrés par l'outil de référence (CT-4 §13, révision 0.6) ; seuls les exemples de 7.13 sont validés."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/registre-paquet-client.test.js",
+            "describe": "TE-21 — paquet client produit puis contrôlé par l'outil de référence (CT-4 §7.13, EX-7.18 à EX-7.22)"
+          },
+          {
+            "file": "test/registre-paquet-client.test.js",
+            "describe": "CT-4 §13, révision 0.7 : operations-registre-v0#/$defs/sortie admet la commande paquet-client et ses codes, sans complément"
+          },
+          {
+            "file": "test/inscription-paquet.test.js",
+            "describe": "inscription : paquet client produit par l'application (CT-4 §7.13, EX-7.18 à EX-7.22, TE-21)"
+          },
+          {
+            "file": "test/inscription-reseau.test.js",
+            "describe": "inscription : client fictif inscrit par l'application et l'agent sur le réseau de développement 2124 (EX-7.24, EX-7.15)",
+            "it": "TE-21 chaîné : le paquet de l'application et celui de l'outil de référence pour le client de 2124 rendent la même sortie paquet-client, les mêmes fichiers hors du manifeste, et passent EX-7.22 ; l'archive se remet par l'interface"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/registre-paquet-client.test.js && npx hardhat --config hardhat.config.mjs test test/inscription-paquet.test.js && npx hardhat --config hardhat.config.mjs test test/inscription-reseau.test.js"
       },
       "threats": []
     },
@@ -8598,7 +8741,8 @@
         "CT-4 EX-7.25",
         "CT-4 EX-7.26",
         "CT-4 EX-7.27",
-        "CT-4 EX-7.28"
+        "CT-4 EX-7.28",
+        "CT-4 EX-7.29"
       ],
       "preconditions": [
         "Application d'exploitant de CT-4 §7.14 : interface web et agent sous deux comptes du système, reliés par une prise de domaine Unix ; réseau de développement (TE-4)."
@@ -8606,11 +8750,32 @@
       "steps": [
         "Conduire par l'application les pas de 7.1 et la production du paquet pour un client fictif, puis les mêmes pas par l'outil de référence sur un second client ; relever chaque champ de chaque page et chaque méthode de l'agent ; demander une administration du jeu et un approvisionnement sans, puis avec la confirmation hors bande ; joindre l'agent depuis un autre compte et par une adresse IP."
       ],
-      "oracle": "Dossiers, envois, captures et paquet de mêmes formes et mêmes états que ceux de l'outil de référence (EX-7.24) ; aucun champ ni aucune méthode ne reçoit une clé, une graine, une mnémonique, un jeton ou un mot de passe (EX-7.25) ; aucune demande d'administration ni aucun approvisionnement sans confirmation consignée (EX-7.26) ; aucun condensé du registre signé par l'application (EX-7.27) ; l'agent n'écoute qu'une prise et refuse un pair d'un autre compte (EX-7.28).",
+      "oracle": "Dossiers, envois, captures et paquet de mêmes formes et mêmes états que ceux de l'outil de référence (EX-7.24) ; aucun champ ni aucune méthode ne reçoit une clé, une graine, une mnémonique, un jeton ou un mot de passe (EX-7.25) ; aucune demande d'administration ni aucun approvisionnement sans confirmation consignée (EX-7.26) ; aucun condensé du registre signé par l'application (EX-7.27) ; l'agent n'écoute qu'une prise et refuse un pair d'un autre compte (EX-7.28) ; les refus de la table de 7.11 que les travaux offerts peuvent rendre, `administrer-jeu` compris (`cle_revoquee`, qu'aucun travail offert n'atteint, est sans objet) ; une étape `echec` déjà accomplie passe à `capturee` par `capturer --transaction --dossier` (EX-7.29).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Application d'exploitant non construite (CT-4 §7.14, révision 0.6)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/inscription-application.test.js",
+            "describe": "inscription : application d'exploitant, interface Next.js et agent réel (TE-22, EX-7.23 à EX-7.28)"
+          },
+          {
+            "file": "test/inscription-agent.test.js",
+            "describe": "inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 §7.14, EX-7.23 à EX-7.28)"
+          },
+          {
+            "file": "test/inscription-agent.test.js",
+            "describe": "inscription : transport JSON-RPC de l'agent, réponse lue par morceaux et bornée (CT-4 EX-7.1)"
+          },
+          {
+            "file": "test/registre-paquet-client.test.js",
+            "describe": "CT-4 EX-7.29 (révision 0.7) : reprise d'une étape echec déjà accomplie et funding nul, par l'outil de référence sur le réseau Hardhat en mémoire"
+          },
+          {
+            "file": "test/inscription-reseau.test.js",
+            "describe": "inscription : client fictif inscrit par l'application et l'agent sur le réseau de développement 2124 (EX-7.24, EX-7.15)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/inscription-application.test.js && npx hardhat --config hardhat.config.mjs test test/inscription-agent.test.js && npx hardhat --config hardhat.config.mjs test test/registre-paquet-client.test.js && npx hardhat --config hardhat.config.mjs test test/inscription-reseau.test.js"
       },
       "threats": []
     },
@@ -8637,16 +8802,49 @@
         "CT-6 EX-18.13"
       ],
       "preconditions": [
-        "Artefact `noortrace-verifier.wasm` et fichiers de la page construits deux fois par la recette de CT-6 §18 ; hébergement de test qui sert les en-têtes d'EX-18.12 sur une origine propre ; un navigateur de chacun des moteurs Blink, Gecko et WebKit, en sa dernière version publiée ; binaire `linux/amd64` de la même version."
+        "Artefact `noortrace-verifier.wasm` et fichiers de la page construits deux fois par la recette de CT-6 §18 ; hébergement de test qui sert les en-têtes d'EX-18.12 sur une origine propre ; un navigateur de chacun des moteurs Blink, Gecko et WebKit : en intégration continue, ceux de Playwright 1.56.1 ; sur un poste qui n'a que Chromium, Gecko et WebKit sont en attente ; la dernière version publiée de chacun est celle de l'épreuve qui précède la publication d'une version de la page (CT-6 EX-18.13) ; `unshare` (droit superutilisateur ou espaces de noms d'utilisateur) pour l'arbre `/entrees` d'EX-18.10 ; binaire `linux/amd64` de la même version."
       ],
       "steps": [
         "Comparer les SHA-256 des deux constructions et les fichiers de la page ; vérifier dans chaque navigateur chacun des dossiers de `spec/vecteurs/ct-1/dossiers` et de `spec/vecteurs/ct-6/dossiers`, avec et sans fichier d'ancres, d'en-têtes Bitcoin et options ; servir un artefact dont un octet est changé ; relever les requêtes réseau de la page."
       ],
       "oracle": "Deux constructions aux mêmes octets (EX-18.4) ; rapport lisible, rapport JSON, sortie d'erreur et code égaux, octet pour octet, à ceux du binaire sur les mêmes entrées (EX-18.10) ; un artefact altéré n'est pas compilé et aucun rapport n'est affiché (EX-18.5) ; aucune requête ne quitte l'origine et aucun fichier choisi n'est envoyé (EX-18.11, EX-18.12) ; les trois moteurs donnent le même résultat (EX-18.13).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Artefact WebAssembly et page de vérification non construits (CT-6 §18, révision 0.6)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/verification-page-construction.test.js",
+            "describe": "page de vérification : construction reproductible et fichiers produits (CT-6 EX-18.3, EX-18.4, EX-18.6)"
+          },
+          {
+            "file": "test/verification-page-identite.test.js",
+            "describe": "page de vérification : même rapport que le binaire (CT-6 EX-18.10)"
+          },
+          {
+            "file": "test/verification-page-sources.test.js",
+            "describe": "page de vérification : lecture des archives (CT-6 EX-18.7)"
+          },
+          {
+            "file": "test/verification-page-sources.test.js",
+            "describe": "page de vérification : arbre présenté au programme (CT-6 EX-18.8)"
+          },
+          {
+            "file": "test/verification-page-sources.test.js",
+            "describe": "page de vérification : libellés (CT-6 EX-18.2, EX-18.5, EX-18.7, EX-18.9)"
+          },
+          {
+            "file": "test/verification-page-chromium.test.js",
+            "describe": "page de vérification dans ${moteur} (CT-6 EX-18.13, TE-23, TA-101)"
+          },
+          {
+            "file": "test/exploitation-console-parcours.test.js",
+            "describe": "TE-13 (étape 6, critère de livraison), variante sans registre (intégration continue) : jeu statique, contrôle 4 réussi, contrôle 8 non exécuté"
+          }
+        ],
+        "ci_steps": [
+          "page de vérification dans Chromium, Firefox et WebKit (TE-23, TA-101), aucun essai en attente",
+          "page de vérification, identité avec le binaire natif dans /entrees (CT-6 EX-18.10), aucun essai en attente"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/verification-page-construction.test.js && npx hardhat --config hardhat.config.mjs test test/verification-page-identite.test.js && npx hardhat --config hardhat.config.mjs test test/verification-page-sources.test.js && npx hardhat --config hardhat.config.mjs test test/verification-page-chromium.test.js && npx hardhat --config hardhat.config.mjs test test/exploitation-console-parcours.test.js"
       },
       "threats": [
         "MN-101"
@@ -11505,16 +11703,25 @@
         "CT-7 EX-3.10"
       ],
       "preconditions": [
-        "Service d'approbation construit (phase 2, étape 6), avec la forme de la déclaration de son point RPC (réglage « point RPC de la chaîne du registre » de la configuration du service, CT-3 EX-10.10) fixée par l'étape 6 : schéma proposé par CT-8 PD-7, ou à défaut celui que livre l'étape 6."
+        "Service d'approbation de l'étape 6, configuration `configuration-approbation-v0` dont le membre `rpc` déclare le point RPC de la chaîne du registre et son `validator` (CT-3 EX-10.12 ; schéma proposé par CT-8 PD-7, adoptée)."
       ],
       "steps": [
         "Valider une configuration de production avec un RPC non déclaré ; puis avec un RPC déclaré validateur du client ; puis avec un RPC déclaré validateur partenaire."
       ],
-      "oracle": "Refus puis deux acceptations. Refus : code de retour non nul de la validation, avec une erreur qui nomme le point RPC (forme du rapport de CT-2 EX-15.4, par analogie ; commande fixée à l'étape 6). Acceptation : code 0, pour un RPC déclaré validateur du client comme pour un RPC déclaré validateur partenaire (CT-7 EX-3.10). La règle ne vaut qu'en production (CT-7 EX-3.10 : « En production ») : ce test ne juge aucune configuration hors production. Écarts connus, consignés : le lieu de la validation (au démarrage du service, ou à `charger`, qui transmet `environment`, CT-3 §12.2) et la raison du refus (aucune raison de CT-3 §12.8 ne nomme un point RPC non déclaré) ne sont pas fixés par CT-3.",
+      "oracle": "Refus puis deux acceptations. Refus : `noortrace-approbation valider-configuration` rend le code 1 et l'erreur `rpc_non_declare` au pointeur `/rpc` (point RPC nul) ou `/rpc/validator` (point de développement) de la table d'EX-10.12 de CT-3. Acceptation : code 0, pour un RPC déclaré validateur du client comme pour un RPC déclaré validateur partenaire (CT-7 EX-3.10). La règle ne vaut qu'en production (CT-7 EX-3.10 : « En production ») : ce test ne juge aucune configuration hors production. Mutant : copie du paquet du service sans la règle, la configuration sans point RPC déclaré est acceptée (tué).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Service d'approbation et console non construits : phase 2, étape 6. La règle éprouvée est CT-7 EX-3.10 ; la forme de la déclaration du point RPC (CT-8 PD-7, ou à défaut la livraison de l'étape 6) est fixée par l'étape 6 ; aucun `status.depends_on` : la règle n'est pas conditionnée par la proposition."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/approbation-service-configuration.test.js",
+            "describe": "TA-51 : point RPC déclaré en production (CT-7 EX-3.10)",
+            "it": "TA-51 : production avec rpc nul ou developpement refusée (rpc_non_declare, code 1), client et partenaire acceptés (code 0) ; mutant sans la règle : la configuration sans point RPC déclaré passe (tué)"
+          }
+        ],
+        "ci_steps": [
+          "tests adversariaux de l'étape 6, mutants du service d'approbation, du serveur de console et du démon tués (TA-51, TA-77, TA-99, TA-100, TA-102), aucun essai en attente"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/approbation-service-configuration.test.js"
       },
       "threats": [
         "MN-51"
@@ -13012,9 +13219,23 @@
       ],
       "oracle": "Ligne approval_response_invalid, appel non relayé.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Service d'approbation et console non construits : phase 2, étape 6."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/approbation-service-console.test.js",
+            "describe": "TA-77 : canal du service authentifié (CT-2 EX-18.8, CT-3 EX-12.2)",
+            "it": "TA-77 : démon pointé vers un faux service sans mTLS ni jeton : ligne approval_response_invalid, appel non relayé ; service réel, jeton faux : 401, rien d'appliqué ; mutant du service sans authentification du canal : la requête au jeton faux est appliquée (tué)"
+          },
+          {
+            "file": "test/exploitation-console-parcours.test.js",
+            "describe": "TE-13 (étape 6, critère de livraison), variante sans registre (intégration continue) : jeu statique, contrôle 4 réussi, contrôle 8 non exécuté"
+          }
+        ],
+        "ci_steps": [
+          "tests adversariaux de l'étape 6, mutants du service d'approbation, du serveur de console et du démon tués (TA-51, TA-77, TA-99, TA-100, TA-102), aucun essai en attente",
+          "parcours TE-13 de la console d'exploitation, variante sans registre sans saut ; seule la variante du réseau de développement 2124 en attente, avec son message"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/approbation-service-console.test.js && npx hardhat --config hardhat.config.mjs test test/exploitation-console-parcours.test.js"
       },
       "threats": [
         "MN-77"
@@ -14201,9 +14422,18 @@
       ],
       "oracle": "Refus `destination_hors_exports`, aucun fichier hors du volume des exports ; avec le mutant, le dossier est écrit hors du volume (tué).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Commande d'export du démon non livrée (CT-2 §22, révision 0.8)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-export-dossier.test.js",
+            "describe": "TA-99 (MN-99) : mutant du démon qui ne vérifie plus le chemin réel du parent",
+            "it": "TA-99 : destination par un lien symbolique qui sort du répertoire des exports : sans mutant, destination_hors_exports et aucun fichier hors du volume ; le mutant écrit le dossier hors du volume (tué)"
+          }
+        ],
+        "ci_steps": [
+          "tests adversariaux de l'étape 6, mutants du service d'approbation, du serveur de console et du démon tués (TA-51, TA-77, TA-99, TA-100, TA-102), aucun essai en attente"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-export-dossier.test.js"
       },
       "threats": [
         "MN-99"
@@ -14247,9 +14477,18 @@
       ],
       "oracle": "400 `jeton_invalide`, aucune session ouverte ; avec le mutant, une session s'ouvre (tué).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Serveur de console non construit (CT-3 §13.21, révision 0.5)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/exploitation-console-serveur-oidc.test.js",
+            "describe": "TA-100 : réponse retirée — contrôle d'aud (EX-13.46, point 4)",
+            "it": "TA-100 : jeton valide et signé dont aud est un autre client : 400 jeton_invalide sans session ; avec le mutant, une session s'ouvre (tué)"
+          }
+        ],
+        "ci_steps": [
+          "tests adversariaux de l'étape 6, mutants du service d'approbation, du serveur de console et du démon tués (TA-51, TA-77, TA-99, TA-100, TA-102), aucun essai en attente"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/exploitation-console-serveur-oidc.test.js"
       },
       "threats": [
         "MN-100"
@@ -14294,9 +14533,18 @@
       ],
       "oracle": "L'artefact n'est pas compilé et aucun rapport n'est affiché ; avec le mutant, la page rend un rapport (tué).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Artefact WebAssembly et page de vérification non construits (CT-6 §18, révision 0.6)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/verification-page-chromium.test.js",
+            "describe": "page de vérification dans ${moteur} (CT-6 EX-18.13, TE-23, TA-101)",
+            "it": "TA-101 : artefact altéré d'un octet sous un travailleur.js intact, non compilé et aucun rapport ; le mutant sans le contrôle de l'empreinte rend un rapport (tué)"
+          }
+        ],
+        "ci_steps": [
+          "page de vérification dans Chromium, Firefox et WebKit (TE-23, TA-101), aucun essai en attente"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/verification-page-chromium.test.js"
       },
       "threats": [
         "MN-101"
@@ -14340,9 +14588,18 @@
       ],
       "oracle": "L'en-tête `NOORTRACE-Signature` est égal au HMAC-SHA256 recalculé sur le corps, exemple d'EX-13.41 compris ; avec le mutant, l'en-tête manque (tué).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 6,
-        "blocking": "Livraison des notifications par le service non construite (CT-3 §15.2, révision 0.5)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/approbation-service-notifications.test.js",
+            "describe": "TA-102 : signature des notifications (EX-13.41)",
+            "it": "TA-102 : l'en-tête NOORTRACE-Signature est égal au HMAC-SHA256 recalculé sur le corps par le récepteur, exemple d'EX-13.41 compris ; mutant du service sans l'en-tête : l'en-tête manque (tué)"
+          }
+        ],
+        "ci_steps": [
+          "tests adversariaux de l'étape 6, mutants du service d'approbation, du serveur de console et du démon tués (TA-51, TA-77, TA-99, TA-100, TA-102), aucun essai en attente"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/approbation-service-notifications.test.js"
       },
       "threats": [
         "MN-102"
@@ -19139,7 +19396,7 @@
       "owner": "client",
       "threat": "MN-51",
       "test": "TA-51",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-51 éprouve la réponse qui borne le risque (Jeu lu auprès d'un validateur du client ou partenaire (CT-3 EX-8.2 ; CT-7 EX-3.10)) : avec elle, La validation refuse la configuration en production ; sans elle, le test échoue.",
       "not_tested": "un validateur partenaire complice"
     },
@@ -19552,7 +19809,7 @@
       "owner": "client",
       "threat": "MN-99",
       "test": "TA-99",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-99 éprouve la réponse qui borne le risque (Chemin réel de la destination contrôlé sous le répertoire des exports (CT-2 EX-15.12, EX-15.13 ; CT-7 EX-3.16)) : avec elle, Refus `destination_hors_exports` ; aucun dossier hors du volume ; sans elle, le test échoue.",
       "not_tested": "un compte que l'exploitant admet à lire le répertoire des exports, qui lit ou copie les dossiers"
     },
@@ -19563,7 +19820,7 @@
       "owner": "client",
       "threat": "MN-100",
       "test": "TA-100",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-100 éprouve la réponse qui borne le risque (Vérification du jeton d'identité par le serveur de console (CT-3 EX-13.46, point 4 : `aud`)) : avec elle, 400 `jeton_invalide` ; aucune session ; sans elle, le test échoue.",
       "not_tested": "un fournisseur d'identité réel compromis, qui émet un jeton valide pour l'identité de son choix"
     },
@@ -19574,7 +19831,7 @@
       "owner": "reviseur",
       "threat": "MN-101",
       "test": "TA-101",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-101 éprouve la réponse qui borne le risque (Contrôle de l'empreinte de l'artefact par le travailleur (CT-6 EX-18.5)) : avec elle, Aucune compilation, aucun rapport affiché ; sans elle, le test échoue.",
       "not_tested": "un hébergeur qui sert une page et un artefact cohérents mais faux à qui ne compare pas leurs empreintes aux empreintes publiées"
     },
@@ -19585,7 +19842,7 @@
       "owner": "client",
       "threat": "MN-102",
       "test": "TA-102",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-102 éprouve la réponse qui borne le risque (Signature des notifications (CT-3 EX-13.41)) : avec elle, Chaque requête porte `NOORTRACE-Signature`, égal au HMAC-SHA256 du récepteur sur son corps ; sans elle, le test échoue.",
       "not_tested": "le délai d'un relais du client vers les approbateurs et une coupure prolongée du fournisseur d'identité"
     }
@@ -19615,112 +19872,112 @@
     {
       "id": "TC-4",
       "key": "CT-2 §0.1",
-      "line": 44,
+      "line": 48,
       "delegated": "Rattachement des tests aux identifiants EX-.",
       "response": "§5.1, règle (a) ; membre `covers` de chaque entrée (§4.1)."
     },
     {
       "id": "TC-5",
       "key": "CT-2 §1",
-      "line": 637,
+      "line": 695,
       "delegated": "Périmètre : les tests sont hors de CT-2.",
       "response": "Ce document."
     },
     {
       "id": "TC-6",
       "key": "CT-2 §1",
-      "line": 650,
+      "line": 708,
       "delegated": "Lit les EX-, les vecteurs (annexe B), la méthode de mesure (16) ; fixe les tests.",
       "response": "§7 (TV- de `ct-2`), §6 (TU- de CT-2), §11 (TM- de CT-2 §16)."
     },
     {
       "id": "TC-7",
       "key": "CT-2 §10.4",
-      "line": 7001,
+      "line": 7070,
       "delegated": "Réappliquer la politique à une pièce stockée : égalité des octets (idempotence).",
       "response": "TV- `ct-2/redaction/` (§7), oracle « la seconde application ne change aucun octet »."
     },
     {
       "id": "TC-8",
       "key": "CT-2 §15.6",
-      "line": 10586,
+      "line": 10655,
       "delegated": "Règles de configuration que le schéma n'exprime pas : tests de CT-9.",
       "response": "TU- configuration et contrôles de démarrage (§6) ; TV- `ct-2/pieces-*` ; TE- installation (§9) pour la commande du démon."
     },
     {
       "id": "TC-9",
       "key": "CT-2 §16.2",
-      "line": 11085,
+      "line": 11234,
       "delegated": "Seuil de régression des mesures de performance, à décider par CT-9.",
       "response": "§11.4 : seuil de régression EX-11.15 ; proposition PD- à CT-2 EX-16.2 pas 7 (§17.2)."
     },
     {
       "id": "TC-10",
       "key": "CT-2 §21",
-      "line": 12945,
+      "line": 13102,
       "delegated": "« Les tests » hors de CT-2.",
       "response": "Ce document."
     },
     {
       "id": "TC-11",
       "key": "CT-3 §0",
-      "line": 42,
+      "line": 46,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-12",
       "key": "CT-3 §1",
-      "line": 393,
+      "line": 457,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-13",
       "key": "CT-3 §1",
-      "line": 422,
+      "line": 486,
       "delegated": "EX-, AP-, TK-, SG-, AN-, CS-, vecteurs `ct-3`, épreuve à trois relecteurs, épreuve de lecture de la console.",
       "response": "TR-1 (A.5, trois relecteurs) et TR-2 (A.11, console) en §12 ; EX-, AP-, TK-, SG-, AN-, CS- et vecteurs ct-3 : TU-, TV- (§6, §7)."
     },
     {
       "id": "TC-14",
       "key": "CT-3 §7.12",
-      "line": 2309,
+      "line": 2377,
       "delegated": "Rattachement des TK-1 à TK-13 aux tests.",
       "response": "TV- `ct-3/tickets/` et TU- tickets (§6, §7) : `covers` CT-3 TK-1 à TK-13."
     },
     {
       "id": "TC-15",
       "key": "CT-4 §0",
-      "line": 45,
+      "line": 48,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-16",
       "key": "CT-4 §1",
-      "line": 235,
+      "line": 264,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-17",
       "key": "CT-4 §1",
-      "line": 263,
+      "line": 292,
       "delegated": "EX-, RG-, vecteurs `ct-4`, épreuve d'acceptation sur le réseau de développement.",
       "response": "TR-3 (§7.12, relecteur sur le réseau de développement) en §12 ; EX-, RG- et vecteurs ct-4 : TV- (§7), TE- (§9)."
     },
     {
       "id": "TC-18",
       "key": "CT-4 §9.2",
-      "line": 3535,
+      "line": 3657,
       "delegated": "Taille du certificat et de la capture d'une transaction d'un bloc plein de 64 ancres : mesure TM-31 de CT-9 du 2026-11-02 (certificat 32 587 octets ; capture 109 479 octets, 123 761 avec son index) ; bloc plein qui mêle des clôtures non mesuré.",
       "response": "TM-31 (§11, rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json`, ligne `b_cap_bloc_plein` ; index et certificat relevés dans `notes`) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
     },
     {
       "id": "TC-19",
       "key": "CT-4 §B.1",
-      "line": 4592,
+      "line": 4715,
       "delegated": "Point non vérifié 14 de R1 (taille d'un certificat de bloc plein) clos par la mesure TM-31 de CT-9 et son rapport.",
       "response": "TM-31 (§11) : rapport du 2026-11-02, certificat de 32 587 octets pour 64 transactions d'ancre (`notes`)."
     },
@@ -19797,21 +20054,21 @@
     {
       "id": "TC-30",
       "key": "CT-6 §0",
-      "line": 76,
+      "line": 78,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-31",
       "key": "CT-6 §1",
-      "line": 239,
+      "line": 244,
       "delegated": "EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`.",
       "response": "§6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10)."
     },
     {
       "id": "TC-32",
       "key": "CT-6 §6.9",
-      "line": 1884,
+      "line": 1889,
       "delegated": "Exécution des V- par comparaison du rapport à `attendu.json`.",
       "response": "TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`."
     },
@@ -19958,420 +20215,420 @@
     {
       "id": "TC-53",
       "key": "CT-8 « en-tête »",
-      "line": 29,
+      "line": 32,
       "delegated": "Convention « à mesurer (CT-9, porte 2) ».",
       "response": "§11 : chaque cible « à mesurer (CT-9, porte 2) » a sa ligne TM-21 à TM-40 avec cible, source et seuil d'échec ; colonne mesure vide en 0.1 (EX-11.16)."
     },
     {
       "id": "TC-54",
       "key": "CT-8 « en-tête »",
-      "line": 40,
+      "line": 43,
       "delegated": "Critère du plan (moins d'une journée) mesuré à la porte 2.",
       "response": "TM-22 (durée de chaque pas IC-1 à IC-18, durée totale, attente relevée à part) et TM-23 (informations manquantes)."
     },
     {
       "id": "TC-55",
       "key": "CT-8 « en-tête »",
-      "line": 42,
+      "line": 45,
       "delegated": "Ce que CT-9 chronomètre (EX-8.1).",
       "response": "TM- EX-8.1 (§11)."
     },
     {
       "id": "TC-56",
       "key": "CT-8 §0.1",
-      "line": 61,
+      "line": 64,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-57",
       "key": "CT-8 §0.1",
-      "line": 86,
+      "line": 89,
       "delegated": "Convention « cible ».",
       "response": "§2 (terminologie) et §11.4 : une cible devient une mesure par un rapport de mesure (EX-11.11) sur le système de référence (EX-11.1)."
     },
     {
       "id": "TC-58",
       "key": "CT-8 §0.2",
-      "line": 265,
+      "line": 268,
       "delegated": "Ordre d'écriture (traçabilité TC-104 de CT-8).",
       "response": "Ce document ; aucune réponse attendue."
     },
     {
       "id": "TC-59",
       "key": "CT-8 §0.3",
-      "line": 288,
+      "line": 291,
       "delegated": "Ce que l'auteur de CT-9 lit dans CT-8.",
       "response": "Ce document ; annexe A."
     },
     {
       "id": "TC-60",
       "key": "CT-8 §1",
-      "line": 446,
+      "line": 475,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-61",
       "key": "CT-8 §1",
-      "line": 460,
+      "line": 489,
       "delegated": "Onze familles, budgets, cibles, vecteurs `ct-8`, épreuves §14.",
       "response": "Mesures de la porte 2 : TM-21 à TM-40 (§11) ; épreuves de §14 : TR-9, TR-10, TR-11 (§12) ; EX-, CO-, IP-, IR-, IC-, DM-, SV-, PV-, CA-, OB-, PR- et vecteurs ct-8 : TV- (§7), TE- (§9)."
     },
     {
       "id": "TC-62",
       "key": "CT-8 §2",
-      "line": 469,
+      "line": 498,
       "delegated": "Budget de temps chronométré par CT-9.",
       "response": "TM-21 (IR-1 à IR-8) et TM-22 (IC-1 à IC-18) : chaque pas chronométré contre son budget, la somme contre la cible (EX-11.3, méthode `chronometre`)."
     },
     {
       "id": "TC-63",
       "key": "CT-8 §3.3",
-      "line": 611,
+      "line": 640,
       "delegated": "Épreuve de construction : volume nommé neuf.",
       "response": "TE- construction des images (§9), étape 7."
     },
     {
       "id": "TC-64",
       "key": "CT-8 §3.4",
-      "line": 758,
+      "line": 787,
       "delegated": "Cible : pose de l'attribut immuable sous 60 s.",
       "response": "TM-26 (compagnon : pose des attributs ≤ 60 s)."
     },
     {
       "id": "TC-65",
       "key": "CT-8 §3.4",
-      "line": 767,
+      "line": 796,
       "delegated": "Épreuve de construction : compagnon, ouverture en lecture.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-66",
       "key": "CT-8 §3.5",
-      "line": 786,
+      "line": 815,
       "delegated": "Cible : TTL DNS ≤ 30 s.",
       "response": "TM-27 (TTL DNS du répartiteur ≤ 30 s)."
     },
     {
       "id": "TC-67",
       "key": "CT-8 §3.6",
-      "line": 804,
+      "line": 833,
       "delegated": "Mesure : égalité de deux constructions des images.",
       "response": "TM-28 (égalité des condensés de deux constructions)."
     },
     {
       "id": "TC-68",
       "key": "CT-8 §3.6",
-      "line": 826,
+      "line": 855,
       "delegated": "Revue de code et RA-22.",
       "response": "TQ- chaîne de construction et de publication (§13)."
     },
     {
       "id": "TC-69",
       "key": "CT-8 §4.4",
-      "line": 1873,
+      "line": 1905,
       "delegated": "Épreuves de construction : images, `docker compose up`, `docker inspect`.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-70",
       "key": "CT-8 §5.3",
-      "line": 1983,
+      "line": 2015,
       "delegated": "Épreuve d'intégration ICAP.",
       "response": "TI-19 (mode ICAP, §8) : serveur ICAP et épreuve avec Squid (ssl-bump) livrés à l'étape 4."
     },
     {
       "id": "TC-71",
       "key": "CT-8 §6.2",
-      "line": 2080,
+      "line": 2112,
       "delegated": "Seuils « cible » du contrôle préalable.",
       "response": "TM-29 (seuils cibles IP-2, IP-3 confrontés à la consommation observée)."
     },
     {
       "id": "TC-72",
       "key": "CT-8 §7.1",
-      "line": 2553,
+      "line": 2585,
       "delegated": "Chronométrage IR-1 à IR-8 (900 s).",
       "response": "TM-21 (900 s, pas par pas, chaque durée publiée atteinte ou non) ; TR-9 ; critère de la porte 2 « installation par une personne extérieure en 15 min » (§14)."
     },
     {
       "id": "TC-73",
       "key": "CT-8 §7.2",
-      "line": 2784,
+      "line": 2816,
       "delegated": "Mesure : taille des images téléchargées.",
       "response": "TM-24 (taille des images et durée du téléchargement, relevées à part du budget d'IR-6)."
     },
     {
       "id": "TC-74",
       "key": "CT-8 §8.1",
-      "line": 2885,
+      "line": 2917,
       "delegated": "Titre « Durée et ce que CT-9 mesure ».",
       "response": "§11 : TM-22, TM-23 ; TE- d'A pour les verdicts du contrôle préalable final et du premier dossier."
     },
     {
       "id": "TC-75",
       "key": "CT-8 §8.1",
-      "line": 2897,
+      "line": 2929,
       "delegated": "Le système de référence est fixé par CT-9.",
       "response": "EX-11.1 (système de référence fixé en §11.1) ; TM-22 (durées), TM-23 (informations manquantes) ; verdicts IC-14 et IC-15 : TE-."
     },
     {
       "id": "TC-76",
       "key": "CT-8 §8.1",
-      "line": 2897,
+      "line": 2929,
       "delegated": "Le système de référence est fixé par CT-9.",
       "response": "EX-11.1 (système de référence fixé en §11.1) ; TM-22 (durées), TM-23 (informations manquantes) ; verdicts IC-14 et IC-15 : TE-."
     },
     {
       "id": "TC-77",
       "key": "CT-8 §8.3",
-      "line": 2989,
+      "line": 3021,
       "delegated": "Coefficients `f_pic`, `b_o`, `n_crl`, `b_crl` avant les mesures.",
       "response": "TM-33 (f_pic, b_o, b_acq, b_crl, n_crl) et TM-9 (m_0) ; IC-1 refait après mesure."
     },
     {
       "id": "TC-78",
       "key": "CT-8 §8.3",
-      "line": 3012,
+      "line": 3044,
       "delegated": "Script de préparation de l'hôte éprouvé sur le système de référence.",
       "response": "Le script de préparation de l'hôte est éprouvé pendant TM-22 (IC-2) sur le système de référence d'EX-11.1 ; TE- (§9)."
     },
     {
       "id": "TC-79",
       "key": "CT-8 §8.3",
-      "line": 3323,
+      "line": 3355,
       "delegated": "Attente d'IC-16 et IC-17 relevée à part.",
       "response": "TM-22 : ligne `ic_attente_cloture` relevée à part, dans la durée totale, hors de la durée du pas IC-15."
     },
     {
       "id": "TC-80",
       "key": "CT-8 §8.3",
-      "line": 3352,
+      "line": 3384,
       "delegated": "Durées reportées pour CT-9 (procès-verbal IC-18).",
       "response": "TM-22 : les durées du procès-verbal d'IC-18 sont la source des lignes `ic_1` à `ic_18` et `ic_total`."
     },
     {
       "id": "TC-81",
       "key": "CT-8 §9",
-      "line": 3386,
+      "line": 3418,
       "delegated": "Débit et latence de CT-2 §16.1 à mesurer.",
       "response": "TM-1 à TM-4 (cibles de CT-2 §16.1) en §11."
     },
     {
       "id": "TC-82",
       "key": "CT-8 §9.2",
-      "line": 3435,
+      "line": 3467,
       "delegated": "EX-9.1 : chaque coefficient a une source citée ou est marqué « à mesurer (CT-9) ».",
       "response": "Coefficients marqués « à mesurer (CT-9) » : TM-30 (`b_ots` mis à niveau), TM-32 (`blocs_par_s` en production), TM-33 (`f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`) et TM-9 (`m_0`) ; `b_cap` a pour source la mesure TM-31 (§11)."
     },
     {
       "id": "TC-83",
       "key": "CT-8 §9.2",
-      "line": 3454,
+      "line": 3486,
       "delegated": "`b_ots` preuve mise à niveau.",
       "response": "TM-30 (octets d'une preuve .ots mise à niveau)."
     },
     {
       "id": "TC-84",
       "key": "CT-8 §9.2",
-      "line": 3455,
+      "line": 3487,
       "delegated": "`b_cap` = 123 761 octets : mesure TM-31 de CT-9 du 2026-11-02, transaction d'un bloc plein de 64 ancres (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
       "response": "TM-31 (rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json` : ligne `b_cap_bloc_plein`, index relevé dans `notes`) ; réserve du bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
     },
     {
       "id": "TC-85",
       "key": "CT-8 §9.2",
-      "line": 3458,
+      "line": 3490,
       "delegated": "`blocs_par_s` en production.",
       "response": "TM-32 (blocs_par_s sur l'instance de production)."
     },
     {
       "id": "TC-86",
       "key": "CT-8 §9.2",
-      "line": 3460,
+      "line": 3492,
       "delegated": "Six coefficients sans valeur par défaut à mesurer : `f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`, `m_0`.",
       "response": "TM-33 (`f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`) et TM-9 (`m_0`)."
     },
     {
       "id": "TC-87",
       "key": "CT-8 §9.3",
-      "line": 3555,
+      "line": 3587,
       "delegated": "`m_0` à mesurer.",
       "response": "TM-9 (mémoire sous charge comparée à M_tamp)."
     },
     {
       "id": "TC-88",
       "key": "CT-8 §9.3",
-      "line": 3560,
+      "line": 3592,
       "delegated": "Mesure de la mémoire au-delà de `M_tamp`.",
       "response": "TM- mémoire (§11)."
     },
     {
       "id": "TC-89",
       "key": "CT-8 §10",
-      "line": 3822,
+      "line": 3854,
       "delegated": "Seuils d'alerte cibles.",
       "response": "TM-34 (seuils d'alerte cibles : faux positifs et faux négatifs)."
     },
     {
       "id": "TC-90",
       "key": "CT-8 §10.6",
-      "line": 4095,
+      "line": 4127,
       "delegated": "Seuil mempool `<M>`.",
       "response": "TM-35 (seuil <M> de la mempool)."
     },
     {
       "id": "TC-91",
       "key": "CT-8 §10.11",
-      "line": 4213,
+      "line": 4245,
       "delegated": "Durées des runbooks non mesurées.",
       "response": "TM-36 (durées de RB-1 à RB-8, publiées sans cible)."
     },
     {
       "id": "TC-92",
       "key": "CT-8 §10.11",
-      "line": 4263,
+      "line": 4295,
       "delegated": "Un test de CT-9 par correction d'incident.",
       "response": "§3.2 (règle d'ajout d'une entrée) ; TE- runbooks (§9), oracle."
     },
     {
       "id": "TC-93",
       "key": "CT-8 §11",
-      "line": 4654,
+      "line": 4686,
       "delegated": "RPO et RTO cibles.",
       "response": "TM-37 (RPO et RTO par composant, exercices de restauration)."
     },
     {
       "id": "TC-94",
       "key": "CT-8 §11.2",
-      "line": 4712,
+      "line": 4744,
       "delegated": "Fréquence de sauvegarde de l'état du service (15 min).",
       "response": "TM-37 : ligne `sauvegarde_etat_service_cadence` (cible 15 min)."
     },
     {
       "id": "TC-95",
       "key": "CT-8 §11.3",
-      "line": 4750,
+      "line": 4782,
       "delegated": "Table RPO/RTO : cibles à mesurer.",
       "response": "TM-37 (table d'EX-11.5, toutes les cibles sauf la borne du bail)."
     },
     {
       "id": "TC-96",
       "key": "CT-8 §11.10",
-      "line": 5138,
+      "line": 5170,
       "delegated": "Journal d'accès des supports WORM : disponibilité et format vérifiés en CT-9.",
       "response": "TM-39 (journal d'accès du support WORM : disponibilité et format par fournisseur)."
     },
     {
       "id": "TC-97",
       "key": "CT-8 §12.2",
-      "line": 5364,
+      "line": 5396,
       "delegated": "Latence en mode observation.",
       "response": "TM-38 (latence ajoutée en mode observation, paire avec et sans)."
     },
     {
       "id": "TC-98",
       "key": "CT-8 §12.2",
-      "line": 5376,
+      "line": 5408,
       "delegated": "Durée d'écriture lente, cible de CT-2 §16.1.",
       "response": "TM-38 : ligne `observation_ecriture` (durée d'écriture, cible de CT-2 §16.1)."
     },
     {
       "id": "TC-99",
       "key": "CT-8 §13.1",
-      "line": 5835,
+      "line": 5867,
       "delegated": "Parité du paquet réviseur mesurée par CT-9 (EX-13.1).",
       "response": "TM-25 (point 7) en §11 ; points 1 à 6 : TV- ct-8/paquets/ (§7) et TR-10 (§12)."
     },
     {
       "id": "TC-100",
       "key": "CT-8 §13.1",
-      "line": 5867,
+      "line": 5899,
       "delegated": "Temps du réviseur < 30 min.",
       "response": "TM-25 (temps du réviseur < 30 min), relevé pendant TR-10."
     },
     {
       "id": "TC-101",
       "key": "CT-8 §14",
-      "line": 7479,
+      "line": 7511,
       "delegated": "Conduite des trois épreuves de CT-8 §14.",
       "response": "TR-9, TR-10, TR-11 en §12, conduites selon le protocole commun de 12.1."
     },
     {
       "id": "TC-102",
       "key": "CT-8 §14.2",
-      "line": 7582,
+      "line": 7614,
       "delegated": "Durée de l'épreuve (b), mesure de CT-9.",
       "response": "EX-12.4 : consignation `consignation_rejeu` (schéma, §12.1), CT-8 EX-14.10 généralisée à toutes les épreuves TR-."
     },
     {
       "id": "TC-103",
       "key": "CT-8 §14.2",
-      "line": 7584,
+      "line": 7616,
       "delegated": "Consignation EX-14.10 par CT-9.",
       "response": "§12.1 (protocole commun) : consignation champ par champ."
     },
     {
       "id": "TC-104",
       "key": "CT-8 §15",
-      "line": 7616,
+      "line": 7648,
       "delegated": "Conformité des images à leur description : épreuve de construction.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-105",
       "key": "CT-8 §15",
-      "line": 7640,
+      "line": 7674,
       "delegated": "Script de préparation éprouvé sur le système de référence.",
       "response": "EX-11.1 : système de référence de la porte 2 fixé en §11.1."
     },
     {
       "id": "TC-106",
       "key": "CT-8 §15",
-      "line": 7641,
+      "line": 7675,
       "delegated": "Système de référence fixé par CT-9.",
       "response": "§11.1."
     },
     {
       "id": "TC-107",
       "key": "CT-8 §15",
-      "line": 7664,
+      "line": 7698,
       "delegated": "Cibles des sections 10 à 12 à mesurer.",
       "response": "TM-37 (RPO, RTO, restauration), TM-38 (latence en observation), TM-35 (mempool) en §11."
     },
     {
       "id": "TC-108",
       "key": "CT-8 §15",
-      "line": 7672,
+      "line": 7706,
       "delegated": "Journal d'accès des supports : CT-9 l'établit.",
       "response": "TM-39 (journal d'accès par fournisseur) établit la source `journal_acces_support` avant que CT-8 EX-11.19 la tienne pour acquise."
     },
     {
       "id": "TC-109",
       "key": "CT-8 §15",
-      "line": 7701,
+      "line": 7735,
       "delegated": "Budgets IR et IC à mesurer.",
       "response": "TM-21 (900 s) et TM-22 (450 min, 480 avec la réserve) en §11 ; porte 2 en §14."
     },
     {
       "id": "TC-110",
       "key": "CT-8 §B.2",
-      "line": 8658,
+      "line": 8696,
       "delegated": "Ordre des champs de `chronyc -c tracking` à relever.",
       "response": "TM-40 (ordre des champs de chronyc -c tracking relevé sur chrony 4.6)."
     },
     {
       "id": "TC-111",
       "key": "CT-8 §B.4",
-      "line": 8713,
+      "line": 8751,
       "delegated": "Latence en observation.",
       "response": "TM-38 (latence en observation)."
     },
     {
       "id": "TC-112",
       "key": "CT-8 §B.5",
-      "line": 8761,
+      "line": 8799,
       "delegated": "Temps du réviseur.",
       "response": "TM-25 (temps du réviseur)."
     },

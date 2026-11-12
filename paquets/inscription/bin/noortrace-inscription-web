@@ -1,0 +1,67 @@
+#!/usr/bin/env node
+// Interface d'exploitant (CT-4 §7.14) : noortrace-inscription-web --config <fichier>. Sert le résultat de
+// « next build » (répertoire src/web), sans le construire ; écoute l'adresse de la configuration (derrière le
+// mandataire TLS de l'exploitant). Prêt, il écrit {"pret":true,"pid":<n>,"url":<adresse>} sur la sortie standard ;
+// SIGTERM l'arrête. Code 2 : configuration refusée ou construction absente. Avant Next, sans lecture du corps :
+// une requête dont le Content-Length dépasse la borne des corps (lib/bornes.mjs) reçoit 413, une requête dont le
+// corps n'annonce pas sa longueur (Transfer-Encoding) reçoit 411 (Next retiendrait ce corps jusqu'à sa fin, et le
+// tronquerait sans le dire au-delà de sa propre borne) ; une requête entière, corps compris, a un délai borné.
+
+import fs from "node:fs";
+import http from "node:http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const args = process.argv.slice(2);
+if (args.length !== 2 || args[0] !== "--config") {
+  process.stderr.write("usage : noortrace-inscription-web --config <fichier>\n");
+  process.exit(2);
+}
+const chemin = path.resolve(args[1]);
+process.env.NOORTRACE_INSCRIPTION_CONFIG = chemin;
+process.env.NEXT_TELEMETRY_DISABLED = "1";
+const WEB = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "web");
+const { lireConfigurationInterface, comptes } = await import("../src/web/lib/serveur.mjs");
+const { CORPS_MAX, DELAI_REQUETE_MS } = await import("../src/web/lib/bornes.mjs");
+let config;
+try {
+  config = lireConfigurationInterface(chemin);
+  comptes();
+} catch (e) {
+  process.stderr.write(`noortrace-inscription-web : ${e.message}\n`);
+  process.exit(2);
+}
+if (!fs.existsSync(path.join(WEB, ".next", "BUILD_ID"))) {
+  process.stderr.write("noortrace-inscription-web : construction absente (npx next build dans src/web)\n");
+  process.exit(2);
+}
+// Les messages de Next vont sur la sortie d'erreur : la sortie standard ne porte que la ligne de disponibilité.
+console.log = (...x) => console.error(...x);
+console.info = (...x) => console.error(...x);
+const { default: next } = await import("next");
+const app = next({ dev: false, dir: WEB, hostname: config.ecoute.hote, port: config.ecoute.port });
+await app.prepare();
+const traiter = app.getRequestHandler();
+/** Refus avant Next (413 ou 411) : rien n'est lu, la connexion est fermée. */
+function refuserCorps(req, res, statut, code, message) {
+  const corps = JSON.stringify({ error: { code, message } });
+  res.writeHead(statut, {
+    "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "content-security-policy": "default-src 'none'; frame-ancestors 'none'",
+    "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "x-frame-options": "DENY", connection: "close", "content-length": Buffer.byteLength(corps),
+  });
+  res.end(corps, () => req.socket.destroy());
+}
+const serveur = http.createServer((req, res) => {
+  const annonce = req.headers["content-length"];
+  if (annonce !== undefined && /^[0-9]+$/.test(annonce) && Number(annonce) > CORPS_MAX) return refuserCorps(req, res, 413, "corps_trop_grand", `corps au-delà de ${CORPS_MAX} octets`);
+  if (req.headers["transfer-encoding"] !== undefined) return refuserCorps(req, res, 411, "longueur_exigee", "corps sans Content-Length refusé");
+  return traiter(req, res);
+});
+serveur.requestTimeout = DELAI_REQUETE_MS;
+serveur.listen(config.ecoute.port, config.ecoute.hote, () => {
+  const a = serveur.address();
+  process.stdout.write(JSON.stringify({ pret: true, pid: process.pid, url: `http://${a.family === "IPv6" ? `[${a.address}]` : a.address}:${a.port}` }) + "\n");
+});
+const arreter = () => serveur.close(() => process.exit(0));
+process.on("SIGTERM", arreter);
+process.on("SIGINT", arreter);

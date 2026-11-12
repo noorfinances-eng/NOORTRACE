@@ -455,6 +455,11 @@ export async function lancerServiceApprobation(dir, o) {
     console: { tcp: { host: "127.0.0.1", port: 0 }, token: { env: "NOORTRACE_TEST_JETON_CONSOLE" }, annuaire },
     tickets: { epoch: null },
     remise_representation_ms: o.remise_representation_ms ?? 2000,
+    // configuration du service de la révision 0.5 de CT-3 (EX-10.12) : organisation, administrateurs
+    // et origine de la console, ceux de l'annuaire de référence recopié ci-dessus
+    org: "assureur-demo",
+    administrators: ["oidc https://idp.assureur-demo.example admin-1"],
+    console_origin: "https://console.assureur-demo.example",
   };
   const fichier = path.join(dir, "approbation.json");
   fs.writeFileSync(fichier, JSON.stringify(config, null, 2));

@@ -519,9 +519,25 @@ export const TI = [
     ],
     "oracle": "Sept combinaisons d'`evaluer` et refus des autres (CT-3 EX-12.6) ; canal non authentifié refusé ; mêmes sorties après reprise (TK-12).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 6,
-      "blocking": "Service non construit ; seule la partie calculable est testée (TU-)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/approbation-service-console.test.js",
+          "describe": "TI-14 : canal réel joint par le client du démon de l'étape 4",
+          "it": "sept combinaisons d'evaluer jugées par la validation du démon ; canal non authentifié refusé ; mêmes sorties après un arrêt brutal"
+        },
+        {
+          "file": "test/approbation-service-console.test.js",
+          "describe": "méthodes, vue et ordre des refus sur un service réel"
+        },
+        {
+          "file": "test/exploitation-console-parcours.test.js",
+          "describe": "TE-13 (étape 6, critère de livraison), variante sans registre (intégration continue) : jeu statique, contrôle 4 réussi, contrôle 8 non exécuté"
+        }
+      ],
+      "ci_steps": [
+        "parcours TE-13 de la console d'exploitation, variante sans registre sans saut ; seule la variante du réseau de développement 2124 en attente, avec son message"
+      ]
     },
     "threats": [
       "MN-51",
@@ -896,9 +912,17 @@ export const TI = [
     ],
     "oracle": "Corps égal au JCS du document `$defs/notification` de `configuration-approbation-v0`, identique à chaque tentative ; en-tête `NOORTRACE-Signature` égal au HMAC recalculé par le récepteur, exemple d'EX-13.41 compris ; reprises 10 s, 60 s, 300 s et 1 800 s après chaque tentative, abandon sans reprise sur un statut 3xx ou un 4xx autre que 408 et 429, `file_pleine` dans l'ordre d'EX-13.42 ; lignes `notification_livree`, `notification_echec` et `notification_abandonnee` au journal du service, sans corps ni clé ; aucune notification livrée par la console (EX-13.39).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 6,
-      "blocking": "Livraison des notifications par le service non construite (CT-3 §15.2, révision 0.5)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/approbation-service-notifications.test.js",
+          "describe": "TI-21 : le service forme, inscrit et livre chaque sorte de notification"
+        },
+        {
+          "file": "test/approbation-service-notifications.test.js",
+          "describe": "livraison (EX-13.42), sous l'horloge du service"
+        }
+      ]
     },
     "threats": [
       "MN-102"
@@ -923,9 +947,30 @@ export const TI = [
     ],
     "oracle": "Session ouverte pour le seul jeton valide ; chaque découverte fautive rend `fournisseur_erreur` ou `fournisseur_indisponible` (EX-13.45) ; chaque jeton fautif rend 400 `jeton_invalide` au premier point en échec, `identite_invalide` au point 9, sans session ; une transaction rejouée rend `transaction_inconnue` ; la page ne vérifie aucun jeton.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 6,
-      "blocking": "Serveur de console non construit (CT-3 §13.21, révision 0.5)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/exploitation-console-serveur-oidc.test.js",
+          "describe": "flux par code avec PKCE et client_secret_basic",
+          "it": "session ouverte pour un jeton valide : 303 vers retour, cookie de session posé, cookie de transaction effacé ; identité oidc <iss> <sub>"
+        },
+        {
+          "file": "test/exploitation-console-serveur-oidc.test.js",
+          "describe": "retour : transaction, state, error, iss (EX-13.45, point 3)"
+        },
+        {
+          "file": "test/exploitation-console-serveur-oidc.test.js",
+          "describe": "découverte et jeu de clés (EX-13.45, point 1)"
+        },
+        {
+          "file": "test/exploitation-console-serveur-oidc.test.js",
+          "describe": "vérification du jeton d'identité (EX-13.46) : un jeton fautif par point, au premier point en échec"
+        },
+        {
+          "file": "test/exploitation-console-serveur-oidc.test.js",
+          "describe": "cookie de transaction (EX-13.48, point 3)"
+        }
+      ]
     },
     "threats": [
       "MN-100"

@@ -1,0 +1,29 @@
+#!/usr/bin/env node
+// Agent d'inscription (CT-4 EX-7.23, EX-7.28) : noortrace-inscription-agent --config <fichier>.
+// Prêt, il écrit {"pret":true,"pid":<n>,"prise":<chemin>} sur la sortie standard ; SIGTERM l'arrête
+// après le travail en cours. Code 2 : configuration refusée (le message est sur la sortie d'erreur).
+
+import { demarrerAgent, ErreurConfiguration } from "../src/agent/index.mjs";
+
+const args = process.argv.slice(2);
+if (args.length !== 2 || args[0] !== "--config") {
+  process.stderr.write("usage : noortrace-inscription-agent --config <fichier>\n");
+  process.exit(2);
+}
+let agent;
+try {
+  agent = await demarrerAgent(args[1]);
+} catch (e) {
+  process.stderr.write(`noortrace-inscription-agent : ${e instanceof ErreurConfiguration ? e.message : `démarrage impossible : ${e?.message ?? e}`}\n`);
+  process.exit(2);
+}
+process.stdout.write(JSON.stringify({ pret: true, pid: agent.pid, prise: agent.prise }) + "\n");
+let arret = false;
+const arreter = async () => {
+  if (arret) return;
+  arret = true;
+  await agent.arreter();
+  process.exit(0);
+};
+process.on("SIGTERM", arreter);
+process.on("SIGINT", arreter);

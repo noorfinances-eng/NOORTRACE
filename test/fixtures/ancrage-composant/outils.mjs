@@ -286,7 +286,10 @@ export async function autoriteInterne({ nom, dir, role, horloge, aleatoire, crl,
   const repertoire = path.join(dir, nom);
   crl.declarer(nom, repertoire);
   const debut = debutCertificatMs ?? horloge.murale() - 86400000;
-  const init = initialiserAutorite({ repertoire, algorithme, politique, crlUrl: crl.url(nom), validiteJours, horloge: { murale: () => debut }, aleatoire, sujetUnite: { O: "NOORTRACE essai", CN: `TSA ${nom} non qualifiee` } });
+  // Chaque autorité a son propre nom d'émetteur : deux AC de même nom font
+  // prendre la CRL de l'une pour celle de l'autre, que les vérificateurs
+  // écartent alors (signature invalide, AV-T-3 de CT-6 EX-9.16).
+  const init = initialiserAutorite({ repertoire, algorithme, politique, crlUrl: crl.url(nom), validiteJours, horloge: { murale: () => debut }, aleatoire, sujetAc: { O: "NOORTRACE essai", CN: `AC ${nom} (essai)` }, sujetUnite: { O: "NOORTRACE essai", CN: `TSA ${nom} non qualifiee` } });
   const autorite = chargerAutorite({ repertoire, compteur: new CompteurMemoire(1n) });
   const ecoute = tls ? { tls: { cle: tls.serveur.cle, certificat: tls.serveur.certificat, acClients: tls.ca, hote: "127.0.0.1", port: 0 } } : { hote: "127.0.0.1", port: 0 };
   const serveur = await demarrerServeur({ autorite, ecoute, horloge, journal: journal ?? { consigner() {} } });

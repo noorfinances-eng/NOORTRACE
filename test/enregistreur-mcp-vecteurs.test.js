@@ -172,6 +172,21 @@ async function rejouer(cas) {
   return { a, hote, amont, attendusAmont, ecritAmont, sortiesHote, evenements, cles, lirePiece, redacteur, coeur, frontal };
 }
 
+
+/**
+ * Attend une condition observée, 30 s au plus (temps réel ; l'horloge du
+ * démon reste virtuelle), et échoue sinon en la nommant : remplace les délais
+ * fixes, que la charge rend trop courts.
+ */
+async function attendreQue(condition, description, ms = 30000) {
+  const limite = Date.now() + ms;
+  for (;;) {
+    if (await condition()) return;
+    if (Date.now() >= limite) throw new Error(`condition non tenue en ${ms} ms : ${description}`);
+    await laisserTourner(2);
+  }
+}
+
 describe("enregistreur, frontal MCP : vecteurs CT-2 rejoués", function () {
   this.timeout(180000);
 
@@ -275,7 +290,7 @@ describe("enregistreur, frontal MCP : vecteurs CT-2 rejoués", function () {
       // seq 3 : lecture relayée, réponse 184 ms plus tard.
       horloge.aller(t(entrees.calls[0].t_recu));
       const r3 = frontal.recevoir(session, entrees.calls[0].host_line);
-      await laisserTourner(20);
+      await attendreQue(() => enfant.ecrit.some((l) => JSON.parse(l).method === "tools/call"), "ligne amont de seq 3 écrite");
       const envoye = JSON.parse(enfant.ecrit.at(-1));
       horloge.avancer(publies[2].execution.duration_ms);
       enfant.repondre(JSON.stringify({ jsonrpc: "2.0", id: envoye.id, result: JSON.parse(resultatPublie.bytes) }));
@@ -284,8 +299,9 @@ describe("enregistreur, frontal MCP : vecteurs CT-2 rejoués", function () {
       horloge.aller(t(entrees.calls[1].t_recu));
       const r5 = JSON.parse(await frontal.recevoir(session, entrees.calls[1].host_line));
       expect(r5.result._meta["noortrace/approval"]).to.deep.equal({ ticket: publies[4].policy.ticket, state: "en_attente" });
-      await laisserTourner(20);
-      const produits = (await lireEvenements(coeur.repertoire)).filter((e) => !e.execution.tool.startsWith("noortrace."));
+      const lireProduits = async () => (await lireEvenements(coeur.repertoire)).filter((e) => !e.execution.tool.startsWith("noortrace."));
+      await attendreQue(async () => (await lireProduits()).length >= 2, "événements de seq 3 et 5 écrits");
+      const produits = await lireProduits();
       expect(produits.length).to.equal(2);
       const champs = (e) => ({ delegation: e.delegation, code: e.code, intent: e.intent, policy: e.policy, approval: e.approval, execution: e.execution, effects: e.effects, context: e.context });
       expect(champs(produits[0])).to.deep.equal(champs(publies[2]));
@@ -326,12 +342,19 @@ describe("enregistreur, frontal MCP : vecteurs CT-2 rejoués", function () {
         const session = frontal.ouvrirSession({ hote: v.config.mcp.hosts[0], identite: { peer_user: "agent-demo" }, transport: "stdio" });
         await frontal.recevoir(session, '{"jsonrpc":"2.0","id":"l","method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}');
         const p = frontal.recevoir(session, ligneHote);
-        await laisserTourner(20);
-        const ecrit = enfant.ecrit.filter((l) => JSON.parse(l).method === "tools/call");
+        let rendu = false;
+        p.then(() => (rendu = true), () => (rendu = true));
+        const appelsAmont = () => enfant.ecrit.filter((l) => JSON.parse(l).method === "tools/call");
+        // Condition observée, bornée, au lieu d'un délai fixe : la ligne amont est
+        // écrite (relais, A.3), ou la réponse est rendue à l'hôte sans elle (A.2) ;
+        // le délai de l'outil est sous l'horloge virtuelle et n'expire jamais seul.
+        await attendreQue(() => rendu || appelsAmont().length > 0, "ligne amont écrite ou réponse rendue à l'hôte");
+        const ecrit = appelsAmont();
         if (ecrit.length) enfant.repondre(reponseAmont);
         const r = await p;
-        await laisserTourner(20);
-        const evts = (await lireEvenements(coeur.repertoire)).filter((e) => !e.execution.tool.startsWith("noortrace."));
+        const produits = async () => (await lireEvenements(coeur.repertoire)).filter((e) => !e.execution.tool.startsWith("noortrace."));
+        await attendreQue(async () => (await produits()).length >= 1, "événement écrit");
+        const evts = await produits();
         await frontal.arreter();
         await coeur.arreter();
         return { r, ecrit, evts };

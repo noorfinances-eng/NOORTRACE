@@ -25,6 +25,12 @@ export class IndexChaine {
     this.premiersExecutes = new Map();
     /** hash → seq des événements `retenue` (SG-2). */
     this.retenuesParHash = new Map();
+    /**
+     * hash → événement `executee` qui porte une approbation (premier relais
+     * et continuations MRTR) : une ligne `continuation` désigne l'un d'eux
+     * (EX-4.21, EX-12.23).
+     */
+    this.executeesApprouves = new Map();
   }
 
   /**
@@ -61,6 +67,7 @@ export class IndexChaine {
       if (st === "executee" && e.approval?.ticket && !this.premiersExecutes.has(e.approval.ticket)) {
         this.premiersExecutes.set(e.approval.ticket, e);
       }
+      if (st === "executee" && e.approval?.ticket) this.executeesApprouves.set(e.hash, e);
     }
     if (!this.cles.has(e.recorder_key_id)) {
       this.cles.set(e.recorder_key_id, { public_key: null, valid_from: decoderHorodatage(e.ts), valid_to: null });

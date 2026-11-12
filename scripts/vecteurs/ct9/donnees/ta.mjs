@@ -1729,16 +1729,24 @@ export const TA = [
   {
     "id": "TA-51",
     "preconditions": [
-      "Service d'approbation construit (phase 2, étape 6), avec la forme de la déclaration de son point RPC (réglage « point RPC de la chaîne du registre » de la configuration du service, CT-3 EX-10.10) fixée par l'étape 6 : schéma proposé par CT-8 PD-7, ou à défaut celui que livre l'étape 6."
+      "Service d'approbation de l'étape 6, configuration `configuration-approbation-v0` dont le membre `rpc` déclare le point RPC de la chaîne du registre et son `validator` (CT-3 EX-10.12 ; schéma proposé par CT-8 PD-7, adoptée)."
     ],
     "steps": [
       "Valider une configuration de production avec un RPC non déclaré ; puis avec un RPC déclaré validateur du client ; puis avec un RPC déclaré validateur partenaire."
     ],
-    "oracle": "Refus puis deux acceptations. Refus : code de retour non nul de la validation, avec une erreur qui nomme le point RPC (forme du rapport de CT-2 EX-15.4, par analogie ; commande fixée à l'étape 6). Acceptation : code 0, pour un RPC déclaré validateur du client comme pour un RPC déclaré validateur partenaire (CT-7 EX-3.10). La règle ne vaut qu'en production (CT-7 EX-3.10 : « En production ») : ce test ne juge aucune configuration hors production. Écarts connus, consignés : le lieu de la validation (au démarrage du service, ou à `charger`, qui transmet `environment`, CT-3 §12.2) et la raison du refus (aucune raison de CT-3 §12.8 ne nomme un point RPC non déclaré) ne sont pas fixés par CT-3.",
+    "oracle": "Refus puis deux acceptations. Refus : `noortrace-approbation valider-configuration` rend le code 1 et l'erreur `rpc_non_declare` au pointeur `/rpc` (point RPC nul) ou `/rpc/validator` (point de développement) de la table d'EX-10.12 de CT-3. Acceptation : code 0, pour un RPC déclaré validateur du client comme pour un RPC déclaré validateur partenaire (CT-7 EX-3.10). La règle ne vaut qu'en production (CT-7 EX-3.10 : « En production ») : ce test ne juge aucune configuration hors production. Mutant : copie du paquet du service sans la règle, la configuration sans point RPC déclaré est acceptée (tué).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 6,
-      "blocking": "Service d'approbation et console non construits : phase 2, étape 6. La règle éprouvée est CT-7 EX-3.10 ; la forme de la déclaration du point RPC (CT-8 PD-7, ou à défaut la livraison de l'étape 6) est fixée par l'étape 6 ; aucun `status.depends_on` : la règle n'est pas conditionnée par la proposition."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/approbation-service-configuration.test.js",
+          "describe": "TA-51 : point RPC déclaré en production (CT-7 EX-3.10)",
+          "it": "TA-51 : production avec rpc nul ou developpement refusée (rpc_non_declare, code 1), client et partenaire acceptés (code 0) ; mutant sans la règle : la configuration sans point RPC déclaré passe (tué)"
+        }
+      ],
+      "ci_steps": [
+        "tests adversariaux de l'étape 6, mutants du service d'approbation, du serveur de console et du démon tués (TA-51, TA-77, TA-99, TA-100, TA-102), aucun essai en attente"
+      ]
     },
     "response_removed": {
       "what": "Jeu lu auprès d'un validateur du client ou partenaire (CT-3 EX-8.2 ; CT-7 EX-3.10)",
@@ -2649,9 +2657,22 @@ export const TA = [
     ],
     "oracle": "Ligne approval_response_invalid, appel non relayé.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 6,
-      "blocking": "Service d'approbation et console non construits : phase 2, étape 6."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/approbation-service-console.test.js",
+          "describe": "TA-77 : canal du service authentifié (CT-2 EX-18.8, CT-3 EX-12.2)",
+          "it": "TA-77 : démon pointé vers un faux service sans mTLS ni jeton : ligne approval_response_invalid, appel non relayé ; service réel, jeton faux : 401, rien d'appliqué ; mutant du service sans authentification du canal : la requête au jeton faux est appliquée (tué)"
+        },
+        {
+          "file": "test/exploitation-console-parcours.test.js",
+          "describe": "TE-13 (étape 6, critère de livraison), variante sans registre (intégration continue) : jeu statique, contrôle 4 réussi, contrôle 8 non exécuté"
+        }
+      ],
+      "ci_steps": [
+        "tests adversariaux de l'étape 6, mutants du service d'approbation, du serveur de console et du démon tués (TA-51, TA-77, TA-99, TA-100, TA-102), aucun essai en attente",
+        "parcours TE-13 de la console d'exploitation, variante sans registre sans saut ; seule la variante du réseau de développement 2124 en attente, avec son message"
+      ]
     },
     "response_removed": {
       "what": "Canal du service authentifié (CT-3 EX-12.2 ; CT-2 EX-18.8, EX-18.3)",
@@ -3391,9 +3412,17 @@ export const TA = [
     ],
     "oracle": "Refus `destination_hors_exports`, aucun fichier hors du volume des exports ; avec le mutant, le dossier est écrit hors du volume (tué).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 6,
-      "blocking": "Commande d'export du démon non livrée (CT-2 §22, révision 0.8)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-export-dossier.test.js",
+          "describe": "TA-99 (MN-99) : mutant du démon qui ne vérifie plus le chemin réel du parent",
+          "it": "TA-99 : destination par un lien symbolique qui sort du répertoire des exports : sans mutant, destination_hors_exports et aucun fichier hors du volume ; le mutant écrit le dossier hors du volume (tué)"
+        }
+      ],
+      "ci_steps": [
+        "tests adversariaux de l'étape 6, mutants du service d'approbation, du serveur de console et du démon tués (TA-51, TA-77, TA-99, TA-100, TA-102), aucun essai en attente"
+      ]
     },
     "response_removed": {
       "what": "Chemin réel de la destination contrôlé sous le répertoire des exports (CT-2 EX-15.12, EX-15.13 ; CT-7 EX-3.16)",
@@ -3416,9 +3445,17 @@ export const TA = [
     ],
     "oracle": "400 `jeton_invalide`, aucune session ouverte ; avec le mutant, une session s'ouvre (tué).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 6,
-      "blocking": "Serveur de console non construit (CT-3 §13.21, révision 0.5)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/exploitation-console-serveur-oidc.test.js",
+          "describe": "TA-100 : réponse retirée — contrôle d'aud (EX-13.46, point 4)",
+          "it": "TA-100 : jeton valide et signé dont aud est un autre client : 400 jeton_invalide sans session ; avec le mutant, une session s'ouvre (tué)"
+        }
+      ],
+      "ci_steps": [
+        "tests adversariaux de l'étape 6, mutants du service d'approbation, du serveur de console et du démon tués (TA-51, TA-77, TA-99, TA-100, TA-102), aucun essai en attente"
+      ]
     },
     "response_removed": {
       "what": "Vérification du jeton d'identité par le serveur de console (CT-3 EX-13.46, point 4 : `aud`)",
@@ -3441,9 +3478,17 @@ export const TA = [
     ],
     "oracle": "L'artefact n'est pas compilé et aucun rapport n'est affiché ; avec le mutant, la page rend un rapport (tué).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 6,
-      "blocking": "Artefact WebAssembly et page de vérification non construits (CT-6 §18, révision 0.6)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/verification-page-chromium.test.js",
+          "describe": "page de vérification dans ${moteur} (CT-6 EX-18.13, TE-23, TA-101)",
+          "it": "TA-101 : artefact altéré d'un octet sous un travailleur.js intact, non compilé et aucun rapport ; le mutant sans le contrôle de l'empreinte rend un rapport (tué)"
+        }
+      ],
+      "ci_steps": [
+        "page de vérification dans Chromium, Firefox et WebKit (TE-23, TA-101), aucun essai en attente"
+      ]
     },
     "response_removed": {
       "what": "Contrôle de l'empreinte de l'artefact par le travailleur (CT-6 EX-18.5)",
@@ -3466,9 +3511,17 @@ export const TA = [
     ],
     "oracle": "L'en-tête `NOORTRACE-Signature` est égal au HMAC-SHA256 recalculé sur le corps, exemple d'EX-13.41 compris ; avec le mutant, l'en-tête manque (tué).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 6,
-      "blocking": "Livraison des notifications par le service non construite (CT-3 §15.2, révision 0.5)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/approbation-service-notifications.test.js",
+          "describe": "TA-102 : signature des notifications (EX-13.41)",
+          "it": "TA-102 : l'en-tête NOORTRACE-Signature est égal au HMAC-SHA256 recalculé sur le corps par le récepteur, exemple d'EX-13.41 compris ; mutant du service sans l'en-tête : l'en-tête manque (tué)"
+        }
+      ],
+      "ci_steps": [
+        "tests adversariaux de l'étape 6, mutants du service d'approbation, du serveur de console et du démon tués (TA-51, TA-77, TA-99, TA-100, TA-102), aucun essai en attente"
+      ]
     },
     "response_removed": {
       "what": "Signature des notifications (CT-3 EX-13.41)",

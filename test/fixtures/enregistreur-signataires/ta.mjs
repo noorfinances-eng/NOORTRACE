@@ -126,13 +126,17 @@ export const MARGE_FENETRE_MS = 60000;
  * Pourquoi : le premier événement d'une heure nouvelle fait d'abord clore la
  * période précédente (`_cloreJusqua` dans `_ecrireEvenement`, ecrivain.mjs),
  * ce qui signe un point de clôture et un manifeste. Backend arrêté, cette
- * signature échoue avant celle de l'événement ; or le mutant de TA-33 ne
- * neutralise que l'échec de la signature de l'événement (et l'entrée en mode
- * « clé » par `health()`). Si la fenêtre franchit l'heure pleine, le second
- * appel du mutant est relayé puis refusé en `-31017` de raison `cle` sans
- * qu'aucun événement soit écrit : le mutant survit pour une raison
- * étrangère à la défense mesurée (intégration continue du commit e68d603,
- * run 40 : mutant observé de part et d'autre de 14:00:00 UTC). La référence,
+ * signature échoue avant celle de l'événement. Tant que le mutant de TA-33 ne
+ * neutralisait que l'échec de la signature de l'événement (et l'entrée en
+ * mode « clé » par `health()`), le second appel du mutant, si la fenêtre
+ * franchissait l'heure pleine, était relayé puis refusé en `-31017` de
+ * raison `cle` sans qu'aucun événement soit écrit : le mutant survivait pour
+ * une raison étrangère à la défense mesurée (intégration continue du commit
+ * e68d603, run 40 : mutant observé de part et d'autre de 14:00:00 UTC).
+ * Depuis que toutes les signatures de l'écrivain (événement, point de
+ * contrôle, manifeste) passent par `_signer`, dont le mutant remplace l'échec
+ * par 64 octets nuls, ce cas ne se présente plus ; l'attente est gardée comme
+ * précondition : l'observation tient dans une seule période. La référence,
  * elle, est bloquée en mode « clé » avant le relais, d'un côté comme de l'autre.
  * @param {number} dureeMs
  * @param {number} [maintenant] ms UNIX
