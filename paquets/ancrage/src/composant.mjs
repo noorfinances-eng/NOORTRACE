@@ -16,6 +16,7 @@
 //   contexte = { org_id, journal_id, epoque, racineStockage, secrets: Map<pointeur JSON, Uint8Array>,
 //                clePublique(keyId) → Uint8Array|null, cles?, lireSerie(periodStart), lireHashesPeriode?(periodStart),
 //                listerPeriodes(), listerPoints(), cleChaine?: SignataireChaine, signaturesCloture?(periodMeta, manifeste),
+//                cleChainePour?(keyId) → SignataireChaine|null, clesChaine?() → SignataireChaine[] (étape 7 : rotation),
 //                instance?: { evmChainId, bftChainId, contrats, fees, jeux } }
 //   clients  = { rfc3161?: { transport }, ots?: { transport }, registre?: { envoyeur } | { rpc | points, instance, repertoireEnvois, delais },
 //                file?: { ouvrir } }
@@ -23,7 +24,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { decoderHorodatage, ecrireHorodatage, empreinteAncre, hacherManifeste, hacherPoint, hexVersOctets, octetsVersHex, sha256Hex, utf8 } from "@noortrace/noyau";
-import { COMPACT_BYTES_DEFAUT, FileDurable, Supervision, admettreManifeste, admettrePoint, creerPlanificateur, lireFiles, noncesAleatoires, validerConfiguration } from "./planificateur/index.mjs";
+import { COMPACT_BYTES_DEFAUT, FileDurable, Supervision, admettreManifeste, admettrePoint, commeServeurInterne, creerPlanificateur, lireFiles, noncesAleatoires, validerConfiguration } from "./planificateur/index.mjs";
 import {
   DepotAncres, acquerir, attenteReprise, capturerCrls, construireFiche, epreuveAcceptation, tirerNonce, transportHttps as transportRfc3161,
   verifierFiche, verifierJeton, verifierRevocation,
@@ -924,10 +925,16 @@ export class ComposantAncrage {
 
   // ----------------------------------------------- RFC 3161 (EX-5.5, EX-5.10)
 
-  /** Prestataire résolu : secret remplacé par ses octets (CT-2 §15.2), `qualified` retiré s'il l'a été (EX-5.9). */
+  /**
+   * Prestataire résolu : secret remplacé par ses octets (CT-2 §15.2), `qualified` retiré s'il l'a été (EX-5.9) ;
+   * `serveur_interne` vrai quand, hors production, le principal non qualifié est le serveur RFC 3161 interne
+   * (EX-4.9, règle 4, révision 0.9 de CT-5) : le transport l'admet alors en `http://` local, comme le rôle `interne`.
+   */
   #prestataire(index) {
-    const p = structuredClone(this.configuration.rfc3161.providers[index]);
+    const brut = this.configuration.rfc3161.providers[index];
+    const p = structuredClone(brut);
     if (p.auth.method !== "aucune") p.auth = { method: p.auth.method, secret: this.contexte.secrets.get(`/rfc3161/providers/${index}/auth/secret`) };
+    p.serveur_interne = brut.role !== "interne" && commeServeurInterne(brut, this.profil === "production");
     if (this.qualificationsRetirees.has(p.id)) p.qualified = null;
     return p;
   }
@@ -1143,11 +1150,36 @@ export class ComposantAncrage {
     const point = req.subject.kind === "point" ? this.points.get(req.subject.hash) : null;
     const clePublique = point ? this.contexte.clePublique?.(point.key_id) ?? null : null;
     let r = await this.envoyeur.ancrer({
-      orgId: req.subject.org_id, journalId: req.subject.journal_id, objet: req.subject.hash, docType: a.detail.doc_type, cle: this.contexte.cleChaine,
+      orgId: req.subject.org_id, journalId: req.subject.journal_id, objet: req.subject.hash, docType: a.detail.doc_type, cle: this.#cleChaineDe(req),
       fingerprint: a.detail.fingerprint, clePublique: clePublique instanceof Uint8Array ? octetsVersHex(clePublique) : clePublique, requestId: a.request_id,
     });
     if (r.type === "echec_registre" && r.data.code === "attente_nonce") r = await this.#reprendreEnvoi(a, r);
     await this.#injecterResultatRegistre(a.request_id, r);
+  }
+
+  /**
+   * Clé de chaîne d'un document (CT-2 EX-11.19, point 3 ; étape 7) : celle
+   * sous laquelle est inscrite la clé Ed25519 `keyId` qui a signé le point ou
+   * le manifeste, quand le contexte sait la dire (`contexte.cleChainePour`,
+   * démon qui tient une clé de chaîne courante et une suivante) ; sinon
+   * `contexte.cleChaine`, relue à chaque envoi (le démon peut la basculer).
+   */
+  #cleChainePour(keyId) {
+    const f = this.contexte.cleChainePour;
+    return (typeof f === "function" && typeof keyId === "string" ? f(keyId) : null) ?? this.contexte.cleChaine;
+  }
+
+  #cleChaineDe(req) {
+    if (req.subject.kind === "point") return this.#cleChainePour(this.points.get(req.subject.hash)?.key_id);
+    return this.#cleChainePour(this.clotures.get(req.subject.hash)?.manifeste?.recorder_key_id);
+  }
+
+  /** La clé de chaîne connue dont l'adresse est l'expéditeur d'un envoi (remplacement au même nonce, EX-8.16). */
+  #cleChaineExpeditrice(hash) {
+    const from = this.envoyeur.envoi(hash)?.envoi?.from ?? null;
+    const f = this.contexte.clesChaine;
+    const cles = typeof f === "function" ? f() : [this.contexte.cleChaine];
+    return cles.find((c) => c && c.adresse() === from) ?? null;
   }
 
   /** CT-4 §8.6, EX-8.16 : un envoi sans issue est renvoyé (mêmes octets) puis remplacé au même nonce. */
@@ -1160,7 +1192,7 @@ export class ComposantAncrage {
       try {
         r = await this.envoyeur.renvoyer(hash, { requestId: id });
         if (r.type === "echec_registre" && (r.data.code === "recu_absent" || r.data.code === "noeud_injoignable")) {
-          const rr = await this.envoyeur.remplacer(hash, { cle: this.contexte.cleChaine, requestId: id });
+          const rr = await this.envoyeur.remplacer(hash, { cle: this.#cleChaineExpeditrice(hash) ?? this.contexte.cleChaine, requestId: id });
           if (rr.type === "inclusion_registre" || !["transaction_connue", "envoi_avec_issue"].includes(rr.data.code)) r = rr;
         }
       } catch (err) {
@@ -1236,7 +1268,7 @@ export class ComposantAncrage {
         return;
       }
       if (!Array.isArray(s.signatures)) throw new Error("signatures de clôture absentes");
-      r = await this.envoyeur.clore({ periodMeta: info.periodMeta, signatures: s.signatures, cle: this.contexte.cleChaine, membres: s.membres ?? null, seuil: s.seuil, periodePrecedente: s.periodePrecedente ?? null, requestId: `cloture:${item.periodHash}` });
+      r = await this.envoyeur.clore({ periodMeta: info.periodMeta, signatures: s.signatures, cle: this.#cleChainePour(info.manifeste?.recorder_key_id), membres: s.membres ?? null, seuil: s.seuil, periodePrecedente: s.periodePrecedente ?? null, requestId: `cloture:${item.periodHash}` });
     } catch (err) {
       r = { type: "echec_registre", data: { code: "exception_client" }, outputs: { message: String(err?.message ?? err) } };
     }

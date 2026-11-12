@@ -1,6 +1,9 @@
 # CT-6 — Vérificateur
 
-Version 0.7, 2026-11-11 (révision 0.7 : page de vérification, constats de
+Version 0.8, 2026-11-12 (révision 0.8, textuelle et minimale : publication
+du binaire préparée à l'étape 7 sans rien publier, image de construction et
+noms des fichiers publiés fixés, forme du commentaire de confiance, détail en
+section 16. Version 0.7, 2026-11-11, révision 0.7 : page de vérification, constats de
 la construction de l'étape 6 inscrits dans la section 18 et dans la recette
 d'EX-14.6, détail en section 16. Révision 0.6, même date : page de vérification, qui exécute
 dans le navigateur le binaire compilé en WebAssembly, section 18 nouvelle ;
@@ -5977,7 +5980,14 @@ environnement.
 **EX-14.7** L'image de conteneur de construction est désignée par son
 empreinte (`golang:<version>@sha256:<empreinte>`, R4 F1.26), fixée dans le
 fichier de construction en phase 2 et publiée avec chaque version ; les
-actions de CI sont épinglées par SHA de commit (R4 F1.27).
+actions de CI sont épinglées par SHA de commit (R4 F1.27). Révision 0.8 :
+elle est fixée dans `.github/workflows/version.yml` (travail
+`binaires-conteneur`), aujourd'hui
+`golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5`
+(index du 2026-10-21), et recopiée dans la note de version ; un second
+constructeur, go1.27.3 officiel dont l'archive est vérifiée par son SHA-256
+avant extraction, construit à un autre chemin avec un cache neuf et sert de
+témoin (EX-14.8) : un octet de différence refuse la préparation.
 
 **EX-14.8** Deux constructions indépendantes (deux machines ou deux
 conteneurs, chemins, utilisateurs et caches différents) DOIVENT donner les
@@ -5997,7 +6007,17 @@ variable, R4 F1.25, Go 1.26.9 non plus ; non vérifié pour go1.27.3).
 commentaire de confiance porte la version et la date (R4 F4.02), la recette de
 14.3, la sortie attendue de `go version -m` (R4 F1.11), et `LICENCES-TIERCES`
 (textes de Go, `x/crypto` avec `PATENTS`, decred). Le réviseur reconstruit et
-compare par `sha256sum --strict -c SHA256SUMS` (R4 F4.01). Une attestation
+compare par `sha256sum --strict -c SHA256SUMS` (R4 F4.01). Révision 0.8 : les
+binaires s'appellent `noortrace-verifier-linux-amd64` et
+`noortrace-verifier-linux-arm64`, la sortie de `go version -m` de chacun
+`<binaire>.go-version-m.txt` ; le commentaire de confiance est exactement
+`noortrace <version> <AAAA-MM-JJ>`, la date étant celle du commit ; la
+sortie de `go version -m` de go1.27.3 ne porte pas de ligne `-ldflags`
+(relevé du 2026-11-12), et la version passée par `-X main.version` n'y
+apparaît donc pas. La préparation (`scripts/publication/preparer-version.mjs`)
+écrit ces fichiers sans signer ni publier : la signature et la publication
+attendent la décision du porteur sur la clé (qui la détient, où vit sa clé
+publique). Une attestation
 de provenance (`actions/attest`), vérifiable hors ligne par `gh attestation
 verify --bundle … --custom-trusted-root …` (R4 F4.06 à F4.08), et une
 publication GitHub immuable (étiquette et fichiers verrouillés, attestation
@@ -6361,6 +6381,24 @@ annexe B.9, nouvelle. Sections touchées : en-tête, 0, 14.3 (EX-14.6), 16,
 | `verificateur/scripts/construire-wasm.sh` | — | `GOWASM`, `GOEXPERIMENT` et `GOFIPS140` refusées si non vides | fait (étape 6) |
 | `paquets/verification-web` | aucune borne pour un répertoire choisi | bornes d'EX-18.7 appliquées au répertoire avant toute lecture | fait (étape 6) |
 | `spec/README.md` | CT-6 version 0.6 | CT-6 version 0.7 | fait (étape 6) |
+
+Révision 0.8 (2026-11-12), textuelle et minimale. La construction de
+l'étape 7 prépare la publication du binaire sans rien publier : travail de
+version de l'intégration continue, déclenché à la main ou par une étiquette,
+et script de préparation qui rejoue la production hors réseau public. La
+révision fixe ce que le texte laissait « en phase 2 » : l'image de
+construction et le second constructeur témoin (EX-14.7), les noms des
+fichiers et la forme du commentaire de confiance (EX-14.9). Aucune règle
+nouvelle ni retirée ; aucun contrôle, verdict, code de retour, schéma ni
+vecteur ne change. Sections touchées : en-tête, 14.3 (EX-14.7), 14.4
+(EX-14.9), 16.
+
+| Emplacement | Avant | Attendu par la révision 0.8 | État |
+|---|---|---|---|
+| `.github/workflows/version.yml` | — | binaires amd64 et arm64 par la recette dans l'image épinglée, second constructeur témoin, `SHA256SUMS`, `go version -m`, `LICENCES-TIERCES`, `NOTICE`, note de version et provenance préparées ; aucune étape de publication, de signature ni d'attestation | fait (étape 7) |
+| `scripts/publication/` | — | `preparer-version.mjs`, gabarit de la note de version, procédure (essai à blanc, puis pas de publication après décision) | fait (étape 7) |
+| Signature minisign de `SHA256SUMS`, publication | — | après décision du porteur sur la clé | à faire |
+| `spec/README.md` | CT-6 version 0.7 | CT-6 version 0.8 | fait (étape 7) |
 
 ## 17. Ce que cette version ne couvre pas
 

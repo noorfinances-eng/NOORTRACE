@@ -7,6 +7,21 @@
 //   noortrace-ctl ancrage etat|metriques|retirer-qualification <id> [--configuration <fichier>] [--delai-ms <n>]
 //   noortrace-ctl dossier exporter (--seq <n> | --dernier | --ticket <ticket_id>) --vers <répertoire>
 //                                  [--configuration <fichier>] [--delai-ms <n>]
+//   noortrace-ctl close-period --now [--configuration <fichier>] [--delai-ms <n>]
+//
+// `close-period --now` (étape 7 ; CT-2 EX-19.4, CT-8 IR-8 ; forme proposée à
+// CT-2, PD-2 de CT-8) : clôture anticipée de la période courante, admise
+// seulement en développement ; elle TERMINE le journal (EX-19.4 : tout nouvel
+// appel et tout nouvel échange ensuite refusés, `-31010` `journal_clos`).
+// La commande lit `recorder.environment` de la configuration du démon visé :
+// autre que `developpement`, elle refuse sans rien écrire ni signaler (code
+// 1, message sur la sortie d'erreur) ; le démon refuse de même
+// (`period_close_refused`, raison `production`). Sinon, demande
+// `cloture-anticipee` (`request_id`, `pid`, `at`) par le fichier de demande
+// et SIGURG, réponse reconnue à son `request_id` : `period_closed_early`
+// (code 0), `period_close_refused` ou `ctl_request_failed` (code 1) ; 2
+// usage ou démon ambigu ; 4 aucun démon, fichier de demande occupé, signal
+// impossible ou pas de réponse dans le délai (30 000 ms par défaut).
 //
 // `dossier exporter` (CT-2 révision 0.8, EX-15.9, EX-15.10) : domaines des
 // options vérifiés avant tout (code 2), demande `dossier` avec son
@@ -64,6 +79,9 @@ export const USAGE_CTL_DEMON = [
   "        noortrace-ctl cle rotation-urgence [--configuration <fichier>] [--delai-ms <n>]",
   "        noortrace-ctl dossier exporter (--seq <n> | --dernier | --ticket <ticket_id>) --vers <répertoire> [--configuration <fichier>] [--delai-ms <n>]",
   "        noortrace-ctl cle rapprocher --configuration <fichier> --audit <journal d'audit> [--cle <key_id>] [--de <horodatage>] [--a <horodatage>]",
+  "        noortrace-ctl close-period --now [--configuration <fichier>] [--delai-ms <n>]",
+  "        noortrace-ctl etat [--configuration <fichier>] [--delai-ms <n>]",
+  "        noortrace-ctl sonde --url <url>",
 ].join("\n");
 
 const ACTIONS = {
@@ -166,6 +184,11 @@ export async function principalCtlDemon(argv, io = {}) {
   const stderr = io.stderr ?? process.stderr;
   const action = argv[0];
   if (action === "dossier") return principalDossier(argv.slice(1), { stdout, stderr, racineProc: io.racineProc, cwd: io.cwd });
+  if (action === "close-period") return principalCloture(argv.slice(1), { stdout, stderr, racineProc: io.racineProc });
+  if (action === "etat" || action === "sonde") {
+    const m = await import("./ctl-sante.mjs");
+    return action === "etat" ? m.principalEtat(argv.slice(1), { stdout, stderr, racineProc: io.racineProc }) : m.principalSonde(argv.slice(1), { stdout, stderr });
+  }
   const spec = ACTIONS[action];
   const reste = argv.slice(1);
   if (action === "clock") {
@@ -679,5 +702,134 @@ async function principalDossier(argv, io) {
   }
   sortie(null);
   stderr.write(`${PREFIXE_DOSSIER}pas de réponse dans le délai ; lire dossier_exported ou dossier_export_refused de request_id ${request_id} au journal d'exploitation\n`);
+  return 4;
+}
+
+// ------------------------------------------------------------------ noortrace-ctl close-period --now
+
+const PREFIXE_CLOTURE = "noortrace-ctl close-period : ";
+
+/** Délai par défaut de `close-period --now` : la clôture signe un point et un manifeste. */
+export const DELAI_CLOTURE_DEFAUT_MS = 30000;
+
+/** Message d'une ligne `period_close_refused` (raison et, en mode dégradé, ses raisons). */
+export function messageRefusCloture(data) {
+  const d = data ?? {};
+  switch (d.raison) {
+    case "production": return `clôture anticipée refusée par le démon : admise seulement en développement (recorder.environment ${JSON.stringify(d.environment ?? null)}, CT-2 EX-19.4)`;
+    case "instance_non_active": return "le démon ne détient pas le bail (instance passive) : clore depuis l'instance active";
+    case "journal_clos": return "le journal est déjà clos par une clôture anticipée : un nouveau journal est nécessaire (docker compose down -v, puis up)";
+    case "journal_vide": return "aucune période ouverte : le journal n'a aucun événement";
+    case "mode_degrade": return `démon en mode dégradé (${(Array.isArray(d.reasons) ? d.reasons : []).join(", ") || "inconnu"}) : rien n'est clos`;
+    default: return `refus ${String(d.raison)}`;
+  }
+}
+
+/**
+ * `noortrace-ctl close-period --now` (CT-2 EX-19.4).
+ * @param {string[]} argv arguments après `close-period`
+ * @param {{stdout: NodeJS.WritableStream, stderr: NodeJS.WritableStream, racineProc?: string}} io
+ * @returns {Promise<number>}
+ */
+async function principalCloture(argv, io) {
+  const { stdout, stderr } = io;
+  const usage = () => {
+    stderr.write(`${PREFIXE_CLOTURE}usage : noortrace-ctl close-period --now [--configuration <fichier>] [--delai-ms <n>]\n`);
+    return 2;
+  };
+  const o = {};
+  for (let k = 0; k < argv.length; k++) {
+    const a = argv[k];
+    if (a === "--now") {
+      if ("now" in o) return usage();
+      o.now = true;
+      continue;
+    }
+    if (!["--configuration", "--delai-ms"].includes(a) || k + 1 >= argv.length || a.slice(2) in o) return usage();
+    o[a.slice(2)] = argv[++k];
+  }
+  if (!o.now) return usage();
+  if ("delai-ms" in o && !texteDelaiValide(o["delai-ms"])) {
+    stderr.write(`${PREFIXE_CLOTURE}--delai-ms : entier décimal de 0 à 86 400 000, sans signe ni zéro de tête\n`);
+    return 2;
+  }
+  const delai = "delai-ms" in o ? Number(o["delai-ms"]) : DELAI_CLOTURE_DEFAUT_MS;
+  let demons;
+  try {
+    demons = trouverDemons({ configuration: o.configuration ?? null, racineProc: io.racineProc });
+  } catch {
+    stderr.write(`${PREFIXE_CLOTURE}--configuration : fichier illisible\n`);
+    return 2;
+  }
+  if (!demons.length) {
+    stderr.write(`${PREFIXE_CLOTURE}aucun démon noortrace de cet utilisateur pour cette configuration\n`);
+    return 4;
+  }
+  if (demons.length > 1) {
+    stderr.write(`${PREFIXE_CLOTURE}plusieurs démons ; désigner la configuration (--configuration)\n`);
+    return 2;
+  }
+  const d = demons[0];
+  let config = null;
+  try {
+    config = JSON.parse(fs.readFileSync(d.configuration, "utf8"));
+  } catch {
+    config = null;
+  }
+  const journal = config?.supervision?.ops_log?.path;
+  if (typeof journal !== "string" || !journal) {
+    stderr.write(`${PREFIXE_CLOTURE}configuration du démon ${d.pid} illisible\n`);
+    return 2;
+  }
+  const sortie = (ligne) => stdout.write(`${JSON.stringify({ pid: d.pid, configuration: d.configuration, event: ligne?.event ?? null, data: ligne?.data ?? null })}\n`);
+  // EX-19.4 : développement seulement. Refus de la commande elle-même, sans demande ni signal.
+  const environnement = config?.recorder?.environment ?? null;
+  if (environnement !== "developpement") {
+    sortie(null);
+    stderr.write(`${PREFIXE_CLOTURE}refusée : la clôture anticipée n'est admise qu'en développement (CT-2 EX-19.4) ; recorder.environment vaut ${JSON.stringify(environnement)} ; rien n'est demandé au démon\n`);
+    return 1;
+  }
+  const suivi = new SuiviJournal(journal);
+  const fin = Date.now() + delai;
+  const fichier = fichierDemandeRotation(journal);
+  const request_id = randomBytes(16).toString("hex");
+  const r = await deposerDemande(fichier, () => `${JSON.stringify({ demande: "cloture-anticipee", request_id, pid: process.pid, at: ecrireHorodatage(Date.now()) })}\n`, fin);
+  if (r.occupe) {
+    sortie(null);
+    stderr.write(`${PREFIXE_CLOTURE}${messageOccupe(fichier)}\n`);
+    return 4;
+  }
+  if (r.erreur) {
+    sortie(null);
+    stderr.write(`${PREFIXE_CLOTURE}fichier de demande impossible à écrire : ${fichier} (${r.erreur.code ?? r.erreur.message})\n`);
+    return 4;
+  }
+  try {
+    process.kill(d.pid, "SIGURG");
+  } catch (e) {
+    retirerSiSienne(fichier, (texte) => {
+      try {
+        return JSON.parse(texte).request_id === request_id;
+      } catch {
+        return false;
+      }
+    });
+    sortie(null);
+    stderr.write(`${PREFIXE_CLOTURE}signal impossible vers le démon ${d.pid} (${e?.code ?? e?.message}) ; demande retirée\n`);
+    return 4;
+  }
+  for (;;) {
+    const reponse = suivi.lire().find((l) => l.request_id === request_id && ["period_closed_early", "period_close_refused", "ctl_request_failed"].includes(l.event));
+    if (reponse) {
+      sortie(reponse);
+      if (reponse.event === "period_closed_early") return 0;
+      stderr.write(`${PREFIXE_CLOTURE}${reponse.event === "ctl_request_failed" ? messageEchecDemande(reponse.data) : messageRefusCloture(reponse.data)}\n`);
+      return 1;
+    }
+    if (Date.now() >= fin) break;
+    await attendreMs(Math.min(50, fin - Date.now()));
+  }
+  sortie(null);
+  stderr.write(`${PREFIXE_CLOTURE}pas de réponse dans le délai ; lire period_closed_early ou period_close_refused de request_id ${request_id} au journal d'exploitation\n`);
   return 4;
 }

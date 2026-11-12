@@ -10,8 +10,8 @@
 // du répertoire `ancres/` et de la file, fichiers fermés seulement, SHA-256
 // égaux, 0 fichier non conforme), TI-17 (TM-18 : série croissante à travers
 // un redémarrage du serveur interne ; TM-19 : précision ≤ 1 s), `anchoring.ancrage`
-// nul (aucun composant), rotation d'urgence (refus `registre_non_branche`
-// inchangé : reste de l'étape).
+// nul (aucun composant), rotation d'urgence (refus `cle_chaine_suivante_absente`
+// étape 7).
 
 import { expect } from "chai";
 import fs from "node:fs";
@@ -45,6 +45,19 @@ async function rejouer({ coeur, horloge, calme, de, a, evenementsAuxMinutes = {}
     await calme();
   }
   return seqs;
+}
+
+/** Attend le rejet d'une promesse par ErreurBranchementAncrage de raison et de message donnés. */
+async function expectRejet(promesse, motif, raison) {
+  let e = null;
+  try {
+    await promesse;
+  } catch (x) {
+    e = x;
+  }
+  expect(e).to.be.instanceOf(ErreurBranchementAncrage);
+  expect(e.message).to.match(motif);
+  expect(e.raison).to.equal(raison);
 }
 
 describe("enregistreur + ancrage (lot F2) : branchement d'anchoring.ancrage, configuration refusée, secrets, clé de chaîne (CT-5 EX-4.8, EX-4.9 ; CT-2 §15.2, EX-11.19 ; TA-41)", function () {
@@ -201,31 +214,29 @@ describe("enregistreur + ancrage (lot F2) : branchement d'anchoring.ancrage, con
     await x.fermer();
   });
 
-  it("EX-11.19 : clé de chaîne de classe D construite depuis le secret résolu (adresse confrontée) ; classes A, B ou C : démarrage du démon refusé avec un message qui nomme le reste (étape 7) ; adresse différente ou secret illisible : refus nommé", async function () {
+  it("EX-11.19 : clé de chaîne de classe D construite depuis le secret résolu (adresse confrontée) ; classe A : démarrage du démon refusé avec un message qui la nomme (classes B et C servies à l'étape 7 : test/enregistreur-cle-chaine-etape7.test.js) ; adresse différente ou secret illisible : refus nommé", async function () {
     const d = path.join(dir, "cle-chaine");
     const x = await monterEnProcessus({ dir: d, periodStart: PERIODE });
     if (x.condition) return enAttente(this, x.condition);
-    const cle = cleChaineDepuisConfiguration(x.config, x.secrets);
+    const cle = await cleChaineDepuisConfiguration(x.config, x.secrets);
     expect(cle.adresse()).to.equal(x.config.anchoring.registry.chain_key.address);
-    for (const classe of ["A", "B", "C"]) {
-      const c = structuredClone(x.config);
-      c.anchoring.registry.chain_key.class = classe;
-      expect(() => cleChaineDepuisConfiguration(c, x.secrets)).to.throw(ErreurBranchementAncrage, /étape 7/).with.property("raison", "classe_cle_chaine");
-    }
+    const a = structuredClone(x.config);
+    a.anchoring.registry.chain_key.class = "A";
+    await expectRejet(cleChaineDepuisConfiguration(a, x.secrets), /classe A/, "classe_cle_chaine");
     const autre = structuredClone(x.config);
     autre.anchoring.registry.chain_key.address = "0x" + "11".repeat(20);
-    expect(() => cleChaineDepuisConfiguration(autre, x.secrets)).to.throw(ErreurBranchementAncrage, /adresse/).with.property("raison", "cle_chaine");
-    expect(() => cleChaineDepuisConfiguration(x.config, new Map([["/anchoring/registry/chain_key/secret", N.utf8("pas une clé")]]))).to.throw(ErreurBranchementAncrage, /illisible/);
+    await expectRejet(cleChaineDepuisConfiguration(autre, x.secrets), /adresse/, "cle_chaine");
+    await expectRejet(cleChaineDepuisConfiguration(x.config, new Map([["/anchoring/registry/chain_key/secret", N.utf8("pas une clé")]])), /illisible/, "cle_chaine");
     // Le démon lui-même : `principal` rend 2 avec demarrage_refuse : ancrage : classe_cle_chaine.
     const config = JSON.parse(fs.readFileSync(x.cheminConfig, "utf8"));
-    config.anchoring.registry.chain_key.class = "C";
+    config.anchoring.registry.chain_key.class = "A";
     config.anchoring.registry.chain_key.service_url = "https://coffre.exploitant.example/transit";
-    const chemin = path.join(d, "configuration-classe-c.json");
+    const chemin = path.join(d, "configuration-classe-a.json");
     fs.writeFileSync(chemin, JSON.stringify(config));
     let err = "";
     const code = await principal(["--config", chemin], { env: x.env, stdout: { write() {} }, stderr: { write: (s) => (err += s) } });
     expect(code).to.equal(2);
-    expect(err).to.match(/^demarrage_refuse : ancrage : classe_cle_chaine : clé de chaîne de classe C .*étape 7/m);
+    expect(err).to.match(/^demarrage_refuse : ancrage : classe_cle_chaine : clé de chaîne de classe A .*non servie/m);
     // Manifeste d'instance : forme réduite et forme complète acceptées ; contrat manquant refusé.
     expect(instanceDepuisManifeste({ bft_chain_id: "noortrace-2124-dev", evm_chain_id: 2124, contracts: { attestation_registry: "0x" + "aa".repeat(20), period_registry: "0x" + "bb".repeat(20), recorder_registry: "0x" + "cc".repeat(20) }, validator_sets: [{}], fees: {} }).instance).to.include({ evmChainId: 2124, bftChainId: "noortrace-2124-dev" });
     expect(instanceDepuisManifeste({ bft_chain_id: "noortrace-2124-dev", evm_chain_id: 2124, contracts: [{ name: "AttestationRegistry", address: "0x" + "aa".repeat(20) }], validator_sets: [{}] }).erreur).to.match(/period_registry/);
@@ -413,7 +424,7 @@ describe("enregistreur + ancrage (lot F2) : période rejouée à l'horloge régl
     expect(relus).to.be.lessThan(segments.length);
   });
 
-  it("export d'un dossier par le cœur avec l'ancrage branché : treize parties, point couvrant avec jeton, ancre et preuve, réexport dû puis fait ; rotation d'urgence : refus registre_non_branche inchangé (reste de l'étape)", async function () {
+  it("export d'un dossier par le cœur avec l'ancrage branché : treize parties, point couvrant avec jeton, ancre et preuve, réexport dû puis fait ; rotation d'urgence : refus cle_chaine_suivante_absente (registre branché, next_chain_key nul ; étape 7)", async function () {
     if (!pret.call(this)) return;
     const dossier = await coeur.exporterDossier(seqs[0], path.join(dir, "dossier-1"));
     const parts = Object.fromEntries(dossier.parts.map((p) => [p.name, p]));
@@ -440,8 +451,9 @@ describe("enregistreur + ancrage (lot F2) : période rejouée à l'horloge régl
       expect(ancrage.dossiersProduits.map((d) => d.seq)).to.deep.equal([seqs[0], seqs[1]]);
     }
     expect(await coeur.reexportsDus()).to.deep.equal([]);
+    // Étape 7 : le registre est branché pour la rotation, mais `next_chain_key` est nul : refus nommé, rien n'est écrit.
     const r = await coeur.rotationUrgence();
-    expect(r).to.deep.equal({ accepte: false, raison: "registre_non_branche" });
+    expect(r).to.deep.equal({ accepte: false, raison: "cle_chaine_suivante_absente" });
   });
 
   it("arrêt propre : le composant s'arrête après l'écrivain (anchoring_stopped avant shutdown)", async function () {

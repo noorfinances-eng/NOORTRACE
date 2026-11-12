@@ -52,11 +52,12 @@ Early. The nine design specifications are written, each with test vectors
 checked by implementations written separately from the reference. The design
 was frozen as version 1.0 on 2 November 2026: every later change to `spec/` is
 recorded in a change register checked by CI (`spec/figeage/`). The build has
-reached the sixth of its eight steps: the core library (`paquets/noyau/`), the
+reached the seventh of its eight steps: the core library (`paquets/noyau/`), the
 offline verifier binary written in Go (`verificateur/`), the development
 registry, the recorder (`paquets/enregistreur/`), the anchoring component
-(`paquets/ancrage/`), and the operating console with onboarding, folder export
-and the verification page.
+(`paquets/ancrage/`), the operating console with onboarding, folder export
+and the verification page, and the deployment packages: container images,
+observability, runbooks and installation tooling.
 
 - **CT-1, formats**: event model, canonical form, hashing, signing, Merkle periods,
   period manifests, signed checkpoints with RFC 9162 consistency proofs, and
@@ -165,9 +166,21 @@ interface that holds no key, a separate agent that holds them), the export of an
 evidence folder by the recorder (`noortrace-ctl dossier exporter`) and the
 verification page (`paquets/verification-web/`: the Go verifier compiled to
 WebAssembly, same report as the binary). Its criterion is demonstrated: a decision
-signed from the console, the exported folder accepted by both verifiers. Packages,
-observability and runbooks (step 7) and the end-to-end, adversarial and
-performance campaign (step 8) remain.
+signed from the console, the exported folder accepted by both verifiers. Step 7
+adds the six `noortrace/*` container images (`conteneurs/`: no shell, built twice
+without cache to the same digests, not published), the health, state and
+early-close commands of `noortrace-ctl`, a recorder chain key of class B or C
+held by a key management service with emergency rotation relayed to the
+registry, the reference alerting rules with their extractor, generator and
+probe (`deploiement/observabilite/`), host preparation, scheduled tasks,
+backup and restore, runbook copies, and a release prepared without publishing
+anything (`scripts/publication/`). Its criterion was run on a test bench
+without public network access: the full installation, steps IC-1 to IC-18 of
+CT-8, driven by a harness in 58 minutes (57 of them waiting for the hourly
+period to close), the first evidence folder accepted by both verifiers; this
+bench is not the reference system, and the installation on a blank machine by
+an outside engineer belongs to step 8. The end-to-end, adversarial and
+performance campaign (step 8) remains.
 
 ## Layout
 
@@ -183,8 +196,10 @@ performance campaign (step 8) remain.
 | `paquets/verification-web/` | Verification page (CT-6 §18, step 6): the Go verifier compiled to WebAssembly, run in the browser |
 | `scripts/verify/` | Offline verifiers (evidence folder, commit certificate) |
 | `scripts/registre/` | CT-4 reference tool: client onboarding, anchoring, period closure, capture |
-| `deploiement/` | CT-8 reference deployment files: Compose files, image descriptions, quick-install configuration |
-| `scripts/deploiement/` | CT-8 tools: host pre-check, sizing, Compose checks, quick configuration, operations logs, minutes, consultations |
+| `deploiement/` | CT-8 reference deployment files: Compose files, image descriptions, quick-install configuration, host preparation, scheduled tasks, runbook copies, alerting rules |
+| `conteneurs/` | Build files of the `noortrace/*` container images (CT-8 §3.3, §3.6, step 7), the stdio bridge and its minimal file server |
+| `scripts/deploiement/` | CT-8 tools: host pre-check, sizing, Compose checks, quick configuration, operations logs, minutes, consultations, backup, alerting rules and probe, image build |
+| `scripts/publication/` | Release preparation without publishing (CT-6 §14.4): reproducible binaries, `SHA256SUMS`, release note, unsigned provenance |
 | `scripts/paquet-reviseur/` | CT-8 reviewer package: build and offline verification in one command |
 | `scripts/tests/` | CT-9 coverage tool and measurement-report checker |
 | `scripts/conception/` | Design freeze check: every change to `spec/` after version 1.0 must be recorded |

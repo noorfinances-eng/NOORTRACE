@@ -1,0 +1,18 @@
+# Contexte de construction de noortrace/approbation (racine du dépôt) :
+# tout est exclu, sauf ce que l'image emploie.
+*
+!package.json
+!package-lock.json
+!paquets/*/package.json
+!paquets/noyau/src/**
+!paquets/approbation/bin/**
+!paquets/approbation/src/**
+!paquets/approbation/schemas/**
+!paquets/console/bin/**
+!paquets/console/src/**
+!paquets/console/schemas/**
+!conteneurs/commun/preparer-application.sh
+!conteneurs/approbation/passwd
+!conteneurs/approbation/group
+!LICENSE
+!NOTICE

@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "valide-production.yaml",
-    "sha256": "6d8394e12fe5db4e4f0751944b36ff0b249001465f1017ee34c1edf1f0be5040",
+    "sha256": "5d009e70fa9ec50a02a75197366389c9e65d2bb7c4b908e86ff31efff2a8afac",
     "verdict": "conforme",
     "all_images_by_digest": false,
     "checks": [

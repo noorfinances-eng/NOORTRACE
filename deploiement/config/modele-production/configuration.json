@@ -313,7 +313,7 @@
         "secret": {
           "file": "/run/secrets/cle-chaine"
         },
-        "service_url": null
+        "service_url": "https://kms.eu-central-2.amazonaws.example"
       },
       "next_chain_key": null
     },
@@ -327,7 +327,8 @@
         "https://a.pool.opentimestamps.org",
         "https://b.pool.opentimestamps.org"
       ]
-    }
+    },
+    "ancrage": "/etc/noortrace/ancrage.json"
   },
   "supervision": {
     "health_listen": "0.0.0.0:8500",
@@ -657,7 +658,7 @@
           }
         },
         "uri_prefixes": [
-          "file:///srv/sinistres/"
+          "file:///srv/pieces/"
         ],
         "relay": {
           "sampling": false,

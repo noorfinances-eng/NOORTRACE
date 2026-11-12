@@ -6506,6 +6506,913 @@
           "apres": "42ce6397d8ebfac13dd74b969c148851bacd5c1c10e152240e351baa8d193559"
         }
       ]
+    },
+    {
+      "id": "MC-42",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-2 0.10 : questions de la construction de l'étape 7 tranchées — commandes noortrace-ctl sonde, etat et close-period --now adoptées (15.8 nouvelle, EX-15.16 à EX-15.18 ; demande cloture-anticipee au pas 5 d'EX-15.10, lignes period_closed_early et period_close_refused écrites quel que soit le niveau, EX-15.14 ; EX-19.4 précisée), règle du pair d'une prise du service d'approbation qui admet le répertoire commun des prises en 3770 (EX-18.8), raison serveur:<alias> de la jauge noortrace_degraded (17.2, EX-14.7, EX-14.11), clé de chaîne de classe B ou C par AWS KMS, constats du banc sur secp256k1, rôle de service_url et contexte d'une clé de chaîne de classe C (EX-11.9, EX-11.19), rotation de la seule clé de chaîne et opérations au seuil relayées au registre (EX-11.16, EX-11.19), identité IAM par fichier (EX-11.18), panne bruyante du compagnon des attributs (EX-12.18) ; sections 21 et 22 ; spec/README.md, ligne CT-2.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-2-enregistreur.md",
+          "avant": "31098d914bd598098196f78738c8f9cb210a51c7fa6da7e3be5402317c79afc7",
+          "apres": "cd72da2258959c1baed4b46dac1a4ecc3b4277c82aa995a30c5665f89d21ae65"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "09cb02335e4f5854281660f37dc6785d35ba3b2e032d2610d11de94b636076e5",
+          "apres": "cfdd5b29f12c64f205866335eea6893bbf67da3288bce9c523c919a183a74482"
+        }
+      ]
+    },
+    {
+      "id": "MC-43",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-3 0.7, minimale : règle par laquelle le noyau vérifie le répertoire de la prise du service d'approbation (EX-12.2, même règle que CT-2 EX-18.8 révision 0.10) ; le répertoire commun des prises du déploiement, au compte 0, au groupe des prises et au mode 3770, est admis ; section 15.2 ; spec/README.md, ligne CT-3.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-3-approbations.md",
+          "avant": "617359a837318f2da16e83903ba6dc61f9a9235755c7fe61e7cd4714b16b37f6",
+          "apres": "2175e1d4b9590cab34dcdcaa978ab6121b5ca8ed71b9a3eb0de21c3b9a1b1f2b"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "cfdd5b29f12c64f205866335eea6893bbf67da3288bce9c523c919a183a74482",
+          "apres": "b986219d3d4a496d079bffe0a138c632108537c8f414b10da30cf8379180fbb5"
+        }
+      ]
+    },
+    {
+      "id": "MC-44",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-5 0.8, textuelle et minimale : noortrace_anchoring_d_registre_s observé une fois par ancre, à la passe où elle devient obtenue, jamais à une passe suivante ni à la relecture de la file après un redémarrage (EX-8.15), défaut du composant d'ancrage relevé par les règles d'alerte du déploiement à l'étape 7 ; section 14 ; spec/README.md, ligne CT-5.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-5-ancrage.md",
+          "avant": "a4980378045e1f8883eab2b5407b748c81e0dfeabe46c2bcac3ddff19e611c6c",
+          "apres": "0c8e0ac58cfd6126466fa4f9924d169d3bb01a9b11f63fafac693810b9d8a940"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "b986219d3d4a496d079bffe0a138c632108537c8f414b10da30cf8379180fbb5",
+          "apres": "ce868af666e4068d7540c53ab8ea349f51cbad8b71324193282aa3614c999ca6"
+        }
+      ]
+    },
+    {
+      "id": "MC-45",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-6 0.8, textuelle et minimale : publication du binaire préparée à l'étape 7 sans rien publier — image de construction fixée dans le travail de version de l'intégration continue et second constructeur go1.27.3 témoin (EX-14.7), noms des binaires et des sorties de go version -m, forme du commentaire de confiance minisign, absence de ligne -ldflags dans go version -m de go1.27.3 (EX-14.9) ; section 16 ; spec/README.md, ligne CT-6.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-6-verificateur.md",
+          "avant": "36e675989df5bf1e3826883d2285de640583b4502552a94df674cbdaab2aefa0",
+          "apres": "fb8533b2439d129ee301298385efd73a9923b3b5327b50452bea0a3d404f22fe"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "ce868af666e4068d7540c53ab8ea349f51cbad8b71324193282aa3614c999ca6",
+          "apres": "cf82193c7746dbe994de1ad34e2ecd5c6a23c0b28e804a0cac8494b11511bcbb"
+        }
+      ]
+    },
+    {
+      "id": "MC-46",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-8 0.6, images et fichiers Compose : images noortrace/* construites à l'étape 7 (conteneurs/<nom>/Dockerfile, sans interpréteur, point d'entrée par lien vers le programme, licence de Node.js), non publiées, et leurs condensés de la construction double (EX-3.6, EX-3.13) ; /run/noortrace au compte 0, au groupe 10010 et au mode 3770, recopie dans un volume nommé neuf éprouvée, répertoires et points de montage que chaque image crée, instance-registre.json et secret identite-aws de l'enregistreur (EX-3.5, CO-9 : AWS_CONFIG_FILE) ; forme du pont stdio, serveur de fichiers minimal du dépôt, compagnon éprouvé et panne bruyante (EX-3.7 à EX-3.9) ; recette de construction et publication préparée sans rien publier (EX-3.13, EX-3.14) ; épinglage de chain/docker fait ; sondes de l'enregistreur, du compagnon et du pont fixées (4.4), TE-15 dans EX-4.4 ; table d'EX-4.1 et fichiers de construction hors de deploiement/ (EX-A.17) ; description des images au statut existante (4.1, deploiement/images/images.json) et SHA-256 et bloc de production.yaml (4.3) ; famille conteneurs/ régénérée pour production.yaml et images.json.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "ec1f0231114deb8f069eaa4edcd9ddbd96e3aaba12030510fc5d4345e062d158",
+          "apres": "6189ecd2b663ec872a7783b348b689aec640162c43df72a47832839dfec7443a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/dependance-sans-condition.attendu.json",
+          "avant": "6e4e59ac230b801c5fa3d731147ccb8e4db9228de0a361b6b1a7bbfb16801004",
+          "apres": "d421c7801fadcca9c26c47325ecf43ca13a8a0b72c8180545fdbe2a556b66fee"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/dependance-sans-condition.yaml",
+          "avant": "bf49e3c63184522ea265a3b1e145a050743d1f3b20f6869215948b88e842d1b7",
+          "apres": "e567a394958dc048eea435ad0e8b6c093022e30dfee583aa2a7a4a1c5a813ca7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/images.json",
+          "avant": "fb30868f33880c9e639e2a72631a6008a034e95eaf35e8aaf41954bf7b7f9101",
+          "apres": "bf75697cc15e134524c1d8f03f7c9d988de14517b93767b13c3f2f36eda88b8e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/reseau-outils-non-interne.attendu.json",
+          "avant": "1ada771fad8d1ba9d0c141642ddadbef350bfaac43c7c28149a81b7ec9a400a6",
+          "apres": "70c46816fc0e5172d89f652a8e59a80a8fbc387120fd49831b0050452e1b8a49"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/reseau-outils-non-interne.yaml",
+          "avant": "6f0d10de1d05af6848b6c8558269aed4d3c3124d23ac96fd006f152c119917b6",
+          "apres": "9d2cf7a2aa36e3f565da4139dede2fb3f111d5e7075894556275348407276c91"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-partage-entre-comptes.attendu.json",
+          "avant": "d4e187544c311c8860f1a0532fcfb8e691fc6d89b755d214118e39d951d61909",
+          "apres": "b08384f4c3820facab19c0d94a06f965330b81f1a83ec3e5a13f81b7a9073a73"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-partage-entre-comptes.yaml",
+          "avant": "8fbcece189763f62149974798c5b9344c8034736dbc71726acbd58a417c767b0",
+          "apres": "ce9022b6527305cafeb06c09a04828fe4dc9400406491b7493d536a56dcd6d2c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production-condenses.attendu.json",
+          "avant": "2e9dfa2abd4542b0f7fe1a37a6f752860b92f8278d5e02023a6efcd63b8f5f60",
+          "apres": "a9d153d5ec1445ab366c2f7642aee792376c5ac70be578a7c18d01e095967821"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production-condenses.yaml",
+          "avant": "4781022b7bb6da5338939ac885a097657fed43e4b1c2e35dfab49f313ba84bc3",
+          "apres": "e8a8a60a53d88bd12f5572b66d84a834b99812b482d7332345e23c36094eefbc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production.attendu.json",
+          "avant": "6bb3f43ac31933b35dc272a2c8da390025a4c1d5be000366f9498d6817e918c1",
+          "apres": "f0a519ff48db9eb31d015a1cdbf995d541293166beea08067e3748e7e299e8cb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production.yaml",
+          "avant": "6d8394e12fe5db4e4f0751944b36ff0b249001465f1017ee34c1edf1f0be5040",
+          "apres": "590d0c3fc17fc56ab34d75006b5153ba3da30c4393118ff1a9e8329843e69114"
+        }
+      ]
+    },
+    {
+      "id": "MC-47",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-8 0.6, supervision livrée à l'étape 7 : famille spec/vecteurs/ct-8/supervision/ (journaux par source, attendu.prom, configuration-modifiee.json et ancrage-modifie.json dérivés du modèle de production, regles-attendues.yml), INDEX.md régénéré et partie supervision du vérificateur Go indépendant (famille_supervision.go, README, qui lit à l'exécution les règles de référence et storage.root du modèle) ; texte : table de 10.3 et membres lus selon les noms du code (approval_service_unavailable, alerte_checkpoint_anchor_late, data.verdict, data.garde, journal-service.ndjson à plat, sortie de l'outil du registre), règles générales de l'extracteur, PD-10, PD-11 et PD-19 fermées ; expressions de 10.4 et 10.5 alignées (politique invalide au charger, lignes d'alerte du composant, inclusion lente avec ignoring (le) et le=~\"60(\\\\.0)?\", bornes jusqu'à 86 400) ; deux règles d'EX-10.9 et jauge noortrace_releve_externe_dernier_s ; options et valeurs de référence de regles.mjs (EX-10.6), forme de la sonde (EX-10.7), rôle hote (EX-10.4), 45 métriques (10.2) ; textes « à produire, lot suivant » retirés (10, EX-10.10, EX-10.11, 15, 16.1, A.1, A.6, EX-A.4 à EX-A.6, EX-A.9, EX-A.18, EX-A.27, EX-A.31) ; EX-A.21 admet la lecture de deux fichiers de deploiement/.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "6189ecd2b663ec872a7783b348b689aec640162c43df72a47832839dfec7443a",
+          "apres": "976d4a377f696079df6f6f482b0cd6e710e0e493af4c987e02346d02c5ecb5c2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/INDEX.md",
+          "avant": "5e6969f6ebb2c1df36b5e439b3749bb0ebd6e992861b4484ec31c46d61941d85",
+          "apres": "036508d8622b418f617d988ae6e192cb4ed94d112c19a2b76bae15e66844e9a6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/ancrage-modifie.json",
+          "avant": null,
+          "apres": "81062d2d54aa341d1028006d4e4c858838ffd55a9fecbbf657b43db554f1e9d7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/attendu.prom",
+          "avant": null,
+          "apres": "91ec6dbb328592084d5bfb8529c080193f76f95e4520b2da399b7787bc60bc03"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/configuration-modifiee.json",
+          "avant": null,
+          "apres": "014bcdf720597eb854ef8ab84b1039a9ba88aee29da198a4b532a8353f7fe17a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/acquisitions/1793865600/acquisitions.ndjson",
+          "avant": null,
+          "apres": "11233bf4187acede33cc20625fc8a5b82384319e28bf9bb38c395ebe2a389b97"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/approbation/journal-service.ndjson",
+          "avant": null,
+          "apres": "51e83968874ef3b40050b095cb20a255e14dd4a5fa29ce5a6fa073e068858879"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/consultations/consultations-2026-11-05.ndjson",
+          "avant": null,
+          "apres": "6bc315d8aad3b25cb77c1196a0454ebe8da2c8f62a9d0295f0486917073b6a6f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/exploitation/exploitation.ndjson",
+          "avant": null,
+          "apres": "82c59cc6f0576f7e9d6c93bfdd101860d2cef791a3e5bec4963edaea3974b4f2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/exploitation/exploitation.ndjson.1",
+          "avant": null,
+          "apres": "7ae9a79afafaa795cfe67585e88f161b9010d66d59fd5b767dcfca95f20b6484"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/gel/gel.ndjson",
+          "avant": null,
+          "apres": "09ee9d3a9c84cc0a53aaccf757b0fd97cfd358c48e9c4169d86e002ec09f20e1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/proces-verbaux/passage-mode.json",
+          "avant": null,
+          "apres": "9a3621ed6522374a7d3809872e411ed8627bbf968fba896620ccfdebfa073cbe"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/proces-verbaux/pv-1-refuse.json",
+          "avant": null,
+          "apres": "37c9f9ac6354143a9fa657e94ffc391a4eabaa7bd206b730d7d98e59cb6c76f7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/proces-verbaux/sauvegarde.json",
+          "avant": null,
+          "apres": "9b2b4220600e46726fffa6ff2be573a781d176d796ad04a354b437ac8185654d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/registre/2026-11-05T09-10-ancrer.json",
+          "avant": null,
+          "apres": "1a05b7348c0e9930cb66cc8dfdbacad64c49605ab5105e721b0e381bfedbf11e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/registre/2026-11-05T09-20-capturer.json",
+          "avant": null,
+          "apres": "5f51999d150d1a9d67ad0ec5ca0725c00e6fb7feff53c98928724cad003d4c00"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/registre/2026-11-05T09-30-inscrire-cle.json",
+          "avant": null,
+          "apres": "8a0fc6436ce5e43643ffdebe8433dfd259092c8a3eba44a1b06ba7d9924d9827"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/journaux/registre/2026-11-05T09-40-illisible.json",
+          "avant": null,
+          "apres": "5dd9d23703cf4d82f4702aeba44951375fc731246fb9bb49fb2fbd8528624dc3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/regles-attendues.yml",
+          "avant": null,
+          "apres": "0d5e47cec390cb999663e23f028d73967543e4c6833e750843fcb3a99b9d5e67"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/verificateur-independant/README.md",
+          "avant": "9f7d5b397ac0686a53d9551dedb12eda998b7ead745544a50704b131c1d18af7",
+          "apres": "c275a86ea271f8a039c6047bf219e80df4fc666e194c05bcc0992e69199dfc04"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/verificateur-independant/famille_disposition.go",
+          "avant": "0836e187ffcb3c284fbbd475a7ae52d50c8937083f1b7d41979314ca16db2d8f",
+          "apres": "348cbfd9ac3c0b0d1678bc52318d360470f2dcee9f7a1b9d10252cbfc03fba0d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/verificateur-independant/famille_supervision.go",
+          "avant": null,
+          "apres": "bd8cd0cc5ffd6309d1c28dfe8489a8ec29e1778b55f975c6e8f516a8ab7b06d7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/verificateur-independant/main.go",
+          "avant": "2076b1842504b720bba287401678210e5e7af5df9efe89d432f54031a9519ec2",
+          "apres": "65215481c7d741e10c8847f03463340bf1a9dfe4fdbb266d499745121d9f2ef0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/verificateur-independant/vecteurs.go",
+          "avant": "79be984a7db7ca5e6cc4ed879fdf222df6664df4b2010a3f2624622567aeb576",
+          "apres": "0b9dc9ee789532d14761c7c7dd3c962a894236560f35af5aeed46ad8250ba31a"
+        }
+      ]
+    },
+    {
+      "id": "MC-48",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-8 0.6, installation et exploitation outillées à l'étape 7 : préparation de l'hôte du système de référence par deploiement/hote/preparer-hote.sh avec Node.js 22.23.4 à SHA-256 épinglé (IC-2), flux vers AWS KMS (FL-9, IC-3), images chargées par docker load tant que rien n'est publié (IC-6), secrets sans objet, enveloppe et identité IAM (IC-8), état du service lu à IC-15 et première notification à l'inscription (IC-11), instance-registre.json, enveloppe de la clé de chaîne et validation d'ancrage.json par noortrace-ancrage configuration au lieu de npx ajv-cli@5 (IC-13, EX-A.36), table d'IC-14 complétée (anchoring.ancrage, chain_key.service_url, uri_prefixes) et constats d'IP-3 et d'IP-6, demande de clôture au seuil et forme qualification du fichier d'ancres (IC-15), gabarits des tâches et pose (EX-8.6, IC-16), attestation jointe tant que PA-8 n'est pas adoptée (IC-17) ; clôture anticipée qui termine le journal (IR-8, 12.6) ; sauvegarde.mjs (EX-11.2, chemin A), archivage du journal d'exploitation (EX-11.22), copies dérivées des runbooks (10.11) ; noortrace-ctl etat, sonde et close-period --now existent (EX-10.14, RB-1, RB-2, RB-5, RB-8, chemin A) ; PD-2, PD-8, PD-10, PD-11 et PD-19 (16.2) ; essais de l'étape 7 (A.12) ; en-tête et note 0.4 de la révision 0.6 ; spec/README.md, ligne CT-8.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "976d4a377f696079df6f6f482b0cd6e710e0e493af4c987e02346d02c5ecb5c2",
+          "apres": "ba6f8be6e29e4a50b44f795e9d40acfb10118871d2f411419a0114f29c230e8e"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "cf82193c7746dbe994de1ad34e2ecd5c6a23c0b28e804a0cac8494b11511bcbb",
+          "apres": "f4c8cbd3332a123a772384aee9140d66ff97ff191a056bcc9d5f2612fc3c4e77"
+        }
+      ]
+    },
+    {
+      "id": "MC-49",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-8 0.6, textes périmés et limites : composants et images construits (en-tête, IR-1, section 11, 16.2), installations déroulées à l'étape 7 par le banc hors réseau public et ce qu'il ne prouve pas (section 15), limites restantes nommées en section 15 (autorité privée du client, point d'accès KMS de la clé Ed25519 de classe C, relecture de tout le registre des gels, entrée CLE- de l'identité IAM) ; table de 16.1 : lignes faites à l'étape 7 ; commentaire de deploiement/compose/production.yaml (images construites, non publiées), son SHA-256 et son bloc (4.3) et la famille conteneurs/ qui en dépend régénérée.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "ba6f8be6e29e4a50b44f795e9d40acfb10118871d2f411419a0114f29c230e8e",
+          "apres": "7cda8d9a40586990889d4f2824e7be964377d5ef937d2feafe781a306e366569"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/dependance-sans-condition.attendu.json",
+          "avant": "d421c7801fadcca9c26c47325ecf43ca13a8a0b72c8180545fdbe2a556b66fee",
+          "apres": "dc24089e4c6e94cf4d07df7ea350afa9db325d1ee6bb4366273c921c1d427245"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/dependance-sans-condition.yaml",
+          "avant": "e567a394958dc048eea435ad0e8b6c093022e30dfee583aa2a7a4a1c5a813ca7",
+          "apres": "0c682cbde8c82c5bfc1ffce977e1195db6a7cdaae7cec16dc3c36c99064c4283"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/reseau-outils-non-interne.attendu.json",
+          "avant": "70c46816fc0e5172d89f652a8e59a80a8fbc387120fd49831b0050452e1b8a49",
+          "apres": "a12411ca1cb6cb3815cf9f9be3608b22c2ac9060e102f31d92e2dc4a8af9dadd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/reseau-outils-non-interne.yaml",
+          "avant": "9d2cf7a2aa36e3f565da4139dede2fb3f111d5e7075894556275348407276c91",
+          "apres": "aeccaa6eb13185e1a93c7d777bde8efe5e46de3e168deef33bbe00b791b68237"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-partage-entre-comptes.attendu.json",
+          "avant": "b08384f4c3820facab19c0d94a06f965330b81f1a83ec3e5a13f81b7a9073a73",
+          "apres": "a382f14e4e2d410290b682027d1a96a81bb2fac23d50b473942772d0f6eb8816"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-partage-entre-comptes.yaml",
+          "avant": "ce9022b6527305cafeb06c09a04828fe4dc9400406491b7493d536a56dcd6d2c",
+          "apres": "bb12b33db12e7ff3b8c52075019221fb89cae35504013c083ad3742228a21305"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production-condenses.attendu.json",
+          "avant": "a9d153d5ec1445ab366c2f7642aee792376c5ac70be578a7c18d01e095967821",
+          "apres": "30780095258c0565e01813f84cfe0cc4f5abd0bfd76197c2bf8582e1a2800659"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production-condenses.yaml",
+          "avant": "e8a8a60a53d88bd12f5572b66d84a834b99812b482d7332345e23c36094eefbc",
+          "apres": "4a67c4a8577619d3500e5387c45ae675a53f93501bd60f9595e1acbb617d4f4d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production.attendu.json",
+          "avant": "f0a519ff48db9eb31d015a1cdbf995d541293166beea08067e3748e7e299e8cb",
+          "apres": "5ea008a43b5b9600a56260d4d787d031ab30c8494b7faa911faeae78cd42b876"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production.yaml",
+          "avant": "590d0c3fc17fc56ab34d75006b5153ba3da30c4393118ff1a9e8329843e69114",
+          "apres": "5d009e70fa9ec50a02a75197366389c9e65d2bb7c4b908e86ff31efff2a8afac"
+        }
+      ]
+    },
+    {
+      "id": "MC-50",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-9 0.9 : livraison de l'étape 7 (EX-3.12) et alignement sur CT-2 0.10, CT-3 0.7, CT-5 0.8, CT-6 0.8 et CT-8 0.6 ; CT-2 EX-15.16 à EX-15.18 couverts par TE-6 ; entrées rendues exécutables avec leurs essais et leurs étapes de CI : TV-76, TE-14 (complément JS-5 relayé au registre, oracle récrit), TE-15, et, avec un complément rattaché à l'étape 8, TV-55, TE-6, TE-7 (oracle : attestation vérifiée, AT-6 quand PA-8 sera adoptée), TE-9, TA-29, TA-75, TM-22, TM-24, TM-26, TM-28, TM-29 ; rattachées à l'étape 8 ou à la porte 2 avec leur motif (décisions du critère de l'étape 7 et des entrées hors d'atteinte du banc) : partie extérieure de TE-7 et TM-23 avec TR-12, TI-15, TM-39, TM-27, TE-8, TM-36, TM-37, TE-10, TE-17, TM-21, TM-33, TM-34, TM-35, TM-40, TA-25, TQ-8 (review.scope étendu) ; PD-27 et PD-28 adoptées ; vecteurs ct-9 (catalogue, couverture, extraits) et recompte publié régénérés ; vérificateur Go indépendant aligné (prose de 7, 13 et EX-11.16) ; spec/README.md, ligne CT-9.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "6a2e61ddf9e541a7e46778e9c4dcdfdd3621194739aa2fe3be166a8734082f1f",
+          "apres": "72281146fa3622076ab6483967af8aabddad673e065eef3814064d38f3a164d5"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "f4c8cbd3332a123a772384aee9140d66ff97ff191a056bcc9d5f2612fc3c4e77",
+          "apres": "327bbbea0f5afa9699b488a27fa14c1b82c3fb1d19b6f023db5effa3b51958e8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "1677d899e349323cff873e366d24aa4a0d3ef4548708381aed541912cf431e4f",
+          "apres": "49551cb7ee41e349ce909fee3d592731d31e0524cca4b3832fa998d45bba4c6b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-a-ecrire-sans-etape.json",
+          "avant": "80fd103d1f49d56ff5431e4436411689b5a61b184f1071fc97079090a4476d15",
+          "apres": "e8af649e5307c03c1eb792b33049af5cc442de326d10f9bcc6c90cf98d01920c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-executable-sans-titre.json",
+          "avant": "722f1c46f25742aa4a85c9ba641c78cb7636e5e92f8b5c263cd40e5248783507",
+          "apres": "9b61a38b35e106ea38a6649bb1b4224eebbbc62e8211c7df78fe4f07001e3958"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-identifiant-sans-specification.json",
+          "avant": "1d41b9443abd1f8fd7265277dc764baa9d07788c875fe160d643cf0dafc096e6",
+          "apres": "849e26ee4c3c88c8480aa449a66f22c7af66201c2a0e5be7512580111a5434c5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-complement-sans-etape.json",
+          "avant": "c3d62e05f2a72873f37a41e2c20ce078bd66458888b12996b07862e451ba5180",
+          "apres": "7b34d89410787c32050a6e9bb216c388348225894132ce7721669885838b78d3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-prefixe-test.json",
+          "avant": "4b7b8d51edf9197903a78ae3ba8ce4985119aaea59cb8884e64847cd371c8457",
+          "apres": "2da4051380a2e81ea240924e4398de1b9f30d483e8c165a6205a168b6072b572"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-sans-adversarial.json",
+          "avant": "cb44dd5f9d639cf388216060ffa5e836c62ce9039d1941e67728910a46fc3f13",
+          "apres": "3d908c676436cc361b04748afaa58ee6a32be5b39e093665caa6eab88159661b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-scenario-sans-composition.json",
+          "avant": "d5c569b1c2807405740d8efd4b5858e48d5ad39f5479fdf2055bd2033158644b",
+          "apres": "3b16cec9118c3de1b711d38169641dfe21f27650a84d5878d1060ff80d07f53e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-titre-vide.json",
+          "avant": "fb8b2387fbd1e8f4add216e67308804402f0bc8c7d4e46b0094bddc1ee2664ea",
+          "apres": "787ae25e9c455bf743a71b286784e1871c6ee2078616e32ed1f0a48611603aa2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-tm-mesure-inventee.json",
+          "avant": "49c02ffa2bfca2f61bab470d3effd746a2821dd5f261ce8ac2bbeffdacff063b",
+          "apres": "ca9a805f86d5df0a2749da3ce3d760890368cc86df67b462620330d78d205949"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-minimal.json",
+          "avant": "684989ed74f60371a2138b7dc05a5939d1ce0f5ba0928cba22d345b35016b5de",
+          "apres": "92a129a6b38294928c8a89378f70f37703ce3741fe8f91d5da6e96eed9009fcd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-ta.json",
+          "avant": "59cb22af62c79710d1982c759008838eb51adab37eb22704c04364aa4a0d11c4",
+          "apres": "1324f18a7541de7e66099f70134c4be8056cf430cb0463f803cdd3d150824f35"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "b710b1fa81d51fd415e8a7744594c2e45a3b1608ef483c662f79b9d5c4b4920a",
+          "apres": "9baceec257873e4ae103326ea9b72568af8eea1fd20c18842f06b07bf597f25f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "13591d3ec5582640801821886b5531401d21a2d49b8dfebc3ce05134db765c6c",
+          "apres": "0ede02d7538e2c9309dadaf955e6f17ce602bc97aa63834fd6d1e566b698ad94"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "42ce6397d8ebfac13dd74b969c148851bacd5c1c10e152240e351baa8d193559",
+          "apres": "85ac5226640cbba307c416cb41fc3d1288edcf067c771d1baff482748a3ae760"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-12.md",
+          "avant": "a71c66afa29e2dd2900cb194dd08ca3e00f25c94cb64ac1b98afb132d9ab285e",
+          "apres": "c571bab68ccd5567a1b708048b299b988617c5813c51dc075223d25dbe5d761e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "201be0884b5d272a61864f9fbadebbb694d436f3859e0cfa0d4deab107d02940",
+          "apres": "15047346f7f8bcc14269c4d09e1aee6c0a7dc7215099daee87c77272bc1a2b8e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "6d9e2cbb7f09cfc3c0ee2e8736386a6f4b23765a1995afeec29974a6a0c37b18",
+          "apres": "fcdc89d3aad33a41c45e13f9e6953e99e156fb05e747be8226d4194900e2233a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "d2c5bf02d34f0cd195b9d3e56de467659b16ec9aa981365d834be57487ee872b",
+          "apres": "ba05058dfb0fc63d691cee29fad06fac40f30ac4d4fb4c7a117ebb6168f5e700"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/index-ta-par-menace.json",
+          "avant": "f4006484176cad6721e97818f6ffdc7a6b8bd722042ce54d7ccbc56025babe1b",
+          "apres": "06d689ad8cf5d0691df9c892b7681db8f4a02da70326d013b6d238cf4c39b24e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/couverture.go",
+          "avant": "3bcb7cc39d6fa37add993b1767e5a20c6dcf8e4c4e34ecdfa41bdbd5b4c46048",
+          "apres": "fb3dabc34bed9b37841c3b06e30065b86fcbac293e79262da572a136b81d57b0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/vecteurs.go",
+          "avant": "f7fc777a26d67740b125c0fb2777d7c66f0561edce007c5ec5118edd5ef3fd93",
+          "apres": "bb0c500bc8f9690b2f2aad6da4889f8b74ab40cbadb76a92d555519ee9df5ab5"
+        }
+      ]
+    },
+    {
+      "id": "MC-51",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "Vecteur ct-8 supervision/configuration-modifiee.json sans nom de serveur d'outils de l'exemple : le générateur donne un nom neutre (outils-1, Systeme-1) aux serveurs du modèle de production autres que fichiers, avec leurs outils, leur secret et leur adresse ; les règles régénérées (regles-attendues.yml) ne changent pas.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/configuration-modifiee.json",
+          "avant": "014bcdf720597eb854ef8ab84b1039a9ba88aee29da198a4b532a8353f7fe17a",
+          "apres": "71945ea661ffaa21077bd3ea83d21dff38ff076e8bb184d77750e836d0cf445f"
+        }
+      ]
+    },
+    {
+      "id": "MC-52",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "Essai des images aligné sur la description au statut existante (CT-8 0.6, 4.1) : chaque image noortrace/* construite depuis conteneurs/<nom>/Dockerfile a son répertoire de construction ; empreinte du fichier d'essai dans couverture.json de CT-9.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "85ac5226640cbba307c416cb41fc3d1288edcf067c771d1baff482748a3ae760",
+          "apres": "970db411f91e8450b65da3627000da5df91038a538ef429dab27767cae8571c4"
+        }
+      ]
+    },
+    {
+      "id": "MC-53",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-5 0.9, sur décision du porteur du 2026-11-12 (installation rapide, option 1) : hors production (profils developpement et test), le prestataire principal peut être le serveur RFC 3161 interne non qualifié, en http:// vers une adresse locale sans authentification ou en https:// authentifié, et produit alors le jeton de clôture non qualifié ; en production rien ne change et ce principal est refusé avec sa raison (EX-4.9 règle 4, EX-5.5, table d'EX-5.6, EX-7.1, EX-7.3, AN-27, 7.3, 11.3, AN-55, 14) ; schéma ancrage-v0, traces et référence inchangés ; README",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-5-ancrage.md",
+          "avant": "0c8e0ac58cfd6126466fa4f9924d169d3bb01a9b11f63fafac693810b9d8a940",
+          "apres": "1376e2fedac1a6ff92ff284f49937092498166909a9d81312ccb31b248d94a1b"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "327bbbea0f5afa9699b488a27fa14c1b82c3fb1d19b6f023db5effa3b51958e8",
+          "apres": "b24a7236d6d6c579f6b8c42dc575871ee0c6be95b3e560c758002abefc734657"
+        }
+      ]
+    },
+    {
+      "id": "MC-54",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-8 0.7, sur décision du porteur du 2026-11-12 (installation rapide, option 1) : le faux prestataire RFC 3161 (https://127.0.0.1:9/sans-prestataire, secret tsa-sans-prestataire) est remplacé par le serveur RFC 3161 interne de paquets/ancrage, prestataire principal hors production (CT-5 0.9, EX-4.9 règle 4) : image noortrace/tsa-interne (EX-3.5, EX-3.6, EX-3.13, EX-4.4, images.json et bloc de 4.1), service horodatage dans l'espace réseau de l'enregistreur et outil horodatage-init (§4.2, SHA-256 et bloc égal au fichier), CO-14 de l'espace réseau partagé (schéma conteneurs-v0 : network_mode service:<nom>, code espace_reseau_non_conforme), IR-2 (secret retiré, autorité du serveur interne), IR-3 (document d'ancrage écrit par configurer-rapide), IR-8 (contrôle 4 contre l'AC du serveur interne), EX-7.3, §7.3 (SHA-256, lignes, ligne anchoring), 4.1, EX-14.2, §15, 16.1 ; famille conteneurs/ régénérée (deux générations aux mêmes octets, Go à 0 discordance) ; CT-5 et README : mentions du déploiement sans renvoi nouveau (table de §0.2 inchangée)",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-5-ancrage.md",
+          "avant": "1376e2fedac1a6ff92ff284f49937092498166909a9d81312ccb31b248d94a1b",
+          "apres": "ef15a242652799094908c18475efd1310fd38054bc5572788fd9ff4106b45d3e"
+        },
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "7cda8d9a40586990889d4f2824e7be964377d5ef937d2feafe781a306e366569",
+          "apres": "62633ec4d58a844baa76ee7c3c23f336ad9b5ad6adc5867be99b37a2d4075788"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "b24a7236d6d6c579f6b8c42dc575871ee0c6be95b3e560c758002abefc734657",
+          "apres": "a9318999fa634d74ac1807d28c1cc0e489f8839b4283472b243b78102e779076"
+        },
+        {
+          "chemin": "spec/schemas/conteneurs-v0.schema.json",
+          "avant": "a5ba44325bed8fee7b33ef61bfb5e7e90b30867f7b3b1b23e177f0689c70d3d0",
+          "apres": "4c2a124fc8b9956b829bca81c47cfbdc9873be856a66fd736b395c4240728a4c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/capacite-ajoutee.attendu.json",
+          "avant": "9480e39152f1dce8ddc636684dbb34b32f8a8bf205c2851b21b5624e67d3d2b6",
+          "apres": "1465aae9eb5ce793202c97f0b9695ce6a70d1feb55821ad86fef89e3fcd0db5e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/capacite-ajoutee.yaml",
+          "avant": "ff29bce3fa8087c9e2b54456a679f8785442430c4427c3afb4c1145bb314032f",
+          "apres": "dff152290fa43701f00476b93422947dcef75dce7d3e83f80aa87df5269a0b20"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/configuration-inscriptible.attendu.json",
+          "avant": "95137dd1b19776f7431fc6faea5199d15b247fea6f3bf75be779b89206ab0703",
+          "apres": "4a271fc5af9ad03a2a5dd57e7edfb8f9138c34d73751b9a38b0cd5dba60e7377"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/configuration-inscriptible.yaml",
+          "avant": "222d063d58e60d9fc7c52a7f7ac6c01d52352501ae9c23edf835e4a68ed2d580",
+          "apres": "21266573ea57069df36f9d5b619398f53d36906f379d27dd0c2fb54836e58a1e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/confinement-retire.attendu.json",
+          "avant": "cfa27f5b35be30a5ac8f6364c7557002ef524952a6e0cd98fad50ae5fdc0cf11",
+          "apres": "961c52a5ecf67934838ad502080cfc243776be01f9192ab7328fc179e26dc5ec"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/confinement-retire.yaml",
+          "avant": "7fc57daa16b5a0b25e4311758df8323d440f023692281241552d6ee7173e7f8c",
+          "apres": "ae70e98ba585ae3f560684f037dbec1f0f636ba69c8e5993a2bb3ae079f625c5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/construction-presente.attendu.json",
+          "avant": "ff13290afc9ca1c72e9377d101c2d94f032ead2c6b7b4d3cacbf411e8a983f74",
+          "apres": "4693089131309ca2c7bf12244922af1eb773198f55070ec8c18e5e14eaf12f3f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/construction-presente.yaml",
+          "avant": "2660adc0d377041d025d167d46e77746145e4736112fbe5b405f6a585ec800ce",
+          "apres": "c0a4bbccb4072dc04b18e698805841a0eeeb7712a0baf73f4942b73cb5268ac5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/extension-de-service.attendu.json",
+          "avant": "45ff7a3548e3a5c1a9eed9120f1edde486ffb8e348de37d48b3342becc0d728e",
+          "apres": "8c7b07e14484c49191f4db4e91579d0eba5b823bcc04bda86350643a1026e8b8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/extension-de-service.yaml",
+          "avant": "9129ba426097b4d8b43bd42aefa88ad1c3bf3a3106903713696bf09fa3382c84",
+          "apres": "fda8366a04833b1b57b78cbb81d13ce307473c90185ab2e973928885dc0963b6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/groupe-absent.attendu.json",
+          "avant": "760bc7d61f142d61bd6bba9a2b713c1bc6e454fcd4788cbaa38ca0fc041f6e6d",
+          "apres": "4e9c90c3bca932b5b2df28c3f5acb3add54a2a6bbb114cef1abab73cbe68a6b1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/groupe-absent.yaml",
+          "avant": "d36525cd05dc01b97c06ebd458b8a577d8fc247079b6a77c81fec7bb82c66b01",
+          "apres": "38b693ca57591eb5b37b73c168bd44d0bdf0dbc86f98126eb1bdfa38c3cb0a44"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/image-latest.attendu.json",
+          "avant": "1c456a3dd17638ed8362503414028ffea2f8e5d75c5a2068bf45e1bf04a35af3",
+          "apres": "527576f9474bf4e29756570abe2154d822a1923ae7bba134e4c54b35fb87eca3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/image-latest.yaml",
+          "avant": "44e74cf4ff52e40e42a2167494cdebcc83b452f339aae2e6be33fcf2cecee2d3",
+          "apres": "752514635b59fe4f60bed6fb61ce263aed48ebfd1d72526f2133d1160fd536ae"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/image-sans-etiquette.attendu.json",
+          "avant": "ed88d19d44f2117785250b503ec9af3fb0cdcf372e5f923104b47e1b08e1fed7",
+          "apres": "34d5bf4f190875a1f0df9fdfb98b8d3c684d1cc509b661907729bb937d11c767"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/image-sans-etiquette.yaml",
+          "avant": "4f111ba8755df0cfa2a68e51a52fc6074837c65db265d484415ec7c201427b1a",
+          "apres": "28af11ddd43e7c0581ccf0781f29436425128b2230f8a3a9872ccb1217059c6c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/images.json",
+          "avant": "bf75697cc15e134524c1d8f03f7c9d988de14517b93767b13c3f2f36eda88b8e",
+          "apres": "1beb7505070aa54b9ea07ae24564d0089f84ceac943bd064b83692eb1aad4891"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/inclusion-refusee.attendu.json",
+          "avant": "5adb84611900f5c8feeafe7f1192ab2fe5c833b6cf7436e87e64235ffaf3d5f4",
+          "apres": "a1d42208919d7a7eeeaeb61d1ea4c3ea611a0c2a6f3f2aaa2fa1008148884520"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/inclusion-refusee.yaml",
+          "avant": "70de69a946cdf7a40273e0fc7f349679f1f2b0a2103825b7585aad57cd7c41ee",
+          "apres": "c79458a78211e8c7fa621ac8fe723611baa6f8023faf5eee5a5f2fedae3459a3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/montage-remontee.attendu.json",
+          "avant": "e46db3c477abd3417788b73c9dad95319acbeaec05ea503c6eda889a80add970",
+          "apres": "7735da340a37102adc9775dac45968bfd03f30363675ce94bb6e28f01c988fde"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/montage-remontee.yaml",
+          "avant": "7fc4b670aae68904a66105aa42e25d6262993e9f55fbe567aef14eea402e4524",
+          "apres": "806886976a27cf3b3c70fc56a14df1b079f99f88ee8f38d37f7317310f9018de"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/outil-redemarre.attendu.json",
+          "avant": "4319f2e03b1980320809df2cca5836512c24dd02852f4f380d61801d9bc9b813",
+          "apres": "d216f84dfaff9cd6c756fd8768624e5c0f29b2f2fcef4eedbd7c3312d03cc785"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/outil-redemarre.yaml",
+          "avant": "0f9c2c733e9d7fbe4c2146206638cc984c1d64ee3b295ba24d6be6ef35b7e465",
+          "apres": "8357bd339781dbc4341b986f8c700c772835b245a723b7e58d4cfdc757d1b0d2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/port-non-decrit.attendu.json",
+          "avant": "14e848cfd5692c37c9cbc5e04416242e5e49aacd9cf88eba9a0dd9e24ee3e7be",
+          "apres": "810a8a307f188e33f5e20e0e73adff4b685ba5628d5de01efdd401260ce3c5a5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/port-non-decrit.yaml",
+          "avant": "e776c1830bcb9e43fe41f5d42853697343aa14a4893e0e219495fa20a84775d1",
+          "apres": "1adbb965816dcc4d2062a951b3b5d87e8eaacd0ca41008066f0fec5505e0f9f5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/port-toutes-interfaces.attendu.json",
+          "avant": "6b5dd82686dc0c1725ed21a80eebfc9118767d46e767cfff46cdbb5b0481ca2c",
+          "apres": "33d62d741222b8327d13a60173a34641c8d4c983f4dc889dd612d4788bf9de6a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/port-toutes-interfaces.yaml",
+          "avant": "35013dc94a0431b9c01944d8bfaf6957af2e702c4ba049d12cdebe70b460ba8a",
+          "apres": "d651e7d4a99c5ec5664e504a15ff36186ce385fea9b99069c56d3166de5c34a5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/privilegie.attendu.json",
+          "avant": "d5db95883b5b65f7c7f5ba3e1563b5173aee6dc446c43b6f2e070b7cdce910b8",
+          "apres": "5076a6112775f64a4e83d0addabbe4c199095dbd8b87728b86b60e363a1bfc36"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/privilegie.yaml",
+          "avant": "5a70d3b453e77b3ca954ccbeed874497f3bfee7b58e0842b3774d94d95b60f7e",
+          "apres": "841231c2d8ad9cc94a2683c7f50bf953f5d868470e8c12027c7be93d0108eb68"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/racine-inscriptible.attendu.json",
+          "avant": "e17a780daaa72be7bfb9e4f6854e398d131b50cbf57e9bbe82bc618621ce610f",
+          "apres": "a13aad671011daeb11376c234c40df8e66adb4542933dcfe8ef815afc412b14b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/racine-inscriptible.yaml",
+          "avant": "21f6d6d3fa9a1c3405439de7b42e3e720ddaed165062651da0ed1f97738f91e1",
+          "apres": "18a22d25fe70ea6f7d3e23e84f5e62ebf6e9e2e273dd196df0882661b4e5a80c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/reseau-hote.attendu.json",
+          "avant": "70a42852d5f43eba65f5c6086d3bc3fa13d8713d100d5d9813cf45dfa3f55780",
+          "apres": "94101926777b437941ba247581e6b204c0f085d21409bcaffcd53eb68b674fb2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/reseau-hote.yaml",
+          "avant": "039274bdc03c99f27084fae83c35ebca158b93f9ba0e2895fa132179ab3f0c2e",
+          "apres": "a3ffd66fb69432023b5bd59e2dfa565d7f3e86017181a61ce3aa821f21de019e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/sans-no-new-privileges.attendu.json",
+          "avant": "78c8a254be64d366f6c8dfd1c34aaa1fff22de4a0fc5d2518873511c53e52f27",
+          "apres": "3ebefd77005ad2f03809ecbac7da5c0643c69676be940f970e9fbdaf0a5ee678"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/sans-no-new-privileges.yaml",
+          "avant": "5d6935adf900681cafe601f4102b74a5bd1fccf48a2733044cb0845555d6ccc9",
+          "apres": "5e792fd9c737e42e122efaed3a6b8a8aaea0369290da6ebb42e75c2f60f562d7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-en-environnement.attendu.json",
+          "avant": "f6f2565195b78af3203a9f1da5f9dffdd834ac06e317530aff5b86e8ef2adbd1",
+          "apres": "66c6260f2ced9102323ec94e190c3c32b1de2bf4dedf8b092f092e6d0b4aa29c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-en-environnement.yaml",
+          "avant": "c55f156bdf9fdee7345d14cfd36a099c98960e425ced550543ac92c4a5fa63be",
+          "apres": "d4884abf76be1b5d83da31e986f71dc685a5feadb27fe874bbe34f25ee87de05"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-en-ligne-de-commande.attendu.json",
+          "avant": "5c87f641ac03528c6ce5dc3b682fd6d1a922253d623a31c3eb00dd85459982e0",
+          "apres": "9ade23f1e90fb6980f4b90f182da3412d035c9f151b07601f54147f84fc08ca5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-en-ligne-de-commande.yaml",
+          "avant": "7c75030bbe22c15018bcaa1f0877447bbf1bb863b319f3f03c1bf667daba2005",
+          "apres": "6856295e0b879f918330964106a6e300cee2095fc099a456e0daee432c7e9a75"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-hors-repertoire.attendu.json",
+          "avant": "676015d87bb6e7df4e01b6dcfcd4573c08201db36e95ab51cccc1e18cc31dc79",
+          "apres": "f15bf66977e32fff8fa70223d73132e267db16daa520bcd6318ffa89fa4aabcf"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-hors-repertoire.yaml",
+          "avant": "f905e385175be525c9e76400d0cee7270d280e441c4ffe80de495456ae1c7df5",
+          "apres": "87005d175a5842e0f04f8f1683d4637aecaa6659470457f3504497af3c1c7e6d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/service-non-decrit.attendu.json",
+          "avant": "d1fa14f441a1dc840891026a69d2e84804657aa0a5e3e8aecc33d996c54c08d9",
+          "apres": "b39609210321e5280fbfe1ee3e6b0a5e5a3e76eb845dcba529d260cfce0d29c5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/service-non-decrit.yaml",
+          "avant": "b6aa653aa336e8199218974128f79622f935dacd347378f93ce11929147524c0",
+          "apres": "9bec4372bed3fbd8723f202c6501059d211b79fd7211a4a0976a8eccaa1dde4c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/services-vides.attendu.json",
+          "avant": "a2ff85eff54875386be109e099c7bf09738328c22408bd2344ded05ea81488eb",
+          "apres": "df0cfaf7ddccd79e1cec9fff2e5856227a99b113375abb9d39fff06f81ac42f8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/services-vides.yaml",
+          "avant": "3a9d2c2ced65109f409bc82f53a07b2ccd616df52468a860bb6fe6d558d5479d",
+          "apres": "fc1bf5eccc48e5eb279a6d2048362bc818cc586b941357d7c24953772f8d2435"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/socket-du-moteur.attendu.json",
+          "avant": "25716667ad29514542af57b12e568f361db20dcee99141ba99059d5a007d18a8",
+          "apres": "98ade375ab2e351ae9e1936263c21ce8f6d6626de5bcbce0d4de0c7966feb317"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/socket-du-moteur.yaml",
+          "avant": "7d03232bd14ba6c7b65dee64840aa76322c3b3e73103f6448fe3b4b142b1e9fe",
+          "apres": "8e2c1c63160bae6fb2ad51a2a082c9e8948476e32d1b1e062da30de1b5033fb3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/sonde-par-interpreteur.attendu.json",
+          "avant": "f1f4c5963fd42250558a73069427ba3082b415cdea0a983e5cb13a90a8a3ccd5",
+          "apres": "662586ef0a381faa31ccb6b25430ffa58aabc5e9d4e125b04ecb845b0540b16b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/sonde-par-interpreteur.yaml",
+          "avant": "e39b1f19e7a0fd24665398d7edbf34a56f843a44c1463aa98b28dbb31f2f6af0",
+          "apres": "9eca870c18caf01f5a4043fb2f117c66051e82ef2b70eb19b38128cdcf159fb1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/utilisateur-absent.attendu.json",
+          "avant": "86625b16419709ac05ae8fc7fe752581ff2396c0bfe487b70eaa65c88254a393",
+          "apres": "2cacdcbfcd8be95c54b95f91fa55458c7fceea479e492362b8efb966be0cf967"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/utilisateur-absent.yaml",
+          "avant": "18b070a34b8cd91027eca2c6a7a77eb23e086b01261cd19d083f71b38f32226e",
+          "apres": "e8dc2413954b55dfe5dd6ffa4c989c850e742ae481c17dabaafec2bfc22362e2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/utilisateur-root.attendu.json",
+          "avant": "0b1a05d0f185d92e41c873ae45fa956b876e32f777f73238afbcde5af920008f",
+          "apres": "3c6d297a1aab96c9ee6319472c6af4dfde10957ef26e82be7e50e58ee83c7a1f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/utilisateur-root.yaml",
+          "avant": "a830d5ce201e644be577b98a8f7d3bdf909f0de3eee0b4721055672aef11aab8",
+          "apres": "417daf9b734e43e7a1d07c8d458d399bcd6d5ca88d0f5a7575c8678e051d33f1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-rapide.attendu.json",
+          "avant": "ba0dc620bf2315f02fb8e451b6d169634c3279b8ca1032b1c686b757d2525954",
+          "apres": "c91b0ec2943178145f1714886bde31375bd8b4e45fbd1fe65fc9209ddaafc751"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-rapide.yaml",
+          "avant": "6f2dcbc956f12aa58531438eec540dcef4f1d2b4664a3a5c08abb2e8148715f8",
+          "apres": "eaf0c99c626498e45e466016f710e54301b2df602a501b577635ce85b899f2ec"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/variable-non-decrite.attendu.json",
+          "avant": "bcacac3d60c420a3ac7d4f213db39ff5fe8781155cce1847bc72ac001b7dee7f",
+          "apres": "99c5b14347f5978172f8e98bc8f1fef14d5f2892cc754781e41839bfdb3e5e47"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/variable-non-decrite.yaml",
+          "avant": "5450a5676f2e09375a6bfe13014547e150b112d1822413215722d97e4760ef37",
+          "apres": "8c8b60a79d29d903168a508fee079870f9c4437ff7119f00149ecee9b0a1818b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/verificateur-en-reseau.attendu.json",
+          "avant": "5fb40eeb14bd180bb12becd9e025ebc164c60d91875d88c009514bb89802bdd1",
+          "apres": "7578713e305a35584751a08f4624a9b64dbfad7f997a745af1deec7628afed6c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/verificateur-en-reseau.yaml",
+          "avant": "e856d2006cba987aa0ca55dd3cad8d34d0ff75669878179cb082a0e60c3753c0",
+          "apres": "476fad7d62d8b28edd0e00dc6ee9286c121e57561b91e2856aac3d6a10400921"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/volume-lie-hote.attendu.json",
+          "avant": "b65f25110fa71cf6e4f5a4cec56ac26873c04e5d583d8c844d59cedbaf6d6028",
+          "apres": "35c508d254250b7e2ddda01b89a20f7630de4e114549e806bdb6f82501742b85"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/volume-lie-hote.yaml",
+          "avant": "2c9e071540878f9f7e2028428ac9d172424b873fd324ea45e5bcc981dedd77ec",
+          "apres": "86432c654503a31f70cf2f3a25fea96d454114f823571f35ac4b80dd35a2d185"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/yaml-cle-dupliquee.attendu.json",
+          "avant": "91ac8125ef2361bba03f2673698025cc880415db1f55418264725c25bc94b62d",
+          "apres": "59991853df13abd9ca28fc5c2a8f1da66dfd2d28227f0cab65c2548bea23e73d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/yaml-cle-dupliquee.yaml",
+          "avant": "a2193eec07d97c52e626dc60b55376891202e950a741150a5648d4a7a4751541",
+          "apres": "0b01688e3fe0c1916efbc4b3f3a834c7afe05bbf24781cadba21e6f071157447"
+        }
+      ]
+    },
+    {
+      "id": "MC-55",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "CT-9 0.9, alignement sur CT-5 0.9 et sur la spécification du déploiement 0.7 (installation rapide avec le serveur RFC 3161 interne, décision du porteur du 2026-11-12) : versions de la table de 5.2 et de l'en-tête ; TE-6 : titres exacts des deux essais de l'ancrage de l'installation rapide, précondition (serveur interne, essais d'IR-1 à IR-8 avec Docker en attente sans Docker), complément sans la décision attendue ; TE-10 : motif du rattachement sans la décision attendue ; numéros de ligne des renvois TC- vers CT-5 et CT-8 ; vecteurs ct-9 régénérés (deux générations aux mêmes octets, couverture reussi, recompte égal à la sortie publiée, Go à 0 discordance)",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "72281146fa3622076ab6483967af8aabddad673e065eef3814064d38f3a164d5",
+          "apres": "ee109ea9cdc616dce926e43506f9efa12e08be5c6d0c5ed3fa2511ee165c32ea"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "9baceec257873e4ae103326ea9b72568af8eea1fd20c18842f06b07bf597f25f",
+          "apres": "f58784eb6318ba9b9ee16b5fbd75aae010637a68a146a67da1358f17925d171e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "0ede02d7538e2c9309dadaf955e6f17ce602bc97aa63834fd6d1e566b698ad94",
+          "apres": "0391bb787c3bc2c420696b93db069bd0e19e1ed46ccba8a92ca718d440793a9d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "970db411f91e8450b65da3627000da5df91038a538ef429dab27767cae8571c4",
+          "apres": "48973486730b1c5d3f7ee51b5cf26f916f55e7732e40ca838a198851e1644c36"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "15047346f7f8bcc14269c4d09e1aee6c0a7dc7215099daee87c77272bc1a2b8e",
+          "apres": "02fa10d9026e314b27c16ea96b58dae5bcede96bd52c3721b880e133dd0baa34"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "fcdc89d3aad33a41c45e13f9e6953e99e156fb05e747be8226d4194900e2233a",
+          "apres": "4165fccc703729ca6824d48d71049a4f6624bb02099eca8c0203131d083f1c69"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "ba05058dfb0fc63d691cee29fad06fac40f30ac4d4fb4c7a117ebb6168f5e700",
+          "apres": "8a258f597bd09b0a39d20ba2cfdd58af844076596d35416941a1cd7fb265a990"
+        }
+      ]
     }
   ]
 }

@@ -86,6 +86,12 @@ export class Ecrivain {
     this.compteurIntention = 0;
     this.ferme = false;
     this.premiereOuverture = true;
+    /**
+     * Journal terminé par la clôture anticipée (CT-2 EX-19.4, développement
+     * seulement) : aucun événement, aucune intention ne s'y écrit plus
+     * (`journal_clos`). Relu au redémarrage (`relireJournal`, `journalClos`).
+     */
+    this.clos = false;
   }
 
   // ------------------------------------------------------------ démarrage
@@ -103,7 +109,9 @@ export class Ecrivain {
     this.lastTs = etat.lastTs;
     this.cleCourante = etat.cleCourante;
     this.plancher = etat.plancherTs ?? null;
-    this.periode = etat.periode;
+    this.clos = etat.journalClos === true;
+    // Journal terminé (EX-19.4) : aucune période ouverte, aucune clôture ni aucun point au tic.
+    this.periode = this.clos ? null : etat.periode;
     this.prevPeriodHash = etat.prevPeriodHash;
     this.serie = etat.serie;
     this.segmentsFermes = [];
@@ -363,6 +371,19 @@ export class Ecrivain {
     return this._enfiler({ type: "levee", intentId, seq });
   }
 
+  /**
+   * Clôture anticipée (CT-2 EX-19.4, `noortrace-ctl close-period --now`,
+   * admise seulement en développement : le cœur le contrôle) : les clôtures
+   * échues d'abord, puis la période courante est close à l'instant de
+   * l'horloge (point de clôture, manifeste signé, comme à l'heure pleine),
+   * avec `generated_at` antérieur à `period_end` ; le journal est terminé :
+   * tout nouvel événement tomberait dans la période close (CT-1 P-3).
+   * @returns {Promise<{period_start: number, period_end: number, count: number, period_hash: string, generated_at: string}>}
+   */
+  cloreMaintenant() {
+    return this._enfiler({ type: "cloture_anticipee" });
+  }
+
   /** Points de contrôle alignés et clôtures échues, à l'instant de l'horloge. */
   tic() {
     return this._enfiler({ type: "tic" });
@@ -423,6 +444,10 @@ export class Ecrivain {
             await this._synchroniser();
             await this._tic();
             op.res();
+            break;
+          case "cloture_anticipee":
+            await this._synchroniser();
+            op.res(await this._cloreAnticipee());
             break;
           case "reprise_stockage":
             if (!this.segment) await this._ouvrirApresPanne();
@@ -614,7 +639,13 @@ export class Ecrivain {
     return { signer: (cle, message) => this._signer(cle, message) };
   }
 
+  /** Journal terminé (EX-19.4) : -31010, raison `journal_clos`. */
+  _exigerOuvert() {
+    if (this.clos) throw new ErreurEnregistreur("journal_clos", "noortrace: journal clos (cloture anticipee, EX-19.4)");
+  }
+
   async _ecrireEvenement(op) {
+    this._exigerOuvert();
     if (!this.segment) {
       // Sortie du mode « stockage » : nouveau segment ouvert et synchronisé
       // (EX-12.8, EX-14.11) ; une corruption attend une intervention.
@@ -720,6 +751,7 @@ export class Ecrivain {
   }
 
   async _ecrireIntention(p, partiel) {
+    this._exigerOuvert();
     this.compteurIntention++;
     const intent_id = idIntention(this.epoque, this.compteurIntention);
     const intention = objetIntention({
@@ -793,9 +825,35 @@ export class Ecrivain {
     }
   }
 
-  async _clore() {
+  /**
+   * Clôture anticipée (EX-19.4) : refusée sans période ouverte (journal sans
+   * événement), en mode dégradé « horloge » ou sur un saut d'horloge (comme
+   * au tic : une clôture daterait le manifeste à un instant non fiable), sans
+   * segment (mode « stockage ») ; sinon les clôtures échues, puis la période
+   * qui contient l'instant.
+   */
+  async _cloreAnticipee() {
+    this._exigerOuvert();
+    this._exigerSegment();
+    if (this.degrade.actif("horloge")) throw new ErreurEnregistreur("horloge", "noortrace: cloture anticipee refusee en mode degrade (horloge)");
+    const instant = this.horloge.murale();
+    if (!this.horloge.controlerAvance(instant)) throw new ErreurEnregistreur("horloge", "noortrace: cloture anticipee refusee (saut d'horloge)");
+    if (!this.periode) throw new ErreurEnregistreur("journal_vide", "noortrace: aucune periode ouverte (journal sans evenement)");
+    await this._cloreJusqua(instant);
     const P = this.periode;
-    const maintenant = Math.max(this.horloge.murale(), (P.start + 3600) * 1000);
+    const r = await this._clore({ anticipee: true });
+    this.clos = true;
+    this.periode = null;
+    return { period_start: P.start, period_end: P.start + 3600, count: r.manifeste.count, period_hash: r.periodHash, generated_at: r.manifeste.generated_at };
+  }
+
+  async _clore(o = {}) {
+    const P = this.periode;
+    // Clôture anticipée (EX-19.4) : à l'instant de l'horloge, jamais avant le
+    // dernier `ts` (P-5 : `generated_at` dans la validité de la clé en vigueur).
+    const maintenant = o.anticipee
+      ? Math.max(this.horloge.murale(), this.lastTs ?? 0, P.start * 1000)
+      : Math.max(this.horloge.murale(), (P.start + 3600) * 1000);
     // Point de clôture, avant le manifeste (CT-1 §10.5 règle 4).
     await this._produirePoint(maintenant, { cloture: true });
     const cle = this.cleCourante;
@@ -834,6 +892,7 @@ export class Ecrivain {
     this._copierWorm(relatifSerie, "points");
     this.periode = { start: P.start + 3600, firstSeq: this.lastSeq + 1, hashAvant: this.lastHash, evenements: [] };
     this.serie = { prev: ZERO32, dernierTs: null, dernierTreeSize: 0, prochainJ: 0 };
+    return { manifeste, periodHash };
   }
 
   async _produirePoint(instant, options = {}) {

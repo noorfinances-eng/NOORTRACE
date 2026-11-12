@@ -1,0 +1,11 @@
+# Minuteur de la tâche TP-8 (CT-8 EX-8.6) : une fois par mois, et à la main après toute mise à jour.
+[Unit]
+Description=NOORTRACE, minuteur de TP-8 (une fois par mois, et à la main après toute mise à jour)
+
+[Timer]
+OnCalendar=*-*-01 06:30:00
+Persistent=true
+Unit=noortrace-tache@TP-8.service
+
+[Install]
+WantedBy=timers.target

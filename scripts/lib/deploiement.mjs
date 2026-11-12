@@ -375,9 +375,12 @@ export function verifierConteneurs(texte, description, nom = "compose.yaml") {
     // CO-13 : redémarrage.
     const rs = String(s.restart ?? "");
     if (d.kind === "service" ? rs !== "unless-stopped" : rs !== "no") ajouter("CO-13", nomS, "redemarrage_non_conforme");
-    // CO-14 : réseaux.
+    // CO-14 : réseaux ; `service:<nom>` (révision 0.7 de CT-8) : l'espace réseau d'un service du même fichier, sans réseau ni port propres.
     if (d.network_mode === "none") {
       if (s.network_mode !== "none") ajouter("CO-14", nomS, "reseau_attendu_aucun");
+    } else if (typeof d.network_mode === "string" && d.network_mode.startsWith("service:")) {
+      const hote = d.network_mode.slice("service:".length);
+      if (s.network_mode !== d.network_mode || !Object.hasOwn(services, hote) || hote === nomS || s.networks !== undefined || s.ports !== undefined) ajouter("CO-14", nomS, "espace_reseau_non_conforme");
     } else if (s.network_mode !== "none" && s.network_mode !== "host") {
       const reseaux = Array.isArray(s.networks) ? s.networks : estObjet(s.networks) ? Object.keys(s.networks) : [];
       if (!reseaux.length) ajouter("CO-14", nomS, "reseau_par_defaut");
@@ -1097,11 +1100,11 @@ export function messageOptions(err) {
 // Contenu de l'archive de déploiement (CT-8 EX-3.6)
 // ---------------------------------------------------------------------------
 
-/** Outils de scripts/deploiement/ que l'archive porte (renvois.mjs est un outil du dépôt, hors archive). */
-export const OUTILS_ARCHIVE = Object.freeze(["configurer-rapide.mjs", "consultations.mjs", "controle-prealable.mjs", "dimensionner.mjs", "proces-verbal.mjs", "rapport-observation.mjs", "verifier-conteneurs.mjs", "verifier-journal.mjs"]);
+/** Outils de scripts/deploiement/ que l'archive porte (renvois.mjs et extraire-runbooks.mjs sont des outils du dépôt, hors archive). */
+export const OUTILS_ARCHIVE = Object.freeze(["archiver-journal-exploitation.mjs", "configurer-rapide.mjs", "consultations.mjs", "controle-prealable.mjs", "dimensionner.mjs", "proces-verbal.mjs", "rapport-observation.mjs", "sauvegarde.mjs", "verifier-conteneurs.mjs", "verifier-journal.mjs"]);
 
 /** Bibliothèques de scripts/lib/ que ces outils importent, directement ou non. */
-export const BIBLIOTHEQUES_ARCHIVE = Object.freeze(["approbation.mjs", "capture.mjs", "console.mjs", "deploiement.mjs", "exploitation.mjs", "journal.mjs", "noortrace.mjs", "ots.mjs", "securite.mjs"]);
+export const BIBLIOTHEQUES_ARCHIVE = Object.freeze(["approbation.mjs", "capture.mjs", "console.mjs", "deploiement.mjs", "exploitation.mjs", "journal.mjs", "noortrace.mjs", "ots.mjs", "sauvegarde.mjs", "securite.mjs"]);
 
 /** package.json engendré pour la copie de la distribution ESM d'ethers (même forme que le paquet réviseur, CT-8 EX-13.21). */
 function paquetEthersArchive(version) {

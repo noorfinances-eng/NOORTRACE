@@ -1,0 +1,85 @@
+{
+  "version": 0,
+  "checkpoint_interval_s": 60,
+  "rfc3161": {
+    "providers": [
+      {
+        "id": "tsa-interne",
+        "role": "principal",
+        "url": "http://127.0.0.1:2020/",
+        "auth": {
+          "method": "aucune",
+          "secret": null
+        },
+        "hash": "sha256",
+        "policy_oid": "1.3.6.1.4.1.99999.1.1",
+        "accepted_policies": [
+          "1.3.6.1.4.1.99999.1.1"
+        ],
+        "anchor_certificates": [
+          "-----BEGIN CERTIFICATE-----\nMIIERTCCAq2gAwIBAgIBATANBgkqhkiG9w0BAQsFADBEMQswCQYDVQQGEwJDSDEb\nMBkGA1UECgwSTk9PUlRSQUNFIHZlY3RldXJzMRgwFgYDVQQDDA9BQyBkZSB0ZXN0\nIENULTYwHhcNMjYwMTAxMDAwMDAwWhcNMzYwMTAxMDAwMDAwWjBEMQswCQYDVQQG\nEwJDSDEbMBkGA1UECgwSTk9PUlRSQUNFIHZlY3RldXJzMRgwFgYDVQQDDA9BQyBk\nZSB0ZXN0IENULTYwggGiMA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQC6/DG2\nIeKP3DpkymqTJju07MV4T6897KG3c54dBNvYkDp/5+sTszTfscX97zJNe9yEdQUk\nGOWgsWVsHuPfwdIHkxOpg+iTzXesOigZ5Z3nnRhGhaapFOt7dw8Y2k11Ph5D020d\nVFg6mmF/3o/DjQYmBZWVslZrBPZ1Ox+BAgtJ8TEfzM2WKQJU7ynOKTkRqVhGIzGU\nKQs7y8ajeXsYPcHVE9DPgAsBlvfocHBjPM6HTAPr2uQAGyxmWbi0TVURCLWjosA/\np2rVipwtUY5kOummqe1WeYYu4TJGFS9UwTv0Wb9QdSwgDF4Gil9QlRBdsgjK0q8l\nLl9d5aMc2+Ek7ygoFy5fOayFbuEW2C+p8AVORcTe6NyVtAr+BKKyRT/5cqg4mg3/\nVuWp2xtLcfnibL0Xv6dDINQa9cvXrZ8ffQVQoXvWypT/qB95A2UIABnlJ+Puy7pw\n4Ig+jW7xtDfZq7E6gtmkWcO+K7ZJAWSFHt5G1+gu8629c0f/+lIMtWEUMAcCAwEA\nAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYwHQYDVR0OBBYE\nFOWYQz/533+Z5pdz2xPeP7Dek5haMA0GCSqGSIb3DQEBCwUAA4IBgQBj1DnJODOM\nt0uQ+W3l/EaxbhJgxxTz+W/W/Em7iIpehUEmdfwoMd5Sz3IZLNQA2n7bdNUrn0au\nnsS+EHO5RgxbMSVD2Wi5ykwltNKVFI3sROPQW9jcqzVlKH+2ychGk9CTsJL0sGhJ\nCdJJEap84UVrXYL9W4xH5kdqSpbyJmRi8g7+9SuKDYwjQbrxEHErvlLqbrRRgNtU\nYhTnqQXRsi979JY/zbhhaBG/u6q20wKKh5PvqwiK7JXGgrQIiN+wBc4R8SvROy2B\nzsQNc0vkgZCxTgOrhRcHa5XkZVXmaFk8Vc7QMzadGjB455cy0yXVjJK1A6H705CO\n8i8/bSz+s0l9z4fxELG1uEPtH/DZypUrSRxhV6UU1fF/ltGFQib6XI3s7FvRKWev\nqlvZV1dpGUobK/tZiKkItGiVmDuHS98d3nEu07PkQrdrIDpedKBE70InQztk6BuO\nTJXpBjWvMH4G7P6/U3gIEV2lvvx53XljANu1Rj7bVhZH2YHavlIJ+TE=\n-----END CERTIFICATE-----\n"
+        ],
+        "qualified": null,
+        "min_interval_ms": 0,
+        "request_timeout_ms": 5000,
+        "correlation_header": null,
+        "source": "installation rapide (CT-8 §7.3) : serveur RFC 3161 interne non qualifié (CT-5 §7), service horodatage de rapide.yaml, joint sur la boucle locale de l'espace réseau de l'enregistreur ; principal admis hors production seulement (CT-5 EX-4.9, règle 4). anchor_certificates : l'AC créée au pas IR-2, recopiée au pas IR-3 par configurer-rapide.mjs ; dans le dépôt, l'AC de test des vecteurs CT-6, sans valeur hors des tests."
+      }
+    ],
+    "manifest": {
+      "fallback_after_s": 300
+    },
+    "checkpoints": {
+      "interval_s": 300,
+      "provider_role": "aucun",
+      "fallback_after_s": 120,
+      "countersign_idle": false
+    },
+    "freshness": {
+      "max_response_delay_s": 60,
+      "clock_tolerance_s": 120
+    },
+    "retry": {
+      "initial_ms": 5000,
+      "factor": 2,
+      "max_ms": 300000,
+      "jitter_ms": 250
+    },
+    "retention_years": 10,
+    "crl_capture": {
+      "enabled": false,
+      "delay_s": 600
+    }
+  },
+  "registry": {
+    "checkpoints": "aucun",
+    "squat_wait_s": 5,
+    "inclusion_alert_s": 60
+  },
+  "opentimestamps": {
+    "enabled": true,
+    "calendars": [
+      "https://a.pool.opentimestamps.org",
+      "https://b.pool.opentimestamps.org"
+    ],
+    "min_responses": 2,
+    "timeout_ms": 5000,
+    "checkpoint": "aucun",
+    "upgrade": {
+      "whitelist": [
+        "https://alice.btc.calendar.opentimestamps.org",
+        "https://bob.btc.calendar.opentimestamps.org",
+        "https://finney.calendar.eternitywall.com"
+      ],
+      "first_after_s": 21600,
+      "interval_s": 1800,
+      "give_up_after_s": 1209600
+    },
+    "headers_source": null
+  },
+  "queue": {
+    "path": "/var/lib/noortrace/ancrage",
+    "max_pending": 100000,
+    "anchor_pending_alert_s": 7200
+  }
+}

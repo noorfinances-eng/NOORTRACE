@@ -2,10 +2,12 @@
 // TLS 1.2 au moins avec vérification du certificat du serveur, en-têtes exacts,
 // authentification `basic` (RFC 7617, sur TLS seulement) ou `certificat_client`,
 // en-tête de corrélation, corps de réponse borné à 128 Kio, `http://` admis pour
-// le seul rôle `interne` vers une adresse locale (AN-1, règle 4). Aucun
-// mandataire : la requête part directement vers `url`.
+// le seul serveur interne vers une adresse locale (AN-1, règle 4) : rôle
+// `interne`, ou `principal` désigné par `serveurInterne` (hors production
+// seulement, CT-5 révision 0.9 ; c'est le composant qui le pose, d'après son
+// profil). Aucun mandataire : la requête part directement vers `url`.
 //
-// L'interface injectable est `{ envoyer({ url, octets, entetes, delaiMs, auth, tls, role }) → { status, entetes, corps, tronque } }`.
+// L'interface injectable est `{ envoyer({ url, octets, entetes, delaiMs, auth, tls, role, serveurInterne }) → { status, entetes, corps, tronque } }`.
 // Une erreur de transport lève `ErreurTransport` (`code` : `url`, `resolution`,
 // `connexion`, `tls`, `reinitialisation`, `delai`).
 
@@ -77,8 +79,8 @@ export function autorisationBasic(secretOctets) {
  */
 export function transportHttps(options = {}) {
   return {
-    async envoyer({ url, octets, entetes = {}, delaiMs = 10000, auth = null, tls = null, role = null }) {
-      const u = controlerUrl(url, role);
+    async envoyer({ url, octets, entetes = {}, delaiMs = 10000, auth = null, tls = null, role = null, serveurInterne = false }) {
+      const u = controlerUrl(url, serveurInterne === true ? "interne" : role);
       const enTls = u.protocol === "https:";
       const h = { ...entetes };
       const requete = { method: "POST", headers: h, timeout: delaiMs };

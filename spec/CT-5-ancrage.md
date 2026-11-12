@@ -1,6 +1,6 @@
 # CT-5 — Ancrage
 
-Version 0.7, 2026-11-10 (les versions 0.6 et 0.5 sont du même jour, la version 0.4 du
+Version 0.9, 2026-11-12 (la version 0.8 est du même jour, la version 0.7 du 2026-11-10, les versions 0.6 et 0.5 du même jour, la version 0.4 du
 2026-11-09, la version 0.3 du 2026-11-03, la version 0.2 du 2026-10-26, la
 version 0.1 du 2026-10-25). Spécification normative, soumise à la revue de la porte 1 du
 plan de projet (document interne). Elle met en œuvre les points 2
@@ -158,6 +158,44 @@ Sections touchées : en-tête et cette note ; 3.3 (EX-3.5 : résultat de la
 mesure) ; 14 (états de trois lignes : schémas et implémentations de la
 révision 0.6, code de l'enregistreur). Aucune règle, aucun schéma, aucun
 vecteur, aucun outil ne change.
+
+**Révision 0.8** (2026-11-12), textuelle et minimale, après la construction
+de l'étape 7 et l'écriture des règles d'alerte du déploiement : le composant
+d'ancrage observait `noortrace_anchoring_d_registre_s` pour chaque ancre
+`obtenue` encore présente dans la file, à chaque passe, si bien que
+l'histogramme grossissait sans fin et que les alertes d'inclusion lente de
+8.9 se seraient déclenchées tant qu'une ancre lente restait dans la file.
+EX-8.15 dit désormais quand `d_registre` est observé : une fois par ancre,
+à la passe où elle devient `obtenue`, jamais à une passe suivante ni à la
+relecture de la file après un redémarrage. Sections
+touchées : en-tête et cette note ; 8.6 (EX-8.15) ; 14 (une ligne). Aucun
+schéma, aucune trace, aucun outil de référence ne change.
+
+**Révision 0.9** (2026-11-12), minimale, sur décision du porteur pour
+l'installation rapide du déploiement : hors production, le prestataire
+`principal` PEUT être le serveur RFC 3161 interne de la section 7, qui
+produit alors le jeton de clôture, non qualifié. Jusqu'ici, l'installation
+rapide désignait un `principal` fictif où rien n'écoutait, que le schéma
+exige, et son dossier n'avait jamais de jeton ; elle désigne désormais le
+serveur interne de `paquets/ancrage`, et le contrôle 4 de CT-6 s'exécute sur
+son jeton contre l'AC du serveur, que le réviseur porte dans son fichier
+d'ancres. La règle tient dans AN-1 (EX-4.9, règle 4) : hors production
+(profils `developpement` et `test` de CT-2 §15), un `principal` dont
+`qualified` vaut `null` suit les règles d'adresse et d'authentification du
+rôle `interne` (`http://` vers une adresse locale sans authentification, ou
+`https://` avec `basic` ou `certificat_client`) ; en production, rien ne
+change : le `principal` est qualifié, son `url` est en `https://` et son
+authentification n'est jamais `aucune`, et un serveur interne désigné comme
+principal est refusé avec ces trois raisons. Ni le schéma `ancrage-v0` ni sa
+projection ne changent (la règle n'est pas exprimable par le schéma sans le
+profil, que le document ne porte pas ; la description de `url` renvoie déjà
+à AN-1) ; aucune trace, aucun vecteur, aucun outil de référence ne change
+(`verifierConfiguration` de la référence n'applique les règles d'adresse
+qu'en production). Le composant d'ancrage désigne ce principal au transport
+comme serveur interne (`serveur_interne`), qui l'admet alors en `http://`
+local. Sections touchées : en-tête et cette note ; 4.4 (EX-4.9, règle 4) ;
+5.2 (EX-5.5) ; 5.3 (table d'EX-5.6) ; 7.1 (EX-7.1, EX-7.3) ; 7.2 (AN-27) ;
+7.3 ; 11.3 ; 11.4 (AN-55) ; 14 (une ligne).
 
 La spécification a deux parties. La **partie A** (sections 0 à 6) dit ce que
 l'ancrage prouve et ne prouve pas, quelle fenêtre de réécriture il laisse,
@@ -952,7 +990,19 @@ nominatif :
    relève de la clôture reste qualifiée, EX-5.7), et tout `url` de rôle autre
    qu'`interne` commence par `https://` ;
    un `url` de rôle `interne` en `http://` n'est admis que vers une adresse
-   locale (`127.0.0.1`, `::1`, `localhost`) ;
+   locale (`127.0.0.1`, `::1`, `localhost`) ; révision 0.9 : **hors
+   production** (profils `developpement` et `test`), le `principal` PEUT être
+   le serveur RFC 3161 interne de la section 7 ; il a alors `qualified =
+   null` et suit les règles d'adresse et d'authentification du rôle
+   `interne` : `url` en `http://` vers une adresse locale avec
+   `auth.method = aucune`, ou `url` en `https://` avec `basic` ou
+   `certificat_client` (AN-27) ; un `principal` qualifié, un `secours` ou un
+   `second_rang` restent en `https://` avec authentification dans tout
+   profil ; **en production**, un principal non qualifié est refusé (`principal
+   … sans qualified`), et, s'il est désigné en `http://` ou sans
+   authentification, chacune de ces deux formes est refusée avec la raison
+   « le serveur RFC 3161 interne n'est admis comme principal que hors
+   production » ;
 5. `opentimestamps.enabled = true` ⇒ au moins deux `calendars` distincts,
    `min_responses ≤ longueur de calendars`, au moins une entrée dans
    `upgrade.whitelist` ;
@@ -1167,8 +1217,9 @@ dans l'URL, R1-F35) n'est jamais employée : elle inscrit la requête dans les
 journaux d'accès des intermédiaires. L'authentification suit `auth.method` :
 `basic` (RFC 7617, en-tête `Authorization`, seulement sur TLS ; R1-F35,
 R1-F41), `certificat_client` (authentification TLS mutuelle par un certificat
-d'accès, R1-F31, R1-F46), `aucune` (rôle `interne` sur une adresse locale
-seulement, AN-1). Quand `correlation_header` est non nul, l'en-tête porte
+d'accès, R1-F31, R1-F46), `aucune` (serveur interne sur une adresse locale
+seulement : rôle `interne`, ou, hors production, `principal` non qualifié,
+AN-1, révision 0.9). Quand `correlation_header` est non nul, l'en-tête porte
 l'identifiant de tentative (5.4), que le prestataire reprend dans ses
 journaux (R1-F35 : `X-Request-ID`, `X-Correlation-ID`). Le délai d'une
 requête est `request_timeout_ms` ; au moins `min_interval_ms` séparent deux
@@ -1185,7 +1236,7 @@ requêtes d'ancrage (CT-4 EX-10.5, même motif qu'EX-4.7).
 
 | Rôle | Qualifié | Objets | Quand |
 |---|---|---|---|
-| `principal` | DOIT (AN-1, production) | manifeste ; points si `provider_role = principal` | toujours en premier pour le manifeste ; pour les points, à chaque échéance |
+| `principal` | DOIT (AN-1, production) ; hors production, PEUT être le serveur interne non qualifié (EX-4.9, règle 4, révision 0.9) | manifeste ; points si `provider_role = principal` | toujours en premier pour le manifeste ; pour les points, à chaque échéance |
 | `secours` | DOIT, s'il est configuré | manifeste ; points si `provider_role = principal` | en relève du principal (EX-5.7) |
 | `second_rang` | PEUT | points si `provider_role = second_rang` | à chaque échéance ; sans relève |
 | `interne` | jamais (R1-F55) | points si `provider_role = interne` | à chaque échéance ; sans relève ; section 7 |
@@ -1744,13 +1795,20 @@ l'architecture appelait « contresignature interne à la minute » (R2-F60) ;
 CT-1 révision 0.3 lui a donné un format (le point de contrôle) et cette
 section lui donne ses limites.
 
-**EX-7.1** Le serveur interne NE DOIT PAS produire le jeton de clôture d'une
+**EX-7.1** En production, le serveur interne NE DOIT PAS produire le jeton de clôture d'une
 période (`jeton_periode`, empreinte `periodHash`) : ce jeton reste celui du
 prestataire `principal` ou de son `secours`, tous deux qualifiés (EX-5.6,
 EX-5.7). Un prestataire de rôle `interne` ne peut porter aucun de ces deux
 rôles : chaque prestataire a un champ `role` unique (EX-4.8), et, en
 production, la configuration est refusée au démarrage si le principal (ou le
-secours) n'est pas qualifié (EX-4.9, règle 4 ; CT-2 §15.4).
+secours) n'est pas qualifié (EX-4.9, règle 4 ; CT-2 §15.4). Révision 0.9 :
+hors production seulement, le serveur interne PEUT être désigné comme
+`principal` (EX-4.9, règle 4) ; il produit alors le jeton de clôture, non
+qualifié (`qualified: null` dans la configuration, l'enregistrement
+d'acquisition et la fiche), ce qui ne vaut que pour un déploiement de
+développement ou de test, comme l'installation rapide du déploiement, dont le
+dossier dit qu'il ne vient pas de la production ; la garde de sa clé
+qu'exige EX-7.3 ne s'y applique pas.
 
 **EX-7.2** Un jeton du serveur interne prouve seulement qu'une clé contrôlée
 par l'exploitant a signé ce condensé et cette heure déclarée (R1-F55 : la
@@ -1788,7 +1846,7 @@ jamais par la seule lecture d'une configuration.
 | AN-24 | La précision déclarée (`accuracy`) est présente dans chaque jeton, au plus 1 s, et l'horloge du serveur est asservie à une source de temps dont l'écart mesuré est consigné (R1-F11, R1-F19 : un prestataire qualifié arrête le service au-delà de sa dérive admise ; le serveur interne DOIT cesser d'émettre au-delà de `accuracy`) | `accuracy` lu par T-1 ; journal d'exploitation `tsa_clock_offset` |
 | AN-25 | Le nonce de la requête est repris à l'identique dans le jeton (R1-F2) ; une requête sans nonce est refusée par le client de la section 5, jamais par le serveur | `openssl ts -verify -queryfile <requête>` : « nonce mismatch » si le nonce diffère (essai de cette spécification, annexe B.3) |
 | AN-26 | Le numéro de série est unique et strictement croissant à travers les redémarrages (RFC 3161 §2.4.2, R1-F10) ; `openssl ts` ne verrouille pas son fichier `serial` (R1-F49) : un seul processus émetteur par clé, ou un serveur qui sérialise ses émissions (uts-server, sigstore `timestamp-authority`) | deux jetons successifs du même serveur ont des `serialNumber` croissants ; épreuve de redémarrage (CT-9) |
-| AN-27 | Le serveur n'est joignable que par TLS avec authentification du client (certificat client ou `Basic` sur TLS), depuis les seules adresses de l'enregistreur, sauf une adresse locale (`127.0.0.1`, `::1`, `localhost`) en `http://` sans authentification, que la règle 4 d'EX-4.9 admet pour le seul rôle `interne` ; `openssl ts` n'a pas de serveur HTTP (R1-F49 : « HTTP server support is provided in the form of a separate apache module ») : un frontal est obligatoire | tentative anonyme refusée ; `ssl_verify_peer` ou équivalent (R1-F52) |
+| AN-27 | Le serveur n'est joignable que par TLS avec authentification du client (certificat client ou `Basic` sur TLS), depuis les seules adresses de l'enregistreur, sauf une adresse locale (`127.0.0.1`, `::1`, `localhost`) en `http://` sans authentification, que la règle 4 d'EX-4.9 admet pour le seul serveur interne (rôle `interne`, ou `principal` non qualifié hors production, révision 0.9) ; `openssl ts` n'a pas de serveur HTTP (R1-F49 : « HTTP server support is provided in the form of a separate apache module ») : un frontal est obligatoire | tentative anonyme refusée ; `ssl_verify_peer` ou équivalent (R1-F52) |
 | AN-28 | Chaque jeton émis est journalisé **hors du serveur** (par le frontal ou par le client) avec son numéro de série, son `genTime`, son `messageImprint` et son nonce : `openssl ts -reply` n'écrit aucun journal, seul `serial` est mis à jour (R1-F50) | le journal porte une ligne par jeton reçu par le client |
 | AN-29 | La politique est un OID de l'arc privé de l'exploitant, déclaré dans `accepted_policies` de l'autorité du fichier d'ancres ; une requête qui porte une autre `reqPolicy` est refusée (`unacceptedPolicy`, R1-F5 ; essai : réponse de rejet de 50 octets, annexe B.3) | T-1 lit la politique ; `openssl ts -reply` sur une politique inconnue rend « the requested TSA policy is not supported by the TSA » |
 | AN-30 | Le certificat de l'unité est inclus dans le jeton (`certReq` vrai, R1-F4) et l'attribut signé est `signingCertificateV2` avec `ESSCertIDv2` SHA-256 (RFC 5816, R1-F14, R1-F15) ; `ess_cert_id_alg = sha256` pour `openssl ts` (R1-F16) | T-4 réussie sans intermédiaire dans le fichier d'ancres |
@@ -1811,7 +1869,9 @@ une racine RSA-3072).
 
 ### 7.3 Ce que le serveur interne ne remplace pas
 
-- Il ne remplace pas le jeton qualifié de la clôture (EX-7.1) ni le
+- Il ne remplace pas le jeton qualifié de la clôture (EX-7.1 ; hors
+  production seulement, il PEUT tenir le rôle `principal` et produire un
+  jeton de clôture non qualifié, révision 0.9) ni le
   prestataire de second rang : il est le **troisième** choix pour les points,
   quand `rfc3161.checkpoints.provider_role` le désigne (EX-5.6), et son coût
   nul (section 12) est la seule raison de le préférer ; il n'a pas de relève
@@ -2315,7 +2375,7 @@ identifiant de compte) :
 | `noortrace_anchoring_window_s` | jauge | `journal` (identifiant abrégé) | âge, en secondes, du dernier point ou manifeste contresigné par un prestataire **extérieur** : borne courante de `W_date` (3.3) |
 | `noortrace_anchoring_d_jeton_s` | histogramme | `kind`, `provider` | `d_jeton` d'EX-5.11 (`genTime + précision − D_k`, ou `− period_end`) |
 | `noortrace_anchoring_d_point_s` | histogramme | — | `d_point` d'EX-3.5 (`checkpoint_ts − D_k` du point sélectionné) ; `d_admission`, `d_attente`, `d_relève` et `d_tsa` se lisent sur les lignes `checkpoint_countersigned` (`d_admission_s`, `d_attente_s`, `d_releve_s`, `d_tsa_s` ; `d_admission_s` depuis la révision 0.6) |
-| `noortrace_anchoring_d_registre_s` | histogramme | `kind` | `d_registre` de P-2 (instant du reçu − `checkpoint_ts` ou `generated_at`) |
+| `noortrace_anchoring_d_registre_s` | histogramme | `kind` | `d_registre` de P-2 (instant du reçu − `checkpoint_ts` ou `generated_at`) ; révision 0.8 : observé une fois par ancre, à la passe où l'écriture de la file la fait passer à `obtenue`, jamais à une passe suivante ni à la relecture d'une file après un redémarrage |
 | `noortrace_anchoring_ots_pending_age_s` | jauge | — | âge de la preuve en attente la plus ancienne |
 
 Alertes prescrites (CT-8 donne les règles) : `anchor_pending` et
@@ -4481,7 +4541,8 @@ ETSI EN 319 421 et 319 422 n'ont pas été lus (NV-10).
 ### 11.3 Serveur interne
 
 Le serveur interne (section 7) figure dans la configuration avec le rôle
-`interne`, `qualified: null`, sa politique privée dans `policy_oid` et
+`interne` (ou, hors production seulement, `principal`, EX-4.9, règle 4,
+révision 0.9), `qualified: null`, sa politique privée dans `policy_oid` et
 `accepted_policies`, son URL (locale en `http://`, ou TLS) et `auth` (EX-4.8,
 EX-4.9) ; il n'a ni liste de confiance ni contrat. Ses contraintes mesurables
 sont AN-22 à AN-31.
@@ -4490,7 +4551,7 @@ sont AN-22 à AN-31.
 
 | Id | Vérification |
 |---|---|
-| AN-55 | Le `principal` et, s'il existe, le `secours` ont `qualified` non nul, conforme à `$defs/qualification` d'`ancrage-v0`, avec un statut `granted` (ou reconnu, ZertES) et une liste de confiance nommée (`trusted_list` ; pour `zertes`, l'attestation de reconnaissance en plus dans `source`, EX-5.9) ; aucun prestataire de rôle `interne` ne porte ces rôles (EX-7.1, EX-4.9) |
+| AN-55 | Le `principal` et, s'il existe, le `secours` ont `qualified` non nul, conforme à `$defs/qualification` d'`ancrage-v0`, avec un statut `granted` (ou reconnu, ZertES) et une liste de confiance nommée (`trusted_list` ; pour `zertes`, l'attestation de reconnaissance en plus dans `source`, EX-5.9) ; aucun prestataire de rôle `interne` ne porte ces rôles (EX-7.1, EX-4.9) ; en production seulement : hors production, le `principal` PEUT être le serveur interne non qualifié (révision 0.9) |
 | AN-56 | Le `principal` et le `secours` sont d'exploitants distincts (EX-11.2 ; `source` de chacun le dit) |
 | AN-57 | La fiche de prestataire porte le résultat de l'épreuve d'EX-11.4, daté, avec le SHA-256 du certificat de l'unité retrouvé sur la liste ou l'attestation |
 | AN-58 | `min_interval_ms` configuré respecté : deux requêtes consécutives au même prestataire espacées d'au moins cette durée, toutes demandes confondues (EX-5.5, EX-8.7 ; trace `prestataire-min-interval`, annexe A) |
@@ -4689,6 +4750,8 @@ sont pas modifiés par ce lot : la dernière ligne dit ce qui doit y changer.
 | CT-9 | — | tests attachés aux EX- et AN- des deux parties (AN-1 à AN-61) ; mesures P-1 à P-6 de 3.6 ; épreuve à l'aveugle (un relecteur qui n'a que CT-5 et CT-1 §9 à §11 dit la cadence des points, ce qu'un point prouve et ne prouve pas, la fenêtre, le coût pour un prix unitaire donné, la conduite quand le prestataire est injoignable ; un second relecteur lit CT-6 §7 révisée) | proposition |
 | `spec/README.md` | CT-5 « à écrire » | CT-5 version 0.2 en revue ; lignes des schémas `ancrage-v0` (4.4) et `planificateur-ancrage-v0` (8.10) ; section « CT-5 (`vecteurs/ct-5/`) » avec la table de l'annexe A.4 ; versions de CT-1 (0.3), CT-4 (0.3) et CT-6 (0.2) ; `-r spec/schemas/point-de-controle-v0.schema.json` dans les commandes qui chargent le schéma de dossier | fait |
 | `README.md`, `README.fr.md`, `ARCHITECTURE.md` (« Ancrage », point 2 et paragraphe « En option, un serveur RFC 3161 interne […] contresigne la chaîne toutes les minutes » ; « Modèle de menace », ligne « L'enregistreur lui-même est compromis » : « les ancres horaires bornent la fenêtre de réécriture ; contresignature interne à la minute en option »), `CHANGELOG.md` | contresignature interne « à la minute », fenêtre « une heure » | points de contrôle toutes les 60 s ancrés au registre, contresignés au plus toutes les 300 s par un prestataire extérieur ou interne, clôture horaire qualifiée inchangée ; fenêtre bornée au point (CT-1 §10.9 : `60 s + d_registre` pour l'ordre, `300 s + d_jeton` pour la date) ; CT-5 écrit ; schéma et vecteurs `ct-5` au journal des changements | à faire (documents racine, hors de ce lot) |
+| Composant d'ancrage `paquets/ancrage`, supervision du planificateur (révision 0.8) | `noortrace_anchoring_d_registre_s` observé pour chaque ancre `obtenue` de la file à chaque passe | une observation par ancre (EX-8.15) | fait (étape 7) |
+| Composant d'ancrage `paquets/ancrage` (AN-1, transport) ; installation rapide du déploiement (révision 0.9) | `principal` toujours en `https://` avec authentification ; installation rapide sans jeton RFC 3161 | hors production, `principal` = serveur interne non qualifié, `http://` local sans authentification (EX-4.9, règle 4) ; refus nommé en production ; service `horodatage` de `deploiement/compose/rapide.yaml` | fait (étape 7) |
 
 ## 15. Ce que cette version ne couvre pas
 

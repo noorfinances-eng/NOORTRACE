@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "confinement-retire.yaml",
-    "sha256": "7fc57daa16b5a0b25e4311758df8323d440f023692281241552d6ee7173e7f8c",
+    "sha256": "ae70e98ba585ae3f560684f037dbec1f0f636ba69c8e5993a2bb3ae079f625c5",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

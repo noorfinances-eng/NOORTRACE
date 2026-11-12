@@ -1,0 +1,9 @@
+# Contexte de construction de noortrace/pont-stdio (racine du dépôt) :
+# tout est exclu, sauf ce que l'image emploie.
+*
+!conteneurs/pont-stdio/noortrace-pont-stdio.mjs
+!conteneurs/pont-stdio/serveur-fichiers.mjs
+!conteneurs/pont-stdio/passwd
+!conteneurs/pont-stdio/group
+!LICENSE
+!NOTICE

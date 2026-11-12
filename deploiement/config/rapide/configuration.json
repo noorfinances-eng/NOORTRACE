@@ -225,7 +225,7 @@
         "https://b.pool.opentimestamps.org"
       ]
     },
-    "ancrage": null
+    "ancrage": "/etc/noortrace/ancrage.json"
   },
   "supervision": {
     "health_listen": "0.0.0.0:8500",

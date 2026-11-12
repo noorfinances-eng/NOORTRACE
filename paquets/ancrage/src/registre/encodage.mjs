@@ -396,6 +396,18 @@ export function encoderRegisterRecorder({ org_id, journal_id, chain_key, ed25519
   );
 }
 
+/**
+ * RG-14 : données d'appel de `revokeRecorder(orgId, chainKey, sigs)` (CT-4
+ * §8.4, EX-8.7 ; étape 7, rotation de la clé de chaîne relayée par le démon).
+ */
+export function encoderRevokeRecorder({ org_id, chain_key, signatures }) {
+  if (!Array.isArray(signatures)) throw new TypeError("tableau de signatures attendu");
+  return concatener(
+    sel("revokeRecorder"), b32(org_id), motAdresse(chain_key),
+    u256(0x60n), u256(BigInt(signatures.length)), ...signatures.map(motSignature),
+  );
+}
+
 /** Données d'appel des lectures par `eth_call`. */
 export const encoderLookup = (fingerprint) => concatener(sel("lookup"), b32(fingerprint));
 export const encoderIsAnchored = (fingerprint) => concatener(sel("isAnchored"), b32(fingerprint));
@@ -538,6 +550,15 @@ export function decoderJournal(role, journal) {
     const publisher = motVersAdresse(m[1]);
     if (publisher === null) return null;
     return { name: "RecorderRegistered", orgId: topics[1], chainKey, journalId: topics[3], ed25519PubKey: octetsVersHex(m[0]), publisher };
+  }
+  if (role === "revocation") {
+    if (topics.length !== 3 || topics[0] !== SUJETS.RecorderRevoked) return null;
+    const chainKey = sujetAdresse(topics[2]);
+    const m = mots(journal.data);
+    if (chainKey === null || !m || m.length !== 1) return null;
+    const publisher = motVersAdresse(m[0]);
+    if (publisher === null) return null;
+    return { name: "RecorderRevoked", orgId: topics[1], chainKey, publisher };
   }
   if (role === "cloture") {
     if (topics.length !== 4 || topics[0] !== SUJETS.PeriodSubmitted) return null;

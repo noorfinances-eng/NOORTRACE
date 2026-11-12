@@ -459,6 +459,30 @@ describe("ancrage, planificateur : supervision (EX-8.15, AN-43)", function () {
     expect(sansExterieur.metriques()).to.not.include("noortrace_anchoring_window_s{");
   });
 
+  // Étape 7 : `releverFile` observait d_registre pour chaque
+  // ancre obtenue encore dans la file, à chaque passe : l'histogramme gonflait
+  // et l'alerte d'inclusion lente se répétait tant que l'ancre restait.
+  it("d_registre (EX-8.15) : une observation par ancre du registre, à la passe où elle devient obtenue (ecrire_file), jamais aux passes suivantes ; une file relue (reprise) n'observe rien de nouveau", function () {
+    const t = trace("heure-nominale-reference");
+    const p = creerPlanificateur(t.config, { gigues: [], nonces: noncesVecteurs(), fileInitiale: [] });
+    const s = new Supervision();
+    const somme = (texte, suffixe) => [...texte.matchAll(new RegExp(`^noortrace_anchoring_d_registre_s_${suffixe}\\{kind="ancre_registre[a-z_]*"\\} ([0-9]+)$`, "gm"))].reduce((x, m) => x + Number(m[1]), 0);
+    for (const i of t.inputs) s.releverActions({ actions: p.traiter(i), file: p.file(), maintenant: null });
+    const obtenues = p.file().filter((d) => d.kind.startsWith("ancre_registre") && d.state === "obtenue");
+    expect(obtenues.length).to.be.at.least(1);
+    const attendu = obtenues.reduce((x, d) => x + Math.max(0, Math.trunc((N.decoderHorodatage(d.result.obtained_at) - N.decoderHorodatage(d.subject.declared_at)) / 1000)), 0);
+    const texte = s.metriques();
+    expect(somme(texte, "count")).to.equal(obtenues.length);
+    expect(somme(texte, "sum")).to.equal(attendu);
+    // Passes suivantes sans transition (tic, relevé de la file) : rien de plus.
+    for (let k = 0; k < 5; k++) s.releverActions({ actions: [], file: p.file(), maintenant: null });
+    expect(somme(s.metriques(), "count")).to.equal(obtenues.length);
+    // Supervision neuve sur une file relue (redémarrage) : aucune observation sans transition.
+    const reprise = new Supervision();
+    reprise.releverActions({ actions: [], file: p.file(), maintenant: null });
+    expect(somme(reprise.metriques(), "count")).to.equal(0);
+  });
+
   it("consigner écrit par le journal injecté au format de CT-2 EX-9.5 et refuse jeton, pièce, secret et valeurs longues (AN-43)", function () {
     const lignes = [];
     const journal = { consigner: (niveau, composant, evenement, data) => lignes.push({ niveau, composant, evenement, data }) };

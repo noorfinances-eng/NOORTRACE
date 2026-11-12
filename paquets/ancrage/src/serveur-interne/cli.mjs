@@ -1,15 +1,18 @@
 // Ligne de commande de `bin/noortrace-tsa-interne` : `init` (autorité de
 // développement), `servir` (serveur RFC 3161 interne), `crl` (republication
-// de la CRL). L'horloge, l'aléa et les flux sont fournis par le binaire :
+// de la CRL), `ac` (certificat de l'AC ou CRL sur la sortie standard, pour
+// le document d'ancrage et le fichier d'ancres du réviseur), `sonde` (santé
+// d'un serveur en marche, sonde de conteneur sans interpréteur). L'horloge, l'aléa et les flux sont fournis par le binaire :
 // aucun module de `src/` ne lit l'horloge de la machine (règle 2
 // d'INTERFACES.md). Codes de retour : 0 réussite, 1 erreur d'exécution,
 // 2 usage. Le journal du serveur est écrit en NDJSON sur la sortie d'erreur
 // (clés en anglais, comme CT-2 §17.3) ; il ne porte jamais un jeton (AN-28).
 
 import fs from "node:fs";
+import http from "node:http";
 import path from "node:path";
-import { initialiserAutorite, publierCrl, chargerAutorite, ALGORITHMES } from "./init.mjs";
-import { demarrerServeur } from "./serveur.mjs";
+import { initialiserAutorite, publierCrl, chargerAutorite, ALGORITHMES, FICHIERS_AUTORITE } from "./init.mjs";
+import { demarrerServeur, CHEMIN_SANTE } from "./serveur.mjs";
 import { Compteur } from "./compteur.mjs";
 import { Autorite } from "./autorite.mjs";
 
@@ -27,6 +30,12 @@ Commandes :
          Sert les requêtes TimeStampReq (POST application/timestamp-query).
   crl    --repertoire <rep> [--validite-crl-jours <n>]
          Republie la CRL vide de l'AC (numéro incrémenté).
+  ac     --repertoire <rep> [--crl]
+         Écrit sur la sortie standard le certificat de l'AC (ac.pem) ou, avec
+         --crl, la CRL en vigueur (crl.pem) ; ne lit aucune clé privée.
+  sonde  --url http://127.0.0.1:<port>${CHEMIN_SANTE}
+         0 si le serveur répond 200 « ok » en 2 500 ms au plus, 1 sinon ;
+         une adresse hors de la boucle locale est refusée sans connexion.
   aide   Affiche cette aide.
 
 Codes de retour : 0 réussite ; 1 erreur ; 2 usage.
@@ -101,6 +110,8 @@ export async function lancer(contexte) {
     }
     if (commande === "init") return commandeInit(options, horloge, aleatoire, sortie);
     if (commande === "crl") return commandeCrl(options, horloge, sortie);
+    if (commande === "ac") return commandeAc(options, sortie);
+    if (commande === "sonde") return await commandeSonde(options, sortie);
     // `await` : une promesse rejetée doit être rattrapée ici (message en français, code 1), jamais une exception non gérée.
     if (commande === "servir") return await commandeServir(options, horloge, sortie, erreur, contexte.signaux ?? true);
     throw new ErreurUsage(`commande inconnue : ${commande}`);
@@ -138,6 +149,55 @@ function commandeCrl(options, horloge, sortie) {
   const r = publierCrl({ repertoire: exiger(options, "repertoire"), horloge, validiteCrlJours: entierOption(options, "validite-crl-jours", 30) });
   sortie.write(`CRL numéro ${r.numero} publiée dans ${r.chemin} (thisUpdate ${r.thisUpdate}, nextUpdate ${r.nextUpdate})\n`);
   return 0;
+}
+
+function commandeAc(options, sortie) {
+  const rep = exiger(options, "repertoire");
+  const fichier = path.join(String(rep), options.crl === true ? FICHIERS_AUTORITE.crl : FICHIERS_AUTORITE.ac);
+  const texte = fs.readFileSync(fichier, "utf8");
+  const bloc = options.crl === true ? "X509 CRL" : "CERTIFICATE";
+  if (!new RegExp(`^-----BEGIN ${bloc}-----\\n[A-Za-z0-9+/=\\n]+-----END ${bloc}-----\\n$`).test(texte)) throw new Error(`${fichier} : un seul bloc PEM ${bloc} attendu`);
+  sortie.write(texte);
+  return 0;
+}
+
+/** Délai de la sonde : sous le `timeout` de 3 s de la sonde Compose (comme `noortrace-ctl sonde`). */
+export const DELAI_SONDE_MS = 2500;
+
+/**
+ * Sonde : `GET <url>` sur la boucle locale (127.0.0.1 ou [::1]) en `http://` ;
+ * 0 sur 200 « ok », 1 sinon (connexion refusée, délai, autre réponse, adresse
+ * hors de la boucle locale, refusée sans connexion).
+ */
+async function commandeSonde(options, sortie) {
+  const brut = exiger(options, "url");
+  let u;
+  try {
+    u = new URL(String(brut));
+  } catch {
+    throw new ErreurUsage("--url : adresse illisible");
+  }
+  if (u.protocol !== "http:" || !["127.0.0.1", "[::1]"].includes(u.hostname) || u.username || u.password) {
+    sortie.write(`sonde refusée : http://127.0.0.1 ou http://[::1] seulement\n`);
+    return 1;
+  }
+  const statut = await new Promise((resoudre) => {
+    const req = http.request(u, { method: "GET", timeout: DELAI_SONDE_MS, agent: false }, (rep) => {
+      const morceaux = [];
+      let taille = 0;
+      rep.on("data", (m) => {
+        taille += m.length;
+        if (taille <= 64) morceaux.push(m);
+      });
+      rep.on("end", () => resoudre(rep.statusCode === 200 && Buffer.concat(morceaux).toString("utf8") === "ok\n" ? 200 : rep.statusCode));
+      rep.on("error", () => resoudre(null));
+    });
+    req.on("timeout", () => req.destroy(new Error("délai")));
+    req.on("error", () => resoudre(null));
+    req.end();
+  });
+  sortie.write(`${statut ?? "injoignable"}\n`);
+  return statut === 200 ? 0 : 1;
 }
 
 async function commandeServir(options, horloge, sortie, erreur, signaux) {

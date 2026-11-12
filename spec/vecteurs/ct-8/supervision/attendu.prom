@@ -1,0 +1,96 @@
+# HELP noortrace_journal_lignes_total Lignes lues par source, event, level et detail (CT-8 10.3).
+# TYPE noortrace_journal_lignes_total counter
+noortrace_journal_lignes_total{source="acquisitions",event="acquisition",level="",detail="echec_transitoire"} 1
+noortrace_journal_lignes_total{source="acquisitions",event="acquisition",level="",detail="horloge_suspecte"} 1
+noortrace_journal_lignes_total{source="acquisitions",event="acquisition",level="",detail="obtenue"} 1
+noortrace_journal_lignes_total{source="acquisitions",event="acquisition",level="",detail="reponse_tardive_promue"} 1
+noortrace_journal_lignes_total{source="acquisitions",event="acquisition",level="",detail="revoque"} 1
+noortrace_journal_lignes_total{source="approbation",event="notification_abandonnee",level="",detail="file_pleine"} 1
+noortrace_journal_lignes_total{source="approbation",event="notification_echec",level="",detail="reseau"} 1
+noortrace_journal_lignes_total{source="approbation",event="notification_echec",level="",detail="statut"} 1
+noortrace_journal_lignes_total{source="approbation",event="notification_sans_destinataire",level="",detail=""} 1
+noortrace_journal_lignes_total{source="approbation",event="vote_inscrit",level="",detail=""} 1
+noortrace_journal_lignes_total{source="consultations",event="export",level="",detail="exportateur"} 1
+noortrace_journal_lignes_total{source="consultations",event="lecture",level="",detail="inconnu"} 1
+noortrace_journal_lignes_total{source="consultations",event="lecture",level="",detail="lecteur"} 1
+noortrace_journal_lignes_total{source="exploitation",event="",level="",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="",level="info",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="alerte_checkpoint_anchor_late",level="warning",detail="exterieur"} 1
+noortrace_journal_lignes_total{source="exploitation",event="alerte_checkpoint_anchor_late",level="warning",detail="interne"} 1
+noortrace_journal_lignes_total{source="exploitation",event="alerte_contresignature_tardive",level="warning",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="alerte_jeton_anterieur_au_point",level="warning",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="anchor_pending",level="warning",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="anchor_queue_full",level="error",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="anchor_refused",level="error",detail="autre"} 1
+noortrace_journal_lignes_total{source="exploitation",event="anchor_refused",level="error",detail="empreinte_squattee"} 1
+noortrace_journal_lignes_total{source="exploitation",event="anchoring_queue_rebuilt",level="info",detail="aucune"} 1
+noortrace_journal_lignes_total{source="exploitation",event="anchoring_queue_rebuilt",level="info",detail="recree"} 1
+noortrace_journal_lignes_total{source="exploitation",event="approval_service_unavailable",level="warning",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="approval_service_unavailable",level="warning",detail="politique_invalide_au_charger"} 1
+noortrace_journal_lignes_total{source="exploitation",event="checkpoint_anchor_late",level="warning",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="disk_low",level="error",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="dossier_export_refused",level="error",detail="exports_indisponible"} 1
+noortrace_journal_lignes_total{source="exploitation",event="dossier_export_refused",level="error",detail="lecture_impossible"} 2
+noortrace_journal_lignes_total{source="exploitation",event="journal_fork",level="error",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="ordre_ancres_non_respecte",level="warning",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="pending_pieces_lost",level="error",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="point_manquant",level="warning",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="registry_pending",level="warning",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="relay_mac_key_mismatch",level="error",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="startup",level="info",detail=""} 1
+noortrace_journal_lignes_total{source="exploitation",event="worm_legal_hold_observed",level="error",detail="garde_violee"} 1
+noortrace_journal_lignes_total{source="exploitation",event="worm_legal_hold_observed",level="info",detail="autre"} 1
+noortrace_journal_lignes_total{source="exploitation",event="worm_legal_hold_observed",level="info",detail="levee"} 1
+noortrace_journal_lignes_total{source="exploitation",event="worm_lock_check",level="error",detail="gel_absent"} 1
+noortrace_journal_lignes_total{source="exploitation",event="worm_lock_check",level="error",detail="non_conforme"} 1
+noortrace_journal_lignes_total{source="exploitation",event="worm_lock_check",level="info",detail="conforme"} 1
+noortrace_journal_lignes_total{source="exploitation",event="worm_lock_config_check",level="error",detail="non_conforme"} 1
+noortrace_journal_lignes_total{source="exploitation",event="worm_lock_config_check",level="info",detail="conforme"} 1
+noortrace_journal_lignes_total{source="gel",event="worm_legal_hold_set",level="info",detail=""} 2
+noortrace_journal_lignes_total{source="registre",event="",level="",detail=""} 1
+noortrace_journal_lignes_total{source="registre",event="ancrer",level="",detail="examen_requis"} 1
+noortrace_journal_lignes_total{source="registre",event="capturer",level="",detail="marge_retention_basse"} 1
+# HELP noortrace_journal_derniere_ligne_s Horodatage de la derniere ligne lue de cet event, en secondes UNIX (CT-8 10.3).
+# TYPE noortrace_journal_derniere_ligne_s gauge
+noortrace_journal_derniere_ligne_s{source="acquisitions",event="acquisition"} 1793869500.25
+noortrace_journal_derniere_ligne_s{source="approbation",event="notification_abandonnee"} 1793876580
+noortrace_journal_derniere_ligne_s{source="approbation",event="notification_echec"} 1793876520
+noortrace_journal_derniere_ligne_s{source="approbation",event="notification_sans_destinataire"} 1793876640
+noortrace_journal_derniere_ligne_s{source="approbation",event="vote_inscrit"} 1793876400
+noortrace_journal_derniere_ligne_s{source="consultations",event="export"} 1793872860
+noortrace_journal_derniere_ligne_s{source="consultations",event="lecture"} 1793872980
+noortrace_journal_derniere_ligne_s{source="exploitation",event=""} 1793868660
+noortrace_journal_derniere_ligne_s{source="exploitation",event="alerte_checkpoint_anchor_late"} 1793867521
+noortrace_journal_derniere_ligne_s{source="exploitation",event="alerte_contresignature_tardive"} 1793867581
+noortrace_journal_derniere_ligne_s{source="exploitation",event="alerte_jeton_anterieur_au_point"} 1793867580
+noortrace_journal_derniere_ligne_s{source="exploitation",event="anchor_pending"} 1793868360
+noortrace_journal_derniere_ligne_s{source="exploitation",event="anchor_queue_full"} 1793867700
+noortrace_journal_derniere_ligne_s{source="exploitation",event="anchor_refused"} 1793867461
+noortrace_journal_derniere_ligne_s{source="exploitation",event="anchoring_queue_rebuilt"} 1793867401
+noortrace_journal_derniere_ligne_s{source="exploitation",event="approval_service_unavailable"} 1793868061
+noortrace_journal_derniere_ligne_s{source="exploitation",event="checkpoint_anchor_late"} 1793867520
+noortrace_journal_derniere_ligne_s{source="exploitation",event="disk_low"} 1793868240
+noortrace_journal_derniere_ligne_s{source="exploitation",event="dossier_export_refused"} 1793868001
+noortrace_journal_derniere_ligne_s{source="exploitation",event="journal_fork"} 1793868120
+noortrace_journal_derniere_ligne_s{source="exploitation",event="ordre_ancres_non_respecte"} 1793867820
+noortrace_journal_derniere_ligne_s{source="exploitation",event="pending_pieces_lost"} 1793868300
+noortrace_journal_derniere_ligne_s{source="exploitation",event="point_manquant"} 1793867640
+noortrace_journal_derniere_ligne_s{source="exploitation",event="registry_pending"} 1793867760
+noortrace_journal_derniere_ligne_s{source="exploitation",event="relay_mac_key_mismatch"} 1793868180
+noortrace_journal_derniere_ligne_s{source="exploitation",event="startup"} 1793833200
+noortrace_journal_derniere_ligne_s{source="exploitation",event="worm_legal_hold_observed"} 1793866802
+noortrace_journal_derniere_ligne_s{source="exploitation",event="worm_lock_check"} 1793866202
+noortrace_journal_derniere_ligne_s{source="exploitation",event="worm_lock_config_check"} 1793865601
+noortrace_journal_derniere_ligne_s{source="gel",event="worm_legal_hold_set"} 1793863800
+# HELP noortrace_journal_illisibles_total Lignes qui ne s'analysent pas en JSON strict (CT-8 10.3).
+# TYPE noortrace_journal_illisibles_total counter
+noortrace_journal_illisibles_total{source="acquisitions"} 1
+noortrace_journal_illisibles_total{source="approbation"} 0
+noortrace_journal_illisibles_total{source="consultations"} 0
+noortrace_journal_illisibles_total{source="exploitation"} 2
+noortrace_journal_illisibles_total{source="gel"} 0
+noortrace_journal_illisibles_total{source="registre"} 1
+# HELP noortrace_proces_verbal_dernier_s finished_at du dernier proces-verbal valide (PV-1) de chaque sorte (CT-8 10.3).
+# TYPE noortrace_proces_verbal_dernier_s gauge
+noortrace_proces_verbal_dernier_s{kind="passage_mode"} 1793872050
+noortrace_proces_verbal_dernier_s{kind="sauvegarde"} 1793919761

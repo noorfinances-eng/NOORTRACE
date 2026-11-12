@@ -16,7 +16,7 @@ import {
   ErreurServiceApprobation, FichiersApprobations, verifierRemise, verifierRelais,
 } from "@noortrace/enregistreur";
 import { ServiceApprobationFactice } from "@noortrace/enregistreur/factice";
-import { CLE_MAC_HEX, configurationDev, repertoireTemporaire, secretsDev } from "./fixtures/enregistreur-coeur/outils.mjs";
+import { BIN_NOORTRACE, CLE_MAC_HEX, configurationDev, repertoireTemporaire, secretsDev } from "./fixtures/enregistreur-coeur/outils.mjs";
 
 const ms = (t) => N.decoderHorodatage(t);
 const enc = (o) => new TextEncoder().encode(JSON.stringify(o));
@@ -247,6 +247,48 @@ describe("enregistreur, cœur : authentification du service d'approbation sur la
     }
   });
 
+  // Étape 7 : CT-8 EX-3.5 place la prise du
+  // service dans un répertoire commun aux deux comptes (groupe 10010), que le
+  // bit collant protège ; la règle est celle de la prise MCP (EX-4.39,
+  // `controlerRepertoirePrise`) : chaque répertoire, du répertoire de la prise
+  // à la racine, appartient au compte 0, à `peer_user` ou au démon, et n'est
+  // inscriptible par le groupe qu'avec le bit collant ; le répertoire de la
+  // prise n'est jamais inscriptible par les autres (EX-18.8 : « non
+  // inscriptible par les hôtes ni par les agents »).
+  it("EX-18.8, CT-8 EX-3.5 : répertoire de la prise 0:10010 en 3770 (groupe des prises, bit collant) : réponse acceptée ; sans bit collant (2770), inscriptible par les autres même avec le bit collant (1777), ou d'un autre propriétaire : refus (repertoire_inscriptible)", async function () {
+    if (process.getuid?.() !== 0) this.skip(); // chown vers 0:10010 : compte 0 requis
+    const dir = repertoireTemporaire("noortrace-pair-");
+    fs.chmodSync(dir, 0o755);
+    const run = path.join(dir, "noortrace");
+    fs.mkdirSync(run);
+    fs.chownSync(run, 0, 10010);
+    fs.chmodSync(run, 0o3770);
+    const { srv, prise } = await servir(run);
+    const client = () => new ClientServiceApprobation({ url: null, socket: prise, jeton: null, timeout_ms: 2000, peer_user: moi });
+    try {
+      const ok = await appeler(client());
+      expect(ok.e, ok.e?.message + " " + JSON.stringify(ok.e?.data)).to.equal(undefined);
+      expect(ok.r.decision).to.equal("autorise");
+      for (const [mode, uid] of [[0o2770, 0], [0o1777, 0], [0o3770, 10001]]) {
+        fs.chownSync(run, uid, 10010);
+        fs.chmodSync(run, mode);
+        const { r, e } = await appeler(client());
+        expect(r, mode.toString(8)).to.equal(undefined);
+        expect(e?.code, mode.toString(8)).to.equal("pair_non_verifie");
+        expect(e.data, `${mode.toString(8)} ${uid}`).to.deep.equal({ raison: "repertoire_inscriptible" });
+      }
+      // Un parent inscriptible par le groupe sans bit collant permet de substituer le répertoire entier.
+      fs.chownSync(run, 0, 10010);
+      fs.chmodSync(run, 0o3770);
+      fs.chmodSync(dir, 0o775);
+      const parent = await appeler(client());
+      expect(parent.e?.code).to.equal("pair_non_verifie");
+      expect(parent.e.data).to.deep.equal({ raison: "repertoire_inscriptible" });
+    } finally {
+      srv.close();
+    }
+  });
+
   it("corps de réponse au-delà de la borne : réponse illisible (trop_grande)", async function () {
     const dir = repertoireTemporaire("noortrace-pair-");
     fs.chmodSync(dir, 0o755);
@@ -258,6 +300,102 @@ describe("enregistreur, cœur : authentification du service d'approbation sur la
     } finally {
       srv.close();
     }
+  });
+});
+
+// Étape 7 : le
+// démon réel (`bin/noortrace --config`) joint le vrai service
+// (`bin/noortrace-approbation`) par sa prise, dans le répertoire de CT-8
+// EX-3.5 (`/run/noortrace` : compte 0, groupe 10010, mode 3770), où le démon
+// crée aussi sa prise MCP. Avant la correction, chaque message était refusé
+// (`approval_service_unavailable`, `pair_non_verifie`, raison
+// `repertoire_inscriptible`).
+describe("enregistreur, démon réel : service d'approbation joint par sa prise dans le répertoire commun de CT-8 EX-3.5 (0:10010, 3770)", function () {
+  this.timeout(120000);
+  const processus = [];
+  let service;
+
+  after(async function () {
+    for (const p of processus) if (p.exitCode === null && p.signalCode === null) p.kill("SIGKILL");
+    await service?.arreter().catch(() => {});
+  });
+
+  it("EX-18.8, CT-3 EX-12.2, CT-8 EX-3.5 : le démon (peer_user, jeton) appelle charger sur approbation.sock dans /run/noortrace 0:10010 3770 et reçoit la liste des candidats (approval_candidates) ; aucune ligne approval_service_unavailable", async function () {
+    if (process.getuid?.() !== 0) this.skip(); // chown vers 0:10010 : compte 0 requis
+    const { configurationPolitique, lancerServiceApprobation, attendre } = await import("./fixtures/enregistreur-politique/outils.mjs");
+    const { spawn } = await import("node:child_process");
+    const dir = repertoireTemporaire("noortrace-prise-commune-");
+    fs.chmodSync(dir, 0o755);
+    const run = path.join(dir, "run", "noortrace");
+    fs.mkdirSync(run, { recursive: true });
+    fs.chmodSync(path.dirname(run), 0o755);
+    fs.chownSync(run, 0, 10010);
+    fs.chmodSync(run, 0o3770);
+    const socket = path.join(run, "approbation.sock");
+    const moi = os.userInfo().username;
+    const { config, env } = configurationPolitique(dir, {
+      mode: "retenir",
+      socket: path.join(run, "mcp.sock"),
+      serviceConfig: { url: null, socket, token: { env: "NOORTRACE_TEST_JETON_APPROBATION" }, peer_user: moi },
+    });
+    service = await lancerServiceApprobation(path.join(dir, "service"), { org_id: config.recorder.org_id, journal_id: config.recorder.journal_id, socket });
+    expect((fs.statSync(socket).mode & 0o777).toString(8)).to.equal("660");
+    config.mcp.enabled = true;
+    const fichier = path.join(dir, "configuration.json");
+    fs.writeFileSync(fichier, JSON.stringify(config, null, 2));
+    const p = spawn(process.execPath, [BIN_NOORTRACE, "--config", fichier], { env: { ...process.env, ...env, NOORTRACE_TEST_JETON_APPROBATION: service.jetonNoyau }, stdio: ["ignore", "pipe", "pipe"] });
+    processus.push(p);
+    p.sortie = "";
+    p.stdout.on("data", (c) => (p.sortie += c));
+    p.stderr.on("data", (c) => (p.sortie += c));
+    const fin = new Promise((r) => p.on("exit", (code, signal) => r({ code, signal })));
+    const lignes = () =>
+      fs.existsSync(config.supervision.ops_log.path)
+        ? fs.readFileSync(config.supervision.ops_log.path, "utf8").split("\n").filter((l) => l.length).map((l) => JSON.parse(l))
+        : [];
+    await attendre(() => p.sortie.includes("noortrace: demon demarre"), 30000, 50).catch(() => {
+      throw new Error(`démon non démarré : ${p.sortie}`);
+    });
+    // Premier `charger` au démarrage (aucun outil encore), puis un second avec
+    // la liste du serveur d'outils : le service rend l'outil de paiement candidat.
+    const avecOutils = (l) => l.event === "approval_candidates" && l.data.candidates.includes("demo__payments.create");
+    await attendre(() => lignes().some((l) => avecOutils(l) || l.event === "approval_service_unavailable"), 20000, 50).catch(() => {
+      throw new Error(`ni approval_candidates ni approval_service_unavailable : ${p.sortie}`);
+    });
+    const indispo = lignes().filter((l) => l.event === "approval_service_unavailable");
+    expect(indispo, JSON.stringify(indispo)).to.deep.equal([]);
+    expect(lignes().some(avecOutils)).to.equal(true);
+    // La prise MCP du démon est dans le même répertoire (EX-4.39, bit collant admis).
+    expect(fs.statSync(path.join(run, "mcp.sock")).isSocket()).to.equal(true);
+    p.kill("SIGTERM");
+    expect((await fin).code).to.equal(0);
+  });
+
+  // Étape 7 : le mode `2770` qu'écrit CT-8
+  // EX-3.5 est refusé par le démon (EX-4.39, lecture 157) ; `3770` est requis.
+  it("CT-8 EX-3.5 (révision demandée) : /run/noortrace 0:10010 en 2770 (sans bit collant) : le démon refuse de démarrer et sort avec le code 2 (frontal_mcp : repertoire_inscriptible ; les serveurs d'outils lancés sont arrêtés) ; en 3770 il démarre (essai précédent)", async function () {
+    if (process.getuid?.() !== 0) this.skip();
+    const { configurationPolitique } = await import("./fixtures/enregistreur-politique/outils.mjs");
+    const { spawnSync } = await import("node:child_process");
+    const dir = repertoireTemporaire("noortrace-prise-2770-");
+    fs.chmodSync(dir, 0o755);
+    const run = path.join(dir, "run", "noortrace");
+    fs.mkdirSync(run, { recursive: true });
+    fs.chmodSync(path.dirname(run), 0o755);
+    fs.chownSync(run, 0, 10010);
+    fs.chmodSync(run, 0o2770);
+    const { config, env } = configurationPolitique(dir, {
+      socket: path.join(run, "mcp.sock"),
+      serviceConfig: { url: null, socket: path.join(run, "approbation.sock"), token: { env: "NOORTRACE_TEST_JETON_APPROBATION" }, peer_user: os.userInfo().username },
+    });
+    config.mcp.enabled = true;
+    const fichier = path.join(dir, "configuration.json");
+    fs.writeFileSync(fichier, JSON.stringify(config, null, 2));
+    const r = spawnSync(process.execPath, [BIN_NOORTRACE, "--config", fichier], { env: { ...process.env, ...env, NOORTRACE_TEST_JETON_APPROBATION: "jeton" }, encoding: "utf8", timeout: 30000 });
+    // Le processus sort de lui-même (code 2) : les serveurs d'outils déjà lancés sont arrêtés.
+    expect([r.status, r.signal], r.stdout + r.stderr).to.deep.equal([2, null]);
+    expect(r.stderr).to.match(/^demarrage_refuse : frontal_mcp : .*repertoire_inscriptible/m);
+    expect(fs.existsSync(path.join(run, "mcp.sock"))).to.equal(false);
   });
 });
 

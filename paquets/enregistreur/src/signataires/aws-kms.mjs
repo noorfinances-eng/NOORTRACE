@@ -17,11 +17,16 @@
 // 4096 octets au plus (EX-11.7).
 //
 // Identité IAM : variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` et
-// `AWS_SESSION_TOKEN`, ou rôle de l'instance par IMDSv2 (IdentiteAws,
-// lectures 182 et 193) ;
+// `AWS_SESSION_TOKEN` ; sinon fichier d'identifiants désigné par
+// `AWS_SHARED_CREDENTIALS_FILE` ou `AWS_CONFIG_FILE` (forme des kits d'AWS,
+// profil `AWS_PROFILE` ou `default`), relu à chaque appel — c'est la forme du
+// conteneur de production, où le fichier est un secret monté (étape 7) ;
+// sinon rôle de l'instance par IMDSv2 (IdentiteAws, lectures 182 et
+// 193) ;
 // point d'accès `https://kms.<region>.amazonaws.com`, ou celui de
 // `AWS_ENDPOINT_URL_KMS` / `AWS_ENDPOINT_URL` (variables des SDK d'AWS).
 
+import fs from "node:fs";
 import { createHash, createHmac } from "node:crypto";
 import { Signataire } from "../signataires.mjs";
 import { ErreurSignataire, requete, json, base64Strict, clePubliqueSpki } from "./commun.mjs";
@@ -42,6 +47,38 @@ export function identifiantsAwsEnvironnement(env) {
   const secret = env.AWS_SECRET_ACCESS_KEY;
   if (!id || !secret) throw new ErreurSignataire("identité IAM absente (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)", { code: "identite" });
   return { access_key_id: id, secret_access_key: secret, session_token: env.AWS_SESSION_TOKEN || null };
+}
+
+/**
+ * Identifiants d'un fichier de la forme des kits d'AWS (INI) : fichier
+ * d'identifiants partagé (`[<profil>]`) ou fichier de configuration
+ * (`[default]`, `[profile <profil>]`) ; clés `aws_access_key_id`,
+ * `aws_secret_access_key`, `aws_session_token`. Rend null si le profil n'a
+ * pas les deux premières ; lève si le fichier est illisible. Le contenu n'est
+ * jamais cité dans un message.
+ * @param {string} chemin
+ * @param {string} profil
+ * @param {"identifiants"|"configuration"} forme
+ * @returns {{access_key_id: string, secret_access_key: string, session_token: string|null}|null}
+ */
+export function identifiantsAwsFichier(chemin, profil, forme) {
+  const texte = fs.readFileSync(chemin, "utf8");
+  const voulue = forme === "configuration" && profil !== "default" ? `profile ${profil}` : profil;
+  let section = null;
+  const v = {};
+  for (const brute of texte.split(/\r?\n/)) {
+    const l = brute.trim();
+    if (!l || l.startsWith("#") || l.startsWith(";")) continue;
+    const s = /^\[\s*([^\]]*?)\s*\]$/.exec(l);
+    if (s) {
+      section = s[1].replace(/\s+/g, " ");
+      continue;
+    }
+    const kv = /^([A-Za-z0-9_]+)\s*=\s*(.*)$/.exec(l);
+    if (kv && section === voulue) v[kv[1].toLowerCase()] = kv[2].trim();
+  }
+  if (!v.aws_access_key_id || !v.aws_secret_access_key) return null;
+  return { access_key_id: v.aws_access_key_id, secret_access_key: v.aws_secret_access_key, session_token: v.aws_session_token || null };
 }
 
 /**
@@ -72,9 +109,23 @@ export class IdentiteAws {
   /** @returns {Promise<{access_key_id: string, secret_access_key: string, session_token: string|null}>} */
   async valeur() {
     if (this.env.AWS_ACCESS_KEY_ID && this.env.AWS_SECRET_ACCESS_KEY) return identifiantsAwsEnvironnement(this.env);
+    // Fichiers des kits d'AWS (étape 7) : relus à chaque appel, pour qu'un
+    // fichier renouvelé par l'hôte soit pris sans redémarrage.
+    const profil = this.env.AWS_PROFILE || "default";
+    const fichiers = [["AWS_SHARED_CREDENTIALS_FILE", "identifiants"], ["AWS_CONFIG_FILE", "configuration"]].filter(([n]) => this.env[n]);
+    for (const [nom, forme] of fichiers) {
+      let c;
+      try {
+        c = identifiantsAwsFichier(this.env[nom], profil, forme);
+      } catch (e) {
+        throw new ErreurSignataire(`identité IAM : fichier de ${nom} illisible (${e?.code ?? "erreur"})`, { code: "identite" });
+      }
+      if (c) return c;
+    }
     const point = this.env.AWS_EC2_METADATA_SERVICE_ENDPOINT;
     if (!point || String(this.env.AWS_EC2_METADATA_DISABLED).toLowerCase() === "true") {
-      throw new ErreurSignataire("identité IAM absente (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, ou AWS_EC2_METADATA_SERVICE_ENDPOINT)", { code: "identite" });
+      if (fichiers.length) throw new ErreurSignataire(`identité IAM absente : profil ${profil} sans aws_access_key_id ni aws_secret_access_key dans le fichier de ${fichiers.map(([n]) => n).join(", ")}`, { code: "identite" });
+      throw new ErreurSignataire("identité IAM absente (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_CONFIG_FILE, AWS_SHARED_CREDENTIALS_FILE, ou AWS_EC2_METADATA_SERVICE_ENDPOINT)", { code: "identite" });
     }
     if (this.cache && this.maintenant() < this.fin - 300000) return this.cache;
     const base = point.replace(/\/+$/, "");
@@ -97,12 +148,15 @@ export class IdentiteAws {
 }
 
 /**
- * Origine du service KMS d'une région.
+ * Origine du service KMS d'une région : `AWS_ENDPOINT_URL_KMS`,
+ * `AWS_ENDPOINT_URL`, l'origine désignée par la configuration, ou le point
+ * public de la région.
  * @param {string} region
  * @param {NodeJS.ProcessEnv} env
+ * @param {string|null} [designee]
  */
-export function origineKms(region, env) {
-  return (env.AWS_ENDPOINT_URL_KMS || env.AWS_ENDPOINT_URL || `https://kms.${region}.amazonaws.com`).replace(/\/+$/, "");
+export function origineKms(region, env, designee = null) {
+  return (env.AWS_ENDPOINT_URL_KMS || env.AWS_ENDPOINT_URL || designee || `https://kms.${region}.amazonaws.com`).replace(/\/+$/, "");
 }
 
 /** Région d'un ARN KMS. */
@@ -146,12 +200,13 @@ export function entetesSigv4Kms(p) {
 /** Client minimal de l'API JSON d'AWS KMS (une tentative par appel). */
 export class ClientKms {
   /**
-   * @param {{region: string, env?: NodeJS.ProcessEnv, delaiMs?: number, ca?: Buffer|string|null, identifiants?: object}} o
+   * @param {{region: string, env?: NodeJS.ProcessEnv, delaiMs?: number, ca?: Buffer|string|null, identifiants?: object, origine?: string|null}} o
+   *   `origine` : point d'accès désigné par la configuration (`service_url` d'une clé de chaîne)
    */
   constructor(o) {
     this.region = o.region;
     const env = o.env ?? process.env;
-    this.origine = origineKms(o.region, env);
+    this.origine = origineKms(o.region, env, o.origine ?? null);
     this.identite = o.identifiants ? { valeur: async () => o.identifiants } : new IdentiteAws({ env, delaiMs: o.delaiMs });
     this.delai = o.delaiMs ?? 5000;
     this.ca = o.ca ?? null;

@@ -1,0 +1,15 @@
+{
+  "version": 0,
+  "command": "inscrire-cle",
+  "result": "reussi",
+  "exit_code": 0,
+  "checks": [],
+  "error": null,
+  "outputs": {
+    "retention": {
+      "retention_heights": 300000,
+      "margin_heights": 299988,
+      "alert": false
+    }
+  }
+}

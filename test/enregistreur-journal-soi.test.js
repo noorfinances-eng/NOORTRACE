@@ -156,12 +156,12 @@ describe("TE-14 : journal de l'enregistreur sur lui-même, JS-1 à JS-12 de CT-7
     expect(demon.de("lease_acquired")).to.have.lengthOf(1, "le bail n'a pas changé de main");
   });
 
-  it("JS-5 rotation de la seule clé de chaîne : hors chaîne par conception (au registre) ; aucun événement ne la porte ; la rotation d'urgence est refusée tant que le registre n'est pas branché pour elle (registre_non_branche, reste nommé)", async function () {
+  it("JS-5 rotation de la seule clé de chaîne : hors chaîne par conception (au registre) ; aucun événement ne la porte ; sans next_chain_key, la rotation d'urgence est refusée en le nommant (cle_chaine_suivante_absente ; révocation et inscription relayées au registre : complément de l'étape 7, test/enregistreur-cle-chaine-etape7-reseau.test.js)", async function () {
     if (!pret.call(this)) return;
     const r = await ctl(["cle", "rotation-urgence", "--configuration", m.cheminConfig]);
     expect(r.code, r.err).to.not.equal(2);
     await demon.attendre((l) => l.some((x) => x.event === "key_rotation_emergency_refused"), 20000, "key_rotation_emergency_refused");
-    expect(demon.de("key_rotation_emergency_refused").at(-1).data).to.include({ raison: "registre_non_branche" });
+    expect(demon.de("key_rotation_emergency_refused").at(-1).data).to.include({ raison: "cle_chaine_suivante_absente" });
     expect(evenementsChaine(m.repertoire).some((e) => /chaine|chain/.test(e.execution.tool))).to.equal(false);
   });
 

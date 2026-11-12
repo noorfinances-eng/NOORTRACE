@@ -272,19 +272,60 @@ export const TE = [
       "CT-8 EX-7.2",
       "CT-8 EX-7.3",
       "CT-8 EX-7.4",
-      "CT-8 EX-3.6"
+      "CT-8 EX-3.6",
+      "CT-2 EX-15.16",
+      "CT-2 EX-15.17",
+      "CT-2 EX-15.18"
     ],
     "preconditions": [
-      "Archive de déploiement 0.1 construite ; hôte du système de référence avec moteur de conteneurs ; images construites et épinglées."
+      "Archive de déploiement (construite à l'étape 7, non publiée) ; hôte avec moteur de conteneurs ; images `noortrace/*` construites (relevé des condensés `NOORTRACE_IMAGES_CONDENSES`), chargées sans registre ; calendriers OpenTimestamps factices sur la boucle locale pour l'ancrage de test ; serveur RFC 3161 interne (`noortrace/tsa-interne`, CT-8 0.7) ; sans Docker ni images, les essais d'IR-1 à IR-8 avec Docker sont en attente, condition nommée (EX-3.11)."
     ],
     "steps": [
       "Suivre IR-1 à IR-8 à la lettre, sans autre document ; chronométrer chaque pas (mesure TM-) ; vérifier le premier dossier."
     ],
     "oracle": "Chaque résultat attendu d'IR-n observé ; contrôle préalable `pret` ; dossier d'IR-8 valide (code 0) ; somme des durées publiée, atteinte ou non (900 s cible).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Enregistreur non construit ; CT-8 §15 : « ni l'installation rapide ni l'installation complète n'ont été exécutées »."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/deploiement-installation.test.js",
+          "describe": "CT-8 §7.3, EX-7.3 (ancrage de l'installation rapide) : l'installation rapide désigne un document d'ancrage que rapide.yaml monte, et produit des preuves OpenTimestamps",
+          "it": "TE-6 (ancrage) : configuration → /etc/noortrace/ancrage.json ; rapide.yaml le monte, sert le serveur interne (horodatage, horodatage-init) sans secret RFC 3161 ; images.json l'admet ; ancrage-v0 conforme, admis par AN-1 en développement (principal = serveur interne), refusé en production ; calendriers de 7.3, sans registre ni jeton de point ; configurer-rapide le contrôle et y recopie l'AC"
+        },
+        {
+          "file": "test/deploiement-installation.test.js",
+          "describe": "CT-8 §7.3, EX-7.3 (ancrage de l'installation rapide) : l'installation rapide désigne un document d'ancrage que rapide.yaml monte, et produit des preuves OpenTimestamps",
+          "it": "TE-6 (ancrage, IR-8) : démon réel avec le document de l'installation rapide (calendriers factices en TLS, serveur interne lancé par l'essai, chemins) : jeton de clôture du serveur interne et preuve OpenTimestamps du manifeste ; dossier exporté avec jeton-rfc3161.der et preuve.ots, valide pour le vérificateur de référence, contrôle 4 réussi contre l'AC du serveur"
+        },
+        {
+          "file": "test/deploiement-images.test.js",
+          "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)"
+        },
+        {
+          "file": "test/enregistreur-ctl-etape7.test.js",
+          "describe": "étape 7 — noortrace-ctl sonde --url (CT-8 §4.4, CO-12 ; PD-2) : sonde des fichiers Compose, sans interpréteur"
+        },
+        {
+          "file": "test/enregistreur-ctl-etape7.test.js",
+          "describe": "étape 7 — noortrace-ctl etat et close-period --now sur le démon réel (CT-8 EX-10.14, IR-8 ; CT-2 EX-19.4)"
+        },
+        {
+          "file": "test/enregistreur-ctl-etape7.test.js",
+          "describe": "étape 7 — close-period --now refusée en production (CT-2 EX-19.4, CT-8 IR-8)"
+        },
+        {
+          "file": "test/enregistreur-ctl-etape7.test.js",
+          "describe": "étape 7 — clôture anticipée dans le cœur, à horloge réglable (CT-2 EX-19.4, CT-1 P-3)"
+        }
+      ],
+      "ci_steps": [
+        "essais des images (TE-15, TM-24, TM-26, TM-28), aucun essai en attente"
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-installation.test.js test/deploiement-images.test.js test/enregistreur-ctl-etape7.test.js",
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "IR-1 à IR-8 enchaînés sur un hôte neuf du système de référence et chronométrés (TM-21), par une personne extérieure (porte 2) ; archive et images publiées (IR-1, IR-6). L'étape 7 joue IR-1 à IR-8 avec Docker dans l'environnement de construction (archive écrite par l'outil de la version, réseaux internes, serveur d'outils factice ; jeton de clôture du serveur RFC 3161 interne, prestataire principal hors production depuis CT-5 0.9 et CT-8 0.7 ; contrôle 4 réussi par les deux vérificateurs), en attente sans Docker ni images, et l'ancrage de test de 7.3 sur le démon."
+      }
     },
     "threats": [
       "MN-14"
@@ -364,17 +405,49 @@ export const TE = [
       "CT-7 EX-7.9"
     ],
     "preconditions": [
-      "Machine vierge du système de référence ; ingénieur d'exploitation extérieur au projet ; archive 0.1 ; script de préparation de l'hôte (IC-2) livré."
+      "Machine vierge du système de référence ; ingénieur d'exploitation extérieur au projet (partie rattachée à l'étape 8 avec TR-12) ; archive de déploiement et images ; script de préparation de l'hôte (IC-2). À l'étape 7 : banc hors réseau public de l'environnement de construction (registre de développement 2124, KMS et S3 simulés, prestataires RFC 3161 internes, calendriers factices, identité OIDC et webhook locaux), installation déroulée par un harnais ; ses essais de bout en bout lisent le procès-verbal d'une exécution (`NOORTRACE_BANC_CLIENT`), sinon ils sont en attente, condition nommée (EX-3.11)."
     ],
     "steps": [
       "Suivre IC-1 à IC-18 ; conduire la cérémonie de CT-7 §5.4 (IC-7) ; produire l'attestation (IC-17) ; poser les tâches planifiées TP-1 à TP-8 ; clore le procès-verbal.",
       "Relever les durées, l'attente d'IC-16 et IC-17 à part, le nombre d'informations manquantes (EX-8.1, mesure TM-)."
     ],
-    "oracle": "Contrôle préalable final `pret` ; premier dossier valide (IC-15) ; procès-verbal de cérémonie vérifié (CR-1 à CR-12) ; attestation inscrite (AT-6) ; chaque tâche planifiée présente ; durée totale publiée.",
+    "oracle": "Contrôle préalable final `pret` ; premier dossier valide (IC-15) ; procès-verbal de cérémonie vérifié (CR-1 à CR-12) ; attestation vérifiée (AT-1 à AT-4), inscrite (AT-6) quand PA-8 sera adoptée ; chaque tâche planifiée présente ; durée totale publiée.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Composants non construits ; script de préparation absent de l'archive 0.1 (CT-8 §15)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/banc-client-fictif.test.js",
+          "describe": "Étape 7 : banc client fictif — installation complète IC-1 à IC-18 de bout en bout (CT-9 TE-7, TM-22, TM-29)",
+          "it": "TE-7 (part de l'étape 7) : IC-1 à IC-18 déroulés dans l'ordre de CT-8, chacun réussi (écarts du banc nommés au procès-verbal) ; procès-verbal d'installation clos par IC-18 (sha256sum --strict -c IC-18-liste.sha256 rend 0) ; cérémonie vérifiée (npm run verify:ceremonie : 0) ; attestation signée vérifiée (conformite:attestation verifier : 0) ; contrôle préalable final consigné"
+        },
+        {
+          "file": "test/banc-client-fictif.test.js",
+          "describe": "Étape 7 : banc client fictif — installation complète IC-1 à IC-18 de bout en bout (CT-9 TE-7, TM-22, TM-29)",
+          "it": "TE-7, IC-15 : un appel d'outil soumis à approbation, une décision signée par la console (deux approbateurs, portefeuille d'essai), la clôture réelle de l'heure, l'export du dossier ; noortrace-verifier (image et binaire) et npm run verify:dossier avec --exiger 7 : code 0, verdict valide, contrôles 4, 7 et 8 réussis"
+        },
+        {
+          "file": "test/deploiement-installation.test.js",
+          "describe": "CT-8 IC-2 : préparation de l'hôte (deploiement/hote/preparer-hote.sh, système de référence Ubuntu 24.04)"
+        },
+        {
+          "file": "test/deploiement-installation.test.js",
+          "describe": "CT-8 EX-8.6 : tâches planifiées TP-1 à TP-8 et sauvegarde (gabarits systemd de deploiement/taches/)"
+        },
+        {
+          "file": "test/deploiement-installation.test.js",
+          "describe": "CT-8 IC-13 : validation du document ancrage-v0 par un outil du dépôt, à version exacte, sans réseau"
+        },
+        {
+          "file": "test/enregistreur-cle-chaine-etape7-reseau.test.js",
+          "describe": "étape 7, réseau de développement 2124 : démon en production, clé de chaîne de classe C du modèle de production (table d'IC-14), ancres et clôture sur noorcore, dossier vérifié (contrôles 4 et 8) ; TE-14 complément JS-5 : rotation de la seule clé de chaîne relayée au registre vers une clé de classe B",
+          "it": "démon en production sur noorcore : clé de chaîne de classe C chargée (chain_key_loaded, AWS KMS), clé suivante de classe B ; ancres des points et de la période émises par la clé de classe C et incluses ; clôture submitPeriod relayée ; dossier exporté vérifié par les deux vérificateurs : verdict valide, contrôles 4 et 8 réussis"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/banc-client-fictif.test.js test/deploiement-installation.test.js test/enregistreur-cle-chaine-etape7-reseau.test.js",
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à l'étape 8 avec TR-12 : machine vierge du système de référence et ingénieur d'exploitation extérieur au projet ; contrôle préalable final `pret` (le banc de l'étape 7 rend `non_pret` : disque sous `local_bytes`, ni chrony ni systemd, ports d'IC-11) ; tâches planifiées posées par systemd et suivies ; attestation inscrite (AT-6) quand PA-8 sera adoptée. Le banc de l'étape 7 tient le premier dossier valide (contrôles 4, 7 et 8), la cérémonie vérifiée et la durée publiée (58 min, hors système de référence)."
+      }
     },
     "threats": [
       "MN-14",
@@ -465,8 +538,8 @@ export const TE = [
     "oracle": "Seuls les flux FL- déclarés sont observés ; chaque runbook mène à l'état « rétabli » qu'il décrit sans supprimer, tronquer ni réécrire un fichier du journal ; l'après-incident nomme le test de CT-9 qui couvre la correction (CT-8 §10.11).",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Déploiement et supervision non construits."
+      "phase2_step": 8,
+      "blocking": "Rattaché à l'étape 8 : flux FL- observés et runbooks RB-1 à RB-8 rejoués exigent des pannes provoquées et une supervision collectée par Prometheus 3.5.0 en charge (TE-17), que le banc de l'étape 7 n'a pas ; il établit seulement que les flux déclarés suffisent à l'installation complète et qu'une destination non déclarée n'est pas résolue (IC-3)."
     },
     "threats": [
       "MN-29",
@@ -516,9 +589,30 @@ export const TE = [
     ],
     "oracle": "Après chaque chemin, le vérificateur accepte un dossier qui chevauche la reprise ; PV-1 à PV-10 réussies ; les durées sont publiées (mesure TM-37 : RPO et RTO par composant, cadence de sauvegarde ; rapport de mesure, jamais la consignation), aucune n'est inventée.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Composants non construits ; CT-8 §15 : aucun outil de sauvegarde."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/deploiement-installation.test.js",
+          "describe": "CT-8 §11.4 chemin A (TE-9, TM-37 hors système de référence) : sauvegarde, perte du volume, restauration et reprise du démon réel"
+        },
+        {
+          "file": "test/deploiement-installation.test.js",
+          "describe": "CT-8 §11.2, EX-11.2 à EX-11.4 et 13.4 : sauvegarde.mjs (archive déterministe et procès-verbal sauvegarde)"
+        },
+        {
+          "file": "test/deploiement-installation.test.js",
+          "describe": "CT-8 EX-11.22, EX-11.23 (TP-6) : archivage des fichiers tournés du journal d'exploitation"
+        },
+        {
+          "file": "test/enregistreur-worm-restauration.test.js",
+          "describe": "reconstruction du journal depuis les copies WORM (CT-2 EX-12.17, CT-8 §11.4 chemin B, EX-10.14)"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-installation.test.js test/enregistreur-worm-restauration.test.js",
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Chemin C (journal neuf, rotation de la clé au registre) ; chemins A et B sur une installation en conteneurs, avec le remplissage d'un volume nommé neuf ; durées sur le système de référence (TM-37). L'étape 7 éprouve le chemin A sur le démon réel (sauvegarde, perte du volume, restauration, reprise d'époque supérieure, dossiers valides), l'outil de sauvegarde et l'archivage du journal d'exploitation ; le chemin B l'est par la reconstruction depuis les copies WORM."
+      }
     },
     "threats": [
       "MN-19",
@@ -556,8 +650,8 @@ export const TE = [
     "oracle": "Aucun appel relayable bloqué ni retardé par une décision ; appels perdus comptés (EX-12.3, EX-12.14) ; rapport égal à ce que `rapport-observation.mjs` tire du journal ; passage refusé tant qu'une retenue n'a pas de décision.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Composants non construits ; les bibliothèques sont couvertes par TU-/TV-."
+      "phase2_step": 8,
+      "blocking": "Rattaché à l'étape 8 : le mode observation de bout en bout exige l'installation rapide jouée en entier (TE-6) avec un agent de démonstration et un passage au mode bloquant ; les bibliothèques et le démon sont couverts par TU-/TV- (OB-1 à OB-6) et par les essais du mode observation."
     },
     "threats": []
   },
@@ -841,13 +935,14 @@ export const TE = [
     ],
     "preconditions": [
       "Démon `noortrace` réel (processus enfant) de l'étape 4 avec son journal d'exploitation et le composant d'ancrage de l'étape 5 branché (registre factice coupable pour JS-11) ; `noortrace-ctl`.",
-      "Pour JS-9 et JS-10 : support WORM S3 à Object Lock de LocalStack en conteneur Docker (image épinglée par condensé), derrière un mandataire TLS, bucket verrouillé en COMPLIANCE ; sans Docker, ces cas sont en attente (EX-3.11)."
+      "Pour JS-9 et JS-10 : support WORM S3 à Object Lock de LocalStack en conteneur Docker (image épinglée par condensé), derrière un mandataire TLS, bucket verrouillé en COMPLIANCE ; sans Docker, ces cas sont en attente (EX-3.11).",
+      "Pour le complément JS-5 de l'étape 7 : réseau de développement 2124 et parcours `npm run e2e:registre` (`NOORTRACE_PARCOURS_REGISTRE`), KMS simulé en conteneur pour la clé de classe B ; sans eux, l'essai réseau est en attente, condition nommée (EX-3.11), et la variante sur le nœud factice s'exécute."
     ],
     "steps": [
       "Provoquer chaque situation de la table de CT-7 §6.1 (démarrage, arrêt, bail, rotation de la clé de l'enregistreur, rotation de la clé de chaîne, politique, configuration, saut d'horloge, gel, perte WORM, ancrage dégradé, attestation) ; relire la chaîne et le journal d'exploitation.",
       "Forcer la rotation du journal d'exploitation par `supervision.ops_log.rotate_max_bytes`, puis simuler un disque plein pendant le relais."
     ],
-    "oracle": "Chaque situation produit l'événement ou la ligne que la table nomme (« porté » ou « aucun » selon la colonne) ; aucun secret dans les lignes, la file durable ni `acquisitions.ndjson`. JS-5 : aucun événement ne porte la rotation de la clé de chaîne, et la rotation d'urgence est refusée (`registre_non_branche`) ; la révocation et l'inscription au registre que la table nomme pour JS-5 sont le complément. Rotation : au plus `keep_files` fichiers conservés ; disque plein : chaque ligne non écrite incrémente `noortrace_ops_log_dropped_total` d'une unité et le relais continue (CT-2 EX-9.7, EX-17.4).",
+    "oracle": "Chaque situation produit l'événement ou la ligne que la table nomme (« porté » ou « aucun » selon la colonne) ; aucun secret dans les lignes, la file durable ni `acquisitions.ndjson`. JS-5 : aucun événement ne porte la rotation de la clé de chaîne ; sur le réseau de développement, la révocation de l'ancienne clé de chaîne puis l'inscription de la même clé Ed25519 sous `next_chain_key`, relayées par le démon depuis les demandes signées au seuil, sont lues au registre, et l'ancre suivante est émise par la nouvelle clé ; sans `next_chain_key`, la demande est refusée (`cle_chaine_suivante_absente`). Rotation : au plus `keep_files` fichiers conservés ; disque plein : chaque ligne non écrite incrémente `noortrace_ops_log_dropped_total` d'une unité et le relais continue (CT-2 EX-9.7, EX-17.4).",
     "status": {
       "state": "executable",
       "tests": [
@@ -862,12 +957,22 @@ export const TE = [
         {
           "file": "test/enregistreur-journal-soi.test.js",
           "describe": "TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3 à Object Lock en conteneur) : worm_legal_hold_observed, worm_copy_failed puis reprise, copie conforme d'ancres/"
+        },
+        {
+          "file": "test/enregistreur-journal-soi.test.js",
+          "describe": "TE-14 : journal de l'enregistreur sur lui-même, JS-1 à JS-12 de CT-7 §6.1 observés sur le démon réel (CT-2 EX-17.1 à EX-17.4, EX-18.6 ; CT-7 EX-6.1 à EX-6.3)",
+          "it": "JS-5 rotation de la seule clé de chaîne : hors chaîne par conception (au registre) ; aucun événement ne la porte ; sans next_chain_key, la rotation d'urgence est refusée en le nommant (cle_chaine_suivante_absente ; révocation et inscription relayées au registre : complément de l'étape 7, test/enregistreur-cle-chaine-etape7-reseau.test.js)"
+        },
+        {
+          "file": "test/enregistreur-cle-chaine-etape7.test.js",
+          "describe": "étape 7 : rotation de la clé de chaîne relayée au registre, nœud noorcore factice (CT-2 EX-11.16, EX-11.19 point 4 ; CT-4 §8.4 ; CT-7 JS-5)"
+        },
+        {
+          "file": "test/enregistreur-cle-chaine-etape7-reseau.test.js",
+          "describe": "étape 7, réseau de développement 2124 : démon en production, clé de chaîne de classe C du modèle de production (table d'IC-14), ancres et clôture sur noorcore, dossier vérifié (contrôles 4 et 8) ; TE-14 complément JS-5 : rotation de la seule clé de chaîne relayée au registre vers une clé de classe B"
         }
       ],
-      "complement": {
-        "phase2_step": 7,
-        "blocking": "JS-5, colonne du journal : rotation d'urgence de la clé de chaîne relayée au registre (révocation et nouvelle inscription signées par les approbateurs au seuil, CT-4 §7, CT-2 EX-11.16, EX-11.19 point 4) ; le démon de l'étape 5 la refuse en le nommant (`registre_non_branche`, lecture 202 du LISEZMOI de `paquets/enregistreur`), reste rattaché, comme la clé de chaîne des classes A à C, à l'étape 7 (paquets et exploitation)."
-      }
+      "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-journal-soi.test.js test/enregistreur-cle-chaine-etape7.test.js test/enregistreur-cle-chaine-etape7-reseau.test.js"
     },
     "threats": [
       "MN-18",
@@ -889,16 +994,54 @@ export const TE = [
       "CT-8 EX-3.9"
     ],
     "preconditions": [
-      "Fichiers de conteneur de référence ; hôte de test avec moteur de conteneurs ; deux constructions à des instants différents."
+      "Fichiers de construction des images (`conteneurs/<nom>/Dockerfile`) ; hôte de test avec moteur de conteneurs ; deux constructions sans cache à des instants différents (`scripts/deploiement/construire-images.mjs --double`, relevé `NOORTRACE_IMAGES_CONDENSES`) ; sans Docker, les essais des images construites sont en attente, condition nommée (EX-3.11)."
     ],
     "steps": [
       "Construire chaque image deux fois ; comparer les condensés ; `docker compose up` ; relever `docker inspect` (compte, racine en lecture seule, sondes) ; copier le répertoire de l'image dans un volume nommé neuf ; vérifier le compagnon (`CAP_FOWNER`, ouverture en lecture)."
     ],
     "oracle": "Condensés égaux ; chaque propriété de la description `images.json` observée ; propriétaire et mode recopiés ; attribut immuable posé.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Aucune image construite (CT-8 §3.6, §15) ; Docker indisponible ici."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/deploiement-images.test.js",
+          "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+          "it": "TE-15, EX-4.4, EX-3.6 : docker inspect de chaque image : point d'entrée = programme, sans Cmd, compte de images.json, répertoire de travail /, plate-forme linux/amd64, créée à SOURCE_DATE_EPOCH (date du commit)"
+        },
+        {
+          "file": "test/deploiement-images.test.js",
+          "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+          "it": "TE-15, CO-12, EX-4.4 : système de fichiers de chaque image (docker export) : aucun interpréteur de commandes ni /usr/bin/env ; programmes requis présents (flock pour le bail file, chattr et lsattr pour le compagnon) ; /etc/passwd et /etc/group du dépôt ; répertoires d'EX-3.5 aux comptes et modes ; lancement de /bin/sh impossible"
+        },
+        {
+          "file": "test/deploiement-images.test.js",
+          "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+          "it": "TE-15, recopie dans un volume neuf : la racine d'un volume nommé neuf reprend le propriétaire, le groupe et le mode (bits setgid et collant compris) du répertoire de l'image qui le monte la première, montage en lecture seule compris ; après recopie par l'image du service d'approbation, le démon (10001, groupe 10010) crée sa prise dans /run/noortrace"
+        },
+        {
+          "file": "test/deploiement-images.test.js",
+          "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+          "it": "EX-3.7, EX-3.8 : pont-fichiers lancé avec la commande exacte de production.yaml (compte 10101, sans réseau, racine en lecture seule, capacités retirées) : sonde en forme exec 0 ; initialize, write_file et list_directory par Streamable HTTP depuis l'espace réseau du pont ; le pont et le serveur tournent sous 10101 sans interpréteur ; le fichier écrit appartient à 10101"
+        },
+        {
+          "file": "test/deploiement-images.test.js",
+          "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+          "it": "TM-28, EX-3.13 : deux constructions sans cache, depuis deux copies des sources à deux instants, donnent pour chaque image le même condensé, égal à celui de l'image du magasin local ; ligne construction_reproductible = 0"
+        },
+        {
+          "file": "test/deploiement-images.test.js",
+          "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)"
+        },
+        {
+          "file": "test/deploiement-images.test.js",
+          "describe": "fichiers de construction, sans moteur de conteneurs"
+        }
+      ],
+      "ci_steps": [
+        "images noortrace/*, deux constructions sans cache aux mêmes condensés (CT-8 EX-3.13), sans publication",
+        "essais des images (TE-15, TM-24, TM-26, TM-28), aucun essai en attente"
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-images.test.js"
     },
     "threats": [
       "MN-22",
@@ -1198,8 +1341,8 @@ export const TE = [
     "oracle": "Unité de comptage : la règle d'alerte de CT-8 §10.4 à §10.7 identifiée par son étiquette `exigence`. Pour chaque condition provoquée, la règle de cette condition (étiquette nommant la prescription : CT-2 §17.4, CT-2 EX-17.8, CT-5 §8.9 ; une règle par condition d'une ligne à « ou », CT-8 EX-10.1) passe à l'état déclenché exactement une fois pendant la fenêtre d'observation ; les autres règles de la même prescription ne sont attendues que si leur condition est provoquée et restent silencieuses sinon ; une condition est provoquée quand elle survient pendant la fenêtre par l'effet d'une provocation, directement ou par cascade (stockage indisponible, puis appels bloqués et événements en attente ; prestataire coupé, puis ancre en retard) ; les règles attendues d'une provocation sont celles de la condition provoquée et de ses conséquences, nommées dans le rapport d'exécution avant la provocation ; une règle qui se déclenche hors de cette liste est un échec ; la liste peut nommer toute règle de CT-8 §10.4 à §10.7, celles du registre (`noortrace_registre_*`, CT-4) comprises, que la condition entraîne, chaque conséquence y étant inscrite avant la provocation avec la chaîne causale qui la justifie ; une conséquence non justifiée est un défaut du rapport, relu par l'examinateur ; les deux exemples de cascade ci-dessus ne sont pas limitatifs ; deux règles levées par une même cause (« Mode dégradé » `horloge` et « Horloge ») comptent chacune une fois, cet exemple illustrant le comptage sans exiger la provocation de l'horloge ; les trois alertes du registre des gels : une seule alerte critique par cause (CT-2 EX-17.7), clause jouée seulement si un support WORM est monté ; sinon ses conditions figurent dans la liste des conditions non provoquées et la clause n'est pas jouée. La gravité relevée (étiquette `severity` de la règle déclenchée) doit égaler celle de la table de CT-8 §10.4 à §10.7, qui fait foi (CT-8 EX-10.1) ; une gravité différente est un échec (le fichier de règles ne suit pas sa table, ce que TV-76 éprouve aussi sans les composants) ; un écart entre la table de CT-8 et la prescription de CT-2 §17.4 ou de CT-5 §8.9 est consigné, non jugé par le test. Chaque métrique de la table CT-2 §17.2 et de CT-5 EX-8.15 est présente avec exactement ses étiquettes : « présente » signifie déclarée par son nom dans l'exposition `/metrics` du démon (ligne `# TYPE` ; un histogramme par ses séries `_bucket`, `_sum` et `_count`, avec l'étiquette `le`), lue sur le démon et non chez le collecteur, qui ajoute `instance` et `job` ; les séries d'étiquettes exigées sont celles que le montage de test crée ; une métrique d'une fonction absente du montage (WORM, OpenTelemetry) est déclarée mais peut n'avoir aucune série (le compte de CT-8 §10.2 est à aligner sur la table de CT-2 : PD-27). Le dossier exporté sous charge : code 0 des deux vérificateurs, énoncé identique.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Supervision à produire (CT-8 §10, lot suivant)."
+      "phase2_step": 8,
+      "blocking": "Rattaché à l'étape 8 : un collecteur Prometheus 3.5.0 en marche chargé des règles (le binaire `prometheus` de la même archive), la charge à cadence fixe de TM-3, la provocation de chaque condition et le décompte des transitions `ALERTS` ; l'étape 7 livre les règles, leurs tests (`promtool`) et un évaluateur réduit des essais, qui n'est pas un collecteur."
     },
     "threats": [
       "MN-29"

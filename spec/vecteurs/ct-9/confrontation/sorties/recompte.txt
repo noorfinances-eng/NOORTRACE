@@ -6,8 +6,8 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
 1. Identifiants définis par CT-1 à CT-8 (5.2)
   CT-1 : 44 identifiants (0 EX-, 44 de famille), 8 familles
     familles : A 4, AT 7, C 3, D 2, E 11, K 9, M 3, P 5
-  CT-2 : 343 identifiants (332 EX-, 11 de famille), 19 familles
-    familles : EX-10 24, EX-11 19, EX-12 41, EX-13 10, EX-14 18, EX-15 15, EX-16 6, EX-17 8, EX-18 9, EX-19 6, EX-3 6, EX-4 51, EX-5 36, EX-6 41, EX-7 23, EX-8 11, EX-9 8, RL 4, SG 7
+  CT-2 : 346 identifiants (335 EX-, 11 de famille), 19 familles
+    familles : EX-10 24, EX-11 19, EX-12 41, EX-13 10, EX-14 18, EX-15 18, EX-16 6, EX-17 8, EX-18 9, EX-19 6, EX-3 6, EX-4 51, EX-5 36, EX-6 41, EX-7 23, EX-8 11, EX-9 8, RL 4, SG 7
   CT-3 : 277 identifiants (221 EX-, 56 de famille), 18 familles
     familles : AN 10, AP 17, CS 9, EX-10 14, EX-11 15, EX-12 22, EX-13 49, EX-14 2, EX-3 5, EX-4 14, EX-5 10, EX-6 8, EX-7 30, EX-8 11, EX-9 22, EX-A 19, SG 7, TK 13
   CT-4 : 194 identifiants (149 EX-, 45 de famille), 14 familles
@@ -20,20 +20,20 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
     familles : AT 7, CL 6, CLE 36, CR 12, EX-0 1, EX-3 16, EX-4 10, EX-5 12, EX-6 3, EX-7 18, EX-8 20, EX-9 5, EX-A 31, EX-C 2, JS 12, L 10, MC 58, MN 102, MX 9, PA 20, RA 86, RV 9, T 10, TR 101
   CT-8 : 500 identifiants (198 EX-, 302 de famille), 30 familles
     familles : AV-PR 4, CA 6, CO 14, DM 22, EX-0 2, EX-10 23, EX-11 24, EX-12 16, EX-13 38, EX-14 12, EX-3 15, EX-4 4, EX-5 7, EX-6 6, EX-7 4, EX-8 7, EX-9 4, EX-A 36, FL 31, IC 18, IP 13, IR 8, OB 6, PD 19, PR 12, PV 10, RB 8, SV 8, TC 115, TP 8
-  total : 2421 identifiants ; couverture.json : 2421 ; table de 5.2 : 2421
+  total : 2424 identifiants ; couverture.json : 2424 ; table de 5.2 : 2424
   comparaison par spécification (total et familles) : égale
 
 2. Règle (a) : couverture de chaque identifiant (5.1, EX-5.5)
   CT-1 : 44 identifiants, 44 par une entrée, 0 par un NC-, 0 non couvert(s)
-  CT-2 : 343 identifiants, 343 par une entrée, 0 par un NC-, 0 non couvert(s)
+  CT-2 : 346 identifiants, 346 par une entrée, 0 par un NC-, 0 non couvert(s)
   CT-3 : 277 identifiants, 277 par une entrée, 0 par un NC-, 0 non couvert(s)
   CT-4 : 194 identifiants, 187 par une entrée, 7 par un NC-, 0 non couvert(s)
   CT-5 : 174 identifiants, 162 par une entrée, 12 par un NC-, 0 non couvert(s)
   CT-6 : 293 identifiants, 293 par une entrée, 0 par un NC-, 0 non couvert(s)
   CT-7 : 596 identifiants, 488 par une entrée, 108 par un NC-, 0 non couvert(s)
   CT-8 : 500 identifiants, 481 par une entrée, 19 par un NC-, 0 non couvert(s)
-  total : 2275 par une entrée, 146 par un NC-, 0 non couvert(s), 0 cité(s) inconnu(s)
-  couverture.json : 2275, 146, 0, 0
+  total : 2278 par une entrée, 146 par un NC-, 0 non couvert(s), 0 cité(s) inconnu(s)
+  couverture.json : 2278, 146, 0, 0
   chiffres par spécification de 5.5 : 8 lignes lues, égaux au recompte
 
 3. Occurrences de « CT-9 » et lignes TC- (0.2, règle (c))
@@ -59,9 +59,9 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
   index-ta-par-menace.json : 102 menaces, 0 défaut(s) (test, état, scénarios)
 
 5. Titres de tests et étapes de CI cités par les entrées exécutables (règle (d), EX-4.2)
-  test/*.test.js : 137 fichiers, 670 describe, 2804 it ; ci.yml : 63 étapes « - name: »
-  240 entrées exécutables citent 550 titres ou étapes ; 0 absent(s)
-  couverture.json : 240 exécutables, 550 cités, 0 absent(s)
+  test/*.test.js : 146 fichiers, 706 describe, 2929 it ; ci.yml : 67 étapes « - name: »
+  252 entrées exécutables citent 605 titres ou étapes ; 0 absent(s)
+  couverture.json : 252 exécutables, 605 cités, 0 absent(s)
 
 6. it de test/adversarial.test.js (EX-10.7, 10.8, EX-A.11)
   71 it, 71 dont le titre commence par « TA- », 10 describe de composant ; EX-A.11 : 71 it ; 10.8 : 71 passing

@@ -6,6 +6,49 @@ is tagged.
 
 ## Unreleased
 
+- Build step 7, packages, observability and runbooks. Six container images
+  `noortrace/*` (recorder, file-attribute companion, approval service,
+  console, stdio bridge, verifier) are built from `conteneurs/`: no shell, no
+  `/usr/bin/env`, Node.js 22.23.4 and only the programs each needs (`flock`,
+  `chattr`, `lsattr`) on a minimal base pinned by digest, entry point the
+  program itself; two builds without cache, from two copies of the sources,
+  give the same digests (`scripts/deploiement/construire-images.mjs`).
+  Nothing is published: no image, tag, release or package leaves the build
+  machine. The recorder gains `noortrace-ctl sonde`, `etat` and
+  `close-period --now` (which ends the journal, development only); its file
+  lease no longer needs a shell; a chain key of class B or C is held by a key
+  management service, and the emergency rotation of the chain key alone is
+  relayed to the registry from threshold-signed requests. The approval
+  service's socket directory shared by two accounts (`3770`) is accepted; the
+  attribute companion fails loudly when it cannot read; `d_registre` is
+  observed once per anchor. Reference observability
+  (`deploiement/observabilite/`): 88 alerting rules with a firing and a
+  silent case each, checked by promtool 3.5.0 in CI, a log extractor, a rule
+  generator and a probe. Installation and operations tooling: host
+  preparation for the reference system, systemd templates for the scheduled
+  tasks, backup and restore with the deterministic archive and its minutes,
+  operations-log archiving, runbook copies checked against CT-8. A release is
+  prepared without publishing (`scripts/publication/`, `version.yml`): two
+  reproducible builds of the verifier for amd64 and arm64, `SHA256SUMS`,
+  release note and unsigned provenance; signing waits for a decision on the
+  key. The full installation, steps IC-1 to IC-18 of CT-8, ran on a bench
+  without public network access in 58 minutes, the first evidence folder
+  accepted by both verifiers; the bench is not the reference system.
+  The quick installation now obtains a real RFC 3161 closing token: by the
+  owner's decision, its placeholder provider is replaced by the internal,
+  non-qualified timestamping server of `paquets/ancrage`, accepted as the
+  principal provider outside production only (production still refuses it,
+  with its reason). A seventh image, `noortrace/tsa-interne`, runs it in the
+  recorder's network namespace (`horodatage` service, initialised by the
+  `horodatage-init` tool, no secret), and `configurer-rapide.mjs` copies its
+  CA certificate into the anchoring document. The quick installation ran from
+  step IR-1 to IR-8 with Docker and no public network: check 4 passed with
+  the internal server's token in both verifiers, check 5 was not run (no
+  OpenTimestamps proof without network).
+  CT-2 0.10, CT-3 0.7, CT-5 0.9, CT-6 0.8, CT-8 0.7, CT-9 0.9; recorded
+  changes MC-42 onwards. CI: actions pinned by commit, Node.js
+  22.23.4, a promtool step and an `images` job (double build and image
+  tests, no publication).
 - npm advisories in the development dependencies. `mocha` moves to 12.0.3 and
   `@nomicfoundation/hardhat-toolbox-mocha-ethers` to 4.0.0, which brings
   `@nomicfoundation/hardhat-mocha` 4.0.1; `overrides` scoped to mocha pin

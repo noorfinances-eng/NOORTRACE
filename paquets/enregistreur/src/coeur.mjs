@@ -655,9 +655,19 @@ export class Coeur {
     return sante(this.etatSante());
   }
 
+  /**
+   * Journal terminé par la clôture anticipée (CT-2 EX-19.4) : tout nouvel
+   * appel et tout nouvel échange sont refusés (`-31010`, `journal_clos`),
+   * mode observation compris.
+   */
+  get journalClos() {
+    return this.ecrivain?.clos === true;
+  }
+
   _bloquerSiIntervention() {
     // Instance passive (13.4 pas 1) : `-31010`, raison `bail_non_detenu` (14.2).
     if (this.passif) throw new ErreurEnregistreur("bail_non_detenu", "noortrace: bail non detenu");
+    if (this.journalClos) throw new ErreurEnregistreur("journal_clos", "noortrace: journal clos (cloture anticipee, EX-19.4)");
     if (this.intervention || !this.ecrivain) {
       throw new ErreurEnregistreur("stockage", "noortrace: enregistreur en mode degrade (stockage)");
     }
@@ -1536,33 +1546,107 @@ export class Coeur {
    * courante est utilisable. Pas d'EX-11.16, dans leur ordre : (1)
    * inscription de la nouvelle paire au registre, (2) événement de rotation
    * signé par l'ancienne clé et contresigné par la nouvelle, (3) révocation de
-   * l'ancienne `chainKey`. Le démon n'a pas de client du registre (CT-4, lot
-   * suivant) : avec `anchoring.registry.enabled`, le pas (1) ne peut pas
-   * précéder le pas (2) et la rotation est refusée ; registre désactivé, les
-   * pas (1) et (3) sont sans objet et consignés comme tels (lecture 194).
+   * l'ancienne `chainKey`. Registre désactivé : les pas (1) et (3) sont sans
+   * objet et consignés comme tels (lecture 194). Registre activé (étape 7) :
+   * le composant d'ancrage branché relaie l'inscription et la révocation
+   * depuis les demandes signées au seuil déposées sous `<journal>/registre/`
+   * (CT-4 §8.4), avec `anchoring.registry.next_chain_key` comme nouvelle clé
+   * de chaîne ; sans `signer.rotation.next_key_id` mais avec
+   * `next_chain_key`, c'est la rotation de la seule clé de chaîne (EX-11.19,
+   * point 4 ; CT-7 JS-5), sans événement dans le journal. Sans composant
+   * d'ancrage branché sur le registre : refus `registre_non_branche`.
    * @returns {Promise<{accepte: boolean, raison?: string, evenement?: object}>}
    */
   async rotationUrgence() {
     const r = this.config.signer.rotation;
     const courante = this.ecrivain?.cleCourante ?? null;
-    const refus = (raison) => {
-      this.journal.consigner("warning", "signataire", "key_rotation_emergency_refused", { raison, key_id: courante, next_key_id: r?.next_key_id ?? null });
+    const refus = (raison, extra = {}) => {
+      this.journal.consigner("warning", "signataire", "key_rotation_emergency_refused", { raison, key_id: courante, next_key_id: r?.next_key_id ?? null, ...extra });
       return { accepte: false, raison };
     };
     if (!this.ecrivain || this.passif || this.intervention) return refus("instance_non_active");
+    // Journal terminé par la clôture anticipée (EX-19.4, étape 7) : aucune rotation n'y entre.
+    if (this.journalClos) return refus("journal_clos");
     if (this.degrade.enModeDegrade) return refus("mode_degrade");
+    const registre = Boolean(this.config.anchoring?.registry?.enabled);
+    const a = this.o.ancrage;
+    const relais = registre && typeof a?.rotationCleChaine === "function" && a.registreBranche;
+    const suivanteChaine = this.config.anchoring?.registry?.next_chain_key ?? null;
+    // Rotation de la seule clé de chaîne (EX-11.19, point 4) : aucun événement du journal.
+    if (relais && (!r?.next_key_id || r.next_key_id === courante) && suivanteChaine) {
+      const x = await a.rotationCleChaine();
+      if (!x.accepte) return refus(x.raison, x.registry ? { registry: x.registry } : {});
+      this.journal.consigner("info", "signataire", "key_rotation_emergency", {
+        chain_key_only: true, key_id: courante, old_chain_key: x.ancienne, new_chain_key: x.nouvelle, registry: x.registry,
+      });
+      return { accepte: true, cleChaine: x };
+    }
     if (!r?.next_key_id || r.next_key_id === courante) return refus("cle_suivante_absente");
-    if (this.config.anchoring?.registry?.enabled) return refus("registre_non_branche");
+    if (registre && !relais) return refus("registre_non_branche");
+    if (registre && !suivanteChaine) return refus("cle_chaine_suivante_absente");
+    let publiqueSuivante;
     try {
-      await this.signataire.clePublique(r.next_key_id);
+      publiqueSuivante = await this.signataire.clePublique(r.next_key_id);
     } catch {
       return refus("cle_suivante_indisponible");
     }
+    let inscription = "sans_objet";
+    if (registre) {
+      // Pas (1) avant le pas (2) : sans inscription de la nouvelle paire, rien n'est écrit.
+      const i = await a.inscrireCleSuivante(octetsVersHex(publiqueSuivante).toLowerCase());
+      if (!i.accepte) return refus(i.raison, i.code ? { code: i.code } : {});
+      inscription = i.issue;
+    }
+    const anciennes = [...new Set([courante, ...(this.index?.cles?.keys() ?? [])])].filter((k) => k && k !== r.next_key_id);
     const e = await this.tournerCle(r.next_key_id);
+    let revocation = "sans_objet";
+    if (registre) revocation = (await a.apresRotation({ anciennesCles: anciennes })).revocation;
     this.journal.consigner("info", "signataire", "key_rotation_emergency", {
-      old_key_id: courante, new_key_id: r.next_key_id, registry: { inscription: "sans_objet", revocation: "sans_objet" },
+      old_key_id: courante, new_key_id: r.next_key_id, registry: { inscription, revocation },
     }, { seq: e.seq });
     return { accepte: true, evenement: e };
+  }
+
+  /**
+   * Clôture anticipée (CT-2 EX-19.4 ; `noortrace-ctl close-period --now`,
+   * CT-8 IR-8 ; étape 7), admise seulement en développement
+   * (`recorder.environment` `developpement`). Elle termine le journal : la
+   * période courante est close à l'instant (manifeste signé, point de
+   * clôture, remise à l'ancrage et copies WORM comme à l'heure pleine), puis
+   * tout nouvel appel et tout nouvel échange sont refusés (`-31010`,
+   * `journal_clos`). Réponse au journal d'exploitation, avec le `request_id`
+   * de la demande : `period_closed_early` (`period_start`, `period_end`,
+   * `count`, `period_hash`, `generated_at`) ou `period_close_refused`
+   * (`raison` : `production`, `instance_non_active`, `journal_clos`,
+   * `journal_vide`, `mode_degrade` ; `environment` ; `reasons` : raisons du
+   * mode dégradé, sinon vide).
+   * @param {{request_id?: string|null}} [o]
+   * @returns {Promise<{accepte: boolean, raison?: string, periode?: object}>}
+   */
+  async clotureAnticipee(o = {}) {
+    const request_id = o.request_id ?? null;
+    const refus = (raison, reasons = []) => {
+      this.journal.consigner("warning", "cloture", "period_close_refused", { raison, environment: this.config.recorder.environment, reasons }, { seq: null, request_id });
+      return { accepte: false, raison };
+    };
+    if (this.config.recorder.environment !== "developpement") return refus("production");
+    if (!this.ecrivain || this.passif || !this.bailDetenu) return refus("instance_non_active");
+    if (this.journalClos) return refus("journal_clos");
+    if (this.intervention) return refus("mode_degrade", ["stockage"]);
+    const bloquantes = this.degrade.raisons().filter((r) => r === "stockage" || r === "cle" || r === "bail" || r === "horloge");
+    if (bloquantes.length) return refus("mode_degrade", bloquantes);
+    // Événements en attente (14.5) : ils appartiennent à la période à clore ; rien n'est clos avant leur scellement.
+    if (this.attente.length) return refus("mode_degrade", ["attente"]);
+    let p;
+    try {
+      p = await this.ecrivain.cloreMaintenant();
+    } catch (e) {
+      if (!(e instanceof ErreurEnregistreur)) throw e;
+      if (e.raison === "journal_clos" || e.raison === "journal_vide") return refus(e.raison);
+      return refus("mode_degrade", [e.raison]);
+    }
+    this.journal.consigner("info", "cloture", "period_closed_early", p, { seq: null, request_id });
+    return { accepte: true, periode: p };
   }
 
   /**

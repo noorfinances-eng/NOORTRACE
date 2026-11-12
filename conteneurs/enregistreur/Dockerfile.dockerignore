@@ -1,0 +1,17 @@
+# Contexte de construction de noortrace/enregistreur (racine du dépôt) :
+# tout est exclu, sauf ce que l'image emploie.
+*
+!package.json
+!package-lock.json
+!paquets/*/package.json
+!paquets/noyau/src/**
+!paquets/ancrage/bin/**
+!paquets/ancrage/src/**
+!paquets/enregistreur/bin/**
+!paquets/enregistreur/src/**
+!paquets/enregistreur/schemas/**
+!conteneurs/commun/preparer-application.sh
+!conteneurs/enregistreur/passwd
+!conteneurs/enregistreur/group
+!LICENSE
+!NOTICE

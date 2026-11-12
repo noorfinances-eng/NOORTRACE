@@ -124,7 +124,12 @@ Contrat :
   vide vaut absent ; un corps dont le jeton ne se lit pas est
   `reponse_illisible` (le `.tsr` est écrit, aucun `.der`) ; une réponse 200
   d'un autre `Content-Type` est `type_contenu`.
-- `transport` est injectable : `{ envoyer({ url, octets, entetes, delaiMs, auth, tls, role }) → { status, entetes, corps, tronque } ; obtenir(url, delaiMs) → { status, entetes, corps } }` ;
+- `transport` est injectable : `{ envoyer({ url, octets, entetes, delaiMs, auth, tls, role, serveurInterne }) → { status, entetes, corps, tronque } ; obtenir(url, delaiMs) → { status, entetes, corps } }` ;
+  `serveurInterne` (vrai quand le prestataire porte `serveur_interne: true`,
+  que le composant pose hors production pour le principal non qualifié, CT-5
+  révision 0.9) fait admettre `http://` vers une adresse locale comme pour le
+  rôle `interne` ; sans lui, `controlerUrl` refuse `http://` hors du rôle
+  `interne` ;
   `transportHttps({ ca, agent, agentHttp })` applique EX-5.5 : TLS 1.2 au moins
   avec vérification du certificat du serveur (`ca` : autorités de confiance
   supplémentaires, pour un prestataire d'essai), `POST`, en-têtes exacts,
@@ -285,9 +290,15 @@ Contrat :
 - `validerConfiguration(document, { profil, checkpointIntervalEnregistreur })`
   rend `{ valide, erreurs: [{ regle, message }], projection }` (règles `schema`,
   `1` à `8`) ; `projection(document)` est la `$defs/configuration` d'EX-8.2.
-  Règle 4 : `http://` est refusé pour tout rôle autre qu'`interne`, dans
-  tout profil, et admis pour le rôle `interne` vers une adresse locale
-  seulement (EX-5.5) ; `auth` `aucune` de même.
+  Règle 4 : `http://` est refusé pour tout prestataire autre que le serveur
+  interne, dans tout profil, et admis pour le serveur interne vers une
+  adresse locale seulement (EX-5.5) ; `auth` `aucune` de même. Le serveur
+  interne est le rôle `interne` et, hors production seulement (CT-5
+  révision 0.9), le `principal` dont `qualified` vaut `null`
+  (`commeServeurInterne(prestataire, production)`, exporté) ; en production,
+  ce principal est refusé (`principal … sans qualified`, et `http://` ou
+  `auth` `aucune` avec la raison « le serveur RFC 3161 interne n'est admis
+  comme principal que hors production »).
 - `creerPlanificateur(projection, { maintenant, aleatoire, gigues, nonces, file, fileInitiale, sansRegistre })`
   rend un `Planificateur` : `traiter(entree) → action_attendue[]`, `file() → demande[]`
   (rangées par `created_at` puis `id`), `echeances(periodStart, org_id, journal_id)`,
@@ -411,7 +422,10 @@ Contrat :
   `metriques()` (format d'exposition texte, noms exacts d'EX-8.15 ; valeurs
   d'étiquette normalisées par `normaliserValeurEtiquette` : minuscules,
   caractères hors de `[a-z0-9_:.-]` remplacés par `_`),
-  `releverActions({ actions, file, maintenant })`, `consignerActions(actions)`,
+  `releverActions({ actions, file, maintenant })` (`noortrace_anchoring_d_registre_s`
+  observé une fois par ancre, à la passe dont une action `ecrire_file` la fait
+  passer à `obtenue`, jamais à chaque relevé de la file : étape 7),
+  `consignerActions(actions)`,
   `consigner(niveau, evenement, champs)` par un `journal` injecté
   (`consigner(niveau, composant, evenement, data)`, celui de l'enregistreur,
   CT-2 §17.3) ; les clés qui ressemblent à un jeton, une pièce, un secret ou
@@ -429,6 +443,8 @@ Sections : CT-5 §9 (EX-9.1 à EX-9.9, AN-44 à AN-49), EX-8.10, EX-10.4 ; CT-4
 ```js
 import {
   SignataireChaine, SignataireChaineFichier,   // CT-2 EX-11.19 : interface { adresse(), signerCondense(hash32) → { r, s, v } } ; classe D (développement)
+  signatureDepuisDer,                          // étape 7 : signature DER d'un service (classe B) → { r, s bas, v recouvré }
+  encoderRegisterRecorder, encoderRevokeRecorder, // étape 7 : relais de l'inscription et de la révocation (CT-4 §8.4)
   encoderAnchor, encoderSubmitPeriod, empreinteAncre, periodDigest, anchorDigest, hachageSigne, // CT-4 §6
   construireTransaction, signerTransaction, lireTransaction, verifierRG15, // CT-4 RG-15
   ClientRpc,                                   // JSON-RPC vers un ou plusieurs validateurs (EX-8.15 : mêmes octets à chacun)
@@ -470,6 +486,20 @@ Contrat :
   fait de même pour `submitPeriod` (CT-4 §8.2 ; `periodMeta` au format
   `meta_periode` de CT-4 : `org_id`, `journal_id`, `period_hash`, `root`,
   `period_start`, `period_end`, `first_seq`, `last_seq`, `version`, `uri`).
+  Étape 7 : `inscrire({ demande, cle, requestId? })` et
+  `revoquer({ demande, cle, requestId? })` relaient `registerRecorder` et
+  `revokeRecorder` (CT-4 §7.7, §8.4) depuis une `demande_signature`
+  (`inscription`, `revocation`) avec `cle` comme expéditeur : avant tout
+  envoi, opération, `evm_chain_id` et `contract` (= `recorder_registry`) de
+  l'instance, OP-6 et OP-7 au seuil (`verifierDemande`), OP-8 (inscription :
+  clé de chaîne ni active ni révoquée, `cle_revoquee`, `cle_deja_active`,
+  clé Ed25519 active ailleurs `cle_ed25519_active` ; révocation :
+  `registeredAt` lu égal à `registered_at`, `cle_inconnue`) ; une opération
+  déjà faite à l'identique rend `{ type: "deja_fait" }` sans envoi (ligne
+  `registry_already_done`) ; sinon envoi, reçu, capture (rôles
+  `inscription`, `revocation` : journaux `RecorderRegistered`,
+  `RecorderRevoked`, décodés par `decoderJournal`) et le même résultat
+  qu'`ancrer`.
 - `capturer({ rpc, transactionHash, role, contrat, horloge, repertoire, instance, attendre, sending, attendu, point, recu })`
   applique CP-1 à CP-6 et écrit `bloc-<h>.json`, `recu-<hash>.json`,
   `certificat-<h>.json`, `capture-<h>-<index>-<rôle>.json` (noms exacts,
@@ -482,7 +512,14 @@ Contrat :
   `node.validator_id` de l'index).
 - `SignataireChaineFichier.depuisOctets(source)` lit une clé secp256k1 de 32
   octets (brut, hexadécimal, PKCS#8 PEM ou DER, SEC1 PEM) depuis des octets
-  résolus par l'appelant ; classe D, refusée en production par CT-2.
+  résolus par l'appelant ; classe D, refusée en production par CT-2 ;
+  `effacer()` (étape 7) remet la clé à zéro, toute signature est ensuite
+  refusée. Les classes B et C sont construites par l'enregistreur
+  (`paquets/enregistreur/src/cle-chaine.mjs`) sur cette même interface.
+- `signatureDepuisDer(hash32, der, adresse)` (étape 7) : séquence DER de deux
+  entiers (forme minimale exigée, aucun octet en trop, `r` et `s` dans
+  [1, n − 1]) ramenée à `s` bas, `v` ∈ {27, 28} trouvé en recouvrant
+  `adresse` ; sinon une erreur.
 
 ## E. Serveur RFC 3161 interne non qualifié (`src/serveur-interne/`, `bin/noortrace-tsa-interne`)
 
@@ -524,6 +561,15 @@ Contrat :
   écrit les clés (PKCS#8 PEM), les certificats, une CRL vide signée et
   `autorite.json` ; refuse d'écraser ; `publierCrl({ repertoire, horloge, revoques })`
   republie la CRL ; `chargerAutorite({ repertoire, compteur?, inclureAc? })`.
+- `GET /sante` rend 200 `ok` sans rien lire de l'autorité ni rien journaliser
+  (`CHEMIN_SANTE`) ; toute autre méthode que `POST` reste refusée (405).
+- `bin/noortrace-tsa-interne` : `init`, `servir`, `crl`, `ac --repertoire
+  <rep> [--crl]` (certificat de l'AC, ou CRL en vigueur, sur la sortie
+  standard ; aucune clé privée lue) et `sonde --url
+  http://127.0.0.1:<port>/sante` (0 sur 200 `ok` en 2 500 ms au plus, 1
+  sinon ; adresse hors de la boucle locale refusée sans connexion) : sonde du
+  service `horodatage` de l'installation rapide (CT-8 0.7), image
+  `noortrace/tsa-interne`.
 
 ## F. Assemblage : composant temps réel (`src/composant.mjs`), outil (`bin/noortrace-ancrage`), intégration à l'enregistreur
 
@@ -582,7 +628,13 @@ await composant.arreter({ attendre });
   - `listerPeriodes() → [{ manifeste, signature? }]` et `listerPoints() → point[]`
     (manifestes et séries durables, pour `stockage_relu` au démarrage,
     EX-8.12) ;
-  - `cleChaine` : `SignataireChaine` (CT-2 EX-11.19) ; `instance`
+  - `cleChaine` : `SignataireChaine` (CT-2 EX-11.19), relu à chaque envoi
+    (un accesseur est admis : le démon la bascule à la rotation, étape 7) ;
+    `cleChainePour(keyId)` (facultatif, étape 7) : la clé de chaîne sous
+    laquelle est inscrite la clé Ed25519 qui a signé le point ou le
+    manifeste (EX-11.19 point 3 ; à défaut `cleChaine`) ; `clesChaine()`
+    (facultatif) : les clés connues, pour retrouver l'expéditeur d'un envoi
+    à remplacer au même nonce ; `instance`
     (`{ evmChainId, bftChainId, contrats, fees, jeux }`) quand
     `clients.registre` ne la porte pas ;
   - `signaturesCloture(periodMeta, manifeste) → { signatures, membres, seuil, periodePrecedente }`
@@ -683,7 +735,8 @@ de l'enregistreur). Ce que l'enregistreur fournit au composant, exactement :
   (`cli.mjs`, avant `Coeur.demarrer`) rend `null` quand `anchoring.ancrage`
   est `null`, sinon un `BranchementAncrage` ; il lève
   `ErreurBranchementAncrage` (`raison: classe_cle_chaine`) pour une clé de
-  chaîne de classe A, B ou C et le démon refuse de démarrer (code 2). Tout
+  chaîne de classe A, ou `cle_chaine` pour une clé de classe B, C ou D
+  illisible ou d'une autre adresse, et le démon refuse de démarrer (code 2). Tout
   autre défaut est porté par l'objet (`etat().raison`) : le démon démarre,
   `anchoring_not_started` est consigné (`document_illisible`,
   `secret_non_resolu`, `instance_registre_absente`, `rpc_url_absente`,
@@ -712,9 +765,13 @@ de l'enregistreur). Ce que l'enregistreur fournit au composant, exactement :
   segments ; **`listerPeriodes()`** : `{ manifeste, signature }` de chaque
   `manifestes/periode-*.json` et `.sig` ; **`listerPoints()`** : toutes les
   séries.
-- **`contexte.cleChaine`** : `SignataireChaineFichier` construit depuis le
-  secret `anchoring.registry.chain_key.secret` (classe D), adresse confrontée
-  à `chain_key.address` ; `null` sans registre. **`contexte.instance`** :
+- **`contexte.cleChaine`** : signataire construit depuis
+  `anchoring.registry.chain_key` selon sa classe (B : AWS KMS
+  `ECC_SECG_P256K1` ; C : enveloppe AWS KMS déchiffrée en mémoire ; D :
+  `SignataireChaineFichier` ; étape 7, `INTERFACES.md` de l'enregistreur),
+  adresse confrontée à `chain_key.address` ; `null` sans registre ;
+  accesseur relu à chaque envoi ; **`contexte.cleChainePour(keyId)`** et
+  **`contexte.clesChaine()`** après une rotation (étape 7). **`contexte.instance`** :
   `instanceDepuisManifeste` du fichier `instance-registre.json` lu à côté du
   document `ancrage-v0` (lecture F2-4).
 - **`contexte.signaturesCloture(periodMeta)`** : rend

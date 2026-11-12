@@ -214,6 +214,25 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
       await b.fermer();
     });
 
+    // Étape 7 : la raison `serveur:<alias>` de la santé
+    // (EX-17.1) n'était pas dans `noortrace_degraded` : l'alerte « Mode dégradé,
+    // mineure pour serveur:* » de CT-2 §17.4 (CT-8 noortrace_mode_degrade_serveur)
+    // ne pouvait pas se déclencher.
+    it("EX-14.11, EX-17.1, §17.4 : un serveur injoignable met noortrace_degraded{reason=\"serveur:<alias>\"} à 1 (série posée à 0 au démarrage), comme la raison de santé ; revenu, la jauge repasse à 0", async function () {
+      const outils = Array.from({ length: 3 }, (_, k) => ({ name: `t${k}`, inputSchema: { type: "object" } }));
+      const b = await banc({ outils, demarrer: true, limits: { tools_list_max_items: 2 } });
+      const jauge = () => b.coeur.metriques.valeur("noortrace_degraded", { reason: "serveur:demo" });
+      expect(b.frontal.injoignables.has("demo")).to.equal(true);
+      expect(b.coeur.raisonsFrontal()).to.deep.equal(["serveur:demo"]);
+      expect(jauge()).to.equal(1);
+      expect(b.coeur.metriques.exposer()).to.include('noortrace_degraded{reason="serveur:demo"} 1');
+      b.coeur.config.limits.tools_list_max_items = 10;
+      await b.frontal.rafraichir("demo");
+      expect(b.frontal.injoignables.has("demo")).to.equal(false);
+      expect(jauge()).to.equal(0);
+      await b.fermer();
+    });
+
     it("EX-4.14 : cacheScope public sans jeton ni serveur `private` ; ttlMs du serveur moderne", async function () {
       const b = await banc();
       const l = await b.recevoir(ligne({ jsonrpc: "2.0", id: 1, method: "tools/list", params: { _meta: META } }));

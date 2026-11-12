@@ -154,7 +154,9 @@ par les crochets du cœur.
   annoncée et `tool_definition_changed` (EX-4.16) ; pages de
   `tools.page_size`, curseur opaque, instantané par parcours, liste servie
   par connexion d'hôte (EX-4.13, EX-4.45) ; `ttlMs`, `cacheScope`
-  (EX-4.14) ; serveur injoignable omis, santé `serveur:<alias>`, résolution
+  (EX-4.14) ; serveur injoignable omis, santé `serveur:<alias>` et jauge
+  `noortrace_degraded{reason="serveur:<alias>"}` à 1 (0 au démarrage et au
+  retour ; alerte de §17.4, étape 7), résolution
   sur la dernière liste reçue avec succès (EX-4.18) ; `list_changed` du
   serveur relu au plus une fois par intervalle, `charger`, notification à
   l'hôte qui écoute (EX-4.15).
@@ -425,7 +427,13 @@ Lot « WORM et haute disponibilité » (INTERFACES.md, section f) : `src/worm/`,
   d'intention, `i` sur chaque segment fermé et chaque manifeste (et sa
   signature), à chaque passage ; un segment fermé d'époque inférieure au
   dernier scellé n'est pas scellé (EX-13.5 (2)) ; `noortrace-attributs
-  sonde` pour la santé du service (CT-8). Le démon garde son descripteur
+  sonde` pour la santé du service (CT-8). Un répertoire ou des attributs
+  illisibles (sans `DAC_READ_SEARCH`, le compte 0 ne parcourt pas
+  `storage.root`) sont des erreurs du passage, consignées
+  (`attribute_unreadable`) : la sonde dit malade, `--une-fois` rend 1, et
+  une racine illisible ou absente arrête le compagnon en service (code 1,
+  `attribute_root_unreadable`) ; seul un sous-répertoire absent est vide
+  sans erreur (étape 7). Le démon garde son descripteur
   ouvert ; un fichier d'intention levé qu'il ne peut plus supprimer
   (attribut `a`) est gardé et consigné (`intention_file_kept`).
 - **Magasins de bail** (13.2) : `postgresql` (protocole écrit sur
@@ -563,16 +571,20 @@ cœur).
 - **Démarrage** (§15.4, pas 4 ; CT-5 EX-4.8, EX-4.9) : le document est lu en
   JSON strict, ses références de secrets (`auth.secret` des prestataires,
   `headers_source.auth`) sont résolues par `resoudreSecret` (`env`, `file`,
-  `vault`), la clé de chaîne de `anchoring.registry.chain_key` est
-  construite (classe D, `SignataireChaineFichier` du composant, adresse
-  confrontée), le manifeste d'instance du registre est lu dans
-  `instance-registre.json` à côté du document (lecture 199), puis le
+  `vault`), la clé de chaîne de `anchoring.registry.chain_key` et, quand
+  elle est posée, la suivante (`next_chain_key`) sont construites selon leur
+  classe de garde par `src/cle-chaine.mjs` (étape 7 : section « Clé
+  de chaîne et rotation au registre » ; adresse confrontée, condensé d'essai
+  recouvert, `chain_key_loaded`), le manifeste d'instance du registre est lu
+  dans `instance-registre.json` à côté du document (lecture 199), puis le
   composant est construit sur un contexte dont tout vient du stockage
   (séries `points/`, manifestes, segments, index des clés, époque du bail)
   et démarré après l'écrivain (`anchoring_attached`). Une clé de chaîne de
-  classe A, B ou C refuse le démarrage du démon :
-  `demarrage_refuse : ancrage : classe_cle_chaine : …` (code 2 ; étape 7,
-  lecture 200). Tout autre défaut laisse le démon démarrer : points et
+  classe A refuse le démarrage du démon :
+  `demarrage_refuse : ancrage : classe_cle_chaine : …` (code 2) ; une clé
+  illisible, un service injoignable ou une adresse différente aussi :
+  `demarrage_refuse : ancrage : cle_chaine : …` (code 2 ; lectures 200,
+  250). Tout autre défaut laisse le démon démarrer : points et
   manifestes sont produits, `anchoring_not_started` est consigné avec la
   raison (`document_illisible`, `configuration_invalide` et les règles d'AN-1
   en défaut, `secret_non_resolu` et le pointeur, `instance_registre_absente`,
@@ -620,9 +632,89 @@ cœur).
   `test/enregistreur-ancrage-corrections-h1.test.js` (R-G-1) ; le composant
   lui-même suit CT-5 révision 0.5 et CT-6 révision 0.5 (`LISEZMOI.md` du
   composant, « Vecteurs rejoués »).
-- **Restes** : clé de chaîne de classe A à C (étape 7) ; rotation d'urgence
-  au registre (`registre_non_branche`, lecture 202) ; clé
-  `anchoring.registry.instance` à inscrire dans CT-2.
+- **Restes** : clé de chaîne de classe A (aucun membre du schéma pour un
+  module, lecture 236) ; clé `anchoring.registry.instance` à inscrire dans
+  CT-2.
+
+## Clé de chaîne et rotation au registre (étape 7)
+
+`src/cle-chaine.mjs` construit un `SignataireChaine` du composant d'ancrage
+(`adresse()`, `signerCondense(hash32)`) pour `anchoring.registry.chain_key`
+et `next_chain_key`. Le schéma ne porte que `class`, `address`, `secret` et
+`service_url` (`https://` ou nul) ; leur lecture par classe (lecture 236) :
+
+| Classe | `service_url` | `secret` résout | Où est la clé |
+|---|---|---|---|
+| B (service de signature) | point d'accès AWS KMS `https://kms.<région>.amazonaws.com` | l'ARN d'une clé `ECC_SECG_P256K1` (`SIGN_VERIFY`, `ECDSA_SHA_256`) | dans le KMS ; chaque condensé est signé par `Sign` (`MessageType: DIGEST`), la signature DER ramenée à `s` bas et `v` recouvré |
+| C (enveloppe) | le même point d'accès AWS KMS | le `CiphertextBlob` brut d'`Encrypt` du scalaire de 32 octets, contexte `org_id`, `journal_id`, `key_id` = l'adresse déclarée | déchiffrée par `Decrypt` au démarrage, dans la mémoire du démon, effacée à l'arrêt (EX-11.9) |
+| D (fichier) | nul | la clé en clair (brut, hexadécimal, PKCS#8, SEC1) | en mémoire ; refusée en production par la validation |
+| A (module) | — | — | non servie : refus `classe_cle_chaine` |
+
+Identité IAM et point d'accès comme le signataire AWS KMS (lectures 182,
+193) : `AWS_ACCESS_KEY_ID`… ou IMDSv2, `AWS_ENDPOINT_URL_KMS` ou
+`AWS_ENDPOINT_URL` (le banc les pointe vers LocalStack). Au démarrage, la
+clé est construite, son adresse comparée à `address`, et un condensé
+d'essai signé puis recouvert (CT-7 §5.4, pas 6) ; tout échec refuse le
+démarrage (`cle_chaine`). Le journal d'exploitation porte
+`chain_key_loaded` (`member`, `class`, `address`, `service`, `key_arn`,
+`region`), jamais la clé ni l'enveloppe.
+
+Le composant relit la clé de chaîne à chaque envoi (`contexte.cleChaine`
+est lu à la demande) et choisit, pour un point ou un manifeste, celle sous
+laquelle la clé Ed25519 qui l'a signé est inscrite
+(`contexte.cleChainePour(keyId)`, EX-11.19 point 3).
+
+**Rotation relayée au registre** (`noortrace-ctl cle rotation-urgence` ;
+CT-2 EX-11.16, EX-11.19 point 4 ; CT-4 §8.4 ; lectures 237 à 240). Le démon
+relaie au registre les opérations au seuil depuis les demandes de
+signature (`demande_signature` de CT-4 §7.7) que l'exploitant a fait signer
+par les approbateurs et déposées, comme la demande de clôture, sous
+`<journal>/registre/demande-<operation>-<adresse de la clé de chaîne>.json`
+(`demande-inscription-<nouvelle>.json`, `demande-revocation-<ancienne>.json`) ;
+chaque demande est contrôlée avant tout envoi (opération, organisation,
+journal, clé de chaîne et clé Ed25519 attendues, OP-6 et OP-7 au seuil),
+puis relayée par l'`Envoyeur` du composant avec `next_chain_key` comme
+expéditeur (capture `inscription` ou `revocation`, CT-4 §9.4) :
+
+- `signer.rotation.next_key_id` et `next_chain_key` posés : rotation
+  d'urgence d'EX-11.16 dans son ordre : (1) inscription de la nouvelle paire
+  (déjà inscrite par l'outil du registre, ou relayée ; sans demande :
+  refus `inscription_demande_absente`, rien n'est écrit) ; (2) événement de
+  rotation ; (3) révocation de l'ancienne clé de chaîne, relayée si sa
+  demande est déposée, sinon `chain_key_revocation_pending` (à faire par
+  `revoquer-cle`). Les documents de la nouvelle clé Ed25519 sont ensuite
+  ancrés par la nouvelle clé de chaîne, ceux des clés antérieures par
+  l'ancienne. `key_rotation_emergency` porte `registry: { inscription,
+  revocation }` (`incluse`, `deja_faite`, `en_attente`, `refusee:<code>`).
+- `next_chain_key` seule : rotation de la seule clé de chaîne (JS-5) :
+  révocation de l'ancienne, puis inscription de la même clé Ed25519 sous la
+  nouvelle (entre les deux, les ancres attendent), bascule
+  (`chain_key_switched`) ; aucun événement n'est écrit dans la chaîne ;
+  `key_rotation_emergency` porte `chain_key_only: true`. Refus nommés :
+  `revocation_demande_absente`, `inscription_demande_absente`,
+  `…_demande_invalide`, `revocation_refusee`, `inscription_refusee`,
+  `cle_chaine_suivante_absente`.
+- Registre activé sans composant d'ancrage branché sur lui : refus
+  `registre_non_branche` (inchangé) ; registre désactivé : pas 1 et 3 sans
+  objet (lecture 194).
+
+Au démarrage, si le registre montre l'ancienne clé de chaîne révoquée et
+`next_chain_key` active pour la clé Ed25519 courante (rotation faite par
+l'outil du registre pendant l'arrêt), le démon bascule
+(`chain_key_switched`, `reason: demarrage`). La nouvelle clé de chaîne n'est
+retenue qu'en mémoire : l'exploitant reporte la rotation dans la
+configuration (`chain_key` ← la nouvelle, `next_chain_key` ← nul) avant le
+prochain redémarrage (sinon la bascule se refait au démarrage).
+
+Essais : `test/enregistreur-cle-chaine-etape7.test.js` (signature DER,
+refus nommés, classes B et C contre le KMS de LocalStack, démon en
+production refusé avec une classe A ou une mauvaise adresse, rotations
+relayées sur le nœud noorcore factice) ;
+`test/enregistreur-cle-chaine-etape7-reseau.test.js` (réseau de
+développement 2124 : démon en production sous la clé de chaîne de classe C
+du modèle de production, dossier vérifié, contrôles 4 et 8 ; complément de
+TE-14 pour JS-5, rotation vers une clé de classe B ; en attente sans réseau,
+sans Docker ou sans parcours, condition nommée).
 
 ## Export du dossier et demandes du démon (CT-2 révision 0.8, §15.7)
 
@@ -784,6 +876,9 @@ noortrace-ctl ancrage etat [--configuration configuration.json]                 
 noortrace-ctl ancrage metriques [--configuration configuration.json]                # noortrace_anchor* lues sur /metrics de la supervision
 noortrace-ctl ancrage retirer-qualification <id> [--configuration configuration.json]   # CT-5 EX-5.9 : retrait de `qualified`, relève des demandes en cours
 noortrace-ctl dossier exporter --ticket apr-2201 --vers /var/lib/noortrace-exports/apr-2201 [--configuration configuration.json] [--delai-ms 120000]   # CT-2 EX-15.9 à EX-15.14
+noortrace-ctl sonde --url http://127.0.0.1:8500/readyz                 # sonde des fichiers Compose (CT-8 §4.4) : 0 sur 200, 1 sinon ; lecture 232
+noortrace-ctl etat [--configuration configuration.json] [--delai-ms 5000]   # /healthz, /readyz, époque du bail (CT-8 EX-10.14) ; lecture 233
+noortrace-ctl close-period --now [--configuration configuration.json] [--delai-ms 30000]   # développement seulement ; TERMINE le journal (CT-2 EX-19.4) ; lecture 234
 ```
 
 `noortrace-ctl reload` et `clock --accept` n'ouvrent aucune prise (EX-18.1) :
@@ -824,9 +919,10 @@ d'exploitation (`model_gateway_listening`, `model_icap_listening`,
 `model_mirror_listening`) ; le registre de corrélation est remis au frontal
 MCP. Un frontal qui ne peut pas écouter (adresse prise, certificat
 illisible) empêche le démarrage : `demarrage_refuse : frontal_modele :
-<cause>`, code 2. Une clé de chaîne d'une classe que ce lot ne sert pas
-l'empêche aussi : `demarrage_refuse : ancrage : classe_cle_chaine : <cause>`
-(section « Ancrage »).
+<cause>`, code 2. Une clé de chaîne de classe A, ou une clé de chaîne
+illisible ou d'une autre adresse, l'empêche aussi : `demarrage_refuse :
+ancrage : classe_cle_chaine | cle_chaine : <cause>` (section « Clé de chaîne
+et rotation au registre »).
 
 Avec `sdk.enabled`, le démon écoute sur la prise `sdk.socket` (ou
 `sdk.tcp_listen`) les méthodes `noortrace/sdk/*` ; un agent Node.js y parle
@@ -928,10 +1024,11 @@ politiques, clés) se dérivent des segments à la reprise.
 | `signataires/enveloppe.mjs`, `signataires/azure.mjs`, `signataires/tpm2.mjs` | classe C : graine enveloppée ; Azure `unwrapKey` ; descellement TPM 2.0 | EX-11.9 |
 | `signataires/rapprochement.mjs` | rapprochement des signatures (`noortrace-ctl cle rapprocher`) | CT-7 EX-3.7 |
 | `secrets-vault.mjs` | références de secrets `{ "vault" }` (lecture KV au démarrage et au rechargement) | 15.2 |
-| `bail.mjs` | bail (interface, magasin `file` : `flock(2)` tenu par `flock(1)`, lecture 148) | §13 (part du cœur), 13.2 |
+| `bail.mjs` | bail (interface, magasin `file` : `flock(2)` tenu par `flock(1)`, sans interpréteur de commandes, lectures 148 et 235) | §13 (part du cœur), 13.2 |
 | `verification.mjs` | vérification complète d'un répertoire de journal (segments, signatures avec les clés de la chaîne, manifestes, séries, pièces) | EX-12.10 pas 2, EX-12.17, CT-8 EX-11.6 |
 | `controles.mjs` | contrôles périodiques d'EX-17.5 hors WORM (période close, signataire, relecture quotidienne) | EX-17.5 |
-| `ctl-demon.mjs`, `bin/noortrace-ctl` | `noortrace-ctl reload`, `noortrace-ctl clock --accept`, `noortrace-ctl cle rotation-urgence`, `noortrace-ctl ancrage etat|metriques|retirer-qualification`, `noortrace-ctl dossier exporter` ; demandes par création exclusive ; journal suivi à travers la rotation | EX-15.5, EX-7.13, EX-18.1, EX-15.9, EX-15.10, EX-17.4 ; CT-5 EX-5.9 |
+| `ctl-demon.mjs`, `bin/noortrace-ctl` | `noortrace-ctl reload`, `noortrace-ctl clock --accept`, `noortrace-ctl cle rotation-urgence`, `noortrace-ctl ancrage etat|metriques|retirer-qualification`, `noortrace-ctl dossier exporter`, `noortrace-ctl close-period --now` (étape 7, lecture 234) ; demandes par création exclusive ; journal suivi à travers la rotation | EX-15.5, EX-7.13, EX-18.1, EX-15.9, EX-15.10, EX-17.4, EX-19.4 ; CT-5 EX-5.9 |
+| `ctl-sante.mjs` | `noortrace-ctl sonde --url` (sonde des fichiers Compose) et `noortrace-ctl etat` (`/healthz`, `/readyz`, époque du bail) ; étape 7, lectures 232 et 233 | EX-17.1, §17.2 ; CT-8 §4.4, EX-10.14 |
 | `demandes-demon.mjs` | lecture des demandes du démon (fichier de demande, SIGURG) et leurs refus ; domaines d'EX-15.9 | EX-15.10 pas 5, EX-15.14 |
 | `export-dossier.mjs` | export d'une demande `dossier` : refus d'EX-15.12, choix de l'événement (fil de calcul), écriture atomique, restes supprimés à l'acquisition du bail | EX-15.11 à EX-15.14 ; CT-7 EX-3.16 |
 | `lui-meme.mjs` | journal sur lui-même | §9.1 |
@@ -1014,9 +1111,8 @@ suspension pendant un gel) ; image `noortrace/attributs` du compagnon
 versions, lecture et écriture d'un objet sur Azure et Google Cloud Storage,
 que CT-2 0.5 ne fixe pas (lecture 84), et donc le gel sur ces supports
 au-delà des requêtes de gel et de lecture d'état ; part de l'ancrage (CT-5)
-et du registre (CT-4) non faite : clé de chaîne de classe A à C (EX-11.19,
-étape 7 : le démon refuse de démarrer avec une telle classe), rotation
-d'urgence relayée au registre (`registre_non_branche`, lecture 202), outil
+et du registre (CT-4) non faite : clé de chaîne de classe A (EX-11.19 ;
+classes B et C servies à l'étape 7), outil
 d'export hors démon ; exportateur complet de CT-6 ; démonstration (§19).
 
 ## Lectures de passages ambigus
@@ -2129,7 +2225,8 @@ EX-4.39 ; table de 15.1, ligne `mcp` : « prise TCP des connecteurs
      démon doit contenir util-linux (essayé avec 2.39.3). Le détenteur du
      descripteur est l'auxiliaire et non le démon lui-même : c'est la seule
      façon conforme sans dépendance native trouvée ; la mort de l'un entraîne
-     la libération, comme le texte le demande.
+     la libération, comme le texte le demande. Étape 7 : l'auxiliaire
+     n'appelle plus d'interpréteur de commandes (lecture 235).
 149. **Reconstruction et premier démarrage sur un journal reconstruit :
      signatures, pièces, séries vérifiées** (EX-12.17 ; CT-8 EX-11.6 : « les
      fichiers restaurés sont identiques octet pour octet à ceux que le
@@ -2165,9 +2262,17 @@ EX-4.39 ; table de 15.1, ligne `mcp` : « prise TCP des connecteurs
      connexion (`SO_PEERCRED`) sans module natif. Lecture : avant chaque
      message, le client vérifie que la prise est une prise dont le
      propriétaire (le processus qui l'a créée) est `peer_user`, et que son
-     répertoire appartient au compte 0 ou à `peer_user` et n'est
-     inscriptible ni par le groupe ni par les autres : nul autre ne peut
-     alors substituer une prise sous ce nom ; un écart vaut indisponibilité
+     répertoire et chacun de ses parents appartiennent au compte 0, à
+     `peer_user` ou au démon et ne sont inscriptibles par le groupe qu'avec
+     le bit collant, le répertoire de la prise jamais par les autres (même
+     règle que la prise MCP, EX-4.39, lecture 157) : le bit collant
+     interdit à un autre membre du groupe de renommer ou de supprimer la
+     prise de `peer_user`, nul autre ne peut alors substituer une prise sous
+     ce nom. C'est ce qui admet le répertoire commun de CT-8 EX-3.5
+     (`/run/noortrace`, compte 0, groupe des prises 10010, mode `3770`) ;
+     jusqu'à l'étape 7, tout répertoire inscriptible par le groupe
+     était refusé, et chaque appel au service en production l'était aussi.
+     Un écart vaut indisponibilité
      (`pair_non_verifie`, raison `peer_user_inconnu`, `proprietaire_prise`,
      `repertoire_inscriptible` ou `prise_absente`), matrice de 14.2. La
      configuration v0 ne porte aucun réglage mTLS du client : une `url` sans
@@ -2521,7 +2626,15 @@ Lectures du lot « signataires » (classes A, B et C, §11) :
      `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`. Points
      d'accès : ceux des fournisseurs, ou `AWS_ENDPOINT_URL_KMS` /
      `AWS_ENDPOINT_URL`, `CLOUDSDK_API_ENDPOINT_OVERRIDES_CLOUDKMS`,
-     `AZURE_AUTHORITY_HOST` (variables de ces kits). Non faits : identité
+     `AZURE_AUTHORITY_HOST` (variables de ces kits). AWS, sans ces
+     variables : fichier des kits d'AWS désigné par
+     `AWS_SHARED_CREDENTIALS_FILE` (`[<profil>]`) ou `AWS_CONFIG_FILE`
+     (`[default]`, `[profile <profil>]`), profil `AWS_PROFILE` ou `default`,
+     relu à chaque appel ; c'est la forme du conteneur de production
+     (`AWS_CONFIG_FILE=/run/secrets/identite-aws`, secret `identite-aws` de
+     `production.yaml`), CO-9 refusant tout secret dans l'environnement
+     (étape 7) ; un fichier illisible ou sans les deux clés est un
+     refus `identite` qui ne cite rien du fichier. Non faits : identité
      d'instance (métadonnées EC2, GCE, identité managée Azure), identifiants
      de conteneur et de fédération (identités d'instance AWS et Google :
      lecture 193).
@@ -2992,6 +3105,179 @@ d'ancrage).
      ne porte aucune pièce » : le nom de l'erreur (`TypeError`…) et son code
      éventuel, jamais son message, qui peut reprendre un contenu lu.
 
+### Étape 7 : commandes du démon et bail sans interpréteur
+
+Essais : `test/enregistreur-ctl-etape7.test.js` ; suites rejouées :
+`test/enregistreur-coeur-reprise.test.js` (R-A-5),
+`test/enregistreur-ha-*.test.js` (TE-11), TA-10 et TA-19 de
+`test/adversarial.test.js`, `test/enregistreur-demandes-demon.test.js`.
+Les trois commandes sont des exigences de construction de CT-8 (§4.4,
+EX-10.14, IR-8 ; PD-2), fixées depuis par CT-2 0.10 (§15.8, EX-15.16 à
+EX-15.18).
+
+232. **`noortrace-ctl sonde --url <url>`** (CT-8 §4.4 : « exigence de
+     construction de l'image, que CT-8 ne précise pas au-delà de sa forme » ;
+     CO-12 : forme `CMD`, image sans interpréteur). `GET <url>` en HTTP,
+     sans corps, sans authentification, sans suivre de redirection ; code 0
+     sur une réponse 200 et seulement elle ; 1 dans tout autre cas, délai
+     écoulé, connexion refusée, URL refusée et usage incorrect compris (un
+     moteur de conteneurs ne lit que 0 et 1 ; 2 est réservé) ; « 200 » sur la
+     sortie standard, la raison d'un échec sur la sortie d'erreur. L'URL est
+     en `http:` sur une adresse de boucle locale écrite en clair
+     (127.0.0.0/8 ou `[::1]`), sans identifiants ; un nom, même `localhost`,
+     est refusé (sa résolution dépend de fichiers que la sonde ne contrôle
+     pas). Délai total : 2 500 ms, sous le `timeout: 3s` des deux fichiers
+     Compose (la valeur de `noortrace-approbation sonde`, CT-3 EX-12.22). La
+     commande ne lit aucune configuration, ne cherche aucun processus et
+     n'en lance aucun ; `bin/noortrace-ctl` ne charge pour elle que
+     `src/ctl-sante.mjs`. `/readyz` rend 200 quand les frontaux écoutent et
+     que le bail est détenu (EX-17.1) : une instance passive est donc
+     « malsaine » pour le moteur, ce que le répartiteur de CT-8 EX-3.11
+     attend.
+233. **`noortrace-ctl etat`** (CT-8 EX-10.14 : « rend `GET /healthz` et
+     `/readyz` (CT-2 EX-17.1) et l'époque du bail »). Le démon est trouvé
+     comme pour les autres commandes (`/proc`, même utilisateur, filtré par
+     `--configuration`) ; la commande lit `supervision.health_listen` de sa
+     configuration (`0.0.0.0` et `::` remplacés par la boucle locale de leur
+     famille) et y lit `/healthz`, `/readyz` et, si `supervision.metrics`
+     est vrai, la jauge `noortrace_lease_epoch` de `/metrics` (§17.2 :
+     « Époque du bail détenu ; 0 si non détenu ») : aucune prise nouvelle,
+     aucun canal nouveau (EX-18.1). Une ligne JSON par démon : `pid`,
+     `configuration`, `health_listen`, `status`, `reasons`, `since` (corps
+     de `/healthz`), `healthz`, `readyz` (statuts HTTP), `lease_epoch` (null
+     sans métriques). Codes : 0 si chaque démon rend `ok` et `/readyz` 200 ;
+     1 si un démon répond autrement (`degraded`, `down`, `standby`, pas
+     prêt) ; 2 usage ou configuration illisible ; 4 aucun démon ou écoute
+     muette dans le délai (5 000 ms par défaut, `--delai-ms`) : le « muet »
+     de RB-1 et de 11.4 chemin A pas 1. La commande ne dit pas si le journal
+     est terminé par une clôture anticipée : `/healthz` n'a pas de raison
+     pour cela (EX-17.1, liste fermée) ; la ligne `period_closed_early` du
+     journal d'exploitation le dit.
+234. **`noortrace-ctl close-period --now`** (CT-2 EX-19.4 ; CT-8 IR-8,
+     RB-3). Admise seulement en développement : la commande lit
+     `recorder.environment` de la configuration du démon visé et, autre que
+     `developpement`, refuse sans écrire de demande ni envoyer de signal
+     (code 1, message sur la sortie d'erreur) ; le démon refuse de même
+     (`period_close_refused`, raison `production`). Sinon, demande
+     `cloture-anticipee` (`request_id`, `pid`, `at`) par le fichier de
+     demande et SIGURG, comme `dossier exporter` ; réponse reconnue à son
+     `request_id` : `period_closed_early` (`info`, `cloture` ; `data` :
+     `period_start`, `period_end`, `count`, `period_hash`, `generated_at`),
+     code 0 ; `period_close_refused` (`warning`, `cloture` ; `raison` :
+     `production`, `instance_non_active`, `journal_clos`, `journal_vide`,
+     `mode_degrade` ; `environment` ; `reasons`) ou `ctl_request_failed`,
+     code 1 ; 2 usage (`--now` exigé) ou démon ambigu ; 4 aucun démon,
+     fichier de demande occupé, signal impossible ou pas de réponse dans le
+     délai (30 000 ms par défaut). Ces deux lignes sont écrites quel que soit
+     le niveau du journal d'exploitation (`LIGNES_SANS_FILTRE`). La clôture
+     **termine** le journal, comme EX-19.4 le dit (« la période close
+     contient l'instant de la clôture, et un événement ultérieur y
+     tomberait ») : les clôtures échues d'abord, puis la période courante est
+     close à l'instant de l'horloge (point de clôture, manifeste signé,
+     remise à l'ancrage, copies WORM, comme à l'heure pleine), avec
+     `generated_at` = max(instant, dernier `ts`) < `period_end` ; ensuite
+     l'écrivain refuse tout événement et toute intention (`journal_clos`),
+     les frontaux MCP et SDK rendent `-31010` `journal_clos` **même en mode
+     observation** (comme `bail_non_detenu`), le frontal modèle `503` de
+     raison `journal_clos`, l'ingestion OTLP `503` ; la rotation d'urgence
+     est refusée (`journal_clos`) ; aucune clôture ni aucun point n'est
+     produit aux heures suivantes. Le journal le reste après un redémarrage :
+     un dernier manifeste à `generated_at` antérieur à son `period_end`
+     (ce qu'une clôture à l'heure pleine ne produit jamais, CT-1 §10.1 :
+     « ≥ `period_end` en temps nominal ») marque un journal terminé
+     (`relireJournal` → `journalClos`) ; aucun fichier nouveau n'est écrit.
+     Refus sans rien clore : journal sans événement (`journal_vide`), mode
+     dégradé `stockage`, `cle`, `bail`, `horloge` ou événements en attente
+     (`mode_degrade`, avec les raisons), saut d'horloge. Écart avec CT-8 §7
+     (installation rapide qui continuerait d'observer après IR-8) : relevé
+     à CT-8 (IR-8, révision 0.6).
+235. **Bail `file` sans interpréteur de commandes** (images sans interpréteur ; CT-8
+     CO-12, EX-4.4). L'auxiliaire était `flock … -c "echo verrou_pris; exec
+     cat >/dev/null"` avec `SHELL=/bin/sh` : il exigeait `/bin/sh` et `cat`.
+     Il est désormais `flock --exclusive --nonblock --close
+     --conflict-exit-code 75 <lease.store.path> <node> -e
+     <SCRIPT_AUXILIAIRE>` : `flock(1)` exécute (execvp) le programme Node.js
+     du démon (`process.execPath`), qui écrit `verrou_pris` puis lit son
+     entrée standard jusqu'à la fin de fichier ; `--close` : seul `flock(1)`
+     tient le descripteur verrouillé ; `NODE_OPTIONS` n'est pas transmis.
+     Même sémantique : exclusion par `flock(2)` sur le même fichier ;
+     libération par le noyau à la mort de `flock(1)`, qui suit la fin de sa
+     commande, qui suit la fermeture du tube à la mort du démon (SIGKILL
+     compris) ; un démon figé garde le verrou ; un `flock(1)` tué seul rend
+     le verrou et le bail n'est plus valide (TA-19, TE-11 inchangés : ils
+     tuent toujours l'enfant `flock` du démon). `flock(1)` reste nécessaire :
+     Node.js n'offre ni `flock(2)` ni `fcntl(F_SETLK)` sans module natif, et
+     un verrou d'une autre nature (verrou POSIX, prise abstraite) n'exclurait
+     pas une instance qui tient le verrou `flock(2)` (les deux familles de
+     verrous sont indépendantes sous Linux) ni deux conteneurs d'espaces
+     réseau distincts. Coût : l'auxiliaire Node.js occupe environ 7 Mo de
+     mémoire propre (mesuré : `RssAnon` 7 Mo, `RssFile` 37 Mo partagés avec
+     le démon), contre moins de 1 Mo pour `cat`. L'image du démon doit
+     contenir `flock` (util-linux) et Node.js ; ni `/bin/sh` ni `cat`.
+
+### Étape 7 : clé de chaîne des classes B et C, rotation relayée au registre
+
+Numérotées 236 à 240, à la suite des lectures 232 à 235 des commandes du
+démon.
+
+236. **Membres de `chain_key` par classe** (CT-2 EX-11.19 point 1 : « classe
+     de garde A à D comme en 11.2, backend ou référence de secret,
+     adresse » ; schéma : `class`, `address`, `secret` — « matière de la clé
+     (classes C et D) ou accès au service qui la détient (classes A et B) » —
+     et `service_url`, `https://` ou nul). Aucun membre ne nomme un backend.
+     Lecture : `service_url` désigne le service, AWS KMS seul, par son point
+     d'accès régional (`https://kms.<région>.amazonaws.com`) ; depuis
+     l'étape 7, toute URL `https://kms.<région>.<domaine>` (ou
+     `kms-fips.`), sans chemin, est admise : la région est lue dans le nom,
+     et les requêtes vont à `service_url` lui-même, sauf
+     `AWS_ENDPOINT_URL_KMS` ou `AWS_ENDPOINT_URL` (bancs d'essai) ; le
+     modèle de production porte `https://kms.eu-central-2.amazonaws.example`,
+     que l'exploitant remplace (IC-14) ; en classe C,
+     `secret` résout l'enveloppe (`CiphertextBlob` d'`Encrypt`, qui désigne
+     elle-même sa clé) ; en classe B, `secret` résout l'ARN de la clé
+     `ECC_SECG_P256K1` (l'« accès » au service ; l'identité IAM est celle du
+     démon, comme pour le signataire, lectures 182 et 193). Classe C avec
+     `service_url` nul (l'exemple de CT-2 §15.3) : refus nommé, faute de
+     savoir qui déchiffre. Classe A : non servie, le schéma n'ayant aucun
+     membre pour un module PKCS#11 (bibliothèque, jeton, étiquette, code PIN)
+     et `service_url` n'admettant que `https://`. Choix des services, d'après
+     les essais du banc (`etape7/E-rapport.md` de l'étape) : Vault 1.20.4 et
+     OpenBao 2.4.3 Transit refusent tout type de clé secp256k1 (« unknown key
+     type ») ; swtpm (libtpms) n'a pas la courbe (`tpm2_getcap ecc-curves` :
+     NIST P-192 à P-521, BN, SM2) ; SoftHSM2 2.6.1 signe en secp256k1
+     (`CKM_EC_KEY_PAIR_GEN`, `CKM_ECDSA`) mais vaut la classe D (11.2) et
+     n'est pas configurable ; LocalStack 4.0 sert `ECC_SECG_P256K1`
+     (`Sign` `DIGEST`, signatures DER à `s` haut une fois sur deux environ)
+     et `Encrypt`/`Decrypt`.
+237. **Contexte de chiffrement de la classe C** (EX-11.9 : `org_id`,
+     `journal_id`, `key_id`, rien de sensible). Une clé de chaîne n'a pas de
+     `key_id` : son adresse en tient lieu (`key_id` = `address`), ce qui lie
+     l'enveloppe à l'adresse déclarée (une enveloppe d'une autre adresse ne
+     se déchiffre pas).
+238. **Canal des opérations au seuil** (CT-2 EX-11.16, CT-8 EX-10.14 :
+     « exécute les pas de CT-2 EX-11.16 dans leur ordre » ; CT-4 §8.4 : les
+     commandes `inscrire-cle`, `revoquer-cle` de l'outil ; CT-4 EX-7.3 :
+     `fichier:` et `env:` « ne sont admis en production que pour une clé de
+     chaîne via le backend de l'enregistreur (classes A à C) »). Le démon
+     tient le backend de la clé de chaîne : il relaie l'inscription et la
+     révocation depuis des demandes signées au seuil déposées sous
+     `<journal>/registre/demande-<operation>-<adresse>.json`, comme la
+     demande de clôture (lecture 198). Expéditeur : `next_chain_key`, la clé
+     saine (la clé d'une rotation d'urgence est suspecte) ; elle doit être
+     approvisionnée avant (CT-4 §8.4, première colonne).
+239. **Rotation de la seule clé de chaîne** (EX-11.19 point 4, CT-7 JS-5) :
+     aucune commande ne la nomme. Elle passe par `cle rotation-urgence` quand
+     `next_chain_key` est posée sans `signer.rotation.next_key_id` ; ordre
+     de CT-4 §8.4 (révoquer, puis inscrire) ; aucun événement de la chaîne.
+240. **Ancres des documents de l'ancienne clé après une rotation
+     d'urgence** (EX-11.19 point 3 : « les périodes dont le manifeste est
+     signé par l'ancienne clé sont ancrées avec l'ancienne `chainKey` » ;
+     EX-11.16 : révocation aussitôt après l'événement). Après la révocation,
+     l'ancienne clé de chaîne n'est plus active : `anchor` de ses documents
+     restants est refusé avant l'envoi (OP-9, `cle_chaine_non_inscrite`) et
+     reste en attente ; c'est la conséquence voulue d'une rotation d'urgence
+     (EX-11.17), dite ici.
+
 ## À corriger dans CT-2
 
 - **Signataires** (lot « signataires » ; lectures 175, 176, 177, 181) : le
@@ -3081,6 +3367,8 @@ npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-exigences.te
 NOORTRACE_VERIFIER_BIN=<binaire Go de CT-6> npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-parcours.test.js
 NOORTRACE_VERIFIER_BIN=<binaire Go de CT-6> npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-exigences.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-journal-soi.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-cle-chaine-etape7.test.js
+NOORTRACE_PARCOURS_REGISTRE=<sortie d'npm run e2e:registre> NOORTRACE_VERIFIER_BIN=<binaire Go de CT-6> npx hardhat --config hardhat.config.mjs test test/enregistreur-cle-chaine-etape7-reseau.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-signataires-exigences.test.js
 NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-signataires-parcours.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-attributs.test.js

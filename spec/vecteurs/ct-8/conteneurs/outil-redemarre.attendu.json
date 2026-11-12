@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "outil-redemarre.yaml",
-    "sha256": "0f9c2c733e9d7fbe4c2146206638cc984c1d64ee3b295ba24d6be6ef35b7e465",
+    "sha256": "8357bd339781dbc4341b986f8c700c772835b245a723b7e58d4cfdc757d1b0d2",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

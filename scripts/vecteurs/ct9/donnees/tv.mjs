@@ -2683,15 +2683,53 @@ export const TV = [
     "oracle": "Zéro discordance ; mêmes verdicts que l'implémentation JavaScript sur les mêmes entrées ; deux binaires aux mêmes octets ; les quatre preuves réussies.",
     "status": {
       "state": "executable",
+      "tests": [
+        {
+          "file": "test/publication-etape7.test.js",
+          "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+          "it": "TV-55, complément (étape 7) : deux préparations de la version à blanc, chacune avec son cache Go neuf, donnent les mêmes fichiers aux mêmes octets ; binaires d'un second constructeur égaux acceptés par --temoin, un octet changé refusé (code 1, rien sous --sortie)"
+        },
+        {
+          "file": "test/publication-etape7.test.js",
+          "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+          "it": "TV-55, complément (étape 7) : SHA256SUMS exact (une ligne « <sha256>  <nom> » par fichier, triée, recalculée ; sha256sum --strict -c rend 0) ; binaires ELF amd64 et arm64 ; go version -m de go1.27.3 avec CGO_ENABLED=0 et -trimpath ; LICENSE, NOTICE et LICENCES-TIERCES du dépôt"
+        },
+        {
+          "file": "test/publication-etape7.test.js",
+          "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+          "it": "TV-55, complément (étape 7) : archive de déploiement ustar déterministe, égale octet pour octet à la recette GNU tar d'EX-13.15 sur ses fichiers extraits par tar -xkf, dont SHA256SUMS se vérifie ; découpage nom et préfixe d'un nom de 103 octets égal à GNU tar ; nom non représentable refusé"
+        },
+        {
+          "file": "test/publication-etape7.test.js",
+          "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+          "it": "TV-55, complément (étape 7) : SHA256SUMS signé au format minisign par une clé d'essai éphémère (en mémoire, détruite) : signature vérifiée avec le commentaire de confiance de la note (version et date), puis refusée après falsification de SHA256SUMS, du commentaire de confiance, de la signature ou de la clé"
+        },
+        {
+          "file": "test/publication-etape7.test.js",
+          "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+          "it": "TV-55, complément (étape 7) : note de version remplie depuis le gabarit (SHA-256 des binaires et de l'archive, go version -m, images noortrace/* de images.json non publiées, ou leur condensé par --condenses) ; provenance in-toto SLSA v1 préparée, non signée, sujets égaux aux fichiers de SHA256SUMS et à SHA256SUMS"
+        },
+        {
+          "file": "test/publication-etape7.test.js",
+          "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+          "it": "TV-55, complément (étape 7) : preparer-version.mjs refuse une option manquante, invalide ou une sortie existante (code 2), une autre chaîne que go1.27.3 et --exiger-arbre-propre sur un autre commit que HEAD (code 1), sans rien laisser sous --sortie"
+        },
+        {
+          "file": "test/publication-etape7.test.js",
+          "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+          "it": "TV-55 et TQ-8, complément (étape 7) : .github/workflows/version.yml ne se déclenche qu'à la main ou sur une étiquette v*, n'a que contents: read, épingle chaque action par SHA de commit d'une version publiée plus de deux semaines avant, Node.js par version exacte, l'image de construction et Go par empreinte, et ne contient aucune étape de publication, de signature ni d'attestation"
+        }
+      ],
       "ci_steps": [
         "binaire vérificateur Go, gofmt, vet et rejeu des dossiers CT-1 et CT-6 (zéro discordance)",
         "binaire vérificateur Go, deux constructions reproductibles aux mêmes octets (CT-6 EX-14.6, EX-14.8)",
-        "binaire vérificateur Go, preuves d'absence de réseau (CT-6 EX-14.5)"
+        "binaire vérificateur Go, preuves d'absence de réseau (CT-6 EX-14.5)",
+        "version préparée à blanc, deux préparations aux mêmes octets (TV-55, TQ-8), aucun essai en attente"
       ],
-      "command": "cd verificateur && go test ./...",
+      "command": "npx hardhat --config hardhat.config.mjs test test/publication-etape7.test.js && cd verificateur && go test ./...",
       "complement": {
-        "phase2_step": 7,
-        "blocking": "Publication d'une version du binaire (CT-6 EX-14.7 : image de construction et actions épinglées par empreinte ; EX-14.9 : binaires linux/amd64 et linux/arm64, SHA256SUMS signé, sortie de go version -m ; EX-14.10 : NOTICE du binaire diffusé) : étape 7, paquets."
+        "phase2_step": 8,
+        "blocking": "Signature minisign réelle de `SHA256SUMS` et publication d'une version (CT-6 EX-14.9) : la préparation de l'étape 7 écrit binaires, `go version -m`, `SHA256SUMS`, `LICENCES-TIERCES`, `NOTICE`, archive, note de version et provenance non signée, sans rien publier ; la signature, l'attestation de provenance signée et la publication attendent la décision du porteur sur la clé minisign et son accord de publication (lancement, étape 8)."
       }
     },
     "threats": [
@@ -3971,16 +4009,42 @@ export const TV = [
       "CT-8 EX-A.27"
     ],
     "preconditions": [
-      "Fichiers `deploiement/observabilite/`, `extraire-journaux.mjs`, `regles.mjs`, `sonde.mjs` et la famille `supervision/` produits (CT-8 §10, « lot suivant »)."
+      "Fichiers `deploiement/observabilite/`, `extraire-journaux.mjs`, `regles.mjs`, `sonde.mjs` et la famille `supervision/` (CT-8 §10, livrés à l'étape 7) ; `promtool` 3.5.0 de l'archive officielle de Prometheus à SHA-256 fixé (CT-8 EX-10.10), fourni par l'intégration continue (`NOORTRACE_PROMTOOL`) ; sans lui, l'essai `promtool` est en attente, condition nommée (EX-3.11)."
     ],
     "steps": [
       "Rejouer l'extracteur sur `supervision/journaux/` ; régénérer le fichier de règles ; `promtool check rules` puis `promtool test rules` (archive de Prometheus d'EX-10.10 au SHA-256 fixé)."
     ],
     "oracle": "Sorties égales aux vecteurs ; chaque alerte prescrite présente ; `promtool` code 0.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "La famille `supervision/` et les fichiers d'observabilité sont « à produire, lot suivant » (CT-8 §15, EX-A.18)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/deploiement-supervision.test.js",
+          "describe": "CT-8 §10.3 : extracteur des journaux (SV-5, EX-10.5)",
+          "it": "TV-76 : supervision/ — l'extracteur rejoué sur journaux/ rend attendu.prom (SV-5), regles.mjs rend le fichier du dépôt et regles-attendues.yml (SV-6), chaque alerte prescrite a sa règle (SV-1)"
+        },
+        {
+          "file": "test/deploiement-supervision.test.js",
+          "describe": "CT-8 §10.10, EX-A.27 : promtool 3.5.0 (confrontation tierce, EX-A.31)",
+          "it": "TV-76, EX-10.10 : promtool check rules sur regles-noortrace.yml puis promtool test rules sur tests-regles.yml, code 0"
+        },
+        {
+          "file": "test/deploiement-supervision.test.js",
+          "describe": "CT-8 §10.4 à §10.7 : règles d'alerte de référence (SV-1 à SV-4)"
+        },
+        {
+          "file": "test/deploiement-supervision.test.js",
+          "describe": "CT-8 EX-10.6 : générateur des règles (SV-6)"
+        },
+        {
+          "file": "test/deploiement-supervision.test.js",
+          "describe": "CT-8 §10.8, EX-10.4 : tableau de bord et collecte de référence (SV-7)"
+        }
+      ],
+      "ci_steps": [
+        "promtool 3.5.0 (CT-8 EX-10.10, EX-A.27), règles d'alerte de référence vérifiées et testées"
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-supervision.test.js"
     },
     "threats": [
       "MN-29"

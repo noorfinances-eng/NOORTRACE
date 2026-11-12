@@ -21,6 +21,15 @@
 // posés et lus par `chattr` et `lsattr` (e2fsprogs), Node.js n'offrant pas
 // l'ioctl `FS_IOC_SETFLAGS` sans module natif. L'état du dernier passage est
 // écrit sous `TMPDIR` pour la sonde (`noortrace-attributs sonde`).
+//
+// Panne bruyante (étape 7) : un répertoire qui ne peut pas être lu
+// (sans `DAC_READ_SEARCH`, le compte 0 ne parcourt pas `storage.root`, 0700
+// du compte 10001), ou des attributs qui ne peuvent pas être lus, sont des
+// erreurs du passage (`attribute_unreadable`) : la sonde dit malade et
+// `--une-fois` rend 1. Une racine illisible ou absente arrête le compagnon en
+// service (code 1, `attribute_root_unreadable`) : il ne verrait aucun
+// journal. Seul un sous-répertoire absent (`ENOENT`, pas encore créé par le
+// démon) est vide sans erreur.
 
 import fs from "node:fs";
 import os from "node:os";
@@ -46,23 +55,37 @@ function chattr(modes, chemin) {
   execFileSync("chattr", [...modes, chemin], { stdio: ["ignore", "pipe", "pipe"] });
 }
 
-const lister = (d) => {
-  try {
-    return fs.readdirSync(d).sort();
-  } catch {
-    return [];
-  }
-};
 
 /**
  * Un passage sur tous les journaux d'une racine.
  * @param {string} racine `storage.root`
  * @param {{consigner?: (niveau: string, evenement: string, data: object) => void}} [o]
- * @returns {{poses: {fichier: string, attribut: string}[], refus: {fichier: string, raison: string}[], erreurs: {fichier: string, message: string}[]}}
+ * @returns {{poses: {fichier: string, attribut: string}[], refus: {fichier: string, raison: string}[], erreurs: {fichier: string, message: string}[], racineIllisible: boolean}}
  */
 export function passageAttributs(racine, o = {}) {
   const consigner = o.consigner ?? (() => {});
-  const r = { poses: [], refus: [], erreurs: [] };
+  const r = { poses: [], refus: [], erreurs: [], racineIllisible: false };
+  const illisible = (chemin, message) => {
+    r.erreurs.push({ fichier: chemin, message });
+    consigner("error", "attribute_unreadable", { fichier: path.relative(racine, chemin) || ".", message });
+  };
+  // Entrées d'un répertoire ; absent (ENOENT) : aucune ; illisible : erreur du passage.
+  const lister = (d) => {
+    try {
+      return fs.readdirSync(d).sort();
+    } catch (e) {
+      if (e?.code === "ENOENT" && d !== racine) return [];
+      if (d === racine) r.racineIllisible = true;
+      illisible(d, `${e?.code ?? "erreur"} : ${e?.message ?? e}`);
+      return [];
+    }
+  };
+  // Attributs d'un fichier ; illisibles : erreur du passage, le fichier est laissé.
+  const attributs = (c) => {
+    const at = lireAttributs(c);
+    if (at === null) illisible(c, "lsattr : attributs illisibles");
+    return at;
+  };
   const poser = (chemin, modes, attribut) => {
     try {
       chattr(modes, chemin);
@@ -79,13 +102,16 @@ export function passageAttributs(racine, o = {}) {
       // Segments : le dernier est courant (`a`), les autres fermés (`i`).
       const segs = lister(path.join(rep, "segments")).filter((n) => SEGMENT.test(n));
       let scellee = 0;
+      const lus = new Map();
       for (const n of segs.slice(0, -1)) {
-        if ((lireAttributs(path.join(rep, "segments", n)) ?? "").includes("i")) scellee = Math.max(scellee, Number(SEGMENT.exec(n)[2]));
+        const at = attributs(path.join(rep, "segments", n));
+        lus.set(n, at);
+        if ((at ?? "").includes("i")) scellee = Math.max(scellee, Number(SEGMENT.exec(n)[2]));
       }
       for (const n of segs.slice(0, -1)) {
         const c = path.join(rep, "segments", n);
-        const at = lireAttributs(c) ?? "";
-        if (at.includes("i")) continue;
+        const at = lus.get(n);
+        if (at === null || at.includes("i")) continue;
         const e = Number(SEGMENT.exec(n)[2]);
         if (e < scellee) {
           r.refus.push({ fichier: c, raison: "epoque_inferieure" });
@@ -98,19 +124,21 @@ export function passageAttributs(racine, o = {}) {
       const courant = segs.at(-1);
       if (courant) {
         const c = path.join(rep, "segments", courant);
-        const at = lireAttributs(c) ?? "";
-        if (!at.includes("a") && !at.includes("i")) poser(c, ["+a"], "a");
+        const at = attributs(c);
+        if (at !== null && !at.includes("a") && !at.includes("i")) poser(c, ["+a"], "a");
       }
       // Journal d'intention : celui de la plus grande époque.
       const ints = lister(path.join(rep, "intentions")).filter((n) => INTENTION.test(n));
       if (ints.length) {
         const c = path.join(rep, "intentions", ints.at(-1));
-        if (!(lireAttributs(c) ?? "").includes("a")) poser(c, ["+a"], "a");
+        const at = attributs(c);
+        if (at !== null && !at.includes("a")) poser(c, ["+a"], "a");
       }
       // Manifestes et signatures.
       for (const n of lister(path.join(rep, "manifestes")).filter((x) => MANIFESTE.test(x))) {
         const c = path.join(rep, "manifestes", n);
-        if (!(lireAttributs(c) ?? "").includes("i")) poser(c, ["+i"], "i");
+        const at = attributs(c);
+        if (at !== null && !at.includes("i")) poser(c, ["+i"], "i");
       }
     }
   }
@@ -166,7 +194,11 @@ export async function principalAttributs(argv, io = {}) {
   };
   if (o.uneFois) return tour().erreurs.length ? 1 : 0;
   for (;;) {
-    tour();
+    if (tour().racineIllisible) {
+      // Rien n'est visible : le compagnon s'arrête plutôt que de tourner à vide.
+      consigner("error", "attribute_root_unreadable", { racine: o.racine });
+      return 1;
+    }
     await new Promise((res) => setTimeout(res, intervalle * 1000));
   }
 }

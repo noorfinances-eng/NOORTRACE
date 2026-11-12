@@ -3,14 +3,19 @@
 // src/worm/ctl.mjs), et commandes adressées au démon en marche, `reload`
 // (EX-15.5), `clock --accept` (EX-7.13), `cle rotation-urgence` (CT-8
 // EX-10.14), `ancrage etat|metriques|retirer-qualification` (CT-5 EX-5.9,
-// EX-8.15) et `dossier exporter` (CT-2 EX-15.9, EX-15.10) (voir
-// src/ctl-demon.mjs).
-import { principalCtl } from "../src/worm/ctl.mjs";
-import { principalCtlDemon } from "../src/ctl-demon.mjs";
-
+// EX-8.15) et `dossier exporter` (CT-2 EX-15.9, EX-15.10), et, étape 7,
+// `close-period --now` (CT-2 EX-19.4), `etat` et `sonde --url` (CT-8 EX-10.14,
+// §4.4, PD-2) (voir src/ctl-demon.mjs et src/ctl-sante.mjs). `sonde` ne
+// charge que src/ctl-sante.mjs : elle tourne toutes les 10 s sous le
+// `timeout` de 3 s des fichiers Compose.
 const argv = process.argv.slice(2);
-const DEMON = ["reload", "clock", "cle", "ancrage", "dossier"];
-const principal = DEMON.includes(argv[0]) ? principalCtlDemon : principalCtl;
+const DEMON = ["reload", "clock", "cle", "ancrage", "dossier", "close-period", "etat"];
+
+async function principal(a) {
+  if (a[0] === "sonde") return (await import("../src/ctl-sante.mjs")).principalSonde(a.slice(1));
+  if (DEMON.includes(a[0])) return (await import("../src/ctl-demon.mjs")).principalCtlDemon(a);
+  return (await import("../src/worm/ctl.mjs")).principalCtl(a);
+}
 
 principal(argv).then(
   (code) => {

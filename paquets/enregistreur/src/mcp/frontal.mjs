@@ -182,6 +182,10 @@ export class FrontalMcp {
       decidee: (ticket, evenement) => this._decisionRetenue(ticket, evenement),
     });
     this.coeur.brancherSante?.(() => [...this.injoignables].sort().map((a) => `serveur:${a}`));
+    // La raison de santé `serveur:<alias>` est aussi une raison de la jauge du
+    // mode dégradé (EX-14.11, alerte de §17.4 « mineure pour serveur:* ») :
+    // série posée à 0 pour chaque serveur, 1 tant qu'il est injoignable.
+    for (const alias of this.connexions.keys()) this.metriques.jauge("noortrace_degraded", { reason: `serveur:${alias}` }, this.injoignables.has(alias) ? 1 : 0);
     // Première lecture des listes : l'agrégat de départ n'est pas un changement
     // de définition (EX-4.16 compare ensuite à lui).
     this.demarrage = true;
@@ -228,9 +232,11 @@ export class FrontalMcp {
       const l = await c.lister();
       this.chargerListe(alias, l.tools, { ttlMs: l.ttlMs, cacheScope: l.cacheScope, ere: c.ere });
       this.injoignables.delete(alias);
+      this.metriques.jauge("noortrace_degraded", { reason: `serveur:${alias}` }, 0);
     } catch (e) {
       if (!this.injoignables.has(alias)) this.journal.consigner("warning", "frontal_mcp", "upstream_unreachable", { server: alias, reason: e?.raison ?? "erreur" });
       this.injoignables.add(alias);
+      this.metriques.jauge("noortrace_degraded", { reason: `serveur:${alias}` }, 1);
       this.metriques.compter("noortrace_upstream_errors_total", { server: alias, kind: "injoignable" });
       this.recalculer();
     }
@@ -1042,7 +1048,8 @@ export class FrontalMcp {
     // Pas 7 (anticipé) : le stockage décide entre écriture des pièces et attente (14.5).
     const panne = this._etatPanne(ctx.alias, ctx.original, classeEffective);
     let passantObservation = false;
-    if (panne.bloque && ctx.observation && panne.bloque !== "bail_non_detenu") {
+    // `bail_non_detenu` et `journal_clos` (EX-19.4) bloquent aussi en mode observation.
+    if (panne.bloque && ctx.observation && panne.bloque !== "bail_non_detenu" && panne.bloque !== "journal_clos") {
       // Mode observation (EX-14.16) : relayé, événement mis en attente.
       ctx.blocagesEvites.push(panne.bloque);
       passantObservation = true;
@@ -1166,6 +1173,8 @@ export class FrontalMcp {
   _etatPanne(alias, original, classeEffective) {
     const c = this.coeur;
     if (!c.bailDetenu) return { bloque: "bail_non_detenu" };
+    // Journal terminé par la clôture anticipée (EX-19.4) : -31010 journal_clos.
+    if (c.journalClos) return { bloque: "journal_clos" };
     const r = c.degrade.raisons();
     for (const x of ["cle", "bail", "horloge"]) if (r.includes(x)) return { bloque: x };
     if (r.includes("stockage") || c.intervention) {

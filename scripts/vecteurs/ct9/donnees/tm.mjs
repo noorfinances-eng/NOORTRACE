@@ -1177,8 +1177,8 @@ export const TM = [
     "oracle": "`ir_total ≤ 900` s ; chaque pas comparé à son budget (60, 90, 90, 90, 60, 150, 180, 180 s), un dépassement de pas publié sans faire échouer le total.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Enregistreur, service d'approbation et images non construits (CT-8 §15 : installations non exécutées)."
+      "phase2_step": 8,
+      "blocking": "Rattaché à la porte 2 (étape 8) : installation rapide par une personne extérieure sur le système de référence, avec une archive et des images publiées (CT-9 §14) ; l'installation rapide n'est pas jouée en entier à l'étape 7 (prestataire RFC 3161 hors production à trancher par le porteur)."
     },
     "threats": [],
     "measure": {
@@ -1240,9 +1240,19 @@ export const TM = [
     ],
     "oracle": "`ic_total ≤ 480` min (cible 450 min, réserve 30 min) ; chaque pas comparé à son budget, un dépassement publié ; les durées sont celles du procès-verbal d'IC-18.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Enregistreur, service d'approbation, composant d'ancrage et images non construits ; script de préparation de l'hôte (IC-2) à écrire."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/banc-client-fictif.test.js",
+          "describe": "Étape 7 : banc client fictif — installation complète IC-1 à IC-18 de bout en bout (CT-9 TE-7, TM-22, TM-29)",
+          "it": "TM-22 : rapport de mesure (CT-9 §11.3, $defs/rapport_mesure) : lignes ic_1 à ic_18, ic_attente_cloture et ic_total publiées ; hors système de référence (counts_for_targets faux, met null) ; ic_total sous 480 min"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/banc-client-fictif.test.js",
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Mesure sur le système de référence, machine vierge, par un ingénieur extérieur (porte 2) ; le banc de l'étape 7 est un harnais de l'environnement de construction (`counts_for_targets` faux) : 58 min, dont 57 d'attente de la clôture de l'heure."
+      }
     },
     "threats": [],
     "measure": {
@@ -1285,8 +1295,8 @@ export const TM = [
     "oracle": "`value = 0` ; chaque information manquante est une lacune de CT-8 à tracer (proposition PD-).",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Installation complète non exécutée."
+      "phase2_step": 8,
+      "blocking": "Rattaché à la porte 2 (étape 8) avec TR-12 : les informations manquantes se relèvent auprès d'un ingénieur extérieur au projet, que l'étape 7 n'a pas ; le banc de l'étape 7, déroulé par un harnais, a relevé les écarts de CT-8 qu'il a rencontrés et la révision 0.6 de CT-8 les a inscrits."
     },
     "threats": [],
     "measure": {
@@ -1327,9 +1337,22 @@ export const TM = [
     ],
     "oracle": "Lignes présentes, `met` null ; la durée de téléchargement est relevée à part du budget d'IR-6 (150 s).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Aucune image construite (CT-8 EX-3.13)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/deploiement-images.test.js",
+          "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+          "it": "TM-24 : taille de chaque image dans le magasin local (docker image inspect, Size) ; lignes image_<nom>_octets ; durée de téléchargement non mesurée (aucun registre : images construites ou chargées par docker load)"
+        }
+      ],
+      "ci_steps": [
+        "essais des images (TE-15, TM-24, TM-26, TM-28), aucun essai en attente"
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-images.test.js",
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Durée de téléchargement des images publiées (IR-6) : aucune image n'est publiée ; la taille est relevée dans le magasin local."
+      }
     },
     "threats": [],
     "measure": {
@@ -1418,9 +1441,22 @@ export const TM = [
     ],
     "oracle": "`max ≤ 60` s ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Image du compagnon non construite."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/deploiement-images.test.js",
+          "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+          "it": "TM-26 : le compagnon en service (--intervalle-s 60, compte 0, trois capacités) pose i sur dix segments fermés toutes les 6 s ; délai entre la fermeture et l'attribut lu par lsattr ; ligne compagnon_pose_attribut (p50, max ; met = max ≤ 60 s) ; chaque segment scellé en 75 s au plus"
+        }
+      ],
+      "ci_steps": [
+        "essais des images (TE-15, TM-24, TM-26, TM-28), aucun essai en attente"
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-images.test.js",
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Système de référence (porte 2) et fermeture réelle des segments par le démon ; l'étape 7 mesure sur l'environnement de construction, segments écrits par un conteneur de l'image de l'enregistreur."
+      }
     },
     "threats": [],
     "measure": {
@@ -1465,8 +1501,8 @@ export const TM = [
     "oracle": "`repartiteur_ttl_dns ≤ 30` s ; `repartiteur_reconnexion` publié sans cible.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Topologie à deux instances non déployée."
+      "phase2_step": 8,
+      "blocking": "Rattaché à la porte 2 (étape 8) : deux instances derrière un répartiteur ou un nom DNS de durée de vie bornée ; mesure possible localement mais de faible valeur hors du système de référence."
     },
     "threats": [],
     "measure": {
@@ -1509,9 +1545,23 @@ export const TM = [
     ],
     "oracle": "`value = 0` ; un artefact non reproductible n'est pas publié (EX-3.13).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Aucune image construite ; binaire Go du vérificateur à construire (CT-6 §14, étape 2)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/deploiement-images.test.js",
+          "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+          "it": "TM-28, EX-3.13 : deux constructions sans cache, depuis deux copies des sources à deux instants, donnent pour chaque image le même condensé, égal à celui de l'image du magasin local ; ligne construction_reproductible = 0"
+        }
+      ],
+      "ci_steps": [
+        "images noortrace/*, deux constructions sans cache aux mêmes condensés (CT-8 EX-3.13), sans publication",
+        "essais des images (TE-15, TM-24, TM-26, TM-28), aucun essai en attente"
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-images.test.js",
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Deux machines (porte 2) ; page et scripts de la console (CT-3 EX-13.4). L'étape 7 construit deux fois sur une même machine, sans cache, depuis deux copies des sources à deux instants (CT-6 EX-14.8 l'admet pour le binaire)."
+      }
     },
     "threats": [],
     "measure": {
@@ -1556,9 +1606,19 @@ export const TM = [
     ],
     "oracle": "Chaque consommation observée sous son plancher ; un dépassement rend `met` faux et le seuil d'IP-2 ou IP-3 est à relever (proposition PD- à CT-8).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Composants non construits."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/banc-client-fictif.test.js",
+          "describe": "Étape 7 : banc client fictif — installation complète IC-1 à IC-18 de bout en bout (CT-9 TE-7, TM-22, TM-29)",
+          "it": "TM-29 (relevé partiel, sans la charge de TM-3) : consommation des services en marche relevée (mémoire, processeur, volumes) et confrontée aux planchers de production (4 processeurs, 8 Gio)"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/banc-client-fictif.test.js",
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Heure de charge de TM-3 sur le système de référence ; le banc de l'étape 7 relève la consommation au repos."
+      }
     },
     "threats": [],
     "measure": {
@@ -1760,8 +1820,8 @@ export const TM = [
     "oracle": "Cinq lignes présentes, `met` null ; les hypothèses de 9.5 (4, 512, 2 048, 833, 2) sont remplacées au procès-verbal.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Composants non construits ; hypothèses de 9.5 en vigueur."
+      "phase2_step": 8,
+      "blocking": "Rattaché à l'étape 8 : coefficients du dimensionnement mesurés sur le système de référence avec TM-9 ; les hypothèses de CT-8 9.5 restent en vigueur."
     },
     "threats": [],
     "measure": {
@@ -1811,8 +1871,8 @@ export const TM = [
     "oracle": "`supervision_faux_positifs = 0` et `supervision_faux_negatifs = 0` ; sinon le seuil est revu (proposition PD- à CT-8).",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Supervision outillée non livrée (CT-8 §15, lot suivant)."
+      "phase2_step": 8,
+      "blocking": "Rattaché à l'étape 8 : seuils d'alerte confrontés à une heure de charge de TM-3 sur le système de référence et aux runbooks rejoués (TE-8) ; l'étape 7 livre les règles et leurs tests."
     },
     "threats": [],
     "measure": {
@@ -1856,8 +1916,8 @@ export const TM = [
     "oracle": "`max < <M>` en nominal ; sinon `met` faux et `<M>` est revu.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Supervision non livrée ; taille exacte de la mempool non établie (CT-8 §15)."
+      "phase2_step": 8,
+      "blocking": "Rattaché à l'étape 8 : une heure de charge d'ancres (TM-12) sur le réseau de développement et le défaut de `-txpool-max-pending` de noorcore, que le nœud n'imprime pas (« 0 = default ») ; la sonde de l'étape 7 expose déjà `noortrace_registre_mempool`."
     },
     "threats": [],
     "measure": {
@@ -1910,8 +1970,8 @@ export const TM = [
     "oracle": "Huit lignes présentes, `met` null ; une sortie non atteinte est un échec du TE- du runbook, pas de cette mesure.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Composants et runbooks non exécutables (CT-8 §10.11 : aucune durée mesurée)."
+      "phase2_step": 8,
+      "blocking": "Rattaché à l'étape 8 : durées des runbooks rejoués (TE-8), que l'étape 7 ne joue pas."
     },
     "threats": [],
     "measure": {
@@ -1960,8 +2020,8 @@ export const TM = [
     "oracle": "Chaque valeur sous sa cible : segments fermés RTO ≤ 4 h ; segment ouvert bascule ≤ `lease.ttl_ms` (10 s) + 2 s ; pièces RTO ≤ 4 h ; service RPO ≤ 15 min, RTO ≤ 1 h ; ancrage RTO ≤ 4 h ; configuration RTO ≤ durée de TM-22 ; sinon `met` faux.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Composants, outil de sauvegarde et runbooks non construits (CT-8 §15)."
+      "phase2_step": 8,
+      "blocking": "Rattaché à l'étape 8 : RPO et RTO par composant sur le système de référence ; l'étape 7 publie, sans compter, les durées du chemin A sur l'environnement de construction (sauvegarde 0,8 s, reprise 1,2 à 1,3 s)."
     },
     "threats": [],
     "measure": {
@@ -2063,8 +2123,8 @@ export const TM = [
     "oracle": "Chaque fournisseur : journal présent, convertible par le collecteur ; `journal_acces_support` n'est tenu pour acquis qu'alors.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Supports réels à la porte 2 ; collecteur à écrire (CT-8 §11.10)."
+      "phase2_step": 8,
+      "blocking": "Rattaché à la porte 2 (étape 8) : journal d'accès des fournisseurs WORM réels (comptes réels, hors de l'environnement de construction) ; voir TI-15."
     },
     "threats": [],
     "measure": {
@@ -2106,8 +2166,8 @@ export const TM = [
     "oracle": "Ordre relevé égal à l'ordre supposé par IP-5 ; sinon le contrôle préalable est corrigé (proposition PD- à CT-8).",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "chrony absent de l'environnement de rédaction ; relevé à faire sur le système de référence."
+      "phase2_step": 8,
+      "blocking": "Rattaché à l'étape 8 : `chronyc -c tracking` relevé sur chrony 4.6 du système de référence ; l'environnement de construction n'a ni chrony ni systemd."
     },
     "threats": [],
     "measure": {

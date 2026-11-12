@@ -35,6 +35,8 @@ export function jetonsOtel(config, secrets) {
  */
 export function panneIngestion(coeur) {
   if (!coeur.bailDetenu) return "bail_non_detenu";
+  // Journal terminé par la clôture anticipée (CT-2 EX-19.4) : rien ne s'y scelle plus.
+  if (coeur.journalClos) return "journal_clos";
   if (coeur.intervention || !coeur.ecrivain) return "stockage";
   return coeur.degrade.raisons().find((r) => r !== "approbation") ?? null;
 }

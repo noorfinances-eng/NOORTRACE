@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "utilisateur-root.yaml",
-    "sha256": "a830d5ce201e644be577b98a8f7d3bdf909f0de3eee0b4721055672aef11aab8",
+    "sha256": "417daf9b734e43e7a1d07c8d458d399bcd6d5ca88d0f5a7575c8678e051d33f1",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

@@ -153,13 +153,22 @@ export class SignataireChaineFichier extends SignataireChaine {
    */
   signerCondense(hash32) {
     if (!estOctets(hash32) || hash32.length !== 32) throw new TypeError("condensé de 32 octets attendu");
-    const recouvrable = secp256k1.sign(hash32, this.#cle, { prehash: false, lowS: true, format: "recovered" });
+    if (this.#efface) throw new Error("clé de chaîne effacée");
+    const recouvrable =secp256k1.sign(hash32, this.#cle, { prehash: false, lowS: true, format: "recovered" });
     return {
       r: octetsVersHex(recouvrable.subarray(1, 33)),
       s: octetsVersHex(recouvrable.subarray(33, 65)),
       v: 27 + recouvrable[0],
     };
   }
+
+  /** Efface la clé privée de la mémoire de l'instance (arrêt du démon, CT-2 EX-11.9) ; toute signature est ensuite refusée. */
+  effacer() {
+    this.#cle.fill(0);
+    this.#efface = true;
+  }
+
+  #efface = false;
 
   /** Ne révèle jamais la clé. */
   toJSON() {
@@ -248,6 +257,48 @@ export function clePubliqueNonCompressee(declaree) {
     return null;
   }
   return null;
+}
+
+/**
+ * Signature ECDSA secp256k1 rendue en DER par un service de signature
+ * (séquence de deux entiers `r`, `s`, X.690 ; AWS KMS `ECDSA_SHA_256` avec
+ * `MessageType: DIGEST`, PKCS#11 `CKM_ECDSA` après mise en DER) ramenée à
+ * la forme de l'interface `SignataireChaine` : `s` bas (`s ← n − s` si
+ * `s > n/2`, même signature au sens d'ECDSA), `v` ∈ {27, 28} trouvé en
+ * recouvrant `adresse` (étape 7 : clé de chaîne de classe B). Une forme DER
+ * non minimale, des octets en trop, `r` ou `s` hors de [1, n − 1], ou une
+ * signature qui ne recouvre pas `adresse` lèvent une erreur.
+ * @param {Uint8Array} hash32
+ * @param {Uint8Array} der
+ * @param {string} adresse adresse attendue (minuscules)
+ * @returns {{r: string, s: string, v: 27|28}}
+ */
+export function signatureDepuisDer(hash32, der, adresse) {
+  if (!estOctets(hash32) || hash32.length !== 32) throw new TypeError("condensé de 32 octets attendu");
+  if (!estOctets(der) || der.length < 8 || der.length > 72 || der[0] !== 0x30 || der[1] !== der.length - 2) throw new TypeError("signature DER : séquence attendue");
+  let k = 2;
+  const entier = () => {
+    if (der[k] !== 0x02) throw new TypeError("signature DER : entier attendu");
+    const n = der[k + 1];
+    if (n < 1 || n > 33 || k + 2 + n > der.length) throw new TypeError("signature DER : longueur d'entier");
+    const v = der.subarray(k + 2, k + 2 + n);
+    // X.690 : forme minimale, positive.
+    if (v[0] & 0x80) throw new TypeError("signature DER : entier négatif");
+    if (n > 1 && v[0] === 0 && !(v[1] & 0x80)) throw new TypeError("signature DER : entier non minimal");
+    k += 2 + n;
+    return octetsVersEntier(v);
+  };
+  const r = entier();
+  let s = entier();
+  if (k !== der.length) throw new TypeError("signature DER : octets en trop");
+  if (r < 1n || r >= N || s < 1n || s >= N) throw new TypeError("signature DER : r ou s hors de [1, n − 1]");
+  if (s > DEMI_N) s = N - s;
+  const mot = (x) => `0x${x.toString(16).padStart(64, "0")}`;
+  for (const v of [27, 28]) {
+    const sig = { r: mot(r), s: mot(s), v };
+    if (recouvrerSignataire(hash32, sig) === adresse) return sig;
+  }
+  throw new Error("la signature ne recouvre pas l'adresse de la clé de chaîne");
 }
 
 /** Ordre de la courbe et sa moitié, pour les contrôles de forme. */

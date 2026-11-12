@@ -18,7 +18,7 @@ import (
 // FamilleDisposition confronte le contenu de spec/vecteurs/ct-8 à la
 // disposition d'A.1. Une famille que la disposition annonce et que les
 // vecteurs n'ont pas encore est rapportée hors périmètre (A.1 : la famille
-// supervision/ est « à produire, lot suivant »).
+// supervision/ était « à produire, lot suivant » en révision 0.2).
 func FamilleDisposition(c *Contexte) {
 	const f = "disposition"
 	sec, err := c.Texte.Section("### A.1 ")

@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "configuration-inscriptible.yaml",
-    "sha256": "222d063d58e60d9fc7c52a7f7ac6c01d52352501ae9c23edf835e4a68ed2d580",
+    "sha256": "21266573ea57069df36f9d5b619398f53d36906f379d27dd0c2fb54836e58a1e",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

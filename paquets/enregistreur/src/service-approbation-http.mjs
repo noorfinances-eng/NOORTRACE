@@ -11,11 +11,17 @@
 // Node.js ne donne pas l'identité du pair d'une connexion (SO_PEERCRED) sans
 // module natif : avant chaque message, le client vérifie que la prise est
 // une prise dont le propriétaire (le processus qui l'a créée par bind) est
-// `peer_user`, et que son répertoire appartient au compte 0 ou à `peer_user`
-// et n'est inscriptible ni par le groupe ni par les autres ; nul autre ne peut
-// alors substituer une autre prise sous ce nom (lecture du LISEZMOI). Un
-// écart vaut indisponibilité du service (code `pair_non_verifie`), jamais une
-// réponse acceptée. Le corps de réponse est borné (`tailleMax`).
+// `peer_user`, et que son répertoire et chacun de ses parents appartiennent au
+// compte 0, à `peer_user` ou au démon et ne sont inscriptibles par le groupe
+// qu'avec le bit collant ; le répertoire de la prise n'est jamais inscriptible
+// par les autres. Le bit collant interdit à un membre du groupe de renommer
+// ou de supprimer la prise de `peer_user` : nul autre ne peut alors substituer
+// une autre prise sous ce nom (lecture 150 du LISEZMOI ; même règle que la
+// prise MCP, EX-4.39, `controlerRepertoirePrise`). C'est ce qui admet le
+// répertoire commun de CT-8 EX-3.5 (`/run/noortrace`, compte 0, groupe des
+// prises 10010, mode 3770). Un écart vaut indisponibilité du service (code
+// `pair_non_verifie`), jamais une réponse acceptée. Le corps de réponse est
+// borné (`tailleMax`).
 
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -27,6 +33,35 @@ import { lireComptes } from "./mcp/amont.mjs";
 
 /** Borne du corps d'une réponse du service (octets) : au-delà, réponse illisible. */
 export const TAILLE_MAX_REPONSE_APPROBATION = 16 * 1024 * 1024;
+
+/**
+ * Répertoire d'une prise du service d'approbation et ses parents (EX-18.8) :
+ * chacun appartient au compte 0, au pair attendu ou au démon, et n'est
+ * inscriptible par le groupe qu'avec le bit collant ; le répertoire de la
+ * prise n'est jamais inscriptible par les autres. Rend null, ou la raison.
+ * @param {string} dir chemin réel du répertoire de la prise
+ * @param {number} uidPair
+ * @returns {Promise<string|null>}
+ */
+export async function controlerRepertoiresPair(dir, uidPair) {
+  const proprietaires = new Set([0, uidPair]);
+  if (typeof process.getuid === "function") proprietaires.add(process.getuid());
+  let d = dir;
+  for (let premier = true; ; premier = false) {
+    let st;
+    try {
+      st = await fs.lstat(d);
+    } catch {
+      return "prise_absente";
+    }
+    if (!st.isDirectory() || !proprietaires.has(st.uid)) return "repertoire_inscriptible";
+    if (premier && (st.mode & 0o002) !== 0) return "repertoire_inscriptible";
+    if ((st.mode & 0o022) !== 0 && (st.mode & 0o1000) === 0) return "repertoire_inscriptible";
+    const parent = path.dirname(d);
+    if (parent === d) return null;
+    d = parent;
+  }
+}
 
 export class ClientServiceApprobation extends ServiceApprobation {
   /**
@@ -57,14 +92,13 @@ export class ClientServiceApprobation extends ServiceApprobation {
     let rep;
     try {
       st = await fs.lstat(this.socket);
-      rep = await fs.stat(path.dirname(path.resolve(this.socket)));
+      rep = await fs.realpath(path.dirname(path.resolve(this.socket)));
     } catch {
       return "prise_absente";
     }
     if (!st.isSocket()) return "prise_absente";
     if (st.uid !== compte.uid) return "proprietaire_prise";
-    if ((rep.mode & 0o022) !== 0 || (rep.uid !== 0 && rep.uid !== compte.uid)) return "repertoire_inscriptible";
-    return null;
+    return controlerRepertoiresPair(rep, compte.uid);
   }
 
   /**

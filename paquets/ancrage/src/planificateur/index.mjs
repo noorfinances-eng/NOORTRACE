@@ -7,7 +7,7 @@
 // (EX-8.15). Les noms exportés qui pourraient coïncider avec ceux d'un autre
 // sous-module (lecteur DER du lot A, docType du lot D) portent un suffixe.
 
-export { validerConfiguration, projection, validerProjection, validerSchemaAncrage, motifCertificatPemIllisible, REGISTRE_ANCRAGE, ID_SCHEMA_ANCRAGE, ID_SCHEMA_PLANIFICATEUR, PROFILS } from "./configuration.mjs";
+export { validerConfiguration, commeServeurInterne, projection, validerProjection, validerSchemaAncrage, motifCertificatPemIllisible, REGISTRE_ANCRAGE, ID_SCHEMA_ANCRAGE, ID_SCHEMA_PLANIFICATEUR, PROFILS } from "./configuration.mjs";
 export { SCHEMA_ANCRAGE, SCHEMA_PLANIFICATEUR } from "./schemas-ancrage.mjs";
 export { creerPlanificateur, Planificateur, ErreurPlanificateur, noncesAleatoires, SORTES, TAILLE_CAPTURE_REPRESENTEE, DOC_TYPE_PERIODE as DOC_TYPE_PERIODE_PLANIFICATEUR } from "./planificateur.mjs";
 export { rejouerTrace, comparer as comparerTrace, noncesVecteurs, nonceVecteur, nonceOtsVecteur, JOURNAUX_VECTEURS, ETIQUETTES as ETIQUETTES_VECTEURS } from "./traces.mjs";

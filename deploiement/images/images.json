@@ -1,13 +1,13 @@
 {
   "version": 0,
-  "description": "Descriptions des images et des services de référence de NOORTRACE (CT-8 §3 et §4). Une image noortrace/* de statut a_construire n'existe pas encore : sa description est l'exigence que la construction (phase 2) doit tenir. Les vérifications CO-1 à CO-14 confrontent chaque fichier Compose de deploiement/compose/ à ces descriptions.",
+  "description": "Descriptions des images et des services de référence de NOORTRACE (CT-8 §3 et §4). Chaque image noortrace/* est construite par conteneurs/<nom>/Dockerfile (étape 7), sans être publiée ; en production, elle est désignée par le condensé publié dans la note de version. Les vérifications CO-1 à CO-14 confrontent chaque fichier Compose de deploiement/compose/ à ces descriptions.",
   "services": {
     "enregistreur": {
       "image": "noortrace/enregistreur",
       "tag": "0.1.0",
-      "status": "a_construire",
+      "status": "existante",
       "kind": "service",
-      "source": "CT-2 (démon : mandataire MCP, passerelle du modèle et raccord ICAP, points d'entrée SDK et OpenTelemetry, écrivain, stockage, bail, clôture, exportateur, composant d'ancrage de CT-5 en fil distinct)",
+      "source": "CT-2 (démon : mandataire MCP, passerelle du modèle et raccord ICAP, points d'entrée SDK et OpenTelemetry, écrivain, stockage, bail, clôture, exportateur, composant d'ancrage de CT-5 en fil distinct) ; construite par conteneurs/enregistreur/Dockerfile",
       "user": "10001:10001",
       "passwd": [
         {
@@ -60,11 +60,16 @@
         {
           "target": "/etc/noortrace/ancrage.json",
           "access": "ro"
+        },
+        {
+          "target": "/etc/noortrace/instance-registre.json",
+          "access": "ro"
         }
       ],
       "tmpfs": "/run/temporaire",
       "environment": [
-        "TMPDIR"
+        "TMPDIR",
+        "AWS_CONFIG_FILE"
       ],
       "bind_sources": [
         "./config/"
@@ -74,6 +79,7 @@
         "^cle-mac-relais$",
         "^acces-signataire$",
         "^cle-chaine$",
+        "^identite-aws$",
         "^dsn-bail$",
         "^worm-ecrivain$",
         "^jeton-hote(-[a-z0-9-]+)?$",
@@ -102,9 +108,9 @@
     "attributs": {
       "image": "noortrace/attributs",
       "tag": "0.1.0",
-      "status": "a_construire",
+      "status": "existante",
       "kind": "service",
-      "source": "CT-2 EX-12.18 : service compagnon qui pose les attributs a et i ; seul service admis sous l'utilisateur 0, avec trois capacités nommées",
+      "source": "CT-2 EX-12.18 : service compagnon qui pose les attributs a et i ; seul service admis sous l'utilisateur 0, avec trois capacités nommées ; construite par conteneurs/attributs/Dockerfile",
       "user": "0:0",
       "passwd": [],
       "group_add": [],
@@ -140,9 +146,9 @@
     "approbation": {
       "image": "noortrace/approbation",
       "tag": "0.1.0",
-      "status": "a_construire",
+      "status": "existante",
       "kind": "service",
-      "source": "CT-3 §12 (service d'approbation)",
+      "source": "CT-3 §12 (service d'approbation) ; construite par conteneurs/approbation/Dockerfile",
       "user": "10002:10002",
       "passwd": [
         {
@@ -209,9 +215,9 @@
     "console": {
       "image": "noortrace/console",
       "tag": "0.1.0",
-      "status": "a_construire",
+      "status": "existante",
       "kind": "service",
-      "source": "CT-3 §13 (serveur de console et pages de la console d'exploitation, paquets/console)",
+      "source": "CT-3 §13 (serveur de console et pages de la console d'exploitation, paquets/console) ; construite par conteneurs/console/Dockerfile",
       "user": "10003:10003",
       "passwd": [
         {
@@ -260,9 +266,9 @@
     "pont-fichiers": {
       "image": "noortrace/pont-stdio",
       "tag": "0.1.0",
-      "status": "a_construire",
+      "status": "existante",
       "kind": "service",
-      "source": "CT-8 §3.4 : pont qui sert un serveur d'outils stdio en Streamable HTTP, un conteneur par serveur (CT-2 EX-3.5)",
+      "source": "CT-8 §3.4 : pont qui sert un serveur d'outils stdio en Streamable HTTP, un conteneur par serveur (CT-2 EX-3.5) ; construite par conteneurs/pont-stdio/Dockerfile",
       "user": "10101:10101",
       "passwd": [
         {
@@ -341,9 +347,9 @@
     "verificateur": {
       "image": "noortrace/verificateur",
       "tag": "0.1.0",
-      "status": "a_construire",
+      "status": "existante",
       "kind": "outil",
-      "source": "CT-6 (noortrace-verifier, binaire autonome sans réseau)",
+      "source": "CT-6 (noortrace-verifier, binaire autonome sans réseau) ; construite par conteneurs/verificateur/Dockerfile",
       "user": "10005:10005",
       "passwd": [],
       "group_add": [],
@@ -355,6 +361,71 @@
         {
           "target": "/var/lib/noortrace-exports",
           "access": "ro"
+        }
+      ],
+      "tmpfs": "/run/temporaire",
+      "environment": [
+        "TMPDIR"
+      ],
+      "bind_sources": [],
+      "secrets": [],
+      "probe": {
+        "type": "aucune"
+      }
+    },
+    "horodatage": {
+      "image": "noortrace/tsa-interne",
+      "tag": "0.1.0",
+      "status": "existante",
+      "kind": "service",
+      "source": "CT-5 §7 (serveur RFC 3161 interne non qualifié de paquets/ancrage, noortrace-tsa-interne servir), installation rapide seulement : prestataire principal hors production (CT-5 EX-4.9, règle 4), dans l'espace réseau de l'enregistreur, qui le joint sur 127.0.0.1:2020 ; construite par conteneurs/tsa-interne/Dockerfile",
+      "user": "10004:10004",
+      "passwd": [],
+      "group_add": [],
+      "cap_add": [],
+      "network_mode": "service:enregistreur",
+      "networks": [],
+      "ports": [],
+      "volumes": [
+        {
+          "target": "/var/lib/noortrace-tsa",
+          "access": "rw"
+        }
+      ],
+      "tmpfs": "/run/temporaire",
+      "environment": [
+        "TMPDIR"
+      ],
+      "bind_sources": [],
+      "secrets": [],
+      "probe": {
+        "type": "commande",
+        "test": [
+          "CMD",
+          "/usr/local/bin/noortrace-tsa-interne",
+          "sonde",
+          "--url",
+          "http://127.0.0.1:2020/sante"
+        ]
+      }
+    },
+    "horodatage-init": {
+      "image": "noortrace/tsa-interne",
+      "tag": "0.1.0",
+      "status": "existante",
+      "kind": "outil",
+      "source": "CT-8 IR-2 : création de l'autorité du serveur interne (noortrace-tsa-interne init) dans le volume du service horodatage, et lecture de son certificat d'AC et de sa CRL (noortrace-tsa-interne ac), sans réseau ; construite par conteneurs/tsa-interne/Dockerfile",
+      "user": "10004:10004",
+      "passwd": [],
+      "group_add": [],
+      "cap_add": [],
+      "network_mode": "none",
+      "networks": [],
+      "ports": [],
+      "volumes": [
+        {
+          "target": "/var/lib/noortrace-tsa",
+          "access": "rw"
         }
       ],
       "tmpfs": "/run/temporaire",

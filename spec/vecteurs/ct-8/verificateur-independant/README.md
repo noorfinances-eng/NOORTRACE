@@ -7,7 +7,11 @@ seul texte de CT-8 et les schémas qu'il nomme (`conteneurs-v0`,
 `proces-verbal-exploitation-v0`), et des passages de CT-1 (§6.1, §6.2, table
 des contrôles E- et C-) et de CT-2 (EX-12.1, EX-12.3) qu'il cite, sans
 lire ni reprendre le code JavaScript de `scripts/`, de `test/` ni les
-fichiers de `deploiement/` (EX-A.21, EX-A.24). Il recalcule chaque valeur
+fichiers de `deploiement/` (EX-A.21, EX-A.24) ; la famille `supervision/`
+lit à l'exécution, comme données, le fichier de règles de référence
+`deploiement/observabilite/regles-noortrace.yml` (SV-6 le compare aux règles
+régénérées) et la racine `storage.root` du modèle de production
+`deploiement/config/modele-production/configuration.json`. Il recalcule chaque valeur
 que les vecteurs de `spec/vecteurs/ct-8` déclarent, famille par famille
 selon l'annexe A, et la confronte à l'attendu. Deux implémentations écrites
 séparément qui tombent sur les mêmes valeurs rendent les vecteurs probants ;
@@ -56,12 +60,12 @@ discordance, listée avec l'attendu et la valeur recalculée, ou une erreur
 
 ## Décomptes
 
-Exécution du 2026-11-03 (révision 0.2 de CT-8), `go run . ..` depuis ce
-répertoire :
+Exécution du 2026-11-12 (révision 0.2 de CT-8, famille `supervision/` de
+l'étape 7), `go run . ..` depuis ce répertoire :
 
 | Famille | Recalculées | Concordantes | Discordantes | Hors périmètre |
 |---|---|---|---|---|
-| disposition | 16 | 16 | 0 | 1 |
+| disposition | 17 | 17 | 0 | 0 |
 | coefficients | 12 | 12 | 0 | 0 |
 | dimensionnement | 838 | 838 | 0 | 0 |
 | controle-prealable | 2 979 | 2 979 | 0 | 0 |
@@ -71,7 +75,8 @@ répertoire :
 | journaux | 49 | 49 | 0 | 3 |
 | consultations | 7 | 7 | 0 | 0 |
 | proces-verbaux | 14 | 14 | 0 | 0 |
-| **Total** | **5 187** | **5 187** | **0** | **65** |
+| supervision | 531 | 531 | 0 | 0 |
+| **Total** | **5 719** | **5 719** | **0** | **64** |
 
 « Résultat : tout concorde. »
 
@@ -90,6 +95,7 @@ répertoire :
 | journaux | `journaux/<cas>/` (`journal.json`, `segments/`, `cles.json`, `attendu.json`) | EX-11.7 hors manifestes : `journal.json` (CT-2 EX-12.1), en-tête de chaque segment (CT-2 EX-12.3), `first_seq` et époques, `prev_hash` des en-têtes, ligne finale, E-2, E-7 (`SHA-256(P_H ‖ JCS(E'))`, CT-1 §6.1), E-8 (Ed25519 sur `P_S ‖ JCS(E')`, CT-1 §6.2), clé inconnue, C-1 et C-2 ; segments (nom, `first_seq`, époque, événements, longueur, SHA-256), `first_seq`, `last_seq`, `last_hash`, erreurs rejouées et verdict |
 | consultations | `consultations/<cas>/*.ndjson`, `attendu.json`, A.9 | CA-1 (JSON strict, JCS), CA-2, CA-3 (SHA-256 du nom puis de la ligne précédente), CA-4, CA-6 : statut de chaque vérification ; SHA-256 de la première ligne égal à la valeur d'A.9 |
 | proces-verbaux | `proces-verbaux/valides/`, `invalides/`, `racine/`, `cles.json`, `attendu.json` | statut de PV-1 à PV-10 (EX-11.18) : schéma, tri, totaux, condensés, personnes, cohérence de la sorte, fichiers de la racine, journal de la racine par la vérification d'EX-11.7, échéance de rétention, chemins et contenus de secrets |
+| supervision | `supervision/journaux/`, `attendu.prom`, `configuration-modifiee.json`, `ancrage-modifie.json`, `regles-attendues.yml`, `deploiement/observabilite/regles-noortrace.yml`, tables de 10.3 à 10.7 | SV-5 : exposition de l'extracteur recalculée sur `journaux/` d'après la table de 10.3 (révision proposée à l'étape 7 : noms de lignes et de membres du code des paquets ; lignes terminées par LF, JSON strict, `detail`, plus grand `ts` par `event`, procès-verbaux retenus par PV-1), séries et lignes `TYPE` égales à `attendu.prom` (les lignes `HELP` sont libres) ; SV-1 en partie : règles du fichier de référence égales, dans l'ordre, à celles des tables de 10.4 à 10.7, plus les règles d'EX-10.9 (critiques, exigence `CT-8 EX-10.9`, proposition PD-28 de CT-9), gravité, exigence, runbook et clause `for` de chaque ligne de table, composant de la section ; SV-6 : chaque règle de `regles-attendues.yml` égale à celle de la référence, sauf les seuils d'EX-10.6 recalculés depuis `configuration-modifiee.json` et `ancrage-modifie.json` (moitié de `pending_max_ms`, 2 × `lock_audit_interval_days` × 86 400, `warn_skew_ms`, racine et 2 × `min_free_bytes`, `inclusion_alert_s`, `give_up_after_s`, clause `for` de `anchor_pending_alert_s`) |
 
 ## Ce qui n'est pas recalculé
 
@@ -106,8 +112,10 @@ répertoire :
   (`yaml-cle-dupliquee`) : le texte ne fixe pas cette valeur.
 - **Détail de PR-2 non exécutée** dans le rapport de 13.7 : texte propre à
   l'outil.
-- **`supervision/`** (A.1 : à produire avec l'extracteur et les règles,
-  lot suivant) : rien à recalculer.
+- **`supervision/`** : les expressions PromQL ne sont pas évaluées (la
+  confrontation tierce des règles est `promtool`, EX-A.27, EX-A.31) ; le
+  fichier de règles est lu par blocs réguliers, sans analyseur YAML ; SV-2,
+  SV-3 et SV-7 relèvent des essais Node (`test/deploiement-supervision.test.js`).
 - **Manifestes des journaux** (3 cas : `valide-manifeste`,
   `manifeste-altere`, `signature-manifeste-fausse`) : le recalcul d'un
   manifeste (arbre de Merkle de CT-1 §10) n'est pas rejoué ; le verdict de

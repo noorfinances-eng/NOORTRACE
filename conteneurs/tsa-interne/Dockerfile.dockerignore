@@ -1,0 +1,14 @@
+# Contexte de construction de noortrace/tsa-interne (racine du dépôt) :
+# tout est exclu, sauf ce que l'image emploie.
+*
+!package.json
+!package-lock.json
+!paquets/*/package.json
+!paquets/noyau/src/**
+!paquets/ancrage/bin/**
+!paquets/ancrage/src/**
+!conteneurs/commun/preparer-application.sh
+!conteneurs/tsa-interne/passwd
+!conteneurs/tsa-interne/group
+!LICENSE
+!NOTICE

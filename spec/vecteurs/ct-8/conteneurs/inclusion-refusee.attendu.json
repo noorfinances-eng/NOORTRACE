@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "inclusion-refusee.yaml",
-    "sha256": "70de69a946cdf7a40273e0fc7f349679f1f2b0a2103825b7585aad57cd7c41ee",
+    "sha256": "c79458a78211e8c7fa621ac8fe723611baa6f8023faf5eee5a5f2fedae3459a3",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

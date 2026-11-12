@@ -20,13 +20,14 @@ import path from "node:path";
 import { ecrireHorodatage, sha256Hex } from "@noortrace/noyau";
 import { capturer, ecrireExclusif, lecteurRepertoire, synchroniserRepertoire } from "./capture.mjs";
 import {
-  DOC_TYPE_PERIODE, DOC_TYPE_POINT_DE_CONTROLE, SUJETS, anchorDigest, decoderJournal, empreinteAncre, encoderAnchor,
-  encoderSubmitPeriod, hachageSigne, lirePeriodMeta, periodDigest, verifierJeuSignatures, verifierPeriodMeta,
+  DOC_TYPE_PERIODE, DOC_TYPE_POINT_DE_CONTROLE, EVENEMENT_PAR_ROLE, SUJETS, anchorDigest, decoderJournal, empreinteAncre, encoderAnchor,
+  encoderRegisterRecorder, encoderRevokeRecorder, encoderSubmitPeriod, hachageSigne, lirePeriodMeta, periodDigest, verifierJeuSignatures, verifierPeriodMeta,
 } from "./encodage.mjs";
+import { verifierDemande } from "./demande.mjs";
 import { lireSignature } from "./cle-chaine.mjs";
 import {
   ErreurLecture, anchorDigestContrat, classerEmpreinte, getPeriod, isActiveRecorder, isKnown, latestPeriodOf, lookup, periodDigestContrat,
-  recorderByPubKey,
+  recorderByPubKey, recorderOf,
 } from "./lookup.mjs";
 import { estHexOctets, hexVersOctets, octetsVersHex, quantiteVersEntier, utf8Octets, utf8Texte, versEntier, MAX_U256, MAX_U64 } from "./octets.mjs";
 import { ErreurRpc } from "./rpc.mjs";
@@ -333,6 +334,101 @@ export class Envoyeur {
     }
   }
 
+  // ------------------------------------------- inscription et révocation (étape 7)
+
+  /**
+   * Relaie une inscription de clé d'enregistreur signée au seuil (CT-4 §7.7,
+   * §8.4 ; `registerRecorder(orgId, journalId, chainKey, ed25519PubKey,
+   * sigs)`), avec `cle` comme expéditeur (la clé de chaîne inscrite, comme
+   * `inscrire-cle` par défaut, ou une autre clé approvisionnée). Contrôles
+   * avant tout envoi : la demande (`demande_signature`, `operation`
+   * `inscription`) passe OP-6 et OP-7 au seuil, son contrat est
+   * `recorder_registry` et sa chaîne celle de l'instance ; OP-8 : la clé de
+   * chaîne n'est ni active ni révoquée et la clé Ed25519 n'est active sous
+   * aucune autre (une inscription déjà faite à l'identique rend `deja_fait`
+   * sans envoi). Rend `{ type: "inclusion_registre"|"deja_fait"|"echec_registre", data, outputs }`.
+   * @param {{demande: object, cle: import("./cle-chaine.mjs").SignataireChaine, requestId?: string}} o
+   */
+  async inscrire({ demande, cle, requestId = null }) {
+    const f = demande?.fields ?? {};
+    const id = requestId ?? `inscription:${f.chain_key ?? "inconnue"}`;
+    const prealable = this.#demandeAuSeuil(demande, "inscription", id);
+    if (prealable) return prealable;
+    const contrat = this.#instance.contrats.recorder_registry;
+    const enAttente = this.envoisEnAttente(cle.adresse());
+    if (enAttente.length > 0) return this.#echec(id, "attente_nonce", { pending: enAttente.map((e) => e.transaction_hash) });
+    try {
+      // OP-8 (inscription).
+      const r = await recorderOf({ rpc: this.#rpc, contrat, orgId: f.org_id, chainKey: f.chain_key });
+      if (r.registeredAt !== 0n) {
+        if (r.revokedAt !== 0n) return this.#echec(id, "cle_revoquee");
+        if (r.journalId === f.journal_id && r.ed25519PubKey === f.ed25519_public_key) return this.#dejaFait(id, { chain_key: f.chain_key, registered_at: r.registeredAt.toString() });
+        return this.#echec(id, "cle_deja_active");
+      }
+      const p = await recorderByPubKey({ rpc: this.#rpc, contrat, orgId: f.org_id, clePublique: f.ed25519_public_key });
+      if (p.registeredAt !== 0n && p.revokedAt === 0n) return this.#echec(id, "cle_ed25519_active", { registered_chain_key: p.chainKey });
+      const donnees = encoderRegisterRecorder({ ...f, signatures: demande.signatures.map((s) => ({ v: s.v, r: s.r, s: s.s })) });
+      return await this.#envoyerEtCapturer({
+        id, cle, to: contrat, donnees, role: "inscription", contrat,
+        verifierRecu: (j) => j && j.orgId === f.org_id && j.chainKey === f.chain_key && j.journalId === f.journal_id && j.ed25519PubKey === f.ed25519_public_key,
+        attendu: null,
+        detail: { chain_key: f.chain_key },
+      });
+    } catch (e) {
+      if (e instanceof ErreurLecture || e instanceof ErreurRpc) return this.#echec(id, e.code === "noeud_injoignable" ? "noeud_injoignable" : `lecture_${e.code}`, { message: e.message });
+      throw e;
+    }
+  }
+
+  /**
+   * Relaie une révocation de clé de chaîne signée au seuil (CT-4 §8.4,
+   * EX-8.7 ; `revokeRecorder(orgId, chainKey, sigs)`), avec `cle` comme
+   * expéditeur. Contrôles : OP-6 et OP-7 au seuil ; OP-8 (révocation) :
+   * `registeredAt` lu égal à `registered_at` de la demande, `revokedAt` nul
+   * (une révocation déjà faite rend `deja_fait` sans envoi).
+   * @param {{demande: object, cle: import("./cle-chaine.mjs").SignataireChaine, requestId?: string}} o
+   */
+  async revoquer({ demande, cle, requestId = null }) {
+    const f = demande?.fields ?? {};
+    const id = requestId ?? `revocation:${f.chain_key ?? "inconnue"}`;
+    const prealable = this.#demandeAuSeuil(demande, "revocation", id);
+    if (prealable) return prealable;
+    const contrat = this.#instance.contrats.recorder_registry;
+    const enAttente = this.envoisEnAttente(cle.adresse());
+    if (enAttente.length > 0) return this.#echec(id, "attente_nonce", { pending: enAttente.map((e) => e.transaction_hash) });
+    try {
+      const r = await recorderOf({ rpc: this.#rpc, contrat, orgId: f.org_id, chainKey: f.chain_key });
+      if (r.registeredAt === 0n) return this.#echec(id, "cle_inconnue");
+      if (r.revokedAt !== 0n) return this.#dejaFait(id, { chain_key: f.chain_key, revoked_at: r.revokedAt.toString() });
+      if (String(r.registeredAt) !== String(versEntier(f.registered_at))) return this.#echec(id, "condense_different", { registered_at: r.registeredAt.toString() });
+      const donnees = encoderRevokeRecorder({ org_id: f.org_id, chain_key: f.chain_key, signatures: demande.signatures.map((s) => ({ v: s.v, r: s.r, s: s.s })) });
+      return await this.#envoyerEtCapturer({
+        id, cle, to: contrat, donnees, role: "revocation", contrat,
+        verifierRecu: (j) => j && j.orgId === f.org_id && j.chainKey === f.chain_key,
+        attendu: null,
+        detail: { chain_key: f.chain_key },
+      });
+    } catch (e) {
+      if (e instanceof ErreurLecture || e instanceof ErreurRpc) return this.#echec(id, e.code === "noeud_injoignable" ? "noeud_injoignable" : `lecture_${e.code}`, { message: e.message });
+      throw e;
+    }
+  }
+
+  /** OP-6, OP-7 au seuil, contrat et chaîne de l'instance ; rend un échec ou null. */
+  #demandeAuSeuil(demande, operation, id) {
+    if (!demande || demande.operation !== operation) return this.#echec(id, "operation_differente");
+    if (versEntier(demande.evm_chain_id) !== versEntier(this.#instance.evmChainId)) return this.#echec(id, "chaine_differente");
+    if (String(demande.contract).toLowerCase() !== this.#instance.contrats.recorder_registry) return this.#echec(id, "contrat_different");
+    const v = verifierDemande(demande, { complete: true });
+    if (v.resultat !== "valide") return this.#echec(id, v.code, { check: v.check });
+    return null;
+  }
+
+  #dejaFait(id, detail) {
+    this.#consigner("info", "registry_already_done", { request_id: id, ...detail });
+    return { type: "deja_fait", data: { request_id: id }, outputs: { ...detail } };
+  }
+
   // ------------------------------------------------------ mécanique
 
   /** Index des captures (`ancres` par empreinte, `clotures` par periodHash, `parTransaction`), chargé une fois du répertoire. */
@@ -538,7 +634,7 @@ export class Envoyeur {
       }
       return this.#echec(id, "transaction_annulee", { transaction_hash: envoi.transaction_hash, block_number: Number(hauteur ?? 0n) });
     }
-    const sujet = role === "ancre" ? SUJETS.Anchored : SUJETS.PeriodSubmitted;
+    const sujet = SUJETS[EVENEMENT_PAR_ROLE[role]];
     const journalAttendu = (resultat) => {
       const journaux = Array.isArray(resultat?.logs) ? resultat.logs : [];
       for (let k = 0; k < journaux.length; k++) {

@@ -21,6 +21,19 @@ export const PROFILS = Object.freeze(["developpement", "test", "production"]);
 /** Hôtes locaux admis pour un prestataire `interne` en `http://` (EX-4.9, règle 4). */
 const HOTES_LOCAUX = new Set(["127.0.0.1", "::1", "[::1]", "localhost"]);
 
+/**
+ * Le prestataire suit-il les règles d'adresse et d'authentification du serveur
+ * RFC 3161 interne (CT-5 §7, EX-4.9 règle 4) ? Oui pour le rôle `interne` ; et,
+ * hors production seulement (révision 0.9 de CT-5), pour le `principal` non
+ * qualifié (`qualified: null`) : le serveur interne tient alors lieu de
+ * prestataire principal, jeton de clôture compris, sans jamais être qualifié.
+ * @param {{role: string, qualified: object|null}} p
+ * @param {boolean} production
+ */
+export function commeServeurInterne(p, production) {
+  return p.role === "interne" || (!production && p.role === "principal" && p.qualified === null);
+}
+
 const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
 /**
@@ -145,7 +158,8 @@ export function validerConfiguration(document, options = {}) {
   if (cT % cK !== 0) violer("3", `rfc3161.checkpoints.interval_s ${cT} n'est pas un multiple de checkpoint_interval_s ${cK}`);
   if (3600 % cT !== 0) violer("3", `rfc3161.checkpoints.interval_s ${cT} ne divise pas 3600`);
 
-  // Règle 4 : exigences de production ; adresse locale d'un interne en http.
+  // Règle 4 : exigences de production ; adresse locale d'un interne en http ; hors production, le
+  // serveur RFC 3161 interne peut être le principal (révision 0.9 de CT-5).
   const role = d.rfc3161.checkpoints.provider_role;
   if (production) {
     if (role === "aucun") violer("4", "rfc3161.checkpoints.provider_role aucun : refusé en production");
@@ -160,16 +174,28 @@ export function validerConfiguration(document, options = {}) {
       violer("4", `prestataire ${p.id} : url illisible`);
       continue;
     }
-    // EX-5.5 : « la requête est envoyée par HTTP sur TLS », sans profil ; `http://` n'est admis que pour le rôle `interne`
-    // vers une adresse locale (règle 4). Le transport du lot A refuse la même chose : la configuration le dit d'avance (R-C-5).
-    if (p.role !== "interne" && u.protocole !== "https:") {
-      violer("4", `prestataire ${p.id} (${p.role}) : url en https:// exigée hors du rôle interne, quel que soit le profil (EX-5.5, TLS obligatoire)`);
+    // EX-5.5 : « la requête est envoyée par HTTP sur TLS », sans profil ; `http://` n'est admis que pour le serveur
+    // interne vers une adresse locale (règle 4). Le transport refuse la même chose : la configuration le dit d'avance.
+    const interne = commeServeurInterne(p, production);
+    const principalInterne = p.role === "principal" && p.qualified === null;
+    if (!interne && u.protocole !== "https:") {
+      violer(
+        "4",
+        production && principalInterne
+          ? `principal ${p.id} : url ${u.protocole}// refusée en production ; le serveur RFC 3161 interne n'est admis comme principal que hors production (EX-4.9, règle 4)`
+          : `prestataire ${p.id} (${p.role}) : url en https:// exigée hors du serveur interne, quel que soit le profil (EX-5.5, TLS obligatoire)`,
+      );
     }
-    if (p.role === "interne" && u.protocole === "http:" && !HOTES_LOCAUX.has(u.hote)) {
-      violer("4", `prestataire ${p.id} (interne) : http:// n'est admis que vers une adresse locale (127.0.0.1, ::1, localhost)`);
+    if (interne && u.protocole === "http:" && !HOTES_LOCAUX.has(u.hote)) {
+      violer("4", `prestataire ${p.id} (${p.role}, serveur interne) : http:// n'est admis que vers une adresse locale (127.0.0.1, ::1, localhost), sinon https:// (EX-5.5)`);
     }
-    if (p.auth.method === "aucune" && (p.role !== "interne" || !HOTES_LOCAUX.has(u.hote))) {
-      violer("4", `prestataire ${p.id} : auth aucune n'est admise que pour le rôle interne sur une adresse locale (EX-5.5)`);
+    if (p.auth.method === "aucune" && (!interne || !HOTES_LOCAUX.has(u.hote))) {
+      violer(
+        "4",
+        production && principalInterne
+          ? `principal ${p.id} : auth aucune refusée en production ; le serveur RFC 3161 interne n'est admis comme principal que hors production (EX-4.9, règle 4)`
+          : `prestataire ${p.id} : auth aucune n'est admise que pour le serveur interne sur une adresse locale (EX-5.5)`,
+      );
     }
     if (p.auth.method !== "aucune" && p.auth.secret === null) violer("4", `prestataire ${p.id} : auth ${p.auth.method} sans secret`);
   }

@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "image-sans-etiquette.yaml",
-    "sha256": "4f111ba8755df0cfa2a68e51a52fc6074837c65db265d484415ec7c201427b1a",
+    "sha256": "28af11ddd43e7c0581ccf0781f29436425128b2230f8a3a9872ccb1217059c6c",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

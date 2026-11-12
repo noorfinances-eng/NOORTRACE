@@ -2,8 +2,10 @@
 // signal SIGURG (CT-2 révision 0.8, EX-15.10 pas 3 et 5 ; table de §22,
 // ligne `cli.mjs`). Le fichier `<supervision.ops_log.path>.rotation-urgence`
 // porte un objet JSON dont le membre `demande` nomme l'action, et elle seule :
-// `rotation-urgence` (EX-11.16), `ancrage` (CT-5 EX-5.9, EX-8.15) ou
-// `dossier` (export du dossier, EX-15.11 à EX-15.13). Ce module lit la demande
+// `rotation-urgence` (EX-11.16), `ancrage` (CT-5 EX-5.9, EX-8.15), `dossier`
+// (export du dossier, EX-15.11 à EX-15.13) ou, étape 7, `cloture-anticipee`
+// (`noortrace-ctl close-period --now`, EX-19.4, développement seulement ;
+// proposée à CT-2, PD-2 de CT-8). Ce module lit la demande
 // et rend l'action, ou le refus, sans rien exécuter, dans l'ordre d'EX-15.10
 // pas 5 :
 //
@@ -23,7 +25,7 @@ import { decoderHorodatage, estHorodatage } from "@noortrace/noyau";
 import { analyserJsonIntegral } from "./jcs-integral.mjs";
 
 /** Valeurs de `demande` que le démon exécute (EX-15.10, pas 5). */
-export const DEMANDES_CONNUES = Object.freeze(["rotation-urgence", "ancrage", "dossier"]);
+export const DEMANDES_CONNUES = Object.freeze(["rotation-urgence", "ancrage", "dossier", "cloture-anticipee"]);
 
 /** Seuil de péremption d'une demande (EX-15.10, pas 5, refus 4) : 600 s. */
 export const PEREMPTION_MS = 600000;
@@ -248,7 +250,7 @@ function refusCtl(raison, objet) {
  *   `maintenant` : instant de la lecture (ms, horloge murale du démon) ;
  *   `demarrage` : instant du démarrage du démon ; `exports_dir` : répertoire
  *   des exports tel que lu (repris dans `dossier_export_refused`)
- * @returns {{action: "rotation-urgence"|"ancrage"|"dossier", demande: object}
+ * @returns {{action: "rotation-urgence"|"ancrage"|"dossier"|"cloture-anticipee", demande: object}
  *   | {refus: {event: string, component: string, seq: null, request_id: string|null, data: object}}}
  */
 export function lireDemande(octets, o) {
@@ -278,8 +280,8 @@ export function lireDemande(octets, o) {
       };
     }
   }
-  // Refus 4 : demande périmée, quelle que soit `demande` ; pour `rotation-urgence`
-  // et `ancrage`, un `at` absent ou hors forme la rend périmée.
+  // Refus 4 : demande périmée, quelle que soit `demande` ; pour `rotation-urgence`,
+  // `ancrage` et `cloture-anticipee`, un `at` absent ou hors forme la rend périmée.
   const instant = atValide(objet.at) ? decoderHorodatage(objet.at) : null;
   if (instant === null || o.maintenant - instant > PEREMPTION_MS || instant < o.demarrage) {
     if (dossier) {

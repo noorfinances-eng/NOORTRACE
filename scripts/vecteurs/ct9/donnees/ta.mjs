@@ -849,8 +849,8 @@ export const TA = [
     "oracle": "Empreinte consignée égale à la publiée pour la première ; écart signalé pour la seconde.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Paquets, observabilité et runbooks non construits : phase 2, étape 7."
+      "phase2_step": 8,
+      "blocking": "Rattaché à l'étape 8 : la réponse dont TA-25 éprouve le retrait, l'empreinte de l'image consignée au démarrage (proposition PA-4 de CT-7), n'existe pas ; l'image ne connaît pas son propre condensé, qui doit lui venir de l'orchestrateur (fichier monté ou variable), décision à prendre. La base est éprouvée à l'étape 7 par test/deploiement-images.test.js : le conteneur désigne son image par le condensé de la construction, et une image modifiée d'un seul fichier en a un autre."
     },
     "response_removed": {
       "what": "Surfaces d'écoute exhaustives, moindre privilège (CT-2 EX-18.1, EX-18.2, EX-18.4, EX-18.7) ; version et empreinte de l'image consignées (EX-18.6, CT-7 EX-3.14)",
@@ -971,8 +971,7 @@ export const TA = [
   {
     "id": "TA-29",
     "preconditions": [
-      "Démon de l'enregistreur construit (phase 2, étape 4), configuration de l'installation rapide (CT-8 §7.3).",
-      "Supervision de CT-8 §10 livrée (phase 2, étape 7) ; horloge de test accélérable ou attente réelle."
+      "Démon de l'enregistreur (étape 4) ; support WORM S3 à Object Lock de LocalStack en conteneur ; règles de CT-8 §10 (étape 7), jugées à horloge accélérée par l'évaluateur réduit des essais et par `promtool` quand il est présent ; sans Docker, l'essai est en attente, condition nommée (EX-3.11)."
     ],
     "steps": [
       "Fermer le support ; forcer la fermeture d'un segment ; attendre l'échéance.",
@@ -980,9 +979,19 @@ export const TA = [
     ],
     "oracle": "Métrique ≥ 1 et alerte levée à l'échéance ; retour à 0 après réouverture.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Paquets, observabilité et runbooks non construits : phase 2, étape 7."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/deploiement-supervision.test.js",
+          "describe": "CT-9 TA-29 et TA-75 : alertes de la supervision sur un S3 à Object Lock (CT-2 EX-12.16, EX-12.18, EX-17.5, EX-17.7)",
+          "it": "TA-29 (MN-29) : support WORM injoignable et segment fermé → noortrace_worm_copy_pending ≥ 1, la règle noortrace_copie_worm_en_retard (for 1h) se déclenche à l'échéance et pas avant ; support rétabli → balayage, métrique à 0, alerte résolue ; réponse retirée (pas de comparaison horaire, métrique jamais mise à jour) : aucune alerte"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-supervision.test.js",
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Mutant du démon dans test/adversarial.test.js (fil de supervision sans comparaison horaire) et évaluation de la règle par Prometheus en marche ; l'essai de l'étape 7 retire la réponse par la configuration (métrique jamais mise à jour) et juge la règle hors collecteur."
+      }
     },
     "response_removed": {
       "what": "Copie de chaque segment fermé, comparaison horaire (CT-2 EX-12.16, EX-12.18, EX-17.5)",
@@ -2596,9 +2605,18 @@ export const TA = [
     ],
     "oracle": "`noortrace_releve_externe_ok{check=\"registre_gels\"}` vaut 0 après la relecture et la règle critique de CT-8 EX-10.9 se déclenche, les règles du démon étant coupées ; `noortrace-ctl worm gel etat` sous les identifiants du Lecteur rend un code non nul et nomme la version `off` du gel actif (condition « Gel non posé sur une version d'un gel actif », CT-2 §17.4). Écart connu : sortie et code de retour exacts de la commande non fixés par CT-2 EX-12.40 (PD-26).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Paquets, observabilité et runbooks non construits : phase 2, étape 7."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/deploiement-supervision.test.js",
+          "describe": "CT-9 TA-29 et TA-75 : alertes de la supervision sur un S3 à Object Lock (CT-2 EX-12.16, EX-12.18, EX-17.5, EX-17.7)"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-supervision.test.js",
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Mutant dans test/adversarial.test.js (relecture faite par le démon seul) et règle évaluée par Prometheus en marche ; l'essai de l'étape 7 coupe les règles du démon et juge la règle d'EX-10.9 hors collecteur."
+      }
     },
     "response_removed": {
       "what": "Relecture du registre des gels par un rôle Lecteur hors du démon (CT-2 EX-17.7, EX-18.9) ; métriques publiques (EX-17.1)",

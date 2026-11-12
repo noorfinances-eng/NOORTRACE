@@ -1,0 +1,11 @@
+# Minuteur de la tâche TP-7 (CT-8 EX-8.6) : une fois par an.
+[Unit]
+Description=NOORTRACE, minuteur de TP-7 (une fois par an)
+
+[Timer]
+OnCalendar=*-01-15 09:00:00
+Persistent=true
+Unit=noortrace-tache@TP-7.service
+
+[Install]
+WantedBy=timers.target

@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "construction-presente.yaml",
-    "sha256": "2660adc0d377041d025d167d46e77746145e4736112fbe5b405f6a585ec800ce",
+    "sha256": "c0a4bbccb4072dc04b18e698805841a0eeeb7712a0baf73f4942b73cb5268ac5",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

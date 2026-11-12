@@ -1,0 +1,40 @@
+# Collecte de référence de NOORTRACE (CT-8 §10.2, EX-10.4), pour Prometheus 3.5.
+#
+# Chaque point de collecte écoute sur l'adresse de bouclage (EX-10.4) ; chaque
+# cible porte l'étiquette role : active ou passive pour une instance de
+# l'enregistreur (CT-2 §13), validateur ou relais pour un nœud, hote pour
+# l'exportateur de nœud. La règle noortrace_bail_non_detenu lit role.
+#
+# L'extracteur (scripts/deploiement/extraire-journaux.mjs) et la sonde
+# (scripts/deploiement/sonde.mjs) écrivent leurs métriques dans le répertoire
+# du collecteur textfile de l'exportateur de nœud, lancé avec
+#   --collector.textfile.directory=/var/lib/noortrace-supervision
+# ils tournent sous une identité distincte de chaque composant supervisé,
+# en lecture seule sur les journaux (EX-10.3).
+#
+# Deux instances de l'enregistreur : dupliquer la cible enregistreur avec
+# role passive pour l'instance de secours. Le nœud du registre n'expose ses
+# métriques qu'avec -metrics-addr (désactivé par défaut ; 9645 à 9648 sur le
+# réseau de développement).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+rule_files:
+  - regles-noortrace.yml
+scrape_configs:
+  - job_name: enregistreur
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['127.0.0.1:8500']
+        labels:
+          role: active
+  - job_name: hote
+    static_configs:
+      - targets: ['127.0.0.1:9100']
+        labels:
+          role: hote
+  - job_name: noorcore
+    static_configs:
+      - targets: ['127.0.0.1:9645']
+        labels:
+          role: validateur

@@ -5,7 +5,7 @@
 
 export {
   SignataireChaine, SignataireChaineFichier,
-  adresseDepuisClePublique, recouvrerSignataire, recouvrerClePublique65, clePubliqueNonCompressee, lireSignature,
+  adresseDepuisClePublique, recouvrerSignataire, recouvrerClePublique65, clePubliqueNonCompressee, lireSignature, signatureDepuisDer,
 } from "./cle-chaine.mjs";
 
 export {
@@ -15,7 +15,7 @@ export {
   lirePeriodMeta, verifierPeriodMeta, encoderTuplePeriodMeta, encoderPeriodMeta,
   periodDigest, anchorDigest, registerDigest, revokeDigestEnregistreur, revokeDigestAncre, adminOpDigest, hachageSigne,
   verifierSignatureCondense, verifierJeuSignatures,
-  encoderAnchor, encoderSubmitPeriod, encoderRegisterRecorder,
+  encoderAnchor, encoderSubmitPeriod, encoderRegisterRecorder, encoderRevokeRecorder,
   encoderLookup, encoderIsAnchored, encoderAnchorDigest, encoderPeriodDigest, encoderIsActiveRecorder, encoderRecorderOf,
   encoderRecorderByPubKey, encoderIsKnown, encoderLatestPeriodOf, encoderGetPeriod,
   mots, decoderLookup, decoderRecorder, decoderBool, decoderBytes32, decoderUint, decoderGetPeriod, decoderJournal, adresseMinuscule,

@@ -1,6 +1,12 @@
 # CT-8 — Déploiement et exploitation
 
-Version 0.5, 2026-11-11 (révision 0.5 : sonde du service d'approbation fixée
+Version 0.7, 2026-11-12 (révision 0.7 : l'installation rapide obtient le
+jeton RFC 3161 de clôture du serveur interne non qualifié, sur décision du
+porteur et selon la révision 0.9 de CT-5) ; version 0.6 du même jour
+(révision 0.6 : constats de la construction de
+l'étape 7 — images construites et non publiées, supervision livrée,
+installation et exploitation outillées, banc d'installation complète, 0.4) ;
+version 0.5 du 2026-11-11 (révision 0.5 : sonde du service d'approbation fixée
 par la révision 0.6 de CT-3, qui adopte PD-17, et alignement sur la console
 d'exploitation construite à l'étape 6, 0.4) ; version 0.4 du même jour
 (révision 0.4 : alignement sur les révisions 0.8 de
@@ -26,21 +32,20 @@ compatibles, qui ajoutent le mode observation. Elle ne change aucun format figé
 de CT-1 v0 (événement, manifeste, dossier, objet `A`, `D_A`, signature EIP-191
 version `0x45`), ni aucun vecteur de CT-1 à CT-7.
 
-L'enregistreur, le service d'approbation et le composant d'ancrage ne sont pas
-encore construits : CT-8 les spécifie pour la construction et n'invente aucun
-résultat de mesure. Toute durée, tout débit ou toute capacité qu'aucune
-exécution n'a établi est une **cible**, notée « à mesurer (CT-9, porte 2) ». Ce
-qui existe et s'exécute aujourd'hui (le vérificateur de dossier, l'outil du
-registre, le réseau de développement, les bibliothèques de référence, les
-fichiers de conteneur analysés sans être lancés, le prototype de l'outil du
-paquet réviseur) est mesuré, et chaque mesure citée donne sa commande.
+L'enregistreur, le service d'approbation et le composant d'ancrage sont
+construits depuis les étapes 4 à 6 de la construction, et leurs images depuis
+l'étape 7 ; CT-8 n'invente aucun résultat de mesure. Toute durée, tout débit ou
+toute capacité qu'aucune exécution sur le système de référence n'a établi est
+une **cible**, notée « à mesurer (CT-9, porte 2) ». Ce qui existe et s'exécute
+aujourd'hui est mesuré, et chaque mesure citée donne sa commande ; les mesures
+de l'environnement de construction sont publiées sans compter.
 
 Son critère d'acceptation est celui du plan : **l'enregistreur s'installe sur
 une machine vierge en moins d'une journée en suivant le seul document, sans
 autre aide**. « Le seul document » s'entend de CT-8 et des documents qu'il
-désigne (EX-7.1, EX-8.1), plus, en version 0.1, la documentation de la
-distribution pour IC-2, tant que le script de préparation de l'hôte manque
-(section 15). Le critère est mesuré à la porte 2 (CT-9) quand l'enregistreur
+désigne (EX-7.1, EX-8.1), plus la documentation de la distribution pour IC-2
+sur un autre système que le système de référence, où le script de préparation
+de l'hôte ne s'applique pas. Le critère est mesuré à la porte 2 (CT-9) quand l'enregistreur
 existera ; d'ici là, CT-8 fixe la procédure exacte (section 8), son budget de
 temps pas par pas et ce que CT-9 chronomètre (EX-8.1). La parité s'écrit en
 exigences mesurables, sans référence à un produit : une installation rapide en
@@ -294,6 +299,71 @@ La section 14 décrit les épreuves à l'aveugle ; elle n'est remise à aucun
 participant, et aucune autre section n'en reprend les éléments attendus.
 
 ### 0.4 Révisions
+
+**Révision 0.7** (2026-11-12), sur décision du porteur du même jour (option
+1 de l'installation rapide). L'installation rapide désignait un prestataire
+RFC 3161 principal fictif (`https://127.0.0.1:9/sans-prestataire`, secret
+`tsa-sans-prestataire`) que le schéma `ancrage-v0` exigeait, et son jeton de
+clôture restait en attente. Elle désigne désormais le serveur RFC 3161
+interne de `paquets/ancrage` (CT-5 §7), que la révision 0.9 de CT-5 admet
+comme prestataire `principal` hors production seulement (EX-4.9, règle 4) ;
+la production ne change pas et refuse ce principal (EX-4.9, règle 4). Ce qui
+change : image `noortrace/tsa-interne` (3.3, 3.6, EX-3.13, `images.json`) ;
+service `horodatage` dans l'espace réseau de l'enregistreur (`network_mode:
+service:enregistreur`, écoute sur `127.0.0.1:2020`, sans TLS ni secret) et
+outil `horodatage-init` sans réseau, qui crée l'autorité au pas IR-2 et en
+écrit le certificat d'AC et la CRL (`rapide.yaml`, 4.2) ; CO-14 admet
+l'espace réseau d'un service du même fichier quand la description le nomme
+(schéma `conteneurs-v0`, code `espace_reseau_non_conforme`) ; IR-2 (secret
+`tsa-sans-prestataire` retiré, autorité du serveur interne), IR-3
+(`configurer-rapide.mjs --ac-horodatage --sortie-ancrage` écrit le document
+d'ancrage), IR-8 (contrôle 4 exécuté contre l'AC du serveur interne que le
+réviseur porte dans son fichier d'ancres) ; EX-7.3 et la ligne `anchoring`
+de 7.3 ; 4.1 ; EX-14.2 ; §15 ; 16.1. Règles modifiées : EX-3.5, EX-3.6,
+EX-3.13, EX-4.1, CO-14, EX-4.4, EX-7.3, EX-14.2 ; pas IR-2, IR-3, IR-8.
+Aucun identifiant nouveau, aucune règle retirée.
+
+**Révision 0.6** (2026-11-12). Elle inscrit ce que la construction de
+l'étape 7 (paquets, images, observabilité, runbooks) a établi, et suit les
+révisions de la même date de CT-2 (0.10 : commandes `sonde`, `etat` et
+`close-period --now`, pair d'une prise du service, clé de chaîne de classe B
+ou C), CT-3 (0.7), CT-5 (0.8) et CT-6 (0.8) :
+
+1. **Images** (3.3, 3.6, 4.1, 4.4) : six images `noortrace/*` construites
+   sans interpréteur, deux fois aux mêmes condensés, non publiées ;
+   `/run/noortrace` en `3770` ; répertoires et points de montage que chaque
+   image crée ; recopie dans un volume nommé neuf éprouvée ; secret
+   `identite-aws` et variable `AWS_CONFIG_FILE` (CO-9) ; manifeste
+   `instance-registre.json` monté ; description des images au statut
+   `existante` ; SHA-256 et bloc de `production.yaml` (4.3).
+2. **Supervision** (section 10, annexe A) : fichiers de référence, extracteur,
+   générateur de règles, sonde et famille `supervision/` livrés ; noms des
+   lignes et des membres lus dans le code (PD-10, PD-11, PD-19 fermées) ;
+   deux règles d'EX-10.9.
+3. **Installation et exploitation** (sections 3.3, 5, 8, 10 à 12) : script de
+   préparation de l'hôte (IC-2), gabarits des tâches (EX-8.6, IC-16), outil
+   de sauvegarde et de restauration (EX-11.2, 11.4), archivage du journal
+   d'exploitation (EX-11.22), copies dérivées des runbooks (10.11) ;
+   validation d'`ancrage.json` par un outil du dépôt (IC-13) ; table d'IC-14
+   complétée (ancrage, clé de chaîne, serveur ponté) ; constats du banc
+   d'installation complète (IC-2, IC-6, IC-8, IC-11, IC-14, IC-15, IC-17) ;
+   `noortrace-ctl etat` et `close-period --now` existent (EX-10.14, RB-) ;
+   clôture anticipée qui termine le journal (IR-8, 12.6) ; flux vers AWS KMS
+   (FL-9).
+4. **Textes périmés** retirés : composants « non construits » (section 10),
+   binaire du vérificateur « à construire » (EX-3.6), épinglage de
+   `chain/docker/` « à faire », commandes « phase 2 » (EX-10.14, RB-),
+   « lot suivant ».
+
+Règles modifiées : EX-3.5, EX-3.6, EX-3.7, EX-3.8, EX-3.9, EX-3.13, EX-3.14,
+EX-4.1, EX-4.4, CO-9, EX-8.6, EX-10.4, EX-10.5, EX-10.6, EX-10.7, EX-10.9,
+EX-10.10, EX-10.11, EX-10.12, EX-10.14, EX-11.2, EX-11.22, EX-A.4, EX-A.5,
+EX-A.6, EX-A.9, EX-A.17, EX-A.18, EX-A.21, EX-A.27, EX-A.31, EX-A.36 ; pas
+IC-2, IC-3, IC-6, IC-8, IC-11, IC-13, IC-14, IC-15, IC-16, IC-17, IR-8 ;
+tables de 3.3, 3.6, 4.1, 5.1 (FL-9), 10.3 à 10.5, 10.7, 10.14, 8.3 (IC-14),
+16.1 et 16.2 ; runbooks RB-1, RB-2, RB-5, RB-8 (mentions « phase 2 »).
+Aucune règle retirée ; aucun identifiant nouveau. Les installations rapides
+(section 7, `rapide.yaml`, 7.3, IR-2) ne changent pas dans cette révision.
 
 **Révision 0.5** (2026-11-11). Elle suit les révisions de la même date de
 CT-2 (0.9), CT-3 (0.6), CT-4 (0.7) et CT-6 (0.7), qui tranchent les questions
@@ -633,12 +703,19 @@ lecture seule sans lui (R8-F33).
 Le volume des prises (`/run/noortrace`) est partagé par `enregistreur`, qui y
 crée `mcp.sock` (FL-1), et `approbation`, qui y crée `approbation.sock` : les
 deux services reçoivent le groupe supplémentaire `10010` (`noortrace-prises`,
-clé `group_add`, CO-4), et leurs deux images DOIVENT créer `/run/noortrace` avec
-le groupe 10010 et le mode `2770`, pour que la racine d'un volume neuf soit
-inscriptible par les deux comptes quel que soit le premier conteneur qui le
-monte (non vérifié : la recopie du propriétaire et du mode du répertoire de
-l'image dans un volume nommé neuf est à éprouver à la construction, CT-9, porte
-2). Un hôte d'agent de la même machine joint `mcp.sock` par un montage lié d'un
+clé `group_add`, CO-4), et leurs deux images DOIVENT créer `/run/noortrace` au
+compte 0, au groupe 10010 et au mode `3770`, pour que la racine d'un volume neuf
+soit inscriptible par les deux comptes quel que soit le premier conteneur qui le
+monte : le bit setgid donne aux prises le groupe 10010, que l'autre compte doit
+avoir pour se connecter ; le bit collant interdit à chaque compte de renommer
+ou de supprimer la prise de l'autre ; et le démon refuse un répertoire de prise
+inscriptible par le groupe sans lui, pour sa prise MCP (CT-2 EX-4.39,
+`repertoire_inscriptible`) comme pour celle du service (CT-2 EX-18.8, CT-3
+EX-12.2) : en `2770`, il refuse de démarrer (constaté à l'étape 7). La racine
+d'un volume nommé neuf reprend le propriétaire, le groupe et le mode, bits
+setgid et collant compris, du répertoire de l'image qui le monte la première,
+montage en lecture seule compris (éprouvé à l'étape 7 par TE-15 de CT-9, avec
+Docker 29.8.2, magasin containerd, ext4). Un hôte d'agent de la même machine joint `mcp.sock` par un montage lié d'un
 répertoire de l'hôte à la place du volume nommé, en mode `0750` et de groupe
 celui des hôtes ; ce montage est une adaptation du client, que CO-11 refuse tant
 que sa source n'est pas ajoutée à la description.
@@ -655,8 +732,8 @@ Le démon ne crée pas ce répertoire et n'en change ni le propriétaire, ni le
 groupe, ni le mode (CT-2 EX-15.12) : l'image de l'enregistreur DOIT le créer
 au compte `10001` et au groupe `10005`, groupe principal du compte du
 vérificateur et groupe des lecteurs de CT-2 EX-15.12, en mode `2750`, que la
-racine d'un volume nommé neuf reprend (même réserve que pour `/run/noortrace`,
-non vérifié). Le démon seul y écrit ; le compte 10005 le traverse et le lit
+racine d'un volume nommé neuf reprend (même recopie que pour
+`/run/noortrace`, éprouvée). Le démon seul y écrit ; le compte 10005 le traverse et le lit
 par son groupe principal, sans `group_add` ; les autres comptes n'y ont aucun
 droit, ce que le démon vérifie en production avant chaque export
 (`exports_indisponible`, CT-2 EX-15.12, ordre 2). Le démon écrit chaque
@@ -675,17 +752,29 @@ pas 1) ; sa destination `--vers` est un chemin de ce conteneur sous
 `/var/lib/noortrace-exports`. L'image du service DOIT de même créer
 `/var/lib/noortrace-approbation`, son `state_dir`, au compte `10002:10002` et
 en mode `0700`, celui que le schéma `configuration-approbation-v0` lui donne
-(CT-3 EX-10.12).
+(CT-3 EX-10.12). L'image de l'enregistreur DOIT aussi créer
+`/var/lib/noortrace` (`storage.root`) au compte `10001:10001` en mode `0700`
+et `/var/log/noortrace` au compte `10001:10001` en mode `0750`, sans quoi le
+démon ne pourrait écrire dans un volume neuf. Toute image qui monte un volume
+nommé partagé DOIT créer son point de montage aux mêmes compte, groupe et mode
+que les autres images qui le montent, puisque l'une ou l'autre peut le monter
+la première : `attributs` crée `/var/lib/noortrace` comme l'enregistreur (il
+n'a pas de `depends_on` dans `production.yaml`), `verificateur` crée
+`/var/lib/noortrace-exports` comme l'enregistreur, `approbation` crée
+`/run/noortrace` comme l'enregistreur ; chaque image crée enfin
+`/run/temporaire` en `1777`, que le `tmpfs` recouvre.
 
 | Service | Compte (UID:GID) | Volumes (cible, accès) | Ports (dans le conteneur) | Secrets admis (motifs, CT-7 §4.2) |
 |---|---|---|---|---|
-| `enregistreur` | `10001:10001` (`noortrace`), groupe supplémentaire `10010` | `/var/lib/noortrace` rw (`storage.root`, volume exclusif, EX-3.10) ; `/var/log/noortrace` rw ; `/run/noortrace` rw (prises) ; `/var/lib/noortrace-exports` rw ; configuration et `ancrage.json` ro | 8300 MCP, 8400 passerelle, 1344 ICAP, 4318 OTLP, 8500 santé et métriques | `cle-enregistreur` (classe D, développement), `acces-signataire` (CLE-21), `cle-chaine` (CLE-2), `cle-mac-relais` (CLE-16), `dsn-bail` (CLE-19), `worm-ecrivain` (CLE-20, écrivain seul), `jeton-hote-*`, `jeton-passerelle` (CLE-14), `jeton-noyau-vers-service-enregistreur` (CLE-23, `policy.approval.service.token`, en production), `cle-fournisseur-*` (CLE-13), `tsa-*` (CLE-11), `bitcoin-rpc` (CLE-12), `tls-enregistreur` (CLE-24), `cle-pseudonymisation` (CLE-17), `cle-coffre` (CLE-18) |
+| `enregistreur` | `10001:10001` (`noortrace`), groupe supplémentaire `10010` | `/var/lib/noortrace` rw (`storage.root`, volume exclusif, EX-3.10) ; `/var/log/noortrace` rw ; `/run/noortrace` rw (prises) ; `/var/lib/noortrace-exports` rw ; configuration, `ancrage.json` et `instance-registre.json` (manifeste d'instance du registre, CT-4 §4.8, que le démon lit à côté du document d'ancrage ; sans lui, il consigne `instance_registre_absente` et, en production, n'ancre pas au registre) ro | 8300 MCP, 8400 passerelle, 1344 ICAP, 4318 OTLP, 8500 santé et métriques | `cle-enregistreur` (classe D, développement), `acces-signataire` (CLE-21), `cle-chaine` (CLE-2), `identite-aws` (identité IAM vers AWS KMS d'une clé de classe B ou C : fichier au format des kits d'AWS, section `[default]`, `aws_access_key_id`, `aws_secret_access_key`, `aws_session_token` facultatif, désigné par la variable `AWS_CONFIG_FILE`, CT-2 EX-11.18 ; sans entrée de la table des clés de CT-7 à ce jour), `cle-mac-relais` (CLE-16), `dsn-bail` (CLE-19), `worm-ecrivain` (CLE-20, écrivain seul), `jeton-hote-*`, `jeton-passerelle` (CLE-14), `jeton-noyau-vers-service-enregistreur` (CLE-23, `policy.approval.service.token`, en production), `cle-fournisseur-*` (CLE-13), `tsa-*` (CLE-11), `bitcoin-rpc` (CLE-12), `tls-enregistreur` (CLE-24), `cle-pseudonymisation` (CLE-17), `cle-coffre` (CLE-18) |
 | `attributs` | `0:0` | `/var/lib/noortrace` rw | aucun ; aucun réseau | aucun |
 | `approbation` | `10002:10002` (`noortrace-approbation`), groupe supplémentaire `10010` | `/var/lib/noortrace-approbation` rw (`state_dir` : tickets, annuaire et défis, journal du service, boîte d'envoi des notifications, CT-3 EX-10.12, EX-13.38, EX-13.39) ; `/run/noortrace` rw (sa prise, `noyau.socket`) ; `/etc/noortrace-approbation/configuration.json` ro (`configuration-approbation-v0`) | 8600 canal de la console (`console.tcp`, TLS et jeton ; il sert aussi `GET /v0/etat`, authentifié comme les autres méthodes du canal, dont le serveur de console tire sa santé, CT-3 EX-12.12, EX-13.44), non publié sur l'hôte : `console` le joint par le réseau interne `console` (le service écoute `0.0.0.0` dans le conteneur : un autre conteneur du réseau `sortie` l'atteindrait aussi, et seuls TLS et le jeton du canal le gardent, CT-3 EX-12.4) ; 8601 état (`etat`, qui ne sert que `GET /v0/etat`, sans TLS, sans authentification et sans donnée de ticket, CT-3 EX-10.12), publié sur `127.0.0.1` de l'hôte en production pour la sonde (10.2) | `cle-stockage-approbation` (`storage_key`), `jeton-noyau-vers-service` (CLE-23, `noyau.token`, exigé en production), `jeton-console-vers-service-approbation` (CLE-23, `console.token`), `rpc-registre` (`rpc.token`), `notification-webhook` (`notifications.key`, clé HMAC du webhook, CT-3 EX-13.41) et, s'il y a lieu, un autre `notification-*` (`notifications.ca`), `tls-approbation` (CLE-24, `console.tls.cert` et `console.tls.key`, deux références au même fichier, CT-3 EX-10.12) |
 | `console` | `10003:10003` | `/etc/noortrace-console/configuration.json` ro (`configuration-console-v0`) | 8700 HTTPS (`listen`) | `jeton-console-vers-service-console` (CLE-23, `service.token`), `tls-autorite-approbation` (`service.ca` : autorité, en PEM, du certificat `tls-approbation`), `oidc-client` (`identity.client_secret`), `tls-console` (CLE-24, `tls.cert` et `tls.key`) |
 | `pont-<alias>` | un compte par serveur, à partir de `10101:10101` | les données du serveur d'outils, et rien du journal | port interne du pont, réseau `outils` seulement | `jeton-pont-<alias>` (CLE-15) |
 | `relais` | `65532:65532` (image de `chain/docker/`) | `/var/lib/noorcore` rw | 8545, 8080, 9090 publiés sur `127.0.0.1` | aucun dans le conteneur ; jeton de la garde côté applications |
 | `verificateur` | `10005:10005` | `/var/lib/noortrace-exports` ro | aucun ; aucun réseau | aucun |
+| `horodatage` (installation rapide seulement, révision 0.7) | `10004:10004` (`noortrace-tsa`) | `/var/lib/noortrace-tsa` rw (clés de l'AC et de l'unité du serveur RFC 3161 interne, certificats, CRL, compteur des numéros de série ; volume `horodatage`) | aucun réseau propre : l'espace réseau de `enregistreur` (`network_mode: service:enregistreur`) ; écoute sur `127.0.0.1:2020`, non publiée, que l'enregistreur joint sur sa boucle locale (CT-5 AN-27, EX-4.9 règle 4) | aucun |
+| `horodatage-init` (outil, profil `outils`, révision 0.7) | `10004:10004` | `/var/lib/noortrace-tsa` rw | aucun ; aucun réseau | aucun |
 
 Le compte d'un secret monté depuis un fichier n'est pas réécrit par Compose
 (« The `uid`, `gid`, and `mode` attributes are not implemented in Docker Compose
@@ -703,30 +792,49 @@ L'image de l'enregistreur DOIT nommer dans son `/etc/passwd` les comptes
 `noortrace` (10001) et `noortrace-approbation` (10002), parce que CT-2
 authentifie le service par le nom d'utilisateur du pair (`peer_user`, CT-2
 EX-18.8) ; celle du service, `noortrace` (10001), pour la même raison dans
-l'autre sens.
+l'autre sens. L'image `noortrace/tsa-interne` DOIT créer
+`/var/lib/noortrace-tsa` au compte `10004:10004` en mode `0700`, que la
+racine du volume `horodatage` reprend (révision 0.7).
 
 **EX-3.6** **Paquets.** Un déploiement emploie les paquets suivants, chacun
 désigné par une version exacte et, en production, par son condensé ou son
 SHA-256 publié (EX-3.14) :
 
-| Paquet | Contenu | État au 2026-10-27 |
+| Paquet | Contenu | État au 2026-11-12 |
 |---|---|---|
-| `noortrace/enregistreur` | démon `noortrace` (CT-2), outil `noortrace-ctl`, dont `dossier exporter` (CT-2 §15.7), composant d'ancrage (EX-3.2) | à construire (phase 2) |
-| `noortrace/approbation` | service d'approbation (CT-3 §12) : `noortrace-approbation --config` et `valider-configuration` (CT-3 EX-10.12) | à construire |
-| `noortrace/console` | serveur de console et pages de la console d'exploitation (`paquets/console`, CT-3 §13 ; révision 0.5) : `noortrace-console --config`, `valider-configuration` et `sonde` (CT-3 EX-10.13, EX-13.44) | à construire |
-| `noortrace/attributs` | compagnon des attributs `a` et `i` (EX-3.9) | à construire |
-| `noortrace/pont-stdio` | pont stdio vers Streamable HTTP (EX-3.7) | à construire |
-| `noortrace/verificateur` et binaire `noortrace-verifier` | vérificateur (CT-6 §8) | l'implémentation de référence `scripts/verify/dossier.mjs` existe ; le binaire et l'image sont à construire |
+| `noortrace/enregistreur` | démon `noortrace` (CT-2), outil `noortrace-ctl`, dont `dossier exporter` (CT-2 §15.7), `sonde`, `etat` et `close-period --now` (CT-2 §15.8), composant d'ancrage (EX-3.2) ; `flock` (util-linux 2.38.1) pour le bail `file` | construite à l'étape 7 (`conteneurs/enregistreur/Dockerfile`), non publiée |
+| `noortrace/approbation` | service d'approbation (CT-3 §12) : `noortrace-approbation --config` et `valider-configuration` (CT-3 EX-10.12) | construite à l'étape 7 (`conteneurs/approbation/`), non publiée |
+| `noortrace/console` | serveur de console et pages de la console d'exploitation (`paquets/console`, CT-3 §13 ; révision 0.5) : `noortrace-console --config`, `valider-configuration` et `sonde` (CT-3 EX-10.13, EX-13.44) | construite à l'étape 7 (`conteneurs/console/`), non publiée |
+| `noortrace/attributs` | compagnon des attributs `a` et `i` (EX-3.9) ; `chattr` et `lsattr` (e2fsprogs 1.47.0) | construite à l'étape 7 (`conteneurs/attributs/`), non publiée |
+| `noortrace/pont-stdio` | pont stdio vers Streamable HTTP (EX-3.7) et serveur de fichiers minimal du dépôt (EX-3.8) | construite à l'étape 7 (`conteneurs/pont-stdio/`), non publiée |
+| `noortrace/verificateur` et binaire `noortrace-verifier` | vérificateur (CT-6 §8) | l'implémentation de référence `scripts/verify/dossier.mjs` et le binaire (`verificateur/`, CT-6 §14) existent ; l'image est construite à l'étape 7 (`conteneurs/verificateur/`), son binaire égal octet pour octet à celui de la recette de CT-6 EX-14.6 ; non publiée |
+| `noortrace/tsa-interne` | serveur RFC 3161 interne non qualifié de `paquets/ancrage` (CT-5 §7) : `noortrace-tsa-interne init`, `servir`, `crl`, `ac` et `sonde` ; service `horodatage` et outil `horodatage-init` de l'installation rapide seulement (révision 0.7) | construite à l'étape 7 (`conteneurs/tsa-interne/`), deux constructions aux mêmes condensés, non publiée |
 | `noortrace/noorcore` | nœud noorcore de l'instance, image de `chain/docker/Dockerfile` (CT-4 §10.1) | construite sans correctif le 2026-10-21, 67,5 Mo, `User=65532:65532` (R8-F34) ; avec correctif, construction non rejouée (R8 NV-1) |
-| `noortrace-connecteur` | connecteur stdio des hôtes (CT-2 §3.4) ; un paquet d'extension de bureau `.mcpb` (CT-2 §19.5.1) le portera en phase 2, son format n'étant pas relu par CT-8 (non vérifié) | à construire |
-| Archive de déploiement `noortrace-deploiement-<version>.tar` | les fichiers que rend `fichiersArchive` (`scripts/lib/deploiement.mjs`), écrits par `scripts/deploiement/construire-archive.mjs --sortie <répertoire>` avec leur liste `SHA256SUMS` : `deploiement/` (fichiers Compose, description d'images, configurations de référence, `LISEZMOI.md`) ; les outils de `scripts/deploiement/` qui s'exécutent sur l'hôte (`configurer-rapide`, `controle-prealable`, `dimensionner`, `verifier-conteneurs`, `verifier-journal`, `rapport-observation`, `proces-verbal`, `consultations`) ; les bibliothèques de `scripts/lib/` qu'ils importent ; les schémas de `spec/schemas/` ; la liste des clés de test de CT-7 (`spec/vecteurs/ct-7/cles-de-test.json`, pour CT-2 EX-15.8) ; `LICENSE`, `NOTICE` ; une copie figée de la distribution ESM d'`ethers` et de `js-yaml` sous `node_modules/`. Elle s'exécute avec Node.js 22 sans npm ni réseau (test de l'annexe A.12). Archive déterministe (même recette que le paquet réviseur, section 13) | contenu écrit et éprouvé depuis le dépôt ; archive `.tar` publiée : à construire (phase 2) |
+| `noortrace-connecteur` | connecteur stdio des hôtes (CT-2 §3.4) ; un paquet d'extension de bureau `.mcpb` (CT-2 §19.5.1) le portera en phase 2, son format n'étant pas relu par CT-8 (non vérifié) | le programme existe (`paquets/enregistreur/bin`) ; le paquet `.mcpb` est reporté avec les intégrations des hôtes |
+| Archive de déploiement `noortrace-deploiement-<version>.tar` | les fichiers que rend `fichiersArchive` (`scripts/lib/deploiement.mjs`), écrits par `scripts/deploiement/construire-archive.mjs --sortie <répertoire>` avec leur liste `SHA256SUMS` : `deploiement/` (fichiers Compose, description d'images, configurations de référence, `LISEZMOI.md`) ; les outils de `scripts/deploiement/` qui s'exécutent sur l'hôte (`configurer-rapide`, `controle-prealable`, `dimensionner`, `verifier-conteneurs`, `verifier-journal`, `rapport-observation`, `proces-verbal`, `consultations`, et, depuis l'étape 7, `sauvegarde` et `archiver-journal-exploitation`) ; les bibliothèques de `scripts/lib/` qu'ils importent ; les schémas de `spec/schemas/` ; la liste des clés de test de CT-7 (`spec/vecteurs/ct-7/cles-de-test.json`, pour CT-2 EX-15.8) ; `LICENSE`, `NOTICE` ; une copie figée de la distribution ESM d'`ethers` et de `js-yaml` sous `node_modules/`. `deploiement/` y entre en entier : depuis l'étape 7, le script de préparation de l'hôte (`hote/`), les gabarits des tâches planifiées (`taches/`), les copies des runbooks (`runbooks/`) et les fichiers de supervision de référence (`observabilite/`). Les outils de supervision (`regles.mjs`, `extraire-journaux.mjs`, `sonde.mjs`, section 10) n'y sont pas encore : ils s'exécutent depuis une copie du dépôt. Elle s'exécute avec Node.js 22 sans npm ni réseau (test de l'annexe A.12). Archive déterministe (même recette que le paquet réviseur, section 13) | contenu écrit et éprouvé depuis le dépôt ; archive `.tar` écrite par `scripts/publication/preparer-version.mjs` (ustar d'EX-13.14, entrées à la racine sans répertoire englobant, mode `0644`, propriétaires nuls, date du commit), égale à la recette GNU tar d'EX-13.15 par essai (étape 7) ; non publiée |
 
 Le point d'entrée de chaque image `noortrace/*` est son programme (`noortrace`,
 `noortrace-approbation`, `noortrace-console`, `noortrace-verifier`…) : la clé
 `command` d'un fichier Compose n'en porte que les arguments, et `$DC run --rm
 --no-deps <service> <arguments>` lance le même programme avec d'autres
 arguments (`validate-config`, `valider-configuration` : IR-5, IC-11, IC-14) ;
-c'est une exigence de construction des images (EX-4.4).
+c'est une exigence de construction des images (EX-4.4). Les images de
+l'étape 7 la tiennent ainsi : le point d'entrée est
+`/usr/local/bin/<programme>`, lien symbolique vers le programme du paquet,
+dont la ligne de lancement est réécrite à la construction en
+`#!/usr/local/bin/node` ; aucune image ne contient d'interpréteur de
+commandes, ni `/usr/bin/env`, ni gestionnaire de paquets ; l'image finale
+part d'une base sans interpréteur (`gcr.io/distroless/cc-debian12:nonroot`,
+ou `static-debian12:nonroot` pour le vérificateur), épinglée par condensé,
+où sont copiés Node.js 22.23.4 et sa licence, l'arbre de l'application et les
+seuls programmes requis (`flock` ; `chattr` et `lsattr`). Chaque image
+Node.js porte `/usr/share/doc/nodejs/LICENSE`, égal au `LICENSE` de l'archive
+officielle de la version, dont `/usr/local/bin/node` est le binaire ; les
+deux SHA-256 sont contrôlés à la construction. Aucune image ne contient
+`python3` ni `tpm2-tools` : les classes de garde qui en ont besoin (PKCS#11
+par l'auxiliaire Python, enveloppe TPM 2.0) demandent une image dérivée, qui
+est une adaptation du client. Les fichiers de construction sont hors de
+`deploiement/`, sous `conteneurs/<nom>/` (EX-A.17).
 
 L'image du nœud est reprise telle quelle pour le **relais** d'un client
 (`chain/docker/docker-compose.yml`, R8-F33) : suiveur `-role follower`,
@@ -736,20 +844,22 @@ ancre ou d'une clôture (CT-4 EX-10.5) : le composant d'ancrage soumet au point
 RPC d'un validateur, par sa garde d'admission (FL-19) ; la supervision du relais
 sonde `eth_blockNumber` à travers lui, pas `/healthz`, qui répond `ok` meneur
 arrêté (CT-4 EX-10.5 ; R8-F35). L'épinglage de ses deux images de base par
-condensé (CT-4 EX-10.1, « à faire » en CT-4 §13) reste à faire dans
-`chain/docker/Dockerfile` (R9-F34) : le fichier Compose de référence désigne
-donc l'image par son étiquette exacte `618fcef-noortrace` (R9-F34), et la
-production par son condensé publié (IC-6).
+condensé (CT-4 EX-10.1) est fait : `chain/docker/Dockerfile` porte
+`@sha256:` pour chacune ; le fichier Compose de référence désigne l'image par
+son étiquette exacte `618fcef-noortrace` (R9-F34), et la production par son
+condensé publié (IC-6).
 
 Les pas des sections 7 et 8 s'exécutent depuis le répertoire `deploiement/` de
-l'archive extraite, sur l'hôte, avec les outils de l'archive. Trois pas
-emploient des outils qui ne sont pas dans l'archive 0.1 : la cérémonie de
-CT-7 (`npm run verify:ceremonie`, IC-7), la validation de `ancrage.json` (IC-13)
-et l'attestation de périmètre (`npm run conformite:attestation`, IC-17) ; ils
-s'exécutent sur le poste de l'exploitant, avec une copie du dépôt public à la
-version publiée et `npm ci` fait (EX-8.2), jamais sur un hôte NOORTRACE. Le
-script de préparation de l'hôte d'IC-2 est à écrire (phase 2) et absent de
-l'archive 0.1.
+l'archive extraite, sur l'hôte, avec les outils de l'archive. Quatre pas
+emploient des outils qui ne sont pas dans l'archive : la cérémonie de
+CT-7 (`npm run verify:ceremonie`, IC-7), la validation de `ancrage.json` par
+`noortrace-ancrage configuration` (IC-13), les règles d'alerte
+(`regles.mjs`, IC-16) et l'attestation de périmètre (`npm run
+conformite:attestation`, IC-17) ; ils s'exécutent sur le poste de
+l'exploitant, avec une copie du dépôt public à la version publiée et `npm ci`
+fait (EX-8.2), jamais sur un hôte NOORTRACE. Le script de préparation de
+l'hôte d'IC-2 est `deploiement/hote/preparer-hote.sh`, dans l'archive
+(étape 7).
 
 ### 3.4 Serveurs d'outils stdio en conteneur
 
@@ -767,7 +877,21 @@ démon. Le pont lance la commande du serveur comme enfant et la sert en
 Streamable HTTP à l'enregistreur, qui le déclare comme un serveur `http`
 (`policy.servers.<alias>.transport.type = "http"`, CT-2 §15) avec un jeton
 statique propre (`jeton-pont-<alias>`). Aucun autre conteneur que l'enregistreur
-ne joint le pont (réseau `outils` interne, CO-14).
+ne joint le pont (réseau `outils` interne, CO-14). Le pont de l'étape 7
+(`noortrace-pont-stdio`, sans dépendance tierce) sert l'ère de MCP dite
+héritée seulement : `initialize`, en-tête `Mcp-Session-Id`, un enfant par
+session ; réponses en `application/json`, sans flux SSE ; les requêtes du
+serveur vers le client sont refusées par le pont (`-32601`) et ses
+notifications ignorées ; un en-tête `Origin` est refusé ; l'authentification
+est `Authorization: Bearer <jeton>`, comparée en temps constant, le jeton
+étant lu dans `/run/secrets/jeton-pont-<alias>`. Le secret
+`identifiant-outil-<alias>` de l'enregistreur, dont le démon envoie les
+octets tels quels, contient donc `Bearer <jeton>`, sans saut de ligne (IC-8).
+Options : `--ecoute <adresse:port>`, `--jeton <fichier>`, `--chemin`
+(défaut `/mcp`), `--sessions-max` (défaut 8), `--delai-ms` (défaut 300 000),
+`--octets-max` (défaut 4 Mio), puis `--` et la commande absolue du serveur.
+Sa sonde, `noortrace-pont-stdio sonde --url http://127.0.0.1:9101/sante`,
+suit la règle de `noortrace-ctl sonde` (CT-2 EX-15.16).
 
 **EX-3.8** **Épinglage du serveur ponté.** La validation de CT-2 exige en
 production l'empreinte de l'exécutable d'un serveur stdio
@@ -779,6 +903,12 @@ d'installation (EX-8.3). Ce que le démon ne voit plus du serveur ponté : la
 sortie d'erreur de l'enfant (`child_stderr`, CT-2 §17.3), qui reste dans les
 journaux du conteneur du pont. Un transport stdio par prise locale, qui
 garderait la vérification d'`integrity` par le démon, est proposé à CT-2 (PD-4).
+Le serveur de `pont-fichiers` est le serveur de fichiers minimal du dépôt
+(`conteneurs/pont-stdio/serveur-fichiers.mjs`, sans code tiers), installé dans
+l'image au chemin que `production.yaml` nomme
+(`/opt/mcp/server-filesystem/bin/server-filesystem`) ; il sert `/srv/pieces`
+(outils `write_file` et `list_directory`, aucune ressource), et le modèle de
+production le déclare par `uri_prefixes: ["file:///srv/pieces/"]`.
 
 **EX-3.9** **Compagnon des attributs.** Quand
 `storage.seal.append_only_attribute` est vrai, le service `attributs` pose
@@ -791,11 +921,15 @@ compte 0, avec exactement les capacités `LINUX_IMMUTABLE`, `FOWNER` et
 privilégié (`CAP_LINUX_IMMUTABLE`) pose ou retire `a` et `i`, et changer les
 attributs d'un fichier exige d'en être propriétaire ou d'avoir `CAP_FOWNER`
 (page de manuel `ioctl_iflags(2)`, lue le 2026-10-27, annexe B) ;
-`DAC_READ_SEARCH` lui permet d'ouvrir des fichiers en `0400` qui appartiennent
-au démon (non vérifié : le besoin d'ouvrir le fichier en lecture est déduit, à
-éprouver à la construction, CT-9). Le compagnon peut, par `CAP_FOWNER`, changer
-les droits d'un fichier : c'est un composant de confiance, minimal, dont l'image
-est publiée et épinglée comme les autres.
+`DAC_READ_SEARCH` lui permet de parcourir `storage.root` (`0700`, compte
+10001) et d'ouvrir des fichiers en `0400` qui appartiennent au démon (éprouvé
+à l'étape 7 par TE-15 de CT-9 : sans `DAC_READ_SEARCH`, le compagnon ne voit
+rien ; sans `FOWNER`, `chattr` échoue). Un répertoire ou des attributs
+illisibles sont une erreur du passage (`attribute_unreadable`) : la sonde rend
+1 et `--une-fois` rend 1 ; une racine illisible ou absente arrête le service
+(code 1, `attribute_root_unreadable`, CT-2 EX-12.18). Le compagnon peut, par
+`CAP_FOWNER`, changer les droits d'un fichier : c'est un composant de
+confiance, minimal, dont l'image est publiée et épinglée comme les autres.
 
 ### 3.5 Haute disponibilité et bascule
 
@@ -827,11 +961,34 @@ IC-1).
 construite : avec ses images de base épinglées par condensé (`FROM …@sha256:…`,
 R9-F30) ; avec l'heure des fichiers fixée à la date du commit
 (`SOURCE_DATE_EPOCH`, R9-F11 ; même règle que les archives publiées de CT-6
-EX-14.8, R9-F55) ; deux fois, par deux constructeurs indépendants, et les deux
-condensés DOIVENT être égaux avant publication. Le même procédé vaut pour le
-binaire `noortrace-verifier` et pour la page et les scripts de la console (CT-3
-EX-13.4). L'égalité des deux constructions est une mesure de CT-9 (porte 2) ;
-aucune image n'étant construite au 2026-10-27, aucune n'est revendiquée.
+EX-14.8, R9-F55) ; deux fois, sans cache, depuis deux copies des sources à
+deux chemins et à deux instants (heures des fichiers différentes), et les deux
+condensés DOIVENT être égaux avant publication ; deux machines sont l'épreuve
+de la porte 2. L'heure de chaque fichier est fixée à `SOURCE_DATE_EPOCH` dans
+l'étape de construction : l'option `rewrite-timestamp` de BuildKit ne ramène
+que les heures postérieures (constaté à l'étape 7). Le même procédé vaut pour
+le binaire `noortrace-verifier` et pour la page et les scripts de la console
+(CT-3 EX-13.4). La recette est `scripts/deploiement/construire-images.mjs
+--double --sortie <répertoire> [--archive] [--ca <PEM>]` (codes 0, 1 et 2),
+qui écrit le relevé `condenses.json` et, avec `--archive`, l'archive `docker
+save` des sept images. L'égalité des deux constructions est une mesure de CT-9
+(porte 2). Six images construites le 2026-11-12, `linux/amd64`, étiquette
+`0.1.0`, `SOURCE_DATE_EPOCH` 1794475464, deux constructions sans cache aux
+mêmes condensés, non publiées :
+
+| Image | Condensé |
+|---|---|
+| `noortrace/enregistreur:0.1.0` | `sha256:41342221182551f71c68b9fad7dd1cdcfcd32f7a1d3e35178a80a9cefe4d8872` (reconstruite le même jour après la révision 0.9 de CT-5, une construction : `sha256:e71be3f05ca349899101bb4b75a98dad3d4d64ff4a49d1d2f51e979cfebedb29`) |
+| `noortrace/attributs:0.1.0` | `sha256:4ea7d679534a8bad83260f15cc6e51f4fc3b299b73eec29fced907dddb5887e4` |
+| `noortrace/approbation:0.1.0` | `sha256:2406cf2b7e9d3cb45266439150e7f811940f4c4bff8ca27950882e2a3b4e7bdf` |
+| `noortrace/console:0.1.0` | `sha256:7ff00dbeb0e7e5a0bbc0f63850fb5ca097f256196c3384b4d89d044fb4f50ea1` |
+| `noortrace/pont-stdio:0.1.0` | `sha256:1b1cd77dbfd949304e0420c416af538a94ee0613811b5ce2cd04272815ce67a5` |
+| `noortrace/verificateur:0.1.0` | `sha256:323e3bb337099fb2e6912ef5d9f48d0de819eab156b5b05339029b78763ea14c` |
+| `noortrace/tsa-interne:0.1.0` (révision 0.7) | `sha256:f298a3646083b8b41709ac19dfc248d37c5b55a05dea1ffe6067fc91a4beff20` (deux constructions sans cache, mêmes condensés) |
+
+Ces condensés valent pour l'arbre de travail de la construction (étiquette
+`org.opencontainers.image.revision` suffixée `-modifie`) ; la version publiée
+aura les siens, ceux de sa note de version.
 
 **EX-3.14** **Publication.** Pour chaque version, l'exploitant NOORTRACE DOIT
 publier hors des serveurs qui servent les images et la console (note de version
@@ -840,9 +997,15 @@ vérificateur, le SHA-256 du document de la console et de chaque script qu'elle
 charge (CT-7 EX-3.9), le SHA-256 de l'archive de déploiement (EX-3.6), la liste
 `SHA256SUMS` signée des fichiers du vérificateur du paquet réviseur (EX-13.20),
 le commit, et une attestation de provenance de la construction (CT-2 EX-18.6).
-Aucune version n'étant publiée au 2026-10-27, aucune de ces valeurs n'existe
-encore : les pas qui les comparent (IR-1, IC-4, instructions de 13.11) ne
-s'exécutent qu'à partir de la première version publiée. La comparaison
+Au 2026-11-12, aucune version n'est publiée : la note de version, la liste
+`SHA256SUMS` et une déclaration de provenance in-toto non signée
+(`provenance.intoto.json`) sont préparées par
+`scripts/publication/preparer-version.mjs` et par le travail de version de
+l'intégration continue, sans rien signer ni publier ; l'attestation signée
+exige les droits `id-token: write` et `attestations: write`, ajoutés au
+travail de préparation seulement après décision du porteur. Les pas qui
+comparent ces valeurs (IR-1, IC-4, instructions de 13.11) ne s'exécutent qu'à
+partir de la première version publiée. La comparaison
 quotidienne des empreintes de la console par une supervision qui n'est pas
 hébergée sur son serveur (CT-7 EX-3.9) est la tâche TP-5 (EX-8.6).
 
@@ -864,11 +1027,21 @@ CT-7.
 | Fichier | Contenu |
 |---|---|
 | `deploiement/LISEZMOI.md` | Ce que les fichiers sont, qu'ils ne sont jamais lancés dans le dépôt, comment les vérifier (`npm run deploiement:conteneurs`) |
-| `deploiement/compose/rapide.yaml` | Installation rapide (section 7) : `enregistreur`, `approbation`, `verificateur` (profil `outils`) |
+| `deploiement/compose/rapide.yaml` | Installation rapide (section 7) : `enregistreur`, `approbation`, `horodatage` (serveur RFC 3161 interne, révision 0.7), `verificateur` et `horodatage-init` (profil `outils`) |
 | `deploiement/compose/production.yaml` | Installation complète (section 8) : `enregistreur`, `attributs`, `approbation`, `console`, `pont-fichiers` (exemple d'un serveur stdio ponté), `relais` (profil `relais`), `verificateur` (profil `outils`) |
 | `deploiement/images/images.json` | Description des services et de leurs images, schéma `conteneurs-v0` (exemple complet ci-dessous) |
 | `deploiement/config/rapide/configuration.json` | Configuration de l'enregistreur de l'installation rapide (7.3), valide contre `configuration-enregistreur-v0` |
+| `deploiement/config/rapide/ancrage.json` | Document `ancrage-v0` de l'installation rapide (7.3) : le serveur interne en principal, OpenTimestamps ; son certificat d'AC est remplacé au pas IR-3 par celui de l'autorité créée au pas IR-2 (révision 0.7) |
 | `deploiement/config/modele-production/configuration.json` | Modèle de la configuration de l'enregistreur de production (8.3, table des écarts avec CT-2 §15.3), valide contre `configuration-enregistreur-v0` ; chaque secret y est lu dans `/run/secrets/<nom>` d'un secret que `production.yaml` monte dans `enregistreur` (test de l'annexe A.12) |
+| `deploiement/hote/preparer-hote.sh` | Préparation de l'hôte du système de référence (IC-2), étape 7 |
+| `deploiement/taches/` | Gabarits systemd des tâches TP-1 à TP-8 et de la sauvegarde, script qui les pose, script qui exécute une tâche et la consigne, modèle des réglages (EX-8.6, IC-16), étape 7 |
+| `deploiement/runbooks/RB-<n>.md` | Copies dérivées des runbooks de 10.12 à 10.19 (10.11), étape 7 |
+| `deploiement/observabilite/` | Règles d'alerte de référence, leurs tests pour `promtool`, collecte et tableau de référence (section 10), étape 7 |
+
+Les fichiers de construction des images `noortrace/*` ne sont pas sous
+`deploiement/` : ils sont sous `conteneurs/<nom>/` (EX-3.6, EX-3.13), avec le
+programme du pont et le serveur de fichiers minimal, et n'entrent pas dans
+l'archive de déploiement.
 
 Le répertoire `secrets/` n'existe jamais dans le dépôt : il est créé à
 l'installation (IR-2, IC-8). Les fichiers de configuration de production
@@ -879,7 +1052,9 @@ service d'approbation et le serveur de console, celle des schémas
 `configuration-approbation-v0` et `configuration-console-v0` (CT-3 EX-10.12,
 EX-10.13). La configuration du service de l'installation rapide,
 `config/rapide/approbation.json`, n'est pas non plus dans le dépôt : le pas
-IR-3 l'écrit.
+IR-3 l'écrit ; le certificat de l'AC du serveur interne et sa CRL,
+`config/rapide/ac-horodatage.pem` et `config/rapide/crl-horodatage.pem`, sont
+écrits au pas IR-2.
 
 La description des images, complète :
 
@@ -887,14 +1062,14 @@ La description des images, complète :
 ```json
 {
   "version": 0,
-  "description": "Descriptions des images et des services de référence de NOORTRACE (CT-8 §3 et §4). Une image noortrace/* de statut a_construire n'existe pas encore : sa description est l'exigence que la construction (phase 2) doit tenir. Les vérifications CO-1 à CO-14 confrontent chaque fichier Compose de deploiement/compose/ à ces descriptions.",
+  "description": "Descriptions des images et des services de référence de NOORTRACE (CT-8 §3 et §4). Chaque image noortrace/* est construite par conteneurs/<nom>/Dockerfile (étape 7), sans être publiée ; en production, elle est désignée par le condensé publié dans la note de version. Les vérifications CO-1 à CO-14 confrontent chaque fichier Compose de deploiement/compose/ à ces descriptions.",
   "services": {
     "enregistreur": {
       "image": "noortrace/enregistreur",
       "tag": "0.1.0",
-      "status": "a_construire",
+      "status": "existante",
       "kind": "service",
-      "source": "CT-2 (démon : mandataire MCP, passerelle du modèle et raccord ICAP, points d'entrée SDK et OpenTelemetry, écrivain, stockage, bail, clôture, exportateur, composant d'ancrage de CT-5 en fil distinct)",
+      "source": "CT-2 (démon : mandataire MCP, passerelle du modèle et raccord ICAP, points d'entrée SDK et OpenTelemetry, écrivain, stockage, bail, clôture, exportateur, composant d'ancrage de CT-5 en fil distinct) ; construite par conteneurs/enregistreur/Dockerfile",
       "user": "10001:10001",
       "passwd": [
         {
@@ -947,11 +1122,16 @@ La description des images, complète :
         {
           "target": "/etc/noortrace/ancrage.json",
           "access": "ro"
+        },
+        {
+          "target": "/etc/noortrace/instance-registre.json",
+          "access": "ro"
         }
       ],
       "tmpfs": "/run/temporaire",
       "environment": [
-        "TMPDIR"
+        "TMPDIR",
+        "AWS_CONFIG_FILE"
       ],
       "bind_sources": [
         "./config/"
@@ -961,6 +1141,7 @@ La description des images, complète :
         "^cle-mac-relais$",
         "^acces-signataire$",
         "^cle-chaine$",
+        "^identite-aws$",
         "^dsn-bail$",
         "^worm-ecrivain$",
         "^jeton-hote(-[a-z0-9-]+)?$",
@@ -989,9 +1170,9 @@ La description des images, complète :
     "attributs": {
       "image": "noortrace/attributs",
       "tag": "0.1.0",
-      "status": "a_construire",
+      "status": "existante",
       "kind": "service",
-      "source": "CT-2 EX-12.18 : service compagnon qui pose les attributs a et i ; seul service admis sous l'utilisateur 0, avec trois capacités nommées",
+      "source": "CT-2 EX-12.18 : service compagnon qui pose les attributs a et i ; seul service admis sous l'utilisateur 0, avec trois capacités nommées ; construite par conteneurs/attributs/Dockerfile",
       "user": "0:0",
       "passwd": [],
       "group_add": [],
@@ -1027,9 +1208,9 @@ La description des images, complète :
     "approbation": {
       "image": "noortrace/approbation",
       "tag": "0.1.0",
-      "status": "a_construire",
+      "status": "existante",
       "kind": "service",
-      "source": "CT-3 §12 (service d'approbation)",
+      "source": "CT-3 §12 (service d'approbation) ; construite par conteneurs/approbation/Dockerfile",
       "user": "10002:10002",
       "passwd": [
         {
@@ -1096,9 +1277,9 @@ La description des images, complète :
     "console": {
       "image": "noortrace/console",
       "tag": "0.1.0",
-      "status": "a_construire",
+      "status": "existante",
       "kind": "service",
-      "source": "CT-3 §13 (serveur de console et pages de la console d'exploitation, paquets/console)",
+      "source": "CT-3 §13 (serveur de console et pages de la console d'exploitation, paquets/console) ; construite par conteneurs/console/Dockerfile",
       "user": "10003:10003",
       "passwd": [
         {
@@ -1147,9 +1328,9 @@ La description des images, complète :
     "pont-fichiers": {
       "image": "noortrace/pont-stdio",
       "tag": "0.1.0",
-      "status": "a_construire",
+      "status": "existante",
       "kind": "service",
-      "source": "CT-8 §3.4 : pont qui sert un serveur d'outils stdio en Streamable HTTP, un conteneur par serveur (CT-2 EX-3.5)",
+      "source": "CT-8 §3.4 : pont qui sert un serveur d'outils stdio en Streamable HTTP, un conteneur par serveur (CT-2 EX-3.5) ; construite par conteneurs/pont-stdio/Dockerfile",
       "user": "10101:10101",
       "passwd": [
         {
@@ -1228,9 +1409,9 @@ La description des images, complète :
     "verificateur": {
       "image": "noortrace/verificateur",
       "tag": "0.1.0",
-      "status": "a_construire",
+      "status": "existante",
       "kind": "outil",
-      "source": "CT-6 (noortrace-verifier, binaire autonome sans réseau)",
+      "source": "CT-6 (noortrace-verifier, binaire autonome sans réseau) ; construite par conteneurs/verificateur/Dockerfile",
       "user": "10005:10005",
       "passwd": [],
       "group_add": [],
@@ -1253,6 +1434,71 @@ La description des images, complète :
       "probe": {
         "type": "aucune"
       }
+    },
+    "horodatage": {
+      "image": "noortrace/tsa-interne",
+      "tag": "0.1.0",
+      "status": "existante",
+      "kind": "service",
+      "source": "CT-5 §7 (serveur RFC 3161 interne non qualifié de paquets/ancrage, noortrace-tsa-interne servir), installation rapide seulement : prestataire principal hors production (CT-5 EX-4.9, règle 4), dans l'espace réseau de l'enregistreur, qui le joint sur 127.0.0.1:2020 ; construite par conteneurs/tsa-interne/Dockerfile",
+      "user": "10004:10004",
+      "passwd": [],
+      "group_add": [],
+      "cap_add": [],
+      "network_mode": "service:enregistreur",
+      "networks": [],
+      "ports": [],
+      "volumes": [
+        {
+          "target": "/var/lib/noortrace-tsa",
+          "access": "rw"
+        }
+      ],
+      "tmpfs": "/run/temporaire",
+      "environment": [
+        "TMPDIR"
+      ],
+      "bind_sources": [],
+      "secrets": [],
+      "probe": {
+        "type": "commande",
+        "test": [
+          "CMD",
+          "/usr/local/bin/noortrace-tsa-interne",
+          "sonde",
+          "--url",
+          "http://127.0.0.1:2020/sante"
+        ]
+      }
+    },
+    "horodatage-init": {
+      "image": "noortrace/tsa-interne",
+      "tag": "0.1.0",
+      "status": "existante",
+      "kind": "outil",
+      "source": "CT-8 IR-2 : création de l'autorité du serveur interne (noortrace-tsa-interne init) dans le volume du service horodatage, et lecture de son certificat d'AC et de sa CRL (noortrace-tsa-interne ac), sans réseau ; construite par conteneurs/tsa-interne/Dockerfile",
+      "user": "10004:10004",
+      "passwd": [],
+      "group_add": [],
+      "cap_add": [],
+      "network_mode": "none",
+      "networks": [],
+      "ports": [],
+      "volumes": [
+        {
+          "target": "/var/lib/noortrace-tsa",
+          "access": "rw"
+        }
+      ],
+      "tmpfs": "/run/temporaire",
+      "environment": [
+        "TMPDIR"
+      ],
+      "bind_sources": [],
+      "secrets": [],
+      "probe": {
+        "type": "aucune"
+      }
     }
   }
 }
@@ -1261,19 +1507,22 @@ La description des images, complète :
 ### 4.2 `deploiement/compose/rapide.yaml`
 
 Contenu exact (SHA-256
-`6f2dcbc956f12aa58531438eec540dcef4f1d2b4664a3a5c08abb2e8148715f8`) :
+`eaf0c99c626498e45e466016f710e54301b2df602a501b577635ce85b899f2ec`, 216 lignes) :
 
 ```yaml
 # Installation rapide de NOORTRACE (CT-8 §7) : un hôte, mode observation,
-# classe de garde D, bail « file », sans copie WORM, ancrage de test
-# (OpenTimestamps seul), sans approbation bloquante.
+# classe de garde D, bail « file », sans copie WORM, ancrage de test (jeton
+# RFC 3161 de clôture par le serveur interne non qualifié du service
+# horodatage, preuves OpenTimestamps), sans approbation bloquante.
 #
-# Fichier de RÉFÉRENCE : les images noortrace/* sont à construire (phase 2) ;
-# il est vérifié par analyse statique (CT-8 §4, vérifications CO-1 à CO-14),
-# jamais lancé dans le dépôt. Les secrets sont des fichiers de ./secrets/
-# créés au pas IR-2 (mode 0400), jamais une variable d'environnement ; la
-# configuration du service d'approbation, ./config/rapide/approbation.json,
-# est écrite au pas IR-3.
+# Fichier de RÉFÉRENCE : les images noortrace/* sont construites par
+# conteneurs/<nom>/Dockerfile, sans être publiées ; il est vérifié par analyse
+# statique (CT-8 §4, vérifications CO-1 à CO-14). Les secrets sont des
+# fichiers de ./secrets/ créés au pas IR-2 (mode 0400), jamais une variable
+# d'environnement ; l'autorité du serveur interne est créée au pas IR-2 dans
+# le volume horodatage (outil horodatage-init) ; la configuration du service
+# d'approbation, ./config/rapide/approbation.json, et le document d'ancrage,
+# qui reçoit le certificat de cette autorité, sont écrits au pas IR-3.
 #
 # Depuis le répertoire deploiement/ (les chemins relatifs ./config et ./secrets
 # se résolvent alors contre lui) :
@@ -1320,6 +1569,12 @@ services:
       - type: bind
         source: ./config/rapide/configuration.json
         target: /etc/noortrace/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./config/rapide/ancrage.json
+        target: /etc/noortrace/ancrage.json
         read_only: true
         bind:
           create_host_path: false
@@ -1400,6 +1655,54 @@ services:
     healthcheck:
       disable: true
 
+  horodatage:
+    image: noortrace/tsa-interne:0.1.0
+    user: "10004:10004"
+    command: ["servir", "--repertoire", "/var/lib/noortrace-tsa", "--hote", "127.0.0.1", "--port", "2020"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=16777216,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    network_mode: "service:enregistreur"
+    volumes:
+      - type: volume
+        source: horodatage
+        target: /var/lib/noortrace-tsa
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-tsa-interne", "sonde", "--url", "http://127.0.0.1:2020/sante"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  horodatage-init:
+    image: noortrace/tsa-interne:0.1.0
+    user: "10004:10004"
+    profiles: ["outils"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=16777216,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    network_mode: none
+    volumes:
+      - type: volume
+        source: horodatage
+        target: /var/lib/noortrace-tsa
+    healthcheck:
+      disable: true
+
 networks:
   hotes: {}
   sortie: {}
@@ -1410,6 +1713,7 @@ volumes:
   prises: {}
   exports: {}
   approbation-etat: {}
+  horodatage: {}
 
 secrets:
   cle-enregistreur:
@@ -1427,7 +1731,7 @@ secrets:
 ### 4.3 `deploiement/compose/production.yaml`
 
 Contenu exact (SHA-256
-`6d8394e12fe5db4e4f0751944b36ff0b249001465f1017ee34c1edf1f0be5040`).
+`5d009e70fa9ec50a02a75197366389c9e65d2bb7c4b908e86ff31efff2a8afac`).
 `NOORTRACE_IP_INTERNE` DOIT être l'adresse unicast d'une interface interne de
 l'hôte, jamais `0.0.0.0` ni `::`, qui publieraient les frontaux sur toutes les
 interfaces ; IP-6 le vérifie en production (`adresse_toutes_interfaces`,
@@ -1439,8 +1743,9 @@ forme des références d'image ; mesure ci-dessous pour l'échec).
 # Installation complète de production de NOORTRACE (CT-8 §8) : topologies
 # « sur site », « tenant cloud du client » et « hébergeur suisse » (CT-8 §3).
 #
-# Fichier de RÉFÉRENCE : les images noortrace/* sont à construire (phase 2) ;
-# l'image du nœud est celle de chain/docker/Dockerfile. Il est vérifié par
+# Fichier de RÉFÉRENCE : les images noortrace/* sont construites par
+# conteneurs/<nom>/Dockerfile, sans être publiées tant qu'aucune version ne
+# l'est ; l'image du nœud est celle de chain/docker/Dockerfile. Il est vérifié par
 # analyse statique (CT-8 §4, CO-1 à CO-14), jamais lancé dans le dépôt. Avant
 # la mise en service, chaque étiquette est complétée par le condensé publié
 # (pas IC-6) : le contrôle préalable de production refuse une image sans
@@ -1465,6 +1770,9 @@ services:
       - /run/temporaire:size=67108864,mode=1777
     environment:
       TMPDIR: /run/temporaire
+      # Identité IAM vers AWS KMS (clé de chaîne de classe C, modèle de
+      # production) : le chemin du secret identite-aws, jamais sa valeur.
+      AWS_CONFIG_FILE: /run/secrets/identite-aws
     cap_drop:
       - ALL
     security_opt:
@@ -1501,10 +1809,17 @@ services:
         read_only: true
         bind:
           create_host_path: false
+      - type: bind
+        source: ./config/production/instance-registre.json
+        target: /etc/noortrace/instance-registre.json
+        read_only: true
+        bind:
+          create_host_path: false
     secrets:
       - cle-mac-relais
       - acces-signataire
       - cle-chaine
+      - identite-aws
       - dsn-bail
       - worm-ecrivain
       - jeton-hote-agents
@@ -1765,6 +2080,8 @@ secrets:
     file: ./secrets/acces-signataire
   cle-chaine:
     file: ./secrets/cle-chaine
+  identite-aws:
+    file: ./secrets/identite-aws
   dsn-bail:
     file: ./secrets/dsn-bail
   worm-ecrivain:
@@ -1841,12 +2158,12 @@ invalide, le code 2.
 | CO-6 | `cap_drop: [ALL]` ; `cap_add` égal à la liste de la description (vide sauf `attributs`) | « Containers must drop ALL capabilities » (R9-F32) ; EX-3.9 |
 | CO-7 | `security_opt` contient `no-new-privileges:true`, et jamais `seccomp:unconfined`, `apparmor:unconfined` ni `label:disable` (ni leur forme en `=`) | Pendant de l'interdiction d'escalade de privilèges du profil Restricted (R9-F32) |
 | CO-8 | Chaque clé d'un service est dans la liste fermée `image`, `user`, `group_add`, `command`, `read_only`, `tmpfs`, `environment`, `cap_drop`, `cap_add`, `security_opt`, `restart`, `ports`, `volumes`, `secrets`, `networks`, `network_mode`, `healthcheck`, `depends_on`, `profiles` (et `build`, qui relève de CO-3) ; une autre clé n'est admise qu'à la valeur `false` ; donc ni `privileged`, `pid`, `ipc`, `devices`, `userns_mode`, `cgroup_parent`, `extends`, `volumes_from`, `entrypoint`, `env_file`…, et jamais `network_mode: host` | Isolation ; une liste fermée ne laisse pas passer une clé que la liste interdite aurait oubliée |
-| CO-9 | Aucun `env_file` ; chaque variable d'`environment` est nommée par la description (liste fermée, `TMPDIR` seulement en 0.1), et aucune ne contient, sans égard à la casse, `KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `PASS`, `PIN`, `DSN`, `CREDENTIAL`, `JETON`, `CLE`, `MOT_DE_PASSE`, `AUTH`, `BEARER` ou `COOKIE` ; aucune option `--jeton`, `--cle`, `--mot-de-passe`, `--token`, `--secret` ou `--password` dans `command`, `entrypoint` ou `healthcheck.test` dont la valeur n'est pas un chemin `/run/secrets/…` ; chaque secret de premier niveau a `file: ./secrets/<nom>` ou `external: true`, jamais `environment` ; un service ne reçoit que des secrets déclarés au premier niveau et admis par sa description, montés sous `/run/secrets/` ; un même secret n'est pas reçu par des services de comptes différents (`secret_partage_entre_comptes`, EX-3.5) | Secrets par fichier, jamais en clair dans l'environnement (CT-2 EX-18.4 ; R8-F56 ; accord explicite par service, R9-F25, R9-F26) |
+| CO-9 | Aucun `env_file` ; chaque variable d'`environment` est nommée par la description (liste fermée : `TMPDIR`, et `AWS_CONFIG_FILE` pour `enregistreur`, qui désigne le secret `/run/secrets/identite-aws` et ne porte jamais d'identifiant), et aucune ne contient, sans égard à la casse, `KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `PASS`, `PIN`, `DSN`, `CREDENTIAL`, `JETON`, `CLE`, `MOT_DE_PASSE`, `AUTH`, `BEARER` ou `COOKIE` ; aucune option `--jeton`, `--cle`, `--mot-de-passe`, `--token`, `--secret` ou `--password` dans `command`, `entrypoint` ou `healthcheck.test` dont la valeur n'est pas un chemin `/run/secrets/…` ; chaque secret de premier niveau a `file: ./secrets/<nom>` ou `external: true`, jamais `environment` ; un service ne reçoit que des secrets déclarés au premier niveau et admis par sa description, montés sous `/run/secrets/` ; un même secret n'est pas reçu par des services de comptes différents (`secret_partage_entre_comptes`, EX-3.5) | Secrets par fichier, jamais en clair dans l'environnement (CT-2 EX-18.4 ; R8-F56 ; accord explicite par service, R9-F25, R9-F26) |
 | CO-10 | Chaque port publié a une adresse explicite, `127.0.0.1` ou `${NOORTRACE_IP_INTERNE:?…}`, jamais une plage, et un port de conteneur que la description admet | Aucune écoute sur toutes les interfaces de l'hôte |
 | CO-11 | Chaque volume a une cible décrite ; une cible décrite `ro` est montée en lecture seule ; un montage lié part d'une source admise par la description (`./config/`, `/srv/noortrace-outils/`), avec `create_host_path: false`, sans composant `..`, et jamais de `/`, `/etc`, `/proc`, `/sys`, `/dev`, `/root`, `/home`, `/var/lib/docker` ni de la prise du moteur ; un volume nommé de premier niveau n'a ni pilote autre que `local` ni `driver_opts` (qui lieraient un chemin de l'hôte : `volume_lie_hote`) | Montages de l'hôte interdits sauf liste (profil Baseline : « HostPath volumes must be forbidden », R9-F32) ; création de chemin évitée (R9-F27) |
 | CO-12 | Une sonde `commande` de la description donne un `healthcheck.test` en liste qui commence par `CMD` (jamais `CMD-SHELL`) ; une sonde `externe` ou `aucune` donne `healthcheck.disable: true` ; chaque `depends_on` est en forme longue, `condition: service_healthy` vers un service à sonde `commande` | Images sans interpréteur de commandes (R8-F33) ; `CMD-SHELL` passe par `/bin/sh` (R9-F28) ; ordre de démarrage sur l'état sain (R9-F28) |
 | CO-13 | `restart: unless-stopped` pour un service, `restart: "no"` pour un outil | Un outil (vérificateur) ne redémarre pas en boucle |
-| CO-14 | Un service de description `network_mode: none` (`attributs`, `verificateur`) a `network_mode: none` ; les autres déclarent leurs réseaux, tous admis par la description ; les réseaux `outils` et `console` sont `internal: true` | Le vérificateur n'a pas de réseau (architecture, « Déploiement ») ; les ponts ne joignent que l'enregistreur (EX-3.7) |
+| CO-14 | Un service de description `network_mode: none` (`attributs`, `verificateur`) a `network_mode: none` ; les autres déclarent leurs réseaux, tous admis par la description ; un service de description `network_mode: service:<nom>` (`horodatage`, révision 0.7) a exactement ce `network_mode`, vers un autre service du même fichier, sans `networks` ni `ports` propres (sinon `espace_reseau_non_conforme`) ; un `network_mode` de service que la description ne nomme pas reste refusé (`reseau_par_defaut`) ; les réseaux `outils` et `console` sont `internal: true` | Le vérificateur n'a pas de réseau (architecture, « Déploiement ») ; le serveur interne n'écoute qu'en `http://` sur une adresse locale (CT-5 AN-27), celle de l'espace réseau de l'enregistreur ; les ponts ne joignent que l'enregistreur (EX-3.7) |
 
 **EX-4.3** **Exceptions.** La liste des exceptions est fermée : le service
 `attributs` (compte 0, trois capacités, EX-3.9) ; le service `relais`, dont la
@@ -1866,11 +2183,15 @@ réponse 200 de la forme de CT-3 EX-12.12, obtenue en 2 500 ms au plus,
 quelle que soit la valeur de `ready`, puisque le jeu ne se lit qu'après le
 `charger` du démon, qui attend que ce conteneur soit sain ; la supervision,
 non la sonde, lit `ready` (EX-10.7). Celle d'`enregistreur` (`noortrace-ctl
-sonde --url …`) n'est fixée par aucune spécification : la révision 0.9 de
-CT-2 n'a pas adopté `sonde` (PD-2) ; c'est une exigence de construction de
-l'image, que CT-8 ne précise pas au-delà de sa forme. Celles d'`attributs` et de
-`pont-fichiers` appartiennent aux images que CT-8 décrit (EX-3.7, EX-3.9) et
-sont, de même, à construire.
+sonde --url http://127.0.0.1:8500/readyz`) est fixée par CT-2 EX-15.16
+(révision 0.10) : 0 sur une réponse 200 de `/readyz` et seulement elle, 1
+sinon, en 2 500 ms au plus, sous le `timeout` de 3 s ; une instance passive
+est donc malsaine (CT-2 EX-17.1). Celle d'`attributs`
+(`noortrace-attributs sonde`) rend 0 si le dernier passage a réussi et date
+de moins de deux intervalles (CT-2 EX-12.18) ; celle de `pont-fichiers`
+(`noortrace-pont-stdio sonde --url http://127.0.0.1:9101/sante`) suit la
+règle de `noortrace-ctl sonde` (EX-3.7). Les images de l'étape 7 les
+exécutent en forme `CMD`, sans interpréteur de commandes.
 
 **Mesures du 2026-10-27** (fichiers ci-dessus ; aucun conteneur construit ni
 lancé) :
@@ -1904,7 +2225,12 @@ existe, qu'elle tient sa description (compte, absence d'interpréteur, sonde), n
 qu'un conteneur démarre. Ces trois points sont des épreuves de construction
 (CT-9, porte 2) : construire chaque image, lancer `docker compose up` sur un
 hôte de test, relever `docker inspect` (compte, racine en lecture seule,
-capacités) et l'état des sondes. Elles lisent le fichier tel qu'il est écrit, et
+capacités) et l'état des sondes. TE-15 les a éprouvés à l'étape 7 sur les six
+images, puis sur la septième, `noortrace/tsa-interne` (révision 0.7), en
+environnement de construction : aucun interpréteur, compte de la
+description, racine en lecture seule, capacités retirées, sondes `healthy`
+sous `rapide.yaml`, compagnon et pont sous leur compte ; le motif de CO-12,
+« images sans interpréteur de commandes », reste vrai sans exception. Elles lisent le fichier tel qu'il est écrit, et
 non la configuration effective que rendrait `docker compose config` : c'est
 pourquoi CO-1 refuse `include` et CO-8 `extends`, qui feraient exécuter autre
 chose que ce qui a été vérifié. Une vérification non exécutée parce qu'une
@@ -1932,7 +2258,7 @@ pas. Les ports 8300, 8400, 4318 et 8500 sont ceux de l'exemple de CT-2 §15.3,
 | FL-6 | Supervision du client | `enregistreur` ; `approbation` | 8500 ; 8601 | HTTP, `127.0.0.1` ou réseau de supervision ; HTTP sur `127.0.0.1` de l'hôte | `/healthz`, `/readyz`, `/metrics` ; état du service d'approbation (`GET /v0/etat`, 10.2) | CT-2 EX-17.1, EX-18.3 ; CT-3 §12 |
 | FL-7 | `enregistreur` | Serveurs d'outils HTTP du client ; ponts `pont-<alias>` (réseau `outils`) | port du service | HTTPS ; HTTP sur le seul réseau interne `outils` | Relais des appels d'outils | CT-2 EX-18.2, §4.9 point 2 ; EX-3.7 |
 | FL-8 | `enregistreur` | Fournisseurs de modèle (`upstream` des routes) | 443 | HTTPS | Relais des échanges de modèle | CT-2 §5.1, §4.9 points 1 et 2 |
-| FL-9 | `enregistreur` | Service de signature (classe B) | port du service | HTTPS | Signature des événements et manifestes | CT-2 §11.2, EX-18.2 |
+| FL-9 | `enregistreur` | Service de signature (classe B) ; AWS KMS (`kms.<région>.amazonaws.com`) de la clé Ed25519 de classe C et de la clé de chaîne de classe B ou C (`chain_key.service_url`, CT-2 EX-11.19) | port du service ; 443 | HTTPS | Signature des événements et manifestes ; déchiffrement de l'enveloppe et signature des transactions de la clé de chaîne | CT-2 §11.2, EX-11.19, EX-18.2 |
 | FL-10 | `enregistreur` | Magasin de bail `postgresql` ou `etcd` | port du service | TLS | Bail et époque | CT-2 §13.2, EX-18.2 |
 | FL-11 | `enregistreur` | Support WORM (API objet) | 443 | HTTPS | Copies verrouillées, relevés | CT-2 §12.6, EX-18.2 |
 | FL-12 | `enregistreur` | `approbation`, prise `/run/noortrace/approbation.sock` ; à défaut HTTPS | — ; port du service | prise Unix (pair vérifié par le démon ; en production, jeton du noyau exigé par le service, `jeton_exige_production`) ; HTTPS avec mTLS ou jeton | Évaluation, tickets, remises | CT-2 EX-18.8 ; CT-3 EX-12.1, EX-12.2, EX-10.12 |
@@ -2607,16 +2933,23 @@ bornes d'attente de CT-2 EX-14.9, un événement est perdu sans trou dans la
 chaîne, ce que seuls `event_lost` et `noortrace_events_lost_total` disent,
 EX-12.14) ; la configuration par défaut de 7.3 ; une
 clé de classe D générée sur l'hôte ; le bail `file` ; aucun support WORM ; un
-**ancrage de test** : preuves OpenTimestamps des manifestes auprès de deux
-calendriers publics, sans registre ni jeton RFC 3161 ; le service d'approbation,
+**ancrage de test** (révision 0.7) : jeton RFC 3161 de clôture de chaque
+période par le serveur interne non qualifié de `paquets/ancrage` (CT-5 §7),
+service `horodatage` dans l'espace réseau de l'enregistreur, prestataire
+`principal` admis hors production seulement (CT-5 EX-4.9, règle 4), et
+preuves OpenTimestamps des manifestes auprès de deux calendriers publics,
+sans registre ni jeton de point ; le service d'approbation,
 configuré par `config/rapide/approbation.json` (IR-3), sans console, sans
 webhook, sans lecture du registre, sans approbation bloquante, dont
 l'enregistreur ne dépend pas pour démarrer (aucun `depends_on` dans
 `rapide.yaml` : sans lui, chaque appel porte la marque `inconnu`, CT-2
 EX-14.15). Ce qu'elle ne prouve pas : une clé de
-classe D n'offre aucune garantie de garde (CT-2 §11.2) ; sans registre ni jeton,
-les contrôles 4 et 8 de CT-6 ne s'exécutent pas, et le contrôle 5 attend la mise
-à niveau des preuves (CT-5 §6.4) ; un dossier issu d'une installation rapide dit
+classe D n'offre aucune garantie de garde (CT-2 §11.2) ; sans registre, le
+contrôle 8 de CT-6 ne s'exécute pas ; le contrôle 4 ne s'exécute que contre
+l'AC du serveur interne, que le réviseur porte alors dans son fichier
+d'ancres, et le jeton ne prouve rien contre l'opérateur, qui tient la clé et
+l'horloge du serveur (CT-5 EX-7.2, EX-7.3) ; le contrôle 5 attend la mise à
+niveau des preuves (CT-5 §6.4) ; un dossier issu d'une installation rapide dit
 qu'il vient du mode observation (section 12). Ce n'est jamais une installation
 de production : la validation de CT-2 refuse la classe D en `production` (CT-2
 EX-11.8).
@@ -2662,8 +2995,9 @@ mkdir noortrace && tar -xkf noortrace-deploiement-0.1.0.tar -C noortrace && cd n
 celle de la note de version (EX-3.14), qui donne aussi le SHA-256 de l'archive ;
 la note est lue hors du serveur de téléchargement, et aucun fichier `.sha256`
 n'est pris sur ce serveur, qui pourrait le recalculer pour une archive
-modifiée. L'archive 0.1.0 est à construire (EX-3.6) : tant qu'aucune version
-n'est publiée, ce pas n'a pas de valeur à comparer. Résultat attendu :
+modifiée. L'archive 0.1.0 est écrite par la préparation de version (EX-3.6),
+sans être publiée : tant qu'aucune version n'est publiée, ce pas n'a pas de
+valeur publiée à comparer. Résultat attendu :
 `noortrace-deploiement-0.1.0.tar: OK`, puis aucune ligne de la vérification de
 `SHA256SUMS`. Vérification : les deux commandes rendent 0, et `ls
 compose/rapide.yaml config/rapide/configuration.json
@@ -2682,9 +3016,26 @@ done
 chmod 0400 secrets/*
 sudo chown 10001:10001 secrets/*
 sudo chown 10002:10002 secrets/cle-stockage-approbation
+$DC --profile outils run --rm -T horodatage-init init --repertoire /var/lib/noortrace-tsa \
+  --politique 1.3.6.1.4.1.99999.1.1 --crl-url http://127.0.0.1:2020/crl.pem --algorithme p-256
+$DC --profile outils run --rm -T horodatage-init ac --repertoire /var/lib/noortrace-tsa \
+  > config/rapide/ac-horodatage.pem
+$DC --profile outils run --rm -T horodatage-init ac --crl --repertoire /var/lib/noortrace-tsa \
+  > config/rapide/crl-horodatage.pem
 ```
 
-Résultat attendu : `sudo stat -c '%a %u %s %n' secrets/*` rend `400 10001 48
+Les trois dernières commandes (révision 0.7) créent l'autorité du serveur
+RFC 3161 interne dans le volume `horodatage`, sans réseau (outil
+`horodatage-init`, image `noortrace/tsa-interne`, compte 10004) : clé et
+certificat d'une AC et d'une unité ECDSA P-256, unité valable trois ans
+(CT-5 AN-31), politique `1.3.6.1.4.1.99999.1.1` (OID de test de CT-5
+EX-7.4 : l'installation rapide ne sert qu'au développement), CRL vide ;
+puis elles écrivent le certificat de l'AC et la CRL, que le pas IR-3 recopie
+dans le document d'ancrage et que le réviseur porte dans son fichier
+d'ancres (IR-8). Aucune clé privée ne quitte le volume. Résultat attendu :
+la ligne `autorité créée dans /var/lib/noortrace-tsa` et le code 0 ;
+`openssl x509 -in config/rapide/ac-horodatage.pem -noout -ext
+basicConstraints` rend `CA:TRUE`. Résultat attendu des secrets : `sudo stat -c '%a %u %s %n' secrets/*` rend `400 10001 48
 secrets/cle-enregistreur`, `400 10001 64` pour `cle-mac-relais`, `jeton-hote`
 et `jeton-passerelle`, et `400 10002 64 secrets/cle-stockage-approbation`. La
 clé est une graine Ed25519 en PKCS#8 DER (préfixe
@@ -2695,15 +3046,20 @@ forme, 64 chiffres hexadécimaux, que CT-3 EX-10.12 admet, et le compte du
 service, qui seul la lit (EX-3.5). Mesure du 2026-10-27
 (OpenSSL 3.0.13) : ces commandes produisent des fichiers de 48 et 64 octets, la
 clé commence par ce préfixe ; la même commande `openssl rand`, rejouée le
-2026-11-11 pour la clé de stockage, donne aussi 64 octets. Si la vérification
-échoue : supprimer `secrets/` et recommencer le pas.
+2026-11-11 pour la clé de stockage, donne aussi 64 octets. Mesure du
+2026-11-12 (Docker 29.8.2, Compose v5.6.0, images construites, révision
+0.7) : le pas entier, autorité comprise, dure 7 s. Si la vérification
+échoue : supprimer `secrets/`, `config/rapide/ac-horodatage.pem` et
+`config/rapide/crl-horodatage.pem`, retirer le volume (`$DC down -v`), et
+recommencer le pas ; `init` refuse d'écraser une autorité existante.
 
 **IR-3 — Configuration.**
 
 ```bash
 node ../scripts/deploiement/configurer-rapide.mjs --org <nom court de l'organisation> \
   --journal <nom du journal> --serveur-outils https://<serveur d'outils>/mcp \
-  --sortie config/rapide/configuration.json
+  --sortie config/rapide/configuration.json \
+  --ac-horodatage config/rapide/ac-horodatage.pem --sortie-ancrage config/rapide/ancrage.json
 node -e '
 const fs = require("node:fs");
 const r = JSON.parse(fs.readFileSync("config/rapide/configuration.json", "utf8")).recorder;
@@ -2729,7 +3085,14 @@ Le script part de la configuration de référence (7.3), recalcule `org_id` et
 `journal_id` par la dérivation de CT-4 §6.2 et §6.3 (`orgIdOf`, `journalIdOf` de
 `scripts/lib/noortrace.mjs`), remplace l'URL du serveur d'outils, valide le
 résultat contre `configuration-enregistreur-v0` et imprime `org_id`,
-`journal_id` et le SHA-256 du fichier. La commande `node -e`, qui reçoit le
+`journal_id` et le SHA-256 du fichier. Avec `--ac-horodatage` et
+`--sortie-ancrage` (révision 0.7), il écrit aussi le document d'ancrage :
+celui de référence (7.3), dont `anchor_certificates` reçoit le seul
+certificat de l'AC créée au pas IR-2 (un certificat d'autorité, sinon le
+code 2 sans rien écrire), contrôlé contre `ancrage-v0` et contre la forme de
+l'installation rapide (un seul prestataire, le serveur interne en
+`principal`, `http://127.0.0.1:2020/`, sans authentification, non qualifié),
+et imprime son SHA-256 (ligne `ancrage_sha256`). La commande `node -e`, qui reçoit le
 même nom court qu'`--org`, écrit ensuite, sans remplacer un fichier existant
 (`wx`), la configuration du service, document `configuration-approbation-v0`
 (CT-3 EX-10.12) : `environment` `developpement` ; `org`, et `org_id` et
@@ -2845,6 +3208,12 @@ $DC --profile outils run --rm verificateur /var/lib/noortrace-exports/premier
 ```
 
 `close-period --now` n'est admise qu'en `developpement` (CT-2 §19.1, EX-19.4).
+Elle **termine** le journal (CT-2 EX-19.4, EX-15.18) : après elle, tout appel
+et tout échange sont refusés (`-31010`, `journal_clos`), mode observation
+compris, même après un redémarrage. Pour continuer d'observer (section 12) ou
+passer au mode bloquant (12.6), il faut un journal neuf : `$DC down -v` puis
+IR-5, ce qui efface aussi le premier dossier ; le copier hors du volume
+`exports` d'abord.
 L'export est la commande de CT-2 §15.7 : `--dernier` retient l'événement de
 plus grand `seq` dont la période est close (CT-2 EX-15.11) ; la destination
 est sous le répertoire des exports, ici le volume `exports` (EX-3.5), et
@@ -2869,10 +3238,26 @@ plus tard ; après un code 4 sans réponse, le démon peut encore écrire le
 dossier : lire au journal d'exploitation la ligne `dossier_exported` ou
 `dossier_export_refused` du `request_id` que nomme le message (CT-2
 EX-15.10, pas 6) avant de relancer la commande. Résultat attendu de la
-vérification : le vérificateur rend `valide`, code 0 (CT-6 §8), avec les
-contrôles 4 et 8 non exécutés pour leur raison (aucun jeton RFC 3161, aucune
-capture du registre) et le contrôle 5 non exécuté tant que la preuve
-OpenTimestamps n'est pas mise à niveau. Vérification : code 0 pour l'export et
+vérification : le vérificateur rend `valide`, code 0 (CT-6 §8), avec le
+contrôle 8 non exécuté pour sa raison (aucune capture du registre), le
+contrôle 5 non exécuté tant que la preuve OpenTimestamps n'est pas mise à
+niveau (ou, sans sortie vers les calendriers, tant qu'aucune preuve n'existe :
+`preuve.ots` absent), et le contrôle 4 non exécuté (`ancre_absente`) : le
+conteneur `verificateur` n'a pas de fichier d'ancres. Le dossier porte le
+jeton de clôture du serveur interne (`jeton-rfc3161.der`, révision 0.7). Pour
+que le contrôle 4 s'exécute, le réviseur republie la CRL après la clôture
+(`$DC --profile outils run --rm -T horodatage-init crl --repertoire
+/var/lib/noortrace-tsa`, puis `ac --crl` comme au pas IR-2 : T-10 de CT-6
+n'admet qu'une CRL postérieure à `genTime`), et vérifie une copie du dossier
+avec un fichier d'ancres (`ancres-confiance-v0`) qui porte le certificat de
+l'AC, sa politique, `qualified: null`, un nom qui dit « interne, non
+qualifié », et cette CRL : `noortrace-verifier <copie> --ancres <fichier>`
+rend alors le contrôle 4 `réussi`, « aucun statut qualifié déclaré » (T-11
+non exécutée, sans changer le verdict). Mesure du 2026-11-12 (révision 0.7,
+réseaux du projet rendus internes, serveur d'outils factice sur le réseau
+interne) : contrôles 1, 2, 3, 4 et 6 réussis par `noortrace-verifier` et par
+`scripts/verify/dossier.mjs`, 5, 7 et 8 non exécutés, verdict `valide`,
+code 0. Vérification : code 0 pour l'export et
 pour le vérificateur ; `policy.rule` de l'événement prouvé finit par la marque
 ` [observation <x>]` (EX-12.6, EX-12.9). Si la vérification échoue : le message
 de refus de l'export, ou le rapport de CT-6, qui nomme la vérification en échec ;
@@ -2884,7 +3269,7 @@ point 4).
 ### 7.3 Configuration par défaut
 
 `deploiement/config/rapide/configuration.json` (SHA-256
-`f4abc627701c23efc2fb14a731c46b44330bdaa7c2e3b80cdd6d156f838b72f8`, 472 lignes)
+`15a7323220544cbc1a2a64cdb2667d9a9740a197057e20a4814d98b7be2279a8`, 472 lignes)
 est l'exemple complet de CT-2 §15.3, changé aux seuls membres suivants ;
 `configurer-rapide.mjs` le reproduit à l'octet avec les options d'exemple
 d'IR-3 (annexe A.12). Il valide contre `configuration-enregistreur-v0` dans sa
@@ -2902,7 +3287,7 @@ qui n'admet pas la valeur `observation`, le refuse.
 | `signer` | classe D, `rec-rapide-01`, fichier `/run/secrets/cle-enregistreur` | Clé générée à IR-2 |
 | `storage.seal` | `append_only_attribute: false`, `worm: null` | Ni compagnon ni support WORM |
 | `lease` | magasin `file` (`/var/lib/noortrace/bail`), `fencing: null` | Un hôte |
-| `anchoring` | registre désactivé ; RFC 3161 désactivé ; OpenTimestamps activé, calendriers `https://a.pool.opentimestamps.org` et `https://b.pool.opentimestamps.org` ; `ancrage: null` | Ancrage de test sans compte ni contrat |
+| `anchoring` | registre désactivé ; RFC 3161 désactivé ; OpenTimestamps activé, calendriers `https://a.pool.opentimestamps.org` et `https://b.pool.opentimestamps.org` ; `ancrage` : `/etc/noortrace/ancrage.json`, document `ancrage-v0` `config/rapide/ancrage.json` (SHA-256 `72ede4fe00bd3360387f0584587d723bfe940d6b0f7038a0ac525f11fb9950ab` dans le dépôt, où son certificat d'AC est celui de l'AC de test de CT-6 ; IR-3 le remplace par celui de l'AC créée à IR-2) que `rapide.yaml` monte : mêmes calendriers, `registry.checkpoints` et `rfc3161.checkpoints.provider_role` `aucun`, un seul prestataire, le serveur interne du service `horodatage` en `principal` (`http://127.0.0.1:2020/`, sans authentification, `qualified: null`, politique `1.3.6.1.4.1.99999.1.1`, `crl_capture` désactivée), admis hors production seulement (CT-5 EX-4.9, règle 4, révision 0.9) | Ancrage de test sans compte ni contrat : le démon n'ancre que par `anchoring.ancrage` ; jeton de clôture non qualifié (révision 0.7) |
 | `supervision.health_listen` | `0.0.0.0:8500` dans le conteneur, publiée sur `127.0.0.1` | Santé |
 | `policy.version` | `rapide-2026-10-27-observation` | Le suffixe `-observation` est exigé de toute version en mode observation et interdit aux autres (CT-2 EX-15.8, révision 0.6) : `code.policy_version` de chaque événement (appel, échange, span, rotation ; décision : impossible, OB-4) nomme ainsi le mode (EX-12.9) |
 | `policy.servers` | un seul serveur `outils`, transport `http`, URL remplacée à IR-3 | Le serveur d'outils du client |
@@ -3039,10 +3424,30 @@ du support.
 
 **IC-2 — Hôte.** Installer sur la machine vierge le moteur de conteneurs et son
 greffon Compose, Node.js 22, `chrony`, `curl` et `openssl`, par les paquets de
-la distribution (FL-31) et selon sa documentation ; les noms des paquets de
-chaque distribution ne sont pas vérifiés par CT-8 (non vérifié). Un script de
-préparation de l'hôte, éprouvé par CT-9 sur le système de référence, est à
-écrire (phase 2) : il est absent de l'archive 0.1. L'utilisateur qui installe
+la distribution (FL-31) et selon sa documentation ; les noms des paquets
+d'une autre distribution que le système de référence ne sont pas vérifiés par
+CT-8 (non vérifié). Sur le système de référence (Ubuntu 24.04, x86_64), le
+script de l'archive le fait, éprouvé par CT-9 sur un hôte simulé (étape 7) ;
+l'hôte ne reçoit l'archive qu'à IC-4 : y déposer et extraire l'archive
+vérifiée à IC-1 dès ce pas (IC-4, avancé), puis :
+
+```bash
+sudo bash deploiement/hote/preparer-hote.sh --archive-node node-v22.23.4-linux-x64.tar.xz \
+  [--utilisateur <nom>] --stockage <point de montage> \
+  --declaration-cache "<déclaration et sa source>" --pv "$PV"
+```
+
+Paquets : `docker.io docker-compose-v2 chrony curl openssl ca-certificates
+xz-utils` par `apt-get` depuis les sources de l'hôte (FL-31), versions
+consignées dans `IC-2-paquets.txt` ; Ubuntu 24.04 ne fournit que Node.js 18 :
+Node.js 22.23.4 vient de l'archive officielle obtenue avec la note de version,
+dont le script vérifie le SHA-256 épinglé
+(`1805bcd35e6815559bd2eb97db438d3fdb0eb3a5e6a977b7c1badca76337e9ce`, liste
+`SHASUMS256.txt` signée de la version, publiée le 2026-10-20 ; même version
+que la base des images et que le travail de version). `--simulation` dit ce
+qui reste à faire sans rien faire (code 4 s'il reste à faire) ; un second
+passage ne change rien ; codes 0, 1 (refus : archive au mauvais SHA-256,
+stockage NFS ou SMB), 2 (usage), 3 (autre système). L'utilisateur qui installe
 DOIT pouvoir lancer `docker` (groupe `docker`, qui équivaut à des droits de
 superutilisateur, ou `sudo` devant chaque commande `docker` et `$DC`). Monter le
 stockage de `storage.root` (système de fichiers `ext4`, `xfs` ou `btrfs`, local
@@ -3053,7 +3458,8 @@ est protégé ou honore les vidages (EX-6.4). Vérification : `docker version`,
 (statut de saut « Normal », R9-F41) rendent 0 ; sorties dans `"$PV"/IC-2-*.txt`.
 
 **IC-3 — Pare-feu et DNS.** Poser les règles d'EX-5.2 sur l'équipement du
-client, avec FL-29 à FL-31 ouverts pour la durée de l'installation (règle 6) ;
+client, avec FL-29 à FL-31 ouverts pour la durée de l'installation (règle 6),
+et FL-9 vers AWS KMS quand une clé est de classe B ou C par ce service ;
 exporter les règles ; `sha256sum <export> > "$PV"/IC-3-regles.sha256`.
 Vérification : depuis un hôte du réseau des agents, `curl -sS -m 5 -o /dev/null
 https://<fournisseur de modèle>/` échoue (refus ou délai : règle 2 d'EX-5.2) ;
@@ -3096,7 +3502,11 @@ $DC pull
 ```
 
 Résultat attendu : `"verdict": "conforme"` et `"all_images_by_digest": true` ;
-`pull` rend 0. Vérification : `sha256sum compose/production.yaml >>
+`pull` rend 0. Tant qu'aucune image n'est publiée, ou hors ligne,
+`docker load -i noortrace-images-<version>.tar` remplace `$DC pull`, puis
+`docker image inspect <image>@<condensé>` rend 0 pour chaque image : les
+références `noortrace/<nom>:<version>@sha256:…` se résolvent dans le magasin
+local (Docker 29.8.2, magasin containerd, banc de l'étape 7). Vérification : `sha256sum compose/production.yaml >>
 "$PV"/IC-6-conteneurs.sha256`.
 
 **IC-7 — Cérémonie des clés.** Conduire la cérémonie de CT-7 §5.4 pour CLE-1 et
@@ -3126,6 +3536,16 @@ fichier, `cert` et `key` (CT-3 EX-10.12, `$defs/tls_serveur` ; EX-10.13) ; le ce
 lequel le serveur de console joint le service (IC-11) ;
 `tls-autorite-approbation` (10003) est le certificat, en PEM, de l'autorité
 qui l'a émis. Jamais deux rôles WORM dans un même fichier (CT-7 CLE-20).
+Chaque secret que `production.yaml` déclare a son fichier, sans quoi `docker
+compose` refuse le projet ; un secret sans objet pour le client (bail `file` :
+`dsn-bail` ; route ou serveur retirés à IC-14 : `cle-fournisseur-*`,
+`identifiant-outil-<alias>`) reçoit un contenu tiré au hasard et est noté
+« sans objet » au procès-verbal, ou est retiré de `production.yaml` par une
+adaptation du client (CO-, IP-12). `acces-signataire` porte, en classe C par
+AWS KMS, l'enveloppe de la graine (`signer.backend.sealed_seed_file`) ;
+`identite-aws` (10001) le fichier d'identifiants d'EX-3.5 ;
+`identifiant-outil-fichiers` (10001) la valeur `Bearer <jeton>` du pont, sans
+saut de ligne, et `jeton-pont-fichiers` (10101) le jeton seul (EX-3.7).
 Vérification : `sudo stat -c '%a %u %n' secrets/*`, consigné dans
 `"$PV"/IC-8-secrets.txt`, montre chaque fichier en `400`, propriété du compte de
 son service ; IP-10 le revérifie au contrôle préalable final (IC-14).
@@ -3250,12 +3670,17 @@ EX-10.12) ; `$DC ps` montre les deux services `healthy` ; la sonde rend 0 et
 une réponse dont `ready`, `service_reachable` et `identity_ready` sont vrais
 (CT-3 EX-13.44 ; `service_reachable` est l'issue de `GET /v0/etat`, que le
 serveur appelle sur le canal de la console avec son jeton et l'autorité de
-`tls-autorite-approbation`, CT-3 EX-12.12). Vérification : `curl -s http://127.0.0.1:8601/v0/etat` rend
-`ready: true` et `set_read_at` non nul (CT-3 EX-12.12 ; port d'état
-d'EX-3.5) ; la page de la console répond sur 8700 avec les en-têtes de CT-3
+`tls-autorite-approbation`, CT-3 EX-12.12). Vérification : `curl -s
+http://127.0.0.1:8601/v0/etat` rend une réponse de la forme de CT-3 EX-12.12
+(port d'état d'EX-3.5) ; `ready` reste faux et `set_read_at` nul tant que le
+démon n'a pas chargé sa politique (`charger`) : `ready: true` et `set_read_at`
+non nul se vérifient à IC-15, après `$DC up -d` (constaté au banc de l'étape
+7) ; la page de la console répond sur 8700 avec les en-têtes de CT-3
 EX-13.35 ; ses empreintes égalent celles de la note de version (CT-7 EX-3.9) ;
 la première notification livrée laisse une ligne `notification_livree` au
-journal du service (CT-3 EX-13.42). Si la vérification échoue : `$DC logs
+journal du service (CT-3 EX-13.42) : elle arrive dès l'inscription d'un
+approbateur à l'annuaire (`operation_annuaire`, HMAC vérifié par le
+récepteur). Si la vérification échoue : `$DC logs
 approbation console` donne les erreurs d'un document refusé au démarrage, et
 `/v0/sante` dit lequel du service ou du système d'identité manque.
 
@@ -3272,12 +3697,26 @@ OpenTimestamps, file) ; établir le statut qualifié des prestataires depuis la
 liste de confiance (CT-5 §5.3) ; inscrire la clé de l'enregistreur et la clé de
 chaîne au registre (CT-4 §7.7, signatures des approbateurs) après avoir
 approvisionné la clé de chaîne (CT-4 §7.6, étape `approvisionnement`, EX-4.19).
+Écrire aussi `config/production/instance-registre.json`, le manifeste
+d'instance publié par l'opérateur du registre (`instance-registre-v0`, CT-4
+§4.8), que `production.yaml` monte à côté d'`ancrage.json` : sans lui, le
+démon consigne `instance_registre_absente` et n'ancre pas au registre en
+production. Une clé de chaîne de classe C est enveloppée par AWS KMS
+(`Encrypt` du scalaire sous le contexte `org_id`, `journal_id`, `key_id` =
+adresse de la clé de chaîne, CT-2 EX-11.9), et la cérémonie signe un
+condensé d'essai dont elle recouvre l'adresse (CT-7 §5.4, pas 6). Avec une
+clé de classe B ou C, l'outil du registre ne prend pas `--cle-chaine fichier:`
+en production (CT-4 EX-7.3) : l'inscription est relayée (`--relayeur`) ou par
+le démon depuis une demande signée au seuil (CT-2 EX-11.16).
 Vérification, sur le poste de l'exploitant (EX-8.2), depuis sa copie du dépôt
-et avec une copie de `ancrage.json` : `npx --yes ajv-cli@5 validate
---spec=draft2020 --strict=true -s spec/schemas/ancrage-v0.schema.json -d
-<copie de ancrage.json>` rend `valid` ; sur l'hôte, le contrôle préalable final
-la relit (`--ancrage`, IC-14) ; la sortie de l'outil du registre pour
-l'inscription (CT-4 §7.2, §7.7) est consignée.
+à la version publiée (`npm ci` fait) et avec une copie de `ancrage.json` :
+`node paquets/ancrage/bin/noortrace-ancrage configuration <copie de
+ancrage.json> --profil production --checkpoint-interval <checkpoint_interval_s
+de la configuration, 60 par défaut>` rend `configuration valide (AN-1, profil
+production) : …`, code 0, sans réseau (sinon code 1 et chaque règle violée) :
+il applique le schéma `ancrage-v0` et les huit règles d'AN-1 de CT-5 ; sur
+l'hôte, le contrôle préalable final la relit (`--ancrage`, IC-14) ; la sortie
+de l'outil du registre pour l'inscription (CT-4 §7.2, §7.7) est consignée.
 
 **IC-14 — Configuration et contrôle préalable final.** Écrire
 `config/production/configuration.json` à partir du modèle
@@ -3309,15 +3748,33 @@ sudo "$(command -v node)" ../scripts/deploiement/controle-prealable.mjs --profil
 | Fichiers de secrets de l'exemple | noms montés par `production.yaml` : `cle-chaine` (et non `cle-chaine-enveloppe`), `cle-fournisseur-anthropic`, `cle-fournisseur-openai`, `cle-fournisseur-gemini`, `jeton-hote-otel` | Chaque `file` est un secret que `production.yaml` monte dans `enregistreur` (test de l'annexe A.12) |
 | `otel.tls` | `tls-enregistreur-certificat`, `tls-enregistreur-cle` | TLS exigé du point d'entrée OpenTelemetry hors boucle locale (CT-2 EX-6.40, EX-5.3) |
 | `signer` | classe B, `vault-transit` (`https://signature.interne.example:8200`, clé `rec-sinistres-2026-01`, jeton `acces-signataire`) au lieu de la classe A par PKCS#11 | Un module PKCS#11 exige un montage de bibliothèque et de périphérique que CO-8 (`devices`) et CO-11 (montage non décrit) refusent : la classe A est une adaptation du client, à ajouter à la description des images, hors des fichiers de référence 0.1 |
-| `policy.servers.fichiers` | transport `http` vers le pont `http://pont-fichiers:9101/mcp`, en-tête `identifiant-outil-fichiers` | Serveur stdio ponté (EX-3.7, EX-3.8) |
+| `policy.servers.fichiers` | transport `http` vers le pont `http://pont-fichiers:9101/mcp`, en-tête `identifiant-outil-fichiers` ; `uri_prefixes` `["file:///srv/pieces/"]` | Serveur stdio ponté (EX-3.7, EX-3.8) ; répertoire que sert le pont |
+| `anchoring.ancrage` | `"/etc/noortrace/ancrage.json"` | Document d'IC-13, que `production.yaml` monte ; sans lui, le démon n'ancre pas (CT-2 §15, `null` = aucun composant) |
+| `anchoring.registry.chain_key.service_url` | `https://kms.eu-central-2.amazonaws.example` (adresse d'exemple, remplacée par le point d'accès AWS KMS du client, `https://kms.<région>.amazonaws.com`) | La clé de chaîne de classe C est déchiffrée par ce service ; la région est lue dans le nom (CT-2 EX-11.19) ; `secret` (`cle-chaine`) porte l'enveloppe |
 
 Résultat attendu : validation sans erreur (code 0) ; verdict `pret` ou
 `pret_avec_avertissements`, code 0. Vérification : aucun avertissement non
-expliqué au procès-verbal.
+expliqué au procès-verbal. Constats du banc de l'étape 7 : IP-6 trouve
+occupés les ports que publient `approbation` et `console`, démarrés à IC-11 ;
+tant que le contrôle préalable ne distingue pas les ports du projet en cours,
+arrêter ces deux services (`$DC stop approbation console`) avant ce contrôle,
+puis les relancer à IC-15 (même réserve pour TP-8 sur une installation en
+marche). IP-3 compare l'espace libre à `local_bytes` du dimensionnement, que
+les captures du registre dominent (9.5) : un disque commandé d'après une
+autre estimation fait échouer IP-3.
 
 **IC-15 — Démarrage et premier dossier.** `$DC up -d` ; `/readyz` rend `200` ;
 un appel d'outil d'un hôte raccordé ; attendre la clôture de l'heure,
-l'inclusion de l'ancre au registre et le jeton RFC 3161 (CT-5) ; exporter le
+l'inclusion de l'ancre au registre et le jeton RFC 3161 (CT-5). Après la
+clôture, le démon consigne `period_close_delegated` (`signatures_en_attente`)
+et n'envoie `submitPeriod` qu'une fois déposée la demande `cloture` signée au
+seuil par les approbateurs (CT-4 §7.7 : `noortrace-registre condense
+cloture`, signatures) : `sudo install -o 10001 -g 10001 -m 0600 demande.json
+"$(docker volume inspect -f '{{ .Mountpoint }}' noortrace_journal)/<org sans
+0x>/<journal sans 0x>/registre/demande-cloture-<period_hash>.json"` ;
+attendre `period_submitted` (environ 5 min après le dépôt au banc de
+l'étape 7, qui n'a pas établi si le contrôle 8 réussit sans `submitPeriod`).
+Exporter le
 dossier de l'appel, `$DC exec enregistreur noortrace-ctl dossier exporter --seq
 <n> --vers /var/lib/noortrace-exports/ic-15` (CT-2 EX-15.9 à EX-15.14, comme à
 IR-8 ; `<n>` est le `seq` de l'événement de l'appel, `--ticket <ticket_id>`
@@ -3332,14 +3789,18 @@ inscrites au registre (`org_id`, `journal_id`, `key_id`, `public_key`,
 `chain_key`) ; `registry` reprend l'identifiant de chaîne, les adresses des
 trois contrats et le jeu de validateurs, avec ses hauteurs, lus au registre ;
 `tsa_authorities[]` reprend le certificat du prestataire RFC 3161 principal et
-le statut qualifié établi à IC-13 ; chaque entrée porte sa `source` (le jour de
+le statut qualifié établi à IC-13, traduit dans la forme `qualification`
+d'`ancres-confiance-v0` (`{ "framework", "valid_from"` : date de la liste de
+confiance lue, `"valid_to": null, "source"` : territoire, séquence, date de
+lecture `}`) : l'objet `qualified` d'`ancrage-v0` recopié tel quel fait
+refuser le fichier (code 2, `ancres_inutilisables`, constaté) ; chaque entrée porte sa `source` (le jour de
 l'installation, aucun réviseur n'en a encore remis). Le service
 `verificateur` ne monte que le volume des exports (EX-3.5) : le fichier
 d'ancres y est déposé hors de toute destination d'export, lisible par le
 compte 10005 par son groupe, par exemple `sudo install -o 10001 -g 10005 -m 0640 ancres.json "$(docker volume
 inspect -f '{{ .Mountpoint }}' noortrace_exports)/ancres-ic15.json"` (nom du
-volume relevé en 4.4 ; commande non vérifiée, le moteur n'ayant pas été
-joint), puis `$DC --profile outils run --rm verificateur
+volume relevé en 4.4 ; commande exécutée au banc de l'étape 7, et le service
+`verificateur` lit le fichier), puis `$DC --profile outils run --rm verificateur
 /var/lib/noortrace-exports/ic-15 --ancres
 /var/lib/noortrace-exports/ancres-ic15.json --json`, avec `--entetes-bitcoin
 /var/lib/noortrace-exports/ic-15/entetes-bitcoin.json` quand l'export a écrit
@@ -3356,19 +3817,32 @@ totale d'EX-8.1, et CT-9 la relève à part pour que la durée du pas se compare
 à son budget.
 
 **IC-16 — Tâches, supervision, sauvegarde.** Poser les tâches planifiées
-d'EX-8.6, brancher les règles d'alerte (section 10) et la sauvegarde (section
-11). Vérification : chaque tâche a fait une première exécution réussie,
-consignée. En version 0.1, les fichiers de `deploiement/observabilite/`,
-l'extracteur, `regles.mjs` et la sonde ne sont pas livrés (section 15) : le
-client transcrit les règles des tables de 10.4 à 10.7 dans sa supervision ;
-celles qui reposent sur des noms proposés (PD-10 à PD-12) ne peuvent pas être
-éprouvées et sont notées « non vérifiables » au procès-verbal. La vérification
-d'IC-16 porte alors sur les tâches et la sauvegarde, dont l'archive et le
-procès-verbal sont produits par les outils du client (EX-11.2).
+d'EX-8.6 et la sauvegarde :
+
+```bash
+sudo bash deploiement/taches/poser-taches.sh --racine <archive extraite> --taches <tâches retenues> --premiere-execution
+```
+
+qui écrit les unités systemd de `deploiement/taches/systemd/` (un service
+gabarit et un minuteur par tâche), copie le modèle des réglages
+`/etc/noortrace/taches.env` s'il est absent (jamais remplacé), et lance
+chaque tâche une fois ; chaque exécution laisse une ligne `{ts, task,
+exit_code, duration_ms, detail}` dans `<NOORTRACE_EXPLOITATION>/taches/taches.ndjson`.
+Brancher les règles d'alerte de la section 10 : `node
+scripts/deploiement/regles.mjs --configuration <configuration> --ancrage
+<ancrage.json>` (depuis la copie du dépôt du poste, EX-3.6), l'extracteur et la
+sonde sur la supervision du client. Vérification : chaque tâche a fait une
+première exécution réussie, consignée ; la règle
+`noortrace_registre_sous_tarif` repose sur une ligne qu'aucun code n'écrit
+(PD-12) et est notée « non vérifiable » au procès-verbal. TP-2, TP-3 et TP-5
+restent des commandes du client (aucun outil du dépôt) ; sans elles, leur
+tâche rend le code 3.
 
 **IC-17 — Attestation de périmètre.** Remplir l'attestation (CT-7 §7.4, pas 1 à
 10) avec les membres de 5.4 (EX-5.7), la faire signer et l'inscrire au journal
-(CT-7 §7.5). Vérification : `npm run conformite:attestation -- verifier
+(CT-7 §7.5) ; l'inscription attend l'adoption de PA-8 (aucun membre
+`policy.perimeter` dans le schéma de configuration) : d'ici là, l'attestation
+signée est jointe sans inscription (CT-7 EX-7.12). Vérification : `npm run conformite:attestation -- verifier
 <attestation signée> --jeu <jeu.json>` (outil du dépôt, AT-1 à AT-4) rend 0.
 
 **IC-18 — Clôture.** Fermer FL-29 à FL-31 au pare-feu (EX-5.2, règle 6) et
@@ -3388,7 +3862,13 @@ pour CT-9.
 **EX-8.6** L'installation complète pose les tâches suivantes, par le moyen
 d'ordonnancement du client (minuteur du système, tâche de l'orchestrateur) ;
 chaque exécution laisse une ligne horodatée avec son code de sortie, conservée
-avec le journal (section 11).
+avec le journal (section 11). Gabarits de référence (étape 7) :
+`deploiement/taches/` (systemd : TP-1 à `:05` de chaque heure, TP-2 à TP-5 et
+la sauvegarde chaque jour, TP-6 toutes les 15 min, TP-7 le 15 janvier, TP-8 le
+premier du mois, tous en `Persistent=true` ; TP-1 et TP-4 tournent dans un
+conteneur éphémère de l'image de l'enregistreur, hors du démon ; TP-4 relit les
+gels listés dans les réglages, faute d'une commande qui relise tout le
+registre des gels avec les identifiants du Lecteur).
 
 | Id | Tâche | Cadence | Quand | Source |
 |---|---|---|---|---|
@@ -3849,19 +4329,25 @@ entier, R8-F42) sans en reprendre les noms fautifs : ce gabarit cite
 `noorcore_rpc_errors_total` quand le binaire expose `noor_rpc_errors_total`
 (R8-F43), et ses cibles `127.0.0.1:6260` et `6262` n'ont jamais été vues en
 écoute (R8 NV-5). L'enregistreur, le service d'approbation et le composant
-d'ancrage ne sont pas construits : aucune règle de cette section n'a été
-exécutée contre eux, et tout seuil qui n'est pas un défaut écrit dans une
-spécification est une cible « à mesurer (CT-9, porte 2) ».
+d'ancrage sont construits depuis les étapes 4 à 6 de la construction ; les
+règles de cette section ont été écrites à l'étape 7 contre les noms de leur
+code et éprouvées par un évaluateur réduit des essais et par `promtool` en
+intégration continue (EX-10.10), sans collecteur en marche ni charge : tout
+seuil qui n'est pas un défaut écrit dans une spécification reste une cible
+« à mesurer (CT-9, porte 2) ».
 
-**État au 2026-10-27.** Les fichiers de `deploiement/observabilite/` (règles
-`regles-noortrace.yml`, tests des règles `tests-regles.yml`, configuration de
-collecte `prometheus.yml`, tableau `tableau-noortrace.json`), l'extracteur
-`extraire-journaux.mjs`, le générateur de règles `regles.mjs`, la sonde
-`sonde.mjs`, la famille de vecteurs `supervision/` et les vérifications SV-1 à
-SV-7 sont **à produire, lot suivant** : les tables de cette section en sont la
-spécification, et aucun de ces fichiers n'existe dans le dépôt. SV-8 (lecture
-du texte de CT-8) est la seule vérification de cette section qui s'exécute
-déjà. Les runbooks emploient en revanche des outils livrés :
+**État au 2026-11-12.** Livrés à l'étape 7 : les fichiers de
+`deploiement/observabilite/` (règles `regles-noortrace.yml`, 88 règles en
+cinq groupes ; tests des règles `tests-regles.yml`, une série qui déclenche et
+une qui ne déclenche pas pour chaque règle ; collecte `prometheus.yml` ;
+tableau `tableau-noortrace.json`), l'extracteur `extraire-journaux.mjs`, le
+générateur de règles `regles.mjs`, la sonde `sonde.mjs` et sa relecture hors
+du composant (`sonde.mjs releve`, EX-10.9), la bibliothèque
+`scripts/lib/supervision.mjs`, la famille de vecteurs `supervision/` (A.9) et
+les vérifications SV-1 à SV-7 (`test/deploiement-supervision.test.js`) ;
+SV-8 s'exécutait déjà. Les tables de cette section restent la spécification :
+les fichiers les suivent, et les noms qu'elles lisent dans les journaux sont
+ceux du code (10.3). Les runbooks emploient aussi les outils livrés
 `verifier-journal.mjs`, `proces-verbal.mjs` et `consultations.mjs` (11.7,
 11.9, 11.10).
 
@@ -3899,7 +4385,7 @@ CT-7 EX-3.9 exigent hors du composant sont celles d'EX-10.9.
 
 | Composant | Point | Contenu | Source |
 |---|---|---|---|
-| Enregistreur | `supervision.health_listen` (exemple de CT-2 §15.3 : `127.0.0.1:8500`), `GET /healthz`, `/readyz`, `/metrics` | santé et 43 métriques `noortrace_` (CT-2 §17.2) ; en révision 0.6, `noortrace_observation_mode` et `noortrace_events_lost_total` (EX-12.8) | R8-F1, R8-F2, R8-F7 |
+| Enregistreur | `supervision.health_listen` (exemple de CT-2 §15.3 : `127.0.0.1:8500`), `GET /healthz`, `/readyz`, `/metrics` | santé et 45 métriques `noortrace_` (CT-2 §17.2, révision 0.10), dont `noortrace_observation_mode` et `noortrace_events_lost_total` (EX-12.8) | R8-F1, R8-F2, R8-F7 |
 | Composant d'ancrage | dans le démon (EX-3.2) : `GET /metrics` de `supervision.health_listen` | métriques `noortrace_anchoring_*` de CT-5 EX-8.15 et `noortrace_anchor_pending` | R8-F19 |
 | Service d'approbation | port d'état 8601, publié sur `127.0.0.1` de l'hôte en production (EX-3.5, FL-6) : `GET http://127.0.0.1:8601/v0/etat` ; ni la prise `/run/noortrace/approbation.sock`, canal du noyau, où le service authentifie le démon par le jeton du noyau en production (CT-2 EX-18.8, CT-3 EX-10.12), ni le port 8600 du réseau interne `console` ne sont sondés par la sonde de 10.7 ; le serveur de console interroge `GET /v0/etat` sur ce port, authentifié (CT-3 EX-12.12, révision 0.5), et en rend l'issue dans `service_reachable` (ligne suivante) ; l'installation rapide (`network_mode: none`) n'a que la sonde du conteneur ; un document de configuration refusé au démarrage ne laisse aucune écoute (CT-3 EX-10.12), ce que la sonde lit comme une absence de réponse (EX-10.7) | `ready`, `set_read_at`, `open_tickets` (CT-3 EX-12.12) ; la sonde de 10.7 les convertit en jauges | R8-F15 |
 | Serveur de console | `GET <console_origin>/v0/sante`, servi sans session (CT-3 EX-13.44) ; la sonde du conteneur, `noortrace-console sonde`, l'appelle aussi (4.4) | `ready`, `service_reachable`, `identity_ready`, `checked_at` ; la sonde de 10.7 convertit `ready` en jauge | CT-3 EX-13.44 |
@@ -3913,9 +4399,9 @@ réseau d'exploitation que la section 5 déclare, jamais sur une interface
 publique ; la configuration de collecte de référence
 (`deploiement/observabilite/prometheus.yml`) pose sur chaque cible
 l'étiquette `role` (`active` ou `passive` pour une instance de
-l'enregistreur, CT-2 §13 ; `validateur` ou `relais` pour un nœud), dont la
-règle `noortrace_bail_non_detenu` a besoin pour savoir quelle instance doit
-tenir le bail.
+l'enregistreur, CT-2 §13 ; `validateur` ou `relais` pour un nœud ; `hote` pour
+l'exportateur de nœud), dont la règle `noortrace_bail_non_detenu` a besoin
+pour savoir quelle instance doit tenir le bail.
 
 ### 10.3 Extracteur des journaux
 
@@ -3954,24 +4440,42 @@ procès-verbaux d'exploitation (11.9). Il expose, au format texte de Prometheus 
 | `exploitation` | `worm_legal_hold_observed` | `garde_violee` quand la ligne porte une règle de garde violée, sinon `levee` pour un enregistrement `levee`, sinon `autre` | CT-2 EX-17.7 |
 | `exploitation` | `anchoring_queue_rebuilt` | `recree` quand `recreated` > 0, `aucune` sinon | CT-5 EX-8.12 |
 | `exploitation` | `anchor_refused` | `empreinte_squattee` ou `autre` | code de la ligne (CT-5 EX-8.10, EX-9.7) |
-| `exploitation` | `checkpoint_anchor_late` | `interne` ou `exterieur` | rôle du prestataire des points (CT-5 EX-8.15) |
-| `acquisitions` | `acquisition` | `horloge_suspecte` quand `freshness` le dit ; sinon `reponse_tardive_promue` quand l'avertissement `reponse_tardive` est porté par un jeton promu ; sinon `revoque` quand le jeton est marqué révoqué ; sinon l'issue (`outcome`) | CT-5 EX-5.13, EX-5.11, EX-5.10 étape 10 |
+| `exploitation` | `alerte_checkpoint_anchor_late` | `exterieur` quand `data.severity` vaut `majeure`, `interne` quand elle vaut `mineure` | la ligne `checkpoint_anchor_late` ne porte pas le rôle du prestataire ; la ligne d'alerte que le composant écrit à côté porte la gravité, qui le dit (CT-5 EX-8.15, 8.9) |
+| `exploitation` | `approval_service_unavailable` | `politique_invalide_au_charger` quand `data.message` vaut `charger` et `data.code` vaut `politique_invalide`, vide sinon | CT-2 EX-7.15 : la ligne que le code consigne pour une politique refusée au `charger` |
+| `acquisitions` | `acquisition` | `horloge_suspecte` quand `warnings` porte cet avertissement (`freshness` ne le porte jamais) ; sinon `reponse_tardive_promue` quand l'avertissement `reponse_tardive` est porté par un jeton promu ; sinon `revoque` quand le jeton est marqué révoqué ; sinon l'issue (`outcome`) | CT-5 EX-5.13, EX-5.11, EX-5.10 étape 10 |
 | `registre` | opération (`capturer`, `approvisionner`, …) | `marge_retention_basse` quand `outputs.retention.alert` est vrai ; `examen_requis` quand l'erreur l'est ; vide sinon | `scripts/registre/noortrace-registre.mjs` l. 755-761 et 2013 ; CT-4 EX-4.20, EX-9.6 |
 | `consultations` | action (`lecture`, `export`, …) | rôle de la ligne (`inconnu` compris) | 11.10 |
 | `exploitation` | `dossier_export_refused` | `data.raison` de la ligne (CT-2 EX-15.12) | CT-2 EX-15.14 |
 | `approbation` | `notification_echec`, `notification_abandonnee` | `cause` de la ligne (`reseau`, `tls`, `delai` ou `statut` ; `reprises_epuisees`, `statut_definitif` ou `file_pleine`) | CT-3 EX-13.42 |
 
-Les noms exacts des membres de `data` qui portent le verdict, la règle de
-garde violée, `recreated`, le code d'un refus et le rôle du prestataire ne
-sont pas fixés par CT-2 0.5 ni par CT-5 0.2, qui en donnent le contenu
-seulement : l'extracteur lit les noms que CT-2 et CT-5 fixeront, et ce
-manque est la proposition PD-10 (CT-2) et PD-11 (CT-5) d'EX-10.12. Le journal
-du service d'approbation n'a ni fichier ni forme de ligne fixés par CT-3 0.5,
-qui en nomme les lignes et leur contenu (EX-13.40, EX-13.42) : la source
-`approbation` le lit sous le fichier de `state_dir`, le nom d'événement et le
-membre `cause` que CT-3 fixera, ce qui est la proposition PD-19. L'extracteur
-ne lit aucune pièce et n'expose aucune valeur hors de ces tables ; une ligne
-d'un `event` absent des tables est comptée avec `detail` vide.
+Membres lus (révision 0.6, noms du code des étapes 4 à 6, qui ferment les
+propositions PD-10, PD-11 et PD-19 d'EX-10.12) : le verdict est
+`data.verdict` ; les raisons, `data.reasons` (dont `gel_absent`) ; la règle de
+garde, `data.garde`, violée quand elle ne vaut pas `respectee` ; un
+enregistrement de levée, `data.kind` `levee` ; le code d'un refus,
+`data.error_code` ; `recreated` tel quel ; l'instant d'une acquisition,
+`received_at` (elle n'a pas de `ts`). Le journal du service d'approbation est
+`<state_dir>/journal-service.ndjson`, dont les lignes sont à plat (`ts`,
+`type` et les membres de la ligne, `cause` compris, sans `level`, `event` ni
+`data`) : `event` y est le membre `type`. La sortie de l'outil du registre est
+un document `$defs/sortie` d'`operations-registre-v0` par fichier, dont
+l'`event` est le membre `command` ; elle n'a pas d'horodatage, donc pas de
+série `noortrace_journal_derniere_ligne_s`. Les lignes
+`alerte_jeton_anterieur_au_point` et `alerte_contresignature_tardive` sont
+les lignes d'alerte que le composant d'ancrage écrit (10.5).
+
+Règles générales de l'extracteur : seules les lignes finies par LF sont lues,
+les lignes vides sont ignorées ; chaque ligne est du JSON strict (UTF-8 sans
+marque d'ordre d'octets, sans membre en double), sinon elle compte dans
+`noortrace_journal_illisibles_total` ; un JSON qui n'est pas un objet est
+compté avec un `event` vide ; une valeur d'étiquette n'est exposée que si elle
+suit `^[a-z][a-z0-9_]{0,63}$`, sinon elle est vide ;
+`noortrace_journal_derniere_ligne_s` prend le plus grand instant lu ;
+`noortrace_journal_illisibles_total` a une série par source lue, même à 0 ;
+les séries sont triées par ordre d'octets ; les procès-verbaux sont les
+fichiers `.json`, retenus quand PV-1 réussit. L'extracteur ne lit aucune pièce
+et n'expose aucune valeur hors de ces tables ; une ligne d'un `event` absent
+des tables est comptée avec `detail` vide.
 
 ### 10.4 Règles de l'enregistreur
 
@@ -3983,6 +4487,19 @@ la commande `node scripts/deploiement/regles.mjs --configuration
 <configuration de l'enregistreur> --ancrage <document ancrage-v0>`, qui
 écrit les mêmes règles avec ses valeurs ; sans argument, elle écrit le
 fichier de référence, identique octet pour octet à celui du dépôt (SV-6).
+Options (révision 0.6) : `--instance <manifeste d'instance>` (`<S>`),
+`--dimensionnement <entrées du calculateur de la section 9>` (`<A_h>`),
+`--txpool-max-pending <n>` (`<M>` en est la moitié), `--rpo <s>` (`<RPO>`),
+`--tests` (écrit les tests des règles régénérées), `--sortie <fichier>` ;
+`--reference <répertoire>` écrit les quatre fichiers de
+`deploiement/observabilite/`. Codes : 0 ; 1, document refusé, dont un
+`inclusion_alert_s` qui n'est pas une borne de l'histogramme (10.5) ; 2,
+usage. Valeurs du fichier de référence : `<A_h>` = 76 (exemple de 9.5,
+665 760 requêtes par an sur 8 760 heures) ; `<S>` = 78 600 000 wei
+(7 × 24 × 450 000 + 3 000 000, journal horaire de CT-4 EX-4.19) ;
+`<RPO>` = 86 400 ; `<racine>` = `storage.root` du modèle de production ;
+`<M>` = 2 048, hypothèse tant que le défaut de `-txpool-max-pending` de
+noorcore n'est pas établi (`noorcore -h` imprime « 0 = default »).
 
 Expressions dans la syntaxe de Prometheus ; `<racine>` est le point de
 montage de `storage.root`. Les durées de la colonne « Pendant » vont dans la
@@ -4014,7 +4531,7 @@ clause `for` (R8-F54).
 | `noortrace_panne_apres_relais` | `increase(noortrace_calls_executed_not_durable_total[5m]) > 0` | — | critique | CT-2 §17.4 Panne après relais | RB-1 |
 | `noortrace_relais_refuse` | `increase(noortrace_approval_relays_refused_total[5m]) > 0` | — | critique | CT-2 §17.4 Relais refusé ou identifiant en collision | RB-8 |
 | `noortrace_remise_refusee` | `increase(noortrace_approval_remises_refused_total[1h]) > 0` | — | majeure | CT-2 §17.4 Remise refusée | RB-8 |
-| `noortrace_politique_invalide_au_charger` | `increase(noortrace_journal_lignes_total{event="approval_policy_invalid"}[1h]) > 0` (nom de ligne proposé, PD-10) | — | majeure | CT-2 §17.4 Remise refusée (`politique_invalide`, CT-2 EX-7.15) | aucun |
+| `noortrace_politique_invalide_au_charger` | `increase(noortrace_journal_lignes_total{event="approval_service_unavailable",detail="politique_invalide_au_charger"}[1h]) > 0` (ligne du code, 10.3) | — | majeure | CT-2 §17.4 Remise refusée (`politique_invalide`, CT-2 EX-7.15) | aucun |
 | `noortrace_budget_redaction` | `increase(noortrace_redaction_budget_exceeded_total[1h]) > 0` | — | mineure | CT-2 §17.4 Budget de rédaction | aucun |
 | `noortrace_budget_redaction_bloquant` | `increase(noortrace_calls_blocked_total{reason="redaction"}[1h]) > 0` | — | majeure | CT-2 §17.4 Budget de rédaction | aucun |
 | `noortrace_cle_mac_relais` | `increase(noortrace_journal_lignes_total{event="relay_mac_key_mismatch"}[5m]) > 0` | — | critique | CT-2 §17.4 Clé du MAC de relais | RB-2 |
@@ -4042,15 +4559,19 @@ est l'étiquette `role` d'EX-10.4.
 
 Les bornes des histogrammes `noortrace_anchoring_d_*_s` ne sont pas fixées
 par CT-5 ; CT-8 les fixe pour que `inclusion_alert_s` (défaut 60) en soit
-une : 1, 2, 5, 10, 30, 60, 120, 300, 600, 1 800, 3 600, 7 200 secondes
-(EX-10.6 les régénère si `inclusion_alert_s` change).
+une : 1, 2, 5, 10, 30, 60, 120, 300, 600, 1 800, 3 600, 7 200 et 86 400
+secondes, celles du code (EX-10.6 refuse un `inclusion_alert_s` qui n'en est
+pas une). Prometheus 3 écrit la borne `le="60"` en `le="60.0"` à la collecte,
+d'où la forme `le=~"60(\\.0)?"` des règles d'inclusion, et la soustraction
+ignore l'étiquette `le` (`ignoring (le)`), sans quoi elle ne s'apparie sur
+aucune série.
 
 | Règle | Expression | Pendant | Gravité | Exigence | Runbook |
 |---|---|---|---|---|---|
 | `noortrace_ancrage_en_attente` | `increase(noortrace_journal_lignes_total{event=~"anchor_pending\|registry_pending"}[1h]) > 0` | — | mineure (gravité fixée par CT-8 ; le retard est majeur par `noortrace_ancre_en_retard`) | CT-5 §8.9 `anchor_pending`, `registry_pending` | RB-3 |
-| `noortrace_ancrage_point_en_retard_exterieur` | `increase(noortrace_journal_lignes_total{event="checkpoint_anchor_late",detail="exterieur"}[1h]) > 0` | — | majeure | CT-5 §8.9 `checkpoint_anchor_late` | RB-4 |
-| `noortrace_ancrage_point_en_retard_interne` | `increase(noortrace_journal_lignes_total{event="checkpoint_anchor_late",detail="interne"}[1h]) > 0` | — | mineure | CT-5 §8.9 `checkpoint_anchor_late` | RB-4 |
-| `noortrace_ancrage_inclusion_lente` | `increase(noortrace_anchoring_d_registre_s_count[1h]) - increase(noortrace_anchoring_d_registre_s_bucket{le="60"}[1h]) > 0` | — | mineure | CT-5 §8.9 `inclusion_late` | RB-7 |
+| `noortrace_ancrage_point_en_retard_exterieur` | `increase(noortrace_journal_lignes_total{event="alerte_checkpoint_anchor_late",detail="exterieur"}[1h]) > 0` | — | majeure | CT-5 §8.9 `checkpoint_anchor_late` | RB-4 |
+| `noortrace_ancrage_point_en_retard_interne` | `increase(noortrace_journal_lignes_total{event="alerte_checkpoint_anchor_late",detail="interne"}[1h]) > 0` | — | mineure | CT-5 §8.9 `checkpoint_anchor_late` | RB-4 |
+| `noortrace_ancrage_inclusion_lente` | `increase(noortrace_anchoring_d_registre_s_count[1h]) - ignoring (le) increase(noortrace_anchoring_d_registre_s_bucket{le=~"60(\\.0)?"}[1h]) > 0` | — | mineure | CT-5 §8.9 `inclusion_late` | RB-7 |
 | `noortrace_ancrage_inclusion_lente_repetee` | même expression `> 3` | — | majeure (« si répétée » : plus de trois fois par heure, seuil fixé par CT-8) | CT-5 §8.9 `inclusion_late` | RB-7 |
 | `noortrace_ancrage_prestataire_injoignable` | `noortrace_anchoring_last_success_age_s{kind=~"jeton_periode\|jeton_point"} > 900 and on (kind, provider) increase(noortrace_anchoring_attempts_total[15m]) > 0` | — | majeure (pour tout prestataire : CT-5 ne la prescrit que pour le principal, CT-8 ne distingue pas les rôles) | CT-5 §8.9 `prestataire_injoignable` | RB-4 |
 | `noortrace_ancrage_prestataires_epuises_periode` | `noortrace_anchoring_queue_entries{kind="jeton_periode",state="a_reprendre"} > 0 and on () increase(noortrace_anchoring_attempts_total{kind="jeton_periode",outcome="echec_permanente"}[1h]) > 0` | — | critique | CT-5 §8.9 `prestataires_epuises` (période) | RB-4 |
@@ -4063,8 +4584,8 @@ une : 1, 2, 5, 10, 30, 60, 120, 300, 600, 1 800, 3 600, 7 200 secondes
 | `noortrace_ancrage_revoque` | `increase(noortrace_journal_lignes_total{source="acquisitions",detail="revoque"}[1h]) > 0` | — | critique | CT-5 §8.9 `revoque` | RB-4 |
 | `noortrace_ancrage_reponse_tardive_promue` | `increase(noortrace_journal_lignes_total{source="acquisitions",detail="reponse_tardive_promue"}[1h]) > 0` | — | mineure | CT-5 §8.9 `reponse_tardive_promue` | RB-4 |
 | `noortrace_ancrage_point_manquant` | `increase(noortrace_journal_lignes_total{event="point_manquant"}[5m]) > 0` | — | majeure | CT-5 §8.9 `point_manquant` | RB-1 |
-| `noortrace_ancrage_jeton_anterieur` | `increase(noortrace_journal_lignes_total{event="jeton_anterieur_au_point"}[1h]) > 0` (ligne proposée, PD-11) | — | majeure | CT-5 §8.9 `jeton_anterieur_au_point` | RB-6 |
-| `noortrace_ancrage_contresignature_tardive` | `increase(noortrace_journal_lignes_total{event="contresignature_tardive"}[1h]) > 0` (ligne proposée, PD-11) | — | mineure | CT-5 §8.9 `contresignature_tardive` | RB-4 |
+| `noortrace_ancrage_jeton_anterieur` | `increase(noortrace_journal_lignes_total{event="alerte_jeton_anterieur_au_point"}[1h]) > 0` (ligne du code, 10.3) | — | majeure | CT-5 §8.9 `jeton_anterieur_au_point` | RB-6 |
+| `noortrace_ancrage_contresignature_tardive` | `increase(noortrace_journal_lignes_total{event="alerte_contresignature_tardive"}[1h]) > 0` (ligne du code, 10.3) | — | mineure | CT-5 §8.9 `contresignature_tardive` | RB-4 |
 | `noortrace_ancrage_volume` | `sum(increase(noortrace_anchoring_attempts_total[1h])) > 2 * <A_h>` | — | majeure | CT-5 §8.9 volume de requêtes | RB-8, après ventilation (RB-4) |
 
 `<A_h>` est le nombre nominal de requêtes d'ancrage par heure d'un journal,
@@ -4081,15 +4602,19 @@ des succès en excès hors panne de RB-8.
 
 ### 10.6 Règles du registre et du nœud
 
-**EX-10.7** La sonde de référence `scripts/deploiement/sonde.mjs` (à
-produire, lot suivant) interroge, à chaque passage (défaut 15 s), `GET
+**EX-10.7** La sonde de référence `scripts/deploiement/sonde.mjs` (étape 7 ;
+`node scripts/deploiement/sonde.mjs [--approbation <base>] [--console
+<origine>] [--rpc <cible>=<url>]… [--expediteur <adresse>]… [--instance
+<manifeste>] [--delai <ms>] [--sortie <fichier>] [--intervalle <s>]`, toutes
+les options facultatives) interroge, à chaque passage (défaut 15 s), `GET
 http://127.0.0.1:8601/v0/etat` du service d'approbation (CT-3 EX-12.12 ; port
 d'état d'EX-3.5), qu'elle expose en
 `noortrace_approbation_pret` (`ready`, 1 ou 0),
 `noortrace_approbation_tickets_ouverts` (`open_tickets`) et
 `noortrace_approbation_jeu_lu_age_s` (âge de `set_read_at`),
-`noortrace_approbation_pret` valant 0 aussi sans réponse de statut 200 et de
-la forme de CT-3 EX-12.12 dans le passage (service arrêté, ou document de
+`noortrace_approbation_pret` ne valant 1 que pour une réponse de statut 200,
+de la forme de CT-3 EX-12.12, dont `ready` est vrai, et 0 aussi sans une
+telle réponse dans le passage (service arrêté, ou document de
 configuration refusé au démarrage, qui ne laisse aucune écoute, CT-3
 EX-10.12) ; `GET <console_origin>/v0/sante` du serveur de console (CT-3
 EX-13.44), qu'elle expose en `noortrace_console_prete` (`ready`, 1 ou 0, et 0
@@ -4101,7 +4626,9 @@ meneur répond, R8-F23) et
 `eth_getBlockTransactionCountByNumber("pending")` (taille de la mempool,
 seule lecture offerte par noorcore, `core/rpc/jsonrpc_dispatch.go:2147-2152`,
 R8-F44 ; ce qu'elle compte exactement n'est pas établi, R8 NV-3), lit le
-solde de chaque expéditeur du manifeste d'instance (CT-4 EX-8.18), et expose
+solde de chaque expéditeur (ceux de `--expediteur`, et les comptes
+`deployeur`, `administrateur_registre` et `relayeur` en vigueur du manifeste
+d'instance, CT-4 EX-4.19, EX-8.18), et expose
 `noortrace_registre_sonde_ok{target}` (1 ou 0),
 `noortrace_registre_hauteur{target}`, `noortrace_registre_mempool{target}`
 et `noortrace_registre_solde_wei{sender}` (adresse publique de
@@ -4147,6 +4674,8 @@ d'instance par `regles.mjs`.
 | `noortrace_journal_illisible` | `increase(noortrace_journal_illisibles_total[1h]) > 0` | — | majeure | CT-8 EX-10.5 | aucun |
 | `noortrace_mode_observation_actif` | `noortrace_observation_mode == 1` | — | mineure (rappel permanent : aucun appel n'est bloqué) | CT-2 §17.4 Mode observation actif (EX-17.8) ; CT-8 EX-12.8 | aucun |
 | `noortrace_observation_pertes` | `increase(noortrace_events_lost_total[5m]) > 0` | — | majeure | CT-2 §17.4 Pertes en mode observation (EX-17.8) ; CT-2 EX-14.16 | RB-1 |
+| `noortrace_releve_externe_echec` | `noortrace_releve_externe_ok == 0` | — | critique | CT-8 EX-10.9 | aucun |
+| `noortrace_releve_externe_perime` | `time() - noortrace_releve_externe_dernier_s > 172800` (2 jours) | — | critique | CT-8 EX-10.9 | aucun |
 
 `<RPO>` est le RPO retenu par le client pour l'archive de sauvegarde (ligne
 « Pièces non copiées » d'EX-11.5 ; cadence d'EX-11.24, un jour par défaut, soit
@@ -4177,8 +4706,16 @@ ci-dessous ; chaque expression ne nomme que des métriques de 10.2 et 10.3
 
 **EX-10.9** Trois relectures DOIVENT tourner hors du composant qu'elles
 contrôlent, sous l'identité qu'EX-10.3 décrit, et exposer leur résultat comme
-une jauge `noortrace_releve_externe_ok{check}` (1 ou 0), alertée en critique
-quand elle vaut 0 ou qu'elle n'a pas été mise à jour depuis 2 jours :
+une jauge `noortrace_releve_externe_ok{check}` (1 ou 0), avec l'instant du
+dernier passage dans la jauge `noortrace_releve_externe_dernier_s{check}`
+(secondes UNIX), alertée en critique quand elle vaut 0 ou qu'elle n'a pas été
+mise à jour depuis 2 jours (règles `noortrace_releve_externe_echec` et
+`noortrace_releve_externe_perime` de 10.7). La commande de référence est
+`node scripts/deploiement/sonde.mjs releve --check <registre_gels|console|copie_exploitation>
+--sortie <fichier> -- <commande> [arguments…]`, qui lance la relecture, écrit
+les deux jauges au format texte de Prometheus (par renommage, pour le
+collecteur de fichiers de l'exportateur de nœud) et rend le code de la
+relecture :
 `registre_gels` (la relecture du registre des gels et de l'état `on` des
 versions gelées par le rôle Lecteur, CT-2 EX-17.7 : `noortrace-ctl worm gel
 etat` sous les identifiants du lecteur), `console` (la comparaison
@@ -4198,13 +4735,14 @@ relevée le 2026-10-27 sur l'archive téléchargée et égale à celle du fichie
 le fichier de règles et `promtool test rules` sur
 `deploiement/observabilite/tests-regles.yml` (R8-F53), qui donne pour chaque
 règle une série qui la déclenche et une qui ne la déclenche pas. `promtool`
-n'a pas été exécuté pour cette rédaction (R8 NV-4), et l'étape n'est pas dans
-l'intégration continue tant que ces fichiers ne sont pas produits (lot
-suivant).
+n'a pas été exécuté pour la rédaction de la version 0.1 (R8 NV-4) ; l'étape
+est dans l'intégration continue depuis l'étape 7 (EX-A.27), et les essais,
+sans `promtool`, rejouent les mêmes tests par un évaluateur réduit, qui ne le
+remplace pas.
 
-**EX-10.11** Vérifications statiques, à exécuter par `test/deploiement.test.js`
-sans réseau ; SV-1 à SV-7 attendent les fichiers du lot suivant, SV-8 est
-exécutée :
+**EX-10.11** Vérifications statiques, à exécuter sans réseau : SV-1 à SV-7
+par `test/deploiement-supervision.test.js` (étape 7), SV-8 par
+`test/exploitation.test.js` :
 
 | Id | Vérification |
 |---|---|
@@ -4213,13 +4751,16 @@ exécutée :
 | SV-3 | Étiquettes et annotations d'EX-10.2 : ensemble exact, `severity` énumérée, aucune autre étiquette ; noms de règles uniques, de la forme `^noortrace_[a-z0-9_]+$`. |
 | SV-4 | Le fichier s'analyse en YAML ; chaque règle a `alert`, `expr`, `labels`, `annotations`, et `for` quand la colonne « Pendant » n'est pas vide. |
 | SV-5 | L'extracteur, rejoué sur `spec/vecteurs/ct-8/supervision/journaux/`, rend exactement `attendu.prom` (compteurs, jauges, `detail` de la table de 10.3). |
-| SV-6 | `regles.mjs` sans argument écrit le fichier du dépôt octet pour octet ; avec la configuration de `spec/vecteurs/ct-8/supervision/configuration-modifiee.json`, il écrit `regles-attendues.yml`. |
+| SV-6 | `regles.mjs` sans argument écrit le fichier du dépôt octet pour octet ; avec `spec/vecteurs/ct-8/supervision/configuration-modifiee.json` et `ancrage-modifie.json`, il écrit `regles-attendues.yml`. |
 | SV-7 | Chaque expression du tableau ne nomme que des métriques admises par SV-2. |
 | SV-8 | Chaque runbook RB-1 à RB-8 de la section 10 a les sept rubriques d'EX-10.13, dans cet ordre (lecture du texte de CT-8). |
 
 **EX-10.12** Lacunes de nommage, écrites comme propositions sans modifier les
 spécifications visées (aucune n'est appliquée par la révision 0.6 de CT-2,
-qui reste minimale) :
+qui reste minimale ; la révision 0.6 de CT-8 ferme PD-10, PD-11 et PD-19 par
+les noms du code, 10.3, et garde PD-12 : aucun code n'écrit
+`registry_send_refused`, et la règle `noortrace_registre_sous_tarif` ne peut
+pas se déclencher) :
 
 | Id | Adressée à | Proposition | Motif |
 |---|---|---|---|
@@ -4229,6 +4770,13 @@ qui reste minimale) :
 | PD-19 | CT-3 (§10.4, §13.19) | Fixer le fichier du journal du service sous `state_dir`, la forme de ses lignes (`ts`, `level`, `event`, `data`, comme CT-2 EX-9.5) et les membres des lignes de livraison (EX-13.42) ; y consigner aussi le refus d'un document de configuration au démarrage, écrit aujourd'hui sur la seule sortie d'erreur (EX-10.12) | Source `approbation` de 10.3 ; règles des notifications de 10.7 (révision 0.4) |
 
 ### 10.11 Runbooks d'incident : principe et gabarit
+
+Copies dérivées (étape 7) : `deploiement/runbooks/RB-<n>.md` sont tirées des
+blocs de 10.12 à 10.19 (une ligne de provenance, une ligne vide, puis le bloc
+octet pour octet) par `scripts/deploiement/extraire-runbooks.mjs`, outil du
+dépôt hors de l'archive ; un essai exige leur égalité (comme EX-A.20 pour les
+instructions du paquet réviseur), et l'archive de déploiement les emporte,
+pour qu'un exploitant hors ligne les ait. Le texte de CT-8 fait foi.
 
 Un runbook dit à l'exploitant quoi faire quand une alerte de la section 10
 se lève, et ce que l'incident change à la preuve. La forme est reprise des
@@ -4259,17 +4807,21 @@ porte du précédent. Les commandes sont celles des spécifications
 (`noortrace-ctl reload`, `noortrace-ctl clock --accept`,
 `noortrace-ctl close-period --now`, `noortrace-ctl worm releve`,
 `noortrace-ctl worm gel …`, `noortrace-ctl dossier exporter` (CT-2 §15.7,
-révision 0.8), `noortrace validate-config` de CT-2) et celles
-que CT-8 ajoute, à construire avec l'enregistreur sauf mention :
+révision 0.8), `noortrace-ctl sonde` et `noortrace-ctl etat` (CT-2 §15.8,
+révision 0.10), `noortrace validate-config` de CT-2) et celles
+que CT-8 ajoute :
 
 | Commande | Effet | Disponible |
 |---|---|---|
-| `noortrace-ctl etat` | rend `GET /healthz` et `/readyz` (CT-2 EX-17.1) et l'époque du bail | phase 2 |
+| `noortrace-ctl etat` | rend `GET /healthz` et `/readyz` (CT-2 EX-17.1) et l'époque du bail | existe (CT-2 EX-15.17, révision 0.10) |
+| `noortrace-ctl close-period --now` | clôture anticipée, développement seulement ; termine le journal (CT-2 EX-19.4) | existe (CT-2 EX-15.18) ; jamais un pas d'un runbook de production |
+| `noortrace-ctl sonde --url <url>` | sonde d'un orchestrateur sur `/readyz` (4.4) | existe (CT-2 EX-15.16) |
+| `node scripts/deploiement/sauvegarde.mjs creer\|verifier\|extraire` | archive de 13.4 et procès-verbal `sauvegarde` ; contrôle de l'archive ; extraction (EX-11.2, 11.4) | existe (étape 7) |
 | `node scripts/deploiement/verifier-journal.mjs <répertoire du journal> --cles <fichier> [--json]` | vérifie la chaîne des segments (E-1 à E-8, C-1 à C-3 de CT-1, en-têtes de CT-2 EX-12.3), la continuité d'un segment à l'autre et chaque manifeste présent ; rend la synthèse d'EX-11.7 (`verification-journal-v0`) | existe (outil de référence de CT-8, EX-11.7 ; rejoué sur `spec/vecteurs/ct-8/journaux/`) |
 | `node scripts/deploiement/proces-verbal.mjs verifier <fichier> [--racine <répertoire>] [--cles <fichier>] [--json]` | vérifie un procès-verbal d'exploitation (PV-1 à PV-10, 11.9) | existe (rejoué sur `spec/vecteurs/ct-8/proces-verbaux/`) |
 | `node scripts/deploiement/consultations.mjs verifier <fichier> [--sources <répertoire>] [--json]` | vérifie un journal des consultations (CA-1 à CA-6, 11.10) | existe (rejoué sur `spec/vecteurs/ct-8/consultations/`) |
-| `noortrace-ctl worm restaurer <clé d'objet> --version <id>` | relit une version de la copie WORM, compare son SHA-256 au registre des copies et l'écrit dans un répertoire neuf, jamais sur l'original | phase 2 |
-| `noortrace-ctl cle rotation-urgence` | exécute les pas de CT-2 EX-11.16 dans leur ordre | phase 2 |
+| `noortrace-ctl worm restaurer <clé d'objet> --version <id>` | relit une version de la copie WORM, compare son SHA-256 au registre des copies et l'écrit dans un répertoire neuf, jamais sur l'original | existe (code livré ; ligne de commande non adoptée par CT-2, PD-2) |
+| `noortrace-ctl cle rotation-urgence` | exécute les pas de CT-2 EX-11.16 dans leur ordre ; avec `next_chain_key` seule, la rotation de la seule clé de chaîne relayée au registre (CT-2 EX-11.19, point 4) | existe (code livré ; ligne de commande non adoptée par CT-2, PD-2) |
 | `node scripts/verify/dossier.mjs <dossier> --ancres <fichier>` | vérifie un dossier (CT-6) | existe (`scripts/verify/README.md` l. 374-417) |
 
 Les commandes qui transmettent une demande au démon par son fichier de
@@ -4306,7 +4858,7 @@ segment corrompu, démon arrêté.
   `storage_unavailable`, `segment_corrupted`, `segment_truncated`, `disk_low`,
   `pending_limit_reached`, `pending_pieces_lost`, `dossier_export_refused` de
   raison `lecture_impossible` (CT-2 EX-15.12) ; `noortrace-ctl etat`
-  (phase 2, EX-10.14) muet.
+  muet (code 4, CT-2 EX-15.17).
 - **Impact sur la preuve.** Aucun appel d'écriture n'est relayé sans
   événement durable (CT-2 EX-14.2) ; les lectures passantes ont des
   événements en attente, scellés plus tard avec leur `ts` de capture (CT-2
@@ -4383,8 +4935,10 @@ un journal.
      si la bascule ne l'a pas fait ; porte : l'ancien hôte ne voit plus le
      volume.
   3. Basculer l'adresse de service (moyen de la topologie, EX-3.11) vers
-     la nouvelle active ; porte : `noortrace-ctl etat` (phase 2, EX-10.14)
-     rend `ok` sur l'adresse de service.
+     la nouvelle active ; porte : `noortrace-ctl etat` rend `ok` sur le
+     nouvel hôte, et `curl -fsS -m 3 -o /dev/null <adresse de service>/readyz`
+     rend 0 depuis un hôte qui la joint (`etat` ne lit que le démon local, et
+     `noortrace-ctl sonde` n'admet que la boucle locale).
   4. Si `journal_fork` : ne rien redémarrer avant d'avoir consigné la taille
      finale des fichiers d'époque inférieure et relu le journal ; porte :
      `verifier-journal.mjs` nomme le `seq` de la fourche.
@@ -4520,7 +5074,7 @@ version 0.1 (section 15).
      porte : version inscrite au registre des copies avec le bon SHA-256.
   3. Copie différente de l'original : comparer les deux SHA-256 avec
      `verifier-journal.mjs` sur l'original et sur la version restaurée par
-     `noortrace-ctl worm restaurer` (phase 2, EX-10.14) ; porte :
+     `noortrace-ctl worm restaurer` ; porte :
      l'exemplaire qui vérifie est connu ; l'autre est une pièce de
      l'incident.
   4. Verrou ou rétention non conforme : corriger la configuration par
@@ -4642,7 +5196,7 @@ de l'outil), ou par un signalement.
   1. Nommer la clé (CLE-n) et l'instant présumé ; porte : la ligne de la
      table de CT-7 EX-4.8 est choisie.
   2. Exécuter les pas de cette ligne ; pour CLE-1 : `noortrace-ctl cle
-     rotation-urgence` (phase 2, EX-10.14 ; CT-2 EX-11.16) tant que la clé est
+     rotation-urgence` (CT-2 EX-11.16) tant que la clé est
      utilisable ; porte : événement `noortrace.journal.rotation-cle` scellé et
      nouvelle clé inscrite au registre.
   3. Pour un secret CLE-11 à CLE-25 : révocation chez l'émetteur, nouveau
@@ -4681,9 +5235,10 @@ be recovered after an outage ») et de l'objectif de durée de reprise (RTO :
 the recovery phase before negatively impacting the organization's mission »)
 sont celles du NIST SP 800-34 Rev. 1, glossaire (R9-F36), avec la contrainte
 « the RTO must normally be shorter than the MTD » (R9-F35). Aucune durée de
-sauvegarde ou de reprise n'est mesurée : l'enregistreur, le service
-d'approbation et le composant d'ancrage ne sont pas construits ; chaque
-valeur est une cible « à mesurer (CT-9, porte 2) ».
+sauvegarde ou de reprise n'est mesurée sur le système de référence : les
+durées du chemin A relevées à l'étape 7 (sauvegarde 0,8 s, reprise 1,2 à
+1,3 s, sur un journal d'essai et hors système de référence) sont publiées
+sans compter ; chaque valeur est une cible « à mesurer (CT-9, porte 2) ».
 
 ### 11.1 Principes
 
@@ -4725,12 +5280,19 @@ suivante. « WORM » est la copie de CT-2 EX-12.16 ; « archive » est une archi
 de sauvegarde au format déterministe de 13.4 (sous-ensemble ustar, entrées
 triées par nom, propriétaires 0, droits `0644`, une seule date pour toutes les
 entrées, R9-F12), dont le procès-verbal `sauvegarde` (11.9) liste chaque fichier
-avec sa longueur et son SHA-256. CT-8 0.1 ne fournit aucun outil qui crée
-l'archive ni le procès-verbal `sauvegarde` : le client les produit avec ses
-outils, au format de 13.4 et du schéma `proces-verbal-exploitation-v0`, et
-`proces-verbal.mjs verifier` contrôle le procès-verbal (PV-1 à PV-10 ; PV-7 et
-PV-8 avec `--racine` sur l'archive extraite) ; la forme de l'archive elle-même
-n'a pas d'outil de contrôle en 0.1 (section 15).
+avec sa longueur et son SHA-256. Depuis l'étape 7, `node
+scripts/deploiement/sauvegarde.mjs creer|verifier|extraire` crée l'archive de
+13.4 et le procès-verbal `sauvegarde` (PV-1 à PV-10 contrôlées avant toute
+écriture : l'archive est relue, extraite dans un répertoire temporaire,
+`verifier-journal.mjs` puis `proces-verbal.mjs verifier --racine` sont
+lancés, et rien n'est écrit si un contrôle échoue), contrôle la forme de
+l'archive (EX-13.13, EX-13.14) et chaque fichier contre le procès-verbal, et
+l'extrait selon EX-11.4 ; un `.ndjson` en cours d'écriture est gardé jusqu'à
+sa dernière fin de ligne, ce que `observations` dit. Le client peut aussi les
+produire avec ses outils, au format de 13.4 et du schéma
+`proces-verbal-exploitation-v0`, et `proces-verbal.mjs verifier` contrôle le
+procès-verbal (PV-1 à PV-10 ; PV-7 et PV-8 avec `--racine` sur l'archive
+extraite).
 
 | Objet | Emplacement | Copie WORM | Archive | Cadence de l'archive (cible) | Restauration |
 |---|---|---|---|---|---|
@@ -4817,14 +5379,16 @@ révèlent).
 Chemin A, pas à pas (chaque pas a sa porte, EX-10.14) :
 
 1. Arrêter le démon et placer le répertoire du journal hors service par
-   renommage, sans rien supprimer ; porte : `noortrace-ctl etat` (phase 2,
-   EX-10.14) muet, aucun processus n'a le répertoire ouvert.
-2. Vérifier l'archive contre son procès-verbal `sauvegarde` (EX-11.4) ;
-   porte : PV-7 réussi.
-3. Extraire l'archive dans un répertoire neuf (EX-11.4) ; porte : extraction
-   sans refus.
+   renommage, sans rien supprimer ; porte : `noortrace-ctl etat` muet (code
+   4), aucun processus n'a le répertoire ouvert.
+2. Vérifier l'archive contre son procès-verbal `sauvegarde` (EX-11.4 ;
+   `sauvegarde.mjs verifier`) ; porte : PV-7 réussi.
+3. Extraire l'archive dans un répertoire neuf (EX-11.4 ; `sauvegarde.mjs
+   extraire --archive … --pv … --vers <répertoire neuf>`, qui rend aussi
+   `highest_segment_epoch`, l'époque la plus haute des seuls segments, à
+   compléter au pas 6 par la liste WORM) ; porte : extraction sans refus.
 4. Compléter par les copies WORM des segments, manifestes, points et ancres plus
-   récents que l'archive (`noortrace-ctl worm restaurer`, phase 2, EX-10.14 ;
+   récents que l'archive (`noortrace-ctl worm restaurer` ;
    une version inscrite au registre des copies par clé). Le segment ouvert à
    l'heure de l'archive y figure en version partielle, sous le nom de sa version
    close : pour chaque nom présent à la fois dans l'archive et dans le registre
@@ -5244,7 +5808,14 @@ pour la durée du journal (CT-2 EX-9.6 : « conservé avec le journal, pour la
 même durée ») ; `keep_files` DOIT être assez grand pour couvrir l'intervalle
 de la copie (cible : deux intervalles). La copie est faite par une tâche
 hors du démon tant que la proposition PA-18 de CT-7 (copie par l'écrivain)
-n'est pas adoptée par CT-2.
+n'est pas adoptée par CT-2 : `node
+scripts/deploiement/archiver-journal-exploitation.mjs --journal
+<ops_log.path> --instance <instance_id> --vers <répertoire>` (TP-6, étape 7)
+copie les fichiers tournés complets, du plus ancien au plus récent, reconnus
+par leur SHA-256 (un second passage n'archive rien), écrit `index.ndjson`,
+relit la série et signale une discontinuité ; `--verifier` relit seul. La
+copie sur le support WORM sous `<prefix>exploitation/<instance_id>/` reste à
+l'outil du client.
 
 **EX-11.23** La série copiée se relit hors du démon (EX-10.9,
 `copie_exploitation`) : les fichiers d'une instance se suivent sans trou de
@@ -5646,6 +6217,10 @@ sept événements du journal d'exemple :
 ```
 
 ### 12.6 Passage au mode bloquant
+
+Révision 0.6 : après une clôture anticipée (IR-8), le journal de
+l'installation rapide est terminé (CT-2 EX-19.4) ; le rapport d'observation
+du pas 1 se produit avant IR-8, ou sur un journal neuf.
 
 **EX-12.11** Le passage du mode observation au mode bloquant (`erreur`, le
 défaut de CT-3 EX-11.1, ou `retenir`) DOIT suivre ces pas, chacun avec sa
@@ -7546,14 +8121,16 @@ provenance des ancres de chaque dossier.
 - **La reprise avec un magasin de bail `etcd` neuf** : son époque est la
   révision de la grappe, qui ne se règle pas ; le chemin A, pas 6, ne décrit
   pas comment la faire dépasser l'époque la plus haute du journal restauré.
-- **Supervision et observabilité outillées** : les fichiers de
-  `deploiement/observabilite/`, `extraire-journaux.mjs`, `regles.mjs`,
-  `sonde.mjs`, la famille `supervision/` et SV-1 à SV-7 sont à produire, lot
-  suivant (section 10) ; d'ici là, le client transcrit les règles (IC-16).
-- **Outil de sauvegarde.** Aucun outil ne crée l'archive de sauvegarde ni le
-  procès-verbal `sauvegarde`, et aucun ne contrôle la forme de l'archive
-  (EX-11.2) ; au chemin A, pas 6, aucune commande n'est donnée pour remplir
-  un volume nommé neuf en gardant les octets, le compte et les droits.
+- **Supervision en marche** : les fichiers de référence, l'extracteur, le
+  générateur de règles et la sonde sont livrés (étape 7) ; aucun collecteur
+  n'est livré dans les fichiers Compose (la supervision reste celle du
+  client), et aucune règle n'a été éprouvée par un collecteur en charge ;
+  `regles.mjs`, `extraire-journaux.mjs` et `sonde.mjs` ne sont pas encore
+  dans l'archive de déploiement (EX-3.6).
+- **Remplissage d'un volume nommé neuf** : l'outil de sauvegarde existe
+  (étape 7, EX-11.2), mais au chemin A, pas 6, aucune commande n'est donnée
+  pour remplir un volume nommé neuf en gardant les octets, le compte et les
+  droits.
 - **Borne de durée d'une écriture lente** : CT-2 0.6 ne fixe aucune durée
   au-delà de laquelle une écriture lente vaut panne ; en mode observation,
   elle retarde l'appel sans borne écrite (EX-12.5).
@@ -7563,9 +8140,9 @@ provenance des ancres de chaque dossier.
   mempool ; ce sont des cibles, à mesurer à la porte 2 (CT-9) quand
   l'enregistreur, le service d'approbation et le composant d'ancrage
   existeront.
-- **L'exécution des règles de supervision** : `promtool` n'a pas été exécuté
-  pour cette version (R8 NV-4) ; l'intégration continue l'exécutera quand le
-  fichier de règles sera produit (EX-10.10).
+- **L'exécution des règles de supervision par un collecteur** : `promtool`
+  vérifie les règles et leurs tests en intégration continue (EX-10.10) ; leur
+  évaluation par Prometheus en marche, sous charge, reste à éprouver.
 - **Le journal d'accès aux objets de chaque support WORM** : sa disponibilité,
   son activation et son format chez chaque fournisseur ne sont pas vérifiés ;
   CT-9 les établit avant que la source `journal_acces_support` (EX-11.19)
@@ -7594,12 +8171,41 @@ provenance des ancres de chaque dossier.
 - **Systèmes du réviseur.** L'outil n'a été exécuté que sous Linux, avec
   Node.js v22.22.0 ; Windows, macOS et les autres versions de Node.js ne
   sont pas vérifiés.
-- **Les installations elles-mêmes.** Ni l'installation rapide ni l'installation
-  complète n'ont été exécutées : l'enregistreur, le service d'approbation et le
-  composant d'ancrage ne sont pas construits. Leurs budgets de temps (900
-  secondes, 450 minutes) sont des cibles, à mesurer à la porte 2 (CT-9) ; le
-  critère du plan (moins d'une journée, sur une machine vierge, avec le seul
-  document) n'est pas encore mesuré.
+- **Les installations elles-mêmes.** L'installation complète IC-1 à IC-18 a
+  été déroulée à l'étape 7 par un harnais, profil production, sur un banc hors
+  réseau public (substituts locaux du registre, du KMS, du support WORM, des
+  prestataires d'horodatage, des calendriers, de l'identité et du webhook),
+  dans l'environnement de construction, en 58 min dont 57 d'attente de la
+  clôture de l'heure : ce n'est ni une machine vierge, ni le système de
+  référence, ni un ingénieur extérieur. L'installation rapide a été jouée de
+  IR-1 à IR-8 avec Docker dans l'environnement de construction (révision
+  0.7 : archive écrite par l'outil de la version au lieu d'être téléchargée,
+  réseaux du projet rendus internes, serveur d'outils factice sur le réseau
+  interne, appel d'agent fait depuis l'espace réseau de l'enregistreur, les
+  ports n'étant pas publiés sur un réseau interne ; IR-4 y rend `non_pret`,
+  faute de sortie et d'espace disque). Leurs budgets de
+  temps (900 secondes, 450 minutes) restent des cibles, à mesurer à la porte 2
+  (CT-9) ; le critère du plan (moins d'une journée, sur une machine vierge,
+  avec le seul document) n'est pas encore mesuré.
+- **Autorité privée du client.** Un client dont le point RPC, les
+  prestataires, le support S3, le KMS, le webhook ou l'identité sont servis
+  sous une autorité privée doit la monter dans `enregistreur`, `approbation`
+  et `console` et la désigner (`NODE_EXTRA_CA_CERTS`, `SSL_CERT_FILE`) ;
+  aucun membre de configuration ne la porte (`notifications.ca` seul existe),
+  et la description des images ne l'admet pas : adaptation du client, à
+  ajouter à la description (CO-9, CO-11).
+- **Point d'accès KMS de la clé Ed25519 de classe C.** `signer.backend.wrap`
+  (`aws-kms`) n'a pas de membre de point d'accès ; hors d'AWS (service
+  compatible, région souveraine, essai), seule `AWS_ENDPOINT_URL_KMS` le
+  désigne, variable que CO-9 refuse ; un membre `wrap.endpoint` de CT-2, ou
+  l'admission de cette variable, reste à décider. La clé de chaîne a son
+  `service_url` (CT-2 EX-11.19).
+- **Relecture de tout le registre des gels par le Lecteur** (TP-4) : aucune
+  commande ne la fait ; `worm gel etat` prend un `--gel` et `worm releve` les
+  identifiants de l'écrivain ; le gabarit de TP-4 relit les gels listés dans
+  ses réglages.
+- **Identité IAM et table des clés de CT-7.** Le secret `identite-aws` n'a pas
+  d'entrée CLE- dans la table des clés et des secrets de CT-7.
 - **Un mode « avertir ».** En mode observation, l'agent ne reçoit aucun
   avertissement de ce que la politique aurait exigé ; un mode qui rendrait
   l'appel avec un avertissement lisible par l'agent, sans le bloquer (pratique
@@ -7622,11 +8228,11 @@ livraison.
 | CT-7 §11, ligne PA-15 | « à faire (révisions à décider ; CT-8 à écrire) » | répondue par 11.6, 11.9, 11.10 et 11.11 ; L-1 reste `releve_du_client` pour la collecte | à aligner par l'éditeur de CT-7 (texte de CT-7 inchangé dans ce lot) |
 | `spec/README.md` | CT-8 « à écrire » ; CT-2 0.5 ; CT-3 0.3 | lignes CT-8 (0.1), CT-2 (0.6) et CT-3 (0.4) ; huit schémas nouveaux ; section « CT-8 (`vecteurs/ct-8/`) » | fait (même livraison) |
 | `spec/schemas/` | — | `conteneurs-v0`, `controle-prealable-v0`, `dimensionnement-v0`, `proces-verbal-exploitation-v0`, `consultation-v0`, `verification-journal-v0`, `rapport-observation-v0`, `paquet-reviseur-v0` ; `configuration-enregistreur-v0` étendu ; `politique-approbation-v0` : nom réservé | fait (même livraison) |
-| `deploiement/` | absent | `LISEZMOI.md`, `compose/rapide.yaml`, `compose/production.yaml`, `images/images.json`, `config/rapide/configuration.json`, `config/modele-production/configuration.json` (4.1) ; `observabilite/` (10.4 à 10.8) | fait (même livraison), sauf `observabilite/` : à produire, lot suivant |
-| `scripts/deploiement/`, `scripts/lib/deploiement.mjs`, `scripts/lib/exploitation.mjs` | absents | contrôle préalable, configuration rapide, dimensionnement, vérification des conteneurs, renvois, archive de déploiement ; marque, rapport d'observation, vérification de journal, procès-verbaux, consultations (annexes A.2 à A.9) ; extracteur, règles, sonde | fait (même livraison), sauf l'extracteur, les règles et la sonde : à produire, lot suivant |
+| `deploiement/` | absent | `LISEZMOI.md`, `compose/rapide.yaml`, `compose/production.yaml`, `images/images.json`, `config/rapide/configuration.json`, `config/modele-production/configuration.json` (4.1) ; `observabilite/` (10.4 à 10.8) | fait (même livraison) ; `observabilite/` : fait (étape 7) |
+| `scripts/deploiement/`, `scripts/lib/deploiement.mjs`, `scripts/lib/exploitation.mjs` | absents | contrôle préalable, configuration rapide, dimensionnement, vérification des conteneurs, renvois, archive de déploiement ; marque, rapport d'observation, vérification de journal, procès-verbaux, consultations (annexes A.2 à A.9) ; extracteur, règles, sonde | fait (même livraison) ; l'extracteur, les règles et la sonde : fait (étape 7, `scripts/lib/supervision.mjs`) |
 | `scripts/lib/paquet.mjs`, `scripts/paquet-reviseur/` | absents | outils de construction et de vérification du paquet réviseur et instructions (13.5 à 13.7, 13.11 ; annexe A.11) | fait (même livraison) |
 | `scripts/lib/approbation.mjs` | évaluation avec effets | fonction ajoutée `evaluerObservation` (CT-3 EX-11.12), sans changer `evaluer` ; règles de la révision 0.6 de CT-2 (suffixe `-observation`, `approbateurs_de_test`, noms réservés, longueur de la règle) | fait (même livraison) |
-| `spec/vecteurs/ct-8/` | absent | familles de l'annexe A.1, vérificateur Go indépendant, confrontation tierce | fait (même livraison), sauf la famille `supervision/` : à produire, lot suivant |
+| `spec/vecteurs/ct-8/` | absent | familles de l'annexe A.1, vérificateur Go indépendant, confrontation tierce | fait (même livraison) ; la famille `supervision/` : fait (étape 7) |
 | `package.json` | — | scripts `vecteurs:ct8`, `deploiement:conteneurs`, `deploiement:renvois`, `deploiement:dimensionner`, `deploiement:controle`, `deploiement:archive`, `exploitation:verifier-journal`, `exploitation:rapport-observation`, `exploitation:proces-verbal`, `exploitation:consultations`, `paquet:construire`, `paquet:verifier` ; `js-yaml` 4.3.2 en dépendance de développement (PD-9) | fait (même livraison) |
 | `.github/workflows/ci.yml` | — | étapes de l'annexe A.14 et de A.15 | écrites (même livraison) ; non exécutées par un exécuteur d'intégration continue à la date de CT-8 0.1 (EX-A.29) |
 | `NOTICE` | — | un paquet complet redistribue `ethers` (licence MIT) avec sa licence (EX-13.21) | à décider avec les fichiers racine |
@@ -7640,43 +8246,50 @@ livraison.
 | CT-2, CT-3, CT-4, CT-6 (révision 0.5) | versions 0.8, 0.5, 0.6 et 0.6 | révisions 0.9, 0.6 (dont PD-17, CT-3 EX-12.22, et le rapport d'un refus au démarrage, CT-3 EX-10.14), 0.7 et 0.7, de la même date, qui tranchent les questions de la construction de l'étape 6 | fait (même livraison) |
 | `deploiement/images/images.json` (révision 0.5) et ses copies de l'annexe A.3 | image `console` de source « serveur de console et page de référence de console/ » | « serveur de console et pages de la console d'exploitation, paquets/console » (4.1) | fait (étape 6) |
 | `spec/README.md`, `spec/figeage/` (révision 0.5) | CT-8 en version 0.4 | ligne CT-8 en version 0.5 ; modification consignée | fait (étape 6) |
+| `conteneurs/`, `scripts/deploiement/construire-images.mjs` (révision 0.6) | aucune image `noortrace/*` | six images sans interpréteur, construction double aux mêmes condensés, archive `docker save` (EX-3.6, EX-3.13) ; aucune publication | fait (étape 7) |
+| `deploiement/observabilite/`, `scripts/deploiement/regles.mjs`, `extraire-journaux.mjs`, `sonde.mjs`, `scripts/lib/supervision.mjs` (révision 0.6) | absents | section 10, A.6, A.7, A.9 | fait (étape 7) |
+| `deploiement/hote/`, `deploiement/taches/`, `deploiement/runbooks/`, `scripts/deploiement/sauvegarde.mjs`, `archiver-journal-exploitation.mjs`, `extraire-runbooks.mjs` (révision 0.6) | absents | IC-2, EX-8.6, IC-16, EX-11.2, EX-11.22, 10.11 | fait (étape 7) |
+| `scripts/publication/`, `.github/workflows/version.yml` (révision 0.6) | absents | préparation de la version sans publier (EX-3.6, EX-3.14) | fait (étape 7) ; signature et publication : après décision du porteur |
+| `scripts/deploiement/banc-client-fictif.mjs` (révision 0.6) | absent | installation complète IC-1 à IC-18 sur un banc hors réseau public, procès-verbal et durées (section 8) | fait (étape 7) |
+| `deploiement/compose/production.yaml`, `deploiement/images/images.json`, `deploiement/config/modele-production/configuration.json` (révision 0.6) | images `a_construire` ; ni manifeste d'instance ni identité IAM ; modèle sans `anchoring.ancrage` | statut `existante`, `instance-registre.json`, `identite-aws`, `AWS_CONFIG_FILE`, `anchoring.ancrage`, `service_url`, `/srv/pieces` (3.3, 4.1, 4.3, IC-14) | fait (étape 7) |
+| `spec/README.md`, `spec/figeage/` (révision 0.6) | CT-8 en version 0.5 | ligne CT-8 en version 0.6 ; modifications consignées | fait (étape 7) |
+| `conteneurs/tsa-interne/`, `deploiement/compose/rapide.yaml`, `deploiement/config/rapide/ancrage.json`, `deploiement/images/images.json`, `scripts/deploiement/configurer-rapide.mjs`, `spec/schemas/conteneurs-v0.schema.json`, `verifierConteneurs` (révision 0.7) | prestataire principal fictif et secret `tsa-sans-prestataire` ; aucun jeton RFC 3161 dans l'installation rapide | image `noortrace/tsa-interne`, service `horodatage` et outil `horodatage-init`, document d'ancrage écrit à IR-3, CO-14 de l'espace réseau partagé (code `espace_reseau_non_conforme`) ; installation rapide jouée avec Docker (TE-6) | fait (étape 7) |
+| `spec/README.md`, `spec/figeage/` (révision 0.7) | CT-8 en version 0.6 | ligne CT-8 en version 0.7 ; modification consignée | fait (étape 7) |
 
 ### 16.2 Propositions
 
 Propositions de CT-8 à d'autres spécifications ou au dépôt, sans les
 modifier. PD-10 à PD-12 et PD-19 sont posées en 10.10 (EX-10.12), PD-13 à
-PD-15 en 11.12 ; la table les reprend en une ligne. Les pas qui emploient une
-commande de PD-2 encore proposée (`noortrace-ctl sonde`, `etat`, `worm
-restaurer`, `cle rotation-urgence` : sondes des fichiers Compose, EX-10.14,
-runbooks, 11.4) dépendent de ces propositions : tant que CT-2 ne les a pas
-adoptées, ce sont des exigences de construction (phase 2), non des commandes
-exécutables ; la sonde du service de PD-17 est fixée par CT-3 EX-12.22
+PD-15 en 11.12 ; la table les reprend en une ligne. `noortrace-ctl sonde` et
+`etat` sont adoptées par CT-2 0.10 (§15.8) ; `worm restaurer` et `cle
+rotation-urgence` existent dans le code livré sans que CT-2 adopte leur ligne
+de commande (EX-10.14) ; la sonde du service de PD-17 est fixée par CT-3 EX-12.22
 (révision 0.5). La
 commande `noortrace-ctl dossier exporter` (IR-8, IC-15, RB-1, RB-3, 11.4) et
 les deux documents de configuration de PD-7 (IR-3, IR-5, IC-11) sont fixés
 depuis les révisions 0.8 de CT-2 (§15.7) et 0.5 de CT-3 (EX-10.12,
-EX-10.13) ; leur code reste à construire (CT-2 §22, CT-3 §15.2).
+EX-10.13) ; leur code est construit (étape 6).
 
 | Id | Destinataire | Proposition | État |
 |---|---|---|---|
 | PD-1 | CT-2 §22 (ligne CT-8), CT-7 §11 (ligne PA-15), `spec/README.md` (ligne CT-8) | Mettre à jour l'état « CT-8 à écrire » : CT-8 0.1 répond (table de 0.2) | fait pour CT-2 (table de la révision 0.6) et `spec/README.md` ; à faire par l'éditeur de CT-7 |
-| PD-2 | CT-2 (§15.6, §18.1) | Commandes de `noortrace-ctl` employées par les procédures et absentes de CT-2 : `sonde --url <url>` (sonde en forme `CMD` des fichiers Compose, image sans interpréteur, CO-12) ; `dossier exporter --seq <n> \| --dernier --vers <rép>` (IR-8, IC-15) ; `etat`, `worm restaurer` et `cle rotation-urgence` (EX-10.14) | adoptée en partie : `dossier exporter` par CT-2 0.8 (§15.7, EX-15.9 à EX-15.14), avec `--ticket`, `--configuration` et `--delai-ms` ; proposition pour `sonde`, `etat`, `worm restaurer` et `cle rotation-urgence` |
+| PD-2 | CT-2 (§15.6, §18.1) | Commandes de `noortrace-ctl` employées par les procédures et absentes de CT-2 : `sonde --url <url>` (sonde en forme `CMD` des fichiers Compose, image sans interpréteur, CO-12) ; `dossier exporter --seq <n> \| --dernier --vers <rép>` (IR-8, IC-15) ; `etat`, `worm restaurer` et `cle rotation-urgence` (EX-10.14) | adoptée en partie : `dossier exporter` par CT-2 0.8 (§15.7, EX-15.9 à EX-15.14), avec `--ticket`, `--configuration` et `--delai-ms` ; `sonde`, `etat` et `close-period --now` par CT-2 0.10 (§15.8, EX-15.16 à EX-15.18), construites à l'étape 7 ; proposition pour `worm restaurer` et `cle rotation-urgence`, dont le code existe |
 | PD-3 | CT-2 §15 | Un mandataire sortant pour les connexions du démon, désigné dans la configuration, sans interception TLS (EX-5.5) | proposition |
 | PD-4 | CT-2 §4.7.1, §15 | Un transport stdio par prise locale vers un serveur lancé par l'orchestrateur, qui garderait la vérification d'`integrity` par le démon (EX-3.8) | proposition |
 | PD-5 | CT-2 §15.3, §18.1 | Écrire, dans l'exemple ou dans une note, l'écoute `0.0.0.0` dans un conteneur dont les ports ne sont publiés que sur `127.0.0.1` ou l'adresse interne, et ce qu'en dit la validation (TLS exigé hors bouclage pour `otel`, CT-2 EX-6.40) | proposition |
 | PD-6 | CT-2 §18.3 | Noms des comptes : `peer_user` désigne un nom ; les images NOORTRACE fixent les UID 10001 et 10002 et leurs noms (EX-3.5) | proposition (note) |
 | PD-7 | CT-3 §10.3 | Un schéma de configuration du service d'approbation et du serveur de console (réglages de CT-3 EX-10.10), dont IC-11 a besoin pour être validé comme la configuration de l'enregistreur | adoptée par CT-3 0.5 : `configuration-approbation-v0` et `configuration-console-v0` et leurs commandes `valider-configuration` (CT-3 EX-10.12, EX-10.13 ; IR-3, IR-5, IC-11) |
-| PD-8 | `chain/docker/Dockerfile`, `chain/docker/docker-compose.yml`, `chain/docker/README.md` | Épingler les deux images de base par condensé (déjà « à faire », CT-4 §13) ; remplacer le domaine d'exemple `rpc.exemple.ch` par un nom réservé de la forme `.example` (non vérifié qu'il soit réservé, R8 NV-8) | à faire (autre lot) |
+| PD-8 | `chain/docker/Dockerfile`, `chain/docker/docker-compose.yml`, `chain/docker/README.md` | Épingler les deux images de base par condensé (déjà « à faire », CT-4 §13) ; remplacer le domaine d'exemple `rpc.exemple.ch` par un nom réservé de la forme `.example` (non vérifié qu'il soit réservé, R8 NV-8) | épinglage fait (`chain/docker/Dockerfile`) ; domaine : à faire (autre lot) |
 | PD-9 | `package.json` | Déclarer `js-yaml` en dépendance de développement à version exacte (4.3.2, déjà installée comme dépendance transitive) pour `verifier-conteneurs.mjs` | fait (même livraison) |
-| PD-10 | CT-2 (§17.3, EX-9.5) | Fixer les noms des membres de `data` de plusieurs lignes du journal d'exploitation et nommer la ligne de `politique_invalide` au `charger` (10.10) | proposition |
-| PD-11 | CT-5 (§8.9) | Nommer les lignes `jeton_anterieur_au_point` et `contresignature_tardive` et les membres de `data` de trois lignes du composant d'ancrage (10.10) | proposition |
+| PD-10 | CT-2 (§17.3, EX-9.5) | Fixer les noms des membres de `data` de plusieurs lignes du journal d'exploitation et nommer la ligne de `politique_invalide` au `charger` (10.10) | close par CT-8 0.6 : noms du code lus par l'extracteur (10.3) |
+| PD-11 | CT-5 (§8.9) | Nommer les lignes `jeton_anterieur_au_point` et `contresignature_tardive` et les membres de `data` de trois lignes du composant d'ancrage (10.10) | close par CT-8 0.6 : noms du code (10.3, 10.5) |
 | PD-12 | CT-4 et CT-5 | Consigner chaque refus d'envoi au registre (ligne `registry_send_refused`) (10.10) | proposition |
 | PD-13 | CT-2 (EX-12.16) | Copier `journal.json` sur le support WORM (11.12) | proposition |
 | PD-14 | CT-6 et l'exportateur | Écrire une ligne d'export dans un fichier en ajout seul que le collecteur de 11.10 lit (11.12) | adoptée en partie par CT-2 0.8 : lignes `dossier_exported` et `dossier_export_refused` du journal d'exploitation (CT-2 EX-15.14), que le collecteur lit (EX-11.19) ; proposition pour le demandeur, qu'elles ne nomment pas |
 | PD-15 | CT-2 (§17.2) | Exposer `noortrace_worm_copy_last_success_age_s` par sorte de fichier copié (11.12) | proposition |
 | PD-17 | CT-3 (§12, EX-10.12) | Fixer la commande de sonde du service, `noortrace-approbation sonde --url <url>` des fichiers Compose (forme `CMD`, image sans interpréteur, CO-12) : ce qu'elle interroge (`GET /v0/etat` de l'écoute `etat`), son délai, sa sortie et ses codes, comme CT-3 EX-13.44 le fait pour `noortrace-console sonde` (4.4) | adoptée par la révision 0.6 de CT-3 (EX-12.22 : code 0 quelle que soit la valeur de `ready`) ; écrite à l'étape 6 (`paquets/approbation`) |
 | PD-18 | CT-2 (§15.3, EX-18.8) | Dans l'exemple de configuration de production, désigner le jeton du noyau (`policy.approval.service.token`), que le service exige en production sur sa prise (CT-3 EX-10.12, `jeton_exige_production`), et dire que le démon le présente en `Authorization: Bearer` sur la prise comme en HTTP (IC-14) | adoptée par CT-2 0.8 : la règle, par EX-18.8 (le démon authentifie le service par `peer_user` ou par TLS ; le service authentifie le démon par mTLS ou par le jeton que le démon présente en `Authorization: Bearer`, sur la prise comme en HTTP, et un service conforme à CT-3 0.5 l'exige en production) ; l'exemple, par §15.3 et la note qui le suit : l'exemple de production (`environment: "production"`) désigne `policy.approval.service.token`, `{ "file": "/run/secrets/jeton-noyau-vers-service-enregistreur" }`, et son `policy_sha256` (CT-2 §10.6) est reporté dans ses vecteurs, ses tests et ceux de cette spécification (11.9, 12.1, 12.4, 12.6, A.8, A.10) ; le modèle de production le reprend (IC-14) ; la table de 7.3 a une ligne pour ce membre, nul dans la configuration rapide |
-| PD-19 | CT-3 (§10.4, §13.19) | Fixer le fichier, la forme des lignes et les membres du journal du service, et y consigner le refus d'un document de configuration (10.10) | proposition |
+| PD-19 | CT-3 (§10.4, §13.19) | Fixer le fichier, la forme des lignes et les membres du journal du service, et y consigner le refus d'un document de configuration (10.10) | close par CT-8 0.6 pour la lecture (`journal-service.ndjson`, lignes à plat, 10.3) ; le refus au démarrage reste sur la sortie d'erreur |
 | PD-16 | CT-4 (EX-10.9) | Remplacer « Seule la clé est sauvegardée, hors ligne » par le renvoi à CT-7 EX-4.4 (aucune sauvegarde de la clé d'un validateur) : les deux spécifications disent le contraire ; EX-11.1 suit CT-7, plus récente et propre aux clés | proposition ; l'écart reste ouvert tant que CT-4 n'est pas révisée |
 
 ## Annexe B — Sources primaires datées

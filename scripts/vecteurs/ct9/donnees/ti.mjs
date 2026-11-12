@@ -570,8 +570,8 @@ export const TI = [
     "oracle": "Version dont le SHA-256 égale l'original ; mode et date de rétention rendus par l'API ; suppression refusée pour tout rôle ; journal d'accès disponible et au format relevé (CT-8 §15 : « CT-9 les établit »).",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Aucun support réel n'est configuré ; `worm/` des vecteurs fixe les octets des requêtes seulement."
+      "phase2_step": 8,
+      "blocking": "Rattaché à la porte 2 (étape 8) : comptes réels chez les fournisseurs WORM (S3, Azure, GCS) et leurs journaux d'accès, hors de l'environnement de construction, dont les essais ne joignent aucun réseau public ; le banc de l'étape 7 emploie un simulateur S3 à verrouillage d'objets, qui n'applique pas les politiques IAM."
     },
     "threats": [
       "MN-27",

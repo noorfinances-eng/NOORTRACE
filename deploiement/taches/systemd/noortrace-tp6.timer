@@ -1,0 +1,11 @@
+# Minuteur de la tâche TP-6 (CT-8 EX-8.6) : toutes les 15 minutes, plus souvent que la rotation ; keep_files couvre deux intervalles (EX-11.22).
+[Unit]
+Description=NOORTRACE, minuteur de TP-6 (toutes les 15 minutes, plus souvent que la rotation ; keep_files couvre deux intervalles (EX-11.22))
+
+[Timer]
+OnCalendar=*:0/15
+Persistent=true
+Unit=noortrace-tache@TP-6.service
+
+[Install]
+WantedBy=timers.target

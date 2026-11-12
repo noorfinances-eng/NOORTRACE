@@ -1,0 +1,11 @@
+# Minuteur de la tâche SAUVEGARDE (CT-8 EX-8.6) : chaque jour (EX-11.24 ; RPO de 11.3).
+[Unit]
+Description=NOORTRACE, minuteur de SAUVEGARDE (chaque jour (EX-11.24 ; RPO de 11.3))
+
+[Timer]
+OnCalendar=*-*-* 01:30:00
+Persistent=true
+Unit=noortrace-tache@SAUVEGARDE.service
+
+[Install]
+WantedBy=timers.target

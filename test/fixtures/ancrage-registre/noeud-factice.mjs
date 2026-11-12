@@ -146,6 +146,36 @@ export class NoeudFactice {
         ].map((x) => x.slice(2)).join("") + Buffer.from(uriOctets).toString("hex") + "00".repeat(bourrage);
         logs = [{ address: this.contrats.period_registry, topics: [SUJETS.PeriodSubmitted, motU(id), meta.period_hash, motAdr(from)], data: dataLog }];
       }
+    } else if (tx.to === this.contrats.recorder_registry && (selecteur === SELECTEURS.registerRecorder || selecteur === SELECTEURS.revokeRecorder)) {
+      // Étape 7 (rotation de la clé de chaîne relayée) : règles du contrat lues dans RecorderRegistry.sol (« cle deja
+      // active », « cle revoquee », « cle Ed25519 deja active », « cle inconnue ») ; les signatures du seuil ne sont pas
+      // recomptées ici (le démon les contrôle avant l'envoi, OP-7), seule leur présence l'est.
+      const m = mots(octetsVersHex(data.subarray(4)));
+      const orgId = octetsVersHex(m[0]);
+      if (selecteur === SELECTEURS.registerRecorder) {
+        gasUsed = 180000n;
+        const journalId = octetsVersHex(m[1]);
+        const chainKey = "0x" + Buffer.from(m[2].subarray(12)).toString("hex");
+        const ed25519PubKey = octetsVersHex(m[3]);
+        const n = Number(BigInt(octetsVersHex(m[5])));
+        const existant = this.enregistreurs.get(orgId + chainKey);
+        const actifEd = [...this.enregistreurs.values()].some((e) => e.ed25519PubKey === ed25519PubKey && e.revokedAt === 0n);
+        if (n < 1 || existant || actifEd) statut = "0x0";
+        else {
+          this.enregistreurs.set(orgId + chainKey, { chainKey, ed25519PubKey, journalId, registeredAt: BigInt(this.horodatage), revokedAt: 0n });
+          logs = [{ address: this.contrats.recorder_registry, topics: [SUJETS.RecorderRegistered, orgId, motAdr(chainKey), journalId], data: ed25519PubKey + motAdr(from).slice(2) }];
+        }
+      } else {
+        gasUsed = 60000n;
+        const chainKey = "0x" + Buffer.from(m[1].subarray(12)).toString("hex");
+        const n = Number(BigInt(octetsVersHex(m[3])));
+        const e = this.enregistreurs.get(orgId + chainKey);
+        if (n < 1 || !e || e.revokedAt !== 0n) statut = "0x0";
+        else {
+          e.revokedAt = BigInt(this.horodatage);
+          logs = [{ address: this.contrats.recorder_registry, topics: [SUJETS.RecorderRevoked, orgId, motAdr(chainKey)], data: motAdr(from) }];
+        }
+      }
     } else {
       statut = "0x0";
     }

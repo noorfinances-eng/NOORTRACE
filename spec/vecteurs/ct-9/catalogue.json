@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.8",
-  "date": "2026-11-11",
+  "spec_version": "0.9",
+  "date": "2026-11-12",
   "levels": [
     {
       "id": "TU",
@@ -5038,15 +5038,53 @@
       "oracle": "Zéro discordance ; mêmes verdicts que l'implémentation JavaScript sur les mêmes entrées ; deux binaires aux mêmes octets ; les quatre preuves réussies.",
       "status": {
         "state": "executable",
+        "tests": [
+          {
+            "file": "test/publication-etape7.test.js",
+            "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+            "it": "TV-55, complément (étape 7) : deux préparations de la version à blanc, chacune avec son cache Go neuf, donnent les mêmes fichiers aux mêmes octets ; binaires d'un second constructeur égaux acceptés par --temoin, un octet changé refusé (code 1, rien sous --sortie)"
+          },
+          {
+            "file": "test/publication-etape7.test.js",
+            "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+            "it": "TV-55, complément (étape 7) : SHA256SUMS exact (une ligne « <sha256>  <nom> » par fichier, triée, recalculée ; sha256sum --strict -c rend 0) ; binaires ELF amd64 et arm64 ; go version -m de go1.27.3 avec CGO_ENABLED=0 et -trimpath ; LICENSE, NOTICE et LICENCES-TIERCES du dépôt"
+          },
+          {
+            "file": "test/publication-etape7.test.js",
+            "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+            "it": "TV-55, complément (étape 7) : archive de déploiement ustar déterministe, égale octet pour octet à la recette GNU tar d'EX-13.15 sur ses fichiers extraits par tar -xkf, dont SHA256SUMS se vérifie ; découpage nom et préfixe d'un nom de 103 octets égal à GNU tar ; nom non représentable refusé"
+          },
+          {
+            "file": "test/publication-etape7.test.js",
+            "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+            "it": "TV-55, complément (étape 7) : SHA256SUMS signé au format minisign par une clé d'essai éphémère (en mémoire, détruite) : signature vérifiée avec le commentaire de confiance de la note (version et date), puis refusée après falsification de SHA256SUMS, du commentaire de confiance, de la signature ou de la clé"
+          },
+          {
+            "file": "test/publication-etape7.test.js",
+            "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+            "it": "TV-55, complément (étape 7) : note de version remplie depuis le gabarit (SHA-256 des binaires et de l'archive, go version -m, images noortrace/* de images.json non publiées, ou leur condensé par --condenses) ; provenance in-toto SLSA v1 préparée, non signée, sujets égaux aux fichiers de SHA256SUMS et à SHA256SUMS"
+          },
+          {
+            "file": "test/publication-etape7.test.js",
+            "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+            "it": "TV-55, complément (étape 7) : preparer-version.mjs refuse une option manquante, invalide ou une sortie existante (code 2), une autre chaîne que go1.27.3 et --exiger-arbre-propre sur un autre commit que HEAD (code 1), sans rien laisser sous --sortie"
+          },
+          {
+            "file": "test/publication-etape7.test.js",
+            "describe": "Étape 7 : publication préparée sans rien publier (CT-6 §14.4, CT-8 EX-3.13, EX-3.14)",
+            "it": "TV-55 et TQ-8, complément (étape 7) : .github/workflows/version.yml ne se déclenche qu'à la main ou sur une étiquette v*, n'a que contents: read, épingle chaque action par SHA de commit d'une version publiée plus de deux semaines avant, Node.js par version exacte, l'image de construction et Go par empreinte, et ne contient aucune étape de publication, de signature ni d'attestation"
+          }
+        ],
         "ci_steps": [
           "binaire vérificateur Go, gofmt, vet et rejeu des dossiers CT-1 et CT-6 (zéro discordance)",
           "binaire vérificateur Go, deux constructions reproductibles aux mêmes octets (CT-6 EX-14.6, EX-14.8)",
-          "binaire vérificateur Go, preuves d'absence de réseau (CT-6 EX-14.5)"
+          "binaire vérificateur Go, preuves d'absence de réseau (CT-6 EX-14.5)",
+          "version préparée à blanc, deux préparations aux mêmes octets (TV-55, TQ-8), aucun essai en attente"
         ],
-        "command": "cd verificateur && go test ./...",
+        "command": "npx hardhat --config hardhat.config.mjs test test/publication-etape7.test.js && cd verificateur && go test ./...",
         "complement": {
-          "phase2_step": 7,
-          "blocking": "Publication d'une version du binaire (CT-6 EX-14.7 : image de construction et actions épinglées par empreinte ; EX-14.9 : binaires linux/amd64 et linux/arm64, SHA256SUMS signé, sortie de go version -m ; EX-14.10 : NOTICE du binaire diffusé) : étape 7, paquets."
+          "phase2_step": 8,
+          "blocking": "Signature minisign réelle de `SHA256SUMS` et publication d'une version (CT-6 EX-14.9) : la préparation de l'étape 7 écrit binaires, `go version -m`, `SHA256SUMS`, `LICENCES-TIERCES`, `NOTICE`, archive, note de version et provenance non signée, sans rien publier ; la signature, l'attestation de provenance signée et la publication attendent la décision du porteur sur la clé minisign et son accord de publication (lancement, étape 8)."
         }
       },
       "threats": [
@@ -6327,16 +6365,42 @@
         "CT-8 EX-A.27"
       ],
       "preconditions": [
-        "Fichiers `deploiement/observabilite/`, `extraire-journaux.mjs`, `regles.mjs`, `sonde.mjs` et la famille `supervision/` produits (CT-8 §10, « lot suivant »)."
+        "Fichiers `deploiement/observabilite/`, `extraire-journaux.mjs`, `regles.mjs`, `sonde.mjs` et la famille `supervision/` (CT-8 §10, livrés à l'étape 7) ; `promtool` 3.5.0 de l'archive officielle de Prometheus à SHA-256 fixé (CT-8 EX-10.10), fourni par l'intégration continue (`NOORTRACE_PROMTOOL`) ; sans lui, l'essai `promtool` est en attente, condition nommée (EX-3.11)."
       ],
       "steps": [
         "Rejouer l'extracteur sur `supervision/journaux/` ; régénérer le fichier de règles ; `promtool check rules` puis `promtool test rules` (archive de Prometheus d'EX-10.10 au SHA-256 fixé)."
       ],
       "oracle": "Sorties égales aux vecteurs ; chaque alerte prescrite présente ; `promtool` code 0.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "La famille `supervision/` et les fichiers d'observabilité sont « à produire, lot suivant » (CT-8 §15, EX-A.18)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/deploiement-supervision.test.js",
+            "describe": "CT-8 §10.3 : extracteur des journaux (SV-5, EX-10.5)",
+            "it": "TV-76 : supervision/ — l'extracteur rejoué sur journaux/ rend attendu.prom (SV-5), regles.mjs rend le fichier du dépôt et regles-attendues.yml (SV-6), chaque alerte prescrite a sa règle (SV-1)"
+          },
+          {
+            "file": "test/deploiement-supervision.test.js",
+            "describe": "CT-8 §10.10, EX-A.27 : promtool 3.5.0 (confrontation tierce, EX-A.31)",
+            "it": "TV-76, EX-10.10 : promtool check rules sur regles-noortrace.yml puis promtool test rules sur tests-regles.yml, code 0"
+          },
+          {
+            "file": "test/deploiement-supervision.test.js",
+            "describe": "CT-8 §10.4 à §10.7 : règles d'alerte de référence (SV-1 à SV-4)"
+          },
+          {
+            "file": "test/deploiement-supervision.test.js",
+            "describe": "CT-8 EX-10.6 : générateur des règles (SV-6)"
+          },
+          {
+            "file": "test/deploiement-supervision.test.js",
+            "describe": "CT-8 §10.8, EX-10.4 : tableau de bord et collecte de référence (SV-7)"
+          }
+        ],
+        "ci_steps": [
+          "promtool 3.5.0 (CT-8 EX-10.10, EX-A.27), règles d'alerte de référence vérifiées et testées"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-supervision.test.js"
       },
       "threats": [
         "MN-29"
@@ -6906,8 +6970,8 @@
       "oracle": "Version dont le SHA-256 égale l'original ; mode et date de rétention rendus par l'API ; suppression refusée pour tout rôle ; journal d'accès disponible et au format relevé (CT-8 §15 : « CT-9 les établit »).",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Aucun support réel n'est configuré ; `worm/` des vecteurs fixe les octets des requêtes seulement."
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : comptes réels chez les fournisseurs WORM (S3, Azure, GCS) et leurs journaux d'accès, hors de l'environnement de construction, dont les essais ne joignent aucun réseau public ; le banc de l'étape 7 emploie un simulateur S3 à verrouillage d'objets, qui n'applique pas les politiques IAM."
       },
       "threats": [
         "MN-27",
@@ -7568,6 +7632,7 @@
       "level": "TE",
       "title": "Installation rapide IR-1 à IR-8 sur un hôte neuf, premier dossier vérifié",
       "specs": [
+        "CT-2",
         "CT-8"
       ],
       "covers": [
@@ -7583,19 +7648,60 @@
         "CT-8 EX-7.2",
         "CT-8 EX-7.3",
         "CT-8 EX-7.4",
-        "CT-8 EX-3.6"
+        "CT-8 EX-3.6",
+        "CT-2 EX-15.16",
+        "CT-2 EX-15.17",
+        "CT-2 EX-15.18"
       ],
       "preconditions": [
-        "Archive de déploiement 0.1 construite ; hôte du système de référence avec moteur de conteneurs ; images construites et épinglées."
+        "Archive de déploiement (construite à l'étape 7, non publiée) ; hôte avec moteur de conteneurs ; images `noortrace/*` construites (relevé des condensés `NOORTRACE_IMAGES_CONDENSES`), chargées sans registre ; calendriers OpenTimestamps factices sur la boucle locale pour l'ancrage de test ; serveur RFC 3161 interne (`noortrace/tsa-interne`, CT-8 0.7) ; sans Docker ni images, les essais d'IR-1 à IR-8 avec Docker sont en attente, condition nommée (EX-3.11)."
       ],
       "steps": [
         "Suivre IR-1 à IR-8 à la lettre, sans autre document ; chronométrer chaque pas (mesure TM-) ; vérifier le premier dossier."
       ],
       "oracle": "Chaque résultat attendu d'IR-n observé ; contrôle préalable `pret` ; dossier d'IR-8 valide (code 0) ; somme des durées publiée, atteinte ou non (900 s cible).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Enregistreur non construit ; CT-8 §15 : « ni l'installation rapide ni l'installation complète n'ont été exécutées »."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/deploiement-installation.test.js",
+            "describe": "CT-8 §7.3, EX-7.3 (ancrage de l'installation rapide) : l'installation rapide désigne un document d'ancrage que rapide.yaml monte, et produit des preuves OpenTimestamps",
+            "it": "TE-6 (ancrage) : configuration → /etc/noortrace/ancrage.json ; rapide.yaml le monte, sert le serveur interne (horodatage, horodatage-init) sans secret RFC 3161 ; images.json l'admet ; ancrage-v0 conforme, admis par AN-1 en développement (principal = serveur interne), refusé en production ; calendriers de 7.3, sans registre ni jeton de point ; configurer-rapide le contrôle et y recopie l'AC"
+          },
+          {
+            "file": "test/deploiement-installation.test.js",
+            "describe": "CT-8 §7.3, EX-7.3 (ancrage de l'installation rapide) : l'installation rapide désigne un document d'ancrage que rapide.yaml monte, et produit des preuves OpenTimestamps",
+            "it": "TE-6 (ancrage, IR-8) : démon réel avec le document de l'installation rapide (calendriers factices en TLS, serveur interne lancé par l'essai, chemins) : jeton de clôture du serveur interne et preuve OpenTimestamps du manifeste ; dossier exporté avec jeton-rfc3161.der et preuve.ots, valide pour le vérificateur de référence, contrôle 4 réussi contre l'AC du serveur"
+          },
+          {
+            "file": "test/deploiement-images.test.js",
+            "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)"
+          },
+          {
+            "file": "test/enregistreur-ctl-etape7.test.js",
+            "describe": "étape 7 — noortrace-ctl sonde --url (CT-8 §4.4, CO-12 ; PD-2) : sonde des fichiers Compose, sans interpréteur"
+          },
+          {
+            "file": "test/enregistreur-ctl-etape7.test.js",
+            "describe": "étape 7 — noortrace-ctl etat et close-period --now sur le démon réel (CT-8 EX-10.14, IR-8 ; CT-2 EX-19.4)"
+          },
+          {
+            "file": "test/enregistreur-ctl-etape7.test.js",
+            "describe": "étape 7 — close-period --now refusée en production (CT-2 EX-19.4, CT-8 IR-8)"
+          },
+          {
+            "file": "test/enregistreur-ctl-etape7.test.js",
+            "describe": "étape 7 — clôture anticipée dans le cœur, à horloge réglable (CT-2 EX-19.4, CT-1 P-3)"
+          }
+        ],
+        "ci_steps": [
+          "essais des images (TE-15, TM-24, TM-26, TM-28), aucun essai en attente"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-installation.test.js test/deploiement-images.test.js test/enregistreur-ctl-etape7.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "IR-1 à IR-8 enchaînés sur un hôte neuf du système de référence et chronométrés (TM-21), par une personne extérieure (porte 2) ; archive et images publiées (IR-1, IR-6). L'étape 7 joue IR-1 à IR-8 avec Docker dans l'environnement de construction (archive écrite par l'outil de la version, réseaux internes, serveur d'outils factice ; jeton de clôture du serveur RFC 3161 interne, prestataire principal hors production depuis CT-5 0.9 et CT-8 0.7 ; contrôle 4 réussi par les deux vérificateurs), en attente sans Docker ni images, et l'ancrage de test de 7.3 sur le démon."
+        }
       },
       "threats": [
         "MN-14"
@@ -7675,17 +7781,49 @@
         "CT-7 EX-7.9"
       ],
       "preconditions": [
-        "Machine vierge du système de référence ; ingénieur d'exploitation extérieur au projet ; archive 0.1 ; script de préparation de l'hôte (IC-2) livré."
+        "Machine vierge du système de référence ; ingénieur d'exploitation extérieur au projet (partie rattachée à l'étape 8 avec TR-12) ; archive de déploiement et images ; script de préparation de l'hôte (IC-2). À l'étape 7 : banc hors réseau public de l'environnement de construction (registre de développement 2124, KMS et S3 simulés, prestataires RFC 3161 internes, calendriers factices, identité OIDC et webhook locaux), installation déroulée par un harnais ; ses essais de bout en bout lisent le procès-verbal d'une exécution (`NOORTRACE_BANC_CLIENT`), sinon ils sont en attente, condition nommée (EX-3.11)."
       ],
       "steps": [
         "Suivre IC-1 à IC-18 ; conduire la cérémonie de CT-7 §5.4 (IC-7) ; produire l'attestation (IC-17) ; poser les tâches planifiées TP-1 à TP-8 ; clore le procès-verbal.",
         "Relever les durées, l'attente d'IC-16 et IC-17 à part, le nombre d'informations manquantes (EX-8.1, mesure TM-)."
       ],
-      "oracle": "Contrôle préalable final `pret` ; premier dossier valide (IC-15) ; procès-verbal de cérémonie vérifié (CR-1 à CR-12) ; attestation inscrite (AT-6) ; chaque tâche planifiée présente ; durée totale publiée.",
+      "oracle": "Contrôle préalable final `pret` ; premier dossier valide (IC-15) ; procès-verbal de cérémonie vérifié (CR-1 à CR-12) ; attestation vérifiée (AT-1 à AT-4), inscrite (AT-6) quand PA-8 sera adoptée ; chaque tâche planifiée présente ; durée totale publiée.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Composants non construits ; script de préparation absent de l'archive 0.1 (CT-8 §15)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/banc-client-fictif.test.js",
+            "describe": "Étape 7 : banc client fictif — installation complète IC-1 à IC-18 de bout en bout (CT-9 TE-7, TM-22, TM-29)",
+            "it": "TE-7 (part de l'étape 7) : IC-1 à IC-18 déroulés dans l'ordre de CT-8, chacun réussi (écarts du banc nommés au procès-verbal) ; procès-verbal d'installation clos par IC-18 (sha256sum --strict -c IC-18-liste.sha256 rend 0) ; cérémonie vérifiée (npm run verify:ceremonie : 0) ; attestation signée vérifiée (conformite:attestation verifier : 0) ; contrôle préalable final consigné"
+          },
+          {
+            "file": "test/banc-client-fictif.test.js",
+            "describe": "Étape 7 : banc client fictif — installation complète IC-1 à IC-18 de bout en bout (CT-9 TE-7, TM-22, TM-29)",
+            "it": "TE-7, IC-15 : un appel d'outil soumis à approbation, une décision signée par la console (deux approbateurs, portefeuille d'essai), la clôture réelle de l'heure, l'export du dossier ; noortrace-verifier (image et binaire) et npm run verify:dossier avec --exiger 7 : code 0, verdict valide, contrôles 4, 7 et 8 réussis"
+          },
+          {
+            "file": "test/deploiement-installation.test.js",
+            "describe": "CT-8 IC-2 : préparation de l'hôte (deploiement/hote/preparer-hote.sh, système de référence Ubuntu 24.04)"
+          },
+          {
+            "file": "test/deploiement-installation.test.js",
+            "describe": "CT-8 EX-8.6 : tâches planifiées TP-1 à TP-8 et sauvegarde (gabarits systemd de deploiement/taches/)"
+          },
+          {
+            "file": "test/deploiement-installation.test.js",
+            "describe": "CT-8 IC-13 : validation du document ancrage-v0 par un outil du dépôt, à version exacte, sans réseau"
+          },
+          {
+            "file": "test/enregistreur-cle-chaine-etape7-reseau.test.js",
+            "describe": "étape 7, réseau de développement 2124 : démon en production, clé de chaîne de classe C du modèle de production (table d'IC-14), ancres et clôture sur noorcore, dossier vérifié (contrôles 4 et 8) ; TE-14 complément JS-5 : rotation de la seule clé de chaîne relayée au registre vers une clé de classe B",
+            "it": "démon en production sur noorcore : clé de chaîne de classe C chargée (chain_key_loaded, AWS KMS), clé suivante de classe B ; ancres des points et de la période émises par la clé de classe C et incluses ; clôture submitPeriod relayée ; dossier exporté vérifié par les deux vérificateurs : verdict valide, contrôles 4 et 8 réussis"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/banc-client-fictif.test.js test/deploiement-installation.test.js test/enregistreur-cle-chaine-etape7-reseau.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Rattaché à l'étape 8 avec TR-12 : machine vierge du système de référence et ingénieur d'exploitation extérieur au projet ; contrôle préalable final `pret` (le banc de l'étape 7 rend `non_pret` : disque sous `local_bytes`, ni chrony ni systemd, ports d'IC-11) ; tâches planifiées posées par systemd et suivies ; attestation inscrite (AT-6) quand PA-8 sera adoptée. Le banc de l'étape 7 tient le premier dossier valide (contrôles 4, 7 et 8), la cérémonie vérifiée et la durée publiée (58 min, hors système de référence)."
+        }
       },
       "threats": [
         "MN-14",
@@ -7776,8 +7914,8 @@
       "oracle": "Seuls les flux FL- déclarés sont observés ; chaque runbook mène à l'état « rétabli » qu'il décrit sans supprimer, tronquer ni réécrire un fichier du journal ; l'après-incident nomme le test de CT-9 qui couvre la correction (CT-8 §10.11).",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Déploiement et supervision non construits."
+        "phase2_step": 8,
+        "blocking": "Rattaché à l'étape 8 : flux FL- observés et runbooks RB-1 à RB-8 rejoués exigent des pannes provoquées et une supervision collectée par Prometheus 3.5.0 en charge (TE-17), que le banc de l'étape 7 n'a pas ; il établit seulement que les flux déclarés suffisent à l'installation complète et qu'une destination non déclarée n'est pas résolue (IC-3)."
       },
       "threats": [
         "MN-29",
@@ -7828,9 +7966,30 @@
       ],
       "oracle": "Après chaque chemin, le vérificateur accepte un dossier qui chevauche la reprise ; PV-1 à PV-10 réussies ; les durées sont publiées (mesure TM-37 : RPO et RTO par composant, cadence de sauvegarde ; rapport de mesure, jamais la consignation), aucune n'est inventée.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Composants non construits ; CT-8 §15 : aucun outil de sauvegarde."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/deploiement-installation.test.js",
+            "describe": "CT-8 §11.4 chemin A (TE-9, TM-37 hors système de référence) : sauvegarde, perte du volume, restauration et reprise du démon réel"
+          },
+          {
+            "file": "test/deploiement-installation.test.js",
+            "describe": "CT-8 §11.2, EX-11.2 à EX-11.4 et 13.4 : sauvegarde.mjs (archive déterministe et procès-verbal sauvegarde)"
+          },
+          {
+            "file": "test/deploiement-installation.test.js",
+            "describe": "CT-8 EX-11.22, EX-11.23 (TP-6) : archivage des fichiers tournés du journal d'exploitation"
+          },
+          {
+            "file": "test/enregistreur-worm-restauration.test.js",
+            "describe": "reconstruction du journal depuis les copies WORM (CT-2 EX-12.17, CT-8 §11.4 chemin B, EX-10.14)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-installation.test.js test/enregistreur-worm-restauration.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Chemin C (journal neuf, rotation de la clé au registre) ; chemins A et B sur une installation en conteneurs, avec le remplissage d'un volume nommé neuf ; durées sur le système de référence (TM-37). L'étape 7 éprouve le chemin A sur le démon réel (sauvegarde, perte du volume, restauration, reprise d'époque supérieure, dossiers valides), l'outil de sauvegarde et l'archivage du journal d'exploitation ; le chemin B l'est par la reconstruction depuis les copies WORM."
+        }
       },
       "threats": [
         "MN-19",
@@ -7868,8 +8027,8 @@
       "oracle": "Aucun appel relayable bloqué ni retardé par une décision ; appels perdus comptés (EX-12.3, EX-12.14) ; rapport égal à ce que `rapport-observation.mjs` tire du journal ; passage refusé tant qu'une retenue n'a pas de décision.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Composants non construits ; les bibliothèques sont couvertes par TU-/TV-."
+        "phase2_step": 8,
+        "blocking": "Rattaché à l'étape 8 : le mode observation de bout en bout exige l'installation rapide jouée en entier (TE-6) avec un agent de démonstration et un passage au mode bloquant ; les bibliothèques et le démon sont couverts par TU-/TV- (OB-1 à OB-6) et par les essais du mode observation."
       },
       "threats": []
     },
@@ -8155,13 +8314,14 @@
       ],
       "preconditions": [
         "Démon `noortrace` réel (processus enfant) de l'étape 4 avec son journal d'exploitation et le composant d'ancrage de l'étape 5 branché (registre factice coupable pour JS-11) ; `noortrace-ctl`.",
-        "Pour JS-9 et JS-10 : support WORM S3 à Object Lock de LocalStack en conteneur Docker (image épinglée par condensé), derrière un mandataire TLS, bucket verrouillé en COMPLIANCE ; sans Docker, ces cas sont en attente (EX-3.11)."
+        "Pour JS-9 et JS-10 : support WORM S3 à Object Lock de LocalStack en conteneur Docker (image épinglée par condensé), derrière un mandataire TLS, bucket verrouillé en COMPLIANCE ; sans Docker, ces cas sont en attente (EX-3.11).",
+        "Pour le complément JS-5 de l'étape 7 : réseau de développement 2124 et parcours `npm run e2e:registre` (`NOORTRACE_PARCOURS_REGISTRE`), KMS simulé en conteneur pour la clé de classe B ; sans eux, l'essai réseau est en attente, condition nommée (EX-3.11), et la variante sur le nœud factice s'exécute."
       ],
       "steps": [
         "Provoquer chaque situation de la table de CT-7 §6.1 (démarrage, arrêt, bail, rotation de la clé de l'enregistreur, rotation de la clé de chaîne, politique, configuration, saut d'horloge, gel, perte WORM, ancrage dégradé, attestation) ; relire la chaîne et le journal d'exploitation.",
         "Forcer la rotation du journal d'exploitation par `supervision.ops_log.rotate_max_bytes`, puis simuler un disque plein pendant le relais."
       ],
-      "oracle": "Chaque situation produit l'événement ou la ligne que la table nomme (« porté » ou « aucun » selon la colonne) ; aucun secret dans les lignes, la file durable ni `acquisitions.ndjson`. JS-5 : aucun événement ne porte la rotation de la clé de chaîne, et la rotation d'urgence est refusée (`registre_non_branche`) ; la révocation et l'inscription au registre que la table nomme pour JS-5 sont le complément. Rotation : au plus `keep_files` fichiers conservés ; disque plein : chaque ligne non écrite incrémente `noortrace_ops_log_dropped_total` d'une unité et le relais continue (CT-2 EX-9.7, EX-17.4).",
+      "oracle": "Chaque situation produit l'événement ou la ligne que la table nomme (« porté » ou « aucun » selon la colonne) ; aucun secret dans les lignes, la file durable ni `acquisitions.ndjson`. JS-5 : aucun événement ne porte la rotation de la clé de chaîne ; sur le réseau de développement, la révocation de l'ancienne clé de chaîne puis l'inscription de la même clé Ed25519 sous `next_chain_key`, relayées par le démon depuis les demandes signées au seuil, sont lues au registre, et l'ancre suivante est émise par la nouvelle clé ; sans `next_chain_key`, la demande est refusée (`cle_chaine_suivante_absente`). Rotation : au plus `keep_files` fichiers conservés ; disque plein : chaque ligne non écrite incrémente `noortrace_ops_log_dropped_total` d'une unité et le relais continue (CT-2 EX-9.7, EX-17.4).",
       "status": {
         "state": "executable",
         "tests": [
@@ -8176,13 +8336,22 @@
           {
             "file": "test/enregistreur-journal-soi.test.js",
             "describe": "TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3 à Object Lock en conteneur) : worm_legal_hold_observed, worm_copy_failed puis reprise, copie conforme d'ancres/"
+          },
+          {
+            "file": "test/enregistreur-journal-soi.test.js",
+            "describe": "TE-14 : journal de l'enregistreur sur lui-même, JS-1 à JS-12 de CT-7 §6.1 observés sur le démon réel (CT-2 EX-17.1 à EX-17.4, EX-18.6 ; CT-7 EX-6.1 à EX-6.3)",
+            "it": "JS-5 rotation de la seule clé de chaîne : hors chaîne par conception (au registre) ; aucun événement ne la porte ; sans next_chain_key, la rotation d'urgence est refusée en le nommant (cle_chaine_suivante_absente ; révocation et inscription relayées au registre : complément de l'étape 7, test/enregistreur-cle-chaine-etape7-reseau.test.js)"
+          },
+          {
+            "file": "test/enregistreur-cle-chaine-etape7.test.js",
+            "describe": "étape 7 : rotation de la clé de chaîne relayée au registre, nœud noorcore factice (CT-2 EX-11.16, EX-11.19 point 4 ; CT-4 §8.4 ; CT-7 JS-5)"
+          },
+          {
+            "file": "test/enregistreur-cle-chaine-etape7-reseau.test.js",
+            "describe": "étape 7, réseau de développement 2124 : démon en production, clé de chaîne de classe C du modèle de production (table d'IC-14), ancres et clôture sur noorcore, dossier vérifié (contrôles 4 et 8) ; TE-14 complément JS-5 : rotation de la seule clé de chaîne relayée au registre vers une clé de classe B"
           }
         ],
-        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-journal-soi.test.js",
-        "complement": {
-          "phase2_step": 7,
-          "blocking": "JS-5, colonne du journal : rotation d'urgence de la clé de chaîne relayée au registre (révocation et nouvelle inscription signées par les approbateurs au seuil, CT-4 §7, CT-2 EX-11.16, EX-11.19 point 4) ; le démon de l'étape 5 la refuse en le nommant (`registre_non_branche`, lecture 202 du LISEZMOI de `paquets/enregistreur`), reste rattaché, comme la clé de chaîne des classes A à C, à l'étape 7 (paquets et exploitation)."
-        }
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-journal-soi.test.js test/enregistreur-cle-chaine-etape7.test.js test/enregistreur-cle-chaine-etape7-reseau.test.js"
       },
       "threats": [
         "MN-18",
@@ -8204,16 +8373,54 @@
         "CT-8 EX-3.9"
       ],
       "preconditions": [
-        "Fichiers de conteneur de référence ; hôte de test avec moteur de conteneurs ; deux constructions à des instants différents."
+        "Fichiers de construction des images (`conteneurs/<nom>/Dockerfile`) ; hôte de test avec moteur de conteneurs ; deux constructions sans cache à des instants différents (`scripts/deploiement/construire-images.mjs --double`, relevé `NOORTRACE_IMAGES_CONDENSES`) ; sans Docker, les essais des images construites sont en attente, condition nommée (EX-3.11)."
       ],
       "steps": [
         "Construire chaque image deux fois ; comparer les condensés ; `docker compose up` ; relever `docker inspect` (compte, racine en lecture seule, sondes) ; copier le répertoire de l'image dans un volume nommé neuf ; vérifier le compagnon (`CAP_FOWNER`, ouverture en lecture)."
       ],
       "oracle": "Condensés égaux ; chaque propriété de la description `images.json` observée ; propriétaire et mode recopiés ; attribut immuable posé.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Aucune image construite (CT-8 §3.6, §15) ; Docker indisponible ici."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/deploiement-images.test.js",
+            "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+            "it": "TE-15, EX-4.4, EX-3.6 : docker inspect de chaque image : point d'entrée = programme, sans Cmd, compte de images.json, répertoire de travail /, plate-forme linux/amd64, créée à SOURCE_DATE_EPOCH (date du commit)"
+          },
+          {
+            "file": "test/deploiement-images.test.js",
+            "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+            "it": "TE-15, CO-12, EX-4.4 : système de fichiers de chaque image (docker export) : aucun interpréteur de commandes ni /usr/bin/env ; programmes requis présents (flock pour le bail file, chattr et lsattr pour le compagnon) ; /etc/passwd et /etc/group du dépôt ; répertoires d'EX-3.5 aux comptes et modes ; lancement de /bin/sh impossible"
+          },
+          {
+            "file": "test/deploiement-images.test.js",
+            "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+            "it": "TE-15, recopie dans un volume neuf : la racine d'un volume nommé neuf reprend le propriétaire, le groupe et le mode (bits setgid et collant compris) du répertoire de l'image qui le monte la première, montage en lecture seule compris ; après recopie par l'image du service d'approbation, le démon (10001, groupe 10010) crée sa prise dans /run/noortrace"
+          },
+          {
+            "file": "test/deploiement-images.test.js",
+            "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+            "it": "EX-3.7, EX-3.8 : pont-fichiers lancé avec la commande exacte de production.yaml (compte 10101, sans réseau, racine en lecture seule, capacités retirées) : sonde en forme exec 0 ; initialize, write_file et list_directory par Streamable HTTP depuis l'espace réseau du pont ; le pont et le serveur tournent sous 10101 sans interpréteur ; le fichier écrit appartient à 10101"
+          },
+          {
+            "file": "test/deploiement-images.test.js",
+            "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+            "it": "TM-28, EX-3.13 : deux constructions sans cache, depuis deux copies des sources à deux instants, donnent pour chaque image le même condensé, égal à celui de l'image du magasin local ; ligne construction_reproductible = 0"
+          },
+          {
+            "file": "test/deploiement-images.test.js",
+            "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)"
+          },
+          {
+            "file": "test/deploiement-images.test.js",
+            "describe": "fichiers de construction, sans moteur de conteneurs"
+          }
+        ],
+        "ci_steps": [
+          "images noortrace/*, deux constructions sans cache aux mêmes condensés (CT-8 EX-3.13), sans publication",
+          "essais des images (TE-15, TM-24, TM-26, TM-28), aucun essai en attente"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-images.test.js"
       },
       "threats": [
         "MN-22",
@@ -8513,8 +8720,8 @@
       "oracle": "Unité de comptage : la règle d'alerte de CT-8 §10.4 à §10.7 identifiée par son étiquette `exigence`. Pour chaque condition provoquée, la règle de cette condition (étiquette nommant la prescription : CT-2 §17.4, CT-2 EX-17.8, CT-5 §8.9 ; une règle par condition d'une ligne à « ou », CT-8 EX-10.1) passe à l'état déclenché exactement une fois pendant la fenêtre d'observation ; les autres règles de la même prescription ne sont attendues que si leur condition est provoquée et restent silencieuses sinon ; une condition est provoquée quand elle survient pendant la fenêtre par l'effet d'une provocation, directement ou par cascade (stockage indisponible, puis appels bloqués et événements en attente ; prestataire coupé, puis ancre en retard) ; les règles attendues d'une provocation sont celles de la condition provoquée et de ses conséquences, nommées dans le rapport d'exécution avant la provocation ; une règle qui se déclenche hors de cette liste est un échec ; la liste peut nommer toute règle de CT-8 §10.4 à §10.7, celles du registre (`noortrace_registre_*`, CT-4) comprises, que la condition entraîne, chaque conséquence y étant inscrite avant la provocation avec la chaîne causale qui la justifie ; une conséquence non justifiée est un défaut du rapport, relu par l'examinateur ; les deux exemples de cascade ci-dessus ne sont pas limitatifs ; deux règles levées par une même cause (« Mode dégradé » `horloge` et « Horloge ») comptent chacune une fois, cet exemple illustrant le comptage sans exiger la provocation de l'horloge ; les trois alertes du registre des gels : une seule alerte critique par cause (CT-2 EX-17.7), clause jouée seulement si un support WORM est monté ; sinon ses conditions figurent dans la liste des conditions non provoquées et la clause n'est pas jouée. La gravité relevée (étiquette `severity` de la règle déclenchée) doit égaler celle de la table de CT-8 §10.4 à §10.7, qui fait foi (CT-8 EX-10.1) ; une gravité différente est un échec (le fichier de règles ne suit pas sa table, ce que TV-76 éprouve aussi sans les composants) ; un écart entre la table de CT-8 et la prescription de CT-2 §17.4 ou de CT-5 §8.9 est consigné, non jugé par le test. Chaque métrique de la table CT-2 §17.2 et de CT-5 EX-8.15 est présente avec exactement ses étiquettes : « présente » signifie déclarée par son nom dans l'exposition `/metrics` du démon (ligne `# TYPE` ; un histogramme par ses séries `_bucket`, `_sum` et `_count`, avec l'étiquette `le`), lue sur le démon et non chez le collecteur, qui ajoute `instance` et `job` ; les séries d'étiquettes exigées sont celles que le montage de test crée ; une métrique d'une fonction absente du montage (WORM, OpenTelemetry) est déclarée mais peut n'avoir aucune série (le compte de CT-8 §10.2 est à aligner sur la table de CT-2 : PD-27). Le dossier exporté sous charge : code 0 des deux vérificateurs, énoncé identique.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Supervision à produire (CT-8 §10, lot suivant)."
+        "phase2_step": 8,
+        "blocking": "Rattaché à l'étape 8 : un collecteur Prometheus 3.5.0 en marche chargé des règles (le binaire `prometheus` de la même archive), la charge à cadence fixe de TM-3, la provocation de chaque condition et le décompte des transitions `ALERTS` ; l'étape 7 livre les règles, leurs tests (`promtool`) et un évaluateur réduit des essais, qui n'est pas un collecteur."
       },
       "threats": [
         "MN-29"
@@ -10233,8 +10440,8 @@
       "oracle": "Empreinte consignée égale à la publiée pour la première ; écart signalé pour la seconde.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Paquets, observabilité et runbooks non construits : phase 2, étape 7."
+        "phase2_step": 8,
+        "blocking": "Rattaché à l'étape 8 : la réponse dont TA-25 éprouve le retrait, l'empreinte de l'image consignée au démarrage (proposition PA-4 de CT-7), n'existe pas ; l'image ne connaît pas son propre condensé, qui doit lui venir de l'orchestrateur (fichier monté ou variable), décision à prendre. La base est éprouvée à l'étape 7 par test/deploiement-images.test.js : le conteneur désigne son image par le condensé de la construction, et une image modifiée d'un seul fichier en a un autre."
       },
       "threats": [
         "MN-25"
@@ -10437,8 +10644,7 @@
         "CT-2 EX-17.5"
       ],
       "preconditions": [
-        "Démon de l'enregistreur construit (phase 2, étape 4), configuration de l'installation rapide (CT-8 §7.3).",
-        "Supervision de CT-8 §10 livrée (phase 2, étape 7) ; horloge de test accélérable ou attente réelle."
+        "Démon de l'enregistreur (étape 4) ; support WORM S3 à Object Lock de LocalStack en conteneur ; règles de CT-8 §10 (étape 7), jugées à horloge accélérée par l'évaluateur réduit des essais et par `promtool` quand il est présent ; sans Docker, l'essai est en attente, condition nommée (EX-3.11)."
       ],
       "steps": [
         "Fermer le support ; forcer la fermeture d'un segment ; attendre l'échéance.",
@@ -10446,9 +10652,19 @@
       ],
       "oracle": "Métrique ≥ 1 et alerte levée à l'échéance ; retour à 0 après réouverture.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Paquets, observabilité et runbooks non construits : phase 2, étape 7."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/deploiement-supervision.test.js",
+            "describe": "CT-9 TA-29 et TA-75 : alertes de la supervision sur un S3 à Object Lock (CT-2 EX-12.16, EX-12.18, EX-17.5, EX-17.7)",
+            "it": "TA-29 (MN-29) : support WORM injoignable et segment fermé → noortrace_worm_copy_pending ≥ 1, la règle noortrace_copie_worm_en_retard (for 1h) se déclenche à l'échéance et pas avant ; support rétabli → balayage, métrique à 0, alerte résolue ; réponse retirée (pas de comparaison horaire, métrique jamais mise à jour) : aucune alerte"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-supervision.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Mutant du démon dans test/adversarial.test.js (fil de supervision sans comparaison horaire) et évaluation de la règle par Prometheus en marche ; l'essai de l'étape 7 retire la réponse par la configuration (métrique jamais mise à jour) et juge la règle hors collecteur."
+        }
       },
       "threats": [
         "MN-29"
@@ -13111,9 +13327,18 @@
       ],
       "oracle": "`noortrace_releve_externe_ok{check=\"registre_gels\"}` vaut 0 après la relecture et la règle critique de CT-8 EX-10.9 se déclenche, les règles du démon étant coupées ; `noortrace-ctl worm gel etat` sous les identifiants du Lecteur rend un code non nul et nomme la version `off` du gel actif (condition « Gel non posé sur une version d'un gel actif », CT-2 §17.4). Écart connu : sortie et code de retour exacts de la commande non fixés par CT-2 EX-12.40 (PD-26).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Paquets, observabilité et runbooks non construits : phase 2, étape 7."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/deploiement-supervision.test.js",
+            "describe": "CT-9 TA-29 et TA-75 : alertes de la supervision sur un S3 à Object Lock (CT-2 EX-12.16, EX-12.18, EX-17.5, EX-17.7)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-supervision.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Mutant dans test/adversarial.test.js (relecture faite par le démon seul) et règle évaluée par Prometheus en marche ; l'essai de l'étape 7 coupe les règles du démon et juge la règle d'EX-10.9 hors collecteur."
+        }
       },
       "threats": [
         "MN-75"
@@ -16262,8 +16487,8 @@
       "oracle": "`ir_total ≤ 900` s ; chaque pas comparé à son budget (60, 90, 90, 90, 60, 150, 180, 180 s), un dépassement de pas publié sans faire échouer le total.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Enregistreur, service d'approbation et images non construits (CT-8 §15 : installations non exécutées)."
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : installation rapide par une personne extérieure sur le système de référence, avec une archive et des images publiées (CT-9 §14) ; l'installation rapide n'est pas jouée en entier à l'étape 7 (prestataire RFC 3161 hors production à trancher par le porteur)."
       },
       "threats": [],
       "measure": {
@@ -16325,9 +16550,19 @@
       ],
       "oracle": "`ic_total ≤ 480` min (cible 450 min, réserve 30 min) ; chaque pas comparé à son budget, un dépassement publié ; les durées sont celles du procès-verbal d'IC-18.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Enregistreur, service d'approbation, composant d'ancrage et images non construits ; script de préparation de l'hôte (IC-2) à écrire."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/banc-client-fictif.test.js",
+            "describe": "Étape 7 : banc client fictif — installation complète IC-1 à IC-18 de bout en bout (CT-9 TE-7, TM-22, TM-29)",
+            "it": "TM-22 : rapport de mesure (CT-9 §11.3, $defs/rapport_mesure) : lignes ic_1 à ic_18, ic_attente_cloture et ic_total publiées ; hors système de référence (counts_for_targets faux, met null) ; ic_total sous 480 min"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/banc-client-fictif.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Mesure sur le système de référence, machine vierge, par un ingénieur extérieur (porte 2) ; le banc de l'étape 7 est un harnais de l'environnement de construction (`counts_for_targets` faux) : 58 min, dont 57 d'attente de la clôture de l'heure."
+        }
       },
       "threats": [],
       "measure": {
@@ -16370,8 +16605,8 @@
       "oracle": "`value = 0` ; chaque information manquante est une lacune de CT-8 à tracer (proposition PD-).",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Installation complète non exécutée."
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) avec TR-12 : les informations manquantes se relèvent auprès d'un ingénieur extérieur au projet, que l'étape 7 n'a pas ; le banc de l'étape 7, déroulé par un harnais, a relevé les écarts de CT-8 qu'il a rencontrés et la révision 0.6 de CT-8 les a inscrits."
       },
       "threats": [],
       "measure": {
@@ -16412,9 +16647,22 @@
       ],
       "oracle": "Lignes présentes, `met` null ; la durée de téléchargement est relevée à part du budget d'IR-6 (150 s).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Aucune image construite (CT-8 EX-3.13)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/deploiement-images.test.js",
+            "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+            "it": "TM-24 : taille de chaque image dans le magasin local (docker image inspect, Size) ; lignes image_<nom>_octets ; durée de téléchargement non mesurée (aucun registre : images construites ou chargées par docker load)"
+          }
+        ],
+        "ci_steps": [
+          "essais des images (TE-15, TM-24, TM-26, TM-28), aucun essai en attente"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-images.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Durée de téléchargement des images publiées (IR-6) : aucune image n'est publiée ; la taille est relevée dans le magasin local."
+        }
       },
       "threats": [],
       "measure": {
@@ -16503,9 +16751,22 @@
       ],
       "oracle": "`max ≤ 60` s ; sinon `met` faux.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Image du compagnon non construite."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/deploiement-images.test.js",
+            "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+            "it": "TM-26 : le compagnon en service (--intervalle-s 60, compte 0, trois capacités) pose i sur dix segments fermés toutes les 6 s ; délai entre la fermeture et l'attribut lu par lsattr ; ligne compagnon_pose_attribut (p50, max ; met = max ≤ 60 s) ; chaque segment scellé en 75 s au plus"
+          }
+        ],
+        "ci_steps": [
+          "essais des images (TE-15, TM-24, TM-26, TM-28), aucun essai en attente"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-images.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Système de référence (porte 2) et fermeture réelle des segments par le démon ; l'étape 7 mesure sur l'environnement de construction, segments écrits par un conteneur de l'image de l'enregistreur."
+        }
       },
       "threats": [],
       "measure": {
@@ -16550,8 +16811,8 @@
       "oracle": "`repartiteur_ttl_dns ≤ 30` s ; `repartiteur_reconnexion` publié sans cible.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Topologie à deux instances non déployée."
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : deux instances derrière un répartiteur ou un nom DNS de durée de vie bornée ; mesure possible localement mais de faible valeur hors du système de référence."
       },
       "threats": [],
       "measure": {
@@ -16594,9 +16855,23 @@
       ],
       "oracle": "`value = 0` ; un artefact non reproductible n'est pas publié (EX-3.13).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Aucune image construite ; binaire Go du vérificateur à construire (CT-6 §14, étape 2)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/deploiement-images.test.js",
+            "describe": "images construites (TE-15, TM-24, TM-26, TM-28, base de TA-25)",
+            "it": "TM-28, EX-3.13 : deux constructions sans cache, depuis deux copies des sources à deux instants, donnent pour chaque image le même condensé, égal à celui de l'image du magasin local ; ligne construction_reproductible = 0"
+          }
+        ],
+        "ci_steps": [
+          "images noortrace/*, deux constructions sans cache aux mêmes condensés (CT-8 EX-3.13), sans publication",
+          "essais des images (TE-15, TM-24, TM-26, TM-28), aucun essai en attente"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-images.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Deux machines (porte 2) ; page et scripts de la console (CT-3 EX-13.4). L'étape 7 construit deux fois sur une même machine, sans cache, depuis deux copies des sources à deux instants (CT-6 EX-14.8 l'admet pour le binaire)."
+        }
       },
       "threats": [],
       "measure": {
@@ -16641,9 +16916,19 @@
       ],
       "oracle": "Chaque consommation observée sous son plancher ; un dépassement rend `met` faux et le seuil d'IP-2 ou IP-3 est à relever (proposition PD- à CT-8).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Composants non construits."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/banc-client-fictif.test.js",
+            "describe": "Étape 7 : banc client fictif — installation complète IC-1 à IC-18 de bout en bout (CT-9 TE-7, TM-22, TM-29)",
+            "it": "TM-29 (relevé partiel, sans la charge de TM-3) : consommation des services en marche relevée (mémoire, processeur, volumes) et confrontée aux planchers de production (4 processeurs, 8 Gio)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/banc-client-fictif.test.js",
+        "complement": {
+          "phase2_step": 8,
+          "blocking": "Heure de charge de TM-3 sur le système de référence ; le banc de l'étape 7 relève la consommation au repos."
+        }
       },
       "threats": [],
       "measure": {
@@ -16846,8 +17131,8 @@
       "oracle": "Cinq lignes présentes, `met` null ; les hypothèses de 9.5 (4, 512, 2 048, 833, 2) sont remplacées au procès-verbal.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Composants non construits ; hypothèses de 9.5 en vigueur."
+        "phase2_step": 8,
+        "blocking": "Rattaché à l'étape 8 : coefficients du dimensionnement mesurés sur le système de référence avec TM-9 ; les hypothèses de CT-8 9.5 restent en vigueur."
       },
       "threats": [],
       "measure": {
@@ -16897,8 +17182,8 @@
       "oracle": "`supervision_faux_positifs = 0` et `supervision_faux_negatifs = 0` ; sinon le seuil est revu (proposition PD- à CT-8).",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Supervision outillée non livrée (CT-8 §15, lot suivant)."
+        "phase2_step": 8,
+        "blocking": "Rattaché à l'étape 8 : seuils d'alerte confrontés à une heure de charge de TM-3 sur le système de référence et aux runbooks rejoués (TE-8) ; l'étape 7 livre les règles et leurs tests."
       },
       "threats": [],
       "measure": {
@@ -16942,8 +17227,8 @@
       "oracle": "`max < <M>` en nominal ; sinon `met` faux et `<M>` est revu.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Supervision non livrée ; taille exacte de la mempool non établie (CT-8 §15)."
+        "phase2_step": 8,
+        "blocking": "Rattaché à l'étape 8 : une heure de charge d'ancres (TM-12) sur le réseau de développement et le défaut de `-txpool-max-pending` de noorcore, que le nœud n'imprime pas (« 0 = default ») ; la sonde de l'étape 7 expose déjà `noortrace_registre_mempool`."
       },
       "threats": [],
       "measure": {
@@ -16996,8 +17281,8 @@
       "oracle": "Huit lignes présentes, `met` null ; une sortie non atteinte est un échec du TE- du runbook, pas de cette mesure.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Composants et runbooks non exécutables (CT-8 §10.11 : aucune durée mesurée)."
+        "phase2_step": 8,
+        "blocking": "Rattaché à l'étape 8 : durées des runbooks rejoués (TE-8), que l'étape 7 ne joue pas."
       },
       "threats": [],
       "measure": {
@@ -17046,8 +17331,8 @@
       "oracle": "Chaque valeur sous sa cible : segments fermés RTO ≤ 4 h ; segment ouvert bascule ≤ `lease.ttl_ms` (10 s) + 2 s ; pièces RTO ≤ 4 h ; service RPO ≤ 15 min, RTO ≤ 1 h ; ancrage RTO ≤ 4 h ; configuration RTO ≤ durée de TM-22 ; sinon `met` faux.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Composants, outil de sauvegarde et runbooks non construits (CT-8 §15)."
+        "phase2_step": 8,
+        "blocking": "Rattaché à l'étape 8 : RPO et RTO par composant sur le système de référence ; l'étape 7 publie, sans compter, les durées du chemin A sur l'environnement de construction (sauvegarde 0,8 s, reprise 1,2 à 1,3 s)."
       },
       "threats": [],
       "measure": {
@@ -17149,8 +17434,8 @@
       "oracle": "Chaque fournisseur : journal présent, convertible par le collecteur ; `journal_acces_support` n'est tenu pour acquis qu'alors.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Supports réels à la porte 2 ; collecteur à écrire (CT-8 §11.10)."
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : journal d'accès des fournisseurs WORM réels (comptes réels, hors de l'environnement de construction) ; voir TI-15."
       },
       "threats": [],
       "measure": {
@@ -17192,8 +17477,8 @@
       "oracle": "Ordre relevé égal à l'ordre supposé par IP-5 ; sinon le contrôle préalable est corrigé (proposition PD- à CT-8).",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "chrony absent de l'environnement de rédaction ; relevé à faire sur le système de référence."
+        "phase2_step": 8,
+        "blocking": "Rattaché à l'étape 8 : `chronyc -c tracking` relevé sur chrony 4.6 du système de référence ; l'environnement de construction n'a ni chrony ni systemd."
       },
       "threats": [],
       "measure": {
@@ -18667,8 +18952,8 @@
       "oracle": "Chaque entrée de construction épinglée ; empreintes publiées égales aux deux constructions ; écart = RA-22 réalisé, à traiter avant publication.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 7,
-        "blocking": "Aucune image construite ; CT-8 §3.6 : « c'est la revue de code de CT-9 et le risque RA-22 »."
+        "phase2_step": 8,
+        "blocking": "Rattaché à l'étape 8 : revue humaine par une personne qui n'a pas écrit le code (EX-13.1) des fichiers de construction des images (`conteneurs/`), du script de construction double et du travail de version ; la partie mécanique est éprouvée à l'étape 7 par test/publication-etape7.test.js (binaire et archive : entrées épinglées, aucune clé, empreintes de la note égales aux deux constructions) et par la construction double des images."
       },
       "threats": [
         "MN-25"
@@ -18680,7 +18965,11 @@
         ],
         "scope": [
           "fichiers de construction des images noortrace/*",
-          ".github/workflows/ci.yml"
+          ".github/workflows/ci.yml",
+          ".github/workflows/version.yml",
+          "scripts/publication/",
+          "conteneurs/",
+          "scripts/deploiement/construire-images.mjs"
         ],
         "grid": [
           "Sources et images de base épinglées par condensé.",
@@ -19165,7 +19454,7 @@
       "owner": "client",
       "threat": "MN-29",
       "test": "TA-29",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-29 éprouve la réponse qui borne le risque (Copie de chaque segment fermé, comparaison horaire (CT-2 EX-12.16, EX-12.18, EX-17.5)) : avec elle, noortrace_worm_copy_pending monte ; l'alerte « Copie WORM en retard » part après une heure ; sans elle, le test échoue.",
       "not_tested": "la perte d'une copie avant l'échéance de la comparaison horaire"
     },
@@ -19597,7 +19886,7 @@
       "owner": "client",
       "threat": "MN-75",
       "test": "TA-75",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-75 éprouve la réponse qui borne le risque (Relecture du registre des gels par un rôle Lecteur hors du démon (CT-2 EX-17.7, EX-18.9) ; métriques publiques (EX-17.1)) : avec elle, La relecture quotidienne du Lecteur (CT-8 §11.12) met `noortrace_releve_externe_ok{check=\"registre_gels\"}` à 0, alertée en critique (CT-8 EX-10.9), pour la condition « Gel non posé sur une version d'un gel actif » ; la commande du Lecteur rend un code non nul ; sans elle, le test échoue.",
       "not_tested": "des alertes coupées entre deux relectures du Lecteur"
     },
@@ -19872,77 +20161,77 @@
     {
       "id": "TC-4",
       "key": "CT-2 §0.1",
-      "line": 48,
+      "line": 56,
       "delegated": "Rattachement des tests aux identifiants EX-.",
       "response": "§5.1, règle (a) ; membre `covers` de chaque entrée (§4.1)."
     },
     {
       "id": "TC-5",
       "key": "CT-2 §1",
-      "line": 695,
+      "line": 756,
       "delegated": "Périmètre : les tests sont hors de CT-2.",
       "response": "Ce document."
     },
     {
       "id": "TC-6",
       "key": "CT-2 §1",
-      "line": 708,
+      "line": 769,
       "delegated": "Lit les EX-, les vecteurs (annexe B), la méthode de mesure (16) ; fixe les tests.",
       "response": "§7 (TV- de `ct-2`), §6 (TU- de CT-2), §11 (TM- de CT-2 §16)."
     },
     {
       "id": "TC-7",
       "key": "CT-2 §10.4",
-      "line": 7070,
+      "line": 7131,
       "delegated": "Réappliquer la politique à une pièce stockée : égalité des octets (idempotence).",
       "response": "TV- `ct-2/redaction/` (§7), oracle « la seconde application ne change aucun octet »."
     },
     {
       "id": "TC-8",
       "key": "CT-2 §15.6",
-      "line": 10655,
+      "line": 10800,
       "delegated": "Règles de configuration que le schéma n'exprime pas : tests de CT-9.",
       "response": "TU- configuration et contrôles de démarrage (§6) ; TV- `ct-2/pieces-*` ; TE- installation (§9) pour la commande du démon."
     },
     {
       "id": "TC-9",
       "key": "CT-2 §16.2",
-      "line": 11234,
+      "line": 11450,
       "delegated": "Seuil de régression des mesures de performance, à décider par CT-9.",
       "response": "§11.4 : seuil de régression EX-11.15 ; proposition PD- à CT-2 EX-16.2 pas 7 (§17.2)."
     },
     {
       "id": "TC-10",
       "key": "CT-2 §21",
-      "line": 13102,
+      "line": 13344,
       "delegated": "« Les tests » hors de CT-2.",
       "response": "Ce document."
     },
     {
       "id": "TC-11",
       "key": "CT-3 §0",
-      "line": 46,
+      "line": 48,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-12",
       "key": "CT-3 §1",
-      "line": 457,
+      "line": 466,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-13",
       "key": "CT-3 §1",
-      "line": 486,
+      "line": 495,
       "delegated": "EX-, AP-, TK-, SG-, AN-, CS-, vecteurs `ct-3`, épreuve à trois relecteurs, épreuve de lecture de la console.",
       "response": "TR-1 (A.5, trois relecteurs) et TR-2 (A.11, console) en §12 ; EX-, AP-, TK-, SG-, AN-, CS- et vecteurs ct-3 : TU-, TV- (§6, §7)."
     },
     {
       "id": "TC-14",
       "key": "CT-3 §7.12",
-      "line": 2377,
+      "line": 2386,
       "delegated": "Rattachement des TK-1 à TK-13 aux tests.",
       "response": "TV- `ct-3/tickets/` et TU- tickets (§6, §7) : `covers` CT-3 TK-1 à TK-13."
     },
@@ -19984,91 +20273,91 @@
     {
       "id": "TC-20",
       "key": "CT-5 §0",
-      "line": 184,
+      "line": 222,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-21",
       "key": "CT-5 §1",
-      "line": 298,
+      "line": 336,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-22",
       "key": "CT-5 §1",
-      "line": 322,
+      "line": 360,
       "delegated": "EX-, AN-, vecteurs `ct-5`, épreuve à l'aveugle à deux relecteurs.",
       "response": "TR-4 (relecteur CT-5 et CT-1 §9 à §11) et TR-5 (second relecteur, CT-6 §7) en §12 ; consigne et grille sous spec/vecteurs/ct-9/ (EX-12.7) ; EX-, AN- et vecteurs ct-5 : TV- (§7)."
     },
     {
       "id": "TC-23",
       "key": "CT-5 §3.6",
-      "line": 566,
+      "line": 604,
       "delegated": "Mesures P-1 à P-6 sur le réseau de développement et sur les vecteurs.",
       "response": "TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15), sur le réseau de développement (TM-11 à TM-14, exécutables depuis l'étape 5 par la campagne de `scripts/e2e/mesure-ancrage.mjs`, rapport `mesures/rapport-2026-11-10-ancrage.json` ; compléments à l'étape 8 : charge de TM-3 pour TM-11, prestataire qualifié réel pour TM-14) et sur le support WORM (TM-16, exécutable depuis l'étape 4, `ancres/` compris depuis l'étape 5)."
     },
     {
       "id": "TC-24",
       "key": "CT-5 §5.3",
-      "line": 1271,
+      "line": 1322,
       "delegated": "Test à écrire : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
       "response": "TI-16 (§8), exécutable depuis l'étape 5 : relève de la clôture par le secours qualifié après retrait de `qualified`, sans rechargement, sur le composant d'ancrage (`test/ancrage-composant-pannes.test.js`, serveurs internes déclarés qualifiés par un instantané d'exemple) ; complément à l'étape 8 : prestataire qualifié réel."
     },
     {
       "id": "TC-25",
       "key": "CT-5 §7.2",
-      "line": 1781,
+      "line": 1839,
       "delegated": "AN-24 à AN-32 du serveur interne vérifiées sur un jeton émis.",
       "response": "TI-17 (§8), exécutable depuis l'étape 5 : AN-22 à AN-31 vérifiées sur les jetons émis par le serveur interne de référence du paquet d'ancrage (`test/ancrage-tsa-interne-*.test.js`, `test/enregistreur-ancrage-exigences.test.js`, `test/enregistreur-ancrage-parcours.test.js`) ; TM-18 (AN-26) et TM-19 (AN-24) en §11 pour les exigences mesurables, sur les mêmes essais et dans le rapport de la campagne de l'étape 5."
     },
     {
       "id": "TC-26",
       "key": "CT-5 §7.2",
-      "line": 1790,
+      "line": 1848,
       "delegated": "Épreuve de redémarrage du serveur interne (AN-26).",
       "response": "TI-17 (§8) et TM-18 (AN-26) en §11, exécutables depuis l'étape 5 : quatre jetons avant et quatre après un redémarrage du serveur interne (compteur de série durable), numéros strictement croissants, et le relevé `an26_serie_croissante` de la campagne (dix jetons, redémarrage, dix jetons) ; TM-19 (AN-24)."
     },
     {
       "id": "TC-27",
       "key": "CT-5 §9.3",
-      "line": 4186,
+      "line": 4246,
       "delegated": "Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
       "response": "TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
     },
     {
       "id": "TC-28",
       "key": "CT-5 §14",
-      "line": 4687,
+      "line": 4748,
       "delegated": "Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
       "response": "TI-16 (§8), exécutable depuis l'étape 5 (`test/ancrage-composant-pannes.test.js` : relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée ; rechargement sans principal qualifié refusé) ; mesures en charge du planificateur : TM-17 (§11)."
     },
     {
       "id": "TC-29",
       "key": "CT-5 §14",
-      "line": 4689,
+      "line": 4750,
       "delegated": "Tests EX- et AN-1 à AN-61, mesures P-1 à P-6, épreuve à l'aveugle.",
       "response": "§6, §7, §8 (TI-16, TI-17), §9 (TE-12), §11 (TM-10 à TM-19), §12 (TR-4, TR-5) ; état « proposition » levé par ce document."
     },
     {
       "id": "TC-30",
       "key": "CT-6 §0",
-      "line": 78,
+      "line": 81,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-31",
       "key": "CT-6 §1",
-      "line": 244,
+      "line": 247,
       "delegated": "EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`.",
       "response": "§6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10)."
     },
     {
       "id": "TC-32",
       "key": "CT-6 §6.9",
-      "line": 1889,
+      "line": 1892,
       "delegated": "Exécution des V- par comparaison du rapport à `attendu.json`.",
       "response": "TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`."
     },
@@ -20215,420 +20504,420 @@
     {
       "id": "TC-53",
       "key": "CT-8 « en-tête »",
-      "line": 32,
+      "line": 39,
       "delegated": "Convention « à mesurer (CT-9, porte 2) ».",
       "response": "§11 : chaque cible « à mesurer (CT-9, porte 2) » a sa ligne TM-21 à TM-40 avec cible, source et seuil d'échec ; colonne mesure vide en 0.1 (EX-11.16)."
     },
     {
       "id": "TC-54",
       "key": "CT-8 « en-tête »",
-      "line": 43,
+      "line": 48,
       "delegated": "Critère du plan (moins d'une journée) mesuré à la porte 2.",
       "response": "TM-22 (durée de chaque pas IC-1 à IC-18, durée totale, attente relevée à part) et TM-23 (informations manquantes)."
     },
     {
       "id": "TC-55",
       "key": "CT-8 « en-tête »",
-      "line": 45,
+      "line": 50,
       "delegated": "Ce que CT-9 chronomètre (EX-8.1).",
       "response": "TM- EX-8.1 (§11)."
     },
     {
       "id": "TC-56",
       "key": "CT-8 §0.1",
-      "line": 64,
+      "line": 69,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-57",
       "key": "CT-8 §0.1",
-      "line": 89,
+      "line": 94,
       "delegated": "Convention « cible ».",
       "response": "§2 (terminologie) et §11.4 : une cible devient une mesure par un rapport de mesure (EX-11.11) sur le système de référence (EX-11.1)."
     },
     {
       "id": "TC-58",
       "key": "CT-8 §0.2",
-      "line": 268,
+      "line": 273,
       "delegated": "Ordre d'écriture (traçabilité TC-104 de CT-8).",
       "response": "Ce document ; aucune réponse attendue."
     },
     {
       "id": "TC-59",
       "key": "CT-8 §0.3",
-      "line": 291,
+      "line": 296,
       "delegated": "Ce que l'auteur de CT-9 lit dans CT-8.",
       "response": "Ce document ; annexe A."
     },
     {
       "id": "TC-60",
       "key": "CT-8 §1",
-      "line": 475,
+      "line": 545,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-61",
       "key": "CT-8 §1",
-      "line": 489,
+      "line": 559,
       "delegated": "Onze familles, budgets, cibles, vecteurs `ct-8`, épreuves §14.",
       "response": "Mesures de la porte 2 : TM-21 à TM-40 (§11) ; épreuves de §14 : TR-9, TR-10, TR-11 (§12) ; EX-, CO-, IP-, IR-, IC-, DM-, SV-, PV-, CA-, OB-, PR- et vecteurs ct-8 : TV- (§7), TE- (§9)."
     },
     {
       "id": "TC-62",
       "key": "CT-8 §2",
-      "line": 498,
+      "line": 568,
       "delegated": "Budget de temps chronométré par CT-9.",
       "response": "TM-21 (IR-1 à IR-8) et TM-22 (IC-1 à IC-18) : chaque pas chronométré contre son budget, la somme contre la cible (EX-11.3, méthode `chronometre`)."
     },
     {
       "id": "TC-63",
       "key": "CT-8 §3.3",
-      "line": 640,
+      "line": 717,
       "delegated": "Épreuve de construction : volume nommé neuf.",
       "response": "TE- construction des images (§9), étape 7."
     },
     {
       "id": "TC-64",
       "key": "CT-8 §3.4",
-      "line": 787,
+      "line": 917,
       "delegated": "Cible : pose de l'attribut immuable sous 60 s.",
       "response": "TM-26 (compagnon : pose des attributs ≤ 60 s)."
     },
     {
       "id": "TC-65",
       "key": "CT-8 §3.4",
-      "line": 796,
+      "line": 926,
       "delegated": "Épreuve de construction : compagnon, ouverture en lecture.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-66",
       "key": "CT-8 §3.5",
-      "line": 815,
+      "line": 949,
       "delegated": "Cible : TTL DNS ≤ 30 s.",
       "response": "TM-27 (TTL DNS du répartiteur ≤ 30 s)."
     },
     {
       "id": "TC-67",
       "key": "CT-8 §3.6",
-      "line": 833,
+      "line": 974,
       "delegated": "Mesure : égalité de deux constructions des images.",
       "response": "TM-28 (égalité des condensés de deux constructions)."
     },
     {
       "id": "TC-68",
       "key": "CT-8 §3.6",
-      "line": 855,
+      "line": 1018,
       "delegated": "Revue de code et RA-22.",
       "response": "TQ- chaîne de construction et de publication (§13)."
     },
     {
       "id": "TC-69",
       "key": "CT-8 §4.4",
-      "line": 1905,
+      "line": 2226,
       "delegated": "Épreuves de construction : images, `docker compose up`, `docker inspect`.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-70",
       "key": "CT-8 §5.3",
-      "line": 2015,
+      "line": 2341,
       "delegated": "Épreuve d'intégration ICAP.",
       "response": "TI-19 (mode ICAP, §8) : serveur ICAP et épreuve avec Squid (ssl-bump) livrés à l'étape 4."
     },
     {
       "id": "TC-71",
       "key": "CT-8 §6.2",
-      "line": 2112,
+      "line": 2438,
       "delegated": "Seuils « cible » du contrôle préalable.",
       "response": "TM-29 (seuils cibles IP-2, IP-3 confrontés à la consommation observée)."
     },
     {
       "id": "TC-72",
       "key": "CT-8 §7.1",
-      "line": 2585,
+      "line": 2911,
       "delegated": "Chronométrage IR-1 à IR-8 (900 s).",
       "response": "TM-21 (900 s, pas par pas, chaque durée publiée atteinte ou non) ; TR-9 ; critère de la porte 2 « installation par une personne extérieure en 15 min » (§14)."
     },
     {
       "id": "TC-73",
       "key": "CT-8 §7.2",
-      "line": 2816,
+      "line": 3179,
       "delegated": "Mesure : taille des images téléchargées.",
       "response": "TM-24 (taille des images et durée du téléchargement, relevées à part du budget d'IR-6)."
     },
     {
       "id": "TC-74",
       "key": "CT-8 §8.1",
-      "line": 2917,
+      "line": 3302,
       "delegated": "Titre « Durée et ce que CT-9 mesure ».",
       "response": "§11 : TM-22, TM-23 ; TE- d'A pour les verdicts du contrôle préalable final et du premier dossier."
     },
     {
       "id": "TC-75",
       "key": "CT-8 §8.1",
-      "line": 2929,
+      "line": 3314,
       "delegated": "Le système de référence est fixé par CT-9.",
       "response": "EX-11.1 (système de référence fixé en §11.1) ; TM-22 (durées), TM-23 (informations manquantes) ; verdicts IC-14 et IC-15 : TE-."
     },
     {
       "id": "TC-76",
       "key": "CT-8 §8.1",
-      "line": 2929,
+      "line": 3314,
       "delegated": "Le système de référence est fixé par CT-9.",
       "response": "EX-11.1 (système de référence fixé en §11.1) ; TM-22 (durées), TM-23 (informations manquantes) ; verdicts IC-14 et IC-15 : TE-."
     },
     {
       "id": "TC-77",
       "key": "CT-8 §8.3",
-      "line": 3021,
+      "line": 3406,
       "delegated": "Coefficients `f_pic`, `b_o`, `n_crl`, `b_crl` avant les mesures.",
       "response": "TM-33 (f_pic, b_o, b_acq, b_crl, n_crl) et TM-9 (m_0) ; IC-1 refait après mesure."
     },
     {
       "id": "TC-78",
       "key": "CT-8 §8.3",
-      "line": 3044,
+      "line": 3430,
       "delegated": "Script de préparation de l'hôte éprouvé sur le système de référence.",
       "response": "Le script de préparation de l'hôte est éprouvé pendant TM-22 (IC-2) sur le système de référence d'EX-11.1 ; TE- (§9)."
     },
     {
       "id": "TC-79",
       "key": "CT-8 §8.3",
-      "line": 3355,
+      "line": 3816,
       "delegated": "Attente d'IC-16 et IC-17 relevée à part.",
       "response": "TM-22 : ligne `ic_attente_cloture` relevée à part, dans la durée totale, hors de la durée du pas IC-15."
     },
     {
       "id": "TC-80",
       "key": "CT-8 §8.3",
-      "line": 3384,
+      "line": 3858,
       "delegated": "Durées reportées pour CT-9 (procès-verbal IC-18).",
       "response": "TM-22 : les durées du procès-verbal d'IC-18 sont la source des lignes `ic_1` à `ic_18` et `ic_total`."
     },
     {
       "id": "TC-81",
       "key": "CT-8 §9",
-      "line": 3418,
+      "line": 3898,
       "delegated": "Débit et latence de CT-2 §16.1 à mesurer.",
       "response": "TM-1 à TM-4 (cibles de CT-2 §16.1) en §11."
     },
     {
       "id": "TC-82",
       "key": "CT-8 §9.2",
-      "line": 3467,
+      "line": 3947,
       "delegated": "EX-9.1 : chaque coefficient a une source citée ou est marqué « à mesurer (CT-9) ».",
       "response": "Coefficients marqués « à mesurer (CT-9) » : TM-30 (`b_ots` mis à niveau), TM-32 (`blocs_par_s` en production), TM-33 (`f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`) et TM-9 (`m_0`) ; `b_cap` a pour source la mesure TM-31 (§11)."
     },
     {
       "id": "TC-83",
       "key": "CT-8 §9.2",
-      "line": 3486,
+      "line": 3966,
       "delegated": "`b_ots` preuve mise à niveau.",
       "response": "TM-30 (octets d'une preuve .ots mise à niveau)."
     },
     {
       "id": "TC-84",
       "key": "CT-8 §9.2",
-      "line": 3487,
+      "line": 3967,
       "delegated": "`b_cap` = 123 761 octets : mesure TM-31 de CT-9 du 2026-11-02, transaction d'un bloc plein de 64 ancres (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
       "response": "TM-31 (rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json` : ligne `b_cap_bloc_plein`, index relevé dans `notes`) ; réserve du bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
     },
     {
       "id": "TC-85",
       "key": "CT-8 §9.2",
-      "line": 3490,
+      "line": 3970,
       "delegated": "`blocs_par_s` en production.",
       "response": "TM-32 (blocs_par_s sur l'instance de production)."
     },
     {
       "id": "TC-86",
       "key": "CT-8 §9.2",
-      "line": 3492,
+      "line": 3972,
       "delegated": "Six coefficients sans valeur par défaut à mesurer : `f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`, `m_0`.",
       "response": "TM-33 (`f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`) et TM-9 (`m_0`)."
     },
     {
       "id": "TC-87",
       "key": "CT-8 §9.3",
-      "line": 3587,
+      "line": 4067,
       "delegated": "`m_0` à mesurer.",
       "response": "TM-9 (mémoire sous charge comparée à M_tamp)."
     },
     {
       "id": "TC-88",
       "key": "CT-8 §9.3",
-      "line": 3592,
+      "line": 4072,
       "delegated": "Mesure de la mémoire au-delà de `M_tamp`.",
       "response": "TM- mémoire (§11)."
     },
     {
       "id": "TC-89",
       "key": "CT-8 §10",
-      "line": 3854,
+      "line": 4337,
       "delegated": "Seuils d'alerte cibles.",
       "response": "TM-34 (seuils d'alerte cibles : faux positifs et faux négatifs)."
     },
     {
       "id": "TC-90",
       "key": "CT-8 §10.6",
-      "line": 4127,
+      "line": 4654,
       "delegated": "Seuil mempool `<M>`.",
       "response": "TM-35 (seuil <M> de la mempool)."
     },
     {
       "id": "TC-91",
       "key": "CT-8 §10.11",
-      "line": 4245,
+      "line": 4793,
       "delegated": "Durées des runbooks non mesurées.",
       "response": "TM-36 (durées de RB-1 à RB-8, publiées sans cible)."
     },
     {
       "id": "TC-92",
       "key": "CT-8 §10.11",
-      "line": 4295,
+      "line": 4847,
       "delegated": "Un test de CT-9 par correction d'incident.",
       "response": "§3.2 (règle d'ajout d'une entrée) ; TE- runbooks (§9), oracle."
     },
     {
       "id": "TC-93",
       "key": "CT-8 §11",
-      "line": 4686,
+      "line": 5241,
       "delegated": "RPO et RTO cibles.",
       "response": "TM-37 (RPO et RTO par composant, exercices de restauration)."
     },
     {
       "id": "TC-94",
       "key": "CT-8 §11.2",
-      "line": 4744,
+      "line": 5306,
       "delegated": "Fréquence de sauvegarde de l'état du service (15 min).",
       "response": "TM-37 : ligne `sauvegarde_etat_service_cadence` (cible 15 min)."
     },
     {
       "id": "TC-95",
       "key": "CT-8 §11.3",
-      "line": 4782,
+      "line": 5344,
       "delegated": "Table RPO/RTO : cibles à mesurer.",
       "response": "TM-37 (table d'EX-11.5, toutes les cibles sauf la borne du bail)."
     },
     {
       "id": "TC-96",
       "key": "CT-8 §11.10",
-      "line": 5170,
+      "line": 5734,
       "delegated": "Journal d'accès des supports WORM : disponibilité et format vérifiés en CT-9.",
       "response": "TM-39 (journal d'accès du support WORM : disponibilité et format par fournisseur)."
     },
     {
       "id": "TC-97",
       "key": "CT-8 §12.2",
-      "line": 5396,
+      "line": 5967,
       "delegated": "Latence en mode observation.",
       "response": "TM-38 (latence ajoutée en mode observation, paire avec et sans)."
     },
     {
       "id": "TC-98",
       "key": "CT-8 §12.2",
-      "line": 5408,
+      "line": 5979,
       "delegated": "Durée d'écriture lente, cible de CT-2 §16.1.",
       "response": "TM-38 : ligne `observation_ecriture` (durée d'écriture, cible de CT-2 §16.1)."
     },
     {
       "id": "TC-99",
       "key": "CT-8 §13.1",
-      "line": 5867,
+      "line": 6442,
       "delegated": "Parité du paquet réviseur mesurée par CT-9 (EX-13.1).",
       "response": "TM-25 (point 7) en §11 ; points 1 à 6 : TV- ct-8/paquets/ (§7) et TR-10 (§12)."
     },
     {
       "id": "TC-100",
       "key": "CT-8 §13.1",
-      "line": 5899,
+      "line": 6474,
       "delegated": "Temps du réviseur < 30 min.",
       "response": "TM-25 (temps du réviseur < 30 min), relevé pendant TR-10."
     },
     {
       "id": "TC-101",
       "key": "CT-8 §14",
-      "line": 7511,
+      "line": 8086,
       "delegated": "Conduite des trois épreuves de CT-8 §14.",
       "response": "TR-9, TR-10, TR-11 en §12, conduites selon le protocole commun de 12.1."
     },
     {
       "id": "TC-102",
       "key": "CT-8 §14.2",
-      "line": 7614,
+      "line": 8190,
       "delegated": "Durée de l'épreuve (b), mesure de CT-9.",
       "response": "EX-12.4 : consignation `consignation_rejeu` (schéma, §12.1), CT-8 EX-14.10 généralisée à toutes les épreuves TR-."
     },
     {
       "id": "TC-103",
       "key": "CT-8 §14.2",
-      "line": 7616,
+      "line": 8192,
       "delegated": "Consignation EX-14.10 par CT-9.",
       "response": "§12.1 (protocole commun) : consignation champ par champ."
     },
     {
       "id": "TC-104",
       "key": "CT-8 §15",
-      "line": 7648,
+      "line": 8224,
       "delegated": "Conformité des images à leur description : épreuve de construction.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-105",
       "key": "CT-8 §15",
-      "line": 7674,
+      "line": 8250,
       "delegated": "Script de préparation éprouvé sur le système de référence.",
       "response": "EX-11.1 : système de référence de la porte 2 fixé en §11.1."
     },
     {
       "id": "TC-106",
       "key": "CT-8 §15",
-      "line": 7675,
+      "line": 8251,
       "delegated": "Système de référence fixé par CT-9.",
       "response": "§11.1."
     },
     {
       "id": "TC-107",
       "key": "CT-8 §15",
-      "line": 7698,
+      "line": 8276,
       "delegated": "Cibles des sections 10 à 12 à mesurer.",
       "response": "TM-37 (RPO, RTO, restauration), TM-38 (latence en observation), TM-35 (mempool) en §11."
     },
     {
       "id": "TC-108",
       "key": "CT-8 §15",
-      "line": 7706,
+      "line": 8284,
       "delegated": "Journal d'accès des supports : CT-9 l'établit.",
       "response": "TM-39 (journal d'accès par fournisseur) établit la source `journal_acces_support` avant que CT-8 EX-11.19 la tienne pour acquise."
     },
     {
       "id": "TC-109",
       "key": "CT-8 §15",
-      "line": 7735,
+      "line": 8324,
       "delegated": "Budgets IR et IC à mesurer.",
       "response": "TM-21 (900 s) et TM-22 (450 min, 480 avec la réserve) en §11 ; porte 2 en §14."
     },
     {
       "id": "TC-110",
       "key": "CT-8 §B.2",
-      "line": 8696,
+      "line": 9329,
       "delegated": "Ordre des champs de `chronyc -c tracking` à relever.",
       "response": "TM-40 (ordre des champs de chronyc -c tracking relevé sur chrony 4.6)."
     },
     {
       "id": "TC-111",
       "key": "CT-8 §B.4",
-      "line": 8751,
+      "line": 9384,
       "delegated": "Latence en observation.",
       "response": "TM-38 (latence en observation)."
     },
     {
       "id": "TC-112",
       "key": "CT-8 §B.5",
-      "line": 8799,
+      "line": 9432,
       "delegated": "Temps du réviseur.",
       "response": "TM-25 (temps du réviseur)."
     },

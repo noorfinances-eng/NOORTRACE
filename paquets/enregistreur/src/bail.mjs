@@ -52,6 +52,20 @@ export class MagasinBail {
 const CONFLIT = 75;
 
 /**
+ * Commande que `flock(1)` exécute, verrou pris : elle l'annonce sur sa sortie
+ * standard, puis lit son entrée standard (le tube du démon) jusqu'à la fin de
+ * fichier, et se termine. Elle remplace `sh -c "echo verrou_pris; exec cat"`
+ * (CT-8 CO-12 : images sans interpréteur de commandes).
+ */
+export const SCRIPT_AUXILIAIRE = [
+  'process.stdout.on("error",()=>{});',
+  'process.stdout.write("verrou_pris\\n");',
+  'process.stdin.on("end",()=>process.exit(0));',
+  'process.stdin.on("error",()=>process.exit(0));',
+  "process.stdin.resume();",
+].join("");
+
+/**
  * Magasin `file` (13.2) : un seul hôte. Acquisition par `flock(LOCK_EX |
  * LOCK_NB)` sur `lease.store.path`, verrou tenu « tant que le descripteur est
  * ouvert », libéré par le noyau à la mort du processus ; en cas de succès,
@@ -60,18 +74,27 @@ const CONFLIT = 75;
  *
  * Node.js n'offre pas `flock(2)` sans module natif : le verrou est pris et
  * tenu par un processus auxiliaire, `flock(1)` d'util-linux (même appel
- * système), lancé par le démon avec un tube sur son entrée standard. Le
- * verrou est sur la description de fichier ouverte par l'auxiliaire ; celui-ci
- * vit tant que le tube est ouvert, c'est-à-dire tant que le démon vit : à la
- * mort du démon (même par SIGKILL), le noyau ferme le tube, l'auxiliaire lit
- * la fin de fichier, se termine, et le noyau libère le verrou. Un démon figé
- * garde le tube ouvert, donc le verrou (EX-13.10, dernier alinéa). Un
- * auxiliaire qui meurt seul (tué) libère le verrou : le bail n'est plus tenu
- * pour valide (`valide()` faux), l'écrivain cesse d'écrire (EX-13.6). Le
- * fichier verrou n'est jamais supprimé (le supprimer pendant qu'un autre
- * processus le tient ouvert donnerait deux verrous sur deux fichiers). Le
- * contenu du fichier verrou n'est pas lu : aucun PID n'entre dans la décision.
- * Lecture consignée dans le LISEZMOI.
+ * système), lancé par le démon avec un tube sur son entrée standard. Depuis
+ * l'étape 7 (CT-8 CO-12, EX-4.4 : images sans interpréteur de commandes),
+ * `flock(1)` n'appelle plus d'interpréteur : sans `-c`, il exécute
+ * directement (execvp) sa commande, le programme Node.js du démon lui-même
+ * (`process.execPath -e <SCRIPT_AUXILIAIRE>`), qui annonce le verrou pris
+ * (`verrou_pris`) puis lit son entrée standard jusqu'à la fin de fichier ;
+ * ni `/bin/sh`, ni `cat` ne sont requis, `flock(1)` reste la seule
+ * dépendance hors de Node.js. `--close` : la commande ne reçoit pas le
+ * descripteur du verrou, que seul `flock(1)` tient. Le verrou est sur la
+ * description de fichier ouverte par `flock(1)` ; celui-ci vit tant que sa
+ * commande vit, et la commande tant que le tube est ouvert, c'est-à-dire tant
+ * que le démon vit : à la mort du démon (même par SIGKILL), le noyau ferme le
+ * tube, la commande lit la fin de fichier et se termine, `flock(1)` aussi, et
+ * le noyau libère le verrou. Un démon figé garde le tube ouvert, donc le
+ * verrou (EX-13.10, dernier alinéa). Un auxiliaire `flock(1)` qui meurt seul
+ * (tué) libère le verrou : le bail n'est plus tenu pour valide (`valide()`
+ * faux), l'écrivain cesse d'écrire (EX-13.6). Le fichier verrou n'est jamais
+ * supprimé (le supprimer pendant qu'un autre processus le tient ouvert
+ * donnerait deux verrous sur deux fichiers). Le contenu du fichier verrou
+ * n'est pas lu : aucun PID n'entre dans la décision. Lecture consignée dans
+ * le LISEZMOI.
  */
 export class MagasinBailFichier extends MagasinBail {
   /**
@@ -92,15 +115,19 @@ export class MagasinBailFichier extends MagasinBail {
   }
 
   /**
-   * Lance `flock --exclusive --nonblock` sur le fichier verrou ; rend
-   * l'auxiliaire qui le tient, ou lève `bail_non_detenu` (tenu ailleurs).
+   * Lance `flock --exclusive --nonblock --close` sur le fichier verrou, avec
+   * pour commande le programme Node.js du démon (aucun interpréteur de
+   * commandes) ; rend l'auxiliaire qui le tient, ou lève `bail_non_detenu`
+   * (tenu ailleurs).
    */
   async _verrouiller() {
+    const env = { ...process.env };
+    // L'auxiliaire n'hérite d'aucune option de démarrage de Node.js destinée au démon.
+    delete env.NODE_OPTIONS;
     const p = spawn(
       this.programme,
-      ["--exclusive", "--nonblock", "--conflict-exit-code", String(CONFLIT), this.chemin, "-c", "echo verrou_pris; exec cat >/dev/null"],
-      // `-c` passe la commande à l'interpréteur de `SHELL` : celui du système.
-      { stdio: ["pipe", "pipe", "ignore"], env: { ...process.env, SHELL: "/bin/sh" } },
+      ["--exclusive", "--nonblock", "--close", "--conflict-exit-code", String(CONFLIT), this.chemin, process.execPath, "-e", SCRIPT_AUXILIAIRE],
+      { stdio: ["pipe", "pipe", "ignore"], env },
     );
     const issue = await new Promise((resoudre) => {
       let sortie = "";

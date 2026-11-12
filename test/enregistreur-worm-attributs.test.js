@@ -219,3 +219,64 @@ describe("compagnon des attributs a et i (CT-2 EX-12.18, CT-8 EX-3.9) : démon r
     expect(lireAttributs(courant)).to.match(/a/);
   });
 });
+
+// Étape 7 : sans `DAC_READ_SEARCH`, le compte 0
+// ne parcourt pas `storage.root` (0700, compte 10001). Le compagnon avalait
+// l'erreur de lecture, rendait 0 et sa sonde disait sain : panne silencieuse.
+// Il échoue désormais bruyamment.
+describe("compagnon des attributs (CT-2 EX-12.18, CT-8 EX-3.9) : racine illisible sans DAC_READ_SEARCH, panne bruyante", function () {
+  this.timeout(60000);
+  const SANS_LECTURE = ["setpriv", "--bounding-set=-dac_read_search,-dac_override", "--inh-caps=-all", "--"];
+  let dir;
+
+  before(function () {
+    if (process.getuid?.() !== 0 || spawnSync("setpriv", ["--version"]).status !== 0) {
+      this.currentTest && (this.currentTest.title += " — en attente : compte 0 et setpriv requis");
+      this.skip();
+    }
+    dir = repertoireTemporaire("noortrace-attributs-illisible-");
+  });
+
+  after(function () {
+    if (dir) {
+      sh("chattr", ["-R", "-a", "-i", dir]);
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("sans DAC_READ_SEARCH ni DAC_OVERRIDE (compte 0) : --une-fois rend 1 et consigne attribute_unreadable sur la racine ; la sonde dit malade (1) ; en service, le compagnon s'arrête avec le code 1 (attribute_root_unreadable) ; avec la capacité, le même passage rend 0", function () {
+    const racine = path.join(dir, "journal");
+    const seg = path.join(racine, "a".repeat(64), "b".repeat(64), "segments");
+    fs.mkdirSync(seg, { recursive: true });
+    fs.writeFileSync(path.join(seg, "seg-0000000000000001-00000000000000000001.ndjson"), "{}\n", { mode: 0o400 });
+    for (const d of [racine, path.dirname(path.dirname(seg)), path.dirname(seg), seg]) {
+      fs.chownSync(d, 10001, 10001);
+      fs.chmodSync(d, 0o700);
+    }
+    const tmp = path.join(dir, "tmp-compagnon");
+    fs.mkdirSync(tmp);
+    const env = { ...process.env, TMPDIR: tmp };
+    const une = sh(SANS_LECTURE[0], [...SANS_LECTURE.slice(1), process.execPath, BIN_ATTRIBUTS, "--racine", racine, "--une-fois"], env);
+    expect(une.status, une.stderr).to.equal(1);
+    const lignes = une.stderr.split("\n").filter((l) => l.startsWith("{")).map((l) => JSON.parse(l));
+    const e = lignes.find((l) => l.event === "attribute_unreadable");
+    expect(e, une.stderr).to.not.equal(undefined);
+    expect(e.level).to.equal("error");
+    expect(e.data.fichier).to.equal(".");
+    expect(e.data.message).to.match(/EACCES/);
+    expect(sh(process.execPath, [BIN_ATTRIBUTS, "sonde"], env).status, "sonde après un passage aveugle").to.equal(1);
+    const service = sh(SANS_LECTURE[0], [...SANS_LECTURE.slice(1), process.execPath, BIN_ATTRIBUTS, "--racine", racine, "--intervalle-s", "1"], { ...env });
+    expect(service.status, service.stderr).to.equal(1);
+    expect(service.stderr).to.include('"event":"attribute_root_unreadable"');
+    expect(sh(process.execPath, [BIN_ATTRIBUTS, "sonde"], env).status).to.equal(1);
+    // Racine absente : même refus.
+    const absente = sh(process.execPath, [BIN_ATTRIBUTS, "--racine", path.join(dir, "absente"), "--une-fois"], env);
+    expect(absente.status).to.equal(1);
+    expect(absente.stderr).to.include('"event":"attribute_unreadable"');
+    // Avec la capacité de lecture (compte 0 complet), la racine est parcourue ;
+    // la pose dépend du système de fichiers et n'est pas jugée ici.
+    const r = passageAttributs(racine);
+    expect(r.racineIllisible).to.equal(false);
+    expect(r.erreurs.filter((x) => /EACCES/.test(x.message))).to.deep.equal([]);
+  });
+});

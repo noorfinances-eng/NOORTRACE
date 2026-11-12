@@ -132,14 +132,18 @@ construction.
   par le modèle de menace et la matrice de conformité existe).
 - `deploiement/` : fichiers de déploiement de référence de CT-8 : fichiers
   Compose de l'installation rapide et de la production, description des
-  images, configuration de l'installation rapide ; voir
-  [deploiement/LISEZMOI.md](deploiement/LISEZMOI.md). Les images elles-mêmes
-  ne sont pas construites.
+  images, configurations, préparation de l'hôte, gabarits des tâches
+  planifiées, copies des runbooks, règles d'alerte de référence ; voir
+  [deploiement/LISEZMOI.md](deploiement/LISEZMOI.md). Les images sont
+  construites depuis `conteneurs/` (étape 7), sans être publiées.
 - `scripts/deploiement/` : outils de CT-8 : contrôle préalable d'un hôte,
   calculateur de dimensionnement, vérification statique des fichiers Compose,
   configuration rapide, archive de déploiement, vérification d'un répertoire
   de journal, rapport d'observation, procès-verbaux d'exploitation, journal des
-  consultations, vérificateur des renvois vers CT-8.
+  consultations, vérificateur des renvois vers CT-8 ; depuis l'étape 7,
+  sauvegarde et reprise, archivage du journal d'exploitation, règles d'alerte,
+  extracteur des journaux, sonde, construction des images et banc
+  d'installation complète.
 - `scripts/paquet-reviseur/` : construction d'un paquet réviseur déterministe
   et sa vérification hors ligne en une commande, avec les instructions
   remises au réviseur ; voir
@@ -161,7 +165,14 @@ construction.
   modification de `spec/` consignée dans `spec/figeage/modifications.json`).
 - `paquets/enregistreur/`, `paquets/ancrage/` : démon enregistreur (étape 4),
   avec l'export du dossier sur demande (`noortrace-ctl dossier exporter`,
-  étape 6), et composant d'ancrage (étape 5).
+  étape 6) et, à l'étape 7, ses commandes de santé et de clôture anticipée et la
+  clé de chaîne de classe B ou C, et composant d'ancrage (étape 5).
+- `conteneurs/` : fichiers de construction des images `noortrace/*` (CT-8 §3.3,
+  §3.6, étape 7), sans interpréteur de commandes, construites deux fois aux
+  mêmes condensés et non publiées ; pont stdio et son serveur de fichiers
+  minimal.
+- `scripts/publication/` : préparation d'une version sans rien publier (CT-6
+  §14.4) ; voir [scripts/publication/LISEZMOI.md](scripts/publication/LISEZMOI.md).
 - `paquets/approbation/`, `paquets/console/` : service d'approbation et console
   d'exploitation de CT-3 §13 (étape 6) : bibliothèque commune, serveur de
   console (OIDC, sessions, relais authentifié vers le service) et pages
@@ -209,8 +220,19 @@ l'enregistreur (étape 4) et le composant d'ancrage avec ses clients réseau
 décision dans son propre portefeuille), l'inscription des organisations par
 l'exploitant, l'export des dossiers par l'enregistreur et la page de
 vérification ; son critère est démontré : une décision signée depuis la
-console, le dossier exporté accepté par les deux vérificateurs. À construire :
-les paquets, l'observabilité et les runbooks (étape 7), la campagne de bout en
+console, le dossier exporté accepté par les deux vérificateurs. L'étape 7 livre
+les six images `noortrace/*` (sans interpréteur, deux constructions aux mêmes
+condensés, non publiées), les commandes `noortrace-ctl sonde`, `etat` et
+`close-period --now`, la clé de chaîne de classe B ou C tenue par un service de
+gestion de clés et sa rotation d'urgence relayée au registre, les règles
+d'alerte de référence avec leur extracteur, leur générateur et leur sonde, la
+préparation de l'hôte, les tâches planifiées, la sauvegarde et la reprise, les
+copies des runbooks et une version préparée sans rien publier. Son critère a
+été joué sur un banc sans réseau public : l'installation complète IC-1 à IC-18
+de CT-8, déroulée par un harnais en 58 min (dont 57 d'attente de la clôture de
+l'heure), le premier dossier accepté par les deux vérificateurs ; ce banc n'est
+pas le système de référence, et l'installation sur une machine vierge par un
+ingénieur extérieur est rattachée à l'étape 8. Reste la campagne de bout en
 bout, adversariale et de performance (étape 8).
 
 ## Licence

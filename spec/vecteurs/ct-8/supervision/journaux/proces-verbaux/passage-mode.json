@@ -1,0 +1,47 @@
+{
+  "version": 0,
+  "kind": "passage_mode",
+  "id": "pv-2026-11-05-002",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "started_at": "2026-11-05T09:45:00.000Z",
+  "finished_at": "2026-11-05T09:47:30.000Z",
+  "operators": [
+    {
+      "identity": "administrateur-noortrace",
+      "role": "executant"
+    },
+    {
+      "identity": "responsable-conformite",
+      "role": "approbateur"
+    }
+  ],
+  "reason": "fin de la periode d'observation, decision COMITE-2026-11",
+  "source": {
+    "medium": "volume_local",
+    "locator": "volume noortrace-donnees-2, hote enregistreur-1"
+  },
+  "destination": null,
+  "files": [],
+  "totals": {
+    "files": 0,
+    "bytes": 0
+  },
+  "verification": {
+    "tool": "verifier-journal 0.1.0 (CT-8 EX-11.7)",
+    "command": "node scripts/deploiement/verifier-journal.mjs . --cles cles.json",
+    "result": "valide",
+    "report_sha256": null
+  },
+  "continuity": null,
+  "retention": null,
+  "mode_change": {
+    "from": "observation",
+    "to": "erreur",
+    "policy_version": "2026-11-05-erreur",
+    "policy_sha256": "0xa4fc605ed6150d195f39f0a17f48fd9868f73a4efee469ae7764a11f682a170f",
+    "policy_event_seq": 8,
+    "report_sha256": "0x2df5ab6987cc8345b9a6f8bee1002b97b708901ee996faa44506bd9fb4254794"
+  },
+  "observations": null
+}

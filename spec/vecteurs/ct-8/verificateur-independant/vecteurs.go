@@ -138,5 +138,6 @@ func VerifierVecteurs(racine string) *Rapport {
 	FamilleJournaux(c)
 	FamilleConsultations(c)
 	FamilleProcesVerbaux(c)
+	FamilleSupervision(c)
 	return rap
 }

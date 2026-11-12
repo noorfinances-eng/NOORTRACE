@@ -1,0 +1,202 @@
+name: version
+
+# Préparation d'une version de NOORTRACE, sans rien publier (CT-6 §14.3 et
+# §14.4, CT-8 EX-3.6, EX-3.13, EX-3.14). Ce travail ne pousse rien, ne crée
+# ni étiquette ni publication, n'envoie aucune image et n'emploie aucune
+# clé : il ne détient que le droit de lire le dépôt (permissions ci-dessous,
+# aucun travail ne les élargit). Tout ce qu'il produit reste dans les
+# artefacts de l'exécution :
+#   - binaires-conteneur : noortrace-verifier linux/amd64 et linux/arm64,
+#     recette d'EX-14.6 (verificateur/scripts/construire.sh) dans l'image de
+#     construction épinglée par condensé (EX-14.7) ;
+#   - binaires-hote : les mêmes binaires, second constructeur indépendant
+#     (go1.27.3 officiel vérifié par SHA-256 sur l'hôte, autre chemin, autre
+#     cache, autre utilisateur ; EX-14.8, CT-8 EX-3.13) ;
+#   - noortrace-<version> : scripts/publication/preparer-version.mjs, qui
+#     refuse si les deux constructeurs diffèrent d'un octet, puis écrit
+#     go version -m, l'archive de déploiement, LICENSE, NOTICE,
+#     LICENCES-TIERCES, SHA256SUMS, la déclaration de provenance in-toto
+#     préparée (non signée) et la note de version remplie.
+# La signature minisign de SHA256SUMS et l'attestation signée de provenance
+# (actions/attest-build-provenance, droits id-token: write et
+# attestations: write) ne sont ajoutées qu'après validation par le porteur ;
+# la procédure est dans scripts/publication/LISEZMOI.md.
+#
+# Actions épinglées par SHA de commit (CT-6 EX-14.7) ; chaque SHA est celui
+# de l'étiquette de version citée en commentaire, publiée plus de deux
+# semaines avant son ajout. L'image de construction est désignée par son
+# condensé d'index ; l'essai test/publication-etape7.test.js relit ce
+# fichier (déclencheurs, droits, épinglage, absence de publication).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version x.y.z à préparer (rien n'est publié)"
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: version-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: version demandée (étiquette v* ou entrée manuelle)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: lire et contrôler la version
+        id: version
+        env:
+          EVENEMENT: ${{ github.event_name }}
+          ENTREE: ${{ inputs.version }}
+          ETIQUETTE: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENEMENT" = push ]; then v="${ETIQUETTE#v}"; else v="$ENTREE"; fi
+          if ! printf '%s\n' "$v" | grep -Eqx '(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?'; then
+            echo "version « $v » : x.y.z attendu" >&2
+            exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+  binaires-conteneur:
+    name: binaire noortrace-verifier amd64 et arm64, constructeur 1 (image golang 1.27.3 épinglée par condensé)
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      # golang:1.27.3-bookworm, index publié le 2026-10-21 (CT-6 EX-14.7)
+      image: golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: recette d'EX-14.6 pour linux/amd64 et linux/arm64 (go1.27.3 de l'image)
+        run: |
+          set -euo pipefail
+          test "$(GOENV=off go env GOVERSION)" = go1.27.3
+          mkdir binaires-conteneur
+          for p in linux/amd64 linux/arm64; do
+            verificateur/scripts/construire.sh -v "$VERSION" -p "$p" -o "$PWD/binaires-conteneur/noortrace-verifier-${p%/*}-${p#*/}"
+          done
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: binaires-conteneur
+          path: binaires-conteneur/
+          if-no-files-found: error
+          retention-days: 30
+
+  binaires-hote:
+    name: binaire noortrace-verifier amd64 et arm64, constructeur 2 (go1.27.3 officiel sur l'hôte, autres chemins et caches)
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: go1.27.3 officiel, SHA-256 de go.dev vérifié avant extraction
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSL --retry 5 -o go1.27.3.linux-amd64.tar.gz https://go.dev/dl/go1.27.3.linux-amd64.tar.gz
+          echo "65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40  go1.27.3.linux-amd64.tar.gz" | sha256sum --strict -c
+          tar -xzf go1.27.3.linux-amd64.tar.gz
+          echo "$RUNNER_TEMP/go/bin" >> "$GITHUB_PATH"
+      - name: recette d'EX-14.6 depuis une copie des sources, cache neuf
+        run: |
+          set -euo pipefail
+          test "$(GOENV=off go env GOVERSION)" = go1.27.3
+          autre="$RUNNER_TEMP/constructeur-2"
+          mkdir -p "$autre/src" "$GITHUB_WORKSPACE/binaires-hote"
+          cp -a verificateur "$autre/src/verificateur"
+          for p in linux/amd64 linux/arm64; do
+            GOCACHE="$autre/cache" GOMODCACHE="$autre/mod" "$autre/src/verificateur/scripts/construire.sh" -v "$VERSION" -p "$p" -o "$GITHUB_WORKSPACE/binaires-hote/noortrace-verifier-${p%/*}-${p#*/}"
+          done
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: binaires-hote
+          path: binaires-hote/
+          if-no-files-found: error
+          retention-days: 30
+
+  preparation:
+    name: version préparée (deux constructeurs égaux, SHA256SUMS, archive, note, provenance), rien n'est publié
+    needs: [version, binaires-conteneur, binaires-hote]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GOTOOLCHAIN: local
+      IMAGE_CONSTRUCTION: golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22.23.4
+      - name: go1.27.3 officiel, SHA-256 de go.dev vérifié avant extraction (go version -m)
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSL --retry 5 -o go1.27.3.linux-amd64.tar.gz https://go.dev/dl/go1.27.3.linux-amd64.tar.gz
+          echo "65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40  go1.27.3.linux-amd64.tar.gz" | sha256sum --strict -c
+          tar -xzf go1.27.3.linux-amd64.tar.gz
+          echo "$RUNNER_TEMP/go/bin" >> "$GITHUB_PATH"
+      # Dépendances à l'intégrité fixée par package-lock.json, sans scripts
+      # d'installation : l'archive de déploiement en recopie ethers et js-yaml.
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: binaires-conteneur
+          path: ${{ runner.temp }}/binaires-conteneur
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: binaires-hote
+          path: ${{ runner.temp }}/binaires-hote
+      - name: préparer la version (refus si les deux constructeurs diffèrent), sans signature ni publication
+        run: |
+          set -euo pipefail
+          node scripts/publication/preparer-version.mjs \
+            --version "$VERSION" --commit "$GITHUB_SHA" --date "$(git log -1 --format=%ct "$GITHUB_SHA")" \
+            --binaires "$RUNNER_TEMP/binaires-conteneur" --temoin "$RUNNER_TEMP/binaires-hote" \
+            --image-construction "$IMAGE_CONSTRUCTION" \
+            --depot-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" --ref "$GITHUB_REF" \
+            --execution "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT" \
+            --exiger-arbre-propre --sortie "$RUNNER_TEMP/noortrace-$VERSION"
+          cd "$RUNNER_TEMP/noortrace-$VERSION"
+          sha256sum --strict -c SHA256SUMS
+          cat NOTE-DE-VERSION.md >> "$GITHUB_STEP_SUMMARY"
+      # govulncheck sur chaque binaire préparé (CT-6 EX-14.11) : code de
+      # retour lu hors du mode -json ; govulncheck v1.9.0 résolu par le
+      # mandataire de modules et vérifié par la base de sommes.
+      - name: govulncheck sur les deux binaires préparés (CT-6 EX-14.11)
+        run: |
+          set -euo pipefail
+          GOFLAGS= go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          for b in "$RUNNER_TEMP/noortrace-$VERSION"/noortrace-verifier-linux-amd64 "$RUNNER_TEMP/noortrace-$VERSION"/noortrace-verifier-linux-arm64; do
+            "$(go env GOPATH)/bin/govulncheck" -mode=binary "$b"
+          done
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: noortrace-${{ needs.version.outputs.version }}
+          path: ${{ runner.temp }}/noortrace-${{ needs.version.outputs.version }}/
+          if-no-files-found: error
+          retention-days: 30

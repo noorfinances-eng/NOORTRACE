@@ -1,0 +1,937 @@
+# Règles d'alerte de référence de NOORTRACE (CT-8 §10.4 à §10.7, EX-10.1,
+# EX-10.2), au format des règles d'alerte de Prometheus.
+#
+# Écrit par node scripts/deploiement/regles.mjs ; ne pas éditer à la main.
+# Un client qui change un réglage régénère ce fichier (EX-10.6) :
+#   node scripts/deploiement/regles.mjs --configuration <configuration> \
+#     --ancrage <ancrage.json> [--instance <manifeste>] [--dimensionnement <entrées>]
+#
+# Paramètres de ce fichier :
+#   pending_max_ms: 120000
+#   warn_skew_ms: 500
+#   lock_audit_interval_days: 7
+#   min_free_bytes: 4294967296
+#   storage_root: /srv/noortrace
+#   anchor_pending_alert_s: 3600
+#   inclusion_alert_s: 120
+#   give_up_after_s: 604800
+#   requetes_ancrage_par_heure: 76
+#   txpool_max_pending: 4096
+#   refill_below_days: 7
+#   gas_limit: 3000000
+#   budget_journalier_gaz: 10800000
+#   rpo_s: 86400
+#
+# Les noms de lignes et de membres sont ceux du code des paquets ; les
+# écarts aux tables de CT-8 sont listés dans scripts/lib/supervision.mjs
+# (ECARTS_CT8).
+groups:
+  # CT-8 §10.4 Règles de l'enregistreur
+  - name: noortrace-enregistreur
+    rules:
+      - alert: noortrace_mode_degrade_critique
+        expr: 'max by (instance, reason) (noortrace_degraded{reason=~"cle|bail|horloge"}) == 1'
+        for: 60s
+        labels:
+          severity: 'critique'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Mode dégradé'
+          runbook: 'RB-1, RB-2, RB-6, RB-8'
+        annotations:
+          summary: 'Mode dégradé pour la clé, le bail ou l''horloge'
+          description: 'Mode dégradé pour la clé, le bail ou l''horloge. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Mode dégradé. Runbook : RB-1, RB-2, RB-6, RB-8.'
+      - alert: noortrace_mode_degrade_majeur
+        expr: 'max by (instance, reason) (noortrace_degraded{reason=~"stockage|attente|approbation"}) == 1'
+        for: 60s
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Mode dégradé'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Mode dégradé pour le stockage, l''attente ou l''approbation'
+          description: 'Mode dégradé pour le stockage, l''attente ou l''approbation. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Mode dégradé. Runbook : RB-1.'
+      - alert: noortrace_mode_degrade_serveur
+        expr: 'max by (instance, reason) (noortrace_degraded{reason=~"serveur:.*"}) == 1'
+        for: 60s
+        labels:
+          severity: 'mineure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Mode dégradé'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Serveur d''outils injoignable'
+          description: 'Serveur d''outils injoignable. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Mode dégradé. Runbook : aucun.'
+      - alert: noortrace_appels_bloques
+        expr: 'rate(noortrace_calls_blocked_total[5m]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Appels bloqués'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Appels bloqués par l''enregistreur'
+          description: 'Appels bloqués par l''enregistreur. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Appels bloqués. Runbook : RB-1.'
+      - alert: noortrace_attente_non_vide
+        expr: 'noortrace_pending_events > 0'
+        for: 300s
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Événements en attente'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Événements en attente depuis cinq minutes'
+          description: 'Événements en attente depuis cinq minutes. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Événements en attente. Runbook : RB-1.'
+      - alert: noortrace_attente_ancienne
+        expr: 'noortrace_pending_oldest_ms > 60000'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Événements en attente'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Plus ancien événement en attente au-delà de la moitié de pending_max_ms'
+          description: 'Plus ancien événement en attente au-delà de la moitié de pending_max_ms. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Événements en attente. Runbook : RB-1.'
+      - alert: noortrace_bail_non_detenu
+        expr: 'noortrace_lease_epoch{role="active"} == 0'
+        labels:
+          severity: 'critique'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Bail'
+          runbook: 'RB-2'
+        annotations:
+          summary: 'Bail non détenu par l''instance attendue active'
+          description: 'Bail non détenu par l''instance attendue active. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Bail. Runbook : RB-2.'
+      - alert: noortrace_bail_renouvellement
+        expr: 'increase(noortrace_lease_renew_failures_total[5m]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Bail'
+          runbook: 'RB-2'
+        annotations:
+          summary: 'Échec de renouvellement du bail'
+          description: 'Échec de renouvellement du bail. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Bail. Runbook : RB-2.'
+      - alert: noortrace_ancre_en_retard
+        expr: 'noortrace_anchor_pending > 0'
+        for: 1h
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Ancre en retard ; CT-5 §8.9 « ancre en retard »'
+          runbook: 'RB-3'
+        annotations:
+          summary: 'Ancre de période non confirmée au-delà de queue.anchor_pending_alert_s'
+          description: 'Ancre de période non confirmée au-delà de queue.anchor_pending_alert_s. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Ancre en retard ; CT-5 §8.9 « ancre en retard ». Runbook : RB-3.'
+      - alert: noortrace_copie_worm_en_retard
+        expr: 'noortrace_worm_copy_pending > 0'
+        for: 1h
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Copie WORM en retard'
+          runbook: 'RB-5'
+        annotations:
+          summary: 'Copie WORM en retard depuis une heure'
+          description: 'Copie WORM en retard depuis une heure. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Copie WORM en retard. Runbook : RB-5.'
+      - alert: noortrace_verrou_worm_non_conforme
+        expr: 'noortrace_worm_lock_nonconforming > 0'
+        labels:
+          severity: 'critique'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Verrou WORM non conforme'
+          runbook: 'RB-5'
+        annotations:
+          summary: 'Version du support WORM au verrou non conforme'
+          description: 'Version du support WORM au verrou non conforme. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Verrou WORM non conforme. Runbook : RB-5.'
+      - alert: noortrace_retention_support_non_conforme
+        expr: 'increase(noortrace_journal_lignes_total{event="worm_lock_config_check",detail="non_conforme"}[1d]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Verrou WORM non conforme'
+          runbook: 'RB-5'
+        annotations:
+          summary: 'Configuration de rétention du support WORM non conforme'
+          description: 'Configuration de rétention du support WORM non conforme. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Verrou WORM non conforme. Runbook : RB-5.'
+      - alert: noortrace_releve_en_retard
+        expr: 'noortrace_worm_last_audit_age_s > 1209600'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Relevé de verrouillage en retard'
+          runbook: 'RB-5'
+        annotations:
+          summary: 'Relevé de verrouillage plus vieux que deux intervalles'
+          description: 'Relevé de verrouillage plus vieux que deux intervalles. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Relevé de verrouillage en retard. Runbook : RB-5.'
+      - alert: noortrace_versions_inattendues
+        expr: 'noortrace_worm_versions_unexpected > 0'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Versions inattendues'
+          runbook: 'RB-5'
+        annotations:
+          summary: 'Versions inattendues sur le support WORM'
+          description: 'Versions inattendues sur le support WORM. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Versions inattendues. Runbook : RB-5.'
+      - alert: noortrace_registre_gels_invalide
+        expr: 'increase(noortrace_journal_lignes_total{event="worm_legal_hold_observed",detail="garde_violee"}[1d]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Registre des gels invalide'
+          runbook: 'RB-5'
+        annotations:
+          summary: 'Registre des gels qui viole la règle de garde'
+          description: 'Registre des gels qui viole la règle de garde. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Registre des gels invalide. Runbook : RB-5.'
+      - alert: noortrace_gel_non_pose
+        expr: 'increase(noortrace_journal_lignes_total{event="worm_lock_check",detail="gel_absent"}[1d]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Gel non posé sur une version d''un gel actif'
+          runbook: 'RB-5'
+        annotations:
+          summary: 'Gel attendu absent sur une version d''un gel actif'
+          description: 'Gel attendu absent sur une version d''un gel actif. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Gel non posé sur une version d''un gel actif. Runbook : RB-5.'
+      - alert: noortrace_controle_integrite
+        expr: 'increase(noortrace_integrity_check_failures_total{check!="configuration_worm"}[1h]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Contrôle d''intégrité en échec'
+          runbook: 'RB-1, RB-5'
+        annotations:
+          summary: 'Contrôle d''intégrité en échec'
+          description: 'Contrôle d''intégrité en échec. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Contrôle d''intégrité en échec. Runbook : RB-1, RB-5.'
+      - alert: noortrace_gel_leve
+        expr: 'increase(noortrace_journal_lignes_total{event="worm_legal_hold_observed",detail="levee"}[1d]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Gel levé'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Gel juridique levé (rapprocher d''EX-11.16)'
+          description: 'Gel juridique levé (rapprocher d''EX-11.16). Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Gel levé. Runbook : aucun.'
+      - alert: noortrace_horloge_ecart
+        expr: 'abs(noortrace_clock_skew_ms) > 500'
+        labels:
+          severity: 'mineure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Horloge'
+          runbook: 'RB-6'
+        annotations:
+          summary: 'Écart d''horloge au-delà de clock.warn_skew_ms'
+          description: 'Écart d''horloge au-delà de clock.warn_skew_ms. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Horloge. Runbook : RB-6.'
+      - alert: noortrace_definition_outil_changee
+        expr: 'increase(noortrace_tool_definition_changes_total[1h]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Définition d''outil changée'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Définition d''un outil changée'
+          description: 'Définition d''un outil changée. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Définition d''outil changée. Runbook : aucun.'
+      - alert: noortrace_fourche
+        expr: 'increase(noortrace_journal_lignes_total{event="journal_fork"}[5m]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Fourche'
+          runbook: 'RB-2'
+        annotations:
+          summary: 'Fourche du journal'
+          description: 'Fourche du journal. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Fourche. Runbook : RB-2.'
+      - alert: noortrace_panne_apres_relais
+        expr: 'increase(noortrace_calls_executed_not_durable_total[5m]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Panne après relais'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Appel exécuté sans événement durable'
+          description: 'Appel exécuté sans événement durable. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Panne après relais. Runbook : RB-1.'
+      - alert: noortrace_relais_refuse
+        expr: 'increase(noortrace_approval_relays_refused_total[5m]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Relais refusé ou identifiant en collision'
+          runbook: 'RB-8'
+        annotations:
+          summary: 'Relais d''approbation refusé'
+          description: 'Relais d''approbation refusé. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Relais refusé ou identifiant en collision. Runbook : RB-8.'
+      - alert: noortrace_remise_refusee
+        expr: 'increase(noortrace_approval_remises_refused_total[1h]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Remise refusée'
+          runbook: 'RB-8'
+        annotations:
+          summary: 'Remise d''approbation refusée'
+          description: 'Remise d''approbation refusée. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Remise refusée. Runbook : RB-8.'
+      - alert: noortrace_politique_invalide_au_charger
+        expr: 'increase(noortrace_journal_lignes_total{event="approval_service_unavailable",detail="politique_invalide_au_charger"}[1h]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Remise refusée (politique_invalide, CT-2 EX-7.15)'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Politique d''approbation refusée par le service au chargement'
+          description: 'Politique d''approbation refusée par le service au chargement. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Remise refusée (politique_invalide, CT-2 EX-7.15). Runbook : aucun.'
+      - alert: noortrace_budget_redaction
+        expr: 'increase(noortrace_redaction_budget_exceeded_total[1h]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Budget de rédaction'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Budget de rédaction dépassé'
+          description: 'Budget de rédaction dépassé. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Budget de rédaction. Runbook : aucun.'
+      - alert: noortrace_budget_redaction_bloquant
+        expr: 'increase(noortrace_calls_blocked_total{reason="redaction"}[1h]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Budget de rédaction'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Appel bloqué par la rédaction'
+          description: 'Appel bloqué par la rédaction. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Budget de rédaction. Runbook : aucun.'
+      - alert: noortrace_cle_mac_relais
+        expr: 'increase(noortrace_journal_lignes_total{event="relay_mac_key_mismatch"}[5m]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Clé du MAC de relais'
+          runbook: 'RB-2'
+        annotations:
+          summary: 'Clé du MAC de relais différente'
+          description: 'Clé du MAC de relais différente. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Clé du MAC de relais. Runbook : RB-2.'
+      - alert: noortrace_quota_hote
+        expr: 'increase(noortrace_calls_blocked_total{code="-31013",reason="quota"}[5m]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Quota d''un hôte'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Quota d''un hôte atteint'
+          description: 'Quota d''un hôte atteint. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Quota d''un hôte. Runbook : aucun.'
+      - alert: noortrace_otel_refusee
+        expr: 'increase(noortrace_otel_requests_total{status=~"429|503"}[5m]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Ingestion OpenTelemetry refusée'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Ingestion OpenTelemetry refusée'
+          description: 'Ingestion OpenTelemetry refusée. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Ingestion OpenTelemetry refusée. Runbook : aucun.'
+      - alert: noortrace_otel_spans_rejetes
+        expr: 'increase(noortrace_otel_spans_total{issue="rejete"}[1h]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Spans rejetés'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Spans OpenTelemetry rejetés'
+          description: 'Spans OpenTelemetry rejetés. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Spans rejetés. Runbook : aucun.'
+      - alert: noortrace_otel_retard
+        expr: 'histogram_quantile(0.99, sum by (le) (rate(noortrace_otel_reception_lag_ms_bucket[15m]))) > 60000'
+        labels:
+          severity: 'mineure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Retard de réception'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Retard de réception OpenTelemetry au-delà d''une minute (p99)'
+          description: 'Retard de réception OpenTelemetry au-delà d''une minute (p99). Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Retard de réception. Runbook : aucun.'
+      - alert: noortrace_otel_conventions
+        expr: 'sum by (source) (increase(noortrace_otel_spans_total[1h])) > 0 and sum by (source) (increase(noortrace_otel_spans_total[1h])) == sum by (source) (increase(noortrace_otel_spans_total{issue="ignore",reason="hors_genai"}[1h]))'
+        labels:
+          severity: 'mineure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Conventions OpenTelemetry renommées'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Aucun span d''une source n''est reconnu (conventions renommées)'
+          description: 'Aucun span d''une source n''est reconnu (conventions renommées). Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Conventions OpenTelemetry renommées. Runbook : aucun.'
+      - alert: noortrace_otel_conflits
+        expr: 'increase(noortrace_otel_conflicts_total[1h]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Span OpenTelemetry rejoué'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Span OpenTelemetry rejoué en conflit'
+          description: 'Span OpenTelemetry rejoué en conflit. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Span OpenTelemetry rejoué. Runbook : aucun.'
+      - alert: noortrace_latence
+        expr: 'histogram_quantile(0.99, sum by (le) (rate(noortrace_relay_latency_ms_bucket[15m]))) > 50'
+        labels:
+          severity: 'mineure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Latence'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Latence ajoutée au-delà de 50 ms (p99)'
+          description: 'Latence ajoutée au-delà de 50 ms (p99). Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Latence. Runbook : aucun.'
+      - alert: noortrace_disque_ligne
+        expr: 'increase(noortrace_journal_lignes_total{event="disk_low"}[5m]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Disque'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Disque presque plein consigné'
+          description: 'Disque presque plein consigné. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Disque. Runbook : RB-1.'
+      - alert: noortrace_disque_espace
+        expr: 'node_filesystem_avail_bytes{mountpoint="/srv/noortrace"} < 8589934592'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Disque'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Espace libre de la racine sous deux fois min_free_bytes'
+          description: 'Espace libre de la racine sous deux fois min_free_bytes. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Disque. Runbook : RB-1.'
+      - alert: noortrace_pieces_attente_perdues
+        expr: 'increase(noortrace_journal_lignes_total{event="pending_pieces_lost"}[5m]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Pièces en attente perdues'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Pièces en attente perdues'
+          description: 'Pièces en attente perdues. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Pièces en attente perdues. Runbook : RB-1.'
+      - alert: noortrace_gel_pose_en_retard
+        expr: 'time() - noortrace_journal_derniere_ligne_s{source="gel",event="worm_legal_hold_set"} > 7200'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §12.6 (tâche de poser et alerte de retard)'
+          runbook: 'RB-5'
+        annotations:
+          summary: 'Gel non posé depuis deux heures (support sans mode Compliance validé)'
+          description: 'Gel non posé depuis deux heures (support sans mode Compliance validé). Gravité majeure, composant enregistreur. Exigence : CT-2 §12.6 (tâche de poser et alerte de retard). Runbook : RB-5.'
+      - alert: noortrace_export_lecture_impossible
+        expr: 'increase(noortrace_journal_lignes_total{event="dossier_export_refused",detail="lecture_impossible"}[1h]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 EX-15.12, raison lecture_impossible (segment, manifeste, série de points ou fichier des approbations illisible)'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Export d''un dossier refusé : lecture impossible'
+          description: 'Export d''un dossier refusé : lecture impossible. Gravité majeure, composant enregistreur. Exigence : CT-2 EX-15.12, raison lecture_impossible (segment, manifeste, série de points ou fichier des approbations illisible). Runbook : RB-1.'
+      - alert: noortrace_export_refuse
+        expr: 'increase(noortrace_journal_lignes_total{event="dossier_export_refused",detail=~"exports_indisponible|ecriture_impossible"}[1h]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 EX-15.12, raisons exports_indisponible et ecriture_impossible (volume des exports absent, confondu avec storage.root, plein ou en lecture seule ; en production, droits du volume ou groupe du parent d''une destination non conformes, CT-2 EX-15.13, point 2)'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Export d''un dossier refusé : volume des exports indisponible ou écriture impossible'
+          description: 'Export d''un dossier refusé : volume des exports indisponible ou écriture impossible. Gravité majeure, composant enregistreur. Exigence : CT-2 EX-15.12, raisons exports_indisponible et ecriture_impossible (volume des exports absent, confondu avec storage.root, plein ou en lecture seule ; en production, droits du volume ou groupe du parent d''une destination non conformes, CT-2 EX-15.13, point 2). Runbook : aucun.'
+  # CT-8 §10.5 Règles du composant d'ancrage
+  - name: noortrace-ancrage
+    rules:
+      - alert: noortrace_ancrage_en_attente
+        expr: 'increase(noortrace_journal_lignes_total{event=~"anchor_pending|registry_pending"}[1h]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 anchor_pending, registry_pending'
+          runbook: 'RB-3'
+        annotations:
+          summary: 'Ancre ou demande au registre en attente'
+          description: 'Ancre ou demande au registre en attente. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 anchor_pending, registry_pending. Runbook : RB-3.'
+      - alert: noortrace_ancrage_point_en_retard_exterieur
+        expr: 'increase(noortrace_journal_lignes_total{event="alerte_checkpoint_anchor_late",detail="exterieur"}[1h]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 checkpoint_anchor_late'
+          runbook: 'RB-4'
+        annotations:
+          summary: 'Point contresigné en retard par un prestataire extérieur'
+          description: 'Point contresigné en retard par un prestataire extérieur. Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 checkpoint_anchor_late. Runbook : RB-4.'
+      - alert: noortrace_ancrage_point_en_retard_interne
+        expr: 'increase(noortrace_journal_lignes_total{event="alerte_checkpoint_anchor_late",detail="interne"}[1h]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 checkpoint_anchor_late'
+          runbook: 'RB-4'
+        annotations:
+          summary: 'Point contresigné en retard par le prestataire interne'
+          description: 'Point contresigné en retard par le prestataire interne. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 checkpoint_anchor_late. Runbook : RB-4.'
+      - alert: noortrace_ancrage_inclusion_lente
+        expr: 'increase(noortrace_anchoring_d_registre_s_count[1h]) - ignoring (le) increase(noortrace_anchoring_d_registre_s_bucket{le=~"120(\\.0)?"}[1h]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 inclusion_late'
+          runbook: 'RB-7'
+        annotations:
+          summary: 'Inclusion au registre au-delà de inclusion_alert_s'
+          description: 'Inclusion au registre au-delà de inclusion_alert_s. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 inclusion_late. Runbook : RB-7.'
+      - alert: noortrace_ancrage_inclusion_lente_repetee
+        expr: 'increase(noortrace_anchoring_d_registre_s_count[1h]) - ignoring (le) increase(noortrace_anchoring_d_registre_s_bucket{le=~"120(\\.0)?"}[1h]) > 3'
+        labels:
+          severity: 'majeure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 inclusion_late'
+          runbook: 'RB-7'
+        annotations:
+          summary: 'Inclusion lente répétée plus de trois fois par heure'
+          description: 'Inclusion lente répétée plus de trois fois par heure. Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 inclusion_late. Runbook : RB-7.'
+      - alert: noortrace_ancrage_prestataire_injoignable
+        expr: 'noortrace_anchoring_last_success_age_s{kind=~"jeton_periode|jeton_point"} > 900 and on (kind, provider) increase(noortrace_anchoring_attempts_total[15m]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 prestataire_injoignable'
+          runbook: 'RB-4'
+        annotations:
+          summary: 'Prestataire d''horodatage sans succès depuis quinze minutes malgré des tentatives'
+          description: 'Prestataire d''horodatage sans succès depuis quinze minutes malgré des tentatives. Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 prestataire_injoignable. Runbook : RB-4.'
+      - alert: noortrace_ancrage_prestataires_epuises_periode
+        expr: 'noortrace_anchoring_queue_entries{kind="jeton_periode",state="a_reprendre"} > 0 and on () increase(noortrace_anchoring_attempts_total{kind="jeton_periode",outcome="echec_permanente"}[1h]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 prestataires_epuises (période)'
+          runbook: 'RB-4'
+        annotations:
+          summary: 'Prestataires épuisés pour le jeton d''une période'
+          description: 'Prestataires épuisés pour le jeton d''une période. Gravité critique, composant ancrage. Exigence : CT-5 §8.9 prestataires_epuises (période). Runbook : RB-4.'
+      - alert: noortrace_ancrage_prestataires_epuises_point
+        expr: 'increase(noortrace_journal_lignes_total{event="anchor_refused",detail="autre"}[1h]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 prestataires_epuises (point)'
+          runbook: 'RB-4'
+        annotations:
+          summary: 'Prestataires épuisés pour un point'
+          description: 'Prestataires épuisés pour un point. Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 prestataires_epuises (point). Runbook : RB-4.'
+      - alert: noortrace_ancrage_file
+        expr: 'increase(noortrace_journal_lignes_total{event=~"anchor_queue_full|anchor_queue_truncated_line|anchor_queue_write_failed"}[5m]) > 0 or increase(noortrace_journal_lignes_total{event="anchoring_queue_rebuilt",detail="recree"}[5m]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 file_pleine, file_perdue'
+          runbook: 'RB-3'
+        annotations:
+          summary: 'File d''ancrage pleine ou perdue'
+          description: 'File d''ancrage pleine ou perdue. Gravité critique, composant ancrage. Exigence : CT-5 §8.9 file_pleine, file_perdue. Runbook : RB-3.'
+      - alert: noortrace_ancrage_ots_abandon
+        expr: 'noortrace_anchoring_ots_pending_age_s > 604800'
+        labels:
+          severity: 'majeure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 ots_give_up'
+          runbook: 'RB-3'
+        annotations:
+          summary: 'Preuve OpenTimestamps sans attestation au-delà de give_up_after_s'
+          description: 'Preuve OpenTimestamps sans attestation au-delà de give_up_after_s. Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 ots_give_up. Runbook : RB-3.'
+      - alert: noortrace_ancrage_ordre
+        expr: 'increase(noortrace_journal_lignes_total{event="ordre_ancres_non_respecte"}[1d]) > 1'
+        labels:
+          severity: 'mineure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 ordre_ancres_non_respecte répété'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Ordre des ancres non respecté à plusieurs reprises'
+          description: 'Ordre des ancres non respecté à plusieurs reprises. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 ordre_ancres_non_respecte répété. Runbook : aucun.'
+      - alert: noortrace_ancrage_empreinte_squattee
+        expr: 'increase(noortrace_journal_lignes_total{event="anchor_refused",detail="empreinte_squattee"}[1h]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 empreinte_squattee'
+          runbook: 'RB-7'
+        annotations:
+          summary: 'Empreinte déjà ancrée par un tiers'
+          description: 'Empreinte déjà ancrée par un tiers. Gravité critique, composant ancrage. Exigence : CT-5 §8.9 empreinte_squattee. Runbook : RB-7.'
+      - alert: noortrace_ancrage_horloge_suspecte
+        expr: 'increase(noortrace_journal_lignes_total{source="acquisitions",detail="horloge_suspecte"}[1h]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 horloge_suspecte'
+          runbook: 'RB-6'
+        annotations:
+          summary: 'Jeton d''horodatage à l''horloge suspecte'
+          description: 'Jeton d''horodatage à l''horloge suspecte. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 horloge_suspecte. Runbook : RB-6.'
+      - alert: noortrace_ancrage_revoque
+        expr: 'increase(noortrace_journal_lignes_total{source="acquisitions",detail="revoque"}[1h]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 revoque'
+          runbook: 'RB-4'
+        annotations:
+          summary: 'Jeton d''horodatage révoqué'
+          description: 'Jeton d''horodatage révoqué. Gravité critique, composant ancrage. Exigence : CT-5 §8.9 revoque. Runbook : RB-4.'
+      - alert: noortrace_ancrage_reponse_tardive_promue
+        expr: 'increase(noortrace_journal_lignes_total{source="acquisitions",detail="reponse_tardive_promue"}[1h]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 reponse_tardive_promue'
+          runbook: 'RB-4'
+        annotations:
+          summary: 'Réponse tardive promue'
+          description: 'Réponse tardive promue. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 reponse_tardive_promue. Runbook : RB-4.'
+      - alert: noortrace_ancrage_point_manquant
+        expr: 'increase(noortrace_journal_lignes_total{event="point_manquant"}[5m]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 point_manquant'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Point de contrôle manquant'
+          description: 'Point de contrôle manquant. Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 point_manquant. Runbook : RB-1.'
+      - alert: noortrace_ancrage_jeton_anterieur
+        expr: 'increase(noortrace_journal_lignes_total{event="alerte_jeton_anterieur_au_point"}[1h]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 jeton_anterieur_au_point'
+          runbook: 'RB-6'
+        annotations:
+          summary: 'Jeton antérieur au point qu''il contresigne'
+          description: 'Jeton antérieur au point qu''il contresigne. Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 jeton_anterieur_au_point. Runbook : RB-6.'
+      - alert: noortrace_ancrage_contresignature_tardive
+        expr: 'increase(noortrace_journal_lignes_total{event="alerte_contresignature_tardive"}[1h]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 contresignature_tardive'
+          runbook: 'RB-4'
+        annotations:
+          summary: 'Contresignature tardive d''un point'
+          description: 'Contresignature tardive d''un point. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 contresignature_tardive. Runbook : RB-4.'
+      - alert: noortrace_ancrage_volume
+        expr: 'sum(increase(noortrace_anchoring_attempts_total[1h])) > 2 * 76'
+        labels:
+          severity: 'majeure'
+          component: 'ancrage'
+          exigence: 'CT-5 §8.9 volume de requêtes'
+          runbook: 'RB-8, RB-4'
+        annotations:
+          summary: 'Volume de requêtes d''ancrage au-delà du double du nominal (ventiler avant RB-8)'
+          description: 'Volume de requêtes d''ancrage au-delà du double du nominal (ventiler avant RB-8). Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 volume de requêtes. Runbook : RB-8, RB-4.'
+  # CT-8 §10.6 Règles du registre et du nœud
+  - name: noortrace-registre
+    rules:
+      - alert: noortrace_registre_cible_muette
+        expr: 'up{job="noorcore"} == 0'
+        for: 2m
+        labels:
+          severity: 'critique'
+          component: 'registre'
+          exigence: 'reprise de NoorcoreTargetDown (ops/observability/alerts/noorcore.rules.yml l. 37-43, R8-F42)'
+          runbook: 'RB-7'
+        annotations:
+          summary: 'Nœud du registre muet pour la collecte'
+          description: 'Nœud du registre muet pour la collecte. Gravité critique, composant registre. Exigence : reprise de NoorcoreTargetDown (ops/observability/alerts/noorcore.rules.yml l. 37-43, R8-F42). Runbook : RB-7.'
+      - alert: noortrace_registre_sonde
+        expr: 'noortrace_registre_sonde_ok == 0'
+        for: 2m
+        labels:
+          severity: 'critique'
+          component: 'registre'
+          exigence: 'CT-4 EX-10.5'
+          runbook: 'RB-7'
+        annotations:
+          summary: 'Point RPC du registre sans réponse à travers le relais'
+          description: 'Point RPC du registre sans réponse à travers le relais. Gravité critique, composant registre. Exigence : CT-4 EX-10.5. Runbook : RB-7.'
+      - alert: noortrace_registre_hauteur_figee
+        expr: 'changes(noortrace_registre_hauteur[5m]) == 0'
+        labels:
+          severity: 'majeure'
+          component: 'registre'
+          exigence: 'CT-4 §10'
+          runbook: 'RB-7'
+        annotations:
+          summary: 'Hauteur du registre figée depuis cinq minutes'
+          description: 'Hauteur du registre figée depuis cinq minutes. Gravité majeure, composant registre. Exigence : CT-4 §10. Runbook : RB-7.'
+      - alert: noortrace_registre_equivocation
+        expr: 'increase(noor_bft_equivocations_total[5m]) > 0'
+        labels:
+          severity: 'critique'
+          component: 'registre'
+          exigence: 'CT-4 EX-10.8, §13'
+          runbook: 'RB-7'
+        annotations:
+          summary: 'Équivocation d''un validateur'
+          description: 'Équivocation d''un validateur. Gravité critique, composant registre. Exigence : CT-4 EX-10.8, §13. Runbook : RB-7.'
+      - alert: noortrace_registre_mempool
+        expr: 'noortrace_registre_mempool > 2048'
+        for: 5m
+        labels:
+          severity: 'majeure'
+          component: 'registre'
+          exigence: 'CT-4 EX-4.20, EX-10.8 ; CT-7 MN-55'
+          runbook: 'RB-7'
+        annotations:
+          summary: 'File en attente du nœud au-delà de la moitié de -txpool-max-pending'
+          description: 'File en attente du nœud au-delà de la moitié de -txpool-max-pending. Gravité majeure, composant registre. Exigence : CT-4 EX-4.20, EX-10.8 ; CT-7 MN-55. Runbook : RB-7.'
+      - alert: noortrace_registre_sous_tarif
+        expr: 'increase(noortrace_journal_lignes_total{event="registry_send_refused",detail="transaction_underpriced"}[1h]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'registre'
+          exigence: 'CT-4 §4.5, EX-10.8'
+          runbook: 'RB-7'
+        annotations:
+          summary: 'Envoi au registre refusé sous le tarif (ligne proposée, PD-12)'
+          description: 'Envoi au registre refusé sous le tarif (ligne proposée, PD-12). Gravité majeure, composant registre. Exigence : CT-4 §4.5, EX-10.8. Runbook : RB-7.'
+      - alert: noortrace_registre_cloture_non_soumise
+        expr: 'noortrace_anchoring_last_success_age_s{kind="ancre_registre_periode"} > 90000'
+        labels:
+          severity: 'majeure'
+          component: 'registre'
+          exigence: 'CT-4 EX-8.3'
+          runbook: 'RB-7'
+        annotations:
+          summary: 'Clôture de période non soumise depuis une période plus vingt-quatre heures'
+          description: 'Clôture de période non soumise depuis une période plus vingt-quatre heures. Gravité majeure, composant registre. Exigence : CT-4 EX-8.3. Runbook : RB-7.'
+      - alert: noortrace_registre_capture_en_retard
+        expr: 'noortrace_anchoring_last_success_age_s{kind="ancre_registre_periode"} > 7200'
+        labels:
+          severity: 'majeure'
+          component: 'registre'
+          exigence: 'CT-4 EX-9.4'
+          runbook: 'RB-7'
+        annotations:
+          summary: 'Capture de l''ancre de période en retard'
+          description: 'Capture de l''ancre de période en retard. Gravité majeure, composant registre. Exigence : CT-4 EX-9.4. Runbook : RB-7.'
+      - alert: noortrace_registre_solde_bas
+        expr: 'noortrace_registre_solde_wei < 78600000'
+        labels:
+          severity: 'majeure'
+          component: 'registre'
+          exigence: 'CT-4 EX-8.18'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Solde d''un expéditeur sous le seuil de recomplément'
+          description: 'Solde d''un expéditeur sous le seuil de recomplément. Gravité majeure, composant registre. Exigence : CT-4 EX-8.18. Runbook : aucun.'
+      - alert: noortrace_registre_examen_requis
+        expr: 'increase(noortrace_journal_lignes_total{source="registre",detail="examen_requis"}[1d]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'registre'
+          exigence: 'CT-4 EX-4.20'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Outil du registre : examen requis'
+          description: 'Outil du registre : examen requis. Gravité majeure, composant registre. Exigence : CT-4 EX-4.20. Runbook : aucun.'
+      - alert: noortrace_registre_marge_retention
+        expr: 'increase(noortrace_journal_lignes_total{source="registre",detail="marge_retention_basse"}[1d]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'registre'
+          exigence: 'CT-4 EX-9.6'
+          runbook: 'RB-7'
+        annotations:
+          summary: 'Marge de rétention du registre basse'
+          description: 'Marge de rétention du registre basse. Gravité majeure, composant registre. Exigence : CT-4 EX-9.6. Runbook : RB-7.'
+  # CT-8 §10.7 Règles de l'hôte, de l'exploitation et du mode observation
+  - name: noortrace-hote-exploitation
+    rules:
+      - alert: noortrace_hote_disque
+        expr: '(node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) < 0.10'
+        for: 10m
+        labels:
+          severity: 'majeure'
+          component: 'hote'
+          exigence: 'reprise de HostDiskSpaceLow (l. 11-17, R8-F42)'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Espace disque de l''hôte sous 10 %'
+          description: 'Espace disque de l''hôte sous 10 %. Gravité majeure, composant hote. Exigence : reprise de HostDiskSpaceLow (l. 11-17, R8-F42). Runbook : RB-1.'
+      - alert: noortrace_hote_memoire
+        expr: '(node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.10'
+        for: 10m
+        labels:
+          severity: 'majeure'
+          component: 'hote'
+          exigence: 'reprise de HostMemoryPressure (l. 19-25)'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Mémoire disponible de l''hôte sous 10 %'
+          description: 'Mémoire disponible de l''hôte sous 10 %. Gravité majeure, composant hote. Exigence : reprise de HostMemoryPressure (l. 19-25). Runbook : aucun.'
+      - alert: noortrace_hote_processeur
+        expr: '(1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 0.90'
+        for: 15m
+        labels:
+          severity: 'mineure'
+          component: 'hote'
+          exigence: 'reprise de HostCPUHigh (l. 27-33)'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Processeur de l''hôte occupé au-delà de 90 %'
+          description: 'Processeur de l''hôte occupé au-delà de 90 %. Gravité mineure, composant hote. Exigence : reprise de HostCPUHigh (l. 27-33). Runbook : aucun.'
+      - alert: noortrace_approbation_non_pret
+        expr: 'noortrace_approbation_pret == 0'
+        for: 5m
+        labels:
+          severity: 'majeure'
+          component: 'approbation'
+          exigence: 'CT-3 EX-12.12'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Service d''approbation non prêt ou sans réponse'
+          description: 'Service d''approbation non prêt ou sans réponse. Gravité majeure, composant approbation. Exigence : CT-3 EX-12.12. Runbook : RB-1.'
+      - alert: noortrace_console_non_prete
+        expr: 'noortrace_console_prete == 0'
+        for: 5m
+        labels:
+          severity: 'majeure'
+          component: 'approbation'
+          exigence: 'CT-3 EX-13.44'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Serveur de console non prêt ou sans réponse'
+          description: 'Serveur de console non prêt ou sans réponse. Gravité majeure, composant approbation. Exigence : CT-3 EX-13.44. Runbook : aucun.'
+      - alert: noortrace_notification_echec
+        expr: 'increase(noortrace_journal_lignes_total{source="approbation",event="notification_echec"}[1h]) > 0'
+        labels:
+          severity: 'mineure'
+          component: 'approbation'
+          exigence: 'CT-3 EX-13.42'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Livraison d''une notification en échec (une reprise suit)'
+          description: 'Livraison d''une notification en échec (une reprise suit). Gravité mineure, composant approbation. Exigence : CT-3 EX-13.42. Runbook : aucun.'
+      - alert: noortrace_notification_abandonnee
+        expr: 'increase(noortrace_journal_lignes_total{source="approbation",event="notification_abandonnee"}[1h]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'approbation'
+          exigence: 'CT-3 EX-13.42'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Notification abandonnée'
+          description: 'Notification abandonnée. Gravité majeure, composant approbation. Exigence : CT-3 EX-13.42. Runbook : aucun.'
+      - alert: noortrace_notification_sans_destinataire
+        expr: 'increase(noortrace_journal_lignes_total{source="approbation",event="notification_sans_destinataire"}[1d]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'approbation'
+          exigence: 'CT-3 EX-13.40'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Notification sans destinataire'
+          description: 'Notification sans destinataire. Gravité majeure, composant approbation. Exigence : CT-3 EX-13.40. Runbook : aucun.'
+      - alert: noortrace_sauvegarde_en_retard
+        expr: 'time() - noortrace_proces_verbal_dernier_s{kind="sauvegarde"} > 86400'
+        labels:
+          severity: 'majeure'
+          component: 'exploitation'
+          exigence: 'CT-8 EX-11.5'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Dernière sauvegarde plus ancienne que le RPO'
+          description: 'Dernière sauvegarde plus ancienne que le RPO. Gravité majeure, composant exploitation. Exigence : CT-8 EX-11.5. Runbook : aucun.'
+      - alert: noortrace_exercice_restauration_en_retard
+        expr: 'time() - noortrace_proces_verbal_dernier_s{kind="exercice_restauration"} > 34560000'
+        labels:
+          severity: 'mineure'
+          component: 'exploitation'
+          exigence: 'CT-8 EX-11.8'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Dernier exercice de restauration plus vieux que 400 jours'
+          description: 'Dernier exercice de restauration plus vieux que 400 jours. Gravité mineure, composant exploitation. Exigence : CT-8 EX-11.8. Runbook : aucun.'
+      - alert: noortrace_acces_non_declare
+        expr: 'increase(noortrace_journal_lignes_total{source="consultations",detail="inconnu"}[1h]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'exploitation'
+          exigence: 'CT-8 EX-11.20 (CA-6)'
+          runbook: 'RB-8'
+        annotations:
+          summary: 'Accès d''un principal non déclaré'
+          description: 'Accès d''un principal non déclaré. Gravité majeure, composant exploitation. Exigence : CT-8 EX-11.20 (CA-6). Runbook : RB-8.'
+      - alert: noortrace_consultations_muettes
+        expr: 'time() - max(noortrace_journal_derniere_ligne_s{source="consultations"}) > 86400'
+        labels:
+          severity: 'majeure'
+          component: 'exploitation'
+          exigence: 'CT-8 EX-11.19'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Journal des consultations muet depuis un jour'
+          description: 'Journal des consultations muet depuis un jour. Gravité majeure, composant exploitation. Exigence : CT-8 EX-11.19. Runbook : aucun.'
+      - alert: noortrace_journal_illisible
+        expr: 'increase(noortrace_journal_illisibles_total[1h]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'exploitation'
+          exigence: 'CT-8 EX-10.5'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Ligne de journal illisible'
+          description: 'Ligne de journal illisible. Gravité majeure, composant exploitation. Exigence : CT-8 EX-10.5. Runbook : aucun.'
+      - alert: noortrace_mode_observation_actif
+        expr: 'noortrace_observation_mode == 1'
+        labels:
+          severity: 'mineure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Mode observation actif (EX-17.8) ; CT-8 EX-12.8'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Mode observation actif : aucun appel n''est bloqué'
+          description: 'Mode observation actif : aucun appel n''est bloqué. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Mode observation actif (EX-17.8) ; CT-8 EX-12.8. Runbook : aucun.'
+      - alert: noortrace_observation_pertes
+        expr: 'increase(noortrace_events_lost_total[5m]) > 0'
+        labels:
+          severity: 'majeure'
+          component: 'enregistreur'
+          exigence: 'CT-2 §17.4 Pertes en mode observation (EX-17.8) ; CT-2 EX-14.16'
+          runbook: 'RB-1'
+        annotations:
+          summary: 'Événements perdus en mode observation'
+          description: 'Événements perdus en mode observation. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Pertes en mode observation (EX-17.8) ; CT-2 EX-14.16. Runbook : RB-1.'
+  # CT-8 EX-10.9 Relectures hors du composant (proposition PD-28 de CT-9)
+  - name: noortrace-releves-externes
+    rules:
+      - alert: noortrace_releve_externe_echec
+        expr: 'noortrace_releve_externe_ok == 0'
+        labels:
+          severity: 'critique'
+          component: 'exploitation'
+          exigence: 'CT-8 EX-10.9'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Relecture hors du composant en échec'
+          description: 'Relecture hors du composant en échec. Gravité critique, composant exploitation. Exigence : CT-8 EX-10.9. Runbook : aucun.'
+      - alert: noortrace_releve_externe_perime
+        expr: 'time() - noortrace_releve_externe_dernier_s > 172800'
+        labels:
+          severity: 'critique'
+          component: 'exploitation'
+          exigence: 'CT-8 EX-10.9'
+          runbook: 'aucun'
+        annotations:
+          summary: 'Relecture hors du composant non mise à jour depuis deux jours'
+          description: 'Relecture hors du composant non mise à jour depuis deux jours. Gravité critique, composant exploitation. Exigence : CT-8 EX-10.9. Runbook : aucun.'

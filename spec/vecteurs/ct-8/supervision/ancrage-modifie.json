@@ -1,0 +1,13 @@
+{
+  "queue": {
+    "anchor_pending_alert_s": 3600
+  },
+  "registry": {
+    "inclusion_alert_s": 120
+  },
+  "opentimestamps": {
+    "upgrade": {
+      "give_up_after_s": 604800
+    }
+  }
+}

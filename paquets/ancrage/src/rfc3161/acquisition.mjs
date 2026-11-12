@@ -127,6 +127,7 @@ export async function acquerir({
       auth: prestataire.auth ?? null,
       tls: prestataire.tls ?? null,
       role: prestataire.role,
+      serveurInterne: prestataire.serveur_interne === true,
     });
   } catch (err) {
     if (!(err instanceof ErreurTransport) || err.code === "url") throw err; // url refusée : configuration (EX-5.5, AN-1), jamais une tentative

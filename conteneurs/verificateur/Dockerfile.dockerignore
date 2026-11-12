@@ -1,0 +1,11 @@
+# Contexte de construction de noortrace/verificateur (racine du dépôt) :
+# tout est exclu, sauf ce que l'image emploie (sources Go, vendor/, recette).
+*
+!verificateur/**
+!conteneurs/verificateur/passwd
+!conteneurs/verificateur/group
+!LICENSE
+!NOTICE
+verificateur/dist
+verificateur/**/*_test.go
+verificateur/**/testdata

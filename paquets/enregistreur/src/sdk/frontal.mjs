@@ -445,7 +445,8 @@ export class FrontalSdk {
     // Pas 7 (anticipé) : mode dégradé (14.2).
     const panne = this._etatPanne(classeEffective);
     let passant = false;
-    if (panne.bloque && observation && panne.bloque !== "bail_non_detenu") {
+    // `bail_non_detenu` et `journal_clos` (EX-19.4) bloquent aussi en mode observation.
+    if (panne.bloque && observation && panne.bloque !== "bail_non_detenu" && panne.bloque !== "journal_clos") {
       blocagesEvites.push(panne.bloque);
       passant = true;
     } else if (panne.bloque && reponse.ticket_state !== "en_attente") {
@@ -581,6 +582,8 @@ export class FrontalSdk {
   _etatPanne(classeEffective) {
     const c = this.coeur;
     if (!c.bailDetenu) return { bloque: "bail_non_detenu" };
+    // Journal terminé par la clôture anticipée (EX-19.4) : -31010 journal_clos.
+    if (c.journalClos) return { bloque: "journal_clos" };
     const r = c.degrade.raisons();
     for (const x of ["cle", "bail", "horloge"]) if (r.includes(x)) return { bloque: x };
     const lecturePassante = (this.config.policy.failure?.lecture ?? "passant") === "passant";

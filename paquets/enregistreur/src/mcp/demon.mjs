@@ -33,11 +33,22 @@ export async function demarrerFrontalMcp(coeur, secrets, o = {}) {
   await frontal.demarrer();
   const jetons = jetonsStatiques(config, secrets);
   const connecteurs = new ServeurConnecteurs({ frontal, socket: config.mcp.socket, tcp: config.mcp.connector_tcp, jetons });
-  await connecteurs.ecouter();
   let http = null;
-  if (config.mcp.http) {
-    http = new ServeurHttpMcp({ frontal, jetons });
-    await http.ecouter();
+  let ecoute = false;
+  try {
+    await connecteurs.ecouter();
+    ecoute = true;
+    if (config.mcp.http) {
+      http = new ServeurHttpMcp({ frontal, jetons });
+      await http.ecouter();
+    }
+  } catch (e) {
+    // Refus du démarrage (prise refusée, adresse prise) : les serveurs d'outils
+    // déjà lancés par le frontal sont arrêtés, sans quoi leurs processus
+    // gardaient le démon vivant après `demarrage_refuse` (étape 7).
+    if (ecoute) await connecteurs.fermer().catch(() => {});
+    await frontal.arreter().catch(() => {});
+    throw e;
   }
   return {
     frontal,

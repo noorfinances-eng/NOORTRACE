@@ -23,6 +23,8 @@ export const ADRESSES_LOCALES = Object.freeze(["127.0.0.1", "::1", "localhost"])
 export const TYPE_REQUETE = "application/timestamp-query";
 export const TYPE_REPONSE = "application/timestamp-reply";
 export const TAILLE_MAX_CORPS = 4096;
+/** Chemin de santé : `GET` seulement, réponse `ok`, rien journalisé (sonde du conteneur). */
+export const CHEMIN_SANTE = "/sante";
 
 const JOURNAL_MUET = { consigner() {} };
 
@@ -87,6 +89,13 @@ export async function demarrerServeur(o) {
   };
 
   serveur.on("request", (req, rep) => {
+    // Santé (sonde du conteneur, `noortrace-tsa-interne sonde`) : `GET /sante` rend 200 sans rien lire de l'autorité
+    // ni rien journaliser ; aucune autre requête que `POST` n'est servie.
+    if (req.method === "GET" && req.url === CHEMIN_SANTE) {
+      rep.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Content-Length": 3, Connection: "close" });
+      rep.end("ok\n");
+      return;
+    }
     if (req.method !== "POST") return refusHttp(rep, 405, "méthode refusée : POST seulement", { Allow: "POST" });
     if (chemin !== null && req.url !== chemin) return refusHttp(rep, 404, "chemin inconnu");
     if (typeMedia(req.headers["content-type"]) !== TYPE_REQUETE) return refusHttp(rep, 415, `Content-Type ${TYPE_REQUETE} exigé`);

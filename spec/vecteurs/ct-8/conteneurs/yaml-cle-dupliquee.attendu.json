@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "yaml-cle-dupliquee.yaml",
-    "sha256": "a2193eec07d97c52e626dc60b55376891202e950a741150a5648d4a7a4751541",
+    "sha256": "0b01688e3fe0c1916efbc4b3f3a834c7afe05bbf24781cadba21e6f071157447",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

@@ -564,10 +564,11 @@ new ClientServiceApprobation({ url, socket, jeton, timeout_ms, peer_user, taille
   `ErreurServiceApprobation(code, data)` (`code` de CT-3 §12.8, ou
   `indisponible`, `reponse_illisible` — `data.raison: "trop_grande"` au-delà
   de `tailleMax`, 16 Mio par défaut —, ou `pair_non_verifie` : sur la prise
-  Unix, propriétaire de la prise différent de `peer_user` ou répertoire de
-  la prise inscriptible par d'autres que le compte 0 et `peer_user`,
-  EX-18.8, `data.raison` ; vérifié avant chaque message, LISEZMOI lecture
-  150). Un 401, et un 5xx `requete_invalide`, donnent `indisponible`
+  Unix, propriétaire de la prise différent de `peer_user`, ou répertoire de
+  la prise (ou un parent) d'un autre propriétaire que le compte 0,
+  `peer_user` et le démon, inscriptible par le groupe sans bit collant, ou,
+  pour le répertoire de la prise, inscriptible par les autres, EX-18.8,
+  `data.raison` ; vérifié avant chaque message, LISEZMOI lecture 150). Un 401, et un 5xx `requete_invalide`, donnent `indisponible`
   (`data.statut`, `data.code`) ; le délai `timeout_ms` borne la durée totale
   de l'échange (relecture C).
 - Le moteur de politique (lot suivant) décide, d'après la classe, la liste
@@ -813,7 +814,8 @@ class MagasinBail {
   magasin `file` d'un seul hôte (`MagasinBailFichier` : `flock(2)` pris et
   tenu par un auxiliaire `flock(1)` d'util-linux qui vit tant que le démon
   vit ; `new MagasinBailFichier(chemin, { programme })` ; LISEZMOI, lecture
-  148) ; `postgresql`,
+  148 ; depuis l'étape 7, `flock --close` exécute directement Node.js,
+  `SCRIPT_AUXILIAIRE`, sans `/bin/sh` ni `cat`, lecture 235) ; `postgresql`,
   `etcd`, l'attente du bail (`lease_standby`), la bascule (13.4) et
   `lease.fencing` sont au lot de haute disponibilité.
 
@@ -1032,7 +1034,14 @@ import { preparerAncrage, BranchementAncrage, ErreurBranchementAncrage,
          FICHIER_INSTANCE_REGISTRE, REPERTOIRE_REGISTRE, CLASSES_CLE_CHAINE_SERVIES } from "@noortrace/enregistreur";
 
 const ancrage = await preparerAncrage({ config, secrets, env, horloge, aleatoire, clients });
-// null quand anchoring.ancrage est null ; lève ErreurBranchementAncrage (raison classe_cle_chaine) pour une clé de chaîne de classe A à C
+// null quand anchoring.ancrage est null ; lève ErreurBranchementAncrage : raison classe_cle_chaine (classe A),
+// cle_chaine (secret non résolu, enveloppe illisible, KMS injoignable, adresse différente, signature d'essai fausse)
+const cle = await cleChaineDepuisConfiguration(config, secrets, { env, membre: "chain_key" | "next_chain_key" }); // SignataireChaine | null
+ancrage.cleChainePour(keyId)         // clé de chaîne d'un document signé par keyId (EX-11.19 point 3)
+await ancrage.rotationCleChaine()    // JS-5 : révocation puis inscription relayées, bascule ; { accepte, raison?, ancienne, nouvelle, registry }
+await ancrage.inscrireCleSuivante(clePubliqueHex)   // EX-11.16 pas 1 ; { accepte, issue | raison }
+await ancrage.apresRotation({ anciennesCles })      // EX-11.16 pas 3 ; { revocation }
+await ancrage.basculerSiInscrite(motif)             // bascule si le registre montre la rotation faite
 const coeur = await Coeur.demarrer({ config, secrets, ancrage, horloge, ... });   // lier(coeur) après l'écrivain : anchoring_attached
 ancrage.etat()                       // état du composant (demarre, arrete, …) + { attached, reason, document, registry }
 ancrage.metriques()                  // texte Prometheus d'EX-8.15, concaténé à /metrics par le cœur
@@ -1046,11 +1055,13 @@ await coeur.commandeAncrage({ commande: "etat" | "metriques" | "retirer-qualific
 - **Démarrage** (`cli.mjs`, avant `Coeur.demarrer`) : document `ancrage-v0`
   lu en JSON strict ; secrets des pointeurs `/rfc3161/providers/<i>/auth/secret`
   et `/opentimestamps/headers_source/auth` résolus par `resoudreSecret`
-  (`env`, `file`, `vault`) ; clé de chaîne de `anchoring.registry.chain_key`
-  construite (classe D, `SignataireChaineFichier`, adresse confrontée) ;
-  manifeste d'instance lu dans `instance-registre.json` à côté du document.
-  Une classe A, B ou C refuse le démarrage du démon
-  (`demarrage_refuse : ancrage : classe_cle_chaine`, code 2) ; tout autre
+  (`env`, `file`, `vault`) ; clés de chaîne de `anchoring.registry.chain_key`
+  et `next_chain_key` construites par `src/cle-chaine.mjs` (rubrique
+  « Clé de chaîne » ci-dessous) ; manifeste d'instance lu dans
+  `instance-registre.json` à côté du document.
+  Une classe A refuse le démarrage du démon
+  (`demarrage_refuse : ancrage : classe_cle_chaine`, code 2), une clé
+  illisible ou d'une autre adresse aussi (`… : cle_chaine`) ; tout autre
   défaut laisse le démon démarrer, `anchoring_not_started` nomme la raison
   (`document_illisible`, `configuration_invalide` et ses règles d'AN-1,
   `secret_non_resolu` et son pointeur, `instance_registre_absente`,
@@ -1065,7 +1076,8 @@ await coeur.commandeAncrage({ commande: "etat" | "metriques" | "retirer-qualific
   chemin → taille, `mtimeMs` et bornes `ts` des événements du segment : un
   segment inchangé dont les bornes sont hors de la période n'est pas relu ;
   `segmentsRelus` compte les relectures), `listerPeriodes` (manifestes et signatures), `listerPoints`,
-  `cleChaine`, `instance`, `signaturesCloture` (demande signée
+  `cleChaine` (accesseur relu à chaque envoi), `cleChainePour(keyId)`,
+  `clesChaine()` (étape 7), `instance`, `signaturesCloture` (demande signée
   `<journal>/registre/demande-cloture-<period_hash>.json`, forme
   `demande_signature` de CT-4 vérifiée par `verifierDemande`, sinon `null`
   → `period_close_delegated`). Envois et captures du registre sous
@@ -1113,11 +1125,65 @@ await coeur.commandeAncrage({ commande: "etat" | "metriques" | "retirer-qualific
   TM-16, export et réexport, TI-17) ; fixtures
   `test/fixtures/enregistreur-ancrage/` (`demon.mjs` : démon réel enfant à
   horloge réglable ; `outils.mjs`).
-- **Restes** : clé de chaîne de classe A à C (étape 7) ; rotation d'urgence
-  relayée au registre (`registre_non_branche` de `Coeur.rotationUrgence` :
-  l'`Envoyeur` du composant n'envoie ni inscription ni révocation, et CT-4
-  §7 les fait signer par les approbateurs au seuil ; lecture 202) ; clé
+- **Restes** : clé de chaîne de classe A (lecture 236) ; clé
   `anchoring.registry.instance` à inscrire dans CT-2 (lecture 199).
+
+### Clé de chaîne et rotation au registre (étape 7 ; `src/cle-chaine.mjs`)
+
+```js
+import { chargerCleChaine, ErreurCleChaine, SignataireChaineKms, SignataireChaineEnveloppe,
+         CLASSES_CLE_CHAINE_SERVIES /* ["B", "C", "D"] */, MOTIF_SERVICE_KMS, regionServiceKms } from "./cle-chaine.mjs";
+
+const cle = await chargerCleChaine(ck /* { class, address, secret, service_url } */, {
+  secret,            // Uint8Array résolu au pas 4 (enveloppe en C, ARN en B, clé en D)
+  org_id, journal_id, env, delaiMs, ca, membre,       // membre : "chain_key" | "next_chain_key" (messages)
+});                  // lève ErreurCleChaine { raison: "classe_cle_chaine" | "cle_chaine" }
+cle.classe           // "B" | "C" | "D"
+cle.adresse()        // adresse dérivée, égale à ck.address
+await cle.signerCondense(hash32)   // { r, s, v } : s bas, v ∈ {27, 28}
+cle.localisation()   // { service: "aws-kms", key_arn, region } | { service: "fichier" } (aucun secret)
+cle.effacer()        // classes C et D : clé effacée de la mémoire (arrêt du démon)
+```
+
+- **B** : `SignataireChaineKms` ; `GetPublicKey` exige `ECC_SECG_P256K1`,
+  `SIGN_VERIFY`, `ECDSA_SHA_256` ; `Sign` `MessageType: DIGEST` ; DER →
+  `signatureDepuisDer` du composant.
+- **C** : `SignataireChaineEnveloppe.dechiffrer` ; `Decrypt`
+  (`SYMMETRIC_DEFAULT`, contexte `{ org_id, journal_id, key_id: adresse }`),
+  32 octets exigés, texte clair effacé dès la clé construite.
+- **D** : `SignataireChaineFichier` du composant (effaçable).
+- **Contrôle commun** : adresse dérivée = `address`, condensé d'essai
+  aléatoire signé et recouvert ; sinon `cle_chaine`.
+- **Rotation** (`Coeur.rotationUrgence`) : avec `anchoring.registry.enabled`
+  et le composant branché sur le registre (`ancrage.registreBranche`),
+  `next_chain_key` seule → `ancrage.rotationCleChaine()` (JS-5) ;
+  `signer.rotation.next_key_id` et `next_chain_key` → pas 1
+  (`inscrireCleSuivante`), événement de rotation, pas 3 (`apresRotation`).
+  Demandes lues sous `<journal>/registre/demande-<operation>-<adresse>.json`,
+  relayées par `Envoyeur.inscrire` et `Envoyeur.revoquer` du composant
+  (rubrique D d'`INTERFACES.md` du composant), expéditeur `next_chain_key`.
+  Refus (`key_rotation_emergency_refused`, `raison`) :
+  `registre_non_branche`, `cle_chaine_suivante_absente`,
+  `inscription_demande_absente`, `inscription_demande_invalide`,
+  `revocation_demande_absente`, `revocation_demande_invalide`,
+  `inscription_refusee` (avec `code`), `revocation_refusee`.
+- **Lignes ajoutées** (composant `ancrage`) : `chain_key_loaded`,
+  `chain_key_switched` (`old_chain_key`, `new_chain_key`, `reason` :
+  `rotation_cle_chaine`, `rotation_urgence`, `demarrage`),
+  `chain_key_registration_relayed`, `chain_key_revocation_relayed`
+  (`operation`, `chain_key`, `issue` : `incluse` | `deja_faite` |
+  `refusee`, `sender`, `block_number`, `transaction_hash`, `code`),
+  `chain_key_revocation_pending`, `chain_key_registry_unreadable` ;
+  `key_rotation_emergency` porte `registry: { inscription, revocation }`
+  et, pour JS-5, `chain_key_only`, `old_chain_key`, `new_chain_key` (sans
+  `seq`). `ancrage.etat()` ajoute `chain_key`, `chain_key_class`,
+  `next_chain_key`.
+- **Essais** : `test/enregistreur-cle-chaine-etape7.test.js`,
+  `test/enregistreur-cle-chaine-etape7-reseau.test.js` ; fixtures
+  `test/fixtures/enregistreur-cle-chaine/outils.mjs` (clés d'essai dérivées
+  de la mnémonique publique, demandes signées au seuil) ; le nœud factice
+  `test/fixtures/ancrage-registre/noeud-factice.mjs` exécute désormais
+  `registerRecorder` et `revokeRecorder`.
 
 ## h) Corrections de la relecture A (cœur, stockage, bail, WORM, haute disponibilité)
 
@@ -1479,3 +1545,64 @@ refus et son message, demandes inconnue, illisible, hors domaine et périmée
 sans effet, demandes `rotation-urgence` et `ancrage` exécutées ; le dossier
 exporté d'un appel approuvé passe `noortrace-verifier` et la référence
 JavaScript (boîte noire) avec `--exiger 7`.
+
+## m) Étape 7 : `noortrace-ctl sonde`, `etat`, `close-period --now` ; bail sans interpréteur
+
+État : **fait (étape 7)**. Exigences de construction de CT-8 (§4.4,
+EX-10.14, IR-8 ; PD-2), fixées par CT-2 0.10 (§15.8, EX-15.16 à EX-15.18) ;
+lectures 232 à 235 du `LISEZMOI.md`.
+
+### Commandes
+
+```text
+noortrace-ctl sonde --url <url>
+noortrace-ctl etat [--configuration <fichier>] [--delai-ms <n>]
+noortrace-ctl close-period --now [--configuration <fichier>] [--delai-ms <n>]
+```
+
+- `bin/noortrace-ctl` charge chaque module à la demande : `sonde` →
+  `src/ctl-sante.mjs` seul (`principalSonde`) ; `etat`, `close-period` →
+  `principalCtlDemon` (`src/ctl-demon.mjs`, qui délègue `etat` à
+  `principalEtat` de `src/ctl-sante.mjs`) ; le reste → l'outil WORM.
+- `sonde` : codes 0 (réponse 200) et 1 (tout le reste), jamais 2 ; URL
+  `http:` de boucle locale littérale ; 2 500 ms (`DELAI_SONDE_MS`).
+- `etat` : une ligne `{ pid, configuration, health_listen, status, reasons,
+  since, healthz, readyz, lease_epoch }` par démon ; codes 0, 1, 2, 4
+  (`DELAI_ETAT_DEFAUT_MS` = 5 000).
+- `close-period --now` : sortie `{ pid, configuration, event, data }` comme
+  `dossier exporter` ; codes 0, 1, 2, 4 (`DELAI_CLOTURE_DEFAUT_MS` =
+  30 000) ; refus de la commande en production sans demande ni signal.
+
+### Demande du démon
+
+`DEMANDES_CONNUES` ajoute `cloture-anticipee` (`{ demande, request_id, pid,
+at }` ; périmée comme `rotation-urgence`). `traiterDemande` appelle
+`coeur.clotureAnticipee({ request_id })` ; une erreur imprévue donne
+`ctl_request_failed`.
+
+### Cœur et écrivain
+
+- `Coeur#clotureAnticipee({ request_id })` →
+  `{ accepte, raison?, periode? }` ; lignes `period_closed_early` et
+  `period_close_refused` (dans `LIGNES_SANS_FILTRE`).
+- `Coeur#journalClos` (lecture) : vrai après la clôture anticipée, et après
+  un redémarrage sur un journal ainsi clos ; `_bloquerSiIntervention` lève
+  `ErreurEnregistreur("journal_clos")` (`-31010`).
+- `Ecrivain#cloreMaintenant()` (file de l'écrivain) ; `Ecrivain#clos` ;
+  `_ecrireEvenement` et `_ecrireIntention` lèvent `journal_clos`.
+- `relireJournal` rend `journalClos` (dernier manifeste à `generated_at` <
+  `period_end`).
+- Frontaux : `_etatPanne` (MCP, SDK) rend `{ bloque: "journal_clos" }`, qui
+  bloque aussi en mode observation ; `blocage()` du frontal modèle rend
+  `journal_clos` ; `panneIngestion` (OTLP) aussi.
+
+### Bail
+
+`SCRIPT_AUXILIAIRE` (exporté par `src/bail.mjs`) : programme que `flock(1)`
+exécute, verrou pris. L'enfant `flock` du démon et sa ligne de commande
+(`flock --exclusive --nonblock --close --conflict-exit-code 75 <chemin>
+<node> -e <script>`) restent ce que les essais de TE-11 et TA-19 tuent.
+
+### Essais
+
+`test/enregistreur-ctl-etape7.test.js`.

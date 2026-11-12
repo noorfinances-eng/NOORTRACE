@@ -547,8 +547,8 @@ export const TQ = [
     "oracle": "Chaque entrée de construction épinglée ; empreintes publiées égales aux deux constructions ; écart = RA-22 réalisé, à traiter avant publication.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 7,
-      "blocking": "Aucune image construite ; CT-8 §3.6 : « c'est la revue de code de CT-9 et le risque RA-22 »."
+      "phase2_step": 8,
+      "blocking": "Rattaché à l'étape 8 : revue humaine par une personne qui n'a pas écrit le code (EX-13.1) des fichiers de construction des images (`conteneurs/`), du script de construction double et du travail de version ; la partie mécanique est éprouvée à l'étape 7 par test/publication-etape7.test.js (binaire et archive : entrées épinglées, aucune clé, empreintes de la note égales aux deux constructions) et par la construction double des images."
     },
     "threats": [
       "MN-25"
@@ -560,7 +560,11 @@ export const TQ = [
       ],
       "scope": [
         "fichiers de construction des images noortrace/*",
-        ".github/workflows/ci.yml"
+        ".github/workflows/ci.yml",
+        ".github/workflows/version.yml",
+        "scripts/publication/",
+        "conteneurs/",
+        "scripts/deploiement/construire-images.mjs"
       ],
       "grid": [
         "Sources et images de base épinglées par condensé.",

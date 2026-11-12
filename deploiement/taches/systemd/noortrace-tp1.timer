@@ -1,0 +1,11 @@
+# Minuteur de la tâche TP-1 (CT-8 EX-8.6) : à chaque clôture : cinq minutes après chaque heure, gel de la période close.
+[Unit]
+Description=NOORTRACE, minuteur de TP-1 (à chaque clôture : cinq minutes après chaque heure, gel de la période close)
+
+[Timer]
+OnCalendar=*-*-* *:05:00
+Persistent=true
+Unit=noortrace-tache@TP-1.service
+
+[Install]
+WantedBy=timers.target

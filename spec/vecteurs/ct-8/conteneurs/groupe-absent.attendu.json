@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "groupe-absent.yaml",
-    "sha256": "d36525cd05dc01b97c06ebd458b8a577d8fc247079b6a77c81fec7bb82c66b01",
+    "sha256": "38b693ca57591eb5b37b73c168bd44d0bdf0dbc86f98126eb1bdfa38c3cb0a44",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

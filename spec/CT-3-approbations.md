@@ -1,6 +1,8 @@
 # CT-3 — Approbations
 
-Version 0.6, 2026-11-11 (révision 0.6 : questions de la construction de
+Version 0.7, 2026-11-12 (révision 0.7, minimale : règle du pair d'une prise
+du service d'approbation écrite, EX-12.2) ;
+version 0.6 du 2026-11-11 (révision 0.6 : questions de la construction de
 l'étape 6 tranchées dans le texte, dont la sonde du service, le rapport d'un
 refus au démarrage, l'inscription sous `reauth_max_age_s` nul et les bornes
 de l'annuaire ; la fin de la section 0 détaille la révision) ;
@@ -418,6 +420,13 @@ pages (étape 6) a posées, sans changer les formats de CT-1 v0, la machine à
   `annuaire-approbateurs-v0` (`$defs/code_erreur_annuaire` admet
   `limite_annuaire`).
 - Vecteurs : aucun ne change.
+
+La version 0.7, du 2026-11-12, minimale, écrit la règle par laquelle le
+noyau vérifie le répertoire de la prise du service (EX-12.2), que la
+construction des images de l'étape 7 a éprouvée : le répertoire commun des
+prises du déploiement, inscriptible par le groupe des prises avec le bit
+collant, était refusé par le noyau. Règle modifiée : EX-12.2 ; section 15.2.
+Aucun schéma, aucun vecteur ne change.
 
 ## 1. Objet, périmètre et relations
 
@@ -4242,7 +4251,14 @@ sans accent. Toute clé inconnue dans une requête est une erreur
 
 **EX-12.2** L'authentification est celle de CT-2 EX-18.8 : sur la prise Unix,
 identifiant d'utilisateur du pair égal à `peer_user` et répertoire de prise
-non inscriptible par les hôtes ni par les agents ; en HTTP, mTLS ou jeton
+non inscriptible par les hôtes ni par les agents (révision 0.7 : le noyau
+vérifie, avant chaque message, que la prise appartient à `peer_user`, que
+son répertoire et chacun de ses parents appartiennent au compte 0, à
+`peer_user` ou au compte du noyau, qu'ils ne sont inscriptibles par le groupe
+ou par les autres qu'avec le bit collant, et que le répertoire de la prise
+n'est jamais inscriptible par les autres ; le service, de son côté, refuse de
+créer sa prise dans un répertoire inscriptible par les autres ; un répertoire
+commun au compte 0, au groupe des prises et au mode `3770` est admis) ; en HTTP, mTLS ou jeton
 porteur (`token`, référence de secret) en en-tête `Authorization: Bearer`,
 et TLS hors de la boucle locale. Le service authentifie le noyau de la même
 manière (identité du pair ou certificat client, ou un jeton distinct par
@@ -8326,6 +8342,8 @@ en dépendent le sont aussi (CT-2 §22).
 | `paquets/approbation` (révision 0.6) | intention de la vue tirée de l'événement `retenue` ; boucle locale comparée après normalisation de l'URL ; refus au démarrage écrits en texte ; aucune borne de l'annuaire contrôlée | intention gardée avec les arguments (EX-7.24, EX-7.30) ; boucle locale écrite exactement (EX-10.12) ; règle `origine_port_par_defaut` ; rapport d'EX-10.14 (`reference_illisible`, `jetons_egaux`, `ecoute_impossible`) ; `limite_annuaire` (EX-13.17) ; matrice de couverture étendue à EX-10.14 et EX-12.22 | fait (étape 6) |
 | `paquets/console` (révision 0.6) | relais de `reauth_max_age_s` nul sans l'exception de l'inscription ; `identity_ready` vrai sur un document qui fait refuser les connexions ; sonde à code 2 sur un usage incorrect ; refus au démarrage en texte ; page : empreintes des deux décisions avant le choix, code propre à la page pour une réponse hors de sa forme, attente de la signature d'inscription bornée par le seul délai | EX-13.48, point 5 ; EX-13.44 ; EX-13.44 (codes 0 et 1 seulement) ; EX-10.14 (`reference_illisible`, `ecoute_impossible`, `parcours_non_offert`) et règles `origine_port_par_defaut`, `url_illisible` (EX-10.13) ; EX-9.20, point 2 ; `reponse_service_invalide` (EX-13.29) ; EX-13.30 | fait (étape 6) |
 | `spec/README.md` (révision 0.6) | ligne CT-3 en version 0.5 | ligne CT-3 en version 0.6 ; extensions compatibles de `configuration-approbation-v0`, `configuration-console-v0`, `console-service-v0`, `console-approbation-v0` et `annuaire-approbateurs-v0` | fait (étape 6) |
+| `paquets/enregistreur`, vérification du pair de la prise du service (révision 0.7) | répertoire de la prise refusé dès qu'il est inscriptible par le groupe, ce qui refusait le répertoire commun des prises du déploiement | règle d'EX-12.2 (bit collant admis), la même que CT-2 EX-18.8 | fait (étape 7) |
+| `spec/README.md` (révision 0.7) | ligne CT-3 en version 0.6 | ligne CT-3 en version 0.7 | fait (étape 7) |
 
 ## 16. Ce que cette version ne couvre pas
 

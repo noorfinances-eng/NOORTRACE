@@ -18,6 +18,7 @@ Familles de cette génération :
 `journaux/`,
 `proces-verbaux/`,
 `consultations/`,
+`supervision/`,
 `acceptation-exploitation/`, `acceptation-observation/`,
 `paquets/`.
 
@@ -292,6 +293,25 @@ node scripts/deploiement/consultations.mjs verifier spec/vecteurs/ct-8/consultat
 | `collecte-decroissante` | Seconde ligne collectée avant la première (CA-4). | 1 | `invalide` | CA-4 (ligne 2) |
 | `role-inconnu` | Principal sans rôle déclaré (role inconnu) : CA-6, règle noortrace_acces_non_declare. | 1 | `invalide` | CA-6 (ligne 2) |
 | `non-jcs` | Première ligne écrite avec des espaces, hors JCS v0 (CA-1) ; la seconde reste chaînée à ses octets. | 1 | `invalide` | CA-1 (ligne 1) |
+
+## supervision
+
+Supervision de CT-8 §10 : extracteur des journaux (10.3, SV-5) et règles
+régénérées (EX-10.6, SV-6). Les noms de lignes et de membres sont ceux du
+code des paquets (écarts E-C1 à E-C5 de `scripts/lib/supervision.mjs`).
+
+```bash
+node scripts/deploiement/extraire-journaux.mjs --repertoire spec/vecteurs/ct-8/supervision/journaux   # = attendu.prom
+node scripts/deploiement/regles.mjs   # = deploiement/observabilite/regles-noortrace.yml
+node scripts/deploiement/regles.mjs --configuration spec/vecteurs/ct-8/supervision/configuration-modifiee.json \
+  --ancrage spec/vecteurs/ct-8/supervision/ancrage-modifie.json   # = regles-attendues.yml
+```
+
+| Fichier | Contenu | Résultat attendu |
+|---|---|---|
+| `journaux/` | 13 fichiers : `acquisitions/1793865600/acquisitions.ndjson`, `approbation/journal-service.ndjson`, `consultations/consultations-2026-11-05.ndjson`, `exploitation/exploitation.ndjson`, `exploitation/exploitation.ndjson.1`, `gel/gel.ndjson`, `proces-verbaux/passage-mode.json`, `proces-verbaux/pv-1-refuse.json`, `proces-verbaux/sauvegarde.json`, `registre/2026-11-05T09-10-ancrer.json`, `registre/2026-11-05T09-20-capturer.json`, `registre/2026-11-05T09-30-inscrire-cle.json`, `registre/2026-11-05T09-40-illisible.json` | `attendu.prom`, 88 séries |
+| `configuration-modifiee.json` | modèle de production : `pending_max_ms` 120 000, `warn_skew_ms` 500, `lock_audit_interval_days` 7, `min_free_bytes` 4 Gio, `storage.root` `/srv/noortrace` | `regles-attendues.yml` |
+| `ancrage-modifie.json` | `anchor_pending_alert_s` 3 600, `inclusion_alert_s` 120, `give_up_after_s` 604 800 | `regles-attendues.yml` |
 
 ## acceptation-exploitation, acceptation-observation
 

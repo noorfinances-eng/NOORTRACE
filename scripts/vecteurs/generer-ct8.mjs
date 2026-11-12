@@ -26,6 +26,9 @@
 //   consultations/
 //                fichiers du journal des consultations, résultats CA-1 à CA-6
 //                attendus (A.7) ;
+//   supervision/ journaux de chaque source de l'extracteur, sortie attendue
+//                (SV-5), configuration modifiée et règles régénérées
+//                attendues (SV-6) (A.6, A.9, §10) ;
 //   acceptation-exploitation/, acceptation-observation/ et leurs grilles
 //                acceptation-*-attendu.json (A.9, section 14) ;
 //   paquets/     paquets réviseurs de §13 (A.10) : description.json,
@@ -48,6 +51,7 @@ import { fileURLToPath } from "node:url";
 import * as Deploiement from "./ct8/deploiement.mjs";
 import * as Exploitation from "./ct8/exploitation.mjs";
 import * as Paquets from "./ct8/paquets.mjs";
+import * as Supervision from "./ct8/supervision.mjs";
 
 const RACINE_PROJET = fileURLToPath(new URL("../../", import.meta.url));
 export const REPERTOIRE_CT8 = path.join(RACINE_PROJET, "spec", "vecteurs", "ct-8");
@@ -67,6 +71,7 @@ export const FAMILLES = [
   { nom: "journaux", generer: Exploitation.genererJournaux, section: Exploitation.sectionJournaux },
   { nom: "proces-verbaux", generer: Exploitation.genererProcesVerbaux, section: Exploitation.sectionProcesVerbaux },
   { nom: "consultations", generer: Exploitation.genererConsultations, section: Exploitation.sectionConsultations },
+  { nom: "supervision", generer: Supervision.genererSupervision, section: Supervision.sectionSupervision },
   { nom: "acceptation-exploitation/`, `acceptation-observation", racine: true, generer: Exploitation.genererAcceptation, section: Exploitation.sectionAcceptation },
   { nom: "paquets", generer: Paquets.genererPaquets, section: Paquets.sectionIndex },
 ];

@@ -1,0 +1,5 @@
+{"ts":"2026-11-05T11:00:00.000Z","type":"vote_inscrit","ticket":"apr-3001"}
+{"ts":"2026-11-05T11:01:00.000Z","type":"notification_echec","id":"n-1","kind":"ouverture","attempt":1,"status":null,"cause":"reseau"}
+{"ts":"2026-11-05T11:02:00.000Z","type":"notification_echec","id":"n-1","kind":"ouverture","attempt":2,"status":503,"cause":"statut"}
+{"ts":"2026-11-05T11:03:00.000Z","type":"notification_abandonnee","id":"n-2","kind":"ouverture","attempts":1,"cause":"file_pleine"}
+{"ts":"2026-11-05T11:04:00.000Z","type":"notification_sans_destinataire","kind":"ouverture","ticket":"apr-3002"}

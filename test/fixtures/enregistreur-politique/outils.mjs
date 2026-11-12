@@ -432,8 +432,10 @@ export const ANNUAIRE_REFERENCE = path.join(SPEC, "vecteurs", "ct-3", "annuaire"
  * Lance `noortrace-approbation --config` (CT-3 §12) : canal du noyau et canal
  * de la console en TCP sur 127.0.0.1, jetons distincts, état chiffré sous
  * `dir`, annuaire de référence de CT-3. Rend quand la ligne `pret` est écrite.
+ * Avec `o.socket`, le canal du noyau écoute sur cette prise Unix (mode 0660)
+ * au lieu de TCP ; `url` est alors nul et `socket` la désigne.
  * @param {string} dir
- * @param {{org_id: string, journal_id: string, remise_representation_ms?: number}} o
+ * @param {{org_id: string, journal_id: string, remise_representation_ms?: number, socket?: string}} o
  */
 export async function lancerServiceApprobation(dir, o) {
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -451,7 +453,9 @@ export async function lancerServiceApprobation(dir, o) {
     journal_id: o.journal_id,
     state_dir: path.join(dir, "etat-service"),
     storage_key: { env: "NOORTRACE_TEST_CLE_APPROBATION" },
-    noyau: { tcp: { host: "127.0.0.1", port: 0 }, token: { env: "NOORTRACE_TEST_JETON_NOYAU" } },
+    noyau: o.socket
+      ? { socket: o.socket, socket_mode: "0660", token: { env: "NOORTRACE_TEST_JETON_NOYAU" } }
+      : { tcp: { host: "127.0.0.1", port: 0 }, token: { env: "NOORTRACE_TEST_JETON_NOYAU" } },
     console: { tcp: { host: "127.0.0.1", port: 0 }, token: { env: "NOORTRACE_TEST_JETON_CONSOLE" }, annuaire },
     tickets: { epoch: null },
     remise_representation_ms: o.remise_representation_ms ?? 2000,
@@ -477,7 +481,8 @@ export async function lancerServiceApprobation(dir, o) {
   return {
     processus: p,
     jetonNoyau: env.NOORTRACE_TEST_JETON_NOYAU,
-    url: `http://127.0.0.1:${pret.noyau.port}`,
+    url: o.socket ? null : `http://127.0.0.1:${pret.noyau.port}`,
+    socket: o.socket ?? null,
     console: `http://127.0.0.1:${pret.console.port}`,
     jetonConsole: env.NOORTRACE_TEST_JETON_CONSOLE,
     org_id: o.org_id,

@@ -119,8 +119,18 @@ export async function relireJournal(repertoire, options) {
   let periode = null;
   let prevPeriodHash = ZERO32;
   let plancherTs = null;
+  // Clôture anticipée (CT-2 EX-19.4) : le dernier manifeste a été produit avant
+  // la fin de sa période (`generated_at` < `period_end`, ce qu'une clôture à
+  // l'heure pleine ne fait jamais : CT-1 §10.1, « ≥ period_end en temps
+  // nominal ») ; le journal est terminé, et le reste après un redémarrage.
+  let journalClos = false;
   if (dm) {
     const m = dm.manifeste;
+    try {
+      journalClos = typeof m.generated_at === "string" && decoderHorodatage(m.generated_at) < m.period_end * 1000;
+    } catch {
+      journalClos = false;
+    }
     prevPeriodHash = dm.periodHash;
     plancherTs = m.period_end * 1000;
     const hashAvant = m.last_seq === 0 ? ZERO32 : (evenements.find((e) => e.seq === m.last_seq)?.hash ?? ZERO32);
@@ -148,6 +158,7 @@ export async function relireJournal(repertoire, options) {
     periode,
     prevPeriodHash,
     plancherTs,
+    journalClos,
     serie,
     dernierSegment: segments.length ? segments[segments.length - 1].nom : null,
   };

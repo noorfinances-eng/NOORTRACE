@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "service-non-decrit.yaml",
-    "sha256": "b6aa653aa336e8199218974128f79622f935dacd347378f93ce11929147524c0",
+    "sha256": "9bec4372bed3fbd8723f202c6501059d211b79fd7211a4a0976a8eccaa1dde4c",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

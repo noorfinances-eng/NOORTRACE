@@ -1091,6 +1091,70 @@ describe("références de secrets { vault } (CT-2 §15.2) contre Vault réel : l
 
 describe("identités IAM d'instance (EX-11.18) : IMDSv2 d'EC2 et serveur de métadonnées de Compute Engine (serveurs simulés d'après les pages officielles)", function () {
   this.timeout(60000);
+  // Étape 7 : en conteneur de production, l'identité IAM
+  // ne peut venir ni de variables d'identifiants (CO-9 : aucun secret dans
+  // l'environnement) ni d'IMDS (adresse de lien local exclue des fichiers
+  // livrés, lecture 193) : elle vient d'un fichier monté comme secret, désigné
+  // par `AWS_CONFIG_FILE` (variable des kits d'AWS, qui ne porte qu'un chemin).
+  it("AWS : fichier d'identifiants désigné par AWS_CONFIG_FILE ([default] ou [profile <AWS_PROFILE>], forme des kits d'AWS), ou AWS_SHARED_CREDENTIALS_FILE ([<profil>]) ; relu à chaque appel ; Sign signé avec ses identifiants et son jeton de session ; les variables d'identifiants priment ; fichier illisible ou sans clés : refus « identité » qui nomme la variable sans rien citer du fichier", async function () {
+    const sim = await simulateurAwsKms(tls, { identifiants: { access_key_id: "AKIDFICHIER", secret_access_key: "secret-du-fichier", session_token: "jeton-du-fichier" } });
+    const d = path.join(dir, "identite-aws");
+    fs.mkdirSync(d, { recursive: true });
+    try {
+      const { arn } = sim.creerCle();
+      const config = path.join(d, "identite-aws");
+      fs.writeFileSync(config, "# identité du démon (secret identite-aws)\n[profile autre]\naws_access_key_id = AKIDAUTRE\naws_secret_access_key = autre\n\n[default]\nregion = eu-west-3\naws_access_key_id = AKIDFICHIER\naws_secret_access_key = secret-du-fichier\naws_session_token = jeton-du-fichier\n", { mode: 0o400 });
+      const env = { AWS_CONFIG_FILE: config, AWS_ENDPOINT_URL_KMS: sim.origine };
+      const client = new ClientKms({ region: sim.region, env, ca: tls.caPem });
+      const b = new SignataireAwsKms({ backend: { key_arn: arn, region: sim.region }, keyId: "k", client });
+      const v = new SignataireVerifie(b, { timeout_ms: 5000 });
+      const p = await v.clePublique("k");
+      const m = new Uint8Array([...N.PREFIXES.P_S, 3]);
+      expect(N.verifierEd25519(p, m, await v.signer("k", m))).to.equal(true);
+      expect(sim.compte.requetes.at(-1).entetes["x-amz-security-token"]).to.equal("jeton-du-fichier");
+      expect(sim.compte.requetes.at(-1).entetes.authorization).to.include("Credential=AKIDFICHIER/");
+      // Profil nommé : [profile autre] → identifiants refusés par le simulateur (autre compte).
+      let e1;
+      try {
+        await new ClientKms({ region: sim.region, env: { ...env, AWS_PROFILE: "autre" }, ca: tls.caPem }).appeler("DescribeKey", { KeyId: arn });
+      } catch (x) {
+        e1 = x;
+      }
+      expect(e1?.statut).to.equal(403);
+      // Forme du fichier d'identifiants partagé : [default] sans le mot profile.
+      const cred = path.join(d, "credentials");
+      fs.writeFileSync(cred, "[default]\naws_access_key_id=AKIDFICHIER\naws_secret_access_key=secret-du-fichier\naws_session_token=jeton-du-fichier\n", { mode: 0o400 });
+      expect((await new ClientKms({ region: sim.region, env: { AWS_SHARED_CREDENTIALS_FILE: cred, AWS_ENDPOINT_URL_KMS: sim.origine }, ca: tls.caPem }).appeler("DescribeKey", { KeyId: arn })).KeyMetadata.Arn).to.equal(arn);
+      // Relu à chaque appel : un fichier renouvelé par l'hôte est pris sans redémarrage.
+      fs.chmodSync(config, 0o600);
+      fs.writeFileSync(config, "[default]\naws_access_key_id = AKIDPERIME\naws_secret_access_key = perime\n");
+      let e2;
+      try {
+        await client.appeler("DescribeKey", { KeyId: arn });
+      } catch (x) {
+        e2 = x;
+      }
+      expect(e2?.statut).to.equal(403);
+      // Variables d'identifiants : prioritaires sur le fichier.
+      expect((await new ClientKms({ region: sim.region, env: { ...env, AWS_ACCESS_KEY_ID: "AKIDFICHIER", AWS_SECRET_ACCESS_KEY: "secret-du-fichier", AWS_SESSION_TOKEN: "jeton-du-fichier" }, ca: tls.caPem }).appeler("DescribeKey", { KeyId: arn })).KeyMetadata.Arn).to.equal(arn);
+      // Fichier absent, ou sans les deux clés : refus nommé, sans contenu cité.
+      fs.writeFileSync(config, "[default]\nregion = eu-west-3\naws_secret_access_key = ne-pas-citer\n");
+      for (const e of [{ ...env, AWS_CONFIG_FILE: path.join(d, "absent") }, env]) {
+        let err;
+        try {
+          await new ClientKms({ region: sim.region, env: e, ca: tls.caPem }).appeler("DescribeKey", { KeyId: arn });
+        } catch (x) {
+          err = x;
+        }
+        expect(err?.code).to.equal("identite");
+        expect(err.message).to.include("AWS_CONFIG_FILE");
+        expect(err.message).to.not.include("ne-pas-citer");
+      }
+    } finally {
+      await sim.fermer();
+    }
+  });
+
   it("AWS : sans variables d'identifiants, IMDSv2 au point AWS_EC2_METADATA_SERVICE_ENDPOINT (PUT du jeton, puis rôle et identifiants temporaires), Sign signé avec le jeton de session, identifiants gardés jusqu'à leur fin ; AWS_EC2_METADATA_DISABLED=true ou aucun point : refus « identité IAM absente »", async function () {
     const sim = await simulateurAwsKms(tls, { identifiants: { access_key_id: "ASIASIMULATEUR", secret_access_key: "secret-temporaire", session_token: "jeton-de-session" } });
     const imds = await simulateurImds(sim.identifiants);

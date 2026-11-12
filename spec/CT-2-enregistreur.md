@@ -1,6 +1,11 @@
 # CT-2 — Enregistreur
 
-Version 0.9, 2026-11-11 (révision 0.9 : questions de la construction de
+Version 0.10, 2026-11-12 (révision 0.10 : commandes `noortrace-ctl sonde`,
+`etat` et `close-period --now`, règle du pair d'une prise du service
+d'approbation, clé de chaîne de classe B ou C et rotation de la seule clé de
+chaîne relayée au registre, questions de la construction de l'étape 7
+tranchées dans le texte ; version 0.9 du 2026-11-11, révision 0.9 : questions
+de la construction de
 l'export à l'étape 6 tranchées dans le texte ; version 0.8 du même jour,
 révision 0.8 : commande d'export du dossier
 `noortrace-ctl dossier exporter` ; version 0.7 du 2026-11-10, version 0.6 du
@@ -30,7 +35,10 @@ n'étaient gardées qu'en mémoire (14.5) ; la révision 0.8, du 2026-11-11, fix
 la commande d'exploitation qui exporte le dossier d'un événement, son
 transport, le choix de l'événement, ses refus et sa sortie (15.7) ; la
 révision 0.9, du même jour, minimale, tranche ce que la construction de
-cette commande a trouvé ouvert (15.7, 4.4) ; la
+cette commande a trouvé ouvert (15.7, 4.4) ; la révision 0.10, du
+2026-11-12, fixe les commandes de santé et de clôture anticipée (15.8), la
+règle du pair d'une prise du service d'approbation (18.4), la clé de chaîne
+servie et sa rotation au registre (11.3, 11.4) ; la
 section 0.4 dit ce que chacune change.
 
 ## 0. En-tête, conventions, lecture
@@ -166,6 +174,59 @@ hors de la plage réservée et rend les issues d'approbation comme des
 résultats d'outil (4.4, « Codes d'erreur de l'enregistreur »).
 
 ### 0.4 Révisions
+
+**Révision 0.10** (2026-11-12). Questions de la construction de l'étape 7
+(images de conteneur, exploitation, clé de chaîne servie), tranchées dans le
+texte :
+
+1. **Commandes de santé et de clôture anticipée** (15.8, nouvelle). La
+   spécification du déploiement emploie `noortrace-ctl sonde --url …` dans
+   les sondes de ses fichiers Compose, `noortrace-ctl etat` dans ses
+   runbooks et `noortrace-ctl close-period --now` dans son installation
+   rapide, sans qu'aucune les fixe (sa proposition PD-2). Elles sont
+   adoptées : `sonde` (EX-15.16), sans interpréteur de commandes, 0 sur une
+   réponse 200 et seulement elle ; `etat` (EX-15.17), lecture de `/healthz`,
+   `/readyz` et de l'époque du bail par la voie de contrôle existante ;
+   `close-period --now` (EX-15.18), la clôture anticipée d'EX-19.4, refusée
+   hors développement par la commande et par le démon. Le transport gagne la
+   demande `cloture-anticipee` (EX-15.10, pas 5) ; ses lignes de réponse
+   sont écrites quel que soit le niveau du journal (EX-15.14) ; EX-19.4 dit
+   ce que la clôture refuse, qu'elle vaut en mode observation, et comment un
+   journal terminé se reconnaît après un redémarrage.
+2. **Pair du service d'approbation** (EX-18.8). La vérification du
+   répertoire d'une prise Unix est écrite : propriétaires admis (compte 0,
+   `peer_user`, le démon), répertoire inscriptible par le groupe avec le bit
+   collant seulement, jamais par les autres. Le répertoire commun des prises
+   de la spécification du déploiement (`/run/noortrace`, compte 0,
+   groupe 10010, mode `3770`) est admis ; il était refusé par le code livré.
+3. **Clé de chaîne** (EX-11.9, EX-11.19, point 1). Constats du banc sur
+   secp256k1 ; classes servies B et C par AWS KMS, classe A refusée en la
+   nommant ; rôle de `service_url` ; contexte de chiffrement d'une clé de
+   chaîne de classe C.
+4. **Rotation de la seule clé de chaîne et opérations au seuil relayées**
+   (EX-11.16, EX-11.19, points 3 et 4) : le démon relaie l'inscription et la
+   révocation depuis des demandes signées au seuil, déposées sous le
+   répertoire du journal, avec la clé de chaîne suivante pour expéditeur ;
+   refus nommés ; lignes `chain_key_*`.
+5. **Identité IAM par fichier** (EX-11.18) : un fichier d'identifiants
+   désigné par `AWS_SHARED_CREDENTIALS_FILE` ou `AWS_CONFIG_FILE`, relu à
+   chaque appel, entre les variables d'identifiants et IMDSv2.
+6. **Raison `serveur:<alias>` de la jauge `noortrace_degraded`** (17.2,
+   EX-14.7, EX-14.11) : posée à 0 au démarrage pour chaque serveur, à 1
+   quand il devient injoignable ; ses entrées et sorties sont dites par
+   `upstream_unreachable`, sans `degraded_enter` ni `degraded_exit`.
+7. **Compagnon des attributs** (EX-12.18) : un répertoire ou des attributs
+   illisibles sont une erreur du passage ; une racine illisible ou absente
+   arrête le service.
+
+- Règles nouvelles : EX-15.16, EX-15.17, EX-15.18.
+- Règles modifiées : EX-11.9, EX-11.16, EX-11.18, EX-11.19 (points 1, 3 et
+  4), EX-12.18, EX-14.7, EX-14.11, EX-15.10 (pas 5), EX-15.14, EX-17.2 (noms
+  de lignes), EX-18.8, EX-19.4 ; table de 17.2 (`noortrace_degraded`) ;
+  sections 21 et 22.
+- Règles retirées : aucune. Aucun schéma, aucun vecteur ne change ; l'exemple
+  de 15.3 reste valide (sa clé de chaîne n'est chargée que si le composant
+  d'ancrage est branché, ce que l'exemple ne fait pas).
 
 **Révision 0.9** (2026-11-11, minimale). Questions de la construction de la
 commande d'export (étape 6), tranchées dans le texte de 15.7, et en 4.4 pour
@@ -7534,7 +7595,12 @@ de Google Cloud KMS (64 KiB, R3 F-66) et d'Azure `wrapKey` (R3 F-68). Le
 démon efface la graine de sa mémoire à l'arrêt ; un contexte de chiffrement
 (AWS `EncryptionContext`, Google `additionalAuthenticatedData`) porte
 `org_id`, `journal_id` et `key_id`, et jamais une donnée sensible (« This
-field may be displayed in plaintext in CloudTrail logs », R3 F-63). Avec un
+field may be displayed in plaintext in CloudTrail logs », R3 F-63).
+Révision 0.10 : pour une clé de chaîne de classe C (EX-11.19), la donnée
+enveloppée est le scalaire secp256k1 de 32 octets, et `key_id` du contexte
+est l'adresse déclarée de la clé de chaîne (`0x` et 40 chiffres
+hexadécimaux minuscules), une clé de chaîne n'ayant pas d'identifiant de clé
+du journal. Avec un
 TPM 2.0, la politique de descellement lie la graine aux PCR choisis par le
 client (`tpm2_createpolicy --policy-pcr -l sha256:0,1,2,3`, `tpm2_unseal -p
 pcr:sha256:0,1,2,3`, R3 F-71, F-72) : un changement de micrologiciel ou de
@@ -7641,7 +7707,37 @@ peut être inscrite sous une nouvelle. En conséquence :
    refusée en production, comme pour la clé Ed25519 ; le support de
    secp256k1 par chaque backend de la table de 11.2 n'a pas été recherché
    pour cette spécification (non vérifié) et se vérifie à la cérémonie
-   (CT-7) ;
+   (CT-7). Révision 0.10, constats du banc de l'étape 7 de la
+   construction, sur les signataires des essais : Vault 1.20.4 et
+   OpenBao 2.4.3 (moteur Transit) refusent tout type de clé secp256k1 ; le
+   TPM 2.0 simulé (swtpm, libtpms) ne connaît pas la courbe
+   (`tpm2_getcap ecc-curves`) ; SoftHSM2 2.6.1 signe en secp256k1 par
+   PKCS#11 (`CKM_ECDSA`), mais vaut la classe D (11.2) ; l'API d'AWS KMS
+   simulée (LocalStack 4.0) crée une clé `ECC_SECG_P256K1`, signe un
+   condensé (`Sign`, `MessageType` `DIGEST`, signature DER dont `s` est haut
+   environ une fois sur deux) et chiffre un scalaire de 32 octets ; le
+   service AWS KMS réel n'a pas été joint (non vérifié sur le service
+   lui-même). Le démon sert donc deux classes, toutes deux par AWS KMS : **C**
+   (`secret` résout l'enveloppe `CiphertextBlob` du scalaire, déchiffrée au
+   démarrage par `Decrypt` sous le contexte d'EX-11.9, tenue en mémoire et
+   effacée à l'arrêt) et **B** (`secret` résout l'ARN de la clé
+   `ECC_SECG_P256K1`, qui signe par `Sign` ; la signature DER est ramenée à
+   `s` bas et `v` est recouvré, CT-4 RG-12) ; la classe D reste admise hors
+   production. En classes B et C, `service_url` est le point d'accès d'AWS
+   KMS, `https://kms.<région>.<domaine>` ou `https://kms-fips.<région>.<domaine>`,
+   sans chemin, port facultatif ; la région est lue dans le nom ; les
+   requêtes vont à cette adresse, ou à celle de `AWS_ENDPOINT_URL_KMS` (à
+   défaut `AWS_ENDPOINT_URL`) si elle est posée ; l'identité est celle
+   d'EX-11.18. Au chargement, le démon compare l'adresse dérivée de la clé
+   publique (keccak256 de `X ‖ Y`, 20 derniers octets) à `address`, puis
+   signe un condensé d'essai et en recouvre l'adresse, comme à la cérémonie
+   des clés ; un écart, un service absent ou injoignable, ou une classe A,
+   refusent le démarrage quand le composant d'ancrage est branché
+   (`demarrage_refuse : ancrage : cle_chaine`, ou `classe_cle_chaine` pour la
+   classe A, code 2 ; aucun membre de la configuration ne nomme un module
+   PKCS#11). Sans composant d'ancrage branché (`anchoring.ancrage` absent ou
+   `null`), la clé de chaîne n'est pas chargée, et `service_url` peut rester
+   `null`, comme dans l'exemple de 15.3 ;
 2. la clé de chaîne ne signe jamais un événement du journal, et la clé
    Ed25519 ne signe jamais une transaction : ce sont deux clés, deux usages ;
 3. **rotation de la clé Ed25519** (EX-11.15) : la nouvelle paire (`chainKey`
@@ -7649,13 +7745,25 @@ peut être inscrite sous une nouvelle. En conséquence :
    rotation ; les périodes dont le manifeste est signé par l'ancienne clé
    sont ancrées avec l'ancienne `chainKey`, les suivantes avec la nouvelle ;
    l'ancienne `chainKey` est révoquée **après** la dernière ancre et la
-   dernière soumission qu'elle doit porter ;
+   dernière soumission qu'elle doit porter ; révision 0.10 : après une
+   révocation d'urgence (EX-11.16), un document de l'ancienne clé Ed25519 qui
+   n'est pas encore ancré ne l'est plus : le registre le refuse
+   (`cle_chaine_non_inscrite`, CT-4) ;
 4. **rotation de la seule clé de chaîne** (compromission de la clé de
    chaîne, clé Ed25519 saine) : révoquer l'ancienne `chainKey`, puis inscrire
    la même clé Ed25519 sous la nouvelle ; entre les deux, les ancres
    attendent (le registre ne bloque jamais un appel, 14.2) ; aucun événement
    de rotation n'est écrit dans le journal, puisque la clé qui signe les
-   événements ne change pas.
+   événements ne change pas. Révision 0.10 : cette rotation passe par
+   `noortrace-ctl cle rotation-urgence` quand seule `next_chain_key` est
+   posée (sans `signer.rotation.next_key_id`) ; le démon relaie la
+   révocation puis l'inscription selon EX-11.16, bascule sur la nouvelle clé
+   de chaîne (ligne `chain_key_switched`) et la ligne
+   `key_rotation_emergency` porte `chain_key_only: true`. Au démarrage, si le
+   registre montre la rotation déjà faite (ancienne clé révoquée, même clé
+   Ed25519 active sous `next_chain_key`), le démon bascule de lui-même. La
+   nouvelle clé de chaîne n'est retenue qu'en mémoire : l'exploitant reporte
+   la rotation dans la configuration.
 
 ### 11.4 Rotation
 
@@ -7716,6 +7824,26 @@ le journal d'exploitation, hors chaîne. Cette rupture est dite ici parce que
 CT-1 l'impose : la continuité d'un journal passe par une signature de la clé
 précédente.
 
+Révision 0.10, **opérations au seuil relayées par le démon**. L'inscription
+de la nouvelle paire et la révocation de l'ancienne `chainKey` sont des
+opérations signées au seuil par les approbateurs (CT-4 §8.4). L'exploitant
+fait signer les deux `demande_signature` (CT-4 §7.7) et les dépose, avant la
+commande, sous `<répertoire du journal>/registre/demande-inscription-<adresse
+de la nouvelle clé de chaîne>.json` et `demande-revocation-<adresse de
+l'ancienne>.json` (adresses en minuscules, `0x` compris). Le démon contrôle
+chaque demande avant tout envoi (opération, organisation, journal, clé de
+chaîne, clé Ed25519, signatures au seuil du jeu en vigueur, OP-6 à OP-8 de
+CT-4), la relaie avec `next_chain_key` pour expéditeur (la clé saine) et
+capture la transaction. Avec `signer.rotation.next_key_id` et
+`next_chain_key`, l'ordre est celui de cette exigence : inscription (déjà
+faite, ou relayée), événement de rotation, révocation (relayée si sa demande
+est là, sinon ligne `chain_key_revocation_pending`). Refus, sans rien écrire
+dans la chaîne ni rien envoyer, ligne `key_rotation_emergency_refused`,
+raison : `registre_non_branche` (registre activé sans composant d'ancrage
+branché), `cle_chaine_suivante_absente`, `inscription_demande_absente`,
+`inscription_demande_invalide`, `revocation_demande_absente`,
+`revocation_demande_invalide`, `inscription_refusee`, `revocation_refusee`.
+
 **EX-11.17** Les ancres (CT-5) bornent la fenêtre de réécriture d'un
 attaquant qui détient la clé à une heure (CT-1 §7.2) : la rotation d'urgence
 ne « répare » pas les événements déjà signés, elle empêche les suivants.
@@ -7734,7 +7862,16 @@ unique, à trois opérations, implémentée par chaque backend :
 Le signataire des classes A et B est hors du démon (module, service) et
 authentifié : code PIN ou identifiants PKCS#11 (référence de secret), jeton
 Vault/OpenBao, identité IAM (AWS, Google) ; en classe C et D, il est une
-fonction du démon sur la graine en mémoire. Les trois préfixes de domaine
+fonction du démon sur la graine en mémoire. Révision 0.10 : l'identité IAM
+d'AWS se cherche dans cet ordre, à chaque appel : variables d'identifiants
+(`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`) ;
+fichier désigné par `AWS_SHARED_CREDENTIALS_FILE` (section `[<profil>]`),
+puis par `AWS_CONFIG_FILE` (section `[default]` ou `[profile <profil>]`),
+au format des kits d'AWS (`aws_access_key_id`, `aws_secret_access_key`,
+`aws_session_token` facultatif), le profil étant `AWS_PROFILE` ou `default` ;
+puis IMDSv2. Un fichier désigné mais illisible ou sans clés est un refus
+« identité » qui nomme la variable sans rien citer du fichier. Le fichier
+est relu à chaque appel : un renouvellement est pris sans redémarrage. Les trois préfixes de domaine
 sont ceux de CT-1 (annexe B) ; aucun autre message n'est jamais soumis au
 signataire.
 
@@ -8217,7 +8354,12 @@ descriptors » (R5) : le démon garde son descripteur ouvert sur le segment
 courant ; il dépend du système de fichiers (ext4, xfs, btrfs). Le démon lui-même
 n'a pas cette capacité : c'est un service compagnon ou une tâche de
 l'orchestrateur qui la pose (CT-8), de sorte qu'un démon compromis ne puisse pas
-la retirer.
+la retirer. Révision 0.10 : un répertoire ou des attributs que le compagnon
+ne peut pas lire sont une erreur du passage (ligne `attribute_unreadable`) :
+la sonde du compagnon rend 1 et un passage unique rend 1 ; une racine
+illisible ou absente arrête le service (code 1, ligne
+`attribute_root_unreadable`) : un compagnon qui ne voit rien ne dit jamais
+qu'il a tout scellé.
 
 **EX-12.29** **Registre des copies.** Après chaque copie réussie et son
 contrôle (EX-12.33), l'écrivain ajoute au fichier
@@ -9479,7 +9621,9 @@ disent à l'exploitant.
 
 **EX-14.7** Toute entrée ou sortie du mode dégradé produit une ligne du
 journal d'exploitation `degraded_enter` / `degraded_exit` avec la raison, et
-une variation de la métrique `noortrace_degraded` (17). Les appels bloqués
+une variation de la métrique `noortrace_degraded` (17) ; révision 0.10 : pour
+la raison `serveur:<alias>`, la ligne est `upstream_unreachable` (EX-17.2),
+sans `degraded_enter` ni `degraded_exit`, et la jauge varie de même. Les appels bloqués
 produisent `call_blocked` (code, raison, alias, nom annoncé, classe, `id`
 d'hôte ; jamais les arguments). Les appels passés en attente produisent
 `call_passthrough_pending` avec l'identifiant d'attente (14.5). La **chaîne**
@@ -9536,7 +9680,8 @@ n'est plus produite (révision 0.7).
 
 **EX-14.11** Le mode dégradé est **visible** : `GET /healthz` rend `degraded`
 avec les raisons, la métrique `noortrace_degraded{reason}` vaut 1, et une
-alerte est prescrite (17). La sortie du mode dégradé « clé » exige un
+alerte est prescrite (17) ; révision 0.10 : la raison `serveur:<alias>` est
+exposée dans la jauge comme dans `/healthz`. La sortie du mode dégradé « clé » exige un
 `health()` du signataire réussi et une signature de test vérifiée ; celle du
 mode « stockage », l'ouverture et le `fdatasync` d'un nouveau segment ; celle
 du mode « bail », une acquisition ; celle du mode « horloge », une horloge
@@ -10668,7 +10813,8 @@ console ne demande un export. Cette sous-section adopte, pour l'export seul,
 la commande que propose la spécification du déploiement (sa proposition PD-2),
 complétée de la désignation par ticket ; les autres commandes de cette
 proposition (`sonde`, `etat`, `worm restaurer`, `cle rotation-urgence`) ne
-sont pas adoptées par cette révision (section 21).
+sont pas adoptées par cette révision (section 21) ; la révision 0.10 adopte
+`sonde` et `etat`, avec `close-period --now` (15.8).
 
 ```text
 noortrace-ctl dossier exporter (--seq <n> | --dernier | --ticket <ticket_id>) --vers <répertoire>
@@ -10738,16 +10884,17 @@ n'ouvre aucune prise et le démon n'en écoute aucune de plus (EX-18.1) :
 5. **Lecture par le démon.** À `SIGURG`, le démon lit puis supprime le fichier
    de demande et exécute l'action que nomme son membre `demande`, et elle
    seule : aucune demande n'est jamais prise pour une autre action. Les
-   valeurs que le démon connaît sont exactement les trois suivantes ; les deux
+   valeurs que le démon connaît sont exactement les quatre suivantes ; les deux
    premières sont écrites par des commandes du code livré, dont CT-2 n'adopte
    pas la ligne de commande (section 21), mais dont le démon DOIT exécuter la
-   demande :
+   demande ; la quatrième (révision 0.10) est celle d'EX-15.18 :
 
    | `demande` | Membres de la demande | Action | Lignes de réponse |
    |---|---|---|---|
    | `rotation-urgence` | `demande`, `pid`, `at` ; révision 0.9 : `request_id`, facultatif | rotation d'urgence de la clé de l'enregistreur (EX-11.16), demandée par `noortrace-ctl cle rotation-urgence` | `key_rotation_emergency` ou `key_rotation_emergency_refused` |
    | `ancrage` | `demande`, `commande` (`etat`, `metriques` ou `retirer-qualification`), `id` (l'identifiant du prestataire pour `retirer-qualification`, `null` sinon), `pid`, `at` ; révision 0.9 : `request_id`, facultatif | commande du composant d'ancrage branché : état, métriques (CT-5 EX-8.15), retrait de `qualified` d'un prestataire (CT-5 EX-5.9), demandée par `noortrace-ctl ancrage <commande> [<id>]` | `anchoring_state`, `anchoring_metrics`, `provider_qualification_withdrawn` ou `anchoring_ctl_refused` |
    | `dossier` | ceux du pas 3 | export du dossier (EX-15.11 à EX-15.13) | `dossier_exported` ou `dossier_export_refused` (EX-15.14) |
+   | `cloture-anticipee` | `demande`, `request_id`, `pid`, `at` | clôture anticipée de la période courante (EX-19.4, EX-15.18), demandée par `noortrace-ctl close-period --now` | `period_closed_early` ou `period_close_refused` (EX-15.18) |
 
    `pid` et `at` ont partout le sens du pas 3. Révision 0.9 : `request_id`,
    facultatif dans une demande `rotation-urgence` ou `ancrage`, a la forme du
@@ -10767,7 +10914,7 @@ n'ouvre aucune prise et le démon n'en écoute aucune de plus (EX-18.1) :
 
    1. un fichier de demande qui n'est pas un objet JSON : `ctl_request_refused`,
       raison `demande_illisible` ;
-   2. un objet dont `demande` n'est pas l'une de ces trois valeurs :
+   2. un objet dont `demande` n'est pas l'une de ces quatre valeurs :
       `ctl_request_refused`, raison `demande_inconnue`, avec `demande` tronquée
       à 64 caractères (`null` si ce n'est pas une chaîne) ; révision 0.9 :
       les caractères se comptent en points de code, et la troncature ne
@@ -10786,9 +10933,9 @@ n'ouvre aucune prise et le démon n'en écoute aucune de plus (EX-18.1) :
       4 194 304, ou quand `at` n'est pas un horodatage de CT-1 §3 ;
    4. une demande **périmée**, quelle que soit la valeur de `demande` : `at`
       précède de plus de 600 s l'instant de la lecture, ou précède le
-      démarrage du démon ; pour une demande `rotation-urgence` ou `ancrage`,
-      un `at` absent, ou qui n'est pas un horodatage de CT-1 §3, la rend
-      périmée. Refus `dossier_export_refused`, raison `demande_perimee`, pour
+      démarrage du démon ; pour une demande `rotation-urgence`, `ancrage` ou
+      (révision 0.10) `cloture-anticipee`, un `at` absent, ou qui n'est pas un
+      horodatage de CT-1 §3, la rend périmée. Refus `dossier_export_refused`, raison `demande_perimee`, pour
       une demande `dossier`, et `ctl_request_refused`, même raison, sinon. Une
       demande que sa commande a laissée sans réponse ne s'exécute donc jamais
       plus tard, à la faveur d'un signal envoyé par une autre commande. Le
@@ -11106,8 +11253,9 @@ raisons du composant d'ancrage (`jeton_periode`, `ots_periode`,
 chemin absolu du répertoire temporaire supprimé.
 
 Les lignes `dossier_exported`, `dossier_export_refused` et
-`ctl_request_refused` sont écrites quel que soit `supervision.ops_log.level`
-(EX-9.5) : elles sont la réponse d'une commande, que la commande attend dans
+`ctl_request_refused`, et, révision 0.10, `period_closed_early` et
+`period_close_refused` (EX-15.18), sont écrites quel que soit
+`supervision.ops_log.level` (EX-9.5) : elles sont la réponse d'une commande, que la commande attend dans
 le journal d'exploitation (EX-15.10, pas 6), et le filtre de niveau ne s'y
 applique pas. Aucune de ces lignes ne porte une pièce ni un fragment de pièce
 (EX-9.6, EX-17.3).
@@ -11174,6 +11322,74 @@ Tenu par le démon :
   `noortrace-ctl dossier exporter` rend le code 1 (EX-15.10, pas 6 et 7), et
   les commandes `cle rotation-urgence` et `ancrage` du code livré, qui
   écrivent un `request_id` dans leur demande, de même.
+
+### 15.8 Santé et clôture anticipée en ligne de commande (révision 0.10)
+
+Trois commandes de `noortrace-ctl` que la spécification du déploiement
+emploie (sondes des fichiers Compose, runbooks, installation rapide) et que
+sa proposition PD-2 demandait de fixer. `sonde` ne s'adresse à aucun démon
+par la voie de contrôle : elle est faite pour la forme `CMD` d'une sonde
+d'orchestrateur, dans une image sans interpréteur de commandes ; `etat` lit
+l'écoute de santé du démon ; `close-period --now` passe par le transport
+d'EX-15.10.
+
+```text
+noortrace-ctl sonde --url <url>
+noortrace-ctl etat [--configuration <fichier>] [--delai-ms <n>]
+noortrace-ctl close-period --now [--configuration <fichier>] [--delai-ms <n>]
+```
+
+**EX-15.16** **`noortrace-ctl sonde --url <url>`**. La commande DOIT :
+n'admettre qu'exactement l'option `--url` suivie de sa valeur ; n'admettre
+qu'une URL `http:` dont l'hôte est une adresse de boucle locale écrite en
+clair (`127.0.0.0/8`, ou `[::1]`), sans identifiants, et la refuser sans
+aucune connexion sinon (un nom, `localhost` compris, est refusé) ; faire
+`GET <url>` sans corps, sans authentification et sans suivre de redirection,
+en 2 500 ms au plus en tout (comme la sonde du service d'approbation, CT-3
+EX-12.22) ; rendre **0 sur une réponse 200 et seulement elle**, **1** dans
+tout autre cas (autre statut, connexion refusée, délai écoulé, URL refusée,
+usage incorrect), et aucune autre valeur (2 est réservé par le moteur de
+conteneurs) ; écrire `200` sur la sortie standard en cas de succès, la raison
+sur la sortie d'erreur sinon. Elle ne lit aucune configuration, ne cherche
+aucun processus et n'en lance aucun. Usage de référence : `--url
+http://127.0.0.1:8500/readyz` (EX-17.1) ; une instance passive, dont
+`/readyz` rend `503`, est donc malsaine.
+
+**EX-15.17** **`noortrace-ctl etat`**. Le démon est trouvé comme au pas 1
+d'EX-15.10. La commande lit `supervision.health_listen` de sa configuration
+(un hôte `0.0.0.0` ou `::` est remplacé par la boucle locale de la même
+famille) et y lit `GET /healthz`, `GET /readyz` et, si `supervision.metrics`
+est vrai, la valeur de `noortrace_lease_epoch` dans `GET /metrics` ; elle
+n'ouvre aucune autre prise (EX-18.1). Elle écrit sur la sortie standard une
+ligne JSON par démon, `{ "pid", "configuration", "health_listen", "status",
+"reasons", "since", "healthz", "readyz", "lease_epoch" }` : `status`,
+`reasons` et `since` du corps de `/healthz` ; `healthz` et `readyz`, les
+statuts HTTP ; `lease_epoch`, un entier, ou `null` sans métriques ou sans
+réponse. Codes : 0 si chaque démon rend `status` `ok` et `/readyz` 200 ; 1
+si un démon répond autrement (`degraded`, `down`, `standby`, pas prêt) ; 2,
+usage ou configuration illisible ; 4, aucun démon, ou aucune réponse de
+l'écoute dans le délai `--delai-ms` (entier de 0 à 86 400 000, 5 000 par
+défaut). `etat` lit le démon local seulement : une adresse de service d'une
+autre machine se lit par `sonde`, sans l'époque.
+
+**EX-15.18** **`noortrace-ctl close-period --now`**, clôture anticipée
+d'EX-19.4. La commande exige `--now`. Elle DOIT refuser, sans écrire de
+demande ni envoyer de signal, quand `recorder.environment` de la
+configuration du démon visé n'est pas `developpement` : code 1 et, sur la
+sortie d'erreur, « noortrace-ctl close-period : refusée : la clôture
+anticipée n'est admise qu'en développement (CT-2 EX-19.4) ;
+recorder.environment vaut "<valeur>" ; rien n'est demandé au démon ». Sinon
+elle suit EX-15.10 (pas 1 à 7) avec la demande `{ "demande":
+"cloture-anticipee", "request_id", "pid", "at" }`, délai par défaut
+30 000 ms. Le démon refuse de même hors développement. Lignes de réponse,
+reconnues à leur `request_id` : `period_closed_early` (`level` `info`,
+`component` `cloture` ; `data` : `period_start`, `period_end`, `count`,
+`period_hash`, `generated_at`), code 0 ; `period_close_refused` (`level`
+`warning`, `component` `cloture` ; `data` : `raison` parmi `production`,
+`instance_non_active`, `journal_clos`, `journal_vide`, `mode_degrade` ;
+`environment` ; `reasons`, les raisons du mode dégradé), code 1 ;
+`ctl_request_failed` (EX-15.15), code 1 ; codes 2 et 4 comme `dossier
+exporter` (EX-15.10, pas 7).
 
 ## 16. Objectifs de performance et de capacité, méthode de mesure
 
@@ -11510,7 +11726,7 @@ un nom d'utilisateur, un identifiant de ticket ou un nom d'hôte de client.
 | `noortrace_otel_reception_lag_ms` | histogramme (bornes 1 000, 5 000, 10 000, 30 000, 60 000, 300 000, 3 600 000) | `source` | `ts` moins la fin déclarée du span (EX-6.41) |
 | `noortrace_pending_events` | jauge | — | Taille de la file d'attente (14.5) |
 | `noortrace_pending_oldest_ms` | jauge | — | Âge de l'événement en attente le plus ancien |
-| `noortrace_degraded` | jauge | `reason` | 1 en mode dégradé pour cette raison, 0 sinon |
+| `noortrace_degraded` | jauge | `reason` (`stockage`, `cle`, `bail`, `horloge`, `attente`, `approbation`, ou, révision 0.10, `serveur:<alias>` : serveur d'outils injoignable, EX-4.18, série posée à 0 pour chaque serveur au démarrage) | 1 en mode dégradé pour cette raison, 0 sinon |
 | `noortrace_lease_epoch` | jauge | — | Époque du bail détenu ; 0 si non détenu |
 | `noortrace_lease_renew_failures_total` | compteur | `store` | Renouvellements en échec |
 | `noortrace_redactions_total` | compteur | `type` (`iban`, `avs`, `carte`, `email`, `telephone`, `regex`, `champ`), `scope` | Correspondances rédigées (EX-10.17) |
@@ -11621,7 +11837,14 @@ imprévue pendant une demande autre que `dossier` ou avant que l'action d'une
 demande soit connue (EX-15.15) ; `mrtr_continuation_unrecorded` (composant
 `frontal_mcp` ; `seq` de l'événement `executee`, `host` ;
 `request_state_sha256`, `reason`), pour une ligne `continuation` qui n'a pu
-être inscrite (EX-4.21).
+être inscrite (EX-4.21). Révision 0.10 : `period_closed_early` et
+`period_close_refused` (composant `cloture`, EX-15.18) ; `chain_key_loaded`
+(`member`, `class`, `address`), `chain_key_switched` (`old_chain_key`,
+`new_chain_key`, `reason`), `chain_key_registration_relayed`,
+`chain_key_revocation_relayed` et `chain_key_revocation_pending`, pour la clé
+de chaîne et sa rotation au registre (EX-11.16, EX-11.19) ; et, écrits par
+le compagnon des attributs, `attribute_unreadable` et
+`attribute_root_unreadable` (EX-12.18).
 
 **EX-17.3** Ne vont **jamais** dans le journal d'exploitation : une pièce ou
 un fragment de pièce (arguments, résultats, messages, prompt), une valeur
@@ -11916,7 +12139,16 @@ portent les signatures des approbateurs, vérifiées par EX-7.5) : le canal
 qui les porte DOIT donc être authentifié, dans les deux sens. Le démon
 authentifie le service : sur une prise Unix, par l'identifiant d'utilisateur
 attendu du pair (`policy.approval.service.peer_user`) et un répertoire de
-prise non inscriptible par les hôtes ni par les agents ; en HTTP, par TLS
+prise non inscriptible par les hôtes ni par les agents (révision 0.10 : faute
+d'identité du pair lue sur la prise, le démon vérifie avant chaque message que
+la prise appartient à `peer_user`, que son répertoire et chacun de ses
+parents jusqu'à la racine appartiennent au compte 0, à `peer_user` ou au
+démon, qu'ils ne sont inscriptibles par le groupe ou par les autres qu'avec
+le bit collant, et que le répertoire de la prise n'est jamais inscriptible
+par les autres ; sinon `pair_non_verifie`, raison `repertoire_inscriptible`
+ou `prise_absente`. C'est la règle de la prise MCP, EX-4.39, plus le refus
+des autres ; un répertoire commun au compte 0, au groupe des prises et au
+mode `3770` est admis) ; en HTTP, par TLS
 hors de la boucle locale (CT-3 EX-12.2). Le service authentifie le démon par
 mTLS ou par le jeton porteur que le démon présente en `Authorization: Bearer`
 (`policy.approval.service.token`, référence de secret), sur la prise comme en
@@ -12136,7 +12368,17 @@ période close contient l'instant de la clôture, et un événement ultérieur y
 tomberait (CT-1 P-3). Après elle, l'enregistreur refuse tout nouvel appel et
 tout nouvel échange sur ce journal (`-31010`, `reason: "journal_clos"`) ;
 brancher un vrai hôte sur les ports `8300` et `8400` exige un nouveau journal
-(`docker compose down -v`, puis `up`).
+(`docker compose down -v`, puis `up`). Révision 0.10 : le refus vaut aussi en
+mode observation (comme `bail_non_detenu`) ; la passerelle de modèle rend
+`503` de raison `journal_clos`, l'ingestion OTLP `503`. La clôture se fait à
+l'instant (point de clôture, manifeste signé dont `generated_at` est
+antérieur à `period_end`, remise au composant d'ancrage, copies WORM), après
+les clôtures échues ; elle est refusée, sans rien clore, sur un journal sans
+événement, en mode dégradé `stockage`, `cle`, `bail` ou `horloge`, ou avec
+des événements en attente. Un journal dont le dernier manifeste a un
+`generated_at` antérieur à son `period_end` est terminé, y compris après un
+redémarrage : une clôture à l'heure pleine ne produit jamais un tel manifeste
+(CT-1 §10.1).
 
 ### 19.5 Fichiers d'intégration, par hôte
 
@@ -13103,9 +13345,11 @@ les cas. ARCHITECTURE.md est aligné en conséquence (section 22).
 - (révision 0.8) **Les autres commandes d'exploitation que propose la
   spécification du déploiement** (sa proposition PD-2 : `sonde`, `etat`,
   `worm restaurer`, `cle rotation-urgence`) : seule `dossier exporter` est
-  adoptée (15.7) ; le démon exécute néanmoins les demandes
-  `rotation-urgence` et `ancrage` qu'écrivent les commandes du code livré
-  (EX-15.10, pas 5). **L'export d'un dossier par la console d'approbation**,
+  adoptée (15.7) ; la révision 0.10 adopte aussi `sonde` et `etat`, avec
+  `close-period --now` (15.8) ; restent non adoptées `worm restaurer` et la
+  ligne de commande de `cle rotation-urgence` ; le démon exécute néanmoins
+  les demandes `rotation-urgence` et `ancrage` qu'écrivent les commandes du
+  code livré (EX-15.10, pas 5). **L'export d'un dossier par la console d'approbation**,
   ou par toute interface réseau : il passe par `noortrace-ctl` seul
   (EX-18.1). **Un dossier de plusieurs événements**, ou l'export de toute une
   période. **Le réexport automatique** et le suivi des dossiers à réexporter
@@ -13294,6 +13538,20 @@ Révision 0.8 :
 | `paquets/enregistreur/src/cli.mjs`, `src/demandes-demon.mjs`, `src/export-dossier.mjs`, `src/ctl-demon.mjs` (révision 0.9) | lecture de la demande sans lien, 64 Kio, troncature en points de code ; `ctl_request_not_removed` ; `ctl_request_failed` pour toute erreur imprévue, demande `dossier` comprise, de `data` `{ erreur }` ; synchronisation du parent en échec après le renommage rendue avec le message « la destination est inchangée » | EX-15.10, pas 5, et EX-15.15 tels qu'écrits ; erreur imprévue d'un export rendue `dossier_export_refused`, `ecriture_impossible`, `erreur_interne` ; `ctl_request_failed` de `data` `{ demande, detail }` pour les seules demandes `rotation-urgence` et `ancrage`, ou avant que l'action soit connue, portant le `request_id` lisible de la demande, que les commandes reconnaissent pour rendre aussitôt le code 1 ; `request_id` écrit dans les demandes `rotation-urgence` et `ancrage` ; aucun composant `.noortrace-partiel-…` dans une destination (EX-15.9) ; détail `synchronisation_parent` et son message (EX-15.12, EX-15.13) | fait (assemblage de l'étape 6) |
 | `paquets/enregistreur/src/mcp/frontal.mjs` (continuation MRTR) | enregistrement de continuation pour un appel sans ticket seulement ; aucune ligne `continuation` ni `continuation_consommee` | EX-4.21 tel qu'écrit depuis la révision 0.3 : continuation d'un appel qui porte un ticket approuvé, ligne `continuation` avant le pas 14, `continuation_consommee` avant le pas 8, reconstruction à la reprise ; révision 0.9 : ligne `mrtr_continuation_unrecorded` quand la ligne `continuation` ne peut être inscrite, sans enregistrement gardé | fait (écart du code relevé et corrigé à l'étape 6) |
 | `spec/README.md`, ligne CT-2 | « version 0.8 » | « version 0.9 » | fait (étape 6) |
+
+Révision 0.10 :
+
+| Emplacement | Avant la révision 0.10 | Attendu par la révision 0.10 | État |
+|---|---|---|---|
+| `paquets/enregistreur/src/ctl-sante.mjs`, `src/ctl-demon.mjs`, `bin/noortrace-ctl` | ni `sonde`, ni `etat`, ni `close-period` | EX-15.16 à EX-15.18 ; `sonde` chargée sans le reste de la ligne de commande | fait (étape 7) |
+| `paquets/enregistreur/src/coeur.mjs`, `src/ecrivain.mjs`, `src/reprise.mjs`, frontaux | aucune clôture anticipée | EX-19.4 : clôture à l'instant, journal terminé, refus `journal_clos` en mode observation compris, relu au redémarrage | fait (étape 7) |
+| `paquets/enregistreur/src/bail.mjs` | auxiliaire du bail `file` lancé par `flock(1)` avec `-c` et `SHELL=/bin/sh` | auxiliaire lancé directement par `flock(1)` (Node.js), sans interpréteur de commandes, même sémantique (13.2) | fait (étape 7) |
+| `paquets/enregistreur/src/service-approbation-http.mjs` | répertoire de la prise refusé dès qu'il est inscriptible par le groupe | règle d'EX-18.8 (bit collant admis) | fait (étape 7) |
+| `paquets/enregistreur/src/cle-chaine.mjs`, `src/ancrage-demon.mjs`, composant d'ancrage | classes A à C refusées au démarrage quand l'ancrage est branché ; rotation d'urgence refusée (`registre_non_branche`) | classes B et C par AWS KMS (EX-11.19) ; rotation relayée au registre (EX-11.16) | fait (étape 7) |
+| `paquets/enregistreur/src/signataires/aws-kms.mjs` | identité IAM par variables ou IMDSv2 | fichier d'identifiants (EX-11.18) | fait (étape 7) |
+| `paquets/enregistreur/src/mcp/frontal.mjs` | raison `serveur:<alias>` dans `/healthz` seulement | aussi dans `noortrace_degraded` (17.2) | fait (étape 7) |
+| `paquets/enregistreur/src/worm/attributs.mjs` | racine illisible avalée : passage rendu sain | EX-12.18 (`attribute_unreadable`, `attribute_root_unreadable`) | fait (étape 7) |
+| `spec/README.md`, ligne CT-2 | « version 0.9 » | « version 0.10 » | fait (étape 7) |
 
 ## Annexe B — Disposition des vecteurs `spec/vecteurs/ct-2`
 

@@ -141,6 +141,11 @@
             },
             {
               "const": "none"
+            },
+            {
+              "type": "string",
+              "pattern": "^service:[a-z][a-z0-9-]{0,31}$",
+              "description": "Espace réseau d'un autre service du même fichier (CO-14, révision 0.7 de CT-8) : le service n'a ni réseau ni port à lui, et n'écoute que sur la boucle locale de cet espace."
             }
           ]
         },
@@ -354,6 +359,7 @@
                 "reseau_par_defaut",
                 "reseau_non_decrit",
                 "reseau_non_interne",
+                "espace_reseau_non_conforme",
                 "cle_premier_niveau_non_admise",
                 "groupe_non_conforme",
                 "confinement_desactive",

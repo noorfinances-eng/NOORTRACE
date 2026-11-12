@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "services-vides.yaml",
-    "sha256": "3a9d2c2ced65109f409bc82f53a07b2ccd616df52468a860bb6fe6d558d5479d",
+    "sha256": "fc1bf5eccc48e5eb279a6d2048362bc818cc586b941357d7c24953772f8d2435",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

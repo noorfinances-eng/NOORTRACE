@@ -13,27 +13,44 @@ jobs:
     name: contracts, journal, verifiers
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: npm
       - run: npm ci
       # audit npm des dépendances de production, outils de développement exclus :
       # toute alerte, quelle que soit sa gravité, fait échouer le travail (SECURITY.md)
       - run: npm audit --omit=dev --audit-level=low
+      # CT-8 EX-10.10 et EX-A.27 : promtool de l'archive officielle de Prometheus
+      # 3.5.0, vérifiée par son SHA-256 avant extraction ; il vérifie et teste les
+      # règles de référence, puis est passé aux essais (NOORTRACE_PROMTOOL), qui
+      # rejouent TV-76 sans attente.
+      - name: promtool 3.5.0 (CT-8 EX-10.10, EX-A.27), règles d'alerte de référence vérifiées et testées
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d)"
+          curl -fsSL -o "$d/prometheus.tar.gz" \
+            https://github.com/prometheus/prometheus/releases/download/v3.5.0/prometheus-3.5.0.linux-amd64.tar.gz
+          echo "e811827af26d822afb09a4f28314f61b618b12cff5369835a67f674d8b46f39a  $d/prometheus.tar.gz" | sha256sum --strict -c -
+          mkdir "$d/x"
+          tar -xzf "$d/prometheus.tar.gz" -C "$d/x" --strip-components=1 prometheus-3.5.0.linux-amd64/promtool
+          "$d/x/promtool" --version
+          "$d/x/promtool" check rules deploiement/observabilite/regles-noortrace.yml
+          "$d/x/promtool" test rules deploiement/observabilite/tests-regles.yml
+          echo "NOORTRACE_PROMTOOL=$d/x/promtool" >> "$GITHUB_ENV"
       - run: npm test
 
   vecteurs:
     name: vecteurs CT-1 à CT-9, régénération déterministe et implémentations indépendantes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: npm
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: spec/vecteurs/ct-2/verificateur-independant/go.mod
           # bibliothèque standard seulement : aucun go.sum, rien à mettre en cache
@@ -352,8 +369,8 @@ jobs:
       GOTOOLCHAIN: local
       GOFLAGS: -mod=vendor
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.27.3
           cache: false
@@ -422,10 +439,10 @@ jobs:
     env:
       NOORTRACE_EXIGER_CHROMIUM: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: npm
       - run: npm ci
       - name: installer Playwright 1.56.1 hors de package.json, puis Chromium et ses dépendances
@@ -467,12 +484,12 @@ jobs:
       NOORTRACE_EXIGER_CHROMIUM: "1"
       GOTOOLCHAIN: local
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: npm
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.27.3
           cache: false
@@ -556,16 +573,16 @@ jobs:
     env:
       GOTOOLCHAIN: local
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: npm
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.27.3
           cache: false
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           version: 0.11.32
           enable-cache: false
@@ -605,12 +622,12 @@ jobs:
     env:
       GOTOOLCHAIN: local
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: npm
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.27.3
           cache: false
@@ -652,12 +669,12 @@ jobs:
     env:
       GOTOOLCHAIN: local
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: npm
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.27.3
           cache: false
@@ -674,8 +691,53 @@ jobs:
         run: |
           set -o pipefail
           NOORTRACE_VERIFIER_BIN="$RUNNER_TEMP/noortrace-verifier" NOORTRACE_GO_BIN="$(dirname "$(command -v go)")" NOORTRACE_OTS_PYTHON="$RUNNER_TEMP/venv-ots/bin/python" \
-            npx hardhat --config hardhat.config.mjs test $(ls test/ancrage-*.test.js test/enregistreur-ancrage-*.test.js) test/enregistreur-journal-soi.test.js 2>&1 | tee "$RUNNER_TEMP/ancrage.txt"
+            npx hardhat --config hardhat.config.mjs test $(ls test/ancrage-*.test.js test/enregistreur-ancrage-*.test.js) test/enregistreur-journal-soi.test.js test/enregistreur-cle-chaine-etape7.test.js 2>&1 | tee "$RUNNER_TEMP/ancrage.txt"
           node scripts/tests/attentes-ancrage.mjs "$RUNNER_TEMP/ancrage.txt"
+
+  # Images noortrace/* de l'étape 7 (CT-8 §3.3, §3.6, EX-4.4 ; conteneurs/) :
+  # construction double, sans cache, depuis deux copies des sources, par
+  # scripts/deploiement/construire-images.mjs (bases épinglées par condensé,
+  # npm ci depuis le verrou) ; les condensés des deux constructions doivent
+  # être égaux. Aucune publication : rien n'est poussé vers un registre, aucune
+  # étiquette n'est créée. Puis test/deploiement-images.test.js sur ces images
+  # (TE-15, TM-24, TM-26, TM-28), sans aucun essai en attente ; et la
+  # préparation de la version à blanc (TV-55, partie mécanique de TQ-8 ;
+  # go1.27.3), sans rien signer ni publier, sans essai en attente.
+  images:
+    name: images noortrace/* de l'étape 7, construction double aux mêmes condensés et essais des images sans saut ; version préparée à blanc (go1.27.3), sans rien publier
+    runs-on: ubuntu-24.04
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.23.4
+          cache: npm
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: 1.27.3
+          cache: false
+      - run: npm ci
+      - name: images noortrace/*, deux constructions sans cache aux mêmes condensés (CT-8 EX-3.13), sans publication
+        run: |
+          set -euo pipefail
+          docker version
+          node scripts/deploiement/construire-images.mjs --double --sortie "$RUNNER_TEMP/images"
+          cat "$RUNNER_TEMP/images/condenses.json"
+      - name: essais des images (TE-15, TM-24, TM-26, TM-28), aucun essai en attente
+        run: |
+          set -o pipefail
+          NOORTRACE_IMAGES_CONDENSES="$RUNNER_TEMP/images/condenses.json" npx hardhat --config hardhat.config.mjs test test/deploiement-images.test.js 2>&1 | tee "$RUNNER_TEMP/images.txt"
+          grep -E '^[[:space:]]+[0-9]+ passing' "$RUNNER_TEMP/images.txt"
+          if grep -E '^[[:space:]]+[0-9]+ (pending|failing)' "$RUNNER_TEMP/images.txt"; then exit 1; fi
+      - name: version préparée à blanc, deux préparations aux mêmes octets (TV-55, TQ-8), aucun essai en attente
+        run: |
+          set -o pipefail
+          test "$(go env GOVERSION)" = go1.27.3
+          npx hardhat --config hardhat.config.mjs test test/publication-etape7.test.js 2>&1 | tee "$RUNNER_TEMP/publication.txt"
+          grep -E '^[[:space:]]+[0-9]+ passing' "$RUNNER_TEMP/publication.txt"
+          if grep -E '^[[:space:]]+[0-9]+ (pending|failing)' "$RUNNER_TEMP/publication.txt"; then exit 1; fi
 
   # Confrontation des vecteurs CT-2, CT-3, CT-5, CT-6 et CT-7 par des
   # implémentations tierces (spec/CT-6-verificateur.md, annexe A.8 ;
@@ -701,10 +763,10 @@ jobs:
     name: vecteurs CT-2, CT-3, CT-5, CT-6, CT-7 et CT-8 confrontés à openssl, à python-opentimestamps, à transparency-dev/merkle, à google-genai, à opentelemetry-proto, à ethers, à eth-account, à GNU tar et à tarfile
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: npm
       - run: npm ci
       # CT-3 (annexe A.11, EX-A.18, EX-A.19) : chaque signature des vecteurs
@@ -811,7 +873,7 @@ jobs:
       # Version de Go épinglée à celle des sorties publiées (en-tête de
       # sorties/coherence.txt : go1.24.7) ; ce job, seul de la CI, accède au
       # réseau (pip et mandataire de modules Go), CT-5 EX-A.7.
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: "1.24.7"
           cache-dependency-path: spec/vecteurs/ct-5/confrontation/coherence/go.sum
@@ -841,7 +903,7 @@ jobs:
       # égaux à ceux de lireArchive, résultats égaux à la table d'EX-A.32,
       # limites d'EX-A.33). Dernière étape du travail : setup-python ne change
       # pas l'interpréteur des étapes précédentes.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         id: python-ct8
         with:
           python-version: "3.13"

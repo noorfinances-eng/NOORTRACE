@@ -156,13 +156,28 @@ export class Supervision {
         if (d.event === "anchor_response_rejected" && d.provider) this.compter("noortrace_anchoring_attempts_total", { kind: a.request_id.split(":")[0], provider: d.provider, outcome: d.error_code === "reponse_tardive" ? "reponse_tardive" : "rejetee" });
       }
     }
-    if (file) this.releverFile(file, maintenant ?? this.horloge?.murale() ?? null);
+    if (file) {
+      // d_registre (EX-8.15) : une observation par ancre, à la passe où elle
+      // devient obtenue (action `ecrire_file`), jamais aux passes suivantes ni à
+      // la relecture d'une file (étape 7 : défaut relevé par l'écriture des règles d'alerte).
+      const parId = new Map(file.map((d) => [d.id, d]));
+      for (const a of actions) {
+        if (a.action !== "ecrire_file" || a.detail?.state !== "obtenue" || !a.request_id?.startsWith("ancre_registre")) continue;
+        const d = parId.get(a.request_id);
+        if (!d?.result) continue;
+        const t = decoderHorodatage(d.result.obtained_at);
+        const declare = decoderHorodatage(d.subject.declared_at);
+        if (t !== null && declare !== null) this.observer("noortrace_anchoring_d_registre_s", { kind: d.kind }, Math.max(0, Math.trunc((t - declare) / 1000)));
+      }
+      this.releverFile(file, maintenant ?? this.horloge?.murale() ?? null);
+    }
   }
 
   /**
    * Jauges tirées de l'état de la file : demandes par sorte et état, ancres de
    * périodes non confirmées, âge du dernier succès, fenêtre de date, âge de la
-   * preuve en attente la plus ancienne, `d_registre` des ancres obtenues.
+   * preuve en attente la plus ancienne (`d_registre` est observé par
+   * `releverActions`, au passage de chaque ancre à `obtenue`).
    * @param {object[]} file
    * @param {number|null} maintenant ms UTC
    */
@@ -184,10 +199,6 @@ export class Supervision {
         const t = decoderHorodatage(d.result.obtained_at);
         const cleDernier = `${d.kind}|${d.result.provider ?? "aucun"}`;
         if (t !== null && (derniers.get(cleDernier) ?? -1) < t) derniers.set(cleDernier, t);
-        if (d.kind.startsWith("ancre_registre") && d.state === "obtenue" && t !== null) {
-          const declare = decoderHorodatage(d.subject.declared_at);
-          if (declare !== null) this.observer("noortrace_anchoring_d_registre_s", { kind: d.kind }, Math.max(0, Math.trunc((t - declare) / 1000)));
-        }
         if (d.kind.startsWith("jeton") && d.state === "obtenue" && d.result.bound && this.prestatairesExterieurs.has(d.result.provider)) {
           const b = decoderHorodatage(d.result.bound);
           if (b !== null && (borneExterieure === null || b > borneExterieure)) borneExterieure = b;

@@ -1,0 +1,13 @@
+# Tâche planifiée de NOORTRACE (CT-8 EX-8.6) ; l'instance est l'identifiant
+# de la tâche (TP-1 à TP-8, SAUVEGARDE). Lancée par son minuteur, ou à la main
+# (systemctl start noortrace-tache@TP-8.service après une mise à jour).
+[Unit]
+Description=NOORTRACE, tâche planifiée %i (CT-8 EX-8.6)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/noortrace/taches.env
+ExecStart=/bin/bash @RACINE@/deploiement/taches/executer-tache.sh %i
+TimeoutStartSec=3600

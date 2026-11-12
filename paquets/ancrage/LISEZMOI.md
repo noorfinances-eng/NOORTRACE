@@ -102,8 +102,12 @@ copie embarquée dans `src/planificateur/schemas-ancrage.mjs`) est validé au
 démarrage et à chaque rechargement : schéma, puis les huit règles d'EX-4.9
 (cadence égale à celle de l'enregistreur et diviseur de 3600 ; un principal,
 au plus un secours, identifiants distincts ; `c_T` multiple de `c_K` et
-diviseur de 3600 ; `https://` partout sauf `http://` du seul rôle `interne`
-vers une adresse locale, dans tout profil, et `auth` `aucune` de même ; en
+diviseur de 3600 ; `https://` partout sauf `http://` du seul serveur interne
+vers une adresse locale, dans tout profil, et `auth` `aucune` de même ; le
+serveur interne est le rôle `interne` et, hors production seulement (CT-5
+révision 0.9), le `principal` non qualifié, que l'installation rapide
+désigne (service `horodatage` de `deploiement/compose/rapide.yaml`) et que
+la production refuse avec sa raison ; en
 production `provider_role ≠ aucun`, `registry.checkpoints ≠ aucun`,
 OpenTimestamps activé, principal et secours qualifiés ; deux
 calendriers et une liste blanche ; rétention ≥ 10 ans, `initial_ms ≤ max_ms`,
@@ -283,11 +287,13 @@ ancres (CT-5 §10.1, EX-10.1 à EX-10.5, AN-50 à AN-53) :
    source d'en-têtes (`/opentimestamps/headers_source/auth`) sont résolues
    par le résolveur de secrets de l'enregistreur (`env`, `file`, `vault`,
    CT-2 §15.2) vers `contexte.secrets`, la clé de chaîne de
-   `anchoring.registry.chain_key` est construite (classe D par
-   `SignataireChaineFichier`, adresse confrontée à `address`), le manifeste
-   d'instance du registre est lu. Une clé de chaîne de classe A, B ou C
-   refuse le démarrage du démon (`demarrage_refuse : ancrage : classe_cle_chaine`,
-   code 2, message qui nomme l'étape 7). Tout autre défaut (document
+   `anchoring.registry.chain_key` est construite selon sa classe (étape 7 :
+   B par une clé `ECC_SECG_P256K1` d'AWS KMS, C par une enveloppe AWS KMS
+   déchiffrée en mémoire, D par `SignataireChaineFichier` ; adresse
+   confrontée à `address`), le manifeste d'instance du registre est lu. Une
+   clé de chaîne de classe A refuse le démarrage du démon
+   (`demarrage_refuse : ancrage : classe_cle_chaine`, code 2), une clé
+   illisible ou d'une autre adresse aussi (`cle_chaine`). Tout autre défaut (document
    illisible, AN-1, secret non résolu, manifeste absent) laisse le démon
    démarrer : `anchoring_not_started` est consigné avec la raison, et chaque
    remise est consignée `anchor_pending` (CT-5 EX-4.8, CT-2 §14.2).
@@ -593,20 +599,26 @@ par lot. Chaque lecture est vérifiée par les vecteurs quand ils la couvrent.
    placer sous le répertoire du journal (`<journal>/ancres/file`) pour être
    dans le périmètre ; les sous-répertoires `envoi-*`, `capture-*` du
    registre suivent la règle des fichiers fermés sous `registre/`.
-7. **Clé de chaîne de classe A à C** (CT-2 EX-11.19). Le démon refuse de
-   démarrer (code 2) avec un message qui nomme le reste : seule la classe D
-   est servie, les classes A à C sont l'étape 7 ; un refus silencieux ou une
-   clé de classe D « de secours » auraient caché un écart de configuration.
+7. **Clé de chaîne de classe A à C** (CT-2 EX-11.19). Jusqu'à l'étape 6,
+   seule la classe D était servie et les autres refusaient le démarrage.
+   Étape 7 : classes B (clé `ECC_SECG_P256K1` d'AWS KMS) et C
+   (enveloppe AWS KMS) servies par l'enregistreur sur l'interface
+   `SignataireChaine` (`paquets/enregistreur/src/cle-chaine.mjs`) ; la
+   classe A refuse toujours le démarrage, en le nommant (le schéma n'a aucun
+   membre pour un module PKCS#11). Le composant n'a gagné que
+   `signatureDepuisDer` (signature DER d'un service ramenée à `s` bas et `v`
+   recouvré) et `SignataireChaineFichier.effacer()`.
 8. **Rotation d'urgence au registre** (`registre_non_branche` de
-   `Coeur.rotationUrgence`). Inchangée : le lot D encode les appels
-   d'inscription et de révocation (`encoderRegisterRecorder`,
-   condensés OP-6/OP-7) mais son `Envoyeur` n'envoie que `anchorCheckpoint`,
-   `submitPeriod` et `clore`, et CT-4 §7 fait signer la révocation et la
-   nouvelle inscription par les approbateurs au seuil (demandes
-   `demande_signature`) : brancher la rotation au registre exige l'outil de
-   signature des approbateurs et les envois `revokeRecorder`,
-   `registerRecorder`, hors du lot. Le refus reste nommé dans les restes de
-   l'enregistreur.
+   `Coeur.rotationUrgence` jusqu'à l'étape 6). Étape 7 : l'`Envoyeur`
+   relaie `registerRecorder` (`inscrire`) et `revokeRecorder` (`revoquer`)
+   depuis une `demande_signature` signée au seuil par les approbateurs
+   (`encoderRevokeRecorder` ajouté ; `decoderJournal` lit `RecorderRevoked`) ;
+   le démon les dépose sous `<journal>/registre/` et les relaie dans l'ordre
+   d'EX-11.16 ou d'EX-11.19 point 4 (lectures 236 à 240 du LISEZMOI de
+   l'enregistreur). Le composant choisit la clé de chaîne d'un document par
+   `contexte.cleChainePour(keyId)` (EX-11.19 point 3) et relit
+   `contexte.cleChaine` à chaque envoi. `registre_non_branche` ne reste que
+   pour un registre activé sans composant branché sur lui.
 9. **Commande `exporter` de l'outil `noortrace-ancrage`** (annoncée par F1).
    Non écrite : les sept parties de CT-1 (événement, voisins, chemin,
    manifeste, clés, approbations) se lisent dans les segments de
@@ -1023,6 +1035,18 @@ l'essai vérifie que chaque nonce d'`acquisitions.ndjson` figure dans les
 tentatives de la file, l'ordre ligne `envoyee` puis envoi étant éprouvé par
 les 24 traces). Aucun essai existant ne portait de ligne de plus de
 32 tentatives ni n'exigeait l'absence d'`attempts_total`.
+
+### Révision 0.9 de CT-5 (serveur interne comme principal hors production)
+
+Décision du porteur du 2026-11-12 pour l'installation rapide : le faux
+prestataire principal est remplacé par le serveur interne de ce paquet.
+
+| Exigence | Code | Essai |
+|---|---|---|
+| EX-4.9 règle 4 : hors production, principal non qualifié en `http://` local sans authentification (ou `https://` authentifié) admis ; en production, refus nommé | `commeServeurInterne`, `validerConfiguration` (`src/planificateur/configuration.mjs`) | `test/ancrage-serveur-interne-principal.test.js` (deux premiers essais) |
+| EX-5.5 : le transport n'admet `http://` local que pour le serveur interne | `#prestataire` pose `serveur_interne` (`src/composant.mjs`) ; `acquerir` le passe ; `transportHttps().envoyer({ serveurInterne })` (`src/rfc3161/`) | `test/ancrage-serveur-interne-principal.test.js` (« nominal : jeton réel… ») |
+| Jeton de clôture réel du serveur interne, vérifié à l'acquisition, puis au dossier (contrôle 4) | serveur de `src/serveur-interne/` | même essai ; `test/deploiement-installation.test.js` (TE-6, démon réel) ; `test/deploiement-images.test.js` (TE-6, IR-1 à IR-8 avec Docker) |
+| Sonde de conteneur et lecture de l'AC | `GET /sante` (`serveur.mjs`) ; `noortrace-tsa-interne sonde` et `ac` (`src/serveur-interne/cli.mjs`) | `test/deploiement-images.test.js` (TE-6 avec Docker) |
 
 ## Écarts au contrat initial retenus
 

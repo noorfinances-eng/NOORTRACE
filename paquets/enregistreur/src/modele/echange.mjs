@@ -128,6 +128,8 @@ export class MoteurEchanges {
    */
   blocage() {
     const c = this.coeur;
+    // Journal terminé par la clôture anticipée (EX-19.4) : tout nouvel échange refusé, mode observation compris.
+    if (c.bailDetenu && c.journalClos) return "journal_clos";
     const raisons = c.intervention || !c.ecrivain ? ["stockage"] : c.degrade.raisons().filter((r) => r !== "approbation");
     if (!c.bailDetenu) raisons.unshift("bail");
     if (!raisons.length) return null;

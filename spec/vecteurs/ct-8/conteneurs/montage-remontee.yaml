@@ -1,13 +1,16 @@
 # Installation rapide de NOORTRACE (CT-8 §7) : un hôte, mode observation,
-# classe de garde D, bail « file », sans copie WORM, ancrage de test
-# (OpenTimestamps seul), sans approbation bloquante.
+# classe de garde D, bail « file », sans copie WORM, ancrage de test (jeton
+# RFC 3161 de clôture par le serveur interne non qualifié du service
+# horodatage, preuves OpenTimestamps), sans approbation bloquante.
 #
-# Fichier de RÉFÉRENCE : les images noortrace/* sont à construire (phase 2) ;
-# il est vérifié par analyse statique (CT-8 §4, vérifications CO-1 à CO-14),
-# jamais lancé dans le dépôt. Les secrets sont des fichiers de ./secrets/
-# créés au pas IR-2 (mode 0400), jamais une variable d'environnement ; la
-# configuration du service d'approbation, ./config/rapide/approbation.json,
-# est écrite au pas IR-3.
+# Fichier de RÉFÉRENCE : les images noortrace/* sont construites par
+# conteneurs/<nom>/Dockerfile, sans être publiées ; il est vérifié par analyse
+# statique (CT-8 §4, vérifications CO-1 à CO-14). Les secrets sont des
+# fichiers de ./secrets/ créés au pas IR-2 (mode 0400), jamais une variable
+# d'environnement ; l'autorité du serveur interne est créée au pas IR-2 dans
+# le volume horodatage (outil horodatage-init) ; la configuration du service
+# d'approbation, ./config/rapide/approbation.json, et le document d'ancrage,
+# qui reçoit le certificat de cette autorité, sont écrits au pas IR-3.
 #
 # Depuis le répertoire deploiement/ (les chemins relatifs ./config et ./secrets
 # se résolvent alors contre lui) :
@@ -54,6 +57,12 @@ services:
       - type: bind
         source: ./config/../../../../var/run/docker.sock
         target: /etc/noortrace/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./config/rapide/ancrage.json
+        target: /etc/noortrace/ancrage.json
         read_only: true
         bind:
           create_host_path: false
@@ -134,6 +143,54 @@ services:
     healthcheck:
       disable: true
 
+  horodatage:
+    image: noortrace/tsa-interne:0.1.0
+    user: "10004:10004"
+    command: ["servir", "--repertoire", "/var/lib/noortrace-tsa", "--hote", "127.0.0.1", "--port", "2020"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=16777216,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    network_mode: "service:enregistreur"
+    volumes:
+      - type: volume
+        source: horodatage
+        target: /var/lib/noortrace-tsa
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-tsa-interne", "sonde", "--url", "http://127.0.0.1:2020/sante"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  horodatage-init:
+    image: noortrace/tsa-interne:0.1.0
+    user: "10004:10004"
+    profiles: ["outils"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=16777216,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    network_mode: none
+    volumes:
+      - type: volume
+        source: horodatage
+        target: /var/lib/noortrace-tsa
+    healthcheck:
+      disable: true
+
 networks:
   hotes: {}
   sortie: {}
@@ -144,6 +201,7 @@ volumes:
   prises: {}
   exports: {}
   approbation-etat: {}
+  horodatage: {}
 
 secrets:
   cle-enregistreur:

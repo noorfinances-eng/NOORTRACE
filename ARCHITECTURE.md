@@ -540,11 +540,27 @@ tient les clés), l'export du dossier par le démon (`noortrace-ctl dossier
 exporter`) et la page de vérification (`paquets/verification-web` : le binaire
 du vérificateur compilé en WebAssembly, même rapport que le binaire). Critère
 de l'étape 6 démontré (CT-9 TE-13) : une décision signée depuis la console, le
-dossier exporté accepté par les deux vérificateurs.
+dossier exporté accepté par les deux vérificateurs. À l'étape 7 : les six
+images `noortrace/*` (`conteneurs/` : sans interpréteur de commandes, Node.js
+et les seuls programmes requis sur une base minimale épinglée par condensé,
+deux constructions sans cache aux mêmes condensés, aucune publication), les
+commandes `noortrace-ctl sonde`, `etat` et `close-period --now`, la clé de
+chaîne de classe B ou C par un service de gestion de clés et sa rotation
+d'urgence relayée au registre depuis des demandes signées au seuil, la
+supervision de référence (`deploiement/observabilite/` : règles d'alerte et
+leurs tests, extracteur des journaux, générateur des règles, sonde), la
+préparation de l'hôte, les tâches planifiées, la sauvegarde et la reprise
+(chemin A), l'archivage du journal d'exploitation, les copies des runbooks et
+une version préparée sans rien publier (`scripts/publication/`). Critère de
+l'étape 7 joué sur un banc hors réseau public (CT-9 TE-7, part de l'étape) :
+installation complète IC-1 à IC-18 en 58 min, premier dossier valide pour les
+deux vérificateurs ; banc qui n'est pas le système de référence.
 
-À construire : les paquets, l'observabilité et les runbooks (étape 7), la garde
-d'admission devant le RPC des validateurs de production (CT-4 EX-10.8), la
-démonstration en une commande.
+À construire : la garde d'admission devant le RPC des validateurs de
+production (CT-4 EX-10.8), la démonstration en une commande, l'installation
+sur une machine vierge par un ingénieur extérieur et la campagne de bout en
+bout, adversariale et de performance (étape 8) ; la publication des images,
+du binaire et de l'archive attend la décision du porteur.
 
 ## Décisions ouvertes
 

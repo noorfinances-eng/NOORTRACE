@@ -4,7 +4,7 @@
   "attendu": {
     "version": 0,
     "file": "sans-no-new-privileges.yaml",
-    "sha256": "5d6935adf900681cafe601f4102b74a5bd1fccf48a2733044cb0845555d6ccc9",
+    "sha256": "5e792fd9c737e42e122efaed3a6b8a8aaea0369290da6ebb42e75c2f60f562d7",
     "verdict": "non_conforme",
     "all_images_by_digest": false,
     "checks": [

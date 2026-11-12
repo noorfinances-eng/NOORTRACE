@@ -86,6 +86,26 @@ describe("CT-8 §4 : fichiers de conteneur de référence", function () {
     expect([...services].sort()).to.deep.equal(Object.keys(DESCRIPTION.services).sort());
   });
 
+  it("CO-14, espace réseau partagé (CT-8 révision 0.7) : horodatage décrit network_mode service:enregistreur est conforme ; un autre service hôte, un service hôte absent, des ports ou des réseaux propres, ou une description sans espace partagé échouent à la seule CO-14", function () {
+    const texte = lire(DEP, "compose", "rapide.yaml");
+    const codes = (yaml, desc = DESCRIPTION) => D.verifierConteneurs(yaml, desc, "rapide.yaml").checks.filter((c) => c.status !== "reussi").map((c) => [c.id, c.findings.map((f) => `${f.service}:${f.code}`)]);
+    expect(codes(texte)).to.deep.equal([]);
+    const sansEspace = structuredClone(DESCRIPTION);
+    sansEspace.services.horodatage.network_mode = null;
+    expect(codes(texte, sansEspace)).to.deep.equal([["CO-14", ["horodatage:reseau_par_defaut"]]]);
+    const ligne = '    network_mode: "service:enregistreur"\n';
+    expect(texte.split(ligne)).to.have.lengthOf(2);
+    for (const [variante, quoi] of [
+      ['    network_mode: "service:approbation"\n', "autre service hôte"],
+      ['    network_mode: "service:absent"\n', "service hôte absent"],
+      [`${ligne}    ports:\n      - "127.0.0.1:2020:2020"\n`, "port propre"],
+    ]) {
+      const r = codes(texte.replace(ligne, variante));
+      expect(r.map((x) => x[0]), quoi).to.include("CO-14");
+      expect(r.find((x) => x[0] === "CO-14")[1], quoi).to.deep.equal(["horodatage:espace_reseau_non_conforme"]);
+    }
+  });
+
   it("deploiement/LISEZMOI.md existe ; aucun fichier secrets/ ni de configuration de production dans le dépôt", function () {
     expect(lire(DEP, "LISEZMOI.md")).to.include("npm run deploiement:conteneurs");
     expect(fs.existsSync(path.join(DEP, "secrets"))).to.equal(false);

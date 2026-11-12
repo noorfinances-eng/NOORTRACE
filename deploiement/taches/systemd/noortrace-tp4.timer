@@ -1,0 +1,11 @@
+# Minuteur de la tâche TP-4 (CT-8 EX-8.6) : une fois par jour.
+[Unit]
+Description=NOORTRACE, minuteur de TP-4 (une fois par jour)
+
+[Timer]
+OnCalendar=*-*-* 05:10:00
+Persistent=true
+Unit=noortrace-tache@TP-4.service
+
+[Install]
+WantedBy=timers.target

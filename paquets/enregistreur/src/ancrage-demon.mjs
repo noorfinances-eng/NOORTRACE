@@ -6,9 +6,10 @@
 // `ancrage-v0` est lu en JSON strict, ses références de secrets (`auth.secret`
 // des prestataires, `headers_source.auth`) sont résolues par le résolveur de
 // secrets de l'enregistreur (jamais écrites, jamais consignées), la clé de
-// chaîne de `anchoring.registry.chain_key` est construite (classe D par
-// `SignataireChaineFichier` ; une autre classe refuse le démarrage du démon
-// avec un message qui nomme le reste), le manifeste d'instance du registre
+// chaîne de `anchoring.registry.chain_key` est construite selon sa classe de
+// garde (`cle-chaine.mjs` : B et C par AWS KMS, D en clair ; A refuse le
+// démarrage avec un message qui la nomme), et la suivante
+// (`next_chain_key`) quand elle est posée, le manifeste d'instance du registre
 // (CT-4 §4.8) est lu, puis le composant est construit sur un `contexte` dont
 // tout vient du stockage de l'enregistreur (séries `points/`, manifestes,
 // segments, clés de la chaîne, époque du bail) et démarré une fois le bail
@@ -28,7 +29,7 @@ import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { decoderHorodatage, ecrireHorodatage, hacherManifeste, hacherPoint, octetsVersHex } from "@noortrace/noyau";
 import {
-  creerComposantAncrage, ErreurConfigurationAncrage, SignataireChaineFichier, verifierDemande, exporterDossier as exporterDossierAncrage, etatAncresPeriode, reexportsDus,
+  creerComposantAncrage, ErreurConfigurationAncrage, verifierDemande, exporterDossier as exporterDossierAncrage, etatAncresPeriode, reexportsDus,
 } from "@noortrace/ancrage";
 import { analyserJsonIntegral } from "./jcs-integral.mjs";
 import { parcourirSecrets } from "./configuration.mjs";
@@ -38,13 +39,14 @@ import { decouperLignes } from "./fichiers.mjs";
 import { listerSegments, relireSegment } from "./segments.mjs";
 import { nomSerie } from "./points.mjs";
 import { nomsManifeste } from "./periodes.mjs";
+import { chargerCleChaine, ErreurCleChaine, CLASSES_CLE_CHAINE_SERVIES } from "./cle-chaine.mjs";
+import { ClientRpc, recorderOf } from "@noortrace/ancrage/registre";
 
 /** Nom du manifeste d'instance du registre (CT-4 §4.8) lu à côté du document `ancrage-v0` (lecture F2-6 du LISEZMOI). */
 export const FICHIER_INSTANCE_REGISTRE = "instance-registre.json";
 /** Sous-répertoire du journal où vont les envois et les captures du registre (CT-4 §8.6, §9.4). */
 export const REPERTOIRE_REGISTRE = "registre";
-/** Classes de garde de la clé de chaîne que ce lot sait servir (CT-2 EX-11.19). */
-export const CLASSES_CLE_CHAINE_SERVIES = Object.freeze(["D"]);
+export { CLASSES_CLE_CHAINE_SERVIES };
 /** Taille maximale lue pour un document de configuration ou un manifeste (1 Mio). */
 const TAILLE_MAX_DOCUMENT = 1024 * 1024;
 
@@ -154,31 +156,33 @@ export function instanceDepuisManifeste(manifeste) {
 }
 
 /**
- * Clé de chaîne de `anchoring.registry.chain_key` (CT-2 EX-11.19) : classe D
- * par `SignataireChaineFichier` depuis le secret résolu (pas 4) ; une classe
- * A à C lève `ErreurBranchementAncrage` (`classe_cle_chaine`) : le démarrage
- * est refusé avec un message qui nomme le reste (étape 7).
+ * Clé de chaîne de `anchoring.registry.chain_key` (CT-2 EX-11.19), ou de
+ * `next_chain_key` avec `membre: "next_chain_key"`, construite selon sa
+ * classe par `chargerCleChaine` (`cle-chaine.mjs`) depuis le secret résolu
+ * au pas 4 ; adresse confrontée et condensé d'essai recouvert. Rend `null`
+ * quand le membre est nul. Une classe non servie (A) lève
+ * `ErreurBranchementAncrage` (`classe_cle_chaine`) ; un secret non résolu ou
+ * illisible, un service injoignable ou une adresse différente,
+ * `ErreurBranchementAncrage` (`cle_chaine`) : le démarrage est refusé.
  * @param {object} config
- * @param {Map<string, Uint8Array>} secrets secrets résolus du démon (pointeur `/anchoring/registry/chain_key/secret`)
+ * @param {Map<string, Uint8Array>} secrets secrets résolus du démon (pointeur `/anchoring/registry/<membre>/secret`)
+ * @param {{env?: NodeJS.ProcessEnv, membre?: "chain_key"|"next_chain_key", ca?: Buffer|string|null}} [o]
+ * @returns {Promise<import("@noortrace/ancrage").SignataireChaine|null>}
  */
-export function cleChaineDepuisConfiguration(config, secrets) {
-  const ck = config.anchoring?.registry?.chain_key ?? null;
+export async function cleChaineDepuisConfiguration(config, secrets, o = {}) {
+  const membre = o.membre ?? "chain_key";
+  const ck = config.anchoring?.registry?.[membre] ?? null;
   if (!ck) return null;
-  if (!CLASSES_CLE_CHAINE_SERVIES.includes(ck.class)) {
-    throw new ErreurBranchementAncrage("classe_cle_chaine", `clé de chaîne de classe ${ck.class} (anchoring.registry.chain_key) : seule la classe D est servie par ce lot ; les classes A à C (module de garde, service de signature) sont l'étape 7 (CT-2 EX-11.19)`);
-  }
-  const octets = secrets.get("/anchoring/registry/chain_key/secret");
-  if (!(octets instanceof Uint8Array)) throw new ErreurBranchementAncrage("cle_chaine", "secret de la clé de chaîne non résolu (anchoring.registry.chain_key.secret)");
-  let signataire;
   try {
-    signataire = SignataireChaineFichier.depuisOctets(octets);
+    return await chargerCleChaine(ck, {
+      secret: secrets.get(`/anchoring/registry/${membre}/secret`) ?? null,
+      org_id: config.recorder.org_id, journal_id: config.recorder.journal_id,
+      env: o.env ?? process.env, delaiMs: config.signer?.timeout_ms ?? 5000, ca: o.ca ?? null, membre,
+    });
   } catch (e) {
-    throw new ErreurBranchementAncrage("cle_chaine", `clé de chaîne illisible : ${String(e?.message ?? e).slice(0, 120)}`);
+    if (e instanceof ErreurCleChaine) throw new ErreurBranchementAncrage(e.raison, e.message);
+    throw e;
   }
-  if (signataire.adresse() !== ck.address.toLowerCase()) {
-    throw new ErreurBranchementAncrage("cle_chaine", `adresse de la clé de chaîne différente de anchoring.registry.chain_key.address (${ck.address})`);
-  }
-  return signataire;
 }
 
 /** Points JSON-RPC de `anchoring.registry.rpc_url` (chaîne, ou liste depuis CT-5 §14). */
@@ -229,6 +233,7 @@ export class BranchementAncrage {
    * @param {object|null} [o.instance]
    * @param {string|null} [o.erreurInstance]
    * @param {import("@noortrace/ancrage").SignataireChaine|null} [o.cleChaine]
+   * @param {import("@noortrace/ancrage").SignataireChaine|null} [o.cleChaineSuivante] `next_chain_key` (rotation, étape 7)
    * @param {{murale: () => number, monotone: () => number, programmer?: Function}} [o.horloge]
    * @param {(n: number) => Uint8Array} [o.aleatoire]
    * @param {object} [o.clients] clients injectés (tests)
@@ -244,6 +249,11 @@ export class BranchementAncrage {
     this.instance = o.instance ?? null;
     this.erreurInstance = o.erreurInstance ?? null;
     this.cleChaine = o.cleChaine ?? null;
+    this.cleChaineSuivante = o.cleChaineSuivante ?? null;
+    /** Après une rotation de la clé Ed25519 (EX-11.16) : l'ancienne clé de chaîne et les clés Ed25519 qu'elle porte (EX-11.19, point 3). */
+    this.cleChaineAncienne = null;
+    this.clesPorteesParAncienne = new Set();
+    this.rpcLecture = null;
     this.horlogeDonnee = o.horloge ?? null;
     this.aleatoire = o.aleatoire ?? ((n) => new Uint8Array(randomBytes(n)));
     this.clients = o.clients ?? {};
@@ -469,6 +479,7 @@ export class BranchementAncrage {
       // la clé courante est déjà dans l'index de la chaîne pour un journal non vide
     }
     const racineStockage = this.config.storage.root;
+    const branchement = this;
     const contexte = {
       org_id: this.config.recorder.org_id,
       journal_id: this.config.recorder.journal_id,
@@ -481,7 +492,12 @@ export class BranchementAncrage {
       lireHashesPeriode: (P) => this.lireHashesPeriode(P),
       listerPeriodes: () => this.listerPeriodes(),
       listerPoints: () => this.listerPoints(),
-      cleChaine: this.cleChaine,
+      // Relue à chaque envoi : la rotation (étape 7) la bascule sans reconstruire le composant.
+      get cleChaine() {
+        return branchement.cleChaine;
+      },
+      cleChainePour: (keyId) => this.cleChainePour(keyId),
+      clesChaine: () => [this.cleChaine, this.cleChaineSuivante, this.cleChaineAncienne].filter(Boolean),
       instance: this.instance,
       signaturesCloture: (periodMeta) => this.signaturesCloture(periodMeta),
     };
@@ -514,6 +530,193 @@ export class BranchementAncrage {
     }
     this.raison = null;
     this.#journal("info", "anchoring_attached", { profile: profil, registry: Boolean(clients.registre), providers: this.document.rfc3161.providers.length, queue_in_journal: this.fileSousJournal() });
+    if (this.cleChaine) {
+      this.#journal("info", "chain_key_loaded", { member: "chain_key", class: this.cleChaine.classe, address: this.cleChaine.adresse(), ...(this.cleChaine.localisation?.() ?? {}) });
+      if (this.cleChaineSuivante) this.#journal("info", "chain_key_loaded", { member: "next_chain_key", class: this.cleChaineSuivante.classe, address: this.cleChaineSuivante.adresse(), ...(this.cleChaineSuivante.localisation?.() ?? {}) });
+    }
+    // JS-5 (EX-11.19, point 4) : ancienne clé révoquée et clé Ed25519 inscrite sous `next_chain_key` par l'outil du
+    // registre pendant l'arrêt : le démon reprend sous la nouvelle clé de chaîne.
+    if (this.registreBranche && this.cleChaineSuivante) await this.basculerSiInscrite("demarrage").catch((e) => this.#journal("warning", "chain_key_registry_unreadable", { detail: String(e?.message ?? e).slice(0, 200) }));
+  }
+
+  // ------------------------------------------------------------ clé de chaîne (étape 7)
+
+  /** Le composant est démarré avec un registre (envoyeur) et une clé de chaîne. */
+  get registreBranche() {
+    return Boolean(this.composant?.envoyeur && this.cleChaine && this.instance);
+  }
+
+  /**
+   * Clé de chaîne d'un document signé par la clé Ed25519 `keyId` (EX-11.19,
+   * point 3) : l'ancienne clé de chaîne pour une clé Ed25519 qu'elle portait
+   * avant une rotation d'urgence, la courante sinon.
+   */
+  cleChainePour(keyId) {
+    if (this.cleChaineAncienne && this.clesPorteesParAncienne.has(keyId)) return this.cleChaineAncienne;
+    return this.cleChaine;
+  }
+
+  /** Client JSON-RPC de lecture (`anchoring.registry.rpc_url`, ou celui des essais). */
+  #rpc() {
+    if (this.rpcLecture) return this.rpcLecture;
+    const r = this.clients.registre;
+    if (r?.rpc) this.rpcLecture = r.rpc;
+    else {
+      const points = Array.isArray(r?.points) ? r.points : pointsRpc(this.config.anchoring?.registry);
+      this.rpcLecture = new ClientRpc({ points, identifiants: Object.fromEntries(points.map((p, k) => [p, `v${k + 1}`])), delaiMs: 10000 });
+    }
+    return this.rpcLecture;
+  }
+
+  /** `recorderOf(org_id, adresse)` lu au registre. */
+  async #inscription(adresse) {
+    return recorderOf({ rpc: this.#rpc(), contrat: this.instance.contrats.recorder_registry, orgId: this.config.recorder.org_id, chainKey: adresse });
+  }
+
+  /** Clé publique Ed25519 (hexadécimal `0x`) de la clé courante de l'écrivain. */
+  async #clePubliqueCourante() {
+    const k = this.coeur?.ecrivain?.cleCourante ?? this.config.signer.key_id;
+    let p = this.clePublique(k);
+    if (!p) p = await this.coeur.signataire.clePublique(k);
+    return octetsVersHex(p).toLowerCase();
+  }
+
+  /**
+   * Demande de signature déposée par l'exploitant pour une opération au
+   * seuil (CT-4 §7.7, §8.4) sous `<journal>/registre/demande-<operation>-<adresse>.json`,
+   * comme la demande de clôture (lecture F2-3) ; null si absente.
+   */
+  lireDemandeRegistre(operation, adresse) {
+    const { document } = lireDocumentJson(path.join(this.repertoireRegistre, `demande-${operation}-${adresse}.json`));
+    return document ?? null;
+  }
+
+  /** Relaie une demande d'inscription ou de révocation par l'envoyeur du composant ; rend `{ ok, issue, detail }`. */
+  async #relayer(operation, demande, cle) {
+    const env = this.composant.envoyeur;
+    const r = operation === "inscription" ? await env.inscrire({ demande, cle }) : await env.revoquer({ demande, cle });
+    const issue = r.type === "inclusion_registre" ? "incluse" : r.type === "deja_fait" ? "deja_faite" : "refusee";
+    const data = { operation, chain_key: demande.fields.chain_key, issue, sender: cle.adresse() };
+    if (r.type === "inclusion_registre") Object.assign(data, { block_number: r.data.block_number, transaction_hash: r.outputs?.transaction_hash ?? null });
+    if (r.type === "echec_registre") data.code = r.data.code;
+    this.#journal(issue === "refusee" ? "error" : "info", operation === "inscription" ? "chain_key_registration_relayed" : "chain_key_revocation_relayed", data);
+    return { ok: issue !== "refusee", issue, code: r.data?.code ?? null, detail: r.outputs ?? {} };
+  }
+
+  /** Contrôle d'une demande déposée : opération, organisation, clé de chaîne, journal et clé Ed25519 attendus, OP-6/OP-7 au seuil. */
+  #demandeConforme(demande, { operation, chainKey, ed25519 = null }) {
+    if (!demande) return "demande_absente";
+    if (demande.operation !== operation) return "demande_invalide";
+    const f = demande.fields ?? {};
+    if (f.org_id !== this.config.recorder.org_id || f.chain_key !== chainKey) return "demande_invalide";
+    if (operation === "inscription" && (f.journal_id !== this.config.recorder.journal_id || f.ed25519_public_key !== ed25519)) return "demande_invalide";
+    return verifierDemande(demande, { complete: true }).resultat === "valide" ? null : "demande_invalide";
+  }
+
+  /**
+   * Bascule vers `next_chain_key` quand le registre la montre active pour la
+   * clé Ed25519 courante et l'ancienne révoquée (EX-11.19, point 4 ; JS-5) :
+   * aucun événement du journal, une ligne `chain_key_switched`. Rend vrai si
+   * la bascule a eu lieu.
+   * @param {string} motif
+   */
+  async basculerSiInscrite(motif) {
+    if (!this.cleChaineSuivante || !this.instance) return false;
+    const [cour, suiv] = [await this.#inscription(this.cleChaine.adresse()), await this.#inscription(this.cleChaineSuivante.adresse())];
+    const pub = await this.#clePubliqueCourante();
+    if (cour.revokedAt === 0n || suiv.registeredAt === 0n || suiv.revokedAt !== 0n || suiv.ed25519PubKey !== pub) return false;
+    this.#basculer(motif);
+    return true;
+  }
+
+  #basculer(motif) {
+    const ancienne = this.cleChaine;
+    this.cleChaine = this.cleChaineSuivante;
+    this.cleChaineSuivante = null;
+    this.#journal("info", "chain_key_switched", { old_chain_key: ancienne.adresse(), new_chain_key: this.cleChaine.adresse(), reason: motif });
+    if (!this.cleChaineAncienne) ancienne.effacer?.();
+    else {
+      // L'ancienne reste servie aux documents des clés Ed25519 qu'elle portait.
+      this.cleChaineAncienne = ancienne;
+    }
+  }
+
+  /**
+   * Rotation de la seule clé de chaîne (CT-2 EX-11.19, point 4 ; CT-4 §8.4,
+   * troisième ligne ; CT-7 JS-5), demandée par `noortrace-ctl cle
+   * rotation-urgence` quand `next_chain_key` est posée sans
+   * `signer.rotation.next_key_id` : révocation de l'ancienne clé de chaîne,
+   * puis inscription de la même clé Ed25519 sous la nouvelle, toutes deux
+   * relayées par la nouvelle clé de chaîne depuis les demandes signées au
+   * seuil déposées sous `<journal>/registre/` ; puis bascule. Aucun événement
+   * n'est écrit dans le journal (JS-5).
+   * @returns {Promise<{accepte: boolean, raison?: string, registry?: object, ancienne?: string, nouvelle?: string}>}
+   */
+  async rotationCleChaine() {
+    if (!this.registreBranche) return { accepte: false, raison: "registre_non_branche" };
+    if (!this.cleChaineSuivante) return { accepte: false, raison: "cle_chaine_suivante_absente" };
+    const ancienne = this.cleChaine.adresse();
+    const nouvelle = this.cleChaineSuivante.adresse();
+    const pub = await this.#clePubliqueCourante();
+    const rev = this.lireDemandeRegistre("revocation", ancienne);
+    const ins = this.lireDemandeRegistre("inscription", nouvelle);
+    const e1 = this.#demandeConforme(rev, { operation: "revocation", chainKey: ancienne });
+    if (e1) return { accepte: false, raison: `revocation_${e1}` };
+    const e2 = this.#demandeConforme(ins, { operation: "inscription", chainKey: nouvelle, ed25519: pub });
+    if (e2) return { accepte: false, raison: `inscription_${e2}` };
+    const r1 = await this.#relayer("revocation", rev, this.cleChaineSuivante);
+    if (!r1.ok) return { accepte: false, raison: "revocation_refusee", registry: { revocation: r1.code } };
+    // Entre les deux, les ancres attendent (EX-11.19, point 4 : `cle_chaine_non_inscrite`, reprises au tic).
+    const r2 = await this.#relayer("inscription", ins, this.cleChaineSuivante);
+    if (!r2.ok) return { accepte: false, raison: "inscription_refusee", registry: { revocation: r1.issue, inscription: r2.code } };
+    this.#basculer("rotation_cle_chaine");
+    return { accepte: true, ancienne, nouvelle, registry: { revocation: r1.issue, inscription: r2.issue } };
+  }
+
+  /**
+   * EX-11.16, pas 1 : la nouvelle paire (`next_chain_key`, clé Ed25519
+   * suivante) est inscrite au registre avant l'événement de rotation —
+   * déjà inscrite (par l'outil du registre), ou relayée depuis la demande
+   * d'inscription déposée, avec `next_chain_key` comme expéditeur.
+   * @param {string} clePubliqueSuivante hexadécimal `0x`
+   */
+  async inscrireCleSuivante(clePubliqueSuivante) {
+    if (!this.registreBranche) return { accepte: false, raison: "registre_non_branche" };
+    if (!this.cleChaineSuivante) return { accepte: false, raison: "cle_chaine_suivante_absente" };
+    const nouvelle = this.cleChaineSuivante.adresse();
+    const lue = await this.#inscription(nouvelle);
+    if (lue.registeredAt !== 0n && lue.revokedAt === 0n && lue.ed25519PubKey === clePubliqueSuivante && lue.journalId === this.config.recorder.journal_id) {
+      this.#journal("info", "chain_key_registration_relayed", { operation: "inscription", chain_key: nouvelle, issue: "deja_faite", sender: null });
+      return { accepte: true, issue: "deja_faite" };
+    }
+    const ins = this.lireDemandeRegistre("inscription", nouvelle);
+    const e = this.#demandeConforme(ins, { operation: "inscription", chainKey: nouvelle, ed25519: clePubliqueSuivante });
+    if (e) return { accepte: false, raison: `inscription_${e}` };
+    const r = await this.#relayer("inscription", ins, this.cleChaineSuivante);
+    return r.ok ? { accepte: true, issue: r.issue } : { accepte: false, raison: "inscription_refusee", code: r.code };
+  }
+
+  /**
+   * EX-11.16, après l'événement de rotation : les documents de la nouvelle
+   * clé Ed25519 sont ancrés par `next_chain_key`, ceux des clés antérieures
+   * par l'ancienne (EX-11.19, point 3) ; pas 3 : révocation de l'ancienne
+   * clé de chaîne, relayée depuis la demande déposée si elle l'est (sinon
+   * `en_attente`, à faire par l'outil du registre, `revoquer-cle`).
+   * @param {{anciennesCles: string[]}} o
+   */
+  async apresRotation({ anciennesCles }) {
+    const ancienne = this.cleChaine;
+    this.cleChaineAncienne = ancienne;
+    for (const k of anciennesCles) this.clesPorteesParAncienne.add(k);
+    this.#basculer("rotation_urgence");
+    const rev = this.lireDemandeRegistre("revocation", ancienne.adresse());
+    const e = this.#demandeConforme(rev, { operation: "revocation", chainKey: ancienne.adresse() });
+    if (e) {
+      this.#journal("warning", "chain_key_revocation_pending", { chain_key: ancienne.adresse(), reason: e });
+      return { revocation: "en_attente" };
+    }
+    const r = await this.#relayer("revocation", rev, this.cleChaine);
+    return { revocation: r.ok ? r.issue : `refusee:${r.code}` };
   }
 
   /** La file durable (`queue.path`) est-elle sous le répertoire du journal (copie WORM avec `ancres/`, EX-8.14) ? */
@@ -575,12 +778,17 @@ export class BranchementAncrage {
   async arreter() {
     this.desabonnerReexports?.();
     if (this.composant && this.composant.etat().demarre) await this.composant.arreter({ attendre: false }).catch(() => {});
+    // EX-11.9 : une clé de chaîne déchiffrée (classe C) ou en clair (D) est effacée de la mémoire à l'arrêt.
+    for (const c of [this.cleChaine, this.cleChaineSuivante, this.cleChaineAncienne]) c?.effacer?.();
   }
 
   /** État exposé à l'exploitation (`noortrace-ctl ancrage etat`). */
   etat() {
     const e = this.composant ? this.composant.etat() : { demarre: false, arrete: false };
-    return { ...e, attached: this.composant !== null, reason: this.raison, document: path.basename(this.chemin), registry: Boolean(this.composant?.envoyeur) };
+    return {
+      ...e, attached: this.composant !== null, reason: this.raison, document: path.basename(this.chemin), registry: Boolean(this.composant?.envoyeur),
+      chain_key: this.cleChaine?.adresse() ?? null, chain_key_class: this.cleChaine?.classe ?? null, next_chain_key: this.cleChaineSuivante?.adresse() ?? null,
+    };
   }
 
   /** Métriques d'EX-8.15 au format d'exposition, ou chaîne vide. */
@@ -775,7 +983,19 @@ export async function preparerAncrage(o) {
   const chemin = o.config.anchoring?.ancrage ?? null;
   if (chemin === null || chemin === undefined) return null;
   const registry = o.config.anchoring?.registry ?? {};
-  const cleChaine = registry.enabled ? cleChaineDepuisConfiguration(o.config, o.secrets) : null;
+  const cleChaine = registry.enabled ? await cleChaineDepuisConfiguration(o.config, o.secrets, { env: o.env }) : null;
+  let cleChaineSuivante = null;
+  try {
+    cleChaineSuivante = registry.enabled ? await cleChaineDepuisConfiguration(o.config, o.secrets, { env: o.env, membre: "next_chain_key" }) : null;
+  } catch (e) {
+    cleChaine?.effacer?.();
+    throw e;
+  }
+  if (cleChaine && cleChaineSuivante && cleChaine.adresse() === cleChaineSuivante.adresse()) {
+    cleChaine.effacer?.();
+    cleChaineSuivante.effacer?.();
+    throw new ErreurBranchementAncrage("cle_chaine", "anchoring.registry.next_chain_key : même adresse que chain_key (une clé de chaîne ne se réinscrit jamais, CT-4 EX-8.8)");
+  }
   const { document, erreur } = lireDocumentJson(chemin);
   let secretsAncrage = new Map();
   let erreursSecrets = [];
@@ -796,7 +1016,7 @@ export async function preparerAncrage(o) {
     }
   }
   return new BranchementAncrage({
-    config: o.config, secrets: o.secrets, env: o.env, document, erreurDocument: erreur, secretsAncrage, erreursSecrets, instance, erreurInstance, cleChaine,
+    config: o.config, secrets: o.secrets, env: o.env, document, erreurDocument: erreur, secretsAncrage, erreursSecrets, instance, erreurInstance, cleChaine, cleChaineSuivante,
     horloge: o.horloge ?? null, aleatoire: o.aleatoire, clients: o.clients,
   });
 }

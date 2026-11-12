@@ -1,0 +1,13 @@
+{
+  "version": 0,
+  "command": "ancrer",
+  "result": "refuse",
+  "exit_code": 1,
+  "checks": [],
+  "error": {
+    "code": "examen_requis",
+    "check": "OP-11",
+    "message": "examen requis"
+  },
+  "outputs": {}
+}

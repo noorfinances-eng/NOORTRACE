@@ -1,13 +1,16 @@
 # Installation rapide de NOORTRACE (CT-8 §7) : un hôte, mode observation,
-# classe de garde D, bail « file », sans copie WORM, ancrage de test
-# (OpenTimestamps seul), sans approbation bloquante.
+# classe de garde D, bail « file », sans copie WORM, ancrage de test (jeton
+# RFC 3161 de clôture par le serveur interne non qualifié du service
+# horodatage, preuves OpenTimestamps), sans approbation bloquante.
 #
-# Fichier de RÉFÉRENCE : les images noortrace/* sont à construire (phase 2) ;
-# il est vérifié par analyse statique (CT-8 §4, vérifications CO-1 à CO-14),
-# jamais lancé dans le dépôt. Les secrets sont des fichiers de ./secrets/
-# créés au pas IR-2 (mode 0400), jamais une variable d'environnement ; la
-# configuration du service d'approbation, ./config/rapide/approbation.json,
-# est écrite au pas IR-3.
+# Fichier de RÉFÉRENCE : les images noortrace/* sont construites par
+# conteneurs/<nom>/Dockerfile, sans être publiées ; il est vérifié par analyse
+# statique (CT-8 §4, vérifications CO-1 à CO-14). Les secrets sont des
+# fichiers de ./secrets/ créés au pas IR-2 (mode 0400), jamais une variable
+# d'environnement ; l'autorité du serveur interne est créée au pas IR-2 dans
+# le volume horodatage (outil horodatage-init) ; la configuration du service
+# d'approbation, ./config/rapide/approbation.json, et le document d'ancrage,
+# qui reçoit le certificat de cette autorité, sont écrits au pas IR-3.
 #
 # Depuis le répertoire deploiement/ (les chemins relatifs ./config et ./secrets
 # se résolvent alors contre lui) :
@@ -28,6 +31,7 @@ volumes:
   prises: {}
   exports: {}
   approbation-etat: {}
+  horodatage: {}
 
 secrets:
   cle-enregistreur:

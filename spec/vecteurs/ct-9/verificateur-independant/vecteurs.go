@@ -654,13 +654,14 @@ func (d *Depot) verifierProse(rap *Rapport) {
 	}
 	rap.Verdict(len(parEtat("TU", "a_ecrire")) == 0, "6", "TU- à écrire", "%v (texte : les trente-neuf exécutables, TU-12 depuis l'étape 1)", parEtat("TU", "a_ecrire"))
 	s7 := Normaliser(SectionTexte(d.CT9.Texte, "7"))
-	m := regexp.MustCompile(`(TV-[0-9]+) \(vérificateur Go de CT-6\) l'est depuis l'étape 2, et (TV-[0-9]+) \(famille .supervision/., étape 7\) est à écrire`).FindStringSubmatch(s7)
+	// Révision 0.9 : TV-76 (famille supervision/) est exécutable depuis l'étape 7 ; aucun TV- n'est à écrire.
+	m := regexp.MustCompile(`(TV-[0-9]+) \(vérificateur Go de CT-6\) l'est depuis l'étape 2, et (TV-[0-9]+) \(famille .supervision/.\) depuis l'étape 7`).FindStringSubmatch(s7)
 	tvAE := parEtat("TV", "a_ecrire")
 	if m == nil {
-		rap.Discorde("7", "TV- à écrire", "phrase « TV-n (vérificateur Go de CT-6) l'est depuis l'étape 2, et TV-m … est à écrire » non lue")
+		rap.Discorde("7", "TV- à écrire", "phrase « TV-n (vérificateur Go de CT-6) l'est depuis l'étape 2, et TV-m … depuis l'étape 7 » non lue")
 	} else {
-		rap.Verdict(strings.Join(tvAE, ",") == m[2], "7", "TV- à écrire", "texte : %s ; catalogue : %v", m[2], tvAE)
-		for id, etat := range map[string]string{m[1]: "executable", m[2]: "a_ecrire"} {
+		rap.Verdict(len(tvAE) == 0, "7", "TV- à écrire", "texte : aucune ; catalogue : %v", tvAE)
+		for id, etat := range map[string]string{m[1]: "executable", m[2]: "executable"} {
 			t := d.ParID[id]
 			titre := ""
 			if t != nil {
@@ -676,13 +677,14 @@ func (d *Depot) verifierProse(rap *Rapport) {
 	for _, id := range tq {
 		etapes[id] = *d.ParID[id].Status.Phase2Step
 	}
-	ok := len(tq) == 8 && len(parEtat("TQ", "executable")) == 0 && etapes["TQ-8"] == 7
-	for id, e := range etapes {
-		if id != "TQ-8" && e != 8 {
+	// Révision 0.9 : TQ-8 (chaîne de construction) est rattachée à l'étape 8 comme les autres.
+	ok := len(tq) == 8 && len(parEtat("TQ", "executable")) == 0
+	for _, e := range etapes {
+		if e != 8 {
 			ok = false
 		}
 	}
-	rap.Verdict(ok, "13", "TQ- à écrire", "%d entrées, étapes %v (texte : huit, toutes à écrire, étape 8, étape 7 pour la chaîne de construction)", len(tq), etapes)
+	rap.Verdict(ok, "13", "TQ- à écrire", "%d entrées, étapes %v (texte : huit, toutes à écrire, étape 8)", len(tq), etapes)
 	s16 := Normaliser(SectionTexte(d.CT9.Texte, "16"))
 	var aEcrire, compl, compl4, tmAE int
 	for i := range d.Cat.Tests {

@@ -11,7 +11,8 @@
 // SIGUSR2 porte la confirmation de l'exploitant après un saut d'horloge
 // (EX-7.13) ; SIGURG, avec la demande écrite à côté du journal
 // d'exploitation, porte `noortrace-ctl cle rotation-urgence` et
-// `noortrace-ctl ancrage <etat|metriques|retirer-qualification>` :
+// `noortrace-ctl ancrage <etat|metriques|retirer-qualification>` et, étape 7,
+// `noortrace-ctl close-period --now` (CT-2 EX-19.4, développement seulement) :
 // `noortrace-ctl` les envoie (src/ctl-demon.mjs). Avec `anchoring.ancrage`,
 // le composant d'ancrage de CT-5 est branché avant le cœur
 // (src/ancrage-demon.mjs, lot F2) : une configuration d'ancrage invalide
@@ -288,8 +289,9 @@ export function superviserProcessus(r, o = {}) {
   // de demande écrit par noortrace-ctl à côté du journal d'exploitation. Le
   // membre `demande` nomme l'action, et elle seule : `rotation-urgence`
   // (`noortrace-ctl cle rotation-urgence`, CT-8 EX-10.14, CT-2 EX-11.16),
-  // `ancrage` (`noortrace-ctl ancrage <etat|metriques|retirer-qualification>`)
-  // ou `dossier` (`noortrace-ctl dossier exporter`, EX-15.11 à EX-15.14) ; une
+  // `ancrage` (`noortrace-ctl ancrage <etat|metriques|retirer-qualification>`),
+  // `dossier` (`noortrace-ctl dossier exporter`, EX-15.11 à EX-15.14) ou
+  // `cloture-anticipee` (`noortrace-ctl close-period --now`, EX-19.4) ; une
   // demande illisible, inconnue, hors de son domaine ou périmée est refusée
   // sans rien exécuter (demandes-demon.mjs).
   installerDemandes(coeur);
@@ -306,7 +308,7 @@ export function superviserProcessus(r, o = {}) {
 
 /**
  * `ctl_request_failed` (EX-15.15, révision 0.9) : erreur imprévue pendant une
- * demande `rotation-urgence` ou `ancrage`, hors des refus que son action
+ * demande `rotation-urgence`, `ancrage` ou `cloture-anticipee`, hors des refus que son action
  * prévoit, ou avant que l'action soit connue ; `data` : `demande` (tronquée à
  * 64 caractères, ou null) et `detail` (au plus 200 caractères, sans pièce ni
  * secret : le nom de l'erreur et son code, jamais son message). La clé
@@ -338,9 +340,11 @@ export async function traiterDemande(coeur, octets, maintenant) {
     return r.refus;
   }
   const d = r.demande;
-  if (r.action === "rotation-urgence" || r.action === "ancrage") {
+  if (r.action === "rotation-urgence" || r.action === "ancrage" || r.action === "cloture-anticipee") {
     try {
       if (r.action === "rotation-urgence") return await coeur.rotationUrgence();
+      // Étape 7 : `noortrace-ctl close-period --now` (CT-2 EX-19.4) ; réponse portant le request_id de la demande.
+      if (r.action === "cloture-anticipee") return await coeur.clotureAnticipee({ request_id: requestIdLisible(d) });
       return await coeur.commandeAncrage({ commande: d.commande, id: d.id ?? null });
     } catch (e) {
       ctlRequestFailed(coeur, r.action, e, requestIdLisible(d));

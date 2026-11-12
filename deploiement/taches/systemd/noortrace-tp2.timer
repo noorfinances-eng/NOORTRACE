@@ -1,0 +1,11 @@
+# Minuteur de la tâche TP-2 (CT-8 EX-8.6) : chaque jour, pour suivre chaque nouvelle séquence de la liste de confiance, au plus tous les 30 jours.
+[Unit]
+Description=NOORTRACE, minuteur de TP-2 (chaque jour, pour suivre chaque nouvelle séquence de la liste de confiance, au plus tous les 30 jours)
+
+[Timer]
+OnCalendar=*-*-* 04:20:00
+Persistent=true
+Unit=noortrace-tache@TP-2.service
+
+[Install]
+WantedBy=timers.target

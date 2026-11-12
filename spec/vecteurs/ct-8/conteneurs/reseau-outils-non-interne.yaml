@@ -1,8 +1,9 @@
 # Installation complète de production de NOORTRACE (CT-8 §8) : topologies
 # « sur site », « tenant cloud du client » et « hébergeur suisse » (CT-8 §3).
 #
-# Fichier de RÉFÉRENCE : les images noortrace/* sont à construire (phase 2) ;
-# l'image du nœud est celle de chain/docker/Dockerfile. Il est vérifié par
+# Fichier de RÉFÉRENCE : les images noortrace/* sont construites par
+# conteneurs/<nom>/Dockerfile, sans être publiées tant qu'aucune version ne
+# l'est ; l'image du nœud est celle de chain/docker/Dockerfile. Il est vérifié par
 # analyse statique (CT-8 §4, CO-1 à CO-14), jamais lancé dans le dépôt. Avant
 # la mise en service, chaque étiquette est complétée par le condensé publié
 # (pas IC-6) : le contrôle préalable de production refuse une image sans
@@ -27,6 +28,9 @@ services:
       - /run/temporaire:size=67108864,mode=1777
     environment:
       TMPDIR: /run/temporaire
+      # Identité IAM vers AWS KMS (clé de chaîne de classe C, modèle de
+      # production) : le chemin du secret identite-aws, jamais sa valeur.
+      AWS_CONFIG_FILE: /run/secrets/identite-aws
     cap_drop:
       - ALL
     security_opt:
@@ -63,10 +67,17 @@ services:
         read_only: true
         bind:
           create_host_path: false
+      - type: bind
+        source: ./config/production/instance-registre.json
+        target: /etc/noortrace/instance-registre.json
+        read_only: true
+        bind:
+          create_host_path: false
     secrets:
       - cle-mac-relais
       - acces-signataire
       - cle-chaine
+      - identite-aws
       - dsn-bail
       - worm-ecrivain
       - jeton-hote-agents
@@ -326,6 +337,8 @@ secrets:
     file: ./secrets/acces-signataire
   cle-chaine:
     file: ./secrets/cle-chaine
+  identite-aws:
+    file: ./secrets/identite-aws
   dsn-bail:
     file: ./secrets/dsn-bail
   worm-ecrivain:
