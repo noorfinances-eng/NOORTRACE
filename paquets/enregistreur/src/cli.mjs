@@ -220,10 +220,50 @@ export async function principal(argv, io = {}) {
 export async function lancer() {
   const r = await principal(process.argv.slice(2));
   if (typeof r === "number") {
+    // Démarrage refusé (une relance après perte du bail comprise) : plus
+    // aucune instance à arrêter, SIGTERM et SIGINT reprennent leur effet par
+    // défaut.
+    retirerArretProcessus();
     process.exitCode = r;
     return;
   }
   superviserProcessus(r, { argv: process.argv, relancer: lancer });
+}
+
+/**
+ * Arrêt du processus par SIGTERM ou SIGINT : un seul gestionnaire, posé au
+ * premier démarrage réussi et gardé tant qu'une instance vit ou va être
+ * relancée, y compris pendant la relance qui suit la perte du bail
+ * (EX-13.6). Un signal d'arrêt reçu pendant que l'instance s'arrête pour être
+ * relancée, ou avant que l'instance relancée soit en place, n'est ni perdu ni
+ * mortel : il est retenu (`demande`), la relance n'a pas lieu, ou l'instance
+ * relancée est arrêtée dès qu'elle est en place, et le processus sort par le
+ * code 0. Auparavant, un tel signal était ignoré (arrêt déjà en cours) ou
+ * terminait le processus sans arrêt propre (gestionnaires retirés avant la
+ * relance) : intégration continue, run 46, TE-14 JS-3.
+ */
+const arretProcessus = { instance: null, demande: false, pose: false };
+
+function signalArret() {
+  arretProcessus.demande = true;
+  arretProcessus.instance?.();
+}
+
+function poserArretProcessus(arreter) {
+  if (!arretProcessus.pose) {
+    process.on("SIGTERM", signalArret);
+    process.on("SIGINT", signalArret);
+    arretProcessus.pose = true;
+  }
+  arretProcessus.instance = arreter;
+}
+
+function retirerArretProcessus() {
+  if (!arretProcessus.pose) return;
+  process.removeListener("SIGTERM", signalArret);
+  process.removeListener("SIGINT", signalArret);
+  arretProcessus.pose = false;
+  arretProcessus.instance = null;
 }
 
 /**
@@ -248,8 +288,7 @@ export function superviserProcessus(r, o = {}) {
     await coeur.arreter();
     process.exit(0);
   };
-  process.on("SIGTERM", arreter);
-  process.on("SIGINT", arreter);
+  poserArretProcessus(arreter);
   // Instance passive : un échec de la fin du démarrage (après la prise du
   // bail) refuse le démarrage comme avant elle (code 2).
   coeur.demarrage?.catch(async (e) => {
@@ -269,6 +308,8 @@ export function superviserProcessus(r, o = {}) {
     if (arret || !coeur.degrade.actif("bail")) return;
     clearInterval(veille);
     arret = true;
+    // Un signal d'arrêt reçu à partir d'ici est retenu (`arretProcessus.demande`).
+    if (arretProcessus.instance === arreter) arretProcessus.instance = null;
     process.stderr.write("noortrace: bail perdu, relance en instance passive\n");
     await otel?.arreter().catch(() => {});
     await sdk?.arreter().catch(() => {});
@@ -276,7 +317,9 @@ export function superviserProcessus(r, o = {}) {
     await modele?.arreter().catch(() => {});
     await coeur.arreter().catch(() => {});
     await coeur.o.redaction?.fermer?.().catch?.(() => {});
-    for (const s of ["SIGTERM", "SIGINT", "SIGHUP", "SIGUSR2", "SIGURG"]) process.removeAllListeners(s);
+    // SIGTERM et SIGINT restent tenus par `signalArret` pendant la relance.
+    for (const s of ["SIGHUP", "SIGUSR2", "SIGURG"]) process.removeAllListeners(s);
+    if (arretProcessus.demande) process.exit(0);
     (o.relancer ?? lancer)();
   }, 250);
   veille.unref?.();
@@ -304,6 +347,8 @@ export function superviserProcessus(r, o = {}) {
       process.stderr.write(`noortrace: rechargement refuse (${e.message})\n`);
     }
   });
+  // Arrêt demandé pendant la relance qui a mis cette instance en place : elle est arrêtée aussitôt.
+  if (arretProcessus.demande) arreter();
 }
 
 /**

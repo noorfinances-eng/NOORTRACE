@@ -369,8 +369,12 @@ describe("TE-14 : journal de l'enregistreur sur lui-même, JS-1 à JS-12 de CT-7
     expect(demon.de("degraded_enter").some((x) => x.data.reason === "bail")).to.equal(true);
     expect(refus === null || /bail/.test(refus.message)).to.equal(true);
     const dernierSeq = evenementsChaine(m.repertoire).at(-1).seq;
+    // L'arrêt est demandé pendant que la veille du bail arrête l'instance pour la relancer en passive : il n'est ni ignoré ni mortel (intégration continue, run 46).
+    const limite = Date.now() + 10000;
+    while (!/bail perdu, relance en instance passive/.test(demon.sortie) && Date.now() < limite) await new Promise((r) => setTimeout(r, 10));
+    expect(demon.sortie, "relance après perte du bail").to.match(/bail perdu, relance en instance passive/);
     const fin = await demon.arreter();
-    expect(fin.code).to.equal(0);
+    expect(fin.code, JSON.stringify(fin)).to.equal(0);
     const lignes = demon.lignes();
     expect(lignes.some((l) => l.event === "shutdown")).to.equal(true);
     const chaine = evenementsChaine(m.repertoire);

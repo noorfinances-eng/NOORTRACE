@@ -78,13 +78,49 @@ echo "4. strace -f -e trace=%network : aucun appel réseau (${#cas[@]} exécutio
 if ! command -v strace >/dev/null || ! strace -f -qq -e trace=%network -e signal=none -o "$tmp/essai.txt" true 2>/dev/null; then
   echo "   NON UTILISABLE sur cette machine (strace absent ou refusé) : preuve non faite"; impossible=1
 else
-  # Chaque exécution doit laisser une trace vide. Une seule exception est
-  # reconnue, et elle n'est pas comptée comme réussie : la ligne
-  # « ??? ( <detached ...> » (ou « <unfinished ...> ») qu'écrit strace quand
-  # le processus se termine (exit_group) pendant qu'un fil de l'exécutif Go
-  # entre dans un appel système que strace ne peut plus décoder. L'exécution
-  # est alors relancée, jusqu'à cinq fois, et le cas n'est réussi que sur une
-  # trace vide.
+  # Artefact de strace à la sortie du processus. Quand un fil s'arrête à
+  # l'entrée d'un appel système et que le processus se termine (exit_group)
+  # avant que strace ait lu cet arrêt, PTRACE_GET_SYSCALL_INFO (ou
+  # PTRACE_GETREGS) rend ESRCH : strace ne connaît pas le numéro de l'appel et
+  # écrit son nom « ??? » quel que soit le filtre (src/syscall.c,
+  # syscall_entering_decode et get_scno, strace 6.8 et 6.19). Le noyau
+  # n'exécute pas un appel dont l'arrêt d'entrée se termine par une mort
+  # (syscall_trace_enter rend -1 quand un signal fatal est en attente). La
+  # ligne est ensuite fermée de l'une de quatre façons, et de nulle autre :
+  #   PID ???( <detached ...>        le fil disparaît (droptcb) ;
+  #   PID ???( <unfinished ...>      la ligne d'un autre fil commence (printleader) ;
+  #   PID ???()   = ?                arrêt PTRACE_EVENT_EXIT du fil, quand son
+  #                                  arrêt « ??? » était son premier appel
+  #                                  observé (print_event_exit) ;
+  #   PID <... ??? resumed>)   = ?   le même, après la ligne d'un autre fil.
+  # Toute autre ligne, dont tout appel nommé de la classe %network, est un
+  # appel réseau. Une exécution dont la trace ne contient que des artefacts
+  # est relancée, au plus cinq fois, et le cas n'est réussi que sur une trace
+  # vide (EX-14.5 : trace.txt vide exigé).
+  artefact='^[0-9]+ +(\?\?\?\( <(detached|unfinished) \.\.\.>|(\?\?\?\(|<\.\.\. \?\?\? resumed>)\) += \?)$'
+  # classer <trace> : 0 trace vide, 1 artefacts seulement, 2 au moins un appel.
+  classer() {
+    [ -s "$1" ] || return 0
+    if grep -qvE "$artefact" "$1"; then return 2; fi
+    return 1
+  }
+
+  # Témoin : un programme qui appelle socket(AF_INET, SOCK_STREAM, 0) doit
+  # être relevé et refusé par la même analyse, sur le strace de la machine.
+  mkdir "$tmp/temoin"
+  printf '%s\n' 'package main' '' 'import "syscall"' '' 'func main() {' \
+    '	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_STREAM, 0)' \
+    '	if err == nil {' '		syscall.Close(fd)' '	}' '}' >"$tmp/temoin/main.go"
+  (cd "$tmp/temoin" && GOTOOLCHAIN=local GOENV=off GOFLAGS= GOPROXY=off CGO_ENABLED=0 go build -o "$tmp/temoin/socket" main.go)
+  set +e; strace -f -qq -e trace=%network -e signal=none -o "$tmp/temoin.txt" "$tmp/temoin/socket" >/dev/null 2>&1; set -e
+  r=0; classer "$tmp/temoin.txt" || r=$?
+  if [ "$r" -eq 2 ] && grep -qE '^[0-9]+ +socket\(AF_INET, SOCK_STREAM' "$tmp/temoin.txt"; then
+    echo "   témoin socket() : appel relevé et refusé par l'analyse"
+  else
+    echo "   ÉCHEC : le témoin socket() n'est pas refusé par l'analyse (classe $r)"; cat "$tmp/temoin.txt"
+    echecs=$((echecs + 1))
+  fi
+
   lignes=0
   relances=0
   for c in "${cas[@]}"; do
@@ -93,17 +129,22 @@ else
       essai=$((essai + 1))
       # shellcheck disable=SC2086
       set +e; strace -f -qq -e trace=%network -e signal=none -o "$tmp/trace.txt" "$binaire" $c >/dev/null 2>&1; set -e
-      n="$(wc -l <"$tmp/trace.txt")"
-      [ "$n" -eq 0 ] && break
-      autres="$(grep -vE '^[0-9]+ +(\?\?\?\( <(detached|unfinished) \.\.\.>|<\.\.\. \?\?\? resumed>\) += \?)$' "$tmp/trace.txt" || true)"
-      if [ -n "$autres" ] || [ "$essai" -ge 5 ]; then
-        echo "   ÉCHEC : $c"; head -3 "$tmp/trace.txt"; lignes=$((lignes + n)); break
+      r=0; classer "$tmp/trace.txt" || r=$?
+      [ "$r" -eq 0 ] && break
+      if [ "$r" -eq 2 ] || [ "$essai" -ge 5 ]; then
+        echo "   ÉCHEC : $c"
+        if [ "$r" -eq 2 ]; then
+          grep -vE "$artefact" "$tmp/trace.txt" | head -3 || true
+        else
+          echo "   artefacts seulement, cinq fois de suite :"; head -3 "$tmp/trace.txt"
+        fi
+        lignes=$((lignes + $(wc -l <"$tmp/trace.txt"))); break
       fi
       relances=$((relances + 1))
     done
   done
   if [ "$relances" -ne 0 ]; then
-    echo "   $relances exécution(s) relancée(s) après l'artefact « ??? <detached ...> » de strace à la sortie du processus"
+    echo "   $relances exécution(s) relancée(s) après un artefact « ??? » de strace à la sortie du processus"
   fi
   if [ "$lignes" -eq 0 ]; then echo "   trace vide pour chaque exécution : réussi"; else echecs=$((echecs + 1)); fi
 fi

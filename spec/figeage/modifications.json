@@ -7459,6 +7459,32 @@
           "apres": "5c6d61ffd304f2d4647e036dda9996012c741077912878f988a36242aa5dfcb0"
         }
       ]
+    },
+    {
+      "id": "MC-58",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "Couverture de CT-9 régénérée : test/deploiement-images.test.js (TE-6) garde le jeton d'hôte en mémoire au lieu de relire le secret 0400 du compte 10001, illisible hors root (intégration continue, run 46), et vérifie que les secrets et configurations d'IR-2 et IR-3 restent en 0400 au compte du service.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "792c18cf3dc58980fbfe89a875799bc65c6a82337d84ade7e7f0798869b7ecb4",
+          "apres": "bea67633a3bce223955bc238bf59bdf8ac582517d3d2187b5de5fd42fb76206e"
+        }
+      ]
+    },
+    {
+      "id": "MC-59",
+      "date": "2026-11-12",
+      "etape": 7,
+      "motif": "Couverture de CT-9 régénérée : test/enregistreur-journal-soi.test.js (TE-14, JS-3) demande l'arrêt pendant la relance qui suit la perte du bail ; le démon (paquets/enregistreur/src/cli.mjs) retient désormais SIGTERM et SIGINT pendant cette relance, au lieu de les ignorer ou d'en mourir (intégration continue, run 46).",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "bea67633a3bce223955bc238bf59bdf8ac582517d3d2187b5de5fd42fb76206e",
+          "apres": "2c01b063f95fb90ac66aa3e6936686754f57bbc982bbda9baf31a22e95389a97"
+        }
+      ]
     }
   ]
 }

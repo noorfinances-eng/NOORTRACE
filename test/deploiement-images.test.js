@@ -763,7 +763,9 @@ describe("Étape 7 : images noortrace/* et construction reproductible (CT-8 §3.
       const secrets = path.join(dep, "secrets");
       fs.mkdirSync(secrets, { mode: 0o700 });
       fs.writeFileSync(path.join(secrets, "cle-enregistreur"), crypto.generateKeyPairSync("ed25519").privateKey.export({ type: "pkcs8", format: "der" }), { mode: 0o400 });
-      for (const n of ["cle-mac-relais", "jeton-hote", "jeton-passerelle", "cle-stockage-approbation"]) fs.writeFileSync(path.join(secrets, n), crypto.randomBytes(32).toString("hex"), { mode: 0o400 });
+      // Le jeton d'hôte est gardé en mémoire : après le chown d'IR-3, son fichier (0400, compte 10001) n'est plus lisible par l'essai hors root.
+      const jetonHote = crypto.randomBytes(32).toString("hex");
+      for (const n of ["cle-mac-relais", "jeton-hote", "jeton-passerelle", "cle-stockage-approbation"]) fs.writeFileSync(path.join(secrets, n), n === "jeton-hote" ? jetonHote : crypto.randomBytes(32).toString("hex"), { mode: 0o400 });
       expect(Object.keys(COMPOSE.rapide.secrets).sort()).to.deep.equal(["cle-enregistreur", "cle-mac-relais", "cle-stockage-approbation", "jeton-hote", "jeton-passerelle"]);
       const init = dcOk(["--profile", "outils", "run", "--rm", "-T", "horodatage-init", "init", "--repertoire", "/var/lib/noortrace-tsa", "--politique", "1.3.6.1.4.1.99999.1.1", "--crl-url", "http://127.0.0.1:2020/crl.pem", "--algorithme", "p-256"]);
       expect(init).to.include("autorité créée dans /var/lib/noortrace-tsa");
@@ -815,7 +817,12 @@ describe("Étape 7 : images noortrace/* et construction reproductible (CT-8 §3.
       expect(dc(["exec", "-T", "enregistreur", "/usr/local/bin/noortrace-ctl", "sonde", "--url", "http://127.0.0.1:8500/readyz"]).status).to.equal(0);
       mesurer("ir6");
       // IR-7 : un appel d'agent, depuis l'espace réseau de l'enregistreur (ports non publiés sur un réseau interne).
-      fs.copyFileSync(path.join(secrets, "jeton-hote"), path.join(T, "jeton-hote"));
+      // Les secrets restent tels qu'IR-2 et IR-3 les veulent (0400, compte du service) ; l'agent reçoit sa copie du jeton d'hôte depuis la mémoire.
+      for (const [f, c] of Object.entries(chown)) {
+        const st = fs.statSync(path.join(dep, f));
+        expect(`${st.uid}:${st.gid}:${(st.mode & 0o7777).toString(8)}`, f).to.equal(`${c}:400`);
+      }
+      fs.writeFileSync(path.join(T, "jeton-hote"), jetonHote, { mode: 0o444 });
       fs.chmodSync(path.join(T, "jeton-hote"), 0o444);
       const noeud = (args) => dockerOk(["run", "--rm", "--network", `container:${idEnr}`, "--user", "65534:65534", "-v", `${outils}:/outils:ro`, "-v", `${path.join(T, "jeton-hote")}:/jeton-hote:ro`, "--entrypoint", "/usr/local/bin/node", `noortrace/enregistreur:${VERSION}`, ...args]);
       const reponses = noeud(["/outils/agent.mjs", "http://127.0.0.1:8300/mcp", "/jeton-hote", "outils__read_file"]).trim().split("\n").map((l) => JSON.parse(l));

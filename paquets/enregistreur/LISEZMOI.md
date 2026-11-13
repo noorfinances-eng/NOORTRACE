@@ -1802,6 +1802,10 @@ quotas et TLS :
      processus (frontaux et cœur arrêtés, démarrage complet) : il redevient
      passif tant qu'une autre instance détient le bail, et relit le journal
      (EX-12.10) après sa prochaine acquisition, comme tout démarrage.
+     SIGTERM et SIGINT restent tenus pendant cette relance : un arrêt
+     demandé pendant l'arrêt de l'instance empêche la relance, un arrêt
+     demandé avant que l'instance relancée soit en place l'arrête dès
+     qu'elle l'est ; dans les deux cas le processus sort par le code 0.
 106. **Magasin `postgresql` : table, ligne, durée** (13.2 donne la table et
      l'`UPDATE`, sans la création de la ligne du journal). Lecture : `CREATE
      TABLE IF NOT EXISTS` aux colonnes de 13.2 (`epoch` à 0 par défaut) et

@@ -236,7 +236,7 @@
       },
       {
         "file": "test/deploiement-images.test.js",
-        "sha256": "7109b38d8f3358cbf495f6fb06ec62dc9cc5f458aed0ec887d3089b8364767fb"
+        "sha256": "b35995a2b1ee7088b2153224b5e495272a2259ac73f98bc8c007ff08410d13b4"
       },
       {
         "file": "test/deploiement-installation.test.js",
@@ -336,7 +336,7 @@
       },
       {
         "file": "test/enregistreur-journal-soi.test.js",
-        "sha256": "dc78cdb36ae4c9643cde9de8737f345247c8b090761598b544908e76ec15edef"
+        "sha256": "531f34677383c59ae8ff37b09e6599abe585c798c1d006251afcc651c99e536b"
       },
       {
         "file": "test/enregistreur-mcp-client-reference.test.js",

@@ -173,12 +173,18 @@ code 3. `net` et `net/url` figurent dans `go list -deps` parce que
 `crypto/x509` les importe (§14.2).
 
 Artefact connu de `strace` : quand le processus se termine (`exit_group`)
-au moment où le fil de surveillance de l'exécutif Go (`sysmon`, boucle sur
-`nanosleep`) entre dans un appel système, `strace` écrit `???( <detached
-...>`, appel qu'il ne peut plus décoder ; une trace complète sans filtre de
-ces exécutions ne contient aucun appel réseau. Le script relance alors
-l'exécution (au plus cinq fois) et n'admet le cas que sur une trace vide ;
-il imprime le nombre de relances.
+au moment où un fil de l'exécutif Go s'arrête à l'entrée d'un appel système,
+`strace` ne peut plus lire cet arrêt (`PTRACE_GET_SYSCALL_INFO` rend
+`ESRCH`) et écrit un appel nommé `???`, de numéro inconnu, que le noyau
+n'exécute pas. La ligne prend l'une de quatre formes : `???( <detached ...>`,
+`???( <unfinished ...>`, `???() = ?` (strace 6.19 en CI, quand cet arrêt
+était le premier du fil) et `<... ??? resumed>) = ?`. Toute autre ligne est
+un appel réseau et fait échouer la preuve. Une exécution dont la trace ne
+contient que ces formes est relancée (au plus cinq fois) et le cas n'est
+admis que sur une trace vide ; le script imprime le nombre de relances.
+Avant les vecteurs, un programme témoin construit sur place appelle
+`socket(AF_INET, SOCK_STREAM, 0)` : l'analyse doit le relever et le refuser,
+sinon la preuve échoue.
 
 ## Tests
 
