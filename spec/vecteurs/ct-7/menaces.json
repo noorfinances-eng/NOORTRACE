@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "modele-menace",
   "spec": "CT-7",
-  "spec_version": "0.4",
-  "date": "2026-11-11",
+  "spec_version": "0.5",
+  "date": "2026-11-14",
   "components": [
     {
       "id": "hote_agent",
@@ -86,7 +86,7 @@
     {
       "id": "reseau",
       "name": "Réseau",
-      "holds": "Les liens entre l'hôte, le démon, les serveurs d'outils, les fournisseurs, les prestataires, le registre et la console ; les liens sortants du service d'approbation vers le webhook des notifications et du serveur de console vers le fournisseur d'identité.",
+      "holds": "Les liens entre l'hôte, le démon, les serveurs d'outils, les fournisseurs, les prestataires, le registre, la console, le magasin de bail, les services de clés et d'identité ; les liens sortants du service d'approbation vers le webhook des notifications et du serveur de console vers le fournisseur d'identité.",
       "trust": "Aucune : TLS ou prise locale authentifiée partout où un secret ou une décision circule."
     }
   ],
@@ -681,11 +681,11 @@
         ]
       },
       "residual": {
-        "text": "Ce que le fournisseur exécute de son côté n'est pas prouvé (CT-2 §5.8).",
+        "text": "Ce que le fournisseur exécute de son côté n'est pas prouvé (CT-2 §5.8) ; les déclarations de serveurs MCP au fournisseur par les formats `anthropic-messages` et `openai-responses` ne sont pas refusées par le frontal (la forme de ces déclarations n'est citée par aucune source de CT-2 annexe C et n'a pas pu être vérifiée à l'étape 8, réseau public non admis), risque borné aux routes de ces formats, attribué au client, à l'attestation de périmètre, à instruire sur une source primaire datée avant d'étendre CT-2 EX-5.32.",
         "accepted_risk": {
           "id": "RA-11",
           "name": "Exécution côté fournisseur",
-          "bound": "Limitée aux routes où la configuration admet les serveurs MCP du fournisseur",
+          "bound": "Limitée aux routes où la configuration admet les serveurs MCP du fournisseur, et aux routes des formats `anthropic-messages` et `openai-responses`, dont le frontal ne refuse pas les déclarations de serveurs MCP (3.4, MN-13)",
           "owner": "client"
         }
       },
@@ -757,7 +757,7 @@
         "accepted_risk": {
           "id": "RA-13",
           "name": "Déclaration d'un agent compromis",
-          "bound": "Limitée aux outils de préfixe d'un alias du SDK, que le pare-feu borne à ce que l'agent peut joindre",
+          "bound": "Limitée aux outils de préfixe d'un alias du SDK, que le pare-feu borne à ce que l'agent peut joindre ; la classe d'un appel du SDK est celle que l'agent déclare, à défaut `ecriture`, et le démon ne la vérifie pas (CT-2 table 6.2, EX-6.15 : aucune classe configurée par outil pour les entrées de `sdk.hosts`)",
           "owner": "client"
         }
       },
@@ -1195,11 +1195,11 @@
         "accepted_risk": {
           "id": "RA-22",
           "name": "Enregistreur sur le chemin",
-          "bound": "Limité au trafic que le démon relaie, à ses secrets en mémoire et à la fenêtre RA-15",
+          "bound": "Limité au trafic que le démon relaie, à ses secrets en mémoire et à la fenêtre RA-15 ; par la voie des outils de développement, la dépendance sans correctif publié `zod` 3, exigée par Hardhat 3 et ses modules, est bornée aux outils de développement et d'essai du dépôt, hors des images et des paquets livrés, relue par l'exploitant NOORTRACE à chaque mise à jour du verrou des dépendances et au plus tous les quinze jours, avec son propriétaire, la date du relevé et ses conditions de reprise dans `SECURITY.md`",
           "owner": "client"
         }
       },
-      "test": "Le test échoue si la réponse est retirée : le démarrage consigne l'empreinte de l'image et `code.recorder` ; une image dont l'empreinte diffère de la version publiée est signalée ; si la comparaison est retirée, le test échoue.",
+      "test": "Le test échoue si la réponse est retirée : le démarrage consigne l'image attendue, l'empreinte du code en cours et `code.recorder` ; une image dont l'empreinte de code diffère de celle de la version publiée est signalée (`image_mismatch`) ; si la comparaison est retirée, le test échoue.",
       "sources": [
         {
           "spec": "CT-2",
@@ -1524,7 +1524,7 @@
         "accepted_risk": {
           "id": "RA-25",
           "name": "Segment non encore copié",
-          "bound": "Au plus un segment courant plus le délai d'alerte d'une heure",
+          "bound": "Au plus un segment courant plus le délai d'alerte d'une heure ; la réécriture locale d'un segment non copié ni ancré est bornée aux périodes non ancrées et aux segments sans copie WORM : le compte du démon peut renommer le répertoire `segments/` et y remettre un fichier de même nom, ce que le compagnon détecte (`attribute_sealed_replaced`, `attribute_sealed_missing`, CT-2 EX-12.18, §18.5) sans l'empêcher",
           "owner": "client"
         }
       },
@@ -1564,7 +1564,7 @@
         "accepted_risk": {
           "id": "RA-26",
           "name": "Graine en mémoire en classe C",
-          "bound": "Limitée aux journaux en classe C ; la fenêtre RA-15 borne ce qu'une clé copiée réécrit",
+          "bound": "Limitée aux journaux en classe C ; la fenêtre RA-15 borne ce qu'une clé copiée réécrit ; un module PKCS#11 logiciel renommé n'est pas reconnu par la règle de validation de CT-2 EX-15.4 (qui refuse `libsofthsm2.so` en production) : la cérémonie de clés (section 5) atteste la classe du support",
           "owner": "client"
         }
       },
@@ -2554,7 +2554,7 @@
         "accepted_risk": {
           "id": "RA-43",
           "name": "Déni de service sur l'annuaire",
-          "bound": "Limité à l'état `en_attente` ou à la révocation d'une adresse, visible dans `operations`, sans effet sur le jeu figé",
+          "bound": "Limité à l'état `en_attente` ou à la révocation d'une adresse, visible dans `operations`, sans effet sur le jeu figé ; l'éviction des sessions de la console par une identité est bornée à ses propres sessions (au plus 8 par identité, CT-3 EX-13.48), chaque destruction étant consignée",
           "owner": "client"
         }
       },
@@ -3058,7 +3058,7 @@
           "owner": "exploitant_noortrace"
         }
       },
-      "test": "Le test échoue si la réponse est retirée : l'épreuve SU-2 de CT-4 est rejouée sur le réseau de développement ; si la garde d'admission est retirée, les transactions à 1 wei sont refusées et le test échoue.",
+      "test": "Le test échoue si la réponse est retirée : l'épreuve SU-2 de CT-4 est rejouée derrière une garde d'admission d'EX-10.8 ; si la garde est retirée, les transactions à 1 wei d'un expéditeur sans solde sont admises et le test échoue.",
       "sources": [
         {
           "spec": "CT-4",
@@ -4199,7 +4199,7 @@
           "owner": "exploitant_noortrace"
         }
       },
-      "test": "Le test échoue si la réponse est retirée : l'outil de référence refuse `administrer-jeu` sans référence de confirmation ; si la référence n'est plus exigée, le test échoue.",
+      "test": "Le test échoue si la réponse est retirée : l'outil de référence refuse `administrer-jeu` et `approvisionner` sans `--confirmation` (CT-4 EX-8.21) ; si l'exigence est retirée, le relais passe et le test échoue.",
       "sources": []
     },
     {
@@ -4306,7 +4306,7 @@
         "accepted_risk": {
           "id": "RA-64",
           "name": "Supervision coupée par l'administrateur",
-          "bound": "Jusqu'à la relecture du Lecteur tiers (un jour) ou la demande du réviseur",
+          "bound": "Jusqu'à la relecture du Lecteur tiers (un jour) ou la demande du réviseur ; `noortrace-ctl worm gel liste` relit tout le registre des gels sous le rôle Lecteur (CT-2 EX-12.36), et la tâche TP-4 de CT-8 l'emploie : un gel retiré des réglages reste relu",
           "owner": "client"
         }
       },

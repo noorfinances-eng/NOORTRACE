@@ -140,6 +140,11 @@ describe("ancrage, file durable : révision 0.6 de CT-5 (EX-8.5 règles 5 et 7, 
     });
 
     it("déclencheur de taille : au-delà de compact_bytes et de 2 × S_0 seulement ; jamais deux compactages de suite sans croissance au-delà de 2 × S_0 ; taille ≤ max(compact_bytes, 2 × S_0) + une ligne", function () {
+      // Délai propre à cet essai : 2 400 écritures, chacune validée (schéma de la ligne et contrôles de la demande,
+      // environ 0,8 ms), et au moins cinq compactages, chacun relisant et revalidant toutes les lignes du fichier courant
+      // (environ 1 ms par ligne de 12 Kio à 32 tentatives) : environ 5 s mesurées hors charge, au-delà des 2 s par
+      // défaut de mocha. Coût voulu par la règle 5 d'EX-8.5 (relecture selon la règle 3), non une attente.
+      this.timeout(30000);
       const journal = journalFile();
       const compactBytes = 64 * 1024;
       const f = FileDurable.ouvrir({ repertoire: dir, epoque: 1, journal, compactBytes, fdatasync: false });

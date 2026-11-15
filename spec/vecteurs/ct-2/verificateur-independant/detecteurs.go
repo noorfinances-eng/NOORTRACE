@@ -13,6 +13,7 @@ package main
 import (
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 // Correspondance est une sous-chaîne reconnue : [Debut, Fin) en points de
@@ -421,23 +422,30 @@ func chercherTelephone(s []rune, depart int) (Correspondance, bool) {
 // ---------------------------------------------------------------- regex
 
 // DetecterMotif applique un motif nommé (EX-10.10) : correspondances
-// successives sans chevauchement (FindAllStringIndex, sémantique
-// leftmost-first de RE2), les correspondances vides ignorées.
+// successives sans chevauchement, de gauche à droite (sémantique
+// leftmost-first de RE2), les correspondances vides ignorées. Révision 0.11
+// de CT-2 (EX-10.9) : la position qui suit une correspondance remplacée est
+// un début de chaîne pour les ancres et frontières du motif (^, \b, \B) ;
+// le reste est examiné comme une chaîne à part entière, et aucun candidat ne
+// commence dans une correspondance déjà trouvée.
 func DetecterMotif(re *regexp.Regexp, s []rune) []Correspondance {
-	texte := string(s)
-	idx := make([]int, len(texte)+1)
-	k := 0
-	for b := range texte {
-		idx[b] = k
-		k++
-	}
-	idx[len(texte)] = k
 	var out []Correspondance
-	for _, loc := range re.FindAllStringIndex(texte, -1) {
-		if loc[0] == loc[1] {
-			continue
+	for depart := 0; depart < len(s); {
+		texte := string(s[depart:])
+		var loc []int
+		for _, l := range re.FindAllStringIndex(texte, -1) {
+			if l[0] != l[1] {
+				loc = l
+				break
+			}
 		}
-		out = append(out, Correspondance{Debut: idx[loc[0]], Fin: idx[loc[1]], Valeur: texte[loc[0]:loc[1]]})
+		if loc == nil {
+			break
+		}
+		debut := depart + utf8.RuneCountInString(texte[:loc[0]])
+		fin := debut + utf8.RuneCountInString(texte[loc[0]:loc[1]])
+		out = append(out, Correspondance{Debut: debut, Fin: fin, Valeur: texte[loc[0]:loc[1]]})
+		depart = fin
 	}
 	return out
 }

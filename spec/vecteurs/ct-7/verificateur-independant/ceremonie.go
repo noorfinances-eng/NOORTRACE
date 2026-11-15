@@ -148,6 +148,10 @@ var (
 	productionValeur    = "production"
 	schemaPartage       = "partage_k_sur_n"
 	schemaAucune        = "aucune"
+	// ModuleRSAMinimal est la taille minimale du module d'une clé rsa
+	// (CR-5, CLE-10 ; CT-5 AN-31).
+	ModuleRSAMinimal = 3072
+
 	roleOfficiant       = "officiant"
 	roleTemoin          = "temoin"
 	roleAuditeur        = "auditeur"
@@ -291,8 +295,12 @@ func VerifierCeremonie(octets []byte, sch *Schema) *ResultatCeremonie {
 	// CR-4 : étapes.
 	for i, s := range steps {
 		par := s.Get("performed_by").Str
-		if _, ok := role[par]; !ok {
+		if ro, ok := role[par]; !ok {
 			r.echec("CR-4", "steps[%d].performed_by %s n'est pas un participant", i, par)
+		} else if ro != roleOfficiant && ro != roleDetenteurPart && ro != roleMembre {
+			// Révision 0.5 de CT-7 (CR-4, EX-5.2) : un temoin, un auditeur ou
+			// un observateur n'exécute aucune étape.
+			r.echec("CR-4", "steps[%d].performed_by %s de rôle %s : officiant, detenteur_part ou membre attendu", i, par, ro)
 		}
 		for _, w := range s.Get("witnessed_by").Arr {
 			ro, ok := role[w.Str]
@@ -636,6 +644,11 @@ func controlerEncodageCle(k *Value) []string {
 			case *rsa.PublicKey:
 				if algo != "rsa" {
 					out = append(out, "clé RSA déclarée "+algo)
+				}
+				// Révision 0.5 de CT-7 (CR-5, CLE-10, CT-5 AN-31) : module
+				// d'au moins 3 072 bits.
+				if c.N.BitLen() < ModuleRSAMinimal {
+					out = append(out, fmt.Sprintf("module RSA de %d bits, au moins %d attendus", c.N.BitLen(), ModuleRSAMinimal))
 				}
 			case *ecdsa.PublicKey:
 				if algo != "ecdsa_p256" || c.Curve != elliptic.P256() {

@@ -1,5 +1,5 @@
 // `noortrace-ctl sonde --url <url>` et `noortrace-ctl etat` (étape 7 ; CT-8
-// §4.4, EX-10.14, PD-2 ; décision D-11 : exigences de construction, forme
+// §4.4, EX-10.14, PD-2 : exigences de construction, forme
 // proposée à CT-2).
 //
 //   noortrace-ctl sonde --url <url>

@@ -8,6 +8,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
 // CleApprobation est la clé _meta du signal d'approbation (EX-4.49).
@@ -119,8 +120,37 @@ const (
 	IssueRefusTicket   = "refus_ticket"    // refuse, ticket refuse ou expire
 )
 
-// IssueReponseEvaluer classe une réponse d'evaluer selon EX-7.16 : une des
-// six combinaisons, avec ticket non nul si et seulement si ticket_state l'est,
+// MembresReponseEvaluer sont les neuf membres de la réponse d'evaluer (CT-3
+// §12.3 ; CT-2 EX-7.16, révision 0.11 : les six de la révision 0.6, plus
+// policy_version, policy_sha256 et approval_sha256).
+var MembresReponseEvaluer = []string{"rule", "decision", "ticket", "ticket_state", "approval", "approver_set", "policy_version", "policy_sha256", "approval_sha256"}
+
+// MembresEpinglage sont les trois membres que le noyau compare à son
+// épinglage (EX-7.16, révision 0.11 ; annexe B.4 : approval.pinned).
+var MembresEpinglage = []string{"policy_version", "policy_sha256", "approval_sha256"}
+
+// EpinglageReponseEvaluer confronte les trois membres de l'épinglage de la
+// réponse à ceux de l'épinglage du noyau du cas (approval.pinned, annexe
+// B.4) : égaux un à un, sinon la réponse est invalide (EX-7.16, raison
+// politique_non_epinglee). Rend "" si la réponse est épinglée.
+func EpinglageReponseEvaluer(rep, epinglage *Value) string {
+	if !EstObjet(epinglage) {
+		return "approval.pinned absent ou qui n'est pas un objet (annexe B.4)"
+	}
+	for _, k := range MembresEpinglage {
+		e := epinglage.Get(k)
+		if !EstChaine(e) {
+			return "approval.pinned." + k + " absent ou qui n'est pas une chaîne (annexe B.4)"
+		}
+		if r := rep.Get(k); !EstChaine(r) || r.Str != e.Str {
+			return k + " différent de l'épinglage du noyau (EX-7.16 : politique_non_epinglee)"
+		}
+	}
+	return ""
+}
+
+// IssueReponseEvaluer classe une réponse d'evaluer selon EX-7.16 : neuf
+// membres (révision 0.11), une des six combinaisons, avec ticket non nul si et seulement si ticket_state l'est,
 // approver_set non nul pour nouveau seulement, et, pour une décision scellée,
 // approval.ticket = ticket et approval.decision = ticket_state ; rule et
 // ticket non nuls pour a_approuver (CT-1 §5.3). Toute autre réponse est
@@ -129,13 +159,23 @@ func IssueReponseEvaluer(rep *Value) (string, string) {
 	if !EstObjet(rep) {
 		return "", "réponse qui n'est pas un objet"
 	}
-	for _, k := range []string{"rule", "decision", "ticket", "ticket_state", "approval", "approver_set"} {
+	for _, k := range MembresReponseEvaluer {
 		if rep.Get(k) == nil {
 			return "", "membre " + k + " absent"
 		}
 	}
-	if len(rep.Obj) != 6 {
-		return "", "membres en plus des six de CT-3 §12.3"
+	if len(rep.Obj) != len(MembresReponseEvaluer) {
+		return "", "membres en plus des neuf de CT-3 §12.3"
+	}
+	// Révision 0.11 de CT-2 (EX-7.16) : les trois membres de l'épinglage dans
+	// la forme de CT-3 §12.3 ($defs/reponse_evaluer de ticket-v0).
+	if pv := rep.Get("policy_version"); !EstChaine(pv) || pv.Str == "" || utf8.RuneCountInString(pv.Str) > 128 {
+		return "", "policy_version : chaîne de 1 à 128 caractères attendue (CT-3 §12.3)"
+	}
+	for _, k := range []string{"policy_sha256", "approval_sha256"} {
+		if v := rep.Get(k); !EstChaine(v) || !EstHex(v.Str, 32) {
+			return "", k + " : hexadécimal minuscule de 32 octets attendu (CT-3 §12.3)"
+		}
 	}
 	nulOuChaine := func(k string) (string, bool, bool) {
 		v := rep.Get(k)

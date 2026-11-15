@@ -1,4 +1,4 @@
-// Configuration ancrage-v0 (CT-5 §4.4, lot C) : AN-1 (schéma puis les huit
+// Configuration ancrage-v0 (CT-5 §4.4) : AN-1 (schéma puis les huit
 // règles d'EX-4.9, rapport nominatif complet) sur l'exemple d'EX-4.8, en
 // réussite et en échec règle par règle ; projection d'EX-8.2 égale au
 // `config` de la trace de référence ; schémas embarqués identiques à
@@ -73,7 +73,7 @@ describe("ancrage, planificateur : configuration ancrage-v0 (AN-1, EX-4.9) et pr
       ["2 : deux principaux", (d) => { d.rfc3161.providers[1].role = "principal"; }, {}, ["2"]],
       ["2 : aucun principal", (d) => { d.rfc3161.providers[0].role = "second_rang"; }, {}, ["2"]],
       ["2 : deux secours", (d) => { d.rfc3161.providers[2].role = "secours"; d.rfc3161.providers[2].url = "https://horodatage-trois.example/tsa"; d.rfc3161.providers[2].auth = { method: "basic", secret: { env: "NOORTRACE_TSA_TROIS" } }; }, {}, ["2"]],
-      ["4 : principal en http:// hors production (EX-5.5 : TLS obligatoire hors du rôle interne, quel que soit le profil ; R-C-5)", (d) => { d.rfc3161.providers[0].url = "http://horodatage-principal.example/tsa"; }, {}, ["4"]],
+      ["4 : principal en http:// hors production (EX-5.5 : TLS obligatoire hors du rôle interne, quel que soit le profil)", (d) => { d.rfc3161.providers[0].url = "http://horodatage-principal.example/tsa"; }, {}, ["4"]],
       ["4 : second_rang en http:// vers une adresse locale hors production (seul le rôle interne l'admet)", (d) => { d.rfc3161.providers[1].role = "second_rang"; d.rfc3161.providers[1].url = "http://127.0.0.1:2020/"; }, {}, ["4"]],
       ["2 : id en double", (d) => { d.rfc3161.providers[1].id = "qtsa-principal"; }, {}, ["2"]],
       ["3 : interval_s non multiple de checkpoint_interval_s", (d) => { d.rfc3161.checkpoints.interval_s = 450; }, {}, ["3"]],

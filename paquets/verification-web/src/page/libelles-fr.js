@@ -29,6 +29,7 @@ const LIBELLES_FR = Object.freeze({
   langue_en: "anglais",
   detail: "Toutes les vérifications (--detail)",
   verifier: "Vérifier",
+  arreter: "Arrêter",
   en_cours: "Vérification en cours…",
   titre_resultat: "Résultat",
   noms_choisis: "Fichiers choisis (leurs noms ne sont ni dans l'arbre présenté au vérificateur ni dans le rapport) :",
@@ -58,6 +59,8 @@ const LIBELLES_FR = Object.freeze({
   cause_json_illisible: "le rapport JSON n'est pas lisible",
   cause_json_incoherent: "le rapport JSON ne porte pas le code de sortie de son exécution",
   cause_travailleur: "erreur du travailleur : {detail}",
+  cause_arret: "vérification arrêtée à votre demande",
+  cause_version_differente: "le rapport porte la version {rapport} du vérificateur, la page annonce {page}",
   // Raisons de refus d'un dossier (EX-18.7).
   r_forme: "forme hors de la table (« {nom} » : ni répertoire, ni .zip, .tar, .tar.gz ou .tgz)",
   r_plusieurs: "plusieurs éléments déposés ; déposez un seul répertoire ou une seule archive",
@@ -79,6 +82,8 @@ const LIBELLES_FR = Object.freeze({
   r_conflit: "« {chemin} » est à la fois fichier et répertoire",
   r_trop_entrees: "plus de 4 096 entrées",
   r_trop_gros: "plus de 256 Mio décompressés",
+  r_chemin_long: "chemin d'entrée de plus de 4 096 octets ou de plus de 64 composants ({composants} composants, {octets} octets)",
+  r_fichier_trop_gros: "fichier « {nom} » de plus de 512 Mio, non lu",
   r_racine: "ni dossier.json à la racine, ni exactement un répertoire de premier niveau et rien d'autre",
   r_lecture: "fichier illisible par le navigateur (« {nom} »)",
   // Défauts d'une archive mal formée (détail de r_illisible).

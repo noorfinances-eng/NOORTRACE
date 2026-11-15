@@ -61,7 +61,7 @@ describe("inscription : paquet client produit par l'application (CT-4 §7.13, EX
     pont = await E.ouvrirPont(reseau.provider, { noorcore: true });
     manifeste = E.ecrireManifesteEssai(path.join(dir, "instance"), reseau);
     // Un relayeur configuré qu'aucun travail du client n'emploie : la recherche d'EX-7.21 ne le compte pas (secrets_checked comme l'outil).
-    a = await O.demarrerAgentEssai({ manifeste, rpc: pont.url, delai_s: 5, comptes: { exploitant: "hardhat:0", relayeur: "hardhat:9" }, jeton: "env:NOORTRACE_ESSAI_JETON", env: { NOORTRACE_ESSAI_JETON: "jeton-essai-Kq3vN8sT2xLp" } });
+    a = await O.demarrerAgentEssai({ manifeste, rpc: pont.url, delai_s: 5, comptes: { exploitant: "hardhat:0", relayeur: "hardhat:9" }, jeton: "env:NOORTRACE_ESSAI_JETON", env: { NOORTRACE_ESSAI_JETON: "jeton-essai-Kq3vN8sT2xLp" }, clesRepertoire: dir });
     slug = "paquet-essai";
     const k = crypto.createHash("sha256").update("noortrace/essai/inscription/paquet/chaine").digest();
     const f = path.join(dir, "chaine.cle");

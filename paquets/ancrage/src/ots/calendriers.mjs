@@ -6,8 +6,72 @@
 
 import { hexVersOctets, octetsVersHex } from "@noortrace/noyau";
 import { BORNES, ErreurOts, construirePreuve, engagementOctets, lireTimestamp, lireOts, attestationsEnAttente, fusionnerOts } from "./format.mjs";
-import { executerArbre, verifierOts, admissionApresFusion, hauteursAttestees, STATUT } from "./verification.mjs";
+import { executerArbre, verifierOts, admissionApresFusion, hauteursAttestees, hauteursProfil, STATUT } from "./verification.mjs";
 import { lireFichierEntetes } from "./entetes.mjs";
+
+/**
+ * Revue de sécurité de l'étape 8 (CT-5 EX-6.6, EX-6.9) : une preuve qui
+ * porte une attestation Bitcoin n'est tenue pour complète qu'après O-4.
+ * `entetes` : `null`, un document `entetes-bitcoin-v0`, ou une fonction
+ * asynchrone `({ hauteurs, margeFin }) → document|null` (la source du
+ * client) ; `exigerO4` : vrai quand une source est configurée (rien n'est admis
+ * sans O-4 réussie), faux sinon (conduite d'avant : admise, mais
+ * `attestation_non_verifiee` le dit). Rend `{ admise, complete, verification,
+ * hauteurs, refus, attestation_non_verifiee }` ; `complete` faux laisse la
+ * demande `en_attente`.
+ */
+export async function verifierCompletude({ octets, empreinteAttendue, entetes = null, reseau = null, exigerO4 = false }) {
+  const lu = lireOts(octets);
+  const refus = [];
+  const sortie = (admise, complete, verification = null, hauteurs = null, nonVerifiee = false) => ({ admise, complete, verification, hauteurs, refus, attestation_non_verifiee: nonVerifiee });
+  if (hauteursAttestees(lu.arbre) === null) {
+    // Aucune attestation Bitcoin : O-1 et O-3 seules (EX-6.6), la preuve reste en attente.
+    const v = verifierOts({ octets, empreinteAttendue, entetes: null, reseau });
+    const a = admissionApresFusion(v);
+    if (!a.admise) refus.push({ uri: null, motif: `verification_${a.motifs.join("_")}`, detail: a.motifs.map((m) => v.details[m]).join(" ; ") });
+    return sortie(a.admise, false, v, null);
+  }
+  const h = hauteursProfil(lu.arbre, lu.empreinte);
+  if (h === null) {
+    refus.push({ uri: null, motif: "hors_profil", detail: "attestation Bitcoin sous une opération hors du profil de la version 0 : aucune date n'est établie (EX-10.12)" });
+    return sortie(false, false, null, null);
+  }
+  const hauteurs = [h.min, h.max];
+  if (h.max - h.min > BORNES.ECART_HAUTEURS_MAX) {
+    refus.push({ uri: null, motif: "hauteurs_incoherentes", detail: `hauteurs attestées ${h.min} à ${h.max} : écart au-delà de ${BORNES.ECART_HAUTEURS_MAX} (CT-6 O-4)` });
+    return sortie(false, false, null, hauteurs);
+  }
+  let document = entetes;
+  if (typeof entetes === "function") {
+    try {
+      document = await entetes({ hauteurs, margeFin: 0 });
+    } catch (e) {
+      if (!(e instanceof Error)) throw e;
+      document = null;
+    }
+  }
+  if (document !== null && document !== undefined && !(document instanceof Uint8Array) && typeof document !== "object") throw new ErreurOts("entetes", "document d'en-têtes attendu");
+  if (document === undefined) document = null;
+  if (exigerO4 && document === null) {
+    refus.push({ uri: null, motif: "en_tetes_indisponibles", detail: `source d'en-têtes indisponible pour les hauteurs ${hauteurs[0]} à ${hauteurs[1]} : attestation Bitcoin non vérifiée, preuve laissée en attente (EX-6.9)` });
+    return sortie(false, false, null, hauteurs);
+  }
+  const verification = verifierOts({ octets, empreinteAttendue, entetes: document, reseau });
+  const admission = admissionApresFusion(verification);
+  if (!admission.admise) {
+    refus.push({ uri: null, motif: `verification_${admission.motifs.join("_")}`, detail: admission.motifs.map((m) => verification.details[m]).join(" ; ") });
+    return sortie(false, false, verification, hauteurs);
+  }
+  const o4 = verification.checks["O-4"];
+  if (exigerO4 && o4 !== STATUT.REUSSI) {
+    refus.push({ uri: null, motif: o4 === STATUT.ECHOUE ? "verification_O-4" : "en_tetes_indisponibles", detail: `O-4 ${o4} (${verification.raisons["O-4"] ?? ""}) : ${verification.details["O-4"]}` });
+    return sortie(false, false, verification, hauteurs);
+  }
+  if (document !== null && o4 !== STATUT.REUSSI) {
+    refus.push({ uri: null, motif: "en_tetes_insuffisants", detail: `O-4 ${o4} (${verification.raisons["O-4"] ?? ""}) : la hauteur attestée n'a pas pu être rapprochée d'un en-tête ; preuve admise, fichier d'en-têtes à compléter` });
+  }
+  return sortie(true, true, verification, hauteurs, document === null);
+}
 
 /** En-tête `Accept` du protocole des calendriers (EX-6.2, R1-F63). */
 export const ACCEPT_OTS = "application/vnd.opentimestamps.v1";
@@ -74,9 +138,14 @@ function codeTransport(e) {
  * et bornées ; écriture décidée quand `minReponses` réponses valables sont
  * arrivées dans `delaiMs`. Le rejeu avec le même nonce rend le même
  * engagement et la même décision.
- * @param {{empreinte: string|Uint8Array, nonce: Uint8Array, calendriers: string[], minReponses?: number, delaiMs?: number, transport: object, horloge: {murale(): number, monotone(): number}}} p
+ * Revue de sécurité de l'étape 8 (CT-5 EX-6.6) : une réponse qui porte d'emblée une attestation
+ * Bitcoin n'est pas une preuve acquise ; `attestation` ne vaut `complete`
+ * qu'après O-4 réussie contre `entetes` (source du client), sinon
+ * `en_attente` (la mise à niveau la vérifiera) ; sans source,
+ * `attestation_non_verifiee` est vrai.
+ * @param {{empreinte: string|Uint8Array, nonce: Uint8Array, calendriers: string[], minReponses?: number, delaiMs?: number, transport: object, horloge: {murale(): number, monotone(): number}, entetes?: unknown, reseau?: string|null}} p
  */
-export async function soumettre({ empreinte, nonce, calendriers, minReponses = DEFAUTS.minReponses, delaiMs = DEFAUTS.delaiMs, transport, horloge }) {
+export async function soumettre({ empreinte, nonce, calendriers, minReponses = DEFAUTS.minReponses, delaiMs = DEFAUTS.delaiMs, transport, horloge, entetes = null, reseau = null }) {
   if (!transport || typeof transport.post !== "function") throw new ErreurOts("transport", "transport avec post attendu");
   if (!horloge || typeof horloge.monotone !== "function" || typeof horloge.murale !== "function") throw new ErreurOts("horloge", "horloge injectée attendue");
   if (!Array.isArray(calendriers) || calendriers.length === 0) throw new ErreurOts("calendriers", "au moins un calendrier attendu");
@@ -122,13 +191,22 @@ export async function soumettre({ empreinte, nonce, calendriers, minReponses = D
   const valides = reponses.filter((r) => r.octets !== null);
   const ecrire = valides.length >= minReponses;
   const octets = ecrire ? construirePreuve({ empreinte, nonce, reponses: valides.map((r) => r.octets) }).octets : null;
+  let attestation = "aucune";
+  let completude = null;
+  if (ecrire) {
+    completude = await verifierCompletude({ octets, empreinteAttendue: empreinte, entetes, reseau, exigerO4: true });
+    attestation = completude.complete ? "complete" : "en_attente";
+  }
   return {
     engagement: octetsVersHex(e),
     reponses,
     valides: valides.length,
     ecrire,
     octets,
-    attestation: ecrire ? (hauteursAttestees(lireOts(octets).arbre) === null ? "en_attente" : "complete") : "aucune",
+    attestation,
+    attestation_non_verifiee: ecrire ? hauteursAttestees(lireOts(octets).arbre) !== null && !completude.complete && (entetes === null || entetes === undefined) : false,
+    verification: completude?.verification ?? null,
+    refus: completude?.refus ?? [],
     instant,
     dureeMs: horloge.monotone() - debut,
   };
@@ -158,12 +236,15 @@ function classer404(corps) {
  * ce calendrier remplacée par le chemin reçu) puis la preuve fusionnée est
  * vérifiée (O-1, O-3, et O-4, O-5 avec des en-têtes) avant d'être rendue.
  * `entetes` : `null`, un document `entetes-bitcoin-v0`, ou une fonction
- * asynchrone `({ hauteurs: [h, h'] }) → document|null` appelée une fois les
- * hauteurs attestées connues.
- * @param {{preuve: Uint8Array, listeBlanche: string[], transport: object, horloge: object, delaiMs?: number, entetes?: unknown, reseau?: string|null}} p
- * @returns {Promise<{nouvelle: Uint8Array|null, etat: "complete"|"en_attente", refus: object[], reponses: object[], hauteurs: [number, number]|null, verification: object|null, instant: number}>}
+ * asynchrone `({ hauteurs: [h, h'], margeFin }) → document|null` appelée une
+ * fois les hauteurs attestées connues. `exigerO4` (CT-5 EX-6.6) :
+ * vrai quand une source d'en-têtes est configurée : une
+ * attestation Bitcoin que O-4 ne confirme pas (source indisponible, hauteur
+ * absente, racine différente) n'écrit rien et laisse la preuve en attente.
+ * @param {{preuve: Uint8Array, listeBlanche: string[], transport: object, horloge: object, delaiMs?: number, entetes?: unknown, reseau?: string|null, exigerO4?: boolean}} p
+ * @returns {Promise<{nouvelle: Uint8Array|null, etat: "complete"|"en_attente", refus: object[], reponses: object[], hauteurs: [number, number]|null, verification: object|null, instant: number, attestation_non_verifiee: boolean}>}
  */
-export async function mettreANiveau({ preuve, listeBlanche, transport, horloge, delaiMs = DEFAUTS.delaiMs, entetes = null, reseau = null }) {
+export async function mettreANiveau({ preuve, listeBlanche, transport, horloge, delaiMs = DEFAUTS.delaiMs, entetes = null, reseau = null, exigerO4 = false }) {
   if (!transport || typeof transport.get !== "function") throw new ErreurOts("transport", "transport avec get attendu");
   if (!horloge || typeof horloge.monotone !== "function" || typeof horloge.murale !== "function") throw new ErreurOts("horloge", "horloge injectée attendue");
   if (!Array.isArray(listeBlanche)) throw new ErreurOts("liste_blanche", "liste blanche attendue");
@@ -216,30 +297,29 @@ export async function mettreANiveau({ preuve, listeBlanche, transport, horloge, 
   }
 
   if (fusions.length === 0) {
-    return { nouvelle: null, etat: etatAvant, refus, reponses, hauteurs: null, verification: null, instant };
+    // Rien à fusionner : l'état est celui de la preuve telle quelle. Une preuve déjà « complete » (attestation Bitcoin
+    // reçue à la soumission) est tenue pour complète après O-4 quand une source est exigée (CT-5 EX-6.6).
+    if (etatAvant === "complete" && (exigerO4 || typeof entetes === "function")) {
+      const c = await verifierCompletude({ octets: preuve, empreinteAttendue: lu.empreinte, entetes, reseau, exigerO4 });
+      refus.push(...c.refus);
+      return { nouvelle: null, etat: c.complete ? "complete" : "en_attente", refus, reponses, hauteurs: c.hauteurs, verification: c.verification, instant, attestation_non_verifiee: c.attestation_non_verifiee };
+    }
+    return { nouvelle: null, etat: etatAvant, refus, reponses, hauteurs: null, verification: null, instant, attestation_non_verifiee: etatAvant === "complete" && (entetes === null || entetes === undefined) };
   }
 
   let courante = preuve;
-  for (const f of fusions) courante = fusionnerOts(courante, f).octets;
-  const arbre = lireOts(courante).arbre;
-  const h = hauteursAttestees(arbre);
-  const hauteurs = h === null ? null : [h.min, h.max];
-
-  let documentEntetes = entetes;
-  if (typeof entetes === "function") documentEntetes = hauteurs === null ? null : await entetes({ hauteurs });
-  if (documentEntetes !== null && documentEntetes !== undefined && !(documentEntetes instanceof Uint8Array) && typeof documentEntetes !== "object") {
-    throw new ErreurOts("entetes", "document d'en-têtes attendu");
+  try {
+    for (const f of fusions) courante = fusionnerOts(courante, f).octets;
+  } catch (e) {
+    // Défaut relevé par la campagne TM-30 : une fusion qui ne tient pas (bornes du fichier, engagement) est un refus, jamais une exception.
+    if (!(e instanceof ErreurOts)) throw e;
+    refus.push({ uri: null, motif: `fusion_${e.code}`, detail: e.message });
+    return { nouvelle: null, etat: etatAvant, refus, reponses, hauteurs: null, verification: null, instant, attestation_non_verifiee: false };
   }
-  const verification = verifierOts({ octets: courante, empreinteAttendue: lu.empreinte, entetes: documentEntetes ?? null, reseau });
-  const admission = admissionApresFusion(verification);
-  if (!admission.admise) {
-    refus.push({ uri: null, motif: `verification_${admission.motifs.join("_")}`, detail: admission.motifs.map((m) => verification.details[m]).join(" ; ") });
-    return { nouvelle: null, etat: etatAvant, refus, reponses, hauteurs, verification, instant };
-  }
-  if (documentEntetes !== null && documentEntetes !== undefined && verification.checks["O-4"] !== STATUT.REUSSI) {
-    refus.push({ uri: null, motif: "en_tetes_insuffisants", detail: `O-4 ${verification.checks["O-4"]} (${verification.raisons["O-4"] ?? ""}) : la hauteur attestée n'a pas pu être rapprochée d'un en-tête ; preuve admise, fichier d'en-têtes à compléter` });
-  }
-  return { nouvelle: courante, etat: verification.etat, refus, reponses, hauteurs, verification, instant };
+  const c = await verifierCompletude({ octets: courante, empreinteAttendue: lu.empreinte, entetes, reseau, exigerO4 });
+  refus.push(...c.refus);
+  if (!c.admise) return { nouvelle: null, etat: etatAvant, refus, reponses, hauteurs: c.hauteurs, verification: c.verification, instant, attestation_non_verifiee: false };
+  return { nouvelle: courante, etat: c.complete ? "complete" : "en_attente", refus, reponses, hauteurs: c.hauteurs, verification: c.verification, instant, attestation_non_verifiee: c.attestation_non_verifiee };
 }
 
 /**

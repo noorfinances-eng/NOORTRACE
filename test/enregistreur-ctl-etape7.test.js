@@ -1,5 +1,5 @@
 // Étape 7 : commandes de `noortrace-ctl` que CT-8 emploie sans que
-// CT-2 les fixe (PD-2 ; décision D-11 : exigences de construction) :
+// CT-2 les fixe (PD-2 : exigences de construction) :
 //
 // - `noortrace-ctl sonde --url <url>` : sonde du conteneur `enregistreur` des
 //   deux fichiers Compose (CT-8 §4.4, CO-12 : forme `CMD`, image sans

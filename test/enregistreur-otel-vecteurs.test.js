@@ -25,7 +25,7 @@ import {
 import { VECTEURS_CT2, configurationExemple, graine } from "./fixtures/enregistreur-coeur/outils.mjs";
 
 const R = path.join(VECTEURS_CT2, "otel");
-// Les 48 cas de la famille (B.8), nommés : un cas ajouté ou retiré fait échouer le premier essai.
+// Les 49 cas de la famille (B.8), nommés : un cas ajouté ou retiré fait échouer le premier essai.
 const CAS_NOMMES = [
   "otel/deflate-refuse",
   "otel/deflate-trop-grand",
@@ -50,6 +50,7 @@ const CAS_NOMMES = [
   "otel/json-inference-sans-contenu",
   "otel/json-lot-vide",
   "otel/json-non-analysable",
+  "otel/json-operation-prototypale",
   "otel/json-operation-renommee",
   "otel/json-outil-erreur",
   "otel/json-outil-gabarit-effets",

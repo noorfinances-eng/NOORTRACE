@@ -1,4 +1,4 @@
-// Composant d'ancrage, lot D : épreuve sur le réseau de développement
+// Composant d'ancrage, registre : épreuve sur le réseau de développement
 // (CT-4 §7.4 : quatre validateurs noorcore locaux, `bash
 // chain/scripts/dev-net.sh start`, JSON-RPC sur 127.0.0.1:8645 à 8648,
 // identifiant EVM 2124, BFT noortrace-2124-dev, méthode
@@ -13,7 +13,7 @@
 // vérificateur Go de CT-6 est disponible, NOORTRACE_VERIFIER_BIN ou
 // construction par verificateur/scripts/construire.sh).
 //
-// Épreuve (brief du lot D) : ancrer un point de contrôle (empreinte d'EX-9.1,
+// Épreuve : ancrer un point de contrôle (empreinte d'EX-9.1,
 // docType du point), attendre le reçu, capturer (CP-1 à CP-6), lookup, puis
 // ancrer une seconde fois la même empreinte sous une autre clé et obtenir
 // empreinte_squattee (EX-9.7) ; ancrer une période et la clore (submitPeriod,
@@ -95,7 +95,7 @@ async function tousAuBloc(rpc, h) {
   }
 }
 
-describe("ancrage, lot D : réseau de développement (CT-5 §9 ; CT-4 §8.2, §8.6, §9.4)", function () {
+describe("ancrage, registre : réseau de développement (CT-5 §9 ; CT-4 §8.2, §8.6, §9.4)", function () {
   this.timeout(900000);
   let travail;
   let ctx = null;
@@ -285,7 +285,7 @@ describe("ancrage, lot D : réseau de développement (CT-5 §9 ; CT-4 §8.2, §8
       repertoire: ctx.repertoire, indexes: captures.map((c) => c.index), periodHash: ctx.periode.periodHash,
       fingerprint: R.empreinteAncre(ctx.orgId, ctx.journalId, ctx.periode.periodHash).fingerprint, empreintePoint: ctx.point.empreinte,
     });
-    const parties = R.exporterPartiesRegistre({ repertoire: ctx.repertoire, captures: choix, jeux: { sets: [{ from_height: 1, to_height: null, validators: ctx.jeux.validators, source: ctx.jeux.source }] }, source: `réseau de développement ${BFT}, nœud v1, essai du lot D` });
+    const parties = R.exporterPartiesRegistre({ repertoire: ctx.repertoire, captures: choix, jeux: { sets: [{ from_height: 1, to_height: null, validators: ctx.jeux.validators, source: ctx.jeux.source }] }, source: `réseau de développement ${BFT}, nœud v1, essai du registre` });
     expect(parties.registre.entries.map((e) => e.role).sort()).to.deep.equal(["ancre", "ancre_point_de_controle", "cloture"]);
     expect(R.verifierRegistreV0(parties.registre).valide).to.equal(true);
     expect(R.verifierCertificatCommitV0(parties.certificatCommit).valide).to.equal(true);

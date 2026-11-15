@@ -1,5 +1,5 @@
-// Étape 7 : clé de chaîne des classes B et C (CT-2 EX-11.19, §11.2 ;
-// D-10) et rotation de la clé de chaîne relayée au registre (CT-2 EX-11.16,
+// Étape 7 : clé de chaîne des classes B et C (CT-2 EX-11.19, §11.2)
+// et rotation de la clé de chaîne relayée au registre (CT-2 EX-11.16,
 // EX-11.19 point 4 ; CT-4 §8.4 ; CT-7 JS-5), sans réseau de développement :
 //
 // - signature DER d'un service ramenée à `s` bas et `v` recouvré

@@ -231,6 +231,19 @@ export class ConnexionAmont extends EventEmitter {
     this.enVol.delete(id);
   }
 
+  /**
+   * Résout l'attente d'un id avec l'issue donnée (envoi impossible : perte,
+   * EX-4.33 ; étape 8, CT-2 EX-4.11).
+   * @param {string} id
+   * @param {object} issue
+   */
+  resoudreAttente(id, issue) {
+    const a = this.enVol.get(id);
+    if (!a) return;
+    this.enVol.delete(id);
+    a.resoudre(issue);
+  }
+
   /** Requête interne (sonde, poignée de main, liste) avec délai. */
   async requeteInterne(id, texte, delai) {
     const attente = this.attendre(id);
@@ -562,21 +575,53 @@ export class ConnexionStdio extends ConnexionAmont {
 export class LecteurSse {
   constructor(surDonnees) {
     this.surDonnees = surDonnees;
-    this.reste = "";
+    /** Morceaux de la ligne en cours, sans fin de ligne (étape 8 : plus de recopie du reste à chaque morceau). */
+    this.morceaux = [];
     this.donnees = [];
   }
 
+  /** Reste non terminé (lecture seule, diagnostic). */
+  get reste() {
+    return this.morceaux.join("");
+  }
+
   pousser(texte) {
-    this.reste += texte;
-    let k;
-    while ((k = this.reste.search(/\r\n|\n|\r/)) >= 0) {
-      // Un CR en fin de morceau peut être le début d'un CRLF coupé entre deux
-      // lectures : il est retenu jusqu'au morceau suivant (une seule fin de
-      // ligne, comme l'analyseur SSE du frontal modèle).
-      if (this.reste[k] === "\r" && k === this.reste.length - 1) break;
-      const l = this.reste.slice(0, k);
-      const sep = this.reste[k] === "\r" && this.reste[k + 1] === "\n" ? 2 : 1;
-      this.reste = this.reste.slice(k + sep);
+    // La fin de ligne n'est cherchée que dans le morceau reçu : un flux sans
+    // fin de ligne coûte un temps linéaire, non quadratique.
+    let debut = 0;
+    // Un CR retenu en fin de morceau précédent (début possible d'un CRLF coupé).
+    if (this.crRetenu) {
+      this.crRetenu = false;
+      const l = this.morceaux.join("");
+      this.morceaux = [];
+      this._ligne(l);
+      if (texte[0] === "\n") debut = 1;
+    }
+    for (;;) {
+      let k = -1;
+      for (let i = debut; i < texte.length; i++) {
+        const c = texte.charCodeAt(i);
+        if (c === 0x0a || c === 0x0d) {
+          k = i;
+          break;
+        }
+      }
+      if (k < 0) {
+        if (debut < texte.length) this.morceaux.push(texte.slice(debut));
+        return;
+      }
+      if (texte[k] === "\r" && k === texte.length - 1) {
+        // CR en fin de morceau : retenu jusqu'au morceau suivant (une seule fin
+        // de ligne, comme l'analyseur SSE du frontal modèle).
+        if (debut < k) this.morceaux.push(texte.slice(debut, k));
+        this.crRetenu = true;
+        return;
+      }
+      this.morceaux.push(texte.slice(debut, k));
+      const l = this.morceaux.join("");
+      this.morceaux = [];
+      const sep = texte[k] === "\r" && texte[k + 1] === "\n" ? 2 : 1;
+      debut = k + sep;
       this._ligne(l);
     }
   }
@@ -597,8 +642,9 @@ export class LecteurSse {
 
   finir() {
     // Un CR retenu en fin de flux est une fin de ligne.
-    if (this.reste) this._ligne(this.reste.endsWith("\r") ? this.reste.slice(0, -1) : this.reste);
-    this.reste = "";
+    if (this.morceaux.length || this.crRetenu) this._ligne(this.morceaux.join(""));
+    this.morceaux = [];
+    this.crRetenu = false;
     if (this.donnees.length) this.surDonnees(this.donnees.join("\n"));
     this.donnees = [];
   }

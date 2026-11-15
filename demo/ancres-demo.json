@@ -1,0 +1,56 @@
+{
+  "version": 0,
+  "label": "Ancres de la démonstration de référence",
+  "prepared_by": "démonstration de référence (CT-2 §19)",
+  "prepared_at": "2026-11-13T00:00:00.000Z",
+  "tsa_authorities": [],
+  "revocation": {
+    "crls": [],
+    "statements": []
+  },
+  "bitcoin": null,
+  "registry": {
+    "chain_id": "noortrace-2124-dev",
+    "contracts": {
+      "attestation_registry": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "period_registry": "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
+      "recorder_registry": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9"
+    },
+    "validator_sets": [
+      {
+        "from_height": 1,
+        "to_height": null,
+        "validators": [
+          {
+            "id": "v1",
+            "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+          },
+          {
+            "id": "v2",
+            "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+          },
+          {
+            "id": "v3",
+            "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+          },
+          {
+            "id": "v4",
+            "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+          }
+        ],
+        "source": "registre-dev de la démonstration de référence : validateurs de test de CT-4 (libellés publics), clés publiques seulement"
+      }
+    ],
+    "source": "registre-dev de la démonstration de référence : instance de développement, sans valeur hors de la démonstration"
+  },
+  "recorders": [
+    {
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+      "key_id": "rec-test-01",
+      "public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+      "chain_key": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+      "source": "clé de test rec-test-01 de CT-1 §13 (graine publique) ; clé de chaîne de test de CT-4 (libellé public)"
+    }
+  ]
+}

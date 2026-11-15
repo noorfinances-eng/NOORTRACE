@@ -2,7 +2,7 @@
 // côté (manifeste.sig), continuité entre deux manifestes, correspondance avec
 // PeriodRegistry et empreinte d'ancre.
 
-import { ZERO32, concatener, decoderHorodatage, estHex, hexVersOctets, octetsVersHex } from "./conventions.mjs";
+import { ZERO32, concatener, decoderHorodatage, estHex, hexVersOctets, montrer, octetsVersHex } from "./conventions.mjs";
 import { jcs, jcsOctets } from "./json-strict.mjs";
 import { PREFIXES, keccak256, sha256Hex, signerEd25519, verifierEd25519 } from "./hachage.mjs";
 import { racineMerkle } from "./merkle.mjs";
@@ -116,10 +116,10 @@ export function ecartsManifeste(manifeste) {
   if (m.org_id === ZERO32) ecarts.push("org_id nul");
   if (m.journal_id === ZERO32) ecarts.push("journal_id nul");
   if (Number.isSafeInteger(m.period_start) && m.period_end !== m.period_start + DUREE_PERIODE) {
-    ecarts.push(`period_end ${m.period_end} différent de period_start + 3600 (${m.period_start + DUREE_PERIODE})`);
+    ecarts.push(`period_end ${montrer(m.period_end)} différent de period_start + 3600 (${m.period_start + DUREE_PERIODE})`);
   }
   if (Number.isSafeInteger(m.first_seq) && Number.isSafeInteger(m.last_seq) && m.count !== m.last_seq - m.first_seq + 1) {
-    ecarts.push(`count ${m.count} différent de last_seq − first_seq + 1 (${m.last_seq - m.first_seq + 1})`);
+    ecarts.push(`count ${montrer(m.count)} différent de last_seq − first_seq + 1 (${m.last_seq - m.first_seq + 1})`);
   }
   if (decoderHorodatage(m.generated_at) === null) ecarts.push("generated_at : horodatage qui ne se décode pas");
   return ecarts;
@@ -136,13 +136,13 @@ export function verifierContinuite(p, q) {
   const erreurs = [];
   if (p.org_id !== q.org_id || p.journal_id !== q.journal_id) erreurs.push("manifestes de deux journaux différents");
   if (q.period_start !== p.period_end) {
-    erreurs.push(`discontinuité temporelle : period_start ${q.period_start} différent de period_end précédent (${p.period_end})`);
+    erreurs.push(`discontinuité temporelle : period_start ${montrer(q.period_start)} différent de period_end précédent (${montrer(p.period_end)})`);
   }
-  if (q.first_seq !== p.last_seq + 1) {
-    erreurs.push(`discontinuité de séquence : first_seq ${q.first_seq} différent de last_seq précédent + 1 (${p.last_seq + 1})`);
+  if (!Number.isSafeInteger(p.last_seq) || q.first_seq !== p.last_seq + 1) {
+    erreurs.push(`discontinuité de séquence : first_seq ${montrer(q.first_seq)} différent de last_seq précédent + 1 (${Number.isSafeInteger(p.last_seq) ? p.last_seq + 1 : montrer(p.last_seq)})`);
   }
   const hp = hacherManifeste(p);
-  if (q.prev_period_hash !== hp) erreurs.push(`prev_period_hash ${q.prev_period_hash} différent du periodHash précédent ${hp}`);
+  if (q.prev_period_hash !== hp) erreurs.push(`prev_period_hash ${montrer(q.prev_period_hash)} différent du periodHash précédent ${hp}`);
   return { valide: erreurs.length === 0, erreurs };
 }
 

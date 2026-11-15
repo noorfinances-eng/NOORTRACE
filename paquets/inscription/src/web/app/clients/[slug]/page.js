@@ -58,7 +58,7 @@ export default async function PageClient({ params }) {
         slug={slug}
         champs={[
           { nom: "demande", libelle: "Demande signée (document demande_signature, JSON)", type: "document" },
-          { nom: "cle_chaine", libelle: "Référence de la clé de chaîne expéditrice (fichier:, env: ; laisser vide avec le relayeur)", type: "reference_cle", facultatif: true, exemple: "fichier:/chemin/vers/cle-chaine.cle" },
+          { nom: "cle_chaine", libelle: "Référence de la clé de chaîne expéditrice (fichier: du répertoire de clés de l'agent, ou alias: de sa configuration ; refusée en production ; laisser vide avec le relayeur)", type: "reference_cle", facultatif: true, exemple: "alias:chaine-du-client" },
           { nom: "relayeur", libelle: "Relayer par le relayeur de l'exploitant", type: "texte", options: NON_OUI, oui: true, facultatif: true },
         ]}
         bouton="Relayer la demande signée"

@@ -28,7 +28,7 @@ import * as N from "@noortrace/noyau";
 import { verifierRemise, MOTIF_SOURCE } from "@noortrace/approbation";
 import { ClientServiceApprobation } from "@noortrace/enregistreur";
 import {
-  ORG_ID, JOURNAL_ID, SESSIONS, adresse, signerVote, repertoireTemporaire, politiqueParcours, messageCharger, requeteEvaluer,
+  ORG_ID, JOURNAL_ID, SESSIONS, adresse, signerVote, repertoireTemporaire, politiqueParcours, messageCharger, requeteEvaluer, coupleCharge,
   retenue, ecrireConfiguration, lancerService, appelConsole, pontRpc, attendre,
 } from "./fixtures/approbation-service/outils.mjs";
 
@@ -91,9 +91,11 @@ describe("service d'approbation : parcours de bout en bout (processus)", functio
 
   it("1. charger, lecture autorisée, refus par la politique sans ticket", async function () {
     const ch = await client.charger(messageCharger({ policy_version: V1, rules: politiqueParcours() }));
-    expect(ch).to.deep.equal({ policy_version: V1, policy_sha256: messageCharger({ policy_version: V1, rules: {} }).policy_sha256, approval_candidates: ["sap__claims.delete", "sap__payments.create"] });
-    expect(await client.evaluer(requeteEvaluer("sap__claims.get", { claim_id: "2026-90417" }))).to.deep.equal({ rule: "lecture autorisee", decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null });
-    expect(await client.evaluer(requeteEvaluer("sap__payments.create", paiement("700.00", { currency: "EUR" })))).to.deep.equal({ rule: "paiement hors CHF", decision: "refuse", ticket: null, ticket_state: null, approval: null, approver_set: null });
+    // Décision du porteur du 14 novembre 2026 et son addendum : charger rend approval_sha256 ; chaque réponse evaluer porte le couple chargé (neuf membres).
+    const couple = coupleCharge(messageCharger({ policy_version: V1, rules: politiqueParcours() }));
+    expect(ch).to.deep.equal({ policy_version: V1, policy_sha256: messageCharger({ policy_version: V1, rules: {} }).policy_sha256, approval_sha256: couple.approval_sha256, approval_candidates: ["sap__claims.delete", "sap__payments.create"] });
+    expect(await client.evaluer(requeteEvaluer("sap__claims.get", { claim_id: "2026-90417" }))).to.deep.equal({ rule: "lecture autorisee", decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null, ...couple });
+    expect(await client.evaluer(requeteEvaluer("sap__payments.create", paiement("700.00", { currency: "EUR" })))).to.deep.equal({ rule: "paiement hors CHF", decision: "refuse", ticket: null, ticket_state: null, approval: null, approver_set: null, ...couple });
   });
 
   it("2. demande soumise à approbation : votes signés, remise, scellement, ré-émission servie une fois, consommation", async function () {
@@ -117,7 +119,7 @@ describe("service d'approbation : parcours de bout en bout (processus)", functio
     expect(Object.keys(remise.approval).sort()).to.deep.equal(["approvers", "decision", "reason", "request_hash", "signatures", "threshold", "ticket"]);
     const approval = await sceller(remise);
     const servie = await client.evaluer(requete);
-    expect(servie).to.deep.equal({ rule: "paiement > 5000 CHF", decision: "autorise", ticket: r.ticket, ticket_state: "approuve", approval, approver_set: null });
+    expect(servie).to.deep.equal({ rule: "paiement > 5000 CHF", decision: "autorise", ticket: r.ticket, ticket_state: "approuve", approval, approver_set: null, ...coupleCharge(messageCharger({ policy_version: V1, rules: politiqueParcours() })) });
     expect(await client.evaluer(requete)).to.include({ decision: "a_approuver", ticket_state: "en_attente" });
     expect(await client.consommer({ ticket: r.ticket, seq: 99, hash: N.sha256Hex(N.utf8("relais")) })).to.deep.equal({ ticket: r.ticket, state: "consomme" });
     const nouveau = await client.evaluer(requete);
@@ -134,11 +136,12 @@ describe("service d'approbation : parcours de bout en bout (processus)", functio
     const approval = await sceller(remise);
     const fin = N.ecrireHorodatage(N.decoderHorodatage(approval.at) + 3600000);
     const couvert = await client.evaluer(requeteEvaluer("sap__payments.create", paiement("3000.00", { beneficiary_iban: "CH5604835012345678009" })));
-    expect(couvert).to.deep.equal({ rule: `paiement de 1000 a 5000 CHF [fenetre ${r.ticket} ${fin}]`, decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null });
+    expect(couvert).to.deep.equal({ rule: `paiement de 1000 a 5000 CHF [fenetre ${r.ticket} ${fin}]`, decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null, ...coupleCharge(messageCharger({ policy_version: V1, rules: politiqueParcours() })) });
   });
 
   it("4. expiration : échéance sans décision, remise expire, scellement, ré-émission refusée", async function () {
-    await client.charger(messageCharger({ policy_version: "parcours-2", rules: politiqueParcours({ contest_ms: 500 }), expire_after_ms: 2000 }));
+    const m2 = messageCharger({ policy_version: "parcours-2", rules: politiqueParcours({ contest_ms: 500 }), expire_after_ms: 2000 });
+    await client.charger(m2);
     const { r, requete } = await demanderEtOuvrir(paiement("9100.00"), { pv: "parcours-2", E: 2000 });
     const { remises } = await attendre(async () => {
       const d = await client.decisions({ wait_ms: 3000 });
@@ -147,7 +150,7 @@ describe("service d'approbation : parcours de bout en bout (processus)", functio
     const remise = remises.find((x) => x.ticket === r.ticket);
     expect(remise.approval).to.deep.include({ decision: "expire", approvers: [], signatures: [], reason: "echeance atteinte sans decision" });
     const approval = await sceller(remise);
-    expect(await client.evaluer(requete)).to.deep.equal({ rule: "paiement > 5000 CHF", decision: "refuse", ticket: r.ticket, ticket_state: "expire", approval, approver_set: null });
+    expect(await client.evaluer(requete)).to.deep.equal({ rule: "paiement > 5000 CHF", decision: "refuse", ticket: r.ticket, ticket_state: "expire", approval, approver_set: null, ...coupleCharge(m2) });
   });
 
   it("5. arrêt brutal pendant l'attente : reprise, remise re-présentée, décision acquittée", async function () {

@@ -1,7 +1,7 @@
 # Épreuve d'acceptation de CT-3 : trois relecteurs, une politique, dix cas
 
 Ce répertoire, avec la partie A de la spécification CT-3, est tout ce que
-reçoit un relecteur. Il sert le critère d'acceptation du lot CT-3 : trois
+reçoit un relecteur. Il sert le critère d'acceptation de CT-3 : trois
 relecteurs, dans les rôles d'approbateur, d'auditeur et de développeur,
 lisent la même politique à l'aveugle et en tirent la même décision sur dix
 cas (CT-3, annexe A.5, EX-A.4 et EX-A.5).

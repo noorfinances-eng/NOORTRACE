@@ -1,0 +1,1038 @@
+{
+  "version": 0,
+  "description": "Réponses evaluer reçues par le noyau et ce qu'il en fait (CT-2 EX-7.16, révision 0.8 ; CT-3 §12.3, EX-12.6, révision 0.5). context : versions dont le noyau détient l'ensemble de politique, avec policy_sha256, l'empreinte qu'il a déclarée à leur charger (empreintes synthétiques de A.6), et approval_sha256, le SHA-256 du JCS du membre approval qu'il y a envoyé (l'approval de trace de A.6 : politique sans règle, défaut revue, jeu du registre, séparation du demandeur, mode erreur, hold_timeout_ms 50000, expire_after_ms 3600000, timeout_ms 2000) ; code.policy_version de la requête ; code.policy_version de la retenue du ticket rapproché (null sans ticket rapproché) ; décision scellée par le noyau pour le ticket (null sans). expected : valid ; reason (politique_non_epinglee, raison nommée par CT-2 ; forme et approval_different, raisons de la bibliothèque de référence) ; action du mandataire en mode erreur (section 11 : relayer, verifier_relais, resultat, erreur).",
+  "cases": [
+    {
+      "id": "autorise-sans-ticket",
+      "description": "Évaluation autorise rendue sous la version de la requête (vecteurs-ct3-2) et l'empreinte déclarée à son charger : relais.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-2",
+        "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": true,
+        "reason": null,
+        "action": "relayer"
+      }
+    },
+    {
+      "id": "refuse-sans-ticket",
+      "description": "Évaluation refuse rendue sous la version de la requête : refus par la politique (EX-11.8).",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "beneficiaire hors liste blanche",
+        "decision": "refuse",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-2",
+        "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": true,
+        "reason": null,
+        "action": "resultat"
+      }
+    },
+    {
+      "id": "nouveau",
+      "description": "Ticket nouveau sous la version de la requête, jeu exploitable : retenue puis signal (EX-7.17).",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "ticket": "apr-0002",
+        "ticket_state": "nouveau",
+        "approval": null,
+        "approver_set": {
+          "threshold": {
+            "required": 2,
+            "size": 3
+          },
+          "members": [
+            "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+          ],
+          "source": "jeu statique de la politique vecteurs-ct3-2"
+        },
+        "policy_version": "vecteurs-ct3-2",
+        "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": true,
+        "reason": null,
+        "action": "resultat"
+      }
+    },
+    {
+      "id": "version-du-ticket-rapproche",
+      "description": "Ticket apr-0001 rapproché (en_attente), créé sous vecteurs-ct3-1 alors que la requête porte vecteurs-ct3-2 : la réponse est rendue sous la version de la retenue du ticket (CT-3 EX-7.21), admise bien qu'elle diffère de celle de la requête.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "ticket": "apr-0001",
+        "ticket_state": "en_attente",
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-1",
+        "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": true,
+        "reason": null,
+        "action": "resultat"
+      }
+    },
+    {
+      "id": "approuve-scellee",
+      "description": "Décision approuve que le noyau a scellée pour apr-0001 : approval égal clé pour clé, version du ticket : vérifications de relais (EX-7.21).",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": {
+          "decision": "approuve",
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "threshold": {
+            "required": 2,
+            "size": 3
+          },
+          "approvers": [
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+          ],
+          "signatures": [
+            "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+            "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b"
+          ],
+          "at": "2026-11-12T09:15:02.000Z",
+          "reason": "Constat et facture concordants"
+        }
+      },
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "autorise",
+        "ticket": "apr-0001",
+        "ticket_state": "approuve",
+        "approval": {
+          "decision": "approuve",
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "threshold": {
+            "required": 2,
+            "size": 3
+          },
+          "approvers": [
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+          ],
+          "signatures": [
+            "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+            "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b"
+          ],
+          "at": "2026-11-12T09:15:02.000Z",
+          "reason": "Constat et facture concordants"
+        },
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-1",
+        "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": true,
+        "reason": null,
+        "action": "verifier_relais"
+      }
+    },
+    {
+      "id": "refuse-scellee",
+      "description": "Décision refuse scellée pour apr-0001, version du ticket : signal refuse.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": {
+          "decision": "refuse",
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "threshold": {
+            "required": 2,
+            "size": 3
+          },
+          "approvers": [
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+          ],
+          "signatures": [
+            "0xeac49705ecee47e389c8cebfc47befcd3fda5cf8d55bdec89b972ddc5443f5957136dbc21879ed0a930f436d0acbcc1108f2eeaa228799e6dc27192e66c321261b",
+            "0x8f8188fccd261bc6964f906137dafc5c612b26afbb1aa91043940d32995e92010451e94f255f6567691a98f4b013c119941b2d6807c60058cfeb0258f8809cf91b"
+          ],
+          "at": "2026-11-12T09:15:02.000Z",
+          "reason": "Facture absente"
+        }
+      },
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "refuse",
+        "ticket": "apr-0001",
+        "ticket_state": "refuse",
+        "approval": {
+          "decision": "refuse",
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "threshold": {
+            "required": 2,
+            "size": 3
+          },
+          "approvers": [
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+          ],
+          "signatures": [
+            "0xeac49705ecee47e389c8cebfc47befcd3fda5cf8d55bdec89b972ddc5443f5957136dbc21879ed0a930f436d0acbcc1108f2eeaa228799e6dc27192e66c321261b",
+            "0x8f8188fccd261bc6964f906137dafc5c612b26afbb1aa91043940d32995e92010451e94f255f6567691a98f4b013c119941b2d6807c60058cfeb0258f8809cf91b"
+          ],
+          "at": "2026-11-12T09:15:02.000Z",
+          "reason": "Facture absente"
+        },
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-1",
+        "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": true,
+        "reason": null,
+        "action": "resultat"
+      }
+    },
+    {
+      "id": "expire-scellee",
+      "description": "Expiration scellée seule par le noyau pour apr-0001 (EX-12.11), version du ticket : signal expire.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": {
+          "decision": "expire",
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "threshold": {
+            "required": 2,
+            "size": 3
+          },
+          "approvers": [],
+          "signatures": [],
+          "at": "2026-11-12T10:00:02.200Z",
+          "reason": "expire par l'enregistreur, service d'approbation sans reponse"
+        }
+      },
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "refuse",
+        "ticket": "apr-0001",
+        "ticket_state": "expire",
+        "approval": {
+          "decision": "expire",
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "threshold": {
+            "required": 2,
+            "size": 3
+          },
+          "approvers": [],
+          "signatures": [],
+          "at": "2026-11-12T10:00:02.200Z",
+          "reason": "expire par l'enregistreur, service d'approbation sans reponse"
+        },
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-1",
+        "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": true,
+        "reason": null,
+        "action": "resultat"
+      }
+    },
+    {
+      "id": "ordre-alphabetique",
+      "description": "La réponse autorise-sans-ticket, membres en ordre alphabétique (JCS) : l'ordre des membres n'a pas de sens (CT-2 EX-7.16).",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "approval": null,
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8",
+        "approver_set": null,
+        "decision": "autorise",
+        "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+        "policy_version": "vecteurs-ct3-2",
+        "rule": "paiement <= 1000 CHF",
+        "ticket": null,
+        "ticket_state": null
+      },
+      "expected": {
+        "valid": true,
+        "reason": null,
+        "action": "relayer"
+      }
+    },
+    {
+      "id": "huit-membres",
+      "description": "Huit membres : policy_sha256 absent. La réponse ne reporte pas la politique sous laquelle elle est rendue.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-2",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "huit-membres-sans-approval-sha256",
+      "description": "Huit membres : approval_sha256 absent. La réponse ne lie pas la décision aux règles appliquées.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-2",
+        "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "six-membres-revision-0-4",
+      "description": "La réponse de la révision 0.4 (six membres, sans policy_version, policy_sha256 ni approval_sha256) : refusée depuis la révision 0.5.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "approval-sha256-autres-regles",
+      "description": "approval_sha256 d'autres règles (politique de trace dont la règle par défaut autorise) : le condensé calculé par le service n'est pas celui du membre approval que le noyau a envoyé au charger de vecteurs-ct3-2, même avec la version et l'empreinte honnêtes (un pair du canal du noyau a pré-enregistré la version avec des règles permissives, addendum de la décision du porteur du 14 novembre 2026).",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-2",
+        "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+        "approval_sha256": "0x2af7fba5436e325be2611f6097ee0d2991f777912e9f0b50b50cadd828d3b1a0"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "empreinte-autre",
+      "description": "Empreinte autre que celle déclarée au charger de vecteurs-ct3-2 (ici l'empreinte de vecteurs-ct3-1) : la version est détenue, l'empreinte n'est pas la sienne.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-2",
+        "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "empreinte-quelconque",
+      "description": "Empreinte qui n'est celle d'aucune version chargée (SHA-256 de « noortrace/vecteurs/ct3/empreinte/quelconque »).",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-2",
+        "policy_sha256": "0x2d1896d956ee23f7106d433c93eea5d934a0d7d2bfc5f7269cb2fa7f889c8ba7",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "version-inconnue",
+      "description": "Version vecteurs-ct3-9 que le noyau n'a jamais chargée, même avec l'empreinte synthétique « correcte » pour elle : une version pré-enregistrée par un pair n'est pas épinglée par le noyau.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-9",
+        "policy_sha256": "0x2aa4e22036bae79d1b181b9b92de26fb3e18aaefedb9dbf94979020f8b072dce",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "version-detenue-autre-que-la-requete",
+      "description": "Version vecteurs-ct3-1 détenue avec la bonne empreinte, mais la requête porte vecteurs-ct3-2 et aucun ticket n'est rapproché.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-1",
+        "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "version-de-la-requete-pour-un-ticket-rapproche",
+      "description": "Ticket apr-0001 rapproché (en_attente) créé sous vecteurs-ct3-1, réponse rendue sous vecteurs-ct3-2, la version de la requête : la version attendue est celle de la retenue du ticket.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "ticket": "apr-0001",
+        "ticket_state": "en_attente",
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-2",
+        "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "version-de-la-requete-pour-une-decision-scellee",
+      "description": "Décision approuve scellée d'apr-0001 (vecteurs-ct3-1) rendue sous vecteurs-ct3-2 : même avec l'approval exact, la version n'est pas celle du ticket.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": {
+          "decision": "approuve",
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "threshold": {
+            "required": 2,
+            "size": 3
+          },
+          "approvers": [
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+          ],
+          "signatures": [
+            "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+            "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b"
+          ],
+          "at": "2026-11-12T09:15:02.000Z",
+          "reason": "Constat et facture concordants"
+        }
+      },
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "autorise",
+        "ticket": "apr-0001",
+        "ticket_state": "approuve",
+        "approval": {
+          "decision": "approuve",
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "threshold": {
+            "required": 2,
+            "size": 3
+          },
+          "approvers": [
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+          ],
+          "signatures": [
+            "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+            "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b"
+          ],
+          "at": "2026-11-12T09:15:02.000Z",
+          "reason": "Constat et facture concordants"
+        },
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-2",
+        "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "empreinte-majuscules",
+      "description": "Empreinte en hexadécimal majuscule : hors de la forme hex 32 octets de 12.3 (CT-1 §3).",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-2",
+        "policy_sha256": "0xB8D0A2D4B912F8644C37ED1FADC4553AB0610758D63303CC513ED7DBE3A55817",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "version-vide",
+      "description": "policy_version vide : hors de la forme de 12.3 (chaîne de 1 à 128).",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "",
+        "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "approval-sha256-majuscules",
+      "description": "approval_sha256 en hexadécimal majuscule : hors de la forme hex 32 octets de 12.3.",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-2",
+        "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+        "approval_sha256": "0x8BED959AAE4B0E4B35F120102181E6B9A049CD26A475ECD4A3C4B818D74220D8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "politique_non_epinglee",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "hors-combinaisons",
+      "description": "a_approuver sans ticket : hors des sept combinaisons d'EX-12.6, bien que le couple soit celui du charger (raison forme de la bibliothèque de référence).",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-2",
+        "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "forme",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "approval-different",
+      "description": "Décision approuve scellée pour apr-0001 dont l'approval diffère de celui du noyau (motif) : RL-1 (raison approval_different de la bibliothèque de référence).",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": {
+          "decision": "approuve",
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "threshold": {
+            "required": 2,
+            "size": 3
+          },
+          "approvers": [
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+          ],
+          "signatures": [
+            "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+            "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b"
+          ],
+          "at": "2026-11-12T09:15:02.000Z",
+          "reason": "Constat et facture concordants"
+        }
+      },
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "autorise",
+        "ticket": "apr-0001",
+        "ticket_state": "approuve",
+        "approval": {
+          "decision": "approuve",
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "threshold": {
+            "required": 2,
+            "size": 3
+          },
+          "approvers": [
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+          ],
+          "signatures": [
+            "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+            "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b"
+          ],
+          "at": "2026-11-12T09:15:02.000Z",
+          "reason": "Pieces validees"
+        },
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-1",
+        "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "approval_different",
+        "action": "erreur"
+      }
+    },
+    {
+      "id": "aucune-decision-scellee",
+      "description": "Décision approuve pour apr-0001 alors que le noyau n'en a scellé aucune (RL-1).",
+      "context": {
+        "versions": {
+          "vecteurs-ct3-1": {
+            "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          },
+          "vecteurs-ct3-2": {
+            "policy_sha256": "0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817",
+            "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+          }
+        },
+        "request_policy_version": "vecteurs-ct3-2",
+        "retained_policy_version": "vecteurs-ct3-1",
+        "sealed_decision": null
+      },
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "autorise",
+        "ticket": "apr-0001",
+        "ticket_state": "approuve",
+        "approval": {
+          "decision": "approuve",
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "threshold": {
+            "required": 2,
+            "size": 3
+          },
+          "approvers": [
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+          ],
+          "signatures": [
+            "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+            "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b"
+          ],
+          "at": "2026-11-12T09:15:02.000Z",
+          "reason": "Constat et facture concordants"
+        },
+        "approver_set": null,
+        "policy_version": "vecteurs-ct3-1",
+        "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+        "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "approval_different",
+        "action": "erreur"
+      }
+    }
+  ]
+}

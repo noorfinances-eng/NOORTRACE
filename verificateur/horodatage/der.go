@@ -87,7 +87,25 @@ func parcourir(s *cryptobyte.String, prof int) *defaut {
 	if !s.ReadAnyASN1(&contenu, &tag) {
 		return errEncodage
 	}
-	if tag&0x20 != 0 {
+	construit := tag&0x20 != 0
+	if tag&0xC0 == 0 {
+		// Profil d'EX-9.4 (révision 0.9 de CT-6, de
+		// l'étape 8) sur les types universels, dans tout le jeton :
+		// étiquette 0 refusée ; SEQUENCE et SET construits, tout autre type
+		// primitif.
+		numero := tag &^ 0x20
+		switch {
+		case numero == 0:
+			return def("étiquette universelle 0", "universal tag 0")
+		case numero == casn1.SEQUENCE&^0x20 || numero == casn1.SET&^0x20:
+			if !construit {
+				return def("SEQUENCE ou SET de forme primitive", "primitive SEQUENCE or SET")
+			}
+		case construit:
+			return defF("type universel %d de forme construite", "universal type %d in constructed form", int(numero))
+		}
+	}
+	if construit {
 		for !contenu.Empty() {
 			if d := parcourir(&contenu, prof+1); d != nil {
 				return d
@@ -95,8 +113,15 @@ func parcourir(s *cryptobyte.String, prof int) *defaut {
 		}
 		return nil
 	}
-	if tag == casn1.BOOLEAN && (len(contenu) != 1 || (contenu[0] != 0 && contenu[0] != 0xff)) {
+	switch {
+	case tag == casn1.BOOLEAN && (len(contenu) != 1 || (contenu[0] != 0 && contenu[0] != 0xff)):
 		return def("BOOLEAN codé autrement que 00 ou ff", "BOOLEAN encoded otherwise than 00 or ff")
+	case tag == casn1.NULL && len(contenu) != 0:
+		return def("NULL de longueur non nulle", "NULL of non-zero length")
+	case tag == casn1.INTEGER && len(contenu) == 0:
+		return def("INTEGER vide", "empty INTEGER")
+	case tag == casn1.BIT_STRING && (len(contenu) == 0 || contenu[0] > 7 || (len(contenu) == 1 && contenu[0] != 0)):
+		return def("BIT STRING mal codé (compte des bits inutilisés)", "malformed BIT STRING (unused bits count)")
 	}
 	return nil
 }

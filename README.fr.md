@@ -231,9 +231,16 @@ copies des runbooks et une version préparée sans rien publier. Son critère a
 été joué sur un banc sans réseau public : l'installation complète IC-1 à IC-18
 de CT-8, déroulée par un harnais en 58 min (dont 57 d'attente de la clôture de
 l'heure), le premier dossier accepté par les deux vérificateurs ; ce banc n'est
-pas le système de référence, et l'installation sur une machine vierge par un
-ingénieur extérieur est rattachée à l'étape 8. Reste la campagne de bout en
-bout, adversariale et de performance (étape 8).
+pas le système de référence, et l'installation sur une machine vierge, par un
+relecteur interne à l'aveugle, est rattachée à la porte 2 (décision du porteur
+du 13 novembre 2026 : aucune machine de référence, aucun participant
+extérieur). L'étape 8 a livré jusqu'ici une revue de sécurité interne de tous
+les composants, la révision du protocole d'approbation (le noyau refuse une
+décision prise sous une autre politique que la sienne ; chaque réponse
+`evaluer` reporte la version de la politique et les empreintes de la politique
+et de ses réglages d'approbation), les corrections et les révisions de
+spécification qui en découlent, et les vecteurs régénérés. La campagne de bout
+en bout, adversariale et de performance se poursuit.
 
 ## Licence
 

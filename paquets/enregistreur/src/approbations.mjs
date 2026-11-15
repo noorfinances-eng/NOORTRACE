@@ -4,21 +4,23 @@
 // (EX-7.21), MAC de relais (EX-7.22), fichiers des approbations
 // (EX-12.23), expiration par le noyau seul (EX-9.4), et interface du service
 // (`charger`, `evaluer`, `ouvrir`, `decisions`, `acquitter`, `consommer`,
-// `expiration`). Le service d'approbation lui-même (CT-3) est un lot
-// suivant ; `service-approbation-factice.mjs` en tient lieu dans les tests.
+// `expiration`). Le service d'approbation lui-même (CT-3) est une partie
+// suivante ; `service-approbation-factice.mjs` en tient lieu dans les tests.
 
 import path from "node:path";
 import fs from "node:fs/promises";
 import { createHmac } from "node:crypto";
 import {
   condenseApprobation, decoderHorodatage, egaliteJson, objetApprobation, octetsVersHex, verifierEip191, utf8,
-  concatener, ErreurJson,
+  concatener, ErreurJson, sha256Hex,
 } from "@noortrace/noyau";
 import { jcsIntegralOctets, analyserJsonIntegral } from "./jcs-integral.mjs";
+import { empreintePolitique } from "./pieces.mjs";
 import { FichierAjout, decouperLignes, tronquer } from "./fichiers.mjs";
 import { ligneIntention } from "./intentions.mjs";
 import { IDS, registreSchemas } from "./schema.mjs";
 import { ErreurEnregistreur } from "./erreurs.mjs";
+import { MEMBRES_JEU_REMISE_MAX, REMISE_MAX_OCTETS } from "./bornes.mjs";
 
 /**
  * Borne de `expire_after_ms` (CT-3 7.6 : « E ≤ 86 400 000 ms », schéma de
@@ -96,22 +98,140 @@ const COMBINAISONS = [
   ["refuse", "expire", true],
 ];
 
-const MEMBRES_EVALUER = ["approval", "approver_set", "decision", "rule", "ticket", "ticket_state"];
+/** Les neuf membres de la réponse `evaluer` (CT-3 §12.3, révision 0.5 et addendum), triés. */
+const MEMBRES_EVALUER = ["approval", "approval_sha256", "approver_set", "decision", "policy_sha256", "policy_version", "rule", "ticket", "ticket_state"];
 
 /**
- * Validation de la réponse d'`evaluer` (EX-7.16, EX-7.23).
+ * Condensé du membre `approval` d'un ensemble de politique, tel que le noyau
+ * l'envoie au `charger` (CT-2 EX-7.15 : `/policy/approval` sans `service`) :
+ * SHA-256 du JCS (RFC 8785), hex 32 octets. Le service calcule la même valeur
+ * sur le membre reçu (CT-3 §12.2, addendum) et la reporte dans la réponse de
+ * `charger` et dans chaque réponse `evaluer` (`approval_sha256`) : le noyau
+ * compare les deux, ce qui lie la décision aux règles réellement appliquées.
+ * Rend `null` pour un membre absent ou qui n'est pas un objet.
+ * @param {unknown} approval membre `approval`, avec ou sans `service`
+ * @returns {string|null}
+ */
+export function condenseApproval(approval) {
+  if (approval === null || typeof approval !== "object" || Array.isArray(approval)) return null;
+  const { service, ...reste } = approval;
+  void service;
+  try {
+    return sha256Hex(jcsIntegralOctets(reste));
+  } catch {
+    return null;
+  }
+}
+
+/** Un sélecteur d'outils désigne-t-il `nom` (préfixe `*` final, CT-3 §6) ? */
+function selecteurVise(selecteurs, nom) {
+  return Array.isArray(selecteurs) && selecteurs.some((s) => (typeof s === "string" && s.endsWith("*") ? nom.startsWith(s.slice(0, -1)) : s === nom));
+}
+
+/**
+ * Défense en profondeur (CT-2 EX-7.16, TQ-1, CT-3 EX-12.5) : la politique
+ * d'approbation épinglée (celle du dernier `charger` réussi, `config.policy`)
+ * peut-elle rendre `autorise` pour un appel à `nom`, quels que soient les
+ * arguments ? Faux SEULEMENT quand aucun chemin n'autorise automatiquement :
+ * le défaut n'est pas (`automatique`, `autorise`), aucune règle sélectionnant
+ * `nom` n'est (`automatique`, `autorise`), et aucune n'est `fenetre` (une
+ * fenêtre autorise dans sa fenêtre). Sur-approximation sûre de « peut
+ * autoriser » : un « faux » est certain (la politique épinglée classe l'outil
+ * comme toujours soumis à approbation ou interdit), donc une réponse
+ * `autorise`/`null` du service pour un tel outil est un contournement avéré,
+ * qu'aucune politique honnête de cette version ne produirait. Rend `true`
+ * (aucune garde) dès que le document est absent ou mal formé.
+ * @param {object|null|undefined} reglesPolitique document `politique-approbation-v0` (`/policy/approval/rules`)
+ * @param {string} nom nom d'outil annoncé
+ * @returns {boolean}
+ */
+export function peutAutoriserOutil(reglesPolitique, nom) {
+  if (reglesPolitique === null || typeof reglesPolitique !== "object") return true;
+  const def = reglesPolitique.default;
+  if (def && def.level === "automatique" && def.decision === "autorise") return true;
+  const regles = Array.isArray(reglesPolitique.rules) ? reglesPolitique.rules : [];
+  for (const r of regles) {
+    if (!selecteurVise(r.tools, nom)) continue;
+    if (r.level === "fenetre") return true;
+    if (r.level === "automatique" && r.decision === "autorise") return true;
+  }
+  return false;
+}
+
+/**
+ * Vérification de la politique épinglée d'une réponse `evaluer` (CT-2
+ * EX-7.16, révision 0.8 ; CT-3 §12.3, révision 0.5) : rend `null` quand la
+ * réponse est rendue sous une politique que le noyau a lui-même épinglée,
+ * sinon le détail du manquement (raison nommée `politique_non_epinglee`).
+ * Trois conditions, dans l'ordre : `policy_version` est une version dont le
+ * noyau détient l'ensemble de politique (`ctx.politique` : l'ensemble
+ * épinglé, ou celui d'une version précédente gardée pour un appel en cours ou
+ * un ticket actif, EX-15.5, CT-3 EX-7.21) ; `policy_sha256` est l'empreinte
+ * de cet ensemble (EX-8.11, celle que le noyau a déclarée au `charger`) ;
+ * `approval_sha256` est le condensé du membre `approval` de cet ensemble
+ * (`condenseApproval`, celui que le noyau a envoyé au `charger`, addendum) ;
+ * `policy_version` est la version attendue, soit `code.policy_version` de la
+ * requête pour une réponse sans ticket rapproché (`ticket` nul, ou
+ * `ticket_state` égal à `nouveau`), soit celle de l'événement `retenue` du
+ * ticket pour un ticket rapproché (`ctx.versionRetenue`), ou, quand le noyau
+ * n'a aucune `retenue` de ce ticket (course d'EX-7.17), celle de la requête.
+ * Un contexte qui ne fournit ni l'ensemble ni la version attendue rend la
+ * réponse invalide : la vérification n'est jamais sautée.
+ * @param {object} r réponse dont la forme (huit membres, schéma) est déjà vérifiée
+ * @param {{versionRequete?: string|null, politique?: (version: string) => object|null,
+ *   versionRetenue?: (ticket: string) => string|null}} ctx
+ * @returns {string|null}
+ */
+function politiqueNonEpinglee(r, ctx) {
+  const doc = typeof ctx.politique === "function" ? ctx.politique(r.policy_version) : null;
+  if (doc === null || typeof doc !== "object") return `version ${r.policy_version} non détenue par le noyau`;
+  let emp;
+  try {
+    emp = empreintePolitique(doc);
+  } catch {
+    return `ensemble de la version ${r.policy_version} sans empreinte`;
+  }
+  if (emp.policy_sha256 !== r.policy_sha256) return `empreinte différente de celle déclarée au charger de ${r.policy_version}`;
+  // Addendum : approval_sha256, calculé par le service au charger, doit être le condensé du membre
+  // approval que le noyau a lui-même envoyé (règles réellement appliquées, non un condensé recopié).
+  const condense = condenseApproval(doc.approval);
+  if (condense === null || condense !== r.approval_sha256) return `approval_sha256 différent du condensé du membre approval envoyé au charger de ${r.policy_version}`;
+  const rapproche = r.ticket !== null && r.ticket_state !== null && r.ticket_state !== "nouveau";
+  let attendue = typeof ctx.versionRequete === "string" ? ctx.versionRequete : null;
+  if (rapproche && typeof ctx.versionRetenue === "function") {
+    const vr = ctx.versionRetenue(r.ticket);
+    if (typeof vr === "string") attendue = vr;
+  }
+  if (attendue === null) return "version attendue inconnue (requête sans code.policy_version)";
+  if (r.policy_version !== attendue) return `version ${r.policy_version} au lieu de ${attendue} (${rapproche ? "retenue du ticket" : "requête"})`;
+  return null;
+}
+
+/**
+ * Validation de la réponse d'`evaluer` (EX-7.16, EX-7.23) : neuf membres
+ * exactement (CT-3 §12.3, révision 0.5 et addendum), schéma, politique épinglée
+ * (`politiqueNonEpinglee`), puis les combinaisons de la table d'EX-7.16 ou
+ * la réponse d'observation d'EX-7.23.
  * @param {unknown} r
- * @param {{decisionScellee: (ticket: string) => object|null, observation?: boolean}} ctx
- *   `decisionScellee` : l'événement de décision scellé par le noyau pour ce ticket, ou null
- * @returns {{valide: true, combinaison: string}|{valide: false, raison: string}}
+ * @param {{decisionScellee: (ticket: string) => object|null, observation?: boolean, versionRequete?: string|null,
+ *   politique?: (version: string) => object|null, versionRetenue?: (ticket: string) => string|null}} ctx
+ *   `decisionScellee` : l'événement de décision scellé par le noyau pour ce ticket, ou null ;
+ *   `versionRequete` : `code.policy_version` de la requête ; `politique` : ensemble de politique
+ *   d'une version détenue (épinglée ou gardée), ou null ; `versionRetenue` : `code.policy_version`
+ *   de l'événement `retenue` d'un ticket, ou null
+ * @returns {{valide: true, combinaison: string}|{valide: false, raison: string, detail?: string}}
  */
 export function validerReponseEvaluer(r, ctx) {
-  const non = (raison) => ({ valide: false, raison });
+  const non = (raison, detail) => (detail === undefined ? { valide: false, raison } : { valide: false, raison, detail });
   if (r === null || typeof r !== "object" || Array.isArray(r)) return non("pas un objet");
   const cles = Object.keys(r).sort();
-  if (cles.length !== 6 || !cles.every((c, k) => c === MEMBRES_EVALUER[k])) return non("membres de CT-3 §12.3 attendus");
+  if (cles.length !== MEMBRES_EVALUER.length || !cles.every((c, k) => c === MEMBRES_EVALUER[k])) return non("membres de CT-3 §12.3 attendus");
   const schema = registreSchemas().valider(`${IDS.ticket}#/$defs/reponse_evaluer`, r);
   if (!schema.valide) return non(`forme : ${schema.erreurs[0].pointeur} ${schema.erreurs[0].regle}`);
+  // EX-7.16 (révision 0.8), EX-7.23 : la réponse est rendue sous une politique que le noyau a épinglée
+  // (version détenue, empreinte déclarée au charger, version de la requête ou de la retenue du ticket).
+  const manquement = politiqueNonEpinglee(r, ctx);
+  if (manquement !== null) return non("politique_non_epinglee", manquement);
   if (ctx.observation) {
     // EX-7.23 : seule la réponse sans ticket est admise, rule bornée et sans forme réservée.
     if (r.ticket !== null || r.ticket_state !== null || r.approval !== null || r.approver_set !== null) return non("ticket en mode observation");
@@ -326,6 +446,13 @@ export function approvalExpiration(ticket, retenue, fichiers) {
 export function ligneRemise(remise) {
   if (!estObjet(remise) || typeof remise.ticket !== "string" || typeof remise.remise_id !== "string") return null;
   if (!estObjet(remise.approval) || typeof remise.approval.decision !== "string" || !estObjet(remise.approver_set)) return null;
+  // Étape 8 (S-1, CT-2 EX-7.19) : une remise au-delà des bornes (membres du jeu,
+  // taille du message) n'a pas la forme d'une remise : elle n'est pas inscrite,
+  // SG-1 la refuse (`remise_mal_formee`).
+  if (remise.ticket.length > 256 || remise.remise_id.length > 512) return null;
+  const membres = remise.approver_set.members;
+  if (Array.isArray(membres) && membres.length > MEMBRES_JEU_REMISE_MAX) return null;
+  if (JSON.stringify(remise).length > REMISE_MAX_OCTETS) return null;
   return { kind: "remise", ticket: remise.ticket, remise_id: remise.remise_id, decision: remise.approval.decision, approver_set: remise.approver_set };
 }
 

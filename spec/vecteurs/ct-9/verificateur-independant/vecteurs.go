@@ -334,11 +334,30 @@ func (d *Depot) verifierConsignations(rap *Rapport) {
 	if !c.Judge.Independent || !strings.HasPrefix(c.Participant.Pseudonym, "P-") || !strings.HasPrefix(c.Judge.Pseudonym, "J-") {
 		pb = append(pb, "juge non indépendant ou pseudonymes mal formés (EX-12.1, EX-12.5)")
 	}
+	// Révision 0.10 : le gabarit porte condition relecteur_interne_a_l_aveugle
+	// et external faux (EX-12.1, EX-A.15).
+	if c.Participant.Condition != "relecteur_interne_a_l_aveugle" || c.Participant.External == nil || *c.Participant.External {
+		pb = append(pb, fmt.Sprintf("participant de condition %q, external %v (relecteur_interne_a_l_aveugle et faux attendus)", c.Participant.Condition, c.Participant.External))
+	}
 	if len(pb) > 0 {
 		rap.Discorde("EX-A.15", "consignations/gabarit-TR-10.json", "%s", strings.Join(pb, " ; "))
 	} else {
-		rap.Concorde("EX-A.15", "consignations/gabarit-TR-10.json", "TR-10, grille et sections interdites égales au catalogue, SHA-256 à zéro, duration_s null, pseudonymes")
+		rap.Concorde("EX-A.15", "consignations/gabarit-TR-10.json", "TR-10, grille et sections interdites égales au catalogue, SHA-256 à zéro, duration_s null, pseudonymes, relecteur interne à l'aveugle non extérieur")
 	}
+	// EX-A.15 : « cas/cas.json avec sept cas (`valide-gabarit`, … et, depuis
+	// la révision 0.10, `invalide-externe-sans-condition` …) ».
+	n, texte, ok := LireCasA8(Normaliser(SectionTexte(d.CT9.Texte, "A.8")))
+	var liste ListeCas
+	errListe := LireJSON(filepath.Join(d.Vecteurs, "consignations", "cas", "cas.json"), &liste)
+	if !ok || errListe != nil {
+		rap.Discorde("EX-A.15", "consignations/cas/cas.json", "liste des cas non lue dans A.8 ou cas.json illisible")
+		return
+	}
+	var publies []string
+	for _, c := range liste.Cases {
+		publies = append(publies, c.File)
+	}
+	rap.Verdict(n == len(publies) && egalesTriees(texte, publies), "EX-A.15", "consignations/cas/cas.json", "texte : %d cas %v ; publiés %v", n, texte, publies)
 }
 
 // GrillePorte2 recalcule les questions de la grille de TR-14 depuis les deux
@@ -724,9 +743,51 @@ func (d *Depot) verifierProse(rap *Rapport) {
 		lire(regexp.MustCompile(`les compléments des ([a-z]+) entrées de l'étape 4`), "compléments de l'étape 4", compl4)
 	}
 	lire(regexp.MustCompile(`les ([0-9]+) entrées TM- « à écrire »`), "TM- à écrire", tmAE)
-	if x := regexp.MustCompile(`\(binaire de CT-6 §14\) : (TV-[0-9]+) à écrire`).FindStringSubmatch(s16); x != nil {
-		t := d.ParID[x[1]]
-		rap.Verdict(t != nil && t.Status.State == "a_ecrire" && strings.Contains(t.Title, "CT-6"), "16", x[1], "texte : vérificateur Go de CT-6 à écrire ; catalogue : état %s, titre « %s »", etatDe(t), titreDe(t))
+	// Révision 0.10 : les entrées qui portent un complément sont nommées, les
+	// TA- d'abord (« (TA-25, TA-41) »), les autres ensuite (« ceux de TV-55,
+	// …, de TM-1 à TM-5, … n'ont aucun résultat »).
+	var complTA, complAutres []string
+	for i := range d.Cat.Tests {
+		t := &d.Cat.Tests[i]
+		if t.Status.Complement != nil {
+			if t.Level == "TA" {
+				complTA = append(complTA, t.ID)
+			} else {
+				complAutres = append(complAutres, t.ID)
+			}
+		}
+	}
+	if ta, autres, ok := LireComplements16(s16); !ok {
+		rap.Discorde("16", "entrées avec complément", "phrase « TA- exécutables qui en portent un (…) et ceux de … n'ont aucun résultat » non lue")
+	} else {
+		rap.Verdict(egalesTriees(ta, complTA), "16", "TA- avec complément (liste)", "texte %v, catalogue %v", ta, complTA)
+		rap.Verdict(egalesTriees(autres, complAutres), "16", "autres entrées avec complément", "texte %v, catalogue %v", triee(autres), triee(complAutres))
+	}
+	// « N entrées TA- à menace d'exécution `phase_2` à écrire (dont TA-a et
+	// TA-b, …) » : TA- dont la menace n'est pas nulle, d'exécution phase_2,
+	// à l'état a_ecrire.
+	if n, dont, ok := LirePhase2_16(s16); !ok {
+		rap.Discorde("16", "TA- à menace de phase 2 à écrire", "phrase « N entrées TA- à menace d'exécution phase_2 à écrire (dont …) » non lue")
+	} else {
+		var ids []string
+		for i := range d.Cat.Tests {
+			t := &d.Cat.Tests[i]
+			if t.Level == "TA" && t.Adversarial != nil && t.Adversarial.Threat != nil && t.Adversarial.Execution == "phase_2" && t.Status.State == "a_ecrire" {
+				ids = append(ids, t.ID)
+			}
+		}
+		rap.Verdict(n == len(ids) && contient(ids, dont[0]) && contient(ids, dont[1]), "16", "TA- à menace de phase 2 à écrire", "texte %d (dont %s et %s), catalogue %d %v", n, dont[0], dont[1], len(ids), ids)
+	}
+	// « les compléments des N entrées de l'étape 8 (TA-…) » : chaque entrée
+	// nommée porte un complément rattaché à l'étape 8.
+	if n, nommees, ok := LireEtape8_16(s16); ok {
+		var sans []string
+		for _, id := range nommees {
+			if t := d.ParID[id]; t == nil || t.Status.Complement == nil || t.Status.Complement.Phase2Step != 8 {
+				sans = append(sans, id)
+			}
+		}
+		rap.Verdict(n == len(nommees) && len(sans) == 0, "16", "compléments de l'étape 8 nommés", "texte %d entrées %v ; sans complément de l'étape 8 au catalogue : %v", n, nommees, sans)
 	}
 }
 
@@ -751,7 +812,7 @@ func (d *Depot) horsPerimetre(rap *Rapport) {
 	rap.HorsPerimetre("EX-5.9", "couverture.json errors (texte des écarts)", "le libellé des écarts est celui de l'outil JavaScript ; seul le nombre (%d) est comparé au verdict recalculé", len(d.Publie.Errors))
 	rap.HorsPerimetre("EX-A.3", "cas/attendu.json mot-clé fautif (ordre)", "l'ordre des erreurs d'un validateur tiers n'est pas fixé par le texte ; le mot-clé attendu est confronté à l'ensemble des mots-clés violés, pas au premier")
 	rap.HorsPerimetre("EX-3.11", "comptes de npx hardhat test (cas réussis, en attente)", "résultat d'exécution de npx hardhat test ; le vérificateur n'exécute aucun test")
-	rap.HorsPerimetre("10.8", "« N passing », mutants tués", "résultat d'exécution de test/adversarial.test.js ; le nombre de mutants vit dans le code du test, que le vérificateur ne lit pas")
+	rap.HorsPerimetre("10.8", "« N passing », mutants tués", "résultat d'exécution de test/adversarial.test.js ; le nombre de mutants vit dans le code du test, que le vérificateur ne lit pas ; seule la somme des comptes (réussis, en attente, en échec) est confrontée au nombre d'it")
 	rap.HorsPerimetre("EX-11.13", "mesures/rapport-2026-11-01-vecteurs.json octets_ligne_annexe_a (2465), p1_cadence_vecteurs", "valeurs rendues par test/enregistreur.test.js et recalculées par le générateur depuis ct-1 (délais aux points) ; seule la ligne octets_par_evenement se recalcule ici depuis le segment")
 	rap.HorsPerimetre("EX-11.13", "mesures/rapport-*.json commit, measured_at, system", "commit éprouvé, instant et machine d'une exécution ; le bloc de 11.3 les reprend et c'est cette égalité qui est contrôlée")
 	rap.HorsPerimetre("EX-A.16", "acceptation-ancrage-attendu.json, acceptation-verdict-point-attendu.json éléments", "paraphrases des étapes de TR-4 et TR-5 et des sections de CT-5 et CT-6 citées ; non recalculables mot pour mot (règles, consigne et comptes contrôlés)")
@@ -759,18 +820,6 @@ func (d *Depot) horsPerimetre(rap *Rapport) {
 	rap.HorsPerimetre("EX-A.15", "consignations/gabarit-TR-10.json verdict.elements", "éléments d'exemple tirés de CT-8 EX-14.8 ; aucune règle de CT-9 n'en fixe le texte")
 	rap.HorsPerimetre("EX-11.14", "TM- failure_threshold (texte)", "seuil d'échec écrit en toutes lettres ; seule la réserve de TM-22 (480 min) est contrôlée")
 	rap.HorsPerimetre("EX-5.7", "NC- : « ne couvre jamais un EX- en DOIT dont le sujet est un composant »", "jugement sur le sujet de chaque EX- ; non mécanisable")
-	rap.HorsPerimetre("16", "« 18 entrées TA- » de phase 2", "définition du compte ambiguë : %d TA- à menace à écrire d'exécution phase_2 (dont TA-95, épreuve de procédure), %d d'exécution vecteurs_et_depot, 5 scénarios", compteTA(d, "phase_2"), compteTA(d, "vecteurs_et_depot"))
 	rap.HorsPerimetre("EX-A.18", "confrontation/sorties/recompte.txt", "sortie d'un programme Python ; la comparaison à couverture.json est celle de test/plan-de-tests.test.js et de la CI")
 	rap.HorsPerimetre("EX-A.1", "déterminisme du générateur (deux générations identiques)", "propriété d'une exécution du générateur, que le vérificateur ne lance pas")
-}
-
-func compteTA(d *Depot, execution string) int {
-	n := 0
-	for i := range d.Cat.Tests {
-		t := &d.Cat.Tests[i]
-		if t.Level == "TA" && t.Adversarial != nil && t.Adversarial.Threat != nil && t.Status.State == "a_ecrire" && t.Adversarial.Execution == execution {
-			n++
-		}
-	}
-	return n
 }

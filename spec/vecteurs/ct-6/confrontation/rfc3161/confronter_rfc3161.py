@@ -35,6 +35,13 @@ for nom in os.listdir(os.path.join(RACINE, "ancres")):
 DISCORDANCES = []
 SORTIE = []
 
+# Jetons qu'openssl refuse de décoder alors que CT-6 les lit (limites de l'outil, CT-6 annexe A.8) :
+# aucune vérification T- ni aucun fait n'est alors établi par openssl ; le refus lui-même est comparé
+# au résultat présumé par attendu.json.
+JETONS_ILLISIBLES_PAR_OPENSSL = {
+    "jetons/integer-non-minimal.der": "SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding",
+}
+
 
 def dire(*morceaux):
     SORTIE.append(" ".join(str(m) for m in morceaux))
@@ -184,12 +191,30 @@ def lire_tst_asn1(a):
     t["gen_time"] = "%s-%s-%sT%s:%s:%s%sZ" % (g.group(1), g.group(2), g.group(3), g.group(4), g.group(5), g.group(6), g.group(7) or "")
     # accuracy : SEQUENCE { seconds INTEGER } ; nonce : INTEGER de premier niveau après accuracy
     i = next(k for k, l in enumerate(lignes) if "d=1 " in l and "GENERALIZEDTIME" in l)
-    sec = int(val(lignes[i + 2]), 16) if "SEQUENCE" in lignes[i + 1] else None
-    t["precision"] = "0x%02X seconds, unspecified millis, unspecified micros" % sec if sec is not None else "unspecified"
+    t["illisibles"] = []
+    if "SEQUENCE" in lignes[i + 1] and "BAD INTEGER" in lignes[i + 2]:
+        # INTEGER que openssl asn1parse ne lit pas (vide : 02 00) : champ illisible, relevé tel quel
+        t["precision"] = "illisible : " + lignes[i + 2].split("prim: INTEGER", 1)[1].strip(" :")
+        t["illisibles"].append("precision")
+    else:
+        sec = int(val(lignes[i + 2]), 16) if "SEQUENCE" in lignes[i + 1] else None
+        t["precision"] = "0x%02X seconds, unspecified millis, unspecified micros" % sec if sec is not None else "unspecified"
     apres = [l for l in lignes[i + 1:] if "d=1 " in l]
     t["nonce"] = next(("0x" + val(l).lower() for l in apres if "prim: INTEGER" in l), None)
     t["ordre"] = "no"
-    t["tsa"] = None if not any("cont [ 0 ]" in l and "d=1 " in l for l in lignes) else "présent"
+    t["tsa"] = None
+    j = next((k for k, l in enumerate(lignes) if "cont [ 0 ]" in l and "d=1 " in l), None)
+    if j is not None:
+        # tsa [0] GeneralName directoryName : attributs du nom dans l'ordre imprimé par asn1parse
+        abr = {"countryName": "C", "organizationName": "O", "organizationalUnitName": "OU", "commonName": "CN"}
+        nom = ""
+        for k in range(j + 1, len(lignes)):
+            if "d=1 " in lignes[k]:
+                break
+            m = re.search(r"OBJECT\s+:(\w+)", lignes[k])
+            if m and k + 1 < len(lignes):
+                nom += "/%s=%s" % (abr.get(m.group(1), m.group(1)), val(lignes[k + 1]))
+        t["tsa"] = "DirName:" + nom if nom else "présent"
     t["extensions"] = ""
     t["extensions_critiques"] = []
     return t
@@ -444,9 +469,26 @@ for fichier in ATTENDU["keys"]["files"]:
     else:
         releve = court(s) if code == 0 or "depth lookup" in s else ("; ".join(erreurs(s)) or s.strip().splitlines()[0])
         dire("  openssl verify %s sous ac-test.pem à 2026-11-05T10:00:05Z : %s" % (fichier, releve))
+# CRL qu'openssl crl refuse de lire alors que CT-6 la lit (limite de l'outil,
+# CT-6 annexe A.8) : numéro de série révoqué codé en INTEGER non minimal
+# (02 02 00 02), que CT-6 ne refuse pas en version 0 (EX-9.6).
+CRL_ILLISIBLES_PAR_OPENSSL = {
+    "crl/crl-tsa-revoquee-serie-non-minimale.pem": "numéro de série révoqué en INTEGER non minimal (02 02 00 02), lu par CT-6 (EX-9.6)",
+}
 for fichier, attendu in ATTENDU["crls"].items():
     pem = open(fichier, "rb").read()
     code, der = ossl_octets(["crl", "-in", fichier, "-outform", "DER"])
+    if code != 0:
+        # openssl crl ne lit pas la CRL : DER décodé du PEM par openssl asn1parse, sans interpréter la CRL
+        sortie = os.path.join(TRAVAIL, "crl-brute.der")
+        code_a, s_a = ossl(["asn1parse", "-in", fichier, "-noout", "-out", sortie])
+        der = open(sortie, "rb").read() if code_a == 0 else b""
+        comparer(fichier + " SHA-256 (du DER décodé par openssl asn1parse)", attendu, sha256_ossl(der))
+        code, s = ossl(["crl", "-in", fichier, "-noout", "-text"])
+        motif = CRL_ILLISIBLES_PAR_OPENSSL.get(fichier)
+        comparer(fichier + " refus d'openssl crl nommé comme limite de l'outil (CT-6 A.8)", True, motif is not None)
+        dire("  %s : openssl crl refuse de lire la CRL (%s) ; limite de l'outil : %s" % (fichier, "; ".join(erreurs(s)) or s.strip().splitlines()[0], motif))
+        continue
     h_pem, h_der = sha256_ossl(pem), sha256_ossl(der)
     forme = "DER" if h_der == attendu else ("PEM" if h_pem == attendu else None)
     comparer(fichier + " SHA-256 (du DER ou du fichier PEM)", attendu, h_der if forme != "PEM" else h_pem)
@@ -457,6 +499,12 @@ for fichier, attendu in ATTENDU["crls"].items():
     if "revoquee" in fichier:
         comparer(fichier + " entrées révoquées (numéro, date, raison)", [("02", "2026-11-05T12:00:00Z", "Key Compromise")],
                  [(n, iso(d), r.strip()) for n, d, r in revoques])
+    elif "entree-extension-critique" in fichier:
+        # une entrée, numéro de série 99 (0x63) d'un autre certificat que le signataire, qui porte une extension
+        # critique d'OID 1.3.6.1.4.1.99999.2 (INDEX de ct-6, EX-9.16)
+        comparer(fichier + " numéros de série révoqués", ["63"], [n for n, d, r in revoques])
+        comparer(fichier + " extension critique d'entrée 1.3.6.1.4.1.99999.2", True, "1.3.6.1.4.1.99999.2: critical" in s)
+        dire("  %s : entrée relevée (numéro, date, raison) : %s" % (fichier, [(n, iso(d), r.strip()) for n, d, r in revoques]))
     else:
         comparer(fichier + " entrées révoquées", [], revoques)
 dire("")
@@ -493,7 +541,12 @@ for tok in ATTENDU["tokens"]:
     comparer("serialNumber", "0x%x" % int(tok["serial_number"], 16), "0x%x" % int(t["numero"], 16) if t["numero"] else t["numero"])
     comparer("version de TSTInfo", "1", t["version"])
     comparer("politique (EX-A.5)", "1.3.6.1.4.1.99999.1.1", t["politique"])
-    comparer("précision (EX-A.5 : 1 s)", "0x01 seconds, unspecified millis, unspecified micros", t["precision"])
+    if "precision" in t.get("illisibles", []):
+        # champ altéré par le cas lui-même : illisible par openssl, la cible du cas doit être T-1 (lecture DER, EX-9.4)
+        dire("  précision illisible par openssl asn1parse (%s)" % t["precision"])
+        comparer("précision illisible : cas de cible T-1", "T-1", tok["target"])
+    else:
+        comparer("précision (EX-A.5 : 1 s)", "0x01 seconds, unspecified millis, unspecified micros", t["precision"])
     if tok.get("checkpoint"):
         comparer("nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/point-de-controle/periode-1 ») (jeton d'un point, EX-A.13)", NONCE_POINT, t["nonce"])
     else:
@@ -549,6 +602,10 @@ def statut_openssl(cas):
     ou None (sans ancre, openssl ne peut rien établir)."""
     f = cas["token"]
     t, a, c, certs = LECTURES[f]
+    if f in JETONS_ILLISIBLES_PAR_OPENSSL:
+        res = {i: ("limite", "limite de l'outil : " + JETONS_ILLISIBLES_PAR_OPENSSL[f]) for i in ("T-1", "T-2", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9", "T-10")}
+        res["T-11"] = ("hors_outil", "statut qualifié déclaré par le réviseur : openssl ne le connaît pas")
+        return res
     ancres = ANCRES.get(cas["anchors"]) if cas["anchors"] else None
     ph = cas["dossier_period_hash"]
     at = unix(t["gen_time"])
@@ -698,7 +755,7 @@ def statut_openssl(cas):
 
 
 dire("== 3. Vérification par vérification, cas de attendu.json (statut attendu / statut établi par openssl)")
-BILAN = {"concorde": 0, "discordance": 0, "hors_outil": 0, "sans_objet": 0}
+BILAN = {"concorde": 0, "discordance": 0, "hors_outil": 0, "sans_objet": 0, "limite": 0}
 for cas in ATTENDU["cases"]:
     dire("-- %s, ancres %s, periodHash du dossier %s…" % (cas["token"], cas["anchors"] or "absentes", cas["dossier_period_hash"][:18]))
     res = statut_openssl(cas)
@@ -709,6 +766,9 @@ for cas in ATTENDU["cases"]:
         if st == "hors_outil":
             verdict = "hors outil"
             BILAN["hors_outil"] += 1
+        elif st == "limite":
+            verdict = "limite de l'outil (jeton illisible par openssl, A.8)"
+            BILAN["limite"] += 1
         elif chk["status"] == "non_execute" or st is None:
             verdict = "sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : %s" % (st or "rien")
             BILAN["sans_objet"] += 1
@@ -747,6 +807,9 @@ for cas in ATTENDU["cases"]:
     t, a, c, certs = LECTURES[cas["token"]]
     ancres = ANCRES[cas["anchors"]]
     dire("-- %s, ancres %s" % (cas["token"], cas["anchors"]))
+    if cas["token"] in JETONS_ILLISIBLES_PAR_OPENSSL:
+        dire("  faits non recalculés : limite de l'outil (%s)" % JETONS_ILLISIBLES_PAR_OPENSSL[cas["token"]])
+        continue
     S = signataire(certs, a, ancres)
     tx = x509_texte(S)
     comparer("tsu_certificate_sha256", fa["tsu_certificate_sha256"], sha256_ossl(der_de(S)))
@@ -791,7 +854,10 @@ for cas in ATTENDU["cases"]:
                        "-CAfile", "cles/ac-test.pem", "-attime", str(unix(t["gen_time"]))])
     ok = "Verification: OK" in s_ts
     echecs = cas["failed_checks"]
-    if ok == (not echecs):
+    if cas["token"] in JETONS_ILLISIBLES_PAR_OPENSSL:
+        verdict = "limite de l'outil : %s" % JETONS_ILLISIBLES_PAR_OPENSSL[cas["token"]]
+        LIMITES.append("%s : attendu.json %s ; openssl ts -verify refuse de décoder le jeton (%s)" % (cas["token"], ", ".join(echecs) or "aucun échec", "; ".join(erreurs(s_ts))))
+    elif ok == (not echecs):
         verdict = "concorde"
     elif ok:
         verdict = "limite de l'outil : openssl ts -verify ne fait pas %s" % ", ".join(echecs)
@@ -805,8 +871,8 @@ for cas in ATTENDU["cases"]:
     dire("  %-34s periodHash du dossier %s… ; attendu : %-12s openssl ts -verify : %-60s %s" % (cas["token"], cas["dossier_period_hash"][:10], ", ".join(echecs) or "aucun échec",
          "Verification: OK" if ok else "FAILED (" + "; ".join(erreurs(s_ts)) + ")", verdict))
 dire("")
-dire("Bilan des cas : %d concordances, %d discordances, %d hors outil, %d sans objet" %
-     (BILAN["concorde"], BILAN["discordance"], BILAN["hors_outil"], BILAN["sans_objet"]))
+dire("Bilan des cas : %d concordances, %d discordances, %d hors outil, %d sans objet, %d limites de l'outil (jeton illisible par openssl, A.8)" %
+     (BILAN["concorde"], BILAN["discordance"], BILAN["hors_outil"], BILAN["sans_objet"], BILAN["limite"]))
 dire("Discordances au total (sections 1 à 4) : %d" % len(DISCORDANCES))
 for d in DISCORDANCES:
     dire("  - " + d)

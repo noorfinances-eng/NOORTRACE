@@ -111,6 +111,8 @@ function ceremonies(specs) {
   for (const c of K.casCeremonies()) {
     const r = S.verifierCeremonie(c.octets, { schema });
     if (JSON.stringify(r.failed) !== JSON.stringify(c.echecs)) throw new ErreurGeneration(`ceremonies/${c.nom} : en échec ${r.failed.join(", ") || "aucune"}, attendu ${c.echecs.join(", ") || "aucune"}`);
+    // Réserve d'EX-5.11 : rendue par le rapport, hors de attendu.json, dont la forme (`#/$defs/attendu`) ne change pas.
+    if (JSON.stringify(r.reserves) !== JSON.stringify(c.reserves)) throw new ErreurGeneration(`ceremonies/${c.nom} : réserves ${r.reserves.join(", ") || "aucune"}, attendu ${c.reserves.join(", ") || "aucune"}`);
     const attendu = S.attenduCeremonie(r);
     const e = J.validerSchema(attendu, schema, { fragment: "#/$defs/attendu" });
     if (e.length) throw new ErreurGeneration(`ceremonies/${c.nom}/attendu.json : ${e[0].message}`);
@@ -420,9 +422,10 @@ function index({ doc, cas, cles, att, mat, tables }) {
   l.push("");
   l.push("## ceremonies/", "");
   l.push("Chaque cas : `proces-verbal.json` (le fichier vérifié, octets exacts) et `attendu.json` (`ceremonie-cles-v0#/$defs/attendu`). Un cas invalide est tiré d'un cas valide par une seule mutation, puis signé de nouveau par tous ses participants, sauf quand la mutation porte sur les signatures (EX-A.6). Comptes Hardhat 1 à 8 du mnémonique public de `spec/vecteurs/ct-3/constantes.json`.", "");
-  l.push("| Cas | Mutation | Verdict | En échec | Non exécutées | D_C |", "|---|---|---|---|---|---|");
-  for (const c of cas) l.push(`| \`${c.nom}\` | ${cellule(c.mutation)} | ${c.attendu.verdict} | ${c.attendu.failed.join(", ") || "—"} | ${c.attendu.not_executed.length ? "CR-2 à CR-12" : "—"} | ${c.attendu.digest ? `\`${c.attendu.digest.slice(0, 10)}…\`` : "—"} |`);
+  l.push("| Cas | Mutation | Verdict | En échec | Non exécutées | D_C | Réserve |", "|---|---|---|---|---|---|---|");
+  for (const c of cas) l.push(`| \`${c.nom}\` | ${cellule(c.mutation)} | ${c.attendu.verdict} | ${c.attendu.failed.join(", ") || "—"} | ${c.attendu.not_executed.length ? "CR-2 à CR-12" : "—"} | ${c.attendu.digest ? `\`${c.attendu.digest.slice(0, 10)}…\`` : "—"} | ${c.reserves.map((x) => `\`${x}\``).join(", ") || "—"} |`);
   l.push("");
+  l.push("Colonne « Réserve » (CT-7 EX-5.11, menace MN-93) : aucune CR- ne lit l'ancre de `D_C`, que le réviseur contrôle lui-même. Pour un procès-verbal de production dont CR-1 réussit, `verifierCeremonie` rend en plus la réserve `date_declaree_seulement` dans `reserves`, et la commande `scripts/verify/ceremonie.mjs` l'imprime (`--json` : membre `reserves` ; sortie lisible : une phrase qui commence par « Réserve : »). La réserve ne change ni le verdict ni le code de retour, et `attendu.json` ne la porte pas : sa forme reste `#/$defs/attendu`. Le cas `valide-production-sans-ancre` est celui que le test adversarial de MN-93 rejoue.", "");
   l.push("## cles-de-test.json", "");
   l.push(`Les clés publiques de test publiées par les vecteurs (EX-4.10, EX-A.7), recalculées depuis \`ct-1/cles/cles-test.json\`, \`ct-3/constantes.json\` (comptes Hardhat 0 à 9), \`ct-4/constantes.json\` et \`ct-6/rfc3161/cles/\` : ${cles.keys.length} clés (${["ct-1", "ct-3", "ct-4", "ct-6"].map((s) => `${s} : ${cles.keys.filter((k) => k.source === s).length}`).join(", ")}). Aucune ne sert en production ; RV-9 les recalcule.`, "");
   l.push("## attestations/", "");

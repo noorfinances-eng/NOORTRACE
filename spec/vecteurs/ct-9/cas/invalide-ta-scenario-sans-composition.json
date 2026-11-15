@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.9",
-  "date": "2026-11-12",
+  "spec_version": "0.10",
+  "date": "2026-11-14",
   "levels": [
     {
       "id": "TU",
@@ -170,9 +170,25 @@
       ],
       "oracle": "Chaque tentative est refusée ou journalisée comme le dit son TA- ; aucun événement n'est absent ni réécrit : le vérificateur accepte les dossiers et la série des points est continue. Borne (risques acceptés des tests composés) : RA-1, RA-2, RA-3, RA-4, RA-5, RA-6, RA-8, RA-13, RA-19.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 8,
-        "blocking": "Démonstration de référence et tests de bout en bout : phase 2, étape 8."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 §10.5 : scénarios adversariaux joués sur la démonstration de référence (composition docker compose de CT-2 §19)",
+            "it": "TA-103 (MN-1, MN-2, MN-3, MN-4, MN-5, MN-6, MN-7, MN-9, MN-15, MN-22) : sur la démonstration de référence, les attaques de l'agent sont refusées ou journalisées (connexion directe, launched_by déclaré, fractionnement, clé en double, ré-émission, demandes multipliées, outil réservé) ; aucun événement n'est absent ni réécrit, la série des points est continue (borne RA-1 à RA-6, RA-8, RA-13, RA-19)"
+          },
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- joués sur la démonstration de référence (composition docker compose de CT-2 §19, CT-7 EX-3.2)",
+            "it": "TA-1 (MN-1) : dans la démonstration de référence, le conteneur de l'agent tente une connexion TCP directe au serveur d'outils, par son nom puis par son adresse : code non nul, aucun paquet ne quitte le conteneur, tentative datée au journal du conteneur, aucun appel reçu ni événement ; composition mutante où agent-demo est aussi sur le réseau outils : la connexion aboutit sans événement (tué)"
+          },
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- joués sur la démonstration de référence (composition docker compose de CT-2 §19, CT-7 EX-3.2)",
+            "it": "TA-22 (MN-22) : dans la démonstration de référence, le conteneur de l'agent liste storage.root : code de retour non nul, le chemin n'existe pas ; composition mutante où le volume du journal est monté dans le conteneur de l'agent : le chemin existe (sous le compte de l'agent, le mode 0700 du démon refuse encore le listage ; sous le compte du démon, le listage réussit et un segment s'ouvre) (tué)"
+          }
+        ],
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js"
       },
       "threats": [
         "MN-1",

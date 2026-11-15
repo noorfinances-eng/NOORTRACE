@@ -4,16 +4,18 @@
 // versement de `P_k` moins le solde, sinon `deja_fait` ; consommation depuis
 // le dernier approvisionnement capturé, rapportée à la durée écoulée, et
 // examen exigé au-delà de deux fois le budget (EX-8.18). La confirmation hors
-// bande d'EX-7.26 est exigée par l'agent avant l'exécution du travail.
+// bande d'EX-7.26 est exigée par l'agent avant l'exécution du travail, et
+// `outputs.confirmation_sha256` rend le SHA-256 de la pièce qui la porte,
+// comme l'outil depuis `--confirmation <fichier>` (EX-8.21), le
+// versement la consommant (EX-7.26) et `deja_fait` la laissant libre.
 
 import * as R from "@noortrace/ancrage/registre";
 import { Sortie } from "../sortie.mjs";
 import { TenueDossier, etape } from "../dossier.mjs";
 import { envoyer } from "../envoi.mjs";
 import { solde } from "../reseau.mjs";
-import { cleRole, consommerConfirmation, dossierClient, ecartCompte, prealables } from "./base.mjs";
+import { budgetAuDelaDuPlafond, cleRole, confirmationRequise, consommerConfirmation, dossierClient, ecartCompte, prealables, provision } from "./base.mjs";
 import { completerResult } from "./inscrire-client.mjs";
-import { provision } from "./preparer.mjs";
 
 /** Dernier approvisionnement capturé de `vers` dans les captures : `{ index, instantMs }` ou null. */
 function dernierApprovisionnement(ctx, vers) {
@@ -41,7 +43,8 @@ export async function approvisionner(ctx, travail) {
   }
   sortie.reussie("OP-5");
   const budget = BigInt(p.budget_jour ?? d.funding.daily_budget_gas);
-  if (ctx.instance.fees.max_daily_budget_gas !== undefined && budget > BigInt(ctx.instance.fees.max_daily_budget_gas)) {
+  // `max_daily_budget_gas` nul ou absent : aucun plafond (`normaliserFees` de instance.mjs retire un membre nul).
+  if (budgetAuDelaDuPlafond(ctx.instance.fees, budget)) {
     sortie.echec("OP-3", "refuse", "provision_excessive", `budget journalier ${budget} au-delà de fees.max_daily_budget_gas (EX-8.20)`);
   }
   const pK = provision(ctx.instance.fees, budget);
@@ -50,9 +53,12 @@ export async function approvisionner(ctx, travail) {
   const dernier = dernierApprovisionnement(ctx, vers);
   const ecoule = dernier ? Math.max(0, Math.floor((ctx.horloge.murale() - dernier.instantMs) / 1000)) : null;
   const consommation = dernier ? (pK > avant ? pK - avant : 0n) : null;
+  const critere = { operations: ["approvisionner"], orgId: d.organisation.org_id, cleChaine: vers };
   const outputs = {
     to: vers,
     admitted_as: "dossier",
+    // La pièce de la confirmation hors bande qui autorise cet approvisionnement (EX-7.26, EX-8.21), consommée par le seul versement.
+    confirmation_sha256: confirmationRequise(ctx, critere).piece_sha256,
     balance_before_wei: avant.toString(),
     provision_wei: pK.toString(),
     refill_below_wei: seuilRecomplement.toString(),
@@ -82,7 +88,7 @@ export async function approvisionner(ctx, travail) {
   if (avant + value > pK) sortie.echec("OP-3", "refuse", "provision_excessive", `provision ${pK} dépassée`);
   sortie.reussie("OP-3");
   const e = etape(d, "approvisionnement", vers);
-  consommerConfirmation(ctx, { operations: ["approvisionner"], orgId: d.organisation.org_id, cleChaine: vers });
+  outputs.confirmation_sha256 = consommerConfirmation(ctx, critere).piece_sha256;
   const res = await envoyer(ctx, sortie, {
     tenue, etape: e && e.state !== "capturee" && e.state !== "faite" ? e : null, cle: tresorerie, objet: "approvisionnement", to: vers, value, provision: pK,
     role: "approvisionnement", contrat: null,

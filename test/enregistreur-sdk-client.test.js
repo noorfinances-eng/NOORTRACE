@@ -438,7 +438,7 @@ describe("noortrace-sdk : SDK JavaScript (6.5, EX-6.9 à EX-6.15)", function () 
       expect(Date.now() - t0).to.be.at.least(375);
     });
 
-    it("au plus 1 + reprises connexions en tout, établissement et ouvrir compris (EX-6.13 ; relecture du lot SDK Python)", async function () {
+    it("au plus 1 + reprises connexions en tout, établissement et ouvrir compris (EX-6.13 ; relecture du SDK Python)", async function () {
       const dir = repertoireTemporaire("noortrace-sdk-coupe-");
       const prise = path.join(dir, "coupe.sock");
       let connexions = 0;

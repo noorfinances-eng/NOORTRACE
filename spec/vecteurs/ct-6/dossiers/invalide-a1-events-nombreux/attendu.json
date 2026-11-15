@@ -1,0 +1,84 @@
+{
+  "valid": false,
+  "target": "A-2",
+  "failed_checks": [
+    "E-1",
+    "A-1",
+    "A-2"
+  ],
+  "control_statuses": {
+    "1": "echoue",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "reussi",
+    "5": "reussi",
+    "6": "non_execute",
+    "7": "echoue",
+    "8": "reussi"
+  },
+  "not_executed": [
+    {
+      "id": "E-2",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "E-3",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "E-4",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "E-5",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "E-6",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "E-7",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "E-8",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "E-9",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "E-10",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "E-11",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : E-1, A-1, A-2 ; vérification(s) non exécutée(s) sans raison admise : E-2, E-3, E-4, E-5, E-6, E-7, E-8, E-9, E-10, E-11 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): E-1, A-1, A-2; check(s) not run without an admitted reason: E-2, E-3, E-4, E-5, E-6, E-7, E-8, E-9, E-10, E-11; the verifier asserts nothing about this event."
+  },
+  "bound": {
+    "fr": "verdict borné : contrôle 6 non exécuté (prerequis_en_echec)",
+    "en": "bounded verdict: control 6 not run (prerequis_en_echec)"
+  },
+  "description": "valide-seq-7-complet dont approbations.json porte en events 1 500 zéros (SHA-256 de l'index reporté) : A-1 échoue par le schéma (maxItems 1 024), seuls les 1 024 premiers éléments sont contrôlés un à un (E-1 échoue pour chacun : pas un objet ; E-2 à E-11 non exécutées sur eux), A-2 échoue en nommant les 476 éléments non contrôlés (CT-1 §11.4 A-2 et CT-6 EX-15.1, révision demandée) ; le rapport porte au plus 64 détails par vérification puis le compte des omis ; contrôle 6 non exécuté (E-8 et E-11 non exécutées sur les zéros), contrôles 1 et 7 en échec, code 1."
+}

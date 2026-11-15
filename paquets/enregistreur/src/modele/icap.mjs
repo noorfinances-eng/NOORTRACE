@@ -31,6 +31,7 @@ import { VERSION_ENREGISTREUR } from "../coeur.mjs";
 import { normaliserCible, trouverRoute, reponseRefus, listeAdresses, adresseDans, hotePourAdresse, declarationsFournisseur, refusEnFlux, examinerRequeteGemini } from "./formats.mjs";
 import { analyserCorpsJson } from "./extraction.mjs";
 import { MoteurEchanges } from "./echange.mjs";
+import { ICAP_ENTETES_MAX_OCTETS, ICAP_CHUNK_MAX_OCTETS, ICAP_INACTIVITE_MS, ICAP_CONNEXIONS_MAX } from "../bornes.mjs";
 
 /** Chemins des deux services (EX-5.3). */
 export const SERVICE_REQMOD = "/noortrace/reqmod";
@@ -59,12 +60,15 @@ class ErreurIcap extends Error {
 export class LecteurOctets {
   constructor(socket) {
     this.socket = socket;
-    this.tampon = Buffer.alloc(0);
+    /** Morceaux reçus non consommés (étape 8 : plus de recopie du tampon à chaque paquet). */
+    this.morceaux = [];
+    this.taille = 0;
     this.fini = false;
     this.attente = null;
     socket.on("data", (d) => {
-      this.tampon = this.tampon.length ? Buffer.concat([this.tampon, d]) : d;
-      if (this.tampon.length > 4 * TETE_MAX) socket.pause();
+      this.morceaux.push(d);
+      this.taille += d.length;
+      if (this.taille > 4 * TETE_MAX) socket.pause();
       this._reveiller();
     });
     const fin = () => {
@@ -74,6 +78,16 @@ export class LecteurOctets {
     socket.on("end", fin);
     socket.on("close", fin);
     socket.on("error", fin);
+  }
+
+  /** Tampon consolidé (lecture seule, essais). */
+  get tampon() {
+    this._consolider();
+    return this.morceaux[0] ?? Buffer.alloc(0);
+  }
+
+  _consolider() {
+    if (this.morceaux.length > 1) this.morceaux = [Buffer.concat(this.morceaux)];
   }
 
   _reveiller() {
@@ -90,40 +104,44 @@ export class LecteurOctets {
   }
 
   _prendre(n) {
-    const x = this.tampon.subarray(0, n);
-    this.tampon = this.tampon.subarray(n);
-    if (this.tampon.length < 2 * TETE_MAX) this.socket.resume();
+    this._consolider();
+    const t = this.morceaux[0] ?? Buffer.alloc(0);
+    const x = t.subarray(0, n);
+    const reste = t.subarray(n);
+    this.morceaux = reste.length ? [reste] : [];
+    this.taille = reste.length;
+    if (this.taille < 2 * TETE_MAX) this.socket.resume();
     return x;
   }
 
   /** Octets jusqu'au séparateur exclu (séparateur consommé), null à la fin, erreur au-delà de max. */
   async jusqua(sep, max) {
     for (;;) {
-      const k = this.tampon.indexOf(sep);
+      const k = this.taille ? this.tampon.indexOf(sep) : -1;
       if (k >= 0) {
         if (k > max) throw new ErreurIcap(400, "trop_long");
         const x = Buffer.from(this._prendre(k));
         this._prendre(sep.length);
         return x;
       }
-      if (this.tampon.length > max) throw new ErreurIcap(400, "trop_long");
+      if (this.taille > max) throw new ErreurIcap(400, "trop_long");
       if (!(await this._attendre())) {
-        if (this.tampon.length) throw new ErreurIcap(400, "tronque");
+        if (this.taille) throw new ErreurIcap(400, "tronque");
         return null;
       }
     }
   }
 
-  /** Exactement n octets. */
+  /** Exactement n octets (attendus sans recopie, consolidés une fois). */
   async octets(n) {
-    while (this.tampon.length < n) if (!(await this._attendre())) throw new ErreurIcap(400, "tronque");
+    while (this.taille < n) if (!(await this._attendre())) throw new ErreurIcap(400, "tronque");
     return Buffer.from(this._prendre(n));
   }
 
   /** Les octets disponibles (au moins un), au plus n. */
   async morceau(n) {
-    while (!this.tampon.length) if (!(await this._attendre())) throw new ErreurIcap(400, "tronque");
-    return Buffer.from(this._prendre(Math.min(n, this.tampon.length)));
+    while (!this.taille) if (!(await this._attendre())) throw new ErreurIcap(400, "tronque");
+    return Buffer.from(this._prendre(Math.min(n, this.taille)));
   }
 }
 
@@ -157,6 +175,8 @@ export function lireEncapsulated(v) {
     return { nom: m[1], decalage: Number(m[2]) };
   });
   for (let k = 1; k < entites.length; k++) if (entites[k].decalage < entites[k - 1].decalage) throw new ErreurIcap(400, "encapsulated_mal_forme");
+  // Étape 8 : les en-têtes encapsulés sont lus en mémoire avant le corps : décalage borné.
+  if (entites[entites.length - 1].decalage > ICAP_ENTETES_MAX_OCTETS) throw new ErreurIcap(400, "encapsulated_trop_grand");
   const dernier = entites[entites.length - 1].nom;
   if (!/-body$/.test(dernier)) throw new ErreurIcap(400, "encapsulated_mal_forme");
   if (entites.slice(0, -1).some((e) => /-body$/.test(e.nom))) throw new ErreurIcap(400, "encapsulated_mal_forme");
@@ -178,14 +198,19 @@ function ecrireMessageHttp(depart, liste) {
 
 const morceauChunk = (o) => Buffer.concat([Buffer.from(`${o.length.toString(16)}\r\n`), o, Buffer.from("\r\n")]);
 
-/** Corps encapsulé en codage `chunked` (RFC 3507 §4.4.1) : morceaux remis un à un ; `ieof` d'un Preview. */
-async function* lireCorpsChunked(lecteur, borneLigne = 1024) {
+/**
+ * Corps encapsulé en codage `chunked` (RFC 3507 §4.4.1) : morceaux remis un à
+ * un ; `ieof` d'un Preview. Étape 8 : un morceau au-delà de
+ * `chunkMax` octets (16 Mio) est refusé (400 `chunk_trop_grand`) avant d'être lu.
+ */
+export async function* lireCorpsChunked(lecteur, borneLigne = 1024, chunkMax = ICAP_CHUNK_MAX_OCTETS) {
   for (;;) {
     const ligne = await lecteur.jusqua("\r\n", borneLigne);
     if (ligne === null) throw new ErreurIcap(400, "tronque");
     const [taille, ...ext] = ligne.toString("latin1").split(";").map((x) => x.trim());
     if (!/^[0-9a-fA-F]{1,8}$/.test(taille)) throw new ErreurIcap(400, "chunk_mal_forme");
     const n = parseInt(taille, 16);
+    if (n > chunkMax) throw new ErreurIcap(400, "chunk_trop_grand");
     if (n === 0) {
       // Fin du corps (ou du Preview) : remorque éventuelle jusqu'à la ligne vide.
       for (;;) {
@@ -282,7 +307,19 @@ export class ServeurIcap {
     const limite = Date.now() + (this.config.mcp?.drain_timeout_ms ?? 10000);
     while (this.prises.size && Date.now() < limite) await new Promise((r) => setTimeout(r, 20));
     for (const p of this.prises) p.destroy();
-    for (const e of this.enAttente.values()) clearTimeout(e.minuteur);
+    // Étape 8 (EX-14.12) : une requête déjà rendue au mandataire sans
+    // RESPMOD est scellée à l'arrêt comme au délai du premier octet, jamais abandonnée.
+    const attendues = [...this.enAttente.values()];
+    this.enAttente.clear();
+    for (const e of attendues) {
+      clearTimeout(e.minuteur);
+      await this.moteur.sceller(e.etat, { genre: "delai", phase: "arret", timeout_ms: 0 }).catch((x) => this._echangePerdu(e.etat, x));
+    }
+  }
+
+  /** Échec du scellement d'un échange (EX-14.12) : consigné, jamais un silence. */
+  _echangePerdu(etat, e) {
+    this.journal.consigner("error", "frontal_modele", "exchange_lost", { route: etat?.route?.path ?? null, mode: "icap", reason: String(e?.raison ?? e?.message ?? e).slice(0, 200) }, { host: etat?.hote?.id ?? null });
   }
 
   _ecrireReponse(socket, statut, entetes = [], suite = null) {
@@ -320,9 +357,19 @@ export class ServeurIcap {
   }
 
   async _connexion(socket, chiffre) {
+    // Étape 8 : connexions bornées à la valeur annoncée (`Max-Connections`), délai d'inactivité.
+    if (this.prises.size >= ICAP_CONNEXIONS_MAX) {
+      this.journal.consigner("warning", "frontal_modele", "icap_request_refused", { status: 503, reason: "connexions_max" });
+      socket.destroy();
+      return;
+    }
     this.prises.add(socket);
     socket.on("close", () => this.prises.delete(socket));
     socket.on("error", () => {});
+    socket.setTimeout(this.config.model.idle_timeout_ms ?? ICAP_INACTIVITE_MS, () => {
+      this.journal.consigner("warning", "frontal_modele", "icap_request_refused", { status: 408, reason: "inactivite" });
+      socket.destroy();
+    });
     const ic = this.config.model.icap;
     // Authentification du client ICAP (EX-5.3) : mTLS (ICAPS) ou adresse source admise.
     const sources = ic.allowed_sources ?? [];
@@ -535,7 +582,7 @@ export class ServeurIcap {
     entree.minuteur = setTimeout(() => {
       if (this.enAttente.get(id.i) !== entree) return;
       this.enAttente.delete(id.i);
-      this.moteur.sceller(etat, { genre: "delai", phase: "premier_octet", timeout_ms: cfg.model.first_byte_timeout_ms }).catch(() => {});
+      this.moteur.sceller(etat, { genre: "delai", phase: "premier_octet", timeout_ms: cfg.model.first_byte_timeout_ms }).catch((e) => this._echangePerdu(etat, e));
     }, cfg.model.first_byte_timeout_ms);
     entree.minuteur.unref?.();
     this.enAttente.set(id.i, entree);
@@ -611,7 +658,7 @@ export class ServeurIcap {
       if (etat) {
         const capture = this.moteur.capture(etat, { statut: Number(ls[2]), entetes: res.parNom });
         await capture.terminer();
-        this.moteur.sceller(etat, { genre: "reponse" }).catch(() => {});
+        this.moteur.sceller(etat, { genre: "reponse" }).catch((e) => this._echangePerdu(etat, e));
       }
       return true;
     }
@@ -654,14 +701,14 @@ export class ServeurIcap {
       // Le mandataire coupe au milieu du corps : forme incomplète (EX-5.13), échange scellé.
       if (capture) {
         await capture.terminer({ coupe: true });
-        this.moteur.sceller(etat, { genre: "coupure" }).catch(() => {});
+        this.moteur.sceller(etat, { genre: "coupure" }).catch((e) => this._echangePerdu(etat, e));
       }
       throw e;
     }
     envoyerEntetes();
     if (capture) await capture.terminer({ coupe: !complet });
     socket.write("0\r\n\r\n");
-    if (etat) this.moteur.sceller(etat, { genre: "reponse" }).catch(() => {});
+    if (etat) this.moteur.sceller(etat, { genre: "reponse" }).catch((e) => this._echangePerdu(etat, e));
     return true;
   }
 }

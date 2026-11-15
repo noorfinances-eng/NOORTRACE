@@ -1,0 +1,7 @@
+# LangChain et LangGraph aux versions de CT-2 §6.4 (mêmes épingles que paquets/sdk-python/verrous/langchain.in),
+# plus le client de modèle `langchain-openai` (ChatOpenAI(base_url=…), CT-2 §19.5.5) vers la passerelle (CT-9 TI-7).
+langchain[mcp]==1.4.7
+langchain-core==1.7.0
+langgraph==1.2.17
+langgraph-prebuilt==1.1.1
+langchain-openai==1.7.3

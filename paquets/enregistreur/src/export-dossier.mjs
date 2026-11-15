@@ -54,6 +54,21 @@ export const MOTIF_RESTE = /^\.noortrace-partiel-[0-9a-f]{32}$/;
 const DETAIL_MAX = 200;
 
 /** Répertoire des exports tel que le démon l'a lu (EX-15.12) : `exports_dir`, ou son défaut. */
+/**
+ * Règle du répertoire temporaire d'un export (étape 8, MN-99) : le
+ * répertoire ouvert appartient au compte effectif du démon et n'est accessible
+ * qu'à lui (mode 0700, bit setgid admis), dans tout environnement.
+ * @param {fs.Stats} st attributs du répertoire ouvert (`fstat`)
+ * @param {number|null} euid compte effectif du démon (null : système sans comptes)
+ * @returns {string|null} détail du refus (`proprietaire`, `mode`), ou null
+ */
+export function controlerRepertoireTemporaire(st, euid) {
+  if (!st.isDirectory()) return "non_dossier";
+  if (euid !== null && st.uid !== euid) return "proprietaire";
+  if ((st.mode & 0o077) !== 0) return "mode";
+  return null;
+}
+
 export function repertoireExports(config) {
   return config?.exports_dir ?? REPERTOIRE_EXPORTS_DEFAUT;
 }
@@ -543,6 +558,11 @@ export async function exporterDemande(coeur, demande) {
     } catch (e) {
       throw new RefusExport("ecriture_impossible", { detail: detailErreur(e, cree ? cheminTemp : parent) });
     }
+    // Étape 8 : le répertoire ouvert est celui que le démon vient de
+    // créer, dans tout environnement : un autre compte qui l'a remplacé entre la
+    // création et l'ouverture est refusé (MN-99), pas seulement en production.
+    const detailTemp = controlerRepertoireTemporaire(fs.fstatSync(fdTemp), typeof process.geteuid === "function" ? process.geteuid() : null);
+    if (detailTemp) throw new RefusExport("ecriture_impossible", { detail: detailTemp });
     if (!parentInchange()) throw new RefusExport("destination_hors_exports");
     if (production && fs.fstatSync(fdTemp).gid !== gidExports) throw new RefusExport("ecriture_impossible", { detail: "groupe" });
 

@@ -24,14 +24,21 @@ import { estHexOctets, octetsEgaux, octetsVersHex, quantiteVersEntier, utf8Octet
 import { ErreurRpc } from "./rpc.mjs";
 import { verifierIndexCapture } from "./schemas.mjs";
 import { champsEntete, hachageBlocBft, lireRecu, racineRecus, racineTransactions } from "./trie.mjs";
+import { ecrireEntierPuisLier } from "../rfc3161/depot.mjs";
 
 /** Rôles d'un index de capture (schéma). */
 export const ROLES_CAPTURE = Object.freeze([
   "deploiement", "jeu_approbateurs", "assignation", "approvisionnement", "inscription", "revocation", "ancre", "cloture", "administration_jeu", "reassignation",
 ]);
 
-/** Bornes de lecture : réponses JSON-RPC au plus 16 Mio, 256 reçus par bloc (CT-6 §15.1). */
-export const BORNES_CAPTURE = Object.freeze({ fichier: 16 * 1024 * 1024, recus: 256 });
+/**
+ * Bornes de lecture : réponses JSON-RPC au plus 16 Mio, 256 reçus par bloc
+ * (CT-6 §15.1) ; certificat de commit au plus 1 Mio (CT-4 CP-4 : un
+ * certificat de quatre validateurs et 64 reçus fait 33 199 octets, campagne
+ * TM-44 ; un membre inconnu de 15 Mio passait CP-1 à CP-6 et grossissait
+ * `certificat-commit.json` jusqu'aux 64 Mio du dossier).
+ */
+export const BORNES_CAPTURE = Object.freeze({ fichier: 16 * 1024 * 1024, recus: 256, certificat: 1024 * 1024 });
 
 /** Noms de fichiers d'une capture (CP-6). */
 export const nomBloc = (h) => `bloc-${h}.json`;
@@ -151,7 +158,7 @@ export function verifierCapture({ fichiers, index, jeux, bftChainId }) {
   let journal = null;
   let hauteur = null;
 
-  // Lecture des fichiers désignés par l'index ; la forme de l'index est contrôlée avant tout usage (R-D-3 : un index
+  // Lecture des fichiers désignés par l'index ; la forme de l'index est contrôlée avant tout usage (un index
   // ou un bloc corrompu rend CP-2 à CP-6 `echoue`, jamais une exception).
   if (!index || typeof index !== "object") index = {};
   const nomDe = (f) => (f && typeof f === "object" && typeof f.name === "string" ? f.name : null);
@@ -233,7 +240,8 @@ export function verifierCapture({ fichiers, index, jeux, bftChainId }) {
     if (!fichierCert) {
       detail = "certificat absent";
       code = "certificat_indisponible";
-    } else if (!jeu) detail = "aucun jeu de validateurs pour cette hauteur";
+    } else if (fichierCert.octets.length > BORNES_CAPTURE.certificat) detail = `certificat de ${fichierCert.octets.length} octets, au-delà de ${BORNES_CAPTURE.certificat} (CT-4 CP-4)`;
+    else if (!jeu) detail = "aucun jeu de validateurs pour cette hauteur";
     else if (!entete) detail = "en-tête inexploitable";
     else {
       let v;
@@ -318,22 +326,42 @@ export function verifierCapture({ fichiers, index, jeux, bftChainId }) {
 
 // ----------------------------------------------------------- Écriture
 
-/** Écrit un fichier en création exclusive puis `fsync` ; rend `true` s'il a été écrit, `false` s'il existait. */
+/**
+ * Écrit un fichier sans jamais réécrire : fichier provisoire écrit en entier
+ * et synchronisé, puis lien exclusif (CT-4 EX-9.3 : une coupure ne
+ * laisse jamais un fichier incomplet sous son nom). Rend `true` s'il a été
+ * écrit, `false` s'il existait. Droits 0644 (avant le masque), ceux de
+ * l'écriture exclusive d'avant le lien : une capture est déposée par un
+ * compte et remise à l'enregistreur par un autre (CT-2 §19.2 :
+ * approbateur-demo dépose la capture de l'inscription, exploitation-demo,
+ * sous le compte du démon, la remet), qui doit pouvoir la lire.
+ */
 export function ecrireExclusif(chemin, octets) {
-  let fd;
+  return ecrireEntierPuisLier(chemin, octets, (message, cause) => Object.assign(new Error(message), { cause, code: cause?.code ?? null }), path.basename(chemin), 0o644);
+}
+
+/**
+ * Met de côté un fichier présent qui ne passe pas la vérification (CT-4 EX-9.3
+ * ne dit pas quoi en faire) sous `<nom>.rejete-<SHA-256
+ * du contenu>` : jamais supprimé, jamais relu comme capture, et la réponse est
+ * redemandée. Rend le nom du fichier mis de côté, ou null.
+ */
+export function mettreDeCote(repertoire, nom) {
+  const chemin = path.join(repertoire, nom);
+  let octets;
   try {
-    fd = fs.openSync(chemin, "wx", 0o644);
-  } catch (e) {
-    if (e && e.code === "EEXIST") return false;
-    throw e;
+    octets = fs.readFileSync(chemin);
+  } catch {
+    return null;
   }
+  const cible = `${nom}.rejete-${sha256Hex(new Uint8Array(octets)).slice(2)}`;
   try {
-    fs.writeFileSync(fd, octets);
-    fs.fsyncSync(fd);
-  } finally {
-    fs.closeSync(fd);
+    fs.renameSync(chemin, path.join(repertoire, cible));
+  } catch {
+    return null;
   }
-  return true;
+  synchroniserRepertoire(repertoire);
+  return cible;
 }
 
 /** `fsync` d'un répertoire (entrées de répertoire durables). */
@@ -383,6 +411,10 @@ export async function obtenirCertificat({ rpc, hauteur, attendre, points = rpc.p
         break;
       }
       if (!reponse.erreur) {
+        if (reponse.octets.length > BORNES_CAPTURE.certificat) {
+          derniere = { code: "certificat_invalide", message: `certificat de ${reponse.octets.length} octets, au-delà de ${BORNES_CAPTURE.certificat} (CT-4 CP-4)` };
+          break;
+        }
         if (lireCertificat(reponse.resultat)) return { fichier: reponse, attempts, point };
         derniere = { code: "certificat_invalide", message: "certificat illisible" };
         break;
@@ -459,102 +491,146 @@ export async function capturer({ rpc, transactionHash, role, contrat, horloge, r
   const checkCp1 = verif("CP-1", cp1.length === 0 ? "reussi" : "echoue", cp1.map((c) => c.message).join(" ; "));
   if (cp1.length > 0) return erreur(cp1[0].code, "CP-1", cp1[0].message, [checkCp1]);
 
-  // Fichiers : en-tête, reçus, certificat ; les fichiers présents sont repris (EX-9.3).
+  // Fichiers : en-tête, reçus, certificat. Revue de sécurité de l'étape 8 (règle d'écriture unique de S-4) : les réponses sont
+  // tenues en mémoire, vérifiées par CP-2 à CP-6, et seulement alors écrites sous leur nom (nom provisoire, écriture
+  // complète, `fsync`, lien exclusif). Un fichier présent et lisible est repris (EX-9.3) ; s'il ne passe pas la
+  // vérification, il est mis de côté (`<nom>.rejete-<SHA-256>`) et la réponse est redemandée à un autre validateur ;
+  // un fichier présent illisible est mis de côté d'emblée. Rien de faux ni d'incomplet ne reste sous un nom de capture.
   const ecrits = [];
-  const reprendreOuEcrire = async (nom, obtenir) => {
-    const present = lecteur.lire(nom);
-    if (present) {
-      const lu = lireFichierRpc(present);
-      if (lu) return { fichier: lu, repris: true };
-    }
-    const reponse = await obtenir();
-    if (!reponse) return { fichier: null, repris: false };
-    const lu = lireFichierRpc(reponse.octets);
-    if (!lu) return { fichier: null, repris: false };
-    if (ecrireExclusif(path.join(repertoire, nom), reponse.octets)) ecrits.push(nom);
-    else {
-      const relu = lireFichierRpc(lecteur.lire(nom));
-      return { fichier: relu, repris: true };
-    }
-    return { fichier: lu, repris: false };
-  };
-  const appel = async (methode, params) => {
+  const ecartes = [];
+  const reponses = new Map(); // nom → { fichier (lireFichierRpc), repris }
+  const lecteurMemoire = { lire: (nom) => reponses.get(nom)?.fichier?.octets ?? null, existe: (nom) => reponses.has(nom) };
+  const autresPoints = rpc.points().filter((p) => p !== point);
+  const appel = async (methode, params, surPoint = point) => {
     try {
-      const r = await rpc.appeler(methode, params, { point });
+      const r = await rpc.appeler(methode, params, { point: surPoint });
       return r.erreur || r.resultat === null ? null : r;
     } catch (e) {
       if (e instanceof ErreurRpc) return null;
       throw e;
     }
   };
-
-  const bloc = await reprendreOuEcrire(nomBloc(h), () => appel("eth_getBlockByNumber", ["0x" + hauteur.toString(16), false]));
-  if (!bloc.fichier) return erreur("capture_incomplete", "CP-2", "en-tête indisponible", [checkCp1]);
-  const transactions = Array.isArray(bloc.fichier.resultat?.transactions) ? bloc.fichier.resultat.transactions : null;
-  if (!transactions || !transactions.every((t) => estHexOctets(t, 32)) || transactions.length > BORNES_CAPTURE.recus) {
-    return erreur("capture_incomplete", "CP-2", "liste de transactions de l'en-tête illisible", [checkCp1]);
-  }
-  const indexTx = transactions.indexOf(transactionHash);
-  if (indexTx < 0) return erreur("capture_incomplete", "CP-3", "transaction absente de l'en-tête", [checkCp1]);
-
-  const recus = [];
-  for (const tx of transactions) {
-    const r = await reprendreOuEcrire(nomRecu(tx), () => (tx === transactionHash && fichierRecuCible ? { octets: fichierRecuCible.octets } : appel("eth_getTransactionReceipt", [tx])));
-    if (!r.fichier) return erreur("capture_incomplete", "CP-3", `reçu de ${tx} indisponible`, [checkCp1]);
-    recus.push(r.fichier);
-  }
+  /** Reprend un fichier présent lisible, sinon demande la réponse (`obtenir(point)`), sans rien écrire. */
+  const obtenirReponse = async (nom, obtenir, { redemander = false } = {}) => {
+    if (!redemander && lecteur.existe(nom)) {
+      const present = lecteur.lire(nom);
+      const lu = present ? lireFichierRpc(present) : null;
+      if (lu) {
+        reponses.set(nom, { fichier: lu, repris: true });
+        return lu;
+      }
+      const mis = mettreDeCote(repertoire, nom);
+      if (mis) ecartes.push({ nom, mis_de_cote: mis, raison: "illisible" });
+    }
+    // Une réponse redemandée après la mise de côté d'un fichier faux vient d'un autre validateur quand il y en a un.
+    const pointsEssayes = redemander ? [...autresPoints, point] : [point, ...autresPoints];
+    for (const p of pointsEssayes) {
+      const reponse = await obtenir(p);
+      if (!reponse) continue;
+      const lu = lireFichierRpc(reponse.octets);
+      if (!lu) continue;
+      reponses.set(nom, { fichier: lu, repris: false, point: p });
+      return lu;
+    }
+    reponses.delete(nom);
+    return null;
+  };
 
   let attempts = 1;
-  let erreurCertificat = null; // hors de la fermeture : `cert` n'est lisible qu'après son initialisation (R-D-2)
-  const cert = await reprendreOuEcrire(nomCertificat(h), async () => {
-    const o = await obtenirCertificat({ rpc, hauteur: h, attendre, points: [point, ...rpc.points().filter((p) => p !== point)] });
-    attempts = o.attempts;
-    if (o.erreur) {
-      erreurCertificat = o.erreur;
-      return null;
+  let erreurCertificat = null; // hors de la fermeture : `cert` n'est lisible qu'après son initialisation
+  /** Rassemble les trois réponses et les vérifie ; `redemander` : noms dont le fichier présent a été écarté. */
+  const rassembler = async (redemander) => {
+    const bloc = await obtenirReponse(nomBloc(h), (p) => appel("eth_getBlockByNumber", ["0x" + hauteur.toString(16), false], p), { redemander: redemander.has(nomBloc(h)) });
+    if (!bloc) return { echec: erreur("capture_incomplete", "CP-2", "en-tête indisponible", [checkCp1]) };
+    const transactions = Array.isArray(bloc.resultat?.transactions) ? bloc.resultat.transactions : null;
+    if (!transactions || !transactions.every((t) => estHexOctets(t, 32)) || transactions.length > BORNES_CAPTURE.recus) {
+      return { echec: erreur("capture_incomplete", "CP-2", "liste de transactions de l'en-tête illisible", [checkCp1]), suspects: [nomBloc(h)] };
     }
-    return o.fichier;
-  });
-  if (!cert.fichier) return erreur(erreurCertificat?.code ?? "certificat_indisponible", "CP-4", erreurCertificat?.message ?? "certificat indisponible", [checkCp1]);
-
-  // Journal prouvé et jeu de la hauteur.
-  const recuLu = lireRecu(recus[indexTx].resultat);
-  const { logIndex } = recuLu ? trouverJournal(recuLu, { role, contrat: contratMin, attendu }) : { logIndex: null };
-  const jeu = jeuPourHauteur(jeux, h);
-  const index = {
-    version: 0,
-    role,
-    evm_chain_id: Number(instance.evmChainId),
-    bft_chain_id: instance.bftChainId,
-    contract: contratMin,
-    transaction_hash: transactionHash,
-    block_number: h,
-    block_hash: typeof bloc.fichier.resultat?.hash === "string" ? bloc.fichier.resultat.hash : "0x" + "00".repeat(32),
-    transaction_index: indexTx,
-    log_index: logIndex,
-    files: {
-      block: { name: nomBloc(h), sha256: bloc.fichier.sha256 },
-      receipts: transactions.map((tx, k) => ({ name: nomRecu(tx), sha256: recus[k].sha256 })),
-      certificate: { name: nomCertificat(h), sha256: cert.fichier.sha256 },
-    },
-    node: { rpc: point, validator_id: rpc.validateurDe(point) },
-    validator_set_hash: jeu ? octetsVersHex(jeu.jeu.hash) : "0x" + "00".repeat(32),
-    captured_at: ecrireHorodatage(horloge.murale()),
-    attempts: Math.min(Math.max(attempts, 1), 1000),
-    // Six vérifications provisoires, pour que CP-6 juge un index complet ; remplacées par les résultats réels.
-    checks: [checkCp1, ...["CP-2", "CP-3", "CP-4", "CP-5", "CP-6"].map((id) => verif(id, "reussi"))],
-    sending,
+    const indexTx = transactions.indexOf(transactionHash);
+    if (indexTx < 0) return { echec: erreur("capture_incomplete", "CP-3", "transaction absente de l'en-tête", [checkCp1]), suspects: [nomBloc(h)] };
+    const recus = [];
+    for (const tx of transactions) {
+      const r = await obtenirReponse(nomRecu(tx), (p) => (tx === transactionHash && fichierRecuCible && p === point ? { octets: fichierRecuCible.octets } : appel("eth_getTransactionReceipt", [tx], p)), { redemander: redemander.has(nomRecu(tx)) });
+      if (!r) return { echec: erreur("capture_incomplete", "CP-3", `reçu de ${tx} indisponible`, [checkCp1]) };
+      recus.push(r);
+    }
+    const cert = await obtenirReponse(nomCertificat(h), async (p) => {
+      const o = await obtenirCertificat({ rpc, hauteur: h, attendre, points: [p, ...rpc.points().filter((x) => x !== p)] });
+      attempts = o.attempts;
+      if (o.erreur) {
+        erreurCertificat = o.erreur;
+        return null;
+      }
+      return o.fichier;
+    }, { redemander: redemander.has(nomCertificat(h)) });
+    if (!cert) return { echec: erreur(erreurCertificat?.code ?? "certificat_indisponible", "CP-4", erreurCertificat?.message ?? "certificat indisponible", [checkCp1]) };
+    // Journal prouvé et jeu de la hauteur.
+    const recuLu = lireRecu(recus[indexTx].resultat);
+    const { logIndex } = recuLu ? trouverJournal(recuLu, { role, contrat: contratMin, attendu }) : { logIndex: null };
+    const jeu = jeuPourHauteur(jeux, h);
+    const index = {
+      version: 0,
+      role,
+      evm_chain_id: Number(instance.evmChainId),
+      bft_chain_id: instance.bftChainId,
+      contract: contratMin,
+      transaction_hash: transactionHash,
+      block_number: h,
+      block_hash: typeof bloc.resultat?.hash === "string" ? bloc.resultat.hash : "0x" + "00".repeat(32),
+      transaction_index: indexTx,
+      log_index: logIndex,
+      files: {
+        block: { name: nomBloc(h), sha256: bloc.sha256 },
+        receipts: transactions.map((tx, k) => ({ name: nomRecu(tx), sha256: recus[k].sha256 })),
+        certificate: { name: nomCertificat(h), sha256: cert.sha256 },
+      },
+      node: { rpc: point, validator_id: rpc.validateurDe(point) },
+      validator_set_hash: jeu ? octetsVersHex(jeu.jeu.hash) : "0x" + "00".repeat(32),
+      captured_at: ecrireHorodatage(horloge.murale()),
+      attempts: Math.min(Math.max(attempts, 1), 1000),
+      // Six vérifications provisoires, pour que CP-6 juge un index complet ; remplacées par les résultats réels.
+      checks: [checkCp1, ...["CP-2", "CP-3", "CP-4", "CP-5", "CP-6"].map((id) => verif(id, "reussi"))],
+      sending,
+    };
+    const v = verifierCapture({ fichiers: lecteurMemoire, index, jeux, bftChainId: instance.bftChainId });
+    index.checks = [checkCp1, ...v.checks];
+    if (!v.premierEchec) return { index, indexTx };
+    // Fichiers repris du disque mis en cause par la vérification en échec : en-tête (CP-2), reçus (CP-3), certificat (CP-4), tous (CP-5, CP-6).
+    const parCheck = { "CP-2": [nomBloc(h)], "CP-3": [nomBloc(h), ...transactions.map(nomRecu)], "CP-4": [nomCertificat(h)] };
+    const suspects = parCheck[v.premierEchec.check] ?? [nomBloc(h), nomCertificat(h), ...transactions.map(nomRecu)];
+    return { echec: { erreur: { code: v.premierEchec.code, check: v.premierEchec.check, message: v.checks.find((c) => c.id === v.premierEchec.check)?.detail ?? "" }, checks: index.checks, index }, suspects };
   };
-  const v = verifierCapture({ fichiers: lecteur, index, jeux, bftChainId: instance.bftChainId });
-  index.checks = [checkCp1, ...v.checks];
-  if (v.premierEchec) {
-    return { erreur: { code: v.premierEchec.code, check: v.premierEchec.check, message: v.checks.find((c) => c.id === v.premierEchec.check)?.detail ?? "" }, checks: index.checks, index, ecrits };
+
+  let resultat = await rassembler(new Set());
+  if (resultat.echec && Array.isArray(resultat.suspects)) {
+    const aEcarter = resultat.suspects.filter((nom) => reponses.get(nom)?.repris);
+    if (aEcarter.length) {
+      for (const nom of aEcarter) {
+        const mis = mettreDeCote(repertoire, nom);
+        if (mis) ecartes.push({ nom, mis_de_cote: mis, raison: resultat.echec.erreur.check });
+        reponses.delete(nom);
+      }
+      resultat = await rassembler(new Set(aEcarter));
+    }
   }
+  if (resultat.echec) return { ...resultat.echec, ecrits, ecartes };
+  const { index, indexTx } = resultat;
+  // Vérification faite : les réponses venues du réseau sont écrites, puis l'index.
+  for (const [nomFichier, r] of reponses) {
+    if (r.repris) continue;
+    if (ecrireExclusif(path.join(repertoire, nomFichier), r.fichier.octets)) ecrits.push(nomFichier);
+    else if (lireFichierRpc(lecteur.lire(nomFichier))?.sha256 !== r.fichier.sha256) {
+      return { erreur: { code: "capture_incomplete", check: "CP-6", message: `${nomFichier} présent avec d'autres octets` }, checks: index.checks, index, ecrits, ecartes };
+    }
+  }
+  if (ecrits.length) synchroniserRepertoire(repertoire);
   const nom = nomIndex(h, indexTx, role);
   const octets = serialiserIndex(index);
   const chemin = path.join(repertoire, nom);
   if (!ecrireExclusif(chemin, octets)) {
-    // Index déjà présent : la capture avait été faite ; on le relit (idempotence).
+    // Index déjà présent : la capture avait été faite ; on le relit (idempotence) s'il passe encore CP-2 à CP-6 sur les
+    // fichiers présents ; sinon (fichier mis de côté et réécrit, CT-4 EX-9.3) il est mis de côté à son tour et le
+    // nôtre, vérifié, prend le nom.
     const present = lecteur.lire(nom);
     const texte = present ? utf8Texte(present) : null;
     let relu = null;
@@ -563,11 +639,15 @@ export async function capturer({ rpc, transactionHash, role, contrat, horloge, r
     } catch {
       relu = null;
     }
-    if (relu && verifierIndexCapture(relu).valide) return { index: relu, nom, chemin, sha256: sha256Hex(present), octets: present, checks: relu.checks, repris: true, ecrits };
-    return erreur("capture_incomplete", "CP-6", "index présent mais illisible", index.checks);
+    if (relu && verifierIndexCapture(relu).valide && verifierCapture({ fichiers: lecteur, index: relu, jeux, bftChainId: instance.bftChainId }).premierEchec === null) {
+      return { index: relu, nom, chemin, sha256: sha256Hex(present), octets: present, checks: relu.checks, repris: true, ecrits, ecartes };
+    }
+    const mis = mettreDeCote(repertoire, nom);
+    if (mis) ecartes.push({ nom, mis_de_cote: mis, raison: "index présent qui ne passe plus CP-2 à CP-6" });
+    if (!ecrireExclusif(chemin, octets)) return erreur("capture_incomplete", "CP-6", "index présent mais illisible", index.checks);
   }
   synchroniserRepertoire(repertoire);
-  return { index, nom, chemin, sha256: sha256Hex(octets), octets, checks: index.checks, repris: false, ecrits };
+  return { index, nom, chemin, sha256: sha256Hex(octets), octets, checks: index.checks, repris: false, ecrits, ecartes };
 }
 
 /** Compare deux suites d'octets (pour les tests de reprise). */

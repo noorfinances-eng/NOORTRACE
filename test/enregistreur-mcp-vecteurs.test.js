@@ -76,7 +76,13 @@ async function rejouer(cas) {
   // consignée au LISEZMOI du paquet.
   Object.assign(v.config.limits, a.limits ?? {});
   const horloge = new HorlogeReglable(t(hote[0].t) - 60000);
-  const service = new ServiceFixe(() => a.approval?.response ?? AUTORISE);
+  // La réponse du vecteur porte l'épinglage de la politique du scénario (CT-2 annexe B.4, approval.pinned) ; le
+  // cœur de l'essai est configuré par configurationMcp, dont la politique a d'autres empreintes : le service fixe
+  // reporte le couple que ce cœur a chargé (CT-3 §12.3), comme le vrai service ; l'épinglage du vecteur est jugé
+  // par test/enregistreur-politique-vecteurs.test.js (réponse égale à approval.pinned, B.4), comme le fait le banc
+  // de ce fichier-là.
+  const reponseFixe = a.approval?.response ? Object.fromEntries(Object.entries(a.approval.response).filter(([k]) => !["policy_version", "policy_sha256", "approval_sha256"].includes(k))) : AUTORISE;
+  const service = new ServiceFixe(() => reponseFixe);
   const coeur = await Coeur.demarrer({ config: v.config, secrets: secretsDev(), horloge, service });
   const minuteur = new MinuteurVirtuel(horloge);
   const redacteur = new RedacteurTest();

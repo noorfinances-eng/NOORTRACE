@@ -348,6 +348,68 @@
         "check": "OP-4",
         "code": "cle_invalide"
       }
+    },
+    {
+      "id": "provision-differente",
+      "description": "amount_wei de un wei de plus que P_k = provision_days × daily_budget_gas + gas_limit recalculée depuis les frais : rien du dossier ne fixe le montant d'un virement (EX-4.20)",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/provision-differente.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "provision_excessive"
+      }
+    },
+    {
+      "id": "budget-au-dela-du-plafond",
+      "description": "daily_budget_gas d'un gaz de plus que fees.max_daily_budget_gas du manifeste (amount_wei cohérent) : le budget retenu ne dépasse jamais le plafond du manifeste (EX-8.20)",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/budget-au-dela-du-plafond.json",
+        "nature": "developpement",
+        "operator_accounts": [],
+        "fees": {
+          "transaction_type": 2,
+          "max_fee_per_gas_wei": "1",
+          "max_priority_fee_per_gas_wei": "1",
+          "gas_limit": 3000000,
+          "gas_limit_max": 16777216,
+          "provision_days": 30,
+          "refill_below_days": 7,
+          "max_daily_budget_gas": 10800000
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "provision_excessive"
+      }
+    },
+    {
+      "id": "funder-etranger",
+      "description": "funder différent du compte de rôle tresorerie du manifeste donné à OP-4 : un dossier d'inscription ne désigne pas la trésorerie qui le finance (EX-4.19)",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/funder-etranger.json",
+        "nature": "developpement",
+        "operator_accounts": [],
+        "treasury": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "compte_inattendu"
+      }
     }
   ]
 }

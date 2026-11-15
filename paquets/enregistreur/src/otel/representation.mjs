@@ -151,8 +151,12 @@ export function normaliser(requete, bornes = {}) {
           events: sp.events.map((e) => ({ name: e.name, time_unix_nano: e.time_unix_nano.toString(), attributes: objetA(e.attributes, comptes, false), dropped_attributes_count: e.dropped_attributes_count })),
           links_count: sp.links_count,
           status: { code: sp.status?.code ?? 0, message: sp.status?.message ?? "" },
-          resource: structuredClone(resource),
-          scope: structuredClone(scope),
+          // Ressource et portée partagées par les spans d'un même `resource_spans`
+          // (étape 8, CT-2 EX-6.28 : clonées par span, la mémoire valait spans × taille
+          // de la ressource) ; la projection clone l'enveloppe d'un span retenu
+          // avant d'y écrire (`fusionnerTextuels`), jamais ces objets.
+          resource,
+          scope,
           schema_url,
         };
         spans.push({ path: [r, s, p], N });

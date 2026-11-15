@@ -3,7 +3,7 @@
 // composant d'ancrage, ce module produit les douze parties v0, les cinq
 // parties réservées absentes avec la raison « hors périmètre CT-1 », et la
 // treizième partie `points-de-controle.json` sans ancre. Avec le composant
-// d'ancrage branché (`anchoring.ancrage`, lot F2), l'assemblage des sept
+// d'ancrage branché (`anchoring.ancrage`), l'assemblage des sept
 // parties de CT-1 est le même et l'exportateur du composant (CT-5 §10,
 // `@noortrace/ancrage`) complète le dossier : point couvrant d'EX-10.2 avec
 // ses ancres embarquées, `jeton-rfc3161.der`, `preuve.ots`, parties du
@@ -138,6 +138,8 @@ export async function assemblerBase(p) {
   const serie = await relireSerie(cheminSerie).catch((err) => {
     throw Object.assign(err, { path: err.path ?? cheminSerie });
   });
+  // Dernière ligne de la série illisible : rapportée, jamais coupée par l'export.
+  if (serie.defaut) raisons.points = `derniere ligne de la serie illisible (${serie.defaut.fichier}, ligne ${serie.defaut.ligne}, ${serie.defaut.octets} octets)`;
   return { evenement: e, evenements: l.evenements ?? null, hashes, leafIndex: leaf, manifeste: m.manifeste, signature: m.signature, cles, approbations, serie, periodStart: start, fichiers, raisons };
 }
 

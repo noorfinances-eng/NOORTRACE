@@ -26,6 +26,15 @@
 // (keccak256(orgId || journalId || periodHash)) et enchaîne cette période à la
 // suite de la précédente (continuité par journal), ce qui permet de répéter la
 // mesure.
+//
+// OUTIL DE MESURE DU RÉSEAU DE DÉVELOPPEMENT : les clés passées par
+// l'environnement sont des clés d'essai (comptes de la mnémonique publique,
+// clés de test publiées), jamais des clés réelles. Garde de réseau (revue de sécurité de l'étape 8) :
+// l'identifiant EVM du point doit être 2121 à 2124 ou 31337 et
+// NOOR_RPC_URL doit viser la boucle locale, sauf --reseau-distant ; sinon
+// refus, code 2, rien n'est envoyé. Une clé mal saisie ou une URL qui porte
+// des identifiants est refusée sans que la valeur soit recopiée ; le
+// résultat ne porte l'URL que sans ses secrets.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -50,10 +59,64 @@ import { construireManifeste } from "../lib/journal.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const reseau = String(args.network ?? "noorcore");
-const url = process.env.NOOR_RPC_URL || "http://127.0.0.1:8645";
 const intervalleMs = Number(args.intervalle ?? 50);
 const journalNom = String(args.journal ?? "journal-principal");
 const DELAI_MAX_MS = 120_000;
+/** Identifiants EVM des réseaux de développement et d'essai (CT-4 EX-7.2, EX-7.3) : seuls réseaux où cet outil écrit. */
+const RESEAUX_DEVELOPPEMENT = new Set([2121n, 2122n, 2123n, 2124n, 31337n]);
+const HOTES_LOCAUX = new Set(["127.0.0.1", "localhost", "[::1]", "::1"]);
+const HEX_CLE = /^0x[0-9a-fA-F]{64}$/;
+
+/** Refus avant toute écriture : code 2. */
+class Refus extends Error {
+  constructor(message) {
+    super(message);
+    this.code = 2;
+  }
+}
+
+/** Une clé secp256k1 saisie : 0x suivi de 64 chiffres hexadécimaux ; le message de refus ne nomme que la variable et le rang, jamais la valeur. */
+function cleValidee(valeur, nom) {
+  if (typeof valeur !== "string" || !HEX_CLE.test(valeur.trim())) throw new Refus(`${nom} : clé secp256k1 attendue, 0x suivi de 64 chiffres hexadécimaux ; la valeur saisie n'est pas recopiée`);
+  return valeur.trim();
+}
+
+/** URL sans identifiants ni chaîne de requête, seule forme écrite dans le résultat ou un message. */
+function urlSansSecret(u) {
+  try {
+    const x = new URL(u);
+    x.username = "";
+    x.password = "";
+    x.search = "";
+    return x.toString().replace(/\/$/, "");
+  } catch {
+    return "<URL illisible>";
+  }
+}
+
+/** NOOR_RPC_URL contrôlée : http(s), sans identifiants ni chaîne de requête ; boucle locale sauf --reseau-distant. */
+function urlVerifiee(brute, { distant }) {
+  let u;
+  try {
+    u = new URL(brute);
+  } catch {
+    throw new Refus("NOOR_RPC_URL : URL illisible");
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") throw new Refus(`NOOR_RPC_URL : schéma ${u.protocol} refusé`);
+  if (u.username || u.password || u.search) throw new Refus(`NOOR_RPC_URL : ${urlSansSecret(u)} porte des identifiants ou une chaîne de requête : aucun secret ne passe par l'URL`);
+  if (!distant && !HOTES_LOCAUX.has(u.hostname)) throw new Refus(`NOOR_RPC_URL : ${u.hostname} hors de la boucle locale ; cet outil n'écrit que dans le registre de développement : --reseau-distant pour un autre point, dont l'identifiant EVM doit rester 2121 à 2124 ou 31337`);
+  return u.toString().replace(/\/$/, "");
+}
+
+/** Message d'erreur sans secret : hexadécimal long et identifiants d'URL effacés. */
+function messageSur(e) {
+  return String(e?.message ?? e)
+    .replace(/0x[0-9a-fA-F]{40,}/g, "0x…")
+    .replace(/\/\/[^/@\s]+@/g, "//");
+}
+
+/** Point JSON-RPC, contrôlé par urlVerifiee au début de main (refus : code 2, sans pile). */
+let url = null;
 
 /** ABI d'un contrat, lue dans les artefacts de compilation. */
 function abiDe(nom) {
@@ -81,13 +144,15 @@ const entier = (hex) => Number(BigInt(hex));
 
 
 async function main() {
-  const cle = process.env.NOOR_PRIVATE_KEY;
-  if (!cle) throw new Error("NOOR_PRIVATE_KEY manquante (clé privée du compte qui relaie les transactions)");
+  url = urlVerifiee(process.env.NOOR_RPC_URL || "http://127.0.0.1:8645", { distant: args["reseau-distant"] === true });
+  if (!process.env.NOOR_PRIVATE_KEY) throw new Refus("NOOR_PRIVATE_KEY manquante (clé privée du compte d'essai qui relaie les transactions)");
+  const cle = cleValidee(process.env.NOOR_PRIVATE_KEY, "NOOR_PRIVATE_KEY");
   const clesApprobateurs = (process.env.NOORTRACE_APPROVER_KEYS ?? "")
     .split(",")
     .map((k) => k.trim())
-    .filter(Boolean);
-  if (clesApprobateurs.length === 0) throw new Error("NOORTRACE_APPROVER_KEYS manquante (clés privées des approbateurs, séparées par des virgules)");
+    .filter(Boolean)
+    .map((k, i) => cleValidee(k, `NOORTRACE_APPROVER_KEYS, clé de rang ${i + 1}`));
+  if (clesApprobateurs.length === 0) throw new Refus("NOORTRACE_APPROVER_KEYS manquante (clés privées d'essai des approbateurs, séparées par des virgules)");
   if (!Number.isFinite(intervalleMs) || intervalleMs < 1) throw new Error(`--intervalle invalide : ${args.intervalle}`);
 
   // Le déploiement et l'organisation, tels qu'écrits par les scripts de déploiement.
@@ -101,8 +166,10 @@ async function main() {
   if (!org) throw new Error(`Organisation « ${slug || "(aucune)"} » absente de deployments/${reseau}-orgs.json : amorcer d'abord avec scripts/deploy/bootstrap-org.mjs`);
 
   const chainId = BigInt(await rpc("eth_chainId"));
+  // Garde de réseau : jamais d'écriture hors des réseaux de développement et d'essai.
+  if (!RESEAUX_DEVELOPPEMENT.has(chainId)) throw new Refus(`eth_chainId ${chainId} : hors des réseaux de développement (2121 à 2124) et d'essai (31337) ; cet outil de mesure n'écrit pas dans un autre registre`);
   if (chainId.toString() !== String(deployment.chainId)) {
-    throw new Error(`chainId du réseau (${chainId}) différent de celui de deployments/${reseau}.json (${deployment.chainId})`);
+    throw new Refus(`chainId du réseau (${chainId}) différent de celui de deployments/${reseau}.json (${deployment.chainId})`);
   }
 
   const provider = new JsonRpcProvider(url, undefined, { batchMaxCount: 1 });
@@ -301,7 +368,7 @@ async function main() {
   const delais = mesures.map((m) => m.delaiRecuMs);
   const resultat = {
     reseau,
-    url,
+    url: urlSansSecret(url),
     chainId: chainId.toString(),
     organisation: { slug, orgId, curatorSet: org.curatorSet, seuil: org.seuil, signataires: signataires.map((w) => w.address) },
     expediteur: expediteur.address,
@@ -327,6 +394,7 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error("Échec de la mesure :", e);
-  process.exitCode = 1;
+  // Le message seul, sans la saisie ni la pile.
+  console.error("Échec de la mesure :", messageSur(e));
+  process.exitCode = e instanceof Refus ? 2 : 1;
 });

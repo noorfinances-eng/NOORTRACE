@@ -107,7 +107,10 @@
               "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
             ],
             "source": "jeu statique de la politique vecteurs-ct3-1"
-          }
+          },
+          "policy_version": "vecteurs-ct3-1",
+          "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+          "approval_sha256": "0x6d805e12dce97292456a5f0fe8f92899aa451d233a7efe82e5297049a5263def"
         },
         "remises": [],
         "windows": []

@@ -4,10 +4,27 @@
 // d'une autre méthode que GET ou HEAD exige l'en-tête `Origin` égal à
 // l'origine de l'interface ; aucun en-tête `Access-Control-Allow-*` ; seules
 // `/connexion` et `POST /api/connexion` (et les fichiers statiques de la
-// construction, sans donnée) se servent sans session.
+// construction, sans donnée) se servent sans session. Revue de l'étape 8
+// (CT-7 CLE-37) : l'en-tête `Host` doit être l'autorité de l'origine de
+// l'interface (421 sinon) ; en production, `Strict-Transport-Security` sur
+// chaque réponse.
 
 import { NextResponse } from "next/server";
 import { configuration, cookieDe, session } from "./lib/serveur.mjs";
+
+/** En-tête HSTS des réponses de production (deux ans, sous-domaines compris). */
+export const HSTS = "max-age=63072000; includeSubDomains";
+
+/** L'en-tête `Host` d'une requête est-il l'autorité de l'origine de l'interface ? */
+export function hoteAdmis(hote, origine) {
+  let attendu;
+  try {
+    attendu = new URL(origine).host;
+  } catch {
+    return false;
+  }
+  return typeof hote === "string" && hote.toLowerCase() === attendu.toLowerCase();
+}
 
 /** Politique de sécurité du contenu d'une réponse (INTERFACES.md 2.3 ; `connect-src 'self'` : LISEZMOI.md). */
 export function politique(nonce) {
@@ -48,6 +65,9 @@ export function proxy(requete) {
   } catch {
     return refus(500, "configuration", "interface mal configurée", securite);
   }
+  if (config.nature === "production") securite["strict-transport-security"] = HSTS;
+  // Garde d'hôte : la requête s'adresse à l'autorité de l'origine de l'interface.
+  if (!hoteAdmis(requete.headers.get("host"), config.origine)) return refus(421, "hote_refuse", "en-tête Host différent de l'autorité de l'origine de l'interface", securite);
   // Méthodes autres que GET : Origin exigé, égal à l'origine de l'interface.
   if (requete.method !== "GET" && requete.method !== "HEAD") {
     const origine = requete.headers.get("origin");

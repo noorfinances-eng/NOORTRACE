@@ -21,7 +21,15 @@
 //   - un échappement `\uXXXX` de substitut non apparié est conservé (codé
 //     en WTF-8) et signalé ;
 //   - un nombre garde son texte (pour la forme canonique) et sa valeur en
-//     float64 (pour le schéma, comme ECMAScript).
+//     float64 (pour le schéma, comme ECMAScript) ;
+//   - le nombre de valeurs (scalaires, objets et tableaux, racine comprise)
+//     est borné pendant l'analyse, avant toute matérialisation : au plus une
+//     valeur par OctetsParValeur octets de la limite de taille de l'entrée
+//     (CT-6 EX-15.1, révision demandée par la revue de sécurité de l'étape 8). Au-delà, la
+//     lecture s'arrête et le document est traité comme un document qui n'est
+//     pas du JSON, comme pour la profondeur. Sans cette borne, un document de
+//     petites valeurs (« [0,0,0,…] ») dans sa limite de taille coûte environ
+//     cent fois sa taille en mémoire et arrête l'exécutif sans rapport.
 package jsonv
 
 import (
@@ -29,11 +37,12 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
 // Genre d'une valeur JSON.
-type Genre int
+type Genre uint8
 
 const (
 	Nul Genre = iota
@@ -44,27 +53,63 @@ const (
 	Objet
 )
 
-// Valeur : nœud d'un document JSON.
+// Valeur : nœud d'un document JSON. Les champs sont rangés pour tenir dans
+// le moins de mémoire possible (une valeur par octet lu dans le pire cas) ;
+// les chaînes et les textes de nombres sont des vues du texte source, sans
+// copie, quand elles ne portent pas d'échappement.
 type Valeur struct {
 	Genre Genre
 	// Bool : valeur d'un booléen.
 	Bool bool
+	// SubstitutIsole : la chaîne contient un substitut UTF-16 non apparié.
+	SubstitutIsole bool
+	// Doublon : l'objet porte au moins un nom en double.
+	Doublon bool
 	// Texte : texte source d'un nombre.
 	Texte string
 	// Num : valeur d'un nombre en double précision (sémantique ECMAScript).
 	Num float64
 	// Chaine : valeur d'une chaîne (WTF-8 si SubstitutIsole).
 	Chaine string
-	// SubstitutIsole : la chaîne contient un substitut UTF-16 non apparié.
-	SubstitutIsole bool
 	// Elements : éléments d'un tableau.
 	Elements []*Valeur
 	// Membres : membres d'un objet, dans l'ordre du texte, doublons compris.
 	Membres []Membre
-	// Doublon : l'objet porte au moins un nom en double.
-	Doublon bool
-	index   map[string]int
+	// index : table des noms, construite seulement pour les objets de plus
+	// de membresLineaires membres (les petits objets se parcourent).
+	index map[string]int
 }
+
+// membresLineaires : au-dessous de ce nombre de membres, un objet n'a pas
+// de table d'index : la recherche parcourt les membres.
+const membresLineaires = 8
+
+// Bornes du nombre de valeurs d'un document.
+const (
+	// OctetsParValeur : un document lu sous une limite de taille L admet au
+	// plus L / OctetsParValeur valeurs (ValeursMax).
+	OctetsParValeur = 16
+	// ValeursPlancher : nombre de valeurs toujours admis, quelle que soit la
+	// limite de taille (petites entrées).
+	ValeursPlancher = 4096
+	// LimiteDefaut : limite de taille retenue par Analyser quand l'appelant
+	// n'en donne pas : la plus grande des limites d'EX-4.13 (64 Mio), soit
+	// 4 194 304 valeurs.
+	LimiteDefaut = 64 << 20
+)
+
+// ValeursMax rend le nombre de valeurs admis pour une entrée lue sous la
+// limite de taille donnée, en octets.
+func ValeursMax(limite int64) int {
+	n := limite / OctetsParValeur
+	if n < ValeursPlancher {
+		n = ValeursPlancher
+	}
+	return int(n)
+}
+
+// ErrValeurs : nombre de valeurs supérieur à la borne.
+var ErrValeurs = errors.New("nombre de valeurs JSON supérieur à la borne (une valeur par 16 octets de la limite de taille)")
 
 // Membre d'un objet.
 type Membre struct {
@@ -80,21 +125,35 @@ const ProfondeurMax = 128
 // ErrProfondeur : imbrication trop profonde.
 var ErrProfondeur = errors.New("profondeur d'imbrication JSON supérieure à 128")
 
-// Analyser lit un document JSON complet.
+// Analyser lit un document JSON complet, sous la borne de valeurs de
+// LimiteDefaut. Les entrées lues sous une limite de taille connue passent
+// par AnalyserLimite.
 func Analyser(b []byte) (*Valeur, error) {
-	return AnalyserProfondeur(b, ProfondeurMax)
+	return AnalyserLimite(b, LimiteDefaut)
+}
+
+// AnalyserLimite lit un document JSON complet lu sous la limite de taille
+// donnée (EX-4.13) : la profondeur est bornée à ProfondeurMax et le nombre
+// de valeurs à ValeursMax(limite).
+func AnalyserLimite(b []byte, limite int64) (*Valeur, error) {
+	return analyser(b, ProfondeurMax, ValeursMax(limite))
 }
 
 // AnalyserProfondeur lit un document JSON avec une profondeur maximale donnée
-// (nombre de conteneurs imbriqués admis, la racine comprise).
+// (nombre de conteneurs imbriqués admis, la racine comprise) et la borne de
+// valeurs de LimiteDefaut.
 func AnalyserProfondeur(b []byte, profondeur int) (*Valeur, error) {
+	return analyser(b, profondeur, ValeursMax(LimiteDefaut))
+}
+
+func analyser(b []byte, profondeur, valeurs int) (*Valeur, error) {
 	if !utf8Substituts(b) {
 		return nil, errors.New("texte qui n'est pas de l'UTF-8 bien formé")
 	}
 	if len(b) >= 3 && b[0] == 0xEF && b[1] == 0xBB && b[2] == 0xBF {
 		return nil, errors.New("marque d'ordre d'octets en tête du texte")
 	}
-	l := &lecteur{b: b, max: profondeur}
+	l := &lecteur{b: b, src: string(b), max: profondeur, reste: valeurs}
 	l.espaces()
 	v, err := l.valeur(0)
 	if err != nil {
@@ -108,9 +167,39 @@ func AnalyserProfondeur(b []byte, profondeur int) (*Valeur, error) {
 }
 
 type lecteur struct {
-	b   []byte
+	b []byte
+	// src : le texte source, dont les chaînes sans échappement et les textes
+	// de nombres sont des vues (aucune copie par valeur).
+	src string
 	i   int
 	max int
+	// reste : nombre de valeurs encore admises (ErrValeurs à zéro).
+	reste int
+	// bloc : valeurs allouées d'avance (alloc).
+	bloc []Valeur
+}
+
+// compter décompte une valeur lue ; ErrValeurs quand la borne est atteinte.
+func (l *lecteur) compter() error {
+	if l.reste <= 0 {
+		return ErrValeurs
+	}
+	l.reste--
+	return nil
+}
+
+// tailleBloc : nombre de valeurs allouées d'un bloc (une allocation par
+// bloc, non par valeur).
+const tailleBloc = 128
+
+// alloc rend une valeur vierge prise dans le bloc courant.
+func (l *lecteur) alloc() *Valeur {
+	if len(l.bloc) == 0 {
+		l.bloc = make([]Valeur, tailleBloc)
+	}
+	v := &l.bloc[0]
+	l.bloc = l.bloc[1:]
+	return v
 }
 
 func (l *lecteur) erreur(msg string) error {
@@ -136,6 +225,9 @@ func (l *lecteur) valeur(prof int) (*Valeur, error) {
 	if l.i >= len(l.b) {
 		return nil, l.erreur("fin de texte inattendue")
 	}
+	if err := l.compter(); err != nil {
+		return nil, err
+	}
 	switch c := l.b[l.i]; {
 	case c == '{' || c == '[':
 		if prof >= l.max {
@@ -150,30 +242,77 @@ func (l *lecteur) valeur(prof int) (*Valeur, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &Valeur{Genre: Chaine, Chaine: s, SubstitutIsole: iso}, nil
+		v := l.alloc()
+		v.Genre, v.Chaine, v.SubstitutIsole = Chaine, s, iso
+		return v, nil
 	case c == 't':
-		return l.litteral("true", &Valeur{Genre: Booleen, Bool: true})
+		return l.litteral("true", Booleen, true)
 	case c == 'f':
-		return l.litteral("false", &Valeur{Genre: Booleen, Bool: false})
+		return l.litteral("false", Booleen, false)
 	case c == 'n':
-		return l.litteral("null", &Valeur{Genre: Nul})
+		return l.litteral("null", Nul, false)
 	case c == '-' || (c >= '0' && c <= '9'):
 		return l.nombre()
 	}
 	return nil, l.erreur("caractère inattendu")
 }
 
-func (l *lecteur) litteral(mot string, v *Valeur) (*Valeur, error) {
-	if len(l.b)-l.i < len(mot) || string(l.b[l.i:l.i+len(mot)]) != mot {
+func (l *lecteur) litteral(mot string, g Genre, b bool) (*Valeur, error) {
+	if len(l.b)-l.i < len(mot) || l.src[l.i:l.i+len(mot)] != mot {
 		return nil, l.erreur("littéral inconnu")
 	}
 	l.i += len(mot)
+	v := l.alloc()
+	v.Genre, v.Bool = g, b
 	return v, nil
+}
+
+// ajouterMembre ajoute un membre à un objet en construction, note un nom en
+// double et tient l'index au-delà de membresLineaires membres.
+func (v *Valeur) ajouterMembre(m Membre) {
+	if v.index == nil {
+		for _, x := range v.Membres {
+			if x.Nom == m.Nom {
+				v.Doublon = true
+				break
+			}
+		}
+		if len(v.Membres) < membresLineaires {
+			v.Membres = append(v.Membres, m)
+			return
+		}
+		v.index = make(map[string]int, 2*membresLineaires)
+		for k, x := range v.Membres {
+			v.index[x.Nom] = k
+		}
+	}
+	if _, deja := v.index[m.Nom]; deja {
+		v.Doublon = true
+	}
+	v.index[m.Nom] = len(v.Membres)
+	v.Membres = append(v.Membres, m)
+}
+
+// rang rend le rang de la dernière occurrence du membre nommé, ou -1.
+func (v *Valeur) rang(nom string) int {
+	if v.index != nil {
+		if k, ok := v.index[nom]; ok {
+			return k
+		}
+		return -1
+	}
+	for k := len(v.Membres) - 1; k >= 0; k-- {
+		if v.Membres[k].Nom == nom {
+			return k
+		}
+	}
+	return -1
 }
 
 func (l *lecteur) objet(prof int) (*Valeur, error) {
 	l.i++
-	v := &Valeur{Genre: Objet, index: map[string]int{}}
+	v := l.alloc()
+	v.Genre = Objet
 	l.espaces()
 	if l.i < len(l.b) && l.b[l.i] == '}' {
 		l.i++
@@ -198,11 +337,7 @@ func (l *lecteur) objet(prof int) (*Valeur, error) {
 		if err != nil {
 			return nil, err
 		}
-		if _, deja := v.index[nom]; deja {
-			v.Doublon = true
-		}
-		v.index[nom] = len(v.Membres)
-		v.Membres = append(v.Membres, Membre{Nom: nom, NomSubstitut: iso, Valeur: val})
+		v.ajouterMembre(Membre{Nom: nom, NomSubstitut: iso, Valeur: val})
 		l.espaces()
 		if l.i >= len(l.b) {
 			return nil, l.erreur("fin de texte dans un objet")
@@ -221,7 +356,8 @@ func (l *lecteur) objet(prof int) (*Valeur, error) {
 
 func (l *lecteur) tableau(prof int) (*Valeur, error) {
 	l.i++
-	v := &Valeur{Genre: Tableau, Elements: []*Valeur{}}
+	v := l.alloc()
+	v.Genre, v.Elements = Tableau, []*Valeur{}
 	l.espaces()
 	if l.i < len(l.b) && l.b[l.i] == ']' {
 		l.i++
@@ -285,7 +421,23 @@ func wtf8(u int) []byte {
 
 func (l *lecteur) chaine() (string, bool, error) {
 	l.i++
-	var out []byte
+	// Première passe sans copie : une chaîne sans échappement ni substitut
+	// écrit en octets est une vue du texte source.
+	debut := l.i
+	for l.i < len(l.b) {
+		c := l.b[l.i]
+		if c == '"' {
+			s := l.src[debut:l.i]
+			l.i++
+			return s, false, nil
+		}
+		if c < 0x20 || c == '\\' || c == 0xED {
+			break
+		}
+		l.i++
+	}
+	out := make([]byte, 0, l.i-debut+16)
+	out = append(out, l.b[debut:l.i]...)
 	iso := false
 	for {
 		if l.i >= len(l.b) {
@@ -430,7 +582,7 @@ func (l *lecteur) nombre() (*Valeur, error) {
 			return nil, l.erreur("chiffre attendu dans l'exposant")
 		}
 	}
-	texte := string(l.b[debut:l.i])
+	texte := l.src[debut:l.i]
 	f, err := strconv.ParseFloat(texte, 64)
 	if err != nil {
 		var ne *strconv.NumError
@@ -439,7 +591,9 @@ func (l *lecteur) nombre() (*Valeur, error) {
 		}
 		// Dépassement : ±Inf ou 0, comme ECMAScript.
 	}
-	return &Valeur{Genre: Nombre, Texte: texte, Num: f}, nil
+	v := l.alloc()
+	v.Genre, v.Texte, v.Num = Nombre, texte, f
+	return v, nil
 }
 
 // Membre rend la valeur du membre `nom` (dernière occurrence), ou nil.
@@ -447,7 +601,7 @@ func (v *Valeur) Membre(nom string) *Valeur {
 	if v == nil || v.Genre != Objet {
 		return nil
 	}
-	if k, ok := v.index[nom]; ok {
+	if k := v.rang(nom); k >= 0 {
 		return v.Membres[k].Valeur
 	}
 	return nil
@@ -458,8 +612,7 @@ func (v *Valeur) A(nom string) bool {
 	if v == nil || v.Genre != Objet {
 		return false
 	}
-	_, ok := v.index[nom]
-	return ok
+	return v.rang(nom) >= 0
 }
 
 // Chemin descend dans des membres successifs ; nil si l'un manque.
@@ -573,15 +726,73 @@ func Egales(a, b *Valeur) bool {
 // NouvelObjet construit un objet à partir de membres (sans doublon) : sert à
 // fabriquer des valeurs à comparer (objet A de CT-1 §6.3).
 func NouvelObjet(membres ...Membre) *Valeur {
-	v := &Valeur{Genre: Objet, index: map[string]int{}}
+	v := &Valeur{Genre: Objet}
 	for _, m := range membres {
-		if _, deja := v.index[m.Nom]; deja {
-			v.Doublon = true
-		}
-		v.index[m.Nom] = len(v.Membres)
-		v.Membres = append(v.Membres, m)
+		v.ajouterMembre(m)
 	}
 	return v
+}
+
+// CleEgalite rend une clé de texte telle que deux valeurs ont la même clé si
+// et seulement si Egales les tient pour égales : les membres d'un objet y
+// sont triés par nom, en dernière occurrence, et un nombre y est écrit par
+// sa valeur. Elle sert à `uniqueItems`, en temps linéaire, à la place d'une
+// comparaison de chaque couple d'éléments (revue de sécurité de l'étape 8).
+func CleEgalite(v *Valeur) string {
+	var sb strings.Builder
+	ecrireCle(&sb, v)
+	return sb.String()
+}
+
+func ecrireCle(sb *strings.Builder, v *Valeur) {
+	if v == nil {
+		sb.WriteString("?")
+		return
+	}
+	switch v.Genre {
+	case Nul:
+		sb.WriteString("n")
+	case Booleen:
+		if v.Bool {
+			sb.WriteString("t")
+		} else {
+			sb.WriteString("f")
+		}
+	case Nombre:
+		sb.WriteString("#")
+		sb.WriteString(strconv.FormatFloat(v.Num, 'g', -1, 64))
+	case Chaine:
+		sb.WriteString(strconv.Quote(v.Chaine))
+	case Tableau:
+		sb.WriteString("[")
+		for i, e := range v.Elements {
+			if i > 0 {
+				sb.WriteString(",")
+			}
+			ecrireCle(sb, e)
+		}
+		sb.WriteString("]")
+	case Objet:
+		noms := v.Noms()
+		tries := make([]string, len(noms))
+		copy(tries, noms)
+		// Tri par insertion : les objets comparés ici ont peu de membres.
+		for i := 1; i < len(tries); i++ {
+			for k := i; k > 0 && tries[k] < tries[k-1]; k-- {
+				tries[k], tries[k-1] = tries[k-1], tries[k]
+			}
+		}
+		sb.WriteString("{")
+		for i, n := range tries {
+			if i > 0 {
+				sb.WriteString(",")
+			}
+			sb.WriteString(strconv.Quote(n))
+			sb.WriteString(":")
+			ecrireCle(sb, v.Membre(n))
+		}
+		sb.WriteString("}")
+	}
 }
 
 // NouvelleChaine construit une valeur chaîne.
@@ -595,16 +806,12 @@ func (v *Valeur) SansMembres(noms ...string) *Valeur {
 	for _, n := range noms {
 		exclus[n] = true
 	}
-	c := &Valeur{Genre: Objet, index: map[string]int{}}
+	c := &Valeur{Genre: Objet}
 	for _, m := range v.Membres {
 		if exclus[m.Nom] {
 			continue
 		}
-		if _, deja := c.index[m.Nom]; deja {
-			c.Doublon = true
-		}
-		c.index[m.Nom] = len(c.Membres)
-		c.Membres = append(c.Membres, m)
+		c.ajouterMembre(m)
 	}
 	return c
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Serveur d'outils de fichiers minimal, en stdio (MCP, ère héritée), pour le
-// pont d'exemple `pont-fichiers` de production.yaml (CT-8 §3.4 ; décision
-// D-13 de l'étape 7 : écrit dans le dépôt, sans code tiers dans l'image).
+// pont d'exemple `pont-fichiers` de production.yaml (CT-8 §3.4 ; étape 7 :
+// écrit dans le dépôt, sans code tiers dans l'image).
 //
 //   serveur-fichiers <racine absolue>
 //
@@ -127,7 +127,13 @@ export function executerOutil(racine, nom, args) {
     }
     if (!st.isFile()) throw new RefusOutil("pas un fichier ordinaire");
     if (st.size > OCTETS_MAX) throw new RefusOutil(`fichier de plus de ${OCTETS_MAX} octets`);
-    const octets = fs.readFileSync(f);
+    let octets;
+    try {
+      octets = fs.readFileSync(f);
+    } catch (e) {
+      // Un fichier d'un autre compte (EACCES) ou une erreur de lecture est un refus d'outil, jamais la fin du serveur (revue de sécurité de l'étape 8).
+      throw new RefusOutil(`lecture impossible (${e.code ?? "erreur"})`);
+    }
     try {
       return new TextDecoder("utf-8", { fatal: true }).decode(octets);
     } catch {
@@ -183,7 +189,9 @@ export function traiterMessage(racine, m) {
       return ok({ tools: OUTILS });
     case "tools/call": {
       const nom = m.params?.name;
-      if (!OUTILS.some((o) => o.name === nom)) return erreur(-32602, `outil inconnu : ${String(nom)}`);
+      // Le nom est comparé tel quel, jamais converti : un objet à toString ne lève rien (revue de sécurité de l'étape 8).
+      if (typeof nom !== "string") return erreur(-32602, "outil inconnu : nom non textuel");
+      if (!OUTILS.some((o) => o.name === nom)) return erreur(-32602, `outil inconnu : ${nom}`);
       try {
         const texte = executerOutil(racine, nom, m.params?.arguments ?? {});
         return ok({ content: [{ type: "text", text: texte }], isError: false });
@@ -224,7 +232,15 @@ export async function principal(argv, io = {}) {
       sortie.write(`${JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } })}\n`);
       continue;
     }
-    const r = traiterMessage(racine, m);
+    let r;
+    try {
+      r = traiterMessage(racine, m);
+    } catch (e) {
+      // Toute exception d'un message devient une erreur -32603 de ce message : le serveur continue (revue de sécurité de l'étape 8).
+      const id = m !== null && typeof m === "object" && !Array.isArray(m) && (typeof m.id === "string" || (typeof m.id === "number" && Number.isFinite(m.id))) ? m.id : null;
+      stderr.write(`serveur-fichiers : erreur interne : ${e.code ?? e.message}\n`);
+      r = { jsonrpc: "2.0", id, error: { code: -32603, message: "Internal error" } };
+    }
     if (r) sortie.write(`${JSON.stringify(r)}\n`);
   }
   return 0;

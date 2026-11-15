@@ -39,7 +39,7 @@
 // disparition dans son délai, puis rend le code 4. Si le signal ne part pas,
 // la demande est retirée si elle est encore la sienne.
 //
-// `ancrage` (lot F2, CT-5 EX-5.9, EX-8.15) emploie le même canal que `cle
+// `ancrage` (CT-5 EX-5.9, EX-8.15) emploie le même canal que `cle
 // rotation-urgence` : une demande écrite à côté du journal d'exploitation
 // (`{ demande: "ancrage", commande, id }`) et le signal SIGURG ; le démon
 // répond au journal (`anchoring_state`, `anchoring_metrics`,
@@ -91,7 +91,7 @@ const ACTIONS = {
   // SIGURG (ignoré par défaut), et seulement avec la demande écrite à côté du
   // journal d'exploitation (un signal seul ne fait rien, lecture 194).
   cle: { signal: "SIGURG", fait: "key_rotation_emergency", refus: "key_rotation_emergency_refused", demande: true },
-  // CT-5 (lot F2) : état, métriques et retrait de `qualified` (EX-5.9) du composant d'ancrage branché.
+  // CT-5 : état, métriques et retrait de `qualified` (EX-5.9) du composant d'ancrage branché.
   ancrage: { signal: "SIGURG", fait: null, refus: "anchoring_ctl_refused", demande: true },
 };
 

@@ -1,0 +1,17 @@
+{
+  "valide": false,
+  "controle": "A-3",
+  "controles_en_echec": [
+    "E-1",
+    "E-3",
+    "E-5",
+    "E-7",
+    "E-8",
+    "E-9",
+    "C-2",
+    "M-1",
+    "A-2",
+    "A-3"
+  ],
+  "description": "evenement.json dont approval porte decision expire et n'a pas de membre signatures (non rescellé, SHA-256 de l'index reporté) : E-1, E-3 (appel exécuté sous une décision expirée), E-5 et E-9 (signatures absent), E-7, E-8, C-2, M-1, A-2 (approval différent de celui des décisions) et A-3 (décision expirée avec des approbateurs) échouent."
+}

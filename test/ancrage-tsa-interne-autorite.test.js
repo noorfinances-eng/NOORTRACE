@@ -1,4 +1,4 @@
-// Autorité du serveur RFC 3161 interne (lot E) : `initialiserAutorite`
+// Autorité du serveur RFC 3161 interne : `initialiserAutorite`
 // (AN-22, AN-31 : AC auto-signée, unité à EKU critique `id-kp-timeStamping`
 // seul, CA:FALSE, validité ≤ 3 ans, point de distribution de CRL, CRL vide
 // signée ; RSA 3072 et P-256), `publierCrl`, `chargerAutorite`, et les
@@ -21,7 +21,7 @@ const cle = (nom) => fs.readFileSync(path.join(CLES_CT6, nom));
 // Nom de l'AC tel qu'openssl -text l'imprime : « O = …, CN = … » jusqu'à OpenSSL 3.0, sans espaces autour de « = » ensuite.
 const NOM_AC = /Issuer: ?O ?= ?NOORTRACE developpement, ?CN ?= ?AC interne de developpement\n/;
 
-describe("ancrage lot E — initialiserAutorite (AN-22, AN-31) : RSA 3072 et P-256", function () {
+describe("ancrage, serveur RFC 3161 interne — initialiserAutorite (AN-22, AN-31) : RSA 3072 et P-256", function () {
   this.timeout(120000);
   let rep;
   before(function () {
@@ -183,7 +183,7 @@ describe("ancrage lot E — initialiserAutorite (AN-22, AN-31) : RSA 3072 et P-2
   });
 });
 
-describe("ancrage lot E — classe Autorite : contrôles à la construction (AN-22, AN-30, AN-31 ; CT-6 EX-9.23)", function () {
+describe("ancrage, serveur RFC 3161 interne — classe Autorite : contrôles à la construction (AN-22, AN-30, AN-31 ; CT-6 EX-9.23)", function () {
   this.timeout(60000);
   const base = () => ({ clePrivee: cle("tsa-test.cle.pem"), certificat: cle("tsa-test.pem"), politique: POLITIQUE_TEST, compteur: new CompteurMemoire() });
 

@@ -3258,6 +3258,31 @@
         "point[0] : key_id rec-test-02, clé en vigueur attendue rec-test-01",
         "point[0] : checkpoint_ts 2026-11-05T09:00:00.000Z hors de la validité de la clé rec-test-02"
       ]
+    },
+    {
+      "file": "invalides/periode-1-tree-size-geant.json",
+      "manifest": "../manifestes/periode-1.json",
+      "description": "Le point de clôture (10:00:00.300Z) annonce tree_size 9 007 199 254 740 991 (2^53 − 1, le plus grand entier que le schéma admet), root non nulle et last_seq = first_seq + tree_size − 1, re-signé par rec-test-02 (chaîne intacte). Un vérificateur qui parcourt les tree_size numéros de séquence ne rend jamais la main (MN-68, revue de sécurité) ; la règle root se juge sur les événements fournis : les 9 de la période ne suffisent pas, root et last_hash ne sont pas évaluées (piece_hors_dossier), tree_size supérieur à count viole last_seq, et le point ne rejoint pas le manifeste (dernier_point). Jugé en moins d'une seconde.",
+      "rules_failed": [
+        "last_seq",
+        "dernier_point"
+      ],
+      "rules_not_evaluated": [
+        {
+          "rule": "root",
+          "reason": "piece_hors_dossier"
+        },
+        {
+          "rule": "last_hash",
+          "reason": "piece_hors_dossier"
+        }
+      ],
+      "errors": [
+        "point[60] : tree_size 9007199254740991 supérieur à count 9",
+        "dernier point : tree_size 9007199254740991 différent de count 9",
+        "dernier point : root 0x1111111111111111111111111111111111111111111111111111111111111111 différent de celui du manifeste",
+        "dernier point : last_seq 9007199254740991 différent de celui du manifeste 9"
+      ]
     }
   ],
   "evenements_partiels": [

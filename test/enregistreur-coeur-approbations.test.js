@@ -13,7 +13,7 @@ import * as N from "@noortrace/noyau";
 import {
   Coeur, HorlogeReglable, ErreurEnregistreur, validerConfiguration, validerReponseEvaluer, pieceJson, macRelais,
   ClientServiceApprobation, RAISON_EXPIRATION_NOYAU, ligneControleMac,
-  ErreurServiceApprobation, FichiersApprobations, verifierRemise, verifierRelais,
+  ErreurServiceApprobation, FichiersApprobations, verifierRemise, verifierRelais, empreintePolitique, condenseApproval,
 } from "@noortrace/enregistreur";
 import { ServiceApprobationFactice } from "@noortrace/enregistreur/factice";
 import { BIN_NOORTRACE, CLE_MAC_HEX, configurationDev, repertoireTemporaire, secretsDev } from "./fixtures/enregistreur-coeur/outils.mjs";
@@ -54,15 +54,17 @@ describe("enregistreur, cœur : interface du service d'approbation (§7.5)", fun
   });
 
   it("réponse d'evaluer hors des combinaisons d'EX-7.16 : invalide, traitée comme une indisponibilité", async function () {
-    const base = { rule: null, decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null };
-    const ctx = { decisionScellee: () => null };
+    // Décision du porteur du 14 novembre 2026 et son addendum : neuf membres, couple de la version épinglée ; le contexte porte l'ensemble détenu et la version de la requête.
+    const couple = { policy_version: coeur.versionPolitique, policy_sha256: empreintePolitique(coeur.config.policy).policy_sha256, approval_sha256: condenseApproval(coeur.config.policy.approval) };
+    const base = { rule: null, decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null, ...couple };
+    const ctx = { decisionScellee: () => null, politique: (v) => coeur._politiqueDetenue(v), versionRequete: coeur.versionPolitique };
     expect(validerReponseEvaluer(base, ctx).valide).to.equal(true);
     expect(validerReponseEvaluer({ ...base, extra: 1 }, ctx).valide).to.equal(false);
     expect(validerReponseEvaluer({ ...base, decision: "a_approuver", rule: "r" }, ctx).valide).to.equal(false);
     expect(validerReponseEvaluer({ ...base, decision: "a_approuver", rule: null, ticket: "apr-1", ticket_state: "en_attente" }, ctx).raison).to.match(/rule nulle/);
     expect(validerReponseEvaluer({ ...base, decision: "autorise", ticket: "apr-1", ticket_state: "approuve", approval: null }, ctx).valide).to.equal(false);
     const jeuNonExploitable = { threshold: { required: 2, size: 3 }, members: ["0x70997970c51812dc3a010c7d01b50e0d17dc79c8"], source: "jeu statique de la politique x" };
-    expect(validerReponseEvaluer({ rule: "r", decision: "a_approuver", ticket: "apr-1", ticket_state: "nouveau", approval: null, approver_set: jeuNonExploitable }, ctx).raison).to.equal("approver_set non exploitable");
+    expect(validerReponseEvaluer({ rule: "r", decision: "a_approuver", ticket: "apr-1", ticket_state: "nouveau", approval: null, approver_set: jeuNonExploitable, ...couple }, ctx).raison).to.equal("approver_set non exploitable");
     service.evaluer = async () => ({ ...base, decision: "refuse", ticket: "apr-1", ticket_state: "refuse" });
     let err;
     try {
@@ -180,10 +182,10 @@ describe("enregistreur, cœur : interface du service d'approbation (§7.5)", fun
   });
 });
 
-// Relecture adversariale A, R-A-7 (EX-18.8, CT-3 EX-12.2) : le pair du service
+// Relecture adversariale du cœur (EX-18.8, CT-3 EX-12.2) : le pair du service
 // d'approbation sur la prise Unix n'était jamais authentifié, et le corps de
 // réponse n'était pas borné.
-describe("enregistreur, cœur : authentification du service d'approbation sur la prise Unix (R-A-7)", function () {
+describe("enregistreur, cœur : authentification du service d'approbation sur la prise Unix", function () {
   this.timeout(30000);
   const reponse = JSON.stringify({ decision: "autorise", rule: null, ticket: null, ticket_state: null });
   async function servir(dir, corps = reponse) {
@@ -256,7 +258,7 @@ describe("enregistreur, cœur : authentification du service d'approbation sur la
   // prise n'est jamais inscriptible par les autres (EX-18.8 : « non
   // inscriptible par les hôtes ni par les agents »).
   it("EX-18.8, CT-8 EX-3.5 : répertoire de la prise 0:10010 en 3770 (groupe des prises, bit collant) : réponse acceptée ; sans bit collant (2770), inscriptible par les autres même avec le bit collant (1777), ou d'un autre propriétaire : refus (repertoire_inscriptible)", async function () {
-    if (process.getuid?.() !== 0) this.skip(); // chown vers 0:10010 : compte 0 requis
+    if (process.getuid?.() !== 0) { this.test.title += " — en attente : compte 0 requis (chown vers 0:10010)"; this.skip(); }
     const dir = repertoireTemporaire("noortrace-pair-");
     fs.chmodSync(dir, 0o755);
     const run = path.join(dir, "noortrace");
@@ -321,7 +323,7 @@ describe("enregistreur, démon réel : service d'approbation joint par sa prise 
   });
 
   it("EX-18.8, CT-3 EX-12.2, CT-8 EX-3.5 : le démon (peer_user, jeton) appelle charger sur approbation.sock dans /run/noortrace 0:10010 3770 et reçoit la liste des candidats (approval_candidates) ; aucune ligne approval_service_unavailable", async function () {
-    if (process.getuid?.() !== 0) this.skip(); // chown vers 0:10010 : compte 0 requis
+    if (process.getuid?.() !== 0) { this.test.title += " — en attente : compte 0 requis (chown vers 0:10010)"; this.skip(); }
     const { configurationPolitique, lancerServiceApprobation, attendre } = await import("./fixtures/enregistreur-politique/outils.mjs");
     const { spawn } = await import("node:child_process");
     const dir = repertoireTemporaire("noortrace-prise-commune-");
@@ -374,7 +376,7 @@ describe("enregistreur, démon réel : service d'approbation joint par sa prise 
   // Étape 7 : le mode `2770` qu'écrit CT-8
   // EX-3.5 est refusé par le démon (EX-4.39, lecture 157) ; `3770` est requis.
   it("CT-8 EX-3.5 (révision demandée) : /run/noortrace 0:10010 en 2770 (sans bit collant) : le démon refuse de démarrer et sort avec le code 2 (frontal_mcp : repertoire_inscriptible ; les serveurs d'outils lancés sont arrêtés) ; en 3770 il démarre (essai précédent)", async function () {
-    if (process.getuid?.() !== 0) this.skip();
+    if (process.getuid?.() !== 0) { this.test.title += " — en attente : compte 0 requis (chown vers 0:10010)"; this.skip(); }
     const { configurationPolitique } = await import("./fixtures/enregistreur-politique/outils.mjs");
     const { spawnSync } = await import("node:child_process");
     const dir = repertoireTemporaire("noortrace-prise-2770-");
@@ -399,12 +401,12 @@ describe("enregistreur, démon réel : service d'approbation joint par sa prise 
   });
 });
 
-// ------------------------------------------------------------------ relecture adversariale C (non-régression)
+// ------------------------------------------------------------------ relecture adversariale des approbations (non-régression)
 //
-// Chaque essai de la relecture C côté démon, transformé en test : il échouait
+// Chaque essai de la relecture adversariale des approbations côté démon, transformé en test : il échouait
 // avant la correction et passe après.
 
-describe("enregistreur, cœur : non-régression de la relecture C (approbations)", function () {
+describe("enregistreur, cœur : non-régression de la relecture adversariale des approbations (côté démon)", function () {
   this.timeout(60000);
   const delegation = { launched_by: "agent-sinistres", on_behalf_of: null, scope: "sinistres:paiement", run_id: null };
   const pause = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -448,7 +450,7 @@ describe("enregistreur, cœur : non-régression de la relecture C (approbations)
     return { ...x, executee: e, decision: acq };
   }
 
-  it("R-C-3 : sans document de politique de la version, SG-4 et SG-7 échouent ; le noyau expire seul à la borne de E (EX-7.5, EX-9.4)", async function () {
+  it("sans document de politique de la version, SG-4 et SG-7 échouent ; le noyau expire seul à la borne de E (EX-7.5, EX-9.4)", async function () {
     let b = await banc();
     const x = await retenueDe(b);
     const V1 = b.coeur.versionPolitique;
@@ -478,7 +480,7 @@ describe("enregistreur, cœur : non-régression de la relecture C (approbations)
     }
   });
 
-  it("R-C-3 : verifierRemise et verifierRelais : politique introuvable ⇒ échec de SG-4, SG-7 et RL-4 (EX-7.5, EX-7.21)", function () {
+  it("verifierRemise et verifierRelais : politique introuvable ⇒ échec de SG-4, SG-7 et RL-4 (EX-7.5, EX-7.21)", function () {
     const cle = N.sha256(N.utf8("demandeur"));
     const adr = N.adresseDepuisClePrivee(cle);
     const org = "0x" + "aa".repeat(32);
@@ -518,7 +520,7 @@ describe("enregistreur, cœur : non-régression de la relecture C (approbations)
     expect(verifierRelais(appel, ctxRelais(() => null))).to.include({ ok: false, verification: "RL-4" });
   });
 
-  it("R-C-4 : une remise `expire` en vol et l'expiration par le noyau seul ne scellent qu'une décision (SG-3, CT-3 14.2)", async function () {
+  it("une remise `expire` en vol et l'expiration par le noyau seul ne scellent qu'une décision (SG-3, CT-3 14.2)", async function () {
     const b = await banc();
     try {
       const x = await retenueDe(b);
@@ -541,7 +543,7 @@ describe("enregistreur, cœur : non-régression de la relecture C (approbations)
     }
   });
 
-  it("R-C-5 : la réponse tardive à un `charger` d'une version remplacée n'est pas adoptée (EX-7.4, CT-3 EX-12.5)", async function () {
+  it("la réponse tardive à un `charger` d'une version remplacée n'est pas adoptée (EX-7.4, CT-3 EX-12.5)", async function () {
     const c = await banc();
     const service = c.service;
     try {
@@ -567,7 +569,7 @@ describe("enregistreur, cœur : non-régression de la relecture C (approbations)
     }
   });
 
-  it("R-C-6 : `ouvrir`, `consommer` et `expiration` sont réessayés jusqu'au succès (EX-7.18, EX-7.20, CT-3 12.7)", async function () {
+  it("`ouvrir`, `consommer` et `expiration` sont réessayés jusqu'au succès (EX-7.18, EX-7.20, CT-3 12.7)", async function () {
     const b = await banc();
     try {
       let panne = true;
@@ -615,7 +617,7 @@ describe("enregistreur, cœur : non-régression de la relecture C (approbations)
     }
   });
 
-  it("R-C-10 : au redémarrage, `consommer` seulement si `approval.at + E` n'est pas passé, en concurrence bornée (EX-7.20)", async function () {
+  it("au redémarrage, `consommer` seulement si `approval.at + E` n'est pas passé, en concurrence bornée (EX-7.20)", async function () {
     let b = await banc();
     for (let k = 0; k < 6; k++) await relaisApprouve(b, `${7400 + k}.00`, `2026-${k}`);
     await pause(100);
@@ -647,7 +649,7 @@ describe("enregistreur, cœur : non-régression de la relecture C (approbations)
     expect(muet.messages.filter((m) => m.methode === "consommer")).to.have.length(0);
   });
 
-  it("R-C-11 : une remise mal formée est refusée par SG-1, sans mode dégradé (EX-7.19, EX-9.11)", async function () {
+  it("une remise mal formée est refusée par SG-1, sans mode dégradé (EX-7.19, EX-9.11)", async function () {
     const b = await banc();
     try {
       for (const r of [{ remise_id: "apr-x/1", ticket: "apr-x" }, null, 42, { remise_id: "apr-x/1", ticket: "apr-x", approval: null, approver_set: null }]) {
@@ -660,7 +662,7 @@ describe("enregistreur, cœur : non-régression de la relecture C (approbations)
     }
   });
 
-  it("R-C-11 : un échec d'écriture du fichier des approbations donne le mode « stockage », dont le tic sort par un nouveau segment (EX-7.19, EX-14.11)", async function () {
+  it("un échec d'écriture du fichier des approbations donne le mode « stockage », dont le tic sort par un nouveau segment (EX-7.19, EX-14.11)", async function () {
     const b = await banc();
     try {
       const x = await retenueDe(b);

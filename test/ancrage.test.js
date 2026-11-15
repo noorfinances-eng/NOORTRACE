@@ -61,7 +61,7 @@ describe("CT-5 : génération déterministe de spec/vecteurs/ct-5 (EX-A.1, EX-A.
       const produits = lister(sortie);
       expect(produits).to.deep.equal(lister(CT5).filter((f) => !conservee(f)));
       for (const f of produits) expect(J.sha256(lire(sortie, f)), f).to.equal(J.sha256(lire(CT5, f)));
-      expect(produits.filter((f) => f.startsWith("planification/"))).to.have.length(24);
+      expect(produits.filter((f) => f.startsWith("planification/"))).to.have.length(28);
     } finally {
       fs.rmSync(sortie, { recursive: true, force: true });
     }
@@ -97,7 +97,7 @@ describe("CT-5 : schémas ancrage-v0 et planificateur-ancrage-v0 (EX-4.8, EX-8.1
     expect(J.canonicaliserJCS(planificateur[0])).to.equal(J.canonicaliserJCS(REFERENCE));
   });
 
-  it("les vingt-quatre traces sont conformes à la racine du schéma ; requetes.json, cout.json et completude.json à $defs/fichier_vecteurs ; chaque demande des files à $defs/demande", function () {
+  it("les vingt-huit traces sont conformes à la racine du schéma ; requetes.json, cout.json et completude.json à $defs/fichier_vecteurs ; chaque demande des files à $defs/demande", function () {
     for (const f of TRACES) {
       const trace = lireJSON(CT5, "planification", f);
       expect(valider(trace, SCHEMA_PLANIFICATEUR), f).to.deep.equal([]);
@@ -107,8 +107,22 @@ describe("CT-5 : schémas ancrage-v0 et planificateur-ancrage-v0 (EX-4.8, EX-8.1
     expect(valider(lireJSON(CT5, "requetes", "requetes.json"), SCHEMA_PLANIFICATEUR, "#/$defs/fichier_vecteurs")).to.deep.equal([]);
     expect(valider(lireJSON(CT5, "cout", "cout.json"), SCHEMA_PLANIFICATEUR, "#/$defs/fichier_vecteurs")).to.deep.equal([]);
     expect(valider(lireJSON(CT5, "completude", "completude.json"), SCHEMA_PLANIFICATEUR, "#/$defs/fichier_vecteurs")).to.deep.equal([]);
+    // Toute ligne des files est une demande conforme, sauf les deux lignes rendues illisibles à dessein dans le fichier
+    // d'époque de file-lignes-illisibles (ligne mal formée, fragment final ; INDEX de ct-5), qui ne sont ni du JSON
+    // complet ni des demandes.
     for (const f of fs.readdirSync(path.join(CT5, "reprise")).sort()) {
-      for (const ligne of lire(CT5, "reprise", f).toString("utf8").split("\n").filter(Boolean)) expect(valider(JSON.parse(ligne), SCHEMA_PLANIFICATEUR, "#/$defs/demande"), f).to.deep.equal([]);
+      const lignes = lire(CT5, "reprise", f).toString("utf8").split("\n").filter(Boolean);
+      const voulues = f === "file-lignes-illisibles.epoque-1.ndjson" ? 2 : 0;
+      const nonConformes = lignes.filter((ligne) => {
+        let d;
+        try {
+          d = JSON.parse(ligne);
+        } catch {
+          return true;
+        }
+        return valider(d, SCHEMA_PLANIFICATEUR, "#/$defs/demande").length > 0;
+      });
+      expect(nonConformes.length, f).to.equal(voulues);
     }
   });
 
@@ -186,7 +200,7 @@ describe("CT-5 : famille reponses (EX-5.10 à EX-5.12, EX-8.9, AN-8 à AN-11)", 
   const prestataire = { ...fichier.provider, anchor_certificates: fichier.provider.anchor_certificates.map((p) => lire(CT5, "reponses", p).toString("utf8")) };
 
   it("chaque réponse est classée comme reponses.json l'attend : issue, code, classe, avertissements, champs du TSTInfo, jeton extrait, attente de reprise", function () {
-    expect(fichier.cases).to.have.length(28);
+    expect(fichier.cases).to.have.length(29);
     for (const c of fichier.cases) {
       const requete = lire(CT5, "reponses", c.input.request);
       expect(J.sha256(requete), c.id).to.equal(c.input.request_sha256);
@@ -266,7 +280,7 @@ describe("CT-5 : familles planification et reprise (EX-8.12, EX-8.16, EX-A.6)", 
   this.timeout(120_000);
 
   it("chaque trace est reproduite à l'identique par rejouerTrace (actions et file finale)", function () {
-    expect(TRACES).to.have.length(24);
+    expect(TRACES).to.have.length(28);
     for (const f of TRACES) {
       const trace = lireJSON(CT5, "planification", f);
       const ecarts = A.verifierTrace(trace);
@@ -303,12 +317,18 @@ describe("CT-5 : familles planification et reprise (EX-8.12, EX-8.16, EX-A.6)", 
 
   it("reprise/ : chaque file avant est la forme canonique de queue_before ; relue puis rejouée, elle donne la file après, une demande par id ; les fichiers d'époques relus ensemble (lireFiles) donnent la file avant", function () {
     const noms = fs.readdirSync(path.join(CT5, "reprise")).filter((f) => f.endsWith(".avant.ndjson")).map((f) => f.replace(/\.avant\.ndjson$/, "")).sort();
-    expect(noms).to.deep.equal(["bascule-epoque", "bascule-epoque-fichier-perdu", "file-fenetre-32-redemarrage", "file-pleine", "redemarrage-reprise", "refus-puis-preuve-de-vie-redemarrage", "registre-indisponible"]);
+    // Dix traces à file (INDEX de ct-5, reprise/) : les sept de la révision 0.6 et les trois de la revue de l'étape 8.
+    expect(noms).to.deep.equal(["bascule-epoque", "bascule-epoque-fichier-perdu", "file-fenetre-32-redemarrage", "file-lignes-illisibles", "file-pleine", "redemarrage-echeance-remplacee", "redemarrage-releve", "redemarrage-reprise", "refus-puis-preuve-de-vie-redemarrage", "registre-indisponible"]);
     const epoques = fs.readdirSync(path.join(CT5, "reprise")).filter((f) => /\.epoque-\d+\.ndjson$/.test(f)).sort();
-    expect(epoques).to.deep.equal(["bascule-epoque.epoque-1.ndjson", "bascule-epoque.epoque-2.ndjson"]);
-    const relue = A.lireFiles(epoques.map((f, i) => ({ nom: `file-${i + 1}.ndjson`, texte: lire(CT5, "reprise", f).toString("utf8") })));
-    expect([relue.errors, relue.truncated]).to.deep.equal([[], []]);
-    expect(A.ecrireFile(relue.demandes)).to.equal(lire(CT5, "reprise", "bascule-epoque.avant.ndjson").toString("utf8"));
+    expect(epoques).to.deep.equal(["bascule-epoque.epoque-1.ndjson", "bascule-epoque.epoque-2.ndjson", "file-lignes-illisibles.epoque-1.ndjson", "redemarrage-echeance-remplacee.epoque-1.ndjson", "redemarrage-releve.epoque-1.ndjson"]);
+    for (const nom of ["bascule-epoque", "file-lignes-illisibles", "redemarrage-echeance-remplacee", "redemarrage-releve"]) {
+      const fichiers = epoques.filter((f) => f.startsWith(`${nom}.epoque-`));
+      const relue = A.lireFiles(fichiers.map((f, i) => ({ nom: `file-${i + 1}.ndjson`, texte: lire(CT5, "reprise", f).toString("utf8") })));
+      // file-lignes-illisibles : une ligne mal formée (attempts retiré) et un fragment final, ignorés et signalés (EX-8.5, règle 3).
+      const attendu = nom === "file-lignes-illisibles" ? [1, ["file-1.ndjson"]] : [0, []];
+      expect([relue.errors.length, relue.truncated], nom).to.deep.equal(attendu);
+      expect(A.ecrireFile(relue.demandes), nom).to.equal(lire(CT5, "reprise", `${nom}.avant.ndjson`).toString("utf8"));
+    }
     // Ordre des fichiers : par époque, compacté avant l'original d'une même époque ; un nom hors convention est refusé.
     expect(A.lireFiles([{ nom: "file-2.ndjson", texte: "" }, { nom: "file-1.3.compact.ndjson", texte: "" }, { nom: "file-1.ndjson", texte: "" }]).files).to.deep.equal(["file-1.3.compact.ndjson", "file-1.ndjson", "file-2.ndjson"]);
     expect(() => A.lireFiles([{ nom: "file.ndjson", texte: "" }])).to.throw(A.ErreurAncrage);
@@ -498,7 +518,7 @@ describe("CT-5 : comptages et coût (EX-4.11, section 12)", function () {
     expect(fichier.cases).to.have.length(11);
     for (const c of fichier.cases) expect(A.cout(c.input), c.id).to.deep.equal(c.expected);
     for (const c of fichier.cases) for (const k of ["unit_price_qualified", "unit_price_second_rank", "subscription_fee"]) expect(typeof c.input[k], `${c.id} ${k}`).to.equal("number");
-    // Confrontation au texte (D59) : la table de §12.3 est lue dans CT-5, non recopiée.
+    // Confrontation au texte : la table de §12.3 est lue dans CT-5, non recopiée.
     const imprimee = table("| Cas | Hypothèses |");
     expect(imprimee.map((l) => l[0].replace(/`/g, ""))).to.deep.equal(fichier.cases.map((c) => c.id));
     for (const [cas, , nq, ns, na, cj] of imprimee) {
@@ -609,13 +629,17 @@ describe("CT-5 : les dossiers de CT-1 et de CT-6 gardent leur verdict ; aucun se
   const REVISION_05_CT1 = ["invalide-a1-autre-raison", "invalide-appel-sans-approbation", "invalide-decision-effets", "invalide-demande-effets", "invalide-index-autre-journal", "invalide-marque-ordre-octets", "invalide-partie-manquante", "invalide-partie-trop-grande", "invalide-profondeur-129", "invalide-raison-blancs", "invalide-redaction-blancs", "invalide-redaction-vide", "invalide-seq-chaine", "invalide-signature-en-trop", "invalide-substitut-octets", "invalide-utf8-voisins", "valide-at1-inscription-date-inexistante", "valide-profondeur-128", "illisible-index-non-json", "invalide-approbations-declaree-manquante", "invalide-approval-nombre", "invalide-demande-non-objet", "invalide-evenement-nul-autres-echecs", "invalide-k6-voisins-nul-seq-9", "invalide-outil-nombre", "invalide-voisin-absent", "invalide-voisin-nombre"];
   const REVISION_04_CT6 = ["invalide-evenement-nul-complet", "invalide-evenement-retire-complet", "invalide-k8-empreinte-sans-registre", "invalide-precommit-type-chaine", "invalide-t4-jeton-sans-certificat", "invalide-t4-sid-introuvable", "invalide-t4-sid-introuvable-sans-ancres", "invalide-t5-algorithme-inconnu", "invalide-t5-cle-ed25519-non-rattachee", "invalide-t5-exposant", "invalide-t5-rsa-8200", "invalide-t7-intermediaire-rsa-8200", "valide-precommit-type-tolere", "valide-rsa-8192", "valide-serie-168-bits", "valide-t4-jeton-sans-certificat-sans-ancres", "valide-t4-unite-en-intermediaire", "valide-t5-cle-ed25519", "invalide-proposition-membre-mal-type", "valide-o3-hors-profil-seul"];
 
+  // Dossiers de la revue de sécurité de l'étape 8 (INDEX de ct-1 et de ct-6) : ils s'ajoutent, sans changer les anciens.
+  const REVUE_ETAPE8_CT1 = ["invalide-a3-approbations-vide", "invalide-a3-approval-vide", "invalide-a3-sans-approbateurs", "invalide-a3-sans-jeu", "invalide-a3-sans-membres", "invalide-a3-sans-signatures", "invalide-membre-tostring"];
+  const REVUE_ETAPE8_CT6 = ["invalide-a1-events-nombreux", "invalide-e2-index-nombre-long", "invalide-e2-nombre-long", "invalide-e8-cles-nombreuses", "invalide-e8-cles-valeurs-nombreuses", "invalide-membre-tostring-complet", "invalide-p1-sans-inscription", "invalide-r1-cle-en-double-ancre-point", "invalide-r1-hauteur-0", "invalide-r1-ligne-4mio-octets", "invalide-r7-r11-non-executee", "invalide-t1-bit-string-vide", "invalide-t1-etiquette-0", "invalide-t1-integer-vide", "invalide-t1-null-longueur", "invalide-t1-octet-string-construite", "invalide-t1-tstinfo-integer-vide", "invalide-t1-unsigned-null-longueur", "invalide-t10-crl-serie-non-minimale", "non-execute-n3-cle-non-ancree", "non-execute-t10-crl-entree-extension-critique-inconnue", "non-execute-t10-crl-extension-critique-inconnue", "valide-integer-non-minimal", "valide-ligne-4mio-ascii", "valide-ligne-espaces", "valide-ligne-membre-inconnu", "valide-ligne-membre-inconnu-nombre-long", "valide-raison-sequences"];
+
   /** Vrai pour un dossier de la révision 0.4 de CT-1 : index à quatorze parties (partie attestation-perimetre.json déclarée). */
   const QUATORZE_PARTIES = (racine, nom) => JSON.parse(fs.readFileSync(path.join(racine, nom, "dossier.json"), "utf8")).parts.length === 14;
 
   it("les quarante dossiers de CT-1 (version 0.2) : même verdict et mêmes contrôles en échec que leur attendu.json", function () {
     const racine = path.join(CT1, "dossiers");
     // Les dossiers de la révision 0.4 de CT-1 (partie attestation-perimetre.json déclarée, quatorze parties) s'ajoutent eux aussi (CT-7 annexe A.7).
-    const anciens = fs.readdirSync(racine).filter((n) => !NOUVEAUX_CT1.includes(n) && !REVISION_05_CT1.includes(n) && !QUATORZE_PARTIES(racine, n)).sort();
+    const anciens = fs.readdirSync(racine).filter((n) => !NOUVEAUX_CT1.includes(n) && !REVISION_05_CT1.includes(n) && !REVUE_ETAPE8_CT1.includes(n) && !QUATORZE_PARTIES(racine, n)).sort();
     expect(anciens).to.have.length(40);
     const schemas = J.registreSchemas(["evenement", "manifeste", "dossier", "point-de-controle"].map((n) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${n}-v0.schema.json`), "utf8"))));
     for (const nom of anciens) {
@@ -629,7 +653,7 @@ describe("CT-5 : les dossiers de CT-1 et de CT-6 gardent leur verdict ; aucun se
 
   it("les cinquante dossiers de CT-6 (version 0.1) : même code de retour et mêmes vérifications en échec que leur attendu.json", function () {
     const racine = path.join(CT6, "dossiers");
-    const anciens = fs.readdirSync(racine).filter((n) => !NOUVEAUX_CT6.includes(n) && !REVISION_04_CT6.includes(n) && !QUATORZE_PARTIES(racine, n)).sort();
+    const anciens = fs.readdirSync(racine).filter((n) => !NOUVEAUX_CT6.includes(n) && !REVISION_04_CT6.includes(n) && !REVUE_ETAPE8_CT6.includes(n) && !QUATORZE_PARTIES(racine, n)).sort();
     expect(anciens).to.have.length(50);
     for (const nom of anciens) expect(fs.existsSync(path.join(racine, nom, "points-de-controle.json")), nom).to.equal(false);
     for (const nom of anciens) {

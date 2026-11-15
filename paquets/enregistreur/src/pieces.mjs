@@ -3,7 +3,7 @@
 // Une pièce est une suite d'octets stockée et hachée ; l'événement la cite
 // par une référence { sha256, length, redacted[, media_type] } (CT-1 §5.4).
 // Ce module ne rédige rien : la rédaction (section 10) est faite avant, par
-// le rédacteur (lot suivant), qui remet la valeur rédigée et dit si une règle
+// le rédacteur (partie suivante), qui remet la valeur rédigée et dit si une règle
 // a joué. Il fixe la sérialisation : JCS intégral pour une pièce JSON (8.1),
 // UTF-8 sans guillemets pour une pièce texte (8.2), règles de 8.3 pour une
 // pièce non JSON, et les formes fixes du cœur (erreur JSON-RPC, reprise,

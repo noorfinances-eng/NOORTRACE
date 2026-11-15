@@ -1,4 +1,4 @@
-// Outils des tests du lot WORM et haute disponibilité
+// Outils des tests de la partie WORM et haute disponibilité
 // (test/enregistreur-worm-*.test.js, test/enregistreur-ha-*.test.js) :
 // services réels lancés dans Docker, images épinglées par condensé ;
 // certificats de test générés à l'exécution par openssl (adresse 127.0.0.1) ;

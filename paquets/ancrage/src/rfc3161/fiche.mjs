@@ -95,6 +95,8 @@ export function verifierFiche(fiche) {
   for (const k of clesInterdites(fiche)) ecarts.push(`clé interdite ${k}`);
   if (!["principal", "secours", "second_rang", "interne"].includes(fiche.role)) ecarts.push("role hors énumération");
   if (typeof fiche.url !== "string" || !/^https?:\/\/[^\s]+$/.test(fiche.url)) ecarts.push("url mal formée");
+  // Revue de sécurité de l'étape 8 (EX-4.8, AN-54) : une url à identifiant ou mot de passe publierait un secret d'accès.
+  else if (/^https?:\/\/[^/]*@/i.test(fiche.url)) ecarts.push("url : identifiant ou mot de passe dans l'adresse (EX-4.8, AN-54)");
   if (fiche.hash !== "sha256") ecarts.push("hash autre que sha256");
   if (fiche.role === "interne" && fiche.qualified !== null) ecarts.push("un prestataire interne n'est jamais qualifié (EX-7.1, EX-5.6)");
   if (fiche.qualified === null && fiche.qualified_notice !== MENTION_NON_QUALIFIE) ecarts.push("mention « non qualifié » absente (EX-10.6)");

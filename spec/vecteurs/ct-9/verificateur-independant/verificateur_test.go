@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -253,5 +254,181 @@ func TestDepot(t *testing.T) {
 	c := rap.Comptes
 	if c.Menaces != c.MenacesAvecTA || c.NonCouverts != 0 || c.TablesComparees != len(Tables) || rap.Resume.Total != len(rap.Controles) {
 		t.Errorf("comptes : %+v %+v", c, rap.Resume)
+	}
+}
+
+// Révision 0.10 de CT-9 : nombres en lettres séparés par des espaces
+// (« trente et une », EX-11.16).
+func TestEntierFrancaisEspaces(t *testing.T) {
+	for s, n := range map[string]float64{"trente et une": 31, "vingt-et-un": 21, "douze": 12, "trente et un": 31} {
+		if v, ok := EntierFrancais(s); !ok || v != n {
+			t.Errorf("%q : %v %v, %v attendu", s, v, ok, n)
+		}
+	}
+}
+
+// EX-11.16 : identifiants énumérés par la prose, plages « TM-a à TM-b »
+// développées, dans l'ordre du texte, sans doublon.
+func TestIdentifiantsPlages(t *testing.T) {
+	got := IdentifiantsPlages("TM-6 et TM-10 ont leur résultat, TM-11 à TM-14, TM-17 à TM-19, TM-30 ; TM-6 encore, TM-1 à TM-3 (CT-2 EX-16.2)", "TM")
+	if strings.Join(got, ",") != "TM-6,TM-10,TM-11,TM-12,TM-13,TM-14,TM-17,TM-18,TM-19,TM-30,TM-1,TM-2,TM-3" {
+		t.Errorf("plages : %v", got)
+	}
+}
+
+// EX-5.4 (d), révision 0.10 : un it cité a un corps, n'est ni skip ni only,
+// et n'est pas sous un describe.skip.
+func TestTitresModificateurs(t *testing.T) {
+	src := "describe(\"A\", () => {\n  it(\"corps\", () => {});\n  it(\"sans corps\");\n  it(\"virgule seule\",\n  );\n  it.skip(\"sauté\", () => {});\n  it.only(\"seul\", () => {});\n  describe.skip(\"B\", () => {\n    it(\"sous skip\", async function () {});\n  });\n});\ndescribe(\"C\", () => { it(\"x\", f); });\n"
+	r := AnalyserTitres(src)
+	if strings.Join(r.Describes, ",") != "A,B,C" || len(r.Profondeurs) != 3 || r.Profondeurs[0] != 0 || r.Profondeurs[1] != 1 || r.Profondeurs[2] != 0 {
+		t.Fatalf("describes %v, profondeurs %v", r.Describes, r.Profondeurs)
+	}
+	attendu := map[string]CasTest{
+		"corps":         {Corps: true},
+		"sans corps":    {},
+		"virgule seule": {},
+		"sauté":         {Corps: true, Modificateur: "skip"},
+		"seul":          {Corps: true, Modificateur: "only"},
+		"sous skip":     {Corps: true, SousSkip: true},
+		"x":             {Corps: true},
+	}
+	if len(r.Cas) != len(attendu) {
+		t.Fatalf("%d it lus : %+v", len(r.Cas), r.Cas)
+	}
+	for _, c := range r.Cas {
+		a := attendu[c.It]
+		if c.Corps != a.Corps || c.Modificateur != a.Modificateur || c.SousSkip != a.SousSkip {
+			t.Errorf("%s : %+v", c.It, c)
+		}
+	}
+	index := map[string]TitresFichier{"test/x.test.js": r}
+	for it, pb := range map[string]string{"corps": "", "sans corps": "sans corps", "sauté": "skip", "seul": "only", "absent": "absent"} {
+		x := it
+		if got := EtatCite(index, TestExistant{"test/x.test.js", "A", &x}); got != pb {
+			t.Errorf("%s : %q, %q attendu", it, got, pb)
+		}
+	}
+	x := "sous skip"
+	if got := EtatCite(index, TestExistant{"test/x.test.js", "B", &x}); got != "sous describe.skip" {
+		t.Errorf("sous skip : %q", got)
+	}
+	if got := EtatCite(index, TestExistant{"test/x.test.js", "C", nil}); got != "" {
+		t.Errorf("describe seul : %q", got)
+	}
+}
+
+// EX-A.11 : describe de premier niveau, it par describe de premier niveau,
+// describe qui contiennent directement des it (de composant ou de scénario).
+func TestStructureDescribes(t *testing.T) {
+	src := "describe(\"L\", () => {\n describe(\"c1\", () => { it(\"a\", f); it(\"b\", f); });\n describe(\"c2\", () => { it(\"c\", f); });\n});\ndescribe(\"D\", () => { it(\"d\", f); });\ndescribe(\"S\", () => {\n describe(\"s1\", () => { it(\"e\", f); it(\"g\", f); });\n});\n"
+	s := StructureDescribes(AnalyserTitres(src))
+	if strings.Join(s.Premiers, ",") != "L,D,S" || fmt.Sprint(s.ItsParPremier) != "[3 1 2]" || fmt.Sprint(s.FeuillesParPremier) != "[2 1 1]" || s.Feuilles != 4 {
+		t.Errorf("structure : %+v", s)
+	}
+}
+
+// EX-10.7 forme (4) : « réponse retirée », menaces du scénario.
+func TestTitreTARetiree(t *testing.T) {
+	lu, ok := LireTitreTA("TA-105 (MN-21, réponse retirée) : un mutant du démon (image) ; un événement est scellé (tué)")
+	if !ok || !lu.Retiree || !lu.Tue || strings.Join(lu.Menaces, ",") != "MN-21" {
+		t.Errorf("réponse retirée : %+v %v", lu, ok)
+	}
+	lu, ok = LireTitreTA("TA-105 (MN-21) : horloge pilotée ; les dates restent non décroissantes (borne RA-18, RA-54)")
+	if !ok || lu.Retiree || lu.Tue {
+		t.Errorf("bout en bout : %+v %v", lu, ok)
+	}
+	lu, ok = LireTitreTA("TA-104 (MN-18, MN-23, MN-96 et composés) : réponse retirée — un mutant (tué)")
+	if !ok || !lu.Retiree || strings.Join(lu.Menaces, ",") != "MN-18,MN-23" {
+		t.Errorf("qualificatif : %+v %v", lu, ok)
+	}
+	scen := []string{"MN-21", "MN-60"}
+	if pb := ProblemesItScenario(TitreTA{TAs: []string{"TA-105"}, Menaces: []string{"MN-21"}, Retiree: true, Tue: true}, scen); len(pb) != 0 {
+		t.Errorf("retrait valide : %v", pb)
+	}
+	if pb := ProblemesItScenario(TitreTA{TAs: []string{"TA-105"}, Menaces: []string{"MN-21"}}, scen); len(pb) != 0 {
+		t.Errorf("bout en bout valide : %v", pb)
+	}
+	if pb := ProblemesItScenario(TitreTA{TAs: []string{"TA-105"}, Menaces: []string{"MN-21"}, Retiree: true}, scen); len(pb) == 0 {
+		t.Errorf("retrait sans (tué) accepté")
+	}
+	if pb := ProblemesItScenario(TitreTA{TAs: []string{"TA-105"}, Menaces: []string{"MN-21"}, Tue: true}, scen); len(pb) == 0 {
+		t.Errorf("bout en bout terminé par (tué) accepté")
+	}
+	if pb := ProblemesItScenario(TitreTA{TAs: []string{"TA-105"}, Menaces: []string{"MN-99"}}, scen); len(pb) == 0 {
+		t.Errorf("menace hors du scénario acceptée")
+	}
+}
+
+// 10.5, révision 0.10 : chaque scénario cite son it de bout en bout et,
+// sauf l'exception nommée, l'it qui retire une réponse ; l'exception cite
+// en plus les mutants tués de deux TA- composés.
+func TestProblemesScenario(t *testing.T) {
+	bout := "TA-105 (MN-21) : horloge pilotée (borne RA-18)"
+	retrait := "TA-105 (MN-21, réponse retirée) : mutant (tué)"
+	if pb := ProblemesScenario("TA-105", []string{bout, retrait}, false, nil); len(pb) != 0 {
+		t.Errorf("TA-105 : %v", pb)
+	}
+	if pb := ProblemesScenario("TA-104", []string{"TA-104 (MN-18, réponse retirée) : mutant (tué)"}, false, nil); len(pb) == 0 {
+		t.Errorf("scénario sans it de bout en bout accepté")
+	}
+	if pb := ProblemesScenario("TA-105", []string{bout}, false, nil); len(pb) == 0 {
+		t.Errorf("scénario sans it de retrait accepté")
+	}
+	b103 := "TA-103 (MN-1, MN-22) : bout en bout (borne RA-1)"
+	t1 := "TA-1 (MN-1) : connexion directe (tué)"
+	t22 := "TA-22 (MN-22) : storage.root (tué)"
+	if pb := ProblemesScenario("TA-103", []string{b103, t1, t22}, true, []string{"TA-1", "TA-22"}); len(pb) != 0 {
+		t.Errorf("TA-103 : %v", pb)
+	}
+	if pb := ProblemesScenario("TA-103", []string{b103, t1}, true, []string{"TA-1", "TA-22"}); len(pb) == 0 {
+		t.Errorf("TA-103 sans le mutant de TA-22 accepté")
+	}
+	if pb := ProblemesScenario("TA-105", []string{bout, retrait, t1}, false, nil); len(pb) == 0 {
+		t.Errorf("it qui ne nomme pas le scénario accepté")
+	}
+}
+
+// Lectures de la prose révisée en 0.10 (EX-11.16, 10.5, 10.8, EX-A.11,
+// EX-A.15, section 16), sur des phrases de la forme du texte.
+func TestLecturesProse(t *testing.T) {
+	n, ids, ok := LireEX1116("**EX-11.15** TM-99. **EX-11.16** En versions 0.1 à 0.4, rien ; parmi les sept entrées exécutables, TM-6 et TM-10 ont leur résultat, TM-11 à TM-13 dans le rapport, et TM-1 dans les essais (CT-2 EX-16.2), jamais dans le catalogue.")
+	if !ok || n != 7 || strings.Join(ids, ",") != "TM-6,TM-10,TM-11,TM-12,TM-13,TM-1" {
+		t.Errorf("EX-11.16 : %d %v %v", n, ids, ok)
+	}
+	if _, _, ok := LireEX1116("parmi les sept entrées exécutables, TM-6"); ok {
+		t.Errorf("EX-11.16 lu hors de son paragraphe")
+	}
+	sauf, plus, ok := LireException105("chacune cite son `it` de bout en bout et, sauf TA-103, l'`it` qui retire une réponse d'un test composé ; TA-103 cite en plus les mutants tués de TA-1 et de TA-22 joués")
+	if !ok || sauf != "TA-103" || strings.Join(plus, ",") != "TA-1,TA-22" {
+		t.Errorf("10.5 : %s %v %v", sauf, plus, ok)
+	}
+	if _, _, ok := LireException105("sauf TA-103, l'`it` qui retire une réponse ; TA-104 cite en plus les mutants tués de TA-1 et de TA-22"); ok {
+		t.Errorf("10.5 : exceptions différentes acceptées")
+	}
+	a, b, c, ok := LireComptes108("Résultat : « 95 passing (4m) », 17 en attente, tous pour le démon Docker absent (démon, scénarios de 10.5, TA-96), 0 en échec. À la révision 0.9 : « 71 passing (3m) », 0 en échec, 0 en attente")
+	if !ok || a != 95 || b != 17 || c != 0 {
+		t.Errorf("10.8 : %d %d %d %v", a, b, c, ok)
+	}
+	a11, ok := LireA11("Il contient 12 `it` répartis en quatre `describe` de composant ou de scénario, sous trois `describe` de premier niveau (révision 0.10) : les bibliothèques (7 `it`, en deux `describe` par composant : clés ; registre) ; le démon (3 `it` qui lancent le démon) ; les scénarios de 10.5 (2, en un `describe` par scénario). Les `it` qui demandent Docker (9) sont en attente.")
+	if !ok || a11.Its != "12" || a11.Feuilles != "quatre" || a11.Premiers != "trois" || fmt.Sprint(a11.Nombres) != "[7 3 2]" || a11.Decoupes[0] != [2]string{"deux", "composant"} || a11.Decoupes[2] != [2]string{"un", "scénario"} || len(a11.Decoupes) != 2 {
+		t.Errorf("EX-A.11 : %+v %v", a11, ok)
+	}
+	n, fichiers, ok := LireCasA8("et `cas/cas.json` avec trois cas (`valide-gabarit`, `invalide-sans-materiel` et, depuis la révision 0.10, `invalide-externe-sans-condition` : `external` vrai) ; le gabarit porte `condition`")
+	if !ok || n != 3 || strings.Join(fichiers, ",") != "valide-gabarit.json,invalide-sans-materiel.json,invalide-externe-sans-condition.json" {
+		t.Errorf("A.8 : %d %v %v", n, fichiers, ok)
+	}
+	s16 := "les compléments des deux TA- exécutables qui en portent un (TA-25, TA-41) et ceux de TV-55, de TE-6, de TM-1 à TM-3 et TM-41 n'ont aucun résultat ; 12 entrées TA- à menace d'exécution `phase_2` à écrire (dont TA-95 et TA-97, épreuves), les compléments des trois entrées de l'étape 8 (TA-5, TA-14, TA-40) ;"
+	ta, autres, ok := LireComplements16(s16)
+	if !ok || strings.Join(ta, ",") != "TA-25,TA-41" || strings.Join(autres, ",") != "TV-55,TE-6,TM-1,TM-2,TM-3,TM-41" {
+		t.Errorf("16 compléments : %v %v %v", ta, autres, ok)
+	}
+	n, dont, ok := LirePhase2_16(s16)
+	if !ok || n != 12 || strings.Join(dont, ",") != "TA-95,TA-97" {
+		t.Errorf("16 phase 2 : %d %v %v", n, dont, ok)
+	}
+	n, ids, ok = LireEtape8_16(s16)
+	if !ok || n != 3 || strings.Join(ids, ",") != "TA-5,TA-14,TA-40" {
+		t.Errorf("16 étape 8 : %d %v %v", n, ids, ok)
 	}
 }

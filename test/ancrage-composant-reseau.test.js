@@ -1,4 +1,4 @@
-// Composant d'ancrage (lot F1) : essais qui exigent un réseau.
+// Composant d'ancrage : essais qui exigent un réseau.
 //
 // (iii) Le parcours d'une période contre le réseau de développement réel
 // (CT-4 §7.4 : quatre validateurs noorcore, `bash chain/scripts/dev-net.sh
@@ -6,7 +6,7 @@
 // `npm run e2e:registre -- --garder-reseau --sortie <répertoire> --verificateur-go <binaire>`
 // exécuté comme une boîte noire (NOORTRACE_PARCOURS_REGISTRE désigne son
 // répertoire de sortie ; à défaut il est joué ici quand NOORTRACE_VERIFIER_BIN
-// nomme le vérificateur Go de CT-6). Serveurs RFC 3161 du lot E et calendriers
+// nomme le vérificateur Go de CT-6). Serveurs RFC 3161 internes et calendriers
 // factices locaux ; horloge hybride : le temps simulé avance avec le temps
 // réel et saute entre deux points. En attente, condition nommée dans le
 // titre, quand le réseau n'est pas debout.
@@ -63,7 +63,7 @@ function parcours(travail) {
   return { ok: true, repertoire: sortie };
 }
 
-describe("ancrage, composant F1 : une période contre le réseau de développement (CT-5 §9 ; CT-4 §8.2, §8.6, §9.4)", function () {
+describe("ancrage, composant : une période contre le réseau de développement (CT-5 §9 ; CT-4 §8.2, §8.6, §9.4)", function () {
   this.timeout(900000);
   let travail;
   let ctx = null;
@@ -220,7 +220,7 @@ describe("ancrage, composant F1 : une période contre le réseau de développeme
     expect(journal.de("period_submitted"), JSON.stringify(journal.de("registry_pending").map((l) => l.data))).to.have.lengthOf(1);
     expect(journal.de("checkpoint_countersigned")).to.have.lengthOf(5);
     expect(journal.de("period_timestamped")).to.have.lengthOf(1);
-    // Captures : une par ancre (points et période) et une pour la clôture ; CP-1 à CP-6 relues hors ligne (lot D).
+    // Captures : une par ancre (points et période) et une pour la clôture ; CP-1 à CP-6 relues hors ligne (comme les essais du registre).
     const captures = fs.readdirSync(path.join(travail, "captures")).filter((n) => n.startsWith("capture-"));
     expect(captures.filter((n) => n.endsWith("-ancre.json"))).to.have.lengthOf(13);
     expect(captures.filter((n) => n.endsWith("-cloture.json"))).to.have.lengthOf(1);
@@ -274,7 +274,7 @@ describe("ancrage, composant F1 : une période contre le réseau de développeme
   });
 });
 
-describe("ancrage, composant F1 : fiche et épreuve d'acceptation sur des autorités publiques (EX-10.6, EX-11.4, AN-54, AN-57)", function () {
+describe("ancrage, composant : fiche et épreuve d'acceptation sur des autorités publiques (EX-10.6, EX-11.4, AN-54, AN-57)", function () {
   this.timeout(300000);
   const AUTORITES = [
     { id: "swisssign-public", url: "https://tsa.swisssign.net" },
@@ -301,7 +301,7 @@ describe("ancrage, composant F1 : fiche et épreuve d'acceptation sur des autori
         anchor_certificates: [AC_TEST_PEM], qualified: null, min_interval_ms: 15000, request_timeout_ms: 20000, correlation_header: null,
         source: `autorité publique, essai d'interface du composant du ${new Date().toISOString().slice(0, 10)} ; non déclarée qualified`,
       };
-      // Les certificats d'AC de la chaîne reçue servent d'anchor_certificates (essai d'interface, comme le lot A).
+      // Les certificats d'AC de la chaîne reçue servent d'anchor_certificates (essai d'interface, comme dans les essais du client RFC 3161).
       const premier = await epreuveAcceptation({ prestataire: base, transport, horloge, aleatoire });
       expect(premier.http_status).to.equal(200);
       const chaine = await acquerir({ prestataire: base, imprint: premier.imprint, objet: "point", attempt: 2, horloge, aleatoire, depot: null, transport });

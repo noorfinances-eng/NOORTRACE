@@ -1,0 +1,35 @@
+# Surcharge de la démonstration de référence : une autre configuration de
+# l'enregistreur (politique remplacée, réglages d'horloge) et un autre document
+# d'ancrage, écrits hors du dépôt par le passage (CT-9 TA-104 : « remplacer la
+# politique sans annonce ; redémarrer » ; TA-105, TA-107 : prestataires RFC 3161
+# de la surcharge compose.prestataires.yaml).
+#
+#   NOORTRACE_PANNES_TRAVAIL=<répertoire absolu du passage> \
+#   docker compose -f demo/compose.yaml -f demo/pannes/compose.configuration.yaml up --detach
+#
+# Le répertoire porte configuration-pannes.json (schéma
+# configuration-enregistreur-v0) et ancrage-pannes.json (ancrage-v0).
+
+services:
+  enregistreur:
+    volumes:
+      - type: bind
+        source: ${NOORTRACE_PANNES_TRAVAIL:?NOORTRACE_PANNES_TRAVAIL (répertoire absolu du passage) requis}/configuration-pannes.json
+        target: /etc/noortrace/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NOORTRACE_PANNES_TRAVAIL}/ancrage-pannes.json
+        target: /etc/noortrace/ancrage.json
+        read_only: true
+        bind:
+          create_host_path: false
+  exploitation-demo:
+    volumes:
+      - type: bind
+        source: ${NOORTRACE_PANNES_TRAVAIL}/configuration-pannes.json
+        target: /etc/noortrace/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false

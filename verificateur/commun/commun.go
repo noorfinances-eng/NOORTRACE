@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 )
 
 // Statut d'une vérification ou d'un contrôle (CT-6 EX-6.1).
@@ -265,6 +266,95 @@ func Pluriel(n int, un, plusieurs string) string {
 		return un
 	}
 	return plusieurs
+}
+
+// Bornes des textes du rapport (CT-6 EX-15.1 : un dossier
+// fait de petites valeurs produisait un rapport de plusieurs centaines de
+// mégaoctets, un détail par élément).
+const (
+	// DetailsMax : nombre d'éléments qu'une liste de détails écrit un à un ;
+	// au-delà, le rapport écrit le nombre des éléments omis.
+	DetailsMax = 64
+	// LongueurDetailMax : longueur, en caractères, d'un détail, d'un résumé
+	// ou d'un avertissement du rapport ; au-delà, le texte est tronqué et la
+	// troncature est écrite.
+	LongueurDetailMax = 4096
+)
+
+// Borner rend les DetailsMax premiers éléments d'une liste de détails et, si
+// la liste est plus longue, un dernier élément qui dit le nombre des éléments
+// omis, dans la langue demandée (« fr » ou « en »).
+func Borner(elements []string, langue string) []string {
+	if len(elements) <= DetailsMax {
+		return elements
+	}
+	out := append([]string{}, elements[:DetailsMax]...)
+	n := len(elements) - DetailsMax
+	if langue == "en" {
+		return append(out, fmt.Sprintf("… and %d more", n))
+	}
+	return append(out, fmt.Sprintf("… et %d autre(s)", n))
+}
+
+// BornerFr et BornerEn : Borner en français et en anglais.
+func BornerFr(elements []string) []string { return Borner(elements, "fr") }
+func BornerEn(elements []string) []string { return Borner(elements, "en") }
+
+// Tronquer coupe un texte à LongueurDetailMax caractères et le dit.
+func Tronquer(s, langue string) string {
+	if utf8.RuneCountInString(s) <= LongueurDetailMax {
+		return s
+	}
+	r := []rune(s)[:LongueurDetailMax]
+	if langue == "en" {
+		return string(r) + fmt.Sprintf(" … (text truncated at %d characters)", LongueurDetailMax)
+	}
+	return string(r) + fmt.Sprintf(" … (texte tronqué à %d caractères)", LongueurDetailMax)
+}
+
+// BornerTexte applique Tronquer aux deux langues d'un texte bilingue.
+func BornerTexte(t Texte) Texte { return Texte{Fr: Tronquer(t.Fr, "fr"), En: Tronquer(t.En, "en")} }
+
+// Neutraliser écrit sous une forme visible, dans une chaîne destinée au
+// rapport lisible ou à la sortie d'erreur, tout caractère qu'un terminal
+// interpréterait ou qui changerait l'ordre de lecture : les caractères de
+// commande U+0000 à U+001F et U+007F à U+009F (dont le retour chariot, le
+// saut de ligne et l'échappement des séquences de terminal), les séparateurs
+// de ligne U+2028 et U+2029, les marques de direction U+202A à U+202E et
+// U+2066 à U+2069, et U+FEFF. Chacun est remplacé par son échappement JSON
+// `\uXXXX` (RFC 8259 §7, hexadécimal minuscule), la même forme que dans le
+// rapport JSON. Une suite d'octets qui n'est pas de l'UTF-8 valide est
+// écrite octet par octet sous la forme `\xXX`. C'est le seul point
+// d'échappement du binaire : toute ligne du rapport lisible y passe (revue de sécurité de l'étape 8 ;
+// CT-6 EX-8.5, EX-8.6).
+func Neutraliser(s string) string {
+	propre := true
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; c < 0x20 || c >= 0x7F {
+			propre = false
+			break
+		}
+	}
+	if propre {
+		return s
+	}
+	var b strings.Builder
+	b.Grow(len(s) + 16)
+	for i := 0; i < len(s); {
+		r, n := utf8.DecodeRuneInString(s[i:])
+		switch {
+		case r == utf8.RuneError && n <= 1:
+			fmt.Fprintf(&b, `\x%02x`, s[i])
+			i++
+			continue
+		case r < 0x20, r >= 0x7F && r <= 0x9F, r == 0x2028, r == 0x2029, r >= 0x202A && r <= 0x202E, r >= 0x2066 && r <= 0x2069, r == 0xFEFF:
+			fmt.Fprintf(&b, `\u%04x`, r)
+		default:
+			b.WriteString(s[i : i+n])
+		}
+		i += n
+	}
+	return b.String()
 }
 
 // ChaineNonVide dit si s est une chaîne non vide au sens de CT-1 §3

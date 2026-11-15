@@ -195,6 +195,23 @@ Les pièces des deux ensembles de politique (observation et erreur) sont sous
 `politiques/`, nommées par leur `policy_sha256` sans `0x`, octets JCS exacts
 sans saut de ligne final.
 
+**Révision du protocole d'approbation (étape 8, décision du porteur du 14 novembre 2026).** Depuis la révision 0.8 de
+CT-2 (EX-7.16, EX-7.23) et la révision 0.5 de CT-3 (§12.3, EX-12.6, EX-12.20), la réponse
+d'`evaluer` porte neuf membres : `policy_version` et `policy_sha256` nomment la version
+chargée sous laquelle elle est rendue et l'empreinte que le noyau a déclarée au `charger`
+de cette version ; `approval_sha256` est le SHA-256 du JCS du membre `approval` reçu à ce
+`charger` (`/policy/approval` sans `service`), calculé par le service. Les réponses du journal
+d'exemple et de `reponses.json` sont rendues sous `2026-11-05-observation`, empreinte
+`0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912`, condensé `0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e` ; celles de
+`correspondance.json` (cas repris de `ct-3/evaluation/assureur.json`) sous `vecteurs-ct3-1`,
+empreinte synthétique de CT-3 A.6 `0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a` et condensé du membre
+`approval` fait des règles de `ct-3/politiques/assureur.json` en mode `observation`,
+`hold_timeout_ms` 50000, `expire_after_ms` 3600000, `timeout_ms` 2000. En observation,
+une réponse sans cet épinglage, ou dont l'épinglage n'est pas celui d'un `charger` du noyau pour
+la version de la requête, est invalide (`approval_response_invalid`) et l'appel est relayé avec la
+marque `inconnu` (cas `six-membres`, `empreinte-autre`, `version-inconnue`,
+`version-detenue-autre-que-la-requete`, `approval-sha256-autres-regles` de `reponses.json`), jamais bloqué.
+
 ```bash
 node scripts/deploiement/rapport-observation.mjs spec/vecteurs/ct-8/observation/evenements.ndjson --json   # égal à rapport-attendu.json, code 0
 node scripts/deploiement/rapport-observation.mjs spec/vecteurs/ct-8/observation/invalides/<cas>.ndjson \
@@ -205,7 +222,7 @@ node scripts/deploiement/rapport-observation.mjs spec/vecteurs/ct-8/observation/
 |---|---|---|---|
 | `marques.json` | 13 | OB-1 | chaînes `policy.rule` et analyse attendue |
 | `correspondance.json` | 26 | OB-6 | cas de `ct-3/evaluation/assureur.json` rejoués en observation, et deux cas sans service |
-| `reponses.json` | 10 | OB-6 | réponses du service et ce que le noyau en scelle (noms réservés, longueur, marque forgée) |
+| `reponses.json` | 15 | OB-6 | réponses du service et ce que le noyau en scelle (noms réservés, longueur, marque forgée, couple de politique non épinglé) |
 | `evenements.ndjson`, `rapport-attendu.json` | 1 | OB-5 | les sept événements et leur rapport |
 | `invalides/` | 6 | OB-1 à OB-4 | suites re-scellées et anomalies attendues |
 

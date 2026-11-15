@@ -1,0 +1,29 @@
+{
+  "tool_announced": null,
+  "tool_original": null,
+  "server_alias": null,
+  "class": null,
+  "rejected": true,
+  "pieces": null,
+  "context": [],
+  "is_error": null,
+  "duration_ms": null,
+  "error_rendered": {
+    "code": -32602,
+    "message": "Invalid params",
+    "data": {
+      "reason": "nombre_non_representable"
+    }
+  },
+  "approval": null,
+  "result_rendered": null,
+  "protocols": {
+    "host": "2026-07-28",
+    "server": "2026-07-28"
+  },
+  "transports": {
+    "host": "stdio",
+    "server": "stdio"
+  },
+  "note": "Un nombre 1.000…01 (un, 20 000 zéros, un) dans les arguments : sa valeur décimale exacte diffère de celle de sa forme JCS intégral (1) ; refus -32602 data.reason nombre_non_representable avec l'id de la requête, sans relais, sans pièce, sans événement (EX-4.44). Le contrôle doit rester linéaire en la longueur du nombre : un retrait des zéros de queue par /0+$/ est quadratique sur cette forme et occupe le fil de l'enregistreur (EX-10.23 ne couvre que la rédaction)."
+}

@@ -1,5 +1,5 @@
 // TM-16 de CT-9 : mesure de la propriété P-6 de CT-5 (§3.6, §5.5 ; CT-2
-// EX-12.16, EX-12.17) sur le support WORM réel des tests du lot WORM : un
+// EX-12.16, EX-12.17) sur le support WORM réel des tests de la partie WORM : un
 // service S3 à Object Lock (LocalStack, image épinglée par condensé, lancée
 // dans Docker, derrière un mandataire TLS), bucket verrouillé par
 // l'exploitant (rétention par défaut COMPLIANCE, EX-12.30).
@@ -248,7 +248,7 @@ describe("TM-16 — P-6 de CT-5 mesurée sur le support WORM réel (S3 à Object
           excluded_reason: "hors_systeme_de_reference",
         },
       ],
-      notes: `TM-16 (CT-5 P-6, §5.5 ; CT-2 EX-12.16, EX-12.17). Relevé par l'API du support, une exécution (EX-11.10). ${detail}. Mesure faite hors du système de référence de CT-9 §11.1 (machine virtuelle, disque virtuel, support émulé en conteneur) : elle ne compte pour aucune cible. Commit : ${commit}${modifie ? ", arbre de travail modifié (lot non encore commité)" : ""}.`,
+      notes: `TM-16 (CT-5 P-6, §5.5 ; CT-2 EX-12.16, EX-12.17). Relevé par l'API du support, une exécution (EX-11.10). ${detail}. Mesure faite hors du système de référence de CT-9 §11.1 (machine virtuelle, disque virtuel, support émulé en conteneur) : elle ne compte pour aucune cible. Commit : ${commit}${modifie ? ", arbre de travail modifié (modifications non encore commitées)" : ""}.`,
     };
     const schema = JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", "plan-de-tests-v0.schema.json"), "utf8"));
     const { validerSchema } = await import("../scripts/lib/journal.mjs");

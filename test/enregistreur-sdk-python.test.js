@@ -21,6 +21,7 @@
 
 import { expect } from "chai";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { RACINE } from "./fixtures/enregistreur-coeur/outils.mjs";
@@ -44,17 +45,30 @@ function goDisponible() {
 
 /**
  * Lance pytest dans un environnement ; rend la sortie et le résumé.
+ * Chaque passage a son répertoire temporaire, passé par TMPDIR (la variable
+ * que lit `tempfile.gettempdir()` de Python, et `os.tmpdir()` de Node.js pour
+ * le démon du banc), supprimé après le passage, échec compris : ce que les
+ * cadres y laissent est supprimé avec lui (CrewAI 1.15.30 :
+ * `crewai_core.lock_store` crée `crewai:<empreinte>.lock` sous
+ * `tempfile.gettempdir()` sans le retirer). Préfixe court : les prises Unix
+ * des essais y sont créées (108 octets au plus).
  * @param {string} python
  * @param {string[]} fichiers
  */
 function pytest(python, fichiers) {
-  const r = spawnSync(python, ["-m", "pytest", "-q", "-s", "-p", "no:cacheprovider", "-p", "no:warnings", "-rfEs", ...fichiers], {
-    cwd: PAQUET,
-    env: { ...process.env, NOORTRACE_ESSAI_EXIGER: "1", NOORTRACE_NODE: process.execPath, PYTHONDONTWRITEBYTECODE: "1" },
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-    timeout: 900000,
-  });
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ntpt-"));
+  let r;
+  try {
+    r = spawnSync(python, ["-m", "pytest", "-q", "-s", "-p", "no:cacheprovider", "-p", "no:warnings", "-rfEs", ...fichiers], {
+      cwd: PAQUET,
+      env: { ...process.env, TMPDIR: tmp, NOORTRACE_ESSAI_EXIGER: "1", NOORTRACE_NODE: process.execPath, PYTHONDONTWRITEBYTECODE: "1" },
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: 900000,
+    });
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  }
   const sortie = `${r.stdout ?? ""}${r.stderr ?? ""}`;
   const resume = sortie.trim().split("\n").reverse().find((l) => /\d+ (passed|failed|error)/.test(l)) ?? "";
   return { code: r.status, sortie, resume };
@@ -120,13 +134,21 @@ describe("enregistreur, SDK Python noortrace-sdk et adaptateurs de cadres Python
         exigerSucces(r, a.minimum);
       });
       it(`${a.nom} : journal du parcours accepté par N.verifierJournal, dossier valide pour le noyau`, function () {
-        if (!r) this.skip();
+        if (!r) {
+          // r reste vide si l'essai pytest précédent n'est pas joué ou s'arrête avant sa fin (son échec est déjà compté).
+          this.test.title += ` — en attente : pytest ${a.fichier} sans résultat (essai pytest précédent non joué ou interrompu)`;
+          this.skip();
+        }
         const l = r.sortie.split("\n").find((x) => x.startsWith("noortrace-parcours "));
         expect(l, r.sortie.slice(-2000)).to.match(/journal \d+ evenements valide ; dossier noyau valide/);
       });
       if (go) {
         it(`${a.nom} : dossier du parcours valide pour le binaire Go noortrace-verifier (go1.27.3)`, function () {
-          if (!r) this.skip();
+          if (!r) {
+            // r reste vide si l'essai pytest précédent n'est pas joué ou s'arrête avant sa fin (son échec est déjà compté).
+            this.test.title += ` — en attente : pytest ${a.fichier} sans résultat (essai pytest précédent non joué ou interrompu)`;
+            this.skip();
+          }
           const l = r.sortie.split("\n").find((x) => x.startsWith("noortrace-parcours "));
           expect(l).to.match(/binaire Go valide$/);
         });

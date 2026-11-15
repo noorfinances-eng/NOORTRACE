@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/noorfinances-eng/noortrace/verificateur/commun"
 	"github.com/noorfinances-eng/noortrace/verificateur/cryptographie"
@@ -78,14 +79,19 @@ func (c *calcul) construireRapport(verifs []commun.Verification, parID map[strin
 			r.Period = &rapport.Periode{PeriodStart: ps, PeriodEnd: pe, PeriodHash: cryptographie.Hex32(an.PeriodHash)}
 		}
 	}
-	// Vérifications.
+	// Vérifications. Les détails, résumés et avertissements du rapport sont
+	// bornés en longueur ici, point commun des deux sorties (JSON et
+	// lisible) : une chaîne d'une partie exploitable mais contraire à son
+	// schéma (key_id de plusieurs mégaoctets) n'allonge pas le rapport à sa
+	// mesure (commun.LongueurDetailMax, CT-6 EX-15.1).
 	for _, v := range verifs {
-		rv := rapport.Verification{ID: v.ID, Controls: nonNulInt(v.Controles), Status: v.Statut, DetailBilingue: v.Detail}
+		det := commun.BornerTexte(v.Detail)
+		rv := rapport.Verification{ID: v.ID, Controls: nonNulInt(v.Controles), Status: v.Statut, DetailBilingue: det}
 		if v.Statut == commun.NonExecute {
 			rv.Reason = ptr(v.Raison)
 			rv.Admitted = ptr(v.Raison.Admise())
 		}
-		if d := v.Detail.Langue(l); d != "" {
+		if d := det.Langue(l); d != "" {
 			rv.Detail = ptr(d)
 		}
 		r.Checks = append(r.Checks, rv)
@@ -98,7 +104,8 @@ func (c *calcul) construireRapport(verifs []commun.Verification, parID map[strin
 		r.AbsentParts = append(r.AbsentParts, pa)
 	}
 	for _, a := range avert {
-		ra := rapport.Avertissement{ID: a.ID, Detail: a.Detail.Langue(l), DetailBilingue: a.Detail}
+		det := commun.BornerTexte(a.Detail)
+		ra := rapport.Avertissement{ID: a.ID, Detail: det.Langue(l), DetailBilingue: det}
 		if a.Verification != "" {
 			ra.Check = ptr(a.Verification)
 		}
@@ -177,7 +184,7 @@ func (c *calcul) construireRapport(verifs []commun.Verification, parID map[strin
 				if ub := c.jetonPt.Faits.UpperBoundInstant; ub != nil {
 					fp.RewriteWindowEnd = ptr(commun.FormaterInstant(*ub))
 					if ts, okTs := ev.Ts(); okTs {
-						fp.RewriteWindowMs = ptr(ub.Sub(ts).Milliseconds())
+						fp.RewriteWindowMs = ptr(differenceMs(*ub, ts))
 					}
 				}
 			}
@@ -265,7 +272,7 @@ func (c *calcul) construireRapport(verifs []commun.Verification, parID map[strin
 			}
 		}
 		ct.AnchorsUsed = nonNul(c.ancresEmployees(n, parID))
-		ct.ResumeBilingue = c.resume(n, ctrls[n], verifs)
+		ct.ResumeBilingue = commun.BornerTexte(c.resume(n, ctrls[n], verifs))
 		if s := ct.ResumeBilingue.Langue(l); s != "" {
 			ct.Summary = ptr(s)
 		}
@@ -307,6 +314,14 @@ func (c *calcul) construireRapport(verifs []commun.Verification, parID map[strin
 		r.Lisible.BorneBilingue = b
 	}
 	return r
+}
+
+// differenceMs rend a − b en millisecondes, exactement (EX-6.17) : la
+// différence est calculée sur les millisecondes UNIX en entiers de 64 bits,
+// et non par time.Time.Sub, qui sature à environ 292 ans (revue de sécurité de l'étape 8).
+func differenceMs(a, b time.Time) int64 {
+	ms := func(t time.Time) int64 { return t.Unix()*1000 + int64(t.Nanosecond())/1_000_000 }
+	return ms(a) - ms(b)
 }
 
 func nonNul(s []string) []string {
@@ -388,7 +403,13 @@ func (c *calcul) resume(n int, st commun.Resultat, verifs []commun.Verification)
 		}
 		return commun.T("vérification(s) en échec : "+commun.ListeIDs(ids), "failed check(s): "+commun.ListeIDs(ids))
 	}
-	// Partie requise absente (EX-4.3).
+	// Partie requise absente (EX-4.3). Chaque partie absente garde sa propre
+	// raison : quand elles sont toutes égales, la forme est celle de
+	// l'exemple de CT-6 §8.5 (« a, b absents (raison) ») ; sinon chaque
+	// fichier porte la sienne (« a (r1), b (r2) absents »), au lieu de la
+	// raison du dernier fichier attribuée à tous (revue de sécurité de l'étape 8).
+	// validateurs.json reste nommée parmi les parties du contrôle 8 quand
+	// l'index la déclare absente, comme dans cet exemple.
 	if st.Statut == commun.NonExecute && (st.Raison == commun.HorsPerimetreVersion || st.Raison == commun.PartieAbsente) {
 		var noms []string
 		switch n {
@@ -401,24 +422,34 @@ func (c *calcul) resume(n int, st commun.Resultat, verifs []commun.Verification)
 		case 8:
 			noms = []string{dossier.PRegistre, dossier.PCertificat, dossier.PValidateurs}
 		}
-		var fichiers []string
-		raison := ""
+		var fichiers, raisons []string
 		for _, nom := range noms {
 			if p := c.dos.Partie(nom); p != nil && !p.Present {
 				fichiers = append(fichiers, p.Fichier)
-				raison = p.Raison
+				raisons = append(raisons, p.Raison)
 			}
 		}
 		if n == 7 && len(fichiers) == 0 {
-			fichiers = []string{"approbations.json"}
-			raison = "aucune approbation liée"
+			fichiers, raisons = []string{"approbations.json"}, []string{"aucune approbation liée"}
 		}
 		if len(fichiers) > 0 && (n != 8 || !c.reg8) {
-			if len(fichiers) == 1 {
-				return commun.T(fichiers[0]+" absent ("+raison+")", fichiers[0]+" absent ("+raison+")")
+			memeRaison := true
+			for _, r := range raisons {
+				if r != raisons[0] {
+					memeRaison = false
+				}
 			}
-			s := strings.Join(fichiers, ", ")
-			return commun.T(s+" absents ("+raison+")", s+" absent ("+raison+")")
+			absents := commun.Pluriel(len(fichiers), "absent", "absents")
+			if memeRaison {
+				s := strings.Join(fichiers, ", ")
+				return commun.T(s+" "+absents+" ("+raisons[0]+")", s+" absent ("+raisons[0]+")")
+			}
+			parFichier := make([]string, len(fichiers))
+			for i := range fichiers {
+				parFichier[i] = fichiers[i] + " (" + raisons[i] + ")"
+			}
+			s := strings.Join(parFichier, ", ")
+			return commun.T(s+" "+absents, s+" absent")
 		}
 	}
 	var pkg commun.Texte

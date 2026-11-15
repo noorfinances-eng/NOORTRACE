@@ -29,6 +29,18 @@ export class ErreurInstance extends Error {
 const NOMS = { AttestationRegistry: "attestation_registry", CuratorSetRegistry: "curator_set_registry", PeriodRegistry: "period_registry", RecorderRegistry: "recorder_registry" };
 
 /**
+ * `fees` de l'instance : défauts de CT-4 §4.8 complétés par ceux du
+ * manifeste ; un membre nul du manifeste (`max_daily_budget_gas: null`,
+ * « aucun plafond » selon `instance-registre-v0`) vaut absence et n'écrase
+ * pas le défaut (revue de l'étape 8 : `BigInt(null)` levait une
+ * erreur interne dans `approvisionner`).
+ */
+export function normaliserFees(fees) {
+  const donnes = fees && typeof fees === "object" ? Object.fromEntries(Object.entries(fees).filter(([, v]) => v !== null && v !== undefined)) : {};
+  return { ...FEES_DEFAUT, ...donnes };
+}
+
+/**
  * Charge l'instance. `chemin` : manifeste (`instance-registre-v0`) ou null ;
  * `racine` : répertoire des fichiers d'EX-7.2 (par défaut le répertoire de
  * travail). Rend `{ nature, evmChainId, bftChainId, manifeste, manifestSha256,
@@ -82,7 +94,7 @@ function depuisManifeste(chemin, racine) {
     genesisSha256: manifeste.genesis.sha256,
     contrats,
     deploiements,
-    fees: { ...FEES_DEFAUT, ...manifeste.fees },
+    fees: normaliserFees(manifeste.fees),
     jeux: manifeste,
     jeuxLus: jeux,
     validatorSetHash: enVigueur.valset_hash,

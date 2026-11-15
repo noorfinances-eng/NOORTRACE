@@ -1,0 +1,16 @@
+# Contexte de construction de noortrace/approbateur-demo (racine du dépôt) :
+# tout est exclu, sauf ce que l'image emploie.
+*
+!package.json
+!package-lock.json
+!paquets/*/package.json
+!paquets/noyau/src/**
+!paquets/ancrage/bin/**
+!paquets/ancrage/src/**
+!conteneurs/commun/preparer-application.sh
+!conteneurs/demo-commun/chaine.mjs
+!conteneurs/approbateur-demo/approbateur-demo.mjs
+!conteneurs/approbateur-demo/passwd
+!conteneurs/approbateur-demo/group
+!LICENSE
+!NOTICE

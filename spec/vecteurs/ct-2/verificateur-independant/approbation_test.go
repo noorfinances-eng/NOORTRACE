@@ -57,12 +57,18 @@ func TestSignalAnnexeA(t *testing.T) {
 	}
 }
 
-// EX-7.16 : les six combinaisons, et des réponses invalides.
+// EX-7.16 : les six combinaisons, et des réponses invalides (neuf membres,
+// révision 0.11).
 func TestReponsesEvaluer(t *testing.T) {
 	ap := func(dec string) string {
 		return `{"decision":"` + dec + `","ticket":"apr-1","request_hash":"0x00","threshold":{"required":1,"size":1},"approvers":[],"signatures":[],"reason":null,"at":"2026-11-01T00:00:00.000Z"}`
 	}
 	js := `{"threshold":{"required":1,"size":1},"members":["0x70997970c51812dc3a010c7d01b50e0d17dc79c8"],"source":"jeu statique de la politique p"}`
+	// Révision 0.11 de CT-2 (EX-7.16) : neuf membres ; les trois de
+	// l'épinglage sont ajoutés à chaque réponse ci-dessous.
+	neuf := func(txt string) string {
+		return strings.TrimSuffix(txt, "}") + `,"policy_version":"2026-11-01","policy_sha256":"0xc5dac49797e5d273c2209e9ef6b44f77b80a2b927d2ddc8e93fc759d979b030c","approval_sha256":"0xa866fa5ab951735156052400d148b06654c1534b848251db81ab38b4af180589"}`
+	}
 	valides := map[string]string{
 		`{"rule":null,"decision":"autorise","ticket":null,"ticket_state":null,"approval":null,"approver_set":null}`:                           IssueRelais,
 		`{"rule":"r","decision":"refuse","ticket":null,"ticket_state":null,"approval":null,"approver_set":null}`:                              IssueRefus,
@@ -72,7 +78,7 @@ func TestReponsesEvaluer(t *testing.T) {
 		`{"rule":"r","decision":"refuse","ticket":"apr-1","ticket_state":"expire","approval":` + ap("expire") + `,"approver_set":null}`:       IssueRefusTicket,
 	}
 	for txt, want := range valides {
-		if got, raison := IssueReponseEvaluer(doit(t, txt)); got != want {
+		if got, raison := IssueReponseEvaluer(doit(t, neuf(txt))); got != want {
 			t.Errorf("%s : %s (%s), attendu %s", txt, got, raison, want)
 		}
 	}
@@ -86,7 +92,7 @@ func TestReponsesEvaluer(t *testing.T) {
 		`{"rule":"r","decision":"autorise","ticket":null,"ticket_state":null,"approval":null}`,                                              // membre absent
 		`{"rule":null,"decision":"a_approuver","ticket":"apr-1","ticket_state":"en_attente","approval":null,"approver_set":null}`,           // rule nulle pour a_approuver
 	} {
-		if got, raison := IssueReponseEvaluer(doit(t, txt)); got != "" || raison == "" {
+		if got, raison := IssueReponseEvaluer(doit(t, neuf(txt))); got != "" || raison == "" {
 			t.Errorf("%s : accepté (%s)", txt, got)
 		}
 	}

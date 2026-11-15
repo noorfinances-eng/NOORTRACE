@@ -21,8 +21,8 @@ répond plus, la chaîne n'avance plus, ou une double signature est vue.
   `-bft-recovery-reset` n'existe qu'en profil de développement (CT-4 §13).
 - **Pas.**
   1. Sonder `eth_blockNumber` à travers chaque point déclaré (sonde
-     d'EX-10.7, à produire, section 15) ; porte : le point en cause est
-     connu.
+     d'EX-10.7, `scripts/deploiement/sonde.mjs`) ; porte : le point en cause
+     est connu.
   2. Relais : redémarrer le conteneur du relais (image et Compose de
      `chain/docker`, EX-3.6) ; porte : `noortrace_registre_sonde_ok` à 1.
   3. Validateur du client injoignable : la soumission continue vers les

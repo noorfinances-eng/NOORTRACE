@@ -6,7 +6,19 @@
 //                           (documents entiers, état absolu, jamais un delta), chiffré ;
 //   etat/instantane.chiffre l'état complet { n, meta, versions, tickets, fenetres,
 //                           annuaire?, defis? } au dernier compactage, chiffré ;
-//   etat/verrou             fichier de verrou (pid), un seul service par répertoire.
+//   etat/verrou             fichier de verrou (pid), un seul service par répertoire ;
+//   etat/archive.ndjson     (CT-3 EX-7.24) une ligne `<n> <base64>` par ticket
+//                           terminal sorti de l'état vivant, document `ticket-v0`
+//                           entier chiffré (nature `archive`, n de l'enregistrement
+//                           `archives` qui le retire de l'état), en ajout seul, jamais
+//                           relue au démarrage : la trace reste conservée (EX-7.24)
+//                           sans peser sur l'état vivant ni sur l'instantané.
+//
+// Le journal est compacté après `compacterApres` lignes (2 000) ou dès que les
+// octets ajoutés depuis le dernier compactage dépassent
+// `BORNES.etat_journal_octets` (CT-3 EX-13.13, CT-3 EX-7.24 : des enregistrements de
+// documents entiers, défis ou tickets, faisaient croître le journal bien
+// au-delà de ce que 2 000 lignes laissent supposer).
 //
 // Chaque ligne est écrite puis synchronisée (fdatasync) avant que l'effet de
 // l'entrée soit rendu visible (EX-7.22). Les arguments en clair des tickets
@@ -56,6 +68,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { BORNES } from "./bornes.mjs";
 
 const ETIQUETTE = "noortrace/approbation/etat/v0";
 
@@ -144,15 +157,18 @@ function separerFenetre(w) {
 /** Magasin d'état chiffré, en ajout seul avec compactage. */
 export class MagasinEtat {
   /**
-   * @param {{repertoire: string, cle: Uint8Array, compacterApres?: number}} p
+   * @param {{repertoire: string, cle: Uint8Array, compacterApres?: number, compacterApresOctets?: number}} p
    */
   constructor(p) {
     if (!(p.cle instanceof Uint8Array) || p.cle.length !== 32) throw new TypeError("clé de stockage de 32 octets attendue");
     this.dir = path.join(p.repertoire, "etat");
     this.cle = p.cle;
     this.compacterApres = p.compacterApres ?? 2000;
+    this.compacterApresOctets = p.compacterApresOctets ?? BORNES.etat_journal_octets;
     this.n = 0;
     this.lignes = 0;
+    /** Octets du journal depuis le dernier compactage (borne de taille, CT-3 EX-13.13). */
+    this.octets = 0;
     this.fd = null;
     this.verrou = null;
     /** Vrai après un échec d'écriture : aucun ajout avant `reprendre` (EX-7.22). */
@@ -171,6 +187,10 @@ export class MagasinEtat {
 
   get cheminInstantane() {
     return path.join(this.dir, "instantane.chiffre");
+  }
+
+  get cheminArchive() {
+    return path.join(this.dir, "archive.ndjson");
   }
 
   /** Prend le verrou du répertoire (un seul service à la fois). */
@@ -248,6 +268,7 @@ export class MagasinEtat {
           if (enr.meta) etat.meta = enr.meta;
           if (enr.versions) etat.versions = enr.versions;
           for (const t of enr.tickets ?? []) etat.tickets.set(t.ticket, t);
+          for (const id of enr.archives ?? []) etat.tickets.delete(id); // CT-3 EX-7.24 : sorti de l'état vivant
           if (enr.fenetres) etat.fenetres = enr.fenetres;
           if (enr.annuaire) etat.annuaire = enr.annuaire;
           if (enr.defis) etat.defis = enr.defis;
@@ -256,6 +277,7 @@ export class MagasinEtat {
         this.lignes++;
         debut = complete ? fin + 1 : octets.length;
       }
+      this.octets = octets.length;
     }
     // Arguments en clair (EX-7.24) : recomposition des documents, purge des fichiers
     // de tickets terminés ou inconnus et de fenêtres fermées ; un état écrit avant
@@ -370,6 +392,11 @@ export class MagasinEtat {
   #separer(enr, complet) {
     const cible = complet ? new Map() : new Map(this.secrets);
     const clair = { ...enr };
+    if (enr.archives) {
+      // la ligne ne porte que les identifiants ; les documents vont dans l'archive (CT-3 EX-7.24)
+      clair.archives = enr.archives.map((t) => t.ticket);
+      for (const t of enr.archives) cible.delete(`t-${t.ticket}`);
+    }
     if (enr.tickets) {
       clair.tickets = enr.tickets.map((t) => {
         const { doc, secret } = separerTicket(t);
@@ -401,14 +428,49 @@ export class MagasinEtat {
     try {
       const { clair, cible } = this.#separer(enr, false);
       await this.#appliquerSecrets(cible, { ecrire: true, supprimer: false });
-      await this.fd.write(`${n} ${chiffrer(this.cle, "ligne", n, clair)}\n`);
+      // CT-3 EX-7.24 : les documents archivés sont durables AVANT la ligne qui les retire de l'état ;
+      // un arrêt entre les deux laisse le ticket dans l'état, archivé de nouveau à l'entrée suivante
+      if (Array.isArray(enr.archives) && enr.archives.length) await this.#archiver(n, enr.archives);
+      const ligne = `${n} ${chiffrer(this.cle, "ligne", n, clair)}\n`;
+      await this.fd.write(ligne);
       await this.fd.datasync();
       this.lignes++;
+      this.octets += Buffer.byteLength(ligne);
       await this.#appliquerSecrets(cible, { ecrire: false, supprimer: true });
     } catch (e) {
       this.enPanne = true;
       throw e;
     }
+  }
+
+  /** Dépose des documents de ticket dans l'archive (nature `archive`, numéro de l'enregistrement), synchronisée. */
+  async #archiver(n, documents) {
+    const fd = await fsp.open(this.cheminArchive, "a", 0o600);
+    try {
+      for (const t of documents) await fd.write(`${n} ${chiffrer(this.cle, "archive", n, t)}\n`);
+      await fd.datasync();
+    } finally {
+      await fd.close();
+    }
+  }
+
+  /**
+   * Documents de l'archive (CT-3 EX-7.24), dans l'ordre de leur dépôt, un par
+   * ticket (le dernier dépôt d'un même ticket fait foi) ; lecture d'exploitation,
+   * jamais faite au démarrage. Une ligne indéchiffrable arrête la lecture.
+   * @returns {Promise<object[]>}
+   */
+  async lireArchive() {
+    if (!fs.existsSync(this.cheminArchive)) return [];
+    const parTicket = new Map();
+    for (const ligne of (await fsp.readFile(this.cheminArchive, "utf8")).split("\n")) {
+      if (ligne === "") continue;
+      const sep = ligne.indexOf(" ");
+      const t = dechiffrer(this.cle, "archive", Number(ligne.slice(0, sep)), ligne.slice(sep + 1));
+      parTicket.delete(t.ticket);
+      parTicket.set(t.ticket, t);
+    }
+    return [...parTicket.values()];
   }
 
   /**
@@ -443,6 +505,7 @@ export class MagasinEtat {
     }
     if (supprime) await this.#synchroniserRepertoire(this.dirArguments);
     this.lignes = 0;
+    this.octets = 0;
     this.enPanne = false;
   }
 
@@ -459,9 +522,9 @@ export class MagasinEtat {
     await this.#synchroniserRepertoire(this.dir);
   }
 
-  /** Faut-il compacter ? */
+  /** Faut-il compacter ? Par nombre de lignes, ou par octets ajoutés depuis le dernier compactage (CT-3 EX-13.13). */
   get aCompacter() {
-    return this.lignes >= this.compacterApres;
+    return this.lignes >= this.compacterApres || this.octets >= this.compacterApresOctets;
   }
 
   /**
@@ -479,6 +542,7 @@ export class MagasinEtat {
       throw e;
     }
     this.lignes = 0;
+    this.octets = 0;
   }
 
   async fermer() {

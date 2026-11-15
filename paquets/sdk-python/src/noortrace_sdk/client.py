@@ -84,9 +84,11 @@ class ClientNoortrace:
     """Client du démon (EX-6.9, EX-6.10). La connexion est ouverte au premier appel."""
 
     def __init__(self, socket: Optional[str] = None, tcp: Optional[str] = None, jeton: Optional[str] = None,
-                 delai_s: float = 30.0, reprises: int = 2, sur_indisponibilite_lecture: str = "bloquer") -> None:
+                 delai_s: float = 30.0, reprises: int = 2, sur_indisponibilite_lecture: str = "bloquer",
+                 proprietaire: Optional[str] = None) -> None:
         verifier_reglages(delai_s, reprises, sur_indisponibilite_lecture)
-        self._adresse = resoudre_adresse(socket, tcp, jeton)
+        # ``proprietaire`` : compte attendu du démon pour la prise Unix (uid ou nom ; étape 8).
+        self._adresse = resoudre_adresse(socket, tcp, jeton, proprietaire=proprietaire)
         self.delai_s = float(delai_s)
         self.reprises = reprises
         self.sur_indisponibilite_lecture = sur_indisponibilite_lecture

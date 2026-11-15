@@ -32,15 +32,23 @@ export function comparerChemins(a, b) {
   return Buffer.compare(x, y);
 }
 
+// Caractères de format bidirectionnels (U+200E à U+202E, U+2066 à U+2069) :
+// un nom qui en porte s'affiche autrement qu'il s'écrit (revue de l'étape 8).
+const RE_BIDIRECTIONNEL = /[\u200e-\u202e\u2066-\u2069]/;
+
 // Un chemin figé : relatif à la racine du dépôt, sous spec/, hors
-// spec/figeage/, sans composant vide, « . » ou « .. », sans caractère de
-// contrôle ni barre inverse.
+// spec/figeage/ (et distinct de « spec/figeage » lui-même), sans composant
+// vide, « . » ou « .. », sans caractère de contrôle, de format bidirectionnel
+// ni barre inverse.
 export function cheminFigeable(chemin) {
   if (typeof chemin !== "string" || !chemin.startsWith(REPERTOIRE_FIGE)) return false;
-  if (chemin.startsWith(REPERTOIRE_FIGEAGE)) return false;
-  if (/[\u0000-\u001f\u007f\\]/.test(chemin)) return false;
+  if (chemin.startsWith(REPERTOIRE_FIGEAGE) || chemin + "/" === REPERTOIRE_FIGEAGE) return false;
+  if (/[\u0000-\u001f\u007f\\]/.test(chemin) || RE_BIDIRECTIONNEL.test(chemin)) return false;
   return chemin.split("/").every((c) => c !== "" && c !== "." && c !== "..");
 }
+
+// Un chemin sous spec/figeage/ : hors du périmètre figé, jamais une erreur.
+export const sousFigeage = (chemin) => typeof chemin === "string" && (chemin.startsWith(REPERTOIRE_FIGEAGE) || chemin + "/" === REPERTOIRE_FIGEAGE);
 
 // Texte du manifeste depuis une table chemin → condensé.
 export function ecrireManifeste(table) {
@@ -89,8 +97,10 @@ function clesExactes(objet, attendues, lieu, erreurs) {
 const condenseOuNul = (v) => v === null || (typeof v === "string" && RE_SHA256.test(v));
 
 // Contrôle de forme du registre, indépendant des fichiers. Rend la liste des
-// erreurs (vide si le registre est bien formé).
-export function controlerRegistre(registre) {
+// erreurs (vide si le registre est bien formé). `dateMax` (AAAA-MM-JJ) : la
+// date du jour de l'outil ; une modification datée après elle est une erreur
+// (revue de l'étape 8 : une date future était admise).
+export function controlerRegistre(registre, { dateMax = null } = {}) {
   const erreurs = [];
   if (!clesExactes(registre, CLES_REGISTRE, "registre", erreurs)) return erreurs;
   if (registre.conception !== VERSION_CONCEPTION) erreurs.push(`registre : conception « ${registre.conception} » au lieu de « ${VERSION_CONCEPTION} »`);
@@ -109,6 +119,7 @@ export function controlerRegistre(registre) {
     if (!m || Number(m[1]) !== i + 1) erreurs.push(`${lieu} : identifiant « ${mod.id} » au lieu de « MC-${i + 1} »`);
     if (typeof mod.date !== "string" || !RE_DATE.test(mod.date)) erreurs.push(`${lieu} : date attendue au format AAAA-MM-JJ`);
     else if (typeof dateAvant === "string" && mod.date < dateAvant) erreurs.push(`${lieu} : date ${mod.date} antérieure à ${dateAvant}`);
+    else if (typeof dateMax === "string" && mod.date > dateMax) erreurs.push(`${lieu} : date ${mod.date} postérieure au jour de la vérification ${dateMax}`);
     else dateAvant = mod.date;
     if (!(mod.etape === null || (Number.isInteger(mod.etape) && mod.etape >= 1 && mod.etape <= 8))) erreurs.push(`${lieu} : etape attendue entre 1 et 8, ou null`);
     if (typeof mod.motif !== "string" || mod.motif.trim() === "") erreurs.push(`${lieu} : motif vide`);
@@ -134,12 +145,15 @@ export function controlerRegistre(registre) {
 // Vérification complète.
 //   manifeste : texte du manifeste ; condenseManifeste : son SHA-256 ;
 //   registre : objet du registre ; fichiers : Map chemin → condensé des
-//   fichiers présents sous spec/ (hors spec/figeage/).
+//   fichiers présents sous spec/ (hors spec/figeage/) ; dateMax : date du
+//   jour (facultative, controlerRegistre).
 // Rend { erreurs, ecarts, etat } : erreurs de forme (manifeste, registre,
-// rejeu), écarts entre l'état rejoué et les fichiers présents.
-export function verifierFigeage({ manifeste, condenseManifeste, registre, fichiers }) {
+// rejeu), écarts entre l'état rejoué et les fichiers présents. Un fichier
+// présent sous spec/ dont le chemin n'est pas figeable est une erreur, jamais
+// ignoré : le figeage est l'oracle qui dit « rien n'a changé ».
+export function verifierFigeage({ manifeste, condenseManifeste, registre, fichiers, dateMax = null }) {
   const { table, erreurs } = lireManifeste(manifeste);
-  erreurs.push(...controlerRegistre(registre));
+  erreurs.push(...controlerRegistre(registre, { dateMax }));
   if (registre && typeof registre === "object" && registre.manifeste_sha256 !== condenseManifeste) {
     erreurs.push(`manifeste modifié : SHA-256 ${condenseManifeste} au lieu de ${registre.manifeste_sha256} consigné au registre`);
   }
@@ -158,7 +172,11 @@ export function verifierFigeage({ manifeste, condenseManifeste, registre, fichie
   }
   const ecarts = [];
   for (const [chemin, condense] of fichiers) {
-    if (!cheminFigeable(chemin)) continue;
+    if (sousFigeage(chemin)) continue;
+    if (!cheminFigeable(chemin)) {
+      erreurs.push(`fichier au nom non admis sous spec/ : ${JSON.stringify(chemin)} (chemin non figeable : barre inverse, caractère de contrôle ou de format bidirectionnel, composant vide, « . » ou « .. »)`);
+      continue;
+    }
     if (!etat.has(chemin)) ecarts.push({ chemin, nature: "ajouté sans consignation", attendu: null, obtenu: condense });
     else if (etat.get(chemin) !== condense) ecarts.push({ chemin, nature: "modifié sans consignation", attendu: etat.get(chemin), obtenu: condense });
   }
@@ -172,8 +190,8 @@ export function verifierFigeage({ manifeste, condenseManifeste, registre, fichie
 // Nouvelle entrée du registre pour les écarts constatés. Rend le registre
 // complété (copie) ; lève une erreur si le registre est mal formé ou s'il n'y
 // a rien à consigner.
-export function consignerModification({ manifeste, condenseManifeste, registre, fichiers, date, etape = null, motif }) {
-  const { erreurs, ecarts } = verifierFigeage({ manifeste, condenseManifeste, registre, fichiers });
+export function consignerModification({ manifeste, condenseManifeste, registre, fichiers, date, etape = null, motif, dateMax = null }) {
+  const { erreurs, ecarts } = verifierFigeage({ manifeste, condenseManifeste, registre, fichiers, dateMax });
   if (erreurs.length > 0) throw new Error(`registre ou manifeste invalide, rien n'est consigné :\n${erreurs.join("\n")}`);
   if (ecarts.length === 0) throw new Error("aucun écart avec l'état figé : rien à consigner");
   const mod = {
@@ -184,7 +202,7 @@ export function consignerModification({ manifeste, condenseManifeste, registre, 
     fichiers: ecarts.map((e) => ({ chemin: e.chemin, avant: e.attendu, apres: e.obtenu })),
   };
   const suivant = { ...registre, modifications: [...registre.modifications, mod] };
-  const controle = controlerRegistre(suivant);
+  const controle = controlerRegistre(suivant, { dateMax });
   if (controle.length > 0) throw new Error(`entrée invalide, rien n'est consigné :\n${controle.join("\n")}`);
   return suivant;
 }

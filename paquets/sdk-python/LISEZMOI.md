@@ -72,6 +72,23 @@ démon) ; sur une prise TCP, la première ligne est `{"noortrace_token":
 "<jeton>"}`, sauf en mTLS. Une ligne JSON-RPC 2.0 par message, `\n` final ;
 `id` entiers croissants à partir de 1 sur chaque connexion.
 
+Étape 8 (revue de sécurité interne, CT-2 EX-6.10, CT-2 EX-6.21) : sur
+une prise Unix, le SDK vérifie avant toute connexion que la prise appartient au
+compte attendu du démon (paramètre `proprietaire` du constructeur ou variable
+`NOORTRACE_SDK_PROPRIETAIRE` : uid ou nom de compte ; sans elle, au compte du
+processus ou au compte 0) et refuse sinon (`NoortraceIndisponible`,
+`prise_autre_compte` ; `prise_non_prise` quand le démon est arrêté) ; une prise
+TCP hors de la boucle locale n'est admise qu'en mTLS (`NoortraceConfiguration`
+avec un jeton seul : il partirait en clair) ; une chaîne à substitut isolé
+(forme `surrogateescape` d'`os.listdir`) n'est pas une valeur JSON : un
+résultat d'outil qui en porte est déclaré sous la forme
+`{"noortrace_sdk_non_json": "str"}` et un argument qui en porte lève
+`NoortraceEntreeInvalide` (`valeur_non_json`) avant tout envoi, jamais
+`UnicodeEncodeError` ; les motifs des noms d'outils et des défis sont ancrés
+(`fullmatch`) ; l'adaptateur CrewAI enveloppe aussi la méthode `_arun` propre
+d'une sous-classe de `BaseTool` (chemin `arun`), un `debut_appel` et un
+`fin_appel` par exécution réelle sur les deux chemins.
+
 ## Erreurs (EX-6.12)
 
 Toutes dérivent de `NoortraceErreur` (`code`, `message`, `data`) :
@@ -227,8 +244,8 @@ des lectures du LISEZMOI de `@noortrace/enregistreur`, qui s'arrêtent à 143).
      en a au plus `1 + reprises` en tout, séparées par le délai d'EX-6.13. Le
      SDK JavaScript publié imbrique deux boucles (`_ouvrirSession` retente
      `_connexionVive`, qui fait elle-même `1 + reprises` tentatives), soit
-     jusqu'à `(1 + reprises)²` connexions : écart au texte, signalé au rapport
-     du lot ; ce lot ne change pas l'interface ni le client JavaScript.
+     jusqu'à `(1 + reprises)²` connexions : écart au texte, signalé ; ce
+     paquet ne change pas l'interface ni le client JavaScript.
 147. **Jeton sur TLS** (lecture 113 du démon : « avec `tls` posé, la ligne de
      jeton passe sur TLS » ; EX-6.10 ne nomme `NOORTRACE_SDK_TLS_*` que pour
      le mTLS). Lecture, comme le SDK JavaScript : le client parle TLS
@@ -383,7 +400,7 @@ des lectures du LISEZMOI de `@noortrace/enregistreur`, qui s'arrêtent à 143).
      et dans `debut_appel`, qui empêche l'exécution. L'essai (i) montre aussi
      un échange resté en tête de file pendant l'arrêt du démon puis remis
      après la reprise (EX-6.11 (3), EX-6.13).
-161. **Modèle simulé des essais d'adaptateurs** (demande du lot : fournisseur
+161. **Modèle simulé des essais d'adaptateurs** (demande : fournisseur
      simulé, ou modèle factice du cadre). Lecture : `GenericFakeChatModel`
      (LangChain, `bind_tools` rendu identique), `MockFunctionCallingLLM`
      (LlamaIndex), `mock_response` (LiteLLM) ; CrewAI et le SDK Agents n'en

@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // Les six portées de 10.2.2.
@@ -355,9 +356,17 @@ func (p *Politique) Appliquer(portee, outil string, v *Value) ResultatRedaction 
 		rang  int
 	}
 	index := map[cle]int{}
+	// EX-10.14 (révision 0.11) : aucune borne arbitraire du nombre de
+	// passages ; chaque passage qui modifie la valeur remplace au moins un
+	// point de code hors jeton ou une valeur par un jeton, ou retire un
+	// membre : le nombre de passages qui modifient est au plus la taille de
+	// la valeur d'entrée (points de code de ses chaînes et noms, nombre de
+	// ses nœuds). Cette borne, tirée du texte, n'est jamais atteinte par une
+	// rédaction conforme ; l'atteindre est noté.
+	borne := tailleRedigeable(v) + 1
 	for passage := 0; ; passage++ {
-		if passage > 64 {
-			res.Notes = append(res.Notes, "rédaction : plus de 64 passages, arrêt")
+		if passage > borne {
+			res.Notes = append(res.Notes, fmt.Sprintf("rédaction : plus de %d passages, borne de finitude d'EX-10.14 dépassée", borne))
 			break
 		}
 		res.Passages++
@@ -393,6 +402,28 @@ func (p *Politique) Appliquer(portee, outil string, v *Value) ResultatRedaction 
 		}
 	}
 	return res
+}
+
+// tailleRedigeable compte les points de code des chaînes et des noms de
+// membres d'une valeur, et ses nœuds (borne des passages, EX-10.14).
+func tailleRedigeable(v *Value) int {
+	if v == nil {
+		return 0
+	}
+	n := 1
+	switch v.Kind {
+	case KindString:
+		n += utf8.RuneCountInString(v.Str)
+	case KindArray:
+		for _, x := range v.Arr {
+			n += tailleRedigeable(x)
+		}
+	case KindObject:
+		for _, m := range v.Obj {
+			n += utf8.RuneCountInString(m.Key) + tailleRedigeable(m.Val)
+		}
+	}
+	return n
 }
 
 // appliquerRegle rend la nouvelle racine, le décompte par détecteur (dans

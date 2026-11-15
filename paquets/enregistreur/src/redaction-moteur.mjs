@@ -95,17 +95,19 @@ export class PolitiqueCompilee {
     }
     const types = new Set([...TYPES_NOMMES, TYPE_PROMPT, ...motifs.keys()]);
     this.regles = doc.rules.map((r) => {
-      const detecteurs = r.detectors.map((d) => {
+      // `cle` : rang du détecteur dans la règle ; les comptes d'EX-10.17 sont tenus par détecteur (revue de l'étape 8 :
+      // deux motifs nommés d'une même règle font deux entrées de `matches`, vecteur `passages-en-cascade`).
+      const detecteurs = r.detectors.map((d, cle) => {
         if (d.type === "regex") {
           const regexp = motifs.get(d.name);
           if (!regexp) throw new TypeError(`règle ${r.id} : motif nommé ${d.name} inconnu`);
-          return { type: "regex", jeton: d.name, regexp };
+          return { type: "regex", jeton: d.name, regexp, cle };
         }
         if (d.type === "champ") {
           types.add(d.label);
-          return { type: "champ", jeton: d.label };
+          return { type: "champ", jeton: d.label, cle };
         }
-        return { type: d.type, jeton: d.type };
+        return { type: d.type, jeton: d.type, cle };
       });
       if (r.action.kind === "pseudonyme" && !this.cle) throw new TypeError(`règle ${r.id} : pseudonyme sans clé (EX-10.6)`);
       return {
@@ -160,19 +162,26 @@ export class PolitiqueCompilee {
 
 // ------------------------------------------------------------ application
 
-/** Comptes ordonnés par première apparition (EX-10.17, B.3 `matches`). */
+/**
+ * Comptes ordonnés par première apparition (EX-10.17, B.3 `matches`), tenus
+ * par détecteur : `cle` distingue deux détecteurs de même type d'une règle
+ * (deux motifs nommés), qui font deux entrées de même `{ rule, detector }`.
+ */
 class Comptes {
   constructor() {
     this.m = new Map();
   }
-  ajouter(regle, detecteur, n) {
+  ajouter(regle, detecteur, n, cle = detecteur) {
     if (!n) return;
-    const k = `${regle}\u0000${detecteur}`;
+    const k = `${regle}\u0000${cle}`;
     const x = this.m.get(k);
     if (x) x.count += n;
-    else this.m.set(k, { rule: regle, detector: detecteur, count: n });
+    else this.m.set(k, { rule: regle, detector: detecteur, count: n, cle });
   }
   liste() {
+    return [...this.m.values()].map(({ rule, detector, count }) => ({ rule, detector, count }));
+  }
+  entrees() {
     return [...this.m.values()].map((x) => ({ ...x }));
   }
 }
@@ -281,7 +290,7 @@ function appliquerRegle(pol, r, boite, comptes, notes, o = {}) {
       const nouveau = pol.jeton(r.action, d.jeton, valeur);
       if (Array.isArray(conteneur) || conteneur === boite) conteneur[cle] = nouveau;
       else poser(conteneur, cle, nouveau);
-      comptes.ajouter(r.id, "champ", 1);
+      comptes.ajouter(r.id, "champ", 1, d.cle);
       change = true;
       continue;
     }
@@ -294,7 +303,7 @@ function appliquerRegle(pol, r, boite, comptes, notes, o = {}) {
     if (Array.isArray(conteneur) || conteneur === boite) conteneur[cle] = nouveau;
     else poser(conteneur, cle, nouveau);
     if (n) {
-      comptes.ajouter(r.id, d.type, n);
+      comptes.ajouter(r.id, d.type, n, d.cle);
       change = true;
     }
   }
@@ -310,7 +319,7 @@ const PASSAGES_MAX = 10000;
  * @param {object[]} regles règles retenues, dans l'ordre
  * @param {unknown} valeur valeur reçue (non modifiée)
  * @param {{racineSeule?: boolean, texteSeul?: boolean, suivi?: {regle: string|null}}} [o]
- * @returns {{valeur: unknown, comptes: object[], notes: {rule: string, note: string}[], passages: number}}
+ * @returns {{valeur: unknown, comptes: object[], entrees: object[], notes: {rule: string, note: string}[], passages: number}} `entrees` : les comptes avec la clé du détecteur (`cle`), pour les cumuler par détecteur
  */
 export function appliquerRegles(pol, regles, valeur, o = {}) {
   const boite = { racine: clonerJson(valeur) };
@@ -327,7 +336,7 @@ export function appliquerRegles(pol, regles, valeur, o = {}) {
     if (!change) break;
     if (passages >= PASSAGES_MAX) throw new Error("rédaction instable");
   }
-  return { valeur: boite.racine, comptes: comptes.liste(), notes: [...notes].map(([rule, note]) => ({ rule, note })), passages };
+  return { valeur: boite.racine, comptes: comptes.liste(), entrees: comptes.entrees(), notes: [...notes].map(([rule, note]) => ({ rule, note })), passages };
 }
 
 /**
@@ -529,7 +538,7 @@ export function redigerEffetsDeclares(pol, effets, o) {
         o.budgetMs,
         "valeur",
       );
-      for (const c of [...x.s.comptes, ...x.ob.comptes]) comptes.ajouter(c.rule, c.detector, c.count);
+      for (const c of [...x.s.entrees, ...x.ob.entrees]) comptes.ajouter(c.rule, c.detector, c.count, c.cle);
       sortie.push({ ...e, system: x.s.valeur, object: x.ob.valeur });
     } catch (err) {
       if (!(err instanceof DepassementBudget)) throw err;

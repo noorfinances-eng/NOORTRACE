@@ -1,0 +1,10 @@
+{
+  "valide": false,
+  "controle": "A-3",
+  "controles_en_echec": [
+    "A-1",
+    "A-2",
+    "A-3"
+  ],
+  "description": "approbations.json réduit à l'objet vide {} (SHA-256 de l'index reporté) : la partie est un objet exploitable contraire à son schéma ; A-1 (ticket et request_hash absents), A-2 (aucun événement de décision) et A-3 (jeu, seuil et membres absents : relations non tenues) échouent ; aucun terme absent ne fait lever le vérificateur (CT-1 §11.4, revue de sécurité)."
+}

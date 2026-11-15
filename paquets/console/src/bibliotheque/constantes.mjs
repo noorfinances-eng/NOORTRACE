@@ -78,4 +78,6 @@ export const CODES_CONSOLE = Object.freeze([
   "origine_differente",
   "identite_differente",
   "reponse_service_invalide",
+  // CT-3 révision 0.8 (EX-9.15, `$defs/code_console`) : vue fraîche différente de la vue affichée par un membre lié à la signature.
+  "demande_modifiee",
 ]);

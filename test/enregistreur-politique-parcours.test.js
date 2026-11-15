@@ -179,6 +179,8 @@ describe("enregistreur, moteur de politique : parcours de bout en bout (agent r�
       erreur.policy.approval.mode = "erreur";
       erreur.policy.version = "parcours-2";
       ev.recharge2 = await coeur.recharger(N.utf8(JSON.stringify(erreur)), { env });
+      // EX-7.15 (addendum) : rien n'est évalué sous la version nouvelle avant que son charger ait réussi.
+      await attendre(() => coeur.chargerEtat?.version === "parcours-2" && coeur.chargerEtat.statut === "reussi", 10000);
       ev.signal = await h.appeler("demo__payments.create", PAIEMENT("9300.00"));
       ev.ticketErreur = ev.signal.result._meta["noortrace/approval"].ticket;
       await deuxVotes(service, ev.ticketErreur, retenueDe(ev.ticketErreur), "approuve");
@@ -190,6 +192,7 @@ describe("enregistreur, moteur de politique : parcours de bout en bout (agent r�
       obs.policy.approval.mode = "observation";
       obs.policy.version = "parcours-3-observation";
       ev.recharge3 = await coeur.recharger(N.utf8(JSON.stringify(obs)), { env });
+      await attendre(() => coeur.chargerEtat?.version === "parcours-3-observation" && coeur.chargerEtat.statut === "reussi", 10000);
       ev.observation = await h.appeler("demo__payments.create", PAIEMENT("9400.00"));
       const consommes = () => coeur.journal.trouver("approval_consume_final").length;
       await attendre(() => consommes() >= 2, 15000);
@@ -286,7 +289,7 @@ describe("enregistreur, moteur de politique : parcours de bout en bout (agent r�
     });
 
     it("le dossier de chaque appel est valide pour le binaire Go noortrace-verifier (go1.27.3) ; contrôle 7 réussi pour les appels approuvés", function () {
-      if (!bin) this.skip();
+      if (!bin) { this.test.title += " — en attente : go1.27.3 introuvable (NOORTRACE_GO_BIN ou PATH)"; this.skip(); }
       ev.appels.forEach((e, k) => {
         const statuts = verifierParGo(bin, ev.dossiers[k]);
         for (const id of [1, 2, 3, 6]) expect(statuts[id][0], `seq ${e.seq} contrôle ${id}`).to.equal("reussi");

@@ -77,16 +77,17 @@ et sa dépendance de test `github.com/google/go-cmp v0.5.9`) ; le programme
 lui-même n'accède pas au réseau. Code de retour : 0 si tout concorde, 1
 sinon, 2 si une entrée est illisible ou l'usage incorrect. La sortie de
 référence est `../sorties/coherence.txt` (transparency-dev/merkle v0.0.2,
-rejouée le 2026-11-03 avec Go 1.27.3) : huit racines et cinq preuves
+rejouée le 2026-11-03 avec Go 1.27.3, puis le 2026-11-14 à la régénération de l'étape 8) : huit racines et cinq preuves
 publiques (43 sondes refusées), seize cas de `coherence.json`, trois périodes
-de 61 points, onze dossiers de CT-1 et dix-neuf de CT-6 à partie
+de 61 points, onze dossiers de CT-1 et vingt de CT-6 à partie
 `points-de-controle.json` (un `null` ; trois points de clôture à preuve vide,
 `(9, 9)` ; le dix-huitième de CT-6, `valide-point-de-controle-complet-attestation`
 de CT-6 révision 0.3, reprend tel quel le `points-de-controle.json` de
 `valide-point-de-controle-complet` ; révision 0.5 de CT-1 et 0.4 de CT-6 :
 `invalide-partie-trop-grande` de CT-1, partie de 1 Mio + 1 octet, et
 `invalide-k8-empreinte-sans-registre` de CT-6 ; complément de la révision
-0.5 : `invalide-k6-voisins-nul-seq-9` de CT-1, point de clôture, `(9, 9)`),
+0.5 : `invalide-k6-voisins-nul-seq-9` de CT-1, point de clôture, `(9, 9)` ;
+revue de l'étape 8 : `invalide-r7-r11-non-executee` de CT-6, `(8, 9)`),
 0 discordance, 1 limite de l'outil.
 
 Sources des vecteurs publics (lues le 2026-10-25) :

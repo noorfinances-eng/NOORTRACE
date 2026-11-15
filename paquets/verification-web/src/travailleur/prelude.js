@@ -117,18 +117,22 @@ const NOORTRACE_ARBRE = (() => {
         parent.enfants.set(nom, { repertoire: false, parent, enfants: null, ino: 0, octets });
       });
     }
-    // Couples (dev, ino) stables : numérotation en profondeur, noms triés.
+    // Couples (dev, ino) stables : numérotation en profondeur d'abord, noms
+    // triés, parent avant ses enfants. Parcours par une pile explicite, et non
+    // par récursion : la profondeur de l'arbre ne borne pas la pile d'appels
+    // (étape 8, revue de sécurité, CT-6 EX-18.8).
     let ino = 0;
-    const numeroter = (n) => {
+    const pile = [r];
+    while (pile.length > 0) {
+      const n = pile.pop();
       n.ino = ++ino;
-      if (!n.repertoire) return;
+      if (!n.repertoire) continue;
       const noms = [...n.enfants.keys()].sort(comparerNoms);
       const tries = new Map();
       for (const nom of noms) tries.set(nom, n.enfants.get(nom));
       n.enfants = tries;
-      for (const enfant of tries.values()) numeroter(enfant);
-    };
-    numeroter(r);
+      for (let i = noms.length - 1; i >= 0; i--) pile.push(tries.get(noms[i]));
+    }
     racine = r;
     descripteurs = new Map();
     prochainDescripteur = PREMIER_DESCRIPTEUR;

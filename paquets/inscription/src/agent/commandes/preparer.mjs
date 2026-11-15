@@ -1,6 +1,8 @@
 // Pas 1 : préparation du dossier d'inscription (CT-4 §7.5, `inscrire-client
-// --preparer`) : OP-2, OP-1, OP-4, OP-5, provision `P_k` (EX-4.19), dossier
-// écrit avec toutes ses étapes à `a_faire` et `result` nul. Rien n'est envoyé.
+// --preparer`) : OP-2, OP-1, OP-4 (dont la provision : trésorerie du
+// manifeste, plafond, `P_k` recalculé, `controlerProvisionDossier`), OP-5,
+// dossier écrit avec toutes ses étapes à `a_faire` et `result` nul. Rien
+// n'est envoyé.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -11,16 +13,14 @@ import { MOTIF_SLUG, MOTIF_SLUG_PRODUCTION } from "../../commun/champs.mjs";
 import { Sortie } from "../sortie.mjs";
 import { ecrireDossier } from "../dossier.mjs";
 import { creerRepertoire } from "../donnees.mjs";
-import { cleRole, ecartCompte, etat, keccakTexte, prealables } from "./base.mjs";
+import { cleRole, controlerProvisionDossier, ecartCompte, etat, keccakTexte, prealables, provision } from "./base.mjs";
 import { SOURCE } from "../version.mjs";
 
 /** Budget journalier par défaut : un journal horaire, 24 × (100 000 + 350 000) gaz (CT-4 §7.5). */
 export const BUDGET_DEFAUT = 10800000n;
 
-/** Provision `P_k = provision_days × b_k + gas_limit` (EX-4.19). */
-export function provision(fees, budget) {
-  return BigInt(fees.provision_days) * BigInt(budget) + BigInt(fees.gas_limit);
-}
+/** Provision `P_k` (EX-4.19) : point commun de `base.mjs`, réexporté pour les commandes qui l'importaient ici. */
+export { provision };
 
 /** Lit `cles-essai.json` et les documents de clé qu'il désigne (réseau de développement, EX-7.3). */
 function lireClesEssai(chemin) {
@@ -111,6 +111,8 @@ export async function preparer(ctx, travail) {
   if (await etat.isRegistered(ctx, orgId)) {
     refus(`l'organisation ${p.org} (${orgId}) a déjà un jeu : un slug n'est attribué qu'une fois (EX-6.3)`, "organisation_existante");
   }
+  // Provision du dossier : trésorerie du manifeste, plafond, `P_k` (OP-4, comme `inscrire-client --preparer` de l'outil).
+  controlerProvisionDossier(ctx, sortie, { funder: cle.adresse(), budget, amountWei: montant });
   sortie.reussie("OP-4");
 
   // OP-5 : trésorerie du rôle.

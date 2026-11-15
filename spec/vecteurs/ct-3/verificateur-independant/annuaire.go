@@ -185,6 +185,13 @@ type Defi struct {
 	Utilise bool
 }
 
+// Bornes des défis (EX-13.13, révision 0.8 de CT-3) : défis non expirés
+// tenus par le service, par identité et au total.
+const (
+	MaxDefisParIdentite = 4
+	MaxDefisTotal       = 1024
+)
+
 // EtatAnnuaire est l'annuaire tenu par le service et ses défis en cours.
 type EtatAnnuaire struct {
 	Doc   *Value
@@ -502,6 +509,26 @@ func (e *EtatAnnuaire) Appliquer(methode string, req *Value, at Instant, nonce s
 		ttl, _ := EntierJSON(e.Doc.Get("registration_ttl_ms"))
 		ch := ChampsInscription{Origin: e.Doc.Get("console_origin").S(), Org: e.Doc.Get("org").S(), OrgID: e.Doc.Get("org_id").S(),
 			Identity: sess, Address: adr, IssuedAt: at.String(), ExpiresAt: (at + Instant(ttl)).String(), Nonce: nonce}
+		// Révision 0.8 (EX-13.13) : au plus MaxDefisParIdentite défis non
+		// expirés par identité et MaxDefisTotal au total ; au-delà,
+		// limite_annuaire sans changer les défis. Le défi que celui-ci
+		// remplace (même identité, même adresse) ne compte pas.
+		parIdentite, total := 0, 0
+		for _, d := range e.Defis {
+			if d.Champs.Identity == sess && d.Champs.Address == adr {
+				continue
+			}
+			if expire, err := LireInstant(d.Champs.ExpiresAt); err == nil && at >= expire {
+				continue
+			}
+			total++
+			if d.Champs.Identity == sess {
+				parIdentite++
+			}
+		}
+		if parIdentite >= MaxDefisParIdentite || total >= MaxDefisTotal {
+			return ko("limite_annuaire")
+		}
 		// Un nouveau défi pour la même identité et la même adresse remplace
 		// le précédent, dont le nonce devient inconnu (EX-13.13).
 		garde := e.Defis[:0]
@@ -697,7 +724,9 @@ func ControleVote(doc *Value, session, action, adresse string, ticket *Value) (b
 // (EX-12.19) : identite_invalide si session_identity n'est pas canonique
 // (EX-12.13), puis les raisons de la méthode dans l'ordre de sa règle ; ""
 // sinon. ticket porte launched_by et eligible ; il est nul pour un ticket
-// inconnu dans l'organisation, et pour tickets.
+// inconnu dans l'organisation, et pour tickets sans related_to. Révision 0.8
+// de CT-3 (EX-12.14, EX-12.21, table d'EX-13.32) : tickets avec related_to
+// applique au ticket désigné l'ordre de consulter.
 func ControleCanal(doc *Value, methode string, req, ticket *Value) string {
 	session := req.Get("session_identity")
 	if session == nil || session.IsNull() || !IdentiteCanonique(session.S()) {
@@ -719,7 +748,7 @@ func ControleCanal(doc *Value, methode string, req, ticket *Value) string {
 		if !admin && (x == nil || !x.Get("active").Bool) {
 			return refus
 		}
-		if methode == "tickets" {
+		if rel := req.Get("related_to"); methode == "tickets" && (rel == nil || rel.IsNull()) {
 			return ""
 		}
 		// Point 2 : ticket inconnu ; point 3 : adresse active membre

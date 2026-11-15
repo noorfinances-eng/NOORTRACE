@@ -66,6 +66,6 @@ python3 -m venv <répertoire>/venv-otel
 Code de retour : 0 si tout concorde, 1 sinon, 2 pour un usage incorrect. La
 sortie ne dépend ni de la version de Python (identique avec Python 3.12 et
 3.13) ni de la machine ; elle doit être égale, octet pour octet, à la sortie
-de référence `../sorties/otel.txt` : 48 cas, 40 requêtes analysées par la
-bibliothèque, 8 statuts décidés avant le décodage, 34 corps de réponse
+de référence `../sorties/otel.txt` : 49 cas, 41 requêtes analysées par la
+bibliothèque, 8 statuts décidés avant le décodage, 35 corps de réponse
 confrontés, 4 divergences voulues, 1 limite de l'outil, 0 discordance.

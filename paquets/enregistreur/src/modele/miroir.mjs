@@ -32,6 +32,7 @@ import { normaliserCible, trouverRoute, hotePourAdresse, declarationsFournisseur
 import { analyserCorpsJson } from "./extraction.mjs";
 import { MoteurEchanges } from "./echange.mjs";
 import { ecouterPriseUnix } from "../mcp/hote-stdio.mjs";
+import { MIROIR_TRAME_MAX_OCTETS, MIROIR_CONNEXIONS_MAX } from "../bornes.mjs";
 
 /** Borne d'une ligne de la prise du miroir : corps en base64 et en-têtes. */
 function borneLigne(lim) {
@@ -102,9 +103,11 @@ export class RecepteurMiroir {
   }
 
   async arreter() {
+    // Étape 8 (CT-2 EX-5.6) : les prises sont détruites d'abord ; `close` n'attend
+    // alors plus un adaptateur connecté, et l'arrêt du démon n'est pas retenu.
+    for (const p of this.prises) p.destroy();
     await new Promise((r) => (this.serveur ? this.serveur.close(() => r()) : r()));
     await Promise.allSettled([...this.enCours]);
-    for (const p of this.prises) p.destroy();
   }
 
   _connexion(socket) {
@@ -141,9 +144,17 @@ export class RecepteurMiroir {
           return;
         }
         // Couples traités dans l'ordre de la prise ; la réponse d'un couple suit sa durabilité.
-        chaine = chaine.then(() => this._couple(ligne)).then((r) => {
-          if (!socket.destroyed) socket.write(`${JSON.stringify(r)}\n`);
-        });
+        chaine = chaine
+          .then(() => this._couple(ligne))
+          .catch((e) => {
+            // Étape 8 (CT-2 EX-5.6) : une exception d'un couple est une réponse `ok: false`
+            // consignée ; les couples suivants de la connexion sont traités.
+            this.journal.consigner("error", "frontal_modele", "exchange_lost", { mode: "miroir", reason: String(e?.message ?? e).slice(0, 200) });
+            return { ok: false, reason: "erreur_interne" };
+          })
+          .then((r) => {
+            if (!socket.destroyed) socket.write(`${JSON.stringify(r)}\n`);
+          });
         const p = chaine.catch(() => {});
         this.enCours.add(p);
         p.finally(() => this.enCours.delete(p));
@@ -276,12 +287,19 @@ class Sens {
   }
 
   ajouter(o, emettre) {
+    // Étape 8 (CT-2 EX-5.6) : un sens illisible (HTTP/2, trame hors forme) ne
+    // garde plus rien ; les octets sont comptés et jetés.
+    if (this.etat === "illisible") {
+      this.ignores = (this.ignores ?? 0) + o.length;
+      this.tampon = Buffer.alloc(0);
+      return;
+    }
     this.tampon = this.tampon.length ? Buffer.concat([this.tampon, o]) : Buffer.from(o);
     for (;;) {
       if (this.etat === "tete") {
         const k = this.tampon.indexOf("\r\n\r\n");
         if (k < 0) {
-          if (this.tampon.length > LIGNE_MAX) this.etat = "illisible";
+          if (this.tampon.length > LIGNE_MAX) this._illisible();
           return;
         }
         const lignes = this.tampon.subarray(0, k).toString("latin1").split("\r\n");
@@ -292,7 +310,7 @@ class Sens {
           return j > 0 ? [l.slice(0, j), l.slice(j + 1).trim()] : null;
         });
         if (entetes.includes(null)) {
-          this.etat = "illisible";
+          this._illisible();
           return;
         }
         const get = (n) => entetes.filter(([x]) => x.toLowerCase() === n).map(([, v]) => v);
@@ -300,13 +318,13 @@ class Sens {
         if (!this.requete) {
           const st = /^HTTP\/1\.[01] ([0-9]{3})/.exec(depart);
           if (!st) {
-            this.etat = "illisible";
+            this._illisible();
             return;
           }
           m.statut = Number(st[1]);
           if (m.statut >= 100 && m.statut < 200) continue; // réponse intermédiaire : ignorée
         } else if (!/^\S+ \S+ HTTP\/1\.[01]$/.test(depart)) {
-          this.etat = "illisible";
+          this._illisible();
           return;
         }
         const te = get("transfer-encoding").join(",").toLowerCase();
@@ -317,7 +335,7 @@ class Sens {
           m.mode = "longueur";
           m.reste = Number(cl[0]);
           if (!Number.isSafeInteger(m.reste) || m.reste < 0) {
-            this.etat = "illisible";
+            this._illisible();
             return;
           }
         } else m.mode = this.requete ? "aucun" : "fermeture";
@@ -364,7 +382,7 @@ class Sens {
         const n = parseInt(this.tampon.subarray(0, k).toString("latin1").split(";")[0].trim(), 16);
         this.tampon = this.tampon.subarray(k + 2);
         if (!Number.isSafeInteger(n) || n < 0) {
-          this.etat = "illisible";
+          this._illisible();
           return;
         }
         if (n === 0) this.sousEtat = "remorque";
@@ -398,6 +416,13 @@ class Sens {
         }
       }
     }
+  }
+
+  /** Le sens ne se lit plus (CT-2 EX-5.6) : tampon et message en cours abandonnés. */
+  _illisible() {
+    this.etat = "illisible";
+    this.tampon = Buffer.alloc(0);
+    this.courant = null;
   }
 
   _fini(emettre) {
@@ -440,6 +465,8 @@ export class AdaptateurMiroir {
   _connexion(id, source) {
     let c = this.connexions.get(id);
     if (!c) {
+      // Étape 8 (CT-2 EX-5.6) : connexions copiées suivies bornées ; la plus ancienne est close (requêtes sans réponse remises seules).
+      if (this.connexions.size >= MIROIR_CONNEXIONS_MAX) this.fin(this.connexions.keys().next().value);
       c = { source, requetes: [] };
       c.client = new Sens({ requete: true, borne: this.borneRequete });
       c.serveur = new Sens({ requete: false, borne: this.borneReponse, sansCorps: () => /^HEAD /.test(c.requetes[0]?.depart ?? "") });
@@ -502,10 +529,26 @@ export async function lancerAdaptateur(o) {
   });
   versDemon.on("data", () => {});
   versDemon.on("error", () => {});
-  const adaptateur = new AdaptateurMiroir({ remettre: (c) => versDemon.write(`${JSON.stringify(c)}\n`) });
+  // Étape 8 (CT-2 EX-5.6) : la prise du démon fermée (redémarrage, panne) est
+  // une perte dite et rendue (`perte`, `surPerte`) ; l'adaptateur n'écrit plus
+  // dans le vide : il refuse la copie (`arreter`) et le processus s'arrête avec un code non nul.
+  let perdue = false;
+  let signalerPerte;
+  const perte = new Promise((r) => (signalerPerte = r));
+  versDemon.on("close", () => {
+    if (perdue) return;
+    perdue = true;
+    o.sortie?.write("noortrace-miroir: prise du demon fermee, capture arretee\n");
+    signalerPerte({ raison: "prise_demon_fermee" });
+    o.surPerte?.({ raison: "prise_demon_fermee" });
+  });
+  const adaptateur = new AdaptateurMiroir({ remettre: (c) => { if (!perdue && !versDemon.destroyed) versDemon.write(`${JSON.stringify(c)}\n`); } });
+  const copies = new Set();
   const serveur = net.createServer((s) => {
     let tampon = Buffer.alloc(0);
     let trame = null;
+    copies.add(s);
+    s.on("close", () => copies.delete(s));
     s.on("error", () => {});
     s.on("data", (d) => {
       tampon = tampon.length ? Buffer.concat([tampon, d]) : d;
@@ -523,7 +566,8 @@ export async function lancerAdaptateur(o) {
             return;
           }
           tampon = tampon.subarray(k + 1);
-          if (!Number.isSafeInteger(trame.longueur) || trame.longueur < 0 || typeof trame.connexion !== "string") {
+          // Longueur de trame bornée (CT-2 EX-5.6) : une trame qui annonce des gigaoctets n'est pas accumulée.
+          if (!Number.isSafeInteger(trame.longueur) || trame.longueur < 0 || trame.longueur > MIROIR_TRAME_MAX_OCTETS || typeof trame.connexion !== "string") {
             s.destroy();
             return;
           }
@@ -540,11 +584,11 @@ export async function lancerAdaptateur(o) {
   const [h, p] = o.ecoute.split(/:(?=[0-9]+$)/);
   await new Promise((res) => serveur.listen(Number(p), h, res));
   o.sortie?.write(`noortrace-miroir: copie ecoutee sur ${serveur.address().address}:${serveur.address().port}\n`);
-  return {
-    serveur,
-    async arreter() {
-      await new Promise((r) => serveur.close(() => r()));
-      versDemon.end();
-    },
+  const arreter = async () => {
+    for (const c of copies) c.destroy();
+    await new Promise((r) => serveur.close(() => r()));
+    versDemon.end();
   };
+  perte.then(() => arreter().catch(() => {}));
+  return { serveur, perte, perdue: () => perdue, arreter };
 }

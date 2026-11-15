@@ -4,7 +4,7 @@
 // OpenTimestamps réels.
 //
 // (i) Sur deux autorités publiques qui répondent sans compte (SwissSign, DFN),
-// par le transport de production du lot A : jeton acquis par `acquerir` et
+// par le transport de production du client RFC 3161 : jeton acquis par `acquerir` et
 // déposé (EX-5.14, AN-28 : une ligne d'acquisition), accepté par T-1 à T-9 ;
 // T-10 par les CRL publiées aux points de distribution du chemin, capturées
 // après `genTime` : `reussi` quand une CRL postérieure à `genTime` existe pour
@@ -14,7 +14,7 @@
 // (ii) `min_interval_ms` (EX-5.5, EX-8.7) tenu par le composant sur un
 // prestataire réel : l'autorité publique est servie au composant par un
 // relais HTTP local (rôle `interne`, seule forme qu'AN-1 admet sans compte,
-// lecture F1-8 du LISEZMOI) ; deux points consécutifs, deux requêtes espacées
+// lecture 8 de l\'assemblage du LISEZMOI) ; deux points consécutifs, deux requêtes espacées
 // d'au moins `min_interval_ms` (mesure dans le journal du relais et dans
 // `acquisitions.ndjson`, `anchor_retry` de raison `backoff`). Aucune horloge
 // n'est manipulée pendant la mesure (horloge hybride, temps réel).
@@ -59,7 +59,7 @@ const PERIODE_ESSAI = 1793862000; // 2026-11-05T07:00:00Z (dans la validité de 
  * Prestataire `ancrage-v0` d'une autorité publique sans compte (essai
  * d'interface : `anchor_certificates` lus dans la chaîne reçue ; au premier
  * passage, l'AC de test de CT-6 tient la place, T-7 échoue et la réponse est
- * lue pour découvrir la chaîne, comme dans l'essai du lot A).
+ * lue pour découvrir la chaîne, comme dans l'essai du client RFC 3161).
  */
 function prestatairePublic(a, ancres) {
   return {
@@ -210,7 +210,7 @@ describe("TI-16 (ii) : min_interval_ms (EX-5.5, EX-8.7) tenu par le composant su
     const ancres = ancresDuJeton(decouverte.jeton);
     const relais = await relaisVers(a.url);
     fermetures.push(relais.fermer);
-    // Décor du composant : principal TLS mutuel du lot E (clôture), relais public pour les points ; horloge hybride (temps réel) placée
+    // Décor du composant : principal TLS mutuel sur un serveur RFC 3161 interne (clôture), relais public pour les points ; horloge hybride (temps réel) placée
     // après les deux premières échéances de la période, pour que les deux points remis soient servis à la suite.
     const tls = materielTls(path.join(dir, "tls"));
     if (!tls) return enAttente(this, "openssl indisponible pour le matériel TLS");

@@ -19,6 +19,7 @@ import net from "node:net";
 import tls from "node:tls";
 import fs from "node:fs";
 import { X509Certificate } from "node:crypto";
+import { DELAI_IDENTIFICATION_MS } from "../bornes.mjs";
 
 /**
  * Sépare le certificat du démon et les certificats qui le suivent dans
@@ -40,10 +41,11 @@ export function chaineServeur(pem, nom = "prise TCP") {
  * @param {{listen: string, client_auth: "jeton"|"mtls", tls: {cert_file: string, key_file: string}|null}} tcp
  * @param {{nom: string, pointeur: string, connexions: Set<object>,
  *   surJeton: (c: net.Socket) => void, surMtls: (c: tls.TLSSocket) => void,
- *   surEchecTls: (raison: string) => void}} o
+ *   surEchecTls: (raison: string) => void, delaiIdentificationMs?: number}} o
  *   `nom` et `pointeur` (p. ex. « prise TCP du SDK », `sdk.tcp_listen`) pour
  *   les messages ; `connexions` reçoit toute prise acceptée, poignée de main
- *   comprise, pour la fermer à l'arrêt
+ *   comprise, pour la fermer à l'arrêt ; `delaiIdentificationMs` : délai de la
+ *   poignée de main TLS (étape 8, CT-2 EX-18.3 ; défaut `DELAI_IDENTIFICATION_MS`)
  * @returns {Promise<net.Server>}
  */
 export async function ecouterPriseTcp(tcp, o) {
@@ -52,7 +54,8 @@ export async function ecouterPriseTcp(tcp, o) {
   let s;
   if (tcp.tls) {
     const { cert, autorites } = chaineServeur(fs.readFileSync(tcp.tls.cert_file), o.nom);
-    const opts = { cert, key: fs.readFileSync(tcp.tls.key_file), minVersion: "TLSv1.2" };
+    // Poignée de main bornée (CT-2 EX-18.3) : une connexion muette ne tient pas une place sans fin.
+    const opts = { cert, key: fs.readFileSync(tcp.tls.key_file), minVersion: "TLSv1.2", handshakeTimeout: o.delaiIdentificationMs ?? DELAI_IDENTIFICATION_MS };
     if (mtls) {
       if (!autorites.length) throw new Error(`${o.nom} : client_auth mtls exige l'autorité des certificats clients à la suite du certificat du démon dans ${o.pointeur}.tls.cert_file (lecture 113)`);
       // Certificat exigé ; sa vérification (autorité, validité) est relue

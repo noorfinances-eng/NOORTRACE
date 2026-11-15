@@ -15,7 +15,13 @@
 #
 # Le contexte de construction est chain/ : l'image applique sur le commit épinglé
 # les correctifs NOORTRACE de chain/patches/ (dont noor_getCommitCertificate),
-# sans qu'aucune branche n'existe dans noorchain-core.
+# sans qu'aucune branche n'existe dans noorchain-core. Chaque correctif est
+# vérifié contre chain/patches/EMPREINTES (SHA-256, chain/scripts/
+# verifier-correctifs.sh) avant d'être appliqué : une empreinte différente, un
+# correctif absent ou un fichier non listé arrêtent la construction (CT-4
+# EX-10.1 d). Construire sans aucun correctif exige
+# --build-arg NOORTRACE_SANS_CORRECTIF=1 et une autre étiquette que
+# 618fcef-noortrace : ce binaire n'a pas noor_getCommitCertificate.
 #
 # Voir chain/docker/README.md pour l'exécution (validateur, suiveur), les
 # volumes, les ports et les variables.
@@ -70,10 +76,16 @@ RUN --mount=type=secret,id=ca_bundle \
     echo "noorchain-core au commit $tete, $(grep '^go ' go.mod)"
 
 # Correctifs NOORTRACE appliqués sur le commit épinglé, dans l'ordre des noms ;
-# `git apply --check` d'abord, pour qu'un correctif qui ne s'applique plus arrête
-# la construction au lieu de produire un binaire incomplet.
+# d'abord la vérification des empreintes contre chain/patches/EMPREINTES
+# (verifier-correctifs.sh : rien n'est appliqué si un correctif diffère, manque
+# ou n'est pas listé, CT-4 EX-10.1 d), puis `git apply --check`, pour qu'un
+# correctif qui ne s'applique plus arrête la construction au lieu de produire un
+# binaire incomplet.
+ARG NOORTRACE_SANS_CORRECTIF=0
 COPY patches/ /patches/
-RUN set -eu; for p in /patches/*.patch; do [ -e "$p" ] || continue; \
+COPY scripts/verifier-correctifs.sh /usr/local/bin/verifier-correctifs
+RUN set -eu; NOORTRACE_SANS_CORRECTIF="$NOORTRACE_SANS_CORRECTIF" bash /usr/local/bin/verifier-correctifs /patches /patches/EMPREINTES; \
+    for p in /patches/*.patch; do [ -e "$p" ] || continue; \
     git apply --check "$p"; git apply "$p"; echo "correctif appliqué : $(basename "$p")"; done
 
 # `go build ./core`, comme chain/scripts/build-noorcore.sh. -trimpath retire les

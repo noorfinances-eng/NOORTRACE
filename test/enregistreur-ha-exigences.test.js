@@ -9,7 +9,7 @@
 // d'époque inférieure qui grandit après la reprise).
 // Sans Docker, chaque cas est mis en attente et son titre nomme la condition.
 //
-// Défaut D-1 (révélé par TE-11, test/enregistreur-ha-bascule.test.js) et
+// Défaut révélé par TE-11 (test/enregistreur-ha-bascule.test.js) et
 // EX-17.2 : une instance qui n'est plus détentrice du bail, ou dont l'époque
 // est dépassée par une autre présente dans le répertoire du journal, n'écrit
 // rien (ni attente, ni intention, ni segment) ; la reprise d'une attente ne

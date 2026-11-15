@@ -44,12 +44,12 @@ import path from "node:path";
 import http from "node:http";
 import { spawn, spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import * as N from "@noortrace/noyau";
 import { lireFiles, constaterCadence } from "@noortrace/ancrage/planificateur";
 import { DepotAncres, lireJeton } from "@noortrace/ancrage/rfc3161";
 import { DepotOts, attestationsEnAttente, hauteursAttestees, lireOts } from "@noortrace/ancrage/ots";
-import { RACINE, assurerReseau, arreterReseau, dormir } from "./reseau-dev.mjs";
+import { RACINE, assurerReseau, arreterReseau, dormir, typeDisque } from "./reseau-dev.mjs";
 import {
   lireParcours, inscrireJournal, monterDemonReseauReel, Demon, fichierAncres, pointDeControleBitcoin, portLibre,
 } from "../../test/fixtures/enregistreur-ancrage/outils.mjs";
@@ -162,9 +162,9 @@ export function systeme() {
     cpu: os.cpus()[0]?.model?.trim() || "inconnu",
     cores: os.cpus().length,
     memory_bytes: os.totalmem(),
-    // Disque virtuel (ext4 sur /dev/vda d'une machine virtuelle) ; `fdatasync` est appelé par l'écrivain (CT-2 §12.3) et
-    // n'a pas été désactivé, mais son honneur par le support virtuel n'est pas établi : `fsync` vrai au sens « actif ».
-    disk: { type: "virtuel", fsync: true },
+    // Type du disque lu sur la machine ; `fdatasync` est appelé par l'écrivain (CT-2 §12.3) mais son honneur par
+    // le support n'est pas mesuré : null, jamais une valeur inventée (CT-9 EX-11.11).
+    disk: { type: typeDisque(RACINE), fsync: null },
     os: osRelease?.match(/^PRETTY_NAME="?([^"\n]+)"?/m)?.[1] ?? `${os.type()} ${os.release()}`,
     kernel: os.release(),
     node: process.version,
@@ -441,6 +441,11 @@ export async function collecter(o) {
 
 // ----------------------------------------------------------------- point d'entrée
 
+/** Code de sortie d'une collecte : 1 si les exports ont été interrompus (`evenements.exports_erreur` non nul), 0 sinon (CT-9 EX-11.11). */
+export function codeDeCollecte(collecte) {
+  return collecte?.evenements?.exports_erreur ? 1 : 0;
+}
+
 export async function principal(argv) {
   const action = argv[0];
   const { values: o } = parseArgs({
@@ -453,8 +458,9 @@ export async function principal(argv) {
   });
   if (action === "collecter") {
     if (!o.sortie) throw new Echec("--sortie attendu", 2);
-    await collecter(o);
-    return 0;
+    const c = await collecter(o);
+    // Une collecte dont les exports ont été interrompus n'est pas une réussite (CT-9 EX-11.11).
+    return c?.essai ? 0 : codeDeCollecte(c);
   }
   if (action === "complements") {
     const { complements } = await import("./mesure-ancrage-complements.mjs");
@@ -471,7 +477,16 @@ export async function principal(argv) {
   throw new Echec("usage : node scripts/e2e/mesure-ancrage.mjs collecter|complements|rapport …", 2);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+/** Chemin réel d'un fichier (liens symboliques résolus), ou null ; la garde de lancement le compare à celui du module. */
+function cheminReel(p) {
+  try {
+    return fs.realpathSync(path.resolve(p));
+  } catch {
+    return null;
+  }
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === cheminReel(process.argv[1])) {
   principal(process.argv.slice(2)).then(
     (code) => {
       process.exitCode = code;

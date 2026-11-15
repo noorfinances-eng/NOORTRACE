@@ -1,0 +1,47 @@
+# Option « modèle réel » de la démonstration de référence (CT-2 EX-19.3) :
+# fichier de surcharge, à donner après compose.yaml. La route /v1/messages de
+# l'enregistreur part vers le fournisseur avec la clé de la passerelle
+# (credentials « propre »), lue dans la variable ANTHROPIC_API_KEY ; l'agent
+# joue un vrai tour d'agent, où le modèle décide des appels. La sortie n'est
+# plus déterministe et la durée dépend du fournisseur.
+#
+#   MODELE_REEL=<identifiant du modèle> ANTHROPIC_API_KEY=<clé> \
+#     docker compose -f demo/compose.yaml -f demo/compose.modele-reel.yaml up
+#
+# La clé n'est écrite ni sur disque ni dans le journal : elle n'existe que
+# dans l'environnement du conteneur de l'enregistreur. Le réseau fournisseurs
+# n'est plus interne : l'enregistreur, et lui seul, y trouve une sortie.
+# L'agent reste attaché au seul réseau hotes : il ne reçoit ni la clé ni une
+# route vers le fournisseur.
+#
+# Cette option n'a pas été exécutée contre l'interface réelle : les essais
+# du dépôt ne joignent aucun réseau public et n'emploient aucune clé.
+
+services:
+  enregistreur:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?clé de l'API Messages exigée (jamais écrite dans un fichier)}
+    volumes:
+      - type: bind
+        source: ./configuration-demo-modele-reel.json
+        target: /etc/noortrace/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+  exploitation-demo:
+    volumes:
+      - type: bind
+        source: ./configuration-demo-modele-reel.json
+        target: /etc/noortrace/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+  agent-demo:
+    environment:
+      AGENT_DEMO_MODELE: ${MODELE_REEL:?identifiant du modèle exigé}
+
+networks:
+  fournisseurs:
+    internal: false

@@ -11,7 +11,10 @@ import { ErreurEnregistreur } from "./erreurs.mjs";
 /** Horloges du système : murale (ms UNIX) et monotone (ms). */
 export const HORLOGE_SYSTEME = Object.freeze({
   murale: () => Date.now(),
-  monotone: () => Number(process.hrtime.bigint() / 1000000n),
+  // Millisecondes à la microseconde près (trois décimales) : les instants
+  // `t_recu`, `t_envoi`, `t_reponse` et celui du `fdatasync` que CT-2 EX-16.2
+  // pas 4 lit dans le journal d'exploitation.
+  monotone: () => Number(process.hrtime.bigint() / 1000n) / 1000,
 });
 
 /**
@@ -68,12 +71,15 @@ export class ControleurHorloge {
    * @param {object} reglages membre `clock` de la configuration
    * @param {{entrer: Function, sortir: Function, actif: Function}} degrade état du mode dégradé
    * @param {{consigner: Function}} [journal] journal d'exploitation
+   * @param {{jauge: Function}} [metriques] métriques du démon (`noortrace_clock_skew_ms`, CT-2 §17.2)
    */
-  constructor(horloge, reglages, degrade, journal) {
+  constructor(horloge, reglages, degrade, journal, metriques) {
     this.horloge = horloge;
     this.reglages = { ...DEFAUTS_HORLOGE, ...(reglages ?? {}) };
     this.degrade = degrade;
     this.journal = journal;
+    this.metriques = metriques ?? null;
+    this.metriques?.jauge("noortrace_clock_skew_ms", {}, 0);
     this.dernierLu = null;
     this.dernierMonotone = null;
     this.saut = false;
@@ -137,6 +143,10 @@ export class ControleurHorloge {
     const lu = this.horloge.murale();
     const mono = this.horloge.monotone();
     const r = this.reglages;
+    // Dernier écart mesuré (EX-7.10, `noortrace_clock_skew_ms`) : `ts` précédent
+    // moins l'heure murale lue, 0 quand l'heure ne recule pas ; même valeur que
+    // `ecart_ms` de la ligne `clock_skew`.
+    if (tsPrecedent !== null) this.metriques?.jauge("noortrace_clock_skew_ms", {}, Math.max(0, tsPrecedent - lu));
     // Saut en avant (EX-7.13) : avance murale plus grande que l'avance monotone plus la tolérance.
     if (this.dernierLu !== null && this.dernierMonotone !== null) {
       const avanceMurale = lu - this.dernierLu;

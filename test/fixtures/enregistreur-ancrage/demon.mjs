@@ -1,5 +1,5 @@
 // Processus enfant des essais du composant d'ancrage branché dans
-// l'enregistreur (lot F2) : le démon réel assemblé par `principal` de
+// l'enregistreur : le démon réel assemblé par `principal` de
 // `src/cli.mjs` (configuration, secrets, composant d'ancrage, cœur, frontaux,
 // signaux), avec l'horloge hybride des essais du composant (le temps mural
 // avance avec le temps réel et saute sur commande, les minuteries du
@@ -26,7 +26,9 @@
 // (le mot `noortrace` avant `--config` fait reconnaître le processus par
 // `noortrace-ctl`, qui cherche `noortrace --config <fichier>` dans la ligne
 // de commande). L'instant de départ de l'horloge vient de la variable
-// NOORTRACE_TEST_HORLOGE_BASE_MS. Importé sans être lancé, il ne fait rien.
+// NOORTRACE_TEST_HORLOGE_BASE_MS. La relance qui suit la perte du bail emploie
+// la même horloge injectée, et les commandes s'adressent ensuite à l'instance
+// relancée. Importé sans être lancé, il ne fait rien.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -43,13 +45,30 @@ async function principalEnfant() {
   const base = Number(process.env.NOORTRACE_TEST_HORLOGE_BASE_MS);
   const horloge = new HorlogeHybride(Number.isFinite(base) ? base : Date.now());
   const repondre = (o) => process.stdout.write(`${JSON.stringify(o)}\n`);
-  const r = await principal(["--config", argv[k + 1]], { horloge, stdout: process.stderr, stderr: process.stderr });
+  // L'instance en place : celle du démarrage, puis celle de chaque relance.
+  let coeur = null;
+  // Démarrage et relance par la même fonction : l'instance relancée après la
+  // perte du bail (CT-2 EX-13.6) reçoit l'horloge injectée du décor, comme la
+  // première. Sans `relancer`, `superviserProcessus` relancerait par `lancer`,
+  // qui lit l'horloge du système : la durée de la relance et de l'arrêt qui la
+  // suit dépendrait alors de l'heure de la machine.
+  const demarrer = async () => {
+    const r = await principal(["--config", argv[k + 1]], { horloge, stdout: process.stderr, stderr: process.stderr });
+    if (typeof r === "number") return r;
+    coeur = r.coeur;
+    superviserProcessus(r, { argv: ["node", "noortrace", "--config", argv[k + 1]], relancer });
+    return r;
+  };
+  // Relance refusée : plus aucune instance à arrêter, le processus d'essai sort avec le code du refus.
+  const relancer = async () => {
+    const r = await demarrer();
+    if (typeof r === "number") process.exit(r);
+  };
+  const r = await demarrer();
   if (typeof r === "number") {
     repondre({ started: false, code: r });
     process.exit(r);
   }
-  const { coeur } = r;
-  superviserProcessus(r, { argv: ["node", "noortrace", "--config", argv[k + 1]] });
   repondre({ started: true, port: coeur.serveur?.address()?.port ?? null, epoque: coeur.ecrivain?.epoque ?? null, pid: process.pid, murale: horloge.murale() });
 
   async function echange(n) {

@@ -11,12 +11,17 @@
 //   node scripts/conformite/attestation.mjs verifier <fichier> [--forme] [--jeu <jeu.json>]
 //
 // `verifier --forme` applique à une attestation (ou à celle d'une attestation
-// signée) AT-1 et les contrôles d'EX-7.3 et EX-7.4 ; `verifier --jeu`
-// applique AT-1 à AT-4 à une attestation signée. Codes de retour : 0 si tout
-// réussit (attestation retenue, ou forme sans erreur), 1 sinon, 2 si une
-// entrée est absente ou illisible ou si les arguments sont invalides. Le mot
-// de passe d'un fichier de clé chiffré est lu dans la variable
-// d'environnement NOORTRACE_MOT_DE_PASSE.
+// signée, sans exiger --jeu ni exécuter AT-2 à AT-4) AT-1 et les contrôles
+// d'EX-7.3 et EX-7.4 ; `verifier --jeu` applique AT-1 à AT-4 à une attestation
+// signée (sans --forme, --jeu est exigé). Codes de retour : 0 si tout réussit
+// (attestation retenue, ou forme sans erreur), 1 sinon, 2 si une entrée est
+// absente, illisible ou n'est pas un objet JSON, si les arguments sont
+// invalides, ou si un fichier de clé est lisible par d'autres que son
+// propriétaire. Le mot de passe d'un fichier de clé chiffré est lu dans la
+// variable d'environnement NOORTRACE_MOT_DE_PASSE ; les avertissements du
+// fichier de clé (dérivation faible) sont affichés. La clé en clair d'un
+// fichier `fichier:` est décodée depuis son tampon, sans passer par une chaîne,
+// et le tampon est effacé (revue de sécurité interne, CT-7 EX-7.3).
 
 import fs from "node:fs";
 import readline from "node:readline";
@@ -33,6 +38,7 @@ function usage(message) {
   sortir(2, `${message ? message + "\n" : ""}usage : node scripts/conformite/attestation.mjs gabarit | condenser <fichier> | signer <fichier> --cle fichier:<chemin>|keystore:<chemin> [--oui] | assembler <fichier> <signature>… | verifier <fichier> [--forme] [--jeu <jeu.json>]`);
 }
 
+/** Document JSON d'un fichier : un objet, sinon code 2 (une entrée qui n'est pas un objet est illisible, jamais « non retenue », CT-7 EX-7.3). */
 function lire(fichier) {
   let octets;
   try {
@@ -40,10 +46,52 @@ function lire(fichier) {
   } catch (err) {
     sortir(2, `${fichier} : illisible (${err.code ?? err.message})`);
   }
+  let doc;
   try {
-    return J.analyserJSONStrict(octets);
+    doc = J.analyserJSONStrict(octets);
   } catch (err) {
     sortir(2, `${fichier} : JSON invalide (${err.message})`);
+  }
+  if (doc === null || typeof doc !== "object" || Array.isArray(doc)) sortir(2, `${fichier} : un objet JSON est attendu`);
+  return doc;
+}
+
+/**
+ * Clé secp256k1 d'un fichier `fichier:` : fichier ordinaire lisible de son seul
+ * propriétaire (sinon code 2), 0x suivi de 64 chiffres hexadécimaux, décodés
+ * depuis le tampon de lecture sans jamais former la chaîne de la clé ; le
+ * tampon est effacé (CT-7 EX-7.3). Rend 32 octets.
+ */
+function cleDuFichier(fichierCle) {
+  let st;
+  try {
+    st = fs.statSync(fichierCle);
+  } catch (err) {
+    sortir(2, `${fichierCle} : illisible (${err.code ?? err.message})`);
+  }
+  if (!st.isFile()) sortir(2, `${fichierCle} : n'est pas un fichier ordinaire`);
+  if (process.platform !== "win32" && (st.mode & 0o077) !== 0) sortir(2, `${fichierCle} : lisible par d'autres que son propriétaire (mode ${(st.mode & 0o777).toString(8)}) ; chmod 600`);
+  const b = fs.readFileSync(fichierCle);
+  try {
+    let fin = b.length;
+    while (fin > 0 && (b[fin - 1] === 0x0a || b[fin - 1] === 0x0d || b[fin - 1] === 0x20 || b[fin - 1] === 0x09)) fin--;
+    let debut = 0;
+    while (debut < fin && (b[debut] === 0x20 || b[debut] === 0x09)) debut++;
+    if (fin - debut !== 66 || b[debut] !== 0x30 || (b[debut + 1] !== 0x78 && b[debut + 1] !== 0x58)) sortir(2, `${fichierCle} : clé hexadécimale 0x de 32 octets attendue`);
+    const valeur = (c) => (c >= 0x30 && c <= 0x39 ? c - 0x30 : c >= 0x61 && c <= 0x66 ? c - 0x61 + 10 : c >= 0x41 && c <= 0x46 ? c - 0x41 + 10 : -1);
+    const cle = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) {
+      const h = valeur(b[debut + 2 + 2 * i]);
+      const l = valeur(b[debut + 3 + 2 * i]);
+      if (h < 0 || l < 0) {
+        cle.fill(0);
+        sortir(2, `${fichierCle} : clé hexadécimale 0x de 32 octets attendue`);
+      }
+      cle[i] = h * 16 + l;
+    }
+    return cle;
+  } finally {
+    b.fill(0);
   }
 }
 
@@ -146,19 +194,14 @@ switch (commande) {
     const [sorte, ...chemin] = options.cle.split(":");
     const fichierCle = chemin.join(":");
     if (sorte === "fichier") {
-      let texte;
-      try {
-        texte = fs.readFileSync(fichierCle, "utf8").trim();
-      } catch (err) {
-        sortir(2, `${fichierCle} : illisible (${err.code ?? err.message})`);
-      }
-      if (!/^0x[0-9a-fA-F]{64}$/.test(texte)) sortir(2, `${fichierCle} : clé hexadécimale 0x de 32 octets attendue`);
-      cle = C.depuisHex(texte.toLowerCase());
+      cle = cleDuFichier(fichierCle);
     } else if (sorte === "keystore") {
       const doc = lire(fichierCle);
       const mdp = process.env.NOORTRACE_MOT_DE_PASSE;
       if (!mdp) sortir(2, "NOORTRACE_MOT_DE_PASSE n'est pas défini");
       const r = C.lireFichierCle(doc, mdp, doc.address ? "0x" + String(doc.address).toLowerCase().replace(/^0x/, "") : null);
+      // Les avertissements du fichier de clé (dérivation faible) sont montrés au signataire (CT-7 EX-7.3).
+      for (const w of r?.warnings ?? []) console.error(`[AVERTISSEMENT] fichier de clé : ${typeof w === "string" ? w : JSON.stringify(w)}`);
       if (r.outcome !== "accepte" && !r.cle) sortir(2, `${fichierCle} : fichier de clé refusé (${r.reason})`);
       cle = r.cle;
     } else usage("--cle fichier:<chemin> ou keystore:<chemin>");
@@ -209,8 +252,9 @@ switch (commande) {
       for (const a of c.avertissements) console.log(`[AVERTISSEMENT] ${a}`);
       if (c.erreurs.length) code = 1;
     }
-    if (signee) {
-      if (!options.jeu) sortir(2, "verifier une attestation signée exige --jeu <jeu.json> (AT-4)");
+    // --forme ne juge que la forme (7.4, pas 3) : AT-2 à AT-4 et --jeu ne s'appliquent qu'à la vérification complète (CT-7 EX-7.3).
+    if (signee && !options.forme) {
+      if (!options.jeu) sortir(2, "verifier une attestation signée exige --jeu <jeu.json> (AT-4), sauf --forme");
       const jeu = lire(options.jeu);
       const r = S.verifierAttestation(fs.readFileSync(positionnels[0]), jeu);
       for (const c of r.checks) console.log(`${c.status === "reussi" ? "[OK]" : c.status === "echoue" ? "[ÉCHEC]" : "[NON EXÉCUTÉE]"} ${c.id} : ${r.details[c.id].fr}`);

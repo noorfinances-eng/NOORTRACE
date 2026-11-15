@@ -285,9 +285,9 @@ describe("enregistreur, cœur : reprise après arrêt brutal", function () {
   });
 });
 
-// Défauts démontrés par la relecture adversariale A (cœur, stockage, bail) :
+// Défauts démontrés par la relecture adversariale du cœur (stockage, bail) :
 // chaque essai de la relecture est rejoué ici comme test de non-régression.
-describe("enregistreur, cœur : non-régression de la relecture A (stockage, reprise, bail)", function () {
+describe("enregistreur, cœur : non-régression de la relecture adversariale du cœur (stockage, reprise, bail)", function () {
   this.timeout(120000);
   const ms = (t) => N.decoderHorodatage(t);
   const delegation = { launched_by: "x", on_behalf_of: null, scope: "s", run_id: null };
@@ -326,7 +326,7 @@ describe("enregistreur, cœur : non-régression de la relecture A (stockage, rep
     return etat;
   }
 
-  it("R-A-1 (CT-1 §10.2, EX-12.24, P-5) : arrêt brutal entre le manifeste et sa signature → au redémarrage, signature écrite sur les octets du manifeste, remise à l'ancrage et copies WORM refaites", async function () {
+  it("CT-1 §10.2, EX-12.24, P-5 : arrêt brutal entre le manifeste et sa signature → au redémarrage, signature écrite sur les octets du manifeste, remise à l'ancrage et copies WORM refaites", async function () {
     const { config, chemin } = preparer("cloture-sig");
     const p = spawn(process.execPath, [ENFANT, chemin, "cloture-sig"], { stdio: ["ignore", "pipe", "pipe"] });
     let sortie = "";
@@ -365,7 +365,7 @@ describe("enregistreur, cœur : non-régression de la relecture A (stockage, rep
     }
   });
 
-  it("R-A-3 (EX-12.8) : fdatasync en erreur (EIO) pour un groupe de trois événements → refusés, segment tronqué à la dernière ligne synchronisée, la chaîne reprend sans eux", async function () {
+  it("EX-12.8 : fdatasync en erreur (EIO) pour un groupe de trois événements → refusés, segment tronqué à la dernière ligne synchronisée, la chaîne reprend sans eux", async function () {
     const { config } = preparer("eio");
     const coeur = await Coeur.demarrer({ config, secrets: secretsDev(), horloge: new HorlogeReglable(ms("2026-11-10T10:14:00.000Z")) });
     const panne = await pannerDatasync();
@@ -402,7 +402,7 @@ describe("enregistreur, cœur : non-régression de la relecture A (stockage, rep
     }
   });
 
-  it("R-A-3 et R-A-4 (EX-12.8, EX-4.46, EX-14.10) : EIO sur le fdatasync d'un appel relayé → -31017, un seul événement « executee » pour l'appel, après la sortie du mode dégradé et après un redémarrage", async function () {
+  it("EX-12.8, EX-4.46, EX-14.10 : EIO sur le fdatasync d'un appel relayé → -31017, un seul événement « executee » pour l'appel, après la sortie du mode dégradé et après un redémarrage", async function () {
     const { config } = preparer("eio-relais");
     const coeur = await Coeur.demarrer({ config, secrets: secretsDev(), horloge: new HorlogeReglable(ms("2026-11-10T10:14:00.000Z")) });
     const panne = await pannerDatasync();
@@ -441,7 +441,7 @@ describe("enregistreur, cœur : non-régression de la relecture A (stockage, rep
     }
   });
 
-  it("R-A-4 (EX-14.10, EX-9.8) : démon tué pendant la reprise de l'attente, après le scellement et avant la suppression du fichier → l'événement n'est pas scellé deux fois", async function () {
+  it("EX-14.10, EX-9.8 : démon tué pendant la reprise de l'attente, après le scellement et avant la suppression du fichier → l'événement n'est pas scellé deux fois", async function () {
     const { config, chemin } = preparer("attente-double");
     const c1 = await Coeur.demarrer({ config, secrets: secretsDev(), horloge: new HorlogeReglable(ms("2026-11-10T10:14:00.000Z")) });
     const args = pieceJson({ claim_id: "Y" });
@@ -478,7 +478,7 @@ describe("enregistreur, cœur : non-régression de la relecture A (stockage, rep
     }
   });
 
-  it("R-A-9 (EX-12.22, EX-12.11, EX-9.8) : après intention_corrompue, le démarrage n'écrit plus rien (ni événement en attente, ni événement de politique)", async function () {
+  it("EX-12.22, EX-12.11, EX-9.8 : après intention_corrompue, le démarrage n'écrit plus rien (ni événement en attente, ni événement de politique)", async function () {
     const { config } = preparer("intervention");
     const h = new HorlogeReglable(ms("2026-11-10T10:14:00.000Z"));
     const c1 = await Coeur.demarrer({ config, secrets: secretsDev(), horloge: h });
@@ -501,7 +501,7 @@ describe("enregistreur, cœur : non-régression de la relecture A (stockage, rep
     }
   });
 
-  describe("R-A-5 : magasin de bail `file` (13.2 : flock(LOCK_EX | LOCK_NB), EX-13.4, EX-13.10)", function () {
+  describe("magasin de bail `file` (13.2 : flock(LOCK_EX | LOCK_NB), EX-13.4, EX-13.10)", function () {
     const SCRIPT = `
       const [chemin, t0] = process.argv.slice(1);
       const { MagasinBailFichier } = await import(${JSON.stringify(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "paquets", "enregistreur", "src", "bail.mjs"))});
@@ -578,7 +578,7 @@ describe("enregistreur, cœur : non-régression de la relecture A (stockage, rep
     });
   });
 
-  describe("soupçons de la relecture A (stockage)", function () {
+  describe("soupçons de la relecture adversariale du cœur (stockage)", function () {
     it("EX-12.13 : intention et contexte sont écrits par une seule écriture (un arrêt entre les deux est impossible par construction)", async function () {
       const { config } = preparer("une-ecriture");
       const coeur = await Coeur.demarrer({ config, secrets: secretsDev() });

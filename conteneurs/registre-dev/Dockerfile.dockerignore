@@ -1,0 +1,22 @@
+# Contexte de construction de noortrace/registre-dev (racine du dépôt) :
+# tout est exclu, sauf ce que l'image emploie.
+*
+!package.json
+!package-lock.json
+!paquets/*/package.json
+!paquets/noyau/src/**
+!paquets/ancrage/bin/**
+!paquets/ancrage/src/**
+!conteneurs/commun/preparer-application.sh
+!conteneurs/demo-commun/chaine.mjs
+!conteneurs/registre-dev/registre-dev.mjs
+!conteneurs/registre-dev/passwd
+!conteneurs/registre-dev/group
+!chain/config/alloc-dev.json
+!hh-artifacts/contracts/AttestationRegistry.sol/AttestationRegistry.json
+!hh-artifacts/contracts/CuratorSet.sol/CuratorSet.json
+!hh-artifacts/contracts/CuratorSetRegistry.sol/CuratorSetRegistry.json
+!hh-artifacts/contracts/PeriodRegistry.sol/PeriodRegistry.json
+!hh-artifacts/contracts/RecorderRegistry.sol/RecorderRegistry.json
+!LICENSE
+!NOTICE

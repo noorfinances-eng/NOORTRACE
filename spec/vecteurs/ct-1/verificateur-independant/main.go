@@ -6,7 +6,10 @@
 // manifestes, points de contrôle, dossiers), recalcule tout depuis la
 // spécification et confronte à chaque valeur attendue. Code de retour 0 si et seulement si tout
 // concorde ; 1 en cas de discordance ou d'erreur ; 2 si l'usage est incorrect
-// ou la racine introuvable.
+// ou la racine introuvable. Révision 0.6 de CT-1 (§13) : une famille de la
+// table des vecteurs absente, une famille sans valeur recalculée, aucune
+// valeur recalculée, ou un cas que l'INDEX.md nomme sans qu'il soit présent
+// (ou l'inverse) sont des erreurs : code 1 (plancher.go).
 
 package main
 
@@ -36,6 +39,7 @@ func main() {
 		os.Exit(2)
 	}
 	rap := VerifierVecteurs(racine, *strict)
+	AppliquerPlancher(rap, racine)
 	if *enJSON {
 		if err := rap.EcrireJSON(os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, err)

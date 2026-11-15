@@ -1,4 +1,4 @@
-// Planificateur d'ancrage (CT-5 §8, lot C) : rejeu des vingt-quatre traces
+// Planificateur d'ancrage (CT-5 §8) : rejeu des vingt-huit traces
 // normatives de spec/vecteurs/ct-5/planification (EX-8.16, AN-42) et des
 // files de spec/vecteurs/ct-5/reprise (EX-8.5 règles 3 et 6, EX-8.12, AN-33).
 // Chaque trace est validée contre le schéma planificateur-ancrage-v0, rejouée
@@ -44,8 +44,8 @@ const TRANSITIONS = {
 describe("ancrage, planificateur : traces normatives de CT-5 §8.10", function () {
   this.timeout(60000);
 
-  it("vingt-quatre traces sont publiées (révision 0.6 de CT-5 : file-fenetre-32 et file-fenetre-32-redemarrage en plus), toutes conformes à la racine du schéma planificateur-ancrage-v0", function () {
-    expect(TRACES).to.have.lengthOf(24);
+  it("vingt-huit traces sont publiées (révision 0.6 de CT-5 : file-fenetre-32 et file-fenetre-32-redemarrage ; revue de l'étape 8 : releve-pendant-reprise, redemarrage-releve, redemarrage-echeance-remplacee, file-lignes-illisibles), toutes conformes à la racine du schéma planificateur-ancrage-v0", function () {
+    expect(TRACES).to.have.lengthOf(28);
     for (const f of TRACES) {
       const v = REGISTRE_ANCRAGE.valider(ID_SCHEMA_PLANIFICATEUR, lire("planification", f));
       expect(v.valide, `${f} : ${v.erreurs[0]}`).to.equal(true);
@@ -156,8 +156,8 @@ describe("ancrage, planificateur : traces normatives de CT-5 §8.10", function (
       fs.rmSync(dir, { recursive: true, force: true });
     });
 
-    it("sept traces ont une file avant et après (révision 0.6 : file-fenetre-32-redemarrage en plus)", function () {
-      expect(REPRISES).to.have.lengthOf(7);
+    it("dix traces ont une file avant et après (révision 0.6 : file-fenetre-32-redemarrage en plus ; revue de l'étape 8 : file-lignes-illisibles, redemarrage-echeance-remplacee et redemarrage-releve en plus)", function () {
+      expect(REPRISES).to.have.lengthOf(10);
     });
 
     for (const nom of REPRISES) {

@@ -1,0 +1,30 @@
+# Extracteur des journaux de NOORTRACE (CT-8 §10.3, EX-10.5), posé par
+# poser-taches.sh --supervision. Identité distincte de chaque composant supervisé
+# (EX-10.3) : compte noortrace-supervision ; la lecture des journaux que le démon
+# écrit en mode 0600 passe par CAP_DAC_READ_SEARCH (lecture seule, aucune
+# écriture hors du répertoire du collecteur) ; les secrets de l'archive restent
+# inaccessibles. Les chemins lus viennent de /etc/noortrace/taches.env.
+[Unit]
+Description=NOORTRACE, extracteur des journaux (CT-8 §10.3, EX-10.3)
+After=docker.service
+
+[Service]
+Type=simple
+User=noortrace-supervision
+Group=noortrace-supervision
+EnvironmentFile=/etc/noortrace/taches.env
+ExecStart=/bin/bash @RACINE@/deploiement/taches/superviser.sh extracteur
+Restart=always
+RestartSec=30
+AmbientCapabilities=CAP_DAC_READ_SEARCH
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ReadWritePaths=@SUPERVISION@
+InaccessiblePaths=-@RACINE@/deploiement/secrets
+
+[Install]
+WantedBy=multi-user.target

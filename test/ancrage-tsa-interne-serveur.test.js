@@ -1,4 +1,4 @@
-// Frontal HTTP du serveur RFC 3161 interne (lot E, AN-27, AN-28) et binaire
+// Frontal HTTP du serveur RFC 3161 interne (AN-27, AN-28) et binaire
 // `bin/noortrace-tsa-interne` : écoute en clair sur 127.0.0.1 seulement,
 // `POST` avec `Content-Type: application/timestamp-query`, corps borné,
 // réponse `application/timestamp-reply` (y compris pour un refus RFC 3161) ;
@@ -15,7 +15,7 @@ import http from "node:http";
 import https from "node:https";
 import net from "node:net";
 import { spawn } from "node:child_process";
-import { Autorite, CompteurMemoire, demarrerServeur, ErreurServeur, TYPE_REQUETE, TYPE_REPONSE, lancerTsaInterne, USAGE_TSA_INTERNE } from "@noortrace/ancrage/serveur-interne";
+import { Autorite, CompteurMemoire, demarrerServeur, ErreurServeur, TYPE_REQUETE, TYPE_REPONSE, lancerTsaInterne, USAGE_TSA_INTERNE, EPOQUE_PAS } from "@noortrace/ancrage/serveur-interne";
 import { RACINE, AUTORITE_TEST, POLITIQUE_TEST, lireRequete, cheminRequete, repertoireTemporaire, horlogeFixe, openssl, verifierOpenssl, relireReponse, ecrire, enAttente, bin, BIN_TSA } from "./fixtures/ancrage-tsa-interne/outils.mjs";
 
 const H = horlogeFixe("2026-11-03T13:53:02Z");
@@ -52,7 +52,7 @@ const ipv6Disponible = () =>
     s.listen(0, "::1", () => s.close(() => resoudre(true)));
   });
 
-describe("ancrage lot E — serveur HTTP en clair sur une adresse locale (AN-27)", function () {
+describe("ancrage, serveur RFC 3161 interne — serveur HTTP en clair sur une adresse locale (AN-27)", function () {
   this.timeout(60000);
   let rep;
   let serveur;
@@ -186,7 +186,7 @@ describe("ancrage lot E — serveur HTTP en clair sur une adresse locale (AN-27)
   });
 });
 
-describe("ancrage lot E — serveur TLS avec authentification du client (AN-27)", function () {
+describe("ancrage, serveur RFC 3161 interne — serveur TLS avec authentification du client (AN-27)", function () {
   this.timeout(120000);
   let rep;
   let pki;
@@ -280,7 +280,7 @@ describe("ancrage lot E — serveur TLS avec authentification du client (AN-27)"
   });
 });
 
-describe("ancrage lot E — binaire noortrace-tsa-interne (init, servir, crl)", function () {
+describe("ancrage, serveur RFC 3161 interne — binaire noortrace-tsa-interne (init, servir, crl)", function () {
   this.timeout(120000);
   let rep;
   before(function () {
@@ -382,7 +382,11 @@ describe("ancrage lot E — binaire noortrace-tsa-interne (init, servir, crl)", 
     const url = await premier.url;
     expect(url, premier.sortie().err).to.match(/^http:\/\/127\.0\.0\.1:\d+\/$/);
     const r = await requeteHttp(url, { entetes: { "Content-Type": TYPE_REQUETE }, corps: Buffer.from(lireRequete("requete-point-k2")) });
-    expect(relireReponse(ecrire(rep, "bin2.tsr", r.corps)).serie).to.equal("0x01");
+    // Revue de sécurité de l'étape 8 : `servir` ouvre le compteur avec le plancher d'époque (secondes × 2^20 à l'ouverture, AN-26) :
+    // le premier numéro émis est au moins ce plancher à l'instant du démarrage (dix minutes de marge), jamais 1.
+    const serie = BigInt(relireReponse(ecrire(rep, "bin2.tsr", r.corps)).serie);
+    const secondes = BigInt(Math.floor(Date.now() / 1000));
+    expect(serie >= (secondes - 600n) * EPOQUE_PAS && serie < (secondes + 600n) * EPOQUE_PAS, `série ${serie} hors du plancher d'époque`).to.equal(true);
 
     const second = lancerServir([]);
     expect(await second.url).to.equal(null);

@@ -29,7 +29,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Trois relecteurs extérieurs, rôles approbateur, auditeur et développeur",
+      "participant": "Trois relecteurs à l'aveugle, rôles approbateur, auditeur et développeur",
       "material": [
         "spec/vecteurs/ct-3/acceptation/ (consigne.md, politique.json, cas/cas-01.json à cas-10.json, gabarit-reponse.json)",
         "CT-3, sections 0 à 6"
@@ -41,7 +41,7 @@ export const TR = [
         "les réponses des autres relecteurs"
       ],
       "grid": "spec/vecteurs/ct-3/acceptation-attendu.json",
-      "judge": "Une personne qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
+      "judge": "Un juge qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
       "verdict_rule": "Réussi si les trois réponses sont égales entre elles et à la grille sur les dix cas (CT-3 EX-A.5)."
     }
   },
@@ -72,7 +72,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Un approbateur et un développeur intégrateur extérieurs",
+      "participant": "Un approbateur et un développeur intégrateur, relecteurs à l'aveugle",
       "material": [
         "spec/vecteurs/ct-3/acceptation-console/consigne.md et gabarit-reponse.md",
         "CT-3 sections 9 et 13 (approbateur) ; 7.4, 9, 12 et 13 (intégrateur)"
@@ -115,7 +115,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Un relecteur extérieur ; une seconde personne pour le rejeu de `verifier`",
+      "participant": "Un relecteur à l'aveugle ; un second relecteur à l'aveugle pour le rejeu de `verifier`",
       "material": [
         "CT-4 sections 0 à 14",
         "dépôt au commit de la revue",
@@ -147,7 +147,7 @@ export const TR = [
       "CT-1 §10.9"
     ],
     "preconditions": [
-      "Consigne `spec/vecteurs/ct-9/acceptation-ancrage/consigne.md` (cinq questions, prix unitaire symbolique donné : `p_q` = 1 p, `p_s` = 0,2 p, cas `defaut-second-rang-a1`) ; CT-5 entier ; CT-1 sections 9 à 11 ; participant extérieur."
+      "Consigne `spec/vecteurs/ct-9/acceptation-ancrage/consigne.md` (cinq questions, prix unitaire symbolique donné : `p_q` = 1 p, `p_s` = 0,2 p, cas `defaut-second-rang-a1`) ; CT-5 entier ; CT-1 sections 9 à 11 ; participant à l'aveugle."
     ],
     "steps": [
       "Le participant répond par écrit aux cinq questions sans autre document.",
@@ -161,7 +161,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Un relecteur extérieur (profil : architecte ou auditeur technique)",
+      "participant": "Un relecteur à l'aveugle (profil : architecte ou auditeur technique)",
       "material": [
         "spec/vecteurs/ct-9/acceptation-ancrage/consigne.md",
         "CT-5 entier",
@@ -172,7 +172,7 @@ export const TR = [
         "CT-6, CT-8, CT-9"
       ],
       "grid": "spec/vecteurs/ct-9/acceptation-ancrage-attendu.json",
-      "judge": "Une personne qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
+      "judge": "Un juge qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
       "verdict_rule": "Réussi si chaque réponse contient tous ses éléments et qu'aucune n'affirme qu'une date d'objet ancré est prouvée par l'ancrage."
     }
   },
@@ -192,7 +192,7 @@ export const TR = [
       "CT-5 §3.2"
     ],
     "preconditions": [
-      "Consigne `spec/vecteurs/ct-9/acceptation-verdict-point/consigne.md` : CT-6 section 7 entière (7.1 à 7.10), un rapport de vérification d'un dossier avec la partie `points-de-controle.json` des vecteurs `ct-6` (énoncé avec FK, `facts.checkpoint`), quatre questions ; participant extérieur."
+      "Consigne `spec/vecteurs/ct-9/acceptation-verdict-point/consigne.md` : CT-6 section 7 entière (7.1 à 7.10), un rapport de vérification d'un dossier avec la partie `points-de-controle.json` des vecteurs `ct-6` (énoncé avec FK, `facts.checkpoint`), quatre questions ; participant à l'aveugle."
     ],
     "steps": [
       "Le participant répond par écrit : ce que le point engage (les `tree_size` premiers événements, préfixe de l'arbre du manifeste) ; ce que la clause jeton prouve (existence au plus tard à `rewrite_window_end`) et ce qu'est `rewrite_window_ms` (valeur rapportée depuis le `ts` déclaré, pas une preuve) ; ce qu'une réécriture postérieure changerait et qui la détecte (quiconque détient ce dossier, personne ne veille) ; ce que la signature du point ne prouve pas (rien contre qui détient la clé) et ce qu'il faut sans K-7 (rien de daté, EX-7.2).",
@@ -206,7 +206,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Un relecteur extérieur (profil : réviseur ou juriste technique)",
+      "participant": "Un relecteur à l'aveugle (profil : réviseur ou juriste technique)",
       "material": [
         "spec/vecteurs/ct-9/acceptation-verdict-point/consigne.md",
         "CT-6 section 7 (7.1 à 7.10)",
@@ -218,7 +218,7 @@ export const TR = [
         "CT-5, CT-9"
       ],
       "grid": "spec/vecteurs/ct-9/acceptation-verdict-point-attendu.json",
-      "judge": "Une personne qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
+      "judge": "Un juge qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
       "verdict_rule": "Réussi si chaque réponse contient tous ses éléments et qu'aucune ne présente `rewrite_window_ms` comme prouvé ni la détection comme active."
     }
   },
@@ -234,7 +234,7 @@ export const TR = [
       "CT-7 EX-A.29"
     ],
     "preconditions": [
-      "Extrait de CT-7 sans la section 9 ni l'annexe A.15 (produit par le générateur, SHA-256 consigné) ; `spec/vecteurs/ct-7/acceptation-securite/consigne.md` ; participant extérieur."
+      "Extrait de CT-7 sans la section 9 ni l'annexe A.15 (produit par le générateur, SHA-256 consigné) ; `spec/vecteurs/ct-7/acceptation-securite/consigne.md` ; participant à l'aveugle."
     ],
     "steps": [
       "Le participant écrit, pour chaque scénario, la menace, au moins une exigence EX- de réponse, la détection et le risque résiduel (RA- ou « aucun »).",
@@ -255,7 +255,7 @@ export const TR = [
       "MN-28"
     ],
     "replay": {
-      "participant": "Un responsable de la sécurité extérieur",
+      "participant": "Un responsable de la sécurité, relecteur à l'aveugle",
       "material": [
         "CT-7 sans la section 9 ni l'annexe A.15",
         "spec/vecteurs/ct-7/acceptation-securite/consigne.md"
@@ -267,7 +267,7 @@ export const TR = [
         "CT-9 section 12"
       ],
       "grid": "spec/vecteurs/ct-7/acceptation-securite-attendu.json",
-      "judge": "Une personne qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
+      "judge": "Un juge qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
       "verdict_rule": "Réussi si les six réponses contiennent chacune la menace, une réponse, une détection et le risque résiduel de la grille (CT-7 EX-9.1)."
     }
   },
@@ -284,7 +284,7 @@ export const TR = [
       "CT-7 EX-A.29"
     ],
     "preconditions": [
-      "Extrait de CT-7 sans la section 9 ni l'annexe A.15 ; `spec/vecteurs/ct-7/acceptation-conformite/consigne.md` ; participant extérieur."
+      "Extrait de CT-7 sans la section 9 ni l'annexe A.15 ; `spec/vecteurs/ct-7/acceptation-conformite/consigne.md` ; participant à l'aveugle."
     ],
     "steps": [
       "Pour chaque passage (MC-17, MC-38, MC-50, MC-54, MC-33) : (a) pièce qui répond ou contribue, (b) non couvert ou client, (c) statut et applicabilité ; puis « la matrice dit-elle que votre organisation est conforme ? ».",
@@ -298,7 +298,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Un responsable de la conformité extérieur",
+      "participant": "Un responsable de la conformité, relecteur à l'aveugle",
       "material": [
         "CT-7 sans la section 9 ni l'annexe A.15",
         "spec/vecteurs/ct-7/acceptation-conformite/consigne.md"
@@ -310,7 +310,7 @@ export const TR = [
         "CT-9 section 12"
       ],
       "grid": "spec/vecteurs/ct-7/acceptation-conformite-attendu.json",
-      "judge": "Une personne qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
+      "judge": "Un juge qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
       "verdict_rule": "Réussi si chaque réponse contient tous ses éléments et qu'aucune clause disqualifiante d'EX-9.3 n'est présente."
     }
   },
@@ -328,7 +328,7 @@ export const TR = [
       "CT-7 §7.8"
     ],
     "preconditions": [
-      "CT-7 section 7 seule ; `spec/vecteurs/ct-7/acceptation-attestation/consigne.md` et `rapport.txt` ; participant extérieur."
+      "CT-7 section 7 seule ; `spec/vecteurs/ct-7/acceptation-attestation/consigne.md` et `rapport.txt` ; participant à l'aveugle."
     ],
     "steps": [
       "Le participant répond aux six questions (pièces, signataires, vérification avant signature, exclusions, ce que prouve l'attestation, le rapport dit-il le périmètre prouvé).",
@@ -344,7 +344,7 @@ export const TR = [
       "MN-78"
     ],
     "replay": {
-      "participant": "Un administrateur du client extérieur",
+      "participant": "Un administrateur du client, relecteur à l'aveugle",
       "material": [
         "CT-7 section 7",
         "spec/vecteurs/ct-7/acceptation-attestation/consigne.md",
@@ -356,14 +356,14 @@ export const TR = [
         "CT-9 section 12"
       ],
       "grid": "spec/vecteurs/ct-7/acceptation-attestation-attendu.json",
-      "judge": "Une personne qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
+      "judge": "Un juge qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
       "verdict_rule": "Réussi si chaque réponse contient tous ses éléments et qu'aucune ne dit l'attestation « preuve du périmètre » ni « preuve de conformité »."
     }
   },
   {
     "id": "TR-9",
     "level": "TR",
-    "title": "CT-8 §14 épreuve (a), EX-14.1 à EX-14.5 : un ingénieur d'exploitation extérieur, avec CT-8 sans la section 14 ni l'annexe A, décrit les installations, dimensionne un cas et traite trois incidents",
+    "title": "CT-8 §14 épreuve (a), EX-14.1 à EX-14.5 : un ingénieur d'exploitation, relecteur à l'aveugle, avec CT-8 sans la section 14 ni l'annexe A, décrit les installations, dimensionne un cas et traite trois incidents",
     "specs": [
       "CT-8"
     ],
@@ -375,7 +375,7 @@ export const TR = [
       "CT-8 EX-14.5"
     ],
     "preconditions": [
-      "Extrait de CT-8 sans la section 14 ni l'annexe A (produit par le générateur, SHA-256 consigné) ; `spec/vecteurs/ct-8/acceptation-exploitation/consigne.md` et `entrees-dimensionnement.json` ; participant extérieur."
+      "Extrait de CT-8 sans la section 14 ni l'annexe A (produit par le générateur, SHA-256 consigné) ; `spec/vecteurs/ct-8/acceptation-exploitation/consigne.md` et `entrees-dimensionnement.json` ; participant à l'aveugle."
     ],
     "steps": [
       "Le participant rend par écrit : IR-1 à IR-8 et IC-1 à IC-18 avec commandes, résultats attendus et vérifications ; les valeurs de dimensionnement du cas reçu avec leur ligne DM- ; les flux FL- ouverts ; puis le runbook, les invariants, les pas et la vérification de sortie des trois scénarios d'EX-14.3.",
@@ -389,7 +389,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Un ingénieur d'exploitation extérieur au projet et à la rédaction de CT-8",
+      "participant": "Un ingénieur d'exploitation, relecteur à l'aveugle",
       "material": [
         "CT-8 sans la section 14 ni l'annexe A",
         "spec/vecteurs/ct-8/acceptation-exploitation/consigne.md",
@@ -402,14 +402,14 @@ export const TR = [
         "CT-9 section 12"
       ],
       "grid": "spec/vecteurs/ct-8/acceptation-exploitation-attendu.json",
-      "judge": "Une personne qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
+      "judge": "Un juge qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
       "verdict_rule": "Réussi selon CT-8 EX-14.5 : tous les éléments de CT-8 EX-14.2, dimensionnement à l'octet près, partie incidents réussie (CT-8 EX-14.4)."
     }
   },
   {
     "id": "TR-10",
     "level": "TR",
-    "title": "CT-8 §14 épreuve (b), EX-14.6 à EX-14.10 : un réviseur extérieur, avec la seule section 13 et un poste sans réseau, vérifie deux paquets réviseurs en une commande et dit ce que le résultat prouve",
+    "title": "CT-8 §14 épreuve (b), EX-14.6 à EX-14.10 : un réviseur, relecteur à l'aveugle, avec la seule section 13 et un poste sans réseau, vérifie deux paquets réviseurs en une commande et dit ce que le résultat prouve",
     "specs": [
       "CT-8"
     ],
@@ -422,7 +422,7 @@ export const TR = [
       "CT-8 §13.10"
     ],
     "preconditions": [
-      "CT-8 section 13 seule ; `valide.tar` avec l'empreinte du cas `valide-empreinte`, et un second paquet tiré au sort parmi les cas de code 1 ou 4 de `spec/vecteurs/ct-8/paquets/cas.json`, remis sous un nom neutre ; poste sans réseau avec Node.js 22, GNU tar et le répertoire `verificateur/` d'un paquet complet construit par la CI au commit éprouvé ; participant extérieur."
+      "CT-8 section 13 seule ; `valide.tar` avec l'empreinte du cas `valide-empreinte`, et un second paquet tiré au sort parmi les cas de code 1 ou 4 de `spec/vecteurs/ct-8/paquets/cas.json`, remis sous un nom neutre ; poste sans réseau avec Node.js 22, GNU tar et le répertoire `verificateur/` d'un paquet complet construit par la CI au commit éprouvé ; participant à l'aveugle."
     ],
     "steps": [
       "Le participant exécute la vérification en une commande sur chaque paquet et rapporte commande, code, état, PR- en échec, code de chaque dossier, et une phrase sur ce que le résultat prouve et ne prouve pas ; il joint la sortie complète.",
@@ -436,7 +436,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Un réviseur extérieur au projet et à la rédaction de CT-8",
+      "participant": "Un réviseur, relecteur à l'aveugle",
       "material": [
         "CT-8 section 13",
         "paquet.tar (valide.tar et son empreinte) puis un second paquet tiré au sort parmi les cas de code 1 ou 4",
@@ -466,7 +466,7 @@ export const TR = [
       "CT-8 §12.7"
     ],
     "preconditions": [
-      "CT-8 section 12 seule ; `spec/vecteurs/ct-8/acceptation-observation/consigne.md`, `evenement-seq-3.json`, `rapport-observation.json` ; participant extérieur."
+      "CT-8 section 12 seule ; `spec/vecteurs/ct-8/acceptation-observation/consigne.md`, `evenement-seq-3.json`, `rapport-observation.json` ; participant à l'aveugle."
     ],
     "steps": [
       "Le participant répond aux cinq questions (capturé, jamais bloqué, où voir ce que la politique aurait exigé, passage au mode bloquant, ce que le journal ne prouve pas).",
@@ -480,7 +480,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Un administrateur du client extérieur",
+      "participant": "Un administrateur du client, relecteur à l'aveugle",
       "material": [
         "CT-8 section 12",
         "spec/vecteurs/ct-8/acceptation-observation/ (consigne.md, evenement-seq-3.json, rapport-observation.json)"
@@ -491,14 +491,14 @@ export const TR = [
         "CT-9 section 12"
       ],
       "grid": "spec/vecteurs/ct-8/acceptation-observation-attendu.json",
-      "judge": "Une personne qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
+      "judge": "Un juge qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
       "verdict_rule": "Réussi selon CT-8 EX-14.12."
     }
   },
   {
     "id": "TR-12",
     "level": "TR",
-    "title": "Rejeu complet sur machine vierge : une personne extérieure, avec la seule documentation publiée, installe, régénère les vecteurs, exécute les tests et les vérificateurs, et vérifie un dossier et un paquet",
+    "title": "Rejeu complet sur machine vierge : un relecteur à l'aveugle, avec la seule documentation publiée, installe, régénère les vecteurs, exécute les tests et les vérificateurs, et vérifie un dossier et un paquet",
     "specs": [
       "CT-6",
       "CT-8",
@@ -512,7 +512,7 @@ export const TR = [
       "CT-1 §13"
     ],
     "preconditions": [
-      "Machine vierge au système de référence (11.1), avec un accès privilégié (sudo) exigé par `unshare -n` (CT-8 EX-A.29) ; archive du dépôt au commit éprouvé (SHA-256 consigné) ou URL du dépôt public ; aucune autre documentation, personne à interroger ; participant extérieur ; en phase 2, les images publiées et la démonstration de référence. La distribution est celle d'EX-11.1 (`ubuntu-24.04` de la CI) ; le noyau effectif est relevé et consigné, et un écart de noyau avec la CI est nommé dans la consignation sans faire échouer le rejeu (EX-12.10)."
+      "Machine vierge au système de référence (11.1), avec un accès privilégié (sudo) exigé par `unshare -n` (CT-8 EX-A.29) ; archive du dépôt au commit éprouvé (SHA-256 consigné) ou URL du dépôt public ; aucune autre documentation, personne à interroger ; participant à l'aveugle ; en phase 2, les images publiées et la démonstration de référence. La distribution est celle d'EX-11.1 (`ubuntu-24.04` de la CI) ; le noyau effectif est relevé et consigné, et un écart de noyau avec la CI est nommé dans la consignation sans faire échouer le rejeu (EX-12.10)."
     ],
     "steps": [
       "Partie dépôt (possible dès maintenant) : installer, avec réseau, Node.js 22, Go à la version de `ci.yml` au commit éprouvé (EX-11.1) et Python 3.13 d'après `README.md` ; `npm ci` ; `npm test` ; régénérer `spec/vecteurs/ct-1` à `ct-9` et constater un diff nul ; `go run . ..` dans chaque `verificateur-independant/` ; `node scripts/verify/dossier.mjs` sur `spec/vecteurs/ct-6/dossiers/valide-seq-7-complet` avec les ancres de test ; `node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7 --exiger 4,5,8` (code 3 attendu, EX-12.10) ; construire et vérifier un paquet réviseur par sa copie jointe sous `unshare -n` (le réseau n'est coupé que pour cette commande de vérification ; le clone ou l'extraction, l'installation des outils et `npm ci` se font avec réseau). Les commandes de ce pas sont celles d'EX-12.9 et d'EX-12.10, dans cet ordre. La construction du binaire de CT-6 §14 par la recette de CT-6 EX-14.6 (go1.27.3, `GOTOOLCHAIN=local`) s'ajoute à ce pas quand ce binaire entre dans `ci.yml` (étape 2, TV-55) ; d'ici là, Go est celui de `ci.yml` (go1.24.7, EX-11.1), et la couverture de CT-6 EX-14.6 par TR-12 n'est pas éprouvée.",
@@ -527,7 +527,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Une personne extérieure au projet (profil : ingénieur)",
+      "participant": "Un relecteur à l'aveugle (profil : ingénieur)",
       "material": [
         "archive du dépôt au commit éprouvé, ou son URL publique",
         "README.md, README.fr.md, spec/ (toute la documentation publiée ; les sections interdites sont présentes dans l'archive et ne sont pas lues)",
@@ -559,7 +559,7 @@ export const TR = [
     ],
     "covers": [],
     "preconditions": [
-      "CT-9 (sans la section 15) et, pour chaque entrée tirée, la spécification qu'elle vise ; `spec/vecteurs/ct-9/acceptation-plan/consigne.md` ; tirage de cinq entrées `a_ecrire` hors TR-13 à TR-15 consigné par le juge ; participant extérieur."
+      "CT-9 (sans la section 15) et, pour chaque entrée tirée, la spécification qu'elle vise ; `spec/vecteurs/ct-9/acceptation-plan/consigne.md` ; tirage de cinq entrées `a_ecrire` hors TR-13 à TR-15 consigné par le juge ; participant à l'aveugle."
     ],
     "steps": [
       "Le participant écrit, par entrée, un fichier de test (mocha ou pseudo-code structuré) avec préconditions, étapes et oracle.",
@@ -573,7 +573,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Un testeur extérieur au projet",
+      "participant": "Un testeur, relecteur à l'aveugle",
       "material": [
         "CT-9 sans la section 15",
         "les identifiants des cinq entrées tirées, remis par le juge ; les spécifications que ces entrées visent (membre `specs`) et, de toute autre spécification que leurs préconditions, pas, oracle ou bloc propre nomment, les sections citées",
@@ -605,7 +605,7 @@ export const TR = [
     ],
     "covers": [],
     "preconditions": [
-      "CT-9 sans la section 15 ; `spec/vecteurs/ct-9/acceptation-porte-2/consigne.md` (trois questions) ; participant extérieur."
+      "CT-9 sans la section 15 ; `spec/vecteurs/ct-9/acceptation-porte-2/consigne.md` (trois questions) ; participant à l'aveugle."
     ],
     "steps": [
       "Le participant écrit : pour chaque critère « continuer si », les entrées qui le servent et le verdict calculable ; ce que la porte 2 ne mesure pas ; pour chaque famille TU- à TQ-, le critère du plan qu'elle sert.",
@@ -619,7 +619,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Un relecteur extérieur de la porte 2",
+      "participant": "Un relecteur à l'aveugle de la porte 2",
       "material": [
         "CT-9 sans la section 15",
         "spec/vecteurs/ct-9/acceptation-porte-2/consigne.md"
@@ -630,7 +630,7 @@ export const TR = [
         "le plan de projet interne"
       ],
       "grid": "spec/vecteurs/ct-9/acceptation-porte-2-attendu.json",
-      "judge": "Une personne qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
+      "judge": "Un juge qui n'a pas aidé le participant marque chaque élément de la grille présent ou absent et applique les clauses disqualifiantes ; consignation `consignation_rejeu` (12.1).",
       "verdict_rule": "Réussi si chaque réponse contient tous ses éléments et qu'aucune clause disqualifiante n'est présente."
     }
   },
@@ -650,7 +650,7 @@ export const TR = [
     ],
     "covers": [],
     "preconditions": [
-      "CT-9 sans la section 15 ; dépôt au commit éprouvé ; une exigence EX- désignée par le juge (consignée) ; `spec/vecteurs/ct-9/acceptation-plan/consigne.md` ; participant extérieur."
+      "CT-9 sans la section 15 ; dépôt au commit éprouvé ; une exigence EX- désignée par le juge (consignée) ; `spec/vecteurs/ct-9/acceptation-plan/consigne.md` ; participant à l'aveugle."
     ],
     "steps": [
       "Le participant ajoute une entrée à la source de données du générateur, régénère le catalogue et lance `node scripts/tests/couverture.mjs`, sans puis avec `--strict`. L'entrée est `a_ecrire` (EX-3.10 : étape qui livre son objet et ce qui bloque ; étape 8 pour un test possible dès maintenant mais non écrit), ou `executable` si le participant écrit aussi le test qu'elle cite : le diff de `test/*.test.js` fait alors partie de la réponse, et la règle (d) relit ses titres.",
@@ -664,7 +664,7 @@ export const TR = [
     },
     "threats": [],
     "replay": {
-      "participant": "Un développeur extérieur au projet",
+      "participant": "Un développeur, relecteur à l'aveugle",
       "material": [
         "CT-9 sans la section 15",
         "dépôt au commit éprouvé",

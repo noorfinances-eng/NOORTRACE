@@ -612,6 +612,10 @@ export function lireJournal(source, options = {}) {
         i++;
         break;
       }
+      // Après un élément, seuls une virgule ou le crochet fermant sont du JSON
+      // (RFC 8259 §5) : un fermant étranger (`}`, `]` en trop) est une erreur de
+      // syntaxe, comme pour analyserJson.
+      if (texte[i] !== ",") throw new ErreurJson("syntaxe", `journal : virgule ou crochet fermant attendu (position ${i})`);
       i++;
     }
   }

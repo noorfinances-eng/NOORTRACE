@@ -14,7 +14,7 @@
 /** Erreur de lecture : `raison` dit laquelle des règles a été violée. */
 export class ErreurTexteJson extends Error {
   /**
-   * @param {"utf8"|"bom"|"syntaxe"|"cle_double"|"substitut_isole"|"profondeur"|"membres"|"non_canonisable"} raison
+   * @param {"utf8"|"bom"|"syntaxe"|"cle_double"|"substitut_isole"|"profondeur"|"membres"|"noeuds"|"non_canonisable"} raison
    * @param {number} position indice dans le texte
    */
   constructor(raison, position) {
@@ -24,6 +24,8 @@ export class ErreurTexteJson extends Error {
     this.position = position;
   }
 }
+
+import { NOEUDS_JSON_MAX } from "../bornes.mjs";
 
 const DECODEUR = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 
@@ -52,13 +54,19 @@ const BLANCS = new Set([0x20, 0x09, 0x0a, 0x0d]);
  * `membres: [{ cle, kd, kf, v }]` (objet), `elements: [nœud]` (tableau),
  * `valeur` (chaîne décodée, nombre en double, booléen, null).
  * @param {string} texte
- * @param {{profondeurMax?: number, membresMax?: number}} [options]
+ * @param {{profondeurMax?: number, membresMax?: number, noeudsMax?: number}} [options]
+ *   `noeudsMax` : nombre total de valeurs du texte (défaut `NOEUDS_JSON_MAX`), raison `noeuds`
  * @returns {object}
  * @throws {ErreurTexteJson}
  */
 export function analyserTexte(texte, options = {}) {
   const profondeurMax = options.profondeurMax ?? 128;
   const membresMax = options.membresMax ?? 100000;
+  // Nombre total de nœuds, toutes imbrications confondues (étape 8, S-1) : la
+  // mémoire de l'arbre suit ce nombre, pas la taille du texte (`{}` tient en
+  // deux octets), et `membresMax` ne borne qu'un conteneur à la fois.
+  const noeudsMax = options.noeudsMax ?? NOEUDS_JSON_MAX;
+  let noeuds = 0;
   let i = 0;
   const n = texte.length;
 
@@ -142,6 +150,7 @@ export function analyserTexte(texte, options = {}) {
   function valeur(profondeur) {
     blancs();
     if (i >= n) throw erreur("syntaxe");
+    if (++noeuds > noeudsMax) throw erreur("noeuds");
     const c = texte[i];
     if (c === "{") return objet(profondeur + 1);
     if (c === "[") return tableau(profondeur + 1);
@@ -287,14 +296,18 @@ export function compacter(texte, noeud) {
 function decimalExact(s) {
   const r = /^(-?)([0-9]+)(?:\.([0-9]+))?(?:[eE]([+-]?[0-9]+))?$/.exec(s);
   if (!r) return "?";
-  let chiffres = r[2] + (r[3] ?? "");
-  let exposant = BigInt(r[4] ?? 0) - BigInt((r[3] ?? "").length);
-  chiffres = chiffres.replace(/^0+/, "");
-  if (chiffres === "") return "0";
-  const queue = chiffres.length - chiffres.replace(/0+$/, "").length;
-  chiffres = chiffres.slice(0, chiffres.length - queue);
-  exposant += BigInt(queue);
-  return `${r[1]}${chiffres}e${exposant}`;
+  const chiffres = r[2] + (r[3] ?? "");
+  // Zéros de tête et de queue comptés par un balayage linéaire (CT-2 EX-4.44 /
+  // CT-2 EX-4.44 : `/0+$/` sans ancre de début coûtait n²/2 pas sur « 1, n zéros,
+  // 1 », soit vingt secondes pour un littéral de 160 ko).
+  let debut = 0;
+  while (debut < chiffres.length && chiffres.charCodeAt(debut) === 0x30) debut++;
+  if (debut === chiffres.length) return "0";
+  let fin = chiffres.length;
+  while (fin > debut && chiffres.charCodeAt(fin - 1) === 0x30) fin--;
+  const queue = chiffres.length - fin;
+  const exposant = BigInt(r[4] ?? 0) - BigInt((r[3] ?? "").length) + BigInt(queue);
+  return `${r[1]}${chiffres.slice(debut, fin)}e${exposant}`;
 }
 
 /**

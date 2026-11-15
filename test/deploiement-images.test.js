@@ -1,6 +1,6 @@
 // Étape 7 : images de conteneur noortrace/* et leur construction
 // reproductible (CT-8 EX-3.5, EX-3.6, EX-3.7 à EX-3.9, EX-3.13, EX-4.4,
-// CO-12 ; décisions D-1, D-2, D-12, D-13).
+// CO-12).
 //
 // Trois parties :
 //   1. les fichiers de construction (conteneurs/<nom>/), lus sans
@@ -1044,7 +1044,7 @@ console.log(JSON.stringify(sortie));})()`;
 
     it("TM-24 : taille de chaque image dans le magasin local (docker image inspect, Size) ; lignes image_<nom>_octets ; durée de téléchargement non mesurée (aucun registre : images construites ou chargées par docker load)", function () {
       const lignes = IMAGES.map((nom) => ({ result_name: `image_${nom.replace(/-/g, "_")}_octets`, measured: JSON.parse(dockerOk(["image", "inspect", `noortrace/${nom}:${VERSION}`]))[0].Size, unit: "octets", met: null }));
-      lignes.push({ result_name: "ir6_telechargement_s", measured: null, unit: "s", met: null, raison: "aucune image publiée (D-3)" });
+      lignes.push({ result_name: "ir6_telechargement_s", measured: null, unit: "s", met: null, raison: "aucune image publiée" });
       for (const l of lignes) console.log(`      ${JSON.stringify(l)}`);
       for (const l of lignes.slice(0, -1)) expect(l.measured, l.result_name).to.be.a("number").and.to.be.above(1000000);
     });

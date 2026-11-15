@@ -3,7 +3,7 @@
 // croissante, est le jeton de clôture inscrit dans l'en-tête de chaque
 // segment et dans le nom des fichiers d'intention, d'attente et des
 // approbations (EX-13.1, EX-13.4). Les magasins `postgresql` et `etcd`, et la
-// bascule entre hôtes, relèvent du lot de haute disponibilité : ce module
+// bascule entre hôtes, relèvent de la partie de haute disponibilité : ce module
 // fixe l'interface et fournit le magasin `file` d'un seul hôte.
 
 import fs from "node:fs";
@@ -121,9 +121,11 @@ export class MagasinBailFichier extends MagasinBail {
    * (tenu ailleurs).
    */
   async _verrouiller() {
-    const env = { ...process.env };
-    // L'auxiliaire n'hérite d'aucune option de démarrage de Node.js destinée au démon.
-    delete env.NODE_OPTIONS;
+    // EX-18.4 (dernier alinéa) : l'auxiliaire du verrou vit autant que le démon ;
+    // il ne reçoit que le chemin de recherche des programmes, jamais
+    // l'environnement du démon (références `{ "env" }` comprises ; étape 8)
+    // ni ses options de démarrage de Node.js.
+    const env = { PATH: process.env.PATH ?? "/usr/bin:/bin" };
     const p = spawn(
       this.programme,
       ["--exclusive", "--nonblock", "--close", "--conflict-exit-code", String(CONFLIT), this.chemin, process.execPath, "-e", SCRIPT_AUXILIAIRE],

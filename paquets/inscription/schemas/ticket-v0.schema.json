@@ -547,7 +547,7 @@
       }
     },
     "reponse_evaluer": {
-      "description": "Réponse à evaluer (CT-3 §12.3) ; les sept combinaisons admises sont celles de la table d'EX-7.16. approver_set n'est non nul que pour ticket_state nouveau : jeu de repli courant, ou jeu statique de la politique (CT-3 EX-12.6, EX-12.11).",
+      "description": "Réponse à evaluer (CT-3 §12.3) ; les sept combinaisons admises sont celles de la table d'EX-7.16. approver_set n'est non nul que pour ticket_state nouveau : jeu de repli courant, ou jeu statique de la politique (CT-3 EX-12.6, EX-12.11). policy_version, policy_sha256 et approval_sha256 (CT-3 révision 0.8, CT-2 révision 0.11) nomment la version de politique sous laquelle la réponse est rendue et l'empreinte que le noyau a déclarée au charger de cette version : le noyau refuse toute réponse dont le couple n'est pas celui d'un charger qu'il a lui-même émis (CT-2 EX-7.16). approval_sha256 est calculé par le service au charger : SHA-256 du JCS du membre approval reçu ; le noyau le compare au même condensé de son propre ensemble, ce qui lie la décision aux règles réellement appliquées.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -556,9 +556,23 @@
         "ticket",
         "ticket_state",
         "approval",
-        "approver_set"
+        "approver_set",
+        "policy_version",
+        "policy_sha256",
+        "approval_sha256"
       ],
       "properties": {
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "policy_sha256": {
+          "$ref": "#/$defs/hex32"
+        },
+        "approval_sha256": {
+          "$ref": "#/$defs/hex32"
+        },
         "rule": {
           "oneOf": [
             {

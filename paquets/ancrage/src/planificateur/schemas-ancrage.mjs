@@ -423,7 +423,9 @@ export const SCHEMA_ANCRAGE = Object.freeze({
     },
     "oid": {
       "type": "string",
-      "pattern": "^[0-2](\\.(0|[1-9][0-9]*))+$"
+      "pattern": "^[0-2](\\.(0|[1-9][0-9]*))+$",
+      "maxLength": 512,
+      "description": "OID en notation pointée ; chaque arc tient sur 128 bits et le DER de l'OID fait au plus 127 octets (CT-5 EX-4.9, règle 9 ; EX-5.1), ce que la règle 9 d'AN-1 vérifie au-delà du schéma."
     },
     "chemin_absolu": {
       "type": "string",
@@ -598,9 +600,9 @@ export const SCHEMA_ANCRAGE = Object.freeze({
         },
         "url": {
           "type": "string",
-          "pattern": "^https?://[^\\s]+$",
+          "pattern": "^https?://[^\\s@/]+(/[^\\s]*)?$",
           "maxLength": 512,
-          "description": "Point d'accès RFC 3161 §3.4 (POST, application/timestamp-query) ; https obligatoire sauf pour le rôle interne sur une adresse locale (AN-1)."
+          "description": "Point d'accès RFC 3161 §3.4 (POST, application/timestamp-query) ; https obligatoire sauf pour le rôle interne sur une adresse locale (AN-1) ; la partie d'autorité ne porte ni identifiant ni mot de passe (CT-5 EX-4.8, AN-54, révision 0.10)."
         },
         "auth": {
           "type": "object",
@@ -709,6 +711,25 @@ export const SCHEMA_ANCRAGE = Object.freeze({
         "source": {
           "$ref": "#/$defs/texte",
           "description": "D'où viennent le point d'accès, les algorithmes, la politique et les certificats (documentation publique du prestataire, date de lecture)."
+        },
+        "crl_hosts": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "maxLength": 253,
+                "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?)*$"
+              }
+            }
+          ],
+          "description": "Révision 0.10 (CT-5 EX-4.9, règle 4 bis) : noms d'hôte dont la capture des CRL des certificats du chemin est admise (EX-5.10, étape 10) ; facultatif ; absent ou null : en production, seules les adresses publiques sont admises (adresses locales et privées refusées, RFC 1918, 3927, 4193, 6598) ; donnée : en production, une adresse dont l'hôte n'y figure pas est refusée aussi ; hors production, la liste n'est pas appliquée et la boucle locale reste admise."
         }
       }
     }
@@ -1306,11 +1327,11 @@ export const SCHEMA_PLANIFICATEUR = Object.freeze({
             },
             {
               "type": "integer",
-              "minimum": 0,
-              "maximum": 5
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
             }
           ],
-          "description": "PKIStatus de la réponse (RFC 3161 §2.4.2, R1-F6)."
+          "description": "PKIStatus lu (RFC 3161 §2.4.2, R1-F6) ; hors de 0 à 5 : statut_<n>, permanente, jeton non lu (CT-5 EX-5.10, étape 2 ; révision 0.10 : tout entier représentable est consigné tel que lu ; un status hors de ±(2^53 − 1) donne reponse_illisible)."
         },
         "failure_info": {
           "oneOf": [
@@ -1788,10 +1809,11 @@ export const SCHEMA_PLANIFICATEUR = Object.freeze({
                       },
                       {
                         "type": "integer",
-                        "minimum": 0,
-                        "maximum": 5
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
                       }
-                    ]
+                    ],
+                    "description": "PKIStatus lu (RFC 3161 §2.4.2, R1-F6) ; hors de 0 à 5 : statut_<n>, permanente, jeton non lu (CT-5 EX-5.10, étape 2 ; révision 0.10 : tout entier représentable est consigné tel que lu ; un status hors de ±(2^53 − 1) donne reponse_illisible)."
                   },
                   "failure_info": {
                     "oneOf": [

@@ -505,6 +505,17 @@ func (c *calcul) verifierR10() commun.Verification {
 			idx = append(idx, i)
 		}
 	}
+	// EX-11.19 (révision 0.9) : l'absence d'entrée inscription est
+	// jugée avant les prérequis, partie_absente quel que soit l'état de P-1
+	// et de cles.json.
+	if len(idx) == 0 {
+		c.r10 = commun.NonExecute
+		if m.Valide {
+			// AV-R-1 nomme la clé du manifeste : il n'est levé que si P-1 l'a établie (comme la référence).
+			c.avR = append(c.avR, c.avR1())
+		}
+		return nouvelle("R-10", commun.NonExecute, commun.PartieAbsente, commun.T("registre.json ne porte aucune entrée inscription", "registre.json carries no inscription entry"))
+	}
 	switch {
 	case !m.Valide:
 		c.r10 = commun.NonExecute
@@ -520,11 +531,6 @@ func (c *calcul) verifierR10() commun.Verification {
 		}
 	}
 	cleMan := c.clePubliqueDe(m.RecorderKeyID)
-	if len(idx) == 0 {
-		c.r10 = commun.NonExecute
-		c.avR = append(c.avR, c.avR1())
-		return nouvelle("R-10", commun.NonExecute, commun.PartieAbsente, commun.T("registre.json ne porte aucune entrée inscription", "registre.json carries no inscription entry"))
-	}
 	var res []commun.Resultat
 	var det []commun.Texte
 	var duManifeste []int

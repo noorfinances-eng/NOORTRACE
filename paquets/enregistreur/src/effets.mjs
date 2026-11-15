@@ -5,7 +5,7 @@
 // une cause d'événement invalide : ce sont des données d'entrée (EX-7.1).
 //
 // L'exécution de `extract` sous la borne de temps d'EX-10.23 et le contrôle du
-// sous-ensemble RE2 commun (EX-10.6) relèvent du lot de la rédaction : ce
+// sous-ensemble RE2 commun (EX-10.6) relèvent de la partie rédaction : ce
 // module reçoit un exécuteur (`executerExtract`) et emploie par défaut une
 // expression ECMAScript en mode Unicode, sans borne de temps. Un exécuteur
 // qui lève une erreur marquée `budget: true` (dépassement de la borne,

@@ -141,7 +141,7 @@ appelle ses fonctions sans argument ; une annonce dont la lecture lève est
 ## Écarts
 
 Aucun écart aux vecteurs (familles `annuaire/` et `console/`, hors
-`fichiers-cle/`, en attente : parcours d non offert), sous Node et dans
+`fichiers-cle/`, parcours d non offert : cas rattachés à CS-9, TV-26), sous Node et dans
 Chromium.
 
 ## Essais

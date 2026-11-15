@@ -51,7 +51,16 @@ Règles communes aux trois :
    exige `go mod vendor` ; aucun nouveau module.
 6. **Pas de panique, récursion bornée** (EX-15.2). Le moteur isole chaque
    étape : une panique devient une erreur interne (code 2), jamais un
-   statut. Bornes de §15.1 à respecter dans vos analyseurs.
+   statut. Bornes de §15.1 à respecter dans vos analyseurs. Un membre
+   absent se lit par un accès qui rend « absent » (`EstTableau`, `Membre`
+   nul), jamais par un déréférencement : la relation n'est pas tenue, la
+   vérification échoue. Tout document JSON se lit par
+   `jsonv.AnalyserLimite(octets, limite)` avec la limite de taille de
+   l'entrée (EX-4.13) : le nombre de valeurs y est borné à limite / 16.
+   Une liste de détails passe par `commun.BornerFr` / `commun.BornerEn`
+   (64 éléments puis le compte des omis) ; le moteur tronque chaque
+   détail, résumé et avertissement à 4 096 caractères et neutralise toute
+   ligne du rapport lisible (`commun.Neutraliser`).
 7. **Textes** : chaque `Detail`, `Resume`, `Proposition` et avertissement
    est un `commun.Texte` (`Fr`, `En`). Les propositions d'énoncé doivent
    être égales, octet pour octet, à celles des `attendu.json` (V-5).
@@ -362,7 +371,9 @@ libellés de la table 11.4 ; annexes A.5 et A.8.
 | Listes « a, b et c » | `commun.JoindreListe` |
 | Agrégat d'une vérification à portée multiple (§11.4) | `commun.Agreger` |
 | Ordre des raisons (EX-6.5) | `commun.PremiereRaison` |
-| JSON strict et borné (doublons, profondeur 128) | `jsonv.Analyser` |
+| JSON strict et borné (doublons, profondeur 128, nombre de valeurs selon la limite de taille) | `jsonv.AnalyserLimite` (`jsonv.Analyser` : borne de 64 Mio) |
+| Clé d'égalité d'une valeur JSON (`uniqueItems` en temps linéaire) | `jsonv.CleEgalite` |
+| Listes de détails bornées, texte tronqué, chaînes neutralisées | `commun.BornerFr`, `commun.BornerEn`, `commun.BornerTexte`, `commun.Neutraliser` |
 | Schémas embarqués | `schema.Valider(schema.Registre, v)`, `schema.Valider(schema.Registre+"#/$defs/certificat_commit", v)`, `schema.Valider(schema.Validateurs, v)` |
 | Jeu de validateurs (chargement d'EX-12.2) | `ancres.LireJeu`, `(*ancres.Registre).JeuPourHauteur` |
 | Clé de chaîne d'un enregistreur de l'ancre | `(*ancres.Ancres).CleChainePour` |

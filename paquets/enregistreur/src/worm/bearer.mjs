@@ -7,7 +7,7 @@
 
 import http from "node:http";
 import https from "node:https";
-import { ErreurTransport } from "./s3.mjs";
+import { ErreurTransport, ErreurReponse, LIMITE_REPONSE_OCTETS } from "./s3.mjs";
 
 /**
  * Identifiants porteurs, lus depuis les octets d'une référence de secret.
@@ -38,9 +38,11 @@ export class AccesBearer {
 
   /**
    * @param {{method: string, target: string, headers: string[][], body: Uint8Array|null}} r
+   * @param {{maxOctets?: number}} [o] borne du corps gardé (défaut `LIMITE_REPONSE_OCTETS`)
    * @returns {Promise<{statut: number, entetes: Record<string, string>, corps: Buffer}>}
    */
-  envoyer(r) {
+  envoyer(r, o = {}) {
+    const maxOctets = o.maxOctets ?? LIMITE_REPONSE_OCTETS;
     const entetes = { host: this.origine.host, authorization: `Bearer ${this.jeton}` };
     for (const [n, v] of r.headers) entetes[n.toLowerCase()] = v;
     const module = this.origine.protocol === "http:" ? http : https;
@@ -57,18 +59,42 @@ export class AccesBearer {
         },
         (res) => {
           const m = [];
-          res.on("data", (c) => m.push(c));
+          let longueur = 0;
+          let fini = false;
+          res.on("data", (c) => {
+            if (fini) return;
+            longueur += c.length;
+            if (longueur > maxOctets) {
+              fini = true;
+              m.length = 0;
+              clearTimeout(t);
+              res.destroy();
+              req.destroy();
+              reject(new ErreurReponse(`réponse du support plus grande que la borne de ${maxOctets} octets`));
+              return;
+            }
+            m.push(c);
+          });
           res.on("end", () => {
+            if (fini) return;
+            fini = true;
             clearTimeout(t);
             const h = {};
             for (const [k, v] of Object.entries(res.headers)) h[k.toLowerCase()] = Array.isArray(v) ? v.join(", ") : String(v);
             resolve({ statut: res.statusCode, entetes: h, corps: Buffer.concat(m) });
+          });
+          res.on("error", (e) => {
+            if (fini) return;
+            fini = true;
+            clearTimeout(t);
+            reject(new ErreurTransport("réponse interrompue", e));
           });
         },
       );
       const t = setTimeout(() => req.destroy(new ErreurTransport(`délai de ${this.delaiMs} ms dépassé`)), this.delaiMs);
       req.on("error", (e) => {
         clearTimeout(t);
+        if (e instanceof ErreurReponse) return reject(e);
         reject(e instanceof ErreurTransport ? e : new ErreurTransport("support injoignable", e));
       });
       req.end(r.body ? Buffer.from(r.body) : undefined);

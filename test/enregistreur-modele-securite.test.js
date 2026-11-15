@@ -73,6 +73,8 @@ describe("enregistreur, frontal modèle : quotas, jeton OAuth, TLS de la passere
     for (const p of ouvertes) await p.arreter();
     await coeur?.arreter();
     await fournisseur?.arreter();
+    // Démon et fournisseur arrêtés : le répertoire du bloc (certificats TLS compris) est libéré, échec compris.
+    if (dir) fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10 });
   });
 
   describe("EX-4.47 : quotas de la connexion d'hôte sur la passerelle", function () {
@@ -103,7 +105,7 @@ describe("enregistreur, frontal modèle : quotas, jeton OAuth, TLS de la passere
       expect((await envoyer(b)).statut).to.equal(503);
       expect(derniere("call_blocked").data).to.include({ limit_bytes: 1200 });
       const c = await ouvrir(quota({ redaction_ms_per_minute: 1 }));
-      const enorme = JSON.stringify({ ...MSG, messages: Array.from({ length: 400 }, (_, k) => ({ role: "user", content: `ecrire a agent${k}@exemple.ch, ${"y".repeat(400)}` })) });
+      const enorme = JSON.stringify({ ...MSG, messages: Array.from({ length: 400 }, (_, k) => ({ role: "user", content: `ecrire a agent${k}@ex.example, ${"y".repeat(400)}` })) });
       expect((await envoyer(c, { corps: enorme })).statut).to.equal(200);
       expect((await envoyer(c)).statut).to.equal(503);
       expect(derniere("call_blocked").data).to.include({ limit_ms: 1 });
@@ -127,7 +129,7 @@ describe("enregistreur, frontal modèle : quotas, jeton OAuth, TLS de la passere
     const jwks = () => Promise.resolve({ keys: [{ ...cles.publicKey.export({ format: "jwk" }), kid: "k1", alg: "ES256", use: "sig" }] });
     const jeton = (charge, o = {}) => {
       const tete = b64url({ alg: "ES256", kid: o.kid ?? "k1", typ: "JWT" });
-      const corps = b64url({ iss: "https://as.exemple.test", aud: `http://127.0.0.1:${port}`, sub: "agent-oauth-sub", scope: "modele lecture", exp: Math.floor(Date.now() / 1000) + 600, ...charge });
+      const corps = b64url({ iss: "https://as.essai.example", aud: `http://127.0.0.1:${port}`, sub: "agent-oauth-sub", scope: "modele lecture", exp: Math.floor(Date.now() / 1000) + 600, ...charge });
       const sig = sign("sha256", Buffer.from(`${tete}.${corps}`), { key: (o.cle ?? cles).privateKey, dsaEncoding: "ieee-p1363" }).toString("base64url");
       return `${tete}.${corps}.${sig}`;
     };
@@ -139,7 +141,7 @@ describe("enregistreur, frontal modèle : quotas, jeton OAuth, TLS de la passere
       p = await ouvrir(
         (c) => {
           c.model.listen = `127.0.0.1:${port}`;
-          c.mcp.http = { listen: "127.0.0.1:0", path: "/mcp", allowed_origins: [], tls: null, static_tokens: [], oauth: { resource: "https://mcp.exemple.test/mcp", authorization_servers: ["https://as.exemple.test"], jwks_uri: "https://as.exemple.test/jwks", required_scopes: ["modele"] } };
+          c.mcp.http = { listen: "127.0.0.1:0", path: "/mcp", allowed_origins: [], tls: null, static_tokens: [], oauth: { resource: "https://mcp.essai.example/mcp", authorization_servers: ["https://as.essai.example"], jwks_uri: "https://as.essai.example/jwks", required_scopes: ["modele"] } };
           c.model.hosts.push({ ...c.model.hosts[0], id: "agent-oauth", match: { oauth_subject: "agent-oauth-sub" }, launched_by: "${oauth_subject}", host_group: "agent-oauth" });
         },
         { chargerJwks: jwks },
@@ -160,9 +162,9 @@ describe("enregistreur, frontal modèle : quotas, jeton OAuth, TLS de la passere
       const avant = fournisseur.requetes.length;
       const autre = generateKeyPairSync("ec", { namedCurve: "P-256" });
       for (const [quoi, j] of [
-        ["audience", jeton({ aud: "https://mcp.exemple.test/mcp" })],
+        ["audience", jeton({ aud: "https://mcp.essai.example/mcp" })],
         ["expire", jeton({ exp: Math.floor(Date.now() / 1000) - 10 })],
-        ["emetteur", jeton({ iss: "https://autre.exemple.test" })],
+        ["emetteur", jeton({ iss: "https://autre.essai.example" })],
         ["portee", jeton({ scope: "lecture" })],
         ["signature", jeton({}, { cle: autre })],
         ["sujet", jeton({ sub: "inconnu" })],
@@ -182,22 +184,30 @@ describe("enregistreur, frontal modèle : quotas, jeton OAuth, TLS de la passere
       c.model.icap = { listen: "127.0.0.1:0", tls_listen: null, client_ca: null, allowed_sources: [], client_address_header: null };
       expect(controleModele(c).erreurs.map((e) => e.regle)).to.include("oauth_subject seulement en mode passerelle (EX-5.8)");
       const d = repertoireTemporaire("noortrace-modele-oauth-");
-      const x = configurationModele(d, fournisseur.url);
-      x.config.model.hosts.push({ ...x.config.model.hosts[0], id: "agent-oauth", match: { oauth_subject: "s" }, launched_by: "${oauth_subject}" });
-      const chemin = path.join(d, "c.json");
-      fs.writeFileSync(chemin, JSON.stringify(x.config));
-      const r = spawnSync(process.execPath, [BIN_NOORTRACE, "--config", chemin], { encoding: "utf8", env: { ...process.env, ...x.env }, timeout: 30000 });
-      expect(r.status).to.equal(2);
-      expect(r.stderr).to.match(/^config_invalid : \/model\/hosts\/1\/match\/oauth_subject : un jeton OAuth de la passerelle exige mcp\.http\.oauth/m);
-      const v = spawnSync(process.execPath, [BIN_NOORTRACE, "validate-config", chemin], { encoding: "utf8", env: { ...process.env, ...x.env }, timeout: 30000 });
-      expect(v.status).to.equal(2);
+      try {
+        const x = configurationModele(d, fournisseur.url);
+        x.config.model.hosts.push({ ...x.config.model.hosts[0], id: "agent-oauth", match: { oauth_subject: "s" }, launched_by: "${oauth_subject}" });
+        const chemin = path.join(d, "c.json");
+        fs.writeFileSync(chemin, JSON.stringify(x.config));
+        const r = spawnSync(process.execPath, [BIN_NOORTRACE, "--config", chemin], { encoding: "utf8", env: { ...process.env, ...x.env }, timeout: 30000 });
+        expect(r.status).to.equal(2);
+        expect(r.stderr).to.match(/^config_invalid : \/model\/hosts\/1\/match\/oauth_subject : un jeton OAuth de la passerelle exige mcp\.http\.oauth/m);
+        const v = spawnSync(process.execPath, [BIN_NOORTRACE, "validate-config", chemin], { encoding: "utf8", env: { ...process.env, ...x.env }, timeout: 30000 });
+        expect(v.status).to.equal(2);
+      } finally {
+        fs.rmSync(d, { recursive: true, force: true, maxRetries: 10 });
+      }
     });
   });
 
   describe("TLS de model.tls (EX-5.2 : TLS par le client)", function () {
     let certs;
     before(function () {
-      if (!opensslDisponible()) this.skip();
+      if (!opensslDisponible()) {
+        // Condition nommée au titre de chaque essai du bloc, que ce crochet met en attente.
+        for (const t of this.test.parent.tests) t.title += " — en attente : openssl absent ou inutilisable (openssl version)";
+        this.skip();
+      }
       certs = genererCertificats(path.join(dir, "certs"));
     });
 
@@ -270,16 +280,20 @@ describe("enregistreur, frontal modèle : quotas, jeton OAuth, TLS de la passere
 
     it("certificat illisible : le démon ne démarre pas (frontal_modele, code 2)", async function () {
       const d = repertoireTemporaire("noortrace-modele-tls-");
-      const x = configurationModele(d, fournisseur.url);
-      x.config.model.tls = { cert_file: path.join(d, "absent.pem"), key_file: certs.serveurCle };
-      const chemin = path.join(d, "c.json");
-      fs.writeFileSync(chemin, JSON.stringify(x.config));
-      const p = spawn(process.execPath, [BIN_NOORTRACE, "--config", chemin], { env: { ...process.env, ...x.env }, stdio: ["ignore", "pipe", "pipe"] });
-      let err = "";
-      p.stderr.on("data", (z) => (err += z));
-      const code = await new Promise((r) => p.on("exit", r));
-      expect(code).to.equal(2);
-      expect(err).to.match(/^demarrage_refuse : frontal_modele : /m);
+      try {
+        const x = configurationModele(d, fournisseur.url);
+        x.config.model.tls = { cert_file: path.join(d, "absent.pem"), key_file: certs.serveurCle };
+        const chemin = path.join(d, "c.json");
+        fs.writeFileSync(chemin, JSON.stringify(x.config));
+        const p = spawn(process.execPath, [BIN_NOORTRACE, "--config", chemin], { env: { ...process.env, ...x.env }, stdio: ["ignore", "pipe", "pipe"] });
+        let err = "";
+        p.stderr.on("data", (z) => (err += z));
+        const code = await new Promise((r) => p.on("exit", r));
+        expect(code).to.equal(2);
+        expect(err).to.match(/^demarrage_refuse : frontal_modele : /m);
+      } finally {
+        fs.rmSync(d, { recursive: true, force: true, maxRetries: 10 });
+      }
     });
   });
 });

@@ -14,9 +14,10 @@ func TestServiceScenarioStatique(t *testing.T) {
 		t.Fatal(err)
 	}
 	membres := []string{k.Comptes[1], k.Comptes[2], k.Comptes[3]}
-	s := &Service{OrgID: k.OrgID, JournalID: k.JournalID, PV: "p1", Charges: map[string]bool{"p1": true}, E: 3600000,
+	s := &Service{OrgID: k.OrgID, JournalID: k.JournalID, PV: "p1", E: 3600000,
 		Source: "statique", Statique: &Lecture{Statique: true, Seuil: Seuil{2, 3}, Membres: membres}, AutoAppr: "interdite",
 		Identites: []Identite{{LaunchedBy: "dem", Adresses: []string{k.Comptes[3]}}}, MaxOuverts: 5}
+	s.chargerVersion("p1")
 	at := func(m int) Instant {
 		i, _ := LireInstant("2026-11-12T09:00:00.000Z")
 		return i + Instant(m)*60000
@@ -26,6 +27,16 @@ func TestServiceScenarioStatique(t *testing.T) {
 	res := s.Traiter("evaluer", at(0), valeur(t, ev))
 	if !res.Accepte || res.Reponse.Get("ticket_state").S() != "nouveau" || res.Reponse.Get("ticket").S() != "apr-0001" {
 		t.Fatalf("evaluer : %+v %s", res, Compact(res.Reponse))
+	}
+	// 12.3 (révision 0.5) : huit membres, version de la requête et empreinte de son charger.
+	condP1, _ := CondenseApproval(ApprovalTrace(nil, nil, 3600000))
+	if len(res.Reponse.Obj) != 9 || res.Reponse.Get("policy_version").S() != "p1" || res.Reponse.Get("policy_sha256").S() != EmpreinteSynthetique("p1") || res.Reponse.Get("approval_sha256").S() != condP1 {
+		t.Fatalf("épinglage de politique : %s", Compact(res.Reponse))
+	}
+	// Le condensé est celui du JCS (ordre des membres indifférent) ; une autre valeur le change.
+	autre, _ := CondenseApproval(ApprovalTrace(nil, nil, 1000))
+	if autre == condP1 {
+		t.Errorf("deux approval distincts ont le même condensé")
 	}
 	// Même clé malgré un autre run_id et un nombre écrit autrement (JCS
 	// intégral, EX-7.3).
@@ -102,11 +113,28 @@ func TestServiceScenarioStatique(t *testing.T) {
 	if res.Reponse.Get("state").S() != "approuve" {
 		t.Fatalf("acquitter : %s", Compact(res.Reponse))
 	}
-	// Une seule ré-émission reçoit approuve (EX-7.17).
+	// Une seule ré-émission reçoit approuve (EX-7.17) ; après le chargement de
+	// p2, le ticket créé sous p1 reste rendu sous p1 (EX-7.21, 12.3).
+	s.Traiter("charger", at(6), valeur(t, `{"policy_version":"p2"}`))
 	r1 := s.Traiter("evaluer", at(7), valeur(t, ev))
 	r2 := s.Traiter("evaluer", at(7), valeur(t, ev))
 	if r1.Reponse.Get("ticket_state").S() != "approuve" || r1.Reponse.Get("approval").Get("at").S() != at(6).String() || r2.Reponse.Get("ticket_state").S() != "en_attente" {
 		t.Errorf("ré-émissions : %s / %s", Compact(r1.Reponse), Compact(r2.Reponse))
+	}
+	for _, r := range []Resultat{r1, r2} {
+		if r.Reponse.Get("policy_version").S() != "p1" || r.Reponse.Get("policy_sha256").S() != EmpreinteSynthetique("p1") {
+			t.Errorf("ticket rapproché rendu hors de sa version : %s", Compact(r.Reponse))
+		}
+	}
+	// Une demande sous p2 est rendue sous p2.
+	ev3 := `{"request":` + `{"tool_announced":"y","tool_original":"y","server_alias":"s","arguments":{},"class":"ecriture","delegation":{"launched_by":"dem","on_behalf_of":null,"scope":"s","run_id":"r3"},"intent":null,"code":{"model":null,"prompt_version":null,"policy_version":"p2","recorder":"0"},"context":[]}` + `,"evaluation":{"rule":"regle","decision":"autorise","contest_ms":null,"opening":null}}`
+	if r := s.Traiter("evaluer", at(7), valeur(t, ev3)); r.Reponse.Get("policy_version").S() != "p2" || r.Reponse.Get("policy_sha256").S() != EmpreinteSynthetique("p2") {
+		t.Errorf("évaluation sous p2 : %s", Compact(r.Reponse))
+	}
+	// Un appel en cours évalué sous p1 après le chargement de p2 (CT-2 EX-15.5) porte p1, la version de la requête.
+	ev4 := `{"request":` + `{"tool_announced":"z","tool_original":"z","server_alias":"s","arguments":{},"class":"lecture","delegation":{"launched_by":"dem","on_behalf_of":null,"scope":"s","run_id":"r4"},"intent":null,"code":{"model":null,"prompt_version":null,"policy_version":"p1","recorder":"0"},"context":[]}` + `,"evaluation":{"rule":"regle","decision":"autorise","contest_ms":null,"opening":null}}`
+	if r := s.Traiter("evaluer", at(7), valeur(t, ev4)); r.Reponse.Get("policy_version").S() != "p1" || r.Reponse.Get("policy_sha256").S() != EmpreinteSynthetique("p1") || s.PV != "p2" {
+		t.Errorf("évaluation sous p1 après p2 : %s", Compact(r.Reponse))
 	}
 	s.Traiter("consommer", at(8), valeur(t, fmt.Sprintf(`{"ticket":"apr-0001","seq":7,"hash":%q}`, rh)))
 	if r := s.Traiter("evaluer", at(9), valeur(t, ev)); r.Reponse.Get("ticket").S() != "apr-0002" {
@@ -117,8 +145,9 @@ func TestServiceScenarioStatique(t *testing.T) {
 // Un vote reçu à l'instant de l'échéance arrive après elle (EX-7.7).
 func TestEcheanceAvantVote(t *testing.T) {
 	k, _ := CalculerConstantes()
-	s := &Service{OrgID: k.OrgID, JournalID: k.JournalID, PV: "p", Charges: map[string]bool{"p": true}, E: 1000,
+	s := &Service{OrgID: k.OrgID, JournalID: k.JournalID, PV: "p", E: 1000,
 		Source: "statique", Statique: &Lecture{Statique: true, Seuil: Seuil{1, 1}, Membres: []string{k.Comptes[1]}}, MaxOuverts: 1}
+	s.chargerVersion("p")
 	req := `{"tool_announced":"x","tool_original":"x","server_alias":"s","arguments":{},"class":"lecture","delegation":{"launched_by":"d","on_behalf_of":null,"scope":"s","run_id":null},"intent":null,"code":{"model":null,"prompt_version":null,"policy_version":"p","recorder":"0"},"context":[]}`
 	s.Traiter("evaluer", 0, valeur(t, `{"request":`+req+`,"evaluation":{"rule":"r","decision":"a_approuver","contest_ms":0,"opening":null}}`))
 	rh := Hex0x(SHA256Etiquette("d"))

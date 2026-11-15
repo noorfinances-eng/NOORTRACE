@@ -5,12 +5,31 @@
 // `identite_invalide`, sans autre lecture), bandeau de navigation, affichage
 // d'une erreur par son texte et son code entre parenthèses, mises en forme.
 
-import { el, ajouter, message, remplacer } from "./dom.mjs";
+import { el, ajouter, code, message, remplacer } from "./dom.mjs";
 import { t, texteCode } from "./libelles.mjs";
 import { ErreurAppel, deconnexion, erreurDeSession, lireSession } from "./client.mjs";
 
 /** Préfixes des clés d'une erreur du serveur ou du service. */
 export const PREFIXES_ERREUR = ["raison.", "serveur.", "page.", "console."];
+
+/** Motif d'un identifiant de ticket (CT-3 EX-7.1), partagé par les écrans. */
+export const MOTIF_TICKET = /^apr-[0-9a-z]+(-[0-9a-z]+)*$/;
+
+/** Vrai si `id` est un identifiant de ticket d'EX-7.1 : motif, 5 à 128 caractères. */
+export function estIdentifiantTicket(id) {
+  return typeof id === "string" && id.length >= 5 && id.length <= 128 && MOTIF_TICKET.test(id);
+}
+
+/**
+ * Lien vers l'écran d'un ticket dont l'identifiant vient du service (revue de sécurité de l'étape 8) :
+ * un identifiant hors d'EX-7.1 n'est jamais placé dans un lien ;
+ * il est affiché comme une valeur, avec `reponse_service_invalide`.
+ * @param {unknown} id
+ */
+export function lienTicket(id) {
+  if (estIdentifiantTicket(id)) return el("a", { texte: id, attributs: { href: `/tickets/${id}` } });
+  return el("span", { attributs: { "data-code": "reponse_service_invalide" } }, code(texteValeur(id), "fixe valeur"), " ", el("span", { classe: "marque", texte: texteCode("reponse_service_invalide", ["console."]) }));
+}
 
 /** Le conteneur principal de l'écran. */
 export function principal() {
@@ -90,9 +109,35 @@ export async function demarrerEcran(ecran) {
   return s;
 }
 
-/** Valeur JSON affichée comme du texte : une chaîne telle quelle, toute autre valeur en JSON. */
+// Caractères qu'un écran ne montre pas ou qui changent le sens de lecture
+// (revue de sécurité de l'étape 8, CT-3 EX-9.16) : catégories Cc (contrôle, dont C0, DEL, C1),
+// Cf (format : largeur nulle, marques de direction, U+FEFF…), Zl et Zp.
+const INVISIBLE = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
+// Séquences d'échappement que `JSON.stringify` produit, ou un caractère invisible littéral.
+const ECHAPPEMENT_OU_INVISIBLE = /\\(?:u[0-9a-fA-F]{4}|.)|[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu;
+const COURTS = Object.freeze({ "\\n": "\\u000a", "\\r": "\\u000d", "\\t": "\\u0009", "\\b": "\\u0008", "\\f": "\\u000c" });
+const unitesUtf16 = (c) => Array.from({ length: c.length }, (_, k) => `\\u${c.charCodeAt(k).toString(16).padStart(4, "0")}`).join("");
+
+/**
+ * Valeur JSON affichée sous sa forme JSON (une chaîne entre guillemets, un
+ * nombre et une chaîne de chiffres donc distincts), où tout caractère des
+ * catégories Cc, Cf, Zl ou Zp est écrit `\uXXXX` (une unité UTF-16 par
+ * séquence), les autres restant littéraux ; `JSON.stringify` n'échappe que
+ * `"`, `\` et les C0, dont les formes courtes sont ramenées à `\uXXXX`.
+ * @param {unknown} v
+ */
 export function texteValeur(v) {
-  return typeof v === "string" ? v : JSON.stringify(v);
+  return JSON.stringify(v).replace(ECHAPPEMENT_OU_INVISIBLE, (m) => (m[0] === "\\" ? (COURTS[m] ?? m) : unitesUtf16(m)));
+}
+
+/** Vrai si une chaîne porte un caractère des catégories Cc, Cf, Zl ou Zp. */
+export function contientInvisibles(v) {
+  return typeof v === "string" && INVISIBLE.test(v);
+}
+
+/** Marque « contient des caractères invisibles ou de sens d'écriture » (EX-9.16). */
+export function marqueInvisibles() {
+  return el("span", { classe: "marque", texte: t("marque.caracteres_invisibles"), attributs: { "data-invisibles": "" } });
 }
 
 /** Durée en millisecondes, lisible (« 1 h 30 min », « 45 s », « 250 ms »). */

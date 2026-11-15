@@ -39,11 +39,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chargerJeuValidateurs, entierCertificat, normaliserCertificat, verifierCertificat } from "../lib/certificat-commit.mjs";
+import { neutraliserTexte } from "../lib/verificateur.mjs";
 
 const CODE_VALIDE = 0;
 const CODE_INVALIDE = 1;
 const CODE_INUTILISABLE = 2;
 const DELAI_RPC_MS = 15_000;
+/** Limite de lecture d'un fichier JSON (certificat, validateurs) et d'une réponse RPC : celle de certificat-commit.json (CT-6 EX-4.13, 64 Mio). */
+const LIMITE_LECTURE = 64 * 1024 * 1024;
 
 class EntreeInutilisable extends Error {}
 
@@ -82,10 +85,13 @@ function aide() {
   ].join("\n");
 }
 
-/** Lit et analyse un fichier JSON ; toute défaillance rend l'entrée inutilisable. */
+/** Lit et analyse un fichier JSON ordinaire, dans la limite de LIMITE_LECTURE octets ; toute défaillance rend l'entrée inutilisable. */
 function lireJSON(fichier, quoi) {
   let texte;
   try {
+    const st = fs.lstatSync(fichier);
+    if (!st.isFile()) throw new Error("pas un fichier ordinaire");
+    if (st.size > LIMITE_LECTURE) throw new Error(`${st.size} octets, au-delà de la limite de ${LIMITE_LECTURE}`);
     texte = fs.readFileSync(fichier, "utf8");
   } catch (err) {
     throw new EntreeInutilisable(`${quoi} illisible (${fichier}) : ${err.message}`);
@@ -114,10 +120,14 @@ async function rpc(url, methode, params) {
   if (!reponse.ok) throw new EntreeInutilisable(`${methode} : HTTP ${reponse.status} depuis ${url}`);
   let corps;
   try {
-    corps = await reponse.json();
+    // La réponse est lue dans la limite de LIMITE_LECTURE octets, le nœud n'étant pas cru sur sa taille.
+    const texte = await reponse.text();
+    if (Buffer.byteLength(texte, "utf8") > LIMITE_LECTURE) throw new Error(`réponse de plus de ${LIMITE_LECTURE} octets`);
+    corps = JSON.parse(texte);
   } catch (err) {
     throw new EntreeInutilisable(`${methode} : réponse non JSON depuis ${url} : ${err.message}`);
   }
+  if (!corps || typeof corps !== "object" || Array.isArray(corps)) throw new EntreeInutilisable(`${methode} : réponse JSON-RPC hors de sa forme depuis ${url}`);
   if (corps.error) {
     const complement = corps.error.code === -32601 ? " (ce nœud ne connaît pas la méthode : binaire antérieur à noor_getCommitCertificate ?)" : "";
     throw new EntreeInutilisable(`${methode} : ${corps.error.message ?? JSON.stringify(corps.error)}${complement}`);
@@ -228,9 +238,9 @@ async function principal() {
   return resultat.valide ? CODE_VALIDE : CODE_INVALIDE;
 }
 
-/** Rapport lisible en français. */
+/** Rapport lisible en français ; chaque ligne est neutralisée (CT-6 §8.5) : aucune chaîne du certificat ne porte de caractère de commande au terminal. */
 function rapportLisible(r) {
-  const lignes = [];
+  const lignes = { liste: [], push(l) { this.liste.push(neutraliserTexte(l)); } };
   lignes.push("Vérification hors ligne d'un certificat de commit noorcore");
   if (r.source.fichier) lignes.push(`Source        : fichier ${r.source.fichier}`);
   if (r.source.rpc) lignes.push(`Source        : ${r.source.rpc}, bloc ${r.source.bloc}${r.source.enregistre ? ` (enregistré dans ${r.source.enregistre})` : ""}`);
@@ -249,15 +259,19 @@ function rapportLisible(r) {
   for (const a of r.avertissements) lignes.push(`Avertissement : ${a}`);
   lignes.push(`Résultat      : ${r.valide ? "VALIDE" : "INVALIDE"} — ${r.valide ? "un quorum du jeu fourni a signé ce bloc" : "au moins un contrôle a échoué"}`);
   lignes.push("Rappel        : la preuve vaut pour le jeu de validateurs FOURNI ; son origine relève du dossier, pas de ce vérificateur.");
-  return lignes.join("\n");
+  return lignes.liste.join("\n");
 }
 
+// Le code de retour est posé par process.exitCode, jamais par process.exit() après une écriture : un rapport
+// de plus que la capacité d'un tube serait tronqué par l'arrêt immédiat du processus.
 principal().then(
-  (code) => process.exit(code),
+  (code) => {
+    process.exitCode = code;
+  },
   (err) => {
     const message = err instanceof EntreeInutilisable ? err.message : `erreur inattendue : ${err?.stack ?? err}`;
-    process.stderr.write(`Erreur : ${message}\n`);
+    process.stderr.write(`Erreur : ${neutraliserTexte(message)}\n`);
     if (process.argv.includes("--json")) process.stdout.write(JSON.stringify({ valide: null, erreur: message }) + "\n");
-    process.exit(CODE_INUTILISABLE);
+    process.exitCode = CODE_INUTILISABLE;
   },
 );

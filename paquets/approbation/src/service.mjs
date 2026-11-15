@@ -14,7 +14,7 @@
 // ne signe rien (EX-3.3, EX-12.3). Les règles de l'annuaire sont celles du
 // module d'annuaire de la console (`annuaire.mjs`), jamais réécrites ici.
 
-import { ecrireHorodatage, hacherEvenement, verifierPiece, decoderBase64Canonique } from "@noortrace/noyau";
+import { ecrireHorodatage, hacherEvenement, verifierPiece, decoderBase64Canonique, sha256Hex, utf8 } from "@noortrace/noyau";
 import { ErreurService } from "./erreurs.mjs";
 import { validerPolitique, avertissementsPolitique } from "./politique.mjs";
 import { candidats } from "./evaluation.mjs";
@@ -23,7 +23,7 @@ import { IDS, registreSchemas } from "./schema.mjs";
 import {
   EtatAnnuaire, annuaireVide, annuaireDeSession, controleCanal, estIdentiteCanonique, adresseActive,
 } from "./annuaire.mjs";
-import { cloner, comparerChaines } from "./json.mjs";
+import { cloner, comparerChaines, egaliteJson, jcsIntegral } from "./json.mjs";
 import { infoCanal, membresAjoutes, reponseTickets, vueTicket } from "./vues.mjs";
 import { SuiviPlafond } from "./notifications.mjs";
 
@@ -114,6 +114,8 @@ export class ServiceApprobation {
     /** Dernière hauteur vue par jeu épinglé lu (EX-8.5). */
     this.dernieresHauteurs = new Map();
     this.derniereTentative = 0;
+    /** Instant (horloge monotone du processus) avant lequel aucune lecture du jeu ne repart, après une lecture échouée. */
+    this.lectureApres = 0;
     this.setReadAt = null;
     this.arrete = false;
   }
@@ -171,6 +173,8 @@ export class ServiceApprobation {
     if (m.versions) enr.versions = this.machine.versionsChargees();
     if (m.tickets.size) enr.tickets = [...m.tickets].map((id) => this.machine.ticketPersiste(this.machine.tickets.get(id)));
     if (m.fenetres) enr.fenetres = this.machine.copieFenetres();
+    // tickets terminaux sortis de l'état vivant, déposés dans l'archive (EX-7.24 : trace conservée)
+    if (m.archives.size) enr.archives = [...m.archives.values()];
     // annuaire et défis (EX-13.38) : documents entiers, écrits à chaque changement
     if (annuaire.annuaire) enr.annuaire = annuaire.annuaire;
     if (annuaire.defis) enr.defis = annuaire.defis;
@@ -211,8 +215,16 @@ export class ServiceApprobation {
     return this.#executer(async () => {
       const cles = ["org_id", "journal_id", "environment", "policy_version", "policy_sha256", "approval", "tools", "requesters"];
       if (!memesCles(corps, cles)) throw invalide("membres de charger");
-      if (corps.org_id !== this.config.org_id || corps.journal_id !== this.config.journal_id) throw invalide("journal différent de celui du service");
+      // messages écrits en ASCII à la source (12.8 : « texte ASCII »)
+      if (corps.org_id !== this.config.org_id || corps.journal_id !== this.config.journal_id) throw invalide("journal different de celui du service");
       if (corps.environment !== "production" && corps.environment !== "developpement") throw invalide("environment");
+      // CT-3 EX-12.5 : l'environnement déclaré par l'appelant doit être celui de la
+      // configuration du service ; sinon un appelant déclare `developpement`
+      // (jeu statique admis) alors que le service est en production. Le service
+      // réel déclare toujours `environment` (schéma) ; pour une configuration
+      // qui ne le déclare pas (service construit en mémoire), rien à comparer.
+      if ((this.config.environment === "production" || this.config.environment === "developpement")
+        && corps.environment !== this.config.environment) throw invalide("environment different de celui du service");
       if (typeof corps.policy_version !== "string" || corps.policy_version.length < 1 || [...corps.policy_version].length > 128) throw invalide("policy_version");
       if (!HEX32.test(corps.policy_sha256)) throw invalide("policy_sha256");
       const a = corps.approval;
@@ -228,7 +240,24 @@ export class ServiceApprobation {
       }
       if (!Array.isArray(corps.requesters) || !corps.requesters.every((x) => typeof x === "string")) throw invalide("requesters");
       const existante = this.machine.version(corps.policy_version);
-      if (existante && existante.policy_sha256 !== corps.policy_sha256) throw invalide("version déjà chargée avec une autre empreinte");
+      if (existante) {
+        if (existante.policy_sha256 !== corps.policy_sha256) throw invalide("version deja chargee avec une autre empreinte");
+        // CT-3 EX-12.5 : à empreinte déclarée égale, la politique gardée (approval,
+        // environnement) doit être identique, sinon un appelant réécrit la
+        // politique en vigueur sans changer l'empreinte. On ne compare PAS
+        // `tools` ni `requesters` : le noyau recharge légitimement la même
+        // version avec une liste d'outils ou de demandeurs enrichie (EX-7.15),
+        // sans changer l'empreinte, qui porte sur l'ensemble de politique.
+        // Le service ne recalcule pas lui-même `policy_sha256` (celui du noyau
+        // porte sur l'ensemble entier, que le service ne reçoit pas : révision
+        // demandée) ; l'égalité de la politique gardée ferme néanmoins la
+        // réécriture à empreinte égale.
+        const memePolitique = egaliteJson(
+          { approval: a, environment: corps.environment },
+          { approval: existante.approval, environment: existante.environment },
+        );
+        if (!memePolitique) throw invalide("version deja chargee avec une autre politique a empreinte egale");
+      }
       // EX-12.5 : EX-4.2 et EX-8.2 ; toutes les erreurs dans data.errors
       const erreurs = validerPolitique(a.rules, { environment: corps.environment, expire_after_ms: a.expire_after_ms });
       if (erreurs.length) {
@@ -248,9 +277,14 @@ export class ServiceApprobation {
         this.supervision.consigner("alerte", { kind: "jeu_registre_sans_rpc", policy_version: corps.policy_version });
       }
       const approval_candidates = candidats(a.rules, L).sort(comparerChaines);
+      // CT-3 §12.2 (révision 0.5, addendum) : le service CALCULE approval_sha256, SHA-256 du JCS
+      // (RFC 8785) du membre approval tel qu'il l'a reçu ; jamais recopié d'un message du noyau.
+      // Il lie chaque réponse evaluer aux règles réellement appliquées.
+      const approval_sha256 = sha256Hex(utf8(jcsIntegral(a)));
       this.machine.ajouterVersion({
         policy_version: corps.policy_version,
         policy_sha256: corps.policy_sha256,
+        approval_sha256,
         environment: corps.environment,
         approval: cloner(a),
         tools: cloner(corps.tools),
@@ -258,8 +292,8 @@ export class ServiceApprobation {
         approval_candidates,
       });
       await this.#entree("charger", { policy_version: corps.policy_version });
-      this.supervision.consigner("charger", { policy_version: corps.policy_version, policy_sha256: corps.policy_sha256, mode: a.mode, approval_candidates });
-      return { policy_version: corps.policy_version, policy_sha256: corps.policy_sha256, approval_candidates };
+      this.supervision.consigner("charger", { policy_version: corps.policy_version, policy_sha256: corps.policy_sha256, approval_sha256, mode: a.mode, approval_candidates });
+      return { policy_version: corps.policy_version, policy_sha256: corps.policy_sha256, approval_sha256, approval_candidates };
     });
   }
 
@@ -471,7 +505,8 @@ export class ServiceApprobation {
 
   /** `tickets` (EX-12.14, EX-12.21). */
   #tickets(corps) {
-    const refus = controleCanal(this.annuaire.document, "tickets", corps, null);
+    // CT-3 EX-13.32 (révision 0.8) : avec `related_to`, le contrôle porte sur le ticket désigné (ordre de `consulter`).
+    const refus = controleCanal(this.annuaire.document, "tickets", corps, corps?.related_to !== undefined ? infoCanal(this.machine, corps.related_to) : null);
     if (refus) throw this.#refusCanal("tickets", null, refus);
     if (corps.related_to !== undefined) this.#controleConsulter("tickets", corps.related_to, corps.session_identity);
     return reponseTickets({
@@ -488,7 +523,11 @@ export class ServiceApprobation {
   #consulter(corps) {
     const t = this.#controleConsulter("consulter", corps.ticket, corps.session_identity);
     if (t.request.retained_event === null || t.request.arguments === null) throw this.#refusCanal("consulter", corps.ticket, "ticket_clos_aux_votes");
-    return vueTicket({ machine: this.machine, annuaire: this.annuaire.document, ticket: t, bodyMax: this.config.body_max_bytes });
+    // CT-3 EX-12.14 : un effet omis faute de temps (extract sous borne) est consigné
+    return vueTicket({
+      machine: this.machine, annuaire: this.annuaire.document, ticket: t, bodyMax: this.config.body_max_bytes,
+      journal: (type, d) => this.supervision.consigner(type, d),
+    });
   }
 
   /** `voter`, `recuser`, `retirer` : entrée de 7.4 après le contrôle du canal (EX-12.16, EX-12.19). */
@@ -514,7 +553,10 @@ export class ServiceApprobation {
    * EX-13.17) : le module d'annuaire décide ; l'annuaire et les défis changés
    * sont persistés avec fsync avant la réponse (EX-12.17), y compris le défi
    * marqué présenté d'une inscription refusée (EX-13.15, pas 4) ; une
-   * opération refusée est consignée avec sa raison.
+   * opération refusée est consignée avec sa raison. Un état calculé n'est
+   * adopté que s'il est durable : après un échec d'écriture, l'état
+   * d'avant est rendu, de sorte qu'une opération que son auteur a vue refusée
+   * par une erreur ne prenne pas effet à l'appel suivant.
    */
   async #operationAnnuaire(methode, corps) {
     const at = ecrireHorodatage(this.#maintenant());
@@ -523,8 +565,14 @@ export class ServiceApprobation {
     if (r.annuaireChange || r.defisChanges) {
       const persiste = this.annuaire.persiste || r.annuaireChange;
       const document = r.annuaireChange ? r.annuaire : this.annuaire.document;
+      const avant = this.annuaire.sauvegarde();
       this.annuaire.adopter({ annuaire: document, defis: r.defis, persiste });
-      await this.#persister(persiste ? { annuaire: document, defis: r.defis } : { defis: r.defis });
+      try {
+        await this.#persister(persiste ? { annuaire: document, defis: r.defis } : { defis: r.defis });
+      } catch (e) {
+        this.annuaire.restaurer(avant);
+        throw e;
+      }
     }
     if (!r.accepted) {
       this.supervision.consigner("operation_annuaire_refusee", { methode, reason: r.reason, entry: typeof corps.entry === "string" ? corps.entry : null });
@@ -651,14 +699,23 @@ export class ServiceApprobation {
     return [...this.machine.tickets.values()].filter((t) => ["ouvert", "seuil_atteint", "verification"].includes(t.state));
   }
 
+  /**
+   * Demande une lecture du jeu dans `delai` ms. Après une lecture échouée, la
+   * suivante ne part pas avant `lectureApres` (CT-3 EX-8.1, révision 0.8 ;
+   * EX-8.4) : une lecture demandée pendant l'attente (entrée reçue, ticket
+   * ouvert, lecture redemandée par l'entrée `jeu_lu` de l'échec lui-même)
+   * part à sa fin, jamais aussitôt ; sans cela, chaque échec en relançait un
+   * autre sans délai et le service martelait le nœud.
+   */
   #lireBientot(delai) {
     if (this.arrete || !this.lecteur) return;
     if (this.lectureEnCours) {
       this.relire = true;
       return;
     }
+    const attente = Math.max(delai, Math.ceil(this.lectureApres - performance.now()));
     clearTimeout(this.minuteurLecture);
-    this.minuteurLecture = setTimeout(() => this.#sonder(true), delai);
+    this.minuteurLecture = setTimeout(() => this.#sonder(true), attente);
     this.minuteurLecture.unref?.();
   }
 
@@ -666,22 +723,27 @@ export class ServiceApprobation {
    * Sondage des jeux (EX-8.4, EX-8.5) : pour chaque jeu épinglé à suivre,
    * lecture complète quand elle est nécessaire, sinon recherche des changements
    * depuis la dernière hauteur vue ; puis nouveau sondage après
-   * `set_poll_interval_ms`.
+   * `set_poll_interval_ms`. Une lecture `illisible`, quelle qu'en soit la
+   * cause, ou une erreur de lecture, fait attendre `set_poll_interval_ms`
+   * avant toute nouvelle lecture (CT-3 EX-8.1, révision 0.8 ; EX-8.4).
    */
   async #sonder(force = false) {
     if (this.arrete || !this.lecteur) return;
+    let echec = false;
     this.lectureEnCours = (async () => {
       for (const [k, c] of this.#cibles()) {
         if (this.arrete) return;
         try {
-          await this.#sonderCible(k, c, force);
+          if (!(await this.#sonderCible(k, c, force))) echec = true;
         } catch (e) {
+          echec = true;
           this.supervision.consigner("erreur", { kind: "lecture_jeu", message: e.message });
         }
       }
     })();
     await this.lectureEnCours;
     this.lectureEnCours = null;
+    if (echec) this.lectureApres = performance.now() + this.config.set_poll_interval_ms;
     if (this.arrete) return;
     if (this.relire) {
       this.relire = false;
@@ -692,6 +754,7 @@ export class ServiceApprobation {
     this.minuteurLecture.unref?.();
   }
 
+  /** Sonde un jeu ; rend faux si une lecture complète a été faite et n'est pas un `lu` du jeu épinglé. */
   async #sonderCible(k, c, force) {
     const pol = c.pol;
     let lire = force || this.#cibleALire(c);
@@ -707,7 +770,7 @@ export class ServiceApprobation {
         lire = true;
       }
     }
-    if (!lire) return;
+    if (!lire) return true;
     const precedents = new Set();
     for (const t of this.machine.tickets.values()) for (const m of t.approver_set?.members ?? []) precedents.add(m);
     for (const v of this.machine.versions.values()) for (const i of v.approval.rules.separation.identities) for (const a of i.addresses) precedents.add(a);
@@ -722,11 +785,13 @@ export class ServiceApprobation {
       if (this.arrete) return;
       await this.#entree("jeu_lu", r, { lecture }).catch(() => {});
     });
-    if (r.status === "lu" && r.jeu.set === pol.set.toLowerCase()) {
+    const reussie = r.status === "lu" && r.jeu.set === pol.set.toLowerCase();
+    if (reussie) {
       this.setReadAt = ecrireHorodatage(this.horloge());
       this.dernieresHauteurs.set(k, r.jeu.height);
     }
     this.supervision.consigner("lecture_jeu", { status: r.status, cause: r.cause, height: r.jeu?.height ?? null, set: r.jeu?.set ?? null, pinned: pol.set });
+    return reussie;
   }
 
   /**

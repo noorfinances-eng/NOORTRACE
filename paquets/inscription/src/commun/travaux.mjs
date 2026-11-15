@@ -10,7 +10,7 @@
 // message ne recopie jamais une valeur refusée.
 
 import * as C from "./champs.mjs";
-import { lireReference } from "./references.mjs";
+import { FORMES_TRAVAIL, lireReference } from "./references.mjs";
 import { registreSchemas, IDS } from "./schemas.mjs";
 
 const { ErreurChamp } = C;
@@ -116,7 +116,7 @@ const PARAMETRES = {
       sortie.admin_jeu = adresseLibre("parametres.admin_jeu", p.admin_jeu);
       sortie.cles_enregistreur = C.liste("parametres.cles_enregistreur", p.cles_enregistreur, documentCleEnregistreur, { min: 0, max: 16 });
     }
-    if ("budget_jour" in p) sortie.budget_jour = C.montant("parametres.budget_jour", p.budget_jour, { min: 1n }).toString();
+    if ("budget_jour" in p) sortie.budget_jour = C.budgetJour("parametres.budget_jour", p.budget_jour).toString();
     if ("tresorerie" in p) sortie.tresorerie = lireReferenceTexte("parametres.tresorerie", p.tresorerie);
     return sortie;
   },
@@ -127,7 +127,7 @@ const PARAMETRES = {
   approvisionner(p) {
     clesExactes("parametres", p, ["cle_chaine", "budget_jour"], ["cle_chaine"]);
     const s = { cle_chaine: C.adresse("parametres.cle_chaine", p.cle_chaine) };
-    if ("budget_jour" in p) s.budget_jour = C.montant("parametres.budget_jour", p.budget_jour, { min: 1n }).toString();
+    if ("budget_jour" in p) s.budget_jour = C.budgetJour("parametres.budget_jour", p.budget_jour).toString();
     return s;
   },
   "condense-inscription"(p) {
@@ -193,9 +193,14 @@ const PARAMETRES = {
   },
 };
 
-/** Lit une référence de clé et la rend sous sa forme texte (aucune valeur résolue). */
+/**
+ * Lit une référence de clé portée par un travail et la rend sous sa forme
+ * texte (aucune valeur résolue). Formes d'un travail seulement
+ * (`FORMES_TRAVAIL`, CT-4 EX-7.25) : `env:` est
+ * réservée à la configuration de l'agent.
+ */
 function lireReferenceTexte(champ, v) {
-  lireReference(champ, v);
+  lireReference(champ, v, { formes: FORMES_TRAVAIL });
   return v;
 }
 

@@ -185,7 +185,11 @@ func construireArbre(t *testing.T) string {
 	  "rejected":false,"is_error":null,"duration_ms":null,"error_rendered":null,"approval":null,"result_rendered":null,
 	  "protocols":{"host":"2026-07-28","server":"2026-07-28"},"note":"annexe A, mode erreur"}`)
 	ligneSignal := strings.TrimSuffix(string(lireSpec(t, "annexe-a-signal-attente.jsonl")), "\n")
-	Definir(attAppr, "approval", Objet("response", valeurSpec(t, "annexe-a-reponse-evaluer.json")))
+	// Révision 0.11 (EX-7.16, annexe B.4) : approval = { response à neuf
+	// membres, pinned : l'épinglage du noyau du cas }.
+	epinglage := doit(t, `{"policy_version":"2026-11-01","policy_sha256":"0xc5dac49797e5d273c2209e9ef6b44f77b80a2b927d2ddc8e93fc759d979b030c","approval_sha256":"0xa866fa5ab951735156052400d148b06654c1534b848251db81ab38b4af180589"}`)
+	neuf := `,"policy_version":"2026-11-01","policy_sha256":"0xc5dac49797e5d273c2209e9ef6b44f77b80a2b927d2ddc8e93fc759d979b030c","approval_sha256":"0xa866fa5ab951735156052400d148b06654c1534b848251db81ab38b4af180589"}`
+	Definir(attAppr, "approval", Objet("response", valeurSpec(t, "annexe-a-reponse-evaluer.json"), "pinned", epinglage))
 	Definir(attAppr, "result_rendered", doit(t, ligneSignal).Get("result"))
 	hAppr := enveloppe("in", "2026-11-03T13:41:06.000Z", `{"jsonrpc":"2.0","id":"h-1","method":"tools/list","params":{}}`) +
 		enveloppe("out", "2026-11-03T13:41:06.010Z", `{"jsonrpc":"2.0","id":"h-1","result":{"tools":[`+strings.TrimSuffix(def, "\n")+`],"resultType":"complete"}}`) +
@@ -196,7 +200,7 @@ func construireArbre(t *testing.T) string {
 	a.json("pieces-mcp/appels/approbation-annexe-a/attendu.json", attAppr)
 	refus := strings.TrimSuffix(string(lireSpec(t, "ex-4-49-refus.json")), "\n")
 	attRefus := Copier(attAppr)
-	Definir(attRefus, "approval", doit(t, `{"response":{"rule":"paiement hors CHF","decision":"refuse","ticket":null,"ticket_state":null,"approval":null,"approver_set":null}}`))
+	Definir(attRefus, "approval", Objet("response", doit(t, `{"rule":"paiement hors CHF","decision":"refuse","ticket":null,"ticket_state":null,"approval":null,"approver_set":null`+neuf), "pinned", epinglage))
 	Definir(attRefus, "result_rendered", doit(t, refus))
 	hRefus := strings.Replace(hAppr, enveloppe("out", "2026-11-03T13:41:07.300Z", ligneSignal), enveloppe("out", "2026-11-03T13:41:07.300Z", `{"jsonrpc":"2.0","id":"h-77812-4","result":`+refus+`}`), 1)
 	a.ecrire("pieces-mcp/appels/approbation-refus/hote.jsonl", []byte(hRefus))
@@ -206,7 +210,7 @@ func construireArbre(t *testing.T) string {
 	// « l'objet est le même sans resultType » (EX-4.49), texte de l'exemple
 	signalHerite := strings.Replace(texteSpec(t, "ex-4-49-signal.json"), `"resultType":"complete",`, "", 1)
 	attAttente := Copier(attAppr)
-	Definir(attAttente, "approval", doit(t, `{"response":{"rule":"paiement > 5000 CHF","decision":"a_approuver","ticket":"apr-1192","ticket_state":"en_attente","approval":null,"approver_set":null}}`))
+	Definir(attAttente, "approval", Objet("response", doit(t, `{"rule":"paiement > 5000 CHF","decision":"a_approuver","ticket":"apr-1192","ticket_state":"en_attente","approval":null,"approver_set":null`+neuf), "pinned", epinglage))
 	Definir(attAttente, "result_rendered", doit(t, signalHerite))
 	Definir(attAttente, "protocols", doit(t, `{"host":"2025-11-25","server":"2026-07-28"}`))
 	hAttente := enveloppe("in", "2026-11-03T13:41:06.000Z", `{"jsonrpc":"2.0","id":40,"method":"tools/list","params":{}}`) +

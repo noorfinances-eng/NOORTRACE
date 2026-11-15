@@ -26,6 +26,7 @@ import { ErreurDecodage, normaliser, classer, nombreSpans } from "./representati
 import { projeterSpan, partielSpan, effetsSpan } from "./projection.mjs";
 import { TableDoublons, RegistreRecouvrement } from "./tables.mjs";
 import { corpsSucces, corpsRefus, TYPE_JSON, TYPE_PROTOBUF } from "./reponses.mjs";
+import { SPANS_PAR_REQUETE_DEFAUT, ELEMENTS_OTLP_PAR_SPAN } from "../bornes.mjs";
 
 /** Bornes de l'histogramme `noortrace_otel_reception_lag_ms` (EX-6.41). */
 export const BORNES_RETARD = Object.freeze([1000, 5000, 10000, 30000, 60000, 300000, 3600000]);
@@ -167,15 +168,28 @@ export class IngestionOtel {
     const s = this._source(r.entetes);
     const cleConnexion = `connexion:${r.connexion}`;
     if (!s.hote || (s.cle && this.limiteur.bloque(s.cle)) || this.limiteur.bloque(cleConnexion)) {
-      if (s.cle) this.limiteur.echec(s.cle);
-      this.limiteur.echec(cleConnexion);
-      this.journal.consigner("warning", "otel", "auth_failed", { transport: "otlp_http", reason: s.cle ? "jeton" : "jeton_absent", token_id: s.cle ? s.cle.slice(6) : null });
+      // EX-18.3 : « un jeton valide n'est jamais refusé à cause des échecs d'un
+      // autre » : un refus pendant la limitation (connexion ou jeton bloqués) ne
+      // compte pas comme un échec, et seul un jeton inconnu en compte un pour son
+      // identifiant et pour la connexion (comme le transport HTTP du frontal MCP).
+      if (!s.hote && s.cle && !this.limiteur.bloque(s.cle) && !this.limiteur.bloque(cleConnexion)) {
+        this.limiteur.echec(s.cle);
+        this.limiteur.echec(cleConnexion);
+      } else if (!s.hote && !s.cle && !this.limiteur.bloque(cleConnexion)) {
+        this.limiteur.echec(cleConnexion);
+      }
+      this.journal.consigner("warning", "otel", "auth_failed", { transport: "otlp_http", reason: s.cle ? (s.hote ? "jeton_limite" : "jeton") : "jeton_absent", token_id: s.cle ? s.cle.slice(6) : null });
       return refus(401, "authentification");
     }
     etat.hote = s.hote;
-    // (d) quota de la source (EX-6.28, EX-4.47).
-    const q = this._quotas(s.hote).depasse(etat.t, { appel: true });
+    // (d) quota de la source (EX-6.28, EX-4.47) : « jugés à l'entrée de la
+    // requête » ; la requête admise compte dès maintenant parmi celles en cours
+    // (étape 8 : jusqu'ici comptée après la lecture entière du corps).
+    const quotas = this._quotas(s.hote);
+    const q = quotas.depasse(etat.t, { appel: true });
     if (q) return refus(429, "quota", { limites: q });
+    quotas.enCours++;
+    etat.enCours = true;
     // (e) mode dégradé (EX-6.39) et volume libre propre à l'ingestion (EX-6.28).
     const p = this.o.panne();
     if (p) return refus(503, p);
@@ -205,11 +219,17 @@ export class IngestionOtel {
     const lim = this.config.limits;
     etat.recu = recus;
     const quotas = this._quotas(etat.hote);
-    quotas.recevoir(this.o.monotone(), recus);
+    // Octets comptés à mesure de la lecture par le serveur (`compterRecus`) ;
+    // ceux qu'il n'a pas comptés le sont ici (appel direct, essais).
+    if (recus > (etat.recuCompte ?? 0)) quotas.recevoir(this.o.monotone(), recus - (etat.recuCompte ?? 0));
+    etat.recuCompte = recus;
     const refus = (statut, raison, extra = {}) => ({ statut, raison, etat, ...extra });
     // (h) octets reçus au-delà de la borne.
     if (corps === null || recus > otel.max_body_bytes) return refus(413, "taille");
-    quotas.enCours++;
+    if (!etat.enCours) {
+      quotas.enCours++;
+      etat.enCours = true;
+    }
     try {
       // (i) gzip invalide (400), puis octets décomprimés au-delà de la borne (413) ; arrêt avant toute allocation au-delà.
       let octets = corps;
@@ -223,26 +243,55 @@ export class IngestionOtel {
         if (octets.length > otel.max_body_bytes) return refus(413, "taille_decomprimee");
       }
       etat.decomprime = octets.length;
-      // (j) décodage et bornes.
+      // (j) décodage et bornes. Étape 8 (S-1, CT-2 EX-6.28, CT-2 EX-15.1) : les éléments
+      // répétés (resource_spans, scope_spans, spans, événements, liens,
+      // attributs, valeurs) sont comptés pendant le décodage sous un budget
+      // global dérivé de `spans_per_request` (sa valeur par défaut quand il
+      // est absent) ; au-delà, 413 avant toute matérialisation de la suite.
       const t0 = this.o.monotone();
+      const spansMax = otel.spans_per_request ?? SPANS_PAR_REQUETE_DEFAUT;
       let requete;
       try {
-        const bornes = { profondeurMax: lim.json_max_depth, membresMax: lim.json_max_members };
+        const bornes = { profondeurMax: lim.json_max_depth, membresMax: lim.json_max_members, elementsMax: spansMax * ELEMENTS_OTLP_PAR_SPAN };
         requete = etat.encodage === "json" ? decoderJson(octets, bornes) : decoderProtobuf(octets, bornes);
       } catch (e) {
         if (!(e instanceof ErreurDecodage)) throw e;
+        if (e.raison === "elements") return refus(413, "elements_par_requete");
         return refus(400, "decodage", { detail: e.raison });
       }
       // (k) nombre de spans.
       etat.spans = nombreSpans(requete);
-      if (otel.spans_per_request !== undefined && etat.spans > otel.spans_per_request) return refus(413, "spans_par_requete");
+      if (etat.spans > spansMax) return refus(413, "spans_par_requete");
       const n = normaliser(requete, { profondeurMax: lim.json_max_depth });
       quotas.tempsCapture(this.o.monotone(), this.o.monotone() - t0);
       if (n.doubles) this.journal.consigner("debug", "otel", "otel_cle_double", { count: n.doubles }, { host: etat.hote.id });
       return await this._spans(etat, n.spans);
     } finally {
-      quotas.enCours = Math.max(0, quotas.enCours - 1);
+      this.liberer(etat);
     }
+  }
+
+  /**
+   * Octets d'un corps reçus par le serveur, comptés au quota de la source à
+   * mesure de leur lecture (EX-6.28, EX-4.47 ; étape 8) : les
+   * requêtes suivantes de la source les voient pendant la lecture, et non
+   * après ; la requête en cours reste jugée à son entrée (EX-6.28 « jugés à
+   * l'entrée de la requête »), bornée par `max_body_bytes` et comptée parmi
+   * les requêtes en cours depuis `prejuger`.
+   * @param {object} etat état de `prejuger`
+   * @param {number} n
+   */
+  compterRecus(etat, n) {
+    this._quotas(etat.hote).recevoir(this.o.monotone(), n);
+    etat.recuCompte = (etat.recuCompte ?? 0) + n;
+  }
+
+  /** Une requête admise par `prejuger` ne compte plus parmi celles en cours (idempotent). */
+  liberer(etat) {
+    if (!etat?.enCours) return;
+    etat.enCours = false;
+    const q = this._quotas(etat.hote);
+    q.enCours = Math.max(0, q.enCours - 1);
   }
 
   _compter(etat, issue, raison) {
@@ -269,7 +318,8 @@ export class IngestionOtel {
       if (c.issue === "rejete") {
         rejetes++;
         this._compter(etat, "rejete", c.raison);
-        this.journal.consigner("warning", "otel", "otel_span_rejected", { trace_id: N.trace_id, span_id: N.span_id, reason: c.raison }, { host: hote.id });
+        // Identifiants consignés bornés à leur longueur attendue (32 et 16 caractères ; CT-2 EX-6.28).
+        this.journal.consigner("warning", "otel", "otel_span_rejected", { trace_id: String(N.trace_id).slice(0, 32), span_id: String(N.span_id).slice(0, 16), reason: c.raison }, { host: hote.id });
         continue;
       }
       // Doublons (EX-6.33).

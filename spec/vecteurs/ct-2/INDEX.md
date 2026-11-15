@@ -120,7 +120,13 @@ l'action pseudonyme sur chaque règle et la clé de test ci-dessus.
 `politique-regles-test.json` (`pii-regles-test`) : sélecteurs par pointeur JSON,
 détecteur champ (remplacer, supprimer), motif nommé, règles enchaînées, puis les
 cinq détecteurs ; elle porte les cas obligatoires que `pii-v1` ne peut pas
-porter (elle n'a ni path, ni champ, ni regex appliquée).
+porter (elle n'a ni path, ni champ, ni regex appliquée). Sa règle `motifs-ancres`
+(outil `ancres__test`, portée resultat) porte les motifs ancrés sur des candidats
+adjacents : la fin d'une correspondance remplacée vaut frontière pour le candidat
+qui suit, comme le `]` du jeton (EX-10.9), donc le reste de la chaîne est présenté
+au motif comme une chaîne à part entière où `^` et `\b` tiennent et `\B` ne tient
+pas (`motif-ancre-*`) ; et la cascade de passages `passages-en-cascade`, dont les
+66 passages ne sont bornés que par la finitude d'EX-10.14 et le temps d'EX-10.23.
 
 `cas.json` : tableau d'objets `{ name, policy, scope, tool, input, expected, note }`.
 `expected.piece` est le texte UTF-8 de la pièce stockée (JCS intégral de la
@@ -202,6 +208,11 @@ politique à la pièce stockée redonne les mêmes octets (EX-10.15).
 | `jeton-opaque` | pii-v1 | contexte | inchangée | — | Un jeton de pseudonyme dont les douze chiffres (378282246313) passent Luhn n'est pas une carte : les détecteurs ne voient pas l'intérieur d'un jeton (EX-10.9). |
 | `regles-enchainees` | pii-regles-test | resultat | rédigée | note-interne-supprimee/champ × 1, numero-sinistre/regex × 1, identifiants/iban × 1 | Trois règles modifient la même pièce, dans l'ordre : note-interne-supprimee, numero-sinistre puis identifiants ; montant-champ et copie-supprimee ne s'appliquent pas (portée), sans erreur. |
 | `pointeur-non-resolu` | pii-regles-test | arguments | inchangée | — | Le pointeur /amount_cents ne résout pas : la règle est sans effet pour cette pièce, sans erreur (note du journal d'exploitation). |
+| `motif-ancre-non-frontiere` | pii-regles-test | resultat | rédigée | motifs-ancres/regex × 1 | Motif \Bz sur « zzz » : le z du milieu seul est rédigé ; la fin de la correspondance remplacée vaut frontière pour le candidat qui suit (comme le ] du jeton), donc \B n'y tient pas et le troisième z reste (EX-10.9). |
+| `motif-ancre-alternative` | pii-regles-test | resultat | rédigée | motifs-ancres/regex × 1 | Motif x|\b# sur « x# » : x rédigé ; # suit la frontière du jeton, \b n'y tient pas, # reste (EX-10.9). |
+| `motif-ancre-debut-adjacents` | pii-regles-test | resultat | rédigée | motifs-ancres/regex × 3 | Motif ^[0-9]{3} sur trois candidats adjacents : après chaque correspondance remplacée, le candidat suivant est en début de chaîne ; les trois sont rédigés en un passage (EX-10.9). |
+| `motif-ancre-frontiere-adjacents` | pii-regles-test | resultat | rédigée | motifs-ancres/regex × 65 | Motif \b[A-Z]{2}[0-9]{4} sur 65 candidats adjacents : la fin de chaque correspondance remplacée vaut frontière de mot pour le suivant ; 65 correspondances en un passage, pièce idempotente (EX-10.9, EX-10.15). |
+| `passages-en-cascade` | pii-regles-test | resultat | rédigée | motifs-ancres/regex × 1, motifs-ancres/regex × 65 | Cascade de passages (EX-10.14) : B$ rédige le B au premier passage ; A\b ne trouve alors que le dernier A (seul suivi d'une frontière) et chaque passage n'en libère qu'un : 66 passages, 65 + 1 correspondances, aucune borne arbitraire du nombre de passages (le texte n'exige que la finitude, EX-10.23 borne le temps). |
 | `pseudonyme-iban` | pii-pseudo-test | arguments | rédigée | identifiants-arguments-resultat/iban × 1 | Valeur normalisée CH9300762011623852957 : le jeton de CT-2 §10.9 ; la forme groupée et la forme compacte donnent le même pseudonyme. |
 | `pseudonyme-avs` | pii-pseudo-test | arguments | rédigée | identifiants-arguments-resultat/avs × 1 | Valeur normalisée : les treize chiffres. |
 | `pseudonyme-carte` | pii-pseudo-test | arguments | rédigée | identifiants-arguments-resultat/carte × 1 | Valeur normalisée : les chiffres seuls. |
@@ -222,10 +233,25 @@ alias, classe (de la définition courante), `rejected` (refus au pas 1 : ni piè
 définition courante si elle diffère (sinon null) et « liste annoncée » (référence et
 octets), `context` (EX-4.45, EX-7.7), `is_error`, `duration_ms` (`t_reponse − t_envoi` ;
 pour une issue sans réponse, `t_reponse` suit EX-4.48), l'erreur rendue à l'hôte, la
-réponse d'`evaluer` simulée (`approval`) et le résultat que l'enregistreur rend
+réponse d'`evaluer` simulée (`approval.response`) avec la version et l'empreinte de la
+politique épinglée du noyau (`approval.pinned`) et le résultat que l'enregistreur rend
 lui-même (`result_rendered` : refus par la politique ou signal d'approbation,
 résultat `isError`, EX-4.49 ; les deux `null` hors des cas d'approbation), les
-deux ères (`protocols`) et les deux transports (`transports`). Les arguments sont
+deux ères (`protocols`) et les deux transports (`transports`).
+
+**Révision du protocole d'approbation (étape 8, décision du porteur du 14 novembre 2026).** Depuis la révision 0.8
+de CT-2 (EX-7.16, EX-7.23) et la révision 0.5 de CT-3 (§12.3, EX-12.6), la réponse
+d'`evaluer` porte neuf membres : `policy_version` et `policy_sha256` nomment la
+version chargée sous laquelle elle est rendue et l'empreinte que le noyau a déclarée au
+`charger` de cette version (EX-8.11) ; `approval_sha256` est le SHA-256 du JCS du membre
+`approval` reçu à ce `charger` (`/policy/approval` sans `service`), calculé par le
+service et comparé par le noyau au sien (EX-7.15, EX-7.16). Les cas `approbation-refus` et
+`approbation-en-attente` sont rendus sous l'ensemble de politique de §15.3 : version
+`2026-11-01`, empreinte `0xc5dac49797e5d273c2209e9ef6b44f77b80a2b927d2ddc8e93fc759d979b030c`,
+condensé `0xa866fa5ab951735156052400d148b06654c1534b848251db81ab38b4af180589` (`approval.pinned`). Le noyau refuse toute réponse dont le couple n'est pas celui d'un
+`charger` qu'il a lui-même émis pour la version attendue (`approval_response_invalid`,
+raison `politique_non_epinglee`, `-31010`, jamais un relais) ; les cas négatifs sont dans
+`ct-3/reponses-evaluer/` et `ct-8/observation/reponses.json`. Les arguments sont
 rédigés par `pii-v1`. La ligne amont recopie les arguments reçus, blancs non
 significatifs retirés (EX-4.20, EX-4.43) ; la réponse rendue recopie `result` de même,
 avec les deux réécritures de 4.4 pas 14 (`_meta` `io.modelcontextprotocol/serverInfo`
@@ -253,6 +279,7 @@ l'`id` de l'hôte recopié depuis son texte.
 | `ligne-avec-cr/` | refus au pas 1 | — | erreur -32700 | Une ligne stdio qui contient un CR (U+000D, ici comme blanc après les arguments) : refus -32700 data.reason cr_dans_la_ligne, id null, sans relais (EX-4.43) ; un serveur stdio Python lirait CR comme une fin de ligne. |
 | `lot-refuse/` | refus au pas 1 | — | erreur -32600 | Un lot JSON-RPC (tableau) reçu de l'hôte : une seule erreur -32600, id null, data.reason lot_non_pris_en_charge, aucun élément relayé (EX-4.3). |
 | `nombre-non-representable/` | refus au pas 1 | — | erreur -32602 | Un entier au-delà de 2^53 dans les arguments : sa forme JCS intégral (12345678901234567000) n'a pas la valeur reçue ; refus -32602 data.reason nombre_non_representable avec l'id de la requête, sans relais, sans pièce, sans événement (EX-4.44). |
+| `nombre-zeros-non-representable/` | refus au pas 1 | — | erreur -32602 | Un nombre 1.000…01 (un, 20 000 zéros, un) dans les arguments : sa valeur décimale exacte diffère de celle de sa forme JCS intégral (1) ; refus -32602 data.reason nombre_non_representable avec l'id de la requête, sans relais, sans pièce, sans événement (EX-4.44). Le contrôle doit rester linéaire en la longueur du nombre : un retrait des zéros de queue par /0+$/ est quadratique sur cette forme et occupe le fil de l'enregistreur (EX-10.23 ne couvre que la rédaction). |
 | `resultat-is-error/` | `demo__claims.get` (lecture) | vrai | — | Erreur d'exécution de l'outil (isError: true dans le résultat, page Tools) : la pièce est le result entier, is_error vrai ; la réponse est rendue normalement. |
 | `resultat-non-objet/` | `demo__claims.get` (lecture) | vrai | erreur -32603 | Le serveur répond un result qui est une chaîne : erreur de protocole du serveur ; pièce {"noortrace_jsonrpc_error": {code -32603, message « noortrace: resultat amont invalide », data.result_type string}}, is_error vrai, même erreur rendue à l'hôte (4.4 pas 12 et 14). |
 | `taille-depassee/` | `demo__claims.search` (lecture) | vrai | erreur -31013 | Réponse amont au-delà de limits.response_max_bytes (512 octets pour ce cas) : lecture arrêtée à la borne (t_reponse, EX-4.48), connexion amont fermée, événement is_error vrai avec la pièce -31013 (direction reponse), erreur -31013 rendue (4.4 pas 11). |
@@ -436,6 +463,7 @@ SHA-256(UTF-8 `noortrace/vecteurs/v0/otel/json-identifiants-invalides/precedent`
 | `json-outil-nom-invalide/` | application/json | 200 | scelle 1 | gen_ai.tool.name qui contient « __ » : l'outil est <alias>__nom-invalide, le nom reçu reste dans la pièce d'enveloppe (EX-6.35). |
 | `json-outil-gabarit-effets/` | application/json | 200 | scelle 1 | Gabarit d'effets de policy.otel.sources.<alias>.tools.paiement.creer évalué sur les valeurs rédigées de la pièce « arguments » (EX-7.6, EX-6.36) : objet, montant et devise tirés des arguments ; l'IBAN est rédigé. |
 | `json-spans-ignores/` | application/json | 200 | ignore 3 | Span HTTP sans attribut GenAI (hors_genai), embeddings et invoke_agent (operation_non_retenue) : tous ignorés, acceptés au sens d'OTLP, réponse {}, aucune pièce, rien n'est stocké ni haché (EX-6.32). |
+| `json-operation-prototypale/` | application/json | 200 | scelle 1, ignore 3 | gen_ai.operation.name constructor, toString et __proto__ : noms de propriétés d'Object.prototype, qui ne sont pas des opérations retenues (EX-6.32) ; les trois spans sont ignorés (operation_non_retenue), sorte null, jamais une valeur héritée du prototype ; le span chat est scellé. |
 | `json-sorte-desactivee/` | application/json | 200 | scelle 1, ignore 1 | ingest: ["outil"] : le span d'inférence est ignoré (sorte_desactivee), le span d'outil scellé. |
 | `json-identifiants-invalides/` | application/json | 200 | scelle 1, rejete 2 | traceId tout à zéro, spanId de 12 chiffres : deux rejets (identifiants_invalides), succès partiel rejectedSpans "2" (entier 64 bits en chaîne) ; le troisième span est scellé (EX-6.32, EX-6.27). |
 | `pb-identifiants-invalides/` | application/x-protobuf | 200 | scelle 1, rejete 2 | Le même lot en protobuf : corps de réponse protobuf du succès partiel, octet pour octet (champ 1 partial_success ; champ 1 rejected_spans, champ 2 error_message), même événement que le cas JSON. |

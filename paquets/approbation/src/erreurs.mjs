@@ -41,6 +41,7 @@ export const RAISONS_SERVICE = Object.freeze([
   "revocation_non_autorisee",
   "demandeur_deja_lie",
   "demandeur_inconnu",
+  "limite_annuaire",
 ]);
 
 // Statut HTTP d'une erreur (lecture 20 du LISEZMOI, rubrique e.2 des
@@ -103,6 +104,7 @@ const MESSAGES = {
   revocation_non_autorisee: "revocation par une autre identite",
   demandeur_deja_lie: "alias de demandeur deja lie",
   demandeur_inconnu: "alias de demandeur absent de l'entree",
+  limite_annuaire: "borne de l'annuaire ou des defis atteinte",
 };
 
 /** Erreur rendue par le service. */
@@ -124,7 +126,11 @@ export class ErreurService extends Error {
     return STATUTS[this.code] ?? 409;
   }
 
-  /** Corps de la réponse d'erreur (12.8). */
+  /**
+   * Corps de la réponse d'erreur (12.8). Les messages sont écrits en ASCII à
+   * la source ; le remplacement reste une garde pour un texte
+   * venu d'ailleurs.
+   */
   corps() {
     return { error: { code: this.code, message: this.message.replace(/[^\x20-\x7e]/g, "?"), data: this.data } };
   }

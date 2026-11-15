@@ -34,6 +34,10 @@ type Attestation struct {
 	Avertissements []commun.Avertissement
 }
 
+// limiteDocumentPolitique : taille du document de politique décodé d'AT-6
+// (EX-4.13, EX-4.15), qui borne aussi son nombre de valeurs (EX-15.1).
+const limiteDocumentPolitique = 2097152
+
 func (a *Analyse) verificationsAT(p *Partie) {
 	at := &Attestation{Partie: p}
 	a.Attestation = at
@@ -121,7 +125,7 @@ func (a *Analyse) verificationsAT(p *Partie) {
 			if err != nil {
 				return echec("policy_document : "+err.Error(), "policy_document: "+err.Error())
 			}
-			if len(doc) > 2097152 {
+			if len(doc) > limiteDocumentPolitique {
 				return echec("policy_document de plus de 2 097 152 octets", "policy_document larger than 2,097,152 bytes")
 			}
 		}
@@ -389,7 +393,7 @@ func (a *Analyse) at6(at *Attestation) commun.Verification {
 	if cryptographie.Hex32(cryptographie.Sha256(doc)) != e.V.Chemin("execution", "arguments", "value", "policy_sha256").S() {
 		ecarts = append(ecarts, "SHA-256 du document de politique ≠ policy_sha256")
 	}
-	if dv, err := jsonv.Analyser(doc); err != nil || !dv.EstObjet() || aDoublon(dv) || !dv.Membre("perimeter").EstObjet() || dv.Chemin("perimeter", "attestation_digest").S() != cryptographie.Hex32(at.Digest) || !dv.Chemin("perimeter", "attestation_digest").EstChaine() {
+	if dv, err := jsonv.AnalyserLimite(doc, limiteDocumentPolitique); err != nil || !dv.EstObjet() || aDoublon(dv) || !dv.Membre("perimeter").EstObjet() || dv.Chemin("perimeter", "attestation_digest").S() != cryptographie.Hex32(at.Digest) || !dv.Chemin("perimeter", "attestation_digest").EstChaine() {
 		ecarts = append(ecarts, "document de politique sans perimeter.attestation_digest égal à D_P")
 	}
 	si, _ := e.Seq()

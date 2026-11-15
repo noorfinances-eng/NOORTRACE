@@ -1,0 +1,39 @@
+{
+  "valid": false,
+  "target": "T-10",
+  "failed_checks": [
+    "T-10"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "echoue",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "reussi"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-tsa-revoquee-serie-non-minimale.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : T-10 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): T-10; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "Le dossier complet, vérifié avec ancres-tsa-revoquee-serie-non-minimale.json : la CRL de l'ancre révoque tsa-test.pem pour keyCompromise et encode son numéro de série sur deux octets (02 02 00 02, INTEGER non minimal) ; la lecture selon §9.3 ne contrôle pas la forme minimale des INTEGER (EX-9.6), le fichier d'ancres est utilisable (N-1), la CRL est lue et T-10 échoue, code 1, jamais le code 2."
+}

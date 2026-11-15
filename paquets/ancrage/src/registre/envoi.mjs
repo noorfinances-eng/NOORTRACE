@@ -18,7 +18,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ecrireHorodatage, sha256Hex } from "@noortrace/noyau";
-import { capturer, ecrireExclusif, lecteurRepertoire, synchroniserRepertoire } from "./capture.mjs";
+import { capturer, ecrireExclusif, lecteurRepertoire, synchroniserRepertoire, verifierCapture } from "./capture.mjs";
 import {
   DOC_TYPE_PERIODE, DOC_TYPE_POINT_DE_CONTROLE, EVENEMENT_PAR_ROLE, SUJETS, anchorDigest, decoderJournal, empreinteAncre, encoderAnchor,
   encoderRegisterRecorder, encoderRevokeRecorder, encoderSubmitPeriod, hachageSigne, lirePeriodMeta, periodDigest, verifierJeuSignatures, verifierPeriodMeta,
@@ -88,7 +88,7 @@ export function envoisSansIssue(repertoire, expediteur) {
 
 /**
  * Même règle sur un index `hash → { envoi, issue|null }` (celui que
- * l'`Envoyeur` tient en mémoire, R-D-4) ; rend les envois dans l'ordre des
+ * l'`Envoyeur` tient en mémoire) ; rend les envois dans l'ordre des
  * hachages, comme la lecture du répertoire.
  */
 export function envoisSansIssueParHash(parHash, expediteur) {
@@ -127,7 +127,7 @@ export class Envoyeur {
   #journal;
   /** request_id des envois faits par cette instance (hachage → identifiant), pour `renvoyer` et `remplacer`. */
   #demandes = new Map();
-  /** Index en mémoire des envois et de leurs issues (`hash → { envoi, issue }`), chargé une fois du répertoire puis tenu à jour (R-D-4). */
+  /** Index en mémoire des envois et de leurs issues (`hash → { envoi, issue }`), chargé une fois du répertoire puis tenu à jour. */
   #index = null;
   /** Index des captures d'ancre par empreinte et de clôture par `periodHash`, chargé une fois puis tenu à jour. */
   #captures = null;
@@ -235,13 +235,17 @@ export class Envoyeur {
         }
       }
       const classe = await classerEmpreinte({ rpc: this.#rpc, contrat, fingerprint: fp, emetteur: adresse, docType });
+      if (classe.etat === "indeterminee") {
+        // Revue de sécurité de l'étape 8 (CT-5 EX-9.7) : une lecture que le second point ne confirme pas n'est ni un refus ni une preuve ; échec transitoire.
+        return this.#echec(id, "lecture_incoherente", { message: classe.detail ?? "lecture non recoupée", lectures: classe.lectures });
+      }
       if (classe.etat === "empreinte_squattee") {
         return this.#echec(id, "empreinte_squattee", { lookup: { issuer: classe.lookup.issuer, doc_type: classe.lookup.docType, issued_at: classe.lookup.issuedAt.toString() } });
       }
       if (classe.etat === "deja_fait") {
-        const existante = this.#captureDe(fp);
+        const existante = this.#captureDe(fp, adresse);
         if (existante) return this.#inclusion(id, existante, null);
-        // R-D-1 : l'ancre est au registre sous cette clé sans capture (reçu sans journal, capture manquée) : la
+        // L'ancre est au registre sous cette clé sans capture (reçu sans journal, capture manquée) : la
         // transaction de l'envoi connu est relue et capturée (EX-9.9 : « reprise tant que la fenêtre le permet »).
         const reprise = await this.#capturerEnvoiConnu({ id, adresse, choisir: (o) => o.role === "ancre" && o.attendu.fingerprint === fp });
         if (reprise) return reprise;
@@ -450,19 +454,64 @@ export class Envoyeur {
     if (c.index.role === "cloture" && journal.periodHash) idx.clotures.set(journal.periodHash, c);
   }
 
-  /** Capture d'ancre de cette empreinte ; en cas d'absence, le répertoire est relu une fois (capture faite hors de cet `Envoyeur`). */
-  #captureDe(fingerprint) {
+  /** Captures relues du disque déjà vérifiées (SHA-256 de l'index → verdict), revue de sécurité de l'étape 8. */
+  #verifiees = new Map();
+
+  /**
+   * Une capture relue du disque n'est une preuve qu'après CP-2 à CP-6 rejouées
+   * sur ses fichiers (CT-6 §11.1 : une capture n'est crue
+   * qu'au travers de ses vérifications). Rend la capture, ou null si elle ne
+   * passe plus (fichier altéré sur le disque) : l'appelant la refait.
+   */
+  #captureVerifiee(c) {
+    if (!c) return null;
+    if (c.verifiee === true) return c;
+    const cle = c.sha256;
+    if (!this.#verifiees.has(cle)) {
+      let ok = false;
+      try {
+        ok = verifierCapture({ fichiers: this.#repertoire, index: c.index, jeux: this.#instance.jeux, bftChainId: this.#instance.bftChainId }).premierEchec === null;
+      } catch {
+        ok = false;
+      }
+      this.#verifiees.set(cle, ok);
+      if (!ok) this.#consigner("warn", "registry_capture_rejected", { transaction_hash: c.index.transaction_hash, block_number: c.index.block_number });
+    }
+    return this.#verifiees.get(cle) ? c : null;
+  }
+
+  /**
+   * Capture d'ancre de cette empreinte **émise par `adresse`** (revue de sécurité de l'étape 8,
+   * une capture d'autrui pour la même empreinte n'est jamais la
+   * nôtre), vérifiée ; en cas d'absence, le répertoire est relu une fois
+   * (capture faite hors de cet `Envoyeur`).
+   */
+  #captureDe(fingerprint, adresse = null) {
+    const convient = (c) => {
+      if (!c) return null;
+      if (adresse !== null) {
+        const journal = this.#journalDe(c.index);
+        if (!journal || journal.issuer !== adresse) return null;
+      }
+      return this.#captureVerifiee(c);
+    };
     const idx = this.#chargerCaptures();
-    if (idx.ancres.has(fingerprint)) return idx.ancres.get(fingerprint);
+    if (idx.ancres.has(fingerprint)) {
+      const c = convient(idx.ancres.get(fingerprint));
+      if (c) return c;
+    }
     this.#captures = null;
-    return this.#chargerCaptures().ancres.get(fingerprint) ?? null;
+    return convient(this.#chargerCaptures().ancres.get(fingerprint) ?? null);
   }
 
   #captureDeCloture(periodHash) {
     const idx = this.#chargerCaptures();
-    if (idx.clotures.has(periodHash)) return idx.clotures.get(periodHash);
+    if (idx.clotures.has(periodHash)) {
+      const c = this.#captureVerifiee(idx.clotures.get(periodHash));
+      if (c) return c;
+    }
     this.#captures = null;
-    return this.#chargerCaptures().clotures.get(periodHash) ?? null;
+    return this.#captureVerifiee(this.#chargerCaptures().clotures.get(periodHash) ?? null);
   }
 
   #captureParTransaction(transactionHash) {
@@ -473,7 +522,7 @@ export class Envoyeur {
   }
 
   /**
-   * R-D-1 : relit le reçu de l'envoi connu de cette clé qui porte l'objet
+   * Relit le reçu de l'envoi connu de cette clé qui porte l'objet
    * cherché (`choisir(objet de #roleDeEnvoi)`), l'envoi inclus d'abord, et le
    * conclut (journal, capture, issue). Rend un résultat, ou `null` quand aucun
    * envoi ne convient ou qu'aucun point ne rend de reçu.
@@ -526,13 +575,24 @@ export class Envoyeur {
   async #nonce(adresse) {
     const reponses = await this.#rpc.appelerTous("eth_getTransactionCount", [adresse, "latest"]);
     if (reponses.every((r) => r.panne)) throw reponses[0]?.panne ?? new ErreurRpc("noeud_injoignable", "aucun point", null);
-    let n = null;
+    const valeurs = [];
     for (const r of reponses) {
       const v = r.panne || r.erreur ? null : quantiteVersEntier(r.resultat, MAX_U64);
-      if (v !== null && (n === null || v > n)) n = v;
+      if (v !== null) valeurs.push(v);
     }
-    if (n === null) throw new ErreurLecture("retour_illisible", "eth_getTransactionCount illisible");
-    return n;
+    if (valeurs.length === 0) throw new ErreurLecture("retour_illisible", "eth_getTransactionCount illisible");
+    // Revue de sécurité de l'étape 8 (CT-4 EX-8.14 ; cause S-4) : avec plusieurs points, le nonce retenu est le plus grand que rendent au moins
+    // deux points ; un point qui rend une valeur au-delà de ce nonce + 1 n'est pas en retard, il ment ou diverge :
+    // rien n'est signé (`nonce_incoherent`, transitoire). Un seul point configuré : sa valeur, comme avant.
+    if (this.#rpc.points().length < 2) return valeurs.reduce((m, v) => (v > m ? v : m));
+    const comptes = new Map();
+    for (const v of valeurs) comptes.set(v, (comptes.get(v) ?? 0) + 1);
+    let retenu = null;
+    for (const [v, k] of comptes) if (k >= 2 && (retenu === null || v > retenu)) retenu = v;
+    if (retenu === null) throw new ErreurLecture("nonce_incoherent", `eth_getTransactionCount : aucune valeur rendue par deux points (${valeurs.join(", ")})`);
+    const audela = valeurs.filter((v) => v > retenu + 1n);
+    if (audela.length) throw new ErreurLecture("nonce_incoherent", `eth_getTransactionCount : un point rend ${audela[0]} pour un nonce recoupé ${retenu}`);
+    return retenu;
   }
 
   async #solde(adresse) {
@@ -586,6 +646,20 @@ export class Envoyeur {
     return { acceptes, refus, pannes };
   }
 
+  /**
+   * Un reçu exploitable (CT-4 OP-11) : objet dont `blockHash` est un
+   * hex32, `blockNumber` lisible et au plus 2^53 − 1, `status` `0x0` ou `0x1` ;
+   * tout autre reçu est ignoré comme une absence (jamais une exception, jamais
+   * une issue fabriquée).
+   */
+  static recuExploitable(resultat) {
+    if (!resultat || typeof resultat !== "object") return false;
+    if (!estHexOctets(resultat.blockHash, 32)) return false;
+    const h = quantiteVersEntier(resultat.blockNumber, MAX_U64);
+    if (h === null || h > BigInt(Number.MAX_SAFE_INTEGER)) return false;
+    return resultat.status === "0x0" || resultat.status === "0x1";
+  }
+
   /** Sonde le reçu sur tous les points jusqu'à `recuMs` ; rend `{ recu, point }` ou null. */
   async #attendreRecu(hashes, recuMs = this.#delais.recuMs) {
     const debut = this.#horloge.monotone();
@@ -594,7 +668,7 @@ export class Envoyeur {
         for (const point of this.#rpc.points()) {
           try {
             const r = await this.#rpc.appeler("eth_getTransactionReceipt", [hash], { point });
-            if (!r.erreur && r.resultat && typeof r.resultat === "object") return { recu: r, point, hash };
+            if (!r.erreur && Envoyeur.recuExploitable(r.resultat)) return { recu: r, point, hash };
           } catch (e) {
             if (!(e instanceof ErreurRpc)) throw e;
           }
@@ -603,6 +677,26 @@ export class Envoyeur {
       if (this.#horloge.monotone() - debut >= recuMs) return null;
       await this.#attendre(this.#delais.sondageMs);
     }
+  }
+
+  /**
+   * Revue de sécurité de l'étape 8 (CT-4 OP-11 ; cause S-4) : un reçu d'échec (`status` `0x0`) n'écrit
+   * une issue qu'une fois confirmé par un second point (même `blockHash`,
+   * même `status`) quand plusieurs points sont configurés ; sinon l'envoi
+   * reste sans issue (`recu_incertain`) et sera relu. Rend vrai si confirmé.
+   */
+  async #recuConfirme(hash, recu, point) {
+    const autres = this.#rpc.points().filter((p) => p !== point);
+    if (autres.length === 0) return true;
+    for (const autre of autres) {
+      try {
+        const r = await this.#rpc.appeler("eth_getTransactionReceipt", [hash], { point: autre });
+        if (!r.erreur && Envoyeur.recuExploitable(r.resultat) && r.resultat.blockHash === recu.blockHash && r.resultat.status === recu.status && r.resultat.blockNumber === recu.blockNumber) return true;
+      } catch (e) {
+        if (!(e instanceof ErreurRpc)) throw e;
+      }
+    }
+    return false;
   }
 
   #ecrireIssue(issue) {
@@ -618,8 +712,16 @@ export class Envoyeur {
   async #conclure({ id, envoi, recu, point, role, contrat, verifierRecu, attendu, detail }) {
     const statut = recu.resultat.status;
     const hauteur = quantiteVersEntier(recu.resultat.blockNumber, MAX_U64);
-    if (statut !== "0x1" || hauteur === null) {
-      this.#ecrireIssue({ version: 0, transaction_hash: envoi.transaction_hash, block_number: Number(hauteur ?? 0n) || 1, status: statut === "0x0" ? "0x0" : "0x1", recorded_at: ecrireHorodatage(this.#horloge.murale()) });
+    if (!Envoyeur.recuExploitable(recu.resultat)) {
+      return this.#echec(id, "recu_incertain", { transaction_hash: envoi.transaction_hash, message: "reçu sans blockHash, blockNumber ou status lisibles : issue incertaine, le reçu sera relu" });
+    }
+    if (statut !== "0x1") {
+      // Revue de sécurité de l'étape 8 (CT-4 OP-11) : l'issue d'échec n'est écrite que sur un reçu que deux points rendent à l'identique ; rien n'est
+      // fabriqué (ni `block_number`, ni `status`). Un reçu d'un seul point laisse l'envoi sans issue : renvoi, puis relecture.
+      if (!(await this.#recuConfirme(envoi.transaction_hash, recu.resultat, point))) {
+        return this.#echec(id, "recu_incertain", { transaction_hash: envoi.transaction_hash, block_number: Number(hauteur), message: "reçu d'échec rendu par un seul point : issue incertaine, le reçu sera relu" });
+      }
+      this.#ecrireIssue({ version: 0, transaction_hash: envoi.transaction_hash, block_number: Number(hauteur), status: "0x0", recorded_at: ecrireHorodatage(this.#horloge.murale()) });
       // Une ancre refusée par le contrat : l'empreinte a pu être prise entre la lecture d'OP-9 et l'inclusion (course
       // entre validateurs, CT-4 §8.3) ; l'état relu la classe (EX-5.12 : jamais le texte du refus).
       if (role === "ancre" && attendu?.fingerprint) {
@@ -652,7 +754,7 @@ export class Envoyeur {
     };
     let logIndex = journalAttendu(recu.resultat);
     if (logIndex < 0) {
-      // R-D-1 : un reçu `0x1` sans le journal attendu (OP-11) ne clôt jamais l'envoi : le reçu est relu sur chaque
+      // Un reçu `0x1` sans le journal attendu (OP-11) ne clôt jamais l'envoi : le reçu est relu sur chaque
       // autre point ; si aucun ne rend le journal, l'issue reste incertaine (aucun fichier d'issue) et l'envoi, toujours
       // sans issue, sera renvoyé puis relu (EX-8.16) jusqu'à la capture. L'ancre de la période n'est jamais perdue (EX-4.5).
       for (const autre of this.#rpc.points().filter((x) => x !== point)) {
@@ -698,10 +800,14 @@ export class Envoyeur {
     this.#consigner("info", "registry_sent", { request_id: id, transaction_hash: envoi.transaction_hash, nonce: envoi.nonce, ...detail });
     const soumission = await this.#soumettre(envoi.raw_transaction);
     if (soumission.acceptes.length === 0) {
-      // Refusée ou injoignable partout : la transaction n'est dans aucune mempool, l'envoi est écarté.
-      this.#ecrireIssue({ version: 0, transaction_hash: envoi.transaction_hash, state: "ecartee", recorded_at: ecrireHorodatage(this.#horloge.murale()) });
-      const code = soumission.refus.length > 0 ? "transaction_refusee" : "noeud_injoignable";
-      return this.#echec(id, code, { transaction_hash: envoi.transaction_hash, refus: soumission.refus, pannes: soumission.pannes });
+      // Revue de sécurité de l'étape 8 (EX-8.16) : seul un refus JSON-RPC de chaque point dit que la transaction n'est dans aucune mempool ;
+      // une panne (délai, connexion coupée, statut HTTP) a pu suivre une requête arrivée au nœud : aucune issue n'est
+      // écrite, l'envoi reste sans issue et suit la reprise de CT-4 §8.6 (renvoi, puis remplacement).
+      if (soumission.pannes.length === 0) {
+        this.#ecrireIssue({ version: 0, transaction_hash: envoi.transaction_hash, state: "ecartee", recorded_at: ecrireHorodatage(this.#horloge.murale()) });
+        return this.#echec(id, "transaction_refusee", { transaction_hash: envoi.transaction_hash, refus: soumission.refus, pannes: soumission.pannes });
+      }
+      return this.#echec(id, "noeud_injoignable", { transaction_hash: envoi.transaction_hash, nonce: envoi.nonce, refus: soumission.refus, pannes: soumission.pannes });
     }
     const obtenu = await this.#attendreRecu([envoi.transaction_hash]);
     if (!obtenu) return this.#echec(id, "recu_absent", { transaction_hash: envoi.transaction_hash, nonce: envoi.nonce, submitted_to: soumission.acceptes });
@@ -743,9 +849,9 @@ export class Envoyeur {
     if (!objet) throw new Error("envoi dont l'objet n'est pas reconnu");
     const id = requestId ?? this.#demandes.get(transactionHash) ?? objet.id;
     if (e.issue && typeof e.issue.block_number === "number") {
-      const capture = this.#captureParTransaction(transactionHash);
+      const capture = this.#captureVerifiee(this.#captureParTransaction(transactionHash));
       if (capture) return this.#inclusion(id, capture, e.envoi);
-      // Inclus sans capture (R-D-1) : le reçu est relu et la capture reprise.
+      // Inclus sans capture : le reçu est relu et la capture reprise.
       const obtenu = await this.#attendreRecu([transactionHash], 0);
       if (obtenu) return this.#conclure({ ...objet, id, envoi: e.envoi, recu: obtenu.recu, point: obtenu.point });
       return this.#echec(id, "capture_incomplete", { transaction_hash: transactionHash });
@@ -788,9 +894,13 @@ export class Envoyeur {
     this.#demandes.set(remplacant.transaction_hash, id);
     const soumission = await this.#soumettre(remplacant.raw_transaction);
     if (soumission.acceptes.length === 0) {
-      // Remplaçant refusé partout : aucune issue pour l'original (EX-8.16) ; le remplaçant est écarté.
-      this.#ecrireIssue({ version: 0, transaction_hash: remplacant.transaction_hash, state: "ecartee", replaces: transactionHash, recorded_at: ecrireHorodatage(this.#horloge.murale()) });
-      return this.#echec(id, soumission.refus.length > 0 ? "transaction_refusee" : "noeud_injoignable", { transaction_hash: remplacant.transaction_hash, refus: soumission.refus, pannes: soumission.pannes });
+      // Remplaçant refusé partout : aucune issue pour l'original (EX-8.16) ; le remplaçant est écarté s'il a été refusé par
+      // chaque point ; avec une panne, il peut être dans une mempool : il reste sans issue, sondé avec l'original.
+      if (soumission.pannes.length === 0) {
+        this.#ecrireIssue({ version: 0, transaction_hash: remplacant.transaction_hash, state: "ecartee", replaces: transactionHash, recorded_at: ecrireHorodatage(this.#horloge.murale()) });
+        return this.#echec(id, "transaction_refusee", { transaction_hash: remplacant.transaction_hash, refus: soumission.refus, pannes: soumission.pannes });
+      }
+      return this.#echec(id, "noeud_injoignable", { transaction_hash: remplacant.transaction_hash, refus: soumission.refus, pannes: soumission.pannes });
     }
     this.#ecrireIssue({ version: 0, transaction_hash: transactionHash, state: "remplacee", replaced_by: remplacant.transaction_hash, recorded_at: ecrireHorodatage(this.#horloge.murale()) });
     this.#consigner("info", "registry_replaced", { request_id: id, transaction_hash: transactionHash, replaced_by: remplacant.transaction_hash, fee_wei: frais.toString() });

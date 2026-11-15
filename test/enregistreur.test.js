@@ -334,7 +334,7 @@ describe("CT-2 : politique de rédaction (§10)", function () {
       { named_patterns: { dossier: { pattern: "\\b20[0-9]{2}-[0-9]{5}\\b" } } },
     );
     const P = C.chargerPolitique(doc, { schemas: SCHEMAS });
-    const v = { t: "2026-81044 / CH9300762011623852957 / x@exemple.ch / +41 44 123 45 67" };
+    const v = { t: "2026-81044 / CH9300762011623852957 / x@ex.example / +41 44 123 45 67" };
     const r1 = C.rediger(P, v, { portee: "resultat", outil: "demo__claims.get" });
     expect(r1.valeur.t).to.equal("[REDIGE:dossier] / [REDIGE:iban] / [REDIGE:email] / +41 44 123 45 67");
     expect(r1.correspondances).to.deep.equal([{ rule: "regex", detector: "regex", count: 1 }, { rule: "id", detector: "iban", count: 1 }, { rule: "id", detector: "email", count: 1 }]);
@@ -825,11 +825,11 @@ describe("CT-2 : construction des événements, écrivain, segment, intention, r
     const gz = C.echangeModele({ format: "openai-chat", provider_label: "openai", requete: { corps: Buffer.from("{}"), content_type: "application/json", content_encoding: "gzip" }, reponse: { status: 200, content_type: "application/json", corps: Buffer.from("{}") }, politique: PII });
     expect([gz.refus.status, gz.refus.raison, gz.refus.corps.error.code]).to.deep.equal([415, "content_encoding", "noortrace_requete_invalide"]);
     // Corps d'erreur HTML : pièce noortrace_http_error, code.model tiré de la requête rédigée.
-    const html = C.echangeModele({ format: "anthropic-messages", provider_label: "anthropic", requete: { corps: Buffer.from('{"model":"m","max_tokens":1,"messages":[]}'), content_type: "application/json" }, reponse: { status: 502, content_type: "text/html", corps: Buffer.from("<html>panne : ops@exemple.ch</html>") }, politique: PII });
+    const html = C.echangeModele({ format: "anthropic-messages", provider_label: "anthropic", requete: { corps: Buffer.from('{"model":"m","max_tokens":1,"messages":[]}'), content_type: "application/json" }, reponse: { status: 502, content_type: "text/html", corps: Buffer.from("<html>panne : ops@ex.example</html>") }, politique: PII });
     expect(html.pieces.reponse.octets.toString()).to.equal('{"noortrace_http_error":{"body":"<html>panne : [REDIGE:email]</html>","content_type":"text/html","status":502}}');
     expect([html.is_error, html.code_model, html.intent]).to.deep.equal([true, "anthropic/m", null]);
     // Réponse 200 non JSON : pièce brute, rédigée quel que soit le type de média, is_error vrai (EX-8.7).
-    const page = C.echangeModele({ format: "anthropic-messages", provider_label: "anthropic", requete: { corps: Buffer.from('{"model":"m","max_tokens":1,"messages":[]}'), content_type: "application/json" }, reponse: { status: 200, content_type: "Application/X-Inconnu; v=1", corps: Buffer.from("écrire à ops@exemple.ch") }, politique: PII });
+    const page = C.echangeModele({ format: "anthropic-messages", provider_label: "anthropic", requete: { corps: Buffer.from('{"model":"m","max_tokens":1,"messages":[]}'), content_type: "application/json" }, reponse: { status: 200, content_type: "Application/X-Inconnu; v=1", corps: Buffer.from("écrire à ops@ex.example") }, politique: PII });
     expect([page.pieces.reponse.octets.toString(), page.pieces.reponse.reference.media_type, page.pieces.reponse.reference.redacted, page.is_error]).to.deep.equal(["écrire à [REDIGE:email]", "application/x-inconnu", true, true]);
     const long = "a".repeat(4097);
     const r = C.echangeModele({ format: "openai-chat", provider_label: "openai", requete: { corps: Buffer.from('{"model":"m","messages":[]}'), content_type: "application/json" }, reponse: { status: 200, content_type: "application/json", corps: Buffer.from(JSON.stringify({ model: "m2", choices: [{ message: { content: long } }] })) }, politique: PII });
@@ -1382,8 +1382,16 @@ describe("CT-2 : vecteurs spec/vecteurs/ct-2, rejoués", function () {
       if (at.approval !== null) {
         // Issue d'une politique d'approbation sans relais (4.4 pas 5 et 6, EX-4.49) : réponse d'evaluer conforme, résultat rendu par l'enregistreur.
         expect(AP.erreursSchema(at.approval.response, SCHEMAS, "reponse_evaluer"), cas).to.deep.equal([]);
+        // CT-3 §12.3 (révision 0.5) : la réponse reporte la version et l'empreinte du charger (attendu.approval.pinned) ; le noyau les vérifie (CT-2 EX-7.16).
+        expect([at.approval.response.policy_version, at.approval.response.policy_sha256, at.approval.response.approval_sha256], cas).to.deep.equal([at.approval.pinned.policy_version, at.approval.pinned.policy_sha256, at.approval.pinned.approval_sha256]);
+        // approval_sha256 : SHA-256 du JCS du membre approval de §15.3 (sans service), celui que le noyau a envoyé au charger (12.2).
+        const config153 = C.analyserJSONIntegral(blocs("CT-2-enregistreur.md", "configuration-enregistreur")[0]);
+        const { service, ...approval153 } = config153.policy.approval;
+        expect(at.approval.pinned, cas).to.deep.equal({ policy_version: config153.policy.version, policy_sha256: C.empreinteEnsemblePolitique(config153.policy).policy_sha256, approval_sha256: AP.condenseApproval(approval153) });
+        const politique = { versions: { [at.approval.pinned.policy_version]: { policy_sha256: at.approval.pinned.policy_sha256, approval_sha256: at.approval.pinned.approval_sha256 } }, versionRequete: at.approval.pinned.policy_version, versionRetenue: at.approval.response.ticket === null ? null : at.approval.pinned.policy_version };
         const hoteModerne = at.protocols.host === "2026-07-28";
-        const action = AP.actionMandataire(at.approval.response, { hoteModerne });
+        const action = AP.actionMandataire(at.approval.response, { hoteModerne, politique });
+        expect(AP.actionMandataire({ ...at.approval.response, policy_sha256: "0x" + "00".repeat(32) }, { hoteModerne, politique }), `${cas} : empreinte autre`).to.include({ action: "erreur", raison: "politique_non_epinglee" });
         expect(action.action, cas).to.equal("resultat");
         expect(JSON.stringify(at.result_rendered), `${cas} : résultat rendu`).to.equal(JSON.stringify(action.result));
         expect(hote[3].line, `${cas} : ligne rendue`).to.equal(C.ligneHoteResultatEnregistreur(requete.id, action.result, { idHoteTexte: C.texteIdRequete(recue.line) }));

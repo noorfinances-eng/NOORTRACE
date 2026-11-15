@@ -1,11 +1,11 @@
-// Composant d'ancrage (lot F1) : une période entière rejouée à l'horloge
+// Composant d'ancrage : une période entière rejouée à l'horloge
 // injectée, hors réseau public (CT-5 §4, §5, §6, §8, §9 ; EX-4.12, EX-5.8,
 // EX-5.10 étape 10, EX-5.14, EX-6.5, EX-6.8, EX-8.1, EX-8.7, EX-8.12,
-// EX-8.15, AN-3, AN-32, AN-43). Serveurs RFC 3161 du lot E réels sur
+// EX-8.15, AN-3, AN-32, AN-43). Serveurs RFC 3161 internes réels sur
 // 127.0.0.1 (rôle interne en HTTP ; principal et secours en TLS avec
 // authentification du client, qualified d'exemple en profil test),
 // calendriers OpenTimestamps factices HTTP locaux (promesses puis chemin
-// complet, chaîne regtest du lot B), nœud noorcore factice du lot D. Points
+// complet, chaîne regtest des essais OpenTimestamps), nœud noorcore factice des essais du registre. Points
 // toutes les 60 s, échéances toutes les 300 s, clôture : trois ancres pour le
 // manifeste, jetons des points aux échéances, fichiers d'EX-5.14 et d'EX-6.5,
 // acquisitions.ndjson, file, métriques et journal d'EX-8.15.
@@ -29,7 +29,7 @@ const PERIODE = 1793862000; // 2026-11-05T07:00:00Z, dans la validité de rec-te
 const T0 = PERIODE * 1000;
 const EVENEMENTS = { 1: 2, 7: 1, 13: 1, 22: 1, 31: 1, 32: 1, 44: 1, 58: 1 };
 
-describe("ancrage, composant F1 : une période entière hors réseau public (CT-5 §4 à §9)", function () {
+describe("ancrage, composant : une période entière hors réseau public (CT-5 §4 à §9)", function () {
   this.timeout(600000);
   let dir;
   let horloge;

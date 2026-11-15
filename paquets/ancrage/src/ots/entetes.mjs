@@ -188,12 +188,13 @@ export function premierDefautDeChainage(enTetes) {
  * @param {number} h plus petite hauteur attestée
  * @param {number} hPrime plus grande hauteur attestée
  */
-export function bornesFichierEntetes(h, hPrime) {
+export function bornesFichierEntetes(h, hPrime, margeFin = BORNES_ENTETES.MARGE_FIN) {
+  if (!Number.isInteger(margeFin) || margeFin < 0 || margeFin > BORNES_ENTETES.MARGE_FIN) throw new ErreurEntetes("hauteurs", "marge de fin hors bornes");
   if (!Number.isInteger(h) || !Number.isInteger(hPrime) || h < 0 || hPrime < h || hPrime > 4294967295 - BORNES_ENTETES.MARGE_FIN) {
     throw new ErreurEntetes("hauteurs", "hauteurs attestées hors bornes");
   }
   const start = Math.max(0, BORNES_ENTETES.INTERVALLE_RETARGET * (Math.floor(h / BORNES_ENTETES.INTERVALLE_RETARGET) - 1));
-  return { start_height: start, end_height: hPrime + BORNES_ENTETES.MARGE_FIN };
+  return { start_height: start, end_height: hPrime + margeFin };
 }
 
 const CHAINES_RPC = Object.freeze({ main: "mainnet", regtest: "regtest" });
@@ -212,14 +213,17 @@ const CHAINES_RPC = Object.freeze({ main: "mainnet", regtest: "regtest" });
  *   du fichier au même schéma tenu par l'exploitation ; la tranche demandée
  *   en est extraite et contrôlée.
  *
- * @param {{source: {type: "bitcoin_rpc"|"fichier", network: string, url?: string}, hauteurs: [number, number], rpc?: {appeler(methode: string, params: unknown[]): Promise<unknown>}, fichier?: Uint8Array|object}} p
+ * `margeFin` : en-têtes exigés au-delà de `h'` (11 pour le fichier d'EX-6.8 ;
+ * 0 pour la seule vérification O-4 du composant, EX-6.9, qui n'attend que
+ * l'en-tête `h'` : revue de sécurité de l'étape 8, CT-5 EX-6.6).
+ * @param {{source: {type: "bitcoin_rpc"|"fichier", network: string, url?: string}, hauteurs: [number, number], rpc?: {appeler(methode: string, params: unknown[]): Promise<unknown>}, fichier?: Uint8Array|object, margeFin?: number}} p
  * @returns {Promise<object>} document conforme au schéma
  */
-export async function fichierEntetes({ source, hauteurs, rpc, fichier }) {
+export async function fichierEntetes({ source, hauteurs, rpc, fichier, margeFin = BORNES_ENTETES.MARGE_FIN }) {
   if (!source || typeof source !== "object") throw new ErreurEntetes("source", "source d'en-têtes attendue");
   if (!Object.hasOwn(RESEAUX, source.network)) throw new ErreurEntetes("reseau", "réseau de la source inconnu");
   if (!Array.isArray(hauteurs) || hauteurs.length !== 2) throw new ErreurEntetes("hauteurs", "hauteurs [h, h'] attendues");
-  const { start_height, end_height } = bornesFichierEntetes(hauteurs[0], hauteurs[1]);
+  const { start_height, end_height } = bornesFichierEntetes(hauteurs[0], hauteurs[1], margeFin);
   const nombre = end_height - start_height + 1;
   if (nombre > BORNES_ENTETES.NOMBRE_MAX) throw new ErreurEntetes("nombre", "plus de 200 000 en-têtes");
 

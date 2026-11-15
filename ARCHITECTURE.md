@@ -556,11 +556,18 @@ l'étape 7 joué sur un banc hors réseau public (CT-9 TE-7, part de l'étape) :
 installation complète IC-1 à IC-18 en 58 min, premier dossier valide pour les
 deux vérificateurs ; banc qui n'est pas le système de référence.
 
+À l'étape 8, jusqu'ici : revue de sécurité interne de tous les composants,
+révision du protocole d'approbation (réponse `evaluer` à neuf membres, le
+noyau refuse une décision prise sous une autre politique que la sienne),
+corrections et révisions de spécification qui en découlent, vecteurs
+régénérés, tests adversariaux des paquets livrés et des scénarios du plan.
+
 À construire : la garde d'admission devant le RPC des validateurs de
-production (CT-4 EX-10.8), la démonstration en une commande, l'installation
-sur une machine vierge par un ingénieur extérieur et la campagne de bout en
-bout, adversariale et de performance (étape 8) ; la publication des images,
-du binaire et de l'archive attend la décision du porteur.
+production (CT-4 EX-10.8 ; décision du porteur attendue), la démonstration en
+une commande et la campagne de bout en bout, adversariale et de performance
+(étape 8) ; l'installation sur une machine vierge par un relecteur interne à
+l'aveugle est rattachée à la porte 2 ; la publication des images, du binaire
+et de l'archive attend la décision du porteur.
 
 ## Décisions ouvertes
 

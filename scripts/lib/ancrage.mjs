@@ -51,6 +51,13 @@ export const CALENDRIERS_VECTEURS = ["https://alice.btc.calendar.opentimestamps.
 const DUREE_PERIODE_MS = J.DUREE_PERIODE * 1000;
 const NONCE_MAX = (1n << 64n) - 1n;
 const RE_OID = /^[0-2](\.(0|[1-9][0-9]*))+$/;
+/**
+ * Borne d'un arc d'OID (EX-5.1, AN-5 ; revue de l'étape 8) : chaque
+ * arc tient sur 128 bits (les arcs UUID de l'UIT-T X.667, 2.25.<UUID>, en
+ * ont besoin), encodé et relu en BigInt. Au-delà, la requête n'est pas une
+ * requête de CT-5 (révision d'EX-5.1 demandée : la borne y est à écrire).
+ */
+export const ARC_OID_MAX = (1n << 128n) - 1n;
 const RE_INSTANT = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,3})?Z$/;
 
 /** Valeurs par défaut de la projection de configuration (EX-8.2). */
@@ -119,19 +126,21 @@ export function encoderEntierDER(valeur) {
 /** OBJECT IDENTIFIER DER d'un OID en notation pointée. */
 export function encoderOIDDER(texte) {
   if (typeof texte !== "string" || !RE_OID.test(texte)) throw new ErreurAncrage(`OID invalide : ${JSON.stringify(texte)}`);
-  const arcs = texte.split(".").map(Number);
-  if (arcs[0] < 2 && arcs[1] > 39) throw new ErreurAncrage(`OID invalide : ${texte}`);
+  // Arcs en BigInt (CT-5 EX-5.1) : un arc au-delà de 2^53 était encodé faux par les opérations binaires sur un flottant.
+  const arcs = texte.split(".").map(BigInt);
+  if (arcs[0] < 2n && arcs[1] > 39n) throw new ErreurAncrage(`OID invalide : ${texte}`);
+  for (const a of arcs) if (a > ARC_OID_MAX) throw new ErreurAncrage(`OID ${texte} : arc au-delà de 2^128 - 1`, "AN-5");
   const octets = [];
   const base128 = (n) => {
-    const b = [n & 0x7f];
-    n = Math.floor(n / 128);
-    while (n > 0) {
-      b.unshift((n & 0x7f) | 0x80);
-      n = Math.floor(n / 128);
+    const b = [Number(n & 0x7fn)];
+    n >>= 7n;
+    while (n > 0n) {
+      b.unshift(Number(n & 0x7fn) | 0x80);
+      n >>= 7n;
     }
     return b;
   };
-  octets.push(...base128(arcs[0] * 40 + arcs[1]));
+  octets.push(...base128(arcs[0] * 40n + arcs[1]));
   for (const a of arcs.slice(2)) octets.push(...base128(a));
   return tlv(0x06, Buffer.from(octets));
 }
@@ -184,17 +193,21 @@ function lireTLV(buf, pos, quoi) {
 function decoderOIDOctets(b) {
   if (b.length === 0 || b[b.length - 1] & 0x80) throw new ErreurAncrage("OID mal formé");
   const arcs = [];
-  let v = 0;
+  let v = 0n;
   for (let i = 0; i < b.length; i++) {
-    if (v === 0 && b[i] === 0x80) throw new ErreurAncrage("OID : sous-identifiant non minimal");
-    v = v * 128 + (b[i] & 0x7f);
+    if (v === 0n && b[i] === 0x80) throw new ErreurAncrage("OID : sous-identifiant non minimal");
+    v = (v << 7n) | BigInt(b[i] & 0x7f);
+    // Lecteur borné (CT-5 EX-5.1) : le premier sous-identifiant vaut 40 × arc1 + arc2, d'où la marge de 80.
+    if (v > ARC_OID_MAX + 80n) throw new ErreurAncrage("OID : arc au-delà de 2^128 - 1", "AN-5");
     if (!(b[i] & 0x80)) {
       arcs.push(v);
-      v = 0;
+      v = 0n;
     }
   }
-  const premier = arcs[0] < 40 ? 0 : arcs[0] < 80 ? 1 : 2;
-  return [premier, arcs[0] - premier * 40, ...arcs.slice(1)].join(".");
+  const premier = arcs[0] < 40n ? 0n : arcs[0] < 80n ? 1n : 2n;
+  const second = arcs[0] - premier * 40n;
+  if (second > ARC_OID_MAX || arcs.slice(1).some((a) => a > ARC_OID_MAX)) throw new ErreurAncrage("OID : arc au-delà de 2^128 - 1", "AN-5");
+  return [premier, second, ...arcs.slice(1)].join(".");
 }
 
 /**
@@ -401,6 +414,22 @@ export const TAILLE_MAX_REPONSE = 128 * 1024;
  * TimeStampToken ou null) }. Lève ErreurAncrage si la forme n'est pas celle de
  * RFC 3161 §2.4.2 (lecteur DER borné de CT-6 §9.3).
  */
+/**
+ * Valeur de `PKIStatus` (EX-5.10 étape 2) : INTEGER signé en complément à deux,
+ * de longueur quelconque (la forme minimale n'est pas contrôlée, CT-6 EX-9.6) ;
+ * un INTEGER vide (CT-6 EX-9.4) ou une valeur hors des entiers représentables
+ * (±(2^53 − 1)) rend la réponse illisible (`reponse_illisible`) ; toute autre
+ * valeur hors de 0 à 5 est rendue telle quelle (`statut_<n>`).
+ */
+function entierSigneStatut(noeud) {
+  const v = noeud.valeur();
+  if (v.length === 0) throw new ErreurAncrage("PKIStatusInfo.status : INTEGER vide");
+  let n = BigInt("0x" + Buffer.from(v).toString("hex"));
+  if (v[0] & 0x80) n -= 1n << BigInt(8 * v.length);
+  if (n > BigInt(Number.MAX_SAFE_INTEGER) || n < -BigInt(Number.MAX_SAFE_INTEGER)) throw new ErreurAncrage(`PKIStatus ${n} hors des entiers représentables (±(2^53 − 1))`);
+  return Number(n);
+}
+
 export function lireReponseTsa(octets) {
   const buf = Buffer.from(octets);
   if (buf.length > TAILLE_MAX_REPONSE) throw new ErreurAncrage(`réponse de ${buf.length} octets, au plus ${TAILLE_MAX_REPONSE}`);
@@ -414,8 +443,8 @@ export function lireReponseTsa(octets) {
   const psi = racine.enfants[0];
   if (psi.etiquette !== 0x30 || psi.enfants.length < 1 || psi.enfants.length > 3) throw new ErreurAncrage("PKIStatusInfo mal formé");
   const st = psi.enfants[0];
-  if (st.etiquette !== 0x02 || st.longueur !== 1) throw new ErreurAncrage("PKIStatusInfo.status : INTEGER d'un octet attendu");
-  const status = st.valeur()[0];
+  if (st.etiquette !== 0x02) throw new ErreurAncrage("PKIStatusInfo.status : INTEGER attendu");
+  const status = entierSigneStatut(st);
   let status_string = null;
   let fail_info = null;
   const bits = [];
@@ -478,7 +507,32 @@ export function calculerAttente({ http_status = null, retry_after_s = null, k = 
   return { delay_ms: base + gigue, reason: "backoff" };
 }
 
+/**
+ * Échecs transitoires consécutifs d'une demande chez un prestataire (`cle`,
+ * null pour OpenTimestamps) que porte la ligne de la file, la tentative `att`
+ * en cours de classement exclue (EX-8.9) : les tentatives de ce prestataire,
+ * de la plus récente à la plus ancienne de la fenêtre, closes en
+ * `echec_transitoire` ou `reponse_tardive` ; la série s'arrête à une tentative
+ * close par le redémarrage (`error_code` `redemarrage`, EX-8.12 : la réponse a
+ * pu se perdre, ce n'est pas un échec du prestataire) et à toute autre issue.
+ * Amorce de la série d'une demande relue au démarrage.
+ */
+function echecsTransitoiresRelus(d, cle, att) {
+  let n = 0;
+  for (let i = d.attempts.length - 1; i >= 0; i--) {
+    const a = d.attempts[i];
+    if (a === att || (a.provider ?? null) !== cle) continue;
+    if (a.error_code === "redemarrage") break;
+    if (a.outcome !== "echec_transitoire" && a.outcome !== "reponse_tardive") break;
+    n++;
+  }
+  return n;
+}
+
 const msInstant = (i) => i.s * 1000 + Math.round(Number(("0." + (i.frac || "0")).slice(0, 12)) * 1000);
+/** Borne haute d'un instant représentable (Date : ±8,64 × 10^15 ms) ; `acc` en secondes. */
+const MS_INSTANT_MAX = 8.64e15;
+const borneInstantValide = (ms_, acc) => Number.isFinite(ms_) && Number.isFinite(acc) && Math.abs(ms_ + acc * 1000) <= MS_INSTANT_MAX;
 function anchorsDuPrestataire(prestataire) {
   const certs = prestataire?.anchor_certificates ?? [];
   if (!certs.length) return null;
@@ -526,6 +580,8 @@ export function evaluerReponse({ requete, reponse = null, http = {}, sent_at, re
   }
   if (rep.status === 3) return echec("statut_3", "transitoire", "PKIStatus 3 (waiting)");
   if (rep.status === 4 || rep.status === 5) return echec(`statut_${rep.status}`, "permanente", `PKIStatus ${rep.status} (${NOMS_PKI[rep.status]})`, { critical: true });
+  // EX-5.10, étape 2 : « toute autre valeur : erreur » (statut_<n>, permanente) ; un jeton joint n'est pas lu.
+  if (rep.status !== 0 && rep.status !== 1) return echec(`statut_${rep.status}`, "permanente", `PKIStatus ${rep.status} inconnu (0 a 5 attendus)`);
   if (!rep.token) return echec("reponse_illisible", "permanente", `PKIStatus ${rep.status} sans TimeStampToken`);
   res.token = rep.token;
   res.token_sha256 = sha256Hex(rep.token);
@@ -550,7 +606,8 @@ export function evaluerReponse({ requete, reponse = null, http = {}, sent_at, re
     const p = tst.precision ?? {};
     const acc = Number(p.seconds ?? 0n) + Number(p.millis ?? 0n) / 1000 + Number(p.micros ?? 0n) / 1e6;
     res.accuracy_s = tst.precision ? acc : null;
-    res.upper_bound = iso(msInstant(genTime) + Math.round(acc * 1000));
+    // CT-5 EX-5.10 : une précision démesurée (hors de la plage d'un instant) ne lève pas ; la borne reste nulle et T-7 classe la réponse.
+    res.upper_bound = borneInstantValide(msInstant(genTime), acc) ? iso(msInstant(genTime) + Math.round(acc * 1000)) : null;
   }
   if (!imprint) return echec("empreinte_differente", "permanente", "messageImprint different de l'empreinte demandee", res);
   if (tst.nonce === null) return echec("nonce_absent", "permanente", "nonce absent du TSTInfo", res);
@@ -721,7 +778,8 @@ function schemaAncrage() {
  * hors schéma s'appliquent. Rend { valide, violations: [{ rule, message }] },
  * toutes les règles violées étant listées ; ne lève jamais sur un document de
  * forme quelconque. `checkpoint_interval_s` est la valeur de l'enregistreur
- * (CT-2) quand elle est connue ; `profil` « production » applique la règle 4 ;
+ * (CT-2) quand elle est connue ; `profil` « production » applique toute la
+ * règle 4, les autres profils ses seules règles d'adresse et d'authentification ;
  * `lecteurCertificat` lit un PEM (règle 8) ; `schema` remplace le schéma lu
  * dans spec/schemas.
  */
@@ -757,10 +815,30 @@ export function verifierConfiguration(doc, { profil = "production", checkpoint_i
     if (principal && (principal.qualified === null || principal.qualified === undefined)) v(4, `le principal ${principal.id} n'a pas de statut qualified`);
     const secours = parRole("secours")[0];
     if (secours && (secours.qualified === null || secours.qualified === undefined)) v(4, `le secours ${secours.id} n'a pas de statut qualified`);
-    for (const p of providers) {
-      const url = String(p.url ?? "");
-      if (p.role !== "interne" && !url.startsWith("https://")) v(4, `prestataire ${p.id} (${p.role}) : url en https:// exigée`);
-      if (p.role === "interne" && url.startsWith("http://") && !ADRESSES_LOCALES.has(hoteDeUrl(url))) v(4, `prestataire interne ${p.id} : http:// admis vers une adresse locale seulement`);
+  }
+  // 4, adresse et authentification, dans tout profil (révision 0.9 ; AN-27 ; 5.2 : « basic » seulement sur TLS,
+  // « aucune » pour le seul serveur interne sur une adresse locale). Le serveur RFC 3161 interne est le rôle
+  // interne et, hors production, un principal sans statut qualified ; tout autre prestataire reste en https://
+  // avec authentification.
+  for (const p of providers) {
+    const url = String(p.url ?? "");
+    const sansAuthentification = p.auth?.method === "aucune";
+    // CT-5 EX-4.9 (revue de l'étape 8) : « aucune » va avec un secret nul ; « basic » et « certificat_client » exigent un secret non nul (5.2).
+    if (sansAuthentification && p.auth?.secret !== null && p.auth?.secret !== undefined) v(4, `prestataire ${p.id} : auth.method aucune avec un secret non nul`);
+    if (!sansAuthentification && p.auth && (p.auth.secret === null || p.auth.secret === undefined)) v(4, `prestataire ${p.id} : auth.method ${p.auth.method} sans secret`);
+    const principalNonQualifie = p.role === "principal" && (p.qualified === null || p.qualified === undefined);
+    if (p.role === "interne" || (principalNonQualifie && profil !== "production")) {
+      const nom = p.role === "interne" ? `prestataire interne ${p.id}` : `principal non qualifié ${p.id}`;
+      if (url.startsWith("http://") && !ADRESSES_LOCALES.has(hoteDeUrl(url))) v(4, `${nom} : http:// admis vers une adresse locale seulement`);
+      else if (url.startsWith("http://") && !sansAuthentification) v(4, `${nom} : http:// vers une adresse locale admis sans authentification seulement`);
+      else if (url.startsWith("https://") && sansAuthentification) v(4, `${nom} : authentification basic ou certificat_client exigée en https://`);
+    } else if (principalNonQualifie) {
+      const raison = "le serveur RFC 3161 interne n'est admis comme principal que hors production";
+      if (!url.startsWith("https://")) v(4, `principal ${p.id} désigné en http:// : ${raison}`);
+      if (sansAuthentification) v(4, `principal ${p.id} désigné sans authentification : ${raison}`);
+    } else {
+      if (!url.startsWith("https://")) v(4, `prestataire ${p.id} (${p.role}) : url en https:// exigée`);
+      if (sansAuthentification) v(4, `prestataire ${p.id} (${p.role}) : authentification exigée`);
     }
   }
   // 5
@@ -1011,6 +1089,32 @@ export function verifierCompletudeRegistre({ journaux = [], ancres = [], emetteu
 /** Ligne de file d'une demande : forme canonique JCS intégral (CT-2 §8.1). */
 export const ligneFile = (demande) => J.canonicaliserJCSIntegral(demande);
 
+const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+/**
+ * Forme d'une demande relue de la file (EX-8.5, règle 3 ; EX-8.12 : la
+ * reprise se fait « quel que soit l'état de la file relue »). Rend null pour
+ * une demande dont le planificateur peut rejouer chaque membre, sinon le
+ * défaut (revue de l'étape 8 : une ligne sans `attempts` arrêtait
+ * la reprise par une exception). Contrôle de structure, sans schéma : les
+ * membres que `demarrer`, `satisfaire` et la fenêtre de tentatives lisent.
+ */
+export function defautDemande(d) {
+  if (!estObjet(d)) return "objet attendu";
+  if (typeof d.id !== "string") return "id absent";
+  if (!SORTES.includes(d.kind)) return `kind ${JSON.stringify(d.kind)} inconnu`;
+  if (!ETATS.includes(d.state)) return `state ${JSON.stringify(d.state)} inconnu`;
+  if (!estObjet(d.subject) || !["point", "periode"].includes(d.subject.kind) || typeof d.subject.hash !== "string") return "subject mal formé";
+  if (d.id !== `${d.kind}:${d.subject.hash}`) return `id ${d.id} différent de <kind>:<hash>`;
+  if (!Array.isArray(d.deadlines) || d.deadlines.some((k) => !Number.isSafeInteger(k) || k < 1)) return "deadlines mal formées";
+  if (!Array.isArray(d.attempts) || d.attempts.some((a) => !estObjet(a) || !Number.isSafeInteger(a.n) || a.n < 1 || typeof a.outcome !== "string" || typeof a.started_at !== "string")) return "attempts mal formées";
+  if (Object.hasOwn(d, "attempts_total") && (!Number.isSafeInteger(d.attempts_total) || d.attempts_total < 0)) return "attempts_total mal formé";
+  if (typeof d.created_at !== "string") return "created_at absent";
+  if (d.due_at !== null && d.due_at !== undefined && typeof d.due_at !== "string") return "due_at mal formé";
+  if (d.result !== null && d.result !== undefined && !estObjet(d.result)) return "result mal formé";
+  if (d.replaced_by !== null && d.replaced_by !== undefined && typeof d.replaced_by !== "string") return "replaced_by mal formé";
+  return null;
+}
+
 /** Texte NDJSON d'une liste de demandes (une ligne par demande, saut de ligne final). */
 export function ecrireFile(demandes) {
   return demandes.map((d) => ligneFile(d) + "\n").join("");
@@ -1037,11 +1141,12 @@ export function lireFile(texte) {
     } catch {
       return false;
     }
-    if (!d || typeof d !== "object" || Array.isArray(d) || typeof d.id !== "string" || !SORTES.includes(d.kind) || !ETATS.includes(d.state)) {
-      errors.push(`ligne ${i + 1} : demande mal formée`);
+    const defaut = defautDemande(d);
+    if (defaut !== null) {
+      // une ligne que le planificateur ne saurait rejouer est ignorée et consignée, jamais réparée (EX-8.5, règle 3).
+      errors.push(`ligne ${i + 1} : demande mal formée (${defaut})`);
       return true;
     }
-    if (d.id !== `${d.kind}:${d.subject?.hash}`) errors.push(`ligne ${i + 1} : id ${d.id} différent de <kind>:<hash>`);
     const prec = parId.get(d.id);
     if (prec && ETATS_FINAUX.has(prec.state) && prec.state !== d.state) errors.push(`ligne ${i + 1} : ${d.id} déjà dans l'état final ${prec.state}`);
     parId.set(d.id, d);
@@ -1133,7 +1238,7 @@ export function compacterFile(texte) {
       if (!m.complet) truncated = true;
       return;
     }
-    if (!d || typeof d !== "object" || Array.isArray(d) || typeof d.id !== "string" || !SORTES.includes(d.kind) || !ETATS.includes(d.state)) return;
+    if (defautDemande(d) !== null) return;
     dernieres.set(d.id, { i, octets: m.complet ? m.octets : Buffer.concat([m.octets, Buffer.from("\n")]) });
   });
   const gardees = [...dernieres.values()].sort((a, b) => a.i - b.i).map((x) => x.octets);
@@ -1501,7 +1606,8 @@ class Planificateur {
   charger(demandes) {
     for (const brut of demandes ?? []) {
       const d = typeof brut === "string" ? JSON.parse(brut) : copie(brut);
-      if (!d || typeof d.id !== "string" || !SORTES.includes(d.kind) || !ETATS.includes(d.state)) throw new ErreurAncrage(`ligne de file mal formée : ${JSON.stringify(brut).slice(0, 80)}`);
+      const defaut = defautDemande(d);
+      if (defaut !== null) throw new ErreurAncrage(`ligne de file mal formée (${defaut}) : ${JSON.stringify(brut).slice(0, 80)}`);
       this.demandes.set(d.id, d);
     }
     this.relues = this.demandes.size;
@@ -1526,6 +1632,20 @@ class Planificateur {
     for (const p of this.periodes.values()) {
       if (p.close) continue;
       for (const [k, e] of p.echeances) if (e.state === "fermee" && this.D(p, k) > t) this.timer(this.D(p, k), "echeance", this.cle(p), { k });
+    }
+    // EX-8.12 : « applique EX-4.4 aux demandes de points relues » (/i03 de la revue de l'étape 8) : une demande de
+    // point non finale dont toutes les échéances sont inférieures à une échéance satisfaite par une autre demande de
+    // la période est close remplacee au démarrage, avec checkpoint_anchor_late ; un repli de clôture encore en cours
+    // est clos par le jeton de clôture obtenu (EX-4.2). Même point commun que l'arrivée d'un jeton (satisfaire).
+    for (const d of file) {
+      if (d.kind !== "jeton_point" || !["obtenue"].includes(d.state)) continue;
+      const p = this.periodes.get(this.cle(d.subject));
+      const bound = ms(d.result?.bound ?? d.created_at);
+      this.clorePointsAnterieurs(d, t, p, bound);
+    }
+    for (const d of file) {
+      if (d.kind !== "jeton_periode" || d.state !== "obtenue") continue;
+      this.cloreRepliCloture(d, t);
     }
     // EX-8.12 : transitions de reprise
     for (const d of file) {
@@ -1590,6 +1710,14 @@ class Planificateur {
           this.timer(at, "reprise", d.id, { provider: prov });
         }
       } else if (d.state === "a_envoyer") this.pret(d, this.designe(d), t);
+      // EX-8.8 au redémarrage (CT-5 EX-8.12) : la relève par délai vivait dans une minuterie en mémoire posée à la première
+      // tentative ; elle est reposée à premier envoi + fallback_after_s (ou à l'instant du démarrage si cet instant est
+      // passé) pour toute demande de jeton non finale qui admet la relève et dont le secours n'est ni engagé ni épuisé.
+      const secours = this.roles.secours;
+      if (d.attempts.length && this.releveAdmise(d) && !s.engages.has(secours.id) && !s.epuises.has(secours.id)) {
+        s.premierEnvoi = this.premierEnvoi(d);
+        this.timer(Math.max(s.premierEnvoi + this.delaiReleve(d), t), "releve", d.id);
+      }
     }
   }
   /**
@@ -1972,8 +2100,10 @@ class Planificateur {
       this.ecrire(d, t, "refusee");
       this.alerter(t, d.id, "empreinte_squattee", "critique");
       this.journaliser(t, d.id, { event: "anchor_refused", error_code: data.code });
+      // EX-9.7 : le jeton d'un point part sans son ancre. EX-8.4, règle 2 (CT-4 EX-8.4, DOIT sans borne) : celui d'une période
+      // ne part jamais avant l'inclusion de son ancre, qu'un refus n'est pas ; il reste attente_registre (registry_pending, CT-4 EX-8.6).
       const j = this.jetonDuSujet(d);
-      if (j && j.state === "attente_registre") this.pret(j, this.designe(j), t);
+      if (j && j.kind === "jeton_point" && j.state === "attente_registre") this.pret(j, this.designe(j), t);
       return;
     }
     this.cloreTentativeRegistre(d, t, data.code, `registre : ${data.code}`);
@@ -1998,7 +2128,7 @@ class Planificateur {
   examinerAttenteRegistre(d, t) {
     const s = this.int(d.id);
     const ancre = this.demandes.get(idDemande(d.subject.kind === "point" ? "ancre_registre_point" : "ancre_registre_periode", d.subject.hash)) ?? null;
-    if (!ancre || ancre.state === "obtenue" || ancre.state === "refusee") {
+    if (!ancre || ancre.state === "obtenue" || (ancre.state === "refusee" && d.kind === "jeton_point")) {
       this.pret(d, this.designe(d), t);
       return;
     }
@@ -2046,7 +2176,7 @@ class Planificateur {
     if (data.content_type !== undefined && data.content_type !== null && !TYPES_CONTENU_REPONSE.includes(String(data.content_type).split(";")[0].trim().toLowerCase())) return { ...res, code: "type_contenu", detail: `Content-Type ${data.content_type} non admis` };
     if (Number.isInteger(data.body_size) && data.body_size > TAILLE_MAX_REPONSE) return { ...res, code: "taille", detail: `corps de ${data.body_size} octets, au plus ${TAILLE_MAX_REPONSE}` };
     const st = data.pki_status;
-    if (!Number.isInteger(st)) return { ...res, code: "reponse_illisible", detail: "TimeStampResp illisible" };
+    if (!Number.isSafeInteger(st)) return { ...res, code: "reponse_illisible", detail: "TimeStampResp illisible" };
     if (st === 2) {
       const fi = data.failure_info;
       if (fi === null || fi === undefined) return { ...res, code: "statut_2", detail: "PKIStatus 2 (rejection)" };
@@ -2064,6 +2194,8 @@ class Planificateur {
     for (let i = 1; i <= 9; i++) if (!passes.has(`T-${i}`)) return { ...res, code: `verification_T-${i}`, piece: true, detail: `verification T-${i} en echec` };
     const genTime = ms(data.gen_time);
     const bound = genTime + (data.accuracy_s ?? 0) * 1000;
+    // CT-5 EX-5.10 : une précision hors de la plage d'un instant est un jeton hors de T-7, jamais une exception.
+    if (!borneInstantValide(genTime, data.accuracy_s ?? 0)) return { ...res, code: "verification_T-7", piece: true, detail: "precision hors de la plage d'un instant (T-7)" };
     const envoi = ms(att.started_at);
     const s = this.int(d.id);
     if (t - envoi > f.max_response_delay_s * 1000) {
@@ -2076,7 +2208,8 @@ class Planificateur {
   reponseRfc3161(t, data) {
     const d = this.demandes.get(data.request_id);
     const att = d?.attempts.find((a) => a.n === data.attempt) ?? null;
-    const jeton = Number.isInteger(data.pki_status) && data.pki_status <= 1 && typeof data.token_sha256 === "string";
+    // EX-5.10 étape 2 : seul un status 0 ou 1 porte un jeton ; hors de 0 à 5 (négatif compris), le jeton n'est pas lu.
+    const jeton = (data.pki_status === 0 || data.pki_status === 1) && typeof data.token_sha256 === "string";
     // EX-8.5, règle 7 (révision 0.6) : une tentative de rang connu (au plus attempts_total) que la fenêtre ne porte plus.
     const horsFenetre = !!d && att === null && Number.isInteger(data.attempt) && data.attempt >= 1 && data.attempt <= totalTentatives(d);
     if (!d || (!att && !horsFenetre) || !d.kind.startsWith("jeton_")) {
@@ -2119,7 +2252,7 @@ class Planificateur {
     if (r.critique) this.alerter(t, d.id, "revoque", "critique");
     if (classe === "transitoire") {
       if (r.issue === "reponse_tardive") s.tardives++;
-      const { delai, raison } = this.attenteReprise(d, pr, data);
+      const { delai, raison } = this.attenteReprise(d, pr, data, att);
       const next = t + delai;
       att.next_at = iso(next);
       s.reprises.set(pr.id, next);
@@ -2180,9 +2313,13 @@ class Planificateur {
       if (e && e.state === "ouverte" && e.demande === d.id) e.demande = null;
     }
   }
-  attenteReprise(d, pr, data) {
+  attenteReprise(d, pr, data, att = null) {
     const s = this.int(d.id);
     const cle = pr?.id ?? null;
+    // EX-8.9 (arbitrage du 14 novembre) : `k` compte les échecs transitoires consécutifs de la demande chez ce
+    // prestataire, y compris ceux d'avant un redémarrage que la file relue porte ; une tentative close par le
+    // redémarrage (`redemarrage`, EX-8.12) n'est pas un échec du prestataire et interrompt la série.
+    if (!s.k.has(cle)) s.k.set(cle, echecsTransitoiresRelus(d, cle, att));
     const k = (s.k.get(cle) ?? 0) + 1;
     s.k.set(cle, k);
     const immediat = data.http_status === 408 && !s.premier408.has(cle);
@@ -2258,11 +2395,27 @@ class Planificateur {
       if (r.bound - ts > this.cfg.rfc3161.checkpoints.interval_s * 1000) this.alerter(t, d.id, "contresignature_tardive", "mineure");
     }
     // EX-4.4 : aucune demande antérieure de point n'est rattrapée
+    this.clorePointsAnterieurs(d, t, p, r.bound, kmax);
+    // Le jeton de clôture rend sans objet un repli de clôture encore en cours (EX-4.2).
+    if (d.kind === "jeton_periode") this.cloreRepliCloture(d, t);
+  }
+  /**
+   * EX-4.4 (point commun de l'arrivée d'un jeton et du démarrage, EX-8.12) :
+   * toute échéance ouverte de la période antérieure à `kmax` (la plus grande
+   * échéance que `d`, jeton obtenu, satisfait) est close `remplacee` ; la
+   * demande non finale qui la servait passe `remplacee` (`replaced_by` = `d`),
+   * la ligne `checkpoint_anchor_late` porte la fenêtre observée (`bound` moins
+   * la plus ancienne de ses échéances) et la supervision alerte, majeure pour
+   * un prestataire extérieur, mineure pour le serveur interne (8.9).
+   */
+  clorePointsAnterieurs(d, t, p, bound, kmax = null) {
+    if (!p) return;
+    const kMax = kmax ?? (d.kind === "jeton_point" ? (d.deadlines.length ? Math.max(...d.deadlines) : this.nT) : this.nT);
     const role = this.cfg.rfc3161.checkpoints.provider_role;
     const severite = role === "interne" ? "mineure" : "majeure";
     const remplacees = new Set();
     for (const [k, e] of p.echeances) {
-      if (k >= kmax || e.state !== "ouverte") continue;
+      if (k >= kMax || e.state !== "ouverte") continue;
       const r2 = e.demande ? this.demandes.get(e.demande) : null;
       if (r2 && !ETATS_FINAUX.has(r2.state) && !remplacees.has(r2.id)) {
         remplacees.add(r2.id);
@@ -2274,23 +2427,23 @@ class Planificateur {
           p.echeances.get(k2).state = "remplacee";
           this.emettre(t, "echeance", r2.id, { k: k2, state: "remplacee" });
         }
-        this.journaliser(t, r2.id, { event: "checkpoint_anchor_late", tree_size: r2.subject.tree_size, deadlines: [...r2.deadlines], replaced_by: d.id, window_s: Math.trunc((r.bound - this.D(p, Math.min(...r2.deadlines))) / 1000) });
+        this.journaliser(t, r2.id, { event: "checkpoint_anchor_late", tree_size: r2.subject.tree_size, deadlines: [...r2.deadlines], replaced_by: d.id, window_s: Math.trunc((bound - this.D(p, Math.min(...r2.deadlines))) / 1000) });
         this.alerter(t, r2.id, "checkpoint_anchor_late", severite);
       } else if (!r2 || ETATS_FINAUX.has(r2.state)) {
         e.state = "remplacee";
         this.emettre(t, "echeance", r2 ? r2.id : null, { k, state: "remplacee" });
       }
     }
-    // Le jeton de clôture rend sans objet un repli de clôture encore en cours (EX-4.2).
-    if (d.kind === "jeton_periode") {
-      for (const r2 of this.file()) {
-        if (r2.kind !== "jeton_point" || r2.deadlines.length !== 0 || ETATS_FINAUX.has(r2.state) || this.cle(r2.subject) !== this.cle(d.subject)) continue;
-        r2.replaced_by = d.id;
-        r2.due_at = null;
-        this.emettre(t, "remplacer", r2.id, { replaced_by: d.id });
-        this.ecrire(r2, t, "remplacee");
-        this.journaliser(t, r2.id, { event: "anchor_replaced", replaced_by: d.id });
-      }
+  }
+  /** Le jeton de clôture obtenu clôt `remplacee` tout repli de clôture encore en cours de sa période (EX-4.2, EX-8.4 règle 2). */
+  cloreRepliCloture(d, t) {
+    for (const r2 of this.file()) {
+      if (r2.kind !== "jeton_point" || r2.deadlines.length !== 0 || ETATS_FINAUX.has(r2.state) || this.cle(r2.subject) !== this.cle(d.subject)) continue;
+      r2.replaced_by = d.id;
+      r2.due_at = null;
+      this.emettre(t, "remplacer", r2.id, { replaced_by: d.id });
+      this.ecrire(r2, t, "remplacee");
+      this.journaliser(t, r2.id, { event: "anchor_replaced", replaced_by: d.id });
     }
   }
 
@@ -2320,7 +2473,7 @@ class Planificateur {
         att.outcome = "echec_transitoire";
         att.error_code = "reponses_insuffisantes";
         att.detail = `${n} calendrier(s) ; moins de ${o.min_responses} reponses valables`;
-        const { delai, raison } = this.attenteReprise(d, null, {});
+        const { delai, raison } = this.attenteReprise(d, null, {}, att);
         const next = t + delai;
         att.next_at = iso(next);
         s.reprises.set(null, next);

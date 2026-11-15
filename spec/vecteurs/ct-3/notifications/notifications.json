@@ -1,0 +1,480 @@
+{
+  "version": 0,
+  "prefix": "noortrace/notification/v0\n",
+  "prefix_hex": "6e6f6f7274726163652f6e6f74696669636174696f6e2f76300a",
+  "key": "noortrace/exemple/cle-de-webhook/0123456789abcdef",
+  "header": "NOORTRACE-Signature",
+  "cases": [
+    {
+      "id": "ouverture",
+      "description": "Premier gel du jeu du ticket (EX-7.12) : les entrées actives dont l'adresse active est un membre éligible ; details nul.",
+      "checks": [
+        "EX-13.40",
+        "EX-13.41"
+      ],
+      "document": {
+        "version": 0,
+        "id": "ntf-e15bed5a554818b406018e4c1246c944",
+        "kind": "ouverture",
+        "created_at": "2026-11-10T11:00:00.000Z",
+        "recipients": {
+          "entries": [
+            "apb-0001",
+            "apb-0002"
+          ],
+          "roles": []
+        },
+        "ticket": "apr-0001",
+        "tool": "crm.claims.delete",
+        "deadline": "2026-11-10T12:00:00.000Z",
+        "link": "https://console.assureur-demo.example/tickets/apr-0001",
+        "details": null
+      },
+      "expected": {
+        "body": "{\"created_at\":\"2026-11-10T11:00:00.000Z\",\"deadline\":\"2026-11-10T12:00:00.000Z\",\"details\":null,\"id\":\"ntf-e15bed5a554818b406018e4c1246c944\",\"kind\":\"ouverture\",\"link\":\"https://console.assureur-demo.example/tickets/apr-0001\",\"recipients\":{\"entries\":[\"apb-0001\",\"apb-0002\"],\"roles\":[]},\"ticket\":\"apr-0001\",\"tool\":\"crm.claims.delete\",\"version\":0}",
+        "body_size": 340,
+        "body_sha256": "0x67abce08ca6f85ecd1bbef934336efbf5a81835c88614dc8c1e764e43140559b",
+        "signature": "sha256=592d4e07b7d45697263cfa1e7b41ac631dc0f1511ed0dce67bee726643326e90"
+      }
+    },
+    {
+      "id": "escalade-jeu",
+      "description": "Étape d'escalade de cible jeu (EX-7.13) : les entrées dont l'adresse active est un membre éligible sans vote courant.",
+      "checks": [
+        "EX-13.40",
+        "EX-13.41"
+      ],
+      "document": {
+        "version": 0,
+        "id": "ntf-60544b8b9460db4c10d83c9ab699d6bd",
+        "kind": "escalade",
+        "created_at": "2026-11-10T11:20:00.000Z",
+        "recipients": {
+          "entries": [
+            "apb-0002"
+          ],
+          "roles": []
+        },
+        "ticket": "apr-0001",
+        "tool": "crm.claims.delete",
+        "deadline": "2026-11-10T12:00:00.000Z",
+        "link": "https://console.assureur-demo.example/tickets/apr-0001",
+        "details": null
+      },
+      "expected": {
+        "body": "{\"created_at\":\"2026-11-10T11:20:00.000Z\",\"deadline\":\"2026-11-10T12:00:00.000Z\",\"details\":null,\"id\":\"ntf-60544b8b9460db4c10d83c9ab699d6bd\",\"kind\":\"escalade\",\"link\":\"https://console.assureur-demo.example/tickets/apr-0001\",\"recipients\":{\"entries\":[\"apb-0002\"],\"roles\":[]},\"ticket\":\"apr-0001\",\"tool\":\"crm.claims.delete\",\"version\":0}",
+        "body_size": 328,
+        "body_sha256": "0x2521c603e9b7294e8c809ef1b038ce448ff240bbcabb70bfb6e0b05975826088",
+        "signature": "sha256=34f42c7be043742b203470583f8e2f6fb42509b687377228b64dd6954f0097a6"
+      }
+    },
+    {
+      "id": "escalade-administrateur",
+      "description": "Étape d'escalade de cible administrateur : le rôle administrateur_jeu, sans aucune entrée.",
+      "checks": [
+        "EX-13.40",
+        "EX-13.41"
+      ],
+      "document": {
+        "version": 0,
+        "id": "ntf-96ba3acf7ad9bca00b9e0870831da24a",
+        "kind": "escalade",
+        "created_at": "2026-11-10T11:40:00.000Z",
+        "recipients": {
+          "entries": [],
+          "roles": [
+            "administrateur_jeu"
+          ]
+        },
+        "ticket": "apr-0001",
+        "tool": "crm.claims.delete",
+        "deadline": "2026-11-10T12:00:00.000Z",
+        "link": "https://console.assureur-demo.example/tickets/apr-0001",
+        "details": null
+      },
+      "expected": {
+        "body": "{\"created_at\":\"2026-11-10T11:40:00.000Z\",\"deadline\":\"2026-11-10T12:00:00.000Z\",\"details\":null,\"id\":\"ntf-96ba3acf7ad9bca00b9e0870831da24a\",\"kind\":\"escalade\",\"link\":\"https://console.assureur-demo.example/tickets/apr-0001\",\"recipients\":{\"entries\":[],\"roles\":[\"administrateur_jeu\"]},\"ticket\":\"apr-0001\",\"tool\":\"crm.claims.delete\",\"version\":0}",
+        "body_size": 338,
+        "body_sha256": "0x00bd1a9e4dbb7c048da5ffb4140f744334057472abcec88de2c494264fabc26c",
+        "signature": "sha256=8563bd6b003e19b72eea74cca2182874f3ac9ca646c12617c225bbafa860f689"
+      }
+    },
+    {
+      "id": "escalade-demandeur",
+      "description": "Étape d'escalade de cible demandeur : l'entrée active dont requester_identities contient le launched_by du ticket ; le document ne porte pas cette identité.",
+      "checks": [
+        "EX-13.40",
+        "EX-13.41"
+      ],
+      "document": {
+        "version": 0,
+        "id": "ntf-ac2ddfdfe49a5245a1afa72b733d5c52",
+        "kind": "escalade",
+        "created_at": "2026-11-10T11:50:00.000Z",
+        "recipients": {
+          "entries": [
+            "apb-0003"
+          ],
+          "roles": []
+        },
+        "ticket": "apr-0001",
+        "tool": "crm.claims.delete",
+        "deadline": "2026-11-10T12:00:00.000Z",
+        "link": "https://console.assureur-demo.example/tickets/apr-0001",
+        "details": null
+      },
+      "expected": {
+        "body": "{\"created_at\":\"2026-11-10T11:50:00.000Z\",\"deadline\":\"2026-11-10T12:00:00.000Z\",\"details\":null,\"id\":\"ntf-ac2ddfdfe49a5245a1afa72b733d5c52\",\"kind\":\"escalade\",\"link\":\"https://console.assureur-demo.example/tickets/apr-0001\",\"recipients\":{\"entries\":[\"apb-0003\"],\"roles\":[]},\"ticket\":\"apr-0001\",\"tool\":\"crm.claims.delete\",\"version\":0}",
+        "body_size": 328,
+        "body_sha256": "0x63292825ca4739595e840feeba4caeef4523f08a0023478c97e41d0024f64e64",
+        "signature": "sha256=326300993989a334f49ee16c2f31369a649f7271d6f1899c780f1a93e3107660"
+      }
+    },
+    {
+      "id": "nouveau-gel",
+      "description": "Nouveau gel qui change le jeu figé (EX-8.6) : membres éligibles après le gel ; details porte l'adresse ajoutée depuis l'ouverture et le seuil effectif.",
+      "checks": [
+        "EX-13.40",
+        "EX-13.41"
+      ],
+      "document": {
+        "version": 0,
+        "id": "ntf-0e2c2b8445d53f01c665be87c9dba2b0",
+        "kind": "nouveau_gel",
+        "created_at": "2026-11-10T11:05:00.000Z",
+        "recipients": {
+          "entries": [
+            "apb-0001",
+            "apb-0002",
+            "apb-0003"
+          ],
+          "roles": []
+        },
+        "ticket": "apr-0001",
+        "tool": "crm.claims.delete",
+        "deadline": "2026-11-10T12:00:00.000Z",
+        "link": "https://console.assureur-demo.example/tickets/apr-0001",
+        "details": {
+          "added_members": [
+            "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+          ],
+          "effective_required": 2
+        }
+      },
+      "expected": {
+        "body": "{\"created_at\":\"2026-11-10T11:05:00.000Z\",\"deadline\":\"2026-11-10T12:00:00.000Z\",\"details\":{\"added_members\":[\"0x90f79bf6eb2c4f870365e785982e1f101e93b906\"],\"effective_required\":2},\"id\":\"ntf-0e2c2b8445d53f01c665be87c9dba2b0\",\"kind\":\"nouveau_gel\",\"link\":\"https://console.assureur-demo.example/tickets/apr-0001\",\"recipients\":{\"entries\":[\"apb-0001\",\"apb-0002\",\"apb-0003\"],\"roles\":[]},\"ticket\":\"apr-0001\",\"tool\":\"crm.claims.delete\",\"version\":0}",
+        "body_size": 436,
+        "body_sha256": "0x0b1569f246172e8b56a90c192661e10d8069958ed94b94ba548103a6b101c381",
+        "signature": "sha256=416915d545217e1e967c94744687e88c1f6dd2146ccc87795cce82a56d37d88a"
+      }
+    },
+    {
+      "id": "seuil-inatteignable",
+      "description": "Moins de membres éligibles que le seuil effectif (EX-7.29) : les rôles administrateur_jeu et administrateur.",
+      "checks": [
+        "EX-13.40",
+        "EX-13.41"
+      ],
+      "document": {
+        "version": 0,
+        "id": "ntf-905f77970fdfd92de44db1f4a8319583",
+        "kind": "seuil_inatteignable",
+        "created_at": "2026-11-10T11:06:00.000Z",
+        "recipients": {
+          "entries": [],
+          "roles": [
+            "administrateur_jeu",
+            "administrateur"
+          ]
+        },
+        "ticket": "apr-0001",
+        "tool": "crm.claims.delete",
+        "deadline": "2026-11-10T12:00:00.000Z",
+        "link": "https://console.assureur-demo.example/tickets/apr-0001",
+        "details": {
+          "eligible_count": 1,
+          "effective_required": 2
+        }
+      },
+      "expected": {
+        "body": "{\"created_at\":\"2026-11-10T11:06:00.000Z\",\"deadline\":\"2026-11-10T12:00:00.000Z\",\"details\":{\"effective_required\":2,\"eligible_count\":1},\"id\":\"ntf-905f77970fdfd92de44db1f4a8319583\",\"kind\":\"seuil_inatteignable\",\"link\":\"https://console.assureur-demo.example/tickets/apr-0001\",\"recipients\":{\"entries\":[],\"roles\":[\"administrateur_jeu\",\"administrateur\"]},\"ticket\":\"apr-0001\",\"tool\":\"crm.claims.delete\",\"version\":0}",
+        "body_size": 405,
+        "body_sha256": "0x04c0068c046523fe6d7693a4ec69589abb5fa817945b6d145460255da8c91271",
+        "signature": "sha256=05aecd972dd320cfe06422557e1a22114f1afa27c37571ade3f50e0a904f0930"
+      }
+    },
+    {
+      "id": "vote-inscrit",
+      "description": "Vote accepté sur le canal de la console (EX-12.16) : l'entrée dont l'adresse active est approver ; digest est l'empreinte de D_A (EX-9.18), dont le caractère U+2026 compte trois octets dans le corps.",
+      "checks": [
+        "EX-13.40",
+        "EX-13.41"
+      ],
+      "document": {
+        "version": 0,
+        "id": "ntf-8797342c35aa4d1405a4c0a83fcac882",
+        "kind": "vote_inscrit",
+        "created_at": "2026-11-10T11:10:00.000Z",
+        "recipients": {
+          "entries": [
+            "apb-0001"
+          ],
+          "roles": []
+        },
+        "ticket": "apr-0001",
+        "tool": "crm.claims.delete",
+        "deadline": "2026-11-10T12:00:00.000Z",
+        "link": "https://console.assureur-demo.example/tickets/apr-0001",
+        "details": {
+          "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "decision": "approuve",
+          "digest": "3e910c67…fdc4d011",
+          "at": "2026-11-10T11:10:00.000Z"
+        }
+      },
+      "expected": {
+        "body": "{\"created_at\":\"2026-11-10T11:10:00.000Z\",\"deadline\":\"2026-11-10T12:00:00.000Z\",\"details\":{\"approver\":\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\",\"at\":\"2026-11-10T11:10:00.000Z\",\"decision\":\"approuve\",\"digest\":\"3e910c67…fdc4d011\"},\"id\":\"ntf-8797342c35aa4d1405a4c0a83fcac882\",\"kind\":\"vote_inscrit\",\"link\":\"https://console.assureur-demo.example/tickets/apr-0001\",\"recipients\":{\"entries\":[\"apb-0001\"],\"roles\":[]},\"ticket\":\"apr-0001\",\"tool\":\"crm.claims.delete\",\"version\":0}",
+        "body_size": 470,
+        "body_sha256": "0x590f966dcf2c829ddff2e9955884b3974118b5281538952ea95d6b074c23a0de",
+        "signature": "sha256=267ae7666261111c68c00c4c0c34eb03f6be1100667255ad20a66f2e9bce1cd2"
+      }
+    },
+    {
+      "id": "vote-inscrit-refus",
+      "description": "Vote de refus : même forme, decision refuse ; le motif du vote n'est jamais dans le document.",
+      "checks": [
+        "EX-13.40",
+        "EX-13.41"
+      ],
+      "document": {
+        "version": 0,
+        "id": "ntf-a736af3b3ec46a11f90f886812e046df",
+        "kind": "vote_inscrit",
+        "created_at": "2026-11-10T11:12:00.000Z",
+        "recipients": {
+          "entries": [
+            "apb-0002"
+          ],
+          "roles": []
+        },
+        "ticket": "apr-0001",
+        "tool": "crm.claims.delete",
+        "deadline": "2026-11-10T12:00:00.000Z",
+        "link": "https://console.assureur-demo.example/tickets/apr-0001",
+        "details": {
+          "approver": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "decision": "refuse",
+          "digest": "3e910c67…fdc4d011",
+          "at": "2026-11-10T11:12:00.000Z"
+        }
+      },
+      "expected": {
+        "body": "{\"created_at\":\"2026-11-10T11:12:00.000Z\",\"deadline\":\"2026-11-10T12:00:00.000Z\",\"details\":{\"approver\":\"0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc\",\"at\":\"2026-11-10T11:12:00.000Z\",\"decision\":\"refuse\",\"digest\":\"3e910c67…fdc4d011\"},\"id\":\"ntf-a736af3b3ec46a11f90f886812e046df\",\"kind\":\"vote_inscrit\",\"link\":\"https://console.assureur-demo.example/tickets/apr-0001\",\"recipients\":{\"entries\":[\"apb-0002\"],\"roles\":[]},\"ticket\":\"apr-0001\",\"tool\":\"crm.claims.delete\",\"version\":0}",
+        "body_size": 468,
+        "body_sha256": "0x0574b3dc669aa3f54d6684ad37aeff2f5e5b148d8389460879c849c277538dc7",
+        "signature": "sha256=78294040af465e38eb901f4f59de97973f8bce6c0ee9600f296b7edfbf94371c"
+      }
+    },
+    {
+      "id": "operation-annuaire-valider",
+      "description": "Opération valider acceptée, faite par un administrateur : l'entrée visée ; ticket, tool et deadline nuls ; lien vers l'écran d'inscription ; by_self faux.",
+      "checks": [
+        "EX-13.40",
+        "EX-13.41"
+      ],
+      "document": {
+        "version": 0,
+        "id": "ntf-3f0f0b3d33effb7c98763d486bd98484",
+        "kind": "operation_annuaire",
+        "created_at": "2026-11-10T09:40:00.000Z",
+        "recipients": {
+          "entries": [
+            "apb-0002"
+          ],
+          "roles": []
+        },
+        "ticket": null,
+        "tool": null,
+        "deadline": null,
+        "link": "https://console.assureur-demo.example/inscription",
+        "details": {
+          "op": "valider",
+          "entry": "apb-0002",
+          "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "revision": 4,
+          "at": "2026-11-10T09:40:00.000Z",
+          "by_self": false
+        }
+      },
+      "expected": {
+        "body": "{\"created_at\":\"2026-11-10T09:40:00.000Z\",\"deadline\":null,\"details\":{\"address\":\"0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc\",\"at\":\"2026-11-10T09:40:00.000Z\",\"by_self\":false,\"entry\":\"apb-0002\",\"op\":\"valider\",\"revision\":4},\"id\":\"ntf-3f0f0b3d33effb7c98763d486bd98484\",\"kind\":\"operation_annuaire\",\"link\":\"https://console.assureur-demo.example/inscription\",\"recipients\":{\"entries\":[\"apb-0002\"],\"roles\":[]},\"ticket\":null,\"tool\":null,\"version\":0}",
+        "body_size": 437,
+        "body_sha256": "0x470b67c4f44016b394693ea3d433ba6194ceacd6a216d5b9d05250f58be68578",
+        "signature": "sha256=3fc12827a63d6bb324cdb888b9c1f46068d61e34b48931913a84381a58e0df5f"
+      }
+    },
+    {
+      "id": "operation-annuaire-inscrire",
+      "description": "Opération inscrire acceptée, faite par la session de l'entrée elle-même : by_self vrai.",
+      "checks": [
+        "EX-13.40",
+        "EX-13.41"
+      ],
+      "document": {
+        "version": 0,
+        "id": "ntf-e58ce901d91e55c58d9b9765724a9527",
+        "kind": "operation_annuaire",
+        "created_at": "2026-11-10T09:35:00.000Z",
+        "recipients": {
+          "entries": [
+            "apb-0002"
+          ],
+          "roles": []
+        },
+        "ticket": null,
+        "tool": null,
+        "deadline": null,
+        "link": "https://console.assureur-demo.example/inscription",
+        "details": {
+          "op": "inscrire",
+          "entry": "apb-0002",
+          "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "revision": 3,
+          "at": "2026-11-10T09:35:00.000Z",
+          "by_self": true
+        }
+      },
+      "expected": {
+        "body": "{\"created_at\":\"2026-11-10T09:35:00.000Z\",\"deadline\":null,\"details\":{\"address\":\"0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc\",\"at\":\"2026-11-10T09:35:00.000Z\",\"by_self\":true,\"entry\":\"apb-0002\",\"op\":\"inscrire\",\"revision\":3},\"id\":\"ntf-e58ce901d91e55c58d9b9765724a9527\",\"kind\":\"operation_annuaire\",\"link\":\"https://console.assureur-demo.example/inscription\",\"recipients\":{\"entries\":[\"apb-0002\"],\"roles\":[]},\"ticket\":null,\"tool\":null,\"version\":0}",
+        "body_size": 437,
+        "body_sha256": "0xaf6891102bd093fb1c17e34ab77e14723fe259a3381ae9a1bed3be9210eb5a13",
+        "signature": "sha256=d8011fa1ba1e2e550026d3a6e0a4a18e54a40f52f615386db66133439d65fb6a"
+      }
+    },
+    {
+      "id": "operation-annuaire-desactiver",
+      "description": "Opération desactiver, sans adresse : address nul.",
+      "checks": [
+        "EX-13.40",
+        "EX-13.41"
+      ],
+      "document": {
+        "version": 0,
+        "id": "ntf-3f9af9df3a242338355a437a6b959014",
+        "kind": "operation_annuaire",
+        "created_at": "2026-11-10T10:40:00.000Z",
+        "recipients": {
+          "entries": [
+            "apb-0002"
+          ],
+          "roles": []
+        },
+        "ticket": null,
+        "tool": null,
+        "deadline": null,
+        "link": "https://console.assureur-demo.example/inscription",
+        "details": {
+          "op": "desactiver",
+          "entry": "apb-0002",
+          "address": null,
+          "revision": 9,
+          "at": "2026-11-10T10:40:00.000Z",
+          "by_self": false
+        }
+      },
+      "expected": {
+        "body": "{\"created_at\":\"2026-11-10T10:40:00.000Z\",\"deadline\":null,\"details\":{\"address\":null,\"at\":\"2026-11-10T10:40:00.000Z\",\"by_self\":false,\"entry\":\"apb-0002\",\"op\":\"desactiver\",\"revision\":9},\"id\":\"ntf-3f9af9df3a242338355a437a6b959014\",\"kind\":\"operation_annuaire\",\"link\":\"https://console.assureur-demo.example/inscription\",\"recipients\":{\"entries\":[\"apb-0002\"],\"roles\":[]},\"ticket\":null,\"tool\":null,\"version\":0}",
+        "body_size": 400,
+        "body_sha256": "0xdafce3b94c9734379ef1f6e0f64415778eb5f4f8da66a4210d2f234b9c78333e",
+        "signature": "sha256=43e2644db7f635c436776357878546d34f2d1aca219d52b9e8e23550a34e10b4"
+      }
+    },
+    {
+      "id": "plafond-atteint",
+      "description": "Premier evaluer refusé par plafond_atteint d'un launched_by dans une période de 15 minutes (EX-14.1) : le rôle administrateur ; ticket, tool, deadline et link nuls ; le document ne porte pas le launched_by.",
+      "checks": [
+        "EX-13.40",
+        "EX-13.41"
+      ],
+      "document": {
+        "version": 0,
+        "id": "ntf-facc01a4a79f2f1681527772e2428639",
+        "kind": "plafond_atteint",
+        "created_at": "2026-11-10T11:30:00.000Z",
+        "recipients": {
+          "entries": [],
+          "roles": [
+            "administrateur"
+          ]
+        },
+        "ticket": null,
+        "tool": null,
+        "deadline": null,
+        "link": null,
+        "details": {
+          "max_open_tickets": 20
+        }
+      },
+      "expected": {
+        "body": "{\"created_at\":\"2026-11-10T11:30:00.000Z\",\"deadline\":null,\"details\":{\"max_open_tickets\":20},\"id\":\"ntf-facc01a4a79f2f1681527772e2428639\",\"kind\":\"plafond_atteint\",\"link\":null,\"recipients\":{\"entries\":[],\"roles\":[\"administrateur\"]},\"ticket\":null,\"tool\":null,\"version\":0}",
+        "body_size": 265,
+        "body_sha256": "0x7ff8efc70dcfbae6da9443d92fc347cbf89851a5ae800dfe1dc564643af333ff",
+        "signature": "sha256=bac047d28af51b66b85c0b62ecfc70b32323a6e3268699a9791fc47380acdf82"
+      }
+    }
+  ],
+  "refusals": [
+    {
+      "id": "corps-altere",
+      "description": "Le corps de vote-inscrit dont la décision a été changée en chemin, avec la signature du corps d'origine.",
+      "checks": [
+        "EX-13.41"
+      ],
+      "body": "{\"created_at\":\"2026-11-10T11:10:00.000Z\",\"deadline\":\"2026-11-10T12:00:00.000Z\",\"details\":{\"approver\":\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\",\"at\":\"2026-11-10T11:10:00.000Z\",\"decision\":\"refuse\",\"digest\":\"3e910c67…fdc4d011\"},\"id\":\"ntf-8797342c35aa4d1405a4c0a83fcac882\",\"kind\":\"vote_inscrit\",\"link\":\"https://console.assureur-demo.example/tickets/apr-0001\",\"recipients\":{\"entries\":[\"apb-0001\"],\"roles\":[]},\"ticket\":\"apr-0001\",\"tool\":\"crm.claims.delete\",\"version\":0}",
+      "signature": "sha256=267ae7666261111c68c00c4c0c34eb03f6be1100667255ad20a66f2e9bce1cd2",
+      "expected": {
+        "accepted": false,
+        "signature": "sha256=e06cc61d4a5429eb3ba7679b0d60ff3a7ecfd870b6a587b17ed7bba1e4e28512"
+      }
+    },
+    {
+      "id": "prefixe-omis",
+      "description": "Le corps de vote-inscrit signé sans le préfixe « noortrace/notification/v0\\n » : HMAC-SHA256(K, corps).",
+      "checks": [
+        "EX-13.41"
+      ],
+      "body": "{\"created_at\":\"2026-11-10T11:10:00.000Z\",\"deadline\":\"2026-11-10T12:00:00.000Z\",\"details\":{\"approver\":\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\",\"at\":\"2026-11-10T11:10:00.000Z\",\"decision\":\"approuve\",\"digest\":\"3e910c67…fdc4d011\"},\"id\":\"ntf-8797342c35aa4d1405a4c0a83fcac882\",\"kind\":\"vote_inscrit\",\"link\":\"https://console.assureur-demo.example/tickets/apr-0001\",\"recipients\":{\"entries\":[\"apb-0001\"],\"roles\":[]},\"ticket\":\"apr-0001\",\"tool\":\"crm.claims.delete\",\"version\":0}",
+      "signature": "sha256=e60a0047a4f69d6d1cf78aec30bbdd25b5a04f8f3613b21df8c97c8741bd12a9",
+      "expected": {
+        "accepted": false,
+        "signature": "sha256=267ae7666261111c68c00c4c0c34eb03f6be1100667255ad20a66f2e9bce1cd2"
+      }
+    },
+    {
+      "id": "autre-cle",
+      "description": "Le corps de vote-inscrit signé par une autre clé.",
+      "checks": [
+        "EX-13.41"
+      ],
+      "body": "{\"created_at\":\"2026-11-10T11:10:00.000Z\",\"deadline\":\"2026-11-10T12:00:00.000Z\",\"details\":{\"approver\":\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\",\"at\":\"2026-11-10T11:10:00.000Z\",\"decision\":\"approuve\",\"digest\":\"3e910c67…fdc4d011\"},\"id\":\"ntf-8797342c35aa4d1405a4c0a83fcac882\",\"kind\":\"vote_inscrit\",\"link\":\"https://console.assureur-demo.example/tickets/apr-0001\",\"recipients\":{\"entries\":[\"apb-0001\"],\"roles\":[]},\"ticket\":\"apr-0001\",\"tool\":\"crm.claims.delete\",\"version\":0}",
+      "signature": "sha256=3a34e15e8b4532b11d63ae614d81b52ba3dc66787270b5c74cac966568bac4b9",
+      "expected": {
+        "accepted": false,
+        "signature": "sha256=267ae7666261111c68c00c4c0c34eb03f6be1100667255ad20a66f2e9bce1cd2"
+      }
+    },
+    {
+      "id": "cle-avec-saut-de-ligne",
+      "description": "Le corps de vote-inscrit signé par la clé suivie d'un saut de ligne, comme un fichier de secret la porte : K est le secret dépouillé de ses espaces de tête et de fin (EX-13.41).",
+      "checks": [
+        "EX-13.41"
+      ],
+      "body": "{\"created_at\":\"2026-11-10T11:10:00.000Z\",\"deadline\":\"2026-11-10T12:00:00.000Z\",\"details\":{\"approver\":\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\",\"at\":\"2026-11-10T11:10:00.000Z\",\"decision\":\"approuve\",\"digest\":\"3e910c67…fdc4d011\"},\"id\":\"ntf-8797342c35aa4d1405a4c0a83fcac882\",\"kind\":\"vote_inscrit\",\"link\":\"https://console.assureur-demo.example/tickets/apr-0001\",\"recipients\":{\"entries\":[\"apb-0001\"],\"roles\":[]},\"ticket\":\"apr-0001\",\"tool\":\"crm.claims.delete\",\"version\":0}",
+      "signature": "sha256=8a4154cfd643c5448a5f5576144de18fa9582d5264aff094f144656796d08bb2",
+      "expected": {
+        "accepted": false,
+        "signature": "sha256=267ae7666261111c68c00c4c0c34eb03f6be1100667255ad20a66f2e9bce1cd2"
+      }
+    }
+  ]
+}

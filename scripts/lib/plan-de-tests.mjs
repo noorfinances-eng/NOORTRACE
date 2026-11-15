@@ -134,11 +134,19 @@ const AVANT_REGEX = new Set(["(", ",", "=", ":", "[", "!", "&", "|", "?", "{", "
  * pour chaque `it`, et `describes` (liste de tous les titres de `describe`).
  * L'appartenance d'un `it` à un `describe` suit les accolades : un `describe`
  * se ferme quand la profondeur d'accolades revient à celle de son appel.
+ *
+ * Revue de l'étape 8 (CT-9 EX-5.4, règle (d)) : un `it` ne compte comme
+ * existant que s'il a un corps, n'est ni `skip` ni `only`, ne commence pas
+ * par `this.skip()` inconditionnel et n'est pas sous un `describe.skip` (ou
+ * `xdescribe`). Chaque cas porte `pending` (vrai pour un test que mocha
+ * tiendrait en attente ou n'exécuterait pas) et `describes` ne liste que les
+ * `describe` exécutés. Un `this.skip()` conditionnel (ressource absente, CT-9
+ * EX-3.11) reste un test existant : seul le premier énoncé du corps est lu.
  */
 export function titresTests(source) {
   const cas = [];
   const describes = [];
-  const pile = []; // { title, depth }
+  const pile = []; // { title, depth, skip }
   let depth = 0;
   let i = 0;
   let dernier = null; // dernier caractère significatif (pour distinguer / de regex)
@@ -199,15 +207,21 @@ export function titresTests(source) {
       let j = i; while (j < n && /[A-Za-z0-9_$]/.test(source[j])) j++;
       const mot = source.slice(i, j);
       const precedent = i > 0 ? source[i - 1] : null;
-      if ((mot === "describe" || mot === "it") && precedent !== ".") {
-        let k = j; while (k < n && /\s/.test(source[k])) k++;
+      // describe.skip / xdescribe : les tests qu'ils englobent ne s'exécutent pas ; it.skip, xit, it.only : exclus.
+      const variante = /^(describe|it|context|specify)$/.test(mot) && source[j] === "." ? /^\.(skip|only)\b/.exec(source.slice(j, j + 6)) : null;
+      const base = mot === "xdescribe" || mot === "xcontext" ? "describe" : mot === "xit" || mot === "xspecify" ? "it" : mot === "context" ? "describe" : mot === "specify" ? "it" : mot;
+      const saute = variante !== null || mot.startsWith("x");
+      if ((base === "describe" || base === "it") && precedent !== "." && precedent !== "$" && !/[A-Za-z0-9_$]/.test(precedent ?? " ")) {
+        let k = variante ? j + variante[0].length : j;
+        while (k < n && /\s/.test(source[k])) k++;
         if (source[k] === "(") {
           k++; while (k < n && /\s/.test(source[k])) k++;
           if (DELIMITEURS.has(source[k])) {
             i = k;
             const titre = lireChaine(source[k]);
-            if (mot === "describe") { describes.push(titre); pile.push({ title: titre, depth }); }
-            else cas.push({ describes: pile.map((p) => p.title), it: titre });
+            const sousSkip = saute || pile.some((p) => p.skip);
+            if (base === "describe") { if (!sousSkip) describes.push(titre); pile.push({ title: titre, depth, skip: sousSkip }); }
+            else cas.push({ describes: pile.map((p) => p.title), it: titre, pending: sousSkip || corpsEnAttente(source, i) });
             dernier = '"';
             continue;
           }
@@ -224,6 +238,32 @@ export function titresTests(source) {
   return { cas, describes };
 }
 
+/**
+ * Un `it` sans corps (mocha : en attente), ou dont le corps commence par
+ * `this.skip()` inconditionnel (CT-9 EX-5.4). `i` suit le délimiteur fermant du
+ * titre.
+ */
+function corpsEnAttente(source, i) {
+  const n = source.length;
+  let k = i;
+  while (k < n && /\s/.test(source[k])) k++;
+  if (source[k] === ")") return true;
+  if (source[k] !== ",") return false;
+  // Premier « { » après la virgule : l'ouverture du corps de la fonction (les paramètres d'un it n'en portent pas).
+  const ouverture = source.indexOf("{", k + 1);
+  if (ouverture === -1) return false;
+  const fin = source.indexOf(")", k + 1);
+  if (fin !== -1 && fin < ouverture && !source.slice(k + 1, ouverture).includes("=>") && !/function/.test(source.slice(k + 1, ouverture))) return false;
+  let p = ouverture + 1;
+  for (;;) {
+    while (p < n && /\s/.test(source[p])) p++;
+    if (source.startsWith("//", p)) { while (p < n && source[p] !== "\n") p++; continue; }
+    if (source.startsWith("/*", p)) { const f = source.indexOf("*/", p + 2); p = f === -1 ? n : f + 2; continue; }
+    break;
+  }
+  return /^this\s*\.\s*skip\s*\(\s*\)/.test(source.slice(p, p + 40));
+}
+
 /** Fichiers de test du dépôt (test/*.test.js), chemins relatifs triés. */
 export function fichiersTests(racine = RACINE) {
   return fs.readdirSync(path.join(racine, "test")).filter((f) => f.endsWith(".test.js")).sort().map((f) => `test/${f}`);
@@ -238,13 +278,14 @@ export function indexTitres(racine = RACINE) {
 
 /**
  * Vrai si le test cité existe : fichier indexé, `describe` présent (englobant
- * compris) et, si `it` est donné, un `it` de ce titre sous ce `describe`.
+ * compris, exécuté) et, si `it` est donné, un `it` de ce titre sous ce
+ * `describe` qui s'exécute (ni en attente, ni sauté : CT-9 EX-5.4 d).
  */
 export function titreExiste(index, t) {
   const r = index.get(t.file);
   if (!r) return false;
   if (t.it === undefined) return r.describes.includes(t.describe);
-  return r.cas.some((c) => c.describes.includes(t.describe) && c.it === t.it);
+  return r.cas.some((c) => !c.pending && c.describes.includes(t.describe) && c.it === t.it);
 }
 
 /** Noms des étapes de ci.yml : valeurs exactes des membres `- name:`. */

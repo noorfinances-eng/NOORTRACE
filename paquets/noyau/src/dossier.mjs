@@ -30,7 +30,7 @@
 //   pas pour un événement, sinon réussies ;
 // - le hash d'un événement n'est jamais lu : il est toujours recalculé.
 
-import { ZERO32, chaineNonVide, decoderHorodatage, estEntierSur, estHex, octetsVersHex, utf8 } from "./conventions.mjs";
+import { ZERO32, chaineNonVide, decoderHorodatage, descriptionErreur, estEntierSur, estHex, montrer, octetsVersHex, utf8 } from "./conventions.mjs";
 import { ErreurJson, analyserJson, egaliteJson } from "./json-strict.mjs";
 import { keccak256, sha256Hex } from "./hachage.mjs";
 import { NOMS_RESERVES, objetApprobation, sorteEvenement } from "./evenement.mjs";
@@ -42,6 +42,7 @@ import { hacherPoint, verifierSignaturePoint } from "./point-de-controle.mjs";
 import { verifierPartieAttestation } from "./attestation.mjs";
 import { ORDRE_CONTROLES, trierControles } from "./chainage.mjs";
 import { validerSchema } from "./schemas.mjs";
+import { ERREURS_SCHEMA_MAX } from "./validation-schema.mjs";
 
 /** Les douze parties v0, dans l'ordre de l'index (CT-1 §11.1). */
 export const PARTIES_V0 = Object.freeze([
@@ -116,6 +117,23 @@ export const PLAFOND_LECTURE = 64 * MIO;
 /** Raisons de non-exécution admises (CT-1 §11.4) : le dossier reste valide. */
 export const RAISONS_ADMISES = Object.freeze(["partie_absente", "piece_hors_dossier"]);
 
+/**
+ * Nombre de détails qu'un contrôle du rapport porte au plus (revue de
+ * sécurité ; révision de CT-6 EX-15.1 demandée) : au-delà, le
+ * dernier détail dit combien sont omis. La même borne vaut pour les erreurs
+ * d'une validation de schéma (ERREURS_SCHEMA_MAX de validation-schema.mjs).
+ */
+export const DETAILS_MAX = ERREURS_SCHEMA_MAX;
+
+/**
+ * Nombre d'événements de `approbations.json` contrôlés un à un par E-1 à
+ * E-11 et A-2 : `maxItems` de `events` dans le schéma de CT-1 (1 024). Au-delà,
+ * A-1 échoue par le schéma, A-2 échoue en nommant les éléments non
+ * contrôlés, et ces éléments ne sont ni contrôlés ni rapportés un à un
+ * (CT-6 EX-15.1 ; révision de CT-1 §11.4 A-2 demandée).
+ */
+export const EVENEMENTS_MAX_APPROBATIONS = 1024;
+
 /** Énoncé de la borne quand les contrôles 4, 5 et 8 ne sont pas exécutés (CT-1 §11.3). */
 export const BORNE =
   "cet événement est bien formé, chaîné à ses voisins, inclus dans la période close par ce manifeste signé par cette clé, " +
@@ -144,9 +162,10 @@ const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v)
 
 /**
  * @typedef {object} RapportDossier
- * @property {boolean} utilisable false si dossier.json est absent ou n'est pas du JSON (CT-6 EX-4.12 : code 2, sans verdict)
- * @property {"dossier_illisible"|"taille_depassee"|null} type_erreur type d'erreur de CT-6 §8 d'une entrée
- *   inutilisable (error_kind de attendu.json, CT-1 §11.5), null sinon
+ * @property {boolean} utilisable false si dossier.json est absent ou n'est pas du JSON (CT-6 EX-4.12 : code 2, sans verdict),
+ *   ou si une exception interne a interrompu les contrôles (garde du point d'entrée, `erreur_interne`)
+ * @property {"dossier_illisible"|"taille_depassee"|"erreur_interne"|null} type_erreur type d'erreur de CT-6 §8 d'une entrée
+ *   inutilisable (error_kind de attendu.json, CT-1 §11.5 ; `erreur_interne` : CT-6 EX-8.4, EX-15.2), null sinon
  * @property {string|null} erreur raison d'inutilisabilité, en clair
  * @property {"valide"|"invalide"|null} verdict
  * @property {boolean|null} valide
@@ -164,10 +183,37 @@ const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v)
  * @typedef {object} FichierNonLu
  * Fichier présent dans le répertoire mais non lu, parce qu'il dépasse sa
  * limite (TAILLES_MAX) : sa taille, et son SHA-256 calculé en flux pour la
- * seule partie attestation-perimetre.json jusqu'au plafond (null sinon).
- * @property {number} taille
+ * seule partie attestation-perimetre.json jusqu'au plafond (null sinon) ; ou
+ * parce que son ouverture ou sa lecture a échoué (EACCES, ENOTDIR, EIO…) :
+ * `taille` et `sha256` nuls, `erreur` le code de l'erreur.
+ * @property {number|null} taille
  * @property {string|null} sha256
+ * @property {string} [erreur]
  */
+
+/** Rapport d'une entrée inutilisable (CT-6 EX-4.12, EX-8.4) : aucun verdict. */
+function rapportInutilisable(type, erreur) {
+  return {
+    utilisable: false,
+    type_erreur: type,
+    erreur,
+    verdict: null,
+    valide: null,
+    evenement: null,
+    controles: [],
+    controles_en_echec: [],
+    non_executes_bloquants: [],
+    parties_absentes: [],
+    borne: null,
+    perimetre: null,
+  };
+}
+
+/** Borne la liste des détails d'un contrôle à DETAILS_MAX, le dernier détail comptant les omis. */
+function bornerDetails(details) {
+  if (details.length <= DETAILS_MAX) return details;
+  return [...details.slice(0, DETAILS_MAX), `… et ${details.length - DETAILS_MAX} autre(s) détail(s) omis (borne de ${DETAILS_MAX} détails par contrôle)`];
+}
 
 /**
  * Vérifie un dossier de preuve v0.
@@ -186,6 +232,18 @@ const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v)
  * @returns {RapportDossier}
  */
 export function verifierDossier(fichiers, options = {}) {
+  // Garde du point d'entrée (revue de sécurité, cause S-2) : aucune exception
+  // levée par un dossier hostile ne sort ; elle devient une entrée
+  // inutilisable de type erreur_interne, sans verdict (CT-6 EX-15.2, EX-8.4),
+  // jamais un statut de contrôle.
+  try {
+    return controlerDossier(fichiers, options);
+  } catch (e) {
+    return rapportInutilisable("erreur_interne", `erreur interne du vérificateur : ${descriptionErreur(e)}`);
+  }
+}
+
+function controlerDossier(fichiers, options) {
   const brut = (nom) => (fichiers instanceof Map ? fichiers.get(nom) : fichiers[nom]);
   const aFichier = (nom) => (fichiers instanceof Map ? fichiers.has(nom) : Object.prototype.hasOwnProperty.call(fichiers, nom));
   const optionsJson = { profondeurMax: options.profondeurMax };
@@ -193,7 +251,9 @@ export function verifierDossier(fichiers, options = {}) {
   /**
    * Entrée d'un fichier : null s'il est absent du répertoire ; { octets } s'il
    * est lu dans sa limite ; { tropGrand, taille, sha256 } au-delà ;
-   * { manquant } pour toute autre valeur (fichier non ordinaire).
+   * { manquant, erreur } pour un fichier dont la lecture a échoué (code de
+   * l'erreur) ; { manquant } pour toute autre valeur (fichier non
+   * ordinaire).
    */
   const entree = (nom) => {
     if (!aFichier(nom)) return null;
@@ -203,17 +263,19 @@ export function verifierDossier(fichiers, options = {}) {
       const empreinte = nom === PARTIE_ATTESTATION_PERIMETRE.file && v.length <= PLAFOND_LECTURE ? sha256Hex(v) : null;
       return { tropGrand: true, taille: v.length, sha256: empreinte };
     }
+    if (v !== null && typeof v === "object" && typeof v.erreur === "string") return { manquant: true, erreur: v.erreur };
     if (v !== null && typeof v === "object" && Number.isSafeInteger(v.taille) && v.taille > limiteDe(nom)) {
       return { tropGrand: true, taille: v.taille, sha256: typeof v.sha256 === "string" ? v.sha256 : null };
     }
     return { manquant: true };
   };
+  const nonLisible = (x) => (x?.erreur ? `, non lisible (${x.erreur})` : "");
   const tropGrand = (nom, x) => `${nom} : ${x.taille} octets, au-delà de sa limite de ${limiteDe(nom)} octets (CT-6 EX-4.13) : non analysé`;
 
   /** @type {Map<string, ResultatControle>} */
   const R = new Map();
   const poser = (id, statut, details = [], raison = null) => {
-    R.set(id, { id, statut, raison, admise: statut === "non_execute" && RAISONS_ADMISES.includes(raison), details });
+    R.set(id, { id, statut, raison, admise: statut === "non_execute" && RAISONS_ADMISES.includes(raison), details: bornerDetails(details) });
   };
   const reussi = (id, details = []) => poser(id, "reussi", details);
   const echoue = (id, details) => poser(id, "echoue", details);
@@ -227,7 +289,7 @@ export function verifierDossier(fichiers, options = {}) {
     echoue("D-1", [tropGrand("dossier.json", xIndex)]);
     return conclure(null, false, false, [], null);
   }
-  if (!xIndex?.octets) return inutilisable("dossier_illisible", "dossier.json absent (ou pas un fichier ordinaire)");
+  if (!xIndex?.octets) return inutilisable("dossier_illisible", `dossier.json absent (ou pas un fichier ordinaire)${nonLisible(xIndex)}`);
   let index;
   try {
     index = analyserJson(xIndex.octets, optionsJson);
@@ -266,7 +328,7 @@ export function verifierDossier(fichiers, options = {}) {
   for (const p of index.parts) {
     const x = entree(p.file);
     if (p.present) {
-      if (!x || x.manquant) ecartsD2.push(`${p.file} déclaré présent, absent du répertoire (ou pas un fichier ordinaire)`);
+      if (!x || x.manquant) ecartsD2.push(`${p.file} déclaré présent, absent du répertoire (ou pas un fichier ordinaire)${nonLisible(x)}`);
       else {
         const empreinte = x.octets ? sha256Hex(x.octets) : x.sha256;
         if (empreinte === null) notesD2.push(`${tropGrand(p.file, x)} ; SHA-256 non calculé, la limite interdisant de lire au-delà`);
@@ -291,7 +353,7 @@ export function verifierDossier(fichiers, options = {}) {
     const p = parties.get(nom);
     if (!p || !p.present) return { etat: "absente" };
     const x = entree(p.file);
-    if (!x || x.manquant) return { etat: "manquante", message: `${p.file} manquant` };
+    if (!x || x.manquant) return { etat: "manquante", message: `${p.file} manquant${nonLisible(x)}` };
     if (x.tropGrand) return { etat: "trop_grande", message: tropGrand(p.file, x) };
     try {
       const valeur = analyserJson(x.octets, optionsJson);
@@ -381,9 +443,18 @@ export function verifierDossier(fichiers, options = {}) {
       if (v !== null && v !== undefined) evenements.push({ role: `voisins.${role}`, e: v });
     }
   }
+  // Au plus EVENEMENTS_MAX_APPROBATIONS événements de approbations.json sont
+  // contrôlés un à un (CT-6 EX-15.1) ; les éléments en trop sont nommés par A-2.
+  let evenementsNonControles = 0;
   if (approbations && Array.isArray(approbations.events)) {
-    approbations.events.forEach((e, k) => evenements.push({ role: `approbations.events[${k}]`, e }));
+    const n = Math.min(approbations.events.length, EVENEMENTS_MAX_APPROBATIONS);
+    for (let k = 0; k < n; k++) evenements.push({ role: `approbations.events[${k}]`, e: approbations.events[k] });
+    evenementsNonControles = approbations.events.length - n;
   }
+  const ecartBorneEvenements = () =>
+    evenementsNonControles > 0
+      ? [`events : ${approbations.events.length} éléments, au-delà de la borne de ${EVENEMENTS_MAX_APPROBATIONS} (maxItems du schéma) : les éléments ${EVENEMENTS_MAX_APPROBATIONS} à ${approbations.events.length - 1} ne sont ni contrôlés ni rapportés un à un`]
+      : [];
   const contexteEvenement = { indexCles: indexCles ?? null, profondeurMax: options.profondeurMax ?? Infinity };
   const parEvenement = evenements.map(({ role, e }) => ({ role, e, ...controlerEvenement(e, contexteEvenement) }));
   const resultatProuve = parEvenement.find((x) => x.role === "evenement");
@@ -486,7 +557,7 @@ export function verifierDossier(fichiers, options = {}) {
       for (const [nom, v] of [["previous", previous], ["next", next]]) {
         if (!v) continue;
         const tv = decoderHorodatage(v.ts);
-        if (t === null || tv === null) ecarts1.push(`ts de ${nom} (${v.ts}) ou de l'événement (${evt.ts}) qui n'est pas une date existante : ordre invérifiable`);
+        if (t === null || tv === null) ecarts1.push(`ts de ${nom} (${montrer(v.ts)}) ou de l'événement (${montrer(evt.ts)}) qui n'est pas une date existante : ordre invérifiable`);
         else if (nom === "previous" && tv > t) ecarts1.push(`ts de previous (${v.ts}) postérieur à celui de l'événement (${evt.ts})`);
         else if (nom === "next" && tv < t) ecarts1.push(`ts de next (${v.ts}) antérieur à celui de l'événement (${evt.ts})`);
         if (!memeChaine(v.org_id, evt.org_id) || !memeChaine(v.journal_id, evt.journal_id)) ecarts1.push(`voisin ${nom} (seq ${JSON.stringify(v.seq)}) : org_id ou journal_id différent`);
@@ -498,21 +569,21 @@ export function verifierDossier(fichiers, options = {}) {
       if (next) ecarts2.push(...origine("next", next));
       if (previousBrut !== null) {
         const hp = hashRecalcule(previousBrut);
-        if (hp === null || evt.prev_hash !== hp) ecarts2.push(`prev_hash ${evt.prev_hash} différent du hash recalculé de previous (${hp})`);
+        if (hp === null || evt.prev_hash !== hp) ecarts2.push(`prev_hash ${montrer(evt.prev_hash)} différent du hash recalculé de previous (${hp})`);
       }
       if (nextBrut !== null && (hashEvt === null || !next || next.prev_hash !== hashEvt)) {
-        ecarts2.push(`next.prev_hash ${next?.prev_hash} différent du hash recalculé de l'événement (${hashEvt})`);
+        ecarts2.push(`next.prev_hash ${montrer(next?.prev_hash)} différent du hash recalculé de l'événement (${hashEvt})`);
       }
       selon("C-2", ecarts2);
 
       const ecarts3 = [];
       if (previousBrut !== null) {
         const attendue = previous ? (nouvelleCle(previous) ?? previous.recorder_key_id) : undefined;
-        if (!memeChaine(evt.recorder_key_id, attendue)) ecarts3.push(`recorder_key_id ${evt.recorder_key_id}, ${attendue} attendue après previous`);
+        if (!memeChaine(evt.recorder_key_id, attendue)) ecarts3.push(`recorder_key_id ${montrer(evt.recorder_key_id)}, ${montrer(attendue)} attendue après previous`);
       }
       if (nextBrut !== null) {
         const attendue = nouvelleCle(evt) ?? evt.recorder_key_id;
-        if (!next || !memeChaine(next.recorder_key_id, attendue)) ecarts3.push(`next.recorder_key_id ${next?.recorder_key_id}, ${attendue} attendue`);
+        if (!next || !memeChaine(next.recorder_key_id, attendue)) ecarts3.push(`next.recorder_key_id ${montrer(next?.recorder_key_id)}, ${montrer(attendue)} attendue`);
       }
       selon("C-3", ecarts3);
     }
@@ -576,7 +647,7 @@ export function verifierDossier(fichiers, options = {}) {
       if (!typesSeq || !entier(evt.seq)) ecarts.push(`seq ${JSON.stringify(evt.seq)}, first_seq ${JSON.stringify(manifeste.first_seq)} ou last_seq ${JSON.stringify(manifeste.last_seq)} mal typé`);
       else if (!(manifeste.first_seq <= evt.seq && evt.seq <= manifeste.last_seq)) ecarts.push(`seq ${evt.seq} hors de [${manifeste.first_seq}, ${manifeste.last_seq}]`);
       if (debut === null || fin === null) ecarts.push(`period_start ou period_end mal typé`);
-      else if (t === null || t < debut || t >= fin) ecarts.push(`ts ${evt.ts} hors de la période [${manifeste.period_start}, ${manifeste.period_end})`);
+      else if (t === null || t < debut || t >= fin) ecarts.push(`ts ${montrer(evt.ts)} hors de la période [${manifeste.period_start}, ${manifeste.period_end})`);
       selon("P-2", ecarts);
     }
 
@@ -625,17 +696,17 @@ export function verifierDossier(fichiers, options = {}) {
         ecarts.push(`periodHash incalculable : ${e.message}`);
       }
       if (ph !== null && msig.period_hash !== ph) ecarts.push(`period_hash ${JSON.stringify(msig.period_hash)} différent du periodHash recalculé ${ph}`);
-      if (!memeChaine(manifeste.recorder_key_id, msig.recorder_key_id)) ecarts.push(`recorder_key_id du manifeste (${manifeste.recorder_key_id}) différent de celui de manifeste.sig (${msig.recorder_key_id})`);
+      if (!memeChaine(manifeste.recorder_key_id, msig.recorder_key_id)) ecarts.push(`recorder_key_id du manifeste (${montrer(manifeste.recorder_key_id)}) différent de celui de manifeste.sig (${montrer(msig.recorder_key_id)})`);
       if (options.manifestePrecedent) ecarts.push(...verifierContinuite(options.manifestePrecedent, manifeste).erreurs.map((e) => `continuité avec le précédent : ${e}`));
       if (options.manifesteSuivant) ecarts.push(...verifierContinuite(manifeste, options.manifesteSuivant).erreurs.map((e) => `continuité avec le suivant : ${e}`));
       if (!clesExploitables) partiel("P-5", ecarts, "cles.json inexploitable (E-8)");
       else {
         const cle = chaine(msig.recorder_key_id) ? indexCles.cles.get(msig.recorder_key_id) : undefined;
-        if (!cle) ecarts.push(`clé ${msig.recorder_key_id} absente de cles.json`);
+        if (!cle) ecarts.push(`clé ${montrer(msig.recorder_key_id)} absente de cles.json`);
         else {
           if (!cle.admise || !estHex(msig.sig, 64) || !verifierSignatureManifeste(manifeste, msig.sig, cle.octets)) ecarts.push(`signature du manifeste invalide sous ${msig.recorder_key_id}`);
           const g = decoderHorodatage(manifeste.generated_at);
-          if (g === null || !dansValidite(cle, g)) ecarts.push(`generated_at ${manifeste.generated_at} hors de la validité de la clé ${msig.recorder_key_id}`);
+          if (g === null || !dansValidite(cle, g)) ecarts.push(`generated_at ${montrer(manifeste.generated_at)} hors de la validité de la clé ${msig.recorder_key_id}`);
         }
         selon("P-5", ecarts);
       }
@@ -648,7 +719,10 @@ export function verifierDossier(fichiers, options = {}) {
   // Relations d'A-2 et A-3 qui ne lisent pas l'événement prouvé (règle commune).
   const ecartsA2SansEvenement = () =>
     !approbations ? [] : !Array.isArray(approbations.events) ? ["events n'est pas un tableau"]
-      : approbations.events.flatMap((d, k) => (!estObjet(d) ? [`events[${k}] n'est pas un objet`] : d.execution?.tool !== NOMS_RESERVES.DECISION ? [`events[${k}] : execution.tool ${d.execution?.tool}, ${NOMS_RESERVES.DECISION} attendu`] : []));
+      : [
+          ...approbations.events.slice(0, EVENEMENTS_MAX_APPROBATIONS).flatMap((d, k) => (!estObjet(d) ? [`events[${k}] n'est pas un objet`] : d.execution?.tool !== NOMS_RESERVES.DECISION ? [`events[${k}] : execution.tool ${montrer(d.execution?.tool)}, ${NOMS_RESERVES.DECISION} attendu`] : [])),
+          ...ecartBorneEvenements(),
+        ];
   const ecartsJeu = (jeu) => {
     if (!estObjet(jeu) || !Array.isArray(jeu.members) || !estObjet(jeu.threshold) || !entier(jeu.threshold.required) || !entier(jeu.threshold.size)) {
       return ["approver_set illisible : members, threshold.required ou threshold.size mal typé"];
@@ -708,9 +782,10 @@ export function verifierDossier(fichiers, options = {}) {
       }
       const decision = sorteEvenement(evt) === "decision";
       const tsEvt = decoderHorodatage(evt.ts);
-      approbations.events.forEach((d, k) => {
+      ecarts.push(...ecartBorneEvenements());
+      approbations.events.slice(0, EVENEMENTS_MAX_APPROBATIONS).forEach((d, k) => {
         if (!estObjet(d)) return ecarts.push(`events[${k}] n'est pas un objet`);
-        if (d.execution?.tool !== NOMS_RESERVES.DECISION) ecarts.push(`events[${k}] : execution.tool ${d.execution?.tool}, ${NOMS_RESERVES.DECISION} attendu`);
+        if (d.execution?.tool !== NOMS_RESERVES.DECISION) ecarts.push(`events[${k}] : execution.tool ${montrer(d.execution?.tool)}, ${NOMS_RESERVES.DECISION} attendu`);
         if (!estObjet(evt.approval) || !egaliteJson(d.approval, evt.approval)) ecarts.push(`events[${k}] : approval différent, clé pour clé, de celui de l'événement prouvé`);
         if (A === null || !egaliteJson(d.execution?.arguments?.value, A)) ecarts.push(`events[${k}] : execution.arguments.value différent de A`);
         if (!decision) {
@@ -719,7 +794,7 @@ export function verifierDossier(fichiers, options = {}) {
           if (at === null || tsEvt === null || at > tsEvt) ecarts.push(`events[${k}] : approval.at postérieur au ts de l'événement prouvé, ou date inexistante`);
         }
       });
-      if (decision && !approbations.events.some((d) => hashEvt !== null && hashRecalcule(d) === hashEvt)) {
+      if (decision && !approbations.events.slice(0, EVENEMENTS_MAX_APPROBATIONS).some((d) => hashEvt !== null && hashRecalcule(d) === hashEvt)) {
         ecarts.push("la décision prouvée ne figure pas dans events");
       }
       selon("A-2", ecarts);
@@ -733,14 +808,17 @@ export function verifierDossier(fichiers, options = {}) {
       else if (ecarts.length === 0) {
         const approbateurs = approbation.approvers;
         const distincts = new Set(approbateurs);
+        // Appartenance par ensemble, en temps linéaire (CT-1 A-3) ; un membre
+        // ou un approbateur qui n'est pas une chaîne n'appartient à rien.
+        const membresDuJeu = new Set(jeu.members.filter((m) => typeof m === "string"));
         if (distincts.size !== approbateurs.length) ecarts.push("approbateurs en double");
-        for (const a of distincts) if (!jeu.members.includes(a)) ecarts.push(`${a} n'est pas membre du jeu déclaré`);
+        for (const a of distincts) if (typeof a !== "string" || !membresDuJeu.has(a)) ecarts.push(`${montrer(a)} n'est pas membre du jeu déclaré`);
         if (approbation.decision === "expire") {
           if (approbateurs.length !== 0 || !Array.isArray(approbation.signatures) || approbation.signatures.length !== 0) {
             ecarts.push("décision expire : aucune signature attendue");
           }
         } else {
-          const membres = [...distincts].filter((a) => jeu.members.includes(a)).length;
+          const membres = [...distincts].filter((a) => typeof a === "string" && membresDuJeu.has(a)).length;
           if (membres < jeu.threshold.required) ecarts.push(`${membres} approbateur(s) distinct(s) membre(s), seuil ${jeu.threshold.required}`);
         }
         if (!egaliteJson(approbation.threshold, jeu.threshold)) ecarts.push("threshold de l'événement différent de celui du jeu déclaré");
@@ -753,7 +831,7 @@ export function verifierDossier(fichiers, options = {}) {
     else {
       const demande = [previous, next].find((v) => v && hashRecalcule(v) === approbation.request_hash);
       if (!demande) nonExecute("A-4", "piece_hors_dossier", ["l'événement de demande n'est pas un voisin : request_hash non vérifiable"]);
-      else selon("A-4", demande.execution?.status === "retenue" ? [] : [`la demande (seq ${demande.seq}) a le statut ${demande.execution?.status}, retenue attendu`]);
+      else selon("A-4", demande.execution?.status === "retenue" ? [] : [`la demande (seq ${montrer(demande.seq)}) a le statut ${montrer(demande.execution?.status)}, retenue attendu`]);
     }
   }
 
@@ -904,20 +982,7 @@ export function verifierDossier(fichiers, options = {}) {
   }
 
   function inutilisable(type, erreur) {
-    return {
-      utilisable: false,
-      type_erreur: type,
-      erreur,
-      verdict: null,
-      valide: null,
-      evenement: null,
-      controles: [],
-      controles_en_echec: [],
-      non_executes_bloquants: [],
-      parties_absentes: [],
-      borne: null,
-      perimetre: null,
-    };
+    return rapportInutilisable(type, erreur);
   }
 
   function conclure(evenement, avecK, indexLu, absentes, perim, reservees = []) {

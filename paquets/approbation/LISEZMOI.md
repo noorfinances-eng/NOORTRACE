@@ -34,6 +34,11 @@ contrôle par `configuration-approbation-v0` puis par les règles de la table
 d'EX-10.12, sans lire de secret, d'état ni d'écoute ; elle écrit une ligne
 `{"valide":…,"errors":[{"code","pointer"}…]}` (erreurs triées par pointeur
 puis par code), code 0 si le document est valide, 1 sinon, 2 sans fichier.
+La règle `canaux_meme_autorite_sans_jeton` (CT-3 EX-12.5, au rang de `jetons_egaux`,
+code pas encore dans l'énumération figée de `$defs/rapport_validation` :
+révision demandée) refuse deux canaux en mTLS avec la même autorité de clients
+qu'aucun jeton ne distingue, car un certificat « console » ouvrirait alors le
+canal du noyau.
 `sonde` (EX-12.22, révision 0.6) envoie `GET <url>` en HTTP, sans corps,
 sans authentification ni redirection suivie, attend au plus 2 500 ms en
 tout, écrit le corps reçu sur une ligne de la sortie standard, ou la raison
@@ -44,7 +49,13 @@ corps, en JSON strict, est `$defs/reponse_etat_service` de
 vide ou répétée, argument inconnu) ; aucune autre valeur.
 
 Au démarrage, le service consigne l'empreinte SHA-256 de ses fichiers
-(`bin/`, `src/`, `schemas/`, `package.json`, CT-7 EX-3.10), relit son état
+(`bin/`, `src/`, `schemas/`, `package.json`, CT-7 EX-3.10) et, depuis la revue
+de l'étape 8, de ceux des paquets qu'il exécute, résolus comme Node
+les résout (`@noortrace/console`, `@noortrace/noyau`, `@noble/curves`,
+`@noble/hashes`), avec le détail par paquet (`paquets` de la ligne
+`demarrage` : nom, version, nombre de fichiers) ; la valeur reste calculée par
+le processus qu'elle décrit, et le condensé de l'image que fournit le
+déploiement fait foi quand il existe (révision de CT-7 EX-3.10 demandée). Il relit son état
 (EX-7.23), retient son annuaire dans l'ordre d'EX-13.38 et y recopie
 `administrators` (EX-13.37), déclenche les minuteurs échus pendant l'arrêt,
 relit le jeu des tickets ouverts, puis écoute ; il écrit alors sur la sortie
@@ -66,6 +77,24 @@ Une seule file traite les entrées une à une (`src/service.mjs`) : la machine
 à états (`src/tickets.mjs`) déclenche d'abord les minuteurs échus (EX-7.7),
 traite l'entrée, puis l'enregistrement est écrit et synchronisé ; la réponse
 n'est rendue, et une remise livrée, qu'après (EX-7.22).
+
+Réponse `evaluer` (CT-3 §12.3, révision 0.5 ; étape 8, décision du porteur du 14 novembre 2026) :
+huit membres exactement, dont `policy_version` et `policy_sha256` de la version
+chargée sous laquelle la réponse est rendue — la version de la requête pour une
+évaluation et pour un ticket `nouveau`, la version sous laquelle le ticket a été
+créé pour un ticket rapproché (EX-7.21), en observation comme hors observation ;
+le service recopie l'empreinte que le noyau a déclarée au `charger` de cette
+version (`Machine.couplePolitique`), il ne la calcule jamais (EX-12.6). Le noyau
+refuse toute réponse rendue sous une autre politique que celle qu'il a épinglée
+(CT-2 EX-7.16, raison `politique_non_epinglee`). Addendum du 14 novembre (neuvième
+membre) : au `charger`, le service **calcule** `approval_sha256`, SHA-256 du JCS
+(RFC 8785) du membre `approval` tel qu'il l'a reçu, le garde avec la version, le
+reporte dans la réponse de `charger` (`{ policy_version, policy_sha256,
+approval_sha256, approval_candidates }`) et dans chaque réponse `evaluer` (neuf
+membres) ; il n'est jamais recopié d'un message du noyau, qui le compare au
+condensé du membre qu'il a lui-même envoyé : la décision est liée aux règles
+réellement appliquées, et une version pré-enregistrée par un pair avec d'autres
+règles sous l'empreinte honnête ne passe plus.
 
 | Module | Domaine |
 |---|---|
@@ -94,9 +123,10 @@ Sous `state_dir` (mode 0700) :
 |---|---|
 | `etat/journal.ndjson` | une ligne par entrée ou opération qui a un effet : `<n> <base64>`, enregistrement `{ meta, versions?, tickets?, fenetres?, annuaire?, defis? }` de documents entiers (`ticket-v0` `$defs/ticket` et `$defs/fenetre_ouverte`, `annuaire-approbateurs-v0`, tableau de `$defs/defi`) **sans les arguments en clair**, chiffré AES-256-GCM (EX-7.30 : nonce de 12 octets, données associées `noortrace/approbation/etat/v0` LF nature LF `n`) ; `fdatasync` avant toute réponse ; une entrée sans effet n'écrit rien ; un numéro n'est jamais réattribué |
 | `etat/arguments/t-<ticket>`, `etat/arguments/f-<ticket>` | arguments en clair d'un ticket actif (`request.arguments`, `request.retained_event`, `request.arguments_piece`, `opening.scope.values`) ou valeurs de la portée d'une fenêtre ouverte, chiffrés (nature `arguments`) ; écrits (temporaire, `fsync`, renommage, `fsync` du répertoire) avant la ligne qui rend le ticket durable, supprimés après la ligne de son passage en `consomme`, `clos` ou `abandonne`, ou de la fermeture de la fenêtre (EX-7.24) |
-| `etat/instantane.chiffre` | l'état complet (sans arguments) au dernier compactage (toutes les 2 000 lignes) ou à la reprise après un échec d'écriture, écrit par fichier temporaire, `fsync`, renommage, `fsync` du répertoire |
+| `etat/instantane.chiffre` | l'état complet (sans arguments) au dernier compactage (toutes les 2 000 lignes, ou dès que 64 Mio ont été ajoutés au journal depuis le dernier compactage : CT-3 EX-13.13, des enregistrements de documents entiers faisaient croître le journal bien au-delà de ce que 2 000 lignes laissent supposer) ou à la reprise après un échec d'écriture, écrit par fichier temporaire, `fsync`, renommage, `fsync` du répertoire |
+| `etat/archive.ndjson` | de l'étape 8 : une ligne `<n> <base64>` par ticket terminal (`consomme`, `clos`, `abandonne`) sorti de l'état vivant sept jours après sa dernière transition (minuteur `archivage` de la machine, après tous les autres à instant égal), document `ticket-v0` entier chiffré (nature `archive`, `n` de l'enregistrement `archives` qui le retire de l'état), écrite et synchronisée avant cet enregistrement, en ajout seul, jamais relue au démarrage (`MagasinEtat.lireArchive()` pour l'exploitation) : la trace reste conservée aussi longtemps que le journal (EX-7.24) sans peser sur l'état vivant ni sur l'instantané ; un ticket archivé est `ticket_inconnu` pour toute méthode (révision d'EX-7.24 et d'EX-7.30 demandée) |
 | `etat/verrou` | pid du service : un second service sur le même répertoire est refusé ; le verrou d'un processus arrêté brutalement est repris |
-| `journal-service.ndjson` | journal du service, hors chaîne (3.4, 10.4) : démarrage et empreinte, chargements, avertissements de la politique, votes inscrits, lectures du jeu, remises, acquittements, refus du canal (`canal_console_refus`), opérations de l'annuaire (`operation_annuaire`, `operation_annuaire_refusee`), `annuaire_amorce_ignoree`, `annuaire_ttl_recopie`, livraison des notifications (`notification_livree`, `notification_echec`, `notification_abandonnee`, `notification_sans_destinataire`, `notification_boite_en_echec`, `plafond_refus_non_notifies`), alertes ; aucun argument en clair ni empreinte d'argument (EX-7.24), ni corps ni clé de notification (EX-13.42) |
+| `journal-service.ndjson`, `journal-service.ndjson.1` à `.8` | journal du service, hors chaîne (3.4, 10.4) : démarrage et empreinte, chargements, avertissements de la politique, votes inscrits, lectures du jeu, remises, acquittements, refus du canal (`canal_console_refus`), opérations de l'annuaire (`operation_annuaire`, `operation_annuaire_refusee`), `annuaire_amorce_ignoree`, `annuaire_ttl_recopie`, livraison des notifications (`notification_livree`, `notification_echec`, `notification_abandonnee`, `notification_sans_destinataire`, `notification_boite_en_echec`, `plafond_refus_non_notifies`), alertes, et depuis l'étape 8 `trace_bornee`, `vue_effet_omis` (EX-12.14), `ticket_archive` ; aucun argument en clair ni empreinte d'argument (EX-7.24), ni corps ni clé de notification (EX-13.42). : tourné comme la boîte d'envoi au-delà de 64 Mio, 8 fichiers tournés au plus ; un refus d'authentification (`auth_refusee`) est consigné par période de 60 s (une ligne à la première occurrence, `count` 1, puis une ligne `auth_refusee_periode` avec le compte à la fin de la période ou à l'arrêt), le compteur `evenements_auth_refusee` comptant chaque refus |
 | `notifications.ndjson`, `notifications.ndjson.1` à `.8` | boîte d'envoi (EX-13.39) : une ligne par notification, le corps JCS envoyé au webhook, écrite avant la première tentative, en clair (ni argument ni identité de personne) ; tournée au-delà de 64 Mio, 8 fichiers tournés au plus |
 
 État relu à la reprise (EX-7.23) : versions chargées et version en vigueur,
@@ -130,7 +160,12 @@ texte de l'hôte tel qu'il est écrit, avant toute normalisation : `127.1` ou
 `LOCALHOST` n'en sont pas (révision 0.6).
 
 Secrets, toujours par référence (`{ "file" }`, relatif au fichier de
-configuration, ou `{ "env" }`), résolus au démarrage seulement :
+configuration, ou `{ "env" }`), résolus au démarrage seulement ; en production
+(même règle que IP-10 de CT-8), un fichier de secret (`storage_key`,
+jetons, `rpc.token`, `notifications.key`, `tls.key`) doit être un fichier
+ordinaire sans droit de groupe ni d'autrui (`0400` ou `0600`), propriété de
+l'identité du processus, sinon `reference_illisible` à son pointeur (les
+certificats et autorités ne sont pas soumis à ce contrôle) :
 `storage_key` (32 octets bruts pris tels quels, sinon 64 chiffres
 hexadécimaux, `0x` facultatif, espaces de tête et de fin retirés) ; jetons des
 canaux et `rpc.token` (16 à 1 024 caractères `[\x21-\x7e]`, espaces de tête
@@ -221,7 +256,13 @@ Passages ambigus ou que le texte ne tranche pas, avec la lecture retenue.
     ticket échu ne rouvre pas.
 15. **`charger` d'une version déjà chargée avec une autre empreinte** :
     refusée (`requete_invalide`) ; la même empreinte recharge la liste des
-    outils et recalcule les candidats.
+    outils et recalcule les candidats. Durcissement CT-3 EX-12.5 : à empreinte
+    déclarée égale, une politique (`approval`, `environment`) différente de
+    celle gardée est refusée (`requete_invalide`), pour qu'un appelant ne
+    réécrive pas la version en vigueur sans changer l'empreinte (la liste des
+    outils et des demandeurs peut, elle, s'enrichir). Durcissement CT-3 EX-12.5 : un
+    `charger` dont `environment` diffère de celui de la configuration du service
+    est refusé (`requete_invalide`).
 16. **Chiffrement au repos** (EX-7.24) : tout enregistrement d'état est
     chiffré, pas seulement les arguments ; la trace sans arguments reste lisible
     par l'export de la machine (`exporter`).
@@ -247,8 +288,8 @@ Passages ambigus ou que le texte ne tranche pas, avec la lecture retenue.
     pour un canal non authentifié (lecture 2).
 21. **Intention dans `evaluer`** : `$defs/requete_evaluer` n'admet qu'une
     chaîne ou `null` ; une intention portée par une référence (CT-2 EX-5.21)
-    est refusée (`requete_invalide`). Voir le rapport du lot pour l'interface
-    côté démon.
+    est refusée (`requete_invalide`). L'interface côté démon relève de
+    l'enregistreur (CT-2 EX-5.21).
 22. **Échec d'écriture de l'état** (EX-7.22 : « persister, avec `fsync` …
     chaque transition … **avant** d'en rendre l'effet visible » ; ni 7.10 ni
     12.7 ne disent quoi faire d'un `fsync` en échec). Lecture : l'entrée en
@@ -261,13 +302,13 @@ Passages ambigus ou que le texte ne tranche pas, avec la lecture retenue.
     rendu visible peut ainsi devenir durable (ticket créé, unité de fenêtre
     consommée) : le noyau, qui n'a pas eu de réponse, réessaie et reçoit la
     réponse idempotente (EX-7.20) ; jamais l'inverse (un effet visible perdu,
-    relecture C, R-C-2).
+    relecture adversariale des approbations).
 23. **Effacement des arguments** (EX-7.24 : « effacés au passage en
     `consomme`, `clos` ou `abandonne` »). Lecture : l'effacement vaut pour
     toute copie sur disque, pas seulement le document courant ; les arguments
     sont donc tenus hors du journal en ajout seul, dans un fichier par ticket
     supprimé au passage même (voir « Fichiers sur disque ») : aucune ligne
-    antérieure n'en garde copie (relecture C, R-C-7). Le document `ticket-v0`
+    antérieure n'en garde copie (relecture adversariale des approbations). Le document `ticket-v0`
     est recomposé à la reprise de sa ligne et de son fichier.
 24. **Entrée sans effet** (EX-7.20 ; EX-7.23 : le service « relit ses
     documents … et rien d'autre »). Lecture : une entrée qui ne change ni
@@ -275,14 +316,14 @@ Passages ambigus ou que le texte ne tranche pas, avec la lecture retenue.
     un tic sans minuteur échu, un `evaluer` `autorise` hors fenêtre) n'est pas
     persistée ; l'instant de la dernière entrée est persisté avec tout
     enregistrement, et une entrée sans effet ne laisse rien que la reprise
-    devrait relire (relecture C, R-C-10).
+    devrait relire (relecture adversariale des approbations).
 25. **Lecture et confirmation datées** (EX-8.7 : « une lecture faite
     **après** l'instant où la décision a été calculée » ; T8 : « d'instant ≥
     l'entrée en `verification` »). Lecture : l'instant d'une lecture est celui
     où elle commence (avant `eth_chainId`), pas celui où son résultat est
     traité ; une lecture partie avant le calcul de la décision met à jour la
     dernière confirmation mais ne déclenche pas T8, et une nouvelle lecture
-    suit (relecture C, R-C-1). Une hauteur de confirmation inférieure à la
+    suit (relecture adversariale des approbations). Une hauteur de confirmation inférieure à la
     hauteur de gel n'est pas refusée : EX-8.2 (« Le service croit le nœud
     qu'il interroge ») et T8 n'en font pas une garde, et une lecture partie
     après la décision part après la lecture de gel, la file des lectures étant
@@ -298,11 +339,11 @@ Passages ambigus ou que le texte ne tranche pas, avec la lecture retenue.
     que pour les tickets dont la version épingle ce jeu, et pour le jeu de
     repli si la version en vigueur l'épingle. La donnée de l'entrée reste
     `{ status, jeu, cause }` ; le jeu visé passe à la machine hors de
-    l'entrée (relecture C, R-C-9).
+    l'entrée (relecture adversariale des approbations).
 27. **Jetons distincts** (EX-12.4, EX-10.12 `jetons_egaux`) : par leur
     référence à la validation (même fichier, chemin résolu contre le
     répertoire de la configuration, ou même variable), par leur valeur au
-    démarrage (relecture C, R-C-8).
+    démarrage (relecture adversariale des approbations).
 28. **Vue d'un ticket dont les arguments sont effacés** (EX-12.14 ne nomme
     que `ticket_non_ouvert` après les points 1 à 3 ; `vue_ticket` exige
     `retained_event`). Lecture : un ticket `consomme`, `clos` ou

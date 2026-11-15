@@ -238,7 +238,28 @@ GOFLAGS=-mod=vendor go test -run TestInventaireVecteurs -v ./moteur
   `ancres.FuzzAncres`, `ancres.FuzzEntetes`, `horodatage.FuzzJeton`,
   `horodatage.FuzzCertificat`, `horodatage.FuzzCRL`, `ots.FuzzAnalyser`,
   `registre.FuzzRegistre`, `registre.FuzzLigne` ; `go test -fuzz` sur l'une
-  d'elles avec `-fuzztime` (30 s chacune en CI).
+  d'elles avec `-fuzztime` (30 s chacune en CI). Chaque cible a son corpus
+  de graines sous `<paquet>/testdata/fuzz/<cible>/` (vecteurs de l'annexe A
+  de CT-6 et graines littérales, au format de corpus de Go), que `go test`
+  rejoue et où Go verse tout contre-exemple trouvé ;
+  `cmd/noortrace-verifier/corpus_test.go` vérifie que chaque cible en a un.
+- Essais de la revue de sécurité interne (étape 8), un par règle nouvelle,
+  chacun rouge sur le binaire relu et vert après : `jsonv/revue_test.go`
+  (borne du nombre de valeurs, mémoire par valeur, clé d'égalité),
+  `schema/revue_test.go` (`uniqueItems` linéaire), `commun/commun_test.go`
+  (neutralisation des chaînes, bornes des détails), `dossier/revue_test.go`
+  (E-6 et `--pieces`, A-3 sans panique, événements et détails bornés, C-1,
+  A-3, E-10, AT-1 branche par branche), `horodatage/revue_test.go` (sel
+  RSASSA-PSS déclaré 0, paramètres PSS branche par branche, CRL au numéro
+  non minimal), `moteur/revue_test.go` (rapport lisible neutralisé, résumé
+  par fichier, `rewrite_window_ms` exact, mémoire et taille du rapport sur
+  des parties de petites valeurs) ; les `*/revue_branches_test.go` prennent
+  les branches de rejet restées sans essai (C-3, P-5 et la continuité avec
+  un second manifeste précédent ou suivant, K-1 relation par relation, K-3,
+  K-4, K-6, AT-4, N-1 dont `revocation.statements`, bornes du validateur de
+  schéma, sel RSASSA-PSS vide sur un autre message, OID inconnus des
+  paramètres PSS) ; de bout en bout sur le binaire construit,
+  `test/verificateur-go-revue.test.js` à la racine du dépôt.
 
 ## Salle blanche
 
@@ -289,6 +310,59 @@ modifié.
 | Fichiers ordinaires, aucun lien suivi | CT-6 EX-4.17 ; CT-1 §11.4, D-2 : aucun fichier ordinaire du nom d'une partie déclarée absente (changé : une autre entrée de ce nom ne compte plus comme présente) |
 | E-9 sans tableau de signatures ; signature sans approbateur | CT-6 EX-5.19 ; CT-1 §11.4, E-9 (révision 0.5) : toutes les signatures sont parcourues (changé) |
 
+## Règles et limites issues de la revue de sécurité interne (étape 8)
+
+Chaque règle a son essai (section « Tests ») ; les révisions de texte
+qu'elles appellent sont demandées à la révision de CT-6.
+
+- **Nombre de valeurs d'un document JSON** (EX-15.1, ligne à ajouter) : une
+  entrée lue sous une limite de taille L admet au plus L / 16 valeurs
+  (scalaires, objets et tableaux, racine comprise ; 4 096 au moins), soit
+  1 048 576 pour une partie de CT-1, 65 536 pour `dossier.json`, 4 194 304
+  pour `registre.json`, `certificat-commit.json` et le fichier d'en-têtes,
+  1 048 576 pour le fichier d'ancres, 131 072 pour le document de politique
+  d'AT-6. Au-delà, la lecture s'arrête et le document est traité comme un
+  document qui n'est pas du JSON (partie inexploitable ; code 2 pour une
+  entrée à part), comme pour la profondeur. La mémoire allouée est bornée à
+  environ 160 octets par valeur admise (au plus 640 Mio pour une entrée de
+  64 Mio) ; le lecteur relu demandait 175 octets par octet lu (11 Gio pour
+  64 Mio) et s'arrêtait sans rapport.
+- **Événements de `approbations.json`** : seuls les 1 024 premiers éléments de
+  `events` (`maxItems` du schéma) sont lus comme des événements et contrôlés
+  un à un ; au-delà, A-1 échoue et A-2 compte les éléments en trop.
+- **Détails du rapport** : une liste de détails écrit au plus 64 éléments
+  puis le nombre des éléments omis ; un détail, un résumé ou un
+  avertissement est tronqué à 4 096 caractères, et la troncature est écrite.
+- **Rapport lisible et sortie d'erreur** (EX-8.5, EX-8.6) : toute ligne passe
+  par `commun.Neutraliser` : caractères de commande U+0000 à U+001F et U+007F
+  à U+009F, U+2028, U+2029, marques de direction U+202A à U+202E et U+2066 à
+  U+2069, U+FEFF écrits `\uXXXX` ; le seul saut de ligne est celui de fin
+  de ligne. Le rapport JSON n'est pas touché (échappé par le codage).
+- **Pièces fournies à part** (EX-4.6, EX-4.17) : une pièce n'est cherchée que
+  pour une référence dont `sha256` est un SHA-256 en hexadécimal minuscule ;
+  le nom ouvert est fait de 64 chiffres hexadécimaux dans `--pieces`, et
+  rien d'autre n'est ouvert (lstat, `O_NOFOLLOW`, fstat) ; une entrée de ce
+  nom qui n'est pas un fichier ordinaire rend l'entrée inutilisable (code 2,
+  `entree_illisible`, EX-4.17).
+- **A-3** : un terme absent (`approver_set`, `members`, `approvers`,
+  `signatures` manquant ou d'un autre genre) est une relation non tenue :
+  A-3 échoue, code 1, jamais une panique (code 2).
+- **`uniqueItems`** : unicité par clé d'égalité (`jsonv.CleEgalite`), en
+  temps linéaire.
+- **RSASSA-PSS** (EX-9.11) : la longueur du sel doit être égale à
+  `saltLength` déclarée, 0 compris (RFC 8017 §9.1.2 appliqué pour `sLen` = 0,
+  que `crypto/rsa` lit « automatique »).
+- **CRL au numéro de série non minimal** (EX-9.6) : lue par le seul lecteur
+  du profil de §9.3 ; `crypto/x509`, qui la refusait, n'est plus appelé sur
+  les CRL du fichier d'ancres. Les certificats du fichier d'ancres passent
+  encore par `x509.ParseCertificate` (version v3), qui refuse un numéro de
+  série non minimal : limite connue, même famille, à trancher avec EX-9.6.
+- **Résumé d'un contrôle non exécuté** : chaque partie absente garde sa
+  raison ; la forme de l'exemple de CT-6 §8.5 est gardée quand les raisons
+  sont égales.
+- **`rewrite_window_ms`** (EX-6.17) : différence exacte en millisecondes
+  UNIX (entiers de 64 bits), sans la saturation de `time.Time.Sub`.
+
 Autres règles de la révision appliquées : E-1 et P-1 refusent `org_id` ou
 `journal_id` nul (CT-1 §3) ; D-2 et E-4 exigent une chaîne non vide au sens
 de CT-1 §3 (blancs Unicode et U+FEFF) ; AT-1 juge la forme canonique de toute
@@ -301,6 +375,30 @@ EX-9.23) ; clé ou algorithme hors de la version 0 (CT-6 EX-9.24) ;
 lignes de certificat : `Type` du corps non comparé, `proposer` fait de
 blancs accepté, AV-R-2 pour un corps non canonique (CT-6 EX-11.6,
 EX-11.14) ; AV-K-1 levé seulement avec K-8 réussie (CT-6 EX-11.25).
+- **Révision 0.9 de CT-6** (EX-12.4, EX-9.4, EX-11.19, EX-11.14, EX-11.24,
+  EX-9.16 ; revue de sécurité de l'étape 8 ; essais `revue_revision09_test.go`) : le profil DER d'EX-9.4
+  s'applique à tout le jeton, signature couvrant l'octet ou non (étiquette
+  universelle 0 refusée, `SEQUENCE` et `SET` construits et tout autre type
+  universel primitif, `BOOLEAN` `00` ou `ff`, `NULL` de longueur nulle,
+  `INTEGER` non vide, `BIT STRING` au compte de bits inutilisés de 0 à 7, nul
+  s'il est seul ; `horodatage/der.go`) ; une CRL à extension critique que la
+  version 0 ne lit pas, sur la liste (autre qu'`authorityKeyIdentifier`,
+  `cRLNumber`, `issuingDistributionPoint`, `deltaCRLIndicator`) ou sur une
+  entrée (autre que `cRLReasons`), est écartée avec AV-T-3 (EX-9.16,
+  `horodatage/certificat.go`) ; N-3 ne réussit que si chaque clé employée par
+  le verdict (événement, manifeste, point quand K-1 a réussi) est comparée et
+  égale, sinon N-3 et le contrôle 6 sont non exécutés (`ancre_absente`) et
+  `anchors_used` ne liste que les ancres des clés employées (EX-12.4,
+  `ancres.EntreeN3.Employees`, `moteur/moteur.go`) ; R-10 sans entrée
+  `inscription` est `partie_absente` quel que soit l'état de P-1 (EX-11.19,
+  AV-R-1 levé seulement si P-1 a établi la clé du manifeste) ; un certificat
+  de hauteur `0x0` fait échouer R-1 (EX-11.14, `registre/lecture.go`).
+- **A-4, `request_hash` illisible** (CT-1 §11.4, règle générale des
+  relations ; arbitrage du 14 novembre) : un `approval` objet dont
+  `request_hash` est absent ou n'est pas une chaîne met A-4 en échec, avant
+  toute recherche du voisin et même avec `voisins.json` inexploitable
+  (`dossier/analyse.go`, `a4` ; essai `TestA4RequestHashIllisible`, vecteur
+  `invalide-a3-approval-vide`).
 
 ## Lectures encore ouvertes
 

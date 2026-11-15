@@ -15,8 +15,7 @@ import { attendreHauteur, attendreRecu, capturerEtRelire, conclure, envoyer } fr
 import * as J from "../jeu.mjs";
 import { lecture, nonce as lireNonce, solde } from "../reseau.mjs";
 import { ecrireAtomique, serialiser } from "../donnees.mjs";
-import { cleRole, consommerConfirmation, dossierClient, ecartCompte, ecartRolesDistincts, etat, prealables, ZERO20 } from "./base.mjs";
-import { provision } from "./preparer.mjs";
+import { cleRole, consommerConfirmation, controlerProvisionDossier, dossierClient, ecartCompte, ecartRolesDistincts, etat, prealables, provision, ZERO20 } from "./base.mjs";
 
 const ROLE_ETAPE = { jeu_approbateurs: "jeu_approbateurs", assignation: "assignation", approvisionnement: "approvisionnement", inscription: "inscription", premiere_ancre: "ancre", premiere_cloture: "cloture" };
 
@@ -94,6 +93,12 @@ export async function inscrireClient(ctx) {
   const tenue = new TenueDossier(ctx.client.dossier, dossierLu, { horloge: ctx.horloge, completer: completerResult(ctx) });
   const d = tenue.dossier;
   await prealables(ctx, sortie);
+
+  // OP-4, provision du dossier, avant OP-5 comme `inscrire-client --dossier` de l'outil : `funding.funder` est la
+  // trésorerie du manifeste, le budget ne dépasse pas le plafond, `amount_wei` est `P_k` recalculé depuis `fees` du manifeste ;
+  // les autres vérifications OP-4 (organisation libre ou jeu déjà déployé) viennent à leur place et marquent la même entrée.
+  controlerProvisionDossier(ctx, sortie, { funder: d.funding.funder, budget: BigInt(d.funding.daily_budget_gas), amountWei: d.funding.amount_wei });
+  sortie.reussie("OP-4");
 
   // Clés de l'exploitant et OP-5 : comptes du manifeste, administrateur du registre (EX-3.1).
   const deployeur = cleRole(ctx, sortie, "deployeur");

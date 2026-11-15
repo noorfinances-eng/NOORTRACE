@@ -261,6 +261,8 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
   // (le titre du premier est cité mot pour mot par le plan de tests de CT-9, TV-7).
   const REVISION_05 = ["invalide-a1-autre-raison", "invalide-appel-sans-approbation", "invalide-decision-effets", "invalide-demande-effets", "invalide-index-autre-journal", "invalide-marque-ordre-octets", "invalide-partie-manquante", "invalide-partie-trop-grande", "invalide-profondeur-129", "invalide-raison-blancs", "invalide-redaction-blancs", "invalide-redaction-vide", "invalide-seq-chaine", "invalide-signature-en-trop", "invalide-substitut-octets", "invalide-utf8-voisins", "valide-at1-inscription-date-inexistante", "valide-profondeur-128"];
   // Compléments de la révision 0.5 (passages tranchés après l'alignement des implémentations), dont une entrée en code 2.
+  // Dossiers de la revue de sécurité de l'étape 8 (INDEX de ct-1 : membre toString, A-3 sur jeu ou signatures vides).
+  const REVUE_ETAPE8 = ["invalide-a3-approbations-vide", "invalide-a3-approval-vide", "invalide-a3-sans-approbateurs", "invalide-a3-sans-jeu", "invalide-a3-sans-membres", "invalide-a3-sans-signatures", "invalide-membre-tostring"];
   const COMPLEMENTS_05 = ["illisible-index-non-json", "invalide-approbations-declaree-manquante", "invalide-approval-nombre", "invalide-demande-non-objet", "invalide-evenement-nul-autres-echecs", "invalide-k6-voisins-nul-seq-9", "invalide-outil-nombre", "invalide-voisin-absent", "invalide-voisin-nombre"];
   const compatibilite = (liste) => {
     for (const nom of liste) {
@@ -302,7 +304,7 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
   };
 
   it("les soixante-dix dossiers (quarante de la version 0.2, dix de la révision 0.3 et vingt de la révision 0.4), sans ancres et avec ancres-test.json : même code et mêmes vérifications en échec ; 4, 5, 8 hors_perimetre_version ; N-3 jamais en échec ; K-1 à K-9 seulement avec la partie points-de-controle.json, AT-1 à AT-7 seulement avec la partie attestation-perimetre.json", function () {
-    const anciens = noms.filter((n) => !REVISION_05.includes(n) && !COMPLEMENTS_05.includes(n));
+    const anciens = noms.filter((n) => !REVISION_05.includes(n) && !COMPLEMENTS_05.includes(n) && !REVUE_ETAPE8.includes(n));
     expect(anciens).to.have.length(70);
     compatibilite(anciens);
   });
@@ -314,8 +316,14 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
 
   it("révision 0.5 de CT-1, compléments : les neuf dossiers des passages tranchés après l'alignement, mêmes exigences ; illisible-index-non-json en code 2 (dossier_illisible)", function () {
     expect(noms.filter((n) => COMPLEMENTS_05.includes(n))).to.deep.equal(COMPLEMENTS_05);
-    expect(noms.filter((n) => !REVISION_05.includes(n) && !COMPLEMENTS_05.includes(n))).to.have.length(70);
+    expect(noms.filter((n) => !REVISION_05.includes(n) && !COMPLEMENTS_05.includes(n) && !REVUE_ETAPE8.includes(n))).to.have.length(70);
     compatibilite(COMPLEMENTS_05);
+  });
+
+  it("revue de sécurité de l'étape 8 : les sept dossiers nouveaux de ct-1 (membre toString, A-3 sur jeu, membres, approbateurs, approval ou signatures vides), mêmes exigences que les soixante-dix", function () {
+    expect(noms.filter((n) => REVUE_ETAPE8.includes(n))).to.deep.equal(REVUE_ETAPE8);
+    expect(noms).to.have.length(70 + REVISION_05.length + COMPLEMENTS_05.length + REVUE_ETAPE8.length);
+    compatibilite(REVUE_ETAPE8);
   });
 
   it("dossier complet et invalide-hash-faux : les exemples des sections 8.5 et 8.6 sont la sortie réelle (chemins abrégés en …/, version de Node exceptée)", function () {
@@ -661,15 +669,17 @@ describe("CT-6 : règles précisées par la revue", function () {
     expect(complet.doc.facts.approval.decision).to.equal("approuve");
   });
 
-  it("provenance clé par clé : rec-test-01 confirmée par N-3 seulement, rec-test-02 par R-10 seulement (EX-6.8)", function () {
-    const { doc } = rapportJSON(argumentsDossier("valide-provenance-mixte").args);
-    expect(doc.facts.recorder_keys).to.deep.equal({ event_key_id: "rec-test-01", manifest_key_id: "rec-test-02", source: "mixte", event_key_source: "ancres", manifest_key_source: "registre" });
-    expect(doc.statement.fr).to.include("l'événement est signé par la clé d'enregistreur rec-test-01 et le manifeste par la clé rec-test-02, clé rec-test-01 fournie par le fichier d'ancres, clé rec-test-02 inscrite au registre ; ");
-    expect(doc.statement.en).to.include("; the event is signed by recorder key rec-test-01 and the manifest by key rec-test-02, key rec-test-01 given by the anchors file, key rec-test-02 registered in the registry; ");
-    expect(doc.statement.fr).to.not.include("clés inscrites au registre");
-    expect(doc.controls[5].summary).to.equal("rec-test-01 (événement, fournie par le fichier d'ancres), rec-test-02 (manifeste, inscrite au registre)");
-    expect(doc.checks.map((c) => c.id)).to.include("N-3");
+  it("provenance clé par clé (révision 0.9 de CT-6, annexe A.7) : le fichier d'ancres ne porte pas rec-test-02, clé du manifeste : N-3 et le contrôle 6 sont non exécutés (ancre_absente, EX-12.4) ; rec-test-01 déclarée par le dossier, rec-test-02 inscrite au registre (R-10 réussie) : provenance mixte écrite clé par clé dans l'énoncé (EX-6.8) ; N-4 absente", function () {
+    const { a, args } = argumentsDossier("valide-provenance-mixte");
+    const { doc } = rapportJSON(args);
+    const statut = (id) => doc.checks.find((c) => c.id === id);
+    expect([statut("N-3").status, statut("N-3").reason]).to.deep.equal(["non_execute", "ancre_absente"]);
+    expect([doc.controls[5].status, doc.controls[5].reason, doc.controls[5].summary]).to.deep.equal(["non_execute", "ancre_absente", null]);
+    expect(statut("R-10").status).to.equal("reussi");
     expect(doc.checks.map((c) => c.id)).to.not.include("N-4");
+    expect(doc.statement.fr).to.include("l'événement est signé par la clé d'enregistreur rec-test-01 et le manifeste par la clé rec-test-02, clé rec-test-01 déclarée par le dossier, clé rec-test-02 inscrite au registre ; ");
+    expect(doc.statement.fr).to.not.include("clés inscrites au registre");
+    expect(doc.statement).to.deep.equal(a.statement);
   });
 
   it("P-1 en échec avec les cinq parties : seules T-2, O-2, R-9 et R-10 sont non exécutées sans raison admise (EX-5.4) ; contrôle 5 non réussi sans O-2 (EX-10.12)", function () {

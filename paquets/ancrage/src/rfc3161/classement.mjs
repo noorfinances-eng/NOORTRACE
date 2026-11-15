@@ -19,7 +19,7 @@ export const RETRY_AFTER_MAX_S = 604800;
 /**
  * Lit un en-tête `Retry-After` : secondes entières, ou date RFC 1123 convertie
  * en secondes depuis `maintenantMs` (jamais négatif). Rend un entier plafonné
- * à `RETRY_AFTER_MAX_S` (borne du schéma, correction R-C-1) ou `null`.
+ * à `RETRY_AFTER_MAX_S` (borne du schéma) ou `null`.
  */
 export function lireRetryAfter(valeur, maintenantMs) {
   if (valeur === null || valeur === undefined) return null;
@@ -48,8 +48,8 @@ export function attenteReprise(retry, k) {
 
 /**
  * Attente après une erreur transitoire d'une réponse HTTP (EX-8.9, règle
- * révisée après la relecture, R-C-1 à R-C-3) : l'unique table, partagée par le
- * client (`classerErreur`) et le planificateur (`attenteReprise` du lot C).
+ * révisée après la relecture) : l'unique table, partagée par le
+ * client (`classerErreur`) et le planificateur (`attenteReprise`).
  * `d = Retry-After` quand la réponse 429 ou 503 en porte un, **borné** à
  * `[retry.initial_ms, retry.max_ms]` ; `d = 0` sur le premier 408 de la demande
  * chez ce prestataire ; sinon la règle générale `min(max_ms, initial_ms ×
@@ -90,7 +90,7 @@ export function classerErreur({ etape = null, httpStatus = null, retryAfter = nu
   let c = code;
   if (c === null) {
     if (httpStatus !== null && httpStatus !== 200) c = `http_${httpStatus}`;
-    else if (pkiStatus !== null && pkiStatus >= 2) c = pkiStatus === 2 && failureInfo && failureInfo !== "autre" ? `echec_${failureInfo}` : `statut_${pkiStatus}`;
+    else if (pkiStatus !== null && pkiStatus !== 0 && pkiStatus !== 1) c = pkiStatus === 2 && failureInfo && failureInfo !== "autre" ? `echec_${failureInfo}` : `statut_${pkiStatus}`;
   }
   if (c === null) return { classe: null, attenteMs: null, raisonAttente: null, alerte: "aucune", immediat: false, code: null };
 

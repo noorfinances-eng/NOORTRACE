@@ -22,25 +22,81 @@ import { lireJsonStrict } from "./json.mjs";
 
 const RACINE_PAQUET = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+/** Fichiers d'un paquet qui comptent dans l'empreinte : tout sauf `node_modules`, triés par chemin. */
+function fichiersDuPaquet(racine) {
+  const sortie = [];
+  const parcourir = (rel) => {
+    for (const e of fs.readdirSync(path.join(racine, rel), { withFileTypes: true })) {
+      if (e.name === "node_modules" || e.name.startsWith(".")) continue;
+      const r = rel === "" ? e.name : `${rel}/${e.name}`;
+      if (e.isDirectory()) parcourir(r);
+      else if (e.isFile()) sortie.push(r);
+    }
+  };
+  parcourir("");
+  return sortie.sort();
+}
+
+/** Répertoire réel du paquet `nom` tel que la résolution de Node le trouve depuis `depuis`, ou null. */
+function trouverPaquet(nom, depuis) {
+  let dir = depuis;
+  for (;;) {
+    const candidat = path.join(dir, "node_modules", nom);
+    if (fs.existsSync(path.join(candidat, "package.json"))) return fs.realpathSync(candidat);
+    const parent = path.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
+/** Dépendances déclarées d'un paquet (`dependencies` de son `package.json`), résolues. */
+function dependances(racine) {
+  const pkg = JSON.parse(fs.readFileSync(path.join(racine, "package.json"), "utf8"));
+  const sortie = [];
+  for (const nom of Object.keys(pkg.dependencies ?? {}).sort()) {
+    const dir = trouverPaquet(nom, racine);
+    if (dir) sortie.push({ nom, dir });
+  }
+  return sortie;
+}
+
 /**
- * Empreinte du logiciel : SHA-256 des fichiers `src/`, `schemas/`, `bin/` et
- * `package.json` du paquet, dans l'ordre de leur chemin (CT-7 EX-3.10).
+ * Empreinte du logiciel (CT-7 EX-3.10) : SHA-256 des fichiers du paquet
+ * (`bin/`, `schemas/`, `src/`, `package.json`, documents compris) et, depuis la
+ * revue de sécurité de l'étape 8, de ceux de chaque paquet que le service exécute, résolu
+ * comme Node le résout : les dépendances déclarées, de proche en proche
+ * (`@noortrace/console`, `@noortrace/noyau`, `@noble/curves`, `@noble/hashes`).
+ * Chaque fichier entre comme `<paquet>/<chemin>` NUL `<octets>` NUL, paquets
+ * et chemins triés. Une image dont une dépendance diffère consigne une autre
+ * empreinte. La valeur reste calculée par le processus qu'elle décrit : le
+ * condensé de l'image, fourni par le déploiement, fait foi s'il existe
+ * (révision de CT-7 EX-3.10 demandée pour le dire).
+ * @param {{detail?: boolean}} [o]
+ * @returns {string|{empreinte: string, paquets: {nom: string, version: string, fichiers: number}[]}}
  */
-export function empreinteLogiciel() {
+export function empreinteLogiciel(o = {}) {
+  const paquets = new Map();
+  const visiter = (nom, racine) => {
+    if (paquets.has(nom)) return;
+    const pkg = JSON.parse(fs.readFileSync(path.join(racine, "package.json"), "utf8"));
+    paquets.set(nom, { racine, version: String(pkg.version ?? ""), fichiers: fichiersDuPaquet(racine) });
+    for (const dep of dependances(racine)) visiter(dep.nom, dep.dir);
+  };
+  const propre = JSON.parse(fs.readFileSync(path.join(RACINE_PAQUET, "package.json"), "utf8"));
+  visiter(propre.name, RACINE_PAQUET);
   const h = createHash("sha256");
-  const fichiers = [];
-  for (const d of ["bin", "schemas", "src"]) {
-    const dir = path.join(RACINE_PAQUET, d);
-    if (!fs.existsSync(dir)) continue;
-    for (const f of fs.readdirSync(dir).sort()) fichiers.push(`${d}/${f}`);
+  const detail = [];
+  for (const nom of [...paquets.keys()].sort()) {
+    const p = paquets.get(nom);
+    for (const f of p.fichiers) {
+      h.update(`${nom}/${f}\0`);
+      h.update(fs.readFileSync(path.join(p.racine, f)));
+      h.update("\0");
+    }
+    detail.push({ nom, version: p.version, fichiers: p.fichiers.length });
   }
-  fichiers.push("package.json");
-  for (const f of fichiers.sort()) {
-    h.update(f + "\0");
-    h.update(fs.readFileSync(path.join(RACINE_PAQUET, f)));
-    h.update("\0");
-  }
-  return "0x" + h.digest("hex");
+  const empreinte = "0x" + h.digest("hex");
+  return o.detail ? { empreinte, paquets: detail } : empreinte;
 }
 
 /**
@@ -51,7 +107,7 @@ export function empreinteLogiciel() {
  *   base?: string, horloge?: () => number, appelRpc?: (m: string, p: unknown[]) => Promise<unknown>,
  *   sortie?: (ligne: object) => void,
  *   essais?: {tirerNonce?: () => string|undefined, tailleBoite?: number, minuterie?: boolean,
- *     envoyer?: Function, compacterApres?: number}}} p
+ *     envoyer?: Function, compacterApres?: number, compacterApresOctets?: number}}} p
  *   `config` : document complété (`completer`) ; `secrets` : rendu de `resoudreSecrets` ;
  *   `essais` : réglages des essais seulement, qu'aucune configuration ne porte (nonce imposé
  *   à `preparer_inscription`, taille de rotation de la boîte, minuteries réelles coupées sous
@@ -68,9 +124,11 @@ export async function demarrerService(p) {
   const horloge = p.horloge ?? Date.now;
   fs.mkdirSync(c.state_dir, { recursive: true, mode: 0o700 });
   const supervision = new Supervision({ journal: path.join(c.state_dir, "journal-service.ndjson"), horloge, sortie: p.sortie });
+  const logiciel = empreinteLogiciel({ detail: true });
   supervision.consigner("demarrage", {
     environment: c.environment,
-    empreinte: empreinteLogiciel(),
+    empreinte: logiciel.empreinte,
+    paquets: logiciel.paquets,
     pid: process.pid,
     uid: typeof process.getuid === "function" ? process.getuid() : null,
     node: process.version,
@@ -78,7 +136,7 @@ export async function demarrerService(p) {
   if (c.environment === "production" && typeof process.getuid === "function" && process.getuid() === 0) {
     throw new Error("le service ne s'exécute pas sous l'identité root en production (CT-7 EX-3.10)");
   }
-  const magasin = new MagasinEtat({ repertoire: c.state_dir, cle: p.secrets.cle, compacterApres: essais.compacterApres });
+  const magasin = new MagasinEtat({ repertoire: c.state_dir, cle: p.secrets.cle, compacterApres: essais.compacterApres, compacterApresOctets: essais.compacterApresOctets });
   let docs;
   try {
     docs = await magasin.ouvrir();

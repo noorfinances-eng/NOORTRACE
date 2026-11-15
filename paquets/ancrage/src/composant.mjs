@@ -1,7 +1,7 @@
-// Composant d'ancrage temps réel (CT-5 §4, §5, §6, §8, §9 ; lot F1) : il
+// Composant d'ancrage temps réel (CT-5 §4, §5, §6, §8, §9) : il
 // satisfait l'interface `ComposantAncrage` de l'enregistreur (CT-2 rubrique g :
 // `remettrePoint`, `remettreCloture`, jamais bloquant, EX-4.12, EX-8.1), tient
-// le planificateur du lot C et sa file durable, exécute chaque action émise
+// le planificateur et sa file durable, exécute chaque action émise
 // avec les clients A (RFC 3161), B (OpenTimestamps) et D (registre), réinjecte
 // leurs résultats comme entrées du planificateur, programme les tics et les
 // reprises sur une horloge injectée, relit le stockage au démarrage
@@ -26,7 +26,7 @@ import path from "node:path";
 import { decoderHorodatage, ecrireHorodatage, empreinteAncre, hacherManifeste, hacherPoint, hexVersOctets, octetsVersHex, sha256Hex, utf8 } from "@noortrace/noyau";
 import { COMPACT_BYTES_DEFAUT, FileDurable, Supervision, admettreManifeste, admettrePoint, commeServeurInterne, creerPlanificateur, lireFiles, noncesAleatoires, validerConfiguration } from "./planificateur/index.mjs";
 import {
-  DepotAncres, acquerir, attenteReprise, capturerCrls, construireFiche, epreuveAcceptation, tirerNonce, transportHttps as transportRfc3161,
+  DepotAncres, acquerir, attenteReprise, capturerCrls, politiqueCaptureCrl, construireFiche, epreuveAcceptation, tirerNonce, transportHttps as transportRfc3161,
   verifierFiche, verifierJeton, verifierRevocation,
 } from "./rfc3161/index.mjs";
 import { DepotOts, fichierEntetes, hauteursAttestees, lireOts, mettreANiveau, rpcBitcoinHttp, soumettre, transportHttps as transportOts } from "./ots/index.mjs";
@@ -114,7 +114,7 @@ export function periodMetaRegistre(manifeste, periodHash = null) {
  * consignée (`anchor_queue_write_failed`) et réécrite à la prochaine écriture
  * réussie ; une ligne que le schéma refuse (`demande_non_conforme`) n'est
  * jamais rejouée : consignée avec le chemin JSON de l'écart puis abandonnée,
- * elle n'empêche pas les lignes suivantes de s'écrire (R-C-1).
+ * elle n'empêche pas les lignes suivantes de s'écrire.
  */
 export class FileTolerante {
   constructor(file, { maxPending, surEchec, surReprise, surNonConforme = null }) {
@@ -191,9 +191,14 @@ export class FileTolerante {
 /**
  * Composant d'ancrage. Construit par `creerComposantAncrage`.
  */
+/** Taille d'un lot de `stockage_relu` (borne `maxItems` du schéma planificateur-ancrage-v0 ; CT-5 EX-8.12). */
+const LOT_STOCKAGE_RELU = 10000;
+
 export class ComposantAncrage {
   #chaine = Promise.resolve();
   #minuterie = null;
+  /** Recul de l'heure murale en cours (CT-5 EX-4.13) : `{ t, mono }`, dernier instant servi et horloge monotone à cet instant, ou null. */
+  #recul = null;
 
   constructor({ configuration, profil = "developpement", checkpointIntervalEnregistreur = null, contexte, horloge, aleatoire, journal = null, clients = {}, options = {} }) {
     if (!estObjet(contexte)) throw new TypeError("contexte attendu");
@@ -238,9 +243,11 @@ export class ComposantAncrage {
     this.t10 = [];
     /** @type {object[]} pièces d'acquisition dont l'écriture a échoué (étape 9 : rejouée) */
     this.ecrituresEnAttente = [];
-    /** @type {Map<string, Uint8Array>} nonces OpenTimestamps tirés mais pas encore durables (`ots/<objet>.nonce`), par `<periode>/<objet>` (lecture H1-a) */
+    /** @type {Map<string, Uint8Array>} nonces OpenTimestamps tirés mais pas encore durables (`ots/<objet>.nonce`), par `<periode>/<objet>` (lecture a des corrections) */
     this.noncesNonDurables = new Map();
-    /** Arrêt demandé : plus aucune action réseau nouvelle ne part, les actions en vol s'achèvent (R-F-4). */
+    /** @type {Map<number, {due: number, k: number}>} périodes dont `entetes-bitcoin.json` attend que la source connaisse `h' + 11` (CT-5 EX-6.6) */
+    this.entetesEnAttente = new Map();
+    /** Arrêt demandé : plus aucune action réseau nouvelle ne part, les actions en vol s'achèvent (EX-5.8). */
     this.arretDemande = false;
     this.erreurMetriqueConsignee = false;
     this.fileTolerante = null;
@@ -250,6 +257,8 @@ export class ComposantAncrage {
       journal,
       horloge,
       prestatairesExterieurs: this.validation.valide ? configuration.rfc3161.providers.filter((p) => p.role !== "interne").map((p) => p.id) : [],
+      // Revue de sécurité de l'étape 8 (CT-5 EX-5.13, CT-8 EX-10.10) : séries des tentatives exposées à 0 pour chaque prestataire configuré.
+      prestataires: this.validation.valide ? configuration.rfc3161.providers.map((p) => p.id) : [],
       journalAbrege: this.journalId.slice(2, 10),
     });
   }
@@ -303,10 +312,15 @@ export class ComposantAncrage {
     const c = this.configuration;
     this.depotAncres = DepotAncres.ouvrir({
       racine: this.contexte.racineStockage, orgId: this.orgId, journalId: this.journalId,
-      // R-A-1 : une ligne illisible d'`acquisitions.ndjson` est ignorée et consignée une fois par fichier et par démarrage.
-      signaler: (periodStart, illisibles) => this.supervision.consigner("error", "acquisitions_ligne_illisible", { period_start: periodStart, lines: illisibles.length, line: illisibles[0]?.ligne ?? null, reason: String(illisibles[0]?.raison ?? "").slice(0, 64) }),
+      // Une ligne illisible d'`acquisitions.ndjson` est ignorée et consignée une fois par fichier et par démarrage ;
+      // revue de sécurité de l'étape 8 (CT-5 EX-5.14) : une acquisition manque alors au fichier que l'exportateur lit, l'alerte `file_perdue` le dit.
+      signaler: (periodStart, illisibles) => {
+        this.supervision.consigner("error", "acquisitions_ligne_illisible", { period_start: periodStart, lines: illisibles.length, line: illisibles[0]?.ligne ?? null, reason: String(illisibles[0]?.raison ?? "").slice(0, 64) });
+        this.supervision.consigner("error", "alerte_file_perdue", { severity: "critique", reason: "acquisitions_ligne_illisible", period_start: periodStart });
+      },
     });
     this.depotOts = DepotOts.ouvrir({ racine: this.contexte.racineStockage, orgId: this.orgId, journalId: this.journalId });
+    this.#relireQualificationsRetirees();
     this.#preparerClients();
     const relue = lireFiles(c.queue.path);
     for (const t of relue.tronquees) {
@@ -324,6 +338,8 @@ export class ComposantAncrage {
       journal: (niveau, evenement, champs) => this.supervision.consigner(niveau, evenement, champs),
       ...(this.clients.file?.crochet ? { crochet: this.clients.file.crochet } : {}),
     });
+    // Revue de sécurité de l'étape 8 (CT-5 EX-8.5) : un fragment de ligne retiré à l'ouverture est consigné (la ligne tronquée l'a été par `lireFiles`).
+    if (this.file.reparation) this.supervision.consigner("warning", "anchor_queue_fragment_removed", { bytes: this.file.reparation.octets_retires, epoch: String(this.contexte.epoque) });
     if (typeof this.file.declencher === "function") this.file.declencher();
     this.fileTolerante = new FileTolerante(this.file, {
       maxPending: c.queue.max_pending,
@@ -391,7 +407,7 @@ export class ComposantAncrage {
    * trois demandes finales et, pour chaque période ouverte, son dernier point
    * (« le dernier point d'une période ouverte sans demande ») : l'entrée reste
    * sous les bornes du schéma (10 000) quelle que soit la profondeur du
-   * stockage (R-F-3). Les séries en mémoire (AN-3) ne gardent que les périodes
+   * stockage (EX-8.12). Les séries en mémoire (AN-3) ne gardent que les périodes
    * ouvertes ; `points` garde les points des périodes ouvertes et ceux qu'une
    * demande relue désigne.
    */
@@ -441,7 +457,16 @@ export class ComposantAncrage {
     } catch (e) {
       this.supervision.consigner("error", "anchoring_storage_unreadable", { reason: String(e?.message ?? e).slice(0, 200) });
     }
-    await this.#injecter({ type: "stockage_relu", data: { periods: periodes.slice(0, 10000), checkpoints: checkpoints.slice(0, 10000) } });
+    // Revue de sécurité de l'étape 8 (EX-8.12 : « toute période close sans ses trois demandes reçoit celles qui manquent ») : rien
+    // n'est écarté. Les périodes et les points sont transmis par lots de la borne du schéma (10 000), les plus récents
+    // d'abord, chaque lot confronté à la file ; une coupe en lots est consignée.
+    periodes.sort((a, b) => b.period_start - a.period_start);
+    checkpoints.sort((a, b) => b.period_start - a.period_start);
+    const lots = Math.max(1, Math.ceil(periodes.length / LOT_STOCKAGE_RELU), Math.ceil(checkpoints.length / LOT_STOCKAGE_RELU));
+    if (lots > 1) this.supervision.consigner("warning", "anchoring_storage_batched", { periods: periodes.length, checkpoints: checkpoints.length, batches: lots, batch_size: LOT_STOCKAGE_RELU });
+    for (let k = 0; k < lots; k++) {
+      await this.#injecter({ type: "stockage_relu", data: { periods: periodes.slice(k * LOT_STOCKAGE_RELU, (k + 1) * LOT_STOCKAGE_RELU), checkpoints: checkpoints.slice(k * LOT_STOCKAGE_RELU, (k + 1) * LOT_STOCKAGE_RELU) } });
+    }
   }
 
   // ------------------------------------------------------- remises (CT-2 g)
@@ -563,7 +588,7 @@ export class ComposantAncrage {
    * Arrêt (EX-8.12, EX-5.8) : plus aucune action réseau nouvelle ne part ; les
    * acquisitions en vol s'achèvent et leurs réponses sont injectées (le jeton
    * obtenu est écrit dans la file et n'est jamais redemandé au redémarrage,
-   * R-F-4), dans la borne `request_timeout_ms` (plus une marge) de l'horloge
+   * EX-5.8), dans la borne `request_timeout_ms` (plus une marge) de l'horloge
    * injectée ; puis l'entrée `arret` est traitée et la file fermée.
    */
   async arreter({ attendre = true } = {}) {
@@ -628,22 +653,89 @@ export class ComposantAncrage {
       this.supervision.consigner("error", "config_reload_rejected", { rules: v.erreurs.map((x) => x.regle), count: v.erreurs.length });
       return { accepte: false, erreurs: v.erreurs };
     }
+    // Revue de sécurité de l'étape 8 (EX-5.9 : AN-1 « refuse tout rechargement tant qu'aucun principal qualifié n'est
+    // désigné ») : le retrait de `qualified` survit au rechargement et au redémarrage ; en production, un document qui
+    // désigne comme principal ou secours un prestataire au retrait en vigueur est refusé tant que l'exploitant n'a pas
+    // rétabli la qualification (`retablirQualification`, acte de l'exploitant). Remplacement ciblé si le porteur renverse
+    // la CT-5 EX-5.9 : ce bloc et `#relireQualificationsRetirees`.
+    if (this.profil === "production") {
+      const retires = configuration.rfc3161.providers.filter((p) => (p.role === "principal" || p.role === "secours") && this.qualificationsRetirees.has(p.id));
+      if (retires.length) {
+        const erreurs = retires.map((p) => ({ regle: "4", message: `prestataire ${p.id} (${p.role}) : retrait de qualified en vigueur (EX-5.9), à rétablir par l'exploitant avant le rechargement` }));
+        this.supervision.consigner("error", "config_reload_rejected", { rules: erreurs.map((x) => x.regle), count: erreurs.length, reason: "qualification_retiree" });
+        return { accepte: false, erreurs };
+      }
+    }
     this.configuration = structuredClone(configuration);
     this.validation = v;
-    this.qualificationsRetirees.clear();
     this.supervision.prestatairesExterieurs = new Set(configuration.rfc3161.providers.filter((p) => p.role !== "interne").map((p) => p.id));
+    this.supervision.exposer({ prestataires: configuration.rfc3161.providers.map((p) => p.id) });
     if (this.planificateur) this.planificateur.reconfigurer(v.projection);
     this.supervision.consigner("info", "config_reloaded", { providers: configuration.rfc3161.providers.length });
     return { accepte: true, erreurs: [] };
   }
 
-  /** EX-5.9 : retrait de `qualified` d'un prestataire jusqu'au rechargement ; relève des `jeton_periode` ouverts chez lui. */
-  retirerQualification(providerId) {
+  /** Fichier durable des retraits de `qualified` (CT-5 EX-5.9) : `<ancres>/qualifications-retirees.json`. */
+  #cheminQualifications() {
+    return path.join(this.depotAncres.repertoireJournal, "qualifications-retirees.json");
+  }
+
+  #relireQualificationsRetirees() {
+    try {
+      const d = JSON.parse(fs.readFileSync(this.#cheminQualifications(), "utf8"));
+      if (d && d.version === 0 && Array.isArray(d.providers)) for (const id of d.providers.slice(0, 64)) if (typeof id === "string" && id.length <= 64) this.qualificationsRetirees.add(id);
+    } catch (e) {
+      if (e?.code !== "ENOENT") this.supervision.consigner("error", "qualifications_file_unreadable", { reason: String(e?.code ?? e?.message ?? e).slice(0, 120) });
+    }
+    if (this.qualificationsRetirees.size) this.supervision.consigner("warning", "provider_qualifications_withdrawn_reloaded", { providers: [...this.qualificationsRetirees].sort().join(",").slice(0, 200) });
+  }
+
+  /** Écrit le fichier des retraits (fichier provisoire, `fsync`, renommage, `fsync` du répertoire) ; rien sans dépôt ouvert. */
+  #ecrireQualificationsRetirees() {
+    if (!this.depotAncres) return;
+    const chemin = this.#cheminQualifications();
+    const provisoire = `${chemin}.partiel-${process.pid}`;
+    const octets = Buffer.from(`${JSON.stringify({ version: 0, providers: [...this.qualificationsRetirees].sort(), updated_at: ecrireHorodatage(this.horloge.murale()) })}\n`, "utf8");
+    fs.mkdirSync(path.dirname(chemin), { recursive: true, mode: 0o700 });
+    const fd = fs.openSync(provisoire, "w", 0o600);
+    try {
+      let k = 0;
+      while (k < octets.length) k += fs.writeSync(fd, octets, k, octets.length - k);
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
+    fs.renameSync(provisoire, chemin);
+    const fdRep = fs.openSync(path.dirname(chemin), "r");
+    try {
+      fs.fsyncSync(fdRep);
+    } finally {
+      fs.closeSync(fdRep);
+    }
+  }
+
+  /** Retrait de `qualified` (EX-5.9, EX-5.12), en mémoire et durable, consigné avec sa raison ; rien si déjà retiré. */
+  #retraitQualification(providerId, role, reason) {
+    if (this.qualificationsRetirees.has(providerId)) return false;
+    this.qualificationsRetirees.add(providerId);
+    try {
+      this.#ecrireQualificationsRetirees();
+    } catch (e) {
+      this.supervision.consigner("error", "anchor_piece_write_failed", { reason: `qualifications-retirees:${String(e?.code ?? e?.message ?? "").slice(0, 120)}` });
+    }
+    this.supervision.consigner("warning", "provider_qualification_withdrawn", { provider: providerId, role, reason });
+    return true;
+  }
+
+  /**
+   * EX-5.9 : retrait de `qualified` d'un prestataire par l'exploitant ; durable (survit au
+   * rechargement et au redémarrage, jusqu'à `retablirQualification`) ; relève des `jeton_periode` ouverts chez lui.
+   */
+  retirerQualification(providerId, { reason = "exploitant" } = {}) {
     return this.#serialiser(async () => {
       const p = this.configuration.rfc3161.providers.find((x) => x.id === providerId);
       if (!p) throw new RangeError(`prestataire inconnu : ${providerId}`);
-      this.qualificationsRetirees.add(providerId);
-      this.supervision.consigner("warning", "provider_qualification_withdrawn", { provider: providerId, role: p.role });
+      this.#retraitQualification(providerId, p.role, reason);
       if (!this.demarre || this.arrete) return [];
       const actions = [];
       for (const d of this.planificateur.file()) {
@@ -654,6 +746,25 @@ export class ComposantAncrage {
       }
       this.#apresActions(actions);
       return actions;
+    });
+  }
+
+  /**
+   * Rétablissement de `qualified` par l'exploitant (le ré-établissement est un acte de
+   * l'exploitant, après lecture de la liste de confiance, EX-5.9) ; durable. Rend vrai si un retrait était en vigueur.
+   */
+  retablirQualification(providerId) {
+    return this.#serialiser(async () => {
+      if (!this.qualificationsRetirees.has(providerId)) return false;
+      this.qualificationsRetirees.delete(providerId);
+      try {
+        this.#ecrireQualificationsRetirees();
+      } catch (e) {
+        this.qualificationsRetirees.add(providerId);
+        throw e;
+      }
+      this.supervision.consigner("warning", "provider_qualification_restored", { provider: providerId });
+      return true;
     });
   }
 
@@ -671,10 +782,35 @@ export class ComposantAncrage {
 
   // --------------------------------------------------- mécanique interne
 
+  /**
+   * Instant servi au planificateur. Revue de sécurité de l'étape 8 (EX-4.13 : « les
+   * délais de reprise et de fraîcheur sur son horloge monotone » ; « le
+   * composant d'ancrage, lui, continue de servir la file ») : quand l'heure
+   * murale recule derrière l'horloge du planificateur (qui refuse toute entrée
+   * antérieure), le temps avance au rythme de l'horloge monotone depuis le
+   * dernier instant servi, de sorte qu'aucune attente ne gèle ; une ligne
+   * `anchoring_clock_backwards` et une alerte le disent une fois par recul.
+   * Dès que l'heure murale rattrape l'instant servi, elle fait foi de nouveau.
+   */
   #maintenant() {
     const m = this.horloge.murale();
     const n = this.planificateur?.now ?? null;
-    return n !== null && m < n ? n : m;
+    if (n === null || m >= n) {
+      if (this.#recul !== null) {
+        this.supervision.consigner("info", "anchoring_clock_recovered", { was_behind_s: Math.max(0, Math.trunc((this.#recul.t - m) / 1000)) });
+        this.#recul = null;
+      }
+      return m;
+    }
+    const mono = typeof this.horloge.monotone === "function" ? this.horloge.monotone() : null;
+    if (this.#recul === null) {
+      this.#recul = { t: n, mono };
+      this.supervision.consigner("warning", "anchoring_clock_backwards", { behind_s: Math.trunc((n - m) / 1000), detail: "heure murale reculee derriere l'horloge du planificateur : attentes servies sur l'horloge monotone (EX-4.13)" });
+      this.supervision.consigner("warning", "alerte_horloge_reculee", { severity: "mineure", behind_s: Math.trunc((n - m) / 1000) });
+    }
+    const t = mono === null || this.#recul.mono === null ? n : Math.max(n, this.#recul.t + (mono - this.#recul.mono));
+    this.#recul = { t, mono };
+    return t;
   }
 
   #serialiser(f) {
@@ -701,7 +837,7 @@ export class ComposantAncrage {
     } catch (err) {
       const requestId = typeof entree.data?.request_id === "string" ? entree.data.request_id : null;
       if (err?.code === "entree_non_conforme" && requestId !== null && ["reponse_rfc3161", "reponse_ots", "inclusion_registre", "echec_registre"].includes(entree.type)) {
-        // R-F-1 : un résultat de client que le schéma refuse devient une issue d'échec conforme (`entree_non_conforme`,
+        // Un résultat de client que le schéma refuse devient une issue d'échec conforme (`entree_non_conforme`,
         // détail : chemin JSON de l'écart) : aucune demande ne reste `envoyee` sans issue.
         const chemin = String(err.chemin ?? "").slice(0, 200);
         this.supervision.consigner("error", "anchor_response_rejected", { error_code: "entree_non_conforme", type: entree.type, request_id: requestId, detail: chemin });
@@ -721,10 +857,11 @@ export class ComposantAncrage {
     return actions;
   }
 
-  /** Métriques puis lignes d'EX-8.15, chacune dans son propre essai : une métrique en défaut ne fait jamais perdre une ligne (R-F-2). */
+  /** Métriques puis lignes d'EX-8.15, chacune dans son propre essai : une métrique en défaut ne fait jamais perdre une ligne (EX-8.15). */
   #apresActions(actions) {
     try {
-      this.supervision.releverActions({ actions, file: this.planificateur.file(), maintenant: this.#maintenant() });
+      // Revue de sécurité de l'étape 8 (CT-5 EX-8.5) : la supervision lit la file sans qu'elle soit triée ni recopiée à chaque passe.
+      this.supervision.releverActions({ actions, file: this.planificateur.demandes.values(), maintenant: this.#maintenant() });
     } catch (err) {
       if (!this.erreurMetriqueConsignee) {
         this.erreurMetriqueConsignee = true;
@@ -744,7 +881,7 @@ export class ComposantAncrage {
     let prochain = null;
     for (const a of actions) {
       if (this.arretDemande && ["envoyer_rfc3161", "envoyer_registre", "soumettre_ots", "mettre_a_niveau_ots"].includes(a.action)) {
-        // Arrêt demandé (R-F-4) : la ligne `envoyee` est écrite, la requête ne part pas ; le redémarrage la reprend (EX-8.12).
+        // Arrêt demandé (EX-5.8) : la ligne `envoyee` est écrite, la requête ne part pas ; le redémarrage la reprend (EX-8.12).
         this.supervision.consigner("debug", "anchor_send_deferred", { request_id: a.request_id, action: a.action, reason: "arret_demande" });
         continue;
       }
@@ -874,7 +1011,7 @@ export class ComposantAncrage {
    * Nonce OpenTimestamps durable (EX-6.2 : le rejeu après redémarrage garde le
    * même engagement) : `ots/<objet>.nonce`. Une écriture impossible est
    * consignée ; le nonce est retenu comme non durable et la soumission attend
-   * (`#nonceOtsDurable`) qu'il soit écrit (lecture H1-a).
+   * (`#nonceOtsDurable`) qu'il soit écrit (lecture a des corrections).
    */
   #nonceOts(periodStart, objet) {
     const nom = `${objet}.nonce`;
@@ -996,6 +1133,9 @@ export class ComposantAncrage {
       this.ecrituresEnAttente.push({ action: a, resultat: r, prestataire, objet, k: 0 });
       return;
     }
+    // Revue de sécurité de l'étape 8 (CT-5 EX-5.9 ; EX-5.12 : PKIStatus 4 ou 5, « le prestataire perd qualified jusqu'à décision de l'exploitant ») :
+    // retrait durable et consigné ; la relève est celle de l'erreur permanente du planificateur.
+    if ((r.data.pki_status === 4 || r.data.pki_status === 5) && prestataire.qualified !== null) this.#retraitQualification(prestataire.id, prestataire.role, `pki_status_${r.data.pki_status}`);
     this.#apresAcquisition(a, r, prestataire, objet);
     await this.#injecter({ type: "reponse_rfc3161", data: r.data });
   }
@@ -1032,12 +1172,19 @@ export class ComposantAncrage {
         r.enregistrement.files.response = this.depotAncres.ecrirePiece(periodStart, "rfc3161", `${base}.tsr`, r.reponse);
       }
       if (r.jeton && !existe(`${base}.der`)) r.enregistrement.files.token = this.depotAncres.ecrirePiece(periodStart, "rfc3161", `${base}.der`, r.jeton);
-      const outcome = r.data.token_sha256 && r.verification && r.verification.checks["T-1"] === "reussi" && r.code === null ? "obtenue" : r.enregistrement.outcome;
-      if (outcome === "obtenue") {
+      // Revue de sécurité de l'étape 8 (CT-5 EX-5.10) : l'issue des étapes 1 à 8 est celle d'avant l'échec d'écriture (`avantEcriture`), jamais
+      // `ecriture` : l'enregistrement rejoué porte `obtenue` et `promoted` recalculé, celui que l'exportateur lit (EX-5.8).
+      const avant = r.avantEcriture ?? { outcome: r.enregistrement.outcome, code: r.enregistrement.error_code };
+      if (avant.outcome === "obtenue") {
         r.enregistrement.outcome = "obtenue";
         r.enregistrement.error_code = null;
         r.enregistrement.promoted = !this.depotAncres.dejaPromu(e.objet, r.enregistrement.imprint, periodStart);
         r.outcome = "obtenue";
+      } else {
+        r.enregistrement.outcome = avant.outcome;
+        r.enregistrement.error_code = avant.code;
+        r.enregistrement.promoted = false;
+        r.outcome = avant.outcome;
       }
       this.depotAncres.ajouterAcquisition(periodStart, r.enregistrement);
       return true;
@@ -1095,7 +1242,10 @@ export class ComposantAncrage {
     const genTime = v.tstInfo.genTime;
     let captures;
     try {
-      captures = await capturerCrls({ chemin: v.chemin, transport: this.transportRfc3161, horloge: this.horloge, apresInstant: genTime });
+      // Revue de sécurité de l'étape 8 (AN-1) : adresses de CRL contrôlées et plafonnées selon le profil.
+      // CT-5 EX-4.9 règle 4 bis (révision 0.10) : en production, `crl_hosts` du prestataire restreint les hôtes de CRL.
+      const politique = politiqueCaptureCrl({ production: this.profil === "production", prestataire: this.#prestataireParId(item.provider) });
+      captures = await capturerCrls({ chemin: v.chemin, transport: this.transportRfc3161, horloge: this.horloge, apresInstant: genTime, politique });
     } catch (err) {
       captures = v.chemin.map((c) => ({ certificate_sha256: c.sha256, crl: null, pem: null, erreur: String(err?.message ?? err) }));
     }
@@ -1204,7 +1354,7 @@ export class ComposantAncrage {
     return dernier;
   }
 
-  /** `request_id` de la demande dont l'empreinte d'ancre est celle d'un envoi (lot D, lecture 1 : l'objet n'est pas recouvrable depuis la transaction). */
+  /** `request_id` de la demande dont l'empreinte d'ancre est celle d'un envoi (registre, lecture 1 : l'objet n'est pas recouvrable depuis la transaction). */
   #requestIdDe(transactionHash) {
     try {
       const e = typeof this.envoyeur.envoi === "function" ? this.envoyeur.envoi(transactionHash) : lireEnvois(this.envoyeur.repertoire).find((x) => x.envoi.transaction_hash === transactionHash);
@@ -1243,7 +1393,7 @@ export class ComposantAncrage {
 
   #reprendreClotures() {
     if (!this.envoyeur) return;
-    for (const d of this.planificateur.file()) {
+    for (const d of this.planificateur.demandes.values()) {
       if (d.kind === "ancre_registre_periode" && d.state === "obtenue" && this.clotures.has(d.subject.hash)) this.#programmerCloture(d.subject.hash, this.#maintenant());
     }
   }
@@ -1259,7 +1409,7 @@ export class ComposantAncrage {
     try {
       const s = await this.contexte.signaturesCloture(info.periodMeta, info.manifeste);
       if (s === null || s === undefined) {
-        // Lecture F2 : `null` dit que les signatures des approbateurs ne sont pas encore disponibles (CT-4 §8.2, pas 4) :
+        // Lectures du branchement (LISEZMOI) : `null` dit que les signatures des approbateurs ne sont pas encore disponibles (CT-4 §8.2, pas 4) :
         // la clôture reste à relayer, consignée une fois par essai, et reprise au pas `retry.max_ms` sans alerte.
         this.supervision.consigner("info", "period_close_delegated", { period_start: info.periodStart, reason: "signatures_en_attente", retries: item.k });
         item.k += 1;
@@ -1293,13 +1443,17 @@ export class ComposantAncrage {
     if (!req) return;
     const o = this.configuration.opentimestamps;
     if (!this.#nonceOtsDurable(req.subject.period_start, this.#objetOts(req), a.detail.nonce)) {
-      // Lecture H1-a (EX-6.2) : rien n'est soumis tant que le nonce n'est pas durable ; la soumission est rejouée
+      // Lecture a des corrections (EX-6.2) : rien n'est soumis tant que le nonce n'est pas durable ; la soumission est rejouée
       // avec le même engagement au pas de `retry` (calendriers_insuffisants).
       this.supervision.consigner("warning", "ots_submitted", { request_id: a.request_id, calendars_answered: 0, attestation: "aucune", errors: "nonce_non_durable" });
       await this.#injecter({ type: "reponse_ots", data: { request_id: a.request_id, calendars_answered: 0, attestation: "aucune", proof_sha256: null, proof_size: null } });
       return;
     }
-    const r = await soumettre({ empreinte: a.detail.digest, nonce: hexVersOctets(a.detail.nonce, 16), calendriers: a.detail.calendars, minReponses: o.min_responses, delaiMs: o.timeout_ms, transport: this.transportOts, horloge: this.horloge });
+    // Revue de sécurité de l'étape 8 (CT-5 EX-6.6) : une attestation Bitcoin reçue à la soumission n'est acquise qu'après O-4 contre la source du client.
+    const r = await soumettre({
+      empreinte: a.detail.digest, nonce: hexVersOctets(a.detail.nonce, 16), calendriers: a.detail.calendars, minReponses: o.min_responses, delaiMs: o.timeout_ms, transport: this.transportOts, horloge: this.horloge,
+      entetes: o.headers_source ? ({ hauteurs, margeFin }) => this.#documentEntetes(hauteurs, { margeFin }) : null, reseau: o.headers_source?.network ?? null,
+    });
     let data = { request_id: a.request_id, calendars_answered: r.valides, attestation: "aucune", proof_sha256: null, proof_size: null };
     if (r.ecrire) {
       const objet = this.#objetOts(req);
@@ -1309,6 +1463,7 @@ export class ComposantAncrage {
       else this.depotOts.ecrire({ periodStart: req.subject.period_start, objet, octets: r.octets });
       data = { request_id: a.request_id, calendars_answered: r.valides, attestation: r.attestation, proof_sha256: sha256Hex(octets), proof_size: octets.length };
       this.supervision.consigner("info", "ots_submitted", { request_id: a.request_id, calendars_answered: r.valides, attestation: r.attestation, proof_size: octets.length });
+      this.#consignerCompletudeOts(a.request_id, r);
     } else {
       this.supervision.consigner("warning", "ots_submitted", { request_id: a.request_id, calendars_answered: r.valides, attestation: "aucune", errors: r.reponses.map((x) => x.erreur ?? "ok").join("|").slice(0, 200) });
     }
@@ -1327,9 +1482,12 @@ export class ComposantAncrage {
       await this.#injecter({ type: "reponse_ots", data: { request_id: a.request_id, calendars_answered: 0, attestation: "en_attente", proof_sha256: null, proof_size: null } });
       return;
     }
+    // Revue de sécurité de l'étape 8 (CT-5 EX-6.6) : avec une source d'en-têtes, O-4 est exigée (rien n'est écrit tant que la source ne
+    // confirme pas l'attestation) ; sans source (hors production, AN-1), la preuve est admise et l'état le dit.
     const r = await mettreANiveau({
       preuve: derniere.octets, listeBlanche: o.upgrade.whitelist, transport: this.transportOts, horloge: this.horloge, delaiMs: o.timeout_ms,
-      entetes: o.headers_source ? ({ hauteurs }) => this.#documentEntetes(hauteurs) : null, reseau: o.headers_source?.network ?? null,
+      entetes: o.headers_source ? ({ hauteurs, margeFin }) => this.#documentEntetes(hauteurs, { margeFin }) : null, reseau: o.headers_source?.network ?? null,
+      exigerO4: Boolean(o.headers_source),
     });
     const repondu = r.reponses.filter((x) => x.status !== null).length;
     for (const refus of r.refus) {
@@ -1344,29 +1502,50 @@ export class ComposantAncrage {
       this.supervision.consigner("info", "ots_upgraded", { request_id: a.request_id, state: r.etat, heights: r.hauteurs ? `${r.hauteurs[0]}-${r.hauteurs[1]}` : null, proof_size: r.nouvelle.length });
     }
     if (etat !== "complete" && etat !== "en_attente") etat = "en_attente";
+    this.#consignerCompletudeOts(a.request_id, r);
     await this.#injecter({ type: "reponse_ots", data: { request_id: a.request_id, calendars_answered: repondu, attestation: etat, proof_sha256: sha256Hex(octets), proof_size: octets.length } });
     if (etat === "complete") await this.#entetesBitcoin(req.subject.period_start);
   }
 
-  /** Document d'en-têtes couvrant `[h, h']` depuis la source configurée (EX-6.8), ou null. */
-  async #documentEntetes(hauteurs) {
+  /** Ligne d'exploitation quand une preuve est tenue pour complète sans qu'O-4 l'ait confirmée (aucune source d'en-têtes, hors production). */
+  #consignerCompletudeOts(requestId, r) {
+    if (r.attestation_non_verifiee) this.supervision.consigner("warning", "ots_attestation_non_verifiee", { request_id: requestId, reason: "aucune_source_en_tetes", detail: "attestation Bitcoin non vérifiée par O-4 (EX-6.9) : opentimestamps.headers_source nul" });
+  }
+
+  /**
+   * Document d'en-têtes couvrant `[h, h']` depuis la source configurée
+   * (EX-6.8), ou null. `margeFin` : 11 pour le fichier d'EX-6.8 (`h' + 11`),
+   * 0 pour la seule vérification O-4 d'une preuve (EX-6.9), qui n'attend que
+   * l'en-tête `h'` (CT-5 EX-6.6 : la source du client suit le calendrier
+   * de quelques blocs, l'attestation est vérifiée dès qu'elle connaît `h'`).
+   */
+  async #documentEntetes(hauteurs, { margeFin = 11 } = {}) {
     const hs = this.configuration.opentimestamps.headers_source;
     if (!hs) return null;
     try {
-      if (hs.type === "fichier") return await fichierEntetes({ source: hs, hauteurs, fichier: new Uint8Array(fs.readFileSync(hs.path)) });
+      if (hs.type === "fichier") return await fichierEntetes({ source: hs, hauteurs, fichier: new Uint8Array(fs.readFileSync(hs.path)), margeFin });
       const auth = hs.auth === null ? null : this.contexte.secrets.get("/opentimestamps/headers_source/auth");
       const rpc = this.clients.bitcoinRpc ?? rpcBitcoinHttp({ url: hs.url, auth, transport: this.transportOts });
-      return await fichierEntetes({ source: hs, hauteurs, rpc });
+      return await fichierEntetes({ source: hs, hauteurs, rpc, margeFin });
     } catch (e) {
       this.supervision.consigner("warning", "bitcoin_headers_unavailable", { reason: String(e?.code ?? e?.message ?? "").slice(0, 200), heights: `${hauteurs[0]}-${hauteurs[1]}` });
       return null;
     }
   }
 
-  /** EX-6.8 : `entetes-bitcoin.json` de la période, écrit une fois toutes les preuves de la période complètes (lecture 5 du lot B). */
+  /**
+   * EX-6.8 : `entetes-bitcoin.json` de la période, écrit une fois toutes les
+   * preuves de la période complètes . Revue de sécurité de l'étape 8 (CT-5 EX-6.6) :
+   * quand la source ne connaît pas encore `h' + 11` (cas ordinaire : le
+   * calendrier sert le chemin après 6 confirmations), l'écriture est reprise au
+   * tic, à la cadence `upgrade.interval_s`, jusqu'à ce que le fichier existe.
+   */
   async #entetesBitcoin(periodStart) {
     const hs = this.configuration.opentimestamps.headers_source;
-    if (!hs || this.depotOts.lireEntetes(periodStart)) return;
+    if (!hs || this.depotOts.lireEntetes(periodStart)) {
+      this.entetesEnAttente.delete(periodStart);
+      return;
+    }
     const demandes = this.planificateur.file().filter((d) => d.kind.startsWith("ots_") && d.subject.period_start === periodStart && d.subject.org_id === this.orgId);
     if (!demandes.length || demandes.some((d) => d.state !== "complete")) return;
     let min = null;
@@ -1380,13 +1559,20 @@ export class ComposantAncrage {
       max = max === null ? h.max : Math.max(max, h.max);
     }
     const document = await this.#documentEntetes([min, max]);
-    if (!document) return;
+    if (!document) {
+      const attente = Math.max(60, this.configuration.opentimestamps.upgrade.interval_s) * 1000;
+      const k = (this.entetesEnAttente.get(periodStart)?.k ?? 0) + 1;
+      this.entetesEnAttente.set(periodStart, { due: this.#maintenant() + attente, k });
+      if (k === 1) this.supervision.consigner("warning", "bitcoin_headers_deferred", { period_start: periodStart, heights: `${min}-${max}`, retry_s: attente / 1000 });
+      return;
+    }
     try {
       const r = this.depotOts.ecrireEntetes({ periodStart, document });
       this.supervision.consigner("info", "bitcoin_headers_written", { period_start: periodStart, heights: `${min}-${max}`, size: r.taille, headers: document.headers.length });
     } catch (e) {
       if (e?.code !== "fichier_existant") this.supervision.consigner("error", "anchor_piece_write_failed", { reason: `entetes-bitcoin:${String(e?.code ?? e?.message ?? "").slice(0, 120)}`, period_start: periodStart });
     }
+    this.entetesEnAttente.delete(periodStart);
   }
 
   // --------------------------------------------------------- différés au tic
@@ -1402,6 +1588,11 @@ export class ComposantAncrage {
       if (item.due > now) continue;
       this.cloturesEnAttente.delete(hash);
       this.#lancer(this.#clore(item), { action: "clore", request_id: null });
+    }
+    for (const [periodStart, item] of [...this.entetesEnAttente]) {
+      if (item.due > now) continue;
+      item.due = Infinity; // une reprise à la fois ; `#entetesBitcoin` repose l'échéance ou retire l'entrée
+      this.#lancer(this.#entetesBitcoin(periodStart), { action: "entetes_bitcoin", request_id: null });
     }
     if (this.ecrituresEnAttente.length) {
       const restantes = [];

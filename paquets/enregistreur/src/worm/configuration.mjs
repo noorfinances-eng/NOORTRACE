@@ -12,7 +12,7 @@ import { ServiceCopiesWorm } from "./copies.mjs";
  * `{ "file": "/run/secrets/x" }` désignent le même secret (les mêmes octets
  * lus, décodés autrement) ; c'est la « même référence » d'EX-15.4.
  */
-const emplacement = (v) => {
+export const emplacement = (v) => {
   if (v && typeof v === "object" && !Array.isArray(v)) {
     const { encoding, ...reste } = v;
     void encoding;
@@ -20,6 +20,18 @@ const emplacement = (v) => {
   }
   return Buffer.from(jcsIntegralOctets(v)).toString("utf8");
 };
+
+/**
+ * Deux références de secret désignent-elles le même emplacement, quel que
+ * soit `encoding` ? (EX-12.36 ; étape 8.)
+ */
+export function memeEmplacement(a, b) {
+  try {
+    return emplacement(a) === emplacement(b);
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Règle supplémentaire du pas 3 d'EX-15.4 : avertissement si

@@ -803,6 +803,9 @@ describe("CT-3 0.3 : console de référence dans Chromium (EX-13.36)", function 
       // EX-13.36 : sous NOORTRACE_EXIGER_CHROMIUM=1 (travail console-chromium de l'intégration continue), le saut est impossible.
       if (process.env.NOORTRACE_EXIGER_CHROMIUM === "1") throw new Error(`NOORTRACE_EXIGER_CHROMIUM=1 : ${raisonSaut}`);
       console.log(`      (tests Chromium sautés : ${raisonSaut})`);
+      // Condition nommée au titre de chaque essai du bloc et de ses blocs, que ce crochet met en attente.
+      const nommer = (s) => { for (const t of s.tests) t.title += ` — en attente : Chromium par Playwright indisponible (${raisonSaut})`; s.suites.forEach(nommer); };
+      nommer(this.test.parent);
       this.skip();
     }
     serveur = await demarrerServeur();

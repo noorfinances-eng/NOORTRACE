@@ -1,4 +1,4 @@
-// Composant d'ancrage (lot F1) : pannes et reprises à l'horloge injectée,
+// Composant d'ancrage : pannes et reprises à l'horloge injectée,
 // hors réseau public. Prestataire injoignable puis retour (relève EX-5.7,
 // EX-8.8 ; remplacee EX-4.4 ; jetons de rattrapage EX-4.3), registre
 // injoignable (repli de clôture EX-4.2, ordre_ancres_non_respecte EX-9.6),
@@ -46,7 +46,7 @@ async function clore(m, composant, calme) {
   await calme();
 }
 
-describe("ancrage, composant F1 : pannes et reprises (CT-5 §5.3, §8, §9)", function () {
+describe("ancrage, composant : pannes et reprises (CT-5 §5.3, §8, §9)", function () {
   this.timeout(600000);
 
   describe("prestataire des points injoignable puis retour (EX-5.7, EX-8.8, EX-4.4, EX-4.3)", function () {
@@ -497,7 +497,7 @@ describe("ancrage, composant F1 : pannes et reprises (CT-5 §5.3, §8, §9)", fu
       fs.rmSync(dir, { recursive: true, force: true });
     });
 
-    it("qualified du principal retiré pendant que la clôture attend sa réponse : la demande part aussi au secours, le jeton du secours est promu avec qualified non nul, l'instantané du principal passe null jusqu'au rechargement ; aucun rôle ne change ; en production un rechargement sans principal qualifié est refusé (AN-1)", async function () {
+    it("qualified du principal retiré pendant que la clôture attend sa réponse : la demande part aussi au secours, le jeton du secours est promu avec qualified non nul, l'instantané du principal passe null jusqu'à son rétablissement par l'exploitant (CT-5 EX-5.9 de l'étape 8 ; était : jusqu'au rechargement) ; aucun rôle ne change ; en production un rechargement sans principal qualifié est refusé (AN-1)", async function () {
       if (m.condition) return enAttente(this, m.condition);
       await rejouer(m, composant, calme, 0, 59);
       m.transport.pendantes.add(m.principal.prestataire.url);
@@ -521,9 +521,13 @@ describe("ancrage, composant F1 : pannes et reprises (CT-5 §5.3, §8, §9)", fu
       const { fiche } = await composant.fiche("qtsa-principal");
       expect(fiche.qualified).to.equal(null);
       expect(fiche.role).to.equal("principal");
-      // Rechargement de la même configuration : accepté en profil test ; l'instantané revient.
+      // Rechargement de la même configuration : accepté en profil test ; revue de sécurité de l'étape 8 (CT-5 EX-5.9) : le retrait
+      // survit au rechargement, seul l'exploitant le lève (retablirQualification), et l'instantané revient alors.
       const r = composant.recharger(m.configuration);
       expect(r.accepte).to.equal(true);
+      expect(composant.etat().qualifications_retirees).to.deep.equal(["qtsa-principal"]);
+      expect((await composant.fiche("qtsa-principal")).fiche.qualified).to.equal(null);
+      expect(await composant.retablirQualification("qtsa-principal")).to.equal(true);
       expect(composant.etat().qualifications_retirees).to.deep.equal([]);
       expect((await composant.fiche("qtsa-principal")).fiche.qualified).to.not.equal(null);
       // En production : un document dont le principal n'est pas qualifié est refusé par la règle 4 d'EX-4.9.

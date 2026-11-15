@@ -162,7 +162,12 @@ la signature) et comparé, par un essai, à l'ABI des artefacts. Le paquet
   `__Host-noortrace-inscription` (`Secure; HttpOnly; SameSite=Strict;
   Path=/`, MAC HMAC-SHA256 sous une clé tirée au démarrage) ; durée 8 h ;
   verrou progressif sur les échecs, comme EX-13.47 de CT-3 (seuil de cinq
-  échecs, `min(2^(f − 5), 900)` s).
+  échecs, `min(2^(f − 5), 900)` s), par couple (adresse cliente, nom)
+  (revue de l'étape 8, CT-7 CLE-37) ; au plus 10 000 sessions, les sessions
+  échues purgées à chaque ouverture.
+- Le fichier des comptes est un fichier ordinaire du compte du serveur de
+  l'interface, lisible de son seul propriétaire (`0400` ou `0600`) ; le
+  serveur refuse de démarrer sinon (revue de l'étape 8, CT-7 CLE-37).
 - L'interface n'a qu'un rôle : un exploitant authentifié peut tout ce
   qu'elle offre. Chaque travail et chaque confirmation consignent son
   identité.
@@ -174,9 +179,14 @@ la signature) et comparé, par un essai, à l'ABI des artefacts. Le paquet
 - tenir une clé, une graine, une mnémonique, un jeton, un mot de passe de clé
   ou une référence **résolue** ; aucun champ de page ni de route n'en reçoit
   la valeur ; un champ de référence de clé n'admet que `fichier:<chemin>`,
-  `env:<VARIABLE>`, `graine:<chemin>` et `hardhat:<i>` (EX-7.3), et refuse
+  `graine:<chemin>`, `hardhat:<i>` (EX-7.3) et `alias:<nom>` (alias de la
+  configuration de l'agent ; `env:` est réservée à cette configuration,
+  CT-4 EX-7.25), et refuse
   sans la garder ni la consigner une valeur nue (64 chiffres hexadécimaux
-  avec ou sans `0x`, une mnémonique, tout texte hors de ces formes) ;
+  avec ou sans `0x`, une mnémonique, tout texte hors de ces formes) ; l'agent
+  n'ouvre un fichier désigné par un travail que sous son répertoire de clés
+  (`cles.repertoire`, 3.1) et rend, pour toute référence qui ne se résout pas,
+  un seul message, sans détail sur les fichiers de l'hôte ;
 - exposer au navigateur le chemin de la prise de l'agent ou une réponse de
   l'agent autre que la sortie d'un travail ;
 - demander à un portefeuille de signer quoi que ce soit ;
@@ -268,13 +278,18 @@ Document JSON strict, `version` 0 :
 | `instance` | chemin d'`instance-registre.json`, ou `null` (réseau de développement, EX-7.2) |
 | `rpc` | points JSON-RPC de validateurs (EX-7.1) |
 | `jeton` | référence `env:`/`fichier:` du jeton du nœud, ou `null` |
-| `comptes` | références par rôle : `deployeur`, `administrateur`, `tresorerie`, `relayeur` ; ou `exploitant` (réseaux 2124 et 31337 seulement, EX-7.3) |
+| `comptes` | références par rôle : `deployeur`, `administrateur`, `tresorerie`, `relayeur` ; ou `exploitant` (réseaux 2124 et 31337 seulement, EX-7.3) ; formes d'EX-7.3 seulement |
+| `cles` | facultatif, `{ repertoire, alias }` (CT-4 EX-7.25) : `repertoire`, chemin absolu du seul répertoire dont un travail peut désigner un fichier (`fichier:`, `graine:`), ou `null` ; `alias`, au plus 64 noms `[a-z0-9][a-z0-9-]*` → références d'EX-7.3, qu'un travail désigne par `alias:<nom>` |
 | `delai_s` | attente du reçu (défaut 120) |
 
 L'agent refuse de démarrer avec une référence qu'EX-7.3 refuse pour la
-nature de l'instance, sur une prise dont le répertoire n'appartient pas à
-son compte, n'est pas en `0750` ou dont le groupe a un autre membre que le
-compte de l'interface, et s'il a une prise d'écoute `AF_INET` ou `AF_INET6`.
+nature de l'instance (en production : toute référence `fichier:` ou `env:`,
+quel que soit le rôle), sur une prise
+dont le répertoire n'appartient pas à son compte, n'est pas en `0750` ou dont
+le groupe a un autre membre que le compte de l'interface, s'il a une prise
+d'écoute `AF_INET` ou `AF_INET6`, si `interface_uid` est son propre compte
+ou le compte 0 ou s'il tourne sous le compte 0 (EX-7.23), et, en production,
+avec un point `rpc` en `http://` hors de la boucle locale (EX-7.1).
 Prêt, il écrit `{"pret":true,"pid":<n>,"prise":<chemin>}` sur la sortie
 standard ; SIGTERM l'arrête après le travail en cours.
 
@@ -310,8 +325,11 @@ standard ; SIGTERM l'arrête après le travail en cours.
 
 Rien d'autre ne passe sur la prise : l'état se lit dans les fichiers de 3.6.
 Codes de refus : `requete_invalide` (forme), `reference_refusee` (EX-7.3,
-EX-7.25), `confirmation_absente` (EX-7.26), `client_inconnu`, `file_pleine`
-(plus de 64 travaux en attente).
+EX-7.25 ; une référence de travail hors du répertoire de clés ou d'un alias
+inconnu rend le message unique de 2.1), `confirmation_absente` (EX-7.26),
+`client_inconnu`, `file_pleine` (plus de 64 travaux en attente),
+`instance_illisible` (manifeste d'instance illisible, ou dont la nature ou
+les identifiants diffèrent de ceux du démarrage, revue de l'étape 8).
 
 ### 3.3 Travaux typés et file
 
@@ -385,12 +403,22 @@ compte plus qu'une confirmation non consommée. Un travail qui n'envoie rien
 (clé déjà au-dessus du seuil, refus avant l'envoi, reprise d'un envoi connu)
 ne consomme rien.
 
+La pièce qui porte la confirmation (courrier signé, procès-verbal) reste
+hors de l'application : l'exploitant qui l'a recueillie en saisit le SHA-256
+(`piece_sha256`, formulaire de 2.2), et les sorties `approvisionner`
+(`reussi` comme `deja_fait`) et `administrer-jeu` (`reussi`) de l'agent
+portent `outputs.confirmation_sha256`, la `piece_sha256` de la confirmation
+qui autorise l'opération (consommée par le versement ou le relais), comme
+l'outil de référence rend le SHA-256 du fichier `--confirmation` (CT-4
+EX-8.21, revue de l'étape 8).
+
 ### 3.6 Données de l'agent
 
 ```text
 <donnees>/                          compte de l'agent, groupe de l'interface, 0750
-  journal-agent.ndjson              ajout seul : démarrage, pairs refusés, travaux reçus (identité), fins, sorties
-  confirmations.ndjson              ajout seul (EX-7.26)
+  journal-agent.ndjson              ajout seul : démarrage, pairs refusés, travaux reçus (identité), fins, sorties ; tourné à 16 Mio
+  journal-agent.ndjson.1            génération précédente du journal (une seule gardée)
+  confirmations.ndjson              ajout seul (EX-7.26), jamais tourné
   travaux/<id>.json                 $defs/travail, réécrit par renommage
   clients/<slug>/
     dossier.json                    inscription-client-v0 (EX-7.16)
@@ -454,7 +482,9 @@ compris : écriture d'EX-7.18 des trois documents créés, dossier fini et
 réponse brute JSON-RPC 2.0 complète au point 3, nom du répertoire au point 4,
 index nommé par une étape au point 6), `erreur` étant le code d'EX-7.30 du
 point (`paquet_manifeste` à `paquet_captures`), utilisable par le client hors
-de l'application ; et `sortieControle(repertoire)`, qui rend la même sortie
+de l'application ; un fichier au-delà de 64 Mio n'est pas lu
+(`fichier_trop_grand`, point 2) et le parcours s'arrête à 4 096 entrées
+(`trop_de_fichiers`, point 2) (revue de l'étape 8) ; et `sortieControle(repertoire)`, qui rend la même sortie
 que `paquet-client controler` (premier écart, `error.check` nul, `outputs`
 `{ requirement, point, file }`). L'agent applique ce contrôle avant toute
 remise.
@@ -495,14 +525,27 @@ l'étape. Le détail est dans `LISEZMOI.md`.
   `chain/config/alloc-dev.json`, `chain/runtime/validators.json` et
   l'artefact de `CuratorSet` se lisent depuis le répertoire de travail de
   l'agent (la racine du dépôt sur le poste du réseau de développement).
+- **Provision du dossier (OP-4, revue de l'étape 8).**
+  `inscrire-client-preparer` et `inscrire-client` vérifient en OP-4, avant
+  OP-5 comme l'outil, que `funding.funder` est le compte de rôle
+  `tresorerie` du manifeste (`compte_inattendu`), que `daily_budget_gas` ne
+  dépasse pas `fees.max_daily_budget_gas` quand le manifeste le fixe et que
+  `amount_wei` est `provision_days × daily_budget_gas + gas_limit` recalculé
+  depuis `fees` du manifeste (`provision_excessive`) ; la provision versée est
+  toujours celle recalculée, jamais celle du dossier.
 - **Journal de l'agent** (`journal-agent.ndjson`, `{ instant, evenement, … }`) :
   `demarrage`, `arret`, `pair_refuse` (`uid`, `pid`, `octets_lus`),
   `requete_refusee`, `travail_recu` (`id`, `commande`, `slug`, `exploitant`,
   `references` : forme et rôle de chaque référence de clé du travail, jamais
   une valeur), `travail_refuse` (`code`), `travail_debut`, `travail_fin`
   (`result`, `exit_code`), `travail_abandonne`,
-  `confirmation_recue`, `envoi_ecrit`, `paquet_secret_trouve` (`fichiers`),
-  `travail_erreur_noeud`, `travail_erreur_interne`.
+  `confirmation_recue`, `confirmation_refusee`, `envoi_ecrit`,
+  `paquet_secret_trouve` (`fichiers`), `travail_erreur_noeud`,
+  `travail_erreur_interne`, `reference_employee` (`role`, `reference`
+  effective, `alias`), `reference_non_resolue` (`role`, `forme`, `detail` :
+  le détail que l'interface ne reçoit pas), `refus_cumules` (`refus`,
+  `periode_debut`, `nombre` : refus au-delà de huit par minute et par
+  événement, revue de l'étape 8).
 - **Enregistrement d'un travail** (`$defs/travail`) : en plus des membres de
   3.3, `motif` (`{ code, message }`) pour l'état `refuse` (révision 0.7 :
   plus de `resultat_paquet`, le travail `paquet` rend sa sortie
@@ -537,7 +580,14 @@ l'étape. Le détail est dans `LISEZMOI.md`.
 - **Configuration** (`noortrace-inscription-web --config <fichier>`) :
   `{ version: 0, ecoute: { hote, port }, origine, prise, donnees, comptes:
   "fichier:<chemin>", nature }` (`LISEZMOI.md`) ; l'origine est
-  `https://…` en production.
+  `https://…` en production, où `ecoute.hote` est `127.0.0.1`, `::1` ou
+  `localhost` (derrière le mandataire TLS) et chaque réponse porte
+  `Strict-Transport-Security: max-age=63072000; includeSubDomains` (revue de
+  l'étape 8, CT-7 CLE-37) ; toute requête dont l'en-tête `Host` n'est pas
+  l'autorité de `origine` reçoit 421 `hote_refuse` ; le binaire pose
+  sur chaque requête l'en-tête `x-noortrace-adresse-cliente` (adresse du
+  pair ; en production, dernière adresse de `X-Forwarded-For`), que le verrou
+  de connexion emploie.
 - **Types de champ** : la liste close de 2.1 (EX-7.25, révision 0.7) ;
   chaque champ d'une page porte son type dans l'attribut `data-type`. Le seul champ de mot de passe est celui du compte
   d'exploitant (`/connexion`). Un champ de texte refuse aussi une valeur qui a

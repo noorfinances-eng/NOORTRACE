@@ -70,24 +70,30 @@ export class ServeurOtel {
     const morceaux = [];
     let recus = 0;
     let trop = false;
-    await new Promise((resoudre) => {
-      req.on("data", (c) => {
-        recus += c.length;
-        if (recus > borne) {
-          trop = true;
-          req.pause();
-          resoudre();
-          return;
-        }
-        morceaux.push(c);
+    try {
+      await new Promise((resoudre) => {
+        req.on("data", (c) => {
+          recus += c.length;
+          // Étape 8 (CT-2 EX-6.28) : octets comptés au quota de la source à mesure de la lecture.
+          this.ingestion.compterRecus(pre.suite, c.length);
+          if (recus > borne) {
+            trop = true;
+            req.pause();
+            resoudre();
+            return;
+          }
+          morceaux.push(c);
+        });
+        req.on("end", resoudre);
+        req.on("error", resoudre);
+        req.on("aborted", resoudre);
       });
-      req.on("end", resoudre);
-      req.on("error", resoudre);
-      req.on("aborted", resoudre);
-    });
-    const corps = trop ? null : new Uint8Array(Buffer.concat(morceaux));
-    const issue = await this.ingestion.traiter(pre.suite, corps, recus);
-    return this._envoyer(res, this.ingestion.repondre(issue), trop);
+      const corps = trop ? null : new Uint8Array(Buffer.concat(morceaux));
+      const issue = await this.ingestion.traiter(pre.suite, corps, recus);
+      return this._envoyer(res, this.ingestion.repondre(issue), trop);
+    } finally {
+      this.ingestion.liberer(pre.suite);
+    }
   }
 
   _envoyer(res, r, fermer) {

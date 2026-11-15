@@ -366,7 +366,13 @@
                 "variable_non_decrite",
                 "secret_en_ligne_de_commande",
                 "secret_partage_entre_comptes",
-                "volume_lie_hote"
+                "volume_lie_hote",
+                "interpolation_non_admise",
+                "reseau_non_conforme",
+                "security_opt_non_conforme",
+                "type_montage_non_admis",
+                "option_montage_non_admise",
+                "volume_non_conforme"
               ]
             },
             {

@@ -1,0 +1,8 @@
+# Contexte de construction de noortrace/agent-demo (racine du dépôt) :
+# tout est exclu, sauf ce que l'image emploie.
+*
+!conteneurs/agent-demo/agent-demo.mjs
+!conteneurs/agent-demo/passwd
+!conteneurs/agent-demo/group
+!LICENSE
+!NOTICE

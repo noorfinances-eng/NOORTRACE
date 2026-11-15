@@ -61,10 +61,12 @@ describe("page de vérification : même rapport que le binaire (CT-6 EX-18.10)",
     if (dir) fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it("les 190 dossiers × (sans, avec ancres) × (sans, avec chaine.json) × (fr, en) × (sans, avec --exiger 4,5,8), et --detail : sorties et codes égaux octet pour octet, lisible et --json", async function () {
+  it("les dossiers des vecteurs de ct-1 et ct-6 × (sans, avec ancres) × (sans, avec chaine.json) × (fr, en) × (sans, avec --exiger 4,5,8), et --detail : sorties et codes égaux octet pour octet, lisible et --json", async function () {
     if (attente) return enAttente(this, attente);
     const dossiers = dossiersVecteurs();
-    expect(dossiers).to.have.length(190);
+    // EX-18.13 : chacun des dossiers de spec/vecteurs/ct-1/dossiers et ct-6/dossiers ; les vecteurs ajoutent des dossiers
+    // sans retirer les 190 de la mesure de CT-6 EX-18.4 (révision 0.7).
+    expect(dossiers.length).to.be.at.least(190);
     const configs = configurations();
     const n = Math.max(1, Math.min(4, os.availableParallelism ? os.availableParallelism() : os.cpus().length));
     const lots = Array.from({ length: n }, () => []);
@@ -93,7 +95,7 @@ describe("page de vérification : même rapport que le binaire (CT-6 EX-18.10)",
     for (const x of resultats) for (const [k, v] of Object.entries(x.codes)) codes[k] = (codes[k] ?? 0) + v;
     console.log(`      identité : ${executions} exécutions comparées, codes du binaire ${JSON.stringify(codes)}, ${discordances.length} discordance(s)`);
     expect(discordances, discordances.slice(0, 20).join("\n")).to.deep.equal([]);
-    expect(executions).to.equal(190 * configs.length * 2);
+    expect(executions).to.equal(dossiers.length * configs.length * 2);
     // Les quatre codes sont représentés.
     for (const c of ["0", "1", "2", "3"]) expect(codes[c] ?? 0, `code ${c}`).to.be.above(0);
     // Version et empreinte annoncées par le travailleur : celles de l'artefact.

@@ -310,7 +310,13 @@ depuis `manifeste.json` ; il ne le lit jamais dans une autre partie.
   d'enregistreur sous le triplet (`org_id`, `journal_id`, `key_id`) d'une clé
   de `cles.json` qui signe un événement du dossier ou le manifeste, sa
   `public_key` doit être celle de `cles.json` (N-3, contrôle 6 ; une clé sous
-  un autre `key_id` n'est pas comparée). La clé de chaîne de la clé du
+  un autre `key_id` n'est pas comparée). Révision 0.9 de CT-6 (EX-12.4) : N-3
+  ne réussit que si chaque clé employée par le verdict (événement prouvé,
+  manifeste, point de contrôle quand K-1 a réussi) a été comparée et est
+  égale ; une clé employée sans ancre dans `recorders` rend N-3 non exécutée
+  (`ancre_absente`) et le contrôle 6 avec elle (code 3 avec `--exiger 6`), et
+  `anchors_used` du contrôle 6 ne liste que les ancres des clés employées. La
+  clé de chaîne de la clé du
   manifeste doit être l'émetteur de l'ancre (N-4, contrôle 8). N-1 et N-2
   (conformité du fichier d'ancres et du fichier d'en-têtes) ne figurent pas
   au rapport : en défaut, l'entrée est inutilisable.
@@ -430,6 +436,26 @@ au-delà de sa limite n'est pas lue au-delà : elle est inexploitable et fait
 fait échouer D-1 (code 1) ; une entrée à part au-delà de sa limite rend le
 code 2. Le vérificateur n'ouvre que des fichiers ordinaires, sans suivre de
 lien (CT-6 EX-4.17).
+
+## Règles de la révision 0.9 de CT-6 (décisions de la revue de sécurité de l'étape 8)
+
+- **T-10, CRL à extension critique non lue** (EX-9.16) : une CRL, de l'ancre
+  ou du jeton, qui porte une extension critique autre que
+  `authorityKeyIdentifier`, `cRLNumber`, `issuingDistributionPoint` et
+  `deltaCRLIndicator` sur la liste, ou autre que `cRLReasons` sur une entrée,
+  n'est pas une preuve de non-révocation : elle est écartée et signale AV-T-3.
+- **R-1, hauteur 0** (EX-11.14) : un `certificat-commit.json` dont un
+  certificat porte `height` `0x0` fait échouer R-1 ; `certificat-commit.mjs` ne
+  refuse plus la hauteur 0 par la structure.
+- **R-11, règle 3** (EX-11.24) : quand R-10 n'a pas réussi pour une autre
+  raison que l'absence d'entrée `inscription`, R-11 est non exécutée
+  (`prerequis_en_echec`), sans AV-K-3 ; AV-K-1 n'est levé que pour une
+  référence déclarative faute d'entrée rattachée pour une raison admise
+  (EX-11.25), jamais sur une R-11 non exécutée sous `prerequis_en_echec`.
+- **Profil DER** (EX-9.4) : les règles de `lireTLV` (forme des types
+  universels, `BOOLEAN`, `NULL`, `INTEGER`, `BIT STRING`, étiquette 0) sont
+  celles du texte, appliquées à tout le jeton ; aucun changement de code, les
+  vecteurs `t1-*` de la révision 0.9 les figent.
 
 ## Règles des révisions 0.5 de CT-1 et 0.4 de CT-6
 

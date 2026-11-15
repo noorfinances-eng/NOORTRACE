@@ -91,6 +91,25 @@ export function hauteursAttestees(arbre) {
 }
 
 /**
+ * Plus petite et plus grande hauteur Bitcoin des attestations atteintes par
+ * les seules opérations du profil depuis l'empreinte (celles qu'O-4 compare),
+ * ou null (une attestation hors profil ne dicte pas la
+ * plage d'en-têtes demandée au nœud du client).
+ * @param {import("./format.mjs").Noeud} arbre
+ * @param {Uint8Array} empreinte
+ */
+export function hauteursProfil(arbre, empreinte) {
+  let min = null;
+  let max = null;
+  for (const a of executerArbre(arbre, empreinte).attestations) {
+    if (a.genre !== "bitcoin" || a.chemin !== "profil") continue;
+    if (min === null || a.hauteur < min) min = a.hauteur;
+    if (max === null || a.hauteur > max) max = a.hauteur;
+  }
+  return min === null ? null : { min, max };
+}
+
+/**
  * État d'une preuve (CT-5 EX-6.7) : `complete` si elle porte au moins une
  * attestation Bitcoin, `en_attente` sinon. Lève `ErreurOts` si illisible.
  * @param {Uint8Array} octets

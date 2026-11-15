@@ -280,7 +280,8 @@ describe("CT-4 — vecteurs spec/vecteurs/ct-4", function () {
       if (!c.refusal) expect(lireJSON(path.join(REP, c.input.file)).digest).to.equal(c.expected.digest);
     }
     for (const c of famille("inscription/inscription.json").cases) {
-      const r = C.verifierDossierInscription(lireJSON(path.join(REP, c.input.file)), { schemas: SCHEMAS, nature: c.input.nature, comptes: c.input.operator_accounts });
+      // input.fees et input.treasury (revue de sécurité de l'étape 8, OP-4 : provision recalculée, trésorerie) ; absents : frais par défaut, aucune trésorerie.
+      const r = C.verifierDossierInscription(lireJSON(path.join(REP, c.input.file)), { schemas: SCHEMAS, nature: c.input.nature, comptes: c.input.operator_accounts, ...(c.input.fees ? { fees: c.input.fees } : {}), ...(c.input.treasury ? { tresorerie: c.input.treasury } : {}) });
       expect(r.status === "reussi" ? null : { check: r.check, code: r.code }, `${c.id} : ${r.detail}`).to.deep.equal(c.refusal);
     }
     // L'approver_set du dossier fini est conforme au jeu_approbateurs de CT-3 (7.10).
@@ -724,8 +725,10 @@ describe("CT-4 — outil de référence sur le réseau Hardhat en mémoire (3133
   let deploiement;
   let manifeste;
   const crochets = {};
+  /** EX-8.21 (revue de sécurité de l'étape 8) : confirmation hors bande du client, consignée pour l'essai ; exigée par administrer-jeu et approvisionner, ignorée des autres commandes. */
+  let confirmation;
 
-  const R = (args) => outil([...args, "--instance", instance, "--rpc", url, "--sans-capture"]);
+  const R = (args) => outil([...args, "--instance", instance, "--rpc", url, "--sans-capture", "--confirmation", confirmation]);
   const cleAdmise = fabriqueCleAdmise(R, () => E);
   const cleFichier = (nom, valeur) => {
     const f = path.join(E, nom);
@@ -740,6 +743,8 @@ describe("CT-4 — outil de référence sur le réseau Hardhat en mémoire (3133
     ({ deployment: deploiement } = await deployNoortrace(conn.ethers, { networkName: "essai-ct4" }));
     ({ serveur: srv, url } = await pont(conn.provider, crochets));
     E = repertoireTemporaire("ct4-hardhat-");
+    confirmation = path.join(E, "confirmation-hors-bande.txt");
+    fs.writeFileSync(confirmation, "Confirmation hors bande du client essai-ct4, consignée pour l'essai (CT-4 EX-8.21).\n");
     const val = lireJSON(path.join(PROJECT_ROOT, "test", "fixtures", "certificat-commit", "validators.json"));
     ({ manifeste, instance } = manifesteEssai(E, deploiement, { validators: val.validators, source: "jeu du réseau de développement, sans effet sur le réseau Hardhat" }));
   });
@@ -925,7 +930,7 @@ describe("CT-4 — outil de référence sur le réseau Hardhat en mémoire (3133
     attendreRefus(await R(["approvisionner", "--vers", neuve.adresse, "--demande", neuve.demande, "--tresorerie", "hardhat:1", "--captures", path.join(E, "captures")]), "compte_inattendu");
     const plafonne = path.join(E, "instance-plafond.json");
     fs.writeFileSync(plafonne, JSON.stringify({ ...manifeste, fees: { ...manifeste.fees, max_daily_budget_gas: 500 } }));
-    const pe = await outil(["approvisionner", "--vers", neuve.adresse, "--demande", neuve.demande, "--budget-jour", "1000", "--tresorerie", "hardhat:0", "--captures", path.join(E, "captures"), "--instance", plafonne, "--rpc", url, "--sans-capture"]);
+    const pe = await outil(["approvisionner", "--vers", neuve.adresse, "--demande", neuve.demande, "--budget-jour", "1000", "--tresorerie", "hardhat:0", "--captures", path.join(E, "captures"), "--instance", plafonne, "--rpc", url, "--sans-capture", "--confirmation", confirmation]);
     attendreRefus(pe, "provision_excessive");
     expect(pe.error.check).to.equal("OP-3");
   });
@@ -1159,7 +1164,7 @@ describe("CT-4 — outil de référence sur le réseau Hardhat en mémoire (3133
     };
     const { serveur, url: url2 } = await pont(conn.provider, second);
     try {
-      const s = await outil(["approvisionner", "--vers", x.adresse, "--demande", x.demande, "--budget-jour", "1000", "--tresorerie", "hardhat:0", "--captures", path.join(E, "c6"), "--instance", instance, "--rpc", `${url},${url2}`, "--sans-capture"]);
+      const s = await outil(["approvisionner", "--vers", x.adresse, "--demande", x.demande, "--budget-jour", "1000", "--tresorerie", "hardhat:0", "--captures", path.join(E, "c6"), "--instance", instance, "--rpc", `${url},${url2}`, "--sans-capture", "--confirmation", confirmation]);
       attendreReussite(s);
       expect(vus.length).to.equal(2);
       expect(vus[0]).to.equal(vus[1]);
@@ -1186,7 +1191,9 @@ describe("CT-4 — capture derrière un pont synthétique (CP-1 à CP-6, 9.3, 8.
   let synthese;
   const crochets = {};
   const jeu = lireJSON(path.join(REP, "constantes.json")).test_validators.validators;
-  const R = (args) => outil([...args, "--instance", instance, "--rpc", url]);
+  /** EX-8.21 (revue de sécurité de l'étape 8) : confirmation hors bande du client, consignée pour l'essai ; exigée par administrer-jeu et approvisionner, ignorée des autres commandes. */
+  let confirmation;
+  const R = (args) => outil([...args, "--instance", instance, "--rpc", url, "--confirmation", confirmation]);
   const cleAdmise = fabriqueCleAdmise(R, () => E);
   const capturesDe = (rep) => fs.readdirSync(rep).filter((f) => /^capture-\d+-\d+-[a-z_]+\.json$/.test(f)).sort();
 
@@ -1197,6 +1204,8 @@ describe("CT-4 — capture derrière un pont synthétique (CP-1 à CP-6, 9.3, 8.
     synthese = syntheseCapture(conn.provider, { jeu, bftChainId: "noortrace-31337-essai" });
     ({ serveur: srv, url } = await pont(conn.provider, crochets, synthese));
     E = repertoireTemporaire("ct4-capture-");
+    confirmation = path.join(E, "confirmation-hors-bande.txt");
+    fs.writeFileSync(confirmation, "Confirmation hors bande du client essai-ct4-capture, consignée pour l'essai (CT-4 EX-8.21).\n");
     ({ manifeste, instance } = manifesteEssai(E, deploiement, { validators: jeu.map((v) => ({ id: v.id, pubKeyHex: v.pubKeyHex })), source: "jeu d'essai de CT-4 A.2, qui signe les certificats synthétiques du pont des tests (EX-A.6)" }));
   });
 

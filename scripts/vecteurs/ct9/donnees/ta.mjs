@@ -18,9 +18,14 @@ export const TA = [
     ],
     "oracle": "Avec la règle : code de retour non nul et une ligne de refus datée dans le journal du pare-feu ; sans la règle : connexion établie. Le test compare ces deux observations.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Démonstration de référence et tests de bout en bout : phase 2, étape 8."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- joués sur la démonstration de référence (composition docker compose de CT-2 §19, CT-7 EX-3.2)",
+          "it": "TA-1 (MN-1) : dans la démonstration de référence, le conteneur de l'agent tente une connexion TCP directe au serveur d'outils, par son nom puis par son adresse : code non nul, aucun paquet ne quitte le conteneur, tentative datée au journal du conteneur, aucun appel reçu ni événement ; composition mutante où agent-demo est aussi sur le réseau outils : la connexion aboutit sans événement (tué)"
+        }
+      ]
     },
     "response_removed": {
       "what": "Règle de sortie du pare-feu : seul le mandataire joint le serveur d'outils HTTP (CT-2 EX-4.1, §4.9)",
@@ -147,7 +152,7 @@ export const TA = [
       "Fabriquer le mutant (copie de scripts/ avec le remplacement nommé) et rejouer.",
       "Comparer : la référence rend l'attendu des vecteurs, le mutant ne le rend plus."
     ],
-    "oracle": "rejouerTrace redonne chaque attendu pas à pas ; le mutant diverge au pas 13. Les vérifications RL-2 et RL-3 (verifierRelais, MAC des arguments) restent à éprouver par un mutant de verifierRelais sur les vecteurs ct-2 (complément, étape 8).",
+    "oracle": "rejouerTrace redonne chaque attendu pas à pas ; le mutant diverge au pas 13. Les vérifications RL-2 et RL-3 (verifierRelais, MAC des arguments, relais d'une approbation déjà servie) sont éprouvées par un mutant de verifierRelais, sur la bibliothèque de référence et sur le code livré de paquets/enregistreur.",
     "status": {
       "state": "executable",
       "tests": [
@@ -160,12 +165,18 @@ export const TA = [
           "file": "test/approbation.test.js",
           "describe": "CT-3 : tickets (section 7, TK-1 à TK-13)",
           "it": "chaque trace rejouée sur un service vide redonne chaque attendu, pas à pas (EX-7.9, EX-A.6)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-5 (MN-5, complément RL-2 et RL-3 sur la bibliothèque de référence) : verifierRelais, sur la retenue et l'exécution relayée de CT-2 annexe A.2 : un MAC des arguments en clair différent de celui inscrit est refusé RL-2, un second relais d'une approbation déjà servie est refusé RL-3 ; mutant sans la comparaison des MAC et mutant sans RL-3 : ces relais passent (tués)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+          "it": "TA-5 (MN-5, complément RL-2 et RL-3 sur le code livré) : verifierRelais de paquets/enregistreur (src/approbations.mjs), sur la retenue et l'exécution relayée de CT-2 annexe A.2 : un MAC des arguments en clair différent est refusé RL-2, un second relais d'une approbation déjà servie est refusé RL-3 ; mutant sans la comparaison des MAC et mutant sans RL-3 : ces relais passent (tués)"
         }
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Mutant de verifierRelais (RL-2, RL-3, CT-2 EX-7.21) à ajouter à test/adversarial.test.js sur les vecteurs ct-2 ; possible dès maintenant sur le dépôt, dû au plus tard à l'étape 8."
-      }
+      ]
     },
     "response_removed": {
       "what": "Consommation unique d'une approbation et délai de reconnaissance (CT-3 EX-7.17, EX-7.18) ; RL-1 à RL-4 côté enregistreur (CT-2 EX-7.21)",
@@ -487,12 +498,13 @@ export const TA = [
           "file": "test/adversarial.test.js",
           "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
           "it": "TA-14 (MN-14, partie exécutable ; la démonstration en mode passerelle est de phase 2, étape 4) : le schéma de configuration refuse un model.mode inconnu ; schéma mutant sans l'énumération : accepté (tué)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- joués sur la démonstration de référence (composition docker compose de CT-2 §19, CT-7 EX-3.2)",
+          "it": "TA-14 (MN-14, partie sur la démonstration de référence) : la ligne startup du démon de la démonstration dit model_mode passerelle, et l'attestation de périmètre de la démonstration déclare le canal passerelle pour agent-demo ; démon lancé avec la même configuration en mode miroir : sa ligne startup dit miroir, canal que l'attestation ne déclare pas (tué)"
         }
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Partie à écrire : démonstration de référence de CT-2 §19 (docker compose), livrée à l'étape 8 ; la version 0.1 rattachait à tort ce complément à l'étape 4, alors que ses préconditions nomment l'étape 8."
-      }
+      ]
     },
     "response_removed": {
       "what": "Rang de chaque mode écrit et contrôlé (CT-2 §5.1, EX-5.1, EX-5.6) ; mode déclaré dans l'attestation (CT-7 §7)",
@@ -526,7 +538,7 @@ export const TA = [
         {
           "file": "test/enregistreur-r05.test.js",
           "describe": "CT-2 révision 0.5 : ingestion OpenTelemetry (6.8, EX-6.25 à EX-6.41)",
-          "it": "otel/ : les 48 cas de l'annexe B.8 rejoués (statut, réponse octet pour octet, issues, formes normalisées, pièces, événements, chaîne, E-1 à E-11, lag_ms)"
+          "it": "otel/ : les 49 cas de l'annexe B.8 rejoués (statut, réponse octet pour octet, issues, formes normalisées, pièces, événements, chaîne, E-1 à E-11, lag_ms)"
         }
       ]
     },
@@ -562,7 +574,7 @@ export const TA = [
         {
           "file": "test/enregistreur-r05.test.js",
           "describe": "CT-2 révision 0.5 : ingestion OpenTelemetry (6.8, EX-6.25 à EX-6.41)",
-          "it": "otel/ : les 48 cas de l'annexe B.8 rejoués (statut, réponse octet pour octet, issues, formes normalisées, pièces, événements, chaîne, E-1 à E-11, lag_ms)"
+          "it": "otel/ : les 49 cas de l'annexe B.8 rejoués (statut, réponse octet pour octet, issues, formes normalisées, pièces, événements, chaîne, E-1 à E-11, lag_ms)"
         }
       ]
     },
@@ -630,9 +642,14 @@ export const TA = [
     ],
     "oracle": "Écart de 1 rapporté avec la clé et la route ; aucun écart sans la requête directe. RA-16 borne ce que le rapprochement ne voit pas.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Démonstration de référence et tests de bout en bout : phase 2, étape 8."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- joués sur la démonstration de référence (composition docker compose de CT-2 §19, CT-7 EX-3.2)",
+          "it": "TA-18 (MN-18) : sur la démonstration de référence, le rapprochement de CT-7 EX-3.8 compare le relevé d'usage du simulateur au journal : trois requêtes, trois échanges, aucun écart ; après un échange envoyé au simulateur avec la clé de la passerelle, hors de l'enregistreur : écart de 1 rapporté (clé, route), code 3 ; outil mutant sans la comparaison : aucun écart rapporté (tué)"
+        }
+      ]
     },
     "response_removed": {
       "what": "Rapprochement de l'usage des fournisseurs, clé par clé (CT-7 EX-3.8)",
@@ -758,9 +775,14 @@ export const TA = [
     ],
     "oracle": "Code de retour non nul (chemin absent) avec la composition de référence ; listage réussi avec le volume monté.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Démonstration de référence et tests de bout en bout : phase 2, étape 8."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- joués sur la démonstration de référence (composition docker compose de CT-2 §19, CT-7 EX-3.2)",
+          "it": "TA-22 (MN-22) : dans la démonstration de référence, le conteneur de l'agent liste storage.root : code de retour non nul, le chemin n'existe pas ; composition mutante où le volume du journal est monté dans le conteneur de l'agent : le chemin existe (sous le compte de l'agent, le mode 0700 du démon refuse encore le listage ; sous le compte du démon, le listage réussit et un segment s'ouvre) (tué)"
+        }
+      ]
     },
     "response_removed": {
       "what": "Aucun droit de l'hôte ni de l'agent sur storage.root (CT-2 EX-3.2, EX-18.5)",
@@ -843,19 +865,32 @@ export const TA = [
       "Images construites de façon reproductible (CT-8 §3.6, phase 2, étape 7) ; empreintes publiées."
     ],
     "steps": [
-      "Lancer l'image publiée ; lire la ligne startup.",
-      "Lancer l'image modifiée ; comparer."
+      "Installer le démon dans un arbre de la forme de l'image de référence, avec --image-attendue ; lire la ligne startup (image_expected, code_sha256, image_match).",
+      "Modifier un octet du code installé ; relancer ; relever image_mismatch et comparer."
     ],
     "oracle": "Empreinte consignée égale à la publiée pour la première ; écart signalé pour la seconde.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Rattaché à l'étape 8 : la réponse dont TA-25 éprouve le retrait, l'empreinte de l'image consignée au démarrage (proposition PA-4 de CT-7), n'existe pas ; l'image ne connaît pas son propre condensé, qui doit lui venir de l'orchestrateur (fichier monté ou variable), décision à prendre. La base est éprouvée à l'étape 7 par test/deploiement-images.test.js : le conteneur désigne son image par le condensé de la construction, et une image modifiée d'un seul fichier en a un autre."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+          "it": "TA-25 (MN-25) : démon réel dans un arbre d'installation de la forme de l'image de référence, image attendue lue dans le fichier monté : l'arbre publié consigne à startup l'empreinte publiée ; l'arbre modifié d'un octet est signalé (image_match faux, ligne image_mismatch) ; mutant sans la comparaison de l'empreinte à la version publiée : l'arbre modifié tourne sans signal (tué)"
+        },
+        {
+          "file": "test/enregistreur-empreinte-image.test.js",
+          "describe": "enregistreur : empreinte du code en cours et image attendue (CT-7 EX-3.14, PA-4 ; MN-25)"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Partie sur l'image construite : démarrage complet en conteneur d'une image de l'enregistreur reconstruite avec le code de PA-4, image attendue montée par les fichiers Compose et code_sha256 publié dans la note de version ; le démon est éprouvé ici hors conteneur, dans un arbre d'installation de la forme de l'image de référence."
+      }
     },
     "response_removed": {
       "what": "Surfaces d'écoute exhaustives, moindre privilège (CT-2 EX-18.1, EX-18.2, EX-18.4, EX-18.7) ; version et empreinte de l'image consignées (EX-18.6, CT-7 EX-3.14)",
       "how": "Retirer la comparaison de l'empreinte de l'image à la version publiée",
-      "where": "démarrage du démon (PA-4) ; procédure CT-7 EX-3.14"
+      "where": "paquets/enregistreur/src/empreinte-image.mjs (controlerImage) ; démarrage du démon (PA-4, CT-2 §18.4) ; procédure CT-7 EX-3.14"
     },
     "attack": "Image reconstruite localement avec un octet modifié, lancée à la place de la version publiée.",
     "expected_with_response": "Le démarrage consigne l'empreinte de l'image et code.recorder ; la comparaison à la version publiée signale l'écart.",
@@ -985,13 +1020,13 @@ export const TA = [
           "file": "test/deploiement-supervision.test.js",
           "describe": "CT-9 TA-29 et TA-75 : alertes de la supervision sur un S3 à Object Lock (CT-2 EX-12.16, EX-12.18, EX-17.5, EX-17.7)",
           "it": "TA-29 (MN-29) : support WORM injoignable et segment fermé → noortrace_worm_copy_pending ≥ 1, la règle noortrace_copie_worm_en_retard (for 1h) se déclenche à l'échéance et pas avant ; support rétabli → balayage, métrique à 0, alerte résolue ; réponse retirée (pas de comparaison horaire, métrique jamais mise à jour) : aucune alerte"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+          "it": "TA-29 (MN-29, complément ; mutant du démon) : démon réel, support WORM fermé et segment fermé : noortrace_worm_copy_pending ≥ 1 après un tour du fil de supervision, la règle noortrace_copie_worm_en_retard se déclenche à l'échéance et pas avant ; support rouvert : jauge à 0 ; mutant sans la comparaison horaire du fil de supervision : jauge jamais écrite, aucune alerte (tué)"
         }
-      ],
-      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-supervision.test.js",
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Mutant du démon dans test/adversarial.test.js (fil de supervision sans comparaison horaire) et évaluation de la règle par Prometheus en marche ; l'essai de l'étape 7 retire la réponse par la configuration (métrique jamais mise à jour) et juge la règle hors collecteur."
-      }
+      ]
     },
     "response_removed": {
       "what": "Copie de chaque segment fermé, comparaison horaire (CT-2 EX-12.16, EX-12.18, EX-17.5)",
@@ -1178,9 +1213,14 @@ export const TA = [
     ],
     "oracle": "Zéro occurrence et zéro élément ; le test existant couvre « sans autre méthode de signature ».",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Possible dès maintenant sur les vecteurs et les bibliothèques du dépôt ; non écrit dans ce lot ; dû au plus tard à l'étape 8 (tests adversariaux)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-35 (MN-35) : la page de référence console/ et les pages livrées de paquets/console ne portent ni champ de fichier, ni lireFichierCle, ni signerCondense, ni keystore ; dans Chromium, la page de référence n'a aucun input[type=file] ; mutant de la page de référence (intégrité recalculée) et mutant des pages livrées qui ajoutent un champ de fichier de clé : le champ apparaît (tués)"
+        }
+      ]
     },
     "response_removed": {
       "what": "La clé de l'approbateur naît chez lui ; parcours par fichier seulement permis, absent de la page de référence (CT-3 EX-3.4, EX-13.1, EX-13.28, EX-13.31)",
@@ -1354,12 +1394,13 @@ export const TA = [
           "file": "test/registreCt4.test.js",
           "describe": "CT-4 — outil de référence sur le réseau Hardhat en mémoire (31337, --sans-capture)",
           "it": "révocation, administration du jeu, réassignation et approvisionnement"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-40 (MN-40, complément) : approvisionner --vers une adresse aléatoire hors d'EX-8.20 est refusé compte_inattendu (OP-5) et rien ne part ; mutant de l'outil sans le contrôle du destinataire : le transfert part et l'adresse est approvisionnée (tué)"
         }
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Mutant de l'outil scripts/registre/noortrace-registre.mjs (contrôle du destinataire d'approvisionner, OP-5) à ajouter à test/adversarial.test.js ; possible dès maintenant (fabrique étendue à scripts/registre, EX-10.5), dû au plus tard à l'étape 8."
-      }
+      ]
     },
     "response_removed": {
       "what": "Destinataires admis et plafond quotidien de l'approvisionnement (CT-4 EX-8.20)",
@@ -1388,12 +1429,17 @@ export const TA = [
       "tests": [
         {
           "file": "test/enregistreur-ancrage-exigences.test.js",
-          "describe": "enregistreur + ancrage (lot F2) : branchement d'anchoring.ancrage, configuration refusée, secrets, clé de chaîne (CT-5 EX-4.8, EX-4.9 ; CT-2 §15.2, EX-11.19 ; TA-41)",
+          "describe": "enregistreur + ancrage : branchement d'anchoring.ancrage, configuration refusée, secrets, clé de chaîne (CT-5 EX-4.8, EX-4.9 ; CT-2 §15.2, EX-11.19 ; TA-41)",
           "it": "TA-41 : une chaîne en clair à la place d'une référence de secret est refusée (schéma ancrage-v0, AN-1) ; une référence env absente refuse le démarrage de l'ancrage sans arrêter l'enregistreur (secret_non_resolu, pointeur consigné, jamais une valeur) ; resoudreSecretsAncrage ne touche qu'aux pointeurs d'ancrage-v0"
         },
         {
           "file": "test/enregistreur-ancrage-exigences.test.js",
-          "describe": "enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence"
+          "describe": "enregistreur + ancrage : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables sur le composant d'ancrage de l'étape 5 (mutants du paquet @noortrace/ancrage, CT-7 EX-3.2)",
+          "it": "TA-41 (MN-41, complément ; mutants du composant d'ancrage) : secret du principal à valeur résolue marquée, jeton obtenu en TLS mutuel : marqueur absent des fichiers, du journal et des métriques, seule la référence dans la configuration en vigueur ; mutant sans la copie privée du prestataire résolu : la valeur y remplace la référence ; mutant dont le journal d'acquisition recopie la valeur (tués)"
         }
       ],
       "complement": {
@@ -1433,12 +1479,13 @@ export const TA = [
           "file": "test/securite.test.js",
           "describe": "CT-7 : vecteurs ceremonies/ (annexe A.4, EX-A.6, EX-A.19)",
           "it": "verifierCeremonie rend exactement attendu.json pour chaque cas ; chaque cas invalide échoue à la vérification que son nom annonce"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-42 (MN-42) : procès-verbal de création, en production, d'une clé tsa_interne (ECDSA P-256) en classe D, signé par les trois participants : CR-6 échoue et elle seule, le même procès-verbal en classe C est valide ; mutant sans la règle de classe en production et mutant dont la table admet D pour tsa_interne : le procès-verbal en classe D est valide (tués)"
         }
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Partie à écrire : Possible dès maintenant sur les vecteurs et les bibliothèques du dépôt ; non écrit dans ce lot ; dû au plus tard à l'étape 8 (tests adversariaux)."
-      }
+      ]
     },
     "response_removed": {
       "what": "Clé du serveur RFC 3161 interne hors de l'hôte, classe A à C (CT-5 EX-7.3) ; CR-6",
@@ -1456,7 +1503,9 @@ export const TA = [
       "Vecteurs et bibliothèques de référence du dépôt au commit éprouvé ; Node.js 22."
     ],
     "steps": [
-      "Partie dépôt à écrire : vérifier que le journal d'exploitation des vecteurs ne porte aucune valeur de secret (EX-17.3) ; partie phase 2 : même oracle sur le journal du démon."
+      "Schéma : une valeur littérale à la place d'une référence de secret (model.static_tokens[0].token) est refusée ; schéma mutant dont secret_reference admet toute forme : acceptée.",
+      "Démon réel, frontal MCP Streamable HTTP : un tools/call avec un jeton inconnu puis avec le jeton de l'hôte ; ni la valeur présentée ni le jeton n'apparaissent dans le journal d'exploitation ni sous le répertoire du démon (EX-17.3) ; mutant qui consigne l'en-tête présenté : la valeur est au journal.",
+      "Agent d'inscription livré : une clé fichier: lisible d'autres que son propriétaire n'est pas chargée, un jeton du nœud dans un fichier lisible d'autres refuse le démarrage ; mutants sans le contrôle du mode : clé chargée, agent démarré."
     ],
     "oracle": "Erreur de schéma présente, absente avec le schéma mutant.",
     "status": {
@@ -1466,17 +1515,23 @@ export const TA = [
           "file": "test/adversarial.test.js",
           "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
           "it": "TA-43 (MN-43, partie exécutable) : le schéma refuse une valeur littérale là où une référence de secret est attendue (model.static_tokens[0].token) ; schéma mutant dont la définition secret_reference admet n'importe quelle forme : accepté (tué)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+          "it": "TA-43 (MN-43, partie phase 2 sur le démon de l'étape 4) : démon réel, frontal MCP Streamable HTTP : un tools/call avec un jeton inconnu puis avec le jeton de l'hôte ; aucune des deux valeurs n'apparaît au journal d'exploitation ni sous le répertoire du démon (EX-17.3) ; mutant dont la ligne auth_failed consigne l'en-tête présenté : la valeur est au journal (tué)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- sur l'agent d'inscription livré (mutants du paquet @noortrace/inscription, revue de l'étape 8, TA-73)",
+          "it": "TA-43 (MN-43, agent livré) : l'agent ne charge une clé fichier: que d'un fichier lisible de son seul propriétaire, et ne démarre pas avec un jeton du nœud dans un fichier lisible d'autres ; mutants sans le contrôle du mode (clés ; jeton) : clé en 0644 chargée, agent démarré (tués)"
         }
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Partie à écrire : Possible dès maintenant sur les vecteurs et les bibliothèques du dépôt ; non écrit dans ce lot ; dû au plus tard à l'étape 8 (tests adversariaux)."
-      }
+      ]
     },
     "response_removed": {
       "what": "Références de secrets, fichiers 0400, jamais écrits ni journalisés (CT-2 EX-15.3, EX-18.4, EX-17.3)",
       "how": "Admettre n'importe quelle forme pour secret_reference dans le schéma",
-      "where": "spec/schemas/configuration-enregistreur-v0.schema.json ($defs/secret_reference) ; démon (EX-17.3) en phase 2"
+      "where": "spec/schemas/configuration-enregistreur-v0.schema.json ($defs/secret_reference) ; démon (EX-17.3) en phase 2 ; paquets/inscription/src/agent/cles.mjs (lireFichierProtege) et src/agent/index.mjs (resoudreJeton), agent d'inscription livré"
     },
     "attack": "Configuration où model.static_tokens[0].token est une chaîne littérale.",
     "expected_with_response": "Le schéma refuse /model/static_tokens/0/token.",
@@ -1506,13 +1561,23 @@ export const TA = [
           "file": "test/approbation.test.js",
           "describe": "CT-3 : remises et signatures (section 9, SG-1 à SG-7, annexe A.7 et A.8)",
           "it": "decisions/ : chaque remise reçoit le résultat et la raison attendus, dans l'ordre de SG-1 à SG-7"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : TA-44 à TA-50 sur le paquet livré paquets/approbation (étape 8)",
+          "it": "TA-44 (MN-44, paquet livré) : verifierRemise du service refuse SG-5 et SG-6 sur decisions/ ; mutants du service sans SG-5 ou sans SG-6 : au moins une remise diverge (tués)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables sur la page livrée de la console (mutants du paquet @noortrace/console, CT-7 EX-3.2)",
+          "it": "TA-44 (MN-44, page livrée, deux vues) : le service sert une demande bénigne à la lecture (i) et la vraie à la lecture (ii) ; la page n'offre pas l'écran de signature, affiche demande_modifiee, aucun personal_sign ni voter ; mutant de la page sans la comparaison des vues : l'écran est offert et le D_A de la seconde vue est signé (tué)"
         }
       ]
     },
     "response_removed": {
       "what": "Vérification de toute remise par le noyau : SG-5 signatures, SG-6 jeu (CT-2 EX-7.5 ; CT-3 SG-5, SG-6)",
       "how": "Retirer SG-5 (signature invalide) ou SG-6 (approbateur hors jeu)",
-      "where": "scripts/lib/approbation.mjs (verifierRemise)"
+      "where": "scripts/lib/approbation.mjs (verifierRemise) ; paquets/approbation/src/signatures.mjs (SG-5, SG-6) ; paquets/console/src/pages/statique/ecrans/ticket.mjs (comparaison des deux vues)"
     },
     "attack": "Remises decisions/invalides à signature invalide ou à approbateur hors du jeu remis.",
     "expected_with_response": "Refus avec la raison attendue.",
@@ -1614,13 +1679,18 @@ export const TA = [
           "file": "test/console.test.js",
           "describe": "CT-3 0.3 : annuaire/ rejoué par console.mjs (AN-1 à AN-10)",
           "it": "AN-6, AN-7 (EX-13.10, EX-13.17, EX-12.17) : chaque trace rejouée redonne sort, raison, réponse, revision et état résumé, pas à pas"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : TA-44 à TA-50 sur le paquet livré paquets/approbation (étape 8)",
+          "it": "TA-47 (MN-47, paquet livré) : la trace annuaire/traces/confiscation.json rejouée par le canal de la console du service refuse la réattribution (adresse_deja_attribuee, pas 3 et 5) ; copie du module d'annuaire exécuté par le service sans ce refus : le service accepte au pas 3 (tué)"
         }
       ]
     },
     "response_removed": {
       "what": "Adresse jamais réattribuée, preuve de possession nommant l'identité, nonce unique (CT-3 EX-13.10, EX-13.13, EX-13.15)",
       "how": "Retirer le refus adresse_deja_attribuee",
-      "where": "scripts/lib/console.mjs (annuaire)"
+      "where": "scripts/lib/console.mjs (annuaire) ; module d'annuaire exécuté par le service (paquets/console, ServiceApprobation.console)"
     },
     "attack": "Trace annuaire/traces/confiscation.json : une identité prépare l'inscription d'une adresse déjà attribuée, puis après révocation.",
     "expected_with_response": "Refus adresse_deja_attribuee aux pas 3 et 5.",
@@ -1650,13 +1720,18 @@ export const TA = [
           "file": "test/approbation.test.js",
           "describe": "CT-3 : remises et signatures (section 9, SG-1 à SG-7, annexe A.7 et A.8)",
           "it": "decisions/ : chaque remise reçoit le résultat et la raison attendus, dans l'ordre de SG-1 à SG-7"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : TA-44 à TA-50 sur le paquet livré paquets/approbation (étape 8)",
+          "it": "TA-48 (MN-48, paquet livré) : sg7-auto-approbation refusée par SG-7 du service ; mutant du service sans SG-7 : scellée (tué)"
         }
       ]
     },
     "response_removed": {
       "what": "Séparation du demandeur vérifiée par le noyau (CT-3 EX-10.2, SG-7) ; seuil d'adresses distinctes (CT-1 A-3)",
       "how": "Retirer SG-7",
-      "where": "scripts/lib/approbation.mjs (verifierRemise)"
+      "where": "scripts/lib/approbation.mjs (verifierRemise) ; paquets/approbation/src/signatures.mjs (SG-7)"
     },
     "attack": "Remise sg7-auto-approbation signée par l'adresse déclarée du demandeur.",
     "expected_with_response": "Refus auto_approbation (SG-7).",
@@ -1686,13 +1761,18 @@ export const TA = [
           "file": "test/approbation.test.js",
           "describe": "CT-3 : remises et signatures (section 9, SG-1 à SG-7, annexe A.7 et A.8)",
           "it": "A.8 : normalisation d'EX-9.3 ; chaque forme normalisée recouvre la même adresse que la forme d'entrée"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : TA-44 à TA-50 sur le paquet livré paquets/approbation (étape 8)",
+          "it": "TA-49 (MN-49, paquet livré) : normaliserSignature du service refuse chaque forme refusée de signatures/normalisation.json ; mutant qui délègue ces contrôles : au moins quatre formes refusées sont normalisées (tué)"
         }
       ]
     },
     "response_removed": {
       "what": "Normalisation et refus des formes non canoniques par le noyau, sans déléguer à une bibliothèque (CT-3 EX-9.3, EX-9.22, SG-5)",
       "how": "Retirer les refus r, s hors de ]0, n[ et v hors domaine",
-      "where": "scripts/lib/approbation.mjs (normaliserSignature)"
+      "where": "scripts/lib/approbation.mjs (normaliserSignature) ; paquets/approbation/src/signatures.mjs (normaliserSignature)"
     },
     "attack": "Formes refusées de signatures/normalisation.json (r-nul, s-egal-n, v-29, …).",
     "expected_with_response": "Chaque forme refusée rend signature null.",
@@ -1722,13 +1802,18 @@ export const TA = [
           "file": "test/approbation.test.js",
           "describe": "CT-3 : tickets (section 7, TK-1 à TK-13)",
           "it": "chaque trace rejouée sur un service vide redonne chaque attendu, pas à pas (EX-7.9, EX-A.6)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : TA-44 à TA-50 sur le paquet livré paquets/approbation (étape 8)",
+          "it": "TA-50 (MN-50, paquet livré) : tickets/jeu-seuil-abaisse.json rejouée sur la machine du service sans écart ; mutant du service qui suit la baisse du seuil : la trace diverge aux pas 6 et 8 (tué)"
         }
       ]
     },
     "response_removed": {
       "what": "Seuil effectif qui ne baisse jamais, membres ajoutés signalés (CT-3 EX-8.5 à EX-8.7)",
       "how": "Faire suivre le seuil au jeu relu",
-      "where": "scripts/lib/approbation.mjs (geler)"
+      "where": "scripts/lib/approbation.mjs (geler) ; paquets/approbation/src/tickets.mjs (seuil effectif)"
     },
     "attack": "Trace tickets/jeu-seuil-abaisse.json : seuil ramené à 1 pendant l'attente.",
     "expected_with_response": "Le ticket exige toujours 2 signatures.",
@@ -1777,9 +1862,14 @@ export const TA = [
     ],
     "oracle": "Drapeau par défaut faux et zéro élément.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Possible dès maintenant sur les vecteurs et les bibliothèques du dépôt ; non écrit dans ce lot ; dû au plus tard à l'étape 8 (tests adversariaux)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-52 (MN-52) : la page de référence console/ ne porte rien du parcours c (walletconnect, relais, portefeuille mobile, URI wc:), ni dans Chromium ; la console livrée a walletconnect nul par défaut et refuse de démarrer quand il est posé (parcours_non_offert) ; mutants de la page, du défaut livré et du serveur livré sans le refus : le parcours est offert sans activation (tués)"
+        }
+      ]
     },
     "response_removed": {
       "what": "Parcours c (relais de portefeuille) désactivé par défaut, échéance bornée, code jamais journalisé (CT-3 EX-13.27)",
@@ -1809,12 +1899,13 @@ export const TA = [
           "file": "test/registreCt4.test.js",
           "describe": "CT-4 — outil de référence sur le réseau Hardhat en mémoire (31337, --sans-capture)",
           "it": "révocation, administration du jeu, réassignation et approvisionnement"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-53 (MN-53, complément) : reassigner sans --demande est refusé usage (inutilisable) ; vers un jeu dont admin() diffère sans --changement-administrateur, refusé jeu_invalide (OP-5) ; mutant sans l'exigence de --demande et mutant sans la comparaison d'admin() : la réassignation part (tués)"
         }
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Mutant de l'outil scripts/registre/noortrace-registre.mjs (comparaison d'admin() et exigence de --demande dans reassigner) à ajouter à test/adversarial.test.js ; possible dès maintenant, dû au plus tard à l'étape 8."
-      }
+      ]
     },
     "response_removed": {
       "what": "Réassignation sur demande écrite consignée, jeu administré par la même clé de gouvernance (CT-4 EX-8.10) ; OP-5",
@@ -1879,12 +1970,12 @@ export const TA = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Possible dès maintenant sur les vecteurs et les bibliothèques du dépôt ; non écrit dans ce lot ; dû au plus tard à l'étape 8 (tests adversariaux)."
+      "blocking": "Décision du porteur attendue (CT-9 TA-55) : aucune garde d'admission d'EX-10.8 n'existe dans le dépôt ; la coder ou la proposer en CT-4 §14 est l'objet de la décision."
     },
     "response_removed": {
       "what": "Garde d'admission par client, RPC des validateurs fermés (CT-4 EX-10.8, EX-10.3, EX-8.15)",
       "how": "Retirer la garde d'admission du relais RPC du réseau de développement",
-      "where": "chain/ (configuration du réseau de développement)"
+      "where": "garde d'admission d'EX-10.8 (absente du réseau de développement, EX-4.20)"
     },
     "attack": "Transactions à 1 wei de frais soumises en nombre depuis un expéditeur sans provision ; épreuve SU-2 de CT-4 §11.2 rejouée.",
     "expected_with_response": "Les transactions non prêtes sont refusées à l'admission ; les ancres et clôtures obtiennent leur reçu dans le délai de SU-2.",
@@ -1938,9 +2029,14 @@ export const TA = [
     ],
     "oracle": "Refus signataire_different avec la référence ; acceptation avec le mutant appliqué des deux côtés. Les cas register-digest-autre-contrat et period-digest-autre-chaine du vecteur condenses.json couvrent déjà chain_id et contract (test existant).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Possible dès maintenant sur les vecteurs et les bibliothèques du dépôt ; non écrit dans ce lot ; dû au plus tard à l'étape 8 (tests adversariaux)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-57 (MN-57) : le condensé d'inscription de register-digest-rec-test-01 (ct-4/condenses.json) est redonné ; une demande d'inscription de la même clé signée au seuil par les membres pour l'organisation B est refusée pour l'organisation A (RG-12 signataire_different) ; mutant qui retire org_id de la préimage, côté signataire et côté vérificateur : les mêmes signatures valent pour A (tué)"
+        }
+      ]
     },
     "response_removed": {
       "what": "Identifiant EVM, adresse, étiquette et org_id dans chaque condensé (CT-4 EX-4.8, §6.6) ; RG-6 à RG-11, RG-13",
@@ -1963,9 +2059,14 @@ export const TA = [
     ],
     "oracle": "Écarts nuls pour la référence ; écarts non nuls pour le mutant.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Possible dès maintenant sur les vecteurs et les bibliothèques du dépôt ; non écrit dans ce lot ; dû au plus tard à l'étape 8 (tests adversariaux)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-58 (MN-58) : trace empreinte-squattee du générateur de CT-5 (PD-10) : l'ancre de la période part avant toute requête RFC 3161 ; le refus empreinte_squattee du registre passe la demande en refusee, lève l'alerte critique, consigne anchor_refused et n'ouvre aucun nouvel essai ; mutant sans le passage en refusee ni l'alerte : la trace diverge au pas 47 et la file finale diffère (tué)"
+        }
+      ]
     },
     "response_removed": {
       "what": "Ancre du registre envoyée avant la requête d'horodatage, aucun nouvel essai après empreinte_squattee, incident consigné (CT-4 EX-8.4, EX-8.6 ; CT-5 EX-4.7, EX-9.6, EX-9.7)",
@@ -2087,12 +2188,13 @@ export const TA = [
           "file": "test/horodatage.test.js",
           "describe": "CT-6 contrôle 4 : T-2 à T-6",
           "it": "T-5 : ECDSA P-256 et RSASSA-PSS admis ; RSA 1024 refusé ; Ed25519 hors de la version 0"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-61 (MN-61, complément T-4 et T-5 de la révision 0.4 de CT-6) : invalide-t4-sid-introuvable échoue à T-4 (EX-9.10), invalide-t5-algorithme-inconnu à T-5 (EX-9.24, cas 1) ; mutant qui laisse T-4 non exécutée pour un sid sans certificat, mutant qui admet un algorithme inconnu : T-4 ou T-5 disparaît des échecs, le dossier à sid introuvable devient valide (tués)"
         }
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Mutants de la révision 0.4 de CT-6 à ajouter à test/adversarial.test.js : T-4 qui rend `ancre_absente` pour un `sid` sans certificat (EX-9.10, dossier invalide-t4-sid-introuvable) et T-5 qui rend `hors_perimetre_version` pour un algorithme inconnu sous une clé admise (EX-9.24, dossier invalide-t5-algorithme-inconnu) ; ces deux parties de la réponse sont éprouvées sans mutant par les tests cités ; possible dès maintenant, dû au plus tard à l'étape 8."
-      }
+      ]
     },
     "response_removed": {
       "what": "Égalité stricte de l'empreinte recalculée (T-2, O-2, T-5, T-7, O-4, O-5 ; CT-1 K-7, K-9) ; T-4 sur un sid sans certificat (CT-6 EX-9.10) ; T-5 sur une clé ou un algorithme hors de la version 0 (CT-6 EX-9.24)",
@@ -2130,19 +2232,20 @@ export const TA = [
         },
         {
           "file": "test/enregistreur-ancrage-exigences.test.js",
-          "describe": "enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence",
+          "describe": "enregistreur + ancrage : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence",
           "it": "TA-62 (complément) : relève d'une demande en cours : le principal ne répond pas à la clôture, retirerQualification relève la demande envoyee vers le secours (anchor_fallback consigné, reason qualification_retiree), le jeton du secours est promu ; la file garde la tentative pendante comme envoyée"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables sur le composant d'ancrage de l'étape 5 (mutants du paquet @noortrace/ancrage, CT-7 EX-3.2)",
+          "it": "TA-62 (MN-62, complément ; mutant du composant d'ancrage) : composant réel, principal injoignable à la clôture : la demande du jeton de la période est relevée par le secours à manifest.fallback_after_s et pas avant (anchor_fallback consigné, raison delai), le jeton du secours est obtenu ; mutant sans la relève par délai : aucune relève, aucune requête au secours, aucun jeton (tué)"
         }
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Le retrait de la relève elle-même (`this.relever`) sur `principal-injoignable.json` épuise les gigues injectées de la trace figée et lève avant l'oracle (EX-10.6) ; depuis l'étape 5, la relève d'une demande en cours est éprouvée sur le composant d'ancrage livré (essai cité), sans mutant : le mutant qui retire la relève du composant (copie du paquet `paquets/ancrage`, EX-10.5), possible dès maintenant et non écrit, est dû à l'étape 8 ; le texte de test de MN-62 (« si la relève est retirée ») est à aligner (PD-24). Les versions 0.1 et 0.2 rattachaient ce complément aux étapes 4 puis 5."
-      }
+      ]
     },
     "response_removed": {
       "what": "Relève par le secours et file durable (CT-5 EX-5.7, EX-8.5) ; deux calendriers, min_responses (EX-4.9, EX-6.6, EX-8.11)",
       "how": "Retirer la consignation anchor_fallback de la relève (détection) ; le retrait de la relève elle-même (appel relever) sur la trace figée épuise les gigues injectées et lève avant l'oracle (mutant mal posé, EX-10.6) : complément, PD-24",
-      "where": "scripts/lib/ancrage.mjs (relever)"
+      "where": "scripts/lib/ancrage.mjs (relever) ; paquets/ancrage/src/planificateur/planificateur.mjs"
     },
     "attack": "Trace planification/principal-injoignable.json.",
     "expected_with_response": "Rejets consignés et relève vers qtsa-secours.",
@@ -2274,6 +2377,11 @@ export const TA = [
           "file": "test/confrontation.test.js",
           "describe": "CT-5 : sorties publiées de la confrontation par des outils tiers (annexe A.6)",
           "it": "rejeu de confrontation/coherence (go présent et module tiers déjà dans le cache local) : code 0, aucune discordance"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-66 (MN-66, complément mutant JavaScript confronté au binaire Go de CT-6) : sur invalide-t2-jeton-autre-manifeste et invalide-r10-inscription-cle-inconnue, la référence JavaScript et le binaire rendent même verdict, même code et mêmes vérifications en échec ; un mutant JavaScript qui dit valide à tort est contredit par le binaire : la confrontation voit la discordance (tués)"
         }
       ],
       "ci_steps": [
@@ -2286,11 +2394,7 @@ export const TA = [
         "vérificateur Go indépendant contre les vecteurs CT-8",
         "binaire vérificateur Go, gofmt, vet et rejeu des dossiers CT-1 et CT-6 (zéro discordance)",
         "binaire vérificateur Go, deux constructions reproductibles aux mêmes octets (CT-6 EX-14.6, EX-14.8)"
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Binaire reproductible et module Go de CT-6 livrés à l'étape 2 (TV-55, deux étapes de CI citées) ; reste un mutant JavaScript confronté au binaire, à ajouter à test/adversarial.test.js avec les tests adversariaux de l'étape 8."
-      }
+      ]
     },
     "response_removed": {
       "what": "Vérificateurs indépendants confrontés sur les vecteurs (CT-6 §3.1) ; binaire reproductible (EX-14.6, EX-14.8)",
@@ -2298,7 +2402,7 @@ export const TA = [
       "where": ".github/workflows/ci.yml, job vecteurs"
     },
     "attack": "Une implémentation de référence qui dit « valide » à tort sur un vecteur.",
-    "expected_with_response": "Les sept modules Go (ct-1 à ct-5, ct-7, ct-8) rendent « 0 discordance » et le code 0 sur leurs vecteurs ; toute divergence fait échouer le job ; ct-6 n'a pas de module Go (TV-55, étape 2).",
+    "expected_with_response": "Les sept modules Go (ct-1 à ct-5, ct-7, ct-8) rendent « 0 discordance » et le code 0 sur leurs vecteurs ; toute divergence fait échouer le job ; ct-6 n'a pas de module Go (TV-55, étape 2) ; les modules de ct-1 à ct-4, ct-7 et ct-8 rendent le code 1 sur une racine où une famille manque ou ne recalcule rien, ou dont un cas manque à l'INDEX.md (plancher : CT-1 §13 révision 0.6 et annexes des vecteurs de CT-2, CT-3, CT-4, CT-7 et CT-8 ; ct-5 : décision du porteur sur son module, EX-13.2).",
     "expected_without_response": "La divergence n'est pas vue ; le test échoue.",
     "execution": "vecteurs_et_depot"
   },
@@ -2366,12 +2470,13 @@ export const TA = [
           "file": "test/horodatage.test.js",
           "describe": "CT-6 contrôle 4 : T-2 à T-6",
           "it": "T-5 : ECDSA P-256 et RSASSA-PSS admis ; RSA 1024 refusé ; Ed25519 hors de la version 0"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-68 (MN-68, complément O-1 et bornes des clés RSA) : invalide-o1-octet-en-trop échoue à O-1 ; invalide-t5-rsa-8200 et invalide-t5-exposant à T-5, invalide-t7-intermediaire-rsa-8200 à T-7 (CT-6 EX-9.23) ; mutant dont le lecteur .ots tolère des octets après l'arbre, mutant sans la borne haute de 8192 bits et mutant sans les bornes de l'exposant : la vérification nommée disparaît des échecs (tués)"
         }
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Mutant du lecteur .ots (O-1, octet en trop) et mutant de la borne des clés RSA (CT-6 EX-9.23, dossiers invalide-t5-rsa-8200, invalide-t5-exposant et invalide-t7-intermediaire-rsa-8200) à ajouter à test/adversarial.test.js ; la borne est éprouvée sans mutant par les tests cités ; possible dès maintenant, dû au plus tard à l'étape 8."
-      }
+      ]
     },
     "response_removed": {
       "what": "Lecture DER stricte, bornes, aucun octet en trop (CT-6 EX-15.1 à EX-15.3 ; T-1, O-1) ; clé RSA de 2048 à 8192 bits, exposant impair de 3 à 2³¹ − 1 (CT-6 EX-9.23)",
@@ -2532,7 +2637,8 @@ export const TA = [
       "Hardhat en mémoire (test existant)."
     ],
     "steps": [
-      "Ajouter au test existant ou à adversarial.test.js : administrer-jeu sans --confirmer refusé."
+      "Ajouter au test existant ou à adversarial.test.js : administrer-jeu sans --confirmer refusé.",
+      "administrer-jeu et approvisionner sans --confirmation refusés (usage) ; confirmation_sha256 consigné (CT-4 EX-8.21)."
     ],
     "oracle": "attendreRefus et request_sha256.",
     "status": {
@@ -2542,19 +2648,30 @@ export const TA = [
           "file": "test/registreCt4.test.js",
           "describe": "CT-4 — outil de référence sur le réseau Hardhat en mémoire (31337, --sans-capture)",
           "it": "révocation, administration du jeu, réassignation et approvisionnement"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-73 (MN-73, partie reassigner ; administrer-jeu et approvisionner sans --confirmation sont éprouvés par test/registre-revue.test.js, CT-4 EX-8.21) : reassigner sans --confirmer <org_id> est refusé usage (inutilisable) même avec la demande écrite ; mutant sans l'exigence de --confirmer : la réassignation part (tué)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- sur l'agent d'inscription livré (mutants du paquet @noortrace/inscription, revue de l'étape 8, TA-73)",
+          "it": "TA-73 (MN-73, agent livré) : une confirmation hors bande n'autorise qu'un approvisionnement : le versement la consomme et un second approvisionner de la même clé est refusé à la remise (confirmation_absente, rien n'est envoyé) ; mutant d'approvisionner sans consommerConfirmation : la confirmation reste libre, le second est admis (tué)"
+        },
+        {
+          "file": "test/registre-revue.test.js",
+          "describe": "Revue de sécurité de l'étape 8, CT-4 §7 et §8 sur le réseau Hardhat en mémoire : confirmation hors bande (EX-8.21), provision recalculée (OP-4), URI (EX-6.8), index relus (EX-8.4), code du jeu",
+          "it": "CT-4 EX-8.21, TA-73 : administrer-jeu et approvisionner exigent --confirmation <fichier> non vide (usage sinon, rien n'est relayé) et consignent son SHA-256 dans outputs.confirmation_sha256 ; mutant (exigence retirée d'administrer-jeu) : relais sans confirmation"
         }
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Partie à écrire : Possible dès maintenant sur les vecteurs et les bibliothèques du dépôt ; non écrit dans ce lot ; dû au plus tard à l'étape 8 (tests adversariaux)."
-      }
+      ]
     },
     "response_removed": {
       "what": "Relais et approvisionnement sur confirmation hors bande consignée (CT-4 EX-8.21) ; demande consignée (CT-7 EX-5.1)",
       "how": "Retirer l'exigence de --confirmer / --demande",
-      "where": "scripts/registre/noortrace-registre.mjs (reassigner, administrer-jeu)"
+      "where": "scripts/registre/noortrace-registre.mjs (confirmationHorsBande, reassigner) ; paquets/inscription/src/agent/commandes/approvisionner.mjs (consommerConfirmation) et commandes/base.mjs (confirmationRequise, controlerProvisionDossier)"
     },
-    "attack": "reassigner sans --demande ou avec une confirmation nulle (test existant : refus usage) ; administrer-jeu sans référence de confirmation (à écrire).",
+    "attack": "reassigner sans --demande ou avec une confirmation nulle (test existant : refus usage) ; administrer-jeu et approvisionner sans --confirmation (refus usage) ; agent d'inscription : un second approvisionnement sur une confirmation déjà consommée.",
     "expected_with_response": "Refus ; request_sha256 consigné quand la demande est fournie.",
     "expected_without_response": "Relais sans trace ; le test échoue.",
     "execution": "vecteurs_et_depot"
@@ -2610,13 +2727,18 @@ export const TA = [
         {
           "file": "test/deploiement-supervision.test.js",
           "describe": "CT-9 TA-29 et TA-75 : alertes de la supervision sur un S3 à Object Lock (CT-2 EX-12.16, EX-12.18, EX-17.5, EX-17.7)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+          "it": "TA-75 (MN-75, complément ; mutant de la relecture hors du démon) : gel posé, une version passée à off hors de l'outil, règles du démon coupées : noortrace-ctl worm gel etat du Lecteur rend un code non nul, noortrace_releve_externe_ok{check=\\\"registre_gels\\\"} vaut 0, la règle critique d'EX-10.9 se déclenche ; mutant dont la relecture ne juge plus l'état relu : code 0, jauge à 1, aucune alerte (tué)"
+        },
+        {
+          "file": "test/deploiement-revue.test.js",
+          "describe": "Revue de sécurité de l'étape 8, CT-8 EX-8.6, EX-10.9 : tâches enveloppées par sonde.mjs releve et jauges des tâches",
+          "it": "CT-8 EX-10.9, CT-2 EX-12.36 : avec NOORTRACE_SUPERVISION, TP-4 passe par sonde.mjs releve --check registre_gels : releve-registre_gels.prom (ok 1 quand worm gel liste et chaque gel listé rendent 0, sinon ok 0 et code de la tâche égal à celui de la relecture) et tache-TP-4.prom ; sans NOORTRACE_SUPERVISION, aucune jauge ; mutant (enveloppe retirée) : aucune jauge de relecture, l'oracle échoue"
         }
-      ],
-      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-supervision.test.js",
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Mutant dans test/adversarial.test.js (relecture faite par le démon seul) et règle évaluée par Prometheus en marche ; l'essai de l'étape 7 coupe les règles du démon et juge la règle d'EX-10.9 hors collecteur."
-      }
+      ]
     },
     "response_removed": {
       "what": "Relecture du registre des gels par un rôle Lecteur hors du démon (CT-2 EX-17.7, EX-18.9) ; métriques publiques (EX-17.1)",
@@ -3253,9 +3375,14 @@ export const TA = [
     ],
     "oracle": "Réserve présente dans le rapport.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Réponse non codée dans l'implémentation de référence (voir `notes`, PD-13) et cas de vecteur « valide-production-sans-ancre » absent (PD-9) : test possible sur le dépôt sans composant de la phase 2, donc rattaché à l'étape 8 (EX-3.10). La version 0.1 le rattachait à tort à l'étape 4 : la vérification des procès-verbaux de cérémonie n'est pas un livrable de l'enregistreur."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
+          "it": "TA-93 (MN-93) : valide-production-sans-ancre, procès-verbal de production valide que rien n'ancre : verifierCeremonie et scripts/verify/ceremonie.mjs (--json et sortie lisible) portent la réserve date_declaree_seulement, verdict valide et code 0 inchangés ; mutant de la bibliothèque sans la réserve et mutant de la commande qui ne l'imprime plus : le procès-verbal est accepté sans réserve (tués)"
+        }
+      ]
     },
     "response_removed": {
       "what": "D_C ancré par un jeton RFC 3161 joint ou une inscription au registre en production (CT-7 EX-5.11) ; recoupement avec l'inscription (EX-5.10)",
@@ -3265,8 +3392,7 @@ export const TA = [
     "attack": "Procès-verbal de production valide, sans ancre de D_C.",
     "expected_with_response": "Le rapport signale « daté par déclaration seulement » (réserve, sans changer le verdict).",
     "expected_without_response": "Accepté sans réserve ; le test échoue.",
-    "execution": "vecteurs_et_depot",
-    "notes": "Au 2026-11-01, verifierCeremonie ne lit aucune ancre de D_C (grep « anchor », « ancre » dans la partie cérémonie : aucune) : la réserve d'EX-5.11 n'est pas codée ; mutant survivant aujourd'hui."
+    "execution": "vecteurs_et_depot"
   },
   {
     "id": "TA-94",
@@ -3307,21 +3433,22 @@ export const TA = [
   {
     "id": "TA-95",
     "preconditions": [
-      "Répétition de cérémonie de la porte 2 avec un témoin qui ignore le scénario ; CR-7 n'y voit rien (deux identifiants distincts)."
+      "Répétition de cérémonie de la porte 2 par rôles simulés (10.1, CT-7 §5.2) : officiant, témoin, détenteurs de part tenus par des sessions isolées ; le rôle de témoin ignore le scénario ; une même session tient deux détenteurs de part sous deux noms, deux adresses et deux pièces d'identité simulées qui portent le même portrait ; objet `sauvegarde`, environnement `developpement`, aucune clé de production ; CR-7 n'y voit rien (deux identifiants distincts)."
     ],
     "steps": [
-      "Jouer la remise des parts avec un figurant sous deux noms ; relever findings du procès-verbal."
+      "Passe avec la réponse : jouer la remise des parts d'après CT-7 §5 et le script ; relever `findings` du procès-verbal.",
+      "Passe sans la réponse : rejouer avec CT-7 §5 et le script privés du constat d'identité du témoin (retrait exact et unique), témoin neuf ; relever `findings` et le verdict CR-1 à CR-12."
     ],
-    "oracle": "Un constat du témoin nomme la coïncidence.",
+    "oracle": "Avec la réponse : un constat du témoin nomme la coïncidence et la cérémonie est interrompue ou reprise. Sans elle : aucun constat ne la nomme et le procès-verbal est valide (CR-1 à CR-12). Les deux observations font le mutant tué. Aucune personne physique ne prend part à l'épreuve : elle éprouve la procédure écrite, non un témoin humain.",
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Épreuve de procédure humaine, conduite à la répétition de cérémonie de la porte 2 (phase 2, étape 8)."
+      "blocking": "Épreuve de procédure jouée par des rôles simulés, sans personne physique, à la répétition de cérémonie de la porte 2 ; le résultat entre dans le rapport d'exécution par l'examinateur (EX-A.19) ; aucun test du dépôt ne la porte."
     },
     "response_removed": {
       "what": "Le témoin constate l'identité distincte de chaque détenteur de part et le consigne (CT-7 EX-5.2, §5.9)",
       "how": "Omettre le constat du témoin",
-      "where": "procédure de cérémonie (répétition de la porte 2)"
+      "where": "procédure de cérémonie : texte de CT-7 §5 et script remis au rôle de témoin (répétition par rôles simulés)"
     },
     "attack": "Cérémonie de sauvegarde où la même personne reçoit deux parts sous deux noms.",
     "expected_with_response": "Le témoin relève la coïncidence dans findings ; la cérémonie est reprise.",
@@ -3339,9 +3466,19 @@ export const TA = [
     ],
     "oracle": "Écart détecté entre local et copie.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Démonstration de référence et tests de bout en bout : phase 2, étape 8."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 TA-96 (MN-96) : copie WORM du journal d'exploitation de la démonstration de référence",
+          "it": "TA-96 (MN-96) : le journal d'exploitation de la démonstration est copié sur un support WORM (S3 à Object Lock, simulateur local) ; une ligne effacée du fichier local est détectée par comparaison à la copie verrouillée — réponse retirée (ne pas copier) : l'effacement passe inaperçu (tué)"
+        },
+        {
+          "file": "test/deploiement-revue.test.js",
+          "describe": "Revue de sécurité de l'étape 8, CT-8 EX-11.22, EX-11.23 : archiver-journal-exploitation.mjs",
+          "it": "(a) index chaîné : chaque ligne porte version 1, son rang et le SHA-256 de la ligne précédente (0x00… pour la première) ; un fichier du milieu retiré avec sa ligne d'index est une discontinuité (rang et empreinte) ; mutant (chaîne non contrôlée) : la relecture dit continu"
+        }
+      ]
     },
     "response_removed": {
       "what": "Changements de policy annoncés dans la chaîne (CT-2 EX-9.2) ; copie WORM des fichiers tournés du journal d'exploitation (PA-18)",
@@ -3356,17 +3493,17 @@ export const TA = [
   {
     "id": "TA-97",
     "preconditions": [
-      "Répétition de cérémonie de la porte 2 (comme TA-95) : signataire, outil de référence (`scripts/conformite/attestation.mjs condenser`), second outil indépendant (`go run . condenser` du module Go de `ct-7`)."
+      "Répétition de cérémonie de la porte 2 par rôles simulés (comme TA-95) : un rôle de signataire tenu par une session isolée, avec une clé d'essai publique ; outil de référence (`scripts/conformite/attestation.mjs condenser`), second outil indépendant (`go run . condenser` du module Go de `ct-7`)."
     ],
     "steps": [
       "Remettre au signataire un outil de référence altéré (copie de `scripts/lib/securite.mjs` dont `PREFIXE_ATTESTATION` vaut `…/v1`) et le second outil intact.",
-      "Observer la procédure de signature : recalcul de D_P par le second outil, comparaison groupe par groupe (CT-7 EX-5.8, EX-7.8), décision."
+      "Observer la procédure de signature : recalcul de D_P par le second outil, comparaison groupe par groupe (CT-7 EX-5.8, EX-7.8), décision ; passe sans la réponse : un rôle de signataire neuf, à qui ni CT-7 §7 ni le second outil ne sont remis, signe ce que l'outil altéré présente ; l'attestation assemblée est vérifiée par l'outil intact."
     ],
-    "oracle": "Avec la comparaison : écart constaté, signature refusée ; sans elle : la signature est produite sur le D_P de l'outil altéré. La parité JS/Go des deux outils sur l'exemple est éprouvée dès maintenant par TV-62 (test de `test/plan-de-tests.test.js`, en attente sans `go`).",
+    "oracle": "Avec la comparaison : écart constaté, signature refusée ; sans elle : la signature est produite sur le D_P de l'outil altéré. La parité JS/Go des deux outils sur l'exemple est éprouvée dès maintenant par TV-62 (test de `test/plan-de-tests.test.js`, en attente sans `go`). Sans la comparaison, l'attestation assemblée par le poste altéré échoue à AT-2 chez le réviseur ; assemblée par un outil intact, elle échoue à AT-3 (constaté le 2026-11-13 sur l'attestation de l'exemple). Aucune personne physique ne prend part à l'épreuve.",
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Épreuve de procédure humaine (répétition de cérémonie de la porte 2, comme TA-95) : la réponse est une obligation du signataire, non un code ; la parité JS/Go est déjà testée (TV-62)."
+      "blocking": "Épreuve de procédure jouée par des rôles simulés, sans personne physique (répétition de cérémonie de la porte 2, comme TA-95) : la réponse est une obligation du signataire, non un code ; la parité JS/Go est déjà testée (TV-62)."
     },
     "response_removed": {
       "what": "Comparaison du condensé à un second outil indépendant (CT-7 EX-5.8, EX-7.8, EX-A.21)",
@@ -3579,7 +3716,27 @@ export const SCENARIOS = [
     ],
     "oracle": "Chaque tentative est refusée ou journalisée comme le dit son TA- ; aucun événement n'est absent ni réécrit : le vérificateur accepte les dossiers et la série des points est continue. Borne (risques acceptés des tests composés) : RA-1, RA-2, RA-3, RA-4, RA-5, RA-6, RA-8, RA-13, RA-19.",
     "phase2_step": 8,
-    "expected_without_response": "Une tentative de l'agent aboutit sans refus ni journalisation (connexion directe au serveur d'outils, fractionnement sous le plafond, approbation rejouée, outil réservé annoncé) : le test composé concerné et le scénario échouent."
+    "expected_without_response": "Une tentative de l'agent aboutit sans refus ni journalisation (connexion directe au serveur d'outils, fractionnement sous le plafond, approbation rejouée, outil réservé annoncé) : le test composé concerné et le scénario échouent.",
+    "status": {
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 §10.5 : scénarios adversariaux joués sur la démonstration de référence (composition docker compose de CT-2 §19)",
+          "it": "TA-103 (MN-1, MN-2, MN-3, MN-4, MN-5, MN-6, MN-7, MN-9, MN-15, MN-22) : sur la démonstration de référence, les attaques de l'agent sont refusées ou journalisées (connexion directe, launched_by déclaré, fractionnement, clé en double, ré-émission, demandes multipliées, outil réservé) ; aucun événement n'est absent ni réécrit, la série des points est continue (borne RA-1 à RA-6, RA-8, RA-13, RA-19)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- joués sur la démonstration de référence (composition docker compose de CT-2 §19, CT-7 EX-3.2)",
+          "it": "TA-1 (MN-1) : dans la démonstration de référence, le conteneur de l'agent tente une connexion TCP directe au serveur d'outils, par son nom puis par son adresse : code non nul, aucun paquet ne quitte le conteneur, tentative datée au journal du conteneur, aucun appel reçu ni événement ; composition mutante où agent-demo est aussi sur le réseau outils : la connexion aboutit sans événement (tué)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 : tests adversariaux TA- joués sur la démonstration de référence (composition docker compose de CT-2 §19, CT-7 EX-3.2)",
+          "it": "TA-22 (MN-22) : dans la démonstration de référence, le conteneur de l'agent liste storage.root : code de retour non nul, le chemin n'existe pas ; composition mutante où le volume du journal est monté dans le conteneur de l'agent : le chemin existe (sous le compte de l'agent, le mode 0700 du démon refuse encore le listage ; sous le compte du démon, le listage réussit et un segment s'ouvre) (tué)"
+        }
+      ]
+    }
   },
   {
     "id": "TA-104",
@@ -3610,7 +3767,22 @@ export const SCENARIOS = [
     ],
     "oracle": "K-7 ou K-8 échoue sur l'événement réécrit ; la fourche est refusée ; l'absence d'annonce et le redémarrage sont visibles (événement de politique, ligne startup, point manquant) ; l'effacement est détecté par la copie WORM ; la seconde version du segment copié est non_conforme et la levée par la même identité est refusée (meme_identite). Borne (risques acceptés des tests composés) : RA-15, RA-16, RA-17, RA-20, RA-23, RA-24, RA-63, RA-66, RA-71, RA-72, RA-80 : ce qui n'est couvert par aucun point ancré, l'acte jamais journalisé et la rétention du support au-delà de ce que son API rend ne sont pas détectés.",
     "phase2_step": 8,
-    "expected_without_response": "Un événement réécrit couvert par un point passe le vérificateur, ou une seconde version d'un segment copié est acceptée sans alerte, ou un gel est levé par qui l'a posé : le test composé concerné et le scénario échouent."
+    "expected_without_response": "Un événement réécrit couvert par un point passe le vérificateur, ou une seconde version d'un segment copié est acceptée sans alerte, ou un gel est levé par qui l'a posé : le test composé concerné et le scénario échouent.",
+    "status": {
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 §10.5 : scénarios adversariaux joués sur la démonstration de référence (composition docker compose de CT-2 §19)",
+          "it": "TA-104 (MN-17, MN-23, MN-26) : sur la démonstration de référence, l'opérateur remplace la politique, redémarre, puis réécrit un événement d'un segment fermé ; politique et redémarrage sont dans la chaîne, la relecture signale l'événement réécrit (hash_different), aucun dossier valide n'en sort (borne RA-15 à RA-17, RA-20, RA-23, RA-24, RA-63, RA-66, RA-71, RA-72, RA-80)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 §10.5 : scénarios adversariaux joués sur la démonstration de référence (composition docker compose de CT-2 §19)",
+          "it": "TA-104 (MN-23, réponse retirée) : un mutant du démon (image) qui n'annonce plus dans la chaîne une politique remplacée ; après le remplacement de la politique et le redémarrage, la démonstration mutante applique la nouvelle version sans événement de politique ni ligne policy_announced (tué)"
+        }
+      ]
+    }
   },
   {
     "id": "TA-105",
@@ -3632,7 +3804,22 @@ export const SCENARIOS = [
     ],
     "oracle": "Mode dégradé horloge, AV-K-2 ou AV-K-4 au rapport, horloge_suspecte et reponse_tardive consignés ; les dates des événements restent bornées par les contresignatures extérieures. Non testé : une horloge fausse mais cohérente dans la tolérance (RA-18, RA-54).",
     "phase2_step": 8,
-    "expected_without_response": "Un événement est scellé à une date reculée ou avancée sans mode dégradé, ou un jeton à genTime décalé est promu sans horloge_suspecte, ou une réponse tardive est acceptée : le test composé concerné et le scénario échouent."
+    "expected_without_response": "Un événement est scellé à une date reculée ou avancée sans mode dégradé, ou un jeton à genTime décalé est promu sans horloge_suspecte, ou une réponse tardive est acceptée : le test composé concerné et le scénario échouent.",
+    "status": {
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 §10.5 : scénarios adversariaux joués sur la démonstration de référence (composition docker compose de CT-2 §19)",
+          "it": "TA-105 (MN-21) : horloge murale du démon pilotée par libfaketime (hors binaires Go, CT-9 §16) — un recul au-delà de clock.max_backstep_ms (clock_backstep) et un saut au-delà de clock.max_forward_ms (clock_forward_jump) font entrer en mode dégradé « horloge » ; noortrace-ctl clock --accept en sort ; les dates restent non décroissantes (borne RA-18, RA-54)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 §10.5 : scénarios adversariaux joués sur la démonstration de référence (composition docker compose de CT-2 §19)",
+          "it": "TA-105 (MN-21, réponse retirée) : un mutant du démon (image) sans les deux contrôles d'horloge de l'écrivain (recul et saut) ; sous un saut en avant de l'horloge murale que la référence bloque, aucun mode dégradé n'est levé et un événement est scellé à une date future fausse (tué)"
+        }
+      ]
+    }
   },
   {
     "id": "TA-106",
@@ -3657,7 +3844,22 @@ export const SCENARIOS = [
     ],
     "oracle": "Événement de reprise, troncature à la dernière ligne complète, ligne startup, un seul écrivain accepté après la bascule (l'ancienne instance est refusée), alertes WORM et clé, file reconstruite avec alerte file_perdue ; aucun événement non signé ni perdu sans trace. Borne (risques acceptés des tests composés) : RA-9, RA-17, RA-25, RA-29, RA-66, RA-67.",
     "phase2_step": 8,
-    "expected_without_response": "Deux écrivains actifs écrivent dans la même période, ou un segment tronqué est relu comme complet, ou la file perdue n'est pas reconstruite : le test composé concerné et le scénario échouent."
+    "expected_without_response": "Deux écrivains actifs écrivent dans la même période, ou un segment tronqué est relu comme complet, ou la file perdue n'est pas reconstruite : le test composé concerné et le scénario échouent.",
+    "status": {
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 §10.5 : scénarios adversariaux joués sur la démonstration de référence (composition docker compose de CT-2 §19)",
+          "it": "TA-106 (MN-10, MN-20, MN-26, MN-64) : arrêt brutal (SIGKILL), dernier segment privé de sa fin de ligne, redémarrage — relecture tronquée à la dernière ligne complète (segment_truncated), époque plus grande (lease_acquired), chaîne sans trou ni fourche ; file d'ancrage effacée reconstruite au démarrage (anchoring_queue_rebuilt), alerte file_perdue (borne RA-9, RA-17, RA-25, RA-29, RA-66, RA-67)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 §10.5 : scénarios adversariaux joués sur la démonstration de référence (composition docker compose de CT-2 §19)",
+          "it": "TA-106 (MN-20, réponse retirée) : un mutant du démon (image) dont la relecture d'un segment accepte une dernière ligne incomplète au lieu de la tronquer ; après un arrêt brutal qui laisse une fin de segment déchirée, le mutant relit la ligne non terminée comme un événement complet au lieu de la tronquer (tué)"
+        }
+      ]
+    }
   },
   {
     "id": "TA-107",
@@ -3680,6 +3882,21 @@ export const SCENARIOS = [
     ],
     "oracle": "Relève consignée, alertes prestataire_injoignable et ancre en retard aux échéances de CT-5 §8.9, empreinte_squattee sans nouvel essai, aucun blocage de la capture (CT-2 §14.2) ; la fenêtre de réécriture mesurée (CT-5 §3.3) est rapportée dans TM-42 (`w_date_porte_2`, `w_date_defaut`) et TM-13 (`d_jeton`). Borne (risques acceptés des tests composés) : RA-50, RA-52, RA-55, RA-56, RA-65.",
     "phase2_step": 8,
-    "expected_without_response": "La relève n'est pas consignée, ou une alerte prestataire_injoignable ou ancre en retard manque à son échéance, ou l'empreinte squattée est réessayée, ou la capture se bloque : le test composé concerné et le scénario échouent."
+    "expected_without_response": "La relève n'est pas consignée, ou une alerte prestataire_injoignable ou ancre en retard manque à son échéance, ou l'empreinte squattée est réessayée, ou la capture se bloque : le test composé concerné et le scénario échouent.",
+    "status": {
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 §10.5 : scénarios adversariaux joués sur la démonstration de référence (composition docker compose de CT-2 §19)",
+          "it": "TA-107 (MN-62, MN-63, MN-76) : le prestataire RFC 3161 principal (serveur interne) est coupé pendant la contresignature des points — la relève par le secours (joint en TLS mutuel) est consignée (anchor_fallback, reason delai), le point est contresigné par le secours, et la capture n'est jamais bloquée (borne RA-50, RA-52, RA-55, RA-56, RA-65)"
+        },
+        {
+          "file": "test/adversarial.test.js",
+          "describe": "CT-9 §10.5 : scénarios adversariaux joués sur la démonstration de référence (composition docker compose de CT-2 §19)",
+          "it": "TA-107 (MN-62, réponse retirée) : un mutant du composant d'ancrage (image) sans la relève par délai du planificateur (releverParDelai) ; sous la même coupure du principal, aucune anchor_fallback n'est consignée et aucune tentative n'est faite chez le secours pour la demande en cours (tué)"
+        }
+      ]
+    }
   }
 ];

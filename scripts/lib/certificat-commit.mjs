@@ -268,9 +268,11 @@ function entreesJeu(source) {
  */
 export function hachageJeuValidateurs(source) {
   const entrees = entreesJeu(source?.validateurs ?? source);
-  const ids = entrees.map((e) => e.id).sort(comparerIdsGo);
   const parId = new Map();
   for (const e of entrees) parId.set(e.id, e.pubKey); // comme la map Go : la dernière clé d'un id gagne
+  // Comme les clés d'une map Go : chaque identifiant une seule fois, trié (EX-11.8 ; un identifiant répété
+  // n'est pas haché deux fois, CT-6 EX-11.12).
+  const ids = [...parId.keys()].sort(comparerIdsGo);
   const parties = [utf8(PREFIXE_HACHAGE_JEU)];
   for (const id of ids) parties.push(utf8(id), Buffer.from([0]), parId.get(id), Buffer.from([0]));
   return hex(sha256(...parties));
@@ -324,12 +326,14 @@ export function recupererClePublique(digest, sig65) {
  */
 export function normaliserClePublique(pub) {
   const b = octets(pub, "clé publique");
+  // Pour chaque forme, le point est contrôlé sur la courbe (SigningKey.computePublicKey lève sur un point
+  // hors de secp256k1) : une clé de 64 ou 65 octets hors de la courbe n'entre dans aucun jeu (CT-6 EX-11.12).
   switch (b.length) {
     case 65:
       if (b[0] !== 0x04) throw new Error("clé publique : préfixe 0x04 attendu sur une clé de 65 octets");
-      return hex(b);
+      return SigningKey.computePublicKey(hex(b), false).toLowerCase();
     case 64:
-      return hex(Buffer.concat([Buffer.from([0x04]), b]));
+      return SigningKey.computePublicKey(hex(Buffer.concat([Buffer.from([0x04]), b])), false).toLowerCase();
     case 33:
       return SigningKey.computePublicKey(hex(b), false).toLowerCase();
     default:
@@ -397,12 +401,19 @@ export function plierNomGo(nom) {
  * chacun le texte BRUT de sa valeur : tableau de {cle, brut}. Erreur si le
  * texte n'est pas exactement un objet JSON.
  */
+const RE_SCALAIRE = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?|true|false|null/y;
+const ESPACE_JSON = new Set([" ", "\t", "\n", "\r"]);
 export function decouperMembres(texte) {
   if (typeof texte !== "string") throw new Error("ligne : chaîne attendue");
   let i = 0;
   const n = texte.length;
+  // Blancs hors des chaînes : l'encodeur du nœud n'en écrit aucun ; ils rendent la ligne non canonique (AV-R-2, EX-11.6).
+  let espaces = 0;
   const blancs = () => {
-    while (i < n && (texte[i] === " " || texte[i] === "\t" || texte[i] === "\n" || texte[i] === "\r")) i++;
+    while (i < n && ESPACE_JSON.has(texte[i])) {
+      i++;
+      espaces++;
+    }
   };
   const chaine = () => {
     // i est sur le guillemet ouvrant ; rend la chaîne décodée, i après le guillemet fermant.
@@ -433,13 +444,18 @@ export function decouperMembres(texte) {
         else {
           if (d === "{" || d === "[") profondeur++;
           else if (d === "}" || d === "]") profondeur--;
+          else if (ESPACE_JSON.has(d)) espaces++;
           i++;
           if (profondeur === 0) return;
         }
       }
       throw new Error("ligne : objet ou tableau JSON non terminé");
     }
-    const m = /^(?:-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?|true|false|null)/.exec(texte.slice(i, i + 64));
+    // Un littéral scalaire est lu sur tout le texte restant (expression ancrée en i), quelle que soit sa
+    // longueur : un membre inconnu à littéral numérique long est une valeur JSON valide, que le décodeur du
+    // nœud ignore (EX-11.6) ; seule la longueur de la ligne (§15.1) le borne.
+    RE_SCALAIRE.lastIndex = i;
+    const m = RE_SCALAIRE.exec(texte);
     if (!m) throw new Error(`ligne : valeur JSON inattendue à la position ${i}`);
     i += m[0].length;
   };
@@ -478,6 +494,7 @@ export function decouperMembres(texte) {
   if (i !== n) throw new Error("ligne : texte après la fin de l'objet JSON");
   // Le découpage doit coïncider avec une analyse complète ; sinon la ligne est refusée.
   JSON.parse(texte);
+  membres.espaces = espaces;
   return membres;
 }
 
@@ -501,8 +518,25 @@ export function membresBruts(texte) {
  */
 export function membresBrutsGo(texte) {
   const membres = new Map();
-  for (const { cle, brut } of decouperMembres(texte)) membres.set(plierNomGo(cle), { brut, cle });
+  const decoupes = decouperMembres(texte);
+  for (const { cle, brut } of decoupes) membres.set(plierNomGo(cle), { brut, cle });
+  membres.espaces = decoupes.espaces;
+  membres.ordre = decoupes.map(({ cle }) => plierNomGo(cle));
   return membres;
+}
+
+/**
+ * Formes non canoniques d'un objet lu par membresBrutsGo que le décodeur du nœud accepte et que
+ * l'encodeur n'écrirait pas (EX-11.6 : membre inconnu, espaces, ordre des membres) : une remarque par
+ * forme, dans `remarques`. `noms` : les membres connus de la structure Go, dans l'ordre de son encodeur.
+ */
+function noterFormes(m, noms, remarques, quoi) {
+  const connus = noms.map(plierNomGo);
+  const inconnus = [...m.keys()].filter((k) => !connus.includes(k));
+  for (const k of inconnus) remarques.push(`membre inconnu « ${m.get(k).cle} » dans ${quoi}, ignoré`);
+  if (m.espaces > 0) remarques.push(`espaces dans ${quoi}`);
+  const rangs = m.ordre.filter((k) => connus.includes(k)).map((k) => connus.indexOf(k));
+  if (rangs.some((r, i) => i > 0 && r < rangs[i - 1])) remarques.push(`ordre des membres de ${quoi} différent de celui de l'encodeur du nœud`);
 }
 
 /** Membre d'une Map de membresBrutsGo par son nom Go ; rend {brut, cle} ou undefined. */
@@ -586,6 +620,7 @@ export function analyserEnveloppe(ligne) {
   };
   if (env.corpsBrut === undefined) throw new Error("body : absent");
   noterGraphies(m, MEMBRES_ENVELOPPE, remarques);
+  noterFormes(m, MEMBRES_ENVELOPPE, remarques, "l'enveloppe");
   return env;
 }
 
@@ -706,6 +741,7 @@ export function verifierLigne(ligne, att) {
     if (att.type === TYPE_PRECOMMIT || att.type === TYPE_PREVOTE) {
       for (const [nom, type] of Object.entries(CHAMPS_VOTE)) typerChampGo(champ(nom), `Vote.${nom}`, type, []);
       noterGraphies(corps, Object.keys(CHAMPS_VOTE), remarques);
+      noterFormes(corps, Object.keys(CHAMPS_VOTE), remarques, "le corps Vote");
       const hauteur = u64BrutOuZero(champ("Height"), "Vote.Height");
       if (hauteur !== att.hauteur) return echec(`Vote.Height ${hauteur} au lieu de ${att.hauteur}`, qui);
       const ronde = u64BrutOuZero(champ("Round"), "Vote.Round");
@@ -725,6 +761,7 @@ export function verifierLigne(ligne, att) {
     } else if (att.type === TYPE_PROPOSITION) {
       for (const [nom, type] of Object.entries(CHAMPS_PROPOSITION)) typerChampGo(champ(nom), `Proposal.${nom}`, type, []);
       noterGraphies(corps, Object.keys(CHAMPS_PROPOSITION), remarques);
+      noterFormes(corps, Object.keys(CHAMPS_PROPOSITION), remarques, "le corps Proposal");
       const hauteur = u64BrutOuZero(champ("height"), "Proposal.height");
       if (hauteur !== att.hauteur) return echec(`Proposal.height ${hauteur} au lieu de ${att.hauteur}`, qui);
       const ronde = u64BrutOuZero(champ("round"), "Proposal.round");
@@ -870,6 +907,8 @@ export function verifierCertificat(certificat, validators, options = {}) {
     c = normaliserCertificat(certificat);
     if (typeof c.chainId !== "string" || c.chainId.trim() === "") throw new Error("chainId absent ou vide");
     c.hauteur = entierCertificat(c.h, "hauteur (h)");
+    // CT-6 EX-11.14 (révision 0.9) : dans un dossier, R-1 refuse un certificat de hauteur 0 avant toute R-5 ; le refus est
+    // gardé ici pour l'outil scripts/verify/certificat-commit.mjs, qui juge un certificat seul, sans R-1.
     if (c.hauteur === 0n) throw new Error("hauteur 0 : la genèse n'est jamais décidée par le BFT");
     c.ronde = entierCertificat(c.r, "tour (r)");
     if (typeof c.valsetHash !== "string") throw new Error("valsetHash absent");

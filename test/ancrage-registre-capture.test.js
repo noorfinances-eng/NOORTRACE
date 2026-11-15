@@ -1,4 +1,4 @@
-// Composant d'ancrage, lot D : recalculs du registre (CT-6 §11.3 : hachage BFT,
+// Composant d'ancrage, registre : recalculs du registre (CT-6 §11.3 : hachage BFT,
 // racine des reçus, certificat de commit, jeu de validateurs), capture CP-2 à
 // CP-6 (CT-4 §9.4) et export des parties (CT-4 §9.6, CT-5 EX-10.4), rejoués
 // contre spec/vecteurs/ct-6/registre (capture unique, trie.json, attendu.json,
@@ -47,7 +47,7 @@ function construireVerificateur(dir) {
   return sortie;
 }
 
-describe("ancrage, lot D : recalculs, capture et export du registre (CT-6 §11, CT-4 §9)", function () {
+describe("ancrage, registre : recalculs, capture et export du registre (CT-6 §11, CT-4 §9)", function () {
   this.timeout(120000);
 
   it("copies embarquées des schémas égales aux fichiers de spec/schemas", function () {
@@ -172,7 +172,7 @@ describe("ancrage, lot D : recalculs, capture et export du registre (CT-6 §11, 
     expect(octetsVersHex(R.lireJeu(comprime).hash)).to.equal(ATTENDU.capture.valset_hash);
   });
 
-  it("capture.json (CT-4) : CP-2 à CP-6 sur les quatre captures de la période 1 et les treize variantes, premier échec et code attendus", function () {
+  it("capture.json (CT-4) : CP-2 à CP-6 sur les quatre captures de la période 1 et les quinze variantes (treize, puis cp3-recu-topics-nul et cp2-nom-hors-repertoire de la revue de l'étape 8), premier échec et code attendus", function () {
     const f = lireJson("spec/vecteurs/ct-4/capture/capture.json");
     let joues = 0;
     for (const c of f.cases) {
@@ -187,7 +187,7 @@ describe("ancrage, lot D : recalculs, capture et export du registre (CT-6 §11, 
       expect(v.checks.map((x) => x.id)).to.deep.equal(["CP-2", "CP-3", "CP-4", "CP-5", "CP-6"]);
       joues++;
     }
-    expect(joues).to.equal(17);
+    expect(joues).to.equal(19);
   });
 
   it("export-periode-1 (CT-4 EX-9.8 à EX-9.10) : registre.json (hors source), certificat-commit.json et validateurs.json égaux à spec/vecteurs/ct-6/registre/periode-1", function () {
@@ -321,6 +321,22 @@ describe("ancrage, lot D : recalculs, capture et export du registre (CT-6 §11, 
     expect(R.verifierCapture({ fichiers: dir, index: { ...index, files: { ...index.files, receipts: [] } }, jeux: JEUX_DEV, bftChainId: BFT }).premierEchec.check).to.equal("CP-3");
     expect(R.verifierCapture({ fichiers: dir, index, jeux: JEUX_DEV, bftChainId: "noortrace-2124-autre" }).premierEchec).to.deep.equal({ check: "CP-4", code: "certificat_invalide" });
     expect(R.verifierCapture({ fichiers: dir, index, jeux: { sets: [{ from_height: 20000, to_height: null, validators: JEUX_DEV.sets[0].validators, source: "x" }] }, bftChainId: BFT }).premierEchec).to.deep.equal({ check: "CP-4", code: "certificat_invalide" });
+  });
+
+  it("CT-4 EX-9.3, CT-2 §19.2 : ecrireExclusif pose le fichier de capture en entier, lisible du groupe (capture déposée par un compte et remise à l'enregistreur par un autre : approbateur-demo puis exploitation-demo), sans jamais le réécrire ni laisser de provisoire", function () {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ancrage-registre-droits-"));
+    try {
+      const chemin = path.join(dir, "bloc-36.json");
+      expect(R.ecrireExclusif(chemin, Buffer.from("{\"a\":1}"))).to.equal(true);
+      const mode = fs.statSync(chemin).mode & 0o777;
+      expect(mode & 0o600, "propriétaire : lecture et écriture").to.equal(0o600);
+      expect(mode & 0o040, `lecture du groupe (mode ${mode.toString(8)})`).to.equal(0o040);
+      expect(R.ecrireExclusif(chemin, Buffer.from("{\"a\":2}"))).to.equal(false);
+      expect(fs.readFileSync(chemin, "utf8")).to.equal("{\"a\":1}");
+      expect(fs.readdirSync(dir)).to.deep.equal(["bloc-36.json"]);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("parties exportées éprouvées par le binaire Go de CT-6 : dossier valide-point-de-controle-complet avec registre.json, certificat-commit.json et validateurs.json reconstruits (R-1 à R-11, même verdict)", function () {

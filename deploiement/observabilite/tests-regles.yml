@@ -127,6 +127,38 @@ tests:
       - eval_time: 6m
         alertname: noortrace_appels_bloques
         exp_alerts: []
+  - name: 'noortrace_appels_bloques : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_calls_blocked_total{class="ecriture", code="-31010", instance="127.0.0.1:8500", job="enregistreur", reason="politique", role="active"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_appels_bloques
+        exp_alerts:
+          - exp_labels:
+              class: 'ecriture'
+              code: '-31010'
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Appels bloqués'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              reason: 'politique'
+              role: 'active'
+              runbook: 'RB-1'
+              severity: 'majeure'
+            exp_annotations:
+              summary: 'Appels bloqués par l''enregistreur'
+              description: 'Appels bloqués par l''enregistreur. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Appels bloqués. Runbook : RB-1.'
+  - name: 'noortrace_appels_bloques : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_calls_blocked_total{class="ecriture", code="-31010", instance="127.0.0.1:8500", job="enregistreur", reason="politique", role="active"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_appels_bloques
+        exp_alerts: []
   - name: 'noortrace_attente_non_vide déclenchée'
     interval: 1m
     input_series:
@@ -244,6 +276,36 @@ tests:
         values: '0x6'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_bail_renouvellement
+        exp_alerts: []
+  - name: 'noortrace_bail_renouvellement : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_lease_renew_failures_total{instance="127.0.0.1:8500", job="enregistreur", role="active", store="postgresql"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_bail_renouvellement
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Bail'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              role: 'active'
+              runbook: 'RB-2'
+              severity: 'critique'
+              store: 'postgresql'
+            exp_annotations:
+              summary: 'Échec de renouvellement du bail'
+              description: 'Échec de renouvellement du bail. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Bail. Runbook : RB-2.'
+  - name: 'noortrace_bail_renouvellement : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_lease_renew_failures_total{instance="127.0.0.1:8500", job="enregistreur", role="active", store="postgresql"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_bail_renouvellement
         exp_alerts: []
   - name: 'noortrace_ancre_en_retard déclenchée'
@@ -367,6 +429,39 @@ tests:
       - eval_time: 6m
         alertname: noortrace_retention_support_non_conforme
         exp_alerts: []
+  - name: 'noortrace_retention_support_non_conforme : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="non_conforme", event="worm_lock_config_check", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_retention_support_non_conforme
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              detail: 'non_conforme'
+              event: 'worm_lock_config_check'
+              exigence: 'CT-2 §17.4 Verrou WORM non conforme'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-5'
+              severity: 'critique'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Configuration de rétention du support WORM non conforme'
+              description: 'Configuration de rétention du support WORM non conforme. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Verrou WORM non conforme. Runbook : RB-5.'
+  - name: 'noortrace_retention_support_non_conforme : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="non_conforme", event="worm_lock_config_check", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_retention_support_non_conforme
+        exp_alerts: []
   - name: 'noortrace_releve_en_retard déclenchée'
     interval: 1m
     input_series:
@@ -458,6 +553,39 @@ tests:
       - eval_time: 6m
         alertname: noortrace_registre_gels_invalide
         exp_alerts: []
+  - name: 'noortrace_registre_gels_invalide : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="garde_violee", event="worm_legal_hold_observed", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_registre_gels_invalide
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              detail: 'garde_violee'
+              event: 'worm_legal_hold_observed'
+              exigence: 'CT-2 §17.4 Registre des gels invalide'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-5'
+              severity: 'critique'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Registre des gels qui viole la règle de garde'
+              description: 'Registre des gels qui viole la règle de garde. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Registre des gels invalide. Runbook : RB-5.'
+  - name: 'noortrace_registre_gels_invalide : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="garde_violee", event="worm_legal_hold_observed", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_registre_gels_invalide
+        exp_alerts: []
   - name: 'noortrace_gel_non_pose déclenchée'
     interval: 1m
     input_series:
@@ -491,6 +619,39 @@ tests:
       - eval_time: 6m
         alertname: noortrace_gel_non_pose
         exp_alerts: []
+  - name: 'noortrace_gel_non_pose : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="gel_absent", event="worm_lock_check", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_gel_non_pose
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              detail: 'gel_absent'
+              event: 'worm_lock_check'
+              exigence: 'CT-2 §17.4 Gel non posé sur une version d''un gel actif'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-5'
+              severity: 'critique'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Gel attendu absent sur une version d''un gel actif'
+              description: 'Gel attendu absent sur une version d''un gel actif. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Gel non posé sur une version d''un gel actif. Runbook : RB-5.'
+  - name: 'noortrace_gel_non_pose : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="gel_absent", event="worm_lock_check", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_gel_non_pose
+        exp_alerts: []
   - name: 'noortrace_controle_integrite déclenchée'
     interval: 1m
     input_series:
@@ -519,6 +680,36 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_controle_integrite
+        exp_alerts: []
+  - name: 'noortrace_controle_integrite : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_integrity_check_failures_total{check="segments", instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_controle_integrite
+        exp_alerts:
+          - exp_labels:
+              check: 'segments'
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Contrôle d''intégrité en échec'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              role: 'active'
+              runbook: 'RB-1, RB-5'
+              severity: 'critique'
+            exp_annotations:
+              summary: 'Contrôle d''intégrité en échec'
+              description: 'Contrôle d''intégrité en échec. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Contrôle d''intégrité en échec. Runbook : RB-1, RB-5.'
+  - name: 'noortrace_controle_integrite : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_integrity_check_failures_total{check="segments", instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_controle_integrite
         exp_alerts: []
   - name: 'noortrace_gel_leve déclenchée'
@@ -552,6 +743,39 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_gel_leve
+        exp_alerts: []
+  - name: 'noortrace_gel_leve : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="levee", event="worm_legal_hold_observed", instance="127.0.0.1:9100", job="hote", level="info", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_gel_leve
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              detail: 'levee'
+              event: 'worm_legal_hold_observed'
+              exigence: 'CT-2 §17.4 Gel levé'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'info'
+              role: 'hote'
+              runbook: 'aucun'
+              severity: 'mineure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Gel juridique levé (rapprocher d''EX-11.16)'
+              description: 'Gel juridique levé (rapprocher d''EX-11.16). Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Gel levé. Runbook : aucun.'
+  - name: 'noortrace_gel_leve : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="levee", event="worm_legal_hold_observed", instance="127.0.0.1:9100", job="hote", level="info", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_gel_leve
         exp_alerts: []
   - name: 'noortrace_horloge_ecart déclenchée'
@@ -613,6 +837,36 @@ tests:
       - eval_time: 6m
         alertname: noortrace_definition_outil_changee
         exp_alerts: []
+  - name: 'noortrace_definition_outil_changee : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_tool_definition_changes_total{instance="127.0.0.1:8500", job="enregistreur", role="active", server="outils"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_definition_outil_changee
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Définition d''outil changée'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              role: 'active'
+              runbook: 'aucun'
+              server: 'outils'
+              severity: 'mineure'
+            exp_annotations:
+              summary: 'Définition d''un outil changée'
+              description: 'Définition d''un outil changée. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Définition d''outil changée. Runbook : aucun.'
+  - name: 'noortrace_definition_outil_changee : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_tool_definition_changes_total{instance="127.0.0.1:8500", job="enregistreur", role="active", server="outils"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_definition_outil_changee
+        exp_alerts: []
   - name: 'noortrace_fourche déclenchée'
     interval: 1m
     input_series:
@@ -645,6 +899,38 @@ tests:
       - eval_time: 6m
         alertname: noortrace_fourche
         exp_alerts: []
+  - name: 'noortrace_fourche : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="journal_fork", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_fourche
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              event: 'journal_fork'
+              exigence: 'CT-2 §17.4 Fourche'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-2'
+              severity: 'critique'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Fourche du journal'
+              description: 'Fourche du journal. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Fourche. Runbook : RB-2.'
+  - name: 'noortrace_fourche : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="journal_fork", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_fourche
+        exp_alerts: []
   - name: 'noortrace_panne_apres_relais déclenchée'
     interval: 1m
     input_series:
@@ -673,6 +959,36 @@ tests:
         values: '0x6'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_panne_apres_relais
+        exp_alerts: []
+  - name: 'noortrace_panne_apres_relais : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_calls_executed_not_durable_total{class="ecriture", instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_panne_apres_relais
+        exp_alerts:
+          - exp_labels:
+              class: 'ecriture'
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Panne après relais'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              role: 'active'
+              runbook: 'RB-1'
+              severity: 'critique'
+            exp_annotations:
+              summary: 'Appel exécuté sans événement durable'
+              description: 'Appel exécuté sans événement durable. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Panne après relais. Runbook : RB-1.'
+  - name: 'noortrace_panne_apres_relais : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_calls_executed_not_durable_total{class="ecriture", instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_panne_apres_relais
         exp_alerts: []
   - name: 'noortrace_relais_refuse déclenchée'
@@ -705,6 +1021,36 @@ tests:
       - eval_time: 6m
         alertname: noortrace_relais_refuse
         exp_alerts: []
+  - name: 'noortrace_relais_refuse : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_approval_relays_refused_total{check="signature", instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_relais_refuse
+        exp_alerts:
+          - exp_labels:
+              check: 'signature'
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Relais refusé ou identifiant en collision'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              role: 'active'
+              runbook: 'RB-8'
+              severity: 'critique'
+            exp_annotations:
+              summary: 'Relais d''approbation refusé'
+              description: 'Relais d''approbation refusé. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Relais refusé ou identifiant en collision. Runbook : RB-8.'
+  - name: 'noortrace_relais_refuse : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_approval_relays_refused_total{check="signature", instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_relais_refuse
+        exp_alerts: []
   - name: 'noortrace_remise_refusee déclenchée'
     interval: 1m
     input_series:
@@ -733,6 +1079,36 @@ tests:
         values: '0x6'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_remise_refusee
+        exp_alerts: []
+  - name: 'noortrace_remise_refusee : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_approval_remises_refused_total{check="signature", instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_remise_refusee
+        exp_alerts:
+          - exp_labels:
+              check: 'signature'
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Remise refusée'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              role: 'active'
+              runbook: 'RB-8'
+              severity: 'majeure'
+            exp_annotations:
+              summary: 'Remise d''approbation refusée'
+              description: 'Remise d''approbation refusée. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Remise refusée. Runbook : RB-8.'
+  - name: 'noortrace_remise_refusee : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_approval_remises_refused_total{check="signature", instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_remise_refusee
         exp_alerts: []
   - name: 'noortrace_politique_invalide_au_charger déclenchée'
@@ -768,6 +1144,39 @@ tests:
       - eval_time: 6m
         alertname: noortrace_politique_invalide_au_charger
         exp_alerts: []
+  - name: 'noortrace_politique_invalide_au_charger : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="politique_invalide_au_charger", event="approval_service_unavailable", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_politique_invalide_au_charger
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              detail: 'politique_invalide_au_charger'
+              event: 'approval_service_unavailable'
+              exigence: 'CT-2 §17.4 Remise refusée (politique_invalide, CT-2 EX-7.15)'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'warning'
+              role: 'hote'
+              runbook: 'aucun'
+              severity: 'majeure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Politique d''approbation refusée par le service au chargement'
+              description: 'Politique d''approbation refusée par le service au chargement. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Remise refusée (politique_invalide, CT-2 EX-7.15). Runbook : aucun.'
+  - name: 'noortrace_politique_invalide_au_charger : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="politique_invalide_au_charger", event="approval_service_unavailable", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_politique_invalide_au_charger
+        exp_alerts: []
   - name: 'noortrace_budget_redaction déclenchée'
     interval: 1m
     input_series:
@@ -797,6 +1206,37 @@ tests:
         values: '0x6'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_budget_redaction
+        exp_alerts: []
+  - name: 'noortrace_budget_redaction : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_redaction_budget_exceeded_total{instance="127.0.0.1:8500", job="enregistreur", operation="detection", role="active", scope="arguments"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_budget_redaction
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Budget de rédaction'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              operation: 'detection'
+              role: 'active'
+              runbook: 'aucun'
+              scope: 'arguments'
+              severity: 'mineure'
+            exp_annotations:
+              summary: 'Budget de rédaction dépassé'
+              description: 'Budget de rédaction dépassé. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Budget de rédaction. Runbook : aucun.'
+  - name: 'noortrace_budget_redaction : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_redaction_budget_exceeded_total{instance="127.0.0.1:8500", job="enregistreur", operation="detection", role="active", scope="arguments"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_budget_redaction
         exp_alerts: []
   - name: 'noortrace_budget_redaction_bloquant déclenchée'
@@ -831,6 +1271,38 @@ tests:
       - eval_time: 6m
         alertname: noortrace_budget_redaction_bloquant
         exp_alerts: []
+  - name: 'noortrace_budget_redaction_bloquant : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_calls_blocked_total{class="ecriture", code="-31010", instance="127.0.0.1:8500", job="enregistreur", reason="redaction", role="active"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_budget_redaction_bloquant
+        exp_alerts:
+          - exp_labels:
+              class: 'ecriture'
+              code: '-31010'
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Budget de rédaction'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              reason: 'redaction'
+              role: 'active'
+              runbook: 'aucun'
+              severity: 'majeure'
+            exp_annotations:
+              summary: 'Appel bloqué par la rédaction'
+              description: 'Appel bloqué par la rédaction. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Budget de rédaction. Runbook : aucun.'
+  - name: 'noortrace_budget_redaction_bloquant : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_calls_blocked_total{class="ecriture", code="-31010", instance="127.0.0.1:8500", job="enregistreur", reason="redaction", role="active"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_budget_redaction_bloquant
+        exp_alerts: []
   - name: 'noortrace_cle_mac_relais déclenchée'
     interval: 1m
     input_series:
@@ -861,6 +1333,38 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_cle_mac_relais
+        exp_alerts: []
+  - name: 'noortrace_cle_mac_relais : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="relay_mac_key_mismatch", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_cle_mac_relais
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              event: 'relay_mac_key_mismatch'
+              exigence: 'CT-2 §17.4 Clé du MAC de relais'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-2'
+              severity: 'critique'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Clé du MAC de relais différente'
+              description: 'Clé du MAC de relais différente. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Clé du MAC de relais. Runbook : RB-2.'
+  - name: 'noortrace_cle_mac_relais : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="relay_mac_key_mismatch", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_cle_mac_relais
         exp_alerts: []
   - name: 'noortrace_quota_hote déclenchée'
@@ -894,6 +1398,37 @@ tests:
       - eval_time: 6m
         alertname: noortrace_quota_hote
         exp_alerts: []
+  - name: 'noortrace_quota_hote : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_calls_blocked_total{code="-31013", instance="127.0.0.1:8500", job="enregistreur", reason="quota", role="active"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_quota_hote
+        exp_alerts:
+          - exp_labels:
+              code: '-31013'
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Quota d''un hôte'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              reason: 'quota'
+              role: 'active'
+              runbook: 'aucun'
+              severity: 'mineure'
+            exp_annotations:
+              summary: 'Quota d''un hôte atteint'
+              description: 'Quota d''un hôte atteint. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Quota d''un hôte. Runbook : aucun.'
+  - name: 'noortrace_quota_hote : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_calls_blocked_total{code="-31013", instance="127.0.0.1:8500", job="enregistreur", reason="quota", role="active"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_quota_hote
+        exp_alerts: []
   - name: 'noortrace_otel_refusee déclenchée'
     interval: 1m
     input_series:
@@ -923,6 +1458,37 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_otel_refusee
+        exp_alerts: []
+  - name: 'noortrace_otel_refusee : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_otel_requests_total{instance="127.0.0.1:8500", job="enregistreur", role="active", source="hote-a", status="429"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_otel_refusee
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Ingestion OpenTelemetry refusée'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              role: 'active'
+              runbook: 'aucun'
+              severity: 'majeure'
+              source: 'hote-a'
+              status: '429'
+            exp_annotations:
+              summary: 'Ingestion OpenTelemetry refusée'
+              description: 'Ingestion OpenTelemetry refusée. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Ingestion OpenTelemetry refusée. Runbook : aucun.'
+  - name: 'noortrace_otel_refusee : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_otel_requests_total{instance="127.0.0.1:8500", job="enregistreur", role="active", source="hote-a", status="429"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_otel_refusee
         exp_alerts: []
   - name: 'noortrace_otel_spans_rejetes déclenchée'
@@ -955,6 +1521,38 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_otel_spans_rejetes
+        exp_alerts: []
+  - name: 'noortrace_otel_spans_rejetes : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_otel_spans_total{instance="127.0.0.1:8500", issue="rejete", job="enregistreur", reason="schema", role="active", source="hote-a"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_otel_spans_rejetes
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Spans rejetés'
+              instance: '127.0.0.1:8500'
+              issue: 'rejete'
+              job: 'enregistreur'
+              reason: 'schema'
+              role: 'active'
+              runbook: 'aucun'
+              severity: 'mineure'
+              source: 'hote-a'
+            exp_annotations:
+              summary: 'Spans OpenTelemetry rejetés'
+              description: 'Spans OpenTelemetry rejetés. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Spans rejetés. Runbook : aucun.'
+  - name: 'noortrace_otel_spans_rejetes : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_otel_spans_total{instance="127.0.0.1:8500", issue="rejete", job="enregistreur", reason="schema", role="active", source="hote-a"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_otel_spans_rejetes
         exp_alerts: []
   - name: 'noortrace_otel_retard déclenchée'
@@ -1050,6 +1648,36 @@ tests:
       - eval_time: 6m
         alertname: noortrace_otel_conflits
         exp_alerts: []
+  - name: 'noortrace_otel_conflits : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_otel_conflicts_total{instance="127.0.0.1:8500", job="enregistreur", role="active", source="hote-a"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_otel_conflits
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Span OpenTelemetry rejoué'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              role: 'active'
+              runbook: 'aucun'
+              severity: 'mineure'
+              source: 'hote-a'
+            exp_annotations:
+              summary: 'Span OpenTelemetry rejoué en conflit'
+              description: 'Span OpenTelemetry rejoué en conflit. Gravité mineure, composant enregistreur. Exigence : CT-2 §17.4 Span OpenTelemetry rejoué. Runbook : aucun.'
+  - name: 'noortrace_otel_conflits : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_otel_conflicts_total{instance="127.0.0.1:8500", job="enregistreur", role="active", source="hote-a"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_otel_conflits
+        exp_alerts: []
   - name: 'noortrace_latence déclenchée'
     interval: 1m
     input_series:
@@ -1114,6 +1742,38 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_disque_ligne
+        exp_alerts: []
+  - name: 'noortrace_disque_ligne : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="disk_low", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_disque_ligne
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              event: 'disk_low'
+              exigence: 'CT-2 §17.4 Disque'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-1'
+              severity: 'majeure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Disque presque plein consigné'
+              description: 'Disque presque plein consigné. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Disque. Runbook : RB-1.'
+  - name: 'noortrace_disque_ligne : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="disk_low", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_disque_ligne
         exp_alerts: []
   - name: 'noortrace_disque_espace déclenchée'
@@ -1182,6 +1842,38 @@ tests:
       - eval_time: 6m
         alertname: noortrace_pieces_attente_perdues
         exp_alerts: []
+  - name: 'noortrace_pieces_attente_perdues : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="pending_pieces_lost", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_pieces_attente_perdues
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              event: 'pending_pieces_lost'
+              exigence: 'CT-2 §17.4 Pièces en attente perdues'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-1'
+              severity: 'majeure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Pièces en attente perdues'
+              description: 'Pièces en attente perdues. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Pièces en attente perdues. Runbook : RB-1.'
+  - name: 'noortrace_pieces_attente_perdues : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="pending_pieces_lost", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_pieces_attente_perdues
+        exp_alerts: []
   - name: 'noortrace_gel_pose_en_retard déclenchée'
     interval: 1m
     input_series:
@@ -1246,6 +1938,192 @@ tests:
       - eval_time: 6m
         alertname: noortrace_export_lecture_impossible
         exp_alerts: []
+  - name: 'noortrace_export_lecture_impossible : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="lecture_impossible", event="dossier_export_refused", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_export_lecture_impossible
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              detail: 'lecture_impossible'
+              event: 'dossier_export_refused'
+              exigence: 'CT-2 EX-15.12, raison lecture_impossible (segment, manifeste, série de points ou fichier des approbations illisible)'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-1'
+              severity: 'majeure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Export d''un dossier refusé : lecture impossible'
+              description: 'Export d''un dossier refusé : lecture impossible. Gravité majeure, composant enregistreur. Exigence : CT-2 EX-15.12, raison lecture_impossible (segment, manifeste, série de points ou fichier des approbations illisible). Runbook : RB-1.'
+  - name: 'noortrace_export_lecture_impossible : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="lecture_impossible", event="dossier_export_refused", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_export_lecture_impossible
+        exp_alerts: []
+  - name: 'noortrace_enregistreur_cible_muette déclenchée'
+    interval: 1m
+    input_series:
+      - series: 'up{instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: noortrace_enregistreur_cible_muette
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              exigence: 'CT-8 EX-10.4'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              role: 'active'
+              runbook: 'RB-1'
+              severity: 'critique'
+            exp_annotations:
+              summary: 'Point de collecte de l''enregistreur injoignable'
+              description: 'Point de collecte de l''enregistreur injoignable. Gravité critique, composant enregistreur. Exigence : CT-8 EX-10.4. Runbook : RB-1.'
+  - name: 'noortrace_enregistreur_cible_muette silencieuse'
+    interval: 1m
+    input_series:
+      - series: 'up{instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '1x10'
+      - series: 'up{instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: noortrace_enregistreur_cible_muette
+        exp_alerts: []
+  - name: 'noortrace_journal_exploitation_lignes_perdues déclenchée'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_ops_log_dropped_total{instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '0 0 0 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: noortrace_journal_exploitation_lignes_perdues
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.2 noortrace_ops_log_dropped_total'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              role: 'active'
+              runbook: 'RB-1'
+              severity: 'majeure'
+            exp_annotations:
+              summary: 'Lignes du journal d''exploitation perdues'
+              description: 'Lignes du journal d''exploitation perdues. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.2 noortrace_ops_log_dropped_total. Runbook : RB-1.'
+  - name: 'noortrace_journal_exploitation_lignes_perdues silencieuse'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_ops_log_dropped_total{instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '0x6'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: noortrace_journal_exploitation_lignes_perdues
+        exp_alerts: []
+  - name: 'noortrace_journal_exploitation_lignes_perdues : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_ops_log_dropped_total{instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_journal_exploitation_lignes_perdues
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.2 noortrace_ops_log_dropped_total'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              role: 'active'
+              runbook: 'RB-1'
+              severity: 'majeure'
+            exp_annotations:
+              summary: 'Lignes du journal d''exploitation perdues'
+              description: 'Lignes du journal d''exploitation perdues. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.2 noortrace_ops_log_dropped_total. Runbook : RB-1.'
+  - name: 'noortrace_journal_exploitation_lignes_perdues : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_ops_log_dropped_total{instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_journal_exploitation_lignes_perdues
+        exp_alerts: []
+  - name: 'noortrace_image_differente déclenchée'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="image_mismatch", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0 0 0 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: noortrace_image_differente
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              event: 'image_mismatch'
+              exigence: 'CT-2 §17.4 Image différente de la version publiée (PA-4)'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-8'
+              severity: 'critique'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Empreinte du code en cours différente de l''image attendue'
+              description: 'Empreinte du code en cours différente de l''image attendue. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Image différente de la version publiée (PA-4). Runbook : RB-8.'
+  - name: 'noortrace_image_differente silencieuse'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="image_checked", instance="127.0.0.1:9100", job="hote", level="info", role="hote", source="exploitation"}'
+        values: '0 0 0 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: noortrace_image_differente
+        exp_alerts: []
+  - name: 'noortrace_image_differente : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="image_mismatch", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_image_differente
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              event: 'image_mismatch'
+              exigence: 'CT-2 §17.4 Image différente de la version publiée (PA-4)'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-8'
+              severity: 'critique'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Empreinte du code en cours différente de l''image attendue'
+              description: 'Empreinte du code en cours différente de l''image attendue. Gravité critique, composant enregistreur. Exigence : CT-2 §17.4 Image différente de la version publiée (PA-4). Runbook : RB-8.'
+  - name: 'noortrace_image_differente : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="image_mismatch", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_image_differente
+        exp_alerts: []
   - name: 'noortrace_export_refuse déclenchée'
     interval: 1m
     input_series:
@@ -1279,6 +2157,39 @@ tests:
       - eval_time: 6m
         alertname: noortrace_export_refuse
         exp_alerts: []
+  - name: 'noortrace_export_refuse : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="exports_indisponible", event="dossier_export_refused", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_export_refuse
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              detail: 'exports_indisponible'
+              event: 'dossier_export_refused'
+              exigence: 'CT-2 EX-15.12, raisons exports_indisponible et ecriture_impossible (volume des exports absent, confondu avec storage.root, plein ou en lecture seule ; en production, droits du volume ou groupe du parent d''une destination non conformes, CT-2 EX-15.13, point 2)'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'aucun'
+              severity: 'majeure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Export d''un dossier refusé : volume des exports indisponible ou écriture impossible'
+              description: 'Export d''un dossier refusé : volume des exports indisponible ou écriture impossible. Gravité majeure, composant enregistreur. Exigence : CT-2 EX-15.12, raisons exports_indisponible et ecriture_impossible (volume des exports absent, confondu avec storage.root, plein ou en lecture seule ; en production, droits du volume ou groupe du parent d''une destination non conformes, CT-2 EX-15.13, point 2). Runbook : aucun.'
+  - name: 'noortrace_export_refuse : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="exports_indisponible", event="dossier_export_refused", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_export_refuse
+        exp_alerts: []
   - name: 'noortrace_ancrage_en_attente déclenchée'
     interval: 1m
     input_series:
@@ -1309,6 +2220,38 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_ancrage_en_attente
+        exp_alerts: []
+  - name: 'noortrace_ancrage_en_attente : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="registry_pending", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_en_attente
+        exp_alerts:
+          - exp_labels:
+              component: 'ancrage'
+              event: 'registry_pending'
+              exigence: 'CT-5 §8.9 anchor_pending, registry_pending'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'warning'
+              role: 'hote'
+              runbook: 'RB-3'
+              severity: 'mineure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Ancre ou demande au registre en attente'
+              description: 'Ancre ou demande au registre en attente. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 anchor_pending, registry_pending. Runbook : RB-3.'
+  - name: 'noortrace_ancrage_en_attente : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="registry_pending", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_ancrage_en_attente
         exp_alerts: []
   - name: 'noortrace_ancrage_point_en_retard_exterieur déclenchée'
@@ -1344,6 +2287,39 @@ tests:
       - eval_time: 6m
         alertname: noortrace_ancrage_point_en_retard_exterieur
         exp_alerts: []
+  - name: 'noortrace_ancrage_point_en_retard_exterieur : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="exterieur", event="alerte_checkpoint_anchor_late", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_point_en_retard_exterieur
+        exp_alerts:
+          - exp_labels:
+              component: 'ancrage'
+              detail: 'exterieur'
+              event: 'alerte_checkpoint_anchor_late'
+              exigence: 'CT-5 §8.9 checkpoint_anchor_late'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'warning'
+              role: 'hote'
+              runbook: 'RB-4'
+              severity: 'majeure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Point contresigné en retard par un prestataire extérieur'
+              description: 'Point contresigné en retard par un prestataire extérieur. Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 checkpoint_anchor_late. Runbook : RB-4.'
+  - name: 'noortrace_ancrage_point_en_retard_exterieur : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="exterieur", event="alerte_checkpoint_anchor_late", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_point_en_retard_exterieur
+        exp_alerts: []
   - name: 'noortrace_ancrage_point_en_retard_interne déclenchée'
     interval: 1m
     input_series:
@@ -1375,6 +2351,39 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_ancrage_point_en_retard_interne
+        exp_alerts: []
+  - name: 'noortrace_ancrage_point_en_retard_interne : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="interne", event="alerte_checkpoint_anchor_late", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_point_en_retard_interne
+        exp_alerts:
+          - exp_labels:
+              component: 'ancrage'
+              detail: 'interne'
+              event: 'alerte_checkpoint_anchor_late'
+              exigence: 'CT-5 §8.9 checkpoint_anchor_late'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'warning'
+              role: 'hote'
+              runbook: 'RB-4'
+              severity: 'mineure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Point contresigné en retard par le prestataire interne'
+              description: 'Point contresigné en retard par le prestataire interne. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 checkpoint_anchor_late. Runbook : RB-4.'
+  - name: 'noortrace_ancrage_point_en_retard_interne : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="interne", event="alerte_checkpoint_anchor_late", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_ancrage_point_en_retard_interne
         exp_alerts: []
   - name: 'noortrace_ancrage_inclusion_lente déclenchée'
@@ -1548,6 +2557,39 @@ tests:
       - eval_time: 6m
         alertname: noortrace_ancrage_prestataires_epuises_point
         exp_alerts: []
+  - name: 'noortrace_ancrage_prestataires_epuises_point : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="autre", event="anchor_refused", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_prestataires_epuises_point
+        exp_alerts:
+          - exp_labels:
+              component: 'ancrage'
+              detail: 'autre'
+              event: 'anchor_refused'
+              exigence: 'CT-5 §8.9 prestataires_epuises (point)'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-4'
+              severity: 'majeure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Prestataires épuisés pour un point'
+              description: 'Prestataires épuisés pour un point. Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 prestataires_epuises (point). Runbook : RB-4.'
+  - name: 'noortrace_ancrage_prestataires_epuises_point : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="autre", event="anchor_refused", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_prestataires_epuises_point
+        exp_alerts: []
   - name: 'noortrace_ancrage_file déclenchée'
     interval: 1m
     input_series:
@@ -1641,6 +2683,38 @@ tests:
       - eval_time: 6m
         alertname: noortrace_ancrage_ordre
         exp_alerts: []
+  - name: 'noortrace_ancrage_ordre : série absente puis 2 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="ordre_ancres_non_respecte", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '_ _ _ 2x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_ordre
+        exp_alerts:
+          - exp_labels:
+              component: 'ancrage'
+              event: 'ordre_ancres_non_respecte'
+              exigence: 'CT-5 §8.9 ordre_ancres_non_respecte répété'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'warning'
+              role: 'hote'
+              runbook: 'aucun'
+              severity: 'mineure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Ordre des ancres non respecté à plusieurs reprises'
+              description: 'Ordre des ancres non respecté à plusieurs reprises. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 ordre_ancres_non_respecte répété. Runbook : aucun.'
+  - name: 'noortrace_ancrage_ordre : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="ordre_ancres_non_respecte", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_ordre
+        exp_alerts: []
   - name: 'noortrace_ancrage_empreinte_squattee déclenchée'
     interval: 1m
     input_series:
@@ -1672,6 +2746,39 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_ancrage_empreinte_squattee
+        exp_alerts: []
+  - name: 'noortrace_ancrage_empreinte_squattee : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="empreinte_squattee", event="anchor_refused", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_empreinte_squattee
+        exp_alerts:
+          - exp_labels:
+              component: 'ancrage'
+              detail: 'empreinte_squattee'
+              event: 'anchor_refused'
+              exigence: 'CT-5 §8.9 empreinte_squattee'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-7'
+              severity: 'critique'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Empreinte déjà ancrée par un tiers'
+              description: 'Empreinte déjà ancrée par un tiers. Gravité critique, composant ancrage. Exigence : CT-5 §8.9 empreinte_squattee. Runbook : RB-7.'
+  - name: 'noortrace_ancrage_empreinte_squattee : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="empreinte_squattee", event="anchor_refused", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_ancrage_empreinte_squattee
         exp_alerts: []
   - name: 'noortrace_ancrage_horloge_suspecte déclenchée'
@@ -1706,6 +2813,38 @@ tests:
       - eval_time: 6m
         alertname: noortrace_ancrage_horloge_suspecte
         exp_alerts: []
+  - name: 'noortrace_ancrage_horloge_suspecte : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="horloge_suspecte", event="acquisition", instance="127.0.0.1:9100", job="hote", role="hote", source="acquisitions"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_horloge_suspecte
+        exp_alerts:
+          - exp_labels:
+              component: 'ancrage'
+              detail: 'horloge_suspecte'
+              event: 'acquisition'
+              exigence: 'CT-5 §8.9 horloge_suspecte'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'RB-6'
+              severity: 'mineure'
+              source: 'acquisitions'
+            exp_annotations:
+              summary: 'Jeton d''horodatage à l''horloge suspecte'
+              description: 'Jeton d''horodatage à l''horloge suspecte. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 horloge_suspecte. Runbook : RB-6.'
+  - name: 'noortrace_ancrage_horloge_suspecte : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="horloge_suspecte", event="acquisition", instance="127.0.0.1:9100", job="hote", role="hote", source="acquisitions"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_horloge_suspecte
+        exp_alerts: []
   - name: 'noortrace_ancrage_revoque déclenchée'
     interval: 1m
     input_series:
@@ -1736,6 +2875,38 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_ancrage_revoque
+        exp_alerts: []
+  - name: 'noortrace_ancrage_revoque : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="revoque", event="acquisition", instance="127.0.0.1:9100", job="hote", role="hote", source="acquisitions"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_revoque
+        exp_alerts:
+          - exp_labels:
+              component: 'ancrage'
+              detail: 'revoque'
+              event: 'acquisition'
+              exigence: 'CT-5 §8.9 revoque'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'RB-4'
+              severity: 'critique'
+              source: 'acquisitions'
+            exp_annotations:
+              summary: 'Jeton d''horodatage révoqué'
+              description: 'Jeton d''horodatage révoqué. Gravité critique, composant ancrage. Exigence : CT-5 §8.9 revoque. Runbook : RB-4.'
+  - name: 'noortrace_ancrage_revoque : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="revoque", event="acquisition", instance="127.0.0.1:9100", job="hote", role="hote", source="acquisitions"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_ancrage_revoque
         exp_alerts: []
   - name: 'noortrace_ancrage_reponse_tardive_promue déclenchée'
@@ -1770,6 +2941,38 @@ tests:
       - eval_time: 6m
         alertname: noortrace_ancrage_reponse_tardive_promue
         exp_alerts: []
+  - name: 'noortrace_ancrage_reponse_tardive_promue : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="reponse_tardive_promue", event="acquisition", instance="127.0.0.1:9100", job="hote", role="hote", source="acquisitions"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_reponse_tardive_promue
+        exp_alerts:
+          - exp_labels:
+              component: 'ancrage'
+              detail: 'reponse_tardive_promue'
+              event: 'acquisition'
+              exigence: 'CT-5 §8.9 reponse_tardive_promue'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'RB-4'
+              severity: 'mineure'
+              source: 'acquisitions'
+            exp_annotations:
+              summary: 'Réponse tardive promue'
+              description: 'Réponse tardive promue. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 reponse_tardive_promue. Runbook : RB-4.'
+  - name: 'noortrace_ancrage_reponse_tardive_promue : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="reponse_tardive_promue", event="acquisition", instance="127.0.0.1:9100", job="hote", role="hote", source="acquisitions"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_reponse_tardive_promue
+        exp_alerts: []
   - name: 'noortrace_ancrage_point_manquant déclenchée'
     interval: 1m
     input_series:
@@ -1800,6 +3003,38 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_ancrage_point_manquant
+        exp_alerts: []
+  - name: 'noortrace_ancrage_point_manquant : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="point_manquant", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_point_manquant
+        exp_alerts:
+          - exp_labels:
+              component: 'ancrage'
+              event: 'point_manquant'
+              exigence: 'CT-5 §8.9 point_manquant'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'warning'
+              role: 'hote'
+              runbook: 'RB-1'
+              severity: 'majeure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Point de contrôle manquant'
+              description: 'Point de contrôle manquant. Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 point_manquant. Runbook : RB-1.'
+  - name: 'noortrace_ancrage_point_manquant : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="point_manquant", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_ancrage_point_manquant
         exp_alerts: []
   - name: 'noortrace_ancrage_jeton_anterieur déclenchée'
@@ -1834,6 +3069,38 @@ tests:
       - eval_time: 6m
         alertname: noortrace_ancrage_jeton_anterieur
         exp_alerts: []
+  - name: 'noortrace_ancrage_jeton_anterieur : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="alerte_jeton_anterieur_au_point", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_jeton_anterieur
+        exp_alerts:
+          - exp_labels:
+              component: 'ancrage'
+              event: 'alerte_jeton_anterieur_au_point'
+              exigence: 'CT-5 §8.9 jeton_anterieur_au_point'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'warning'
+              role: 'hote'
+              runbook: 'RB-6'
+              severity: 'majeure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Jeton antérieur au point qu''il contresigne'
+              description: 'Jeton antérieur au point qu''il contresigne. Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 jeton_anterieur_au_point. Runbook : RB-6.'
+  - name: 'noortrace_ancrage_jeton_anterieur : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="alerte_jeton_anterieur_au_point", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_jeton_anterieur
+        exp_alerts: []
   - name: 'noortrace_ancrage_contresignature_tardive déclenchée'
     interval: 1m
     input_series:
@@ -1864,6 +3131,38 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_ancrage_contresignature_tardive
+        exp_alerts: []
+  - name: 'noortrace_ancrage_contresignature_tardive : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="alerte_contresignature_tardive", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_ancrage_contresignature_tardive
+        exp_alerts:
+          - exp_labels:
+              component: 'ancrage'
+              event: 'alerte_contresignature_tardive'
+              exigence: 'CT-5 §8.9 contresignature_tardive'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'warning'
+              role: 'hote'
+              runbook: 'RB-4'
+              severity: 'mineure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Contresignature tardive d''un point'
+              description: 'Contresignature tardive d''un point. Gravité mineure, composant ancrage. Exigence : CT-5 §8.9 contresignature_tardive. Runbook : RB-4.'
+  - name: 'noortrace_ancrage_contresignature_tardive : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="alerte_contresignature_tardive", instance="127.0.0.1:9100", job="hote", level="warning", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_ancrage_contresignature_tardive
         exp_alerts: []
   - name: 'noortrace_ancrage_volume déclenchée'
@@ -2075,6 +3374,39 @@ tests:
       - eval_time: 6m
         alertname: noortrace_registre_sous_tarif
         exp_alerts: []
+  - name: 'noortrace_registre_sous_tarif : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="transaction_underpriced", event="registry_send_refused", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_registre_sous_tarif
+        exp_alerts:
+          - exp_labels:
+              component: 'registre'
+              detail: 'transaction_underpriced'
+              event: 'registry_send_refused'
+              exigence: 'CT-4 §4.5, EX-10.8'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              level: 'error'
+              role: 'hote'
+              runbook: 'RB-7'
+              severity: 'majeure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Envoi au registre refusé sous le tarif (ligne proposée, PD-12)'
+              description: 'Envoi au registre refusé sous le tarif (ligne proposée, PD-12). Gravité majeure, composant registre. Exigence : CT-4 §4.5, EX-10.8. Runbook : RB-7.'
+  - name: 'noortrace_registre_sous_tarif : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="transaction_underpriced", event="registry_send_refused", instance="127.0.0.1:9100", job="hote", level="error", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_registre_sous_tarif
+        exp_alerts: []
   - name: 'noortrace_registre_cloture_non_soumise déclenchée'
     interval: 1m
     input_series:
@@ -2199,6 +3531,38 @@ tests:
       - eval_time: 6m
         alertname: noortrace_registre_examen_requis
         exp_alerts: []
+  - name: 'noortrace_registre_examen_requis : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="examen_requis", event="ancrer", instance="127.0.0.1:9100", job="hote", role="hote", source="registre"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_registre_examen_requis
+        exp_alerts:
+          - exp_labels:
+              component: 'registre'
+              detail: 'examen_requis'
+              event: 'ancrer'
+              exigence: 'CT-4 EX-4.20'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'aucun'
+              severity: 'majeure'
+              source: 'registre'
+            exp_annotations:
+              summary: 'Outil du registre : examen requis'
+              description: 'Outil du registre : examen requis. Gravité majeure, composant registre. Exigence : CT-4 EX-4.20. Runbook : aucun.'
+  - name: 'noortrace_registre_examen_requis : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="examen_requis", event="ancrer", instance="127.0.0.1:9100", job="hote", role="hote", source="registre"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_registre_examen_requis
+        exp_alerts: []
   - name: 'noortrace_registre_marge_retention déclenchée'
     interval: 1m
     input_series:
@@ -2229,6 +3593,38 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_registre_marge_retention
+        exp_alerts: []
+  - name: 'noortrace_registre_marge_retention : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="marge_retention_basse", event="capturer", instance="127.0.0.1:9100", job="hote", role="hote", source="registre"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_registre_marge_retention
+        exp_alerts:
+          - exp_labels:
+              component: 'registre'
+              detail: 'marge_retention_basse'
+              event: 'capturer'
+              exigence: 'CT-4 EX-9.6'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'RB-7'
+              severity: 'majeure'
+              source: 'registre'
+            exp_annotations:
+              summary: 'Marge de rétention du registre basse'
+              description: 'Marge de rétention du registre basse. Gravité majeure, composant registre. Exigence : CT-4 EX-9.6. Runbook : RB-7.'
+  - name: 'noortrace_registre_marge_retention : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="marge_retention_basse", event="capturer", instance="127.0.0.1:9100", job="hote", role="hote", source="registre"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_registre_marge_retention
         exp_alerts: []
   - name: 'noortrace_hote_disque déclenchée'
@@ -2421,6 +3817,38 @@ tests:
       - eval_time: 6m
         alertname: noortrace_notification_echec
         exp_alerts: []
+  - name: 'noortrace_notification_echec : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="reseau", event="notification_echec", instance="127.0.0.1:9100", job="hote", role="hote", source="approbation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_notification_echec
+        exp_alerts:
+          - exp_labels:
+              component: 'approbation'
+              detail: 'reseau'
+              event: 'notification_echec'
+              exigence: 'CT-3 EX-13.42'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'aucun'
+              severity: 'mineure'
+              source: 'approbation'
+            exp_annotations:
+              summary: 'Livraison d''une notification en échec (une reprise suit)'
+              description: 'Livraison d''une notification en échec (une reprise suit). Gravité mineure, composant approbation. Exigence : CT-3 EX-13.42. Runbook : aucun.'
+  - name: 'noortrace_notification_echec : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="reseau", event="notification_echec", instance="127.0.0.1:9100", job="hote", role="hote", source="approbation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_notification_echec
+        exp_alerts: []
   - name: 'noortrace_notification_abandonnee déclenchée'
     interval: 1m
     input_series:
@@ -2451,6 +3879,38 @@ tests:
         values: '0 0 0 1 1 1 1'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_notification_abandonnee
+        exp_alerts: []
+  - name: 'noortrace_notification_abandonnee : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="reprises_epuisees", event="notification_abandonnee", instance="127.0.0.1:9100", job="hote", role="hote", source="approbation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_notification_abandonnee
+        exp_alerts:
+          - exp_labels:
+              component: 'approbation'
+              detail: 'reprises_epuisees'
+              event: 'notification_abandonnee'
+              exigence: 'CT-3 EX-13.42'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'aucun'
+              severity: 'majeure'
+              source: 'approbation'
+            exp_annotations:
+              summary: 'Notification abandonnée'
+              description: 'Notification abandonnée. Gravité majeure, composant approbation. Exigence : CT-3 EX-13.42. Runbook : aucun.'
+  - name: 'noortrace_notification_abandonnee : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="reprises_epuisees", event="notification_abandonnee", instance="127.0.0.1:9100", job="hote", role="hote", source="approbation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_notification_abandonnee
         exp_alerts: []
   - name: 'noortrace_notification_sans_destinataire déclenchée'
@@ -2484,13 +3944,44 @@ tests:
       - eval_time: 6m
         alertname: noortrace_notification_sans_destinataire
         exp_alerts: []
+  - name: 'noortrace_notification_sans_destinataire : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="notification_sans_destinataire", instance="127.0.0.1:9100", job="hote", role="hote", source="approbation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_notification_sans_destinataire
+        exp_alerts:
+          - exp_labels:
+              component: 'approbation'
+              event: 'notification_sans_destinataire'
+              exigence: 'CT-3 EX-13.40'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'aucun'
+              severity: 'majeure'
+              source: 'approbation'
+            exp_annotations:
+              summary: 'Notification sans destinataire'
+              description: 'Notification sans destinataire. Gravité majeure, composant approbation. Exigence : CT-3 EX-13.40. Runbook : aucun.'
+  - name: 'noortrace_notification_sans_destinataire : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{event="notification_sans_destinataire", instance="127.0.0.1:9100", job="hote", role="hote", source="approbation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_notification_sans_destinataire
+        exp_alerts: []
   - name: 'noortrace_sauvegarde_en_retard déclenchée'
     interval: 1m
     input_series:
       - series: 'noortrace_proces_verbal_dernier_s{instance="127.0.0.1:9100", job="hote", kind="sauvegarde", role="hote"}'
         values: '-86500x140'
     alert_rule_test:
-      - eval_time: 1m
+      - eval_time: 62m
         alertname: noortrace_sauvegarde_en_retard
         exp_alerts:
           - exp_labels:
@@ -2511,7 +4002,7 @@ tests:
       - series: 'noortrace_proces_verbal_dernier_s{instance="127.0.0.1:9100", job="hote", kind="sauvegarde", role="hote"}'
         values: '0x140'
     alert_rule_test:
-      - eval_time: 1m
+      - eval_time: 62m
         alertname: noortrace_sauvegarde_en_retard
         exp_alerts: []
   - name: 'noortrace_exercice_restauration_en_retard déclenchée'
@@ -2576,6 +4067,38 @@ tests:
       - eval_time: 6m
         alertname: noortrace_acces_non_declare
         exp_alerts: []
+  - name: 'noortrace_acces_non_declare : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="inconnu", event="lecture", instance="127.0.0.1:9100", job="hote", role="hote", source="consultations"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_acces_non_declare
+        exp_alerts:
+          - exp_labels:
+              component: 'exploitation'
+              detail: 'inconnu'
+              event: 'lecture'
+              exigence: 'CT-8 EX-11.20 (CA-6)'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'RB-8'
+              severity: 'majeure'
+              source: 'consultations'
+            exp_annotations:
+              summary: 'Accès d''un principal non déclaré'
+              description: 'Accès d''un principal non déclaré. Gravité majeure, composant exploitation. Exigence : CT-8 EX-11.20 (CA-6). Runbook : RB-8.'
+  - name: 'noortrace_acces_non_declare : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_lignes_total{detail="inconnu", event="lecture", instance="127.0.0.1:9100", job="hote", role="hote", source="consultations"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_acces_non_declare
+        exp_alerts: []
   - name: 'noortrace_consultations_muettes déclenchée'
     interval: 1m
     input_series:
@@ -2632,6 +4155,36 @@ tests:
         values: '0x6'
     alert_rule_test:
       - eval_time: 6m
+        alertname: noortrace_journal_illisible
+        exp_alerts: []
+  - name: 'noortrace_journal_illisible : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_illisibles_total{instance="127.0.0.1:9100", job="hote", role="hote", source="exploitation"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_journal_illisible
+        exp_alerts:
+          - exp_labels:
+              component: 'exploitation'
+              exigence: 'CT-8 EX-10.5'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'aucun'
+              severity: 'majeure'
+              source: 'exploitation'
+            exp_annotations:
+              summary: 'Ligne de journal illisible'
+              description: 'Ligne de journal illisible. Gravité majeure, composant exploitation. Exigence : CT-8 EX-10.5. Runbook : aucun.'
+  - name: 'noortrace_journal_illisible : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_journal_illisibles_total{instance="127.0.0.1:9100", job="hote", role="hote", source="exploitation"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
         alertname: noortrace_journal_illisible
         exp_alerts: []
   - name: 'noortrace_mode_observation_actif déclenchée'
@@ -2692,6 +4245,263 @@ tests:
     alert_rule_test:
       - eval_time: 6m
         alertname: noortrace_observation_pertes
+        exp_alerts: []
+  - name: 'noortrace_observation_pertes : série absente puis 1 (première occurrence)'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_events_lost_total{instance="127.0.0.1:8500", job="enregistreur", reason="attente", role="active"}'
+        values: '_ _ _ 1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_observation_pertes
+        exp_alerts:
+          - exp_labels:
+              component: 'enregistreur'
+              exigence: 'CT-2 §17.4 Pertes en mode observation (EX-17.8) ; CT-2 EX-14.16'
+              instance: '127.0.0.1:8500'
+              job: 'enregistreur'
+              reason: 'attente'
+              role: 'active'
+              runbook: 'RB-1'
+              severity: 'majeure'
+            exp_annotations:
+              summary: 'Événements perdus en mode observation'
+              description: 'Événements perdus en mode observation. Gravité majeure, composant enregistreur. Exigence : CT-2 §17.4 Pertes en mode observation (EX-17.8) ; CT-2 EX-14.16. Runbook : RB-1.'
+  - name: 'noortrace_observation_pertes : série à 0 immobile'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_events_lost_total{instance="127.0.0.1:8500", job="enregistreur", reason="attente", role="active"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: noortrace_observation_pertes
+        exp_alerts: []
+  - name: 'noortrace_hote_cible_muette déclenchée'
+    interval: 1m
+    input_series:
+      - series: 'up{instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: noortrace_hote_cible_muette
+        exp_alerts:
+          - exp_labels:
+              component: 'hote'
+              exigence: 'CT-8 EX-10.4'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'RB-1'
+              severity: 'critique'
+            exp_annotations:
+              summary: 'Exportateur de nœud de l''hôte injoignable'
+              description: 'Exportateur de nœud de l''hôte injoignable. Gravité critique, composant hote. Exigence : CT-8 EX-10.4. Runbook : RB-1.'
+  - name: 'noortrace_hote_cible_muette silencieuse'
+    interval: 1m
+    input_series:
+      - series: 'up{instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '1x10'
+      - series: 'up{instance="127.0.0.1:8500", job="enregistreur", role="active"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: noortrace_hote_cible_muette
+        exp_alerts: []
+  - name: 'noortrace_extracteur_muet déclenchée'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_extracteur_derniere_passe_s{instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: noortrace_extracteur_muet
+        exp_alerts:
+          - exp_labels:
+              component: 'exploitation'
+              exigence: 'CT-8 EX-10.5'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'aucun'
+              severity: 'critique'
+            exp_annotations:
+              summary: 'Extracteur des journaux arrêté ou figé'
+              description: 'Extracteur des journaux arrêté ou figé. Gravité critique, composant exploitation. Exigence : CT-8 EX-10.5. Runbook : aucun.'
+  - name: 'noortrace_extracteur_muet silencieuse'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_extracteur_derniere_passe_s{instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '0+60x10'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: noortrace_extracteur_muet
+        exp_alerts: []
+  - name: 'noortrace_sonde_muette déclenchée'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_sonde_derniere_passe_s{instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: noortrace_sonde_muette
+        exp_alerts:
+          - exp_labels:
+              component: 'exploitation'
+              exigence: 'CT-8 EX-10.7'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'aucun'
+              severity: 'critique'
+            exp_annotations:
+              summary: 'Sonde de la supervision arrêtée ou figée'
+              description: 'Sonde de la supervision arrêtée ou figée. Gravité critique, composant exploitation. Exigence : CT-8 EX-10.7. Runbook : aucun.'
+  - name: 'noortrace_sonde_muette silencieuse'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_sonde_derniere_passe_s{instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '0+60x10'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: noortrace_sonde_muette
+        exp_alerts: []
+  - name: 'noortrace_releve_externe_absent_registre_gels déclenchée'
+    interval: 1h
+    input_series:
+      - series: 'noortrace_releve_externe_ok{check="console", instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '1x60'
+    alert_rule_test:
+      - eval_time: 49h
+        alertname: noortrace_releve_externe_absent_registre_gels
+        exp_alerts:
+          - exp_labels:
+              check: 'registre_gels'
+              component: 'exploitation'
+              exigence: 'CT-8 EX-10.9'
+              runbook: 'aucun'
+              severity: 'critique'
+            exp_annotations:
+              summary: 'Relecture du registre des gels jamais exposée'
+              description: 'Relecture du registre des gels jamais exposée. Gravité critique, composant exploitation. Exigence : CT-8 EX-10.9. Runbook : aucun.'
+  - name: 'noortrace_releve_externe_absent_registre_gels silencieuse'
+    interval: 1h
+    input_series:
+      - series: 'noortrace_releve_externe_ok{check="registre_gels", instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '1x60'
+    alert_rule_test:
+      - eval_time: 49h
+        alertname: noortrace_releve_externe_absent_registre_gels
+        exp_alerts: []
+  - name: 'noortrace_releve_externe_absent_console déclenchée'
+    interval: 1h
+    input_series:
+      - series: 'noortrace_releve_externe_ok{check="registre_gels", instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '1x60'
+    alert_rule_test:
+      - eval_time: 49h
+        alertname: noortrace_releve_externe_absent_console
+        exp_alerts:
+          - exp_labels:
+              check: 'console'
+              component: 'exploitation'
+              exigence: 'CT-8 EX-10.9'
+              runbook: 'aucun'
+              severity: 'critique'
+            exp_annotations:
+              summary: 'Comparaison des empreintes de la console jamais exposée'
+              description: 'Comparaison des empreintes de la console jamais exposée. Gravité critique, composant exploitation. Exigence : CT-8 EX-10.9. Runbook : aucun.'
+  - name: 'noortrace_releve_externe_absent_console silencieuse'
+    interval: 1h
+    input_series:
+      - series: 'noortrace_releve_externe_ok{check="console", instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '1x60'
+    alert_rule_test:
+      - eval_time: 49h
+        alertname: noortrace_releve_externe_absent_console
+        exp_alerts: []
+  - name: 'noortrace_releve_externe_absent_copie_exploitation déclenchée'
+    interval: 1h
+    input_series:
+      - series: 'noortrace_releve_externe_ok{check="console", instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '1x60'
+    alert_rule_test:
+      - eval_time: 49h
+        alertname: noortrace_releve_externe_absent_copie_exploitation
+        exp_alerts:
+          - exp_labels:
+              check: 'copie_exploitation'
+              component: 'exploitation'
+              exigence: 'CT-8 EX-10.9'
+              runbook: 'aucun'
+              severity: 'critique'
+            exp_annotations:
+              summary: 'Relecture de la copie du journal d''exploitation jamais exposée'
+              description: 'Relecture de la copie du journal d''exploitation jamais exposée. Gravité critique, composant exploitation. Exigence : CT-8 EX-10.9. Runbook : aucun.'
+  - name: 'noortrace_releve_externe_absent_copie_exploitation silencieuse'
+    interval: 1h
+    input_series:
+      - series: 'noortrace_releve_externe_ok{check="copie_exploitation", instance="127.0.0.1:9100", job="hote", role="hote"}'
+        values: '1x60'
+    alert_rule_test:
+      - eval_time: 49h
+        alertname: noortrace_releve_externe_absent_copie_exploitation
+        exp_alerts: []
+  - name: 'noortrace_sauvegarde_absente déclenchée'
+    interval: 1h
+    input_series:
+      - series: 'noortrace_proces_verbal_dernier_s{instance="127.0.0.1:9100", job="hote", kind="exercice_restauration", role="hote"}'
+        values: '0x60'
+    alert_rule_test:
+      - eval_time: 49h
+        alertname: noortrace_sauvegarde_absente
+        exp_alerts:
+          - exp_labels:
+              component: 'exploitation'
+              exigence: 'CT-8 EX-11.5'
+              kind: 'sauvegarde'
+              runbook: 'aucun'
+              severity: 'majeure'
+            exp_annotations:
+              summary: 'Aucun procès-verbal de sauvegarde jamais lu'
+              description: 'Aucun procès-verbal de sauvegarde jamais lu. Gravité majeure, composant exploitation. Exigence : CT-8 EX-11.5. Runbook : aucun.'
+  - name: 'noortrace_sauvegarde_absente silencieuse'
+    interval: 1h
+    input_series:
+      - series: 'noortrace_proces_verbal_dernier_s{instance="127.0.0.1:9100", job="hote", kind="sauvegarde", role="hote"}'
+        values: '0x60'
+    alert_rule_test:
+      - eval_time: 49h
+        alertname: noortrace_sauvegarde_absente
+        exp_alerts: []
+  - name: 'noortrace_tache_echec déclenchée'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_tache_code{instance="127.0.0.1:9100", job="hote", role="hote", task="TP-4"}'
+        values: '4x140'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: noortrace_tache_echec
+        exp_alerts:
+          - exp_labels:
+              component: 'exploitation'
+              exigence: 'CT-8 EX-8.6'
+              instance: '127.0.0.1:9100'
+              job: 'hote'
+              role: 'hote'
+              runbook: 'aucun'
+              severity: 'majeure'
+              task: 'TP-4'
+            exp_annotations:
+              summary: 'Dernière exécution d''une tâche planifiée en échec'
+              description: 'Dernière exécution d''une tâche planifiée en échec. Gravité majeure, composant exploitation. Exigence : CT-8 EX-8.6. Runbook : aucun.'
+  - name: 'noortrace_tache_echec silencieuse'
+    interval: 1m
+    input_series:
+      - series: 'noortrace_tache_code{instance="127.0.0.1:9100", job="hote", role="hote", task="TP-4"}'
+        values: '0x140'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: noortrace_tache_echec
         exp_alerts: []
   - name: 'noortrace_releve_externe_echec déclenchée'
     interval: 1m

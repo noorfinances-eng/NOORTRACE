@@ -95,11 +95,24 @@ function analyserTcp(tcp) {
   return { hote: r[1].replace(/^\[|\]$/g, ""), port: Number(r[2]) };
 }
 
+/**
+ * Hôte de la boucle locale (étape 8) : `localhost`, 127.0.0.0/8,
+ * `::1` et sa forme IPv4 projetée. Une prise TCP locale (EX-6.10) hors de la
+ * boucle locale n'est jointe qu'en mTLS : le jeton partirait en clair.
+ * @param {string} hote
+ * @returns {boolean}
+ */
+export function adresseDeBouclage(hote) {
+  const h = String(hote).toLowerCase();
+  return h === "localhost" || /^127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/.test(h) || h === "::1" || h === "0:0:0:0:0:0:0:1" || /^::ffff:127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/.test(h);
+}
+
 export class ClientNoortrace {
   /**
    * Client du démon (EX-6.9, EX-6.10). La connexion est ouverte au premier appel.
    * @param {{socket?: string|null, tcp?: string|null, jeton?: string|null, delaiMs?: number, reprises?: number,
-   *   surIndisponibiliteLecture?: "bloquer"|"executer"}} [o]
+   *   surIndisponibiliteLecture?: "bloquer"|"executer", proprietaire?: string|number|null}} [o]
+   *   `proprietaire` : compte attendu du démon pour la prise Unix (uid ou nom)
    */
   constructor(o = {}) {
     const env = process.env;
@@ -133,13 +146,18 @@ export class ClientNoortrace {
         }
       } else if (!jeton) {
         throw new ErreurNoortraceConfiguration("noortrace: une prise TCP exige un jeton ou mTLS (EX-4.39)");
+      } else if (!adresseDeBouclage(t.hote)) {
+        // CT-2 EX-6.10 : le jeton et les arguments partiraient en clair vers un autre hôte.
+        throw new ErreurNoortraceConfiguration("noortrace: une prise TCP hors de la boucle locale exige mTLS, le jeton partirait en clair (EX-6.10)");
       }
       this._adresse = { socket: null, tcp: t, jeton: tlsOptions ? null : jeton, tls: tlsOptions };
     } else {
       if (typeof socket !== "string" || socket.length === 0) throw new ErreurNoortraceConfiguration("noortrace: chemin de prise invalide");
       // EX-6.10 : au plus 103 octets ; un chemin plus long joindrait une autre prise.
       if (Buffer.byteLength(socket, "utf8") > CHEMIN_PRISE_MAX) throw new ErreurNoortraceConfiguration("noortrace: chemin de prise de plus de 103 octets");
-      this._adresse = { socket, tcp: null, jeton: null, tls: null };
+      // compte attendu du démon (option, puis NOORTRACE_SDK_PROPRIETAIRE) ; sans lui, le compte du processus ou 0.
+      const proprietaire = o.proprietaire ?? env.NOORTRACE_SDK_PROPRIETAIRE ?? null;
+      this._adresse = { socket, tcp: null, jeton: null, tls: null, proprietaire };
     }
     this.delaiMs = delaiMs;
     this.reprises = reprises;

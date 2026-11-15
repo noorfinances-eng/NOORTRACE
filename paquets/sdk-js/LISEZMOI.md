@@ -61,6 +61,17 @@ sur une prise TCP, la première ligne est `{"noortrace_token": "<jeton>"}`,
 sauf en mTLS. Une ligne JSON-RPC 2.0 par message ; `id` entiers croissants à
 partir de 1 sur chaque connexion.
 
+Étape 8 (revue de sécurité interne, CT-2 EX-6.10) : sur une prise Unix, le
+SDK vérifie avant toute connexion que la prise appartient au compte attendu du
+démon (option `proprietaire` du constructeur ou variable
+`NOORTRACE_SDK_PROPRIETAIRE` : uid ou nom de compte ; sans elle, au compte du
+processus ou au compte 0) et refuse sinon (`ErreurNoortraceIndisponible`,
+`prise_autre_compte`, `prise_non_prise` quand le démon est arrêté : son chemin
+reste tenu par un fichier ordinaire) ; une prise TCP hors de la boucle locale
+(`localhost`, `127.0.0.0/8`, `::1`) n'est admise qu'en mTLS : avec un jeton
+seul, `ErreurNoortraceConfiguration` à la construction, le jeton et les
+arguments partiraient en clair (`adresseDeBouclage`).
+
 ## Erreurs (EX-6.12)
 
 Toutes dérivent de `ErreurNoortrace` : `ErreurNoortraceIndisponible`
@@ -142,9 +153,9 @@ côté démon sont au LISEZMOI de `@noortrace/enregistreur`).
    duplique pas ses prises ; chaque `Worker` crée son propre client.
 7. **File des échanges** (EX-6.11 (3)) : elle n'est pas dans l'interface
    publique d'EX-6.9 (aucune méthode ajoutée à la session) ; elle est offerte
-   aux adaptateurs de cadres (6.6, lot suivant) par `noortrace-sdk/adaptateurs`.
+   aux adaptateurs de cadres (6.6, partie suivante) par `noortrace-sdk/adaptateurs`.
 
-### Lectures du lot des adaptateurs
+### Lectures de la partie des adaptateurs
 
 Numérotées à la suite des lectures du LISEZMOI de `@noortrace/enregistreur`
 (jusqu'à 143) et du SDK Python (`paquets/sdk-python/LISEZMOI.md`, 144 à 161 et 167 à 169) ;
@@ -181,7 +192,7 @@ dans un adaptateur) valent aussi pour les adaptateurs JavaScript.
      attend l'accusé de `subscriptions/listen`, que le frontal MCP du démon
      ne rend pas (`SdkError: subscriptions/listen ack timed out`,
      `@modelcontextprotocol/client`) ; l'essai emploie `mode: "legacy"`.
-     Signalé au rapport du lot (frontal MCP, hors de ce lot).
+     Écart du frontal MCP du démon, hors de ce paquet.
 164. **LangChain JavaScript : échanges observés**. Comme la lecture 152 du
      SDK Python : `request` = `{ model, messages }` vu par
      `handleChatModelStart` (ou `{ model, prompts }` par `handleLLMStart`),

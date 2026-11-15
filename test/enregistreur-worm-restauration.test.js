@@ -360,12 +360,12 @@ describe("reconstruction du journal depuis les copies WORM (CT-2 EX-12.17, CT-8 
   });
 });
 
-// Relecture adversariale A, R-A-6 (EX-12.10 pas 2, CT-8 EX-11.6, chemin B) :
+// Relecture adversariale du cœur (EX-12.10 pas 2, CT-8 EX-11.6, chemin B) :
 // sans registre des copies, la reconstruction acceptait un segment fermé
 // altéré puis rechaîné (hash recalculés, signatures d'origine) et une pièce
 // dont le contenu n'est pas celui de son nom ; le démon reprenait dessus.
 // Ces cas n'ont pas besoin de Docker : les copies sont servies en mémoire.
-describe("reconstruction depuis les copies : signatures, pièces, signatures de manifeste et séries vérifiées (R-A-6)", function () {
+describe("reconstruction depuis les copies : signatures, pièces, signatures de manifeste et séries vérifiées", function () {
   this.timeout(120000);
   const ms = (t) => N.decoderHorodatage(t);
   const delegation = { launched_by: "x", on_behalf_of: null, scope: "s", run_id: null };

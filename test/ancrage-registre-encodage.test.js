@@ -1,4 +1,4 @@
-// Composant d'ancrage, lot D : conventions du registre calculées hors chaîne
+// Composant d'ancrage, registre : conventions du registre calculées hors chaîne
 // (CT-4 §6.2 à §6.7, RG-1 à RG-15) et clé de chaîne (CT-2 EX-11.19), rejouées
 // contre les vecteurs de spec/vecteurs/ct-4 (identifiants, doctypes,
 // empreintes, condenses, appels, transactions ; octet pour octet) et éprouvées
@@ -22,7 +22,7 @@ function cleDeTest(ref) {
   throw new Error(`clé de test inconnue : ${ref}`);
 }
 
-describe("ancrage, lot D : conventions du registre (CT-4 §6, RG-1 à RG-15)", function () {
+describe("ancrage, registre : conventions du registre (CT-4 §6, RG-1 à RG-15)", function () {
   this.timeout(60000);
 
   it("sélecteurs (6.7.1), sujets (5.7) et docType (6.4) recalculés égalent les tables de CT-4", function () {

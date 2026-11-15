@@ -17,7 +17,10 @@
 //     remise par le noyau avant scellement (SG-1 à SG-7, EX-9.11 ; CT-2
 //     EX-7.5), avec les fonctions EIP-191 de scripts/lib/journal.mjs ;
 //   - comportement observable du mandataire (section 11 ; CT-2 EX-4.49,
-//     EX-4.50, EX-6.7) ;
+//     EX-4.50, EX-6.7), dont la vérification de la réponse d'evaluer (CT-2
+//     EX-7.16, EX-7.23 ; révision 0.5 de CT-3 et 0.8 de CT-2 : la réponse
+//     reporte policy_version et policy_sha256, le noyau refuse toute réponse
+//     rendue sous une politique qu'il n'a pas lui-même épinglée) ;
 //   - partie calculable des échanges du noyau de l'enregistreur avec le
 //     service (CT-2 §7.5 : messages charger, ouvrir, acquitter, consommer,
 //     expiration ; vérifications de relais RL-1 à RL-4 et MAC de relais ;
@@ -144,6 +147,21 @@ export const DOMAINE_MAC_RELAIS = "noortrace/relais/v0";
 export const LONGUEUR_CLE_MIN = 32;
 /** Longueur maximale de approval.reason (CT-1 §5.3, CT-2 EX-10.24). */
 export const MAX_MOTIF_DECISION = 1024;
+/**
+ * Raison nommée d'une réponse evaluer rendue sous une politique que le noyau
+ * n'a pas lui-même épinglée (CT-2 EX-7.16, révision 0.8) : couple
+ * (policy_version, policy_sha256) absent ou mal formé, version inconnue du
+ * noyau, empreinte autre que celle déclarée au charger de la version, ou
+ * version autre que celle de la requête (sans ticket rapproché) ou de la
+ * retenue du ticket rapproché.
+ */
+export const RAISON_POLITIQUE_NON_EPINGLEE = "politique_non_epinglee";
+/** Ligne d'exploitation du noyau pour une réponse evaluer invalide (CT-2 EX-7.16, EX-7.23, §17). */
+export const LIGNE_REPONSE_INVALIDE = "approval_response_invalid";
+/** Les neuf membres de la réponse evaluer (CT-3 §12.3, révision 0.5), dans l'ordre de la table. */
+export const MEMBRES_REPONSE_EVALUER = ["rule", "decision", "ticket", "ticket_state", "approval", "approver_set", "policy_version", "policy_sha256", "approval_sha256"];
+/** Ligne d'exploitation du noyau quand le charger de la version épinglée a été refusé ou a répondu avec un condensé approval_sha256 différent (CT-2 EX-7.15, révision 0.8). */
+export const LIGNE_CHARGER_REFUSE = "approval_charger_refuse";
 
 const N_SECP256K1 = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
 const MOITIE_N = N_SECP256K1 / 2n;
@@ -161,6 +179,55 @@ const ms = (ts) => {
   exiger(!Number.isNaN(v), `horodatage invalide : ${JSON.stringify(ts)}`);
   return v;
 };
+
+/**
+ * Empreinte synthétique d'une version de politique (CT-3 annexe A.6 ; CT-8
+ * annexe A.8 pour les cas repris de ct-3) : SHA-256 des octets UTF-8 de
+ * l'étiquette « ensemble de politique <version> », écrit 0x…. Les traces de
+ * tickets/ et les cas d'évaluation ne portent aucun ensemble de politique
+ * entier : c'est l'empreinte que le noyau des traces déclare au charger de la
+ * version (la version de départ de la trace comprise), et que chaque réponse
+ * evaluer recopie (12.3). Un service déployé recopie l'empreinte réelle
+ * d'EX-8.11 de CT-2, jamais celle-ci.
+ */
+export function empreinteSynthetique(policy_version) {
+  exiger(typeof policy_version === "string" && policy_version.length > 0, "policy_version attendue");
+  return J.sha256(Buffer.from(`ensemble de politique ${policy_version}`, "utf8"));
+}
+
+/**
+ * approval_sha256 (CT-3 §12.2, révision 0.5) : SHA-256, hex 32 octets 0x…,
+ * du JCS (RFC 8785, le JCS intégral de CT-2 §8.1) du membre `approval` d'un
+ * message charger tel que le service l'a reçu. Le service le calcule au
+ * charger et le garde avec la version ; il le reporte dans la réponse de
+ * charger et dans chaque réponse evaluer, jamais recopié d'un message du
+ * noyau ; le noyau le compare au condensé du membre approval qu'il a lui-même
+ * envoyé (CT-2 EX-7.15, EX-7.16).
+ */
+export function condenseApproval(approval) {
+  exiger(estObjet(approval), "membre approval attendu");
+  return J.sha256(Buffer.from(J.canonicaliserJCSIntegral(approval), "utf8"));
+}
+
+/**
+ * Document politique-approbation-v0 d'une trace de l'annexe A.6 : aucune
+ * règle, règle par défaut revue, le jeu et la séparation de la trace. Une
+ * trace fournit chaque sortie d'EVALUER pas à pas ; c'est la politique que son
+ * noyau envoie au charger de chaque version (approvalTrace).
+ */
+export function politiqueTrace({ approver_set, separation }) {
+  return { version: 0, default: { name: "defaut : revue", description: null, level: "revue", decision: null, contest_ms: 0 }, rules: [], approver_set: copie(approver_set), separation: copie(separation) };
+}
+
+/** Membre approval d'un message charger (12.2) pour des règles : sans service. */
+export function approvalCharger(rules, { mode = MODE_ATTENTE_DEFAUT, hold_timeout_ms = 50000, expire_after_ms = 3600000, timeout_ms = 2000 } = {}) {
+  return { rules: copie(rules), mode, hold_timeout_ms, expire_after_ms, timeout_ms };
+}
+
+/** Membre approval que le noyau d'une trace envoie au charger de chaque version (A.6) : politiqueTrace, mode erreur, expire_after_ms de la trace ; son condensé est l'approval_sha256 des réponses de la trace. */
+export function approvalTrace(parametres) {
+  return approvalCharger(politiqueTrace(parametres), { expire_after_ms: parametres.expire_after_ms });
+}
 
 // ---------------------------------------------------------------------------
 // Schémas
@@ -535,15 +602,25 @@ export function evaluer(P, d, { fenetres = [], t, policy_version = d.code?.polic
  * EVALUER en mode observation (révision 0.4, EX-11.12, EX-11.13) : appelle
  * `evaluer` sur les mêmes entrées et rend la seule réponse admise sous une
  * version en mode observation (EX-12.20) : { rule, decision, ticket: null,
- * ticket_state: null, approval: null, approver_set: null }, avec `rule` et
- * `decision` d'EVALUER. Aucun effet (6.5) : aucun ticket, aucune unité de
- * fenêtre consommée — une fenêtre qui couvre la demande rend le rang 2 et la
- * marque « [fenetre <ticket> <fin>] » sans être décomptée, et `fenetres` n'est
- * pas modifié (evaluer travaille sur une copie) ; jamais plafond_atteint.
+ * ticket_state: null, approval: null, approver_set: null, policy_version,
+ * policy_sha256 }, avec `rule` et `decision` d'EVALUER. Aucun effet (6.5) :
+ * aucun ticket, aucune unité de fenêtre consommée — une fenêtre qui couvre la
+ * demande rend le rang 2 et la marque « [fenetre <ticket> <fin>] » sans être
+ * décomptée, et `fenetres` n'est pas modifié (evaluer travaille sur une
+ * copie) ; jamais plafond_atteint. `policy_version` est la version en vigueur
+ * (portée des fenêtres) ; la réponse reporte `code.policy_version` de la
+ * demande, version chargée sous laquelle elle est rendue (12.3, révision 0.5),
+ * `policy_sha256`, l'empreinte que le noyau a déclarée au charger de cette
+ * version (le service la recopie, il ne la calcule jamais, EX-12.6), et
+ * `approval_sha256`, le condensé que le service a calculé au charger sur le
+ * membre approval reçu (condenseApproval).
  */
-export function evaluerObservation(P, d, { fenetres = [], t, policy_version = d.code?.policy_version } = {}) {
+export function evaluerObservation(P, d, { fenetres = [], t, policy_version = d.code?.policy_version, policy_sha256, approval_sha256 } = {}) {
+  exiger(typeof d.code?.policy_version === "string" && d.code.policy_version.length > 0, "code.policy_version de la demande attendue (12.3)");
+  exiger(typeof policy_sha256 === "string" && RE_HEX32.test(policy_sha256), "policy_sha256 de la version chargée attendue (12.3 : l'empreinte déclarée au charger)");
+  exiger(typeof approval_sha256 === "string" && RE_HEX32.test(approval_sha256), "approval_sha256 de la version chargée attendu (12.3 : le condensé calculé par le service au charger)");
   const e = evaluer(P, d, { fenetres, t, policy_version });
-  return { rule: e.rule, decision: e.decision, ticket: null, ticket_state: null, approval: null, approver_set: null };
+  return { rule: e.rule, decision: e.decision, ticket: null, ticket_state: null, approval: null, approver_set: null, policy_version: d.code.policy_version, policy_sha256, approval_sha256 };
 }
 
 /** Longueur maximale, en points de code, de la `rule` d'une réponse admise en mode observation : 1 024 moins les 26 de la marque la plus longue (EX-6.8, EX-12.20). */
@@ -561,17 +638,22 @@ export function regleObservationReservee(rule) {
 
 /**
  * Réponse à evaluer admise sous une version en mode observation (EX-12.20 ;
- * CT-2 EX-7.23) : exactement les six membres, `rule` chaîne non vide d'au
- * plus 998 points de code (la chaîne marquée reste sous les 1 024 de CT-1),
- * ni réservée ni déjà marquée (regleObservationReservee), `decision` ∈
- * { autorise, a_approuver, refuse }, `ticket`, `ticket_state`, `approval` et
- * `approver_set` nuls. Toute autre réponse est invalide.
+ * CT-2 EX-7.23) : exactement les neuf membres (révision 0.5), `rule` chaîne
+ * non vide d'au plus 998 points de code (la chaîne marquée reste sous les
+ * 1 024 de CT-1), ni réservée ni déjà marquée (regleObservationReservee),
+ * `decision` ∈ { autorise, a_approuver, refuse }, `ticket`, `ticket_state`,
+ * `approval` et `approver_set` nuls, `policy_version`, `policy_sha256` et
+ * `approval_sha256` de la forme de 12.3. Avec le contexte de politique du noyau (`politique`, voir
+ * politiqueEpinglee), la réponse doit en outre être rendue sous la politique
+ * épinglée (CT-2 EX-7.16, EX-7.23) ; sans lui, seule la forme est jugée (ce
+ * dont la marque d'observation a besoin). Toute autre réponse est invalide.
  */
-export function reponseObservationAdmise(r) {
+export function reponseObservationAdmise(r, politique = null) {
   if (!estObjet(r)) return false;
-  if (!J.egalJSON(Object.keys(r).sort(), ["approval", "approver_set", "decision", "rule", "ticket", "ticket_state"])) return false;
+  if (!J.egalJSON(Object.keys(r).sort(), [...MEMBRES_REPONSE_EVALUER].sort())) return false;
   if (typeof r.rule !== "string" || r.rule === "" || [...r.rule].length > LONGUEUR_REGLE_OBSERVATION_MAX || regleObservationReservee(r.rule)) return false;
-  return ["autorise", "a_approuver", "refuse"].includes(r.decision) && r.ticket === null && r.ticket_state === null && r.approval === null && r.approver_set === null;
+  if (!(["autorise", "a_approuver", "refuse"].includes(r.decision) && r.ticket === null && r.ticket_state === null && r.approval === null && r.approver_set === null && epinglageForme(r))) return false;
+  return politique === null || politiqueEpinglee(r, politique);
 }
 
 /**
@@ -607,13 +689,21 @@ export function raisonBlocageObservation(x) {
  * valeur de la marque, `raison` celle de observation_would_block (null pour
  * autorise), `consigner` la ligne d'exploitation de l'indisponibilité
  * (approval_service_unavailable sans réponse, approval_response_invalid pour
- * une réponse non admise, null sinon).
+ * une réponse non admise, null sinon). `politique` est le contexte de
+ * politique du noyau (politiqueEpinglee), obligatoire : une réponse rendue
+ * sous une politique non épinglée est invalide et relayée avec la marque
+ * inconnu (CT-2 EX-7.23, révision 0.8), jamais bloquée ; tant que le charger
+ * de la version de la requête n'a pas réussi (indisponibiliteCharger, CT-2
+ * EX-7.15), le service est indisponible : marque inconnu, ligne
+ * approval_charger_refuse, la réponse n'est pas regardée.
  */
-export function actionObservation(reponse) {
+export function actionObservation(reponse, { politique } = {}) {
+  exiger(estObjet(politique), "contexte de politique requis (CT-2 EX-7.23) : { versions, versionRequete, versionRetenue }");
   let would;
   let consigner = null;
-  if (reponse === null || reponse === undefined) [would, consigner] = ["inconnu", "approval_service_unavailable"];
-  else if (!reponseObservationAdmise(reponse)) [would, consigner] = ["inconnu", "approval_response_invalid"];
+  if (indisponibiliteCharger(politique) !== null) [would, consigner] = ["inconnu", LIGNE_CHARGER_REFUSE];
+  else if (reponse === null || reponse === undefined) [would, consigner] = ["inconnu", "approval_service_unavailable"];
+  else if (!reponseObservationAdmise(reponse, politique)) [would, consigner] = ["inconnu", LIGNE_REPONSE_INVALIDE];
   else would = reponse.decision;
   return {
     action: "relayer",
@@ -965,7 +1055,7 @@ function donneesValides(kind, d) {
   const ticket = typeof d.ticket === "string";
   switch (kind) {
     case "charger":
-      return typeof d.policy_version === "string" && d.policy_version.length > 0 && (d.requesters === undefined || (Array.isArray(d.requesters) && d.requesters.every((x) => typeof x === "string")));
+      return typeof d.policy_version === "string" && d.policy_version.length > 0 && (d.requesters === undefined || (Array.isArray(d.requesters) && d.requesters.every((x) => typeof x === "string"))) && (d.approval === undefined || (typeof d.policy_sha256 === "string" && RE_HEX32.test(d.policy_sha256)));
     case "evaluer":
       return estObjet(d.request) && typeof d.request.tool_announced === "string" && estObjet(d.request.delegation) && typeof d.request.delegation.launched_by === "string" && estObjet(d.request.code) && typeof d.request.code.policy_version === "string" && (d.evaluation === undefined || estObjet(d.evaluation));
     case "ouvrir":
@@ -1020,12 +1110,20 @@ function donneesTransition(kind, d) {
  * administrators : identités qui peuvent retirer, EX-7.15), `schemas` (pour
  * charger un document), `epoque` (préfixe des identifiants, conservé hors du
  * service pour qu'un identifiant reste unique après une perte d'état, EX-7.1 ;
- * null dans les traces, qui partent d'un service vide).
+ * null dans les traces, qui partent d'un service vide), `policy_sha256`
+ * (l'empreinte que le noyau a déclarée au charger de la version de départ,
+ * recopiée dans chaque réponse evaluer rendue sous elle, 12.3 ; par défaut
+ * l'empreinte synthétique des traces, empreinteSynthetique, A.6),
+ * `approval_sha256` (le condensé du membre approval reçu au charger de la
+ * version de départ, 12.2 ; par défaut celui de l'approval de trace,
+ * approvalTrace sur `parametres`, A.6).
  */
 export class ServiceApprobation {
-  constructor({ org_id, journal_id, environment = "developpement", policy_version, parametres, politique = null, service = {}, schemas = null, epoque = null }) {
+  constructor({ org_id, journal_id, environment = "developpement", policy_version, parametres, policy_sha256 = empreinteSynthetique(policy_version), approval_sha256 = condenseApproval(approvalTrace(parametres)), politique = null, service = {}, schemas = null, epoque = null }) {
     exiger(J.estHex32(org_id) && J.estHex32(journal_id), "org_id et journal_id hexadécimaux de 32 octets attendus");
     exiger(typeof policy_version === "string" && policy_version.length > 0, "policy_version attendue");
+    exiger(typeof policy_sha256 === "string" && RE_HEX32.test(policy_sha256), "policy_sha256 hexadécimale de 32 octets attendue");
+    exiger(typeof approval_sha256 === "string" && RE_HEX32.test(approval_sha256), "approval_sha256 hexadécimal de 32 octets attendu");
     exiger(epoque === null || /^[0-9a-z]+$/.test(epoque), "epoque : chiffres et minuscules");
     this.org_id = org_id;
     this.journal_id = journal_id;
@@ -1033,7 +1131,7 @@ export class ServiceApprobation {
     this.parametres = copie(parametres);
     this.schemas = schemas;
     this.service = { max_open_tickets: PLAFOND_TICKETS_DEFAUT, escalation: [], set_poll_interval_ms: INTERVALLE_LECTURE_DEFAUT_MS, administrators: [], ...copie(service) };
-    this.versions = new Map([[policy_version, { politique: copie(politique), ...copie(parametres) }]]);
+    this.versions = new Map([[policy_version, { politique: copie(politique), policy_sha256, approval_sha256, ...copie(parametres) }]]);
     this.vigueur = policy_version;
     this.tickets = new Map();
     this.cles = new Map();
@@ -1395,14 +1493,17 @@ export class ServiceApprobation {
         sortie.errors = errors;
         return this.refuser(sortie, "politique_invalide");
       }
-      this.versions.set(v, { politique: copie(doc), expire_after_ms: data.approval.expire_after_ms, approver_set: copie(doc.approver_set), separation: copie(doc.separation) });
+      // 12.3 (révision 0.5) : l'empreinte déclarée par le noyau est gardée avec la version et recopiée dans chaque réponse evaluer ; le service ne la calcule jamais (EX-12.6).
+      // 12.2 (révision 0.5) : le service calcule approval_sha256, SHA-256 du JCS du membre approval tel qu'il l'a reçu, le garde avec la version et le reporte (réponse de charger, chaque réponse evaluer).
+      const approval_sha256 = condenseApproval(data.approval);
+      this.versions.set(v, { politique: copie(doc), policy_sha256: data.policy_sha256, approval_sha256, expire_after_ms: data.approval.expire_after_ms, approver_set: copie(doc.approver_set), separation: copie(doc.separation) });
       const noms = (data.tools ?? []).map((t) => t.tool_announced);
-      sortie.response = { policy_version: v, policy_sha256: data.policy_sha256 ?? null, approval_candidates: candidats(doc, noms) };
+      sortie.response = { policy_version: v, policy_sha256: data.policy_sha256, approval_sha256, approval_candidates: candidats(doc, noms) };
       // EX-4.14 : avertissements au journal du service, jamais dans la réponse ; requesters (CT-2 EX-7.15) pour le cinquième.
       for (const av of avertissementsPolitique(doc, { outils: data.tools ? noms : null, demandeurs: data.requesters ?? [] })) this.alerte(atMs, null, `avertissement ${v} : ${av}`);
     } else {
-      // Trace de l'annexe A.6 : la version porte les paramètres de la trace ; la réponse ne porte que policy_version.
-      if (!this.versions.has(v)) this.versions.set(v, { politique: null, ...copie(this.parametres) });
+      // Trace de l'annexe A.6 : la version porte les paramètres de la trace, l'empreinte synthétique (celle que le noyau des traces déclare) et le condensé de l'approval de trace ; la réponse ne porte que policy_version.
+      if (!this.versions.has(v)) this.versions.set(v, { politique: null, policy_sha256: empreinteSynthetique(v), approval_sha256: condenseApproval(approvalTrace(this.parametres)), ...copie(this.parametres) });
       sortie.response = { policy_version: v };
     }
     if (v !== this.vigueur) {
@@ -1447,10 +1548,12 @@ export class ServiceApprobation {
       const r = evaluer(pv.politique, d, { fenetres: this.fenetres, t: atMs, policy_version: this.vigueur });
       ev = { rule: r.rule, decision: r.decision, contest_ms: r.contest_ms, opening: r.opening };
     }
+    // 12.3 (révision 0.5) : une évaluation et un ticket nouveau sont rendus sous la version de la requête ; l'empreinte est celle gardée au charger de cette version.
+    const epinglage = { policy_version: d.code.policy_version, policy_sha256: pv.policy_sha256, approval_sha256: pv.approval_sha256 };
     if (ev.decision !== "a_approuver") {
       // EX-6.5 : une sortie autorise de rang 2 consomme une unité de sa fenêtre, persistée avant la réponse (EX-7.22).
       if (ev.decision === "autorise") this.consommerFenetre(ev.rule);
-      sortie.response = { rule: ev.rule, decision: ev.decision, ticket: null, ticket_state: null, approval: null, approver_set: null };
+      sortie.response = { rule: ev.rule, decision: ev.decision, ticket: null, ticket_state: null, approval: null, approver_set: null, ...epinglage };
       return;
     }
     // EX-14.1 : plafond de tickets non décidés par demandeur.
@@ -1509,13 +1612,14 @@ export class ServiceApprobation {
     this.tickets.set(id, doc);
     this.cles.set(id, cle);
     this.transition(doc, "evaluer", atMs, null, "reserve");
-    sortie.response = { rule: ev.rule, decision: "a_approuver", ticket: id, ticket_state: "nouveau", approval: null, approver_set: this.jeuReponseNouveau(d.code.policy_version) };
+    sortie.response = { rule: ev.rule, decision: "a_approuver", ticket: id, ticket_state: "nouveau", approval: null, approver_set: this.jeuReponseNouveau(d.code.policy_version), ...epinglage };
   }
 
-  /** Réponse à une ré-émission reconnue (EX-7.16 à EX-7.19 ; T21). */
+  /** Réponse à une ré-émission reconnue (EX-7.16 à EX-7.19 ; T21) : rendue sous la version du ticket (EX-7.21), avec l'empreinte gardée au charger de cette version (12.3, révision 0.5). */
   reemission(tk, atMs, sortie) {
     const s = tk.state;
-    const rep = (decision, ticket_state, approval = null, approver_set = null) => ({ rule: tk.request.rule, decision, ticket: tk.ticket, ticket_state, approval, approver_set });
+    const v = tk.request.policy_version;
+    const rep = (decision, ticket_state, approval = null, approver_set = null) => ({ rule: tk.request.rule, decision, ticket: tk.ticket, ticket_state, approval, approver_set, policy_version: v, policy_sha256: this.version(v).policy_sha256, approval_sha256: this.version(v).approval_sha256 });
     const servir = s === "approuve" && tk.served_at === null;
     if (servir) tk.served_at = J.horodatage(atMs); // T21 : servie, persistée avant la réponse (EX-7.17, EX-7.22)
     this.transition(tk, "evaluer", atMs, s, s);
@@ -1887,18 +1991,31 @@ export function jeuExploitable(jeu) {
 }
 
 /**
+ * Forme de l'épinglage (policy_version, policy_sha256, approval_sha256) d'une
+ * réponse evaluer (12.3, révision 0.5) : chaîne de 1 à 128 points de code,
+ * deux hexadécimaux de 32 octets ; aucune comparaison au contexte du noyau
+ * (politiqueEpinglee).
+ */
+function epinglageForme(r) {
+  return typeof r.policy_version === "string" && longueur(r.policy_version) >= 1 && longueur(r.policy_version) <= 128 && typeof r.policy_sha256 === "string" && RE_HEX32.test(r.policy_sha256) && typeof r.approval_sha256 === "string" && RE_HEX32.test(r.approval_sha256);
+}
+
+/**
  * Les sept combinaisons de la table d'EX-7.16 (EX-12.6) : toute autre réponse
  * à evaluer est invalide, et le noyau la traite comme une indisponibilité du
- * service. Exactement les six membres, dans un ordre quelconque (l'ordre des
- * membres d'un objet JSON n'a pas de sens) ; `rule` chaîne ou null, non nul
- * pour a_approuver (CT-1 §5.3) ; approval non nul seulement pour une décision
- * scellée du même ticket ; approver_set non nul seulement pour ticket_state
- * nouveau, et alors exploitable (jeuExploitable, EX-9.4).
+ * service. Exactement les neuf membres (révision 0.5), dans un ordre quelconque
+ * (l'ordre des membres d'un objet JSON n'a pas de sens) ; `rule` chaîne ou
+ * null, non nul pour a_approuver (CT-1 §5.3) ; approval non nul seulement pour
+ * une décision scellée du même ticket ; approver_set non nul seulement pour
+ * ticket_state nouveau, et alors exploitable (jeuExploitable, EX-9.4) ;
+ * `policy_version`, `policy_sha256` et `approval_sha256` de la forme de 12.3
+ * (epinglageForme), sans comparaison au contexte du noyau, qui relève de
+ * politiqueEpinglee.
  */
 export function combinaisonAdmise(r) {
   if (!estObjet(r)) return false;
-  const cles = ["approval", "approver_set", "decision", "rule", "ticket", "ticket_state"];
-  if (!J.egalJSON(Object.keys(r).sort(), cles)) return false;
+  if (!J.egalJSON(Object.keys(r).sort(), [...MEMBRES_REPONSE_EVALUER].sort())) return false;
+  if (!epinglageForme(r)) return false;
   if (r.rule !== null && typeof r.rule !== "string") return false;
   if (r.ticket === null) return r.ticket_state === null && r.approval === null && r.approver_set === null && (r.decision === "autorise" || r.decision === "refuse");
   if (typeof r.ticket !== "string" || !RE_IDENTIFIANT_TICKET.test(r.ticket)) return false;
@@ -1916,6 +2033,77 @@ export function combinaisonAdmise(r) {
     default:
       return false;
   }
+}
+
+/**
+ * Épinglage que le noyau détient pour une version (contexte `versions` :
+ * objet { version: { policy_sha256, approval_sha256 } } ou Map), ou undefined ;
+ * un objet n'est lu que par ses propriétés propres (jamais __proto__ ni le
+ * prototype), et une valeur qui n'est pas un objet ne vaut rien.
+ */
+function epinglageDetenu(versions, version) {
+  const e = versions instanceof Map ? versions.get(version) : Object.hasOwn(versions, version) ? versions[version] : undefined;
+  return estObjet(e) ? e : undefined;
+}
+
+const contexteValide = (politique) => estObjet(politique) && (politique.versions instanceof Map || estObjet(politique.versions)) && typeof politique.versionRequete === "string";
+
+/**
+ * CT-2 EX-7.15 (révision 0.8) : tant que le charger de la version épinglée
+ * n'a pas réussi (réponse conforme, approval_sha256 égal au condensé que le
+ * noyau a calculé lui-même sur le membre approval envoyé), ou si son charger
+ * a été refusé, le noyau tient le service pour indisponible pour toute
+ * écriture et tout outil susceptible d'approbation (14.2 : -31010, raison
+ * approbation) : il n'évalue rien sous cette version et le consigne
+ * (approval_charger_refuse). Dans le contexte de politique, une version n'est
+ * détenue (`versions`) que si son charger a réussi : la version de la requête
+ * absente est cette indisponibilité. Rend null, ou { action: "erreur", error,
+ * consigner: "approval_charger_refuse", raison: "charger_non_reussi" }.
+ */
+export function indisponibiliteCharger(politique) {
+  exiger(contexteValide(politique), "contexte de politique attendu : { versions, versionRequete, versionRetenue }");
+  if (epinglageDetenu(politique.versions, politique.versionRequete)) return null;
+  return { action: "erreur", error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }), consigner: LIGNE_CHARGER_REFUSE, raison: "charger_non_reussi" };
+}
+
+/**
+ * Réponse de charger conforme (CT-3 §12.2, révision 0.5 ; CT-2 EX-7.15) :
+ * exactement { policy_version, policy_sha256, approval_sha256,
+ * approval_candidates }, les trois premiers égaux à ce que le noyau a envoyé
+ * et au condensé qu'il a calculé lui-même sur le membre approval envoyé
+ * (condenseApproval), approval_candidates tableau de chaînes. Un charger dont
+ * la réponse n'est pas conforme est tenu pour échoué : requete_invalide côté
+ * noyau, consigné ; la version n'est pas détenue (indisponibiliteCharger).
+ */
+export function reponseChargerConforme(reponse, { policy_version, policy_sha256, approval_sha256 }) {
+  if (!estObjet(reponse) || !J.egalJSON(Object.keys(reponse).sort(), ["approval_candidates", "approval_sha256", "policy_sha256", "policy_version"])) return false;
+  return reponse.policy_version === policy_version && reponse.policy_sha256 === policy_sha256 && reponse.approval_sha256 === approval_sha256 && Array.isArray(reponse.approval_candidates) && reponse.approval_candidates.every((x) => typeof x === "string");
+}
+
+/**
+ * CT-2 EX-7.16 (révision 0.8) : la réponse evaluer est rendue sous une
+ * politique que le noyau a lui-même épinglée. `politique` est le contexte du
+ * noyau : `versions`, les versions dont il détient l'ensemble de politique
+ * (l'ensemble épinglé, et ceux qu'il garde pour un appel en cours ou un ticket
+ * actif, EX-15.5, CT-3 EX-7.21) avec l'empreinte qu'il a déclarée au charger de
+ * chacune (EX-8.11) et le condensé du membre approval qu'il y a envoyé
+ * (condenseApproval), objet { version: { policy_sha256, approval_sha256 } } ou
+ * Map ; `versionRequete`, code.policy_version de la requête ; `versionRetenue`,
+ * code.policy_version de l'événement retenue du ticket rapproché (null sans
+ * ticket rapproché ou sans retenue connue). Vrai si et seulement si
+ * `policy_version` est détenue, `policy_sha256` égale l'empreinte détenue,
+ * `approval_sha256` égale le condensé détenu, et `policy_version` est celle de
+ * la requête (ticket nul ou `nouveau`) ou celle de la retenue (ticket
+ * rapproché : en_attente, approuve, refuse, expire). Suppose la forme de 12.3
+ * déjà jugée (combinaisonAdmise).
+ */
+export function politiqueEpinglee(r, politique) {
+  exiger(contexteValide(politique), "contexte de politique attendu : { versions, versionRequete, versionRetenue }");
+  const e = epinglageDetenu(politique.versions, r.policy_version);
+  if (e === undefined || e.policy_sha256 !== r.policy_sha256 || e.approval_sha256 !== r.approval_sha256) return false;
+  const rapproche = r.ticket !== null && r.ticket !== undefined && r.ticket_state !== "nouveau";
+  const attendue = rapproche ? politique.versionRetenue ?? null : politique.versionRequete;
+  return attendue !== null && r.policy_version === attendue;
 }
 
 /**
@@ -1968,18 +2156,25 @@ export function resultatSignalApprobation(ticket, state, { hoteModerne = true, r
  *     l'enregistreur (CT-2 EX-4.49) : refus par la politique sans ticket, ou
  *     signal d'approbation (ticket en attente, refusé ou expiré ; ré-émission
  *     d'un ticket dont une requête est déjà retenue) ;
- *   { action: "erreur", error } — -31010 (raison approbation) pour une
- *     réponse non applicable (indisponibilité du service, CT-2 §14.2) : la
- *     seule erreur JSON-RPC ;
+ *   { action: "erreur", error, consigner, raison } — -31010 (raison
+ *     approbation) pour une réponse non applicable (indisponibilité du
+ *     service, CT-2 §14.2) : la seule erreur JSON-RPC ; `consigner` est la
+ *     ligne d'exploitation approval_response_invalid, `raison` celle de
+ *     raisonReponseInvalide (politique_non_epinglee pour une réponse rendue
+ *     sous une politique non épinglée, CT-2 EX-7.16) ;
  *   { action: "retenir", ticket } — mode retenir, aucune requête de ce ticket
  *     déjà retenue (CT-2 EX-4.50).
  * En mode observation (révision 0.4), le résultat est celui d'actionObservation :
  * toujours le relais, avec la policy marquée (CT-2 EX-4.51, EX-14.14).
- * `recorder` est code.recorder, la version de l'enregistreur.
+ * `recorder` est code.recorder, la version de l'enregistreur. `politique` est
+ * le contexte de politique du noyau (politiqueEpinglee), obligatoire.
  */
-export function actionMandataire(reponse, { decisionScellee = null, mode = MODE_ATTENTE_DEFAUT, hoteModerne = true, requeteDejaRetenue = false, recorder = C.VERSION_ENREGISTREUR } = {}) {
-  if (mode === MODE_OBSERVATION) return actionObservation(reponse);
-  if (!reponseEvaluerApplicable(reponse, { decisionScellee })) return { action: "erreur", error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }) };
+export function actionMandataire(reponse, { decisionScellee = null, mode = MODE_ATTENTE_DEFAUT, hoteModerne = true, requeteDejaRetenue = false, recorder = C.VERSION_ENREGISTREUR, politique } = {}) {
+  if (mode === MODE_OBSERVATION) return actionObservation(reponse, { politique });
+  const indisponible = indisponibiliteCharger(politique); // CT-2 EX-7.15 : rien n'est évalué sous une version dont le charger n'a pas réussi
+  if (indisponible !== null) return indisponible;
+  const raison = raisonReponseInvalide(reponse, { decisionScellee, politique });
+  if (raison !== null) return { action: "erreur", error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }), consigner: LIGNE_REPONSE_INVALIDE, raison };
   if (reponse.decision === "autorise" && reponse.ticket === null) return { action: "relayer", approval: null };
   if (reponse.decision === "autorise") return { action: "verifier_relais", ticket: reponse.ticket, approval: copie(decisionScellee) };
   if (reponse.ticket === null) return { action: "resultat", result: resultatRefusPolitique({ hoteModerne, recorder }) };
@@ -2007,13 +2202,18 @@ export function finRetention(ticket, issue, { hoteModerne = true, recorder = C.V
  * { call, decision, ticket, ticket_state }, `call` nul sauf pour autorise ;
  * une réponse non applicable (reponseEvaluerApplicable avec
  * `decisionScellee`, l'approval de la décision que le noyau a scellée pour ce
- * ticket, ou null) rend l'erreur -31010 (raison approbation). Pour autorise
- * d'un ticket approuve, l'appelant ne rend `call` qu'après RL-1 à RL-4
- * (verifierRelais, CT-2 EX-7.21). Le SDK ne retient jamais : en_attente rend
- * aussitôt a_approuver.
+ * ticket, ou null ; `politique`, le contexte de politique du noyau,
+ * obligatoire) rend l'erreur -31010 (raison approbation) avec la ligne à
+ * consigner et la raison (raisonReponseInvalide). Pour autorise d'un ticket
+ * approuve, l'appelant ne rend `call` qu'après RL-1 à RL-4 (verifierRelais,
+ * CT-2 EX-7.21). Le SDK ne retient jamais : en_attente rend aussitôt
+ * a_approuver.
  */
-export function resultatDebutAppel(reponse, { call = null, decisionScellee = null } = {}) {
-  if (!reponseEvaluerApplicable(reponse, { decisionScellee })) return { error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }) };
+export function resultatDebutAppel(reponse, { call = null, decisionScellee = null, politique } = {}) {
+  const indisponible = indisponibiliteCharger(politique); // CT-2 EX-7.15
+  if (indisponible !== null) return { error: indisponible.error, consigner: indisponible.consigner, raison: indisponible.raison };
+  const raison = raisonReponseInvalide(reponse, { decisionScellee, politique });
+  if (raison !== null) return { error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }), consigner: LIGNE_REPONSE_INVALIDE, raison };
   const autorise = reponse.decision === "autorise";
   exiger(!autorise || typeof call === "string", "un appel autorisé exige l'identifiant call");
   return { call: autorise ? call : null, decision: reponse.decision, ticket: reponse.ticket, ticket_state: reponse.ticket_state };
@@ -2120,18 +2320,46 @@ export function messageCharger({ org_id, journal_id, environment, policy_version
 }
 
 /**
- * Réponse d'evaluer applicable par le noyau (CT-2 EX-7.16) : l'une des sept
- * combinaisons (combinaisonAdmise) et, pour une décision scellée (approuve,
- * refuse, expire), un `approval` égal clé pour clé à celui de la décision que
- * le noyau a lui-même scellée pour ce ticket (`decisionScellee`, null s'il
- * n'en a pas scellé : réponse invalide, RL-1). Une réponse non applicable est
- * une indisponibilité du service : -31010, raison approbation, consignée
- * approval_response_invalid.
+ * Raison pour laquelle le noyau tient une réponse d'evaluer pour invalide
+ * (CT-2 EX-7.16, révision 0.8), ou null si elle est applicable :
+ *   - `politique_non_epinglee` (RAISON_POLITIQUE_NON_EPINGLEE, raison nommée
+ *     par CT-2) : épinglage (policy_version, policy_sha256, approval_sha256)
+ *     absent ou mal formé (la réponse ne reporte pas la politique sous
+ *     laquelle elle est rendue), ou qui n'est pas celui d'un charger du noyau
+ *     pour la version attendue (politiqueEpinglee : empreinte déclarée et
+ *     condensé du membre approval envoyé) ;
+ *   - `forme` (raison de cette bibliothèque) : hors des sept combinaisons
+ *     d'EX-12.6 (combinaisonAdmise) ;
+ *   - `approval_different` (raison de cette bibliothèque) : pour une décision
+ *     scellée (approuve, refuse, expire), `approval` n'est pas égal clé pour
+ *     clé à celui de la décision que le noyau a lui-même scellée pour ce
+ *     ticket (`decisionScellee`, null s'il n'en a pas scellé : RL-1).
+ * `politique` est le contexte de politique du noyau (politiqueEpinglee),
+ * obligatoire : la référence ne juge jamais une réponse sans lui. Une
+ * réponse invalide est une indisponibilité du service : -31010, raison
+ * approbation, consignée approval_response_invalid (LIGNE_REPONSE_INVALIDE).
  */
-export function reponseEvaluerApplicable(r, { decisionScellee = null } = {}) {
-  if (!combinaisonAdmise(r)) return false;
-  if (!["approuve", "refuse", "expire"].includes(r.ticket_state)) return true;
-  return estObjet(decisionScellee) && decisionScellee.decision === r.ticket_state && J.egalJSON(r.approval, decisionScellee);
+export function raisonReponseInvalide(r, { decisionScellee = null, politique } = {}) {
+  exiger(estObjet(politique), "contexte de politique requis (CT-2 EX-7.16) : { versions, versionRequete, versionRetenue }");
+  if (!estObjet(r)) return "forme";
+  if (!epinglageForme(r)) return RAISON_POLITIQUE_NON_EPINGLEE;
+  if (!combinaisonAdmise(r)) return "forme";
+  if (!politiqueEpinglee(r, politique)) return RAISON_POLITIQUE_NON_EPINGLEE;
+  if (!["approuve", "refuse", "expire"].includes(r.ticket_state)) return null;
+  return estObjet(decisionScellee) && decisionScellee.decision === r.ticket_state && J.egalJSON(r.approval, decisionScellee) ? null : "approval_different";
+}
+
+/**
+ * Réponse d'evaluer applicable par le noyau (CT-2 EX-7.16) : l'une des sept
+ * combinaisons (combinaisonAdmise), rendue sous la politique épinglée
+ * (politiqueEpinglee, contexte `politique` obligatoire) et, pour une décision
+ * scellée (approuve, refuse, expire), un `approval` égal clé pour clé à celui
+ * de la décision que le noyau a lui-même scellée pour ce ticket
+ * (`decisionScellee`, null s'il n'en a pas scellé : réponse invalide, RL-1).
+ * Voir raisonReponseInvalide pour la raison.
+ */
+export function reponseEvaluerApplicable(r, { decisionScellee = null, politique } = {}) {
+  return raisonReponseInvalide(r, { decisionScellee, politique }) === null;
 }
 
 /**

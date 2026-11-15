@@ -143,7 +143,12 @@ func Lisible(r *Rapport, info InfosLisibles, detail bool) string {
 	l := r.Language
 	en := l == "en"
 	var b strings.Builder
-	ligne := func(s string) { b.WriteString(s + "\n") }
+	// Point unique d'écriture d'une ligne : toute chaîne venue d'une entrée
+	// (raisons d'absence de l'index, détails, noms de pièces, chemins, noms
+	// de certificats) y est neutralisée (commun.Neutraliser) ; le seul saut
+	// de ligne du rapport est celui que le gabarit d'EX-8.6 place en fin de
+	// ligne (revue de sécurité de l'étape 8).
+	ligne := func(s string) { b.WriteString(commun.Neutraliser(s) + "\n") }
 	if en {
 		ligne("Offline verification of a NOORTRACE evidence dossier (format v0, CT-1 and CT-6)")
 	} else {

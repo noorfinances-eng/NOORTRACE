@@ -889,7 +889,8 @@ export const SCHEMA_OPERATIONS_REGISTRE = Object.freeze({
                     "paquet_organisation",
                     "paquet_jeu",
                     "paquet_captures",
-                    "secret_present"
+                    "secret_present",
+                    "nonce_incoherent"
                   ]
                 },
                 "check": {

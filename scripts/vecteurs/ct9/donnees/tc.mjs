@@ -234,6 +234,11 @@ export const TC_REPONSES = [
     "response": "TQ- inventaire des clés (§13)."
   },
   {
+    "key": "CT-7 §5.2",
+    "delegated": "Répétition de la procédure de cérémonie (TA-95, TA-97) jouée par des rôles simulés : relecteurs internes en sessions isolées, sans personne physique ; ce qu'elle établit est borné par CT-7 §5.2.",
+    "response": "TA-95 et TA-97 (§10.4, « Procédure ») : épreuves de procédure en deux passes, par des sessions isolées qui tiennent chacune un rôle (§10.1) ; « Rôle simulé » (§2) ; à écrire, étape 8."
+  },
+  {
     "key": "CT-7 §7.9",
     "delegated": "Parité de l'attestation : exigences mesurées par CT-9 (EX-7.18).",
     "response": "TM-20 (EX-7.18, six points constatés sur les vecteurs, exécutable) en §11."
@@ -252,6 +257,16 @@ export const TC_REPONSES = [
     "key": "CT-7 §10",
     "delegated": "Revue de code, non faite.",
     "response": "§13 (TQ-), état « à écrire », étape 8."
+  },
+  {
+    "key": "CT-7 §10",
+    "delegated": "Aucune cérémonie tenue par des personnes : la répétition de la porte 2 (TA-95, TA-97) est jouée par des rôles simulés.",
+    "response": "TA-95 et TA-97 (§10.4, « Procédure », §10.1) ; ce que la porte 2 ne prouve pas : la tenue d'une cérémonie de clés par des personnes (§14) ; §16."
+  },
+  {
+    "key": "CT-7 §11",
+    "delegated": "Comptes de TQ-7 (`CT-7 CLE- (36)`) à aligner sur l'inventaire révisé (CLE-37 à CLE-41).",
+    "response": "TQ-7 (§13) : `covers` étendu à CLE-37 à CLE-41, table TQ imprimée depuis le catalogue (§4.3) ; règle (a) de l'outil de couverture (§5.1)."
   },
   {
     "key": "CT-7 §A.11",
@@ -509,6 +524,21 @@ export const TC_REPONSES = [
     "response": "TR-9, TR-10, TR-11 en §12, conduites selon le protocole commun de 12.1."
   },
   {
+    "key": "CT-8 §14",
+    "delegated": "Participants des trois épreuves : relecteurs à l'aveugle au sens d'EX-12.1 ; en version 0, relecteurs internes conduits en sessions isolées, non des personnes extérieures.",
+    "response": "EX-12.1 (§12.1) : relecteur interne à l'aveugle, `participant.condition` et `external` faux dans la consignation (EX-12.4) ; TR-9, TR-10, TR-11 (§12)."
+  },
+  {
+    "key": "CT-8 §14.1",
+    "delegated": "Participant de l'épreuve (a), ingénieur d'exploitation : relecteur à l'aveugle (EX-12.1).",
+    "response": "TR-9 (§12) ; protocole commun et participant : EX-12.1 (§12.1)."
+  },
+  {
+    "key": "CT-8 §14.2",
+    "delegated": "Participant de l'épreuve (b), réviseur : relecteur à l'aveugle (EX-12.1).",
+    "response": "TR-10 (§12) ; protocole commun et participant : EX-12.1 (§12.1)."
+  },
+  {
     "key": "CT-8 §14.2",
     "delegated": "Durée de l'épreuve (b), mesure de CT-9.",
     "response": "EX-12.4 : consignation `consignation_rejeu` (schéma, §12.1), CT-8 EX-14.10 généralisée à toutes les épreuves TR-."
@@ -547,6 +577,11 @@ export const TC_REPONSES = [
     "key": "CT-8 §15",
     "delegated": "Budgets IR et IC à mesurer.",
     "response": "TM-21 (900 s) et TM-22 (450 min, 480 avec la réserve) en §11 ; porte 2 en §14."
+  },
+  {
+    "key": "CT-8 §15",
+    "delegated": "Cérémonie (IC-7) et installation conduites par des personnes étrangères au projet : non faites ; épreuves de la section 14 par des relecteurs internes à l'aveugle, répétition de cérémonie de la porte 2 par des rôles simulés.",
+    "response": "TA-95 et TA-97 jouées par des rôles simulés (§10.1, §10.4) ; TR-9 à TR-11 par des relecteurs internes à l'aveugle (EX-12.1) ; ce que la porte 2 ne prouve pas (§14) ; §16."
   },
   {
     "key": "CT-8 §B.2",

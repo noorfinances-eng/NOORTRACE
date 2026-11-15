@@ -34,6 +34,11 @@ export const COMPTES = Object.freeze(
 
 /** Clé publique Ed25519 de rec-test-01 (CT-1 §13). */
 export const PUB_REC_TEST_01 = CLES_CT1.keys.find((k) => k.key_id === "rec-test-01").public_key;
+/**
+ * Clé publique RSA de 2 048 bits (SubjectPublicKeyInfo DER), publique et sans clé privée conservée : clé de test du cas
+ * invalide-cr5-rsa-2048 (révision 0.5 de CT-7, CR-5 : module d'au moins 3 072 bits pour rsa, CLE-10).
+ */
+export const SPKI_RSA_2048_TEST = "0x30820122300d06092a864886f70d01010105000382010f003082010a0282010100b4532a5b1d78d6394f6bc22350603134c21dd73713000687952de7454768aece8f23298fc853a1a83e01f2e4fda857c94c726a2225614f428ae2289a1ccb63e52a4961e91c0821009600434f86006b832a994c7f3fabc900823fea2c84552b4ab3ccd642d5c38902741a577eb3a423664e6e5e3229f624faf8dc3e782f3bfc5e08237cc005c000737c04188117e2d48ccafc995f5810da1008e0683072b7d156597859e18bd02aad4de584b9e6e78e5dfc70740f60f7b47ec0375052f280d058a6db77d9183133ece434c953bea9d9bfe531afed3f5f4b3e7cf0ba46d08e164c247484a4b2aa84ecddb1e5fe513fa96771d2373e09f6d72fff0e14aae54fc88d0203010001";
 /** D_A de la décision apr-1192 de CT-1 §6.4 (cas invalide-cr11-signature-d-une-decision). */
 export const D_A_APR_1192 = "0x59b49949b9e97d7e3fd9d46a3992476dd2cc27c48e25ef77b467816d144f37a7";
 
@@ -275,6 +280,35 @@ function pvRotationUrgence() {
   return pv;
 }
 
+/**
+ * Rotation planifiée, en production, de la clé de chaîne de l'exemple, sans
+ * rien qui ancre D_C : ni jeton RFC 3161 sur D_C, ni inscription au registre
+ * n'accompagne ce cas (EX-5.11). Les douze CR- réussissent ; le rapport porte
+ * la réserve « daté par déclaration seulement » (menace MN-93, RA-77).
+ */
+function pvRotationSansAncre() {
+  const pv = pvExemple();
+  pv.ceremony_id = "cer-2026-11-09-sinistres-rotation-01";
+  pv.purpose = "rotation";
+  pv.started_at = "2026-11-09T08:00:00.000Z";
+  pv.ended_at = "2026-11-09T08:45:00.000Z";
+  pv.script = { title: "Rotation planifiée de la clé de chaîne de l'enregistreur", version: "1", sha256: empreinte("script/rotation-chaine-v1") };
+  pv.steps = [
+    etape(1, "Lire le script à voix haute et comparer son SHA-256 à celui publié avant la cérémonie", "p1", ["p2", "p3"], "2026-11-09T08:02:00.000Z"),
+    etape(2, "Vérifier les scellés du module, démarrer le poste sur l'image dont le SHA-256 est inscrit, constater l'absence de réseau", "p1", ["p2"], "2026-11-09T08:10:00.000Z"),
+    etape(3, "Générer dans le module la nouvelle clé de chaîne secp256k1, signer un condensé d'essai et recouvrer l'adresse", "p1", ["p2", "p3"], "2026-11-09T08:22:00.000Z"),
+    etape(4, "Remettre au démon la seule identité d'usage de la nouvelle clé : ni export, ni suppression, ni changement de politique", "p1", ["p2"], "2026-11-09T08:32:00.000Z"),
+    etape(5, "Arrêter l'enregistrement vidéo, calculer les SHA-256 des enregistrements et des journaux", "p1", ["p2", "p3"], "2026-11-09T08:40:00.000Z"),
+  ];
+  pv.keys = [cleSecp("chaine-test-06", "chaine", 6, "A")];
+  pv.records = [
+    { kind: "video", name: "camera-1.mp4", sha256: empreinte("enregistrement/rotation-chaine/camera-1") },
+    { kind: "journal_module", name: "journal-module.txt", sha256: empreinte("enregistrement/rotation-chaine/journal-module") },
+  ];
+  pv.findings = [];
+  return pv;
+}
+
 /** Clés privées des participants d'un procès-verbal (identifiant → clé). */
 const cles = (comptes) => Object.fromEntries(Object.entries(comptes).map(([p, i]) => [p, COMPTES[i].cle]));
 const texte = (pv) => J.texteJSON(pv);
@@ -288,8 +322,13 @@ export function formeHaute(sig) {
 /**
  * Les cas de ceremonies/ (CT-7 annexe A.4), dans l'ordre de la table :
  * [{ nom, mutation, octets (texte du procès-verbal publié), echecs (CR- en
- * échec attendues) }]. Le générateur contrôle que verifierCeremonie rend
- * exactement `echecs`.
+ * échec attendues), reserves (réserves attendues, EX-5.11) }]. Le générateur
+ * contrôle que verifierCeremonie rend exactement `echecs` et `reserves`.
+ *
+ * `reserves` est écrit ici par conception, sans appeler la bibliothèque : la
+ * réserve « date_declaree_seulement » pour un procès-verbal de production
+ * dont CR-1 réussit, aucune sinon (CR-1 en échec : rien n'est lu ; hors
+ * production : EX-5.11 n'exige pas d'ancre).
  */
 export function casCeremonies() {
   const out = [];
@@ -317,6 +356,7 @@ export function casCeremonies() {
   valide("valide-restauration-administrateur-registre", "restauration, en production, de la sauvegarde de valide-sauvegarde-administrateur-registre (purpose_details : son D_C, k = 2, n = 3) : officiant (compte 8), témoin (compte 1), deux détenteurs de part (comptes 5 et 6), aucune clé produite", pvRestauration(D_C_sauvegarde), COMPTES_RESTAURATION);
   valide("valide-rotation-urgence-chaine", "rotation d'urgence de la clé de chaîne de l'exemple, en production : purpose_details avec la décision (07:40) et l'inclusion de la révocation (07:52), nouvelle clé de chaîne (compte 7) ; officiant, témoin, auditeur : comptes 1, 2, 4", pvRotationUrgence(), COMPTES_EXEMPLE);
   valide("valide-developpement-classe-d", "développement, clé enregistreur de classe D générée sur le poste, script sans empreinte, sans vidéo ni auditeur", pvDeveloppement(), COMPTES_DEV);
+  valide("valide-production-sans-ancre", "rotation planifiée, en production, de la clé de chaîne de l'exemple (nouvelle clé : compte 6) ; aucun jeton RFC 3161 sur D_C ni inscription au registre n'accompagne le procès-verbal : les douze CR- réussissent et le rapport porte la réserve date_declaree_seulement (EX-5.11, menace MN-93) ; officiant, témoin, auditeur : comptes 1, 2, 4", pvRotationSansAncre(), COMPTES_EXEMPLE);
 
   out.push({ nom: "invalide-cr1-cle-en-double", mutation: "texte JSON de l'exemple signé avec le membre version en double", octets: exemple.replace('{\n  "version": 0,', '{\n  "version": 0,\n  "version": 0,'), echecs: ["CR-1"] });
   out.push({ nom: "invalide-cr1-nombre-non-entier", mutation: "texte JSON de l'exemple signé où version vaut 0.0", octets: exemple.replace('{\n  "version": 0,', '{\n  "version": 0.0,'), echecs: ["CR-1"] });
@@ -336,7 +376,8 @@ export function casCeremonies() {
     pv.participants[2].address = COMPTES[2].adresse;
     c.p3 = 2;
   });
-  mute("invalide-cr2-auditeur-executant", "l'étape 2 est exécutée par l'auditeur p3", ["CR-2"], pvExemple, COMPTES_EXEMPLE, (pv) => (pv.steps[1].performed_by = "p3"));
+  // Révision 0.5 de CT-7 : l'auditeur exécutant viole aussi CR-4 (performed_by officiant, détenteur de part ou membre) ; la ligne de la table d'A.4 est à réviser.
+  mute("invalide-cr2-auditeur-executant", "l'étape 2 est exécutée par l'auditeur p3 : CR-2 (aucun auditeur n'exécute une étape) et, révision 0.5, CR-4 (exécutant qui n'est ni officiant, ni détenteur de part, ni membre)", ["CR-2", "CR-4"], pvExemple, COMPTES_EXEMPLE, (pv) => (pv.steps[1].performed_by = "p3"));
   mute("invalide-cr3-etape-avant-le-debut", "at de la première étape avant started_at", ["CR-3"], pvExemple, COMPTES_EXEMPLE, (pv) => (pv.steps[0].at = "2026-11-02T07:59:00.000Z"));
   mute("invalide-cr3-numerotation", "les deux dernières étapes numérotées 7", ["CR-3"], pvExemple, COMPTES_EXEMPLE, (pv) => (pv.steps[7].n = 7));
   mute("invalide-cr4-temoin-de-lui-meme", "l'officiant p1 parmi les témoins de son étape 2", ["CR-4"], pvExemple, COMPTES_EXEMPLE, (pv) => pv.steps[1].witnessed_by.push("p1"));
@@ -344,8 +385,24 @@ export function casCeremonies() {
     for (const st of pv.steps) st.witnessed_by = ["p3"];
   });
   mute("invalide-cr4-exception-sans-constat", "findings vide alors que l'étape 5 est en exception", ["CR-4"], pvExemple, COMPTES_EXEMPLE, (pv) => (pv.findings = []));
+  // Révision 0.5 de CT-7 (CR-4, EX-5.2) : un témoin ou un observateur n'exécute aucune étape.
+  mute("invalide-cr4-temoin-executant", "l'étape 1 est exécutée par le témoin p2 et témoignée par un second témoin p4 (compte 5) : l'exécutant n'est ni officiant, ni détenteur de part, ni membre", ["CR-4"], pvExemple, COMPTES_EXEMPLE, (pv, c) => {
+    pv.participants.push(participant("p4", "Témoin (compte de test 5)", "temoin", "assureur-demo, sécurité", 5));
+    pv.steps[0].performed_by = "p2";
+    pv.steps[0].witnessed_by = ["p4"];
+    c.p4 = 5;
+  });
+  mute("invalide-cr4-observateur-executant", "l'étape 2 est exécutée par un observateur p4 (compte 5), témoignée par p2", ["CR-4"], pvExemple, COMPTES_EXEMPLE, (pv, c) => {
+    pv.participants.push(participant("p4", "Observateur (compte de test 5)", "observateur", "assureur-demo, direction", 5));
+    pv.steps[1].performed_by = "p4";
+    c.p4 = 5;
+  });
   mute("invalide-cr5-empreinte-fausse", "fingerprint de la clé Ed25519 remplacée par le SHA-256 d'une étiquette", ["CR-5"], pvExemple, COMPTES_EXEMPLE, (pv) => (pv.keys[0].fingerprint = empreinte("empreinte-fausse")));
   mute("invalide-cr5-adresse-de-chaine", "address de la clé de chaîne remplacée par celle du compte 1", ["CR-5"], pvExemple, COMPTES_EXEMPLE, (pv) => (pv.keys[1].address = COMPTES[1].adresse));
+  // Révision 0.5 de CT-7 (CR-5, CLE-10, CT-5 AN-31) : une clé rsa a un module d'au moins 3 072 bits.
+  mute("invalide-cr5-rsa-2048", "la clé de l'enregistreur devient une clé tsa_interne rsa de 2 048 bits (SubjectPublicKeyInfo DER de test, sans adresse), empreinte recalculée", ["CR-5"], pvExemple, COMPTES_EXEMPLE, (pv) => {
+    pv.keys[0] = { ...pv.keys[0], key_id: "tsa-interne-test", usage: "tsa_interne", algorithm: "rsa", public_key: SPKI_RSA_2048_TEST, fingerprint: sha(SPKI_RSA_2048_TEST), address: null };
+  });
   mute("invalide-cr5-ed25519-33-octets", "clé publique Ed25519 de 33 octets (octet nul ajouté), empreinte recalculée", ["CR-5"], pvExemple, COMPTES_EXEMPLE, (pv) => {
     pv.keys[0].public_key += "00";
     pv.keys[0].fingerprint = sha(pv.keys[0].public_key);
@@ -386,5 +443,7 @@ export function casCeremonies() {
   signe("invalide-cr11-s-haut", "signature du témoin en forme s haut (n − s, v basculé)", (pv) => (pv.signatures[1].signature = formeHaute(pv.signatures[1].signature)));
   signe("invalide-cr11-signature-d-une-decision", "le témoin (compte 2) a signé le D_A de la décision apr-1192 de CT-1 §6.4 au lieu de D_C", (pv) => (pv.signatures[1].signature = C.signerHachage(C.depuisHex(COMPTES[2].cle), C.condenseEIP191(C.depuisHex(D_A_APR_1192)))));
   signe("invalide-cr11-signataire-substitue", "la signature du témoin est faite par le compte 3", (pv) => (pv.signatures[1].signature = C.signerHachage(C.depuisHex(COMPTES[3].cle), C.depuisHex(S.messageCeremonie(S.condenseCeremonie(pv))))));
+  // Réserves attendues, par conception (EX-5.11) : lues dans le nom du cas et dans le texte publié, jamais dans le rapport de la bibliothèque.
+  for (const c of out) c.reserves = !c.echecs.includes("CR-1") && c.octets.includes('\n  "environment": "production",\n') ? [S.RESERVE_DATE_DECLAREE] : [];
   return out;
 }

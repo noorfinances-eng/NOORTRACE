@@ -132,6 +132,11 @@ pre {
   margin: 0.25rem 0;
 }
 
+/* Valeur d'un argument (EX-9.16, revue de sécurité de l'étape 8) : les blancs ne sont pas fusionnés. */
+.valeur {
+  white-space: pre-wrap;
+}
+
 .definitions {
   display: grid;
   grid-template-columns: minmax(10rem, max-content) 1fr;

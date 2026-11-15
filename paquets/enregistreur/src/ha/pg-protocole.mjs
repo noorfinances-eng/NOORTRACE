@@ -9,7 +9,11 @@
 import fs from "node:fs";
 import net from "node:net";
 import tls from "node:tls";
-import { createHash, createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, pbkdf2, randomBytes, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
+import { MESSAGE_PG_MAX_OCTETS, SCRAM_ITERATIONS_MAX } from "../bornes.mjs";
+
+const pbkdf2Async = promisify(pbkdf2);
 
 /** Erreur rendue par le serveur (`ErrorResponse`) ou de protocole. */
 export class ErreurPg extends Error {
@@ -74,7 +78,12 @@ function champsErreur(corps) {
   while (i < corps.length && corps[i] !== 0) {
     const t = String.fromCharCode(corps[i]);
     const f = corps.indexOf(0, i + 1);
-    champs[t] = corps.subarray(i + 1, f).toString("utf8");
+    // Champ sans octet nul final (trame hostile) : lecture arrêtée, jamais une boucle sans fin.
+    if (f < 0) {
+      champs[t] = corps.subarray(i + 1).toString("utf8").slice(0, 1024);
+      break;
+    }
+    champs[t] = corps.subarray(i + 1, f).toString("utf8").slice(0, 1024);
     i = f + 1;
   }
   return champs;
@@ -102,6 +111,11 @@ export class ConnexionPg {
     this.socket = socket;
     socket.on("data", (d) => {
       this.tampon = Buffer.concat([this.tampon, d]);
+      // Tampon borné : un message annoncé plus long que la borne ne s'accumule pas.
+      if (this.tampon.length > MESSAGE_PG_MAX_OCTETS + 5) {
+        this.erreur = new ErreurPg("message du serveur au-delà de la borne");
+        this.detruire();
+      }
       this._reveiller();
     });
     const fin = (e) => {
@@ -127,6 +141,12 @@ export class ConnexionPg {
     for (;;) {
       if (this.tampon.length >= 5) {
         const n = this.tampon.readInt32BE(1);
+        // Longueur hors de [4, borne] : erreur de protocole, connexion fermée ; jamais une attente sans fin.
+        if (n < 4 || n > MESSAGE_PG_MAX_OCTETS) {
+          this.erreur = new ErreurPg(`longueur de message invalide (${n})`);
+          this.detruire();
+          throw this.erreur;
+        }
         if (this.tampon.length >= 1 + n) {
           const type = String.fromCharCode(this.tampon[0]);
           const corps = this.tampon.subarray(5, 1 + n);
@@ -154,18 +174,51 @@ export class ConnexionPg {
     this.socket.write(b);
   }
 
-  /** Ouvre la connexion et s'authentifie. */
-  async ouvrir() {
+  /** Canal TLS dont le serveur est authentifié (`verify-full`, ou `verify-ca` avec `sslrootcert`). */
+  get canalVerifie() {
     const d = this.dsn;
+    return d.sslmode === "verify-full" || (d.sslmode === "verify-ca" && Boolean(d.sslrootcert));
+  }
+
+  /**
+   * Ouvre la connexion et s'authentifie, sous un seul délai (`delaiMs`) qui
+   * couvre la connexion TCP, la réponse à `SSLRequest`, la poignée de main TLS
+   * et l'authentification (un pair qui accepte puis se tait ne
+   * retient plus `ouvrir` sans fin).
+   */
+  async ouvrir() {
+    const limite = Date.now() + this.delaiMs;
+    let courant = null;
+    const garde = setTimeout(() => {
+      this.erreur = this.erreur ?? new ErreurPg(`délai d'ouverture de ${this.delaiMs} ms dépassé`);
+      courant?.destroy();
+      this.detruire();
+    }, this.delaiMs);
+    garde.unref?.();
+    try {
+      await this._ouvrir((s) => (courant = s), limite);
+    } finally {
+      clearTimeout(garde);
+    }
+  }
+
+  async _ouvrir(noter, limite) {
+    const d = this.dsn;
+    if (d.sslmode === "verify-ca" && !d.sslrootcert) throw new ErreurPg("sslmode verify-ca exige sslrootcert (CT-2 §13.2)");
     let socket = await new Promise((res, rej) => {
       const s = net.connect({ host: d.hote, port: d.port });
       const t = setTimeout(() => {
         s.destroy();
         rej(new ErreurPg("magasin injoignable (délai de connexion)"));
       }, this.delaiMs);
+      noter(s);
       s.once("connect", () => {
         clearTimeout(t);
         res(s);
+      });
+      s.once("close", () => {
+        clearTimeout(t);
+        rej(new ErreurPg("connexion fermée avant l'ouverture"));
       });
       s.once("error", (e) => {
         clearTimeout(t);
@@ -177,6 +230,7 @@ export class ConnexionPg {
       const r = await new Promise((res, rej) => {
         socket.once("data", (b) => res(b));
         socket.once("error", rej);
+        socket.once("close", () => rej(new ErreurPg("connexion fermée pendant SSLRequest")));
       });
       if (r[0] !== 0x53) {
         socket.destroy();
@@ -191,9 +245,15 @@ export class ConnexionPg {
           rejectUnauthorized: d.sslmode !== "require",
           checkServerIdentity: d.sslmode === "verify-full" ? tls.checkServerIdentity : () => undefined,
         });
+        noter(s);
         s.once("secureConnect", () => res(s));
         s.once("error", rej);
+        s.once("close", () => rej(new ErreurPg("connexion fermée pendant la poignée de main TLS")));
       });
+    }
+    if (Date.now() >= limite) {
+      socket.destroy();
+      throw new ErreurPg(`délai d'ouverture de ${this.delaiMs} ms dépassé`);
     }
     this._lier(socket);
     const params = Buffer.concat([cstr("user"), cstr(d.utilisateur), cstr("database"), cstr(d.base), cstr("client_encoding"), cstr("UTF8"), Buffer.from([0])]);
@@ -213,14 +273,27 @@ export class ConnexionPg {
       const m = await this._lire();
       if (m.type === "E") throw new ErreurPg(champsErreur(m.corps).M ?? "authentification refusée", champsErreur(m.corps));
       if (m.type !== "R") throw new ErreurPg(`message inattendu à l'authentification : ${m.type}`);
+      if (m.corps.length < 4) throw new ErreurPg("message d'authentification tronqué");
       const code = m.corps.readInt32BE(0);
-      if (code === 0) return;
       const mdp = this.dsn.motDePasse;
+      if (code === 0) {
+        // Étape 8 (CT-2 EX-15.4) : `AuthenticationOk` n'est accepté que d'un serveur
+        // authentifié : échange SCRAM achevé et signature du serveur vérifiée, ou
+        // canal TLS vérifié ; sans mot de passe dans le DSN (mode `trust`), il n'y
+        // a aucun secret à protéger et le pair est admis hors production (la règle
+        // de production impose le canal vérifié, EX-15.4 pas 4).
+        if (scram && !scram.verifie) throw new ErreurPg("SCRAM : AuthenticationOk avant la signature du serveur");
+        if (!scram && mdp !== null && !this.canalVerifie) throw new ErreurPg("serveur non authentifié : SCRAM-SHA-256 ou canal TLS vérifié exigé avec un mot de passe (CT-2 §13.2)");
+        return;
+      }
       if (code === 3) {
         if (mdp === null) throw new ErreurPg("mot de passe exigé par le serveur");
+        // Mot de passe en clair : seulement vers un serveur authentifié par TLS (EX-15.4).
+        if (!this.canalVerifie) throw new ErreurPg("authentification par mot de passe en clair refusée hors d'un canal TLS vérifié (CT-2 §13.2)");
         this._ecrire(message("p", cstr(mdp)));
       } else if (code === 5) {
         if (mdp === null) throw new ErreurPg("mot de passe exigé par le serveur");
+        if (!this.canalVerifie) throw new ErreurPg("authentification MD5 refusée hors d'un canal TLS vérifié (CT-2 §13.2)");
         const sel = m.corps.subarray(4, 8);
         const a = createHash("md5").update(mdp + this.dsn.utilisateur).digest("hex");
         const b = createHash("md5").update(Buffer.concat([Buffer.from(a), sel])).digest("hex");
@@ -238,9 +311,13 @@ export class ConnexionPg {
         const serveurPremier = m.corps.subarray(4).toString("utf8");
         const attrs = Object.fromEntries(serveurPremier.split(",").map((x) => [x[0], x.slice(2)]));
         if (!attrs.r?.startsWith(scram.nonce)) throw new ErreurPg("SCRAM : nonce du serveur invalide");
-        const sel = Buffer.from(attrs.s, "base64");
+        const sel = Buffer.from(attrs.s ?? "", "base64");
         const iter = Number(attrs.i);
-        const sale = pbkdf2Sync(Buffer.from(mdp.normalize("NFKC"), "utf8"), sel, iter, 32, "sha256");
+        // Itérations bornées et dérivation hors du fil principal (un
+        // serveur qui demande 2^31 itérations occupait le fil du démon).
+        if (!Number.isInteger(iter) || iter < 1 || iter > SCRAM_ITERATIONS_MAX) throw new ErreurPg(`SCRAM : nombre d'itérations refusé (${attrs.i})`);
+        if (sel.length === 0) throw new ErreurPg("SCRAM : sel absent");
+        const sale = await pbkdf2Async(Buffer.from(mdp.normalize("NFKC"), "utf8"), sel, iter, 32, "sha256");
         const cleClient = hmac(sale, "Client Key");
         const sansPreuve = `c=biws,r=${attrs.r}`;
         const auth = `${scram.premierNu},${serveurPremier},${sansPreuve}`;
@@ -250,7 +327,8 @@ export class ConnexionPg {
       } else if (code === 12) {
         const v = m.corps.subarray(4).toString("utf8");
         const recu = Buffer.from(v.replace(/^v=/, ""), "base64");
-        if (!v.startsWith("v=") || recu.length !== 32 || !timingSafeEqual(recu, scram.signatureServeur)) throw new ErreurPg("SCRAM : signature du serveur invalide");
+        if (!scram?.signatureServeur || !v.startsWith("v=") || recu.length !== 32 || !timingSafeEqual(recu, scram.signatureServeur)) throw new ErreurPg("SCRAM : signature du serveur invalide");
+        scram.verifie = true;
       } else {
         throw new ErreurPg(`méthode d'authentification ${code} non prise en charge`);
       }

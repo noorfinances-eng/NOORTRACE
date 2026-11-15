@@ -1,0 +1,1414 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/worm.schema.json",
+  "title": "Gel juridique et contrôle des copies WORM, version 0 (CT-2 révision 0.5, §12.6 et §12.11)",
+  "description": "Formats de la révision 0.5 de CT-2 pour les copies WORM : ligne du registre des copies (worm/copies-<epoch>.ndjson), ligne de la liste des objets d'un gel, enregistrement du registre des gels (objets <prefix>gels/<gel_id>/…), et fichiers de cas de la famille de vecteurs spec/vecteurs/ct-2/worm/. Aucun de ces formats n'est un événement CT-1 ni une pièce ; aucun n'entre dans la chaîne.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "family",
+    "description",
+    "cases"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "family": {
+      "enum": [
+        "worm/requetes",
+        "worm/etats",
+        "worm/perimetres",
+        "worm/gardes",
+        "worm/levees"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "family": {
+            "const": "worm/requetes"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/cas_requete"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "family": {
+            "const": "worm/etats"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/cas_etat"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "family": {
+            "const": "worm/perimetres"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/cas_perimetre"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "family": {
+            "const": "worm/gardes"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/cas_garde"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "family": {
+            "const": "worm/levees"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/cas_levee"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "hex32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "horodatage": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "ligne_copie": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "version_id",
+        "sha256",
+        "length",
+        "copied_at",
+        "lock"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Clé d'objet complète (préfixe compris), en UTF-8, non encodée."
+        },
+        "version_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024,
+              "description": "Identifiant de version rendu par le support (S3 : versionId ; Azure : versionid ; GCS : generation, en chiffres décimaux)."
+            }
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/hex32"
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1099511627776
+        },
+        "copied_at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "lock": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verdict",
+            "retain_until",
+            "legal_hold"
+          ],
+          "properties": {
+            "verdict": {
+              "enum": [
+                "conforme",
+                "non_conforme"
+              ]
+            },
+            "retain_until": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/horodatage"
+                }
+              ]
+            },
+            "legal_hold": {
+              "enum": [
+                "on",
+                "off",
+                "jamais",
+                "illisible"
+              ]
+            }
+          }
+        }
+      },
+      "description": "Ligne du registre des copies worm/copies-<epoch>.ndjson (EX-12.29) : JCS intégral, une par copie réussie, écrite après le contrôle du verrou de la version (EX-12.33). Elle ne fait foi de rien : le support fait foi ; elle sert au relevé (EX-17.6) et à l'outil de gel."
+    },
+    "ligne_objet_gel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "version_id"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Clé d'objet complète (préfixe compris), en UTF-8, non encodée."
+        },
+        "version_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Identifiant de version rendu par le support (S3 : versionId ; Azure : versionid ; GCS : generation, en chiffres décimaux)."
+        }
+      },
+      "description": "Ligne du fichier <prefix>gels/<gel_id>/objets-<nnnn>.ndjson (EX-12.35) : JCS intégral suivi de \\n ; les lignes sont triées par clé (octets UTF-8) puis dans l'ordre de la liste des versions."
+    },
+    "objets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "sha256",
+        "count"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Clé d'objet complète (préfixe compris), en UTF-8, non encodée."
+        },
+        "sha256": {
+          "$ref": "#/$defs/hex32"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        }
+      },
+      "description": "Désignation de la liste des objets : clé de l'objet objets-<nnnn>.ndjson, SHA-256 de ses octets, nombre de lignes."
+    },
+    "echec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "version_id",
+        "status",
+        "http_status"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Clé d'objet complète (préfixe compris), en UTF-8, non encodée."
+        },
+        "version_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Identifiant de version rendu par le support (S3 : versionId ; Azure : versionid ; GCS : generation, en chiffres décimaux)."
+        },
+        "status": {
+          "enum": [
+            "refuse",
+            "absent",
+            "echec",
+            "non_confirme"
+          ]
+        },
+        "http_status": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            }
+          ]
+        }
+      }
+    },
+    "enregistrement_gel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "gel_id",
+        "n",
+        "kind",
+        "org_id",
+        "journal_id",
+        "periods",
+        "support",
+        "objects",
+        "actor",
+        "at",
+        "reason",
+        "reference",
+        "request_sha256",
+        "results",
+        "anomalies",
+        "prev_sha256"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "gel_id": {
+          "type": "string",
+          "pattern": "^gel-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9999
+        },
+        "kind": {
+          "enum": [
+            "pose",
+            "pose_resultat",
+            "demande_levee",
+            "levee",
+            "levee_resultat"
+          ]
+        },
+        "org_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "journal_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "periods": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "from",
+            "to"
+          ],
+          "properties": {
+            "from": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 253402297200,
+              "multipleOf": 3600
+            },
+            "to": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 253402297200,
+              "multipleOf": 3600
+            }
+          }
+        },
+        "support": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "bucket",
+            "prefix"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "s3-object-lock",
+                "azure-immutable-blob",
+                "gcs-object-retention"
+              ]
+            },
+            "bucket": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 255
+            },
+            "prefix": {
+              "type": "string",
+              "maxLength": 512
+            }
+          }
+        },
+        "objects": {
+          "$ref": "#/$defs/objets"
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Identité déclarée de la personne qui agit (--identite), telle que le système d'identité du client la nomme."
+        },
+        "at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            }
+          ]
+        },
+        "reference": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          ]
+        },
+        "request_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hex32"
+            }
+          ]
+        },
+        "results": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ok",
+                "failed"
+              ],
+              "properties": {
+                "ok": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "failed": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/echec"
+                  }
+                },
+                "kept": {
+                  "type": "array",
+                  "description": "Pour levee_resultat seulement : versions du gel non levées parce qu'un autre gel actif les couvre (EX-12.40), chacune avec le gel_id qui la couvre ; elles ne sont pas des échecs.",
+                  "items": {
+                    "$ref": "#/$defs/version_conservee"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "anomalies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/anomalie"
+          },
+          "description": "Anomalies du périmètre (EX-12.35), portées par l'enregistrement pose ; [] pour les autres."
+        },
+        "prev_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hex32"
+            }
+          ]
+        }
+      },
+      "description": "Enregistrement du registre des gels (EX-12.37) : objet <prefix>gels/<gel_id>/<nnnn>-<kind>.json, octets = JCS intégral de cet objet, écrit une fois par écriture conditionnelle à l'absence. Son empreinte est le SHA-256 de ces octets.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "n": {
+                "const": 1
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "prev_sha256": {
+                "type": "null"
+              },
+              "kind": {
+                "const": "pose"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "prev_sha256": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "pose_resultat",
+                  "levee_resultat"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "results": {
+                "type": "object"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "results": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "levee"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "request_sha256": {
+                "type": "string"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "request_sha256": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "pose",
+                  "demande_levee"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "anomalie": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "kind"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Clé d'objet complète (préfixe compris), en UTF-8, non encodée."
+        },
+        "kind": {
+          "enum": [
+            "manifeste_absent",
+            "manifeste_illisible",
+            "segments_indetermines",
+            "objet_absent",
+            "segment_absent",
+            "pieces_non_copiees",
+            "piece_absente",
+            "versions_multiples",
+            "marqueur_de_suppression"
+          ]
+        }
+      }
+    },
+    "requete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "target",
+        "headers",
+        "body_utf8",
+        "body_length",
+        "body_sha256"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "GET",
+            "HEAD",
+            "PUT",
+            "PATCH"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^/[\\x21-\\x7e]*$",
+          "description": "Chemin et requête relatifs au service, encodés (EX-12.39) ; sans hôte."
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9-]{1,64}$"
+              },
+              {
+                "type": "string",
+                "maxLength": 1024
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "En-têtes fixés par NOORTRACE, triés par nom en minuscules ; Host, Date, x-amz-date, x-ms-date, Authorization et les en-têtes de signature sont ajoutés par la couche d'accès du support et ne figurent pas ici."
+        },
+        "body_utf8": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "body_length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "body_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hex32"
+            }
+          ]
+        }
+      },
+      "description": "Requête exacte, sans réseau ni signature."
+    },
+    "cas_requete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation",
+            "bucket",
+            "key",
+            "version_id",
+            "hold",
+            "prefix",
+            "key_marker",
+            "version_id_marker",
+            "retain_days",
+            "body_utf8",
+            "legal_hold_on_write"
+          ],
+          "properties": {
+            "operation": {
+              "enum": [
+                "s3_gel",
+                "s3_lire_gel",
+                "s3_etat",
+                "s3_liste",
+                "s3_configuration_verrou",
+                "s3_lire_configuration",
+                "s3_copie",
+                "azure_gel",
+                "azure_etat",
+                "gcs_gel",
+                "gcs_etat"
+              ]
+            },
+            "bucket": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 255
+                }
+              ]
+            },
+            "key": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024,
+                  "description": "Clé d'objet complète (préfixe compris), en UTF-8, non encodée."
+                }
+              ]
+            },
+            "version_id": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024,
+                  "description": "Identifiant de version rendu par le support (S3 : versionId ; Azure : versionid ; GCS : generation, en chiffres décimaux)."
+                }
+              ]
+            },
+            "hold": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "prefix": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "maxLength": 512
+                }
+              ]
+            },
+            "key_marker": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024,
+                  "description": "Clé d'objet complète (préfixe compris), en UTF-8, non encodée."
+                }
+              ]
+            },
+            "version_id_marker": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024,
+                  "description": "Identifiant de version rendu par le support (S3 : versionId ; Azure : versionid ; GCS : generation, en chiffres décimaux)."
+                }
+              ]
+            },
+            "retain_days": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 36500
+                }
+              ]
+            },
+            "body_utf8": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "legal_hold_on_write": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            }
+          }
+        },
+        "expected": {
+          "$ref": "#/$defs/requete"
+        }
+      },
+      "description": "Cas de la famille worm/requetes : une opération et ses entrées, la requête exacte attendue."
+    },
+    "cas_etat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "headers",
+            "json",
+            "expected_lock"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "s3-object-lock",
+                "azure-immutable-blob",
+                "gcs-object-retention"
+              ]
+            },
+            "headers": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "propertyNames": {
+                    "pattern": "^[a-z0-9-]{1,64}$"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              ]
+            },
+            "json": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            },
+            "expected_lock": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "retain_until_min",
+                "hold"
+              ],
+              "properties": {
+                "retain_until_min": {
+                  "$ref": "#/$defs/horodatage"
+                },
+                "hold": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "retain_until",
+            "legal_hold",
+            "verdict",
+            "reasons",
+            "notes"
+          ],
+          "properties": {
+            "mode": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "maxLength": 64
+                }
+              ]
+            },
+            "retain_until": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/horodatage"
+                }
+              ]
+            },
+            "legal_hold": {
+              "enum": [
+                "on",
+                "off",
+                "jamais",
+                "illisible"
+              ]
+            },
+            "verdict": {
+              "enum": [
+                "conforme",
+                "non_conforme"
+              ]
+            },
+            "reasons": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "mode_absent",
+                  "mode_non_conforme",
+                  "echeance_absente",
+                  "echeance_courte",
+                  "date_illisible",
+                  "gel_absent",
+                  "gel_illisible"
+                ]
+              }
+            },
+            "notes": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "jamais_gele",
+                  "gel_inattendu"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "description": "Cas de la famille worm/etats : réponse d'une lecture de version (en-têtes HEAD ou ressource JSON) et état attendu ; verdict du contrôle de verrou (EX-12.33)."
+    },
+    "cas_perimetre": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "prefix",
+            "from",
+            "to",
+            "manifests",
+            "versions",
+            "pieces"
+          ],
+          "properties": {
+            "prefix": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "from": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 253402297200,
+              "multipleOf": 3600
+            },
+            "to": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 253402297200,
+              "multipleOf": 3600
+            },
+            "manifests": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "period_start",
+                  "first_seq",
+                  "last_seq"
+                ],
+                "properties": {
+                  "period_start": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 253402297200,
+                    "multipleOf": 3600
+                  },
+                  "first_seq": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "last_seq": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "versions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "key",
+                  "version_id",
+                  "is_latest",
+                  "delete_marker"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024,
+                    "description": "Clé d'objet complète (préfixe compris), en UTF-8, non encodée."
+                  },
+                  "version_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024,
+                    "description": "Identifiant de version rendu par le support (S3 : versionId ; Azure : versionid ; GCS : generation, en chiffres décimaux)."
+                  },
+                  "is_latest": {
+                    "type": "boolean"
+                  },
+                  "delete_marker": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "pieces": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "#/$defs/hex32"
+                  }
+                }
+              ]
+            },
+            "pieces_purgeable": {
+              "type": "boolean",
+              "description": "storage.retention.pieces_days n'est pas null : les pièces locales peuvent être purgées (EX-12.35 pas 4). Absent : faux."
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "objects",
+            "objects_sha256",
+            "count",
+            "anomalies"
+          ],
+          "properties": {
+            "objects": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ligne_objet_gel"
+              }
+            },
+            "objects_sha256": {
+              "$ref": "#/$defs/hex32"
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "anomalies": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/anomalie"
+              }
+            }
+          }
+        }
+      },
+      "description": "Cas de la famille worm/perimetres : liste des versions et manifestes lus, périmètre attendu d'un gel (EX-12.35)."
+    },
+    "cas_garde": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "records"
+          ],
+          "properties": {
+            "records": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/enregistrement_gel"
+              }
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "valid",
+            "record_sha256",
+            "errors"
+          ],
+          "properties": {
+            "valid": {
+              "type": "boolean"
+            },
+            "record_sha256": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/hex32"
+              }
+            },
+            "errors": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "n",
+                  "code"
+                ],
+                "properties": {
+                  "n": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "code": {
+                    "enum": [
+                      "chaine_rompue",
+                      "premier_non_pose",
+                      "ordre_invalide",
+                      "meme_identite",
+                      "demande_inconnue",
+                      "demande_expiree",
+                      "levee_en_double",
+                      "objets_differents",
+                      "periode_differente"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "Cas de la famille worm/gardes : une suite d'enregistrements d'un gel et le verdict de la règle de garde (EX-12.38)."
+    },
+    "version_conservee": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "version_id",
+        "gel_id"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Clé d'objet complète (préfixe compris), en UTF-8, non encodée."
+        },
+        "version_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "gel_id": {
+          "type": "string",
+          "pattern": "^gel-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$"
+        }
+      },
+      "description": "Version d'un gel levé conservée sous gel parce qu'un autre gel actif la couvre (EX-12.40)."
+    },
+    "cas_levee": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "objects",
+            "other_holds"
+          ],
+          "properties": {
+            "objects": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ligne_objet_gel"
+              }
+            },
+            "other_holds": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "gel_id",
+                  "objects"
+                ],
+                "properties": {
+                  "gel_id": {
+                    "type": "string",
+                    "pattern": "^gel-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$"
+                  },
+                  "objects": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/ligne_objet_gel"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lift",
+            "keep"
+          ],
+          "properties": {
+            "lift": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ligne_objet_gel"
+              }
+            },
+            "keep": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/version_conservee"
+              }
+            }
+          }
+        }
+      },
+      "description": "Cas de la famille worm/levees : liste des objets d'un gel levé et listes des autres gels actifs ; versions à lever et versions conservées (EX-12.40)."
+    }
+  }
+}

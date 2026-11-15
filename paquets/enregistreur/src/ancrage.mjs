@@ -3,7 +3,7 @@
 // « Clôture de période »). Jamais bloquant (14.2, lignes « Ancrage » et
 // « Registre ») : la remise est faite sans attendre le résultat, une erreur
 // est consignée (`anchor_pending`) et la supervision réessaie. Le composant
-// d'ancrage lui-même est un lot suivant ; ce module fixe l'interface et une
+// d'ancrage lui-même est une partie suivante ; ce module fixe l'interface et une
 // implémentation en mémoire.
 
 import { empreinteAncre, hacherPoint, periodMeta } from "@noortrace/noyau";

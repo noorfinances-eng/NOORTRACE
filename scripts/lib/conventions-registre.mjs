@@ -294,13 +294,27 @@ export function echec(check, code, detail) {
   return { check, status: "echoue", code, detail, valeurs: null };
 }
 
-/** Exécute `f` (qui lève EchecVerification) et rend une vérification. */
+/**
+ * Code de repli d'une vérification CP- qui lève sur un fichier de capture hors de sa forme (CT-4 §9.4,
+ * table) : `capture_incomplete` pour CP-2, CP-3, CP-5 et CP-6, `certificat_invalide` pour CP-4,
+ * les seuls codes que la table leur donne ; jamais un code hors de CT-4 §9.3 et §9.4.
+ */
+export const MOTIFS_CP = Object.freeze({
+  "CP-1": ["noeud_suiveur", "chaine_differente"],
+  "CP-2": ["capture_incomplete"],
+  "CP-3": ["capture_incomplete"],
+  "CP-4": ["certificat_invalide", "certificat_indisponible", "certificat_elague"],
+  "CP-5": ["capture_incomplete"],
+  "CP-6": ["capture_incomplete"],
+});
+
+/** Exécute `f` (qui lève EchecVerification) et rend une vérification ; toute autre exception reçoit le code de repli de la table de la vérification. */
 export function verifier(check, f) {
   try {
     return reussite(check, f());
   } catch (err) {
     if (err instanceof EchecVerification) return echec(err.check, err.code, err.message);
-    return echec(check, MOTIFS_RG[check]?.[0] ?? "entree_invalide", err.message);
+    return echec(check, MOTIFS_RG[check]?.[0] ?? MOTIFS_CP[check]?.[0] ?? "entree_invalide", err.message);
   }
 }
 
@@ -1316,16 +1330,26 @@ export function nomIndex(h, transactionIndex, role) {
   return `capture-${h}-${transactionIndex}-${role}.json`;
 }
 
-/** Résultat JSON-RPC d'une réponse brute écrite telle que reçue. */
+/** Limite de lecture d'une réponse RPC capturée (en-tête, reçu, certificat) : celle de la partie qui la reprend (CT-6 EX-4.13, registre.json et certificat-commit.json, 64 Mio). */
+export const LIMITE_REPONSE_RPC = 64 * 1024 * 1024;
+
+/** Résultat JSON-RPC d'une réponse brute écrite telle que reçue, dans la limite de LIMITE_REPONSE_RPC octets. */
 function resultatRPC(brut, nom) {
+  const b = Buffer.from(brut);
+  if (b.length > LIMITE_REPONSE_RPC) throw new Error(`${nom} : ${b.length} octets, au-delà de la limite de ${LIMITE_REPONSE_RPC}`);
   let v;
   try {
-    v = JSON.parse(Buffer.from(brut).toString("utf8"));
+    v = JSON.parse(b.toString("utf8"));
   } catch (err) {
     throw new Error(`${nom} : JSON illisible (${err.message})`);
   }
-  if (!v || typeof v !== "object" || !("result" in v) || v.result === null) throw new Error(`${nom} : réponse sans result`);
+  if (!v || typeof v !== "object" || Array.isArray(v) || !("result" in v) || v.result === null) throw new Error(`${nom} : réponse sans result`);
   return v.result;
+}
+
+/** Nom de fichier admis dans le répertoire des captures (CP-6) : un nom simple, jamais un chemin. */
+export function nomCaptureValide(n) {
+  return typeof n === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}\.json$/.test(n) && !n.includes("/");
 }
 
 /** Transactions brutes (Buffers) du corps signé de la proposition d'un certificat. */
@@ -1351,7 +1375,10 @@ export function racineTransactions(txsRaw) {
 export function verifierCapture({ index, lireFichier, validators, bft_chain_id, schemas, ids = ["CP-2", "CP-3", "CP-4", "CP-5", "CP-6"] }) {
   const contexte = { bloc: null, recus: null, certificat: null, recu: null, txsRaw: [] };
   const checks = [];
+  // Le nom d'un fichier désigné par l'index est contrôlé (CP-6) avant toute lecture : un index hostile ne
+  // fait lire aucun chemin hors du répertoire des captures (CT-4 §9.4).
   const lire = (nom) => {
+    if (!nomCaptureValide(nom)) throw new EchecVerification("CP-6", "capture_incomplete", `nom de fichier ${typeof nom === "string" ? nom.slice(0, 160) : typeof nom} hors du répertoire des captures`);
     const b = lireFichier(nom);
     if (!b) throw new EchecVerification("CP-6", "capture_incomplete", `fichier ${nom} absent`);
     return b;
@@ -1459,7 +1486,7 @@ export function verifierCapture({ index, lireFichier, validators, bft_chain_id, 
     return { event: { name: evenement } };
   });
   fait("CP-6", () => {
-    const nomValide = (n) => typeof n === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}\.json$/.test(n) && !n.includes("/");
+    const nomValide = nomCaptureValide;
     const h = index.block_number;
     C("CP-6", index.files.block.name === `bloc-${h}.json` && index.files.certificate.name === `certificat-${h}.json`, "noms de fichiers hors de la convention bloc-<h>.json, certificat-<h>.json");
     // Chaque reçu est écrit sous recu-<hachage de transactions[i]>.json (9.4, CP-6).
@@ -1636,9 +1663,16 @@ export function signaturesPourTransaction(demande, seuil) {
  * entree_illisible), slug et journaux conformes à RG-1 et RG-2 et identifiants
  * recalculés, membres non nuls, distincts, minuscules et triés, seuil, clé de
  * gouvernance non nulle et, en production, distincte des comptes de
- * l'exploitant ; clés d'enregistreur rattachées à un journal du dossier.
+ * l'exploitant ; clés d'enregistreur rattachées à un journal du dossier ;
+ * provision (EX-4.19, EX-4.20 ; OP-4) : `funding.amount_wei` égal
+ * à P_k = provision_days × daily_budget_gas + gas_limit recalculée depuis
+ * `fees` (ceux du manifeste à la tête ; FRAIS_DEFAUT sans manifeste, CT-4 §4.8),
+ * `daily_budget_gas` au plus `fees.max_daily_budget_gas` quand il est fixé
+ * (code `provision_excessive`), et `funding.funder` égal à `tresorerie`, le
+ * compte de rôle tresorerie du manifeste, quand l'appelant le donne (code
+ * `compte_inattendu`). Rien du dossier ne fixe le montant d'un virement.
  */
-export function verifierDossierInscription(dossier, { schemas, nature = "developpement", comptes = [] } = {}) {
+export function verifierDossierInscription(dossier, { schemas, nature = "developpement", comptes = [], fees = FRAIS_DEFAUT, tresorerie = null } = {}) {
   if (schemas) {
     const erreurs = validerSchema(dossier, schemas[ID_SCHEMA_INSCRIPTION], { registre: schemas });
     if (erreurs.length) return echec("OP-4", "entree_illisible", `dossier non conforme à inscription-client-v0 : ${erreurs.slice(0, 3).map((e) => `${e.chemin} : ${e.message}`).join(" ; ")}`);
@@ -1673,7 +1707,15 @@ export function verifierDossierInscription(dossier, { schemas, nature = "develop
       // CT-2 §11.2 et EX-11.19 : la classe de garde D (fichier sur l'hôte) n'est pas admise en production.
       if (nature === "production") exiger(r.custody_class !== "D" && r.chain_key_class !== "D", "OP-4", "cle_invalide", `clé ${r.key_id} : classe de garde D (custody_class ${r.custody_class}, chain_key_class ${r.chain_key_class}) refusée en production (CT-2 §11.2, EX-11.19)`);
     }
-    return { org_id: r1.valeurs };
+    // Provision (EX-4.19, EX-4.20) : recalculée depuis fees, jamais lue dans le dossier ; plafond du manifeste ; trésorerie.
+    const f = dossier.funding;
+    const budget = entier(f.daily_budget_gas, "daily_budget_gas");
+    const plafond = fees?.max_daily_budget_gas === undefined || fees.max_daily_budget_gas === null ? null : entier(fees.max_daily_budget_gas, "max_daily_budget_gas");
+    exiger(plafond === null || budget <= plafond, "OP-4", "provision_excessive", `daily_budget_gas ${budget} au-delà de fees.max_daily_budget_gas ${plafond} du manifeste (EX-8.20)`);
+    const P = provision(fees, budget).provision_wei;
+    exiger(entier(f.amount_wei, "amount_wei") === P, "OP-4", "provision_excessive", `amount_wei ${f.amount_wei} différent de P_k = provision_days × daily_budget_gas + gas_limit = ${P} wei recalculée depuis fees (EX-4.19, EX-4.20)`);
+    if (tresorerie !== null) exiger(String(f.funder).toLowerCase() === String(tresorerie).toLowerCase(), "OP-4", "compte_inattendu", `funder ${f.funder} différent du compte de rôle tresorerie du manifeste ${tresorerie}`);
+    return { org_id: r1.valeurs, provision_wei: P.toString() };
   });
 }
 

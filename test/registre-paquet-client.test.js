@@ -516,6 +516,8 @@ describe("TE-21 — paquet client produit puis contrôlé par l'outil de référ
     d.instance = { ...d.instance, evm_chain_id: mi.evm_chain_id, bft_chain_id: mi.bft_chain_id, genesis_sha256: mi.genesis.sha256, contracts: { curator_set_registry: contrat("CuratorSetRegistry"), recorder_registry: contrat("RecorderRegistry"), period_registry: contrat("PeriodRegistry"), attestation_registry: contrat("AttestationRegistry") }, manifest_sha256: sha(fs.readFileSync(fInstance)), validator_set_hash: mi.validator_sets[0].valset_hash };
     for (const r of d.recorders) Object.assign(r, { custody_class: "B", chain_key_class: "B" });
     Object.assign(d.result.approver_set, { chain_id: mi.evm_chain_id, registry: contrat("CuratorSetRegistry") });
+    // EX-4.19 (CT-4 OP-4) : la provision du dossier est celle de l'instance qu'il désigne : trésorerie et frais du manifeste de production.
+    d.funding = { ...d.funding, funder: mi.accounts.find((a) => a.role === "tresorerie" && a.to_height === null).address, amount_wei: C.provision(mi.fees, d.funding.daily_budget_gas).provision_wei.toString() };
     expect(valider(d, "inscription-client")).to.deep.equal([]);
     const y = inscription("te21-production", { dossier: Buffer.from(ecrit(d)) });
     const cleFichier = ["--cle-chaine", y.secrets.args[3]];

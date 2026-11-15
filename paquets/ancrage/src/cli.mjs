@@ -137,7 +137,10 @@ export async function lancer(contexte) {
 function commandeConfiguration(positionnels, options, sortie) {
   const chemin = positionnels[1];
   if (!chemin) throw new ErreurUsage("chemin du document ancrage-v0 attendu");
-  const profil = options.profil ?? "developpement";
+  // Revue de sécurité de l'étape 8 (CT-5 EX-4.9) : le profil est dit par l'appelant ; sans lui, « configuration valide » d'un document que la
+  // production refuserait tromperait l'exploitant.
+  const profil = options.profil;
+  if (profil === undefined) throw new ErreurUsage(`--profil obligatoire : ${PROFILS.join(", ")} (AN-1 : la règle 4 dépend du profil)`);
   if (!PROFILS.includes(profil)) throw new ErreurUsage(`--profil : ${PROFILS.join(", ")}`);
   const cK = options["checkpoint-interval"] === undefined ? null : nombre(options, "checkpoint-interval");
   const v = validerConfiguration(lireJson(chemin), { profil, checkpointIntervalEnregistreur: cK });
@@ -337,7 +340,7 @@ function commandeAcquisitions(positionnels, options, sortie) {
     o.issues[e.outcome] = (o.issues[e.outcome] ?? 0) + 1;
     o.prestataires.add(e.provider_id);
     if (e.revoked === true) o.revoques += 1;
-    if (e.promoted === true && e.revoked !== true) o.promus.push({ attempt_id: e.attempt_id, provider_id: e.provider_id, qualified: e.qualified !== null, gen_time: e.gen_time, upper_bound: e.upper_bound, token_sha256: e.token_sha256, token: e.files?.token ?? null, t10: e.checks?.["T-10"] ?? null });
+    if (e.outcome === "obtenue" && e.promoted === true && e.revoked !== true) o.promus.push({ attempt_id: e.attempt_id, provider_id: e.provider_id, qualified: e.qualified !== null, gen_time: e.gen_time, upper_bound: e.upper_bound, token_sha256: e.token_sha256, token: e.files?.token ?? null, t10: e.checks?.["T-10"] ?? null });
     objets.set(nom, o);
   }
   const resume = [...objets.values()].map((o) => ({ ...o, prestataires: [...o.prestataires], promu: o.promus[0] ?? null, doublon: o.promus.length > 1 }));

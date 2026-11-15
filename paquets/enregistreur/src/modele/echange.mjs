@@ -281,6 +281,28 @@ export class MoteurEchanges {
    * @returns {Promise<object|null>} événement durable, ou null
    */
   async sceller(etat, issue) {
+    // Étape 8 (CT-2 EX-5.11, CT-2 EX-14.12) : quoi qu'il arrive dans le scellement, l'entrée
+    // du registre de corrélation est résolue (un appel d'outil corrélé n'attend
+    // pas sans fin) et la place prise dans `max_concurrent` est rendue.
+    try {
+      return await this._sceller(etat, issue);
+    } catch (e) {
+      this.journal.consigner("error", "frontal_modele", "exchange_lost", { route: etat?.route?.path ?? null, mode: etat?.mode ?? null, reason: String(e?.raison ?? e?.message ?? e).slice(0, 200) }, { host: etat?.hote?.id ?? null });
+      throw e;
+    } finally {
+      if (etat.entree && !etat.entreeCompletee) {
+        etat.entreeCompletee = true;
+        this.registre.completer(etat.entree, { formeRedigee: undefined, code: { model: null, prompt_version: null } });
+      }
+      if (!etat.quotaRendu) {
+        etat.quotaRendu = true;
+        const quotas = this.quotas(etat.hote);
+        quotas.enCours = Math.max(0, quotas.enCours - 1);
+      }
+    }
+  }
+
+  async _sceller(etat, issue) {
     const t_reponse = etat.t_reponse ?? this.monotone();
     const captured_at = etat.captured_at ?? this.murale();
     const route = etat.route;
@@ -343,7 +365,10 @@ export class MoteurEchanges {
     const prompt_version = etat.pr.prompt?.sha256 ?? null;
     const ib = intentionBornee(rep.valeurRedigee === undefined ? null : intentionDe(route.format, rep.valeurRedigee), intentionDe(route.format, rep.formeClair));
     const code = { model, prompt_version };
-    if (etat.entree) this.registre.completer(etat.entree, { formeRedigee: rep.valeurRedigee, code });
+    if (etat.entree) {
+      this.registre.completer(etat.entree, { formeRedigee: rep.valeurRedigee, code });
+      etat.entreeCompletee = true;
+    }
     const quotas = this.quotas(hote);
     quotas.tempsCapture(this.monotone(), this.monotone() - t0);
     const pieces = [...etat.pieces, rep.piece, ...(ib.piece ? [ib.piece] : [])];
@@ -374,7 +399,10 @@ export class MoteurEchanges {
         }
       }
     } finally {
-      quotas.enCours = Math.max(0, quotas.enCours - 1);
+      if (!etat.quotaRendu) {
+        etat.quotaRendu = true;
+        quotas.enCours = Math.max(0, quotas.enCours - 1);
+      }
     }
     const usage = rep.formeClair && typeof rep.formeClair === "object" ? (rep.formeClair.usage ?? rep.formeClair.usageMetadata ?? null) : null;
     this._compterJetons(route.format, label, usage);
@@ -400,6 +428,11 @@ export class MoteurEchanges {
         // longueur est dans model_segment_refused) ; jamais le segment refusé.
         model_segment: segment,
         pending_id: pendingId,
+        // CT-2 EX-16.2 pas 4 (étape 8) : instants de l'horloge monotone, ms à trois décimales.
+        t_recu_ms: etat.t_recu ?? null,
+        t_envoi_ms: etat.t_envoi ?? null,
+        t_reponse_ms: t_reponse,
+        t_fdatasync_ms: evenement?.t_fdatasync_ms ?? null,
       },
       { seq: evenement?.seq ?? null, host: hote.id, request_id: etat.notesReponse?.["request-id"] ?? etat.notesReponse?.["x-request-id"] ?? null },
     );
@@ -495,6 +528,9 @@ export class CaptureReponse {
       this.capturees = this.borne;
       this.sse?.arreter();
       this.reass?.couper();
+      // Étape 8 (CT-2 EX-5.33) : au-delà de la borne, plus rien n'est décomprimé ; le
+      // relais continue sans que le démon paie le volume décomprimé.
+      this._arreterDecompression();
       return;
     }
     this.capture.push(o);
@@ -515,6 +551,9 @@ export class CaptureReponse {
         this.brut.push(o);
         this.brutOctets += o.length;
       } else this.tronque = true;
+    } else if (this.decompArretee) {
+      // Borne atteinte (CT-2 EX-5.33) : octets comprimés comptés, jamais décomprimés.
+      this.recues += o.length;
     } else if (this.decomp && !etat.decompressionEchouee) {
       if (this.brutOctets + o.length <= this.borne) {
         this.brut.push(o);
@@ -526,6 +565,15 @@ export class CaptureReponse {
     }
     // Forme close à l'événement terminal : inscrite avant le relais de ces octets (5.6).
     if (this.reass?.terminal && !this.inscrite) this._inscrire();
+  }
+
+  /** Arrête et libère le décompresseur (borne d'EX-5.33 atteinte). */
+  _arreterDecompression() {
+    if (!this.decomp || this.decompArretee) return;
+    this.decompArretee = true;
+    this.decomp.removeAllListeners("data");
+    this.decomp.on("error", () => {});
+    this.decomp.destroy();
   }
 
   _inscrire() {
@@ -549,10 +597,14 @@ export class CaptureReponse {
    */
   async terminer(o = {}) {
     const etat = this.etat;
-    if (this.decomp && !o.coupe && !etat.decompressionEchouee) {
+    // Étape 8 (CT-2 EX-5.33) : le décompresseur, asynchrone, est vidé avant
+    // l'inscription, corps coupé compris (sinon un corps comprimé marqué
+    // incomplet était inscrit vide) ; arrêté à la borne, il n'a plus rien à rendre.
+    if (this.decomp && !this.decompArretee && !etat.decompressionEchouee) {
       await new Promise((r) => {
         this.decomp.once("end", r);
         this.decomp.once("error", r);
+        this.decomp.once("close", r);
         this.decomp.end();
       });
     }

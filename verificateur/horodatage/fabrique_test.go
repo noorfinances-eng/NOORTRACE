@@ -204,6 +204,9 @@ type signeur struct {
 	algo []byte // AlgorithmIdentifier DER
 	hash crypto.Hash
 	pss  bool
+	// selVide : signature RSASSA-PSS au sel de longueur nulle (RFC 8017
+	// §9.1.1, sLen = 0), que crypto/rsa ne sait pas produire (CT-6 EX-9.11).
+	selVide bool
 }
 
 func signeurRSA(k *rsa.PrivateKey) signeur {
@@ -218,7 +221,9 @@ func (s signeur) signer(t testing.TB, m []byte) []byte {
 	var err error
 	switch k := s.cle.(type) {
 	case *rsa.PrivateKey:
-		if s.pss {
+		if s.pss && s.selVide {
+			sig = signerPSSSelVide(k, s.hash, d)
+		} else if s.pss {
 			sig, err = rsa.SignPSS(rand.Reader, k, s.hash, d, &rsa.PSSOptions{SaltLength: s.hash.Size(), Hash: s.hash})
 		} else {
 			sig, err = rsa.SignPKCS1v15(nil, k, s.hash, d)
@@ -302,6 +307,12 @@ type modeleCRL struct {
 	entrees    []entreeTest
 	exts       []extTest
 	sign       signeur
+	// seriesBrutes : INTEGER DER complet du numéro de série de l'entrée de
+	// rang donné, à la place de serie (forme non minimale, CT-6 EX-9.6).
+	seriesBrutes map[int][]byte
+	// extsEntrees : extensions d'entrée ajoutées après cRLReasons à l'entrée
+	// de rang donné (revue de l'étape 8, EX-9.16 révision 0.9).
+	extsEntrees map[int][]extTest
 }
 
 func fabriquerCRL(t testing.TB, m modeleCRL) []byte {
@@ -309,11 +320,20 @@ func fabriquerCRL(t testing.TB, m modeleCRL) []byte {
 	parts := [][]byte{entierDER(1), m.sign.algo, m.emetteur, temps(m.thisUpdate), temps(m.thisUpdate.AddDate(0, 1, 0))}
 	if len(m.entrees) > 0 {
 		var es [][]byte
-		for _, e := range m.entrees {
-			c := [][]byte{entierDER(e.serie), temps(e.date)}
+		for i, e := range m.entrees {
+			serie := entierDER(e.serie)
+			if b, ok := m.seriesBrutes[i]; ok {
+				serie = b
+			}
+			c := [][]byte{serie, temps(e.date)}
+			var xs [][]byte
 			if e.raison >= 0 {
 				r := construire(func(b *cryptobyte.Builder) { b.AddASN1Enum(int64(e.raison)) })
-				c = append(c, seq(extDER(extTest{oidCRLReason, 0, r})))
+				xs = append(xs, extDER(extTest{oidCRLReason, 0, r}))
+			}
+			xs = append(xs, extsDER(m.extsEntrees[i])...)
+			if len(xs) > 0 {
+				c = append(c, seq(xs...))
 			}
 			es = append(es, seq(c...))
 		}
@@ -368,6 +388,9 @@ type modeleJeton struct {
 	// STRING construite.
 	doublerSI         bool
 	eContentConstruit bool
+	// nonSignes : contenu d'un champ unsignedAttrs [1] du SignerInfo, tel
+	// quel (revue de l'étape 8, EX-9.4 révision 0.9).
+	nonSignes []byte
 }
 
 func (m *materiel) modeleJeton(t testing.TB) *modeleJeton {
@@ -458,7 +481,11 @@ func fabriquerJeton(t testing.TB, mj *modeleJeton) []byte {
 	if sa == nil {
 		sa = mj.sign.algo
 	}
-	si := seq(entierDER(ver), sid, mj.digest, signed, sa, oct(sig))
+	siParts := [][]byte{entierDER(ver), sid, mj.digest, signed, sa, oct(sig)}
+	if mj.nonSignes != nil {
+		siParts = append(siParts, elem(ctx(1, true), mj.nonSignes))
+	}
+	si := seq(siParts...)
 	ec := oct(tst)
 	if mj.eContentConstruit {
 		ec = elem(casn1.Tag(4).Constructed(), oct(tst))

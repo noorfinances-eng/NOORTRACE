@@ -12,6 +12,56 @@ import { egaliteJson } from "./json-strict.mjs";
 
 const URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema";
 
+/**
+ * Nombre d'erreurs qu'une validation rapporte au plus (revue de sécurité,
+ * CT-6 EX-15.1) : au-delà, la validation reste fausse et une dernière erreur dit
+ * combien sont omises. Même valeur que DETAILS_MAX de dossier.mjs.
+ */
+export const ERREURS_SCHEMA_MAX = 64;
+
+/**
+ * Clé canonique d'une valeur JSON pour `uniqueItems` (revue de sécurité,
+ * CT-1 A-3) : deux valeurs égales au sens d'egaliteJson (objets membre à
+ * membre, quel que soit l'ordre ; tableaux dans l'ordre ; primitifs par ===)
+ * ont la même clé, et seulement elles. Écriture itérative (aucune récursion),
+ * membres triés par unités de code UTF-16, nombres libres, chaînes par
+ * JSON.stringify ; une valeur non JSON (fonction, symbole) est marquée par
+ * son type.
+ */
+function cleCanonique(racine) {
+  const sortie = [];
+  const pile = [{ valeur: racine }];
+  while (pile.length) {
+    const tache = pile.pop();
+    if (tache.texte !== undefined) {
+      sortie.push(tache.texte);
+      continue;
+    }
+    const v = tache.valeur;
+    if (v === null || typeof v !== "object") {
+      sortie.push(typeof v === "string" || typeof v === "number" || typeof v === "boolean" || v === null ? JSON.stringify(v) : `<${typeof v}>`);
+      continue;
+    }
+    if (Array.isArray(v)) {
+      pile.push({ texte: "]" });
+      for (let k = v.length - 1; k >= 0; k--) {
+        pile.push({ valeur: v[k] });
+        if (k > 0) pile.push({ texte: "," });
+      }
+      sortie.push("[");
+      continue;
+    }
+    const cles = Object.keys(v).sort();
+    pile.push({ texte: "}" });
+    for (let k = cles.length - 1; k >= 0; k--) {
+      pile.push({ valeur: v[cles[k]] }, { texte: JSON.stringify(cles[k]) + ":" });
+      if (k > 0) pile.push({ texte: "," });
+    }
+    sortie.push("{");
+  }
+  return sortie.join("");
+}
+
 const SOUS_SCHEMA = new Set(["additionalProperties", "items", "not", "if", "then", "else"]);
 const LISTE_SCHEMAS = new Set(["allOf", "anyOf", "oneOf", "prefixItems"]);
 const TABLE_SCHEMAS = new Set(["properties", "$defs"]);
@@ -225,19 +275,28 @@ export class RegistreSchemas {
     const { schema, base } = this.resoudre(ref, "");
     const erreurs = [];
     const valide = this.#valider(schema, instance, base, "", erreurs);
+    if (erreurs.omises > 0) erreurs.push(`… et ${erreurs.omises} autre(s) erreur(s) omise(s) (borne de ${ERREURS_SCHEMA_MAX} erreurs par validation)`);
+    delete erreurs.omises;
     return { valide, erreurs };
+  }
+
+  // Ajoute une erreur dans la borne ERREURS_SCHEMA_MAX ; au-delà, la compte
+  // (CT-6 EX-15.1 : jamais une erreur par élément d'un tableau de millions d'éléments).
+  static #erreur(erreurs, message) {
+    if (erreurs.length < ERREURS_SCHEMA_MAX) erreurs.push(message);
+    else erreurs.omises = (erreurs.omises ?? 0) + 1;
   }
 
   #valider(schema, v, base, chemin, erreurs) {
     if (schema === true) return true;
     if (schema === false) {
-      erreurs.push(`${chemin || "/"} : aucune valeur n'est admise ici`);
+      RegistreSchemas.#erreur(erreurs, `${chemin || "/"} : aucune valeur n'est admise ici`);
       return false;
     }
     const lieu = chemin || "/";
     let ok = true;
     const echec = (message) => {
-      erreurs.push(`${lieu} : ${message}`);
+      RegistreSchemas.#erreur(erreurs, `${lieu} : ${message}`);
       ok = false;
     };
     const essai = (s, valeur, ch) => this.#valider(s, valeur, base, ch, []);
@@ -273,14 +332,17 @@ export class RegistreSchemas {
       if ("minItems" in schema && v.length < schema.minItems) echec(`${v.length} élément(s), au moins ${schema.minItems}`);
       if ("maxItems" in schema && v.length > schema.maxItems) echec(`${v.length} élément(s), au plus ${schema.maxItems}`);
       if (schema.uniqueItems === true) {
-        for (let a = 0; a < v.length; a++) {
-          for (let b = a + 1; b < v.length; b++) {
-            if (egaliteJson(v[a], v[b])) {
-              echec(`éléments ${a} et ${b} égaux (uniqueItems)`);
-              a = v.length;
-              break;
-            }
+        // Unicité par table de clés canoniques, en temps linéaire (CT-1 A-3) :
+        // le premier doublon est rapporté, avec l'indice du premier égal.
+        const vus = new Map();
+        for (let k = 0; k < v.length; k++) {
+          const cle = cleCanonique(v[k]);
+          const premier = vus.get(cle);
+          if (premier !== undefined) {
+            echec(`éléments ${premier} et ${k} égaux (uniqueItems)`);
+            break;
           }
+          vus.set(cle, k);
         }
       }
       const prefixe = schema.prefixItems ?? [];

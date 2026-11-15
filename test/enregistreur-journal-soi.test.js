@@ -3,7 +3,7 @@
 // observé sur le démon `noortrace` réel (processus enfant de
 // `test/fixtures/enregistreur-ancrage/demon.mjs`, horloge hybride à cadence
 // réduite admise par le schéma, composant d'ancrage de CT-5 branché, registre
-// factice du lot D, autorités RFC 3161 du lot E). Chaque situation de la
+// factice du registre, autorités RFC 3161 internes). Chaque situation de la
 // table de CT-7 §6.1 est provoquée et l'événement ou la ligne que la table
 // nomme est constaté : JS-1 `startup` ; JS-2 arrêt (aucun événement d'arrêt
 // dans la chaîne) ; JS-3 `lease_acquired`, `lease_standby` (seconde
@@ -558,7 +558,7 @@ describe("TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3
 
   it("complément TM-16 (P-6, ancres/) : chaque fichier de points/, d'ancres/periode-<P>/ et de manifestes/ a une version au même SHA-256 sur le support, en mode COMPLIANCE, rétention au moins égale à celle des événements ; ligne p6_copie_worm à 0 fichier non conforme, publiée hors du système de référence (le rapport la dit)", async function () {
     if (!pret.call(this)) return;
-    // Les fichiers fermés d'ancres/ (pièces, acquisitions.ndjson une fois la période close et la T-10 décidée, lecture F2-6) sont copiés au balayage.
+    // Les fichiers fermés d'ancres/ (pièces, acquisitions.ndjson une fois la période close et la T-10 décidée, lecture 6 du branchement) sont copiés au balayage.
     const balayage = await demon.commande({ cmd: "worm", action: "balayer" });
     expect(balayage.resultat.manquantes).to.equal(0);
     await demon.commande({ cmd: "worm", action: "vider" });

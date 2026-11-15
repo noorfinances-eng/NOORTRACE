@@ -258,7 +258,7 @@ describe("enregistreur, ingestion OpenTelemetry : exigences (§6.8)", function (
       await avec({}, async (d) => {
         const sp = spanOutil("a.b");
         sp.attributes.push({ key: "gen_ai.tool.name", value: { stringValue: "autre" } });
-        const ign = span({ nom: "nom-secret-du-span", attributs: { "http.url": "https://secret.exemple/x" } });
+        const ign = span({ nom: "nom-secret-du-span", attributs: { "http.url": "https://secret.example/x" } });
         const rej = spanOutil("c.d", { ids: { traceId: "0".repeat(32), spanId: "1".repeat(16) } });
         const pieces = () => (fs.existsSync(path.join(d.coeur.repertoire, "pieces")) ? fs.readdirSync(path.join(d.coeur.repertoire, "pieces"), { recursive: true }).length : 0);
         const avant = pieces();
@@ -268,7 +268,7 @@ describe("enregistreur, ingestion OpenTelemetry : exigences (§6.8)", function (
         expect(d.lignes("otel_cle_double")[0].data.count).to.equal(1);
         const texte = JSON.stringify(d.coeur.journal.lignes);
         expect(texte).to.not.contain("nom-secret-du-span");
-        expect(texte).to.not.contain("secret.exemple");
+        expect(texte).to.not.contain("secret.example");
         expect(d.lignes("otel_span_rejected")[0].data).to.deep.equal({ trace_id: "0".repeat(32), span_id: "1".repeat(16), reason: "identifiants_invalides" });
         expect(pieces() - avant).to.be.greaterThan(0);
       });
@@ -376,7 +376,7 @@ describe("enregistreur, ingestion OpenTelemetry : exigences (§6.8)", function (
         const r = await d.envoyer({
           corps: lot([
             spanOutil("sap__payments.create", { debut: "1000000000000000000", fin: "1000000000123900000", statut: 2, attributs: { "gen_ai.conversation.id": "conv-1" } }),
-            spanInference("m", { attributs: { "gen_ai.conversation.id": "jean@exemple.ch", "error.type": "timeout" } }),
+            spanInference("m", { attributs: { "gen_ai.conversation.id": "jean@ex.example", "error.type": "timeout" } }),
           ]),
         });
         expect(r.statut).to.equal(200);
@@ -472,7 +472,7 @@ describe("enregistreur, ingestion OpenTelemetry : exigences (§6.8)", function (
         [(c) => (c.otel.hosts[0].launched_by = "${peer_user}"), "/otel/hosts/0/launched_by"],
         [(c) => (c.otel.hosts[0].allowed_on_behalf_of = ["x"]), "/otel/hosts/0/allowed_on_behalf_of"],
         [(c) => (c.policy.otel.sources.autre = { ingest: ["outil"], overlap: "ignorer", class_default: null, tools: {} }), "/policy/otel/sources/autre"],
-        [(c) => ((c.recorder.environment = "production"), (c.otel.listen = "otel.exemple:4318")), "/otel/tls"],
+        [(c) => ((c.recorder.environment = "production"), (c.otel.listen = "otel.example:4318")), "/otel/tls"],
       ];
       for (const [f, p] of cas) {
         const c = base();
@@ -492,7 +492,7 @@ describe("enregistreur, ingestion OpenTelemetry : exigences (§6.8)", function (
       const cert = path.join(dirTls, "cert.pem");
       const cle = path.join(dirTls, "cle.pem");
       const r0 = spawnSync("openssl", ["req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes", "-days", "2", "-subj", "/CN=localhost", "-addext", "subjectAltName=IP:127.0.0.1", "-keyout", cle, "-out", cert], { encoding: "utf8" });
-      if (r0.status !== 0) this.skip();
+      if (r0.status !== 0) { this.test.title += " — en attente : openssl absent (certificat TLS généré à l'exécution)"; this.skip(); }
       await avec({ modifier: (c) => (c.otel.tls = { cert_file: cert, key_file: cle }) }, async (d) => {
         const envoyerTls = (o = {}) =>
           new Promise((resoudre, rejeter) => {

@@ -104,12 +104,46 @@ export async function getPeriod({ rpc, contrat, id, hauteur, point }) {
  * Classe une empreinte avant un `anchor` (OP-9, CT-4 §8.3, CT-5 EX-9.7) :
  * `libre` si elle n'est pas ancrée ; `deja_fait` si `lookup` rend
  * l'émetteur attendu et le `docType` attendu ; `empreinte_squattee` dans tout
- * autre cas. Rend `{ etat, lookup }`.
+ * autre cas. Rend `{ etat, lookup, lectures }`.
+ *
+ * Revue de sécurité de l'étape 8 (CT-5 EX-9.7 ; cause S-4) : une lecture n'est pas une
+ * preuve (CT-6 §11.1). Quand plusieurs points sont configurés et qu'aucun
+ * `point` n'est imposé, `lookup` est lu sur les deux premiers points qui
+ * répondent ; une lecture que le second point contredit, ou un second point
+ * injoignable, rend `indeterminee` (l'appelant classe l'échec transitoire,
+ * jamais un refus définitif). `CONFIRMATION_SQUAT` à faux rétablit la lecture
+ * au premier point qui répond (remplacement ciblé si le porteur renverse la décision).
  */
+export const CONFIRMATION_SQUAT = true;
+
 export async function classerEmpreinte({ rpc, contrat, fingerprint, emetteur, docType, hauteur, point }) {
-  const prise = await isAnchored({ rpc, contrat, fingerprint, hauteur, point });
-  if (!prise) return { etat: "libre", lookup: null };
-  const l = await lookup({ rpc, contrat, fingerprint, hauteur, point });
-  if (l.issuer === emetteur && l.docType === docType) return { etat: "deja_fait", lookup: l };
-  return { etat: "empreinte_squattee", lookup: l };
+  const points = typeof rpc.points === "function" ? rpc.points() : [];
+  const recouper = CONFIRMATION_SQUAT && point === undefined && points.length >= 2;
+  if (!recouper) {
+    const prise = await isAnchored({ rpc, contrat, fingerprint, hauteur, point });
+    if (!prise) return { etat: "libre", lookup: null, lectures: 1 };
+    const l = await lookup({ rpc, contrat, fingerprint, hauteur, point });
+    if (l.issuer === emetteur && l.docType === docType) return { etat: "deja_fait", lookup: l, lectures: 1 };
+    return { etat: "empreinte_squattee", lookup: l, lectures: 1 };
+  }
+  const lectures = [];
+  let derniereErreur = null;
+  for (const p of points) {
+    try {
+      lectures.push({ point: p, lookup: await lookup({ rpc, contrat, fingerprint, hauteur, point: p }) });
+    } catch (e) {
+      if (!(e instanceof ErreurLecture)) throw e;
+      derniereErreur = e;
+    }
+    if (lectures.length === 2) break;
+  }
+  if (lectures.length === 0) throw derniereErreur ?? new ErreurLecture("noeud_injoignable", "aucun point ne répond à lookup");
+  const [a, b] = lectures;
+  if (!b) return { etat: "indeterminee", lookup: a.lookup, lectures: 1, detail: "un seul point répond : lecture non recoupée" };
+  const meme = a.lookup.anchored === b.lookup.anchored && a.lookup.issuer === b.lookup.issuer && a.lookup.docType === b.lookup.docType;
+  if (!meme) return { etat: "indeterminee", lookup: a.lookup, lectures: 2, detail: `lookup différent sur ${a.point} et ${b.point}` };
+  const l = a.lookup;
+  if (!l.anchored) return { etat: "libre", lookup: null, lectures: 2 };
+  if (l.issuer === emetteur && l.docType === docType) return { etat: "deja_fait", lookup: l, lectures: 2 };
+  return { etat: "empreinte_squattee", lookup: l, lectures: 2 };
 }

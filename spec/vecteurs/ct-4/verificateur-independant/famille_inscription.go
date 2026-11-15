@@ -1,9 +1,13 @@
 // Famille « inscription » : dossiers d'inscription (7.5 à 7.10) ; schéma et
 // OP-4, puis les valeurs que le dossier tire de l'instance et de A.2.
 //
-// Lecture retenue : OP-4 n'a, hors lecture d'état, que le code jeu_invalide
-// (organisation_existante exige isRegistered) ; tout défaut du dossier
-// relevé par OP-4 rend donc jeu_invalide.
+// Lecture retenue : hors lecture d'état (organisation_existante exige
+// isRegistered), OP-4 rend jeu_invalide pour l'organisation, les journaux et
+// le jeu, cle_invalide pour une clé de classe D en production et, depuis la
+// révision 0.8 de CT-4 (partie « Provision » d'OP-4, table 7.11),
+// compte_inattendu pour un funding.funder qui n'est pas la trésorerie du
+// manifeste et provision_excessive pour un daily_budget_gas au-delà de
+// fees.max_daily_budget_gas ou un amount_wei différent de P_k.
 
 package main
 
@@ -85,6 +89,59 @@ func (c *Ctx) VerifierDossier(d *Value, premier string, production bool, comptes
 	return nil
 }
 
+// Frais par défaut (EX-4.15, EX-4.19 : « 30 et 7 jours par défaut ») quand
+// le cas ne donne pas les fees du manifeste (convention de l'INDEX.md).
+var (
+	provisionJoursDefaut = big.NewInt(30)
+	gasLimitDefaut       = big.NewInt(3000000)
+)
+
+// ProvisionPk rend P_k = provision_days × b + gas_limit (EX-4.19) depuis les
+// fees du manifeste, ou les frais par défaut quand fees est nul, avec les deux
+// termes retenus.
+func ProvisionPk(fees *Value, b *big.Int) (pk, jours, gaz *big.Int) {
+	jours, gaz = provisionJoursDefaut, gasLimitDefaut
+	if fees != nil && !fees.IsNull() {
+		if v, ok := EntierLitteral(nombreDe(fees.Get("provision_days"))); ok {
+			jours = v
+		}
+		if v, ok := EntierLitteral(nombreDe(fees.Get("gas_limit"))); ok {
+			gaz = v
+		}
+	}
+	return new(big.Int).Add(new(big.Int).Mul(jours, b), gaz), jours, gaz
+}
+
+// VerifierProvision applique la partie « Provision » d'OP-4 (révision 0.8
+// de CT-4, EX-4.19, EX-4.20, EX-8.20) : funding.funder est le compte de rôle
+// tresorerie du manifeste quand il est donné (compte_inattendu) ;
+// daily_budget_gas ne dépasse pas fees.max_daily_budget_gas quand le
+// manifeste le fixe, et amount_wei égale P_k = provision_days ×
+// daily_budget_gas + gas_limit recalculé depuis fees (provision_excessive).
+// fees nul : les frais par défaut ; tresorerie vide : non comparée.
+func VerifierProvision(d, fees *Value, tresorerie string) *Echec {
+	fu := d.Get("funding")
+	if tresorerie != "" && fu.Get("funder").S() != tresorerie {
+		return echecCode("OP-4", "compte_inattendu", true, "funding.funder %s n'est pas le compte de rôle tresorerie du manifeste %s (EX-8.20)", fu.Get("funder").S(), tresorerie)
+	}
+	b, okB := EntierLitteral(nombreDe(fu.Get("daily_budget_gas")))
+	if !okB {
+		return echecCode("OP-4", "provision_excessive", true, "funding.daily_budget_gas illisible")
+	}
+	if fees != nil && !fees.IsNull() {
+		if m := fees.Get("max_daily_budget_gas"); m != nil && !m.IsNull() {
+			if max, ok := EntierLitteral(nombreDe(m)); ok && b.Cmp(max) > 0 {
+				return echecCode("OP-4", "provision_excessive", true, "daily_budget_gas %s au-delà de fees.max_daily_budget_gas %s (EX-8.20)", b, max)
+			}
+		}
+	}
+	pk, jours, gaz := ProvisionPk(fees, b)
+	if fu.Get("amount_wei").S() != pk.String() {
+		return echecCode("OP-4", "provision_excessive", true, "funding.amount_wei %s différent de P_k = %s × %s + %s = %s (EX-4.19, EX-4.20)", fu.Get("amount_wei").S(), jours, b, gaz, pk)
+	}
+	return nil
+}
+
 // FamilleInscription vérifie inscription/inscription.json.
 func (c *Ctx) FamilleInscription() {
 	f := c.R.F("inscription")
@@ -100,6 +157,9 @@ func (c *Ctx) FamilleInscription() {
 			comptes = append(comptes, a.S())
 		}
 		e := c.VerifierDossier(d, firstCheck(cs), in.Get("nature").S() == "production", comptes)
+		if e == nil {
+			e = VerifierProvision(d, in.Get("fees"), in.Get("treasury").S())
+		}
 		if e != nil && e.Code == "entree_illisible" {
 			f.Hors(cs.ID, "rattachement du refus de schéma à "+e.Check, "convention des vecteurs (INDEX.md) : la table 7.11 ne rattache entree_illisible à aucune vérification")
 		}
@@ -108,14 +168,14 @@ func (c *Ctx) FamilleInscription() {
 		}
 		f.Comparer(cs.ID, "result", cs.Expected.Get("result").S(), "valide", "OP-4")
 		f.Comparer(cs.ID, "org_id", cs.Expected.Get("org_id").S(), d.Get("organisation").Get("org_id").S(), "OP-4")
-		c.valeursDossier(f, cs.ID, d)
+		c.valeursDossier(f, cs.ID, d, in.Get("fees"))
 	}
 }
 
 // valeursDossier recalcule les valeurs qu'un dossier du réseau de
 // développement tire de l'instance (EX-7.2), de la provision (EX-4.19) et,
 // pour l'exemple de 7.10, des étiquettes synthétiques.
-func (c *Ctx) valeursDossier(f *Famille, cas string, d *Value) {
+func (c *Ctx) valeursDossier(f *Famille, cas string, d *Value, fees *Value) {
 	ins := d.Get("instance")
 	f.Comparer(cas, "instance.evm_chain_id", "2124", ins.Get("evm_chain_id").Num, "EX-7.2")
 	f.Comparer(cas, "instance.bft_chain_id", "noortrace-2124-dev", ins.Get("bft_chain_id").S(), "EX-7.2")
@@ -131,9 +191,12 @@ func (c *Ctx) valeursDossier(f *Famille, cas string, d *Value) {
 		f.Comparer(cas, "instance.contracts."+k, ct.Get(k).S(), ins.Get("contracts").Get(k).S(), "EX-7.2")
 	}
 	fu := d.Get("funding")
-	b, _ := EntierLitteral(fu.Get("daily_budget_gas").Num)
-	pk := new(big.Int).Add(new(big.Int).Mul(big.NewInt(30), b), big.NewInt(3000000))
-	f.Comparer(cas, "funding.amount_wei = 30 × b + 3 000 000", pk.String(), fu.Get("amount_wei").S(), "EX-4.19")
+	b, _ := EntierLitteral(nombreDe(fu.Get("daily_budget_gas")))
+	if b == nil {
+		b = new(big.Int)
+	}
+	pk, jours, gaz := ProvisionPk(fees, b)
+	f.Comparer(cas, fmt.Sprintf("funding.amount_wei = %s × b + %s", jours, gaz), pk.String(), fu.Get("amount_wei").S(), "EX-4.19")
 	f.Comparer(cas, "funding.daily_budget_gas (journal horaire, 7.5)", "10800000", fu.Get("daily_budget_gas").Num, "EX-4.19")
 	f.Comparer(cas, "funding.funder (compte Hardhat 0, EX-7.3)", "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266", fu.Get("funder").S(), "EX-7.3")
 

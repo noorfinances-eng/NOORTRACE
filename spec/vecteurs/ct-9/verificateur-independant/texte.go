@@ -306,7 +306,8 @@ func Couper(src string, retirerL2, retirerL3, garderL2 []string) string {
 }
 
 // EntierFrancais lit un nombre écrit en chiffres (« 14 293 », « 1 588,11 »)
-// ou en lettres (« dix », « soixante-seize ») ; rend faux s'il ne le lit pas.
+// ou en lettres (« dix », « soixante-seize », « trente et une ») ; rend faux
+// s'il ne le lit pas.
 func EntierFrancais(s string) (float64, bool) {
 	s = strings.TrimSpace(s)
 	chiffres := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(s, " ", ""), " ", ""), " ", "")
@@ -316,7 +317,8 @@ func EntierFrancais(s string) (float64, bool) {
 	}
 	mots := map[string]int{"un": 1, "une": 1, "deux": 2, "trois": 3, "quatre": 4, "cinq": 5, "six": 6, "sept": 7, "huit": 8, "neuf": 9, "dix": 10, "onze": 11, "douze": 12, "treize": 13, "quatorze": 14, "quinze": 15, "seize": 16, "vingt": 20, "trente": 30, "quarante": 40, "cinquante": 50, "soixante": 60, "cent": 100}
 	total, courant := 0, 0
-	for _, m := range strings.Split(strings.ToLower(s), "-") {
+	// « trente et une » (EX-11.16) s'écrit aussi avec des espaces.
+	for _, m := range strings.Split(strings.ReplaceAll(strings.ToLower(s), " ", "-"), "-") {
 		m = strings.TrimSpace(m)
 		if m == "et" {
 			continue
@@ -337,4 +339,155 @@ func EntierFrancais(s string) (float64, bool) {
 		}
 	}
 	return float64(total + courant), true
+}
+
+// IdentifiantsPlages rend les identifiants de la famille donnée qu'une
+// prose énumère (« TM-6 et TM-10 », « TM-11 à TM-14 »), plages développées,
+// dans l'ordre du texte et sans doublon.
+func IdentifiantsPlages(s, famille string) []string {
+	re := regexp.MustCompile(regexp.QuoteMeta(famille) + `-([0-9]+)(?: à ` + regexp.QuoteMeta(famille) + `-([0-9]+))?`)
+	var out []string
+	vu := map[string]bool{}
+	for _, m := range re.FindAllStringSubmatch(s, -1) {
+		a, _ := strconv.Atoi(m[1])
+		b := a
+		if m[2] != "" {
+			b, _ = strconv.Atoi(m[2])
+		}
+		for k := a; k <= b; k++ {
+			id := fmt.Sprintf("%s-%d", famille, k)
+			if !vu[id] {
+				vu[id] = true
+				out = append(out, id)
+			}
+		}
+	}
+	return out
+}
+
+// Lectures de la prose de CT-9 révisée en 0.10. Chaque fonction lit, dans
+// le texte normalisé d'une section, les nombres et les identifiants qu'une
+// phrase énonce ; elle rend faux si la phrase n'y est pas.
+
+// LireEX1116 lit, dans 11.4, « parmi les N entrées exécutables, … » jusqu'à
+// la fin d'EX-11.16 : N en lettres et les TM- énumérés, plages développées.
+func LireEX1116(s114 string) (int, []string, bool) {
+	i := strings.Index(s114, "**EX-11.16**")
+	if i < 0 {
+		return 0, nil, false
+	}
+	m := regexp.MustCompile(`parmi les ([a-zé -]+?) entrées exécutables, (.*)$`).FindStringSubmatch(s114[i:])
+	if m == nil {
+		return 0, nil, false
+	}
+	n, ok := EntierFrancais(m[1])
+	return int(n), IdentifiantsPlages(m[2], "TM"), ok
+}
+
+// LireException105 lit, dans 10.5, « sauf TA-n, l'it qui retire une
+// réponse » et « TA-n cite en plus les mutants tués de TA-a et de TA-b » :
+// le scénario sans it de retrait et les deux TA- dont il cite les mutants.
+func LireException105(s105 string) (string, []string, bool) {
+	sauf := regexp.MustCompile("sauf (TA-[0-9]+), l'`it` qui retire une réponse").FindStringSubmatch(s105)
+	plus := regexp.MustCompile(`(TA-[0-9]+) cite en plus les mutants tués de (TA-[0-9]+) et de (TA-[0-9]+)`).FindStringSubmatch(s105)
+	if sauf == nil || plus == nil || sauf[1] != plus[1] {
+		return "", nil, false
+	}
+	return sauf[1], []string{plus[2], plus[3]}, true
+}
+
+// LireComptes108 lit, dans 10.8, la première exécution citée : « N passing
+// (…) », N en attente, …, N en échec.
+func LireComptes108(s108 string) (int, int, int, bool) {
+	r := regexp.MustCompile(`« ([0-9]+) passing [^»]*», ([0-9]+) en attente[^;]*?, ([0-9]+) en échec`).FindStringSubmatch(s108)
+	if r == nil {
+		return 0, 0, 0, false
+	}
+	a, _ := strconv.Atoi(r[1])
+	b, _ := strconv.Atoi(r[2])
+	c, _ := strconv.Atoi(r[3])
+	return a, b, c, true
+}
+
+// A11 est la phrase d'EX-A.11 : nombres d'it, de describe de composant ou
+// de scénario et de describe de premier niveau (en chiffres ou en lettres),
+// puis, dans l'ordre, le nombre d'it de chaque describe de premier niveau
+// et sa découpe éventuelle (« en neuf describe par composant », « en un
+// describe par scénario »).
+type A11 struct {
+	Its, Feuilles, Premiers string
+	Nombres                 []int
+	Decoupes                map[int][2]string // rang → {nombre, « composant » ou « scénario »}
+}
+
+// LireA11 lit la phrase d'EX-A.11 dans le texte normalisé de A.6.
+func LireA11(s string) (A11, bool) {
+	m := regexp.MustCompile("([0-9]+) `it` répartis en ([a-zé-]+) `describe` de composant ou de scénario, sous ([a-zé-]+) `describe` de premier niveau").FindStringSubmatchIndex(s)
+	if m == nil {
+		return A11{}, false
+	}
+	a := A11{Its: s[m[2]:m[3]], Feuilles: s[m[4]:m[5]], Premiers: s[m[6]:m[7]], Decoupes: map[int][2]string{}}
+	reste := s[m[1]:]
+	if f := strings.Index(reste, "Les `it` qui demandent"); f >= 0 {
+		reste = reste[:f]
+	}
+	for i, p := range regexp.MustCompile(`\(([0-9]+)([^()]*)\)`).FindAllStringSubmatch(reste, -1) {
+		n, _ := strconv.Atoi(p[1])
+		a.Nombres = append(a.Nombres, n)
+		if q := regexp.MustCompile("en ([a-zé-]+) `describe` par (composant|scénario)").FindStringSubmatch(p[2]); q != nil {
+			a.Decoupes[i] = [2]string{q[1], q[2]}
+		}
+	}
+	return a, true
+}
+
+// LireCasA8 lit, dans A.8, « cas/cas.json avec N cas (`valide-…`, …) ; le
+// gabarit » : N en lettres et les fichiers nommés.
+func LireCasA8(s string) (int, []string, bool) {
+	m := regexp.MustCompile("`cas/cas.json` avec ([a-zé-]+) cas \\((.*?)\\) ; le gabarit").FindStringSubmatch(s)
+	if m == nil {
+		return 0, nil, false
+	}
+	n, ok := EntierFrancais(m[1])
+	var fichiers []string
+	for _, x := range regexp.MustCompile("`((?:valide|invalide)-[a-z0-9-]+)`").FindAllStringSubmatch(m[2], -1) {
+		fichiers = append(fichiers, x[1]+".json")
+	}
+	return int(n), fichiers, ok
+}
+
+// LireComplements16 lit, dans 16, « TA- exécutables qui en portent un (…)
+// et ceux de … n'ont aucun résultat » : les TA- puis les autres entrées.
+func LireComplements16(s16 string) ([]string, []string, bool) {
+	x := regexp.MustCompile(`TA- exécutables qui en portent un \(([^)]*)\) et ceux de (.*?) n'ont aucun résultat`).FindStringSubmatch(s16)
+	if x == nil {
+		return nil, nil, false
+	}
+	var autres []string
+	for _, f := range []string{"TU", "TV", "TI", "TE", "TM", "TR", "TQ"} {
+		autres = append(autres, IdentifiantsPlages(x[2], f)...)
+	}
+	return IdentifiantsPlages(x[1], "TA"), autres, true
+}
+
+// LirePhase2_16 lit, dans 16, « N entrées TA- à menace d'exécution
+// `phase_2` à écrire (dont TA-a et TA-b » : N et les deux TA- nommés.
+func LirePhase2_16(s16 string) (int, []string, bool) {
+	x := regexp.MustCompile("([0-9]+) entrées TA- à menace d'exécution `phase_2` à écrire \\(dont (TA-[0-9]+) et (TA-[0-9]+)").FindStringSubmatch(s16)
+	if x == nil {
+		return 0, nil, false
+	}
+	n, _ := strconv.Atoi(x[1])
+	return n, []string{x[2], x[3]}, true
+}
+
+// LireEtape8_16 lit, dans 16, « les compléments des N entrées de l'étape 8
+// (TA-…) » : N en lettres et les TA- nommés.
+func LireEtape8_16(s16 string) (int, []string, bool) {
+	x := regexp.MustCompile(`les compléments des ([a-zé-]+) entrées de l'étape 8 \(([^)]*)\)`).FindStringSubmatch(s16)
+	if x == nil {
+		return 0, nil, false
+	}
+	n, ok := EntierFrancais(x[1])
+	return int(n), IdentifiantsPlages(x[2], "TA"), ok
 }

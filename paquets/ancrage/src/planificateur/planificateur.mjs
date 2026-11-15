@@ -22,7 +22,7 @@ import { DOC_TYPE_POINT, decoderHorodatage, ecrireHorodatage, empreinteAncre, ke
 import { ID_SCHEMA_PLANIFICATEUR, REGISTRE_ANCRAGE, validerProjection } from "./configuration.mjs";
 import { ETATS_FINAUX, FENETRE_TENTATIVES, estFinale, totalTentatives, trierDemandes, validerLigneDemande } from "./file.mjs";
 import { construireRequete, nonceEntier, nonceHex } from "./requete-der.mjs";
-// Table unique des attentes de reprise après une erreur HTTP transitoire (EX-8.9 révisée ; R-C-1 à R-C-3) : le lot A
+// Table unique des attentes de reprise après une erreur HTTP transitoire (EX-8.9 révisée) : le client RFC 3161
 // la possède, le planificateur l'appelle, pour que le client et la file ne divergent jamais.
 import { attenteTransitoire, bornerRetryAfter } from "../rfc3161/classement.mjs";
 
@@ -47,10 +47,22 @@ const VERIFICATIONS_T = ["T-1", "T-2", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8",
 export const TAILLE_CAPTURE_REPRESENTEE = 4096;
 /** Cadence quotidienne de mise à niveau après `give_up_after_s` (EX-8.11). */
 const JOUR_S = 86400;
+/**
+ * Rejeux d'une minuterie périodique (`recu`, `attente_registre`) par demande
+ * et par passe (CT-5 EX-8.8 ; cause S-1) : une passe du composant dure
+ * une seconde, seul un saut d'horloge en fait franchir plusieurs fenêtres ;
+ * les traces normatives en exercent trois d'affilée (`registre-indisponible`),
+ * jamais plus. Au-delà, les échéances manquées sont comptées
+ * (`missed_deadlines`), non rejouées : 1 440 renvois et écritures pour un
+ * saut d'un jour deviennent quatre.
+ */
+export const REJEUX_PAR_PASSE_MAX = 4;
 
 const REF_ENTREE = `${ID_SCHEMA_PLANIFICATEUR}#/$defs/evenement_entree`;
 /** Codes d'échec d'une ancre qu'aucun nœud n'a admise (EX-9.5 : aucune transaction en mempool, aucun nonce consommé). */
-const CODES_ANCRE_NON_ADMISE = Object.freeze(["noeud_injoignable", "transaction_refusee", "registre_absent", "exception_client", "reprise_impossible"]);
+const CODES_ANCRE_NON_ADMISE = Object.freeze(["noeud_injoignable", "transaction_refusee", "registre_absent", "exception_client", "reprise_impossible",
+  // Revue de sécurité de l'étape 8 : rien n'a été signé quand les points ne se recoupent pas (nonce, CT-4 EX-8.14 ; lookup, CT-5 EX-9.7).
+  "lecture_nonce_incoherent", "lecture_incoherente"]);
 
 const ms = (h) => {
   const v = decoderHorodatage(h);
@@ -74,7 +86,7 @@ const comparerDemandes = (a, b) => (a.created_at < b.created_at ? -1 : a.created
  * Erreur d'entrée du planificateur (forme hors schéma, demande inconnue).
  * `code` vaut `entree_non_conforme` pour une entrée refusée par le schéma, avec
  * `chemin` (pointeur JSON de l'écart) : le composant en fait une entrée d'échec
- * conforme (R-F-1).
+ * conforme.
  */
 export class ErreurPlanificateur extends Error {
   constructor(message, { code = null, chemin = null } = {}) {
@@ -322,7 +334,7 @@ export class Planificateur {
     this.emettre("alerter", req.id, { code: "revoque", severity: "critique" });
     this.journaliserTentative(req, { event: "anchor_response_rejected", error_code: "revoque", attempt: a?.n ?? null, provider: provider ?? null, kept: true }, a);
     i.epuises.add(provider);
-    i.revoques.add(provider); // lecture H1-b : après une révocation, l'alternance d'EX-8.9 ne revient jamais à ce prestataire
+    i.revoques.add(provider); // lecture b des corrections : après une révocation, l'alternance d'EX-8.9 ne revient jamais à ce prestataire
     const { prestataire: secours } = this.releveDe(req);
     if (secours && secours.id !== provider && !i.epuises.has(secours.id)) {
       i.releve = true;
@@ -585,8 +597,16 @@ export class Planificateur {
 
   // ----- horloge et timers -----
 
-  /** Fait avancer l'horloge jusqu'à `t` en déclenchant, dans l'ordre, ce qui échoit. */
+  /**
+   * Fait avancer l'horloge jusqu'à `t` en déclenchant, dans l'ordre, ce qui
+   * échoit. `limiteAvance` (CT-5 EX-8.8) : l'instant de l'entrée en
+   * cours, lu par les minuteries qui se réarment (`recu`,
+   * `attente_registre`) pour ne pas rejouer une à une les échéances manquées
+   * pendant un saut d'horloge : une seule par passe, les autres comptées.
+   */
   avancer(t) {
+    this.limiteAvance = t;
+    this.rejouesPasse = new Map();
     for (;;) {
       const prochain = this.prochainEvenement(t);
       if (!prochain) break;
@@ -594,6 +614,32 @@ export class Planificateur {
       prochain.declencher();
     }
     this.now = t;
+    this.limiteAvance = null;
+    this.rejouesPasse = null;
+  }
+
+  /**
+   * Prochaine échéance d'une minuterie périodique (`type`, demande `id`) de
+   * pas `pasMs` (CT-5 EX-8.8) : `{ at, manquees }`. Jusqu'à
+   * `REJEUX_PAR_PASSE_MAX` rejeux par demande et par passe, l'échéance suivante
+   * est `now + pas`, comme toujours (les traces normatives rejouent chaque
+   * fenêtre franchie) ; au-delà, elle est reportée après la passe et les
+   * échéances sautées sont comptées dans `manquees`.
+   */
+  echeanceApresPasse(type, id, pasMs) {
+    const cle = `${type}|${id}`;
+    const n = (this.rejouesPasse?.get(cle) ?? 0) + 1;
+    this.rejouesPasse?.set(cle, n);
+    let at = this.now + pasMs;
+    let manquees = 0;
+    if (n >= REJEUX_PAR_PASSE_MAX) {
+      const limite = this.limiteAvance ?? this.now;
+      while (at <= limite) {
+        at += pasMs;
+        manquees += 1;
+      }
+    }
+    return { at, manquees };
   }
 
   prochainEvenement(limite) {
@@ -634,8 +680,10 @@ export class Planificateur {
       }
     }
     if (this.timers.length) {
-      const tri = this.demandesTriees();
-      const indice = new Map(tri.map((d, i) => [d.id, i]));
+      // Revue de sécurité de l'étape 8 (CT-5 EX-8.5) : le rang d'une demande parmi celles qui portent une minuterie suffit à les départager
+      // (`comparerDemandes` est un ordre total) ; la file entière n'est plus triée à chaque événement.
+      const concernees = [...new Set(this.timers.map((tm) => tm.id))].map((id) => this.demandes.get(id)).filter(Boolean).sort(comparerDemandes);
+      const indice = new Map(concernees.map((d, i) => [d.id, i]));
       for (const tm of this.timers) {
         candidat(tm.at, 2, (indice.get(tm.id) ?? 1e9) * 1e6 + tm.seq, () => {
           this.timers = this.timers.filter((x) => x !== tm);
@@ -654,7 +702,12 @@ export class Planificateur {
         this.examinerAttenteRegistre(req);
         break;
       case "reprise":
-        if (req.state === "a_reprendre" || req.state === "a_envoyer") this.envoyerRfc3161(req, tm.provider);
+        // Revue de sécurité de l'étape 8 (EX-8.8 : « les deux séries de tentatives sont poursuivies en parallèle ») : la reprise
+        // d'un prestataire nommé part dès qu'il n'a pas de tentative en cours, même quand l'autre série est en vol
+        // (`envoyee`) ; sans prestataire (alternance après épuisement), seulement hors d'un envoi en cours.
+        if (tm.provider ? !req.attempts.some((a) => a.provider === tm.provider && a.outcome === "en_cours") : req.state === "a_reprendre" || req.state === "a_envoyer") {
+          this.envoyerRfc3161(req, tm.provider);
+        }
         break;
       case "prestataire":
         if (req.state !== "envoyee" || tm.force) this.envoyerRfc3161(req, tm.provider, true);
@@ -711,6 +764,16 @@ export class Planificateur {
       this.interneDe(d.id).admisA = ms(d.created_at);
     }
     for (const p of this.periodes.values()) if (p.points.size) this.activerEcheances(p);
+    // EX-8.12 (revue de l'étape 8) : EX-4.4 appliquée aux demandes de points relues. Une demande `jeton_point`
+    // non finale dont toutes les échéances précèdent une échéance satisfaite d'une autre demande de la période est close
+    // `remplacee` au démarrage, avec la ligne `checkpoint_anchor_late` (trace redemarrage-echeance-remplacee) : chaque
+    // jeton obtenu relu, par plus petite échéance croissante, remplace comme à sa promotion (`remplacerAnterieures`).
+    const obtenuesRelues = this.demandesTriees().filter((d) => d.kind === "jeton_point" && d.state === "obtenue" && d.deadlines.length && d.result);
+    obtenuesRelues.sort((a, b) => Math.min(...a.deadlines) - Math.min(...b.deadlines));
+    for (const o of obtenuesRelues) {
+      const p = this.periodeDe(o.subject.org_id, o.subject.journal_id, o.subject.period_start);
+      this.remplacerAnterieures(p, o, ms(o.result.bound), Math.min(...o.deadlines));
+    }
     // Transitions de reprise, dans l'ordre de la file.
     for (const d of this.demandesTriees()) {
       if (estFinale(d)) continue;
@@ -743,9 +806,20 @@ export class Planificateur {
           const at = d.due_at ? ms(d.due_at) : this.now;
           this.timers.push({ at, id: d.id, type: "reprise", seq: this.seqTimer++, provider: dernier?.provider ?? null });
         }
-        // La relève par délai n'est pas réarmée depuis d'anciennes tentatives : elle
-        // l'est à la prochaine tentative (trace file-pleine).
-        if (d.attempts.length) this.interneDe(d.id).releve = d.attempts.some((a) => a.provider === this.releveDe(d).prestataire?.id);
+        // EX-8.12 (revue de l'étape 8) : la minuterie de relève d'EX-8.8, perdue avec le processus, est reposée
+        // à premier envoi + fallback_after_s pour toute demande de jeton non finale qui admet la relève et dont le secours
+        // n'est ni engagé ni épuisé (trace redemarrage-releve) ; échue pendant l'arrêt, elle part au démarrage (trace
+        // file-pleine). Premier envoi : la tentative de plus petit rang portée par la ligne (EX-8.5, règle 7).
+        if (d.attempts.length) {
+          const { prestataire: secours, delai } = this.releveDe(d);
+          const engage = Boolean(secours) && d.attempts.some((a) => a.provider === secours.id);
+          i.releve = engage;
+          i.relevable = Boolean(secours);
+          if (secours && !engage && !i.epuises.has(secours.id) && !i.revoques.has(secours.id)) {
+            const premiere = d.attempts.reduce((m, x) => (m === null || x.n < m.n ? x : m), null);
+            this.timers.push({ at: Math.max(ms(premiere.started_at) + delai * 1000, this.now), id: d.id, type: "releve", seq: this.seqTimer++ });
+          }
+        }
       } else if (d.kind.startsWith("ots_")) {
         if (d.state === "en_attente") {
           const at = Math.max(d.due_at ? ms(d.due_at) : this.now, this.now);
@@ -1046,10 +1120,14 @@ export class Planificateur {
     }
     i.inclusionLate += 1;
     this.emettre("alerter", d.id, { code: "inclusion_late", severity: i.inclusionLate === 1 ? "mineure" : "majeure" });
+    // Revue de sécurité de l'étape 8 (CT-5 EX-8.8) : au plus REJEUX_PAR_PASSE_MAX renvois par demande et par passe ; après un saut d'horloge,
+    // les échéances manquées au-delà sont comptées (`missed_deadlines`), jamais rejouées une à une.
+    const { at, manquees } = this.echeanceApresPasse("recu", d.id, delai * 1000);
+    if (manquees > 0) this.journaliserTentative(d, { event: "anchor_retry", kind: d.kind, mode: "renvoi", error_code: "recu_absent", missed_deadlines: manquees }, a);
     this.nouvelleTentative(d, { detail: "transaction envoyee" });
     this.ecrire(d, "envoyee");
     this.emettre("envoyer_registre", d.id, { fingerprint: this.empreinte(d), doc_type: this.docType(d) });
-    this.timers.push({ at: this.now + delai * 1000, id: d.id, type: "recu", seq: this.seqTimer++ });
+    this.timers.push({ at, id: d.id, type: "recu", seq: this.seqTimer++ });
   }
 
   inclusionRegistre(data) {
@@ -1187,7 +1265,8 @@ export class Planificateur {
       this.emettre("journaliser", req.id, { event: "anchor_pending", age_s: age });
       this.emettre("alerter", req.id, { code: "anchor_pending", severity: "majeure" });
     }
-    const at = this.now + alerte * 1000;
+    // Revue de sécurité de l'étape 8 (CT-5 EX-8.8) : au plus REJEUX_PAR_PASSE_MAX examens par passe, quel que soit le saut d'horloge.
+    const { at } = this.echeanceApresPasse("attente_registre", req.id, alerte * 1000);
     req.due_at = this.horodatage(at);
     this.programmer(req, at, "attente_registre", "attente_registre");
   }
@@ -1215,7 +1294,7 @@ export class Planificateur {
     const principal = this.prestatairePrincipal(req);
     const secours = this.releveDe(req).prestataire;
     let candidats = [principal, secours].filter(Boolean);
-    // Lecture H1-b : un prestataire dont le certificat d'unité est révoqué (T-10, EX-5.10 étape 10) ne reçoit plus de
+    // Lecture b des corrections : un prestataire dont le certificat d'unité est révoqué (T-10, EX-5.10 étape 10) ne reçoit plus de
     // requête tant qu'un autre candidat existe ; seul, il reste le dernier recours (EX-8.3 : reprise au pas retry.max_ms).
     const nonRevoques = candidats.filter((c) => !i.revoques.has(c.id));
     if (nonRevoques.length) candidats = nonRevoques;
@@ -1252,7 +1331,7 @@ export class Planificateur {
     const dernierEnvoi = this.dernierEnvoi.get(p.id);
     if (dernierEnvoi !== undefined && p.min_interval_ms > 0 && this.now < dernierEnvoi + p.min_interval_ms) {
       const at = dernierEnvoi + p.min_interval_ms;
-      // Lecture H1-c : `due_at` (informatif) dit l'instant de l'envoi retenu par `min_interval_ms` (EX-8.7).
+      // Lecture c des corrections : `due_at` (informatif) dit l'instant de l'envoi retenu par `min_interval_ms` (EX-8.7).
       req.due_at = this.horodatage(at);
       this.programmer(req, at, "backoff", "prestataire", { provider: p.id, force: true });
       return;
@@ -1307,8 +1386,8 @@ export class Planificateur {
 
   /**
    * Attente de reprise d'EX-8.9 après un échec transitoire chez `p` : la table
-   * unique `attenteTransitoire` du lot A (R-C-2) ; `Retry-After` borné à
-   * `[initial_ms, max_ms]` sur 429 et 503 seulement (R-C-1, R-C-3) ; premier
+   * unique `attenteTransitoire` du client RFC 3161 ; `Retry-After` borné à
+   * `[initial_ms, max_ms]` sur 429 et 503 seulement (EX-8.9) ; premier
    * 408 immédiat une fois par prestataire ; la gigue s'ajoute au seul `backoff`.
    */
   attenteReprise(req, p, data, codeHttp) {
@@ -1319,6 +1398,12 @@ export class Planificateur {
     for (let j = req.attempts.length - 1; j >= 0; j--) {
       const a = req.attempts[j];
       if (a.provider !== p.id) continue;
+      // Une tentative close par le redémarrage (EX-8.12, `redemarrage` : la réponse a pu se perdre) n'est pas un échec
+      // du prestataire : elle rompt la série (trace redemarrage-releve : attentes de 5, 10, 20… s après le redémarrage).
+      if (a.error_code === "redemarrage") {
+        rompu = true;
+        break;
+      }
       if (a.outcome === "echec_transitoire" || a.outcome === "reponse_tardive") k += 1;
       else {
         rompu = true;
@@ -1425,7 +1510,7 @@ export class Planificateur {
     attempt.http_status = data.http_status;
     attempt.pki_status = data.pki_status;
     attempt.failure_info = data.failure_info;
-    attempt.retry_after_s = bornerRetryAfter(data.retry_after_s ?? null); // borne du schéma (R-C-1)
+    attempt.retry_after_s = bornerRetryAfter(data.retry_after_s ?? null); // borne du schéma
     if (jeton) this.emettre("stocker", req.id, { sha256: data.token_sha256, size: data.token_size, bound: verdict.valable ? borneValable(attempt) : null });
 
     if (verdict.issue === "obtenue") {
@@ -1439,16 +1524,40 @@ export class Planificateur {
     this.journaliserTentative(req, { event: "anchor_response_rejected", error_code: verdict.code, attempt: attempt.n, provider: attempt.provider }, attempt);
     if (verdict.revocation) this.emettre("alerter", req.id, { code: "revoque", severity: "critique" });
 
+    // Revue de sécurité de l'étape 8 (CT-5 EX-8.8) : le prestataire de la tentative a été retiré par un rechargement ; la demande n'est jamais
+    // laissée `envoyee` sans minuterie : reprise au pas `retry.max_ms` chez le prestataire désigné (comme `rejeter`).
+    if (!p) {
+      this.reprendreSansPrestataire(req, attempt, verdict.code);
+      return;
+    }
     if (verdict.classe === "transitoire") {
       const { d, raison } = this.attenteReprise(req, p, data, data.http_status);
       const at = this.now + d;
       attempt.next_at = this.horodatage(at);
       req.due_at = attempt.next_at;
-      this.ecrire(req, "a_reprendre");
+      // EX-8.3, EX-8.8 (revue de l'étape 8 ; trace releve-pendant-reprise) : quand une tentative de l'autre
+      // série est encore en cours, la demande reste `envoyee` (réponse attendue) ; la reprise de cette série est programmée.
+      const autreEnCours = req.attempts.some((a) => a !== attempt && a.outcome === "en_cours");
+      this.ecrire(req, autreEnCours ? "envoyee" : "a_reprendre");
       this.programmer(req, at, raison, "reprise", { provider: p.id });
       return;
     }
     this.apresPermanente(req, attempt, p, verdict.code);
+  }
+
+  /**
+   * Tentative close dont le prestataire n'est plus configuré (revue de sécurité de l'étape 8,
+   * CT-5 EX-8.8 ; rechargement d'EX-4.9 pendant une requête en vol) : la demande
+   * repart `a_reprendre` au pas `retry.max_ms`, chez le prestataire désigné par
+   * la configuration en vigueur (`choisirPrestataire` sans série demandée).
+   */
+  reprendreSansPrestataire(req, attempt, code) {
+    const at = this.now + this.config.rfc3161.retry.max_ms;
+    attempt.next_at = this.horodatage(at);
+    req.due_at = attempt.next_at;
+    this.journaliserTentative(req, { event: "anchor_retry", kind: req.kind, mode: "reprise", error_code: code, reason: "prestataire_retire" }, attempt);
+    this.ecrire(req, "a_reprendre");
+    this.programmer(req, at, "backoff", "reprise", { provider: null });
   }
 
   /**
@@ -1498,7 +1607,7 @@ export class Planificateur {
   }
 
   /**
-   * Entrée hors schéma (règle 1 d'INTERFACES.md ; correction R-F-1) : le
+   * Entrée hors schéma (règle 1 d'INTERFACES.md) : le
    * résultat d'un client refusé par le schéma du planificateur devient une
    * issue d'échec conforme, pour qu'aucune demande ne reste `envoyee` sans
    * issue. `code` : `entree_non_conforme` ; `detail` : pointeur JSON de
@@ -1541,14 +1650,7 @@ export class Planificateur {
       this.emettre("rejeter_reponse", req.id, { error_code: code, class: "permanente" });
       this.journaliserTentative(req, { event: "anchor_response_rejected", error_code: code, attempt: a.n, provider: a.provider, detail: texte }, a);
       if (p) this.apresPermanente(req, a, p, code);
-      else {
-        // Prestataire retiré de la configuration : la demande repart au pas retry.max_ms chez le prestataire désigné.
-        const at = this.now + this.config.rfc3161.retry.max_ms;
-        a.next_at = this.horodatage(at);
-        req.due_at = a.next_at;
-        this.ecrire(req, "a_reprendre");
-        this.programmer(req, at, "backoff", "reprise", { provider: null });
-      }
+      else this.reprendreSansPrestataire(req, a, code); // prestataire retiré de la configuration (CT-5 EX-8.8)
       this.avancer(this.now);
       return this.actions;
     }

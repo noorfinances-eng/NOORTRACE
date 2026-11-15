@@ -1,0 +1,18 @@
+# Surcharge de la démonstration de référence : les sources du paquet
+# @noortrace/enregistreur telles que l'image les porte, copiées hors du dépôt
+# avec UN remplacement exact et unique (mutant de CT-9 EX-10.5, EX-10.6), sont
+# montées à la place des sources de l'image. Sert aux scénarios TA-103 à
+# TA-107 pour retirer une réponse du démon ; jamais à une démonstration.
+#
+#   NOORTRACE_PANNES_SRC_ENREGISTREUR=<répertoire absolu des sources mutées> \
+#   docker compose -f demo/compose.yaml -f demo/pannes/compose.mutant-enregistreur.yaml up --detach
+
+services:
+  enregistreur:
+    volumes:
+      - type: bind
+        source: ${NOORTRACE_PANNES_SRC_ENREGISTREUR:?NOORTRACE_PANNES_SRC_ENREGISTREUR (sources mutées de paquets/enregistreur, extraites de l'image) requis}
+        target: /opt/noortrace/paquets/enregistreur/src
+        read_only: true
+        bind:
+          create_host_path: false

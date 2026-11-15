@@ -116,8 +116,28 @@ rapport lisible dans un `<pre>` par `textContent`, code et son sens, énoncé
 en français et en anglais (`statement.fr`, `statement.en`) pour 0, 1 et 3,
 « Aucune affirmation sur ce dossier. » pour 2, sortie d'erreur ; « aucun
 rapport » sur un refus d'archive ; « vérification non faite » quand les
-deux codes diffèrent ou qu'une exécution n'a pas de code. Langue de la page :
+deux codes diffèrent, qu'une exécution n'a pas de code, que la `version` du
+bloc `verifier` du rapport JSON n'est pas celle que la page annonce, ou que
+l'utilisateur a arrêté la vérification. Toute chaîne venue d'une entrée passe
+par `neutraliser` avant `textContent` : commandes C0 (sauf tabulation et saut
+de ligne), DEL, C1, U+2028, U+2029 et marques de direction sont affichées
+sous la forme visible `\u{…}`. Langue de la page :
 français, anglais au choix, par une table de libellés de mêmes clés.
+
+### 3.4 Bornes et arrêt (revue de sécurité de l'étape 8)
+
+Les bornes d'EX-18.7 sont des constantes nommées, en un seul endroit
+(`BORNES_ARCHIVE` d'`archives.js`) : 4 096 entrées, 256 Mio décompressés,
+64 composants et 4 096 octets UTF-8 par chemin d'entrée (`r_chemin_long`,
+appliquée avant tout autre examen du chemin, en temps linéaire), 512 Mio par
+fichier lu, contrôlée sur la taille déclarée par le navigateur avant toute
+lecture (`r_fichier_trop_gros`). Le parcours d'un répertoire déposé s'arrête à
+la première entrée de trop ou au premier chemin trop long. L'arbre du
+travailleur est numéroté sans récursion. Le bouton « Arrêter » (`#arreter`,
+actif pendant une vérification) détruit le travailleur, affiche
+« vérification non faite » avec la cause, et un travailleur neuf reçoit
+l'artefact : c'est la seule requête que la page fait après son chargement
+(`travailleur.js`, même origine). Aucun délai n'est imposé.
 
 ## 4. Hébergement
 
@@ -216,6 +236,15 @@ silence dans les sections précédentes :
    ligne `env` des deux scripts de `verificateur/scripts/`) ; un script peut
    refuser une valeur non vide, ce que font `construire-wasm.sh` et
    `construire.sh`.
+
+9. **Revue de sécurité de l'étape 8** (EX-18.8,
+   EX-8.6) : bornes de 64 composants et 4 096 octets par
+   chemin et de 512 Mio par fichier (section 3.4), valeurs proposées au
+   porteur et à écrire dans CT-6 EX-18.7 ; bouton « Arrêter » et nouvelle
+   demande de `travailleur.js` après un arrêt, à écrire dans EX-18.9 et
+   EX-18.11 ; comparaison de la version du rapport, à écrire dans EX-18.9 ;
+   neutralisation des chaînes affichées, à rattacher à la règle commune
+   d'EX-8.5 et EX-8.6.
 
 Les points 1 à 5 sont versés dans les sections 2 et 3 ci-dessus (révision
 0.7 de CT-6) ; le point 6 est inscrit dans CT-6 0.7 (EX-18.3, annexe B.9).

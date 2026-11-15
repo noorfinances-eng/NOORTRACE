@@ -13,7 +13,9 @@
 //
 // API programmatique (LISEZMOI.md) : `demarrerAgent(configuration, options)`
 // rend `{ prise, pid, arreter(), file }` ; `options.horloge`,
-// `options.attendre`, `options.racine` servent aux essais.
+// `options.attendre`, `options.racine`, `options.memeCompteAdmis` (agent et
+// interface sous le même compte, essais seulement) servent aux essais ; le
+// binaire `bin/noortrace-inscription-agent` ne passe aucune option.
 
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -25,12 +27,13 @@ import { ecrireHorodatage } from "@noortrace/noyau";
 import { ErreurChamp } from "../commun/champs.mjs";
 import { lireReference, motifRefusReference } from "../commun/references.mjs";
 import { lireConfirmation, lireIdentite, lireTravail } from "../commun/travaux.mjs";
-import { controlerReferences, controlerRepertoires, ErreurConfiguration, lireConfiguration, prisesIp } from "./configuration.mjs";
+import { controlerComptes, controlerReferences, controlerRepertoires, ErreurConfiguration, lireConfiguration, prisesIp } from "./configuration.mjs";
 import { chargerInstance, ErreurInstance } from "./instance.mjs";
-import { ajouterLigne, chemins, creerRepertoire, ecrireAtomique, serialiser } from "./donnees.mjs";
+import { ajouterLigne, chemins, creerRepertoire, ecrireAtomique, JOURNAL_MAX_OCTETS, serialiser } from "./donnees.mjs";
 import { clientRpc } from "./reseau.mjs";
 import { lireDossier } from "./dossier.mjs";
 import { FinCommande, Sortie } from "./sortie.mjs";
+import { ErreurReference, referenceDeTravail } from "./cles.mjs";
 import { ConfirmationAbsente, confirmationsPour } from "./commandes/base.mjs";
 import { preparer } from "./commandes/preparer.mjs";
 import { inscrireClient } from "./commandes/inscrire-client.mjs";
@@ -53,6 +56,12 @@ export const DELAI_CONNEXION_MS = 10000;
 export const AUXILIAIRES_MAX = 4;
 /** Connexions simultanées à la prise, au plus (au-delà, le noyau les refuse). */
 export const CONNEXIONS_MAX = 64;
+/** Refus consignés ligne à ligne par période et par événement ; au-delà, comptés dans une ligne `refus_cumules` (revue de l'étape 8). */
+export const REFUS_PAR_PERIODE = 8;
+/** Période du comptage des refus. */
+export const PERIODE_REFUS_MS = 60000;
+/** Événements du journal que le compte de l'interface peut provoquer sans limite : consignés avec borne. */
+export const EVENEMENTS_REFUS = Object.freeze(["pair_refuse", "requete_refusee", "requete_erreur", "travail_refuse", "confirmation_refusee"]);
 
 /** Auxiliaire `python3 -I` : compte du pair par `SO_PEERCRED` sur le descripteur 3, sans le lire, puis `detach()`. */
 export const AUXILIAIRE_PAIR = [
@@ -117,9 +126,14 @@ export function comptePair(socket, { python = "python3", delaiMs = 5000 } = {}) 
   });
 }
 
-/** Lit la configuration et l'instance, contrôle le démarrage ; rend `{ config, instance, gid }` ou lève `ErreurConfiguration`. */
-export function preparerDemarrage(source, { racine = process.cwd(), controlerPrise = true } = {}) {
+/**
+ * Lit la configuration et l'instance, contrôle le démarrage ; rend `{ config,
+ * instance, gid }` ou lève `ErreurConfiguration`. `memeCompteAdmis` (essais de
+ * l'API programmatique seulement) lève le contrôle des comptes d'EX-7.23.
+ */
+export function preparerDemarrage(source, { racine = process.cwd(), controlerPrise = true, memeCompteAdmis = false } = {}) {
   const config = lireConfiguration(source);
+  if (memeCompteAdmis !== true) controlerComptes(config);
   let instance;
   try {
     instance = chargerInstance(config.instance, { racine });
@@ -129,7 +143,7 @@ export function preparerDemarrage(source, { racine = process.cwd(), controlerPri
   }
   if (instance.nature !== config.nature) throw new ErreurConfiguration(`nature ${config.nature} différente de celle de l'instance (${instance.nature})`);
   controlerReferences(config, instance);
-  const gid = controlerPrise ? controlerRepertoires(config) : null;
+  const gid = controlerPrise ? controlerRepertoires(config, { memeCompteAdmis }) : null;
   if (prisesIp().length > 0) throw new ErreurConfiguration("l'agent a une prise d'écoute AF_INET ou AF_INET6 (EX-7.28)");
   return { config, instance, gid };
 }
@@ -165,14 +179,52 @@ function referencesDuTravail(t) {
  */
 export async function demarrerAgent(source, options = {}) {
   const racine = options.racine ?? process.cwd();
-  const { config, instance: instanceDemarrage } = preparerDemarrage(source, { racine, controlerPrise: options.controlerPrise ?? true });
+  const { config, instance: instanceDemarrage } = preparerDemarrage(source, { racine, controlerPrise: options.controlerPrise ?? true, memeCompteAdmis: options.memeCompteAdmis === true });
   const jeton = resoudreJeton(config.jeton);
   const D = chemins(config.donnees);
   const horloge = options.horloge ?? { murale: () => Date.now(), monotone: () => Number(process.hrtime.bigint() / 1000000n) };
   const attendre = options.attendre ?? ((ms) => new Promise((ok) => setTimeout(ok, ms)));
-  const consigner = (evenement, champs = {}) => ajouterLigne(D.journal, { instant: ecrireHorodatage(horloge.murale()), evenement, ...champs });
+  // Journal borné : ajout seul, tourné à JOURNAL_MAX_OCTETS (une génération gardée, `.1`) ; les refus que le
+  // compte de l'interface peut provoquer sans limite sont consignés ligne à ligne jusqu'à REFUS_PAR_PERIODE par période et
+  // par événement, puis comptés dans une ligne `refus_cumules` écrite à la période suivante ou à l'arrêt.
+  const ecrireLigne = (evenement, champs = {}) => ajouterLigne(D.journal, { instant: ecrireHorodatage(horloge.murale()), evenement, ...champs }, { tailleMax: JOURNAL_MAX_OCTETS });
+  const compteursRefus = new Map();
+  const viderCompteur = (evenement, c) => {
+    if (c.comptees > 0) ecrireLigne("refus_cumules", { refus: evenement, periode_debut: ecrireHorodatage(c.debut), nombre: c.comptees });
+    c.comptees = 0;
+  };
+  const consigner = (evenement, champs = {}) => {
+    if (!EVENEMENTS_REFUS.includes(evenement)) return ecrireLigne(evenement, champs);
+    const t = horloge.murale();
+    let c = compteursRefus.get(evenement);
+    if (!c || t - c.debut >= PERIODE_REFUS_MS) {
+      if (c) viderCompteur(evenement, c);
+      c = { debut: t, ecrites: 0, comptees: 0 };
+      compteursRefus.set(evenement, c);
+    }
+    if (c.ecrites < REFUS_PAR_PERIODE) {
+      c.ecrites += 1;
+      return ecrireLigne(evenement, champs);
+    }
+    c.comptees += 1;
+    return undefined;
+  };
   creerRepertoire(D.travaux);
   creerRepertoire(D.clients);
+
+  /**
+   * Instance relue à l'admission et à l'exécution de chaque travail (le manifeste peut avoir été révisé) : elle doit
+   * garder la nature de la configuration et les identifiants de l'instance du démarrage, sinon
+   * `instance_illisible`. Lève `ErreurInstance`.
+   */
+  const instanceCourante = () => {
+    const instance = chargerInstance(config.instance, { racine });
+    if (instance.nature !== config.nature) throw new ErreurInstance(`nature ${instance.nature} de l'instance différente de celle de la configuration (${config.nature})`);
+    if (instance.evmChainId !== instanceDemarrage.evmChainId || instance.bftChainId !== instanceDemarrage.bftChainId) {
+      throw new ErreurInstance(`identifiants de l'instance (${instance.evmChainId}, ${instance.bftChainId}) différents de ceux du démarrage (${instanceDemarrage.evmChainId}, ${instanceDemarrage.bftChainId})`);
+    }
+    return instance;
+  };
 
   // Travaux laissés en cours ou en attente par un arrêt : abandonnés (le dossier dit l'état réel, EX-7.13).
   for (const nom of fs.readdirSync(D.travaux)) {
@@ -227,7 +279,13 @@ export async function demarrerAgent(source, options = {}) {
 
   /** Contrôles d'admission d'un travail : rend `{ travail }` ou `{ code, message }`. */
   const admettreTravail = (requete) => {
-    const instance = chargerInstance(config.instance, { racine });
+    let instance;
+    try {
+      instance = instanceCourante();
+    } catch (e) {
+      if (e instanceof ErreurInstance) return { code: "instance_illisible", message: e.message };
+      throw e;
+    }
     let t;
     try {
       lireIdentite(requete.exploitant);
@@ -237,9 +295,18 @@ export async function demarrerAgent(source, options = {}) {
       throw e;
     }
     for (const r of referencesDuTravail(t)) {
-      const ref = lireReference(r.role, r.reference);
-      const motif = motifRefusReference(ref, { role: r.role, nature: instance.nature, evmChainId: instance.evmChainId });
-      if (motif) return { code: "reference_refusee", message: `${r.role} : référence ${ref.forme}: refusée pour une instance de nature ${instance.nature} d'identifiant EVM ${instance.evmChainId} (EX-7.3)` };
+      // CT-4 EX-7.25 : référence effective (fichier du répertoire de clés, alias de la configuration), message unique
+      // vers l'interface, détail au journal ; puis EX-7.3 sur la forme effective.
+      let effective;
+      try {
+        effective = referenceDeTravail(r.role, r.reference, config.cles);
+      } catch (e) {
+        if (!(e instanceof ErreurReference)) throw e;
+        consigner("reference_non_resolue", { id: null, slug: t.slug, role: r.role, forme: String(r.reference).split(":")[0], detail: String(e.detail ?? e.message).slice(0, 300) });
+        return { code: "reference_refusee", message: e.message };
+      }
+      const motif = motifRefusReference({ forme: effective.forme }, { role: r.role, nature: instance.nature, evmChainId: instance.evmChainId });
+      if (motif) return { code: "reference_refusee", message: `${r.role} : référence ${effective.forme}: refusée pour une instance de nature ${instance.nature} d'identifiant EVM ${instance.evmChainId} (EX-7.3)` };
     }
     if (t.parametres.cles_essai && !(instance.nature === "developpement" && [2124, 31337].includes(instance.evmChainId))) {
       return { code: "reference_refusee", message: "clés d'essai refusées hors des réseaux 2124 et 31337 (EX-7.3)" };
@@ -259,8 +326,9 @@ export async function demarrerAgent(source, options = {}) {
     consigner("travail_debut", { id: t.id, commande: t.commande, slug: t.slug, exploitant: t.exploitant });
     let instance;
     try {
-      instance = chargerInstance(config.instance, { racine });
+      instance = instanceCourante();
     } catch (e) {
+      if (!(e instanceof ErreurInstance)) throw e;
       instance = null;
       t.sortie = COMMANDE_OUTIL[t.commande] ? new Sortie(COMMANDE_OUTIL[t.commande]).rendre("inutilisable", { error: { code: "instance_illisible", check: null, message: String(e.message).slice(0, 2048) } }) : null;
     }
@@ -377,7 +445,10 @@ export async function demarrerAgent(source, options = {}) {
         const l = lireDossier(D.client(slug).dossier);
         return !l.erreur && l.dossier.organisation.org_id === c.objet.org_id;
       });
-      if (!connu) return repondre(socket, { accepte: false, code: "client_inconnu", message: `aucun client d'org_id ${c.objet.org_id}` });
+      if (!connu) {
+        consigner("confirmation_refusee", { exploitant: requete.exploitant, code: "client_inconnu" });
+        return repondre(socket, { accepte: false, code: "client_inconnu", message: `aucun client d'org_id ${c.objet.org_id}` });
+      }
       const id = `cnf-${crypto.randomBytes(16).toString("hex")}`;
       ajouterLigne(D.confirmations, { id, ...c, exploitant: requete.exploitant, recu_a: ecrireHorodatage(horloge.murale()) });
       consigner("confirmation_recue", { id, operation: c.operation, org_id: c.objet.org_id, cle_chaine: c.objet.cle_chaine, exploitant: requete.exploitant });
@@ -498,6 +569,7 @@ export async function demarrerAgent(source, options = {}) {
         ecrireTravail(t);
       }
       await tache;
+      for (const [evenement, c] of compteursRefus) viderCompteur(evenement, c);
       consigner("arret", { pid: process.pid });
     },
   };

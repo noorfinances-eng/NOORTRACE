@@ -1,4 +1,4 @@
-// Lot B du composant d'ancrage (CT-5 §6, client OpenTimestamps) : format des
+// Client OpenTimestamps du composant d'ancrage (CT-5 §6) : format des
 // fichiers .ots (CT-6 §10.2, EX-10.2, EX-10.5 ; CT-5 EX-6.4, AN-18), fusion
 // (EX-6.6), vérifications O-1 à O-5 et O-7 (CT-6 §10.4, CT-5 EX-6.9, AN-20),
 // rejouées contre les vecteurs de `spec/vecteurs/ct-5/ots` (octet pour octet),
@@ -64,7 +64,7 @@ const attBitcoin = (h) => concat(Uint8Array.of(0x00), N.hexVersOctets("0x0588960
 const statutsAttendus = (checks) => Object.fromEntries(checks.filter((c) => c.id !== "O-6").map((c) => [c.id, c.status]));
 const raisonsAttendues = (checks) => Object.fromEntries(checks.filter((c) => c.id !== "O-6" && c.status === "non_execute").map((c) => [c.id, c.reason]));
 
-describe("ancrage lot B : famille ots de CT-5 (EX-6.2 à EX-6.7, AN-17, AN-18)", () => {
+describe("ancrage, client OpenTimestamps : famille ots de CT-5 (EX-6.2 à EX-6.7, AN-17, AN-18)", () => {
   for (const cas of OTS_JSON.cases) {
     const chemin = path.join(CT5_OTS, cas.file);
     const octets = lireOctets(chemin);
@@ -163,7 +163,7 @@ describe("ancrage lot B : famille ots de CT-5 (EX-6.2 à EX-6.7, AN-17, AN-18)",
   });
 });
 
-describe("ancrage lot B : famille ots de CT-6 (attendu.json, O-1 à O-5 et O-7 ; CT-5 EX-6.9)", () => {
+describe("ancrage, client OpenTimestamps : famille ots de CT-6 (attendu.json, O-1 à O-5 et O-7 ; CT-5 EX-6.9)", () => {
   const ancre = ATTENDU_CT6.bitcoin_anchor;
 
   it("attendu.json de CT-6 révision 0.5 : treize preuves et vingt et un cas, dont o1-attestation-en-double (O-1 echoue, raison doublon ; EX-10.2, EX-10.5)", () => {
@@ -270,7 +270,7 @@ describe("ancrage lot B : famille ots de CT-6 (attendu.json, O-1 à O-5 et O-7 ;
   });
 });
 
-describe("ancrage lot B : dossiers de CT-6 (preuve.ots et anchors.ots.proof, CT-1 §11.2, CT-6 §10.9)", () => {
+describe("ancrage, client OpenTimestamps : dossiers de CT-6 (preuve.ots et anchors.ots.proof, CT-1 §11.2, CT-6 §10.9)", () => {
   const dossiers = fs.readdirSync(CT6_DOSSIERS).filter((d) => fs.existsSync(path.join(CT6_DOSSIERS, d, "attendu.json")));
 
   /** Statut attendu d'une vérification O- d'après attendu.json d'un dossier. */
@@ -329,7 +329,7 @@ describe("ancrage lot B : dossiers de CT-6 (preuve.ots et anchors.ots.proof, CT-
           if (k9.statut === "echoue") {
             expect(Object.values(v.checks)).to.include("echoue");
           } else if (k9.statut === "non_execute" && k9.raison === "prerequis_en_echec") {
-            // Prérequis de CT-1 (K-2 ou partie inexploitable) : hors de ce lot, la preuve est seulement lisible.
+            // Prérequis de CT-1 (K-2 ou partie inexploitable) : hors du client OpenTimestamps, la preuve est seulement lisible.
             expect(v.checks["O-1"]).to.equal("reussi");
           } else if (k9.statut === "non_execute") {
             expect(Object.values(v.checks)).to.not.include("echoue");
@@ -347,7 +347,7 @@ describe("ancrage lot B : dossiers de CT-6 (preuve.ots et anchors.ots.proof, CT-
   });
 });
 
-describe("ancrage lot B : lecture stricte et entrées hostiles (CT-6 EX-10.2, EX-10.5, §15.1)", () => {
+describe("ancrage, client OpenTimestamps : lecture stricte et entrées hostiles (CT-6 EX-10.2, EX-10.5, §15.1)", () => {
   const minimal = lireOctets(path.join(CT5_OTS, "point-k2-minimal.ots"));
   const prefixe = prefixeFichier(K2);
   const refus = (octets, code) => {
@@ -560,7 +560,7 @@ describe("ancrage lot B : lecture stricte et entrées hostiles (CT-6 EX-10.2, EX
   });
 });
 
-describe("ancrage lot B : chaîne d'en-têtes (CT-6 EX-10.3, EX-10.9 ; CT-5 EX-6.8, EX-6.9, AN-20)", () => {
+describe("ancrage, client OpenTimestamps : chaîne d'en-têtes (CT-6 EX-10.3, EX-10.9 ; CT-5 EX-6.8, EX-6.9, AN-20)", () => {
   it("SCHEMA_ENTETES_BITCOIN est la copie exacte de spec/schemas/entetes-bitcoin-v0.schema.json", () => {
     const original = lireJson(path.join(RACINE, "spec", "schemas", "entetes-bitcoin-v0.schema.json"));
     expect(N.egaliteJson(SCHEMA_ENTETES_BITCOIN, original)).to.equal(true);
@@ -678,7 +678,7 @@ describe("ancrage lot B : chaîne d'en-têtes (CT-6 EX-10.3, EX-10.9 ; CT-5 EX-6
       return lireFichierEntetes({ version: 0, network: "mainnet", start_height: debut, source: "essai", headers });
     };
     // Premier réajustement du réseau principal (hauteur 32256) : Δ = nTime(32255) − nTime(30240) = 1 022 578 s,
-    // 0x1d00ffff → 0x1d00d86a (valeur publique de la chaîne, indépendante de ce lot).
+    // 0x1d00ffff → 0x1d00d86a (valeur publique de la chaîne, indépendante de ce dépôt).
     expect(getCompact((setCompact(0x1d00ffff).cible * 1022578n) / 1209600n)).to.equal(0x1d00d86a);
     const debut = 2016 * 400;
     const n = 2017;
@@ -720,7 +720,7 @@ describe("ancrage lot B : chaîne d'en-têtes (CT-6 EX-10.3, EX-10.9 ; CT-5 EX-6
   });
 
   it("EX-6.9 : une preuve complète est vérifiée (O-4, O-5) contre des en-têtes dont la racine de Merkle porte le résultat de ses opérations", () => {
-    const nonce = sha256(utf8("noortrace/ancrage/lot-b/nonce/essai")).subarray(0, 16);
+    const nonce = sha256(utf8("noortrace/ancrage/ots/nonce/essai")).subarray(0, 16);
     const branche = new Noeud();
     let n = branche.operation(OP.PREPEND, sha256(utf8("agregation")).subarray(0, 16)).operation(OP.SHA256, null);
     n = n.operation(OP.APPEND, sha256(utf8("transaction")).subarray(0, 32)).operation(OP.SHA256, null).operation(OP.SHA256, null);
@@ -744,8 +744,8 @@ describe("ancrage lot B : chaîne d'en-têtes (CT-6 EX-10.3, EX-10.9 ; CT-5 EX-6
   });
 });
 
-describe("ancrage lot B : confrontation par python-opentimestamps 0.4.5 (CT-5 EX-6.3, annexe A.6)", () => {
-  const condition = "un interpréteur Python qui importe « opentimestamps » (variable NOORTRACE_OTS_PYTHON, ou python3)";
+describe("ancrage, client OpenTimestamps : confrontation par python-opentimestamps 0.4.5 (CT-5 EX-6.3, annexe A.6)", () => {
+  const condition = "python-opentimestamps absent (variable NOORTRACE_OTS_PYTHON, ou python3 qui importe « opentimestamps » ; travail ancrage)";
   let py = null;
   let dir;
   before(() => {
@@ -785,7 +785,7 @@ describe("ancrage lot B : confrontation par python-opentimestamps 0.4.5 (CT-5 EX
     }
   });
 
-  it("les preuves construites et fusionnées par ce lot (tri des attestations sœurs, branches de calendrier, arbre synthétique non trié, attestation inconnue) sont resérialisées à l'identique", function () {
+  it("les preuves construites et fusionnées par le client OpenTimestamps (tri des attestations sœurs, branches de calendrier, arbre synthétique non trié, attestation inconnue) sont resérialisées à l'identique", function () {
     if (!py) return enAttente(this, condition);
     const nonce = N.hexVersOctets("0xa10f0dccae630a2791dde3924b507379", 16);
     const essais = [];

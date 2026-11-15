@@ -1,0 +1,17 @@
+# Surcharge de la démonstration de référence : les sources du paquet
+# @noortrace/ancrage telles que l'image de l'enregistreur les porte, copiées
+# hors du dépôt avec UN remplacement exact et unique (mutant de CT-9 EX-10.5,
+# EX-10.6), montées à la place des sources de l'image (scénario TA-107).
+#
+#   NOORTRACE_PANNES_SRC_ANCRAGE=<répertoire absolu des sources mutées> \
+#   docker compose -f demo/compose.yaml -f demo/pannes/compose.mutant-ancrage.yaml up --detach
+
+services:
+  enregistreur:
+    volumes:
+      - type: bind
+        source: ${NOORTRACE_PANNES_SRC_ANCRAGE:?NOORTRACE_PANNES_SRC_ANCRAGE (sources mutées de paquets/ancrage, extraites de l'image) requis}
+        target: /opt/noortrace/paquets/ancrage/src
+        read_only: true
+        bind:
+          create_host_path: false

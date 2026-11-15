@@ -15,13 +15,25 @@
 #               sont installés. Le script ne nomme aucun dépôt ni aucune
 #               adresse : l'hôte garde les siens.
 #   services    docker et chrony activés et démarrés (systemctl).
-#   node        Node.js 22 : présent (node --version en v22.), ou installé
-#               depuis l'archive officielle node-v22.23.4-linux-x64.tar.xz,
-#               obtenue par l'exploitant avec la note de version et déposée
-#               sur l'hôte (--archive-node), refusée si son SHA-256 n'est pas
-#               SHA256_NODE ; extraite sous <prefixe>/lib/nodejs, liens
-#               node, npm et npx sous <prefixe>/bin. Ubuntu 24.04 ne fournit
-#               que Node.js 18.
+#   node        Node.js VERSION_NODE exactement (v22.23.4, la version livrée) :
+#               présent (node --version), ou installé depuis l'archive
+#               officielle node-v22.23.4-linux-x64.tar.xz, obtenue par
+#               l'exploitant avec la note de version et déposée sur l'hôte
+#               (--archive-node) : l'archive est d'abord copiée dans un
+#               répertoire privé du superutilisateur (mktemp -d), la copie
+#               est vérifiée (SHA-256 égal à SHA256_NODE, sinon refus) puis
+#               extraite sous <prefixe>/lib/nodejs, liens node, npm et npx
+#               sous <prefixe>/bin ; un Node.js 22 d'une autre version déjà
+#               présent n'est pas « déjà fait » : l'écart est nommé et la
+#               version livrée exigée (CT-8 IC-2). Ubuntu 24.04 ne
+#               fournit que Node.js 18.
+#   moteur      /etc/docker/daemon.json porte la rotation des journaux des
+#               conteneurs (log-driver json-file, log-opts max-size 50m et
+#               max-file 5 : CT-8 CO-8 n'admet pas logging dans les fichiers
+#               Compose ; revue de sécurité de l'étape 8) : fichier absent, écrit
+#               puis moteur relancé ; fichier présent avec ces réglages, déjà
+#               fait ; fichier présent sans eux, échec qui nomme les clés à
+#               ajouter (le script ne réécrit pas un réglage du client).
 #   groupe      --utilisateur ajouté au groupe docker (droits équivalents à
 #               ceux du superutilisateur, CT-8 IC-2) ; sans l'option, sudo
 #               devant chaque commande docker.
@@ -30,11 +42,14 @@
 #   verification  docker version, docker compose version, node --version,
 #               chronyc tracking (statut de saut Normal) ; avec --pv, chaque
 #               sortie dans <pv>/IC-2-*.txt, avec la liste des versions des
-#               paquets et la déclaration du cache d'écriture (EX-6.4).
+#               paquets et la déclaration du cache d'écriture (EX-6.4) ;
+#               chaque fichier du procès-verbal est créé en exclusivité
+#               (noclobber) après retrait d'un fichier du même nom : un lien
+#               posé à sa place n'est jamais suivi (CT-8 IC-2).
 #
 # --simulation : n'agit pas, n'exige pas root, dit pour chaque pas « déjà
-# fait » ou « à faire ». --os-release <fichier> remplace /etc/os-release
-# (essais seulement).
+# fait » ou « à faire ». --os-release <fichier> remplace /etc/os-release et
+# --daemon-json <fichier> remplace /etc/docker/daemon.json (essais seulement).
 # Codes : 0 hôte prêt ; 1 un pas a échoué ; 2 usage (ou sans root hors
 # simulation) ; 3 système non pris en charge ; 4 simulation : des pas restent
 # à faire.
@@ -61,7 +76,16 @@ stockage=""
 declaration_cache=""
 pv=""
 os_release="/etc/os-release"
+daemon_json="/etc/docker/daemon.json"
 reste=0
+# Rotation des journaux des conteneurs posée dans daemon.json (pas moteur).
+readonly JOURNAUX_MOTEUR='{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "50m",
+    "max-file": "5"
+  }
+}'
 
 usage() {
   echo "Usage : sudo bash deploiement/hote/preparer-hote.sh [--simulation] [--archive-node <fichier>] [--prefixe <répertoire>] [--utilisateur <nom>] [--stockage <point de montage>] [--declaration-cache <texte>] [--pv <répertoire>]" >&2
@@ -76,7 +100,7 @@ erreur_usage() {
 while [ $# -gt 0 ]; do
   case "$1" in
     --simulation) simulation=1; shift ;;
-    --archive-node|--prefixe|--utilisateur|--stockage|--declaration-cache|--pv|--os-release)
+    --archive-node|--prefixe|--utilisateur|--stockage|--declaration-cache|--pv|--os-release|--daemon-json)
       [ $# -ge 2 ] || erreur_usage "valeur manquante pour $1"
       case "$1" in
         --archive-node) archive_node="$2" ;;
@@ -86,6 +110,7 @@ while [ $# -gt 0 ]; do
         --declaration-cache) declaration_cache="$2" ;;
         --pv) pv="$2" ;;
         --os-release) os_release="$2" ;;
+        --daemon-json) daemon_json="$2" ;;
       esac
       shift 2 ;;
     *) erreur_usage "option inconnue : $1" ;;
@@ -154,34 +179,64 @@ version_node() {
   return 1
 }
 vn="$(version_node || true)"
+# Écart nommé quand un autre Node.js 22 est présent : la version livrée est exigée (CT-8 IC-2).
+ecart_node=""
 case "$vn" in
-  v22.*) dire node "déjà fait ($vn)" ;;
-  *)
-    if [ -z "$archive_node" ]; then
-      if [ "$simulation" -eq 1 ]; then
-        a_faire node "Node.js 22 absent (${vn:-aucun}) : --archive-node ${NOM_NODE}.tar.xz"
-      else
-        echec node "Node.js 22 absent (${vn:-aucun}) ; donner --archive-node ${NOM_NODE}.tar.xz (SHA-256 ${SHA256_NODE})"
-      fi
-    else
-      [ -f "$archive_node" ] || echec node "$archive_node introuvable"
-      somme="$(sha256sum "$archive_node" | cut -d' ' -f1)"
-      [ "$somme" = "$SHA256_NODE" ] || echec node "SHA-256 de $archive_node : $somme au lieu de $SHA256_NODE (archive refusée, rien n'est installé)"
-      if [ "$simulation" -eq 1 ]; then
-        a_faire node "extraire ${NOM_NODE} sous $prefixe/lib/nodejs"
-      else
-        install -d -m 0755 "$prefixe/lib/nodejs" "$prefixe/bin"
-        if [ ! -x "$prefixe/lib/nodejs/${NOM_NODE}/bin/node" ]; then
-          tar -xJf "$archive_node" -C "$prefixe/lib/nodejs" --no-same-owner || echec node "extraction de $archive_node"
-        fi
-        for b in node npm npx; do
-          ln -sfn "$prefixe/lib/nodejs/${NOM_NODE}/bin/$b" "$prefixe/bin/$b"
-        done
-        vn="$("$prefixe/bin/node" --version)" || echec node "node installé ne démarre pas"
-        case "$vn" in v22.*) dire node "fait ($vn)" ;; *) echec node "version $vn après installation" ;; esac
-      fi
-    fi ;;
+  "$VERSION_NODE") ;;
+  v22.*) ecart_node="Node.js $vn présent, version livrée ${VERSION_NODE} absente" ;;
+  *) ecart_node="Node.js 22 absent (${vn:-aucun} ; version livrée ${VERSION_NODE})" ;;
 esac
+if [ -z "$ecart_node" ]; then
+  dire node "déjà fait ($vn)"
+elif [ -z "$archive_node" ]; then
+  if [ "$simulation" -eq 1 ]; then
+    a_faire node "$ecart_node : --archive-node ${NOM_NODE}.tar.xz"
+  else
+    echec node "$ecart_node ; donner --archive-node ${NOM_NODE}.tar.xz (SHA-256 ${SHA256_NODE})"
+  fi
+else
+  [ -f "$archive_node" ] || echec node "$archive_node introuvable"
+  # Copie privée avant tout contrôle : ce qui est vérifié est ce qui est extrait (pas de relecture du chemin donné).
+  copie_node="$(mktemp -d)" || echec node "répertoire temporaire impossible"
+  trap 'rm -rf "$copie_node"' EXIT
+  cp -- "$archive_node" "$copie_node/${NOM_NODE}.tar.xz" || echec node "copie de $archive_node impossible"
+  somme="$(sha256sum "$copie_node/${NOM_NODE}.tar.xz" | cut -d' ' -f1)"
+  [ "$somme" = "$SHA256_NODE" ] || echec node "SHA-256 de $archive_node : $somme au lieu de $SHA256_NODE (archive refusée, rien n'est installé)"
+  if [ "$simulation" -eq 1 ]; then
+    a_faire node "$ecart_node : extraire ${NOM_NODE} sous $prefixe/lib/nodejs"
+  else
+    install -d -m 0755 "$prefixe/lib/nodejs" "$prefixe/bin"
+    if [ ! -x "$prefixe/lib/nodejs/${NOM_NODE}/bin/node" ]; then
+      tar -xJf "$copie_node/${NOM_NODE}.tar.xz" -C "$prefixe/lib/nodejs" --no-same-owner || echec node "extraction de $archive_node"
+    fi
+    for b in node npm npx; do
+      ln -sfn "$prefixe/lib/nodejs/${NOM_NODE}/bin/$b" "$prefixe/bin/$b"
+    done
+    vn="$("$prefixe/bin/node" --version)" || echec node "node installé ne démarre pas"
+    [ "$vn" = "$VERSION_NODE" ] && dire node "fait ($vn)" || echec node "version $vn après installation (${VERSION_NODE} attendue)"
+  fi
+  rm -rf "$copie_node"
+  trap - EXIT
+fi
+
+# --- moteur ----------------------------------------------------------------
+# Rotation des journaux des conteneurs (CO-8 n'admet pas `logging` dans les fichiers Compose).
+journaux_moteur_poses() {
+  [ -r "$daemon_json" ] || return 1
+  tr -d ' \n\t' < "$daemon_json" | grep -q '"log-driver":"json-file"' && tr -d ' \n\t' < "$daemon_json" | grep -q '"max-size":"' && tr -d ' \n\t' < "$daemon_json" | grep -q '"max-file":"'
+}
+if journaux_moteur_poses; then
+  dire moteur "déjà fait (rotation des journaux dans $daemon_json)"
+elif [ -e "$daemon_json" ] && [ -n "$(tr -d ' \n\t{}' < "$daemon_json")" ]; then
+  echec moteur "$daemon_json existe sans rotation des journaux : y ajouter \"log-driver\": \"json-file\" et \"log-opts\": {\"max-size\": \"50m\", \"max-file\": \"5\"} (le script ne réécrit pas un réglage existant)"
+elif [ "$simulation" -eq 1 ]; then
+  a_faire moteur "écrire la rotation des journaux dans $daemon_json puis relancer docker"
+else
+  install -d -m 0755 "$(dirname "$daemon_json")"
+  printf '%s\n' "$JOURNAUX_MOTEUR" > "$daemon_json.nouveau" && chmod 0644 "$daemon_json.nouveau" && mv -f "$daemon_json.nouveau" "$daemon_json" || echec moteur "écriture de $daemon_json"
+  systemctl restart docker || echec moteur "systemctl restart docker après l'écriture de $daemon_json"
+  dire moteur "fait (rotation des journaux dans $daemon_json, moteur relancé)"
+fi
 
 # --- groupe ----------------------------------------------------------------
 if [ -n "$utilisateur" ]; then
@@ -213,10 +268,18 @@ if [ "$simulation" -eq 1 ]; then
 fi
 
 # --- verification ----------------------------------------------------------
+# Écriture d'un fichier du procès-verbal : fichier (ou lien) du même nom retiré, puis création en
+# exclusivité (noclobber, O_EXCL) : un lien posé dans le répertoire n'est jamais suivi.
+ecrire_pv() {
+  local f="$pv/IC-2-$1.txt"; shift
+  [ -d "$pv" ] && [ ! -L "$pv" ] || echec verification "$pv n'est pas un répertoire"
+  rm -f -- "$f"
+  ( set -o noclobber; "$@" > "$f" 2>&1 )
+}
 consigner() {
   local nom="$1"; shift
   if [ -n "$pv" ]; then
-    "$@" > "$pv/IC-2-$nom.txt" 2>&1 || echec verification "$* (voir $pv/IC-2-$nom.txt)"
+    ecrire_pv "$nom" "$@" || echec verification "$* (voir $pv/IC-2-$nom.txt)"
   else
     "$@" >/dev/null 2>&1 || echec verification "$*"
   fi
@@ -236,12 +299,9 @@ fi
 [ "$saut" = "Normal" ] || echec verification "chronyc tracking : statut de saut ${saut:-illisible} (Normal attendu, R9-F41)"
 consigner chronyc-tracking chronyc tracking
 if [ -n "$pv" ]; then
-  dpkg-query -W -f='${binary:Package} ${Version}\n' "${PAQUETS[@]}" > "$pv/IC-2-paquets.txt"
+  ecrire_pv paquets dpkg-query -W -f='${binary:Package} ${Version}\n' "${PAQUETS[@]}" || echec verification "liste des paquets (voir $pv/IC-2-paquets.txt)"
   if [ -n "$stockage" ]; then
-    {
-      echo "stockage : $stockage ($type_fs)"
-      echo "cache d'écriture : ${declaration_cache:-NON DÉCLARÉ (EX-6.4 : déclaration et sa source à consigner)}"
-    } > "$pv/IC-2-stockage.txt"
+    ecrire_pv stockage printf '%s\n' "stockage : $stockage ($type_fs)" "cache d'écriture : ${declaration_cache:-NON DÉCLARÉ (EX-6.4 : déclaration et sa source à consigner)}" || echec verification "déclaration du stockage (voir $pv/IC-2-stockage.txt)"
   fi
 fi
 dire bilan "hôte prêt"

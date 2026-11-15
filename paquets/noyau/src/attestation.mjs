@@ -4,7 +4,7 @@
 // dossier. Ces vérifications sont signalées sans jamais rendre un dossier
 // invalide (CT-6 EX-5.11).
 
-import { concatener, decoderBase64Canonique, decoderHorodatage, hexVersOctets, octetsVersHex } from "./conventions.mjs";
+import { concatener, decoderBase64Canonique, decoderHorodatage, descriptionErreur, hexVersOctets, montrer, octetsVersHex } from "./conventions.mjs";
 import { ErreurJson, PROFONDEUR_V0, analyserJson, decoderUtf8, egaliteJson, jcsOctets } from "./json-strict.mjs";
 import { PREFIXES, keccak256, recouvrerAdresseEip191, sha256Hex, signerEip191 } from "./hachage.mjs";
 import { controlerEvenement, hashRecalcule } from "./controles-evenement.mjs";
@@ -163,12 +163,32 @@ export function verifierAttestationSignee(signee, jeu) {
  * dossier, avec leurs prérequis et raisons de non-exécution (CT-1 §11.4,
  * CT-6 EX-5.12), l'attestation retenue (CT-6 EX-6.19) et les avertissements
  * AV-AT- (CT-6 §5.5, dans l'ordre d'EX-6.15).
+ * Garde du point d'entrée (revue de sécurité, cause S-2) : une exception
+ * levée par une partie ou un contexte hostile ne sort jamais ; AT-1 échoue
+ * alors (« erreur interne »), AT-2 à AT-7 ne sont pas exécutées, rien n'est
+ * retenu (même forme que pour une partie manquante, CT-6 EX-5.11).
  * @param {Uint8Array} octets le fichier de la partie
  * @param {ContexteAttestation} contexte
  * @returns {{verifications: {id: string, status: string, reason: string|null, details: string[]}[],
  *   retenue: boolean, avertissements: string[], digest: string|null}}
  */
 export function verifierPartieAttestation(octets, contexte) {
+  try {
+    return controlerPartieAttestation(octets, contexte);
+  } catch (e) {
+    return {
+      verifications: [
+        statut("AT-1", "echoue", null, [`erreur interne du vérificateur : ${descriptionErreur(e)}`]),
+        ...VERIFICATIONS_PERIMETRE.slice(1).map((id) => statut(id, "non_execute", "prerequis_en_echec")),
+      ],
+      retenue: false,
+      avertissements: ["AV-AT-1"],
+      digest: null,
+    };
+  }
+}
+
+function controlerPartieAttestation(octets, contexte) {
   const { evenement, indexCles, approbations } = contexte;
   const res = new Map();
   const poser = (x) => res.set(x.id, x);
@@ -267,7 +287,7 @@ function verifierInscription(inscription, evenement, indexCles, digest, profonde
     const r = controles[id];
     if (r.statut !== "reussi") ecarts.push(`${id} ${r.statut === "echoue" ? "en échec" : "non exécuté"}${r.details.length ? " : " + r.details.join(" ; ") : ""}`);
   }
-  if (ins.execution?.tool !== NOMS_RESERVES.POLITIQUE) ecarts.push(`execution.tool ${ins.execution?.tool}, ${NOMS_RESERVES.POLITIQUE} attendu`);
+  if (ins.execution?.tool !== NOMS_RESERVES.POLITIQUE) ecarts.push(`execution.tool ${montrer(ins.execution?.tool)}, ${NOMS_RESERVES.POLITIQUE} attendu`);
   if (ins.org_id !== evenement.org_id || ins.journal_id !== evenement.journal_id) ecarts.push("org_id ou journal_id différent de celui de l'événement prouvé");
   const valeur = ins.execution?.arguments?.value;
   const document = decoderBase64Canonique(inscription.policy_document, TAILLE_MAX_DOCUMENT);
@@ -291,16 +311,18 @@ function verifierInscription(inscription, evenement, indexCles, digest, profonde
     }
   }
   const seqI = ins.seq;
-  if (!(seqI <= evenement.seq)) ecarts.push(`inscription seq ${seqI} postérieure à l'événement prouvé (seq ${evenement.seq})`);
-  else if (seqI === evenement.seq) {
+  // Comparaison d'entiers seulement : un seq mal typé ne tient pas la relation.
+  if (!(Number.isSafeInteger(seqI) && Number.isSafeInteger(evenement.seq) && seqI <= evenement.seq)) {
+    ecarts.push(`inscription seq ${montrer(seqI)} postérieure à l'événement prouvé (seq ${montrer(evenement.seq)}), ou mal typée`);
+  } else if (seqI === evenement.seq) {
     if (hash === null || hash !== hashRecalcule(evenement)) ecarts.push("inscription de même seq que l'événement prouvé mais de hash différent");
   }
   const tsI = decoderHorodatage(ins.ts);
   const tsE = decoderHorodatage(evenement.ts);
-  if (tsI === null || tsE === null || tsI > tsE) ecarts.push(`inscription ts ${ins.ts} postérieur à celui de l'événement prouvé ${evenement.ts}`);
+  if (tsI === null || tsE === null || tsI > tsE) ecarts.push(`inscription ts ${montrer(ins.ts)} postérieur à celui de l'événement prouvé ${montrer(evenement.ts)}`);
   if (ecarts.length) return statut("AT-6", "echoue", null, ecarts);
   if (ins.recorder_key_id !== evenement.recorder_key_id) {
-    return statut("AT-6", "non_execute", "ancre_absente", [`inscription signée par ${ins.recorder_key_id}, événement prouvé par ${evenement.recorder_key_id}`]);
+    return statut("AT-6", "non_execute", "ancre_absente", [`inscription signée par ${montrer(ins.recorder_key_id)}, événement prouvé par ${montrer(evenement.recorder_key_id)}`]);
   }
   return statut("AT-6", "reussi", null, [`seq ${seqI}, clé ${ins.recorder_key_id}`]);
 }
@@ -324,7 +346,9 @@ function conclure(res, partie, contexte, digest) {
   if (st("AT-4").status === "reussi" && contexte.approbations && partie) {
     const a = contexte.approbations.approver_set;
     const b = partie.approver_set;
-    const memes = new Set(a.members).size === new Set(b.members).size && b.members.every((m) => a.members.includes(m));
+    // Même ensemble de membres, par table (CT-1 A-3) ; les deux jeux ont passé leur schéma (chaînes).
+    const membresA = new Set(a.members);
+    const memes = membresA.size === new Set(b.members).size && b.members.every((m) => membresA.has(m));
     if (!memes || !egaliteJson(a.threshold, b.threshold)) leves.push({ check: "AT-4", id: "AV-AT-2" });
   }
   if (st("AT-7").status === "non_execute" && st("AT-7").reason === "piece_hors_dossier") leves.push({ check: "AT-7", id: "AV-AT-3" });

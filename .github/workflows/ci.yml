@@ -11,14 +11,14 @@ permissions:
 jobs:
   tests:
     name: contracts, journal, verifiers
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22.23.4
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       # audit npm des dépendances de production, outils de développement exclus :
       # toute alerte, quelle que soit sa gravité, fait échouer le travail (SECURITY.md)
       - run: npm audit --omit=dev --audit-level=low
@@ -39,11 +39,39 @@ jobs:
           "$d/x/promtool" check rules deploiement/observabilite/regles-noortrace.yml
           "$d/x/promtool" test rules deploiement/observabilite/tests-regles.yml
           echo "NOORTRACE_PROMTOOL=$d/x/promtool" >> "$GITHUB_ENV"
-      - run: npm test
+      # CT-8 IC-2 (CT-9 TE-7) : archive officielle de Node.js 22.23.4 (version publiée
+      # le 2026-10-20), vérifiée par le SHA-256 que deploiement/hote/preparer-hote.sh
+      # épingle, puis passée aux essais (NOORTRACE_ARCHIVE_NODE) : l'installation de
+      # Node.js sur l'hôte simulé de test/deploiement-installation.test.js tourne
+      # sans attente.
+      - name: archive officielle de Node.js 22.23.4 (CT-8 IC-2), SHA-256 épinglé vérifié
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d)"
+          curl -fsSL -o "$d/node-v22.23.4-linux-x64.tar.xz" \
+            https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-x64.tar.xz
+          echo "1805bcd35e6815559bd2eb97db438d3fdb0eb3a5e6a977b7c1badca76337e9ce  $d/node-v22.23.4-linux-x64.tar.xz" | sha256sum --strict -c -
+          echo "NOORTRACE_ARCHIVE_NODE=$d/node-v22.23.4-linux-x64.tar.xz" >> "$GITHUB_ENV"
+      # Revue de sécurité de l'étape 8 (CT-9 EX-5.4, garde des attentes) : la suite
+      # entière, puis la garde des essais en attente : aucun échec, et chaque essai
+      # en attente nomme sa condition, qui est une des attentes admises de
+      # scripts/tests/attentes.mjs (ressources fournies par d'autres travaux ou par
+      # la phase 2) ; un essai vidé ou sauté sans condition fait échouer le travail ;
+      # puis la garde des répertoires temporaires (scripts/tests/temporaires.mjs) :
+      # une entrée nouvelle d'un préfixe du dépôt (noortrace-*, préfixes courts des
+      # prises Unix, liste PREFIXES) dans le répertoire temporaire fait échouer le
+      # travail.
+      - name: npm test, puis garde des essais en attente (attentes admises nommées) et des répertoires temporaires
+        run: |
+          set -o pipefail
+          node scripts/tests/temporaires.mjs releve "$RUNNER_TEMP/temporaires-avant.txt"
+          npm test 2>&1 | tee "$RUNNER_TEMP/npm-test.txt"
+          node scripts/tests/attentes.mjs "$RUNNER_TEMP/npm-test.txt"
+          node scripts/tests/temporaires.mjs comparer "$RUNNER_TEMP/temporaires-avant.txt"
 
   vecteurs:
     name: vecteurs CT-1 à CT-9, régénération déterministe et implémentations indépendantes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -55,7 +83,7 @@ jobs:
           go-version-file: spec/vecteurs/ct-2/verificateur-independant/go.mod
           # bibliothèque standard seulement : aucun go.sum, rien à mettre en cache
           cache: false
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: regenerate the CT-1 vectors and require identical bytes
         run: |
           npm run vecteurs:ct1
@@ -364,7 +392,7 @@ jobs:
   # d'EX-14.5 ; unshare -n demande les droits du superutilisateur, d'où sudo.
   verificateur:
     name: binaire vérificateur Go de CT-6 §14, vecteurs CT-1 et CT-6, construction reproductible, absence de réseau
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       GOTOOLCHAIN: local
       GOFLAGS: -mod=vendor
@@ -444,7 +472,7 @@ jobs:
         with:
           node-version: 22.23.4
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: installer Playwright 1.56.1 hors de package.json, puis Chromium et ses dépendances
         run: |
           npm install --no-save playwright@1.56.1
@@ -459,6 +487,14 @@ jobs:
           set -o pipefail
           npx hardhat --config hardhat.config.mjs test test/console.test.js 2>&1 | tee "$RUNNER_TEMP/console.txt"
           if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/console.txt"; then exit 1; fi
+      # TA-35 et TA-52 (étape 8) : la page de référence dans Chromium, mutants de la
+      # page et des pages livrées tués ; sous NOORTRACE_EXIGER_CHROMIUM=1, aucune attente.
+      - name: tests adversariaux TA-35 et TA-52 dans Chromium, aucun essai en attente
+        run: |
+          set -o pipefail
+          npx hardhat --config hardhat.config.mjs test test/adversarial.test.js --grep "TA-(35|52) " 2>&1 | tee "$RUNNER_TEMP/adversarial-chromium.txt"
+          if grep -E '^[[:space:]]+[0-9]+ (pending|failing)' "$RUNNER_TEMP/adversarial-chromium.txt"; then exit 1; fi
+          grep -E '^[[:space:]]+2 passing' "$RUNNER_TEMP/adversarial-chromium.txt"
 
   # Étape 6 : console d'exploitation (paquets/console), page de vérification
   # (paquets/verification-web, CT-6 §18) et parcours du critère de livraison
@@ -493,7 +529,7 @@ jobs:
         with:
           go-version: 1.27.3
           cache: false
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: espaces de noms d'utilisateur pour unshare --root (arbre /entrees de CT-6 EX-18.10), outils des recettes d'archives
         run: |
           if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
@@ -530,6 +566,15 @@ jobs:
           export NOORTRACE_GO_BIN="$(dirname "$(command -v go)")"
           npx hardhat --config hardhat.config.mjs test test/verification-page-chromium.test.js 2>&1 | tee "$RUNNER_TEMP/page.txt"
           if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/page.txt"; then exit 1; fi
+      # Revue de l'étape 8 (EX-18.7, EX-18.9, EX-18.11, EX-18.13) : bornes des chemins
+      # et des fichiers, arrêt par l'utilisateur, chaînes rendues visibles, dans les
+      # trois moteurs.
+      - name: page de vérification, essais de la revue de l'étape 8 dans Chromium, Firefox et WebKit, aucun essai en attente
+        run: |
+          set -o pipefail
+          export NOORTRACE_GO_BIN="$(dirname "$(command -v go)")"
+          npx hardhat --config hardhat.config.mjs test test/verification-page-revue-navigateurs.test.js 2>&1 | tee "$RUNNER_TEMP/page-revue.txt"
+          if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/page-revue.txt"; then exit 1; fi
       - name: page de vérification, identité avec le binaire natif dans /entrees (CT-6 EX-18.10), aucun essai en attente
         run: |
           set -o pipefail
@@ -569,7 +614,7 @@ jobs:
   # ligne « pending » du rapport, comme le travail Chromium.
   sdk-python:
     name: SDK Python et adaptateurs de cadres (Python 3.10, 3.12, 3.13 par uv 0.11.32, go1.27.3), sans essai en attente
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       GOTOOLCHAIN: local
     steps:
@@ -586,7 +631,7 @@ jobs:
         with:
           version: 0.11.32
           enable-cache: false
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: interpréteurs Python 3.10, 3.12 et 3.13 par uv, environnements d'essai depuis les verrous versionnés
         run: |
           uv --version
@@ -631,7 +676,7 @@ jobs:
         with:
           go-version: 1.27.3
           cache: false
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: SoftHSM2, swtpm et tpm2-tools par apt, versions imprimées
         run: |
           for essai in 1 2 3; do
@@ -678,7 +723,7 @@ jobs:
         with:
           go-version: 1.27.3
           cache: false
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: binaire vérificateur Go construit par verificateur/scripts/construire.sh (go1.27.3) et python-opentimestamps 0.4.5
         run: |
           test "$(go env GOVERSION)" = go1.27.3
@@ -693,6 +738,122 @@ jobs:
           NOORTRACE_VERIFIER_BIN="$RUNNER_TEMP/noortrace-verifier" NOORTRACE_GO_BIN="$(dirname "$(command -v go)")" NOORTRACE_OTS_PYTHON="$RUNNER_TEMP/venv-ots/bin/python" \
             npx hardhat --config hardhat.config.mjs test $(ls test/ancrage-*.test.js test/enregistreur-ancrage-*.test.js) test/enregistreur-journal-soi.test.js test/enregistreur-cle-chaine-etape7.test.js 2>&1 | tee "$RUNNER_TEMP/ancrage.txt"
           node scripts/tests/attentes-ancrage.mjs "$RUNNER_TEMP/ancrage.txt"
+
+  # Supervision en marche (CT-8 §10.2, EX-10.4, EX-10.10 ; CT-9 TE-17, TM-34,
+  # TM-35, part du collecteur de TA-29 et de TA-75) : le binaire prometheus
+  # 3.5.0 vient de la même archive officielle que promtool, vérifiée par son
+  # SHA-256 avant extraction (même empreinte que le travail `tests`, où ces
+  # essais sont en attente, condition nommée). TE-17 se joue en temps réel, à
+  # l'intervalle d'évaluation de la collecte de référence (une trentaine de
+  # minutes) ; sa provocation « stockage » exige un système de fichiers que rien
+  # d'autre n'emploie : un tmpfs monté pour le travail. Le dossier exporté sous
+  # charge est vérifié par le binaire vérificateur Go. Aucun essai en attente.
+  supervision:
+    name: supervision en marche, collecteur Prometheus 3.5.0 sous charge (TE-17, TM-34, TM-35), aucun essai en attente
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.23.4
+          cache: npm
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: 1.27.3
+          cache: false
+      - run: npm ci --ignore-scripts
+      - name: prometheus et promtool 3.5.0 de l'archive officielle (CT-8 EX-10.10), SHA-256 vérifié avant extraction
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/prometheus"
+          mkdir -p "$d/x"
+          curl -fsSL -o "$d/prometheus.tar.gz" \
+            https://github.com/prometheus/prometheus/releases/download/v3.5.0/prometheus-3.5.0.linux-amd64.tar.gz
+          echo "e811827af26d822afb09a4f28314f61b618b12cff5369835a67f674d8b46f39a  $d/prometheus.tar.gz" | sha256sum --strict -c -
+          tar -xzf "$d/prometheus.tar.gz" -C "$d/x" --strip-components=1 prometheus-3.5.0.linux-amd64/promtool prometheus-3.5.0.linux-amd64/prometheus
+          "$d/x/prometheus" --version
+          "$d/x/promtool" --version
+          echo "NOORTRACE_PROMETHEUS=$d/x/prometheus" >> "$GITHUB_ENV"
+          echo "NOORTRACE_PROMTOOL=$d/x/promtool" >> "$GITHUB_ENV"
+      - name: binaire vérificateur Go construit par verificateur/scripts/construire.sh (go1.27.3)
+        run: |
+          test "$(go env GOVERSION)" = go1.27.3
+          GOFLAGS=-mod=vendor verificateur/scripts/construire.sh -o "$RUNNER_TEMP/noortrace-verifier"
+          test -x "$RUNNER_TEMP/noortrace-verifier"
+          echo "NOORTRACE_VERIFIER_BIN=$RUNNER_TEMP/noortrace-verifier" >> "$GITHUB_ENV"
+      - name: système de fichiers en mémoire réservé au stockage du démon de TE-17
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/stockage-te17"
+          sudo mount -t tmpfs -o size=1g,mode=1777 tmpfs "$RUNNER_TEMP/stockage-te17"
+          df -h "$RUNNER_TEMP/stockage-te17"
+          echo "NOORTRACE_SUPERVISION_STOCKAGE=$RUNNER_TEMP/stockage-te17" >> "$GITHUB_ENV"
+      - name: test/supervision-collecteur.test.js sous Prometheus 3.5.0 (TE-17 entier, TM-34, TM-35), aucun essai en attente
+        run: |
+          set -o pipefail
+          npx hardhat --config hardhat.config.mjs test test/supervision-collecteur.test.js 2>&1 | tee "$RUNNER_TEMP/supervision.txt"
+          grep -E '^[[:space:]]+[0-9]+ passing' "$RUNNER_TEMP/supervision.txt"
+          if grep -E '^[[:space:]]+[0-9]+ (pending|failing)' "$RUNNER_TEMP/supervision.txt"; then exit 1; fi
+
+  # Intégrations (CT-9 TI-4 à TI-11, CT-2 §19.5) contre les simulateurs : démon
+  # réel avec la configuration de démonstration ramenée à l'hôte, SDK et cadres
+  # dans des environnements Python créés par uv depuis les verrous versionnés
+  # (versions exactes, empreintes SHA-256 exigées, rien de publié depuis moins
+  # de deux semaines) ; les deux SDK JavaScript sont installés à version exacte
+  # hors de package.json, comme Playwright ; réseau de l'hôte relevé par strace,
+  # dossiers vérifiés sans réseau (unshare -rn) par les deux vérificateurs.
+  # Ni Docker ni le réseau 2124. Seule attente admise : Claude Code (commande
+  # `claude`), absent de l'exécuteur (19.5.2).
+  integrations:
+    name: intégrations TI-4 à TI-11 contre les simulateurs (uv 0.11.32, go1.27.3), seule attente admise Claude Code
+    runs-on: ubuntu-24.04
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.23.4
+          cache: npm
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: 1.27.3
+          cache: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          version: 0.11.32
+          enable-cache: false
+      - run: npm ci --ignore-scripts
+      - name: SDK JavaScript @anthropic-ai/sdk 1.3.0 et @google/genai 2.31.0 hors de package.json, strace et unshare
+        run: |
+          npm install --no-save --ignore-scripts @anthropic-ai/sdk@1.3.0 @google/genai@2.31.0
+          sudo apt-get install -y strace util-linux
+          strace -V
+          unshare --version
+      - name: environnements Python des intégrations et des cadres depuis les verrous versionnés
+        run: |
+          uv --version
+          uv python install 3.12
+          test/fixtures/integrations/environnements.sh preparer
+          paquets/sdk-python/outils/environnements.sh preparer openai-agents crewai litellm-mandataire
+      - name: binaire vérificateur Go construit par verificateur/scripts/construire.sh (go1.27.3)
+        run: |
+          test "$(go env GOVERSION)" = go1.27.3
+          GOFLAGS=-mod=vendor verificateur/scripts/construire.sh -o "$RUNNER_TEMP/noortrace-verifier"
+          test -x "$RUNNER_TEMP/noortrace-verifier"
+      - name: test/integrations.test.js, seule attente admise Claude Code
+        run: |
+          set -o pipefail
+          NOORTRACE_VERIFIER_BIN="$RUNNER_TEMP/noortrace-verifier" npx mocha --exit --timeout 900000 test/integrations.test.js 2>&1 | tee "$RUNNER_TEMP/integrations.txt"
+          grep -E '^[[:space:]]+[0-9]+ passing' "$RUNNER_TEMP/integrations.txt"
+          if grep -E '^[[:space:]]+[0-9]+ failing' "$RUNNER_TEMP/integrations.txt"; then exit 1; fi
+          attentes=$(grep -cE '^[[:space:]]+- ' "$RUNNER_TEMP/integrations.txt" || true)
+          admises=$(grep -cE '^[[:space:]]+- .*en attente : Claude Code \(commande `claude`\) absent' "$RUNNER_TEMP/integrations.txt" || true)
+          echo "attentes : $attentes ; admises (Claude Code) : $admises"
+          test "$attentes" = "$admises"
 
   # Images noortrace/* de l'étape 7 (CT-8 §3.3, §3.6, EX-4.4 ; conteneurs/) :
   # construction double, sans cache, depuis deux copies des sources, par
@@ -722,7 +883,7 @@ jobs:
         with:
           go-version: 1.27.3
           cache: false
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: magasin d'images containerd du démon Docker (celui du magasin classique ignore rewrite-timestamp)
         run: |
           set -euo pipefail
@@ -776,14 +937,14 @@ jobs:
   # dernière étape du travail.
   confrontation:
     name: vecteurs CT-2, CT-3, CT-5, CT-6, CT-7 et CT-8 confrontés à openssl, à python-opentimestamps, à transparency-dev/merkle, à google-genai, à opentelemetry-proto, à ethers, à eth-account, à GNU tar et à tarfile
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22.23.4
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       # CT-3 (annexe A.11, EX-A.18, EX-A.19) : chaque signature des vecteurs
       # (votes, remises, normalisation, console, inscriptions) recouvrée par
       # verifyMessage d'ethers, version du dépôt, après le contrôle de forme du

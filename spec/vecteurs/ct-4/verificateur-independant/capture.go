@@ -100,8 +100,12 @@ func (c *Ctx) VerifierCapture(rep, nomIndex string, jeu *JeuValidateurs, bft str
 		if nomAttendu != "" && nom != nomAttendu {
 			cp6 = append(cp6, fmt.Sprintf("fichier %s au lieu de %s", nom, nomAttendu))
 		}
-		if strings.ContainsAny(nom, "/\\") {
+		if strings.ContainsAny(nom, "/\\") || nom == "" || nom == "." || nom == ".." {
+			// Table de 9.3 (révision 0.8 de CT-4) : le nom de chaque fichier
+			// de la capture est contrôlé avant toute lecture ; un nom hors du
+			// répertoire des captures n'est jamais lu.
 			cp6 = append(cp6, "fichier "+nom+" hors du répertoire des captures")
+			return nil, fmt.Errorf("nom %q hors du répertoire des captures : non lu", nom)
 		}
 		b, err := os.ReadFile(filepath.Join(rep, nom))
 		if err != nil {

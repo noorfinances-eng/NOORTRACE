@@ -311,10 +311,10 @@ describe("enregistreur, cœur : configuration, démarrage et refus", function ()
   });
 });
 
-// Défauts démontrés par la relecture adversariale A : configuration (R-A-7,
-// R-A-8, soupçon `worm.credentials`), horloge au tic (R-A-2), commandes
-// `noortrace-ctl reload` et `noortrace-ctl clock --accept` (R-A-10).
-describe("enregistreur, cœur : non-régression de la relecture A (configuration, horloge, noortrace-ctl)", function () {
+// Défauts démontrés par la relecture adversariale du cœur : configuration (EX-18.8,
+// EX-3.5, soupçon `worm.credentials`), horloge au tic, commandes
+// `noortrace-ctl reload` et `noortrace-ctl clock --accept`.
+describe("enregistreur, cœur : non-régression de la relecture adversariale du cœur (configuration, horloge, noortrace-ctl)", function () {
   this.timeout(60000);
   const BIN_CTL = path.join(path.dirname(BIN_NOORTRACE), "noortrace-ctl");
   const valider = (c) => {
@@ -324,7 +324,7 @@ describe("enregistreur, cœur : non-régression de la relecture A (configuration
   };
 
   describe("validate-config, production (EX-15.4 pas 3)", function () {
-    it("R-A-8, EX-3.5 : serveur stdio sans user ni integrity, ou sous l'utilisateur du démon, ou commande sans le paquet épinglé → refus", function () {
+    it("EX-3.5 : serveur stdio sans user ni integrity, ou sous l'utilisateur du démon, ou commande sans le paquet épinglé → refus", function () {
       const base = configurationExemple();
       expect(valider(base).code, "exemple de 15.3").to.equal(0);
       const c1 = structuredClone(base);
@@ -342,7 +342,7 @@ describe("enregistreur, cœur : non-régression de la relecture A (configuration
       expect(valider(c3).sortie).to.match(/transport\/command : la commande ne contient pas tel quel le paquet épinglé \(EX-3\.5\)/);
     });
 
-    it("R-A-7, EX-18.8 : service d'approbation en HTTP sans jeton (aucun mTLS en v0), prise Unix sans peer_user ni jeton, HTTP sans TLS hors de la boucle locale → refus, en production comme en développement", function () {
+    it("EX-18.8 : service d'approbation en HTTP sans jeton (aucun mTLS en v0), prise Unix sans peer_user ni jeton, HTTP sans TLS hors de la boucle locale → refus, en production comme en développement", function () {
       const base = configurationExemple();
       const c1 = structuredClone(base);
       c1.policy.approval.service = { url: "http://approbation.interne.example:8080", socket: null, token: null, peer_user: null };
@@ -375,7 +375,7 @@ describe("enregistreur, cœur : non-régression de la relecture A (configuration
     });
   });
 
-  describe("horloge au tic (R-A-2, EX-7.13, EX-12.24)", function () {
+  describe("horloge au tic (EX-7.13, EX-12.24)", function () {
     const p = pieceJson({ x: 2 });
     const echange = (coeur) => coeur.scellerEchange({ delegation: { launched_by: "x", on_behalf_of: null, scope: "s", run_id: null }, code: { model: null, prompt_version: null }, intent: null, requete: p.reference, reponse: p.reference, duration_ms: 1, is_error: false });
     async function demarrer() {
@@ -433,7 +433,7 @@ describe("enregistreur, cœur : non-régression de la relecture A (configuration
     });
   });
 
-  describe("noortrace-ctl reload et clock --accept (R-A-10, EX-15.5, EX-7.13)", function () {
+  describe("noortrace-ctl reload et clock --accept (EX-15.5, EX-7.13)", function () {
     function ctl(args) {
       return new Promise((r) => {
         const x = spawn(process.execPath, [BIN_CTL, ...args], { stdio: ["ignore", "pipe", "pipe"] });

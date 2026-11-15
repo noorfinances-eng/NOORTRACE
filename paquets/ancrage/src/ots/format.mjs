@@ -55,6 +55,9 @@ export const BORNES = Object.freeze({
   OPERATIONS_PAR_CHEMIN_MAX: 255, // R2-F18
   HAUTEUR_MAX: 0xffffffff, // EX-10.2 : hauteur < 2^32
   REPONSE_CALENDRIER_MAX: 10000, // CT-5 EX-6.2, EX-6.6 (R1-F63)
+  // Revue de sécurité de l'étape 8 (O-4) : écart admis entre la plus petite et la plus grande hauteur attestées d'une preuve (deux
+  // réajustements de difficulté, quatre semaines) ; au-delà, la plage d'en-têtes n'est pas demandée au nœud.
+  ECART_HAUTEURS_MAX: 4032,
 });
 
 const CARACTERES_URI = /^[A-Za-z0-9\-._/:]*$/;
@@ -310,17 +313,22 @@ function lireAttestation(lecteur) {
  * @param {number} operationsRestantes
  * @returns {Noeud}
  */
+/** Clé d'une attestation ou d'une opération pour le contrôle de doublon (CT-6 O-4 : table, non parcours). */
+const cleOctets = (prefixe, ...parties) => prefixe + parties.map((p) => (p === null ? "-" : Buffer.from(p).toString("hex"))).join(":");
+
 function lireArbre(lecteur, operationsRestantes) {
   const noeud = new Noeud();
+  const attestationsVues = new Set();
+  const operationsVues = new Set();
   const lireBranche = (etiquette) => {
     if (etiquette === 0x00) {
       const position = lecteur.position;
       const attestation = lireAttestation(lecteur);
       // Un doublon n'a pas de forme canonique (ensemble dans la bibliothèque
       // de référence) : il ouvrirait une divergence entre analyseurs.
-      if (noeud.attestations.some((a) => memesOctets(a.etiquette, attestation.etiquette) && memesOctets(a.charge, attestation.charge))) {
-        throw new ErreurOts("doublon", "attestation en double sous un même nœud", position);
-      }
+      const cle = cleOctets("a", attestation.etiquette, attestation.charge);
+      if (attestationsVues.has(cle)) throw new ErreurOts("doublon", "attestation en double sous un même nœud", position);
+      attestationsVues.add(cle);
       noeud.attestations.push(attestation);
       return;
     }
@@ -329,9 +337,11 @@ function lireArbre(lecteur, operationsRestantes) {
     if (operationsRestantes === 0) throw new ErreurOts("profondeur", "plus de 255 opérations sur un chemin", lecteur.position - 1);
     const position = lecteur.position - 1;
     const argument = BINAIRES.has(etiquette) ? Uint8Array.from(lecteur.varbytes(BORNES.ARGUMENT_MIN, BORNES.ARGUMENT_MAX)) : null;
-    if (noeud.operations.some((o) => o.code === etiquette && (o.argument === null ? argument === null : argument !== null && memesOctets(o.argument, argument)))) {
+    const cleOperation = cleOctets(`o${etiquette}:`, argument);
+    if (operationsVues.has(cleOperation)) {
       throw new ErreurOts("doublon", "opération en double sous un même nœud (la bibliothèque de référence écraserait la première branche)", position);
     }
+    operationsVues.add(cleOperation);
     const sous = lireArbre(lecteur, operationsRestantes - 1);
     noeud.operations.push({ code: etiquette, argument, noeud: sous });
   };
@@ -551,8 +561,11 @@ export function appliquerOperation(code, argument, message) {
  */
 export function fusionnerOts(preuve, { engagement, chemin, uri }) {
   const { empreinte, arbre } = lireOts(preuve);
-  const e = typeof engagement === "string" ? hexVersOctets(engagement, 32) : engagement;
-  if (!(e instanceof Uint8Array) || e.length !== 32) throw new ErreurOts("engagement", "engagement de 32 octets attendu");
+  // L'engagement du nœud en attente est le message de ce nœud après les opérations d'agrégation du calendrier
+  // (`sub_stamp.msg` du client officiel, R1-F62) : 44 octets observés sur les calendriers publics (campagne
+  // TM-30), 32 seulement quand le calendrier répond par une attestation nue. Bornes d'O-3 (défaut relevé par TM-30).
+  const e = typeof engagement === "string" ? hexVersOctets(engagement, (engagement.length - 2) / 2) : engagement;
+  if (!(e instanceof Uint8Array) || e.length < 1 || e.length > BORNES.MESSAGE_MAX) throw new ErreurOts("engagement", `engagement de 1 à ${BORNES.MESSAGE_MAX} octets attendu`);
   const recu = chemin instanceof Noeud ? chemin : lireTimestamp(chemin);
   const copie = arbre.copier();
   const cibles = attestationsEnAttente(copie, empreinte).filter((c) => memesOctets(c.message, e) && (uri === undefined || c.attestation.uri === uri));

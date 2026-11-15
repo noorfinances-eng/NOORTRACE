@@ -1,5 +1,5 @@
 // Rejeu de bout en bout des vecteurs du frontal modèle (CT-2 annexe B.5,
-// B.6) par la passerelle du démon (@noortrace/enregistreur, lot « frontal
+// B.6) par la passerelle du démon (@noortrace/enregistreur, partie « frontal
 // modèle », src/modele/), écrite d'après le seul texte de la spécification :
 //
 //   - pieces-modele/* : chaque cas traverse la passerelle réelle (HTTP sur
@@ -11,7 +11,7 @@
 //     pièces stockées octet pour octet et les champs de l'événement scellé ;
 //     les cas gemini-sdk-* (échange déclaré par le SDK, EX-6.8) sont rejoués
 //     par les fonctions de dérivation du frontal (consolidation des morceaux,
-//     pièces, extraction), l'entrée SDK étant au lot « SDK » ;
+//     pièces, extraction), l'entrée SDK étant à la partie « SDK » ;
 //   - evenements/journal-demo : échanges de seq 2, 4 et 8 (pièces, intent,
 //     code, is_error de l'événement publié) et corrélation de seq 3 et 5
 //     (EX-5.22) par le registre de corrélation.
@@ -160,7 +160,7 @@ describe("enregistreur, frontal modèle : vecteurs CT-2 rejoués de bout en bout
         const R = `pieces-modele/${nom}`;
         const a = json(`${R}/attendu.json`);
         const sdk = json(`${R}/echange-sdk.json`);
-        // EX-6.8 pas 3 (entrée du SDK, lot suivant) : membres propres au SDK retirés.
+        // EX-6.8 pas 3 (entrée du SDK, partie suivante) : membres propres au SDK retirés.
         const retires = [];
         const morceaux = json(`${R}/reponse-morceaux.json`).map((m) => {
           const c = { ...m };

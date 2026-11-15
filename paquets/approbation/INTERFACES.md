@@ -1,7 +1,7 @@
 # Interfaces du service d'approbation
 
 Ce document s'adresse à ceux qui raccordent le service : le démon
-`noortrace` (lot moteur de politique, rubrique d de
+`noortrace` (partie moteur de politique, rubrique d de
 `paquets/enregistreur/INTERFACES.md`) et la console de l'étape 6 (CT-3 §13,
 canal de 12.9). Avec CT-3 et `ticket-v0`, il suffit.
 
@@ -23,12 +23,12 @@ authentification refusée : 401, `requete_invalide`.
 
 | Méthode | Requête | Réponse | Erreurs propres |
 |---|---|---|---|
-| `charger` | `{ org_id, journal_id, environment, policy_version, policy_sha256, approval: { rules, mode, hold_timeout_ms, expire_after_ms, timeout_ms }, tools, requesters }` (sans `service`) | `{ policy_version, policy_sha256, approval_candidates }` (triés) | `politique_invalide` (`data.errors`, toutes, triées), `requete_invalide` (autre journal, version déjà chargée sous une autre empreinte) |
-| `evaluer` | `$defs/requete_evaluer` (CT-2 EX-7.4) ; `intent` chaîne ou `null` | les six membres de 12.3 ; sept combinaisons d'EX-7.16, ou celle d'EX-12.20 en observation | `non_pret`, `politique_inconnue`, `plafond_atteint` |
-| `ouvrir` | `{ ticket, request_hash, request_seq, request_ts, request_event, arguments_piece }` | `{ ticket, state, deadline }` | `ticket_inconnu`, `ticket_deja_ouvert` (`data.request_hash`), `requete_invalide` (événement ou pièce qui ne correspond pas, `request_ts` futur) |
+| `charger` | `{ org_id, journal_id, environment, policy_version, policy_sha256, approval: { rules, mode, hold_timeout_ms, expire_after_ms, timeout_ms }, tools, requesters }` (sans `service`) | `{ policy_version, policy_sha256, approval_sha256, approval_candidates }` (triés ; `approval_sha256` : SHA-256 du JCS du membre `approval` reçu, calculé par le service, addendum du 14 novembre) | `politique_invalide` (`data.errors`, toutes, triées), `requete_invalide` (autre journal ; version déjà chargée sous une autre empreinte ; CT-3 EX-12.5 : politique différente à empreinte égale, `environment` différent de celui du service) |
+| `evaluer` | `$defs/requete_evaluer` (CT-2 EX-7.4) ; `intent` chaîne ou `null` | les neuf membres de 12.3 (révision 0.5 : `policy_version` et `policy_sha256` de la version chargée sous laquelle la réponse est rendue, recopiés du `charger` — version de la requête pour une évaluation et un ticket `nouveau`, version du ticket pour un ticket rapproché — et `approval_sha256`, calculé par le service au `charger` de cette version, `Machine.couplePolitique`) ; sept combinaisons d'EX-7.16, ou celle d'EX-12.20 en observation | `non_pret`, `politique_inconnue`, `plafond_atteint` |
+| `ouvrir` | `{ ticket, request_hash, request_seq, request_ts, request_event, arguments_piece }` | `{ ticket, state, deadline }` | `ticket_inconnu`, `ticket_deja_ouvert` (`data.request_hash`), `requete_invalide` (événement ou pièce qui ne correspond pas, `request_ts` futur, `request_ts` hors du calendrier ou hors de l'intervalle admis, refusé avant tout effet, comme `at` d'`acquitter` et d'`expiration`) |
 | `decisions` | `{ wait_ms }` (0 à 25 000) | `{ remises: [ $defs/remise ] }`, au plus une par ticket, dans l'ordre de calcul | — |
 | `acquitter` | `{ remise_id, ticket, result, reason, seq, hash, at, decision, held, approval }` | `{ ticket, state }` | `requete_invalide` (remise inconnue, données différentes d'une décision scellée) |
-| `consommer` | `{ ticket, seq, hash }` | `{ ticket, state: "consomme" }` ou `"clos"` (T22) | `requete_invalide`, `ticket_inconnu` (finales, CT-2 EX-7.20) |
+| `consommer` | `{ ticket, seq, hash }` | `{ ticket, state: "consomme" }` ou `"clos"` (T22) | `requete_invalide`, `ticket_inconnu` (finales, CT-2 EX-7.20 ; CT-3 EX-7.24 : un ticket terminal archivé sept jours après sa dernière transition est `ticket_inconnu` pour toute méthode) |
 | `expiration` | `{ ticket, seq, hash, at, approval }` | `{ ticket, state: "expire" }` | `requete_invalide` |
 | `GET /v0/etat` | — | `{ ready, set_read_at, open_tickets }` (EX-12.12) | — |
 
@@ -50,6 +50,9 @@ Comportements sur lesquels le démon peut compter :
 ## b) Canal de la console (CT-3 12.9)
 
 Écoute distincte (`console` de la configuration), jeton distinct (ou mTLS).
+La validation de configuration refuse (`canaux_meme_autorite_sans_jeton`,
+CT-3 EX-12.5) deux canaux en mTLS avec la même autorité de clients qu'aucun jeton ne
+distingue : sans cela un certificat d'un canal ouvre l'autre.
 Les quatorze méthodes d'EX-12.13 sont servies depuis l'étape 6 ; leur table,
 l'ordre de leurs refus et leurs statuts HTTP sont à la rubrique e.2. Les
 méthodes du noyau y sont refusées (`requete_invalide`, EX-12.13), et
@@ -83,7 +86,7 @@ await inst.arreter()
 - **Notifications** : documents `$defs/notification` de
   `configuration-approbation-v0`, inscrits dans `notifications.ndjson` et
   livrés au webhook par `Notificateur` (e.4) ; plus d'écouteur en mémoire.
-- **Persistance** (relecture C) : `MagasinEtat.ajouter` n'écrit pas les
+- **Persistance** (relecture adversariale des approbations) : `MagasinEtat.ajouter` n'écrit pas les
   arguments en clair dans le journal (fichiers `etat/arguments/`, effacés au
   passage en état terminal, EX-7.24) ; après un échec d'écriture,
   `magasin.enPanne` est vrai et seul `magasin.reprendre(service.etatComplet())`
@@ -93,11 +96,23 @@ await inst.arreter()
   épinglé lu (EX-8.1) ; sans `lecture`, comportement des traces de l'annexe
   A.6.
 - **Essais seulement** : `demarrerService({ …, essais: { tirerNonce,
-  tailleBoite, minuterie, envoyer, compacterApres } })` impose le nonce de
-  `preparer_inscription`, la taille de rotation de la boîte, coupe les
-  minuteries réelles sous une horloge injectée (`tic()` les remplace),
-  remplace l'envoi des notifications, règle le compactage ; aucune
-  configuration ne porte ces réglages.
+  tailleBoite, minuterie, envoyer, compacterApres, compacterApresOctets } })`
+  impose le nonce de `preparer_inscription`, la taille de rotation de la
+  boîte, coupe les minuteries réelles sous une horloge injectée (`tic()` les
+  remplace), remplace l'envoi des notifications, règle le compactage (par
+  lignes, par octets) ; aucune configuration ne porte ces réglages.
+- **Bornes (étape 8, revue de sécurité, `src/bornes.mjs`)** : la table
+  `BORNES` (refus inscrits par ticket, budget d'`extract`, bornes de lecture du
+  jeu, archivage, rotation et période du journal du service, compactage par
+  taille) et ses fonctions `instantAdmis`, `donneesRefus`, `executerSousBorne`,
+  `reecrireGroupesNommes` ; `effetsPrevus(outil, requete, args, { budgetMs,
+  omis })` et `vueTicket({ …, journal })` ; `machine.refusNonInscrits(id)`
+  (refus au-delà de la borne, par raison) et `machine.prendreModifications().
+  archives` (documents sortis de l'état vivant, que le service passe au magasin
+  en `archives`) ; `magasin.lireArchive()` ; `supervision.consignerCompte(type,
+  detail, periodeMs)` ; `empreinteLogiciel({ detail: true })` ; `new
+  LecteurJeu({ …, lecture_max_ms, corps_max_octets, tranches_max,
+  journaux_max })` ; `annuaire.sauvegarde()` et `annuaire.restaurer(etat)`.
 
 ## d) Configuration et ligne de commande
 
@@ -140,11 +155,11 @@ la forme du corps) ; méthodes du noyau refusées (`requete_invalide`) :
 
 | Méthode | Requête (`$defs`) | Réponse | Ordre des refus | État |
 |---|---|---|---|---|
-| `tickets` | `requete_tickets` (`console-service-v0`) | `reponse_tickets`, avec `contest_ms` et `contest` sur chaque ticket ; avec `related_to`, `related` (au plus 20, `refuse` ou `expire`, même `launched_by` et même `tool_announced`, scellés depuis moins de l'`expire_after_ms` du ticket `related_to`, tri par `sealed.approval.at` décroissant puis par identifiant) | point 1 d'EX-12.14 ; avec `related_to`, l'ordre de `consulter` appliqué au ticket désigné (`controleCanal(…, "consulter", …)`), puis `ticket_non_ouvert` | fait |
-| `consulter` | `requete_consulter` (`console-approbation-v0`) | `vue_ticket` (EX-12.14, EX-12.15 : `request` — dont `intent`, l'intention de la requête `evaluer` gardée avec les arguments, jamais tirée de l'événement (révision 0.6) —, `retained_event`, `arguments_piece`, `rule`, `opening`, `effects` évalués avec `unresolved`, `deadline`, `contest`, `approver_set`, `effective_required`, `added_members`, `eligible` (avant le gel : membres du jeu de repli privés des adresses du demandeur sous `interdite`), `votes`, `separation` avec `requester_directory_addresses`, `digests`) | EX-12.14, points 1 à 3, puis `ticket_non_ouvert`, puis `ticket_clos_aux_votes` pour un ticket sans arguments | fait |
-| `voter`, `recuser`, `retirer` | données des entrées de 7.4 | `reponse_voter`, `reponse_etat` | EX-12.16, EX-12.19, puis EX-9.10 et T10 | fait (notification `vote_inscrit`, e.4) |
+| `tickets` | `requete_tickets` (`console-service-v0`) | `reponse_tickets`, avec `contest_ms` et `contest` sur chaque ticket ; avec `related_to`, `related` (au plus 20, `refuse` ou `expire`, même `launched_by` et même `tool_announced`, scellés depuis moins de l'`expire_after_ms` du ticket `related_to`, tri par `sealed.approval.at` décroissant puis par identifiant) | point 1 d'EX-12.14 ; avec `related_to`, l'ordre de `consulter` appliqué au ticket désigné (`controleCanal(…, "tickets", corps, infoCanal(related_to))`, CT-3 0.8 EX-13.32 ; puis `controleCanal(…, "consulter", …)`), puis `ticket_non_ouvert` | fait |
+| `consulter` | `requete_consulter` (`console-approbation-v0`) | `vue_ticket` (EX-12.14, EX-12.15 : `request` — dont `intent`, l'intention de la requête `evaluer` gardée avec les arguments, jamais tirée de l'événement (révision 0.6) —, `retained_event`, `arguments_piece`, `rule`, `opening`, `effects` évalués avec `unresolved` (`extract` compilé comme le noyau, `(?P<` écrit `(?<`, et exécuté sous une borne de 250 ms par vue ; au-delà l'effet est omis et `vue_effet_omis` consigné ; 16 effets au plus), `deadline`, `contest`, `approver_set`, `effective_required`, `added_members`, `eligible` (avant le gel : membres du jeu de repli privés des adresses du demandeur sous `interdite`), `votes`, `separation` avec `requester_directory_addresses`, `digests`) | EX-12.14, points 1 à 3, puis `ticket_non_ouvert`, puis `ticket_clos_aux_votes` pour un ticket sans arguments | fait |
+| `voter`, `recuser`, `retirer` | données des entrées de 7.4 | `reponse_voter`, `reponse_etat` | EX-12.16, EX-12.19, puis EX-9.10 et T10 ; EX-7.24 : un refus de la machine est inscrit dans la trace sans `reason` ni `signature`, et au plus 64 refus par ticket (au-delà, rendu et compté seulement, `trace_bornee` consigné une fois) | fait (notification `vote_inscrit`, e.4) |
 | `annuaire` | `requete_annuaire` | `annuaireDeSession` | forme, identité | fait |
-| `preparer_inscription` | `requete_preparer_inscription` | `reponse_preparer_inscription` | EX-13.13 | fait |
+| `preparer_inscription` | `requete_preparer_inscription` | `reponse_preparer_inscription` | EX-13.13, puis `limite_annuaire` (règle du module d'annuaire, revue de sécurité de l'étape 8 : au plus 4 défis non expirés par identité et 1 024 au total, le remplacement d'un défi de même identité et adresse ne comptant pas) | fait |
 | `inscrire` | `requete_inscrire` | `reponse_adresse` | EX-13.15, pas 1 à 13 | fait |
 | `valider`, `revoquer` | `requete_valider`, `requete_revoquer` | `reponse_adresse` | EX-13.17 | fait |
 | `desactiver`, `reactiver` | `requete_entree` | `reponse_entree` | EX-13.17 | fait |
@@ -163,13 +178,16 @@ raison qui refuse une entrée de ticket ou une opération de l'annuaire
 `nonce_deja_utilise`, `inscription_expiree`, `origine_differente`,
 `organisation_differente`, `identite_differente`, `adresse_differente`,
 `identite_desactivee`, `adresse_deja_attribuee`, `etat_incompatible`,
-`demandeur_deja_lie`) ; 429 `plafond_atteint` ; 503 `non_pret`. La console
-ne s'appuie que sur `error.code`.
+`demandeur_deja_lie`, `limite_annuaire`) ; 429 `plafond_atteint` ; 503
+`non_pret`. La console ne s'appuie que sur `error.code` ; `error.message` est
+écrit en ASCII à la source.
 
 Chaque méthode qui modifie l'annuaire, et `preparer_inscription` pour son
 défi, est persistée avec `fsync` avant sa réponse (EX-12.17) ; une opération
 refusée ne change rien et est consignée au journal du service avec sa raison
-(`operation_annuaire_refusee`). Aucune opération de l'annuaire ne touche un
+(`operation_annuaire_refusee`). Un état calculé n'est adopté en mémoire que
+s'il est durable : après un échec d'écriture, la réponse est une erreur et
+l'état d'avant est rendu. Aucune opération de l'annuaire ne touche un
 ticket (EX-12.18).
 
 ### e.3 Annuaire persisté (EX-13.38, EX-7.30)
@@ -267,4 +285,9 @@ méthodes du canal et ordre des refus (vecteurs `annuaire/` côté service,
 traces rejouées sur le service réel), persistance et reprise après arrêt
 brutal (annuaire et défis relus égaux), préséance d'EX-13.38, configuration
 et `valider-configuration`, notifications reçues par un récepteur tiers
-(TI-21, TA-102), `tickets` enrichi, TE-19, TI-14, TA-51, TA-77.
+(TI-21, TA-102), `tickets` enrichi, TE-19, TI-14, TA-51, TA-77. Étape 8
+(revue de sécurité) : `test/approbation-revue-bornes.test.js` (S-1 :
+CT-3 EX-12.14, CT-3 EX-7.24, CT-3 EX-13.13, CT-3 EX-7.22)
+et `test/approbation-revue-exploitation.test.js` (CT-7 EX-3.10,
+CT-8 IP-10), chaque règle avec son mutant
+du paquet livré (`test/fixtures/approbation-service/mutants.mjs`).

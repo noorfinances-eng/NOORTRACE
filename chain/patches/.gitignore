@@ -1,6 +1,8 @@
 # Les correctifs reçus hors du dépôt public (LISEZMOI.md) ne sont jamais suivis :
-# ils contiennent des extraits de noorchain-core. Seuls ce fichier et le
-# LISEZMOI le sont ; tout fichier déposé ici pour une construction est ignoré.
+# ils contiennent des extraits de noorchain-core. Seuls ce fichier, le LISEZMOI et
+# EMPREINTES (noms et SHA-256 des correctifs attendus, jamais leur contenu) le
+# sont ; tout autre fichier déposé ici pour une construction est ignoré.
 *
 !.gitignore
 !LISEZMOI.md
+!EMPREINTES

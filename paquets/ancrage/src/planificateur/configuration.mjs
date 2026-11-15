@@ -6,6 +6,43 @@
 
 import { RegistreSchemas } from "@noortrace/noyau";
 import { SCHEMA_ANCRAGE, SCHEMA_PLANIFICATEUR } from "./schemas-ancrage.mjs";
+import { encoderOid } from "./requete-der.mjs";
+
+/** Taille maximale du DER d'un OID de politique porté par la requête (règle 9 proposée d'EX-4.9). */
+export const OID_DER_MAX = 127;
+
+/**
+ * Motif du refus d'un OID de politique que la requête d'EX-5.1 ne sait pas
+ * porter (second arc ≥ 40 sous un premier arc 0 ou 1, DER de plus de 127
+ * octets), ou null (CT-5 EX-4.9).
+ */
+export function motifOidNonEncodable(oid) {
+  let der;
+  try {
+    der = encoderOid(oid);
+  } catch (e) {
+    return String(e?.message ?? e).replace(/^policy_oid : /, "");
+  }
+  if (der.length > OID_DER_MAX) return `DER de ${der.length} octets, au plus ${OID_DER_MAX}`;
+  return null;
+}
+
+/**
+ * Adresse d'un prestataire sans identifiant ni mot de passe (CT-5 EX-4.8,
+ * AN-54) : la partie d'autorité ne porte pas `@`. Rend le
+ * motif du refus, ou null.
+ */
+export function motifUrlPrestataire(url) {
+  if (typeof url !== "string") return "url attendue";
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return "url illisible";
+  }
+  if (u.username || u.password || /^[a-z]+:\/\/[^/]*@/i.test(url)) return "identifiant ou mot de passe dans l'url : les secrets sont désignés par leur emplacement (EX-4.8, AN-54)";
+  return null;
+}
 
 /** Registre des deux schémas de CT-5. */
 export const REGISTRE_ANCRAGE = new RegistreSchemas([SCHEMA_ANCRAGE, SCHEMA_PLANIFICATEUR]);
@@ -64,7 +101,7 @@ function hoteDe(url) {
  * canonique, DER d'une `SEQUENCE` de trois éléments (`tbsCertificate`
  * `SEQUENCE`, `signatureAlgorithm` `SEQUENCE`, `signatureValue` `BIT STRING`)
  * dont les longueurs se recoupent exactement (CT-6 §9.3, règle 8 d'EX-4.9).
- * La lecture complète des champs est celle du lecteur DER du lot A.
+ * La lecture complète des champs est celle du lecteur DER du client RFC 3161.
  * @param {string} pem
  * @returns {string|null} motif du refus, ou null
  */
@@ -167,13 +204,21 @@ export function validerConfiguration(document, options = {}) {
     if (d.opentimestamps.enabled !== true) violer("4", "opentimestamps.enabled faux : refusé en production");
     for (const p of parRole("principal")) if (p.qualified === null) violer("4", `principal ${p.id} sans qualified : refusé en production`);
     for (const p of parRole("secours")) if (p.qualified === null) violer("4", `secours ${p.id} sans qualified : refusé en production (EX-5.7)`);
+    // Revue de sécurité de l'étape 8 (CT-5 EX-6.6) : sans source d'en-têtes, la borne Bitcoin d'une preuve n'est jamais acquise par
+    // O-4 (EX-6.9) ; en production la source est exigée. Remplacement ciblé si le porteur renverse la décision : ce bloc.
+    if (d.opentimestamps.enabled === true && d.opentimestamps.headers_source === null) violer("4", "opentimestamps.headers_source null : refusé en production (EX-6.9 : une attestation Bitcoin n'est acquise qu'après O-4)");
   }
   for (const p of fournisseurs) {
+    // Revue de sécurité de l'étape 8 (CT-5 EX-4.9) : dans tout profil, un prestataire de rôle interne n'est jamais qualifié (EX-5.6, EX-7.2).
+    if (p.role === "interne" && p.qualified !== null) violer("4", `prestataire ${p.id} (interne) déclaré qualified : un prestataire interne n'est jamais qualifié (EX-5.6, EX-7.2)`);
     const u = hoteDe(p.url);
     if (!u) {
       violer("4", `prestataire ${p.id} : url illisible`);
       continue;
     }
+    // Revue de sécurité de l'étape 8 : aucun identifiant ni mot de passe dans l'url (EX-4.8, AN-54 : la fiche la publie).
+    const motifUrl = motifUrlPrestataire(p.url);
+    if (motifUrl) violer("4", `prestataire ${p.id} : ${motifUrl}`);
     // EX-5.5 : « la requête est envoyée par HTTP sur TLS », sans profil ; `http://` n'est admis que pour le serveur
     // interne vers une adresse locale (règle 4). Le transport refuse la même chose : la configuration le dit d'avance.
     const interne = commeServeurInterne(p, production);
@@ -224,6 +269,18 @@ export function validerConfiguration(document, options = {}) {
       const motif = motifCertificatPemIllisible(pem);
       if (motif) violer("8", `prestataire ${p.id} : anchor_certificates[${i}] illisible (${motif})`);
     });
+  }
+
+  // Règle 9 (révision d'EX-4.9 demandée) : chaque OID de politique s'encode dans la requête d'EX-5.1.
+  for (const p of fournisseurs) {
+    if (p.policy_oid !== null && p.policy_oid !== undefined) {
+      const motif = motifOidNonEncodable(p.policy_oid);
+      if (motif) violer("9", `prestataire ${p.id} : policy_oid non encodable dans la requête (${motif})`);
+    }
+    for (const oid of p.accepted_policies ?? []) {
+      const motif = motifOidNonEncodable(oid);
+      if (motif) violer("9", `prestataire ${p.id} : accepted_policies ${oid} non encodable (${motif})`);
+    }
   }
 
   return { valide: erreurs.length === 0, erreurs, projection: erreurs.length === 0 ? projection(d) : null };

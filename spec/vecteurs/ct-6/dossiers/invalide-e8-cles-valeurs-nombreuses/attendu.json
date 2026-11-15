@@ -1,0 +1,58 @@
+{
+  "valid": false,
+  "target": "E-8",
+  "failed_checks": [
+    "E-8"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "non_execute",
+    "4": "reussi",
+    "5": "reussi",
+    "6": "echoue",
+    "7": "reussi",
+    "8": "reussi"
+  },
+  "not_executed": [
+    {
+      "id": "E-11",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "P-5",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "R-10",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "N-3",
+      "reason": "prerequis_en_echec"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : E-8 ; vérification(s) non exécutée(s) sans raison admise : E-11, P-5, R-10, N-3 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): E-8; check(s) not run without an admitted reason: E-11, P-5, R-10, N-3; the verifier asserts nothing about this event."
+  },
+  "bound": {
+    "fr": "verdict borné : contrôle 3 non exécuté (prerequis_en_echec)",
+    "en": "bounded verdict: control 3 not run (prerequis_en_echec)"
+  },
+  "description": "valide-seq-7-complet dont cles.json porte en keys 1 048 576 zéros (2 097 234 octets, dans la limite de 16 Mio d'EX-4.13) : la partie compte 1 048 577 valeurs JSON, une de plus que la borne d'une partie de 16 Mio (une valeur par 16 octets de la limite, CT-6 EX-15.1, révision demandée) : elle est traitée comme un texte qui n'est pas du JSON, E-8, qui la porte, échoue sans qu'aucune valeur soit matérialisée, mêmes conséquences que invalide-e8-cles-nombreuses ; code 1, jamais un arrêt sans rapport."
+}

@@ -34,6 +34,7 @@ export function lireJeu(jeu) {
   const liste = Array.isArray(jeu) ? jeu : jeu?.validators;
   if (!Array.isArray(liste) || liste.length < 1 || liste.length > BORNES_CERTIFICAT.validateurs) return null;
   const ids = new Set();
+  const cles = new Set();
   const validateurs = [];
   for (const v of liste) {
     if (!v || typeof v !== "object" || typeof v.id !== "string") return null;
@@ -43,6 +44,10 @@ export function lireJeu(jeu) {
     const declaree = hexVersOctets(v.pubKeyHex);
     const publique = clePubliqueNonCompressee(declaree);
     if (!publique) return null;
+    // Revue de sécurité de l'étape 8 (CT-6 EX-12.2) : deux identifiants sous la même clé compteraient deux fois au quorum ; refusés, comme par le vérificateur.
+    const cle = octetsVersHex(publique);
+    if (cles.has(cle)) return null;
+    cles.add(cle);
     ids.add(id);
     validateurs.push({ id, declaree, publique });
   }

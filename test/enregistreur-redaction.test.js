@@ -1,4 +1,4 @@
-// Rédaction avant hachage du démon `noortrace` (CT-2 §10, lot « rédaction »),
+// Rédaction avant hachage du démon `noortrace` (CT-2 §10, partie « rédaction »),
 // écrite d'après le seul texte de la spécification : vecteurs
 // spec/vecteurs/ct-2/redaction rejoués contre leur attendu, pièces rédigées
 // des vecteurs pieces-mcp/appels et evenements/journal-demo, chaque exigence
@@ -93,7 +93,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
 
     it("cas.json : octets, référence et comptes de chaque cas, dans le fil appelant et par les fils de calcul", async function () {
       const cas = json(path.join(R, "cas.json"));
-      expect(cas.length).to.equal(73);
+      expect(cas.length).to.equal(78);
       for (const c of cas) egalAttendu(produirePiece(pol(c.policy), demandeCas(c), O), c.expected, c.name);
       const fils = Object.fromEntries(
         Object.entries(POLITIQUES).map(([n, d]) => [n, new Redacteur({ politique: d, cle: d.pseudonym_key ? CLE_TEST : null, fils: 2 })]),
@@ -332,8 +332,8 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
     it("courriel : domaine à deux labels, dernier label de lettres, point ou trait final hors du domaine", function () {
       expect(un(detecterEmail, "x@a-.example.ch")).to.deep.equal([]);
       expect(un(detecterEmail, "x@exemple.c1")).to.deep.equal([]);
-      expect(un(detecterEmail, "Ecrire a x@exemple.com.")).to.deep.equal(["x@exemple.com"]);
-      expect(un(detecterEmail, ".x@exemple.com")).to.deep.equal([]);
+      expect(un(detecterEmail, "Ecrire a x@com.example.")).to.deep.equal(["x@com.example"]);
+      expect(un(detecterEmail, ".x@com.example")).to.deep.equal([]);
       expect(un(detecterEmail, `x@${"a".repeat(64)}.ch`)).to.deep.equal([]);
       expect(un(detecterEmail, `x@${"a.".repeat(127)}ch`)).to.deep.equal([]);
     });
@@ -427,7 +427,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
     it("EX-10.16 : redacted si et seulement si les octets diffèrent ; règle applicable sans correspondance : false", function () {
       const p = compilee(PII);
       expect(produirePiece(p, { genre: "json", portee: "arguments", valeur: { a: "rien" } }, O).redacted).to.equal(false);
-      expect(produirePiece(p, { genre: "json", portee: "arguments", valeur: { a: "x@exemple.com" } }, O).redacted).to.equal(true);
+      expect(produirePiece(p, { genre: "json", portee: "arguments", valeur: { a: "x@com.example" } }, O).redacted).to.equal(true);
       // Le jeton du prompt système compte comme une rédaction de la requête (EX-8.5, EX-10.16).
       const req = { model: "m", system: "secret de fabrication", messages: [] };
       const r = produirePiece(p, { genre: "json", portee: "requete", valeur: { ...req, system: JETON_PROMPT_SYSTEME }, origine: req }, O);
@@ -439,7 +439,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
       const journal = new JournalExploitation({});
       const metriques = new Metriques();
       const red = new Redacteur({ politique: PII, fils: 0, journal, metriques });
-      await red.redigerResultat({ note: "x@exemple.com et y@exemple.com, +41 44 123 45 67" }, { outil: "sap__claims.get", id: "e-000000000001" });
+      await red.redigerResultat({ note: "x@com.example et y@com.example, +41 44 123 45 67" }, { outil: "sap__claims.get", id: "e-000000000001" });
       const [l] = journal.trouver("redaction_applied");
       expect(l.request_id).to.equal("e-000000000001");
       expect(l.data).to.deep.equal({
@@ -460,7 +460,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
       expect(texte(ref.piece)).to.equal("Je verse sur [REDIGE:iban].");
       expect(ref.redacted).to.equal(true);
       const chemin = compilee(politique([regle({ path: "/x", detectors: [{ type: "champ", label: "c" }] }), regle({ id: "s", path: "", detectors: [{ type: "email" }] })]));
-      const t = produirePiece(chemin, { genre: "texte", portee: "contexte", texte: "a@exemple.com" }, O);
+      const t = produirePiece(chemin, { genre: "texte", portee: "contexte", texte: "a@com.example" }, O);
       expect(texte(t.piece)).to.equal("[REDIGE:email]");
       // Valeur en ligne : une règle à path quelconque s'applique à la chaîne entière.
       expect(examinerValeurLigne(compilee(politique([regle({ path: "/beneficiary_iban" })])), "CH9300762011623852957", 1000).admise).to.equal(false);
@@ -608,7 +608,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
       const a = produirePiece(p, { genre: "octets", portee: "reponse", octets: new Uint8Array(bom), content_type: "Text/HTML; charset=utf-8" }, O);
       expect(Buffer.from(a.piece.octets).equals(bom)).to.equal(true);
       expect(a.piece.reference).to.include({ redacted: false, media_type: "text/html" });
-      const b = produirePiece(p, { genre: "octets", portee: "reponse", octets: new Uint8Array(Buffer.from("erreur pour x@exemple.com")), content_type: "text/plain" }, O);
+      const b = produirePiece(p, { genre: "octets", portee: "reponse", octets: new Uint8Array(Buffer.from("erreur pour x@com.example")), content_type: "text/plain" }, O);
       expect(texte(b.piece)).to.equal("erreur pour [REDIGE:email]");
       const bin = new Uint8Array([0xff, 0xfe, 0x00, 0x41]);
       const c = produirePiece(p, { genre: "octets", portee: "reponse", octets: bin, content_type: "application/octet-stream" }, O);
@@ -649,7 +649,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
       expect(await red.admettreRunId("run-2026-81044")).to.equal(false);
       expect(await red.admettreRunId("r".repeat(129))).to.equal(false);
       expect(await red.admettreNomPrompt("sinistres-v3")).to.equal(true);
-      expect(await red.admettreNomPrompt("x@exemple.com")).to.equal(false);
+      expect(await red.admettreNomPrompt("x@com.example")).to.equal(false);
       // La règle numero-sinistre (portées resultat, reponse) s'applique quand même à la valeur en ligne.
       expect(await red.admettreValeurLigne("dossier 2026-81044")).to.equal(false);
       expect(examinerValeurLigne(compilee(lente), lourd, 5)).to.deep.equal({ admise: false, depassement: true });
@@ -668,7 +668,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
       const p = compilee(POLITIQUES["pii-regles-test"]);
       expect(redigerMotifDecision(p, "Montant 740000 ; IBAN CH93 0076 2011 6238 5295 7 ; dossier 2026-81044", 1000).motif).to.equal("Montant 740000 ; IBAN [REDIGE:iban] ; dossier [REDIGE:numero-sinistre]");
       expect(redigerMotifDecision(p, null, 1000).motif).to.equal(null);
-      const long = `${"é".repeat(1020)} x@exemple.com`;
+      const long = `${"é".repeat(1020)} x@com.example`;
       const m = redigerMotifDecision(p, long, 1000).motif;
       expect(Array.from(m)).to.have.length(1024);
       expect(m).to.not.include("exemple");
@@ -771,7 +771,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
         const ok = await coeur.recharger(doc(meme), { env });
         expect(ok.accepte).to.equal(true);
         expect(red.nom).to.equal("pii-v2");
-        const r = await red.redigerArguments({ a: "CH9300762011623852957 x@exemple.com" }, { outil: "sap__payments.create" });
+        const r = await red.redigerArguments({ a: "CH9300762011623852957 x@com.example" }, { outil: "sap__payments.create" });
         expect(texte(r.piece)).to.equal('{"a":"CH9300762011623852957 [REDIGE:email]"}');
         expect(coeur.nomRedaction).to.equal("pii-v2");
       } finally {

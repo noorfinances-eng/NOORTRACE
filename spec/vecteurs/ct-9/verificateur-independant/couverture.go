@@ -439,6 +439,9 @@ func (d *Depot) verifierMenaces(rap *Rapport) {
 		}
 		rap.Verdict(t != nil && t.Status.State == "executable" && (strings.Contains(strings.ToLower(where), "génér") || strings.Contains(strings.ToLower(where), "generer")), "EX-10.4", id, "exécutable, réponse retirée dans un générateur : « %s »", where)
 	}
+	// 10.5, révision 0.10 : « sauf TA-103, l'it qui retire une réponse » et
+	// « TA-103 cite en plus les mutants tués de TA-1 et de TA-22 ».
+	sauf, enPlus, exceptionLue := LireException105(Normaliser(SectionTexte(d.CT9.Texte, "10.5")))
 	for _, t := range TA {
 		if t.Adversarial == nil || t.Adversarial.Threat != nil {
 			continue
@@ -478,8 +481,23 @@ func (d *Depot) verifierMenaces(rap *Rapport) {
 		if a.Component != nil || a.AcceptedRisk != nil || a.ThreatTestText != nil {
 			pb = append(pb, "component, accepted_risk ou threat_test_text non nuls")
 		}
-		if t.Status.State != "a_ecrire" || t.Status.Phase2Step == nil || *t.Status.Phase2Step != 8 || a.Execution != "phase_2" {
-			pb = append(pb, "scénario qui n'est pas à écrire à l'étape 8 en phase 2")
+		// Révision 0.10 : les cinq sont exécutables, se jouent en phase 2 sur
+		// la démonstration de référence, et citent leurs it selon 10.5.
+		if t.Status.State != "executable" || a.Execution != "phase_2" {
+			pb = append(pb, "scénario qui n'est pas exécutable en phase 2")
+		}
+		var cites []string
+		for _, x := range t.Status.Tests {
+			if x.File == "test/adversarial.test.js" && x.It != nil {
+				cites = append(cites, *x.It)
+			}
+		}
+		if !exceptionLue {
+			pb = append(pb, "phrases de 10.5 « sauf TA-n, l'it qui retire » et « TA-n cite en plus les mutants tués de TA-a et de TA-b » non lues")
+		} else if t.ID == sauf {
+			pb = append(pb, ProblemesScenario(t.ID, cites, true, enPlus)...)
+		} else {
+			pb = append(pb, ProblemesScenario(t.ID, cites, false, nil)...)
 		}
 		if !strings.HasSuffix(t.Title, "("+strings.Join(a.Composition, ", ")+")") {
 			pb = append(pb, "titre sans la liste des tests composés")
@@ -487,7 +505,7 @@ func (d *Depot) verifierMenaces(rap *Rapport) {
 		if len(pb) > 0 {
 			rap.Discorde("10.5", t.ID, "%s", strings.Join(pb, " ; "))
 		} else {
-			rap.Concorde("10.5", t.ID, "scénario de %d tests, %d menaces, covers = union des covers composés, à écrire (étape 8)", len(a.Composition), len(t.Threats))
+			rap.Concorde("10.5", t.ID, "scénario de %d tests, %d menaces, covers = union des covers composés, exécutable en phase 2, it cités conformes", len(a.Composition), len(t.Threats))
 		}
 	}
 	rap.Verdict(len(d.scenarios()) == 5, "10.5", "scénarios", "%d scénarios (cinq attendus : TA-103 à TA-107)", len(d.scenarios()))
@@ -676,18 +694,25 @@ func (d *Depot) verifierTitres(rap *Rapport) {
 			continue
 		}
 		exeTotal++
-		var absents []string
+		var absents, defauts []string
 		for _, x := range t.Status.Tests {
 			titresCites++
-			if !TitreExiste(d.Titres, x) {
-				titre := x.Describe
-				if x.It != nil {
-					titre += " | " + *x.It
-				}
+			titre := x.Describe
+			if x.It != nil {
+				titre += " | " + *x.It
+			}
+			switch e := EtatCite(d.Titres, x); e {
+			case "":
+			case "absent":
 				titresAbsents = append(titresAbsents, TitreAbsent{t.ID, x.File, titre})
 				absents = append(absents, x.File+" : "+titre)
+			default:
+				// Révision 0.10 : un it cité a un corps, n'est ni skip ni only,
+				// et n'est pas sous un describe.skip.
+				defauts = append(defauts, x.File+" : "+titre+" ("+e+")")
 			}
 		}
+		rap.Verdict(len(defauts) == 0, "EX-5.4", t.ID+" (it exécutés)", "it cités avec un corps, ni skip ni only, hors describe.skip ; en défaut : %v", defauts)
 		for _, s := range t.Status.CISteps {
 			titresCites++
 			if !ci[s] {
@@ -722,28 +747,41 @@ func (d *Depot) verifierTitres(rap *Rapport) {
 				pb = append(pb, "titre sans la forme d'EX-10.7")
 			} else {
 				// EX-10.4 : TA-23 et TA-72 n'ont pas de mutant à tuer dans le fichier
-				// (la régénération en tient lieu) ; les autres finissent par « (tué) »
-				// ou « (tués) » (EX-10.7).
-				regeneration := true
+				// (la régénération en tient lieu) ; un scénario du plan suit la
+				// forme (4) ; les autres finissent par « (tué) » ou « (tués) »
+				// (EX-10.7).
+				regeneration, scenario := true, false
+				var menaces []string
 				for _, id := range lu.TAs {
 					if id != "TA-23" && id != "TA-72" {
 						regeneration = false
 					}
-				}
-				if !lu.Tue && !regeneration {
-					pb = append(pb, "titre sans « (tué) » ni « (tués) »")
-				}
-				var menaces []string
-				for _, id := range lu.TAs {
 					t := d.ParID[id]
 					if t == nil || t.Level != "TA" || t.Status.State != "executable" || !citePar[c.It][id] {
 						pb = append(pb, id+" absent du catalogue, non exécutable ou ne cite pas cet it")
 						continue
 					}
+					if t.Adversarial != nil && t.Adversarial.Threat == nil {
+						scenario = true
+					}
 					menaces = append(menaces, t.Threats...)
 				}
-				if strings.Join(menaces, ",") != strings.Join(lu.Menaces, ",") {
-					pb = append(pb, fmt.Sprintf("menaces du titre %v, menaces des TA- %v", lu.Menaces, menaces))
+				switch {
+				case scenario:
+					// Forme (4), révision 0.10 : le scénario nomme les menaces
+					// composées qu'il éprouve ; son it de bout en bout ne finit pas
+					// par « (tué) », son it « réponse retirée » si.
+					if len(lu.TAs) != 1 {
+						pb = append(pb, "it de scénario qui nomme plusieurs TA-")
+					}
+					pb = append(pb, ProblemesItScenario(lu, menaces)...)
+				default:
+					if !lu.Tue && !regeneration {
+						pb = append(pb, "titre sans « (tué) » ni « (tués) »")
+					}
+					if strings.Join(menaces, ",") != strings.Join(lu.Menaces, ",") {
+						pb = append(pb, fmt.Sprintf("menaces du titre %v, menaces des TA- %v", lu.Menaces, menaces))
+					}
 				}
 			}
 			objet := c.It
@@ -754,26 +792,74 @@ func (d *Depot) verifierTitres(rap *Rapport) {
 				rap.Discorde("EX-10.7", objet, "%s", strings.Join(pb, " ; "))
 			} else {
 				mutant := "mutant(s) tué(s)"
-				if !lu.Tue {
+				if !lu.Tue && (lu.TAs[0] == "TA-23" || lu.TAs[0] == "TA-72") {
 					mutant = "oracle sur le vecteur, mutant = régénération (EX-10.4)"
+				} else if !lu.Tue {
+					mutant = "scénario du plan, it de bout en bout (forme (4))"
 				}
 				rap.Concorde("EX-10.7", objet, "TA- %v exécutables et citant cet it, menaces %v, %s", lu.TAs, lu.Menaces, mutant)
 			}
 		}
-		// EX-A.11 : « 60 it répartis en dix describe par composant ».
-		s := Normaliser(SectionTexte(d.CT9.Texte, "A.6"))
-		m := regexp.MustCompile("([0-9]+) `it` répartis en ([a-zé-]+) `describe`").FindStringSubmatch(s)
-		nbDescribes := len(adv.Describes) - 1 // le describe englobant n'est pas un composant
-		if m == nil {
-			rap.Discorde("EX-A.11", "test/adversarial.test.js", "phrase « N it répartis en N describe » non lue dans A.6")
-		} else {
-			its, _ := EntierFrancais(m[1])
-			desc, okD := EntierFrancais(m[2])
-			rap.Verdict(int(its) == len(adv.Cas) && okD && int(desc) == nbDescribes, "EX-A.11", "test/adversarial.test.js", "texte : %s it en %s describe ; lus : %d it, %d describe par composant", m[1], m[2], len(adv.Cas), nbDescribes)
-		}
+		d.verifierStructureAdversarial(rap, adv)
 	}
 	r := &d.Resultats.Mien
 	r.Executable.Total, r.Executable.TitlesChecked, r.Executable.TitlesMissing = exeTotal, titresCites, titresAbsents
+}
+
+// verifierStructureAdversarial : EX-A.11 (révision 0.10 : N it répartis en
+// N describe de composant ou de scénario, sous N describe de premier niveau,
+// le nombre d'it de chacun dans l'ordre du texte, les describe par composant
+// du premier et un describe par scénario) et la somme des comptes de 10.8
+// (réussis, en attente, en échec), qui égale le nombre d'it du fichier.
+func (d *Depot) verifierStructureAdversarial(rap *Rapport, adv TitresFichier) {
+	st := StructureDescribes(adv)
+	a, ok := LireA11(Normaliser(SectionTexte(d.CT9.Texte, "A.6")))
+	if !ok {
+		rap.Discorde("EX-A.11", "test/adversarial.test.js", "phrase « N it répartis en N describe de composant ou de scénario, sous N describe de premier niveau » non lue dans A.6")
+	} else {
+		its, _ := EntierFrancais(a.Its)
+		feuilles, okF := EntierFrancais(a.Feuilles)
+		premiers, okP := EntierFrancais(a.Premiers)
+		rap.Verdict(int(its) == len(adv.Cas), "EX-A.11", "it", "texte %s, lus %d", a.Its, len(adv.Cas))
+		rap.Verdict(okF && int(feuilles) == st.Feuilles, "EX-A.11", "describe de composant ou de scénario", "texte %s, lus %d (describe qui contiennent directement un it)", a.Feuilles, st.Feuilles)
+		rap.Verdict(okP && int(premiers) == len(st.Premiers), "EX-A.11", "describe de premier niveau", "texte %s, lus %d", a.Premiers, len(st.Premiers))
+		rap.Verdict(fmt.Sprint(a.Nombres) == fmt.Sprint(st.ItsParPremier), "EX-A.11", "it par describe de premier niveau", "texte %v, lus %v", a.Nombres, st.ItsParPremier)
+		for i := 0; i < len(st.Premiers); i++ {
+			dec, ok := a.Decoupes[i]
+			if !ok {
+				continue
+			}
+			k, okK := EntierFrancais(dec[0])
+			if dec[1] == "composant" {
+				rap.Verdict(okK && int(k) == st.FeuillesParPremier[i], "EX-A.11", st.Premiers[i], "texte : %s describe par composant ; lus %d", dec[0], st.FeuillesParPremier[i])
+				continue
+			}
+			// Un describe par scénario : autant de describe que de scénarios
+			// nommés par les it de ce describe de premier niveau.
+			vus := map[string]bool{}
+			for _, c := range adv.Cas {
+				if len(c.Describes) == 0 || c.Describes[0] != st.Premiers[i] {
+					continue
+				}
+				if lu, ok := LireTitreTA(c.It); ok {
+					for _, id := range lu.TAs {
+						if t := d.ParID[id]; t != nil && t.Adversarial != nil && t.Adversarial.Threat == nil {
+							vus[id] = true
+						}
+					}
+				}
+			}
+			rap.Verdict(okK && int(k)*len(vus) == st.FeuillesParPremier[i], "EX-A.11", st.Premiers[i], "texte : %s describe par scénario ; lus %d describe pour %d scénarios", dec[0], st.FeuillesParPremier[i], len(vus))
+		}
+	}
+	// 10.8 : chaque it est compté une fois parmi les réussis, les en
+	// attente et les en échec de l'exécution citée.
+	r, e, f, ok := LireComptes108(Normaliser(SectionTexte(d.CT9.Texte, "10.8")))
+	if !ok {
+		rap.Discorde("10.8", "comptes de l'exécution", "phrase « N passing », N en attente, N en échec non lue")
+		return
+	}
+	rap.Verdict(r+e+f == len(adv.Cas), "10.8", "comptes de l'exécution", "texte %d réussis + %d en attente + %d en échec = %d ; it du fichier %d", r, e, f, r+e+f, len(adv.Cas))
 }
 
 // verifierTables : EX-4.4, EX-A.4, EX-5.10.
@@ -968,8 +1054,14 @@ func (d *Depot) verifierMesuresEtRejeux(rap *Rapport) {
 			}
 		}
 	}
-	sort.Strings(executables)
-	rap.Verdict(strings.Join(executables, ",") == "TM-10,TM-11,TM-12,TM-13,TM-14,TM-15,TM-16,TM-17,TM-18,TM-19,TM-20,TM-22,TM-24,TM-26,TM-28,TM-29,TM-30,TM-31,TM-41,TM-42,TM-6", "EX-11.16", "TM- exécutables", "%v (texte : TM-6, TM-10, TM-31, TM-16, TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42, TM-15, TM-20 ; étape 7 : TM-22, TM-24, TM-26, TM-28, TM-29)", executables)
+	// EX-11.16 : « parmi les N entrées exécutables, TM-6 et TM-10 …, TM-11 à
+	// TM-14 … » ; l'ensemble énuméré après ces mots, plages développées, et
+	// son nombre égalent les TM- exécutables du catalogue.
+	if n, texte, ok := LireEX1116(Normaliser(SectionTexte(d.CT9.Texte, "11.4"))); !ok {
+		rap.Discorde("EX-11.16", "TM- exécutables", "« parmi les N entrées exécutables » non lu dans EX-11.16")
+	} else {
+		rap.Verdict(n == len(executables) && egalesTriees(texte, executables), "EX-11.16", "TM- exécutables", "texte : %d (%d énumérées : %v) ; catalogue : %d %v", n, len(texte), triee(texte), len(executables), triee(executables))
+	}
 	if t := d.ParID["TM-22"]; t != nil && t.Measure != nil {
 		rap.Verdict(string(t.Measure.Target) == "450" && t.Measure.Unit == "min" && strings.Contains(t.Measure.FailureThreshold, "480"), "EX-11.14", "TM-22", "cible %s %s, seuil « %s »", t.Measure.Target, t.Measure.Unit, t.Measure.FailureThreshold)
 	}

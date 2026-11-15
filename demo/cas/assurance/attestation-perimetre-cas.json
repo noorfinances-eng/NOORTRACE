@@ -1,0 +1,96 @@
+{
+  "version": 0,
+  "org": {
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "slug": "assureur-demo",
+    "name": "Assureur de démonstration"
+  },
+  "journals": [
+    {
+      "journal_id": "0x91042c487c9242843a6c6b20c8289464328653f29682685330cb56e6e5cbfdf2",
+      "name": "souscription-demo"
+    }
+  ],
+  "validity": {
+    "from": "2026-11-01T00:00:00.000Z",
+    "until": "2027-10-31T23:59:59.999Z"
+  },
+  "issued_at": "2026-11-13T12:00:00.000Z",
+  "prepared_by": {
+    "identity": "oidc https://idp.assureur-demo.example admin-1",
+    "function": "administrateur du cas de démonstration « assurance »"
+  },
+  "agents": [
+    {
+      "agent_id": "agent-souscription",
+      "journal_id": "0x91042c487c9242843a6c6b20c8289464328653f29682685330cb56e6e5cbfdf2",
+      "host": "agent-demo",
+      "framework": "agent scénarisé du cas (client MCP de l’ère 2026-07-28, client de l’API Messages), demo/cas/commun/agent-cas.mjs",
+      "capture_channels": [
+        "mandataire_mcp",
+        "passerelle"
+      ],
+      "notes": "Cas de démonstration « assurance » (CT-9 TE-1) : données fictives, pseudonymes, clés de test publiques."
+    }
+  ],
+  "tools_via_proxy_only": [
+    {
+      "server_alias": "souscription",
+      "tools": [
+        "*"
+      ],
+      "enforcement": "réseaux Compose internes de demo/compose.yaml, que la surcharge demo/cas/compose.cas.yaml ne change pas : agent-demo n’est attaché qu’au réseau hotes, outils-demo qu’au réseau outils ; seul l’enregistreur est attaché aux deux"
+    }
+  ],
+  "egress": {
+    "default_policy": "refus_par_defaut",
+    "rules_sha256": "0x0d66bb7d8cfb21dcab0cfc59082f668b4493560ce4f59ab0053bebb7468d9021",
+    "rules_format": "surcharge demo/cas/compose.cas.yaml de demo/compose.yaml (réseaux et attachements, Docker Compose), SHA-256 du fichier",
+    "summary": "Quatre réseaux internes sans sortie (hotes, outils, fournisseurs, registre), inchangés par la surcharge ; le réseau sante ne publie que le port de santé de l’enregistreur sur la boucle locale de l’hôte ; le serveur RFC 3161 interne partage l’espace réseau de l’enregistreur.",
+    "allowed_destinations": [
+      {
+        "name": "simulateur de l’API Messages (modele-demo, programme modele-cas.mjs)",
+        "via": "enregistreur",
+        "description": "route /v1/messages de la passerelle, clé propre"
+      },
+      {
+        "name": "serveur d’outils du cas (outils-demo, programme outils-cas.mjs, serveur souscription du frontal MCP)",
+        "via": "enregistreur",
+        "description": "serveur d’outils du frontal MCP"
+      },
+      {
+        "name": "registre de développement (registre-dev)",
+        "via": "enregistreur",
+        "description": "ancres et clôture relayées par le composant d’ancrage"
+      },
+      {
+        "name": "serveur RFC 3161 interne (horodatage)",
+        "via": "enregistreur",
+        "description": "jeton de la période, sur la boucle locale de l’espace réseau de l’enregistreur"
+      }
+    ]
+  },
+  "gateway_credentials": [
+    {
+      "route": "/v1/messages",
+      "provider_label": "demo",
+      "secret_ref": {
+        "env": "NOORTRACE_DEMO_CLE_MODELE"
+      }
+    }
+  ],
+  "not_captured": [],
+  "signatories": [
+    {
+      "name": "Approbateur 1 du cas « assurance »",
+      "function": "approbateur (compte de test 1)",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "name": "Approbateur 2 du cas « assurance »",
+      "function": "approbateur (compte de test 2)",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    }
+  ],
+  "declaration": "Nous déclarons qu’à notre connaissance, pendant la période de validité, les agents de l’inventaire n’atteignent leurs outils et leurs modèles que par les canaux de capture indiqués, sous les règles de sortie dont l’empreinte est donnée, sauf les cas déclarés non capturés."
+}

@@ -44,6 +44,12 @@ const ORG_ID = CONSTANTES.organization.org_id;
 const JOURNAL_ID = CONSTANTES.journal.journal_id;
 const V1 = CONSTANTES.policy_versions[0];
 const T = (hms) => `2026-11-12T${hms}Z`;
+/** Paramètres par défaut des traces (A.6) et l'épinglage d'une version chargée sous eux (révision 0.5) : empreinte synthétique, condensé de l'approval de trace. */
+const PARAMETRES_TRACE = { expire_after_ms: E, approver_set: { source: "registre", chain_id: 2124, registry: CONSTANTES.registry, set: CONSTANTES.sets["1"], members: null, threshold: null }, separation: { self_approval: "interdite", identities: [{ launched_by: "u.martin@assureur-demo.example", addresses: [ADR(3)] }] } };
+const APPROVAL_SHA = A.condenseApproval(A.approvalTrace(PARAMETRES_TRACE));
+const EPINGLAGE = (v) => ({ policy_version: v, policy_sha256: A.empreinteSynthetique(v), approval_sha256: APPROVAL_SHA });
+/** Ce que le noyau détient pour une version dont le charger a réussi (contexte de politique, CT-2 EX-7.16). */
+const DETENUE = (v) => ({ policy_sha256: A.empreinteSynthetique(v), approval_sha256: APPROVAL_SHA });
 
 /** Une requête evaluer minimale pour les tests unitaires. */
 function demande(outil, args, { demandeur = "u.martin@assureur-demo.example", version = V1, run = "run-test" } = {}) {
@@ -202,15 +208,16 @@ describe("CT-3 : schémas et exemples de la spécification", function () {
 
   it("EX-11.8 : le résultat d'un refus sans ticket est exactement le texte de la spécification, _meta serverInfo compris (CT-2 EX-4.4)", function () {
     const attendu = /l'ère moderne, `([^`]+)`/.exec(MD)[1];
-    const refus = { rule: "x", decision: "refuse", ticket: null, ticket_state: null, approval: null, approver_set: null };
-    const r = A.actionMandataire(refus);
+    const refus = { rule: "x", decision: "refuse", ticket: null, ticket_state: null, approval: null, approver_set: null, ...EPINGLAGE(V1) };
+    const POL = { versions: { [V1]: DETENUE(V1) }, versionRequete: V1, versionRetenue: null };
+    const r = A.actionMandataire(refus, { politique: POL });
     expect(JSON.stringify(r.result)).to.equal(attendu);
     expect(JSON.parse(attendu)._meta["io.modelcontextprotocol/serverInfo"]).to.deep.equal(C.IDENTITE_ENREGISTREUR);
-    const herite = A.actionMandataire(refus, { hoteModerne: false });
+    const herite = A.actionMandataire(refus, { hoteModerne: false, politique: POL });
     const { resultType, ...sansResultType } = JSON.parse(attendu);
     expect(resultType).to.equal("complete");
     expect(JSON.stringify(herite.result)).to.equal(JSON.stringify(sansResultType));
-    expect(A.actionMandataire(refus, { recorder: "0.2.0" }).result._meta["io.modelcontextprotocol/serverInfo"]).to.deep.equal({ name: "noortrace-enregistreur", version: "0.2.0" });
+    expect(A.actionMandataire(refus, { recorder: "0.2.0", politique: POL }).result._meta["io.modelcontextprotocol/serverInfo"]).to.deep.equal({ name: "noortrace-enregistreur", version: "0.2.0" });
     // Le même objet que le premier exemple d'EX-4.49 de CT-2, et aucun structuredContent.
     const ct2 = fs.readFileSync(path.join(SPEC, "CT-2-enregistreur.md"), "utf8");
     const ex449 = ct2.slice(ct2.indexOf("**EX-4.49**"), ct2.indexOf("**EX-4.50**"));
@@ -261,14 +268,17 @@ describe("CT-3 : validation de la politique (EX-4.2, EX-8.2, AP-1 à AP-4)", fun
   it("EX-4.2 : un document refusé n'est jamais appliqué ; charger rend politique_invalide avec toutes les erreurs (EX-12.5)", function () {
     const s = new A.ServiceApprobation({ org_id: ORG_ID, journal_id: JOURNAL_ID, policy_version: V1, parametres: { expire_after_ms: E, approver_set: POLITIQUE_ASSUREUR.approver_set, separation: POLITIQUE_ASSUREUR.separation }, schemas: SCHEMAS });
     const doc = lire("politiques-invalides", "erreurs-multiples.json");
-    const r = s.traiter({ kind: "charger", at: T("08:00:00.000"), data: { policy_version: "v-invalide", environment: "production", approval: { rules: doc, mode: "erreur", hold_timeout_ms: 50000, expire_after_ms: E, timeout_ms: 2000 }, tools: [] } });
+    // Le message porte l'empreinte déclarée (12.2) : un charger complet sans elle est mal formé (requete_invalide, EX-7.8), avant toute validation du document.
+    const r = s.traiter({ kind: "charger", at: T("08:00:00.000"), data: { policy_version: "v-invalide", policy_sha256: "0x" + "ab".repeat(32), environment: "production", approval: { rules: doc, mode: "erreur", hold_timeout_ms: 50000, expire_after_ms: E, timeout_ms: 2000 }, tools: [] } });
     expect(r.accepted).to.equal(false);
     expect(r.reason).to.equal("politique_invalide");
+    expect(s.traiter({ kind: "charger", at: T("08:00:00.000"), data: { policy_version: "v-invalide", environment: "production", approval: { rules: doc, mode: "erreur", hold_timeout_ms: 50000, expire_after_ms: E, timeout_ms: 2000 }, tools: [] } }).reason).to.equal("requete_invalide");
     expect(r.errors).to.have.length(5);
     expect(s.version("v-invalide")).to.equal(undefined);
     expect(s.vigueur).to.equal(V1);
     const ok = s.traiter({ kind: "charger", at: T("08:00:01.000"), data: { policy_version: "v-ok", environment: "production", policy_sha256: "0x" + "ab".repeat(32), approval: { rules: POLITIQUE_ASSUREUR, mode: "erreur", hold_timeout_ms: 50000, expire_after_ms: E, timeout_ms: 2000 }, tools: ["crm.claims.delete", "crm.claims.get", "documents.search", "mail.send", "sap.payments.create", "sap.payments.list"].map((t) => ({ tool_announced: t })) } });
-    expect(ok.response).to.deep.equal({ policy_version: "v-ok", policy_sha256: "0x" + "ab".repeat(32), approval_candidates: ["crm.claims.delete", "mail.send", "sap.payments.create", "sap.payments.list"] });
+    // 12.2 (révision 0.5) : la réponse reporte approval_sha256, calculé par le service sur le membre approval reçu (sans service).
+    expect(ok.response).to.deep.equal({ policy_version: "v-ok", policy_sha256: "0x" + "ab".repeat(32), approval_sha256: A.condenseApproval({ rules: POLITIQUE_ASSUREUR, mode: "erreur", hold_timeout_ms: 50000, expire_after_ms: E, timeout_ms: 2000 }), approval_candidates: ["crm.claims.delete", "mail.send", "sap.payments.create", "sap.payments.list"] });
   });
 
   it("EX-4.14 : avertissements sans refus (sélecteur sans outil, pointeur rédigé, fenêtre large, liste d'exclusion, demandeur sans identité)", function () {
@@ -553,7 +563,7 @@ describe("CT-3 : tickets (section 7, TK-1 à TK-13)", function () {
     expect(() => new A.ServiceApprobation({ org_id: ORG_ID, journal_id: JOURNAL_ID, policy_version: V1, epoque: "K-7", parametres: { expire_after_ms: E, approver_set: { source: "statique", chain_id: null, registry: null, set: null, members: [ADR(1)], threshold: { required: 1, size: 1 } }, separation: { self_approval: "interdite", identities: [] } } })).to.throw();
   });
 
-  it("EX-12.6 : chaque réponse à evaluer est l'une des sept combinaisons d'EX-7.16 ; EX-3.1 : autorise lié à un ticket seulement après scellement approuve", function () {
+  it("EX-12.6 : chaque réponse à evaluer est l'une des sept combinaisons d'EX-7.16, à neuf membres (révision 0.5) ; EX-3.1 : autorise lié à un ticket seulement après scellement approuve", function () {
     const vues = new Set();
     for (const [f, t] of Object.entries(traces)) {
       const scelles = new Set();
@@ -562,7 +572,7 @@ describe("CT-3 : tickets (section 7, TK-1 à TK-13)", function () {
         if (["acquitter", "expiration"].includes(s.input.kind) && s.expected.tickets[s.input.data.ticket] === "approuve") scelles.add(s.input.data.ticket);
         if (s.input.kind !== "evaluer" || r === null) return;
         expect(A.combinaisonAdmise(r), `${f} pas ${i + 1} : ${JSON.stringify(r)}`).to.equal(true);
-        expect(Object.keys(r)).to.deep.equal(["rule", "decision", "ticket", "ticket_state", "approval", "approver_set"]);
+        expect(Object.keys(r)).to.deep.equal(["rule", "decision", "ticket", "ticket_state", "approval", "approver_set", "policy_version", "policy_sha256", "approval_sha256"]);
         vues.add(`${r.decision}/${r.ticket_state}`);
         if (r.ticket_state === "nouveau") expect(A.erreursSchema(r.approver_set, SCHEMAS, "approver_set"), `${f} pas ${i + 1}`).to.deep.equal([]);
         if (r.ticket !== null && r.decision === "autorise") expect(scelles.has(r.ticket), `${f} pas ${i + 1}`).to.equal(true);
@@ -570,9 +580,10 @@ describe("CT-3 : tickets (section 7, TK-1 à TK-13)", function () {
     }
     expect([...vues].sort()).to.deep.equal(["a_approuver/en_attente", "a_approuver/nouveau", "autorise/approuve", "autorise/null", "refuse/expire", "refuse/null", "refuse/refuse"]);
     // Toute autre forme est refusée.
-    const ok = { rule: "r", decision: "a_approuver", ticket: "apr-0001", ticket_state: "en_attente", approval: null, approver_set: null };
+    const ok = { rule: "r", decision: "a_approuver", ticket: "apr-0001", ticket_state: "en_attente", approval: null, approver_set: null, ...EPINGLAGE(V1) };
     expect(A.combinaisonAdmise(ok)).to.equal(true);
-    for (const mauvaise of [{ ...ok, ticket_state: "nouveau" }, { ...ok, decision: "autorise" }, { ...ok, approval: { decision: "approuve", ticket: "apr-0001" } }, { ...ok, ticket: "APR-1" }, { rule: "r", decision: "a_approuver", ticket: null, ticket_state: null, approval: null, approver_set: null }, { rule: "r", decision: "autorise", ticket: "apr-0001", ticket_state: "approuve", approval: { decision: "approuve", ticket: "apr-0002" }, approver_set: null }, (({ approver_set, ...r }) => r)(ok)]) expect(A.combinaisonAdmise(mauvaise), JSON.stringify(mauvaise)).to.equal(false);
+    for (const mauvaise of [{ ...ok, ticket_state: "nouveau" }, { ...ok, decision: "autorise" }, { ...ok, approval: { decision: "approuve", ticket: "apr-0001" } }, { ...ok, ticket: "APR-1" }, { ...ok, ticket: null, ticket_state: null }, { ...ok, decision: "autorise", ticket_state: "approuve", approval: { decision: "approuve", ticket: "apr-0002" } }, (({ approver_set, ...r }) => r)(ok), (({ policy_version, ...r }) => r)(ok), (({ policy_sha256, ...r }) => r)(ok), (({ approval_sha256, ...r }) => r)(ok), { ...ok, approval_sha256: "ab" }, { ...ok, policy_version: "" }, { ...ok, policy_version: "v".repeat(129) }, { ...ok, policy_sha256: A.empreinteSynthetique(V1).slice(2) }, { ...ok, policy_sha256: "0x" + "A".repeat(64) }, { ...ok, contest_ms: 0 }]) expect(A.combinaisonAdmise(mauvaise), JSON.stringify(mauvaise)).to.equal(false);
+    expect(A.combinaisonAdmise({ ...ok, policy_version: "v".repeat(128) })).to.equal(true);
   });
 
   it("remises des traces : forme d'EX-8.8, exactement t signatures (EX-7.28, t = effective_required), acceptées par SG-1 à SG-7 (EX-9.11, CT-2 EX-7.5)", function () {
@@ -699,7 +710,8 @@ describe("CT-3 : tickets (section 7, TK-1 à TK-13)", function () {
     expect(sc.windows).to.have.length(1);
     expect(s.documentTicket("apr-0001").sealed.approval).to.deep.equal(approval);
     const r2 = s.traiter({ kind: "evaluer", at: T("09:10:00.000"), data: { request: demande("sap.payments.create", args("3000.00")) } });
-    expect(r2.response).to.deep.equal({ rule: "paiement de 1000 a 5000 CHF [fenetre apr-0001 2026-11-12T17:02:59.000Z]", decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null });
+    // Épinglage de la version de départ : empreinte synthétique, condensé de l'approval de trace des paramètres de ce service (jeu statique).
+    expect(r2.response).to.deep.equal({ rule: "paiement de 1000 a 5000 CHF [fenetre apr-0001 2026-11-12T17:02:59.000Z]", decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null, policy_version: V1, policy_sha256: A.empreinteSynthetique(V1), approval_sha256: A.condenseApproval(A.approvalTrace(s.parametres)) });
     expect(r2.windows[0].remaining).to.equal(19);
   });
 
@@ -869,8 +881,10 @@ describe("CT-3 : jeu d'approbateurs lu dans un CuratorSet réel (section 8, rés
 // ---------------------------------------------------------------------------
 describe("CT-3 : comportement du mandataire pendant l'attente (section 11, décision ouverte 4)", function () {
   const JEU = { threshold: { required: 2, size: 3 }, members: A.trierAdresses([ADR(1), ADR(2), ADR(3)]), source: "jeu statique de la politique vecteurs-ct3-1" };
-  const reponse = (decision, ticket, ticket_state, approval = null) => ({ rule: "r", decision, ticket, ticket_state, approval, approver_set: ticket_state === "nouveau" ? JEU : null });
+  const reponse = (decision, ticket, ticket_state, approval = null) => ({ rule: "r", decision, ticket, ticket_state, approval, approver_set: ticket_state === "nouveau" ? JEU : null, ...EPINGLAGE(V1) });
   const scelle = (decision, ticket = "apr-0001") => ({ decision, ticket });
+  /** Contexte de politique du noyau (CT-2 EX-7.16, révision 0.8) : la seule version épinglée V1, requête et retenue sous V1. */
+  const POL = { versions: { [V1]: DETENUE(V1) }, versionRequete: V1, versionRetenue: V1 };
 
   it("EX-11.1 : le mode de la configuration de référence est erreur ; retenir est signalé, et hors du délai des hôtes (EX-11.2)", function () {
     expect(A.MODE_ATTENTE_DEFAUT).to.equal("erreur");
@@ -884,7 +898,7 @@ describe("CT-3 : comportement du mandataire pendant l'attente (section 11, déci
     const ct2 = fs.readFileSync(path.join(SPEC, "CT-2-enregistreur.md"), "utf8");
     const ex449 = ct2.slice(ct2.indexOf("**EX-4.49**"), ct2.indexOf("**EX-4.50**"));
     const objet = [...ex449.matchAll(/```text\n(\{[^\n]+\})\n```/g)].map((m) => m[1])[1];
-    const signal = (ticket, state, o) => A.actionMandataire(reponse(...{ en_attente: ["a_approuver", ticket, "en_attente"], nouveau: ["a_approuver", ticket, "nouveau"], refuse: ["refuse", ticket, "refuse", scelle("refuse", ticket)], expire: ["refuse", ticket, "expire", scelle("expire", ticket)] }[state]), { decisionScellee: ["refuse", "expire"].includes(state) ? scelle(state, ticket) : null, ...o });
+    const signal = (ticket, state, o) => A.actionMandataire(reponse(...{ en_attente: ["a_approuver", ticket, "en_attente"], nouveau: ["a_approuver", ticket, "nouveau"], refuse: ["refuse", ticket, "refuse", scelle("refuse", ticket)], expire: ["refuse", ticket, "expire", scelle("expire", ticket)] }[state]), { decisionScellee: ["refuse", "expire"].includes(state) ? scelle(state, ticket) : null, politique: POL, ...o });
     for (const etat of ["nouveau", "en_attente"]) {
       const r = signal("apr-1192", etat);
       expect(r.action, etat).to.equal("resultat");
@@ -904,40 +918,41 @@ describe("CT-3 : comportement du mandataire pendant l'attente (section 11, déci
     expect(() => A.texteSignalApprobation("apr 1;2", "en_attente")).to.throw();
     expect(() => A.texteSignalApprobation("apr-1192", "approuve")).to.throw();
     // Ticket approuve : relais seulement après RL-1 à RL-4, sous l'approval scellé par le noyau, jamais celui du service (CT-2 EX-7.12, EX-7.21).
-    expect(A.actionMandataire(reponse("autorise", "apr-0001", "approuve", scelle("approuve")), { decisionScellee: scelle("approuve") })).to.deep.equal({ action: "verifier_relais", ticket: "apr-0001", approval: scelle("approuve") });
-    expect(A.actionMandataire(reponse("autorise", null, null))).to.deep.equal({ action: "relayer", approval: null });
+    expect(A.actionMandataire(reponse("autorise", "apr-0001", "approuve", scelle("approuve")), { decisionScellee: scelle("approuve"), politique: POL })).to.deep.equal({ action: "verifier_relais", ticket: "apr-0001", approval: scelle("approuve") });
+    expect(A.actionMandataire(reponse("autorise", null, null), { politique: POL })).to.deep.equal({ action: "relayer", approval: null });
     // -32015 n'existe plus (CT-2 4.4, EX-4.24).
     expect(C.ERREURS).to.not.have.property("APPROBATION");
   });
 
-  it("EX-12.6 : une réponse hors des sept combinaisons, ou dont l'approval n'est pas celui que le noyau a scellé, est une indisponibilité du service : -31010, raison approbation, jamais un relais", function () {
-    const degrade = { action: "erreur", error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }) };
+  it("EX-12.6 : une réponse hors des sept combinaisons, ou dont l'approval n'est pas celui que le noyau a scellé, est une indisponibilité du service : -31010, raison approbation, approval_response_invalid consigné, jamais un relais", function () {
+    const degrade = { action: "erreur", error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }), consigner: "approval_response_invalid" };
     expect(degrade.error.code).to.equal(-31010);
     const jeuIncoherent = { ...JEU, threshold: { required: 2, size: 4 } };
-    for (const r of [reponse("autorise", "apr-0001", "approuve", scelle("approuve", "apr-0002")), reponse("autorise", "apr-0001", "approuve", scelle("refuse")), reponse("autorise", "apr-0001", "en_attente"), { ...reponse("a_approuver", "apr-0001", "nouveau"), approver_set: null }, reponse("refuse", "apr-0001", "refuse", null), { rule: "r", decision: "autorise", ticket: null, ticket_state: null, approval: null }, { ...reponse("autorise", null, null), rule: 42 }, { ...reponse("a_approuver", "apr-0001", "en_attente"), rule: null }, { ...reponse("a_approuver", "apr-0001", "nouveau"), approver_set: jeuIncoherent }, { ...reponse("a_approuver", "apr-0001", "nouveau"), approver_set: { ...JEU, source: "texte libre" } }]) {
-      expect(A.actionMandataire(r), JSON.stringify(r)).to.deep.equal(degrade);
-      expect(A.actionMandataire(r, { mode: "retenir" }), JSON.stringify(r)).to.deep.equal(degrade);
+    for (const r of [reponse("autorise", "apr-0001", "approuve", scelle("approuve", "apr-0002")), reponse("autorise", "apr-0001", "approuve", scelle("refuse")), reponse("autorise", "apr-0001", "en_attente"), { ...reponse("a_approuver", "apr-0001", "nouveau"), approver_set: null }, reponse("refuse", "apr-0001", "refuse", null), { ...reponse("autorise", null, null), approver_set: undefined }, { ...reponse("autorise", null, null), rule: 42 }, { ...reponse("a_approuver", "apr-0001", "en_attente"), rule: null }, { ...reponse("a_approuver", "apr-0001", "nouveau"), approver_set: jeuIncoherent }, { ...reponse("a_approuver", "apr-0001", "nouveau"), approver_set: { ...JEU, source: "texte libre" } }]) {
+      const rep = JSON.parse(JSON.stringify(r));
+      expect(A.actionMandataire(rep, { politique: POL }), JSON.stringify(rep)).to.deep.equal({ ...degrade, raison: "forme" });
+      expect(A.actionMandataire(rep, { mode: "retenir", politique: POL }), JSON.stringify(rep)).to.deep.equal({ ...degrade, raison: "forme" });
     }
     // D'une décision scellée, l'approval du service doit être celui du noyau, et le noyau doit en avoir scellé une (RL-1, CT-2 EX-7.16).
     for (const [etat, decision] of [["approuve", "autorise"], ["refuse", "refuse"], ["expire", "refuse"]]) {
       const r = reponse(decision, "apr-0001", etat, scelle(etat));
-      expect(A.actionMandataire(r), etat).to.deep.equal(degrade);
-      expect(A.actionMandataire(r, { decisionScellee: { ...scelle(etat), reason: "autre" } }), etat).to.deep.equal(degrade);
-      expect(A.resultatDebutAppel(r, { call: "c-1" }), etat).to.deep.equal({ error: degrade.error });
+      expect(A.actionMandataire(r, { politique: POL }), etat).to.deep.equal({ ...degrade, raison: "approval_different" });
+      expect(A.actionMandataire(r, { decisionScellee: { ...scelle(etat), reason: "autre" }, politique: POL }), etat).to.deep.equal({ ...degrade, raison: "approval_different" });
+      expect(A.resultatDebutAppel(r, { call: "c-1", politique: POL }), etat).to.deep.equal({ error: degrade.error, consigner: "approval_response_invalid", raison: "approval_different" });
     }
     // L'ordre des membres d'un objet JSON n'a pas de sens : la réponse en ordre alphabétique (JCS) est admise (CT-2 EX-7.16).
     const trie = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => (a < b ? -1 : 1)));
-    expect(A.actionMandataire(trie(reponse("a_approuver", "apr-0001", "en_attente"))).action).to.equal("resultat");
-    expect(A.actionMandataire(JSON.parse(J.canonicaliserJCSIntegral(reponse("a_approuver", "apr-0001", "nouveau")))).action).to.equal("resultat");
+    expect(A.actionMandataire(trie(reponse("a_approuver", "apr-0001", "en_attente")), { politique: POL }).action).to.equal("resultat");
+    expect(A.actionMandataire(JSON.parse(J.canonicaliserJCSIntegral(reponse("a_approuver", "apr-0001", "nouveau"))), { politique: POL }).action).to.equal("resultat");
     expect(A.combinaisonAdmise(trie(reponse("refuse", null, null)))).to.equal(true);
   });
 
   it("EX-11.4 (CT-2 EX-4.50) : en mode retenir, au plus une requête retenue par ticket ; les autres reçoivent le signal en_attente ; fin de rétention", function () {
-    expect(A.actionMandataire(reponse("a_approuver", "apr-0001", "nouveau"), { mode: "retenir" })).to.deep.equal({ action: "retenir", ticket: "apr-0001" });
-    expect(A.actionMandataire(reponse("a_approuver", "apr-0001", "en_attente"), { mode: "retenir" })).to.deep.equal({ action: "retenir", ticket: "apr-0001" });
-    const deja = A.actionMandataire(reponse("a_approuver", "apr-0001", "en_attente"), { mode: "retenir", requeteDejaRetenue: true });
+    expect(A.actionMandataire(reponse("a_approuver", "apr-0001", "nouveau"), { mode: "retenir", politique: POL })).to.deep.equal({ action: "retenir", ticket: "apr-0001" });
+    expect(A.actionMandataire(reponse("a_approuver", "apr-0001", "en_attente"), { mode: "retenir", politique: POL })).to.deep.equal({ action: "retenir", ticket: "apr-0001" });
+    const deja = A.actionMandataire(reponse("a_approuver", "apr-0001", "en_attente"), { mode: "retenir", requeteDejaRetenue: true, politique: POL });
     expect(deja).to.deep.equal({ action: "resultat", result: A.resultatSignalApprobation("apr-0001", "en_attente") });
-    expect(A.actionMandataire(reponse("refuse", "apr-0001", "refuse", scelle("refuse")), { mode: "retenir", decisionScellee: scelle("refuse") }).result._meta["noortrace/approval"]).to.deep.equal({ ticket: "apr-0001", state: "refuse" });
+    expect(A.actionMandataire(reponse("refuse", "apr-0001", "refuse", scelle("refuse")), { mode: "retenir", decisionScellee: scelle("refuse"), politique: POL }).result._meta["noortrace/approval"]).to.deep.equal({ ticket: "apr-0001", state: "refuse" });
     // hold_timeout_ms : signal en_attente, le ticket continue ; décision refuse ou expire : signal de même state ; approuve : relais.
     expect(A.finRetention("apr-0001", "delai")).to.deep.equal({ action: "resultat", result: A.resultatSignalApprobation("apr-0001", "en_attente") });
     expect(A.finRetention("apr-0001", "expire", { hoteModerne: false }).result).to.deep.equal(A.resultatSignalApprobation("apr-0001", "expire", { hoteModerne: false }));
@@ -946,13 +961,13 @@ describe("CT-3 : comportement du mandataire pendant l'attente (section 11, déci
   });
 
   it("CT-2 EX-6.7 : résultat de debutAppel du SDK pour chacune des six lignes de la table, -31010 pour une réponse invalide", function () {
-    expect(A.resultatDebutAppel(reponse("autorise", null, null), { call: "c-1" })).to.deep.equal({ call: "c-1", decision: "autorise", ticket: null, ticket_state: null });
-    expect(A.resultatDebutAppel(reponse("refuse", null, null))).to.deep.equal({ call: null, decision: "refuse", ticket: null, ticket_state: null });
-    expect(A.resultatDebutAppel(reponse("a_approuver", "apr-0001", "nouveau"))).to.deep.equal({ call: null, decision: "a_approuver", ticket: "apr-0001", ticket_state: "nouveau" });
-    expect(A.resultatDebutAppel(reponse("a_approuver", "apr-0001", "en_attente"))).to.deep.equal({ call: null, decision: "a_approuver", ticket: "apr-0001", ticket_state: "en_attente" });
-    expect(A.resultatDebutAppel(reponse("autorise", "apr-0001", "approuve", scelle("approuve")), { call: "c-2", decisionScellee: scelle("approuve") })).to.deep.equal({ call: "c-2", decision: "autorise", ticket: "apr-0001", ticket_state: "approuve" });
-    for (const etat of ["refuse", "expire"]) expect(A.resultatDebutAppel(reponse("refuse", "apr-0001", etat, scelle(etat)), { decisionScellee: scelle(etat) })).to.deep.equal({ call: null, decision: "refuse", ticket: "apr-0001", ticket_state: etat });
-    expect(A.resultatDebutAppel(reponse("autorise", "apr-0001", "en_attente"))).to.deep.equal({ error: { code: -31010, message: "noortrace: appel bloque, enregistreur en mode degrade", data: { reason: "approbation" } } });
+    expect(A.resultatDebutAppel(reponse("autorise", null, null), { call: "c-1", politique: POL })).to.deep.equal({ call: "c-1", decision: "autorise", ticket: null, ticket_state: null });
+    expect(A.resultatDebutAppel(reponse("refuse", null, null), { politique: POL })).to.deep.equal({ call: null, decision: "refuse", ticket: null, ticket_state: null });
+    expect(A.resultatDebutAppel(reponse("a_approuver", "apr-0001", "nouveau"), { politique: POL })).to.deep.equal({ call: null, decision: "a_approuver", ticket: "apr-0001", ticket_state: "nouveau" });
+    expect(A.resultatDebutAppel(reponse("a_approuver", "apr-0001", "en_attente"), { politique: POL })).to.deep.equal({ call: null, decision: "a_approuver", ticket: "apr-0001", ticket_state: "en_attente" });
+    expect(A.resultatDebutAppel(reponse("autorise", "apr-0001", "approuve", scelle("approuve")), { call: "c-2", decisionScellee: scelle("approuve"), politique: POL })).to.deep.equal({ call: "c-2", decision: "autorise", ticket: "apr-0001", ticket_state: "approuve" });
+    for (const etat of ["refuse", "expire"]) expect(A.resultatDebutAppel(reponse("refuse", "apr-0001", etat, scelle(etat)), { decisionScellee: scelle(etat), politique: POL })).to.deep.equal({ call: null, decision: "refuse", ticket: "apr-0001", ticket_state: etat });
+    expect(A.resultatDebutAppel(reponse("autorise", "apr-0001", "en_attente"), { politique: POL })).to.deep.equal({ error: { code: -31010, message: "noortrace: appel bloque, enregistreur en mode degrade", data: { reason: "approbation" } }, consigner: "approval_response_invalid", raison: "forme" });
   });
 });
 
@@ -994,7 +1009,12 @@ describe("CT-2 §7.5 : échanges du noyau avec le service, partie calculable (EX
     const { service, ...donnees } = m;
     const r = s.traiter({ kind: "charger", at: T("08:00:00.000"), data: { ...donnees, approval: m.approval } });
     expect(r.accepted).to.equal(true);
-    expect(Object.keys(r.response)).to.deep.equal(["policy_version", "policy_sha256", "approval_candidates"]);
+    expect(Object.keys(r.response)).to.deep.equal(["policy_version", "policy_sha256", "approval_sha256", "approval_candidates"]);
+    // 12.2 (révision 0.5) : approval_sha256 est le SHA-256 du JCS du membre approval reçu ; le noyau le compare au sien (reponseChargerConforme).
+    expect(r.response.approval_sha256).to.equal(A.condenseApproval(m.approval));
+    expect(A.reponseChargerConforme(r.response, { policy_version: "v-ok", policy_sha256: "0x" + "ab".repeat(32), approval_sha256: A.condenseApproval(m.approval) })).to.equal(true);
+    expect(A.reponseChargerConforme(r.response, { policy_version: "v-ok", policy_sha256: "0x" + "ab".repeat(32), approval_sha256: A.condenseApproval({ ...m.approval, mode: "retenir" }) })).to.equal(false);
+    expect(A.reponseChargerConforme({ ...r.response, approval_candidates: undefined }, { policy_version: "v-ok", policy_sha256: "0x" + "ab".repeat(32), approval_sha256: A.condenseApproval(m.approval) })).to.equal(false);
     expect(s.journal.map((x) => x.note).filter((n) => n.includes("aucune entrée pour le demandeur"))).to.have.length(2);
     expect(s.journal.some((x) => x.note.includes("agent-nuit"))).to.equal(true);
     // Un requesters qui n'est pas un tableau de chaînes : requete_invalide (EX-12.1).
@@ -1003,16 +1023,17 @@ describe("CT-2 §7.5 : échanges du noyau avec le service, partie calculable (EX
   });
 
   it("EX-7.16 : une réponse d'evaluer qui porte une décision scellée doit avoir l'approval de la décision que le noyau a scellée, clé pour clé", function () {
-    const r = (ticket_state, approval) => ({ rule: "paiement > 5000 CHF", decision: ticket_state === "approuve" ? "autorise" : "refuse", ticket: "apr-1192", ticket_state, approval, approver_set: null });
-    expect(A.reponseEvaluerApplicable(r("approuve", DECISION), { decisionScellee: DECISION })).to.equal(true);
-    expect(A.reponseEvaluerApplicable(r("approuve", DECISION), { decisionScellee: null })).to.equal(false);
-    expect(A.reponseEvaluerApplicable(r("approuve", { ...DECISION, reason: "autre motif" }), { decisionScellee: DECISION })).to.equal(false);
-    expect(A.reponseEvaluerApplicable(r("approuve", { ...DECISION, at: "2026-11-03T13:52:40.512Z" }), { decisionScellee: DECISION })).to.equal(false);
+    const POL = { versions: { [V1]: DETENUE(V1) }, versionRequete: V1, versionRetenue: V1 };
+    const r = (ticket_state, approval) => ({ rule: "paiement > 5000 CHF", decision: ticket_state === "approuve" ? "autorise" : "refuse", ticket: "apr-1192", ticket_state, approval, approver_set: null, ...EPINGLAGE(V1) });
+    expect(A.reponseEvaluerApplicable(r("approuve", DECISION), { decisionScellee: DECISION, politique: POL })).to.equal(true);
+    expect(A.reponseEvaluerApplicable(r("approuve", DECISION), { decisionScellee: null, politique: POL })).to.equal(false);
+    expect(A.reponseEvaluerApplicable(r("approuve", { ...DECISION, reason: "autre motif" }), { decisionScellee: DECISION, politique: POL })).to.equal(false);
+    expect(A.reponseEvaluerApplicable(r("approuve", { ...DECISION, at: "2026-11-03T13:52:40.512Z" }), { decisionScellee: DECISION, politique: POL })).to.equal(false);
     const refus = { ...DECISION, decision: "refuse" };
-    expect(A.reponseEvaluerApplicable(r("refuse", refus), { decisionScellee: refus })).to.equal(true);
-    expect(A.reponseEvaluerApplicable(r("refuse", refus), { decisionScellee: DECISION })).to.equal(false);
-    expect(A.reponseEvaluerApplicable({ rule: null, decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null })).to.equal(true);
-    expect(A.reponseEvaluerApplicable({ rule: "r", decision: "a_approuver", ticket: "apr-1192", ticket_state: "nouveau", approval: null, approver_set: JEU })).to.equal(true);
+    expect(A.reponseEvaluerApplicable(r("refuse", refus), { decisionScellee: refus, politique: POL })).to.equal(true);
+    expect(A.reponseEvaluerApplicable(r("refuse", refus), { decisionScellee: DECISION, politique: POL })).to.equal(false);
+    expect(A.reponseEvaluerApplicable({ rule: null, decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null, ...EPINGLAGE(V1) }, { politique: POL })).to.equal(true);
+    expect(A.reponseEvaluerApplicable({ rule: "r", decision: "a_approuver", ticket: "apr-1192", ticket_state: "nouveau", approval: null, approver_set: JEU, ...EPINGLAGE(V1) }, { politique: POL })).to.equal(true);
   });
 
   it("EX-7.17 : refus de sceller la retenue d'un ticket déjà décidé ; deux retenue sans décision admises", function () {
@@ -1228,7 +1249,7 @@ describe("CT-2 §7.5 : échanges du noyau avec le service, partie calculable (EX
     expect(A.redigerMotifDecision(avecPath, "Verse sur CH9300762011623852957")).to.equal("Verse sur [REDIGE:iban]");
     expect(A.redigerMotifDecision(P, null)).to.equal(null);
     expect(A.redigerMotifDecision(P, "Pièces validées")).to.equal("Pièces validées");
-    const long = "a@b.ch ".repeat(146).trimEnd();
+    const long = "a@b.example ".repeat(85).trimEnd();
     expect([...long].length).to.be.at.most(1024);
     const r = A.redigerMotifDecision(P, long);
     expect([...r].length).to.equal(1024);
@@ -1385,6 +1406,212 @@ describe("CT-3 : génération déterministe des vecteurs (EX-A.1, EX-A.2, EX-A.3
 });
 
 // ---------------------------------------------------------------------------
+describe("CT-3 révision 0.8, CT-2 révision 0.11 : policy_version, policy_sha256 et approval_sha256 dans la réponse evaluer (étape 8, décision du porteur du 14 novembre 2026 et son addendum)", function () {
+  this.timeout(120_000);
+  const V2 = CONSTANTES.policy_versions[1];
+  const EMP = (v) => A.empreinteSynthetique(v);
+  const VERSIONS = { [V1]: DETENUE(V1), [V2]: DETENUE(V2) };
+  /** Condensé de l'approval d'autres règles (règle par défaut autorise) : un charger pré-enregistré avec des règles permissives (addendum de la décision du porteur du 14 novembre 2026). */
+  const APPROVAL_AUTRES = A.condenseApproval(A.approvalCharger({ ...A.politiqueTrace(PARAMETRES_TRACE), default: { name: "defaut : autorise", description: null, level: "automatique", decision: "autorise", contest_ms: null } }, { expire_after_ms: E }));
+  const JEU2 = { threshold: { required: 2, size: 3 }, members: A.trierAdresses([ADR(1), ADR(2), ADR(3)]), source: `jeu statique de la politique ${V2}` };
+  /** Une réponse evaluer rendue sous V2 (évaluation sans ticket par défaut), complétée ou remplacée par `o`. */
+  const rep = (o = {}) => ({ rule: "paiement > 5000 CHF", decision: "a_approuver", ticket: null, ticket_state: null, approval: null, approver_set: null, ...EPINGLAGE(V2), ...o });
+  /** Contexte du noyau : V1 et V2 détenues, requête sous V2, pas de ticket rapproché par défaut. */
+  const ctx = (o = {}) => ({ versions: VERSIONS, versionRequete: V2, versionRetenue: null, ...o });
+  const DEGRADE = C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" });
+  const traces = Object.fromEntries(fichiers("tickets").map((f) => [f, lire("tickets", f)]));
+
+  it("empreinteSynthetique : SHA-256 de l'étiquette « ensemble de politique <version> », l'empreinte que le noyau des traces déclare au charger (A.6) ; condenseApproval : SHA-256 du JCS du membre approval (12.2) ; approvalTrace : politique sans règle, défaut revue, jeu et séparation de la trace", function () {
+    expect(EMP(V1)).to.equal(J.sha256(Buffer.from(`ensemble de politique ${V1}`, "utf8")));
+    expect(EMP(V1)).to.match(/^0x[0-9a-f]{64}$/);
+    expect(EMP(V1)).to.not.equal(EMP(V2));
+    const approval = A.approvalTrace(PARAMETRES_TRACE);
+    expect(Object.keys(approval)).to.deep.equal(["rules", "mode", "hold_timeout_ms", "expire_after_ms", "timeout_ms"]);
+    expect([approval.mode, approval.expire_after_ms, approval.rules.rules, approval.rules.approver_set, approval.rules.separation]).to.deep.equal(["erreur", E, [], PARAMETRES_TRACE.approver_set, PARAMETRES_TRACE.separation]);
+    expect(A.erreursPolitique(approval.rules, { schemas: SCHEMAS, environment: "developpement", expire_after_ms: E })).to.deep.equal([]);
+    expect(A.condenseApproval(approval)).to.equal(J.sha256(Buffer.from(J.canonicaliserJCSIntegral(approval), "utf8")));
+    // L'ordre des membres n'entre pas dans le condensé (JCS) ; une autre valeur, si.
+    expect(A.condenseApproval(Object.fromEntries(Object.entries(approval).reverse()))).to.equal(APPROVAL_SHA);
+    expect(A.condenseApproval({ ...approval, mode: "retenir" })).to.not.equal(APPROVAL_SHA);
+    expect(() => A.condenseApproval(null)).to.throw();
+  });
+
+  it("CT-2 EX-7.16 (politiqueEpinglee) : version détenue, empreinte égale à celle du charger, version de la requête sans ticket rapproché, version de la retenue pour un ticket rapproché", function () {
+    expect(A.politiqueEpinglee(rep(), ctx())).to.equal(true);
+    // Empreinte autre que celle du charger de la version (celle d'une autre version, ou quelconque).
+    expect(A.politiqueEpinglee(rep({ policy_sha256: EMP(V1) }), ctx())).to.equal(false);
+    expect(A.politiqueEpinglee(rep({ policy_sha256: "0x" + "00".repeat(32) }), ctx())).to.equal(false);
+    // Version inconnue du noyau, même avec l'empreinte synthétique « correcte » pour elle.
+    expect(A.politiqueEpinglee(rep({ policy_version: "vecteurs-ct3-9", policy_sha256: EMP("vecteurs-ct3-9") }), ctx())).to.equal(false);
+    // approval_sha256 d'autres règles que celles envoyées au charger de V2 : non épinglée (addendum).
+    expect(A.politiqueEpinglee(rep({ approval_sha256: APPROVAL_AUTRES }), ctx())).to.equal(false);
+    // Version détenue mais autre que celle de la requête, sans ticket rapproché.
+    expect(A.politiqueEpinglee(rep({ ...EPINGLAGE(V1) }), ctx())).to.equal(false);
+    // Ticket nouveau : la version de la requête, même si une retenue d'une autre version existe.
+    const nouveau = rep({ ticket: "apr-0002", ticket_state: "nouveau", approver_set: JEU2 });
+    expect(A.politiqueEpinglee(nouveau, ctx({ versionRetenue: V1 }))).to.equal(true);
+    expect(A.politiqueEpinglee({ ...nouveau, ...EPINGLAGE(V1) }, ctx({ versionRetenue: V1 }))).to.equal(false);
+    // Ticket rapproché (en_attente) créé sous V1, requête sous V2 : la version du ticket est attendue ; celle de la requête est refusée.
+    const attente = rep({ ticket: "apr-0001", ticket_state: "en_attente", ...EPINGLAGE(V1) });
+    expect(A.politiqueEpinglee(attente, ctx({ versionRetenue: V1 }))).to.equal(true);
+    expect(A.politiqueEpinglee({ ...attente, ...EPINGLAGE(V2) }, ctx({ versionRetenue: V1 }))).to.equal(false);
+    expect(A.politiqueEpinglee(attente, ctx({ versionRetenue: null }))).to.equal(false);
+    // Les versions détenues peuvent être une Map ; __proto__ n'est jamais une version détenue ; le contexte est obligatoire.
+    expect(A.politiqueEpinglee(rep(), ctx({ versions: new Map(Object.entries(VERSIONS)) }))).to.equal(true);
+    expect(A.politiqueEpinglee(rep({ policy_version: "__proto__", policy_sha256: EMP("__proto__") }), ctx())).to.equal(false);
+    expect(A.politiqueEpinglee(rep({ policy_version: "constructor", policy_sha256: EMP("constructor") }), ctx())).to.equal(false);
+    expect(() => A.politiqueEpinglee(rep(), {})).to.throw(/contexte/);
+  });
+
+  it("CT-2 EX-7.15 (révision 0.8) : tant que le charger de la version épinglée n'a pas réussi, le service est indisponible pour toute écriture et tout outil susceptible (-31010, approval_charger_refuse) ; en observation, relais marqué inconnu", function () {
+    const sansV2 = ctx({ versions: { [V1]: DETENUE(V1) } });
+    const attendu = { action: "erreur", error: DEGRADE, consigner: "approval_charger_refuse", raison: "charger_non_reussi" };
+    expect(A.LIGNE_CHARGER_REFUSE).to.equal("approval_charger_refuse");
+    expect(A.indisponibiliteCharger(sansV2)).to.deep.equal(attendu);
+    expect(A.indisponibiliteCharger(ctx())).to.equal(null);
+    // La réponse, même parfaite, n'est pas regardée : rien n'est évalué sous une version dont le charger n'a pas réussi.
+    const parfaite = rep({ decision: "autorise", rule: null });
+    expect(A.actionMandataire(parfaite, { politique: sansV2 })).to.deep.equal(attendu);
+    expect(A.actionMandataire(parfaite, { mode: "retenir", politique: sansV2 })).to.deep.equal(attendu);
+    expect(A.resultatDebutAppel(parfaite, { call: "c-1", politique: sansV2 })).to.deep.equal({ error: DEGRADE, consigner: "approval_charger_refuse", raison: "charger_non_reussi" });
+    const obs = A.actionMandataire(parfaite, { mode: "observation", politique: sansV2 });
+    expect(obs).to.include({ action: "relayer", would: "inconnu", consigner: "approval_charger_refuse" });
+    expect(obs.policy.rule).to.equal("evaluation impossible [observation inconnu]");
+    // Un charger qui a réussi (réponse conforme) rend la version détenue : la même réponse est relayée.
+    expect(A.actionMandataire(parfaite, { politique: ctx() })).to.deep.equal({ action: "relayer", approval: null });
+    // Réponse de charger conforme : exactement les quatre membres, version et empreinte envoyées, condensé égal au sien.
+    const attendue = { policy_version: V2, policy_sha256: EMP(V2), approval_sha256: APPROVAL_SHA };
+    expect(A.reponseChargerConforme({ ...attendue, approval_candidates: ["sap.payments.create"] }, attendue)).to.equal(true);
+    expect(A.reponseChargerConforme({ ...attendue, approval_candidates: [] }, attendue)).to.equal(true);
+    for (const r of [{ ...attendue, approval_candidates: ["x"], approval_sha256: APPROVAL_AUTRES }, { ...attendue, approval_candidates: ["x"], policy_sha256: EMP(V1) }, { ...attendue, approval_candidates: ["x"], policy_version: V1 }, { policy_version: V2, policy_sha256: EMP(V2), approval_candidates: [] }, { ...attendue, approval_candidates: "x" }, { ...attendue, approval_candidates: [1] }, { ...attendue, approval_candidates: [], extra: 1 }, null]) expect(A.reponseChargerConforme(r, attendue), JSON.stringify(r)).to.equal(false);
+  });
+
+  it("CT-2 EX-7.16 : les cinq réponses de la révision sont invalides, raison politique_non_epinglee ; -31010 raison approbation, approval_response_invalid consigné, jamais un relais, en mode erreur comme en mode retenir et pour le SDK", function () {
+    expect(A.RAISON_POLITIQUE_NON_EPINGLEE).to.equal("politique_non_epinglee");
+    const politique = ctx({ versionRetenue: V1 });
+    const { policy_sha256: _sans, ...huit } = rep({ decision: "autorise", rule: null });
+    const { approval_sha256: _sansCondense, ...huitSansCondense } = rep({ decision: "autorise", rule: null });
+    const cas = {
+      "huit membres (policy_sha256 absent)": huit,
+      "huit membres (approval_sha256 absent)": huitSansCondense,
+      "empreinte autre que celle du charger": rep({ decision: "autorise", rule: null, policy_sha256: EMP(V1) }),
+      "version inconnue": rep({ decision: "autorise", rule: null, policy_version: "vecteurs-ct3-9", policy_sha256: EMP("vecteurs-ct3-9") }),
+      "version de la requête au lieu de celle du ticket rapproché": rep({ ticket: "apr-0001", ticket_state: "en_attente" }),
+      "approval_sha256 d'autres règles": rep({ decision: "autorise", rule: null, approval_sha256: APPROVAL_AUTRES }),
+    };
+    for (const [nom, r] of Object.entries(cas)) {
+      expect(A.raisonReponseInvalide(r, { politique }), nom).to.equal("politique_non_epinglee");
+      expect(A.reponseEvaluerApplicable(r, { politique }), nom).to.equal(false);
+      expect(A.actionMandataire(r, { politique }), nom).to.deep.equal({ action: "erreur", error: DEGRADE, consigner: "approval_response_invalid", raison: "politique_non_epinglee" });
+      expect(A.actionMandataire(r, { mode: "retenir", politique }), nom).to.deep.equal({ action: "erreur", error: DEGRADE, consigner: "approval_response_invalid", raison: "politique_non_epinglee" });
+      expect(A.resultatDebutAppel(r, { call: "c-1", politique }), nom).to.deep.equal({ error: DEGRADE, consigner: "approval_response_invalid", raison: "politique_non_epinglee" });
+    }
+    // Les mêmes réponses sous la politique épinglée passent : relais, signal, ticket rapproché sous la version de sa retenue.
+    expect(A.actionMandataire(rep({ decision: "autorise", rule: null }), { politique })).to.deep.equal({ action: "relayer", approval: null });
+    expect(A.actionMandataire(rep({ ticket: "apr-0001", ticket_state: "en_attente", ...EPINGLAGE(V1) }), { politique }).action).to.equal("resultat");
+    expect(A.raisonReponseInvalide(rep({ decision: "autorise", rule: null }), { politique })).to.equal(null);
+    // Hors des combinaisons d'EX-12.6 : forme ; le couple est jugé après la forme des six autres membres.
+    expect(A.raisonReponseInvalide(rep(), { politique })).to.equal("forme");
+    expect(A.raisonReponseInvalide({ ...rep({ decision: "autorise", rule: null }), approver_set: undefined }, { politique })).to.equal("forme");
+    // Le contexte de politique est obligatoire : la référence ne juge jamais une réponse sans lui.
+    for (const f of [() => A.reponseEvaluerApplicable(rep({ decision: "autorise", rule: null })), () => A.actionMandataire(rep({ decision: "autorise", rule: null })), () => A.resultatDebutAppel(rep({ decision: "autorise", rule: null }), { call: "c" }), () => A.raisonReponseInvalide(rep())]) expect(f).to.throw(/politique/);
+  });
+
+  it("service de référence : chaque réponse evaluer recopie la version et l'empreinte du charger ; évaluation et nouveau : la requête ; ticket rapproché : la version du ticket, aussi après le chargement d'une autre version ; l'état persisté les garde (TK-12)", function () {
+    const parametres = { expire_after_ms: E, approver_set: { source: "statique", chain_id: null, registry: null, set: null, members: [ADR(1), ADR(2), ADR(3)], threshold: { required: 2, size: 3 } }, separation: { self_approval: "interdite", identities: [] } };
+    const s = new A.ServiceApprobation({ org_id: ORG_ID, journal_id: JOURNAL_ID, policy_version: V1, parametres });
+    const EV = { rule: "r", decision: "a_approuver", contest_ms: 0, opening: null };
+    const CONDENSE = A.condenseApproval(A.approvalTrace(parametres));
+    const r1 = s.traiter({ kind: "evaluer", at: T("09:00:00.000"), data: { request: demande("t", { a: 1 }), evaluation: EV } });
+    expect(Object.keys(r1.response)).to.deep.equal(["rule", "decision", "ticket", "ticket_state", "approval", "approver_set", "policy_version", "policy_sha256", "approval_sha256"]);
+    expect([r1.response.ticket_state, r1.response.policy_version, r1.response.policy_sha256, r1.response.approval_sha256]).to.deep.equal(["nouveau", V1, EMP(V1), CONDENSE]);
+    const r0 = s.traiter({ kind: "evaluer", at: T("09:00:01.000"), data: { request: demande("u", {}), evaluation: { rule: "r", decision: "autorise", contest_ms: null, opening: null } } });
+    expect([r0.response.ticket, r0.response.policy_version, r0.response.policy_sha256]).to.deep.equal([null, V1, EMP(V1)]);
+    // Chargement de V2 (trace) : la ré-émission du ticket créé sous V1 garde le couple de V1 ; une demande sous V2 porte V2.
+    expect(s.traiter({ kind: "charger", at: T("09:01:00.000"), data: { policy_version: V2 } }).response).to.deep.equal({ policy_version: V2 });
+    const r2 = s.traiter({ kind: "evaluer", at: T("09:02:00.000"), data: { request: demande("t", { a: 1 }), evaluation: EV } });
+    expect([r2.response.ticket, r2.response.ticket_state, r2.response.policy_version, r2.response.policy_sha256]).to.deep.equal(["apr-0001", "nouveau", V1, EMP(V1)]);
+    const r3 = s.traiter({ kind: "evaluer", at: T("09:03:00.000"), data: { request: demande("t", { a: 1 }, { version: V2 }), evaluation: EV } });
+    expect([r3.response.ticket, r3.response.policy_version, r3.response.policy_sha256]).to.deep.equal(["apr-0002", V2, EMP(V2)]);
+    // Un appel en cours évalué sous V1 après le chargement de V2 (CT-2 EX-15.5) : la réponse porte V1, la version de la requête, non la version en vigueur.
+    const r5 = s.traiter({ kind: "evaluer", at: T("09:03:30.000"), data: { request: demande("w", { b: 2 }, { version: V1 }), evaluation: { rule: "r", decision: "autorise", contest_ms: null, opening: null } } });
+    expect([r5.response.ticket, r5.response.policy_version, r5.response.policy_sha256]).to.deep.equal([null, V1, EMP(V1)]);
+    expect(s.vigueur).to.equal(V2);
+    for (const r of [r0, r1, r2, r3, r5]) {
+      expect(A.combinaisonAdmise(r.response)).to.equal(true);
+      expect(r.response.approval_sha256).to.equal(CONDENSE);
+    }
+    // TK-12 : repris de son état persisté, le service rend le même couple.
+    const repris = A.ServiceApprobation.restaurer(s.instantane());
+    expect(repris.traiter({ kind: "evaluer", at: T("09:04:00.000"), data: { request: demande("t", { a: 1 }, { version: V2 }), evaluation: EV } }).response).to.deep.include({ ticket: "apr-0002", policy_version: V2, policy_sha256: EMP(V2) });
+    // Message charger complet (12.2) : le service recopie l'empreinte déclarée, il ne la calcule pas ; sans empreinte hexadécimale de 32 octets, requete_invalide.
+    const s2 = new A.ServiceApprobation({ org_id: ORG_ID, journal_id: JOURNAL_ID, policy_version: V1, parametres, schemas: SCHEMAS });
+    const approval = { rules: POLITIQUE_ASSUREUR, mode: "erreur", hold_timeout_ms: 50000, expire_after_ms: E, timeout_ms: 2000 };
+    const declaree = "0x" + "ab".repeat(32);
+    const rc = s2.traiter({ kind: "charger", at: T("08:00:00.000"), data: { org_id: ORG_ID, journal_id: JOURNAL_ID, environment: "developpement", policy_version: "v-ok", policy_sha256: declaree, approval, tools: [], requesters: [] } });
+    expect(rc.accepted).to.equal(true);
+    expect(rc.response).to.deep.equal({ policy_version: "v-ok", policy_sha256: declaree, approval_sha256: A.condenseApproval(approval), approval_candidates: [] });
+    const r4 = s2.traiter({ kind: "evaluer", at: T("08:00:01.000"), data: { request: demande("sap.payments.create", { claim_id: "2026-1", amount: "7400.00", currency: "CHF", beneficiary_iban: "CH9300762011623852957" }, { version: "v-ok" }) } });
+    expect([r4.response.decision, r4.response.policy_version, r4.response.policy_sha256, r4.response.approval_sha256]).to.deep.equal(["a_approuver", "v-ok", declaree, A.condenseApproval(approval)]);
+    expect(s2.traiter({ kind: "charger", at: T("08:00:02.000"), data: { org_id: ORG_ID, journal_id: JOURNAL_ID, environment: "developpement", policy_version: "v-ko", policy_sha256: "ab", approval, tools: [], requesters: [] } }).reason).to.equal("requete_invalide");
+  });
+
+  it("vecteurs tickets/ : chaque réponse evaluer porte la version de la requête (évaluation, nouveau) ou celle du ticket rapproché, et l'empreinte synthétique de cette version ; politique-changee garde V1 pour le ticket de V1 après le charger de V2", function () {
+    let rapproches = 0;
+    for (const [f, t] of Object.entries(traces)) {
+      const versionDesTickets = {};
+      // Condensé de l'approval de trace de cette trace (A.6) : le noyau des traces l'envoie au charger de chaque version.
+      const condense = A.condenseApproval(A.approvalTrace({ expire_after_ms: t.expire_after_ms, approver_set: t.approver_set, separation: t.separation }));
+      const versions = { [V1]: { policy_sha256: EMP(V1), approval_sha256: condense }, [V2]: { policy_sha256: EMP(V2), approval_sha256: condense } };
+      t.steps.forEach((s, i) => {
+        const r = s.expected.response;
+        if (s.input.kind !== "evaluer" || r === null) return;
+        const versionRequete = s.input.data.request.code.policy_version;
+        const rapproche = r.ticket !== null && r.ticket_state !== "nouveau";
+        if (r.ticket !== null && r.ticket_state === "nouveau" && !Object.hasOwn(versionDesTickets, r.ticket)) versionDesTickets[r.ticket] = versionRequete;
+        const attendue = rapproche ? versionDesTickets[r.ticket] : versionRequete;
+        expect([r.policy_version, r.policy_sha256, r.approval_sha256], `${f} pas ${i + 1}`).to.deep.equal([attendue, EMP(attendue), condense]);
+        expect(A.politiqueEpinglee(r, { versions, versionRequete, versionRetenue: rapproche ? versionDesTickets[r.ticket] : null }), `${f} pas ${i + 1}`).to.equal(true);
+        if (rapproche) rapproches++;
+      });
+    }
+    // Douze ré-émissions reconnues dans les traces (en_attente, approuve, refuse, expire).
+    expect(rapproches).to.be.at.least(12);
+    const t = traces["politique-changee.json"];
+    const k = t.steps.findIndex((s) => s.input.kind === "charger");
+    expect(t.steps[k].input.data.policy_version).to.equal(V2);
+    const apres = t.steps.slice(k + 1).filter((s) => s.input.kind === "evaluer");
+    expect(apres.map((s) => [s.expected.response.ticket, s.expected.response.policy_version])).to.deep.equal([["apr-0002", V2]]);
+    expect(t.steps.slice(0, k).filter((s) => s.input.kind === "evaluer").every((s) => s.expected.response.policy_version === V1)).to.equal(true);
+  });
+
+  it("reponses-evaluer/cas.json : chaque cas rejoué par la référence du noyau ; les cinq cas négatifs de la révision ont la raison politique_non_epinglee ; les cas valides couvrent les sept combinaisons", function () {
+    const f = lire("reponses-evaluer", "cas.json");
+    expect(f.version).to.equal(0);
+    const vues = new Set();
+    for (const c of f.cases) {
+      const politique = { versions: c.context.versions, versionRequete: c.context.request_policy_version, versionRetenue: c.context.retained_policy_version };
+      const raison = A.raisonReponseInvalide(c.response, { decisionScellee: c.context.sealed_decision, politique });
+      const a = A.actionMandataire(c.response, { decisionScellee: c.context.sealed_decision, politique });
+      expect([raison === null, raison, a.action], c.id).to.deep.equal([c.expected.valid, c.expected.reason, c.expected.action]);
+      if (c.expected.valid) {
+        vues.add(`${c.response.decision}/${c.response.ticket_state}`);
+        expect(A.erreursSchema(c.response, SCHEMAS, "reponse_evaluer"), c.id).to.deep.equal([]);
+      } else expect(a).to.deep.include({ error: DEGRADE, consigner: "approval_response_invalid" });
+      for (const v of Object.values(c.context.versions)) expect([v.policy_sha256, v.approval_sha256]).to.deep.equal([v.policy_sha256, v.approval_sha256].map((x) => (/^0x[0-9a-f]{64}$/.test(x) ? x : "hex 32 octets attendu")));
+    }
+    expect([...vues].sort()).to.deep.equal(["a_approuver/en_attente", "a_approuver/nouveau", "autorise/approuve", "autorise/null", "refuse/expire", "refuse/null", "refuse/refuse"]);
+    const parId = Object.fromEntries(f.cases.map((c) => [c.id, c]));
+    for (const id of ["huit-membres", "empreinte-autre", "version-inconnue", "version-de-la-requete-pour-un-ticket-rapproche", "approval-sha256-autres-regles"]) expect(parId[id]?.expected, id).to.deep.equal({ valid: false, reason: "politique_non_epinglee", action: "erreur" });
+    expect(Object.keys(parId["huit-membres"].response)).to.have.length(8);
+    expect(parId["approval-sha256-autres-regles"].response.approval_sha256).to.not.equal(parId["autorise-sans-ticket"].response.approval_sha256);
+    expect(parId["version-de-la-requete-pour-un-ticket-rapproche"].response.policy_version).to.equal(parId["version-de-la-requete-pour-un-ticket-rapproche"].context.request_policy_version);
+    expect(parId["version-du-ticket-rapproche"].expected.valid).to.equal(true);
+    expect(parId["version-du-ticket-rapproche"].response.policy_version).to.not.equal(parId["version-du-ticket-rapproche"].context.request_policy_version);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Matrice de couverture : chaque règle EX- de CT-3 et le test qui l'exerce,
 // ou la raison pour laquelle cette implémentation ne peut pas la tester (elle
 // vise la console, le noyau de CT-2, l'organisation ou un document).
@@ -1525,7 +1752,7 @@ const COUVERTURE = {
   "EX-12.2": HORS("authentification du canal (phase 2, CT-7)"),
   "EX-12.3": HORS("propriété de déploiement du service"),
   "EX-12.5": "EX-4.2 : charger ; CT-2 EX-7.15 (messageCharger, requesters)",
-  "EX-12.6": "EX-12.6 (combinaisonAdmise, approver_set de nouveau) ; EX-12.6 : réponse hors des sept combinaisons, -31010 ; CT-2 EX-7.16 (reponseEvaluerApplicable)",
+  "EX-12.6": "EX-12.6 (combinaisonAdmise, approver_set de nouveau, huit membres) ; EX-12.6 : réponse hors des sept combinaisons, -31010 ; CT-2 EX-7.16 (reponseEvaluerApplicable) ; révision 0.5 : policy_version et policy_sha256 (politiqueEpinglee, politique_non_epinglee, reponses-evaluer/)",
   "EX-12.7": HORS("délai de réponse du service déployé ; evaluer ne lit pas le registre (EX-8.3)"),
   "EX-12.8": HORS("attente longue decisions (phase 2)"),
   "EX-12.9": "traces (acquitter : T11 à T16, T20 ; held, approval) ; decisions/ ; CT-2 EX-7.19 (messageAcquitter)",
@@ -1613,6 +1840,8 @@ const COUVERTURE = {
   "EX-A.17": "test/console.test.js : consigne et gabarit seuls dans acceptation-console/, grille conforme et fondée sur des règles de CT-3 ; HORS : l'épreuve elle-même (lecteurs humains)",
   "EX-A.18": HORS("confrontation tierce (spec/vecteurs/ct-3/confrontation/, eth-account et ethers), rejouée par test/confrontation.test.js quand l'outil est présent"),
   "EX-A.19": HORS("intégration continue (travail de confrontation de .github/workflows/ci.yml)"),
+  "EX-A.20": "reponses-evaluer/cas.json : chaque cas rejoué par la référence du noyau (EX-12.6, CT-2 EX-7.16)",
+  "EX-A.21": "test/approbation-notifications-vecteurs.test.js : notifications/notifications.json, documents, corps, tailles, SHA-256 et en-têtes NOORTRACE-Signature (13.19, EX-13.40, EX-13.41)",
 };
 
 describe("CT-3 : matrice de couverture des règles EX-", function () {

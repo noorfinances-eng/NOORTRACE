@@ -162,6 +162,11 @@ function principal(argv) {
   }
   fs.writeFileSync(o.sortie, texte);
   if (ancrage !== null) fs.writeFileSync(o["sortie-ancrage"], ancrage);
+  else {
+    // Revue de sécurité de l'étape 8 : le document d'ancrage de référence porte l'AC de test des vecteurs CT-6, dont la clé privée est
+    // publique (spec/vecteurs/ct-6/rfc3161/cles/) ; sans --ac-horodatage, rapide.yaml le monte tel quel.
+    process.stderr.write("Avertissement : sans --ac-horodatage et --sortie-ancrage, le document d'ancrage monté par rapide.yaml reste celui du dépôt, dont le certificat est l'AC de test des vecteurs CT-6 (clé privée publique) : tout jeton RFC 3161 forgé avec elle serait accepté ; donner l'AC créée au pas IR-2 (CT-8 IR-3).\n");
+  }
   const c = JSON.parse(texte);
   const sha = (x) => crypto.createHash("sha256").update(x).digest("hex");
   process.stdout.write(`org_id ${c.recorder.org_id}\njournal_id ${c.recorder.journal_id}\nsha256 ${sha(texte)}\n${ancrage === null ? "" : `ancrage_sha256 ${sha(ancrage)}\n`}configuration valide\n`);

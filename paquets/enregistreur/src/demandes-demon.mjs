@@ -307,16 +307,22 @@ export function lireDemande(octets, o) {
  * lisible de taille admise : la demande est alors illisible) ; et
  * `nonSupprime` (code d'erreur) si la suppression a échoué : une demande qui
  * reste en place n'est jamais exécutée, elle le serait à chaque signal.
+ * Étape 8 : un fichier dont le propriétaire n'est pas le compte du
+ * démon (EX-18.1 : gestion par le même utilisateur) n'est pas lu (`raison`
+ * `proprietaire`) ; il est supprimé comme les autres.
  * @param {string} chemin
- * @returns {{absent: true} | {octets: Uint8Array|null, nonSupprime: string|null}}
+ * @returns {{absent: true} | {octets: Uint8Array|null, nonSupprime: string|null, raison: string|null}}
  */
 export function preleverFichierDemande(chemin) {
   let octets = null;
   let fd = null;
+  let raison = null;
   try {
     fd = fs.openSync(chemin, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK);
     const st = fs.fstatSync(fd);
-    if (st.isFile() && st.size <= TAILLE_MAX_DEMANDE) {
+    const uid = typeof process.getuid === "function" ? process.getuid() : null;
+    if (uid !== null && st.uid !== uid) raison = "proprietaire";
+    else if (st.isFile() && st.size <= TAILLE_MAX_DEMANDE) {
       const tampon = Buffer.alloc(TAILLE_MAX_DEMANDE + 1);
       let n = 0;
       for (;;) {
@@ -339,5 +345,5 @@ export function preleverFichierDemande(chemin) {
   } catch (e) {
     if (e?.code !== "ENOENT") nonSupprime = String(e?.code ?? "erreur");
   }
-  return { octets, nonSupprime };
+  return { octets, nonSupprime, raison };
 }

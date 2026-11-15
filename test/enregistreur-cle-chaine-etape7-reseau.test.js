@@ -120,7 +120,7 @@ describe("étape 7, réseau de développement 2124 : démon en production, clé 
     }
     const d = dockerEtImage(IMAGES_SIGNATAIRES.kms);
     if (!d.ok) {
-      ctx = { condition: `KMS simulé indisponible : ${d.condition}` };
+      ctx = { condition: `${d.condition} ; KMS simulé indisponible` };
       return;
     }
     const p = parcours(travail);
@@ -138,7 +138,7 @@ describe("étape 7, réseau de développement 2124 : démon en production, clé 
     // ne s'inscrit qu'une fois sur le réseau, qui garde les exécutions précédentes).
     const base = lireParcours(p.repertoire);
     const k = cleEssai(indiceExecution(0));
-    const etiquette = `e7-lot-e-${Date.now()}`;
+    const etiquette = `e7-cle-chaine-${Date.now()}`;
     const journal = inscrireJournal({ parcours: base, travail, etiquette, aleatoire: () => Uint8Array.from(k.octets) });
     if (journal.condition) {
       ctx = { condition: journal.condition, kms };
@@ -293,7 +293,10 @@ describe("étape 7, réseau de développement 2124 : démon en production, clé 
     const ins = demandeInscription({ ...instance, journalId: journal.journalId, chainKey: kmsB.adresse, ed25519: N.octetsVersHex(journal.clePublique) });
     const fichierIns = path.join(travail, "demande-inscription-b.json");
     fs.writeFileSync(fichierIns, JSON.stringify(ins, null, 2));
-    const a = outilRegistre(["approvisionner", "--vers", kmsB.adresse, "--demande", fichierIns, "--tresorerie", "hardhat:0", "--captures", path.join(travail, "captures-approvisionnement")]);
+    // Confirmation hors bande du client, exigée par l'outil (CT-4 EX-8.21, 8.7 : --confirmation <fichier non vide>, usage sans elle).
+    const confirmation = path.join(travail, "confirmation-approvisionnement-b.txt");
+    fs.writeFileSync(confirmation, "Confirmation hors bande de l'approvisionnement de la clé de classe B, consignée (CT-4 EX-8.21).\n");
+    const a = outilRegistre(["approvisionner", "--vers", kmsB.adresse, "--demande", fichierIns, "--tresorerie", "hardhat:0", "--captures", path.join(travail, "captures-approvisionnement"), "--confirmation", confirmation]);
     if (a.code !== 0) return enAttente(this, `approvisionnement de la clé de classe B par l'outil de référence refusé (${a.sortie?.result ?? a.code} : ${a.sortie?.error?.message ?? a.stderr.slice(-200)})`);
     const avant = await R.recorderOf({ rpc: ctx.rpc, contrat: journal.contrats.recorder_registry, orgId: journal.orgId, chainKey: k.adresse });
     expect(avant.revokedAt).to.equal(0n);
@@ -301,7 +304,7 @@ describe("étape 7, réseau de développement 2124 : démon en production, clé 
     deposerDemande(m.repertoire, ins);
     const outilsAvant = outilsDesEvenements(m.repertoire);
     // `noortrace-ctl cle rotation-urgence` sans péremption : voir `demanderRotation`. La commande elle-même est éprouvée
-    // en temps réel par test/enregistreur-journal-soi.test.js (JS-5) et par l'essai sans registre réel de ce lot.
+    // en temps réel par test/enregistreur-journal-soi.test.js (JS-5) et par l'essai sans registre réel de l'étape 7.
     demanderRotation(demon, m);
     await demon.attendre((l) => l.some((x) => ["key_rotation_emergency", "key_rotation_emergency_refused", "ctl_request_refused"].includes(x.event)), 600000, "réponse de la rotation");
     const refus = [...demon.de("key_rotation_emergency_refused"), ...demon.de("ctl_request_refused")];

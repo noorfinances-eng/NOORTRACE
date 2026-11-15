@@ -74,10 +74,32 @@ export function ecrireNouveau(chemin, octets) {
   return true;
 }
 
-/** Ajoute une ligne JSON à un journal en ajout seul, puis `fsync`. */
-export function ajouterLigne(chemin, objet) {
+/** Taille du journal de l'agent au-delà de laquelle il est tourné (revue de l'étape 8) : 16 Mio. */
+export const JOURNAL_MAX_OCTETS = 16 * 1024 * 1024;
+
+/**
+ * Ajoute une ligne JSON à un journal en ajout seul, puis `fsync`. Avec
+ * `tailleMax`, le journal est borné : quand il atteint cette taille, il est
+ * renommé en `<chemin>.1` (la génération précédente est remplacée) et un
+ * journal neuf commence ; le total tenu par un journal borné est donc d'au
+ * plus deux fois `tailleMax` et une ligne. Sans `tailleMax` (registre des
+ * confirmations), le journal n'est jamais tourné.
+ */
+export function ajouterLigne(chemin, objet, { tailleMax = null } = {}) {
   creerRepertoire(path.dirname(chemin));
   const ligne = Buffer.from(JSON.stringify(objet) + "\n", "utf8");
+  if (tailleMax !== null) {
+    let taille = 0;
+    try {
+      taille = fs.statSync(chemin).size;
+    } catch {
+      taille = 0;
+    }
+    if (taille > 0 && taille + ligne.length > tailleMax) {
+      fs.renameSync(chemin, `${chemin}.1`);
+      synchroniser(path.dirname(chemin));
+    }
+  }
   const fd = fs.openSync(chemin, "a", MODE_FICHIER);
   try {
     fs.writeSync(fd, ligne);

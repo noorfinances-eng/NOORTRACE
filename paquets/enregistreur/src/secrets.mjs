@@ -18,6 +18,22 @@ export class ErreurSecret extends Error {
 }
 
 /**
+ * Efface une table de secrets résolus (EX-18.7 : « tampons effacés à
+ * l'arrêt » ; étape 8) : chaque tampon est mis à zéro, puis la table
+ * est vidée. Les copies que le langage a pu faire ailleurs (chaîne d'un jeton
+ * Transit, base64 d'un clair) ne sont pas atteignables : limite écrite au
+ * LISEZMOI.
+ * @param {Map<string, Uint8Array>} secrets
+ */
+export function effacerSecrets(secrets) {
+  if (!(secrets instanceof Map)) return;
+  for (const v of secrets.values()) {
+    if (v instanceof Uint8Array) v.fill(0);
+  }
+  secrets.clear();
+}
+
+/**
  * Décode une valeur selon `encoding` (15.2).
  * @param {Uint8Array} brut
  * @param {"hex"|"base64"|"utf8"|undefined} encodage

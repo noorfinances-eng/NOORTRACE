@@ -208,48 +208,62 @@ d'un cas valide par une seule mutation, puis signé de nouveau par tous ses
 participants, sauf quand la mutation porte sur les signatures (EX-A.6). Comptes
 Hardhat 1 à 8 du mnémonique public de `spec/vecteurs/ct-3/constantes.json`.
 
-| Cas | Mutation | Verdict | En échec | Non exécutées | D_C |
-|---|---|---|---|---|---|
-| `valide-creation-enregistreur` | exemple de CT-7 §5.10 : création, en production, de la clé de l'enregistreur rec-test-01 (classe A) et de sa clé de chaîne (compte 3) ; officiant, témoin, auditeur : comptes 1, 2, 4 ; écart consigné à l'étape 5 | valide | — | — | `0x737c2975…` |
-| `valide-inscription-membres` | production ; officiant et témoin (comptes 1 et 2), membres (comptes 5 et 6), clés d'approbateur réduites à l'adresse, vidéo | valide | — | — | `0x9aa47db2…` |
-| `valide-sauvegarde-administrateur-registre` | portée exploitant, org_id nul ; clé administrateur_registre de classe A (compte 3) et clé d'enveloppe, partage 2 sur 3 (détenteurs : comptes 5 à 7) ; officiant de l'exploitant (compte 8) | valide | — | — | `0x62a485a4…` |
-| `valide-changement-administrateur` | membres présents du jeu (comptes 1 et 2), nouvelle clé de gouvernance de classe A (compte 7), officiant de l'exploitant (compte 8), témoin (compte 4) | valide | — | — | `0x3de079ca…` |
-| `valide-restauration-administrateur-registre` | restauration, en production, de la sauvegarde de valide-sauvegarde-administrateur-registre (purpose_details : son D_C, k = 2, n = 3) : officiant (compte 8), témoin (compte 1), deux détenteurs de part (comptes 5 et 6), aucune clé produite | valide | — | — | `0x31211604…` |
-| `valide-rotation-urgence-chaine` | rotation d'urgence de la clé de chaîne de l'exemple, en production : purpose_details avec la décision (07:40) et l'inclusion de la révocation (07:52), nouvelle clé de chaîne (compte 7) ; officiant, témoin, auditeur : comptes 1, 2, 4 | valide | — | — | `0x7d14fe98…` |
-| `valide-developpement-classe-d` | développement, clé enregistreur de classe D générée sur le poste, script sans empreinte, sans vidéo ni auditeur | valide | — | — | `0xd995d76d…` |
-| `invalide-cr1-cle-en-double` | texte JSON de l'exemple signé avec le membre version en double | invalide | CR-1 | CR-2 à CR-12 | — |
-| `invalide-cr1-nombre-non-entier` | texte JSON de l'exemple signé où version vaut 0.0 | invalide | CR-1 | CR-2 à CR-12 | — |
-| `invalide-cr1-schema` | membre place retiré | invalide | CR-1 | CR-2 à CR-12 | — |
-| `invalide-cr2-un-seul-participant` | seul l'officiant ; les étapes restent témoignées par p2 et p3, qui ne sont plus participants : CR-4 échoue aussi, une seule personne ne pouvant témoigner d'aucune étape (table d'A.4) | invalide | CR-2, CR-4 | — | `0x95d89edd…` |
-| `invalide-cr2-deux-officiants` | le témoin p2 devient officiant ; un second témoin p4 (compte 5) le remplace dans chaque étape | invalide | CR-2 | — | `0x82c6a5c1…` |
-| `invalide-cr2-adresse-en-double` | l'auditeur p3 a l'adresse du témoin (et signe avec sa clé) | invalide | CR-2 | — | `0xbae42e92…` |
-| `invalide-cr2-auditeur-executant` | l'étape 2 est exécutée par l'auditeur p3 | invalide | CR-2 | — | `0xff784614…` |
-| `invalide-cr3-etape-avant-le-debut` | at de la première étape avant started_at | invalide | CR-3 | — | `0x53f84d9c…` |
-| `invalide-cr3-numerotation` | les deux dernières étapes numérotées 7 | invalide | CR-3 | — | `0x52e6fd29…` |
-| `invalide-cr4-temoin-de-lui-meme` | l'officiant p1 parmi les témoins de son étape 2 | invalide | CR-4 | — | `0x9ceaa4ae…` |
-| `invalide-cr4-temoin-auditeur-seul` | chaque étape est témoignée par le seul auditeur p3 : aucun témoin de rôle temoin | invalide | CR-4 | — | `0x9b99ce60…` |
-| `invalide-cr4-exception-sans-constat` | findings vide alors que l'étape 5 est en exception | invalide | CR-4 | — | `0xa3b1fa2a…` |
-| `invalide-cr5-empreinte-fausse` | fingerprint de la clé Ed25519 remplacée par le SHA-256 d'une étiquette | invalide | CR-5 | — | `0x2a979898…` |
-| `invalide-cr5-adresse-de-chaine` | address de la clé de chaîne remplacée par celle du compte 1 | invalide | CR-5 | — | `0x17f9e480…` |
-| `invalide-cr5-ed25519-33-octets` | clé publique Ed25519 de 33 octets (octet nul ajouté), empreinte recalculée | invalide | CR-5 | — | `0x19fae19d…` |
-| `invalide-cr6-classe-d-en-production` | clé enregistreur en classe D, en production | invalide | CR-6 | — | `0xd157b59a…` |
-| `invalide-cr6-administrateur-registre-classe-b` | clé administrateur_registre en classe B (cas valide-sauvegarde-administrateur-registre) | invalide | CR-6 | — | `0x0ec2a1b7…` |
-| `invalide-cr7-sauvegarde-enregistreur` | partage 2 sur 2 de la clé enregistreur entre deux détenteurs de part ajoutés (comptes 5 et 6) | invalide | CR-7 | — | `0xde222d57…` |
-| `invalide-cr7-k-superieur-a-n` | partage de la clé d'enveloppe avec k = 3 et n = 2 (cas valide-sauvegarde-administrateur-registre) | invalide | CR-7 | — | `0xad0b46ac…` |
-| `invalide-cr8-membre-sans-cle` | un membre p5 (compte 7) sans clé approbateur (cas valide-inscription-membres) | invalide | CR-8 | — | `0xcc99133f…` |
-| `invalide-cr9-sans-video-ni-auditeur` | production sans enregistrement vidéo ni auditeur (cas valide-inscription-membres, vidéo retirée) | invalide | CR-9 | — | `0x820614da…` |
-| `invalide-cr9-poste-en-ligne` | clé enregistreur générée sur le poste (generated_in poste), poste en ligne (offline faux) | invalide | CR-9 | — | `0x730baf68…` |
-| `invalide-cr10-incident-sans-resolution` | le constat 1 devient un incident sans résolution | invalide | CR-10 | — | `0x2b0fe58b…` |
-| `invalide-cr12-details-inattendus` | purpose_details d'une révocation (tx_hash) sur un procès-verbal de création | invalide | CR-12 | — | `0x5a1c1364…` |
-| `invalide-cr12-creation-sans-cle` | création sans aucune clé (keys vide) | invalide | CR-12 | — | `0x39265169…` |
-| `invalide-cr12-restauration-sans-detenteur` | restauration avec le seul officiant et le seul témoin : les détenteurs p3 et p4 sont retirés (cas valide-restauration-administrateur-registre) | invalide | CR-12 | — | `0x249ce72f…` |
-| `invalide-cr12-urgence-ordre` | decided_at postérieur à revocation_included_at (cas valide-rotation-urgence-chaine) | invalide | CR-12 | — | `0x960cffca…` |
-| `invalide-cr12-administrateur-sous-seuil` | jeu en vigueur au seuil de 3 avec deux membres présents (cas valide-changement-administrateur) | invalide | CR-12 | — | `0x41cfbd4f…` |
-| `invalide-cr11-signature-manquante` | signature de l'auditeur p3 retirée | invalide | CR-11 | — | `0x737c2975…` |
-| `invalide-cr11-autre-proces-verbal` | action de l'étape 3 modifiée après signature | invalide | CR-11 | — | `0x577ccdb3…` |
-| `invalide-cr11-s-haut` | signature du témoin en forme s haut (n − s, v basculé) | invalide | CR-11 | — | `0x737c2975…` |
-| `invalide-cr11-signature-d-une-decision` | le témoin (compte 2) a signé le D_A de la décision apr-1192 de CT-1 §6.4 au lieu de D_C | invalide | CR-11 | — | `0x737c2975…` |
-| `invalide-cr11-signataire-substitue` | la signature du témoin est faite par le compte 3 | invalide | CR-11 | — | `0x737c2975…` |
+| Cas | Mutation | Verdict | En échec | Non exécutées | D_C | Réserve |
+|---|---|---|---|---|---|---|
+| `valide-creation-enregistreur` | exemple de CT-7 §5.10 : création, en production, de la clé de l'enregistreur rec-test-01 (classe A) et de sa clé de chaîne (compte 3) ; officiant, témoin, auditeur : comptes 1, 2, 4 ; écart consigné à l'étape 5 | valide | — | — | `0x737c2975…` | `date_declaree_seulement` |
+| `valide-inscription-membres` | production ; officiant et témoin (comptes 1 et 2), membres (comptes 5 et 6), clés d'approbateur réduites à l'adresse, vidéo | valide | — | — | `0x9aa47db2…` | `date_declaree_seulement` |
+| `valide-sauvegarde-administrateur-registre` | portée exploitant, org_id nul ; clé administrateur_registre de classe A (compte 3) et clé d'enveloppe, partage 2 sur 3 (détenteurs : comptes 5 à 7) ; officiant de l'exploitant (compte 8) | valide | — | — | `0x62a485a4…` | `date_declaree_seulement` |
+| `valide-changement-administrateur` | membres présents du jeu (comptes 1 et 2), nouvelle clé de gouvernance de classe A (compte 7), officiant de l'exploitant (compte 8), témoin (compte 4) | valide | — | — | `0x3de079ca…` | `date_declaree_seulement` |
+| `valide-restauration-administrateur-registre` | restauration, en production, de la sauvegarde de valide-sauvegarde-administrateur-registre (purpose_details : son D_C, k = 2, n = 3) : officiant (compte 8), témoin (compte 1), deux détenteurs de part (comptes 5 et 6), aucune clé produite | valide | — | — | `0x31211604…` | `date_declaree_seulement` |
+| `valide-rotation-urgence-chaine` | rotation d'urgence de la clé de chaîne de l'exemple, en production : purpose_details avec la décision (07:40) et l'inclusion de la révocation (07:52), nouvelle clé de chaîne (compte 7) ; officiant, témoin, auditeur : comptes 1, 2, 4 | valide | — | — | `0x7d14fe98…` | `date_declaree_seulement` |
+| `valide-developpement-classe-d` | développement, clé enregistreur de classe D générée sur le poste, script sans empreinte, sans vidéo ni auditeur | valide | — | — | `0xd995d76d…` | — |
+| `valide-production-sans-ancre` | rotation planifiée, en production, de la clé de chaîne de l'exemple (nouvelle clé : compte 6) ; aucun jeton RFC 3161 sur D_C ni inscription au registre n'accompagne le procès-verbal : les douze CR- réussissent et le rapport porte la réserve date_declaree_seulement (EX-5.11, menace MN-93) ; officiant, témoin, auditeur : comptes 1, 2, 4 | valide | — | — | `0xe0b0be9b…` | `date_declaree_seulement` |
+| `invalide-cr1-cle-en-double` | texte JSON de l'exemple signé avec le membre version en double | invalide | CR-1 | CR-2 à CR-12 | — | — |
+| `invalide-cr1-nombre-non-entier` | texte JSON de l'exemple signé où version vaut 0.0 | invalide | CR-1 | CR-2 à CR-12 | — | — |
+| `invalide-cr1-schema` | membre place retiré | invalide | CR-1 | CR-2 à CR-12 | — | — |
+| `invalide-cr2-un-seul-participant` | seul l'officiant ; les étapes restent témoignées par p2 et p3, qui ne sont plus participants : CR-4 échoue aussi, une seule personne ne pouvant témoigner d'aucune étape (table d'A.4) | invalide | CR-2, CR-4 | — | `0x95d89edd…` | `date_declaree_seulement` |
+| `invalide-cr2-deux-officiants` | le témoin p2 devient officiant ; un second témoin p4 (compte 5) le remplace dans chaque étape | invalide | CR-2 | — | `0x82c6a5c1…` | `date_declaree_seulement` |
+| `invalide-cr2-adresse-en-double` | l'auditeur p3 a l'adresse du témoin (et signe avec sa clé) | invalide | CR-2 | — | `0xbae42e92…` | `date_declaree_seulement` |
+| `invalide-cr2-auditeur-executant` | l'étape 2 est exécutée par l'auditeur p3 : CR-2 (aucun auditeur n'exécute une étape) et, révision 0.5, CR-4 (exécutant qui n'est ni officiant, ni détenteur de part, ni membre) | invalide | CR-2, CR-4 | — | `0xff784614…` | `date_declaree_seulement` |
+| `invalide-cr3-etape-avant-le-debut` | at de la première étape avant started_at | invalide | CR-3 | — | `0x53f84d9c…` | `date_declaree_seulement` |
+| `invalide-cr3-numerotation` | les deux dernières étapes numérotées 7 | invalide | CR-3 | — | `0x52e6fd29…` | `date_declaree_seulement` |
+| `invalide-cr4-temoin-de-lui-meme` | l'officiant p1 parmi les témoins de son étape 2 | invalide | CR-4 | — | `0x9ceaa4ae…` | `date_declaree_seulement` |
+| `invalide-cr4-temoin-auditeur-seul` | chaque étape est témoignée par le seul auditeur p3 : aucun témoin de rôle temoin | invalide | CR-4 | — | `0x9b99ce60…` | `date_declaree_seulement` |
+| `invalide-cr4-exception-sans-constat` | findings vide alors que l'étape 5 est en exception | invalide | CR-4 | — | `0xa3b1fa2a…` | `date_declaree_seulement` |
+| `invalide-cr4-temoin-executant` | l'étape 1 est exécutée par le témoin p2 et témoignée par un second témoin p4 (compte 5) : l'exécutant n'est ni officiant, ni détenteur de part, ni membre | invalide | CR-4 | — | `0x7def20cc…` | `date_declaree_seulement` |
+| `invalide-cr4-observateur-executant` | l'étape 2 est exécutée par un observateur p4 (compte 5), témoignée par p2 | invalide | CR-4 | — | `0x7b4e2116…` | `date_declaree_seulement` |
+| `invalide-cr5-empreinte-fausse` | fingerprint de la clé Ed25519 remplacée par le SHA-256 d'une étiquette | invalide | CR-5 | — | `0x2a979898…` | `date_declaree_seulement` |
+| `invalide-cr5-adresse-de-chaine` | address de la clé de chaîne remplacée par celle du compte 1 | invalide | CR-5 | — | `0x17f9e480…` | `date_declaree_seulement` |
+| `invalide-cr5-rsa-2048` | la clé de l'enregistreur devient une clé tsa_interne rsa de 2 048 bits (SubjectPublicKeyInfo DER de test, sans adresse), empreinte recalculée | invalide | CR-5 | — | `0x54465085…` | `date_declaree_seulement` |
+| `invalide-cr5-ed25519-33-octets` | clé publique Ed25519 de 33 octets (octet nul ajouté), empreinte recalculée | invalide | CR-5 | — | `0x19fae19d…` | `date_declaree_seulement` |
+| `invalide-cr6-classe-d-en-production` | clé enregistreur en classe D, en production | invalide | CR-6 | — | `0xd157b59a…` | `date_declaree_seulement` |
+| `invalide-cr6-administrateur-registre-classe-b` | clé administrateur_registre en classe B (cas valide-sauvegarde-administrateur-registre) | invalide | CR-6 | — | `0x0ec2a1b7…` | `date_declaree_seulement` |
+| `invalide-cr7-sauvegarde-enregistreur` | partage 2 sur 2 de la clé enregistreur entre deux détenteurs de part ajoutés (comptes 5 et 6) | invalide | CR-7 | — | `0xde222d57…` | `date_declaree_seulement` |
+| `invalide-cr7-k-superieur-a-n` | partage de la clé d'enveloppe avec k = 3 et n = 2 (cas valide-sauvegarde-administrateur-registre) | invalide | CR-7 | — | `0xad0b46ac…` | `date_declaree_seulement` |
+| `invalide-cr8-membre-sans-cle` | un membre p5 (compte 7) sans clé approbateur (cas valide-inscription-membres) | invalide | CR-8 | — | `0xcc99133f…` | `date_declaree_seulement` |
+| `invalide-cr9-sans-video-ni-auditeur` | production sans enregistrement vidéo ni auditeur (cas valide-inscription-membres, vidéo retirée) | invalide | CR-9 | — | `0x820614da…` | `date_declaree_seulement` |
+| `invalide-cr9-poste-en-ligne` | clé enregistreur générée sur le poste (generated_in poste), poste en ligne (offline faux) | invalide | CR-9 | — | `0x730baf68…` | `date_declaree_seulement` |
+| `invalide-cr10-incident-sans-resolution` | le constat 1 devient un incident sans résolution | invalide | CR-10 | — | `0x2b0fe58b…` | `date_declaree_seulement` |
+| `invalide-cr12-details-inattendus` | purpose_details d'une révocation (tx_hash) sur un procès-verbal de création | invalide | CR-12 | — | `0x5a1c1364…` | `date_declaree_seulement` |
+| `invalide-cr12-creation-sans-cle` | création sans aucune clé (keys vide) | invalide | CR-12 | — | `0x39265169…` | — |
+| `invalide-cr12-restauration-sans-detenteur` | restauration avec le seul officiant et le seul témoin : les détenteurs p3 et p4 sont retirés (cas valide-restauration-administrateur-registre) | invalide | CR-12 | — | `0x249ce72f…` | `date_declaree_seulement` |
+| `invalide-cr12-urgence-ordre` | decided_at postérieur à revocation_included_at (cas valide-rotation-urgence-chaine) | invalide | CR-12 | — | `0x960cffca…` | `date_declaree_seulement` |
+| `invalide-cr12-administrateur-sous-seuil` | jeu en vigueur au seuil de 3 avec deux membres présents (cas valide-changement-administrateur) | invalide | CR-12 | — | `0x41cfbd4f…` | `date_declaree_seulement` |
+| `invalide-cr11-signature-manquante` | signature de l'auditeur p3 retirée | invalide | CR-11 | — | `0x737c2975…` | `date_declaree_seulement` |
+| `invalide-cr11-autre-proces-verbal` | action de l'étape 3 modifiée après signature | invalide | CR-11 | — | `0x577ccdb3…` | `date_declaree_seulement` |
+| `invalide-cr11-s-haut` | signature du témoin en forme s haut (n − s, v basculé) | invalide | CR-11 | — | `0x737c2975…` | `date_declaree_seulement` |
+| `invalide-cr11-signature-d-une-decision` | le témoin (compte 2) a signé le D_A de la décision apr-1192 de CT-1 §6.4 au lieu de D_C | invalide | CR-11 | — | `0x737c2975…` | `date_declaree_seulement` |
+| `invalide-cr11-signataire-substitue` | la signature du témoin est faite par le compte 3 | invalide | CR-11 | — | `0x737c2975…` | `date_declaree_seulement` |
+
+Colonne « Réserve » (CT-7 EX-5.11, menace MN-93) : aucune CR- ne lit l'ancre de
+`D_C`, que le réviseur contrôle lui-même. Pour un procès-verbal de production
+dont CR-1 réussit, `verifierCeremonie` rend en plus la réserve
+`date_declaree_seulement` dans `reserves`, et la commande
+`scripts/verify/ceremonie.mjs` l'imprime (`--json` : membre `reserves` ; sortie
+lisible : une phrase qui commence par « Réserve : »). La réserve ne change ni le
+verdict ni le code de retour, et `attendu.json` ne la porte pas : sa forme reste
+`#/$defs/attendu`. Le cas `valide-production-sans-ancre` est celui que le test
+adversarial de MN-93 rejoue.
 
 ## cles-de-test.json
 

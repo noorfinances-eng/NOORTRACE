@@ -39,14 +39,24 @@ import {
   echeanceAttente,
   depuisHex,
   decoderInstant,
+  egaliteJson,
 } from "noortrace-console/index.mjs";
 import { el, ajouter, bouton, code, definitions, message, remplacer, vider } from "../commun/dom.mjs";
 import { t, texteCode } from "../commun/libelles.mjs";
 import { ErreurAppel, appeler, allerConnexion, envoiDepuis, erreurDeSession, lireSession, maintenant } from "../commun/client.mjs";
-import { afficherErreur, demarrerEcran, principal, section, texteDuree, texteErreur, texteValeur } from "../commun/cadre.mjs";
+import { afficherErreur, contientInvisibles, demarrerEcran, estIdentifiantTicket, lienTicket, marqueInvisibles, principal, section, texteDuree, texteErreur, texteValeur } from "../commun/cadre.mjs";
 
-const MOTIF_TICKET = /^apr-[0-9a-z]+(-[0-9a-z]+)*$/;
 const PREFIXES_VOTE = ["console."];
+
+// Membres de la vue qu'EX-9.4 affiche et lie à la signature (CT-3 EX-9.15) :
+// la vue fraîche du pas 3 n'est signée que si elle porte, pour chacun, la
+// même valeur que la vue affichée ; sinon la demande a changé.
+const MEMBRES_LIES = Object.freeze(["ticket", "org_id", "journal_id", "request_hash", "request", "retained_event", "arguments_piece", "rule", "opening", "effects"]);
+
+/** Vrai si les deux vues portent la même demande sur chaque membre de `MEMBRES_LIES`. */
+function memeDemande(affichee, fraiche) {
+  return MEMBRES_LIES.every((m) => egaliteJson(Object.hasOwn(affichee, m) ? affichee[m] : null, Object.hasOwn(fraiche, m) ? fraiche[m] : null));
+}
 
 const etat = {
   session: null,
@@ -218,7 +228,10 @@ function rendreModele() {
   ajouter(table, el("thead", {}, el("tr", {}, el("th", { texte: t("modele.arguments.pointeur") }), el("th", { texte: t("modele.arguments.valeur") }), el("th", { texte: t("modele.arguments.marque") }))));
   const corps = el("tbody");
   for (const a of modele.arguments) {
-    ajouter(corps, el("tr", { attributs: { "data-pointeur": a.pointer } }, el("td", {}, code(a.pointer === "" ? t("modele.arguments.racine") : a.pointer)), el("td", {}, code(texteValeur(a.value))), el("td", {}, marqueArgument(a.status))));
+    // Valeur sous sa forme JSON, caractères invisibles écrits `\uXXXX` et marqués (EX-9.16, revue de sécurité de l'étape 8).
+    const valeur = el("td", {}, code(texteValeur(a.value), "fixe valeur"));
+    if (contientInvisibles(a.value)) ajouter(valeur, " ", marqueInvisibles());
+    ajouter(corps, el("tr", { attributs: { "data-pointeur": a.pointer } }, el("td", {}, code(a.pointer === "" ? t("modele.arguments.racine") : a.pointer)), valeur, el("td", {}, marqueArgument(a.status))));
   }
   table.appendChild(corps);
   parties.push(section(t("modele.arguments"), table, el("p", { classe: "discret", texte: t("modele.arguments.non_verifiable_sens") })));
@@ -269,7 +282,7 @@ function rendreModele() {
   if (modele.opening !== null) {
     const o = modele.opening;
     const memes = el("ul");
-    for (const s of o.same_arguments) ajouter(memes, el("li", {}, code(s.pointer), " ", code(s.value)));
+    for (const s of o.same_arguments) ajouter(memes, el("li", {}, code(s.pointer), " ", code(texteValeur(s.value), "fixe valeur"), contientInvisibles(s.value) ? " " : null, contientInvisibles(s.value) ? marqueInvisibles() : null));
     parties.push(
       section(
         t("modele.ouvrant"),
@@ -419,7 +432,7 @@ function rendreLies(reponse) {
         el(
           "li",
           { attributs: { "data-ticket": String(r.ticket) } },
-          el("a", { texte: String(r.ticket), attributs: { href: `/tickets/${String(r.ticket)}` } }),
+          lienTicket(r.ticket),
           " ",
           t(`decision_scellee.${r.decision === "refuse" ? "refuse" : "expire"}`),
           " ",
@@ -653,15 +666,43 @@ async function lecturePas3() {
   if (g !== etat.generation) return;
   let modele;
   let controle;
+  let calcul;
   try {
     const session = sessionDuModele(lu.annuaire, identite(), lu.vue);
     modele = modeleAffichage(lu.vue, { session, decision: etat.decision, approver: etat.adresse, reason: motif(), now: maintenant() });
     controle = controleVote(lu.annuaire, identite(), "voter", etat.adresse, ticketDeControleVote(lu.vue));
+    calcul = modelePas1(lu.vue, lu.annuaire);
   } catch {
     afficherErreur(zones.signature, new ErreurAppel("reponse_service_invalide"));
     return;
   }
+  // Revue CT-3 EX-9.15 : la page signe exactement ce qu'elle affiche. Le modèle
+  // affiché devient celui de la vue fraîche (jeu, votes, échéance,
+  // avertissements, dont `membres_ajoutes`), et si la demande elle-même a
+  // changé depuis l'affichage (un membre de MEMBRES_LIES), aucun écran de
+  // signature : la décision est annulée, `demande_modifiee` est affichée avec
+  // la consigne de prévenir l'administrateur, et le choix est à refaire sur la
+  // vue fraîche, suivie d'une nouvelle lecture.
+  const modifiee = !memeDemande(etat.vue, lu.vue);
+  etat.vue = lu.vue;
   etat.annuaire = lu.annuaire;
+  etat.pas1 = calcul;
+  rendreModele();
+  rendreRecusation();
+  rendreRetrait();
+  if (modifiee) {
+    etat.decision = null;
+    etat.aConfirmer = null;
+    champMotif.disabled = false;
+    etat.lecture = null;
+    rendreDecision();
+    remplacer(
+      zones.signature,
+      message("erreur", el("p", { texte: texteCode("demande_modifiee", ["page."]), attributs: { "data-code": "demande_modifiee" } }), el("p", { texte: t("signature.demande_modifiee_prevenir") })),
+    );
+    rendreConsignes();
+    return;
+  }
   etat.lecture = { vue: lu.vue, annuaire: lu.annuaire, modele, controle };
   rendreSignature();
 }
@@ -1054,7 +1095,7 @@ async function demarrer() {
   if (s === null) return;
   etat.session = s;
   const racine = principal();
-  if (!window.location.pathname.startsWith("/tickets/") || !MOTIF_TICKET.test(segment) || segment.length < 5 || segment.length > 128) {
+  if (!window.location.pathname.startsWith("/tickets/") || !estIdentifiantTicket(segment)) {
     ajouter(racine, message("erreur", el("p", { texte: texteCode("ticket_inconnu", ["raison."]) })));
     return;
   }

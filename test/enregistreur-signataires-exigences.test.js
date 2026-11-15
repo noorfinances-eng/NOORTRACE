@@ -222,8 +222,8 @@ describe("signataires : configuration et fabrique (EX-11.8, EX-15.4 pas 3)", fun
     });
   }
 
-  it("production : classe D refusée (EX-11.8) ; A, B et C admises ; module SoftHSM2 déclaré en classe A : avertissement, pas erreur (EX-15.4 pas 3, lecture 181)", function () {
-    for (const [classe, backend, attendu] of [["D", { type: "file", path: "/x.pem", passphrase: null }, "erreur"], ["A", pkcs11, "rien"], ["B", vault, "rien"], ["C", enveloppe, "rien"], ["A", { ...pkcs11, module: "/usr/lib/softhsm/libsofthsm2.so" }, "avertissement"]]) {
+  it("production : classe D refusée (EX-11.8) ; A, B et C admises ; module SoftHSM2 déclaré en classe A : erreur en production (étape 8 ; révision d'EX-15.4 pas 3 demandée, lecture 181)", function () {
+    for (const [classe, backend, attendu] of [["D", { type: "file", path: "/x.pem", passphrase: null }, "erreur"], ["A", pkcs11, "rien"], ["B", vault, "rien"], ["C", enveloppe, "rien"], ["A", { ...pkcs11, module: "/usr/lib/softhsm/libsofthsm2.so" }, "erreur"]]) {
       const c = base();
       c.recorder.environment = "production";
       c.signer = { ...c.signer, class: classe, key_id: "rec-x-01", backend };

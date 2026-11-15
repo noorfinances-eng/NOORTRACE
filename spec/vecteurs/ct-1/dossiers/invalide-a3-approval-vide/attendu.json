@@ -1,0 +1,19 @@
+{
+  "valide": false,
+  "controle": "A-3",
+  "controles_en_echec": [
+    "E-1",
+    "E-3",
+    "E-5",
+    "E-7",
+    "E-8",
+    "E-9",
+    "C-2",
+    "M-1",
+    "A-1",
+    "A-2",
+    "A-3",
+    "A-4"
+  ],
+  "description": "evenement.json dont approval est l'objet vide {} (non rescellé, SHA-256 de l'index reporté) : E-1, E-3 (approval non nul sans decision approuve pour un appel exécuté), E-5, E-9, E-7, E-8, C-2, M-1, A-1 (ticket et request_hash absents de approval), A-2, A-3 et A-4 échouent (A-4 : request_hash, terme de sa propre règle, est absent ; la règle n'est pas tenue, CT-1 §11.4)."
+}

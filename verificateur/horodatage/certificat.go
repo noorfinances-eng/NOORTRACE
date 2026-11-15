@@ -328,7 +328,10 @@ func (c *certificat) critiqueInconnue() string {
 
 // crl : liste de révocation lue selon le profil de §9.3.
 type crl struct {
-	der []byte
+	// critiqueInconnue : une extension critique que la version 0 ne lit pas,
+	// sur la liste ou sur une entrée (EX-9.16, révision 0.9).
+	critiqueInconnue bool
+	der              []byte
 	// tbs : élément DER complet de tbsCertList (octets signés).
 	tbs        []byte
 	emetteur   []byte
@@ -346,9 +349,26 @@ type entreeCRL struct {
 	raison int
 }
 
-// complete : ni deltaCRLIndicator, ni issuingDistributionPoint critique
-// (EX-9.16).
+// Extensions d'une CRL que la version 0 lit (EX-9.16, révision 0.9) : sur la
+// liste, authorityKeyIdentifier, cRLNumber, issuingDistributionPoint et
+// deltaCRLIndicator ; sur une entrée, cRLReasons. Une extension critique
+// hors de ces listes rend la CRL non lue : elle n'est pas une preuve (RFC
+// 5280 §5.2, §5.3 ; CT-6 EX-9.16).
+var (
+	oidAKI       = asn1.ObjectIdentifier{2, 5, 29, 35}
+	oidCRLNumber = asn1.ObjectIdentifier{2, 5, 29, 20}
+)
+
+func extensionCRLLue(x extension) bool {
+	return x.oid.Equal(oidAKI) || x.oid.Equal(oidCRLNumber) || x.oid.Equal(oidIDP) || x.oid.Equal(oidDeltaCRL)
+}
+
+// complete : ni deltaCRLIndicator, ni issuingDistributionPoint critique, ni
+// extension critique non lue, de la liste ou d'une entrée (EX-9.16).
 func (l *crl) complete() bool {
+	if l.critiqueInconnue {
+		return false
+	}
 	for _, x := range l.extensions {
 		if x.oid.Equal(oidDeltaCRL) || (x.oid.Equal(oidIDP) && x.critique) {
 			return false
@@ -453,6 +473,8 @@ func lireCRL(der []byte) (*crl, *defaut) {
 							return nil, crlIllisible("cRLReasons", "cRLReasons")
 						}
 						en.raison = r
+					} else if x.critique {
+						l.critiqueInconnue = true
 					}
 				}
 			}
@@ -468,6 +490,9 @@ func lireCRL(der []byte) (*crl, *defaut) {
 		for _, x := range l.extensions {
 			if x.critiqueFauxEncode {
 				return nil, defF("CRL illisible : critical encodé à FALSE dans l'extension %s, valeur DEFAULT (EX-9.21)", "unreadable CRL: critical encoded as FALSE in extension %s, a DEFAULT value (EX-9.21)", x.oid.String())
+			}
+			if x.critique && !extensionCRLLue(x) {
+				l.critiqueInconnue = true
 			}
 		}
 	}

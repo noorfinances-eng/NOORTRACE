@@ -332,7 +332,7 @@ describe("enregistreur, moteur de politique : exigences (CT-2 §7.5, §14.2, §1
     it("EX-7.17 : une seconde réponse nouveau pour une retenue durable ne scelle rien, renvoie ouvrir et rend en_attente", async function () {
       const n0 = (await banc.evenements()).length;
       const o0 = banc.service.messages.filter((m) => m.methode === "ouvrir").length;
-      banc.service.reponseForcee = () => ({ rule: "paiement > 5000 CHF", decision: "a_approuver", ticket, ticket_state: "nouveau", approval: null, approver_set: banc.service.jeu });
+      banc.service.reponseForcee = (r) => ({ rule: "paiement > 5000 CHF", decision: "a_approuver", ticket, ticket_state: "nouveau", approval: null, approver_set: banc.service.jeu, ...banc.service._couple(r.code.policy_version) });
       try {
         const r = await banc.appeler("demo__payments.create", PAIEMENT);
         expect(etatSignal(r)).to.deep.equal({ ticket, state: "en_attente" });
@@ -365,7 +365,7 @@ describe("enregistreur, moteur de politique : exigences (CT-2 §7.5, §14.2, §1
 
     it("RL-3 : un service compromis qui sert de nouveau l'approbation consommée : -31010 approbation, approval_relay_refused, aucune intention", async function () {
       const decision = banc.coeur.index.decisions.get(ticket);
-      banc.service.reponseForcee = () => ({ rule: "paiement > 5000 CHF", decision: "autorise", ticket, ticket_state: "approuve", approval: decision.approval, approver_set: null });
+      banc.service.reponseForcee = (r) => ({ rule: "paiement > 5000 CHF", decision: "autorise", ticket, ticket_state: "approuve", approval: decision.approval, approver_set: null, ...banc.service._couple(r.code.policy_version) });
       try {
         const r = await banc.appeler("demo__payments.create", PAIEMENT);
         expect(erreur(r).data).to.deep.equal({ reason: "approbation" });
@@ -379,7 +379,7 @@ describe("enregistreur, moteur de politique : exigences (CT-2 §7.5, §14.2, §1
       const t2 = await retenir(banc, { ...PAIEMENT, amount: "9100.00" });
       await decider(banc, t2);
       const d = banc.coeur.index.decisions.get(t2);
-      banc.service.reponseForcee = () => ({ rule: "paiement > 5000 CHF", decision: "autorise", ticket: t2, ticket_state: "approuve", approval: d.approval, approver_set: null });
+      banc.service.reponseForcee = (r) => ({ rule: "paiement > 5000 CHF", decision: "autorise", ticket: t2, ticket_state: "approuve", approval: d.approval, approver_set: null, ...banc.service._couple(r.code.policy_version) });
       try {
         const r = await banc.appeler("demo__payments.create", { ...PAIEMENT, amount: "99000.00" });
         expect(erreur(r).data).to.deep.equal({ reason: "approbation" });
@@ -400,7 +400,7 @@ describe("enregistreur, moteur de politique : exigences (CT-2 §7.5, §14.2, §1
 
     it("EX-7.17 : la retenue d'un ticket déjà décidé n'est pas scellée : -31010, identifiant_en_collision", async function () {
       const n0 = (await banc.evenements()).length;
-      banc.service.reponseForcee = () => ({ rule: "paiement > 5000 CHF", decision: "a_approuver", ticket, ticket_state: "nouveau", approval: null, approver_set: banc.service.jeu });
+      banc.service.reponseForcee = (r) => ({ rule: "paiement > 5000 CHF", decision: "a_approuver", ticket, ticket_state: "nouveau", approval: null, approver_set: banc.service.jeu, ...banc.service._couple(r.code.policy_version) });
       try {
         const r = await banc.appeler("demo__payments.create", { ...PAIEMENT, amount: "9300.00" });
         expect(erreur(r).data).to.deep.equal({ reason: "approbation" });
@@ -466,7 +466,7 @@ describe("enregistreur, moteur de politique : exigences (CT-2 §7.5, §14.2, §1
       await ticketOuvert(banc, ticket);
       const acq = await decider(banc, ticket, { decision: "refuse", reason: "Montant conteste" });
       // held : « vrai si et seulement si le noyau retient une requête de ce ticket et va la
-      // relayer » (CT-2 EX-7.19 pas 3) ; une décision refuse n'est jamais relayée (relecture C).
+      // relayer » (CT-2 EX-7.19 pas 3) ; une décision refuse n'est jamais relayée (relecture adversariale des approbations).
       expect(acq).to.include({ result: "scelle", decision: "refuse", held: false });
       const rb = await b.reponse;
       expect(etatSignal(rb)).to.deep.equal({ ticket, state: "refuse" });
@@ -714,7 +714,8 @@ describe("enregistreur, moteur de politique : exigences (CT-2 §7.5, §14.2, §1
       ];
       const i0 = banc.lignes("approval_response_invalid").length;
       for (const c of invalides) {
-        banc.service.reponseForcee = () => c;
+        // Neuf membres, couple juste (décision du porteur du 14 novembre 2026) : l'invalidité est celle de la combinaison, non de la forme.
+        banc.service.reponseForcee = (r) => ({ ...c, ...banc.service._couple(r.code.policy_version) });
         try {
           const r = await banc.appeler("demo__payments.create", PAIEMENT);
           expect(r.result.isError, JSON.stringify(c).slice(0, 80)).to.equal(false);
@@ -726,7 +727,7 @@ describe("enregistreur, moteur de politique : exigences (CT-2 §7.5, §14.2, §1
       expect(rapport).to.deep.equal(Array(6).fill(regleObservation(null, "inconnu")));
       expect(banc.lignes("approval_response_invalid").length - i0).to.equal(invalides.length);
       // 998 caractères : admis, marque de 26 caractères au plus sous 1 024.
-      banc.service.reponseForcee = () => ({ rule: "r".repeat(998), decision: "a_approuver", ticket: null, ticket_state: null, approval: null, approver_set: null });
+      banc.service.reponseForcee = (r) => ({ rule: "r".repeat(998), decision: "a_approuver", ticket: null, ticket_state: null, approval: null, approver_set: null, ...banc.service._couple(r.code.policy_version) });
       try {
         await banc.appeler("demo__payments.create", PAIEMENT);
       } finally {

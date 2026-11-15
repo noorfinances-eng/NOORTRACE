@@ -156,7 +156,7 @@ export async function acquerir({
     const statutBrut = reponseHttp.status ?? null;
     const h = reponseHttp.entetes ?? {};
     const typeBrut = h["content-type"] ?? h["Content-Type"] ?? null;
-    // R-F-1 : un `Content-Type` vide vaut absent (le schéma exige `minLength 1`) ; un statut hors de [100, 599] n'est pas
+    // Un `Content-Type` vide vaut absent (le schéma exige `minLength 1`) ; un statut hors de [100, 599] n'est pas
     // une réponse HTTP (`transport: erreur_transport`, code `http_hors_bornes`, permanente) : rien ne reste hors schéma.
     contentType = typeof typeBrut === "string" && typeBrut.trim().length > 0 ? typeBrut : null;
     retryAfterS = lireRetryAfter(h["retry-after"] ?? h["Retry-After"] ?? null, receivedAtMs);
@@ -174,7 +174,7 @@ export async function acquerir({
     } else if (httpStatus !== 200) code = `http_${httpStatus}`;
     else if (!TYPES_REPONSE.includes(typeMedia(contentType))) code = "type_contenu";
     else if (reponseHttp.tronque || corps.length > CORPS_MAX) code = "taille";
-    // Étape 2 : TimeStampResp lisible selon CT-6 §9.3, jeton compris (lecture H1-e : un TimeStampToken qui ne se lit pas
+    // Étape 2 : TimeStampResp lisible selon CT-6 §9.3, jeton compris (lecture e des corrections : un TimeStampToken qui ne se lit pas
     // par le lecteur borné rend `reponse_illisible`, non `verification_T-1` ; le `.tsr` est écrit tel que reçu, pas de `.der`).
     if (code === null) {
       try {
@@ -185,7 +185,7 @@ export async function acquerir({
         code = "reponse_illisible";
       }
     }
-    if (code === null && lecture.status >= 2) {
+    if (code === null && (lecture.status < 0 || lecture.status >= 2)) {
       code = lecture.status === 2 && lecture.failureInfo && lecture.failureInfo !== "autre" ? `echec_${lecture.failureInfo}` : `statut_${lecture.status}`;
     }
     if (code === null) {
@@ -252,11 +252,14 @@ export async function acquerir({
       erreurEcriture = err;
     }
   }
+  // Issue des étapes 1 à 8, gardée telle quelle : quand l'écriture de l'étape 9 échoue, c'est elle que le rejeu de
+  // l'écriture consigne (CT-5 EX-5.10 : l'enregistrement finalement écrit ne porte jamais `ecriture`).
+  const avantEcriture = { outcome, code, promoted: outcome === "obtenue" && (depot ? !depot.dejaPromu(objet, imprint, periodStart) : true) };
   if (erreurEcriture) {
     code = "ecriture";
     outcome = "echec_transitoire";
   }
-  const promoted = outcome === "obtenue" && (depot ? !depot.dejaPromu(objet, imprint, periodStart) : true);
+  const promoted = outcome === "obtenue" && avantEcriture.promoted;
 
   const enregistrement = {
     attempt_id: idTentative,
@@ -356,5 +359,6 @@ export async function acquerir({
     reponse: corps,
     jeton: token,
     erreurEcriture,
+    avantEcriture,
   };
 }

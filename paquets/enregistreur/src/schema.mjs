@@ -102,7 +102,9 @@ export class RegistreSchemasConfiguration {
    * désigné par une référence (`<$id>#/$defs/x`).
    * @param {string} ref
    * @param {unknown} instance
-   * @returns {{valide: boolean, erreurs: {pointeur: string, regle: string, valeur: unknown}[]}}
+   * @returns {{valide: boolean, erreurs: {pointeur: string, regle: string, valeur: unknown, schema: string}[]}}
+   *   `schema` : chemin du sous-schéma qui a produit l'erreur (`$ref` résolu compris),
+   *   pour que l'appelant reconnaisse un emplacement de secret
    */
   valider(ref, instance) {
     const { schema, base } = this.resoudre(ref, "");
@@ -114,10 +116,10 @@ export class RegistreSchemasConfiguration {
   valeur(s, v, pointeur, base, chemin, erreurs) {
     if (s === true) return;
     if (s === false) {
-      erreurs.push({ pointeur, regle: `${chemin} (false)`, valeur: v });
+      erreurs.push({ pointeur, regle: `${chemin} (false)`, valeur: v, schema: chemin });
       return;
     }
-    const err = (mot, detail) => erreurs.push({ pointeur, regle: `${mot}${detail ? ` : ${detail}` : ""}`, valeur: v });
+    const err = (mot, detail) => erreurs.push({ pointeur, regle: `${mot}${detail ? ` : ${detail}` : ""}`, valeur: v, schema: chemin });
     if (s.$ref !== undefined) {
       const r = this.resoudre(s.$ref, base);
       this.valeur(r.schema, v, pointeur, r.base, s.$ref, erreurs);
@@ -168,12 +170,12 @@ export class RegistreSchemasConfiguration {
         if (s.propertyNames !== undefined) {
           const sous = [];
           this.valeur(s.propertyNames, c, ici, base, `${chemin}/propertyNames`, sous);
-          if (sous.length) erreurs.push({ pointeur: ici, regle: `propertyNames : nom de membre refusé (${sous[0].regle})`, valeur: c });
+          if (sous.length) erreurs.push({ pointeur: ici, regle: `propertyNames : nom de membre refusé (${sous[0].regle})`, valeur: c, schema: chemin });
         }
         if (s.properties && Object.prototype.hasOwnProperty.call(s.properties, c)) {
           this.valeur(s.properties[c], v[c], ici, base, `${chemin}/properties/${c}`, erreurs);
         } else if (s.additionalProperties !== undefined) {
-          if (s.additionalProperties === false) erreurs.push({ pointeur: ici, regle: "additionalProperties : membre inconnu", valeur: undefined });
+          if (s.additionalProperties === false) erreurs.push({ pointeur: ici, regle: "additionalProperties : membre inconnu", valeur: undefined, schema: chemin });
           else this.valeur(s.additionalProperties, v[c], ici, base, `${chemin}/additionalProperties`, erreurs);
         }
       }
@@ -223,6 +225,7 @@ export const FICHIERS_SCHEMAS = Object.freeze([
   "politique-approbation-v0.schema.json",
   "configuration-enregistreur-v0.schema.json",
   "ticket-v0.schema.json",
+  "worm-v0.schema.json",
 ]);
 
 /** `$id` des schémas employés. */
@@ -232,6 +235,8 @@ export const IDS = Object.freeze({
   approbation: "https://noortrace.example/schemas/v0/politique-approbation.schema.json",
   redaction: "https://noortrace.example/schemas/v0/politique-redaction.schema.json",
   evenement: "https://noortrace.example/schemas/v0/evenement.schema.json",
+  // Registre des gels et registre des copies WORM (étape 8, S-8 : chaque enregistrement relu est validé avant la garde).
+  worm: "https://noortrace.example/schemas/v0/worm.schema.json",
 });
 
 let registre = null;

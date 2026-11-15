@@ -502,6 +502,66 @@
       }
     },
     {
+      "id": "cp3-recu-topics-nul",
+      "description": "topics du journal du reçu capturé remplacé par null : la racine des reçus ne se recalcule pas, CP-3 échoue avec le code de la table 9.4 (capture_incomplete), jamais un code hors de 9.3 ni une exception ; CP-5 échoue aussi",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp3-recu-topics-nul",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "echoue",
+          "CP-4": "reussi",
+          "CP-5": "echoue",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": {
+        "check": "CP-3",
+        "code": "capture_incomplete"
+      }
+    },
+    {
+      "id": "cp2-nom-hors-repertoire",
+      "description": "en-tête désigné par l'index sous le nom ../bloc-16648.json : le nom est refusé avant toute lecture (CP-6), aucun fichier hors du répertoire des captures n'est lu ; CP-2 échoue le premier (en-tête absent ou illisible), CP-6 aussi (nom hors du répertoire)",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp2-nom-hors-repertoire",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "echoue",
+          "CP-3": "echoue",
+          "CP-4": "echoue",
+          "CP-5": "reussi",
+          "CP-6": "echoue"
+        }
+      },
+      "refusal": {
+        "check": "CP-2",
+        "code": "capture_incomplete"
+      }
+    },
+    {
       "id": "export-periode-1",
       "description": "parties exportées des quatre captures de la période 1 : égales, en valeurs JSON et hors source, à spec/vecteurs/ct-6/registre/periode-1/ (EX-9.8 à EX-9.10)",
       "checks": [

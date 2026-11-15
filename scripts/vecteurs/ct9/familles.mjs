@@ -151,7 +151,7 @@ const RAISONS_MESURES = Object.freeze({
 export function construireConsignations() {
   const gabarit = {
     version: 0, kind: "consignation-rejeu", test_id: "TR-10", date: "2027-01-15", commit: COMMIT,
-    participant: { pseudonym: "P-01", role: "reviseur externe", external: true },
+    participant: { pseudonym: "P-01", role: "réviseur", condition: "relecteur_interne_a_l_aveugle", external: false },
     judge: { pseudonym: "J-01", independent: true },
     material: [
       { item: "CT-8 section 13 (extrait)", sha256: "0".repeat(64) },
@@ -178,16 +178,18 @@ export function construireConsignations() {
     "invalide-reussi-element-absent": { ...gabarit, verdict: { ...gabarit.verdict, elements: [...gabarit.verdict.elements.slice(0, 3), { element: "phrase : ni auteur, ni complétude, ni ancres du réviseur", present: false }] } },
     "invalide-reussi-disqualifiant": { ...gabarit, verdict: { ...gabarit.verdict, disqualifying_statement: true } },
     "invalide-juge-non-independant": { ...gabarit, judge: { pseudonym: "J-01", independent: false } },
-    "invalide-nom-de-personne": { ...gabarit, participant: { pseudonym: "Jean Dupont", role: "reviseur externe", external: true } },
+    "invalide-nom-de-personne": { ...gabarit, participant: { pseudonym: "Jean Dupont", role: "réviseur", condition: "relecteur_interne_a_l_aveugle", external: false } },
     "invalide-sans-materiel": { ...gabarit, material: [] },
+    "invalide-externe-sans-condition": { ...gabarit, participant: { pseudonym: "P-01", role: "réviseur", condition: "relecteur_interne_a_l_aveugle", external: true } },
   };
   const raisons = {
-    "valide-gabarit": "Gabarit de TR-10 : pseudonymes, juge indépendant, matériel avec SHA-256 de gabarit, verdict réussi avec chaque élément présent.",
+    "valide-gabarit": "Gabarit de TR-10 : pseudonymes, participant relecteur interne à l'aveugle (`condition`, `external` faux), juge indépendant, matériel avec SHA-256 de gabarit, verdict réussi avec chaque élément présent.",
     "invalide-reussi-element-absent": "Verdict `reussi` avec un élément de grille absent : refusé (EX-12.6).",
     "invalide-reussi-disqualifiant": "Verdict `reussi` avec une affirmation disqualifiante : refusé (EX-12.6).",
     "invalide-juge-non-independant": "Juge qui a aidé le participant (`independent` faux) : refusé (EX-12.5).",
     "invalide-nom-de-personne": "Participant désigné par un nom au lieu d'un pseudonyme `P-nn` : refusé (EX-12.1).",
     "invalide-sans-materiel": "Aucun matériel remis consigné : refusé (EX-12.2).",
+    "invalide-externe-sans-condition": "Participant déclaré extérieur (`external` vrai) alors que sa condition est `relecteur_interne_a_l_aveugle` : refusé, `external` n'est vrai que pour `personne_exterieure` (EX-12.1, EX-12.4 ; révision 0.10).",
   };
   const casJson = {
     version: 0, family: "ct-9/consignations/cas",

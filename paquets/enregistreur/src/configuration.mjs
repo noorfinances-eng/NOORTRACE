@@ -5,10 +5,10 @@
 // démon s'arrête avec un rapport sur stderr (une ligne par erreur : pointeur
 // JSON, règle, valeur fautive sauf pour les secrets) et le code de retour 2.
 //
-// Pas 3 : ce lot vérifie les règles qui touchent le cœur et celles qui se
+// Pas 3 : ce module vérifie les règles qui touchent le cœur et celles qui se
 // lisent sur le document seul (signataire, cadence, bail, rétention et WORM,
 // alias, gabarits d'effets, mode observation, approbateurs de test, chemins
-// des routes, jetons statiques). Les vérifications propres aux lots suivants
+// des routes, jetons statiques). Les vérifications propres aux parties suivantes
 // (motifs de rédaction d'EX-10.6 et EX-10.23, politique d'approbation de CT-3
 // EX-4.2 et EX-8.2, collisions de noms annoncés d'EX-4.11) leur reviennent ;
 // INTERFACES.md dit où elles s'insèrent (`reglesSupplementaires`).
@@ -21,6 +21,39 @@ import { BACKENDS_PAR_CLASSE } from "./signataires.mjs";
 import { cadenceAdmise } from "./points.mjs";
 import { estPointeur } from "./effets.mjs";
 import { resoudreSecret, ErreurSecret } from "./secrets.mjs";
+import { analyserDsn } from "./ha/pg-protocole.mjs";
+
+/**
+ * Longueur minimale, en octets après décodage, d'un jeton statique
+ * (`mcp.http.static_tokens`, `model.static_tokens`, `otel.static_tokens`) :
+ * une valeur vide ou courte (variable d'environnement posée mais vide, fichier
+ * vide) authentifiait tout client des prises TCP et de la passerelle (étape 8 ;
+ * EX-15.4 pas 4, EX-18.3). Seize octets : 128 bits d'un jeton tiré au
+ * hasard ; les jetons des configurations livrées en font au moins vingt et un.
+ */
+export const JETON_STATIQUE_MIN_OCTETS = 16;
+
+/** Pointeurs des jetons statiques (pas 4 d'EX-15.4). */
+const MOTIF_POINTEUR_JETON = /^\/(mcp\/http|model|otel)\/static_tokens\/[0-9]+\/token$/;
+
+/**
+ * Règles du pas 4 d'EX-15.4 sur un DSN PostgreSQL résolu, en production
+ * (étape 8 ; CT-2 §13.2, CT-7 §3.2 ligne `reseau`) :
+ * le serveur du magasin de bail est authentifié par TLS (`sslmode=verify-full`,
+ * ou `verify-ca` avec `sslrootcert`). La valeur n'est jamais rapportée.
+ * @param {Uint8Array} octets DSN résolu
+ * @returns {string|null} règle violée, ou null
+ */
+export function regleDsnProduction(octets) {
+  let d;
+  try {
+    d = analyserDsn(Buffer.from(octets).toString("utf8"));
+  } catch (e) {
+    return `DSN illisible (${e.message}) (CT-2 §13.2)`;
+  }
+  if (d.sslmode === "verify-full" || (d.sslmode === "verify-ca" && d.sslrootcert)) return null;
+  return "sslmode verify-full, ou verify-ca avec sslrootcert, exigé en production : le magasin de bail est authentifié par TLS (CT-2 §13.2, EX-15.4 pas 4, CT-7 §3.2)";
+}
 
 /**
  * Adresses des clés de test publiées (copie de la liste des adresses de
@@ -133,8 +166,19 @@ export function reglesHorsSchema(c) {
   }
   if (prod && classe === "D") err("/signer/class", "classe D refusée en production (EX-11.8)", classe);
   if (c.signer.verify_after_sign !== true) err("/signer/verify_after_sign", "non désactivable en version 0 (EX-11.6)", c.signer.verify_after_sign);
-  if (prod && c.signer.backend.type === "pkcs11" && /libsofthsm2\.so$/.test(c.signer.backend.module)) {
-    avert("/signer/backend/module", "module PKCS#11 logiciel (SoftHSM2) : vaut la classe D (11.2)");
+  // Module PKCS#11 logiciel connu (SoftHSM2, `libsofthsm2.so`) : vaut la classe
+  // D (11.2) bien que déclaré en classe A ; la clé serait un fichier de jeton
+  // logiciel sur le disque du démon. Erreur en production, avertissement ailleurs
+  // (étape 8 ; révision de la règle de validation
+  // d'EX-15.4 demandée). Un module logiciel renommé n'est pas reconnu (RA-26).
+  if (c.signer.backend.type === "pkcs11" && /(^|\/)libsofthsm2\.so$/.test(c.signer.backend.module)) {
+    if (prod) err("/signer/backend/module", "module PKCS#11 logiciel (SoftHSM2) : vaut la classe D (11.2), refusée en production (EX-11.8)", c.signer.backend.module);
+    else avert("/signer/backend/module", "module PKCS#11 logiciel (SoftHSM2) : vaut la classe D (11.2) ; refusé en production");
+  }
+  // EX-11.10 (révision 0.11 ; revue de sécurité de l'étape 8) : la valeur numérique de CKM_CLOUDHSM_EDDSA n'est pas établie
+  // (R3 F-9) ; en version 0, la configuration qui le nomme est refusée : la validation le dit, le démon ne démarre pas.
+  if (c.signer.backend.type === "pkcs11" && c.signer.backend.mechanism === "CKM_CLOUDHSM_EDDSA") {
+    err("/signer/backend/mechanism", "CKM_CLOUDHSM_EDDSA : valeur numérique non établie, refusé en version 0 (EX-11.10) ; employer CKM_EDDSA", c.signer.backend.mechanism);
   }
   if (c.signer.rotation.next_key_id !== null && c.signer.rotation.next_key_id === c.signer.key_id) {
     err("/signer/rotation/next_key_id", "identique à signer.key_id", c.signer.rotation.next_key_id);
@@ -153,7 +197,7 @@ export function reglesHorsSchema(c) {
   // Répertoire des exports (révision 0.8, EX-15.4 pas 3, EX-15.12) :
   // `exports_dir`, ou son défaut s'il est absent, n'est ni `storage.root`, ni
   // un répertoire qui le contient, ni un répertoire qu'il contient. La
-  // validation seule : l'export (EX-15.13) n'est pas dans ce lot.
+  // validation seule : l'export (EX-15.13) n'est pas dans ce module.
   const exportsDir = c.exports_dir ?? REPERTOIRE_EXPORTS_DEFAUT;
   if (typeof c.storage?.root === "string" && cheminsEmboites(exportsDir, c.storage.root)) {
     err("/exports_dir", "ni storage.root, ni un répertoire qui le contient ou qu'il contient (EX-15.12)", exportsDir);
@@ -164,6 +208,48 @@ export function reglesHorsSchema(c) {
   if (prod && c.lease.store.type !== "file" && c.lease.fencing === null) {
     err("/lease/fencing", "obligatoire avec un magasin postgresql ou etcd en production (EX-13.10)", null);
   }
+  // Magasin de bail etcd en production : points d'accès en https:// (étape 8, EX-15.4 ; CT-7 §3.2).
+  if (prod && c.lease.store.type === "etcd") {
+    (c.lease.store.endpoints ?? []).forEach((u, k) => {
+      if (!/^https:\/\//i.test(u)) err(`/lease/store/endpoints/${k}`, "https:// exigé en production : le magasin de bail est authentifié par TLS (CT-2 §13.2, CT-7 §3.2)", u);
+    });
+  }
+
+  // Purge des pièces (EX-12.20 « PEUVENT être purgées ») : non codée en version 0 (étape 8, CT-2 §21).
+  if (c.storage.retention?.pieces_days !== null && c.storage.retention?.pieces_days !== undefined) {
+    avert("/storage/retention/pieces_days", "purge des pièces non codée en version 0 : sans effet (les pièces sont conservées avec les événements ; CT-2 §21)");
+  }
+
+  // Prises TCP en mTLS (étape 8, EX-4.39) : l'autorité des certificats
+  // clients est la suite du certificat du démon dans tls.cert_file et l'identité
+  // le nom commun ; un exploitant qui y place la chaîne publique habituelle admet
+  // tout certificat de l'intermédiaire. Avertissement en attendant la révision du
+  // schéma (autorité cliente propre, forme de match pour un certificat).
+  for (const [ptr, prise] of [["/mcp/connector_tcp", c.mcp?.connector_tcp], ["/sdk/tcp_listen", c.sdk?.tcp_listen]]) {
+    if (prise?.client_auth === "mtls") {
+      avert(`${ptr}/tls/cert_file`, "mTLS : tout certificat qui suit celui du démon dans cert_file est une autorité admise pour les clients, rattachés par leur nom commun (lecture 113) : n'y placer que l'autorité des certificats clients");
+    }
+  }
+
+  // Canaux amont en clair hors de la boucle locale (étape 8, CT-2 EX-15.4 ; CT-7 §3.2
+  // ligne `reseau`) : une route `http://` envoie la clé du fournisseur (propre) ou
+  // celle de l'agent (relayer) en clair : erreur en production, avertissement
+  // ailleurs ; un serveur d'outils `http://` envoie ses en-têtes en clair :
+  // avertissement (le modèle de production livré en porte un, vers un pont de
+  // son réseau de composition : révision demandée au porteur).
+  (c.policy.model?.routes ?? []).forEach((r, k) => {
+    if (typeof r.upstream === "string" && /^http:\/\//i.test(r.upstream) && !adresseDeBouclage(r.upstream)) {
+      if (prod) err(`/policy/model/routes/${k}/upstream`, "https:// exigé hors de la boucle locale en production : l'identifiant du fournisseur partirait en clair (CT-7 §3.2, EX-15.4 pas 3)", r.upstream);
+      else avert(`/policy/model/routes/${k}/upstream`, "http:// hors de la boucle locale : l'identifiant du fournisseur part en clair (refusé en production)");
+    }
+  });
+  for (const [a, serveur] of Object.entries(c.policy.servers ?? {})) {
+    const t = serveur.transport;
+    if (t?.type === "http" && typeof t.url === "string" && /^http:\/\//i.test(t.url) && !adresseDeBouclage(t.url)) {
+      const avecEntetes = Object.keys(t.headers ?? {}).length > 0;
+      avert(`/policy/servers/${a}/transport/url`, `http:// hors de la boucle locale : ${avecEntetes ? "les en-têtes du serveur (identifiants compris) partent en clair" : "requêtes et résultats partent en clair"} (CT-7 §3.2)`);
+    }
+  }
 
   // Rétention et WORM (EX-12.19, EX-12.30, EX-12.31).
   const worm = c.storage.seal.worm;
@@ -173,6 +259,11 @@ export function reglesHorsSchema(c) {
     else if (worm.retain_days < 365 * (ans + 1)) avert("/storage/seal/worm/retain_days", "inférieur à 365 × (events_years + 1) : fin de l'exercice en cours non couverte (EX-12.19)");
     if (prod && worm.mode !== "compliance") err("/storage/seal/worm/mode", "compliance seul admis en production (EX-12.30)", worm.mode);
     if (prod && worm.type === "gcs-object-retention") err("/storage/seal/worm/type", "gcs-object-retention hors production en version 0 (EX-12.30)", worm.type);
+    // Azure : ni copie, ni liste des versions, ni lecture ou écriture du registre
+    // des gels ne sont fixées par CT-2 0.5 (12.6, EX-12.35, section 21) : le démon
+    // y tournerait sans aucune copie WORM. Hors production en version 0, comme
+    // GCS (étape 8 ; révision de la table de 12.6 et d'EX-15.4 demandée).
+    if (prod && worm.type === "azure-immutable-blob") err("/storage/seal/worm/type", "azure-immutable-blob hors production en version 0 : copie et liste des versions non fixées (12.6, section 21)", worm.type);
     if (worm.legal_hold_on_write === true && worm.type !== "s3-object-lock") err("/storage/seal/worm/legal_hold_on_write", "seulement avec s3-object-lock (EX-12.31)", true);
     if (worm.legal_hold_on_write === true && prod) err("/storage/seal/worm/legal_hold_on_write", "refusé en production (EX-12.31)", true);
   }
@@ -301,7 +392,7 @@ export function reglesHorsSchema(c) {
  * Pas 1 à 3 d'EX-15.4 (commande `validate-config`, EX-15.7).
  * @param {Uint8Array|string} octets document tel que lu
  * @param {{reglesSupplementaires?: ((c: object) => {erreurs: object[], avertissements: object[]})[]}} [options]
- *   règles des lots suivants (rédaction, politique d'approbation, frontaux)
+ *   règles des parties suivantes (rédaction, politique d'approbation, frontaux)
  * @returns {{config: object|null, erreurs: object[], avertissements: object[], pas: number}}
  *   `pas` : pas de la première erreur (1, 2 ou 3), 0 sans erreur
  */
@@ -317,7 +408,16 @@ export function validerConfiguration(octets, options = {}) {
   if (!schema.valide) {
     const secrets = new Set();
     parcourirSecrets(c, "", (_, p) => secrets.add(p));
-    const erreurs = schema.erreurs.map((e) => ({ ...e, secret: [...secrets].some((p) => e.pointeur.startsWith(p)) }));
+    // Une erreur est secrète quand son pointeur est sous une référence de secret
+    // bien formée, ou quand le schéma attendait une référence de secret à cet
+    // emplacement (valeur littérale écrite à la place d'une référence : la
+    // valeur est alors le secret lui-même), ou quand son pointeur est
+    // celui d'un jeton statique ou d'une clé.
+    const erreurs = schema.erreurs.map((e) => ({
+      ...e,
+      secret: [...secrets].some((p) => e.pointeur.startsWith(p)) || /secret_reference/.test(e.schema ?? "") || MOTIF_POINTEUR_JETON.test(e.pointeur)
+        || /\/(relay_mac_key|pseudonym_key|dsn|token|secret|passphrase|key)$/.test(e.pointeur),
+    }));
     return { config: null, erreurs, avertissements: [], pas: 2 };
   }
   const r = reglesHorsSchema(c);
@@ -352,6 +452,18 @@ export function resoudreSecrets(c, contexte = {}) {
   if (mac && mac.length < 32) erreurs.push({ pointeur: "/storage/relay_mac_key", regle: "au moins 32 octets après décodage (EX-7.22)", secret: true });
   const pseudo = secrets.get("/policy/redaction/pseudonym_key");
   if (pseudo && pseudo.length < 32) erreurs.push({ pointeur: "/policy/redaction/pseudonym_key", regle: "au moins 32 octets après décodage (EX-10.12)", secret: true });
+  // Jetons statiques (étape 8) : au moins JETON_STATIQUE_MIN_OCTETS octets.
+  for (const [pointeur, v] of secrets) {
+    if (MOTIF_POINTEUR_JETON.test(pointeur) && v.length < JETON_STATIQUE_MIN_OCTETS) {
+      erreurs.push({ pointeur, regle: `jeton statique d'au moins ${JETON_STATIQUE_MIN_OCTETS} octets après décodage (EX-18.3, EX-15.4 pas 4)`, secret: true });
+    }
+  }
+  // Magasin de bail PostgreSQL en production (étape 8, CT-2 §13.2).
+  const dsn = secrets.get("/lease/store/dsn");
+  if (dsn && c.recorder?.environment === "production" && c.lease?.store?.type === "postgresql") {
+    const regle = regleDsnProduction(dsn);
+    if (regle) erreurs.push({ pointeur: "/lease/store/dsn", regle, secret: true });
+  }
   return { secrets, erreurs };
 }
 
@@ -362,7 +474,15 @@ export function resoudreSecrets(c, contexte = {}) {
  * @returns {string}
  */
 export function ligneRapport(e) {
-  const valeur = e.secret || e.valeur === undefined ? "" : ` ; valeur : ${JSON.stringify(e.valeur)}`;
+  // Une valeur composée (objet, tableau) n'est jamais recopiée : elle peut
+  // contenir un secret écrit littéralement à la place d'une référence ;
+  // seules sa sorte et sa taille sont rapportées.
+  let valeur = "";
+  if (!e.secret && e.valeur !== undefined) {
+    if (Array.isArray(e.valeur)) valeur = ` ; valeur : [tableau de ${e.valeur.length} éléments]`;
+    else if (e.valeur !== null && typeof e.valeur === "object") valeur = ` ; valeur : {objet à ${Object.keys(e.valeur).length} membres}`;
+    else valeur = ` ; valeur : ${JSON.stringify(e.valeur)}`;
+  }
   return `${e.pointeur === "" ? "/" : e.pointeur} : ${e.regle}${valeur}`;
 }
 

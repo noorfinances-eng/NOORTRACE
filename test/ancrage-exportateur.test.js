@@ -1,4 +1,4 @@
-// Exportateur du composant d'ancrage (lot F2 ; CT-5 §10.1, EX-10.1 à EX-10.5,
+// Exportateur du composant d'ancrage (CT-5 §10.1, EX-10.1 à EX-10.5,
 // AN-50 à AN-53 ; CT-1 §11.2 ; CT-6 §5.4, §13.4). Vecteurs rejoués : les
 // dossiers de spec/vecteurs/ct-6/dossiers qui portent points-de-controle.json
 // (point couvrant d'EX-10.2 retrouvé depuis la série de CT-1 et les ancres que
@@ -130,7 +130,7 @@ const verificateurGo = (bin, repertoire, ancres, entetes) => {
 };
 const statuts = (rapport, prefixe) => Object.fromEntries(rapport.checks.filter((c) => c.id.startsWith(prefixe)).map((c) => [c.id, c.status]));
 
-describe("ancrage, exportateur (lot F2) : choix du point couvrant d'EX-10.2 sur les dossiers des vecteurs (AN-51)", function () {
+describe("ancrage, exportateur : choix du point couvrant d'EX-10.2 sur les dossiers des vecteurs (AN-51)", function () {
   it("la série de CT-1 (période 1) est la série de tous les dossiers CT-6 porteurs de la partie : chaque point embarqué en est membre", function () {
     const hashes = new Set(SERIE_P1.map((p) => N.hacherPoint(p)));
     for (const nom of dossiersAvecPartie(DOSSIERS_CT6)) {

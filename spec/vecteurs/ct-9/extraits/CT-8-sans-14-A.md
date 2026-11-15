@@ -1,6 +1,20 @@
 # CT-8 — Déploiement et exploitation
 
-Version 0.7, 2026-11-12 (révision 0.7 : l'installation rapide obtient le
+Version 0.8, 2026-11-14 (révision 0.8 : revue de sécurité interne de l'étape
+8, décisions du porteur du 13 novembre 2026 et révision du protocole
+d'approbation du 14 novembre : pont stdio (EX-3.7), publication (EX-3.14,
+EX-3.15, IC-6 : image attendue et `code_sha256`), listes fermées de CO-1,
+CO-7, CO-11 et CO-14, flux FL-6 et FL-12, TLS dès qu'un jeton circule
+(EX-5.3), IP-6 et EX-6.5, préparation de l'hôte (IC-2 : `daemon.json`,
+Node.js exact, archive copiée avant vérification), ancres du vérificateur
+montées en lecture seule (IC-15), tâches et supervision sous leur compte
+(IC-16, EX-8.6 : `worm gel liste`, `sonde.mjs releve`, jauges des tâches),
+modèle de politique (IC-14), `D_lp` (8.3), extracteur et règles (EX-10.5,
+EX-10.6, 10.4, 10.7, EX-10.9, EX-10.10, RB-7), chemin B (11.4), EX-11.7,
+PV-1, PV-2, CA-1, index chaîné d'EX-11.23, OB-6 et A.8 (réponse `evaluer` à
+neuf membres), EX-13.27 et PR-8, épreuves par des relecteurs à l'aveugle
+(14), section 15, PD-8 et R8 NV-8 ; 0.4) ; version 0.7 du 2026-11-12
+(révision 0.7 : l'installation rapide obtient le
 jeton RFC 3161 de clôture du serveur interne non qualifié, sur décision du
 porteur et selon la révision 0.9 de CT-5) ; version 0.6 du même jour
 (révision 0.6 : constats de la construction de
@@ -115,7 +129,7 @@ Familles d'identifiants de CT-8 :
 | AV-PR- | Avertissement de l'outil de vérification du paquet, sans effet sur le code de retour | 13.9 (AV-PR-1 à AV-PR-4) |
 | PD- | Proposition de CT-8 à une autre spécification ou au dépôt, sans la modifier | 16.2 (PD-10 à PD-12 et PD-19 posées en 10.10, PD-13 à PD-15 en 11.12) |
 
-Les faits externes viennent de deux notes de recherche du lot CT-8, R8 (dépôt
+Les faits externes viennent de deux notes de recherche de CT-8, R8 (dépôt
 public et noorchain-core) et R9 (pratiques publiées), internes et non publiées,
 relues le 2026-10-27 sur les sources primaires qu'elles citent, et de lectures
 directes de la rédaction (page de manuel `ioctl_iflags(2)`, runbooks et gabarit
@@ -140,7 +154,11 @@ numéro, son texte entre guillemets sinon. Les numéros de ligne, recalculés le
 2026-11-11 (révision 0.5) sur CT-2 révision 0.9, CT-3 révision 0.6, CT-4
 révision 0.7, CT-5 révision 0.7 et CT-7 révision 0.4, sont indicatifs : le contrôle de
 l'annexe A.2 ne les lit pas, et une retouche qui ne touche à aucun « CT-8 » peut
-les décaler sans régénération.
+les décaler sans régénération. Révision 0.8 : les lignes TC-116 à TC-132
+reprennent les occurrences qu'ajoutent CT-2 0.11, CT-5 0.10 et CT-7 0.5,
+avec les numéros de ligne du 2026-11-14, à la suite de la table ; la ligne
+TC-133 reprend celle du motif du point 10 de la note de la révision 0.11 de
+CT-2 (§0.4), avec son numéro de ligne du 2026-11-15.
 
 **EX-0.1** Toute occurrence de « CT-8 » dans une spécification de `spec/` DOIT
 avoir sa ligne dans cette table, avec une réponse qui nomme une section, une
@@ -282,6 +300,24 @@ de CT-7 sont figés.
 | TC-113 | `spec/README.md` « CT-8 (`vecteurs/ct-8/`) » (l. 431) | Titre de la section des vecteurs de CT-8. | Annexe A. |
 | TC-114 | `spec/README.md` « CT-8 (`vecteurs/ct-8/`) » (l. 434) | Disposition des vecteurs fixée par l'annexe A. | Annexe A.1. |
 | TC-115 | `spec/README.md` « CT-8 (`vecteurs/ct-8/`) » (l. 434) | Lien vers ce document. | Ce document. |
+| TC-116 | CT-2 §12.11 (l. 9215) | `noortrace-ctl worm gel liste` est la commande de la relecture du registre des gels par le Lecteur (TP-4). | EX-8.6 (TP-4) et EX-10.9 (`registre_gels`). |
+| TC-117 | CT-2 §17.2 (l. 12152) | Compteurs à étiquettes énumérées exposés à 0 dès le démarrage, pour qu'une règle `increase` voie la première occurrence (CT-8 §10.3). | EX-10.5 (séries écrites à 0 par l'extracteur) et EX-10.6 (forme « première occurrence »). |
+| TC-118 | CT-2 §17.4 (l. 12358) | Alerte « Image différente de la version publiée » : règle sur `noortrace_journal_lignes_total{event="image_mismatch"}`. | Règle `noortrace_image_differente` (10.4) ; EX-3.15 et IC-6. |
+| TC-119 | CT-2 §18.4 (l. 12632) | Fichier de l'image attendue écrit au déploiement depuis la note de version (IC-6). | IC-6 (`config/production/image-attendue.json`) ; EX-3.14 (`code_sha256`). |
+| TC-120 | CT-2 §18.4 (l. 12663) | La comparaison du condensé de l'image par l'orchestrateur (EX-3.15). | EX-3.15. |
+| TC-121 | CT-2 §18.4 (l. 12678) | `ulimits core: 0` posé par le fichier Compose. | Hors de la version 0.8 : CO-8 n'admet pas la clé `ulimits` dans un service ; son admission dans la liste fermée et le réglage dans les fichiers Compose de référence sont à décider avec le montage de l'image attendue (16.2). |
+| TC-122 | CT-2 §21 (l. 14008) | La rétention des pièces est celle des segments ; `D_lp` (CT-8 §8.3). | 8.3 : `D_lp` suppose une purge par une procédure du client. |
+| TC-123 | CT-2 §21 (l. 14026) | `wrap.endpoint` : la variable `AWS_ENDPOINT_URL_KMS` sort le fichier Compose des vérifications CO-. | Section 15 (point d'accès KMS de la classe C) ; CO-9 ; risque posé au porteur (revue de sécurité de l'étape 8). |
+| TC-124 | CT-2 §22 (l. 14140) | Ligne d'alignement de la révision 0.11 : règle Prometheus de l'alerte « Image différente de la version publiée » à écrire par le déploiement (CT-8 §10.4). | Règle `noortrace_image_differente` (10.4). |
+| TC-125 | CT-5 §5.3 (l. 1395) | Le ré-établissement de `qualified` est un acte de l'exploitant (TP-2). | EX-8.6 (TP-2) ; EX-11.24. |
+| TC-126 | CT-5 §15 (l. 4952) | Le composant ne lit aucune liste de confiance : le ré-établissement est TP-2. | EX-8.6 (TP-2). |
+| TC-127 | CT-7 §3.5 (l. 995) | RA-64 : la tâche TP-4 emploie `worm gel liste`. | EX-8.6 (TP-4), EX-10.9. |
+| TC-128 | CT-7 §4.2 (l. 1363) | CLE-10 : clé de l'autorité du serveur interne, créée à IR-2. | IR-2 (`horodatage-init`). |
+| TC-129 | CT-7 §4.2 (l. 1374) | CLE-21 : secret `identite-aws`. | 4.3 (`production.yaml`, secret `identite-aws`) ; CO-9. |
+| TC-130 | CT-7 §4.2 (l. 1393) | CLE-40 : la liste fermée des variables de CO-9 n'admet pas `VAULT_TOKEN`. | CO-9 ; section 15 (adaptation du client). |
+| TC-131 | CT-7 §4.2 (l. 1394) | CLE-41 : clé minisign de publication (EX-3.14). | EX-3.14 (liste `SHA256SUMS` signée). |
+| TC-132 | CT-7 §4.2 (l. 1399) | Identité de signature de l'attestation de provenance (EX-3.14). | EX-3.14 (attestation de provenance ; droits à ajouter au travail de préparation après décision du porteur). |
+| TC-133 | CT-2 §0.4 (l. 279) | Note de la révision 0.11, point 10 (validation, exploitation, supervision) : un constat de la revue cité en motif relève de CT-8 EX-10.10. | EX-10.10 (vérification des règles d'alerte par `promtool` ; cas des compteurs créés à leur première occurrence, EX-10.6). |
 
 ### 0.3 Qui lit quoi
 
@@ -299,6 +335,47 @@ La section 14 décrit les épreuves à l'aveugle ; elle n'est remise à aucun
 participant, et aucune autre section n'en reprend les éléments attendus.
 
 ### 0.4 Révisions
+
+**Révision 0.8** (2026-11-14). Elle applique les constats de la revue de
+sécurité interne de l'étape 8 (fichiers de déploiement, supervision,
+exploitation, pont stdio, paquet réviseur), les décisions du porteur du 13
+novembre 2026 (épreuves passées par des relecteurs internes à l'aveugle,
+cérémonie répétée par des rôles simulés, noms de domaine inventés en
+`.example`) et la révision du protocole d'approbation du 14 novembre (réponse
+`evaluer` à neuf membres, CT-3 0.8). Ce qui change : EX-3.7 (option
+`--inactivite-ms`, message resérialisé sur une ligne, identifiant abandonné
+tenu en cours) ; EX-3.14 et EX-3.15 (condensés tirés de `condenses.json`,
+`code_sha256` et image attendue comparés au démarrage, liste `SHA256SUMS` du
+vérificateur due avant publication) ; CO-1 (interpolations admises, liste
+fermée), CO-7 (`security_opt` exact), CO-11 (types et options de montage,
+volume `{}`), CO-14 (réseau de premier niveau `{}` ou `{internal: true}`),
+avec six codes nouveaux du schéma `conteneurs-v0` ; FL-6 (ports 8080 et 9090
+du relais) et FL-12 (volume `prises`) ; EX-5.3 (TLS DOIT dès qu'un jeton
+circule) ; IP-6 (`port_du_projet`) ; EX-6.5 (`chain_key.service_url`) ; IC-2,
+IC-6, IC-14, IC-15, IC-16 ; EX-8.6 (TP-4 par `worm gel liste`, relectures par
+`sonde.mjs releve`, jauges des tâches) ; 8.3 (`D_lp`) ; EX-10.5 (séries
+écrites à 0, témoins de vie, jauges des tâches, procès-verbal futur) ; EX-10.6
+(forme « première occurrence », `--budget-journalier-gaz`) ; 10.4
+(`noortrace_image_differente`) ; 10.7 (`for: 1h` de
+`noortrace_sauvegarde_en_retard`, huit lignes de règles nouvelles) ; EX-10.9 (relecture
+absente alertée, code de la relecture rendu, `worm gel liste`) ; EX-10.10 ;
+RB-7 ; 11.4 (chemin B) ; EX-11.7 (erreurs bornées) ; PV-1, PV-2, CA-1 ;
+EX-11.23 (index chaîné) ; OB-6 et A.8 ; EX-13.27 et PR-8 ; 14 et EX-14.1,
+EX-14.6 ; 15 ; PD-8 et R8 NV-8. Demandés après la première rédaction de
+cette révision et écrits dans la même : EX-10.6 (forme « première
+occurrence » étendue à `rate(x[w]) OP n` ; compteurs `noor_*` du nœud, créés
+au démarrage, en forme courte) ; EX-A.21 (plancher du module Go). La table de
+10.4 fait foi pour l'ordre des règles et leur étiquette `exigence`
+(`noortrace_image_differente` : « CT-2 §17.4 Image différente de la version
+publiée (PA-4) ») ; la référence de supervision et les fichiers de
+`deploiement/observabilite/` s'y alignent. Identifiants nouveaux : les lignes
+TC-116 à TC-133 de 0.2 seulement ; aucune règle retirée ; `rapide.yaml` et `production.yaml` restent conformes aux CO-
+révisées. Ce que la revue a laissé au porteur n'est pas écrit ici : voie
+« copie jointe » du paquet réviseur (13.11, EX-13.22, PR-9), archive de
+sauvegarde en clair et archives d'exploitation hors de l'archive (11.2,
+EX-11.22), autorité privée et point d'accès KMS du client (15, IC-14),
+serveur RFC 3161 interne de classe D (FL-21), réseaux de sortie par service
+(EX-5.1).
 
 **Révision 0.7** (2026-11-12), sur décision du porteur du même jour (option
 1 de l'installation rapide). L'installation rapide désignait un prestataire
@@ -353,7 +430,7 @@ ou C), CT-3 (0.7), CT-5 (0.8) et CT-6 (0.8) :
 4. **Textes périmés** retirés : composants « non construits » (section 10),
    binaire du vérificateur « à construire » (EX-3.6), épinglage de
    `chain/docker/` « à faire », commandes « phase 2 » (EX-10.14, RB-),
-   « lot suivant ».
+   renvois à une livraison suivante.
 
 Règles modifiées : EX-3.5, EX-3.6, EX-3.7, EX-3.8, EX-3.9, EX-3.13, EX-3.14,
 EX-4.1, EX-4.4, CO-9, EX-8.6, EX-10.4, EX-10.5, EX-10.6, EX-10.7, EX-10.9,
@@ -889,7 +966,15 @@ est `Authorization: Bearer <jeton>`, comparée en temps constant, le jeton
 octets tels quels, contient donc `Bearer <jeton>`, sans saut de ligne (IC-8).
 Options : `--ecoute <adresse:port>`, `--jeton <fichier>`, `--chemin`
 (défaut `/mcp`), `--sessions-max` (défaut 8), `--delai-ms` (défaut 300 000),
-`--octets-max` (défaut 4 Mio), puis `--` et la commande absolue du serveur.
+`--octets-max` (défaut 4 Mio), `--inactivite-ms <n>` (session close sans
+message au-delà ; défaut 0 : aucune limite ; la valeur de `pont-fichiers` dans
+`production.yaml`, figé en 4.3, se décide avec sa révision), puis `--` et la
+commande absolue du serveur. Le pont transmet à l'enfant le message qu'il a
+analysé, resérialisé sur une seule ligne, jamais les octets reçus ; un
+identifiant abandonné par le client reste en cours jusqu'à la réponse de
+l'enfant ou au délai (l'enfant reçoit `notifications/cancelled`) ; une
+session dont le client part avant la réponse d'`initialize` est close
+(`session_abandonnee`) ; `/sante` expose `sessions` et `sessions_max`.
 Sa sonde, `noortrace-pont-stdio sonde --url http://127.0.0.1:9101/sante`,
 suit la règle de `noortrace-ctl sonde` (CT-2 EX-15.16).
 
@@ -992,7 +1077,10 @@ Non publiés ; une autre révision, ou une version publiée, a ses condensés.
 
 **EX-3.14** **Publication.** Pour chaque version, l'exploitant NOORTRACE DOIT
 publier hors des serveurs qui servent les images et la console (note de version
-et dépôt public) : le condensé de chaque image, le SHA-256 du binaire du
+et dépôt public) : le condensé de chaque image, tiré du `condenses.json` de la
+construction double du commit de la version et joint aux fichiers de
+`SHA256SUMS`, le `code_sha256` de l'image de l'enregistreur (empreinte du
+code que le démon compare au démarrage, CT-7 PA-4), le SHA-256 du binaire du
 vérificateur, le SHA-256 du document de la console et de chaque script qu'elle
 charge (CT-7 EX-3.9), le SHA-256 de l'archive de déploiement (EX-3.6), la liste
 `SHA256SUMS` signée des fichiers du vérificateur du paquet réviseur (EX-13.20),
@@ -1003,7 +1091,10 @@ Au 2026-11-12, aucune version n'est publiée : la note de version, la liste
 `scripts/publication/preparer-version.mjs` et par le travail de version de
 l'intégration continue, sans rien signer ni publier ; l'attestation signée
 exige les droits `id-token: write` et `attestations: write`, ajoutés au
-travail de préparation seulement après décision du porteur. Les pas qui
+travail de préparation seulement après décision du porteur ; la liste
+`SHA256SUMS` des fichiers du vérificateur du paquet réviseur n'est pas encore
+préparée par cet outil : elle est due avant la première publication (13.11,
+EX-13.22). Les pas qui
 comparent ces valeurs (IR-1, IC-4, instructions de 13.11) ne s'exécutent qu'à
 partir de la première version publiée. La comparaison
 quotidienne des empreintes de la console par une supervision qui n'est pas
@@ -1012,8 +1103,10 @@ hébergée sur son serveur (CT-7 EX-3.9) est la tâche TP-5 (EX-8.6).
 **EX-3.15** **Exécution.** En production, l'administrateur du client DOIT
 n'exécuter que des images désignées par un condensé publié (CT-7 EX-3.14) : le
 fichier Compose de production porte `@sha256:` pour chaque image (IP-12) ;
-l'empreinte de l'image en cours DEVRAIT être consignée au démarrage (proposition
-PA-4 de CT-7 à CT-2). Ce que la construction reproductible détecte : une image
+l'image attendue (`config/production/image-attendue.json`, écrit depuis la note
+de version à IC-6) et l'empreinte du code en cours sont consignées au démarrage
+et comparées par le démon (`--image-attendue`, CT-7 PA-4 adoptée ; ligne
+`image_mismatch` sur écart, alertée par 10.4). Ce que la construction reproductible détecte : une image
 publiée qui ne correspond pas au code publié. Ce qu'elle ne détecte pas : un
 code publié malveillant ; c'est la revue de code de CT-9 et le risque RA-22 de
 CT-7.
@@ -2150,20 +2243,20 @@ invalide, le code 2.
 
 | Id | Vérification | Motif |
 |---|---|---|
-| CO-1 | Le fichier s'analyse en YAML sans clé dupliquée ; ses clés de premier niveau sont parmi `name`, `services`, `networks`, `volumes` et `secrets` (ni `include`, ni extension `x-…`) ; `services` existe et n'est pas vide ; chaque service est décrit dans `images.json` | Lecture univoque : le fichier analysé est le fichier exécuté, sans fichier inclus ni fusion |
+| CO-1 | Le fichier s'analyse en YAML sans clé dupliquée ; ses clés de premier niveau sont parmi `name`, `services`, `networks`, `volumes` et `secrets` (ni `include`, ni extension `x-…`) ; `services` existe et n'est pas vide ; chaque service est décrit dans `images.json` ; toute chaîne qui contient `$` est refusée (`interpolation_non_admise`) hors de la liste fermée des interpolations admises par clé : `${NOORTRACE_IP_INTERNE:?…}` dans `ports`, `${NOORCORE_CHAIN_ID}`, `${NOORCORE_EVM_CHAIN_ID}` et `${NOORCORE_LEADER_RPC}` dans `command` du relais | Lecture univoque : le fichier analysé est le fichier exécuté, sans fichier inclus ni fusion |
 | CO-2 | Chaque `image` est `<nom>:<étiquette>`, `<nom>@sha256:<64 hex>` ou `<nom>:<étiquette>@sha256:<64 hex>`, avec le nom et l'étiquette exacte de la description ; jamais `latest`, jamais sans étiquette ni condensé | Une étiquette est mutable, un condensé ne l'est pas (R9-F30) ; forme `[<registry>/][<project>/]<image>[:<tag>\|@<digest>]` (R9-F23) |
 | CO-3 | Aucune clé `build` | Les images sont construites ailleurs, reproductiblement (EX-3.13) |
 | CO-4 | `user` présent, égal au compte de la description, numérique ; jamais `0` sauf pour `attributs` ; `group_add` égal à la liste de la description (`10010` pour `enregistreur` et `approbation`, EX-3.5, vide sinon) | Utilisateur non root à UID explicite (R9-F31) ; « Containers must be required to run as non-root users » (profil Restricted, R9-F32) ; sans `user`, le compte est celui de l'image, `root` à défaut (R9-F24) |
 | CO-5 | `read_only: true` ; chaque `tmpfs` borné (`size=`) ; quand la description nomme un répertoire temporaire (`/run/temporaire`), il est monté en `tmpfs` et désigné par `TMPDIR` | Racine en lecture seule (CT-2 EX-18.4, R9-F24) ; mesure de durcissement propre à NOORTRACE, absente du profil Restricted (R9-F33) |
 | CO-6 | `cap_drop: [ALL]` ; `cap_add` égal à la liste de la description (vide sauf `attributs`) | « Containers must drop ALL capabilities » (R9-F32) ; EX-3.9 |
-| CO-7 | `security_opt` contient `no-new-privileges:true`, et jamais `seccomp:unconfined`, `apparmor:unconfined` ni `label:disable` (ni leur forme en `=`) | Pendant de l'interdiction d'escalade de privilèges du profil Restricted (R9-F32) |
+| CO-7 | `security_opt` vaut exactement `["no-new-privileges:true"]` (`security_opt_non_conforme` sinon) : donc jamais `seccomp:unconfined`, `apparmor:unconfined` ni `label:disable` (ni leur forme en `=`) | Pendant de l'interdiction d'escalade de privilèges du profil Restricted (R9-F32) |
 | CO-8 | Chaque clé d'un service est dans la liste fermée `image`, `user`, `group_add`, `command`, `read_only`, `tmpfs`, `environment`, `cap_drop`, `cap_add`, `security_opt`, `restart`, `ports`, `volumes`, `secrets`, `networks`, `network_mode`, `healthcheck`, `depends_on`, `profiles` (et `build`, qui relève de CO-3) ; une autre clé n'est admise qu'à la valeur `false` ; donc ni `privileged`, `pid`, `ipc`, `devices`, `userns_mode`, `cgroup_parent`, `extends`, `volumes_from`, `entrypoint`, `env_file`…, et jamais `network_mode: host` | Isolation ; une liste fermée ne laisse pas passer une clé que la liste interdite aurait oubliée |
 | CO-9 | Aucun `env_file` ; chaque variable d'`environment` est nommée par la description (liste fermée : `TMPDIR`, et `AWS_CONFIG_FILE` pour `enregistreur`, qui désigne le secret `/run/secrets/identite-aws` et ne porte jamais d'identifiant), et aucune ne contient, sans égard à la casse, `KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `PASS`, `PIN`, `DSN`, `CREDENTIAL`, `JETON`, `CLE`, `MOT_DE_PASSE`, `AUTH`, `BEARER` ou `COOKIE` ; aucune option `--jeton`, `--cle`, `--mot-de-passe`, `--token`, `--secret` ou `--password` dans `command`, `entrypoint` ou `healthcheck.test` dont la valeur n'est pas un chemin `/run/secrets/…` ; chaque secret de premier niveau a `file: ./secrets/<nom>` ou `external: true`, jamais `environment` ; un service ne reçoit que des secrets déclarés au premier niveau et admis par sa description, montés sous `/run/secrets/` ; un même secret n'est pas reçu par des services de comptes différents (`secret_partage_entre_comptes`, EX-3.5) | Secrets par fichier, jamais en clair dans l'environnement (CT-2 EX-18.4 ; R8-F56 ; accord explicite par service, R9-F25, R9-F26) |
 | CO-10 | Chaque port publié a une adresse explicite, `127.0.0.1` ou `${NOORTRACE_IP_INTERNE:?…}`, jamais une plage, et un port de conteneur que la description admet | Aucune écoute sur toutes les interfaces de l'hôte |
-| CO-11 | Chaque volume a une cible décrite ; une cible décrite `ro` est montée en lecture seule ; un montage lié part d'une source admise par la description (`./config/`, `/srv/noortrace-outils/`), avec `create_host_path: false`, sans composant `..`, et jamais de `/`, `/etc`, `/proc`, `/sys`, `/dev`, `/root`, `/home`, `/var/lib/docker` ni de la prise du moteur ; un volume nommé de premier niveau n'a ni pilote autre que `local` ni `driver_opts` (qui lieraient un chemin de l'hôte : `volume_lie_hote`) | Montages de l'hôte interdits sauf liste (profil Baseline : « HostPath volumes must be forbidden », R9-F32) ; création de chemin évitée (R9-F27) |
+| CO-11 | Chaque volume a une cible décrite ; une cible décrite `ro` est montée en lecture seule ; un montage lié part d'une source admise par la description (`./config/`, `/srv/noortrace-outils/`), avec `create_host_path: false`, sans composant `..`, et jamais de `/`, `/etc`, `/proc`, `/sys`, `/dev`, `/root`, `/home`, `/var/lib/docker` ni de la prise du moteur ; un volume est de type `volume` ou `bind` seulement (`type_montage_non_admis`), un `bind` ne porte que `create_host_path: false` (`option_montage_non_admise`) ; un volume nommé de premier niveau vaut `{}` (`volume_non_conforme`) : ni pilote autre que `local` ni `driver_opts` (qui lieraient un chemin de l'hôte : `volume_lie_hote`) | Montages de l'hôte interdits sauf liste (profil Baseline : « HostPath volumes must be forbidden », R9-F32) ; création de chemin évitée (R9-F27) |
 | CO-12 | Une sonde `commande` de la description donne un `healthcheck.test` en liste qui commence par `CMD` (jamais `CMD-SHELL`) ; une sonde `externe` ou `aucune` donne `healthcheck.disable: true` ; chaque `depends_on` est en forme longue, `condition: service_healthy` vers un service à sonde `commande` | Images sans interpréteur de commandes (R8-F33) ; `CMD-SHELL` passe par `/bin/sh` (R9-F28) ; ordre de démarrage sur l'état sain (R9-F28) |
 | CO-13 | `restart: unless-stopped` pour un service, `restart: "no"` pour un outil | Un outil (vérificateur) ne redémarre pas en boucle |
-| CO-14 | Un service de description `network_mode: none` (`attributs`, `verificateur`) a `network_mode: none` ; les autres déclarent leurs réseaux, tous admis par la description ; un service de description `network_mode: service:<nom>` (`horodatage`, révision 0.7) a exactement ce `network_mode`, vers un autre service du même fichier, sans `networks` ni `ports` propres (sinon `espace_reseau_non_conforme`) ; un `network_mode` de service que la description ne nomme pas reste refusé (`reseau_par_defaut`) ; les réseaux `outils` et `console` sont `internal: true` | Le vérificateur n'a pas de réseau (architecture, « Déploiement ») ; le serveur interne n'écoute qu'en `http://` sur une adresse locale (CT-5 AN-27), celle de l'espace réseau de l'enregistreur ; les ponts ne joignent que l'enregistreur (EX-3.7) |
+| CO-14 | Un service de description `network_mode: none` (`attributs`, `verificateur`) a `network_mode: none` ; les autres déclarent leurs réseaux, tous admis par la description ; un service de description `network_mode: service:<nom>` (`horodatage`, révision 0.7) a exactement ce `network_mode`, vers un autre service du même fichier, sans `networks` ni `ports` propres (sinon `espace_reseau_non_conforme`) ; un `network_mode` de service que la description ne nomme pas reste refusé (`reseau_par_defaut`) ; les réseaux `outils` et `console` sont `internal: true` ; un réseau de premier niveau n'admet que `{}` ou `{internal: true}`, sans `driver`, `driver_opts`, `external`, `name` ni `ipam` (`reseau_non_conforme`) | Le vérificateur n'a pas de réseau (architecture, « Déploiement ») ; le serveur interne n'écoute qu'en `http://` sur une adresse locale (CT-5 AN-27), celle de l'espace réseau de l'enregistreur ; les ponts ne joignent que l'enregistreur (EX-3.7) |
 
 **EX-4.3** **Exceptions.** La liste des exceptions est fermée : le service
 `attributs` (compte 0, trois capacités, EX-3.9) ; le service `relais`, dont la
@@ -2255,13 +2348,13 @@ pas. Les ports 8300, 8400, 4318 et 8500 sont ceux de l'exemple de CT-2 §15.3,
 | FL-3 | Hôtes d'agents | `enregistreur` | 8400 | HTTP(S) | Passerelle du modèle | CT-2 §5.1.1, EX-18.1 |
 | FL-4 | Mandataire d'interception du client | `enregistreur` | 1344 | ICAP ou ICAPS | Raccord ICAP, REQMOD et RESPMOD | CT-2 EX-5.3, §19.6 |
 | FL-5 | Sources OpenTelemetry | `enregistreur` | 4318 | HTTPS, chemin `/v1/traces` | Ingestion OTLP | CT-2 EX-6.40 |
-| FL-6 | Supervision du client | `enregistreur` ; `approbation` | 8500 ; 8601 | HTTP, `127.0.0.1` ou réseau de supervision ; HTTP sur `127.0.0.1` de l'hôte | `/healthz`, `/readyz`, `/metrics` ; état du service d'approbation (`GET /v0/etat`, 10.2) | CT-2 EX-17.1, EX-18.3 ; CT-3 §12 |
+| FL-6 | Supervision du client | `enregistreur` ; `approbation` ; `relais` | 8500 ; 8601 ; 8080 (santé) et 9090 (métriques) | HTTP, `127.0.0.1` ou réseau de supervision ; HTTP sur `127.0.0.1` de l'hôte ; HTTP sur `127.0.0.1` | `/healthz`, `/readyz`, `/metrics` ; état du service d'approbation (`GET /v0/etat`, 10.2) ; santé et métriques du relais | CT-2 EX-17.1, EX-18.3 ; CT-3 §12 ; CT-4 §10.3 |
 | FL-7 | `enregistreur` | Serveurs d'outils HTTP du client ; ponts `pont-<alias>` (réseau `outils`) | port du service | HTTPS ; HTTP sur le seul réseau interne `outils` | Relais des appels d'outils | CT-2 EX-18.2, §4.9 point 2 ; EX-3.7 |
 | FL-8 | `enregistreur` | Fournisseurs de modèle (`upstream` des routes) | 443 | HTTPS | Relais des échanges de modèle | CT-2 §5.1, §4.9 points 1 et 2 |
 | FL-9 | `enregistreur` | Service de signature (classe B) ; AWS KMS (`kms.<région>.amazonaws.com`) de la clé Ed25519 de classe C et de la clé de chaîne de classe B ou C (`chain_key.service_url`, CT-2 EX-11.19) | port du service ; 443 | HTTPS | Signature des événements et manifestes ; déchiffrement de l'enveloppe et signature des transactions de la clé de chaîne | CT-2 §11.2, EX-11.19, EX-18.2 |
 | FL-10 | `enregistreur` | Magasin de bail `postgresql` ou `etcd` | port du service | TLS | Bail et époque | CT-2 §13.2, EX-18.2 |
 | FL-11 | `enregistreur` | Support WORM (API objet) | 443 | HTTPS | Copies verrouillées, relevés | CT-2 §12.6, EX-18.2 |
-| FL-12 | `enregistreur` | `approbation`, prise `/run/noortrace/approbation.sock` ; à défaut HTTPS | — ; port du service | prise Unix (pair vérifié par le démon ; en production, jeton du noyau exigé par le service, `jeton_exige_production`) ; HTTPS avec mTLS ou jeton | Évaluation, tickets, remises | CT-2 EX-18.8 ; CT-3 EX-12.1, EX-12.2, EX-10.12 |
+| FL-12 | `enregistreur` | `approbation`, prise `/run/noortrace/approbation.sock` du volume `prises`, partagé par les seuls services `enregistreur` et `approbation` ; à défaut HTTPS | — ; port du service | prise Unix (pair vérifié par le démon ; en production, jeton du noyau exigé par le service, `jeton_exige_production`) ; HTTPS avec mTLS ou jeton | Évaluation, tickets, remises | CT-2 EX-18.8 ; CT-3 EX-12.1, EX-12.2, EX-10.12 |
 | FL-13 | `approbation` | Point RPC d'un validateur, par sa garde d'admission | 443 | HTTPS | Lecture du jeu d'approbateurs | CT-3 EX-12.3, §8.1 ; CT-4 EX-10.3 |
 | FL-14 | Navigateurs des approbateurs → `console` ; `console` → `approbation` (réseau `console`) | `console` ; `approbation` | 8700 ; 8600 | HTTPS, en-tête `Host` égal à l'autorité de `console_origin` (garde d'hôte) ; HTTPS avec mTLS ou jeton distinct (`service.url`, `console.tcp`) | Console et son canal | CT-3 EX-12.4, EX-13.35, EX-13.49 |
 | FL-15 | `approbation` | Webhook de notifications de l'exploitant du client (`notifications.url`), qui relaie vers les canaux du client | port de l'URL (443 par défaut) | HTTPS (`http` seulement vers la boucle locale hors production), `POST` signé (`NOORTRACE-Signature`), sans suivre de redirection | Notifier les approbateurs et les administrateurs | CT-3 EX-12.3, EX-13.39 à EX-13.42 |
@@ -2322,9 +2415,13 @@ magasin de bail), sauf : les prises Unix (FL-1, FL-12) ; le réseau interne
 `outils` vers un pont (FL-7, jeton statique) ; le relais sur `127.0.0.1`
 (FL-22) ; le serveur RFC 3161 interne en `http://127.0.0.1` (FL-21, CT-5
 AN-27) ; la santé sur `127.0.0.1` (FL-6). Un frontal de l'enregistreur qui
-écoute hors de la boucle locale en production DEVRAIT avoir sa configuration TLS
-(`mcp.http.tls`, `model.tls`), et DOIT l'avoir pour le point d'entrée
-OpenTelemetry (CT-2 EX-6.40). Les flux sortants du démon NE DEVRAIENT PAS
+écoute hors de la boucle locale en production DOIT avoir sa configuration TLS
+(`mcp.http.tls`, `model.tls`) dès qu'un jeton statique ou un jeton OAuth y
+circule, sauf sur un segment de réseau que seuls les hôtes et l'enregistreur
+atteignent, cas que l'attestation de périmètre nomme (CT-7 §7), et DOIT
+l'avoir pour le point d'entrée OpenTelemetry (CT-2 EX-6.40) ; le modèle de
+production de la section 8 (IC-14) la porte sur les secrets
+`tls-enregistreur-certificat` et `tls-enregistreur-cle`. Les flux sortants du démon NE DEVRAIENT PAS
 traverser une interception TLS : le démon vérifie les certificats des
 fournisseurs, des prestataires et des validateurs avec les autorités de son
 image.
@@ -2444,7 +2541,7 @@ ce profil. Les seuils marqués « cible » sont à mesurer (CT-9, porte 2).
 | IP-3 | Espace libre sous `--stockage` | `fs.statfsSync` (`bavail × bsize`) | au moins 10 Gio (rapide, cible) ; au moins `local_bytes` de `--dimensionnement` (production) ; non exécutée sans dimensionnement | bloquante | bloquante | DM-16 ; CT-2 §17.4 (alerte « Disque ») |
 | IP-4 | Système de fichiers sous `--stockage` | type relevé dans `/proc/self/mountinfo` (point de montage le plus long qui contient le chemin réel, liens symboliques résolus par `fs.realpathSync`) | `ext4`, `xfs` ou `btrfs` ; échec pour `nfs`, `nfs4`, `cifs`, `smb3`, `smbfs`, `fuse.sshfs` ; avertissement sinon | bloquante | bloquante | CT-2 EX-12.2, EX-12.18 |
 | IP-5 | Horloge synchronisée | dans l'ordre : `chronyc -c tracking` (statut de saut différent de « Not synchronised », borne `|System time| + Root dispersion + Root delay / 2`, R9-F41, R9-F42) ; `timedatectl show -p NTPSynchronized --value` (R9-F44) ; présence de `/run/systemd/timesync/synchronized` (R9-F45) ; sinon source `aucune` | synchronisée et borne d'erreur au plus `clock.warn_skew_ms` (1 000 ms dans l'exemple de CT-2 §15.3) ; synchronisée sans borne connue (sources `timedatectl` et `timesyncd`) : avertissement `borne_inconnue`, qui n'est pas un échec ; non relevée (`clock` nul) : non exécutée, `mesure_absente` ; source `aucune` : non exécutée, `outil_absent` | non bloquante | bloquante | CT-2 §7.4 ; R9-F47 |
-| IP-6 | Ports libres ; adresse interne | écoute d'essai `net.createServer().listen({host, port})` puis fermeture ; en production, l'adresse interne (`--ip-interne` ou `NOORTRACE_IP_INTERNE`) comparée à `0.0.0.0`, `::`, `[::]` et aux adresses des interfaces de l'hôte (`os.networkInterfaces()`) | en production, l'adresse interne n'est ni une adresse de toutes les interfaces (échec `adresse_toutes_interfaces`) ni hors des interfaces de l'hôte (échec `adresse_hors_hote`) ; puis tous les ports de l'adresse d'écoute libres (rapide : 8300, 8400 et 8500 sur `127.0.0.1`, ceux que publie `rapide.yaml` ; production : les ports publiés du fichier Compose), sinon `port_occupe` | bloquante | bloquante | EX-3.5 |
+| IP-6 | Ports libres ; adresse interne | écoute d'essai `net.createServer().listen({host, port})` puis fermeture ; en production, l'adresse interne (`--ip-interne` ou `NOORTRACE_IP_INTERNE`) comparée à `0.0.0.0`, `::`, `[::]` et aux adresses des interfaces de l'hôte (`os.networkInterfaces()`) | en production, l'adresse interne n'est ni une adresse de toutes les interfaces (échec `adresse_toutes_interfaces`) ni hors des interfaces de l'hôte (échec `adresse_hors_hote`) ; puis tous les ports de l'adresse d'écoute libres (rapide : 8300, 8400 et 8500 sur `127.0.0.1`, ceux que publie `rapide.yaml` ; production : les ports publiés du fichier Compose), sinon `port_occupe` ; un port attendu occupé par un conteneur du projet Compose en cours n'est pas occupé au sens d'IP-6 : il est rapporté à part (`port_du_projet`, `measured.own`) et n'est pas un échec | bloquante | bloquante | EX-3.5 |
 | IP-7 | Résolution des noms | `dns.promises.lookup(nom, {all: true})` pour chaque destination d'EX-6.5 | chaque nom résolu | bloquante | bloquante | EX-5.6 |
 | IP-8 | Sortie réseau déclarée | connexion TCP de 5 s puis poignée de main TLS avec le nom (SNI) et les autorités du système, pour chaque destination d'EX-6.5 | chaque destination `ouvert` ; sinon raison `dns`, `refus`, `delai`, `tls` ou `mandataire` | bloquante | bloquante | EX-5.2, EX-5.3 |
 | IP-9 | Mandataire | `HTTPS_PROXY`, `https_proxy`, `HTTP_PROXY` dans l'environnement | présence égale à la déclaration `--mandataire` ; avertissement sinon | non bloquante | bloquante (un avertissement n'est pas un échec) | EX-5.5 |
@@ -2469,7 +2566,9 @@ production est `non_pret`.
 configuration déclare, et sur elles seules : l'hôte de chaque
 `policy.servers.<alias>.transport.url` de type `http` (FL-7, sauf un pont du
 réseau `outils`), de chaque `policy.model.routes[].upstream` (FL-8), de
-`signer.backend.url` (FL-9), de `storage.seal.worm.endpoint` s'il est non nul
+`signer.backend.url` (FL-9) et de `anchoring.registry.chain_key.service_url`
+s'il est non nul (FL-9, CT-2 EX-11.19), de `storage.seal.worm.endpoint` s'il
+est non nul
 (FL-11), de `policy.approval.service.url` s'il est non nul (FL-12), de
 `anchoring.registry.rpc_url` (FL-19), de `anchoring.rfc3161.url` et de chaque
 `rfc3161.providers[].url` du document `ancrage-v0` (FL-17), de chaque calendrier
@@ -3407,7 +3506,8 @@ les mesures de CT-9, les entrées sans valeur par défaut de 9.2 prennent les
 hypothèses de 9.5 (`f_pic` = 4, `b_o` = 512, `n_crl` = 2, `b_crl` = 833,
 `b_acq` = 2 048, `m_0` nul), notées comme hypothèses au procès-verbal ; IC-1 est
 refait après mesure. `D_lp` est un choix d'exploitation (purge des pièces, CT-2
-EX-12.20) : `D_lp` = 365 (cas `pieces-purgees`, 9.6) retire 200,666 Gio à
+EX-12.20, que la version 0 du démon ne fait pas d'elle-même, CT-2 §21 : une
+valeur finie de `D_lp` suppose une purge par une procédure du client) : `D_lp` = 365 (cas `pieces-purgees`, 9.6) retire 200,666 Gio à
 l'exemple de 9.5, dont les captures du registre restent le premier poste. `D_l`
 n'en est pas un : un fichier local n'est supprimé que par un procès-verbal
 `fin_de_retention`, à l'échéance `retain_until` (EX-11.15 ; EX-11.13 pour la
@@ -3439,9 +3539,15 @@ sudo bash deploiement/hote/preparer-hote.sh --archive-node node-v22.23.4-linux-x
 
 Paquets : `docker.io docker-compose-v2 chrony curl openssl ca-certificates
 xz-utils` par `apt-get` depuis les sources de l'hôte (FL-31), versions
-consignées dans `IC-2-paquets.txt` ; Ubuntu 24.04 ne fournit que Node.js 18 :
-Node.js 22.23.4 vient de l'archive officielle obtenue avec la note de version,
-dont le script vérifie le SHA-256 épinglé
+consignées dans `IC-2-paquets.txt` ; pas `moteur` : `/etc/docker/daemon.json`
+porte `log-driver json-file`, `max-size 50m`, `max-file 5` (CO-8 n'admet pas
+`logging` dans les fichiers Compose), un fichier du client sans rotation
+étant un échec nommé ; les fichiers du procès-verbal sont créés en
+exclusivité, un lien n'est jamais suivi ; Ubuntu 24.04 ne fournit que
+Node.js 18 : Node.js 22.23.4 exactement (une autre version est un écart
+nommé) vient de l'archive officielle obtenue avec la note de version, copiée
+dans un répertoire privé du superutilisateur avant d'être vérifiée puis
+extraite, dont le script vérifie le SHA-256 épinglé
 (`1805bcd35e6815559bd2eb97db438d3fdb0eb3a5e6a977b7c1badca76337e9ce`, liste
 `SHASUMS256.txt` signée de la version, publiée le 2026-10-20 ; même version
 que la base des images et que le travail de version). `--simulation` dit ce
@@ -3494,7 +3600,9 @@ l'hôte (IC-2) avant de poursuivre.
 **IC-6 — Images épinglées.** Dans `compose/production.yaml`, compléter chaque
 `image` par le condensé de la note de version
 (`noortrace/enregistreur:0.1.0@sha256:<64 hex>`, et de même pour chaque
-service), puis :
+service) ; écrire `config/production/image-attendue.json` depuis la note de
+version (condensé de l'image de l'enregistreur et `code_sha256`, EX-3.14), que
+le démon compare au démarrage (`--image-attendue`, EX-3.15) ; puis :
 
 ```bash
 node ../scripts/deploiement/verifier-conteneurs.mjs compose/production.yaml --images images/images.json --json > "$PV"/IC-6-conteneurs.json
@@ -3718,7 +3826,11 @@ il applique le schéma `ancrage-v0` et les huit règles d'AN-1 de CT-5 ; sur
 l'hôte, le contrôle préalable final la relit (`--ancrage`, IC-14) ; la sortie
 de l'outil du registre pour l'inscription (CT-4 §7.2, §7.7) est consignée.
 
-**IC-14 — Configuration et contrôle préalable final.** Écrire
+**IC-14 — Configuration et contrôle préalable final.** Dans le modèle de
+politique de `config/modele-production/configuration.json`, la règle
+« paiement <= 5000 CHF » exige un montant de 0 à 5 000 et ouvre une fenêtre de
+24 h pour au plus 10 paiements au même bénéficiaire ; un montant négatif, non
+numérique ou sans bénéficiaire revient à la règle par défaut (`revue`). Écrire
 `config/production/configuration.json` à partir du modèle
 `config/modele-production/configuration.json` de l'archive (`environment:
 "production"`), qui est l'exemple de CT-2 §15.3 changé aux seuls membres de la
@@ -3795,14 +3907,16 @@ confiance lue, `"valid_to": null, "source"` : territoire, séquence, date de
 lecture `}`) : l'objet `qualified` d'`ancrage-v0` recopié tel quel fait
 refuser le fichier (code 2, `ancres_inutilisables`, constaté) ; chaque entrée porte sa `source` (le jour de
 l'installation, aucun réviseur n'en a encore remis). Le service
-`verificateur` ne monte que le volume des exports (EX-3.5) : le fichier
-d'ancres y est déposé hors de toute destination d'export, lisible par le
-compte 10005 par son groupe, par exemple `sudo install -o 10001 -g 10005 -m 0640 ancres.json "$(docker volume
-inspect -f '{{ .Mountpoint }}' noortrace_exports)/ancres-ic15.json"` (nom du
-volume relevé en 4.4 ; commande exécutée au banc de l'étape 7, et le service
-`verificateur` lit le fichier), puis `$DC --profile outils run --rm verificateur
+`verificateur` monte le volume des exports (EX-3.5) et, en lecture seule, le
+fichier d'ancres du superutilisateur `deploiement/config/production/ancres.json`
+(groupe `10005`, mode `0440`, monté sur `/etc/noortrace-verificateur/ancres.json` ;
+description `verificateur.volumes` et `bind_sources ["./config/"]` d'`images.json`,
+bloc de 4.1 et SHA-256 de 4.3 à aligner par l'assemblage) ; le fichier
+d'ancres n'est jamais déposé dans le volume des exports que le démon écrit
+(au banc de l'étape 7, il y était déposé hors de toute destination d'export,
+ce que la révision 0.8 remplace), puis `$DC --profile outils run --rm verificateur
 /var/lib/noortrace-exports/ic-15 --ancres
-/var/lib/noortrace-exports/ancres-ic15.json --json`, avec `--entetes-bitcoin
+/etc/noortrace-verificateur/ancres.json --json`, avec `--entetes-bitcoin
 /var/lib/noortrace-exports/ic-15/entetes-bitcoin.json` quand l'export a écrit
 ce fichier (`bitcoin_headers` vrai, CT-2 EX-15.14). Résultat attendu :
 `valide`, code 0, contrôles 4 et 8 exécutés et réussis ; le contrôle 5 attend la
@@ -3823,9 +3937,15 @@ d'EX-8.6 et la sauvegarde :
 sudo bash deploiement/taches/poser-taches.sh --racine <archive extraite> --taches <tâches retenues> --premiere-execution
 ```
 
-qui écrit les unités systemd de `deploiement/taches/systemd/` (un service
-gabarit et un minuteur par tâche), copie le modèle des réglages
-`/etc/noortrace/taches.env` s'il est absent (jamais remplacé), et lance
+qui refuse (code 2) une racine dont un composant, ou un script exécuté par
+les minuteurs, n'appartient pas au superutilisateur ou est inscriptible par le
+groupe ou les autres, écrit les unités systemd de `deploiement/taches/systemd/`
+(un service gabarit et un minuteur par tâche), copie le modèle des réglages
+`/etc/noortrace/taches.env` s'il est absent (jamais remplacé), pose avec
+`--supervision [<répertoire>]` les unités `noortrace-extracteur.service` et
+`noortrace-sonde.service` sous le compte `noortrace-supervision` (EX-10.3), qui
+écrivent dans le répertoire du collecteur de fichiers
+(`/var/lib/noortrace-supervision` par défaut), et lance
 chaque tâche une fois ; chaque exécution laisse une ligne `{ts, task,
 exit_code, duration_ms, detail}` dans `<NOORTRACE_EXPLOITATION>/taches/taches.ndjson`.
 Brancher les règles d'alerte de la section 10 : `node
@@ -3866,9 +3986,13 @@ avec le journal (section 11). Gabarits de référence (étape 7) :
 `deploiement/taches/` (systemd : TP-1 à `:05` de chaque heure, TP-2 à TP-5 et
 la sauvegarde chaque jour, TP-6 toutes les 15 min, TP-7 le 15 janvier, TP-8 le
 premier du mois, tous en `Persistent=true` ; TP-1 et TP-4 tournent dans un
-conteneur éphémère de l'image de l'enregistreur, hors du démon ; TP-4 relit les
-gels listés dans les réglages, faute d'une commande qui relise tout le
-registre des gels avec les identifiants du Lecteur).
+conteneur éphémère de l'image de l'enregistreur, hors du démon ; TP-4 relit tout
+le registre des gels par `noortrace-ctl worm gel liste` sous les identifiants
+du Lecteur, puis chaque gel que les réglages nomment en plus
+(`NOORTRACE_TP4_GELS`, facultatif) ; TP-4, TP-5 et la relecture de TP-6 sont
+lancées par `sonde.mjs releve` (EX-10.9), qui en écrit les jauges ; chaque
+tâche écrit `noortrace_tache_code{task}` et `noortrace_tache_derniere_s{task}`
+dans `tache-<id>.prom` (10.3)).
 
 | Id | Tâche | Cadence | Quand | Source |
 |---|---|---|---|---|
@@ -4431,7 +4555,9 @@ procès-verbaux d'exploitation (11.9). Il expose, au format texte de Prometheus 
 | `noortrace_journal_lignes_total` | compteur | `source`, `event`, `level`, `detail` | lignes lues ; `event` est le membre `event` de la ligne (pour `acquisitions`, la constante `acquisition` ; pour `registre`, l'opération ; pour `consultations`, l'action) ; `detail` est fixé par la table ci-dessous, vide sinon |
 | `noortrace_journal_derniere_ligne_s` | jauge | `source`, `event` | `ts` de la dernière ligne lue de cet `event`, en secondes UNIX |
 | `noortrace_journal_illisibles_total` | compteur | `source` | lignes qui ne s'analysent pas en JSON strict ; jamais leur contenu |
-| `noortrace_proces_verbal_dernier_s` | jauge | `kind` | `finished_at` du dernier procès-verbal valide (PV-1) de chaque sorte |
+| `noortrace_proces_verbal_dernier_s` | jauge | `kind` | `finished_at` du dernier procès-verbal valide (PV-1) de chaque sorte ; un procès-verbal dont `finished_at` dépasse l'heure de la passe de plus de 300 s n'est pas lu tant que sa date n'est pas passée, et il est signalé une fois |
+| `noortrace_extracteur_derniere_passe_s`, `noortrace_sonde_derniere_passe_s` | jauge | — | témoin de vie : instant de la dernière passe réussie de l'extracteur et de la sonde en mode `--intervalle` (règles `noortrace_extracteur_muet`, `noortrace_sonde_muette`, 10.7) |
+| `noortrace_tache_code`, `noortrace_tache_derniere_s` | jauge | `task` | code de sortie et instant de fin de la dernière exécution de chaque tâche d'EX-8.6, écrits par la tâche dans `tache-<id>.prom` (règle `noortrace_tache_echec`, 10.7) |
 
 | Source | `event` | `detail` | Lu dans |
 |---|---|---|---|
@@ -4472,14 +4598,29 @@ compté avec un `event` vide ; une valeur d'étiquette n'est exposée que si ell
 suit `^[a-z][a-z0-9_]{0,63}$`, sinon elle est vide ;
 `noortrace_journal_derniere_ligne_s` prend le plus grand instant lu ;
 `noortrace_journal_illisibles_total` a une série par source lue, même à 0 ;
-les séries sont triées par ordre d'octets ; les procès-verbaux sont les
+l'extracteur écrit à 0, dès sa première passe, chaque série qu'une règle de
+10.4 à 10.7 nomme (CT-2 §17.2 fait de même pour les compteurs à étiquettes
+énumérées du démon) ; les séries sont triées par ordre d'octets ; les procès-verbaux sont les
 fichiers `.json`, retenus quand PV-1 réussit. L'extracteur ne lit aucune pièce
 et n'expose aucune valeur hors de ces tables ; une ligne d'un `event` absent
 des tables est comptée avec `detail` vide.
 
 ### 10.4 Règles de l'enregistreur
 
-**EX-10.6** Les seuils des règles sont les défauts des spécifications
+**EX-10.6** Toute règle `increase(x[w]) OP n` sur un compteur que l'extracteur,
+le démon ou le composant d'ancrage crée à sa première occurrence s'écrit
+`(increase(x[w]) OP n) or ((x unless x offset w) OP n)` (dans une expression
+composée, `increase(S[w])` devient `((S unless S offset w) or increase(S[w]))`),
+de sorte qu'une série née dans la fenêtre vaille son propre accroissement ;
+de même, toute règle `rate(x[w]) OP n` sur un tel compteur s'écrit
+`(rate(x[w]) OP n) or ((x unless x offset w) OP n)` (`noortrace_appels_bloques`,
+révision 0.8) ; les tables de 10.4 à 10.7 écrivent la forme courte. Un
+compteur `noor_*` du nœud du registre n'est pas de ceux-là : noorcore
+l'expose dès son démarrage avec `-metrics-addr` (`noor_bft_equivocations_total`
+vaut 0 et est supervisé, CT-4 §10.2 ; `core/metrics/snapshot.go`, R8-F43), et
+sa règle (`noortrace_registre_equivocation`, 10.6) garde la forme courte
+`increase(x[w]) OP n` (révision 0.8). Les seuils des règles
+sont les défauts des spécifications
 citées ; un client qui change un réglage (`pending_max_ms`,
 `clock.warn_skew_ms`, `lock_audit_interval_days`, `min_free_bytes`,
 `queue.anchor_pending_alert_s`, …) DOIT régénérer le fichier de règles avec
@@ -4490,6 +4631,8 @@ fichier de référence, identique octet pour octet à celui du dépôt (SV-6).
 Options (révision 0.6) : `--instance <manifeste d'instance>` (`<S>`),
 `--dimensionnement <entrées du calculateur de la section 9>` (`<A_h>`),
 `--txpool-max-pending <n>` (`<M>` en est la moitié), `--rpo <s>` (`<RPO>`),
+`--budget-journalier-gaz <gaz>` (budget journalier de gaz, multiplié par
+`fees.max_fee_per_gas_wei` du manifeste d'instance pour `<S>`),
 `--tests` (écrit les tests des règles régénérées), `--sortie <fichier>` ;
 `--reference <répertoire>` écrit les quatre fichiers de
 `deploiement/observabilite/`. Codes : 0 ; 1, document refusé, dont un
@@ -4547,6 +4690,9 @@ clause `for` (R8-F54).
 | `noortrace_pieces_attente_perdues` | `increase(noortrace_journal_lignes_total{event="pending_pieces_lost"}[5m]) > 0` | — | majeure | CT-2 §17.4 Pièces en attente perdues | RB-1 |
 | `noortrace_gel_pose_en_retard` | `time() - noortrace_journal_derniere_ligne_s{source="gel",event="worm_legal_hold_set"} > 7200` (seulement pour un support sans mode Compliance validé, EX-11.17) | — | majeure (gravité fixée par CT-8) | CT-2 §12.6 (tâche de `poser` et alerte de retard) | RB-5 |
 | `noortrace_export_lecture_impossible` | `increase(noortrace_journal_lignes_total{event="dossier_export_refused",detail="lecture_impossible"}[1h]) > 0` | — | majeure (gravité fixée par CT-8) | CT-2 EX-15.12, raison `lecture_impossible` (segment, manifeste, série de points ou fichier des approbations illisible) | RB-1 |
+| `noortrace_enregistreur_cible_muette` | `up{job="enregistreur"} == 0` | 2m | critique | CT-8 EX-10.4 | RB-1 |
+| `noortrace_journal_exploitation_lignes_perdues` | `increase(noortrace_ops_log_dropped_total[5m]) > 0` | — | majeure | CT-2 §17.2 `noortrace_ops_log_dropped_total` | RB-1 |
+| `noortrace_image_differente` | `increase(noortrace_journal_lignes_total{source="exploitation",event="image_mismatch"}[1h]) > 0` | — | critique | CT-2 §17.4 Image différente de la version publiée (PA-4) | RB-8 |
 | `noortrace_export_refuse` | `increase(noortrace_journal_lignes_total{event="dossier_export_refused",detail=~"exports_indisponible\|ecriture_impossible"}[1h]) > 0` | — | majeure (gravité fixée par CT-8 ; les autres raisons sont des erreurs de la demande, que la commande rend à qui l'a lancée) | CT-2 EX-15.12, raisons `exports_indisponible` et `ecriture_impossible` (volume des exports absent, confondu avec `storage.root`, plein ou en lecture seule ; en production, droits du volume ou groupe du parent d'une destination non conformes, CT-2 EX-15.13, point 2) | aucun |
 
 Les expressions des histogrammes sont la forme exécutable des conditions de
@@ -4667,13 +4813,21 @@ d'instance par `regles.mjs`.
 | `noortrace_notification_echec` | `increase(noortrace_journal_lignes_total{source="approbation",event="notification_echec"}[1h]) > 0` (fichier et forme du journal du service proposés, PD-19) | — | mineure (gravité fixée par CT-8 ; une reprise suit, CT-3 EX-13.42) | CT-3 EX-13.42 | aucun |
 | `noortrace_notification_abandonnee` | `increase(noortrace_journal_lignes_total{source="approbation",event="notification_abandonnee"}[1h]) > 0` (PD-19) | — | majeure (gravité fixée par CT-8 : un approbateur ou un administrateur n'est pas prévenu ; le corps reste dans la boîte d'envoi, CT-3 EX-13.39) | CT-3 EX-13.42 | aucun |
 | `noortrace_notification_sans_destinataire` | `increase(noortrace_journal_lignes_total{source="approbation",event="notification_sans_destinataire"}[1d]) > 0` (PD-19) | — | majeure (gravité fixée par CT-8 : aucun destinataire, par exemple aucun membre éligible avec une entrée active de l'annuaire, CT-3 EX-13.40) | CT-3 EX-13.40 | aucun |
-| `noortrace_sauvegarde_en_retard` | `time() - noortrace_proces_verbal_dernier_s{kind="sauvegarde"} > <RPO>` | — | majeure | CT-8 EX-11.5 | aucun |
+| `noortrace_sauvegarde_en_retard` | `time() - noortrace_proces_verbal_dernier_s{kind="sauvegarde"} > <RPO>` | 1h | majeure | CT-8 EX-11.5 | aucun |
 | `noortrace_exercice_restauration_en_retard` | `time() - noortrace_proces_verbal_dernier_s{kind="exercice_restauration"} > 34560000` (400 jours) | — | mineure | CT-8 EX-11.8 | aucun |
 | `noortrace_acces_non_declare` | `increase(noortrace_journal_lignes_total{source="consultations",detail="inconnu"}[1h]) > 0` | — | majeure | CT-8 EX-11.20 (CA-6) | RB-8 |
 | `noortrace_consultations_muettes` | `time() - max(noortrace_journal_derniere_ligne_s{source="consultations"}) > 86400` | — | majeure | CT-8 EX-11.19 | aucun |
 | `noortrace_journal_illisible` | `increase(noortrace_journal_illisibles_total[1h]) > 0` | — | majeure | CT-8 EX-10.5 | aucun |
 | `noortrace_mode_observation_actif` | `noortrace_observation_mode == 1` | — | mineure (rappel permanent : aucun appel n'est bloqué) | CT-2 §17.4 Mode observation actif (EX-17.8) ; CT-8 EX-12.8 | aucun |
 | `noortrace_observation_pertes` | `increase(noortrace_events_lost_total[5m]) > 0` | — | majeure | CT-2 §17.4 Pertes en mode observation (EX-17.8) ; CT-2 EX-14.16 | RB-1 |
+| `noortrace_hote_cible_muette` | `up{job="hote"} == 0` | 2m | critique | CT-8 EX-10.4 | RB-1 |
+| `noortrace_extracteur_muet` | `absent(noortrace_extracteur_derniere_passe_s) or (time() - noortrace_extracteur_derniere_passe_s > 120)` | — | critique | CT-8 EX-10.5 | aucun |
+| `noortrace_sonde_muette` | `absent(noortrace_sonde_derniere_passe_s) or (time() - noortrace_sonde_derniere_passe_s > 120)` | — | critique | CT-8 EX-10.7 | aucun |
+| `noortrace_releve_externe_absent_registre_gels` | `absent(noortrace_releve_externe_ok{check="registre_gels"})` | 2d | critique | CT-8 EX-10.9 | aucun |
+| `noortrace_releve_externe_absent_console` | `absent(noortrace_releve_externe_ok{check="console"})` | 2d | critique | CT-8 EX-10.9 | aucun |
+| `noortrace_releve_externe_absent_copie_exploitation` | `absent(noortrace_releve_externe_ok{check="copie_exploitation"})` | 2d | critique | CT-8 EX-10.9 | aucun |
+| `noortrace_sauvegarde_absente` | `absent(noortrace_proces_verbal_dernier_s{kind="sauvegarde"})` | 2d | majeure | CT-8 EX-11.5 | aucun |
+| `noortrace_tache_echec` | `noortrace_tache_code != 0` | — | majeure | CT-8 EX-8.6 | aucun |
 | `noortrace_releve_externe_echec` | `noortrace_releve_externe_ok == 0` | — | critique | CT-8 EX-10.9 | aucun |
 | `noortrace_releve_externe_perime` | `time() - noortrace_releve_externe_dernier_s > 172800` (2 jours) | — | critique | CT-8 EX-10.9 | aucun |
 
@@ -4708,17 +4862,20 @@ ci-dessous ; chaque expression ne nomme que des métriques de 10.2 et 10.3
 contrôlent, sous l'identité qu'EX-10.3 décrit, et exposer leur résultat comme
 une jauge `noortrace_releve_externe_ok{check}` (1 ou 0), avec l'instant du
 dernier passage dans la jauge `noortrace_releve_externe_dernier_s{check}`
-(secondes UNIX), alertée en critique quand elle vaut 0 ou qu'elle n'a pas été
-mise à jour depuis 2 jours (règles `noortrace_releve_externe_echec` et
-`noortrace_releve_externe_perime` de 10.7). La commande de référence est
+(secondes UNIX), alertée en critique quand elle vaut 0, qu'elle n'a pas été
+mise à jour depuis 2 jours, ou qu'elle est absente pour une relecture
+configurée (règles `noortrace_releve_externe_echec`,
+`noortrace_releve_externe_perime` et `noortrace_releve_externe_absent_<check>`,
+une par relecture, de 10.7). La commande de référence est
 `node scripts/deploiement/sonde.mjs releve --check <registre_gels|console|copie_exploitation>
 --sortie <fichier> -- <commande> [arguments…]`, qui lance la relecture, écrit
 les deux jauges au format texte de Prometheus (par renommage, pour le
 collecteur de fichiers de l'exportateur de nœud) et rend le code de la
-relecture :
-`registre_gels` (la relecture du registre des gels et de l'état `on` des
-versions gelées par le rôle Lecteur, CT-2 EX-17.7 : `noortrace-ctl worm gel
-etat` sous les identifiants du lecteur), `console` (la comparaison
+relecture (1 si elle est tuée par un signal) après avoir écrit les jauges :
+`registre_gels` (la relecture de tout le registre des gels et de l'état `on`
+des versions gelées par le rôle Lecteur, CT-2 EX-17.7 : `noortrace-ctl worm
+gel liste` sous les identifiants du Lecteur, puis `worm gel etat --gel` pour
+chaque gel que les réglages nomment en plus), `console` (la comparaison
 quotidienne des SHA-256 de la page et des scripts de la console avec les
 valeurs publiées hors du serveur, CT-7 EX-3.9), `copie_exploitation` (la
 relecture de la série des fichiers du journal d'exploitation copiés sous
@@ -4734,7 +4891,12 @@ relevée le 2026-10-27 sur l'archive téléchargée et égale à celle du fichie
 `sha256sums.txt` publié avec elle), puis exécute `promtool check rules` sur
 le fichier de règles et `promtool test rules` sur
 `deploiement/observabilite/tests-regles.yml` (R8-F53), qui donne pour chaque
-règle une série qui la déclenche et une qui ne la déclenche pas. `promtool`
+règle une série qui la déclenche et une qui ne la déclenche pas, et, pour
+chaque règle sur un compteur que l'extracteur, le démon ou le composant
+d'ancrage crée à sa première occurrence (EX-10.6), un cas où la série est
+absente puis dépasse le seuil (alerte) et un cas où elle vaut 0 (silence)
+(révision 0.8 : un compteur exposé à 0 dès le démarrage, comme
+`noor_bft_equivocations_total`, garde la forme courte et n'a pas ce cas). `promtool`
 n'a pas été exécuté pour la rédaction de la version 0.1 (R8 NV-4) ; l'étape
 est dans l'intégration continue depuis l'étape 7 (EX-A.27), et les essais,
 sans `promtool`, rejouent les mêmes tests par un évaluateur réduit, qui ne le
@@ -5148,8 +5310,8 @@ répond plus, la chaîne n'avance plus, ou une double signature est vue.
   `-bft-recovery-reset` n'existe qu'en profil de développement (CT-4 §13).
 - **Pas.**
   1. Sonder `eth_blockNumber` à travers chaque point déclaré (sonde
-     d'EX-10.7, à produire, section 15) ; porte : le point en cause est
-     connu.
+     d'EX-10.7, `scripts/deploiement/sonde.mjs`) ; porte : le point en cause
+     est connu.
   2. Relais : redémarrer le conteneur du relais (image et Compose de
      `chain/docker`, EX-3.6) ; porte : `noortrace_registre_sonde_ok` à 1.
   3. Validateur du client injoignable : la soumission continue vers les
@@ -5362,7 +5524,10 @@ Trois chemins, choisis dans cet ordre sauf quand un runbook désigne le chemin
 (RB-1, pas 3 : chemin B pour un `segment_corrupted`), sur le modèle « Path A
 Restore », « Path B Redeploy » de noorchain-core (`RUNBOOK-M27D-OPS.md` l.
 220-248, R8-F40), adapté au journal : A restaure l'archive et la complète par
-les copies WORM ; B reconstruit depuis les seules copies WORM ; C ouvre un
+les copies WORM ; B reconstruit depuis les seules copies WORM (sans registre,
+une clé à plusieurs versions n'est pas départagée : `versions_multiples`,
+arrêt sûr ; la reprise se fait avec une copie du registre, `--registre-copies`,
+ou objet par objet, `worm restaurer <clé> --version <id>`) ; C ouvre un
 journal neuf quand la chaîne ne peut plus continuer.
 
 **EX-11.6** Une reprise DOIT garder la continuité de la chaîne : les fichiers
@@ -5457,7 +5622,9 @@ en-tête égal au `hash` du dernier événement du segment précédent, chaque
 ligne par E-1 à E-8 et la suite par C-1 à C-3 de CT-1, chaque manifeste
 présent recalculé sur les événements de sa période et sa signature vérifiée
 (CT-1 §10), et rend un rapport `verification-journal-v0` (schéma nouveau)
-avec le code 0 (`valide`), 1 (`invalide`) ou 2 (usage). Il n'emploie que
+avec le code 0 (`valide`), 1 (`invalide`) ou 2 (usage) ; le rapport porte au
+plus 1 000 erreurs par vérification, puis une entrée qui compte celles qu'il
+omet, sans changer le verdict. Il n'emploie que
 `scripts/lib/journal.mjs` ; il ne remplace pas CT-6, qui vérifie un dossier
 avec ses ancres.
 
@@ -5635,8 +5802,8 @@ vérification ne vise pas), codes 0 (valide), 1 (invalide), 2 (usage) :
 
 | Id | Vérification |
 |---|---|
-| PV-1 | Le document est conforme au schéma (JSON strict, clés uniques). |
-| PV-2 | `files` est trié par `path` (octets UTF-8), sans doublon, sans composant vide, `.` ni `..`. |
+| PV-1 | Le document est conforme au schéma (JSON strict, clés uniques) ; chaque horodatage est une date existante du calendrier (CT-1 §3) : une date inexistante échoue à PV-1. |
+| PV-2 | `files` est trié par `path` (octets UTF-8), sans doublon, sans composant vide, `.` ni `..` ; un `path` absolu échoue à PV-2. PV-7, PV-8 et PV-10 ne sont exécutées que si PV-2 a réussi (`prerequis_en_echec` sinon). |
 | PV-3 | `totals.files` est le nombre d'éléments de `files`, `totals.bytes` la somme des `length`. |
 | PV-4 | Pour `sauvegarde`, `restauration`, `exercice_restauration` et `migration_support`, chaque `sha256_destination` est non nul et égal à `sha256_source` ; pour `fin_de_retention` et `passage_mode`, chaque `sha256_destination` est nul. |
 | PV-5 | `operators` a des identités distinctes ; pour `migration_support`, `fin_de_retention` et `passage_mode`, au moins deux, dont un `temoin` ou un `approbateur` ; `started_at ≤ finished_at`. |
@@ -5750,7 +5917,7 @@ vérifications CA- s'appliquent à un fichier :
 
 | Id | Vérification |
 |---|---|
-| CA-1 | Chaque ligne s'analyse en JSON strict, est conforme à `consultation-v0` et est écrite en JCS v0. |
+| CA-1 | Chaque ligne s'analyse en JSON strict, est conforme à `consultation-v0` et est écrite en JCS v0 ; chaque horodatage est une date existante du calendrier (CT-1 §3), une date inexistante échouant à CA-1. |
 | CA-2 | `n` vaut 1 pour la première ligne et croît de 1, sans trou. |
 | CA-3 | `prev_sha256` de la ligne 1 est le SHA-256 du nom du fichier en UTF-8 ; celui de la ligne `n` est le SHA-256 des octets de la ligne `n − 1` sans son `\n`. |
 | CA-4 | `collected_at` ne décroît pas ; `ts` ≤ `collected_at`. |
@@ -5818,7 +5985,13 @@ copie sur le support WORM sous `<prefix>exploitation/<instance_id>/` reste à
 l'outil du client.
 
 **EX-11.23** La série copiée se relit hors du démon (EX-10.9,
-`copie_exploitation`) : les fichiers d'une instance se suivent sans trou de
+`copie_exploitation`) : chaque ligne d'`index.ndjson` porte `version: 1`, son
+rang (`rank`) et le SHA-256 de la ligne précédente (`prev_sha256`, `0x` et 64
+zéros pour la première) ; la relecture refuse un rang manquant ou une
+empreinte différente ; une dernière ligne incomplète est écartée et signalée ;
+un fichier tourné est lu sans suivre de lien, fichier ordinaire de
+`--octets-max` octets au plus (1 Gio par défaut) ; les fichiers d'une
+instance se suivent sans trou de
 date (le `ts` de la première ligne d'un fichier suit celui de la dernière du
 précédent) ; une discontinuité est alertée et consignée dans le paquet
 d'incident. Le journal d'exploitation n'a pas de valeur probatoire (CT-2
@@ -6400,7 +6573,7 @@ ou par la loi, une approbation préalable.
 | OB-3 | Exclusivité : sous une version de politique dont la pièce dit `mode` `observation`, chaque appel d'outil est marqué ; sous une autre, aucun ne l'est (`marque_hors_observation`, `marque_absente`). | événements et pièces de politique |
 | OB-4 | Aucune approbation : sous une version en observation, aucun événement `retenue`, aucun `refusee` d'un appel, aucun `noortrace.approbation.decision` (`approbation_en_observation`). La version d'un événement est son `code.policy_version` ; son mode est celui de la pièce (`approval.mode`) que désigne l'événement `noortrace.journal.politique` qui annonce cette version (`policy_sha256` de ses arguments en ligne). | événements et pièces de politique |
 | OB-5 | Rapport : le rapport recalculé sur les événements est identique, octet pour octet en JCS, au rapport attendu. | événements |
-| OB-6 | Correspondance : pour un cas d'évaluation de CT-3 en mode observation, la réponse du service est `{rule, decision, null, null, null, null}` avec `rule` et `decision` de l'évaluation, aucune unité de fenêtre n'est consommée, aucun ticket n'est créé, et le membre `policy` scellé est celui d'EX-12.6 ; service indisponible : réponse nulle et `evaluation impossible [observation inconnu]`. | cas de `spec/vecteurs/ct-8/observation/correspondance.json` |
+| OB-6 | Correspondance : pour un cas d'évaluation de CT-3 en mode observation, la réponse du service est `{rule, decision, null, null, null, null, policy_version, policy_sha256, approval_sha256}` (neuf membres, CT-3 EX-12.6, révision 0.8) avec `rule` et `decision` de l'évaluation, `policy_version` et `policy_sha256` recopiés du `charger` de la version et `approval_sha256` calculé par le service (A.8), aucune unité de fenêtre n'est consommée, aucun ticket n'est créé, et le membre `policy` scellé est celui d'EX-12.6 ; service indisponible : réponse nulle et `evaluation impossible [observation inconnu]`. | cas de `spec/vecteurs/ct-8/observation/correspondance.json` |
 
 OB-3 et OB-4 exigent les pièces de politique (option `--politiques <répertoire>`
 de l'outil, EX-12.10) ; sans elles, elles sont non exécutées et le rapport le
@@ -7295,7 +7468,11 @@ des ancres (13.11).
 
 **EX-13.27 (résumé lisible)** Lignes, dans cet ordre, étiquettes complétées par
 des espaces jusqu'à quatorze caractères avant les deux-points, comme CT-6
-EX-8.6 : le titre ; `Outil` (nom, version, environnement) ; `Archive` (chemin,
+EX-8.6 ; tout caractère C0 (U+000A compris), C1 ou DEL d'un libellé, d'un nom
+ou d'un détail, de même U+2028, U+2029 et les caractères de formatage du sens
+d'écriture (U+200E, U+200F, U+202A à U+202E, U+2066 à U+2069), est écrit
+sous une forme visible, et le schéma les refuse dans `label` et
+`prepared_by` : le titre ; `Outil` (nom, version, environnement) ; `Archive` (chemin,
 taille, SHA-256) ; `Manifeste` (SHA-256, libellé, `created_at`, `prepared_by`),
 quand PR-7 a réussi ; `Paquet` (`INTACT` avec le nombre de fichiers, d'octets et
 de dossiers, ou `NON CONFORME` avec la première vérification en échec et son
@@ -7694,7 +7871,8 @@ strictement croissant et ne liste pas `MANIFESTE.json` ; les chemins de
 entrées. PR-8 : l'ensemble des fichiers de l'archive, manifeste excepté,
 égale l'ensemble de `files` (un fichier déclaré absent, un fichier non
 déclaré : échec) ; chaque fichier a la taille et le SHA-256 déclarés ; le
-détail liste tous les écarts. PR-9 : chaque `role` est celui de
+détail liste les écarts dans la limite de 4 096 caractères et finit par le
+nombre de ceux qu'il ne liste pas (EX-13.29). PR-9 : chaque `role` est celui de
 l'emplacement ; `LISEZMOI.md` et `README.md` existent ; chaque dossier
 déclaré a son `dossier.json` ; chaque `anchors` et chaque `bitcoin_headers`
 non nuls désignent un fichier de rôle `ancres` ou `entetes` ; chaque fichier
@@ -8200,12 +8378,13 @@ provenance des ancres de chaque dossier.
   désigne, variable que CO-9 refuse ; un membre `wrap.endpoint` de CT-2, ou
   l'admission de cette variable, reste à décider. La clé de chaîne a son
   `service_url` (CT-2 EX-11.19).
-- **Relecture de tout le registre des gels par le Lecteur** (TP-4) : aucune
-  commande ne la fait ; `worm gel etat` prend un `--gel` et `worm releve` les
-  identifiants de l'écrivain ; le gabarit de TP-4 relit les gels listés dans
-  ses réglages.
-- **Identité IAM et table des clés de CT-7.** Le secret `identite-aws` n'a pas
-  d'entrée CLE- dans la table des clés et des secrets de CT-7.
+- **Une cérémonie (IC-7) et une installation conduites par des personnes
+  étrangères au projet** : l'installation d'essai de l'étape 7 est déroulée
+  par un harnais, les épreuves de la section 14 sont passées par des
+  relecteurs internes à l'aveugle, et la répétition de cérémonie de la porte
+  2 est jouée par des rôles simulés (CT-7 §5.2, CT-9 §10.1, §12.1) ; le
+  budget de 60 minutes d'IC-7, qui « suppose les participants présents et le
+  poste prêt », n'est mesuré par aucune cérémonie réelle.
 - **Un mode « avertir ».** En mode observation, l'agent ne reçoit aucun
   avertissement de ce que la politique aurait exigé ; un mode qui rendrait
   l'appel avec un avertissement lisible par l'agent, sans le bloquer (pratique
@@ -8225,7 +8404,7 @@ livraison.
 |---|---|---|---|
 | CT-2 | version 0.5 ; deux modes d'attente bloquants | révision 0.6 minimale : valeur `observation`, CT-2 EX-4.51, EX-7.23 (formes réservées, 998 caractères), EX-14.13 à EX-14.17, EX-15.8 (suffixe `-observation`, `approbateurs_de_test`), EX-17.8 ; schéma `configuration-enregistreur-v0` étendu de façon compatible ; table « Révision 0.6 » de CT-2 §22 | fait (même livraison) |
 | CT-3 | version 0.3 ; évaluation toujours suivie de ses effets | révision 0.4 minimale : CT-3 EX-6.8, EX-11.11 à EX-11.15, EX-12.20 ; exception d'EX-11.1 pour l'installation rapide ; nom `evaluation impossible` réservé dans `politique-approbation-v0` (aucun document des vecteurs ne le porte) | fait (même livraison) |
-| CT-7 §11, ligne PA-15 | « à faire (révisions à décider ; CT-8 à écrire) » | répondue par 11.6, 11.9, 11.10 et 11.11 ; L-1 reste `releve_du_client` pour la collecte | à aligner par l'éditeur de CT-7 (texte de CT-7 inchangé dans ce lot) |
+| CT-7 §11, ligne PA-15 | « à faire (révisions à décider ; CT-8 à écrire) » | répondue par 11.6, 11.9, 11.10 et 11.11 ; L-1 reste `releve_du_client` pour la collecte | à aligner par l'éditeur de CT-7 (texte de CT-7 inchangé par cette version) |
 | `spec/README.md` | CT-8 « à écrire » ; CT-2 0.5 ; CT-3 0.3 | lignes CT-8 (0.1), CT-2 (0.6) et CT-3 (0.4) ; huit schémas nouveaux ; section « CT-8 (`vecteurs/ct-8/`) » | fait (même livraison) |
 | `spec/schemas/` | — | `conteneurs-v0`, `controle-prealable-v0`, `dimensionnement-v0`, `proces-verbal-exploitation-v0`, `consultation-v0`, `verification-journal-v0`, `rapport-observation-v0`, `paquet-reviseur-v0` ; `configuration-enregistreur-v0` étendu ; `politique-approbation-v0` : nom réservé | fait (même livraison) |
 | `deploiement/` | absent | `LISEZMOI.md`, `compose/rapide.yaml`, `compose/production.yaml`, `images/images.json`, `config/rapide/configuration.json`, `config/modele-production/configuration.json` (4.1) ; `observabilite/` (10.4 à 10.8) | fait (même livraison) ; `observabilite/` : fait (étape 7) |
@@ -8279,7 +8458,7 @@ EX-10.13) ; leur code est construit (étape 6).
 | PD-5 | CT-2 §15.3, §18.1 | Écrire, dans l'exemple ou dans une note, l'écoute `0.0.0.0` dans un conteneur dont les ports ne sont publiés que sur `127.0.0.1` ou l'adresse interne, et ce qu'en dit la validation (TLS exigé hors bouclage pour `otel`, CT-2 EX-6.40) | proposition |
 | PD-6 | CT-2 §18.3 | Noms des comptes : `peer_user` désigne un nom ; les images NOORTRACE fixent les UID 10001 et 10002 et leurs noms (EX-3.5) | proposition (note) |
 | PD-7 | CT-3 §10.3 | Un schéma de configuration du service d'approbation et du serveur de console (réglages de CT-3 EX-10.10), dont IC-11 a besoin pour être validé comme la configuration de l'enregistreur | adoptée par CT-3 0.5 : `configuration-approbation-v0` et `configuration-console-v0` et leurs commandes `valider-configuration` (CT-3 EX-10.12, EX-10.13 ; IR-3, IR-5, IC-11) |
-| PD-8 | `chain/docker/Dockerfile`, `chain/docker/docker-compose.yml`, `chain/docker/README.md` | Épingler les deux images de base par condensé (déjà « à faire », CT-4 §13) ; remplacer le domaine d'exemple `rpc.exemple.ch` par un nom réservé de la forme `.example` (non vérifié qu'il soit réservé, R8 NV-8) | épinglage fait (`chain/docker/Dockerfile`) ; domaine : à faire (autre lot) |
+| PD-8 | `chain/docker/Dockerfile`, `chain/docker/docker-compose.yml`, `chain/docker/README.md` | Épingler les deux images de base par condensé (déjà « à faire », CT-4 §13) ; remplacer le domaine d'exemple inventé des fichiers de `chain/docker/` par un nom réservé de la forme `.example` (non vérifié qu'il soit réservé, R8 NV-8) | épinglage fait (`chain/docker/Dockerfile`) ; domaine : fait à l'étape 8 (`rpc.validateur.example` dans `chain/docker/docker-compose.yml` et `chain/docker/README.md`) |
 | PD-9 | `package.json` | Déclarer `js-yaml` en dépendance de développement à version exacte (4.3.2, déjà installée comme dépendance transitive) pour `verifier-conteneurs.mjs` | fait (même livraison) |
 | PD-10 | CT-2 (§17.3, EX-9.5) | Fixer les noms des membres de `data` de plusieurs lignes du journal d'exploitation et nommer la ligne de `politique_invalide` au `charger` (10.10) | close par CT-8 0.6 : noms du code lus par l'extracteur (10.3) |
 | PD-11 | CT-5 (§8.9) | Nommer les lignes `jeton_anterieur_au_point` et `contresignature_tardive` et les membres de `data` de trois lignes du composant d'ancrage (10.10) | close par CT-8 0.6 : noms du code (10.3, 10.5) |
@@ -8296,7 +8475,7 @@ EX-10.13) ; leur code est construit (étape 6).
 
 ### B.1 Notes de recherche et lectures
 
-Les faits externes de CT-8 viennent de deux notes de recherche internes du lot,
+Les faits externes de CT-8 viennent de deux notes de recherche internes,
 non publiées : R8 (dépôt public et noorchain-core) et R9 (pratiques publiées),
 relues le 2026-10-27 sur les sources primaires qu'elles citent ; ces sources
 font foi, pas les notes. Un fait porte le renvoi « R8-Fn » ou « R9-Fn » ; un
@@ -8315,7 +8494,7 @@ n'a pas pu être vérifié est écrit « non vérifié ».
 | R8-F35 | Un suiveur est un mandataire JSON-RPC ; `/healthz` répond `ok` meneur arrêté | dépôt public | `chain/docker/README.md`, l. 377-407 | 2026-10-27 |
 | R8-F56 | Secrets montés en fichier sous `/run/secrets/` ; risque des variables d'environnement | Docker, « Secrets in Compose » | https://docs.docker.com/compose/how-tos/use-secrets/ | 2026-10-27 |
 | R8 NV-1 | Construction de l'image du nœud avec correctif : non rejouée | — | — | 2026-10-27 |
-| R8 NV-8 | `rpc.exemple.ch` : non vérifié comme réservé | dépôt public | `chain/docker/docker-compose.yml`, l. 3 | 2026-10-27 |
+| R8 NV-8 | domaine d'exemple inventé de `chain/docker/docker-compose.yml` (l. 3) : non vérifié comme réservé ; remplacé par `rpc.validateur.example` à l'étape 8 (`.example`, RFC 2606) | dépôt public | `chain/docker/docker-compose.yml`, l. 3 | 2026-10-27 |
 | R9-F11 | `SOURCE_DATE_EPOCH` : horodatage des constructions | reproducible-builds.org | https://reproducible-builds.org/specs/source-date-epoch/ | 2026-10-27 |
 | R9-F23 | Forme d'une référence d'image, par étiquette ou condensé | Compose Specification | https://raw.githubusercontent.com/compose-spec/compose-spec/main/spec.md (l. 1524-1537) | 2026-10-27 |
 | R9-F24 | `read_only` ; `user`, `root` à défaut | idem | même fichier, l. 2090-2092, 2299-2301 | 2026-10-27 |
@@ -8404,7 +8583,7 @@ NIST SP 800-34 ; ISO 22301 et ISO/IEC 27031, non consultées (R9, section 2).
 
 ### B.5 Section 13 et annexes A.10, A.11 et A.15
 
-Les faits R9-Fn viennent de la note de recherche R9 du lot CT-8 (interne,
+Les faits R9-Fn viennent de la note de recherche R9 de CT-8 (interne,
 non publiée), relue le 2026-10-27 sur les sources primaires qu'elle cite ;
 ces sources font foi, pas la note.
 

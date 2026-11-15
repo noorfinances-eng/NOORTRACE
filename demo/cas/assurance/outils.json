@@ -1,0 +1,66 @@
+{
+  "service": "outils-assurance",
+  "outils": [
+    {
+      "name": "propositions.get",
+      "title": "Lire une proposition",
+      "description": "Rend une proposition d'assurance de personnes de démonstration (pseudonyme, questionnaire de santé résumé)",
+      "inputSchema": { "type": "object", "properties": { "proposition_id": { "type": "string" } }, "required": ["proposition_id"], "additionalProperties": false },
+      "annotations": { "readOnlyHint": true },
+      "kind": "lecture_par_id",
+      "id_field": "proposition_id"
+    },
+    {
+      "name": "propositions.search",
+      "title": "Rechercher des propositions",
+      "description": "Recherche des propositions de démonstration par texte libre",
+      "inputSchema": { "type": "object", "properties": { "query": { "type": "string" } }, "required": ["query"] },
+      "annotations": { "readOnlyHint": true },
+      "kind": "recherche"
+    },
+    {
+      "name": "risque.classer",
+      "title": "Classer le risque",
+      "description": "Rend la classe de risque calculée pour une proposition (A à D) et la majoration en pour cent que la grille de souscription y attache",
+      "inputSchema": { "type": "object", "properties": { "proposition_id": { "type": "string" } }, "required": ["proposition_id"], "additionalProperties": false },
+      "annotations": { "readOnlyHint": true },
+      "kind": "lecture_par_id",
+      "id_field": "proposition_id",
+      "champ": "classification"
+    },
+    {
+      "name": "souscription.decider",
+      "title": "Décider la souscription",
+      "description": "Enregistre la décision de souscription d'une proposition : accepter, renvoyer au souscripteur ou refuser, avec la classe de risque et la majoration en pour cent (écriture)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "proposition_id": { "type": "string" },
+          "decision": { "type": "string", "enum": ["accepter", "renvoyer", "refuser"] },
+          "classe_risque": { "type": "string", "enum": ["A", "B", "C", "D"] },
+          "majoration_pct": { "type": "string", "description": "pour cent, grammaire décimale de CT-3 §4.7 ; 0 sans majoration" },
+          "motif": { "type": "string" }
+        },
+        "required": ["proposition_id", "decision", "classe_risque", "majoration_pct", "motif"],
+        "additionalProperties": false
+      },
+      "outputSchema": { "type": "object", "properties": { "decision_id": { "type": "string" } }, "required": ["decision_id"], "additionalProperties": false },
+      "annotations": { "readOnlyHint": false, "destructiveHint": false },
+      "kind": "ecriture",
+      "id_field": "proposition_id",
+      "prefixe": "DEC-2026-",
+      "compteur_depart": 51200,
+      "cle_resultat": "decision_id"
+    }
+  ],
+  "enregistrements": {
+    "PRP-2026-00431": {
+      "texte": "proposition d'assurance de personnes du proposant P-01 (pseudonyme), tranche d'age 40-49, activite professionnelle sedentaire, questionnaire de sante : fumeur declare, pratique reguliere de la plongee sous-marine, aucun antecedent declare ; joignable a p-01@proposant.example",
+      "classification": "classe de risque C (fumeur declare, sport a risque), majoration de 50 pour cent selon la grille de souscription de demonstration"
+    },
+    "PRP-2026-00432": {
+      "texte": "proposition d'assurance de personnes du proposant P-02 (pseudonyme), tranche d'age 30-39, questionnaire de sante sans declaration ; joignable a p-02@proposant.example",
+      "classification": "classe de risque A, sans majoration"
+    }
+  }
+}

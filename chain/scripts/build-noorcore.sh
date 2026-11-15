@@ -10,10 +10,15 @@
 #   2. sinon, il clone à profondeur 1 le commit épinglé de noorchain-core dans
 #      chain/runtime/src/noorchain-core (s'il n'y est pas déjà, auquel cas il
 #      vérifie que la copie est bien au commit attendu) ;
-#   3. il applique les correctifs NOORTRACE de chain/patches/*.patch avec
-#      `git apply`, dans l'ordre des noms ; un correctif déjà appliqué est
-#      reconnu, un correctif qui ne s'applique pas arrête la construction ;
-#      le dépôt noorchain-core lui-même n'est jamais modifié ;
+#   3. il vérifie les correctifs de chain/patches/ contre chain/patches/EMPREINTES
+#      (chain/scripts/verifier-correctifs.sh : empreinte SHA-256 de chaque
+#      correctif attendu, aucun fichier non listé, aucun correctif absent ;
+#      CT-4 EX-10.1 d), puis les applique avec `git apply`, dans l'ordre des
+#      noms ; un correctif déjà appliqué est reconnu, un correctif qui ne
+#      s'applique pas arrête la construction ; le dépôt noorchain-core
+#      lui-même n'est jamais modifié ; sans aucun correctif, la construction
+#      n'est admise qu'avec NOORTRACE_SANS_CORRECTIF=1 (binaire sans
+#      noor_getCommitCertificate, à ne pas livrer sous l'étiquette de l'image) ;
 #   4. puis il lance `go build ./core` et dépose le binaire dans
 #      chain/runtime/bin/noorcore.
 #
@@ -23,10 +28,16 @@
 #                           utilisée à la place du clone ; elle doit être au
 #                           commit épinglé et reçoit les correctifs (git apply)
 #
-# Prérequis : git, Go (le go.mod de noorchain-core impose go 1.26.9 ; avec
-# GOTOOLCHAIN=auto, la chaîne de compilation est téléchargée si besoin).
+# Prérequis : git, Go 1.26.9 (le go.mod de noorchain-core l'impose ; le script
+# force GOTOOLCHAIN=local : aucune chaîne de compilation n'est téléchargée, une
+# autre version de Go fait échouer la construction au lieu de changer de Go en
+# silence).
 
 set -euo pipefail
+
+# Aucun téléchargement d'une autre chaîne de compilation (CT-4 EX-4.12) : la version
+# de Go est celle du poste, et elle doit être celle du go.mod de noorchain-core.
+export GOTOOLCHAIN=local
 
 NOORCORE_REPO="https://github.com/noorfinances-eng/noorchain-core.git"
 NOORCORE_COMMIT="618fcef8805ef5b4cb9291a3dd97be710e489297"
@@ -52,6 +63,9 @@ done
 
 if [[ -x "$BIN" && "$force" -eq 0 ]]; then
   echo "build-noorcore: binaire déjà présent, construction sautée : $BIN (passer --force pour reconstruire)"
+  if ! grep -q 'noor_getCommitCertificate' "$BIN"; then
+    echo "build-noorcore: AVERTISSEMENT : $BIN ne porte pas noor_getCommitCertificate : binaire construit sans le correctif de chain/patches/ (CT-4 4.7) ; --force pour le reconstruire" >&2
+  fi
   exit 0
 fi
 
@@ -83,6 +97,8 @@ fi
 
 # --- correctifs NOORTRACE : chain/patches/*.patch sur le commit épinglé ---------
 PATCH_DIR="$chain_dir/patches"
+# Empreintes d'abord (CT-4 EX-10.1 d) : rien n'est appliqué si un correctif diffère d'EMPREINTES, manque, ou n'y est pas listé.
+bash "$script_dir/verifier-correctifs.sh" "$PATCH_DIR" "$PATCH_DIR/EMPREINTES"
 shopt -s nullglob
 for p in "$PATCH_DIR"/*.patch; do
   if git -C "$SRC" apply --check "$p" >/dev/null 2>&1; then

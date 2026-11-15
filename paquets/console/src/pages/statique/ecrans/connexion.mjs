@@ -9,18 +9,13 @@
 import { el, message, remplacer } from "../commun/dom.mjs";
 import { t } from "../commun/libelles.mjs";
 import { ErreurAppel, connexionLocale } from "../commun/client.mjs";
-import { afficherErreur, principal } from "../commun/cadre.mjs";
-
-const MOTIF_TICKET = /^apr-[0-9a-z]+(-[0-9a-z]+)*$/;
+import { afficherErreur, estIdentifiantTicket, principal } from "../commun/cadre.mjs";
 
 /** Le chemin de retour retenu (EX-13.43) : aucune redirection ouverte. */
 export function retourRetenu(recherche) {
   const r = new URLSearchParams(recherche).get("retour");
   if (r === "/tickets" || r === "/inscription" || r === "/annuaire") return r;
-  if (r !== null && r.startsWith("/tickets/")) {
-    const id = r.slice("/tickets/".length);
-    if (MOTIF_TICKET.test(id) && id.length >= 5 && id.length <= 128) return r;
-  }
+  if (r !== null && r.startsWith("/tickets/") && estIdentifiantTicket(r.slice("/tickets/".length))) return r;
   return "/tickets";
 }
 

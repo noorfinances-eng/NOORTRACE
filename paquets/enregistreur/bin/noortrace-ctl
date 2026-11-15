@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// noortrace-ctl : actions du lot WORM (CT-2 §12.11, EX-12.36, EX-17.6, voir
+// noortrace-ctl : actions de la partie WORM (CT-2 §12.11, EX-12.36, EX-17.6, voir
 // src/worm/ctl.mjs), et commandes adressées au démon en marche, `reload`
 // (EX-15.5), `clock --accept` (EX-7.13), `cle rotation-urgence` (CT-8
 // EX-10.14), `ancrage etat|metriques|retirer-qualification` (CT-5 EX-5.9,

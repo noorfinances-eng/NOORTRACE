@@ -15,6 +15,13 @@
 // jamais une exception. Seule attestation-perimetre.json au-delà de 4 Mio est
 // encore lue, en flux et sans rien conserver, pour son SHA-256 (D-2), jusqu'au
 // plafond de 64 Mio (CT-6 EX-4.15).
+//
+// Une erreur d'ouverture ou de lecture autre que l'absence du fichier (EACCES,
+// EPERM, ENOTDIR, EIO, ELOOP, EMFILE…) n'est jamais levée non plus (revue de
+// sécurité) : le fichier est rendu comme FichierNonLu
+// `{ taille: null, sha256: null, erreur }` avec le code de l'erreur, que
+// verifierDossier traite comme un fichier non ordinaire (D-2 en échec, « non
+// lisible (CODE) »).
 
 import fs from "node:fs";
 import path from "node:path";
@@ -37,15 +44,29 @@ function ouvrirOrdinaire(chemin, vu) {
     fd = fs.openSync(chemin, fs.constants.O_RDONLY | O_NOFOLLOW | O_NONBLOCK);
   } catch (e) {
     if (e.code === "ENOENT" || e.code === "ELOOP") return null;
-    throw e;
+    return { erreur: codeErreur(e) };
   }
-  const stat = fs.fstatSync(fd);
+  let stat;
+  try {
+    stat = fs.fstatSync(fd);
+  } catch (e) {
+    fs.closeSync(fd);
+    return { erreur: codeErreur(e) };
+  }
   if (!stat.isFile() || stat.dev !== vu.dev || stat.ino !== vu.ino) {
     fs.closeSync(fd);
     return null;
   }
   return { fd, taille: stat.size };
 }
+
+// Code d'une erreur du système de fichiers, ou le nom de l'erreur.
+function codeErreur(e) {
+  return typeof e?.code === "string" && e.code ? e.code : e instanceof Error ? e.name : "erreur";
+}
+
+/** FichierNonLu d'un fichier dont l'ouverture ou la lecture a échoué. */
+const nonLisible = (e) => ({ taille: null, sha256: null, erreur: codeErreur(e) });
 
 // Lit au plus `limite` + 1 octets : un fichier qui a grandi depuis fstat est
 // vu trop grand, jamais lu au-delà.
@@ -91,7 +112,10 @@ function empreinteEnFlux(fd, plafond) {
  * dans le résultat. Un fichier dans sa limite (TAILLES_MAX) est rendu par ses
  * octets ; au-delà, par un FichierNonLu `{ taille, sha256 }` (sha256 calculé
  * en flux pour attestation-perimetre.json jusqu'à PLAFOND_LECTURE, null
- * sinon), sans être lu.
+ * sinon), sans être lu. Un fichier dont lstat, l'ouverture ou la lecture
+ * échoue autrement que par ENOENT (EACCES, ENOTDIR, EIO…) est rendu par un
+ * FichierNonLu `{ taille: null, sha256: null, erreur }` ; aucune exception
+ * ne sort.
  * @param {string} repertoire chemin du répertoire
  * @returns {Map<string, Uint8Array|import("./dossier.mjs").FichierNonLu>} nom de fichier → octets, ou fichier non lu
  */
@@ -104,7 +128,8 @@ export function lireRepertoireDossier(repertoire) {
       stat = fs.lstatSync(chemin);
     } catch (e) {
       if (e.code === "ENOENT") continue;
-      throw e;
+      fichiers.set(nom, nonLisible(e));
+      continue;
     }
     if (!stat.isFile()) continue;
     const limite = TAILLES_MAX[nom];
@@ -114,6 +139,10 @@ export function lireRepertoireDossier(repertoire) {
     }
     const ouvert = ouvrirOrdinaire(chemin, stat);
     if (!ouvert) continue;
+    if (ouvert.erreur) {
+      fichiers.set(nom, { taille: null, sha256: null, erreur: ouvert.erreur });
+      continue;
+    }
     try {
       if (ouvert.taille > limite) {
         // attestation-perimetre.json au-delà de 4 Mio : SHA-256 en flux (D-2).
@@ -122,6 +151,9 @@ export function lireRepertoireDossier(repertoire) {
       }
       const octets = lireBorne(ouvert.fd, limite);
       fichiers.set(nom, octets ?? { taille: limite + 1, sha256: null });
+    } catch (e) {
+      // Erreur de lecture (EIO…) : fichier non lisible, jamais une exception.
+      fichiers.set(nom, nonLisible(e));
     } finally {
       fs.closeSync(ouvert.fd);
     }

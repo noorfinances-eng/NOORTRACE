@@ -1,4 +1,4 @@
-// Lot WORM (CT-2 §12.6, §12.11) : rejeu des vecteurs `spec/vecteurs/ct-2/worm/`
+// Partie WORM (CT-2 §12.6, §12.11) : rejeu des vecteurs `spec/vecteurs/ct-2/worm/`
 // (annexe B.9) contre leur attendu, par les modules de
 // `paquets/enregistreur/src/worm/` écrits d'après le seul texte de CT-2 :
 //   - worm/requetes.json : requêtes exactes d'EX-12.39 (cible, en-têtes triés,
@@ -34,7 +34,7 @@ const ID_WORM = SCHEMA_WORM.$id;
 const registre = new RegistreSchemasConfiguration();
 registre.ajouter(SCHEMA_WORM);
 
-describe("lot WORM : vecteurs spec/vecteurs/ct-2/worm (annexe B.9) rejoués contre leur attendu", function () {
+describe("partie WORM : vecteurs spec/vecteurs/ct-2/worm (annexe B.9) rejoués contre leur attendu", function () {
   for (const f of ["worm/requetes.json", "worm/etats.json", "worm/perimetres.json", "worm/gardes.json", "worm/levees.json"]) {
     it(`${f} est valide pour le schéma worm-v0`, function () {
       const r = registre.valider(ID_WORM, lire(f));

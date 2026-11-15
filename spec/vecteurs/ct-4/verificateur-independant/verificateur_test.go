@@ -296,6 +296,12 @@ func TestRaisons(t *testing.T) {
 		"cp6-sha256-faux":               "SHA-256",
 		"cp6-nom-hors-convention":       "bloc-16648-copie.json",
 	}
+	// Cas ajoutés par la revue de sécurité de l'étape 8 (CT-4 OP-4) : jugés
+	// quand les vecteurs les portent.
+	revue := map[string]string{
+		"cp3-recu-topics-nul":     "reçus illisibles",
+		"cp2-nom-hors-repertoire": "hors du répertoire des captures",
+	}
 	vus := map[string]bool{}
 	man, _, _ := LireJSON(filepath.Join(c.Racine, "manifestes", "manifestes.json"))
 	for _, k := range man.Get("cases").Arr {
@@ -313,6 +319,11 @@ func TestRaisons(t *testing.T) {
 		}
 	}
 	cap, _, _ := LireJSON(filepath.Join(c.Racine, "capture", "capture.json"))
+	for _, k := range cap.Get("cases").Arr {
+		if r, ok := revue[k.Get("id").S()]; ok {
+			attendus[k.Get("id").S()] = r
+		}
+	}
 	for _, k := range cap.Get("cases").Arr {
 		id := k.Get("id").S()
 		in := k.Get("input")

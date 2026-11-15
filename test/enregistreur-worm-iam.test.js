@@ -1,4 +1,4 @@
-// Lot WORM : contrôle réel des rôles du support (CT-2 EX-12.32, EX-18.9,
+// Partie WORM : contrôle réel des rôles du support (CT-2 EX-12.32, EX-18.9,
 // EX-12.36, EX-12.38) contre un serveur S3 qui applique les politiques
 // d'accès IAM et Object Lock (MinIO, image épinglée par condensé, lancée dans
 // Docker) derrière un mandataire TLS. Chaque rôle reçoit sa propre politique
@@ -66,7 +66,7 @@ function politiques(bucket) {
   };
 }
 
-describe("lot WORM : rôles du support appliqués par un serveur S3 à politiques IAM (EX-12.32, EX-18.9)", function () {
+describe("partie WORM : rôles du support appliqués par un serveur S3 à politiques IAM (EX-12.32, EX-18.9)", function () {
   this.timeout(600000);
   const docker = dockerDisponible([IMAGES.s3iam]);
   let dir;

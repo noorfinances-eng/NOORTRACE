@@ -1,10 +1,10 @@
-// Outils des tests du composant d'ancrage (lot F1) : horloge réglable à
+// Outils des tests du composant d'ancrage : horloge réglable à
 // minuteries injectées, matériel TLS produit par `openssl` (boîte noire),
-// autorités et serveurs RFC 3161 du lot E (HTTP local et TLS mutuel), serveur
+// autorités et serveurs RFC 3161 internes (HTTP local et TLS mutuel), serveur
 // de CRL local, calendriers OpenTimestamps factices (promesses, puis chemin
-// Bitcoin complet sur une chaîne regtest du lot B dont le fichier d'en-têtes
+// Bitcoin complet sur une chaîne regtest des essais OpenTimestamps dont le fichier d'en-têtes
 // est tenu à jour), série de points et manifeste synthétiques signés avec les
-// clés de test publiées de CT-1, nœud noorcore factice du lot D et contexte
+// clés de test publiées de CT-1, nœud noorcore factice des essais du registre et contexte
 // d'exécution. Tout fichier va sous `os.tmpdir()`.
 
 import fs from "node:fs";
@@ -276,7 +276,7 @@ export async function serveurCrl(horloge) {
 }
 
 /**
- * Autorité RFC 3161 du lot E et son serveur : `initialiserAutorite`
+ * Autorité RFC 3161 interne et son serveur : `initialiserAutorite`
  * (algorithme `p-256` par défaut, politique privée, CRL publiée au serveur de
  * CRL), puis `demarrerServeur` en HTTP local ou en TLS avec authentification
  * du client. Rend le prestataire `ancrage-v0` correspondant (secret par
@@ -308,7 +308,7 @@ export async function autoriteInterne({ nom, dir, role, horloge, aleatoire, crl,
     min_interval_ms: 0,
     request_timeout_ms: 5000,
     correlation_header: "X-Request-ID",
-    source: `autorité d'essai ${nom} (lot E, initialiserAutorite ${algorithme}), sans valeur hors des tests`,
+    source: `autorité d'essai ${nom} (initialiserAutorite ${algorithme}), sans valeur hors des tests`,
   };
   return { nom, repertoire, init, autorite, serveur, prestataire, serieUnite, fermer: () => serveur.fermer() };
 }
@@ -326,7 +326,7 @@ export function qualifiedExemple(territoire = "AT") {
 
 // --------------------------------------------------- calendriers factices
 
-/** Chemin Bitcoin synthétique d'un engagement : f1, 08, f0, 08, 08, attestation Bitcoin à `hauteur` (même forme que les essais du lot B). */
+/** Chemin Bitcoin synthétique d'un engagement : f1, 08, f0, 08, 08, attestation Bitcoin à `hauteur` (même forme que les essais du client OpenTimestamps). */
 function cheminBitcoin(hauteur, graine) {
   const n = new Noeud();
   n.operation(OP.PREPEND, N.sha256(N.utf8(`${graine}/agregation`)))
@@ -340,17 +340,21 @@ function cheminBitcoin(hauteur, graine) {
 
 /**
  * Deux calendriers factices sur 127.0.0.1 joués sous des URI `https://…example`
- * (le transport injecté réécrit l'hôte) : `POST /digest` rend une promesse
- * nue (attestation en attente de l'URI), `GET /timestamp/<e>` rend 404
- * « Pending confirmation » tant que `completer(hauteur)` n'a pas été appelé,
- * puis un chemin Bitcoin à cette hauteur ; la racine de l'en-tête à cette
- * hauteur est posée dans le fichier d'en-têtes regtest `fichierEntetes`
+ * (le transport injecté réécrit l'hôte) : `POST /digest` rend, comme un
+ * calendrier réel (campagne TM-30), un chemin d'agrégation
+ * `sha256 · prepend(4) · append(8)` terminé par l'attestation en attente de
+ * l'URI (le message du nœud en attente fait 44 octets ; `agregation: false` :
+ * promesse nue sur l'engagement de 32 octets), `GET /timestamp/<message>` rend
+ * 404 « Pending confirmation » tant que `completer(hauteur)` n'a pas été
+ * appelé, puis un chemin Bitcoin à cette hauteur ; la racine de l'en-tête à
+ * cette hauteur est posée dans le fichier d'en-têtes regtest `fichierEntetes`
  * avant la réponse, pour que O-4 et O-5 passent (EX-6.9).
  */
-export async function calendriersFactices({ fichierEntetes, nombreEnTetes = 1040, muets = false }) {
+export async function calendriersFactices({ fichierEntetes, nombreEnTetes = 1040, muets = false, agregation = true }) {
   const uris = ["https://alice.calendrier.example", "https://bob.calendrier.example"];
   const racines = new Map();
   const etat = { hauteur: null, muets, panne: false, requetes: [] };
+  let compteurAgregation = 0;
   const serveurs = new Map();
   const ecrireChaine = () => {
     const { document } = chaineRegtest({ debut: 0, nombre: nombreEnTetes, racines });
@@ -377,19 +381,25 @@ export async function calendriersFactices({ fichierEntetes, nombreEnTetes = 1040
             return;
           }
           const n = new Noeud();
-          n.ajouterAttestation(attestationEnAttente(uri));
+          if (agregation) {
+            // Queue d'un chemin réel observé sur les calendriers publics : sha256, prepend de 4 octets (horodatage de
+            // l'agrégateur), append de 8 octets (sel du calendrier), attestation en attente (message de 44 octets).
+            compteurAgregation += 1;
+            const sel = N.sha256(N.utf8(`${uri}/agregation/${compteurAgregation}`)).subarray(0, 8);
+            n.operation(OP.SHA256, null).operation(OP.PREPEND, Uint8Array.of(0x6a, 0xf6, 0xbc, 0xd3)).operation(OP.APPEND, Uint8Array.from(sel)).ajouterAttestation(attestationEnAttente(uri));
+          } else n.ajouterAttestation(attestationEnAttente(uri));
           rep.writeHead(200, { "content-type": "application/vnd.opentimestamps.v1" });
           rep.end(Buffer.from(ecrireTimestamp(n)));
           return;
         }
-        const m = /^\/timestamp\/([0-9a-f]{64})$/.exec(req.url ?? "");
-        if (req.method === "GET" && m) {
+        const m = /^\/timestamp\/([0-9a-f]{2,8192})$/.exec(req.url ?? "");
+        if (req.method === "GET" && m && m[1].length % 2 === 0) {
           if (etat.hauteur === null) {
             rep.writeHead(404, { "content-type": "text/plain", "cache-control": "public, max-age=60" });
             rep.end("Pending confirmation in Bitcoin blockchain");
             return;
           }
-          const engagement = N.hexVersOctets("0x" + m[1], 32);
+          const engagement = N.hexVersOctets("0x" + m[1], m[1].length / 2);
           const chemin = cheminBitcoin(etat.hauteur, `${uri}/${m[1]}`);
           const resultat = executerArbre(chemin, engagement).attestations.find((a) => a.genre === "bitcoin").resultat;
           racines.set(etat.hauteur, resultat);
@@ -490,7 +500,7 @@ export function remiseCloture(serie) {
 
 // --------------------------------------------------------- registre
 
-/** Nœud noorcore factice du lot D, client JSON-RPC, clé de chaîne inscrite pour la clé Ed25519 donnée, approbateurs de test. */
+/** Nœud noorcore factice des essais du registre, client JSON-RPC, clé de chaîne inscrite pour la clé Ed25519 donnée, approbateurs de test. */
 export function registreFactice({ clePublique, tiers = false } = {}) {
   const POINTS = ["http://127.0.0.1:8645", "http://127.0.0.1:8646", "http://127.0.0.1:8647", "http://127.0.0.1:8648"];
   const contrats = {
@@ -577,7 +587,7 @@ export function journalMemoire() {
   };
 }
 
-/** Transport RFC 3161 du lot A pour les serveurs locaux (AC TLS d'essai). */
+/** Transport du client RFC 3161 pour les serveurs locaux (AC TLS d'essai). */
 export function transportRfc3161Local(tls) {
   return transportRfc3161(tls ? { ca: tls.ca } : {});
 }
@@ -590,7 +600,7 @@ export { lireTimestamp };
  * Transport RFC 3161 commutable des essais de pannes : une URL de
  * `pannes` lève une erreur de connexion (EX-5.12 : transitoire), une URL de
  * `pendantes` ne répond jamais (arrêt brutal entre l'écriture et l'envoi),
- * les autres passent au transport du lot A ; `requetes` garde ce qui est parti.
+ * les autres passent au transport du client RFC 3161 ; `requetes` garde ce qui est parti.
  */
 export function transportCommutable(base, ErreurTransport) {
   const pannes = new Set();
@@ -617,7 +627,7 @@ export function transportCommutable(base, ErreurTransport) {
 
 /**
  * Monte un composant complet : horloge réglable, serveur de CRL, trois
- * autorités du lot E (interne en HTTP ; principal et secours en TLS mutuel
+ * autorités RFC 3161 internes (interne en HTTP ; principal et secours en TLS mutuel
  * avec `qualified` d'exemple), calendriers factices, série synthétique,
  * registre factice, configuration d'essai. `creer({ epoque, clients })`
  * construit un composant sur ce contexte (un second pour un redémarrage).

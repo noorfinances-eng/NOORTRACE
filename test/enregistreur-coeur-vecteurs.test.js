@@ -9,28 +9,28 @@
 //     (sérialisation et référence de chaque pièce publiée ; pièces de
 //     définition, de liste et d'arguments non rédigés dérivées des
 //     transcriptions) ; la dérivation des autres pièces relève des frontaux
-//     (lots suivants) ;
-//   - redaction/ (politiques, motifs, cas) : rejoués par le rédacteur du lot
+//     (parties suivantes) ;
+//   - redaction/ (politiques, motifs, cas) : rejoués par le rédacteur de la partie
 //     « rédaction » (§10), détail dans enregistreur-redaction.test.js.
-//   - pieces-mcp/agregation : rejoués par l'agrégation du lot « frontal MCP »
+//   - pieces-mcp/agregation : rejoués par l'agrégation de la partie « frontal MCP »
 //     (§4.3) ; les transcriptions de pieces-mcp/appels sont rejouées de bout
 //     en bout par le frontal dans enregistreur-mcp-vecteurs.test.js ;
 //   - pieces-mcp/appels/approbation-* et journal-demo (seq 5 à 7) : rejoués
 //     de bout en bout par le moteur de politique (section d d'INTERFACES.md)
 //     dans enregistreur-politique-vecteurs.test.js ;
-//   - otel/ et pieces-modele/gemini-sdk-* : rejoués de bout en bout par le lot
+//   - otel/ et pieces-modele/gemini-sdk-* : rejoués de bout en bout par la partie
 //     « SDK et OpenTelemetry » (section c) dans enregistreur-otel-vecteurs.test.js
 //     et enregistreur-sdk-vecteurs.test.js ;
 //   - worm/ et la clé de copie d'EX-12.29 sur evenements/journal-demo : rejoués
-//     contre leur attendu par le lot « WORM et haute disponibilité » (section f)
+//     contre leur attendu par la partie « WORM et haute disponibilité » (section f)
 //     dans enregistreur-worm-vecteurs.test.js ;
-//   - pieces-modele : formes consolidées rejouées ici par le réassemblage du
-//     lot « frontal modèle » (§5.4) ; chaque cas, et les échanges de seq 2, 4
+//   - pieces-modele : formes consolidées rejouées ici par le réassemblage de la
+//     partie « frontal modèle » (§5.4) ; chaque cas, et les échanges de seq 2, 4
 //     et 8 de journal-demo, rejoués de bout en bout par la passerelle
 //     (dérivation des pièces depuis la requête et la réponse, section b)
 //     dans enregistreur-modele-vecteurs.test.js.
 // Le dernier bloc est l'inventaire : il dit, fichier par fichier, ce qui est
-// rejoué et ce qui relève d'un lot suivant, et échoue si un fichier de
+// rejoué et ce qui relève d'une partie suivante, et échoue si un fichier de
 // vecteur n'est ni consommé ni attribué.
 
 import { expect } from "chai";
@@ -310,7 +310,7 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
         const hote = lire(`${R}/hote.jsonl`).toString("utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
         const amont = lire(`${R}/amont.jsonl`).toString("utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
         if (a.rejected) {
-          // Refus au pas 1 de 4.4 : ni pièce ni événement (frontal MCP, lot suivant).
+          // Refus au pas 1 de 4.4 : ni pièce ni événement (frontal MCP, partie suivante).
           expect(a.context).to.deep.equal([]);
           return;
         }
@@ -331,7 +331,7 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
         if (!a.pieces.arguments.redacted) egalRef(pieceJson(analyserJsonIntegral(JSON.stringify(appel.params.arguments ?? {}))), a.pieces.arguments);
         // Résultat reçu de l'amont (pas 12) : `result` objet, ou erreur JSON-RPC.
         // L'issue sans réponse (délai, taille, perte : codes -31011, -31013, -31014) a la forme
-        // d'erreur de l'enregistreur, fixée par le frontal MCP (lot suivant).
+        // d'erreur de l'enregistreur, fixée par le frontal MCP (partie suivante).
         const sortant = amont.filter((x) => x.dir === "out" && x.line).map((x) => analyserJsonIntegral(x.line)).find((m) => m.method === "tools/call");
         const reponse = amont.filter((x) => x.dir === "in" && x.line).map((x) => analyserJsonIntegral(x.line)).find((m) => m.id === sortant?.id && ("result" in m || "error" in m));
         const issueEnregistreur = [-31010, -31011, -31013, -31014, -31017].includes(analyserJsonIntegral(a.pieces.result?.bytes ?? "{}")?.noortrace_jsonrpc_error?.code);
@@ -379,7 +379,7 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
     });
   });
 
-  describe("redaction/ (B.3) : rejeu par le rédacteur (lot « rédaction », §10)", function () {
+  describe("redaction/ (B.3) : rejeu par le rédacteur (partie « rédaction », §10)", function () {
     it("politiques (schéma, EX-10.6) ; cas.json rédigé octet pour octet, comptes compris", function () {
       const cle = N.sha256(N.utf8("noortrace/vecteurs/v0/cle-pseudonyme/test"));
       const pol = {};
@@ -426,7 +426,7 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
   describe("inventaire", function () {
     // Familles et fichiers du générateur (B.1) ; verificateur-independant/ et
     // confrontation/ ne sont pas des données et ne sont pas ouverts.
-    const LOTS_SUIVANTS = {
+    const PARTIES_SUIVANTES = {
       "cout-agent": "coût annuel par agent (§16.4)",
       "INDEX.md": "index lisible, sans donnée à rejouer",
     };
@@ -438,8 +438,8 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
       return fs.readdirSync(p).sort().flatMap((n) => lister(rel ? `${rel}/${n}` : n));
     }
 
-    // Vecteurs que la part de §8 rejoue ici et qu'un lot rejoue aussi de bout
-    // en bout (frontal, moteur de politique, cœur) : fichier de test du lot.
+    // Vecteurs que la part de §8 rejoue ici et qu'une autre partie rejoue aussi de bout
+    // en bout (frontal, moteur de politique, cœur) : fichier de test de la partie.
     const REJOUES_DE_BOUT_EN_BOUT = {
       "pieces-mcp/appels/approbation-en-attente": "enregistreur-politique-vecteurs.test.js",
       "pieces-mcp/appels/approbation-refus": "enregistreur-politique-vecteurs.test.js",
@@ -465,24 +465,24 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
       }
     });
 
-    // Lot WORM (section f) : la famille worm/ (annexe B.9) est rejouée par son test,
+    // Partie WORM (section f) : la famille worm/ (annexe B.9) est rejouée par son test,
     // et la clé de copie de l'exemple d'EX-12.29 sur evenements/journal-demo/segment.ndjson.
     const TEST_WORM = "enregistreur-worm-vecteurs.test.js";
     const sourceWorm = () => fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), TEST_WORM), "utf8");
 
-    it("les vecteurs du lot WORM (section f) sont rejoués contre leur attendu par son test", function () {
+    it("les vecteurs de la partie WORM (section f) sont rejoués contre leur attendu par son test", function () {
       const source = sourceWorm();
       for (const f of lister("worm")) expect(source, `${TEST_WORM} rejoue ${f}`).to.contain(`"${f}"`);
       expect(source, "clé de copie d'EX-12.29").to.contain('"evenements", "journal-demo", "segment.ndjson"');
     });
 
-    // Lot SDK et OpenTelemetry (section c) : la famille otel/ (annexe B.8) est rejouée de bout en
+    // Partie SDK et OpenTelemetry (section c) : la famille otel/ (annexe B.8) est rejouée de bout en
     // bout par l'ingestion (serveur OTLP réel), et pieces-modele/gemini-sdk-* (EX-6.8) par le SDK.
     const TEST_OTEL = "enregistreur-otel-vecteurs.test.js";
     const TEST_SDK = "enregistreur-sdk-vecteurs.test.js";
     const sourceDe = (t) => fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), t), "utf8");
 
-    it("les vecteurs du lot SDK et OpenTelemetry (section c) sont rejoués de bout en bout par ses tests", function () {
+    it("les vecteurs de la partie SDK et OpenTelemetry (section c) sont rejoués de bout en bout par ses tests", function () {
       const otel = sourceDe(TEST_OTEL);
       for (const cas of fs.readdirSync(path.join(VECTEURS_CT2, "otel"))) expect(otel, `${TEST_OTEL} rejoue otel/${cas}`).to.contain(`"otel/${cas}"`);
       const sdk = sourceDe(TEST_SDK);
@@ -491,7 +491,7 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
       for (const cas of gemini) expect(sdk, `${TEST_SDK} rejoue pieces-modele/${cas}`).to.contain(`"pieces-modele/${cas}"`);
     });
 
-    it("chaque fichier de vecteur est rejoué ou attribué à un lot suivant", function () {
+    it("chaque fichier de vecteur est rejoué ou attribué à une partie suivante", function () {
       const fichiers = fs.readdirSync(VECTEURS_CT2).filter((n) => !IGNORES.has(n)).sort().flatMap((n) => lister(n));
       const nonAttribues = [];
       const rejoues = [];
@@ -500,12 +500,12 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
       const otel = sourceDe(TEST_OTEL);
       for (const f of fichiers) {
         if (consommes.has(f) || (f.startsWith("worm/") && worm.includes(`"${f}"`)) || (f.startsWith("otel/") && otel.includes(`"otel/${f.split("/")[1]}"`))) rejoues.push(f);
-        else if (Object.keys(LOTS_SUIVANTS).some((k) => f === k || f.startsWith(`${k}/`))) suivants.push(f);
+        else if (Object.keys(PARTIES_SUIVANTES).some((k) => f === k || f.startsWith(`${k}/`))) suivants.push(f);
         else nonAttribues.push(f);
       }
       expect(nonAttribues, "fichiers ni rejoués ni attribués").to.deep.equal([]);
       expect(rejoues.length).to.be.greaterThan(150);
-      this.test.title += ` (${rejoues.length} rejoués, ${suivants.length} pour les lots suivants)`;
+      this.test.title += ` (${rejoues.length} rejoués, ${suivants.length} pour les parties suivantes)`;
     });
   });
 });

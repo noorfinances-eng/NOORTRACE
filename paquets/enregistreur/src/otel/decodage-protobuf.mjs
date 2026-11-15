@@ -11,6 +11,7 @@
 // `kvlist_value` et au nombre de leurs éléments.
 
 import { ErreurDecodage, BORNES_32, valeurAbsente } from "./representation.mjs";
+import { Budget } from "../bornes.mjs";
 
 const VARINT = 0;
 const I64 = 1;
@@ -68,7 +69,7 @@ const CHAMPS = {
  * @param {Uint8Array} o
  * @param {object} table
  */
-function lireMessage(o, table) {
+function lireMessage(o, table, budget = null) {
   const champs = {};
   let i = 0;
   const varint = () => {
@@ -104,8 +105,13 @@ function lireMessage(o, table) {
     if (!def) continue; // champ inconnu, sauté selon son type de fil
     const [nom, attendu, repete] = def;
     if (fil !== attendu) throw new ErreurDecodage(`pb_type_de_fil:${nom}`);
-    if (repete) (champs[nom] ??= []).push(valeur);
-    else {
+    if (repete) {
+      // Étape 8 (S-1, CT-2 EX-6.28, CT-2 EX-15.1) : chaque élément répété est compté
+      // pendant le décodage, sous un budget global ; au-delà, refus avant toute
+      // matérialisation de la suite.
+      if (budget && !budget.prendre()) throw new ErreurDecodage("elements");
+      (champs[nom] ??= []).push(valeur);
+    } else {
       if (nom in champs) throw new ErreurDecodage(`pb_champ_double:${nom}`);
       champs[nom] = valeur;
     }
@@ -141,22 +147,25 @@ function enumeration(v) {
 /**
  * Décode un corps protobuf (EX-6.30).
  * @param {Uint8Array} octets
- * @param {{profondeurMax: number, membresMax: number}} bornes
+ * @param {{profondeurMax: number, membresMax: number, elementsMax?: number}} bornes
+ *   `elementsMax` : éléments répétés de toute la requête (raison `elements`)
  * @returns {object} représentation commune
  * @throws {ErreurDecodage}
  */
 export function decoderProtobuf(octets, bornes) {
+  const budget = bornes.elementsMax === undefined ? null : new Budget(bornes.elementsMax);
+  const lire = (o, table) => lireMessage(o, table, budget);
   const attributs = (liste, profondeur) => {
     const l = liste ?? [];
     if (l.length > bornes.membresMax) throw new ErreurDecodage("membres");
     return l.map((b) => {
-      const kv = lireMessage(b, CHAMPS.keyValue);
+      const kv = lire(b, CHAMPS.keyValue);
       if (kv.key === undefined && kv.key_strindex !== undefined) return { key: null, value: valeurAbsente(), ignorer: true };
       return { key: chaine(kv.key), value: kv.value === undefined ? valeurAbsente() : anyValue(kv.value, profondeur), ignorer: false };
     });
   };
   const anyValue = (b, profondeur) => {
-    const a = lireMessage(b, CHAMPS.anyValue);
+    const a = lire(b, CHAMPS.anyValue);
     const presents = Object.keys(a);
     if (presents.length > 1) throw new ErreurDecodage("pb_oneof");
     if (presents.length === 0) return valeurAbsente();
@@ -176,20 +185,20 @@ export function decoderProtobuf(octets, bornes) {
         return { type: "bytes", v: new Uint8Array(v) };
       case "array_value": {
         if (profondeur + 1 > bornes.profondeurMax) throw new ErreurDecodage("profondeur");
-        const l = lireMessage(v, CHAMPS.liste).values ?? [];
+        const l = lire(v, CHAMPS.liste).values ?? [];
         if (l.length > bornes.membresMax) throw new ErreurDecodage("membres");
         return { type: "array", v: l.map((x) => anyValue(x, profondeur + 1)) };
       }
       case "kvlist_value":
         if (profondeur + 1 > bornes.profondeurMax) throw new ErreurDecodage("profondeur");
-        return { type: "kvlist", v: attributs(lireMessage(v, CHAMPS.liste).values, profondeur + 1) };
+        return { type: "kvlist", v: attributs(lire(v, CHAMPS.liste).values, profondeur + 1) };
       default:
         return valeurAbsente();
     }
   };
   const span = (b) => {
-    const s = lireMessage(b, CHAMPS.span);
-    const st = s.status === undefined ? null : lireMessage(s.status, CHAMPS.status);
+    const s = lire(b, CHAMPS.span);
+    const st = s.status === undefined ? null : lire(s.status, CHAMPS.status);
     return {
       trace_id: hex(s.trace_id),
       span_id: hex(s.span_id),
@@ -202,7 +211,7 @@ export function decoderProtobuf(octets, bornes) {
       attributes: attributs(s.attributes, 0),
       dropped_attributes_count: uint32(s.dropped_attributes_count),
       events: (s.events ?? []).map((eb) => {
-        const e = lireMessage(eb, CHAMPS.event);
+        const e = lire(eb, CHAMPS.event);
         return { time_unix_nano: fixe64(e.time_unix_nano), name: chaine(e.name), attributes: attributs(e.attributes, 0), dropped_attributes_count: uint32(e.dropped_attributes_count) };
       }),
       dropped_events_count: uint32(s.dropped_events_count),
@@ -212,16 +221,16 @@ export function decoderProtobuf(octets, bornes) {
       flags: fixe32(s.flags),
     };
   };
-  const racine = lireMessage(octets, CHAMPS.requete);
+  const racine = lire(octets, CHAMPS.requete);
   return {
     resource_spans: (racine.resource_spans ?? []).map((rb) => {
-      const rs = lireMessage(rb, CHAMPS.resourceSpans);
-      const res = rs.resource === undefined ? null : lireMessage(rs.resource, CHAMPS.resource);
+      const rs = lire(rb, CHAMPS.resourceSpans);
+      const res = rs.resource === undefined ? null : lire(rs.resource, CHAMPS.resource);
       return {
         resource: res === null ? null : { attributes: attributs(res.attributes, 0), dropped_attributes_count: uint32(res.dropped_attributes_count) },
         scope_spans: (rs.scope_spans ?? []).map((sb) => {
-          const ss = lireMessage(sb, CHAMPS.scopeSpans);
-          const sc = ss.scope === undefined ? null : lireMessage(ss.scope, CHAMPS.scope);
+          const ss = lire(sb, CHAMPS.scopeSpans);
+          const sc = ss.scope === undefined ? null : lire(ss.scope, CHAMPS.scope);
           return {
             scope: sc === null ? null : { name: chaine(sc.name), version: chaine(sc.version), attributes: attributs(sc.attributes, 0), dropped_attributes_count: uint32(sc.dropped_attributes_count) },
             spans: (ss.spans ?? []).map(span),

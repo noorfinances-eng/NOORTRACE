@@ -531,7 +531,7 @@ describe("TE-18 : noortrace-ctl dossier exporter sur le démon réel à horloge 
   });
 
   it("modes et groupe des lecteurs : répertoire des exports en 2750 d'un groupe des lecteurs, le dossier en 0750 et ses fichiers en 0640 prennent ce groupe par le bit setgid, quel que soit le masque de création du démon (superutilisateur ; en attente sinon)", async function () {
-    if (!ROOT) return enAttente(this, "changement de groupe du répertoire des exports : superutilisateur requis");
+    if (!ROOT) return enAttente(this, "superutilisateur requis : changement de groupe du répertoire des exports");
     fs.chownSync(j.exports, 0, GROUPE_LECTEURS);
     fs.chmodSync(j.exports, 0o2750);
     try {
@@ -633,7 +633,7 @@ describe("export en cours de processus (exporterDemande) : aucune période close
   });
 
   it("production (superutilisateur ; en attente sinon) : répertoire conforme (propriétaire du démon, 2750, groupe des lecteurs) exporté ; autre propriétaire, droit aux autres, écriture du groupe, sans bit setgid → exports_indisponible détail droits ; parent d'un autre groupe ou sans bit setgid → ecriture_impossible détail groupe, aucun reste", async function () {
-    if (!ROOT) return enAttente(this, "propriétaire et groupe du répertoire des exports : superutilisateur requis");
+    if (!ROOT) return enAttente(this, "superutilisateur requis : propriétaire et groupe du répertoire des exports");
     const pieceA = pieceJson({ n: 1 });
     await coeur.ecrirePiece(pieceA);
     await coeur.scellerEchange({ delegation: { launched_by: "agent-sinistres", on_behalf_of: null, scope: "s", run_id: null }, code: { model: "m", prompt_version: null }, intent: null, requete: pieceA.reference, reponse: pieceA.reference, duration_ms: 1, is_error: false });

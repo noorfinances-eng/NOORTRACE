@@ -1,7 +1,8 @@
 // Interface de la page de vérification (CT-6 §18) : choix des fichiers,
 // lecture des archives (archives.js), transmission au travailleur, affichage
 // (EX-18.2, EX-18.5, EX-18.7, EX-18.9). Aucun HTML n'est inséré : tout texte
-// passe par textContent ; aucun stockage, aucune requête.
+// passe par textContent, après neutralisation des caractères de commande
+// (neutraliser) ; aucun stockage, aucune requête.
 
 const TABLES_LIBELLES = { fr: LIBELLES_FR, en: LIBELLES_EN };
 const CODES_CONNUS = [0, 1, 2, 3];
@@ -10,27 +11,46 @@ const etat = {
   langue: "fr",
   langueRapportChoisie: false,
   travailleur: null,
+  artefactOctets: null,
   pret: false,
   artefact: { genre: "chargement" },
   dossier: null,
   ancres: null,
   entetes: null,
   enCours: false,
+  arret: false,
   attente: null,
   vue: null,
 };
 
 const $ = (id) => document.getElementById(id);
 
+// Caractères qu'aucun texte affiché ne porte tels quels (étape 8, revue de
+// sécurité, CT-6 EX-8.6 côté page) : commandes C0 sauf la tabulation et le saut de
+// ligne, DEL et C1, séparateurs de ligne et de paragraphe U+2028 et U+2029,
+// marques et isolats de direction (U+061C, U+200E, U+200F, U+202A à U+202E,
+// U+2066 à U+2069). Chacun est remplacé par sa forme visible \u{…}.
+const CARACTERES_NEUTRALISES = /[\u{0}-\u{8}\u{B}-\u{1F}\u{7F}-\u{9F}\u{61C}\u{200E}\u{200F}\u{2028}\u{2029}\u{202A}-\u{202E}\u{2066}-\u{2069}]/gu;
+
+/**
+ * Seul point par lequel passe une chaîne venue d'une entrée (rapport, énoncé,
+ * message d'erreur, sortie d'erreur, nom de fichier, chemin d'entrée) avant
+ * d'être affichée : la chaîne rendue ne change ni la ligne, ni le sens de
+ * lecture, ni ce qui la suit.
+ */
+function neutraliser(texte) {
+  return String(texte).replace(CARACTERES_NEUTRALISES, (c) => `\\u{${c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")}}`);
+}
+
 function libelle(cle, parametres = {}) {
   const modele = TABLES_LIBELLES[etat.langue][cle];
-  return modele.replace(/\{([a-z0-9_]+)\}/g, (tout, k) => (Object.hasOwn(parametres, k) ? String(parametres[k]) : tout));
+  return modele.replace(/\{([a-z0-9_]+)\}/g, (tout, k) => (Object.hasOwn(parametres, k) ? neutraliser(parametres[k]) : tout));
 }
 
 function element(balise, classe, texte) {
   const e = document.createElement(balise);
   if (classe) e.className = classe;
-  if (texte !== undefined) e.textContent = texte;
+  if (texte !== undefined) e.textContent = neutraliser(texte);
   return e;
 }
 
@@ -69,18 +89,23 @@ function afficherArtefact() {
   majBoutons();
 }
 
+let politiqueTravailleur = null;
+
 function creerTravailleur() {
   // Types de confiance (EX-18.12) : la politique noortrace-travailleur, créée
-  // une fois, ne rend que l'adresse travailleur.js ; sans types de confiance,
-  // la chaîne constante travailleur.js.
+  // une fois (la politique de contenu n'en admet pas deux du même nom) et
+  // gardée pour un travailleur neuf après un arrêt, ne rend que l'adresse
+  // travailleur.js ; sans types de confiance, la chaîne constante travailleur.js.
   if (globalThis.trustedTypes && typeof globalThis.trustedTypes.createPolicy === "function") {
-    const politique = globalThis.trustedTypes.createPolicy("noortrace-travailleur", {
-      createScriptURL(valeur) {
-        if (valeur === "travailleur.js") return valeur;
-        throw new TypeError("adresse de travailleur refusée");
-      },
-    });
-    return new Worker(politique.createScriptURL("travailleur.js"));
+    if (politiqueTravailleur === null) {
+      politiqueTravailleur = globalThis.trustedTypes.createPolicy("noortrace-travailleur", {
+        createScriptURL(valeur) {
+          if (valeur === "travailleur.js") return valeur;
+          throw new TypeError("adresse de travailleur refusée");
+        },
+      });
+    }
+    return new Worker(politiqueTravailleur.createScriptURL("travailleur.js"));
   }
   return new Worker("travailleur.js");
 }
@@ -95,23 +120,65 @@ function decoderArtefact() {
   return octets.buffer;
 }
 
-function demarrer() {
-  let octets;
+/**
+ * Crée le travailleur et lui remet une copie des octets de l'artefact, au
+ * chargement et après chaque arrêt (le travailleur arrêté est détruit ; la
+ * page garde les octets pour les remettre au travailleur neuf).
+ */
+function lancerTravailleur() {
+  etat.pret = false;
+  etat.artefact = { genre: "chargement" };
+  afficherArtefact();
   try {
-    octets = decoderArtefact();
     etat.travailleur = creerTravailleur();
+  } catch (e) {
+    etat.travailleur = null;
+    etat.artefact = { genre: "non_faite", cause: libelle("cause_travailleur", { detail: e && e.message ? e.message : String(e) }) };
+    afficherArtefact();
+    return;
+  }
+  const t = etat.travailleur;
+  t.addEventListener("message", (ev) => {
+    if (etat.travailleur === t) recevoir(ev.data);
+  });
+  t.addEventListener("error", (ev) => {
+    ev.preventDefault();
+    if (etat.travailleur === t) echecTravailleur(libelle("travailleur_indisponible"));
+  });
+  t.addEventListener("messageerror", () => {
+    if (etat.travailleur === t) echecTravailleur(libelle("travailleur_indisponible"));
+  });
+  const octets = etat.artefactOctets.slice(0);
+  t.postMessage({ type: "artefact", octets }, [octets]);
+}
+
+function demarrer() {
+  try {
+    etat.artefactOctets = decoderArtefact();
   } catch (e) {
     etat.artefact = { genre: "non_faite", cause: libelle("cause_travailleur", { detail: e && e.message ? e.message : String(e) }) };
     afficherArtefact();
     return;
   }
-  etat.travailleur.addEventListener("message", (ev) => recevoir(ev.data));
-  etat.travailleur.addEventListener("error", (ev) => {
-    ev.preventDefault();
-    echecTravailleur(libelle("travailleur_indisponible"));
-  });
-  etat.travailleur.addEventListener("messageerror", () => echecTravailleur(libelle("travailleur_indisponible")));
-  etat.travailleur.postMessage({ type: "artefact", octets }, [octets]);
+  lancerTravailleur();
+}
+
+/**
+ * Arrêt d'une vérification en cours (bouton « Arrêter ») : le travailleur
+ * est détruit, la page affiche « vérification non faite » avec la cause, et
+ * un travailleur neuf reçoit l'artefact. Pendant la lecture du dossier, qui
+ * précède l'envoi au travailleur, la demande est retenue et honorée ensuite.
+ */
+function arreter() {
+  if (!etat.enCours || etat.arret) return;
+  etat.arret = true;
+  majBoutons();
+  if (etat.attente === null) return;
+  const a = etat.attente;
+  etat.attente = null;
+  if (etat.travailleur) etat.travailleur.terminate();
+  etat.travailleur = null;
+  a({ type: "non_faite", cause: libelle("cause_arret") });
 }
 
 function echecTravailleur(cause) {
@@ -159,6 +226,8 @@ function afficherDossier() {
 function majBoutons() {
   const b = $("verifier");
   if (b) b.disabled = !(etat.pret && etat.dossier !== null && !etat.enCours);
+  const a = $("arreter");
+  if (a) a.disabled = !(etat.enCours && !etat.arret);
 }
 
 /** Octets propres d'un Uint8Array (tampon exact, transférable). */
@@ -167,7 +236,13 @@ function tamponExact(octets) {
   return octets.slice().buffer;
 }
 
+/**
+ * Seule lecture d'un fichier choisi (archive, fichier d'un répertoire,
+ * ancres, en-têtes) : la taille que le navigateur déclare est bornée avant
+ * la lecture (EX-18.7, bornes d'archives.js).
+ */
 async function lireFichier(fichier) {
+  bornerTailleFichier(fichier.name, fichier.size);
   try {
     return new Uint8Array(await fichier.arrayBuffer());
   } catch {
@@ -218,16 +293,26 @@ function lireEntreesRepertoire(lecteur) {
   return new Promise((resoudre, rejeter) => lecteur.readEntries(resoudre, rejeter));
 }
 
-async function parcourirRepertoire(entree, prefixe, liste) {
+/**
+ * Parcours d'un répertoire déposé. Le compteur (archives.js) arrête le
+ * parcours à la première entrée au-delà de la borne d'entrées, et refuse un
+ * chemin trop long, avant de descendre plus loin (EX-18.7) ; le même compte
+ * est refait par bornesRepertoire avant toute lecture.
+ */
+async function parcourirRepertoire(entree, prefixe, liste, compteur = compteurEntrees()) {
   const lecteur = entree.createReader();
   for (;;) {
     const lot = await lireEntreesRepertoire(lecteur);
     if (lot.length === 0) break;
     for (const e of lot) {
-      if (e.isDirectory) await parcourirRepertoire(e, `${prefixe}${e.name}/`, liste);
-      else if (e.isFile) {
+      const chemin = `${prefixe}${e.name}`;
+      if (e.isDirectory) {
+        compteur.ajouter(chemin);
+        await parcourirRepertoire(e, `${chemin}/`, liste, compteur);
+      } else if (e.isFile) {
+        compteur.ajouter(chemin);
         const fichier = await new Promise((resoudre, rejeter) => e.file(resoudre, rejeter));
-        liste.push({ chemin: `${prefixe}${e.name}`, fichier });
+        liste.push({ chemin, fichier });
       }
     }
   }
@@ -252,8 +337,11 @@ async function deposer(ev) {
     const liste = [];
     try {
       await parcourirRepertoire(entree, "", liste);
-    } catch {
-      etat.vue = { genre: "refus", raison: "r_lecture", parametres: { nom: entree.name }, noms: null };
+    } catch (e) {
+      etat.dossier = null;
+      afficherDossier();
+      if (e instanceof RefusArchive) etat.vue = { genre: "refus", raison: e.raison, parametres: e.parametres, noms: null };
+      else etat.vue = { genre: "refus", raison: "r_lecture", parametres: { nom: entree.name }, noms: null };
       afficherVue();
       return;
     }
@@ -291,6 +379,7 @@ function demanderVerification(message, transferts) {
 async function verifier() {
   if (!etat.pret || etat.dossier === null || etat.enCours) return;
   etat.enCours = true;
+  etat.arret = false;
   majBoutons();
   etat.vue = { genre: "en_cours" };
   afficherVue();
@@ -314,6 +403,11 @@ async function verifier() {
       }
       throw e;
     }
+    if (etat.arret) {
+      // Arrêt demandé pendant la lecture : rien n'est envoyé au travailleur.
+      etat.vue = { genre: "non_faite", cause: { cle: "cause_arret", parametres: {} }, noms };
+      return;
+    }
     const message = {
       type: "verifier",
       fichiers,
@@ -332,8 +426,13 @@ async function verifier() {
     etat.vue = { genre: "non_faite", cause: { cle: "cause_travailleur", parametres: { detail: e && e.message ? e.message : String(e) } }, noms };
   } finally {
     etat.enCours = false;
+    const arrete = etat.arret;
+    etat.arret = false;
     majBoutons();
     afficherVue();
+    // Après un arrêt, un travailleur neuf reçoit l'artefact ; la page
+    // redevient prête quand il répond.
+    if (arrete && etat.travailleur === null) lancerTravailleur();
   }
 }
 
@@ -359,6 +458,13 @@ function interpreter(reponse, noms) {
   }
   if (rapport === null || typeof rapport !== "object" || rapport.exit_code !== json.code) {
     return { genre: "non_faite", cause: { cle: "cause_json_incoherent", parametres: {} }, noms, commandes };
+  }
+  // La version que la page annonce (EX-18.2, EX-18.5) est celle du rapport
+  // (bloc verifier, EX-18.10) ; sinon la page annoncerait une version que
+  // le programme n'a pas.
+  const versionRapport = rapport.verifier && typeof rapport.verifier.version === "string" ? rapport.verifier.version : null;
+  if (versionRapport !== VERSION_VERIFICATEUR) {
+    return { genre: "non_faite", cause: { cle: "cause_version_differente", parametres: { rapport: versionRapport === null ? "?" : versionRapport, page: VERSION_VERIFICATEUR } }, noms, commandes };
   }
   const vue = {
     genre: "resultat",
@@ -517,6 +623,9 @@ function lier() {
   });
   $("verifier").addEventListener("click", () => {
     verifier();
+  });
+  $("arreter").addEventListener("click", () => {
+    arreter();
   });
   document.addEventListener("dragover", (ev) => ev.preventDefault());
   document.addEventListener("drop", (ev) => {

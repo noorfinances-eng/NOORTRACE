@@ -40,7 +40,7 @@ describe("TE-4 — parcours du registre sur le réseau de développement noorcor
   it("client fictif inscrit, racine ancrée, période close, six certificats capturés et valides ; contrôle 8 réussi par scripts/verify/dossier.mjs et par le binaire Go", async function () {
     const manque = !BINAIRE.ok ? BINAIRE.condition : !GO.ok ? GO.condition : null;
     if (manque) {
-      this.test.title += ` — en attente (EX-3.11 de CT-9) : ${manque}`;
+      this.test.title += ` — en attente : ${manque} (EX-3.11 de CT-9)`;
       this.skip();
     }
     this.timeout(20 * 60 * 1000);
@@ -82,7 +82,7 @@ describe("TE-4 — parcours du registre sur le réseau de développement noorcor
   it("TM-31 : un bloc de 64 transactions d'ancre, capture d'une transaction mesurée trois fois ; rapport conforme à plan-de-tests-v0#/$defs/rapport_mesure, ligne b_cap_bloc_plein aux trois échantillons égaux", async function () {
     const manque = !BINAIRE.ok ? BINAIRE.condition : null;
     if (manque) {
-      this.test.title += ` — en attente (EX-3.11 de CT-9) : ${manque}`;
+      this.test.title += ` — en attente : ${manque} (EX-3.11 de CT-9)`;
       this.skip();
     }
     this.timeout(30 * 60 * 1000);

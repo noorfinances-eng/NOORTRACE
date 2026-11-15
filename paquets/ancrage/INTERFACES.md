@@ -151,14 +151,28 @@ Contrat :
   extensions connues comprises, et chaque valeur d'attribut signé ou non
   signé (`parcourirDer`) : une longueur non minimale ou une structure fausse
   met T-1 en échec, non T-5 ni T-8 (CT-6 EX-9.7, révision 0.5 ; vecteurs
-  `t1-cle-longueur-non-minimale`, `t1-extension-mal-formee`).
+  `t1-cle-longueur-non-minimale`, `t1-extension-mal-formee`). Révision 0.9 de
+  CT-6 (EX-9.4, EX-9.7) : le profil DER
+  (`parcourir`) s'applique à tout le jeton, `certificates`, `crls`,
+  `unsignedAttrs`, paramètres d'algorithme et `TSTInfo` encapsulé compris,
+  signature couvrant l'octet ou non — étiquette universelle 0, type universel
+  construit autre que `SEQUENCE` et `SET`, `BOOLEAN` hors de `00` et `ff`,
+  `NULL` de longueur non nulle, `INTEGER` vide, `BIT STRING` mal codée mettent
+  T-1 en échec — et les champs de fin du `TBSCertificate` (`[1]`, `[2]`,
+  `[3]`) sont lus dans l'ordre, chacun au plus une fois (vecteurs `t1-*` de la
+  révision 0.9 ; essai `test/ancrage-revue-profil-der.test.js`).
 - `verifierRevocation({ chemin, autorite: { nom, certificat, identite }|null, crls, crlsJeton, declarations, aInstant })`
   rend `{ statut, raison, detail, preuves, avertissements, revocations }` (T-10) ;
   `capturerCrls({ chemin, transport, horloge, delaiMs, apresInstant })` capture
   les CRL aux points de distribution des certificats du chemin et rend, par
   certificat, `{ certificate_sha256, sources, ocsp, crl, pem, erreur, captured_at }`
   (une CRL dont `thisUpdate` précède `apresInstant` est rendue avec `erreur` :
-  `crl_indisponible`, réessayée).
+  `crl_indisponible`, réessayée). Revue de sécurité de l'étape 8 : `lireCrl` rend aussi
+  `extensionCritiqueNonLue` (OID ou `null`) et `complete` est faux quand la
+  liste porte une extension critique hors de `CRL_EXTENSIONS_LUES` ou une entrée
+  une extension critique hors de `CRL_EXTENSIONS_ENTREE_LUES` (CT-6 EX-9.16,
+  révision 0.9) ; `lireReponse` rend un `status` hors de 0 à 5 sans
+  `failureInfo` ni `token` (CT-5 EX-5.10 étape 2 : `statut_<n>`).
 - `classerErreur({ code | httpStatus, retryAfter, maintenantMs, pkiStatus, failureInfo, retry, k, premier408 })`
   rend `{ classe: "transitoire"|"permanente"|null, attenteMs, raisonAttente, alerte: "aucune"|"alerte"|"critique", immediat, code }`
   selon EX-5.12 et EX-8.9 (la gigue est tirée par l'appelant).
@@ -202,6 +216,28 @@ Contrat :
   `revocation_sources`, `acceptance_test`) ; `verifierFiche(fiche) → { conforme, ecarts }`
   applique AN-54 ; `epreuveAcceptation({ prestataire, transport, horloge, aleatoire, fraicheur, imprint })`
   joue EX-11.4 sans rien écrire.
+- Revue de sécurité interne de l'étape 8 : `DepotAncres.ecrirePiece` ne pose
+  une pièce sous son nom qu'entière (fichier provisoire écrit en boucle, `fsync`,
+  lien exclusif : `ecrireEntierPuisLier`, règle d'écriture unique des dépôts) et
+  `ajouterAcquisition` tronque une fin de fichier sans saut de ligne avant tout
+  ajout, efface une ligne en échec, signale une ligne `tronquee` (CT-5 EX-5.14) ;
+  `dejaPromu` et `promu` n'acceptent `promoted` qu'avec `outcome` `obtenue`
+  (EX-5.10) ; `acquerir` rend `avantEcriture` (issue des étapes 1 à 8, rejouée
+  par le composant quand l'étape 9 a échoué) ; `chercherChemin` mémorise chaque
+  couple (certificat émis, émetteur) vérifié et `verifierJeton({ statistiques })`
+  compte les vérifications de signature faites (CT-6 EX-9.13 : 16 × 17 au
+  plus par autorité) ; `transportHttps().envoyer` et `obtenir` tiennent
+  `delaiMs` pour un délai total de la requête, armé à l'envoi (CT-5 EX-5.5) ;
+  `controlerUrl` refuse toute url à identifiant ou mot de passe (EX-4.8), et
+  `verifierFiche` rend l'écart correspondant ; `controlerUrlCrl(url, { production,
+  hotesAdmis })` : `http` ou `https` sans identifiant, adresses privées refusées,
+  adresses locales refusées en production, liste d'hôtes appliquée quand elle
+  est donnée (AN-1 ; raccordée au membre
+  `crl_hosts` d'un prestataire, CT-5 EX-4.9 règle 4 bis, par
+  `politiqueCaptureCrl({ production, prestataire })`, appliquée en production
+  seulement) ; `capturerCrls({ politique })` dédoublonne les adresses, les
+  contrôle avant la requête, n'en demande qu'au plus `PLAFOND_ADRESSES_CRL`
+  (8) par certificat et rend `refusees` et `demandees` (CT-5 AN-1).
 
 ## B. Client OpenTimestamps (`src/ots/`)
 
@@ -259,6 +295,23 @@ Contrat :
   (création exclusive, `fichier_existant` sinon), `lireEntetes(periodStart)`,
   `repertoirePeriode(periodStart)`. `objet` vaut `manifeste` ou
   `point-<checkpointHash sans 0x>`.
+- Revue de sécurité interne de l'étape 8 : `fusionnerOts` admet un
+  engagement de 1 à `BORNES.MESSAGE_MAX` octets (le nœud en attente d'un
+  calendrier public porte 44 octets : défaut majeur relevé par la campagne TM-30) et
+  `mettreANiveau` rend une `ErreurOts` de fusion en refus `fusion_<code>` ;
+  `verifierCompletude({ octets, empreinteAttendue, entetes, reseau, exigerO4 })`
+  ne tient une attestation Bitcoin pour `complete` qu'après O-4 réussie quand
+  `exigerO4` est vrai, `soumettre` et `mettreANiveau` reçoivent `entetes` (source
+  du client, `({ hauteurs, margeFin })`) et `exigerO4` et rendent
+  `attestation_non_verifiee` (CT-5 EX-6.6 : en production, une source
+  d'en-têtes est exigée par AN-1) ; `hauteursProfil(arbre, empreinte)` borne la
+  plage d'en-têtes aux attestations du profil et `BORNES.ECART_HAUTEURS_MAX`
+  (4 032) refuse un écart démesuré ; `fichierEntetes({ margeFin })` (0 pour la
+  seule O-4, 11 pour le fichier d'EX-6.8) ; le lecteur `.ots` contrôle les
+  doublons par table ; `DepotOts.derniere` rend la plus haute version
+  que `lireOts` lit, de taille bornée, et les versions plus hautes illisibles
+  dans `illisibles` ; `ecrire` passe par un nom provisoire puis un lien
+  exclusif (CT-5 EX-6.5).
 
 ## C. Planificateur, file, configuration, échéances, comptages (`src/planificateur/`)
 
@@ -336,7 +389,7 @@ Contrat :
   `spec/vecteurs/ct-5/planification/` (CT-5 révision 0.6, dont
   `file-fenetre-32` et `file-fenetre-32-redemarrage`), `expected` et
   `queue_after` à l'identique (AN-42).
-- **Révision 0.6 de CT-5 (D2, D3).** Fenêtre de 32 tentatives (EX-8.5,
+- **Révision 0.6 de CT-5.** Fenêtre de 32 tentatives (EX-8.5,
   règle 7) : chaque ligne écrite porte au plus 32 tentatives rangées par `n`
   croissant (les `en_cours`, puis les plus récentes) et `attempts_total`
   (toujours écrit, 0 sans tentative, plus grand `n`) ; `n` n'est jamais
@@ -433,6 +486,33 @@ Contrat :
   bornées (`maxLignes`, `MAX_LIGNES_DEFAUT` = 10 000, compteur `dropped`) ;
   une métrique en défaut est consignée une fois et ne fait jamais perdre une
   ligne du journal.
+- Revue de sécurité interne de l'étape 8 : `FileDurable.ouvrir` retire
+  un fragment de ligne en fin de fichier (`reparation`), synchronise le
+  répertoire à la création d'un fichier d'époque, `ecrire` efface une ligne
+  dont l'écriture échoue, `compacter` consigne chaque ligne illisible écartée
+  (`anchor_queue_truncated_line`, `step: compactage`) et leur nombre
+  (`dropped_lines`) (CT-5 EX-8.5) ; `validerConfiguration` :
+  règle 9 (`policy_oid` et `accepted_policies` encodables dans la requête
+  d'EX-5.1 : second arc, DER d'au plus `OID_DER_MAX` = 127 octets ;
+  `motifOidNonEncodable`, EX-4.9), règle 4 étendue (url de prestataire sans
+  identifiant, `motifUrlPrestataire`, CT-5 EX-4.8 ; prestataire interne jamais
+  `qualified`, tout profil ; `opentimestamps.headers_source` non nul
+  en production, EX-6.6) ; planificateur : une tentative dont le
+  prestataire a été retiré par un rechargement repart `a_reprendre` au pas
+  `retry.max_ms` (`reprendreSansPrestataire`), la minuterie de reprise
+  d'un prestataire envoie même quand l'autre série est en vol (EX-8.8),
+  `REJEUX_PAR_PASSE_MAX` (4) borne les rejeux de `recu` et
+  `attente_registre` par demande et par passe et les échéances sautées sont
+  comptées (`missed_deadlines` sur `anchor_retry`), l'ordre des
+  minuteries ne trie que les demandes qui en portent (CT-5 EX-8.5) ;
+  `lecture_nonce_incoherent` et `lecture_incoherente` sont des codes d'ancre
+  non admise ; `Supervision({ prestataires })` et `exposer()` exposent à 0 les
+  séries énumérées de `noortrace_anchoring_attempts_total` (sortes ×
+  prestataires × issues ; `provider` `registre` et `calendriers`),
+  `noortrace_anchor_pending` et `noortrace_anchoring_deadlines_total`
+  (CT-8 EX-10.10), le compteur compte chaque tentative une fois, à son issue
+  d'EX-5.13, jamais `en_cours`, et `releverActions({ file })` accepte
+  tout itérable sans le recopier.
 
 ## D. Registre : ancre des points et des périodes (`src/registre/`)
 
@@ -520,6 +600,26 @@ Contrat :
   entiers (forme minimale exigée, aucun octet en trop, `r` et `s` dans
   [1, n − 1]) ramenée à `s` bas, `v` ∈ {27, 28} trouvé en recouvrant
   `adresse` ; sinon une erreur.
+- Revue de sécurité interne de l'étape 8 : `ClientRpc({ profil, jeton })`
+  applique `controlerPoints` (en production : `https://` ou `http://` vers la
+  boucle locale seulement, au moins deux points, aucun identifiant, aucune
+  chaîne de requête) et envoie `jeton` en en-tête `Authorization: Bearer`,
+  jamais dans un envoi ni un index (CT-4 EX-7.1) ; `transportHttp` :
+  une panne pendant la lecture du corps est une `ErreurRpc` du point ;
+  `Envoyeur` : aucune issue `ecartee` tant qu'un point n'a pas rendu un refus
+  JSON-RPC (EX-8.16), nonce retenu seulement s'il est rendu par deux points
+  (`lecture_nonce_incoherent`, CT-4 EX-8.14), issue d'échec écrite seulement sur un
+  reçu que deux points rendent à l'identique (`recuExploitable`,
+  `recu_incertain`, OP-11), capture relue vérifiée par CP-2 à CP-6 et de la
+  clé de chaîne de l'envoyeur (`registry_capture_rejected`) ;
+  `classerEmpreinte` recoupe `lookup` sur deux points et rend `indeterminee`
+  (échec transitoire `lecture_incoherente`) quand ils divergent
+  (`CONFIRMATION_SQUAT`, CT-5 EX-9.7) ; `capturer` vérifie les
+  réponses avant toute écriture, met de côté un fichier présent faux ou
+  illisible sous `<nom>.rejete-<SHA-256>` et le redemande (`ecartes`,
+  CT-4 EX-9.3), refuse un certificat de plus de `BORNES_CAPTURE.certificat` (1 Mio)
+  à CP-4 ; `lireJeu` refuse deux validateurs sous une même clé
+  publique (CT-6 EX-12.2).
 
 ## E. Serveur RFC 3161 interne non qualifié (`src/serveur-interne/`, `bin/noortrace-tsa-interne`)
 
@@ -570,6 +670,17 @@ Contrat :
   sinon ; adresse hors de la boucle locale refusée sans connexion) : sonde du
   service `horodatage` de l'installation rapide (CT-8 0.7), image
   `noortrace/tsa-interne`.
+- Revue de sécurité interne de l'étape 8 : `lireCertificat` lève une
+  `ErreurDer` nommée sur un `TBSCertificate` court ; `demarrerServeur` pose
+  `DELAIS_FRONTAL` (en-têtes 10 s, requête 30 s, maintien 5 s, 256 connexions) ;
+ `Compteur.ouvrir({ epoque, horloge })` ne descend jamais sous
+  `secondes × EPOQUE_PAS` (2^20) : une restauration du fichier `serie` ne
+  rejoue aucun numéro (CT-5 AN-26) ; chaque numéro est réservé par la création
+  exclusive d'un fichier `serie-<n>` (`reservations`, `RESERVATIONS_GARDEES`
+  = 64) : deux processus de conteneurs différents n'émettent jamais le même ;
+ `noortrace-tsa-interne servir` ouvre le compteur avec `epoque`.
+  Limite nommée (CT-5 AN-31, risque RA-38) : clé de classe D en fichier,
+  aucune commande de révocation, CRL non servie.
 
 ## F. Assemblage : composant temps réel (`src/composant.mjs`), outil (`bin/noortrace-ancrage`), intégration à l'enregistreur
 
@@ -713,6 +824,38 @@ await composant.arreter({ attendre });
   `bitcoin_headers_written`, `bitcoin_headers_unavailable`,
   `anchoring_storage_unreadable`, `planificateur_<action>`. Aucune ne porte
   un jeton, une pièce, un secret.
+- **Revue de sécurité interne de l'étape 8** : `retirerQualification(id, { reason })`
+  est durable (`<ancres>/qualifications-retirees.json`, relu au démarrage,
+  jamais effacé par un rechargement), automatique sur PKIStatus 4 ou 5
+  (`reason` `pki_status_<n>`), et `retablirQualification(id)` le lève ; en
+  production, `recharger` refuse (règle 4) un document dont un principal ou
+  un secours est au retrait en vigueur (CT-5 EX-5.9) ;
+  `stockage_relu` est injecté par lots de 10 000 (borne du schéma), les plus
+  récents d'abord, rien n'est écarté (`anchoring_storage_batched`, EX-8.12) ;
+  quand l'heure murale recule derrière l'horloge du planificateur, le temps
+  servi avance sur l'horloge monotone (`anchoring_clock_backwards`,
+  `alerte_horloge_reculee`, puis `anchoring_clock_recovered`, CT-5 EX-4.13) ;
+  l'écriture de l'étape 9 rejouée consigne l'issue d'avant l'échec, jamais
+  `ecriture` (EX-5.10) ; `entetes-bitcoin.json` est repris au tic tant que la
+  source ne connaît pas `h' + 11` (`bitcoin_headers_deferred`) ; une ligne
+  illisible d'`acquisitions.ndjson` lève `alerte_file_perdue` ; un fragment
+  retiré de la file est consigné (`anchor_queue_fragment_removed`) ; la
+  supervision lit la file sans la recopier (CT-5 EX-8.5). Lignes nouvelles :
+  `anchor_queue_fragment_removed`, `ots_attestation_non_verifiee`,
+  `bitcoin_headers_deferred`, `anchoring_storage_batched`,
+  `anchoring_clock_backwards`, `anchoring_clock_recovered`,
+  `alerte_horloge_reculee`, `provider_qualification_restored`,
+  `provider_qualifications_withdrawn_reloaded`,
+  `qualifications_file_unreadable`, `registry_capture_rejected`,
+  `anchor_queue_truncated_line` (`step: compactage`). Limites nommées : profil
+  DER sur tout le jeton (EX-9.4) préparé, non appliqué ;
+  mémoire des demandes finales non bornée (révision d'EX-8.5
+  demandée) ; une capture de CRL par jeton (CT-5 EX-5.10, non corrigé) ; table
+  d'identifiants de `x509.mjs` vérifiée contre CT-6 §9.4 (risque
+  nommé). Exportateur : `piecesPeriode({ periodHash })` ne remet le jeton et
+  la preuve de la période que pour cette empreinte et rend un défaut sinon ;
+  les fichiers du dossier sont écrits en 0600 par `ecrireFichierDossier`
+  (fichier provisoire renommé), `dossier.json` en dernier (CT-5 EX-10.1).
 
 ### F.2 Outil `bin/noortrace-ancrage` (`src/cli.mjs`)
 
@@ -723,6 +866,9 @@ EX-11.4), `acquisitions` (résumé, jeton promu par objet), `completude`
 (EX-10.7) ; codes 0 (réussite), 1 (défaut constaté ou erreur), 2 (usage) ;
 messages en français ; aucune valeur de secret affichée. `lancer({ argv, horloge, aleatoire, sortie, erreur, env, transport })`
 est le point d'entrée injectable.
+- Revue de sécurité interne de l'étape 8 : `configuration` exige
+  `--profil` (usage, code 2, sans valeur par défaut : CT-5 EX-4.9) ; `acquisitions`
+  ne compte « promu » qu'un enregistrement `promoted` d'issue `obtenue` (EX-5.10).
 
 ### F.3 Intégration à l'enregistreur et exportateur
 
@@ -755,7 +901,7 @@ de l'enregistreur). Ce que l'enregistreur fournit au composant, exactement :
 - **`contexte.org_id`, `journal_id`** : `recorder.org_id`, `recorder.journal_id` ;
   **`epoque`** : époque du bail de l'écrivain ; **`racineStockage`** :
   `storage.root` (les dépôts d'EX-5.14 écrivent sous
-  `<racine>/<org sans 0x>/<journal sans 0x>/ancres/`, lecture F2-1).
+  `<racine>/<org sans 0x>/<journal sans 0x>/ancres/`, lecture 1 du branchement).
 - **`contexte.clePublique(keyId)`** : `signataire.clePublique` du cœur pour la
   clé courante, les clés de la chaîne relues dans les segments (événements
   `rotation`) pour les autres.
@@ -773,7 +919,7 @@ de l'enregistreur). Ce que l'enregistreur fournit au composant, exactement :
   accesseur relu à chaque envoi ; **`contexte.cleChainePour(keyId)`** et
   **`contexte.clesChaine()`** après une rotation (étape 7). **`contexte.instance`** :
   `instanceDepuisManifeste` du fichier `instance-registre.json` lu à côté du
-  document `ancrage-v0` (lecture F2-4).
+  document `ancrage-v0` (lecture 4 du branchement).
 - **`contexte.signaturesCloture(periodMeta)`** : rend
   `{ signatures, membres: null, seuil, periodePrecedente: null }` depuis la
   demande signée `demande-cloture-<period_hash>.json` déposée par
@@ -781,7 +927,7 @@ de l'enregistreur). Ce que l'enregistreur fournit au composant, exactement :
   `operation: cloture`, `verifierDemande` complet), ou **`null`** quand elle
   n'y est pas encore : le composant consigne alors `period_close_delegated`
   (`reason: signatures_en_attente`) et revient au tic suivant, sans alerte
-  (lecture F2-3). Une demande d'une autre période ou invalide est consignée
+  (lecture 3 du branchement). Une demande d'une autre période ou invalide est consignée
   `period_close_request_refused` et vaut `null`.
 - **`horloge`** : l'horloge de l'enregistreur (`murale`, `monotone`),
   `programmer` par `setTimeout`/`clearTimeout` du démon, ou par la minuterie

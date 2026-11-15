@@ -3,7 +3,8 @@
 // (=, !=, =~, !~), fenêtres, rate, increase, changes, abs, time,
 // histogram_quantile, sum/max/min/avg [by (…)], opérateurs arithmétiques et
 // de comparaison (sans bool) entre vecteurs et scalaires, on (…) et
-// ignoring (…), and et or. Sémantique de Prometheus 3 : fenêtre ouverte à
+// ignoring (…), and, or et unless, offset, absent (formes « première
+// occurrence » et règles de la revue de l'étape 8). Sémantique de Prometheus 3 : fenêtre ouverte à
 // gauche (t - d, t], rappel d'un échantillon sur 5 min pour un vecteur
 // instantané, extrapolation de rate et increase de promql/functions.go,
 // clause `for` des règles d'alerte.
@@ -32,7 +33,7 @@ export function dureeMs(t) {
 // ---------------------------------------------------------------------------
 
 const AGREGATS = new Set(["sum", "max", "min", "avg", "count"]);
-const FONCTIONS = new Set(["rate", "increase", "changes", "abs", "time", "histogram_quantile"]);
+const FONCTIONS = new Set(["rate", "increase", "changes", "abs", "time", "histogram_quantile", "absent"]);
 const PRIORITE = { or: 1, and: 2, unless: 2, "==": 3, "!=": 3, ">": 3, "<": 3, ">=": 3, "<=": 3, "+": 4, "-": 4, "*": 5, "/": 5 };
 
 function lexer(src) {
@@ -107,7 +108,9 @@ export function analyser(src) {
     }
     let fenetre = null;
     if (voir()?.v === "[") { i++; fenetre = prendre("duree").v; prendre("op", "]"); }
-    return { type: "selecteur", m, fenetre };
+    let decalage = 0;
+    if (voir()?.k === "id" && voir().v === "offset") { i++; decalage = prendre("duree").v; }
+    return { type: "selecteur", m, fenetre, decalage };
   };
   const primaire = () => {
     const x = voir();
@@ -267,17 +270,27 @@ export function evaluer(n, series, t) {
     case "nombre":
       return { scalaire: n.v };
     case "selecteur": {
+      // offset : la série est lue à t − décalage (sémantique de Prometheus).
+      const te = t - (n.decalage ?? 0);
       const choisies = series.filter((s) => n.m.every((m) => correspond(s.et, m)));
-      if (n.fenetre !== null) return { fenetres: choisies.map((s) => ({ et: s.et, ech: s.ech.filter((e) => e.t > t - n.fenetre && e.t <= t && e.v !== null) })), debut: t - n.fenetre, fin: t };
+      if (n.fenetre !== null) return { fenetres: choisies.map((s) => ({ et: s.et, ech: s.ech.filter((e) => e.t > te - n.fenetre && e.t <= te && e.v !== null) })), debut: te - n.fenetre, fin: te };
       const out = [];
       for (const s of choisies) {
-        const e = s.ech.filter((x) => x.t <= t && x.t > t - RAPPEL_MS && x.v !== null).pop();
+        const e = s.ech.filter((x) => x.t <= te && x.t > te - RAPPEL_MS && x.v !== null).pop();
         if (e) out.push({ et: s.et, v: e.v });
       }
       return out;
     }
     case "fonction": {
       if (n.f === "time") return { scalaire: t / 1000 };
+      if (n.f === "absent") {
+        // absent(v) : un élément de valeur 1, étiqueté par les correspondances d'égalité du sélecteur (hors __name__), si v est vide ; vide sinon.
+        const v = evaluer(n.args[0], series, t);
+        if (Array.isArray(v) && v.length) return [];
+        const et = {};
+        if (n.args[0].type === "selecteur") for (const m of n.args[0].m) if (m.op === "=" && m.nom !== "__name__") et[m.nom] = m.v;
+        return [{ et, v: 1 }];
+      }
       if (n.f === "abs") return evaluer(n.args[0], series, t).map((x) => ({ et: sansNom(x.et), v: Math.abs(x.v) }));
       if (n.f === "histogram_quantile") {
         const q = evaluer(n.args[0], series, t).scalaire;
@@ -356,10 +369,11 @@ function signature(et, n) {
 function binaire(n, g, d) {
   const sg = g.scalaire !== undefined;
   const sd = d.scalaire !== undefined;
-  if (n.op === "and" || n.op === "or") {
+  if (n.op === "and" || n.op === "or" || n.op === "unless") {
     if (sg || sd) throw new Error(`${n.op} entre scalaires`);
     const droite = new Set(d.map((x) => signature(x.et, n)));
     if (n.op === "and") return g.filter((x) => droite.has(signature(x.et, n)));
+    if (n.op === "unless") return g.filter((x) => !droite.has(signature(x.et, n)));
     const gauche = new Set(g.map((x) => signature(x.et, n)));
     return [...g, ...d.filter((x) => !gauche.has(signature(x.et, n)))];
   }

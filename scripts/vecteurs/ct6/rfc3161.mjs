@@ -313,9 +313,20 @@ export function construireCertificat({ numero, emetteur, sujet, debut, fin, cleP
   return seq(tbs, alg, bits(crypto.sign(ed ? null : "sha256", tbs, cleEmetteur)));
 }
 
-/** CRL X.509 v2 complète signée en sha256WithRSAEncryption. */
-export function construireCRL({ emetteur, thisUpdate, nextUpdate, revoques = [], numeroCrl, skiEmetteur, cleEmetteur }) {
-  const entrees = revoques.map((r) => seq(entier(r.numero), temps(r.date), ...(r.raison === undefined || r.raison === null ? [] : [seq(extension({ oid: OID.cRLReasons, valeur: tlv(0x0a, Buffer.from([r.raison])) }))])));
+/**
+ * CRL X.509 v2 complète signée en sha256WithRSAEncryption. Une entrée révoquée
+ * porte `numero` (INTEGER minimal) ou, revue de sécurité de l'étape 8 (
+ * CT-6 EX-9.6), `numeroBrut` : les octets du contenu de l'INTEGER tels quels
+ * (forme non minimale admise, que la lecture selon §9.3 ne contrôle pas).
+ * Révision 0.9 de CT-6 (EX-9.16) : `extensions` ajoute des extensions
+ * [{ oid, critique, valeur }] à la liste, après authorityKeyIdentifier et cRLNumber ; une entrée PEUT porter
+ * `extensions` de même forme, après cRLReasons.
+ */
+export function construireCRL({ emetteur, thisUpdate, nextUpdate, revoques = [], numeroCrl, skiEmetteur, cleEmetteur, extensions = [] }) {
+  const entrees = revoques.map((r) => {
+    const exts = [...(r.raison === undefined || r.raison === null ? [] : [extension({ oid: OID.cRLReasons, valeur: tlv(0x0a, Buffer.from([r.raison])) })]), ...(r.extensions ?? []).map(extension)];
+    return seq(r.numeroBrut ? tlv(0x02, r.numeroBrut) : entier(r.numero), temps(r.date), ...(exts.length ? [seq(...exts)] : []));
+  });
   const tbs = seq(
     entier(1),
     ALG.sha256WithRSAEncryption,
@@ -323,7 +334,7 @@ export function construireCRL({ emetteur, thisUpdate, nextUpdate, revoques = [],
     temps(thisUpdate),
     temps(nextUpdate),
     ...(entrees.length ? [seq(...entrees)] : []),
-    explicite(0, seq(extension({ oid: OID.authorityKeyIdentifier, valeur: seq(implicite(0, skiEmetteur)) }), extension({ oid: OID.cRLNumber, valeur: entier(numeroCrl) }))),
+    explicite(0, seq(extension({ oid: OID.authorityKeyIdentifier, valeur: seq(implicite(0, skiEmetteur)) }), extension({ oid: OID.cRLNumber, valeur: entier(numeroCrl) }), ...extensions.map(extension))),
   );
   return seq(tbs, ALG.sha256WithRSAEncryption, bits(crypto.sign("sha256", tbs, cleEmetteur)));
 }
@@ -351,9 +362,11 @@ export function construireCRL({ emetteur, thisUpdate, nextUpdate, revoques = [],
  *   crls             : CRL DER du champ crls du SignedData ;
  *   tsaGeneralName   : GeneralName DER du champ tsa (remplace tsaNom) ;
  *   extensionsTstBrutes : extensions DER de TSTInfo, telles quelles ;
+ *   nonSignesBruts   : octets d'un champ unsignedAttrs [1] du SignerInfo, tels quels (révision 0.9 de CT-6, EX-9.4 :
+ *                      formes DER hors de la signature) ; versionBrute : TLV de SignedData.version tel quel ;
  *   precisionBrute   : Accuracy DER, telle quelle (remplace precision).
  */
-export function construireJeton({ empreinte, genTime, serie, nonce, precision = 1, politique = POLITIQUE, tsaNom = null, certificats, signataire, cle, hash = "sha256", extensionsTst = [], certHash = null, eContentPourDigest = null, algSignature = null, signer = null, algImprint = ALG.sha256Nul, ess = "v2", attributsEnPlus = [], sid = "issuerAndSerialNumber", sidNumero = null, crls = [], tsaGeneralName = null, extensionsTstBrutes = null, precisionBrute = null }) {
+export function construireJeton({ empreinte, genTime, serie, nonce, precision = 1, politique = POLITIQUE, tsaNom = null, certificats, signataire, cle, hash = "sha256", extensionsTst = [], certHash = null, eContentPourDigest = null, algSignature = null, signer = null, algImprint = ALG.sha256Nul, ess = "v2", attributsEnPlus = [], sid = "issuerAndSerialNumber", sidNumero = null, crls = [], tsaGeneralName = null, extensionsTstBrutes = null, precisionBrute = null, nonSignesBruts = null, versionBrute = null }) {
   const extTst = extensionsTstBrutes ?? extensionsTst.map(extension);
   const tsa = tsaGeneralName ?? (tsaNom ? tlv(0xa4, tsaNom) : null);
   const eContent = seq(
@@ -384,9 +397,9 @@ export function construireJeton({ empreinte, genTime, serie, nonce, precision = 
   attributsImplicites[0] = 0xa0;
   // sidNumero (révision 0.4, t4-sid-introuvable) : numéro du sid remplacé ; le sid n'est pas signé.
   const identifiant = sid === "ski" ? implicite(0, Buffer.from(H.lireDER(s.extension(OID.subjectKeyIdentifier).valeur).valeur())) : seq(s.emetteur, entier(sidNumero ?? s.numero));
-  const signerInfo = seq(entier(sid === "ski" ? 3 : 1), identifiant, algEmpreinte, attributsImplicites, algSig, octets(signature));
+  const signerInfo = seq(entier(sid === "ski" ? 3 : 1), identifiant, algEmpreinte, attributsImplicites, algSig, octets(signature), ...(nonSignesBruts ? [tlv(0xa1, nonSignesBruts)] : []));
   const signedData = seq(
-    entier(3),
+    versionBrute ?? entier(3),
     set(algEmpreinte),
     seq(oid(OID.tstInfo), explicite(0, octets(eContent))),
     ...(certificats.length ? [tlv(0xa0, Buffer.concat([...certificats].sort(Buffer.compare)))] : []),
@@ -512,6 +525,14 @@ export function materielTest(cles) {
   const crls = {
     "crl-vide": construireCRL({ emetteur: nomAc, thisUpdate: CRL_THIS_UPDATE, nextUpdate: CRL_NEXT_UPDATE, numeroCrl: 1, skiEmetteur: skiAc, cleEmetteur: cles["ac-test"] }),
     "crl-tsa-revoquee": construireCRL({ emetteur: nomAc, thisUpdate: CRL_THIS_UPDATE, nextUpdate: CRL_NEXT_UPDATE, revoques: [{ numero: 2, date: DATE_REVOCATION, raison: 1 }], numeroCrl: 2, skiEmetteur: skiAc, cleEmetteur: cles["ac-test"] }),
+    // Revue de sécurité de l'étape 8 (EX-9.6) : la même révocation, le numéro de série de tsa-test
+    // encodé 02 02 00 02 (INTEGER non minimal) : la CRL est lue et T-10 la retient, aucune entrée inutilisable.
+    "crl-tsa-revoquee-serie-non-minimale": construireCRL({ emetteur: nomAc, thisUpdate: CRL_THIS_UPDATE, nextUpdate: CRL_NEXT_UPDATE, revoques: [{ numeroBrut: Buffer.from([0x00, 0x02]), date: DATE_REVOCATION, raison: 1 }], numeroCrl: 3, skiEmetteur: skiAc, cleEmetteur: cles["ac-test"] }),
+    // Révision 0.9 de CT-6 (EX-9.16) : une CRL complète et bien signée qui porte une extension critique que
+    // la version 0 ne lit pas (OID d'essai 1.3.6.1.4.1.99999.2) sur la liste, ou sur une entrée (un certificat d'un autre
+    // numéro de série), n'est pas une preuve de non-révocation : écartée, AV-T-3.
+    "crl-extension-critique-inconnue": construireCRL({ emetteur: nomAc, thisUpdate: CRL_THIS_UPDATE, nextUpdate: CRL_NEXT_UPDATE, numeroCrl: 4, skiEmetteur: skiAc, cleEmetteur: cles["ac-test"], extensions: [{ oid: OID_EXTENSION_CRITIQUE, critique: true, valeur: nul() }] }),
+    "crl-entree-extension-critique-inconnue": construireCRL({ emetteur: nomAc, thisUpdate: CRL_THIS_UPDATE, nextUpdate: CRL_NEXT_UPDATE, revoques: [{ numero: 99, date: DATE_REVOCATION, raison: 4, extensions: [{ oid: OID_EXTENSION_CRITIQUE, critique: true, valeur: nul() }] }], numeroCrl: 5, skiEmetteur: skiAc, cleEmetteur: cles["ac-test"] }),
   };
   return { cles, certs, crls, nomTsa };
 }
@@ -545,6 +566,11 @@ export function fragmentsAncres(materiel) {
     test: { tsa_authorities: [autorite(null)], revocation: revocation("crl-vide") },
     qualification_declaree: { tsa_authorities: [autorite(qualifie)], revocation: revocation("crl-vide") },
     tsa_revoquee: { tsa_authorities: [autorite(null)], revocation: revocation("crl-tsa-revoquee") },
+    // Revue de sécurité de l'étape 8 (EX-9.6) : CRL au numéro de série non minimal.
+    tsa_revoquee_serie_non_minimale: { tsa_authorities: [autorite(null)], revocation: revocation("crl-tsa-revoquee-serie-non-minimale") },
+    // Révision 0.9 de CT-6 (EX-9.16) : la seule CRL du fichier porte une extension critique non lue.
+    crl_extension_critique_inconnue: { tsa_authorities: [autorite(null)], revocation: revocation("crl-extension-critique-inconnue") },
+    crl_entree_extension_critique_inconnue: { tsa_authorities: [autorite(null)], revocation: revocation("crl-entree-extension-critique-inconnue") },
     unite_epinglee_revoquee: { tsa_authorities: [unite(null)], revocation: revocation("crl-tsa-revoquee") },
     deux_autorites: { tsa_authorities: [unite(qualifie), autorite(null)], revocation: revocation("crl-vide") },
     // Révision 0.4 (EX-A.22) : l'autorité de test porte le certificat de l'unité dans intermediates.
@@ -642,6 +668,18 @@ export function jetonsTest(materiel, manifestes, point = null) {
     // Révision 0.5 (EX-9.4, EX-9.7) : un certificat de l'unité dont la lecture selon §9.3 échoue rend le jeton inexploitable (T-1).
     "t1-cle-longueur-non-minimale": { octets: base(1, { certificats: [certs["tsa-cle-longueur-non-minimale"]], signataire: certs["tsa-cle-longueur-non-minimale"] }), alteration: "signé par la même clé, certificates = [tsa-cle-longueur-non-minimale.pem] : la RSAPublicKey du SubjectPublicKeyInfo porte une longueur longue non minimale (30 83 00 01 8a), contraire au DER (EX-9.4) : certificat illisible", cible: "T-1" },
     "t1-extension-mal-formee": { octets: base(1, { certificats: [certs["tsa-extension-mal-formee"]], signataire: certs["tsa-extension-mal-formee"] }), alteration: "signé par la même clé, certificates = [tsa-extension-mal-formee.pem] : la valeur de l'extension keyUsage est un INTEGER (02 02 07 80) au lieu d'une BIT STRING : certificat illisible (EX-9.7)", cible: "T-1" },
+    // Révision 0.9 de CT-6 (EX-9.4) : le profil DER s'applique à tout le jeton, hors
+    // de la signature compris. Chaque forme est placée dans le champ crls [1] (que la signature ne couvre pas), sauf la
+    // dernière, dans unsignedAttrs [1] du SignerInfo ; signedAttrs et signature de periode-1.der inchangés.
+    "t1-null-longueur": { tstDe: "periode-1", octets: base(1, { crls: [Buffer.from([0x05, 0x01, 0x00])] }), alteration: "periode-1.der réémis avec un champ crls [1] réduit à un NULL de longueur 1 (05 01 00) : le profil DER d'EX-9.4 s'applique à tout le jeton, signature couvrant l'octet ou non", cible: "T-1" },
+    "t1-integer-vide": { tstDe: "periode-1", octets: base(1, { crls: [Buffer.from([0x02, 0x00])] }), alteration: "periode-1.der réémis avec un champ crls [1] réduit à un INTEGER vide (02 00)", cible: "T-1" },
+    "t1-bit-string-vide": { tstDe: "periode-1", octets: base(1, { crls: [Buffer.from([0x03, 0x00])] }), alteration: "periode-1.der réémis avec un champ crls [1] réduit à une BIT STRING vide (03 00), sans octet des bits inutilisés", cible: "T-1" },
+    "t1-octet-string-construite": { tstDe: "periode-1", octets: base(1, { crls: [Buffer.from([0x24, 0x02, 0x04, 0x00])] }), alteration: "periode-1.der réémis avec un champ crls [1] réduit à une OCTET STRING de forme construite (24 02 04 00) : un type universel autre que SEQUENCE et SET est primitif", cible: "T-1" },
+    "t1-etiquette-0": { tstDe: "periode-1", octets: base(1, { crls: [Buffer.from([0x00, 0x00])] }), alteration: "periode-1.der réémis avec un champ crls [1] réduit à l'étiquette universelle 0 (00 00)", cible: "T-1" },
+    "t1-tstinfo-integer-vide": { tstDe: "periode-1", octets: base(1, { precisionBrute: seq(tlv(0x02, Buffer.alloc(0))) }), alteration: "periode-1.der réémis avec accuracy.seconds codé en INTEGER vide (02 00) dans le TSTInfo encapsulé, re-signé : le profil DER d'EX-9.4 s'applique au TSTInfo (révision 0.9)", cible: "T-1" },
+    "t1-unsigned-null-longueur": { tstDe: "periode-1", octets: base(1, { nonSignesBruts: seq(oid("1.3.6.1.4.1.99999.3"), set(Buffer.from([0x05, 0x01, 0x00]))) }), alteration: "periode-1.der réémis avec un champ unsignedAttrs [1] dans le SignerInfo, dont l'attribut d'OID 1.3.6.1.4.1.99999.3 vaut un NULL de longueur 1 (05 01 00)", cible: "T-1" },
+    // Témoin admis (EX-9.6 : la forme minimale des INTEGER n'est pas contrôlée) : SignedData.version codée 02 02 00 03.
+    "integer-non-minimal": { octets: base(1, { versionBrute: tlv(0x02, Buffer.from([0x00, 0x03])) }), alteration: "periode-1.der réémis avec SignedData.version codée 02 02 00 03 (INTEGER non minimal, que la signature ne couvre pas) : lu, valeur 3, accepté (EX-9.6) ; témoin des six formes t1-* de la révision 0.9", cible: null },
     ...(point
       ? (() => {
           const k7 = Buffer.from(jetonPoint());
@@ -698,6 +736,10 @@ function casVerifies(jetons, manifestes, ancres, point = null) {
   ajouter("t5-cle-ed25519", 1, "ancres-test", { echecs: [], controle: "non_execute", statuts: "rrrrhhhrrhh" });
   ajouter("t5-cle-ed25519", 1, null, { echecs: [], controle: "non_execute", statuts: "rrrraaarraa" });
   ajouter("serie-168-bits", 1, "ancres-test", { echecs: [], controle: "reussi", statuts: "r".repeat(10) + "a" });
+  // Révision 0.9 (EX-9.4, EX-9.6, EX-9.16) : témoin des formes DER et CRL à extension critique non lue (T-10 non exécutée, AV-T-3).
+  ajouter("integer-non-minimal", 1, "ancres-test", { echecs: [], controle: "reussi", statuts: "r".repeat(10) + "a" });
+  ajouter("periode-1", 1, "ancres-crl-extension-critique-inconnue", { echecs: [], controle: "non_execute", statuts: "r".repeat(9) + "aa" });
+  ajouter("periode-1", 1, "ancres-crl-entree-extension-critique-inconnue", { echecs: [], controle: "non_execute", statuts: "r".repeat(9) + "aa" });
   // Jeton du point de contrôle (EX-A.13) : vérifié sur checkpoint_hash (K-7, EX-9.22) ; le jeton de la clôture rejoué comme jeton du point échoue par T-2.
   if (point) {
     ajouter("point-periode-1", "point", "ancres-test", { echecs: [], controle: "reussi" });
@@ -764,6 +806,8 @@ const OPENSSL_PRESUME = {
   "t5-cle-ed25519": { resultat: "signature failure (openssl ts -verify ne vérifie pas une signature Ed25519 de jeton : « operation not supported for this keytype » avec OpenSSL 3.0.13, « invalid eddsa instance for attempted operation » avec OpenSSL 3.5.5)", source: "relevé par la confrontation (A.8, EX-A.22)" },
   "t5-cle-ed25519-non-rattachee": { resultat: "self-signed certificate", source: "relevé par la confrontation (A.8, EX-A.22)" },
   "serie-168-bits": { resultat: "Verification: OK (serialNumber de 168 bits accepté)", source: "relevé par la confrontation (A.8, EX-A.22)" },
+  // Révision 0.9 (EX-9.6 ; annexe A.8 de CT-6, annexe A.6 de CT-5) : limite de l'outil, plus strict que CT-6.
+  "integer-non-minimal": { resultat: "c2i_ibuf:illegal padding (OpenSSL refuse l'INTEGER non minimal de SignedData.version, que CT-6 admet, EX-9.6 ; limite de l'outil, annexe A.8)", source: "relevé par la revue de l'étape 8 avec OpenSSL 3.0.13 (A.8)" },
 };
 
 /**
@@ -811,6 +855,9 @@ export function genererRfc3161({ racine = path.join(PROJECT_ROOT, "spec", "vecte
     "ancres-test": ancresHorodatage(fragments.test),
     "ancres-qualification-declaree": ancresHorodatage(fragments.qualification_declaree),
     "ancres-tsa-revoquee": ancresHorodatage(fragments.tsa_revoquee),
+    "ancres-tsa-revoquee-serie-non-minimale": ancresHorodatage(fragments.tsa_revoquee_serie_non_minimale),
+    "ancres-crl-extension-critique-inconnue": ancresHorodatage(fragments.crl_extension_critique_inconnue),
+    "ancres-crl-entree-extension-critique-inconnue": ancresHorodatage(fragments.crl_entree_extension_critique_inconnue),
     "ancres-unite-epinglee-revoquee": ancresHorodatage(fragments.unite_epinglee_revoquee),
     "ancres-deux-autorites": ancresHorodatage(fragments.deux_autorites),
     "ancres-unite-intermediaire": ancresHorodatage(fragments.unite_intermediaire),
@@ -826,7 +873,9 @@ export function genererRfc3161({ racine = path.join(PROJECT_ROOT, "spec", "vecte
     },
     crls: Object.fromEntries(Object.entries(materiel.crls).map(([id, der]) => [`crl/${id}.pem`, sha(der)])),
     tokens: Object.entries(jetons).map(([id, j]) => {
-      const tst = H.lireTSTInfo(eContentBrut(j.octets.subarray(0, id === "t1-octet-en-trop" ? j.octets.length - 1 : j.octets.length)));
+      // Révision 0.9 : un jeton dont la forme DER est refusée par construction (t1-null-longueur…) porte le TSTInfo du jeton `tstDe`.
+      const source = j.tstDe ? jetons[j.tstDe].octets : j.octets.subarray(0, id === "t1-octet-en-trop" ? j.octets.length - 1 : j.octets.length);
+      const tst = H.lireTSTInfo(eContentBrut(source));
       return {
         file: `jetons/${id}.der`,
         sha256: sha(j.octets),

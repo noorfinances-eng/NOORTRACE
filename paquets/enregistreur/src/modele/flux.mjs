@@ -12,6 +12,7 @@
 
 import { analyserTexte, valeurDe, ErreurTexteJson } from "../mcp/json-texte.mjs";
 import { jcsIntegral } from "../jcs-integral.mjs";
+import { INDEX_REASSEMBLAGE_MAX } from "../bornes.mjs";
 
 /** Clés que l'enregistreur ajoute à une forme consolidée (EX-5.18). */
 export const CLE_INCOMPLET = "noortrace_flux_incomplet";
@@ -382,6 +383,9 @@ export class ReassemblageChat extends Reassemblage {
       f.object = "chat.completion";
       f.choices = [];
       this.forme = f;
+      // Étape 8 (CT-2 EX-5.27) : tables par index, à la place d'une recherche linéaire par fragment.
+      this.choixParIndex = new Map();
+      this.appelsParChoix = new Map();
     } else if (id !== this.idPremier) {
       // Un autre identifiant arrête le réassemblage (EX-5.16 pas 5).
       this.arrete = true;
@@ -395,10 +399,17 @@ export class ReassemblageChat extends Reassemblage {
           this.ignorer();
           continue;
         }
-        let ch = f.choices.find((x) => x.index === n);
+        let ch = this.choixParIndex.get(n);
         if (!ch) {
+          // Nombre d'index bornés (CT-2 EX-5.27) : au-delà, fragment ignoré et compté.
+          if (this.choixParIndex.size >= INDEX_REASSEMBLAGE_MAX) {
+            this.ignorer();
+            continue;
+          }
           ch = { index: n, message: { role: "assistant", content: null }, finish_reason: null };
           f.choices.push(ch);
+          this.choixParIndex.set(n, ch);
+          this.appelsParChoix.set(ch, new Map());
         }
         const d = c.delta;
         const m = ch.message;
@@ -413,11 +424,17 @@ export class ReassemblageChat extends Reassemblage {
               continue;
             }
             if (!Array.isArray(m.tool_calls)) m.tool_calls = [];
-            let tc = m.tool_calls.find((x) => x.index === j);
+            const appels = this.appelsParChoix.get(ch);
+            let tc = appels.get(j);
             if (!tc) {
+              if (appels.size >= INDEX_REASSEMBLAGE_MAX) {
+                this.ignorer();
+                continue;
+              }
               tc = { index: j, id: null, type: "function", function: { name: "", arguments: "" } };
               this.fixes.set(tc, new Set());
               m.tool_calls.push(tc);
+              appels.set(j, tc);
             }
             const fixes = this.fixes.get(tc);
             if (fr.id !== null && fr.id !== undefined && !fixes.has("id")) {
@@ -524,6 +541,8 @@ export class ReassemblageGemini extends Reassemblage {
     this.forme = null;
     this.reduite = null;
     this.candidats = [];
+    /** Candidats par index (CT-2 EX-5.27). */
+    this.candidatsParIndex = new Map();
     this.arrete = false;
   }
 
@@ -565,10 +584,15 @@ export class ReassemblageGemini extends Reassemblage {
           continue;
         }
       }
-      let c = this.candidats.find((x) => x.index === n);
+      let c = this.candidatsParIndex.get(n);
       if (!c) {
+        if (this.candidatsParIndex.size >= INDEX_REASSEMBLAGE_MAX) {
+          this.ignorer();
+          continue;
+        }
         c = { index: n, content: { parts: [] } };
         this.candidats.push(c);
+        this.candidatsParIndex.set(n, c);
       }
       for (const [k, x] of Object.entries(fr)) {
         if (k === "index") continue;

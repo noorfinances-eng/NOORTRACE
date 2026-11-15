@@ -4,7 +4,7 @@
 //
 //   noortrace-pont-stdio --ecoute <adresse>:<port> --jeton <fichier>
 //       [--chemin /mcp] [--sessions-max <n>] [--delai-ms <n>] [--octets-max <n>]
-//       -- <commande absolue> [arguments…]
+//       [--inactivite-ms <n>] -- <commande absolue> [arguments…]
 //   noortrace-pont-stdio sonde --url http://127.0.0.1:<port>/sante
 //
 // Le pont lance la commande du serveur d'outils comme enfant, une fois par
@@ -22,18 +22,32 @@
 //     Une requête qui porte un en-tête `Origin` est refusée (403) : seul un
 //     navigateur en pose un, et aucun navigateur ne doit joindre le pont.
 //     Corps : un seul message JSON-RPC (pas de lot), `application/json`,
-//     `--octets-max` octets au plus (413 au-delà).
+//     `--octets-max` octets au plus (413 au-delà). Le pont transmet à
+//     l'enfant le message qu'il a analysé, resérialisé sur une seule ligne
+//     (jamais les octets reçus : un saut de ligne dans le corps ne glisse
+//     aucun second message, CT-8 EX-3.7).
 //       * `initialize` sans session : nouvel enfant, réponse de l'enfant en
-//         `application/json` avec l'en-tête `Mcp-Session-Id` ;
+//         `application/json` avec l'en-tête `Mcp-Session-Id` ; si le client
+//         a rompu la connexion avant la réponse, la session est close et
+//         l'enfant terminé (aucune session orpheline, CT-8 EX-3.7) ;
 //       * requête d'une session : transmise à son enfant, réponse de même
 //         identifiant rendue en `application/json` (504 après `--delai-ms`,
-//         502 si l'enfant se termine avant) ;
+//         502 si l'enfant se termine avant) ; un identifiant reste « en
+//         cours » jusqu'à la réponse de l'enfant ou au délai, même après un
+//         abandon du client (l'enfant reçoit alors `notifications/cancelled`
+//         et sa réponse est jetée) : une seconde requête de même identifiant
+//         reçoit 400 (CT-8 EX-3.7) ;
 //       * notification ou réponse d'une session : transmise, 202 ;
 //       * sans session hors `initialize` : 400 ; session inconnue : 404.
 //   - DELETE avec `Mcp-Session-Id` : termine l'enfant de la session (204).
 //   - GET : 405 (pas de flux ouvert par le serveur).
-// Sur `/sante` : GET sans authentification, 200 `{"status":"ok",…}` tant
-// que le pont écoute (sonde du conteneur).
+//   - `--inactivite-ms` (défaut 0 : aucune limite) : une session sans
+//     requête en cours ni message depuis ce délai est close et son enfant
+//     terminé (`session_inactive`), pour qu'un client disparu sans DELETE
+//     n'épuise pas `--sessions-max` (CT-8 EX-3.7).
+// Sur `/sante` : GET sans authentification, 200
+// `{"status":"ok","sessions":<n>,"sessions_max":<n>,"version":…}` tant que le
+// pont écoute (sonde du conteneur ; `sessions_max` pour une règle de saturation).
 //
 // Ce que le pont ne relaie pas : les requêtes du serveur vers le client
 // (échantillonnage, élicitation, racines) reçoivent de lui l'erreur -32601,
@@ -50,7 +64,7 @@
 // Codes de sortie du service : 0 arrêt demandé (SIGTERM, SIGINT) ; 1 échec à
 // l'écoute ; 2 usage ou jeton refusé (rien n'écoute).
 //
-// Écrit sans dépendance tierce (décision D-13 de l'étape 7) : modules de
+// Écrit sans dépendance tierce (étape 7) : modules de
 // Node.js seulement.
 
 import crypto from "node:crypto";
@@ -63,13 +77,13 @@ import { fileURLToPath } from "node:url";
 
 export const VERSION = "0.1.0";
 export const DELAI_SONDE_MS = 2500;
-export const DEFAUTS = Object.freeze({ chemin: "/mcp", sessionsMax: 8, delaiMs: 300000, octetsMax: 4 * 1024 * 1024 });
+export const DEFAUTS = Object.freeze({ chemin: "/mcp", sessionsMax: 8, delaiMs: 300000, octetsMax: 4 * 1024 * 1024, inactiviteMs: 0 });
 /** Taille maximale d'une ligne de l'enfant (au-delà, la session est close). */
 export const LIGNE_MAX = 16 * 1024 * 1024;
 const CHEMIN_SANTE = "/sante";
 
 const USAGE =
-  "usage : noortrace-pont-stdio --ecoute <adresse>:<port> --jeton <fichier> [--chemin /mcp] [--sessions-max <n>] [--delai-ms <n>] [--octets-max <n>] -- <commande absolue> [arguments…]\n" +
+  "usage : noortrace-pont-stdio --ecoute <adresse>:<port> --jeton <fichier> [--chemin /mcp] [--sessions-max <n>] [--delai-ms <n>] [--octets-max <n>] [--inactivite-ms <n>] -- <commande absolue> [arguments…]\n" +
   "        noortrace-pont-stdio sonde --url http://127.0.0.1:<port>/sante";
 
 export class ErreurUsage extends Error {}
@@ -121,6 +135,7 @@ export function analyserOptions(argv) {
     } else if (nom === "--sessions-max") o.sessionsMax = entier(nom, v, 1, 1024);
     else if (nom === "--delai-ms") o.delaiMs = entier(nom, v, 1, 86400000);
     else if (nom === "--octets-max") o.octetsMax = entier(nom, v, 1024, 256 * 1024 * 1024);
+    else if (nom === "--inactivite-ms") o.inactiviteMs = entier(nom, v, 0, 86400000);
     else throw new ErreurUsage(`option inconnue : ${nom}`);
   }
   if (!o.ecoute) throw new ErreurUsage("--ecoute est exigée");
@@ -195,11 +210,14 @@ export function natureMessage(m) {
 class Session {
   constructor(id, options, sortieJournal, surFin) {
     this.id = id;
+    /** @type {Map<string, {abandonnee: boolean, resoudre: (r: object) => void, minuteur: NodeJS.Timeout|null}>} */
     this.attentes = new Map();
     this.tampon = [];
     this.tailleTampon = 0;
     this.close = false;
     this.journal = sortieJournal;
+    this.inactiviteMs = options.inactiviteMs ?? 0;
+    this.minuteurInactivite = null;
     const env = {};
     for (const k of ["PATH", "TMPDIR", "LANG", "TZ"]) if (process.env[k] !== undefined) env[k] = process.env[k];
     this.enfant = spawn(options.commande[0], options.commande.slice(1), { stdio: ["pipe", "pipe", "inherit"], env, shell: false });
@@ -208,6 +226,23 @@ class Session {
     this.enfant.once("error", (e) => this._fin({ erreur: e.code ?? e.message }));
     this.enfant.once("exit", (code, signal) => this._fin({ code, signal }));
     this.surFin = surFin;
+    this.activite();
+  }
+
+  /** Un message vient de passer : le délai d'inactivité repart. Une session sans requête en cours au terme du délai est close. */
+  activite() {
+    if (!this.inactiviteMs || this.close) return;
+    clearTimeout(this.minuteurInactivite);
+    this.minuteurInactivite = setTimeout(() => {
+      if (this.close) return;
+      if (this.attentes.size > 0) {
+        this.activite();
+        return;
+      }
+      journal(this.journal, "session_inactive", { session: this.id, inactivite_ms: this.inactiviteMs });
+      this.terminer();
+    }, this.inactiviteMs);
+    this.minuteurInactivite.unref?.();
   }
 
   _donnees(c) {
@@ -248,21 +283,24 @@ class Session {
       const a = this.attentes.get(cle);
       if (a) {
         this.attentes.delete(cle);
-        a.resoudre({ issue: "reponse", texte });
+        if (a.abandonnee) journal(this.journal, "reponse_abandonnee", { session: this.id });
+        a.resoudre({ issue: a.abandonnee ? "abandon" : "reponse", texte });
       } else journal(this.journal, "reponse_sans_attente", { session: this.id });
     } else if (nature === "requete") {
       // Requête du serveur vers le client : non relayée.
       journal(this.journal, "requete_serveur_refusee", { session: this.id, methode: m.method });
-      this.ecrire(erreurRpc(m.id, -32601, "Method not found"));
+      this.ecrire({ jsonrpc: "2.0", id: m.id, error: { code: -32601, message: "Method not found" } });
     } else if (nature === "notification") {
       // Notification du serveur (progression, journal, liste changée) : ignorée.
     } else journal(this.journal, "ligne_invalide", { session: this.id });
   }
 
-  ecrire(texte) {
+  /** Écrit un message à l'enfant : l'objet analysé, resérialisé sur une seule ligne (jamais les octets reçus). */
+  ecrire(m) {
     if (this.close) return false;
+    this.activite();
     try {
-      this.enfant.stdin.write(`${texte}\n`);
+      this.enfant.stdin.write(`${JSON.stringify(m)}\n`);
       return true;
     } catch {
       return false;
@@ -270,34 +308,46 @@ class Session {
   }
 
   /** Transmet une requête et attend sa réponse. */
-  requete(m, texte, delaiMs) {
+  requete(m, delaiMs) {
     const cle = JSON.stringify(m.id);
     if (this.attentes.has(cle)) return Promise.resolve({ issue: "doublon" });
     return new Promise((resoudre) => {
-      const minuteur = setTimeout(() => {
-        this.attentes.delete(cle);
-        resoudre({ issue: "delai" });
+      const entree = { abandonnee: false, minuteur: null, resoudre: null };
+      let finie = false;
+      entree.resoudre = (r) => {
+        if (finie) return;
+        finie = true;
+        clearTimeout(entree.minuteur);
+        resoudre(r);
+      };
+      // Le minuteur ne retire que sa propre attente (jamais celle d'une requête ultérieure de même identifiant).
+      entree.minuteur = setTimeout(() => {
+        if (this.attentes.get(cle) === entree) this.attentes.delete(cle);
+        entree.resoudre({ issue: "delai" });
       }, delaiMs);
-      this.attentes.set(cle, {
-        resoudre: (r) => {
-          clearTimeout(minuteur);
-          resoudre(r);
-        },
-      });
-      if (!this.ecrire(texte)) {
-        this.attentes.get(cle)?.resoudre({ issue: "fin" });
+      this.attentes.set(cle, entree);
+      if (!this.ecrire(m)) {
         this.attentes.delete(cle);
+        entree.resoudre({ issue: "fin" });
       }
     });
   }
 
+  /**
+   * Abandon par le client : l'identifiant reste « en cours » jusqu'à la réponse
+   * de l'enfant ou au délai (sa réponse sera jetée) ; l'enfant est prévenu.
+   */
   oublier(m) {
-    this.attentes.delete(JSON.stringify(m.id));
+    const a = this.attentes.get(JSON.stringify(m.id));
+    if (!a || a.abandonnee) return;
+    a.abandonnee = true;
+    this.ecrire({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: m.id, reason: "client disconnected" } });
   }
 
   _fin(info) {
     if (this.close) return;
     this.close = true;
+    clearTimeout(this.minuteurInactivite);
     journal(this.journal, "enfant_termine", { session: this.id, ...info });
     for (const a of this.attentes.values()) a.resoudre({ issue: "fin" });
     this.attentes.clear();
@@ -346,7 +396,14 @@ export function creerPont(o, io = {}) {
       const s = new Session(id, o, sortieJournal, (x) => sessions.delete(x.id));
       sessions.set(id, s);
       journal(sortieJournal, "session_ouverte", { session: id });
-      const r = await s.requete(m, corps.toString("utf8"), o.delaiMs);
+      const r = await s.requete(m, o.delaiMs);
+      // Client parti avant la réponse : la session n'a pas de client qui connaisse son identifiant ; elle est close.
+      if (res.destroyed || !res.writable || r.issue === "abandon") {
+        s.terminer();
+        sessions.delete(id);
+        journal(sortieJournal, "session_abandonnee", { session: id });
+        return undefined;
+      }
       if (r.issue !== "reponse") {
         s.terminer();
         sessions.delete(id);
@@ -364,7 +421,7 @@ export function creerPont(o, io = {}) {
     if (!s) return repondre(res, 404, erreurRpc(nature === "requete" ? m.id : null, -32001, "Session not found"));
     if (nature === "requete" && m.method === "initialize") return repondre(res, 400, erreurRpc(m.id, -32600, "session déjà initialisée"));
     if (nature !== "requete") {
-      s.ecrire(corps.toString("utf8"));
+      s.ecrire(m);
       return repondre(res, 202);
     }
     let fermee = false;
@@ -372,8 +429,8 @@ export function creerPont(o, io = {}) {
       fermee = true;
       if (!res.writableFinished) s.oublier(m);
     });
-    const r = await s.requete(m, corps.toString("utf8"), o.delaiMs);
-    if (fermee && !res.writable) return undefined;
+    const r = await s.requete(m, o.delaiMs);
+    if ((fermee && !res.writable) || r.issue === "abandon") return undefined;
     if (r.issue === "reponse") return repondre(res, 200, r.texte);
     if (r.issue === "doublon") return repondre(res, 400, erreurRpc(m.id, -32600, "identifiant déjà en cours"));
     if (r.issue === "delai") return repondre(res, 504, erreurRpc(m.id, -32603, "délai dépassé"));
@@ -384,7 +441,7 @@ export function creerPont(o, io = {}) {
     const url = (req.url ?? "").split("?")[0];
     if (url === CHEMIN_SANTE) {
       if (req.method !== "GET" && req.method !== "HEAD") return repondre(res, 405, undefined, { allow: "GET, HEAD" });
-      return repondre(res, 200, JSON.stringify({ status: "ok", sessions: sessions.size, version: VERSION }));
+      return repondre(res, 200, JSON.stringify({ status: "ok", sessions: sessions.size, sessions_max: o.sessionsMax, version: VERSION }));
     }
     if (url !== o.chemin) return repondre(res, 404, JSON.stringify({ erreur: "chemin_inconnu" }));
     if (req.headers.origin !== undefined) return repondre(res, 403, JSON.stringify({ erreur: "origine_refusee" }));

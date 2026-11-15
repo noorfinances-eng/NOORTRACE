@@ -6,7 +6,7 @@
 // commune qui applique, quel que soit le backend : la borne de taille du
 // message (EX-11.7), le délai `signer.timeout_ms` et au plus une seconde
 // tentative, et la vérification de chaque signature avant tout usage
-// (EX-11.6). Les classes A, B et C sont des lots suivants : elles
+// (EX-11.6). Les classes A, B et C sont des parties suivantes : elles
 // n'implémentent que l'interface.
 
 import fs from "node:fs";

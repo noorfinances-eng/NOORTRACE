@@ -13,9 +13,11 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	"crypto/subtle"
 	"crypto/x509"
 	"encoding/asn1"
 	"hash"
+	"math/big"
 
 	"golang.org/x/crypto/cryptobyte"
 	casn1 "golang.org/x/crypto/cryptobyte/asn1"
@@ -451,9 +453,77 @@ func (c *cle) verifier(s signature, message, sig []byte) bool {
 	case sigRSAPKCS1:
 		return rsa.VerifyPKCS1v15(c.rsa, s.hash, h, sig) == nil
 	case sigRSAPSS:
+		if s.sel == 0 {
+			// saltLength déclaré 0 : longueur du sel exigée égale, 0
+			// compris. Pour crypto/rsa, SaltLength 0 vaut PSSSaltLengthAuto
+			// (toute longueur de sel) : une signature au sel de 32 octets
+			// sous des paramètres qui déclarent 0 était acceptée
+			// (CT-6 EX-9.11) ; ce cas est vérifié ici selon RFC 8017 §9.1.2, sLen = 0.
+			return verifierPSSSelVide(c.rsa, s.hash, h, sig)
+		}
 		return rsa.VerifyPSS(c.rsa, s.hash, h, sig, &rsa.PSSOptions{SaltLength: s.sel, Hash: s.hash}) == nil
 	case sigECDSA:
 		return ecdsa.VerifyASN1(c.ecdsa, h, sig)
 	}
 	return false
+}
+
+// mgf1 : fonction de génération de masque MGF1 (RFC 8017 annexe B.2.1).
+func mgf1(h crypto.Hash, graine []byte, longueur int) []byte {
+	var out []byte
+	for compteur := uint32(0); len(out) < longueur; compteur++ {
+		x := nouveauHachage(h)
+		x.Write(graine)
+		x.Write([]byte{byte(compteur >> 24), byte(compteur >> 16), byte(compteur >> 8), byte(compteur)})
+		out = x.Sum(out)
+	}
+	return out[:longueur]
+}
+
+// verifierPSSSelVide applique RSASSA-PSS-VERIFY (RFC 8017 §8.1.2) puis
+// EMSA-PSS-VERIFY (§9.1.2) avec une longueur de sel sLen = 0 exactement :
+// mHash est l'empreinte du message, h la fonction d'empreinte (égale à
+// celle de MGF1, EX-9.11). Toute autre longueur de sel rend faux.
+func verifierPSSSelVide(k *rsa.PublicKey, h crypto.Hash, mHash, sig []byte) bool {
+	hLen := h.Size()
+	if len(mHash) != hLen || len(sig) != (k.N.BitLen()+7)/8 {
+		return false
+	}
+	s := new(big.Int).SetBytes(sig)
+	if s.Cmp(k.N) >= 0 {
+		return false
+	}
+	m := new(big.Int).Exp(s, big.NewInt(int64(k.E)), k.N)
+	emBits := k.N.BitLen() - 1
+	emLen := (emBits + 7) / 8
+	if m.BitLen() > emLen*8 || emLen < hLen+2 {
+		return false
+	}
+	em := make([]byte, emLen)
+	m.FillBytes(em)
+	if em[emLen-1] != 0xbc {
+		return false
+	}
+	maskedDB, H := em[:emLen-hLen-1], em[emLen-hLen-1:emLen-1]
+	if bitsHauts := 8*emLen - emBits; maskedDB[0]>>(8-bitsHauts) != 0 {
+		return false
+	}
+	db := mgf1(h, H, emLen-hLen-1)
+	for i := range db {
+		db[i] ^= maskedDB[i]
+	}
+	db[0] &= 0xff >> (8*emLen - emBits)
+	// sLen = 0 : DB = PS ‖ 0x01, PS de emLen − hLen − 2 octets nuls, sel vide.
+	for _, b := range db[:emLen-hLen-2] {
+		if b != 0 {
+			return false
+		}
+	}
+	if db[emLen-hLen-2] != 0x01 {
+		return false
+	}
+	x := nouveauHachage(h)
+	x.Write(make([]byte, 8))
+	x.Write(mHash)
+	return subtle.ConstantTimeCompare(x.Sum(nil), H) == 1
 }

@@ -1,0 +1,10 @@
+{
+  "valide": false,
+  "controle": "E-7",
+  "controles_en_echec": [
+    "D-1",
+    "E-1",
+    "E-7"
+  ],
+  "description": "Le champ hash de evenement.json de valide-seq-7 est remplacé par l'objet JSON {\"toString\":1} (contenu et signature intacts, SHA-256 de la partie reporté dans l'index, event.hash de l'index inchangé). Un membre toString masque Object.prototype.toString par une valeur non appelable : un vérificateur qui convertit implicitement la valeur en chaîne lève une exception au lieu de rendre un statut (MN-68 ; revue de sécurité). Attendu : invalide, code 1, par les relations dont hash est un terme mal typé (CT-1 §11.4) : D-1 (event.hash de l'index différent de hash), E-1 (schéma), E-7 (hash recalculé différent de hash) ; C-2 et M-1 passent, le hash recalculé ne lisant pas hash. Aucune exception, aucun code 2."
+}

@@ -1,0 +1,38 @@
+{
+  "version": 0,
+  "environment": "developpement",
+  "org": "assureur-demo",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+  "state_dir": "/var/lib/noortrace-approbation",
+  "storage_key": {
+    "env": "NOORTRACE_DEMO_CLE_STOCKAGE_APPROBATION"
+  },
+  "noyau": {
+    "socket": "/run/noortrace/approbation.sock",
+    "socket_mode": "0660",
+    "tcp": null,
+    "tls": null,
+    "token": null
+  },
+  "console": {
+    "socket": "/run/noortrace-console/console.sock",
+    "socket_mode": "0660",
+    "tcp": null,
+    "tls": null,
+    "token": {
+      "env": "NOORTRACE_DEMO_JETON_CONSOLE"
+    },
+    "annuaire": null
+  },
+  "etat": {
+    "host": "127.0.0.1",
+    "port": 8601
+  },
+  "administrators": [
+    "oidc https://idp.assureur-demo.example admin-1"
+  ],
+  "console_origin": "https://console.assureur-demo.example",
+  "notifications": null,
+  "rpc": null
+}

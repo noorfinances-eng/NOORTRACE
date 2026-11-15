@@ -514,7 +514,7 @@ describe("enregistreur, SDK : exigences du point d'entrée (§6.1 à §6.3, §6.
         expect(await lirePiece(d, ev2.execution.result.sha256)).to.deep.equal({ noortrace_flux_incomplet: true });
         expect(ev2.code.model).to.equal(null);
         // Segment de modèle qui déclenche un détecteur : refusé (EX-5.36), code.model null.
-        const e3 = await s.echangeModele({ format: "gemini", providerLabel: "gemini", request: { model: "models/jean@exemple.ch", contents: [] }, response: { candidates: [] }, status: 200, durationMs: 1, isError: false });
+        const e3 = await s.echangeModele({ format: "gemini", providerLabel: "gemini", request: { model: "models/jean@ex.example", contents: [] }, response: { candidates: [] }, status: 200, durationMs: 1, isError: false });
         expect((await d.evenements()).find((x) => x.seq === e3.seq).code.model).to.equal(null);
         // Réponse hors forme (ni objet ni tableau d'objets) : -32602.
         let err = null;
@@ -745,7 +745,9 @@ describe("enregistreur, SDK : exigences du point d'entrée (§6.1 à §6.3, §6.
           service: Object.assign(new ServiceApprobationFactice({ org_id: "0x", journal_id: "0x" }), {
             async evaluer(r) {
               this.enregistrer("evaluer", r);
-              return { rule: "revue", decision: "a_approuver", ticket: null, ticket_state: null, approval: null, approver_set: null };
+              // Décision du porteur du 14 novembre 2026 et son addendum : neuf membres, couple chargé de la version (comme le service factice le garde).
+              const v = r.code.policy_version;
+              return { rule: "revue", decision: "a_approuver", ticket: null, ticket_state: null, approval: null, approver_set: null, policy_version: v, policy_sha256: this.empreintes.get(v) ?? null, approval_sha256: this.condenses.get(v) ?? null };
             },
           }),
           modifier: (c) => {
@@ -841,11 +843,11 @@ describe("enregistreur, SDK : exigences du point d'entrée (§6.1 à §6.3, §6.
     });
   });
 
-  // Défauts démontrés par la relecture adversariale B des frontaux.
-  describe("relecture B : non-régression du point d'entrée SDK", function () {
+  // Défauts démontrés par la relecture adversariale des frontaux.
+  describe("relecture adversariale des frontaux : non-régression du point d'entrée SDK", function () {
     const req = (id, m, p) => new TextEncoder().encode(JSON.stringify({ jsonrpc: "2.0", id, method: "noortrace/sdk/" + m, params: p }));
 
-    it("R-B-7 (EX-6.13, EX-12.15) : connexion perdue pendant un debutAppel d'écriture : l'intention écrite après la clôture est reprise à chaud", async function () {
+    it("EX-6.13, EX-12.15 : connexion perdue pendant un debutAppel d'écriture : l'intention écrite après la clôture est reprise à chaud", async function () {
       await avecDemon({}, async (d) => {
         const f = d.sdk.frontal;
         const hote = d.config.sdk.hosts[0];
@@ -862,7 +864,7 @@ describe("enregistreur, SDK : exigences du point d'entrée (§6.1 à §6.3, §6.
       });
     });
 
-    it("R-B-6 (4.4 pas 1, EX-4.47) : lignes au-delà de line_max_bytes comptées ; temps d'analyse d'une requête refusée compté", async function () {
+    it("4.4 pas 1, EX-4.47 : lignes au-delà de line_max_bytes comptées ; temps d'analyse d'une requête refusée compté", async function () {
       await avecDemon({ hotes: [hoteSdk({ quota: { received_bytes_per_minute: 50000 } })], modifier: (c) => (c.limits.line_max_bytes = 4096) }, async (d) => {
         const p = await priseBrute(d.config.sdk.socket);
         for (let k = 0; k < 3; k++) p.envoyer("x".repeat(20000));
@@ -886,7 +888,7 @@ describe("enregistreur, SDK : exigences du point d'entrée (§6.1 à §6.3, §6.
       });
     });
 
-    it("R-B-11 (EX-18.1) : sdk.socket a le mode 0660 dès sa création, sans fenêtre où elle serait plus ouverte", async function () {
+    it("EX-18.1 : sdk.socket a le mode 0660 dès sa création, sans fenêtre où elle serait plus ouverte", async function () {
       const origine = net.Server.prototype.listen;
       const modes = [];
       net.Server.prototype.listen = function (...a) {

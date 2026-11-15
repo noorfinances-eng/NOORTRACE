@@ -590,6 +590,186 @@
       }
     },
     {
+      "id": "tickets-related-eligible",
+      "description": "approbateur-1 désigne apr-0001, dont il est membre éligible : la liste et related sont servis.",
+      "checks": [
+        "AN-10"
+      ],
+      "method": "tickets",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+        "related_to": "apr-0001"
+      },
+      "ticket": {
+        "launched_by": "u.martin@assureur-demo.example",
+        "eligible": [
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+        ]
+      },
+      "expected": {
+        "reason": null
+      }
+    },
+    {
+      "id": "tickets-related-administrateur",
+      "description": "admin-1 désigne apr-0001 : la liste et related sont servis.",
+      "checks": [
+        "AN-10"
+      ],
+      "method": "tickets",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "related_to": "apr-0001"
+      },
+      "ticket": {
+        "launched_by": "u.martin@assureur-demo.example",
+        "eligible": [
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+        ]
+      },
+      "expected": {
+        "reason": null
+      }
+    },
+    {
+      "id": "tickets-related-non-eligible",
+      "description": "u.martin, à qui tickets sans related_to est servi, désigne apr-0001 qu'il ne peut pas voir (cas consulter-demandeur) : session_non_autorisee (point c).",
+      "checks": [
+        "AN-10"
+      ],
+      "method": "tickets",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example u.martin",
+        "related_to": "apr-0001"
+      },
+      "ticket": {
+        "launched_by": "u.martin@assureur-demo.example",
+        "eligible": [
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+        ]
+      },
+      "expected": {
+        "reason": "session_non_autorisee"
+      }
+    },
+    {
+      "id": "tickets-related-ticket-inconnu",
+      "description": "approbateur-1 désigne un ticket inconnu : ticket_inconnu (point b).",
+      "checks": [
+        "AN-10"
+      ],
+      "method": "tickets",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+        "related_to": "apr-0999"
+      },
+      "ticket": null,
+      "expected": {
+        "reason": "ticket_inconnu"
+      }
+    },
+    {
+      "id": "tickets-related-ticket-inconnu-non-eligible",
+      "description": "u.martin désigne un ticket inconnu : ticket_inconnu (point b avant le point c).",
+      "checks": [
+        "AN-10"
+      ],
+      "method": "tickets",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example u.martin",
+        "related_to": "apr-0999"
+      },
+      "ticket": null,
+      "expected": {
+        "reason": "ticket_inconnu"
+      }
+    },
+    {
+      "id": "tickets-related-hors-organisation",
+      "description": "Identité sans entrée et hors d'administrators, ticket connu : session_non_autorisee (point a).",
+      "checks": [
+        "AN-10"
+      ],
+      "method": "tickets",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-9",
+        "related_to": "apr-0001"
+      },
+      "ticket": {
+        "launched_by": "u.martin@assureur-demo.example",
+        "eligible": [
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+        ]
+      },
+      "expected": {
+        "reason": "session_non_autorisee"
+      }
+    },
+    {
+      "id": "tickets-related-ticket-inconnu-hors-organisation",
+      "description": "Identité sans entrée, ticket inconnu : session_non_autorisee (point a avant le point b).",
+      "checks": [
+        "AN-10"
+      ],
+      "method": "tickets",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-9",
+        "related_to": "apr-0999"
+      },
+      "ticket": null,
+      "expected": {
+        "reason": "session_non_autorisee"
+      }
+    },
+    {
+      "id": "tickets-related-entree-desactivee",
+      "description": "approbateur-2, entrée désactivée, désigne apr-0001 : session_non_autorisee (point a).",
+      "checks": [
+        "AN-10"
+      ],
+      "method": "tickets",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-2",
+        "related_to": "apr-0001"
+      },
+      "ticket": {
+        "launched_by": "u.martin@assureur-demo.example",
+        "eligible": [
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+        ]
+      },
+      "expected": {
+        "reason": "session_non_autorisee"
+      }
+    },
+    {
+      "id": "tickets-related-identite-invalide",
+      "description": "Identité non canonique : identite_invalide, avant tout autre contrôle.",
+      "checks": [
+        "AN-10"
+      ],
+      "method": "tickets",
+      "request": {
+        "session_identity": "approbateur-1@assureur-demo.example",
+        "related_to": "apr-0001"
+      },
+      "ticket": {
+        "launched_by": "u.martin@assureur-demo.example",
+        "eligible": [
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+        ]
+      },
+      "expected": {
+        "reason": "identite_invalide"
+      }
+    },
+    {
       "id": "voter-ticket-inconnu",
       "description": "approbateur-1 vote avec son adresse active pour un ticket inconnu : ticket_inconnu, après le contrôle d'adresse.",
       "checks": [

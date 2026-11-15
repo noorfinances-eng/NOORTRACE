@@ -1,0 +1,3 @@
+# SDK officiel d'Anthropic pour Python (CT-2 §6.4 : `anthropic` 2.3.0, lu le 2026-10-26) et le client MCP de référence (CT-9 TI-4).
+anthropic==2.3.0
+mcp==2.3.0

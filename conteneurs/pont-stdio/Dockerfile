@@ -1,7 +1,7 @@
 # Image noortrace/pont-stdio (CT-8 EX-3.7, EX-3.8, EX-3.6, EX-3.13) : pont
 # d'un serveur d'outils stdio vers Streamable HTTP, et le serveur de fichiers
-# minimal du pont d'exemple `pont-fichiers` de production.yaml (décision D-13 :
-# écrit dans le dépôt, aucun code tiers). Programmes :
+# minimal du pont d'exemple `pont-fichiers` de production.yaml (écrit dans
+# le dépôt, aucun code tiers). Programmes :
 # conteneurs/pont-stdio/noortrace-pont-stdio.mjs et serveur-fichiers.mjs,
 # modules de Node.js seulement (aucune dépendance npm).
 #

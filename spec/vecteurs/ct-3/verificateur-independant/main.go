@@ -10,7 +10,11 @@
 // depuis la seule spécification (CT-3, et CT-1 pour A, D_A, E-9, le hachage
 // et la signature d'un événement), et confronte. Code de retour 0 si et
 // seulement si tout concorde ; 1 en cas de discordance ou d'erreur ; 2 si
-// l'usage est incorrect ou la racine introuvable (EX-A.10).
+// l'usage est incorrect ou la racine introuvable (EX-A.10). Revue de
+// sécurité de l'étape 8 (CT-9 TA-66) : une famille sans valeur recalculée,
+// ou un cas que l'INDEX.md nomme sans qu'il soit présent (ou l'inverse),
+// est une erreur, code 1 (plancher.go) ; une panne d'une famille est une
+// erreur consignée, jamais une trace de pile.
 
 package main
 
@@ -39,6 +43,7 @@ func main() {
 		os.Exit(2)
 	}
 	rap := VerifierVecteurs(racine)
+	AppliquerPlancherCT3(rap, racine)
 	if *enJSON {
 		if err := rap.EcrireJSON(os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, err)

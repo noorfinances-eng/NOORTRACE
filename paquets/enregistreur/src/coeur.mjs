@@ -1,8 +1,8 @@
 // Cœur du démon `noortrace` (CT-2 §3) : il assemble configuration,
 // signataire, bail, stockage, écrivain unique, reprise, clôture des
 // périodes, fichiers des approbations et supervision, exécute la séquence de
-// démarrage (EX-15.4 pas 5 à 7, EX-9.8), et offre aux frontaux (lots
-// suivants) l'interface décrite dans INTERFACES.md : pièces, scellement d'un
+// démarrage (EX-15.4 pas 5 à 7, EX-9.8), et offre aux frontaux (parties
+// suivantes) l'interface décrite dans INTERFACES.md : pièces, scellement d'un
 // échange, évaluation, retenue, refus, relais en deux temps (intention
 // durable avant relais, événement durable avant réponse), remises, expiration,
 // rotation, clôture, export de dossier, attente du mode dégradé.
@@ -12,7 +12,7 @@ import path from "node:path";
 import { decoderHorodatage, ecrireHorodatage, encoderBase64, sha256Hex, octetsVersHex, referencesEvenement } from "@noortrace/noyau";
 import { ErreurConstruction, ErreurEnregistreur } from "./erreurs.mjs";
 import { JournalExploitation, instanceExploitation } from "./journal-exploitation.mjs";
-import { Metriques, servirSupervision, sante } from "./supervision.mjs";
+import { Metriques, servirSupervision, sante, declarerCompteursDemon, exposerMetriquesDemon } from "./supervision.mjs";
 import { EtatDegrade } from "./degrade.mjs";
 import { ControleurHorloge, HORLOGE_SYSTEME } from "./horloge.mjs";
 import { SignataireVerifie } from "./signataires.mjs";
@@ -27,8 +27,8 @@ import { Ecrivain } from "./ecrivain.mjs";
 import { partielAppelOutil, partielDecision, partielEchange, partielPolitique, partielPiecesPerdues, repriseDeRetenue } from "./capture.mjs";
 import { evaluerEffets } from "./effets.mjs";
 import {
-  FichiersApprobations, ErreurServiceApprobation, approvalExpiration, delaiExpiration, macRelais, validerReponseEvaluer,
-  verifierRelais, verifierRemise, E_MAX_MS, ligneRemise,
+  FichiersApprobations, ErreurServiceApprobation, approvalExpiration, delaiExpiration, macRelais, validerReponseEvaluer, condenseApproval,
+  verifierRelais, verifierRemise, E_MAX_MS, ligneRemise, peutAutoriserOutil,
 } from "./approbations.mjs";
 import { decisionPolitique, echeanceExpiration, rotationDue } from "./lui-meme.mjs";
 import { exporterDossier } from "./dossier.mjs";
@@ -62,6 +62,40 @@ const RAISONS_SERVICE = new Set([
   "recuse", "motif_trop_long", "plafond_atteint", "vote_identique", "retrait_non_autorise",
 ]);
 
+/**
+ * Efface les secrets résolus (EX-18.7) : chaque tampon est écrasé de zéros
+ * et la table vidée ; une valeur qui n'est pas un tampon est seulement retirée.
+ * @param {Map<string, Uint8Array>|null|undefined} secrets
+ */
+export function effacerSecrets(secrets) {
+  if (!(secrets instanceof Map)) return;
+  for (const v of secrets.values()) {
+    if (v instanceof Uint8Array) v.fill(0);
+  }
+  secrets.clear();
+}
+
+/** Remises refusées dont la clé est gardée pour ne consigner qu'une ligne d'erreur (CT-2 EX-7.19). */
+const REMISES_REFUSEES_MAX = 10000;
+
+/**
+ * Forme d'une réponse `charger` de CT-3 §12 (EX-7.14 : « une réponse hors des
+ * formes vaut une erreur du service » ; étape 8) : `approval_candidates`
+ * est un tableau de noms d'outils (chaînes, 256 caractères au plus, 100 000 au plus).
+ * @param {unknown} r
+ * @returns {string|null} défaut de forme, ou null
+ */
+export function defautFormeCharger(r) {
+  if (r === null || typeof r !== "object") return "reponse_non_objet";
+  const c = r.approval_candidates;
+  if (!Array.isArray(c)) return "approval_candidates_absent";
+  if (c.length > 100000) return "approval_candidates_trop_nombreux";
+  if (c.some((x) => typeof x !== "string" || x.length === 0 || x.length > 256)) return "approval_candidates_hors_forme";
+  // Addendum (CT-3 §12.2) : la réponse de charger porte approval_sha256, hex 32 octets.
+  if (typeof r.approval_sha256 !== "string" || !/^0x[0-9a-f]{64}$/.test(r.approval_sha256)) return "approval_sha256_hors_forme";
+  return null;
+}
+
 export class Coeur {
   /**
    * Démarre le cœur sur une configuration validée (pas 1 à 3 faits) dont les
@@ -76,6 +110,8 @@ export class Coeur {
    * @param {import("./approbations.mjs").ServiceApprobation|null} [o.service]
    * @param {import("./ancrage.mjs").ComposantAncrage|null} [o.ancrage]
    * @param {import("./worm.mjs").SupportWorm|null} [o.worm]
+   * @param {{image_expected: string, expected_code_sha256: string, code_sha256: string, image_match: boolean}|null} [o.image]
+   *   image attendue et empreinte du code en cours (`controlerImage`, CT-7 EX-3.14, PA-4), consignées à la ligne `startup`
    * @param {(periodStart: number) => string} [o.nonce]
    * @param {boolean} [o.minuteurs] tic, remises et expirations par minuteur (démon)
    * @param {boolean} [o.supervision] servir /healthz, /readyz, /metrics
@@ -84,7 +120,7 @@ export class Coeur {
    * @param {(coeur: Coeur) => Promise<void>|void} [o.surAttente] appelé une fois à l'entrée en
    *   instance passive (le démon y ouvre ses frontaux, qui rendent `-31010 bail_non_detenu`)
    * @param {{redigerMotif?: (motif: string|null) => string|null,
-   *   executerExtract?: (motif: string, texte: string) => string|null}} [o.redaction] crochets du lot de rédaction
+   *   executerExtract?: (motif: string, texte: string) => string|null}} [o.redaction] crochets de la partie rédaction
    * @returns {Promise<Coeur>}
    */
   static async demarrer(o) {
@@ -117,7 +153,8 @@ export class Coeur {
   constructor(o) {
     this.o = o;
     this.config = o.config;
-    this.secrets = o.secrets ?? new Map();
+    // Copies propres des secrets résolus (EX-18.7 ; étape 8) : effacées à l'arrêt ; la table de l'appelant reste à lui.
+    this.secrets = new Map([...(o.secrets ?? new Map())].map(([k, v]) => [k, v instanceof Uint8Array ? new Uint8Array(v) : v]));
     this.horlogeBrute = o.horloge ?? HORLOGE_SYSTEME;
     /** Instant du démarrage (horloge murale) : une demande antérieure est périmée (CT-2 EX-15.10, pas 5). */
     this.instantDemarrage = this.horlogeBrute.murale();
@@ -125,6 +162,8 @@ export class Coeur {
     this.journal_id = this.config.recorder.journal_id;
     this.repertoire = path.join(this.config.storage.root, sansPrefixe(this.org_id), sansPrefixe(this.journal_id));
     this.metriques = new Metriques();
+    // Métriques de CT-2 §17.2 et de CT-5 EX-8.15 déclarées dès le démarrage ; compteurs à étiquettes énumérées à 0 (CT-2 §17.2).
+    declarerCompteursDemon(this.metriques, this.config);
     const ops = this.config.supervision.ops_log;
     this.journal = new JournalExploitation({
       chemin: ops.path,
@@ -139,9 +178,19 @@ export class Coeur {
       metriques: this.metriques,
     });
     this.degrade = new EtatDegrade(this.journal, this.metriques, () => this.horlogeBrute.murale());
-    this.horloge = new ControleurHorloge(this.horlogeBrute, this.config.clock, this.degrade, this.journal);
+    this.horloge = new ControleurHorloge(this.horlogeBrute, this.config.clock, this.degrade, this.journal, this.metriques);
     this.service = o.service ?? null;
     this.candidats = null;
+    /**
+     * État du `charger` de la version épinglée (EX-7.15, révision 0.8) :
+     * { version, statut: "en_cours" | "reussi" | "refuse", code }. Tant qu'il
+     * n'est pas `reussi` pour la version épinglée, rien n'est évalué (`evaluer`).
+     */
+    this.chargerEtat = null;
+    /** Clés `remise_id|vérification|raison` des remises déjà refusées et consignées (CT-2 EX-7.19), bornées. */
+    this.remisesRefusees = new Set();
+    /** Empreintes `remise_id|sha256(message)` des remises inscrites par ce processus (une représentation n'est pas réinscrite). */
+    this.remisesInscrites = new Set();
     this.relaisEnCours = new Set();
     /** `sha256` des `requestState` dont une continuation MRTR a passé RL-3 et n'est pas finie (EX-4.21, RL-3). */
     this.continuationsEnCours = new Set();
@@ -192,7 +241,7 @@ export class Coeur {
       }
     }
     this.signataire = new SignataireVerifie(backend, cfg.signer, { metriques: this.metriques, journal: this.journal });
-    // Bail (13) : magasin `file`, `postgresql` ou `etcd` (lot de haute disponibilité).
+    // Bail (13) : magasin `file`, `postgresql` ou `etcd` (partie de haute disponibilité).
     this.bail = this.o.bail ?? magasinBailDepuisConfiguration(cfg, this.secrets);
     this.bail.lier?.(this);
     const epoque = await this._acquerirBail();
@@ -273,7 +322,7 @@ export class Coeur {
       prefixeWorm: cfg.storage.seal.worm?.prefix ?? "",
     });
     await this.ecrivain.demarrer({ ...etat, cleCourante }, epoque);
-    // Composant d'ancrage de CT-5 branché (lot F2, `anchoring.ancrage`) : contexte construit depuis le stockage et
+    // Composant d'ancrage de CT-5 branché (`anchoring.ancrage`) : contexte construit depuis le stockage et
     // l'époque du bail, démarré ici, avant les remises de la reprise ; une configuration refusée (AN-1, secrets)
     // ne bloque jamais le démarrage (CT-5 EX-4.8 ; 14.2) : `lier` consigne et ne lève pas.
     if (typeof this.o.ancrage?.lier === "function") {
@@ -326,7 +375,7 @@ export class Coeur {
       return;
     }
 
-    // Pas 7 : startup, puis ouverture (supervision ; les frontaux sont des lots suivants).
+    // Pas 7 : startup, puis ouverture (supervision ; les frontaux sont des parties suivantes).
     this.journal.consigner("info", "noyau", "startup", {
       config_sha256: this.o.octetsConfig ? sha256Hex(this.o.octetsConfig) : null,
       class: this.signataire.classe,
@@ -335,8 +384,22 @@ export class Coeur {
       servers: Object.keys(cfg.policy.servers ?? {}),
       model_mode: cfg.model.mode,
       epoch: epoque,
+      // CT-7 EX-3.14, PA-4 : image attendue (lue dans le fichier que l'orchestrateur monte), empreinte calculée du code
+      // en cours, concordance ; nuls sans `--image-attendue`.
+      image_expected: this.o.image?.image_expected ?? null,
+      code_sha256: this.o.image?.code_sha256 ?? null,
+      image_match: this.o.image?.image_match ?? null,
     });
+    // Écart entre le code en cours et celui de l'image attendue (MN-25) : signalé, sans refus de démarrer.
+    if (this.o.image && this.o.image.image_match !== true) {
+      this.journal.consigner("error", "noyau", "image_mismatch", { image_expected: this.o.image.image_expected, expected_code_sha256: this.o.image.expected_code_sha256, code_sha256: this.o.image.code_sha256 });
+    }
     this.metriques.jauge("noortrace_build_info", { version: VERSION_ENREGISTREUR, protocol_versions: "2026-07-28" }, 1);
+    // CT-2 EX-18.7 (étape 8) : sans module natif, le démon
+    // ne demande ni `mlockall` ni `prctl(PR_SET_DUMPABLE, 0)` ; l'avertissement
+    // qu'EX-18.7 prescrit « quand le déploiement ne le permet pas » est consigné
+    // au démarrage, et le fichier de composition pose `ulimits core: 0` (CT-8).
+    this.journal.consigner("warning", "noyau", "memory_protection_unavailable", { mlockall: false, dumpable_cleared: false, reason: "aucun module natif en version 0 (CT-2 §21)" });
     this.pret = true;
     await this._servirSupervision();
     if (this.o.minuteurs) this._armerMinuteurs();
@@ -468,9 +531,15 @@ export class Coeur {
       etat: () => this.etatSante(),
       pret: () => this.pret && this.bailDetenu && !this.passif,
       metriques: this.config.supervision.metrics
-        ? { exposer: () => this.metriques.exposer() + (typeof this.o.ancrage?.metriques === "function" ? this.o.ancrage.metriques() : "") }
+        ? { exposer: () => exposerMetriquesDemon(this.metriques, typeof this.o.ancrage?.metriques === "function" ? this.o.ancrage.metriques() : "") }
         : null,
     });
+    // Étape 8 (CT-2 EX-18.1) : une connexion qui n'envoie pas sa requête ne retient
+    // ni le serveur ni l'arrêt ; connexions bornées (les points sont publics, EX-18.3).
+    this.serveur.headersTimeout = 5000;
+    this.serveur.requestTimeout = 10000;
+    this.serveur.keepAliveTimeout = 5000;
+    this.serveur.maxConnections = 256;
   }
 
   _armerMinuteurs() {
@@ -838,6 +907,21 @@ export class Coeur {
   }
 
   /**
+   * Ensemble de politique d'une version que le noyau détient (EX-7.16,
+   * révision 0.8) : l'ensemble épinglé (`config.policy`), ou celui d'une
+   * version annoncée gardée pour un appel en cours ou un ticket actif
+   * (`politiquesParVersion`, EX-15.5) ; null sinon. Son empreinte (EX-8.11)
+   * est celle que `_charger` a déclarée au service.
+   * @param {unknown} version
+   * @returns {object|null}
+   */
+  _politiqueDetenue(version) {
+    if (typeof version !== "string") return null;
+    if (version === this.config.policy?.version) return this.config.policy;
+    return this.politiquesParVersion.get(version) ?? null;
+  }
+
+  /**
    * Message `evaluer` (EX-7.4) et validation de la réponse (EX-7.16). Une
    * réponse invalide, une erreur ou l'absence du service lèvent
    * ErreurEnregistreur(`approbation`) ; le frontal applique la matrice de 14.2.
@@ -853,6 +937,17 @@ export class Coeur {
     const delai = this.config.policy.approval?.timeout_ms ?? 2000;
     let r;
     for (let essai = 0; essai < 2; essai++) {
+      // EX-7.15 (révision 0.8, addendum) : rien n'est évalué tant que le charger de la version épinglée
+      // n'a pas réussi (réponse conforme, approval_sha256 égal), ni sous une version dont le charger a été
+      // refusé (requete_invalide) ou a répondu avec un condensé différent : service tenu pour indisponible
+      // (14.2 : -31010, raison approbation, pour toute écriture et tout outil susceptible ; en observation,
+      // relais marqué inconnu par le moteur).
+      const etat = this.chargerEtat;
+      if (!etat || etat.version !== this.versionPolitique || etat.statut !== "reussi") {
+        const statut = etat && etat.version === this.versionPolitique ? etat.statut : "absent";
+        this.journal.consigner("warning", "politique", "approval_charger_refuse", { policy_version: this.versionPolitique ?? null, statut, code: etat?.code ?? null, message: "evaluer" });
+        throw new ErreurEnregistreur("approbation", "noortrace: service d'approbation indisponible", { donnees: { raison: "approval_charger_refuse", statut } });
+      }
       let minuteur;
       try {
         // EX-7.4 : réponse dans policy.approval.timeout_ms, sinon service indisponible.
@@ -879,10 +974,43 @@ export class Coeur {
         clearTimeout(minuteur);
       }
     }
-    const v = validerReponseEvaluer(r, { decisionScellee: (t) => this._decisionScellee(t), observation });
+    // EX-7.16 (révision 0.8), EX-7.23 : huit membres, puis la réponse doit être rendue sous une politique que
+    // le noyau a lui-même épinglée (version détenue, empreinte déclarée au charger, version de la requête ou
+    // de la retenue du ticket rapproché) ; sinon approval_response_invalid, raison politique_non_epinglee.
+    const v = validerReponseEvaluer(r, {
+      decisionScellee: (t) => this._decisionScellee(t),
+      observation,
+      versionRequete: typeof requete?.code?.policy_version === "string" ? requete.code.policy_version : null,
+      politique: (version) => this._politiqueDetenue(version),
+      versionRetenue: (ticket) => this.index.retenues.get(ticket)?.[0]?.code?.policy_version ?? null,
+    });
     if (!v.valide) {
-      this.journal.consigner("warning", "politique", "approval_response_invalid", { raison: v.raison });
+      this.journal.consigner("warning", "politique", "approval_response_invalid", { raison: v.raison, ...(v.detail ? { detail: v.detail } : {}) });
       throw new ErreurEnregistreur("approbation", "noortrace: service d'approbation indisponible", { donnees: { raison: v.raison } });
+    }
+    // Défense en profondeur (CT-2 EX-7.15, EX-7.16, EX-14.1, TQ-1, CT-3 EX-12.5) :
+    // hors observation, ne pas se fier à une réponse `autorise`/`null` pour une
+    // ÉCRITURE quand (a) le service a lui-même déclaré l'outil dans les
+    // CANDIDATS du dernier `charger` réussi (`candidats.liste`, EX-7.15 : ce que
+    // le noyau connaît de la politique ; preuve positive, et non la convention
+    // prudente de `susceptible`, qui tient tout outil pour susceptible quand la
+    // liste manque) ET (b) la politique épinglée (`config.policy`) ne peut
+    // JAMAIS l'autoriser (toujours soumis à approbation ou interdit). Les deux
+    // conditions ensemble ne refusent qu'un `autorise` qu'aucun service honnête
+    // de cette version ne produirait et que ce service a contredit : une lecture
+    // passante (14.2 colonne L), un outil autorisable sous condition (seuil,
+    // fenêtre : (b) faux) et un outil qu'aucune liste ne nomme ((a) faux)
+    // passent. Le cas des outils autorisables sous condition est fermé par la
+    // vérification de la politique épinglée ci-dessus (CT-3 §12.3, révision 0.5 :
+    // `policy_version` et `policy_sha256` dans la réponse). L'appel n'est pas
+    // relayé.
+    if (!observation && requete?.class === "ecriture" && r.decision === "autorise" && r.ticket === null && r.ticket_state === null
+      && typeof requete?.tool_announced === "string"
+      && this.candidats?.liste.has(requete.tool_announced) === true
+      && !peutAutoriserOutil(this.config.policy?.approval?.rules, requete.tool_announced)) {
+      this.journal.consigner("error", "politique", "approval_autorise_rejete_politique_epinglee",
+        { tool_announced: requete.tool_announced, rule: r.rule ?? null, policy_version: this.versionPolitique ?? null });
+      throw new ErreurEnregistreur("approbation", "noortrace: service d'approbation indisponible", { donnees: { raison: "autorise_incoherent_politique_epinglee" } });
     }
     return r;
   }
@@ -899,7 +1027,7 @@ export class Coeur {
   }
 
   /**
-   * Message `charger` (EX-7.15) ; `tools` vient du frontal MCP (lot suivant)
+   * Message `charger` (EX-7.15) ; `tools` vient du frontal MCP (partie suivante)
    * par `definirOutils`.
    */
   async _charger(attendreReponse = false) {
@@ -916,18 +1044,41 @@ export class Coeur {
     // CT-3 EX-12.5 : tant que le noyau n'a pas la liste, tout outil est susceptible).
     const generation = (this._generationCharger = (this._generationCharger ?? 0) + 1);
     const requete = { org_id: this.org_id, journal_id: this.journal_id, environment: this.config.recorder.environment, policy_version: emp.policy_version, policy_sha256: emp.policy_sha256, approval, tools: outils, requesters };
+    // Condensé du membre approval envoyé (EX-7.16, addendum) : la réponse de charger doit le reporter.
+    const condenseEnvoye = condenseApproval(approval);
+    // EX-7.15 (révision 0.8) : l'état du charger de la version épinglée ; un nouvel envoi pour la même
+    // version (liste d'outils changée) ne remet pas en cause un succès acquis, un refus le remplace.
+    if (!this.chargerEtat || this.chargerEtat.version !== emp.policy_version) this.chargerEtat = { version: emp.policy_version, statut: "en_cours", code: null };
+    const refuser = (code) => {
+      this.chargerEtat = { version: emp.policy_version, statut: "refuse", code };
+      this.journal.consigner("error", "politique", "approval_charger_refuse", { policy_version: emp.policy_version, code, message: "charger" });
+    };
     const essai = async () => {
       if (generation !== this._generationCharger) return true;
       try {
         const r = await this.service.charger(requete);
         if (generation !== this._generationCharger || this.config.policy.version !== emp.policy_version) return true;
         if (r.policy_version !== emp.policy_version || r.policy_sha256 !== emp.policy_sha256) throw new Error("charger : version ou empreinte différente");
+        // EX-7.14 : une réponse hors de la forme de CT-3 §12 est une
+        // erreur du service, jamais adoptée : tout outil envoyé reste susceptible.
+        const defaut = defautFormeCharger(r);
+        if (defaut) throw Object.assign(new Error(`charger : réponse hors des formes de CT-3 §12 (${defaut})`), { code: `hors_forme:${defaut}` });
+        // Addendum : approval_sha256 de la réponse égal au condensé du membre approval envoyé ; sinon le
+        // charger est tenu pour échoué (refus consigné), jamais adopté, et rien n'est évalué sous cette version.
+        if (r.approval_sha256 !== condenseEnvoye) {
+          refuser("approval_sha256_different");
+          return true;
+        }
         this.candidats = { envoyes: new Set(outils.map((t) => t.tool_announced)), liste: new Set(r.approval_candidates) };
+        this.chargerEtat = { version: emp.policy_version, statut: "reussi", code: null };
         this.journal.consigner("info", "politique", "approval_candidates", { candidates: r.approval_candidates });
         return true;
       } catch (e) {
         if (generation !== this._generationCharger) return true;
         this.journal.consigner("warning", "politique", "approval_service_unavailable", { message: "charger", code: e?.code ?? null });
+        // EX-7.15 (addendum) : un charger refusé par le service (requete_invalide) n'est pas réessayé ;
+        // rien n'est évalué sous cette version tant qu'un charger n'a pas réussi.
+        if (e instanceof ErreurServiceApprobation && e.code === "requete_invalide") refuser("requete_invalide");
         // CT-3 12.7 : sans réponse, nouvel essai ; une erreur du service est une réponse (EX-7.15).
         return e instanceof ErreurServiceApprobation && RAISONS_SERVICE.has(e.code);
       }
@@ -1074,7 +1225,11 @@ export class Coeur {
     const continuation = ticket ? o.continuation ?? null : null;
     if (ticket) {
       const mac = macRelais(this.cleMac, o.argumentsEnClair);
-      const intentionsOuvertes = new Set([...this.relaisEnCours]);
+      // RL-3 (EX-7.21 ; étape 8) : « aucune intention
+      // ouverte ne porte ce ticket » et « événements en attente compris » : les
+      // relais en cours, les événements de la file d'attente (panne du pas 12,
+      // -31017) et les intentions relues au démarrage non encore levées.
+      const intentionsOuvertes = new Set([...this.relaisEnCours, ...this._ticketsEnAttenteEtIntentions()]);
       const v = verifierRelais(
         {
           ticket,
@@ -1138,6 +1293,27 @@ export class Coeur {
     if (!relais.ticket) return;
     if (relais.continuation) this.continuationsEnCours.delete(relais.continuation);
     else this.relaisEnCours.delete(relais.ticket);
+  }
+
+  /**
+   * Tickets portés par un événement en attente (EX-14.8) ou par une intention
+   * relue au démarrage et non encore levée (reprise différée) : exclus par RL-3
+   * tant que leur premier `executee` n'est pas durable (étape 8).
+   * @returns {Set<string>}
+   */
+  _ticketsEnAttenteEtIntentions() {
+    const tickets = new Set();
+    for (const x of this.attente) {
+      const t = x.ticketRelais ?? x.partiel?.approval?.ticket ?? x.partiel?.policy?.ticket ?? null;
+      if (typeof t === "string") tickets.add(t);
+    }
+    const relues = this._intentionsRelues;
+    if (relues) {
+      for (const i of relues.intentions ?? []) {
+        if (!relues.levees?.has(i.intention.intent_id) && typeof i.intention.ticket === "string") tickets.add(i.intention.ticket);
+      }
+    }
+    return tickets;
   }
 
   /**
@@ -1298,9 +1474,11 @@ export class Coeur {
       }
       return e;
     } catch (err) {
-      this._libererRelais(relais);
+      // Étape 8 : le ticket n'est pas libéré ici ; son premier
+      // `executee` n'est pas durable (en attente, ou intention restée ouverte) :
+      // RL-3 le tient exclu jusqu'au scellement (`viderAttente`) ou à la reprise.
       if (err instanceof ErreurEnregistreur || err instanceof ErreurConstruction) {
-        this.mettreEnAttente(partiel, [r.resultat], { intent_id: relais.intention?.intent_id ?? null, host: a.host?.id ?? null, genre: "appel" });
+        this.mettreEnAttente(partiel, [r.resultat], { intent_id: relais.intention?.intent_id ?? null, host: a.host?.id ?? null, genre: "appel", ticketRelais: relais.ticket ?? null, continuation: relais.continuation ?? null });
         this.metriques.compter("noortrace_calls_executed_not_durable_total", { class: a.class });
         this.journal.consigner("error", "noyau", "call_executed_not_durable", { intent_id: relais.intention?.intent_id ?? null });
         throw new ErreurEnregistreur(err.raison ?? "stockage", "noortrace: appel execute, evenement non durable", { code: -31017, cause: err });
@@ -1396,9 +1574,20 @@ export class Coeur {
       this.journal.consigner("warning", "politique", "approval_deferred", {});
       return envoyer({ ...acq, result: "temporaire", reason: "mode_degrade" });
     }
-    if (ligneRemise(remise)) {
+    // Étape 8 (CT-2 EX-7.19) : une remise déjà inscrite (même `remise_id` pour ce
+    // ticket : représentation après un `acquitter` en échec, CT-3 T12) n'est pas
+    // réinscrite ; le fichier des approbations et la table en mémoire ne
+    // croissent pas avec les présentations.
+    // La clé est le `remise_id` **et** le contenu (empreinte du message) : une remise
+    // de même `remise_id` mais d'un autre contenu (service fautif) reste inscrite,
+    // seule la représentation du même message ne l'est pas ; table propre au processus, bornée.
+    const empreinteRemise = ligneRemise(remise) ? `${remise.remise_id}|${sha256Hex(new TextEncoder().encode(JSON.stringify(remise)))}` : null;
+    const dejaInscrite = empreinteRemise !== null && this.remisesInscrites.has(empreinteRemise);
+    if (ligneRemise(remise) && !dejaInscrite) {
       try {
         await this.approbations.inscrireRemise(remise);
+        if (this.remisesInscrites.size >= REMISES_REFUSEES_MAX) this.remisesInscrites.delete(this.remisesInscrites.keys().next().value);
+        this.remisesInscrites.add(empreinteRemise);
       } catch (e) {
         if (e instanceof ErreurEnregistreur && e.raison === "stockage") {
           // EX-7.19 pas 2 : échec d'écriture du fichier des approbations → mode
@@ -1413,7 +1602,16 @@ export class Coeur {
     const politique = (v) => this.politiquesParVersion.get(v) ?? null;
     const v = verifierRemise(remise, { index: this.index, org_id: this.org_id, journal_id: this.journal_id, instant: this.horlogeBrute.murale(), politique });
     const refuser = (verification, raison, deja) => {
-      this.journal.consigner("error", "politique", "approval_remise_refused", { check: verification, raison });
+      // Une ligne d'erreur par `remise_id` refusé (CT-2 EX-7.19) : les présentations
+      // suivantes de la même remise sont comptées, consignées en `debug`.
+      const cle = `${remise?.remise_id ?? ""}|${verification}|${raison}`;
+      if (this.remisesRefusees.has(cle)) {
+        this.journal.consigner("debug", "politique", "approval_remise_refused", { check: verification, raison, repeated: true });
+      } else {
+        if (this.remisesRefusees.size >= REMISES_REFUSEES_MAX) this.remisesRefusees.delete(this.remisesRefusees.values().next().value);
+        this.remisesRefusees.add(cle);
+        this.journal.consigner("error", "politique", "approval_remise_refused", { check: verification, raison });
+      }
       this.metriques.compter("noortrace_approval_remises_refused_total", { check: verification });
       const x = { ...acq, result: "refuse", reason: raison };
       if (deja) Object.assign(x, { seq: deja.seq, hash: deja.hash, at: deja.approval.at, decision: deja.approval.decision, approval: deja.approval });
@@ -1527,8 +1725,8 @@ export class Coeur {
 
   /**
    * Rotation de clé (EX-11.15, EX-11.16) vers une clé que le signataire
-   * détient ; la nouvelle paire est inscrite au registre avant (CT-4, lot
-   * suivant).
+   * détient ; la nouvelle paire est inscrite au registre avant (CT-4, partie
+   * suivante).
    * @param {string} nouvelleCle
    * @returns {Promise<object>}
    */
@@ -1838,7 +2036,8 @@ export class Coeur {
     this.compteurAttente++;
     const pending_id = `p-${String(this.ecrivain?.epoque ?? 0).padStart(20, "0")}-${String(this.compteurAttente).padStart(12, "0")}`;
     const captured_at = o.captured_at ?? this.horlogeBrute.murale();
-    this.attente.push({ pending_id, captured_at, partiel, pieces, intent_id: o.intent_id ?? null, host: o.host ?? null, genre: o.genre ?? "appel" });
+    // `ticketRelais` : ticket d'un relais dont l'événement attend (CT-2 RL-3) ; libéré au scellement.
+    this.attente.push({ pending_id, captured_at, partiel, pieces, intent_id: o.intent_id ?? null, host: o.host ?? null, genre: o.genre ?? "appel", ticketRelais: o.ticketRelais ?? null, continuation: o.continuation ?? null });
     this._jaugesAttente();
     this._ecrireAttente({ pending_id, captured_at: ecrireHorodatage(captured_at), event: partiel, pieces: pieces.map((p) => p.sha256), intent_id: o.intent_id ?? null });
     return pending_id;
@@ -1892,6 +2091,11 @@ export class Coeur {
         // Scellé depuis l'attente, démon en marche : inscrit au registre de
         // recouvrement comme tout appel ou échange scellé (EX-6.34, lecture 125).
         if (x.host) this._notifierScelle({ genre: x.genre, host: x.host, appel: null, evenement: e });
+        // Premier `executee` du ticket durable : il quitte l'exclusion de RL-3 ; l'index le tient désormais.
+        if (x.ticketRelais) {
+          this._libererRelais({ ticket: x.ticketRelais, continuation: x.continuation ?? null });
+          if (this.index.premiersExecutes.get(x.ticketRelais)?.seq === e.seq) this._consommer(x.ticketRelais, e);
+        }
         n++;
         maxDelai = Math.max(maxDelai, this.horlogeBrute.murale() - x.captured_at);
       } catch {
@@ -2204,7 +2408,7 @@ export class Coeur {
       generated_at: this.horlogeBrute.murale(),
       clePublique: (id) => this.signataire.clePubliqueHex(id),
       jeuDecision: (d) => this.approbations.jeuDecision(d),
-      // Ancrage branché (lot F2) : ancres du point couvrant, parties du registre, jeton-rfc3161.der, preuve.ots (CT-5 §10).
+      // Ancrage branché : ancres du point couvrant, parties du registre, jeton-rfc3161.der, preuve.ots (CT-5 §10).
       exportateur: typeof this.o.ancrage?.exporterDossier === "function" && this.o.ancrage.demarre ? this.o.ancrage : null,
     });
     const d = r.dossier;
@@ -2271,13 +2475,25 @@ export class Coeur {
     this.controles?.arreter();
     this.politique?.arreter();
     for (const t of this.minuteurs) clearInterval(t);
-    if (this.serveur) await new Promise((r) => this.serveur.close(() => r()));
+    // Étape 8 (CT-2 EX-18.1) : l'écrivain, le composant d'ancrage, les fichiers des
+    // approbations et le bail sont fermés avant le serveur de santé, dont
+    // toutes les connexions sont coupées : une requête ouverte et muette ne
+    // retient plus l'arrêt (bail non rendu, ligne `shutdown` absente).
     if (this.ecrivain) await this.ecrivain.fermer().catch(() => {});
     if (typeof this.o.ancrage?.arreter === "function") await this.o.ancrage.arreter().catch(() => {});
     await this.approbations?.fermer();
     await this.bail?.liberer();
     this.bailDetenu = false;
+    if (this.serveur) {
+      this.serveur.closeAllConnections?.();
+      await new Promise((r) => this.serveur.close(() => r()));
+    }
     this.signataire?.backend?.effacer?.();
+    // CT-2 EX-18.7 (étape 8) : tous les secrets résolus
+    // (clé du MAC de relais, clé de pseudonymisation, jetons d'hôtes, clés des
+    // fournisseurs) sont effacés à l'arrêt, pas seulement les graines du signataire.
+    effacerSecrets(this.secrets);
+    this.cleMac = null;
     this.journal.consigner("info", "noyau", "shutdown", {});
   }
 }

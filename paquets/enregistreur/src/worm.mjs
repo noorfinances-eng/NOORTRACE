@@ -1,4 +1,4 @@
-// Copies WORM (CT-2 §12.6), en interface seulement dans ce lot. Quand
+// Copies WORM (CT-2 §12.6), en interface seulement dans ce module. Quand
 // `storage.seal.worm` est configuré, chaque segment fermé, chaque manifeste et
 // sa signature, la série des points de chaque période close et, avec
 // `copy_pieces`, les pièces sont copiés vers le support après fermeture, sous
@@ -6,7 +6,7 @@
 // conditionnelle à l'absence de l'objet ; une copie en échec est réessayée
 // par la supervision et ne bloque jamais un appel (14.2). Le registre des
 // copies (EX-12.29), le contrôle du verrou (EX-12.33), le relevé (EX-17.6) et
-// le gel juridique (12.11) relèvent du lot WORM.
+// le gel juridique (12.11) relèvent de la partie WORM.
 
 /**
  * Clé d'objet WORM d'un fichier du journal (EX-12.16) : le préfixe concaténé

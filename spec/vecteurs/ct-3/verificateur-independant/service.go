@@ -217,18 +217,30 @@ type Service struct {
 	OrgID, JournalID string
 	PV               string
 	Charges          map[string]bool
-	E                int64
-	Source           string // registre ou statique
-	Epingle          string // adresse du jeu épinglé par la politique (EX-8.1), "" pour un jeu statique
-	Statique         *Lecture
-	AutoAppr         string
-	Identites        []Identite
-	MaxOuverts       int64
-	Administrateurs  []string // contacts qui peuvent retirer (EX-7.15, 10.3)
-	Repli            *Lecture
-	Tickets          []*Ticket
-	Compteur         int
-	Fenetres         []*Fenetre
+	// Empreintes : l'empreinte que le noyau a déclarée au charger de chaque
+	// version chargée (12.2), recopiée dans chaque réponse evaluer rendue
+	// sous elle (12.3, révision 0.5 ; EX-12.6 : le service ne la calcule
+	// jamais). Dans une trace (A.6), c'est l'empreinte synthétique de la
+	// version (EmpreinteSynthetique).
+	Empreintes map[string]string
+	// Condenses : approval_sha256 de chaque version chargée (12.2, révision
+	// 0.5) : SHA-256 du JCS du membre approval reçu au charger. Dans une
+	// trace, celui de l'approval de trace (ApprovalTrace).
+	Condenses map[string]string
+	// Jeu et séparation de la trace, tels qu'écrits (pour l'approval de trace).
+	JeuJSON, SeparationJSON *Value
+	E                       int64
+	Source                  string // registre ou statique
+	Epingle                 string // adresse du jeu épinglé par la politique (EX-8.1), "" pour un jeu statique
+	Statique                *Lecture
+	AutoAppr                string
+	Identites               []Identite
+	MaxOuverts              int64
+	Administrateurs         []string // contacts qui peuvent retirer (EX-7.15, 10.3)
+	Repli                   *Lecture
+	Tickets                 []*Ticket
+	Compteur                int
+	Fenetres                []*Fenetre
 
 	pas            []*Remise // remises calculées pendant le pas
 	Avertissements []string
@@ -242,6 +254,66 @@ type Resultat struct {
 }
 
 func refus(raison string) Resultat { return Resultat{Accepte: false, Raison: raison} }
+
+// EmpreinteSynthetique rend l'empreinte d'une version de politique dans les
+// traces de l'annexe A.6 : SHA-256 des octets UTF-8 de l'étiquette
+// « ensemble de politique <version> », écrit 0x…. Une trace ne porte aucun
+// ensemble de politique entier ; c'est l'empreinte que le noyau des traces
+// déclare au charger de la version (la version de départ comprise) et que
+// chaque réponse evaluer recopie (12.3, révision 0.5).
+func EmpreinteSynthetique(pv string) string {
+	return Hex0x(SHA256Etiquette("ensemble de politique " + pv))
+}
+
+// ApprovalTrace rend le membre approval que le noyau d'une trace envoie au
+// charger de chaque version (A.6) : { rules, mode: "erreur", hold_timeout_ms:
+// 50000, expire_after_ms: E, timeout_ms: 2000 }, rules étant la politique de
+// trace (version 0, règle par défaut « defaut : revue » de niveau revue et
+// contest_ms 0, aucune règle, le jeu et la séparation de la trace).
+func ApprovalTrace(jeu, separation *Value, e int64) *Value {
+	if jeu == nil {
+		jeu = Nul()
+	}
+	if separation == nil {
+		separation = Nul()
+	}
+	regles := Objet("version", Entier(0),
+		"default", Objet("name", Chaine("defaut : revue"), "description", Nul(), "level", Chaine("revue"), "decision", Nul(), "contest_ms", Entier(0)),
+		"rules", Tableau(), "approver_set", Copier(jeu), "separation", Copier(separation))
+	return Objet("rules", regles, "mode", Chaine("erreur"), "hold_timeout_ms", Entier(50000), "expire_after_ms", Entier(e), "timeout_ms", Entier(2000))
+}
+
+// CondenseApproval rend approval_sha256 (12.2, révision 0.5) : SHA-256, hex
+// 32 octets 0x…, du JCS (RFC 8785, CanoniqueIntegral) du membre approval.
+func CondenseApproval(approval *Value) (string, error) {
+	jcs, err := CanoniqueIntegral(approval)
+	if err != nil {
+		return "", err
+	}
+	return Hex0x(SHA256Etiquette(string(jcs))), nil
+}
+
+// chargerVersion retient une version chargée, l'empreinte que le noyau
+// déclare à son charger (12.2 ; dans une trace, l'empreinte synthétique) et
+// le condensé du membre approval reçu (dans une trace, l'approval de trace).
+func (s *Service) chargerVersion(pv string) {
+	if s.Charges == nil {
+		s.Charges = map[string]bool{}
+	}
+	if s.Empreintes == nil {
+		s.Empreintes = map[string]string{}
+	}
+	if s.Condenses == nil {
+		s.Condenses = map[string]string{}
+	}
+	s.Charges[pv] = true
+	s.Empreintes[pv] = EmpreinteSynthetique(pv)
+	c, err := CondenseApproval(ApprovalTrace(s.JeuJSON, s.SeparationJSON, s.E))
+	if err != nil {
+		s.avertir("approval de trace : %v", err)
+	}
+	s.Condenses[pv] = c
+}
 
 func (s *Service) ticket(id string) *Ticket {
 	for _, t := range s.Tickets {
@@ -633,7 +705,7 @@ func (s *Service) Traiter(kind string, at Instant, d *Value) Resultat {
 			s.Fenetres = nil // EX-4.12 : toute nouvelle version ferme toutes les fenêtres
 		}
 		s.PV = pv
-		s.Charges[pv] = true
+		s.chargerVersion(pv)
 		return Resultat{Accepte: true, Reponse: Objet("policy_version", Chaine(pv))}
 	case "evaluer":
 		return s.evaluer(at, d)
@@ -678,9 +750,15 @@ func (s *Service) cleRapprochement(req *Value) (string, error) {
 	return string(c), err
 }
 
-// reponseEvaluer rend $defs/reponse_evaluer : approver_set n'est non nul que
-// pour ticket_state nouveau (EX-12.6).
-func reponseEvaluer(rule *Value, decision string, ticket, etat *string, approval, jeu *Value) *Value {
+// reponseEvaluer rend $defs/reponse_evaluer (neuf membres, révision 0.5) :
+// approver_set n'est non nul que pour ticket_state nouveau (EX-12.6) ; pv
+// est la version chargée sous laquelle la réponse est rendue (12.3 :
+// code.policy_version de la requête pour une évaluation et un ticket
+// nouveau, la version de création du ticket pour un ticket rapproché,
+// EX-7.21), empreinte celle que le noyau a déclarée au charger de pv,
+// recopiée telle quelle (EX-12.6), et condense l'approval_sha256 calculé par
+// le service au charger de pv (12.2).
+func reponseEvaluer(rule *Value, decision string, ticket, etat *string, approval, jeu *Value, pv, empreinte, condense string) *Value {
 	if approval == nil {
 		approval = Nul()
 	}
@@ -688,7 +766,8 @@ func reponseEvaluer(rule *Value, decision string, ticket, etat *string, approval
 		jeu = Nul()
 	}
 	return Objet("rule", rule, "decision", Chaine(decision), "ticket", ChaineOuNul(ticket),
-		"ticket_state", ChaineOuNul(etat), "approval", approval, "approver_set", jeu)
+		"ticket_state", ChaineOuNul(etat), "approval", approval, "approver_set", jeu,
+		"policy_version", Chaine(pv), "policy_sha256", Chaine(empreinte), "approval_sha256", Chaine(condense))
 }
 
 func (s *Service) evaluer(at Instant, d *Value) Resultat {
@@ -696,7 +775,8 @@ func (s *Service) evaluer(at Instant, d *Value) Resultat {
 	if s.Source == "registre" && s.Repli == nil {
 		return refus("non_pret") // EX-8.3
 	}
-	if !s.Charges[req.Get("code").Get("policy_version").S()] {
+	pvReq := req.Get("code").Get("policy_version").S()
+	if !s.Charges[pvReq] {
 		return refus("politique_inconnue")
 	}
 	cle, err := s.cleRapprochement(req)
@@ -708,35 +788,40 @@ func (s *Service) evaluer(at Instant, d *Value) Resultat {
 		if !t.actif() || t.Cle != cle {
 			continue
 		}
-		// ré-émission reconnue (EX-7.6, table d'EX-7.16)
+		// ré-émission reconnue (EX-7.6, table d'EX-7.16) : rendue sous la
+		// version de création du ticket (EX-7.21), avec l'empreinte de son
+		// charger (12.3, révision 0.5).
 		id := t.ID
 		etat := ""
 		regle := Chaine(t.Regle)
+		emp, cond := s.Empreintes[t.PV], s.Condenses[t.PV]
 		switch t.Etat {
 		case "reserve":
 			etat = "nouveau"
-			return Resultat{Accepte: true, Reponse: reponseEvaluer(regle, "a_approuver", &id, &etat, nil, s.jeuReponseNouveau(t.PV))}
+			return Resultat{Accepte: true, Reponse: reponseEvaluer(regle, "a_approuver", &id, &etat, nil, s.jeuReponseNouveau(t.PV), t.PV, emp, cond)}
 		case "approuve":
 			if !t.Servi { // EX-7.17, T21 : une seule requête reçoit approuve
 				t.Servi = true
 				etat = "approuve"
-				return Resultat{Accepte: true, Reponse: reponseEvaluer(regle, "autorise", &id, &etat, Copier(t.Scelle.Approval), nil)}
+				return Resultat{Accepte: true, Reponse: reponseEvaluer(regle, "autorise", &id, &etat, Copier(t.Scelle.Approval), nil, t.PV, emp, cond)}
 			}
 			etat = "en_attente"
-			return Resultat{Accepte: true, Reponse: reponseEvaluer(regle, "a_approuver", &id, &etat, nil, nil)}
+			return Resultat{Accepte: true, Reponse: reponseEvaluer(regle, "a_approuver", &id, &etat, nil, nil, t.PV, emp, cond)}
 		case "refuse", "expire":
 			etat = t.Etat
-			return Resultat{Accepte: true, Reponse: reponseEvaluer(regle, "refuse", &id, &etat, Copier(t.Scelle.Approval), nil)}
+			return Resultat{Accepte: true, Reponse: reponseEvaluer(regle, "refuse", &id, &etat, Copier(t.Scelle.Approval), nil, t.PV, emp, cond)}
 		default:
 			etat = "en_attente"
-			return Resultat{Accepte: true, Reponse: reponseEvaluer(regle, "a_approuver", &id, &etat, nil, nil)}
+			return Resultat{Accepte: true, Reponse: reponseEvaluer(regle, "a_approuver", &id, &etat, nil, nil, t.PV, emp, cond)}
 		}
 	}
+	// Évaluation et ticket nouveau : rendus sous la version de la requête (12.3).
+	empReq, condReq := s.Empreintes[pvReq], s.Condenses[pvReq]
 	ev := d.Get("evaluation")
 	dec := ev.Get("decision").S()
 	if dec != "a_approuver" {
 		s.consommerFenetre(ev.Get("rule").S(), dec)
-		return Resultat{Accepte: true, Reponse: reponseEvaluer(Copier(ev.Get("rule")), dec, nil, nil, nil, nil)}
+		return Resultat{Accepte: true, Reponse: reponseEvaluer(Copier(ev.Get("rule")), dec, nil, nil, nil, nil, pvReq, empReq, condReq)}
 	}
 	lb := req.Get("delegation").Get("launched_by").S()
 	n := int64(0)
@@ -750,7 +835,7 @@ func (s *Service) evaluer(at Instant, d *Value) Resultat {
 	}
 	// T1
 	s.Compteur++
-	pv := req.Get("code").Get("policy_version").S()
+	pv := pvReq
 	t := &Ticket{ID: fmt.Sprintf("apr-%04d", s.Compteur), Etat: "reserve", Cle: cle, Regle: ev.Get("rule").S(),
 		Ouverture: LireOuverture(ev.Get("opening")), PV: pv, LaunchedBy: lb,
 		AutoAppr: s.AutoAppr, ReserveA: at, Recuses: map[string]bool{}}
@@ -765,7 +850,7 @@ func (s *Service) evaluer(at Instant, d *Value) Resultat {
 	}
 	s.Tickets = append(s.Tickets, t)
 	id, etat := t.ID, "nouveau"
-	return Resultat{Accepte: true, Reponse: reponseEvaluer(Chaine(t.Regle), "a_approuver", &id, &etat, nil, s.jeuReponseNouveau(pv))}
+	return Resultat{Accepte: true, Reponse: reponseEvaluer(Chaine(t.Regle), "a_approuver", &id, &etat, nil, s.jeuReponseNouveau(pv), pv, empReq, condReq)}
 }
 
 // consommerFenetre retire une unité de la fenêtre nommée par la marque

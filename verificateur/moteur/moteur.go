@@ -157,7 +157,7 @@ func Verifier(o Options) (res *Resultat) {
 		// qui n'est pas du JSON, ou du JSON sans forme canonique, rend
 		// l'entrée inutilisable (code 2, entree_illisible) ; la forme
 		// canonique se contrôle avant le schéma.
-		v, err := jsonv.Analyser(l.Octets)
+		v, err := jsonv.AnalyserLimite(l.Octets, entree.LimiteSecondManifeste)
 		if err == nil {
 			if e := jcs.Calculable(v); e != nil {
 				return echec(&Erreur{Genre: "entree_illisible", Message: commun.T("second manifeste sans forme canonique de CT-1 §4 ("+e.Error()+")", "second manifest without CT-1 §4 canonical form ("+e.Error()+")")})
@@ -456,6 +456,17 @@ func (c *calcul) controlesReserves() {
 		if pt != nil && pt.K1 {
 			e.Signataires = append(e.Signataires, pt.KeyID)
 		}
+		// Clés employées par le verdict (EX-12.4, révision 0.9) : l'événement
+		// prouvé, le manifeste, le point de contrôle quand K-1 a réussi.
+		if an.Evenement != nil {
+			e.Employees = append(e.Employees, an.Evenement.Cle())
+		}
+		if an.CleManifeste != "" {
+			e.Employees = append(e.Employees, an.CleManifeste)
+		}
+		if pt != nil && pt.K1 {
+			e.Employees = append(e.Employees, pt.KeyID)
+		}
 		c.n3 = c.anc.VerifierN3(e)
 	}
 }
@@ -479,10 +490,13 @@ func raisonAbsence(p *dossier.Partie) commun.Raison {
 }
 
 // sansEffet : vérifications sans effet sur le statut de leur contrôle quand
-// elles ne sont pas exécutées (EX-6.4, règle 2).
+// elles ne sont pas exécutées (EX-6.4, règle 2). N-3 n'en est plus (EX-12.4,
+// révision 0.9) : non exécutée faute d'une clé employée dans recorders, elle
+// rend le contrôle 6 non exécuté (ancre_absente) ; sous prerequis_en_echec,
+// E-8 porte déjà l'échec du contrôle.
 func sansEffet(id string) bool {
 	switch id {
-	case "T-11", "R-3", "R-10", "R-11", "N-3", "N-4":
+	case "T-11", "R-3", "R-10", "R-11", "N-4":
 		return true
 	}
 	return strings.HasPrefix(id, "K-") || strings.HasPrefix(id, "AT-")

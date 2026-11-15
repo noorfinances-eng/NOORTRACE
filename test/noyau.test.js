@@ -1032,7 +1032,7 @@ describe("Noyau : API publique et refus", function () {
   });
 
   // -------------------------------------------------------------------------
-  // Non-régression des constats de la relecture de l'étape 1. Chaque cas est
+  // Non-régression des défauts relevés par la relecture de l'étape 1. Chaque cas est
   // reconstruit ici depuis l'exemple de référence de CT-1 ou les vecteurs de
   // spec/vecteurs/ct-1 ; aucune donnée n'est lue hors du dépôt.
   describe("corrections de la relecture (non-régression)", function () {
@@ -1064,7 +1064,7 @@ describe("Noyau : API publique et refus", function () {
     };
     const imbrique = (n) => N.analyserJson("[".repeat(n) + "]".repeat(n), { profondeurMax: Infinity });
 
-    it("constat 1 : série de points d'une période sans événement, journal encore vide (last_seq = 0) : valide", function () {
+    it("CT-1 §10.5 règles 2 et 5 : série de points d'une période sans événement, journal encore vide (last_seq = 0) : valide", function () {
       // Première période d'un journal, aucun événement : count = 0, deux points
       // tree_size = 0, last_hash nul, signés par rec-test-01, seule clé dont
       // valid_from précède les points (CT-1 §10.5 règles 2 et 5, §10.1).
@@ -1099,7 +1099,7 @@ describe("Noyau : API publique et refus", function () {
       expect(N.verifierSeriePointsDeControle(serie("rec-test-02", G2), manifeste, [], cles).rules_failed).to.deep.equal(["cle_en_vigueur", "validite_cle"]);
     });
 
-    it("constat 2 : fichier creux de 3 Gio déclaré absent : D-2 en échec, jamais lu ni d'exception ; bornes de CT-6 EX-4.13", function () {
+    it("fichier creux de 3 Gio déclaré absent : D-2 en échec, jamais lu ni d'exception ; bornes de CT-6 EX-4.13", function () {
       expect(N.TAILLES_MAX["jeton-rfc3161.der"]).to.equal(65536);
       expect(N.TAILLES_MAX["dossier.json"]).to.equal(1048576);
       expect(N.TAILLES_MAX["evenement.json"]).to.equal(16 * 1048576);
@@ -1124,7 +1124,7 @@ describe("Noyau : API publique et refus", function () {
       }
     });
 
-    it("constat 2 : partie déclarée présente au-delà de sa limite : échec du contrôle porteur, SHA-256 non lu", function () {
+    it("CT-6 EX-4.13 : partie déclarée présente au-delà de sa limite : échec du contrôle porteur, SHA-256 non lu", function () {
       const f = dossierDeReference();
       f.set("evenement.json", new Uint8Array(N.TAILLES_MAX["evenement.json"] + 1));
       const r = N.verifierDossier(f);
@@ -1142,7 +1142,7 @@ describe("Noyau : API publique et refus", function () {
       expect(N.verifierDossier(h).controles_en_echec).to.deep.equal(["D-1"]);
     });
 
-    it("constat 2 : attestation-perimetre.json creuse au-delà de 4 Mio (SHA-256 en flux, AT-1) et au-delà de 64 Mio (inutilisable)", function () {
+    it("attestation-perimetre.json creuse au-delà de 4 Mio (SHA-256 en flux, AT-1) et au-delà de 64 Mio (inutilisable)", function () {
       const rep = fs.mkdtempSync(path.join(os.tmpdir(), "noyau-attestation-"));
       try {
         const fichiers = dossierDeReference({ attestation: true });
@@ -1169,7 +1169,7 @@ describe("Noyau : API publique et refus", function () {
       }
     });
 
-    it("constat 3 : profondeur maximale de 128 par défaut (CT-1 §4 règle 7, révision 0.5) ; option profondeurMax ; 100 000 niveaux sans débordement de pile", function () {
+    it("profondeur maximale de 128 par défaut (CT-1 §4 règle 7, révision 0.5) ; option profondeurMax ; 100 000 niveaux sans débordement de pile", function () {
       // La version précédente n'appliquait aucune borne par défaut (« CT-1 n'en
       // fixe pas ») ; la révision 0.5 de CT-1 fixe 128 : 128 admis, 129 refusés.
       expect(() => N.analyserJson("[".repeat(128) + "]".repeat(128))).not.to.throw();
@@ -1197,7 +1197,7 @@ describe("Noyau : API publique et refus", function () {
       expect(N.canoniserTexte(texte, { profondeurMax: N.PROFONDEUR_CT6 })).to.equal(null);
     });
 
-    it("constat 3 : événement dont une valeur est imbriquée sur 260 niveaux, puis sur 100 000 : refusé (E-1) par défaut (CT-1 §4 règle 7) ; valide sans borne", function () {
+    it("événement dont une valeur est imbriquée sur 260 niveaux, puis sur 100 000 : refusé (E-1) par défaut (CT-1 §4 règle 7) ; valide sans borne", function () {
       // La version précédente rendait ce dossier valide par défaut : CT-1
       // révision 0.5 borne la profondeur à 128 ; au-delà, evenement.json est
       // inexploitable (cas (c)) et E-1, son porteur, échoue.
@@ -1217,7 +1217,7 @@ describe("Noyau : API publique et refus", function () {
       expect(N.verifierDossier(f100k).controles_en_echec).to.deep.equal(["E-1"]);
     });
 
-    it("constat 3 : document de politique imbriqué sur 300 niveaux (valide-seq-13-at7-autre-version) : AT-6 en échec par défaut (borne de 128, CT-1 §4 règle 7) ; réussie sans borne", function () {
+    it("document de politique imbriqué sur 300 niveaux (valide-seq-13-at7-autre-version) : AT-6 en échec par défaut (borne de 128, CT-1 §4 règle 7) ; réussie sans borne", function () {
       const rep = path.join(RACINE, "spec", "vecteurs", "ct-1", "dossiers", "valide-seq-13-at7-autre-version");
       const fichiers = new Map(fs.readdirSync(rep).filter((n) => n !== "attendu.json").map((n) => [n, Uint8Array.from(fs.readFileSync(path.join(rep, n)))]));
       const partie = N.analyserJson(fichiers.get("attestation-perimetre.json"));
@@ -1242,7 +1242,7 @@ describe("Noyau : API publique et refus", function () {
       expect(sansBorne.perimetre.verifications.find((v) => v.id === "AT-6").status).to.equal("reussi");
     });
 
-    it("constat 4 : K-1 contrôle le schéma de la partie même quand P-1 échoue", function () {
+    it("K-1 contrôle le schéma de la partie même quand P-1 échoue", function () {
       const essai = (modifierPoint) => {
         const fichiers = dossierDeReference({ points: true });
         const partie = structuredClone(blocs("points_de_controle")[0]);
@@ -1259,7 +1259,7 @@ describe("Noyau : API publique et refus", function () {
       expect(statut(temoin, "K-1")).to.include({ statut: "non_execute", raison: "prerequis_en_echec" });
     });
 
-    it("constat 5 : un premier événement altéré ne fait pas disparaître les E-8 des autres événements", function () {
+    it("un premier événement altéré ne fait pas disparaître les E-8 des autres événements", function () {
       const j = [1, 2, 3, 4, 5].map(ev);
       j[0] = { ...j[0], org_id: "0x" + "ab".repeat(32) };
       j[2] = N.scellerEvenement(j[2], G2); // seq 3 signée par une autre clé que rec-test-01
@@ -1271,7 +1271,7 @@ describe("Noyau : API publique et refus", function () {
       expect(r.controles_en_echec).to.deep.equal(["E-7", "E-8", "C-1", "C-2"]);
     });
 
-    it("constat 6 : treizième partie sans forme canonique (E-2) ou déclarée présente mais manquante (D-2 seul)", function () {
+    it("treizième partie sans forme canonique (E-2) ou déclarée présente mais manquante (D-2 seul)", function () {
       const fichiers = dossierDeReference({ points: true });
       const texte = new TextDecoder().decode(fichiers.get("points-de-controle.json")).replace('"version": 0,', '"version": 0,\n  "version": 0,');
       fichiers.set("points-de-controle.json", N.utf8(texte));
@@ -1302,7 +1302,7 @@ describe("Noyau : API publique et refus", function () {
       expect(statut(a, "A-1")).to.include({ statut: "non_execute", raison: "prerequis_en_echec" });
     });
 
-    it("constat 7 : ecartsManifeste refuse un org_id ou un journal_id nul", function () {
+    it("P-1 : ecartsManifeste refuse un org_id ou un journal_id nul", function () {
       expect(N.ecartsManifeste({ ...MANIFESTE_1, journal_id: N.ZERO32 })).to.deep.equal(["journal_id nul"]);
       expect(N.ecartsManifeste({ ...MANIFESTE_1, org_id: N.ZERO32 })).to.deep.equal(["org_id nul"]);
     });

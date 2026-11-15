@@ -24,7 +24,7 @@
 // existante) n'est pas tenue : le symptôme est rapporté (CT-1 §11.4, révision
 // 0.5, appliqué au journal).
 
-import { ZERO32, decoderHorodatage } from "./conventions.mjs";
+import { ZERO32, decoderHorodatage, descriptionErreur, montrer } from "./conventions.mjs";
 import { CONTROLES_EVENEMENT, controlerEvenement, nouvelleCle } from "./controles-evenement.mjs";
 import { indexerCles } from "./cles.mjs";
 
@@ -80,12 +80,24 @@ export function trierControles(ids) {
 /**
  * Vérifie un journal : chaque événement pour lui-même, puis le chaînage dans
  * l'ordre du fichier (CT-1 §7.2). Tous les symptômes sont rapportés.
+ * Garde du point d'entrée (revue de sécurité, cause S-2) : une exception
+ * levée par un événement hostile pendant les contrôles ne sort jamais ; le
+ * résultat est alors un refus nommé, `valide` faux, listes vides et
+ * `erreur_interne` (description de l'exception), membre absent sinon.
  * @param {unknown[]} evenements les événements, dans l'ordre du fichier
  * @param {unknown} cles contenu de cles.json (clés de l'enregistreur)
- * @returns {{valide: boolean, controles_en_echec: string[], diagnostics: Diagnostic[]}}
+ * @returns {{valide: boolean, controles_en_echec: string[], diagnostics: Diagnostic[], erreur_interne?: string}}
  */
 export function verifierJournal(evenements, cles) {
   if (!Array.isArray(evenements)) throw new TypeError("tableau d'événements attendu");
+  try {
+    return controlerJournal(evenements, cles);
+  } catch (e) {
+    return { valide: false, controles_en_echec: [], diagnostics: [], erreur_interne: descriptionErreur(e) };
+  }
+}
+
+function controlerJournal(evenements, cles) {
   const diagnostics = [];
   const indexCles = indexerCles(cles);
   if (!indexCles.exploitable) {
@@ -111,7 +123,7 @@ export function verifierJournal(evenements, cles) {
       if (id === "E-8" && !indexCles.exploitable) continue;
       let message;
       if (id === "E-7") {
-        message = `seq ${seq} : hash recalculé ${hash} différent de hash ${e.hash} (contenu modifié après scellement)`;
+        message = `seq ${seq} : hash recalculé ${hash} différent de hash ${montrer(e.hash)} (contenu modifié après scellement)`;
       } else if (id === "E-8") {
         const modifie = controles["E-7"].statut === "echoue";
         message = `seq ${seq} : ${details.join(" ; ")}${modifie ? " (contenu modifié)" : ""}`;
@@ -125,7 +137,7 @@ export function verifierJournal(evenements, cles) {
     if (e.seq === 1 && e.prev_hash !== ZERO32) {
       diagnostics.push({ type: "origine", controle: "C-2", seq: 1, message: `seq 1 (position ${position}) : prev_hash non nul` });
     } else if (e.seq !== 1 && e.prev_hash === ZERO32) {
-      diagnostics.push({ type: "origine", controle: "C-2", seq, message: `seq ${e.seq} (position ${position}) : prev_hash nul hors du premier événement` });
+      diagnostics.push({ type: "origine", controle: "C-2", seq, message: `seq ${montrer(e.seq)} (position ${position}) : prev_hash nul hors du premier événement` });
     }
   });
 
@@ -179,23 +191,23 @@ export function verifierJournal(evenements, cles) {
         type: "rupture",
         controle: "C-2",
         seq: sb,
-        message: `seq ${b.seq} (position ${p}) : prev_hash ${b.prev_hash} différent du hash recalculé de l'événement précédent dans le fichier, seq ${a?.seq} (${hashA})`,
+        message: `seq ${montrer(b.seq)} (position ${p}) : prev_hash ${montrer(b.prev_hash)} différent du hash recalculé de l'événement précédent dans le fichier, seq ${montrer(a?.seq)} (${hashA})`,
       });
     }
     if (!estObjet(a)) continue;
     const ta = decoderHorodatage(a.ts);
     const tb = decoderHorodatage(b.ts);
     if (ta === null || tb === null) {
-      diagnostics.push({ type: "horodatage", controle: "C-1", seq: sb, message: `seq ${b.seq} : ts ${b.ts} ou ts ${a.ts} de seq ${a.seq} n'est pas une date existante : ordre invérifiable` });
+      diagnostics.push({ type: "horodatage", controle: "C-1", seq: sb, message: `seq ${montrer(b.seq)} : ts ${montrer(b.ts)} ou ts ${montrer(a.ts)} de seq ${montrer(a.seq)} n'est pas une date existante : ordre invérifiable` });
     } else if (tb < ta) {
-      diagnostics.push({ type: "horodatage", controle: "C-1", seq: sb, message: `seq ${b.seq} : ts ${b.ts} antérieur à celui de seq ${a.seq} (${a.ts})` });
+      diagnostics.push({ type: "horodatage", controle: "C-1", seq: sb, message: `seq ${montrer(b.seq)} : ts ${b.ts} antérieur à celui de seq ${montrer(a.seq)} (${a.ts})` });
     }
     if (typeof b.org_id !== "string" || typeof b.journal_id !== "string" || a.org_id !== b.org_id || a.journal_id !== b.journal_id) {
-      diagnostics.push({ type: "journal", controle: "C-1", seq: sb, message: `seq ${b.seq} : org_id ou journal_id différent de celui de seq ${a.seq}` });
+      diagnostics.push({ type: "journal", controle: "C-1", seq: sb, message: `seq ${montrer(b.seq)} : org_id ou journal_id différent de celui de seq ${montrer(a.seq)}` });
     }
     const attendue = nouvelleCle(a) ?? a.recorder_key_id;
     if (typeof b.recorder_key_id !== "string" || b.recorder_key_id !== attendue) {
-      diagnostics.push({ type: "cle", controle: "C-3", seq: sb, message: `seq ${b.seq} : recorder_key_id ${b.recorder_key_id}, ${attendue} attendue après seq ${a.seq}` });
+      diagnostics.push({ type: "cle", controle: "C-3", seq: sb, message: `seq ${montrer(b.seq)} : recorder_key_id ${montrer(b.recorder_key_id)}, ${montrer(attendue)} attendue après seq ${montrer(a.seq)}` });
     }
   }
 

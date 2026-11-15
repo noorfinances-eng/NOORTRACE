@@ -114,7 +114,8 @@ export async function inscrireCle(ctx, travail) {
     if (ecart) sortie.echec("OP-5", "refuse", "compte_inattendu", ecart);
     sortie.reussie("OP-5");
   } else if (expediteur.adresse() !== f.chain_key) {
-    sortie.arreter("refuse", "compte_inattendu", null, `la clé de chaîne désignée ${expediteur.adresse()} n'est pas celle de la demande ${f.chain_key}`);
+    // L'adresse de la clé résolue n'est pas rendue à l'interface (CT-4 EX-7.25).
+    sortie.arreter("refuse", "compte_inattendu", null, `la clé de chaîne désignée n'est pas celle de la demande ${f.chain_key}`);
   }
   // OP-6 : condensé recalculé, égal à celui de la demande et du contrat ; hachage signé.
   const contrat = ctx.instance.contrats.recorder_registry;

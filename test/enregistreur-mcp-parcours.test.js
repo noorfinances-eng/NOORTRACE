@@ -287,7 +287,7 @@ describe("enregistreur, frontal MCP : parcours de bout en bout (hôtes, connecte
 
   it("le dossier de chaque appel est accepté par le binaire Go noortrace-verifier (go1.27.3)", function () {
     const bin = construireVerificateur(dir);
-    if (!bin) this.skip();
+    if (!bin) { this.test.title += " — en attente : go1.27.3 introuvable (NOORTRACE_GO_BIN ou PATH)"; this.skip(); }
     const dossiers = fs.readdirSync(path.join(dir, "dossiers")).sort();
     expect(dossiers.length).to.equal(appelsAttendus.length);
     for (const d of dossiers) {

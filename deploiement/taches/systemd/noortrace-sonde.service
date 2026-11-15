@@ -1,0 +1,29 @@
+# Sonde de référence de NOORTRACE (CT-8 EX-10.7), posée par poser-taches.sh
+# --supervision. Identité distincte de chaque composant supervisé (EX-10.3) :
+# compte noortrace-supervision, sans capacité ; elle ne lit que ses cibles
+# HTTP (service d'approbation, console, points RPC) et, s'il est réglé, le
+# manifeste d'instance ; elle n'écrit que dans le répertoire du collecteur.
+[Unit]
+Description=NOORTRACE, sonde de la supervision (CT-8 EX-10.7, EX-10.3)
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=noortrace-supervision
+Group=noortrace-supervision
+EnvironmentFile=/etc/noortrace/taches.env
+ExecStart=/bin/bash @RACINE@/deploiement/taches/superviser.sh sonde
+Restart=always
+RestartSec=30
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ReadWritePaths=@SUPERVISION@
+InaccessiblePaths=-@RACINE@/deploiement/secrets
+
+[Install]
+WantedBy=multi-user.target

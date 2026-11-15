@@ -104,7 +104,7 @@ describe("inscription : client fictif inscrit par l'application et l'agent sur l
     absent = await reseauDebout();
     if (absent) return;
     dir = O.repertoireTemporaire();
-    a = await O.demarrerAgentEssai({ manifeste: null, rpc: POINTS[0], delai_s: 120 });
+    a = await O.demarrerAgentEssai({ manifeste: null, rpc: POINTS[0], delai_s: 120, clesRepertoire: dir });
     // Les quatre validateurs, comme --rpc (EX-8.15) : configuration réécrite et agent relancé.
     await a.arreter();
     const config = JSON.parse(fs.readFileSync(a.cheminConfig, "utf8"));

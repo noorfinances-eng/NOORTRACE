@@ -257,6 +257,8 @@ export class PasserelleModele {
       valeur = typeof v === "string" ? v : null;
       parEnteteRoute = true;
     }
+    // Un en-tête de jeton vide n'est comparé à rien (CT-2 EX-15.4).
+    if (valeur === "") return null;
     if (valeur === null) {
       // Jeton OAuth en mode propre : en-tête Authorization (EX-5.8 point 2).
       if (route.credentials === "propre" && typeof h.authorization === "string" && /^Bearer [\x21-\x7e]+$/.test(h.authorization)) {
@@ -527,11 +529,20 @@ export class PasserelleModele {
       this.journal.consigner("warning", "frontal_modele", "host_disconnected", { route: route.path }, { host: etat.hote.id });
       arreterTout({ genre: "hote_parti" });
     });
+    // Flux SSE (CT-2 §16.1) : réponse servie en `text/event-stream`, quel que soit le format de la route.
+    let premierOctet = /^text\/event-stream\b/i.test(String(rep.headers["content-type"] ?? ""));
     rep.on("data", (o) => {
       armerInactivite();
+      const t0 = premierOctet ? this.monotone() : 0;
       // Analysé avant d'être écrit vers l'hôte (5.6).
       capture.ecrire(o);
-      if (!res.write(o)) {
+      const ecrit = res.write(o);
+      if (premierOctet) {
+        // Latence ajoutée au premier octet d'un flux (CT-2 §16.1, §17.2) : de sa réception à son émission vers l'hôte.
+        premierOctet = false;
+        this.metriques.observer("noortrace_sse_first_byte_ms", { provider: route.provider_label }, Math.max(0, this.monotone() - t0));
+      }
+      if (!ecrit) {
         rep.pause();
         res.once("drain", () => rep.resume());
       }

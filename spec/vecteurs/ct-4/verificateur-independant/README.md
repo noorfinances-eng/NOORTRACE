@@ -56,6 +56,31 @@ discordance, listée avec l'attendu, la valeur recalculée et la phrase de la
 spécification qui fonde le calcul ; `2` usage incorrect ou racine
 introuvable.
 
+Règles ajoutées par la revue de sécurité de l'étape 8, écrites depuis le
+texte de CT-4 révision 0.8 et la CT-9 TA-66, sans lire aucune
+autre implémentation :
+
+- OP-4, partie « Provision » : `funding.funder` différent du compte de rôle
+  `tresorerie` (`input.treasury`, quand le cas le donne) rend
+  `compte_inattendu` ; `daily_budget_gas` au-delà de
+  `fees.max_daily_budget_gas` ou `amount_wei` différent de `P_k =
+  provision_days × daily_budget_gas + gas_limit` recalculé depuis `fees`
+  (`input.fees`, à défaut 30 jours et 3 000 000 de gaz, EX-4.15, EX-4.19)
+  rendent `provision_excessive` (EX-4.20, EX-8.20) ; la valeur `P_k` des
+  dossiers valides est recalculée avec les mêmes frais ;
+- plancher (CT-9 TA-66) : un fichier de famille sans aucun cas est une
+  erreur, et les cas de chaque fichier de famille sont comptés contre la
+  table de l'`INDEX.md` qui les nomme, dans les deux sens (`plancher.go`) ;
+  `INDEX.md` absent est une erreur ;
+- capture (table de 9.3) : le nom de chaque fichier que l'index désigne est
+  contrôlé avant toute lecture ; un nom hors du répertoire des captures
+  (`/`, `\`, `.`, `..`, vide) n'est jamais lu (CP-6 en échec, et la
+  vérification qui le lit, CP-2 pour l'en-tête) ;
+- gardes : `constantes.json` absent laisse la famille `capture` non
+  confrontée avec une erreur consignée, et toute panne d'une famille devient
+  une erreur consignée (`protegerFamille`) : rapport imprimé, code 1, jamais
+  une trace de pile.
+
 Le rapport imprime, par famille puis au total, le nombre de cas, de valeurs
 recalculées, concordantes, discordantes et hors périmètre, puis
 « Résultat : tout concorde. » ou la liste des discordances.
@@ -114,7 +139,8 @@ recalculées, concordantes, discordantes et hors périmètre, puis
   événement attendu selon OP-11 ; CP-6 juge les noms des fichiers, dont
   `recu-<hachage de transactions[i]>.json`.
 - **OP-4** : hors lecture d'état, les codes sont `jeu_invalide` et, en
-  production, `cle_invalide` pour une classe de garde D ; **OP-7**
+  production, `cle_invalide` pour une classe de garde D ; depuis la révision
+  0.8, `compte_inattendu` et `provision_excessive` pour la provision ; **OP-7**
   s'exécute dans l'ordre de son texte (forme, recouvrement, distinction,
   ordre, appartenance, seuil, émetteur).
 - **Lignes du certificat** (CT-6 EX-11.6) : tolérance du décodeur du nœud
@@ -146,6 +172,16 @@ recalculées, concordantes, discordantes et hors périmètre, puis
   décrit son cas ; une valeur attendue altérée d'un chiffre dans une copie
   des vecteurs est relevée comme discordance avec sa règle.
 - Les vecteurs publiés : aucune discordance, sans tolérance.
+- Revue de sécurité de l'étape 8 (`revue_etape8_test.go`,
+  `revue_etape8_garde_test.go`) : six dossiers de provision (trésorerie
+  étrangère et trésorerie du manifeste, `amount_wei` de un wei de plus,
+  budget d'un gaz au-delà du plafond et budget au plafond, frais donnés de
+  10 jours) ; `constantes.json` absent (code 1, rapport, sans panique) ;
+  en-tête désigné par `../bloc-16648.json` avec un en-tête valide posé hors
+  du répertoire des captures (non lu : CP-2 et CP-6 en échec) ; garde
+  commune des familles ; plancher par le code de retour du programme
+  (`inscription.json` sans cas, dernier cas retiré, cas non indexé, sans
+  `INDEX.md` : code 1 ; vecteurs complets : code 0).
 
 ## Écarts relevés entre la spécification et les vecteurs publiés
 

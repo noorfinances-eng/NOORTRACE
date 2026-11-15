@@ -2,7 +2,7 @@
 // l'ancienne clé dans l'événement et contresignée par la nouvelle dans le
 // corps ; contrôle E-10.
 
-import { concatener, decoderHorodatage, estHex, hexVersOctets, octetsVersHex } from "./conventions.mjs";
+import { concatener, decoderHorodatage, estHex, hexVersOctets, montrer, octetsVersHex } from "./conventions.mjs";
 import { jcsOctets } from "./json-strict.mjs";
 import { PREFIXES, clePubliqueEd25519, signerEd25519, verifierEd25519 } from "./hachage.mjs";
 import { NOMS_RESERVES, creerReferenceEnLigne } from "./evenement.mjs";
@@ -97,8 +97,10 @@ export function annonceRotation(evenement) {
   if (v === null || typeof v !== "object" || Array.isArray(v)) return null;
   const cles = Object.keys(v);
   if (cles.length !== CLES_ANNONCE.length || !CLES_ANNONCE.every((c) => cles.includes(c))) return null;
-  if (!MOTIF_ID.test(String(v.new_key_id)) || !MOTIF_ID.test(String(v.old_key_id))) return null;
+  // Le type est contrôlé avant le motif : `String(v)` d'un objet qui masque
+  // toString lèverait TypeError (revue de sécurité, CT-7 MN-68).
   if (typeof v.new_key_id !== "string" || typeof v.old_key_id !== "string" || typeof v.valid_from !== "string") return null;
+  if (!MOTIF_ID.test(v.new_key_id) || !MOTIF_ID.test(v.old_key_id)) return null;
   return v;
 }
 
@@ -114,10 +116,10 @@ export function ecartsRotation(evenement, indexCles) {
   const ecarts = [];
   const a = annonceRotation(evenement);
   if (!a) return ["annonce de rotation absente ou mal formée (sept clés de CT-1 §8 attendues)"];
-  if (a.old_key_id !== evenement.recorder_key_id) ecarts.push(`old_key_id ${a.old_key_id} différent de recorder_key_id ${evenement.recorder_key_id}`);
+  if (a.old_key_id !== evenement.recorder_key_id) ecarts.push(`old_key_id ${a.old_key_id} différent de recorder_key_id ${montrer(evenement.recorder_key_id)}`);
   const tsEvt = decoderHorodatage(evenement.ts);
   const tsAnnonce = decoderHorodatage(a.valid_from);
-  if (tsAnnonce === null || tsAnnonce !== tsEvt) ecarts.push(`valid_from ${a.valid_from} différent du ts de l'événement ${evenement.ts}`);
+  if (tsAnnonce === null || tsAnnonce !== tsEvt) ecarts.push(`valid_from ${a.valid_from} différent du ts de l'événement ${montrer(evenement.ts)}`);
   if (a.org_id !== evenement.org_id) ecarts.push("org_id de l'annonce différent de celui de l'événement");
   if (a.journal_id !== evenement.journal_id) ecarts.push("journal_id de l'annonce différent de celui de l'événement");
   if (a.new_key_id === a.old_key_id) ecarts.push("new_key_id identique à old_key_id");

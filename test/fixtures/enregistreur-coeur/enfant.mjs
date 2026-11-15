@@ -88,7 +88,7 @@ async function principal() {
     process.stdout.write(`INTENTION ${relais.intention.intent_id} ${relais.intention.intention_sha256}\n`);
   } else if (mode === "cloture-sig") {
     // Trois échanges dans la période 10:00-11:00, puis la clôture, interrompue
-    // entre l'écriture du manifeste et celle de sa signature (R-A-1).
+    // entre l'écriture du manifeste et celle de sa signature.
     for (let k = 1; k <= 3; k++) {
       horloge.avancer(1000);
       await echange(k);

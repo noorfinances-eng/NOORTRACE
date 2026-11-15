@@ -117,7 +117,7 @@ after(function () {
 
 let n = 0;
 /**
- * Configuration d'un démon réel (fixtures du lot adversarial : frontal MCP en
+ * Configuration d'un démon réel (fixtures des essais adversariaux : frontal MCP en
  * Streamable HTTP, serveur d'outils stdio `demo`, bail `file`) dont le
  * signataire est `signer` ; en production, le serveur d'outils tourne sous
  * `nobody`, épinglé par le sha256 de l'exécutable (EX-3.5).

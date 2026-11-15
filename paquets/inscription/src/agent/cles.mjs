@@ -12,11 +12,20 @@
 
 import crypto from "node:crypto";
 import fs from "node:fs";
+import path from "node:path";
 import { SignataireChaineFichier } from "@noortrace/ancrage/registre";
-import { lireReference, motifRefusReference } from "../commun/references.mjs";
+import { FORMES_CONFIGURATION, FORMES_TRAVAIL, lireReference, motifRefusReference } from "../commun/references.mjs";
 
 /** Mnémonique public des comptes de test (EX-7.3) ; ses clés n'ont aucune valeur. */
 export const MNEMONIQUE_TEST = "test test test test test test test test test test test junk";
+
+/**
+ * Seul message rendu à l'interface quand une référence ne se résout pas
+ * (révision d'EX-7.25 demandée) : il
+ * ne dit ni si le fichier existe, ni son mode, ni son contenu ; le détail va
+ * au journal de l'agent (`reference_non_resolue`).
+ */
+export const MESSAGE_REFERENCE_NON_RESOLUE = "référence non résolue : un travail ne désigne qu'un fichier du répertoire de clés de l'agent ou un alias de sa configuration, et la référence doit se résoudre (EX-7.25)";
 
 const N = BigInt("0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
 
@@ -65,11 +74,53 @@ function lireHex32(octets, quoi) {
   return new Uint8Array(Buffer.from(m[1], "hex"));
 }
 
+/**
+ * Référence effective d'une référence portée par un travail (CT-4 EX-7.25 de
+ * la revue de l'étape 8) : `alias:<nom>` → la référence de `cles.alias` ;
+ * `fichier:` et `graine:` → le chemin doit être sous `cles.repertoire`
+ * (comparaison lexicale du chemin normalisé : aucun fichier n'est ouvert
+ * ici) ; `hardhat:` telle quelle ; `env:` n'est pas une forme de travail.
+ * Rend `{ reference, forme, alias }`, ou lève `ErreurReference`
+ * (`reference_refusee`, message unique `MESSAGE_REFERENCE_NON_RESOLUE`, et
+ * `detail` pour le journal de l'agent).
+ */
+export function referenceDeTravail(role, reference, cles = { repertoire: null, alias: {} }) {
+  const refuser = (detail) => {
+    const e = new ErreurReference("reference_refusee", MESSAGE_REFERENCE_NON_RESOLUE);
+    e.detail = detail;
+    throw e;
+  };
+  let ref;
+  try {
+    ref = lireReference(role, reference, { formes: FORMES_TRAVAIL });
+  } catch (e) {
+    refuser(e.message);
+  }
+  if (ref.forme === "alias") {
+    const cible = Object.hasOwn(cles.alias ?? {}, ref.valeur) ? cles.alias[ref.valeur] : undefined;
+    if (typeof cible !== "string") refuser(`alias inconnu de la configuration de l'agent`);
+    const effective = lireReference(`alias ${ref.valeur}`, cible, { formes: FORMES_CONFIGURATION });
+    return { reference: cible, forme: effective.forme, alias: ref.valeur };
+  }
+  if (ref.forme === "fichier" || ref.forme === "graine") {
+    const repertoire = cles.repertoire;
+    if (typeof repertoire !== "string") refuser("aucun répertoire de clés dans la configuration de l'agent : un travail ne désigne aucun fichier");
+    const base = path.resolve(repertoire);
+    const chemin = path.resolve(ref.valeur);
+    if (path.dirname(chemin) !== base || path.basename(chemin).startsWith(".")) refuser("fichier hors du répertoire de clés de l'agent");
+    return { reference, forme: ref.forme, alias: null };
+  }
+  return { reference, forme: ref.forme, alias: null };
+}
+
 function lireFichierProtege(chemin, quoi) {
   let st;
   try {
+    // Un lien symbolique n'est pas une clé : le fichier désigné est lu tel quel, jamais à travers un lien.
+    if (fs.lstatSync(chemin).isSymbolicLink()) throw new ErreurReference("reference_refusee", `${quoi} : lien symbolique refusé`);
     st = fs.statSync(chemin);
-  } catch {
+  } catch (e) {
+    if (e instanceof ErreurReference) throw e;
     throw new ErreurReference("reference_refusee", `${quoi} : fichier illisible`);
   }
   if (!st.isFile()) throw new ErreurReference("reference_refusee", `${quoi} : fichier ordinaire attendu`);

@@ -1,4 +1,4 @@
-// Lot A du composant d'ancrage (CT-5 §5, §10.2, §11 ; CT-6 §9) : rejeu des
+// Client RFC 3161 du composant d'ancrage (CT-5 §5, §10.2, §11 ; CT-6 §9) : rejeu des
 // familles de vecteurs qui jugent le client RFC 3161.
 //
 // - `spec/vecteurs/ct-5/requetes/` : six requêtes `TimeStampReq` octet pour
@@ -129,9 +129,9 @@ describe("ancrage rfc3161 : famille rfc3161 de CT-6 (T-1 à T-10 avec les ancres
     if (!ancresCache.has(rel)) ancresCache.set(rel, json(path.join(CT6, rel)));
     return ancresCache.get(rel);
   };
-  it("attendu.json de CT-6 révision 0.5 : vingt-huit jetons et quarante et un cas, dont t1-cle-longueur-non-minimale et t1-extension-mal-formee (T-1 echoue, EX-9.7)", function () {
-    expect(ATTENDU_CT6.tokens).to.have.lengthOf(28);
-    expect(ATTENDU_CT6.cases).to.have.lengthOf(41);
+  it("attendu.json de CT-6 (révision 0.5, puis 0.9 : huit jetons et dix cas de plus) : trente-six jetons et cinquante et un cas, dont t1-cle-longueur-non-minimale et t1-extension-mal-formee (T-1 echoue, EX-9.7)", function () {
+    expect(ATTENDU_CT6.tokens).to.have.lengthOf(36);
+    expect(ATTENDU_CT6.cases).to.have.lengthOf(51);
     for (const f of ["jetons/t1-cle-longueur-non-minimale.der", "jetons/t1-extension-mal-formee.der"]) {
       expect(ATTENDU_CT6.tokens.find((t) => t.file === f).target).to.equal("T-1");
       const cas = ATTENDU_CT6.cases.filter((c) => c.token === f);
@@ -250,12 +250,42 @@ describe("ancrage rfc3161 : confrontation par openssl ts -verify (CT-5 annexe A.
       expect(VERIFICATIONS_ACQUISITION.every((id) => r.checks[id] === "reussi")).to.equal(true);
     });
   }
+  // Jetons valides de CT-6 qu'OpenSSL ne vérifie pas : limites de l'outil, non des discordances (CT-6 annexe A.8 :
+  // une vérification que l'outil ne fait pas, ou une lecture qui diffère de CT-6 sur une forme que CT-6 ne contrôle pas).
+  const HORS_OPENSSL = {
+    "jetons/t5-cle-ed25519.der": "openssl ts -verify ne vérifie pas une signature Ed25519 de jeton (OpenSSL 3.0.13 : « operation not supported for this keytype »)",
+    "jetons/integer-non-minimal.der": "SignedData.version codé 02 02 00 03, INTEGER non minimal hors de la signature : CT-6 EX-9.6 ne contrôle pas la forme minimale des INTEGER en version 0 (la valeur lue, 3, est celle du jeton) et EX-9.4 révision 0.9 n'interdit que l'INTEGER vide ; OpenSSL 3 refuse ce décodage (« c2i_ibuf:illegal padding », Field=version, Type=PKCS7_SIGNED)",
+  };
   it("les jetons valides de CT-6 passent openssl ts -verify -digest -token_in à genTime", function () {
     if (!opensslDisponible()) return enAttente(this, "openssl absent de la machine");
-    for (const t of ATTENDU_CT6.tokens.filter((x) => x.target === null && !x.file.includes("ed25519"))) {
+    for (const t of ATTENDU_CT6.tokens.filter((x) => x.target === null && !x.file.includes("ed25519") && !HORS_OPENSSL[x.file])) {
       const attime = String(Math.floor(Date.parse(t.gen_time) / 1000));
-      const sortie = execFileSync("openssl", ["ts", "-verify", "-digest", t.period_hash.slice(2), "-in", path.join(JETONS, path.basename(t.file)), "-token_in", "-CAfile", path.join(CLES, "ac-test.pem"), "-attime", attime], { stdio: "pipe" }).toString();
+      let sortie;
+      try {
+        sortie = execFileSync("openssl", ["ts", "-verify", "-digest", t.period_hash.slice(2), "-in", path.join(JETONS, path.basename(t.file)), "-token_in", "-CAfile", path.join(CLES, "ac-test.pem"), "-attime", attime], { stdio: "pipe" }).toString();
+      } catch (e) {
+        sortie = e.stderr.toString() + e.stdout.toString();
+      }
       expect(sortie, t.file).to.include("Verification: OK");
     }
   });
+  // Limite nommée, éprouvée : un jeton que CT-6 admet (EX-9.6) et qu'OpenSSL refuse au décodage. Si OpenSSL venait à
+  // l'accepter, l'exclusion ci-dessus n'aurait plus lieu d'être : l'essai le dit.
+  for (const t of ATTENDU_CT6.tokens.filter((x) => x.file === "jetons/integer-non-minimal.der")) {
+    it(`${t.file} : admis par le composant (T-1 à T-9 réussies, EX-9.6) et refusé par openssl ts -verify (illegal padding), limite de l'outil exclue de la confrontation`, function () {
+      expect(t.target).to.equal(null);
+      const r = verifierJeton({ octets: octets(path.join(CT6, "rfc3161", t.file)), imprintAttendue: t.period_hash, ancres: { certificatsPem: [texte(path.join(CLES, "ac-test.pem"))], politiquesAdmises: null } });
+      expect(VERIFICATIONS_ACQUISITION.every((id) => r.checks[id] === "reussi"), JSON.stringify(r.details)).to.equal(true);
+      if (!opensslDisponible()) return enAttente(this, "openssl absent de la machine");
+      const attime = String(Math.floor(Date.parse(t.gen_time) / 1000));
+      let sortie;
+      try {
+        sortie = execFileSync("openssl", ["ts", "-verify", "-digest", t.period_hash.slice(2), "-in", path.join(JETONS, path.basename(t.file)), "-token_in", "-CAfile", path.join(CLES, "ac-test.pem"), "-attime", attime], { stdio: "pipe" }).toString();
+      } catch (e) {
+        sortie = e.stderr.toString() + e.stdout.toString();
+      }
+      expect(sortie).to.not.include("Verification: OK");
+      expect(sortie).to.include("illegal padding");
+    });
+  }
 });

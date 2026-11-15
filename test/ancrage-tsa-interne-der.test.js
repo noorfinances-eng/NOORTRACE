@@ -1,4 +1,4 @@
-// Encodeur et lecteur DER du serveur RFC 3161 interne (lot E,
+// Encodeur et lecteur DER du serveur RFC 3161 interne (
 // paquets/ancrage/src/serveur-interne/der-ecriture.mjs et der-lecture.mjs) :
 // X.690 longueurs minimales, INTEGER minimal, BOOLEAN ff, GeneralizedTime
 // sans fraction, SET OF trié, étiquettes contextuelles ; lecteur borné du
@@ -12,7 +12,7 @@ import { openssl, hex } from "./fixtures/ancrage-tsa-interne/outils.mjs";
 
 const asn1 = (octets) => openssl(["asn1parse", "-inform", "DER", "-i"], Buffer.from(octets));
 
-describe("ancrage lot E — encodeur DER (X.690)", function () {
+describe("ancrage, serveur RFC 3161 interne — encodeur DER (X.690)", function () {
   it("longueurs : forme courte sous 128, forme longue minimale au-delà", function () {
     expect(hex(D.longueur(0))).to.equal("00");
     expect(hex(D.longueur(127))).to.equal("7f");
@@ -133,7 +133,7 @@ describe("ancrage lot E — encodeur DER (X.690)", function () {
   });
 });
 
-describe("ancrage lot E — lecteur DER borné (CT-6 §9.3)", function () {
+describe("ancrage, serveur RFC 3161 interne — lecteur DER borné (CT-6 §9.3)", function () {
   const lit = (h) => L.lireUnique(Buffer.from(h, "hex"));
 
   it("relit un élément, son contenu et ses octets complets", function () {

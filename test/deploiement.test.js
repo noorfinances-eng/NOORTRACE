@@ -547,10 +547,10 @@ describe("CT-8 §0.2 et annexe A.2 : renvois vers CT-8", function () {
   it("renvois.mjs : chaque occurrence a sa ligne, TC- consécutifs, réponses citant des identifiants de CT-8 ; code 0", function () {
     const r = verifierRenvois();
     expect(r.erreurs).to.deep.equal([]);
-    expect([r.occurrences, r.lignes]).to.deep.equal([115, 115]);
+    expect([r.occurrences, r.lignes]).to.deep.equal([133, 133]);
     const s = spawnSync(process.execPath, [path.join(OUTILS, "renvois.mjs")], { encoding: "utf8", cwd: PROJECT_ROOT });
     expect(s.status, s.stdout).to.equal(0);
-    expect(s.stdout).to.include("total : 115 occurrence(s), 115 ligne(s)");
+    expect(s.stdout).to.include("total : 133 occurrence(s), 133 ligne(s)");
     expect(spawnSync(process.execPath, [path.join(OUTILS, "renvois.mjs"), "--x"], { encoding: "utf8" }).status).to.equal(2);
   });
 
@@ -560,7 +560,7 @@ describe("CT-8 §0.2 et annexe A.2 : renvois vers CT-8", function () {
     for (const id of ["EX-12.16", "IP-13", "DM-22", "FL-28", "FL-31", "CO-14", "IR-8", "IC-18", "EX-A.36", "EX-0.1"]) expect(definis.has(id), id).to.equal(true);
     for (const id of ["EX-12.99", "IP-14", "DM-23", "FL-32"]) expect(definis.has(id), id).to.equal(false);
     const table = tableTC(CT8);
-    expect(table.map((t) => t.n)).to.deep.equal(Array.from({ length: 115 }, (_, i) => i + 1));
+    expect(table.map((t) => t.n)).to.deep.equal(Array.from({ length: 133 }, (_, i) => i + 1));
   });
 });
 

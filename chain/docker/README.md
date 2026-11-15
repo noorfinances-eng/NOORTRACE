@@ -57,7 +57,11 @@ Ce que fait le `Dockerfile` :
    d'une autre chaîne de compilation, un `go.mod` qui demanderait plus récent fait
    échouer la construction. Clone à profondeur 1 du commit `NOORCORE_COMMIT` (un
    commit, pas une branche), vérification que la tête est bien ce commit, application
-   des correctifs de `chain/patches/` après `git apply --check`, puis
+   des correctifs de `chain/patches/` après leur vérification contre
+   `chain/patches/EMPREINTES` (`chain/scripts/verifier-correctifs.sh` : SHA-256 de
+   chaque correctif attendu, aucun correctif absent ni fichier non listé, CT-4
+   EX-10.1 d ; sans aucun correctif, seulement avec `--build-arg
+   NOORTRACE_SANS_CORRECTIF=1` et une autre étiquette) et `git apply --check`, puis
    `go build -trimpath -o … ./core` avec cgo (comme le binaire de `chain/runtime/bin/`).
    Les caches de modules et de compilation sont des montages BuildKit, jamais copiés
    dans l'image.
@@ -278,7 +282,7 @@ ports que sur `127.0.0.1` de l'hôte, le leader est désigné par
 fichiers est en lecture seule hors du volume, toutes les capacités sont retirées.
 
 ```bash
-NOORCORE_LEADER_RPC=https://rpc.exemple.ch docker compose -f chain/docker/docker-compose.yml up -d
+NOORCORE_LEADER_RPC=https://rpc.validateur.example docker compose -f chain/docker/docker-compose.yml up -d
 ```
 
 Un suiveur n'a besoin ni de `validators.json`, ni de clé, ni de document de

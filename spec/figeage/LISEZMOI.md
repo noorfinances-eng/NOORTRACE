@@ -35,7 +35,12 @@ manifeste et compare l'état obtenu aux fichiers présents (suivis par git, et
 nouveaux fichiers non ignorés). Il rend 0 si chaque écart est consigné, 1
 s'il trouve un fichier modifié, ajouté ou supprimé sans consignation, un
 manifeste retouché ou un registre mal formé, 2 en cas d'usage incorrect. Il
-tourne dans l'intégration continue et dans `test/figeage.test.js`.
+tourne dans l'intégration continue et dans `test/figeage.test.js`. Depuis la
+revue de sécurité de l'étape 8 : un fichier sous `spec/` dont le chemin n'est
+pas figeable (barre inverse, caractère de contrôle ou de format
+bidirectionnel, composant vide, « . » ou « .. ») est une erreur, jamais un
+fichier ignoré ; une consignation datée après le jour où l'outil s'exécute est
+refusée.
 
 Le manifeste se vérifie aussi sans l'outil, depuis la racine du dépôt, tant
 qu'aucune modification n'est consignée :

@@ -14,9 +14,10 @@
 //   verificateur/dist/noortrace-verifier-linux-amd64, ou construction par
 //   verificateur/scripts/construire.sh quand go1.27.3 est dans le PATH.
 //
-// Rien ici n'écrit dans le dépôt : les seules écritures sont celles de
-// dev-net.sh sous le répertoire d'exécution et le binaire Go construit dans
-// le répertoire de travail que l'appelant désigne.
+// Rien de suivi par git n'est écrit : les seules écritures sont celles de
+// dev-net.sh sous le répertoire d'exécution (chain/runtime/ par défaut, dans
+// l'arbre du dépôt mais ignoré de git ; NOORTRACE_RUNTIME_DIR le déplace) et le
+// binaire Go construit dans le répertoire de travail que l'appelant désigne.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -175,3 +176,27 @@ export function lancerAsync(commande, args, { cwd = RACINE, env = process.env } 
 }
 
 export const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Type du disque qui porte `chemin`, lu sur la machine (périphérique de `df`,
+ * /sys/block/<dev>/queue/rotational) : "memoire", "nvme", "virtuel" (vd*,
+ * xvd*), "ssd", "hdd", sinon "inconnu" ; jamais une valeur écrite d'avance
+ * (CT-9 EX-11.11).
+ */
+export function typeDisque(chemin = RACINE) {
+  try {
+    const r = spawnSync("df", ["--output=source", chemin], { encoding: "utf8" });
+    if (r.status !== 0) return "inconnu";
+    const source = r.stdout.trim().split("\n").pop().trim();
+    if (source === "tmpfs" || source === "ramfs") return "memoire";
+    const m = /^\/dev\/(?:mapper\/)?([A-Za-z0-9_-]+)$/.exec(source);
+    if (!m) return "inconnu";
+    const dev = /^nvme/.test(m[1]) ? m[1].replace(/p\d+$/, "") : /^mmcblk/.test(m[1]) ? m[1].replace(/p\d+$/, "") : m[1].replace(/\d+$/, "");
+    if (/^nvme/.test(dev)) return "nvme";
+    if (/^(vd|xvd)/.test(dev)) return "virtuel";
+    const rotatif = fs.readFileSync(`/sys/block/${dev}/queue/rotational`, "utf8").trim();
+    return rotatif === "1" ? "hdd" : rotatif === "0" ? "ssd" : "inconnu";
+  } catch {
+    return "inconnu";
+  }
+}

@@ -29,13 +29,25 @@ export function variablesSecretes(config) {
 }
 
 /**
- * Environnement d'un auxiliaire (module PKCS#11, outils TPM) : celui du démon
- * sans les variables qui portent un secret de la configuration (EX-15.3 : un
- * secret n'est jamais transmis à un processus enfant).
+ * Variables d'environnement qu'un auxiliaire (module PKCS#11, outils TPM) reçoit
+ * (liste d'admission, étape 8 ; CT-2 EX-18.4 : un processus enfant ne
+ * reçoit que les variables déclarées) : le chemin des exécutables, le répertoire
+ * temporaire, la locale, la configuration de SoftHSM2 (essais) et le TCTI des
+ * outils TPM. Les identités des fournisseurs présentes dans l'environnement du
+ * démon (`AWS_*`, `AZURE_*`, `VAULT_TOKEN`, `GOOGLE_APPLICATION_CREDENTIALS`…)
+ * ne sont jamais transmises.
+ */
+export const VARIABLES_AUXILIAIRE_ADMISES = Object.freeze(["PATH", "TMPDIR", "LANG", "LC_ALL", "SOFTHSM2_CONF", "TPM2TOOLS_TCTI"]);
+
+/**
+ * Environnement d'un auxiliaire (module PKCS#11, outils TPM) : les seules
+ * variables de `VARIABLES_AUXILIAIRE_ADMISES`, à valeur chaîne, hors de toute
+ * variable qui porte un secret de la configuration (EX-15.3 : un secret n'est
+ * jamais transmis à un processus enfant).
  */
 export function environnementAuxiliaire(config, env) {
   const exclues = variablesSecretes(config);
-  return Object.fromEntries(Object.entries(env).filter(([k, v]) => v !== undefined && !exclues.has(k)));
+  return Object.fromEntries(Object.entries(env).filter(([k, v]) => VARIABLES_AUXILIAIRE_ADMISES.includes(k) && typeof v === "string" && !exclues.has(k)));
 }
 
 /**

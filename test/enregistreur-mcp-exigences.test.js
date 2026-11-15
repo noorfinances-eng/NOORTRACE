@@ -937,8 +937,8 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
         const c = b64(charge);
         return `${e}.${c}.${signer(null, Buffer.from(`${e}.${c}`), privateKey).toString("base64url")}`;
       };
-      const o = { jwks: { keys: [jwk] }, resource: "https://noortrace.local/mcp", issuers: ["https://as.local"], scopes: ["mcp"], maintenant: Date.now() };
-      const base = { aud: o.resource, iss: "https://as.local", sub: "alice", scope: "mcp autre", exp: Math.floor(Date.now() / 1000) + 600 };
+      const o = { jwks: { keys: [jwk] }, resource: "https://noortrace.example/mcp", issuers: ["https://as.example"], scopes: ["mcp"], maintenant: Date.now() };
+      const base = { aud: o.resource, iss: "https://as.example", sub: "alice", scope: "mcp autre", exp: Math.floor(Date.now() / 1000) + 600 };
       expect(verifierJwt(jwt(base), o)).to.deep.equal({ sub: "alice" });
       const statut = (c) => {
         try {
@@ -957,7 +957,7 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
       // Serveur HTTP avec OAuth : 401 avec WWW-Authenticate et métadonnées.
       const b = await banc({
         hosts: [hoteDemo({ match: { oauth_subject: "alice" }, launched_by: "${oauth_subject}" })],
-        ajuster: (c) => (c.mcp.http = { listen: "127.0.0.1:0", path: "/mcp", allowed_origins: [], tls: null, oauth: { resource: o.resource, authorization_servers: o.issuers, jwks_uri: "https://as.local/jwks", required_scopes: ["mcp"] }, static_tokens: [] }),
+        ajuster: (c) => (c.mcp.http = { listen: "127.0.0.1:0", path: "/mcp", allowed_origins: [], tls: null, oauth: { resource: o.resource, authorization_servers: o.issuers, jwks_uri: "https://as.example/jwks", required_scopes: ["mcp"] }, static_tokens: [] }),
       });
       const s = new ServeurHttpMcp({ frontal: b.frontal, chargerJwks: async () => o.jwks });
       await s.ecouter();
@@ -972,7 +972,7 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
       expect(JSON.parse(meta.corps)).to.deep.include({ resource: o.resource, authorization_servers: o.issuers });
       const sans = await get("/mcp");
       expect(sans.statut).to.equal(401);
-      expect(sans.entetes["www-authenticate"]).to.equal('Bearer resource_metadata="https://noortrace.local/.well-known/oauth-protected-resource/mcp", scope="mcp"');
+      expect(sans.entetes["www-authenticate"]).to.equal('Bearer resource_metadata="https://noortrace.example/.well-known/oauth-protected-resource/mcp", scope="mcp"');
       const r = await new Promise((res) => {
         const jeton = jwt({ ...base, exp: Math.floor(b.horloge.murale() / 1000) + 600 });
         const q = http.request({ host: "127.0.0.1", port, path: "/mcp", method: "POST", headers: { authorization: `Bearer ${jeton}`, accept: "application/json, text/event-stream", "mcp-protocol-version": "2026-07-28", "mcp-method": "tools/call", "mcp-name": "demo__claims.get" } }, (x) => {
@@ -1048,9 +1048,9 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
     });
   });
 
-  // Défauts démontrés par la relecture adversariale B des frontaux : chaque
+  // Défauts démontrés par la relecture adversariale des frontaux : chaque
   // essai de la relecture devient un cas de non-régression.
-  describe("relecture B : non-régression des transports et du relais MCP", function () {
+  describe("relecture adversariale des frontaux : non-régression des transports et du relais MCP", function () {
     const pause = (x) => new Promise((r) => setTimeout(r, x));
     const httpCfg = (c) => (c.mcp.http = { listen: "127.0.0.1:0", path: "/mcp", allowed_origins: [], tls: null, oauth: null, static_tokens: [{ id: "poste", token: { env: "X" } }] });
     const H = { "mcp-protocol-version": "2026-07-28", "mcp-method": "tools/call", "mcp-name": "demo__claims.get" };
@@ -1094,7 +1094,7 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
         c.on("close", () => res(recu.includes("acceptee")));
       });
 
-    it("R-B-1 (EX-4.35, EX-4.20, 4.4 pas 14) : statut HTTP décidé par le code que le frontal produit, jamais par le texte de la réponse", async function () {
+    it("EX-4.35, EX-4.20, 4.4 pas 14 : statut HTTP décidé par le code que le frontal produit, jamais par le texte de la réponse", async function () {
       const b = await banc({
         hosts: [hoteHttp()],
         ajuster: httpCfg,
@@ -1117,7 +1117,7 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
       await b.fermer();
     });
 
-    it("R-B-2 (EX-4.39, EX-18.1) : répertoire de la prise inscriptible par d'autres sans bit collant refusé au démarrage et à chaque preuve ; fichier antérieur au défi refusé", async function () {
+    it("EX-4.39, EX-18.1 : répertoire de la prise inscriptible par d'autres sans bit collant refusé au démarrage et à chaque preuve ; fichier antérieur au défi refusé", async function () {
       const moi = os.userInfo().username;
       const b = await banc({ hosts: [hoteDemo({ match: { peer_user: moi } })] });
       const dir = path.dirname(b.config.mcp.socket);
@@ -1157,8 +1157,8 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
       await c.fermer();
     });
 
-    it("R-B-2 (EX-4.39, EX-7.3) : deux utilisateurs réels, répertoire à bit collant : un pair ne peut pas renommer la preuve d'un autre", async function () {
-      if (process.getuid?.() !== 0) this.skip();
+    it("EX-4.39, EX-7.3 : deux utilisateurs réels, répertoire à bit collant : un pair ne peut pas renommer la preuve d'un autre", async function () {
+      if (process.getuid?.() !== 0) { this.test.title += " — en attente : compte 0 requis (deux utilisateurs réels)"; this.skip(); }
       const b = await banc({
         hosts: [
           hoteDemo({ id: "agent-alice", match: { peer_user: "nobody" }, launched_by: "${peer_user}" }),
@@ -1202,7 +1202,7 @@ c.on("close",()=>console.log("mallory: fermee"));`);
       await b.fermer();
     });
 
-    it("R-B-3 (EX-18.3) : échecs de jeton limités par identifiant de jeton et par connexion (prise TCP des connecteurs, Streamable HTTP) ; un jeton valide sur une autre connexion passe", async function () {
+    it("EX-18.3 : échecs de jeton limités par identifiant de jeton et par connexion (prise TCP des connecteurs, Streamable HTTP) ; un jeton valide sur une autre connexion passe", async function () {
       const b = await banc({ hosts: [hoteHttp()], ajuster: httpCfg });
       const tcp = new ServeurConnecteurs({ frontal: b.frontal, tcp: { listen: "127.0.0.1:0", client_auth: "jeton", tls: null }, jetons: new Map([["poste", N.utf8("jeton-valide")]]) });
       await tcp.ecouter();
@@ -1238,7 +1238,7 @@ c.on("close",()=>console.log("mallory: fermee"));`);
       await b.fermer();
     });
 
-    it("R-B-6 (4.4 pas 1, EX-4.47) : quota contrôlé avant l'analyse ; corps refusés en HTTP, lignes trop longues et temps d'analyse des refus comptés", async function () {
+    it("4.4 pas 1, EX-4.47 : quota contrôlé avant l'analyse ; corps refusés en HTTP, lignes trop longues et temps d'analyse des refus comptés", async function () {
       const Q = { max_concurrent: 32, piece_bytes_per_minute: 268435456, received_bytes_per_minute: 2000, redaction_ms_per_minute: 30000 };
       // (a) quota d'octets atteint : une requête invalide est refusée par -31013 sans être analysée (id inconnu : null).
       const a = await banc({ hosts: [hoteDemo({ quota: Q })] });
@@ -1301,7 +1301,7 @@ c.on("close",()=>console.log("mallory: fermee"));`);
       await c.fermer();
     });
 
-    it("R-B-8 (EX-4.23, EX-4.36) : en HTTP moderne, la fermeture du flux avant le relais empêche le relais", async function () {
+    it("EX-4.23, EX-4.36 : en HTTP moderne, la fermeture du flux avant le relais empêche le relais", async function () {
       const b = await banc({ evaluer: () => new Promise((r) => setTimeout(() => r(AUTORISE), 300)), hosts: [hoteHttp()], ajuster: httpCfg });
       const h = await serveurHttp(b);
       const r = http.request({ host: "127.0.0.1", port: h.s.adresse().port, path: "/mcp", method: "POST", headers: { authorization: "Bearer jeton-http", "content-type": "application/json", accept: "application/json, text/event-stream", ...H, "mcp-name": "demo__payments.create" } });
@@ -1316,7 +1316,7 @@ c.on("close",()=>console.log("mallory: fermee"));`);
       await b.fermer();
     });
 
-    it("R-B-9 (4.4 pas 5, EX-14.3) : une tentative refusée puis annulée par l'hôte est un événement refusee", async function () {
+    it("4.4 pas 5, EX-14.3 : une tentative refusée puis annulée par l'hôte est un événement refusee", async function () {
       const REFUS = { rule: "interdit", decision: "refuse", ticket: null, ticket_state: null, approval: null, approver_set: null };
       const b = await banc({ evaluer: () => new Promise((r) => setTimeout(() => r(REFUS), 200)) });
       const p = b.recevoir(appel(2, "demo__payments.create", { montant: "99999.00" }));
@@ -1327,7 +1327,7 @@ c.on("close",()=>console.log("mallory: fermee"));`);
       await b.fermer();
     });
 
-    it("R-B-10 (EX-4.34) et sessions héritées : Mcp-Session-Id ignoré en ère moderne ; sessions héritées bornées par identité", async function () {
+    it("EX-4.34 et sessions héritées : Mcp-Session-Id ignoré en ère moderne ; sessions héritées bornées par identité", async function () {
       const b = await banc({ hosts: [hoteHttp()], ajuster: httpCfg });
       const h = await serveurHttp(b);
       expect((await h.req(appel(1, "demo__claims.get", {}), { ...H, "mcp-session-id": "abc" })).statut).to.equal(200);
@@ -1345,7 +1345,7 @@ c.on("close",()=>console.log("mallory: fermee"));`);
       await b.fermer();
     });
 
-    it("R-B-11 (EX-18.1) : mcp.socket en mode 0660 dès sa création, quel que soit le masque du processus", async function () {
+    it("EX-18.1 : mcp.socket en mode 0660 dès sa création, quel que soit le masque du processus", async function () {
       for (const masque of [0o022, 0o000]) {
         const ancien = process.umask(masque);
         try {
@@ -1361,7 +1361,7 @@ c.on("close",()=>console.log("mallory: fermee"));`);
       }
     });
 
-    it("R-B-12 (EX-9.7) : les lignes warning et error de la connexion d'hôte d'un connecteur sont copiées sur sa sortie d'erreur, et elles seules", async function () {
+    it("EX-9.7 : les lignes warning et error de la connexion d'hôte d'un connecteur sont copiées sur sa sortie d'erreur, et elles seules", async function () {
       const moi = os.userInfo().username;
       const b = await banc({ hosts: [hoteDemo({ match: { peer_user: moi }, launched_by: "${peer_user}" })] });
       const s = new ServeurConnecteurs({ frontal: b.frontal, socket: b.config.mcp.socket });
@@ -1398,7 +1398,7 @@ c.on("close",()=>console.log("mallory: fermee"));`);
       await b.fermer();
     });
 
-    it("R-B-13 (EX-4.36, EX-4.32) : un CRLF coupé entre deux lectures SSE est une seule fin de ligne ; une ligne de stderr coupée est une ligne", async function () {
+    it("EX-4.36, EX-4.32 : un CRLF coupé entre deux lectures SSE est une seule fin de ligne ; une ligne de stderr coupée est une ligne", async function () {
       const flux = 'data: {"jsonrpc":"2.0","id":"e-000000000001",\r\ndata: "result":{"content":[],"isError":false}}\r\n\r\n';
       for (const coupe of [null, flux.indexOf("\r") + 1, flux.lastIndexOf("\r")]) {
         const recus = [];
@@ -1427,7 +1427,7 @@ c.on("close",()=>console.log("mallory: fermee"));`);
       await b.fermer();
     });
 
-    it("subscriptions/listen (EX-4.15 ; lot SDK Python) : accusé rendu ; client réel @langchain/mcp-adapters 2.0.1 en mode « auto », en Streamable HTTP et par le connecteur stdio", async function () {
+    it("subscriptions/listen (EX-4.15 ; SDK Python) : accusé rendu ; client réel @langchain/mcp-adapters 2.0.1 en mode « auto », en Streamable HTTP et par le connecteur stdio", async function () {
       const { MCPAdapter } = await import("@langchain/mcp-adapters");
       const essayer = async (b, serveur) => {
         const mcp = new MCPAdapter({ mcpServers: { nt: serveur }, prefixToolNameWithServerName: false });
@@ -1479,8 +1479,8 @@ c.on("close",()=>console.log("mallory: fermee"));`);
       const { publicKey, privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
       const jwk = { ...publicKey.export({ format: "jwk" }), kid: "r1" };
       const enc = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
-      const o = { jwks: { keys: [jwk] }, resource: "https://noortrace.local/mcp", issuers: ["https://as.local"], scopes: [], maintenant: Date.now() };
-      const charge = enc({ aud: o.resource, iss: "https://as.local", sub: "alice", exp: Math.floor(Date.now() / 1000) + 600 });
+      const o = { jwks: { keys: [jwk] }, resource: "https://noortrace.example/mcp", issuers: ["https://as.example"], scopes: [], maintenant: Date.now() };
+      const charge = enc({ aud: o.resource, iss: "https://as.example", sub: "alice", exp: Math.floor(Date.now() / 1000) + 600 });
       const signe = (alg) => {
         const e = enc({ alg, kid: "r1" });
         return `${e}.${charge}.${signer("sha256", Buffer.from(`${e}.${charge}`), privateKey).toString("base64url")}`;

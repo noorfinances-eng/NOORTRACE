@@ -11,6 +11,7 @@
 
 import { jcsIntegral } from "../jcs-integral.mjs";
 import { appelsDemandes, argumentsComparables, intentionAvant, intentionBornee } from "./extraction.mjs";
+import { CORRELATION_ATTENTE_MAX_MS } from "../bornes.mjs";
 
 /** Fenêtre par défaut (EX-5.22). */
 export const FENETRE_DEFAUT_MS = 600000;
@@ -52,6 +53,8 @@ export class RegistreCorrelation {
     this.ecrirePiece = o.ecrirePiece ?? null;
     this.origine = o.origine ?? origineParDefaut;
     this.journal = o.journal ?? null;
+    /** Attente de la réponse rédigée d'un échange inscrit (étape 8, CT-2 EX-5.11) ; au-delà, corrélation sans intention. */
+    this.attenteMaxMs = o.attenteMaxMs ?? CORRELATION_ATTENTE_MAX_MS;
     /** @type {object[]} */
     this.entrees = [];
     this.compteur = 0;
@@ -154,7 +157,22 @@ export class RegistreCorrelation {
     }
     if (!trouve) return null;
     const { e, a } = trouve;
-    const r = await e.redigee;
+    // Étape 8 : la réponse rédigée n'est calculée qu'au scellement de
+    // l'échange (fin du flux amont, EX-5.11 (d)) ; un flux gardé ouvert ne retient
+    // pas l'appel d'outil au-delà de `attenteMaxMs` : corrélation sans intention, consignée.
+    let minuteur;
+    const r = await Promise.race([
+      e.redigee,
+      new Promise((res) => {
+        minuteur = setTimeout(() => res(null), this.attenteMaxMs);
+        minuteur.unref?.();
+      }),
+    ]);
+    clearTimeout(minuteur);
+    if (r === null) {
+      this.journal?.consigner("warning", "frontal_modele", "correlation_sans_intention", { reason: "reponse_redigee_en_attente", wait_ms: this.attenteMaxMs, seq: e.seq ?? `inscription:${e.inscription}` });
+      return { intent: null, code: { model: null, prompt_version: null }, seq: e.seq ?? `inscription:${e.inscription}`, declaree: !e.interpose };
+    }
     const redige = r.formeRedigee === undefined ? null : intentionAvant(e.format, r.formeRedigee, a.position);
     const b = intentionBornee(redige, intentionAvant(e.format, e.formeClair, a.position));
     if (b.piece) {

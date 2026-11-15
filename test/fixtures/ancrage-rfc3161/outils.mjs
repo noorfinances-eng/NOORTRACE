@@ -1,4 +1,4 @@
-// Outils des tests du lot A du composant d'ancrage (client RFC 3161) :
+// Outils des tests du client RFC 3161 du composant d'ancrage :
 // chemins des vecteurs CT-5 et CT-6, lecture des ancres de test, serveur
 // d'horodatage local factice (réponses rejouées depuis les vecteurs),
 // transport factice, agent de tunnel pour les essais sur le réseau public,

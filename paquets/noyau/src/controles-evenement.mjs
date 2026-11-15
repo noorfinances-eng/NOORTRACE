@@ -1,7 +1,7 @@
 // Contrôles d'un événement pour lui-même, E-1 à E-11 (CT-1 §11.4), communs à
 // la vérification d'un journal (§7.2) et à celle d'un dossier (§11).
 
-import { ZERO32, chaineNonVide, decoderHorodatage, estEntierSur, estHex, hexVersOctets } from "./conventions.mjs";
+import { ZERO32, chaineNonVide, decoderHorodatage, estEntierSur, estHex, hexVersOctets, montrer } from "./conventions.mjs";
 import { PROFONDEUR_V0, depasseProfondeur, egaliteJson, formeCanoniqueAbsente, jcs, jcsOctets } from "./json-strict.mjs";
 import { recouvrerAdresseEip191, sha256Hex } from "./hachage.mjs";
 import {
@@ -50,7 +50,7 @@ export function ecartsSorte(e) {
   const ecarts = [];
   const sorte = sorteEvenement(e);
   if (sorte === null) return ["execution.tool illisible"];
-  if (sorte === "reserve_inconnu") return [`execution.tool ${e.execution.tool} : nom de l'espace noortrace. qui n'est pas l'un des quatre noms réservés`];
+  if (sorte === "reserve_inconnu") return [`execution.tool ${montrer(e.execution.tool)} : nom de l'espace noortrace. qui n'est pas l'un des quatre noms réservés`];
   const pd = e.policy?.decision;
   const approbation = e.approval;
   const x = e.execution ?? {};
@@ -58,7 +58,7 @@ export function ecartsSorte(e) {
 
   if (sorte === "appel_outil") {
     // Règle 1 : appel d'outil.
-    if (!["autorise", "a_approuver", "refuse"].includes(pd)) ecarts.push(`policy.decision ${pd} pour un appel d'outil (autorise, a_approuver ou refuse attendu)`);
+    if (!["autorise", "a_approuver", "refuse"].includes(pd)) ecarts.push(`policy.decision ${montrer(pd)} pour un appel d'outil (autorise, a_approuver ou refuse attendu)`);
     if (approbation !== null && pd !== "a_approuver") ecarts.push("approval non nul sur un appel d'outil dont policy.decision n'est pas a_approuver");
     if (x.status === "retenue" && (pd !== "a_approuver" || approbation !== null)) {
       ecarts.push("appel retenu : policy.decision a_approuver et approval nul attendus");
@@ -74,8 +74,8 @@ export function ecartsSorte(e) {
     }
   } else {
     // Règles 2 et 3 : échange, décision, rotation, changement de politique.
-    if (pd !== "sans_objet") ecarts.push(`policy.decision ${pd} pour un événement ${sorte} (sans_objet attendu)`);
-    if (x.status !== "executee") ecarts.push(`execution.status ${x.status} pour un événement ${sorte} (executee attendu)`);
+    if (pd !== "sans_objet") ecarts.push(`policy.decision ${montrer(pd)} pour un événement ${sorte} (sans_objet attendu)`);
+    if (x.status !== "executee") ecarts.push(`execution.status ${montrer(x.status)} pour un événement ${sorte} (executee attendu)`);
     if (sorte === "decision") {
       if (!estObjet(approbation)) ecarts.push("décision d'approbation sans approval");
     } else if (approbation !== null) {
@@ -213,9 +213,9 @@ export function controlerEvenement(e, contexte = {}) {
     const a = estObjet(e.approval) ? e.approval : {};
     const ecarts5 = [];
     if (!Array.isArray(a.approvers) || !Array.isArray(a.signatures) || a.approvers.length !== a.signatures.length) {
-      ecarts5.push(`approvers (${a.approvers?.length}) et signatures (${a.signatures?.length}) de longueurs différentes`);
+      ecarts5.push(`approvers (${montrer(a.approvers?.length)}) et signatures (${montrer(a.signatures?.length)}) de longueurs différentes`);
     }
-    if (typeof a.ticket !== "string" || a.ticket !== e.policy?.ticket) ecarts5.push(`approval.ticket ${a.ticket} différent de policy.ticket ${e.policy?.ticket}`);
+    if (typeof a.ticket !== "string" || a.ticket !== e.policy?.ticket) ecarts5.push(`approval.ticket ${montrer(a.ticket)} différent de policy.ticket ${montrer(e.policy?.ticket)}`);
     r["E-5"] = selon(ecarts5);
   } else {
     r["E-5"] = reussi();
@@ -228,8 +228,8 @@ export function controlerEvenement(e, contexte = {}) {
     try {
       const octets = jcsOctets(reference.value, SANS_BORNE);
       const empreinte = sha256Hex(octets);
-      if (reference.sha256 !== empreinte) ecarts6.push(`${chemin} : sha256 ${reference.sha256} différent de SHA-256(JCS(value)) ${empreinte}`);
-      if (reference.length !== octets.length) ecarts6.push(`${chemin} : length ${reference.length} différente de ${octets.length} octets de JCS(value)`);
+      if (reference.sha256 !== empreinte) ecarts6.push(`${chemin} : sha256 ${montrer(reference.sha256)} différent de SHA-256(JCS(value)) ${empreinte}`);
+      if (reference.length !== octets.length) ecarts6.push(`${chemin} : length ${montrer(reference.length)} différente de ${octets.length} octets de JCS(value)`);
     } catch (err) {
       ecarts6.push(`${chemin} : JCS(value) incalculable (${err.message})`);
     }
@@ -241,7 +241,7 @@ export function controlerEvenement(e, contexte = {}) {
   if (canonique) {
     hashCalcule = hacherEvenement(e);
     r["E-7"] =
-      hashCalcule === e.hash ? reussi() : echoue([`hash recalculé ${hashCalcule} différent de hash ${e.hash}`]);
+      hashCalcule === e.hash ? reussi() : echoue([`hash recalculé ${hashCalcule} différent de hash ${montrer(e.hash)}`]);
   } else {
     r["E-7"] = nonExecute("prerequis_en_echec");
   }
@@ -250,7 +250,7 @@ export function controlerEvenement(e, contexte = {}) {
   const cle = index?.exploitable && typeof e.recorder_key_id === "string" ? index.cles.get(e.recorder_key_id) : undefined;
   if (!index) r["E-8"] = nonExecute("cles_absent");
   else if (!index.exploitable) r["E-8"] = echoue(["cles.json inexploitable"]);
-  else if (!cle) r["E-8"] = echoue([`clé ${e.recorder_key_id} absente de cles.json`]);
+  else if (!cle) r["E-8"] = echoue([`clé ${montrer(e.recorder_key_id)} absente de cles.json`]);
   else if (!cle.admise) r["E-8"] = echoue([`clé publique de ${e.recorder_key_id} refusée (non canonique ou de petit ordre)`]);
   else if (!canonique) r["E-8"] = nonExecute("prerequis_en_echec");
   else r["E-8"] = verifierSignatureEvenement(e, cle.octets) ? reussi() : echoue([`signature invalide sous la clé ${e.recorder_key_id}`]);
@@ -278,7 +278,7 @@ export function controlerEvenement(e, contexte = {}) {
         const { adresse, canonique: canon, raison } = recouvrerAdresseEip191(DA, hexVersOctets(sig));
         if (!canon) ecarts9.push(`signatures[${i}] non canonique : ${raison}`);
         else if (i >= e.approval.approvers.length) ecarts9.push(`signatures[${i}] recouvre ${adresse}, sans approvers[${i}]`);
-        else if (adresse !== e.approval.approvers[i]) ecarts9.push(`signatures[${i}] recouvre ${adresse}, approvers[${i}] vaut ${e.approval.approvers[i]}`);
+        else if (adresse !== e.approval.approvers[i]) ecarts9.push(`signatures[${i}] recouvre ${adresse}, approvers[${i}] vaut ${montrer(e.approval.approvers[i])}`);
       }
     }
     r["E-9"] = selon(ecarts9);

@@ -1,0 +1,155 @@
+{
+  "version": 0,
+  "kind": "ceremonie-cles",
+  "ceremony_id": "cer-2026-11-09-sinistres-rotation-01",
+  "scope": "client",
+  "organization": {
+    "name": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+  },
+  "purpose": "rotation",
+  "purpose_details": null,
+  "environment": "production",
+  "place": "Salle de cérémonie, site principal (exemple)",
+  "started_at": "2026-11-09T08:00:00.000Z",
+  "ended_at": "2026-11-09T08:45:00.000Z",
+  "script": {
+    "title": "Rotation planifiée de la clé de chaîne de l'enregistreur",
+    "version": "1",
+    "sha256": "0xb94298a8d34bee53924668dc72c5ab3cd901a12d6a8e88ab569b5523a1b94595"
+  },
+  "workstation": {
+    "description": "Poste d'administration du module, démarré sur support en lecture seule, interfaces réseau désactivées",
+    "offline": true,
+    "image_sha256": "0x2408b216725cd9a613845dc2b9efa49582fd569b72e1a8979313683fd0562da5"
+  },
+  "entropy": {
+    "source": "module",
+    "description": "Générateur aléatoire du module ; aucune valeur saisie"
+  },
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Officiant (compte de test 1)",
+      "role": "officiant",
+      "affiliation": "assureur-demo, exploitation",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "id": "p2",
+      "name": "Témoin (compte de test 2)",
+      "role": "temoin",
+      "affiliation": "assureur-demo, sécurité",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    },
+    {
+      "id": "p3",
+      "name": "Auditeur (compte de test 4)",
+      "role": "auditeur",
+      "affiliation": "cabinet d'audit (exemple)",
+      "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "action": "Lire le script à voix haute et comparer son SHA-256 à celui publié avant la cérémonie",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2",
+        "p3"
+      ],
+      "at": "2026-11-09T08:02:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 2,
+      "action": "Vérifier les scellés du module, démarrer le poste sur l'image dont le SHA-256 est inscrit, constater l'absence de réseau",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-09T08:10:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 3,
+      "action": "Générer dans le module la nouvelle clé de chaîne secp256k1, signer un condensé d'essai et recouvrer l'adresse",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2",
+        "p3"
+      ],
+      "at": "2026-11-09T08:22:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 4,
+      "action": "Remettre au démon la seule identité d'usage de la nouvelle clé : ni export, ni suppression, ni changement de politique",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-09T08:32:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 5,
+      "action": "Arrêter l'enregistrement vidéo, calculer les SHA-256 des enregistrements et des journaux",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2",
+        "p3"
+      ],
+      "at": "2026-11-09T08:40:00.000Z",
+      "outcome": "fait"
+    }
+  ],
+  "keys": [
+    {
+      "key_id": "chaine-test-06",
+      "usage": "chaine",
+      "algorithm": "secp256k1",
+      "generated_in": "module",
+      "custody_class": "A",
+      "backend": "pkcs11",
+      "public_key": "0x049a4ab212cb92775d227af4237c20b81f4221e9361d29007dfc16c79186b577cb6ba3f1b582ad0b5572c93f47e7506d66df7f2af05fa1828de0e511aac7b97828",
+      "fingerprint": "0x88ee0db5fa60fd6eec432ff1a6b26755e0091575c78c1c0ea5c93110bfbe0ee4",
+      "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    }
+  ],
+  "records": [
+    {
+      "kind": "video",
+      "name": "camera-1.mp4",
+      "sha256": "0x8760751973f4d19be1f34b8a15c322469f797d53f3a163726c997d8c9f501c5b"
+    },
+    {
+      "kind": "journal_module",
+      "name": "journal-module.txt",
+      "sha256": "0xba3bac49e00b26298efd1bd401c2077139ef63a0cb93fc16185e2bf18f986646"
+    }
+  ],
+  "findings": [],
+  "signatures": [
+    {
+      "participant": "p1",
+      "signature": "0xc8f8118d0d082509a4e273a8e68391a08f2e3f7f10a4ed95c63aefb9434196af097b5338e45c25f4f662fa7f687b32b43fd25c9e70ac43ca029262fced6e80611b"
+    },
+    {
+      "participant": "p2",
+      "signature": "0x5ebd4ba1d2e3d273c0eba50e62f217b0bea916479e34fc610fcbb158a45ba9517fbdadc87ab67cea0d670e51a2110c51b7e6a45f34e93c7bc60a40655f9c829b1b"
+    },
+    {
+      "participant": "p3",
+      "signature": "0x9e7094a3765f7ad97a1ca70d12e51b55989225aae11d93ce2d169be85e65c04a2573a0256c415b56d1297c06b05d3f4b0f69c8585dd88c52376ac29dd30fbcdf1b"
+    }
+  ]
+}

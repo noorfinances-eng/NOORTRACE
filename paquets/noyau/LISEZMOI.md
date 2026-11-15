@@ -140,6 +140,8 @@ Point d'entrée `@noortrace/noyau` (`src/index.mjs`) :
 - `encoderBase64(octets)` — base64 standard avec remplissage.
 - `utf8(texte)` — encode en UTF-8.
 - `chaineNonVide(valeur)` — chaîne qui contient un caractère autre qu'un blanc (CT-1 §3, révision 0.5 : White_Space et U+FEFF).
+- `montrer(valeur)` — écrit une valeur lue dans un message : chaîne telle quelle, objet ou tableau en JSON (jamais `toString`, qu'un membre peut masquer), `undefined` « absent ».
+- `descriptionErreur(e)` — nom et message d'une exception rattrapée par la garde d'un point d'entrée (bornés à 512 caractères).
 
 ### JSON strict et JCS v0 (`json-strict.mjs`)
 
@@ -189,7 +191,8 @@ Point d'entrée `@noortrace/noyau` (`src/index.mjs`) :
 - `SCHEMA_DOSSIER` — copie de `dossier-v0.schema.json`.
 - `REGISTRE` — registre des cinq schémas et des deux enveloppes dérivées.
 - `SCHEMAS` — noms de schémas admis et leur référence.
-- `validerSchema(nom, instance)` — valide contre un schéma nommé.
+- `ERREURS_SCHEMA_MAX` — 64, nombre d'erreurs qu'une validation rapporte au plus (la dernière compte les omises).
+- `validerSchema(nom, instance)` — valide contre un schéma nommé (`uniqueItems` en temps linéaire, par clé canonique).
 
 ### Événement (`evenement.mjs`)
 
@@ -241,7 +244,7 @@ Point d'entrée `@noortrace/noyau` (`src/index.mjs`) :
 
 - `ORDRE_CONTROLES` — ordre de rapport des contrôles de §11.4.
 - `trierControles(ids)` — trie des identifiants dans cet ordre.
-- `verifierJournal(evenements, cles)` — vérifie un journal, tous les symptômes de la table 7.2, dans l'ordre de la règle exacte de §7.2.
+- `verifierJournal(evenements, cles)` — vérifie un journal, tous les symptômes de la table 7.2, dans l'ordre de la règle exacte de §7.2 ; une exception interne rend `valide` faux et `erreur_interne`, jamais une exception.
 
 ### Merkle (`merkle.mjs`)
 
@@ -280,7 +283,7 @@ Point d'entrée `@noortrace/noyau` (`src/index.mjs`) :
 - `verifierSignaturePoint(point, cle)` — vérifie la signature du point.
 - `coherencePoint(treeSize, hashesPeriode)` — membre `consistency` vers le manifeste.
 - `cleEnVigueur(parSeq, lastSeq, contexte?)` — clé en vigueur (règle 5) : celle de l'événement `last_seq`, sinon la règle de §10.1 sur `cles.json` à l'instant du point.
-- `verifierSeriePointsDeControle(points, manifeste, evenements, cles)` — règles violées (`rules_failed`), règles non évaluées (`rules_not_evaluated`) et erreurs d'une série.
+- `verifierSeriePointsDeControle(points, manifeste, evenements, cles)` — règles violées (`rules_failed`), règles non évaluées (`rules_not_evaluated`) et erreurs d'une série ; travail borné par les événements fournis, jamais par `tree_size` ; une exception interne rend `valide` faux et `erreur_interne`, jamais une exception.
 
 ### Attestation de périmètre (`attestation.mjs`)
 
@@ -304,16 +307,18 @@ Point d'entrée `@noortrace/noyau` (`src/index.mjs`) :
 - `TAILLES_MAX` — limite de taille de chaque fichier d'un dossier (CT-6 EX-4.13).
 - `PLAFOND_LECTURE` — 64 Mio, plafond de lecture en flux de `attestation-perimetre.json` (CT-6 EX-4.15).
 - `RAISONS_ADMISES` — raisons de non-exécution qui laissent le dossier valide.
+- `DETAILS_MAX` — 64, nombre de détails qu'un contrôle porte au plus au rapport (le dernier compte les omis).
+- `EVENEMENTS_MAX_APPROBATIONS` — 1 024, nombre d'événements de `approbations.json` contrôlés un à un (`maxItems` du schéma).
 - `BORNE` — énoncé de la borne de §11.3.
 - `VERIFICATION_CT6_NON_EXECUTEE` — détail d'une vérification de CT-6 non exécutée par la bibliothèque (raison `prerequis_en_echec`, CT-1 §11.4).
 - `DOC_TYPE_POINT` — `docType` de l'ancre d'un point au registre.
-- `verifierDossier(fichiers, options?)` — tous les contrôles de §11.4 et le verdict (octets ou `FichierNonLu` par nom ; option `profondeurMax`, 128 par défaut).
+- `verifierDossier(fichiers, options?)` — tous les contrôles de §11.4 et le verdict (octets ou `FichierNonLu` par nom ; option `profondeurMax`, 128 par défaut) ; une exception interne rend une entrée inutilisable de `type_erreur` `erreur_interne`, jamais une exception.
 - `indexerDossier(p)` — construit l'index `dossier.json`.
 
 Point d'entrée `@noortrace/noyau/dossier-fichiers` (`src/dossier-fichiers.mjs`, seul
 module qui lit des fichiers) :
 
-- `lireRepertoireDossier(repertoire)` — lit `dossier.json` et les fichiers qu'un index peut déclarer, fichiers ordinaires seulement, chacun dans sa limite (`FichierNonLu` au-delà).
+- `lireRepertoireDossier(repertoire)` — lit `dossier.json` et les fichiers qu'un index peut déclarer, fichiers ordinaires seulement, chacun dans sa limite (`FichierNonLu` au-delà ; `FichierNonLu` avec `erreur` pour un fichier que l'on ne peut ouvrir ou lire, EACCES, ENOTDIR, EIO… : jamais une exception).
 - `verifierRepertoireDossier(repertoire, options?)` — lit puis vérifie un dossier.
 
 ## Règles de CT-1 révision 0.5 appliquées
@@ -368,6 +373,22 @@ CT-6 révision 0.4, que le paquet applique aussi :
 | `approval` ni nul ni objet : E-1, A-1 à A-4 en échec ; `execution.tool` qui n'est pas une chaîne : E-1 et E-3 ; origine de C-2 sur chaque événement du dossier | CT-1 §11.4 |
 | Document de politique d'une inscription : même borne de 128 et même comptage, nombres libres | CT-1 §4 règle 7 ; CT-6 EX-4.16 |
 | Entrée inutilisable : `type_erreur` (`dossier_illisible`, `taille_depassee`), l'`error_kind` de `attendu.json` | CT-1 §11.5 ; CT-6 EX-4.12, EX-4.15 |
+
+## Règles de la revue de sécurité (étape 8)
+
+Corrections de la revue de sécurité interne de l'étape 8, chacune éprouvée par `test/noyau-revue.test.js` (rouge avant, verte
+après) ; aucune ne change le verdict d'un vecteur publié.
+
+| Règle ou limite | Exigence | Module |
+|---|---|---|
+| Une série de points se vérifie en un travail proportionnel au nombre de points et d'événements fournis, jamais à `tree_size` : la règle `root` compte les événements fournis de l'intervalle du point (manquant : `piece_hors_dossier` ; fourni sans forme canonique : `prerequis_en_echec`) et ne recalcule la racine que s'ils y sont tous ; le hash de chaque événement n'est recalculé qu'une fois pour la série | CT-7 MN-68 | `point-de-controle.mjs` |
+| Toute valeur lue écrite dans un message passe par `montrer` (texte JSON d'un objet ou d'un tableau, jamais `toString`) : un membre `toString` ou `valueOf` non appelable ne lève plus `TypeError` ; `annonceRotation` contrôle le type d'un identifiant avant son motif | CT-7 MN-68 | tous les modules de contrôle |
+| Garde des points d'entrée : `verifierDossier` (entrée inutilisable, `type_erreur` `erreur_interne`, sans verdict), `verifierJournal` et `verifierSeriePointsDeControle` (`valide` faux, listes vides, `erreur_interne`), `verifierPartieAttestation` (AT-1 en échec « erreur interne ») rattrapent toute exception résiduelle : jamais une exception, jamais un statut `reussi` | CT-7 MN-68, cause S-2 | `dossier.mjs`, `chainage.mjs`, `point-de-controle.mjs`, `attestation.mjs` |
+| Au plus `EVENEMENTS_MAX_APPROBATIONS` (1 024, `maxItems` du schéma) événements de `approbations.json` sont contrôlés un à un par E-1 à E-11 et A-2 ; au-delà, A-1 échoue (schéma), A-2 échoue en nommant les éléments non contrôlés, qui ne sont ni contrôlés ni rapportés un à un (révision de CT-1 §11.4 A-2 et de CT-6 EX-15.1 demandée) | CT-6 EX-15.1 | `dossier.mjs` |
+| Un contrôle porte au plus `DETAILS_MAX` (64) détails, puis « … et n autres détail(s) omis » ; une validation de schéma rapporte au plus `ERREURS_SCHEMA_MAX` (64) erreurs, puis le nombre d'omises ; le verdict ne change pas | CT-6 EX-15.1 | `dossier.mjs`, `validation-schema.mjs` |
+| `uniqueItems` se juge par table de clés canoniques (égalité membre à membre, temps linéaire) ; l'appartenance d'A-3 et la comparaison des jeux d'AV-AT-2 par ensemble | CT-1 A-3 | `validation-schema.mjs`, `dossier.mjs`, `attestation.mjs` |
+| `lireJournal` n'admet après un élément qu'une virgule ou le crochet fermant : tout autre caractère est une erreur de syntaxe (le fichier n'est pas un texte JSON, CT-1 §3) | CT-1 §3 | `json-strict.mjs` |
+| `lireRepertoireDossier` ne lève jamais une erreur d'ouverture ou de lecture : un fichier en EACCES, EPERM, ENOTDIR, EIO… est rendu `{ taille: null, sha256: null, erreur }` et D-2 le dit « non lisible (CODE) » ; `dossier.json` dans ce cas : entrée inutilisable | CT-1 D-2 | `dossier-fichiers.mjs`, `dossier.mjs` |
 
 ## Lectures qui restent
 

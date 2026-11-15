@@ -1,4 +1,4 @@
-// Composant d'ancrage, lot D : `Envoyeur` (CT-4 §8.6, EX-8.13 à EX-8.17 ;
+// Composant d'ancrage, registre : `Envoyeur` (CT-4 §8.6, EX-8.13 à EX-8.17 ;
 // CT-5 EX-9.3, EX-9.4, EX-9.7, EX-8.10, AN-44 à AN-48) sur un nœud noorcore
 // factice (test/fixtures/ancrage-registre/noeud-factice.mjs) dont les blocs,
 // reçus et certificats ont la forme des réponses du réseau de développement
@@ -79,7 +79,7 @@ function aucunSecret(repertoire) {
   }
 }
 
-describe("ancrage, lot D : Envoyeur sur un nœud factice (CT-4 §8.6, §9.4 ; CT-5 §9)", function () {
+describe("ancrage, registre : Envoyeur sur un nœud factice (CT-4 §8.6, §9.4 ; CT-5 §9)", function () {
   this.timeout(60000);
 
   after(function () {

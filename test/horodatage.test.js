@@ -24,6 +24,9 @@ const ANCRES = {
   "ancres-test": G.ancresHorodatage(FRAGMENTS.test),
   "ancres-qualification-declaree": G.ancresHorodatage(FRAGMENTS.qualification_declaree),
   "ancres-tsa-revoquee": G.ancresHorodatage(FRAGMENTS.tsa_revoquee),
+  // Révision 0.9 (EX-9.16) : CRL à extension critique non lue, sur la liste ou sur une entrée.
+  "ancres-crl-extension-critique-inconnue": G.ancresHorodatage(FRAGMENTS.crl_extension_critique_inconnue),
+  "ancres-crl-entree-extension-critique-inconnue": G.ancresHorodatage(FRAGMENTS.crl_entree_extension_critique_inconnue),
   "ancres-unite-epinglee-revoquee": G.ancresHorodatage(FRAGMENTS.unite_epinglee_revoquee),
   "ancres-deux-autorites": G.ancresHorodatage(FRAGMENTS.deux_autorites),
   "ancres-unite-intermediaire": G.ancresHorodatage(FRAGMENTS.unite_intermediaire),
@@ -146,10 +149,12 @@ describe("CT-6 contrôle 4 : vecteurs spec/vecteurs/ct-6/rfc3161 (annexe A.3)", 
 
   it("chaque cas de attendu.json est rejoué : statuts T-1 à T-11, contrôle 4, avertissements et faits identiques", function () {
     // Révision 0.4 (EX-A.22) : quinze cas de plus (jetons t4-*, t5-*, t7-intermediaire-rsa-8200, rsa-8192, serie-168-bits) ;
-    // révision 0.5 (EX-A.25) : deux cas de plus (t1-cle-longueur-non-minimale, t1-extension-mal-formee).
-    expect(ATTENDU.cases.length).to.equal(41);
+    // révision 0.5 (EX-A.25) : deux cas de plus (t1-cle-longueur-non-minimale, t1-extension-mal-formee) ;
+    // révision 0.9 (revue de l'étape 8, EX-9.4, EX-9.6, EX-9.16) : dix cas de plus (huit jetons, deux CRL à extension critique).
+    expect(ATTENDU.cases.length).to.equal(51);
     for (const c of ATTENDU.cases) {
       const ancres = c.anchors ? ANCRES[path.basename(c.anchors, ".json")] : null;
+      expect(c.anchors === null || ancres !== undefined, `${c.anchors} : ancres connues de l'essai`).to.equal(true);
       const r = H.verifierJeton(fs.readFileSync(path.join(VECTEURS, c.token)), { periodHash: c.dossier_period_hash, ancres });
       const etiquette = `${c.token} ${c.anchors}`;
       expect(r.checks.map((x) => ({ id: x.id, status: x.status, reason: x.reason })), etiquette).to.deep.equal(c.checks);
@@ -161,7 +166,7 @@ describe("CT-6 contrôle 4 : vecteurs spec/vecteurs/ct-6/rfc3161 (annexe A.3)", 
 
   it("une variante par vérification visée : la seule vérification en échec est la cible", function () {
     const cibles = ATTENDU.tokens.filter((j) => j.target);
-    expect(cibles.map((j) => j.target)).to.deep.equal(["T-1", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9", "T-1", "T-1", "T-4", "T-4", "T-5", "T-5", "T-7", "T-5", "T-5", "T-1", "T-1", "T-6"]);
+    expect(cibles.map((j) => j.target)).to.deep.equal(["T-1", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9", "T-1", "T-1", "T-4", "T-4", "T-5", "T-5", "T-7", "T-5", "T-5", "T-1", "T-1", "T-1", "T-1", "T-1", "T-1", "T-1", "T-1", "T-1", "T-6"]);
     // Le jeton du point de contrôle (EX-A.13) se vérifie sur checkpoint_hash, non sur le period_hash de la période 1.
     for (const j of cibles) expect(echecs(verifier(fs.readFileSync(path.join(VECTEURS, j.file)), j.checkpoint ? { periodHash: j.checkpoint.checkpoint_hash } : {})), j.file).to.deep.equal([j.target]);
     expect(echecs(verifier(jetonFichier("periode-2")))).to.deep.equal(["T-2"]);
@@ -605,7 +610,12 @@ describe("CT-6 contrôle 4 : ancres d'horodatage (N-1, EX-12.2)", function () {
 describe("CT-6 contrôle 4 : confrontation à openssl ts -verify (annexe A.3)", function () {
   const openssl = spawnSync("openssl", ["version"], { encoding: "utf8" });
   before(function () {
-    if (openssl.status !== 0) this.skip();
+    if (openssl.status !== 0) {
+      // Condition nommée au titre de chaque essai du bloc, que ce crochet met en attente.
+      const condition = openssl.error ? `openssl absent (openssl version : ${openssl.error.code})` : `openssl inutilisable (openssl version : code ${openssl.status})`;
+      for (const t of this.test.parent.tests) t.title += ` — en attente : ${condition}`;
+      this.skip();
+    }
   });
   const verifierOpenssl = (jetonNom, empreinte, attime) => {
     const r = spawnSync("openssl", ["ts", "-verify", "-digest", empreinte.slice(2), "-in", path.join(VECTEURS, "jetons", `${jetonNom}.der`), "-token_in", "-CAfile", path.join(VECTEURS, "cles", "ac-test.pem"), "-attime", String(attime)], { encoding: "utf8" });
@@ -656,8 +666,8 @@ describe("CT-6 contrôle 4 : génération déterministe des vecteurs rfc3161", f
       const la = lister(path.join(a, "rfc3161"));
       expect(la).to.deep.equal(lister(path.join(b, "rfc3161")));
       expect(la).to.deep.equal(lister(VECTEURS));
-      // Révision 0.5 (EX-A.25) : deux certificats et deux jetons de plus.
-      expect(Object.keys(la).length).to.equal(54);
+      // Révision 0.5 (EX-A.25) : deux certificats et deux jetons de plus ; révision 0.9 : huit jetons et trois CRL de plus.
+      expect(Object.keys(la).length).to.equal(65);
     } finally {
       fs.rmSync(a, { recursive: true, force: true });
       fs.rmSync(b, { recursive: true, force: true });

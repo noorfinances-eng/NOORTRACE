@@ -25,21 +25,41 @@ func VerifierVecteurs(racine string) *Rapport {
 	if err := c.chargerCapture(); err != nil {
 		c.R.F("capture").Erreur("capture de CT-6", "lecture", err, "EX-A.4")
 	}
-	c.FamilleConstantes()
-	c.FamilleIdentifiants()
-	c.FamilleDoctypes()
-	c.FamilleEmpreintes()
-	c.FamilleCondenses()
-	c.FamilleAppels()
-	c.FamilleTransactions()
-	c.FamilleManifestes()
-	c.FamilleDemandes()
-	c.FamilleInscription()
-	c.FamilleCapture()
-	c.FamilleFormat()
-	c.FamilleTexte()
-	c.FamilleCouverture()
+	for _, fam := range []struct {
+		nom string
+		f   func()
+	}{
+		{"constantes", c.FamilleConstantes},
+		{"identifiants", c.FamilleIdentifiants},
+		{"doctypes", c.FamilleDoctypes},
+		{"empreintes", c.FamilleEmpreintes},
+		{"condenses", c.FamilleCondenses},
+		{"appels", c.FamilleAppels},
+		{"transactions", c.FamilleTransactions},
+		{"manifestes", c.FamilleManifestes},
+		{"demandes", c.FamilleDemandes},
+		{"inscription", c.FamilleInscription},
+		{"capture", c.FamilleCapture},
+		{"format", c.FamilleFormat},
+		{"texte", c.FamilleTexte},
+		{"couverture", c.FamilleCouverture},
+	} {
+		c.protegerFamille(fam.nom, fam.f)
+	}
 	return c.R
+}
+
+// protegerFamille exécute une famille ; une panne (entrée absente que la
+// famille n'aurait pas gardée, par exemple) devient une erreur consignée,
+// les autres familles sont confrontées, le rapport est imprimé et le code
+// est 1, jamais une trace de pile au code 2 (revue de sécurité de l'étape 8).
+func (c *Ctx) protegerFamille(nom string, f func()) {
+	defer func() {
+		if r := recover(); r != nil {
+			c.R.F(nom).Erreur(nom, "famille", fmt.Errorf("panne interne (%v) ; famille non confrontée en entier", r), "")
+		}
+	}()
+	f()
 }
 
 // chargerJeuDev prend le jeu du réseau de développement dans l'exemple de

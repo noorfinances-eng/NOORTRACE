@@ -103,11 +103,51 @@ function estRemplissageNul(octets) {
  *   corruption: {seq: number|null, raison: string, attendu?: string, recalcule?: string}|null}}
  */
 export function relireSegment(octets, options = {}) {
-  const lignes = decouperLignes(octets);
   const resultat = { entete: null, evenements: [], finValide: 0, tronque: false, corruption: null };
+  for (const _ of pasRelecture(octets, options, resultat)) {
+    // relecture d'une traite (appelants synchrones : écrivain, composant d'ancrage)
+  }
+  return resultat;
+}
+
+/**
+ * Même relecture, par tranches qui rendent la main à la boucle d'événements
+ * (étape 8, CT-2 EX-3.6 : un segment de 20 000 événements occupait le fil du démon
+ * sept secondes d'une traite, sans renouvellement du bail ni point de
+ * contrôle ni réponse aux hôtes). Après chaque tranche de `tranche`
+ * événements vérifiés, `ceder()` est attendu (par défaut un tour de
+ * `setImmediate`). Même résultat que `relireSegment`.
+ * @param {Uint8Array} octets
+ * @param {object} [options] celles de `relireSegment`
+ * @param {{tranche?: number, ceder?: () => Promise<void>}} [o]
+ * @returns {Promise<ReturnType<typeof relireSegment>>}
+ */
+export async function relireSegmentParTranches(octets, options = {}, o = {}) {
+  const tranche = o.tranche ?? TRANCHE_RELECTURE;
+  const ceder = o.ceder ?? (() => new Promise((r) => setImmediate(r)));
+  const resultat = { entete: null, evenements: [], finValide: 0, tronque: false, corruption: null };
+  let n = 0;
+  for (const _ of pasRelecture(octets, options, resultat)) {
+    if (++n % tranche === 0) await ceder();
+  }
+  return resultat;
+}
+
+/** Événements vérifiés entre deux cessions de la main (`relireSegmentParTranches`). */
+export const TRANCHE_RELECTURE = 256;
+
+/**
+ * Pas de la relecture d'un segment : un `yield` par événement vérifié ;
+ * `resultat` est rempli au fil de la lecture (voir `relireSegment`).
+ * @param {Uint8Array} octets
+ * @param {object} options
+ * @param {object} resultat
+ */
+function* pasRelecture(octets, options, resultat) {
+  const lignes = decouperLignes(octets);
   if (lignes.length === 0) {
     resultat.tronque = octets.length > 0;
-    return resultat;
+    return;
   }
   const tronquerOuCorrompre = (k, raison, extra = {}) => {
     const reste = lignes.slice(k);
@@ -121,25 +161,25 @@ export function relireSegment(octets, options = {}) {
   const l0 = lignes[0];
   if (!l0.complete) {
     resultat.tronque = true;
-    return resultat;
+    return;
   }
   try {
     resultat.entete = analyserJson(l0.octets);
   } catch {
     tronquerOuCorrompre(0, "entete_illisible");
-    return resultat;
+    return;
   }
   resultat.finValide = l0.fin;
   const entete = resultat.entete;
   if (options.firstSeqAttendu !== undefined && options.firstSeqAttendu !== null && entete.first_seq !== options.firstSeqAttendu) {
     resultat.corruption = { seq: null, raison: "first_seq_discontinu" };
-    return resultat;
+    return;
   }
   let seqAttendu = entete.first_seq;
   let prevAttendu = entete.prev_hash;
   if (options.prevHashAttendu !== undefined && options.prevHashAttendu !== null && prevAttendu !== options.prevHashAttendu) {
     resultat.corruption = { seq: null, raison: "prev_hash_entete" };
-    return resultat;
+    return;
   }
   let cleCourante = entete.recorder_key_id;
   const nouvellesCles = new Map();
@@ -147,28 +187,28 @@ export function relireSegment(octets, options = {}) {
     const l = lignes[k];
     if (!l.complete) {
       tronquerOuCorrompre(k, "ligne_incomplete");
-      return resultat;
+      return;
     }
     let e;
     try {
       e = analyserJson(l.octets);
     } catch (err) {
       tronquerOuCorrompre(k, err instanceof ErreurJson ? "json_invalide" : "illisible");
-      return resultat;
+      return;
     }
     const schema = validerSchema("evenement", e);
     if (!schema.valide) {
       tronquerOuCorrompre(k, "schema", { seq: e?.seq ?? null });
-      return resultat;
+      return;
     }
     if (e.seq !== seqAttendu || e.prev_hash !== prevAttendu) {
       tronquerOuCorrompre(k, "chainage", { seq: e.seq });
-      return resultat;
+      return;
     }
     const recalcule = hacherEvenement(e);
     if (recalcule !== e.hash) {
       resultat.corruption = { seq: e.seq, raison: "hash_different", attendu: e.hash, recalcule };
-      return resultat;
+      return;
     }
     if (options.verifierSignatures) {
       const keyId = e.recorder_key_id;
@@ -181,11 +221,11 @@ export function relireSegment(octets, options = {}) {
       // tronquée ni acceptée sans vérification (lecture du LISEZMOI).
       if (keyId === cleCourante && !pub) {
         resultat.corruption = { seq: e.seq, raison: "cle_inconnue", key_id: keyId };
-        return resultat;
+        return;
       }
       if (keyId !== cleCourante || !verifierSignatureEvenement(e, pub)) {
         tronquerOuCorrompre(k, "signature", { seq: e.seq });
-        return resultat;
+        return;
       }
     }
     const a = annonceRotation(e);
@@ -197,8 +237,8 @@ export function relireSegment(octets, options = {}) {
     resultat.finValide = l.fin;
     seqAttendu++;
     prevAttendu = e.hash;
+    yield e;
   }
-  return resultat;
 }
 
 /**

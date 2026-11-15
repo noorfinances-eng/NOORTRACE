@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.9",
-  "date": "2026-11-12",
+  "spec_version": "0.10",
+  "date": "2026-11-14",
   "levels": [
     {
       "id": "TU",
@@ -106,58 +106,71 @@
   ],
   "tests": [
     {
-      "id": "TA-14",
+      "id": "TA-41",
       "level": "TA",
-      "title": "Réponse retirée : Rang de chaque mode écrit et contrôlé (CT-2 §5.1, EX-5.1, EX-5.6) ; mode déclaré dans l'attestation (CT-7 §7)",
+      "title": "Réponse retirée : Secrets par référence, jamais dans la file, les traces ni le journal (CT-5 EX-4.8, AN-43)",
       "specs": [
-        "CT-2",
+        "CT-5",
         "CT-7"
       ],
       "covers": [
-        "CT-2 §5.1",
-        "CT-2 EX-5.1",
-        "CT-2 EX-5.6",
-        "CT-7 §7"
+        "CT-5 EX-4.8",
+        "CT-5 AN-43",
+        "CT-5 EX-5.5",
+        "CT-7 §4.6"
       ],
       "preconditions": [
-        "Partie phase 2 : Démonstration de référence de CT-2 §19 (docker compose : agent, enregistreur, serveur d'outils HTTP, simulateur de modèle) construite et lancée ; phase 2, étape 8."
+        "Démon de l'enregistreur (`paquets/enregistreur`, étape 4) avec le composant d'ancrage (`paquets/ancrage`, étape 5) branché (`anchoring.ancrage`, document `ancrage-v0`), en cours de processus à horloge réglable ; serveurs RFC 3161 internes de référence du paquet d'ancrage, le principal en TLS mutuel ; `providers[principal].auth` porte une référence de secret `file` dont la valeur résolue porte une chaîne marqueur injectée par l'essai (CT-5 EX-4.8, AN-43)."
       ],
       "steps": [
-        "Partie phase 2 : lire la configuration effective au démarrage (ligne startup) et le capture_channels de l'attestation."
+        "Démarrer le démon avec le composant ; laisser partir des requêtes RFC 3161 authentifiées vers le principal (points contresignés, clôture).",
+        "Relire la file durable, les traces du planificateur, `acquisitions.ndjson`, le journal d'exploitation et les métriques ; y chercher la chaîne marqueur, le secret TLS et la clé de chaîne.",
+        "Présenter une chaîne en clair à la place de la référence, puis une référence `env` absente ; relever le refus.",
+        "Mutant (complément) : copie du paquet `paquets/ancrage` (EX-10.5) dont la journalisation ou la mise en file recopie la valeur résolue du secret."
       ],
-      "oracle": "Partie exécutable : erreur de schéma sur /model/mode, aucune avec le schéma mutant. Partie phase 2 : startup.model.mode = passerelle et attestation.agents[].capture_channels contient passerelle.",
+      "oracle": "Le marqueur, le secret TLS et la clé de chaîne n'apparaissent dans aucun fichier (file, traces, `acquisitions.ndjson`, journal d'exploitation, métriques) ; seule la référence (`file`) figure dans la configuration d'ancrage en vigueur ; une chaîne en clair est refusée par le schéma `ancrage-v0` (AN-1) ; une référence `env` absente refuse le démarrage de l'ancrage (`secret_non_resolu`, pointeur consigné, jamais une valeur) sans arrêter l'enregistreur. Avec le mutant du complément, le marqueur apparaît et le test échoue.",
       "status": {
         "state": "executable",
         "tests": [
           {
+            "file": "test/enregistreur-ancrage-exigences.test.js",
+            "describe": "enregistreur + ancrage : branchement d'anchoring.ancrage, configuration refusée, secrets, clé de chaîne (CT-5 EX-4.8, EX-4.9 ; CT-2 §15.2, EX-11.19 ; TA-41)",
+            "it": "TA-41 : une chaîne en clair à la place d'une référence de secret est refusée (schéma ancrage-v0, AN-1) ; une référence env absente refuse le démarrage de l'ancrage sans arrêter l'enregistreur (secret_non_resolu, pointeur consigné, jamais une valeur) ; resoudreSecretsAncrage ne touche qu'aux pointeurs d'ancrage-v0"
+          },
+          {
+            "file": "test/enregistreur-ancrage-exigences.test.js",
+            "describe": "enregistreur + ancrage : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence"
+          },
+          {
             "file": "test/adversarial.test.js",
-            "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
-            "it": "TA-14 (MN-14, partie exécutable ; la démonstration en mode passerelle est de phase 2, étape 4) : le schéma de configuration refuse un model.mode inconnu ; schéma mutant sans l'énumération : accepté (tué)"
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le composant d'ancrage de l'étape 5 (mutants du paquet @noortrace/ancrage, CT-7 EX-3.2)",
+            "it": "TA-41 (MN-41, complément ; mutants du composant d'ancrage) : secret du principal à valeur résolue marquée, jeton obtenu en TLS mutuel : marqueur absent des fichiers, du journal et des métriques, seule la référence dans la configuration en vigueur ; mutant sans la copie privée du prestataire résolu : la valeur y remplace la référence ; mutant dont le journal d'acquisition recopie la valeur (tués)"
           }
         ],
-        "command": "npx mocha --timeout 600000 test/adversarial.test.js",
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-exigences.test.js && npx mocha --timeout 600000 test/adversarial.test.js",
         "complement": {
-          "blocking": "Partie à écrire : démonstration de référence de CT-2 §19 (docker compose), livrée à l'étape 8 ; la version 0.1 rattachait à tort ce complément à l'étape 4, alors que ses préconditions nomment l'étape 8."
+          "blocking": "Mutant du composant livré : une copie du paquet `paquets/ancrage` (EX-10.5) dont la journalisation ou la mise en file recopie la valeur résolue d'une référence de secret, rejouée par le même essai, qui doit alors trouver le marqueur ; les essais de l'étape 5 éprouvent la réponse sans ce mutant. Possible dès maintenant sur le composant livré et non écrit : étape 8 (EX-3.10). Les versions 0.1 et 0.2 rattachaient l'entrée aux étapes 4 puis 5."
         }
       },
       "threats": [
-        "MN-14"
+        "MN-41"
       ],
       "adversarial": {
-        "threat": "MN-14",
-        "component": "passerelle_modele",
+        "threat": "MN-41",
+        "component": "cles",
         "response_removed": {
-          "what": "Rang de chaque mode écrit et contrôlé (CT-2 §5.1, EX-5.1, EX-5.6) ; mode déclaré dans l'attestation (CT-7 §7)",
-          "how": "Retirer l'énumération model.mode du schéma de configuration ; en phase 2, lancer la démonstration dans un autre mode que passerelle",
-          "where": "spec/schemas/configuration-enregistreur-v0.schema.json ; démonstration"
+          "what": "Secrets par référence, jamais dans la file, les traces ni le journal (CT-5 EX-4.8, AN-43)",
+          "how": "Journaliser ou mettre en file la valeur résolue d'une référence de secret au lieu de la référence",
+          "where": "paquets/ancrage (file durable, traces du planificateur, acquisitions.ndjson, journal) et paquets/enregistreur (resoudreSecretsAncrage, journal d'exploitation)"
         },
-        "attack": "Configuration avec model.mode = inconnu ; démonstration lancée en mode miroir.",
-        "expected_with_response": "La validation refuse /model/mode ; la démonstration tourne en mode passerelle et l'attestation de périmètre de la démonstration déclare passerelle.",
-        "expected_without_response": "Le mode inconnu est accepté ; le test échoue.",
-        "execution": "vecteurs_et_depot",
-        "accepted_risk": "RA-12",
-        "threat_test_text": "Le test échoue si la réponse est retirée : la validation de configuration refuse un mode inconnu et la démonstration de référence tourne en mode `passerelle` ; si le mode n'est plus contrôlé, le test échoue."
-      }
+        "attack": "Un planificateur qui consigne la valeur de l'identifiant d'accès au prestataire dans la file, une trace ou le journal.",
+        "expected_with_response": "Aucun fichier ne contient la valeur du secret : seule la référence (`env`, `file`, `vault`) y figure.",
+        "expected_without_response": "La valeur marqueur apparaît dans la file ou le journal ; le test échoue.",
+        "execution": "phase_2",
+        "accepted_risk": "RA-37",
+        "threat_test_text": "Le test échoue si la réponse est retirée : aucune ligne de la file ni du journal d'exploitation des vecteurs `ct-5/` ne contient un secret (AN-43) ; si un secret y est écrit, le test échoue."
+      },
+      "notes": "L'essai « AN-43 et TA-41 : des requêtes RFC 3161 authentifiées sont parties vers le principal… » de test/enregistreur-ancrage-exigences.test.js porte l'oracle du marqueur ; son titre (417 caractères) dépasse la borne de 400 de `titre_test` (plan-de-tests-v0) : il est cité par son describe, qui désigne tous ses it (EX-4.2), et se joue avec eux."
     }
   ],
   "non_tests": [],

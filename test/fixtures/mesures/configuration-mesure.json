@@ -1,0 +1,455 @@
+{
+  "config_version": 0,
+  "recorder": {
+    "instance_id": "enregistreur-mesure-1",
+    "org_id": "0x4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d",
+    "journal_id": "0xe5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+    "environment": "developpement"
+  },
+  "mcp": {
+    "enabled": true,
+    "socket": "/run/noortrace/mcp.sock",
+    "connector_tcp": null,
+    "http": {
+      "listen": "127.0.0.1:8300",
+      "path": "/mcp",
+      "allowed_origins": [],
+      "tls": null,
+      "oauth": null,
+      "static_tokens": [
+        {
+          "id": "hote-mesure",
+          "token": {
+            "env": "NOORTRACE_MESURE_JETON_HOTE"
+          }
+        }
+      ]
+    },
+    "hosts": [
+      {
+        "id": "hote-mesure",
+        "match": {
+          "static_token": "hote-mesure"
+        },
+        "launched_by": "hote-mesure",
+        "scope": "mesure",
+        "on_behalf_of": "campagne-de-mesure",
+        "accept_declared_delegation": false,
+        "allowed_on_behalf_of": [],
+        "tool_name_template": "{tool_announced}",
+        "tool_name_sanitize": true,
+        "prompt_version_name": null,
+        "host_group": "mesure",
+        "quota": {
+          "max_concurrent": 64,
+          "piece_bytes_per_minute": 68719476736,
+          "received_bytes_per_minute": 68719476736,
+          "redaction_ms_per_minute": 86400000
+        },
+        "alias": null
+      }
+    ],
+    "discover_timeout_ms": 3000,
+    "drain_timeout_ms": 10000,
+    "child_exit_timeout_ms": 5000
+  },
+  "tools": {
+    "prefix": true,
+    "page_size": 100,
+    "default_ttl_ms": 300000,
+    "default_timeout_ms": 120000,
+    "definition_in_context": true,
+    "list_in_context": true,
+    "list_changed_min_interval_ms": 1000
+  },
+  "limits": {
+    "request_max_bytes": 16777216,
+    "response_max_bytes": 16777216,
+    "model_request_max_bytes": 33554432,
+    "model_response_max_bytes": 33554432,
+    "piece_max_bytes": 67108864,
+    "json_max_depth": 128,
+    "json_max_members": 100000,
+    "line_max_bytes": 16842752,
+    "tools_list_max_pages": 100,
+    "tools_list_max_items": 10000,
+    "pending_max_bytes": 268435456,
+    "redaction_budget_ms": 1000
+  },
+  "relay": {
+    "resources": false,
+    "prompts": false,
+    "completions": false,
+    "server_requests": {
+      "sampling": false,
+      "elicitation": false,
+      "roots": false
+    }
+  },
+  "restart": {
+    "max_attempts": 3,
+    "backoff_ms": 1000
+  },
+  "auth": {
+    "strip_headers": [
+      "X-Forwarded-Authorization"
+    ]
+  },
+  "clock": {
+    "max_backstep_ms": 5000,
+    "warn_skew_ms": 1000,
+    "max_forward_ms": 60000,
+    "max_wait_ms": 3600000
+  },
+  "model": {
+    "mode": "passerelle",
+    "listen": "127.0.0.1:8400",
+    "tls": null,
+    "hosts": [
+      {
+        "id": "hote-mesure",
+        "match": {
+          "static_token": "hote-mesure"
+        },
+        "launched_by": "hote-mesure",
+        "scope": "mesure",
+        "on_behalf_of": "campagne-de-mesure",
+        "accept_declared_delegation": false,
+        "allowed_on_behalf_of": [],
+        "tool_name_template": "{tool_announced}",
+        "tool_name_sanitize": true,
+        "prompt_version_name": null,
+        "host_group": "mesure",
+        "quota": {
+          "max_concurrent": 64,
+          "piece_bytes_per_minute": 68719476736,
+          "received_bytes_per_minute": 68719476736,
+          "redaction_ms_per_minute": 86400000
+        },
+        "alias": null
+      }
+    ],
+    "static_tokens": [
+      {
+        "id": "hote-mesure",
+        "token": {
+          "env": "NOORTRACE_MESURE_JETON_PASSERELLE"
+        }
+      }
+    ],
+    "forward_headers": [],
+    "strip_headers": [],
+    "prompt_in_request": "reference",
+    "prompt_system": "redige",
+    "connect_timeout_ms": 10000,
+    "first_byte_timeout_ms": 120000,
+    "idle_timeout_ms": 120000,
+    "correlation_window_ms": 600000,
+    "icap": null,
+    "mirror": null
+  },
+  "sdk": {
+    "enabled": false,
+    "socket": null,
+    "tcp_listen": null,
+    "hosts": []
+  },
+  "signer": {
+    "class": "D",
+    "key_id": "rec-mesure-01",
+    "backend": {
+      "type": "file",
+      "path": "/etc/noortrace/cles/rec-mesure-01.pem",
+      "passphrase": null
+    },
+    "verify_after_sign": true,
+    "max_message_bytes": null,
+    "timeout_ms": 5000,
+    "health_interval_ms": 10000,
+    "rotation": {
+      "planned_every_days": null,
+      "next_key_id": null
+    }
+  },
+  "storage": {
+    "root": "/var/lib/noortrace",
+    "segment_max_bytes": 268435456,
+    "min_free_bytes": 268435456,
+    "fsync": {
+      "group_max_events": 64,
+      "group_max_wait_ms": 5
+    },
+    "seal": {
+      "append_only_attribute": false,
+      "worm": null
+    },
+    "retention": {
+      "events_years": 10,
+      "pieces_days": null
+    },
+    "vault": {
+      "enabled": false,
+      "path": null,
+      "key": null
+    },
+    "relay_mac_key": {
+      "env": "NOORTRACE_MESURE_CLE_MAC_RELAIS",
+      "encoding": "hex"
+    }
+  },
+  "lease": {
+    "store": {
+      "type": "file",
+      "path": "/var/lib/noortrace/bail"
+    },
+    "ttl_ms": 10000,
+    "renew_ms": 3000,
+    "acquire_wait_ms": 30000,
+    "fencing": null
+  },
+  "anchoring": {
+    "registry": {
+      "enabled": false,
+      "rpc_url": null,
+      "chain_key": null,
+      "next_chain_key": null
+    },
+    "rfc3161": {
+      "enabled": false,
+      "url": null
+    },
+    "opentimestamps": {
+      "enabled": false,
+      "calendars": []
+    },
+    "ancrage": null
+  },
+  "supervision": {
+    "health_listen": "127.0.0.1:8500",
+    "metrics": true,
+    "ops_log": {
+      "path": "/var/log/noortrace/exploitation.ndjson",
+      "level": "info",
+      "rotate_max_bytes": 104857600,
+      "keep_files": 30,
+      "child_stderr_max_bytes": 4096,
+      "child_stderr": "empreinte",
+      "child_stderr_lines_per_second": 20
+    }
+  },
+  "policy": {
+    "version": "mesure-2026-11",
+    "approval": {
+      "rules": {
+        "version": 0,
+        "default": {
+          "name": "defaut : refus",
+          "description": "Tout appel qu'aucune règle ne couvre est refusé.",
+          "level": "automatique",
+          "decision": "refuse",
+          "contest_ms": null
+        },
+        "rules": [
+          {
+            "name": "outil nul autorise",
+            "description": "L'outil du serveur d'outils nul du harnais de mesure.",
+            "tools": [
+              "nul__appeler"
+            ],
+            "when": null,
+            "level": "automatique",
+            "decision": "autorise",
+            "window": null,
+            "contest_ms": null
+          }
+        ],
+        "approver_set": {
+          "source": "statique",
+          "chain_id": null,
+          "registry": null,
+          "set": null,
+          "members": [
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+          ],
+          "threshold": {
+            "required": 2,
+            "size": 3
+          }
+        },
+        "separation": {
+          "self_approval": "interdite",
+          "identities": [
+            {
+              "launched_by": "hote-mesure",
+              "addresses": [
+                "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+              ]
+            }
+          ]
+        }
+      },
+      "mode": "erreur",
+      "hold_timeout_ms": 50000,
+      "expire_after_ms": 3600000,
+      "timeout_ms": 2000,
+      "service": {
+        "url": "http://127.0.0.1:8600",
+        "socket": null,
+        "token": {
+          "env": "NOORTRACE_MESURE_JETON_APPROBATION"
+        },
+        "peer_user": null
+      }
+    },
+    "redaction": {
+      "version": 0,
+      "name": "pii-v1",
+      "description": "Politique de redaction publiee avec CT-2 : identifiants personnels et financiers courants (IBAN, numero AVS, adresse electronique, numero de telephone international, numero de carte de paiement) remplaces par un jeton type dans toutes les pieces.",
+      "pseudonym_key": null,
+      "named_patterns": {},
+      "rules": [
+        {
+          "id": "identifiants-arguments-resultat",
+          "description": "Arguments et resultats de tout appel d'outil : tout texte.",
+          "scopes": [
+            "arguments",
+            "resultat"
+          ],
+          "tools": "*",
+          "detectors": [
+            {
+              "type": "iban"
+            },
+            {
+              "type": "avs"
+            },
+            {
+              "type": "carte"
+            },
+            {
+              "type": "email"
+            },
+            {
+              "type": "telephone"
+            }
+          ],
+          "action": {
+            "kind": "remplacer"
+          }
+        },
+        {
+          "id": "identifiants-modele",
+          "description": "Requetes, reponses et prompt systeme des echanges de modele : tout texte.",
+          "scopes": [
+            "requete",
+            "reponse",
+            "prompt_systeme"
+          ],
+          "tools": "*",
+          "detectors": [
+            {
+              "type": "iban"
+            },
+            {
+              "type": "avs"
+            },
+            {
+              "type": "carte"
+            },
+            {
+              "type": "email"
+            },
+            {
+              "type": "telephone"
+            }
+          ],
+          "action": {
+            "kind": "remplacer"
+          }
+        },
+        {
+          "id": "identifiants-contexte",
+          "description": "Documents de contexte remis par le SDK : tout texte.",
+          "scopes": [
+            "contexte"
+          ],
+          "tools": "*",
+          "detectors": [
+            {
+              "type": "iban"
+            },
+            {
+              "type": "avs"
+            },
+            {
+              "type": "carte"
+            },
+            {
+              "type": "email"
+            },
+            {
+              "type": "telephone"
+            }
+          ],
+          "action": {
+            "kind": "remplacer"
+          }
+        }
+      ]
+    },
+    "servers": {
+      "nul": {
+        "transport": {
+          "type": "http",
+          "url": "http://127.0.0.1:8000/mcp",
+          "headers": {},
+          "oauth": null,
+          "tls": null
+        },
+        "protocol": "2026-07-28",
+        "class_default": null,
+        "timeout_ms": null,
+        "tools": {
+          "appeler": {
+            "class": "ecriture",
+            "timeout_ms": null,
+            "effects": null,
+            "failure": null
+          }
+        },
+        "uri_prefixes": [],
+        "relay": null
+      }
+    },
+    "model": {
+      "routes": [
+        {
+          "path": "/v1/messages",
+          "format": "anthropic-messages",
+          "upstream": "http://127.0.0.1:8080",
+          "provider_label": "simule",
+          "credentials": "propre",
+          "secret": {
+            "env": "NOORTRACE_MESURE_CLE_MODELE"
+          },
+          "auth_header": "x-api-key",
+          "passthrough": []
+        }
+      ]
+    },
+    "failure": {
+      "ecriture": "bloquant",
+      "lecture": "passant",
+      "modele": "bloquant",
+      "approval_service": {
+        "ecriture": "bloquant",
+        "lecture": "passant"
+      },
+      "pending_max_events": 10000,
+      "pending_max_ms": 300000
+    }
+  },
+  "checkpoint_interval_s": 60
+}

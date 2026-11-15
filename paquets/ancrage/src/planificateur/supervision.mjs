@@ -41,15 +41,20 @@ export const EVENEMENTS_TENTATIVE = Object.freeze(["anchor_retry", "anchor_fallb
 const CLES_INTERDITES = new Set(["token", "jeton", "secret", "password", "mot_de_passe", "authorization", "cookie", "piece", "proof", "preuve", "der", "ots", "private_key", "cle_privee", "account", "compte", "url"]);
 const MOTIF_ETIQUETTE = /^[a-z_][a-z0-9_]*$/;
 const MOTIF_VALEUR = /^[a-z0-9_:.-]*$/;
-/** Borne par défaut des lignes gardées en mémoire (`Supervision.lignes`, correction R-F-5). */
+/** Borne par défaut des lignes gardées en mémoire (`Supervision.lignes`, EX-8.15). */
 export const MAX_LIGNES_DEFAUT = 10000;
+/** Issues d'une tentative (EX-5.13), valeurs de l'étiquette `outcome` de `noortrace_anchoring_attempts_total`. */
+export const ISSUES_TENTATIVE = Object.freeze(["obtenue", "echec_transitoire", "echec_permanente", "reponse_tardive"]);
+/** Valeur de l'étiquette `provider` des tentatives du registre et des calendriers (aucun prestataire RFC 3161). */
+export const PROVIDER_REGISTRE = "registre";
+export const PROVIDER_CALENDRIERS = "calendriers";
 
 /**
  * Valeur d'étiquette normalisée (EX-8.15 : valeurs en français sans accent,
  * minuscules) : les majuscules sont abaissées et tout caractère hors du motif
  * `[a-z0-9_:.-]` remplacé par `_` ; un identifiant de prestataire tel que
  * `TSA-Interne` (admis par le schéma `ancrage-v0`) ne fait plus lever la
- * métrique (correction R-F-2).
+ * métrique (EX-8.15).
  */
 export function normaliserValeurEtiquette(valeur) {
   const texte = String(valeur).toLowerCase();
@@ -68,7 +73,9 @@ export class Supervision {
   /**
    * @param {{journal?: {consigner: (niveau: string, composant: string, evenement: string, data: object) => unknown}|null,
    *   horloge?: {murale: () => number}|null, composant?: string, prestatairesExterieurs?: string[], journalAbrege?: string,
-   *   maxLignes?: number}} [options] `maxLignes` : lignes gardées en mémoire (les plus anciennes écartées, `dropped` compté)
+   *   maxLignes?: number, prestataires?: string[], registre?: boolean}} [options] `maxLignes` : lignes gardées en mémoire
+   *   (les plus anciennes écartées, `dropped` compté) ; `prestataires` : identifiants des prestataires configurés, dont
+   *   les séries énumérées sont exposées à 0 dès la construction (CT-5 EX-5.13 ; cause S-6).
    */
   constructor(options = {}) {
     this.journal = options.journal ?? null;
@@ -83,6 +90,32 @@ export class Supervision {
     /** Lignes écartées de la fenêtre mémoire (toutes ont été remises au journal injecté). */
     this.dropped = 0;
     for (const nom of Object.keys(METRIQUES_ANCRAGE)) this.series.set(nom, new Map());
+    this.exposer({ prestataires: options.prestataires ?? [] });
+  }
+
+  /**
+   * Expose à 0 les séries à étiquettes énumérées (CT-5 EX-5.13 ; part
+   * « compteurs à 0 » de CT-8 EX-10.10 ; cause S-6) : une règle d'alerte sur une
+   * série absente ne se lève jamais, une série à 0 dit « rien n'est arrivé ».
+   * Sortes × prestataires × issues pour les jetons, le registre et les
+   * calendriers ; `noortrace_anchor_pending` par ancre ;
+   * `noortrace_anchoring_deadlines_total` par état. Appelée à la construction
+   * et à chaque rechargement (prestataires nouveaux).
+   * @param {{prestataires?: string[]}} p
+   */
+  exposer({ prestataires = [] } = {}) {
+    for (const kind of ["jeton_periode", "jeton_point"]) {
+      for (const provider of prestataires) for (const outcome of ISSUES_TENTATIVE) this.#serie("noortrace_anchoring_attempts_total", { kind, provider, outcome });
+    }
+    for (const kind of ["ancre_registre_periode", "ancre_registre_point"]) {
+      for (const outcome of ["obtenue", "echec_transitoire", "echec_permanente"]) this.#serie("noortrace_anchoring_attempts_total", { kind, provider: PROVIDER_REGISTRE, outcome });
+    }
+    for (const kind of ["ots_periode", "ots_point"]) {
+      for (const outcome of ["obtenue", "echec_transitoire"]) this.#serie("noortrace_anchoring_attempts_total", { kind, provider: PROVIDER_CALENDRIERS, outcome });
+    }
+    for (const anchor of ["registre", "rfc3161", "ots"]) this.#serie("noortrace_anchor_pending", { anchor });
+    for (const state of ["satisfaite", "sans_objet", "remplacee"]) this.#serie("noortrace_anchoring_deadlines_total", { state });
+    this.#serie("noortrace_anchoring_ots_pending_age_s", {});
   }
 
   #serie(nom, etiquettes) {
@@ -135,32 +168,64 @@ export class Supervision {
   /**
    * Met à jour les métriques depuis une liste d'actions du planificateur et
    * l'état de sa file (une passe par entrée traitée).
-   * @param {{actions?: object[], file?: object[], maintenant?: number}} p `maintenant` en ms UTC (sinon l'horloge injectée)
+   *
+   * Revue de sécurité de l'étape 8 (CT-5 §8.9 : « le compteur compte toutes les
+   * tentatives, quelle que soit leur issue ») : `noortrace_anchoring_attempts_total`
+   * compte chaque tentative une fois, à son issue d'EX-5.13 (jamais
+   * `en_cours`) : jeton RFC 3161 à `rejeter_reponse` (issue et prestataire
+   * lus sur la tentative de la file, sinon sur la classe) ou à sa promotion ;
+   * ancre du registre et preuve OpenTimestamps à l'écriture de la file qui
+   * clôt la tentative (`provider` `registre` ou `calendriers`).
+   * @param {{actions?: object[], file?: Iterable<object>|null, maintenant?: number}} p `file` : demandes de la file,
+   *   tout itérable (jamais recopié par l'appelant, CT-5 EX-8.5) ; `maintenant` en ms UTC (sinon l'horloge injectée)
    */
   releverActions({ actions = [], file = null, maintenant = null }) {
-    for (const a of actions) {
+    const liste = file === null || file === undefined ? null : Array.isArray(file) ? file : [...file];
+    const parId = liste ? new Map(liste.map((d) => [d.id, d])) : new Map();
+    const compterTentative = (kind, provider, outcome) => this.compter("noortrace_anchoring_attempts_total", { kind, provider, outcome });
+    const derniere = (d) => (d && Array.isArray(d.attempts) && d.attempts.length ? d.attempts[d.attempts.length - 1] : null);
+    actions.forEach((a, j) => {
+      const kind = typeof a.request_id === "string" ? a.request_id.split(":")[0] : null;
       if (a.action === "echeance" && a.detail.state !== "ouverte") this.compter("noortrace_anchoring_deadlines_total", { state: a.detail.state });
-      if (a.action === "envoyer_rfc3161") this.compter("noortrace_anchoring_attempts_total", { kind: a.request_id.split(":")[0], provider: a.detail.provider, outcome: "en_cours" });
-      if (a.action === "rejeter_reponse") this.compter("noortrace_anchoring_attempts_total", { kind: a.request_id.split(":")[0], provider: "inconnu", outcome: a.detail.class === "permanente" ? "echec_permanente" : "echec_transitoire" });
+      if (a.action === "rejeter_reponse" && kind && kind.startsWith("jeton_")) {
+        const ligne = actions.slice(j + 1).find((x) => x.action === "journaliser" && x.request_id === a.request_id && x.detail?.event === "anchor_response_rejected");
+        const d = parId.get(a.request_id);
+        const tentative = Number.isInteger(ligne?.detail?.attempt) && d ? d.attempts.find((x) => x.n === ligne.detail.attempt) ?? null : null;
+        const outcome = tentative && ISSUES_TENTATIVE.includes(tentative.outcome) ? tentative.outcome : a.detail.class === "permanente" ? "echec_permanente" : a.detail.error_code === "reponse_tardive" ? "reponse_tardive" : "echec_transitoire";
+        compterTentative(kind, ligne?.detail?.provider ?? tentative?.provider ?? "inconnu", outcome);
+      }
+      if (a.action === "ecrire_file" && kind) {
+        const d = parId.get(a.request_id);
+        const a0 = derniere(d);
+        if (kind.startsWith("ots_") && a0 && ISSUES_TENTATIVE.includes(a0.outcome) && ["en_attente", "complete", "a_reprendre"].includes(a.detail?.state)) {
+          compterTentative(kind, PROVIDER_CALENDRIERS, a0.outcome);
+        }
+        if (kind.startsWith("ancre_registre_")) {
+          if (["obtenue", "a_reprendre", "refusee"].includes(a.detail?.state) && a0 && ISSUES_TENTATIVE.includes(a0.outcome)) compterTentative(kind, PROVIDER_REGISTRE, a0.outcome);
+          else if (a.detail?.state === "envoyee" && d && actions.slice(0, j).some((x) => x.action === "alerter" && x.request_id === a.request_id && x.detail?.code === "inclusion_late")) {
+            // Renvoi après `recu_absent` : la tentative précédente vient d'être close (la seule écriture `envoyee` précédée de `inclusion_late`).
+            const prev = d.attempts.find((x) => x.n === d.attempts_total - 1);
+            compterTentative(kind, PROVIDER_REGISTRE, prev && ISSUES_TENTATIVE.includes(prev.outcome) ? prev.outcome : "echec_transitoire");
+          }
+        }
+      }
       if (a.action === "journaliser") {
         const d = a.detail;
         if (d.event === "checkpoint_countersigned") {
           this.observer("noortrace_anchoring_d_jeton_s", { kind: "jeton_point", provider: d.provider }, d.d_jeton_s);
           this.observer("noortrace_anchoring_d_point_s", {}, d.d_point_s);
-          this.compter("noortrace_anchoring_attempts_total", { kind: "jeton_point", provider: d.provider, outcome: "obtenue" });
+          compterTentative("jeton_point", d.provider, "obtenue");
         }
         if (d.event === "period_timestamped") {
           this.observer("noortrace_anchoring_d_jeton_s", { kind: "jeton_periode", provider: d.provider }, d.d_jeton_s);
-          this.compter("noortrace_anchoring_attempts_total", { kind: "jeton_periode", provider: d.provider, outcome: "obtenue" });
+          compterTentative("jeton_periode", d.provider, "obtenue");
         }
-        if (d.event === "anchor_response_rejected" && d.provider) this.compter("noortrace_anchoring_attempts_total", { kind: a.request_id.split(":")[0], provider: d.provider, outcome: d.error_code === "reponse_tardive" ? "reponse_tardive" : "rejetee" });
       }
-    }
-    if (file) {
+    });
+    if (liste) {
       // d_registre (EX-8.15) : une observation par ancre, à la passe où elle
       // devient obtenue (action `ecrire_file`), jamais aux passes suivantes ni à
       // la relecture d'une file (étape 7 : défaut relevé par l'écriture des règles d'alerte).
-      const parId = new Map(file.map((d) => [d.id, d]));
       for (const a of actions) {
         if (a.action !== "ecrire_file" || a.detail?.state !== "obtenue" || !a.request_id?.startsWith("ancre_registre")) continue;
         const d = parId.get(a.request_id);
@@ -169,7 +234,7 @@ export class Supervision {
         const declare = decoderHorodatage(d.subject.declared_at);
         if (t !== null && declare !== null) this.observer("noortrace_anchoring_d_registre_s", { kind: d.kind }, Math.max(0, Math.trunc((t - declare) / 1000)));
       }
-      this.releverFile(file, maintenant ?? this.horloge?.murale() ?? null);
+      this.releverFile(liste, maintenant ?? this.horloge?.murale() ?? null);
     }
   }
 
@@ -178,7 +243,7 @@ export class Supervision {
    * périodes non confirmées, âge du dernier succès, fenêtre de date, âge de la
    * preuve en attente la plus ancienne (`d_registre` est observé par
    * `releverActions`, au passage de chaque ancre à `obtenue`).
-   * @param {object[]} file
+   * @param {Iterable<object>} file
    * @param {number|null} maintenant ms UTC
    */
   releverFile(file, maintenant) {

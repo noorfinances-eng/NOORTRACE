@@ -87,7 +87,7 @@ describe("inscription : application d'exploitant, interface Next.js et agent ré
     reseau = await E.demarrerReseau();
     pont = await E.ouvrirPont(reseau.provider, { noorcore: true });
     manifeste = E.ecrireManifesteEssai(path.join(dir, "instance"), reseau);
-    a = await O.demarrerAgentEssai({ manifeste, rpc: pont.url, delai_s: 5 });
+    a = await O.demarrerAgentEssai({ manifeste, rpc: pont.url, delai_s: 5, clesRepertoire: dir });
     // Construction de l'interface par l'essai, sans réseau extérieur (télémétrie coupée, aucune police distante).
     const b = spawnSync(process.execPath, [NEXT, "build", WEB], { cwd: E.RACINE, env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" }, encoding: "utf8", timeout: 600000 });
     expect(b.status, `${b.stdout}\n${b.stderr}`).to.equal(0);
@@ -95,7 +95,9 @@ describe("inscription : application d'exploitant, interface Next.js et agent ré
     const sel = crypto.randomBytes(16);
     const cle = crypto.scryptSync(Buffer.from(MOT_DE_PASSE, "utf8"), sel, 32, { N: 131072, r: 8, p: 1, maxmem: 256 * 1024 * 1024 });
     const comptes = path.join(dir, "comptes.json");
-    fs.writeFileSync(comptes, JSON.stringify({ version: 0, accounts: [{ name: NOM, salt: sel.toString("hex"), key: cle.toString("hex") }] }));
+    // Lisible de son seul propriétaire, comme le serveur l'exige (revue de l'étape 8, CT-7 CLE-37).
+    fs.writeFileSync(comptes, JSON.stringify({ version: 0, accounts: [{ name: NOM, salt: sel.toString("hex"), key: cle.toString("hex") }] }), { mode: 0o600 });
+    fs.chmodSync(comptes, 0o600);
     const port = await portLibre();
     origine = `http://127.0.0.1:${port}`;
     const config = path.join(dir, "interface.json");

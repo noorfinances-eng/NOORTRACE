@@ -2,7 +2,7 @@
 // Générateur des vecteurs de CT-5 (spec/CT-5-ancrage.md, annexe A) :
 // spec/vecteurs/ct-5/.
 //
-//   node scripts/vecteurs/generer-ct5.mjs [--sortie <répertoire ct-5>]
+//   node scripts/vecteurs/generer-ct5.mjs [--sortie <répertoire ct-5>] [--avec-empreinte-squattee]
 //   npm run vecteurs:ct5
 //
 // Familles (A.3, A.4) :
@@ -14,8 +14,10 @@
 //                     HTTP représentées, classées selon EX-5.10 à EX-5.12 ;
 //   ots/              fichiers .ots en attente (EX-6.4), paire de mise à niveau
 //                     (EX-6.6) sur les preuves de CT-6 ;
-//   planification/    les vingt-quatre traces normatives de §8.10, rejouées par
-//                     scripts/lib/ancrage.mjs (rejouerTrace) ;
+//   planification/    les vingt-huit traces normatives de §8.10, rejouées par
+//                     scripts/lib/ancrage.mjs (rejouerTrace) ; avec
+//                     --avec-empreinte-squattee, la trace empreinte-squattee
+//                     en plus (menace MN-58 ; voir traceEmpreinteSquattee) ;
 //   reprise/          files NDJSON avant et après le redémarrage des traces qui partent d'une file ;
 //   cout/             les onze cas de la formule de coût (§12.3) ;
 //   INDEX.md          chaque cas et son attendu.
@@ -280,8 +282,14 @@ function demande({ kind, sujet, deadlines = [], state, created_at, due_at = null
 const sujetPoint = (nom) => ({ kind: "point", org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: POINTS[nom].periode === 1 ? PERIOD_START_1 : PERIOD_START_2, hash: POINTS[nom].hash, tree_size: POINTS[nom].tree_size, declared_at: POINTS[nom].ts });
 const tentative = ({ n, provider = null, started_at, nonce = null, kind, hash, outcome = "en_cours", error_code = null, http_status = null, pki_status = null, failure_info = null, retry_after_s = null, next_at = null, detail }) => ({ n, provider, started_at, nonce, correlation_id: A.identifiantCorrelation(kind, hash, n), outcome, error_code, http_status, pki_status, failure_info, retry_after_s, next_at, detail });
 
-/** Les vingt-quatre traces normatives (A.3), dans l'ordre d'A.3 (les deux dernières : révision 0.6). */
-export function traces(ex) {
+/**
+ * Les vingt-huit traces normatives (A.3), dans l'ordre d'A.3 (23 et 24 : révision 0.6 ; 25 à 28 : revue de l'étape 8,
+ * CT-5 EX-8.8, CT-5 EX-8.12, CT-5 EX-8.5 ; révision de l'annexe A.3 demandée). Avec
+ * `avecEmpreinteSquattee`, la trace empreinte-squattee les suit (menace MN-58) : elle n'est pas publiée tant que le
+ * vérificateur Go indépendant de ct-5 ne la rejoue pas sans écart : après le refus de l'ancre de la période, le jeton
+ * de clôture reste attente_registre (EX-8.4, règle 2 ; AN-36 ; CT-4 EX-8.6).
+ */
+export function traces(ex, { avecEmpreinteSquattee = false } = {}) {
   const liste = [];
   const ajouter = (s, controles) => {
     const trace = s.construire();
@@ -900,8 +908,189 @@ export function traces(ex) {
     ]);
   }
 
-  exiger(liste.length === 24, "vingt-quatre traces attendues");
+  // 25. releve-pendant-reprise (EX-8.8 ; revue de l'étape 8) : la relève par délai tombe pendant l'attente de reprise du
+  // principal ; les deux séries sont poursuivies en parallèle jusqu'à la première promotion.
+  {
+    const s = new Scenario(
+      "releve-pendant-reprise",
+      "Clôture de la période 1 de référence ; le principal ne répond pas (délai d'attente dix secondes après chaque départ, gigue nulle, retry.max_ms abaissé à 60 s) : attentes de 5, 10, 20, 40, 60 et 60 s (EX-8.9). La relève par le secours tombe à 14:05:02, 300 s après la première tentative (manifest.fallback_after_s, EX-8.8), pendant que la demande attend sa reprise au principal (a_reprendre, programmée à 14:05:27) : les deux séries de tentatives sont poursuivies en parallèle (tentative 8 au secours à 14:05:02, tentative 9 au principal à 14:05:27, qui échoue encore à 14:05:37), jusqu'au jeton promu du secours à 14:05:40 ; la reprise du principal programmée à 14:06:37 ne part pas (demande finale : les tentatives de l'autre prestataire sont arrêtées, EX-8.8). Revue de l'étape 8.",
+      configuration({ retry: { max_ms: 60000 } }),
+      { jitter: [0, 0, 0, 0, 0, 0, 0, 0] },
+    );
+    s.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" }).inclusion("2026-11-03T14:00:02.000Z", AP1, 21087);
+    s.echec("2026-11-03T14:00:12.000Z", PH1, 1, { transport: "delai" });
+    s.echec("2026-11-03T14:00:27.000Z", PH1, 2, { transport: "delai" });
+    s.echec("2026-11-03T14:00:47.000Z", PH1, 3, { transport: "delai" });
+    s.echec("2026-11-03T14:01:17.000Z", PH1, 4, { transport: "delai" });
+    s.echec("2026-11-03T14:02:07.000Z", PH1, 5, { transport: "delai" });
+    s.echec("2026-11-03T14:03:17.000Z", PH1, 6, { transport: "delai" });
+    s.echec("2026-11-03T14:04:27.000Z", PH1, 7, { transport: "delai" });
+    s.tic("2026-11-03T14:05:10.000Z");
+    s.echec("2026-11-03T14:05:37.000Z", PH1, 9, { transport: "delai" });
+    s.granted("2026-11-03T14:05:40.000Z", PH1, 8, { gen_time: "2026-11-03T14:05:39Z", nom: "periode 1 secours", size: 3082 });
+    s.arret("2026-11-03T14:07:00.000Z");
+    ajouter(s, (t) => {
+      const envois = actions(t, "envoyer_rfc3161", (a) => a.request_id === PH1);
+      const releve = actions(t, "releve");
+      const etatsAvantReleve = actions(t, "ecrire_file", (a) => a.request_id === PH1 && a.t < "2026-11-03T14:05:02.000Z").map((a) => a.detail.state);
+      const relevee = actions(t, "journaliser", (a) => a.detail.event === "anchor_fallback");
+      return [
+        ["relève à 14:05:02 pendant l'attente de reprise (dernier état écrit avant elle : a_reprendre)", releve.length === 1 && releve[0].t === "2026-11-03T14:05:02.000Z" && releve[0].detail.provider === "qtsa-secours" && etatsAvantReleve.at(-1) === "a_reprendre"],
+        ["tentative 8 au secours à 14:05:02, puis tentative 9 au principal à 14:05:27 : les deux séries se poursuivent", JSON.stringify(envois.slice(7).map((a) => [a.t, a.detail.provider, a.detail.attempt])) === JSON.stringify([["2026-11-03T14:05:02.000Z", "qtsa-secours", 8], ["2026-11-03T14:05:27.000Z", "qtsa-principal", 9]])],
+        ["jeton promu du secours ; aucune requête après la promotion", dem(t, PH1).state === "obtenue" && dem(t, PH1).result.provider === "qtsa-secours" && envois.every((a) => a.t <= "2026-11-03T14:05:40.000Z")],
+        ["ligne anchor_fallback de raison delai, portant la tentative 7", relevee.length === 1 && relevee[0].detail.reason === "delai" && relevee[0].detail.attempt === 7],
+      ];
+    });
+  }
+
+  // 26. redemarrage-releve (EX-8.8, EX-8.12 ; revue de l'étape 8) : redémarré pendant la panne du principal, le planificateur
+  // repose la minuterie de relève à premier envoi + fallback_after_s.
+  {
+    const avant = new Scenario("redemarrage-releve-avant", "x", configuration(), { jitter: [0, 0, 0, 0] });
+    avant.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" }).inclusion("2026-11-03T14:00:02.000Z", AP1, 21087);
+    avant.echec("2026-11-03T14:00:12.000Z", PH1, 1, { transport: "delai" });
+    avant.tic("2026-11-03T14:00:19.000Z");
+    avant.construire();
+    const fichier = avant.lignes.map((l) => l + "\n").join("");
+    const lus = A.lireFile(fichier);
+    exiger(!lus.truncated && lus.errors.length === 0 && lus.demandes.find((d) => d.id === PH1)?.state === "envoyee", `redemarrage-releve : file avant le redémarrage (${JSON.stringify({ truncated: lus.truncated, errors: lus.errors, etat: lus.demandes.find((d) => d.id === PH1)?.state })})`);
+    const s = new Scenario(
+      "redemarrage-releve",
+      "Clôture de la période 1 de référence, principal en panne (délais d'attente) ; le processus s'arrête à 14:00:19 pendant la tentative 2 et redémarre à 14:00:20 : envoyee devient a_reprendre et la tentative 3 part aussitôt (EX-8.12) ; la minuterie de relève d'EX-8.8, perdue avec le processus, est reposée à premier envoi (14:00:02) + manifest.fallback_after_s (300 s) = 14:05:02 : le secours est relevé à cet instant (tentative 9), pendant que le principal échoue encore (attentes 5, 10, 20, 40, 80, 160 s), et son jeton est promu à 14:05:05. Sans cette reposition, la demande tournerait indéfiniment sur le principal (revue de l'étape 8).",
+      configuration(),
+      { jitter: [0, 0, 0, 0, 0, 0, 0, 0], queue_before: lus.demandes },
+    );
+    s.demarrage("2026-11-03T14:00:20.000Z");
+    s.echec("2026-11-03T14:00:30.000Z", PH1, 3, { transport: "delai" });
+    s.echec("2026-11-03T14:00:45.000Z", PH1, 4, { transport: "delai" });
+    s.echec("2026-11-03T14:01:05.000Z", PH1, 5, { transport: "delai" });
+    s.echec("2026-11-03T14:01:35.000Z", PH1, 6, { transport: "delai" });
+    s.echec("2026-11-03T14:02:25.000Z", PH1, 7, { transport: "delai" });
+    s.echec("2026-11-03T14:03:55.000Z", PH1, 8, { transport: "delai" });
+    s.granted("2026-11-03T14:05:05.000Z", PH1, 9, { gen_time: "2026-11-03T14:05:04Z", nom: "periode 1 secours", size: 3082 });
+    s.arret("2026-11-03T14:06:00.000Z");
+    ajouter(s, (t) => {
+      const envois = actions(t, "envoyer_rfc3161", (a) => a.request_id === PH1);
+      const releve = actions(t, "releve");
+      return [
+        ["3 demandes relues ; tentative 3 au principal dès le démarrage", t.expected[0].detail.queue_entries === 3 && envois[0]?.t === "2026-11-03T14:00:20.000Z" && envois[0].detail.attempt === 3 && envois[0].detail.provider === "qtsa-principal"],
+        ["relève reposée : action releve à 14:05:02 (premier envoi 14:00:02 + 300 s), anchor_fallback de raison delai", releve.length === 1 && releve[0].t === "2026-11-03T14:05:02.000Z" && actions(t, "journaliser", (a) => a.detail.event === "anchor_fallback" && a.detail.reason === "delai").length === 1],
+        ["tentative 9 au secours à 14:05:02, jeton promu du secours", envois.some((a) => a.t === "2026-11-03T14:05:02.000Z" && a.detail.provider === "qtsa-secours" && a.detail.attempt === 9) && dem(t, PH1).state === "obtenue" && dem(t, PH1).result.provider === "qtsa-secours"],
+      ];
+    });
+    liste[liste.length - 1].fichiers = [{ nom: "file-1.ndjson", texte: fichier }];
+  }
+
+  // 27. redemarrage-echeance-remplacee (EX-4.4, EX-8.12 ; revue de l'étape 8) : arrêt entre la ligne obtenue du jeton de K2 et
+  // la ligne remplacee du jeton de K1 ; au redémarrage, EX-4.4 est appliquée aux demandes de points relues.
+  {
+    const base = new Scenario("redemarrage-echeance-remplacee-avant", "x", configuration({ retry: { initial_ms: 60000 } }), { jitter: [0, 0, 0, 0] });
+    base.demarrage("2026-11-03T13:40:00.000Z").point("K1").inclusion("2026-11-03T13:42:03.000Z", ANCRE("K1"), 20001);
+    base.echec("2026-11-03T13:42:08.000Z", JETON("K1"), 1, { transport: "delai" });
+    base.echec("2026-11-03T13:43:13.000Z", JETON("K1"), 2, { transport: "delai" });
+    base.tic("2026-11-03T13:45:00.000Z");
+    base.echec("2026-11-03T13:45:18.000Z", JETON("K1"), 3, { transport: "delai" });
+    base.echec("2026-11-03T13:49:23.000Z", JETON("K1"), 4, { transport: "delai" });
+    base.tic("2026-11-03T13:50:00.000Z").point("K2").inclusion("2026-11-03T13:53:02.000Z", ANCRE("K2"), 20660).granted("2026-11-03T13:53:04.000Z", JETON("K2"), 1, { gen_time: "2026-11-03T13:53:03Z", nom: "K2" });
+    base.construire();
+    const etat = (l) => JSON.parse(l);
+    const iO = base.lignes.findLastIndex((l) => etat(l).id === JETON("K2") && etat(l).state === "obtenue");
+    exiger(iO >= 0 && etat(base.lignes[iO + 1]).id === JETON("K1") && etat(base.lignes[iO + 1]).state === "remplacee", "redemarrage-echeance-remplacee : lignes obtenue de K2 puis remplacee de K1 attendues consécutives");
+    const fichier = base.lignes.slice(0, iO + 1).map((l) => l + "\n").join("");
+    const lus = A.lireFile(fichier);
+    exiger(!lus.truncated && lus.errors.length === 0 && lus.demandes.find((d) => d.id === JETON("K1")).state === "a_reprendre", "redemarrage-echeance-remplacee : file coupée");
+    const s = new Scenario(
+      "redemarrage-echeance-remplacee",
+      "Même panne du serveur interne sur K1 que echeance-remplacee (retry.initial_ms 60 s, gigue nulle) ; le processus s'arrête à 13:53:04 entre la ligne obtenue du jeton de K2 (échéances D_9 et D_10) et la ligne remplacee du jeton de K1 (D_1 à D_8), qu'EX-8.3 fait écrire l'une après l'autre. Au redémarrage à 13:53:04.500, la file porte le jeton de K1 a_reprendre et celui de K2 obtenue : EX-8.12 applique EX-4.4 aux demandes de points relues, la demande de K1 est close remplacee (replaced_by le jeton de K2) avec la ligne checkpoint_anchor_late et l'alerte mineure du serveur interne, et sa reprise programmée à 13:54:23 ne part jamais : aucun rattrapage des points (revue de l'étape 8). La suite de la période est servie normalement.",
+      configuration({ retry: { initial_ms: 60000 } }),
+      { jitter: [0, 0, 0, 0], queue_before: lus.demandes },
+    );
+    s.demarrage("2026-11-03T13:53:04.500Z").point("K3").tic("2026-11-03T13:55:00.000Z").point("K4").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" });
+    s.inclusion("2026-11-03T14:00:02.000Z", ANCRE("K4"), 21085).granted("2026-11-03T14:00:03.000Z", JETON("K4"), 1, { gen_time: "2026-11-03T14:00:02Z", nom: "K4" });
+    s.inclusion("2026-11-03T14:00:04.000Z", AP1, 21087).granted("2026-11-03T14:00:05.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:05Z", nom: "periode 1", size: 3082 }).arret("2026-11-03T14:01:00.000Z");
+    ajouter(s, (t) => {
+      const remplacer = actions(t, "remplacer", (a) => a.request_id === JETON("K1"));
+      const tardif = actions(t, "journaliser", (a) => a.request_id === JETON("K1") && a.detail.event === "checkpoint_anchor_late");
+      return [
+        ["K1 remplacee au démarrage par le jeton de K2, échéances D_1 à D_8 remplacee", remplacer.length === 1 && remplacer[0].t === "2026-11-03T13:53:04.500Z" && remplacer[0].detail.replaced_by === JETON("K2") && dem(t, JETON("K1")).state === "remplacee" && dem(t, JETON("K1")).replaced_by === JETON("K2") && actions(t, "echeance", (a) => a.request_id === JETON("K1") && a.detail.state === "remplacee").length === 8],
+        ["ligne checkpoint_anchor_late et alerte mineure (serveur interne) au démarrage", tardif.length === 1 && JSON.stringify(tardif[0].detail.deadlines) === "[1,2,3,4,5,6,7,8]" && tardif[0].detail.replaced_by === JETON("K2") && actions(t, "alerter", (a) => a.request_id === JETON("K1") && a.detail.code === "checkpoint_anchor_late" && a.detail.severity === "mineure").length === 1],
+        ["aucune nouvelle requête RFC 3161 pour K1 : aucun rattrapage", actions(t, "envoyer_rfc3161", (a) => a.request_id === JETON("K1")).length === 0],
+        ["clôture servie : jeton de K4 et jeton de clôture obtenus", dem(t, JETON("K4")).state === "obtenue" && dem(t, PH1).state === "obtenue"],
+      ];
+    });
+    liste[liste.length - 1].fichiers = [{ nom: "file-1.ndjson", texte: fichier }];
+  }
+
+  // 28. file-lignes-illisibles (EX-8.5 règle 3, EX-8.12 ; revue de l'étape 8) : un fichier de file fini par un
+  // fragment et dont une ligne, bien formée en JSON, ne porte pas attempts : la ligne est ignorée et consignée, la ligne valide
+  // précédente du même id fait foi, la reprise se fait quel que soit l'état de la file.
+  {
+    const base = new Scenario("file-lignes-illisibles-avant", "x", configuration());
+    base.demarrage("2026-11-03T13:40:00.000Z").point("K1").inclusion("2026-11-03T13:42:03.000Z", ANCRE("K1"), 20001).granted("2026-11-03T13:42:05.000Z", JETON("K1"), 1, { gen_time: "2026-11-03T13:42:04Z", nom: "K1" });
+    base.tic("2026-11-03T13:45:00.000Z").tic("2026-11-03T13:50:00.000Z").point("K2").inclusion("2026-11-03T13:53:02.000Z", ANCRE("K2"), 20660).granted("2026-11-03T13:53:04.000Z", JETON("K2"), 1, { gen_time: "2026-11-03T13:53:03Z", nom: "K2" });
+    base.point("K3").tic("2026-11-03T13:55:00.000Z").point("K4").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" });
+    base.inclusion("2026-11-03T14:00:02.000Z", ANCRE("K4"), 21085);
+    base.construire();
+    const lignes = [...base.lignes];
+    const iK4 = lignes.findLastIndex((l) => JSON.parse(l).id === JETON("K4"));
+    const corrompue = JSON.parse(lignes[iK4]);
+    exiger(corrompue.state === "envoyee", "file-lignes-illisibles : dernière ligne du jeton de K4 envoyee attendue");
+    delete corrompue.attempts;
+    lignes[iK4] = A.ligneFile(corrompue);
+    const fragment = '{"version":0,"id":"ancre_registre_periode:' + ex.periodHash[1] + '","kind":"ancre_registre_periode","subject":{"kind":"periode"';
+    const fichier = lignes.map((l) => l + "\n").join("") + fragment;
+    const lus = A.lireFile(fichier);
+    exiger(lus.truncated && lus.errors.length === 1 && /mal formée/.test(lus.errors[0]) && lus.demandes.length === 9 && lus.demandes.find((d) => d.id === JETON("K4")).state === "attente_registre", `file-lignes-illisibles : relecture (${JSON.stringify(lus.errors)}, ${lus.truncated})`);
+    const s = new Scenario(
+      "file-lignes-illisibles",
+      "La trace de référence interrompue à 14:00:02 ; sur le disque, la dernière ligne du jeton de K4 (envoyee) a perdu son membre attempts et le fichier finit par un fragment de la ligne suivante (EX-8.5, règle 3 : une ligne tronquée ou mal formée est ignorée et consignée, jamais réparée ; la ligne valide précédente du même id, attente_registre, fait foi). Au redémarrage à 14:00:02.500, la reprise se fait quel que soit l'état de la file relue (EX-8.12) : neuf demandes, le jeton de K4 est en attente_registre et son ancre obtenue, la tentative 1 part aussitôt avec un nonce frais ; la réponse à la tentative perdue serait rejetée tentative_inconnue. Revue de l'étape 8 : fragment de ligne retiré, ligne sans attempts (qui arrêtait la reprise par une exception).",
+      configuration(),
+      { queue_before: lus.demandes },
+    );
+    s.demarrage("2026-11-03T14:00:02.500Z").granted("2026-11-03T14:00:03.500Z", JETON("K4"), 1, { gen_time: "2026-11-03T14:00:03Z", nom: "K4 apres redemarrage" });
+    s.inclusion("2026-11-03T14:00:04.000Z", AP1, 21087).granted("2026-11-03T14:00:05.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:05Z", nom: "periode 1", size: 3082 }).arret("2026-11-03T14:01:00.000Z");
+    ajouter(s, (t) => [
+      ["9 demandes relues ; K4 en attente_registre relu puis envoyé aussitôt (tentative 1, ancre déjà obtenue)", t.expected[0].detail.queue_entries === 9 && actions(t, "envoyer_rfc3161", (a) => a.request_id === JETON("K4"))[0]?.t === "2026-11-03T14:00:02.500Z" && actions(t, "envoyer_rfc3161", (a) => a.request_id === JETON("K4"))[0].detail.attempt === 1],
+      ["jeton de K4 et jeton de clôture obtenus", dem(t, JETON("K4")).state === "obtenue" && dem(t, PH1).state === "obtenue"],
+    ]);
+    liste[liste.length - 1].fichiers = [{ nom: "file-1.ndjson", texte: fichier }];
+  }
+
+  // 29, sur demande. empreinte-squattee : l'empreinte d'ancre de la période est prise par un tiers (menace MN-58).
+  if (avecEmpreinteSquattee) {
+    const s = new Scenario(
+      "empreinte-squattee",
+      "Clôture de la période 1 de référence ; l'ancre de la période part au registre avant toute requête RFC 3161 sur periodHash (CT-4 EX-8.4, EX-4.7), puis le registre répond empreinte_squattee : l'empreinte est déjà ancrée par un autre émetteur (CT-4 OP-9, §8.3). La demande passe refusee sans nouvel essai, ni renvoi ni remplacement au même nonce, l'alerte est critique et la ligne anchor_refused consigne l'incident (CT-4 EX-8.6 ; EX-8.10, EX-9.7). La requête RFC 3161 du periodHash ne part jamais : son ancre n'est pas incluse (EX-8.4, règle 2 ; AN-36) ; le jeton de clôture reste attente_registre et la période est signalée registry_pending à chaque inclusion_alert_s (60 s ; CT-4 EX-8.6). La preuve OpenTimestamps, soumise à la clôture, reste en attente ; l'ancre et le jeton du point de clôture K4, d'une autre empreinte, sont obtenus : ce jeton date la tête de la période.",
+      configuration(),
+    );
+    s.demarrage("2026-11-03T13:59:00.000Z").point("K4").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" });
+    s.inclusion("2026-11-03T14:00:02.000Z", ANCRE("K4"), 21085).granted("2026-11-03T14:00:03.000Z", JETON("K4"), 1, { gen_time: "2026-11-03T14:00:02Z", nom: "K4" });
+    s.echecRegistre("2026-11-03T14:00:04.000Z", AP1, "empreinte_squattee");
+    s.tic("2026-11-03T14:01:10.000Z").tic("2026-11-03T14:02:10.000Z").arret("2026-11-03T14:03:00.000Z");
+    ajouter(s, (t) => {
+      const rang = (pred) => t.expected.findIndex(pred);
+      const refus = rang((a) => a.action === "journaliser" && a.request_id === AP1 && a.detail.event === "anchor_refused");
+      return [
+        ["une seule transaction d'ancre de la période, aucun nouvel essai", actions(t, "envoyer_registre", (a) => a.request_id === AP1).length === 1 && actions(t, "journaliser", (a) => a.request_id === AP1 && a.detail.event === "anchor_retry").length === 0],
+        ["ancre de la période refusee, tentative unique en échec permanent empreinte_squattee", dem(t, AP1).state === "refusee" && dem(t, AP1).attempts.length === 1 && dem(t, AP1).attempts[0].outcome === "echec_permanente" && dem(t, AP1).attempts[0].error_code === "empreinte_squattee" && dem(t, AP1).result === null],
+        ["alerte critique empreinte_squattee et ligne anchor_refused, une fois chacune", actions(t, "alerter", (a) => a.request_id === AP1 && a.detail.code === "empreinte_squattee" && a.detail.severity === "critique").length === 1 && actions(t, "journaliser", (a) => a.detail.event === "anchor_refused" && a.detail.error_code === "empreinte_squattee").length === 1],
+        ["aucune requête RFC 3161 sur periodHash ; jeton de clôture en attente_registre", actions(t, "envoyer_rfc3161", (a) => a.request_id === PH1).length === 0 && dem(t, PH1).state === "attente_registre" && dem(t, PH1).attempts.length === 0],
+        ["registry_pending consigné à 14:01:00.250 et 14:02:00.250, alerté une fois", JSON.stringify(actions(t, "journaliser", (a) => a.request_id === PH1 && a.detail.event === "registry_pending").map((a) => a.t)) === JSON.stringify(["2026-11-03T14:01:00.250Z", "2026-11-03T14:02:00.250Z"]) && actions(t, "alerter", (a) => a.detail.code === "registry_pending").length === 1],
+        ["aucune action sur l'ancre de la période après son refus", t.expected.slice(refus + 1).every((a) => a.request_id !== AP1)],
+        ["ancre du point de clôture K4 incluse, jeton de K4 obtenu, preuve OpenTimestamps en attente", dem(t, ANCRE("K4")).state === "obtenue" && dem(t, JETON("K4")).state === "obtenue" && dem(t, OP1).state === "en_attente"],
+      ];
+    });
+  }
+
+  exiger(liste.length === (avecEmpreinteSquattee ? 29 : 28), avecEmpreinteSquattee ? "vingt-neuf traces attendues" : "vingt-huit traces attendues");
   return liste;
+}
+
+/** La trace empreinte-squattee (menace MN-58), rejouée par la bibliothèque de référence, sans rien écrire. */
+export function traceEmpreinteSquattee() {
+  const { trace } = traces(exempleCT1(), { avecEmpreinteSquattee: true }).at(-1);
+  exiger(trace.id === "empreinte-squattee", "trace empreinte-squattee attendue en dernier");
+  return trace;
 }
 
 // ---------------------------------------------------------------------------
@@ -1084,6 +1273,12 @@ export function familleReponses(requetes, autorite) {
   ajouter("reponse-tardive-2", "Deuxième réponse tardive consécutive : encore reponse_tardive (attente de reprise 10 s).", { requete: base, reponse: okTardif, sent_at: "2026-11-03T13:53:00.000Z", received_at: "2026-11-03T13:54:03.000Z", tardives: 1, attendu: { outcome: "reponse_tardive", error_code: "reponse_tardive" }, openssl_verify: "OK" });
   ajouter("reponse-tardive-3", "Troisième réponse tardive consécutive : promue avec l'avertissement reponse_tardive, pour ne pas priver la période d'ancre (EX-5.11).", { requete: base, reponse: okTardif, sent_at: "2026-11-03T13:53:00.000Z", received_at: "2026-11-03T13:54:03.000Z", tardives: 2, attendu: { outcome: "obtenue", warnings: ["reponse_tardive"] }, openssl_verify: "OK" });
   ajouter("horloge-suspecte", "granted dont le genTime (13:53:02) s'écarte de 182 s de l'instant d'envoi (13:50:00), au-delà de clock_tolerance_s (120) : promu, marqué horloge_suspecte (EX-5.11).", { requete: base, reponse: okTardif, sent_at: "2026-11-03T13:50:00.000Z", received_at: "2026-11-03T13:50:02.000Z", attendu: { outcome: "obtenue", warnings: ["horloge_suspecte"] }, openssl_verify: "OK" });
+  // Revue de l'étape 8 (CT-5 EX-5.10) : un PKIStatus hors de 0 à 5 suivi d'un jeton valable (octet du statut réécrit : la référence refuse de le construire) ; placé en fin de famille pour laisser les numéros de série des cas antérieurs inchangés.
+  const statut6 = Buffer.from(A.construireReponseTsa({ status: 0, token: jetonBase() }));
+  const iStatut = statut6.indexOf(Buffer.from("3003020100", "hex"));
+  exiger(iStatut >= 2 && iStatut <= 4, "statut-6 : PKIStatusInfo 30 03 02 01 00 attendu en tête de la réponse");
+  statut6[iStatut + 4] = 6;
+  ajouter("statut-6", "PKIStatus 6, hors de 0 à 5, suivi d'un jeton par ailleurs valable : statut_6, permanente, le jeton n'est pas lu ni promu (EX-5.10, étape 2 : « toute autre valeur : erreur » ; revue de l'étape 8).", { requete: base, reponse: statut6, ...t0, attendu: { outcome: "echec_permanente", error_code: "statut_6" } });
   return {
     fichier: {
       version: 0,
@@ -1418,6 +1613,11 @@ function index({ constantes: c, requetes, reponses, ots, traces: tr, cout, repri
     "point-manquant-saut-horloge": "EX-4.1, 8.9 (point_manquant après un saut d'horloge : délai compté depuis le checkpoint_ts du dernier point admis ; révision 0.4), EX-4.3",
     "file-fenetre-32": "EX-8.5 règle 7 (fenêtre de 32 tentatives, attempts_total, réponse à une tentative sortie de la fenêtre), EX-8.9, EX-8.15 (révision 0.6)",
     "file-fenetre-32-redemarrage": "EX-8.5 règle 7, EX-8.12 (reprise au rang attempts_total + 1 ; révision 0.6)",
+    "releve-pendant-reprise": "EX-8.8 (relève pendant l'attente de reprise, séries parallèles), EX-8.9 (AN-38 ; revue de l'étape 8)",
+    "redemarrage-releve": "EX-8.8, EX-8.12 (minuterie de relève reposée au démarrage ; revue de l'étape 8)",
+    "redemarrage-echeance-remplacee": "EX-4.4, EX-8.12 (EX-4.4 appliquée aux demandes de points relues ; revue de l'étape 8)",
+    "file-lignes-illisibles": "EX-8.5 règle 3, EX-8.12 (ligne mal formée ou fragment ignorés et consignés, reprise quel que soit l'état de la file ; revue de l'étape 8)",
+    "empreinte-squattee": "EX-4.7, EX-8.4, EX-8.10, EX-9.7 ; CT-4 EX-8.4, EX-8.6 (ancre de période refusée sur empreinte_squattee, sans nouvel essai ; AN-36, AN-40)",
   };
   for (const { trace: t } of tr) L.push(`| \`${t.id}.json\` | ${t.inputs.length} | ${t.expected.length} | ${t.queue_before.length} | ${t.queue_after.length} | ${regles[t.id]} |`);
   L.push("");
@@ -1476,7 +1676,7 @@ function confronterReference(trace) {
   }
 }
 
-export function genererCt5({ racine = REPERTOIRE_CT5 } = {}) {
+export function genererCt5({ racine = REPERTOIRE_CT5, avecEmpreinteSquattee = false } = {}) {
   fs.mkdirSync(racine, { recursive: true });
   const etrangeres = fs.readdirSync(racine).filter((e) => !CONSERVEES.has(e) && !ENTREES_GENEREES.includes(e)).sort();
   exiger(etrangeres.length === 0, `${racine} porte des entrées que le générateur n'écrit pas (${etrangeres.slice(0, 3).join(", ")}) : nommer un répertoire vide ou déjà produit par lui`);
@@ -1489,7 +1689,7 @@ export function genererCt5({ racine = REPERTOIRE_CT5 } = {}) {
   const ots = familleOts();
   const cout = familleCout();
   const completude = familleCompletude();
-  const liste = traces(ex);
+  const liste = traces(ex, { avecEmpreinteSquattee });
   validerTraces(liste, schema);
   confronterReference(liste[0].trace);
   for (const f of [requetes.fichier, cout, completude]) {
@@ -1540,6 +1740,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
     process.exit(2);
   }
   const racine = i !== -1 ? path.resolve(process.argv[i + 1]) : REPERTOIRE_CT5;
-  const r = genererCt5({ racine });
+  const r = genererCt5({ racine, avecEmpreinteSquattee: process.argv.includes("--avec-empreinte-squattee") });
   process.stdout.write(`ct-5 : ${r.requetes.fichier.cases.length} requêtes, ${r.reponses.fichier.cases.length} réponses, ${r.ots.fichier.cases.length} preuves, ${r.traces.length} traces, ${r.cout.cases.length} cas de coût sous ${racine}\n`);
 }

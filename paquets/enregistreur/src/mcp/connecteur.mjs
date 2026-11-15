@@ -22,7 +22,7 @@ import net from "node:net";
 import tls from "node:tls";
 import fs from "node:fs";
 import path from "node:path";
-import { DecoupeurLignes, PREFIXE_DEFI, PREFIXE_JOURNAL } from "./hote-stdio.mjs";
+import { DecoupeurLignes, PREFIXE_DEFI, PREFIXE_JOURNAL, controlerProprietairePrise } from "./hote-stdio.mjs";
 
 const ERREUR_CR = '{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error","data":{"reason":"cr_dans_la_ligne"}}}';
 const JOURNAL = Buffer.from(PREFIXE_JOURNAL);
@@ -31,8 +31,12 @@ const JOURNAL = Buffer.from(PREFIXE_JOURNAL);
  * Exécute le connecteur.
  * `tls` : sur une prise TCP, connexion TLS vérifiée contre `ca` (à défaut,
  * les autorités du système) ; avec `cert` et `key`, mTLS sans ligne de jeton.
+ * `proprietaire` : compte attendu du démon pour une prise locale (uid ou nom ;
+ * étape 8) ; sans lui, la prise doit appartenir au compte du
+ * connecteur ou au compte 0 ; une prise d'un autre compte est refusée (code 1)
+ * avant toute connexion.
  * @param {{socket?: string, tcp?: {hote: string, port: number}, jeton?: string|null,
- *   tls?: {ca?: Buffer, cert?: Buffer, key?: Buffer}|null,
+ *   tls?: {ca?: Buffer, cert?: Buffer, key?: Buffer}|null, proprietaire?: string|number|null,
  *   entree?: NodeJS.ReadableStream, sortie?: NodeJS.WritableStream, erreur?: NodeJS.WritableStream,
  *   ligneMax?: number}} o
  * @returns {Promise<number>} code de retour
@@ -42,6 +46,13 @@ export function executerConnecteur(o) {
   const sortie = o.sortie ?? process.stdout;
   const erreur = o.erreur ?? process.stderr;
   const ligneMax = o.ligneMax ?? 16842752;
+  if (o.socket) {
+    const refus = controlerProprietairePrise(o.socket, o.proprietaire ?? null);
+    if (refus) {
+      erreur.write(`noortrace-connecteur: prise ${o.socket} refusee (${refus} ; NOORTRACE_CONNECTEUR_PROPRIETAIRE nomme le compte du demon)\n`);
+      return Promise.resolve(1);
+    }
+  }
   return new Promise((resoudre) => {
     const avecTls = !o.socket && o.tls;
     const mtls = Boolean(avecTls && o.tls.cert && o.tls.key);
@@ -136,7 +147,8 @@ export function executerConnecteur(o) {
 export async function principalConnecteur(argv, env = process.env) {
   const k = argv.indexOf("--socket");
   const t = argv.indexOf("--tcp");
-  if (k >= 0 && argv[k + 1]) return executerConnecteur({ socket: argv[k + 1] });
+  // NOORTRACE_CONNECTEUR_PROPRIETAIRE, compte attendu du démon (uid ou nom).
+  if (k >= 0 && argv[k + 1]) return executerConnecteur({ socket: argv[k + 1], proprietaire: env.NOORTRACE_CONNECTEUR_PROPRIETAIRE ?? null });
   if (t >= 0 && argv[t + 1]) {
     const [hote, port] = argv[t + 1].split(/:(?=[0-9]+$)/);
     const { NOORTRACE_CONNECTEUR_TLS_CA: ca, NOORTRACE_CONNECTEUR_TLS_CERT: cert, NOORTRACE_CONNECTEUR_TLS_KEY: key } = env;

@@ -88,7 +88,11 @@ export class Ecoute {
   async #traiter(req, res) {
     try {
       if (!this.#authentifie(req)) {
-        this.service.supervision.consigner("auth_refusee", { canal: this.canal });
+        // un pair sans jeton ne fait plus écrire une ligne par requête (comptage par
+        // période) ; une supervision réduite à `consigner` (bouchons des essais) reçoit la ligne
+        const sup = this.service.supervision;
+        if (typeof sup.consignerCompte === "function") sup.consignerCompte("auth_refusee", { canal: this.canal });
+        else sup.consigner("auth_refusee", { canal: this.canal });
         return repondre(res, 401, new ErreurService("requete_invalide", {}, "authentification").corps());
       }
       const url = new URL(req.url, "http://localhost");
@@ -171,15 +175,50 @@ export class Ecoute {
       const st = await fsp.stat(dir);
       if ((st.mode & 0o002) !== 0) throw new Error(`répertoire de prise inscriptible par tous : ${dir} (EX-12.2)`);
       await fsp.rm(c.socket, { force: true });
-      await new Promise((ok, ko) => this.serveur.once("error", ko).listen(c.socket, ok));
-      await fsp.chmod(c.socket, parseInt(c.socket_mode ?? "0660", 8));
-      this.adresse = { socket: c.socket };
+      const mode = parseInt(c.socket_mode ?? "0660", 8);
+      const prise = await this.#ecouterPrisePrivee(c.socket, mode);
+      this.adresse = { socket: prise };
     } else {
       await new Promise((ok, ko) => this.serveur.once("error", ko).listen(c.tcp.port, c.tcp.host, ok));
       const a = this.serveur.address();
       this.adresse = { host: c.tcp.host, port: a.port };
     }
     return this.adresse;
+  }
+
+  /**
+   * Crée la prise Unix dans un répertoire privé (0700) du répertoire de la
+   * prise, lui pose `mode`, puis la renomme à son chemin : le chemin final
+   * n'est jamais visible avec les droits que laisse le masque du processus
+   * entre l'écoute et le `chmod`. Si le chemin privé est trop long
+   * pour une prise, repli : écoute au chemin final sous un masque
+   * restrictif, puis `chmod`.
+   * @param {string} chemin
+   * @param {number} mode
+   * @returns {Promise<string>} chemin de la prise
+   */
+  async #ecouterPrisePrivee(chemin, mode) {
+    const prive = await fsp.mkdtemp(path.join(path.dirname(chemin), ".p-"));
+    const provisoire = path.join(prive, "s");
+    try {
+      await new Promise((ok, ko) => this.serveur.once("error", ko).listen(provisoire, ok));
+      await fsp.chmod(provisoire, mode);
+      await fsp.rename(provisoire, chemin);
+      return chemin;
+    } catch (e) {
+      if (e?.code !== "ENAMETOOLONG") throw e;
+      this.serveur.removeAllListeners("error");
+      const masque = process.umask(0o077);
+      try {
+        await new Promise((ok, ko) => this.serveur.once("error", ko).listen(chemin, ok));
+      } finally {
+        process.umask(masque);
+      }
+      await fsp.chmod(chemin, mode);
+      return chemin;
+    } finally {
+      await fsp.rm(prive, { recursive: true, force: true });
+    }
   }
 
   async arreter() {

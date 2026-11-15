@@ -23,7 +23,7 @@ import {
   sha256Hex, verifierContinuite, verifierJournal, verifierSeriePointsDeControle, verifierSignatureManifeste,
   verifierSignaturePoint, analyserJson,
 } from "@noortrace/noyau";
-import { listerSegments, relireSegment } from "./segments.mjs";
+import { listerSegments, relireSegmentParTranches } from "./segments.mjs";
 import { clesDuJournal } from "./dossier.mjs";
 import { decouperLignes } from "./fichiers.mjs";
 import { analyserJsonIntegral } from "./jcs-integral.mjs";
@@ -100,9 +100,10 @@ export async function verifierSegment(octets, o) {
     return { incident: { key: `segments/${o.nom}`, kind: "entete_invalide" }, entete: null, evenements: [] };
   }
   // Clé de l'en-tête et clés des rotations du segment : la clé publique de
-  // l'en-tête est résolue avant la lecture (relireSegment est synchrone).
+  // l'en-tête est résolue avant la lecture. Étape 8 (CT-2 EX-3.6) : relecture par
+  // tranches qui rendent la main (bail, points, hôtes servis pendant le contrôle).
   await o.cles.resoudre(entete.recorder_key_id);
-  const r = relireSegment(octets, {
+  const r = await relireSegmentParTranches(octets, {
     verifierSignatures: true,
     clePublique: (id) => o.cles.connue(id),
     prevHashAttendu: o.prevHash,

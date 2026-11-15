@@ -7,10 +7,10 @@ export {
   attestationBitcoin, attestationEnAttente, attestationsEnAttente, appliquerOperation,
   encoderVaruint, encoderVarbytes, comparerOctets, comparerAttestations, comparerOperations,
 } from "./format.mjs";
-export { STATUT, RAISON, VERIFICATIONS, verifierOts, verifierChaineEntetes, executerArbre, hauteursAttestees, etatPreuve, admissionApresFusion } from "./verification.mjs";
+export { STATUT, RAISON, VERIFICATIONS, verifierOts, verifierChaineEntetes, executerArbre, hauteursAttestees, hauteursProfil, etatPreuve, admissionApresFusion } from "./verification.mjs";
 export {
   SCHEMA_ENTETES_BITCOIN, BORNES_ENTETES, RESEAUX, ErreurEntetes, fichierEntetes, lireFichierEntetes, rpcBitcoinHttp,
   bornesFichierEntetes, decomposerEnTete, dsha, inverser, setCompact, getCompact, hachageEnEntier, premierDefautDeChainage, octetsDesEnTetes,
 } from "./entetes.mjs";
-export { ACCEPT_OTS, DEFAUTS, ErreurTransport, engagement, soumettre, mettreANiveau, cadenceMiseANiveau, relireReponseCalendrier, transportHttps } from "./calendriers.mjs";
+export { ACCEPT_OTS, DEFAUTS, ErreurTransport, engagement, soumettre, mettreANiveau, verifierCompletude, cadenceMiseANiveau, relireReponseCalendrier, transportHttps } from "./calendriers.mjs";
 export { DepotOts, ErreurDepot, nomObjet, nomPeriode } from "./depot.mjs";

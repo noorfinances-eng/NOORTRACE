@@ -1,9 +1,9 @@
 // TE-12 de CT-9 (CT-5 §9, §10 ; CT-6 §13.4 ; CT-2 §12.10, §14.2, §15) : un
 // démon `noortrace` réel (processus enfant, assemblage de src/cli.mjs) dont
 // `anchoring.ancrage` désigne un document `ancrage-v0` : serveur RFC 3161
-// interne du lot E pour les points (HTTP local), un second serveur interne
+// interne pour les points (HTTP local), un second serveur interne
 // comme `principal` en TLS mutuel avec un `qualified` d'exemple, calendriers
-// OpenTimestamps factices en TLS, nœud noorcore factice du lot D en JSON-RPC
+// OpenTimestamps factices en TLS, nœud noorcore factice des essais du registre en JSON-RPC
 // (variante hors réseau public) ; horloge hybride à cadence réduite admise par
 // le schéma (`checkpoint_interval_s` 10, `interval_s` 60). Des échanges
 // factices produisent des événements, des points de contrôle, des échéances et
@@ -58,7 +58,7 @@ async function ctl(args) {
   return { code, out, err };
 }
 
-describe("enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs", function () {
+describe("enregistreur + ancrage, TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs", function () {
   this.timeout(900000);
   let dir;
   let m;
@@ -336,7 +336,9 @@ describe("enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon r�
     expect(inconnu.code).to.equal(1);
     expect(JSON.parse(inconnu.out.trim().split("\n")[0]).data.raison).to.equal("prestataire_inconnu");
     expect((await ctl(["ancrage", "rien", "--configuration", m.cheminConfig])).code).to.equal(2);
-    // Rechargement : nouvelle version de politique et document ancrage-v0 modifié (max_pending) ; le retrait de qualification est levé par le rechargement (EX-5.9).
+    // Rechargement : nouvelle version de politique et document ancrage-v0 modifié (max_pending) ; revue de sécurité de l'étape 8 (CT-5 EX-5.9, de
+    // l'étape 8) : le retrait de qualification survit au rechargement (et au redémarrage) ; seul l'exploitant le lève
+    // (`retablirQualification` du composant, commande noortrace-ctl à exposer par l'enregistreur).
     const config = JSON.parse(fs.readFileSync(m.cheminConfig, "utf8"));
     config.policy.version = "2026-11-05-f2";
     fs.writeFileSync(m.cheminConfig, JSON.stringify(config, null, 2));
@@ -346,7 +348,7 @@ describe("enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon r�
     const reload = await ctl(["reload", "--configuration", m.cheminConfig]);
     expect(reload.code, reload.err).to.equal(0);
     await demon.attendre((l) => l.some((x) => x.event === "config_reloaded" && x.component === "ancrage"), 20000, "config_reloaded du composant");
-    expect((await demon.etat()).etat.qualifications_retirees).to.deep.equal([]);
+    expect((await demon.etat()).etat.qualifications_retirees, "le retrait de qualified survit au rechargement (CT-5 EX-5.9)").to.deep.equal(["qtsa-principal"]);
     // Document invalide (deux principaux) : refusé, l'ancienne configuration reste en vigueur.
     doc.rfc3161.providers.push({ ...doc.rfc3161.providers[0], id: "second-principal" });
     fs.writeFileSync(m.cheminAncrage, JSON.stringify(doc, null, 2));
@@ -393,7 +395,7 @@ describe("enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon r�
 
 const POINTS = POINTS_RESEAU_DEV;
 const VERIFICATEUR_JS_REF = path.join(RACINE, "scripts", "verify", "dossier.mjs");
-/** Agrégateurs OpenTimestamps publics d'EX-6.2 et calendriers de la liste blanche (lot B). */
+/** Agrégateurs OpenTimestamps publics d'EX-6.2 et calendriers de la liste blanche (client OpenTimestamps, EX-6.6). */
 const AGREGATEURS_PUBLICS = ["https://a.pool.opentimestamps.org", "https://b.pool.opentimestamps.org", "https://a.pool.eternitywall.com", "https://ots.btc.catallaxy.com"];
 const CALENDRIERS_PUBLICS = ["https://alice.btc.calendar.opentimestamps.org", "https://bob.btc.calendar.opentimestamps.org", "https://finney.calendar.eternitywall.com", "https://ots.btc.catallaxy.com"];
 
@@ -441,7 +443,7 @@ function enonceConformeFK(statement) {
   return statement.includes("couvert par le point de contrôle") && statement.includes("horodaté au plus tard le") && statement.includes("réécriture postérieure à cet instant serait détectée");
 }
 
-describe("enregistreur + ancrage (lot F2), TE-12 sur le réseau de développement réel : démon réel, ancres des points et de la période incluses sur noorcore, clôture submitPeriod relayée, dossier vérifié sans réseau par les deux vérificateurs (CT-4 §7.4, §8.2, §8.6, §9.4 ; CT-5 P-5 ; CT-6 §7.9)", function () {
+describe("enregistreur + ancrage, TE-12 sur le réseau de développement réel : démon réel, ancres des points et de la période incluses sur noorcore, clôture submitPeriod relayée, dossier vérifié sans réseau par les deux vérificateurs (CT-4 §7.4, §8.2, §8.6, §9.4 ; CT-5 P-5 ; CT-6 §7.9)", function () {
   this.timeout(1200000);
   let travail;
   let ctx = null;
@@ -526,7 +528,7 @@ describe("enregistreur + ancrage (lot F2), TE-12 sur le réseau de développemen
     const avant = await R.latestPeriodOf({ rpc: ctx.rpc, contrat: journal.contrats.period_registry, orgId: journal.orgId, journalId: journal.journalId });
     expect(avant).to.equal(0n, "journal neuf : aucune période au registre avant la clôture");
     // Pas 3 et 4 de CT-4 §8.2 : la demande de clôture, signée au seuil par les approbateurs du parcours (clés publiées de
-    // l'essai), déposée là où le démon la lit (lecture F2-3) ; pas 5 : le démon relaie submitPeriod au tic suivant.
+    // l'essai), déposée là où le démon la lit (lecture 3 du branchement) ; pas 5 : le démon relaie submitPeriod au tic suivant.
     const demande = demandeClotureParcours({ manifeste, parcours: journal, preparedAt: N.ecrireHorodatage(m.horloge.murale()) });
     expect(R.verifierDemande(demande, { membres: journal.membres, complete: true }).resultat).to.equal("valide");
     fs.writeFileSync(path.join(m.repertoire, "registre", `demande-cloture-${periodHash}.json`), JSON.stringify(demande, null, 2));

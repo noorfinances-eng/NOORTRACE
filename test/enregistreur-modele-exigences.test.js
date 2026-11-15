@@ -1,8 +1,8 @@
 // Exigences du frontal modèle (CT-2 §5, EX-8.5 à EX-8.7, §13.5, EX-14.12,
 // lignes « frontal modèle » de §14 et §17), chacune en réussite et en échec,
 // sur la passerelle réelle (HTTP, 127.0.0.1) et un fournisseur simulé. Les
-// modes ICAP et miroir (EX-5.3 à EX-5.6, EX-14.12) ne sont pas servis par ce
-// lot : le démon refuse de démarrer dans ces modes (vérifié ici).
+// modes ICAP et miroir (EX-5.3 à EX-5.6, EX-14.12) ne sont pas servis par la
+// version 0 : le démon refuse de démarrer dans ces modes (vérifié ici).
 
 import { expect } from "chai";
 import fs from "node:fs";
@@ -708,7 +708,7 @@ describe("enregistreur, frontal modèle : exigences (§5, EX-8.5 à EX-8.7, §13
       expect(await piece({ sha256: a.echange.evenement.code.prompt_version })).to.equal("[PROMPT:sinistres-v3]");
       const b = await envoyer(p, "/v1/messages", { corps: MSG, entetes: { ...BASE, "x-noortrace-prompt-version": "sinistres-v4" } });
       expect(await piece({ sha256: b.echange.evenement.code.prompt_version })).to.equal("[PROMPT:sinistres-v4]");
-      const c = await envoyer(p, "/v1/messages", { corps: MSG, entetes: { ...BASE, "x-noortrace-prompt-version": "x@exemple.ch" } });
+      const c = await envoyer(p, "/v1/messages", { corps: MSG, entetes: { ...BASE, "x-noortrace-prompt-version": "x@ex.example" } });
       expect(await piece({ sha256: c.echange.evenement.code.prompt_version })).to.equal("[PROMPT:sinistres-v3]");
       expect(JSON.parse(await piece(a.echange.evenement.execution.arguments)).system).to.equal("[REDIGE:prompt-systeme]");
     });
@@ -838,8 +838,8 @@ describe("enregistreur, frontal modèle : exigences (§5, EX-8.5 à EX-8.7, §13
     });
   });
 
-  // Défauts démontrés par la relecture adversariale B des frontaux.
-  describe("relecture B : non-régression de la passerelle", function () {
+  // Défauts démontrés par la relecture adversariale des frontaux.
+  describe("relecture adversariale des frontaux : non-régression de la passerelle", function () {
     /** Requêtes sur une connexion keep-alive unique (ou l'agent donné). */
     const requete = (p, agent, cible, o = {}) =>
       new Promise((res) => {
@@ -852,7 +852,7 @@ describe("enregistreur, frontal modèle : exigences (§5, EX-8.5 à EX-8.7, §13
         q.end(o.corps);
       });
 
-    it("R-B-4 (EX-5.36, EX-9.6) : un segment de modèle refusé par un détecteur n'est jamais consigné, model_exchange_relayed porte null", async function () {
+    it("EX-5.36, EX-9.6 : un segment de modèle refusé par un détecteur n'est jamais consigné, model_exchange_relayed porte null", async function () {
       const sans = (n) => {
         const r = reponseEntiere("gemini", GEM, n);
         delete r.modelVersion;
@@ -868,7 +868,7 @@ describe("enregistreur, frontal modèle : exigences (§5, EX-8.5 à EX-8.7, §13
       expect(derniere("model_exchange_relayed").data.model_segment).to.equal("gemini-x");
     });
 
-    it("R-B-3 (EX-18.3) : échecs de jeton limités par identifiant de jeton et par connexion ; un jeton valide sur une autre connexion passe", async function () {
+    it("EX-18.3 : échecs de jeton limités par identifiant de jeton et par connexion ; un jeton valide sur une autre connexion passe", async function () {
       const p = await ouvrir();
       const agent = new http.Agent({ keepAlive: true, maxSockets: 1 });
       const faux = { "content-type": "application/json", "x-noortrace-token": "jeton-faux" };
@@ -886,7 +886,7 @@ describe("enregistreur, frontal modèle : exigences (§5, EX-8.5 à EX-8.7, §13
       agent.destroy();
     });
 
-    it("R-B-6 (4.4 pas 1, EX-4.47) : quota contrôlé avant l'analyse du corps ; corps d'une requête refusée sur sa chaîne de requête compté", async function () {
+    it("4.4 pas 1, EX-4.47 : quota contrôlé avant l'analyse du corps ; corps d'une requête refusée sur sa chaîne de requête compté", async function () {
       const p = await ouvrir((c) => (c.model.hosts[0].quota = { ...c.model.hosts[0].quota, received_bytes_per_minute: 6000 }));
       const agent = new http.Agent({ keepAlive: true, maxSockets: 1 });
       const q = () => p.moteur.quotasParHote.get("agent-modele").recus.total(p.monotone());

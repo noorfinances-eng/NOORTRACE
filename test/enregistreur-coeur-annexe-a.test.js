@@ -79,7 +79,7 @@ describe("enregistreur, cœur : annexe A de CT-2, octet par octet", function () 
     const definition = JSON.parse(bloc("La définition courante de l'outil"));
     res.definition = pieceDefinitionOutil(definition);
     res.liste = pieceListeAnnoncee([definition]);
-    // Rédaction (lot suivant) : la valeur rédigée par la règle iban de pii-v1 est celle du pas 4.
+    // Rédaction (partie suivante) : la valeur rédigée par la règle iban de pii-v1 est celle du pas 4.
     const redigee = { ...appel.params.arguments, beneficiary_iban: "[REDIGE:iban]" };
     res.arguments = pieceJson(redigee, { redacted: true });
     for (const p of [res.definition, res.liste, res.arguments]) await new MagasinPieces(repertoire).ecrire(p);

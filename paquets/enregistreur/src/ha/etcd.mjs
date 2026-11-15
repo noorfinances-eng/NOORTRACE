@@ -14,6 +14,7 @@ import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import { MagasinBailReseau, ErreurMagasin } from "./bail-reseau.mjs";
+import { REPONSE_ETCD_MAX_OCTETS } from "../bornes.mjs";
 
 const b64 = (t) => Buffer.from(t, "utf8").toString("base64");
 
@@ -49,7 +50,11 @@ export class ClientEtcd {
         },
         (res) => {
           const m = [];
+          let taille = 0;
+          let fini = false;
           const finir = () => {
+            if (fini) return;
+            fini = true;
             clearTimeout(t);
             const texte = Buffer.concat(m).toString("utf8");
             let o;
@@ -63,9 +68,18 @@ export class ClientEtcd {
             else resolve(o);
           };
           res.on("data", (c) => {
+            taille += c.length;
+            // Réponse bornée : au-delà, connexion détruite, erreur du magasin.
+            if (taille > REPONSE_ETCD_MAX_OCTETS) {
+              fini = true;
+              clearTimeout(t);
+              res.destroy();
+              reject(new ErreurMagasin("etcd : réponse au-delà de la borne"));
+              return;
+            }
             m.push(c);
             // Flux de LeaseKeepAlive : la première réponse suffit.
-            if (flux && Buffer.concat(m).includes(0x0a)) {
+            if (flux && c.includes(0x0a)) {
               res.destroy();
               finir();
             }

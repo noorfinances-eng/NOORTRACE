@@ -25,85 +25,80 @@ import { controlerVerrou, echeanceMinimale, lireEcheance } from "./verrou.mjs";
 import { lireRegistres, inscrireCopie, SOUS_PREFIXES_ECRIVAIN } from "./registre.mjs";
 import { verifierGarde, etatGel } from "./garde.mjs";
 import { lireListeObjets } from "./perimetre.mjs";
+import { classerVersionsGels, lireEnregistrementsGel, lireListeObjetsGel } from "./lecture-gels.mjs";
 
 const JOUR_MS = 86400000;
+/** Après un relevé en échec, le suivant n'est tenté qu'une heure plus tard (étape 8, CT-2 EX-12.17 : coût borné, jauge tenue). */
+const REESSAI_RELEVE_MS = 3600000;
 
 /**
- * Lecture du registre des gels (EX-17.7) : liste de `<prefix>gels/`,
- * enregistrements non encore vus consignés (`worm_legal_hold_observed`),
- * règle de garde recalculée sur toute la suite, gels actifs et état attendu.
+ * Lecture du registre des gels (EX-17.7) : liste de `<prefix>gels/` par
+ * toutes les versions de chaque clé (étape 8, S-8 : CT-2 EX-17.6,
+ * EX-12.38), version originale de chaque enregistrement, validation contre le
+ * schéma `worm-v0`, enregistrements non encore vus consignés
+ * (`worm_legal_hold_observed`), règle de garde recalculée sur toute la suite,
+ * gels actifs et état attendu ; seconde version, marqueur de suppression et
+ * nom inattendu sous `gels/` consignés (`worm_versions_unexpected`) et
+ * comptés. Ne lève jamais pour une entrée du support : une lecture en échec
+ * ou un enregistrement illisible rendent `ok: false`.
  * @param {{operations: object, worm: object, journal: object, metriques?: object, vus?: Set<string>}} c
- * @returns {Promise<{ok: boolean, gels: {gel_id: string, records: object[], etat: object, objets: {key: string, version_id: string}[]}[]}>}
+ * @returns {Promise<{ok: boolean, gels: {gel_id: string, records: object[], etat: object, objets: {key: string, version_id: string}[], anomalies: object[]}[], inattendues: number}>}
  */
 export async function lireRegistreGels(c) {
   const prefixe = `${c.worm.prefix}gels/`;
   let l;
   try {
     l = await c.operations.listerVersions(prefixe);
-  } catch {
-    l = { statut: null };
+  } catch (e) {
+    l = { statut: null, erreur: e };
   }
-  if (l.statut !== 200) return { ok: false, gels: [] };
-  const parGel = new Map();
-  for (const v of l.versions) {
-    if (!v.is_latest || v.delete_marker) continue;
-    const reste = v.key.slice(prefixe.length);
-    const k = reste.indexOf("/");
-    if (k < 0) continue;
-    const g = reste.slice(0, k);
-    const m = /^([0-9]{4})-[a-z_]+\.json$/.exec(reste.slice(k + 1));
-    if (!m) continue;
-    if (!parGel.has(g)) parGel.set(g, []);
-    parGel.get(g).push({ n: Number(m[1]), v });
-  }
+  if (l.statut !== 200) return { ok: false, gels: [], inattendues: 0, raison: l.erreur ? String(l.erreur?.message ?? l.erreur) : `liste : statut ${l.statut}` };
+  const classes = classerVersionsGels(l.versions, prefixe);
   const gels = [];
   let ok = true;
-  for (const [gel_id, liste] of [...parGel].sort()) {
-    liste.sort((a, b) => a.n - b.n);
-    const records = [];
-    for (const { v } of liste) {
-      let r;
-      try {
-        r = await c.operations.lire(v.key, v.version_id);
-      } catch {
-        r = { statut: null };
-      }
-      if (r.statut !== 200) {
-        ok = false;
-        records.push({ illisible: true });
-        continue;
-      }
-      try {
-        records.push(JSON.parse(r.corps.toString("utf8")));
-      } catch {
-        records.push({ illisible: true });
-      }
+  let inattendues = 0;
+  for (const [gel_id, g] of [...classes].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))) {
+    for (const a of g.anomalies) {
+      inattendues++;
+      c.journal.consigner("warning", "worm", "worm_versions_unexpected", { key: a.key, versions: a.versions, marqueur: a.marqueur, raison: a.raison, gel_id });
     }
+    if (g.enregistrements.size === 0) {
+      gels.push({ gel_id, records: [], etat: etatGel([]), objets: [], anomalies: g.anomalies });
+      continue;
+    }
+    const lu = await lireEnregistrementsGel(c.operations, g.enregistrements);
+    if (!lu.lectureOk) ok = false;
+    const records = lu.records;
     const garde = verifierGarde(records);
     records.forEach((r, k) => {
-      const cle = `${liste[k].v.key}#${liste[k].v.version_id}`;
+      if (r?.illisible) ok = false;
+      const cle = `${lu.versions[k].key}#${lu.versions[k].version_id}`;
       if (c.vus?.has(cle)) return;
       c.vus?.add(cle);
       const codes = garde.errors.filter((e) => e.n === k + 1).map((e) => e.code);
-      c.journal.consigner(codes.length || !garde.valid ? "error" : "info", "worm", "worm_legal_hold_observed", {
-        gel_id, n: r.n ?? null, kind: r.kind ?? null, record_sha256: garde.record_sha256[k], garde: garde.valid ? "respectee" : codes[0] ?? garde.errors[0].code,
+      c.journal.consigner(codes.length || !garde.valid || r?.illisible ? "error" : "info", "worm", "worm_legal_hold_observed", {
+        gel_id, n: typeof r?.n === "number" ? r.n : null, kind: typeof r?.kind === "string" ? r.kind : null, record_sha256: garde.record_sha256[k],
+        garde: garde.valid ? "respectee" : codes[0] ?? garde.errors[0].code, ...(r?.illisible ? { illisible: true, raison: r.raison ?? null } : {}),
       });
     });
     const etat = etatGel(records);
     let objets = [];
-    if (etat.actif && records[0]?.objects?.key) {
-      try {
-        const r = await c.operations.lire(records[0].objects.key);
-        if (r.statut === 200 && sha256Hex(new Uint8Array(r.corps)) === records[0].objects.sha256) objets = lireListeObjets(new Uint8Array(r.corps));
-        else ok = false;
-      } catch {
-        ok = false;
-      }
+    const objects = records[0]?.objects;
+    if (etat.actif) {
+      if (objects && typeof objects.key === "string") {
+        const nom = objects.key.startsWith(`${prefixe}${gel_id}/`) ? objects.key.slice(`${prefixe}${gel_id}/`.length) : null;
+        const r = await lireListeObjetsGel(c.operations, objects, nom ? g.listes.get(nom) : undefined, { sha256Hex, lireListeObjets });
+        if (r.objets) objets = r.objets;
+        else {
+          ok = false;
+          c.journal.consigner("error", "worm", "worm_legal_hold_observed", { gel_id, n: null, kind: "objets", record_sha256: null, garde: "liste_objets", illisible: true, raison: r.raison });
+        }
+      } else ok = false;
     }
-    gels.push({ gel_id, records, etat, objets });
+    gels.push({ gel_id, records, etat, objets, anomalies: g.anomalies });
   }
   c.metriques?.jauge("noortrace_worm_legal_holds_active", {}, gels.filter((g) => g.etat.actif).length);
-  return { ok, gels };
+  return { ok, gels, inattendues };
 }
 
 /**
@@ -148,21 +143,25 @@ export async function releverVerrouillage(c) {
   let nonConformes = 0;
   let inattendues = 0;
   let lues = 0;
+  let illisibles = 0;
+  const prefixeGels = `${c.worm.prefix}gels/`;
   for (const [cle, vs] of listees) {
     const relatif = cle.slice(c.worm.prefix.length);
     const copie = SOUS_PREFIXES_ECRIVAIN.some((s) => relatif.startsWith(s));
     const reelles = vs.filter((v) => !v.delete_marker);
     const marqueur = vs.some((v) => v.delete_marker);
-    // Pas 3 : comparaison au registre des copies (copies de l'écrivain seulement).
-    if (copie) {
-      const inscrites = parCle.get(cle);
+    // Pas 3 : comparaison au registre des copies (copies de l'écrivain), et
+    // seconde version ou marqueur sous `gels/` aussi (étape 8, CT-2 EX-17.6).
+    if (copie || cle.startsWith(prefixeGels)) {
+      const inscrites = copie ? parCle.get(cle) : null;
       const manquante = inscrites && [...inscrites.keys()].some((id) => id !== null && !reelles.some((v) => v.version_id === id));
       if (reelles.length > 1 || marqueur || manquante) {
         inattendues++;
         c.journal.consigner("warning", "worm", "worm_versions_unexpected", { key: cle, versions: reelles.length, marqueur, version_inscrite_absente: Boolean(manquante) });
       }
     }
-    // Pas 2 : verrou et gel de chaque version.
+    // Pas 2 : verrou et gel de chaque version ; une lecture d'état en échec
+    // est comptée et le relevé continue (CT-2 EX-12.17) : il est tenu pour partiel.
     for (const v of reelles) {
       let et;
       try {
@@ -170,7 +169,11 @@ export async function releverVerrouillage(c) {
       } catch {
         et = null;
       }
-      if (!et || et.statut !== 200) throw new Error(`état de ${cle} : statut ${et?.statut ?? "injoignable"}`);
+      if (!et || et.statut !== 200) {
+        illisibles++;
+        c.journal.consigner("error", "worm", "worm_lock_check", { key: cle, version_id: v.version_id, verdict: "non_conforme", reasons: ["etat_illisible"], notes: [`statut ${et?.statut ?? "injoignable"}`], when: "releve" });
+        continue;
+      }
       lues++;
       const ligne = parCle.get(cle)?.get(v.version_id) ?? null;
       const copieA = ligne ? decoderHorodatage(ligne.copied_at) : lireEcheance(v.last_modified);
@@ -188,12 +191,27 @@ export async function releverVerrouillage(c) {
         c.journal.consigner("error", "worm", "worm_lock_check", { key: cle, version_id: v.version_id, verdict: verdict.verdict, reasons: verdict.reasons, notes: verdict.notes, when: "releve" });
       }
       if (copie && !ligne && reelles.length === 1 && c.epoque) {
-        // Version sans ligne au registre (registre perdu ou incomplet) : inscrite,
-        // sans alerte, avec l'empreinte relue et la date de création du support.
+        // Version sans ligne au registre (registre perdu ou incomplet) : inscrite
+        // seulement si son empreinte est celle du fichier local de même chemin
+        // (étape 8, CT-2 EX-17.6 : une version étrangère n'éteint pas l'alerte de copie
+        // manquante) ; sans fichier local, inscrite avec un avertissement.
         try {
           const e = await c.operations.empreinte(cle, v.version_id);
           const cree = lireEcheance(v.last_modified ?? e.last_modified);
-          if (e.statut === 200 && cree !== null) {
+          let shaLocal = null;
+          try {
+            shaLocal = sha256Hex(new Uint8Array(await fs.readFile(path.join(c.repertoire, relatif))));
+          } catch {
+            shaLocal = null;
+          }
+          if (e.statut === 200 && cree !== null && shaLocal !== null && shaLocal !== e.sha256) {
+            inattendues++;
+            c.journal.consigner("warning", "worm", "worm_versions_unexpected", { key: cle, versions: 1, marqueur: false, raison: "empreinte_differente", version_id: v.version_id, sha256_support: e.sha256, sha256_local: shaLocal });
+          } else if (e.statut === 200 && cree !== null) {
+            if (shaLocal === null) {
+              inattendues++;
+              c.journal.consigner("warning", "worm", "worm_versions_unexpected", { key: cle, versions: 1, marqueur: false, raison: "fichier_local_absent", version_id: v.version_id, inscrite: true });
+            }
             await inscrireCopie(path.join(c.repertoire, "worm"), c.epoque, {
               key: cle,
               version_id: v.version_id,
@@ -210,9 +228,10 @@ export async function releverVerrouillage(c) {
     }
   }
   const duree = c.murale() - t0;
-  c.journal.consigner(nonConformes || inattendues ? "warning" : "info", "worm", "worm_lock_audit", { versions: lues, non_conformes: nonConformes, inattendues, duree_ms: duree });
+  c.journal.consigner(nonConformes || inattendues || illisibles ? "warning" : "info", "worm", "worm_lock_audit", { versions: lues, non_conformes: nonConformes, inattendues, illisibles, duree_ms: duree });
   c.metriques?.jauge("noortrace_worm_lock_nonconforming", {}, nonConformes);
   c.metriques?.jauge("noortrace_worm_versions_unexpected", {}, inattendues);
+  if (illisibles) throw new Error(`relevé partiel : ${illisibles} version(s) dont l'état n'a pas pu être lu`);
   c.metriques?.jauge("noortrace_worm_last_audit_age_s", {}, 0);
   return { versions: lues, non_conformes: nonConformes, inattendues, duree_ms: duree };
 }
@@ -250,7 +269,11 @@ export class SupervisionWorm {
     this.intervalle = o.intervalleMs ?? 60000;
     this.vus = new Set();
     this.dernierReleve = null;
+    this.prochainReleve = null;
+    this.prochainQuotidien = null;
+    this.armeA = null;
     this.heure = null;
+    this.dernierHoraire = null;
     this.jour = null;
     this.gels = [];
   }
@@ -279,10 +302,16 @@ export class SupervisionWorm {
     if (!ok) this.coeur.metriques.compter("noortrace_integrity_check_failures_total", { check });
   }
 
+  /** Une exception d'un contrôle devient une ligne d'erreur et un compteur, jamais un silence (étape 8, S-2 : CT-2 EX-17.7). */
+  _echec(check, e, data = {}) {
+    this._resultat(check, false, { ...data, message: String(e?.message ?? e).slice(0, 512) });
+  }
+
   armer() {
+    this.armeA ??= this.coeur?.horlogeBrute?.murale?.() ?? null;
     const tour = async () => {
       if (this.arrete) return;
-      await this.tic().catch(() => {});
+      await this.tic().catch((e) => this._echec("supervision_worm", e));
       this.minuteur = setTimeout(tour, this.intervalle);
       this.minuteur.unref?.();
     };
@@ -300,40 +329,62 @@ export class SupervisionWorm {
     const c = this.coeur;
     if (!c?.ecrivain || c.passif) return;
     const t = c.horlogeBrute.murale();
-    if (this.copies.enAttente.size) await this.copies.balayer().catch(() => {});
+    this.armeA ??= t;
+    if (this.copies.enAttente.size) await this.copies.balayer().catch((e) => this._echec("copie_worm", e, { balayage: "echec" }));
     const heure = Math.floor(t / 3600000);
     const jour = Math.floor(t / JOUR_MS);
     if (this.heure === null || heure !== this.heure) {
       this.heure = heure;
-      await this.horaire(t).catch(() => {});
+      await this.horaire(t).catch((e) => this._echec("copie_worm", e, { horaire: "echec" }));
     }
-    if (this.jour === null || jour !== this.jour) {
-      this.jour = jour;
-      await this.quotidien(t).catch(() => {});
+    if ((this.jour === null || jour !== this.jour) && (this.prochainQuotidien === null || t >= this.prochainQuotidien)) {
+      // Le jour n'est tenu pour fait qu'après un passage complet (CT-2 EX-17.7) ;
+      // sinon nouvel essai une heure plus tard, consigné à chaque échec.
+      let complet = false;
+      try {
+        complet = (await this.quotidien(t)) === true;
+      } catch (e) {
+        this._echec("registre_gels", e, { quotidien: "echec" });
+      }
+      if (complet) {
+        this.jour = jour;
+        this.prochainQuotidien = null;
+      } else this.prochainQuotidien = t + REESSAI_RELEVE_MS;
     }
     const periode = (this.copies.worm.lock_audit_interval_days ?? 30) * JOUR_MS;
-    if (this.dernierReleve === null || t - this.dernierReleve >= periode) {
-      await this.releve().catch((e) => this._resultat("copie_worm", false, { releve: "echec", message: String(e?.message ?? e) }));
+    if ((this.dernierReleve === null && (this.prochainReleve === null || t >= this.prochainReleve)) || (this.dernierReleve !== null && t - this.dernierReleve >= periode)) {
+      await this.releve().catch((e) => {
+        this.prochainReleve = t + REESSAI_RELEVE_MS;
+        this._echec("copie_worm", e, { releve: "echec" });
+      });
     }
-    if (this.dernierReleve !== null) c.metriques.jauge("noortrace_worm_last_audit_age_s", {}, Math.floor((c.horlogeBrute.murale() - this.dernierReleve) / 1000));
+    // Âge du dernier relevé réussi ; sans relevé réussi depuis l'armement, l'âge
+    // court depuis l'armement : la jauge existe dès le premier tour et l'alerte
+    // « Relevé de verrouillage en retard » peut se lever (CT-2 EX-12.17).
+    const depuis = this.dernierReleve ?? this.armeA;
+    c.metriques.jauge("noortrace_worm_last_audit_age_s", {}, Math.max(0, Math.floor((c.horlogeBrute.murale() - depuis) / 1000)));
   }
 
   /** Relevé de verrouillage (EX-17.6), précédé de la lecture du registre des gels. */
   async releve() {
     const g = await lireRegistreGels(this._ctx());
-    if (!g.ok) this._resultat("registre_gels", false);
+    if (!g.ok) this._resultat("registre_gels", false, g.raison ? { message: g.raison } : {});
     this.gels = g.gels;
     const r = await releverVerrouillage(this._ctx());
     this.dernierReleve = this.coeur.horlogeBrute.murale();
+    this.prochainReleve = null;
     return r;
   }
 
   /** Contrôles horaires d'EX-17.5 propres au support (copies). */
   async horaire(t) {
     const c = this.coeur;
-    await this.copies.balayer().catch(() => {});
-    // Segments copiés dans l'heure : SHA-256 de la copie WORM (EX-12.17).
-    const lignes = (await lireRegistres(path.join(c.repertoire, "worm"))).map((x) => x.ligne).filter((l) => l.copied_at && decoderHorodatage(l.copied_at) >= t - 3600000);
+    await this.copies.balayer().catch((e) => this._echec("copie_worm", e, { balayage: "echec" }));
+    // Segments copiés depuis le dernier passage horaire (au moins l'heure écoulée) :
+    // SHA-256 de la copie WORM (EX-12.17) ; un tour retardé ne saute aucune copie.
+    const depuis = Math.min(t - 3600000, this.dernierHoraire ?? t - 3600000);
+    this.dernierHoraire = t;
+    const lignes = (await lireRegistres(path.join(c.repertoire, "worm"))).map((x) => x.ligne).filter((l) => l.copied_at && decoderHorodatage(l.copied_at) >= depuis);
     for (const l of lignes.filter((x) => x.key.slice(this.copies.prefixe.length).startsWith("segments/"))) {
       const local = path.join(c.repertoire, l.key.slice(this.copies.prefixe.length));
       let shaLocal = null;
@@ -366,7 +417,7 @@ export class SupervisionWorm {
     }
     // Registre des gels et état de gel des versions des gels actifs.
     const g = await lireRegistreGels(this._ctx());
-    if (!g.ok) this._resultat("registre_gels", false);
+    if (!g.ok) this._resultat("registre_gels", false, g.raison ? { message: g.raison } : {});
     this.gels = g.gels;
     const attendues = versionsAttenduesGelees(g.gels);
     for (const gel of g.gels.filter((x) => x.etat.actif)) {
@@ -385,5 +436,7 @@ export class SupervisionWorm {
         }
       }
     }
+    // Passage complet seulement si le registre des gels a été lu en entier.
+    return g.ok;
   }
 }

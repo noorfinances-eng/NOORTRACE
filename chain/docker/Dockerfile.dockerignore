@@ -1,5 +1,7 @@
-# Contexte de construction : chain/. L'image n'en lit que patches/ ; tout le
-# reste, et d'abord chain/runtime/ (clés de validateur, données, journaux),
-# reste hors du contexte envoyé au constructeur.
+# Contexte de construction : chain/. L'image n'en lit que patches/ (correctifs
+# et EMPREINTES) et scripts/verifier-correctifs.sh ; tout le reste, et d'abord
+# chain/runtime/ (clés de validateur, données, journaux), reste hors du contexte
+# envoyé au constructeur.
 *
 !patches/
+!scripts/verifier-correctifs.sh

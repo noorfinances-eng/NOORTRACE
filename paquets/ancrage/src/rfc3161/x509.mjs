@@ -50,6 +50,7 @@ export const OID = Object.freeze({
   basicConstraints: "2.5.29.19",
   cRLNumber: "2.5.29.20",
   cRLReasons: "2.5.29.21",
+  authorityKeyIdentifier: "2.5.29.35",
   deltaCRLIndicator: "2.5.29.27",
   issuingDistributionPoint: "2.5.29.28",
   cRLDistributionPoints: "2.5.29.31",
@@ -102,7 +103,7 @@ export function lireNom(tlv) {
       if (e.length !== 2) throw new ErreurDer("AttributeTypeAndValue mal formé", atv.debut);
       const oid = lireOid(e[0]);
       // EX-9.4 : une valeur d'un autre type de chaîne n'est pas décodée, mais sa forme DER est contrôlée (lecture bornée ;
-      // R-A-2 : un type universel de forme construite, par exemple, rend le nom illisible).
+      // Un type universel de forme construite, par exemple, rend le nom illisible).
       parcourir(e[1]);
       let type = null;
       let texte = null;
@@ -249,10 +250,19 @@ export function lireCertificat(octets, profondeurBase = 1) {
   const sujet = lireNom(t[i++]);
   const clePublique = lireClePublique(t[i++]);
   let extensions = [];
+  // Champs de fin du TBSCertificate dans l'ordre de RFC 5280 §4.1 (issuerUniqueID [1], subjectUniqueID [2],
+  // extensions [3]), chacun au plus une fois (CT-6 EX-9.7 ; EX-9.4 : deux-ext, uid-apres).
+  let dernierNumero = 0;
   while (i < t.length) {
     const x = t[i++];
-    if (estContexte(x, 1, false) || estContexte(x, 2, false)) continue; // issuerUniqueID, subjectUniqueID
-    if (estContexte(x, 3, true)) {
+    const numero = estContexte(x, 1, false) ? 1 : estContexte(x, 2, false) ? 2 : estContexte(x, 3, true) ? 3 : 0;
+    if (numero !== 0 && numero <= dernierNumero) throw new ErreurDer("champs de fin du TBSCertificate hors d'ordre ou en double (RFC 5280 §4.1)", x.debut);
+    dernierNumero = numero;
+    if (numero === 1 || numero === 2) {
+      if (version === 1) throw new ErreurDer("uniqueID dans un certificat v1", x.debut);
+      continue; // issuerUniqueID, subjectUniqueID
+    }
+    if (numero === 3) {
       if (version !== 3) throw new ErreurDer("extensions dans un certificat qui n'est pas v3", x.debut);
       const ex = enfants(x);
       if (ex.length !== 1) throw new ErreurDer("extensions mal formées", x.debut);
@@ -427,9 +437,23 @@ export function controlerQcStatements(objetAvecExtensions) {
 }
 
 /**
+ * Extensions qu'une CRL de la version 0 lit (CT-6 EX-9.16, révision 0.9) :
+ * sur la liste, `authorityKeyIdentifier`, `cRLNumber`,
+ * `issuingDistributionPoint`, `deltaCRLIndicator` ; sur une entrée,
+ * `cRLReasons`. Toute autre extension marquée critique rend la CRL non
+ * complète (RFC 5280 §5.2, §5.3).
+ */
+export const CRL_EXTENSIONS_LUES = Object.freeze([OID.authorityKeyIdentifier, OID.cRLNumber, OID.issuingDistributionPoint, OID.deltaCRLIndicator]);
+export const CRL_EXTENSIONS_ENTREE_LUES = Object.freeze([OID.cRLReasons]);
+
+/**
  * Lit une CRL (`CertificateList`, RFC 5280 §5) : `{ octets, tbs, version,
  * signatureAlgorithme, signature, emetteur, thisUpdate, nextUpdate, revoques:
- * [{ numeroSerie, date, raison }], extensions, complete, sha256 }`.
+ * [{ numeroSerie, date, raison }], extensions, complete,
+ * extensionCritiqueNonLue, sha256 }`. `complete` : ni `deltaCRLIndicator`, ni
+ * `issuingDistributionPoint` critique, ni extension critique non lue
+ * (`extensionCritiqueNonLue` : son OID, ou `null`) sur la liste ou sur une
+ * entrée (CT-6 EX-9.16, règle 1).
  */
 export function lireCrlDer(octets, profondeurBase = 1) {
   const racine = lireUnique(octets, profondeurBase);
@@ -458,6 +482,7 @@ export function lireCrlDer(octets, profondeurBase = 1) {
     nextUpdate = lireTemps(t[i++]);
   }
   const revoques = [];
+  let critiqueEntree = null;
   if (t[i] && estUniversel(t[i], ETIQUETTE.SEQUENCE, true)) {
     for (const r of enfants(t[i])) {
       attendre(r, ETIQUETTE.SEQUENCE, true, "entrée de CRL");
@@ -468,6 +493,7 @@ export function lireCrlDer(octets, profondeurBase = 1) {
       let raison = null;
       if (re[2]) {
         const exts = lireExtensions(re[2]);
+        critiqueEntree = critiqueEntree ?? exts.find((x) => x.critique && !CRL_EXTENSIONS_ENTREE_LUES.includes(x.oid))?.oid ?? null;
         const rc = exts.find((x) => x.oid === OID.cRLReasons);
         if (rc) {
           const en = lireUnique(rc.valeur, rc.tlv.profondeur + 2);
@@ -491,7 +517,8 @@ export function lireCrlDer(octets, profondeurBase = 1) {
     throw new ErreurDer("signature du TBS et signatureAlgorithm différents", e[1].debut);
   }
   const idp = extensions.find((x) => x.oid === OID.issuingDistributionPoint);
-  const complete = !extensions.some((x) => x.oid === OID.deltaCRLIndicator) && !(idp && idp.critique);
+  const extensionCritiqueNonLue = extensions.find((x) => x.critique && !CRL_EXTENSIONS_LUES.includes(x.oid))?.oid ?? critiqueEntree;
+  const complete = !extensions.some((x) => x.oid === OID.deltaCRLIndicator) && !(idp && idp.critique) && extensionCritiqueNonLue === null;
   return {
     octets,
     tbs: tbs.tlv,
@@ -504,6 +531,7 @@ export function lireCrlDer(octets, profondeurBase = 1) {
     revoques,
     extensions,
     complete,
+    extensionCritiqueNonLue,
     sha256: sha256Hex(octets),
   };
 }

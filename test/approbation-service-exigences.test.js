@@ -5,12 +5,13 @@
 // des cas construits : machine à états (entrées datées), service en
 // processus (canal HTTP, persistance, reprise), lecteur du jeu sur le
 // réseau Hardhat en mémoire (contrats CuratorSetRegistry et CuratorSet du
-// dépôt). Le dernier bloc vérifie que chaque EX- des sections du lot est
+// dépôt). Le dernier bloc vérifie que chaque EX- des sections du service est
 // testé ici, ou attribué avec sa raison (console de l'étape 6, mandataire).
 
 import { expect } from "chai";
 import fs from "node:fs";
 import path from "node:path";
+import http from "node:http";
 import https from "node:https";
 import { execFileSync } from "node:child_process";
 import { network } from "hardhat";
@@ -22,7 +23,7 @@ import {
 import { ClientServiceApprobation } from "@noortrace/enregistreur";
 import {
   SPEC, ORG_ID, JOURNAL_ID, DEMANDEUR, SESSIONS, CONSTANTES, adresse, signerVote, repertoireTemporaire, hashDemande, hashEvenement,
-  politiqueParcours, messageCharger, requeteEvaluer, retenue, ecrireConfiguration, appelConsole, requeteBrute,
+  politiqueParcours, messageCharger, requeteEvaluer, retenue, ecrireConfiguration, appelConsole, requeteBrute, coupleCharge,
 } from "./fixtures/approbation-service/outils.mjs";
 
 // ------------------------------------------------------------------ outils
@@ -50,7 +51,11 @@ function nouvelleMachine(o = {}) {
     max_open_tickets: o.max_open_tickets ?? 20, escalation: o.escalation ?? [], administrators: o.administrators ?? [SESSIONS.admin],
     evenement: (type, detail) => journal.push({ type, ...detail }),
   });
-  m.ajouterVersion({ policy_version: V1, approval: { rules: o.rules ?? politiqueParcours(o), mode: o.mode ?? "erreur", expire_after_ms: o.E ?? 3600000, timeout_ms: 2000 } });
+  // Version gardée comme après un charger (décision du porteur du 14 novembre 2026 et son addendum) : empreinte déclarée, approval_sha256 calculé sur
+  // le membre reçu ; `m.couple` est ce que chaque réponse evaluer de V1 reporte.
+  const approval = { rules: o.rules ?? politiqueParcours(o), mode: o.mode ?? "erreur", expire_after_ms: o.E ?? 3600000, timeout_ms: 2000 };
+  m.couple = coupleCharge({ policy_version: V1, policy_sha256: messageCharger({ policy_version: V1, rules: {} }).policy_sha256, approval });
+  m.ajouterVersion({ ...m.couple, approval });
   m.fixerEnVigueur(V1);
   m.journal = journal;
   return m;
@@ -354,8 +359,8 @@ describe("service d'approbation : exigences de CT-3", function () {
     exigence(["EX-5.1", "EX-5.8"], "automatique : autorise ou refuse sans ticket ; combinaisons de CT-1 seulement", {
       reussite() {
         const m = nouvelleMachine();
-        expect(entree(m, "evaluer", 0, { request: demande(paiement("800")) }).response).to.deep.equal({ rule: "paiement <= 1000 CHF", decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null });
-        expect(entree(m, "evaluer", 1, { request: demande(paiement("800", { currency: "EUR" })) }).response).to.deep.equal({ rule: "paiement hors CHF", decision: "refuse", ticket: null, ticket_state: null, approval: null, approver_set: null });
+        expect(entree(m, "evaluer", 0, { request: demande(paiement("800")) }).response).to.deep.equal({ rule: "paiement <= 1000 CHF", decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null, ...m.couple });
+        expect(entree(m, "evaluer", 1, { request: demande(paiement("800", { currency: "EUR" })) }).response).to.deep.equal({ rule: "paiement hors CHF", decision: "refuse", ticket: null, ticket_state: null, approval: null, approver_set: null, ...m.couple });
         expect(m.tickets.size).to.equal(0);
       },
       echec() {
@@ -476,7 +481,7 @@ describe("service d'approbation : exigences de CT-3", function () {
         m.fenetres.push({ scope: { policy_version: V1, rule: "paiement de 1000 a 5000 CHF", tool: "sap__payments.create", launched_by: DEMANDEUR, values: ["CH9300762011623852957"] }, start: at(0), end: at(MIN), remaining: 2, ticket: "apr-0009" });
         const r1 = entree(m, "evaluer", 1, { request: demande(paiement("7400.00")) });
         const r2 = entree(m, "evaluer", 2, { request: demande(paiement("2500.00")) });
-        expect(r1.response).to.deep.equal({ rule: "paiement > 5000 CHF", decision: "a_approuver", ticket: null, ticket_state: null, approval: null, approver_set: null });
+        expect(r1.response).to.deep.equal({ rule: "paiement > 5000 CHF", decision: "a_approuver", ticket: null, ticket_state: null, approval: null, approver_set: null, ...m.couple });
         expect(r2.response.rule).to.contain("[fenetre apr-0009");
         expect(m.tickets.size).to.equal(0);
         expect(m.fenetres[0].remaining).to.equal(2);
@@ -678,7 +683,7 @@ describe("service d'approbation : exigences de CT-3", function () {
         const approval = { ...v.remises[0].approval, at: at(2 * MIN) };
         entree(m, "acquitter", 2 * MIN + 1, { remise_id: v.remises[0].remise_id, ticket: id, result: "scelle", reason: null, seq: 6, hash: hashEvenement(6), at: approval.at, decision: "refuse", held: false, approval });
         const r = entree(m, "evaluer", 3 * MIN, { request: demande(paiement("7400.00")) });
-        expect(r.response).to.deep.equal({ rule: "paiement > 5000 CHF", decision: "refuse", ticket: id, ticket_state: "refuse", approval, approver_set: null });
+        expect(r.response).to.deep.equal({ rule: "paiement > 5000 CHF", decision: "refuse", ticket: id, ticket_state: "refuse", approval, approver_set: null, ...m.couple });
       },
     });
 
@@ -977,6 +982,129 @@ describe("service d'approbation : exigences de CT-3", function () {
         });
       },
     });
+
+    // Complément de la révision 0.8 de CT-3 (EX-8.1, EX-8.4) : une lecture échouée n'est refaite qu'après
+    // `set_poll_interval_ms`, même quand une entrée redemande une lecture pendant l'attente. Le point RPC refuse tout :
+    // chaque lecture s'arrête à son premier appel (`eth_chainId`), et le nombre de ces appels est celui des lectures.
+    it("EX-8.1, EX-8.3, EX-8.4 (révision 0.8, complément) : point RPC qui refuse tout ; une lecture du jeu échouée n'est refaite qu'après set_poll_interval_ms, même quand une entrée redemande une lecture pendant l'attente ; le nœud n'est jamais relancé aussitôt", async function () {
+      const appels = [];
+      const noeud = http.createServer((q, r) => {
+        let corps = "";
+        q.on("data", (x) => (corps += x));
+        q.on("end", () => {
+          let m = null;
+          try {
+            m = JSON.parse(corps);
+          } catch {
+            // corps illisible : refusé comme le reste
+          }
+          appels.push({ methode: m?.method ?? null, t: performance.now() });
+          r.writeHead(200, { "content-type": "application/json" });
+          r.end(JSON.stringify({ jsonrpc: "2.0", id: m?.id ?? null, error: { code: -32000, message: "refus du point d'essai" } }));
+        });
+      });
+      await new Promise((ok) => noeud.listen(0, "127.0.0.1", ok));
+      const intervalle = 1000;
+      const duree = 4500;
+      let evaluations = 0;
+      try {
+        const rpc = { url: `http://127.0.0.1:${noeud.address().port}`, validator: "developpement", timeout_ms: 5000 };
+        await avecService({ rpc, set_poll_interval_ms: intervalle }, async ({ client, service }) => {
+          await client.charger(messageCharger({ policy_version: V1, rules: politiqueParcours({ approver_set: JEU_REGISTRE }) }));
+          const debut = performance.now();
+          // chaque evaluer refusé (non_pret) est une entrée qui redemande une lecture du jeu
+          while (performance.now() - debut < duree) {
+            expect((await rejet(client.evaluer(demande(paiement("7400.00"))))).code).to.equal("non_pret");
+            evaluations += 1;
+            await new Promise((ok) => setTimeout(ok, 50));
+          }
+          expect(service.etat().ready).to.equal(false);
+        });
+      } finally {
+        await new Promise((ok) => noeud.close(ok));
+      }
+      expect(evaluations).to.be.greaterThan(20);
+      expect(appels.map((a) => a.methode).filter((x) => x !== "eth_chainId")).to.deep.equal([]);
+      const lectures = appels.map((a) => a.t);
+      // une lecture au chargement, puis une par intervalle au plus, jusqu'à l'arrêt du service
+      expect(lectures.length).to.be.within(2, Math.floor(duree / intervalle) + 2);
+      for (let k = 1; k < lectures.length; k += 1) expect(lectures[k] - lectures[k - 1], `lecture ${k}`).to.be.at.least(intervalle - 20);
+    });
+
+    // Complément de la révision 0.8 de CT-3 (EX-8.1, EX-8.5) : un refus pour débit n'est pas une réponse sur l'état ;
+    // l'appel est refait à la même hauteur après une pause, dans la durée bornée de la lecture. Nœud simulé : registre,
+    // jeu de trois membres ajoutés au bloc 200 000, hauteur sur quatorze tranches de 16 384 blocs ; eth_getLogs servi
+    // par un seau de cinq jetons qui se remplit d'un jeton toutes les 100 ms (au-delà : -32000 rate limited).
+    it("EX-8.1, EX-8.5 (révision 0.8, complément) : un appel refusé pour débit (-32000 rate limited) est refait à la même hauteur après une pause croissante, dans la durée bornée de la lecture : la reconstitution sur quatorze tranches aboutit ; un nœud qui refuse toujours rend etat_indisponible sans être martelé", async function () {
+      const sel = (sig) => N.octetsVersHex(N.keccak256(N.utf8(sig))).slice(0, 10);
+      const mot = (x) => "0x" + BigInt(x).toString(16).padStart(64, "0");
+      const REGISTRE = "0x" + "11".repeat(20);
+      const JEU = "0x" + "22".repeat(20);
+      const membres = [adresse(1), adresse(2), adresse(3)].map((a) => a.toLowerCase()).sort();
+      const H = 13 * 16384 + 5;
+      const ajoute = N.octetsVersHex(N.keccak256(N.utf8("CuratorAdded(address)")));
+      const pol = { chain_id: 2124, registry: REGISTRE, set: JEU };
+      const noeud = (refuserToujours) => {
+        const n = { journaux: [], refus: [], hauteurs: new Set(), jetons: 5, plein: performance.now() };
+        n.appel = async (methode, params) => {
+          if (methode === "eth_chainId") return "0x84c";
+          if (methode === "eth_blockNumber") return "0x" + H.toString(16);
+          if (methode === "eth_getBlockByNumber") return { hash: "0x" + "ab".repeat(32) };
+          if (methode === "eth_getCode") return "0x6080";
+          if (methode === "eth_call") {
+            n.hauteurs.add(params[1]);
+            const { to, data } = params[0];
+            if (to === REGISTRE && data.startsWith(sel("curatorSetOf(bytes32)"))) return mot(BigInt(JEU));
+            if (data === sel("getThreshold()")) return mot(2);
+            if (data === sel("getCuratorCount()")) return mot(3);
+            if (data.startsWith(sel("isCurator(address)"))) return mot(membres.includes("0x" + data.slice(-40)) ? 1 : 0);
+            throw new Error("appel inattendu");
+          }
+          if (methode === "eth_getLogs") {
+            const t = performance.now();
+            n.jetons = Math.min(5, n.jetons + (t - n.plein) / 100);
+            n.plein = t;
+            if (refuserToujours || n.jetons < 1) {
+              n.refus.push(t);
+              throw new Error("-32000 rate limited");
+            }
+            n.jetons -= 1;
+            const de = Number(params[0].fromBlock);
+            const a = Number(params[0].toBlock);
+            n.journaux.push({ de, a, t });
+            return de <= 200000 && 200000 <= a
+              ? membres.map((m, i) => ({ topics: [ajoute, "0x" + "0".repeat(24) + m.slice(2)], blockNumber: "0x30d40", logIndex: "0x" + i.toString(16) }))
+              : [];
+          }
+          throw new Error(`méthode inattendue ${methode}`);
+        };
+        return n;
+      };
+      // nœud qui sert eth_getLogs par à-coups : la lecture aboutit, à la hauteur H, chaque tranche lue une fois
+      const n1 = noeud(false);
+      const r = await new LecteurJeu({ url: "x", org_id: ORG_ID, appel: n1.appel }).lire(pol);
+      expect(r.status, r.cause).to.equal("lu");
+      expect(r.jeu.height).to.equal(H);
+      expect(r.jeu.members).to.deep.equal(membres);
+      expect(r.jeu.threshold).to.deep.equal({ required: 2, size: 3 });
+      expect([...n1.hauteurs]).to.deep.equal(["0x" + H.toString(16)]);
+      expect(n1.journaux.map((j) => j.de)).to.deep.equal(Array.from({ length: 14 }, (_, k) => k * 16384));
+      expect(n1.refus.length).to.be.greaterThan(0);
+      // après chaque refus, l'appel suivant attend au moins la première pause (250 ms)
+      for (const t of n1.refus) {
+        const suivant = n1.journaux.find((j) => j.t > t);
+        if (suivant) expect(suivant.t - t).to.be.at.least(245);
+      }
+      // nœud qui refuse toujours : lecture illisible dans sa durée bornée, quelques appels espacés, jamais une rafale
+      const n2 = noeud(true);
+      const debut = performance.now();
+      const r2 = await new LecteurJeu({ url: "x", org_id: ORG_ID, appel: n2.appel, lecture_max_ms: 2000 }).lire(pol);
+      const duree = performance.now() - debut;
+      expect([r2.status, r2.cause]).to.deep.equal(["illisible", "etat_indisponible"]);
+      expect(n2.refus.length).to.be.within(2, 5);
+      for (let k = 1; k < n2.refus.length; k += 1) expect(n2.refus[k] - n2.refus[k - 1]).to.be.at.least(245);
+      expect(duree).to.be.below(2000 + 500);
+    });
   });
 
   // ------------------------------------------------------------------ §9 Signature
@@ -1171,7 +1299,7 @@ describe("service d'approbation : exigences de CT-3", function () {
         });
         // TLS exigé hors de la boucle locale
         const c = ecrireConfiguration(repertoireTemporaire(), { socket: false }).config;
-        expect(validerConfiguration({ ...c, noyau: { tcp: { host: "approbation.exemple", port: 1 }, token: { file: "x" } } }).errors).to.deep.include({ code: "tls_exige", pointer: "/noyau" });
+        expect(validerConfiguration({ ...c, noyau: { tcp: { host: "approbation.example", port: 1 }, token: { file: "x" } } }).errors).to.deep.include({ code: "tls_exige", pointer: "/noyau" });
       },
     });
 
@@ -1253,7 +1381,8 @@ describe("service d'approbation : exigences de CT-3", function () {
           await client.charger(messageCharger({ policy_version: V1, rules: politiqueParcours() }));
           for (const [args, d] of [[paiement("800"), "autorise"], [paiement("800", { currency: "EUR" }), "refuse"], [paiement("7400.00"), "a_approuver"]]) {
             const r = await client.evaluer(demande(args));
-            expect(Object.keys(r).sort()).to.deep.equal(["approval", "approver_set", "decision", "rule", "ticket", "ticket_state"]);
+            expect(Object.keys(r).sort()).to.deep.equal(["approval", "approval_sha256", "approver_set", "decision", "policy_sha256", "policy_version", "rule", "ticket", "ticket_state"]);
+            expect(r).to.include(coupleCharge(messageCharger({ policy_version: V1, rules: politiqueParcours() })));
             expect(r.decision).to.equal(d);
           }
         });
@@ -1339,7 +1468,7 @@ describe("service d'approbation : exigences de CT-3", function () {
 
   // ------------------------------------------------------------------ couverture
 
-  describe("couverture des exigences du lot", function () {
+  describe("couverture des exigences des sections du service", function () {
     // Exigences hors du service, avec la raison ; tout autre EX- des sections
     // 3 à 12 et EX-14.x doit être testé ci-dessus.
     const ATTRIBUEES = {

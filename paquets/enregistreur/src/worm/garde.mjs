@@ -19,22 +19,35 @@ export const SORTES = Object.freeze(["pose", "pose_resultat", "demande_levee", "
 /** Délai maximal entre une demande et sa levée : sept jours (EX-12.38). */
 export const DELAI_LEVEE_MS = 604800000;
 
-const SUCCESSIONS = {
-  pose: ["pose_resultat"],
-  pose_resultat: ["pose_resultat", "demande_levee"],
-  demande_levee: ["demande_levee", "levee"],
-  levee: ["levee_resultat"],
-  levee_resultat: ["levee_resultat"],
-};
+// Table indexée par une sorte lue dans une entrée : `Map`, jamais un objet nu
+// (un `kind` au nom d'une propriété d'Object.prototype lisait une fonction
+// héritée et faisait lever `.includes`, étape 8, CT-2 EX-12.38).
+const SUCCESSIONS = new Map([
+  ["pose", ["pose_resultat"]],
+  ["pose_resultat", ["pose_resultat", "demande_levee"]],
+  ["demande_levee", ["demande_levee", "levee"]],
+  ["levee", ["levee_resultat"]],
+  ["levee_resultat", ["levee_resultat"]],
+]);
+
+/** Un enregistrement relu est un objet ; toute autre valeur est tenue pour vide (CT-2 EX-17.7). */
+const objet = (r) => (r !== null && typeof r === "object" && !Array.isArray(r) ? r : {});
 
 /** Octets d'un enregistrement : JCS intégral (EX-12.37). */
 export function octetsEnregistrement(r) {
   return jcsIntegralOctets(r);
 }
 
-/** Empreinte d'un enregistrement : SHA-256 de son JCS intégral, `0x`. */
+/**
+ * Empreinte d'un enregistrement : SHA-256 de son JCS intégral, `0x` ; pour
+ * une valeur que le JCS intégral refuse, l'empreinte de sa forme JSON.
+ */
 export function empreinteEnregistrement(r) {
-  return sha256Hex(octetsEnregistrement(r));
+  try {
+    return sha256Hex(octetsEnregistrement(r));
+  } catch {
+    return sha256Hex(new Uint8Array(Buffer.from(JSON.stringify(r) ?? "undefined", "utf8")));
+  }
 }
 
 /** Nom d'objet d'un enregistrement : `<nnnn>-<kind>.json`. */
@@ -57,16 +70,27 @@ function jcsOuNull(v) {
 /**
  * Règle de garde sur une suite d'enregistrements relus (EX-12.38) : erreurs
  * `{ n, code }` où `n` est le rang (1, 2, …), au plus une par rang et par
- * code, triées par rang puis dans l'ordre de la table.
- * @param {object[]} records
+ * code, triées par rang puis dans l'ordre de la table. Totale (étape 8,
+ * CT-2 EX-17.7) : aucune entrée (`null`, nombre, tableau, `kind`
+ * prototypal, `at` illisible, enregistrement `{ illisible: true }`) ne fait
+ * lever ; elle est classée au rang fautif.
+ * @param {unknown[]} entrees
  * @returns {{valid: boolean, record_sha256: string[], errors: {n: number, code: string}[]}}
  */
-export function verifierGarde(records) {
-  const hashes = records.map((r) => empreinteEnregistrement(r));
+export function verifierGarde(entrees) {
+  const brut = Array.isArray(entrees) ? entrees : [];
+  const hashes = brut.map((r) => empreinteEnregistrement(r));
+  const records = brut.map(objet);
   const errors = [];
   if (records.length === 0) return { valid: false, record_sha256: [], errors: [{ n: 1, code: "premier_non_pose" }] };
   const r1 = records[0];
-  const at = records.map((r) => (typeof r?.at === "string" ? decoderHorodatage(r.at) : null));
+  const at = records.map((r) => {
+    try {
+      return typeof r.at === "string" ? decoderHorodatage(r.at) : null;
+    } catch {
+      return null;
+    }
+  });
   const approuvees = new Set();
   records.forEach((r, i) => {
     const rang = i + 1;
@@ -81,7 +105,7 @@ export function verifierGarde(records) {
     if (at[i] === null) codes.add("ordre_invalide");
     if (i > 0) {
       const prec = records[i - 1].kind;
-      if (!(SUCCESSIONS[prec] ?? []).includes(r.kind)) codes.add("ordre_invalide");
+      if (!(SUCCESSIONS.get(prec) ?? []).includes(r.kind)) codes.add("ordre_invalide");
       if (at[i] !== null && at[i - 1] !== null && at[i] < at[i - 1]) codes.add("ordre_invalide");
     }
     if (!SORTES.includes(r.kind)) codes.add("ordre_invalide");
@@ -116,7 +140,8 @@ export function verifierGarde(records) {
  * @param {object[]} records
  * @returns {object[]}
  */
-export function prefixeValide(records) {
+export function prefixeValide(entrees) {
+  const records = Array.isArray(entrees) ? entrees.map(objet) : [];
   const { errors } = verifierGarde(records);
   if (records.length === 0) return [];
   const premier = errors.length ? Math.min(...errors.map((e) => e.n)) : records.length + 1;
@@ -128,11 +153,15 @@ export function prefixeValide(records) {
  * enregistrement valide n'est pas un `levee_resultat` sans échec ; état
  * attendu de chaque version : `on` tant qu'aucune `levee` valide n'est
  * inscrite, `on` ou `off` tolérés pendant une levée en cours ; versions de
- * `results.kept` attendues `on`.
+ * `results.kept` attendues `on`. Un gel dont la suite est invalide dès le
+ * premier rang n'a aucun « dernier enregistrement valide » qui soit un
+ * `levee_resultat` : il est actif (étape 8, CT-2 EX-17.6 ; une seconde version ou
+ * un enregistrement planté ne désactivent pas la surveillance d'un gel).
  * @param {object[]} records suite relue, dans l'ordre
  * @returns {{actif: boolean, leveeEnCours: boolean, valide: boolean, kept: {key: string, version_id: string, gel_id: string}[]}}
  */
-export function etatGel(records) {
+export function etatGel(entrees) {
+  const records = Array.isArray(entrees) ? entrees.map(objet) : [];
   const valides = prefixeValide(records);
   const dernier = valides.at(-1) ?? null;
   const leveeValide = valides.some((r) => r.kind === "levee");
@@ -140,7 +169,7 @@ export function etatGel(records) {
   const kept = [];
   for (const r of valides) if (r.kind === "levee_resultat" && Array.isArray(r.results?.kept)) kept.push(...r.results.kept);
   return {
-    actif: valides.length > 0 && !termine,
+    actif: records.length > 0 && !termine,
     leveeEnCours: leveeValide && !termine,
     valide: valides.length === records.length,
     kept,

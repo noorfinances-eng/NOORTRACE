@@ -5,7 +5,7 @@
 // ne sont admis que si l'entrée l'accepte, et bornés avant d'entrer dans la
 // chaîne : `on_behalf_of` octet pour octet dans `allowed_on_behalf_of`,
 // `run_id` au motif d'EX-7.2 et sans correspondance d'un détecteur de texte
-// de la politique de rédaction (crochet du lot de rédaction). Un refus est
+// de la politique de rédaction (crochet de la partie rédaction). Un refus est
 // consigné (`delegation_refused`) sans la valeur.
 
 /** Motif d'un `run_id` déclaré (EX-7.2). */

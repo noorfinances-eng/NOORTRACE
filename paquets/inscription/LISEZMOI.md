@@ -61,9 +61,34 @@ développement sans manifeste (EX-7.2) : il y lit `deployments/noorcore.json`,
   "rpc": ["http://127.0.0.1:8645", "http://127.0.0.1:8646", "http://127.0.0.1:8647", "http://127.0.0.1:8648"],
   "jeton": null,
   "comptes": { "exploitant": "hardhat:0" },
+  "cles": { "repertoire": "/etc/noortrace-inscription/cles", "alias": { "chaine-client-essai": "fichier:/etc/noortrace-inscription/cles/chaine.cle" } },
   "delai_s": 120
 }
 ```
+
+Règles de la revue de l'étape 8 (révisions de CT-4 EX-7.1, EX-7.3, EX-7.25,
+EX-7.28 demandées) :
+
+- `cles` (facultatif) : `repertoire` est le seul répertoire dont un travail
+  peut désigner un fichier (`fichier:`, `graine:`, chemin direct sous lui,
+  sans lien symbolique) ; `alias` nomme des références de la configuration
+  qu'un travail désigne par `alias:<nom>` ; sans `cles`, un travail ne
+  désigne aucun fichier et `env:` n'est jamais admise dans un travail.
+- Une référence d'un travail qui ne se résout pas rend à l'interface un seul
+  message (« référence non résolue … ») ; le détail (forme, motif, jamais une
+  valeur) va au journal de l'agent (`reference_non_resolue`).
+- En production, `fichier:` et `env:` sont refusées pour tout rôle, clé de
+  chaîne du client comprise (classe de garde D ; CLE-2 exige A, B ou C) : en
+  version 0, l'agent n'y résout aucune clé et n'y conduit que les travaux
+  sans clé (capture, export, vérification, condensés, paquet).
+- En production, un point `rpc` en `http://` hors de `127.0.0.1`, `::1` et
+  `localhost` est refusé au démarrage, et OP-2 contrôle tous les points
+  avant le premier appel : le jeton ne part jamais vers un point refusé.
+- L'agent relit l'instance à chaque travail : une révision du manifeste qui
+  change sa nature ou ses identifiants refuse le travail
+  (`instance_illisible`).
+- `fees.max_daily_budget_gas` nul dans le manifeste vaut « aucun plafond »
+  (comme son schéma le dit) ; `budget_jour` d'un travail est borné à 2^53 − 1.
 
 ### Configuration de l'interface
 
@@ -72,20 +97,43 @@ développement sans manifeste (EX-7.2) : il y lit `deployments/noorcore.json`,
 | Membre | Contenu |
 |---|---|
 | `version` | `0` |
-| `ecoute` | `{ "hote", "port" }` : adresse d'écoute du serveur Node (derrière le mandataire TLS de l'exploitant) |
-| `origine` | origine de l'interface, `https://…` en production : l'en-tête `Origin` exigé hors GET |
+| `ecoute` | `{ "hote", "port" }` : adresse d'écoute du serveur Node (derrière le mandataire TLS de l'exploitant) ; en production, `127.0.0.1`, `::1` ou `localhost` seulement |
+| `origine` | origine de l'interface, `https://…` en production : l'en-tête `Origin` exigé hors GET, et l'en-tête `Host` doit en être l'autorité (421 sinon) |
 | `prise` | chemin de la prise de l'agent (lu par le serveur seulement, jamais envoyé à la page) |
 | `donnees` | répertoire des données de l'agent, lu en lecture seule par le groupe de l'interface |
-| `comptes` | `fichier:<chemin>` du fichier des comptes (`configuration-console-v0#/$defs/fichier_comptes`) |
-| `nature` | `developpement` ou `production` (affichage et forme des champs ; l'agent tranche) |
+| `comptes` | `fichier:<chemin>` du fichier des comptes (`configuration-console-v0#/$defs/fichier_comptes`), fichier du compte du serveur en `0400` ou `0600` |
+| `nature` | `developpement` ou `production` (affichage et forme des champs ; l'agent tranche) ; en production, `Strict-Transport-Security` sur chaque réponse |
 
 Prêt, le binaire écrit `{"pret":true,"pid":<n>,"url":<adresse>}` sur la
 sortie standard ; les messages de Next vont sur la sortie d'erreur.
 
+Comptes et sessions de l'interface (revue de l'étape 8, CT-7 CLE-37) :
+le verrou progressif de la connexion vaut par couple
+(adresse cliente, nom), de sorte qu'un tiers qui échoue depuis une autre
+adresse ne ferme pas le compte de l'exploitant ; l'adresse cliente est celle
+du pair, ou, en production (boucle locale derrière le mandataire TLS), la
+dernière adresse de `X-Forwarded-For` posée par le mandataire, qui doit donc
+la poser ; les sessions échues sont purgées à chaque ouverture et au plus
+10 000 sessions sont tenues. Ces comptes locaux et la clé de MAC des cookies
+n'ont pas encore de ligne à l'inventaire de CT-7 §4.2 (ligne CLE-37
+demandée) ; un système d'identité OIDC, exigé en production pour la console
+(CLE-35), n'est pas offert par cette interface en version 0 : c'est un
+risque nommé, à lever quand le code OIDC du serveur de console pourra être
+réemployé (il n'est pas exporté par `@noortrace/console`).
+
 ### Comptes du système (EX-7.28)
 
 - L'agent tourne sous son propre compte ; l'interface sous un autre, dont
-  `interface_uid` est l'identifiant.
+  `interface_uid` est l'identifiant. L'agent refuse de démarrer si
+  `interface_uid` est son propre compte ou le compte 0, ou s'il tourne
+  lui-même sous le compte 0 (EX-7.23 ; revue de l'étape 8, CT-4 EX-7.28) : sous un
+  seul compte, l'interface lirait le jeton et les clés et écrirait les
+  registres sans passer par la prise. Seule l'API programmatique admet
+  `memeCompteAdmis` (essais).
+- Limites de ce contrôle : les membres du groupe sont lus dans `/etc/group`
+  et `/etc/passwd` seulement (un membre connu par un annuaire LDAP ou sssd
+  n'est pas vu) ; les répertoires parents de la prise ne sont pas contrôlés ;
+  l'auxiliaire `python3` est résolu par `PATH`.
 - Le répertoire de la prise appartient au compte de l'agent, en `0750`, et
   son groupe n'a pour membre que le compte de l'interface (liste de
   `/etc/group` et comptes dont c'est le groupe principal, `/etc/passwd`) ;
@@ -96,7 +144,7 @@ sortie standard ; les messages de Next vont sur la sortie d'erreur.
   l'interface : poser le bit setgid (`chmod 2750`) pour que chaque fichier
   créé prenne ce groupe. Les fichiers sont créés en `0640`, les répertoires en
   `0750`.
-- Python 3 est exigé à l'exécution de l'agent (décision 6 de l'étape 6) pour
+- Python 3 est exigé à l'exécution de l'agent (étape 6) pour
   lire le compte du pair.
 
 ### Compte du pair : mesure refaite le 2026-11-11
@@ -136,9 +184,30 @@ const r = await remettreTravail("/run/noortrace-inscription/agent.sock", "exploi
 `demarrerAgent(configuration, options)` (`@noortrace/inscription/agent`)
 démarre l'agent dans le processus appelant, qui ne doit alors avoir aucune
 prise d'écoute IP (EX-7.28 : l'agent le vérifie au démarrage) ;
+`options.memeCompteAdmis` (essais seulement, jamais lu par le binaire) lève
+le seul contrôle des comptes d'EX-7.23 ;
 `controlerPaquet(repertoire)` (`@noortrace/inscription/paquet`) est le
 contrôle de réception d'EX-7.22, utilisable par le client hors de
 l'application.
+
+Bornes des journaux et du contrôle du paquet (revue de l'étape 8) :
+`journal-agent.ndjson` est tourné à 16 Mio (une génération gardée,
+`journal-agent.ndjson.1`), les refus que le compte de l'interface peut
+provoquer sans limite (`pair_refuse`, `requete_refusee`, `requete_erreur`,
+`travail_refuse`, `confirmation_refusee`) sont consignés ligne à ligne
+jusqu'à huit par minute et par événement, puis comptés dans une ligne
+`refus_cumules` ; `confirmations.ndjson` n'est jamais tourné (une ligne par
+action d'exploitant) ; `controlerPaquet` ne lit pas un fichier au-delà de
+64 Mio (`fichier_trop_grand`) ni plus de 4 096 entrées (`trop_de_fichiers`).
+Limite nommée : la liste des travaux de l'interface relit chaque
+enregistrement de `travaux/` à chaque page, et le registre des confirmations
+est relu en entier à chaque admission.
+
+Observation de la revue (risque déjà nommé par CT-4 EX-5.3 et
+EX-5.8, H7) : le code de création du `CuratorSet` d'un client vient de
+`hh-artifacts/` sous le répertoire de travail de l'agent, sans empreinte
+attendue ; qui écrit dans ce répertoire fait déployer un autre jeu au client,
+et le réviseur recompile et compare.
 
 ## Écarts relevés et précisions
 
@@ -166,7 +235,20 @@ l'outil rend sur le même état, et le point est consigné ici :
 - `administrer-jeu` : ordre des vérifications et `outputs` observés sur
   l'outil (`--relayeur` : OP-5 du relayeur, OP-6, OP-5 du signataire et du
   nonce à la même place, OP-7, OP-3 ; `outputs` `{ operation,
-  transaction_hash, block_number, gas_used, cost_wei, capture }`).
+  confirmation_sha256, transaction_hash, block_number, gas_used, cost_wei,
+  capture }`).
+- `confirmation_sha256` (revue de l'étape 8, CT-4 EX-8.21) : l'outil exige
+  `--confirmation <fichier>` pour `approvisionner` et `administrer-jeu` et
+  rend le SHA-256 du fichier ; l'agent, qui n'a que le `piece_sha256` saisi
+  par l'exploitant dans la confirmation d'EX-7.26, rend celui de la
+  confirmation qui autorise l'opération, sur `deja_fait` aussi.
+- Provision du dossier (revue de l'étape 8) : `inscrire-client-preparer`
+  et `inscrire-client` vérifient en OP-4, avant OP-5 comme l'outil, que
+  `funding.funder` est la trésorerie du manifeste (`compte_inattendu`), que le
+  budget ne dépasse pas `fees.max_daily_budget_gas` et que `amount_wei` est
+  `P_k` recalculé depuis `fees` du manifeste (`provision_excessive`) ; la
+  provision versée est toujours celle recalculée (`controlerProvisionDossier`
+  de `base.mjs`, point commun).
 - `paquet` : `secrets_checked` nomme les secrets cherchés et leur nombre,
   `{ count, references }`, chaque `{ option, reference }` (option de l'outil
   qui désigne le rôle, référence d'EX-7.3, jamais la valeur), triés par
@@ -245,6 +327,7 @@ l'installation) et n'entrent dans aucune image (étape 7) :
 | `test/inscription-application.test.js` | TE-22 : interface construite et lancée, agent réel derrière |
 | `test/inscription-paquet.test.js` | TE-21 : paquet produit, recherche d'EX-7.21, `controlerPaquet`, exemples de CT-4 7.13 ; pas 10 |
 | `test/inscription-reseau.test.js` | réseau de développement 2124 (en attente s'il n'est pas debout) : client fictif, épreuve d'EX-7.24 |
+| `test/inscription-revue.test.js` | revue de l'étape 8 : comptes distincts (EX-7.28), production sans clé en clair (EX-7.3), points `http://` (EX-7.1), répertoire de clés et alias (EX-7.25), interface en production, verrou, sessions, hôte (CT-7 CLE-37), plafond nul et budget, instance relue, bornes ; un mutant sur copie du paquet par règle |
 
 Outils : `test/fixtures/inscription/` (réseau Hardhat et pont noorcore,
 agent et interface d'essai, outil de référence en boîte noire).

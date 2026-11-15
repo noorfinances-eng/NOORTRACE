@@ -19,6 +19,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { egaliteJson } from "@noortrace/noyau";
+import { jcsIntegral } from "./json.mjs";
 
 const MOTS_CLES = new Set([
   "$schema", "$id", "$ref", "$defs", "title", "description", "type", "const", "enum", "required", "properties",
@@ -41,6 +42,31 @@ function admetType(t, v) {
 }
 
 const echapper = (s) => String(s).replace(/~/g, "~0").replace(/\//g, "~1");
+
+/**
+ * `uniqueItems` en temps linéaire : les éléments sont comparés par
+ * leur forme JCS intégrale, dans un ensemble ; la double boucle d'égalité
+ * JSON coûtait 14 s pour un jeu de 20 000 membres, à chaque lecture, dans le
+ * fil du service. Un élément sans forme JCS (nombre non fini, substitut
+ * isolé : jamais une valeur lue en JSON strict) ramène à la comparaison deux
+ * à deux pour ce tableau.
+ * @param {unknown[]} v
+ */
+function aDoublon(v) {
+  if (v.length < 2) return false;
+  const vus = new Set();
+  try {
+    for (const x of v) {
+      const k = jcsIntegral(x);
+      if (vus.has(k)) return true;
+      vus.add(k);
+    }
+    return false;
+  } catch {
+    for (let i = 0; i < v.length; i++) for (let j = i + 1; j < v.length; j++) if (egaliteJson(v[i], v[j])) return true;
+    return false;
+  }
+}
 
 /** Registre de schémas identifiés par leur `$id`. */
 export class RegistreSchemas {
@@ -178,11 +204,7 @@ export class RegistreSchemas {
     if (Array.isArray(v)) {
       if (s.minItems !== undefined && v.length < s.minItems) err("minItems");
       if (s.maxItems !== undefined && v.length > s.maxItems) err("maxItems");
-      if (s.uniqueItems === true) {
-        let double = false;
-        for (let i = 0; i < v.length && !double; i++) for (let j = i + 1; j < v.length && !double; j++) double = egaliteJson(v[i], v[j]);
-        if (double) err("uniqueItems");
-      }
+      if (s.uniqueItems === true && aDoublon(v)) err("uniqueItems");
       // 2020-12 : prefixItems s'applique rang par rang, items aux éléments qui suivent
       const prefixe = s.prefixItems ?? [];
       prefixe.forEach((x, k) => {

@@ -1386,7 +1386,7 @@
       }
     },
     "fichier_controles_canal": {
-      "description": "Vecteurs annuaire/controles-canal.json : contrôle de l'identité de session par le service sur le canal de la console (AN-10 ; EX-12.13, EX-12.14, EX-12.16, EX-12.19), fait avant que l'entrée de 7.4 ne soit formée. La raison attendue est null si la méthode passe ce contrôle, sinon identite_invalide (identité hors de la forme canonique), session_non_autorisee ou ticket_inconnu, dans l'ordre d'EX-12.14 pour tickets et consulter et d'EX-12.19 pour les autres méthodes.",
+      "description": "Vecteurs annuaire/controles-canal.json : contrôle de l'identité de session par le service sur le canal de la console (AN-10 ; EX-12.13, EX-12.14, EX-12.16, EX-12.19, EX-12.21), fait avant que l'entrée de 7.4 ne soit formée. La raison attendue est null si la méthode passe ce contrôle, sinon identite_invalide (identité hors de la forme canonique), session_non_autorisee ou ticket_inconnu, dans l'ordre d'EX-12.14 pour tickets et consulter et d'EX-12.19 pour les autres méthodes. Révision 0.8 de CT-3 : un cas tickets dont la requête porte related_to désigne un ticket (connu, ou null pour un ticket inconnu), auquel s'applique l'ordre de consulter ; sans related_to, ticket est null.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -1444,7 +1444,7 @@
                 "type": "object"
               },
               "ticket": {
-                "description": "Ce que le service sait du ticket pour ce contrôle ; null pour un ticket inconnu dans l'organisation, et toujours pour tickets.",
+                "description": "Ce que le service sait du ticket pour ce contrôle ; null pour un ticket inconnu dans l'organisation, et pour tickets sans related_to ; avec related_to, le ticket désigné, auquel s'applique l'ordre de consulter (EX-12.21 ; révision 0.8 de CT-3).",
                 "oneOf": [
                   {
                     "type": "null"
@@ -1505,11 +1505,31 @@
                   }
                 },
                 "then": {
-                  "properties": {
-                    "ticket": {
-                      "type": "null"
+                  "anyOf": [
+                    {
+                      "properties": {
+                        "ticket": {
+                          "type": "null"
+                        }
+                      }
+                    },
+                    {
+                      "properties": {
+                        "request": {
+                          "type": "object",
+                          "required": [
+                            "related_to"
+                          ],
+                          "properties": {
+                            "related_to": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
                     }
-                  }
+                  ]
                 }
               }
             ]

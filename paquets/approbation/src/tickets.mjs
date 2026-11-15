@@ -24,6 +24,7 @@ import { evaluer as evaluerPolitique, fenetreDeMarque, finFenetre } from "./eval
 import { adresseDuVote, normaliserSignature } from "./signatures.mjs";
 import { jeuDeclare, jeuStatique, jeuxEgaux } from "./jeux.mjs";
 import { ErreurService } from "./erreurs.mjs";
+import { BORNES, donneesRefus, instantAdmis } from "./bornes.mjs";
 
 const H = (ms) => ecrireHorodatage(ms);
 const T = (s) => decoderHorodatage(s);
@@ -35,8 +36,10 @@ export const ETATS_NON_DECIDES = Object.freeze(["reserve", "ouvert", "seuil_atte
 /** États terminaux (7.3). */
 export const ETATS_TERMINAUX = Object.freeze(["consomme", "clos", "abandonne"]);
 
-// Ordre des minuteurs à instant égal (EX-7.7).
-const ORDRE_MINUTEURS = ["echeance", "fin_contestation", "fin_reservation", "fin_reconnaissance", "escalade", "fin_fenetre"];
+// Ordre des minuteurs à instant égal (EX-7.7) ; `archivage` (CT-3 EX-7.24,
+// CT-3 EX-7.24 : un ticket terminal quitte l'état vivant `BORNES.archivage_apres_ms`
+// après sa dernière transition) passe après tous les autres.
+const ORDRE_MINUTEURS = ["echeance", "fin_contestation", "fin_reservation", "fin_reconnaissance", "escalade", "fin_fenetre", "archivage"];
 
 /** Raisons fixes d'une décision `expire` (EX-7.11). */
 export const RAISONS_EXPIRE = Object.freeze({
@@ -152,10 +155,27 @@ export class Machine {
     this.#reinitModifs();
     /** Remises calculées pendant l'entrée en cours, dans l'ordre (annexe A.6). */
     this.remisesDuPas = [];
+    /**
+     * Refus non inscrits dans la trace, au-delà de `BORNES.refus_inscrits_par_ticket`
+     * (CT-3 EX-7.24) : ticket → raison → nombre ; en mémoire seulement.
+     * @type {Map<string, Map<string, number>>}
+     */
+    this.refusEcartes = new Map();
   }
 
   #reinitModifs() {
-    this.modifs = { tickets: new Set(), fenetres: false, meta: false, versions: false };
+    /** `archives` : documents des tickets sortis de l'état vivant pendant l'entrée (CT-3 EX-7.24). */
+    this.modifs = { tickets: new Set(), fenetres: false, meta: false, versions: false, archives: new Map() };
+  }
+
+  /**
+   * Refus d'entrées non inscrits dans la trace d'un ticket, par raison
+   * (CT-3 EX-7.24) : vide tant que la borne n'est pas atteinte.
+   * @param {string} id
+   * @returns {Record<string, number>}
+   */
+  refusNonInscrits(id) {
+    return Object.fromEntries(this.refusEcartes.get(id) ?? []);
   }
 
   /** Ce qui a changé depuis le dernier appel (à persister, EX-7.22). */
@@ -181,6 +201,21 @@ export class Machine {
   /** Version chargée, ou null. */
   version(pv) {
     return this.versions.get(pv) ?? null;
+  }
+
+  /**
+   * Membres de politique que porte toute réponse `evaluer` (CT-3 §12.3,
+   * EX-12.6, révision 0.5 et addendum) : la version chargée sous laquelle la
+   * réponse est rendue, l'empreinte que le noyau a déclarée au `charger` de
+   * cette version (12.2), recopiée telle que gardée (le service ne la calcule
+   * jamais), et `approval_sha256`, le condensé que le service a lui-même
+   * calculé au `charger` sur le membre `approval` reçu (jamais recopié d'un
+   * message du noyau). Une version chargée sans l'une de ces valeurs rend `null`.
+   * @param {string} pv
+   */
+  couplePolitique(pv) {
+    const v = this.versions.get(pv);
+    return { policy_version: pv, policy_sha256: v?.policy_sha256 ?? null, approval_sha256: v?.approval_sha256 ?? null };
   }
 
   /** Fixe la version en vigueur ; un changement ferme toutes les fenêtres (EX-4.12, EX-7.7). */
@@ -280,10 +315,30 @@ export class Machine {
     return { accepted: false, reason, data, response: null, remises: this.remisesDuPas };
   }
 
-  /** Refuse une entrée propre à un ticket : inscrite dans la trace du ticket (EX-7.8). */
+  /**
+   * Refuse une entrée propre à un ticket : le refus et sa raison sont
+   * inscrits dans la trace du ticket (EX-7.8), avec les données de l'entrée
+   * sans motif libre ni signature (`donneesRefus`), et au plus
+   * `BORNES.refus_inscrits_par_ticket` fois par ticket ; au-delà, le refus
+   * est rendu et compté seulement (`refusNonInscrits`), le ticket ne change
+   * pas et rien n'est persisté (CT-3 EX-7.24 : une rafale de votes refusés
+   * faisait croître la trace, et le journal d'état, comme le carré du nombre
+   * de requêtes). Révision d'EX-7.8 demandée.
+   */
   #refuser(t, at, input, data, reason, extra = {}) {
     if (t) {
-      this.#inscrire(t, at, input, t.state, t.state, false, reason, data);
+      const n = t.transitions.reduce((k, x) => k + (x.accepted ? 0 : 1), 0);
+      if (n < BORNES.refus_inscrits_par_ticket) {
+        this.#inscrire(t, at, input, t.state, t.state, false, reason, donneesRefus(input, data));
+      } else {
+        let parRaison = this.refusEcartes.get(t.ticket);
+        if (!parRaison) {
+          parRaison = new Map();
+          this.refusEcartes.set(t.ticket, parRaison);
+          this.evenement("trace_bornee", { ticket: t.ticket, borne: BORNES.refus_inscrits_par_ticket });
+        }
+        parRaison.set(reason, (parRaison.get(reason) ?? 0) + 1);
+      }
     }
     throw new ErreurService(reason, extra);
   }
@@ -340,6 +395,9 @@ export class Machine {
     if (["approuve", "refuse", "expire"].includes(t.state) && t.recognize_until) {
       m.push({ type: "fin_reconnaissance", instant: T(t.recognize_until) });
     }
+    // un ticket terminal quitte l'état vivant après délai ;
+    // sa trace est déposée dans l'archive par le service (EX-7.24 : conservée)
+    if (ETATS_TERMINAUX.includes(t.state)) m.push({ type: "archivage", instant: T(t.transitions.at(-1).at) + BORNES.archivage_apres_ms });
     return m;
   }
 
@@ -353,7 +411,6 @@ export class Machine {
         (ORDRE_MINUTEURS.indexOf(c.type) < ORDRE_MINUTEURS.indexOf(meilleur.type) ||
           (c.type === meilleur.type && c.id < meilleur.id)));
     for (const t of this.tickets.values()) {
-      if (ETATS_TERMINAUX.includes(t.state)) continue;
       for (const m of this.#minuteursTicket(t)) {
         const c = { ...m, id: t.ticket };
         if (c.instant <= at && plusTot(c)) meilleur = c;
@@ -392,6 +449,16 @@ export class Machine {
     const t = this.tickets.get(m.id);
     const at = m.instant;
     switch (m.type) {
+      case "archivage":
+        // CT-3 EX-7.24 : le document entier sort de l'état vivant ; le service le dépose dans l'archive
+        this.tickets.delete(t.ticket);
+        this.intentions.delete(t.ticket);
+        this.refusEcartes.delete(t.ticket);
+        for (const [c, id] of this.cles) if (id === t.ticket) this.cles.delete(c);
+        this.modifs.tickets.delete(t.ticket);
+        this.modifs.archives.set(t.ticket, cloner(t));
+        this.evenement("ticket_archive", { ticket: t.ticket, state: t.state });
+        break;
       case "fin_reservation":
         t.key_released = true;
         this.#etat(t, at, "fin_reservation", "abandonne", null);
@@ -461,14 +528,15 @@ export class Machine {
       // EX-11.12 : EVALUER sans effet, ni rapprochement, ni ticket, ni consommation
       const e = data.evaluation ?? evaluerPolitique(v.approval.rules, d, this.fenetres, at);
       this.evenement("evaluation_observation", { policy_version: d.code.policy_version, rule: e.rule, decision: e.decision });
-      return { rule: e.rule, decision: e.decision, ticket: null, ticket_state: null, approval: null, approver_set: null };
+      return { rule: e.rule, decision: e.decision, ticket: null, ticket_state: null, approval: null, approver_set: null, ...this.couplePolitique(d.code.policy_version) };
     }
     if (!this.pret(d.code.policy_version)) throw new ErreurService("non_pret");
     const cle = cleRapprochement(this.org_id, this.journal_id, d);
     const id = this.cles.get(cle);
     if (id !== undefined) {
       const t = this.tickets.get(id);
-      if (this.#actif(t)) return this.#reemission(t, at);
+      // Ticket rapproché : le couple est celui de la version sous laquelle le ticket a été créé (CT-3 EX-7.21, §12.3).
+      if (this.#actif(t)) return { ...this.#reemission(t, at), ...this.couplePolitique(t.request.policy_version) };
       this.cles.delete(cle);
     }
     const e = options.evaluation ?? data.evaluation ?? evaluerPolitique(v.approval.rules, d, this.fenetres, at);
@@ -485,13 +553,14 @@ export class Machine {
       return {
         rule: e.rule, decision: "a_approuver", ticket: t.ticket, ticket_state: "nouveau", approval: null,
         approver_set: this.jeuNouveau(d.code.policy_version),
+        ...this.couplePolitique(d.code.policy_version),
       };
     }
     if (e.decision === "autorise") {
       const f = e.fenetre ?? fenetreDeMarque(e.rule)?.ticket ?? null;
       if (f !== null) this.#consommerFenetre(f);
     }
-    return { rule: e.rule, decision: e.decision, ticket: null, ticket_state: null, approval: null, approver_set: null };
+    return { rule: e.rule, decision: e.decision, ticket: null, ticket_state: null, approval: null, approver_set: null, ...this.couplePolitique(d.code.policy_version) };
   }
 
   /** Consomme une unité de la fenêtre ouverte par `ticket` (EX-5.5) ; la retire épuisée (EX-5.6). */
@@ -612,13 +681,15 @@ export class Machine {
       if (t.request.request_hash === d.request_hash) return reponse(); // EX-7.20
       this.#refuser(t, at, "ouvrir", donnees, "ticket_deja_ouvert", { request_hash: t.request.request_hash });
     }
-    if (!(t.state === "reserve" || t.state === "abandonne") || T(d.request_ts) > at) {
+    // un instant hors du calendrier ou hors de l'intervalle admis est refusé avant tout effet
+    const ts = instantAdmis(d.request_ts);
+    if (!(t.state === "reserve" || t.state === "abandonne") || ts === null || ts > at) {
       this.#refuser(t, at, "ouvrir", donnees, "requete_invalide");
     }
     t.request.request_hash = d.request_hash;
     t.request.request_seq = d.request_seq;
     t.request.request_ts = d.request_ts;
-    t.deadline = H(T(d.request_ts) + t.expire_after_ms);
+    t.deadline = H(ts + t.expire_after_ms);
     if (t.state === "abandonne") {
       // T4 : ouvrir tardif ; décision expire sur le jeu de repli ; la clé n'est pas reprise
       this.#remettreExpire(t, at, RAISONS_EXPIRE.abandon, "ouvrir", donnees);
@@ -942,10 +1013,12 @@ export class Machine {
     const approvalConforme = (a, decision) =>
       a !== null && a.ticket === t.ticket && a.decision === decision && a.at === d.at;
     if (d.result === "scelle") {
+      // `at` est contrôlé avant tout effet (un 31 février passait, l'an 9999 levait RangeError au milieu de T11)
+      if (instantAdmis(d.at) === null) this.#refuser(t, at, "acquitter", d, "requete_invalide");
       if (
         t.state !== "a_remettre" || !presentee || d.decision !== presentee.approval.decision ||
         !approvalConforme(d.approval, d.decision) || d.approval.request_hash !== presentee.approval.request_hash ||
-        d.seq === null || d.hash === null || d.at === null || d.held === null
+        d.seq === null || d.hash === null || d.held === null
       ) {
         this.#refuser(t, at, "acquitter", d, "requete_invalide");
       }
@@ -970,6 +1043,7 @@ export class Machine {
     }
     // result refuse
     if (d.reason === "ticket_deja_decide") {
+      if (instantAdmis(d.at) === null) this.#refuser(t, at, "acquitter", d, "requete_invalide");
       if (d.approval === null || !approvalConforme(d.approval, d.decision) || d.seq === null || d.hash === null) {
         this.#refuser(t, at, "acquitter", d, "requete_invalide");
       }
@@ -1068,6 +1142,7 @@ export class Machine {
       this.#refuser(t, at, "expiration", d, "requete_invalide");
     }
     const admis = ["reserve", "ouvert", "seuil_atteint", "verification", "a_remettre", "abandonne"];
+    if (instantAdmis(d.at) === null) this.#refuser(t, at, "expiration", d, "requete_invalide"); // instant venu du noyau validé
     if (
       !admis.includes(t.state) || a.ticket !== t.ticket || a.decision !== "expire" || a.at !== d.at ||
       (t.request.request_hash !== null && a.request_hash !== t.request.request_hash)

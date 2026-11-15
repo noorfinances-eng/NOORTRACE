@@ -22,9 +22,10 @@ import path from "node:path";
 import * as N from "@noortrace/noyau";
 import {
   validerPolitique, evaluer, candidats, Machine, verifierRemise, normaliserSignature, adresseDuVote, annuaireConforme, controleCanal,
-  registreSchemas, IDS, FICHIERS_SCHEMAS, REPERTOIRE_SCHEMAS, jeuExploitable,
+  registreSchemas, IDS, FICHIERS_SCHEMAS, REPERTOIRE_SCHEMAS, jeuExploitable, jcsIntegral,
 } from "@noortrace/approbation";
-import { VECTEURS_CT3, VECTEURS_CT2, SPEC, lireCt3, machineDeTrace, signerVote } from "./fixtures/approbation-service/outils.mjs";
+import { signerNotification } from "../paquets/approbation/src/notifications.mjs";
+import { VECTEURS_CT3, VECTEURS_CT2, SPEC, lireCt3, machineDeTrace, signerVote, empreinteSynthetique } from "./fixtures/approbation-service/outils.mjs";
 
 const consommes = new Set();
 const json = (rel) => {
@@ -182,6 +183,28 @@ describe("service d'approbation : vecteurs de CT-3", function () {
     });
   });
 
+  describe("notifications (13.19 ; EX-13.40, EX-13.41)", function () {
+    it("notifications/notifications.json : document conforme, corps = JCS du document, en-tête NOORTRACE-Signature du service ; refus : la signature présentée n'est pas celle du corps", function () {
+      const n = json("notifications/notifications.json");
+      expect(n.header).to.equal("NOORTRACE-Signature");
+      expect(N.octetsVersHex(N.utf8(n.prefix)).slice(2)).to.equal(n.prefix_hex.replace(/^0x/, ""));
+      for (const c of n.cases) {
+        const v = registreSchemas().valider(`${IDS.configuration}#/$defs/notification`, c.document);
+        expect(v.valide, `${c.id} : ${JSON.stringify(v.erreurs?.[0])}`).to.equal(true);
+        const corps = jcsIntegral(c.document);
+        expect(corps, c.id).to.equal(c.expected.body);
+        expect(Buffer.byteLength(corps, "utf8"), c.id).to.equal(c.expected.body_size);
+        expect(N.sha256Hex(N.utf8(corps)), c.id).to.equal(c.expected.body_sha256);
+        expect(`sha256=${signerNotification(n.key, Buffer.from(corps, "utf8"))}`, c.id).to.equal(c.expected.signature);
+      }
+      for (const r of n.refusals) {
+        const juste = `sha256=${signerNotification(n.key, Buffer.from(r.body, "utf8"))}`;
+        expect(juste, r.id).to.equal(r.expected.signature);
+        expect(r.signature === juste, r.id).to.equal(r.expected.accepted);
+      }
+    });
+  });
+
   describe("vecteurs de CT-2 portant une réponse du service", function () {
     const lire2 = (rel) => JSON.parse(fs.readFileSync(path.join(VECTEURS_CT2, rel), "utf8"));
     const politique = (rules) => ({
@@ -189,26 +212,34 @@ describe("service d'approbation : vecteurs de CT-3", function () {
       approver_set: { source: "statique", chain_id: null, registry: null, set: null, members: [], threshold: { required: 2, size: 3 } },
       separation: { self_approval: "interdite", identities: [] },
     });
-    const machine = (org_id, journal_id, rules, epoque = "demo") => {
+    // Décision du porteur du 14 novembre 2026 et son addendum : la version est gardée comme après un charger (12.2) — empreinte déclarée par le noyau,
+    // approval_sha256 calculé par le service sur le membre reçu ; pour un cas d'approbation de pieces-mcp, ce couple est
+    // l'épinglage du noyau du cas (`approval.pinned`, annexe B.4 de CT-2), que le service recopie dans sa réponse.
+    const machine = (org_id, journal_id, rules, epoque = "demo", pinned = null) => {
       const m = new Machine({ org_id, journal_id, identifiants: { mode: "epoque", epoque } });
       const P = politique(rules);
       P.approver_set.members = ["0x70997970c51812dc3a010c7d01b50e0d17dc79c8", "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc", "0x90f79bf6eb2c4f870365e785982e1f101e93b906"];
-      m.ajouterVersion({ policy_version: "demo-2026-11", approval: { rules: P, mode: "erreur", expire_after_ms: 3600000, timeout_ms: 2000 } });
-      m.fixerEnVigueur("demo-2026-11");
+      const approval = { rules: P, mode: "erreur", expire_after_ms: 3600000, timeout_ms: 2000 };
+      const pv = pinned?.policy_version ?? "demo-2026-11";
+      m.couple = {
+        policy_version: pv, policy_sha256: pinned?.policy_sha256 ?? empreinteSynthetique(pv), approval_sha256: pinned?.approval_sha256 ?? N.sha256Hex(N.utf8(jcsIntegral(approval))),
+      };
+      m.ajouterVersion({ ...m.couple, approval });
+      m.fixerEnVigueur(pv);
       return m;
     };
-    const demande = (args) => ({
+    const demande = (args, policy_version = "demo-2026-11") => ({
       tool_announced: "demo__payments.create", tool_original: "payments.create", server_alias: "demo", arguments: args, class: "ecriture",
       delegation: { launched_by: "agent-demo", on_behalf_of: "service-sinistres", scope: "sinistres:lecture,paiement", run_id: "run-demo-0001" },
-      intent: null, code: { model: "demo/modele-demo-1", prompt_version: null, policy_version: "demo-2026-11", recorder: "0.1.0" }, context: [],
+      intent: null, code: { model: "demo/modele-demo-1", prompt_version: null, policy_version, recorder: "0.1.0" }, context: [],
     });
 
     it("pieces-mcp/appels/approbation-refus : réponse refuse sans ticket", function () {
       const att = lire2("pieces-mcp/appels/approbation-refus/attendu.json");
       const m = machine(N.ZERO32, N.ZERO32, [
         { name: "paiement hors CHF", description: null, tools: ["demo__payments.create"], when: { none: [{ path: "/arguments/currency", op: "egal", value: "CHF" }] }, level: "automatique", decision: "refuse", window: null, contest_ms: null },
-      ]);
-      const r = m.entree({ kind: "evaluer", at: "2026-11-10T10:00:00.000Z", data: { request: demande({ amount: "8200.00", currency: "EUR" }) } });
+      ], "demo", att.approval.pinned);
+      const r = m.entree({ kind: "evaluer", at: "2026-11-10T10:00:00.000Z", data: { request: demande({ amount: "8200.00", currency: "EUR" }, att.approval.pinned.policy_version) } });
       expect(r.response).to.deep.equal(att.approval.response);
     });
 
@@ -216,13 +247,13 @@ describe("service d'approbation : vecteurs de CT-3", function () {
       const att = lire2("pieces-mcp/appels/approbation-en-attente/attendu.json");
       const m = machine(N.ZERO32, N.ZERO32, [
         { name: "paiement > 5000 CHF", description: null, tools: ["demo__payments.create"], when: { path: "/arguments/amount", op: "strictement_superieur", value: "5000" }, level: "revue", decision: null, window: null, contest_ms: 0 },
-      ]);
+      ], "demo", att.approval.pinned);
       m.compteur = 41;
       const args = { amount: "8200.00", beneficiary_iban: "CH9300762011623852957", claim_id: "2026-81048", currency: "CHF" };
-      const r1 = m.entree({ kind: "evaluer", at: "2026-11-10T10:00:00.000Z", data: { request: demande(args) } });
+      const r1 = m.entree({ kind: "evaluer", at: "2026-11-10T10:00:00.000Z", data: { request: demande(args, att.approval.pinned.policy_version) } });
       expect(r1.response.ticket).to.equal("apr-demo-0042");
       m.entree({ kind: "ouvrir", at: "2026-11-10T10:00:01.000Z", data: { ticket: "apr-demo-0042", request_hash: N.sha256Hex(N.utf8("demande")), request_seq: 5, request_ts: "2026-11-10T10:00:00.500Z" } });
-      const r2 = m.entree({ kind: "evaluer", at: "2026-11-10T10:00:02.000Z", data: { request: demande(args) } });
+      const r2 = m.entree({ kind: "evaluer", at: "2026-11-10T10:00:02.000Z", data: { request: demande(args, att.approval.pinned.policy_version) } });
       expect(r2.response).to.deep.equal(att.approval.response);
     });
 
@@ -255,7 +286,8 @@ describe("service d'approbation : vecteurs de CT-3", function () {
       });
       expect(a.response).to.deep.equal({ ticket: "apr-demo-0001", state: "approuve" });
       const r2 = m.entree({ kind: "evaluer", at: "2026-11-10T10:21:35.020Z", data: { request: requete } });
-      expect(r2.response).to.deep.equal({ rule: e5.policy.rule, decision: "autorise", ticket: "apr-demo-0001", ticket_state: "approuve", approval: e7.approval, approver_set: null });
+      expect(m.couple.policy_version).to.equal(e5.code.policy_version);
+      expect(r2.response).to.deep.equal({ rule: e5.policy.rule, decision: "autorise", ticket: "apr-demo-0001", ticket_state: "approuve", approval: e7.approval, approver_set: null, ...m.couple });
       const c = m.entree({ kind: "consommer", at: "2026-11-10T10:21:35.500Z", data: { ticket: "apr-demo-0001", seq: 7, hash: e7.hash } });
       expect(c.response).to.deep.equal({ ticket: "apr-demo-0001", state: "consomme" });
     });
@@ -276,6 +308,10 @@ describe("service d'approbation : vecteurs de CT-3", function () {
       "annuaire/exports": "annuaire exporté (EX-13.19, étape 6)",
       "INDEX.md": "index lisible, sans donnée à rejouer",
     };
+    // Familles qu'un autre composant juge (motif écrit) : le service ne juge aucune réponse `evaluer`.
+    const AUTRE_COMPOSANT = {
+      "reponses-evaluer": "réponses evaluer jugées par le noyau de l'enregistreur (CT-2 EX-7.16, EX-7.23 ; décision du porteur du 14 novembre 2026 et son addendum) : le service les produit, il ne les juge pas",
+    };
     const IGNORES = new Set(["verificateur-independant", "confrontation"]);
     function listerTout(rel) {
       const p = path.join(VECTEURS_CT3, rel);
@@ -287,17 +323,19 @@ describe("service d'approbation : vecteurs de CT-3", function () {
       const fichiers = fs.readdirSync(VECTEURS_CT3).filter((n) => !IGNORES.has(n)).sort().flatMap((n) => listerTout(n));
       const rejoues = [];
       const etape6 = [];
+      const autres = [];
       const nonAttribues = [];
       for (const f of fichiers) {
         if (consommes.has(f)) rejoues.push(f);
         else if (Object.keys(ETAPE_6).some((k) => f === k || f.startsWith(`${k}/`))) etape6.push(f);
+        else if (Object.keys(AUTRE_COMPOSANT).some((k) => f === k || f.startsWith(`${k}/`))) autres.push(f);
         else nonAttribues.push(f);
       }
       expect(nonAttribues, "fichiers ni rejoués ni attribués").to.deep.equal([]);
       for (const famille of ["politiques/", "politiques-invalides/", "evaluation/", "candidats/", "tickets/", "decisions/", "signatures/", "acceptation/"]) {
         expect(rejoues.some((f) => f.startsWith(famille)), famille).to.equal(true);
       }
-      this.test.title += ` (${rejoues.length} rejoués, ${etape6.length} pour l'étape 6)`;
+      this.test.title += ` (${rejoues.length} rejoués, ${etape6.length} pour l'étape 6, ${autres.length} jugés par un autre composant)`;
     });
   });
 });

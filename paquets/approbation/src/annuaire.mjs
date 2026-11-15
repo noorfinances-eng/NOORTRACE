@@ -166,6 +166,18 @@ export class EtatAnnuaire {
     if (persiste) this.persiste = true;
   }
 
+  /** État courant, à rendre à `restaurer` si la persistance d'un état adopté échoue. */
+  sauvegarde() {
+    return { annuaire: this.document, defis: this.defis, persiste: this.persiste };
+  }
+
+  /** Revient à un état de `sauvegarde` : une opération dont l'écriture a échoué n'est pas adoptée. */
+  restaurer({ annuaire, defis, persiste }) {
+    this.document = annuaire;
+    this.defis = defis;
+    this.persiste = persiste;
+  }
+
   /** Membres de l'état complet à persister (EX-13.38) : `annuaire` seulement s'il est persisté. */
   exporter() {
     return this.persiste ? { annuaire: this.document, defis: this.defis } : { defis: this.defis };

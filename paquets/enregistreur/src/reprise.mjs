@@ -10,7 +10,7 @@ import path from "node:path";
 import {
   ZERO32, analyserJson, construireManifeste, decoderHorodatage, egaliteJson, hacherManifeste, hexVersOctets, NOMS_RESERVES,
 } from "@noortrace/noyau";
-import { listerSegments, lireSegmentFerme, relireSegment } from "./segments.mjs";
+import { listerSegments, lireSegmentFerme, relireSegmentParTranches } from "./segments.mjs";
 import { tronquer } from "./fichiers.mjs";
 import { IndexChaine } from "./index-chaine.mjs";
 import { dernierManifeste, debutPeriode } from "./periodes.mjs";
@@ -70,7 +70,8 @@ export async function relireJournal(repertoire, options) {
         }
         if (p) publiques.set(cleEntete, p);
       }
-      const r = relireSegment(octets, {
+      // Étape 8 (CT-2 EX-3.6) : relecture par tranches ; le bail se renouvelle pendant la relecture du démarrage.
+      const r = await relireSegmentParTranches(octets, {
         verifierSignatures: true,
         clePublique: (id) => publiques.get(id) ?? null,
         prevHashAttendu: lastHash,
@@ -143,7 +144,7 @@ export async function relireJournal(repertoire, options) {
   }
   const intervalle = options.intervalle ?? 60;
   const serie = periode
-    ? etatSerie(await relireSerie(path.join(repertoire, "points", nomSerie(periode.start))), periode.start * 1000, intervalle)
+    ? etatSerie(await relireSerie(path.join(repertoire, "points", nomSerie(periode.start)), { tronquer: true }), periode.start * 1000, intervalle)
     : null;
   const manifestesSansSignature = await relireManifestesSansSignature(path.join(repertoire, "manifestes"), evenements, options.journal);
   return {

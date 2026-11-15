@@ -19,6 +19,7 @@ export const TQ = [
       "CT-2 EX-18.9",
       "CT-2 EX-18.6",
       "CT-2 EX-18.7",
+      "CT-2 EX-18.10",
       "CT-2 EX-18.8",
       "CT-2 EX-11.1",
       "CT-2 EX-11.2",
@@ -71,7 +72,7 @@ export const TQ = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "CT-7 §10 : « aucune revue n'a été faite pour cette version » ; le démon de l'étape 4 n'existe pas ; les bibliothèques `scripts/lib/capture.mjs`, `journal.mjs`, `otel.mjs`, `worm.mjs` peuvent être relues dès maintenant selon la même grille."
+      "blocking": "Revue conduite à l'étape 8 par des relecteurs internes à l'aveugle (sessions qui n'ont écrit aucun du code relu, EX-13.1 ; décision du plan du 13 novembre 2026, point 2), au commit relu, sur la portée de review.scope et selon review.grid ; son résultat se lit dans la grille remplie et ses constats, à consigner avec le commit relu (EX-13.1) ; réussie seulement si chaque menace du composant a sa réponse localisée et son TA- qui échoue sans elle, et si chaque écart est tracé en correction ou en risque accepté."
     },
     "threats": [
       "MN-1",
@@ -120,7 +121,9 @@ export const TQ = [
         "scripts/lib/journal.mjs",
         "scripts/lib/otel.mjs",
         "scripts/lib/worm.mjs",
-        "démon de la phase 2 (étape 4)"
+        "paquets/enregistreur/ (démon de la phase 2, étape 4)",
+        "paquets/sdk-js/",
+        "paquets/sdk-python/"
       ],
       "grid": [
         "Chaque MN- du composant a sa réponse localisée (fichier, fonction).",
@@ -157,7 +160,7 @@ export const TQ = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Service et console d'exploitation non construits ; `scripts/lib/approbation.mjs`, `scripts/lib/console.mjs` et `console/` relus dès maintenant."
+      "blocking": "Revue conduite à l'étape 8 par des relecteurs internes à l'aveugle (sessions qui n'ont écrit aucun du code relu, EX-13.1 ; décision du plan du 13 novembre 2026, point 2), au commit relu, sur la portée de review.scope et selon review.grid ; son résultat se lit dans la grille remplie et ses constats, à consigner avec le commit relu (EX-13.1) ; réussie seulement si chaque menace du composant a sa réponse localisée et son TA- qui échoue sans elle, et si chaque écart est tracé en correction ou en risque accepté."
     },
     "threats": [
       "MN-35",
@@ -180,7 +183,9 @@ export const TQ = [
         "scripts/lib/approbation.mjs",
         "scripts/lib/console.mjs",
         "console/",
-        "service et console de la phase 2 (étape 6)"
+        "paquets/approbation/ (service de la phase 2, étape 6)",
+        "paquets/console/ (console d'exploitation de la phase 2, étape 6)",
+        "paquets/inscription/"
       ],
       "grid": [
         "Aucune clé d'approbateur dans le service (CT-3 EX-3.3, EX-3.4).",
@@ -214,7 +219,7 @@ export const TQ = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Revue non faite ; les contrats et `scripts/registre/noortrace-registre.mjs` sont relisibles dès maintenant."
+      "blocking": "Revue conduite à l'étape 8 par des relecteurs internes à l'aveugle (sessions qui n'ont écrit aucun du code relu, EX-13.1 ; décision du plan du 13 novembre 2026, point 2), au commit relu, sur la portée de review.scope et selon review.grid ; son résultat se lit dans la grille remplie et ses constats, à consigner avec le commit relu (EX-13.1) ; réussie seulement si chaque menace du composant a sa réponse localisée et son TA- qui échoue sans elle, et si chaque écart est tracé en correction ou en risque accepté."
     },
     "threats": [
       "MN-53",
@@ -238,7 +243,9 @@ export const TQ = [
         "contracts/",
         "scripts/registre/noortrace-registre.mjs",
         "scripts/lib/conventions-registre.mjs",
-        "chain/docker/"
+        "chain/",
+        "scripts/deploy/",
+        "hardhat.config.mjs"
       ],
       "grid": [
         "Aucun outil ne s'appuie sur `finalized`, `safe` ni `eth_subscribe` (CT-4 EX-4.14, EX-5.11).",
@@ -272,7 +279,7 @@ export const TQ = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Composant non construit ; `scripts/lib/ancrage.mjs` relisible dès maintenant."
+      "blocking": "Revue conduite à l'étape 8 par des relecteurs internes à l'aveugle (sessions qui n'ont écrit aucun du code relu, EX-13.1 ; décision du plan du 13 novembre 2026, point 2), au commit relu, sur la portée de review.scope et selon review.grid ; son résultat se lit dans la grille remplie et ses constats, à consigner avec le commit relu (EX-13.1) ; réussie seulement si chaque menace du composant a sa réponse localisée et son TA- qui échoue sans elle, et si chaque écart est tracé en correction ou en risque accepté."
     },
     "threats": [
       "MN-60",
@@ -289,7 +296,7 @@ export const TQ = [
       ],
       "scope": [
         "scripts/lib/ancrage.mjs",
-        "composant d'ancrage de la phase 2 (étape 5)"
+        "paquets/ancrage/ (composant de la phase 2, étape 5)"
       ],
       "grid": [
         "Aucune clé Ed25519 ni clé de chaîne dans le composant (CT-7 §3.2).",
@@ -334,7 +341,7 @@ export const TQ = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Revue non faite ; `scripts/lib/verificateur.mjs`, `horodatage.mjs`, `ots.mjs`, `registre.mjs`, `scripts/verify/dossier.mjs` et les sept modules Go relisibles dès maintenant."
+      "blocking": "Revue conduite à l'étape 8 par des relecteurs internes à l'aveugle (sessions qui n'ont écrit aucun du code relu, EX-13.1 ; décision du plan du 13 novembre 2026, point 2), au commit relu, sur la portée de review.scope et selon review.grid ; son résultat se lit dans la grille remplie et ses constats, à consigner avec le commit relu (EX-13.1) ; réussie seulement si chaque menace du composant a sa réponse localisée et son TA- qui échoue sans elle, et si chaque écart est tracé en correction ou en risque accepté."
     },
     "threats": [
       "MN-66",
@@ -360,7 +367,10 @@ export const TQ = [
         "scripts/lib/ots.mjs",
         "scripts/lib/registre.mjs",
         "scripts/verify/dossier.mjs",
-        "spec/vecteurs/ct-*/verificateur-independant/"
+        "spec/vecteurs/ct-*/verificateur-independant/",
+        "verificateur/",
+        "paquets/noyau/",
+        "paquets/verification-web/"
       ],
       "grid": [
         "Lecture bornée de chaque entrée (CT-6 EX-4.11, EX-4.13, EX-4.15) ; jamais une exception, toujours un statut (EX-15.2).",
@@ -398,7 +408,7 @@ export const TQ = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Revue non faite ; `deploiement/` relisible dès maintenant (vérifications CO- déjà exécutées)."
+      "blocking": "Revue conduite à l'étape 8 par des relecteurs internes à l'aveugle (sessions qui n'ont écrit aucun du code relu, EX-13.1 ; décision du plan du 13 novembre 2026, point 2), au commit relu, sur la portée de review.scope et selon review.grid ; son résultat se lit dans la grille remplie et ses constats, à consigner avec le commit relu (EX-13.1) ; réussie seulement si chaque menace du composant a sa réponse localisée et son TA- qui échoue sans elle, et si chaque écart est tracé en correction ou en risque accepté."
     },
     "threats": [
       "MN-74",
@@ -424,7 +434,15 @@ export const TQ = [
       "scope": [
         "deploiement/compose/",
         "deploiement/config/",
-        "deploiement/images/images.json"
+        "deploiement/images/images.json",
+        "deploiement/hote/",
+        "deploiement/taches/",
+        "deploiement/observabilite/",
+        "deploiement/runbooks/",
+        "scripts/deploiement/ (hors construire-images.mjs, TQ-8)",
+        "scripts/paquet-reviseur/",
+        "scripts/conformite/",
+        "scripts/e2e/"
       ],
       "grid": [
         "TLS ou prise locale authentifiée partout où un secret ou une décision circule (CT-7 §3.2).",
@@ -478,6 +496,11 @@ export const TQ = [
       "CT-7 CLE-34",
       "CT-7 CLE-35",
       "CT-7 CLE-36",
+      "CT-7 CLE-37",
+      "CT-7 CLE-38",
+      "CT-7 CLE-39",
+      "CT-7 CLE-40",
+      "CT-7 CLE-41",
       "CT-7 EX-4.1",
       "CT-7 EX-4.2",
       "CT-7 EX-4.3",
@@ -499,7 +522,7 @@ export const TQ = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Revue de texte réalisable dès maintenant, non faite ; CT-7 §4.1 : « la revue de CT-9 le contrôle »."
+      "blocking": "Revue de texte conduite à l'étape 8 par un relecteur interne à l'aveugle (session qui n'a écrit aucun des textes relus, EX-13.1 ; décision du plan du 13 novembre 2026, point 2), sur CT-1 à CT-8 et l'inventaire CT-7 §4.2, selon review.grid ; son résultat se lit dans la grille remplie et ses constats, à consigner avec le commit relu (EX-13.1) ; CT-7 §4.1 : « la revue de CT-9 le contrôle »."
     },
     "threats": [
       "MN-30",
@@ -548,7 +571,7 @@ export const TQ = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Rattaché à l'étape 8 : revue humaine par une personne qui n'a pas écrit le code (EX-13.1) des fichiers de construction des images (`conteneurs/`), du script de construction double et du travail de version ; la partie mécanique est éprouvée à l'étape 7 par test/publication-etape7.test.js (binaire et archive : entrées épinglées, aucune clé, empreintes de la note égales aux deux constructions) et par la construction double des images."
+      "blocking": "Revue conduite à l'étape 8 par des relecteurs internes à l'aveugle (sessions qui n'ont écrit aucun du code relu, EX-13.1 ; décision du plan du 13 novembre 2026, point 2), au commit relu, sur la portée de review.scope et selon review.grid ; son résultat se lit dans la grille remplie et ses constats, à consigner avec le commit relu (EX-13.1) ; réussie seulement si chaque menace du composant a sa réponse localisée et son TA- qui échoue sans elle, et si chaque écart est tracé en correction ou en risque accepté. La partie mécanique est éprouvée à l'étape 7 par test/publication-etape7.test.js (binaire et archive : entrées épinglées, aucune clé, empreintes de la note égales aux deux constructions) et par la construction double des images."
     },
     "threats": [
       "MN-25"
@@ -564,7 +587,12 @@ export const TQ = [
         ".github/workflows/version.yml",
         "scripts/publication/",
         "conteneurs/",
-        "scripts/deploiement/construire-images.mjs"
+        "scripts/deploiement/construire-images.mjs",
+        "scripts/conception/",
+        "scripts/tests/",
+        "scripts/console/",
+        "package.json",
+        "package-lock.json"
       ],
       "grid": [
         "Sources et images de base épinglées par condensé.",

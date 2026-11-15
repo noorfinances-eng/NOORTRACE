@@ -233,8 +233,11 @@ export async function inscrireCleJournal({ rep, orgId, journalId, adresseChaine,
   const signee = signerDemande(JSON.parse(fs.readFileSync(demande, "utf8")), [1, 2]);
   fs.writeFileSync(demande, JSON.stringify(signee, null, 2));
   sorties.push({ commande: "signatures des approbateurs 1 et 2 (hors de l'outil)", code: 0, result: "reussi" });
+  // EX-8.21 (revue de sécurité de l'étape 8) : approvisionner exige la confirmation hors bande du client ; celle de l'essai est consignée ici.
+  const confirmation = path.join(rep, "confirmation-hors-bande.txt");
+  fs.writeFileSync(confirmation, "Confirmation hors bande du client fictif, consignée pour l'essai (CT-4 EX-8.21).\n");
   for (const e of [
-    ["approvisionner", "--vers", adresseChaine, "--demande", demande, "--tresorerie", "hardhat:0", "--captures", captures],
+    ["approvisionner", "--vers", adresseChaine, "--demande", demande, "--tresorerie", "hardhat:0", "--captures", captures, "--confirmation", confirmation],
     ["inscrire-cle", "--demande", demande, "--cle-chaine", `fichier:${fichierScalaire}`, "--captures", captures],
   ]) {
     r = await outilRegistre(e);

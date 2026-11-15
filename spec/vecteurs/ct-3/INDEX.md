@@ -2,7 +2,7 @@
 
 Produit par `scripts/vecteurs/generer-ct3.mjs` (`npm run vecteurs:ct3`) ; ne pas l'éditer à la main. Spécification : [`spec/CT-3-approbations.md`](../../CT-3-approbations.md), annexe A. Rejoués par `test/approbation.test.js` avec l'implémentation de référence `scripts/lib/approbation.mjs`.
 
-Le générateur n'efface et ne réécrit que ses propres entrées de premier niveau (`constantes.json`, `INDEX.md`, `acceptation-attendu.json`, `acceptation-console-attendu.json` et les répertoires `acceptation/`, `acceptation-console/`, `annuaire/`, `candidats/`, `console/`, `decisions/`, `evaluation/`, `politiques/`, `politiques-invalides/`, `signatures/`, `tickets/`), jamais `verificateur-independant/` ni `confrontation/` (EX-A.1). Les familles `annuaire/` et `console/` (révision 0.3) sont rejouées par `test/console.test.js` avec la bibliothèque de la console de référence `scripts/lib/console.mjs` ; leurs textes, condensés et signatures attendus sont calculés par `scripts/lib/journal.mjs`, ethers et `node:crypto`, indépendamment de `console.mjs`, puis confrontés à elle. Une partie des attendus est posée par conception dans le générateur (règle, décision et ouverture de chaque demande ; état de chaque ticket après chaque pas, sort et raison de chaque entrée ; décision, signataires, motif et source de chaque remise ; tickets des fenêtres) et confrontée à l'implémentation de référence avant d'être écrite. Le reste (seuil et membres d'une remise, objet approval rendu à une ré-émission, bornes et restant des fenêtres, jeu des réponses nouveau) sort de l'implémentation de référence sans contrôle de conception : le vérificateur Go indépendant (`verificateur-independant/`) le recalcule.
+Le générateur n'efface et ne réécrit que ses propres entrées de premier niveau (`constantes.json`, `INDEX.md`, `acceptation-attendu.json`, `acceptation-console-attendu.json` et les répertoires `acceptation/`, `acceptation-console/`, `annuaire/`, `candidats/`, `console/`, `decisions/`, `evaluation/`, `notifications/`, `politiques/`, `politiques-invalides/`, `reponses-evaluer/`, `signatures/`, `tickets/`), jamais `verificateur-independant/` ni `confrontation/` (EX-A.1). Les familles `annuaire/` et `console/` (révision 0.3) sont rejouées par `test/console.test.js` avec la bibliothèque de la console de référence `scripts/lib/console.mjs` ; leurs textes, condensés et signatures attendus sont calculés par `scripts/lib/journal.mjs`, ethers et `node:crypto`, indépendamment de `console.mjs`, puis confrontés à elle. Une partie des attendus est posée par conception dans le générateur (règle, décision et ouverture de chaque demande ; état de chaque ticket après chaque pas, sort et raison de chaque entrée ; décision, signataires, motif et source de chaque remise ; tickets des fenêtres) et confrontée à l'implémentation de référence avant d'être écrite. Le reste (seuil et membres d'une remise, objet approval rendu à une ré-émission, bornes et restant des fenêtres, jeu des réponses nouveau) sort de l'implémentation de référence sans contrôle de conception : le vérificateur Go indépendant (`verificateur-independant/`) le recalcule.
 
 ## Constantes (A.2, `constantes.json`)
 
@@ -355,6 +355,10 @@ Le répertoire `acceptation/` est ce que reçoit chaque relecteur (consigne, pol
 ## tickets/ (A.6, TK-1 à TK-13)
 
 Chaque pas donne l'état de chaque ticket après l'entrée (minuteurs échus compris). Notation : entrée, instant, puis états ; « refus : » donne la raison d'une entrée refusée ; « remise : » la décision remise au noyau pendant le pas.
+
+### Révision du protocole d'approbation (étape 8, décision du porteur du 14 novembre 2026)
+
+Depuis la révision 0.5 de CT-3 (§12.2, §12.3, EX-12.6, EX-12.20) et la révision 0.8 de CT-2 (EX-7.15, EX-7.16, EX-7.23), chaque réponse `evaluer` porte neuf membres : les six de la révision 0.4 et `policy_version`, `policy_sha256`, `approval_sha256` : la version chargée sous laquelle elle est rendue, l'empreinte que le noyau a déclarée au `charger` de cette version (recopiée, jamais calculée par le service) et le SHA-256 du JCS (RFC 8785) du membre `approval` reçu à ce `charger`, que le service calcule et garde avec la version. Une évaluation et un ticket `nouveau` sont rendus sous `code.policy_version` de la requête ; un ticket rapproché (`en_attente`, `approuve`, `refuse`, `expire`) sous la version de sa création (EX-7.21). Les traces ne portent aucun ensemble de politique : l'empreinte d'une version y est synthétique, SHA-256 de l'étiquette UTF-8 `ensemble de politique <version>` (`vecteurs-ct3-1` : `0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a` ; `vecteurs-ct3-2` : `0xb8d0a2d4b912f8644c37ed1fadc4553ab0610758d63303cc513ed7dbe3a55817`), celle que le noyau des traces déclare au `charger` de la version, version de départ de la trace comprise ; le membre `approval` de ce `charger` est l'approval de trace : `{ rules, mode: "erreur", hold_timeout_ms: 50000, expire_after_ms, timeout_ms: 2000 }`, où `rules` est la politique de trace (`version` 0, règle par défaut `defaut : revue` de niveau `revue` et `contest_ms` 0, aucune règle, `approver_set` et `separation` de la trace) et `expire_after_ms` celui de la trace ; son condensé est l'`approval_sha256` de chaque réponse de la trace, le même pour `vecteurs-ct3-1` et `vecteurs-ct3-2` (la trace recharge les mêmes paramètres). Le noyau refuse toute réponse dont l'épinglage n'est pas celui d'un `charger` qu'il a lui-même émis pour la version attendue (`approval_response_invalid`, raison `politique_non_epinglee`) et n'évalue rien sous une version dont son `charger` n'a pas réussi (EX-7.15, `approval_charger_refuse`) : famille `reponses-evaluer/`.
 
 ### `approuve-sans-contestation.json` (TK-1, TK-2, TK-3, TK-5, TK-7, TK-8, TK-9, TK-10, TK-12)
 
@@ -955,6 +959,37 @@ Après le chargement de vecteurs-ct3-2, la même demande portant code.policy_ver
 10. evaluer 09:21:00.000 → apr-0001 approuve, apr-0002 reserve
 11. horloge 10:15:01.900 → apr-0001 clos, apr-0002 reserve
 
+## reponses-evaluer/ (CT-2 EX-7.16, révision 0.8 ; CT-3 §12.3, révision 0.5)
+
+`cas.json` : réponses `evaluer` reçues par le noyau et ce qu'il en fait. Contexte de chaque cas : les versions dont le noyau détient l'ensemble (`vecteurs-ct3-1` et `vecteurs-ct3-2`, empreintes synthétiques ci-dessus, condensé de l'approval de trace des paramètres par défaut), la version de la requête (`vecteurs-ct3-2`), la version de la retenue du ticket rapproché `apr-0001` (`vecteurs-ct3-1`) et la décision scellée par le noyau pour ce ticket, s'il y en a une. Attendu : `valid`, `reason` (`politique_non_epinglee`, raison nommée par CT-2 ; `forme` et `approval_different`, raisons de la bibliothèque de référence pour les autres invalidités d'EX-7.16) et l'action du mandataire en mode erreur (section 11). Une réponse invalide est une indisponibilité du service : `-31010`, raison `approbation`, ligne `approval_response_invalid`, jamais un relais.
+
+| Cas | Attendu | Ce qu'il exerce |
+|---|---|---|
+| `autorise-sans-ticket` | valide, relayer | Évaluation autorise rendue sous la version de la requête (vecteurs-ct3-2) et l'empreinte déclarée à son charger : relais. |
+| `refuse-sans-ticket` | valide, resultat | Évaluation refuse rendue sous la version de la requête : refus par la politique (EX-11.8). |
+| `nouveau` | valide, resultat | Ticket nouveau sous la version de la requête, jeu exploitable : retenue puis signal (EX-7.17). |
+| `version-du-ticket-rapproche` | valide, resultat | Ticket apr-0001 rapproché (en_attente), créé sous vecteurs-ct3-1 alors que la requête porte vecteurs-ct3-2 : la réponse est rendue sous la version de la retenue du ticket (CT-3 EX-7.21), admise bien qu'elle diffère de celle de la requête. |
+| `approuve-scellee` | valide, verifier_relais | Décision approuve que le noyau a scellée pour apr-0001 : approval égal clé pour clé, version du ticket : vérifications de relais (EX-7.21). |
+| `refuse-scellee` | valide, resultat | Décision refuse scellée pour apr-0001, version du ticket : signal refuse. |
+| `expire-scellee` | valide, resultat | Expiration scellée seule par le noyau pour apr-0001 (EX-12.11), version du ticket : signal expire. |
+| `ordre-alphabetique` | valide, relayer | La réponse autorise-sans-ticket, membres en ordre alphabétique (JCS) : l'ordre des membres n'a pas de sens (CT-2 EX-7.16). |
+| `huit-membres` | invalide, politique_non_epinglee | Huit membres : policy_sha256 absent. La réponse ne reporte pas la politique sous laquelle elle est rendue. |
+| `huit-membres-sans-approval-sha256` | invalide, politique_non_epinglee | Huit membres : approval_sha256 absent. La réponse ne lie pas la décision aux règles appliquées. |
+| `six-membres-revision-0-4` | invalide, politique_non_epinglee | La réponse de la révision 0.4 (six membres, sans policy_version, policy_sha256 ni approval_sha256) : refusée depuis la révision 0.5. |
+| `approval-sha256-autres-regles` | invalide, politique_non_epinglee | approval_sha256 d'autres règles (politique de trace dont la règle par défaut autorise) : le condensé calculé par le service n'est pas celui du membre approval que le noyau a envoyé au charger de vecteurs-ct3-2, même avec la version et l'empreinte honnêtes (un pair du canal du noyau a pré-enregistré la version avec des règles permissives, addendum de la décision du porteur du 14 novembre 2026). |
+| `empreinte-autre` | invalide, politique_non_epinglee | Empreinte autre que celle déclarée au charger de vecteurs-ct3-2 (ici l'empreinte de vecteurs-ct3-1) : la version est détenue, l'empreinte n'est pas la sienne. |
+| `empreinte-quelconque` | invalide, politique_non_epinglee | Empreinte qui n'est celle d'aucune version chargée (SHA-256 de « noortrace/vecteurs/ct3/empreinte/quelconque »). |
+| `version-inconnue` | invalide, politique_non_epinglee | Version vecteurs-ct3-9 que le noyau n'a jamais chargée, même avec l'empreinte synthétique « correcte » pour elle : une version pré-enregistrée par un pair n'est pas épinglée par le noyau. |
+| `version-detenue-autre-que-la-requete` | invalide, politique_non_epinglee | Version vecteurs-ct3-1 détenue avec la bonne empreinte, mais la requête porte vecteurs-ct3-2 et aucun ticket n'est rapproché. |
+| `version-de-la-requete-pour-un-ticket-rapproche` | invalide, politique_non_epinglee | Ticket apr-0001 rapproché (en_attente) créé sous vecteurs-ct3-1, réponse rendue sous vecteurs-ct3-2, la version de la requête : la version attendue est celle de la retenue du ticket. |
+| `version-de-la-requete-pour-une-decision-scellee` | invalide, politique_non_epinglee | Décision approuve scellée d'apr-0001 (vecteurs-ct3-1) rendue sous vecteurs-ct3-2 : même avec l'approval exact, la version n'est pas celle du ticket. |
+| `empreinte-majuscules` | invalide, politique_non_epinglee | Empreinte en hexadécimal majuscule : hors de la forme hex 32 octets de 12.3 (CT-1 §3). |
+| `version-vide` | invalide, politique_non_epinglee | policy_version vide : hors de la forme de 12.3 (chaîne de 1 à 128). |
+| `approval-sha256-majuscules` | invalide, politique_non_epinglee | approval_sha256 en hexadécimal majuscule : hors de la forme hex 32 octets de 12.3. |
+| `hors-combinaisons` | invalide, forme | a_approuver sans ticket : hors des sept combinaisons d'EX-12.6, bien que le couple soit celui du charger (raison forme de la bibliothèque de référence). |
+| `approval-different` | invalide, approval_different | Décision approuve scellée pour apr-0001 dont l'approval diffère de celui du noyau (motif) : RL-1 (raison approval_different de la bibliothèque de référence). |
+| `aucune-decision-scellee` | invalide, approval_different | Décision approuve pour apr-0001 alors que le noyau n'en a scellé aucune (RL-1). |
+
 ## decisions/ (A.7, SG-1 à SG-7)
 
 | Cas | Vérification visée | Résultat attendu | Ce qu'il exerce |
@@ -1215,6 +1250,18 @@ approbateur-2 prépare, sous sa propre session, l'inscription du compte 1, dont 
 4. revoquer 08:10:00.000 → acceptée, revision 2
 5. preparer_inscription 08:15:00.000 → refus : adresse_deja_attribuee, revision 2
 
+#### `bornes-des-defis.json` (AN-3, AN-6) — départ `annuaires/vide.json`
+
+Révision 0.8 (EX-13.13) : approbateur-1 prépare quatre défis pour quatre adresses distinctes ; le cinquième, pour une cinquième adresse, est refusé limite_annuaire sans changer les défis ; le remplacement du défi de la même identité et de la même adresse (compte 2) est admis et ne compte pas ; une autre identité (admin-1) prépare un défi, admis.
+
+1. preparer_inscription 12:00:00.000 → acceptée, revision 0
+2. preparer_inscription 12:00:10.000 → acceptée, revision 0
+3. preparer_inscription 12:00:20.000 → acceptée, revision 0
+4. preparer_inscription 12:00:30.000 → acceptée, revision 0
+5. preparer_inscription 12:00:40.000 → refus : limite_annuaire, revision 0
+6. preparer_inscription 12:00:50.000 → acceptée, revision 0
+7. preparer_inscription 12:01:00.000 → acceptée, revision 0
+
 #### `alias-demandeur.json` (AN-1, AN-6, AN-7) — départ `annuaires/reference.json`
 
 lier_demandeur d'un nouvel alias, double liaison refusée (demandeur_deja_lie), delier_demandeur, valeur inconnue refusée (demandeur_inconnu) ; une identité de session avec « ? » dans l'émetteur est refusée (identite_invalide) ; une entrée inconnue aussi (entree_inconnue).
@@ -1280,6 +1327,15 @@ Contrôle de l'identité de session par le service sur le canal de la console, a
 | `tickets-administrateur` | tickets | passe | admin-1, dans administrators, sans entrée : la liste est servie. |
 | `tickets-hors-organisation` | tickets | session_non_autorisee | Identité sans entrée et hors d'administrators : session_non_autorisee. |
 | `tickets-entree-desactivee` | tickets | session_non_autorisee | approbateur-2, entrée désactivée : session_non_autorisee. |
+| `tickets-related-eligible` | tickets | passe | approbateur-1 désigne apr-0001, dont il est membre éligible : la liste et related sont servis. |
+| `tickets-related-administrateur` | tickets | passe | admin-1 désigne apr-0001 : la liste et related sont servis. |
+| `tickets-related-non-eligible` | tickets | session_non_autorisee | u.martin, à qui tickets sans related_to est servi, désigne apr-0001 qu'il ne peut pas voir (cas consulter-demandeur) : session_non_autorisee (point c). |
+| `tickets-related-ticket-inconnu` | tickets | ticket_inconnu | approbateur-1 désigne un ticket inconnu : ticket_inconnu (point b). |
+| `tickets-related-ticket-inconnu-non-eligible` | tickets | ticket_inconnu | u.martin désigne un ticket inconnu : ticket_inconnu (point b avant le point c). |
+| `tickets-related-hors-organisation` | tickets | session_non_autorisee | Identité sans entrée et hors d'administrators, ticket connu : session_non_autorisee (point a). |
+| `tickets-related-ticket-inconnu-hors-organisation` | tickets | session_non_autorisee | Identité sans entrée, ticket inconnu : session_non_autorisee (point a avant le point b). |
+| `tickets-related-entree-desactivee` | tickets | session_non_autorisee | approbateur-2, entrée désactivée, désigne apr-0001 : session_non_autorisee (point a). |
+| `tickets-related-identite-invalide` | tickets | identite_invalide | Identité non canonique : identite_invalide, avant tout autre contrôle. |
 | `voter-ticket-inconnu` | voter | ticket_inconnu | approbateur-1 vote avec son adresse active pour un ticket inconnu : ticket_inconnu, après le contrôle d'adresse. |
 | `voter-autre-adresse-ticket-inconnu` | voter | session_non_autorisee | approbateur-1 présente le vote du compte 2 pour un ticket inconnu : session_non_autorisee d'abord (le contrôle d'adresse ne dépend pas du ticket). |
 | `retirer-ticket-inconnu` | retirer | ticket_inconnu | approbateur-1, hors d'administrators, retire un ticket inconnu avec by = son identité : ticket_inconnu (le contrôle du retrait ne se fait que pour un ticket connu). |
@@ -1426,3 +1482,33 @@ Contrôle de l'identité de session par le service sur le canal de la console, a
 ## acceptation-console/ et acceptation-console-attendu.json (EX-A.17)
 
 Le répertoire `acceptation-console/` est ce que reçoit chaque lecteur (consigne et gabarit de réponse) ; la grille des éléments attendus, chacun avec la règle qui le fonde, est dans `acceptation-console-attendu.json`, que les lecteurs ne reçoivent pas. Cet index ne la reproduit pas.
+
+## notifications/ (13.19 ; EX-13.40, EX-13.41)
+
+`notifications.json` : un document de notification par nature, conforme à `configuration-approbation-v0#/$defs/notification`, son corps envoyé au webhook (le JCS du document, en UTF-8, qui est aussi la ligne de la boîte d'envoi) et l'en-tête `NOORTRACE-Signature` de la requête : `sha256=` suivi des 64 chiffres hexadécimaux minuscules de HMAC-SHA256 de clé `K` sur le préfixe `noortrace/notification/v0\n` (`6e6f6f7274726163652f6e6f74696669636174696f6e2f76300a`) suivi du corps. `K` est la clé de l'exemple d'EX-13.41, `noortrace/exemple/cle-de-webhook/0123456789abcdef`, qui n'est pas tirée au hasard et n'est valable nulle part. Les identifiants `ntf-…`, que le service tire au hasard, sont ici les 32 premiers chiffres du SHA-256 de l'étiquette `noortrace/vecteurs/ct3/notification/<cas>`. Aucun document ne porte d'identité de personne (EX-13.11).
+
+Le générateur relit l'exemple d'EX-13.40 dans le texte et le recalcule : corps de 472 octets, signature `sha256=0ba22888a6596c02fee4571e5c9394192722c9ffd011d145208cf349b813354c`, ceux que le texte imprime ; cet exemple n'est pas recopié ici.
+
+| Cas | Nature | Destinataires | Corps (octets) | Signature | Ce qu'il exerce |
+|---|---|---|---|---|---|
+| `ouverture` | ouverture | apb-0001, apb-0002 | 340 | `592d4e07b7…43326e90` | Premier gel du jeu du ticket (EX-7.12) : les entrées actives dont l'adresse active est un membre éligible ; details nul. |
+| `escalade-jeu` | escalade | apb-0002 | 328 | `34f42c7be0…4f0097a6` | Étape d'escalade de cible jeu (EX-7.13) : les entrées dont l'adresse active est un membre éligible sans vote courant. |
+| `escalade-administrateur` | escalade | rôle administrateur_jeu | 338 | `8563bd6b00…a860f689` | Étape d'escalade de cible administrateur : le rôle administrateur_jeu, sans aucune entrée. |
+| `escalade-demandeur` | escalade | apb-0003 | 328 | `3263009939…e3107660` | Étape d'escalade de cible demandeur : l'entrée active dont requester_identities contient le launched_by du ticket ; le document ne porte pas cette identité. |
+| `nouveau-gel` | nouveau_gel | apb-0001, apb-0002, apb-0003 | 436 | `416915d545…6d37d88a` | Nouveau gel qui change le jeu figé (EX-8.6) : membres éligibles après le gel ; details porte l'adresse ajoutée depuis l'ouverture et le seuil effectif. |
+| `seuil-inatteignable` | seuil_inatteignable | rôle administrateur_jeu, rôle administrateur | 405 | `05aecd972d…904f0930` | Moins de membres éligibles que le seuil effectif (EX-7.29) : les rôles administrateur_jeu et administrateur. |
+| `vote-inscrit` | vote_inscrit | apb-0001 | 470 | `267ae76662…9bce1cd2` | Vote accepté sur le canal de la console (EX-12.16) : l'entrée dont l'adresse active est approver ; digest est l'empreinte de D_A (EX-9.18), dont le caractère U+2026 compte trois octets dans le corps. |
+| `vote-inscrit-refus` | vote_inscrit | apb-0002 | 468 | `78294040af…bf94371c` | Vote de refus : même forme, decision refuse ; le motif du vote n'est jamais dans le document. |
+| `operation-annuaire-valider` | operation_annuaire | apb-0002 | 437 | `3fc12827a6…58e0df5f` | Opération valider acceptée, faite par un administrateur : l'entrée visée ; ticket, tool et deadline nuls ; lien vers l'écran d'inscription ; by_self faux. |
+| `operation-annuaire-inscrire` | operation_annuaire | apb-0002 | 437 | `d8011fa1ba…9d65fb6a` | Opération inscrire acceptée, faite par la session de l'entrée elle-même : by_self vrai. |
+| `operation-annuaire-desactiver` | operation_annuaire | apb-0002 | 400 | `43e2644db7…a34e10b4` | Opération desactiver, sans adresse : address nul. |
+| `plafond-atteint` | plafond_atteint | rôle administrateur | 265 | `bac047d28a…80acdf82` | Premier evaluer refusé par plafond_atteint d'un launched_by dans une période de 15 minutes (EX-14.1) : le rôle administrateur ; ticket, tool, deadline et link nuls ; le document ne porte pas le launched_by. |
+
+Corps que le relais du client refuse (`refusals`) : la signature présentée n'est pas celle qu'il recalcule sur les octets reçus (`expected.signature`).
+
+| Cas | Ce qu'il exerce |
+|---|---|
+| `corps-altere` | Le corps de vote-inscrit dont la décision a été changée en chemin, avec la signature du corps d'origine. |
+| `prefixe-omis` | Le corps de vote-inscrit signé sans le préfixe « noortrace/notification/v0\n » : HMAC-SHA256(K, corps). |
+| `autre-cle` | Le corps de vote-inscrit signé par une autre clé. |
+| `cle-avec-saut-de-ligne` | Le corps de vote-inscrit signé par la clé suivie d'un saut de ligne, comme un fichier de secret la porte : K est le secret dépouillé de ses espaces de tête et de fin (EX-13.41). |

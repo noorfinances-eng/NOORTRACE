@@ -99,6 +99,7 @@ Refusées :
 | `reponse-tardive-2` | `point-k2-exemple.tsq` | `reponse-tardive-2.tsr` | reponse_tardive | reponse_tardive | transitoire | — | 10000 ms (backoff) | OK |
 | `reponse-tardive-3` | `point-k2-exemple.tsq` | `reponse-tardive-3.tsr` | obtenue | — | — | reponse_tardive | — | OK |
 | `horloge-suspecte` | `point-k2-exemple.tsq` | `horloge-suspecte.tsr` | obtenue | — | — | horloge_suspecte | — | OK |
+| `statut-6` | `point-k2-exemple.tsq` | `statut-6.tsr` | echec_permanente | statut_6 | permanente | — | — | — |
 
 - `granted-requete-point-k2` : Le jeton de CT-1 §11.2 lui-même (genTime 2026-11-03T13:53:02Z, numéro de série 1001, nonce de CT-1 §13), reconstruit à l'identique par l'autorité de test : réponse granted.
 - `granted-point-k2-exemple` : granted de l'autorité de test à la requête point-k2-exemple (sans politique demandée ; la politique de l'autorité est admise).
@@ -128,6 +129,7 @@ Refusées :
 - `reponse-tardive-2` : Deuxième réponse tardive consécutive : encore reponse_tardive (attente de reprise 10 s).
 - `reponse-tardive-3` : Troisième réponse tardive consécutive : promue avec l'avertissement reponse_tardive, pour ne pas priver la période d'ancre (EX-5.11).
 - `horloge-suspecte` : granted dont le genTime (13:53:02) s'écarte de 182 s de l'instant d'envoi (13:50:00), au-delà de clock_tolerance_s (120) : promu, marqué horloge_suspecte (EX-5.11).
+- `statut-6` : PKIStatus 6, hors de 0 à 5, suivi d'un jeton par ailleurs valable : statut_6, permanente, le jeton n'est pas lu ni promu (EX-5.10, étape 2 : « toute autre valeur : erreur » ; revue de l'étape 8).
 
 ## ots/ (EX-6.4 à EX-6.7, AN-17 à AN-19)
 
@@ -163,7 +165,7 @@ Révision 0.6 de CT-5 : chaque ligne de file écrite par le planificateur (`queu
 | `redemarrage-reprise.json` | 6 | 25 | 9 | 9 | EX-8.5, EX-8.12 (AN-33) |
 | `ots-mise-a-niveau.json` | 23 | 107 | 0 | 10 | EX-6.1, EX-6.6, EX-6.7, EX-8.11 (AN-41) |
 | `preuve-de-vie.json` | 20 | 64 | 0 | 4 | EX-4.3 (countersign_idle), EX-4.6, EX-8.4 règle 3 |
-| `file-pleine.json` | 12 | 45 | 100 | 103 | EX-8.5 règle 4, EX-4.4 |
+| `file-pleine.json` | 12 | 445 | 100 | 103 | EX-8.5 règle 4, EX-4.4 |
 | `prestataire-min-interval.json` | 18 | 90 | 0 | 9 | EX-8.7, EX-5.5, EX-4.4 (AN-39) |
 | `refus-puis-preuve-de-vie.json` | 31 | 62 | 0 | 3 | EX-4.3 (countersign_idle), EX-5.12, EX-8.3, EX-8.8 |
 | `refus-puis-preuve-de-vie-redemarrage.json` | 13 | 30 | 2 | 3 | EX-4.3 (countersign_idle), EX-8.5, EX-8.12 (AN-33) |
@@ -177,6 +179,10 @@ Révision 0.6 de CT-5 : chaque ligne de file écrite par le planificateur (`queu
 | `point-manquant-saut-horloge.json` | 13 | 78 | 0 | 6 | EX-4.1, 8.9 (point_manquant après un saut d'horloge : délai compté depuis le checkpoint_ts du dernier point admis ; révision 0.4), EX-4.3 |
 | `file-fenetre-32.json` | 46 | 253 | 0 | 3 | EX-8.5 règle 7 (fenêtre de 32 tentatives, attempts_total, réponse à une tentative sortie de la fenêtre), EX-8.9, EX-8.15 (révision 0.6) |
 | `file-fenetre-32-redemarrage.json` | 4 | 13 | 3 | 3 | EX-8.5 règle 7, EX-8.12 (reprise au rang attempts_total + 1 ; révision 0.6) |
+| `releve-pendant-reprise.json` | 15 | 71 | 0 | 3 | EX-8.8 (relève pendant l'attente de reprise, séries parallèles), EX-8.9 (AN-38 ; revue de l'étape 8) |
+| `redemarrage-releve.json` | 9 | 51 | 3 | 3 | EX-8.8, EX-8.12 (minuterie de relève reposée au démarrage ; revue de l'étape 8) |
+| `redemarrage-echeance-remplacee.json` | 11 | 52 | 4 | 9 | EX-4.4, EX-8.12 (EX-4.4 appliquée aux demandes de points relues ; revue de l'étape 8) |
+| `file-lignes-illisibles.json` | 5 | 24 | 9 | 9 | EX-8.5 règle 3, EX-8.12 (ligne mal formée ou fragment ignorés et consignés, reprise quel que soit l'état de la file ; revue de l'étape 8) |
 
 - `heure-nominale-reference` : Période 1 de l'exemple de référence de CT-1 (annexe A de CT-1) : points K1 à K4 de CT-1 §10.8, clôture à 14:00:00.250Z ; échéances D_1 à D_11 toutes les 300 s, la clôture tenant lieu de D_12 (EX-4.2, EX-4.3) ; registre, prestataire principal, serveur interne pour les points et calendriers tous joignables ; aucune reprise. Les réponses des prestataires sont des entrées de la trace (jetons représentés par leur SHA-256) ; l'horloge est injectée.
 - `principal-injoignable` : Clôture de la période 1 de référence ; le prestataire principal ne répond pas : erreur de transport, 503 avec Retry-After 30 s, 408 rejoué immédiatement une fois, délai d'attente, 503 sans Retry-After ; attentes d'EX-8.9 (5 s + 100 ms de gigue, Retry-After 30 s, 0 s, 40 s + 200 ms, 80 s + 50 ms) ; relève par le secours 300 s après la première tentative (manifest.fallback_after_s, EX-8.8), jeton promu du secours ; la réponse tardive du principal à la tentative 6 est conservée sans être promue (EX-5.8, EX-8.5).
@@ -202,6 +208,10 @@ Révision 0.6 de CT-5 : chaque ligne de file écrite par le planificateur (`queu
 - `point-manquant-saut-horloge` : Journal des vecteurs, période 1 : le composant admet le point de 09:00, puis son horloge saute à 12:30 (arrêt du processus ou saut d'horloge) et il reçoit alors, produits à l'heure, le point de 09:59, le point de clôture et la clôture. À 12:30, l'alerte point_manquant due à 09:02 (aucun point pendant 2 x c_K après 09:00) est émise, puis celle due à 10:01 (aucun point pendant 2 x c_K après le checkpoint_ts 09:59 du point admis à 12:30) : le délai court depuis l'instant déclaré du dernier point admis, non depuis son admission (EX-4.1, 8.9) ; le point de clôture n'arme aucune minuterie de cadence. Le point de 09:59, admis 2 h 31 min après sa production, sert D_1 à D_11 (EX-4.3) et sa contresignature est tardive (contresignature_tardive, 8.9).
 - `file-fenetre-32` : Clôture de la période 1 de référence, sans prestataire de secours (aucune relève) : après l'inclusion de l'ancre de la période, le principal répond 39 fois HTTP 503 avec Retry-After 5 s (attente de 5 s, bornée par [initial_ms, max_ms], EX-8.9) ; la tentative 40 part à 14:03:56 et reste sans réponse. Révision 0.6 (EX-8.5, règle 7) : chaque ligne de la file porte au plus les 32 dernières tentatives, par n croissant, et attempts_total ; la file à l'arrêt porte les tentatives 9 à 40, attempts_total 40, sans renumérotation (n et attempt_id restent uniques). La réponse accordée à la tentative 3, sortie de la fenêtre, arrive tard : elle est conservée (stocker) sans être promue, consignée tentative_close avec son rang et son attempt_id (EX-8.15), et l'état ne change pas.
 - `file-fenetre-32-redemarrage` : La trace file-fenetre-32 interrompue et redémarrée à 14:05 sur sa file : le jeton de clôture est envoyee, sa ligne porte les tentatives 9 à 40 et attempts_total 40. Transitions d'EX-8.12 : la tentative 40, en cours, est close (redemarrage) et la demande repart aussitôt au rang attempts_total + 1 = 41, nouveau nonce et nouvel attempt_id, jamais au rang « nombre de tentatives portées + 1 » (révision 0.6 ; EX-8.5, règle 7). La réponse à la tentative 40, reçue après le redémarrage, est conservée sans promotion ; le jeton de la tentative 41 est promu, et la file à l'arrêt porte les tentatives 10 à 41, attempts_total 41.
+- `releve-pendant-reprise` : Clôture de la période 1 de référence ; le principal ne répond pas (délai d'attente dix secondes après chaque départ, gigue nulle, retry.max_ms abaissé à 60 s) : attentes de 5, 10, 20, 40, 60 et 60 s (EX-8.9). La relève par le secours tombe à 14:05:02, 300 s après la première tentative (manifest.fallback_after_s, EX-8.8), pendant que la demande attend sa reprise au principal (a_reprendre, programmée à 14:05:27) : les deux séries de tentatives sont poursuivies en parallèle (tentative 8 au secours à 14:05:02, tentative 9 au principal à 14:05:27, qui échoue encore à 14:05:37), jusqu'au jeton promu du secours à 14:05:40 ; la reprise du principal programmée à 14:06:37 ne part pas (demande finale : les tentatives de l'autre prestataire sont arrêtées, EX-8.8). Revue de l'étape 8.
+- `redemarrage-releve` : Clôture de la période 1 de référence, principal en panne (délais d'attente) ; le processus s'arrête à 14:00:19 pendant la tentative 2 et redémarre à 14:00:20 : envoyee devient a_reprendre et la tentative 3 part aussitôt (EX-8.12) ; la minuterie de relève d'EX-8.8, perdue avec le processus, est reposée à premier envoi (14:00:02) + manifest.fallback_after_s (300 s) = 14:05:02 : le secours est relevé à cet instant (tentative 9), pendant que le principal échoue encore (attentes 5, 10, 20, 40, 80, 160 s), et son jeton est promu à 14:05:05. Sans cette reposition, la demande tournerait indéfiniment sur le principal (revue de l'étape 8).
+- `redemarrage-echeance-remplacee` : Même panne du serveur interne sur K1 que echeance-remplacee (retry.initial_ms 60 s, gigue nulle) ; le processus s'arrête à 13:53:04 entre la ligne obtenue du jeton de K2 (échéances D_9 et D_10) et la ligne remplacee du jeton de K1 (D_1 à D_8), qu'EX-8.3 fait écrire l'une après l'autre. Au redémarrage à 13:53:04.500, la file porte le jeton de K1 a_reprendre et celui de K2 obtenue : EX-8.12 applique EX-4.4 aux demandes de points relues, la demande de K1 est close remplacee (replaced_by le jeton de K2) avec la ligne checkpoint_anchor_late et l'alerte mineure du serveur interne, et sa reprise programmée à 13:54:23 ne part jamais : aucun rattrapage des points (revue de l'étape 8). La suite de la période est servie normalement.
+- `file-lignes-illisibles` : La trace de référence interrompue à 14:00:02 ; sur le disque, la dernière ligne du jeton de K4 (envoyee) a perdu son membre attempts et le fichier finit par un fragment de la ligne suivante (EX-8.5, règle 3 : une ligne tronquée ou mal formée est ignorée et consignée, jamais réparée ; la ligne valide précédente du même id, attente_registre, fait foi). Au redémarrage à 14:00:02.500, la reprise se fait quel que soit l'état de la file relue (EX-8.12) : neuf demandes, le jeton de K4 est en attente_registre et son ancre obtenue, la tentative 1 part aussitôt avec un nonce frais ; la réponse à la tentative perdue serait rejetée tentative_inconnue. Revue de l'étape 8 : fragment de ligne retiré, ligne sans attempts (qui arrêtait la reprise par une exception).
 
 ## reprise/ (EX-8.12, AN-33)
 
@@ -214,6 +224,9 @@ Files NDJSON (une demande par ligne, JCS intégral) avant et après le `demarrag
 - `bascule-epoque.avant.ndjson` (8 ligne(s)), `bascule-epoque.apres.ndjson` (8 ligne(s)) : file de `planification/bascule-epoque.json`.
 - `bascule-epoque-fichier-perdu.avant.ndjson` (2 ligne(s)), `bascule-epoque-fichier-perdu.apres.ndjson` (5 ligne(s)) : file de `planification/bascule-epoque-fichier-perdu.json`.
 - `file-fenetre-32-redemarrage.avant.ndjson` (3 ligne(s)), `file-fenetre-32-redemarrage.apres.ndjson` (3 ligne(s)) : file de `planification/file-fenetre-32-redemarrage.json`.
+- `redemarrage-releve.avant.ndjson` (3 ligne(s)), `redemarrage-releve.apres.ndjson` (3 ligne(s)) : file de `planification/redemarrage-releve.json`.
+- `redemarrage-echeance-remplacee.avant.ndjson` (4 ligne(s)), `redemarrage-echeance-remplacee.apres.ndjson` (9 ligne(s)) : file de `planification/redemarrage-echeance-remplacee.json`.
+- `file-lignes-illisibles.avant.ndjson` (9 ligne(s)), `file-lignes-illisibles.apres.ndjson` (9 ligne(s)) : file de `planification/file-lignes-illisibles.json`.
 
 ## cout/ (§12.3, AN-59, AN-60)
 

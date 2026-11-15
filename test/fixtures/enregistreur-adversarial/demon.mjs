@@ -21,6 +21,7 @@ import net from "node:net";
 import { spawn } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { RACINE } from "../enregistreur-coeur/outils.mjs";
+import { creerRepertoireTemporaire } from "../../aides/temporaires.mjs";
 import { configurationHa, adresseOccupee, remplacerPort, santeBornee, ESSAIS_PORTS } from "../enregistreur-ha/outils.mjs";
 
 export const PAQUET = path.join(RACINE, "paquets", "enregistreur");
@@ -118,8 +119,11 @@ export async function configurationDemon(dir, o) {
     segment_max_bytes: o.segment_max_bytes,
   });
   // Prise Unix du frontal sous un répertoire court du système : le chemin d'une
-  // prise est borné (108 octets), et NOORTRACE_TMP peut être long.
-  const prises = fs.mkdtempSync(path.join(os.tmpdir(), "ntadv-"));
+  // prise est borné (108 octets), et NOORTRACE_TMP peut être long. Le
+  // répertoire est inscrit auprès de l'aide commune (libéré à la fin du
+  // fichier d'essai, même si l'appelant n'appelle pas detruireMutants) et
+  // gardé dans MUTANTS pour detruireMutants.
+  const prises = creerRepertoireTemporaire("ntadv-");
   MUTANTS.push(prises);
   x.config.mcp.socket = path.join(prises, "mcp.sock");
   const demo = x.config.policy.servers.demo;
@@ -150,12 +154,13 @@ export async function demonModele(dir, c, mode) {
 }
 
 /**
- * Démon réel `bin/noortrace --config` d'un paquet (référence ou mutant).
+ * Démon réel `bin/noortrace --config` d'un paquet (référence ou mutant) ;
+ * `c.arguments` : arguments ajoutés à la ligne de commande (`--image-attendue <fichier>`).
  * @returns {import("node:child_process").ChildProcess & {sortie: string, fin: Promise<object>, lignes: () => object[]}}
  */
 export function lancer(paquet, c, fichier) {
   fs.writeFileSync(fichier, JSON.stringify(c.config));
-  const p = spawn(process.execPath, [paquet.bin("noortrace"), "--config", fichier], { env: { ...process.env, ...c.env }, stdio: ["ignore", "pipe", "pipe"] });
+  const p = spawn(process.execPath, [paquet.bin("noortrace"), "--config", fichier, ...(c.arguments ?? [])], { env: { ...process.env, ...c.env }, stdio: ["ignore", "pipe", "pipe"] });
   p.sortie = "";
   p.stdout.on("data", (d) => (p.sortie += d));
   p.stderr.on("data", (d) => (p.sortie += d));

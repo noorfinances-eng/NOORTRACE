@@ -12,7 +12,10 @@ spécification ou une faute de l'une des deux.
 Module propre `noortrace-ct2` (`go 1.24`), bibliothèque standard uniquement.
 Le module CT-1 (`spec/vecteurs/ct-1/verificateur-independant`) n'est pas
 modifié : son code est **copié** ici (fichiers `ct1_*.go`, lui-même écrit sans
-le JavaScript), à jour de la révision 0.5 de CT-1 (point de contrôle, preuve
+le JavaScript), à jour de la révision 0.6 de CT-1 (`ct1_dossier.go` : A-2 et
+borne des 1 024 décisions ; `ct1_point.go` : règle `root` jugée sur les
+événements fournis ; le plancher de CT-1 §13 est propre au programme CT-1)
+et de la révision 0.5 (point de contrôle, preuve
 de cohérence, treizième partie du dossier, K-1 à K-9 ; quatorzième partie
 facultative `attestation-perimetre.json` et AT-1 à AT-7, `ct1_attestation.go`
 et `ct1_attestation_test.go`, avec la courbe secp256k1 que le module CT-1
@@ -45,6 +48,38 @@ Codes de retour : `0` tout concorde (les valeurs hors périmètre sont
 énoncées, avec leur raison, et ne comptent pas) ; `1` au moins une
 discordance ou une erreur (fichier absent ou illisible, famille de l'annexe B
 manquante) ; `2` usage incorrect ou racine introuvable.
+
+Règles ajoutées par la revue de sécurité de l'étape 8, écrites depuis le
+texte de CT-2 révision 0.11 et la CT-9 TA-66, sans lire aucune
+autre implémentation :
+
+- réponse d'`evaluer` (EX-7.16) : exactement les neuf membres de CT-3
+  §12.3 ; `policy_version` chaîne de 1 à 128 caractères, `policy_sha256` et
+  `approval_sha256` hexadécimal minuscule de 32 octets ;
+- épinglage (EX-7.16, annexe B.4) : un cas d'approbation porte `approval:
+  { response, pinned }`, et les trois membres de la réponse doivent égaler
+  ceux de `pinned`, sinon la réponse est invalide (`politique_non_epinglee`) ;
+- motif nommé (EX-10.9) : la position qui suit une correspondance remplacée
+  est un début de chaîne pour `^`, `\b` et `\B`, le reste étant examiné comme
+  une chaîne à part entière ;
+- passages (EX-10.14) : aucune borne arbitraire du nombre de passages ; la
+  seule borne est la taille de la valeur d'entrée, que le texte rend
+  inatteignable (chaque passage qui modifie remplace un point de code hors
+  jeton, une valeur ou un membre) ;
+- plancher (CT-9 TA-66) : une famille de l'annexe B sans aucune valeur
+  recalculée est une erreur (`plancher.go`) ;
+- cas comptés contre l'`INDEX.md` (annexe B.7) : les cas de
+  `redaction/cas.json`, `jcs-integral/cas.json`, `pieces-mcp/appels/`,
+  `pieces-modele/` et `otel/` que l'index nomme sans qu'ils soient présents,
+  ou présents sans que l'index les nomme, sont des erreurs ;
+- gardes : `evenements/journal-demo/attendu.json` absent est une erreur
+  consignée, et toute panne d'une famille devient une erreur consignée
+  (`protegerFamille`) : rapport imprimé, code 1, jamais une trace de pile.
+
+Les vecteurs publiés de `pieces-mcp/appels/approbation-{refus,en-attente}`
+portent encore des réponses à six membres sans `pinned` : contre eux, le
+module rend six discordances et deux erreurs, attendues tant que les
+vecteurs régénérés à neuf membres ne sont pas publiés.
 
 Le rapport dit, pour chaque valeur : la famille, le vecteur, la grandeur,
 l'**attendu** (la valeur déclarée par le vecteur, ou, pour un contrôle de
@@ -334,6 +369,17 @@ la famille `evenements` (`comparerDossierCT1`, `dossier_ct1_test.go`).
   d'entrée dans `cout-agent-v0` et n'est pas recalculé.
 
 ## Tests du module (`go test`)
+
+- Revue de sécurité de l'étape 8 (`revue_etape8_test.go`,
+  `revue_etape8_garde_test.go`) : réponse d'`evaluer` à neuf membres (annexe A
+  de la révision 0.11) acceptée, six et dix membres et formes fausses des
+  trois membres refusées ; épinglage égal, différent sur chacun des trois
+  membres, `pinned` absent ; `\Bz` sur `zzz`, `x|\b#` sur `x#`,
+  `^[0-9]{3}` sur trois candidats adjacents, cascade de 66 passages
+  modificateurs (65 `A` puis `B`) et idempotence ; `attendu.json` du journal
+  absent (code 1, rapport, sans panique) ; garde commune des familles ;
+  plancher par le code de retour du programme (racine vide, `jcs-integral`
+  sans cas, cas de `pieces-modele` retiré ou non indexé, sans `INDEX.md`).
 
 - RFC 8785 (lue sur rfc-editor.org) : les 26 lignes de la table 1 de
   l'annexe B (sérialisation et relecture bit à bit), l'exemple de 3.2.2 à

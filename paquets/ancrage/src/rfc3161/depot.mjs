@@ -32,6 +32,72 @@ function synchroniserRepertoire(rep) {
   }
 }
 
+/** Fenêtre relue pour trouver la dernière fin de ligne d'un fichier NDJSON (1 Mio : borne d'une ligne). */
+const FENETRE_FRAGMENT = 1048576;
+let compteurProvisoires = 0;
+
+/**
+ * Tronque une fin de fichier sans saut de ligne à la dernière ligne complète
+ * (CT-5 EX-5.14) ; rend le nombre d'octets retirés. `fd` est ouvert en
+ * lecture et écriture.
+ */
+export function tronquerFragment(fd) {
+  const taille = fs.fstatSync(fd).size;
+  if (taille === 0) return 0;
+  const dernier = Buffer.alloc(1);
+  fs.readSync(fd, dernier, 0, 1, taille - 1);
+  if (dernier[0] === 0x0a) return 0;
+  const fenetre = Math.min(taille, FENETRE_FRAGMENT + 1);
+  const queue = Buffer.alloc(fenetre);
+  fs.readSync(fd, queue, 0, fenetre, taille - fenetre);
+  const i = queue.lastIndexOf(0x0a);
+  const fin = i === -1 ? taille - fenetre : taille - fenetre + i + 1;
+  fs.ftruncateSync(fd, fin);
+  fs.fsyncSync(fd);
+  return taille - fin;
+}
+
+/**
+ * Écrit `octets` en entier dans un fichier provisoire du répertoire de
+ * `chemin`, le synchronise, puis pose `chemin` par un lien exclusif (jamais
+ * d'écrasement) ; le provisoire est retiré dans tous les cas. `erreur(message,
+ * cause)` construit l'erreur levée ; `quoi` nomme la pièce dans les messages.
+ * Rend vrai si le nom a été posé, faux s'il existait déjà (CT-5 EX-5.14,
+ * CT-5 EX-6.5, CT-4 EX-9.3 : règle d'écriture unique des dépôts). `mode` :
+ * droits du fichier posé (0600 par défaut ; la capture du registre passe
+ * 0644, ses fichiers étant remis par un autre compte que celui qui capture).
+ */
+export function ecrireEntierPuisLier(chemin, octets, erreur = (message, cause) => Object.assign(new Error(message), { cause }), quoi = path.basename(chemin), mode = 0o600) {
+  const o = octets instanceof Uint8Array ? octets : Buffer.from(octets);
+  compteurProvisoires += 1;
+  const provisoire = path.join(path.dirname(chemin), `.${path.basename(chemin)}.partiel-${process.pid}-${compteurProvisoires}`);
+  let fd;
+  try {
+    fd = fs.openSync(provisoire, "wx", mode);
+  } catch (err) {
+    throw erreur(`ouverture impossible : ${err.message}`, err);
+  }
+  try {
+    let ecrit = 0;
+    while (ecrit < o.length) ecrit += fs.writeSync(fd, o, ecrit, o.length - ecrit);
+    fs.fsyncSync(fd);
+  } catch (err) {
+    fs.closeSync(fd);
+    fs.rmSync(provisoire, { force: true });
+    throw erreur(`écriture impossible (${quoi}) : ${err.message}`, err);
+  }
+  fs.closeSync(fd);
+  try {
+    fs.linkSync(provisoire, chemin);
+  } catch (err) {
+    fs.rmSync(provisoire, { force: true });
+    if (err.code === "EEXIST") return false;
+    throw erreur(`écriture impossible (${quoi}) : ${err.message}`, err);
+  }
+  fs.rmSync(provisoire, { force: true });
+  return true;
+}
+
 /**
  * Copie autonome d'une valeur JSON relue : chaque chaîne est recopiée, pour
  * qu'aucune ne soit une tranche du texte entier du fichier (le moteur garde
@@ -85,7 +151,7 @@ export function choisirPromu(enregistrements) {
 
 /** Dépôt d'un journal. */
 export class DepotAncres {
-  /** Index en mémoire des nonces consignés (AN-6), construit à la première consultation puis tenu à jour (R-A-1). */
+  /** Index en mémoire des nonces consignés (AN-6), construit à la première consultation puis tenu à jour. */
   #nonces = null;
   /** Périodes dont les lignes illisibles ont déjà été signalées (une fois par fichier et par démarrage). */
   #signalees = new Set();
@@ -101,7 +167,7 @@ export class DepotAncres {
     this.journalId = journalId;
     this.signaler = typeof signaler === "function" ? signaler : null;
     // CT-2 EX-12.1 : le répertoire du journal est nommé par ses identifiants en hexadécimal minuscule sans `0x`
-    // (lecture F2 : le répertoire d'ancres d'EX-5.14 est sous ce répertoire, celui que l'enregistreur écrit et copie).
+    // (lectures du branchement : le répertoire d'ancres d'EX-5.14 est sous ce répertoire, celui que l'enregistreur écrit et copie).
     this.repertoireJournal = path.join(racine, orgId.slice(2), journalId.slice(2), "ancres");
   }
 
@@ -126,41 +192,58 @@ export class DepotAncres {
   }
 
   /**
-   * Écrit une pièce en création exclusive (jamais de réécriture), `fsync` du
-   * fichier puis du répertoire. Rend le chemin relatif au répertoire de la
-   * période. `sousRepertoire` : `rfc3161` ou `ots`.
+   * Écrit une pièce (jamais de réécriture), `fsync` du fichier puis du
+   * répertoire. Rend le chemin relatif au répertoire de la période.
+   * `sousRepertoire` : `rfc3161` ou `ots`.
+   *
+   * Revue de sécurité de l'étape 8 (EX-5.14) : une pièce n'existe sous son nom qu'entière.
+   * Les octets vont dans un fichier provisoire du même répertoire, écrits en
+   * boucle jusqu'au dernier (`write(2)` peut rendre une écriture courte quand
+   * la place manque), synchronisés, puis le nom définitif est posé par un lien
+   * exclusif (`link(2)` échoue si le nom existe) ; le provisoire est retiré,
+   * le répertoire synchronisé. Toute écriture incomplète est une `ErreurDepot`
+   * et ne laisse rien sous le nom définitif.
    */
   ecrirePiece(periodStart, sousRepertoire, nom, octets) {
     const rep = this.repertoire(periodStart);
     const chemin = path.join(rep, sousRepertoire, nom);
-    let fd;
-    try {
-      fd = fs.openSync(chemin, "wx");
-    } catch (err) {
-      throw new ErreurDepot(err.code === "EEXIST" ? `fichier existant, jamais réécrit : ${path.join(sousRepertoire, nom)}` : `ouverture impossible : ${err.message}`, err);
-    }
-    try {
-      fs.writeSync(fd, octets);
-      fs.fsyncSync(fd);
-    } catch (err) {
-      throw new ErreurDepot(`écriture impossible : ${err.message}`, err);
-    } finally {
-      fs.closeSync(fd);
-    }
+    const existe = () => new ErreurDepot(`fichier existant, jamais réécrit : ${path.join(sousRepertoire, nom)}`, Object.assign(new Error("EEXIST"), { code: "EEXIST" }));
+    if (fs.existsSync(chemin)) throw existe();
+    if (!ecrireEntierPuisLier(chemin, octets, (message, err) => new ErreurDepot(message, err), `${sousRepertoire}/${nom}`)) throw existe();
     synchroniserRepertoire(path.join(rep, sousRepertoire));
     return path.join(sousRepertoire, nom);
   }
 
-  /** Ajoute une ligne JCS intégral à `acquisitions.ndjson`, `fsync` compris. */
+  /**
+   * Ajoute une ligne JCS intégral à `acquisitions.ndjson`, `fsync` compris.
+   * Revue de sécurité de l'étape 8 (CT-5 EX-5.14) : avant l'ajout, une fin de fichier sans saut de ligne
+   * (coupure pendant un ajout) est tronquée à la dernière ligne complète ; la
+   * ligne est écrite en boucle jusqu'au dernier octet ; une écriture en échec
+   * est effacée jusqu'au début de la ligne. Un fragment ne cache donc jamais
+   * l'acquisition suivante, et une ligne courte n'est jamais dite écrite.
+   */
   ajouterAcquisition(periodStart, enregistrement) {
     const rep = this.repertoire(periodStart);
-    const ligne = jcs(enregistrement) + "\n";
+    const ligne = Buffer.from(jcs(enregistrement) + "\n", "utf8");
     const chemin = path.join(rep, "acquisitions.ndjson");
     const existait = fs.existsSync(chemin);
     let fd;
     try {
-      fd = fs.openSync(chemin, "a");
-      fs.writeSync(fd, ligne);
+      fd = fs.openSync(chemin, fs.constants.O_RDWR | fs.constants.O_APPEND | fs.constants.O_CREAT, 0o600);
+      tronquerFragment(fd);
+      const debut = fs.fstatSync(fd).size;
+      let ecrit = 0;
+      try {
+        while (ecrit < ligne.length) ecrit += fs.writeSync(fd, ligne, ecrit, ligne.length - ecrit);
+      } catch (err) {
+        try {
+          fs.ftruncateSync(fd, debut);
+          fs.fsyncSync(fd);
+        } catch {
+          // Le fragment, s'il reste, est tronqué à l'ajout suivant.
+        }
+        throw err;
+      }
       fs.fsyncSync(fd);
     } catch (err) {
       throw new ErreurDepot(`acquisitions.ndjson : ${err.message}`, err);
@@ -177,7 +260,7 @@ export class DepotAncres {
    * de ligne final) est signalée (`tronquee`), non lue ; une ligne illisible
    * (JSON strict refusé, valeur autre qu'un objet) est ignorée et signalée
    * dans `illisibles` (`{ ligne, raison }`, comme la file d'EX-8.5 règle 3),
-   * jamais réparée, et n'interdit jamais la lecture des autres (R-A-1).
+   * jamais réparée, et n'interdit jamais la lecture des autres.
    * @returns {{enregistrements: object[], tronquee: boolean, illisibles: {ligne: number, raison: string}[]}}
    */
   lireAcquisitions(periodStart) {
@@ -205,10 +288,11 @@ export class DepotAncres {
       }
       enregistrements.push(copieAutonome(valeur));
     }
-    if (illisibles.length && this.signaler && !this.#signalees.has(periodStart)) {
+    // Revue de sécurité de l'étape 8 (CT-5 EX-5.14) : une ligne tronquée est signalée comme une ligne illisible (une acquisition manque au fichier).
+    if ((illisibles.length || tronquee) && this.signaler && !this.#signalees.has(periodStart)) {
       this.#signalees.add(periodStart);
       try {
-        this.signaler(periodStart, illisibles);
+        this.signaler(periodStart, tronquee ? [...illisibles, { ligne: lignes.length, raison: "tronquee" }] : illisibles);
       } catch {
         // Le signalement ne bloque jamais la lecture.
       }
@@ -231,7 +315,7 @@ export class DepotAncres {
    * du journal (AN-6). L'index est construit en mémoire à la première
    * consultation (toutes les périodes du dépôt, une fois) puis tenu à jour par
    * `ajouterAcquisition` : la relecture de toutes les périodes à chaque
-   * tentative disparaît (R-A-1) ; une ligne illisible n'empêche rien.
+   * tentative disparaît ; une ligne illisible n'empêche rien.
    */
   nonceConnu(nonce) {
     const hex = typeof nonce === "bigint" ? "0x" + nonce.toString(16).padStart(16, "0") : nonce;
@@ -267,21 +351,26 @@ export class DepotAncres {
     return { enregistrements: [...parTentative.values()], tronquee, illisibles };
   }
 
-  /** Un enregistrement `obtenue` de cet objet porte déjà `promoted` et n'est pas révoqué (le choix d'EX-5.8 est fait une fois, sauf révocation). */
+  /**
+   * Un enregistrement `obtenue` de cet objet porte déjà `promoted` et n'est pas
+   * révoqué (le choix d'EX-5.8 est fait une fois, sauf révocation). Revue de sécurité de l'étape 8
+   * (CT-5 EX-5.10) : `promoted` ne compte qu'avec `outcome` `obtenue`, comme pour
+   * l'exportateur (EX-5.8 : le choix se fait parmi les jetons valables).
+   */
   dejaPromu(objet, imprint, periodStart) {
     const nom = nomObjet(objet, imprint);
-    return this.dernieresAcquisitions(periodStart).enregistrements.some((e) => e.object_name === nom && e.promoted === true && e.revoked !== true);
+    return this.dernieresAcquisitions(periodStart).enregistrements.some((e) => e.object_name === nom && e.outcome === "obtenue" && e.promoted === true && e.revoked !== true);
   }
 
   /**
    * L'enregistrement du jeton promu d'un objet (EX-5.8), ou `null` : le dernier
-   * marqué `promoted` et non révoqué (dernier état de chaque tentative) ; à
-   * défaut (aucun choix consigné), le choix d'EX-5.8 parmi les `obtenue`.
+   * marqué `promoted`, d'issue `obtenue` et non révoqué (dernier état de chaque
+   * tentative) ; à défaut (aucun choix consigné), le choix d'EX-5.8 parmi les `obtenue`.
    */
   promu(objet, periodStart, imprint = null) {
     const { enregistrements } = this.dernieresAcquisitions(periodStart);
     const siens = enregistrements.filter((e) => e.object === objet && (imprint === null || e.imprint === imprint));
-    const marques = siens.filter((e) => e.promoted === true && e.revoked !== true);
+    const marques = siens.filter((e) => e.outcome === "obtenue" && e.promoted === true && e.revoked !== true);
     if (marques.length > 0) return marques[marques.length - 1];
     return choisirPromu(siens.filter((e) => e.revoked !== true));
   }

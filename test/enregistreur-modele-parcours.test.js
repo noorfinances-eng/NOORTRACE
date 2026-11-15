@@ -2,8 +2,8 @@
 // un agent de test réel (processus Node) parle à un fournisseur simulé sur
 // 127.0.0.1 à travers la passerelle de l'enregistreur, dans les quatre
 // formats de la version 0, en flux puis hors flux, et exécute entre les deux
-// l'appel d'outil demandé par le modèle à travers le mandataire MCP du lot
-// précédent (serveur d'outils stdio lancé par le démon). Chaque échange et
+// l'appel d'outil demandé par le modèle à travers le mandataire MCP du frontal
+// MCP (serveur d'outils stdio lancé par le démon). Chaque échange et
 // chaque appel produit un événement ; chaque appel trouve son échange
 // (intent, code.model, code.prompt_version) ; la période est close ; le
 // journal est vérifié par la bibliothèque noyau, et les dossiers d'un échange
@@ -225,7 +225,7 @@ describe("enregistreur, frontal modèle : parcours de bout en bout (agent réel,
 
     it("dossiers valides pour le binaire Go noortrace-verifier (go1.27.3)", function () {
       const bin = construireVerificateur(dir);
-      if (!bin) this.skip();
+      if (!bin) { this.test.title += " — en attente : go1.27.3 introuvable (NOORTRACE_GO_BIN ou PATH)"; this.skip(); }
       for (const [nom, { d, pieces }] of Object.entries(dossiers)) {
         const r = spawnSync(bin, [d, "--pieces", pieces, "--json"], { encoding: "utf8" });
         expect(r.status, `${nom} : ${r.stdout}${r.stderr}`).to.equal(0);
@@ -455,7 +455,7 @@ describe("enregistreur, frontal modèle : démon réel bin/noortrace en modes ic
     const ops = fs.readFileSync(c.config.supervision.ops_log.path, "utf8");
     expect(ops).to.include('"mode":"icap"');
     const preuve = await prouver(dir, c);
-    if (preuve.go === null) this.skip();
+    if (preuve.go === null) { this.test.title += " — en attente : go1.27.3 introuvable (NOORTRACE_GO_BIN ou PATH)"; this.skip(); }
   });
 
   it("mode miroir : équipement de copie → processus bin/noortrace-miroir → prise du démon ; quatre échanges scellés ; journal et dossier acceptés par le noyau et le binaire Go", async function () {
@@ -492,6 +492,6 @@ describe("enregistreur, frontal modèle : démon réel bin/noortrace en modes ic
     const ops = fs.readFileSync(c.config.supervision.ops_log.path, "utf8");
     expect(ops).to.include('"mode":"miroir"');
     const preuve = await prouver(dir, c);
-    if (preuve.go === null) this.skip();
+    if (preuve.go === null) { this.test.title += " — en attente : go1.27.3 introuvable (NOORTRACE_GO_BIN ou PATH)"; this.skip(); }
   });
 });

@@ -1,7 +1,7 @@
-# Interfaces du cœur pour les lots suivants
+# Interfaces du cœur pour les autres parties du démon
 
-Ce document s'adresse aux développeurs qui écrivent, en parallèle ou après ce
-lot, les autres parties du démon `noortrace` : frontal MCP (CT-2 §4), frontal
+Ce document s'adresse aux développeurs qui écrivent, en parallèle ou après le
+cœur, les autres parties du démon `noortrace` : frontal MCP (CT-2 §4), frontal
 modèle (§5), SDK et ingestion OpenTelemetry (§6), moteur de politique et
 service d'approbation (§7.5, CT-3), rédaction (§10), WORM (§12.6, §12.11),
 haute disponibilité (§13) et ancrage (CT-5). Avec CT-2 et les vecteurs de
@@ -50,11 +50,12 @@ const coeur = await Coeur.demarrer({
   config,              // document validé (validerConfiguration, EX-15.4 pas 1 à 3)
   secrets,             // Map pointeur JSON → octets (resoudreSecrets, pas 4)
   octetsConfig,        // octets lus (sha256 consigné à `startup`)
+  image,               // résultat de controlerImage (section n), ou null : consigné à `startup`
   service,             // ServiceApprobation (client HTTP d'EX-7.14) ou null
   ancrage, worm,       // ComposantAncrage, SupportWorm (sections g et f)
   bail, signataire,    // MagasinBail, Signataire (sections f ; classes A à C)
   redaction,           // Redacteur, ou ses crochets (section e)
-  reglesSupplementaires, // règles du pas 3 d'EX-15.4 des lots, rejouées au rechargement (section e)
+  reglesSupplementaires, // règles du pas 3 d'EX-15.4 des parties, rejouées au rechargement (section e)
   minuteurs, supervision,
   octetsLibres,        // (chemin) => Promise<number|null> : mesure de l'espace libre (essais ; défaut fs.statfs)
 });
@@ -113,6 +114,29 @@ await coeur.preparerRelais(appel, { reponse, argumentsEnClair, upstream_id, time
 await coeur.terminerRelais(relais, { resultat, resultatRedige, argumentsRediges, duration_ms, is_error, sourceNonRedigeable }) → événement `executee`
 ```
 
+Étape 8 : `src/bornes.mjs` exporte `ID_JSONRPC_MAX`, `CHAINE_JOURNAL_MAX`,
+`JOURNAL_MEMOIRE_MAX_OCTETS`, `NOEUDS_JSON_MAX`, `CHIFFRES_ENTIER_MAX`, `MESSAGE_PG_MAX_OCTETS`,
+`SCRAM_ITERATIONS_MAX`, `REPONSE_ETCD_MAX_OCTETS`, `DELAI_IDENTIFICATION_MS`,
+`CONNEXIONS_NON_IDENTIFIEES_MAX`, `SESSIONS_SDK_PAR_CONNEXION_MAX`, `SPANS_PAR_REQUETE_DEFAUT`,
+`ELEMENTS_OTLP_PAR_SPAN`, `MEMBRES_JEU_REMISE_MAX`, `REMISE_MAX_OCTETS`, `INDEX_REASSEMBLAGE_MAX`,
+`ICAP_ENTETES_MAX_OCTETS`, `ICAP_CHUNK_MAX_OCTETS`, `ICAP_INACTIVITE_MS`, `ICAP_CONNEXIONS_MAX`,
+`MIROIR_TRAME_MAX_OCTETS`, `MIROIR_CONNEXIONS_MAX`, `CORRELATION_ATTENTE_MAX_MS`, et les fonctions
+`copierChaine(s)`, `chaineBornee(s, max)`, `bornerValeurJournal(v)`, `entierCourt(s)`, `Budget`.
+`analyserTexte(texte, { noeudsMax })` lève `ErreurTexteJson` de raison `noeuds`. `JournalExploitation`
+prend `octetsEnMemoire` et borne `lignes` en octets (`octetsMemoire`). Prises (`mcp/hote-stdio.mjs`) :
+`ServeurConnecteurs` et `ServeurSdk` prennent `identification: { delaiMs, max }` ; exports
+`ErreurPriseTenue` (code `prise_tenue_par_autre_compte`), `libererCheminPrise(chemin)`,
+`tenirCheminPrise(chemin)`, `controlerProprietairePrise(chemin, attendu)` (raisons `prise_absente`,
+`prise_non_prise`, `prise_autre_compte`, `proprietaire_inconnu`), `instantCreationDisponible(dir)`,
+`GardeIdentification`, et `verifierPreuveFichier(socket, defi, instant, { lstat })` refuse
+`instant_creation_indisponible` ; `ecouterPriseTcp(tcp, { delaiIdentificationMs })` ;
+`executerConnecteur({ proprietaire })` et `NOORTRACE_CONNECTEUR_PROPRIETAIRE`. Frontal MCP :
+`ConnexionAmont.resoudreAttente(id, issue)` ; lignes `request_id_too_long`, `server_progress_refused`,
+`upstream_send_failed`, `upstream_reachable` ; `tool_call_relayed.data` porte `t_recu_ms`, `t_envoi_ms`,
+`t_reponse_ms`, `t_fdatasync_ms` (comme `model_exchange_relayed`) ; les événements scellés portent la
+propriété non énumérable `t_fdatasync_ms` ; `HORLOGE_SYSTEME.monotone()` rend des millisecondes à trois
+décimales.
+
 ### Contrat (4.4, pas 1 à 14)
 
 - Pas 1 et 2 : lecture, refus, résolution, pièces de définition et de liste
@@ -125,7 +149,26 @@ await coeur.terminerRelais(relais, { resultat, resultatRedige, argumentsRediges,
   `ErreurEnregistreur("approbation")` (consigné) ; le frontal applique la
   matrice de 14.2 (bloquant pour une écriture et pour `susceptible(nom)`,
   passant pour une autre lecture si `policy.failure.approval_service.lecture`
-  le dit, `decision: "autorise"`, `rule: null`).
+  le dit, `decision: "autorise"`, `rule: null`). Défense en profondeur (TQ-1,
+  CT-3 EX-12.5) : une réponse `autorise`/`null` pour une écriture dont l'outil est
+  dans les CANDIDATS déclarés par le service au dernier `charger`
+  (`coeur.candidats.liste`) et que la politique épinglée ne peut jamais
+  autoriser (`peutAutoriserOutil` faux) lève aussi
+  `ErreurEnregistreur("approbation")` (raison `autorise_incoherent_politique_epinglee`).
+  Politique épinglée (CT-3 §12.3 révision 0.5, CT-2 EX-7.16 révision 0.8) : la
+  réponse porte huit membres, dont `policy_version` et `policy_sha256` ; une
+  version que le noyau ne détient pas, une empreinte autre que celle qu'il a
+  déclarée au `charger` de cette version, ou une version qui n'est ni celle de
+  la requête (sans ticket rapproché) ni celle de la `retenue` du ticket lève
+  `ErreurEnregistreur("approbation")` (raison `politique_non_epinglee`, ligne
+  `approval_response_invalid`) ; en observation, relais marqué `inconnu`. Addendum
+  du 14 novembre : neuf membres, `approval_sha256` égal à `condenseApproval` du
+  membre `approval` envoyé au `charger` (sinon `politique_non_epinglee`) ; la
+  réponse de `charger` est vérifiée de même (sinon `charger` échoué,
+  `approval_charger_refuse`) ; et, tant que le `charger` de la version épinglée
+  n'a pas réussi ou s'il a été refusé, `coeur.evaluer` lève
+  `ErreurEnregistreur("approbation")` (raison `approval_charger_refuse`) sans
+  interroger le service (EX-7.15).
 - Pas 4 : rédaction (section e), puis `pieceJson(valeurRedigee, { redacted })`
   et `ecrirePiece` **avant** tout relais.
 - Pas 5 : `refuse` → `scellerRefus` (sans ticket : `policy.decision:
@@ -178,7 +221,7 @@ le reste — lignes rendues, signal d'EX-4.49, formes d'erreur `-31011`,
 `pieces-mcp/agregation/*` (EX-4.11) ; `evenements/journal-demo/entrees.json`
 (appels de seq 3, 5, 7 et corrélation) ; annexe A.
 
-### Mise en œuvre (lot « frontal MCP », `src/mcp/`)
+### Mise en œuvre (partie « frontal MCP », `src/mcp/`)
 
 ```js
 import { FrontalMcp, ServeurConnecteurs, ServeurHttpMcp, demarrerFrontalMcp } from "@noortrace/enregistreur";
@@ -202,7 +245,7 @@ chemins de fichiers PEM, LISEZMOI, lecture 135) est le connecteur stdio de
 
 Prise TCP authentifiée commune (`src/mcp/prise-tcp.mjs`), employée par la
 prise des connecteurs (`mcp.connector_tcp`) et par celle du SDK
-(`sdk.tcp_listen`, rubrique c) ; complément du lot « SDK et OpenTelemetry »
+(`sdk.tcp_listen`, rubrique c) ; complément de la partie « SDK et OpenTelemetry »
 (lectures 113 et 134) :
 
 ```js
@@ -224,7 +267,7 @@ démon dans `tls.cert_file`, rattaché à l'entrée de `mcp.hosts` dont
 certificat }`) ; refus consignés `auth_failed` (`transport: "stdio"`,
 `tls: true`, `reason`). Essais : `test/enregistreur-mcp-tls.test.js`.
 
-Ce que le frontal attend des autres lots, par des crochets facultatifs :
+Ce que le frontal attend des autres parties, par des crochets facultatifs :
 
 - **rédaction (e)** : le `Redacteur` passé au frontal ou, à défaut, celui
   donné au cœur (`Coeur.demarrer({ redaction })`) : `redigerArguments(valeur,
@@ -242,7 +285,7 @@ Ce que le frontal attend des autres lots, par des crochets facultatifs :
   de 14.2 (service indisponible : bloquant pour une écriture et pour
   `coeur.susceptible(nom)`, sinon `policy.failure.approval_service.lecture`).
 
-Changements du cœur faits par ce lot (les plus petits qui complètent le
+Changements du cœur faits par cette partie (les plus petits qui complètent le
 contrat, avec leurs tests dans `test/enregistreur-mcp-exigences.test.js`) :
 
 ```js
@@ -253,7 +296,7 @@ coeur.brancherSante(() => ["serveur:<alias>", …])                             
 `held` (`acquitter.held`, EX-7.19 pas 3) est établi au scellement de la
 décision, dans le même tour que la réclamation de la requête retenue :
 `retient(ticket)` puis `decidee(ticket, evenement)`, appelé aussitôt et non
-attendu ; vrai seulement pour une décision `approuve` retenue (relecture C) ;
+attendu ; vrai seulement pour une décision `approuve` retenue (relecture adversariale des approbations) ;
 le `consommer` du relais attend la fin de l'`acquitter`. Après une
 expiration par le noyau seul, `decidee` est appelé sans être attendu ;
 `etatSante()` ajoute les raisons du frontal sans faire entrer le cœur en mode
@@ -288,6 +331,13 @@ await coeur.scellerEchange({ delegation, code: { model, prompt_version }, intent
   requete, reponse, duration_ms, is_error, context }) → événement `noortrace.modele.echange`
 ```
 
+Étape 8 : `RegistreCorrelation({ attenteMaxMs })` et ligne `correlation_sans_intention` ;
+`MoteurEchanges.sceller` résout l'entrée du registre et rend la place du quota en toute issue (ligne
+`exchange_lost` sur une exception) ; `CaptureReponse.decompArretee` ; `ServeurIcap.arreter()` scelle les
+REQMOD en attente (`genre: "delai"`, `phase: "arret"`) ; `lireCorpsChunked(lecteur, borneLigne, chunkMax)`
+est exporté ; `LecteurOctets.taille` et `tampon` (consolidé) ; `lancerAdaptateur(o)` rend `{ serveur,
+perte, perdue(), arreter }` et prend `o.surPerte` ; `AdaptateurMiroir.connexions` est bornée.
+
 ### Contrat
 
 - `requete`, `reponse` : références des pièces écrites ; `intent` : chaîne ≤
@@ -310,7 +360,7 @@ la référence de chaque pièce publiée et `prompt_version` ; la dérivation de
 pièces depuis la requête et la réponse est au frontal) ;
 `evenements/journal-demo` (seq 2, 4, 8).
 
-### Mise en œuvre (lot « frontal modèle », `src/modele/`)
+### Mise en œuvre (partie « frontal modèle », `src/modele/`)
 
 ```js
 import { demarrerFrontalModele, MoteurEchanges, PasserelleModele, ServeurIcap, RecepteurMiroir,
@@ -401,6 +451,16 @@ await coeur.terminerRelais(relais, { resultat, resultatRedige, argumentsRediges,
 await coeur.scellerPartiel(partiel);
 ```
 
+Étape 8 : `FrontalSdk` exporte `LIGNES_CONNEXION_PAR_SECONDE` et consigne `request_id_too_long`,
+`host_lines_dropped` ; `IngestionOtel.compterRecus(etat, n)` et `IngestionOtel.liberer(etat)` (appelés par
+`ServeurOtel` pendant la lecture du corps et à la fin de la requête) ; `decoderJson` et `decoderProtobuf`
+prennent `bornes.elementsMax` (raison `elements`) ; refus `413` `elements_par_requete`. SDK JavaScript :
+`new ClientNoortrace({ proprietaire })`, `NOORTRACE_SDK_PROPRIETAIRE`, `adresseDeBouclage(hote)`,
+`controlerProprietairePrise(chemin, attendu)` (`src/connexion.mjs`) ; une prise TCP hors de la boucle locale
+sans mTLS est refusée à la construction. SDK Python : `ClientNoortrace(..., proprietaire=)`,
+`ClientNoortraceAsync(..., proprietaire=)`, `Adresse.proprietaire`, `controler_proprietaire_prise`,
+`est_adresse_de_bouclage` (`_commun.py`).
+
 ### Contrat
 
 - `appel.tool_announced` vaut `<alias>__<tool>` (EX-6.6) ; `effetsDeclares`
@@ -412,7 +472,7 @@ await coeur.scellerPartiel(partiel);
 - `fermer` d'une session avec un `debutAppel` d'écriture sans `finAppel` :
   rien à faire ; la relecture du journal d'intention produit l'événement de
   reprise au prochain démarrage (EX-12.15). Une reprise à chaud, sans
-  redémarrage, est à ajouter au cœur par ce lot (même construction :
+  redémarrage, est à ajouter au cœur par cette partie (même construction :
   `partielReprise` de `src/reprise.mjs`).
 - OpenTelemetry : aucun appel à `evaluer`, aucune intention ; les pièces sont
   écrites puis `scellerPartiel` ; la réponse `200` après la résolution de tous
@@ -427,7 +487,7 @@ await coeur.scellerPartiel(partiel);
 `spec/vecteurs/ct-2/otel/*` (non rejoués par le cœur) ;
 `pieces-modele/gemini-sdk-*`.
 
-### Mise en œuvre (lot « SDK et OpenTelemetry », `src/sdk/`, `src/otel/`, `paquets/sdk-js/`)
+### Mise en œuvre (partie « SDK et OpenTelemetry », `src/sdk/`, `src/otel/`, `paquets/sdk-js/`)
 
 ```js
 import { FrontalSdk, ServeurSdk, demarrerSdk, controleSdk, classeSdk,
@@ -475,7 +535,7 @@ ni `evaluer` ni `preparerRelais` : pièces écrites (`ecrirePiece`), puis
 `scellerPartiel(partiel, { priorite: "basse" })`, span par span, réponse `200`
 quand tous sont durables.
 
-Changements du cœur faits par ce lot (les plus petits qui complètent le
+Changements du cœur faits par cette partie (les plus petits qui complètent le
 contrat, avec leurs tests dans `test/enregistreur-sdk-exigences.test.js` et
 `test/enregistreur-otel-exigences.test.js`) :
 
@@ -511,7 +571,7 @@ await coeur.scellerEchange({ …, host })                              // `host`
   frontal modèle (`src/modele/echange.mjs`) lui passe `host: hote.id`, et
   passe `host` et `genre: "echange"` à `mettreEnAttente` ; le frontal MCP
   (`src/mcp/frontal.mjs`, `_mettreEnAttente`) passe `host` et `genre:
-  "appel"` à `mettreEnAttente` : seuls changements de modules d'autres lots,
+  "appel"` à `mettreEnAttente` : seuls changements de modules d'autres parties,
   une ligne chacun.
 - `src/cli.mjs` démarre le point d'entrée SDK et l'ingestion après le
   frontal MCP (échec : `demarrage_refuse : sdk` ou `: otel`, code 2), les
@@ -523,8 +583,8 @@ await coeur.scellerEchange({ …, host })                              // `host`
   `otel.listen` sur un port libre (`127.0.0.1:0`) et, avec `{ sdk: { hosts } }`,
   active le SDK (prise sous le répertoire du test) et `policy.sdk`.
 
-Ce que le lot suivant (SDK Python et adaptateurs de cadres, 6.4, 6.6) trouve
-prêt : le protocole de 6.2 servi tel quel ; `noortrace-sdk/adaptateurs`
+Ce que le SDK Python et les adaptateurs de cadres (6.4, 6.6 ;
+`paquets/sdk-python`) trouvent prêt : le protocole de 6.2 servi tel quel ; `noortrace-sdk/adaptateurs`
 (`FileEchanges`, file bornée d'EX-6.11 (3)) pour les points d'observation des
 adaptateurs JavaScript ; la classe configurée d'un outil du SDK, que le
 schéma v0 ne porte pas (`classeConfigureeSdk` rend `null`, `classeSdk`
@@ -539,12 +599,19 @@ bout).
 ### Signatures
 
 ```js
-// côté démon (fait par ce lot)
-await coeur.evaluer(requete)                 // EX-7.4, EX-7.16 (validerReponseEvaluer)
+// côté démon (fait par cette partie)
+await coeur.evaluer(requete)                 // EX-7.4, EX-7.16 (validerReponseEvaluer : huit membres, politique épinglée, combinaisons)
+validerReponseEvaluer(r, { decisionScellee, observation, versionRequete, politique, versionRetenue })
+//   → { valide: true, combinaison } | { valide: false, raison, detail? } ; raison `politique_non_epinglee` pour une version
+//   non détenue (politique(version) nulle), une empreinte autre que celle de l'ensemble (EX-8.11), un approval_sha256
+//   autre que condenseApproval(politique(version).approval) (addendum), ou une version qui n'est ni versionRequete
+//   (ticket nul ou nouveau) ni versionRetenue(ticket) (ticket rapproché)
+condenseApproval(approval) → hex 32 octets | null   // SHA-256 du JCS de approval sans service (CT-3 §12.2 addendum, EX-7.15, EX-7.16)
+coeur.chargerEtat → { version, statut: "en_cours" | "reussi" | "refuse", code } | null  // EX-7.15 : rien n'est évalué hors statut reussi
 await coeur.traiterRemises({ wait_ms })      // message decisions + EX-7.19 pour chaque remise
 await coeur.traiterRemise(remise, { held? })  // SG-1 à SG-7 (verifierRemise), décision, acquitter ; held imposé, sinon établi au scellement
 await coeur.expirerTickets()                 // EX-9.4, message expiration (réessayé jusqu'à une réponse)
-// relecture C : remise et expiration d'un même ticket sérialisées (SG-3 revérifiée sous verrou) ;
+// relecture adversariale des approbations : remise et expiration d'un même ticket sérialisées (SG-3 revérifiée sous verrou) ;
 // ouvrir, charger, consommer, expiration réessayés jusqu'au succès (délai croissant ≤ 5 s) ;
 // consommer : CONCURRENCE_CONSOMMER (4) envois à la fois, au redémarrage seulement si approval.at + E court
 ecrivain.signalerPanneStockage(cause)        // panne hors écrivain (fichiers des approbations) : segment fermé, mode « stockage »
@@ -558,6 +625,15 @@ class ServiceApprobation {
 new ClientServiceApprobation({ url, socket, jeton, timeout_ms, peer_user, tailleMax })  // EX-7.14, EX-18.8
 ```
 
+Étape 8 : `defautFormeCharger(reponse)` (`coeur.mjs`) ; `coeur.remisesRefusees` ;
+`coeur._ticketsEnAttenteEtIntentions()` (RL-3) ; un événement mis en attente par `terminerRelais` porte
+`ticketRelais` et le ticket reste dans `relaisEnCours` jusqu'à `viderAttente` ; `PAUSE_REFUS_MIN_MS`,
+`PAUSE_REFUS_MAX_MS` (`politique/moteur.mjs`) ; `ClientServiceApprobation` rend le code `hors_forme` pour un
+code d'erreur hors de CT-3 §12.8 ; `relireSerie(chemin, { tronquer })` et `points.defaut` ;
+`relireSegmentParTranches(octets, options, { tranche, ceder })`, `TRANCHE_RELECTURE` (`segments.mjs`) ;
+`preleverFichierDemande` rend `raison` (`proprietaire`) ; `controlerRepertoireTemporaire(st, euid)`
+(`export-dossier.mjs`) ; `regleDsnProduction(octets)`, `JETON_STATIQUE_MIN_OCTETS` (`configuration.mjs`).
+
 ### Contrat
 
 - Les sept méthodes rendent l'objet de réponse de CT-3 §12, ou lèvent
@@ -570,8 +646,8 @@ new ClientServiceApprobation({ url, socket, jeton, timeout_ms, peer_user, taille
   pour le répertoire de la prise, inscriptible par les autres, EX-18.8,
   `data.raison` ; vérifié avant chaque message, LISEZMOI lecture 150). Un 401, et un 5xx `requete_invalide`, donnent `indisponible`
   (`data.statut`, `data.code`) ; le délai `timeout_ms` borne la durée totale
-  de l'échange (relecture C).
-- Le moteur de politique (lot suivant) décide, d'après la classe, la liste
+  de l'échange (relecture adversariale des approbations).
+- Le moteur de politique (`src/politique/`, « Mise en œuvre » ci-dessous) décide, d'après la classe, la liste
   des candidats (`coeur.susceptible`), la matrice de 14.2 et le mode
   d'attente, ce que le frontal rend ; il ajoute le mode observation
   (EX-7.23 : `validerReponseEvaluer(r, { observation: true })` est prêt ;
@@ -597,7 +673,7 @@ d'approbation »), §14.6, EX-15.4 pas 3 et 6, EX-15.8, EX-18.8 ; CT-3 §7 à
 `spec/vecteurs/ct-3/*` (non rejoués par le cœur) ;
 `pieces-mcp/appels/approbation-*` ; `evenements/journal-demo` (seq 5 à 7).
 
-### Mise en œuvre (lot moteur de politique)
+### Mise en œuvre (partie moteur de politique)
 
 Module `src/politique/` (exporté par `@noortrace/enregistreur`) :
 
@@ -656,7 +732,7 @@ validerConfiguration(octets, { reglesSupplementaires: [controleRedaction, contro
 - **Tic** : `expirerTickets` hors mode dégradé (inchangé) ;
   en mode dégradé, `approval_expired_deferred` une fois par ticket échu.
 
-Changements du cœur faits par ce lot (les plus petits qui complètent le
+Changements du cœur faits par cette partie (les plus petits qui complètent le
 contrat, avec leurs tests dans `test/enregistreur-politique-exigences.test.js`) :
 
 - `coeur.politique` (constructeur) ; `_armerMinuteurs` démarre la boucle du
@@ -720,7 +796,7 @@ validerConfiguration(octets, { reglesSupplementaires: [controleRedaction] })  //
 controleSecretsRedaction(config, secrets) → erreurs                          // pas 4 : clé du coffre, 32 octets
 ```
 
-Changements du cœur faits par ce lot (les plus petits qui complètent le
+Changements du cœur faits par cette partie (les plus petits qui complètent le
 contrat) : `redigerMotif` est attendu (`await`), ce qui laisse le motif
 d'une décision se rédiger dans un fil de calcul ; `terminerRelais` emploie
 `redaction.evaluerEffets` s'il existe (l'exécution des `extract` sort du fil
@@ -804,20 +880,20 @@ class MagasinBail {
   segment fermé (`nature: "segment"`), à chaque clôture pour le manifeste,
   sa signature et la série des points (`manifeste`, `signature`, `points`).
   Le registre des copies (EX-12.29), le contrôle du verrou (EX-12.33), le
-  relevé (EX-17.6), le gel (12.11) et `copy_pieces` sont au lot WORM ; une
+  relevé (EX-17.6), le gel (12.11) et `copy_pieces` sont à la partie WORM ; une
   copie en échec est consignée (`worm_copy_failed`).
 - `acquerir` rend une époque strictement croissante (EX-13.4) ; l'écrivain
   vérifie `valide()` avant chaque fdatasync et chaque signature (EX-13.6) et
   appelle `verifierApresEcriture()` après chaque fdatasync (EX-13.10 (2)) ;
   un bail perdu met le cœur en mode dégradé « bail » : il ne reprend
-  qu'après un redémarrage (relecture d'EX-12.10, EX-13.6). Ce lot fournit le
+  qu'après un redémarrage (relecture d'EX-12.10, EX-13.6). Cette partie fournit le
   magasin `file` d'un seul hôte (`MagasinBailFichier` : `flock(2)` pris et
   tenu par un auxiliaire `flock(1)` d'util-linux qui vit tant que le démon
   vit ; `new MagasinBailFichier(chemin, { programme })` ; LISEZMOI, lecture
   148 ; depuis l'étape 7, `flock --close` exécute directement Node.js,
   `SCRIPT_AUXILIAIRE`, sans `/bin/sh` ni `cat`, lecture 235) ; `postgresql`,
   `etcd`, l'attente du bail (`lease_standby`), la bascule (13.4) et
-  `lease.fencing` sont au lot de haute disponibilité.
+  `lease.fencing` sont à la partie de haute disponibilité.
 
 ### Sections de CT-2 à couvrir
 
@@ -830,7 +906,7 @@ EX-12.41), §13 en entier, EX-17.5 à EX-17.7.
 `evenements/journal-demo/segment.ndjson` (clé de copie de l'exemple
 d'EX-12.29).
 
-### Mise en œuvre (lot WORM et haute disponibilité, `src/worm/`, `src/ha/`)
+### Mise en œuvre (partie WORM et haute disponibilité, `src/worm/`, `src/ha/`)
 
 ```js
 import { supportWormDepuisConfiguration, magasinBailDepuisConfiguration, principalCtl,
@@ -840,7 +916,7 @@ const worm = supportWormDepuisConfiguration(config, secrets);   // ServiceCopies
 const coeur = await Coeur.demarrer({ config, secrets, worm, attendreBail: true, surAttente, ... });
 // bail : magasinBailDepuisConfiguration(config, secrets) (file, postgresql, etcd), créé par le cœur s'il n'est pas fourni
 await coeur.demarrage;           // avec attendreBail : la promesse se résout à la prise du bail
-await principalCtl(["worm", "gel", "poser", ...]);   // bin/noortrace-ctl ; aussi demander-levee, lever, reprendre, etat, et worm releve
+await principalCtl(["worm", "gel", "poser", ...]);   // bin/noortrace-ctl ; aussi demander-levee, lever, reprendre, etat, liste (étape 8), et worm releve
 await principalCtl(["worm", "reconstruire", "--configuration", f, "--vers", rep]);   // EX-12.17, chemin B de CT-8 ; et worm restaurer <clé> --version <id>
 await reconstruireJournal({ config, operations, destination, registre, clePublique });  // synthèse { fichiers, last_seq, last_hash, epoque_max, perdus, ... } ou ErreurRestauration
 // clePublique(keyId) : clé initiale du journal (défaut : signataire de classe D de la configuration ;
@@ -874,6 +950,45 @@ registre des gels, relevé) ; manifeste, signature, continuité, signataire et
 relecture quotidienne des segments fermés sont faits par le cœur, avec ou
 sans WORM (`coeur.controles`, rubrique h).
 
+Étape 8 (revue de sécurité interne) : `lecture-gels.mjs` exporte
+`classerVersionsGels(versions, prefixeGels)`, `versionOriginale(versions)`,
+`validerEnregistrementGel(o)`, `decoderEnregistrementGel(corps)`,
+`lireEnregistrementsGel(operations, enregistrements)` et
+`lireListeObjetsGel(operations, objects, versionsListe, f)` : lecture du
+registre des gels par toutes les versions, version originale, schéma
+`worm-v0` (`IDS.worm`, embarqué dans `schemas/`) ; `lireRegistreGels` rend
+aussi `inattendues` et `raison` ; `releverVerrouillage` lève « relevé
+partiel » quand un état n'a pas pu être lu (après avoir tout parcouru) ;
+`verifierGarde`, `prefixeValide`, `etatGel` sont totales (toute entrée est
+classée, rien ne lève) et un gel à suite invalide dès le rang 1 est actif ;
+`SupervisionWorm` consigne toute exception (`integrity_check`, `message`),
+retente une lecture quotidienne ou un relevé en échec une heure plus tard et
+tient `noortrace_worm_last_audit_age_s` dès le premier tour ;
+`AccesS3.envoyer(r, { maxOctets })` et `AccesBearer.envoyer(r, { maxOctets })`
+lèvent `ErreurReponse` (non réessayée) au-delà de la borne
+(`LIMITE_REPONSE_OCTETS`, `LIMITE_OBJET_OCTETS`) ; `listerVersions` lève sur
+une pagination sans progression (`LIMITE_PAGES_LISTE`,
+`LIMITE_VERSIONS_LISTE`) ; `OutilGel.liste()` ; `OutilGel.lireObjets(objects,
+gel_id)` ; `memeEmplacement(a, b)` (`worm/configuration.mjs`) ;
+`passageAttributs(racine, { scelles })`, `lireScelles(racine)`,
+`ecrireScelles(racine, scelles)` et `r.remplaces` ; `Metriques.declarer(nom,
+type, combinaisons)` (sans combinaison : famille déclarée sans série) et
+`declarerCompteursDemon(metriques, config)`, qui déclare aussi chaque
+métrique de `METRIQUES_DEMON` (tables de CT-2 §17.2 et de CT-5 EX-8.15) ;
+`Metriques.exposer(sauf)` et `exposerMetriquesDemon(metriques, texteAncrage)`
+(une ligne `# TYPE` par nom quand le composant d'ancrage déclare les
+siennes) ; `new ControleurHorloge(horloge, reglages, degrade, journal,
+metriques)` (`noortrace_clock_skew_ms`, EX-7.10) ;
+`FrontalMcp.marquerInjoignable(alias)` et `RELECTURE_INJOIGNABLE_MIN_MS`
+(EX-4.18 : relais qui ne joint pas le serveur, relecture à l'expiration du
+`ttlMs`) ;
+`effacerSecrets(map)` (`secrets.mjs`) ; `analyserAuditTransit(texte, o)` et
+`TENTATIVES_MAX` (`rapprochement.mjs`) ; `rapprocher` rend en plus
+`lots_indetermines`, `lectures_cle`, `justifiees_par_journal_exploitation`,
+`signatures_verifiees`, `anomalies` ; `VARIABLES_AUXILIAIRE_ADMISES`
+(`fabrique.mjs`) ; `principalCtl(argv, { operations })` prend des opérations
+du support fournies (essais sans réseau).
+
 Contrat tenu envers l'écrivain : `ServiceCopiesWorm.copier({ cle, chemin,
 nature })` ne rejette jamais ; il consigne lui-même `worm_copy_failed` et
 rend `{ version_id: null }` en échec ; les copies sont sérialisées. Il refuse
@@ -893,12 +1008,12 @@ renouvellement ; une perte (renouvellement refusé, bail échu) consigne
 « bail » ; `verifierApresEcriture()` lit le magasin (EX-13.10 (2)) ; crochet
 `lier(coeur)`.
 
-Changements du cœur faits par ce lot (les plus petits qui complètent le
+Changements du cœur faits par cette partie (les plus petits qui complètent le
 contrat, avec leurs tests dans `test/enregistreur-ha-exigences.test.js` et
 `test/enregistreur-worm-exigences.test.js`) :
 
 - `Coeur.demarrer` : le magasin vient de `magasinBailDepuisConfiguration`
-  (au lieu de « non fourni par ce lot ») et reçoit `lier(coeur)` ; avant
+  (au lieu de « non fourni par cette partie ») et reçoit `lier(coeur)` ; avant
   toute acquisition, la ligne de contrôle de la clé du MAC de relais est
   comparée à celle du dernier fichier `mac-*` (13.4 pas 1) : différence →
   `relay_mac_key_mismatch`, pas de bail (refus, code 2 ; ou attente) ;
@@ -925,7 +1040,7 @@ contrat, avec leurs tests dans `test/enregistreur-ha-exigences.test.js` et
   fichiers du répertoire du journal, tous sous-répertoires à époque compris
   (`verifierEpoqueOuverture`, `epoqueMaxJournal`) ; avant chaque écriture
   (événement, intention, levée, point, clôture, fichier d'attente),
-  `Ecrivain.verifierEcriture(sorte)` (ajout du lot de correction D-1) exige
+  `Ecrivain.verifierEcriture(sorte)` (ajouté par une correction) exige
   le bail valide et aucune époque supérieure présente (`GardeEpoque`) ;
   sinon `lease_lost` (`cause: "epoque_superieure_presente"`), mode dégradé
   « bail », erreur de raison `bail`, et rien n'est écrit ;
@@ -1185,7 +1300,7 @@ cle.effacer()        // classes C et D : clé effacée de la mémoire (arrêt du
   `test/fixtures/ancrage-registre/noeud-factice.mjs` exécute désormais
   `registerRecorder` et `revokeRecorder`.
 
-## h) Corrections de la relecture A (cœur, stockage, bail, WORM, haute disponibilité)
+## h) Corrections de la relecture adversariale du cœur (stockage, bail, WORM, haute disponibilité)
 
 Changements du cœur (tests : `test/enregistreur-coeur-reprise.test.js`,
 `-config`, `-approbations`, `-journal`, `test/enregistreur-worm-restauration.test.js` ;
@@ -1225,17 +1340,17 @@ await principalCtlDemon(["reload" | "clock", "--accept", "--configuration", f]) 
 - `src/cli.mjs` : `peer_user` remis au client du service ; SIGUSR2 →
   `coeur.accepterHorloge()`.
 
-## i) Corrections de la relecture B (frontaux MCP, modèle et SDK)
+## i) Corrections de la relecture adversariale des frontaux (MCP, modèle et SDK)
 
 Changement du cœur (le plus petit qui permet EX-9.7 ; test :
-`test/enregistreur-mcp-exigences.test.js`, cas R-B-12 ; lecture 158) :
+`test/enregistreur-mcp-exigences.test.js`, cas EX-9.7 ; lecture 158) :
 
 ```js
 const desabonner = journal.abonner((ligne) => {}); // JournalExploitation : appelé de façon synchrone pour chaque ligne consignée, erreurs ignorées
 ```
 
 Contrats complétés des frontaux (tests : `test/enregistreur-mcp-exigences.test.js`,
-`-modele-exigences`, `-modele-miroir`, `-sdk-exigences`, blocs « relecture B » ;
+`-modele-exigences`, `-modele-miroir`, `-sdk-exigences`, blocs « relecture adversariale des frontaux » ;
 lectures 157 à 164 et 173) :
 
 ```js
@@ -1280,7 +1395,7 @@ limités par `LimiteurEchecs` (`reason: "jeton_limite"`, EX-18.3).
 
 ## j) Signataires des classes A, B et C (§11)
 
-Lot « signataires » (`src/signataires/`). Chaque backend étend `Signataire`
+Partie « signataires » (`src/signataires/`). Chaque backend étend `Signataire`
 (`clePublique`, `signer`, `sante`, `clesConnues`, `effacer`, EX-11.18) et
 ajoute `localisation(keyId)` (identifiant non secret chez le backend,
 consigné) ; l'enveloppe commune `SignataireVerifie` (borne, délai, seconde
@@ -1296,7 +1411,7 @@ const backend = await signataireDepuisConfiguration(config, secrets, { env, ca }
 // C : envelope + wrap aws-kms | gcp-kms | azure-keyvault | tpm2 (graine de 32 octets en mémoire, effacée à l'arrêt)
 ```
 
-Changements du cœur (les plus petits qui branchent le lot ; tests :
+Changements du cœur (les plus petits qui branchent la partie ; tests :
 `test/enregistreur-signataires-exigences.test.js`, `-parcours`) :
 
 - `Coeur.demarrer` construit le backend par `signataireDepuisConfiguration`
@@ -1313,7 +1428,7 @@ Changements du cœur (les plus petits qui branchent le lot ; tests :
   clé courante, clé `next_key_id` détenue : `tournerCle`, sinon
   `key_rotation_unavailable` une fois ; EX-11.15, lecture 184).
 
-Compléments (reprise du lot) :
+Compléments (reprise de la partie) :
 
 ```js
 import { lireSecretsVault, IdentiteAws, JetonMetadonneesGoogle, rapprocher, principalRapprochement } from "@noortrace/enregistreur";
@@ -1606,3 +1721,86 @@ exécute, verrou pris. L'enfant `flock` du démon et sa ligne de commande
 ### Essais
 
 `test/enregistreur-ctl-etape7.test.js`.
+
+## n) Étape 8 : image attendue et empreinte du code (CT-7 EX-3.14, proposition PA-4)
+
+État : **fait dans le démon (étape 8)** ; CT-2 n'a pas encore adopté PA-4, et
+ni les fichiers Compose de référence ni la note de version ne portent encore
+ce que cette section attend d'eux (LISEZMOI, « À corriger dans CT-2 »).
+
+### Commandes
+
+```text
+noortrace --config <fichier> [--image-attendue <fichier>]
+noortrace empreinte
+```
+
+`noortrace empreinte` imprime une ligne JSON `{ "code_sha256": "0x<64
+hex>", "entries": <nombre de lignes du manifeste hors binaire> }` et rend 0 ;
+un argument en trop : usage, code 2 ; répertoire d'installation ou binaire
+illisible : message sur stderr, code 1. `--image-attendue` : une fois au
+plus, avec une valeur qui ne commence pas par `--` (sinon usage, code 2).
+La ligne de commande du démon ne porte que `--config <fichier>` et
+`--image-attendue <fichier>`, dans un ordre libre : tout autre argument rend
+l'usage et le code 2 (avant l'étape 8, il était ignoré).
+
+### Fichier de l'image attendue
+
+JSON strict (clés uniques), 4096 octets au plus, exactement trois membres :
+
+| Membre | Forme | Sens |
+|---|---|---|
+| `version` | `0` | version de la forme |
+| `image` | `^[a-z0-9][a-z0-9._/:-]{0,255}@sha256:[0-9a-f]{64}$` | référence de l'image publiée, condensé compris ; consignée, jamais vérifiée par le démon |
+| `code_sha256` | `^0x[0-9a-f]{64}$` | empreinte du code que cette image contient, comparée à celle que le démon calcule |
+
+### Signatures (`src/empreinte-image.mjs`, exportées par l'index)
+
+```js
+racineInstallation(paquet = PAQUET_EN_COURS)   // → chemin réel du répertoire d'installation
+empreinteCode({ racine?, executable? })        // → { code_sha256, racine, entrees, manifeste }
+lireImageAttendue(chemin)                      // → { image, code_sha256 }
+controlerImage({ fichier, racine?, executable? })
+// → { image_expected, expected_code_sha256, code_sha256, image_match }
+```
+
+Les trois dernières lèvent `ErreurImageAttendue` (`regle` :
+`fichier_illisible`, `forme_invalide`, `empreinte_impossible`), que le démon
+traduit par `demarrage_refuse : image_attendue : <regle> : <message>`, code 2,
+avant de résoudre un secret et sans rien écrire au journal d'exploitation.
+
+Manifeste (texte UTF-8, une ligne JSON par entrée, LF final) : `["node",
+<SHA-256 du binaire>]`, puis pour tout le répertoire d'installation, triées
+par les octets UTF-8 du chemin relatif : `["f", <chemin>, <SHA-256>]`,
+`["l", <chemin>, <cible du lien, non suivi>]`, `["x", <chemin>]`.
+`code_sha256` est le SHA-256 de ce texte ; chaque SHA-256 s'écrit `0x` suivi
+de 64 chiffres hexadécimaux minuscules. Ni répertoires, ni droits, ni dates.
+
+### Journal d'exploitation
+
+- `startup` (`data`) : trois membres ajoutés, toujours présents :
+  `image_expected` (membre `image` du fichier), `code_sha256` (empreinte
+  calculée), `image_match` (booléen) ; tous trois `null` sans
+  `--image-attendue`.
+- `image_mismatch` (niveau `error`, composant `noyau`), écrite juste après
+  `startup` quand `image_match` n'est pas vrai : `image_expected`,
+  `expected_code_sha256`, `code_sha256`. Le démon démarre et sert.
+
+Aucune métrique n'est ajoutée ; l'extracteur des journaux de CT-8 §10.3
+compte la ligne comme toute autre (`noortrace_journal_lignes_total`), et
+aucune règle d'alerte de référence ne la lit encore.
+
+### Limites
+
+Le démon ne peut pas connaître le condensé de l'image : `image` est une
+valeur déclarée. La comparaison ne couvre que le répertoire d'installation et
+le binaire Node.js ; un fichier de l'image hors de ce répertoire n'est vu que
+par la comparaison du condensé de l'image, faite par l'orchestrateur (CT-7
+EX-3.14, CT-8 EX-3.15). Un code modifié pour mentir sur sa propre empreinte
+n'est pas détecté (risque accepté RA-22 de CT-7). Sans l'option, rien n'est
+calculé.
+
+### Essais
+
+`test/enregistreur-empreinte-image.test.js` ; arbres d'installation d'essai :
+`test/fixtures/enregistreur-adversarial/image.mjs`.

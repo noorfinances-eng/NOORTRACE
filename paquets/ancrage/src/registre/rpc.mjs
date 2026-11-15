@@ -36,12 +36,12 @@ export class ErreurRpc extends Error {
  */
 export function transportHttp({ fetch = globalThis.fetch } = {}) {
   if (typeof fetch !== "function") throw new TypeError("fetch indisponible");
-  return async function envoyer({ url, octets, delaiMs, tailleMax }) {
+  return async function envoyer({ url, octets, delaiMs, tailleMax, entetes = {} }) {
     let reponse;
     try {
       reponse = await fetch(url, {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
+        headers: { "content-type": "application/json", accept: "application/json", ...entetes },
         body: octets,
         signal: AbortSignal.timeout(delaiMs),
         redirect: "error",
@@ -49,24 +49,32 @@ export function transportHttp({ fetch = globalThis.fetch } = {}) {
     } catch (e) {
       throw new ErreurRpc("noeud_injoignable", `${url} : ${e?.name === "TimeoutError" ? "délai dépassé" : "injoignable"}`, url);
     }
-    const lecteur = reponse.body?.getReader?.();
+    // Revue de sécurité de l'étape 8 (CT-4 EX-7.1) : une panne pendant la lecture du corps (connexion coupée, délai, corps hors borne) est une
+    // ErreurRpc de ce point, comme une panne de connexion : un seul point n'arrête jamais les lectures des autres.
     const morceaux = [];
     let total = 0;
-    if (lecteur) {
-      for (;;) {
-        const { done, value } = await lecteur.read();
-        if (done) break;
-        total += value.length;
-        if (total > tailleMax) {
-          await lecteur.cancel().catch(() => {});
-          throw new ErreurRpc("noeud_injoignable", `${url} : réponse au-delà de ${tailleMax} octets`, url);
+    try {
+      const lecteur = reponse.body?.getReader?.();
+      if (lecteur) {
+        for (;;) {
+          const { done, value } = await lecteur.read();
+          if (done) break;
+          total += value.length;
+          if (total > tailleMax) {
+            await lecteur.cancel().catch(() => {});
+            throw new ErreurRpc("noeud_injoignable", `${url} : réponse au-delà de ${tailleMax} octets`, url);
+          }
+          morceaux.push(value);
         }
-        morceaux.push(value);
+      } else {
+        const b = new Uint8Array(await reponse.arrayBuffer());
+        if (b.length > tailleMax) throw new ErreurRpc("noeud_injoignable", `${url} : réponse au-delà de ${tailleMax} octets`, url);
+        morceaux.push(b);
+        total = b.length;
       }
-    } else {
-      const b = new Uint8Array(await reponse.arrayBuffer());
-      if (b.length > tailleMax) throw new ErreurRpc("noeud_injoignable", `${url} : réponse au-delà de ${tailleMax} octets`, url);
-      morceaux.push(b);
+    } catch (e) {
+      if (e instanceof ErreurRpc) throw e;
+      throw new ErreurRpc("noeud_injoignable", `${url} : ${e?.name === "TimeoutError" ? "délai dépassé" : "lecture du corps interrompue"}`, url);
     }
     const corps = new Uint8Array(total);
     let k = 0;
@@ -76,6 +84,38 @@ export function transportHttp({ fetch = globalThis.fetch } = {}) {
     }
     return { status: reponse.status, octets: corps };
   };
+}
+
+/** Hôtes de la boucle locale admis en `http://` en production (CT-4 EX-7.1, OP-2). */
+export const HOTES_LOCAUX = Object.freeze(["127.0.0.1", "::1", "[::1]", "localhost"]);
+
+/**
+ * Règle de production des points JSON-RPC (CT-4 EX-7.1, EX-8.15 ; revue de sécurité de l'étape 8) :
+ * au moins deux points, `https://` ou `http://` vers
+ * la boucle locale seulement, aucun identifiant, aucune chaîne de requête ni
+ * fragment (une adresse entière va dans l'index de capture et l'envoi). Rend
+ * la liste des écarts (vide si conforme) ; `production` faux ne contrôle que
+ * la forme et les identifiants.
+ */
+export function controlerPoints(points, { production = false } = {}) {
+  const ecarts = [];
+  if (!Array.isArray(points) || points.length === 0 || !points.every((p) => typeof p === "string" && /^https?:\/\/[^\s/]+(\/.*)?$/.test(p))) {
+    return ["au moins une adresse http(s) attendue"];
+  }
+  for (const p of points) {
+    if (/\/\/[^/]*@/.test(p)) ecarts.push(`${p} : aucun identifiant dans l'adresse`);
+    let u;
+    try {
+      u = new URL(p);
+    } catch {
+      ecarts.push(`${p} : adresse illisible`);
+      continue;
+    }
+    if (u.search || u.hash || /[?#]/.test(p)) ecarts.push(`${p} : chaîne de requête ou fragment refusés (l'adresse entière est écrite dans l'index de capture, EX-9.3)`);
+    if (production && u.protocol === "http:" && !HOTES_LOCAUX.includes(u.hostname)) ecarts.push(`${p} : en production, http:// vers la boucle locale seulement (CT-4 EX-7.1, OP-2)`);
+  }
+  if (production && new Set(points).size < 2) ecarts.push("en production, au moins deux validateurs d'opérateurs distincts (CT-4 EX-8.15)");
+  return ecarts;
 }
 
 /** Lit une réponse JSON-RPC (octets) : `{ json, erreur, resultat }` ; lève `ErreurRpc` si ce n'est pas du JSON-RPC. */
@@ -113,22 +153,27 @@ export class ClientRpc {
   #tailleMax;
   #identifiants;
   #compteur;
+  #entetes;
 
   /**
-   * @param {{points: string[], transport?: Function, delaiMs?: number, tailleMax?: number, identifiants?: Record<string,string>}} options
-   *   `identifiants` : identifiant de validateur déclaré derrière chaque point (`node.validator_id` de l'index).
+   * @param {{points: string[], transport?: Function, delaiMs?: number, tailleMax?: number, identifiants?: Record<string,string>,
+   *   profil?: string, jeton?: string|null}} options
+   *   `identifiants` : identifiant de validateur déclaré derrière chaque point (`node.validator_id` de l'index) ;
+   *   `profil` : `production` applique la règle de production de `controlerPoints` ;
+   *   `jeton` : jeton porteur envoyé en en-tête `Authorization: Bearer` à chaque point (CT-4 EX-7.1), tenu en mémoire
+   *   seulement, jamais écrit dans un envoi, un index ni une ligne de journal.
    */
-  constructor({ points, transport = null, delaiMs = 10000, tailleMax = TAILLE_REPONSE_MAX, identifiants = {} }) {
-    if (!Array.isArray(points) || points.length === 0 || !points.every((p) => typeof p === "string" && /^https?:\/\/[^\s/]+(\/.*)?$/.test(p))) {
-      throw new TypeError("points JSON-RPC : au moins une adresse http(s) attendue");
-    }
-    for (const p of points) if (/\/\/[^/]*@/.test(p)) throw new TypeError("point JSON-RPC : aucun identifiant dans l'adresse");
+  constructor({ points, transport = null, delaiMs = 10000, tailleMax = TAILLE_REPONSE_MAX, identifiants = {}, profil = "developpement", jeton = null }) {
+    const ecarts = controlerPoints(points, { production: profil === "production" });
+    if (ecarts.length) throw new TypeError(`points JSON-RPC : ${ecarts.join(" ; ")}`);
+    if (jeton !== null && (typeof jeton !== "string" || jeton.length < 16 || jeton.length > 4096 || /[\r\n\s]/.test(jeton))) throw new TypeError("jeton JSON-RPC : chaîne de 16 à 4096 caractères sans espace attendue");
     this.#points = [...points];
     this.#transport = transport ?? transportHttp();
     this.#delaiMs = delaiMs;
     this.#tailleMax = tailleMax;
     this.#identifiants = { ...identifiants };
     this.#compteur = 0;
+    this.#entetes = jeton === null ? {} : { authorization: `Bearer ${jeton}` };
   }
 
   /** Les points, dans l'ordre. */
@@ -153,7 +198,7 @@ export class ClientRpc {
    */
   async appeler(methode, params = [], { point = this.#points[0], id = ++this.#compteur } = {}) {
     const requete = ClientRpc.requete(methode, params, id);
-    const { status, octets } = await this.#transport({ url: point, octets: requete, delaiMs: this.#delaiMs, tailleMax: this.#tailleMax });
+    const { status, octets } = await this.#transport({ url: point, octets: requete, delaiMs: this.#delaiMs, tailleMax: this.#tailleMax, entetes: this.#entetes });
     if (status !== 200) throw new ErreurRpc("noeud_injoignable", `${point} : HTTP ${status}`, point);
     const lue = lireReponseRpc(octets, point, id);
     return { point, octets, ...lue };
@@ -169,7 +214,7 @@ export class ClientRpc {
     const sorties = [];
     for (const point of this.#points) {
       try {
-        const { status, octets } = await this.#transport({ url: point, octets: requete, delaiMs: this.#delaiMs, tailleMax: this.#tailleMax });
+        const { status, octets } = await this.#transport({ url: point, octets: requete, delaiMs: this.#delaiMs, tailleMax: this.#tailleMax, entetes: this.#entetes });
         if (status !== 200) throw new ErreurRpc("noeud_injoignable", `${point} : HTTP ${status}`, point);
         sorties.push({ point, octets, ...lireReponseRpc(octets, point, id) });
       } catch (e) {

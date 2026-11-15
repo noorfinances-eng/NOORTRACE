@@ -128,16 +128,36 @@ func VerifierVecteurs(racine string) *Rapport {
 		}
 		c.Schemas[n] = s
 	}
-	FamilleDisposition(c)
-	FamilleCoefficients(c)
-	FamilleDimensionnement(c)
-	FamilleControle(c)
-	FamillePaquets(c)
-	FamilleConteneurs(c)
-	FamilleObservation(c)
-	FamilleJournaux(c)
-	FamilleConsultations(c)
-	FamilleProcesVerbaux(c)
-	FamilleSupervision(c)
+	for _, fam := range []struct {
+		nom string
+		f   func(*Contexte)
+	}{
+		{"disposition", FamilleDisposition},
+		{"coefficients", FamilleCoefficients},
+		{"dimensionnement", FamilleDimensionnement},
+		{"controle-prealable", FamilleControle},
+		{"paquets", FamillePaquets},
+		{"conteneurs", FamilleConteneurs},
+		{"observation", FamilleObservation},
+		{"journaux", FamilleJournaux},
+		{"consultations", FamilleConsultations},
+		{"proces-verbaux", FamilleProcesVerbaux},
+		{"supervision", FamilleSupervision},
+	} {
+		protegerFamille(rap, fam.nom, func() { fam.f(c) })
+	}
 	return rap
+}
+
+// protegerFamille exécute une famille ; une panne (entrée absente que la
+// famille n'aurait pas gardée, par exemple) devient une erreur consignée,
+// les autres familles sont confrontées, le rapport est imprimé et le code
+// est 1, jamais une trace de pile au code 2 (revue de sécurité de l'étape 8).
+func protegerFamille(rap *Rapport, nom string, f func()) {
+	defer func() {
+		if x := recover(); x != nil {
+			rap.Erreur("famille %s : panne interne (%v) ; famille non confrontée en entier", nom, x)
+		}
+	}()
+	f()
 }

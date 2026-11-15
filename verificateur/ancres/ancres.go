@@ -183,7 +183,7 @@ func Lire(chemin string, der ControleurDER) (*Ancres, *Defaut) {
 // AnalyserAncres applique N-1 aux octets d'un fichier d'ancres déjà lu
 // dans sa limite (cible de fuzzing, EX-15.3).
 func AnalyserAncres(octets []byte, der ControleurDER) (*Ancres, *Defaut) {
-	v, err := jsonv.Analyser(octets)
+	v, err := jsonv.AnalyserLimite(octets, entree.LimiteAncres)
 	if err != nil {
 		return nil, defautN1("ce n'est pas du JSON ("+err.Error()+")", "not JSON ("+err.Error()+")")
 	}
@@ -258,9 +258,11 @@ func AnalyserAncres(octets []byte, der ControleurDER) (*Ancres, *Defaut) {
 		if d != nil {
 			return nil, d
 		}
-		if _, err := x509.ParseRevocationList(b); err != nil {
-			return nil, defautN1(ptr+" : CRL illisible ("+err.Error()+")", ptr+": unreadable CRL ("+err.Error()+")")
-		}
+		// La CRL est lue par le seul lecteur du profil de CT-6 §9.3 (paquet
+		// horodatage), qui ne contrôle pas la forme minimale des INTEGER
+		// (EX-9.6) ; crypto/x509, qui refuse un numéro de série non minimal
+		// (« malformed serial number »), rendait le fichier d'ancres entier
+		// inutilisable pour une CRL conforme au texte (revue de sécurité de l'étape 8).
 		if der != nil {
 			if err := der.CRL(b); err != nil {
 				return nil, defautN1(ptr+" : "+err.Error(), ptr+": "+err.Error())
@@ -519,7 +521,7 @@ func LireEntetes(chemin string) (*Entetes, *Defaut) {
 // AnalyserEntetes applique N-2 aux octets d'un fichier d'en-têtes déjà lu
 // dans sa limite (cible de fuzzing, EX-15.3).
 func AnalyserEntetes(octets []byte) (*Entetes, *Defaut) {
-	v, err := jsonv.Analyser(octets)
+	v, err := jsonv.AnalyserLimite(octets, entree.LimiteEntetes)
 	if err != nil {
 		return nil, defautN2("entree_illisible", "ce n'est pas du JSON ("+err.Error()+")", "not JSON ("+err.Error()+")")
 	}
@@ -574,6 +576,19 @@ type EntreeN3 struct {
 	// Signataires : key_id qui signent un événement du dossier, le
 	// manifeste, ou le point de contrôle du journal quand K-1 a réussi.
 	Signataires []string
+	// Employees : clés employées par le verdict (événement prouvé,
+	// manifeste, point quand K-1 a réussi) : chacune doit être comparée et
+	// égale pour que N-3 réussisse (EX-12.4, révision 0.9).
+	Employees []string
+}
+
+func dansListe(l []string, s string) bool {
+	for _, x := range l {
+		if x == s {
+			return true
+		}
+	}
+	return false
 }
 
 // VerifierN3 applique EX-12.4 et EX-12.6.
@@ -626,19 +641,37 @@ func (a *Ancres) VerifierN3(e EntreeN3) ResultatN3 {
 			}
 		}
 	}
+	// EX-12.4 (révision 0.9) : chaque clé employée par le verdict est comparée
+	// et égale, sinon N-3 est non exécutée (ancre_absente) et le contrôle 6
+	// avec elle ; anchors_used ne liste que les ancres des clés employées.
+	var nonComparees, pointeursEmployes []string
+	for _, kid := range e.Employees {
+		if !dansListe(egales, kid) && !dansListe(differentes, kid) && !dansListe(nonComparees, kid) {
+			nonComparees = append(nonComparees, kid)
+		}
+	}
+	for i, kid := range egales {
+		if dansListe(e.Employees, kid) {
+			pointeursEmployes = append(pointeursEmployes, pointeursEgaux[i])
+		}
+	}
 	switch {
 	case len(differentes) > 0:
 		r.Verification = commun.Nouvelle("N-3", commun.Echoue, commun.Aucune,
 			commun.T(commun.JoindreListe(differentes, ", ", " et ")+" de cles.json différente(s) de l'ancre ("+strings.Join(pointeursEcartes, ", ")+")",
 				commun.JoindreListe(differentes, ", ", " and ")+" in cles.json differ(s) from the anchor ("+strings.Join(pointeursEcartes, ", ")+")"), 6)
-	case len(egales) > 0:
+	case len(egales) > 0 && len(nonComparees) == 0:
 		for _, k := range egales {
 			r.Confirmees[k] = true
 		}
-		r.Pointeurs = pointeursEgaux
+		r.Pointeurs = pointeursEmployes
 		r.Verification = commun.Nouvelle("N-3", commun.Reussi, commun.Aucune,
 			commun.T(commun.JoindreListe(egales, ", ", " et ")+" de cles.json "+commun.Pluriel(len(egales), "égale à la clé", "égales aux clés")+" de l'ancre ("+strings.Join(pointeursEgaux, ", ")+")",
 				commun.JoindreListe(egales, ", ", " and ")+" in cles.json "+commun.Pluriel(len(egales), "equals the key", "equal the keys")+" of the anchor ("+strings.Join(pointeursEgaux, ", ")+")"), 6)
+	case len(nonComparees) > 0:
+		r.Verification = commun.Nouvelle("N-3", commun.NonExecute, commun.AncreAbsente,
+			commun.T(commun.JoindreListe(nonComparees, ", ", " et ")+", clé(s) employée(s) par le dossier, sans ancre dans les enregistreurs du fichier d'ancres pour ce journal (EX-12.4)",
+				commun.JoindreListe(nonComparees, ", ", " and ")+", key(s) the dossier uses, without anchor among the anchors file's recorders for this journal (EX-12.4)"), 6)
 	default:
 		r.Verification = commun.Nouvelle("N-3", commun.NonExecute, commun.AncreAbsente,
 			commun.T("le fichier d'ancres ne donne aucune clé sous le key_id d'une clé qui signe dans le dossier", "the anchors file gives no key under the key_id of a key that signs in the dossier"), 6)

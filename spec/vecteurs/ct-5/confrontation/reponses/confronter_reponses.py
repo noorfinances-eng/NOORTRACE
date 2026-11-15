@@ -152,6 +152,16 @@ for cas in REPONSES["cases"]:
     comparer("SHA-256 du fichier", i["response_sha256"], sha256_ossl(octets))
     comparer("taille du corps", i["http"]["body_size"], len(octets))
     code, s = ossl(["ts", "-reply", "-in", fichier, "-text"])
+    if e["pki_status"] not in STATUTS:
+        # PKIStatus hors de 0 à 5 (EX-5.10, étape 2 : erreur) : openssl ts refuse de décoder la réponse ; la valeur
+        # du statut est lue par openssl asn1parse (premier INTEGER de PKIStatusInfo), le refus est une limite de l'outil
+        comparer("openssl ts -reply -text refuse la réponse (PKIStatus hors de 0 à 5 : limite de l'outil)", True, code != 0)
+        code_a, a = ossl(["asn1parse", "-inform", "DER", "-in", fichier])
+        m = re.search(r"^\s*\d+:d=2\s+hl=\d+ l=\s*\d+ prim: INTEGER\s+:([0-9A-F]+)$", a, re.M)
+        comparer("PKIStatus lu par openssl asn1parse", e["pki_status"], int(m.group(1), 16) if m else None)
+        comparer("classement de CT-5 : statut_%d, permanente, aucun jeton promu" % e["pki_status"], ("statut_%d" % e["pki_status"], "permanente", None), (e["error_code"], e["class"], e["token"]))
+        LIMITES.append("%s : PKIStatus %d hors de 0 à 5 ; openssl ts -reply refuse la réponse (%s), CT-5 la classe statut_%d (EX-5.10, étape 2)" % (cas["id"], e["pki_status"], verdict(s), e["pki_status"]))
+        continue
     comparer("openssl ts -reply -text : code de retour", 0, code)
     c = champs_reply(s)
     comparer("Status (PKIStatus %d)" % e["pki_status"], STATUTS[e["pki_status"]], c["statut"])

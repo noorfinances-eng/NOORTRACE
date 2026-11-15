@@ -7,7 +7,7 @@
       "file": "valide-gabarit.json",
       "def": "consignation_rejeu",
       "expected": "valid",
-      "reason": "Gabarit de TR-10 : pseudonymes, juge indépendant, matériel avec SHA-256 de gabarit, verdict réussi avec chaque élément présent."
+      "reason": "Gabarit de TR-10 : pseudonymes, participant relecteur interne à l'aveugle (`condition`, `external` faux), juge indépendant, matériel avec SHA-256 de gabarit, verdict réussi avec chaque élément présent."
     },
     {
       "file": "invalide-reussi-element-absent.json",
@@ -38,6 +38,12 @@
       "def": "consignation_rejeu",
       "expected": "invalid",
       "reason": "Aucun matériel remis consigné : refusé (EX-12.2)."
+    },
+    {
+      "file": "invalide-externe-sans-condition.json",
+      "def": "consignation_rejeu",
+      "expected": "invalid",
+      "reason": "Participant déclaré extérieur (`external` vrai) alors que sa condition est `relecteur_interne_a_l_aveugle` : refusé, `external` n'est vrai que pour `personne_exterieure` (EX-12.1, EX-12.4 ; révision 0.10)."
     }
   ]
 }

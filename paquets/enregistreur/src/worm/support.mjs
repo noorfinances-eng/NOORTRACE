@@ -16,12 +16,15 @@
 // 2 s puis 4 s.
 
 import * as R from "./requetes.mjs";
-import { AccesS3, ErreurTransport, identifiantsS3, lirePageVersions, lireStatutGel, lireConfigurationVerrou, codeErreurS3 } from "./s3.mjs";
+import { AccesS3, ErreurTransport, identifiantsS3, lirePageVersions, lireStatutGel, lireConfigurationVerrou, codeErreurS3, LIMITE_OBJET_OCTETS } from "./s3.mjs";
 import { AccesBearer, identifiantsBearer } from "./bearer.mjs";
 
 /** Délais des nouveaux essais d'EX-12.40, ms. */
 export const DELAIS_ESSAIS = Object.freeze([1000, 2000, 4000]);
 const STATUTS_TRANSITOIRES = new Set([500, 502, 503, 504]);
+/** Bornes de la liste des versions (étape 8) : pages et versions gardées en mémoire. */
+export const LIMITE_PAGES_LISTE = 10000;
+export const LIMITE_VERSIONS_LISTE = 5000000;
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -80,7 +83,7 @@ export class OperationsS3 {
   }
 
   _envoyer(r, o = {}) {
-    return avecEssais(() => this.acces.envoyer(r, o), { delais: this.delais, aussi: o.aussi });
+    return avecEssais(() => this.acces.envoyer(r, { hacher: o.hacher, maxOctets: o.maxOctets }), { delais: this.delais, aussi: o.aussi });
   }
 
   /**
@@ -133,19 +136,24 @@ export class OperationsS3 {
     let keyMarker = null;
     let versionIdMarker = null;
     for (let page = 0; ; page++) {
+      if (page >= LIMITE_PAGES_LISTE) throw new Error(`pagination : plus de ${LIMITE_PAGES_LISTE} pages`);
       const r = await this._envoyer(R.requeteS3Liste({ prefix: prefixe, keyMarker, versionIdMarker }));
       if (r.statut !== 200) return { statut: r.statut, page, versions, code: codeErreurS3(r.corps) };
       const p = lirePageVersions(r.corps);
       versions.push(...p.versions);
+      if (versions.length > LIMITE_VERSIONS_LISTE) throw new Error(`liste des versions : plus de ${LIMITE_VERSIONS_LISTE} versions`);
       if (!p.tronquee) return { statut: 200, page, versions, code: null };
+      // Le marqueur avance strictement (clé croissante, ou même clé et autre version) ; sinon la liste ne finit pas.
+      const avance = p.keyMarker !== null && (keyMarker === null || p.keyMarker > keyMarker || (p.keyMarker === keyMarker && p.versionIdMarker !== null && p.versionIdMarker !== versionIdMarker));
+      if (!avance) throw new Error("pagination : page tronquée sans marqueur, ou marqueur qui n'avance pas");
       keyMarker = p.keyMarker;
       versionIdMarker = p.versionIdMarker;
     }
   }
 
-  /** Lit un objet (une version, ou la version courante). */
+  /** Lit un objet (une version, ou la version courante) ; corps borné à `LIMITE_OBJET_OCTETS`. */
   async lire(cle, versionId = null) {
-    const r = await this._envoyer(R.requeteS3Lire(cle, versionId));
+    const r = await this._envoyer(R.requeteS3Lire(cle, versionId), { maxOctets: LIMITE_OBJET_OCTETS });
     return { statut: r.statut, corps: r.corps, version_id: r.entetes["x-amz-version-id"] ?? null, last_modified: r.entetes["last-modified"] ?? null };
   }
 

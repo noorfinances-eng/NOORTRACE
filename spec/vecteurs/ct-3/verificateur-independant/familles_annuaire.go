@@ -399,8 +399,10 @@ func familleAnnuaire(c *Contexte) {
 				}
 				c.R.Comparer(f, id, "reason", Compact(exp.Get("reason")), Compact(nulOuChaine(raison)),
 					"CT-3 EX-12.14 (ordre des refus de tickets et consulter), EX-12.16, EX-12.19 (identite_invalide d'abord ; ordre face à ticket_inconnu)")
-				if m == "tickets" {
-					c.R.Exiger(f, id, "ticket nul pour tickets", cas.Get("ticket").IsNull(), "non nul", "CT-3 $defs/fichier_controles_canal")
+				if rel := req.Get("related_to"); m == "tickets" && (rel == nil || rel.IsNull()) {
+					// Table d'EX-13.32 (révision 0.8) : ticket nul pour tickets
+					// sans related_to ; avec related_to, c'est le ticket désigné.
+					c.R.Exiger(f, id, "ticket nul pour tickets sans related_to", cas.Get("ticket").IsNull(), "non nul", "CT-3 $defs/fichier_controles_canal, EX-13.32")
 				}
 				r := raison
 				if r == "" {

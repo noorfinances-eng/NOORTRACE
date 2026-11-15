@@ -26,7 +26,7 @@ export const TI = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Aucun exportateur n'existe ; le registre GenAI courant n'a aucune version publiée (R11-F40) : la version à épingler est fixée par la révision de CT-2 EX-6.25 (proposition PD- de CT-9)."
+      "blocking": "Retrait motivé : aucun exportateur n'existe ; le registre GenAI courant n'a aucune version publiée (R11-F40) et la version à épingler attend la révision de CT-2 EX-6.25 (PD-4) ; l'outil de l'oracle (weaver registry live-check) n'est ni dans le dépôt ni dans l'environnement de construction ; aucune ligne de la section 14 ne lit cette entrée ; reprise quand le registre aura une version publiée."
     },
     "threats": []
   },
@@ -50,7 +50,7 @@ export const TI = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Aucun exportateur ; projet individuel non adopté par l'IETF (R11-F46)."
+      "blocking": "Retrait motivé : aucun exportateur ; projet individuel non adopté par l'IETF (R11-F46), sans implémentation publique : l'oracle nomme un vérificateur du projet qui n'existe pas, et en écrire un ne serait pas un vérificateur du projet ; aucune ligne de la section 14 ne lit cette entrée ; reprise si le projet est adopté et qu'un vérificateur existe."
     },
     "threats": []
   },
@@ -171,9 +171,13 @@ export const TI = [
     ],
     "oracle": "Un événement par appel et par échange, accepté par le vérificateur (code 0) ; pièces égales aux octets vus par l'hôte ; aucune connexion de l'hôte vers le serveur d'outils ni vers le fournisseur hors de l'enregistreur ; aucune clé réelle.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Passerelle non construite (étape 4) ; fichiers d'intégration marqués « à tester en phase 2 » (CT-2 §19)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/integrations.test.js",
+          "describe": "TI-4 — Intégration Anthropic : SDK officiel avec ANTHROPIC_BASE_URL vers la passerelle (hors flux et flux)"
+        }
+      ]
     },
     "threats": []
   },
@@ -204,9 +208,13 @@ export const TI = [
     ],
     "oracle": "Un événement par appel et par échange, accepté par le vérificateur (code 0) ; pièces égales aux octets vus par l'hôte ; aucune connexion de l'hôte vers le serveur d'outils ni vers le fournisseur hors de l'enregistreur ; aucune clé réelle.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Passerelle non construite."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/integrations.test.js",
+          "describe": "TI-5 — Intégration OpenAI : Chat Completions et Responses par le SDK officiel vers la passerelle"
+        }
+      ]
     },
     "threats": []
   },
@@ -236,9 +244,13 @@ export const TI = [
     ],
     "oracle": "Un événement par appel et par échange, accepté par le vérificateur (code 0) ; pièces égales aux octets vus par l'hôte ; aucune connexion de l'hôte vers le serveur d'outils ni vers le fournisseur hors de l'enregistreur ; aucune clé réelle.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Passerelle non construite ; la confrontation `ct-2/confrontation/gemini/` n'exerce que les octets des vecteurs."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/integrations.test.js",
+          "describe": "TI-6 — Intégration Gemini : google-genai vers la passerelle (route gemini, x-goog-api-key)"
+        }
+      ]
     },
     "threats": []
   },
@@ -276,9 +288,13 @@ export const TI = [
     ],
     "oracle": "Un événement par appel et par échange, accepté par le vérificateur (code 0) ; pièces égales aux octets vus par l'hôte ; aucune connexion de l'hôte vers le serveur d'outils ni vers le fournisseur hors de l'enregistreur ; aucune clé réelle.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "SDK Python et adaptateurs non construits (étape 4)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/integrations.test.js",
+          "describe": "TI-7 — Intégration LangChain et LangGraph : intergiciel MiddlewareNoortrace, wrap_tool_call"
+        }
+      ]
     },
     "threats": []
   },
@@ -304,9 +320,13 @@ export const TI = [
     ],
     "oracle": "Un événement par appel et par échange, accepté par le vérificateur (code 0) ; pièces égales aux octets vus par l'hôte ; aucune connexion de l'hôte vers le serveur d'outils ni vers le fournisseur hors de l'enregistreur ; aucune clé réelle.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Adaptateur non construit ; CrewAI avale les exceptions des crochets (CT-2 EX-6.21) : l'oracle exige le refus avant l'outil, jamais une exception."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/integrations.test.js",
+          "describe": "TI-8 — Intégration CrewAI : crochets before_tool_call et after_tool_call enregistrés en dernier"
+        }
+      ]
     },
     "threats": []
   },
@@ -333,9 +353,13 @@ export const TI = [
     ],
     "oracle": "Un événement par appel et par échange, accepté par le vérificateur (code 0) ; pièces égales aux octets vus par l'hôte ; aucune connexion de l'hôte vers le serveur d'outils ni vers le fournisseur hors de l'enregistreur ; aucune clé réelle.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Adaptateur non construit."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/integrations.test.js",
+          "describe": "TI-9 — Intégration LlamaIndex : enveloppe de chaque outil"
+        }
+      ]
     },
     "threats": []
   },
@@ -362,9 +386,13 @@ export const TI = [
     ],
     "oracle": "Un événement par appel et par échange, accepté par le vérificateur (code 0) ; pièces égales aux octets vus par l'hôte ; aucune connexion de l'hôte vers le serveur d'outils ni vers le fournisseur hors de l'enregistreur ; aucune clé réelle.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Adaptateur et passerelle non construits."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/integrations.test.js",
+          "describe": "TI-10 — Intégration LiteLLM : CustomLogger en bibliothèque et LiteLLM en mandataire devant la passerelle"
+        }
+      ]
     },
     "threats": []
   },
@@ -391,9 +419,13 @@ export const TI = [
     ],
     "oracle": "Événements déclaratifs de rang CT-2 §6.7 acceptés par le vérificateur ; doublon signalé ; 413 et 401 exacts ; formes normalisées égales à celles que `otel/` des vecteurs donne pour les mêmes octets.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Point d'entrée OTLP non construit ; `otel.mjs` et les 48 cas des vecteurs (TV-) couvrent la bibliothèque seule."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/integrations.test.js",
+          "describe": "TI-11 — Intégration OpenTelemetry : agent instrumenté par un SDK OpenTelemetry vers le point d'entrée OTLP de l'enregistreur"
+        }
+      ]
     },
     "threats": [
       "MN-15",
@@ -571,7 +603,7 @@ export const TI = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Rattaché à la porte 2 (étape 8) : comptes réels chez les fournisseurs WORM (S3, Azure, GCS) et leurs journaux d'accès, hors de l'environnement de construction, dont les essais ne joignent aucun réseau public ; le banc de l'étape 7 emploie un simulateur S3 à verrouillage d'objets, qui n'applique pas les politiques IAM."
+      "blocking": "Rattaché à la porte 2 (étape 8) : aucune ligne de la section 14 ne lit cette entrée ; rattachement gardé par décision du plan du 13 novembre 2026 (point 6) ; vrais supports WORM (S3, Azure, GCS) et leurs journaux d'accès : comptes réels, hors de l'environnement de construction ; l'étape 8 l'éprouve sur un simulateur local à verrouillage d'objets, dont les essais ne joignent aucun réseau public ; le banc de l'étape 7 emploie un simulateur S3 à verrouillage d'objets, qui n'applique pas les politiques IAM."
     },
     "threats": [
       "MN-27",
@@ -648,7 +680,7 @@ export const TI = [
       ],
       "complement": {
         "phase2_step": 8,
-        "blocking": "Prestataire qualifié réel : les autorités publiques éprouvées ne sont pas déclarées `qualified`, et la relève par le secours est éprouvée sur des serveurs internes déclarés qualifiés par un instantané d'exemple ; la fiche d'un prestataire qualifié réel (CT-5 EX-5.9, `qualified` non nul) et sa relève par un secours qualifié réel attendent le prestataire à contracter pour la porte 2 (section 14, ligne 10 et ligne d'arrêt 4), étape 8."
+        "blocking": "Retrait motivé : prestataire qualifié réel — aucune autorité d'horodatage qualifiée n'est contractée et aucun devis n'est demandé (décision du plan du 2 novembre 2026), et la porte 2 n'a aucun critère de prestataire (section 14) ; les autorités publiques éprouvées ne sont pas déclarées `qualified`, et la relève par le secours est éprouvée sur des serveurs internes déclarés qualifiés par un instantané d'exemple ; la fiche d'un prestataire qualifié réel (CT-5 EX-5.9, `qualified` non nul) et sa relève par un secours qualifié réel ne sont éprouvées sur aucun prestataire qualifié réel. Ce que la campagne nommée de l'étape 8 vers deux autorités publiques sans compte et la lecture des listes de confiance officielles établissent (décision du plan du 13 novembre 2026, point 5) s'écrit ici : la campagne n'est pas jouée à cette livraison."
       }
     },
     "threats": [
@@ -695,44 +727,44 @@ export const TI = [
       "tests": [
         {
           "file": "test/enregistreur-ancrage-exigences.test.js",
-          "describe": "enregistreur + ancrage (lot F2), TI-17 : serveur RFC 3161 interne du lot E éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)"
+          "describe": "enregistreur + ancrage, TI-17 : serveur RFC 3161 interne éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)"
         },
         {
           "file": "test/enregistreur-ancrage-parcours.test.js",
-          "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
+          "describe": "enregistreur + ancrage, TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
           "it": "TI-17 sur les jetons reçus du serveur interne : AN-22 (T-8), AN-24 (accuracy ≤ 1 s, TM-19), AN-25 (nonce recopié), AN-26 (numéros de série strictement croissants, TM-18 : 0 paire non croissante), AN-29 (politique privée), AN-30 (certificat de l'unité inclus) ; AN-28 : une ligne d'acquisition par jeton reçu"
         },
         {
           "file": "test/ancrage-tsa-interne-autorite.test.js",
-          "describe": "ancrage lot E — initialiserAutorite (AN-22, AN-31) : RSA 3072 et P-256"
+          "describe": "ancrage, serveur RFC 3161 interne — initialiserAutorite (AN-22, AN-31) : RSA 3072 et P-256"
         },
         {
           "file": "test/ancrage-tsa-interne-autorite.test.js",
-          "describe": "ancrage lot E — classe Autorite : contrôles à la construction (AN-22, AN-30, AN-31 ; CT-6 EX-9.23)"
+          "describe": "ancrage, serveur RFC 3161 interne — classe Autorite : contrôles à la construction (AN-22, AN-30, AN-31 ; CT-6 EX-9.23)"
         },
         {
           "file": "test/ancrage-tsa-interne-reponse.test.js",
-          "describe": "ancrage lot E — réponses granted : six requêtes des vecteurs CT-5, autorité de test de CT-6"
+          "describe": "ancrage, serveur RFC 3161 interne — réponses granted : six requêtes des vecteurs CT-5, autorité de test de CT-6"
         },
         {
           "file": "test/ancrage-tsa-interne-reponse.test.js",
-          "describe": "ancrage lot E — refus (PKIStatus 2, failInfo nommé, aucun jeton)"
+          "describe": "ancrage, serveur RFC 3161 interne — refus (PKIStatus 2, failInfo nommé, aucun jeton)"
         },
         {
           "file": "test/ancrage-tsa-interne-reponse.test.js",
-          "describe": "ancrage lot E — numéros de série (AN-26) : croissance stricte, durabilité, émetteur unique"
+          "describe": "ancrage, serveur RFC 3161 interne — numéros de série (AN-26) : croissance stricte, durabilité, émetteur unique"
         },
         {
           "file": "test/ancrage-tsa-interne-serveur.test.js",
-          "describe": "ancrage lot E — serveur HTTP en clair sur une adresse locale (AN-27)"
+          "describe": "ancrage, serveur RFC 3161 interne — serveur HTTP en clair sur une adresse locale (AN-27)"
         },
         {
           "file": "test/ancrage-tsa-interne-serveur.test.js",
-          "describe": "ancrage lot E — serveur TLS avec authentification du client (AN-27)"
+          "describe": "ancrage, serveur RFC 3161 interne — serveur TLS avec authentification du client (AN-27)"
         },
         {
           "file": "test/ancrage-tsa-interne-serveur.test.js",
-          "describe": "ancrage lot E — binaire noortrace-tsa-interne (init, servir, crl)"
+          "describe": "ancrage, serveur RFC 3161 interne — binaire noortrace-tsa-interne (init, servir, crl)"
         }
       ]
     },
@@ -902,7 +934,8 @@ export const TI = [
       "CT-3 EX-13.39",
       "CT-3 EX-13.40",
       "CT-3 EX-13.41",
-      "CT-3 EX-13.42"
+      "CT-3 EX-13.42",
+      "CT-3 EX-A.21"
     ],
     "preconditions": [
       "Service d'approbation de la révision 0.5 (TE-19) avec `notifications` ; récepteur de webhook de test en HTTPS, d'autorité `notifications.ca`, écrit avec la bibliothèque standard de Python (`hmac.compare_digest` sur HMAC-SHA256), qui répond selon un scénario (2xx, 3xx, 408, 429, 5xx, silence)."
@@ -921,6 +954,10 @@ export const TI = [
         {
           "file": "test/approbation-service-notifications.test.js",
           "describe": "livraison (EX-13.42), sous l'horloge du service"
+        },
+        {
+          "file": "test/approbation-notifications-vecteurs.test.js",
+          "describe": "CT-3 13.19 : vecteurs des notifications (EX-13.40, EX-13.41), famille notifications/ du générateur de ct-3"
         }
       ]
     },

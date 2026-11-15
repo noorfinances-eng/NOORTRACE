@@ -12,6 +12,7 @@ Chaque fichier de famille est conforme à `operations-registre-v0.schema.json#/$
 - `transactions.json` : `input.fields` sont les champs signés (6.7.3), `input.signer_key` la clé (constantes), `input.raw_transaction` la transaction vérifiée, `input.context` le contexte de RG-15 (`objet` : `appel`, `deploiement`, `approvisionnement` ; `remplace` : frais de la transaction remplacée).
 - `manifestes.json` : `input.directory` est le répertoire du cas ; `manifest`, `previous`, `genesis` et les fichiers de preuve désignés par `contracts[].evidence` y sont des chemins relatifs ; `input.registry`, quand il figure, est l'ancre à comparer (RG-20).
 - `capture.json` : `input.directory` contient l'index et les réponses brutes ; `input.validators` désigne le jeu contre lequel CP-4 vérifie le certificat (`test/fixtures/certificat-commit/validators.json`, ou le jeu d'essai de `constantes.json`).
+- `inscription.json` (revue de sécurité de l'étape 8) : OP-4 recalcule la provision `P_k = provision_days × daily_budget_gas + gas_limit` depuis les frais du manifeste (EX-4.19, EX-4.20) et compare `funding.funder` au compte de rôle `tresorerie` ; `input.fees` et `input.treasury`, quand ils figurent, sont ces frais et cette trésorerie ; absents, les frais par défaut de §4.8 s'appliquent et la trésorerie n'est pas comparée (cas `provision-differente`, `budget-au-dela-du-plafond`, `funder-etranger`). Famille `capture` : `cp3-recu-topics-nul` et `cp2-nom-hors-repertoire` éprouvent une réponse capturée hors de sa forme et un nom de fichier hors du répertoire des captures : codes de la table 9.4 seulement, aucun fichier hors du répertoire lu.
 
 ## Constantes (A.2)
 
@@ -351,6 +352,9 @@ Dossiers d'inscription (inscription-client-v0) à toutes les étapes, valides et
 | `administrateur-exploitant` | OP-4 | `echoue` : OP-4 `jeu_invalide` |
 | `slug-lisible-production` | OP-4 | `echoue` : OP-4 `jeu_invalide` |
 | `classe-d-production` | OP-4 | `echoue` : OP-4 `cle_invalide` |
+| `provision-differente` | OP-4 | `echoue` : OP-4 `provision_excessive` |
+| `budget-au-dela-du-plafond` | OP-4 | `echoue` : OP-4 `provision_excessive` |
+| `funder-etranger` | OP-4 | `echoue` : OP-4 `compte_inattendu` |
 
 ## capture/capture.json — famille `capture`
 
@@ -375,5 +379,7 @@ Captures des quatre transactions de la période 1 de la capture de CT-6 et varia
 | `cp5-journal-absent` | CP-2, CP-3, CP-4, CP-5, CP-6 | `echoue` : CP-5 `capture_incomplete` |
 | `cp6-sha256-faux` | CP-2, CP-3, CP-4, CP-5, CP-6 | `echoue` : CP-6 `capture_incomplete` |
 | `cp6-nom-hors-convention` | CP-2, CP-3, CP-4, CP-5, CP-6 | `echoue` : CP-6 `capture_incomplete` |
+| `cp3-recu-topics-nul` | CP-2, CP-3, CP-4, CP-5, CP-6 | `echoue` : CP-3 `capture_incomplete` |
+| `cp2-nom-hors-repertoire` | CP-2, CP-3, CP-4, CP-5, CP-6 | `echoue` : CP-2 `capture_incomplete` |
 | `export-periode-1` | CP-2, CP-3, CP-4, CP-5, CP-6 | `reussi` |
 

@@ -250,8 +250,24 @@ func ControlerSerie(points []*Value, m *Manifeste, journal []*Value, cles *JeuCl
 	}
 	// hashFourni rend le hash recalculé de l'événement seq s, et la raison de
 	// non-évaluation quand il manque ("" sinon).
+	// Les événements fournis sont indexés une fois par seq (le premier de
+	// chaque seq, comme evenementDeSeq) : les règles root et last_hash se
+	// jugent sur eux, jamais en parcourant tree_size numéros de séquence
+	// (tree_size admis jusqu'à 2^53 − 1 par le schéma ; revue de sécurité de
+	// l'étape 8).
+	parSeq := map[int64]*Value{}
+	var seqsFournis []int64
+	for _, ev := range journal {
+		if x, ok := SeqTypee(ev); ok {
+			if _, vu := parSeq[x]; !vu {
+				parSeq[x] = ev
+				seqsFournis = append(seqsFournis, x)
+			}
+		}
+	}
+	sort.Slice(seqsFournis, func(i, j int) bool { return seqsFournis[i] < seqsFournis[j] })
 	hashFourni := func(s int64) ([]byte, string) {
-		ev := evenementDeSeq(journal, s)
+		ev := parSeq[s]
 		if ev == nil {
 			return nil, RaisonNEHorsDossier
 		}
@@ -321,18 +337,28 @@ func ControlerSerie(points []*Value, m *Manifeste, journal []*Value, cles *JeuCl
 			} else {
 				// Un événement manque et un autre est fourni sans forme
 				// canonique : prerequis_en_echec (révision 0.5).
+				// Seuls les événements fournis de la plage first_seq à
+				// first_seq + n − 1 sont parcourus ; s'ils sont moins de n,
+				// l'un manque (piece_hors_dossier), sauf si l'un d'eux ne se
+				// hache pas (prerequis_en_echec).
 				var feuilles [][]byte
 				raison := ""
-				for s := m.FirstSeq; s < m.FirstSeq+p.TreeSize; s++ {
+				fin := m.FirstSeq + p.TreeSize - 1
+				presents := int64(0)
+				for _, s := range seqsFournis {
+					if s < m.FirstSeq || s > fin {
+						continue
+					}
+					presents++
 					h, r := hashFourni(s)
-					switch {
-					case r == RaisonNEPrerequis:
+					if r == RaisonNEPrerequis {
 						raison = r
-					case r == RaisonNEHorsDossier && raison == "":
-						raison = r
-					case r == "":
+					} else {
 						feuilles = append(feuilles, h)
 					}
+				}
+				if raison == "" && presents < p.TreeSize {
+					raison = RaisonNEHorsDossier
 				}
 				if raison != "" {
 					nonEvaluee("root", raison)

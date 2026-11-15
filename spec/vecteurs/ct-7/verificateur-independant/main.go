@@ -18,7 +18,11 @@
 // conformité (MX-1 à MX-3, MX-5, MX-9), modèle de menace (schéma et tables
 // du texte), clés de test. Code de retour 0 si et seulement si tout
 // concorde ; 1 en cas de discordance ou d'erreur ; 2 si l'usage est
-// incorrect ou la racine introuvable.
+// incorrect ou la racine introuvable. Revue de sécurité de l'étape 8
+// (CT-9 TA-66) : une famille sans valeur recalculée, ou un cas que
+// l'INDEX.md nomme sans qu'il soit présent (ou l'inverse), est une erreur,
+// code 1 (plancher.go) ; une panne d'une famille est une erreur consignée,
+// jamais une trace de pile.
 
 package main
 
@@ -54,6 +58,7 @@ func main() {
 		os.Exit(2)
 	}
 	rap := VerifierVecteurs(racine)
+	AppliquerPlancherCT7(rap, racine)
 	if *enJSON {
 		if err := rap.EcrireJSON(os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, err)

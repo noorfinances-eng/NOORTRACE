@@ -1,4 +1,4 @@
-// Lot A du composant d'ancrage : chaque exigence EX- et chaque vérification
+// Client RFC 3161 du composant d'ancrage : chaque exigence EX- et chaque vérification
 // AN- des sections CT-5 §5 (EX-5.1 à EX-5.15, AN-5 à AN-15), §10.2 (EX-10.6,
 // AN-54), §11 (EX-11.4, AN-57) et les règles de CT-6 §9.3 (EX-9.4, EX-9.5,
 // EX-9.21), §9.5 (T-1 à T-10), §15.1, §15.4 réutilisées à l'acquisition,
@@ -241,15 +241,15 @@ describe("ancrage rfc3161 : lecture d'une TimeStampResp (EX-5.10 étape 2, AN-8)
     expect(lireReponse(hex("30 0a 30 08 02 01 02 03 03 00 00 01")).failureInfo).to.equal("unacceptedPolicy");
     expect(lireReponse(hex("30 0e 30 0c 02 01 02 03 07 00 00 00 00 00 00 40")).failureInfo).to.equal("autre", "bit 49 hors de la RFC");
   });
-  it("refus : statut 6, statut 1 sans jeton, rejet avec jeton, corps vide, octets en trop, longueur non minimale", function () {
-    expect(() => lireReponse(hex("30 05 30 03 02 01 06"))).to.throw(ErreurReponse, /hors de 0 à 5/);
+  it("statut hors de 0 à 5 (6, -1) lu sans jeton ni PKIFailureInfo (EX-5.10 étape 2 révisée : statut_<n>) ; refus : statut 1 sans jeton, rejet avec jeton, corps vide, octets en trop, longueur non minimale", function () {
+    expect(lireReponse(hex("30 05 30 03 02 01 06"))).to.include({ status: 6, failureInfo: null, token: null });
     expect(() => lireReponse(hex("30 05 30 03 02 01 01"))).to.throw(ErreurReponse, /sans TimeStampToken/);
     const rejetAvecJeton = encoderTlv(0x30, Buffer.concat([hex("30 03 02 01 02"), Buffer.from(JETON_K2)]));
     expect(() => lireReponse(rejetAvecJeton)).to.throw(ErreurReponse, /rejet avec/);
     expect(() => lireReponse(new Uint8Array(0))).to.throw(ErreurReponse);
     expect(() => lireReponse(Buffer.concat([Buffer.from(GRANTED_K2), Buffer.from([0])]))).to.throw(ErreurReponse, /après la fin/);
     expect(() => lireReponse(hex("30 81 05 30 03 02 01 03"))).to.throw(ErreurReponse, /non minimale/);
-    expect(() => lireReponse(hex("30 05 30 03 02 01 ff"))).to.throw(ErreurReponse);
+    expect(lireReponse(hex("30 05 30 03 02 01 ff"))).to.include({ status: -1, failureInfo: null, token: null });
     expect(() => lireReponse("texte")).to.throw();
   });
 });
@@ -407,7 +407,7 @@ describe("ancrage rfc3161 : classement des erreurs et attente de reprise (EX-5.1
     expect(classerErreur({ code: "http_429", retryAfter: "7", retry })).to.include({ attenteMs: 7000, raisonAttente: "retry_after" });
     const maintenant = Date.parse("2026-11-03T13:53:03Z");
     expect(classerErreur({ code: "http_503", retryAfter: "Tue, 03 Nov 2026 13:54:03 GMT", maintenantMs: maintenant, retry })).to.include({ attenteMs: 60000, raisonAttente: "retry_after" });
-    // EX-8.9 révisée (R-C-1, R-C-3) : un Retry-After passé ou nul vaut le plancher retry.initial_ms, jamais une reprise immédiate.
+    // EX-8.9 révisée : un Retry-After passé ou nul vaut le plancher retry.initial_ms, jamais une reprise immédiate.
     expect(classerErreur({ code: "http_503", retryAfter: "Tue, 03 Nov 2026 13:50:03 GMT", maintenantMs: maintenant, retry })).to.include({ attenteMs: 5000, raisonAttente: "retry_after" });
     expect(classerErreur({ code: "http_503", retryAfter: "demain", retry })).to.include({ attenteMs: 5000, raisonAttente: "backoff" });
     expect(classerErreur({ code: "http_500", retryAfter: 30, retry })).to.include({ attenteMs: 5000, raisonAttente: "backoff" }, "Retry-After n'est suivi que sur 429 et 503 (EX-8.9)");

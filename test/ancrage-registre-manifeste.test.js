@@ -1,4 +1,4 @@
-// Composant d'ancrage, lot D : manifeste d'instance (CT-4 §4.8, §6.8, RG-16 à
+// Composant d'ancrage, registre : manifeste d'instance (CT-4 §4.8, §6.8, RG-16 à
 // RG-20) et ancre `registry` du réviseur dérivée (CT-6 §12.2), rejoués
 // contre la famille `manifestes` de spec/vecteurs/ct-4 (manifestes valides
 // de développement et de production, révisions, refus de RG-16 à RG-20) et
@@ -14,7 +14,7 @@ const RACINE = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..
 const lireJson = (p) => JSON.parse(fs.readFileSync(path.join(RACINE, p), "utf8"));
 const lireOctets = (p) => new Uint8Array(fs.readFileSync(path.join(RACINE, p)));
 
-describe("ancrage, lot D : manifeste d'instance (CT-4 §4.8, RG-16 à RG-20)", function () {
+describe("ancrage, registre : manifeste d'instance (CT-4 §4.8, RG-16 à RG-20)", function () {
   this.timeout(60000);
 
   it("copie embarquée du schéma instance-registre-v0 égale au fichier de spec/schemas ; les quatre contrats exigés", function () {

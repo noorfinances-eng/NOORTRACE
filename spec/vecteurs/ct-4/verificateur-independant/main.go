@@ -6,7 +6,10 @@
 // les vecteurs déclarent, depuis la seule spécification (CT-4, et ce qu'elle
 // cite de CT-1 §10 et de CT-6 §11), et confronte. Code de retour 0 si tout
 // concorde, 1 si une discordance est trouvée (elle est listée), 2 pour un
-// usage incorrect (EX-A.5).
+// usage incorrect (EX-A.5). Revue de sécurité de l'étape 8 (CT-9 TA-66) :
+// une famille sans valeur recalculée ou un cas que l'INDEX.md nomme sans
+// qu'il soit présent (ou l'inverse) est une erreur, code 1 (plancher.go) ;
+// une entrée absente est une erreur consignée, jamais une panique.
 
 package main
 
@@ -34,6 +37,7 @@ func main() {
 		os.Exit(2)
 	}
 	rap := VerifierVecteurs(racine)
+	AppliquerPlancherCT4(rap, racine)
 	if *enJSON {
 		if err := rap.EcrireJSON(os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, err)

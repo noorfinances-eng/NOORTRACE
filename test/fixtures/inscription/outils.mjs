@@ -14,12 +14,16 @@ import { HDNodeWallet } from "ethers";
 import { clePubliqueEd25519, ecrireHorodatage, octetsVersHex, sha256, signerEip191, utf8, hexVersOctets } from "@noortrace/noyau";
 import { remettre } from "../../../paquets/inscription/src/agent/client.mjs";
 import { RACINE, MNEMONIQUE } from "./reseau-essai.mjs";
+import { creerRepertoireTemporaire } from "../../aides/temporaires.mjs";
 
-/** Répertoire temporaire des essais (`NOORTRACE_TMP` ou `os.tmpdir()`), jamais dans le dépôt. */
+/**
+ * Répertoire temporaire des essais (`NOORTRACE_TMP` ou `os.tmpdir()`), jamais dans le dépôt ; libéré à la fin du
+ * fichier d'essai, échec compris (test/aides/temporaires.mjs).
+ */
 export function repertoireTemporaire(prefixe = "noortrace-inscription-") {
   const base = process.env.NOORTRACE_TMP ?? os.tmpdir();
   fs.mkdirSync(base, { recursive: true });
-  return fs.mkdtempSync(path.join(base, prefixe));
+  return creerRepertoireTemporaire(prefixe, base);
 }
 
 /** Compte Hardhat `i` du mnémonique public : `{ adresse, cle }` (clé de test sans valeur, dérivée à l'essai). */
@@ -103,15 +107,44 @@ export function formeSortie(s, { valeursOutputs = false } = {}) {
 
 /** Binaire de l'agent. */
 export const BIN_AGENT = path.join(RACINE, "paquets", "inscription", "bin", "noortrace-inscription-agent");
+/**
+ * Lanceur d'essai de l'agent (`agent-essai.mjs`) : même conduite que le
+ * binaire, par l'API programmatique avec `memeCompteAdmis` (les essais
+ * tournent sous un seul compte ; EX-7.23 exige deux comptes, que le binaire
+ * impose : revue de l'étape 8, CT-4 EX-7.28, `test/inscription-revue.test.js`).
+ */
+export const LANCEUR_AGENT = path.join(RACINE, "test", "fixtures", "inscription", "agent-essai.mjs");
+
+const lanceurs = new Map();
+/**
+ * Lanceur d'essai pour une autre racine du paquet (copie mutante hors du
+ * dépôt, `test/inscription-revue.test.js`) : même texte que `agent-essai.mjs`,
+ * écrit sous `NOORTRACE_TMP`, qui importe l'agent de cette racine.
+ */
+export function lanceurPour(racinePaquet) {
+  if (!racinePaquet) return LANCEUR_AGENT;
+  // Un lanceur écrit pendant un fichier d'essai précédent a été libéré avec ses répertoires temporaires : il est réécrit.
+  if (lanceurs.has(racinePaquet) && fs.existsSync(lanceurs.get(racinePaquet))) return lanceurs.get(racinePaquet);
+  const dir = repertoireTemporaire("noortrace-inscription-lanceur-");
+  const chemin = path.join(dir, "agent-essai.mjs");
+  const index = new URL(`file://${path.join(racinePaquet, "src", "agent", "index.mjs")}`).href;
+  const texte = fs.readFileSync(LANCEUR_AGENT, "utf8").replace('"../../../paquets/inscription/src/agent/index.mjs"', JSON.stringify(index));
+  if (!texte.includes(index)) throw new Error("lanceur d'essai : import de l'agent introuvable");
+  fs.writeFileSync(chemin, texte);
+  lanceurs.set(racinePaquet, chemin);
+  return chemin;
+}
 
 /**
- * Lance le binaire de l'agent (processus séparé, répertoire de travail : la
- * racine du dépôt) ; rend `{ processus, pret }` quand la ligne de
- * disponibilité est écrite, ou `{ code, stderr }` s'il s'arrête avant.
+ * Lance l'agent (processus séparé, répertoire de travail : la racine du
+ * dépôt) par le lanceur d'essai, ou par le binaire avec `binaire: true`, ou
+ * depuis une autre racine du paquet avec `racinePaquet` ; rend
+ * `{ processus, pret }` quand la ligne de disponibilité est écrite, ou
+ * `{ code, stderr }` s'il s'arrête avant.
  */
-export function lancerAgent(cheminConfig, { env = {} } = {}) {
+export function lancerAgent(cheminConfig, { env = {}, binaire = false, racinePaquet = null } = {}) {
   return new Promise((resolve) => {
-    const p = spawn(process.execPath, [BIN_AGENT, "--config", cheminConfig], { cwd: RACINE, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"] });
+    const p = spawn(process.execPath, [binaire ? BIN_AGENT : lanceurPour(racinePaquet), "--config", cheminConfig], { cwd: RACINE, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"] });
     let sortie = "";
     let erreurs = "";
     p.stdout.on("data", (d) => {
@@ -133,12 +166,14 @@ export function lancerAgent(cheminConfig, { env = {} } = {}) {
 }
 
 /**
- * Démarre un agent (binaire, processus séparé) dans des répertoires
+ * Démarre un agent (lanceur d'essai, processus séparé) dans des répertoires
  * temporaires (prise dans un répertoire 0750, données 0750). `comptes` :
  * références par rôle ; `interfaceUid` : compte admis (par défaut celui de
- * l'essai).
+ * l'essai) ; `clesRepertoire` : répertoire de clés de l'agent, le seul dont
+ * un travail peut désigner un fichier (`cles.repertoire`, CT-4 EX-7.25 de la
+ * revue de l'étape 8) ; `alias` : alias de clés de la configuration.
  */
-export async function demarrerAgentEssai({ manifeste, rpc, comptes = { exploitant: "hardhat:0" }, delai_s = 10, nature = "developpement", interfaceUid = process.getuid(), jeton = null, env = {} }) {
+export async function demarrerAgentEssai({ manifeste, rpc, comptes = { exploitant: "hardhat:0" }, delai_s = 10, nature = "developpement", interfaceUid = process.getuid(), jeton = null, env = {}, clesRepertoire = null, alias = {}, racinePaquet = null }) {
   const base = repertoireTemporaire();
   const prises = path.join(base, "prise");
   const donnees = path.join(base, "donnees");
@@ -146,11 +181,11 @@ export async function demarrerAgentEssai({ manifeste, rpc, comptes = { exploitan
   fs.chmodSync(prises, 0o750);
   fs.mkdirSync(donnees, { mode: 0o750 });
   fs.chmodSync(donnees, 0o750);
-  const config = { version: 0, prise: path.join(prises, "agent.sock"), interface_uid: interfaceUid, donnees, nature, instance: manifeste, rpc: [rpc], jeton, comptes, delai_s };
+  const config = { version: 0, prise: path.join(prises, "agent.sock"), interface_uid: interfaceUid, donnees, nature, instance: manifeste, rpc: [rpc], jeton, comptes, cles: { repertoire: clesRepertoire, alias }, delai_s };
   const cheminConfig = path.join(base, "agent.json");
   fs.writeFileSync(cheminConfig, JSON.stringify(config, null, 2));
-  const lance = await lancerAgent(cheminConfig, { env });
-  if (!lance.pret) throw new Error(`l'agent n'a pas démarré : ${lance.stderr?.() ?? lance.stderr}`);
+  const lance = await lancerAgent(cheminConfig, { env, racinePaquet });
+  if (!lance.pret) throw new Error(`l'agent n'a pas démarré : ${typeof lance.stderr === "function" ? lance.stderr() : lance.stderr}`);
   const agent = lance.processus;
   return {
     base, config, cheminConfig, agent, pret: lance.pret, donnees, prise: config.prise, stderr: lance.stderr,

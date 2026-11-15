@@ -694,7 +694,7 @@ export const TV = [
         {
           "file": "test/enregistreur-r05.test.js",
           "describe": "CT-2 révision 0.5 : ingestion OpenTelemetry (6.8, EX-6.25 à EX-6.41)",
-          "it": "otel/ : les 48 cas de l'annexe B.8 rejoués (statut, réponse octet pour octet, issues, formes normalisées, pièces, événements, chaîne, E-1 à E-11, lag_ms)"
+          "it": "otel/ : les 49 cas de l'annexe B.8 rejoués (statut, réponse octet pour octet, issues, formes normalisées, pièces, événements, chaîne, E-1 à E-11, lag_ms)"
         },
         {
           "file": "test/enregistreur-r05.test.js",
@@ -1115,7 +1115,8 @@ export const TV = [
       "CT-3 TK-12",
       "CT-3 TK-13",
       "CT-3 EX-A.6",
-      "CT-3 EX-A.7"
+      "CT-3 EX-A.7",
+      "CT-3 EX-A.20"
     ],
     "preconditions": [
       "Vecteurs `ct-3/tickets` présents au commit éprouvé, régénérés sans différence (TV- de génération déterministe de la même famille).",
@@ -1137,6 +1138,11 @@ export const TV = [
           "file": "test/approbation.test.js",
           "describe": "CT-3 : tickets (section 7, TK-1 à TK-13)",
           "it": "chaque trace rejouée sur un service vide redonne chaque attendu, pas à pas (EX-7.9, EX-A.6)"
+        },
+        {
+          "file": "test/approbation.test.js",
+          "describe": "CT-3 révision 0.8, CT-2 révision 0.11 : policy_version, policy_sha256 et approval_sha256 dans la réponse evaluer (étape 8, décision du porteur du 14 novembre 2026 et son addendum)",
+          "it": "reponses-evaluer/cas.json : chaque cas rejoué par la référence du noyau ; les cinq cas négatifs de la révision ont la raison politique_non_epinglee ; les cas valides couvrent les sept combinaisons"
         }
       ],
       "command": "npx hardhat --config hardhat.config.mjs test test/approbation.test.js"
@@ -2729,7 +2735,7 @@ export const TV = [
       "command": "npx hardhat --config hardhat.config.mjs test test/publication-etape7.test.js && cd verificateur && go test ./...",
       "complement": {
         "phase2_step": 8,
-        "blocking": "Signature minisign réelle de `SHA256SUMS` et publication d'une version (CT-6 EX-14.9) : la préparation de l'étape 7 écrit binaires, `go version -m`, `SHA256SUMS`, `LICENCES-TIERCES`, `NOTICE`, archive, note de version et provenance non signée, sans rien publier ; la signature, l'attestation de provenance signée et la publication attendent la décision du porteur sur la clé minisign et son accord de publication (lancement, étape 8)."
+        "blocking": "Renvoi au lancement : signature minisign réelle de `SHA256SUMS` et publication d'une version (CT-6 EX-14.9) : la préparation de l'étape 7 écrit binaires, `go version -m`, `SHA256SUMS`, `LICENCES-TIERCES`, `NOTICE`, archive, note de version et provenance non signée, sans rien publier ; la signature, l'attestation de provenance signée et la publication attendent la décision du porteur sur la clé minisign et son accord de publication (lancement, étape 8)."
       }
     },
     "threats": [
@@ -2854,6 +2860,26 @@ export const TV = [
       "CT-7 TR-99",
       "CT-7 TR-100",
       "CT-7 TR-101",
+      "CT-7 TR-102",
+      "CT-7 TR-103",
+      "CT-7 TR-104",
+      "CT-7 TR-105",
+      "CT-7 TR-106",
+      "CT-7 TR-107",
+      "CT-7 TR-108",
+      "CT-7 TR-109",
+      "CT-7 TR-110",
+      "CT-7 TR-111",
+      "CT-7 TR-112",
+      "CT-7 TR-113",
+      "CT-7 TR-114",
+      "CT-7 TR-115",
+      "CT-7 TR-116",
+      "CT-7 TR-117",
+      "CT-7 TR-118",
+      "CT-7 TR-119",
+      "CT-7 TR-120",
+      "CT-7 TR-121",
       "CT-7 EX-0.1",
       "CT-7 EX-3.1",
       "CT-7 EX-3.2",
@@ -2869,7 +2895,7 @@ export const TV = [
     "steps": [
       "Comparer `menaces.json` au schéma et à ce que `construireMenaces` tire des tables ; reconstruire la table 3.4 ; lancer `verifier-renvois.mjs` ; altérer des copies en mémoire ; vérifier que chaque vecteur nommé par la colonne « Test de CT-9 » existe."
     ],
-    "oracle": "Égalité octet pour octet ; code 0 ; chaque altération fait échouer la RV- visée ; 101 lignes TR- pour autant d'occurrences.",
+    "oracle": "Égalité octet pour octet ; code 0 ; chaque altération fait échouer la RV- visée ; 121 lignes TR- pour autant d'occurrences.",
     "status": {
       "state": "executable",
       "tests": [
@@ -3439,7 +3465,7 @@ export const TV = [
   {
     "id": "TV-67",
     "level": "TV",
-    "title": "Table de traçabilité de CT-8 : `renvois.mjs`, TC-1 à TC-115",
+    "title": "Table de traçabilité de CT-8 : `renvois.mjs`, TC-1 à TC-133",
     "specs": [
       "CT-8"
     ],
@@ -3559,6 +3585,24 @@ export const TV = [
       "CT-8 TC-113",
       "CT-8 TC-114",
       "CT-8 TC-115",
+      "CT-8 TC-116",
+      "CT-8 TC-117",
+      "CT-8 TC-118",
+      "CT-8 TC-119",
+      "CT-8 TC-120",
+      "CT-8 TC-121",
+      "CT-8 TC-122",
+      "CT-8 TC-123",
+      "CT-8 TC-124",
+      "CT-8 TC-125",
+      "CT-8 TC-126",
+      "CT-8 TC-127",
+      "CT-8 TC-128",
+      "CT-8 TC-129",
+      "CT-8 TC-130",
+      "CT-8 TC-131",
+      "CT-8 TC-132",
+      "CT-8 TC-133",
       "CT-8 EX-0.1",
       "CT-8 EX-0.2",
       "CT-8 EX-A.2",

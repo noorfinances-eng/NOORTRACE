@@ -464,12 +464,17 @@ func (v *validateur) tableau(s, x *jsonv.Valeur, chemin string, prof int) error 
 		}
 	}
 	if u := s.Membre("uniqueItems"); u != nil && u.Bool {
+		// Unicité en temps linéaire par une clé d'égalité (jsonv.CleEgalite,
+		// cohérente avec jsonv.Egales) : la comparaison de chaque couple
+		// prenait un temps quadratique sur les tableaux de 65 535 éléments
+		// que les schémas admettent (revue de sécurité de l'étape 8).
+		vus := make(map[string]int, n)
 		for i := 0; i < n; i++ {
-			for j := i + 1; j < n; j++ {
-				if jsonv.Egales(x.Elements[i], x.Elements[j]) {
-					return echec(chemin, "éléments %d et %d identiques", i, j)
-				}
+			k := jsonv.CleEgalite(x.Elements[i])
+			if j, deja := vus[k]; deja {
+				return echec(chemin, "éléments %d et %d identiques", j, i)
 			}
+			vus[k] = i
 		}
 	}
 	if c := s.Membre("contains"); c != nil {

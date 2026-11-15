@@ -81,6 +81,19 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   crl/crl-tsa-revoquee.pem signature de l'AC (openssl crl -CAfile) : vecteur verify OK ; openssl verify OK : concorde
   crl/crl-tsa-revoquee.pem thisUpdate : vecteur 2026-11-06T00:00:00Z ; openssl 2026-11-06T00:00:00Z : concorde
   crl/crl-tsa-revoquee.pem entrées révoquées (numéro, date, raison) : vecteur [('02', '2026-11-05T12:00:00Z', 'Key Compromise')] ; openssl [('02', '2026-11-05T12:00:00Z', 'Key Compromise')] : concorde
+  crl/crl-tsa-revoquee-serie-non-minimale.pem SHA-256 (du DER décodé par openssl asn1parse) : vecteur 0xb4dbf62c50953ea9d728f4dceeb653beeaf1decdec6dc82d91d93a96cfa25790 ; openssl 0xb4dbf62c50953ea9d728f4dceeb653beeaf1decdec6dc82d91d93a96cfa25790 : concorde
+  crl/crl-tsa-revoquee-serie-non-minimale.pem refus d'openssl crl nommé comme limite de l'outil (CT-6 A.8) : vecteur True ; openssl True : concorde
+  crl/crl-tsa-revoquee-serie-non-minimale.pem : openssl crl refuse de lire la CRL (unsupported) ; limite de l'outil : numéro de série révoqué en INTEGER non minimal (02 02 00 02), lu par CT-6 (EX-9.6)
+  crl/crl-extension-critique-inconnue.pem SHA-256 (du DER ou du fichier PEM) : vecteur 0x5832375cbc18c7918af9be6182ad27cc350db881f309df3b78235bc4ae0590c8 ; openssl 0x5832375cbc18c7918af9be6182ad27cc350db881f309df3b78235bc4ae0590c8 : concorde
+  crl/crl-extension-critique-inconnue.pem signature de l'AC (openssl crl -CAfile) : vecteur verify OK ; openssl verify OK : concorde
+  crl/crl-extension-critique-inconnue.pem thisUpdate : vecteur 2026-11-06T00:00:00Z ; openssl 2026-11-06T00:00:00Z : concorde
+  crl/crl-extension-critique-inconnue.pem entrées révoquées : vecteur [] ; openssl [] : concorde
+  crl/crl-entree-extension-critique-inconnue.pem SHA-256 (du DER ou du fichier PEM) : vecteur 0x15a05485579e0e4539b2b8949c06d6f29b5b825c75887e33973b36a227e8b31e ; openssl 0x15a05485579e0e4539b2b8949c06d6f29b5b825c75887e33973b36a227e8b31e : concorde
+  crl/crl-entree-extension-critique-inconnue.pem signature de l'AC (openssl crl -CAfile) : vecteur verify OK ; openssl verify OK : concorde
+  crl/crl-entree-extension-critique-inconnue.pem thisUpdate : vecteur 2026-11-06T00:00:00Z ; openssl 2026-11-06T00:00:00Z : concorde
+  crl/crl-entree-extension-critique-inconnue.pem numéros de série révoqués : vecteur ['63'] ; openssl ['63'] : concorde
+  crl/crl-entree-extension-critique-inconnue.pem extension critique d'entrée 1.3.6.1.4.1.99999.2 : vecteur True ; openssl True : concorde
+  crl/crl-entree-extension-critique-inconnue.pem : entrée relevée (numéro, date, raison) : [('63', '2026-11-05T12:00:00Z', 'Superseded')]
 
 == 2. Chaque jeton : lecture par openssl et vérification à genTime (EX-A.5)
 -- jetons/periode-1.der (cible : aucune ; altération : aucune)
@@ -578,6 +591,167 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   openssl ts -verify -digest <period_hash> -in jetons/t1-extension-mal-formee.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : invalid certificate; certificate verify error (unable to get local issuer certificate)
   résultat présumé par attendu.json (« certificate verify error (ossl_x509v3_cache_extensions : invalid certificate ; openssl ts -text lit le jeton et imprime la valeur de keyUsage sans la décoder) ») : vecteur True ; openssl True : concorde
   openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 4 : invalid certificate; certificate verify error (unable to get local issuer certificate)
+-- jetons/t1-null-longueur.der (cible : T-1 ; altération : periode-1.der réémis avec un champ crls [1] réduit à un NULL de longueur 1 (05 01 00) : le profil DER d'EX-9.4 s'applique à tout le jeton, signature couvrant l'octet ou non)
+  SHA-256 du fichier : vecteur 0xbe0950b3def8d8775d2df0aef987b47b4003f8238ae8d6ffc2eb10c4d20e4e4d ; openssl 0xbe0950b3def8d8775d2df0aef987b47b4003f8238ae8d6ffc2eb10c4d20e4e4d : concorde
+  openssl ts -reply -token_in -text : code 1
+  openssl ts -text refuse le jeton : wrong tag; nested asn1 error ; TSTInfo lu par openssl asn1parse -strparse
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa : DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; aucun certificat lu par openssl pkcs7 -print_certs
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : code 2 : no matching choice type; nested asn1 error
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 0, SHA-256 aucun
+  openssl ts -verify -digest <period_hash> -in jetons/t1-null-longueur.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : wrong tag; nested asn1 error
+  résultat non présumé par attendu.json ; relevé ci-dessus
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 2 : no matching choice type; nested asn1 error
+-- jetons/t1-integer-vide.der (cible : T-1 ; altération : periode-1.der réémis avec un champ crls [1] réduit à un INTEGER vide (02 00))
+  SHA-256 du fichier : vecteur 0x4a88ade51488960166be4f95a2e9bc23140cc7cdf357f372c0ffb181465dda03 ; openssl 0x4a88ade51488960166be4f95a2e9bc23140cc7cdf357f372c0ffb181465dda03 : concorde
+  openssl ts -reply -token_in -text : code 1
+  openssl ts -text refuse le jeton : wrong tag; nested asn1 error ; TSTInfo lu par openssl asn1parse -strparse
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa : DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; aucun certificat lu par openssl pkcs7 -print_certs
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : code 2 : no matching choice type; nested asn1 error
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 0, SHA-256 aucun
+  openssl ts -verify -digest <period_hash> -in jetons/t1-integer-vide.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : wrong tag; nested asn1 error
+  résultat non présumé par attendu.json ; relevé ci-dessus
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 2 : no matching choice type; nested asn1 error
+-- jetons/t1-bit-string-vide.der (cible : T-1 ; altération : periode-1.der réémis avec un champ crls [1] réduit à une BIT STRING vide (03 00), sans octet des bits inutilisés)
+  SHA-256 du fichier : vecteur 0xd73fe7d9d4627725bcf2faa6d394612c6f7c12c12074cb20dde12cd0eb5640d6 ; openssl 0xd73fe7d9d4627725bcf2faa6d394612c6f7c12c12074cb20dde12cd0eb5640d6 : concorde
+  openssl ts -reply -token_in -text : code 1
+  openssl ts -text refuse le jeton : wrong tag; nested asn1 error ; TSTInfo lu par openssl asn1parse -strparse
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa : DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; aucun certificat lu par openssl pkcs7 -print_certs
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : code 2 : no matching choice type; nested asn1 error
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 0, SHA-256 aucun
+  openssl ts -verify -digest <period_hash> -in jetons/t1-bit-string-vide.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : wrong tag; nested asn1 error
+  résultat non présumé par attendu.json ; relevé ci-dessus
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 2 : no matching choice type; nested asn1 error
+-- jetons/t1-octet-string-construite.der (cible : T-1 ; altération : periode-1.der réémis avec un champ crls [1] réduit à une OCTET STRING de forme construite (24 02 04 00) : un type universel autre que SEQUENCE et SET est primitif)
+  SHA-256 du fichier : vecteur 0xcfef1861da17eced024eea28454fa00bddc4b2824b2c9f7521f6a4ef7e60afcd ; openssl 0xcfef1861da17eced024eea28454fa00bddc4b2824b2c9f7521f6a4ef7e60afcd : concorde
+  openssl ts -reply -token_in -text : code 1
+  openssl ts -text refuse le jeton : wrong tag; nested asn1 error ; TSTInfo lu par openssl asn1parse -strparse
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa : DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; aucun certificat lu par openssl pkcs7 -print_certs
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : code 2 : no matching choice type; nested asn1 error
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 0, SHA-256 aucun
+  openssl ts -verify -digest <period_hash> -in jetons/t1-octet-string-construite.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : wrong tag; nested asn1 error
+  résultat non présumé par attendu.json ; relevé ci-dessus
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 2 : no matching choice type; nested asn1 error
+-- jetons/t1-etiquette-0.der (cible : T-1 ; altération : periode-1.der réémis avec un champ crls [1] réduit à l'étiquette universelle 0 (00 00))
+  SHA-256 du fichier : vecteur 0x619dc42060e20d74c09de2060be866b96091242a84c27418372ff27fdee2f400 ; openssl 0x619dc42060e20d74c09de2060be866b96091242a84c27418372ff27fdee2f400 : concorde
+  openssl ts -reply -token_in -text : code 1
+  openssl ts -text refuse le jeton : unexpected eoc; nested asn1 error ; TSTInfo lu par openssl asn1parse -strparse
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa : DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; aucun certificat lu par openssl pkcs7 -print_certs
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : code 2 : unexpected eoc; nested asn1 error
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 0, SHA-256 aucun
+  openssl ts -verify -digest <period_hash> -in jetons/t1-etiquette-0.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : unexpected eoc; nested asn1 error
+  résultat non présumé par attendu.json ; relevé ci-dessus
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 2 : unexpected eoc; nested asn1 error
+-- jetons/t1-tstinfo-integer-vide.der (cible : T-1 ; altération : periode-1.der réémis avec accuracy.seconds codé en INTEGER vide (02 00) dans le TSTInfo encapsulé, re-signé : le profil DER d'EX-9.4 s'applique au TSTInfo (révision 0.9))
+  SHA-256 du fichier : vecteur 0x9457cc4f67f36eadd289fcd5b02b2be6a9079c17bec819e3d7b3ba296a2e9e06 ; openssl 0x9457cc4f67f36eadd289fcd5b02b2be6a9079c17bec819e3d7b3ba296a2e9e06 : concorde
+  openssl ts -reply -token_in -text : code 1
+  openssl ts -text refuse le jeton : illegal zero content; nested asn1 error ; TSTInfo lu par openssl asn1parse -strparse
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision illisible par openssl asn1parse (illisible : BAD INTEGER:[])
+  précision illisible : cas de cible T-1 : vecteur T-1 ; openssl T-1 : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa (directoryName) = sujet du certificat signataire du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9
+  openssl ts -verify -digest <period_hash> -in jetons/t1-tstinfo-integer-vide.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : illegal zero content; nested asn1 error
+  résultat non présumé par attendu.json ; relevé ci-dessus
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : CMS Verification successful
+-- jetons/t1-unsigned-null-longueur.der (cible : T-1 ; altération : periode-1.der réémis avec un champ unsignedAttrs [1] dans le SignerInfo, dont l'attribut d'OID 1.3.6.1.4.1.99999.3 vaut un NULL de longueur 1 (05 01 00))
+  SHA-256 du fichier : vecteur 0x256658527fe1a59bcb5c182011e5fa4541ce7bc9a7fea284cadf05b018abc98b ; openssl 0x256658527fe1a59bcb5c182011e5fa4541ce7bc9a7fea284cadf05b018abc98b : concorde
+  openssl ts -reply -token_in -text : code 1
+  openssl ts -text refuse le jeton : null is wrong length; nested asn1 error ; TSTInfo lu par openssl asn1parse -strparse
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa : DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; aucun certificat lu par openssl pkcs7 -print_certs
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : code 2 : null is wrong length; nested asn1 error
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 0, SHA-256 aucun
+  openssl ts -verify -digest <period_hash> -in jetons/t1-unsigned-null-longueur.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : null is wrong length; nested asn1 error
+  résultat non présumé par attendu.json ; relevé ci-dessus
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 2 : null is wrong length; nested asn1 error
+-- jetons/integer-non-minimal.der (cible : aucune ; altération : periode-1.der réémis avec SignedData.version codée 02 02 00 03 (INTEGER non minimal, que la signature ne couvre pas) : lu, valeur 3, accepté (EX-9.6) ; témoin des six formes t1-* de la révision 0.9)
+  SHA-256 du fichier : vecteur 0xb50067924d037ad4c2b5a88be1384d0960d25a3ae0b4bff42dedb9f62872c3f5 ; openssl 0xb50067924d037ad4c2b5a88be1384d0960d25a3ae0b4bff42dedb9f62872c3f5 : concorde
+  openssl ts -reply -token_in -text : code 1
+  openssl ts -text refuse le jeton : illegal padding; nested asn1 error ; TSTInfo lu par openssl asn1parse -strparse
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa : DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; aucun certificat lu par openssl pkcs7 -print_certs
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : code 2 : illegal padding; nested asn1 error
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 0, SHA-256 aucun
+  openssl ts -verify -digest <period_hash> -in jetons/integer-non-minimal.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : illegal padding; nested asn1 error
+  résultat présumé par attendu.json (« c2i_ibuf:illegal padding (OpenSSL refuse l'INTEGER non minimal de SignedData.version, que CT-6 admet, EX-9.6 ; limite de l'outil, annexe A.8) ») : vecteur True ; openssl True : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 2 : illegal padding; nested asn1 error
 -- jetons/point-periode-1.der (cible : aucune ; altération : aucune)
   SHA-256 du fichier : vecteur 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf ; openssl 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf : concorde
   openssl ts -reply -token_in -text : code 0
@@ -968,6 +1142,90 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
   T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
   T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t1-null-longueur.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu echoue                       concorde — openssl ts -text, cms -print et pkcs7 -print_certs refusent le jeton : wrong tag; nested asn1 error
+  T-2   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-3   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-4   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-5   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-6   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-8   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t1-integer-vide.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu echoue                       concorde — openssl ts -text, cms -print et pkcs7 -print_certs refusent le jeton : wrong tag; nested asn1 error
+  T-2   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-3   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-4   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-5   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-6   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-8   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t1-bit-string-vide.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu echoue                       concorde — openssl ts -text, cms -print et pkcs7 -print_certs refusent le jeton : wrong tag; nested asn1 error
+  T-2   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-3   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-4   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-5   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-6   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-8   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t1-octet-string-construite.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu echoue                       concorde — openssl ts -text, cms -print et pkcs7 -print_certs refusent le jeton : wrong tag; nested asn1 error
+  T-2   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-3   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-4   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-5   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-6   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-8   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t1-etiquette-0.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu echoue                       concorde — openssl ts -text, cms -print et pkcs7 -print_certs refusent le jeton : unexpected eoc; nested asn1 error
+  T-2   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-3   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-4   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-5   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-6   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-8   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t1-tstinfo-integer-vide.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu echoue                       concorde — openssl ts -text, cms -print et pkcs7 -print_certs refusent le jeton : illegal zero content; nested asn1 error
+  T-2   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-3   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-4   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-5   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-6   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-8   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t1-unsigned-null-longueur.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu echoue                       concorde — openssl ts -text, cms -print et pkcs7 -print_certs refusent le jeton : null is wrong length; nested asn1 error
+  T-2   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-3   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-4   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-5   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-6   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-8   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
 -- jetons/t4-sid-introuvable.der, ancres absentes, periodHash du dossier 0xae22426f25529379…
   T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
   T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
@@ -1063,6 +1321,42 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
   T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
   T-10  attendu reussi                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/integer-non-minimal.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       limite de l'outil (jeton illisible par openssl, A.8) — limite de l'outil : SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding
+  T-2   attendu reussi                       limite de l'outil (jeton illisible par openssl, A.8) — limite de l'outil : SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding
+  T-3   attendu reussi                       limite de l'outil (jeton illisible par openssl, A.8) — limite de l'outil : SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding
+  T-4   attendu reussi                       limite de l'outil (jeton illisible par openssl, A.8) — limite de l'outil : SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding
+  T-5   attendu reussi                       limite de l'outil (jeton illisible par openssl, A.8) — limite de l'outil : SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding
+  T-6   attendu reussi                       limite de l'outil (jeton illisible par openssl, A.8) — limite de l'outil : SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding
+  T-7   attendu reussi                       limite de l'outil (jeton illisible par openssl, A.8) — limite de l'outil : SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding
+  T-8   attendu reussi                       limite de l'outil (jeton illisible par openssl, A.8) — limite de l'outil : SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding
+  T-9   attendu reussi                       limite de l'outil (jeton illisible par openssl, A.8) — limite de l'outil : SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding
+  T-10  attendu reussi                       limite de l'outil (jeton illisible par openssl, A.8) — limite de l'outil : SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/periode-1.der, ancres ancres/ancres-crl-extension-critique-inconnue.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — ts -verify (candidats des ancres en -untrusted) : signataire trouvé, ESS accepté ; certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du signataire 0x0059fa87b4b02432…
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits, e = 65537 ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu non_execute/ancre_absente    sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : ? — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : unhandled critical CRL extension
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/periode-1.der, ancres ancres/ancres-crl-entree-extension-critique-inconnue.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — ts -verify (candidats des ancres en -untrusted) : signataire trouvé, ESS accepté ; certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du signataire 0x0059fa87b4b02432…
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits, e = 65537 ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu non_execute/ancre_absente    sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : ? — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : unhandled critical CRL extension
   T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
 -- jetons/point-periode-1.der, ancres ancres/ancres-test.json, periodHash du dossier 0x93acd0fc36f93d7a…
   T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
@@ -1249,6 +1543,8 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   authority (autorité retenue : openssl verify autorité par autorité, règle de EX-9.13 ; nom lu dans le fichier d'ancres) : vecteur AC de test CT-6 ; openssl AC de test CT-6 : concorde
   qualified (déclaration de l'autorité retenue, lue dans le fichier d'ancres) : vecteur None ; openssl None : concorde
   revocation (lastUpdate de la CRL de l'ancre, certificats du chemin hors autorité : 1) : vecteur [{'certificate_sha256': '0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] ; openssl [{'certificate_sha256': '0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] : concorde
+-- jetons/integer-non-minimal.der, ancres ancres/ancres-test.json
+  faits non recalculés : limite de l'outil (SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding)
 -- jetons/point-periode-1.der, ancres ancres/ancres-test.json
   tsu_certificate_sha256 : vecteur 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 ; openssl 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 : concorde
   tsu_subject_cn (sujet imprimé par openssl x509 -subject ; nul sans CN) : vecteur TSA de test CT-6 ; openssl TSA de test CT-6 : concorde
@@ -1290,16 +1586,24 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   jetons/t5-cle-ed25519-non-rattachee.der periodHash du dossier 0xae22426f… ; attendu : T-5          openssl ts -verify : FAILED (certificate verify error (self-signed certificate))  concorde
   jetons/t1-cle-longueur-non-minimale.der periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : Verification: OK                                             limite de l'outil : openssl ts -verify ne fait pas T-1
   jetons/t1-extension-mal-formee.der periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : FAILED (invalid certificate; certificate verify error (unable to get local issuer certificate)) concorde
+  jetons/t1-null-longueur.der        periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : FAILED (wrong tag; nested asn1 error)                        concorde
+  jetons/t1-integer-vide.der         periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : FAILED (wrong tag; nested asn1 error)                        concorde
+  jetons/t1-bit-string-vide.der      periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : FAILED (wrong tag; nested asn1 error)                        concorde
+  jetons/t1-octet-string-construite.der periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : FAILED (wrong tag; nested asn1 error)                        concorde
+  jetons/t1-etiquette-0.der          periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : FAILED (unexpected eoc; nested asn1 error)                   concorde
+  jetons/t1-tstinfo-integer-vide.der periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : FAILED (illegal zero content; nested asn1 error)             concorde
+  jetons/t1-unsigned-null-longueur.der periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : FAILED (null is wrong length; nested asn1 error)             concorde
   jetons/rsa-8192.der                periodHash du dossier 0xae22426f… ; attendu : aucun échec  openssl ts -verify : Verification: OK                                             concorde
   jetons/t5-cle-ed25519.der          periodHash du dossier 0xae22426f… ; attendu : aucun échec  openssl ts -verify : FAILED (operation not supported for this keytype; signature failure) limite de l'outil : openssl ts -verify échoue là où attendu.json n'a aucun échec (T-5, T-6, T-7, T-10, T-11 non exécutées, hors_perimetre_version)
   jetons/serie-168-bits.der          periodHash du dossier 0xae22426f… ; attendu : aucun échec  openssl ts -verify : Verification: OK                                             concorde
+  jetons/integer-non-minimal.der     periodHash du dossier 0xae22426f… ; attendu : aucun échec  openssl ts -verify : FAILED (illegal padding; nested asn1 error)                  limite de l'outil : SignedData.version codé en INTEGER non minimal (02 02 00 03), lu par CT-6 (EX-9.6) ; openssl : c2i_ibuf:illegal padding
   jetons/point-periode-1.der         periodHash du dossier 0x93acd0fc… ; attendu : aucun échec  openssl ts -verify : Verification: OK                                             concorde
   jetons/k7-point-signature.der      periodHash du dossier 0x93acd0fc… ; attendu : T-6          openssl ts -verify : FAILED (invalid padding; padding check failed; RSA lib; signature failure) concorde
   jetons/periode-1.der               periodHash du dossier 0x93acd0fc… ; attendu : T-2          openssl ts -verify : FAILED (message imprint mismatch)                            concorde
 
-Bilan des cas : 267 concordances, 0 discordances, 77 hors outil, 107 sans objet
+Bilan des cas : 290 concordances, 0 discordances, 89 hors outil, 172 sans objet, 10 limites de l'outil (jeton illisible par openssl, A.8)
 Discordances au total (sections 1 à 4) : 0
-Verdicts d'openssl ts -verify qui ne disent pas ce que dit attendu.json (limites de l'outil, section 5) : 9
+Verdicts d'openssl ts -verify qui ne disent pas ce que dit attendu.json (limites de l'outil, section 5) : 10
   - jetons/t1-octet-en-trop.der : attendu.json T-1 en échec ; openssl ts -verify : Verification: OK
   - jetons/t5-sha1.der : attendu.json T-5 en échec ; openssl ts -verify : Verification: OK
   - jetons/t9-extension-critique.der : attendu.json T-9 en échec ; openssl ts -verify : Verification: OK
@@ -1309,3 +1613,4 @@ Verdicts d'openssl ts -verify qui ne disent pas ce que dit attendu.json (limites
   - jetons/t7-intermediaire-rsa-8200.der : attendu.json T-7 en échec ; openssl ts -verify : Verification: OK
   - jetons/t1-cle-longueur-non-minimale.der : attendu.json T-1 en échec ; openssl ts -verify : Verification: OK
   - jetons/t5-cle-ed25519.der : attendu.json aucun échec (T-5, T-6, T-7, T-10, T-11 hors_perimetre_version) ; openssl ts -verify : FAILED (operation not supported for this keytype; signature failure)
+  - jetons/integer-non-minimal.der : attendu.json aucun échec ; openssl ts -verify refuse de décoder le jeton (illegal padding; nested asn1 error)

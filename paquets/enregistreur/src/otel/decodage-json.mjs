@@ -11,6 +11,7 @@
 
 import { analyserTexte, decoderUtf8Strict, ErreurTexteJson, membre } from "../mcp/json-texte.mjs";
 import { ErreurDecodage, BORNES_32, valeurAbsente } from "./representation.mjs";
+import { Budget, entierCourt } from "../bornes.mjs";
 
 const DEUX_64 = 1n << 64n;
 const MIN_I64 = -(1n << 63n);
@@ -21,7 +22,8 @@ const MOTIF_NATUREL = /^(0|[1-9][0-9]*)$/;
 /**
  * Décode un corps JSON (EX-6.29).
  * @param {Uint8Array} octets
- * @param {{profondeurMax: number, membresMax: number}} bornes `limits.json_max_depth`, `limits.json_max_members`
+ * @param {{profondeurMax: number, membresMax: number, elementsMax?: number}} bornes `limits.json_max_depth`,
+ *   `limits.json_max_members` ; `elementsMax` : éléments répétés et nœuds JSON de toute la requête (raison `elements`)
  * @returns {object} représentation commune (`{ resource_spans: [...] }`)
  * @throws {ErreurDecodage}
  */
@@ -30,9 +32,11 @@ export function decoderJson(octets, bornes) {
   let racine;
   try {
     texte = decoderUtf8Strict(octets);
-    racine = analyserTexte(texte, { profondeurMax: bornes.profondeurMax, membresMax: bornes.membresMax });
+    // Étape 8 (S-1, CT-2 EX-6.28, CT-2 EX-15.1) : le nombre total de nœuds du texte est
+    // borné pendant l'analyse (`elementsMax`), avant toute matérialisation au-delà.
+    racine = analyserTexte(texte, { profondeurMax: bornes.profondeurMax, membresMax: bornes.membresMax, noeudsMax: bornes.elementsMax });
   } catch (e) {
-    if (e instanceof ErreurTexteJson) throw new ErreurDecodage(`json_${e.raison}`);
+    if (e instanceof ErreurTexteJson) throw new ErreurDecodage(e.raison === "noeuds" ? "elements" : `json_${e.raison}`);
     if (e instanceof RangeError) throw new ErreurDecodage("json_profondeur");
     throw e;
   }
@@ -44,6 +48,7 @@ class Lecteur {
   constructor(texte, bornes) {
     this.texte = texte;
     this.bornes = bornes;
+    this.budget = bornes.elementsMax === undefined ? null : new Budget(bornes.elementsMax);
   }
 
   // ------------------------------------------------------------ formes de champ
@@ -65,6 +70,7 @@ class Lecteur {
     const v = this.champ(noeud, nom);
     if (v === undefined) return [];
     if (v.t !== "tableau") throw new ErreurDecodage(`tableau_attendu:${nom}`);
+    if (this.budget && !this.budget.prendre(v.elements.length)) throw new ErreurDecodage("elements");
     return v.elements;
   }
 
@@ -98,7 +104,7 @@ class Lecteur {
   enumeration(noeud, nom) {
     const v = this.champ(noeud, nom);
     if (v === undefined) return 0;
-    if (v.t !== "nombre" || !MOTIF_ENTIER.test(this.litteral(v))) throw new ErreurDecodage(`enumeration:${nom}`);
+    if (v.t !== "nombre" || !entierCourt(this.litteral(v)) || !MOTIF_ENTIER.test(this.litteral(v))) throw new ErreurDecodage(`enumeration:${nom}`);
     const n = BigInt(this.litteral(v));
     if (n < -(1n << 31n) || n > (1n << 31n) - 1n) throw new ErreurDecodage(`enumeration:${nom}`);
     return Number(n);
@@ -109,7 +115,7 @@ class Lecteur {
     const v = this.champ(noeud, nom);
     if (v === undefined) return 0n;
     const s = v.t === "chaine" ? v.valeur : v.t === "nombre" ? this.litteral(v) : null;
-    if (s === null || !MOTIF_NATUREL.test(s)) throw new ErreurDecodage(`fixed64:${nom}`);
+    if (s === null || !entierCourt(s) || !MOTIF_NATUREL.test(s)) throw new ErreurDecodage(`fixed64:${nom}`);
     const n = BigInt(s);
     if (n >= DEUX_64) throw new ErreurDecodage(`fixed64:${nom}`);
     return n;
@@ -121,7 +127,7 @@ class Lecteur {
     if (v === undefined) return 0;
     const s = v.t === "chaine" ? v.valeur : v.t === "nombre" ? this.litteral(v) : null;
     const motif = type === "uint32" ? MOTIF_NATUREL : MOTIF_ENTIER;
-    if (s === null || !motif.test(s)) throw new ErreurDecodage(`entier32:${nom}`);
+    if (s === null || !entierCourt(s) || !motif.test(s)) throw new ErreurDecodage(`entier32:${nom}`);
     const n = BigInt(s);
     const [min, max] = BORNES_32[type];
     if (n < min || n > max) throw new ErreurDecodage(`entier32:${nom}`);
@@ -215,7 +221,7 @@ class Lecteur {
         return { type: "bool", v: v.t === "vrai" };
       case "intValue": {
         const s = v.t === "chaine" ? v.valeur : v.t === "nombre" ? this.litteral(v) : null;
-        if (s === null || !MOTIF_ENTIER.test(s)) throw new ErreurDecodage("intValue");
+        if (s === null || !entierCourt(s) || !MOTIF_ENTIER.test(s)) throw new ErreurDecodage("intValue");
         const x = BigInt(s);
         if (x < MIN_I64 || x > MAX_I64) throw new ErreurDecodage("intValue");
         return { type: "int", v: x };

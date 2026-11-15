@@ -660,7 +660,8 @@ const idValide = (h, n) => typeof h === "string" && h.length === n && /^[0-9a-f]
 export function classer(N, sourcePolitique) {
   const op = operation(N);
   if (op === null) return { sorte: null, issue: "ignore", raison: "hors_genai" };
-  const sorte = SORTES[op] ?? null;
+  // La sorte est lue par Object.hasOwn : une opération venue du span au nom d'une propriété d'Object.prototype n'a pas de sorte.
+  const sorte = Object.hasOwn(SORTES, op) ? SORTES[op] : null;
   if (sorte === null) return { sorte: null, issue: "ignore", raison: "operation_non_retenue" };
   if (!(sourcePolitique?.ingest ?? []).includes(sorte)) return { sorte, issue: "ignore", raison: "sorte_desactivee" };
   if (!idValide(N.trace_id, 32) || !idValide(N.span_id, 16) || (N.parent_span_id !== null && !idValide(N.parent_span_id, 16))) return { sorte, issue: "rejete", raison: "identifiants_invalides" };

@@ -2,6 +2,7 @@ package dossier
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -113,7 +114,8 @@ func ne(r commun.Raison, fr, en string) resultatEvt {
 }
 
 // agregerEvts agrège les résultats d'une règle sur plusieurs événements et
-// forme le détail « role : détail ; role : détail ».
+// forme le détail « role : détail ; role : détail », borné à
+// commun.DetailsMax éléments écrits un à un (CT-6 EX-15.1).
 func agregerEvts(id string, evts []*Evt, res []resultatEvt, controles ...int) commun.Verification {
 	var rs []commun.Resultat
 	var fr, en []string
@@ -125,7 +127,7 @@ func agregerEvts(id string, evts []*Evt, res []resultatEvt, controles ...int) co
 		}
 	}
 	st, ra := commun.Agreger(rs)
-	return commun.Nouvelle(id, st, ra, commun.T(strings.Join(fr, " ; "), strings.Join(en, "; ")), controles...)
+	return commun.Nouvelle(id, st, ra, commun.T(strings.Join(commun.BornerFr(fr), " ; "), strings.Join(commun.BornerEn(en), "; ")), controles...)
 }
 
 // --- E-1 -------------------------------------------------------------------
@@ -321,8 +323,7 @@ func regleE3(e *Evt) resultatEvt {
 		}
 	}
 	if len(ecarts) > 0 {
-		s := strings.Join(ecarts, ", ")
-		return ko("champs incohérents avec la sorte de l'événement : "+s, "fields inconsistent with the kind of event: "+s)
+		return ko("champs incohérents avec la sorte de l'événement : "+strings.Join(commun.BornerFr(ecarts), ", "), "fields inconsistent with the kind of event: "+strings.Join(commun.BornerEn(ecarts), ", "))
 	}
 	return resultatEvt{statut: commun.Reussi}
 }
@@ -390,19 +391,39 @@ func (a *Analyse) regleE6(e *Evt) (resultatEvt, *Defaut) {
 				ecarts = append(ecarts, fmt.Sprintf("valeur en ligne : SHA-256 %s, longueur %d, référence %s, %d", cryptographie.Hex32(h), len(c), sha, lng))
 			}
 		}
-		if a.pieces == nil || !strings.HasPrefix(sha, "0x") || len(sha) != 66 {
+		// Une pièce n'est cherchée que pour une référence dont sha256 est
+		// un SHA-256 en hexadécimal minuscule (motif ^0x[0-9a-f]{64}$,
+		// EX-4.6) : le nom ouvert est alors fait de 64 chiffres hexadécimaux
+		// dans le répertoire --pieces, et rien d'autre (revue de sécurité de l'étape 8 : une
+		// valeur de 64 caractères faite de « .. » et « / » sortait du
+		// répertoire et publiait le SHA-256 et la longueur d'un fichier du
+		// poste).
+		if a.pieces == nil {
+			continue
+		}
+		if _, okSha := cryptographie.LireHex(sha, 32); !okSha {
 			continue
 		}
 		nom := sha[2:]
 		chemin := filepath.Join(a.pieces.Repertoire, nom)
-		if !entree.Existe(chemin) {
-			continue
-		}
+		// Ouverture d'EX-4.17 (lstat, O_NOFOLLOW, fstat) : un chemin qui
+		// n'existe pas est une pièce non fournie (EX-4.6) ; un chemin du
+		// répertoire --pieces qui porte ce nom sans être un fichier
+		// ordinaire (répertoire, tube nommé, lien) n'est pas ouvert et rend
+		// l'entrée inutilisable, code 2, entree_illisible, comme EX-4.17
+		// l'écrit : le nom étant fait de 64 chiffres hexadécimaux, ce chemin
+		// est dans le répertoire du réviseur et ne renseigne sur rien
+		// d'autre.
 		l := entree.Lire(chemin, entree.LimitePiece)
 		switch l.Etat {
+		case entree.Absent:
+			if errors.Is(l.Err, entree.ErrNonOrdinaire) {
+				return resultatEvt{}, &Defaut{"entree_illisible", commun.T("pièce "+nom+" : pas un fichier ordinaire (lien symbolique, tube nommé, répertoire…), non ouverte (EX-4.17)", "piece "+nom+": not a regular file (symbolic link, named pipe, directory…), not opened (EX-4.17)")}
+			}
+			continue
 		case entree.TropGrand:
 			return resultatEvt{}, &Defaut{"taille_depassee", commun.T("pièce "+nom+" de plus de 1 Gio", "piece "+nom+" larger than 1 GiB")}
-		case entree.Illisible, entree.Absent:
+		case entree.Illisible:
 			return resultatEvt{}, &Defaut{"entree_illisible", commun.T("pièce "+nom+" illisible", "piece "+nom+" unreadable")}
 		}
 		if !a.pieces.lues[nom] {
@@ -414,8 +435,7 @@ func (a *Analyse) regleE6(e *Evt) (resultatEvt, *Defaut) {
 		}
 	}
 	if len(ecarts) > 0 {
-		s := strings.Join(ecarts, ", ")
-		return ko(s, s), nil
+		return ko(strings.Join(commun.BornerFr(ecarts), ", "), strings.Join(commun.BornerEn(ecarts), ", ")), nil
 	}
 	return resultatEvt{statut: commun.Reussi}, nil
 }

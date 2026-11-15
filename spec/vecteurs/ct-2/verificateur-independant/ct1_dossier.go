@@ -951,12 +951,30 @@ func (d *Dossier) controlerApprobations() {
 
 // controlerEvenementsApprobations soumet chaque événement de events à E-1 à
 // E-11 (§11.4 : les événements d'une partie exploitable).
+//
+// Révision 0.6 (§11.4, A-2) : au plus MaxDecisionsJugees éléments sont
+// soumis à E-1 à E-11 ; les suivants ne sont ni contrôlés ni rapportés un à
+// un (A-2 les compte et les nomme quand elle s'exécute).
 func (d *Dossier) controlerEvenementsApprobations(ap *Value) {
 	if events := ap.Get("events"); events != nil && events.Kind == KindArray {
-		for i, e := range events.Arr {
+		for i, e := range decisionsJugees(events.Arr) {
 			d.Resultats.Fusionner(ControlerEvenement(e, d.Cles), fmt.Sprintf("approbations.events[%d]", i))
 		}
 	}
+}
+
+// MaxDecisionsJugees est la borne de §11.4, A-2 (révision 0.6) : les 1 024
+// éléments de events que le schéma admet (#/$defs/approbations, maxItems ;
+// CT-6 EX-15.1).
+const MaxDecisionsJugees = 1024
+
+// decisionsJugees rend les éléments de events jugés un à un : les
+// MaxDecisionsJugees premiers.
+func decisionsJugees(arr []*Value) []*Value {
+	if len(arr) > MaxDecisionsJugees {
+		return arr[:MaxDecisionsJugees]
+	}
+	return arr
 }
 
 // controlerEnveloppeApprobations applique A-1 (enveloppe, ticket,
@@ -1002,6 +1020,8 @@ func (d *Dossier) controlerEnveloppeApprobations(ap, approval *Value) {
 	events := ap.Get("events")
 	if events == nil || events.Kind != KindArray || len(events.Arr) < 1 {
 		m.add("approbations.events", "tableau non vide attendu")
+	} else if len(events.Arr) > MaxDecisionsJugees {
+		m.add("approbations.events", "%d éléments, au plus %d (schéma)", len(events.Arr), MaxDecisionsJugees)
 	}
 	for _, x := range m.liste {
 		r.Echec("A-1", "%s", x)
@@ -1025,8 +1045,15 @@ func (d *Dossier) controlerEnveloppeApprobations(ap, approval *Value) {
 	seqEv, okSeqEv := SeqTypee(ev)
 	tsEv, okTsEv := TsTypee(ev)
 	prouveDansEvents := false
+	// Révision 0.6 : events compte au moins une décision ; absent, d'un autre
+	// type ou vide, A-2 échoue (relation à terme absent ou mal typé, §11.4).
+	if events == nil || events.Kind != KindArray || len(events.Arr) == 0 {
+		r.Echec("A-2", "aucun événement de décision")
+	} else if n := len(events.Arr); n > MaxDecisionsJugees {
+		r.Echec("A-2", "%d élément(s) de events au-delà des %d que le schéma admet (approbations.events[%d] à approbations.events[%d]) : ni contrôlés ni rapportés un à un", n-MaxDecisionsJugees, MaxDecisionsJugees, MaxDecisionsJugees, n-1)
+	}
 	if events != nil && events.Kind == KindArray {
-		for i, e := range events.Arr {
+		for i, e := range decisionsJugees(events.Arr) {
 			etiq := fmt.Sprintf("approbations.events[%d]", i)
 			r.Fusionner(ControlerEvenement(e, d.Cles), etiq)
 			if t, ok := chaineTypee(e, "execution", "tool"); !ok || t != OutilApprobation {

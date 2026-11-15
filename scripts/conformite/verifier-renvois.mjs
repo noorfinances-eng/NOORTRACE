@@ -14,7 +14,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import * as J from "../lib/journal.mjs";
 import * as S from "../lib/securite.mjs";
 
@@ -550,7 +550,16 @@ export function verifierDepot(racine = RACINE) {
   return erreurs;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+/** Chemin réel d'un fichier (liens symboliques résolus), ou null ; la garde de lancement le compare à celui du module. */
+function cheminReel(p) {
+  try {
+    return fs.realpathSync(path.resolve(p));
+  } catch {
+    return null;
+  }
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === cheminReel(process.argv[1])) {
   // Aucun argument : la commande vérifie le dépôt entier (EX-A.13). Les cas invalides de A.8 se rejouent par test/conformite.test.js.
   if (process.argv.length > 2) {
     console.error(`argument inattendu : ${process.argv[2]}\nusage : node scripts/conformite/verifier-renvois.mjs   (sans argument : vérifie le dépôt)`);

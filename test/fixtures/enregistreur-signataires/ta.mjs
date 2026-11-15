@@ -1,4 +1,4 @@
-// Scénarios des TA- du lot des signataires sur le démon réel (CT-9 §10 ;
+// Scénarios des TA- des signataires sur le démon réel (CT-9 §10 ;
 // joués par test/adversarial.test.js, référence puis mutant du paquet) :
 //
 // - TA-33 (MN-33) : signataire de classe B (Vault Transit réel) arrêté sans

@@ -13,6 +13,48 @@ export const ZERO32 = "0x" + "00".repeat(32);
 const MOTIF_HEX = /^0x(?:[0-9a-f]{2})*$/;
 
 /**
+ * Écrit une valeur lue dans une entrée (dossier, journal, point) pour un
+ * message de rapport : son texte JSON, jamais sa conversion implicite en
+ * chaîne. Un objet JSON qui porte un membre `toString` ou `valueOf` masque
+ * `Object.prototype` par une valeur non appelable, et `${valeur}`,
+ * `String(valeur)` ou `Array.prototype.join` lèvent alors `TypeError` ;
+ * `JSON.stringify` n'appelle ni l'un ni l'autre et ignore un `toJSON` non
+ * appelable. C'est la seule fonction du paquet qui écrit une valeur lue
+ * dans un message (revue de sécurité, cause S-2). Une chaîne s'écrit telle
+ * quelle, un nombre, un booléen ou `null` par leur texte JSON (les messages
+ * d'une valeur bien typée ne changent pas) ; un objet ou un tableau par leur
+ * texte JSON ; `undefined` s'écrit « absent » ; une valeur que JSON ne
+ * représente pas (BigInt, cycle) s'écrit par son type.
+ * @param {unknown} valeur
+ * @returns {string}
+ */
+export function montrer(valeur) {
+  if (valeur === undefined) return "absent";
+  if (typeof valeur === "string") return valeur;
+  if (valeur === null || typeof valeur === "number" || typeof valeur === "boolean") return String(valeur);
+  try {
+    const s = JSON.stringify(valeur);
+    return s === undefined ? `(${typeof valeur})` : s;
+  } catch {
+    return `(${typeof valeur})`;
+  }
+}
+
+/**
+ * Décrit une exception rattrapée par la garde d'un point d'entrée des
+ * contrôles (verifierDossier, verifierJournal, verifierSeriePointsDeControle,
+ * verifierPartieAttestation) : nom et message d'une Error, sinon la valeur
+ * montrée. Le message d'une exception interne n'est jamais une valeur lue
+ * telle quelle ; il est borné à 512 caractères.
+ * @param {unknown} e
+ * @returns {string}
+ */
+export function descriptionErreur(e) {
+  const texte = e instanceof Error ? `${e.name} : ${e.message}` : montrer(e);
+  return texte.length > 512 ? texte.slice(0, 512) + "…" : texte;
+}
+
+/**
  * Dit si une valeur est une chaîne hexadécimale minuscule préfixée 0x, de
  * longueur paire, et, si `octets` est donné, d'exactement ce nombre d'octets.
  * @param {unknown} valeur

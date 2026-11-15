@@ -1,5 +1,5 @@
 // Exportateur du composant d'ancrage (CT-5 §10.1, EX-10.1 à EX-10.5, AN-50 à
-// AN-53 ; lot F2). Il lit, pour la période d'un événement, le répertoire
+// AN-53). Il lit, pour la période d'un événement, le répertoire
 // d'ancres d'EX-5.14 (jetons `rfc3161/`, preuves `ots/`, `entetes-bitcoin.json`,
 // `acquisitions.ndjson`), la série des points écrite par l'enregistreur et
 // les index de capture des ancres au registre (CT-4 §9.4), et assemble le
@@ -239,6 +239,27 @@ export function construirePartiePointsDeControle({ point, hashes, jeton = null, 
  * Dépôts d'un journal sous la racine de stockage de l'enregistreur (CT-2
  * EX-12.1 ; EX-5.14) : lecture seule ici.
  */
+/**
+ * Écrit un fichier du dossier (CT-5 EX-10.1) : fichier provisoire en mode
+ * 0600, écrit en entier, puis renommé sur le nom définitif (remplacement
+ * atomique) ; le provisoire est retiré en cas d'échec.
+ */
+export function ecrireFichierDossier(chemin, octets) {
+  const provisoire = `${chemin}.partiel-${process.pid}`;
+  const o = octets instanceof Uint8Array ? octets : Buffer.from(octets);
+  const fd = fs.openSync(provisoire, "w", 0o600);
+  try {
+    let k = 0;
+    while (k < o.length) k += fs.writeSync(fd, o, k, o.length - k);
+  } catch (e) {
+    fs.closeSync(fd);
+    fs.rmSync(provisoire, { force: true });
+    throw e;
+  }
+  fs.closeSync(fd);
+  fs.renameSync(provisoire, chemin);
+}
+
 export function depotsJournal({ racineStockage, orgId, journalId }) {
   return {
     ancres: new DepotAncres({ racine: racineStockage, orgId, journalId }),
@@ -265,13 +286,20 @@ function lireOctets(chemin, max) {
  * incohérence (fichier absent ou SHA-256 différent de l'enregistrement) est
  * rendue dans `defauts`, jamais corrigée.
  */
-export function piecesObjet({ depots, periodStart, objet, checkpointHash = null }) {
+export function piecesObjet({ depots, periodStart, objet, checkpointHash = null, imprintAttendue = null }) {
   const defauts = [];
   const nom = objet === "manifeste" ? "manifeste" : nomObjetPoint(checkpointHash);
+  // Revue de sécurité de l'étape 8 (CT-5 EX-10.1) : le jeton et la preuve d'une période ne sont remis que pour l'empreinte attendue (`periodHash`) ;
+  // un jeton promu d'une autre empreinte est un défaut rendu, jamais exporté (le réviseur l'aurait refusé en T-2, O-2).
+  const imprint = objet === "manifeste" ? imprintAttendue : checkpointHash;
   let jeton = null;
   let enregistrement = null;
   try {
-    enregistrement = depots.ancres.promu(objet === "manifeste" ? "manifeste" : "point", periodStart, objet === "manifeste" ? null : checkpointHash);
+    enregistrement = depots.ancres.promu(objet === "manifeste" ? "manifeste" : "point", periodStart, imprint);
+    if (!enregistrement && objet === "manifeste" && imprint !== null) {
+      const autre = depots.ancres.promu("manifeste", periodStart, null);
+      if (autre) defauts.push({ piece: autre.files?.token ?? "acquisitions", raison: "jeton promu du manifeste pour une autre empreinte que periodHash (EX-10.1)" });
+    }
   } catch (e) {
     defauts.push({ piece: "acquisitions", raison: String(e?.message ?? e).slice(0, 200) });
   }
@@ -286,7 +314,9 @@ export function piecesObjet({ depots, periodStart, objet, checkpointHash = null 
   let preuve = null;
   try {
     const derniere = depots.ots.derniere({ periodStart, objet: nom });
-    if (derniere) preuve = { octets: derniere.octets, version: derniere.version, fichier: derniere.fichier, etat: etatPreuve(derniere.octets), sha256: sha256Hex(derniere.octets) };
+    if (derniere && imprint !== null && `0x${Buffer.from(lireOts(derniere.octets).empreinte).toString("hex")}` !== imprint) {
+      defauts.push({ piece: derniere.fichier, raison: "empreinte de la preuve OpenTimestamps différente de celle attendue (EX-6.10)" });
+    } else if (derniere) preuve = { octets: derniere.octets, version: derniere.version, fichier: derniere.fichier, etat: etatPreuve(derniere.octets), sha256: sha256Hex(derniere.octets) };
   } catch (e) {
     defauts.push({ piece: `ots/${nom}`, raison: String(e?.message ?? e).slice(0, 200) });
   }
@@ -299,8 +329,8 @@ export function piecesObjet({ depots, periodStart, objet, checkpointHash = null 
  * (octets du fichier d'EX-6.8), et les enregistrements d'acquisition (dernier
  * état) pour le choix du point.
  */
-export function piecesPeriode({ depots, periodStart }) {
-  const { jeton, preuve, defauts } = piecesObjet({ depots, periodStart, objet: "manifeste" });
+export function piecesPeriode({ depots, periodStart, periodHash = null }) {
+  const { jeton, preuve, defauts } = piecesObjet({ depots, periodStart, objet: "manifeste", imprintAttendue: periodHash });
   let entetes = null;
   const cheminEntetes = path.join(depots.ots.repertoirePeriode(periodStart), "entetes-bitcoin.json");
   const octetsEntetes = lireOctets(cheminEntetes, BORNES_EXPORTATEUR.entetes);
@@ -420,7 +450,7 @@ export function exporterDossier(p) {
   const defauts = [];
 
   // Parties de la période (EX-10.1).
-  const periode = piecesPeriode({ depots, periodStart });
+  const periode = piecesPeriode({ depots, periodStart, periodHash: typeof p.periodHash === "string" ? p.periodHash : null });
   defauts.push(...periode.defauts);
   if (periode.jeton) fichiers.set("jeton-rfc3161.der", periode.jeton.octets);
   else raisons.jeton_rfc3161 = RAISONS.jetonAbsent;
@@ -476,10 +506,12 @@ export function exporterDossier(p) {
   const dossier = indexerDossier({ event: p.event, org_id: p.org_id, journal_id: p.journal_id, generated_at: ecrireHorodatage(p.generated_at), fichiers, points: true, raisons });
   const octetsIndex = octetsJsonDossier(dossier);
   if (p.ecrire !== false) {
+    // Revue de sécurité de l'étape 8 (CT-5 EX-10.1) : fichiers du dossier en mode 0600, `dossier.json` écrit en dernier par remplacement atomique
+    // (un lecteur ne voit jamais un index sans ses parties, ni un index incomplet).
     fs.mkdirSync(p.destination, { recursive: true, mode: 0o700 });
-    for (const [nom, octets] of fichiers) fs.writeFileSync(path.join(p.destination, nom), octets);
-    fs.writeFileSync(path.join(p.destination, "dossier.json"), octetsIndex);
-    if (periode.entetes) fs.writeFileSync(path.join(p.destination, "entetes-bitcoin.json"), periode.entetes.octets);
+    for (const [nom, octets] of fichiers) ecrireFichierDossier(path.join(p.destination, nom), octets);
+    if (periode.entetes) ecrireFichierDossier(path.join(p.destination, "entetes-bitcoin.json"), periode.entetes.octets);
+    ecrireFichierDossier(path.join(p.destination, "dossier.json"), octetsIndex);
   }
   // Le résumé est gardé par l'appelant pour EX-10.5 : ses chaînes sont recopiées pour ne retenir aucun texte de fichier relu.
   const resume = copieAutonome({

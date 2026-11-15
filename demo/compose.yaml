@@ -1,0 +1,407 @@
+# Démonstration de référence de NOORTRACE (CT-2 §19) : un agent scénarisé, son
+# enregistreur, un serveur d'outils, un simulateur de l'API Messages, le
+# service d'approbation, des approbateurs, une instance de développement du
+# registre et un vérificateur. Sans clé d'API, sans accès à Internet.
+#
+#   docker compose -f demo/compose.yaml up
+#
+# La commande affiche les journaux des services ; le service verificateur
+# imprime le résultat (CT-2 §19.4) et se termine avec le code 0 si le dossier
+# est valide, 1 sinon. Pour un script, qui doit rendre la main :
+#
+#   docker compose -f demo/compose.yaml up --detach
+#   docker compose -f demo/compose.yaml wait verificateur
+#   docker compose -f demo/compose.yaml logs --no-log-prefix verificateur
+#
+# Un nouveau passage exige un nouveau journal (CT-2 EX-19.4) :
+#
+#   docker compose -f demo/compose.yaml down --volumes
+#
+# Les images noortrace/* sont construites depuis le dépôt, sans être publiées
+# (LISEZMOI.md de ce répertoire). TOUT ce qui ressemble ici à un secret est une
+# valeur de démonstration PUBLIQUE, écrite dans ce fichier : elle ne protège
+# rien. Aucune n'est une clé réelle. Les clés des approbateurs (comptes Hardhat
+# 1 à 3) ne sont pas dans ce fichier : seul le service approbateur-demo les
+# détient, dans son image.
+#
+# Qui joint qui (CT-2 §4.9) : agent-demo n'est attaché qu'au réseau hotes, où
+# il ne trouve que l'enregistreur ; il ne peut joindre ni outils-demo, ni
+# modele-demo, ni le registre. Les quatre réseaux de la démonstration sont
+# internes (aucune sortie) ; le réseau sante ne sert qu'à publier le port de
+# santé de l'enregistreur sur la boucle locale de l'hôte, sans traduction
+# d'adresse en sortie.
+
+name: noortrace-demo
+
+x-durcissement: &durcissement
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  restart: "no"
+
+x-temporaire: &temporaire
+  - /run/temporaire:size=16777216,mode=1777
+
+services:
+  # Instance de développement du registre : quatre validateurs noorcore dans un
+  # conteneur, contrats déployés au démarrage, jeu d'approbateurs de
+  # l'organisation (comptes Hardhat 1 à 3, seuil 2), provision de la clé de
+  # chaîne de l'enregistreur. Neuve à chaque lancement (données en mémoire).
+  registre-dev:
+    <<: *durcissement
+    image: noortrace/registre-dev:0.1.0
+    user: "10025:10025"
+    command: ["servir"]
+    tmpfs:
+      - /run/temporaire:size=16777216,mode=1777
+      - /var/lib/noorcore:size=268435456,uid=10025,gid=10025,mode=0700
+    environment:
+      TMPDIR: /run/temporaire
+      REGISTRE_DEV_ORG_ID: "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+      REGISTRE_DEV_CLE_CHAINE: "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+    volumes:
+      - type: bind
+        source: ./instance-registre.json
+        target: /etc/noortrace-demo/instance-registre.json
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - registre
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-registre-dev", "sonde"]
+      interval: 2s
+      timeout: 3s
+      retries: 3
+      start_period: 90s
+
+  # Serveur d'outils MCP de démonstration : claims.get, claims.search,
+  # payments.create, données fictives en mémoire.
+  outils-demo:
+    <<: *durcissement
+    image: noortrace/outils-demo:0.1.0
+    user: "10021:10021"
+    command: ["servir", "--ecoute", "0.0.0.0:8000"]
+    tmpfs: *temporaire
+    environment:
+      TMPDIR: /run/temporaire
+    networks:
+      - outils
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-outils-demo", "sonde", "--url", "http://127.0.0.1:8000/sante"]
+      interval: 2s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  # Simulateur de l'API Messages (CT-2 §19.3) : sans clé, scénario fixe.
+  modele-demo:
+    <<: *durcissement
+    image: noortrace/modele-demo:0.1.0
+    user: "10022:10022"
+    command: ["servir", "--ecoute", "0.0.0.0:8080"]
+    tmpfs: *temporaire
+    environment:
+      TMPDIR: /run/temporaire
+    networks:
+      - fournisseurs
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-modele-demo", "sonde", "--url", "http://127.0.0.1:8080/sante"]
+      interval: 2s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  # Les approbateurs : SEUL détenteur des clés de démonstration des comptes
+  # Hardhat 1 à 3. Il inscrit la clé de l'enregistreur au registre, vote sur
+  # les tickets par le canal de la console du service d'approbation, et signe
+  # la demande de clôture de la période.
+  approbateur-demo:
+    <<: *durcissement
+    image: noortrace/approbateur-demo:0.1.0
+    user: "10024:10024"
+    group_add:
+      - "10010"
+    command: ["servir"]
+    tmpfs: *temporaire
+    environment:
+      TMPDIR: /run/temporaire
+      APPROBATEUR_RPC_URL: http://registre-dev:8545
+      APPROBATEUR_ORG_ID: "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+      APPROBATEUR_JOURNAL_ID: "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e"
+      APPROBATEUR_CLE_CHAINE: "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+      APPROBATEUR_CLE_ED25519: "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045"
+      APPROBATEUR_CONSOLE_JETON: demo-jeton-console-approbateur-demo
+    volumes:
+      - type: volume
+        source: prise-console
+        target: /run/noortrace-console
+      - type: volume
+        source: demandes
+        target: /var/lib/noortrace-demandes
+      - type: bind
+        source: ./instance-registre.json
+        target: /etc/noortrace-demo/instance-registre.json
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - registre
+    depends_on:
+      registre-dev:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-approbateur-demo", "sonde"]
+      interval: 1s
+      timeout: 3s
+      retries: 3
+      start_period: 120s
+
+  # Le service d'approbation de CT-3, tel qu'il est livré : distinct du démon,
+  # sans réseau, sans aucune clé d'approbateur. Le démon le joint par la prise
+  # du noyau (volume prises), approbateur-demo par la prise du canal de la
+  # console (volume prise-console).
+  approbation:
+    <<: *durcissement
+    image: noortrace/approbation:0.1.0
+    user: "10002:10002"
+    group_add:
+      - "10010"
+    command: ["--config", "/etc/noortrace-approbation/configuration.json"]
+    tmpfs: *temporaire
+    environment:
+      TMPDIR: /run/temporaire
+      NOORTRACE_DEMO_CLE_STOCKAGE_APPROBATION: "0000000000000000000000000000000000000000000000000000000064656d6f"
+      NOORTRACE_DEMO_JETON_CONSOLE: demo-jeton-console-approbateur-demo
+    network_mode: none
+    volumes:
+      - type: volume
+        source: approbation-etat
+        target: /var/lib/noortrace-approbation
+      - type: volume
+        source: prises
+        target: /run/noortrace
+      - type: volume
+        source: prise-console
+        target: /run/noortrace-console
+      - type: bind
+        source: ./approbation-demo.json
+        target: /etc/noortrace-approbation/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      # approbateur-demo monte le volume prise-console le premier et lui donne ses droits.
+      approbateur-demo:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-approbation", "sonde", "--url", "http://127.0.0.1:8601/v0/etat"]
+      interval: 2s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  # Le démon : frontal MCP (8300), passerelle de modèle (8400), santé (8500).
+  # Clé de test rec-test-01 de CT-1 §13 (classe D, graine publique), bail file.
+  enregistreur:
+    <<: *durcissement
+    image: noortrace/enregistreur:0.1.0
+    user: "10001:10001"
+    group_add:
+      - "10010"
+    command: ["--config", "/etc/noortrace/configuration.json"]
+    tmpfs:
+      - /run/temporaire:size=67108864,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+      NOORTRACE_DEMO_JETON_HOTE: demo-jeton-hote-agent-demo
+      NOORTRACE_DEMO_JETON_PASSERELLE: demo-jeton-passerelle-agent-demo
+      NOORTRACE_DEMO_CLE_MODELE: demo-cle-de-la-passerelle-vers-modele-demo
+      NOORTRACE_DEMO_CLE_MAC_RELAIS: "000000000000000000000000000000000000000000000000000000006d616364"
+      # Clé de chaîne de test de rec-test-01 (CT-4, libellé public noortrace/vecteurs/v0/cle-chaine/rec-test-01).
+      NOORTRACE_DEMO_CLE_CHAINE: "0xda2e35b7f69680fe15647356186bbfc784c60620e57ef94abb6858299b26e4d0"
+    ports:
+      - "127.0.0.1:${NOORTRACE_DEMO_PORT_SANTE:-8500}:8500"
+    volumes:
+      - type: volume
+        source: journal
+        target: /var/lib/noortrace
+      - type: volume
+        source: exploitation
+        target: /var/log/noortrace
+      - type: volume
+        source: prises
+        target: /run/noortrace
+      - type: volume
+        source: exports
+        target: /var/lib/noortrace-exports
+      - type: bind
+        source: ./configuration-demo.json
+        target: /etc/noortrace/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./ancrage-demo.json
+        target: /etc/noortrace/ancrage.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./instance-registre.json
+        target: /etc/noortrace/instance-registre.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./cle-rec-test-01.pem
+        target: /etc/noortrace/cles/rec-test-01.pem
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - hotes
+      - outils
+      - fournisseurs
+      - registre
+      - sante
+    depends_on:
+      registre-dev:
+        condition: service_healthy
+      outils-demo:
+        condition: service_healthy
+      modele-demo:
+        condition: service_healthy
+      approbation:
+        condition: service_healthy
+      # La clé de l'enregistreur est inscrite au registre avant que le démon n'ancre.
+      approbateur-demo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-ctl", "sonde", "--url", "http://127.0.0.1:8500/readyz"]
+      interval: 2s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+
+  # L'agent scénarisé : il ne connaît que l'enregistreur. Il joue le scénario
+  # de CT-2 §19.2, puis se termine.
+  agent-demo:
+    <<: *durcissement
+    image: noortrace/agent-demo:0.1.0
+    user: "10023:10023"
+    command: ["jouer"]
+    tmpfs: *temporaire
+    environment:
+      TMPDIR: /run/temporaire
+      NOORTRACE_MCP_URL: http://enregistreur:8300/mcp
+      NOORTRACE_MCP_TOKEN: demo-jeton-hote-agent-demo
+      ANTHROPIC_BASE_URL: http://enregistreur:8400
+      NOORTRACE_GATEWAY_TOKEN: demo-jeton-passerelle-agent-demo
+      # Clé factice : la passerelle porte la sienne (credentials « propre »).
+      ANTHROPIC_API_KEY: cle-factice-agent-demo
+    networks:
+      - hotes
+    depends_on:
+      enregistreur:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+
+  # Les gestes de l'exploitant sur l'enregistreur, une fois l'agent terminé :
+  # clôture anticipée, remise de la demande de clôture signée, export du
+  # dossier. Même image, même compte et même espace de processus que le démon :
+  # c'est « docker compose exec enregistreur … », enchaîné sans intervention.
+  exploitation-demo:
+    <<: *durcissement
+    image: noortrace/enregistreur:0.1.0
+    user: "10001:10001"
+    entrypoint: ["/usr/local/bin/node", "/etc/noortrace-demo/exploitation-demo.mjs"]
+    pid: "service:enregistreur"
+    network_mode: none
+    tmpfs: *temporaire
+    environment:
+      TMPDIR: /run/temporaire
+    volumes:
+      - type: volume
+        source: journal
+        target: /var/lib/noortrace
+      - type: volume
+        source: exploitation
+        target: /var/log/noortrace
+      - type: volume
+        source: exports
+        target: /var/lib/noortrace-exports
+      - type: volume
+        source: demandes
+        target: /var/lib/noortrace-demandes
+      - type: bind
+        source: ./configuration-demo.json
+        target: /etc/noortrace/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./exploitation-demo.mjs
+        target: /etc/noortrace-demo/exploitation-demo.mjs
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      agent-demo:
+        condition: service_completed_successfully
+    healthcheck:
+      disable: true
+
+  # Le vérificateur ne fait que vérifier : aucun réseau, le volume des exports
+  # en lecture seule. Il démarre avec la composition, attend le dossier,
+  # le vérifie hors ligne et imprime le résultat et la durée.
+  verificateur:
+    <<: *durcissement
+    image: noortrace/verificateur-demo:0.1.0
+    user: "10005:10005"
+    command: ["verifier"]
+    network_mode: none
+    tmpfs: *temporaire
+    environment:
+      TMPDIR: /run/temporaire
+      DEMO_ORGANISATION: assureur-demo
+      DEMO_JOURNAL: journal-demo
+    volumes:
+      - type: volume
+        source: exports
+        target: /var/lib/noortrace-exports
+        read_only: true
+      - type: bind
+        source: ./ancres-demo.json
+        target: /etc/noortrace-demo/ancres-demo.json
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      disable: true
+
+networks:
+  hotes:
+    internal: true
+  outils:
+    internal: true
+  fournisseurs:
+    internal: true
+  registre:
+    internal: true
+  sante:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+
+volumes:
+  journal: {}
+  exploitation: {}
+  prises: {}
+  exports: {}
+  approbation-etat: {}
+  prise-console: {}
+  demandes: {}

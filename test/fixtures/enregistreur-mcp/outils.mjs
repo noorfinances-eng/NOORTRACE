@@ -9,7 +9,7 @@
 
 import { EventEmitter } from "node:events";
 import { decoderHorodatage } from "@noortrace/noyau";
-import { pieceJson, ServiceApprobation } from "@noortrace/enregistreur";
+import { condenseApproval, pieceJson, ServiceApprobation } from "@noortrace/enregistreur";
 import { configurationDev } from "../enregistreur-coeur/outils.mjs";
 
 export { configurationDev };
@@ -74,7 +74,7 @@ const IBAN = /^[A-Z]{2}[0-9]{2}(?: ?[0-9A-Z]{4}){2,7}(?: ?[0-9A-Z]{1,3})?$/;
 /**
  * Rédacteur de test (crochets de la section e d'INTERFACES.md) : une seule
  * règle, une chaîne entière de la forme d'un IBAN devient `[REDIGE:iban]`.
- * Il tient la place du lot de rédaction pour les tests du frontal.
+ * Il tient la place de la partie rédaction pour les tests du frontal.
  */
 export class RedacteurTest {
   constructor(o = {}) {
@@ -126,23 +126,36 @@ export class RedacteurTest {
   }
 }
 
-/** Service d'approbation de test : réponse d'`evaluer` fixée par une fonction. */
+/**
+ * Service d'approbation de test : réponse d'`evaluer` fixée par une fonction.
+ * Comme le vrai service (CT-3 §12.2, §12.3 ; décision du porteur du 14 novembre 2026 et son addendum), le
+ * `charger` rend `approval_sha256`, condensé du membre `approval` reçu, et
+ * chaque réponse `evaluer` porte le couple chargé de la version de la requête
+ * (`policy_version`, `policy_sha256`, `approval_sha256`) quand la fonction ne
+ * les donne pas.
+ */
 export class ServiceFixe extends ServiceApprobation {
   constructor(repondre, candidats = []) {
     super();
     this.repondre = repondre;
     this.candidats = candidats;
     this.messages = [];
+    this.couples = new Map();
   }
 
   async charger(r) {
     this.messages.push({ methode: "charger", corps: r });
-    return { policy_version: r.policy_version, policy_sha256: r.policy_sha256, approval_candidates: this.candidats.filter((c) => r.tools.some((t) => t.tool_announced === c)) };
+    const approval_sha256 = condenseApproval(r.approval);
+    this.couples.set(r.policy_version, { policy_version: r.policy_version, policy_sha256: r.policy_sha256, approval_sha256 });
+    return { policy_version: r.policy_version, policy_sha256: r.policy_sha256, approval_sha256, approval_candidates: this.candidats.filter((c) => r.tools.some((t) => t.tool_announced === c)) };
   }
 
   async evaluer(r) {
     this.messages.push({ methode: "evaluer", corps: r });
-    return this.repondre(r);
+    const reponse = await this.repondre(r);
+    if (reponse === null || typeof reponse !== "object" || "policy_version" in reponse) return reponse;
+    const couple = this.couples.get(r?.code?.policy_version) ?? { policy_version: r?.code?.policy_version ?? null, policy_sha256: null, approval_sha256: null };
+    return { ...reponse, ...couple };
   }
 
   async ouvrir(r) {

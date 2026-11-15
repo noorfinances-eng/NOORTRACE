@@ -1,0 +1,5 @@
+# LlamaIndex aux versions de CT-2 §19.5.9 (mêmes épingles que paquets/sdk-python/verrous/llamaindex.in),
+# plus le client de modèle `llama-index-llms-openai` 0.8.3 (OpenAI(api_base=…)) vers la passerelle (CT-9 TI-9).
+llama-index-core==0.14.25
+llama-index-tools-mcp==0.6.0
+llama-index-llms-openai==0.8.3

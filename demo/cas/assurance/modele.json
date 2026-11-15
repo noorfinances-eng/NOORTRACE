@@ -1,0 +1,40 @@
+{
+  "modele": "modele-cas-1",
+  "etapes": [
+    {
+      "quand": "texte",
+      "id": "msg_cas_as_0001",
+      "texte": "Je recherche la proposition du proposant P-01 avant de l'instruire.",
+      "outil": { "id": "toolu_cas_as_0001", "name": "souscription__propositions_search", "input": { "query": "P-01" } },
+      "usage": { "input_tokens": 540, "output_tokens": 44 }
+    },
+    {
+      "quand": "toolu_cas_as_0001",
+      "id": "msg_cas_as_0002",
+      "texte": "La proposition PRP-2026-00431 est la sienne : je lis le dossier complet.",
+      "outil": { "id": "toolu_cas_as_0002", "name": "souscription__propositions_get", "input": { "proposition_id": "PRP-2026-00431" } },
+      "usage": { "input_tokens": 610, "output_tokens": 52 }
+    },
+    {
+      "quand": "toolu_cas_as_0002",
+      "id": "msg_cas_as_0003",
+      "texte": "Le questionnaire déclare un fumeur et un sport à risque : je demande la classe de risque de la grille.",
+      "outil": { "id": "toolu_cas_as_0003", "name": "souscription__risque_classer", "input": { "proposition_id": "PRP-2026-00431" } },
+      "usage": { "input_tokens": 720, "output_tokens": 61 }
+    },
+    {
+      "quand": "toolu_cas_as_0003",
+      "id": "msg_cas_as_0004",
+      "texte": "Classe C avec une majoration de 50 pour cent : je propose d'accepter la proposition à ces conditions ; la décision est soumise aux souscripteurs.",
+      "outil": { "id": "toolu_cas_as_0004", "name": "souscription__souscription_decider", "input": { "proposition_id": "PRP-2026-00431", "decision": "accepter", "classe_risque": "C", "majoration_pct": "50", "motif": "fumeur declare et plongee sous-marine : classe C de la grille, acceptation avec majoration" } },
+      "usage": { "input_tokens": 830, "output_tokens": 118 }
+    },
+    {
+      "quand": "toolu_cas_as_0004",
+      "id": "msg_cas_as_0005",
+      "texte": "La décision de souscription de PRP-2026-00431 est enregistrée après approbation : acceptation en classe C avec majoration de 50 pour cent.",
+      "outil": null,
+      "usage": { "input_tokens": 960, "output_tokens": 41 }
+    }
+  ]
+}

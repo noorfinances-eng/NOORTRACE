@@ -1,0 +1,8 @@
+# Correctifs NOORTRACE attendus dans chain/patches/ à la construction du nœud
+# (chain/scripts/build-noorcore.sh, chain/docker/Dockerfile) : nom et empreinte
+# SHA-256 seulement, jamais le contenu (CT-4 EX-10.1 c, d). Format de sha256sum.
+# Vérifié par chain/scripts/verifier-correctifs.sh avant tout `git apply` : une
+# empreinte différente, un correctif absent ou un fichier non listé arrêtent la
+# construction ; sans aucun correctif, elle n'est admise qu'avec
+# NOORTRACE_SANS_CORRECTIF=1 et sous une autre étiquette que l'image livrée.
+04d4a48b28568bb6859abdfb1778985841fc547ea47649742b3b2763dd83ae82  0001-noor_getCommitCertificate.patch

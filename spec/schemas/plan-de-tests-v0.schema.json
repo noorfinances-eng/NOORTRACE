@@ -1538,6 +1538,10 @@
               }
             }
           }
+        },
+        "notes": {
+          "description": "État de l'arbre et condition d'ensemble de l'exécution (CT-9 EX-A.19) ; facultatif.",
+          "type": "string"
         }
       }
     },
@@ -2214,6 +2218,7 @@
           "required": [
             "pseudonym",
             "role",
+            "condition",
             "external"
           ],
           "properties": {
@@ -2225,9 +2230,38 @@
               "type": "string",
               "minLength": 1
             },
+            "condition": {
+              "description": "Condition du participant (CT-9 EX-12.1). `relecteur_interne_a_l_aveugle` : relecteur interne au projet, conduit en session isolée, qui n'a reçu que le matériel consigné. `personne_exterieure` : personne qui n'a pris part au projet à aucun titre.",
+              "type": "string",
+              "enum": [
+                "relecteur_interne_a_l_aveugle",
+                "personne_exterieure"
+              ]
+            },
             "external": {
-              "description": "Vrai si la personne n'a pris part ni au projet ni à la rédaction de la spécification visée.",
+              "description": "Vrai si et seulement si `condition` vaut `personne_exterieure`. Faux pour toute épreuve de la version 0.",
               "type": "boolean"
+            }
+          },
+          "if": {
+            "properties": {
+              "condition": {
+                "const": "personne_exterieure"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "external": {
+                "const": true
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "external": {
+                "const": false
+              }
             }
           }
         },

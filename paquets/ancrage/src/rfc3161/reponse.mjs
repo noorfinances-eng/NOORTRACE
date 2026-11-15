@@ -30,9 +30,11 @@ export class ErreurReponse extends Error {
 /**
  * Lit une `TimeStampResp` : `{ status, statusString, failureInfo, failureInfoBits,
  * token (octets du TimeStampToken, tels que reçus) }`. `status` 0 ou 1 exige un
- * jeton ; 2 à 5 n'en portent pas ; toute autre valeur, ou toute forme hors du
- * lecteur borné, lève `ErreurReponse`. Le jeton n'est pas analysé ici
- * (`lireJeton`, T-1).
+ * jeton ; 2 à 5 n'en portent pas ; toute autre valeur est rendue telle quelle,
+ * sans `PKIFailureInfo` ni jeton, qui n'est pas lu (CT-5 EX-5.10 étape 2 :
+ * `statut_<n>`, permanente ; revue de l'étape 8) ; une valeur hors des
+ * entiers sûrs de JavaScript, ou toute forme hors du lecteur borné, lève
+ * `ErreurReponse`. Le jeton n'est pas analysé ici (`lireJeton`, T-1).
  */
 export function lireReponse(octets) {
   try {
@@ -44,8 +46,9 @@ export function lireReponse(octets) {
     const p = enfants(psi);
     if (p.length < 1 || p.length > 3) throw new ErreurDer("PKIStatusInfo mal formé", psi.debut);
     const statusBig = lireEntier(p[0]);
-    if (statusBig < 0n || statusBig > 5n) throw new ErreurDer(`PKIStatus ${statusBig} hors de 0 à 5`, p[0].debut);
+    if (!Number.isSafeInteger(Number(statusBig)) || BigInt(Number(statusBig)) !== statusBig) throw new ErreurDer(`PKIStatus ${statusBig} hors des entiers représentables`, p[0].debut);
     const status = Number(statusBig);
+    const statutConnu = status >= 0 && status <= 5;
     let statusString = null;
     let failureInfo = null;
     let failureInfoBits = null;
@@ -67,6 +70,8 @@ export function lireReponse(octets) {
       i++;
     }
     if (i !== p.length) throw new ErreurDer("PKIStatusInfo : champ inattendu", psi.debut);
+    // EX-5.10 étape 2 : statut hors de 0 à 5 → `statut_<n>`, permanente, jeton non lu ni promu.
+    if (!statutConnu) return { status, statusString, failureInfo: null, failureInfoBits: null, token: null };
     let token = null;
     if (e[1]) {
       attendre(e[1], ETIQUETTE.SEQUENCE, true, "TimeStampToken");
@@ -83,7 +88,7 @@ export function lireReponse(octets) {
 
 /**
  * Lit `Attribute ::= SEQUENCE { attrType OID, attrValues SET OF ANY }` ; chaque
- * valeur (`ANY`) est parcourue en entier par le lecteur borné (R-A-2 : une
+ * valeur (`ANY`) est parcourue en entier par le lecteur borné (une
  * structure malformée dans `signedAttrs` met T-1 en échec, CT-6 EX-9.7), sans
  * être interprétée ici.
  */
@@ -213,6 +218,9 @@ export function lireJeton(octets) {
   if (octets.length > TAILLE_MAX_JETON) throw new ErreurDer(`jeton de ${octets.length} octets, au-delà de ${TAILLE_MAX_JETON} (EX-9.3)`);
   const avertissements = [];
   const ci = lireUnique(octets, 1);
+  // Profil DER appliqué à tout le jeton (CT-6 EX-9.4, EX-9.7) : certificates, crls et unsignedAttrs
+  // compris, qui sont hors de la signature ; profondeur, formes des types universels, BOOLEAN et NULL.
+  parcourir(ci);
   attendre(ci, ETIQUETTE.SEQUENCE, true, "ContentInfo");
   const cie = enfants(ci);
   if (cie.length !== 2) throw new ErreurDer("ContentInfo mal formé", ci.debut);
@@ -237,6 +245,7 @@ export function lireJeton(octets) {
   const ec = enfants(ecie[1]);
   if (ec.length !== 1) throw new ErreurDer("eContent mal formé", ecie[1].debut);
   const eContent = lireOctets(ec[0]);
+  parcourir(lireUnique(eContent, ec[0].profondeur + 1)); // profil sur le TSTInfo encapsulé (EX-9.4)
   let certificats = [];
   let certificatsPresents = false;
   if (s[i] && estContexte(s[i], 0, true)) {

@@ -104,7 +104,7 @@ export function construireCatalogue({ menaces, occurrences }) {
     return {
       id: s.id, level: "TA", title: `Scénario du plan : ${s.scenario} (${s.composition.join(", ")})`, specs: specsDe(covers), covers,
       preconditions: s.preconditions, steps: s.steps, oracle: s.oracle,
-      status: { state: "a_ecrire", phase2_step: s.phase2_step, blocking: BLOCAGE_ETAPE_8 }, threats,
+      status: s.status ? normaliserStatut(s.status) : { state: "a_ecrire", phase2_step: s.phase2_step, blocking: BLOCAGE_ETAPE_8 }, threats,
       adversarial: {
         threat: null, component: null,
         response_removed: {

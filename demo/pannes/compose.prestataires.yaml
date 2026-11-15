@@ -1,0 +1,143 @@
+# Surcharge de la démonstration de référence : trois serveurs RFC 3161
+# internes (image noortrace/tsa-interne de CT-8 §7) dans l'espace réseau de
+# l'enregistreur, pour les scénarios « un prestataire est injoignable »
+# (CT-9 TA-107 : principal sur 2020, secours sur 2021, coupés par
+# `docker compose stop`) et « l'horloge est manipulée » (TA-105 : serveur à
+# horloge décalée sur 2022, `--ecart-ms`, qui sert des jetons à genTime
+# décalé). Elle se lit APRÈS demo/compose.yaml et avec
+# compose.configuration.yaml, qui monte le document d'ancrage du passage
+# (ancrage-pannes.json) où ces serveurs sont nommés :
+#
+#   NOORTRACE_PANNES_TRAVAIL=<répertoire absolu> \
+#   docker compose -f demo/compose.yaml -f demo/pannes/compose.configuration.yaml \
+#     -f demo/pannes/compose.prestataires.yaml up --detach
+#
+# Chaque autorité est créée dans son volume par `horodatage-init-<nom> init`
+# (profil outils, conteneur sans réseau), comme au pas IR-2 de CT-8 ; son
+# certificat est lu par `ac` et écrit dans ancrage-pannes.json
+# (test/fixtures/pannes/outils.mjs, preparerPrestataires). Aucun de ces
+# serveurs n'est qualifié ; aucun n'a de valeur hors de la démonstration.
+
+x-tsa: &tsa
+  image: noortrace/tsa-interne:0.1.0
+  user: "10004:10004"
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  restart: "no"
+  tmpfs:
+    - /run/temporaire:size=16777216,mode=1777
+  environment:
+    TMPDIR: /run/temporaire
+
+x-tsa-init: &tsa-init
+  <<: *tsa
+  profiles: ["outils"]
+  network_mode: none
+  healthcheck:
+    disable: true
+
+services:
+  enregistreur:
+    environment:
+      NODE_EXTRA_CA_CERTS: /etc/noortrace-pannes/tls/ca.pem
+    volumes:
+      - type: bind
+        source: ${NOORTRACE_PANNES_TRAVAIL:?NOORTRACE_PANNES_TRAVAIL (répertoire absolu du passage) requis}/tls
+        target: /etc/noortrace-pannes/tls
+        read_only: true
+        bind:
+          create_host_path: false
+
+  horodatage-principal:
+    <<: *tsa
+    command: ["servir", "--repertoire", "/var/lib/noortrace-tsa", "--hote", "127.0.0.1", "--port", "2020"]
+    network_mode: "service:enregistreur"
+    volumes:
+      - type: volume
+        source: horodatage-principal
+        target: /var/lib/noortrace-tsa
+    depends_on:
+      enregistreur:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-tsa-interne", "sonde", "--url", "http://127.0.0.1:2020/sante"]
+      interval: 2s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  # Secours en TLS mutuel (CT-5 EX-5.5 : hors du serveur interne, https et authentification exigés, quel que soit le
+  # profil) : matériel TLS d'essai du passage (autorité, serveur pour 127.0.0.1, client de l'enregistreur), écrit par
+  # preparerPrestataires ; l'enregistreur reçoit l'autorité (NODE_EXTRA_CA_CERTS) et le certificat client (secret).
+  horodatage-secours:
+    <<: *tsa
+    command: ["servir", "--repertoire", "/var/lib/noortrace-tsa", "--hote", "127.0.0.1", "--port", "2021",
+              "--tls-cle", "/etc/noortrace-pannes/tls/serveur.key", "--tls-certificat", "/etc/noortrace-pannes/tls/serveur.pem", "--tls-ac-clients", "/etc/noortrace-pannes/tls/ca.pem"]
+    network_mode: "service:enregistreur"
+    volumes:
+      - type: volume
+        source: horodatage-secours
+        target: /var/lib/noortrace-tsa
+      - type: bind
+        source: ${NOORTRACE_PANNES_TRAVAIL:?NOORTRACE_PANNES_TRAVAIL (répertoire absolu du passage) requis}/tls
+        target: /etc/noortrace-pannes/tls
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      enregistreur:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-tsa-interne", "sonde", "--url", "http://127.0.0.1:2021/sante"]
+      interval: 2s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  # Horloge décalée de cinq minutes (--ecart-ms 300000) : genTime au-delà de clock_tolerance_s (120 s) → horloge_suspecte (CT-5 EX-5.11).
+  horodatage-decalee:
+    <<: *tsa
+    command: ["servir", "--repertoire", "/var/lib/noortrace-tsa", "--hote", "127.0.0.1", "--port", "2022", "--ecart-ms", "300000"]
+    network_mode: "service:enregistreur"
+    volumes:
+      - type: volume
+        source: horodatage-decalee
+        target: /var/lib/noortrace-tsa
+    depends_on:
+      enregistreur:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-tsa-interne", "sonde", "--url", "http://127.0.0.1:2022/sante"]
+      interval: 2s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  horodatage-init-principal:
+    <<: *tsa-init
+    volumes:
+      - type: volume
+        source: horodatage-principal
+        target: /var/lib/noortrace-tsa
+
+  horodatage-init-secours:
+    <<: *tsa-init
+    volumes:
+      - type: volume
+        source: horodatage-secours
+        target: /var/lib/noortrace-tsa
+
+  horodatage-init-decalee:
+    <<: *tsa-init
+    volumes:
+      - type: volume
+        source: horodatage-decalee
+        target: /var/lib/noortrace-tsa
+
+volumes:
+  horodatage-principal: {}
+  horodatage-secours: {}
+  horodatage-decalee: {}

@@ -1,4 +1,4 @@
-// Ligne de commande `noortrace-ctl` : actions du lot WORM.
+// Ligne de commande `noortrace-ctl` : actions de la partie WORM.
 //
 //   noortrace-ctl worm gel poser            --configuration <fichier> --identifiants <référence> --identite <nom> --de <period_start> --a <period_start> --motif <texte> [--reference <texte>] [--registre-copies <répertoire>] [--journal-exploitation <chemin>]
 //   noortrace-ctl worm gel demander-levee   --configuration <fichier> --identifiants <référence> --identite <nom> --gel <gel_id> --motif <texte> [--journal-exploitation <chemin>]
@@ -29,6 +29,7 @@ import { validerConfiguration, ligneRapport } from "../configuration.mjs";
 import { resoudreSecret, ErreurSecret } from "../secrets.mjs";
 import { jcsIntegralOctets } from "../jcs-integral.mjs";
 import { operationsSupport } from "./support.mjs";
+import { memeEmplacement } from "./configuration.mjs";
 import { OutilGel, ArretOutil, CODES } from "./gel.mjs";
 import { lireRegistres } from "./registre.mjs";
 import { lireRegistreGels, releverVerrouillage } from "./controles.mjs";
@@ -44,6 +45,7 @@ export const USAGE_CTL = [
   "        noortrace-ctl worm gel lever --configuration <fichier> --identifiants <référence> --identite <nom> --gel <gel_id> --demande <sha256> [--journal-exploitation <chemin>]",
   "        noortrace-ctl worm gel reprendre --configuration <fichier> --identifiants <référence> --identite <nom> --gel <gel_id> [--journal-exploitation <chemin>]",
   "        noortrace-ctl worm gel etat --configuration <fichier> --identifiants <référence> --gel <gel_id>",
+  "        noortrace-ctl worm gel liste --configuration <fichier> --identifiants <référence> [--journal-exploitation <chemin>]",
   "        noortrace-ctl worm releve --configuration <fichier> [--journal-exploitation <chemin>]",
   "        noortrace-ctl worm reconstruire --configuration <fichier> --vers <répertoire> [--registre-copies <répertoire>] [--identifiants <référence>] [--cles <cles.json>] [--journal-exploitation <chemin>]",
   "        noortrace-ctl worm restaurer <clé> --version <id> --configuration <fichier> --vers <répertoire> [--registre-copies <répertoire>] [--identifiants <référence>]",
@@ -55,6 +57,8 @@ const OPTIONS = {
   lever: { requises: ["configuration", "identifiants", "identite", "gel", "demande"], facultatives: ["journal-exploitation"] },
   reprendre: { requises: ["configuration", "identifiants", "identite", "gel"], facultatives: ["journal-exploitation"] },
   etat: { requises: ["configuration", "identifiants", "gel"], facultatives: [] },
+  // `liste` (étape 8, CT-2 EX-12.36 ; CT-7 RA-64) : tout le registre des gels relu sous le rôle Lecteur, rien n'est écrit.
+  liste: { requises: ["configuration", "identifiants"], facultatives: ["journal-exploitation"] },
   releve: { requises: ["configuration"], facultatives: ["journal-exploitation"] },
   reconstruire: { requises: ["configuration", "vers"], facultatives: ["registre-copies", "identifiants", "cles", "journal-exploitation"] },
   restaurer: { requises: ["configuration", "vers", "version"], facultatives: ["registre-copies", "identifiants", "journal-exploitation"] },
@@ -108,14 +112,6 @@ function analyserOptions(args, action) {
   for (const n of spec.requises) if (!(n in o)) return { erreur: `option requise : --${n}` };
   return { o };
 }
-
-const egalJson = (a, b) => {
-  try {
-    return Buffer.from(jcsIntegralOctets(a)).equals(Buffer.from(jcsIntegralOctets(b)));
-  } catch {
-    return false;
-  }
-};
 
 /**
  * Exécute `noortrace-ctl` ; rend le code de sortie.
@@ -191,7 +187,8 @@ export async function principalCtl(argv, io = {}) {
   } catch {
     ref = null;
   }
-  if (!ref || typeof ref !== "object" || Array.isArray(ref) || egalJson(ref, worm.credentials)) {
+  // Même emplacement que la référence de l'écrivain, quel que soit `encoding` (EX-12.36 ; étape 8).
+  if (!ref || typeof ref !== "object" || Array.isArray(ref) || memeEmplacement(ref, worm.credentials)) {
     stderr.write("--identifiants : référence de secret absente, illisible, ou égale à celle de l'écrivain (EX-12.36)\n");
     journal.consigner("error", "worm_legal_hold_failed", { raison: "identifiants" });
     return CODES.USAGE;
@@ -199,7 +196,8 @@ export async function principalCtl(argv, io = {}) {
   let operations;
   try {
     const octets = resoudreSecret(ref, "--identifiants", { env });
-    operations = operationsSupport(worm, octets, { delais: io.delais, tls: io.tls, murale });
+    // `io.operations` : opérations du support fournies par l'appelant (essais sans réseau) ; à défaut celles de la configuration.
+    operations = io.operations ?? operationsSupport(worm, octets, { delais: io.delais, tls: io.tls, murale });
   } catch (e) {
     stderr.write(`--identifiants : ${e instanceof ErreurSecret ? e.regle : e.message}\n`);
     journal.consigner("error", "worm_legal_hold_failed", { raison: "identifiants" });
@@ -222,6 +220,10 @@ export async function principalCtl(argv, io = {}) {
     if (!Number.isSafeInteger(de) || !Number.isSafeInteger(a) || de % 3600 !== 0 || a % 3600 !== 0 || de > a) {
       return invalide("--de, --a : deux period_start multiples de 3 600, --de ≤ --a");
     }
+    // Une plage au-delà de l'heure courante n'a aucune période close à geler (étape 8 : le coût
+    // du périmètre croît avec la plage ; une valeur en millisecondes donnée par erreur ne termine pas).
+    const heureCourante = Math.floor(murale() / 3600000) * 3600;
+    if (a > heureCourante) return invalide(`--a : au-delà de l'heure courante (${heureCourante}) : period_start d'une période close attendu`);
   }
   let registreCopies = null;
   if (o["registre-copies"]) {
@@ -248,6 +250,8 @@ export async function principalCtl(argv, io = {}) {
         return await outil.reprendre({ identite: o.identite, gel: o.gel });
       case "etat":
         return await outil.etat({ gel: o.gel });
+      case "liste":
+        return await outil.liste();
       default:
         return CODES.USAGE;
     }

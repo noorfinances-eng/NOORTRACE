@@ -957,9 +957,15 @@ describe("Certificat de commit — parité avec le décodeur du nœud (vecteurs 
       const jeu = jeux[l.jeu];
       return verifierLigne(l.ligne, { type: l.type, chainId: G.certificat.certJSON.chainId, valsetHash: octets(jeu.hachage), hauteur: u64(l.height), ronde: u64(l.round), blockHash: octets(G.certificat.certJSON.hash), jeu });
     };
-    for (const nom of ["canonique_v1", "proposition_canonique_v2", "espace_final", "ordre_membres_sig_en_tete", "corps_champ_inconnu", "precommit_v1_jeu_cle_compressee"]) {
+    for (const nom of ["canonique_v1", "proposition_canonique_v2", "precommit_v1_jeu_cle_compressee"]) {
       expect(verifier(nom).remarques, nom).to.deep.equal([]);
     }
+    // CT-6 EX-11.6 (révision 0.4) : espaces, ordre des membres et membre inconnu sont des formes non canoniques
+    // acceptées, signalées (AV-R-2) ; revue de sécurité de l'étape 8.
+    expect(verifier("espace_final").remarques).to.deep.equal(["espaces dans l'enveloppe"]);
+    expect(verifier("ordre_membres_sig_en_tete").remarques).to.deep.equal(["ordre des membres de l'enveloppe différent de celui de l'encodeur du nœud"]);
+    expect(verifier("corps_champ_inconnu").remarques).to.have.lengthOf(1);
+    expect(verifier("corps_champ_inconnu").remarques[0]).to.match(/^membre inconnu « [^»]+ » dans le corps Vote, ignoré$/);
     expect(verifier("cle_Domain_majuscule").remarques).to.deep.equal(["membre « Domain » pour « domain »"]);
     expect(verifier("cle_ſig_s_long").remarques).to.deep.equal(["membre « ſig » pour « sig »"]);
     expect(verifier("cle_blocKHash_kelvin").remarques).to.deep.equal(["membre « blocKHash » pour « blockHash »"]);

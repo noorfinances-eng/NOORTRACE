@@ -162,7 +162,7 @@ func Ouvrir(rep string) (*Dossier, *Defaut) {
 		return d, nil
 	}
 	d.IndexSha256 = l.Sha256
-	v, err := jsonv.Analyser(l.Octets)
+	v, err := jsonv.AnalyserLimite(l.Octets, entree.LimiteIndex)
 	if err != nil {
 		return nil, &Defaut{"dossier_illisible", commun.T("dossier.json n'est pas du JSON ("+err.Error()+")", "dossier.json is not JSON ("+err.Error()+")")}
 	}
@@ -238,7 +238,9 @@ func (d *Dossier) LireParties() *Defaut {
 			}
 		}
 		if p.Lecture.Etat == entree.Lu && estJSON(p.Nom) {
-			p.Valeur, p.ErrJSON = jsonv.Analyser(p.Lecture.Octets)
+			// Borne du nombre de valeurs selon la limite de la partie
+			// (EX-15.1) : au-delà, la partie n'est pas du JSON exploitable.
+			p.Valeur, p.ErrJSON = jsonv.AnalyserLimite(p.Lecture.Octets, lim)
 			if p.Valeur != nil {
 				p.ErrCanonique = jcs.Calculable(p.Valeur)
 			}

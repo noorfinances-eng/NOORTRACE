@@ -20,6 +20,22 @@ export class ErreurCompteur extends Error {
 const FICHIER_SERIE = "serie";
 const FICHIER_VERROU = "serie.verrou";
 const FICHIER_TEMPORAIRE = "serie.tmp";
+/**
+ * Revue de sécurité de l'étape 8 (AN-26) : avec `epoque`, le compteur ouvert ne descend
+ * jamais sous `secondes(horloge) × 2^20` : une restauration du fichier
+ * `serie` depuis une sauvegarde, ou sa perte, ne rejoue aucun numéro émis
+ * avant tant que l'horloge de l'hôte ne recule pas d'une seconde au-delà du
+ * dernier démarrage. 2^20 numéros par seconde : au-delà de toute cadence.
+ */
+export const EPOQUE_PAS = 1n << 20n;
+/**
+ * Revue de sécurité de l'étape 8 (AN-26) : chaque numéro est réservé par la création
+ * exclusive d'un fichier `serie-<n>` (le système de fichiers départage deux
+ * processus de conteneurs différents, que le verrou par pid ne voit pas) ; les
+ * réservations plus anciennes que `RESERVATIONS_GARDEES` sont retirées.
+ */
+export const RESERVATIONS_GARDEES = 64;
+const MOTIF_RESERVATION = /^serie-([0-9]{1,30})$/;
 
 /** Vrai si un processus de ce pid existe encore (EPERM compte comme vivant). */
 function processusVivant(pid) {
@@ -31,7 +47,7 @@ function processusVivant(pid) {
   }
 }
 
-/** Répertoires dont un compteur est ouvert dans ce processus (verrou par chemin, dans le processus aussi : R-E-1). */
+/** Répertoires dont un compteur est ouvert dans ce processus (verrou par chemin, dans le processus aussi : AN-26). */
 const OUVERTS = new Set();
 
 export class Compteur {
@@ -40,9 +56,12 @@ export class Compteur {
    * compteur du même processus sur le même répertoire est refusé (AN-26 : un
    * seul émetteur par clé ; le fichier de verrou porte le pid, qui ne distingue
    * pas deux compteurs d'un même processus).
-   * @param {{repertoire: string, debut?: bigint|number, pid?: number, vivant?: (pid: number) => boolean}} o
+   * @param {{repertoire: string, debut?: bigint|number, pid?: number, vivant?: (pid: number) => boolean,
+   *   epoque?: boolean, horloge?: {murale: () => number}, reservations?: boolean}} o
    *   `debut` : premier numéro émis par un compteur neuf (1 par défaut) ;
-   *   `vivant` : test de vie d'un processus, injectable pour les essais.
+   *   `vivant` : test de vie d'un processus, injectable pour les essais ;
+   *   `epoque` (CT-5 AN-26) : plancher `secondes(horloge) × 2^20` à l'ouverture ;
+   *   `reservations` (vrai par défaut) : réservation exclusive de chaque numéro par un fichier `serie-<n>`.
    */
   static ouvrir(o) {
     if (!o || typeof o.repertoire !== "string" || o.repertoire.length === 0) throw new TypeError("compteur : repertoire attendu");
@@ -53,10 +72,17 @@ export class Compteur {
     if (OUVERTS.has(clef)) throw new ErreurCompteur(`compteur ${o.repertoire} : déjà ouvert dans ce processus (AN-26 : un seul émetteur par clé)`);
     const c = new Compteur(o.repertoire, o.pid ?? process.pid, o.vivant ?? processusVivant);
     c.#clef = clef;
+    c.#reservations = o.reservations !== false;
     c.#verrouiller();
     OUVERTS.add(clef);
     try {
       c.#relire(debut);
+      if (o.epoque === true) {
+        const horloge = o.horloge ?? { murale: () => Date.now() };
+        const secondes = BigInt(Math.max(0, Math.floor(horloge.murale() / 1000)));
+        const plancher = secondes * EPOQUE_PAS - 1n;
+        if (c.#courant < plancher) c.#courant = plancher;
+      }
     } catch (e) {
       c.fermer();
       throw e;
@@ -84,6 +110,7 @@ export class Compteur {
   #courant = null;
   #ouvert = false;
   #clef = null;
+  #reservations = true;
 
   constructor(repertoire, pid, vivant) {
     this.#repertoire = repertoire;
@@ -153,7 +180,20 @@ export class Compteur {
    */
   suivant() {
     if (!this.#ouvert) throw new ErreurCompteur("compteur fermé");
-    const n = this.#courant + 1n;
+    let n = this.#courant + 1n;
+    if (this.#reservations) {
+      // Revue de sécurité de l'étape 8 (CT-5 AN-26) : un numéro déjà réservé par un autre processus (fichier `serie-<n>` présent) est sauté.
+      for (let essais = 0; ; essais++) {
+        try {
+          fs.closeSync(fs.openSync(path.join(this.#repertoire, `serie-${n}`), "wx", 0o600));
+          break;
+        } catch (e) {
+          if (e.code !== "EEXIST") throw e;
+          if (essais >= 100000) throw new ErreurCompteur(`compteur ${this.#repertoire} : aucun numéro libre après ${essais} réservations`);
+          n += 1n;
+        }
+      }
+    }
     const tmp = path.join(this.#repertoire, FICHIER_TEMPORAIRE);
     const fd = fs.openSync(tmp, "w", 0o600);
     try {
@@ -170,7 +210,28 @@ export class Compteur {
       fs.closeSync(fdRep);
     }
     this.#courant = n;
+    if (this.#reservations) this.#elaguerReservations(n);
     return n;
+  }
+
+  /** Retire les fichiers de réservation plus anciens que les `RESERVATIONS_GARDEES` derniers numéros. */
+  #elaguerReservations(n) {
+    const seuil = n - BigInt(RESERVATIONS_GARDEES);
+    let noms;
+    try {
+      noms = fs.readdirSync(this.#repertoire);
+    } catch {
+      return;
+    }
+    for (const nom of noms) {
+      const m = MOTIF_RESERVATION.exec(nom);
+      if (!m || BigInt(m[1]) >= seuil) continue;
+      try {
+        fs.unlinkSync(path.join(this.#repertoire, nom));
+      } catch {
+        // Déjà retiré par un autre processus.
+      }
+    }
   }
 
   /** Rend le verrou. */

@@ -1,4 +1,4 @@
-// Lot B du composant d'ancrage (CT-5 §6) : soumission aux calendriers
+// Client OpenTimestamps du composant d'ancrage (CT-5 §6) : soumission aux calendriers
 // (EX-6.2, AN-17), décision d'écriture et rejeu avec le même engagement
 // (EX-8.11), mise à niveau (EX-6.6, EX-6.7, AN-19 : liste blanche, 404, 200
 // fusionné puis vérifié), cadence (first_after_s, interval_s ≥ 60,
@@ -62,7 +62,7 @@ const cheminBitcoin = (hauteur, graine) => {
   return n;
 };
 
-describe("ancrage lot B : soumission aux calendriers (EX-6.2, EX-8.11, AN-17)", () => {
+describe("ancrage, client OpenTimestamps : soumission aux calendriers (EX-6.2, EX-8.11, AN-17)", () => {
   const cas = OTS_JSON.cases.find((c) => c.id === "point-k2-minimal");
   const nonce = N.hexVersOctets(cas.nonce, 16);
   const attendu = lireOctets(path.join(CT5_OTS, cas.file));
@@ -205,7 +205,7 @@ describe("ancrage lot B : soumission aux calendriers (EX-6.2, EX-8.11, AN-17)", 
   });
 });
 
-describe("ancrage lot B : mise à niveau (EX-6.6, EX-6.7, EX-8.11, AN-19)", () => {
+describe("ancrage, client OpenTimestamps : mise à niveau (EX-6.6, EX-6.7, EX-8.11, AN-19)", () => {
   const avant = lireOctets(path.join(CT5_OTS, MISE_A_NIVEAU.before.file));
   const apres = lireOctets(path.join(CT5_OTS, MISE_A_NIVEAU.after.file));
   const reponseDer = N.hexVersOctets(MISE_A_NIVEAU.response.der);
@@ -383,7 +383,7 @@ describe("ancrage lot B : mise à niveau (EX-6.6, EX-6.7, EX-8.11, AN-19)", () =
   });
 });
 
-describe("ancrage lot B : transport par défaut (EX-6.2, EX-6.6 : HTTPS, Accept, corps borné)", () => {
+describe("ancrage, client OpenTimestamps : transport par défaut (EX-6.2, EX-6.6 : HTTPS, Accept, corps borné)", () => {
   const fauxFetch = (repondre) => async (url, init) => repondre(url, init);
 
   it("https exigé (http admis vers 127.0.0.1 seulement), identifiants dans l'URL refusés, redirection refusée", async () => {
@@ -461,7 +461,7 @@ describe("ancrage lot B : transport par défaut (EX-6.2, EX-6.6 : HTTPS, Accept,
   });
 });
 
-describe("ancrage lot B : fichier d'en-têtes (EX-6.8, AN-20 : bitcoin_rpc, fichier)", () => {
+describe("ancrage, client OpenTimestamps : fichier d'en-têtes (EX-6.8, AN-20 : bitcoin_rpc, fichier)", () => {
   const racines = new Map();
   const { document: operations, enTetes } = chaineRegtest({ debut: 0, nombre: 1030, racines });
   /** Nœud Bitcoin factice : getblockchaininfo, getblockhash, getblockheader <hash> false. */
@@ -610,7 +610,7 @@ describe("ancrage lot B : fichier d'en-têtes (EX-6.8, AN-20 : bitcoin_rpc, fich
   });
 });
 
-describe("ancrage lot B : dépôt des preuves (EX-6.5, EX-5.14)", () => {
+describe("ancrage, client OpenTimestamps : dépôt des preuves (EX-6.5, EX-5.14)", () => {
   let dir;
   beforeEach(() => {
     dir = repertoireTemporaire("ancrage-ots-depot-");
@@ -670,7 +670,7 @@ describe("ancrage lot B : dépôt des preuves (EX-6.5, EX-5.14)", () => {
     expect(() => depot.ecrire({ periodStart: 1793710800, objet, octets: new Uint8Array(BORNES.TAILLE_FICHIER + 1) })).to.throw(ErreurDepot);
     expect(() => depot.ecrire({ periodStart: 1793710800, objet: "point-zz", octets: minimal })).to.throw(ErreurDepot);
     expect(() => depot.ecrire({ periodStart: 1793710800, objet: "../manifeste", octets: minimal })).to.throw(ErreurDepot);
-    // Les fichiers du lot A dans le même répertoire ne sont pas touchés.
+    // Les fichiers du client RFC 3161 dans le même répertoire ne sont pas touchés.
     const rfc = path.join(depot.repertoirePeriode(1793710800), "rfc3161");
     fs.mkdirSync(rfc);
     fs.writeFileSync(path.join(rfc, "manifeste-qtsa-principal-a.tsq"), "x");
@@ -697,7 +697,7 @@ describe("ancrage lot B : dépôt des preuves (EX-6.5, EX-5.14)", () => {
   });
 });
 
-describe("ancrage lot B : essais hors ligne du dépôt avec le vérificateur Go de CT-6 et contre les calendriers publics", () => {
+describe("ancrage, client OpenTimestamps : essais hors ligne du dépôt avec le vérificateur Go de CT-6 et contre les calendriers publics", () => {
   let dir;
   before(() => {
     dir = repertoireTemporaire("ancrage-ots-essais-");
@@ -726,7 +726,7 @@ describe("ancrage lot B : essais hors ligne du dépôt avec le vérificateur Go 
     if (process.env.NOORTRACE_RESEAU_PUBLIC !== "1") return enAttente(this, "NOORTRACE_RESEAU_PUBLIC=1 (réseau public joignable, soumission réelle d'un engagement d'essai)");
     const transport = transportHttps();
     const horloge = { murale: () => Date.now(), monotone: () => performance.now() };
-    const empreinte = sha256Hex(utf8("noortrace/ancrage/lot-b/essai-reseau-public"));
+    const empreinte = sha256Hex(utf8("noortrace/ancrage/ots/essai-reseau-public"));
     const nonce = new Uint8Array(randomBytes(16));
     const r = await soumettre({ empreinte, nonce, calendriers: AGREGATEURS, minReponses: 2, delaiMs: 10000, transport, horloge });
     console.log(`      soumission : engagement ${r.engagement}, ${r.valides} réponse(s) valable(s) sur ${AGREGATEURS.length}, écrire=${r.ecrire}, ${r.dureeMs} ms`);

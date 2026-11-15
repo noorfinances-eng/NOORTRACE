@@ -31,8 +31,8 @@ Quand le texte laissait un choix, chaque partie l'écrit dans son propre
 - `src/bibliotheque/LISEZMOI.md` : modules, exports en plus de ceux du
   contrat, lectures (erreurs `TypeError` des valeurs que le contrat ne nomme
   pas, annuaire, signatures, découverte EIP-6963, modèle d'affichage), aucun
-  écart aux vecteurs (hors `fichiers-cle/`, en
-  attente : parcours d non offert) ; fermeture `@noble/*` de quinze fichiers ;
+  écart aux vecteurs (hors `fichiers-cle/`,
+  parcours d non offert : cas rattachés à CS-9, TV-26) ; fermeture `@noble/*` de quinze fichiers ;
 - `src/serveur/LISEZMOI.md` : modules et lectures du texte (chemins selon le
   système d'identité, page d'erreur, exception de l'inscription sous
   `reauth_max_age_s` = 0, `identity_ready`, refus au démarrage d'EX-10.14,
@@ -46,6 +46,41 @@ Quand le texte laissait un choix, chaque partie l'écrit dans son propre
   `reponse_service_invalide`, inscription bornée par `Expire le` et
   réauthentification avant `preparer_inscription`, révocation de sa propre
   adresse, langue).
+
+## Revue de sécurité interne de l'étape 8
+
+Règles ajoutées par la revue, une phrase chacune (détail et renvois dans
+`INTERFACES.md` ; essais `test/exploitation-console-revue-chromium.test.js`
+et `test/exploitation-console-revue.test.js`) :
+
+- CT-3 EX-9.15 (majeur) : l'écran Ticket signe exactement ce qu'il
+  affiche : au pas 3, le modèle affiché devient celui de la vue fraîche, et
+  si la demande a changé depuis l'affichage (membres liés à la signature par
+  EX-9.4), aucun écran de signature, décision annulée, `demande_modifiee`
+  affichée et choix à refaire ; un membre ajouté au jeu entre les deux
+  lectures est affiché (`membres_ajoutes`) avant la signature.
+- CT-3 EX-9.16 : chaque valeur d'argument est affichée sous sa forme JSON, blancs
+  conservés, caractères invisibles ou de sens d'écriture écrits `\uXXXX` et
+  marqués.
+- CT-3 EX-7.1 : un identifiant de ticket reçu du service n'est un lien que s'il
+  satisfait EX-7.1 ; sinon il est affiché comme une valeur avec
+  `reponse_service_invalide`.
+- EX-13.48 : au plus 8 sessions par identité de session, la plus
+  ancienne de cette identité détruite au-delà, et `session_fermee` nomme
+  l'identité de la session détruite.
+- CT-8 IP-10 : un fichier de secret lisible par d'autres que son propriétaire, ou
+  d'un autre propriétaire que le compte du serveur, est refusé au démarrage
+  (`reference_illisible`).
+- CT-3 EX-13.13 : `preparer_inscription` est refusée `limite_annuaire` au-delà de 4
+  défis non expirés par identité ou de 1 024 au total, sans changer les défis.
+
+Limites nommées : `demande_modifiee` n'est pas encore dans
+`$defs/code_console` (ajout demandé à l'assemblage) ; les bornes des défis et
+le plafond par identité attendent la révision d'EX-13.13 et d'EX-13.48 ;
+la borne des entrées de l'annuaire (10 000 entrées créées par toute identité) n'est pas corrigée : le
+comptage des seules entrées à adresse validée (CT-3 §14.8) contredit
+`entries.maxItems` du schéma et ferait refuser l'annuaire au redémarrage du
+service.
 
 ## Dépendances
 

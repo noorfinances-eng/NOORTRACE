@@ -2,7 +2,7 @@
 
 Un second vérificateur des formats de CT-1, écrit en Go depuis la seule
 spécification [`spec/CT-1-evenements-et-formats.md`](../../../CT-1-evenements-et-formats.md)
-(révision 0.5) et ses schémas, sans lire ni reprendre le code JavaScript de
+(révision 0.6) et ses schémas, sans lire ni reprendre le code JavaScript de
 `scripts/`. Il recalcule tout ce que la spécification définit et le confronte
 à chaque valeur attendue trouvée dans les vecteurs de `spec/vecteurs/ct-1`.
 Deux implémentations écrites séparément qui tombent sur les mêmes octets
@@ -39,6 +39,28 @@ discordance ou une erreur (fichier illisible, disposition non reconnue) ; `2`
 usage incorrect ou racine introuvable. Les vecteurs publiés concordent en mode
 strict : chaque `attendu.json` donne la liste exacte des contrôles en échec,
 cascades comprises (CT-1 §11.5).
+
+Révision 0.6 de CT-1 (revue de sécurité de l'étape 8), règles écrites depuis
+le texte de CT-1 §10.5, §11.4 et §13, sans lire aucune autre implémentation :
+
+- plancher de l'oracle (§13) : une famille de la table des vecteurs publiés
+  de §13 absente de la racine, une famille sans aucune valeur recalculée, ou
+  aucune valeur recalculée du tout, est une erreur et rend le code 1
+  (`plancher.go`) ; la disposition de repli décrite plus bas reste lue, mais
+  une racine qui n'a pas toutes les familles de §13 rend donc le code 1 ;
+- cas comptés contre l'`INDEX.md` de la racine (§13) : un dossier ou un
+  journal altéré que les tables de l'index nomment sans qu'il soit présent,
+  ou présent sans que l'index le nomme, est une erreur ; `INDEX.md` absent
+  aussi ;
+- A-2 (§11.4) : `events` absent, d'un autre type ou vide fait échouer A-2
+  (« aucun événement de décision ») ;
+- A-2 (§11.4) : au-delà de 1 024 éléments, A-1 échoue par le schéma, A-2
+  compte et nomme les éléments en trop, qui ne sont ni contrôlés (E-1 à
+  E-11) ni rapportés un à un ;
+- règle `root` d'une série de points (§10.5) : elle se juge sur les seuls
+  événements fournis de la plage du point, sans parcourir `tree_size`
+  numéros de séquence ; un point de `tree_size` 2^53 − 1 est jugé en
+  quelques millisecondes (`root` non évaluée, `piece_hors_dossier`).
 
 Le rapport compte, par famille puis au total, les valeurs recalculées, les
 concordantes, les discordantes (avec attendu et obtenu) et les hors
@@ -164,6 +186,16 @@ l'égalité des ensembles, ce que les vecteurs publiés satisfont (leurs
   inexistante, membre inconnu) : l'AT- visée échoue, les suivantes ne sont
   pas exécutées selon les prérequis de §11.4, le dossier reste valide ;
   quatorzième partie déclarée absente : aucune AT-.
+- Révision 0.6 de CT-1 (`revue_etape8_test.go`) : `approbations.json`
+  réduit à `{}` (A-1, A-2, A-3) et `events` vide (A-1, A-2) ; 1 030
+  décisions dont six au hash faux (A-1, A-2 seules, les six éléments
+  comptés et nommés, aucun E- en échec) et 1 024 décisions (aucun échec) ;
+  série de la période 1 dont le point de clôture annonce `tree_size`
+  2^53 − 1 (jugée en moins de 5 s : `last_seq`, `dernier_point`,
+  `signature` ; `root` et `last_hash` non évaluées) ; plancher, par le code
+  de retour du programme : racine vide, sans `dossiers/`, sans `merkle/`,
+  `jcs/` sans cas, sans `INDEX.md`, un dossier retiré, un dossier non
+  indexé (code 1) et vecteurs complets (code 0).
 - Révision 0.5 de CT-1 (`revision05_test.go`), un cas en réussite et un
   cas en échec par règle : lecture du JSON (marque d'ordre d'octets et UTF-8
   mal formé : pas un texte JSON ; substitut écrit en octets, apparié ou non :
@@ -307,6 +339,8 @@ appliquait ou n'appliquait pas ; chaque règle, avec l'endroit du code :
 | `cles.json` exploitable si et seulement si la première partie de E-8 réussit (sinon E-10 pour ses comparaisons, E-11, P-5, K-3, AT-6 non exécutées) ; schéma strict de `#/$defs/cles` | §11.4 | `cles.go` (`ChargerClesDossier`), `dossier.go` (`controlerCles`) |
 | A-1 : raison exacte « aucune approbation liée » ; A-4 exécutée quand `approbations.json` est absent ou inexploitable | §11.1, §11.4 A-1 ; CT-6 EX-5.16 | `dossier.go` (`controlerApprobations`) |
 | A-4 : demande reconnue au seul hash ; `voisins.json` inexploitable : sans raison admise | §11.4 A-4 ; CT-6 EX-5.18 | `dossier.go` (`controlerDemande`) |
+| A-4 : `approval` objet dont `request_hash` est absent ou n'est pas une chaîne : A-4 en échec, terme de sa propre règle qui ne se lit pas, avant toute recherche du voisin (même avec `voisins.json` inexploitable) | §11.4, règle générale des relations et « Autres termes mal typés » | `dossier.go` (`controlerDemande`), `revue_a4_test.go` |
+| A-4, relecture à l'aveugle (étape 8) : `request_hash` objet, tableau ou booléen : échec ; `request_hash` lu et `voisins.json` inexploitable : sans raison admise ; demande reconnue au hash recalculé du voisin, jamais à son `hash` déclaré ; demande trouvée dont `execution.status` n'est pas la chaîne `retenue` : échec ; `request_hash` chaîne hors du motif `hex32` (majuscules) : lu, aucun voisin ne l'égale, raison admise | §11.4 A-4, « Autres termes mal typés », relation existentielle | `revue_a4_test.go` (`TestRelectureAveugleA4`) |
 | K-1 non exécutée quand P-1 n'a pas réussi ou que l'événement est inexploitable ; K-4 quand M-3 n'a pas réussi ; K-6 avec `voisins.json` inexploitable : sans raison admise | §11.4 (révisions 0.3 et 0.5) ; CT-6 EX-5.9 | `dossier.go` (`controlerPointsDeControle`) |
 | Partie réservée présente, ancre non nulle : jamais « valide » ; K-8 recalcule `fingerprint` et `doc_type` | §11.4 | `dossier.go` (`controlerEmpreintes`, `controlerAncresPoint`) |
 | `attestation-perimetre.json` : tout défaut des cas (b) à (e), forme canonique comprise, porté par AT-1 ; AT-5 et AT-6 exigent E-1 et E-2 réussies | §11.4 ; CT-6 EX-4.15 | `attestation.go` (`controlerAttestation`) |

@@ -154,7 +154,7 @@ describe("enregistreur, frontal modèle : mode ICAP (EX-5.3 à EX-5.5, EX-14.12)
     });
 
     it("ICAPS avec certificat client (client_ca) : certificat de l'autorité admis ; sans certificat ou d'une autre autorité : poignée de main refusée", async function () {
-      if (!opensslDisponible()) this.skip();
+      if (!opensslDisponible()) { this.test.title += " — en attente : openssl absent"; this.skip(); }
       const certs = genererCertificats(path.join(dir, "certs"));
       const s = await ouvrir((c) => {
         c.model.tls = { cert_file: certs.serveurCert, key_file: certs.serveurCle };
@@ -296,7 +296,7 @@ describe("enregistreur, frontal modèle : mode ICAP (EX-5.3 à EX-5.5, EX-14.12)
       const f = await transaction(adresse, { methode: "REQMOD", service: "/noortrace/reqmod", entetes: IDENT, req: g("/v1beta/models/gemini-x:streamGenerateContent", simple), corps: [simple] });
       expect(lireEntete(f.sections["res-hdr"]).depart).to.equal("HTTP/1.1 400 Bad Request");
       expect(derniere("model_request_refused").data).to.include({ raison: "flux_sans_sse" });
-      const mcp = Buffer.from(JSON.stringify({ contents: [{ role: "user", parts: [{ text: "x" }] }], tools: [{ mcpServers: [{ name: "s", streamableHttpTransport: { url: "https://mcp.exemple.test" } }] }] }));
+      const mcp = Buffer.from(JSON.stringify({ contents: [{ role: "user", parts: [{ text: "x" }] }], tools: [{ mcpServers: [{ name: "s", streamableHttpTransport: { url: "https://mcp.essai.example" } }] }] }));
       const m = await transaction(adresse, { methode: "REQMOD", service: "/noortrace/reqmod", entetes: IDENT, req: g("/v1beta/models/gemini-x:generateContent", mcp), corps: [mcp] });
       expect(lireEntete(m.sections["res-hdr"]).depart).to.equal("HTTP/1.1 400 Bad Request");
       expect(derniere("model_request_refused").data).to.include({ raison: "serveurs_mcp_fournisseur", entries: 1 });

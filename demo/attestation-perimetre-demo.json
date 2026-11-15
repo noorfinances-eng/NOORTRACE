@@ -1,0 +1,91 @@
+{
+  "version": 0,
+  "org": {
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "slug": "assureur-demo",
+    "name": "Assureur de démonstration"
+  },
+  "journals": [
+    {
+      "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+      "name": "journal-demo"
+    }
+  ],
+  "validity": {
+    "from": "2026-11-01T00:00:00.000Z",
+    "until": "2027-10-31T23:59:59.999Z"
+  },
+  "issued_at": "2026-11-13T00:00:00.000Z",
+  "prepared_by": {
+    "identity": "oidc https://idp.assureur-demo.example admin-1",
+    "function": "administrateur de la démonstration de référence"
+  },
+  "agents": [
+    {
+      "agent_id": "agent-demo",
+      "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+      "host": "agent-demo",
+      "framework": "agent scénarisé de la démonstration (client MCP de l’ère 2026-07-28, client de l’API Messages)",
+      "capture_channels": [
+        "mandataire_mcp",
+        "passerelle"
+      ],
+      "notes": "Démonstration de référence de CT-2 §19 : données fictives, clés de test publiques."
+    }
+  ],
+  "tools_via_proxy_only": [
+    {
+      "server_alias": "demo",
+      "tools": [
+        "*"
+      ],
+      "enforcement": "réseaux Compose internes de demo/compose.yaml : agent-demo n’est attaché qu’au réseau hotes, outils-demo qu’au réseau outils ; seul l’enregistreur est attaché aux deux"
+    }
+  ],
+  "egress": {
+    "default_policy": "refus_par_defaut",
+    "rules_sha256": "0x65186f1c2de06863322a523b72b998218fe82e5a647daf4edf09ce90f5a0d2bc",
+    "rules_format": "section networks et attachements des services de demo/compose.yaml (Docker Compose), SHA-256 du fichier entier",
+    "summary": "Quatre réseaux internes sans sortie (hotes, outils, fournisseurs, registre) ; le réseau sante ne publie que le port de santé de l’enregistreur sur la boucle locale de l’hôte.",
+    "allowed_destinations": [
+      {
+        "name": "simulateur de l’API Messages (modele-demo)",
+        "via": "enregistreur",
+        "description": "route /v1/messages de la passerelle, clé propre"
+      },
+      {
+        "name": "serveur d’outils de démonstration (outils-demo)",
+        "via": "enregistreur",
+        "description": "serveur demo du frontal MCP"
+      },
+      {
+        "name": "registre de développement (registre-dev)",
+        "via": "enregistreur",
+        "description": "ancres et clôture relayées par le composant d’ancrage"
+      }
+    ]
+  },
+  "gateway_credentials": [
+    {
+      "route": "/v1/messages",
+      "provider_label": "demo",
+      "secret_ref": {
+        "env": "NOORTRACE_DEMO_CLE_MODELE"
+      }
+    }
+  ],
+  "not_captured": [],
+  "signatories": [
+    {
+      "name": "Approbateur 1 de la démonstration",
+      "function": "approbateur (compte de test)",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "name": "Approbateur 2 de la démonstration",
+      "function": "approbateur (compte de test)",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    }
+  ],
+  "declaration": "Nous déclarons qu’à notre connaissance, pendant la période de validité, les agents de l’inventaire n’atteignent leurs outils et leurs modèles que par les canaux de capture indiqués, sous les règles de sortie dont l’empreinte est donnée, sauf les cas déclarés non capturés."
+}

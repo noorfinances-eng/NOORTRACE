@@ -30,7 +30,6 @@
 // vérification en échec (rien n'est écrit par creer) ; 2 usage.
 
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -119,7 +118,9 @@ function creer(o, sortie) {
   const identite = JSON.parse(fs.readFileSync(path.join(o.journal, "journal.json"), "utf8"));
   const { fichiers, tronques } = inventaire(o.journal);
   const octets = ecrireArchive(fichiers, Math.floor(debut / 1000));
-  const travail = fs.mkdtempSync(path.join(os.tmpdir(), "noortrace-sauvegarde-"));
+  // Copie extraite pour la vérification : à côté de l'archive (répertoire des sauvegardes, 0700), jamais sous le
+  // répertoire temporaire du système, souvent en mémoire et partagé (CT-8 EX-11.1).
+  const travail = fs.mkdtempSync(path.join(path.dirname(path.resolve(o.archive)), ".noortrace-sauvegarde-"));
   try {
     // Relecture de l'archive écrite : forme, puis chaque fichier contre la source (EX-11.4).
     fs.writeFileSync(o.archive, octets, { flag: "wx", mode: 0o600 });

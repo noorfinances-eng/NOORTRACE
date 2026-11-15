@@ -133,7 +133,10 @@
               "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
             ],
             "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1190..1190 b=0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254 repli"
-          }
+          },
+          "policy_version": "vecteurs-ct3-1",
+          "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+          "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
         },
         "remises": [],
         "windows": []
@@ -219,7 +222,10 @@
               "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
             ],
             "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1190..1190 b=0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254 repli"
-          }
+          },
+          "policy_version": "vecteurs-ct3-1",
+          "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+          "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
         },
         "remises": [],
         "windows": []
@@ -388,7 +394,10 @@
               "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
             ],
             "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1190..1190 b=0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254 repli"
-          }
+          },
+          "policy_version": "vecteurs-ct3-1",
+          "policy_sha256": "0xf274186f28db12839f682e183d7806c7249c8a9f244066a3b854998d1108123a",
+          "approval_sha256": "0x8bed959aae4b0e4b35f120102181e6b9a049cd26a475ecd4a3c4b818d74220d8"
         },
         "remises": [],
         "windows": []

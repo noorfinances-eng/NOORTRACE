@@ -58,6 +58,36 @@ sont énoncées avec leur raison et ne comptent pas) ; `1` au moins une
 discordance, listée avec l'attendu et la valeur recalculée, ou une erreur
 (fichier absent ou illisible) ; `2` usage incorrect ou racine introuvable.
 
+Règles ajoutées par la revue de sécurité de l'étape 8, écrites depuis le
+texte de CT-8 révision 0.8 et la CT-9 TA-66, sans lire aucune
+autre implémentation :
+
+- EX-10.6 : la règle régénérée attendue porte la forme « première
+  occurrence » : `increase(x[w]) OP n` devient `(increase(x[w]) OP n) or ((x
+  unless x offset w) OP n)`, et, dans une expression composée,
+  `increase(S[w])` devient `((S unless S offset w) or increase(S[w]))`, pour
+  les compteurs `noortrace_` de l'extracteur, du démon et du composant
+  d'ancrage ; la forme simple vaut aussi pour `rate(x[w]) OP n` (arbitrage
+  du 14 novembre, révision d'EX-10.6 demandée) ; une métrique `noor_*` du
+  nœud du registre, exposée à 0 dès son démarrage, garde la forme courte ;
+  une expression du fichier de référence déjà réécrite est prise telle
+  quelle ;
+- PV-2 : PV-7, PV-8 et PV-10 ne sont exécutées que si PV-2 a réussi ;
+- familles `supervision/` et `journaux/` absentes : erreurs ;
+- plancher (CT-9 TA-66) : une famille de l'annexe A sans aucune valeur
+  recalculée est une erreur (`plancher.go`) ;
+- cas comptés contre l'`INDEX.md` : les cas de `conteneurs/` (valides
+  compris), de `journaux/` et de `proces-verbaux/` que l'index nomme sans
+  qu'ils soient présents, ou présents sans que l'index les nomme, sont des
+  erreurs ; `INDEX.md` absent aussi ;
+- garde commune : toute panne d'une famille devient une erreur consignée
+  (`protegerFamille`) : rapport imprimé, code 1, jamais une trace de pile.
+
+Les règles SV-1, SV-4 et SV-6 sont jugées contre
+`deploiement/observabilite/regles-noortrace.yml` du dépôt : tant que ce
+fichier n'est pas régénéré depuis les tables révisées, le module rend les
+discordances qui le disent.
+
 ## Décomptes
 
 Exécution du 2026-11-12 (révision 0.2 de CT-8, famille `supervision/` de
@@ -130,7 +160,14 @@ l'étape 7), `go run . ..` depuis ce répertoire :
 
 ## Tests
 
-`go test ./...` : `TestVecteurs` exige « tout concorde » sur
+`go test ./...` : revue de sécurité de l'étape 8 (`revue_etape8_test.go`,
+`revue_etape8_garde_test.go`) : règles régénérées en forme d'EX-10.6
+(simple et composée), forme unitaire (compteur `noor_*` en forme courte, `rate()` en forme longue,
+expression déjà réécrite), `pv-2-non-trie` (PV-7, PV-8, PV-10 non
+exécutées), garde commune des familles, plancher par le code de retour du
+programme (sans `supervision/`, sans `journaux/`, sans `consultations/`,
+conteneur valide retiré ou non indexé, procès-verbal retiré, sans
+`INDEX.md`) ; `TestVecteurs` exige « tout concorde » sur
 `spec/vecteurs/ct-8` ; les autres tests construisent des archives selon
 EX-13.14 et vérifient que chaque défaut est arrêté par la bonne vérification
 (PR-1 à PR-9, dont la casse, le répertoire d'un autre nom et l'ordre), le

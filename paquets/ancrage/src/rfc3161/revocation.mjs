@@ -3,12 +3,16 @@
 // certificats du chemin retenu par T-7, CRL lues par le lecteur borné,
 // `thisUpdate` postérieur ou égal à `genTime`.
 
+import { controlerUrlCrl } from "./transport.mjs";
 import { ErreurDer, octetsEgaux } from "./der.mjs";
 import { lireCertificat, lireCrl, entreeRevocation, pointsDistributionCrl, urisOcsp, crlVersPem } from "./x509.mjs";
 import { verifierSignatureEmise } from "./signatures.mjs";
 import { microsecondesVersRfc3339 } from "./verification.mjs";
 
 /** Raisons de révocation qui laissent le jeton valide quand la révocation est postérieure à `genTime` (RFC 3161 §4). */
+/** Adresses de CRL demandées au plus par certificat (CT-5 AN-1 : un certificat en déclarait 500). */
+export const PLAFOND_ADRESSES_CRL = 8;
+
 export const RAISONS_TOLEREES = Object.freeze([0, 3, 4, 5]);
 
 function certificat(c, quoi) {
@@ -65,7 +69,7 @@ export function verifierRevocation({ chemin, autorite = null, crls = [], crlsJet
     for (const { crl, provenance } of toutes) {
       if (!octetsEgaux(crl.emetteur.octets, c.emetteur.octets)) continue;
       const motifs = [];
-      if (!crl.complete) motifs.push("delta ou partielle");
+      if (!crl.complete) motifs.push(crl.extensionCritiqueNonLue ? `extension critique non lue (${crl.extensionCritiqueNonLue})` : "delta ou partielle");
       if (!emetteur || !verifierSignatureEmise(crl, emetteur)) motifs.push("signature non vérifiée sous la clé de l'émetteur");
       if (crl.thisUpdate < aInstant) motifs.push("thisUpdate antérieur à genTime");
       if (motifs.length) {
@@ -109,6 +113,22 @@ export function verifierRevocation({ chemin, autorite = null, crls = [], crlsJet
 }
 
 /**
+ * Politique des adresses de CRL d'un prestataire (CT-5 EX-4.9, règle 4 bis,
+ * révision 0.10 ; EX-5.10 étape 10) : en production, une liste `crl_hosts`
+ * non nulle restreint la capture à ses hôtes, en plus du refus des adresses
+ * locales et privées ; hors production la liste n'est pas appliquée (schéma
+ * `ancrage-v0`). `crl_hosts` absent ou nul : seules les adresses locales et
+ * privées sont refusées en production (lecture retenue ici ; le texte et la
+ * description du schéma divergent sur ce cas, révision demandée).
+ * @param {{production: boolean, prestataire?: {crl_hosts?: string[]|null}|null}} p
+ * @returns {{production: boolean, hotesAdmis: string[]|null}}
+ */
+export function politiqueCaptureCrl({ production, prestataire = null }) {
+  const liste = Array.isArray(prestataire?.crl_hosts) ? prestataire.crl_hosts : null;
+  return { production: production === true, hotesAdmis: production === true ? liste : null };
+}
+
+/**
  * Capture les CRL des certificats d'un chemin par leurs points de
  * distribution (EX-5.10 étape 10 ; CT-6 EX-13.12) avec un `transport` injecté
  * (`{ obtenir(url, delaiMs) → { status, corps } }`). Rend, par certificat,
@@ -116,19 +136,30 @@ export function verifierRevocation({ chemin, autorite = null, crls = [], crlsJet
  * Une CRL qui ne se lit pas, ou dont `thisUpdate` précède `apresInstant`,
  * est rendue avec `erreur` : l'appelant rejoue (`crl_indisponible`).
  */
-export async function capturerCrls({ chemin, transport, horloge, delaiMs = 10000, apresInstant = null }) {
+export async function capturerCrls({ chemin, transport, horloge, delaiMs = 10000, apresInstant = null, politique = {} }) {
   const resultats = [];
   for (const c0 of chemin ?? []) {
     const c = certificat(c0, "chemin");
     const sources = pointsDistributionCrl(c);
     const ocsp = urisOcsp(c);
-    const r = { certificate_sha256: c.sha256, sources, ocsp, crl: null, pem: null, erreur: null, captured_at: microsecondesVersRfc3339(horloge.murale() * 1000) };
+    const r = { certificate_sha256: c.sha256, sources, ocsp, crl: null, pem: null, erreur: null, refusees: 0, demandees: 0, captured_at: microsecondesVersRfc3339(horloge.murale() * 1000) };
     if (sources.length === 0) {
       r.erreur = "aucun point de distribution de CRL";
       resultats.push(r);
       continue;
     }
-    for (const url of sources) {
+    // Revue de sécurité de l'étape 8 (CT-5 AN-1) : adresses dédoublonnées, chacune contrôlée avant la requête
+    // (`controlerUrlCrl` : schéma, identifiants, adresses locales et privées, liste d'hôtes) ; au plus
+    // `PLAFOND_ADRESSES_CRL` requêtes par certificat. Une adresse refusée est comptée, jamais demandée.
+    for (const url of [...new Set(sources)]) {
+      if (r.demandees >= PLAFOND_ADRESSES_CRL) break;
+      const motif = controlerUrlCrl(url, politique);
+      if (motif) {
+        r.refusees += 1;
+        r.erreur = `adresse refusée : ${motif}`;
+        continue;
+      }
+      r.demandees += 1;
       try {
         const rep = await transport.obtenir(url, delaiMs);
         if (rep.status !== 200 || !(rep.corps instanceof Uint8Array)) {

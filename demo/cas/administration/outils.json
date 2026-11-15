@@ -1,0 +1,64 @@
+{
+  "service": "outils-administration",
+  "outils": [
+    {
+      "name": "demandes.get",
+      "title": "Lire une demande",
+      "description": "Rend une demande de prestation publique de démonstration (pseudonyme, pièces reçues, condition d'éligibilité examinée)",
+      "inputSchema": { "type": "object", "properties": { "demande_id": { "type": "string" } }, "required": ["demande_id"], "additionalProperties": false },
+      "annotations": { "readOnlyHint": true },
+      "kind": "lecture_par_id",
+      "id_field": "demande_id"
+    },
+    {
+      "name": "demandes.search",
+      "title": "Rechercher des demandes",
+      "description": "Recherche des demandes de démonstration par texte libre",
+      "inputSchema": { "type": "object", "properties": { "query": { "type": "string" } }, "required": ["query"] },
+      "annotations": { "readOnlyHint": true },
+      "kind": "recherche"
+    },
+    {
+      "name": "pieces.verifier",
+      "title": "Vérifier les pièces",
+      "description": "Rend l'état des pièces justificatives d'une demande (reçues, manquantes)",
+      "inputSchema": { "type": "object", "properties": { "demande_id": { "type": "string" } }, "required": ["demande_id"], "additionalProperties": false },
+      "annotations": { "readOnlyHint": true },
+      "kind": "lecture_par_id",
+      "id_field": "demande_id",
+      "champ": "pieces"
+    },
+    {
+      "name": "decision.notify",
+      "title": "Notifier une décision",
+      "description": "Notifie au demandeur la décision prise sur sa demande : accorder, refuser, ou completer (pièces à fournir) (écriture)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "demande_id": { "type": "string" },
+          "decision": { "type": "string", "enum": ["accorder", "refuser", "completer"] },
+          "motif": { "type": "string" }
+        },
+        "required": ["demande_id", "decision", "motif"],
+        "additionalProperties": false
+      },
+      "outputSchema": { "type": "object", "properties": { "notification_id": { "type": "string" } }, "required": ["notification_id"], "additionalProperties": false },
+      "annotations": { "readOnlyHint": false, "destructiveHint": false },
+      "kind": "ecriture",
+      "id_field": "demande_id",
+      "prefixe": "NOT-2026-",
+      "compteur_depart": 70310,
+      "cle_resultat": "notification_id"
+    }
+  ],
+  "enregistrements": {
+    "DEM-2026-01877": {
+      "texte": "demande d'allocation de logement du demandeur D-07 (pseudonyme), menage de trois personnes, commune de residence declaree : Bourg-Exemple ; condition examinee : residence continue depuis douze mois ; joignable a d-07@demandeur.example",
+      "pieces": "pieces recues : formulaire, piece d'identite, bail ; piece manquante : attestation de residence de la commune"
+    },
+    "DEM-2026-01878": {
+      "texte": "demande d'allocation de logement du demandeur D-08 (pseudonyme), personne seule, commune de residence declaree : Bourg-Exemple ; dossier complet",
+      "pieces": "pieces recues : formulaire, piece d'identite, bail, attestation de residence ; aucune piece manquante"
+    }
+  }
+}

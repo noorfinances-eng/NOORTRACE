@@ -563,6 +563,14 @@ function signatureObjet(objet, cleEmetteur) {
 // Certificats X.509 et CRL
 // ---------------------------------------------------------------------------
 
+/**
+ * Extensions d'une CRL que la version 0 lit (CT-6 EX-9.16, révision 0.9) : sur la liste, authorityKeyIdentifier,
+ * cRLNumber, issuingDistributionPoint et deltaCRLIndicator ; sur une entrée, cRLReasons. Une extension critique hors de
+ * ces listes rend la CRL « non lue » : elle n'est pas une preuve de non-révocation (RFC 5280 §5.2, §5.3).
+ */
+const CRL_EXTENSIONS_LUES = new Set([OID.authorityKeyIdentifier, OID.cRLNumber, OID.issuingDistributionPoint, OID.deltaCRLIndicator]);
+const CRL_EXTENSIONS_ENTREE_LUES = new Set([OID.cRLReasons]);
+
 /** Extensions [3] d'un certificat ou d'une CRL : [{ oid, critique, valeur }]. */
 function lireExtensions(noeudSeq, quoi) {
   const out = [];
@@ -805,6 +813,8 @@ export function lireCRL(entree, { quoi = "CRL" } = {}) {
   let nextUpdate = null;
   if (tbs[i] && (tbs[i].etiquette === 0x17 || tbs[i].etiquette === 0x18)) nextUpdate = tempsCertificat(tbs[i++], `${quoi} : nextUpdate`);
   const revoques = [];
+  // EX-9.16 (révision 0.9) : première extension critique, de la liste ou d'une entrée, que la version 0 ne lit pas.
+  let extensionCritiqueNonLue = null;
   if (tbs[i]?.etiquette === 0x30) {
     for (const r of tbs[i++].enfants) {
       const e = sequence(r, `${quoi} : revokedCertificate`);
@@ -817,6 +827,7 @@ export function lireCRL(entree, { quoi = "CRL" } = {}) {
             const n = attendre(lireDER(x.valeur), 0x0a, "cRLReasons");
             raison = Number(entierDepuis(n.valeur()));
           }
+          if (x.critique && !CRL_EXTENSIONS_ENTREE_LUES.has(x.oid)) extensionCritiqueNonLue ??= x.oid;
         }
       }
       revoques.push({ numero: entier(e[0], `${quoi} : userCertificate`), date: tempsCertificat(e[1], `${quoi} : revocationDate`), raison });
@@ -826,6 +837,7 @@ export function lireCRL(entree, { quoi = "CRL" } = {}) {
   if (tbs[i]?.etiquette === 0xa0) {
     if (version !== 2 || tbs[i].enfants.length !== 1) throw new ErreurDER(`${quoi} : crlExtensions mal placées`);
     extensions = lireExtensions(tbs[i++].enfants[0], `${quoi} : crlExtensions`);
+    for (const x of extensions) if (x.critique && !CRL_EXTENSIONS_LUES.has(x.oid)) extensionCritiqueNonLue ??= x.oid;
   }
   if (i !== tbs.length) throw new ErreurDER(`${quoi} : élément inattendu dans TBSCertList`);
   const algorithmeSignature = algorithme(algN, `${quoi} : signatureAlgorithm`);
@@ -843,6 +855,7 @@ export function lireCRL(entree, { quoi = "CRL" } = {}) {
     revoques,
     extensions,
     extension: (id) => extensions.find((e) => e.oid === id) ?? null,
+    extensionCritiqueNonLue,
     algorithmeSignature,
     signatureInutilises: sig.inutilises,
     signature: Buffer.from(sig.octets),
@@ -1753,6 +1766,7 @@ function revocation(chemin, ancresTsa, crlsJeton, genTime, avertissements) {
       let motif = null;
       if (crl.extension(OID.deltaCRLIndicator)) motif = "delta";
       else if (crl.extension(OID.issuingDistributionPoint)?.critique) motif = "partielle";
+      else if (crl.extensionCritiqueNonLue) motif = "critique";
       else if (cleEmetteur.verdict !== "admis") motif = "cle";
       else if (signatureObjet(crl, cleEmetteur) !== "ok") motif = "signature";
       else if (comparerInstants(crl.thisUpdate, genTime) < 0) motif = "thisUpdate";
@@ -1760,7 +1774,7 @@ function revocation(chemin, ancresTsa, crlsJeton, genTime, avertissements) {
         const cle = `${src.pointeur ?? src.origine.fr}:${motif}`;
         if (!ecartees.has(cle)) {
           ecartees.add(cle);
-          const m = { delta: T("CRL delta", "delta CRL"), partielle: T("CRL partielle", "partial CRL"), cle: T("clé de vérification hors des bornes d'EX-9.23 ou hors de la version 0", "verification key outside the bounds of EX-9.23 or outside version 0"), signature: T("signature invalide", "invalid signature"), thisUpdate: T("thisUpdate antérieur à genTime", "thisUpdate earlier than genTime") }[motif];
+          const m = { delta: T("CRL delta", "delta CRL"), partielle: T("CRL partielle", "partial CRL"), critique: T(`extension critique non lue (${crl.extensionCritiqueNonLue}, EX-9.16)`, `unread critical extension (${crl.extensionCritiqueNonLue}, EX-9.16)`), cle: T("clé de vérification hors des bornes d'EX-9.23 ou hors de la version 0", "verification key outside the bounds of EX-9.23 or outside version 0"), signature: T("signature invalide", "invalid signature"), thisUpdate: T("thisUpdate antérieur à genTime", "thisUpdate earlier than genTime") }[motif];
           avertissements.push({ id: "AV-T-3", check: "T-10", detail: T(`${src.origine.fr}) écartée : ${m.fr}`, `${src.origine.en}) discarded: ${m.en}`) });
         }
         continue;
@@ -1798,7 +1812,7 @@ function revocation(chemin, ancresTsa, crlsJeton, genTime, avertissements) {
     const A = chemin.autorite.certificat;
     for (const x of ancresTsa.crls) {
       const crl = x.crl;
-      if (!egalOctets(crl.emetteur, A.emetteur) || crl.extension(OID.deltaCRLIndicator) || crl.extension(OID.issuingDistributionPoint)?.critique) continue;
+      if (!egalOctets(crl.emetteur, A.emetteur) || crl.extension(OID.deltaCRLIndicator) || crl.extension(OID.issuingDistributionPoint)?.critique || crl.extensionCritiqueNonLue) continue;
       const entree = crl.revoques.find((r) => r.numero === A.numero);
       if (!entree) continue;
       if (disqualifie(entree)) {

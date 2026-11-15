@@ -61,6 +61,7 @@ export const PARAMETRES_DEFAUT = Object.freeze({
   refill_below_days: 7,
   gas_limit: 3000000,
   budget_journalier_gaz: BUDGET_JOURNALIER_GAZ_DEFAUT,
+  max_fee_per_gas_wei: 1,
   rpo_s: 86400,
 });
 
@@ -112,8 +113,16 @@ export function requetesAncrageParHeure(d) {
 /**
  * Paramètres des règles tirés des documents du client (EX-10.6). Chaque
  * membre absent garde sa valeur de PARAMETRES_DEFAUT.
+ * Revue de l'étape 8 : `budget_journalier_gaz` (unités de gaz
+ * par jour et par clé de chaîne : option `--budget-gaz`, pour un client qui
+ * ancre ses points) et `fees.max_fee_per_gas_wei` du manifeste d'instance
+ * (tarif, en wei par unité de gaz, chaîne décimale ou entier) entrent dans
+ * `<S>` : `<S> = (refill_below_days × budget_journalier_gaz + gas_limit) ×
+ * max_fee_per_gas_wei` (révision d'EX-10.6 demandée). Les défauts donnent le
+ * `<S>` du fichier de référence.
  * @param {{configuration?: object|null, ancrage?: object|null, instance?: object|null,
- *   dimensionnement?: {entrees: object, sortie: object}|null, txpool_max_pending?: number|null, rpo_s?: number|null}} [docs]
+ *   dimensionnement?: {entrees: object, sortie: object}|null, txpool_max_pending?: number|null, rpo_s?: number|null,
+ *   budget_journalier_gaz?: number|null}} [docs]
  */
 export function parametresRegles(docs = {}) {
   const p = { ...PARAMETRES_DEFAUT };
@@ -149,6 +158,16 @@ export function parametresRegles(docs = {}) {
     const g = lireEntier(i, ["fees", "gas_limit"], 1000000, 16777216, "instance");
     if (r !== undefined) p.refill_below_days = r;
     if (g !== undefined) p.gas_limit = g;
+    const tarif = i.fees?.max_fee_per_gas_wei;
+    if (tarif !== undefined) {
+      const texte = typeof tarif === "number" ? String(tarif) : tarif;
+      if (typeof texte !== "string" || !/^[1-9][0-9]{0,17}$/.test(texte)) throw new ErreurParametres("instance : fees.max_fee_per_gas_wei doit être un entier décimal de 1 à 10^18 - 1");
+      p.max_fee_per_gas_wei = Number(texte);
+    }
+  }
+  if (docs.budget_journalier_gaz != null) {
+    if (!estEntier(docs.budget_journalier_gaz, 1, 1e12)) throw new ErreurParametres("budget_journalier_gaz : entier de 1 à 10^12 attendu");
+    p.budget_journalier_gaz = docs.budget_journalier_gaz;
   }
   if (docs.dimensionnement != null) p.requetes_ancrage_par_heure = requetesAncrageParHeure(docs.dimensionnement);
   if (docs.txpool_max_pending != null) {
@@ -175,7 +194,7 @@ export function seuils(p) {
     ots: p.give_up_after_s,
     a_h: p.requetes_ancrage_par_heure,
     mempool: Math.floor(p.txpool_max_pending / 2),
-    solde: p.refill_below_days * p.budget_journalier_gaz + p.gas_limit,
+    solde: (p.refill_below_days * p.budget_journalier_gaz + p.gas_limit) * (p.max_fee_per_gas_wei ?? 1),
     rpo: p.rpo_s,
   };
 }
@@ -246,6 +265,10 @@ export const REGLES = Object.freeze([
   ["10.4", "noortrace_pieces_attente_perdues", () => `increase(${LJ}{event="pending_pieces_lost"}[5m]) > 0`, null, "majeure", "enregistreur", "CT-2 §17.4 Pièces en attente perdues", "RB-1", "Pièces en attente perdues"],
   ["10.4", "noortrace_gel_pose_en_retard", () => 'time() - noortrace_journal_derniere_ligne_s{source="gel",event="worm_legal_hold_set"} > 7200', null, "majeure", "enregistreur", "CT-2 §12.6 (tâche de poser et alerte de retard)", "RB-5", "Gel non posé depuis deux heures (support sans mode Compliance validé)"],
   ["10.4", "noortrace_export_lecture_impossible", () => `increase(${LJ}{event="dossier_export_refused",detail="lecture_impossible"}[1h]) > 0`, null, "majeure", "enregistreur", "CT-2 EX-15.12, raison lecture_impossible (segment, manifeste, série de points ou fichier des approbations illisible)", "RB-1", "Export d'un dossier refusé : lecture impossible"],
+  // Revue de l'étape 8 (EX-10.9, EX-10.7), règles adoptées par la table de CT-8 §10.4, dans son ordre : cibles muettes, lignes perdues, image différente, avant noortrace_export_refuse.
+  ["10.4", "noortrace_enregistreur_cible_muette", () => 'up{job="enregistreur"} == 0', "2m", "critique", "enregistreur", "CT-8 EX-10.4", "RB-1", "Point de collecte de l'enregistreur injoignable", "E-C8"],
+  ["10.4", "noortrace_journal_exploitation_lignes_perdues", () => "increase(noortrace_ops_log_dropped_total[5m]) > 0", null, "majeure", "enregistreur", "CT-2 §17.2 noortrace_ops_log_dropped_total", "RB-1", "Lignes du journal d'exploitation perdues", "E-C8"],
+  ["10.4", "noortrace_image_differente", () => `increase(${LJ}{source="exploitation",event="image_mismatch"}[1h]) > 0`, null, "critique", "enregistreur", "CT-2 §17.4 Image différente de la version publiée (PA-4)", "RB-8", "Empreinte du code en cours différente de l'image attendue", "E-C8"],
   ["10.4", "noortrace_export_refuse", () => `increase(${LJ}{event="dossier_export_refused",detail=~"exports_indisponible|ecriture_impossible"}[1h]) > 0`, null, "majeure", "enregistreur", "CT-2 EX-15.12, raisons exports_indisponible et ecriture_impossible (volume des exports absent, confondu avec storage.root, plein ou en lecture seule ; en production, droits du volume ou groupe du parent d'une destination non conformes, CT-2 EX-15.13, point 2)", "aucun", "Export d'un dossier refusé : volume des exports indisponible ou écriture impossible"],
   // §10.5 Règles du composant d'ancrage
   ["10.5", "noortrace_ancrage_en_attente", () => `increase(${LJ}{event=~"anchor_pending|registry_pending"}[1h]) > 0`, null, "mineure", "ancrage", "CT-5 §8.9 anchor_pending, registry_pending", "RB-3", "Ancre ou demande au registre en attente"],
@@ -288,16 +311,25 @@ export const REGLES = Object.freeze([
   ["10.7", "noortrace_notification_echec", () => `increase(${LJ}{source="approbation",event="notification_echec"}[1h]) > 0`, null, "mineure", "approbation", "CT-3 EX-13.42", "aucun", "Livraison d'une notification en échec (une reprise suit)"],
   ["10.7", "noortrace_notification_abandonnee", () => `increase(${LJ}{source="approbation",event="notification_abandonnee"}[1h]) > 0`, null, "majeure", "approbation", "CT-3 EX-13.42", "aucun", "Notification abandonnée"],
   ["10.7", "noortrace_notification_sans_destinataire", () => `increase(${LJ}{source="approbation",event="notification_sans_destinataire"}[1d]) > 0`, null, "majeure", "approbation", "CT-3 EX-13.40", "aucun", "Notification sans destinataire"],
-  ["10.7", "noortrace_sauvegarde_en_retard", (s) => `time() - noortrace_proces_verbal_dernier_s{kind="sauvegarde"} > ${s.rpo}`, null, "majeure", "exploitation", "CT-8 EX-11.5", "aucun", "Dernière sauvegarde plus ancienne que le RPO"],
+  ["10.7", "noortrace_sauvegarde_en_retard", (s) => `time() - noortrace_proces_verbal_dernier_s{kind="sauvegarde"} > ${s.rpo}`, "1h", "majeure", "exploitation", "CT-8 EX-11.5", "aucun", "Dernière sauvegarde plus ancienne que le RPO", "E-C7"],
   ["10.7", "noortrace_exercice_restauration_en_retard", () => 'time() - noortrace_proces_verbal_dernier_s{kind="exercice_restauration"} > 34560000', null, "mineure", "exploitation", "CT-8 EX-11.8", "aucun", "Dernier exercice de restauration plus vieux que 400 jours"],
   ["10.7", "noortrace_acces_non_declare", () => `increase(${LJ}{source="consultations",detail="inconnu"}[1h]) > 0`, null, "majeure", "exploitation", "CT-8 EX-11.20 (CA-6)", "RB-8", "Accès d'un principal non déclaré"],
   ["10.7", "noortrace_consultations_muettes", () => 'time() - max(noortrace_journal_derniere_ligne_s{source="consultations"}) > 86400', null, "majeure", "exploitation", "CT-8 EX-11.19", "aucun", "Journal des consultations muet depuis un jour"],
   ["10.7", "noortrace_journal_illisible", () => "increase(noortrace_journal_illisibles_total[1h]) > 0", null, "majeure", "exploitation", "CT-8 EX-10.5", "aucun", "Ligne de journal illisible"],
   ["10.7", "noortrace_mode_observation_actif", () => "noortrace_observation_mode == 1", null, "mineure", "enregistreur", "CT-2 §17.4 Mode observation actif (EX-17.8) ; CT-8 EX-12.8", "aucun", "Mode observation actif : aucun appel n'est bloqué"],
   ["10.7", "noortrace_observation_pertes", () => "increase(noortrace_events_lost_total[5m]) > 0", null, "majeure", "enregistreur", "CT-2 §17.4 Pertes en mode observation (EX-17.8) ; CT-2 EX-14.16", "RB-1", "Événements perdus en mode observation"],
-  // EX-10.9 : relectures hors du composant (proposition PD-28 de CT-9 : les tables ne portent pas cette règle)
-  ["EX-10.9", "noortrace_releve_externe_echec", () => "noortrace_releve_externe_ok == 0", null, "critique", "exploitation", "CT-8 EX-10.9", "aucun", "Relecture hors du composant en échec", "E-C5"],
-  ["EX-10.9", "noortrace_releve_externe_perime", () => "time() - noortrace_releve_externe_dernier_s > 172800", null, "critique", "exploitation", "CT-8 EX-10.9", "aucun", "Relecture hors du composant non mise à jour depuis deux jours", "E-C5"],
+  // Revue de l'étape 8 (EX-10.9), règles adoptées par la table de CT-8 §10.7 : hôte muet, témoins de vie des outils, relectures jamais exposées, sauvegarde absente, tâche en échec.
+  ["10.7", "noortrace_hote_cible_muette", () => 'up{job="hote"} == 0', "2m", "critique", "hote", "CT-8 EX-10.4", "RB-1", "Exportateur de nœud de l'hôte injoignable", "E-C8"],
+  ["10.7", "noortrace_extracteur_muet", () => "absent(noortrace_extracteur_derniere_passe_s) or (time() - noortrace_extracteur_derniere_passe_s > 120)", null, "critique", "exploitation", "CT-8 EX-10.5", "aucun", "Extracteur des journaux arrêté ou figé", "E-C8"],
+  ["10.7", "noortrace_sonde_muette", () => "absent(noortrace_sonde_derniere_passe_s) or (time() - noortrace_sonde_derniere_passe_s > 120)", null, "critique", "exploitation", "CT-8 EX-10.7", "aucun", "Sonde de la supervision arrêtée ou figée", "E-C8"],
+  ["10.7", "noortrace_releve_externe_absent_registre_gels", () => 'absent(noortrace_releve_externe_ok{check="registre_gels"})', "2d", "critique", "exploitation", "CT-8 EX-10.9", "aucun", "Relecture du registre des gels jamais exposée", "E-C8"],
+  ["10.7", "noortrace_releve_externe_absent_console", () => 'absent(noortrace_releve_externe_ok{check="console"})', "2d", "critique", "exploitation", "CT-8 EX-10.9", "aucun", "Comparaison des empreintes de la console jamais exposée", "E-C8"],
+  ["10.7", "noortrace_releve_externe_absent_copie_exploitation", () => 'absent(noortrace_releve_externe_ok{check="copie_exploitation"})', "2d", "critique", "exploitation", "CT-8 EX-10.9", "aucun", "Relecture de la copie du journal d'exploitation jamais exposée", "E-C8"],
+  ["10.7", "noortrace_sauvegarde_absente", () => 'absent(noortrace_proces_verbal_dernier_s{kind="sauvegarde"})', "2d", "majeure", "exploitation", "CT-8 EX-11.5", "aucun", "Aucun procès-verbal de sauvegarde jamais lu", "E-C8"],
+  ["10.7", "noortrace_tache_echec", () => "noortrace_tache_code != 0", null, "majeure", "exploitation", "CT-8 EX-8.6", "aucun", "Dernière exécution d'une tâche planifiée en échec", "E-C8"],
+  // EX-10.9 : relectures hors du composant, deux dernières lignes de la table de §10.7 (proposition PD-28 de CT-9, adoptée)
+  ["10.7", "noortrace_releve_externe_echec", () => "noortrace_releve_externe_ok == 0", null, "critique", "exploitation", "CT-8 EX-10.9", "aucun", "Relecture hors du composant en échec", "E-C5"],
+  ["10.7", "noortrace_releve_externe_perime", () => "time() - noortrace_releve_externe_dernier_s > 172800", null, "critique", "exploitation", "CT-8 EX-10.9", "aucun", "Relecture hors du composant non mise à jour depuis deux jours", "E-C5"],
 ].map(([section, alert, expr, pour, severity, component, exigence, runbook, summary, ecart = null]) => Object.freeze({ section, alert, expr, pour, severity, component, exigence, runbook, summary, ecart })));
 
 /** Titre de groupe par section. */
@@ -306,7 +338,6 @@ const GROUPES = [
   ["10.5", "noortrace-ancrage", "CT-8 §10.5 Règles du composant d'ancrage"],
   ["10.6", "noortrace-registre", "CT-8 §10.6 Règles du registre et du nœud"],
   ["10.7", "noortrace-hote-exploitation", "CT-8 §10.7 Règles de l'hôte, de l'exploitation et du mode observation"],
-  ["EX-10.9", "noortrace-releves-externes", "CT-8 EX-10.9 Relectures hors du composant (proposition PD-28 de CT-9)"],
 ];
 
 /** Règles dont l'expression ou la clause `for` dépend d'un paramètre d'EX-10.6. */
@@ -321,7 +352,7 @@ export const REGLES_PARAMETREES = Object.freeze({
   noortrace_ancrage_ots_abandon: ["give_up_after_s"],
   noortrace_ancrage_volume: ["requetes_ancrage_par_heure"],
   noortrace_registre_mempool: ["txpool_max_pending"],
-  noortrace_registre_solde_bas: ["refill_below_days", "gas_limit", "budget_journalier_gaz"],
+  noortrace_registre_solde_bas: ["refill_below_days", "gas_limit", "budget_journalier_gaz", "max_fee_per_gas_wei"],
   noortrace_sauvegarde_en_retard: ["rpo_s"],
 });
 
@@ -335,7 +366,41 @@ export const ECARTS_CT8 = Object.freeze({
   "E-C3": "Deux défauts de l'expression de la table : la soustraction entre _count (sans le) et _bucket (avec le) ne s'apparie sur aucune série sans ignoring (le) ; Prometheus 3 normalise à la collecte le=\"60\" en le=\"60.0\" (guide de migration de la version 3), d'où le=~\"60(\\\\.0)?\".",
   "E-C4": "Les lignes jeton_anterieur_au_point et contresignature_tardive (noms proposés par PD-11) sont consignées sous alerte_jeton_anterieur_au_point et alerte_contresignature_tardive (action alerter du planificateur, consignée par Supervision.consignerActions).",
   "E-C5": "EX-10.9 prescrit une alerte critique sur noortrace_releve_externe_ok (vaut 0, ou non mise à jour depuis 2 jours) que les tables de 10.4 à 10.7 ne portent pas (proposition PD-28 de CT-9) ; la seconde condition exige la jauge noortrace_releve_externe_dernier_s{check}, que CT-8 ne nomme pas, écrite par sonde.mjs releve.",
+  "E-C6": "Revue de l'étape 8 : les compteurs de l'extracteur, du démon et du composant d'ancrage naissent à leur première occurrence, et increase() ou rate() d'une série sans échantillon antérieur vaut 0 ; toute règle « increase(x[w]) OP n » sur un tel compteur s'écrit « (increase(x[w]) OP n) or ((x unless x offset w) OP n) », et dans une expression composée increase(S[w]) devient « ((S unless S offset w) or increase(S[w])) », de sorte qu'une série née dans la fenêtre vaille son propre accroissement (révision de CT-8 §10.3, EX-10.5 et EX-10.10 demandée).",
+  "E-C7": "Revue de l'étape 8 (EX-10.6) : noortrace_sauvegarde_en_retard a une clause for d'une heure ; le seuil <RPO> est l'intervalle même de la tâche, et une sauvegarde finie quelques minutes plus tard que la veille levait l'alerte (révision de CT-8 §10.7 demandée).",
+  "E-C8": "Revue de l'étape 8 (EX-10.7) : douze règles que les tables de 10.4 à 10.7 ne portent pas, demandées par la revue du déploiement : cibles muettes (up), témoins de vie des outils (noortrace_<outil>_derniere_passe_s), relectures jamais exposées (absent), sauvegarde absente, tâche en échec (noortrace_tache_code), lignes du journal d'exploitation perdues, image différente (révision de CT-8 §10.7 et §10.3 demandée).",
 });
+
+/**
+ * Règles dont l'expression est réécrite en forme « première occurrence »
+ * (E-C6, EX-10.6) : les formes simples « increase|rate(série[w]) OP n » sur une
+ * série noortrace_ (extracteur, démon, composant d'ancrage) le sont toutes, rate()
+ * compris (arbitrage du 14 novembre, révision d'EX-10.6 demandée) ; une série
+ * noor_* du nœud du registre ne l'est pas : le nœud l'expose à 0 dès son
+ * démarrage (CT-4 EX-10.9 : noor_bft_equivocations_total « vaut 0 et est
+ * supervisée »), increase() y voit donc la première hausse ; les formes
+ * composées de cette liste voient chaque increase(S[w]) remplacé ; les
+ * quantiles d'histogramme et le taux du processeur de l'hôte ne le sont pas
+ * (leur défaut n'est pas la première occurrence).
+ */
+export const REGLES_COMPOSEES_PREMIERE_OCCURRENCE = Object.freeze(["noortrace_ancrage_file", "noortrace_ancrage_prestataires_epuises_periode", "noortrace_ancrage_prestataire_injoignable", "noortrace_ancrage_volume", "noortrace_otel_conventions", "noortrace_ancrage_inclusion_lente", "noortrace_ancrage_inclusion_lente_repetee"]);
+const RE_FORME_SIMPLE = /^(increase|rate)\((noortrace_[a-z_]+(?:\{[^}]*\})?)\[([0-9]+[smhd])\]\) (>=?) ([0-9]+)$/;
+const RE_INCREASE = /increase\((noortrace_[a-z_]+(?:\{[^}]*\})?)\[([0-9]+[smhd])\]\)/g;
+
+/**
+ * Forme « première occurrence » d'une expression (E-C6, CT-8 EX-10.10) ; rend
+ * { expr, naissance } : `naissance` décrit la forme simple réécrite ({ serie,
+ * fenetre, op, n }) ou null.
+ */
+export function premiereOccurrence(alert, expr) {
+  const m = RE_FORME_SIMPLE.exec(expr);
+  if (m) {
+    const [, , serie, fenetre, op, n] = m;
+    return { expr: `(${expr}) or ((${serie} unless ${serie} offset ${fenetre}) ${op} ${n})`, naissance: { serie, fenetre, op, n: Number(n) } };
+  }
+  if (REGLES_COMPOSEES_PREMIERE_OCCURRENCE.includes(alert)) return { expr: expr.replace(RE_INCREASE, (_, s, w) => `((${s} unless ${s} offset ${w}) or increase(${s}[${w}]))`), naissance: null };
+  return { expr, naissance: null };
+}
 
 /** Échappement d'une chaîne YAML entre apostrophes. */
 const yq = (s) => `'${String(s).replace(/'/g, "''")}'`;
@@ -351,13 +416,18 @@ export function descriptionRegle(r) {
  */
 export function reglesCalculees(p = PARAMETRES_DEFAUT) {
   const s = seuils(p);
-  return REGLES.map((r) => ({
-    ...r,
-    expr: r.expr(s),
-    pour: typeof r.pour === "function" ? r.pour(s) : r.pour,
-    labels: { severity: r.severity, component: r.component, exigence: r.exigence, runbook: r.runbook },
-    annotations: { summary: r.summary, description: descriptionRegle(r) },
-  }));
+  return REGLES.map((r) => {
+    const { expr, naissance } = premiereOccurrence(r.alert, r.expr(s));
+    return {
+      ...r,
+      expr,
+      naissance,
+      ecart: r.ecart ?? (expr !== r.expr(s) ? "E-C6" : null),
+      pour: typeof r.pour === "function" ? r.pour(s) : r.pour,
+      labels: { severity: r.severity, component: r.component, exigence: r.exigence, runbook: r.runbook },
+      annotations: { summary: r.summary, description: descriptionRegle(r) },
+    };
+  });
 }
 
 /**
@@ -431,6 +501,11 @@ export const METRIQUES_ADMISES = Object.freeze({
   // EX-10.9 (relectures) ; noortrace_releve_externe_dernier_s : écart E-C5
   noortrace_releve_externe_ok: "CT-8 EX-10.9",
   noortrace_releve_externe_dernier_s: "CT-8 EX-10.9 (E-C5)",
+  // Revue de l'étape 8 (E-C8) : témoins de vie des outils de supervision et jauges des tâches planifiées (deploiement/taches/executer-tache.sh)
+  noortrace_sonde_derniere_passe_s: "CT-8 EX-10.7 (E-C8)",
+  noortrace_extracteur_derniere_passe_s: "CT-8 EX-10.5 (E-C8)",
+  noortrace_tache_code: "CT-8 EX-8.6 (E-C8)",
+  noortrace_tache_derniere_s: "CT-8 EX-8.6 (E-C8)",
   // CT-2 §17.2, EX-17.8 (noms exposés par paquets/enregistreur)
   noortrace_events_total: "CT-2 §17.2",
   noortrace_calls_blocked_total: "CT-2 §17.2",
@@ -510,7 +585,7 @@ export function metriqueAdmise(nom) {
 }
 
 const MOTS_PROMQL = new Set(["sum", "max", "min", "avg", "count", "by", "without", "on", "ignoring", "group_left", "group_right", "and", "or", "unless", "bool",
-  "rate", "increase", "changes", "abs", "time", "histogram_quantile", "offset", "le", "inf", "nan"]);
+  "rate", "increase", "changes", "abs", "time", "histogram_quantile", "absent", "offset", "le", "inf", "nan"]);
 
 /**
  * Noms de métriques d'une expression PromQL : identifiants hors des chaînes,
@@ -524,7 +599,8 @@ export function nomsMetriques(expr) {
     .replace(/"(?:[^"\\]|\\.)*"/g, '""')
     .replace(/\{[^}]*\}/g, "")
     .replace(/\b(by|without|on|ignoring|group_left|group_right)\s*\([^)]*\)/g, "")
-    .replace(/\[[^\]]*\]/g, "");
+    .replace(/\[[^\]]*\]/g, "")
+    .replace(/\boffset\s+[0-9]+(ms|s|m|h|d|w|y)\b/g, "");
   const noms = new Set();
   for (const m of sans.matchAll(/[A-Za-z_:][A-Za-z0-9_:]*/g)) {
     const mot = m[0];
@@ -1047,7 +1123,8 @@ export function casRegles(p = PARAMETRES_DEFAUT) {
     noortrace_notification_echec: casLigne({ source: "approbation", event: "notification_echec", detail: "reseau" }, { source: "approbation", event: "notification_livree" }),
     noortrace_notification_abandonnee: casLigne({ source: "approbation", event: "notification_abandonnee", detail: "reprises_epuisees" }, { source: "approbation", event: "notification_echec", detail: "reseau" }),
     noortrace_notification_sans_destinataire: casLigne({ source: "approbation", event: "notification_sans_destinataire" }, { source: "approbation", event: "notification_livree" }),
-    noortrace_sauvegarde_en_retard: casJauge("noortrace_proces_verbal_dernier_s", { kind: "sauvegarde" }, -(s.rpo + 100), 0, "1m", X),
+    // E-C7 : clause for d'une heure, le cas déclenché est jugé après 61 minutes.
+    noortrace_sauvegarde_en_retard: casJauge("noortrace_proces_verbal_dernier_s", { kind: "sauvegarde" }, -(s.rpo + 100), 0, "62m", X),
     noortrace_exercice_restauration_en_retard: casJauge("noortrace_proces_verbal_dernier_s", { kind: "exercice_restauration" }, -34560100, 0, "1m", X),
     noortrace_acces_non_declare: casLigne({ source: "consultations", event: "lecture", detail: "inconnu" }, { source: "consultations", event: "lecture", detail: "lecteur" }),
     noortrace_consultations_muettes: { t: "1m", f: [[serie("noortrace_journal_derniere_ligne_s", { ...X, source: "consultations", event: "lecture" }), "-86500x5"]], s: [[serie("noortrace_journal_derniere_ligne_s", { ...X, source: "consultations", event: "lecture" }), "-86500x5"], [serie("noortrace_journal_derniere_ligne_s", { ...X, source: "consultations", event: "export" }), "0x5"]], e: {} },
@@ -1056,6 +1133,19 @@ export function casRegles(p = PARAMETRES_DEFAUT) {
     noortrace_observation_pertes: casCompteur("noortrace_events_lost_total", { reason: "attente" }),
     noortrace_releve_externe_echec: casJauge("noortrace_releve_externe_ok", { check: "registre_gels" }, 0, 1, "3m", X),
     noortrace_releve_externe_perime: casJauge("noortrace_releve_externe_dernier_s", { check: "registre_gels" }, -172900, 0, "1m", X),
+    // E-C8 : règles de la revue de l'étape 8.
+    noortrace_enregistreur_cible_muette: { t: "3m", f: [[serie("up", E), "0x10"]], s: [[serie("up", E), "1x10"], [serie("up", X), "0x10"]], e: sans(E) },
+    noortrace_journal_exploitation_lignes_perdues: casCompteur("noortrace_ops_log_dropped_total", {}),
+    noortrace_image_differente: casLigne({ event: "image_mismatch", level: "error" }, { event: "image_checked", level: "info" }),
+    noortrace_hote_cible_muette: { t: "3m", f: [[serie("up", X), "0x10"]], s: [[serie("up", X), "1x10"], [serie("up", E), "0x10"]], e: sans(X) },
+    noortrace_extracteur_muet: { t: "3m", f: [[serie("noortrace_extracteur_derniere_passe_s", X), "0x10"]], s: [[serie("noortrace_extracteur_derniere_passe_s", X), "0+60x10"]], e: sans(X) },
+    noortrace_sonde_muette: { t: "3m", f: [[serie("noortrace_sonde_derniere_passe_s", X), "0x10"]], s: [[serie("noortrace_sonde_derniere_passe_s", X), "0+60x10"]], e: sans(X) },
+    // Séries au pas d'une heure (i) : la clause for de deux jours est jugée à 49 h.
+    noortrace_releve_externe_absent_registre_gels: { t: "49h", i: "1h", f: [[serie("noortrace_releve_externe_ok", { ...X, check: "console" }), "1x60"]], s: [[serie("noortrace_releve_externe_ok", { ...X, check: "registre_gels" }), "1x60"]], e: { check: "registre_gels" } },
+    noortrace_releve_externe_absent_console: { t: "49h", i: "1h", f: [[serie("noortrace_releve_externe_ok", { ...X, check: "registre_gels" }), "1x60"]], s: [[serie("noortrace_releve_externe_ok", { ...X, check: "console" }), "1x60"]], e: { check: "console" } },
+    noortrace_releve_externe_absent_copie_exploitation: { t: "49h", i: "1h", f: [[serie("noortrace_releve_externe_ok", { ...X, check: "console" }), "1x60"]], s: [[serie("noortrace_releve_externe_ok", { ...X, check: "copie_exploitation" }), "1x60"]], e: { check: "copie_exploitation" } },
+    noortrace_sauvegarde_absente: { t: "49h", i: "1h", f: [[serie("noortrace_proces_verbal_dernier_s", { ...X, kind: "exercice_restauration" }), "0x60"]], s: [[serie("noortrace_proces_verbal_dernier_s", { ...X, kind: "sauvegarde" }), "0x60"]], e: { kind: "sauvegarde" } },
+    noortrace_tache_echec: casJauge("noortrace_tache_code", { task: "TP-4" }, 4, 0, "2m", X),
   };
   return C;
 }
@@ -1084,16 +1174,19 @@ export function genererTestsRegles(p = PARAMETRES_DEFAUT, fichierRegles = "regle
   for (const r of regles) {
     const c = cas[r.alert];
     if (!c) throw new Error(`aucun cas de test pour ${r.alert}`);
-    for (const [nom, series, attendue] of [[`${r.alert} déclenchée`, c.f, true], [`${r.alert} silencieuse`, c.s, false]]) {
+    // E-C6 (CT-8 EX-10.10) : pour une règle sur compteur réécrite, un cas « série absente puis N » qui lève et un cas
+    // « série à 0 immobile » qui se tait, sur la série du cas déclenché.
+    const naissance = r.naissance ? [[`${r.alert} : série absente puis ${r.naissance.op === ">" ? r.naissance.n + 1 : r.naissance.n} (première occurrence)`, [[c.f[0][0], `_ _ _ ${r.naissance.op === ">" ? r.naissance.n + 1 : r.naissance.n}x10`]], true, "5m"], [`${r.alert} : série à 0 immobile`, [[c.f[0][0], "0x10"]], false, "5m"]] : [];
+    for (const [nom, series, attendue, t = c.t] of [[`${r.alert} déclenchée`, c.f, true], [`${r.alert} silencieuse`, c.s, false], ...naissance]) {
       L.push(`  - name: ${yq(nom)}`);
-      L.push("    interval: 1m");
+      L.push(`    interval: ${c.i ?? "1m"}`);
       L.push("    input_series:");
       for (const [sr, v] of series) {
         L.push(`      - series: ${yq(sr)}`);
         L.push(`        values: ${yq(v)}`);
       }
       L.push("    alert_rule_test:");
-      L.push(`      - eval_time: ${c.t}`);
+      L.push(`      - eval_time: ${t}`);
       L.push(`        alertname: ${r.alert}`);
       if (!attendue) {
         L.push("        exp_alerts: []");

@@ -1,7 +1,8 @@
 // Point d'entrée du démon `noortrace` (CT-2 §15.4, §15.6) :
 //
-//   noortrace --config <fichier>          démarre le démon
+//   noortrace --config <fichier> [--image-attendue <fichier>]   démarre le démon
 //   noortrace validate-config <fichier>   pas 1 à 3 d'EX-15.4, rapport, code 0 ou 2 (EX-15.7)
+//   noortrace empreinte                   empreinte du code installé (CT-7 EX-3.14, PA-4)
 //
 // Une configuration invalide n'est jamais servie : rapport sur stderr (une
 // ligne par erreur : pointeur JSON, règle, valeur sauf pour un secret) et
@@ -15,9 +16,17 @@
 // `noortrace-ctl close-period --now` (CT-2 EX-19.4, développement seulement) :
 // `noortrace-ctl` les envoie (src/ctl-demon.mjs). Avec `anchoring.ancrage`,
 // le composant d'ancrage de CT-5 est branché avant le cœur
-// (src/ancrage-demon.mjs, lot F2) : une configuration d'ancrage invalide
+// (src/ancrage-demon.mjs) : une configuration d'ancrage invalide
 // n'empêche pas le démon de démarrer (CT-5 EX-4.8) ; une clé de chaîne d'une
 // classe non servie (A à C) le refuse (`demarrage_refuse : ancrage`).
+// `--image-attendue <fichier>` (CT-7 EX-3.14, PA-4 ; src/empreinte-image.mjs) :
+// le démon lit l'image attendue dans ce fichier, monté en lecture seule par
+// l'orchestrateur, calcule l'empreinte de son code, consigne les deux à la
+// ligne `startup` et signale un écart (`image_mismatch`, niveau `error`) sans
+// refuser de démarrer ; un fichier illisible ou mal formé refuse le démarrage
+// (`demarrage_refuse : image_attendue`, code 2). La ligne de commande du démon
+// ne porte que `--config <fichier>` et, au plus une fois, `--image-attendue
+// <fichier>` : tout autre argument rend l'usage et le code 2.
 
 import fs from "node:fs";
 import { validerConfiguration, resoudreSecrets, ligneRapport } from "./configuration.mjs";
@@ -43,11 +52,12 @@ import { demarrerOtel } from "./otel/demon.mjs";
 import { controleOtel } from "./otel/configuration.mjs";
 import { controleWorm, supportWormDepuisConfiguration } from "./worm/configuration.mjs";
 import { preparerAncrage, ErreurBranchementAncrage } from "./ancrage-demon.mjs";
+import { controlerImage, empreinteCode, ErreurImageAttendue } from "./empreinte-image.mjs";
 
-const USAGE = "usage : noortrace --config <fichier> | noortrace validate-config <fichier>";
+const USAGE = "usage : noortrace --config <fichier> [--image-attendue <fichier>] | noortrace validate-config <fichier> | noortrace empreinte";
 
 /**
- * Règles du pas 3 d'EX-15.4 des lots branchés ici (rédaction : EX-10.6,
+ * Règles du pas 3 d'EX-15.4 des parties branchées ici (rédaction : EX-10.6,
  * EX-10.23 ; politique d'approbation : CT-3 EX-4.2, EX-8.2, avertissements
  * d'EX-4.14 ; frontal modèle : EX-5.2, EX-5.28, EX-5.32, EX-7.3 ; prise
  * TCP des connecteurs : EX-4.39, lecture 134).
@@ -86,8 +96,34 @@ export async function principal(argv, io = {}) {
     rapporter(stdout, "avertissement :", v.avertissements);
     return v.erreurs.length ? 2 : 0;
   }
+  if (argv[0] === "empreinte") {
+    if (argv.length !== 1) {
+      stderr.write(`${USAGE}\n`);
+      return 2;
+    }
+    try {
+      const e = empreinteCode();
+      stdout.write(`${JSON.stringify({ code_sha256: e.code_sha256, entries: e.entrees })}\n`);
+      return 0;
+    } catch (e) {
+      stderr.write(`empreinte : ${e.message}\n`);
+      return 1;
+    }
+  }
   const k = argv.indexOf("--config");
   if (k < 0 || !argv[k + 1]) {
+    stderr.write(`${USAGE}\n`);
+    return 2;
+  }
+  // `--image-attendue <fichier>` : une fois au plus, avec sa valeur, qui n'est pas une autre option.
+  const ki = argv.indexOf("--image-attendue");
+  if (ki >= 0 && (!argv[ki + 1] || argv[ki + 1].startsWith("--") || argv.indexOf("--image-attendue", ki + 1) >= 0)) {
+    stderr.write(`${USAGE}\n`);
+    return 2;
+  }
+  // Rien d'autre sur la ligne de commande : un argument inconnu n'est pas ignoré en silence (une option mal
+  // écrite, `--image-attendu`, retirerait la comparaison sans le dire).
+  if (argv.length !== (ki >= 0 ? 4 : 2) || argv.indexOf("--config", k + 1) >= 0) {
     stderr.write(`${USAGE}\n`);
     return 2;
   }
@@ -104,6 +140,17 @@ export async function principal(argv, io = {}) {
     return 2;
   }
   rapporter(stderr, "avertissement :", v.avertissements);
+  // Image attendue (CT-7 EX-3.14, PA-4) : lue et comparée avant la résolution des secrets ; le cœur la consigne à la ligne `startup`.
+  let image = null;
+  if (ki >= 0) {
+    try {
+      image = controlerImage({ fichier: argv[ki + 1] });
+    } catch (e) {
+      if (!(e instanceof ErreurImageAttendue)) throw e;
+      stderr.write(`demarrage_refuse : image_attendue : ${e.regle} : ${e.message}\n`);
+      return 2;
+    }
+  }
   // Références { vault } (15.2) : lues avant la résolution des autres (pas 4).
   const lus = await lireSecretsVault(v.config, { env: io.env ?? process.env });
   const s = resoudreSecrets(v.config, { env: io.env ?? process.env, vault: lus.valeurs });
@@ -126,7 +173,7 @@ export async function principal(argv, io = {}) {
       peer_user: svc.peer_user ?? null,
     });
   }
-  // Composant d'ancrage de CT-5 (`anchoring.ancrage`, lot F2) : document `ancrage-v0` lu, ses secrets résolus (pas 4), clé de
+  // Composant d'ancrage de CT-5 (`anchoring.ancrage`) : document `ancrage-v0` lu, ses secrets résolus (pas 4), clé de
   // chaîne et manifeste d'instance ; `null` quand `anchoring.ancrage` est `null` ou absent (comportement inchangé).
   let ancrage = null;
   try {
@@ -140,10 +187,10 @@ export async function principal(argv, io = {}) {
   let redaction;
   try {
     redaction = Redacteur.depuisConfiguration(v.config, s.secrets);
-    // Copies WORM (§12.6, lot WORM) ; bail détenu par une autre instance : instance
+    // Copies WORM (§12.6, partie WORM) ; bail détenu par une autre instance : instance
     // passive (13.4), les frontaux s'ouvrent et rendent -31010 bail_non_detenu.
     const worm = supportWormDepuisConfiguration(v.config, s.secrets);
-    coeur = await Coeur.demarrer({ config: v.config, secrets: s.secrets, octetsConfig: octets, service, redaction, worm, ancrage, horloge: io.horloge ?? undefined, env: io.env ?? process.env, attendreBail: true, reglesSupplementaires: REGLES_SUPPLEMENTAIRES, minuteurs: true, supervision: true });
+    coeur = await Coeur.demarrer({ config: v.config, secrets: s.secrets, octetsConfig: octets, service, redaction, worm, ancrage, image, horloge: io.horloge ?? undefined, env: io.env ?? process.env, attendreBail: true, reglesSupplementaires: REGLES_SUPPLEMENTAIRES, minuteurs: true, supervision: true });
   } catch (e) {
     const raison = e instanceof ErreurEnregistreur ? e.raison : "demarrage";
     stderr.write(`demarrage_refuse : ${raison} : ${e.message}\n`);
@@ -270,7 +317,7 @@ function retirerArretProcessus() {
  * Installe les signaux du processus du démon sur un démarrage réussi
  * (SIGTERM, SIGINT, SIGHUP, SIGUSR2, SIGURG, veille du bail) ; partagé entre
  * `lancer` et les essais qui démarrent le démon réel avec une horloge
- * injectée (`principal(argv, { horloge })`, lot F2).
+ * injectée (`principal(argv, { horloge })`).
  * @param {{coeur: Coeur, mcp: object|null, modele: object|null, sdk: object|null, otel: object|null}} r
  * @param {{argv?: string[], relancer?: () => void, env?: NodeJS.ProcessEnv}} [o] `argv` : ligne de commande portant `--config`
  */
@@ -455,6 +502,11 @@ export function installerDemandes(coeur) {
     }
     if (lu.nonSupprime) {
       coeur.journal.consigner("error", "noyau", "ctl_request_not_removed", { path: f, code: lu.nonSupprime });
+      return;
+    }
+    if (lu.raison) {
+      // fichier d'un autre compte que le démon : refusé sans lecture, supprimé.
+      coeur.journal.consigner("warning", "noyau", "ctl_request_refused", { raison: "demande_illisible", detail: lu.raison, demande: null, at: null }, { seq: null, request_id: null });
       return;
     }
     // une erreur avant que l'action soit connue : ctl_request_failed, demande nulle (EX-15.15)

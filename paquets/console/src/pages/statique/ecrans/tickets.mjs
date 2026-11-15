@@ -8,7 +8,7 @@
 import { el, ajouter, code, message, remplacer } from "../commun/dom.mjs";
 import { t, texteCode } from "../commun/libelles.mjs";
 import { appeler } from "../commun/client.mjs";
-import { afficherErreur, demarrerEcran, principal, texteDuree } from "../commun/cadre.mjs";
+import { afficherErreur, demarrerEcran, lienTicket, principal, texteDuree } from "../commun/cadre.mjs";
 
 const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
@@ -65,7 +65,8 @@ function rendre(conteneur, reponse) {
       el(
         "tr",
         { attributs: { "data-ticket": id } },
-        el("td", {}, el("a", { texte: id, attributs: { href: `/tickets/${id}` } }), " ", el("span", { classe: "discret", texte: t(`etat.${tk.state}`) })),
+        // Revue de sécurité de l'étape 8 (CT-3 EX-7.1) : lien seulement pour un identifiant d'EX-7.1.
+        el("td", {}, lienTicket(tk.ticket), " ", el("span", { classe: "discret", texte: t(`etat.${tk.state}`) })),
         el("td", {}, code(String(tk.tool_announced))),
         el("td", {}, code(lb)),
         el("td", {}, tk.deadline === null ? t("modele.vide") : code(String(tk.deadline))),

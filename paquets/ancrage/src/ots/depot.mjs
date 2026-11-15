@@ -6,13 +6,14 @@
 // écrit la version `<n+1>` à côté de la précédente ; la dernière version est
 // celle que l'enregistrement d'acquisition désigne et que l'exportateur remet.
 // Le dépôt ne touche à aucun autre fichier du répertoire d'ancres (ceux du
-// client RFC 3161 et `acquisitions.ndjson` relèvent du lot A).
+// client RFC 3161 et `acquisitions.ndjson` relèvent de ce client).
 
 import fs from "node:fs";
 import path from "node:path";
 import { estHex, utf8 } from "@noortrace/noyau";
-import { BORNES, lireOts } from "./format.mjs";
+import { BORNES, ErreurOts, lireOts } from "./format.mjs";
 import { lireFichierEntetes, BORNES_ENTETES } from "./entetes.mjs";
+import { ecrireEntierPuisLier } from "../rfc3161/depot.mjs";
 
 const MOTIF_OBJET = /^(manifeste|point-[0-9a-f]{64})$/;
 const MOTIF_VERSION = /^(manifeste|point-[0-9a-f]{64})-([1-9][0-9]{0,8})\.ots$/;
@@ -56,16 +57,19 @@ function synchroniserRepertoire(repertoire) {
   }
 }
 
-/** Écrit `octets` dans `chemin` en création exclusive, `fsync` du fichier puis du répertoire. */
+/**
+ * Écrit `octets` sous `chemin` sans jamais réécrire : fichier provisoire écrit
+ * en entier et synchronisé, puis lien exclusif, puis `fsync` du répertoire
+ * (CT-5 EX-6.5 : une coupure ne laisse jamais une version incomplète
+ * sous son nom). Lève une erreur `EEXIST` si le nom existe. Le fichier est
+ * en 0600 (mode par défaut d'`ecrireEntierPuisLier`) : seul le démon relit les
+ * preuves, sous le répertoire du journal en 0700 (CT-5 écrit les fichiers d'un
+ * dossier en 0600), à la différence des captures du registre, que remet un
+ * autre compte (CT-4 CP-6).
+ */
 function ecrireExclusif(chemin, octets) {
-  const fd = fs.openSync(chemin, "wx", 0o644);
-  try {
-    let ecrit = 0;
-    while (ecrit < octets.length) ecrit += fs.writeSync(fd, octets, ecrit, octets.length - ecrit);
-    fs.fsyncSync(fd);
-  } finally {
-    fs.closeSync(fd);
-  }
+  const pose = ecrireEntierPuisLier(chemin, octets, (message, cause) => Object.assign(new Error(message), { cause, code: cause?.code ?? null }));
+  if (!pose) throw Object.assign(new Error(`${path.basename(chemin)} existe déjà`), { code: "EEXIST" });
   synchroniserRepertoire(path.dirname(chemin));
 }
 
@@ -84,7 +88,7 @@ export class DepotOts {
     this.racine = racine;
     this.orgId = orgId;
     this.journalId = journalId;
-    // CT-2 EX-12.1 : identifiants sans `0x` dans le nom du répertoire du journal (même règle que DepotAncres, lecture F2).
+    // CT-2 EX-12.1 : identifiants sans `0x` dans le nom du répertoire du journal (même règle que DepotAncres, lectures du branchement).
     this.repertoireJournal = path.join(racine, orgId.slice(2), journalId.slice(2), "ancres");
   }
 
@@ -140,14 +144,31 @@ export class DepotOts {
 
   /**
    * Dernière version d'un objet (celle que l'exportateur remet), ou null.
+   * Revue de sécurité de l'étape 8 : la plus haute version que le lecteur lit (O-1), de
+   * taille bornée, fichier ordinaire ; les versions plus hautes illisibles
+   * (fichier incomplet, coupure) sont rendues dans `illisibles`, jamais remises.
    * @param {{periodStart: number, objet: string}} p
    */
   derniere({ periodStart, objet }) {
     const versions = this.versions({ periodStart, objet });
-    if (versions.length === 0) return null;
-    const d = versions[versions.length - 1];
-    const octets = new Uint8Array(fs.readFileSync(d.chemin));
-    return { ...d, octets, fichier: path.posix.join("ots", d.nom) };
+    const illisibles = [];
+    for (let k = versions.length - 1; k >= 0; k -= 1) {
+      const d = versions[k];
+      let octets;
+      try {
+        const st = fs.lstatSync(d.chemin);
+        if (!st.isFile()) throw new ErreurOts("type", "fichier ordinaire attendu");
+        if (st.size > BORNES.TAILLE_FICHIER) throw new ErreurOts("taille", `fichier de ${st.size} octets, plus de 256 Kio`);
+        octets = new Uint8Array(fs.readFileSync(d.chemin));
+        lireOts(octets);
+      } catch (e) {
+        if (!(e instanceof ErreurOts) && !(e && typeof e.code === "string")) throw e;
+        illisibles.push({ version: d.version, nom: d.nom, raison: String(e.code ?? "illisible") });
+        continue;
+      }
+      return { ...d, octets, fichier: path.posix.join("ots", d.nom), illisibles };
+    }
+    return null;
   }
 
   /**

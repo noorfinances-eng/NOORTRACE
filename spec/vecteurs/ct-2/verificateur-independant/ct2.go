@@ -77,17 +77,37 @@ type contexteCT2 struct {
 func VerifierVecteursCT2(racine string, strict bool) *Rapport {
 	rap := &Rapport{Titre: TitreRapportCT2, Racine: racine, Comparaisons: []Comparaison{}, Erreurs: []string{}, Notes: []string{}, Details: []string{}}
 	ctx := &contexteCT2{racine: racine, strict: strict, appels: map[string]*Value{}, issuesApprobation: map[string]string{}}
-	familleConstantes(rap, ctx)
-	familleJCSIntegral(rap, ctx)
-	familleRedaction(rap, ctx)
-	famillePiecesMCP(rap, ctx)
-	famillePiecesModele(rap, ctx)
-	familleEvenements(rap, ctx)
-	familleOTel(rap, ctx)
-	familleWorm(rap, ctx)
-	familleCoutAgent(rap, ctx)
-	familleIndex(rap, ctx)
+	for _, fam := range []struct {
+		nom string
+		f   func(*Rapport, *contexteCT2)
+	}{
+		{FamilleConstantes, familleConstantes},
+		{FamilleJCSIntegral, familleJCSIntegral},
+		{FamilleRedaction, familleRedaction},
+		{FamillePiecesMCP, famillePiecesMCP},
+		{FamillePiecesModele, famillePiecesModele},
+		{FamilleEvenements, familleEvenements},
+		{"otel", familleOTel},
+		{"worm", familleWorm},
+		{"cout-agent", familleCoutAgent},
+		{FamilleIndex, familleIndex},
+	} {
+		protegerFamille(rap, fam.nom, func() { fam.f(rap, ctx) })
+	}
 	return rap
+}
+
+// protegerFamille exécute une famille ; une panne (entrée absente que la
+// famille n'aurait pas gardée, par exemple) devient une erreur consignée,
+// et les autres familles sont confrontées : le rapport est imprimé et le code
+// est 1, jamais une trace de pile au code 2 (revue de sécurité de l'étape 8).
+func protegerFamille(rap *Rapport, nom string, f func()) {
+	defer func() {
+		if r := recover(); r != nil {
+			rap.Erreur("famille %s : panne interne (%v) ; famille non confrontée en entier", nom, r)
+		}
+	}()
+	f()
 }
 
 // politiqueNommee rend la politique de rédaction des vecteurs par son nom.

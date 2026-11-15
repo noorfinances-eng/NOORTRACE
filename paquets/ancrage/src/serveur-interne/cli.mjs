@@ -209,13 +209,14 @@ async function commandeServir(options, horloge, sortie, erreur, signaux) {
   let autorite;
   if (options.repertoire) {
     const rep = exiger(options, "repertoire");
-    const compteur = options.compteur ? Compteur.ouvrir({ repertoire: String(options.compteur) }) : undefined;
+    // Revue de sécurité de l'étape 8 (CT-5 AN-26) : plancher d'époque, pour qu'une restauration du compteur ne rejoue aucun numéro.
+    const compteur = options.compteur ? Compteur.ouvrir({ repertoire: String(options.compteur), epoque: true, horloge }) : undefined;
     autorite = chargerAutorite({ repertoire: rep, politique: options.politique === true ? undefined : options.politique, compteur, inclureAc: options["inclure-ac"] === true });
   } else {
     const cle = fs.readFileSync(exiger(options, "cle"));
     const certificat = fs.readFileSync(exiger(options, "certificat"));
     const chaine = options.chaine && options.chaine !== true ? [fs.readFileSync(options.chaine)] : [];
-    const compteur = Compteur.ouvrir({ repertoire: options.compteur && options.compteur !== true ? String(options.compteur) : path.join(path.dirname(exiger(options, "cle")), "compteur") });
+    const compteur = Compteur.ouvrir({ repertoire: options.compteur && options.compteur !== true ? String(options.compteur) : path.join(path.dirname(exiger(options, "cle")), "compteur"), epoque: true, horloge });
     autorite = new Autorite({ clePrivee: cle, certificat, chaine, politique: exiger(options, "politique"), compteur });
   }
 

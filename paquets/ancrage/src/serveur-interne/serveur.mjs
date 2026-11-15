@@ -19,6 +19,9 @@ export class ErreurServeur extends Error {
   }
 }
 
+/** Bornes du frontal HTTP : délais en millisecondes et nombre de connexions ouvertes. */
+export const DELAIS_FRONTAL = Object.freeze({ entetesMs: 10000, requeteMs: 30000, maintienMs: 5000, connexionsMax: 256 });
+
 export const ADRESSES_LOCALES = Object.freeze(["127.0.0.1", "::1", "localhost"]);
 export const TYPE_REQUETE = "application/timestamp-query";
 export const TYPE_REPONSE = "application/timestamp-reply";
@@ -80,6 +83,12 @@ export async function demarrerServeur(o) {
     serveur = http.createServer();
   }
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new RangeError("port : entier 0 à 65535 attendu");
+  // Revue de sécurité de l'étape 8 : délais d'en-têtes, de requête et de maintien posés, connexions bornées (les valeurs par
+  // défaut de Node laissaient 60 s par en-tête, 300 s par requête et des connexions inactives sans fin).
+  serveur.headersTimeout = DELAIS_FRONTAL.entetesMs;
+  serveur.requestTimeout = DELAIS_FRONTAL.requeteMs;
+  serveur.keepAliveTimeout = DELAIS_FRONTAL.maintienMs;
+  serveur.maxConnections = DELAIS_FRONTAL.connexionsMax;
 
   const refusHttp = (rep, statut, raison, entetes = {}) => {
     journal.consigner("warning", "tsa_http_refus", { status: statut, reason: raison });

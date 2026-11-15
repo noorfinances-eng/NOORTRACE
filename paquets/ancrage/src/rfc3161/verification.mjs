@@ -130,8 +130,21 @@ export function accuracyMicrosecondes(accuracy) {
  * ou `null`. `instant` est `genTime` en millisecondes (`null` : la règle 4 ne
  * tient jamais).
  */
-export function chercherChemin({ S, candidats, autorites, politique, instant }) {
+export function chercherChemin({ S, candidats, autorites, politique, instant, statistiques = null }) {
   if (instant === null || instant === undefined) return null;
+  // Revue de sécurité de l'étape 8 (CT-6 EX-9.13, EX-9.23 : « au plus 16 × 16 + 1 vérifications ») : chaque couple
+  // (certificat émis, certificat émetteur) n'est vérifié qu'une fois, quel que soit le nombre de chemins et de
+  // longueurs essayés ; seize certificats de même nom qui se signent tous coûtent 16 × 17 vérifications au plus par
+  // autorité, et non des dizaines de milliers. `statistiques.signatures` compte les vérifications réellement faites.
+  const memo = new Map();
+  const signee = (emis, emetteur) => {
+    const k = `${emis.sha256}|${emetteur.sha256}`;
+    if (memo.has(k)) return memo.get(k);
+    const ok = verifierSignatureEmise(emis, emetteur);
+    if (statistiques) statistiques.signatures = (statistiques.signatures ?? 0) + 1;
+    memo.set(k, ok);
+    return ok;
+  };
   const dates = (c) => c.notBefore <= instant && instant <= c.notAfter;
   const extensionsAdmises = (c) => c.extensions.every((x) => !x.critique || x.oid === OID.basicConstraints || x.oid === OID.keyUsage || x.oid === OID.extKeyUsage);
   const regleAc = (c, i) => {
@@ -151,7 +164,7 @@ export function chercherChemin({ S, candidats, autorites, politique, instant }) 
     }
     if (!feuilleAdmise(S)) continue;
     // n = 0, S émis par A.
-    if (octetsEgaux(S.emetteur.octets, A.certificat.sujet.octets) && verifierSignatureEmise(S, A.certificat)) {
+    if (octetsEgaux(S.emetteur.octets, A.certificat.sujet.octets) && signee(S, A.certificat)) {
       return { chemin: [S], autorite: A, identite: false };
     }
     // n = 1 à 4 : recherche en profondeur par longueur croissante, dans l'ordre des candidats.
@@ -166,10 +179,10 @@ export function chercherChemin({ S, candidats, autorites, politique, instant }) 
         if (chemin.some((d) => octetsEgaux(d.octets, c.octets))) continue;
         if (!octetsEgaux(dernier.emetteur.octets, c.sujet.octets)) continue;
         if (!dates(c) || !extensionsAdmises(c) || !regleAc(c, i)) continue;
-        if (!verifierSignatureEmise(dernier, c)) continue;
+        if (!signee(dernier, c)) continue;
         const suite = [...chemin, c];
         if (i === n) {
-          if (octetsEgaux(c.emetteur.octets, A.certificat.sujet.octets) && verifierSignatureEmise(c, A.certificat)) return suite;
+          if (octetsEgaux(c.emetteur.octets, A.certificat.sujet.octets) && signee(c, A.certificat)) return suite;
           continue;
         }
         const r = etendre(suite, n);
@@ -237,7 +250,7 @@ function lireIssuerSerial(tlv) {
  * `prerequis_en_echec`), `ancres` (voir `normaliserAncres`), `aGenTime`
  * (toujours vrai : T-7 est évaluée à `genTime`, EX-9.13).
  */
-export function verifierJeton({ octets, imprintAttendue, ancres = null, aGenTime = true }) {
+export function verifierJeton({ octets, imprintAttendue, ancres = null, aGenTime = true, statistiques = null }) {
   if (aGenTime !== true) throw new TypeError("T-7 est évaluée à genTime (EX-9.13) : aGenTime doit être vrai");
   const { autorites } = normaliserAncres(ancres);
   const checks = {};
@@ -339,7 +352,7 @@ export function verifierJeton({ octets, imprintAttendue, ancres = null, aGenTime
   } else if (autorites.length === 0) {
     poser("T-7", nonExecute("ancre_absente", "aucune autorité d'horodatage"));
   } else {
-    const chemin = chercherChemin({ S, candidats, autorites, politique: tst.policy, instant: tst.genTime.ms });
+    const chemin = chercherChemin({ S, candidats, autorites, politique: tst.policy, instant: tst.genTime.ms, statistiques });
     if (!chemin) poser("T-7", echoue(`aucun chemin de ${candidats.length} candidat(s) vers l'une des ${autorites.length} autorité(s) ne satisfait les sept règles d'EX-9.13 à genTime`));
     else {
       poser("T-7", reussi());

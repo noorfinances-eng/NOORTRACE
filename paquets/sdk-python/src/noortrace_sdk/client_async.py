@@ -24,6 +24,7 @@ from typing import Any, Callable, Dict, Iterable, Optional
 
 from ._commun import (
     Adresse,
+    controler_proprietaire_prise,
     creer_preuve,
     defi_valide,
     delai_reprise,
@@ -86,6 +87,10 @@ class ConnexionAsync:
     async def _ouvrir(self) -> None:
         a = self.adresse
         if a.socket:
+            # la prise appartient au compte attendu du démon, sinon rien n'est envoyé.
+            refus = controler_proprietaire_prise(a.socket, a.proprietaire)
+            if refus:
+                raise NoortraceIndisponible(f"noortrace: enregistreur injoignable ({refus})", False)
             r, w = await asyncio.open_unix_connection(a.socket, limit=_LIGNE_MAX)
         elif a.tls is not None:
             r, w = await asyncio.open_connection(a.hote, a.port, ssl=a.tls, server_hostname=a.hote, limit=_LIGNE_MAX)
@@ -211,9 +216,10 @@ class ClientNoortraceAsync:
     """Client asynchrone du démon (EX-6.9, EX-6.14) ; la connexion est ouverte au premier appel."""
 
     def __init__(self, socket: Optional[str] = None, tcp: Optional[str] = None, jeton: Optional[str] = None,
-                 delai_s: float = 30.0, reprises: int = 2, sur_indisponibilite_lecture: str = "bloquer") -> None:
+                 delai_s: float = 30.0, reprises: int = 2, sur_indisponibilite_lecture: str = "bloquer",
+                 proprietaire: Optional[str] = None) -> None:
         verifier_reglages(delai_s, reprises, sur_indisponibilite_lecture)
-        self._adresse = resoudre_adresse(socket, tcp, jeton)
+        self._adresse = resoudre_adresse(socket, tcp, jeton, proprietaire=proprietaire)
         self.delai_s = float(delai_s)
         self.reprises = reprises
         self.sur_indisponibilite_lecture = sur_indisponibilite_lecture

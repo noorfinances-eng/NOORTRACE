@@ -2,13 +2,13 @@
 // (test/enregistreur-coeur*.test.js) : chemins des vecteurs, clés de test de
 // CT-1 §13 (graines publiques, sans valeur), configuration de développement
 // tirée de l'exemple de CT-2 §15.3, répertoires temporaires sous
-// os.tmpdir().
+// os.tmpdir(), libérés à la fin du fichier d'essai (test/aides/temporaires.mjs).
 
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { sha256, utf8, octetsVersHex } from "@noortrace/noyau";
+import { creerRepertoireTemporaire } from "../../aides/temporaires.mjs";
 
 export const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 export const SPEC = path.join(RACINE, "spec");
@@ -27,9 +27,9 @@ export function pemPkcs8(g) {
   return `-----BEGIN PRIVATE KEY-----\n${b64}\n-----END PRIVATE KEY-----\n`;
 }
 
-/** Répertoire temporaire neuf. */
+/** Répertoire temporaire neuf, libéré à la fin du fichier d'essai, échec compris (test/aides/temporaires.mjs). */
 export function repertoireTemporaire(prefixe = "noortrace-coeur-") {
-  return fs.mkdtempSync(path.join(os.tmpdir(), prefixe));
+  return creerRepertoireTemporaire(prefixe);
 }
 
 /**
@@ -85,16 +85,16 @@ export function configurationDev(dir, o = {}) {
     health_interval_ms: 10000,
     rotation: { planned_every_days: null, next_key_id: "rec-test-02" },
   };
-  // Frontal MCP (lot du frontal) : désactivé sauf demande ; les serveurs
+  // Frontal MCP (partie du frontal) : désactivé sauf demande ; les serveurs
   // d'outils de l'exemple de 15.3 ne sont pas joignables depuis les tests.
   c.mcp.enabled = o.mcp === true;
   c.mcp.socket = path.join(dir, "prise", "mcp.sock");
-  // Frontal modèle (lot du frontal modèle) : désactivé sauf demande ; activé,
+  // Frontal modèle (partie du frontal modèle) : désactivé sauf demande ; activé,
   // la passerelle écoute sur un port libre choisi par le système et garde la
   // connexion d'hôte de l'exemple de 15.3 (aucun test ne dépend de 8400).
   c.model.mode = o.modele === true ? "passerelle" : "desactive";
   if (o.modele === true) c.model.listen = "127.0.0.1:0";
-  // Ingestion OpenTelemetry (lot SDK et OpenTelemetry) : la source de l'exemple
+  // Ingestion OpenTelemetry (partie SDK et OpenTelemetry) : la source de l'exemple
   // de 15.3 est gardée, sur un port libre choisi par le système (aucun test ne
   // dépend de 4318) ; SDK : prise sous le répertoire du test.
   if (c.otel) c.otel.listen = "127.0.0.1:0";

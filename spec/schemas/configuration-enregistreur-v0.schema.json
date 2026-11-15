@@ -1432,6 +1432,17 @@
                 }
               ],
               "description": "Clé de chaîne suivante, pendant une rotation (CT-2 EX-11.15) ; null sinon."
+            },
+            "rpc_token": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/secret_reference"
+                }
+              ],
+              "description": "Révision 0.11 (CT-2 15.1 ; CT-4 EX-7.1). Référence de secret du jeton Bearer que le démon et son composant d'ancrage présentent en en-tête Authorization à chaque point RPC du registre ; jamais dans rpc_url ni dans un index. Facultatif ; absent ou nul : aucun jeton."
             }
           }
         },
@@ -1743,6 +1754,19 @@
                     "$ref": "#/$defs/cidr"
                   },
                   "description": "Modes icap et miroir du frontal modèle seulement : adresses sources de l'hôte (CT-2 EX-5.8)."
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "client_cert_sha256"
+              ],
+              "properties": {
+                "client_cert_sha256": {
+                  "$ref": "#/$defs/hex32",
+                  "description": "Révision 0.11 (CT-2 EX-4.39). Empreinte SHA-256 du certificat client DER d'une connexion sur une prise TCP en mtls (connector_tcp, tcp_listen) : la connexion d'hôte est reconnue à cette empreinte, pas au nom commun du certificat."
                 }
               }
             }
@@ -2570,6 +2594,18 @@
               "$ref": "#/$defs/tls_server"
             }
           ]
+        },
+        "client_ca": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^/[^\\u0000]{1,4095}$"
+            }
+          ],
+          "description": "Révision 0.11 (CT-2 EX-4.39). Fichier PEM de l'autorité qui émet les certificats des connecteurs et des SDK admis sur cette prise quand client_auth vaut mtls ; propre à la prise, jamais la chaîne du certificat du démon (tls). Facultatif : absent ou nul, la prise en mtls est refusée par la validation en production (EX-15.4)."
         }
       }
     },
@@ -2813,7 +2849,7 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 10000000,
-          "description": "Révision 0.5, facultatif. Nombre maximal de spans d'une requête OTLP ; au-delà, 413 sans rien sceller (EX-6.28). Absent : pas de borne propre."
+          "description": "Révision 0.5, facultatif. Nombre maximal de spans d'une requête OTLP ; au-delà, 413 sans rien sceller (EX-6.28). Absent : 10 000 (révision 0.11 ; la version 0.5 disait « pas de borne propre »)."
         },
         "events_per_minute": {
           "type": "integer",

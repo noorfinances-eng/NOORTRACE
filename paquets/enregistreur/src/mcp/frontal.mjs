@@ -28,6 +28,7 @@ import { agreger, paginer, entetesParametres } from "./agregation.mjs";
 import { ConnexionStdio, ConnexionHttp, ErreurConnexionAmont, valeurEnteteParametre } from "./amont.mjs";
 import { QuotasHote } from "./quotas.mjs";
 import { resoudreDelegation } from "./delegation.mjs";
+import { ID_JSONRPC_MAX, copierChaine, chaineBornee } from "../bornes.mjs";
 
 const REFERENCES_SANS_KIND = (p) => p.referenceContexte("autre");
 
@@ -35,6 +36,10 @@ const REFERENCES_SANS_KIND = (p) => p.referenceContexte("autre");
 export const LIGNES_HOTE_PAR_SECONDE = 20;
 /** Enregistrements de continuation MRTR gardés au plus (EX-4.21 ; lecture 159). */
 export const CONTINUATIONS_MAX = 10000;
+/** Délai minimal entre deux relectures de la liste d'un serveur injoignable (EX-4.18). */
+export const RELECTURE_INJOIGNABLE_MIN_MS = 1000;
+/** Nom d'en-tête `Mcp-Param-*` admis (jeton RFC 9110, EX-4.35, EX-4.11 règle 4). */
+const MOTIF_NOM_ENTETE = /^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}$/;
 
 /**
  * Clé d'un `id` JSON-RPC par sa valeur (un `requestId` d'annulation désigne
@@ -120,6 +125,9 @@ export class FrontalMcp {
     /** Dernière liste reçue avec succès de chaque serveur (EX-4.18). */
     this.listes = new Map();
     this.injoignables = new Set();
+    /** Relecture planifiée de la liste d'un serveur injoignable, par alias (EX-4.18). */
+    this.relecturesInjoignables = new Map();
+    this.arrete = false;
     this.agregat = { annonces: [], rejets: [], parNom: new Map() };
     this.sessions = new Set();
     this.quotas = new Map();
@@ -201,6 +209,9 @@ export class FrontalMcp {
    * `drain_timeout_ms`, puis les connexions amont fermées dans l'ordre de 4.2.
    */
   async arreter() {
+    this.arrete = true;
+    for (const t of this.relecturesInjoignables.values()) this.annulerMinuteur(t);
+    this.relecturesInjoignables.clear();
     for (const r of this.retentions.values()) this.annulerMinuteur(r.minuteur);
     for (const t of this.relectures.values()) this.annulerMinuteur(t.minuteur);
     const limite = Date.now() + (this.config.mcp.drain_timeout_ms ?? 0);
@@ -231,15 +242,46 @@ export class FrontalMcp {
       await c.assurer("{}");
       const l = await c.lister();
       this.chargerListe(alias, l.tools, { ttlMs: l.ttlMs, cacheScope: l.cacheScope, ere: c.ere });
+      // EX-14.7 : la sortie de la raison `serveur:<alias>` a sa ligne, comme l'entrée.
+      if (this.injoignables.has(alias)) this.journal.consigner("info", "frontal_mcp", "upstream_reachable", { server: alias });
       this.injoignables.delete(alias);
+      this.annulerMinuteur(this.relecturesInjoignables.get(alias));
+      this.relecturesInjoignables.delete(alias);
       this.metriques.jauge("noortrace_degraded", { reason: `serveur:${alias}` }, 0);
     } catch (e) {
       if (!this.injoignables.has(alias)) this.journal.consigner("warning", "frontal_mcp", "upstream_unreachable", { server: alias, reason: e?.raison ?? "erreur" });
-      this.injoignables.add(alias);
-      this.metriques.jauge("noortrace_degraded", { reason: `serveur:${alias}` }, 1);
+      this.marquerInjoignable(alias);
       this.metriques.compter("noortrace_upstream_errors_total", { server: alias, kind: "injoignable" });
       this.recalculer();
     }
+  }
+
+  /**
+   * Serveur injoignable, à un `tools/list` comme au relais d'un `tools/call`
+   * (`-31014`, ligne `upstream_unreachable` écrite par l'appelant) : raison de
+   * santé `serveur:<alias>` et `noortrace_degraded{reason="serveur:<alias>"}`
+   * à 1 (EX-4.18, EX-14.7, EX-14.11), outils omis des listes servies ; tant
+   * qu'il le reste, la liste est relue à l'expiration du `ttlMs` de sa
+   * dernière liste reçue (`tools.default_ttl_ms` sans `ttlMs`, et au plus
+   * tard après lui ; au plus tôt après `tools.list_changed_min_interval_ms`
+   * et une seconde), et le premier `tools/list` réussi remet la raison à 0.
+   * @param {string} alias
+   */
+  marquerInjoignable(alias) {
+    this.injoignables.add(alias);
+    this.metriques.jauge("noortrace_degraded", { reason: `serveur:${alias}` }, 1);
+    if (this.arrete || this.relecturesInjoignables.has(alias)) return;
+    const t = this.config.tools;
+    const plancher = Math.max(t.list_changed_min_interval_ms ?? 0, RELECTURE_INJOIGNABLE_MIN_MS);
+    const ttl = this.listes.get(alias)?.ttlMs ?? t.default_ttl_ms;
+    const delai = Math.min(Math.max(ttl, plancher), Math.max(t.default_ttl_ms, plancher));
+    this.relecturesInjoignables.set(
+      alias,
+      this.planifier(delai, async () => {
+        this.relecturesInjoignables.delete(alias);
+        if (!this.arrete && this.injoignables.has(alias)) await this.rafraichir(alias);
+      }),
+    );
   }
 
   /**
@@ -358,6 +400,13 @@ export class FrontalMcp {
       const jeton = n.objet?.params?.progressToken;
       const p = typeof jeton === "string" ? this.progressions.get(jeton) : null;
       if (!p) return;
+      // 4.4 pas 10 : « dont le progressToken est connu » : connu de l'appel en
+      // vol vers CE serveur ; un autre serveur qui énumère les jetons
+      // n'écrit pas dans la session d'un hôte qui ne l'a pas appelé.
+      if (p.alias !== c.alias) {
+        this.journal.consigner("warning", "frontal_mcp", "server_progress_refused", { server: c.alias, token_server: p.alias });
+        return;
+      }
       const params = membre(n.noeud, "params");
       const texte = recomposerObjet(n.texte, params, { remplacer: new Map([["progressToken", p.jetonBrut]]) });
       p.emettre(notification("notifications/progress", texte));
@@ -533,7 +582,14 @@ export class FrontalMcp {
     if (noeud.t !== "objet") return reponseErreur(null, -32600);
     const id = membre(noeud, "id");
     const idValide = id && (id.t === "chaine" || id.t === "nombre");
-    const idBrut = idValide ? texte.slice(id.d, id.f) : null;
+    // Étape 8 (S-1, CT-2 EX-4.47) : un `id` au-delà d'ID_JSONRPC_MAX caractères est
+    // refusé avant tout usage (-32600, `id: null` : il n'est pas renvoyé) ; un
+    // `id` admis est recopié, jamais une tranche du texte reçu.
+    if (idValide && id.f - id.d > ID_JSONRPC_MAX) {
+      this._consignerParHote(session, "warning", "request_id_too_long", { length: id.f - id.d, limit: ID_JSONRPC_MAX });
+      return reponseErreur(null, -32600, { reason: "id_trop_long", limit: ID_JSONRPC_MAX });
+    }
+    const idBrut = idValide ? copierChaine(texte.slice(id.d, id.f)) : null;
     const methode = membre(noeud, "method");
     const jsonrpc = membre(noeud, "jsonrpc");
     if (jsonrpc?.t !== "chaine" || jsonrpc.valeur !== "2.0") return reponseErreur(idBrut, -32600);
@@ -545,7 +601,7 @@ export class FrontalMcp {
     if (methode.t !== "chaine" || (id && !idValide)) return reponseErreur(idBrut, -32600);
     const params = membre(noeud, "params");
     if (params && params.t !== "objet") return reponseErreur(idBrut, -32602);
-    const m = { texte, noeud, idBrut, cleId: idValide ? cleIdJson(texte, id) : null, methode: methode.valeur, params, t_recu, dureeAnalyse, cadre: o.cadre ?? "ligne", canal: o.canal ?? {} };
+    const m = { texte, noeud, idBrut, cleId: idValide ? copierChaine(cleIdJson(texte, id)) : null, methode: chaineBornee(methode.valeur), params, t_recu, dureeAnalyse, cadre: o.cadre ?? "ligne", canal: o.canal ?? {} };
     if (!idBrut) {
       this._notificationHote(session, m);
       return null;
@@ -869,7 +925,9 @@ export class FrontalMcp {
     for (const { propriete, entete } of entetesParametres(ctx.annonce.definition)) {
       if (ctx.argumentsClair && typeof ctx.argumentsClair === "object" && propriete in ctx.argumentsClair) {
         const v = valeurEnteteParametre(ctx.argumentsClair[propriete]);
-        if (v !== null && typeof entete === "string") r[entete] = v;
+        // EX-4.35 : un en-tête n'est construit que pour un nom d'en-tête valide
+        // (jeton RFC 9110), quel que soit le transport de l'hôte (CT-2 EX-4.11).
+        if (v !== null && typeof entete === "string" && MOTIF_NOM_ENTETE.test(entete)) r[entete] = v;
       }
     }
     return r;
@@ -916,7 +974,8 @@ export class FrontalMcp {
     // Pas 1 (fin) : nom, arguments exactement représentables (EX-4.44).
     const nomNoeud = membre(m.params, "name");
     if (!nomNoeud || nomNoeud.t !== "chaine") throw new Rendu(reponseErreur(m.idBrut, -32602));
-    const nom = nomNoeud.valeur;
+    // Nom recopié (jamais une tranche du texte reçu : il est gardé dans les continuations et le journal).
+    const nom = copierChaine(nomNoeud.valeur);
     ctx.nom = nom;
     const argsNoeud = membre(m.params, "arguments");
     if (argsNoeud && argsNoeud.t !== "objet") throw new Rendu(reponseErreur(m.idBrut, -32602, { reason: "arguments_non_objet" }));
@@ -1254,6 +1313,7 @@ export class FrontalMcp {
       if (!(e instanceof ErreurConnexionAmont)) throw e;
       this.journal.consigner("warning", "frontal_mcp", "upstream_unreachable", { server: ctx.alias, reason: e.raison }, { host: session.hote.id, request_id: m.idBrut });
       this.metriques.compter("noortrace_upstream_errors_total", { server: ctx.alias, kind: "injoignable" });
+      this.marquerInjoignable(ctx.alias);
       throw new Rendu(reponseErreur(m.idBrut, CODES.INJOIGNABLE, { server: ctx.alias }));
     }
     if (ctx.moderne === false && connexion.ere === null) throw new Rendu(reponseErreur(m.idBrut, CODES.INJOIGNABLE, { server: ctx.alias }));
@@ -1283,12 +1343,21 @@ export class FrontalMcp {
       // Sous ticket, `policy` et `approval` sont ceux que le cœur a vérifiés (RL-1, EX-7.12).
       if (relais && ctx.herite && !sousTicket) relais.fixe = { policy: ctx.herite.policy, approval: ctx.herite.approval };
     }
-    // Pas 9 : envoi.
+    // Pas 9 : envoi. Une exception synchrone de l'envoi (en-tête `Mcp-Param-*`
+    // invalide, prise fermée, CT-2 EX-4.11) est une perte de connexion : l'appel est
+    // terminé comme tel (pièce d'erreur, événement scellé), jamais laissé en vol
+    // avec son intention ouverte.
     const texteAmont = this._messageAmont(ctx, connexion, idAmont);
     const attente = connexion.attendre(idAmont);
     this.appelsEnVol.add(ctx);
-    if (connexion instanceof ConnexionHttp) connexion.envoyerAppel(idAmont, texteAmont, { nom: ctx.original, parametres: this._parametresEntetes(ctx) });
-    else connexion.envoyerRequete(texteAmont, { id: idAmont });
+    try {
+      if (connexion instanceof ConnexionHttp) connexion.envoyerAppel(idAmont, texteAmont, { nom: ctx.original, parametres: this._parametresEntetes(ctx) });
+      else connexion.envoyerRequete(texteAmont, { id: idAmont });
+    } catch (e) {
+      this.journal.consigner("warning", "frontal_mcp", "upstream_send_failed", { server: ctx.alias, code: String(e?.code ?? "erreur").slice(0, 64) }, { host: session.hote.id, request_id: m.idBrut });
+      connexion.terminerAppel?.(idAmont);
+      connexion.resoudreAttente?.(idAmont, { issue: "perte", t: this.monotone() });
+    }
     const t_envoi = this.monotone();
     // Pas 10 et 11 : notifications en vol, réponse, délai, annulation.
     let minuteur;
@@ -1338,6 +1407,7 @@ export class FrontalMcp {
         t_reponse = issue.t;
         this.journal.consigner("warning", "frontal_mcp", "upstream_unreachable", { server: ctx.alias, reason: "perte" }, { host: session.hote.id, request_id: m.idBrut });
         this.metriques.compter("noortrace_upstream_errors_total", { server: ctx.alias, kind: "injoignable" });
+        this.marquerInjoignable(ctx.alias);
         const err = erreurIssue(CODES.INJOIGNABLE, { server: ctx.alias });
         resultat = pieceErreurJsonRpc(err);
         objetErreurHote = JSON.stringify(err);
@@ -1391,7 +1461,12 @@ export class FrontalMcp {
       // pour un appel qui porte l'approbation d'un ticket, ligne `continuation`
       // écrite et synchronisée d'abord (EX-12.23), faute de quoi aucun
       // enregistrement n'est gardé et la ré-émission repasse par le pas 3.
-      const rsNoeud = issue.issue === "reponse" && evenement ? membre(membre(issue.noeud, "result"), "requestState") : null;
+      // EX-4.21 : seul « un résultat `input_required` qui porte un `requestState` »
+      // donne un enregistrement de continuation (jamais un résultat
+      // `complete` ou sans `resultType`).
+      const resultTypeNoeud = issue.issue === "reponse" ? membre(membre(issue.noeud, "result"), "resultType") : null;
+      const entreeRequise = resultTypeNoeud?.t === "chaine" && resultTypeNoeud.valeur === "input_required";
+      const rsNoeud = issue.issue === "reponse" && evenement && entreeRequise ? membre(membre(issue.noeud, "result"), "requestState") : null;
       const ticket = evenement?.policy?.ticket ?? null;
       if (rsNoeud && (ticket === null || (evenement.approval?.ticket === ticket && evenement.approval.decision === "approuve"))) {
         const sha = sha256Hex(utf8(compacter(issue.texte, rsNoeud)));
@@ -1439,6 +1514,13 @@ export class FrontalMcp {
         notifications: ctx.compteNotifications.n,
         ticket: evenement?.policy?.ticket ?? null,
         pending: o.passant === true,
+        // CT-2 EX-16.2 pas 4 (étape 8) : instants de l'horloge
+        // monotone de l'enregistreur, millisecondes (trois décimales) ; `t_fdatasync_ms`
+        // est l'instant de retour du `fdatasync` qui a rendu l'événement durable.
+        t_recu_ms: m.t_recu,
+        t_envoi_ms: t_envoi,
+        t_reponse_ms: t_reponse,
+        t_fdatasync_ms: evenement?.t_fdatasync_ms ?? null,
       },
       { seq: evenement?.seq ?? null, host: session.hote.id, request_id: m.idBrut },
     );

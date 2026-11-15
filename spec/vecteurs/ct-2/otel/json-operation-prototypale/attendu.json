@@ -1,0 +1,239 @@
+{
+  "status": 200,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {}
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 1,
+    "ignore": 3,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [
+    {
+      "path": [
+        0,
+        0,
+        0
+      ],
+      "trace_id": "b29a39998a7c4569e9a859b3028fecf0",
+      "span_id": "e8d188958420508a",
+      "issue": "ignore",
+      "reason": "operation_non_retenue",
+      "overlap_seq": null,
+      "normalized": null,
+      "pieces": null,
+      "event": null,
+      "lag_ms": null
+    },
+    {
+      "path": [
+        0,
+        0,
+        1
+      ],
+      "trace_id": "b29a39998a7c4569e9a859b3028fecf0",
+      "span_id": "44973a9fe95974d7",
+      "issue": "ignore",
+      "reason": "operation_non_retenue",
+      "overlap_seq": null,
+      "normalized": null,
+      "pieces": null,
+      "event": null,
+      "lag_ms": null
+    },
+    {
+      "path": [
+        0,
+        0,
+        2
+      ],
+      "trace_id": "b29a39998a7c4569e9a859b3028fecf0",
+      "span_id": "3a90b944d2bf190b",
+      "issue": "ignore",
+      "reason": "operation_non_retenue",
+      "overlap_seq": null,
+      "normalized": null,
+      "pieces": null,
+      "event": null,
+      "lag_ms": null
+    },
+    {
+      "path": [
+        0,
+        0,
+        3
+      ],
+      "trace_id": "b29a39998a7c4569e9a859b3028fecf0",
+      "span_id": "296175596bb22457",
+      "issue": "scelle",
+      "reason": null,
+      "overlap_seq": null,
+      "normalized": {
+        "trace_id": "b29a39998a7c4569e9a859b3028fecf0",
+        "span_id": "296175596bb22457",
+        "parent_span_id": "d325e8ac96756148",
+        "trace_state": "",
+        "name": "chat modele-demo-1",
+        "flags": 0,
+        "kind": 3,
+        "start_time_unix_nano": "1794307798000000000",
+        "end_time_unix_nano": "1794307799250500000",
+        "attributes": {
+          "gen_ai.operation.name": "chat",
+          "gen_ai.provider.name": "openai",
+          "gen_ai.request.model": "modele-demo-1",
+          "gen_ai.conversation.id": "conv-2026-11-10-0011",
+          "gen_ai.input.messages": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "type": "text",
+                  "content": "Où en est le sinistre 2026-81044 ?"
+                }
+              ]
+            }
+          ],
+          "gen_ai.output.messages": [
+            {
+              "role": "assistant",
+              "parts": [
+                {
+                  "type": "text",
+                  "content": "Le sinistre 2026-81044 est ouvert."
+                }
+              ],
+              "finish_reason": "stop"
+            }
+          ],
+          "gen_ai.response.model": "modele-demo-1-2026-09",
+          "gen_ai.usage.input_tokens": 120,
+          "gen_ai.usage.output_tokens": 18
+        },
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0,
+        "events": [],
+        "links_count": 0,
+        "status": {
+          "code": 1,
+          "message": ""
+        },
+        "resource": {
+          "attributes": {
+            "service.name": "agent-sinistres",
+            "service.version": "3.2.0"
+          },
+          "dropped_attributes_count": 0
+        },
+        "scope": {
+          "name": "agent-sinistres.instrumentation",
+          "version": "1.0.0",
+          "attributes": {}
+        },
+        "schema_url": null
+      },
+      "pieces": {
+        "source": {
+          "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922",
+          "length": 66,
+          "redacted": false,
+          "media_type": "application/json",
+          "bytes": "{\"noortrace_capture\":{\"channel\":\"otel\",\"source\":\"otel-sinistres\"}}"
+        },
+        "envelope": {
+          "sha256": "0x2796cad24bf834aae9c601193b1e1ef1d025f8b40d6af766d9c6652f7192ca36",
+          "length": 638,
+          "redacted": false,
+          "media_type": "application/json",
+          "bytes": "{\"attributes\":{},\"dropped_attributes_count\":0,\"dropped_events_count\":0,\"dropped_links_count\":0,\"end_time_unix_nano\":\"1794307799250500000\",\"events\":[],\"flags\":0,\"kind\":3,\"links_count\":0,\"name\":\"chat modele-demo-1\",\"parent_span_id\":\"d325e8ac96756148\",\"resource\":{\"attributes\":{\"service.name\":\"agent-sinistres\",\"service.version\":\"3.2.0\"},\"dropped_attributes_count\":0},\"schema_url\":null,\"scope\":{\"attributes\":{},\"name\":\"agent-sinistres.instrumentation\",\"version\":\"1.0.0\"},\"span_id\":\"296175596bb22457\",\"start_time_unix_nano\":\"1794307798000000000\",\"status\":{\"code\":1,\"message\":\"\"},\"trace_id\":\"b29a39998a7c4569e9a859b3028fecf0\",\"trace_state\":\"\"}"
+        },
+        "request": {
+          "sha256": "0x08ef64177179c5ded5b58774914f76cf1fd4e5e2dd9e704c989bd5876982d8ec",
+          "length": 267,
+          "redacted": false,
+          "bytes": "{\"gen_ai.conversation.id\":\"conv-2026-11-10-0011\",\"gen_ai.input.messages\":[{\"parts\":[{\"content\":\"Où en est le sinistre 2026-81044 ?\",\"type\":\"text\"}],\"role\":\"user\"}],\"gen_ai.operation.name\":\"chat\",\"gen_ai.provider.name\":\"openai\",\"gen_ai.request.model\":\"modele-demo-1\"}"
+        },
+        "response": {
+          "sha256": "0x193db805ee84d582ed8a40d78b1f3e158792e1d6bccb03027d5868d960d8f1dd",
+          "length": 257,
+          "redacted": false,
+          "bytes": "{\"gen_ai.output.messages\":[{\"finish_reason\":\"stop\",\"parts\":[{\"content\":\"Le sinistre 2026-81044 est ouvert.\",\"type\":\"text\"}],\"role\":\"assistant\"}],\"gen_ai.response.model\":\"modele-demo-1-2026-09\",\"gen_ai.usage.input_tokens\":120,\"gen_ai.usage.output_tokens\":18}"
+        },
+        "system_prompt": null,
+        "intent": null
+      },
+      "event": {
+        "version": 0,
+        "seq": 2,
+        "ts": "2026-11-10T10:50:00.010Z",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+        "recorder_key_id": "rec-test-01",
+        "prev_hash": "0x50d07f90d0419ca5abc76c924b593b336021e4704d10751f995b75d1d3d9c221",
+        "delegation": {
+          "launched_by": "svc-agent-sinistres@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "conv-2026-11-10-0011"
+        },
+        "code": {
+          "model": "openai/modele-demo-1-2026-09",
+          "prompt_version": null,
+          "policy_version": "2026-11-10-otel",
+          "recorder": "0.1.0"
+        },
+        "intent": "Le sinistre 2026-81044 est ouvert.",
+        "policy": {
+          "rule": null,
+          "decision": "sans_objet",
+          "ticket": null,
+          "redaction": null
+        },
+        "approval": null,
+        "execution": {
+          "tool": "noortrace.modele.echange",
+          "arguments": {
+            "sha256": "0x08ef64177179c5ded5b58774914f76cf1fd4e5e2dd9e704c989bd5876982d8ec",
+            "length": 267,
+            "redacted": false
+          },
+          "status": "executee",
+          "result": {
+            "sha256": "0x193db805ee84d582ed8a40d78b1f3e158792e1d6bccb03027d5868d960d8f1dd",
+            "length": 257,
+            "redacted": false
+          },
+          "duration_ms": 1250,
+          "is_error": false
+        },
+        "effects": [],
+        "context": [
+          {
+            "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922",
+            "length": 66,
+            "redacted": false,
+            "media_type": "application/json",
+            "kind": "autre"
+          },
+          {
+            "sha256": "0x2796cad24bf834aae9c601193b1e1ef1d025f8b40d6af766d9c6652f7192ca36",
+            "length": 638,
+            "redacted": false,
+            "media_type": "application/json",
+            "kind": "autre"
+          }
+        ],
+        "hash": "0x5e4148e47fe07ae5ebf20772a1032c6c44281155b7f3e572fb4b81268125fbb9",
+        "sig": "0x9162f6b99f7aaef2675462725592ffed6f0413d23b46094dea967709419c1f6ad9380f0a814ec18e90f62a091e549770934e86055b5e0139066b4147ddd9de0b"
+      },
+      "lag_ms": 759
+    }
+  ],
+  "note": "gen_ai.operation.name constructor, toString et __proto__ : noms de propriétés d'Object.prototype, qui ne sont pas des opérations retenues (EX-6.32) ; les trois spans sont ignorés (operation_non_retenue), sorte null, jamais une valeur héritée du prototype ; le span chat est scellé."
+}

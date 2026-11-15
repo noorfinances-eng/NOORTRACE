@@ -9,10 +9,37 @@
 //
 // bornesRepertoire(liste) applique les mêmes bornes à un répertoire choisi
 // (révision 0.7 de CT-6, EX-18.7), avant toute lecture : `liste` porte le
-// chemin relatif et la taille de chaque fichier.
+// chemin relatif et la taille de chaque fichier. bornerTailleFichier(nom,
+// taille) refuse un fichier trop gros d'après sa taille déclarée, avant toute
+// lecture ; bornerChemin(chemin) refuse un chemin trop long ; compteurEntrees()
+// arrête le parcours d'un répertoire déposé à la première entrée de trop.
+//
+// Bornes d'EX-18.7, toutes ici et nulle part ailleurs (étape 8, revue de
+// sécurité : EX-18.8). Les trois
+// dernières sont des valeurs proposées au porteur, à confronter aux dossiers
+// de CT-6 §4 ; les changer ici suffit, l'interface et les libellés les lisent.
 
+/** Entrées d'une archive ou d'un répertoire, fichiers et répertoires comptés. */
 const LIMITE_ENTREES = 4096;
+/** Octets décompressés d'une archive, ou somme des tailles d'un répertoire. */
 const LIMITE_OCTETS = 256 * 1024 * 1024;
+/** Composants d'un chemin d'entrée, après normalisation (un dossier de CT-6 §4 en a au plus deux). */
+const LIMITE_COMPOSANTS_CHEMIN = 64;
+/** Octets UTF-8 d'un chemin d'entrée, après normalisation. */
+const LIMITE_OCTETS_CHEMIN = 4096;
+/** Taille d'un fichier que la page lit (archive, fichier d'un répertoire, ancres, en-têtes), contrôlée avant toute lecture. */
+const LIMITE_OCTETS_FICHIER = 512 * 1024 * 1024;
+
+/** Les bornes, lisibles par l'interface et les essais ; valeurs en unités de leur nom. */
+const BORNES_ARCHIVE = Object.freeze({
+  entrees: LIMITE_ENTREES,
+  octets: LIMITE_OCTETS,
+  composants_chemin: LIMITE_COMPOSANTS_CHEMIN,
+  octets_chemin: LIMITE_OCTETS_CHEMIN,
+  octets_fichier: LIMITE_OCTETS_FICHIER,
+});
+
+const encodeurUtf8 = new TextEncoder();
 
 class RefusArchive extends Error {
   constructor(raison, parametres = {}) {
@@ -24,6 +51,60 @@ class RefusArchive extends Error {
 }
 
 const decodeurUtf8Strict = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
+
+// --- Bornes communes (EX-18.7) ------------------------------------------------
+
+/**
+ * Nombre de composants d'un chemin normalisé (séparés par « / »), sans le
+ * découper : linéaire en sa longueur.
+ */
+function nombreComposants(chemin) {
+  let n = 1;
+  for (let i = chemin.indexOf("/"); i >= 0; i = chemin.indexOf("/", i + 1)) n++;
+  return n;
+}
+
+/**
+ * Refuse (r_chemin_long) un chemin de plus de LIMITE_COMPOSANTS_CHEMIN
+ * composants ou de plus de LIMITE_OCTETS_CHEMIN octets UTF-8. Appelée pour
+ * tout chemin d'entrée, d'archive ou de répertoire, avant tout autre examen
+ * du chemin ; le chemin lui-même n'est pas rendu (il peut être démesuré).
+ */
+function bornerChemin(chemin) {
+  const composants = nombreComposants(chemin);
+  // La longueur en unités UTF-16 minore la longueur en octets : l'encodage
+  // n'est fait que pour un chemin qui peut dépasser la borne.
+  const octets = chemin.length * 3 <= LIMITE_OCTETS_CHEMIN ? chemin.length : encodeurUtf8.encode(chemin).length;
+  if (composants > LIMITE_COMPOSANTS_CHEMIN || octets > LIMITE_OCTETS_CHEMIN) {
+    throw new RefusArchive("r_chemin_long", { composants: String(composants), octets: String(octets) });
+  }
+}
+
+/**
+ * Refuse (r_fichier_trop_gros) un fichier de plus de LIMITE_OCTETS_FICHIER
+ * octets, d'après sa taille déclarée par le navigateur, avant toute lecture.
+ */
+function bornerTailleFichier(nom, taille) {
+  if (!(Number.isFinite(taille) && taille <= LIMITE_OCTETS_FICHIER)) {
+    throw new RefusArchive("r_fichier_trop_gros", { nom });
+  }
+}
+
+/**
+ * Compteur d'entrées d'un répertoire que la page parcourt elle-même (dépôt
+ * d'un répertoire) : s'arrête à la première entrée au-delà de LIMITE_ENTREES,
+ * sans parcourir le reste, et borne le chemin de chaque entrée.
+ */
+function compteurEntrees() {
+  let nombre = 0;
+  return {
+    ajouter(chemin) {
+      bornerChemin(chemin);
+      nombre++;
+      if (nombre > LIMITE_ENTREES) throw new RefusArchive("r_trop_entrees");
+    },
+  };
+}
 
 /** Archive mal formée ; `detail` est la clé du libellé du défaut (i_…). */
 function illisible(detail, parametres = {}) {
@@ -383,12 +464,19 @@ function entreesTar(octets) {
  * « . » (ou « ./ »), à ignorer.
  */
 function normaliserChemin(nom, repertoire) {
+  // Borne de longueur sur le nom brut d'abord (le nom normalisé n'est jamais
+  // plus long), puis composants et longueur sur le nom normalisé : tout
+  // chemin d'entrée passe ici, en temps linéaire en sa longueur.
+  bornerChemin(nom);
   let c = nom;
   if (c === "." || c === "./") return null;
   if (repertoire && c.endsWith("/")) c = c.slice(0, -1);
-  while (c.startsWith("./")) c = c.slice(2);
+  let debut = 0;
+  while (c.startsWith("./", debut)) debut += 2;
+  if (debut > 0) c = c.slice(debut);
   if (c === ".") return null;
   if (c === "") throw new RefusArchive("r_chemin_vide");
+  bornerChemin(c);
   if (c.startsWith("/")) throw new RefusArchive("r_absolu", { chemin: nom });
   if (c.includes("\\")) throw new RefusArchive("r_barre_inverse", { chemin: nom });
   for (const p of c.split("/")) {
@@ -413,10 +501,11 @@ async function dossierDeLArchive(entrees) {
     retenues.push({ chemin: c, entree: e });
   }
   // Un chemin dont un parent est un fichier : à la fois fichier et répertoire.
+  // Chaque préfixe est pris à une barre oblique, sans découper le chemin ;
+  // le nombre de préfixes est borné par LIMITE_COMPOSANTS_CHEMIN.
   for (const c of types.keys()) {
-    const parties = c.split("/");
-    for (let i = 1; i < parties.length; i++) {
-      const parent = parties.slice(0, i).join("/");
+    for (let i = c.indexOf("/"); i >= 0; i = c.indexOf("/", i + 1)) {
+      const parent = c.slice(0, i);
       if (types.get(parent) === "fichier") throw new RefusArchive("r_conflit", { chemin: parent });
     }
   }
@@ -452,8 +541,8 @@ function bornesRepertoire(liste) {
   const repertoires = new Set();
   let somme = 0;
   for (const { chemin, taille } of liste) {
-    const parties = chemin.split("/");
-    for (let i = 1; i < parties.length; i++) repertoires.add(parties.slice(0, i).join("/"));
+    bornerChemin(chemin);
+    for (let i = chemin.indexOf("/"); i >= 0; i = chemin.indexOf("/", i + 1)) repertoires.add(chemin.slice(0, i));
     somme += taille;
   }
   if (liste.length + repertoires.size > LIMITE_ENTREES) throw new RefusArchive("r_trop_entrees");
@@ -464,6 +553,7 @@ function bornesRepertoire(liste) {
 async function lireArchive(nom, octets) {
   const forme = formeArchive(nom);
   if (forme === null) throw new RefusArchive("r_forme", { nom });
+  bornerTailleFichier(nom, octets.length);
   if (forme === "zip") return dossierDeLArchive(entreesZip(octets));
   if (forme === "tar") return dossierDeLArchive(entreesTar(octets));
   if (octets.length < 2 || octets[0] !== 0x1f || octets[1] !== 0x8b) throw illisible("i_gzip");

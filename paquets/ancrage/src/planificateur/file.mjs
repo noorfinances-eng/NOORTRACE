@@ -4,7 +4,9 @@
 // écrite et synchronisée (`fdatasync`) avant que l'action qui en découle soit
 // entreprise (règle 1, AN-32). À la lecture, la dernière ligne d'un `id` fait
 // foi (règle 3), une ligne tronquée en fin de fichier est ignorée et
-// consignée (`anchor_queue_truncated_line`), jamais réparée ; tous les
+// consignée (`anchor_queue_truncated_line`), jamais relue ; à l'ouverture et
+// après une écriture interrompue, le fragment est retiré du fichier avant tout
+// ajout, pour que la ligne suivante reste lisible (CT-5 EX-8.5) ; tous les
 // fichiers `file-*.ndjson` du répertoire, compactés ou non, sont relus et
 // fusionnés dans l'ordre des époques puis des lignes (règle 6).
 //
@@ -112,7 +114,7 @@ export function controlerDemande(demande) {
   if (!idCoherent(demande)) throw new ErreurDemandeNonConforme(`demande non conforme à $defs/demande : /id : différent de <kind>:<subject.hash> (EX-8.2)`, "/id");
 }
 
-/** L'identifiant d'une demande est sa clé d'idempotence `<kind>:<subject.hash>` (EX-8.2 ; correction R-C-4). */
+/** L'identifiant d'une demande est sa clé d'idempotence `<kind>:<subject.hash>` (EX-8.2). */
 export function idCoherent(demande) {
   return demande.id === `${demande.kind}:${demande.subject?.hash}`;
 }
@@ -202,7 +204,7 @@ function parcourirFile(octets, fichier = "") {
     }
     if (!idCoherent(valeur)) {
       // EX-8.2 : `id = <kind>:<hash>` ; une ligne dont l'id désigne un autre objet ferait envoyer des requêtes sur
-      // `subject.hash` sous l'identifiant d'un autre (R-C-4) : signalée comme une ligne tronquée, jamais relue.
+      // `subject.hash` sous l'identifiant d'un autre (EX-8.2) : signalée comme une ligne tronquée, jamais relue.
       tronquees.push({ fichier, ligne: numero, raison: "id_incoherent" });
       continue;
     }
@@ -357,6 +359,31 @@ export class FileDurable {
     this.echecsCompactage = 0;
     /** `.compactage` résiduels supprimés à l'ouverture (EX-8.12). */
     this.residus = residus;
+    /** Fragment de ligne retiré à l'ouverture (`{ octets_retires }`), ou null (CT-5 EX-8.5). */
+    this.reparation = null;
+  }
+
+  /**
+   * Fin de fichier sans saut de ligne (arrêt pendant l'écriture d'une ligne,
+   * EX-8.5 règle 3) : le fragment est retiré avant tout ajout, de sorte que la
+   * ligne suivante, synchronisée et acquittée, ne se colle jamais à lui.
+   * Rend le nombre d'octets retirés.
+   * @param {number} fd descripteur ouvert en écriture
+   */
+  static retirerFragment(fd) {
+    const taille = fs.fstatSync(fd).size;
+    if (taille === 0) return 0;
+    const dernier = Buffer.alloc(1);
+    fs.readSync(fd, dernier, 0, 1, taille - 1);
+    if (dernier[0] === 0x0a) return 0;
+    const fenetre = Math.min(taille, TAILLE_MAX_LIGNE + 1);
+    const queue = Buffer.alloc(fenetre);
+    fs.readSync(fd, queue, 0, fenetre, taille - fenetre);
+    const i = queue.lastIndexOf(0x0a);
+    const fin = i === -1 ? taille - fenetre : taille - fenetre + i + 1;
+    fs.ftruncateSync(fd, fin);
+    fs.fsyncSync(fd);
+    return taille - fin;
   }
 
   /**
@@ -377,8 +404,19 @@ export class FileDurable {
       synchroniserRepertoire(path.dirname(repertoire));
     }
     const residus = supprimerResidusCompactage(repertoire);
-    const fd = fs.openSync(chemin, fs.constants.O_WRONLY | fs.constants.O_APPEND | fs.constants.O_CREAT, 0o600);
-    return new FileDurable({ repertoire, epoque, fdatasync, fd, chemin, compactBytes, ...(monotone ? { monotone } : {}), journal, crochet, residus });
+    const existait = fs.existsSync(chemin);
+    // Lecture et écriture : l'ouverture retire un fragment de ligne (CT-5 EX-8.5) ; l'ajout reste en O_APPEND.
+    const fd = fs.openSync(chemin, fs.constants.O_RDWR | fs.constants.O_APPEND | fs.constants.O_CREAT, 0o600);
+    // CT-5 EX-8.5 : l'entrée de répertoire d'un fichier d'époque nouveau est synchronisée, pas seulement celle du répertoire créé.
+    if (!existait) synchroniserRepertoire(repertoire);
+    const octetsRetires = FileDurable.retirerFragment(fd);
+    const file = new FileDurable({ repertoire, epoque, fdatasync, fd, chemin, compactBytes, ...(monotone ? { monotone } : {}), journal, crochet, residus });
+    if (octetsRetires > 0) {
+      file.reparation = { octets_retires: octetsRetires };
+      file.taille = fs.fstatSync(fd).size;
+      file.tailleMax = file.taille;
+    }
+    return file;
   }
 
   /**
@@ -405,17 +443,31 @@ export class FileDurable {
     if (this.aRouvrir) this.#rouvrir();
     if (this.fd === null) throw new Error("file fermée");
     const octets = Buffer.from(ligne, "utf8");
+    // Début de la ligne : une écriture interrompue (disque plein en cours de `write`) est effacée jusque-là, pour
+    // qu'aucun fragment ne reste devant la ligne suivante (CT-5 EX-8.5).
+    const debut = fs.fstatSync(this.fd).size;
     let ecrit = 0;
-    while (ecrit < octets.length) ecrit += fs.writeSync(this.fd, octets, ecrit, octets.length - ecrit);
+    try {
+      while (ecrit < octets.length) ecrit += fs.writeSync(this.fd, octets, ecrit, octets.length - ecrit);
+    } catch (e) {
+      try {
+        fs.ftruncateSync(this.fd, debut);
+        fs.fsyncSync(this.fd);
+      } catch {
+        // Le fragment, s'il reste, est retiré à l'ouverture suivante.
+      }
+      this.taille = debut;
+      throw e;
+    }
     if (this.synchroniser) fs.fdatasyncSync(this.fd);
     this.lignesEcrites += 1;
-    this.taille += octets.length;
+    this.taille = debut + octets.length;
     if (this.taille > this.tailleMax) this.tailleMax = this.taille;
     return octets.length;
   }
 
   #rouvrir() {
-    const fd = fs.openSync(this.chemin, fs.constants.O_WRONLY | fs.constants.O_APPEND | fs.constants.O_CREAT, 0o600);
+    const fd = fs.openSync(this.chemin, fs.constants.O_RDWR | fs.constants.O_APPEND | fs.constants.O_CREAT, 0o600);
     this.fd = fd;
     this.aRouvrir = false;
     this.taille = fs.fstatSync(fd).size;
@@ -524,8 +576,15 @@ export class FileDurable {
       this.s0 = garde.octets;
       this.dernierEchec = null;
       this.compactages += 1;
-      resultat = { fait: true, declencheur, bytes_before: tailleAvant, bytes_after: garde.octets, requests: garde.demandes };
-      this.#consigner("info", "anchor_queue_compacted", { bytes_before: tailleAvant, bytes_after: garde.octets, requests: garde.demandes });
+      // Revue de sécurité de l'étape 8 (CT-5 EX-8.5) : une ligne illisible disparaît du fichier compacté ; chacune est consignée, et leur nombre
+      // porté par la ligne de compactage, pour que la corruption reste visible après le compactage.
+      // Une ligne tronquée en fin de fichier (`ligne_tronquee`) est le cas prévu par la règle 3 : ignorée, non comptée ici.
+      const nomCourant = path.basename(this.chemin);
+      const ecartees = garde.tronquees.filter((t) => t.raison !== "ligne_tronquee");
+      for (const t of ecartees) this.#consigner("error", "anchor_queue_truncated_line", { file: nomCourant, line: t.ligne, reason: t.raison, step: "compactage" });
+      const compte = ecartees.length ? { dropped_lines: ecartees.length } : {};
+      resultat = { fait: true, declencheur, bytes_before: tailleAvant, bytes_after: garde.octets, requests: garde.demandes, ...compte };
+      this.#consigner("info", "anchor_queue_compacted", { bytes_before: tailleAvant, bytes_after: garde.octets, requests: garde.demandes, ...compte });
     } catch (e) {
       const pas = e instanceof ErreurPasCompactage ? e.pas : "relecture";
       const cause = e instanceof ErreurPasCompactage ? e.cause : e;

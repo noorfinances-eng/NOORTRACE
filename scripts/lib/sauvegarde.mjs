@@ -104,6 +104,40 @@ function entete(nom, taille, mtime) {
   return h;
 }
 
+/**
+ * Archive écrite en flux (revue de l'étape 8, CT-8 EX-11.1) : les morceaux de
+ * l'archive de `fichiers` ([{ path, octets }] ou [{ path, length, lire }],
+ * `lire()` rendant les octets du fichier au moment de l'écriture), dans l'ordre
+ * des octets du nom, chaque fichier daté de `mtime`. Le SHA-256 est calculé au
+ * fil de l'eau : rend { sha256, length } une fois le dernier morceau remis à
+ * `ecrire(morceau)`. Mêmes octets qu'ecrireArchive, sans tenir l'archive
+ * entière en mémoire.
+ */
+export function ecrireArchiveFlux(fichiers, mtime, ecrire) {
+  if (!Number.isInteger(mtime) || mtime < 0) throw new Error("mtime : entier positif attendu");
+  const tries = [...fichiers].sort((a, b) => comparerOctets(a.path, b.path));
+  for (let i = 1; i < tries.length; i++) if (comparerOctets(tries[i - 1].path, tries[i].path) === 0) throw new Error(`nom en double : ${tries[i].path}`);
+  const h = crypto.createHash("sha256");
+  let length = 0;
+  const emettre = (b) => { h.update(b); length += b.length; ecrire(b); };
+  const tailles = [];
+  for (const f of tries) {
+    const d = defautChemin(f.path);
+    if (d) throw new Error(`${f.path} : ${d}`);
+    const octets = f.octets ?? f.lire();
+    const taille = f.octets ? f.octets.length : f.length;
+    if (octets.length !== taille) throw new Error(`${f.path} : ${octets.length} octets lus, ${taille} annoncés`);
+    if (taille > TAILLE_MAX) throw new Error(`${f.path} : fichier de 8 Gio ou plus`);
+    emettre(entete(f.path, taille, mtime));
+    emettre(octets);
+    const reste = taille % BLOC;
+    if (reste) emettre(Buffer.alloc(BLOC - reste, 0));
+    tailles.push(taille);
+  }
+  emettre(Buffer.alloc(longueurArchive(tailles) - length, 0));
+  return { sha256: "0x" + h.digest("hex"), length };
+}
+
 /** Longueur d'une archive (formule L d'EX-13.14) pour des tailles de fichiers données. */
 export function longueurArchive(tailles) {
   const brut = tailles.reduce((s, t) => s + BLOC + BLOC * Math.ceil(t / BLOC), 0) + 2 * BLOC;
@@ -237,13 +271,42 @@ export class ErreurSauvegarde extends Error {
 const RE_LIGNES = /\.ndjson$/;
 
 /**
+ * Ouvre un fichier ordinaire sans suivre de lien et vérifie, sur le
+ * descripteur, qu'il est bien le fichier listé (même inode, même volume) :
+ * la liste du répertoire et la lecture ne forment plus une course qu'un
+ * écrivain du répertoire gagnerait en remplaçant le fichier par un lien entre
+ * les deux (revue de l'étape 8, CT-8 EX-11.1). Rend le descripteur ; lève
+ * ErreurSauvegarde sur un lien (ELOOP), un fichier spécial ou un fichier
+ * substitué.
+ */
+export function ouvrirSansSuivre(abs, rel, attendu = null) {
+  let fd;
+  try {
+    fd = fs.openSync(abs, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  } catch (e) {
+    if (e.code === "ELOOP") throw new ErreurSauvegarde(`${rel} : lien refusé (jamais suivi)`);
+    throw e;
+  }
+  try {
+    const st = fs.fstatSync(fd);
+    if (!st.isFile()) throw new ErreurSauvegarde(`${rel} : fichier spécial refusé`);
+    if (attendu && (st.ino !== attendu.ino || st.dev !== attendu.dev)) throw new ErreurSauvegarde(`${rel} : fichier remplacé entre la liste et la lecture`);
+    return { fd, st };
+  } catch (e) {
+    fs.closeSync(fd);
+    throw e;
+  }
+}
+
+/**
  * Inventaire d'un répertoire de journal (CT-2 EX-12.1) : chaque fichier
- * ordinaire, lu une fois. Un fichier en ajout seul (`.ndjson`) qui ne finit
- * pas par une fin de ligne est en cours d'écriture : on en garde le préfixe
- * jusqu'à la dernière fin de ligne (une version partielle, comme celle que le
- * chemin A, pas 4, complète par la copie WORM) et on le signale. Lève
- * ErreurSauvegarde sur un lien, un fichier spécial, un chemin hors du schéma,
- * un composant `secrets` ou une clé privée.
+ * ordinaire, lu une fois, ouvert sans suivre de lien et contrôlé sur son
+ * descripteur (ouvrirSansSuivre : même inode que la liste). Un fichier en
+ * ajout seul (`.ndjson`) qui ne finit pas par une fin de ligne est en cours
+ * d'écriture : on en garde le préfixe jusqu'à la dernière fin de ligne (une
+ * version partielle, comme celle que le chemin A, pas 4, complète par la copie
+ * WORM) et on le signale. Lève ErreurSauvegarde sur un lien, un fichier
+ * spécial, un chemin hors du schéma, un composant `secrets` ou une clé privée.
  * @returns {{fichiers: {path: string, octets: Buffer}[], tronques: {path: string, length: number, retenu: number}[]}}
  */
 export function inventaire(racine) {
@@ -262,7 +325,23 @@ export function inventaire(racine) {
       if (!e.isFile()) throw new ErreurSauvegarde(`${r} : fichier spécial refusé`);
       const d = defautChemin(r);
       if (d) throw new ErreurSauvegarde(`${r} : ${d}`);
-      let octets = fs.readFileSync(path.join(abs, e.name));
+      // CT-8 EX-11.1 : l'inode listé est celui qui est lu ; un lien posé entre la liste et la lecture n'est pas suivi.
+      const liste = fs.lstatSync(path.join(abs, e.name));
+      const { fd, st } = ouvrirSansSuivre(path.join(abs, e.name), r, liste);
+      let octets;
+      try {
+        if (st.size > TAILLE_MAX) throw new ErreurSauvegarde(`${r} : fichier de 8 Gio ou plus`);
+        octets = Buffer.alloc(st.size);
+        let lus = 0;
+        while (lus < st.size) {
+          const n = fs.readSync(fd, octets, lus, st.size - lus, lus);
+          if (n === 0) break;
+          lus += n;
+        }
+        octets = octets.subarray(0, lus);
+      } finally {
+        fs.closeSync(fd);
+      }
       if (porteCle(octets)) throw new ErreurSauvegarde(`${r} : clé privée refusée (EX-11.1, point 2 ; PV-10)`);
       if (RE_LIGNES.test(e.name) && octets.length > 0 && octets[octets.length - 1] !== 0x0a) {
         const k = octets.lastIndexOf(0x0a);

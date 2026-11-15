@@ -199,6 +199,26 @@ export const MONTAGES_INTERDITS = Object.freeze(["/", "/etc", "/proc", "/sys", "
 export const ADRESSES_PUBLICATION = Object.freeze(["127.0.0.1", "${NOORTRACE_IP_INTERNE:?adresse interne requise}"]);
 /** Réseaux qui doivent être internes (CO-14). */
 export const RESEAUX_INTERNES = Object.freeze(["outils", "console"]);
+/**
+ * Interpolations admises dans un fichier Compose (CO-1 ; revue de l'étape 8) :
+ * toute autre chaîne qui porte « $ » est refusée
+ * (`interpolation_non_admise`), parce qu'une variable d'environnement ou du
+ * fichier .env changerait le fichier exécuté sans que CO-1 à CO-14 le voient
+ * (une source de montage lié écrite `/srv/noortrace-outils/${…}` mène où la
+ * variable mène). Liste fermée : l'adresse interne dans `ports`, les trois
+ * variables du relais dans `command`.
+ */
+export const INTERPOLATIONS_ADMISES = Object.freeze({
+  ports: ["${NOORTRACE_IP_INTERNE:?adresse interne requise}"],
+  command: ["${NOORCORE_CHAIN_ID:?identifiant BFT requis}", "${NOORCORE_EVM_CHAIN_ID:?identifiant EVM requis}", "${NOORCORE_LEADER_RPC:?point RPC du meneur requis}"],
+});
+/** Clés admises d'un réseau de premier niveau (CO-14, liste fermée) : `{}` ou `{ internal: true }`. */
+export const CLES_RESEAU = Object.freeze(["internal"]);
+/** Types de montage admis (CO-11, liste fermée) et clés admises sous `bind`. */
+export const TYPES_MONTAGE = Object.freeze(["volume", "bind"]);
+export const CLES_BIND = Object.freeze(["create_host_path"]);
+/** La seule entrée admise de security_opt (CO-7, liste fermée). */
+export const SECURITY_OPT = Object.freeze(["no-new-privileges:true"]);
 /** Clés de premier niveau admises (CO-1) : `include` et toute autre clé sont refusés. */
 export const CLES_PREMIER_NIVEAU = Object.freeze(["name", "services", "networks", "volumes", "secrets"]);
 /**
@@ -224,9 +244,36 @@ function analyserPort(p) {
 }
 
 function analyserVolume(v) {
-  if (estObjet(v)) return { type: v.type, source: v.source, target: v.target, ro: v.read_only === true, creation: v.bind ? v.bind.create_host_path : undefined };
+  if (estObjet(v)) return { type: v.type, source: v.source, target: v.target, ro: v.read_only === true, creation: v.bind ? v.bind.create_host_path : undefined, clesBind: estObjet(v.bind) ? Object.keys(v.bind) : [], clesHorsType: Object.keys(v).filter((k) => !["type", "source", "target", "read_only", "bind", "volume"].includes(k)) };
   const [source, target, mode = "rw"] = String(v).split(":");
-  return { type: /^[./~]/.test(source) ? "bind" : "volume", source, target, ro: mode.split(",").includes("ro"), creation: undefined };
+  return { type: /^[./~]/.test(source) ? "bind" : "volume", source, target, ro: mode.split(",").includes("ro"), creation: undefined, clesBind: [], clesHorsType: [] };
+}
+
+/**
+ * Chaînes d'un document qui portent « $ » hors de la liste fermée
+ * (INTERPOLATIONS_ADMISES), avec le service et la clé de premier niveau où
+ * elles figurent (CO-1, CT-8 CO-14). Un `$$` (dollar littéral de Compose) est
+ * aussi refusé : il reste une forme que le fichier analysé ne montre pas.
+ */
+function interpolationsNonAdmises(doc) {
+  const trouvees = [];
+  const parcourir = (v, service, cle) => {
+    if (typeof v === "string") {
+      // Chaque « ${…} » admis pour cette clé est retiré ; tout « $ » qui reste (variable hors liste, « $$ », « $VAR ») est refusé.
+      const admis = INTERPOLATIONS_ADMISES[cle] ?? [];
+      const reste = v.replace(/\$\{[^}]*\}/g, (m) => (admis.includes(m) ? "" : "$"));
+      if (reste.includes("$")) trouvees.push({ service, cle });
+      return;
+    }
+    if (Array.isArray(v)) { for (const x of v) parcourir(x, service, cle); return; }
+    if (estObjet(v)) for (const [k, x] of Object.entries(v)) { parcourir(k, service, cle); parcourir(x, service, cle); }
+  };
+  for (const [nomS, s] of Object.entries(estObjet(doc.services) ? doc.services : {})) {
+    if (!estObjet(s)) continue;
+    for (const [k, v] of Object.entries(s)) parcourir(v, nomS, k);
+  }
+  for (const k of ["name", "networks", "volumes", "secrets"]) parcourir(doc[k], null, k);
+  return trouvees;
 }
 
 const sousChemin = (src, base) => src === base || src.startsWith(base === "/" ? "/" : base + "/");
@@ -308,10 +355,12 @@ export function verifierConteneurs(texte, description, nom = "compose.yaml") {
     if (!(retirees.length === 1 && retirees[0] === "ALL")) ajouter("CO-6", nomS, "capacites_non_retirees");
     const ajoutees = (Array.isArray(s.cap_add) ? s.cap_add : []).slice().sort();
     if (!egal(ajoutees, d.cap_add.slice().sort())) ajouter("CO-6", nomS, "capacite_ajoutee");
-    // CO-7 : pas de nouveaux privilèges ; aucun confinement retiré.
+    // CO-7 : pas de nouveaux privilèges ; aucun confinement retiré ; liste fermée (CT-8 CO-14) : toute autre
+    // entrée (seccomp=<fichier>, apparmor=<profil>, systempaths=unconfined, no-new-privileges:false…) est refusée.
     const opts = (Array.isArray(s.security_opt) ? s.security_opt : []).map(String);
     if (!opts.includes("no-new-privileges:true")) ajouter("CO-7", nomS, "privileges_non_bloques");
     if (opts.some((o) => RE_SANS_CONFINEMENT.test(o))) ajouter("CO-7", nomS, "confinement_desactive");
+    else if (opts.some((o) => !SECURITY_OPT.includes(o))) ajouter("CO-7", nomS, "security_opt_non_conforme");
     // CO-8 : liste fermée des clés de service ; jamais le réseau de l'hôte.
     for (const k of Object.keys(s)) if (!CLES_SERVICE.includes(k) && s[k] !== false) ajouter("CO-8", nomS, "cle_interdite_" + k.replace(/[^a-z_]/g, "_"));
     if (s.network_mode === "host") ajouter("CO-8", nomS, "reseau_hote");
@@ -352,6 +401,10 @@ export function verifierConteneurs(texte, description, nom = "compose.yaml") {
         continue;
       }
       if (dv.access === "ro" && !a.ro) ajouter("CO-11", nomS, "volume_inscriptible");
+      // Liste fermée (CT-8 CO-7, CO-14) : type volume ou bind seulement (un tmpfs sur une cible décrite perdrait le
+      // journal à chaque redémarrage), aucune option de montage hors create_host_path (ni propagation, ni selinux…).
+      if (!TYPES_MONTAGE.includes(a.type)) ajouter("CO-11", nomS, "type_montage_non_admis");
+      else if (a.clesHorsType.length || a.clesBind.some((k) => !CLES_BIND.includes(k))) ajouter("CO-11", nomS, "option_montage_non_admise");
       if (a.type === "bind") {
         if (!d.bind_sources.some((x) => src.startsWith(x))) ajouter("CO-11", nomS, "montage_non_decrit");
         if (a.creation !== false) ajouter("CO-11", nomS, "creation_chemin_hote");
@@ -393,16 +446,25 @@ export function verifierConteneurs(texte, description, nom = "compose.yaml") {
     if (estObjet(s) && "environment" in s) ajouter("CO-9", null, "secret_depuis_environnement");
   }
   for (const [, l] of recus) if (new Set(l.map((x) => x.compte)).size > 1) ajouter("CO-9", l[1].service, "secret_partage_entre_comptes");
-  // CO-11 : volumes de premier niveau ; un pilote ou des options qui lient un chemin de l'hôte sont refusés.
+  // CO-11 : volumes de premier niveau ; un pilote ou des options qui lient un chemin de l'hôte sont refusés ; liste
+  // fermée (CT-8 CO-7) : un volume nommé vaut `{}` (ou null), jamais external, name ou labels.
   const volumesHaut = analysable && estObjet(doc.volumes) ? doc.volumes : {};
   for (const v of Object.values(volumesHaut)) {
-    if (!estObjet(v)) continue;
+    if (v === null || v === undefined) continue;
+    if (!estObjet(v)) { ajouter("CO-11", null, "volume_non_conforme"); continue; }
     const o = estObjet(v.driver_opts) ? v.driver_opts : {};
     if ((v.driver !== undefined && v.driver !== "local") || Object.keys(o).length > 0) ajouter("CO-11", null, "volume_lie_hote");
+    else if (Object.keys(v).some((k) => k !== "driver")) ajouter("CO-11", null, "volume_non_conforme");
   }
-  // CO-14 : réseaux internes.
+  // CO-14 : réseaux internes ; liste fermée : un réseau de premier niveau vaut `{}` ou
+  // `{ internal: true }` (un pilote macvlan lié à l'interface de l'hôte joindrait toutes les écoutes au réseau local).
   const reseaux = analysable && estObjet(doc.networks) ? doc.networks : {};
-  for (const [n, r] of Object.entries(reseaux)) if (RESEAUX_INTERNES.includes(n) && !(estObjet(r) && r.internal === true)) ajouter("CO-14", null, "reseau_non_interne");
+  for (const [n, r] of Object.entries(reseaux)) {
+    if (RESEAUX_INTERNES.includes(n) && !(estObjet(r) && r.internal === true)) ajouter("CO-14", null, "reseau_non_interne");
+    else if (!(r === null || r === undefined || (estObjet(r) && Object.keys(r).every((k) => CLES_RESEAU.includes(k)) && (r.internal === undefined || r.internal === true)))) ajouter("CO-14", null, "reseau_non_conforme");
+  }
+  // CO-1 : aucune interpolation hors de la liste fermée : le fichier analysé est le fichier exécuté.
+  if (analysable) for (const { service } of interpolationsNonAdmises(doc)) ajouter("CO-1", service, "interpolation_non_admise");
   const checks = Object.entries(constats).map(([id, findings]) => {
     if (!analysable && id !== "CO-1") return { id, status: "non_execute", reason: "prerequis_en_echec", findings: [] };
     return { id, status: findings.length ? "echoue" : "reussi", reason: null, findings };
@@ -832,7 +894,9 @@ export async function collecterObservations({ profil, configuration = null, chem
       throw new Error(`--secrets ${secrets} : répertoire illisible (${err.code ?? err.message})`);
     }
     for (const nom of noms) {
-      const st = fs.lstatSync(path.join(secrets, nom));
+      // EX-6.2, IP-10 : « chemin résolu, liens suivis » : un secret posé en lien symbolique est jugé sur le
+      // fichier pointé, celui que Compose monte.
+      const st = fs.statSync(path.join(secrets, nom));
       if (!st.isFile() || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(nom)) continue;
       droits.secret_files.push({ name: nom, mode: mode(st), uid: st.uid, expected_uid: uidAttenduSecret(nom, description) });
     }

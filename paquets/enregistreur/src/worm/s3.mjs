@@ -98,6 +98,22 @@ export class ErreurTransport extends Error {
 }
 
 /**
+ * Réponse du support refusée (étape 8) : corps plus grand que la
+ * borne. Elle n'est pas réessayée (ce n'est pas une ErreurTransport).
+ */
+export class ErreurReponse extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ErreurReponse";
+  }
+}
+
+/** Borne du corps d'une réponse gardée en mémoire (listes, états, erreurs) : 16 Mio. */
+export const LIMITE_REPONSE_OCTETS = 16 * 1024 * 1024;
+/** Borne du corps d'un objet relu (segment, manifeste, pièce) : 256 Mio. */
+export const LIMITE_OBJET_OCTETS = 256 * 1024 * 1024;
+
+/**
  * Accès à un bucket S3.
  */
 export class AccesS3 {
@@ -142,11 +158,13 @@ export class AccesS3 {
    * minuscules) et le corps. Une erreur de réseau ou un délai dépassé lèvent
    * ErreurTransport.
    * @param {{method: string, target: string, headers: string[][], body: Uint8Array|null}} r
-   * @param {{hacher?: boolean}} [o] `hacher` : le corps d'une réponse 200 n'est pas gardé ;
-   *   son SHA-256 (`0x…`) et sa longueur sont calculés au fil de l'eau
+   * @param {{hacher?: boolean, maxOctets?: number}} [o] `hacher` : le corps d'une réponse 200 n'est pas gardé ;
+   *   son SHA-256 (`0x…`) et sa longueur sont calculés au fil de l'eau ; `maxOctets` : borne du corps gardé
+   *   (défaut `LIMITE_REPONSE_OCTETS`) ; au-delà, la réponse est abandonnée et ErreurReponse levée
    * @returns {Promise<{statut: number, entetes: Record<string, string>, corps: Buffer, sha256?: string, longueur?: number}>}
    */
   envoyer(r, o = {}) {
+    const maxOctets = o.maxOctets ?? LIMITE_REPONSE_OCTETS;
     const { chemin, requete } = this._adresse(r.target);
     const hote = this.origine.host;
     const entetes = signerSigv4({
@@ -178,12 +196,29 @@ export class AccesS3 {
           const m = [];
           const empreinte = o.hacher && res.statusCode === 200 ? createHash("sha256") : null;
           let longueur = 0;
+          let fini = false;
           res.on("data", (c) => {
+            if (fini) return;
             longueur += c.length;
-            if (empreinte) empreinte.update(c);
-            else m.push(c);
+            if (empreinte) {
+              empreinte.update(c);
+              return;
+            }
+            if (longueur > maxOctets) {
+              // Corps au-delà de la borne : rien de plus n'est gardé, la connexion est fermée.
+              fini = true;
+              m.length = 0;
+              clearTimeout(minuteur);
+              res.destroy();
+              req.destroy();
+              reject(new ErreurReponse(`réponse du support plus grande que la borne de ${maxOctets} octets`));
+              return;
+            }
+            m.push(c);
           });
           res.on("end", () => {
+            if (fini) return;
+            fini = true;
             clearTimeout(minuteur);
             const h = {};
             for (const [k, v] of Object.entries(res.headers)) h[k.toLowerCase()] = Array.isArray(v) ? v.join(", ") : String(v);
@@ -192,6 +227,8 @@ export class AccesS3 {
             resolve(x);
           });
           res.on("error", (e) => {
+            if (fini) return;
+            fini = true;
             clearTimeout(minuteur);
             reject(new ErreurTransport("réponse interrompue", e));
           });
@@ -200,6 +237,7 @@ export class AccesS3 {
       const minuteur = setTimeout(() => req.destroy(new ErreurTransport(`délai de ${this.delaiMs} ms dépassé`)), this.delaiMs);
       req.on("error", (e) => {
         clearTimeout(minuteur);
+        if (e instanceof ErreurReponse) return reject(e);
         reject(e instanceof ErreurTransport ? e : new ErreurTransport("support injoignable", e));
       });
       if (r.body) req.end(Buffer.from(r.body));
@@ -233,9 +271,13 @@ export function lirePageVersions(corps) {
   const versions = [];
   for (const e of x.enfants) {
     if (e.nom !== "Version" && e.nom !== "DeleteMarker") continue;
+    const key = texteDe(e, "Key");
+    const version_id = texteDe(e, "VersionId");
+    // Une version sans clé ni identifiant n'est pas une version : la page entière est refusée.
+    if (typeof key !== "string" || key === "" || typeof version_id !== "string" || version_id === "") throw new Error("réponse ListObjectVersions illisible : Key ou VersionId absent");
     versions.push({
-      key: texteDe(e, "Key"),
-      version_id: texteDe(e, "VersionId"),
+      key,
+      version_id,
       is_latest: texteDe(e, "IsLatest") === "true",
       delete_marker: e.nom === "DeleteMarker",
       last_modified: texteDe(e, "LastModified"),

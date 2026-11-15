@@ -27,9 +27,18 @@ export const TM = [
     ],
     "oracle": "`p50 ≤ 5` et `p99 ≤ 50` (ms) sur le système de référence, `counts_for_targets` vrai ; sinon la ligne porte `met` faux et la porte 2 le dit.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/mesures-harnais.test.js",
+          "describe": "Mesures : configuration de mesure de CT-2 EX-16.2 (pas 1) et harnais entier sur l'enregistreur réel",
+          "it": "ct-2-perf.mjs : les six campagnes avec un petit effectif (n 30, échauffement 3, segment de reprise 1 Mio) produisent un rapport par campagne, chacun accepté par scripts/tests/mesures.mjs, hors référence (counts_for_targets faux, met null, excluded_reason hors_systeme_de_reference), avec la ligne principale de chaque entrée et le SHA-256 de la configuration ; code 0"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : campagne de CT-2 EX-16.2 sur le système de référence (section 14, mesures officielles) ; le harnais entier est éprouvé ici sur l'enregistreur réel avec un petit effectif ; système de référence absent : aucune machine de référence n'est acquise (décision du plan du 13 novembre 2026) ; valeurs relevées dans l'environnement de construction publiées hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [],
     "measure": {
@@ -86,9 +95,18 @@ export const TM = [
     ],
     "oracle": "`max ≤ 10` ms sur tous les octets (aucun tampon, EX-5.11) ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/mesures-harnais.test.js",
+          "describe": "Mesures : configuration de mesure de CT-2 EX-16.2 (pas 1) et harnais entier sur l'enregistreur réel",
+          "it": "ct-2-perf.mjs : les six campagnes avec un petit effectif (n 30, échauffement 3, segment de reprise 1 Mio) produisent un rapport par campagne, chacun accepté par scripts/tests/mesures.mjs, hors référence (counts_for_targets faux, met null, excluded_reason hors_systeme_de_reference), avec la ligne principale de chaque entrée et le SHA-256 de la configuration ; code 0"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : campagne de CT-2 EX-16.2 sur le système de référence (section 14, mesures officielles) ; le harnais entier est éprouvé ici sur l'enregistreur réel avec un petit effectif ; système de référence absent : aucune machine de référence n'est acquise (décision du plan du 13 novembre 2026) ; valeurs relevées dans l'environnement de construction publiées hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [],
     "measure": {
@@ -137,9 +155,18 @@ export const TM = [
     ],
     "oracle": "`value ≥ 500` événements/s ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/mesures-harnais.test.js",
+          "describe": "Mesures : configuration de mesure de CT-2 EX-16.2 (pas 1) et harnais entier sur l'enregistreur réel",
+          "it": "ct-2-perf.mjs : les six campagnes avec un petit effectif (n 30, échauffement 3, segment de reprise 1 Mio) produisent un rapport par campagne, chacun accepté par scripts/tests/mesures.mjs, hors référence (counts_for_targets faux, met null, excluded_reason hors_systeme_de_reference), avec la ligne principale de chaque entrée et le SHA-256 de la configuration ; code 0"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : campagne de CT-2 EX-16.2 sur le système de référence (section 14, mesures officielles) ; le harnais entier est éprouvé ici sur l'enregistreur réel avec un petit effectif ; système de référence absent : aucune machine de référence n'est acquise (décision du plan du 13 novembre 2026) ; valeurs relevées dans l'environnement de construction publiées hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [],
     "measure": {
@@ -183,9 +210,18 @@ export const TM = [
     ],
     "oracle": "`p50 ≤ 5` et `p99 ≤ 50` (ms) ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/mesures-harnais.test.js",
+          "describe": "Mesures : configuration de mesure de CT-2 EX-16.2 (pas 1) et harnais entier sur l'enregistreur réel",
+          "it": "ct-2-perf.mjs : les six campagnes avec un petit effectif (n 30, échauffement 3, segment de reprise 1 Mio) produisent un rapport par campagne, chacun accepté par scripts/tests/mesures.mjs, hors référence (counts_for_targets faux, met null, excluded_reason hors_systeme_de_reference), avec la ligne principale de chaque entrée et le SHA-256 de la configuration ; code 0"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : campagne de CT-2 EX-16.2 sur le système de référence (section 14, mesures officielles) ; le harnais entier est éprouvé ici sur l'enregistreur réel avec un petit effectif ; système de référence absent : aucune machine de référence n'est acquise (décision du plan du 13 novembre 2026) ; valeurs relevées dans l'environnement de construction publiées hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [],
     "measure": {
@@ -236,9 +272,18 @@ export const TM = [
     ],
     "oracle": "Une ligne par classe mesurée, `met` null (aucune cible) ; la latence de la classe B est ajoutée à TM-1 comme CT-2 §16.1 le demande.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4. Les signataires des classes A, B et C ne sont pas livrés par l'étape 4 (LISEZMOI du paquet) : seule la classe D est mesurable."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/mesures-harnais.test.js",
+          "describe": "Mesures : configuration de mesure de CT-2 EX-16.2 (pas 1) et harnais entier sur l'enregistreur réel",
+          "it": "ct-2-perf.mjs : les six campagnes avec un petit effectif (n 30, échauffement 3, segment de reprise 1 Mio) produisent un rapport par campagne, chacun accepté par scripts/tests/mesures.mjs, hors référence (counts_for_targets faux, met null, excluded_reason hors_systeme_de_reference), avec la ligne principale de chaque entrée et le SHA-256 de la configuration ; code 0"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : campagne de CT-2 EX-16.2 sur le système de référence (section 14, mesures officielles) ; le harnais entier est éprouvé ici sur l'enregistreur réel avec un petit effectif ; système de référence absent : aucune machine de référence n'est acquise (décision du plan du 13 novembre 2026) ; valeurs relevées dans l'environnement de construction publiées hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [],
     "measure": {
@@ -336,9 +381,18 @@ export const TM = [
     ],
     "oracle": "Lignes présentes, `met` null ; un écart de plus d'un facteur 2 avec TM-6 est signalé dans `notes`.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/mesures-harnais.test.js",
+          "describe": "Mesures : configuration de mesure de CT-2 EX-16.2 (pas 1) et harnais entier sur l'enregistreur réel",
+          "it": "ct-2-perf.mjs : les six campagnes avec un petit effectif (n 30, échauffement 3, segment de reprise 1 Mio) produisent un rapport par campagne, chacun accepté par scripts/tests/mesures.mjs, hors référence (counts_for_targets faux, met null, excluded_reason hors_systeme_de_reference), avec la ligne principale de chaque entrée et le SHA-256 de la configuration ; code 0"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : campagne de CT-2 EX-16.2 sur le système de référence (section 14, mesures officielles) ; le harnais entier est éprouvé ici sur l'enregistreur réel avec un petit effectif ; système de référence absent : aucune machine de référence n'est acquise (décision du plan du 13 novembre 2026) ; valeurs relevées dans l'environnement de construction publiées hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [],
     "measure": {
@@ -383,9 +437,18 @@ export const TM = [
     ],
     "oracle": "`p99 ≤ 2000` ms ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/mesures-harnais.test.js",
+          "describe": "Mesures : configuration de mesure de CT-2 EX-16.2 (pas 1) et harnais entier sur l'enregistreur réel",
+          "it": "ct-2-perf.mjs : les six campagnes avec un petit effectif (n 30, échauffement 3, segment de reprise 1 Mio) produisent un rapport par campagne, chacun accepté par scripts/tests/mesures.mjs, hors référence (counts_for_targets faux, met null, excluded_reason hors_systeme_de_reference), avec la ligne principale de chaque entrée et le SHA-256 de la configuration ; code 0"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : campagne de CT-2 EX-16.2 sur le système de référence (section 14, mesures officielles) ; le harnais entier est éprouvé ici sur l'enregistreur réel avec un petit effectif ; système de référence absent : aucune machine de référence n'est acquise (décision du plan du 13 novembre 2026) ; valeurs relevées dans l'environnement de construction publiées hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [],
     "measure": {
@@ -437,9 +500,18 @@ export const TM = [
     ],
     "oracle": "Lignes présentes, `met` null (aucune cible en version 0) ; `memoire_charge − memoire_vide ≤ M_tamp` sinon `notes` le dit et DM-19 est à revoir.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4. `m_0` reste nul dans le calculateur jusqu'à cette mesure (CT-8 IC-1)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/mesures-harnais.test.js",
+          "describe": "Mesures : configuration de mesure de CT-2 EX-16.2 (pas 1) et harnais entier sur l'enregistreur réel",
+          "it": "ct-2-perf.mjs : les six campagnes avec un petit effectif (n 30, échauffement 3, segment de reprise 1 Mio) produisent un rapport par campagne, chacun accepté par scripts/tests/mesures.mjs, hors référence (counts_for_targets faux, met null, excluded_reason hors_systeme_de_reference), avec la ligne principale de chaque entrée et le SHA-256 de la configuration ; code 0"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : campagne de CT-2 EX-16.2 sur le système de référence (section 14, mesures officielles) ; le harnais entier est éprouvé ici sur l'enregistreur réel avec un petit effectif ; système de référence absent : aucune machine de référence n'est acquise (décision du plan du 13 novembre 2026) ; valeurs relevées dans l'environnement de construction publiées hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [],
     "measure": {
@@ -553,7 +625,7 @@ export const TM = [
       ],
       "complement": {
         "phase2_step": 8,
-        "blocking": "Charge de TM-3 : la campagne de l'étape 5 mesure sous la charge à cadence fixe de l'outil (`--evenements-par-s`, un événement par seconde par défaut), hors de la condition « une période complète sous la charge de TM-3 » (500 événements par seconde, 16 connexions, harnais de CT-2 EX-16.2) ; la mesure sous cette charge suit le harnais, étape 8 (mesures de performance)."
+        "blocking": "Mesure sans critère de porte, à relever sur le système de référence : charge de TM-3 ; la campagne de l'étape 5 mesure sous la charge à cadence fixe de l'outil (`--evenements-par-s`, un événement par seconde par défaut), hors de la condition « une période complète sous la charge de TM-3 » (500 événements par seconde, 16 connexions, harnais de CT-2 EX-16.2) ; la mesure sous cette charge suit le harnais, étape 8 (mesures de performance)."
       }
     },
     "threats": [],
@@ -745,7 +817,7 @@ export const TM = [
       ],
       "complement": {
         "phase2_step": 8,
-        "blocking": "Prestataire qualifié réel : la campagne de l'étape 5 désigne pour principal le serveur interne de référence déclaré qualifié par un instantané d'exemple (CT-5 EX-4.8), dans la configuration et dans le fichier d'ancres de test du réviseur ; T-11 n'y réussit que par cette déclaration. La mesure avec un prestataire qualifié réel attend le prestataire à contracter pour la porte 2 (section 14, ligne 10), étape 8."
+        "blocking": "Retrait motivé : prestataire qualifié réel — aucune autorité d'horodatage qualifiée n'est contractée et aucun devis n'est demandé (décision du plan du 2 novembre 2026), et la porte 2 n'a aucun critère de prestataire (section 14) ; la campagne de l'étape 5 désigne pour principal le serveur interne de référence déclaré qualifié par un instantané d'exemple (CT-5 EX-4.8), dans la configuration et dans le fichier d'ancres de test du réviseur ; T-11 n'y réussit que par cette déclaration. Ce que la campagne nommée de l'étape 8 vers deux autorités publiques sans compte et la lecture des listes de confiance officielles établissent (décision du plan du 13 novembre 2026, point 5) s'écrit ici : la campagne n'est pas jouée à cette livraison."
       }
     },
     "threats": [],
@@ -840,7 +912,7 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; hors de lui, le rapport est publié sans compter pour la cible (EX-11.2).",
-      "Support WORM réel des tests du lot WORM : S3 à Object Lock de LocalStack 4.0 (image épinglée par condensé) en conteneur Docker, derrière un mandataire TLS, bucket verrouillé en COMPLIANCE par l'exploitant (EX-12.30), configuré dans `storage.seal.worm` ; une période close par le démon de l'étape 4 ; sans Docker, le test est en attente (EX-3.11).",
+      "Support WORM réel des tests de la partie WORM : S3 à Object Lock de LocalStack 4.0 (image épinglée par condensé) en conteneur Docker, derrière un mandataire TLS, bucket verrouillé en COMPLIANCE par l'exploitant (EX-12.30), configuré dans `storage.seal.worm` ; une période close par le démon de l'étape 4 ; sans Docker, le test est en attente (EX-3.11).",
       "Depuis l'étape 5 : une période close par le démon avec le composant d'ancrage branché, répertoire `ancres/periode-<P>/` compris (pièces RFC 3161, preuves `.ots`, nonces, `acquisitions.ndjson`), sur le même support WORM en conteneur ; sur un support en mémoire, la copie de la file sous `queue.path` quand son époque est fermée (CT-5 EX-5.15, EX-8.14)."
     ],
     "steps": [
@@ -864,7 +936,7 @@ export const TM = [
         },
         {
           "file": "test/enregistreur-ancrage-exigences.test.js",
-          "describe": "enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence",
+          "describe": "enregistreur + ancrage : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence",
           "it": "EX-5.15, EX-8.14, TM-16 : la copie WORM couvre le répertoire ancres/ (rfc3161/, ots/, entetes-bitcoin.json, acquisitions.ndjson une fois la période close et la T-10 différée décidée) et la file sous queue.path quand son époque est fermée ; SHA-256 égaux ; 0 fichier non conforme"
         }
       ]
@@ -925,7 +997,7 @@ export const TM = [
       ],
       "complement": {
         "phase2_step": 8,
-        "blocking": "Mesure en temps réel (EX-11.5 : aucune horloge manipulée pendant une mesure) : les trois lignes de l'étape 5 (`complements`) rejouent une heure de points à l'horloge réglable du composant, sur la boucle locale ; leurs débits sont ceux du harnais (attente de calme après chaque minuterie servie) et ne bornent le planificateur que par en dessous. Le relevé en temps réel, J = 1 puis J = 10, et la panne réelle d'une heure sont dus à l'étape 8 (mesures de performance)."
+        "blocking": "Mesure sans critère de porte, à relever sur le système de référence : mesure en temps réel (EX-11.5 : aucune horloge manipulée pendant une mesure) : les trois lignes de l'étape 5 (`complements`) rejouent une heure de points à l'horloge réglable du composant, sur la boucle locale ; leurs débits sont ceux du harnais (attente de calme après chaque minuterie servie) et ne bornent le planificateur que par en dessous. Le relevé en temps réel, J = 1 puis J = 10, et la panne réelle d'une heure sont dus à l'étape 8 (mesures de performance)."
       }
     },
     "threats": [],
@@ -978,11 +1050,11 @@ export const TM = [
       "tests": [
         {
           "file": "test/enregistreur-ancrage-exigences.test.js",
-          "describe": "enregistreur + ancrage (lot F2), TI-17 : serveur RFC 3161 interne du lot E éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)"
+          "describe": "enregistreur + ancrage, TI-17 : serveur RFC 3161 interne éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)"
         },
         {
           "file": "test/enregistreur-ancrage-parcours.test.js",
-          "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
+          "describe": "enregistreur + ancrage, TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
           "it": "TI-17 sur les jetons reçus du serveur interne : AN-22 (T-8), AN-24 (accuracy ≤ 1 s, TM-19), AN-25 (nonce recopié), AN-26 (numéros de série strictement croissants, TM-18 : 0 paire non croissante), AN-29 (politique privée), AN-30 (certificat de l'unité inclus) ; AN-28 : une ligne d'acquisition par jeton reçu"
         },
         {
@@ -1039,11 +1111,11 @@ export const TM = [
       "tests": [
         {
           "file": "test/enregistreur-ancrage-exigences.test.js",
-          "describe": "enregistreur + ancrage (lot F2), TI-17 : serveur RFC 3161 interne du lot E éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)"
+          "describe": "enregistreur + ancrage, TI-17 : serveur RFC 3161 interne éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)"
         },
         {
           "file": "test/enregistreur-ancrage-parcours.test.js",
-          "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
+          "describe": "enregistreur + ancrage, TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
           "it": "TI-17 sur les jetons reçus du serveur interne : AN-22 (T-8), AN-24 (accuracy ≤ 1 s, TM-19), AN-25 (nonce recopié), AN-26 (numéros de série strictement croissants, TM-18 : 0 paire non croissante), AN-29 (politique privée), AN-30 (certificat de l'unité inclus) ; AN-28 : une ligne d'acquisition par jeton reçu"
         },
         {
@@ -1149,7 +1221,7 @@ export const TM = [
   {
     "id": "TM-21",
     "level": "TM",
-    "title": "EX-7.1 de CT-8 : installation rapide IR-1 à IR-8 en 900 s au plus, pas par pas, par une personne extérieure",
+    "title": "EX-7.1 de CT-8 : installation rapide IR-1 à IR-8 en 900 s au plus, pas par pas, par un relecteur à l'aveugle",
     "specs": [
       "CT-8"
     ],
@@ -1167,7 +1239,7 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Hôte dans l'état de départ d'EX-7.2 (moteur de conteneurs, Compose, Node.js 22, curl, openssl) ; images `noortrace/*` publiées ; participant extérieur de TR-12 (partie phase 2 du rejeu complet, `participant.external` vrai dans la consignation) ; une exécution par l'ingénieur du lot est publiée mais ne compte pas pour la porte 2."
+      "Hôte dans l'état de départ d'EX-7.2 (moteur de conteneurs, Compose, Node.js 22, curl, openssl) ; images `noortrace/*` publiées ; participant de TR-12, relecteur à l'aveugle (partie phase 2 du rejeu complet, `participant.condition` renseignée dans la consignation) ; une exécution par l'ingénieur du projet est publiée mais ne compte pas pour la porte 2."
     ],
     "steps": [
       "Chronométrer chaque pas IR-1 à IR-8 sur l'horloge murale : début à la première commande du pas, fin à la vérification du pas rendue.",
@@ -1178,7 +1250,7 @@ export const TM = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Rattaché à la porte 2 (étape 8) : installation rapide par une personne extérieure sur le système de référence, avec une archive et des images publiées (CT-9 §14) ; l'installation rapide n'est pas jouée en entier à l'étape 7 (prestataire RFC 3161 hors production à trancher par le porteur)."
+      "blocking": "Rattaché à la porte 2 (étape 8) : installation rapide par un relecteur à l'aveugle sur le système de référence, avec une archive et des images publiées (CT-9 §14)."
     },
     "threats": [],
     "measure": {
@@ -1188,7 +1260,7 @@ export const TM = [
       "target": 900,
       "comparison": "somme_au_plus",
       "source": "CT-8 EX-7.1",
-      "failure_threshold": "somme des huit pas > 900 s pour un participant extérieur (critère du plan : 15 minutes)",
+      "failure_threshold": "somme des huit pas > 900 s pour un relecteur à l'aveugle (critère du plan : 15 minutes)",
       "method": "chronometre",
       "percentiles": [],
       "warmup": 0,
@@ -1231,7 +1303,7 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Machine vierge (CT-8 §2) ; préalables d'EX-8.2 réunis ; ingénieur d'exploitation qui n'a que CT-8 et les documents qu'il désigne (participant de TR-9 ou ingénieur du lot pour la répétition)."
+      "Machine vierge (CT-8 §2) ; préalables d'EX-8.2 réunis ; ingénieur d'exploitation qui n'a que CT-8 et les documents qu'il désigne (participant de TR-9 ou ingénieur du projet pour la répétition)."
     ],
     "steps": [
       "Chronométrer chaque pas IC-1 à IC-18 sur l'horloge murale depuis le procès-verbal (heures de début et de fin consignées, IC-18).",
@@ -1251,7 +1323,7 @@ export const TM = [
       "command": "npx hardhat --config hardhat.config.mjs test test/banc-client-fictif.test.js",
       "complement": {
         "phase2_step": 8,
-        "blocking": "Mesure sur le système de référence, machine vierge, par un ingénieur extérieur (porte 2) ; le banc de l'étape 7 est un harnais de l'environnement de construction (`counts_for_targets` faux) : 58 min, dont 57 d'attente de la clôture de l'heure."
+        "blocking": "Mesure sans critère de porte, à relever sur le système de référence : mesure sur le système de référence, machine vierge, par un relecteur à l'aveugle (porte 2) ; le banc de l'étape 7 est un harnais de l'environnement de construction (`counts_for_targets` faux) : 58 min, dont 57 d'attente de la clôture de l'heure."
       }
     },
     "threats": [],
@@ -1296,7 +1368,7 @@ export const TM = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Rattaché à la porte 2 (étape 8) avec TR-12 : les informations manquantes se relèvent auprès d'un ingénieur extérieur au projet, que l'étape 7 n'a pas ; le banc de l'étape 7, déroulé par un harnais, a relevé les écarts de CT-8 qu'il a rencontrés et la révision 0.6 de CT-8 les a inscrits."
+      "blocking": "Mesure sans critère de porte, à relever sur le système de référence : les informations manquantes se relèvent pendant l'installation complète (TE-7, TM-22) conduite par un relecteur à l'aveugle sur une machine vierge avec systemd et chrony, absente de l'environnement de construction ; le banc de l'étape 7, déroulé par un harnais, a relevé les écarts de CT-8 qu'il a rencontrés et la révision 0.6 de CT-8 les a inscrits."
     },
     "threats": [],
     "measure": {
@@ -1313,7 +1385,7 @@ export const TM = [
       "repetitions": 1,
       "result_name": "ic_informations_manquantes",
       "conditions": [
-        "participant extérieur de TR-9"
+        "participant de TE-7, relecteur à l'aveugle"
       ]
     }
   },
@@ -1351,7 +1423,7 @@ export const TM = [
       "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-images.test.js",
       "complement": {
         "phase2_step": 8,
-        "blocking": "Durée de téléchargement des images publiées (IR-6) : aucune image n'est publiée ; la taille est relevée dans le magasin local."
+        "blocking": "Renvoi au lancement : durée de téléchargement des images publiées (IR-6) : aucune image n'est publiée ; la taille est relevée dans le magasin local."
       }
     },
     "threats": [],
@@ -1376,7 +1448,7 @@ export const TM = [
   {
     "id": "TM-25",
     "level": "TM",
-    "title": "EX-13.1 point 7 de CT-8 : temps d'un réviseur extérieur, de la réception du paquet au résultat, moins de 30 minutes la première fois",
+    "title": "EX-13.1 point 7 de CT-8 : temps d'un réviseur, relecteur à l'aveugle, de la réception du paquet au résultat, moins de 30 minutes la première fois",
     "specs": [
       "CT-8"
     ],
@@ -1385,7 +1457,7 @@ export const TM = [
       "CT-8 EX-14.9"
     ],
     "preconditions": [
-      "Épreuve TR-10 (CT-8 §14, épreuve (b)) en cours : réviseur extérieur, section 13 seule, paquet sous un nom neutre, poste sans réseau avec Node.js 22 et GNU tar."
+      "Épreuve TR-10 (CT-8 §14, épreuve (b)) en cours : réviseur, relecteur à l'aveugle, section 13 seule, paquet sous un nom neutre, poste sans réseau avec Node.js 22 et GNU tar."
     ],
     "steps": [
       "Chronométrer, sur l'horloge murale, de la remise du matériel à la remise du rapport écrit (EX-14.9) ; lecture des instructions comprise.",
@@ -1395,7 +1467,7 @@ export const TM = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Épreuve humaine conduite à la porte 2 ; le matériel existe (paquets des vecteurs, outil de vérification, paquet complet construit par la CI)."
+      "blocking": "Rattaché à la porte 2 (étape 8) : ligne « Paquet réviseur produit » de la section 14 (EX-13.1 point 7 de CT-8) ; épreuve conduite à la porte 2 par un relecteur à l'aveugle ; le matériel existe (paquets des vecteurs, outil de vérification, paquet complet construit par la CI)."
     },
     "threats": [],
     "measure": {
@@ -1405,7 +1477,7 @@ export const TM = [
       "target": 1800,
       "comparison": "strictement_inferieur",
       "source": "CT-8 EX-13.1",
-      "failure_threshold": "1 800 s ou plus (1 800,0 s exactement est un échec) pour un réviseur extérieur à sa première vérification",
+      "failure_threshold": "1 800 s ou plus (1 800,0 s exactement est un échec) pour un réviseur, relecteur à l'aveugle, à sa première vérification",
       "method": "chronometre",
       "percentiles": [
         "max"
@@ -1414,7 +1486,7 @@ export const TM = [
       "repetitions": 1,
       "result_name": "reviseur_temps",
       "conditions": [
-        "réviseur extérieur, première vérification",
+        "réviseur, relecteur à l'aveugle, première vérification",
         "poste sans réseau"
       ]
     }
@@ -1455,7 +1527,7 @@ export const TM = [
       "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-images.test.js",
       "complement": {
         "phase2_step": 8,
-        "blocking": "Système de référence (porte 2) et fermeture réelle des segments par le démon ; l'étape 7 mesure sur l'environnement de construction, segments écrits par un conteneur de l'image de l'enregistreur."
+        "blocking": "Mesure sans critère de porte, à relever sur le système de référence : système de référence et fermeture réelle des segments par le démon ; l'étape 7 mesure sur l'environnement de construction, segments écrits par un conteneur de l'image de l'enregistreur."
       }
     },
     "threats": [],
@@ -1502,7 +1574,7 @@ export const TM = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Rattaché à la porte 2 (étape 8) : deux instances derrière un répartiteur ou un nom DNS de durée de vie bornée ; mesure possible localement mais de faible valeur hors du système de référence."
+      "blocking": "Mesure sans critère de porte, à relever sur le système de référence : deux instances derrière un répartiteur ou un nom DNS de durée de vie bornée ; mesure possible localement mais de faible valeur hors du système de référence."
     },
     "threats": [],
     "measure": {
@@ -1560,7 +1632,7 @@ export const TM = [
       "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-images.test.js",
       "complement": {
         "phase2_step": 8,
-        "blocking": "Deux machines (porte 2) ; page et scripts de la console (CT-3 EX-13.4). L'étape 7 construit deux fois sur une même machine, sans cache, depuis deux copies des sources à deux instants (CT-6 EX-14.8 l'admet pour le binaire)."
+        "blocking": "Renvoi au pilote : deux machines ; page et scripts de la console (CT-3 EX-13.4). L'étape 7 construit deux fois sur une même machine, sans cache, depuis deux copies des sources à deux instants (CT-6 EX-14.8 l'admet pour le binaire)."
       }
     },
     "threats": [],
@@ -1617,7 +1689,7 @@ export const TM = [
       "command": "npx hardhat --config hardhat.config.mjs test test/banc-client-fictif.test.js",
       "complement": {
         "phase2_step": 8,
-        "blocking": "Heure de charge de TM-3 sur le système de référence ; le banc de l'étape 7 relève la consommation au repos."
+        "blocking": "Mesure sans critère de porte, à relever sur le système de référence : heure de charge de TM-3 sur le système de référence ; le banc de l'étape 7 relève la consommation au repos."
       }
     },
     "threats": [],
@@ -1821,7 +1893,7 @@ export const TM = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Rattaché à l'étape 8 : coefficients du dimensionnement mesurés sur le système de référence avec TM-9 ; les hypothèses de CT-8 9.5 restent en vigueur."
+      "blocking": "Mesure sans critère de porte, à relever sur le système de référence : coefficients du dimensionnement mesurés sur le système de référence avec TM-9 ; les hypothèses de CT-8 9.5 restent en vigueur."
     },
     "threats": [],
     "measure": {
@@ -1861,7 +1933,7 @@ export const TM = [
     ],
     "preconditions": [
       "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Fichiers de `deploiement/observabilite/` produits (lot suivant de CT-8) ; `promtool` ; charge de TM-3 pendant une heure ; scénarios RB-1 à RB-8 rejoués."
+      "Fichiers de `deploiement/observabilite/` produits (CT-8 §10) ; `promtool` ; charge de TM-3 pendant une heure ; scénarios RB-1 à RB-8 rejoués."
     ],
     "steps": [
       "Relever, par métrique à seuil cible, la valeur maximale en nominal et la valeur atteinte dans le scénario qui doit lever l'alerte.",
@@ -1870,9 +1942,23 @@ export const TM = [
     ],
     "oracle": "`supervision_faux_positifs = 0` et `supervision_faux_negatifs = 0` ; sinon le seuil est revu (proposition PD- à CT-8).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Rattaché à l'étape 8 : seuils d'alerte confrontés à une heure de charge de TM-3 sur le système de référence et aux runbooks rejoués (TE-8) ; l'étape 7 livre les règles et leurs tests."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/supervision-collecteur.test.js",
+          "describe": "CT-9 TM-34 et TM-35 : outil des campagnes de mesure de la supervision (scripts/deploiement/mesure-supervision.mjs ; rapports au format $defs/rapport_mesure, hors système de référence)",
+          "it": "membreCompare : membre comparé et seuil d'une règle à comparaison simple (jauge, fonction, soustraction à time()), forme « première occurrence » d'EX-10.6 comprise (branche de gauche) ; une expression composée par and ou or au niveau supérieur, ou comparée à autre chose qu'un nombre, n'en a pas ; onze règles de référence sont dans ce cas (cinq composées, six absent())"
+        },
+        {
+          "file": "test/supervision-collecteur.test.js",
+          "describe": "CT-9 TM-34 et TM-35 : outil des campagnes de mesure de la supervision (scripts/deploiement/mesure-supervision.mjs ; rapports au format $defs/rapport_mesure, hors système de référence)",
+          "it": "TM-34 : campagne courte sur le montage (fenêtre nominale de 60 s, sans scénario) — rapport conforme à $defs/rapport_mesure : supervision_faux_positifs (règles déclenchées en nominal, aucune sauf noortrace_latence), supervision_faux_negatifs sans valeur, une ligne supervision_nominal_<règle> par règle avec son seuil en target, counts_for_targets faux, met null"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Mesure sans critère de porte, à relever sur le système de référence : une heure de charge de TM-3 sur le système de référence et les scénarios RB-1 à RB-8 rejoués (TE-8) ; l'outil de la campagne (scripts/deploiement/mesure-supervision.mjs tm-34) est éprouvé ici sur le montage de la supervision, fenêtre nominale courte, hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [],
     "measure": {
@@ -1915,9 +2001,23 @@ export const TM = [
     ],
     "oracle": "`max < <M>` en nominal ; sinon `met` faux et `<M>` est revu.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Rattaché à l'étape 8 : une heure de charge d'ancres (TM-12) sur le réseau de développement et le défaut de `-txpool-max-pending` de noorcore, que le nœud n'imprime pas (« 0 = default ») ; la sonde de l'étape 7 expose déjà `noortrace_registre_mempool`."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/supervision-collecteur.test.js",
+          "describe": "CT-9 TM-34 et TM-35 : outil des campagnes de mesure de la supervision (scripts/deploiement/mesure-supervision.mjs ; rapports au format $defs/rapport_mesure, hors système de référence)",
+          "it": "TM-35 : relever puis rapport sur un point RPC local — un relevé par seconde de eth_getBlockTransactionCountByNumber(\\\"pending\\\"), aucune autre méthode appelée ; rapport conforme à $defs/rapport_mesure : ligne mempool_max_observe (nombre), target = <M> en nombre (moitié de --txpool-max-pending), échantillons bruts désignés par leur SHA-256, counts_for_targets faux, met null ; usage refusé → 2"
+        },
+        {
+          "file": "test/supervision-collecteur.test.js",
+          "describe": "CT-9 TM-34 et TM-35 : outil des campagnes de mesure de la supervision (scripts/deploiement/mesure-supervision.mjs ; rapports au format $defs/rapport_mesure, hors système de référence)",
+          "it": "TM-35, cadence des relevés : --duree-s n donne exactement n relevés, aux instants debut + k × 1000 ms (k de 0 à n − 1), quel que soit l'instant de départ de l'horloge monotone, y compris un départ où (debut + 4000) − debut vaut 3999.9999999999995 en virgule flottante"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : relevé de la file du réseau à quatre validateurs sur le système de référence (section 14, mesures officielles) ; système de référence absent : aucune machine de référence n'est acquise (décision du plan du 13 novembre 2026) ; valeurs relevées dans l'environnement de construction publiées hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [],
     "measure": {
@@ -1969,9 +2069,17 @@ export const TM = [
     ],
     "oracle": "Huit lignes présentes, `met` null ; une sortie non atteinte est un échec du TE- du runbook, pas de cette mesure.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Rattaché à l'étape 8 : durées des runbooks rejoués (TE-8), que l'étape 7 ne joue pas."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/pannes-bout-en-bout.test.js",
+          "describe": "CT-9 TE-8 et TM-36 : flux réseau observés et runbooks rejoués sur la démonstration de référence (CT-8 §5, §10.11)"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Partie non écrite : seule la durée de RB-1 (ligne rb_1) est relevée, hors référence ; RB-2 à RB-8 ne sont pas rejoués comme runbooks complets (TE-8), et leurs durées sur le système de référence ne sont pas relevées."
+      }
     },
     "threats": [],
     "measure": {
@@ -2021,7 +2129,7 @@ export const TM = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Rattaché à l'étape 8 : RPO et RTO par composant sur le système de référence ; l'étape 7 publie, sans compter, les durées du chemin A sur l'environnement de construction (sauvegarde 0,8 s, reprise 1,2 à 1,3 s)."
+      "blocking": "Mesure sans critère de porte, à relever sur le système de référence : RPO et RTO par composant sur le système de référence ; l'étape 7 publie, sans compter, les durées du chemin A sur l'environnement de construction (sauvegarde 0,8 s, reprise 1,2 à 1,3 s)."
     },
     "threats": [],
     "measure": {
@@ -2069,9 +2177,18 @@ export const TM = [
     ],
     "oracle": "`observation_latence` : `p50 ≤ 5`, `p99 ≤ 50` ms ; la différence des percentiles de la paire est publiée avec les deux séries ; `observation_ecriture` publiée (aucune borne normative en 0.1).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4. Le mode observation est livré par le démon (CT-2 révision 0.6)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/mesures-harnais.test.js",
+          "describe": "Mesures : configuration de mesure de CT-2 EX-16.2 (pas 1) et harnais entier sur l'enregistreur réel",
+          "it": "ct-2-perf.mjs : les six campagnes avec un petit effectif (n 30, échauffement 3, segment de reprise 1 Mio) produisent un rapport par campagne, chacun accepté par scripts/tests/mesures.mjs, hors référence (counts_for_targets faux, met null, excluded_reason hors_systeme_de_reference), avec la ligne principale de chaque entrée et le SHA-256 de la configuration ; code 0"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : campagne de CT-2 EX-16.2 sur le système de référence (section 14, mesures officielles) ; le harnais entier est éprouvé ici sur l'enregistreur réel avec un petit effectif ; système de référence absent : aucune machine de référence n'est acquise (décision du plan du 13 novembre 2026) ; valeurs relevées dans l'environnement de construction publiées hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [],
     "measure": {
@@ -2124,7 +2241,7 @@ export const TM = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Rattaché à la porte 2 (étape 8) : journal d'accès des fournisseurs WORM réels (comptes réels, hors de l'environnement de construction) ; voir TI-15."
+      "blocking": "Rattaché à la porte 2 (étape 8) : aucune ligne de la section 14 ne lit cette mesure ; rattachement gardé par décision du plan du 13 novembre 2026 (point 6) ; journal d'accès des fournisseurs WORM réels (comptes réels) ; relevé sur le simulateur local à l'étape 8 ; voir TI-15."
     },
     "threats": [],
     "measure": {
@@ -2167,7 +2284,7 @@ export const TM = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Rattaché à l'étape 8 : `chronyc -c tracking` relevé sur chrony 4.6 du système de référence ; l'environnement de construction n'a ni chrony ni systemd."
+      "blocking": "Mesure sans critère de porte, à relever sur le système de référence : `chronyc -c tracking` relevé sur chrony 4.6 du système de référence ; l'environnement de construction n'a ni chrony ni systemd."
     },
     "threats": [],
     "measure": {
@@ -2223,7 +2340,7 @@ export const TM = [
       ],
       "complement": {
         "phase2_step": 8,
-        "blocking": "Charge de TM-3 : la campagne de l'étape 5 mesure sous la charge à cadence fixe de l'outil (`--evenements-par-s`, un événement par seconde par défaut), hors de la condition « une période complète sous la charge de TM-3 » (500 événements par seconde, 16 connexions, harnais de CT-2 EX-16.2) ; la mesure sous cette charge suit le harnais, étape 8 (mesures de performance)."
+        "blocking": "Rattaché à la porte 2 (étape 8) : ligne « Fenêtre de réécriture mesurée au plus égale à 5 min » de la section 14 ; charge de TM-3 : la campagne de l'étape 5 mesure sous la charge à cadence fixe de l'outil (`--evenements-par-s`, un événement par seconde par défaut), hors de la condition « une période complète sous la charge de TM-3 » (500 événements par seconde, 16 connexions, harnais de CT-2 EX-16.2) ; la mesure sous cette charge suit le harnais, étape 8 (mesures de performance)."
       }
     },
     "threats": [
@@ -2340,9 +2457,28 @@ export const TM = [
     ],
     "oracle": "`max < 120` s (120,0 s exactement est un échec) ; la comparaison porte sur la valeur imprimée par `verificateur`, à la précision que CT-2 fixe (PD-25 : millisecondes ou trois décimales de seconde ; avec une impression en secondes entières, une exécution de 119,6 s imprimée « 120 s » est un échec, EX-11.14) ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Démonstration de référence non construite (étape 8 : tests de bout en bout)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/demonstration.test.js",
+          "describe": "CT-2 §19 : démonstration de référence, sans moteur de conteneurs (TE-3, partie statique)",
+          "it": "EX-11.14 : la grandeur est la durée imprimée par le vérificateur, lue à la milliseconde ; une sortie sans durée n'est pas un échantillon"
+        },
+        {
+          "file": "test/demonstration.test.js",
+          "describe": "CT-2 §19 : démonstration de référence, sans moteur de conteneurs (TE-3, partie statique)",
+          "it": "EX-11.2, EX-11.3 : hors du système de référence, le rapport est conforme à rapport_mesure, porte counts_for_targets faux, et la ligne demonstration_duree de TM-43 (secondes, max, cible 120) porte met nul et hors_systeme_de_reference ; la durée murale, l'écart et les codes de retour sont publiés dans conditions, sans être comparés à la cible"
+        },
+        {
+          "file": "test/demonstration.test.js",
+          "describe": "CT-2 §19 : démonstration de référence, sans moteur de conteneurs (TE-3, partie statique)",
+          "it": "EX-11.3, EX-11.4 : sur le système de référence, dix échantillons et trois échauffements donnent met vrai sous 120 s et faux à 120,000 s ; une répétition qui imprime une durée compte quel que soit son code de retour ; sous dix échantillons : echantillon_insuffisant, met nul"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : ligne « La démonstration en une commande tourne » de la section 14 (max de demonstration_duree < 120 s, met vrai, counts_for_targets vrai) ; l'outil demo/mesurer-duree.mjs est éprouvé ici sans lancer la composition ; système de référence absent : aucune machine de référence n'est acquise (décision du plan du 13 novembre 2026) ; valeurs relevées dans l'environnement de construction publiées hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [],
     "measure": {

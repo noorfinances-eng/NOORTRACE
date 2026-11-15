@@ -1,13 +1,15 @@
 // Service d'approbation factice, pour les tests et la démonstration du cœur.
-// Il tient la place du service de CT-3 (lot suivant) : il répond aux sept
-// messages de CT-3 §12 avec les formes exactes de `ticket-v0`, tient un état
-// de ticket minimal (nouveau, en attente, approuvé, refusé, expiré, consommé)
+// Il tient la place du service de CT-3 (partie suivante) : il répond aux sept
+// messages de CT-3 §12 avec les formes exactes de `ticket-v0` (dont les
+// huit membres de la réponse `evaluer`, révision 0.5 : `policy_version` et
+// `policy_sha256` recopiés du `charger`), tient un état de ticket minimal
+// (nouveau, en attente, approuvé, refusé, expiré, consommé)
 // et fabrique des remises signées par des clés d'approbateurs données
 // (EIP-191, CT-1 §6.3). Il n'évalue aucune règle de CT-3 §6 : la décision
 // d'un appel est fixée par une fonction du test. Jamais en production.
 
 import http from "node:http";
-import { adresseDepuisClePrivee, hexVersOctets, signerApprobation } from "@noortrace/noyau";
+import { adresseDepuisClePrivee, hexVersOctets, signerApprobation, sha256Hex, utf8 } from "@noortrace/noyau";
 import { ErreurServiceApprobation, ServiceApprobation } from "./approbations.mjs";
 import { analyserJsonIntegral, jcsIntegral } from "./jcs-integral.mjs";
 
@@ -39,8 +41,12 @@ export class ServiceApprobationFactice extends ServiceApprobation {
     this.compteur = 0;
     /** demande (outil + arguments en JCS intégral) → ticket */
     this.parDemande = new Map();
-    /** ticket → { etat, request, rule, sealed, remises } */
+    /** ticket → { etat, request, rule, sealed, remises, policy_version } */
     this.tickets = new Map();
+    /** policy_version → policy_sha256 déclarée au `charger` (CT-3 §12.3, révision 0.5), recopiée dans chaque réponse `evaluer`. */
+    this.empreintes = new Map();
+    /** policy_version → approval_sha256 CALCULÉ au `charger` (SHA-256 du JCS du membre approval reçu, addendum), reporté dans chaque réponse. */
+    this.condenses = new Map();
     this.fileRemises = [];
     this.messages = [];
     this.panne = null;
@@ -53,31 +59,39 @@ export class ServiceApprobationFactice extends ServiceApprobation {
 
   async charger(r) {
     this.enregistrer("charger", r);
+    this.empreintes.set(r.policy_version, r.policy_sha256);
+    const approval_sha256 = r.approval !== null && typeof r.approval === "object" ? sha256Hex(utf8(jcsIntegral(r.approval))) : null;
+    this.condenses.set(r.policy_version, approval_sha256);
     const candidats = r.tools.filter((t) => this.decider({ tool_announced: t.tool_announced, arguments: {} }).decision !== "autorise");
-    return { policy_version: r.policy_version, policy_sha256: r.policy_sha256, approval_candidates: candidats.map((t) => t.tool_announced).sort() };
+    return { policy_version: r.policy_version, policy_sha256: r.policy_sha256, approval_sha256, approval_candidates: candidats.map((t) => t.tool_announced).sort() };
   }
 
   async evaluer(r) {
     this.enregistrer("evaluer", r);
+    // CT-3 §12.3 (révision 0.5) : version de la requête pour une évaluation et un ticket nouveau,
+    // version du ticket pour un ticket rapproché ; empreinte recopiée du charger.
+    const pv = typeof r.code?.policy_version === "string" ? r.code.policy_version : null;
+    const couple = (version) => ({ policy_version: version, policy_sha256: this.empreintes.get(version) ?? null, approval_sha256: this.condenses.get(version) ?? null });
     const cle = `${r.tool_announced}\u0000${jcsIntegral(r.arguments)}`;
     const ticket = this.parDemande.get(cle);
     if (ticket) {
       const t = this.tickets.get(ticket);
+      const c = couple(t.policy_version ?? pv);
       if (t.etat === "approuve" || t.etat === "consomme") {
-        return { rule: t.rule, decision: "autorise", ticket, ticket_state: "approuve", approval: t.sealed, approver_set: null };
+        return { rule: t.rule, decision: "autorise", ticket, ticket_state: "approuve", approval: t.sealed, approver_set: null, ...c };
       }
       if (t.etat === "refuse" || t.etat === "expire") {
-        return { rule: t.rule, decision: "refuse", ticket, ticket_state: t.etat, approval: t.sealed, approver_set: null };
+        return { rule: t.rule, decision: "refuse", ticket, ticket_state: t.etat, approval: t.sealed, approver_set: null, ...c };
       }
-      return { rule: t.rule, decision: "a_approuver", ticket, ticket_state: "en_attente", approval: null, approver_set: null };
+      return { rule: t.rule, decision: "a_approuver", ticket, ticket_state: "en_attente", approval: null, approver_set: null, ...c };
     }
     const d = this.decider(r);
-    if (d.decision !== "a_approuver") return { rule: d.rule ?? null, decision: d.decision, ticket: null, ticket_state: null, approval: null, approver_set: null };
+    if (d.decision !== "a_approuver") return { rule: d.rule ?? null, decision: d.decision, ticket: null, ticket_state: null, approval: null, approver_set: null, ...couple(pv) };
     this.compteur++;
     const id = `apr-test-${String(this.compteur).padStart(4, "0")}`;
     this.parDemande.set(cle, id);
-    this.tickets.set(id, { etat: "reserve", request: null, rule: d.rule, sealed: null, remises: 0 });
-    return { rule: d.rule, decision: "a_approuver", ticket: id, ticket_state: "nouveau", approval: null, approver_set: this.jeu };
+    this.tickets.set(id, { etat: "reserve", request: null, rule: d.rule, sealed: null, remises: 0, policy_version: pv });
+    return { rule: d.rule, decision: "a_approuver", ticket: id, ticket_state: "nouveau", approval: null, approver_set: this.jeu, ...couple(pv) };
   }
 
   async ouvrir(r) {

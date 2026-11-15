@@ -747,6 +747,27 @@ const SERIES = {};
     c[0].key_id = "rec-test-02";
     serieInvalide("periode-1-cle-last-seq-0", chainerPoints(c), ["cle_en_vigueur", "validite_cle"], "Le premier point (09:00:00.000Z, tree_size 0, last_seq 0) annonce et porte la signature de rec-test-02 (série rechaînée) : sans événement last_seq, la clé en vigueur est celle de cles.json de plus grand valid_from inférieur ou égal à checkpoint_ts (règle de la section 10.1), rec-test-01 (valid_from 2026-11-01) ; rec-test-02 n'est valide qu'à partir de la rotation (09:59:58.000Z).");
   }
+  // Revue de sécurité de l'étape 8 (MN-68) : le point de clôture annonce tree_size 2^53 − 1, le plus grand
+  // entier que le schéma admet ; un vérificateur qui parcourt les tree_size numéros de séquence ne rend jamais la main.
+  // Les règles se jugent sur les événements fournis : root et last_hash ne sont pas évaluées (piece_hors_dossier).
+  {
+    const c = corps1.map((x) => ({ ...x }));
+    const n = c.length - 1;
+    const geant = Number.MAX_SAFE_INTEGER;
+    c[n] = { ...c[n], tree_size: geant, root: "0x" + "11".repeat(32), last_seq: periode1.manifeste.first_seq + geant - 1 };
+    exiger(Number.isSafeInteger(c[n].last_seq) && c[n].key_id === "rec-test-02", "point de clôture géant : last_seq hors de l'intervalle sûr ou clé inattendue");
+    const points = chainerPoints(c);
+    exiger(J.validerSchema(points[n], SCHEMAS[J.ID_SCHEMA_POINT_DE_CONTROLE], { registre: SCHEMAS }).length === 0, "le point géant doit être conforme au schéma");
+    const nom = "periode-1-tree-size-geant";
+    const rules = ["last_seq", "dernier_point"];
+    const nonEvaluees = [{ rule: "root", reason: "piece_hors_dossier" }, { rule: "last_hash", reason: "piece_hors_dossier" }];
+    const debut = Date.now();
+    const r = J.verifierSeriePointsDeControle(points, periode1.manifeste, { evenements: jeu.evenements, cles: jeu.cles });
+    exiger(Date.now() - debut < 5000, `${nom} : jugé en ${Date.now() - debut} ms, au plus 5 000 attendus`);
+    exiger(!r.valide && JSON.stringify(r.rules_failed) === JSON.stringify(rules) && JSON.stringify(r.rules_not_evaluated) === JSON.stringify(nonEvaluees), `${nom} : ${JSON.stringify(r)}`);
+    ecrireJSON(`points-de-controle/invalides/${nom}.json`, points);
+    attendu.invalides.push({ file: `invalides/${nom}.json`, manifest: "../manifestes/periode-1.json", description: "Le point de clôture (10:00:00.300Z) annonce tree_size 9 007 199 254 740 991 (2^53 − 1, le plus grand entier que le schéma admet), root non nulle et last_seq = first_seq + tree_size − 1, re-signé par rec-test-02 (chaîne intacte). Un vérificateur qui parcourt les tree_size numéros de séquence ne rend jamais la main (MN-68, revue de sécurité) ; la règle root se juge sur les événements fournis : les 9 de la période ne suffisent pas, root et last_hash ne sont pas évaluées (piece_hors_dossier), tree_size supérieur à count viole last_seq, et le point ne rejoint pas le manifeste (dernier_point). Jugé en moins d'une seconde.", rules_failed: rules, rules_not_evaluated: nonEvaluees, errors: r.erreurs });
+  }
   // Révision 0.5 (CT-1 §10.5, règles root et last_hash quand des événements manquent) : la série valide de la
   // période 1, vérifiée avec une partie des événements seulement, puis avec un événement altéré.
   attendu.description += " Révision 0.5 : evenements_partiels vérifie la série de la période 1 avec les seuls événements d'un fichier (events) et cles.json (keys) : rules_not_evaluated nomme les règles non évaluées faute d'événement (piece_hors_dossier) ou de forme canonique (prerequis_en_echec), jamais violées ; une série n'est valide que si rules_failed et rules_not_evaluated sont vides. Pour les séries de periodes et d'invalides, vérifiées avec tout journal-valide/evenements.json et journal-valide/cles.json, rules_not_evaluated absent vaut liste vide.";
@@ -1452,6 +1473,44 @@ const invalide = (controle, controles_en_echec, description) => ({ valide: false
     x.previous = "x";
     ecrireDossier("invalide-demande-non-objet", reindexer(remplacer(F6, "voisins.json", x)), invalide("C-1", ["E-1", "C-1", "C-2", "C-3", "P-3"], "valide-seq-6 (décision d'approbation, dont la demande seq 5 est le voisin précédent) dont voisins.json porte previous = \"x\", index recalculé : E-1, C-1, C-2, C-3 et P-3 échouent ; le voisin qui n'est pas un objet n'est pas candidat à la demande d'A-4 (son hash ne se recalcule pas), et aucun autre voisin ne l'est : A-4 n'est pas exécutée, pièce hors dossier (raison admise), et n'échoue pas à cause de lui."));
   }
+  // Revue de sécurité de l'étape 8 (MN-68) : un membre toString à la place d'une chaîne.
+  {
+    const ev = lireF(F, "evenement.json");
+    ev.hash = { toString: 1 };
+    ecrireDossier("invalide-membre-tostring", avecOctets(F, "evenement.json", J.texteJSON(ev)), invalide("E-7", ["D-1", "E-1", "E-7"], "Le champ hash de evenement.json de valide-seq-7 est remplacé par l'objet JSON {\"toString\":1} (contenu et signature intacts, SHA-256 de la partie reporté dans l'index, event.hash de l'index inchangé). Un membre toString masque Object.prototype.toString par une valeur non appelable : un vérificateur qui convertit implicitement la valeur en chaîne lève une exception au lieu de rendre un statut (MN-68 ; revue de sécurité). Attendu : invalide, code 1, par les relations dont hash est un terme mal typé (CT-1 §11.4) : D-1 (event.hash de l'index différent de hash), E-1 (schéma), E-7 (hash recalculé différent de hash) ; C-2 et M-1 passent, le hash recalculé ne lisant pas hash. Aucune exception, aucun code 2."));
+  }
+  // Revue de sécurité de l'étape 8 (MN-68) : un terme de la règle d'A-3 absent (jeu, membres, approbateurs,
+  // signatures, approval vide) : relation non tenue (CT-1 §11.4), A-3 échoue, jamais une erreur interne.
+  {
+    const a3 = (nom, fichiers, controles, description) => ecrireDossier(nom, fichiers, invalide("A-3", controles, description));
+    a3("invalide-a3-approbations-vide", avecOctets(F, "approbations.json", "{}\n"), ["A-1", "A-2", "A-3"], "approbations.json réduit à l'objet vide {} (SHA-256 de l'index reporté) : la partie est un objet exploitable contraire à son schéma ; A-1 (ticket et request_hash absents), A-2 (aucun événement de décision) et A-3 (jeu, seuil et membres absents : relations non tenues) échouent ; aucun terme absent ne fait lever le vérificateur (CT-1 §11.4, revue de sécurité).");
+    {
+      const a = lireF(F, "approbations.json");
+      delete a.approver_set;
+      a3("invalide-a3-sans-jeu", reindexer(remplacer(F, "approbations.json", a)), ["A-1", "A-3"], "approbations.json sans membre approver_set (index recalculé) : A-1 échoue par le schéma, A-3 échoue (membres, seuil du jeu : termes absents) ; A-2 réussit (la décision est cohérente).");
+    }
+    {
+      const a = lireF(F, "approbations.json");
+      delete a.approver_set.members;
+      a3("invalide-a3-sans-membres", reindexer(remplacer(F, "approbations.json", a)), ["A-1", "A-3"], "approbations.json dont approver_set n'a pas de membre members (index recalculé) : A-1 échoue par le schéma, A-3 échoue (approbateurs hors d'un jeu sans membres, size différent du nombre de membres).");
+    }
+    {
+      const ev = lireF(F, "evenement.json");
+      delete ev.approval.approvers;
+      a3("invalide-a3-sans-approbateurs", avecOctets(F, "evenement.json", J.texteJSON(ev)), ["E-1", "E-5", "E-7", "E-8", "E-9", "C-2", "M-1", "A-2", "A-3"], "evenement.json dont approval n'a pas de membre approvers (non rescellé, SHA-256 de l'index reporté) : E-1 (schéma), E-5 et E-9 (approvers absent), E-7, E-8, C-2 et M-1 (hash recalculé sur l'objet tel qu'il est), A-2 (approval différent de celui des décisions) et A-3 (aucun approbateur pour un seuil de 2) échouent.");
+    }
+    {
+      const ev = lireF(F, "evenement.json");
+      ev.approval = {};
+      a3("invalide-a3-approval-vide", avecOctets(F, "evenement.json", J.texteJSON(ev)), ["E-1", "E-3", "E-5", "E-7", "E-8", "E-9", "C-2", "M-1", "A-1", "A-2", "A-3", "A-4"], "evenement.json dont approval est l'objet vide {} (non rescellé, SHA-256 de l'index reporté) : E-1, E-3 (approval non nul sans decision approuve pour un appel exécuté), E-5, E-9, E-7, E-8, C-2, M-1, A-1 (ticket et request_hash absents de approval), A-2, A-3 et A-4 échouent (A-4 : request_hash, terme de sa propre règle, est absent ; la règle n'est pas tenue, CT-1 §11.4).");
+    }
+    {
+      const ev = lireF(F, "evenement.json");
+      ev.approval.decision = "expire";
+      delete ev.approval.signatures;
+      a3("invalide-a3-sans-signatures", avecOctets(F, "evenement.json", J.texteJSON(ev)), ["E-1", "E-3", "E-5", "E-7", "E-8", "E-9", "C-2", "M-1", "A-2", "A-3"], "evenement.json dont approval porte decision expire et n'a pas de membre signatures (non rescellé, SHA-256 de l'index reporté) : E-1, E-3 (appel exécuté sous une décision expirée), E-5 et E-9 (signatures absent), E-7, E-8, C-2, M-1, A-2 (approval différent de celui des décisions) et A-3 (décision expirée avec des approbateurs) échouent.");
+    }
+  }
   // Entrée inutilisable (code 2) : dossier.json qui n'est pas un texte JSON (CT-1 §11.4 et §11.5, révision 0.5).
   {
     const fichiers = { ...F, "dossier.json": "{" };
@@ -1628,7 +1687,12 @@ points de \`tree_size\` 8 et 9, \`piece_hors_dossier\` pour ceux de \`tree_size\
 \`cles.json\` (\`events\` et \`keys\` nuls : \`root\`, \`last_hash\`,
 \`cle_en_vigueur\`, \`signature\` et \`validite_cle\` non évaluées,
 \`piece_hors_dossier\`). Les deux listes suivent l'ordre des noms de règle de
-CT-1 §10.5, puis \`prerequis_en_echec\` avant \`piece_hors_dossier\`.
+CT-1 §10.5, puis \`prerequis_en_echec\` avant \`piece_hors_dossier\`. Revue de
+sécurité de l'étape 8 : \`invalides/periode-1-tree-size-geant.json\` (point de
+clôture de \`tree_size\` 2^53 − 1 : \`last_seq\`, \`dernier_point\` violées,
+\`root\` et \`last_hash\` non évaluées, \`piece_hors_dossier\`, jugé en moins
+d'une seconde ; la règle \`root\` se juge sur les événements fournis, jamais en
+parcourant \`tree_size\` numéros de séquence).
 
 ## \`dossiers/\`
 

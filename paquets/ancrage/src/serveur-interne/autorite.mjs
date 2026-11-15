@@ -1,4 +1,4 @@
-// Autorité du serveur RFC 3161 interne (lot E) : la clé et le certificat de
+// Autorité du serveur RFC 3161 interne : la clé et le certificat de
 // l'unité d'horodatage, la politique, la précision, le compteur de série ;
 // l'émission de certificats X.509 (RFC 5280 §4.1) et de CRL (§5.1) pour
 // `initialiserAutorite`. La clé est fournie en octets PKCS#8 par l'appelant

@@ -1,4 +1,4 @@
-// Encodeur DER du serveur RFC 3161 interne (lot E). Écrit depuis X.690
+// Encodeur DER du serveur RFC 3161 interne. Écrit depuis X.690
 // (ISO/IEC 8825-1) : longueurs définies minimales, INTEGER minimal (octet 00
 // de tête seulement si le bit de poids fort du premier octet significatif
 // vaut 1), BOOLEAN `ff`, GeneralizedTime à la seconde sans fraction (X.690

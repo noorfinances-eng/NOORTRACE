@@ -1,10 +1,10 @@
 // Outils des essais du composant d'ancrage branché dans l'enregistreur
-// (test/enregistreur-ancrage-*.test.js, lot F2) : le montage hors réseau
+// (test/enregistreur-ancrage-*.test.js) : le montage hors réseau
 // public autour d'un démon `noortrace` réel (processus enfant `demon.mjs`,
-// horloge hybride) : autorités RFC 3161 du lot E (interne en HTTP local,
+// horloge hybride) : autorités RFC 3161 internes (interne en HTTP local,
 // principal en TLS mutuel), serveur de CRL, calendriers OpenTimestamps
 // factices servis en TLS (le document `ancrage-v0` n'admet que `https://`),
-// nœud noorcore factice du lot D servi en HTTP JSON-RPC, configuration de
+// nœud noorcore factice des essais du registre servi en HTTP JSON-RPC, configuration de
 // l'enregistreur et document `ancrage-v0`, manifeste d'instance, clé de
 // chaîne de classe D, fichier d'ancres du réviseur écrit sous `os.tmpdir()`,
 // et les deux vérificateurs de CT-6 lancés comme boîtes noires. Tout fichier
@@ -61,7 +61,7 @@ export function portLibre() {
 
 // ----------------------------------------------------- calendriers TLS
 
-/** Chemin Bitcoin synthétique d'un engagement (même forme que les essais des lots B et F1). */
+/** Chemin Bitcoin synthétique d'un engagement (même forme que les essais du client OpenTimestamps et du composant). */
 function cheminBitcoin(hauteur, graine) {
   const n = new Noeud();
   n.operation(OP.PREPEND, N.sha256(N.utf8(`${graine}/agregation`)))
@@ -156,7 +156,7 @@ export async function calendriersTls({ tls, fichierEntetes, nombreEnTetes = 1040
 // ----------------------------------------------------- registre HTTP
 
 /**
- * Nœud noorcore factice du lot D servi en JSON-RPC sur 127.0.0.1 (un point),
+ * Nœud noorcore factice des essais du registre servi en JSON-RPC sur 127.0.0.1 (un point),
  * clé de chaîne de classe D inscrite pour la clé Ed25519 donnée, approbateurs
  * d'essai de CT-4 (comptes 1 à 3, seuil 2) et manifeste d'instance réduit.
  * @param {{clePublique: Uint8Array, orgId?: string, journalId?: string}} p
@@ -204,7 +204,7 @@ export async function registreHttp({ clePublique, orgId = ORG, journalId = JOURN
     ],
     fees: { gas_limit: 3000000, gas_limit_max: 16777216 },
     validator_sets: [{ from_height: 0, to_height: null, validators: validateurs.validators, source: "jeu d'essai de CT-4 annexe A.2, clés publiques seulement" }],
-    source: "manifeste d'instance réduit des essais (nœud factice du lot D), sans valeur hors des tests",
+    source: "manifeste d'instance réduit des essais (nœud factice des essais du registre), sans valeur hors des tests",
   };
   return {
     url, noeud, contrats, cleChaine, approbateurs, manifeste, validateurs,
@@ -477,12 +477,12 @@ export class Demon {
  */
 export function fichierAncres({ chemin, montage, bitcoin = null, registry = true, qualifiedPrincipal = null, preparedAt = "2026-11-05T12:00:00.000Z", recorders = null }) {
   const m = montage;
-  const autorite = (a, qualified) => ({ name: `AC ${a.nom} (essai)`, certificate: a.init.acPem, intermediates: [], accepted_policies: [a.prestataire.policy_oid], qualified, source: `AC d'essai du lot E (${a.nom}), sans valeur hors des tests` });
+  const autorite = (a, qualified) => ({ name: `AC ${a.nom} (essai)`, certificate: a.init.acPem, intermediates: [], accepted_policies: [a.prestataire.policy_oid], qualified, source: `AC d'essai d'un serveur RFC 3161 interne (${a.nom}), sans valeur hors des tests` });
   const crls = [m.interne, m.principal].map((a) => crlVersPem(publierCrl({ repertoire: a.repertoire, horloge: { murale: () => m.horloge.murale() }, revoques: [] }).octets));
   const graineRec = N.sha256(N.utf8("noortrace/vecteurs/v0/cle-enregistreur/rec-test-01"));
   const ancres = {
     version: 0,
-    label: "Ancres des essais du lot F2",
+    label: "Ancres des essais du branchement dans l'enregistreur",
     prepared_by: "essai automatique",
     prepared_at: preparedAt,
     tsa_authorities: [autorite(m.interne, null), autorite(m.principal, qualifiedPrincipal)],
@@ -542,7 +542,7 @@ export function fichierTemporaire(nom) {
 // ----------------------------------------------------- montage en cours de processus
 
 /**
- * Montage en cours de processus (essais d'exigences) : le décor du lot F1
+ * Montage en cours de processus (essais d'exigences) : le décor des essais du composant
  * (`monterComposant` : horloge réglable, autorités, calendriers factices,
  * registre factice, configuration `ancrage-v0`), la configuration de
  * développement de l'enregistreur qui désigne ce document (`anchoring.ancrage`,
@@ -687,7 +687,7 @@ export function lireParcours(repertoire) {
  * d'un manifeste du journal inscrit par le parcours de référence, signée au
  * seuil par ses approbateurs (RG-13 : signatures rangées par adresse), à
  * déposer sous `<journal>/registre/demande-cloture-<period_hash>.json` pour
- * que le démon relaie `submitPeriod` (CT-4 §8.2 pas 4 et 5 ; lecture F2-3).
+ * que le démon relaie `submitPeriod` (CT-4 §8.2 pas 4 et 5 ; lecture 3 du branchement).
  * `signer_set` reprend celui de l'inscription (jeu, seuil, tête lue alors).
  */
 export function demandeClotureParcours({ manifeste, parcours, preparedAt, uri = "" }) {
@@ -710,7 +710,7 @@ export function demandeClotureParcours({ manifeste, parcours, preparedAt, uri = 
 /**
  * Monte le décor d'un démon réel branché sur le réseau de développement
  * (quatre validateurs noorcore) avec le journal inscrit par un parcours de
- * référence : autorités RFC 3161 du lot E (interne en HTTP local, principal
+ * référence : autorités RFC 3161 internes (interne en HTTP local, principal
  * en TLS mutuel avec un `qualified` d'exemple), serveur de CRL, calendriers
  * factices TLS à chaîne regtest, configuration de l'enregistreur (clé du
  * parcours, `anchoring.registry` de classe D vers les validateurs), document
@@ -817,11 +817,14 @@ export function inscrireJournal({ parcours, travail, etiquette, keyId = "rec-neu
   const clePublique = N.clePubliqueEd25519(graine);
   const demande = path.join(rep, "demande-inscription.json");
   const outil = path.join(RACINE, "scripts", "registre", "noortrace-registre.mjs");
+  // EX-8.21 (revue de sécurité de l'étape 8) : approvisionner exige la confirmation hors bande du client ; celle de l'essai est consignée ici.
+  const confirmation = path.join(rep, "confirmation-hors-bande.txt");
+  fs.writeFileSync(confirmation, "Confirmation hors bande du client de l'essai, consignée (CT-4 EX-8.21).\n");
   const etapes = [
     ["condense", "inscription", "--org-id", parcours.orgId, "--journal-id", journalId, "--cle-chaine-adresse", cleChaine.adresse(), "--cle-ed25519", N.octetsVersHex(clePublique), "--sortie", demande],
     ["signer", "--demande", demande, "--cle", `fichier:${path.join(parcours.repertoire, "cles", "approbateur-1.cle")}`],
     ["signer", "--demande", demande, "--cle", `fichier:${path.join(parcours.repertoire, "cles", "approbateur-2.cle")}`],
-    ["approvisionner", "--vers", cleChaine.adresse(), "--demande", demande, "--tresorerie", "hardhat:0", "--captures", path.join(rep, "captures")],
+    ["approvisionner", "--vers", cleChaine.adresse(), "--demande", demande, "--tresorerie", "hardhat:0", "--captures", path.join(rep, "captures"), "--confirmation", confirmation],
     ["inscrire-cle", "--demande", demande, "--cle-chaine", `fichier:${fichierCle}`, "--captures", path.join(rep, "captures")],
   ];
   const sorties = [];

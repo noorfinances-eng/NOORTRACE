@@ -23,7 +23,10 @@
 //
 //   noortrace-ctl cle rapprocher --configuration <fichier> --audit <journal d'audit>
 //                                [--cle <key_id>] [--de <horodatage>] [--a <horodatage>]
-// Codes : 0 sans écart positif ; 3 écart positif (incident, CT-7 4.6) ; 2 usage.
+// Codes : 0 sans écart positif ; 3 écart positif, écart non fini ou lot
+// indéterminé (incident, CT-7 4.6) ; 1 anomalie sans incident (ligne du
+// journal d'exploitation hors des valeurs que le démon écrit, ligne d'audit
+// sur la clé non classée) ; 2 usage.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -49,21 +52,64 @@ const instant = (x) => {
   return Number.isNaN(t) ? null : t;
 };
 
+/** Valeur admise de `signer_unavailable.tentatives` : entier de 0 à 2 (le démon n'en écrit jamais plus, `signataires.mjs`). */
+export const TENTATIVES_MAX = 2;
+
 /**
- * Compte des opérations de signature réussies d'un journal d'audit Vault/OpenBao.
+ * Analyse du journal d'audit Vault/OpenBao pour une clé (étape 8, CT-7 EX-3.7) :
+ *   - `operations` : réponses `update` sans erreur dont le chemin est
+ *     `<mount>/sign/<nom>` ou commence par `<mount>/sign/<nom>/` (algorithme
+ *     dans l'URL, barre finale) ; une requête par lot (`request.data.batch_input`
+ *     en tableau, valeurs HMAC comprises) compte autant d'opérations que
+ *     d'entrées ;
+ *   - `lots_indetermines` : requêtes par lot dont le nombre d'entrées n'est pas
+ *     lisible (lot présent mais non tableau) : chacune vaut un incident ;
+ *   - `non_classees` : toute autre ligne sans erreur qui touche la clé sous
+ *     `<mount>/` (`export/…/<nom>`, `keys/<nom>/config`, `keys/<nom>/rotate`,
+ *     écriture ou suppression de `keys/<nom>`…), que l'outil ne sait pas
+ *     classer : chacune est une anomalie (code de retour non nul) ; la lecture
+ *     de `keys/<nom>` (clé publique, faite par le démon) est classée et comptée
+ *     à part (`lectures_cle`).
+ * @param {string} texte journal d'audit (lignes JSON)
+ * @param {{mount: string, nom: string, de?: number|null, a?: number|null}} o
+ * @returns {{operations: number, lots_indetermines: number, lectures_cle: number, non_classees: {time: string|null, path: string, operation: string|null}[]}}
+ */
+export function analyserAuditTransit(texte, o) {
+  const mount = o.mount.replace(/^\/+|\/+$/g, "");
+  const chemin = `${mount}/sign/${o.nom}`;
+  const r = { operations: 0, lots_indetermines: 0, lectures_cle: 0, non_classees: [] };
+  for (const e of lignesJson(texte)) {
+    if (e.type !== "response" || e.error) continue;
+    if (!dans(instant(e.time), o.de ?? null, o.a ?? null)) continue;
+    const p = typeof e.request?.path === "string" ? e.request.path.replace(/^\/+/, "") : null;
+    if (p === null || !p.startsWith(`${mount}/`)) continue;
+    const segments = p.split("/").filter(Boolean);
+    if (!segments.includes(o.nom)) continue;
+    const operation = typeof e.request?.operation === "string" ? e.request.operation : null;
+    if ((p === chemin || p.startsWith(`${chemin}/`)) && operation === "update") {
+      const lot = e.request?.data?.batch_input;
+      if (lot === undefined || lot === null) r.operations++;
+      else if (Array.isArray(lot)) r.operations += lot.length;
+      else r.lots_indetermines++;
+      continue;
+    }
+    if (p === `${mount}/keys/${o.nom}` && operation === "read") {
+      r.lectures_cle++;
+      continue;
+    }
+    if (r.non_classees.length < 1000) r.non_classees.push({ time: typeof e.time === "string" ? e.time.slice(0, 64) : null, path: p.slice(0, 256), operation: operation?.slice(0, 32) ?? null });
+  }
+  return r;
+}
+
+/**
+ * Compte des opérations de signature réussies d'un journal d'audit Vault/OpenBao
+ * (voir `analyserAuditTransit`, membre `operations`).
  * @param {string} texte journal d'audit (lignes JSON)
  * @param {{mount: string, nom: string, de?: number|null, a?: number|null}} o
  */
 export function compterAuditTransit(texte, o) {
-  const chemin = `${o.mount.replace(/^\/+|\/+$/g, "")}/sign/${o.nom}`;
-  let n = 0;
-  for (const e of lignesJson(texte)) {
-    if (e.type !== "response" || e.error) continue;
-    if (e.request?.path !== chemin || e.request?.operation !== "update") continue;
-    if (!dans(instant(e.time), o.de ?? null, o.a ?? null)) continue;
-    n++;
-  }
-  return n;
+  return analyserAuditTransit(texte, o).operations;
 }
 
 /**
@@ -74,7 +120,7 @@ export function compterAuditTransit(texte, o) {
 export async function compterObjetsSignes(o) {
   const de = o.de ?? null;
   const a = o.a ?? null;
-  const c = { evenements: 0, contresignatures: 0, manifestes: 0, points: 0, signatures_de_test: 0, tentatives_non_servies: 0 };
+  const c = { evenements: 0, contresignatures: 0, manifestes: 0, points: 0, signatures_de_test: 0, tentatives_non_servies: 0, anomalies: [] };
   const evts = fs.existsSync(path.join(o.repertoire, "segments")) ? await lireEvenements(o.repertoire) : [];
   for (const e of evts) {
     const t = decoderHorodatage(e.ts);
@@ -100,10 +146,19 @@ export async function compterObjetsSignes(o) {
     const fichiers = [];
     for (let k = 0, f = o.journalExploitation; fs.existsSync(f); f = `${o.journalExploitation}.${++k}`) fichiers.push(f);
     for (const f of fichiers) {
+      let numero = 0;
       for (const l of lignesJson(fs.readFileSync(f, "utf8"))) {
+        numero++;
         if (!dans(instant(l.ts), de, a)) continue;
         if (l.event === "signer_test_signature" && l.data?.key_id === o.keyId) c.signatures_de_test++;
-        if (l.event === "signer_unavailable" && l.data?.key_id === o.keyId) c.tentatives_non_servies += Number(l.data?.tentatives ?? 0);
+        if (l.event === "signer_unavailable" && l.data?.key_id === o.keyId) {
+          // Le journal d'exploitation n'est pas signé (étape 8, CT-7 MN-96) : seule une
+          // valeur que le démon peut écrire (entier de 0 à TENTATIVES_MAX) justifie
+          // des opérations ; toute autre est une anomalie, qui ne justifie rien.
+          const t = l.data && Object.hasOwn(l.data, "tentatives") ? l.data.tentatives : 0;
+          if (Number.isSafeInteger(t) && t >= 0 && t <= TENTATIVES_MAX) c.tentatives_non_servies += t;
+          else if (c.anomalies.length < 1000) c.anomalies.push({ fichier: f, ligne: numero, raison: `tentatives hors de 0 à ${TENTATIVES_MAX}`, valeur: typeof t === "number" ? t : typeof t });
+        }
       }
     }
   }
@@ -114,14 +169,40 @@ export async function compterObjetsSignes(o) {
  * Rapprochement d'une clé (EX-3.7) : écart = opérations du backend − objets
  * signés − signatures hors journal consignées. Un écart positif est un
  * incident ; un écart négatif n'est pas qualifié (« compte inférieur »).
+ * Étape 8 (CT-7 MN-96) : un écart qui n'est pas un nombre fini et un
+ * lot d'entrées indéterminé valent incident ; les lignes du journal
+ * d'exploitation hors des valeurs que le démon écrit et les lignes d'audit non
+ * classées sont des `anomalies` ; les objets sont comptés d'après leurs champs
+ * (`signatures_verifiees: false`) ; `justifiees_par_journal_exploitation` isole
+ * ce que seul le journal d'exploitation, non signé, justifie.
  * @param {{audit: string, mount: string, nom: string, repertoire: string, journalExploitation: string|null, keyId: string, de?: number|null, a?: number|null}} o
  */
 export async function rapprocher(o) {
-  const backend = compterAuditTransit(o.audit, o);
+  const audit = analyserAuditTransit(o.audit, o);
+  const backend = audit.operations;
   const objets = await compterObjetsSignes(o);
-  const justifiees = objets.evenements + objets.contresignatures + objets.manifestes + objets.points + objets.signatures_de_test + objets.tentatives_non_servies;
+  const parJournalExploitation = objets.signatures_de_test + objets.tentatives_non_servies;
+  const justifiees = objets.evenements + objets.contresignatures + objets.manifestes + objets.points + parJournalExploitation;
   const ecart = backend - justifiees;
-  return { key_id: o.keyId, backend_operations: backend, objets, justifiees, ecart, incident: ecart > 0 };
+  const anomalies = [
+    ...objets.anomalies,
+    ...audit.non_classees.map((x) => ({ raison: "ligne_audit_non_classee", ...x })),
+  ];
+  const { anomalies: _a, ...comptes } = objets;
+  void _a;
+  return {
+    key_id: o.keyId,
+    backend_operations: backend,
+    lots_indetermines: audit.lots_indetermines,
+    lectures_cle: audit.lectures_cle,
+    objets: comptes,
+    justifiees,
+    justifiees_par_journal_exploitation: parJournalExploitation,
+    signatures_verifiees: false,
+    ecart,
+    anomalies,
+    incident: !Number.isFinite(ecart) || ecart > 0 || audit.lots_indetermines > 0,
+  };
 }
 
 /**
@@ -172,5 +253,6 @@ export async function principalRapprochement(argv, io = {}) {
   const repertoire = path.join(config.storage.root, config.recorder.org_id.replace(/^0x/, ""), config.recorder.journal_id.replace(/^0x/, ""));
   const r = await rapprocher({ audit, mount: b.mount, nom, repertoire, journalExploitation: config.supervision?.ops_log?.path ?? null, keyId, de, a });
   stdout.write(`${JSON.stringify(r)}\n`);
-  return r.incident ? 3 : 0;
+  // Codes : 3 incident ; 1 anomalie sans incident (ligne du journal d'exploitation hors valeurs admises, ligne d'audit non classée) ; 0 sinon.
+  return r.incident ? 3 : r.anomalies.length ? 1 : 0;
 }

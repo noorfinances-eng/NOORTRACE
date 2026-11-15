@@ -27,10 +27,11 @@ type signatureConnue struct {
 func lireServiceDeTrace(tr *Value) *Service {
 	s := &Service{
 		OrgID: tr.Get("org_id").S(), JournalID: tr.Get("journal_id").S(),
-		PV: tr.Get("policy_version").S(), Charges: map[string]bool{},
+		PV:      tr.Get("policy_version").S(),
+		JeuJSON: tr.Get("approver_set"), SeparationJSON: tr.Get("separation"),
 	}
-	s.Charges[s.PV] = true
 	s.E, _ = EntierJSON(tr.Get("expire_after_ms"))
+	s.chargerVersion(s.PV) // la version de départ, déclarée avec son empreinte synthétique et l'approval de trace (A.6)
 	js := tr.Get("approver_set")
 	s.Source = js.Get("source").S()
 	s.Epingle = strings.ToLower(js.Get("set").S()) // EX-8.1 : jeu épinglé par la politique
@@ -184,6 +185,21 @@ func familleTickets(c *Contexte) []signatureConnue {
 				fr = "CT-3 A.6 : « la réponse à charger d'une trace est { policy_version } »"
 			}
 			c.R.ComparerJSON(f, v, "response", exp.Get("response"), rep, fr)
+			if kind == "evaluer" && res.Accepte && rep.Kind == KindObject {
+				// 12.3 (révision 0.5) : la version sous laquelle la réponse est
+				// rendue (requête, ou création du ticket rapproché, EX-7.21) et
+				// l'empreinte déclarée au charger de cette version (A.6).
+				pvAtt := d.Get("request").Get("code").Get("policy_version").S()
+				if tk := rep.Get("ticket"); tk != nil && tk.Kind == KindString && rep.Get("ticket_state").S() != "nouveau" {
+					if t := s.ticket(tk.Str); t != nil {
+						pvAtt = t.PV
+					}
+				}
+				c.R.Comparer(f, v, "response.policy_version", exp.Get("response").Get("policy_version").S(), pvAtt, "CT-3 12.3 (révision 0.5) : « code.policy_version de la requête pour une évaluation et un ticket nouveau ; la version sous laquelle le ticket a été créé (EX-7.21) pour un ticket rapproché »")
+				c.R.Comparer(f, v, "response.policy_sha256", exp.Get("response").Get("policy_sha256").S(), EmpreinteSynthetique(pvAtt), "CT-3 12.3 (révision 0.5), A.6 : « l'empreinte que le noyau a déclarée au charger de cette version, telle que le service l'a gardée » ; empreinte synthétique SHA-256(\"ensemble de politique <version>\") des traces")
+				cond, _ := CondenseApproval(ApprovalTrace(tr.Get("approver_set"), tr.Get("separation"), s.E))
+				c.R.Comparer(f, v, "response.approval_sha256", exp.Get("response").Get("approval_sha256").S(), cond, "CT-3 12.2, 12.3 (révision 0.5), A.6 : « le condensé calculé par le service au charger de la version sous laquelle la réponse est rendue » : SHA-256 du JCS de l'approval de trace (politique sans règle, défaut revue, jeu et séparation de la trace, mode erreur, hold_timeout_ms 50000, expire_after_ms de la trace, timeout_ms 2000)")
+			}
 			c.R.ComparerJSON(f, v, "remises", exp.Get("remises"), remisesJSON(s.pas), fond["remises"])
 			c.R.ComparerJSON(f, v, "windows", exp.Get("windows"), fenetresTriees(s.Fenetres), fond["windows"])
 			for _, a := range s.Avertissements {

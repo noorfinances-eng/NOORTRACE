@@ -54,7 +54,15 @@
       "ticket": "apr-demo-0042",
       "ticket_state": "en_attente",
       "approval": null,
-      "approver_set": null
+      "approver_set": null,
+      "policy_version": "2026-11-01",
+      "policy_sha256": "0xc5dac49797e5d273c2209e9ef6b44f77b80a2b927d2ddc8e93fc759d979b030c",
+      "approval_sha256": "0xa866fa5ab951735156052400d148b06654c1534b848251db81ab38b4af180589"
+    },
+    "pinned": {
+      "policy_version": "2026-11-01",
+      "policy_sha256": "0xc5dac49797e5d273c2209e9ef6b44f77b80a2b927d2ddc8e93fc759d979b030c",
+      "approval_sha256": "0xa866fa5ab951735156052400d148b06654c1534b848251db81ab38b4af180589"
     }
   },
   "result_rendered": {

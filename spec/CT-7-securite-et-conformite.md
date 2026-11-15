@@ -1,6 +1,24 @@
 # CT-7 — Sécurité et conformité
 
-Version 0.4, 2026-11-11 (révision 0.4 : inventaire des clés et des secrets
+Version 0.5, 2026-11-14 (révision 0.5 : revue de sécurité interne de
+l'étape 8 et décisions du porteur du 13 novembre 2026 — inventaire des clés
+et des secrets complété de CLE-37 à CLE-41 (interface d'inscription de
+l'exploitant, maillage p2p des validateurs, clé d'enveloppe de la classe C,
+jeton de lecture du coffre de secrets, clé minisign de publication) et
+CLE-3, CLE-10, CLE-14, CLE-21, CLE-24, CLE-29, CLE-36 précisées (4.2, 4.6) ;
+ligne `reseau` de 3.2 ; cellules « Test » de MN-25, MN-55 (texte inversé
+corrigé) et MN-73 et risque résiduel de MN-13 (3.4) ; bornes de RA-11, RA-13,
+RA-26, RA-43, RA-64 précisées, RA-25 étendu à la réécriture locale d'un
+segment non copié ni ancré, détectée, RA-22 à la dépendance de développement
+sans correctif (3.5) ; EX-3.7 (forme des requêtes de signature comptées), EX-3.9
+(feuille de style), EX-3.10 (empreinte qui fait foi), EX-3.11 (ce que le
+coffre garantit), EX-3.14 et PA-4 adoptée (image attendue et empreinte du
+code comparées, 6.2) ; répétition de cérémonie par rôles simulés (5.2, 10) ;
+CR-2, CR-4 et CR-5 (5.8) ; réserve `date_declaree_seulement` du rapport de
+vérification d'un procès-verbal de production sans ancre (5.8, EX-5.11,
+annexe A.4) ; purge des pièces non faite par la version 0 (8.8.2, EX-8.14) ;
+exemple de 3.8 à la version 0.5, cas CR-4 et CR-5 de l'annexe A.4, plancher
+du module Go (EX-A.21) ; section 11 ; version 0.4 du 2026-11-11, révision 0.4 : inventaire des clés et des secrets
 complété des secrets que posent la révision 0.5 de CT-3 et la révision 0.8
 de CT-2, CLE-30 à CLE-36 (clé de stockage de l'état du service d'approbation,
 clé HMAC du webhook des notifications, secret du client OIDC du serveur de
@@ -142,7 +160,7 @@ T-3 sans préfixe un texte de la matrice) :
 | MX- | Vérification de `matrice-conformite.json` et de son identité avec les tables de CT-7 | annexe A.8 |
 
 Les faits externes (publications du NIST, pratiques publiées de cérémonies,
-règlements) viennent de deux notes de recherche du lot CT-7, R6 (réglementation)
+règlements) viennent de deux notes de recherche de CT-7, R6 (réglementation)
 et R7 (sécurité et cérémonies), internes et non publiées, relues le 2026-10-26
 sur les sources primaires qu'elles citent ; les sources de T-2 et de T-8 ont été
 relues le 2026-11-03, le 2026-11-10, puis le 2026-11-11 (EX-8.20, annexe B.2). Chaque fait porte le renvoi du fait
@@ -165,7 +183,12 @@ numéros de ligne sont ceux du 2026-11-11 (révision 0.4), recalculés sur l'ét
 de CT-1 à CT-6 et de `spec/README.md` à cette date, pour la lecture
 seulement : RV-7 compte les occurrences par section, pas par ligne, et la
 table se régénère après toute retouche qui ajoute, retire ou déplace un
-« CT-7 ».
+« CT-7 ». Révision 0.5 : les lignes TR-102 à TR-119 reprennent les
+occurrences que la révision 0.11 de CT-2 ajoute, avec les numéros de ligne
+du 2026-11-14, à la suite de la table ; les lignes TR-120 et TR-121, celles
+de MN-99 et de CLE-21, deux identifiants de CT-7 que la note de cette
+révision (CT-2 §0.4) cite en motif, préfixés de « CT-7 » le 2026-11-15, avec
+les numéros de ligne de cette date.
 
 **EX-0.1** Toute occurrence de « CT-7 » dans une spécification de `spec/` DOIT
 avoir sa ligne dans cette table, avec une réponse qui nomme une section, une
@@ -266,9 +289,9 @@ lignes, comme ceux de `spec/README.md`.
 | TR-84 | CT-6 §16 (l. 6189) | Le schéma `attestation-perimetre-v0`. | 7.1 ; `spec/schemas/attestation-perimetre-v0.schema.json`. |
 | TR-85 | CT-6 §16 (l. 6191) | Les dossiers de la famille `ct-6`. | Annexe A.7 (EX-A.10). |
 | TR-86 | CT-6 « A.8 Confrontation par des implémentations tierces » (l. 7213) | Les dossiers avec la partie. | Annexe A.7. |
-| TR-87 | CT-6 « B.6 Notes du lot CT-7 (révision 0.3) » (l. 7663) | Les notes de recherche du lot. | Annexe B.1 (R7). |
-| TR-88 | CT-6 « B.6 Notes du lot CT-7 (révision 0.3) » (l. 7665) | Les faits R7-F51 à R7-F53. | Annexe B.1. |
-| TR-89 | CT-6 « B.6 Notes du lot CT-7 (révision 0.3) » (l. 7672) | Les extraits exacts des sources. | Annexe B.1, extraits cités par la section 7. |
+| TR-87 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 7663) | Les notes de recherche de CT-7. | Annexe B.1 (R7). |
+| TR-88 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 7665) | Les faits R7-F51 à R7-F53. | Annexe B.1. |
+| TR-89 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 7672) | Les extraits exacts des sources. | Annexe B.1, extraits cités par la section 7. |
 | TR-90 | spec/README.md « Spécifications » (l. 21) | L'état de CT-7. | Ce document, version 0.4 du 2026-11-11 (version 0.3 du 2026-11-10, version 0.2 du 2026-11-03, version 0.1 du 2026-10-26). |
 | TR-91 | spec/README.md « Spécifications » (l. 21) | Le lien vers ce document. | Ce document. |
 | TR-92 | spec/README.md « Spécifications » (l. 26) | Ordre d'écriture : CT-7 après CT-3, CT-4 et CT-5. | Respecté (section 1) : CT-7 0.1 reprend CT-2 0.5, CT-3 0.3, CT-4 0.4 et CT-5 0.2 en l'état, et accompagne CT-1 0.4 et CT-6 0.3. |
@@ -281,6 +304,26 @@ lignes, comme ceux de `spec/README.md`.
 | TR-99 | spec/README.md « CT-7 (`vecteurs/ct-7/`) » (l. 404) | Les vecteurs de CT-7. | Annexe A.2. |
 | TR-100 | spec/README.md « CT-7 (`vecteurs/ct-7/`) » (l. 406) | La disposition des vecteurs. | Annexe A. |
 | TR-101 | spec/README.md « CT-7 (`vecteurs/ct-7/`) » (l. 406) | Le lien vers ce document. | Ce document. |
+| TR-102 | CT-2 §5.3.3 (l. 2958) | EX-5.32 : les déclarations de serveurs MCP au fournisseur par les formats `anthropic-messages` et `openai-responses` ne sont pas refusées ; limite nommée dans CT-7 §3.5. | 3.4 (MN-13, risque résiduel) et RA-11 (3.5) : borné aux routes de ces formats, attribué au client, porté à l'attestation de périmètre. |
+| TR-103 | CT-2 §6.2 (l. 3726) | `class` de `debutAppel` : déclarée par l'agent, non vérifiée par le démon (RA-13). | RA-13 (3.5). |
+| TR-104 | CT-2 §6.6 (l. 4160) | EX-6.15 : même renvoi, un agent peut déclarer `lecture` pour une écriture. | RA-13 (3.5). |
+| TR-105 | CT-2 §10.7 (l. 7679) | EX-10.22 : aucun outil de lecture du coffre en version 0 ; la lecture est une procédure du client (EX-3.11). | EX-3.11 : ce que le coffre garantit, identités déclarées, lecture et consignation par procédure du client. |
+| TR-106 | CT-2 §12.6 (l. 8706) | EX-12.18 : la protection locale de l'attribut est une détection ; risque nommé dans CT-7 §3.5. | RA-25 (3.5) : réécriture locale d'un segment non copié ni ancré, détectée par le compagnon, non empêchée. |
+| TR-107 | CT-2 §13.2 (l. 9688) | Le secret du magasin de bail (CLE-19) ne sort que vers un serveur authentifié. | 4.2 (CLE-19) ; 3.2, ligne `reseau` (magasin de bail). |
+| TR-108 | CT-2 §15.4 (l. 11071) | La cérémonie des clés atteste la classe d'un module PKCS#11 que la règle de validation ne reconnaît pas. | Section 5 (cérémonie), 4.3 et CR-6. |
+| TR-109 | CT-2 §15.4 (l. 11072) | RA-26 : module PKCS#11 logiciel renommé. | RA-26 (3.5). |
+| TR-110 | CT-2 §18.4 (l. 12627) | EX-18.10 : proposition PA-4 adoptée. | 6.2 (PA-4, adoptée à l'étape 8 avec sa limite) ; EX-3.14. |
+| TR-111 | CT-2 §18.4 (l. 12653) | MN-25 dit l'écart d'empreinte « signalé » : le démon démarre et sert. | 3.4 (MN-25 : détection par la ligne `image_mismatch` ; réponse signalée, non bloquante). |
+| TR-112 | CT-2 §18.4 (l. 12662) | La comparaison du condensé de l'image reste à l'orchestrateur. | EX-3.14, dernière phrase. |
+| TR-113 | CT-2 §18.4 (l. 12665) | Un code modifié pour mentir sur son empreinte n'est pas détecté : RA-22. | RA-22 (3.5). |
+| TR-114 | CT-2 §18.4 (l. 12682) | EX-18.7 : copies des secrets non effaçables, `mlockall` et `prctl` non demandés ; limite portée à CT-7 §3.5. | 3.5 : risque posé au porteur (groupe des risques de la revue de sécurité de l'étape 8) ; nommé dans la table de 3.5 dès son acceptation. |
+| TR-115 | CT-2 §18.5 (l. 12747) | Limite de l'attribut d'ajout seul, bornée aux périodes non ancrées et aux segments sans copie WORM ; CT-7 §3.5. | RA-25 (3.5). |
+| TR-116 | CT-2 §21 (l. 14008) | Purge des pièces non exécutée par la version 0 : la rétention des pièces est celle des segments (CT-7 §8.8). | 8.8.2, ligne « Pièces », et EX-8.14. |
+| TR-117 | CT-2 §21 (l. 14012) | `mlockall` et `prctl` : limite nommée dans CT-7 §3.5. | Comme TR-114. |
+| TR-118 | CT-2 §21 (l. 14021) | Formats `anthropic-messages` et `openai-responses` : limite nommée dans CT-7 §3.5. | Comme TR-102 : MN-13 (3.4) et RA-11 (3.5). |
+| TR-119 | CT-2 §21 (l. 14026) | `wrap.endpoint` : un client qui pose `AWS_ENDPOINT_URL_KMS` sort son fichier Compose des vérifications CO- ; risque nommé dans CT-7 §3.5. | 3.5 : risque posé au porteur (revue de sécurité de l'étape 8 : « adaptation du client hors vérification CO- ») ; nommé dans la table de 3.5 dès son acceptation. |
+| TR-120 | CT-2 §0.4 (l. 253) | Note de la révision 0.11, point 7 (clés) : un constat de la revue sur les points d'accès des services de clés et SoftHSM2 cité en motif relève de CLE-21. | CLE-21 (4.2) : accès au signataire et identité d'usage IAM du démon. |
+| TR-121 | CT-2 §0.4 (l. 279) | Note de la révision 0.11, point 10 (validation, exploitation, supervision) : un constat de la revue cité en motif relève de la menace MN-99. | MN-99 (3.4) : un compte du système autre que celui du démon qui lit ou écrit le répertoire des exports. |
 
 Hors de `spec/`, cinq renvois existent aussi ; ils ne sont pas comptés par
 RV-7 et reçoivent la même réponse : `test/approbation.test.js` (EX-3.4 de
@@ -503,7 +546,7 @@ sauf si une signature vérifiée ou un canal authentifié dit d'où elle vient.
 | `verificateur` | Vérificateur et ancres de confiance du réviseur | Le code du vérificateur, le fichier d'ancres du réviseur, le fichier d'en-têtes Bitcoin (CT-6 §4) ; la page de vérification, qui exécute ce code dans le navigateur (CT-6 §18). | Il ne croit que son code, les primitives et les ancres du réviseur (CT-6 §3.1). |
 | `exploitant` | Exploitant NOORTRACE | L'instance du registre, ses clés d'exploitation, le manifeste d'instance, la publication du logiciel (CT-4 §3.1). Ne détient ni le journal, ni ses copies, ni les pièces, ni CLE-1 ou CLE-2, créées et gardées par le client (4.2) ; le registre ne reçoit que des identifiants, des clés publiques, des empreintes, des adresses d'approbateurs et leurs signatures, jamais d'événement ni de pièce (8.6, CT-7 EX-8.10). | Adversaire « fournisseur » de CT-6 §3.4 : rien de ce qu'il sert n'est cru sans recoupement. |
 | `administrateur_client` | Administrateur du client | La configuration, la politique, l'exploitation de l'enregistreur et du service, l'export des dossiers, l'attestation de périmètre. | Adversaire « opérateur » de CT-6 §3.4 ; ce qu'il déclare reste déclaré. |
-| `reseau` | Réseau | Les liens entre l'hôte, le démon, les serveurs d'outils, les fournisseurs, les prestataires, le registre et la console ; les liens sortants du service d'approbation vers le webhook des notifications et du serveur de console vers le fournisseur d'identité. | Aucune : TLS ou prise locale authentifiée partout où un secret ou une décision circule. |
+| `reseau` | Réseau | Les liens entre l'hôte, le démon, les serveurs d'outils, les fournisseurs, les prestataires, le registre, la console, le magasin de bail, les services de clés et d'identité ; les liens sortants du service d'approbation vers le webhook des notifications et du serveur de console vers le fournisseur d'identité. | Aucune : TLS ou prise locale authentifiée partout où un secret ou une décision circule. |
 
 ### 3.3 Tables sources consolidées
 
@@ -797,7 +840,7 @@ portée » ne vaut que sous cette réserve.
 | MN-10 | Mandataire MCP | `repudiation` | Une panne (stockage, processus) au milieu d'un appel d'écriture. | Règle « aucun effet d'écriture sans événement durable ». | Le serveur d'outils a exécuté l'écriture mais l'événement n'est pas durable. | Ordre des pas, intention durable avant relais et reprise des intentions (CT-2 EX-4.19, CT-2 EX-12.12, CT-2 EX-12.14) ; code `-31017` rendu à l'hôte (CT-2 EX-4.46). | Alerte « Panne après relais » (CT-2 §17.4) ; événement de reprise de l'intention (CT-2 EX-9.8). | Le résultat de l'écriture peut manquer : l'événement de reprise dit que l'issue est inconnue. Risque accepté RA-9. | une panne injectée après le pas 9 laisse une intention ouverte que la reprise scelle ; sans l'intention durable, aucun événement n'existe et le test échoue. |
 | MN-11 | Passerelle du modèle et raccord ICAP | `repudiation`, `elevation_de_privilege` | L'agent qui détient une clé de fournisseur ou une route de sortie directe. | Complétude des échanges avec le modèle. | L'agent interroge le fournisseur sans la passerelle ; aucun échange n'est journalisé. | Clé du fournisseur tenue par la passerelle seule (`credentials: "propre"`, CT-2 EX-5.8) et pare-feu de sortie (CT-2 §4.9, CT-2 EX-6.2) ; route `relayer` déclarée comme exception (CT-7 EX-3.6). | Rapprochement de l'usage déclaré par le fournisseur, clé par clé, avec les échanges journalisés (CT-7 EX-3.8). | Une clé personnelle de l'agent hors de la passerelle échappe au rapprochement. Risque accepté RA-10. | en mode `propre`, une requête de l'hôte qui porte sa propre clé voit cette clé retirée et la requête part avec celle de la passerelle ; si la clé de l'hôte traverse, le test échoue. |
 | MN-12 | Passerelle du modèle et raccord ICAP | `usurpation`, `divulgation` | Une machine du réseau du client qui atteint le port ICAP. | Authenticité des échanges reçus par ICAP et confidentialité du trafic déchiffré. | Des transactions fabriquées deviennent des échanges signés, ou le trafic déchiffré se lit sur le lien ICAP. | Clients ICAP authentifiés par mTLS ou liste de sources, l'un des deux exigé en production (CT-2 EX-5.3) ; ICAP en clair seulement sur la boucle locale ou un segment dédié déclaré (CT-7 EX-3.15). | Refus d'une transaction d'une source inconnue, consigné (CT-2 EX-5.3). | Sur un segment partagé, une liste de sources peut être usurpée ; CT-7 EX-3.15 l'exclut en production. | une transaction REQMOD d'une adresse absente de `allowed_sources` est refusée ; si la vérification est retirée, elle devient un échange et le test échoue. |
-| MN-13 | Passerelle du modèle et raccord ICAP | `repudiation` | L'agent qui fait exécuter des outils par le fournisseur (serveurs MCP déclarés au fournisseur, cache fournisseur). | Complétude des appels d'outils. | Des outils s'exécutent côté fournisseur, hors du mandataire MCP. | Requêtes refusées ou réduites à une référence selon la configuration (CT-2 EX-5.32) ; ce qui n'est pas capturé est dit (CT-2 §5.8). | Lignes `model_request_refused` (raison `serveurs_mcp_fournisseur`) et `provider_mcp_bypass` (CT-2 EX-17.2). | Ce que le fournisseur exécute de son côté n'est pas prouvé (CT-2 §5.8). Risque accepté RA-11. | une requête qui déclare un serveur MCP au fournisseur est refusée avec la raison attendue ; si le refus est retiré, elle part et le test échoue. |
+| MN-13 | Passerelle du modèle et raccord ICAP | `repudiation` | L'agent qui fait exécuter des outils par le fournisseur (serveurs MCP déclarés au fournisseur, cache fournisseur). | Complétude des appels d'outils. | Des outils s'exécutent côté fournisseur, hors du mandataire MCP. | Requêtes refusées ou réduites à une référence selon la configuration (CT-2 EX-5.32) ; ce qui n'est pas capturé est dit (CT-2 §5.8). | Lignes `model_request_refused` (raison `serveurs_mcp_fournisseur`) et `provider_mcp_bypass` (CT-2 EX-17.2). | Ce que le fournisseur exécute de son côté n'est pas prouvé (CT-2 §5.8) ; les déclarations de serveurs MCP au fournisseur par les formats `anthropic-messages` et `openai-responses` ne sont pas refusées par le frontal (la forme de ces déclarations n'est citée par aucune source de CT-2 annexe C et n'a pas pu être vérifiée à l'étape 8, réseau public non admis), risque borné aux routes de ces formats, attribué au client, à l'attestation de périmètre, à instruire sur une source primaire datée avant d'étendre CT-2 EX-5.32. Risque accepté RA-11. | une requête qui déclare un serveur MCP au fournisseur est refusée avec la raison attendue ; si le refus est retiré, elle part et le test échoue. |
 | MN-14 | Passerelle du modèle et raccord ICAP | `repudiation` | Le client qui choisit le mode `miroir` ou `desactive`. | Rang de preuve des échanges avec le modèle. | Les échanges sont capturés en lecture seule, ou pas du tout, sans pouvoir être bloqués. | Rang de chaque mode écrit (CT-2 §5.1, CT-2 EX-5.1, CT-2 EX-5.6) ; mode déclaré dans l'attestation de périmètre (CT-7 §7). | Le mode est lisible dans la configuration et dans l'attestation de périmètre. | Un mode miroir ne peut rien empêcher ; un mode désactivé ne prouve rien du modèle. Risque accepté RA-12. | la validation de configuration refuse un mode inconnu et la démonstration de référence tourne en mode `passerelle` ; si le mode n'est plus contrôlé, le test échoue. |
 | MN-15 | SDK et ingestion OpenTelemetry (chemin déclaratif) | `repudiation`, `alteration` | Un agent compromis qui emploie le SDK ou un adaptateur. | Exactitude des appels déclarés par le chemin déclaratif. | L'agent déclare d'autres arguments que ceux de l'acte, ou se tait. | Pare-feu de sortie exigé pour ce chemin (CT-2 EX-6.2) ; rang de preuve écrit et alias annoncés dans la chaîne (CT-2 §6.7, CT-2 EX-6.24) ; aucun hachage ni écriture dans le processus de l'agent (CT-2 EX-6.1). | Le lecteur reconnaît le chemin à l'alias de l'outil (CT-2 §6.7) ; le rapport dit « déclaré » (CT-7 §7). | Un agent compromis peut mentir ou se taire par ce chemin (CT-2 §6.3). Risque accepté RA-13. | un appel déclaré par le SDK produit un événement de préfixe `<alias SDK>__` reconnaissable ; si l'alias n'est plus annoncé dans l'ensemble de politique, le test échoue. |
 | MN-16 | SDK et ingestion OpenTelemetry (chemin déclaratif) | `usurpation`, `deni_de_service` | Une source OpenTelemetry compromise, ou une machine qui atteint le point d'entrée. | Intégrité et disponibilité de l'ingestion ; écrivain partagé. | Des spans fabriqués deviennent des événements, ou l'ingestion sature l'écrivain. | Sources authentifiées, noms limités au préfixe de la source, bornes et quotas, TLS hors boucle locale en production (CT-2 EX-6.37, CT-2 EX-6.40, CT-2 EX-6.28, CT-2 EX-4.47). | Alertes « Ingestion OpenTelemetry refusée », « Spans rejetés », « Span OpenTelemetry rejoué avec un autre contenu » (CT-2 §17.4). | Une source authentifiée peut fabriquer des spans : c'est la déclarante (CT-2 EX-6.40, point 6). Risque accepté RA-14. | un span d'une source qui tente un nom d'un autre alias est rejeté ; si la règle du préfixe est retirée, il est scellé et le test échoue. |
@@ -809,7 +852,7 @@ portée » ne vaut que sous cette réserve.
 | MN-22 | Écrivain, stockage et bail | `divulgation` | L'hôte, l'agent, ou une personne qui lit le volume du journal. | Pièces rédigées, journal d'exploitation, données personnelles qu'ils portent. | Lecture des pièces ou du journal d'exploitation par qui n'en a pas l'usage. | Aucun droit de l'hôte ni de l'agent sur `storage.root` (CT-2 EX-3.2, CT-2 EX-18.5) ; rédaction avant hachage (CT-2 EX-10.2) ; ce qui ne va jamais dans le journal d'exploitation (CT-2 EX-9.6, CT-2 EX-17.3). | Journaux d'accès du système de fichiers ou du support, tenus par le client. | Les pièces rédigées restent des données du client ; leur accès relève du client. Risque accepté RA-19. | le processus de l'agent de la démonstration ne peut pas lister `storage.root` ; si le volume est monté dans son conteneur, le test échoue. |
 | MN-23 | Écrivain, stockage et bail | `alteration`, `repudiation` | L'administrateur du client, qui écrit la configuration et la politique. | Politique et configuration en vigueur. | La politique est assouplie, le jeu remplacé par un jeu `statique`, ou la configuration d'exploitation changée, sans trace. | Toute version de politique annoncée dans la chaîne avant usage, avec son empreinte (CT-2 EX-9.1, CT-2 EX-9.2, CT-2 EX-8.11) ; jeu `statique` refusé en production (CT-3 EX-8.2) ; empreinte de la configuration consignée (CT-2 EX-18.6) ; empreinte de la configuration d'exploitation dans la chaîne proposée (CT-7 §6, PA-2). | Événement `noortrace.journal.politique` (CT-1 §5.1) ; lignes `startup` et `config_reloaded` (CT-2 EX-17.2), que l'administrateur peut effacer (MN-96) ; copie WORM du journal d'exploitation proposée à CT-2 (CT-7 PA-18). | Un assouplissement de `policy` est visible, non empêché, car il est annoncé dans la chaîne (CT-2 EX-9.2) ; face à l'administrateur, un changement hors `policy` n'a aucune trace hors de PA-1 et PA-2 ; la signature de la configuration n'est pas en version 0 (CT-2 §21). Risque accepté RA-20. | un rechargement de politique produit un événement de politique avant le premier événement de la nouvelle version ; si l'événement n'est plus produit, le vecteur `ct-2/evenements/journal-demo/` diffère et le test échoue. |
 | MN-24 | Écrivain, stockage et bail | `divulgation` | Une personne qui détient la clé du coffre des originaux. | Originaux non rédigés des pièces. | Lecture des valeurs que la rédaction protège. | Coffre chiffré, clé propre distincte de celle du signataire (CT-2 EX-10.22) ; déchiffrement à deux personnes et consigné (CT-7 EX-3.11). | Registre des accès au coffre (CT-7 EX-3.11). | Deux personnes de connivence lisent les originaux. Risque accepté RA-21. | l'outil de lecture du coffre refuse un déchiffrement sans seconde approbation distincte du demandeur ; si la seconde approbation est retirée, il déchiffre et le test échoue. |
-| MN-25 | Écrivain, stockage et bail | `alteration`, `divulgation`, `elevation_de_privilege` | Un attaquant qui compromet le démon de l'enregistreur. | Ce que l'enregistreur relaie à l'agent et à l'hôte : résultats d'outils, réponses de modèle, clés en transit. | Le démon compromis change les résultats renvoyés à l'agent, lit les prompts et les clés de fournisseur, injecte des instructions. | Surfaces d'écoute et de sortie exhaustives, moindre privilège, mémoire non vidable (CT-2 EX-18.1, CT-2 EX-18.2, CT-2 EX-18.4, CT-2 EX-18.7) ; version du logiciel dans chaque événement et empreinte de l'image (CT-2 EX-18.6, CT-7 EX-3.14). | Écart entre l'empreinte de l'image en cours et celle de la version publiée (CT-7 EX-3.14) ; `code.recorder` dans la chaîne (CT-1 §5.3). | L'enregistreur est sur le chemin par conception : le compromettre, c'est compromettre ce qu'il relaie (CT-2 §18.5). Risque accepté RA-22. | le démarrage consigne l'empreinte de l'image et `code.recorder` ; une image dont l'empreinte diffère de la version publiée est signalée ; si la comparaison est retirée, le test échoue. |
+| MN-25 | Écrivain, stockage et bail | `alteration`, `divulgation`, `elevation_de_privilege` | Un attaquant qui compromet le démon de l'enregistreur. | Ce que l'enregistreur relaie à l'agent et à l'hôte : résultats d'outils, réponses de modèle, clés en transit. | Le démon compromis change les résultats renvoyés à l'agent, lit les prompts et les clés de fournisseur, injecte des instructions. | Surfaces d'écoute et de sortie exhaustives, moindre privilège, mémoire non vidable (CT-2 EX-18.1, CT-2 EX-18.2, CT-2 EX-18.4, CT-2 EX-18.7) ; version du logiciel dans chaque événement et empreinte de l'image (CT-2 EX-18.6, CT-7 EX-3.14). | Écart entre l'empreinte de l'image en cours et celle de la version publiée (CT-7 EX-3.14) ; `code.recorder` dans la chaîne (CT-1 §5.3). | L'enregistreur est sur le chemin par conception : le compromettre, c'est compromettre ce qu'il relaie (CT-2 §18.5). Risque accepté RA-22. | le démarrage consigne l'image attendue, l'empreinte du code en cours et `code.recorder` ; une image dont l'empreinte de code diffère de celle de la version publiée est signalée (`image_mismatch`) ; si la comparaison est retirée, le test échoue. |
 | MN-26 | Écrivain, stockage et bail | `repudiation` | L'administrateur du client, ou un attaquant qui arrête, redémarre ou fait basculer l'enregistreur. | Datation, dans la chaîne, des changements d'état de l'enregistreur : démarrage, arrêt, bascule de bail. | Une interruption de la capture, ou une reprise par un autre écrivain, n'apparaît pas dans la chaîne ; un réviseur ne sait pas quand elle a eu lieu. | Points de contrôle produits à chaque instant aligné, qu'un événement ait été écrit ou non (preuve de vie, CT-2 EX-12.24) ; lignes `startup`, `lease_acquired`, `lease_lost` du journal d'exploitation (CT-2 EX-17.2) ; annonce de reprise proposée à CT-2 (CT-7 §6.2, PA-1). | Point manqué constaté (`point_manquant`, CT-5 §8.9) et trou dans la série des points publiée au réviseur (CT-5 §10.2) ; alertes « Bail » et « Fourche » (CT-2 §17.4) ; les lignes du journal d'exploitation, que l'administrateur peut effacer (MN-96). | Tant que PA-1 n'est pas adoptée, ces changements d'état restent hors de la chaîne (CT-7 §6.1) ; un redémarrage de moins de `c_K` ne laisse aucun trou dans la série des points. Risque accepté RA-66. | un redémarrage de l'enregistreur de la démonstration laisse une ligne `startup` et, une fois PA-1 adoptée, un événement d'annonce de reprise ; si la ligne `startup` n'est plus écrite, le test échoue. |
 | MN-84 | Écrivain, stockage et bail | `alteration`, `repudiation` | L'exportateur, avec ou sans la clé de l'enregistreur, qui forge un événement d'inscription. | Inscription de l'attestation au journal. | Une attestation paraît inscrite à un rang où elle ne l'était pas. | Signature de l'inscription vérifiée sous la clé de l'événement prouvé, seule admise, et rang au plus celui de l'événement prouvé (CT-1 AT-6, CT-7 EX-7.10) ; l'inscription a son propre dossier, avec ses ancres (CT-7 EX-7.10). | Le dossier de l'événement d'inscription, confronté à ses ancres (CT-6 §5.1). | Même risque que la réécriture du journal par qui détient la clé, dans la fenêtre de réécriture (CT-1 §10.9) ; AT-6 ne relie pas l'inscription à la chaîne de l'événement prouvé par un hachage, seul `seq` est comparé : l'appartenance de l'inscription à la chaîne n'est prouvée que par son propre dossier. Risque accepté RA-71. | dans le dossier `valide-at6-inscription-signature-fausse`, AT-6 doit échouer ; si la vérification de la signature de l'inscription est retirée, AT-6 réussit et le test échoue. |
 | MN-85 | Écrivain, stockage et bail | `repudiation` | Un enregistreur qui ne sait pas porter l'inscription tant que PA-8 n'est pas adoptée. | Date et rang de l'attestation. | Une attestation rédigée après coup paraît couvrir l'événement. | Sans inscription, AT-6 et AT-7 ne s'exécutent pas, raison `partie_absente`, et le fragment FP porte la clause fixe « non inscrite au journal (ni sa date ni son rang ne sont établis) » (CT-7 EX-7.12, CT-6 EX-6.19) ; membre `policy.perimeter` proposé à CT-2 (CT-7 PA-8). Seule l'inscription situe l'attestation : `validity.from` peut précéder `issued_at`, et un contrôle de l'un contre l'autre ne protégerait de rien, `issued_at` étant déclaré. | `facts.perimeter.inscription` nul dans le rapport (CT-6 EX-6.20). | Rien ne situe une attestation sans inscription dans le temps du journal, et sa validité peut être rétroactive. Risque accepté RA-72. | le dossier `valide-seq-7-attestation-sans-inscription` a un fragment FP qui porte la clause « non inscrite au journal » ; si la règle est retirée, le fragment annonce une inscription et le test échoue. |
@@ -848,7 +891,7 @@ portée » ne vaut que sous cette réserve.
 | MN-100 | Service d'approbation et console | `usurpation`, `elevation_de_privilege` | Un fournisseur d'identité compromis, ou qui se fait passer pour lui auprès du serveur de console : document de découverte, jeu de clés, point de jeton. | Identité de session des personnes de la console, administrateurs de l'annuaire compris. | Il fait ouvrir une session sous l'identité de son choix : approbateur, demandeur ou administrateur de l'annuaire. | Découverte et jeu de clés en HTTPS seulement, sans redirection, émetteur comparé octet pour octet, PKCE `S256`, client authentifié au point de jeton (CT-3 EX-13.45) ; jeton d'identité vérifié par le serveur seul, liste fermée d'algorithmes, `iss`, `aud`, `azp`, `nonce` et instants contrôlés (CT-3 EX-13.46) ; réauthentification récente avant chaque modification (CT-3 EX-13.8) ; validation d'une inscription après vérification par un autre canal (CT-3 EX-13.17) ; aucune clé d'approbateur dans la session, donc aucun vote sans elle (CT-3 EX-13.1). | Notification de chaque opération de l'annuaire qui vise la personne (CT-3 EX-13.3) ; `operations` de l'annuaire (CT-3 §13.6) ; journaux du fournisseur, tenus par le client. | Un fournisseur compromis fait, pour toute identité, ce que fait une session volée (CT-3 §14.8), méthodes d'administration de l'annuaire comprises, jusqu'à ce que le client le constate ; il ne fait voter personne sans sa clé. Risque accepté RA-84. | un jeton d'identité dont `aud` n'est pas `client_id` est refusé (`jeton_invalide`) ; si le contrôle d'`aud` est retiré, une session s'ouvre et le test échoue. |
 | MN-53 | Registre (validateurs, RPC, contrats, administrateur, gouvernance, trésorerie) | `elevation_de_privilege`, `deni_de_service` | L'exploitant du registre, qui tient l'administration du registre et sert le RPC. | Jeu assigné à une organisation et suite de ses clôtures. | Il réassigne le jeu d'une organisation, inscrit des clés et soumet une clôture qui rend un journal inachevable. | Réassignation sur demande écrite et jeu administré par la même clé de gouvernance (CT-4 EX-8.10) ; jeu épinglé (CT-3 EX-8.6) ; demande consignée par procès-verbal (CT-7 EX-5.1). | Surveillance de `CuratorSetAssigned` et des journaux par le client (CT-4 EX-8.12). | Un journal ainsi rendu inachevable est abandonné ; c'est public (CT-4 §3.5). Risque accepté RA-48. | l'outil de référence refuse un nouveau jeu dont `admin()` diffère sans `--changement-administrateur` (OP-5) ; si le contrôle est retiré, la réassignation part et le test échoue. |
 | MN-54 | Registre (validateurs, RPC, contrats, administrateur, gouvernance, trésorerie) | `alteration` | Des validateurs fautifs ou coalisés, ou le fournisseur du registre qui contrôle un quorum. | Certificats de commit et blocs du registre. | Des blocs faux passent le contrôle 8 ; deux certificats contradictoires existent. | Au plus f validateurs par opérateur et par site, validateurs partenaires (CT-4 EX-4.12, CT-4 EX-10.6) ; aucune date tirée du registre (CT-4 EX-3.2) ; quorum calculé sur le jeu du réviseur (CT-6 R-2). | Publication des preuves de double signature (CT-4 §14) ; ancres RFC 3161 et Bitcoin indépendantes du registre (CT-5 §3.4). | Contre un quorum, le contrôle 8 ne prouve rien (CT-6 §3.4). Risque accepté RA-49. | le dossier `invalide-r2-jeu-substitue` de `ct-6/dossiers/` échoue à R-2 ; si le quorum est calculé sur `validateurs.json`, il passe et le test échoue. |
-| MN-55 | Registre (validateurs, RPC, contrats, administrateur, gouvernance, trésorerie) | `deni_de_service` | Un expéditeur sans solde qui atteint un point RPC en écriture, une clé qui envoie trop, ou une panne de validateur. | Mempool et capacité d'inclusion du registre. | La mempool se remplit de transactions jamais prêtes ; les ancres et clôtures attendent. | Garde d'admission par client, RPC des validateurs fermés, soumission à au moins deux validateurs (CT-4 EX-10.8, CT-4 EX-10.3, CT-4 EX-8.15) ; une clé de chaîne par clé Ed25519 (CT-2 EX-11.19) ; le registre ne bloque jamais l'enregistreur (CT-2 §14.2). | Alerte de CT-8 sur la taille de la mempool (CT-4 §12) ; `registry_pending` (CT-2 EX-17.2). | Le contrôle du solde à l'admission par noorcore est seulement proposé (CT-4 §14). Risque accepté RA-50. | l'épreuve SU-2 de CT-4 est rejouée sur le réseau de développement ; si la garde d'admission est retirée, les transactions à 1 wei sont refusées et le test échoue. |
+| MN-55 | Registre (validateurs, RPC, contrats, administrateur, gouvernance, trésorerie) | `deni_de_service` | Un expéditeur sans solde qui atteint un point RPC en écriture, une clé qui envoie trop, ou une panne de validateur. | Mempool et capacité d'inclusion du registre. | La mempool se remplit de transactions jamais prêtes ; les ancres et clôtures attendent. | Garde d'admission par client, RPC des validateurs fermés, soumission à au moins deux validateurs (CT-4 EX-10.8, CT-4 EX-10.3, CT-4 EX-8.15) ; une clé de chaîne par clé Ed25519 (CT-2 EX-11.19) ; le registre ne bloque jamais l'enregistreur (CT-2 §14.2). | Alerte de CT-8 sur la taille de la mempool (CT-4 §12) ; `registry_pending` (CT-2 EX-17.2). | Le contrôle du solde à l'admission par noorcore est seulement proposé (CT-4 §14). Risque accepté RA-50. | l'épreuve SU-2 de CT-4 est rejouée derrière une garde d'admission d'EX-10.8 ; si la garde est retirée, les transactions à 1 wei d'un expéditeur sans solde sont admises et le test échoue. |
 | MN-56 | Registre (validateurs, RPC, contrats, administrateur, gouvernance, trésorerie) | `alteration`, `usurpation` | Un point RPC ou un relais RPC menteur. | Lectures d'état, reçus et identifiant de chaîne servis aux outils. | Il sert un état, des reçus ou un identifiant de chaîne faux. | Capture auprès d'un validateur, certificat vérifié contre le jeu du manifeste avant d'être tenu pour capturé (CT-4 CP-1, CT-4 CP-4) ; contrôle d'identifiant (CT-4 EX-4.9) ; tout recalculé au vérificateur (CT-6 §11.1). | Échec CP-4 consigné (CT-4 §9.4). | Un relais peut retenir ; il ne peut pas forger un quorum (CT-4 §12). | le vecteur `ct-4/capture/` d'un certificat altéré est refusé par CP-4 ; si CP-4 est retirée, la capture est tenue pour faite et le test échoue. |
 | MN-57 | Registre (validateurs, RPC, contrats, administrateur, gouvernance, trésorerie) | `usurpation`, `alteration` | Qui rejoue une signature ou une transaction d'une autre chaîne, d'une autre organisation, ou une demande signée ancienne ; qui altère un dossier d'inscription. | Condensés signés au seuil, transactions et dossier d'inscription. | Une signature ou une transaction sert ailleurs ; d'autres clés sont inscrites qu'annoncé. | Identifiant EVM, adresse, étiquette et `org_id` dans chaque condensé, transactions de type 2 seulement, clés propres à l'instance (CT-4 EX-4.8, CT-4 §6.6) ; une demande par position et échéance `expires_at` (CT-4 EX-8.19) ; contrôle du client avant toute politique (CT-4 EX-7.17) ; manifeste et adresses recoupés (CT-4 OP-1, CT-4 RG-19). | Refus `demande_existante` ou échec OP consigné (CT-4 §7.3). | Le dossier d'inscription n'est authentifié par personne en version 0 (CT-4 EX-7.8). Risque accepté RA-51. | le vecteur `ct-4/condenses.json` d'une signature d'une autre organisation est refusé ; si `orgId` sort du condensé, il est accepté et le test échoue. |
 | MN-58 | Registre (validateurs, RPC, contrats, administrateur, gouvernance, trésorerie) | `deni_de_service` | Qui voit une empreinte avant son inclusion : horodateur, chemin RPC, intermédiaire. | Unicité de l'empreinte d'ancre au registre. | Il ancre l'empreinte le premier ; l'ancre légitime est refusée. | Ancre du registre envoyée avant la requête d'horodatage, attente bornée pour un point (CT-4 EX-8.4, CT-5 EX-4.7, CT-5 EX-9.6) ; aucun nouvel essai, incident consigné (CT-5 EX-9.7, CT-4 EX-8.6). | Statut `empreinte_squattee` (CT-5 §9). | Une empreinte liée à l'émetteur est seulement proposée (CT-4 §14). Risque accepté RA-52. | une trace du planificateur où l'empreinte est déjà ancrée aboutit à `empreinte_squattee` sans nouvel essai, incident consigné ; si l'ordre « ancre d'abord » ou l'arrêt des essais est retiré, la trace diffère et le test échoue. |
@@ -872,7 +915,7 @@ portée » ne vaut que sous cette réserve.
 | MN-101 | Vérificateur et ancres de confiance du réviseur | `alteration`, `divulgation` | L'hébergeur de la page de vérification, ou qui change un de ses fichiers. | Rapport que la page affiche ; fichiers que l'utilisateur lui donne : dossier, fichier d'ancres, fichier d'en-têtes Bitcoin. | Il fait afficher un rapport ou une empreinte faux ; il fait envoyer hors du poste les fichiers choisis. | Intégrité des sous-ressources et contrôle de l'empreinte de l'artefact par le travailleur (CT-6 EX-18.5, CT-6 EX-18.6) ; aucune requête après le chargement, `connect-src 'none'`, aucun stockage, origine distincte de toute console (CT-6 EX-18.11, CT-6 EX-18.12) ; empreintes publiées et signées, reconstruction (CT-6 EX-18.4) ; binaire publié (CT-6 EX-14.9). | Comparaison de l'empreinte affichée et des fichiers reçus aux empreintes publiées (CT-6 EX-18.4, CT-6 EX-18.5) ; épreuve de chaque version dans trois moteurs de navigateur (CT-6 EX-18.13). | L'utilisateur croit l'origine qui sert la page et son navigateur : un `travailleur.js` changé ou un hébergeur qui sert d'autres fichiers fait exécuter un autre programme et afficher n'importe quel rapport (CT-6 EX-18.2), et les mêmes moyens lui permettraient d'envoyer ailleurs les fichiers choisis. Risque accepté RA-85. | un artefact dont un octet est changé n'est pas compilé et aucun rapport n'est affiché ; si le contrôle de l'empreinte par le travailleur est retiré, la page rend un rapport et le test échoue. |
 | MN-71 | Exploitant NOORTRACE | `usurpation`, `alteration` | L'exploitant NOORTRACE, qui publie le manifeste d'instance, sert le RPC et opère des validateurs. | Adresses de contrats, identifiant de chaîne et jeux de validateurs que le réviseur reprend. | Le réviseur reprend sans recoupement des adresses ou un jeu qui désignent un contrat ou des validateurs de l'exploitant. | Manifeste en révisions chaînées et publiées (CT-4 EX-4.25) ; recoupement par le réviseur avec les transactions de déploiement et un jeu obtenu d'au moins deux opérateurs indépendants (CT-6 §12.5, CT-4 RG-19) ; au plus f validateurs de l'exploitant en production (CT-4 EX-4.12). | Écart lors du recoupement (CT-6 §12.5). | Sans recoupement, la confiance du réviseur repose sur l'exploitant (CT-6 §3.4) ; les règles de calcul du contrôle 8 viennent du code privé de noorcore (CT-6 §7.8). Risque accepté RA-60. | le dossier `invalide-r4-autre-chaine` échoue quand l'identifiant de chaîne de l'ancre diffère ; si la comparaison est retirée, il passe et le test échoue. |
 | MN-72 | Exploitant NOORTRACE | `divulgation` | Tout lecteur de la chaîne du registre : validateurs, partenaires, exploitant. | Métadonnées d'activité du client. | La cadence des ancres et des clôtures d'un `org_id` est lisible, et révèle le rythme d'activité de ses journaux. | Seules des empreintes de 32 octets et des clés publiques sont écrites (CT-4 §3.4) ; `org_id` et `journal_id` jamais envoyés aux prestataires (CT-5 §13) ; serveur interne pour les points si la cadence est jugée sensible (CT-5 §7). | Aucune : la lecture de la chaîne n'est pas tracée. | La cadence par organisation reste lisible par qui lit la chaîne. Risque accepté RA-61. | aucune transaction des vecteurs `ct-4/transactions.json` ne porte autre chose que des empreintes, des clés publiques et des identifiants ; si un champ de contenu apparaît, le test échoue. |
-| MN-73 | Exploitant NOORTRACE | `elevation_de_privilege` | Un membre de l'exploitant qui relaie une administration de jeu ou approvisionne une clé sans l'accord du client. | Jeu du client et provision de ses clés. | Une opération d'administration est relayée pour le compte du client sans son accord. | Relais et approvisionnement seulement sur confirmation hors bande consignée (CT-4 EX-8.21) ; demande de changement d'administrateur consignée par procès-verbal (CT-7 EX-5.1). | Événements publics du jeu sondés par le client (CT-4 EX-8.12). | La confirmation hors bande est un acte d'exploitation déclaré. Risque accepté RA-62. | l'outil de référence refuse `administrer-jeu` sans référence de confirmation ; si la référence n'est plus exigée, le test échoue. |
+| MN-73 | Exploitant NOORTRACE | `elevation_de_privilege` | Un membre de l'exploitant qui relaie une administration de jeu ou approvisionne une clé sans l'accord du client. | Jeu du client et provision de ses clés. | Une opération d'administration est relayée pour le compte du client sans son accord. | Relais et approvisionnement seulement sur confirmation hors bande consignée (CT-4 EX-8.21) ; demande de changement d'administrateur consignée par procès-verbal (CT-7 EX-5.1). | Événements publics du jeu sondés par le client (CT-4 EX-8.12). | La confirmation hors bande est un acte d'exploitation déclaré. Risque accepté RA-62. | l'outil de référence refuse `administrer-jeu` et `approvisionner` sans `--confirmation` (CT-4 EX-8.21) ; si l'exigence est retirée, le relais passe et le test échoue. |
 | MN-97 | Exploitant NOORTRACE | `alteration`, `usurpation` | Qui altère l'outil de référence publié par l'exploitant NOORTRACE (`attestation.mjs`, `ceremonie.mjs`) ou le poste qui l'exécute. | Condensé que le signataire croit signer (`D_P`, `D_C`). | L'outil affiche un condensé et en fait signer un autre ; une attestation ou un procès-verbal que le signataire n'a pas lu porte sa signature. | Comparaison du condensé, groupe de huit chiffres par groupe de huit, entre l'écran du portefeuille matériel et un second outil indépendant ; avec un fichier de clé, recalcul obligatoire par ce second outil (CT-7 EX-5.8, CT-7 EX-7.8) ; modes `condenser` et `condenser-pv` du vérificateur Go de `ct-7` (CT-7 EX-A.21). | Écart constaté par la comparaison ; recalcul de `D_P` par AT-2 et de `D_C` par le vérificateur de procès-verbal chez le réviseur (CT-1 AT-2, CT-7 EX-5.9). | Un signataire qui ne compare pas signe ce que l'outil lui présente. Risque accepté RA-81. | un outil modifié pour faire signer un autre condensé est arrêté par la comparaison au second outil ; si la comparaison est retirée, la signature est produite et le test échoue. |
 | MN-74 | Administrateur du client | `repudiation`, `alteration` | L'administrateur du client, qui exploite l'enregistreur et exporte les dossiers. | Dossiers remis au réviseur et attestation de périmètre. | Il fabrique un journal faux avant la clôture, choisit les voisins, les pièces et le point qu'il exporte, ne produit pas un dossier défavorable, déclare un périmètre plus large que le vrai. | Ancres extérieures de la période et des points (CT-6 §3.4, CT-1 §10.9) ; série des points publiée au réviseur (CT-5 §10.2) ; attestation de périmètre signée par des membres du jeu, rapportée « déclaré par » (CT-7 §7). | Série des points et complétude au registre (CT-5 EX-10.7) ; recoupement de l'attestation par le réviseur. | Ce qui est fabriqué avant l'ancre est ancré tel quel ; l'attestation reste une déclaration. Risque accepté RA-63. | un dossier dont la partie des points embarque un point qui ne couvre pas l'événement échoue à K-4 ; si K-4 est retirée, il passe et le test échoue. |
 | MN-75 | Administrateur du client | `deni_de_service`, `repudiation` | L'administrateur du client qui coupe la supervision, les alertes ou la relecture des gels. | Détection des incidents de 17.4 de CT-2. | Les alertes ne partent plus ; un incident passe inaperçu. | Relecture par un rôle Lecteur hors du démon (CT-2 EX-17.7, CT-2 EX-18.9) ; métriques publiques sur la santé (CT-2 EX-17.1) ; le réviseur demande la série des points (CT-5 §10.2). | Trou dans la série des points et dans `noortrace_worm_last_audit_age_s` (CT-2 §17.4). | Une supervision coupée par qui la tient n'est vue que par un tiers. Risque accepté RA-64. | la relecture quotidienne par le Lecteur alerte sur une version d'un gel actif qui n'est pas `on` ; si la relecture n'est faite que par le démon, le test échoue. |
@@ -922,9 +965,9 @@ exceptions connues.
 | RA-8 | Évasion du bac à sable d'un serveur stdio | Limitée aux droits de l'utilisateur distinct de `transport.user`, sans droit sur `storage.root` ni sur les secrets | client | MN-9 |
 | RA-9 | Issue inconnue après panne | Une intention au plus par appel en vol au moment de la panne, signalée par l'événement de reprise | client | MN-10 |
 | RA-10 | Clé de fournisseur hors de la passerelle | Limitée aux clés que le client n'a pas inventoriées dans l'attestation de périmètre | client | MN-11 |
-| RA-11 | Exécution côté fournisseur | Limitée aux routes où la configuration admet les serveurs MCP du fournisseur | client | MN-13 |
+| RA-11 | Exécution côté fournisseur | Limitée aux routes où la configuration admet les serveurs MCP du fournisseur, et aux routes des formats `anthropic-messages` et `openai-responses`, dont le frontal ne refuse pas les déclarations de serveurs MCP (3.4, MN-13) | client | MN-13 |
 | RA-12 | Capture du modèle en lecture seule ou absente | Limitée aux journaux dont la configuration nomme `miroir` ou `desactive` | client | MN-14 |
-| RA-13 | Déclaration d'un agent compromis | Limitée aux outils de préfixe d'un alias du SDK, que le pare-feu borne à ce que l'agent peut joindre | client | MN-15 |
+| RA-13 | Déclaration d'un agent compromis | Limitée aux outils de préfixe d'un alias du SDK, que le pare-feu borne à ce que l'agent peut joindre ; la classe d'un appel du SDK est celle que l'agent déclare, à défaut `ecriture`, et le démon ne la vérifie pas (CT-2 table 6.2, EX-6.15 : aucune classe configurée par outil pour les entrées de `sdk.hosts`) | client | MN-15 |
 | RA-14 | Spans fabriqués par une source authentifiée | Limités au préfixe de la source et à ses quotas | client | MN-16 |
 | RA-15 | Fenêtre de réécriture | Au plus `c_T` plus `d_jeton` (300 s plus le délai du jeton par défaut, CT-5 P-3) avec un prestataire extérieur pour les points ; une heure plus le délai du jeton sans points ; pendant une panne des prestataires sans secours utilisable, la borne dégradée de RA-55 (CT-5 §13) | client | MN-17 |
 | RA-16 | Omission par l'enregistreur | Limitée aux actes dont aucun autre système du client ne garde trace | client | MN-18 |
@@ -933,11 +976,11 @@ exceptions connues.
 | RA-19 | Accès aux pièces par l'administrateur du client | Limité aux personnes à qui le client donne l'accès au volume | client | MN-22 |
 | RA-20 | Configuration d'exploitation hors de la chaîne | Jusqu'à l'adoption de PA-2 ; face à l'administrateur, un changement hors `policy` n'a aucune trace hors de PA-1 et PA-2, la ligne `config_reloaded` pouvant être effacée (RA-80) ; les changements de `policy` restent annoncés (CT-2 EX-9.2) | client | MN-23 |
 | RA-21 | Connivence au coffre | Limitée aux deux personnes que le client désigne pour chaque accès | client | MN-24 |
-| RA-22 | Enregistreur sur le chemin | Limité au trafic que le démon relaie, à ses secrets en mémoire et à la fenêtre RA-15 | client | MN-25 |
+| RA-22 | Enregistreur sur le chemin | Limité au trafic que le démon relaie, à ses secrets en mémoire et à la fenêtre RA-15 ; par la voie des outils de développement, la dépendance sans correctif publié `zod` 3, exigée par Hardhat 3 et ses modules, est bornée aux outils de développement et d'essai du dépôt, hors des images et des paquets livrés, relue par l'exploitant NOORTRACE à chaque mise à jour du verrou des dépendances et au plus tous les quinze jours, avec son propriétaire, la date du relevé et ses conditions de reprise dans `SECURITY.md` | client | MN-25 |
 | RA-23 | Administrateur du compte du support | Limité au compte qui porte le support ; une politique d'organisation le lie | client | MN-27 |
 | RA-24 | Séparation pose et levée non garantie par le support | Limitée aux supports d'EX-12.34 de CT-2 sans séparation des droits, et à la fenêtre d'un jour de la relecture | client | MN-28 |
-| RA-25 | Segment non encore copié | Au plus un segment courant plus le délai d'alerte d'une heure | client | MN-29 |
-| RA-26 | Graine en mémoire en classe C | Limitée aux journaux en classe C ; la fenêtre RA-15 borne ce qu'une clé copiée réécrit | client | MN-30 |
+| RA-25 | Segment non encore copié | Au plus un segment courant plus le délai d'alerte d'une heure ; la réécriture locale d'un segment non copié ni ancré est bornée aux périodes non ancrées et aux segments sans copie WORM : le compte du démon peut renommer le répertoire `segments/` et y remettre un fichier de même nom, ce que le compagnon détecte (`attribute_sealed_replaced`, `attribute_sealed_missing`, CT-2 EX-12.18, §18.5) sans l'empêcher | client | MN-29 |
+| RA-26 | Graine en mémoire en classe C | Limitée aux journaux en classe C ; la fenêtre RA-15 borne ce qu'une clé copiée réécrit ; un module PKCS#11 logiciel renommé n'est pas reconnu par la règle de validation de CT-2 EX-15.4 (qui refuse `libsofthsm2.so` en production) : la cérémonie de clés (section 5) atteste la classe du support | client | MN-30 |
 | RA-27 | Usage du signataire entre deux rapprochements | Au plus l'intervalle de rapprochement (un mois) pour la découverte, la fenêtre RA-15 pour l'effet | client | MN-31 |
 | RA-28 | Pouvoir propre de l'administrateur du backend | Limité aux backends sans contrôle multipartite natif ; vu à la revue des journaux d'audit | client | MN-32 |
 | RA-29 | Rupture de journal à la perte de la clé | Un journal rompu par perte, lien consigné au registre et au journal d'exploitation | client | MN-33 |
@@ -954,7 +997,7 @@ exceptions connues.
 | RA-40 | Service d'approbation compromis | Limité aux réponses non signées et au jeu déclaré ; jamais une décision `approuve` sans signatures valides du jeu remis | client | MN-44 |
 | RA-41 | Signature à l'aveugle d'un condensé de 32 octets | Limitée aux demandes réellement retenues de l'organisation et aux approbateurs qui ne comparent pas l'empreinte, en deux cas : (a) quand `required` ≥ 2 et qu'au moins un des signataires qui forment le seuil compare l'empreinte, la signature à l'aveugle des autres ne suffit pas, et une demande ne passe qu'avec la signature de ce signataire ; (b) quand `required` = 1, ou quand aucun signataire du seuil ne compare, la seule borne est l'ensemble des demandes retenues de l'organisation (voir aussi RA-44) | client | MN-45 |
 | RA-42 | Extension malveillante du navigateur | Limitée au poste de l'approbateur, aux demandes retenues et au déni de service | client | MN-46 |
-| RA-43 | Déni de service sur l'annuaire | Limité à l'état `en_attente` ou à la révocation d'une adresse, visible dans `operations`, sans effet sur le jeu figé | client | MN-47 |
+| RA-43 | Déni de service sur l'annuaire | Limité à l'état `en_attente` ou à la révocation d'une adresse, visible dans `operations`, sans effet sur le jeu figé ; l'éviction des sessions de la console par une identité est bornée à ses propres sessions (au plus 8 par identité, CT-3 EX-13.48), chaque destruction étant consignée | client | MN-47 |
 | RA-44 | Collusion ou contrainte des approbateurs | Au moins `required` membres distincts, chacun attribuable par sa signature | client | MN-48 |
 | RA-45 | Membres ajoutés pendant l'attente | Visibles sur la chaîne et signalés ; le nombre de signatures exigé ne baisse pas | client | MN-50 |
 | RA-46 | Lecture d'état non prouvée | Limitée au nœud que le service interroge ; nulle si ce nœud est un validateur que le client opère | client | MN-51 |
@@ -975,7 +1018,7 @@ exceptions connues.
 | RA-61 | Cadence d'activité lisible au registre | Nombre et instants des transactions par `org_id`, jamais leur contenu | client | MN-72 |
 | RA-62 | Relais sans accord du client | Limité aux opérations que la clé de gouvernance a signées ; visibles sur la chaîne | exploitant NOORTRACE | MN-73 |
 | RA-63 | Opérateur qui fabrique avant l'ancre ou déclare à tort | Avant le jeton du point couvrant (RA-15) ; l'attestation engage ses signataires nommés | client | MN-74 |
-| RA-64 | Supervision coupée par l'administrateur | Jusqu'à la relecture du Lecteur tiers (un jour) ou la demande du réviseur | client | MN-75 |
+| RA-64 | Supervision coupée par l'administrateur | Jusqu'à la relecture du Lecteur tiers (un jour) ou la demande du réviseur ; `noortrace-ctl worm gel liste` relit tout le registre des gels sous le rôle Lecteur (CT-2 EX-12.36), et la tâche TP-4 de CT-8 l'emploie : un gel retiré des réglages reste relu | client | MN-75 |
 | RA-65 | Retard et observation par le réseau | La fenêtre de date s'allonge du retard ; seules des empreintes de 32 octets circulent vers les prestataires | client | MN-76 |
 | RA-66 | Changement d'état de l'enregistreur hors de la chaîne | Un trou de plus de `c_K` (60 s par défaut) dans la série des points est visible par qui lit la série ; un redémarrage de moins de `c_K` n'en laisse aucun, et face à l'administrateur il n'a aucune trace hors de PA-1 et PA-18 (RA-80) | client | MN-26 |
 | RA-67 | Événements non synchronisés perdus à la panne | Les seuls événements de la validation groupée en cours (CT-2 EX-12.7), dont aucun n'a reçu de réponse ni produit d'effet d'écriture sans intention durable | client | MN-20 |
@@ -1081,7 +1124,17 @@ impossible, ce que dit RA-26. Cette version ne qualifie pas un compte inférieur
 c'est-à-dire des objets signés sans opération du backend. Un tel compte signale
 soit un journal d'audit incomplet, soit des signatures faites hors du backend ;
 l'administrateur du client décide s'il traite un compte inférieur comme un
-incident de 4.6 ; la version 0 ne l'y oblige pas.
+incident de 4.6 ; la version 0 ne l'y oblige pas. L'outil compte toute
+opération de signature de la clé, quelle que soit la forme de la requête :
+pour Transit, sont comptées les réponses `update` sans erreur dont le chemin
+est `<mount>/sign/<nom>` ou commence par `<mount>/sign/<nom>/` (algorithme
+dans l'URL compris) ; une requête par lot compte ses entrées, un lot au
+nombre inconnu est un incident ; toute autre ligne d'audit qui nomme la clé
+sous `<mount>/` est un écart à instruire. Les lignes du journal
+d'exploitation, non signé, ne justifient qu'un nombre de tentatives que le
+démon peut écrire (0 à 2) ; les objets du journal sont comptés sur leurs
+champs, leurs signatures ne sont pas vérifiées par cet outil (MN-96 : le
+journal d'exploitation est un risque à borner).
 
 **EX-3.8** **Rapprochement de l'usage des fournisseurs.** L'administrateur du
 client DEVRAIT, au moins une fois par mois, comparer, clé par clé, le nombre
@@ -1092,8 +1145,8 @@ Ce rapprochement relève du client et dépend de ce que le fournisseur publie.
 
 **EX-3.9** **Empreintes de la console.** Pour chaque version de la console
 d'approbation, l'exploitant de la console DOIT publier, hors du serveur qui
-la sert (note de version, dépôt), le SHA-256 du document et de chaque script
-qu'elle charge ; une supervision qui n'est pas hébergée sur ce serveur DOIT
+la sert (note de version, dépôt), le SHA-256 du document, de la feuille de
+style et de chaque script qu'elle charge ; une supervision qui n'est pas hébergée sur ce serveur DOIT
 récupérer la page au moins une fois par jour et comparer ces empreintes ; un
 écart est une alerte critique. La construction reproductible du code relève
 de CT-8. Cette exigence rend visible le serveur d'origine compromis que
@@ -1102,7 +1155,9 @@ l'intégrité des sous-ressources ne voit pas (CT-3 §13.15, « Limite »).
 **EX-3.10** **Intégrité du service d'approbation.** En production, le service
 d'approbation DOIT s'exécuter sous une identité de système distincte de
 celles du démon de l'enregistreur et du serveur de la console ; son image
-DOIT être désignée par son empreinte, consignée à son démarrage ; ses
+DOIT être désignée par son empreinte, consignée à son démarrage (l'empreinte
+consignée couvre le paquet et les paquets qu'il exécute ; quand le
+déploiement fournit le condensé de l'image, c'est lui qui fait foi) ; ses
 lectures du jeu d'approbateurs DOIVENT viser un validateur que le client
 opère ou un validateur partenaire (CT-3 EX-8.2) ; son canal avec le noyau est
 authentifié (CT-2 EX-18.8, CT-3 EX-12.2).
@@ -1114,7 +1169,12 @@ consigné hors du coffre avec le `sha256` de la pièce, les deux identités,
 l'instant et le motif, et conservé aussi longtemps que le journal. Fondement :
 la double autorisation de SP 800-53, « Dual authorization mechanisms require
 the approval of two authorized individuals to execute » (AC-3(2), R7-F33),
-appliquée à l'information d'audit par AU-9(5) (R7-F35).
+appliquée à l'information d'audit par AU-9(5) (R7-F35). Ce que le coffre
+garantit en version 0 : il garde un original par pièce rédigée (deux appels
+de même pièce rédigée partagent l'original du premier) ; les deux identités
+de la règle de lecture sont déclarées par l'appelant, non authentifiées par
+le démon ; aucun outil de lecture n'est livré : la lecture et sa consignation
+sont une procédure du client.
 
 **EX-3.12** **Exercice de révocation.** Au moins une fois par an,
 l'administrateur du client DOIT exécuter, sur une instance de préproduction
@@ -1143,9 +1203,11 @@ client, que l'attestation PEUT citer ; mené par un évaluateur indépendant
 
 **EX-3.14** **Image de l'enregistreur.** L'administrateur du client DOIT
 n'exécuter en production qu'une image de l'enregistreur dont l'empreinte est
-celle d'une version publiée (CT-8) ; l'empreinte de l'image en cours DEVRAIT
-être consignée au démarrage (proposition PA-4 à CT-2, 6.2), à côté de la
-version que `code.recorder` porte dans chaque événement (CT-2 EX-18.6).
+celle d'une version publiée (CT-8) ; l'image attendue et l'empreinte du code
+en cours DEVRAIENT être consignées au démarrage et comparées (PA-4, adoptée
+à l'étape 8, 6.2 ; CT-2 EX-18.6 ; ligne `image_mismatch` sur écart), à côté
+de la version que `code.recorder` porte dans chaque événement ; la
+comparaison du condensé de l'image elle-même reste à l'orchestrateur.
 
 **EX-3.15** **ICAP.** En production, le raccord ICAP DOIT être ICAPS avec
 certificat client (CT-2 EX-5.3), sauf quand le lien ICAP est la boucle locale
@@ -1203,8 +1265,8 @@ tables) :
   "version": 0,
   "kind": "modele-menace",
   "spec": "CT-7",
-  "spec_version": "0.4",
-  "date": "2026-11-11",
+  "spec_version": "0.5",
+  "date": "2026-11-14",
   "components": [
     {
       "id": "hote_agent",
@@ -1317,40 +1379,50 @@ secret est la forme de CT-2 EX-15.3 (`env`, `file`, `vault`).
 |---|---|---|---|---|---|---|---|---|
 | CLE-1 | Clé de l'enregistreur (CT-2 §11) | Ed25519 | A, B ou C ; D | L'administrateur du client, en cérémonie (5.1), dans le module (A), le service (B) ou sur le poste hors ligne (C, graine enveloppée aussitôt) | Le signataire ; le démon n'a que l'identité d'usage (CT-2 EX-11.4) | Planifiée, période d'au plus 730 jours recommandée (DEVRAIT, CT-2 EX-11.15, EX-4.3) ; d'urgence sur soupçon (CT-2 EX-11.16) | Au registre, par la clé de chaîne qui la porte (CT-2 EX-11.14) | Rotation d'urgence, révocation, nouveau journal si la clé est inutilisable ; liste des événements signés depuis l'instant présumé |
 | CLE-2 | Clé de chaîne (CT-2 EX-11.19) | secp256k1 | A, B ou C ; D | Avec CLE-1, en cérémonie ; support de secp256k1 par le backend éprouvé à la cérémonie | Le signataire de la clé de chaîne, hors du composant d'ancrage | Avec CLE-1, ou seule (CT-2 EX-11.19, point 4) | `revokeRecorder` au seuil des approbateurs (CT-4 §8.4) | Révocation, rotation de la seule clé de chaîne ; solde résiduel consigné (RA-30) |
-| CLE-3 | Clés d'approbateur (CT-3) | secp256k1 | sans objet : portefeuille du détenteur, matériel recommandé (CT-3 EX-9.9) | L'approbateur lui-même (CT-3 EX-13.1) ; adresse consignée en cérémonie d'inscription (5.1) | L'approbateur seul (CT-3 EX-3.4) | À la demande de l'organisation : nouvelle adresse au `CuratorSet` et à l'annuaire (CT-3 §13.6) | Retrait du `CuratorSet` par l'administrateur du jeu, révocation à l'annuaire | Retrait du jeu, révocation à l'annuaire, revue des décisions signées depuis l'instant présumé |
+| CLE-3 | Clés d'approbateur (CT-3) | secp256k1 | sans objet : portefeuille du détenteur, matériel recommandé (CT-3 EX-9.9) | L'approbateur lui-même (CT-3 EX-13.1) ; adresse consignée en cérémonie d'inscription (5.1) | L'approbateur seul (CT-3 EX-3.4) ; le mot de passe d'un fichier de clé, dans le parcours par fichier que CT-3 ne fait que permettre (§13.13), n'est connu que de l'approbateur et de la page, qui ne le garde ni ne l'envoie | À la demande de l'organisation : nouvelle adresse au `CuratorSet` et à l'annuaire (CT-3 §13.6) | Retrait du `CuratorSet` par l'administrateur du jeu, révocation à l'annuaire | Retrait du jeu, révocation à l'annuaire, revue des décisions signées depuis l'instant présumé |
 | CLE-4 | Clé de gouvernance, administrateur du `CuratorSet` (CT-4 §5.5) | secp256k1 | A, B ou C ; D | Le client, en cérémonie | L'administrateur du jeu (client) | Transfert d'administration du `CuratorSet` (CT-4 §5.5) | Transfert d'administration | Conduite de CT-4 EX-8.10 : journal abandonné, réassignation sur demande consignée par procès-verbal d'objet `changement_administrateur` |
 | CLE-5 | Clé de l'administrateur du registre (CT-4 EX-5.4) | secp256k1 | A ; D | L'exploitant NOORTRACE, en cérémonie | L'exploitant NOORTRACE, module matériel | Transfert d'administration du contrat (CT-4 §5.5) | Transfert d'administration | Notification de toutes les organisations, qui vérifient leur jeu épinglé (CT-3 EX-8.6) ; transfert vers une clé neuve |
 | CLE-6 | Clé du déployeur (CT-4 EX-3.1) | secp256k1 | A, B ou C ; D | L'exploitant NOORTRACE, en cérémonie | L'exploitant NOORTRACE | Une par instance (CT-4 EX-4.8) | — | Celle de CLE-5 si la clé a gardé un rôle d'administration (CT-4 §5.4), sinon nouvelle clé |
 | CLE-7 | Clé du relayeur de l'exploitant (CT-4 EX-3.1) | secp256k1 | A, B ou C ; D | L'exploitant NOORTRACE, en cérémonie | L'exploitant NOORTRACE | Libre quant à l'échéance, en cérémonie `rotation` (5.1) | — | Aucune autorité (CT-4 EX-3.3) : nouvelle clé ; provision perdue |
 | CLE-8 | Trésorerie froide et compte d'approvisionnement (CT-4 EX-8.20) | secp256k1 | A, B ou C ; D | L'exploitant NOORTRACE, en cérémonie | L'exploitant NOORTRACE ; trésorerie froide hors ligne | Recomplément du compte d'approvisionnement par cérémonie (objet `recompletement`) | — | Transfert du solde vers une trésorerie neuve ; plafonds de CT-4 EX-8.20 |
 | CLE-9 | Clés de validateur (CT-4 EX-10.7) | secp256k1 | D (fichier, seul possible en version 0) ; D | L'opérateur de validateur, sur son site, en cérémonie | Le seul nœud, fichier `0600` | Changement du jeu de validateurs (CT-4 §4.4) | Retrait du jeu de validateurs | Retrait du jeu, publication de toute preuve de double signature (CT-4 §14) |
-| CLE-10 | Clé du serveur d'horodatage interne (CT-5 EX-7.3) | RSA d'au moins 3072 bits ou ECDSA P-256 (CT-5 AN-31) | A, B ou C ; D | L'administrateur du client, autre rôle que celui de l'enregistreur, en cérémonie | Le serveur interne, hors de l'hôte de l'enregistreur | Validité d'au plus trois ans (CT-5 AN-31) | CRL publiée (CT-5 AN-31) | Révocation `keyCompromise` ; les réviseurs retirent l'autorité de leur fichier d'ancres |
+| CLE-10 | Clé du serveur d'horodatage interne (CT-5 EX-7.3) et clé de l'autorité qui émet son certificat et signe sa CRL (CT-5 AN-31 ; CT-8 IR-2) | RSA d'au moins 3072 bits ou ECDSA P-256 (CT-5 AN-31) | A, B ou C ; D | L'administrateur du client, autre rôle que celui de l'enregistreur, en cérémonie | Le serveur interne, hors de l'hôte de l'enregistreur | Validité d'au plus trois ans (CT-5 AN-31) | CRL publiée (CT-5 AN-31) | Révocation `keyCompromise` ; les réviseurs retirent l'autorité de leur fichier d'ancres |
 | CLE-11 | Identifiants d'accès aux prestataires RFC 3161 : mot de passe Basic, clé et certificat client (CT-5 EX-4.8) | secret ; clé du certificat client | référence de secret | L'administrateur du client, à l'ouverture du compte ; clé du certificat client sur le poste du client | Le composant d'ancrage | À l'échéance du certificat client, au plus tard, et sur compromission | Chez le prestataire | Révocation chez le prestataire, nouvelle référence, rechargement (RA-37) |
 | CLE-12 | Authentification du nœud Bitcoin, si configurée (CT-5 §4.4) | secret | référence de secret | L'administrateur du client | Le composant d'ancrage | Selon la politique du client | Sur le nœud | Changer le secret du nœud |
 | CLE-13 | Clés des fournisseurs de modèle, routes `propre` (CT-2 EX-5.8) | secret | référence de secret | L'administrateur du client, chez le fournisseur | La passerelle seule | Selon la politique du client et du fournisseur | Chez le fournisseur | Révocation chez le fournisseur ; rapprochement d'EX-3.8 sur l'intervalle |
-| CLE-14 | Jetons statiques des hôtes, des sources OpenTelemetry et du SDK en TCP (CT-2 EX-4.39, EX-6.37) | secret | référence de secret | L'administrateur du client | Le démon et l'hôte ou la source | Au moins annuelle (DEVRAIT) et au départ d'une personne qui le connaissait | Retrait de la configuration | Retrait, nouveau jeton ; lignes `auth_failed` relues |
+| CLE-14 | Jetons statiques des hôtes, des sources OpenTelemetry et du SDK en TCP (CT-2 EX-4.39, EX-6.37) ; quand le canal est en mTLS, certificats clients des hôtes, des connecteurs, du SDK en TCP et du mandataire ICAP, et autorité `client_ca` qui les émet (CT-2 EX-4.39, EX-5.3) | secret ; certificat client | référence de secret | L'administrateur du client | Le démon et l'hôte ou la source | Au moins annuelle (DEVRAIT) et au départ d'une personne qui le connaissait | Retrait de la configuration | Retrait, nouveau jeton ; lignes `auth_failed` relues |
 | CLE-15 | Identifiants de l'enregistreur vers les serveurs d'outils : client OAuth, en-têtes (CT-2 EX-4.40) | secret | référence de secret | L'administrateur du client | Le démon | Selon le serveur d'outils | Chez le serveur d'outils | Révocation chez le serveur d'outils |
 | CLE-16 | Clé du MAC de relais (CT-2 EX-7.22) | secret | référence de secret | L'administrateur du client | Le démon ; même clé pour toutes les instances d'un journal | À chaque rotation planifiée de CLE-1 (DEVRAIT) | — | Nouvelle clé sur toutes les instances d'un journal à la fois (alerte « Clé du MAC de relais », CT-2 §17.4) |
 | CLE-17 | Clé de pseudonymisation (CT-2 EX-10.12) | secret | référence de secret | L'administrateur du client | Le démon | Jamais sans nouvelle politique de rédaction : la changer change les pseudonymes | — | Nouvelle politique ; les pseudonymes déjà écrits sont exposés à une recherche par dictionnaire |
 | CLE-18 | Clé du coffre des originaux (CT-2 EX-10.22) | AES-256-GCM, 32 octets | référence de secret | L'administrateur du client | Le démon, jamais le signataire | Selon la politique du client | — | Nouvelle clé, rechiffrement du coffre ; accès consignés relus (EX-3.11) |
 | CLE-19 | DSN du magasin de bail (CT-2 §13.2) | secret | référence de secret | L'administrateur du client | Le démon | Selon la politique du client | Sur le magasin | Nouveau secret ; alerte « Bail » relue |
 | CLE-20 | Identifiants du support WORM : écrivain, gardien de pose, gardien de levée, lecteur (CT-2 EX-18.9) | secret | référence de secret (écrivain) ; hors du démon (les trois autres) | L'administrateur du compte du support | Chacun son rôle, jamais deux rôles pour une personne de garde | Selon la politique du client | Sur le support | Révocation sur le support ; relevé de verrouillage immédiat (CT-2 EX-17.6) |
-| CLE-21 | Accès au signataire : code PKCS#11, jeton du service de signature, identité d'usage IAM (CT-2 EX-11.18) | secret | référence de secret | L'administrateur du client, lors de la cérémonie de CLE-1, sans cérémonie propre (5.1) | Le démon | Avec CLE-1 | Sur le backend | Comme CLE-1 (usage abusif, RA-27) |
+| CLE-21 | Accès au signataire : code PKCS#11 et jeton du service de signature (références de secret) ; identité d'usage IAM : pour AWS, variables d'identifiants, fichier d'identifiants désigné par `AWS_SHARED_CREDENTIALS_FILE` ou `AWS_CONFIG_FILE` (secret `identite-aws` de CT-8) ou service de métadonnées (CT-2 EX-11.18) ; pour Google, fichier de compte de service (`GOOGLE_APPLICATION_CREDENTIALS`, qui porte une clé privée RSA) ou service de métadonnées ; pour Azure, secret de client d'une application Entra ID | secret | référence de secret, ou fichier et variables de l'environnement du démon pour l'identité IAM | L'administrateur du client, lors de la cérémonie de CLE-1, sans cérémonie propre (5.1) | Le démon | Avec CLE-1 | Sur le backend | Comme CLE-1 (usage abusif, RA-27) |
 | CLE-22 | Identité d'administration du backend de clés (CT-2 EX-11.4) | identité du backend | hors du démon | L'administrateur du compte du backend | Des personnes nommées, jamais le démon | Selon la politique du client | Sur le backend | Revue des journaux d'audit du backend ; rotation de toutes les clés que l'identité administre |
 | CLE-23 | Jetons ou certificats du canal noyau ↔ service d'approbation et console ↔ service (CT-3 EX-12.2, EX-12.4) : jeton du noyau (`policy.approval.service.token` du démon, `noyau.token` du service), présenté sur la prise comme en HTTP et exigé en production sur la prise (CT-2 EX-18.8, révision 0.8 ; CT-3 EX-10.12, `jeton_exige_production`) ; jeton du canal de la console (`service.token` du serveur de console, `console.token` du service) ou certificat client du serveur de console (CT-3 EX-10.12, EX-10.13) | secret ; certificat | référence de secret | L'administrateur du client | Le démon et le service (jeton du noyau) ; le serveur de la console et le service (canal de la console) ; deux jetons distincts, jamais le même pour les deux canaux (CT-3 EX-10.12, `jetons_egaux`) | Au moins annuelle (DEVRAIT) | Retrait de la configuration du service, puis redémarrage du service, qui ne lit ses secrets qu'au démarrage (CT-3 EX-10.12) | Nouveau jeton ou certificat ; décisions `autorise` de l'intervalle réévaluées (CT-3 §6.8) |
-| CLE-24 | Certificats TLS des services : passerelle hors boucle locale, point d'entrée OpenTelemetry (CT-2 EX-6.40), ICAPS (CT-2 EX-5.3), service d'approbation, console, frontal du serveur interne (CT-5 AN-27) | clé TLS | fichier du service | L'administrateur du client | Chaque service | À l'échéance du certificat | Chez l'autorité qui l'a émis | Révocation et nouveau certificat |
+| CLE-24 | Certificats TLS des services : passerelle hors boucle locale, point d'entrée OpenTelemetry (CT-2 EX-6.40), ICAPS (CT-2 EX-5.3), service d'approbation, console, frontal du serveur interne (CT-5 AN-27), frontal MCP en HTTP et prise TCP du SDK (CT-2 §15), garde d'admission du RPC (CT-4 EX-10.8), mandataire TLS de l'application d'exploitant (CT-4 §7.14), hébergeur de la page de vérification (CT-6 EX-18.11) | clé TLS | fichier du service | L'administrateur du client | Chaque service | À l'échéance du certificat | Chez l'autorité qui l'a émis | Révocation et nouveau certificat |
 | CLE-25 | Sessions de la console (CT-3 EX-13.48, révision 0.5) : identifiant de session `sid`, tiré par le serveur de console et porté par le cookie `__Host-noortrace-session` signé par `K_s` (CLE-33) ; transaction OIDC portée par le cookie `__Host-noortrace-connexion`, chiffrée par `K_t` (CLE-34, CT-3 EX-13.45) ; fichier des comptes du système local, hors production (CLE-35, CT-3 EX-13.47) | identifiant de 32 octets tirés au hasard ; MAC HMAC-SHA256 | en mémoire du serveur de console seulement | Le serveur de console, après authentification par le fournisseur OIDC du client (CT-3 EX-13.45, EX-13.46) ou, hors production, par le système local (CT-3 EX-13.47) | Le serveur de console, qui tient les sessions ; le navigateur de la personne, qui tient les cookies `HttpOnly` | Session nouvelle à chaque authentification, échue au plus tard à `session_max_age_s` (CT-3 EX-13.48) ; réauthentification avant toute modification (CT-3 EX-13.8) | Déconnexion, ou redémarrage du serveur de console, qui ferme toutes les sessions (CT-3 EX-13.48) | Fin des sessions de la personne ; revue des `operations` de l'annuaire (CT-3 §14.8) |
 | CLE-26 | Clé d'enveloppe d'une sauvegarde partagée (4.4) | AES-256 | A, B ou C ; D | En cérémonie (objet `sauvegarde`), dans le module quand il l'offre | Partagée k sur n entre détenteurs de part | Avec la clé qu'elle protège | — | Nouvelle sauvegarde sous une enveloppe neuve ; parts anciennes détruites et consignées |
 | CLE-27 | Clé d'interception TLS du mandataire du client, mode ICAP (CT-2 §5.1) | clé de l'autorité d'interception | hors de NOORTRACE | Le client | Le mandataire du client | Selon la politique du client | Chez le client | Hors de NOORTRACE : qui la tient lit tout le trafic déchiffré |
 | CLE-28 | Clés de test publiées par les vecteurs (CT-1 §13, CT-3 annexe A.2, CT-4 annexe A.2, CT-6 annexe A.3) | toutes | jamais en production (EX-4.10) | Dérivées d'étiquettes publiques | Le dépôt public | — | — | Sans objet : elles sont publiques |
-| CLE-29 | Clés de signature des participants d'une cérémonie (5.2, 5.7) | secp256k1 | sans objet : portefeuille du participant, matériel recommandé | Le participant lui-même, avant la cérémonie | Le participant seul ; son adresse figure au procès-verbal et, pour un auditeur mandaté par le réviseur, est communiquée au réviseur par un canal indépendant du client (EX-5.10) | À la demande du participant : la nouvelle adresse figure au procès-verbal suivant | Publication de l'adresse retirée par l'organisation qui tient la liste des participants, et par le réviseur pour l'auditeur qu'il mandate | Les procès-verbaux signés depuis l'instant présumé ne comptent plus cette signature ; le réviseur ne tire plus d'ancre d'un procès-verbal que cette seule clé rendait indépendant (EX-5.10) |
+| CLE-29 | Clés de signature des participants d'une cérémonie (5.2, 5.7) et du signataire d'une attestation de périmètre (7.2) | secp256k1 | sans objet : portefeuille du participant ou du signataire, matériel recommandé ; les formes `fichier:` et `keystore:` de l'outil de référence de l'attestation sont des formes de développement | Le participant ou le signataire lui-même, avant la cérémonie ou la signature | Le participant seul ; son adresse figure au procès-verbal et, pour un auditeur mandaté par le réviseur, est communiquée au réviseur par un canal indépendant du client (EX-5.10) | À la demande du participant : la nouvelle adresse figure au procès-verbal suivant | Publication de l'adresse retirée par l'organisation qui tient la liste des participants, et par le réviseur pour l'auditeur qu'il mandate | Les procès-verbaux signés depuis l'instant présumé ne comptent plus cette signature ; le réviseur ne tire plus d'ancre d'un procès-verbal que cette seule clé rendait indépendant (EX-5.10) |
 | CLE-30 | Clé de stockage de l'état du service d'approbation : tickets, arguments en clair des tickets actifs, annuaire et défis d'inscription (`storage_key`, CT-3 EX-7.24, EX-7.30, EX-10.12, EX-13.38, révision 0.5) | AES-256-GCM, 32 octets ; nonce de 12 octets tiré pour chaque enregistrement ; données associées qui lient chaque enregistrement à sa nature et à son numéro (CT-3 EX-7.30) | référence de secret | L'administrateur du client | Le service d'approbation seul | Aucune en place en version 0 : CT-3 ne rechiffre pas l'état, et la clé ne change que sur un état neuf (CT-3 EX-7.30), selon la conduite de 4.6 | — | Qui la tient et lit `state_dir` lit l'état et peut y forger la trace et l'annuaire, déclaratifs (CT-3 §10.4, §10.5) ; nouvelle clé sur un état neuf, annuaire repris de son dernier export (4.6) |
 | CLE-31 | Clé HMAC du webhook des notifications (`notifications.key`, CT-3 EX-10.12, EX-13.41, révision 0.5) | HMAC-SHA256 ; de 32 à 1 024 caractères ASCII imprimables, au moins 256 bits d'entropie | référence de secret | L'administrateur du client, tirée au hasard (CT-3 EX-13.41) | Le service d'approbation et le relais du client, qui vérifie le MAC | Selon la politique du client ; le service n'a qu'une clé : le relais admet l'ancienne et la nouvelle le temps du changement, sinon une notification refusée (401) est abandonnée sans reprise (CT-3 EX-13.42) | Retrait de la configuration du service et du relais | Nouvelle clé au service et au relais ; notifications reçues depuis l'instant présumé recoupées avec la boîte d'envoi du service (CT-3 EX-13.39) |
 | CLE-32 | Secret du client OIDC du serveur de console (`identity.client_secret`, CT-3 EX-10.13, EX-13.45, révision 0.5) | secret partagé, présenté par `client_secret_basic` | référence de secret | Le fournisseur d'identité du client, à l'enregistrement du serveur de console comme client | Le serveur de console et le fournisseur d'identité ; jamais la page (CT-3 §13.21) | Selon la politique du client et du fournisseur | Chez le fournisseur d'identité | Révocation chez le fournisseur, nouvelle référence, redémarrage du serveur de console ; un code d'autorisation intercepté ne s'échange pas sans le `code_verifier` de la transaction (PKCE, CT-3 EX-13.45) |
 | CLE-33 | Clé des cookies de session du serveur de console, `K_s` (CT-3 EX-13.48, point 2, révision 0.5) | HMAC-SHA256, 32 octets | en mémoire seulement, jamais écrite | Le serveur de console, tirée au hasard à chaque démarrage | Le processus du serveur de console seul | À chaque redémarrage du serveur, qui perd toutes les sessions (CT-3 EX-13.48) | Redémarrage du serveur de console | Qui lit la mémoire du serveur y lit aussi les sessions : redémarrage, réauthentification de chacun, revue des `operations` de l'annuaire (CT-3 §14.8) |
 | CLE-34 | Clé du cookie de transaction OIDC du serveur de console, `K_t` (CT-3 EX-13.45, EX-13.48, point 3, révision 0.5) | AES-256-GCM, 32 octets ; vecteur d'initialisation de 12 octets tiré pour chaque cookie | en mémoire seulement, jamais écrite | Le serveur de console, tirée au hasard à chaque démarrage, distincte de `K_s` | Le processus du serveur de console seul | À chaque redémarrage, qui oblige à reprendre une connexion en cours (CT-3 EX-13.48) | Redémarrage du serveur de console | Comme CLE-33 ; une transaction forgée ne conclut une connexion qu'avec un code d'autorisation que le fournisseur délivre (CT-3 EX-13.45) |
 | CLE-35 | Fichier des comptes du système local de la console, hors production (`identity.accounts`, CT-3 EX-10.13, EX-13.47, révision 0.5) | scrypt (N = 131 072, r = 8, p = 1), clé de 32 octets, sel de 16 octets par compte | sans objet : système refusé en production (CT-3 EX-10.13, `identite_locale_en_production`) ; référence de secret | L'administrateur du client, hors du serveur (CT-3 EX-13.47) | Le serveur de console | Selon la politique du client : nouveau fichier, puis redémarrage du serveur | Retrait du compte du fichier, puis redémarrage du serveur | Mots de passe exposés à une recherche par dictionnaire hors ligne, au coût de 128 Mio de mémoire par essai (CT-3 EX-13.47) ; nouveaux mots de passe, nouveau fichier |
-| CLE-36 | Jetons du point RPC du registre : jeton `Bearer` de chaque nœud (CT-4 EX-10.3) ; jeton ou certificat client de la garde d'admission (CT-4 EX-10.8), dont celui du service d'approbation (`rpc.token`, CT-3 EX-10.12, révision 0.5) | secret ; certificat client | référence de secret | L'opérateur du validateur, pour son nœud et pour chaque client de sa garde | Le nœud et la garde d'admission qui ajoute son jeton ; chaque client de la garde, dont le service d'approbation | Selon la politique de l'opérateur du validateur | Sur la garde (jeton ou certificat d'un client) ou sur le nœud | Nouveau jeton ; refus journalisés de la garde relus (CT-4 EX-10.8) ; `rpc.token` ne part qu'en TLS (CT-3 EX-10.12, `rpc_tls`) |
+| CLE-36 | Jetons du point RPC du registre : jeton `Bearer` de chaque nœud (CT-4 EX-10.3) ; jeton ou certificat client de la garde d'admission (CT-4 EX-10.8), dont celui du service d'approbation (`rpc.token`, CT-3 EX-10.12, révision 0.5) | secret ; certificat client | référence de secret | L'opérateur du validateur, pour son nœud et pour chaque client de sa garde | Le nœud et la garde d'admission qui ajoute son jeton ; chaque client de la garde, dont le service d'approbation ; l'outil et l'agent de l'exploitant, pour le jeton `--jeton` (CT-4 EX-7.1) | Selon la politique de l'opérateur du validateur | Sur la garde (jeton ou certificat d'un client) ou sur le nœud | Nouveau jeton ; refus journalisés de la garde relus (CT-4 EX-10.8) ; `rpc.token` ne part qu'en TLS (CT-3 EX-10.12, `rpc_tls`) |
+| CLE-37 | Comptes et sessions de l'interface d'inscription de l'exploitant (CT-4 EX-7.23, EX-7.28) : fichier des comptes, clé MAC des cookies de session | scrypt (N = 131 072, r = 8, p = 1), clé de 32 octets, sel de 16 octets par compte ; HMAC-SHA256, clé de 32 octets | fichier du compte du serveur de l'interface, lisible de lui seul (`0400` ou `0600`) ; clé de MAC en mémoire seulement | L'exploitant NOORTRACE | Le serveur de l'interface | Nouveau fichier puis redémarrage ; clé tirée à chaque démarrage | Retrait du compte du fichier, redémarrage | Nouveaux mots de passe ; revue des travaux et des confirmations consignés par l'agent depuis l'instant présumé. Système local seul en version 0 : risque nommé, OIDC exigé en production à terme |
+| CLE-38 | Authentification et TLS du maillage p2p des validateurs : jeton `NOOR_P2P_AUTH_TOKEN`, clé du certificat TLS de nœud, clé de l'autorité du maillage (CT-4 EX-10.2) | secret d'au moins 32 caractères ; clé TLS | fichier `0600` du nœud ; autorité hors des nœuds | L'opérateur du validateur (jeton, clé de nœud) ; l'exploitant NOORTRACE (autorité) | Chaque nœud | À l'échéance du certificat ; jeton au départ d'un opérateur | Certificat révoqué par l'autorité ; jeton changé sur tous les nœuds à la fois | Nouveau jeton et nouveaux certificats ; pairs admis relus |
+| CLE-39 | Clé d'enveloppe de la classe C : clé du service (AWS KMS, Google Cloud KMS, Azure `wrapKey`) ou scellement TPM 2.0 qui enveloppe la graine de CLE-1 ou le scalaire de CLE-2 (CT-2 EX-11.9, EX-11.19) ; l'enveloppe est un fichier du démon | selon le service | hors du démon (clé) ; fichier (enveloppe) | L'administrateur du client, à la cérémonie de CLE-1 | Le service ou le TPM ; le démon n'a que l'identité d'usage (CLE-21) et l'enveloppe | Avec la clé qu'elle enveloppe | Sur le service | Comme CLE-1 : qui a l'enveloppe et l'usage de la clé d'enveloppe a la graine |
+| CLE-40 | Jeton de lecture du coffre de secrets qui résout les références `vault` (CT-2 §15.2 ; `VAULT_ADDR`, `VAULT_TOKEN` de l'environnement du démon quand le signataire n'est pas Vault ou OpenBao Transit) | secret | variable de l'environnement du démon ; la liste fermée des variables du fichier Compose de production (CT-8 CO-9) ne l'admet pas : la forme `vault` n'est utilisable en production, hors signataire Transit, qu'au prix d'une adaptation | L'administrateur du client | Le démon | Jeton à durée bornée, renouvelé avant son échéance | Révocation sur le coffre | Rotation de tout secret lu par ce jeton |
+| CLE-41 | Clé minisign de publication des versions (CT-6 EX-14.9 ; CT-8 EX-3.14) | Ed25519 (minisign) | hors du dépôt et de l'intégration continue (signature hors de la CI) | L'exploitant NOORTRACE, avant la première publication | Le porteur de la publication | Publication de la clé publique suivante avec la version qui la précède | Publication de la clé retirée par un canal indépendant du serveur de téléchargement | Nouvelle clé publiée par un canal indépendant ; versions signées depuis l'instant présumé signées de nouveau |
+
+Deux secrets s'inscriront quand leur objet existera : le code d'appariement
+du parcours mobile de la console (avec `walletconnect.project_id`, que le
+serveur de console livré refuse) et l'identité de signature de l'attestation
+de provenance (CT-8 EX-3.14), à la première publication signée.
 
 ### 4.3 Classes admises par usage et environnement
 
@@ -1478,7 +1550,7 @@ Ordre pour les clés de NOORTRACE, sur soupçon :
 | CLE-8 | (1) transfert du solde ; (2) gel des approvisionnements | organisations dont la provision dépend | les virements depuis l'instant présumé |
 | CLE-9 | (1) retrait du validateur du jeu ; (2) publication de toute double signature | autres opérateurs, réviseurs | les hauteurs votées depuis l'instant présumé |
 | CLE-10 | (1) révocation `keyCompromise` ; (2) retrait des fichiers d'ancres | réviseurs | les jetons émis depuis l'instant présumé |
-| CLE-11 à CLE-24, CLE-31, CLE-32, CLE-35, CLE-36 | (1) révocation chez l'émetteur ; (2) nouvelle référence de secret et rechargement, ou redémarrage du service d'approbation ou du serveur de console, qui ne lisent leurs secrets qu'au démarrage (CT-3 EX-10.12, EX-10.13) | selon le secret | les accès depuis l'instant présumé, dans les journaux de l'émetteur |
+| CLE-11 à CLE-24, CLE-31, CLE-32, CLE-35 à CLE-37, CLE-40 | (1) révocation chez l'émetteur ; (2) nouvelle référence de secret et rechargement, ou redémarrage du service d'approbation ou du serveur de console, qui ne lisent leurs secrets qu'au démarrage (CT-3 EX-10.12, EX-10.13) | selon le secret | les accès depuis l'instant présumé, dans les journaux de l'émetteur |
 | CLE-25, CLE-33, CLE-34 | (1) redémarrage du serveur de console, qui tire de nouvelles clés et perd toutes les sessions et les transactions (CT-3 EX-13.48) | les personnes qui avaient une session | les opérations de l'annuaire et les votes relayés depuis l'instant présumé (`operations`, CT-3 §13.6 ; trace des tickets, CT-3 EX-7.24) |
 | CLE-30 | (1) export de l'annuaire par un administrateur (CT-3 EX-13.19) ; (2) arrêt du service ; l'état ancien est mis à part et gardé, avec sa clé, aussi longtemps que la trace des tickets qu'il porte (CT-3 EX-7.24) ; (3) nouvelle clé et redémarrage sur un `state_dir` vide, l'export déclaré en amorce (`console.annuaire`, CT-3 EX-13.38), avec une époque nouvelle si les identifiants de tickets en ont une (CT-3 EX-7.1) ; c'est la conduite de CT-3 EX-7.30, qui interdit de changer la clé sous un état existant | administrateurs de l'annuaire ; demandeurs et approbateurs des tickets ouverts, que le noyau expire à leur échéance plus `timeout_ms` (CT-3 EX-12.11) | les tickets ouverts à l'arrêt ; les accès au volume de l'état depuis l'instant présumé |
 
@@ -1588,6 +1660,27 @@ L'officiant et le témoin sont deux personnes distinctes ; un témoin est
 distinct de toute personne dont il paraphe une étape. La personne qui audite
 une cérémonie n'y tient ni étape ni part (SP 800-130 : « audit logs should be
 managed by someone other than a system administrator », R7-F11).
+
+**Répétition par rôles simulés.** EX-5.2 s'adresse à qui tient une cérémonie
+réelle. Aucune n'a été tenue pour la version 0 : le projet n'a créé aucune
+clé de production. Les épreuves du plan de tests qui éprouvent la procédure
+de cérémonie (CT-9 TA-95, TA-97) sont jouées par des rôles simulés : des
+relecteurs internes, conduits en sessions isolées, qui tiennent chacun un
+rôle de la table ci-dessus d'après une fiche et le texte de cette section ;
+la « personne » y est une session, sa « pièce d'identité » un fichier
+inventé pour la répétition, et une session qui tient deux identifiants y
+joue une personne sous deux noms. Une telle répétition établit que la
+procédure écrite suffit à un témoin qui n'a qu'elle pour relever et
+consigner la coïncidence, et qu'elle seule la relève (retirée du texte
+remis, rien d'autre ne la relève : CR-1 à CR-12 passent) ; elle n'établit
+rien de la présence, de l'attention, de l'indépendance ni de l'absence de
+connivence de personnes, ni de la lecture d'une pièce d'identité réelle. Le
+procès-verbal d'une répétition le dit dans `place` et dans le nom de
+l'organisation, porte `environment` `developpement`, ne désigne aucune
+personne et ne sert d'ancre à aucun réviseur (EX-5.10). Les participants
+d'un tel procès-verbal sont tenus par des rôles simulés et CR-1 à CR-12 ne
+le voient pas : la distinction des personnes reste un constat déclaré
+(RA-79).
 
 ### 5.3 Poste, entropie, enregistrements
 
@@ -1759,10 +1852,10 @@ seulement si les douze vérifications sont `reussi`. Le fichier lu fait au plus
 | Id | Vérification | Échoue quand |
 |---|---|---|
 | CR-1 | Forme : JSON strict (clés uniques, aucun nombre non entier ni hors de l'intervalle sûr, aucun substitut isolé, comme E-2 de CT-1) et conforme au schéma `ceremonie-cles-v0` | l'analyse ou le schéma échoue |
-| CR-2 | Participants : `id` distincts, adresses distinctes, au moins deux participants, exactement un `officiant`, au moins un `temoin` ; aucun `auditeur` n'exécute une étape ni ne détient une part | une de ces règles est violée |
+| CR-2 | Participants : `id` distincts, adresses distinctes, au moins deux participants, exactement un `officiant`, au moins un `temoin` ; aucun `auditeur` n'exécute une étape ni ne détient une part ; CR-2 PEUT avertir, sans refuser, quand deux participants portent le même `name` (la distinction des personnes reste un constat déclaré, RA-79) | une de ces règles est violée |
 | CR-3 | Chronologie : `started_at ≤ ended_at` ; `steps[i].n = i + 1` ; `at` non décroissant le long des étapes et compris dans `[started_at, ended_at]` ; instants à la milliseconde, dates du calendrier (CT-1 §3) | une de ces règles est violée |
-| CR-4 | Étapes : `performed_by` est un participant ; chaque `witnessed_by` est un `temoin` ou un `auditeur` distinct de l'exécutant ; chaque étape a au moins un `witnessed_by` de rôle `temoin`, l'auditeur s'ajoutant au témoin sans le remplacer ; une étape `exception` a au moins une entrée de `findings` qui la nomme | une de ces règles est violée |
-| CR-5 | Clés : `key_id` distincts ; algorithme de l'usage (4.3 : `ed25519` pour `enregistreur` ; `secp256k1` pour `chaine`, `approbateur`, `gouvernance`, `administrateur_registre`, `deployeur`, `relayeur`, `tresorerie`, `approvisionnement` et `validateur` ; `rsa` ou `ecdsa_p256` pour `tsa_interne` ; `aes256` pour `enveloppe`) ; `generated_in` vaut `detenteur` si et seulement si l'usage est `approbateur` ; encodage de 5.6 ; `fingerprint` égal au SHA-256 de `public_key`, ou nul avec elle ; `address` nulle hors de secp256k1 ; pour secp256k1, point de la courbe et `address` égale à l'adresse dérivée | une de ces règles est violée |
+| CR-4 | Étapes : `performed_by` est un participant de rôle `officiant`, `detenteur_part` ou `membre` (un `temoin`, un `auditeur` ou un `observateur` n'exécute aucune étape, EX-5.2) ; chaque `witnessed_by` est un `temoin` ou un `auditeur` distinct de l'exécutant ; chaque étape a au moins un `witnessed_by` de rôle `temoin`, l'auditeur s'ajoutant au témoin sans le remplacer ; une étape `exception` a au moins une entrée de `findings` qui la nomme | une de ces règles est violée |
+| CR-5 | Clés : `key_id` distincts ; algorithme de l'usage (4.3 : `ed25519` pour `enregistreur` ; `secp256k1` pour `chaine`, `approbateur`, `gouvernance`, `administrateur_registre`, `deployeur`, `relayeur`, `tresorerie`, `approvisionnement` et `validateur` ; `rsa` ou `ecdsa_p256` pour `tsa_interne`, et, pour `rsa`, module d'au moins 3 072 bits (CLE-10, CT-5 AN-31) ; `aes256` pour `enveloppe`) ; `generated_in` vaut `detenteur` si et seulement si l'usage est `approbateur` ; encodage de 5.6 ; `fingerprint` égal au SHA-256 de `public_key`, ou nul avec elle ; `address` nulle hors de secp256k1 ; pour secp256k1, point de la courbe et `address` égale à l'adresse dérivée | une de ces règles est violée |
 | CR-6 | Classes : `custody_class` vaut `sans_objet` si et seulement si l'usage est `approbateur` ; en production, classe admise par la table de 4.3 | une de ces règles est violée |
 | CR-7 | Sauvegarde : `aucune` a `k` et `n` nuls et aucun détenteur ; `partage_k_sur_n` a `2 ≤ k ≤ n`, n détenteurs distincts, tous de rôle `detenteur_part` ; règle de 4.4 par usage (aucune sauvegarde pour `enregistreur`, `chaine`, `approbateur`, `validateur`, `deployeur`, `relayeur`, `approvisionnement`, `tsa_interne` ; partage pour `enveloppe` ; partage en production pour `administrateur_registre` et `tresorerie`) | une de ces règles est violée |
 | CR-8 | Membres : chaque clé d'usage `approbateur` a l'adresse d'exactement un participant `membre`, et chaque `membre` a exactement une telle clé | une de ces règles est violée |
@@ -1783,6 +1876,17 @@ cette phrase, et rien de plus fort :
 ```text
 Procès-verbal <ceremony_id> : forme, chronologie, clés et <n> signatures vérifiées (D_C = <D_C>). Les identités, les rôles, les étapes et les constats sont déclarés par le procès-verbal et ses signataires.
 ```
+
+Pour un procès-verbal lu dont `environment` vaut `production`, le rapport
+porte en plus la réserve `date_declaree_seulement` (membre `reserves`, hors
+de `attendu.json`, dont la forme ne change pas), quel que soit le verdict,
+qu'elle ne change pas ; `reserves` est vide hors production et quand CR-1
+échoue. Sur la sortie lisible, la commande de référence imprime alors, après
+la phrase précédente : « Réserve : procès-verbal de production daté par
+déclaration seulement. Aucune vérification CR- ne lit l'ancre de D_C (jeton
+RFC 3161 sur D_C, ou inscription au registre) : le réviseur la contrôle
+lui-même, et sans elle la date du procès-verbal n'est que déclarée (CT-7
+EX-5.11, RA-77). »
 
 ### 5.9 Ce que le procès-verbal prouve et ne prouve pas ; usage par le réviseur
 
@@ -1818,7 +1922,8 @@ aussi longtemps que le plus long des journaux dont la clé signe ou ancre des
 `D_C`, obtenu après les signatures et conservé avec le procès-verbal, hors de
 son condensé, ou par sa transmission au registre comme preuve d'origine. Aucune
 CR- ne lit cette ancre : le réviseur la contrôle lui-même, et un procès-verbal
-sans ancre n'a qu'une date déclarée (RA-77).
+sans ancre n'a qu'une date déclarée (RA-77). Le rapport du vérificateur le
+dit par la réserve `date_declaree_seulement` (5.8).
 
 **EX-5.12** Le procès-verbal porte des noms de personnes : il est remis au
 réviseur et aux auditeurs qui en ont l'usage, non publié ; `name` PEUT être
@@ -2163,7 +2268,7 @@ touche la supervision de l'enregistreur ; PA-18 sert le journal d'exploitation
 | PA-1 | **Annonce de reprise.** À chaque prise d'écriture d'un journal (démarrage, bascule de bail), au pas 4 de la séquence d'EX-9.8, produire un événement `noortrace.journal.politique` même si l'ensemble de politique n'a pas changé : sa valeur est alors celle du dernier annoncé. Un événement de politique dont la valeur égale la précédente se lit « reprise d'un écrivain ». La phrase de §9.1 « L'enregistreur ne produit aucun autre événement sur lui-même » est complétée en conséquence. | §9.1 (EX-9.2, EX-9.8), §13.4 | JS-1, JS-3 | Aucun format nouveau : l'événement est de CT-1 v0 et passe E-3 ; un journal existant reste valide |
 | PA-2 | **Empreinte de la configuration d'exploitation.** Ajouter à l'ensemble de politique un membre facultatif `exploitation_sha256` : SHA-256 du JCS intégral du document de configuration privé de son membre `policy` (les références de secrets y sont des emplacements, jamais des valeurs, CT-2 EX-15.3). Tout changement de la configuration d'exploitation change alors `policy_sha256` et produit un événement de politique (EX-9.1). | §8.5 (EX-8.11), §15.1, EX-15.4 | JS-7 | Extension compatible du schéma `configuration-enregistreur-v0` (membre facultatif) ; un ensemble sans le membre garde son empreinte |
 | PA-3 | **Ligne d'arrêt.** Ajouter `shutdown` (arrêt ordonné : raison, durée de fonctionnement, dernier `seq`) à la liste des événements du journal d'exploitation. | EX-17.2 | JS-2 | Journal d'exploitation seulement |
-| PA-4 | **Empreinte de l'image.** Ajouter au `data` de la ligne `startup` l'empreinte de l'image ou du binaire en cours (CT-7 EX-3.14). | EX-18.6, EX-17.2 | — (MN-25) | Journal d'exploitation seulement |
+| PA-4 | **Empreinte de l'image.** Ajouter au `data` de la ligne `startup` l'empreinte de l'image ou du binaire en cours (CT-7 EX-3.14). Adoptée à l'étape 8 avec cette limite : le condensé de l'image est déclaré (`--image-attendue`, `image_expected`), l'empreinte du code en cours est calculée (`code_sha256`) et comparée (`image_match`, ligne `image_mismatch` sur écart). | EX-18.6, EX-17.2 | — (MN-25) | Journal d'exploitation seulement |
 | PA-5 | **Clés de test refusées.** En `environment: "production"`, la validation au démarrage refuse toute clé publique de `spec/vecteurs/ct-7/cles-de-test.json` pour la clé de l'enregistreur et la clé de chaîne (CT-7 EX-4.10). | EX-15.4 | — (MN-30) | Refus nouveau en production seulement |
 | PA-6 | **Signature du document de configuration.** Rappel du point que CT-2 §21 laisse hors de la version 0 : signature détachée par l'administrateur du client, vérifiée avant chargement, pour une version ultérieure. | §18.4, §21 | JS-7 | Version ultérieure |
 | PA-8 | **Membre `policy.perimeter`.** Ajouter à l'ensemble de politique (`configuration-enregistreur-v0`, `$defs/policy_set`) un membre facultatif `perimeter` = `{ "attestation_digest": hex de 32 octets }`, ajout compatible comme `otel` et `sdk` en révision 0.5. Recevoir une attestation est alors un rechargement de politique, qui scelle `noortrace.journal.politique` (EX-15.5) ; la table de §9.1 nomme « attestation de périmètre reçue » portée par cet événement. | EX-8.11, EX-9.1, EX-15.2, EX-15.5, §9.1 | JS-12 | Extension compatible du schéma de configuration ; inscrit l'attestation sans nom réservé nouveau (CT-7 EX-7.10) |
@@ -3086,7 +3191,7 @@ Les propositions de l'attestation sont PA-8 à PA-11 de la table 6.2 : le
 membre `policy.perimeter` de l'ensemble de politique (PA-8), l'unicité des
 noms de version de politique (PA-9), les consignes du journal d'exploitation
 (PA-10) et la métrique d'échéance (PA-11). CT-2 et ses vecteurs ne changent
-pas dans ce lot ; tant que PA-8 n'est pas adoptée, une attestation réelle
+pas dans cette version ; tant que PA-8 n'est pas adoptée, une attestation réelle
 n'a pas d'inscription (EX-7.12, RA-72).
 
 ## 8. Matrice de conformité
@@ -3702,7 +3807,7 @@ fait un engagement contractuel.
 |---|---|---|---|
 | Événements (segments), manifestes, signatures | stockage de l'enregistreur | au moins dix ans à compter de la fin de l'exercice ; `storage.retention.events_years ≥ 10`, refusé sinon | CT-2 EX-12.19, EX-15.4 |
 | Copies WORM des segments fermés, manifestes, signatures, séries de points et répertoires `ancres/` | support WORM du client | `retain_days ≥ 365 × events_years`, à compter de la date d'écriture de chaque copie ; seuls 4 018 jours (recommandés) couvrent la fin de l'exercice plus dix ans ; un gel juridique prolonge la conservation des copies qu'il couvre jusqu'à sa levée par deux personnes | CT-2 EX-12.16, EX-12.30, EX-12.19, EX-12.38 |
-| Pièces | stockage de l'enregistreur | `storage.retention.pieces_days`, ou sans limite (`null`) ; purge sautée pour les pièces d'un gel actif ; chaque purge consignée | CT-2 EX-12.20 |
+| Pièces | stockage de l'enregistreur | `storage.retention.pieces_days`, ou sans limite (`null`) ; purge sautée pour les pièces d'un gel actif ; chaque purge consignée ; la version 0 ne purge pas d'elle-même (CT-2 §21 : une valeur non nulle de `pieces_days` est annoncée par un avertissement à la validation et reste sans effet), la purge est une procédure du client | CT-2 EX-12.20 |
 | Journal d'exploitation | stockage de l'enregistreur | durée du journal visée par CT-2 EX-9.6 ; le démon n'en tient que `logging.keep_files` fichiers, l'archivage des fichiers tournés relève de CT-8 (L-9) | CT-2 EX-9.6 |
 | Pièces d'horodatage, file, acquisitions | `ancres/` | au moins dix ans (`rfc3161.retention_years ≥ 10`) | CT-5 EX-5.15, EX-8.14 |
 | Trace du ticket, sans arguments | service d'approbation | aussi longtemps que le journal | CT-3 EX-7.24 |
@@ -3750,7 +3855,9 @@ de CT-5 EX-5.15.
 pas adoptée, la première égalité est une exigence portée par le client, que
 ni CT-2 ni CT-5 ne contrôlent.
 
-**EX-8.14 (minimisation).** Les pièces se purgent (`pieces_days`) et se rédigent
+**EX-8.14 (minimisation).** Les pièces se purgent (`pieces_days` ; en version
+0, par une procédure du client, le démon ne purgeant pas de lui-même, CT-2
+§21) et se rédigent
 avant hachage (CT-2 EX-10.2) ; les événements ne se purgent pas avant leur
 plancher. Les données personnelles qu'un événement porte en clair
 (`delegation.launched_by`, `on_behalf_of`, `intent`, `effects`, adresses et
@@ -3945,6 +4052,14 @@ conformité » échoue, quels que soient ses autres éléments.
 - **La revue de code** de l'enregistreur, du service et de la console : une
   épreuve de CT-9, dont CT-7 fixe le périmètre (composants de 3.2, menaces de
   3.4) ; aucune revue n'a été faite pour cette version.
+- **Une cérémonie tenue par des personnes** : aucune pour cette version. Les
+  procès-verbaux des vecteurs sont des exemples calculés ; celui de
+  l'installation d'essai de l'étape 7 est écrit par un harnais ; la
+  répétition de la porte 2 (CT-9 TA-95, TA-97) est jouée par des rôles
+  simulés (5.2). Le constat d'identité par un témoin (EX-5.2), l'identité
+  distincte des détenteurs de part (EX-5.5) et la comparaison du condensé
+  par un signataire (EX-5.8, EX-7.8) ne sont donc éprouvés que comme
+  procédures écrites ; RA-32, RA-76, RA-79 et RA-81 demeurent entiers.
 - **La construction reproductible** de l'image de l'enregistreur et de la
   console : CT-8 (CT-7 EX-3.9 et EX-3.14 n'en exigent que la publication et
   la comparaison des empreintes).
@@ -4002,8 +4117,8 @@ conformité » échoue, quels que soient ses autres éléments.
 ## 11. Alignement avec le dépôt
 
 CT-7 version 0.1 est la première rédaction ; elle ne clôt aucune décision
-ouverte de l'architecture. « fait » : livré dans le dépôt, par ce lot de
-spécification ou par le lot nommé ; « à faire » : attendu d'un autre lot ou
+ouverte de l'architecture. « fait » : livré dans le dépôt, par cette version de la
+spécification ou par le code nommé ; « à faire » : attendu d'une autre livraison ou
 d'une autre spécification, nommé.
 
 | Emplacement | Attendu par CT-7 0.1 | État |
@@ -4011,11 +4126,11 @@ d'une autre spécification, nommé.
 | `spec/CT-1-evenements-et-formats.md`, `spec/CT-6-verificateur.md` | révisions 0.4 et 0.3 : partie facultative `attestation-perimetre.json`, vérifications AT-1 à AT-7, fragment FP, `facts.perimeter`, avertissements AV-AT- | fait |
 | `spec/schemas/` | schémas nouveaux `modele-menace-v0`, `ceremonie-cles-v0`, `attestation-perimetre-v0`, `matrice-conformite-v0` ; `dossier-v0` et `rapport-verification-v0` étendus de façon compatible | fait |
 | `spec/README.md` | CT-1 version 0.4, CT-6 version 0.3, CT-7 version 0.1 ; schémas nouveaux ; famille `ct-7` | fait |
-| `scripts/lib/securite.mjs`, `scripts/verify/ceremonie.mjs`, `scripts/conformite/attestation.mjs`, `scripts/conformite/verifier-renvois.mjs`, `scripts/conformite/matrice-donnees.mjs` | implémentation de référence (annexe A.8 à A.10) | fait (lot de code de CT-7) |
-| `scripts/lib/journal.mjs`, `scripts/lib/verificateur.mjs`, `scripts/verify/dossier.mjs` | quatorzième partie, AT-1 à AT-7 sans effet sur le verdict, FP, `facts.perimeter`, dix schémas | fait (lot de code de CT-7) |
-| `scripts/vecteurs/generer-ct7.mjs`, `spec/vecteurs/ct-7/` ; dossiers nouveaux de `ct-1` et `ct-6` | vecteurs de l'annexe A, deux générations identiques | fait (lot de code de CT-7) |
-| `spec/vecteurs/ct-7/verificateur-independant/` ; vérificateurs Go de `ct-1` et de sa copie de `ct-2` | vérificateur indépendant (A.12) | fait (lot de code de CT-7) |
-| `spec/vecteurs/ct-7/confrontation/` ; `test/securite.test.js`, `test/conformite.test.js`, `test/confrontation.test.js` ; `.github/workflows/ci.yml` ; `package.json` | confrontation tierce, tests et intégration continue (A.11, A.13, A.14) | fait (lot de code de CT-7) |
+| `scripts/lib/securite.mjs`, `scripts/verify/ceremonie.mjs`, `scripts/conformite/attestation.mjs`, `scripts/conformite/verifier-renvois.mjs`, `scripts/conformite/matrice-donnees.mjs` | implémentation de référence (annexe A.8 à A.10) | fait (code de CT-7) |
+| `scripts/lib/journal.mjs`, `scripts/lib/verificateur.mjs`, `scripts/verify/dossier.mjs` | quatorzième partie, AT-1 à AT-7 sans effet sur le verdict, FP, `facts.perimeter`, dix schémas | fait (code de CT-7) |
+| `scripts/vecteurs/generer-ct7.mjs`, `spec/vecteurs/ct-7/` ; dossiers nouveaux de `ct-1` et `ct-6` | vecteurs de l'annexe A, deux générations identiques | fait (code de CT-7) |
+| `spec/vecteurs/ct-7/verificateur-independant/` ; vérificateurs Go de `ct-1` et de sa copie de `ct-2` | vérificateur indépendant (A.12) | fait (code de CT-7) |
+| `spec/vecteurs/ct-7/confrontation/` ; `test/securite.test.js`, `test/conformite.test.js`, `test/confrontation.test.js` ; `.github/workflows/ci.yml` ; `package.json` | confrontation tierce, tests et intégration continue (A.11, A.13, A.14) | fait (code de CT-7) |
 | CT-2 | propositions PA-1 à PA-6, PA-8 à PA-13, PA-16 à PA-18 et PA-20 (6.2, 8.11) | à faire (révision de CT-2 à décider) |
 | CT-1 version 1 ; CT-4 ; CT-5 ; CT-8 | propositions PA-7, PA-16, PA-19 ; PA-14 ; PA-13, PA-19 ; PA-15 | à faire (révisions à décider ; CT-8 à écrire) |
 | `README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md` | mention de CT-7 0.1 : modèle de menace, clés, cérémonie et procès-verbal, journal sur soi, attestation de périmètre déclarative, matrice de conformité présentée comme correspondance technique | à faire (alignement des documents racine) |
@@ -4063,6 +4178,23 @@ et la révision 0.6 de CT-6. Mêmes conventions que les tables précédentes.
 | CT-3 | algorithme de chiffrement de l'état et procédure de changement de `storage_key` (CLE-30) | fait (révision 0.5 : CT-3 EX-7.30, écrite d'après le code livré ; CLE-30 et 4.6 alignées) |
 | `spec/README.md` ; `spec/figeage/` | CT-7 version 0.4 du 2026-11-11 ; consignation de la révision | fait |
 
+La révision 0.5 (2026-11-14) ne clôt aucune décision de l'architecture ; elle
+applique les constats de la revue de sécurité interne de l'étape 8 et les
+décisions du porteur du 13 novembre 2026 (épreuves par des relecteurs
+internes à l'aveugle, cérémonie répétée par des rôles simulés). Mêmes
+conventions que les tables précédentes.
+
+| Emplacement | Attendu par CT-7 0.5 | État |
+|---|---|---|
+| Sections 3.2, 3.4, 3.5 | ligne `reseau` ; cellules « Test » de MN-25, MN-55, MN-73 et risque résiduel de MN-13 ; bornes de RA-11, RA-13, RA-22, RA-25, RA-26, RA-43, RA-64 précisées (un risque accepté par menace : la réécriture locale détectée et la dépendance de développement sans correctif n'ont pas de ligne propre) | fait (texte) ; `menaces.json` et `INDEX.md` : à régénérer par l'assemblage |
+| Sections 4.2, 4.6 | CLE-37 à CLE-41 ; CLE-3, CLE-10, CLE-14, CLE-21, CLE-24, CLE-29, CLE-36 ; ligne de 4.6 étendue à CLE-37 et CLE-40 | fait (texte) ; `scripts/conformite/verifier-renvois.mjs` et les comptes de CT-9 TQ-7 (`CT-7 CLE- (36)`) : à aligner par l'assemblage |
+| Sections 3.7, 6.2 | EX-3.7, EX-3.9, EX-3.10, EX-3.11, EX-3.14 ; PA-4 adoptée avec sa limite | fait (texte) ; code : rapprochement Transit, feuille de style de la page de référence (`scripts/console/empreintes.mjs`), démon (`--image-attendue`, `empreinte-image.mjs`) faits ou demandés à l'étape 8 |
+| Sections 5.2, 5.8, 10, annexe A.4 ; `scripts/lib/securite.mjs`, `scripts/verify/ceremonie.mjs`, `scripts/vecteurs/generer-ct7.mjs` | répétition par rôles simulés ; CR-2 (avertissement sur un même `name`), CR-4 (`performed_by` : officiant, détenteur de part ou membre), CR-5 (RSA d'au moins 3 072 bits) ; réserve `date_declaree_seulement` et cas `valide-production-sans-ancre` | texte : fait ; réserve et cas : faits à l'étape 8 (générateur modifié, vecteur à publier par l'assemblage) ; CR-2, CR-4, CR-5 : correctifs de la référence appliqués à l'étape 8, vecteurs `ct-7/ceremonies/` régénérés (cas `invalide-cr4-temoin-executant`, `invalide-cr4-observateur-executant`, `invalide-cr5-rsa-2048` ; `invalide-cr2-auditeur-executant` en échec à CR-2 et CR-4), module Go aligné ; publication par l'assemblage |
+| Section 3.8 (exemple `modele-menace`) ; annexe A.4 (table des cas) ; EX-A.21 (plancher du module Go) | `spec_version` 0.5 et `date` 2026-11-14 dans l'exemple, comme `menaces.json` régénéré ; cas CR-4 et CR-5 de la révision 0.5 dans la table ; code 1 sans famille, sans valeur recalculée ou sur un cas absent de l'`INDEX.md` | texte : fait (demandé après la première rédaction de la révision 0.5) ; module Go : plancher fait (revue de sécurité de l'étape 8) |
+| Sections 8.8.2, EX-8.14 | purge des pièces : procédure du client en version 0 (CT-2 §21) | fait |
+| `spec/README.md` ; `spec/figeage/` | CT-7 version 0.5 du 2026-11-14 ; consignation de la révision | README : fait ; figeage : assemblage |
+| Plan de tests | cellules « Test » de MN-55 et MN-73 reprises par TA-55 et TA-73 ; extrait de ce document remis aux épreuves de la section 9 ; numéros de ligne des renvois | à faire (révision 0.10 du plan de tests : catalogue, assemblage) |
+
 ## Annexe A — Vecteurs, implémentation, intégration continue
 
 ### A.1 Principes
@@ -4077,7 +4209,7 @@ mnémonique public de `spec/vecteurs/ct-3/constantes.json` (chemin
 empreintes (script, image du poste, enregistrements, preuves d'origine)
 sont le SHA-256 d'étiquettes `noortrace/vecteurs/ct7/…`. Les vecteurs de
 CT-2, CT-3, CT-4 et CT-5 et leurs générateurs ne changent pas ; ceux de CT-1
-et CT-6 ne reçoivent, pour ce lot, que les dossiers nouveaux de
+et CT-6 ne reçoivent, pour cette version, que les dossiers nouveaux de
 l'attestation (A.7).
 
 Les vecteurs de l'attestation sont produits par
@@ -4160,21 +4292,25 @@ participant ne peut avoir de témoin : CR-4). Cas publiés, au moins :
 | `valide-developpement-classe-d` | développement, clé `enregistreur` de classe D, script sans empreinte, sans vidéo ni auditeur | — |
 | `valide-restauration-administrateur-registre` | portée `exploitant` ; restauration de la clé `administrateur_registre` sauvegardée par `valide-sauvegarde-administrateur-registre` (`backup_ceremony_digest` = son `D_C`, partage 2 sur 3) ; deux détenteurs de part présents | — |
 | `valide-rotation-urgence-chaine` | rotation d'urgence de la clé de chaîne ; `decided_at` avant `revocation_included_at` | — |
+| `valide-production-sans-ancre` | rotation planifiée de la clé de chaîne, en production ; aucun jeton RFC 3161 sur `D_C` ni inscription au registre ne l'accompagne : réserve `date_declaree_seulement` (EX-5.11) | — |
 | `invalide-cr1-cle-en-double` | texte JSON avec une clé en double | CR-1 (et CR-2 à CR-12 non exécutées) |
 | `invalide-cr1-nombre-non-entier` | `version` vaut `0.0` | CR-1 |
 | `invalide-cr1-schema` | membre `place` retiré | CR-1 |
 | `invalide-cr2-un-seul-participant` | seul l'officiant | CR-2, CR-4 (une seule personne ne peut témoigner d'aucune étape) |
 | `invalide-cr2-deux-officiants` | le témoin devient officiant (un second témoin ajouté) | CR-2 |
 | `invalide-cr2-adresse-en-double` | l'auditeur a l'adresse du témoin | CR-2 |
-| `invalide-cr2-auditeur-executant` | une étape exécutée par l'auditeur | CR-2 |
+| `invalide-cr2-auditeur-executant` | une étape exécutée par l'auditeur | CR-2, CR-4 |
 | `invalide-cr3-etape-avant-le-debut` | `at` de la première étape avant `started_at` | CR-3 |
 | `invalide-cr3-numerotation` | deux étapes de même `n` | CR-3 |
 | `invalide-cr4-temoin-de-lui-meme` | l'officiant parmi les témoins de son étape | CR-4 |
 | `invalide-cr4-exception-sans-constat` | `findings` vide | CR-4 |
 | `invalide-cr4-temoin-auditeur-seul` | une étape témoignée par le seul auditeur | CR-4 |
+| `invalide-cr4-temoin-executant` | l'étape 1 exécutée par le témoin (révision 0.5) | CR-4 |
+| `invalide-cr4-observateur-executant` | une étape exécutée par un observateur (révision 0.5) | CR-4 |
 | `invalide-cr5-empreinte-fausse` | `fingerprint` de la clé Ed25519 changé | CR-5 |
 | `invalide-cr5-adresse-de-chaine` | `address` de la clé de chaîne remplacée | CR-5 |
 | `invalide-cr5-ed25519-33-octets` | clé Ed25519 de 33 octets | CR-5 |
+| `invalide-cr5-rsa-2048` | clé `tsa_interne` RSA de 2 048 bits (révision 0.5) | CR-5 |
 | `invalide-cr6-classe-d-en-production` | clé `enregistreur` en classe D | CR-6 |
 | `invalide-cr6-administrateur-registre-classe-b` | clé `administrateur_registre` en classe B | CR-6 |
 | `invalide-cr7-sauvegarde-enregistreur` | partage 2 sur 2 de la clé `enregistreur` | CR-7 |
@@ -4193,6 +4329,10 @@ participant ne peut avoir de témoin : CR-4). Cas publiés, au moins :
 | `invalide-cr12-restauration-sans-detenteur` | restauration 2 sur 3 avec un seul participant `detenteur_part` | CR-12 |
 | `invalide-cr12-urgence-ordre` | `decided_at` après `revocation_included_at` | CR-12 |
 | `invalide-cr12-administrateur-sous-seuil` | changement d'administrateur avec un membre présent pour `required` = 2 | CR-12 |
+
+La réserve attendue de chaque cas (EX-5.11 : `date_declaree_seulement`, ou
+aucune) est écrite dans `INDEX.md`, hors d'`attendu.json`, dont la forme ne
+change pas.
 
 ### A.5 `cles-de-test.json` et `INDEX.md`
 
@@ -4295,7 +4435,7 @@ définies par CT-1 §11.5 (révision 0.4). Au moins :
 | `ct-6` | `valide-point-de-controle-complet-attestation` | `valide-point-de-controle-complet` et la partie | valide ; FK puis FP |
 | `ct-6` | `invalide-t6-signature-attestation` | `invalide-t6-signature` et une attestation retenue | invalide ; énoncé d'EX-6.9 sans FP ; `facts.perimeter` gardé pour le diagnostic |
 
-**EX-A.11** Les dossiers de CT-1 et de CT-6 antérieurs à ce lot gardent
+**EX-A.11** Les dossiers de CT-1 et de CT-6 antérieurs à cette version gardent
 leur `attendu.json` ; leur rapport ne diffère que par `facts.perimeter`
 (`null`) et par la liste des schémas de `verifier.schemas` (CT-6 EX-6.21).
 
@@ -4467,7 +4607,10 @@ vérifications de la matrice (EX-A.23). Il offre aussi deux modes de recalcul
 pour le signataire qui compare un condensé à un second outil (EX-5.8, EX-7.8) :
 `go run . condenser <attestation.json>` imprime `D_P` et `go run . condenser-pv
 <proces-verbal.json>` imprime `D_C`, chacun suivi de ses groupes de huit
-chiffres.
+chiffres. Révision 0.5 : le module rend le code 1 quand une famille de cette
+annexe est absente ou n'a aucune valeur recalculée, et quand un cas que
+l'`INDEX.md` nomme est absent de la racine ou qu'un cas présent n'y est pas
+nommé (revue de sécurité de l'étape 8).
 
 **EX-A.22 (vérificateur Go indépendant).** Le module
 `spec/vecteurs/ct-7/verificateur-independant` est écrit depuis le seul texte
@@ -4570,7 +4713,7 @@ commencent par « Vérificateur : » et « Répertoire : ».
 
 ### A.16 Ce qui ne change pas
 
-**EX-A.30** Ce lot ne modifie aucun fichier existant de `spec/vecteurs/ct-1`
+**EX-A.30** Cette version ne modifie aucun fichier existant de `spec/vecteurs/ct-1`
 à `ct-6` (sauf `INDEX.md` de `ct-1` et `ct-6`, pour les dossiers nouveaux de
 l'attestation, et les vérificateurs Go de `ct-1` et de sa copie de `ct-2`,
 étendus à AT-1 à AT-7 selon EX-A.22) ; les générateurs de `ct-2` à `ct-5` ne
@@ -4590,8 +4733,8 @@ famille `matrice` n'ajoute rien à `ct-1` ni à `ct-6`.
 
 ## Annexe B — Sources primaires datées
 
-Les faits externes de CT-7 viennent de deux notes de recherche internes du
-lot, non publiées : R6 (réglementation) et R7 (sécurité et cérémonies),
+Les faits externes de CT-7 viennent de deux notes de recherche internes,
+non publiées : R6 (réglementation) et R7 (sécurité et cérémonies),
 relues le 2026-10-26 sur les sources primaires qu'elles citent ; les sources des
 textes T-2 et T-8 ont été relues le 2026-11-03, le 2026-11-10, puis le 2026-11-11, selon EX-8.20 (B.2). Un fait porte
 le renvoi « R6-Fn » ou « R7-Fn » ; un point non vérifié porte « NV-n » (R6) ou

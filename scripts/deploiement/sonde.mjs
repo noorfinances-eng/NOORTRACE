@@ -29,10 +29,21 @@
 //   (1 si la commande rend 0, 0 sinon) et noortrace_releve_externe_dernier_s{check}
 //   (fin de la relecture, secondes UNIX ; écart E-C5 de
 //   scripts/lib/supervision.mjs). Un fichier par relecture, dans le
-//   répertoire du collecteur textfile de l'exportateur de nœud.
+//   répertoire du collecteur textfile de l'exportateur de nœud. La commande
+//   rend le code de la relecture (EX-10.9) : les jauges sont écrites d'abord,
+//   puis le code de la commande est rendu tel quel (1 si elle a été tuée par
+//   un signal ou si elle est introuvable).
 //
-// Codes : 0 exposition écrite (quelles que soient les réponses sondées) ;
-// 1 manifeste illisible ou commande de relecture introuvable ; 2 usage.
+//   Témoin de vie (CT-8 EX-10.7) : en mode --intervalle, chaque passe réussie
+//   ajoute à l'exposition la jauge noortrace_sonde_derniere_passe_s (instant
+//   de la passe, secondes UNIX) ; une sonde arrêtée laisse le fichier du
+//   collecteur avec un instant qui n'avance plus, ce qu'une règle
+//   « time() - noortrace_sonde_derniere_passe_s > 120 » ou « absent(…) » voit.
+//   Une passe unique (sans --intervalle) n'écrit pas ce témoin.
+//
+// Codes de la sonde : 0 exposition écrite (quelles que soient les réponses
+// sondées) ; 1 manifeste illisible ; 2 usage. Codes de releve : celui de la
+// relecture ; 2 usage.
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -51,6 +62,9 @@ const USAGE = [
 ].join("\n");
 
 export const RELEVES = Object.freeze(["registre_gels", "console", "copie_exploitation"]);
+/** Témoins de vie des outils de supervision (mode --intervalle) : noms des jauges. */
+export const TEMOIN_SONDE = "noortrace_sonde_derniere_passe_s";
+export const TEMOIN_EXTRACTEUR = "noortrace_extracteur_derniere_passe_s";
 const ADRESSE = /^0x[0-9a-fA-F]{40}$/;
 const CIBLE = /^[a-z][a-z0-9_-]{0,63}$/;
 const ROLES_PROVISION = new Set(["deployeur", "administrateur_registre", "relayeur"]);
@@ -130,6 +144,21 @@ export function expositionReleve(check, ok, fin) {
     "# HELP noortrace_releve_externe_dernier_s Fin de la derniere relecture, en secondes UNIX.",
     "# TYPE noortrace_releve_externe_dernier_s gauge",
     `noortrace_releve_externe_dernier_s{check="${check}"} ${secondes(fin)}`,
+    "",
+  ].join("\n");
+}
+
+/**
+ * Témoin de vie d'un outil de supervision : instant de la dernière passe
+ * réussie, en secondes UNIX (jauge ajoutée à l'exposition en mode --intervalle).
+ * @param {string} nom TEMOIN_SONDE ou TEMOIN_EXTRACTEUR
+ * @param {number} maintenant ms UTC
+ */
+export function expositionTemoin(nom, maintenant) {
+  return [
+    `# HELP ${nom} Instant de la derniere passe reussie de l'outil, en secondes UNIX (temoin de vie, CT-8 EX-10.3).`,
+    `# TYPE ${nom} gauge`,
+    `${nom} ${secondes(maintenant)}`,
     "",
   ].join("\n");
 }
@@ -236,7 +265,8 @@ function releve(argv, erreur) {
     return 1;
   }
   ecrireAtomique(o.sortie, expositionReleve(o.check, r.status === 0, Date.now()));
-  return 0;
+  // EX-10.9 : « rend le code de la relecture » ; une commande tuée par un signal (status nul) rend 1.
+  return r.status === null ? 1 : r.status;
 }
 
 export async function principal(argv, sortie = process.stdout, erreur = process.stderr) {
@@ -285,7 +315,8 @@ export async function principal(argv, sortie = process.stdout, erreur = process.
     delai: Number(o.delai ?? 2000),
   };
   const une = async () => {
-    const texte = await passe(options);
+    // Témoin de vie en mode --intervalle : la jauge n'est écrite qu'au terme d'une passe réussie.
+    const texte = (await passe(options)) + (o.intervalle !== undefined ? expositionTemoin(TEMOIN_SONDE, Date.now()) : "");
     if (o.sortie !== undefined) ecrireAtomique(o.sortie, texte);
     else sortie.write(texte);
   };

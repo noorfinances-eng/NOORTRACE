@@ -3,7 +3,8 @@
 //
 // - Lecture des archives (EX-18.7) : chaque refus, avant toute exécution ;
 //   les formes admises, dont chaque recette d'EX-18.13 appliquée à chacun des
-//   190 dossiers des vecteurs, rendent exactement les fichiers du dossier.
+//   dossiers des vecteurs de ct-1 et ct-6, rendent exactement les fichiers du
+//   dossier.
 // - Arbre du prélude (EX-18.8) : erreurs POSIX, modes, couples (dev, ino),
 //   membres d'état, lecture seule, process et path.
 // - Libellés : phrases fixes d'EX-18.2, EX-18.5, EX-18.7 et EX-18.9 égales
@@ -102,13 +103,17 @@ describe("page de vérification : lecture des archives (CT-6 EX-18.7)", function
     }
   });
 
-  it("chaque recette d'EX-18.13, sur chacun des 190 dossiers des vecteurs, rend exactement les fichiers du dossier", async function () {
+  it("chaque recette d'EX-18.13, sur chacun des dossiers des vecteurs de ct-1 et ct-6, rend exactement les fichiers du dossier", async function () {
     const manque = outilsArchivesDisponibles();
     if (manque) return enAttente(this, manque);
     const dir = repertoireTemporaire("noortrace-page-recettes");
     try {
       let n = 0;
-      for (const d of dossiersVecteurs()) {
+      // EX-18.13 : chacun des dossiers de spec/vecteurs/ct-1/dossiers et ct-6/dossiers ; les vecteurs ajoutent des dossiers
+      // sans retirer les 190 de la mesure de CT-6 EX-18.4 (révision 0.7).
+      const dossiers = dossiersVecteurs();
+      expect(dossiers.length).to.be.at.least(190);
+      for (const d of dossiers) {
         const attendus = fichiersDe(d.chemin).map((f) => [f.chemin, f.octets.toString("base64")]);
         for (const a of recettesArchives(d.chemin, dir)) {
           const r = await lireArchive(a.fichier, new Uint8Array(fs.readFileSync(a.chemin)));
@@ -119,7 +124,7 @@ describe("page de vérification : lecture des archives (CT-6 EX-18.7)", function
           n++;
         }
       }
-      expect(n).to.equal(190 * 7);
+      expect(n).to.equal(dossiers.length * 7);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

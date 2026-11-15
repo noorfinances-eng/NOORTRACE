@@ -138,6 +138,11 @@ class AdaptateurCrewAI:
         else:
             # Méthode d'instance : prime sur ``_run`` de la classe (BaseTool.run, to_structured_tool).
             object.__setattr__(copie, "_run", self._envelopper_fonction(nom, outil._run))
+            # Étape 8 (CT-2 EX-6.21) : une sous-classe qui définit sa propre ``_arun``
+            # (chemin ``BaseTool.arun``) est enveloppée de même, par la coroutine ;
+            # la ``_arun`` par défaut de BaseTool (qui lève) n'est pas touchée.
+            if type(outil)._arun is not BaseTool._arun and inspect.iscoroutinefunction(outil._arun):
+                object.__setattr__(copie, "_arun", self._envelopper_fonction(nom, outil._arun))
         return copie
 
     def envelopper(self, outils: Iterable[Any]) -> List[Any]:

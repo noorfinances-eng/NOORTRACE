@@ -158,6 +158,7 @@ export default Object.freeze({
   "marque.intention_declaree": "déclarée par l'agent, non vérifiée",
   "marque.configuration_hote": "configuration de la connexion d'hôte",
   "marque.declare_hote": "déclaré par l'hôte, non vérifié",
+  "marque.caracteres_invisibles": "contient des caractères invisibles ou de sens d'écriture, écrits \\uXXXX",
 
   // Empreintes divergentes (EX-9.17).
   "divergence.decision": "Décision",
@@ -356,6 +357,9 @@ export default Object.freeze({
   // Erreurs propres à la page.
   "erreur.inconnue": "erreur inconnue",
   "page.erreur_page": "erreur de la page",
+  // Revue CT-3 EX-9.15 : la demande relue au pas 3 n'est pas celle qui était affichée (code proposé pour $defs/code_console).
+  "page.demande_modifiee": "la demande affichée a changé depuis sa lecture : aucune signature n'est demandée ; relisez la demande maintenant affichée, puis choisissez de nouveau votre décision",
+  "signature.demande_modifiee_prevenir": "Le service a servi deux demandes différentes pour le même ticket. Prévenez l'administrateur de l'organisation par un autre canal que la console avant de voter.",
 
   // $defs/code_console (13.14, EX-9.15).
   "console.evenement_invalide": "l'événement « retenue » ne concorde pas avec la demande ; aucune signature n'est demandée",
@@ -400,6 +404,7 @@ export default Object.freeze({
   "console.origine_differente": "le texte d'inscription nomme une autre origine que celle de cette console ; aucune signature n'est demandée",
   "console.identite_differente": "le texte d'inscription nomme une autre identité que celle de votre session ; aucune signature n'est demandée",
   "console.reponse_service_invalide": "réponse du serveur hors de sa forme, ou vue d'un autre ticket que celui de cet écran : rien n'en est affiché, aucune signature n'est demandée ; réessayez, et prévenez l'administrateur si l'écart persiste",
+  "console.demande_modifiee": "la demande affichée a changé depuis sa lecture (CT-3 EX-9.15) : aucune signature n'est demandée ; relisez la demande maintenant affichée, choisissez de nouveau votre décision et prévenez l'administrateur par un autre canal",
 
   // Variantes : eth_requestAccounts (13.14).
   "comptes.refus_approbateur": "accès aux comptes refusé dans le portefeuille ; vous pouvez recommencer",

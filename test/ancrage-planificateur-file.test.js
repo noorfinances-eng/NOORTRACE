@@ -1,4 +1,4 @@
-// File d'attente durable (CT-5 EX-8.5, lot C) : `file-<epoch>.ndjson` en
+// File d'attente durable (CT-5 EX-8.5) : `file-<epoch>.ndjson` en
 // ajout seul, JCS intégral d'une $defs/demande par ligne, `fdatasync` avant
 // de rendre la main (règle 1, AN-32), une demande par id (règle 2), dernière
 // ligne fait foi et ligne tronquée ignorée et signalée (règle 3), compaction

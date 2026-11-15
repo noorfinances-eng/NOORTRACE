@@ -256,6 +256,8 @@ func (v *verif) t10() {
 			}
 			concerne = true
 			switch {
+			case l.critiqueInconnue:
+				motifFr, motifEn = "extension critique non lue (EX-9.16)", "unread critical extension (EX-9.16)"
 			case !l.complete():
 				motifFr, motifEn = "delta ou partielle", "delta or partial"
 			case !signatureAdmise(l.algoSig, cle(i), l.tbs, l.signature):

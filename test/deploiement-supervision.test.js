@@ -78,6 +78,20 @@ function tablesRegles() {
   return out;
 }
 const TABLES = tablesRegles();
+/**
+ * Forme « première occurrence » d'EX-10.6, appliquée à l'expression courte
+ * d'une table : `increase|rate(x[w]) OP n` sur une série noortrace_
+ * (extracteur, démon, composant d'ancrage ; rate() compris, arbitrage du 14
+ * novembre) devient `(…) or ((x unless x offset w) OP n)` ; dans une
+ * expression composée, `increase(S[w])` d'une série noortrace_ devient
+ * `((S unless S offset w) or increase(S[w]))` ; une série noor_* du nœud,
+ * exposée à 0 dès son démarrage (CT-4 EX-10.9), garde la forme courte.
+ */
+function premiereOccurrenceEX106(expr) {
+  const m = /^(increase|rate)\((noortrace_[a-z_]+(?:\{[^}]*\})?)\[([0-9]+[smhd])\]\) (>=?) ([0-9]+)$/.exec(expr);
+  if (m) return `(${expr}) or ((${m[2]} unless ${m[2]} offset ${m[3]}) ${m[4]} ${m[5]})`;
+  return expr.replace(/increase\((noortrace_[a-z_]+(?:\{[^}]*\})?)\[([0-9]+[smhd])\]\)/g, (_, x, w) => `((${x} unless ${x} offset ${w}) or increase(${x}[${w}]))`);
+}
 const FICHIER = yaml.load(lire(OBS, "regles-noortrace.yml"));
 const REGLES = FICHIER.groups.flatMap((g) => g.rules);
 const parNom = new Map(REGLES.map((r) => [r.alert, r]));
@@ -97,14 +111,14 @@ describe("CT-8 §10.4 à §10.7 : règles d'alerte de référence (SV-1 à SV-4)
     const noms = REGLES.map((r) => r.alert);
     expect(noms).to.deep.equal(TABLES.map((t) => t.nom));
     for (const n of ["noortrace_releve_externe_echec", "noortrace_releve_externe_perime"]) expect(parNom.get(n).labels).to.include({ exigence: "CT-8 EX-10.9", severity: "critique" });
-    expect(TABLES).to.have.length(88);
+    expect(TABLES).to.have.length(99); // révision 0.8 de CT-8 : onze règles adoptées par les tables (10.4, 10.7)
   });
 
   it("SV-1 : chaque alerte prescrite par CT-2 §17.4 (deux tables), CT-5 §8.9 et les EX de CT-4 nommés par EX-10.1 a au moins une règle dont l'étiquette exigence la nomme", function () {
     const exigences = REGLES.flatMap((r) => r.labels.exigence.split(" ; "));
     const sec = section(CT2, "### 17.4 ", "### 17.5 ");
     const ct2 = sec.split("\n").filter((l) => l.startsWith("| ") && !l.startsWith("| Alerte")).map((l) => cellules(l)[0].replace(/ \(révision [0-9.]+\)$/, ""));
-    expect(ct2).to.have.length(32);
+    expect(ct2).to.have.length(33); // révision 0.11 de CT-2 : « Image différente de la version publiée » (EX-18.10)
     const norm = (s) => s.toLowerCase();
     for (const a of ct2) {
       const ok = exigences.some((e) => e.startsWith("CT-2 §17.4 ") && (norm(a).startsWith(norm(e.slice(11).replace(/ \(.*$/, ""))) || norm(e.slice(11)).startsWith(norm(a))));
@@ -119,7 +133,7 @@ describe("CT-8 §10.4 à §10.7 : règles d'alerte de référence (SV-1 à SV-4)
     for (const ex of ["EX-4.20", "EX-8.3", "EX-8.18", "EX-9.4", "EX-9.6", "EX-10.8", "§13"]) expect(exigences.some((e) => e.startsWith("CT-4 ") && e.includes(ex)), `CT-4 ${ex}`).to.equal(true);
   });
 
-  it("SV-1, SV-4 : gravité, exigence, runbook et clause for de chaque règle égaux à sa ligne de table ; expression égale à celle de la table aux valeurs de référence près, écarts E-C1 à E-C4 compris (noms du code et forme de Prometheus 3, adoptés par la révision 0.6 de CT-8)", function () {
+  it("SV-1, SV-4 : gravité, exigence, runbook et clause for de chaque règle égaux à sa ligne de table ; expression égale à celle de la table aux valeurs de référence près, écarts E-C1 à E-C4 compris (noms du code et forme de Prometheus 3, adoptés par la révision 0.6 de CT-8), mise en forme « première occurrence » d'EX-10.6", function () {
     const p = S.seuils(S.PARAMETRES_DEFAUT);
     const subst = (e) => e.replace("<racine>", p.racine).replace("<A_h>", String(p.a_h)).replace("<M>", String(p.mempool)).replace("<S>", String(p.solde)).replace("<RPO>", String(p.rpo));
     const ecarts = new Map(S.REGLES.filter((r) => r.ecart).map((r) => [r.alert, r.ecart]));
@@ -139,7 +153,8 @@ describe("CT-8 §10.4 à §10.7 : règles d'alerte de référence (SV-1 à SV-4)
       let attendue = m ? subst(m[1]) : null;
       if (t.cellule.startsWith("même expression")) attendue = precedente.replace(/ > 0$/, " " + /\u0060([^\u0060]*)\u0060/.exec(t.cellule)[1]);
       if (ecarts.has(t.nom)) expect(S.ECARTS_CT8, t.nom).to.have.property(ecarts.get(t.nom));
-      expect(r.expr, t.nom).to.equal(attendue);
+      // EX-10.6 : les tables écrivent la forme courte, le fichier la forme « première occurrence ».
+      expect(r.expr, t.nom).to.equal(premiereOccurrenceEX106(attendue));
       precedente = attendue;
     }
   });
@@ -182,13 +197,17 @@ describe("CT-8 §10.4 à §10.7 : règles d'alerte de référence (SV-1 à SV-4)
     for (const n of Object.keys(S.METRIQUES_ADMISES).filter((x) => x.startsWith("noortrace_anchoring_"))) expect(ancrage, n).to.contain(n);
   });
 
-  it("EX-10.10 (évaluateur réduit) : tests-regles.yml a, pour chaque règle, une série qui la déclenche et une qui ne la déclenche pas, et chaque cas rend l'issue attendue ; un mutant de chaque règle (expression jamais vraie) fait échouer son cas déclenché", function () {
+  it("EX-10.10 (évaluateur réduit) : tests-regles.yml a, pour chaque règle, une série qui la déclenche et une qui ne la déclenche pas, et, pour chaque règle sur un compteur en forme « première occurrence » (EX-10.6), une série absente puis N qui la déclenche et une série à 0 qui ne la déclenche pas ; chaque cas rend l'issue attendue ; un mutant de chaque règle (expression jamais vraie) fait échouer son cas déclenché", function () {
     const t = yaml.load(lire(OBS, "tests-regles.yml"));
     expect(t.rule_files).to.deep.equal(["regles-noortrace.yml"]);
     const ecarts = [];
     for (const r of REGLES) {
       const g = t.tests.filter((x) => x.alert_rule_test[0].alertname === r.alert);
-      expect(g.map((x) => x.alert_rule_test[0].exp_alerts.length > 0), r.alert).to.deep.equal([true, false]);
+      // EX-10.10 : une série qui déclenche la règle et une qui ne la déclenche pas ; pour une règle sur un compteur en forme
+      // « première occurrence » (EX-10.6), en plus, la série absente puis N (alerte) et la série à 0 immobile (silence).
+      const naissance = /^\((increase|rate)\(.+\) or \(\(.+ unless .+ offset [0-9]+[smhd]\) >=? [0-9]+\)$/.test(r.expr);
+      expect(g.map((x) => x.alert_rule_test[0].exp_alerts.length > 0), r.alert).to.deep.equal(naissance ? [true, false, true, false] : [true, false]);
+      if (naissance) expect(g.slice(2).map((x) => x.name), r.alert).to.satisfy(([a, b]) => / : série absente puis [0-9]+ \(première occurrence\)$/.test(a) && / : série à 0 immobile$/.test(b));
       for (const x of g) ecarts.push(...rejouerGroupe(x, REGLES, t.evaluation_interval));
       const mutant = REGLES.map((y) => (y.alert === r.alert ? { ...y, expr: `(${y.expr}) and on () noortrace_metrique_absente == 1` } : y));
       expect(rejouerGroupe(g[0], mutant, t.evaluation_interval), r.alert).to.not.deep.equal([]);
@@ -199,6 +218,11 @@ describe("CT-8 §10.4 à §10.7 : règles d'alerte de référence (SV-1 à SV-4)
 
 describe("CT-8 §10.10, EX-A.27 : promtool 3.5.0 (confrontation tierce, EX-A.31)", function () {
   it("TV-76, EX-10.10 : promtool check rules sur regles-noortrace.yml puis promtool test rules sur tests-regles.yml, code 0", function () {
+    // promtool test rules évalue les 99 règles chaque minute (evaluation_interval: 1m) jusqu'au plus grand eval_time de
+    // chaque cas ; les huit cas des règles à for: 2d de la table de CT-8 10.4 (relevés externes absents, sauvegarde
+    // absente) vont à 49 h : 2 940 évaluations chacun, environ 160 s des 177 s mesurées ici seul, 285 s sous charge
+    // (quatre exécutions en parallèle sur quatre cœurs). Délai : 600 s, plus de deux fois la mesure sous charge.
+    this.timeout(600000);
     if (!PROMTOOL) {
       this.test.title += ` — en attente : ${CONDITION_PROMTOOL}`;
       this.skip();
@@ -412,13 +436,13 @@ describe("CT-8 EX-10.7, EX-10.9 : sonde et relevé hors du composant", function 
     expect(expediteursManifeste({ accounts: [{ role: "tresorerie", address: "0x" + "11".repeat(20), to_height: null }, { role: "relayeur", address: "0x" + "AB".repeat(20), to_height: null }, { role: "deployeur", address: "0x" + "22".repeat(20), to_height: 9 }] })).to.deep.equal(["0x" + "ab".repeat(20)]);
   });
 
-  it("EX-10.9 : sonde.mjs releve écrit noortrace_releve_externe_ok{check} (1 si la commande rend 0, 0 sinon) et noortrace_releve_externe_dernier_s ; commande absente → 1 et jauge à 0 ; check inconnu → 2", function () {
+  it("EX-10.9 : sonde.mjs releve écrit noortrace_releve_externe_ok{check} (1 si la commande rend 0, 0 sinon) et noortrace_releve_externe_dernier_s, puis rend le code de la relecture (revue de sécurité de l'étape 8) ; commande absente → 1 et jauge à 0 ; check inconnu → 2", function () {
     const f = path.join(TRAVAIL, "releve.prom");
     let r = outil("sonde.mjs", ["releve", "--check", "console", "--sortie", f, "--", process.execPath, "-e", "process.exit(0)"]);
     expect(r.status, r.stderr).to.equal(0);
     expect(fs.readFileSync(f, "utf8")).to.contain('noortrace_releve_externe_ok{check="console"} 1');
     r = outil("sonde.mjs", ["releve", "--check", "console", "--sortie", f, "--", process.execPath, "-e", "process.exit(3)"]);
-    expect(r.status).to.equal(0);
+    expect(r.status, "EX-10.9 : « rend le code de la relecture »").to.equal(3);
     expect(fs.readFileSync(f, "utf8")).to.contain('noortrace_releve_externe_ok{check="console"} 0');
     expect(fs.readFileSync(f, "utf8")).to.match(/noortrace_releve_externe_dernier_s\{check="console"\} [0-9]+(\.[0-9]+)?\n/);
     r = outil("sonde.mjs", ["releve", "--check", "console", "--sortie", f, "--", path.join(TRAVAIL, "commande-absente")]);
@@ -592,7 +616,8 @@ describe("CT-9 TA-29 et TA-75 : alertes de la supervision sur un S3 à Object Lo
     expect((await ops.poserGel(o.key, o.version_id, false)).statut).to.equal(200);
     const f2 = path.join(dir, "releve-off.prom");
     const r2 = await releve(f2);
-    expect(r2.status, r2.stderr).to.equal(0);
+    // EX-10.9 : sonde.mjs releve rend le code de la relecture (revue de sécurité de l'étape 8) ; la relecture d'un gel à off rend un code non nul.
+    expect(r2.status, "code de sonde.mjs releve = code de la relecture").to.not.equal(0);
     const etat = JSON.parse(r2.stdout.trim().split("\n").at(-1));
     expect(etat.actif).to.equal(true);
     expect(etat.versions.find((v) => v.key === o.key && v.version_id === o.version_id)).to.include({ legal_hold: "off", attendu: "on" });

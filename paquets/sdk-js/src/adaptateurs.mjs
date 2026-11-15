@@ -1,6 +1,6 @@
 // File des échanges de modèle observés (CT-2 EX-6.11 (3), EX-6.13) : seul
 // `echangeModele` appelé depuis un point d'observation d'un adaptateur de cadre
-// (6.6, lot suivant) passe par une file, bornée (`fileMax`, défaut 1 000),
+// (6.6, partie suivante) passe par une file, bornée (`fileMax`, défaut 1 000),
 // vidée par une unique tâche de fond. File pleine : l'échange le plus récent
 // est abandonné, compté (`echangesPerdus`) et noté sur la sortie d'erreur ;
 // une erreur de cette file n'atteint jamais l'agent. Un échange que la tâche

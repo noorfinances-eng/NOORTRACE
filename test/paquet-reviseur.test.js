@@ -179,7 +179,7 @@ describe("CT-8 : paquet réviseur, vecteurs de la famille paquets (annexe A.10, 
 
   it("la recette GNU tar d'EX-13.15 reproduit valide.tar octet pour octet (sautée si tar n'est pas GNU tar)", function () {
     const v = spawnSync("tar", ["--version"], { encoding: "utf8" });
-    if (v.status !== 0 || !/GNU tar/.test(v.stdout)) this.skip();
+    if (v.status !== 0 || !/GNU tar/.test(v.stdout)) { this.test.title += " — en attente : GNU tar absent"; this.skip(); }
     const rep = neuf();
     expect(spawnSync("tar", ["-xf", path.join(VECT, "valide.tar"), "-C", rep]).status).to.equal(0);
     const r = spawnSync("bash", ["-c", "find paquet-reviseur -type f | LC_ALL=C sort > liste.txt && LC_ALL=C tar --format=ustar --no-recursion --owner=0 --group=0 --numeric-owner --mode=0644 --mtime=@1793059200 -cf paquet.tar -T liste.txt"], { cwd: rep, encoding: "utf8" });
@@ -258,7 +258,7 @@ describe("CT-8 : outil de vérification du paquet réviseur, cas des tests (13.7
 
   it("archive compressée par gzip -n : code 4 ; PR-3 dit « décompressez-la d'abord » quand la longueur est un multiple de 512, PR-1 le dit sinon (EX-13.16)", function () {
     const z = spawnSync("gzip", ["-n", "-c"], { input: valide, maxBuffer: 64 * 1024 * 1024 });
-    if (z.status !== 0) this.skip();
+    if (z.status !== 0) { this.test.title += " — en attente : gzip absent"; this.skip(); }
     const brut = z.stdout;
     const bourre = Buffer.concat([brut, Buffer.alloc((512 - (brut.length % 512)) % 512, 0)]);
     for (const [octets, id] of [[bourre, "PR-3"], ...(brut.length % 512 ? [[brut, "PR-1"]] : [])]) {
@@ -520,7 +520,7 @@ describe("CT-8 : corrections du paquet réviseur (découpage GNU tar, dates, cas
     expect(P.decouper(nom)).to.deep.equal({ prefix: `${P.RACINE}/dossiers/${"d".repeat(60)}`, name: "jeton-rfc3161.der" });
     // Aucun « / » parmi les 156 premiers octets dont le reste tienne en 100 : non représentable.
     expect(() => P.decouper(`${P.RACINE}/${"x".repeat(150)}`)).to.throw(/non représentable/);
-    if (!gnuTar()) this.skip();
+    if (!gnuTar()) { this.test.title += " — en attente : GNU tar absent"; this.skip(); }
     const rep = neuf();
     fs.mkdirSync(path.join(rep, path.dirname(nom)), { recursive: true });
     fs.writeFileSync(path.join(rep, nom), "x\n");
@@ -588,7 +588,7 @@ describe("CT-8 : corrections du paquet réviseur (découpage GNU tar, dates, cas
   });
 
   it("13.11 : une entrée en double fait échouer « tar -xkf » au lieu de remplacer le premier fichier (GNU tar)", function () {
-    if (!gnuTar()) this.skip();
+    if (!gnuTar()) { this.test.title += " — en attente : GNU tar absent"; this.skip(); }
     const rep = neuf();
     const r = spawnSync("tar", ["-xkf", path.join(VECT, "nom-en-double.tar"), "-C", rep], { encoding: "utf8" });
     expect(r.status).to.equal(2);
@@ -598,7 +598,7 @@ describe("CT-8 : corrections du paquet réviseur (découpage GNU tar, dates, cas
   });
 
   it("PR-11 : la copie jointe exécutée depuis un paquet extrait ne se compare pas à elle-même (raison auto_comparaison)", function () {
-    if (!gnuTar()) this.skip();
+    if (!gnuTar()) { this.test.title += " — en attente : GNU tar absent"; this.skip(); }
     const { archive } = construire(descriptionAbsolue(true), PROJECT_ROOT);
     const rep = neuf();
     const f = path.join(rep, "complet.tar");

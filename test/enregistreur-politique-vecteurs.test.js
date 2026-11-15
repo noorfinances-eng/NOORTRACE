@@ -121,13 +121,19 @@ describe("enregistreur, moteur de politique : vecteurs de CT-2 et de CT-3", func
         const ligneListe = hote.find((l) => l.dir === "out" && l.line.includes('"tools":['));
         const servies = ligneListe ? JSON.parse(ligneListe.line).result.tools : liste;
         const enfants = [];
+        // Le lecteur compare les trois membres de la réponse à `pinned` (B.4).
+        for (const k of ["policy_version", "policy_sha256", "approval_sha256"]) expect(attendu.approval.response[k], k).to.equal(attendu.approval.pinned[k]);
+        const couple = (v) => b.service._couple(v);
         b = await monter({
           servers: {
             archives: serveurStdio(["serveur-factice"], { protocol: "2026-07-28" }),
             demo: serveurStdio(["serveur-factice"], { protocol: "2026-07-28", tools: { "payments.create": reglageOutil({ class: "ecriture" }) } }),
           },
           lanceur: lanceurFactice(parServeur(servies), undefined, enfants),
-          reponseForcee: () => attendu.approval.response,
+          // Décision du porteur du 14 novembre 2026 et son addendum (CT-2 annexe B.4, révision 0.11) : la réponse simulée du cas porte l'épinglage du noyau
+          // du cas (`approval.pinned`) ; le banc est un autre noyau, qui a son propre épinglage : la réponse lui est
+          // rendue avec le couple qu'il a chargé, les six autres membres tels que le vecteur les porte.
+          reponseForcee: (r) => ({ ...attendu.approval.response, ...couple(r.code.policy_version) }),
         });
         b.enfants = enfants;
         if (attendu.protocols.host !== "2026-07-28") {

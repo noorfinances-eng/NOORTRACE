@@ -1,6 +1,6 @@
 // Branchement du composant d'ancrage de CT-5 (`@noortrace/ancrage`) dans le
 // démon (CT-2 §15 `anchoring.ancrage`, §15.2, §15.4 pas 4 ; CT-5 EX-4.8,
-// EX-4.9, EX-4.12 ; rubrique F d'`INTERFACES.md` du composant ; lot F2).
+// EX-4.9, EX-4.12 ; rubrique F d'`INTERFACES.md` du composant).
 //
 // Au démarrage, quand `anchoring.ancrage` n'est pas `null` : le document
 // `ancrage-v0` est lu en JSON strict, ses références de secrets (`auth.secret`
@@ -42,7 +42,7 @@ import { nomsManifeste } from "./periodes.mjs";
 import { chargerCleChaine, ErreurCleChaine, CLASSES_CLE_CHAINE_SERVIES } from "./cle-chaine.mjs";
 import { ClientRpc, recorderOf } from "@noortrace/ancrage/registre";
 
-/** Nom du manifeste d'instance du registre (CT-4 §4.8) lu à côté du document `ancrage-v0` (lecture F2-6 du LISEZMOI). */
+/** Nom du manifeste d'instance du registre (CT-4 §4.8) lu à côté du document `ancrage-v0` (lecture 6 du branchement du LISEZMOI). */
 export const FICHIER_INSTANCE_REGISTRE = "instance-registre.json";
 /** Sous-répertoire du journal où vont les envois et les captures du registre (CT-4 §8.6, §9.4). */
 export const REPERTOIRE_REGISTRE = "registre";
@@ -584,7 +584,7 @@ export class BranchementAncrage {
   /**
    * Demande de signature déposée par l'exploitant pour une opération au
    * seuil (CT-4 §7.7, §8.4) sous `<journal>/registre/demande-<operation>-<adresse>.json`,
-   * comme la demande de clôture (lecture F2-3) ; null si absente.
+   * comme la demande de clôture (lecture 3 du branchement) ; null si absente.
    */
   lireDemandeRegistre(operation, adresse) {
     const { document } = lireDocumentJson(path.join(this.repertoireRegistre, `demande-${operation}-${adresse}.json`));

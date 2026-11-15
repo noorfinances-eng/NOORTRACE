@@ -75,9 +75,51 @@ export function calculerPerimetre(p) {
   const retenues = new Set();
   const segmentsRetenus = [];
   const anomalies = [];
-  const lus = new Map(p.manifests.map((m) => [m.period_start, m]));
+  // Pas 2 : plusieurs versions lisibles d'un même manifeste (étape 8, CT-2 EX-12.35) :
+  // la plage retenue est la réunion des plages ; des plages différentes valent
+  // l'anomalie `segments_indetermines` (rien n'est jugé, tout est gardé).
+  const lus = new Map();
+  const divergentes = new Set();
+  for (const m of p.manifests) {
+    const d = lus.get(m.period_start);
+    if (!d) lus.set(m.period_start, { period_start: m.period_start, first_seq: m.first_seq, last_seq: m.last_seq });
+    else {
+      if (d.first_seq !== m.first_seq || d.last_seq !== m.last_seq) divergentes.add(m.period_start);
+      d.first_seq = Math.min(d.first_seq, m.first_seq);
+      d.last_seq = Math.max(d.last_seq, m.last_seq);
+    }
+  }
   const motifSegment = /^segments\/seg-([0-9]{16})-([0-9]{20})\.ndjson$/;
-  const cles = [...parCle.keys()];
+  // Index des clés par période et par premier numéro (étape 8 : coût
+  // linéaire en clés plus logarithmique par période, et non périodes × clés).
+  const segments = [];
+  const ancresParPeriode = new Map();
+  const motifAncre = /^ancres\/periode-([0-9]{10})\//;
+  for (const k of parCle.keys()) {
+    const rel = k.slice(prefix.length);
+    const r = motifSegment.exec(rel);
+    if (r) {
+      segments.push({ k, f: Number(r[1]) });
+      continue;
+    }
+    const a = motifAncre.exec(rel);
+    if (a) {
+      const P = Number(a[1]);
+      if (!ancresParPeriode.has(P)) ancresParPeriode.set(P, []);
+      ancresParPeriode.get(P).push(k);
+    }
+  }
+  segments.sort((x, y) => x.f - y.f);
+  const premierIndice = (f) => {
+    let lo = 0;
+    let hi = segments.length;
+    while (lo < hi) {
+      const mi = (lo + hi) >> 1;
+      if (segments[mi].f < f) lo = mi + 1;
+      else hi = mi;
+    }
+    return lo;
+  };
 
   for (let P = p.from; P <= p.to; P += 3600) {
     // Pas 2 : manifeste.
@@ -92,6 +134,8 @@ export function calculerPerimetre(p) {
       if (!m) {
         anomalies.push({ key: km, kind: "manifeste_illisible" });
         anomalies.push({ key: `${prefix}segments/`, kind: "segments_indetermines" });
+      } else if (divergentes.has(P)) {
+        anomalies.push({ key: `${prefix}segments/`, kind: "segments_indetermines" });
       }
     }
     // Pas 3 : clés attendues.
@@ -99,19 +143,14 @@ export function calculerPerimetre(p) {
       if (parCle.has(k)) retenues.add(k);
       else anomalies.push({ key: k, kind: "objet_absent" });
     }
-    const ancres = `${prefix}ancres/periode-${dix(P)}/`;
-    for (const k of cles) if (k.startsWith(ancres)) retenues.add(k);
+    for (const k of ancresParPeriode.get(P) ?? []) retenues.add(k);
     if (m) {
       let premier = false;
-      for (const k of cles) {
-        const r = motifSegment.exec(k.slice(prefix.length));
-        if (!r) continue;
-        const f = Number(r[1]);
-        if (f >= m.first_seq && f <= m.last_seq) {
-          retenues.add(k);
-          segmentsRetenus.push(k);
-          if (f === m.first_seq) premier = true;
-        }
+      for (let i = premierIndice(m.first_seq); i < segments.length && segments[i].f <= m.last_seq; i++) {
+        const { k, f } = segments[i];
+        retenues.add(k);
+        segmentsRetenus.push(k);
+        if (f === m.first_seq) premier = true;
       }
       if (m.last_seq >= m.first_seq && !premier) {
         anomalies.push({ key: `${prefix}segments/seg-${String(m.first_seq).padStart(16, "0")}-${"0".repeat(20)}.ndjson`, kind: "segment_absent" });

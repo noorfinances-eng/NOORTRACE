@@ -1,4 +1,4 @@
-// Outils communs aux tests du serveur RFC 3161 interne (lot E,
+// Outils communs aux tests du serveur RFC 3161 interne (
 // test/ancrage-tsa-interne*.test.js) : chemins des vecteurs CT-5 et CT-6,
 // autorité de test de CT-6 (clés publiées, sans valeur), appels à `openssl`
 // comme boîte noire (juge : `ts -verify`, `ts -reply -text`, `asn1parse`,

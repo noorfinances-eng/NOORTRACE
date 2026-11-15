@@ -6,6 +6,35 @@ is tagged.
 
 ## Unreleased
 
+- Build step 8, internal security review and its corrections. Every component
+  was reviewed by internal reviewers working blind (310 findings, consolidated
+  into owner decisions and correction batches). Approval bypass fixed: the
+  approval protocol is revised (owner's decision 1, option a, with its
+  addendum): each `evaluer` response carries nine members, among them
+  `policy_version`, `policy_sha256` and `approval_sha256` computed by the
+  service, and the core refuses a decision taken under a policy other than the
+  one it holds, relaying nothing until the `charger` of the pinned version has
+  succeeded (CT-2 EX-7.15). Corrections across the core library, recorder,
+  approval service, console, onboarding agent, anchoring component, registry
+  tool, deployment files, observability rules (99 rules, the "first
+  occurrence" form of CT-8 EX-10.6) and the verifier's Go binary, each with
+  the test that reproduces it. Specification revisions: CT-1 0.6, CT-2 0.11,
+  CT-3 0.8, CT-4 0.8, CT-5 0.10, CT-6 0.9, CT-7 0.5, CT-8 0.8, CT-9 0.10;
+  recorded changes MC-60 onwards. All test vectors regenerated from the
+  generators in dependency order (two generations byte-identical); the eight
+  clean-room Go verifiers replayed on them, all concordant except CT-5, whose
+  234 discrepancies await the owner's decision 9; third-party confrontations
+  (OpenSSL, python-opentimestamps, opentelemetry-proto, transparency-dev/merkle)
+  replayed, with the inputs OpenSSL refuses to decode named as tool limits.
+  Adversarial tests of the review merged into `test/adversarial.test.js`
+  (112 tests: delivered packages, demonstration, plan scenarios), the CT-9
+  catalogue updated (288 executable entries), and a CI guard that fails on any
+  pending test whose condition is not one of the named admitted ones. Still
+  open, on the owner's decisions: decisions 2, 4, 5, 8, 9, 14 and 29, the
+  group of accepted risks and the question on CT-3 EX-13.13; their passages
+  keep the published text. Docker-based campaigns (images rebuilt,
+  demonstration, cases, integrations, failures) are not part of this entry.
+
 - Build step 7, packages, observability and runbooks. Six container images
   `noortrace/*` (recorder, file-attribute companion, approval service,
   console, stdio bridge, verifier) are built from `conteneurs/`: no shell, no

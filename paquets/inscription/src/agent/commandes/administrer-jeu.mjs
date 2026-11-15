@@ -15,7 +15,9 @@
 //   rien n'est envoyé et le travail est refusé sans sortie ; puis l'envoi,
 //   OP-11 (`AdminOpRelayed` émis par le jeu), la capture (rôle
 //   `administration_jeu`) et OP-12 (l'effet de l'opération relu à la hauteur
-//   du bloc).
+//   du bloc). `outputs.confirmation_sha256` rend le SHA-256 de la pièce de la
+//   confirmation consommée, comme l'outil depuis `--confirmation <fichier>`
+//   (EX-8.21).
 
 import path from "node:path";
 import * as R from "@noortrace/ancrage/registre";
@@ -166,7 +168,7 @@ export async function administrerJeu(ctx, travail) {
   if (s < BigInt(ctx.instance.fees.gas_limit)) sortie.echec("OP-3", "refuse", "solde_insuffisant", `solde de ${cle.adresse()} : ${s} wei < ${ctx.instance.fees.gas_limit} wei (EX-4.18)`);
   sortie.reussie("OP-3");
   // EX-7.26, EX-8.21 : la confirmation hors bande de cette demande, consommée juste avant l'envoi.
-  consommerConfirmation(ctx, { operations: ["administrer-jeu"], orgId: d.organisation.org_id, digest: demande.digest });
+  const confirmation = consommerConfirmation(ctx, { operations: ["administrer-jeu"], orgId: d.organisation.org_id, digest: demande.digest });
   ecrireNouveau(path.join(ctx.client.demandes, `demande-administration-relayee-${ctx.travailId}.json`), serialiser(demande));
   const sig = demande.signatures[0];
   const res = await envoyer(ctx, sortie, {
@@ -176,5 +178,5 @@ export async function administrerJeu(ctx, travail) {
       ? { ok: true } : { ok: false, detail: "AdminOpRelayed absent du reçu ou d'une autre opération" }),
     op12: relecture(ctx, set, nom, demande.fields.arg, signataire),
   });
-  return sortie.rendre("reussi", { outputs: { operation: nom, transaction_hash: res.transactionHash, block_number: res.blockNumber, gas_used: res.gasUsed, cost_wei: res.coutWei, capture: res.capture } });
+  return sortie.rendre("reussi", { outputs: { operation: nom, confirmation_sha256: confirmation.piece_sha256, transaction_hash: res.transactionHash, block_number: res.blockNumber, gas_used: res.gasUsed, cost_wei: res.coutWei, capture: res.capture } });
 }

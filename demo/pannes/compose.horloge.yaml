@@ -1,0 +1,32 @@
+# Surcharge de la démonstration de référence pour le scénario « l'horloge est
+# manipulée » (CT-9 TA-105 ; CT-8 RB-6 ; CT-2 §14.2, lignes « Horloge »). Elle
+# se lit APRÈS demo/compose.yaml :
+#
+#   NOORTRACE_PANNES_HORLOGE=<répertoire absolu> \
+#   docker compose -f demo/compose.yaml -f demo/pannes/compose.horloge.yaml up --detach
+#
+# Le répertoire porte libfaketime.so.1 (bibliothèque du paquet Debian 12
+# libfaketime 0.9.10-2.1, SHA-256 fixé dans test/fixtures/pannes/outils.mjs,
+# jamais dans le dépôt) et decalage.txt, le décalage de l'horloge murale lu à
+# chaque appel (« +120 », « -120 », en secondes). Seul le processus Node.js de
+# l'enregistreur est préchargé (LD_PRELOAD) ; les horloges monotones ne sont
+# pas touchées (DONT_FAKE_MONOTONIC) : c'est la manipulation de l'horloge
+# murale que CT-2 EX-7.9 et EX-7.13 détectent contre l'horloge monotone. Les
+# binaires Go (registre-dev, vérificateur) ne sont pas touchés (CT-9 §16).
+# Les commandes noortrace-ctl lancées par `docker compose exec enregistreur`
+# héritent du même environnement : elles voient la même horloge que le démon.
+
+services:
+  enregistreur:
+    environment:
+      LD_PRELOAD: /opt/noortrace-pannes/horloge/libfaketime.so.1
+      FAKETIME_TIMESTAMP_FILE: /opt/noortrace-pannes/horloge/decalage.txt
+      FAKETIME_NO_CACHE: "1"
+      DONT_FAKE_MONOTONIC: "1"
+    volumes:
+      - type: bind
+        source: ${NOORTRACE_PANNES_HORLOGE:?NOORTRACE_PANNES_HORLOGE (répertoire absolu de libfaketime.so.1 et de decalage.txt) requis}
+        target: /opt/noortrace-pannes/horloge
+        read_only: true
+        bind:
+          create_host_path: false

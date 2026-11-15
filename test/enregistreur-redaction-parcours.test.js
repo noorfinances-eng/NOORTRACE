@@ -1,4 +1,4 @@
-// Parcours de bout en bout de la rédaction (CT-2 §10, lot « rédaction ») :
+// Parcours de bout en bout de la rédaction (CT-2 §10, partie « rédaction ») :
 // un frontal simulé fidèlement (contrat d'INTERFACES.md, sections a, b et e)
 // fait traverser le cœur à des captures qui portent des données sensibles :
 // échange de modèle (prompt système, requête en mode `reference`, réponse,
@@ -388,7 +388,7 @@ describe("enregistreur, rédaction : parcours de bout en bout (pii-v1), journal 
 
   it("le dossier de l'appel relayé, avec ses pièces rédigées (--pieces), est valide pour le binaire Go noortrace-verifier (go1.27.3)", function () {
     const bin = construireVerificateur(dir);
-    if (!bin) this.skip();
+    if (!bin) { this.test.title += " — en attente : go1.27.3 introuvable (NOORTRACE_GO_BIN ou PATH)"; this.skip(); }
     const { rep } = piecesAPart();
     const r = spawnSync(bin, [path.join(dir, "dossier"), "--pieces", rep, "--json"], { encoding: "utf8" });
     expect(r.status, r.stdout + r.stderr).to.equal(0);

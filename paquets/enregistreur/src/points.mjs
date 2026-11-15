@@ -110,7 +110,7 @@ export function instantAligne(periodStartMs, intervalleS, prochainJ, maintenant)
  * @param {string} chemin
  * @returns {Promise<object[]>}
  */
-export async function relireSerie(chemin) {
+export async function relireSerie(chemin, o = {}) {
   let octets;
   try {
     octets = new Uint8Array(await fs.readFile(chemin));
@@ -130,7 +130,12 @@ export async function relireSerie(chemin) {
     }
     if (p === null) {
       if (k === lignes.length - 1) {
-        await tronquer(chemin, l.debut);
+        // Dernière ligne illisible (écriture tronquée, EX-12.28) : coupée par la
+        // reprise de l'écrivain seulement (`tronquer: true`) ; toute autre
+        // lecture (export d'un dossier, EX-15.11) laisse le fichier tel quel et
+        // rapporte le défaut (étape 8 : lire ne modifie pas le stockage).
+        if (o.tronquer === true) await tronquer(chemin, l.debut);
+        else Object.defineProperty(points, "defaut", { value: { fichier: path.basename(chemin), ligne: k + 1, octets: l.fin - l.debut, complete: l.complete }, enumerable: false });
         break;
       }
       throw new Error(`série de points corrompue : ${path.basename(chemin)}, ligne ${k + 1}`);

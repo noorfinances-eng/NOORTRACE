@@ -1,6 +1,23 @@
 # CT-4 — Registre
 
-Version 0.7, 2026-11-11 (révision 0.7 : commande `paquet-client` de l'outil
+Version 0.8, 2026-11-14 (révision 0.8 : constats de la revue de sécurité
+interne de l'étape 8 tranchés dans le texte — références `fichier:` et `env:`
+réservées au développement (EX-7.3), contrôle des points RPC et de leur URL
+avant tout appel (EX-7.1, EX-8.15), nonce et `empreinte_squattee` recoupés
+sur deux points (EX-8.14, EX-8.6), issue d'un envoi jamais fabriquée
+(EX-8.16), confirmation hors bande exigée par `--confirmation` et consignée
+dans `outputs.confirmation_sha256` (EX-8.21, EX-7.26), provision recalculée
+depuis le manifeste et versée par la trésorerie (OP-4, EX-8.20), index de
+capture de l'ancre contrôlé contre le jeu (EX-8.4), captures écrites après
+CP-2 à CP-6 et fichier présent faux mis de côté (CP-6, EX-9.3), fichiers
+de capture lisibles du groupe (CP-6, complément du 2026-11-15), borne de
+CP-4, code de repli de 9.3, correctifs de l'image vérifiés contre leurs
+empreintes (EX-10.1), agent et interface sous deux comptes (EX-7.28),
+références de clés d'un travail bornées (EX-7.25), code du jeu réassigné
+vérifié (EX-8.10), URI de clôture contrôlée avec le dossier (EX-6.8),
+renvoi d'EX-4.12 ; codes `compte_inattendu` et `provision_excessive` étendus
+à OP-4, code `nonce_incoherent` ; section 13 ; version 0.7 du 2026-11-11,
+révision 0.7 : commande `paquet-client` de l'outil
 de référence, codes de refus du paquet, reprise d'une étape en échec déjà
 accomplie et questions de la construction de l'étape 6 sur 7.13 et 7.14 ;
 version 0.6 du même jour, révision 0.6 : forme du paquet client que
@@ -80,7 +97,7 @@ l'EVM (pas SHA3-256 de FIPS 202) ; `sha256` le SHA-256 de FIPS 180-4.
 « Les outils de référence » désignent les outils JavaScript de la partie B
 (7.2), qui réutilisent `scripts/lib/` sans changer le comportement de
 `scripts/deploy` ni de `scripts/e2e` : hors de la spécification, de ses
-schémas et de ses vecteurs, ce lot ne modifie que `scripts/lib/noortrace.mjs`
+schémas et de ses vecteurs, cette version ne modifie que `scripts/lib/noortrace.mjs`
 (commentaire de gaz et paramètre facultatif `setAdmin` de `bootstrapOrg`,
 défaut inchangé), l'en-tête de `scripts/deploy/bootstrap-org.mjs`,
 `package.json` et `.github/workflows/ci.yml` (section 13). Eux et le
@@ -89,7 +106,7 @@ vérificateur Go indépendant de
 seule spécification, rendent sur les mêmes entrées les mêmes valeurs et les
 mêmes verdicts RG-, OP- et CP- (EX-A.5).
 
-Les faits externes viennent de deux notes de recherche du lot CT-4, internes
+Les faits externes viennent de deux notes de recherche de CT-4, internes
 et non publiées, relues le 2026-10-25 sur les sources primaires qu'elles
 citent : R1 (noorcore et dépôt : code de noorcore au commit épinglé, dépôt
 public, expériences du 2026-10-25 sur le réseau de développement) et R2
@@ -105,9 +122,9 @@ annexe B.3) ; quelques faits de ce code ont été lus pour cette spécification
 et portent leur fichier et leurs lignes au commit `618fcef` (annexes B.3 et
 B.4). Un fait du dépôt
 public porte son fichier et ses lignes à l'état de la branche `main` au
-commit `752c48c` ; pour les quatre fichiers que ce lot modifie hors de la
-spécification (section 13), les lignes sont celles de l'arbre de travail du
-lot, et les fonctions sont nommées. Ce qui n'a pas pu être vérifié est écrit
+commit `752c48c` ; pour les quatre fichiers que cette version modifie hors de la
+spécification (section 13), les lignes sont celles de l'arbre de travail de
+l'écriture, et les fonctions sont nommées. Ce qui n'a pas pu être vérifié est écrit
 « non vérifié ».
 
 Le **réseau de développement** est l'instance `noortrace-2124-dev` de
@@ -140,7 +157,7 @@ et conduite en CT-5 §9 ; vérification R-11 et K-8 de CT-6 révision 0.2,
 §11.9), et complète EX-6.6 en conséquence ; rien d'autre ne change dans ce
 document. La constante `DOC_TYPE_POINT_DE_CONTROLE` existe dans les
 bibliothèques (`scripts/lib/noortrace.mjs`, `registre.mjs`,
-`conventions-registre.mjs`), écrite avec le lot CT-5. Le vecteur
+`conventions-registre.mjs`), écrite avec CT-5. Le vecteur
 `doctypes.json` de RG-3 (6.9, annexe A), l'option `--point` de l'outil
 `ancrer` (l'outil de référence n'ancre aujourd'hui que des périodes),
 l'exemple d'EX-4.19 (`24 × 62` appels `anchor` par jour à la cadence par
@@ -626,7 +643,9 @@ DOIT porter plus de f validateurs d'un jeu ; l'exploitant en porte au plus f.
 La sûreté du consensus suppose des défaillances indépendantes, donc des
 opérateurs et des administrateurs distincts (R2-F43) ; avec quatre
 validateurs sur deux sites, la perte d'un site arrête la chaîne
-(`chain/README.md:308-310`). Avec N = 4, l'exploitant opère un validateur et
+(`chain/README.md`, section « Ce qui change pour un réseau prod-like à quatre
+validateurs », contre-exemple) : cette répartition n'est pas admise en
+production. Avec N = 4, l'exploitant opère un validateur et
 trois partenaires un chacun ; avec N = 7, quatre opérateurs au moins, deux
 validateurs au plus chacun. Chaque clé de validateur est créée sur son site
 et n'en sort jamais, seule la clé publique circule
@@ -1458,7 +1477,10 @@ période précédente du journal est connue, `periodStart` égal à son
 ou au plus 64 octets ASCII imprimables (`0x20` à `0x7e`) qui ne contiennent
 ni le slug, ni le nom du journal, ni une donnée de l'activité : l'URI est
 publique et figure dans `PeriodSubmitted`, et sa longueur se paie en gaz
-(4.5). Les outils de référence écrivent la chaîne vide.
+(4.5). L'outil contrôle l'URI avec le slug et les noms de journaux du
+dossier d'inscription (`--dossier`, admis par `condense cloture`) ; sans
+dossier, il refuse une URI non vide (`usage`). Les outils de référence
+écrivent la chaîne vide.
 
 #### 6.6.2 Préimages
 
@@ -1946,7 +1968,7 @@ après `npm run compile`). Il suit cette section pas à pas et réutilise les
 fonctions de `scripts/lib/noortrace.mjs`, `scripts/lib/journal.mjs`,
 `scripts/lib/registre.mjs` et `scripts/lib/certificat-commit.mjs` ; il ne
 change le comportement ni de `scripts/deploy/` ni de `scripts/e2e/` (les
-quatre fichiers que le lot touche hors de la spécification sont nommés en
+quatre fichiers que cette version touche hors de la spécification sont nommés en
 section 0 et 13).
 
 ```text
@@ -1975,7 +1997,7 @@ dépendance du dépôt).
 | Option | Défaut | Rôle |
 |---|---|---|
 | `--instance <fichier>` | voir EX-7.2 | manifeste d'instance (`instance-registre-v0`, 4.8), révision en vigueur : identifiants, genèse, adresses, jeux de validateurs, frais, comptes de l'exploitant |
-| `--rpc <url>[,<url>…]` | `http://127.0.0.1:8645` | points JSON-RPC de **validateurs** (jamais de suiveurs, OP-2) ; une transaction est soumise à chacun, les lectures et la capture se font au premier qui répond ; sur une instance de `nature` `production`, `http://` n'est admis que vers `127.0.0.1`, `::1` ou `localhost` (tunnel ou mandataire local, EX-10.8), sinon OP-2 refuse (`noeud_injoignable`) |
+| `--rpc <url>[,<url>…]` | `http://127.0.0.1:8645` | points JSON-RPC de **validateurs** (jamais de suiveurs, OP-2) ; une transaction est soumise à chacun, les lectures et la capture se font au premier qui répond ; sur une instance de `nature` `production`, `http://` n'est admis que vers `127.0.0.1`, `::1` ou `localhost` (tunnel ou mandataire local, EX-10.8), sinon OP-2 refuse (`noeud_injoignable`) ; OP-2 fait ce contrôle sur tous les points avant le premier appel à l'un d'eux, et l'agent d'EX-7.23 le fait aussi à son démarrage : le jeton `--jeton` ne part jamais vers un point refusé ; une URL qui porte des identifiants ou une chaîne de requête est refusée (`usage`) ; les messages et les sorties ne portent l'URL qu'épurée ; une réponse JSON-RPC est bornée à 32 Mio, aucune redirection n'est suivie et son `id` est celui de la requête ; en production, au moins deux points de validateurs d'opérateurs distincts (EX-8.15) ; ces règles, le jeton `Bearer` compris, valent pour l'enregistreur et son composant d'ancrage (EX-8.15, CT-2 §15 `anchoring.registry.rpc_url`, membre `rpc_token` à définir) |
 | `--jeton <env:VARIABLE \| fichier:chemin>` | — | jeton `NOOR_HTTP_AUTH_TOKEN` du nœud (EX-10.3), envoyé en `Authorization: Bearer` à chaque point `--rpc` ; jamais en clair sur la ligne de commande, jamais écrit dans un envoi ni une sortie |
 | `--captures <répertoire>` | obligatoire pour une commande qui envoie une transaction | où l'outil écrit les envois (`envoi-<hachage>.json`), leur issue connue (`issue-<hachage>.json`, `#/$defs/issue`, 8.6), les envois refusés par tous les points (`refus-envoi-<hachage>.json`, 7.11), les demandes de clôture relayées (`demande-cloture-<periodHash>.json`, EX-8.19), les réponses brutes et les index de capture (9.4) |
 | `--delai <secondes>` | `120` | attente du reçu, sondé toutes les 100 ms (8.6) |
@@ -2012,10 +2034,11 @@ aucun outil qui signe ces condensés dans le portefeuille d'un approbateur.
 champs en clair de la demande (`fields`, `signer_set`) avant de signer, mais
 n'affiche rien dans un portefeuille. `fichier:` et `env:` chargent la clé en
 mémoire : ils correspondent à la classe de garde D de CT-2 §11.2 et ne sont
-admis en production que pour une clé de chaîne via le backend de
-l'enregistreur (classes A à C, CT-2 EX-11.19), jamais pour l'administrateur
-du registre ni la trésorerie, dont la signature externe est une proposition
-(section 14). Les comptes de l'exploitant se désignent par rôle (EX-3.1) :
+admis que sur une instance de nature `developpement`, quel que soit le rôle.
+En production, la transaction d'inscription est signée par le signataire de
+la clé de chaîne du client (classes A à C, CT-2 EX-11.19), hors de l'outil et
+de l'application ; la signature externe des clés de l'exploitant reste une
+proposition (section 14). Les comptes de l'exploitant se désignent par rôle (EX-3.1) :
 `--deployeur`, `--administrateur` (administrateur du registre),
 `--tresorerie`, `--relayeur` ; `--exploitant <référence>` les désigne tous à
 la fois et n'est admis que sur ces deux réseaux, où le compte Hardhat 0 tient
@@ -2162,7 +2185,7 @@ chose que voulu.
 | OP-1 | **Instance** (EX-4.9). `eth_chainId` égale l'identifiant EVM de l'instance ; `noor_getCommitCertificate("latest")` (réessayé selon 9.3) a pour `chainId` l'identifiant BFT et pour `valsetHash` le `valset_hash` du jeu en vigueur du manifeste ; `eth_getCode` n'est pas vide aux quatre adresses en service (5.3) ; quand le manifeste donne le `block_hash` du déploiement d'`AttestationRegistry`, `eth_getBlockByNumber` de ce bloc rend ce hachage | toutes celles qui lisent la chaîne | `chaine_differente`, `jeu_validateurs_different`, `code_absent` |
 | OP-2 | **Nœud validateur.** Chaque point de `--rpc` répond (en production, `http://` seulement vers `127.0.0.1`, `::1` ou `localhost`, EX-7.1), et `noor_txindexStatus` y rend `last_indexed_height` non nul et au moins égal à la hauteur lue ou capturée : un suiveur décrit son index local vide (`last_indexed_height` 0, `chain/docker/README.md`, « Mesures ») | toutes celles qui lisent la chaîne | `noeud_injoignable`, `noeud_suiveur` |
 | OP-3 | **Expéditeur** (EX-4.18). Solde (`eth_getBalance`, `latest`) ≥ `gas_limit × maxFeePerGas` + `value`, `maxFeePerGas` étant celui de la transaction à envoyer (`p' = ⌈1,1 × p⌉` pour un remplacement, EX-8.16) ; pour un approvisionnement, solde du destinataire + `value` ≤ sa provision `P_k` (EX-4.20) ; aucun envoi du même expéditeur dans `--captures` sans issue connue (8.6 ; l'envoi qu'un remplacement remplace n'est pas compté) | celles qui envoient, `capturer --remplacer` compris | `solde_insuffisant`, `provision_excessive`, `transaction_en_attente` |
-| OP-4 | **Organisation, journaux, jeu.** Slug et noms de journal conformes à RG-1 et RG-2, `org_id` et `journal_id` recalculés égaux à ceux du dossier ; membres non nuls, distincts, en minuscules et triés ; `1 ≤ seuil ≤ membres` ; administrateur du jeu (clé de gouvernance) non nul et, sur une instance de `nature` `production`, distinct de tout compte de `accounts` (EX-5.6) ; sur une instance de `nature` `production`, aucune clé d'enregistreur ni clé de chaîne de classe de garde D (`custody_class`, `chain_key_class`, CT-2 §11.2, EX-11.19) ; pour `inscrire-client`, `isRegistered(orgId)` faux (EX-6.3), ou vrai pour un jeu que cet acteur a déjà déployé pour ce dossier (reprise, EX-7.16) | `inscrire-client`, `etat --organisation` | `jeu_invalide`, `cle_invalide`, `organisation_existante` |
+| OP-4 | **Organisation, journaux, jeu.** Slug et noms de journal conformes à RG-1 et RG-2, `org_id` et `journal_id` recalculés égaux à ceux du dossier ; membres non nuls, distincts, en minuscules et triés ; `1 ≤ seuil ≤ membres` ; administrateur du jeu (clé de gouvernance) non nul et, sur une instance de `nature` `production`, distinct de tout compte de `accounts` (EX-5.6) ; sur une instance de `nature` `production`, aucune clé d'enregistreur ni clé de chaîne de classe de garde D (`custody_class`, `chain_key_class`, CT-2 §11.2, EX-11.19) ; pour `inscrire-client`, `isRegistered(orgId)` faux (EX-6.3), ou vrai pour un jeu que cet acteur a déjà déployé pour ce dossier (reprise, EX-7.16). **Provision.** `funding.funder` est le compte de rôle `tresorerie` du manifeste à la tête (`compte_inattendu`) ; `funding.amount_wei` égale `P_k = provision_days × daily_budget_gas + gas_limit` recalculé depuis `fees` du manifeste (EX-4.19, EX-4.20) et `daily_budget_gas` ne dépasse pas `fees.max_daily_budget_gas` quand le manifeste le fixe (`provision_excessive`) ; la provision versée est celle recalculée, jamais celle du dossier | `inscrire-client`, `etat --organisation` | `jeu_invalide`, `cle_invalide`, `organisation_existante`, `compte_inattendu`, `provision_excessive` |
 | OP-5 | **Comptes et administrateurs.** Chaque compte de l'exploitant que la commande emploie est celui de son rôle dans `accounts` du manifeste à la tête, et deux rôles n'ont pas la même adresse hors du réseau de développement (EX-3.1) ; `CuratorSetRegistry.admin()` égale l'administrateur du registre (`inscrire-client`, `reassigner`) ; pour `reassigner`, le nouveau jeu répond à `admin()`, `getThreshold()` et `getCuratorCount()` par `eth_call` et son `admin()` est celui du jeu précédent, sauf `--changement-administrateur` (EX-8.10) ; pour `administrer-jeu`, le signataire est `CuratorSet.admin()` (`pendingAdmin()` pour `acceptAdmin`) et le nonce de la demande égale `opNonce()` ; pour `approvisionner`, le destinataire est admis par EX-8.20 | `inscrire-client`, `approvisionner`, `reassigner`, `administrer-jeu`, `inscrire-cle` et `clore` avec `--relayeur` | `compte_inattendu`, `pas_administrateur`, `jeu_invalide` |
 | OP-6 | **Condensé** (EX-6.1). Le condensé de la demande, recalculé depuis `fields`, `evm_chain_id` et `contract` selon RG-6 à RG-11, égale celui de la demande et celui que rend la fonction de vue du contrat par `eth_call` (`registerDigest`, `revokeDigest`, `periodDigest`, `anchorDigest`, `adminOpDigest`) ; `eip191_digest` égale le hachage signé de 6.6.3 | `condense`, `signer` (hors ligne : recalcul seul), commandes d'écriture | `condense_different` |
 | OP-7 | **Signatures** (RG-12, RG-13). Chaque signature est canonique et recouvre son `signer` ; les signataires sont distincts et rangés par adresse croissante ; pour une opération au seuil, chacun est membre du jeu de l'organisation (`isCurator` à `latest`), leur nombre atteint `t` = `getThreshold()` lu à `latest`, et la transaction en joint exactement `t`, les `t` premières dans l'ordre des adresses ; pour une ancre, le signataire est l'émetteur, la clé de chaîne | `signer`, `inscrire-cle`, `revoquer-cle`, `ancrer`, `clore`, `administrer-jeu` | `signature_non_canonique`, `signataire_hors_jeu`, `signatures_insuffisantes` |
@@ -2819,12 +2842,13 @@ l'étape à `capturee`, 8.6), jamais en signant une nouvelle transaction
 | `organisation_existante` | OP-4 | slug déjà enregistré | autre slug ; un changement de jeu suit 8.5 |
 | `jeu_invalide` | OP-4, OP-5 | membres, seuil, administrateur ; nouveau jeu de `reassigner` sans code de `CuratorSet` ou administré par une autre clé que le jeu précédent | corriger le dossier préparé et le préparer de nouveau ; `--changement-administrateur` avec la demande consignée (EX-8.10) |
 | `cle_invalide` | OP-4 | clé d'enregistreur ou clé de chaîne de classe de garde D sur une instance de production | clé gardée en classe A à C (CT-2 §11.2) |
-| `compte_inattendu` | OP-5 | compte qui n'est pas celui de son rôle dans `accounts`, ou deux rôles sous une adresse hors du réseau de développement | compte du rôle (EX-3.1, 4.8) |
+| `compte_inattendu` | OP-4, OP-5 | compte qui n'est pas celui de son rôle dans `accounts`, ou deux rôles sous une adresse hors du réseau de développement ; `funding.funder` d'un dossier qui n'est pas le compte de rôle `tresorerie` (OP-4, EX-8.20) | compte du rôle (EX-3.1, 4.8) |
 | `pas_administrateur` | OP-5 | l'administrateur du registre n'est pas `admin()` ; signataire qui n'est pas l'administrateur du jeu ; nonce périmé | compte du rôle ; relire `opNonce()` et refaire la demande |
 | `solde_insuffisant` | OP-3 | expéditeur sans provision suffisante | `approvisionner` (8.7) |
-| `provision_excessive` | OP-3 | approvisionnement au-delà de `P_k` | revoir `--budget-jour` (EX-4.19, EX-4.20) |
+| `provision_excessive` | OP-3, OP-4 | approvisionnement au-delà de `P_k` ; `daily_budget_gas` d'un dossier au-delà de `fees.max_daily_budget_gas`, ou `funding.amount_wei` différent de `P_k` recalculé depuis `fees` du manifeste (OP-4, EX-8.20) | revoir `--budget-jour` ou le dossier (EX-4.19, EX-4.20) |
 | `examen_requis` | 8.7 | consommation au-delà de deux fois le budget | examen par l'exploitant, puis `--apres-examen` (EX-8.18) |
 | `transaction_en_attente` | OP-3 | un envoi du même expéditeur est sans issue ; une étape `envoyee` dont la transaction n'a pas de reçu | `capturer --envoi [--dossier]` (8.6) |
+| `nonce_incoherent` | 8.6 (EX-8.14) | les points de `--rpc` rendent des nonces qui diffèrent de plus de 1, ou aucune valeur n'est rendue par deux points | transitoire : relancer quand les points concordent |
 | `condense_different` | OP-6 | demande altérée, autre contrat, autre chaîne | refaire la demande par `condense` ; ne pas signer |
 | `signature_non_canonique`, `signataire_hors_jeu`, `signatures_insuffisantes` | OP-7 | `signature_non_canonique` : signature à `s` haut ou à `v` hors {27, 28}, signataires non rangés par adresse croissante, signataire en double, signature qui ne recouvre pas son `signer` déclaré ; `signataire_hors_jeu` : non-membre, ou signataire d'une ancre autre que l'émetteur, ou signataire d'une opération du jeu autre que son administrateur ; `signatures_insuffisantes` : seuil non atteint ou relevé depuis la demande | obtenir d'autres signatures ; relire le jeu |
 | `cle_deja_active`, `cle_revoquee`, `cle_ed25519_active`, `cle_inconnue`, `organisation_inconnue` | OP-8 | clé de chaîne déjà inscrite ou révoquée (jamais réinscrite), clé Ed25519 active sous une autre clé de chaîne | nouvelle clé de chaîne (8.4) |
@@ -3214,8 +3238,14 @@ types ; aucun autre) ; un champ de référence de clé
 n'admet que les formes de référence que l'agent sait résoudre (EX-7.3 et les
 backends de garde de CT-2 §11) et refuse une valeur nue, par exemple 64
 chiffres hexadécimaux avec ou sans `0x`, sans la garder ni la consigner.
-L'interface n'affiche, ne consigne ni ne garde jamais une valeur résolue.
-Tenu par l'application.
+Une référence `fichier:` ou `graine:` qu'un travail porte ne désigne qu'un
+fichier du répertoire de clés que la configuration de l'agent nomme ;
+`alias:<nom>` désigne une référence que cette configuration déclare ; `env:`
+n'est admise que dans la configuration de l'agent. Le refus d'une référence
+qui ne se résout pas rend à l'interface un message unique, qui ne dit ni si
+le fichier existe, ni son mode, ni son contenu ; le détail va au journal de
+l'agent. L'interface n'affiche, ne consigne ni ne garde jamais une valeur
+résolue. Tenu par l'application.
 
 **EX-7.26** **Confirmation hors bande consignée.** Avant de relayer une
 demande `administration_jeu` (`administrer-jeu`) et avant tout
@@ -3225,7 +3255,10 @@ client qu'impose EX-8.21 et la consigne, en ajout seul : l'exploitant qui
 l'a recueillie, la personne du client qui a confirmé, le canal (hors de
 l'application), l'instant, l'opération et son objet (organisation, clé de
 chaîne ou demande), et le SHA-256 de la pièce qui la porte, comme la demande
-écrite d'EX-8.10. Sans elle, l'agent n'exécute pas la commande (aucune
+écrite d'EX-8.10. L'application rend dans `outputs.confirmation_sha256` du
+travail (EX-7.24) le SHA-256 de la pièce consigné par cette confirmation
+(`piece_sha256`), qui autorise l'opération ; elle n'a jamais la pièce. Sans
+elle, l'agent n'exécute pas la commande (aucune
 sortie n'est produite, rien n'est envoyé) et l'interface affiche
 « confirmation hors bande absente ». Le registre de ces confirmations est
 gardé avec la copie du dossier de l'exploitant (EX-7.12) ; il n'entre pas
@@ -3246,7 +3279,12 @@ local et n'a aucun secret partagé. L'agent n'écoute qu'une prise de domaine
 Unix (`AF_UNIX`, `SOCK_STREAM`), jamais une adresse IP, pas même de boucle
 locale. La prise est dans un répertoire qui appartient au compte de l'agent,
 en mode `0750`, dont le groupe n'a pour membre que le compte du serveur de
-l'interface, et elle est elle-même en mode `0660`, de ce groupe. À chaque
+l'interface, et elle est elle-même en mode `0660`, de ce groupe. L'agent
+refuse de démarrer si le compte que sa configuration désigne pour
+l'interface est le sien ou le compte 0, ou s'il tourne lui-même sous le
+compte 0 : sous un seul compte, l'interface lirait ce que l'agent lit
+(EX-7.23) ; épreuve : un agent dont la configuration désigne son propre
+compte pour l'interface ne démarre pas. À chaque
 connexion, avant de lire aucun octet, l'agent obtient du noyau le compte du
 pair (`SO_PEERCRED` sous Linux, `getpeereid` sur les systèmes qui l'offrent)
 et ferme la connexion si ce compte n'est pas celui que sa configuration
@@ -3317,9 +3355,13 @@ DEVRAIT lever une alerte de l'exploitation (CT-8) : les dossiers des
 **EX-8.4** L'ancre d'une période DOIT être incluse et capturée avant que la
 demande de clôture ne soit préparée (`condense cloture`, OP-10) et avant que
 la clôture ne soit soumise (`clore`, OP-10) : `lookup(empreinte).issuer` est
-la clé de chaîne sous laquelle la clé du manifeste est inscrite, et l'index
-de capture de l'ancre existe dans `--captures` (une ancre `incertain` ou
-`recu_absent` ne suffit pas). Motif : la demande de clôture porte `periodHash`
+la clé de chaîne sous laquelle la clé du manifeste est inscrite, et un index
+de capture de l'ancre, dans `--captures`, passe CP-2 à CP-6 contre le jeu du
+manifeste (une ancre `incertain` ou `recu_absent` ne suffit pas ; un index
+déposé qui ne les passe pas est écarté avec un avertissement). L'index est
+exigé par `condense cloture`, dans le `--captures` de qui prépare la demande ;
+`clore` contrôle l'inclusion de l'ancre (`lookup`) et n'exige pas l'index, le
+relayeur et le client n'ayant pas le même `--captures` (OP-10). Motif : la demande de clôture porte `periodHash`
 en clair (EX-7.10) et la transaction de clôture le publie ; l'empreinte
 d'ancre s'en déduit (6.5), et qui la voit avant l'inclusion de l'ancre peut
 l'ancrer sous son adresse (8.3). L'enregistreur ne remet donc `periodHash` à
@@ -3395,7 +3437,9 @@ la proposition pour CT-2 et CT-5 en 13 (ancre du registre incluse, puis
 requête RFC 3161 ; OpenTimestamps peut partir en parallèle) et EX-10.5
 (aucun intermédiaire côté client pour les ancres).
 
-**EX-8.6** Sur `empreinte_squattee` (OP-9), l'outil NE DOIT PAS réessayer :
+**EX-8.6** Sur `empreinte_squattee` (OP-9), constatée sur deux points de
+`--rpc` quand il y en a plusieurs (des lectures divergentes sont un échec
+transitoire, `noeud_injoignable`), l'outil NE DOIT PAS réessayer :
 il rend `refuse`, l'enregistreur signale la période (`registry_pending`) et
 l'exploitant consigne l'incident avec `lookup(empreinte)` et le bloc de
 l'ancre étrangère. La période garde ses ancres RFC 3161 et OpenTimestamps
@@ -3453,7 +3497,9 @@ version de politique qui épingle le nouveau jeu ; `reassigner` exige
 SHA-256 va dans `outputs.request_sha256`), vérifie par `eth_call` que le
 nouveau jeu répond à `admin()`, `getThreshold()` et `getCuratorCount()`
 (`setCuratorSet` accepterait toute adresse non nulle,
-`contracts/CuratorSetRegistry.sol:76-84`), refuse (`jeu_invalide`) un nouveau
+`contracts/CuratorSetRegistry.sol:76-84`), vérifie que le code déployé du
+nouveau jeu est celui de l'artefact `CuratorSet` hors suffixe de métadonnées
+(`eth_getCode`, sinon `jeu_invalide`), refuse (`jeu_invalide`) un nouveau
 jeu dont `admin()` diffère de celui du jeu précédent sauf
 `--changement-administrateur`, réservé à la perte de la clé de gouvernance et
 accompagné d'une demande consignée selon CT-7, et capture la transaction
@@ -3489,7 +3535,12 @@ ticket sur le jeu réassigné (`jeu_non_attendu`, CT-3 EX-8.1, EX-8.6).
 **EX-8.21** L'exploitant ne relaie une demande `administration_jeu`
 (`administrer-jeu`) et n'approvisionne une clé de chaîne (`approvisionner`)
 que sur confirmation hors bande du client, consignée comme la demande écrite
-d'EX-8.10 ; `approvisionner` n'admet que les destinataires d'EX-8.20. La clé
+d'EX-8.10 ; l'outil l'exige par `--confirmation <fichier>` (fichier non vide
+de la pièce qui porte la confirmation : courrier signé, procès-verbal),
+refuse `usage` sans elle, et consigne son SHA-256 dans
+`outputs.confirmation_sha256` d'`administrer-jeu` et d'`approvisionner`, y
+compris quand rien n'est relayé (`deja_fait`) ; `approvisionner` n'admet que
+les destinataires d'EX-8.20. La clé
 de gouvernance d'un client de production est gardée en classe A à C de CT-2
 §11.2, jamais D (cérémonie : CT-7) ; un délai ou une cosignature sur
 l'abaissement du seuil et l'ajout d'un membre sont une proposition
@@ -3503,7 +3554,10 @@ noorcore refuse une transaction de type 2 signée pour une autre chaîne, mais
 accepte une transaction non protégée (R1-F33) : la protection tient à l'outil
 seul.
 
-**EX-8.14** Le nonce est `eth_getTransactionCount(expéditeur, "latest")`. Le
+**EX-8.14** Le nonce est `eth_getTransactionCount(expéditeur, "latest")`, le
+plus grand rendu par au moins deux points de `--rpc` quand il y en a
+plusieurs ; si les points diffèrent de plus de 1, rien n'est signé
+(`nonce_incoherent`, transitoire). Le
 nonce `pending` de noorcore ne compte pas une transaction en attente
 (observé, R1-F30) : l'outil tient lui-même ses envois (`envoi-<hachage>.json`)
 et refuse d'en signer un autre pour un expéditeur dont un envoi est sans issue
@@ -3537,7 +3591,17 @@ jusqu'à l'inclusion de l'un des deux, l'outil sonde les deux hachages, et
 celui qui obtient le reçu est capturé, l'autre reçoit l'issue `remplacee` ou
 `ecartee` ; un remplaçant refusé par tous les points ne laisse aucune issue à
 l'original, qui reste sans issue pour OP-3. Un envoi `remplacee` reste tenu
-pour sans issue tant que son remplaçant n'a pas d'issue d'inclusion. Un nonce
+pour sans issue tant que son remplaçant n'a pas d'issue d'inclusion. L'issue
+`ecartee` d'un premier envoi n'est écrite que si chaque point a rendu un
+refus JSON-RPC ; un point au moins injoignable ne laisse aucune issue, et la
+reprise est le renvoi ; un envoi `ecartee` dont la transaction obtient un
+reçu est capturé comme un autre. L'issue d'un envoi n'est écrite que sur un
+reçu dont `blockNumber` et `status` sont lisibles ; une issue `status 0x0`
+n'est écrite qu'après la capture du bloc (CP-2 à CP-4) ou sur le même reçu
+concordant de deux points, jamais fabriquée ; un envoi sans reçu dont le
+nonce est inférieur au nonce `latest` de chaque point et que
+`eth_getTransactionByHash` ignore partout reçoit l'issue `ecartee` (nonce
+consommé par un autre contenu), avec alerte. Un nonce
 n'est jamais employé pour un autre contenu. Une transaction écartée peut
 revenir au redémarrage d'un nœud, depuis son journal durable, pendant 24
 heures, si son nonce est encore valable (R1-F30, R1-F36) : c'est pourquoi le
@@ -3566,7 +3630,7 @@ transaction qu'il n'a pas signée selon EX-4.15.
 
 ```bash
 $R approvisionner --vers <adresse> (--dossier <fichier> | --demande <fichier> | --org-id <org_id>) \
-  [--budget-jour <gaz>] --tresorerie <référence> --captures <répertoire>
+  [--budget-jour <gaz>] --confirmation <fichier> --tresorerie <référence> --captures <répertoire>
 ```
 
 `approvisionner` lit le solde de `--vers` et, s'il est sous le seuil de
@@ -3589,7 +3653,18 @@ tout autre destinataire est refusé (`compte_inattendu`, OP-5). Le budget
 journalier retenu ne dépasse jamais `fees.max_daily_budget_gas` quand le
 manifeste le fixe (`provision_excessive`, OP-3) : sans plafond, `P_k` et la
 borne d'OP-3 dérivent de la même option et `provision_excessive` ne peut pas
-se déclencher. Ces gardes protègent de l'erreur d'opérateur ; une trésorerie
+se déclencher. Cette règle vaut pour `approvisionner`, pour `inscrire-client
+--preparer` et pour l'étape `approvisionnement` d'`inscrire-client` : OP-4
+refuse un dossier dont `funding.funder` n'est pas le compte de rôle
+`tresorerie` du manifeste (`compte_inattendu`), dont `daily_budget_gas`
+dépasse le plafond, ou dont `amount_wei` n'est pas `provision_days ×
+daily_budget_gas + gas_limit` recalculé depuis `fees` du manifeste
+(`provision_excessive`) ; la provision versée est celle recalculée, jamais
+celle du dossier (le dossier préparé n'est que chez l'exploitant entre la
+préparation et l'exécution : l'acteur qui altère `funding` relève de la
+menace MN-73 du modèle de menace, celui du dossier remis au client de
+MN-57). Ces gardes protègent de
+l'erreur d'opérateur ; une trésorerie
 compromise signe sans l'outil : sur une instance de production, la genèse
 DEVRAIT précharger deux comptes, une trésorerie froide jamais en ligne et un
 compte d'approvisionnement (rôle `approvisionnement`, proposition de
@@ -3680,6 +3755,7 @@ validateurs (CT-6 EX-13.10).
 | `-32000 leader unreachable` | point d'un suiveur sans meneur (`chain/docker/README.md`) | `noeud_suiveur` |
 | `-32601 method not found` | binaire sans correctif | `inutilisable` |
 | `-32603 internal error` | suiveur dont la réponse du meneur dépasse 2 Mio (`chain/README.md`) | interroger un validateur directement |
+| réponse capturée hors de sa forme (en-tête, reçu, journal ou certificat malformé) | fichier de capture illisible ou tronqué | la vérification CP- concernée rend `echoue` avec le code `capture_incomplete`, aucun code hors de la table 9.4 ; le nom de chaque fichier de la capture est contrôlé avant toute lecture |
 
 ### 9.4 Capture au moment de chaque transaction
 
@@ -3706,13 +3782,17 @@ pour le dossier d'inscription et l'exploitation.
 | CP-1 | **Nœud.** Le point interrogé est un validateur de l'instance : OP-2 avec `last_indexed_height ≥ h`, `eth_chainId` de l'instance | `noeud_suiveur`, `chaine_differente` |
 | CP-2 | **En-tête.** `number` de l'en-tête égale `block_number` de l'index et `hash` de l'en-tête égale `block_hash` de l'index et `blockHash` du reçu de la transaction capturée (`receipts[transaction_index]`, quand il est lisible) ; `BFTBlockHash` recalculé sur les dix champs (CT-6 EX-11.4) égale `hash` | `capture_incomplete` |
 | CP-3 | **Reçus.** Un reçu par hachage de `transactions`, dans cet ordre : le reçu de rang `i` (fichier désigné par `files.receipts[i]`) a `transactionHash` égal à `transactions[i]` de l'en-tête, la correspondance se lisant dans le reçu, pas dans son nom (CP-6) ; la racine recalculée (CT-6 EX-11.5) égale `receiptsRoot` ; la transaction capturée est à `transaction_index` | `capture_incomplete` |
-| CP-4 | **Certificat.** Obtenu par 9.3 ; vérifié contre le jeu du manifeste dont l'intervalle contient `h` (4.8) comme CT-6 EX-11.6 à EX-11.8 et CT-6 EX-11.14 (`scripts/lib/certificat-commit.mjs`) ; `chainId` = identifiant BFT ; `height` = `h` ; `blockHash` = `hash` de l'en-tête ; `validator_set_hash` de l'index égale le hachage de ce jeu (CT-6 EX-11.8) ; dans le corps signé de la proposition, l'élément `transaction_index` de `txsRaw` (9.2) a pour hachage `transaction_hash`, et la racine de ces transactions égale `transactionsRoot` de l'en-tête (calcul de RG-19) | `certificat_indisponible`, `certificat_elague`, `certificat_invalide` |
+| CP-4 | **Certificat.** Obtenu par 9.3 ; vérifié contre le jeu du manifeste dont l'intervalle contient `h` (4.8) comme CT-6 EX-11.6 à EX-11.8 et CT-6 EX-11.14 (`scripts/lib/certificat-commit.mjs`) ; `chainId` = identifiant BFT ; `height` = `h` ; `blockHash` = `hash` de l'en-tête ; `validator_set_hash` de l'index égale le hachage de ce jeu (CT-6 EX-11.8) ; dans le corps signé de la proposition, l'élément `transaction_index` de `txsRaw` (9.2) a pour hachage `transaction_hash`, et la racine de ces transactions égale `transactionsRoot` de l'en-tête (calcul de RG-19) ; CP-4 refuse un certificat dont la réponse dépasse 1 Mio (R3 F47 : 7 075 à 7 782 octets par certificat ; 33 199 pour un bloc plein, TM-44 ; CT-6 §15.1) | `certificat_indisponible`, `certificat_elague`, `certificat_invalide` |
 | CP-5 | **Journal prouvé.** Pour un rôle à événement, `receipts[transaction_index].logs[log_index]` est émis par `contract` avec le `topics[0]` du rôle ; pour `inscription`, `ancre` et `cloture`, sa disposition est celle de CT-6 EX-11.9 | `capture_incomplete` |
-| CP-6 | **Écriture.** Les réponses sont écrites **telles que reçues** (octets de la réponse JSON-RPC complète) dans `bloc-<h>.json`, `recu-<hachage de transactions[i]>.json` pour le reçu de rang `i` et `certificat-<h>.json`, comme la capture de CT-6 (annexe A.5), et l'index dans `capture-<h>-<transaction_index>-<rôle>.json`, tous dans le répertoire des captures, sans sous-répertoire ; ces noms sont ceux que porte l'index (un reçu sous un autre nom est un défaut de CP-6, même identique octet pour octet) ; leurs SHA-256 sont dans l'index ; fichiers et index sont synchronisés sur le disque et l'index est conforme à son schéma avant que la capture soit dite faite | `capture_incomplete` |
+| CP-6 | **Écriture.** Les réponses sont écrites **telles que reçues** (octets de la réponse JSON-RPC complète) dans `bloc-<h>.json`, `recu-<hachage de transactions[i]>.json` pour le reçu de rang `i` et `certificat-<h>.json`, comme la capture de CT-6 (annexe A.5), et l'index dans `capture-<h>-<transaction_index>-<rôle>.json`, tous dans le répertoire des captures, sans sous-répertoire ; ces noms sont ceux que porte l'index (un reçu sous un autre nom est un défaut de CP-6, même identique octet pour octet) ; leurs SHA-256 sont dans l'index ; fichiers et index sont synchronisés sur le disque et l'index est conforme à son schéma avant que la capture soit dite faite. Un élément de `transactions` qui n'est pas `0x` suivi de 64 chiffres hexadécimaux, un `number` ou un `hash` d'en-tête hors de forme, un reçu dont `transactionHash` n'est pas l'élément de `transactions`, font échouer CP-2 ou CP-3 avant toute écriture ; les réponses ne sont écrites dans le répertoire des captures qu'une fois CP-2 à CP-6 réussies, et une commande qui échoue n'y laisse aucun fichier nouveau (l'issue connue de la transaction, `issue-<hachage>.json`, n'est pas un fichier de capture). Fichiers et index sont lisibles du groupe (0644 avant le masque) : une capture peut être remise à l'enregistreur par un autre compte que celui qui l'a faite (CT-2 §19.2) | `capture_incomplete` |
 
 **EX-9.3** Une capture est **idempotente** : un fichier déjà présent n'est
 jamais réécrit ; une seconde capture d'un même bloc reprend les fichiers
-présents s'ils passent CP-2 à CP-4. Deux validateurs pourraient tenir pour un
+présents s'ils passent CP-2 à CP-4. Une réponse n'est écrite sous son nom
+définitif qu'après CP-2 à CP-4 ; un fichier présent qui ne les passe pas, ou
+qui n'est pas lisible, est mis de côté sous `<nom>.rejete-<SHA-256>` et la
+réponse est redemandée à un autre validateur de `--rpc` ; l'incident est
+consigné. Deux validateurs pourraient tenir pour un
 même bloc des certificats différents et tous deux valides, chacun gardant les
 precommits qu'il a reçus (déduction, non observée : deux validateurs ont rendu
 les mêmes signataires pour un même bloc, R1-F61) : le premier certificat
@@ -3959,7 +4039,14 @@ images de base par condensé (`FROM …@sha256:…`), et non par étiquette comm
 reconstruite à l'identique au moins une fois ; (c) être inscrite dans le
 manifeste par son condensé (`noorcore.artifacts`), avec le commit de
 noorchain-core, le nom et le SHA-256 de chaque correctif appliqué, jamais son
-contenu, et la version de Go (EX-4.21, EX-4.23). Le partenaire l'emploie par
+contenu, et la version de Go (EX-4.21, EX-4.23) ; (d) la construction vérifie
+chaque correctif de `chain/patches/` contre le fichier suivi
+`chain/patches/EMPREINTES` (nom et SHA-256, jamais le contenu ;
+`chain/scripts/verifier-correctifs.sh`) avant `git apply`, et refuse une
+empreinte différente, un correctif listé absent ou un fichier `*.patch` non
+listé ; une construction sans aucun correctif n'est admise que sur demande
+explicite (`NOORTRACE_SANS_CORRECTIF=1`) et sous une autre étiquette que
+l'image livrée. Le partenaire l'emploie par
 son condensé (`noortrace/noorcore@sha256:…`), jamais par une étiquette. Son
 binaire n'est pas celui du réseau de développement (4.6).
 
@@ -4251,7 +4338,7 @@ la chaîne de production après le pilote (« Instance dédiée »).
 ## 13. Alignement avec le dépôt
 
 Points du dépôt que CT-4 rend caducs ou complète. Hors de la spécification,
-de ses schémas et de ses vecteurs, ce lot change : l'index `spec/README.md`
+de ses schémas et de ses vecteurs, cette version change : l'index `spec/README.md`
 et des renvois textuels de CT-1 et CT-2 devenus faux, sans changer de ligne
 ni de format ; `scripts/lib/noortrace.mjs` (commentaire de gaz de
 `submitPeriod`, paramètre facultatif `setAdmin` de `bootstrapOrg`, défaut
@@ -4268,8 +4355,8 @@ appliqué.
 | `chain/README.md`, « Rétention », l. 216-219 | « ≈ 73 h à la cadence de 1,14 bloc par seconde » | une fourchette : 1,10 bloc/s mesuré le 2026-10-25 (≈ 75,8 h), 1,14 annoncé (9.5) | à faire |
 | `chain/README.md`, « Ce qui change pour un réseau prod-like », point 4 | quatre validateurs sur deux sites, deux par site | aucun opérateur ni site avec plus de f validateurs (EX-4.12, EX-10.6) | à faire |
 | `chain/docker/Dockerfile` | images de base épinglées par étiquette | par condensé ; image publiée par condensé (EX-10.1) | images de base épinglées par condensé et image reconstruite avec le correctif : fait (phase 2, étape 3, `chain/docker/README.md`) ; publication de l'image par condensé : phase 2, étape 7 |
-| CT-6 EX-13.8 | « environ 73 h à la cadence de 1,14 bloc/s » | même fourchette, renvoi à CT-4 §9.5 | proposition (renvoi non indispensable : CT-6 inchangé dans ce lot) |
-| CT-6 EX-13.11 et §12.5, ligne `registry.contracts` | « CT-4 DEVRAIT prévoir une rétention étendue » ; « publiés par CT-4 (section 13) » | renvois à CT-4 EX-9.7 (au moins 3 000 000 hauteurs) et au manifeste d'instance de CT-4 §4.8 (EX-9.12) | proposition (renvoi non indispensable : CT-6 inchangé dans ce lot) |
+| CT-6 EX-13.8 | « environ 73 h à la cadence de 1,14 bloc/s » | même fourchette, renvoi à CT-4 §9.5 | proposition (renvoi non indispensable : CT-6 inchangé par cette version) |
+| CT-6 EX-13.11 et §12.5, ligne `registry.contracts` | « CT-4 DEVRAIT prévoir une rétention étendue » ; « publiés par CT-4 (section 13) » | renvois à CT-4 EX-9.7 (au moins 3 000 000 hauteurs) et au manifeste d'instance de CT-4 §4.8 (EX-9.12) | proposition (renvoi non indispensable : CT-6 inchangé par cette version) |
 | CT-1 §8, règle 5, l. 627-630 | « la cohérence entre l'événement de rotation et le registre est un contrôle de CT-4 (section 11.4, contrôle 8) » | « relèvent de CT-4 (§8.4) ; la cohérence entre l'événement de rotation et le registre relève du contrôle 8 (CT-6 §11) » | fait (renvoi textuel) |
 | CT-1 §10.4, l. 915 | « Le contrôle de ces valeurs contre le registre est le contrôle 8 (CT-4). » | « … est le contrôle 8 (CT-6 §11). » | fait (renvoi textuel) |
 | CT-1 §15, l. 1415 | « Sans le contrôle 8 (CT-4) » | « Sans le contrôle 8 (CT-6) » | fait (renvoi textuel) |
@@ -4277,7 +4364,7 @@ appliqué.
 | CT-2 §15, `anchoring.registry.rpc_url` | un seul point RPC | une liste de points de validateurs d'opérateurs distincts (EX-8.15, DOIT en production) ; schéma de configuration figé en version 0.3 | proposition |
 | CT-2 §9 et CT-5 : ordre des ancres | la racine est remise « à l'ancrage (CT-5) et au registre (CT-4) » sans ordre ; le jeton RFC 3161 révèle `periodHash` en clair (CT-6 EX-13.1) | ancre du registre incluse d'abord, puis requête RFC 3161 ; OpenTimestamps peut partir en parallèle (nonce avant les calendriers) ; ou risque accepté écrit (8.3, EX-8.4) | proposition |
 | CT-3 §13 (console) | signe toute demande présentée | sans objet : la console de CT-3 ne fait signer que l'objet `A` des tickets et le texte d'inscription d'une adresse, jamais un condensé du registre (CT-3 EX-9.9, EX-13.16, point 3) ; le refus d'une demande dont `expires_at` est passé est celui de `signer` (`demande_expiree`), et le refus d'une seconde clôture pour une position (`org_id`, `journal_id`, `first_seq`) déjà signée (EX-8.19) reste proposé à tout outil de signature conforme à EX-7.10 | non adoptée par CT-3 0.3 (révision 0.4) |
-| CT-6 EX-11.2, `scripts/verify/README.md` (table des tolérances) | « transactions brutes du bloc entier » dans le corps signé, sans membre ni encodage | nommer le membre `txsRaw` (base64 standard, une transaction par élément dans l'ordre du bloc) et les membres des corps `Proposal` et `Vote` (9.2) | proposition (CT-6 inchangé dans ce lot) |
+| CT-6 EX-11.2, `scripts/verify/README.md` (table des tolérances) | « transactions brutes du bloc entier » dans le corps signé, sans membre ni encodage | nommer le membre `txsRaw` (base64 standard, une transaction par élément dans l'ordre du bloc) et les membres des corps `Proposal` et `Vote` (9.2) | proposition (CT-6 inchangé par cette version) |
 | CT-8 : sauvegarde et supervision des validateurs | sauvegarde des bases « à définir » | interdire la restauration de `db/leveldb` et de l'état de consensus et tout instantané à chaud (une sauvegarde ne sert qu'à l'analyse) ; superviser la taille de la mempool, `transaction underpriced` sur un envoi conforme à EX-4.15 et `noor_bft_equivocations_total` (EX-10.8, EX-10.9) ; `--bft-recovery-reset` n'existe qu'en profil `dev` (`core/main.go:778-790`) | proposition |
 | CT-2 et CT-3 : signatures de clôture et d'inscription | ni l'enregistreur ni le service d'approbation ne fixent comment les approbateurs reçoivent et signent `periodDigest` et `registerDigest` | l'enregistreur prépare la demande de signature (EX-8.5, `#/$defs/demande_signature`) et la remet aux approbateurs ; un outil de signature conforme à EX-7.10, hors de la console de CT-3 (en version 0, la commande `signer` de l'outil de référence), la recalcule, l'affiche en clair et rend les signatures ; la console de CT-3 n'y prend pas part (CT-3 EX-9.9, EX-13.16, point 3) ; le registre ne bloque jamais (EX-8.1) | proposition à CT-2 ; non adoptée par CT-3 0.3 pour la console (révision 0.4) |
 | CT-3 EX-8.5 (« noorcore n'a pas `eth_subscribe` ») | exact en HTTP et pour la spécification RPC documentée | le binaire sert `eth_subscribe` (`newHeads`, `logs`) en WebSocket, hors du contrat documenté (R1-F55) : le sondage reste la règle | proposition (note) |
@@ -4294,6 +4381,7 @@ appliqué.
 | Application d'exploitant (révision 0.6) | absente | interface web et agent séparé et privilégié d'EX-7.23 à EX-7.28 ; canal local par prise Unix, compte du pair vérifié (EX-7.28) ; épreuves d'EX-7.24 et d'EX-7.28 | construite à l'étape 6 (`paquets/inscription`) ; à faire (révision 0.7) : sortie `paquet-client` du travail de paquet et codes d'EX-7.30, recherche d'EX-7.21 sur chaque référence employée, travail `administrer-jeu` avec la confirmation d'EX-7.26, reprise d'EX-7.29 |
 | `test/registreCt4.test.js` (révision 0.6) | six exemples annotés, liste fermée | annoter l'exemple de manifeste et l'exemple de gabarit de 7.13, les ajouter à la liste, et charger `paquet-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` dans le registre des schémas du test | fait autrement : les deux exemples portent l'annotation `<!-- exemple: … -->` (celle des exemples de la révision 0.5 de CT-3), que la liste fermée des annotations `<!-- schema: … -->` (EX-A.6) ne lit pas ; un essai de ce fichier les valide contre `paquet-client-v0` chargé avec ces schémas et recalcule les SHA-256 et longueurs du manifeste |
 | `spec/README.md` (révision 0.6) | CT-4 version 0.5 ; table des schémas sans `paquet-client-v0` | CT-4 version 0.6 ; ligne `paquet-client-v0` (CT-4 §7.13), chargé avec `inscription-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` | fait |
+| Révision 0.8 (2026-11-14), revue de sécurité interne de l'étape 8 : EX-4.12, EX-6.8, EX-7.1 (`--rpc`), EX-7.3, OP-4, EX-7.25, EX-7.26, EX-7.28, 7.11 (`compte_inattendu`, `provision_excessive`, `nonce_incoherent`), EX-8.4, EX-8.6, EX-8.10, EX-8.14, EX-8.16, 8.7, EX-8.20, EX-8.21, 9.3, CP-4, CP-6, EX-9.3, EX-10.1 (d) | textes de la version 0.7 ; outil de référence, bibliothèque et composant d'ancrage corrigés à l'étape 8 d'après ces constats, module Go de `ct-4` à aligner | texte : fait ; schéma `operations-registre-v0` : `nonce_incoherent` ajouté à `error.code` (extension compatible) ; outil de référence, bibliothèque et composant d'ancrage : faits à l'étape 8 pour `--confirmation`, la provision, l'URI, les index relus, le code du jeu, les deux points, l'écriture après CP-2 à CP-6 ; à faire : module Go de `ct-4` (provision, repli de 9.3), vecteurs `ct-4/capture` (fichier présent faux, certificat gonflé), garde d'admission d'EX-10.8 (décision du porteur, section 14) ; révision 0.8, complément du 2026-11-15 (décision du porteur) : CP-6, fichiers et index de capture lisibles du groupe (0644 avant le masque), composant d'ancrage aligné ; révision 0.8, demandée après sa première rédaction : EX-A.5 (plancher du module Go : code 1 sans famille, sans cas ou sur un cas absent de l'`INDEX.md`) ; module Go de `ct-4` : provision d'OP-4, nom de capture contrôlé avant lecture et plancher faits (revue de sécurité de l'étape 8, aucune discordance sur les vecteurs régénérés), repli de 9.3 non établi |
 
 Décisions de l'architecture touchées :
 
@@ -4543,7 +4631,11 @@ répertoire, et rend `0` si tout concorde, `1` s'il trouve une discordance,
 qu'il liste, `2` pour un usage incorrect. Les motifs des schémas de CT-4
 tiennent dans RE2 (bibliothèque `regexp` de Go, sans répétition bornée
 au-delà de 1000) : la longueur d'une transaction sérialisée est bornée par
-`maxLength`, pas par le motif.
+`maxLength`, pas par le motif. Révision 0.8 : le module rend aussi le code 1
+quand une famille de cette annexe est absente ou n'a aucune valeur
+recalculée (un fichier de famille sans aucun cas), et quand un cas que
+l'`INDEX.md` nomme est absent de la racine ou qu'un cas présent n'y est pas
+nommé (revue de sécurité de l'étape 8).
 
 ### A.6 Tests et intégration continue
 
@@ -4591,7 +4683,7 @@ l'intégration continue, et ses sorties ne sont pas des vecteurs.
 
 ## Annexe B — Sources des faits externes
 
-Les renvois R1 et R2 désignent deux notes de recherche du lot CT-4, internes
+Les renvois R1 et R2 désignent deux notes de recherche de CT-4, internes
 et non publiées, relues le 2026-10-25 sur les sources qu'elles citent : R1
 (noorcore et dépôt : code de noorchain-core au commit `618fcef`, dépôt public,
 expériences sur le réseau de développement du 2026-10-25), R2 (pratiques

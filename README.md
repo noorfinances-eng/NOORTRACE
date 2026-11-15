@@ -178,9 +178,15 @@ anything (`scripts/publication/`). Its criterion was run on a test bench
 without public network access: the full installation, steps IC-1 to IC-18 of
 CT-8, driven by a harness in 58 minutes (57 of them waiting for the hourly
 period to close), the first evidence folder accepted by both verifiers; this
-bench is not the reference system, and the installation on a blank machine by
-an outside engineer belongs to step 8. The end-to-end, adversarial and
-performance campaign (step 8) remains.
+bench is not the reference system, and the installation on a blank machine,
+by an internal reviewer working blind, is attached to gate 2 (owner's decision
+of 13 November 2026: no reference machine, no outside participant). Step 8 so
+far: an internal security review of every component, the approval protocol
+revised so that the core refuses a decision taken under another policy than
+its own (each `evaluer` response reports the policy version and the digests of
+the policy and of its approval settings), the corrections and specification
+revisions that follow, and the test vectors regenerated. The end-to-end,
+adversarial and performance campaign continues.
 
 ## Layout
 

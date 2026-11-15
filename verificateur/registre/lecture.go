@@ -17,6 +17,7 @@ import (
 	"github.com/noorfinances-eng/noortrace/verificateur/ancres"
 	"github.com/noorfinances-eng/noortrace/verificateur/commun"
 	"github.com/noorfinances-eng/noortrace/verificateur/cryptographie"
+	"github.com/noorfinances-eng/noortrace/verificateur/entree"
 	"github.com/noorfinances-eng/noortrace/verificateur/jcs"
 	"github.com/noorfinances-eng/noortrace/verificateur/jsonv"
 	"github.com/noorfinances-eng/noortrace/verificateur/schema"
@@ -146,9 +147,11 @@ func adresse(s string) ([20]byte, bool) {
 	return a, true
 }
 
-// analyser lit un document JSON borné et le valide contre un schéma.
-func analyser(octets []byte, uri, nom string) (*jsonv.Valeur, *commun.Texte) {
-	v, err := jsonv.Analyser(octets)
+// analyser lit un document JSON borné (profondeur 128 ; nombre de valeurs
+// selon la limite de taille de la partie, EX-15.1) et le valide contre un
+// schéma.
+func analyser(octets []byte, limite int64, uri, nom string) (*jsonv.Valeur, *commun.Texte) {
+	v, err := jsonv.AnalyserLimite(octets, limite)
 	if err != nil {
 		t := texte(nom+" n'est pas du JSON exploitable ("+err.Error()+")", nom+" is not usable JSON ("+err.Error()+")")
 		return nil, &t
@@ -177,7 +180,7 @@ func analyser(octets []byte, uri, nom string) (*jsonv.Valeur, *commun.Texte) {
 
 // lireRegistre lit registre.json (schéma registre-v0).
 func lireRegistre(octets []byte) ([]entreeRegistre, *commun.Texte) {
-	v, d := analyser(octets, schema.Registre, "registre.json")
+	v, d := analyser(octets, entree.LimiteRegistre, schema.Registre, "registre.json")
 	if d != nil {
 		return nil, d
 	}
@@ -259,7 +262,7 @@ func lireRegistre(octets []byte) ([]entreeRegistre, *commun.Texte) {
 // lireCertificats lit certificat-commit.json (schéma
 // registre-v0#/$defs/certificat_commit) ; seuls les champs d'EX-11.3 sont lus.
 func lireCertificats(octets []byte) ([]certificat, *commun.Texte) {
-	v, d := analyser(octets, schema.Registre+"#/$defs/certificat_commit", "certificat-commit.json")
+	v, d := analyser(octets, entree.LimiteCertificat, schema.Registre+"#/$defs/certificat_commit", "certificat-commit.json")
 	if d != nil {
 		return nil, d
 	}
@@ -273,6 +276,12 @@ func lireCertificats(octets []byte) ([]certificat, *commun.Texte) {
 		x.bloc, ok4 = hex32(c.Membre("blockHash").S())
 		if !(ok1 && ok2 && ok3 && ok4) {
 			t := texte(fmt.Sprintf("certificat-commit.json : certificat %d illisible", i), fmt.Sprintf("certificat-commit.json: certificate %d unreadable", i))
+			return nil, &t
+		}
+		// EX-11.14 (révision 0.9) : la genèse n'est jamais décidée
+		// par le BFT ; un certificat de hauteur 0 fait échouer R-1, avant R-5.
+		if x.hauteur == 0 {
+			t := texte(fmt.Sprintf("certificat-commit.json : certificat %d de hauteur 0 : la genèse n'est jamais décidée par le BFT (EX-11.14)", i), fmt.Sprintf("certificat-commit.json: certificate %d at height 0: the genesis is never decided by the BFT (EX-11.14)", i))
 			return nil, &t
 		}
 		x.chainID = c.Membre("chainId").S()
@@ -296,7 +305,7 @@ func lireCertificats(octets []byte) ([]certificat, *commun.Texte) {
 // lireValidateurs lit validateurs.json (schéma validateurs-v0) et charge
 // chaque jeu comme le nœud le charge (ancres.LireJeu, EX-12.2).
 func lireValidateurs(octets []byte) ([]ancres.JeuValidateurs, *commun.Texte) {
-	v, d := analyser(octets, schema.Validateurs, "validateurs.json")
+	v, d := analyser(octets, entree.LimiteValidateurs, schema.Validateurs, "validateurs.json")
 	if d != nil {
 		return nil, d
 	}

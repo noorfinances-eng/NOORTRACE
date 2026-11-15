@@ -16,6 +16,11 @@ if (!socket || !ecoute || !/^[^\s]+:[0-9]{1,5}$/.test(ecoute)) {
 } else {
   try {
     const x = await lancerAdaptateur({ socket, ecoute, sortie: process.stdout });
+    // Étape 8 (CT-2 EX-5.6) : la prise du démon fermée arrête l'adaptateur avec un code non nul (3) : rien n'est écrit dans le vide.
+    x.perte.then(() => {
+      process.stderr.write("noortrace-miroir : prise du demon fermee, capture arretee (code 3)\n");
+      process.exit(3);
+    });
     const arreter = async () => {
       await x.arreter();
       process.exit(0);

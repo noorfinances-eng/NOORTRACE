@@ -30,7 +30,7 @@
 
 import { keccak256 } from "ethers";
 import { chargerJeuValidateurs, hachageJeuValidateurs, verifierCertificat } from "./certificat-commit.mjs";
-import { analyserJSONStrict, validerSchema } from "./journal.mjs";
+import { analyserJSONStrict, validerSchema, valeursMaxPour } from "./journal.mjs";
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -82,6 +82,9 @@ export const LIMITES = {
   certificat_commit: 64 * 1024 * 1024,
   validateurs: 1024 * 1024,
   profondeurJSON: 128,
+  // §15.1 : « ligne de 4 Mio » d'un certificat de commit, tenue en octets UTF-8 (CT-6 R-1 ; le schéma
+  // registre-v0 borne de plus `line` à 4 194 304 caractères).
+  ligneOctets: 4 * 1024 * 1024,
 };
 
 /** Fichier de chaque partie du contrôle 8 (CT-1 §11.1). */
@@ -486,7 +489,8 @@ export function lirePartie(partie, nom, { schemas, idSchema, fragment = "", limi
   if (profondeurJSON(texte) > LIMITES.profondeurJSON) return { erreur: L(`${fichier} : imbrication JSON de plus de ${LIMITES.profondeurJSON} niveaux`, `${fichier}: JSON nesting deeper than ${LIMITES.profondeurJSON} levels`) };
   let valeur;
   try {
-    valeur = analyserJSONStrict(partie.octets);
+    // Borne du nombre de valeurs JSON pendant l'analyse (EX-15.1, révision demandée :), selon la limite de la partie.
+    valeur = analyserJSONStrict(partie.octets, { valeursMax: valeursMaxPour(limite) });
   } catch (err) {
     return { erreur: L(`${fichier} n'est pas du JSON exploitable : ${err.message}`, `${fichier} is not usable JSON: ${err.message}`) };
   }
@@ -698,19 +702,15 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
   const ids = ["R-1", "R-2", "R-3", "R-4", "R-5", "R-6", "R-7", "R-8", "R-9", "R-10"];
   const res = {};
   const poser = (id, statut, raison, detail) => (res[id] = verification(id, statut, raison, detail));
-  // R-11 (révision 0.2) figure avec la partie points-de-controle.json ou avec une
-  // entrée ancre_point_de_controle ; sans l'une ni l'autre, le rapport reste celui
-  // de la version 0.1 (EX-6.18). L'entrée se cherche dans le texte avant R-1 :
-  // registre.json illisible → R-11 non exécutée comme les autres (prerequis_en_echec).
-  let avecR11 = pointDeControle !== null;
-  if (!avecR11 && parties.registre?.octets) {
-    try {
-      const brut = JSON.parse(Buffer.from(parties.registre.octets).toString("utf8"));
-      avecR11 = Array.isArray(brut?.entries) && brut.entries.some((e) => e?.role === ROLE_ANCRE_POINT);
-    } catch {
-      avecR11 = false;
-    }
-  }
+  // Lecture stricte des deux parties (EX-4.16, limites, profondeur, nombre de valeurs, schéma) : une seule
+  // analyse, dont R-1 et la présence de R-11 dépendent.
+  const lu = lirePartie(parties.registre, "registre", { schemas, idSchema: ID_SCHEMA_REGISTRE, limite: LIMITES.registre, langue });
+  const luCert = lirePartie(parties.certificat_commit, "certificat_commit", { schemas, idSchema: ID_SCHEMA_REGISTRE, fragment: "#/$defs/certificat_commit", limite: LIMITES.certificat_commit, langue });
+  // R-11 (révision 0.2) figure avec la partie points-de-controle.json ou avec une entrée
+  // ancre_point_de_controle lue selon EX-4.16 ; sans l'une ni l'autre, le rapport reste celui de la
+  // version 0.1 (EX-6.18). Une partie registre.json qui échoue à cette lecture (clé en double, limite,
+  // schéma) ne fait pas figurer R-11 : aucune analyse permissive du texte brut.
+  const avecR11 = pointDeControle !== null || (!lu.erreur && Array.isArray(lu.valeur.entries) && lu.valeur.entries.some((e) => e?.role === ROLE_ANCRE_POINT));
   if (avecR11) ids.push("R-11");
 
   // Clé du manifeste dans le fichier d'ancres : N-4 ne figure que si elle a une chain_key (EX-12.5).
@@ -746,8 +746,6 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
   const sansRegistre = ancres ? L("le fichier d'ancres ne donne pas d'ancre registry", "the anchors file gives no registry anchor") : L("aucun fichier d'ancres", "no anchors file");
 
   // ----- R-1 : parties conformes et appariées -------------------------------
-  const lu = lirePartie(parties.registre, "registre", { schemas, idSchema: ID_SCHEMA_REGISTRE, limite: LIMITES.registre, langue });
-  const luCert = lirePartie(parties.certificat_commit, "certificat_commit", { schemas, idSchema: ID_SCHEMA_REGISTRE, fragment: "#/$defs/certificat_commit", limite: LIMITES.certificat_commit, langue });
   const ecartsR1 = [];
   // Partie déclarée présente mais absente du répertoire, ou qui n'est pas un fichier ordinaire : D-2 seule
   // échoue ; R-1 n'est pas exécutée (prerequis_en_echec), sauf échec sur l'autre partie (CT-6 EX-4.11, point 1).
@@ -772,8 +770,15 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
     certificats = luCert.valeur.certificates;
     for (const [i, c] of certificats.entries()) {
       const h = quantite(c.height);
+      // EX-11.14 (révision 0.9) : un certificat de hauteur 0x0 n'existe pas, la genèse n'étant jamais décidée par
+      // le BFT ; R-1 le refuse, avant toute R-5 (la bibliothèque certificat-commit.mjs ne le refuse plus par la structure).
+      if (h === 0n) ecartsR1.push(L(`certificat-commit.json : certificat ${i} de hauteur 0 : la genèse n'est jamais décidée par le BFT (EX-11.14)`, `certificat-commit.json: certificate ${i} at height 0: the genesis is never decided by the BFT (EX-11.14)`));
       if (certParHauteur.has(h)) ecartsR1.push(L(`deux certificats de hauteur ${h}`, `two certificates of height ${h}`));
       else certParHauteur.set(h, { indice: i, certificat: c });
+      // §15.1 : ligne de 4 Mio au plus, en octets UTF-8 (la borne en caractères du schéma est plus lâche).
+      const lignes = [c.proposal?.line, ...(Array.isArray(c.precommits) ? c.precommits.map((x) => x?.line) : [])];
+      const longues = lignes.filter((l) => typeof l === "string" && Buffer.byteLength(l, "utf8") > LIMITES.ligneOctets).length;
+      if (longues) ecartsR1.push(L(`certificat-commit.json : certificat ${i} (hauteur ${h}), ${longues} ligne(s) de plus de ${LIMITES.ligneOctets} octets (CT-6 §15.1)`, `certificat-commit.json: certificate ${i} (height ${h}), ${longues} line(s) of more than ${LIMITES.ligneOctets} bytes (CT-6 §15.1)`));
     }
     const servis = new Set();
     for (const [i, e] of entrees.entries()) {
@@ -835,10 +840,20 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
     const luVal = lirePartie(parties.validateurs, "validateurs", { schemas, idSchema: ID_SCHEMA_VALIDATEURS, limite: LIMITES.validateurs, langue });
     if (luVal.erreur) poser("R-3", "echoue", null, luVal.erreur);
     else {
-      const items = parCert.map(({ c, h }) => {
-        const couvrants = luVal.valeur.sets.filter((s) => h >= BigInt(s.from_height) && (s.to_height === null || h <= BigInt(s.to_height)));
+      // Chaque jeu se charge comme ceux du fichier d'ancres (EX-11.12, révision 0.4 : identifiants et clés
+      // nettoyés, identifiants uniques, clés exploitables et distinctes) ; un jeu qui ne se charge pas fait échouer R-3.
+      const jeux = luVal.valeur.sets.map((s, k) => {
+        try {
+          return { s, hachage: chargerJeuValidateurs({ validators: s.validators }).hachage };
+        } catch (err) {
+          return { s, erreur: L(`/sets/${k} : jeu invalide (${err.message})`, `/sets/${k}: invalid set (${err.message})`) };
+        }
+      });
+      const invalides = jeux.filter((j) => j.erreur);
+      const items = invalides.length ? invalides.map((j) => ({ statut: "echoue", detail: j.erreur })) : parCert.map(({ c, h }) => {
+        const couvrants = jeux.filter(({ s }) => h >= BigInt(s.from_height) && (s.to_height === null || h <= BigInt(s.to_height)));
         if (!couvrants.length) return { statut: "echoue", detail: L(`hauteur ${h} : validateurs.json ne déclare aucun jeu pour cette hauteur`, `height ${h}: validateurs.json declares no set for this height`) };
-        if (!couvrants.some((s) => hachageJeuValidateurs(s.validators) === c.valsetHash)) return { statut: "echoue", detail: L(`hauteur ${h} : le jeu déclaré par validateurs.json a le hachage ${hachageJeuValidateurs(couvrants[0].validators)}, pas le valsetHash ${c.valsetHash}`, `height ${h}: the set declared by validateurs.json has hash ${hachageJeuValidateurs(couvrants[0].validators)}, not valsetHash ${c.valsetHash}`) };
+        if (!couvrants.some((j) => j.hachage === c.valsetHash)) return { statut: "echoue", detail: L(`hauteur ${h} : le jeu déclaré par validateurs.json a le hachage ${couvrants[0].hachage}, pas le valsetHash ${c.valsetHash}`, `height ${h}: the set declared by validateurs.json has hash ${couvrants[0].hachage}, not valsetHash ${c.valsetHash}`) };
         return { statut: "reussi" };
       });
       const a = agreger(items);
@@ -1079,6 +1094,14 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
         statut = "non_execute";
         raison = "prerequis_en_echec";
         detail = L(`K-2 n'a pas réussi : checkpointHash non recalculé (bloc ${h}, émetteur ${valeurs.issuer})`, `K-2 did not pass: checkpointHash not recomputed (block ${h}, issuer ${valeurs.issuer})`);
+      } else if (res["R-10"].status !== "reussi" && !(res["R-10"].status === "non_execute" && res["R-10"].reason === "partie_absente")) {
+        // EX-11.24 règle 3 (révision 0.9) : R-10 non réussie pour une autre raison que l'absence d'entrée
+        // inscription (en échec, ou non exécutée sous prerequis_en_echec) : le rattachement de l'émetteur à une inscription
+        // de la clé du point n'est pas contrôlé ; R-11 est non exécutée (prerequis_en_echec, EX-5.5), sans AV-K-3.
+        statut = "non_execute";
+        raison = "prerequis_en_echec";
+        const r10 = `${res["R-10"].status}${res["R-10"].reason ? `, ${res["R-10"].reason}` : ""}`;
+        detail = L(`règle 3 : R-10 non réussie (${r10}) : rattachement de l'émetteur à une inscription de la clé du point non contrôlé (bloc ${h}, émetteur ${valeurs.issuer})`, `rule 3: R-10 did not pass (${r10}): the issuer's tie to a registration of the checkpoint key is not checked (block ${h}, issuer ${valeurs.issuer})`);
       } else {
         // Règle 2 : rattachement à la référence de la partie.
         const ref = pointDeControle.reference;
@@ -1089,8 +1112,8 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
         if (e.block.hash !== ref.block_hash) ecarts.push(L(`block.hash ${e.block.hash} au lieu de block_hash ${ref.block_hash} de la partie`, `block.hash ${e.block.hash} instead of block_hash ${ref.block_hash} of the part`));
         if (e.transaction_hash !== ref.transaction_hash) ecarts.push(L(`transaction_hash ${e.transaction_hash} au lieu de ${ref.transaction_hash} de la partie`, `transaction_hash ${e.transaction_hash} instead of ${ref.transaction_hash} of the part`));
         if (e.log_index !== ref.log_index) ecarts.push(L(`log_index ${e.log_index} au lieu de ${ref.log_index} de la partie`, `log_index ${e.log_index} instead of ${ref.log_index} of the part`));
-        // Règle 3 : émetteur relié à une inscription de la clé du point (R-10 réussie).
-        const inscriptionsPoint = res["R-10"].status === "reussi" ? inscriptionsVues.filter((x) => x.key_id === pointDeControle.keyId) : [];
+        // Règle 3 : émetteur relié à une inscription de la clé du point (R-10 réussie, ou sans entrée inscription : AV-K-3).
+        const inscriptionsPoint = inscriptionsVues.filter((x) => x.key_id === pointDeControle.keyId);
         if (inscriptionsPoint.length) {
           if (!inscriptionsPoint.some((x) => x.chain_key === valeurs.issuer)) {
             const sous = joindre(inscriptionsPoint.map((x) => `${x.chain_key} (bloc ${x.block_number})`), langue);
@@ -1242,6 +1265,18 @@ function minusculesHex(v) {
  * champs engagés retenus.
  */
 export function entreeRegistre({ role, bloc, recus, transactionHash, logIndex = 0 }) {
+  const objet = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  const hexa = (v) => typeof v === "string" && /^0x[0-9a-fA-F]*$/.test(v);
+  const forme = (condition, message) => {
+    if (!condition) throw new Error(`réponse RPC hors de sa forme : ${message}`);
+  };
+  forme(objet(bloc) && Array.isArray(bloc.transactions), "en-tête sans tableau transactions");
+  forme(bloc.transactions.every((t) => hexa(t) || (objet(t) && hexa(t.hash))), "transactions : hachages 0x… attendus");
+  forme(Array.isArray(recus) && recus.every((r) => objet(r) && hexa(r.transactionHash) && Array.isArray(r.logs)), "reçus : objets à transactionHash 0x… et tableau logs attendus");
+  forme(recus.every((r) => r.logs.every((j) => objet(j) && hexa(j.address) && Array.isArray(j.topics) && j.topics.every(hexa) && hexa(j.data))), "journaux : address, topics (tableau de 0x…) et data attendus");
+  forme(recus.every((r) => [r.type, r.status, r.cumulativeGasUsed].every((v) => v === undefined || hexa(v))), "reçus : type, status et cumulativeGasUsed en quantités 0x… attendus");
+  forme(typeof transactionHash === "string", "transactionHash : chaîne attendue");
+  for (const c of CHAMPS_ENTETE) forme(hexa(bloc[c]), `en-tête : ${c} en 0x… attendu`);
   const ordre = bloc.transactions.map((t) => (typeof t === "string" ? t : t.hash).toLowerCase());
   const parHash = new Map(recus.map((r) => [r.transactionHash.toLowerCase(), r]));
   if (ordre.length !== recus.length || ordre.some((t) => !parHash.has(t))) throw new Error("reçus : il faut exactement un reçu par transaction du bloc");

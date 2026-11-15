@@ -34,7 +34,9 @@ export async function lancerInterface({ dir, prise, donnees, nom = "operateur-1"
   const sel = crypto.randomBytes(16);
   const cle = crypto.scryptSync(Buffer.from(motDePasse, "utf8"), sel, 32, { N: 131072, r: 8, p: 1, maxmem: 256 * 1024 * 1024 });
   const comptes = path.join(dir, "comptes.json");
-  fs.writeFileSync(comptes, JSON.stringify({ version: 0, accounts: [{ name: nom, salt: sel.toString("hex"), key: cle.toString("hex") }] }));
+  // Lisible de son seul propriétaire, comme le serveur l'exige (revue de l'étape 8, CT-7 CLE-37).
+  fs.writeFileSync(comptes, JSON.stringify({ version: 0, accounts: [{ name: nom, salt: sel.toString("hex"), key: cle.toString("hex") }] }), { mode: 0o600 });
+  fs.chmodSync(comptes, 0o600);
   const port = await portLibre();
   const origine = `http://127.0.0.1:${port}`;
   const config = path.join(dir, "interface.json");

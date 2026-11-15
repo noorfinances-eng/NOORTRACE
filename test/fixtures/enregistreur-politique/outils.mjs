@@ -136,7 +136,8 @@ export class ServiceSimule extends ServiceApprobationFactice {
     if (this.versions.get(r.code.policy_version)?.mode === "observation") {
       this.enregistrer("evaluer", r);
       const d = this.decider(r);
-      return { rule: d.rule ?? "defaut : autorise", decision: d.decision, ticket: null, ticket_state: null, approval: null, approver_set: null };
+      // EX-12.20 (décision du porteur du 14 novembre 2026 et son addendum) : neuf membres, couple chargé de la version observée.
+      return { rule: d.rule ?? "defaut : autorise", decision: d.decision, ticket: null, ticket_state: null, approval: null, approver_set: null, ...this._couple(r.code.policy_version) };
     }
     const cle = `${r.tool_announced}\u0000${jcsIntegral(r.arguments)}`;
     const ticket = this.parDemande.get(cle);
@@ -144,11 +145,16 @@ export class ServiceSimule extends ServiceApprobationFactice {
     // CT-3 EX-11.4 : approbation servie à une requête retenue (held) ; une autre ré-émission attend.
     if (t && t.etat === "approuve" && t.held) {
       this.enregistrer("evaluer", r);
-      return { rule: t.rule, decision: "a_approuver", ticket, ticket_state: "en_attente", approval: null, approver_set: null };
+      return { rule: t.rule, decision: "a_approuver", ticket, ticket_state: "en_attente", approval: null, approver_set: null, ...this._couple(r.code.policy_version) };
     }
     // Après consommation : comme un premier appel (11.3).
     if (t && t.etat === "consomme") this.parDemande.delete(cle);
     return this._nommerNouveau(await super.evaluer(r));
+  }
+
+  /** Couple chargé d'une version (CT-3 §12.3, décision du porteur du 14 novembre 2026 et son addendum), comme le service factice le recopie. */
+  _couple(version) {
+    return { policy_version: version, policy_sha256: this.empreintes.get(version) ?? null, approval_sha256: this.condenses.get(version) ?? null };
   }
 
   /**

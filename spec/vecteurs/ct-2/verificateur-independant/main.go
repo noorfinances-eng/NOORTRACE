@@ -8,7 +8,11 @@
 // spécification (CT-2, et CT-1 pour les événements), et confronte à chaque
 // valeur attendue. Code de retour 0
 // si et seulement si tout concorde ; 1 en cas de discordance ou d'erreur ;
-// 2 si l'usage est incorrect ou la racine introuvable.
+// 2 si l'usage est incorrect ou la racine introuvable. Revue de sécurité de
+// l'étape 8 (CT-9 TA-66) : une famille sans valeur recalculée, aucune
+// valeur recalculée, ou un cas que l'INDEX.md nomme sans qu'il soit présent
+// (ou l'inverse) sont des erreurs, code 1 (plancher.go) ; une entrée absente
+// qui ferait tomber une famille est une erreur consignée, jamais une panique.
 
 package main
 
@@ -38,6 +42,7 @@ func main() {
 		os.Exit(2)
 	}
 	rap := VerifierVecteursCT2(racine, *strict)
+	AppliquerPlancherCT2(rap, racine)
 	if *enJSON {
 		if err := rap.EcrireJSON(os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, err)

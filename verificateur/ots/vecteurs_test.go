@@ -18,6 +18,8 @@ import (
 	"github.com/noorfinances-eng/noortrace/verificateur/commun"
 	"github.com/noorfinances-eng/noortrace/verificateur/cryptographie"
 	"github.com/noorfinances-eng/noortrace/verificateur/entree"
+	"github.com/noorfinances-eng/noortrace/verificateur/jcs"
+	"github.com/noorfinances-eng/noortrace/verificateur/jsonv"
 )
 
 const (
@@ -449,7 +451,20 @@ func TestVecteursDossiers(t *testing.T) {
 					Present bool   `json:"present"`
 				} `json:"parts"`
 			}
-			if err := json.Unmarshal(lireFichier(t, filepath.Join(rep, "dossier.json")), &idx); err != nil {
+			octetsIndex := lireFichier(t, filepath.Join(rep, "dossier.json"))
+			// Un index sans forme canonique de CT-1 §4 (nom en double, nombre
+			// non entier ou hors de l'intervalle sûr, substitut isolé) n'est
+			// pas lu : E-2 échoue, les parties sont inconnues et aucune
+			// vérification O- ni K- ne figure au rapport (CT-6 EX-4.12,
+			// révision 0.4, point 2 ; EX-4.11, point 3). Le décodage tolérant
+			// de encoding/json ci-dessous lirait des parties que le moteur ne
+			// lit pas.
+			if v, err := jsonv.Analyser(octetsIndex); err != nil {
+				t.Fatalf("dossier.json : %v", err)
+			} else if jcs.Calculable(v) != nil {
+				t.Skip("index sans forme canonique (E-2) : rien n'est lu de l'index, contrôle 5 non exécuté par le moteur (EX-4.12)")
+			}
+			if err := json.Unmarshal(octetsIndex, &idx); err != nil {
 				t.Fatal(err)
 			}
 			presentes := map[string]bool{}

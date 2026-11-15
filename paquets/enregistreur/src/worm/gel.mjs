@@ -23,6 +23,7 @@ import { piecesReferencees } from "./registre.mjs";
 import { lireSegmentFerme } from "../segments.mjs";
 import { ErreurTransport } from "./s3.mjs";
 import { ErreurNonFixe } from "./support.mjs";
+import { classerVersionsGels, lireEnregistrementsGel, lireListeObjetsGel } from "./lecture-gels.mjs";
 
 /** Codes de sortie d'EX-12.36. */
 export const CODES = Object.freeze({ FAIT: 0, PARTIEL: 1, USAGE: 2, GARDE: 3, SUPPORT: 4 });
@@ -37,8 +38,6 @@ export class ArretOutil extends Error {
     this.data = data;
   }
 }
-
-const MOTIF_ENREGISTREMENT = /^([0-9]{4})-(pose|pose_resultat|demande_levee|levee|levee_resultat)\.json$/;
 
 /**
  * Contexte d'une exécution de l'outil.
@@ -85,6 +84,8 @@ export class OutilGel {
     this.murale = ctx.murale ?? (() => Date.now());
     this.aleatoire = ctx.aleatoire ?? ((n) => randomBytes(n));
     this.premiereRequete = true;
+    /** Versions des listes d'objets vues par gel (relireGel), pour lireObjets. */
+    this._listes = new Map();
   }
 
   _journal(niveau, evenement, data) {
@@ -113,11 +114,15 @@ export class OutilGel {
   // ---------------------------------------------------------------- registre
 
   /**
-   * Relit le registre d'un gel : enregistrements triés par `<nnnn>`, version
-   * courante de chaque clé.
+   * Relit le registre d'un gel : enregistrements triés par `<nnnn>`, lus par
+   * leur version originale parmi toutes les versions de chaque clé (étape 8,
+   * CT-2 EX-17.6 : un marqueur ou une seconde version ne changent pas la suite ;
+   * ils sont consignés `worm_versions_unexpected`) ; chaque enregistrement est
+   * validé contre le schéma `worm-v0` (EX-17.7, EX-12.38) : un enregistrement
+   * illisible fait échouer la garde au rang fautif, sans lever.
    * @param {string} gel_id
    * @param {{premiere?: boolean}} [o]
-   * @returns {Promise<{records: object[], cles: string[]}>}
+   * @returns {Promise<{records: object[], cles: string[], listes: Map<string, object[]>}>}
    */
   async relireGel(gel_id, o = {}) {
     const l = await this._requete(() => this.ops.listerVersions(this._cleGel(gel_id, "")), o);
@@ -125,53 +130,41 @@ export class OutilGel {
     return this._lireRecords(l.versions, gel_id);
   }
 
-  async _lireRecords(versions, gel_id) {
-    const parN = [];
-    for (const v of versions) {
-      if (!v.is_latest || v.delete_marker) continue;
-      const nom = v.key.slice(this._cleGel(gel_id, "").length);
-      const m = MOTIF_ENREGISTREMENT.exec(nom);
-      if (!m) continue;
-      const r = await this._requete(() => this.ops.lire(v.key, v.version_id));
-      if (r.statut !== 200) throw new ArretOutil(CODES.PARTIEL, "lecture_registre", { http_status: r.statut });
-      let o;
-      try {
-        o = JSON.parse(r.corps.toString("utf8"));
-      } catch {
-        o = { illisible: true };
-      }
-      parN.push({ n: Number(m[1]), record: o, cle: v.key });
+  async _lireRecords(versions, gel_id, classe = null) {
+    const g = classe ?? classerVersionsGels(versions, `${this.prefixe}gels/`).get(gel_id) ?? { enregistrements: new Map(), listes: new Map(), anomalies: [] };
+    for (const a of g.anomalies) this._journal("warning", "worm_versions_unexpected", { key: a.key, versions: a.versions, marqueur: a.marqueur, raison: a.raison, gel_id });
+    const lu = await lireEnregistrementsGel(this.ops, g.enregistrements);
+    if (!lu.lectureOk) {
+      const e = lu.records.find((r) => r?.raison === "lecture_en_echec");
+      throw new ArretOutil(CODES.PARTIEL, "lecture_registre", { http_status: e?.http_status ?? null });
     }
-    parN.sort((a, b) => a.n - b.n);
-    return { records: parN.map((x) => x.record), cles: parN.map((x) => x.cle) };
+    this._listes.set(gel_id, g.listes);
+    return { records: lu.records, cles: lu.versions.map((x) => x.key), listes: g.listes };
   }
 
   /** Relit les registres de tous les gels du préfixe : `gel_id` → suite. */
   async relireTousLesGels() {
     const l = await this._requete(() => this.ops.listerVersions(`${this.prefixe}gels/`));
     if (l.statut !== 200) throw new ArretOutil(CODES.PARTIEL, "liste_registre", { http_status: l.statut });
-    const parGel = new Map();
-    for (const v of l.versions) {
-      const reste = v.key.slice(`${this.prefixe}gels/`.length);
-      const k = reste.indexOf("/");
-      if (k < 0) continue;
-      const g = reste.slice(0, k);
-      if (!parGel.has(g)) parGel.set(g, []);
-      parGel.get(g).push(v);
-    }
+    const classes = classerVersionsGels(l.versions, `${this.prefixe}gels/`);
     const r = new Map();
-    for (const [g, vs] of parGel) r.set(g, (await this._lireRecords(vs, g)).records);
+    for (const [g, classe] of [...classes].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))) r.set(g, (await this._lireRecords(l.versions, g, classe)).records);
     return r;
   }
 
-  /** Liste des objets d'un gel, vérifiée contre son empreinte (EX-12.37 `objects`). */
-  async lireObjets(objects) {
-    const r = await this._requete(() => this.ops.lire(objects.key));
-    if (r.statut !== 200) throw new ArretOutil(CODES.PARTIEL, "liste_objets", { http_status: r.statut });
-    if (sha256Hex(new Uint8Array(r.corps)) !== objects.sha256) throw new ArretOutil(CODES.GARDE, "objets_differents", { code: "objets_differents" });
-    const liste = lireListeObjets(new Uint8Array(r.corps));
-    if (liste.length !== objects.count) throw new ArretOutil(CODES.GARDE, "objets_differents", { code: "objets_differents" });
-    return liste;
+  /**
+   * Liste des objets d'un gel, lue par la version dont l'empreinte est celle de
+   * la `pose` parmi toutes les versions de la clé (EX-12.37 `objects` ; CT-2 EX-17.6).
+   */
+  async lireObjets(objects, gel_id = null) {
+    if (!objects || typeof objects.key !== "string") throw new ArretOutil(CODES.GARDE, "objets_differents", { code: "objets_differents" });
+    const listes = gel_id ? this._listes.get(gel_id) : null;
+    const base = gel_id ? this._cleGel(gel_id, "") : null;
+    const versionsListe = listes && objects.key.startsWith(base) ? listes.get(objects.key.slice(base.length)) : undefined;
+    const r = await lireListeObjetsGel(this.ops, objects, versionsListe, { sha256Hex, lireListeObjets });
+    if (r.objets) return r.objets;
+    if (r.raison === "lecture_en_echec" || r.raison === "liste_absente") throw new ArretOutil(CODES.PARTIEL, "liste_objets", { raison: r.raison });
+    throw new ArretOutil(CODES.GARDE, "objets_differents", { code: "objets_differents", raison: r.raison });
   }
 
   /** Écrit un enregistrement, conditionnel à l'absence (EX-12.37) ; rend le statut. */
@@ -233,7 +226,13 @@ export class OutilGel {
     return { ok, failed };
   }
 
-  /** Gels actifs autres que `gel_id`, avec leur liste d'objets (EX-12.40, EX-17.7). */
+  /**
+   * Gels actifs autres que `gel_id`, avec leur liste d'objets (EX-12.40,
+   * EX-17.7). Un gel actif (suite invalide comprise) dont la liste n'est pas
+   * lisible arrête l'outil avant toute requête de levée (étape 8 :
+   * lever sans le connaître lèverait aussi ce gel, sans sa règle de garde) :
+   * code 4, `worm_legal_hold_failed` (`liste_autre_gel_illisible`).
+   */
   async _autresGelsActifs(gel_id) {
     const tous = await this.relireTousLesGels();
     const autres = [];
@@ -241,9 +240,10 @@ export class OutilGel {
       if (g === gel_id || !records.length) continue;
       if (!etatGel(records).actif) continue;
       try {
-        autres.push({ gel_id: g, objects: await this.lireObjets(records[0].objects) });
-      } catch {
-        // liste illisible : ce gel ne protège rien de connu
+        autres.push({ gel_id: g, objects: await this.lireObjets(records[0].objects, g) });
+      } catch (e) {
+        this._journal("error", "worm_legal_hold_failed", { gel_id, raison: "liste_autre_gel_illisible", autre_gel_id: g, detail: e instanceof ArretOutil ? e.raison : String(e?.message ?? e) });
+        throw new ArretOutil(CODES.SUPPORT, "liste_autre_gel_illisible", { autre_gel_id: g });
       }
     }
     return autres;
@@ -319,10 +319,19 @@ export class OutilGel {
       versions = this.ctx.registreCopies.filter((x) => x.version_id !== null).map((x) => ({ key: x.key, version_id: x.version_id, is_latest: true, delete_marker: false }));
     }
     this.premiereRequete = false;
+    // Index des versions par clé (étape 8 : coût linéaire, et non périodes × clés).
+    const parCle = new Map();
+    for (const v of versions) {
+      if (!parCle.has(v.key)) parCle.set(v.key, []);
+      parCle.get(v.key).push(v);
+    }
+    // Pas 2 (EX-12.35) : chaque version lisible du manifeste d'une période est
+    // lue (étape 8) ; calculerPerimetre prend la réunion des plages et
+    // note `segments_indetermines` quand elles diffèrent.
     const manifests = [];
     for (let P = de; P <= a; P += 3600) {
       const km = cleManifeste(this.prefixe, P);
-      for (const v of versions.filter((x) => x.key === km && !x.delete_marker)) {
+      for (const v of (parCle.get(km) ?? []).filter((x) => !x.delete_marker)) {
         let r;
         try {
           r = await this._requete(() => this.ops.lire(km, v.version_id));
@@ -333,10 +342,7 @@ export class OutilGel {
         if (r.statut !== 200) continue;
         try {
           const m = JSON.parse(r.corps.toString("utf8"));
-          if (Number.isSafeInteger(m.first_seq) && Number.isSafeInteger(m.last_seq)) {
-            manifests.push({ period_start: P, first_seq: m.first_seq, last_seq: m.last_seq });
-            break;
-          }
+          if (Number.isSafeInteger(m?.first_seq) && Number.isSafeInteger(m?.last_seq)) manifests.push({ period_start: P, first_seq: m.first_seq, last_seq: m.last_seq });
         } catch {
           // version illisible : la suivante est essayée
         }
@@ -349,7 +355,7 @@ export class OutilGel {
       pieces = [];
       const vues = new Set();
       for (const k of prelim.segments) {
-        for (const v of versions.filter((x) => x.key === k && !x.delete_marker)) {
+        for (const v of (parCle.get(k) ?? []).filter((x) => !x.delete_marker)) {
           const r = await this._requete(() => this.ops.lire(k, v.version_id)).catch(() => null);
           if (!r || r.statut !== 200) continue;
           let evts = [];
@@ -431,7 +437,7 @@ export class OutilGel {
 
   async _executerLevee(identite, records) {
     const gel_id = records[0].gel_id;
-    const objets = await this.lireObjets(records[0].objects);
+    const objets = await this.lireObjets(records[0].objects, gel_id);
     const autres = await this._autresGelsActifs(gel_id);
     const { lift, keep } = versionsALever(objets, autres);
     const res = await this._appliquer(lift, false);
@@ -474,7 +480,7 @@ export class OutilGel {
       return CODES.FAIT;
     }
     const pose = dernier.kind === "pose" || dernier.kind === "pose_resultat";
-    const objets = await this.lireObjets(records[0].objects);
+    const objets = await this.lireObjets(records[0].objects, p.gel);
     let cibles = objets;
     let keep = [];
     if (!pose) {
@@ -516,11 +522,27 @@ export class OutilGel {
    */
   async etat(p) {
     const { records } = await this.relireGel(p.gel, { premiere: true });
+    const { ligne, ecarts } = await this._etatGel(p.gel, records);
+    this.ctx.sortie(`${Buffer.from(jcsIntegralOctets(ligne)).toString("utf8")}\n`);
+    return ecarts ? CODES.PARTIEL : CODES.FAIT;
+  }
+
+  /** État imprimable d'un gel : garde, état, enregistrements, état relu de chaque version ; nombre d'écarts. */
+  async _etatGel(gel_id, records) {
     const garde = verifierGarde(records);
     const e = etatGel(records);
-    const objets = records.length ? await this.lireObjets(records[0].objects) : [];
+    let objets = [];
+    let listeIllisible = null;
+    if (records.length) {
+      try {
+        objets = await this.lireObjets(records[0]?.objects, gel_id);
+      } catch (err) {
+        if (!(err instanceof ArretOutil)) throw err;
+        listeIllisible = err.data?.raison ?? err.raison;
+      }
+    }
     const versions = [];
-    let ecarts = garde.valid ? 0 : 1;
+    let ecarts = garde.valid && listeIllisible === null ? 0 : 1;
     for (const o of objets) {
       const lu = await this.ops.lireGel(o.key, o.version_id).catch(() => null);
       const etat = lu && lu.statut === 200 ? this.ops.etatGel(lu) : "illisible";
@@ -528,10 +550,33 @@ export class OutilGel {
       if (attenduOn && etat !== "on") ecarts++;
       versions.push({ key: o.key, version_id: o.version_id, legal_hold: etat, attendu: attenduOn ? "on" : e.actif ? "on_ou_off" : null });
     }
-    this.ctx.sortie(`${Buffer.from(jcsIntegralOctets({
-      gel_id: p.gel, actif: e.actif, levee_en_cours: e.leveeEnCours, garde: garde.valid ? "respectee" : garde.errors,
-      records: records.map((r, k) => ({ n: r.n, kind: r.kind, record_sha256: garde.record_sha256[k] })), versions,
-    })).toString("utf8")}\n`);
+    const ligne = {
+      gel_id, actif: e.actif, levee_en_cours: e.leveeEnCours, garde: garde.valid ? "respectee" : garde.errors,
+      records: records.map((r, k) => ({ n: typeof r?.n === "number" ? r.n : null, kind: typeof r?.kind === "string" ? r.kind : null, record_sha256: garde.record_sha256[k], ...(r?.illisible ? { illisible: true, raison: r.raison ?? null } : {}) })),
+      versions,
+    };
+    if (listeIllisible !== null) ligne.liste_objets = listeIllisible;
+    return { ligne, ecarts };
+  }
+
+  /**
+   * `liste` (étape 8, CT-2 EX-12.36 ; CT-7 RA-64) : relit tout le registre des gels
+   * du préfixe sous le rôle Lecteur, imprime une ligne par gel (forme d'`etat`),
+   * n'écrit rien ; code 1 si une garde échoue ou qu'une version attendue `on`
+   * ne l'est pas, 4 si la liste du support est refusée.
+   */
+  async liste() {
+    const l = await this._requete(() => this.ops.listerVersions(`${this.prefixe}gels/`), { premiere: true });
+    if (l.statut !== 200) throw new ArretOutil(CODES.SUPPORT, "liste_registre", { http_status: l.statut });
+    const classes = classerVersionsGels(l.versions, `${this.prefixe}gels/`);
+    let ecarts = 0;
+    for (const [g, classe] of [...classes].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))) {
+      const { records } = await this._lireRecords(l.versions, g, classe);
+      const r = await this._etatGel(g, records);
+      if (classe.anomalies.length) r.ligne.anomalies = classe.anomalies.map((a) => ({ key: a.key, raison: a.raison }));
+      this.ctx.sortie(`${Buffer.from(jcsIntegralOctets(r.ligne)).toString("utf8")}\n`);
+      ecarts += r.ecarts;
+    }
     return ecarts ? CODES.PARTIEL : CODES.FAIT;
   }
 }

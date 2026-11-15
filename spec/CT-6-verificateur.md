@@ -1,6 +1,16 @@
 # CT-6 — Vérificateur
 
-Version 0.8, 2026-11-12 (révision 0.8, textuelle et minimale : publication
+Version 0.9, 2026-11-14 (révision 0.9 : suites de la revue de sécurité
+interne de l'étape 8 et des décisions du porteur qui en découlent ; bornes du
+nombre de valeurs d'une entrée JSON, des événements d'`approbations.json` et
+des détails du rapport (EX-15.1), neutralisation des chaînes d'entrée dans le
+rapport lisible (EX-8.5), profil DER de la référence écrit dans le texte
+(EX-9.4, EX-9.7), CRL à extension critique non lue écartée (EX-9.16), chaque
+clé employée comparée aux enregistreurs du fichier d'ancres (EX-12.4), ordre
+de R-10, R-11 et hauteur 0 (EX-11.19, EX-11.24, EX-11.14), bornes et arrêt de
+la page de vérification (EX-18.7, EX-18.9) ; aucun format ni code de retour
+ne change ; détail en section 16. Version 0.8, 2026-11-12, révision 0.8,
+textuelle et minimale : publication
 du binaire préparée à l'étape 7 sans rien publier, image de construction et
 noms des fichiers publiés fixés, forme du commentaire de confiance, détail en
 section 16. Version 0.7, 2026-11-11, révision 0.7 : page de vérification, constats de
@@ -149,7 +159,7 @@ livrée est l'implémentation de référence.
 
 Les faits externes (normes d'horodatage, format OpenTimestamps, règles de
 Bitcoin, code de noorcore, chaîne d'outils Go) viennent de quatre notes de
-recherche du lot CT-6 (les « digests » R1 à R4), internes et non publiées,
+recherche de CT-6 (les « digests » R1 à R4), internes et non publiées,
 relues le 2026-10-22 sur les sources primaires qu'elles citent. Chaque fait
 porte un renvoi court : la note suivie du numéro du fait (« R1 F3.16 »,
 « R2-F37 », « R3 NV7 » pour un point non vérifié de la note) ou d'une de ses
@@ -162,10 +172,10 @@ figurent aussi dans le texte. Un fait tiré du code de noorcore, dépôt privé,
 n'est pas recoupable publiquement. Ce qui n'a pas pu être vérifié est écrit
 « non vérifié ».
 
-La révision 0.2 cite deux notes du lot CT-5 (prestataires RFC 3161 et
+La révision 0.2 cite deux notes de CT-5 (prestataires RFC 3161 et
 OpenTimestamps ; points de contrôle et cohérence), relues le 2026-10-25,
 écrites « CT-5 R1-Fn » et « CT-5 R2-Fn » pour les distinguer des notes R1 et
-R2 de ce lot ; l'annexe B.5 en donne les sources.
+R2 de CT-5 ; l'annexe B.5 en donne les sources.
 
 Lecture : un réviseur qui ne lit qu'une section lit la section 7 ; pour ce
 qu'un point de contrôle du journal ajoute au verdict, la section 7.9.
@@ -640,6 +650,10 @@ EX-8.9). Le vérificateur ne lit que les fichiers dont le nom est le `sha256`
 d'une référence d'un événement du dossier, et vérifie leur `sha256` et leur
 `length` (E-6). Une pièce référencée mais non fournie n'est pas une erreur :
 la référence reste une empreinte, et l'énoncé ne dit rien de son contenu.
+Révision 0.9 : une pièce n'est cherchée que pour une référence dont `sha256`
+suit le motif `^0x[0-9a-f]{64}$` ; pour toute autre valeur, aucun fichier
+n'est ouvert, et ni le verdict ni le code de retour n'en dépendent (la forme
+de la référence relève de E-1).
 
 **EX-4.7** Second manifeste. `--second-manifeste` désigne un manifeste v0 du
 même journal, qui précède ou suit celui du dossier. Le vérificateur le place
@@ -817,7 +831,10 @@ fichier d'en-têtes, second manifeste) est examiné dans cet ordre :
    rangée ici : c'est un substitut isolé de CT-1 §4, défaut de forme
    canonique (point 4).
 2. **Syntaxe.** Le texte est un document JSON de RFC 8259, sans octet après
-   la valeur hormis des blancs. Sinon le fichier n'est pas du JSON.
+   la valeur hormis des blancs. Sinon le fichier n'est pas du JSON. Révision
+   0.9 : un nombre de toute longueur qui suit la grammaire de RFC 8259 §6 est
+   du JSON lisible ; sa forme (entier, intervalle, canonicité, exposant)
+   relève de E-2 (CT-1 §4) ou de R-1, jamais de « pas du JSON » ni du code 2.
 3. **Profondeur** (comptage de CT-1 §4, règle 7, révision 0.5). Un scalaire
    est de profondeur 0 ; un objet ou un tableau est de profondeur 1 + la plus
    grande profondeur de ses valeurs (1 s'il est vide) : on compte les objets
@@ -1765,8 +1782,9 @@ recalculé, `key_id` et `key_source` (provenance de la clé du point, EX-6.16),
 non nul si K-8 `reussi` ; son champ `inclusion` vaut `prouvee` ou
 `declarative`), `rewrite_window_end` (l'`upper_bound` du jeton du point, ou
 `null` sans K-7 réussie ou sans `accuracy`) et `rewrite_window_ms`
-(`upper_bound` moins le `ts` de l'événement, en millisecondes, ou `null` ;
-négatif quand l'horloge de l'enregistreur avançait sur celle de l'autorité, ce
+(`upper_bound` moins le `ts` de l'événement, en millisecondes, calculée
+exactement sur des entiers de 64 bits, sans saturation (révision 0.9), ou
+`null` ; négatif quand l'horloge de l'enregistreur avançait sur celle de l'autorité, ce
 qu'AV-T-4 signale). Dans un rapport `invalide`, `facts.checkpoint` suit la
 même règle que les autres faits : aide au diagnostic, jamais une affirmation
 (7.4). Le schéma `rapport-verification-v0` définit `checkpoint` comme membre
@@ -1870,7 +1888,11 @@ avertissements qu'en version 0.1 ; le rapport JSON ne diffère que par
 treizième partie est déclarée absente, par la ligne correspondante
 d'`absent_parts`. Les cinquante dossiers de `spec/vecteurs/ct-6/dossiers`
 antérieurs à la révision 0.2 et les quarante de CT-1 gardent ainsi leur
-`attendu.json` ; la CI le vérifie (V-9, annexe A.7).
+`attendu.json` ; la CI le vérifie (V-9, annexe A.7). Révision 0.9 : R-11
+figure au rapport quand la partie `points-de-controle.json` est déclarée
+présente, ou quand `registre.json`, lu par la lecture stricte d'EX-4.16,
+porte une entrée `ancre_point_de_controle` ; un `registre.json` que R-1
+refuse ne fait pas figurer R-11.
 
 **EX-6.21 (compatibilité avec les dossiers de la révision 0.2 ; révision
 0.3)** Sur un dossier dont l'index a douze ou treize parties, ou quatorze
@@ -2885,13 +2907,25 @@ réviseur qui a besoin d'une date prouvée obtient un code non nul sans
 confondre « incomplet » et « faux », ce que `ots verify` confond (code 1 dans
 les deux cas, R4 F6.05). Une erreur interne rend le code 2, type
 `erreur_interne`, et non un verdict : dans les deux cas rien n'est affirmé, et
-le type d'erreur les distingue.
+le type d'erreur les distingue. Révision 0.9 : le vérificateur ne laisse pas
+l'exécutif l'arrêter (épuisement de mémoire) sur une entrée dans les limites
+d'EX-4.13 : une borne d'EX-15.1 dépassée pendant l'analyse rend un statut,
+jamais un arrêt sans rapport.
 
 **EX-8.5** Le vérificateur écrit le rapport, lisible ou JSON, sur la sortie
 standard, et rien d'autre ; il écrit les messages d'erreur et les
 avertissements sur la sortie d'erreur. Avec `--json`, la sortie standard est
 toujours un document JSON conforme au schéma `rapport-verification-v0`, y
-compris pour le code 2.
+compris pour le code 2. Révision 0.9 : toute chaîne issue d'une entrée (index,
+parties, certificats et CRL du jeton, pièces, fichier d'ancres, fichier
+d'en-têtes, chemins, message d'une erreur du système) recopiée dans le rapport
+lisible ou sur la sortie d'erreur est neutralisée : les caractères U+0000 à
+U+001F, U+007F à U+009F, U+2028, U+2029, U+202A à U+202E, U+2066 à U+2069,
+U+FEFF et tout substitut isolé y sont remplacés par leur échappement
+`\uXXXX` (hexadécimal minuscule), et toute suite d'octets qui n'est pas de
+l'UTF-8 valide par `\xXX` ; le rapport lisible ne porte de saut de ligne
+qu'à la fin des lignes d'EX-8.6. Le rapport JSON les porte échappées par
+construction (RFC 8259 §7), sans autre neutralisation.
 
 ### 8.4 Langue
 
@@ -2965,7 +2999,10 @@ CT-1 :
 12. `Énoncé` : l'énoncé dans la langue de sortie, sauf pour le code 2.
 
 Pour le code 2, le rapport lisible se réduit à la ligne `Erreur : {message}`
-sur la sortie d'erreur, comme dans CT-1.
+sur la sortie d'erreur, comme dans CT-1. Révision 0.9 : dans toutes ces
+lignes, une chaîne issue d'une entrée est neutralisée comme EX-8.5 le dit ;
+une ligne du rapport lisible ne porte jamais un saut de ligne venu d'une
+entrée.
 
 Dossier `valide-seq-7-complet` des vecteurs de CT-6 (annexe A, EX-A.11),
 vérifié avec `ancres-test.json` et `chaine.json` par l'implémentation de
@@ -3703,8 +3740,19 @@ inexploitable et T-1 échoue.
 définies sous forme minimale, numéros d'étiquette inférieurs à 31, `BOOLEAN`
 codé `00` ou `ff`, `eContent` en `OCTET STRING` primitive, profondeur
 d'imbrication au plus 32 (section 15), aucun octet après la fin d'une
-structure qui n'en admet pas. Toute autre forme rend le jeton inexploitable
-(T-1). Les règles de longueur et d'étiquette sont celles que `cryptobyte`
+structure qui n'en admet pas. Révision 0.9 (décision de la revue de sécurité
+de l'étape 8) : dans tout le jeton (`certificates`, `crls`, `unsignedAttrs`
+et paramètres d'algorithme compris) et dans le `TSTInfo` encapsulé, un type
+universel est de la forme que X.690 lui donne (`SEQUENCE` et `SET`
+construits, tout autre type universel primitif) ; un `BOOLEAN` tient sur un
+octet `00` ou `ff` ; un `NULL` est de longueur nulle ; un `INTEGER` n'est pas
+vide ; un `BIT STRING` porte au moins un octet, dont le premier, compte des
+bits inutilisés, vaut 0 à 7, et 0 s'il est seul ; l'étiquette universelle 0
+n'apparaît pas. Un jeton qui s'en écarte est inexploitable (T-1), que la
+signature couvre ou non l'octet fautif ; ce sont les règles que la
+bibliothèque de référence appliquait aux vecteurs figés, que le binaire et
+le composant d'ancrage appliquent désormais aussi. Toute autre forme rend le
+jeton inexploitable (T-1). Les règles de longueur et d'étiquette sont celles que `cryptobyte`
 applique (R4 F5.05), et il a lu sans erreur un jeton qualifié réel (R4 F5.06) ;
 la règle du `BOOLEAN` est celle du DER, qu'applique aussi `encoding/asn1`
 (R4 F5.04).
@@ -3750,8 +3798,11 @@ F2.12) : un lecteur strict rejetterait un jeton valide.
 signatures portent sur les octets tels que reçus (R1 F2.08, F2.09 ; RFC 5652
 §5.4, https://www.rfc-editor.org/rfc/rfc5652.txt). Les propriétés DER qui ne
 changent aucune valeur lue (ordre des `SET OF`, forme minimale des `INTEGER`)
-ne sont pas contrôlées en version 0 ; les valeurs `DEFAULT` encodées suivent
-EX-9.21.
+ne sont pas contrôlées en version 0, y compris dans les CRL du fichier
+d'ancres, lues par le même lecteur que celles du jeton : N-1 ne refuse pas un
+fichier d'ancres pour une CRL dont un numéro de série n'est pas en forme
+minimale, et T-10 la juge (révision 0.9) ; les valeurs `DEFAULT` encodées
+suivent EX-9.21.
 
 ### 9.4 Identifiants
 
@@ -3827,6 +3878,10 @@ ou une structure fausse en l'un de ces points rend le certificat illisible et
 met T-1 en échec, non T-5 (clé « illisible ») ni T-8 (extension « illisible »).
 OpenSSL 3.0.13 lit l'un et l'autre sans les refuser (vecteurs
 `t1-cle-longueur-non-minimale`, `t1-extension-mal-formee`, A.3, A.8).
+Révision 0.9 : dans un `TBSCertificate`, `issuerUniqueID`, `subjectUniqueID`
+et `extensions` figurent chacun au plus une fois et dans l'ordre de RFC 5280
+§4.1 ; tout autre élément rend le certificat illisible (T-1), du jeton comme
+du fichier d'ancres (N-1).
 
 **EX-9.8 (T-2, empreinte)** Dans `messageImprint`, `hashAlgorithm.algorithm`
 = SHA-256 (2.16.840.1.101.3.4.2.1), paramètres absents ou `NULL` (`05 00`)
@@ -3907,7 +3962,7 @@ jeton qualifié réel de Sectigo ne porte que `signingCertificate` en SHA-1
 | Élément | Admis | Refusé (`echoue`) | Hors version 0 (`non_execute`, `hors_perimetre_version`) |
 |---|---|---|---|
 | `SignerInfo.digestAlgorithm` | SHA-256, SHA-384, SHA-512, paramètres absents ou `NULL` | toute autre fonction, dont SHA-1 et MD5 | — |
-| `SignerInfo.signatureAlgorithm` | `rsaEncryption` (paramètres `NULL` ou absents) ; `sha256/384/512WithRSAEncryption` dont la fonction égale `digestAlgorithm` ; `id-RSASSA-PSS` dont `hashAlgorithm` égale `digestAlgorithm` (RFC 4056 §3) et dont `maskGenAlgorithm` est MGF1 avec la même fonction, `trailerField` = 1 (choix de cette spécification) ; `ecdsa-with-SHA256/384/512` dont la fonction égale `digestAlgorithm` | une signature RSA ou ECDSA sur SHA-1 ou MD5 ; des paramètres contraires à la colonne de gauche ; (révision 0.4) tout algorithme autre que ceux de la colonne de gauche quand la clé de `S` est admise, et tout algorithme de la colonne de gauche quand elle ne l'est pas (EX-9.24, cas 1) | DSA, EdDSA, SLH-DSA, XMSS, LMS, tout autre identifiant, seulement sous une clé de `S` elle-même hors de la version 0 et dans le cas 2 d'EX-9.24 (révision 0.4) |
+| `SignerInfo.signatureAlgorithm` | `rsaEncryption` (paramètres `NULL` ou absents) ; `sha256/384/512WithRSAEncryption` dont la fonction égale `digestAlgorithm` ; `id-RSASSA-PSS` dont `hashAlgorithm` égale `digestAlgorithm` (RFC 4056 §3) et dont `maskGenAlgorithm` est MGF1 avec la même fonction, `trailerField` = 1 (choix de cette spécification), et (révision 0.9) la longueur du sel de la signature égale `saltLength` déclarée (20 par défaut), 0 compris : un sel d'une autre longueur fait échouer T-6 ; `ecdsa-with-SHA256/384/512` dont la fonction égale `digestAlgorithm` | une signature RSA ou ECDSA sur SHA-1 ou MD5 ; des paramètres contraires à la colonne de gauche ; (révision 0.4) tout algorithme autre que ceux de la colonne de gauche quand la clé de `S` est admise, et tout algorithme de la colonne de gauche quand elle ne l'est pas (EX-9.24, cas 1) | DSA, EdDSA, SLH-DSA, XMSS, LMS, tout autre identifiant, seulement sous une clé de `S` elle-même hors de la version 0 et dans le cas 2 d'EX-9.24 (révision 0.4) |
 | Clé publique de `S` | RSA de module de 2048 à 8192 bits et d'exposant public impair de 3 à 2³¹ − 1 (révision 0.4, EX-9.23) ; ECDSA sur P-256, P-384 ou P-521 | RSA de moins de 2048 bits ; RSA de plus de 8192 bits ou d'exposant hors de 3 à 2³¹ − 1, ou pair (révision 0.4, EX-9.23) ; (révision 0.4) toute autre courbe ou type de clé hors du cas 2 d'EX-9.24 | toute autre courbe ou type de clé, dans le cas 2 d'EX-9.24 seulement (révision 0.4) |
 
 `rsaEncryption` est admis parce que les implémentations CMS DOIVENT
@@ -4068,6 +4123,12 @@ une autorité `A` de l'ancre telles que :
    `keyUsage` et `extKeyUsage` ;
 7. `accepted_policies` de `A` est nul ou contient la `policy` du jeton.
 
+Borne (révision 0.9) : la recherche du chemin ne vérifie chaque couple
+(certificat émis, certificat émetteur) qu'une fois, soit au plus 16 × 17
+vérifications de signature par autorité du fichier d'ancres (EX-15.1) ; la
+même borne vaut pour le composant d'ancrage à l'acquisition d'un jeton
+(spécification de l'ancrage, EX-5.10, étape 6).
+
 Chemin retenu. Plusieurs autorités, et pour une autorité plusieurs chemins,
 peuvent satisfaire ces règles (racine et intermédiaire, AC et unité épinglée).
 Le vérificateur retient, de façon déterministe : la première autorité, dans
@@ -4153,7 +4214,12 @@ cherche une **preuve de non-révocation** :
 1. une liste de révocation (CRL, RFC 5280 §5) prise dans `revocation.crls` de
    l'ancre ou dans le champ `crls` du jeton (R1 F2.04), qui est complète
    (sans extension `deltaCRLIndicator` ni `issuingDistributionPoint`
-   critique), dont l'émetteur égale octet pour octet l'émetteur de `cᵢ`, dont
+   critique, et, révision 0.9, sans extension critique, de la liste ou d'une
+   de ses entrées, que la version 0 ne lit pas : sur la liste, toute extension
+   critique autre que `authorityKeyIdentifier`, `cRLNumber`,
+   `issuingDistributionPoint` et `deltaCRLIndicator` ; sur une entrée, toute
+   extension critique autre que `cRLReasons` ; RFC 5280 §5.2, §5.3), dont
+   l'émetteur égale octet pour octet l'émetteur de `cᵢ`, dont
    la signature se vérifie sous la clé du certificat qui suit `cᵢ` dans le
    chemin (ou de `A`) avec un algorithme admis par T-5, et dont `thisUpdate`
    est postérieur ou égal à `genTime` ;
@@ -4178,7 +4244,7 @@ RFC 3161 ne cite pas, sont traitées comme l'absence de raison.
 Certificat de l'autorité `A`. Il n'a pas à être prouvé non révoqué : le
 réviseur le choisit (H3). Mais si une CRL de `revocation.crls` du fichier
 d'ancres, complète (sans `deltaCRLIndicator` ni `issuingDistributionPoint`
-critique), a pour émetteur l'émetteur du certificat de `A` et liste son
+critique, ni extension critique non lue, règle 1), a pour émetteur l'émetteur du certificat de `A` et liste son
 numéro de série, cette révocation est jugée comme celle d'un `cᵢ` (raison
 tolérée et date strictement postérieure à `genTime`, sinon T-10 échoue). La
 signature de cette CRL n'est pas exigée : le réviseur l'a placée dans son
@@ -4971,7 +5037,7 @@ EX-11.14).
 
 | Élément | Accepté | Refusé |
 |---|---|---|
-| noms de membres de l'enveloppe et du corps | comparés sans la casse, au sens de Go (`Domain`, `BODY`, `ſ` pour `s`, signe kelvin pour `k`) ; en double, la dernière occurrence retenue ; membres inconnus ignorés ; espaces et ordre quelconques | nom différent (`domaine`) |
+| noms de membres de l'enveloppe et du corps | comparés sans la casse, au sens de Go (`Domain`, `BODY`, `ſ` pour `s`, signe kelvin pour `k`) ; en double, la dernière occurrence retenue ; membres inconnus ignorés ; espaces et ordre quelconques ; révision 0.9 : la valeur d'un membre inconnu est toute valeur JSON valide, y compris un littéral numérique de toute longueur, lu sur toute sa longueur, qu'une implémentation ne borne pas autrement que par la longueur de la ligne (§15.1) ; membre inconnu, espace ou ordre différent de l'encodeur du nœud laissent la ligne acceptée et lèvent AV-R-2 | nom différent (`domaine`) |
 | champs d'octets (`valsetHash`, `blockHash`, `bodyHash`, `sig`) | base64 standard à bits de bourrage non nuls, `\n` ou `\r` dans la chaîne | alphabet URL, bourrage absent ou mal placé |
 | entiers (`height`, `round`, `Height`, `Round`) | tout littéral entier JSON de 0 à 2⁶⁴ − 1 ; absent ou `null`, lu 0 comme le décodeur | `8328.0`, `"8328"`, négatif ; valeur lue (0 pour absent ou `null`) différente de celle du certificat |
 | `blockHash` d'un corps | `0x` ou `0X`, chiffres hexadécimaux en majuscules | sans préfixe, `null`, absent |
@@ -5088,7 +5154,12 @@ que le vérificateur ne prouve pas ») : seule cette comparaison écarte un
 certificat d'une autre chaîne.
 
 **EX-11.14 (R-5, signatures et quorum)** Exécutée si R-2 a réussi pour ce
-certificat. La ligne de proposition est une enveloppe `CONS_PROPOSAL` valide
+certificat. Révision 0.9 : un certificat de hauteur `0x0` n'existe pas (la
+genèse n'est jamais décidée par le BFT) : un `certificat-commit.json` qui en
+porte un fait échouer R-1, avant toute R-5, qui n'a donc pas à le refuser ;
+l'outil qui juge un certificat seul, sans R-1
+(`scripts/verify/certificat-commit.mjs`), le refuse par sa structure.
+La ligne de proposition est une enveloppe `CONS_PROPOSAL` valide
 et chaque ligne de precommit une enveloppe `CONS_PRECOMMIT` valide :
 domaine `noor/v1/bft`, `chainId`, `valsetHash`, hauteur, tour et
 `blockHash` égaux à ceux du certificat, `bodyHash` égal au sha256 des octets
@@ -5173,7 +5244,10 @@ l'ancienne révoquée, et le dossier peut joindre l'ancienne inscription.
 Aucune inscription de la clé du manifeste sous l'émetteur de l'ancre, alors
 qu'il en existe sous d'autres clés de chaîne : R-10 échoue. Aucune entrée
 `inscription` : `non_execute` (`partie_absente`), sans effet sur le statut du
-contrôle. Aucune inscription de la clé du manifeste : AV-R-1.
+contrôle, quel que soit l'état de P-1 et de `cles.json` (révision 0.9 :
+l'absence d'entrée est jugée avant les prérequis). Aucune inscription de la
+clé du manifeste : AV-R-1, quand P-1 a réussi (révision 0.9 : sans P-1
+réussie, la clé du manifeste n'est pas établie et AV-R-1 n'est pas levé).
 
 **EX-11.23 (rôle `ancre_point_de_controle` ; révision 0.2)** `registre.json`
 admet au plus une entrée de rôle `ancre_point_de_controle`, de la même forme
@@ -5217,10 +5291,15 @@ règles :
    `checkpoint.key_id` du point, l'émetteur de l'ancre (`topics[2]`, 20
    derniers octets) est la clé de chaîne de l'une de ces inscriptions, sinon
    R-11 échoue (même règle que R-10 pour la clé du manifeste, EX-11.19) ;
-   aucune inscription de cette clé dans le dossier : AV-K-3, sans échec.
+   aucune inscription de cette clé dans le dossier : AV-K-3, sans échec ;
+   révision 0.9 : si R-10 n'a pas réussi pour une autre raison que l'absence
+   d'entrée `inscription` (`echoue`, ou `non_execute` sous
+   `prerequis_en_echec`), la règle 3 n'est pas appliquée et R-11 est
+   `non_execute`, `prerequis_en_echec` (EX-5.5), sans AV-K-3.
 
 Statut : `echoue` si une règle appliquée ne tient pas ; `reussi` si les trois
-tiennent ; `non_execute` sinon, avec la raison dite. Aucune entrée
+tiennent ; `non_execute` sinon, avec la raison dite (`prerequis_en_echec`
+quand R-10 n'a pas réussi, règle 3). Aucune entrée
 `ancre_point_de_controle` : `non_execute` (`partie_absente`), sans effet sur
 le statut du contrôle 8 (EX-11.20), comme R-10 sans inscription. R-11 réussie
 donne à `inclusion` de `facts.checkpoint.registry` la valeur `prouvee`
@@ -5613,11 +5692,20 @@ première partie de E-8 (CT-1 §11.4) : conformité à son schéma, `org_id` et
 du dossier, le manifeste ou, révision 0.2, le point de contrôle du journal de la
 partie `points-de-controle.json` quand K-1 a réussi (EX-12.6), et dont le
 triplet (`org_id`, `journal_id`, `key_id`) figure dans `recorders` : la
-`public_key` de l'ancre égale celle de `cles.json`. Statut : `echoue` si une clé
-diffère ; sinon `reussi` si au moins une clé a été comparée ; sinon
-`non_execute` (`ancre_absente`). N-3 en échec fait échouer le contrôle 6 ; N-3
-non exécutée ne change pas son statut. Une clé confirmée par N-3 a la provenance
-`ancres` de l'énoncé (EX-6.8).
+`public_key` de l'ancre égale celle de `cles.json`. Statut (révision 0.9,
+décision de la revue de sécurité de l'étape 8) : `echoue` si une clé comparée
+diffère ; sinon `reussi` si chaque clé employée par le verdict — la clé de
+l'événement prouvé, celle du manifeste et, quand K-1 a réussi, celle du point
+de contrôle — a été comparée et est égale ; sinon `non_execute`
+(`ancre_absente`), le détail nommant les clés employées sans ancre dans
+`recorders`. N-3 en échec fait échouer le contrôle 6 ; N-3 non exécutée faute
+d'une clé employée dans `recorders` rend le contrôle 6 `non_execute`
+(`ancre_absente`) : la version 0.8 le laissait `reussi` dès qu'une seule clé
+signataire était comparée, de sorte qu'un dossier entier forgé sous un `key_id`
+absent de `recorders` passait avec `--exiger 6` ; N-3 non exécutée sous
+`prerequis_en_echec` ne change pas son statut, E-8 portant l'échec.
+`anchors_used` du contrôle 6 ne liste que des ancres de clés employées. Une
+clé confirmée par N-3 a la provenance `ancres` de l'énoncé (EX-6.8).
 
 **EX-12.5 (N-4, clé de chaîne ; complète le contrôle 8)** N-4 ne s'exécute et
 ne figure au rapport que si P-1 a réussi (la clé du manifeste est alors
@@ -6060,15 +6148,18 @@ N-2).
 
 | Structure | Borne |
 |---|---|
-| jeton RFC 3161 | profondeur DER 32 ; 16 certificats dans le jeton ; chemin de 5 certificats au plus, ancre non comprise ; (révision 0.4) clé RSA de 2048 à 8192 bits, exposant impair de 3 à 2³¹ − 1, contrôlés avant toute vérification de signature (EX-9.23) |
+| jeton RFC 3161 | profondeur DER 32 ; 16 certificats dans le jeton ; chemin de 5 certificats au plus, ancre non comprise ; (révision 0.4) clé RSA de 2048 à 8192 bits, exposant impair de 3 à 2³¹ − 1, contrôlés avant toute vérification de signature (EX-9.23) ; (révision 0.9) au plus 16 × 17 vérifications de signature par autorité du fichier d'ancres, chaque couple (certificat émis, émetteur) n'étant vérifié qu'une fois (EX-9.13) |
 | preuve `.ots` | 255 opérations par chemin ; argument de 1 à 4096 octets ; message et résultat de 1 à 4096 octets ; charge d'attestation 8192 octets ; URI de 0 à 1000 octets ; `varuint` 9 octets |
 | `registre.json` | 17 entrées (révision 0.2 : au plus une entrée `ancre_point_de_controle`) ; 256 reçus par bloc ; 256 journaux par reçu ; 4 sujets par journal |
 | `points-de-controle.json` (révision 0.2) | 1 Mio (EX-4.14) ; base64 de 131 072 caractères au plus par ancre (schéma de CT-1) ; jeton décodé de 64 Kio au plus, preuve décodée de 256 Kio au plus ; `path` de la preuve de cohérence de 64 nœuds au plus (schéma) |
-| `certificat-commit.json` | 16 certificats ; 128 lignes de precommit ; ligne de 4 Mio |
+| `certificat-commit.json` | 16 certificats ; 128 lignes de precommit ; ligne de 4 194 304 octets UTF-8 au plus (le schéma `registre-v0` borne de plus `line` à 4 194 304 caractères) ; au-delà, R-1 échoue (révision 0.9) |
 | `validateurs.json`, ancre `registry` | 16 jeux de 128 validateurs |
 | fichier d'ancres | 32 autorités, 8 intermédiaires chacune ; 64 CRL ; 256 déclarations ; 256 clés d'enregistreur |
 | fichier d'en-têtes | 200 000 en-têtes |
 | tout JSON | profondeur d'imbrication 128 (EX-4.13) |
+| toute entrée JSON (révision 0.9 : parties de CT-1, `dossier.json`, `registre.json`, `certificat-commit.json`, `validateurs.json`, fichier d'ancres, fichier d'en-têtes, second manifeste, document de politique d'AT-6) | nombre de valeurs JSON (scalaires, objets et tableaux, racine comprise) au plus égal à la limite de taille de l'entrée (EX-4.13) divisée par 16, et au moins 4 096 ; au-delà, l'entrée est traitée comme un document qui n'est pas du JSON (EX-4.16) : partie inexploitable (E-8, R-1, ou la vérification qui la porte), ou entrée inutilisable (N-1, N-2, code 2) |
+| `approbations.json` (révision 0.9) | 1 024 événements dans `events` (`maxItems` du schéma de CT-1) : au-delà, A-1 échoue par le schéma et A-2 échoue en comptant et en nommant les éléments en trop, qui ne sont ni contrôlés un à un (E-1 à E-11, A-2, E-6, N-3) ni rapportés un à un (CT-1 §11.4, A-2) |
+| rapport (révision 0.9) | 64 éléments par liste de détails d'une vérification ou d'un contrôle de CT-1, puis le nombre des éléments omis ; détail, résumé et avertissement de 4 096 caractères au plus, troncature écrite ; une validation de schéma rapporte au plus 64 écarts par conteneur et 1 024 en tout, puis le nombre des écarts omis |
 
 Les bornes de la preuve `.ots` sont celles de la bibliothèque de référence
 d'OpenTimestamps (R2-F13, R2-F18, R2-F19, R2-F20), sauf la borne de 9 octets et
@@ -6077,6 +6168,14 @@ n'en a pas, R2-F07). Les autres sont des choix de cette spécification,
 au-dessus de ce que les parties produites par CT-4 et CT-5 atteignent (un
 certificat mesuré fait de 7 075 à 7 782 octets, R3 F47) ; elles sont aussi
 celles des schémas de la section 12 et de `registre-v0.schema.json`.
+Révision 0.9 : les bornes du rapport (64 détails, 4 096 caractères, écarts de
+schéma) ne changent aucun statut ni aucun verdict ; la borne du nombre de
+valeurs vaut pour toute entrée JSON, entrées à part comprises
+(`--entetes-bitcoin`, `--second-manifeste`, `--ancres`) et pour le document de
+politique décodé d'AT-6 ; elle est appliquée pendant l'analyse, avant toute
+matérialisation, de sorte qu'une entrée dans sa limite de taille ne puisse pas
+épuiser la mémoire du vérificateur (EX-8.4, EX-15.2). La bibliothèque noyau de
+CT-1, le vérificateur de référence et le binaire appliquent les mêmes bornes.
 
 ### 15.2 Aucune panique, aucune boucle non bornée
 
@@ -6088,7 +6187,9 @@ cette règle prévaut sur toute autre consigne (une panique n'est jamais
 l'échec d'une vérification ni d'un contrôle) ; le vérificateur rend le code 2,
 type `erreur_interne` (EX-8.4), sans verdict, et, avec `--json`, le rapport
 d'erreur conforme au schéma (EX-8.5), quel que soit le contrôle où la panique
-est survenue.
+est survenue. Révision 0.9 : un épuisement de mémoire n'est pas une panique
+rattrapable ; c'est pourquoi les bornes d'EX-15.1 sont appliquées pendant
+l'analyse, avant toute matérialisation (EX-8.4).
 
 ### 15.3 Fuzzing
 
@@ -6145,7 +6246,7 @@ là où l'EVM et noorcore l'imposent (`BFTBlockHash`, trie des reçus, journaux,
 
 La décision qui touche l'architecture : **les trois ancres portent sur
 `periodHash`**, et non sur SHA-256 de la racine (9.1). Les autres points
-viennent des recherches du lot.
+viennent des recherches de CT-6.
 
 | Emplacement | Avant | Attendu | État |
 |---|---|---|---|
@@ -6187,7 +6288,7 @@ EX-6.3, EX-6.4, EX-6.8, EX-6.13, EX-9.18, EX-10.12, EX-11.20, EX-11.21,
 EX-12.4 ; tables 2, 3.3, 4.2, 4.5, 5.1, 5.3, 6.2, 6.9, 8.6, 11.2.1, 11.4,
 11.6, 12.5, 15.1, 15.5 ; terme « point de contrôle Bitcoin » (section 2).
 
-Alignement de la révision 0.2 avec le dépôt (« fait » : dans ce lot de
+Alignement de la révision 0.2 avec le dépôt (« fait » : dans cette version de
 spécification ; « à faire » : attendu des références JavaScript, des vecteurs,
 des vérificateurs Go ou d'une autre spécification, nommés) :
 
@@ -6196,22 +6297,22 @@ des vérificateurs Go ou d'une autre spécification, nommés) :
 | `spec/schemas/rapport-verification-v0.schema.json` | identifiants D- à N- ; `facts` à cinq membres ; AV-T/O/R/N ; rôles `cloture`, `ancre`, `inscription` | identifiants K- et R-11 ; `facts.checkpoint` facultatif (`$defs/faits_point_de_controle`, `faits_ancre_registre_point`) ; `$defs/faits_horodatage` et `faits_bitcoin` partagés avec `facts.timestamp` et `facts.bitcoin` ; AV-K- ; rôle `ancre_point_de_controle` ; un rapport 0.1 reste valide | fait |
 | `spec/schemas/registre-v0.schema.json` | trois rôles, 16 entrées | rôle `ancre_point_de_controle` (au plus une entrée), 17 entrées ; tout `registre.json` 0.1 reste valide | fait |
 | `spec/schemas/ancres-confiance-v0.schema.json`, `entetes-bitcoin-v0`, `validateurs-v0` | — | inchangés (EX-12.6) | fait |
-| `scripts/lib/verificateur.mjs` | index à douze parties ; contrôles sans K- ; huit schémas | index à douze ou treize parties ; K-1 à K-9 (K-1 à K-6 par `journal.mjs`, K-7 par `horodatage.mjs` sur `checkpoint_hash`, K-9 par `ots.mjs`, K-8 par 11.9) ; FK ; `facts.checkpoint` ; ligne `Pt de contrôle` ; neuf schémas ; `points-de-controle.json` dans les fichiers lus, limite 1 Mio | fait (lot CT-5 ; AV-K-4 ajouté par la revue, 9.9) |
-| `scripts/lib/registre.mjs` | rôles `cloture`, `ancre`, `inscription` ; R-1 à R-10 | rôle `ancre_point_de_controle` (`ecartsRoles`, `decoderJournal`), R-11, `DOC_TYPE_POINT_DE_CONTROLE`, AV-K-1, AV-K-3, `facts.checkpoint.registry` | fait (lot CT-5) |
-| `scripts/lib/horodatage.mjs`, `scripts/lib/ots.mjs` | propositions d'énoncé « le manifeste d'empreinte … » | inchangés pour T- et O- ; `verifierJeton` et `verifierPreuve` appelés avec `checkpoint_hash` pour K-7 et K-9 ; les clauses de FK sont construites par `verificateur.mjs` (EX-6.16) | fait (lot CT-5) |
-| `scripts/verify/dossier.mjs` | huit schémas | neuf schémas (`point-de-controle-v0.schema.json` chargé et placé dans le registre) ; même interface, aucune option nouvelle | fait (lot CT-5) |
+| `scripts/lib/verificateur.mjs` | index à douze parties ; contrôles sans K- ; huit schémas | index à douze ou treize parties ; K-1 à K-9 (K-1 à K-6 par `journal.mjs`, K-7 par `horodatage.mjs` sur `checkpoint_hash`, K-9 par `ots.mjs`, K-8 par 11.9) ; FK ; `facts.checkpoint` ; ligne `Pt de contrôle` ; neuf schémas ; `points-de-controle.json` dans les fichiers lus, limite 1 Mio | fait (avec CT-5 ; AV-K-4 ajouté par la revue, 9.9) |
+| `scripts/lib/registre.mjs` | rôles `cloture`, `ancre`, `inscription` ; R-1 à R-10 | rôle `ancre_point_de_controle` (`ecartsRoles`, `decoderJournal`), R-11, `DOC_TYPE_POINT_DE_CONTROLE`, AV-K-1, AV-K-3, `facts.checkpoint.registry` | fait (avec CT-5) |
+| `scripts/lib/horodatage.mjs`, `scripts/lib/ots.mjs` | propositions d'énoncé « le manifeste d'empreinte … » | inchangés pour T- et O- ; `verifierJeton` et `verifierPreuve` appelés avec `checkpoint_hash` pour K-7 et K-9 ; les clauses de FK sont construites par `verificateur.mjs` (EX-6.16) | fait (avec CT-5) |
+| `scripts/verify/dossier.mjs` | huit schémas | neuf schémas (`point-de-controle-v0.schema.json` chargé et placé dans le registre) ; même interface, aucune option nouvelle | fait (avec CT-5) |
 | `scripts/vecteurs/generer-ct6.mjs`, `scripts/vecteurs/ct6/*`, `spec/vecteurs/ct-6/` | 50 dossiers ; jetons et preuves des périodes ; capture de sept blocs | nouveaux dossiers (EX-A.16), jeton et preuve du point couvrant (EX-A.13, EX-A.14), `chaine-points.json`, capture de l'ancre du point (EX-A.15), `INDEX.md` ; les 50 dossiers et leurs `attendu.json` inchangés octet pour octet ; deux générations identiques | fait (68 dossiers : 50 inchangés et 18 avec la partie, dont `valide-point-de-controle-point-contresigne`, `valide-point-de-controle-point-de-cloture` et `invalide-k1-double-defaut`, EX-A.16) |
-| `test/verificateur.test.js`, `test/confrontation.test.js`, `.github/workflows/ci.yml` | exemples 8.5 et 8.6 (huit schémas), 50 dossiers | V-9 ; exemple 8.6 à neuf schémas et `facts.checkpoint` ; nouveaux dossiers ; `openssl ts -verify -digest <checkpoint_hash> -token_in` et `python-opentimestamps` sur les nouveaux vecteurs (EX-A.17) | fait (lot CT-5) |
+| `test/verificateur.test.js`, `test/confrontation.test.js`, `.github/workflows/ci.yml` | exemples 8.5 et 8.6 (huit schémas), 50 dossiers | V-9 ; exemple 8.6 à neuf schémas et `facts.checkpoint` ; nouveaux dossiers ; `openssl ts -verify -digest <checkpoint_hash> -token_in` et `python-opentimestamps` sur les nouveaux vecteurs (EX-A.17) | fait (avec CT-5) |
 | Vérificateurs Go indépendants (`spec/vecteurs/ct-1/verificateur-independant`, nouveau `spec/vecteurs/ct-5/verificateur-independant`) | douze parties, inclusion seule | treize parties, point, cohérence, K-1 à K-6 (CT-1 §17) ; K-7 à K-9 et R-11 hors du périmètre de ces modules, comme les contrôles 4, 5 et 8 | fait (CT-1 §17, CT-5 annexe A.5) |
 | CT-1 §11.4, K-3 | « clé absente : non exécuté, l'échec étant porté par E-8 » | la clé du point n'est pas exigée dans `cles.json` par CT-1 §11.2 : K-3 échoue quand elle en est absente (5.4) ; CT-1 à aligner d'un mot | fait (CT-1 §11.4, texte, 2026-10-25) |
 | CT-1 §11.4, K-8 | « `chain_id` et `contract` égaux à ceux du fichier d'ancres » | seul `contract` est comparé ; `chain_id` (identifiant EVM) n'a pas d'ancre et reste déclaratif (EX-11.25, section 17) ; CT-1 à aligner d'un mot | fait (CT-1 §11.4, texte, 2026-10-25) |
 | CT-5 §9.2 (EX-9.2), §14 | « R-9 étendu au `docType` du point » | vérification R-11 à part, R-9 inchangée (11.9) ; même effet sur les dossiers | fait (CT-5 version 0.1, EX-9.2, EX-10.4 et §14) |
 | CT-4 §6.4 | une ligne (`noortrace/periode/v0`) | ligne `noortrace/point-de-controle/v0` = `0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178` (CT-1 §11.2, CT-5 §9.5) | fait (CT-4 révision 0.3, texte) |
 | `spec/README.md` | CT-6 version 0.1 | CT-6 version 0.2 ; `-r spec/schemas/point-de-controle-v0.schema.json` dans toute commande `ajv` qui charge `dossier-v0.schema.json` (CT-1 §17) ; vecteurs nouveaux | fait |
-| `README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md` | vérificateur à huit contrôles sur `periodHash` ; fenêtre « une heure » | le vérificateur vérifie aussi le point de contrôle du journal et énonce la fenêtre bornée au point (7.9) ; révision 0.2 au journal des changements | à faire (documents racine, hors de ce lot) |
+| `README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md` | vérificateur à huit contrôles sur `periodHash` ; fenêtre « une heure » | le vérificateur vérifie aussi le point de contrôle du journal et énonce la fenêtre bornée au point (7.9) ; révision 0.2 au journal des changements | à faire (documents racine, hors de cette version) |
 
 La révision 0.3 ne touche aucune décision de l'architecture. Alignement de
-la révision 0.3 avec le dépôt (« fait » : dans ce lot de spécification ;
+la révision 0.3 avec le dépôt (« fait » : dans cette version de la spécification ;
 « à faire » : attendu des références JavaScript, des vecteurs, des
 vérificateurs Go ou d'une autre spécification, nommés) :
 
@@ -6219,9 +6320,9 @@ vérificateurs Go ou d'une autre spécification, nommés) :
 |---|---|---|---|
 | `spec/schemas/rapport-verification-v0.schema.json` | identifiants D- à N- et K- ; AV-T/O/R/N/K ; `facts` sans `perimeter` | identifiants AT- (`id_verification`), AV-AT- (`avertissement`), `$defs/faits_perimetre`, `facts.perimeter` facultatif ; tout rapport des révisions 0.1 et 0.2 reste valide | fait |
 | `spec/schemas/attestation-perimetre-v0.schema.json` | — | schéma nouveau (CT-7), embarqué par le vérificateur | fait |
-| `scripts/lib/verificateur.mjs`, `scripts/verify/dossier.mjs` | treize parties, neuf schémas | quatorze parties ; AT-1 à AT-7 par `scripts/lib/securite.mjs`, exclues des statuts, de `failed_checks`, de `blocking_unexecuted` et de la borne ; FP, `facts.perimeter`, AV-AT-, ligne `Périmètre` ; dix schémas | fait (lot de code de l'attestation) |
-| `scripts/vecteurs/generer-ct6.mjs`, `spec/vecteurs/ct-6/` | 68 dossiers | dossiers nouveaux de CT-7 annexe A.7 (famille `ct-6`) ; les 68 inchangés | fait (lot de code de l'attestation ; 73 dossiers) |
-| `test/verificateur.test.js` | V-1 à V-9 | V-10 ; exemple annoté `faits_perimetre` validé ; exemple de 8.6 régénéré avec dix schémas et `facts.perimeter` | fait (lot de code de l'attestation) |
+| `scripts/lib/verificateur.mjs`, `scripts/verify/dossier.mjs` | treize parties, neuf schémas | quatorze parties ; AT-1 à AT-7 par `scripts/lib/securite.mjs`, exclues des statuts, de `failed_checks`, de `blocking_unexecuted` et de la borne ; FP, `facts.perimeter`, AV-AT-, ligne `Périmètre` ; dix schémas | fait (code de l'attestation) |
+| `scripts/vecteurs/generer-ct6.mjs`, `spec/vecteurs/ct-6/` | 68 dossiers | dossiers nouveaux de CT-7 annexe A.7 (famille `ct-6`) ; les 68 inchangés | fait (code de l'attestation ; 73 dossiers) |
+| `test/verificateur.test.js` | V-1 à V-9 | V-10 ; exemple annoté `faits_perimetre` validé ; exemple de 8.6 régénéré avec dix schémas et `facts.perimeter` | fait (code de l'attestation) |
 | `spec/README.md` | CT-6 version 0.2 | CT-6 version 0.3 ; table des schémas : `attestation-perimetre-v0` | fait |
 | `README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md` | vérificateur sans attestation de périmètre | attestation jointe vérifiée, rapportée « déclarée, non prouvée », sans effet sur le verdict (fragment FP, `facts.perimeter`) | à faire (alignement des documents racine) |
 
@@ -6299,7 +6400,7 @@ EX-14.1 et EX-14.3 décrivent ce que fait le module `verificateur/` (`go.mod` :
 lignes ; `vendor/modules.txt` : `cryptobyte`, `cryptobyte/asn1`,
 `secp256k1`, `secp256k1/ecdsa`).
 
-Alignement de la révision 0.4 avec le dépôt (« fait » : dans ce lot ou,
+Alignement de la révision 0.4 avec le dépôt (« fait » : dans cette révision ou,
 le 3 novembre 2026, par l'alignement des implémentations, des vecteurs et
 des autres spécifications, en salle blanche à partir de ce texte ; « à
 faire » : encore attendu) :
@@ -6399,6 +6500,67 @@ vecteur ne change. Sections touchées : en-tête, 14.3 (EX-14.7), 14.4
 | `scripts/publication/` | — | `preparer-version.mjs`, gabarit de la note de version, procédure (essai à blanc, puis pas de publication après décision) | fait (étape 7) |
 | Signature minisign de `SHA256SUMS`, publication | — | après décision du porteur sur la clé | à faire |
 | `spec/README.md` | CT-6 version 0.7 | CT-6 version 0.8 | fait (étape 7) |
+
+Révision 0.9 (2026-11-14). La revue de sécurité interne de l'étape 8 a relu
+le binaire, le vérificateur de référence et la page de vérification, et les
+corrections qui l'ont suivie ont demandé que le texte porte les règles
+qu'ils appliquent, ou tranche ce qu'il laissait ouvert ; les décisions du
+porteur du 14 novembre 2026 qui s'y rattachent sont appliquées. Aucun format,
+aucun code de retour, aucun des huit contrôles n'est retiré ; les
+changements de statut sont dits en place. Sections touchées : en-tête, 4.2
+(EX-4.6, EX-4.16), 6.5 (EX-6.17, EX-6.18), 8.3 (EX-8.4, EX-8.5), 8.5
+(EX-8.6), 9.3 (EX-9.4, EX-9.6, EX-9.7), 9.5 (EX-9.11, EX-9.13, EX-9.16), 11
+(EX-11.6, EX-11.14, EX-11.19, EX-11.24), 12.4 (EX-12.4), 15.1 (EX-15.1),
+15.2 (EX-15.2), 16, 18 (EX-18.7, EX-18.9, EX-18.11, EX-18.13) :
+
+- **Bornes** (EX-15.1, EX-8.4, EX-15.2) : nombre de valeurs de toute entrée
+  JSON, 1 024 événements d'`approbations.json` jugés un à un (CT-1 révision
+  0.6, A-2), détails et écarts du rapport bornés sans effet sur le verdict,
+  16 × 17 vérifications de signature par autorité (EX-9.13), ligne de
+  `certificat-commit.json` en octets ; une borne dépassée rend un statut,
+  jamais un arrêt.
+- **Rapport lisible** (EX-8.5, EX-8.6, EX-18.9) : chaînes d'entrée
+  neutralisées (`\uXXXX`, `\xXX`), aucun saut de ligne venu d'une entrée.
+- **Contrôle 4** : profil DER de la bibliothèque de référence écrit dans
+  EX-9.4 et appliqué à tout le jeton (décision de la revue : les vecteurs
+  figés sont jugés par la référence ; six formes que le binaire admettait
+  deviennent T-1 en échec) ; ordre et unicité des champs de fin du
+  `TBSCertificate` (EX-9.7) ; CRL à extension critique non lue écartée avec
+  AV-T-3 (EX-9.16) ; numéro de série non minimal d'une CRL du fichier
+  d'ancres non refusé par N-1 (EX-9.6) ; longueur du sel RSASSA-PSS
+  (EX-9.11).
+- **Contrôle 6** : N-3 compare chaque clé employée par le verdict ; un
+  dossier signé sous un `key_id` absent des enregistreurs du fichier d'ancres
+  ne rend plus le contrôle 6 `reussi` (EX-12.4).
+- **Contrôle 8** : lecture des littéraux (EX-11.6), hauteur 0 refusée par R-1
+  (EX-11.14), R-10 sans entrée `inscription` jugée avant les prérequis
+  (EX-11.19), R-11 `prerequis_en_echec` quand R-10 n'a pas réussi (EX-11.24),
+  présence de R-11 d'après la lecture stricte (EX-6.18).
+- **Pièces et lecture** : pièce cherchée pour un `sha256` au motif seulement
+  (EX-4.6) ; nombre de toute longueur lisible (EX-4.16) ; `rewrite_window_ms`
+  exacte (EX-6.17).
+- **Page de vérification** : chemin de 64 composants et 4 096 octets, fichier
+  de 512 Mio, parcours d'un répertoire arrêté à la première entrée en trop
+  (EX-18.7) ; arrêt par l'utilisateur, version du rapport comparée, chaînes
+  rendues visibles (EX-18.9, EX-18.11) ; cas d'épreuve (EX-18.13).
+- **Demandées après la première rédaction de cette révision**
+  (application des corrections préparées, régénération consolidée des
+  vecteurs) : annexe A.11, `valide-provenance-mixte` (N-3 et contrôle 6
+  non exécutés sous EX-12.4, provenance `mixte` dossier et registre) ;
+  EX-11.19 (AV-R-1 seulement quand P-1 a réussi) ; EX-11.14 (l'outil du
+  certificat seul garde le refus structurel de la hauteur 0) ; annexe A.8
+  (le refus d'OpenSSL sur le témoin `integer-non-minimal` est une limite de
+  l'outil).
+
+| Emplacement | Avant | Attendu par la révision 0.9 | État |
+|---|---|---|---|
+| `verificateur/` (binaire Go) | bornes de taille et de profondeur seules ; chaînes recopiées ; profil DER partiel ; N-3 `reussi` sur une clé ; `rewrite_window_ms` saturée | EX-15.1, EX-8.5, EX-9.4, EX-9.7, EX-9.11, EX-9.13, EX-9.16, EX-12.4, EX-11.14, EX-11.19, EX-6.17 | fait (correction de la revue de sécurité de l'étape 8 ; profil DER, EX-9.16, EX-12.4, EX-11.14, EX-11.19 appliqués avec leurs vecteurs) |
+| `scripts/lib/verificateur.mjs`, `horodatage.mjs`, `registre.mjs`, `certificat-commit.mjs`, `journal.mjs` (référence) | bornes partielles ; R-11 règle 3 appliquée sous R-10 non réussie ; hauteur 0 refusée en R-5 | mêmes règles que le binaire ; EX-11.24, EX-11.14, EX-12.4, EX-9.16 | fait (EX-11.24, EX-11.14, EX-12.4, EX-9.16 appliqués à l'étape 8 avec leurs vecteurs ; AV-K-1 sur une R-11 non exécutée sous `prerequis_en_echec` corrigé, EX-11.25) |
+| `paquets/noyau` (bibliothèque de CT-1) | A-2 sans borne | 1 024 événements (EX-15.1 ; CT-1 A-2) | fait |
+| `paquets/ancrage` (composant) | profil DER partiel ; `TBSCertificate` sans contrôle d'ordre ; vérifications de chemin non bornées | EX-9.4, EX-9.7, EX-9.13, EX-9.16 | fait (profil DER, borne, CRL à extension critique non lue : corrections de l'étape 8) |
+| `paquets/verification-web` (page) | ni borne de chemin ni de taille de fichier ; aucun arrêt | EX-18.7, EX-18.9, EX-18.11, EX-18.13 | fait |
+| `spec/vecteurs/ct-6/dossiers`, `ancres/`, `rfc3161/` | — | un vecteur par règle tranchée : formes DER refusées et témoin admis, CRL à extension critique inconnue, clé non ancrée (N-3), hauteur 0, R-10 sans inscription sous P-1 en échec, journal altéré (R-7, R-11), nombre long, chaînes à neutraliser ; référence et binaire confrontés sur chacun | régénérés à l'étape 8 (93 → 121 dossiers, jetons, ancres et CRL ; deux générations identiques) ; publication par l'assemblage |
+| `spec/README.md` | CT-6 version 0.8 | CT-6 version 0.9 | fait |
 
 ## 17. Ce que cette version ne couvre pas
 
@@ -6653,6 +6815,11 @@ une entrée a, après normalisation, un chemin absolu, un composant `.`, `..`
 ou vide, une barre oblique inverse, un nom en double ou un nom qui n'est pas
 de l'UTF-8 valide ; une entrée d'un autre type que fichier ou répertoire (lien
 symbolique, lien physique, périphérique, tube) ; une forme hors de la table ;
+(révision 0.9) un chemin d'entrée de plus de 64 composants ou de plus de
+4 096 octets UTF-8, borné avant tout autre examen du chemin (un dossier de la
+section 4 a ses parties à la racine : deux composants au plus dans une
+archive) ; un fichier de plus de 512 Mio, refusé d'après la taille que le
+navigateur déclare, avant toute lecture ;
 plus de 4 096 entrées ; plus de 256 Mio décompressés en tout (la somme des
 limites d'EX-4.13 pour un dossier est d'environ 247 Mio). Un refus affiche la
 raison, « aucun rapport » (« no report ») et aucun code : le vérificateur ne
@@ -6667,7 +6834,9 @@ concorde pas avec ses données, dont le flux comprimé est invalide ou
 tronqué, ou qui porte, après sa fin, autre chose que des blocs nuls ; un
 répertoire choisi est soumis aux mêmes bornes, comptées sur ses fichiers et
 sous-répertoires et sur la somme des tailles de ses fichiers, avant toute
-lecture. Une archive `zip -X` (Info-ZIP 3.0) d'un dossier dont un nom n'est
+lecture. Révision 0.9 : le parcours d'un répertoire déposé sur la page
+s'arrête à la première entrée au-delà de 4 096 et au premier chemin au-delà
+des bornes, avant toute lecture de fichier. Une archive `zip -X` (Info-ZIP 3.0) d'un dossier dont un nom n'est
 pas en ASCII n'a ni le bit 11 ni le champ Unicode, et est refusée pour ce
 nom, avec sa raison : la page ne devine pas l'encodage d'un nom. Tenu par la page.
 
@@ -6734,18 +6903,26 @@ compilé : l'une sans `--json` (rapport lisible), l'autre avec `--json`, les
 autres arguments étant les mêmes. Le travailleur recueille les octets écrits
 sur les sorties 1 et 2 et le code de sortie du programme. La page affiche :
 le rapport lisible tel quel, comme texte (jamais interprété comme du HTML),
-dans un élément préformaté ; le code et son sens selon la table de 8.3 ;
+dans un élément préformaté, chaque caractère de commande, séparateur de ligne
+ou marque de direction d'une chaîne affichée étant rendu sous une forme
+visible (révision 0.9 ; EX-8.5) ; le code et son sens selon la table de 8.3 ;
 pour les codes 0, 1 et 3, l'énoncé en français et en anglais, tiré de
 `statement.fr` et `statement.en` du rapport JSON ; pour le code 2, aucun
 énoncé, le message d'erreur (`error.message`) et la phrase « Aucune
 affirmation sur ce dossier. » (« No statement about this dossier. ») ; la
 sortie d'erreur, qui porte les avertissements (EX-8.5). Elle PEUT offrir
 d'enregistrer les deux rapports. Si les deux exécutions rendent des codes
-différents, ou si une exécution s'achève sans code de sortie (erreur du
-moteur, mémoire épuisée, compilation refusée par le navigateur), la page
+différents, si une exécution s'achève sans code de sortie (erreur du
+moteur, mémoire épuisée, compilation refusée par le navigateur), si la
+`version` du bloc `verifier` du rapport JSON n'est pas celle que la page
+annonce (EX-18.2, EX-18.10), ou si l'utilisateur arrête la vérification
+(révision 0.9), la page
 affiche « vérification non faite » (« verification not done ») avec la
 cause, aucun rapport et aucun énoncé : rien n'est affirmé, comme pour le
-code 2. Révision 0.7 : aucune minuterie qu'une exécution laisse programmée
+code 2. Révision 0.9 : la page offre d'arrêter une vérification en cours :
+elle met fin au travailleur, affiche « vérification non faite » avec la
+cause, et crée un travailleur neuf auquel elle remet l'artefact ; elle
+n'impose aucun délai. Révision 0.7 : aucune minuterie qu'une exécution laisse programmée
 ne s'exécute après sa sortie (le pilote les annule ; sous go1.27.3, leur
 échéance lèverait une erreur dans l'exécution suivante) ; la page anglaise
 donne le sens des codes de la table de 8.3 en ces termes :
@@ -6787,7 +6964,9 @@ pose aucun cookie, n'emploie aucun stockage du navigateur (cookies,
 `localStorage`, `sessionStorage`, IndexedDB, Cache API) et n'enregistre aucun
 service worker ; après le chargement de `index.html`, `page.css`, `page.js`,
 `verificateur-wasm.js` et `travailleur.js`, elle ne fait aucune requête, ni
-pendant ni après une vérification (une requête que le navigateur fait de
+pendant ni après une vérification, hormis (révision 0.9) la nouvelle demande
+de `travailleur.js`, à la même origine, qui suit un arrêt demandé par
+l'utilisateur (EX-18.9) (une requête que le navigateur fait de
 lui-même, pour l'icône de l'onglet par exemple, ne porte aucune donnée de
 l'utilisateur). Tenu par la page et l'hébergeur.
 
@@ -6857,7 +7036,8 @@ et `zip -X -0 -r d.zip <d>` ; `tar --format=ustar -cf d.tar <d>`,
 `tar --format=ustar -C <parent>/<d> -cf d.tar .`, dont les entrées
 commencent par `./` ; `tar --format=pax -cf - <d> | gzip -n > d.tar.gz` ;
 (2) chaque refus
-d'archive d'EX-18.7 ; (3) aucune requête après le chargement (EX-18.11) et
+d'archive d'EX-18.7, dont (révision 0.9) une archive de moins d'un kilooctet
+dont un chemin a cent mille composants, refusée en moins d'une seconde ; (3) aucune requête après le chargement (EX-18.11) et
 aucune violation de politique signalée par le navigateur (révision 0.7 : un
 message qui dit qu'une destination d'`Integrity-Policy` n'est pas prise en
 charge n'est pas une violation ; dans Gecko, qui n'offre pas les types de
@@ -7253,7 +7433,7 @@ de décision, construits à part (dernières lignes de la table) :
 | `valide-sans-inscription/` | parties du registre de `registre/variantes/valide-sans-inscription/` (inscriptions retirées) | aucun | R-10 `non_execute` (`partie_absente`) ; `AV-R-1` |
 | `valide-ligne-non-canonique/` | parties du registre de `registre/variantes/valide-ligne-non-canonique/` (membre `Domain` dans une ligne de precommit, que le décodeur du nœud accepte) | aucun | `AV-R-2` |
 | `valide-provenance-registre/` | ancres `ancres-sans-enregistreurs.json` | aucun | N-3 et N-4 absentes ; les deux clés confirmées par R-10, provenance `registre` (EX-6.8) |
-| `valide-provenance-mixte/` | parties du registre de `registre/variantes/valide-provenance-mixte/` (inscription de `rec-test-01` retirée), ancres `ancres-enregistreur-01-seul.json` | aucun | `rec-test-01` confirmée par N-3, `rec-test-02` par R-10 : provenance `mixte`, écrite clé par clé (EX-6.8) ; N-4 absente |
+| `valide-provenance-mixte/` | parties du registre de `registre/variantes/valide-provenance-mixte/` (inscription de `rec-test-01` retirée), ancres `ancres-enregistreur-01-seul.json` | aucun | révision 0.9 : `ancres-enregistreur-01-seul.json` ne porte pas `rec-test-02`, clé du manifeste : N-3 et le contrôle 6 sont non exécutés (`ancre_absente`, EX-12.4) ; `rec-test-01` déclarée par le dossier, `rec-test-02` inscrite au registre : provenance `mixte`, écrite clé par clé (EX-6.8) ; N-4 absente |
 | `valide-deux-jeux-validateurs/` | ancres `ancres-deux-jeux.json` | aucun | proposition de l'énoncé en deux groupes de blocs (EX-11.22) |
 | `valide-decision-refusee/` | construit à part par `scripts/vecteurs/ct6/decisions.mjs` : dossier de la décision (seq 6) d'une variante du journal de CT-1 où la décision du ticket `apr-2201` est un refus signé par les comptes Hardhat 1 et 2 ; cinq parties réservées absentes ; vérifié sans ancres | aucun | contrôles 4, 5 et 8 `non_execute` (`hors_perimetre_version`) ; F3 « porte un refus signé par » (EX-6.8) |
 | `valide-decision-expiree/` | idem, décision `expire` sans approbateur ni signature | aucun | idem ; F3 « porte une demande d'approbation expirée sans signature » ; `facts.approval.approvers` vide |
@@ -7331,7 +7511,16 @@ sous-répertoire a son `LISEZMOI.md` (commande, versions, limites de l'outil) :
 | certificats | `sorties/registre-certificats.txt` | `scripts/verify/certificat-commit.mjs --chaine noortrace-2124-dev` | chaque certificat capturé, contre `validators.json` |
 
 Une limite d'un outil (une vérification qu'il ne fait pas, ou une lecture
-plus permissive que CT-6) n'est pas une discordance : elle est décrite dans
+plus permissive que CT-6) n'est pas une discordance, ni un refus de l'outil
+sur une forme que CT-6 ne contrôle pas en version 0 (EX-9.6 ; révision
+0.9) : `openssl ts -verify` refuse au décodage le témoin
+`jetons/integer-non-minimal.der` (`SignedData.version` codé `02 02 00 03` :
+« c2i_ibuf:illegal padding »), que CT-6 admet ; la confrontation l'exclut
+avec ce motif, et son `presumed_result` le dit. De même, `openssl crl` refuse
+de lire la CRL `crl/crl-tsa-revoquee-serie-non-minimale.pem` (numéro de série
+révoqué codé `02 02 00 02`), que CT-6 lit (EX-9.6) : la confrontation calcule
+son SHA-256 sur le DER qu'`openssl asn1parse` décode du PEM et nomme ce refus
+comme une limite (étape 8, régénération des vecteurs). Une limite est décrite dans
 le `LISEZMOI.md` de la famille. `test/confrontation.test.js` exige que les
 sorties publiées portent sur les vecteurs du dépôt (SHA-256 des fichiers,
 cas, statuts du registre, aucune discordance) ; la CI rejoue les programmes
@@ -7490,7 +7679,7 @@ inexploitable, ce qui concorde avec l'attendu sans discordance (A.8). Les
 
 ## Annexe B — Sources des faits externes
 
-Les renvois R1 à R4 du texte désignent des notes de recherche internes du lot
+Les renvois R1 à R4 du texte désignent des notes de recherche internes de
 CT-6, non publiées : R1 (horodatage RFC 3161 et listes de confiance), R2
 (OpenTimestamps et Bitcoin), R3 (registre et contrôle 8), R4 (construction et
 sûreté). Cette annexe donne, pour chaque renvoi, l'objet du fait en quelques
@@ -7784,9 +7973,9 @@ Conventions :
 | R4 (section 14.3) | essais de reproductibilité de la note | essais de la note, non publiés ; aucune source primaire publique dans la note ; fait non recoupable ; programme essayé : vérificateur indépendant de CT-1, `spec/vecteurs/ct-1/verificateur-independant/` (présent dépôt) | 2026-10-22 |
 
 
-### B.5 Notes du lot CT-5 (révision 0.2)
+### B.5 Notes de CT-5 (révision 0.2)
 
-La révision 0.2 cite deux notes du lot CT-5, relues le 2026-10-25, écrites
+La révision 0.2 cite deux notes de CT-5, relues le 2026-10-25, écrites
 « CT-5 R1-Fn » (prestataires RFC 3161, serveurs internes, OpenTimestamps,
 reprise) et « CT-5 R2-Fn » (points de contrôle, cohérence RFC 9162, témoins,
 stockage inaltérable, dépôt) ; l'annexe B de CT-5 en donne la liste complète.
@@ -7804,9 +7993,9 @@ Les faits cités dans cette spécification :
 | CT-5 R2-F45 | `docType` = keccak256 du libellé ; un libellé nouveau pour un sens nouveau (11.9) | `spec/CT-4-registre.md` §6.4 à §6.6 (présent dépôt) | 2026-10-25 |
 | CT-5 R2 (section 7.9) | conséquence 22 : aucune borne « pas avant » ; un point qui engagerait une valeur fraîche extérieure la donnerait ; proposition sans source, non retenue | aucune source primaire ; proposition de conception de la note | 2026-10-25 |
 
-### B.6 Notes du lot CT-7 (révision 0.3)
+### B.6 Notes de CT-7 (révision 0.3)
 
-La révision 0.3 cite trois faits de la note de recherche R7 du lot CT-7
+La révision 0.3 cite trois faits de la note de recherche R7 de CT-7
 (relue le 2026-10-26), écrits « R7-Fn » dans la section 7.10 : R7-F51
 (méthodes d'évaluation « examine, interview, and test », NIST SP 800-53A Rev. 5,
 https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53Ar5.pdf),

@@ -7,6 +7,30 @@
     "numero-sinistre": {
       "pattern": "\\b20[0-9]{2}-[0-9]{5}\\b",
       "description": "Numero de dossier de sinistre AAAA-NNNNN de l'assureur de demonstration."
+    },
+    "ancre-non-frontiere": {
+      "pattern": "\\Bz",
+      "description": "Lettre z qui ne suit pas une frontiere de mot : apres une correspondance remplacee, la frontiere du jeton empeche la suivante."
+    },
+    "ancre-alternative": {
+      "pattern": "x|\\b#",
+      "description": "Alternative dont la seconde branche est ancree par une frontiere de mot."
+    },
+    "ancre-debut": {
+      "pattern": "^[0-9]{3}",
+      "description": "Trois chiffres en debut de chaine : apres une correspondance remplacee, le candidat suivant est en debut de chaine."
+    },
+    "ancre-frontiere": {
+      "pattern": "\\b[A-Z]{2}[0-9]{4}",
+      "description": "Deux majuscules et quatre chiffres apres une frontiere de mot."
+    },
+    "cascade-a": {
+      "pattern": "A\\b",
+      "description": "Un A suivi d'une frontiere de mot : chaque passage n'en libere qu'un (EX-10.14)."
+    },
+    "cascade-b": {
+      "pattern": "B$",
+      "description": "Un B en fin de chaine : son jeton cree la frontiere du dernier A."
     }
   },
   "rules": [
@@ -145,6 +169,45 @@
       "detectors": [
         {
           "type": "iban"
+        }
+      ],
+      "action": {
+        "kind": "remplacer"
+      }
+    },
+    {
+      "id": "motifs-ancres",
+      "description": "Resultats de l'outil ancres__test : motifs ancres (\\B, alternative a \\b, ^, \\b) sur des candidats adjacents et cascade de passages (EX-10.9, EX-10.14).",
+      "scopes": [
+        "resultat"
+      ],
+      "tools": [
+        "ancres__test"
+      ],
+      "detectors": [
+        {
+          "type": "regex",
+          "name": "ancre-non-frontiere"
+        },
+        {
+          "type": "regex",
+          "name": "ancre-alternative"
+        },
+        {
+          "type": "regex",
+          "name": "ancre-debut"
+        },
+        {
+          "type": "regex",
+          "name": "ancre-frontiere"
+        },
+        {
+          "type": "regex",
+          "name": "cascade-a"
+        },
+        {
+          "type": "regex",
+          "name": "cascade-b"
         }
       ],
       "action": {

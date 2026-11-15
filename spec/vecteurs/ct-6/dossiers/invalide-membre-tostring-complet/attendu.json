@@ -1,0 +1,41 @@
+{
+  "valid": false,
+  "target": "E-7",
+  "failed_checks": [
+    "D-1",
+    "E-1",
+    "E-7"
+  ],
+  "control_statuses": {
+    "1": "echoue",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "reussi",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "reussi"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : D-1, E-1, E-7 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): D-1, E-1, E-7; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "valide-seq-7-complet dont le hash de evenement.json est remplacé par l'objet JSON {\"toString\":1} (contenu et signature intacts, SHA-256 de la partie reporté dans l'index, event.hash de l'index inchangé) : un membre toString masque Object.prototype.toString par une valeur non appelable ; un vérificateur qui convertit implicitement la valeur en chaîne lève une exception au lieu de rendre un statut (MN-68). Attendu : D-1 (event.hash de l'index différent de hash), E-1 (schéma), E-7 (hash recalculé différent de hash, relation à terme mal typé, CT-1 §11.4) ; C-2 et M-1 réussissent (le hash recalculé ne lit pas hash) ; les contrôles 2 à 8 réussissent ; code 1, jamais une erreur interne ni le code 2. Même cas que ct-1/dossiers/invalide-membre-tostring, avec les cinq parties réservées."
+}

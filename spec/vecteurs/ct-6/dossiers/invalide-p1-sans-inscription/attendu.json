@@ -1,0 +1,59 @@
+{
+  "valid": false,
+  "target": "P-1",
+  "failed_checks": [
+    "P-1",
+    "P-5"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "echoue",
+    "4": "non_execute",
+    "5": "non_execute",
+    "6": "echoue",
+    "7": "reussi",
+    "8": "non_execute"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-2",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "O-2",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "R-9",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "R-10",
+      "reason": "partie_absente"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : P-1, P-5 ; vérification(s) non exécutée(s) sans raison admise : T-2, O-2, R-9 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): P-1, P-5; check(s) not run without an admitted reason: T-2, O-2, R-9; the verifier asserts nothing about this event."
+  },
+  "bound": {
+    "fr": "verdict borné : contrôle 4 non exécuté (prerequis_en_echec), contrôle 5 non exécuté (prerequis_en_echec), contrôle 8 non exécuté (prerequis_en_echec)",
+    "en": "bounded verdict: control 4 not run (prerequis_en_echec), control 5 not run (prerequis_en_echec), control 8 not run (prerequis_en_echec)"
+  },
+  "description": "parties du registre de registre/variantes/valide-sans-inscription/ (inscriptions retirées) et manifeste.json à membre hors du schéma, comme invalide-p1-manifeste-membre-en-trop (P-1 et P-5 en échec, dossier.json réindexé) : R-10 est non exécutée avec la raison admise partie_absente, l'absence d'entrée inscription étant jugée avant les prérequis (EX-11.19, révision 0.9 : le binaire rendait prerequis_en_echec, qui comptait dans blocking_unexecuted) ; R-9 non exécutée (prerequis_en_echec) rend le contrôle 8 non exécuté ; contrôles 3 et 6 en échec, 4 et 5 non exécutés, code 1 ; AV-R-1 n'est pas levé (clé du manifeste non établie)."
+}

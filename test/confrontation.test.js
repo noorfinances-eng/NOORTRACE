@@ -100,7 +100,7 @@ describe("CT-6 : sorties publiées de la confrontation par des outils tiers (ann
     this.timeout(120_000);
     const python = spawnSync("python3", ["--version"], { encoding: "utf8" });
     const openssl = spawnSync("openssl", ["version"], { encoding: "utf8" });
-    if (python.status !== 0 || openssl.status !== 0) this.skip();
+    if (python.status !== 0 || openssl.status !== 0) { this.test.title += " — en attente : python3 ou openssl absent"; this.skip(); }
     const travail = fs.mkdtempSync(path.join(os.tmpdir(), "noortrace-confrontation-rfc3161-"));
     try {
       const r = spawnSync("python3", ["-I", path.join(CT6, "confrontation", "rfc3161", "confronter_rfc3161.py"), CT6, travail], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
@@ -221,7 +221,7 @@ describe("CT-5 : sorties publiées de la confrontation par des outils tiers (ann
     const module_ = path.join(CT5, "confrontation", "coherence");
     const env = { ...process.env, GOPROXY: "off" };
     const cache = spawnSync("go", ["mod", "download", "-json", "github.com/transparency-dev/merkle"], { cwd: module_, encoding: "utf8", env });
-    if (cache.error || cache.status !== 0) this.skip();
+    if (cache.error || cache.status !== 0) { this.test.title += " — en attente : module github.com/transparency-dev/merkle absent du cache de modules Go (GOPROXY=off ; travail confrontation)"; this.skip(); }
     const r = spawnSync("go", ["run", ".", path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-1"), CT6], { cwd: module_, encoding: "utf8", env, maxBuffer: 64 * 1024 * 1024 });
     expect(r.status, r.stdout.split("\n").slice(-6).join("\n") + r.stderr).to.equal(0);
     expect(r.stdout).to.match(/^Discordances au total : 0$/m);
@@ -231,7 +231,7 @@ describe("CT-5 : sorties publiées de la confrontation par des outils tiers (ann
     this.timeout(180_000);
     const python = spawnSync("python3", ["--version"], { encoding: "utf8" });
     const openssl = spawnSync("openssl", ["version"], { encoding: "utf8" });
-    if (python.status !== 0 || openssl.status !== 0) this.skip();
+    if (python.status !== 0 || openssl.status !== 0) { this.test.title += " — en attente : python3 ou openssl absent"; this.skip(); }
     for (const nom of ["requetes", "reponses"]) {
       const travail = fs.mkdtempSync(path.join(os.tmpdir(), `noortrace-confrontation-ct5-${nom}-`));
       try {
@@ -336,9 +336,9 @@ describe("CT-2 : sorties publiées de la confrontation par des outils tiers (ann
       const python = process.env.NOORTRACE_PYTHON_CONFRONTATION || "python3";
       const code = `import importlib.metadata as m, json\nout = {}\nfor p in ${JSON.stringify(exigences.map(([p]) => p))}:\n    try: out[p] = m.version(p)\n    except m.PackageNotFoundError: out[p] = None\nprint(json.dumps(out))`;
       const versions = spawnSync(python, ["-I", "-c", code], { encoding: "utf8" });
-      if (versions.error || versions.status !== 0) this.skip();
+      if (versions.error || versions.status !== 0) { this.test.title += " — en attente : interpréteur Python aux versions d'exigences.txt absent (NOORTRACE_PYTHON_CONFRONTATION ou python3 ; travail confrontation)"; this.skip(); }
       const lues = JSON.parse(versions.stdout);
-      if (!exigences.every(([p, v]) => lues[p] === v)) this.skip();
+      if (!exigences.every(([p, v]) => lues[p] === v)) { this.test.title += " — en attente : interpréteur Python aux versions d'exigences.txt absent (NOORTRACE_PYTHON_CONFRONTATION ou python3 ; travail confrontation)"; this.skip(); }
       const r = spawnSync(python, ["-I", path.join(CONFRONTATION2, outil, programme), CT2], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
       expect(r.status, r.stdout.split("\n").slice(-8).join("\n") + r.stderr).to.equal(0);
       expect(r.stdout).to.equal(lire2(sortiePubliee));
@@ -451,9 +451,9 @@ describe("CT-3 : sorties publiées de la confrontation des signatures par des ou
     const python = process.env.NOORTRACE_PYTHON_CONFRONTATION || "python3";
     const code = `import importlib.metadata as m, json\nout = {}\nfor p in ${JSON.stringify(ex.map(([p]) => p))}:\n    try: out[p] = m.version(p)\n    except m.PackageNotFoundError: out[p] = None\nprint(json.dumps(out))`;
     const versions = spawnSync(python, ["-I", "-c", code], { encoding: "utf8" });
-    if (versions.error || versions.status !== 0) this.skip();
+    if (versions.error || versions.status !== 0) { this.test.title += " — en attente : interpréteur Python aux versions d'exigences.txt absent (NOORTRACE_PYTHON_CONFRONTATION ou python3 ; travail confrontation)"; this.skip(); }
     const lues = JSON.parse(versions.stdout);
-    if (!ex.every(([p, v]) => lues[p] === v)) this.skip();
+    if (!ex.every(([p, v]) => lues[p] === v)) { this.test.title += " — en attente : interpréteur Python aux versions d'exigences.txt absent (NOORTRACE_PYTHON_CONFRONTATION ou python3 ; travail confrontation)"; this.skip(); }
     const r = spawnSync(python, ["-I", path.join(CONFRONTATION3, "eth-account", "confronter_eth_account.py"), CT3], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
     expect(r.status, r.stdout.split("\n").slice(-4).join("\n") + r.stderr).to.equal(0);
     expect(r.stdout).to.equal(sortieEthAccount());
@@ -621,9 +621,9 @@ describe("CT-7 : sorties publiées de la confrontation des signatures de procès
       const python = process.env.NOORTRACE_PYTHON_CONFRONTATION || "python3";
       const code = `import importlib.metadata as m, json\nout = {}\nfor p in ${JSON.stringify(ex.map(([p]) => p))}:\n    try: out[p] = m.version(p)\n    except m.PackageNotFoundError: out[p] = None\nprint(json.dumps(out))`;
       const versions = spawnSync(python, ["-I", "-c", code], { encoding: "utf8" });
-      if (versions.error || versions.status !== 0) this.skip();
+      if (versions.error || versions.status !== 0) { this.test.title += " — en attente : interpréteur Python aux versions d'exigences.txt absent (NOORTRACE_PYTHON_CONFRONTATION ou python3 ; travail confrontation)"; this.skip(); }
       const lues = JSON.parse(versions.stdout);
-      if (!ex.every(([p, v]) => lues[p] === v)) this.skip();
+      if (!ex.every(([p, v]) => lues[p] === v)) { this.test.title += " — en attente : interpréteur Python aux versions d'exigences.txt absent (NOORTRACE_PYTHON_CONFRONTATION ou python3 ; travail confrontation)"; this.skip(); }
       const r = spawnSync(python, ["-I", path.join(CONFRONTATION7, partie, "confronter_eth_account.py"), ...arguments7(partie)], { encoding: "utf8", cwd: PROJECT_ROOT, maxBuffer: 64 * 1024 * 1024 });
       expect(r.status, r.stdout.split("\n").slice(-4).join("\n") + r.stderr).to.equal(0);
       expect(r.stdout).to.equal(sortie7(partie, "eth-account"));
@@ -824,7 +824,7 @@ describe("CT-8 : sorties publiées de la confrontation des paquets réviseurs pa
 
   it("sorties rejouées hors du test (NOORTRACE_CT8_SORTIES) : mêmes exigences, et sorties égales aux sorties publiées quand les versions sont les mêmes", function () {
     const rep = process.env.NOORTRACE_CT8_SORTIES;
-    if (!rep) this.skip();
+    if (!rep) { this.test.title += " — en attente : NOORTRACE_CT8_SORTIES absent (sorties rejouées hors du test par le travail confrontation)"; this.skip(); }
     const gnu = fs.readFileSync(path.join(rep, "gnutar.txt"), "utf8");
     const tf = fs.readFileSync(path.join(rep, "tarfile.txt"), "utf8");
     verifierSorties(gnu, tf);
@@ -840,7 +840,7 @@ describe("CT-8 : sorties publiées de la confrontation des paquets réviseurs pa
   it("rejeu de confronter_gnutar.sh (GNU tar, sha256sum et jq présents) : code 0 ; sortie égale à sorties/gnutar.txt aux mêmes versions, résultats égaux sinon", function () {
     this.timeout(120_000);
     const tar = present("tar", ["--version"]);
-    if (!tar || !tar.includes("(GNU tar)") || !present("sha256sum", ["--version"]) || !present("jq", ["--version"]) || !present("bash", ["--version"])) this.skip();
+    if (!tar || !tar.includes("(GNU tar)") || !present("sha256sum", ["--version"]) || !present("jq", ["--version"]) || !present("bash", ["--version"])) { this.test.title += " — en attente : GNU tar, sha256sum, jq ou bash absent"; this.skip(); }
     const travail = fs.mkdtempSync(path.join(os.tmpdir(), "ct8-gnutar-"));
     try {
       const r = spawnSync("bash", [path.join(CONFRONTATION8, "confronter_gnutar.sh"), path.relative(PROJECT_ROOT, PAQUETS8), travail], { encoding: "utf8", cwd: PROJECT_ROOT, maxBuffer: 64 * 1024 * 1024 });
@@ -856,7 +856,7 @@ describe("CT-8 : sorties publiées de la confrontation des paquets réviseurs pa
   it("rejeu de confronter_tarfile.py (python3 3.12 ou plus) : code 0 ; sortie égale à sorties/tarfile.txt à la même version, résultats égaux sinon", function () {
     this.timeout(120_000);
     const python = process.env.NOORTRACE_PYTHON_CONFRONTATION || "python3";
-    if (present(python, ["-I", "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"]) === null) this.skip();
+    if (present(python, ["-I", "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"]) === null) { this.test.title += " — en attente : python3 3.12 ou plus absent"; this.skip(); }
     const travail = fs.mkdtempSync(path.join(os.tmpdir(), "ct8-tarfile-"));
     try {
       const r = spawnSync(python, ["-I", path.join(CONFRONTATION8, "confronter_tarfile.py"), path.relative(PROJECT_ROOT, PAQUETS8), travail], { encoding: "utf8", cwd: PROJECT_ROOT, maxBuffer: 64 * 1024 * 1024 });
@@ -895,7 +895,7 @@ describe("CT-8 : sorties publiées de la confrontation de l'exploitation par sha
   });
 
   it("rejeu de confronter_sha256sum.sh (sha256sum et jq présents) : code 0 ; sortie égale à la publiée aux mêmes versions", function () {
-    if (!outilPresent("sha256sum", ["--version"]) || !outilPresent("jq", ["--version"]) || !outilPresent("bash", ["--version"])) this.skip();
+    if (!outilPresent("sha256sum", ["--version"]) || !outilPresent("jq", ["--version"]) || !outilPresent("bash", ["--version"])) { this.test.title += " — en attente : sha256sum, jq ou bash absent"; this.skip(); }
     const r = lancer("bash", [path.join(REP, "confronter_sha256sum.sh"), path.relative(PROJECT_ROOT, VECT8)]);
     expect(r.status, r.stdout.split("\n").slice(-3).join("\n") + r.stderr).to.equal(0);
     if (r.stdout.split("\n")[0] === publiee("sha256sum.txt").split("\n")[0]) expect(r.stdout).to.equal(publiee("sha256sum.txt"));
@@ -903,7 +903,7 @@ describe("CT-8 : sorties publiées de la confrontation de l'exploitation par sha
 
   it("rejeu de confronter_consultations.py (python3) : code 0 ; sortie égale à la publiée à la même version", function () {
     const python = process.env.NOORTRACE_PYTHON_CONFRONTATION || "python3";
-    if (!outilPresent(python, ["-I", "-c", "import sys"])) this.skip();
+    if (!outilPresent(python, ["-I", "-c", "import sys"])) { this.test.title += " — en attente : python3 absent"; this.skip(); }
     const r = lancer(python, ["-I", path.join(REP, "confronter_consultations.py"), path.relative(PROJECT_ROOT, VECT8)]);
     expect(r.status, r.stdout.split("\n").slice(-3).join("\n") + r.stderr).to.equal(0);
     if (r.stdout.split("\n")[0] === publiee("consultations.txt").split("\n")[0]) expect(r.stdout).to.equal(publiee("consultations.txt"));

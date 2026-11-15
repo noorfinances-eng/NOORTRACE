@@ -49,6 +49,31 @@ Codes de retour : `0` tout concorde (les valeurs hors périmètre sont
 (fichier illisible, table du texte introuvable) ; `2` usage incorrect ou
 racine introuvable.
 
+Règles ajoutées par la revue de sécurité de l'étape 8, écrites depuis le
+texte de CT-7 révision 0.5 et la CT-9 TA-66, sans lire aucune
+autre implémentation :
+
+- CR-4 : `performed_by` est un participant de rôle `officiant`,
+  `detenteur_part` ou `membre` ; un `temoin`, un `auditeur` ou un
+  `observateur` qui exécute une étape met CR-4 en échec (EX-5.2), en plus de
+  CR-2 pour l'auditeur ;
+- CR-5 : une clé `rsa` a un module d'au moins 3 072 bits (CLE-10, CT-5
+  AN-31) ;
+- plancher (CT-9 TA-66) : une famille recalculée sans aucune valeur est une
+  erreur (`plancher.go`) ; la famille `epreuves` (section 9) n'a aucune
+  valeur à recalculer par construction ;
+- cas comptés contre l'`INDEX.md` : les cas de `ceremonies/`, de
+  `attestations/attestations.json` et `croises.json`, et de
+  `matrice/invalides/` que l'index nomme sans qu'ils soient présents, ou
+  présents sans que l'index les nomme, sont des erreurs ; `INDEX.md` absent
+  aussi ;
+- garde commune : toute panne d'une famille devient une erreur consignée
+  (`protegerFamille`) : rapport imprimé, code 1, jamais une trace de pile.
+
+Deux discordances de la famille `menaces` (« spec_version » et « date »
+du bloc `modele-menace` de CT-7 §3.8) viennent de l'exemple du texte, resté
+en 0.4 du 2026-11-11 : le module n'est pas modifié pour elles.
+
 ## Ce qui est recalculé
 
 | Famille | Fichiers lus | Valeurs recalculées et confrontées |
@@ -64,6 +89,15 @@ racine introuvable.
 | cles-de-test | `cles-de-test.json`, `../ct-6/rfc3161/cles/*.pem` | `ct-1` : clé Ed25519 depuis la graine SHA-256 de l'étiquette (CT-1 §13) ; `ct-3` : clé publique et adresse au chemin de dérivation ; `ct-6`, quel que soit l'algorithme (`rsa`, `ecdsa_p256`, `ed25519`, EX-A.7 révision 0.2) : `algorithm` égal au type de la clé lu dans le `SubjectPublicKeyInfo`, `public_key` et `address` nuls, `spki_sha256` = SHA-256 du `SubjectPublicKeyInfo` du certificat (lu sans décoder les noms ; clé RSA relue dans `RSAPublicKey` et réencodée en DER) ou de la clé privée PKCS#8 (RSA lue dans `RSAPrivateKey`, sans borne d'exposant) ; `ct-4` : point de la courbe et adresse dérivée, longueur Ed25519 ; présence des quatre sources |
 
 ## Tests du module (`go test`)
+
+- Revue de sécurité de l'étape 8 (`revue_etape8_test.go`,
+  `revue_etape8_garde_test.go`) : exemple de 5.10 signé de nouveau avec un
+  auditeur exécutant (CR-2, CR-4), un observateur exécutant (CR-4), un témoin
+  exécutant sous un autre témoin (CR-4) et un second témoin sans autre
+  changement (aucun échec) ; clé `rsa` de 2 048 bits refusée, de 3 072 bits
+  admise ; garde commune des familles ; plancher par le code de retour du
+  programme (sans matrice, cérémonie retirée ou non indexée, sans
+  `INDEX.md`).
 
 - Keccak-f[1600] confronté à SHA3-256 de la bibliothèque standard,
   `keccak256("")`.

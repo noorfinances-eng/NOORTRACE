@@ -1,32 +1,32 @@
 {
   "version": 0,
-  "carte": "{\"imports\":{\"noortrace-console/\":\"/statique/bibliotheque/\",\"@noble/hashes/\":\"/statique/modules/@noble/hashes/\",\"@noble/curves/\":\"/statique/modules/@noble/curves/\"},\"integrity\":{\"/statique/bibliotheque/annuaire.mjs\":\"sha384-DMqtT0Q4jtzVLWVum3XjQxrGIbz7PY1dhxFkVAa3yXi/z9y8c1NuYNyFdpiX4LPM\",\"/statique/bibliotheque/condenses.mjs\":\"sha384-tqB3SUWquf3JAgikvmH+/ugMeyCxT4ENH+uBfyFrytK5xK/W7awypGNuZuMgaeEQ\",\"/statique/bibliotheque/constantes.mjs\":\"sha384-Eiys9vn6TbaDXyPU9snsZfxqov6YWY6AnRb65a0yB96lzGwsa6VJZJ10ga+orixR\",\"/statique/bibliotheque/decouverte.mjs\":\"sha384-ACm5U36H6j5EkpLJ+5CwwK+xtJuW5ub453UQ4w0YOmTgOlm7XsfyjggQadzQxABJ\",\"/statique/bibliotheque/erreurs.mjs\":\"sha384-nO6ngtVA3+PUGVfyghmVyHEM+XqXQrGHwAgH5wPs5tSGz8lxAz09Si865EBB70Hu\",\"/statique/bibliotheque/formes.mjs\":\"sha384-AaH/tE/b2STsRflX0Mpx0XFxdpbOXzOAUSXlpzkqa2jRc5IdXWyoHHkWjCGIdS57\",\"/statique/bibliotheque/hachage.mjs\":\"sha384-pZ57i6ScyVnBDShzSmGw+6Vv/jrdyMV1UlvJRmeipTpqX8cOdvakck8gToC2a1jx\",\"/statique/bibliotheque/identite.mjs\":\"sha384-iGWW9jWZvFUuTNTrjMvXKLWzzqHtN2EuPrxe24XqGLL8pE8KDCCe9OqGSR8JAHRi\",\"/statique/bibliotheque/index.mjs\":\"sha384-Psia8sR9ko+6xAsqAUO1v2nQUjayKecr46SGYcqmN+gdU8kTq/KEHjloOzhL/HQC\",\"/statique/bibliotheque/instants.mjs\":\"sha384-7qagfuVLTn/Pq8dMjMmaXPudGXxwCC5xxH4FNtWDVAV5Ee7Hpr7UeaLJO17M+wrW\",\"/statique/bibliotheque/json.mjs\":\"sha384-EHww4f5TXkNxapP7pAN/Y887yKRkIGMX/ncSizNLjJKTcGij02ij8ZzUe6Gx+vVD\",\"/statique/bibliotheque/message.mjs\":\"sha384-6UgnOFmOg8pQ8XyPRUHsZ0YiR9hHZn15qV16GZrjsl+tNzndJqBNdDCd/997Vs+Y\",\"/statique/bibliotheque/modele.mjs\":\"sha384-IEijRuBRS2m20A2SRKXGVo9sFKgXwfM6JogHbfOL4Ustp9xIxXdkYUb6cTF1b8UW\",\"/statique/bibliotheque/octets.mjs\":\"sha384-lU3rjwikjfo26GDUXXLKB6jJIBC+rqIKDpkZsSPbRKJQxLGVB7hFkrPH/uOBnuLY\",\"/statique/bibliotheque/portefeuille.mjs\":\"sha384-mcuXmH6pTzIPLFk1Ozo1lApOZH3xVFzk+mSBjSQozo6Eu+eXAurP94hUjI9EcfqR\",\"/statique/bibliotheque/signatures.mjs\":\"sha384-ktSoKLymmggPG0QUcwPRe5Uzn5TopiAjlXKZ7IFIOqHSzalDUDb6/gGVncJsPYdl\",\"/statique/commun/cadre.mjs\":\"sha384-iPuKPx3qm3ZKKLSW9QBRsnUE+MCzOJcdrIReuo5fCFvuIDFkXxOJjehjXdJQ3a5r\",\"/statique/commun/client.mjs\":\"sha384-YEfdlLKMsB0Adk5TePfxgOSlWGX/0AOHeHdnkJelVqlsSIJF7MmoNzK/hDQpRQVx\",\"/statique/commun/dom.mjs\":\"sha384-CkPDnAHh9CEGX4pXPvcUQnDmNpE0Si7wMeRDQcDBO++5F/vD/5jvC31tP+p2JudE\",\"/statique/commun/fournisseurs.mjs\":\"sha384-0DyALkLmtGMTsEbFac3Mo6Mguc7scbnwTRveLGOo1BvbJvfF3btfJpTej6KhaXHP\",\"/statique/commun/libelles.mjs\":\"sha384-I7S3H1p2/ZRbUkU3OHDDet0CMnSY9sMf22JcRTMmgCzhNdtb38DF2LkCzTMUTTVz\",\"/statique/ecrans/annuaire.mjs\":\"sha384-08OKDOkWRE/L6TpyfSR/11eobLNbz48smjR9qdFnRhl5qEuQHB7GM+lS1Z57GIoK\",\"/statique/ecrans/connexion.mjs\":\"sha384-IN/d25jFg5nglJQRk3NCA5kGNrlslElM3eepVAkPHDlFdBSXUp0gZXTT1+tobbW3\",\"/statique/ecrans/inscription.mjs\":\"sha384-IvbUke+X7JVqq+mYKU887fZmsrV//fpY/32aG7Og9xl7I7QRCv2HI+lPv7tSdWze\",\"/statique/ecrans/ticket.mjs\":\"sha384-ZAUqtcuketLsiJm2oUFPo0iAYbONe9u+EAAKO8AyJ7SZwTfDYgZIAh6SvdTDN9pO\",\"/statique/ecrans/tickets.mjs\":\"sha384-8QZT0CB++KK84dxEXXft+J1cawbfFiO3EpTraIOR4suamIbRE3F/WpkXDqtLtnu3\",\"/statique/libelles/fr.mjs\":\"sha384-8m/zW9g/tdgDJYGLHqc7H/p4O9VWNKQkCC1wSuU/vprUFhyJ9CFEjPSeRVQrKtLt\",\"/statique/modules/@noble/curves/abstract/curve.js\":\"sha384-ODBjqSp7TMelg02mZvanGq1sBERWplsIpg71lXQGdGGmvz3xqxFHWZPKRlw0jX9u\",\"/statique/modules/@noble/curves/abstract/der.js\":\"sha384-nmgcSppyI4H5wlh6t5rbNbUQ9roHCzJTksBZXrW4ijru9ad9fx8E2pkwcjRtNiyQ\",\"/statique/modules/@noble/curves/abstract/fft.js\":\"sha384-BhhrVK9q8Q/ZSggdCXKcsDdWI95d1YMTRlhDT/+x3xiTKgWWWw2ird6lgr+1oJ1u\",\"/statique/modules/@noble/curves/abstract/frost.js\":\"sha384-kT2avwtm34BA3UDsofN9aYCj201dHtCaoqqGqrqY0UAtHuNT3QwVrEFfYAnLjj8f\",\"/statique/modules/@noble/curves/abstract/hash-to-curve.js\":\"sha384-3jJUzXTuQ5UGhTEqaS82kE/lQkdp0S1r7P3RW+fittWKDwtFPZiNU2bZ3qKhoQuY\",\"/statique/modules/@noble/curves/abstract/modular.js\":\"sha384-xR7s2u9uY85mOtRdE4RBg4QC7mI1CUwjMWOLGFwxx+LGd9Xzg6T8c5/u/3K/x6fk\",\"/statique/modules/@noble/curves/abstract/weierstrass.js\":\"sha384-gUDGHQik38cTMZJ/GFp60hw1gr9fem5PhIIOQwXAijs3GoQlKBURbUxkyfZoJBIp\",\"/statique/modules/@noble/curves/secp256k1.js\":\"sha384-6bMWwi1ic97/EpP9oVFiCwmvK93T05DlLnmhgEGXA+XPVHcr4aJORLPtk2iseKiP\",\"/statique/modules/@noble/curves/utils.js\":\"sha384-yxyxAjWSOk1k91XdLdph2I73SDcpeqSnrkUr5ru3cOL6csP8uAhQ0qgD2y7s85BT\",\"/statique/modules/@noble/hashes/_md.js\":\"sha384-+inj+kU2SrziXaCzySRcSf7kOiLEfScN7pI3vq97++FGKDRSw3MJ0t0l37dQWmKc\",\"/statique/modules/@noble/hashes/_u64.js\":\"sha384-SPLtaj6mblQ3NtLCy4eidRByUQWvhD8+J1MpyW8ejRRfwyGrzdElsKxcrcBmGjZY\",\"/statique/modules/@noble/hashes/hmac.js\":\"sha384-T+vGWnGryWubEFH8lQdk8LN00eOX+mpsmHwdXuC6L6KIIn46POY/2hauzVrdjZNH\",\"/statique/modules/@noble/hashes/sha2.js\":\"sha384-YXgpTrphhgj/WMtfF9PcPZQOE57vqATkv4wTjdFflOBTMR5ro2T6S/MkCc9vVH5q\",\"/statique/modules/@noble/hashes/sha3.js\":\"sha384-IT/CA0UQxCI3fLDdZcqKlKmr/XVBDPGkB4SxGvCqwmzqdmr35J4qqRxH5WsqYYtB\",\"/statique/modules/@noble/hashes/utils.js\":\"sha384-YFMR8BWPimRHARZs0bAtgjKOWPQL0ND/lZk6QwHVzhzx71FWSqzQb1ToPgVtqapB\"}}",
-  "carte_sha256": "sha256-ouE/2oqL3O7c2h++OPaWKpjnU3UC7DdILfotiGwvS0Q=",
+  "carte": "{\"imports\":{\"noortrace-console/\":\"/statique/bibliotheque/\",\"@noble/hashes/\":\"/statique/modules/@noble/hashes/\",\"@noble/curves/\":\"/statique/modules/@noble/curves/\"},\"integrity\":{\"/statique/bibliotheque/annuaire.mjs\":\"sha384-AInZVdmC2sNfrNIOjW3w8R67Urxxbs0xREYqu0pjRFvWDhHiBozcrgUU3zdHnIfU\",\"/statique/bibliotheque/condenses.mjs\":\"sha384-tqB3SUWquf3JAgikvmH+/ugMeyCxT4ENH+uBfyFrytK5xK/W7awypGNuZuMgaeEQ\",\"/statique/bibliotheque/constantes.mjs\":\"sha384-9WKr4QaASPSQ7l9lr7D5aEa+exyGsnSL/8LLKSFRkye8zCVst6iVePqACU/F02Ik\",\"/statique/bibliotheque/decouverte.mjs\":\"sha384-ACm5U36H6j5EkpLJ+5CwwK+xtJuW5ub453UQ4w0YOmTgOlm7XsfyjggQadzQxABJ\",\"/statique/bibliotheque/erreurs.mjs\":\"sha384-nO6ngtVA3+PUGVfyghmVyHEM+XqXQrGHwAgH5wPs5tSGz8lxAz09Si865EBB70Hu\",\"/statique/bibliotheque/formes.mjs\":\"sha384-AaH/tE/b2STsRflX0Mpx0XFxdpbOXzOAUSXlpzkqa2jRc5IdXWyoHHkWjCGIdS57\",\"/statique/bibliotheque/hachage.mjs\":\"sha384-pZ57i6ScyVnBDShzSmGw+6Vv/jrdyMV1UlvJRmeipTpqX8cOdvakck8gToC2a1jx\",\"/statique/bibliotheque/identite.mjs\":\"sha384-iGWW9jWZvFUuTNTrjMvXKLWzzqHtN2EuPrxe24XqGLL8pE8KDCCe9OqGSR8JAHRi\",\"/statique/bibliotheque/index.mjs\":\"sha384-Psia8sR9ko+6xAsqAUO1v2nQUjayKecr46SGYcqmN+gdU8kTq/KEHjloOzhL/HQC\",\"/statique/bibliotheque/instants.mjs\":\"sha384-7qagfuVLTn/Pq8dMjMmaXPudGXxwCC5xxH4FNtWDVAV5Ee7Hpr7UeaLJO17M+wrW\",\"/statique/bibliotheque/json.mjs\":\"sha384-EHww4f5TXkNxapP7pAN/Y887yKRkIGMX/ncSizNLjJKTcGij02ij8ZzUe6Gx+vVD\",\"/statique/bibliotheque/message.mjs\":\"sha384-6UgnOFmOg8pQ8XyPRUHsZ0YiR9hHZn15qV16GZrjsl+tNzndJqBNdDCd/997Vs+Y\",\"/statique/bibliotheque/modele.mjs\":\"sha384-IEijRuBRS2m20A2SRKXGVo9sFKgXwfM6JogHbfOL4Ustp9xIxXdkYUb6cTF1b8UW\",\"/statique/bibliotheque/octets.mjs\":\"sha384-lU3rjwikjfo26GDUXXLKB6jJIBC+rqIKDpkZsSPbRKJQxLGVB7hFkrPH/uOBnuLY\",\"/statique/bibliotheque/portefeuille.mjs\":\"sha384-mcuXmH6pTzIPLFk1Ozo1lApOZH3xVFzk+mSBjSQozo6Eu+eXAurP94hUjI9EcfqR\",\"/statique/bibliotheque/signatures.mjs\":\"sha384-ktSoKLymmggPG0QUcwPRe5Uzn5TopiAjlXKZ7IFIOqHSzalDUDb6/gGVncJsPYdl\",\"/statique/commun/cadre.mjs\":\"sha384-iTSos3AUvQWR0RWw/hYRBg8HEK8KQz0uyz/iJsq4rrkl0O+tx10PV47ohtY8hvtI\",\"/statique/commun/client.mjs\":\"sha384-YEfdlLKMsB0Adk5TePfxgOSlWGX/0AOHeHdnkJelVqlsSIJF7MmoNzK/hDQpRQVx\",\"/statique/commun/dom.mjs\":\"sha384-CkPDnAHh9CEGX4pXPvcUQnDmNpE0Si7wMeRDQcDBO++5F/vD/5jvC31tP+p2JudE\",\"/statique/commun/fournisseurs.mjs\":\"sha384-0DyALkLmtGMTsEbFac3Mo6Mguc7scbnwTRveLGOo1BvbJvfF3btfJpTej6KhaXHP\",\"/statique/commun/libelles.mjs\":\"sha384-I7S3H1p2/ZRbUkU3OHDDet0CMnSY9sMf22JcRTMmgCzhNdtb38DF2LkCzTMUTTVz\",\"/statique/ecrans/annuaire.mjs\":\"sha384-08OKDOkWRE/L6TpyfSR/11eobLNbz48smjR9qdFnRhl5qEuQHB7GM+lS1Z57GIoK\",\"/statique/ecrans/connexion.mjs\":\"sha384-7w3C+dO302hZTD1r+AWfgTAyii9ZoM0m/tA9DMS8syUcsDuHfHpxvqqvTcWp5kbT\",\"/statique/ecrans/inscription.mjs\":\"sha384-IvbUke+X7JVqq+mYKU887fZmsrV//fpY/32aG7Og9xl7I7QRCv2HI+lPv7tSdWze\",\"/statique/ecrans/ticket.mjs\":\"sha384-vMHl6hWk2s0ZxVPHFLfx7upvEHhA3vSgtboo4SlqS36jnJRwOG98v2Un1zTkwf4o\",\"/statique/ecrans/tickets.mjs\":\"sha384-QpHBuKTGTikdpQZPdwnOeQI764Xkll+XGEoUI/gr0UQdfR+WdYtSyF7rRjSW2K48\",\"/statique/libelles/fr.mjs\":\"sha384-AZE3O1/dUes0MMZTmLoqaCGgaagth2YcwgVt+HwNGpMVyhstzRFMG5utW3rgoeUN\",\"/statique/modules/@noble/curves/abstract/curve.js\":\"sha384-ODBjqSp7TMelg02mZvanGq1sBERWplsIpg71lXQGdGGmvz3xqxFHWZPKRlw0jX9u\",\"/statique/modules/@noble/curves/abstract/der.js\":\"sha384-nmgcSppyI4H5wlh6t5rbNbUQ9roHCzJTksBZXrW4ijru9ad9fx8E2pkwcjRtNiyQ\",\"/statique/modules/@noble/curves/abstract/fft.js\":\"sha384-BhhrVK9q8Q/ZSggdCXKcsDdWI95d1YMTRlhDT/+x3xiTKgWWWw2ird6lgr+1oJ1u\",\"/statique/modules/@noble/curves/abstract/frost.js\":\"sha384-kT2avwtm34BA3UDsofN9aYCj201dHtCaoqqGqrqY0UAtHuNT3QwVrEFfYAnLjj8f\",\"/statique/modules/@noble/curves/abstract/hash-to-curve.js\":\"sha384-3jJUzXTuQ5UGhTEqaS82kE/lQkdp0S1r7P3RW+fittWKDwtFPZiNU2bZ3qKhoQuY\",\"/statique/modules/@noble/curves/abstract/modular.js\":\"sha384-xR7s2u9uY85mOtRdE4RBg4QC7mI1CUwjMWOLGFwxx+LGd9Xzg6T8c5/u/3K/x6fk\",\"/statique/modules/@noble/curves/abstract/weierstrass.js\":\"sha384-gUDGHQik38cTMZJ/GFp60hw1gr9fem5PhIIOQwXAijs3GoQlKBURbUxkyfZoJBIp\",\"/statique/modules/@noble/curves/secp256k1.js\":\"sha384-6bMWwi1ic97/EpP9oVFiCwmvK93T05DlLnmhgEGXA+XPVHcr4aJORLPtk2iseKiP\",\"/statique/modules/@noble/curves/utils.js\":\"sha384-yxyxAjWSOk1k91XdLdph2I73SDcpeqSnrkUr5ru3cOL6csP8uAhQ0qgD2y7s85BT\",\"/statique/modules/@noble/hashes/_md.js\":\"sha384-+inj+kU2SrziXaCzySRcSf7kOiLEfScN7pI3vq97++FGKDRSw3MJ0t0l37dQWmKc\",\"/statique/modules/@noble/hashes/_u64.js\":\"sha384-SPLtaj6mblQ3NtLCy4eidRByUQWvhD8+J1MpyW8ejRRfwyGrzdElsKxcrcBmGjZY\",\"/statique/modules/@noble/hashes/hmac.js\":\"sha384-T+vGWnGryWubEFH8lQdk8LN00eOX+mpsmHwdXuC6L6KIIn46POY/2hauzVrdjZNH\",\"/statique/modules/@noble/hashes/sha2.js\":\"sha384-YXgpTrphhgj/WMtfF9PcPZQOE57vqATkv4wTjdFflOBTMR5ro2T6S/MkCc9vVH5q\",\"/statique/modules/@noble/hashes/sha3.js\":\"sha384-IT/CA0UQxCI3fLDdZcqKlKmr/XVBDPGkB4SxGvCqwmzqdmr35J4qqRxH5WsqYYtB\",\"/statique/modules/@noble/hashes/utils.js\":\"sha384-YFMR8BWPimRHARZs0bAtgjKOWPQL0ND/lZk6QwHVzhzx71FWSqzQb1ToPgVtqapB\"}}",
+  "carte_sha256": "sha256-hNmqcaxt+24B5r5giYXFvS6HR4xiFGVg+xus8IEgBxU=",
   "ecrans": {
     "tickets": {
       "fichier": "ecrans/tickets.html",
-      "sha384": "sha384-hVAyIgM99UZAA+EeJQl+ZBRuSysnhyGJ/mmsjkw8CVP6DZsO5o6nJMkfbE1mTNYQ",
-      "sha256": "0xa998a88c0f9510b72b13230eae453642ccd316d3a0fcd0cd24b66b634f120265"
+      "sha384": "sha384-VtHT2N+3JyrmpcoSFE0F4bYZ6jAlxeN21eE7n2W6CSLht0Drtq28+YnpDSZanYFK",
+      "sha256": "0xe16012143604a11bfb392e9de6c9c74103301a66c1b764b82b124aac3ab7d152"
     },
     "ticket": {
       "fichier": "ecrans/ticket.html",
-      "sha384": "sha384-wYcCx/XXMiDNANX1KF+fdafWLL9PUl8pHUiwz1RSD1Gq92/vl2Apz60yENIYY334",
-      "sha256": "0x074673fdf1509e807507e37a1895274f1da9afed5fe4f05f096256f3c911e50e"
+      "sha384": "sha384-iPO3sM/2k/s1hE7kPsMB5dQVuMqEJU9nAPbvorn3L5n6mI7HzdN6zctTliR9WjAN",
+      "sha256": "0x5e80340e37fb78cd42822223ec3abcb56ffa3883c8a9f921b55a54c82573d3b0"
     },
     "inscription": {
       "fichier": "ecrans/inscription.html",
-      "sha384": "sha384-ryEa8DUj8Oa6JCg1o0fK50aybpdJFolbikh8SaRMODlIYF4XsATba87JGsrkmkcq",
-      "sha256": "0x8b32755cdb3345b63c2a36c11ed8fb450b00350bce4ae869c85be856fd88d9c5"
+      "sha384": "sha384-NCOFFJXPYmEXxQMwkFLYXYbCS6f6vfv3hGHGrPFLoy6i1r6UYPsYfYmrskMmJlv2",
+      "sha256": "0xf4353af3c9e128b04e341f31a14f9d7166a63c0db747b1ef33ca665b1e8db06c"
     },
     "annuaire": {
       "fichier": "ecrans/annuaire.html",
-      "sha384": "sha384-i2v+B4iEs8PX9G3qK+pI9ewSf31wFv/LUcuNIg3fijLje+NBO3dQ1qJYIjEwm7JO",
-      "sha256": "0xcef7eb66d9e1579fde9386f0ff1f4679717983b302c6a94a3d7ca510963700b3"
+      "sha384": "sha384-u/RQliSMbTVU0X+8dpnsrHVTouEFXwlMofkbPEh6KWRNBDdbdur8HemIzd6nVMBo",
+      "sha256": "0xa044aa0c39e1bc75dce1ac0a6a908affe354ccf33c5af2da13b3d6db17077637"
     },
     "connexion": {
       "fichier": "ecrans/connexion.html",
-      "sha384": "sha384-LPYe5mworL0dUGr2aF1ESVysROcWx/bIiqX685rAGRnxOMRUeM2yqZeY+ShmpAti",
-      "sha256": "0x1fe4f573dbe5002fefd5bd088846edbcc8ddd2817ca91785595af9d684790b04"
+      "sha384": "sha384-yh1KCFsvrM+RU/8i20b6ehzn2NxMHHqVvABm7uJWxk2XXzSker1dB+IKj9KZBf/G",
+      "sha256": "0xeb867b5e584e49e559564222f83fb504642f5c5333e396a151dc77c49ed8a107"
     }
   },
   "statiques": [
@@ -37,9 +37,9 @@
         "fichier": "src/bibliotheque/annuaire.mjs"
       },
       "type": "text/javascript; charset=utf-8",
-      "sha384": "sha384-DMqtT0Q4jtzVLWVum3XjQxrGIbz7PY1dhxFkVAa3yXi/z9y8c1NuYNyFdpiX4LPM",
-      "sha256": "0x95474c38b3ba56cc81e2dee8997b6d9c850529421c107554ef672b6ff4ed4eb1",
-      "octets": 43854
+      "sha384": "sha384-AInZVdmC2sNfrNIOjW3w8R67Urxxbs0xREYqu0pjRFvWDhHiBozcrgUU3zdHnIfU",
+      "sha256": "0xe589ce308a2af524c6064366ca015e7567572617cd28e0f7eefe0afb2d186750",
+      "octets": 45057
     },
     {
       "chemin": "/statique/bibliotheque/condenses.mjs",
@@ -59,9 +59,9 @@
         "fichier": "src/bibliotheque/constantes.mjs"
       },
       "type": "text/javascript; charset=utf-8",
-      "sha384": "sha384-Eiys9vn6TbaDXyPU9snsZfxqov6YWY6AnRb65a0yB96lzGwsa6VJZJ10ga+orixR",
-      "sha256": "0x654f28be47d234a2e4b40b2115215a27794bcd96b0b76b3762cea223f1899770",
-      "octets": 2000
+      "sha384": "sha384-9WKr4QaASPSQ7l9lr7D5aEa+exyGsnSL/8LLKSFRkye8zCVst6iVePqACU/F02Ik",
+      "sha256": "0x4c1c415fde32c81ad07bb80526d673250b98c1b1a9982f61c34d14e4dec1d15b",
+      "octets": 2161
     },
     {
       "chemin": "/statique/bibliotheque/decouverte.mjs",
@@ -213,9 +213,9 @@
         "fichier": "src/pages/statique/commun/cadre.mjs"
       },
       "type": "text/javascript; charset=utf-8",
-      "sha384": "sha384-iPuKPx3qm3ZKKLSW9QBRsnUE+MCzOJcdrIReuo5fCFvuIDFkXxOJjehjXdJQ3a5r",
-      "sha256": "0x046fec716a7d4db8b60861579671e4ad0dc77bd9eb7cf92f53c2e5cc05c1adfe",
-      "octets": 5036
+      "sha384": "sha384-iTSos3AUvQWR0RWw/hYRBg8HEK8KQz0uyz/iJsq4rrkl0O+tx10PV47ohtY8hvtI",
+      "sha256": "0x08b2123b8153e8eaea61b0044ceb912cd4f04b50caeab86f0ee2133f41075905",
+      "octets": 7606
     },
     {
       "chemin": "/statique/commun/client.mjs",
@@ -268,9 +268,9 @@
         "fichier": "src/pages/statique/console.css"
       },
       "type": "text/css; charset=utf-8",
-      "sha384": "sha384-Ib8FLtYDpKb4YjwnCc5x4N2cs+9utNlMLo91QTRnbJICi9Y7IhP0hF8h1pHr5OfL",
-      "sha256": "0x70825922910c94e5c4de395300cb2221e92412abcfbfc0eef089ca3ae1bb4e5f",
-      "octets": 5623
+      "sha384": "sha384-o91K8h3bnUPBztu0kZ0mRTsFmbvcHQ0na0ZT7yydidUheuszvJVwRDi4V/jbaIb9",
+      "sha256": "0xeecbdadd3a5b0c645810b151204c5e3d966c84b6c8280174100588132b7911b3",
+      "octets": 5770
     },
     {
       "chemin": "/statique/ecrans/annuaire.mjs",
@@ -290,9 +290,9 @@
         "fichier": "src/pages/statique/ecrans/connexion.mjs"
       },
       "type": "text/javascript; charset=utf-8",
-      "sha384": "sha384-IN/d25jFg5nglJQRk3NCA5kGNrlslElM3eepVAkPHDlFdBSXUp0gZXTT1+tobbW3",
-      "sha256": "0xb51e0e33794f354783e11f2a640bbaf013c21caca50789b38a440ef0ed6e3fac",
-      "octets": 3246
+      "sha384": "sha384-7w3C+dO302hZTD1r+AWfgTAyii9ZoM0m/tA9DMS8syUcsDuHfHpxvqqvTcWp5kbT",
+      "sha256": "0xfbc7c4888a00a74aaf0eaff756cd38a478663ab699ebbac532300e02cc00908d",
+      "octets": 3148
     },
     {
       "chemin": "/statique/ecrans/inscription.mjs",
@@ -312,9 +312,9 @@
         "fichier": "src/pages/statique/ecrans/ticket.mjs"
       },
       "type": "text/javascript; charset=utf-8",
-      "sha384": "sha384-ZAUqtcuketLsiJm2oUFPo0iAYbONe9u+EAAKO8AyJ7SZwTfDYgZIAh6SvdTDN9pO",
-      "sha256": "0x802ee35f9ae6dce43398354491738a8c366ec385c497b1f1ae8ed1146ee746cf",
-      "octets": 43142
+      "sha384": "sha384-vMHl6hWk2s0ZxVPHFLfx7upvEHhA3vSgtboo4SlqS36jnJRwOG98v2Un1zTkwf4o",
+      "sha256": "0xbaee549b8e25ab793b29b7e118ba6e291f81af5db73a75331282d6b8dfd1ed70",
+      "octets": 45282
     },
     {
       "chemin": "/statique/ecrans/tickets.mjs",
@@ -323,9 +323,9 @@
         "fichier": "src/pages/statique/ecrans/tickets.mjs"
       },
       "type": "text/javascript; charset=utf-8",
-      "sha384": "sha384-8QZT0CB++KK84dxEXXft+J1cawbfFiO3EpTraIOR4suamIbRE3F/WpkXDqtLtnu3",
-      "sha256": "0x96b4b01d110acbc63202a0406c92d5168e7bf6018031e7b51d7db561b29907c7",
-      "octets": 5084
+      "sha384": "sha384-QpHBuKTGTikdpQZPdwnOeQI764Xkll+XGEoUI/gr0UQdfR+WdYtSyF7rRjSW2K48",
+      "sha256": "0x770b5c503cbcddbc50a0a2105b36ee648b332e6b7c2c76b9653d9a5e031e3523",
+      "octets": 5162
     },
     {
       "chemin": "/statique/libelles/fr.mjs",
@@ -334,9 +334,9 @@
         "fichier": "src/pages/statique/libelles/fr.mjs"
       },
       "type": "text/javascript; charset=utf-8",
-      "sha384": "sha384-8m/zW9g/tdgDJYGLHqc7H/p4O9VWNKQkCC1wSuU/vprUFhyJ9CFEjPSeRVQrKtLt",
-      "sha256": "0x01676a6721c6d9de80dba2132e01d393de4d9ff649bcabd5bafd743ac1698043",
-      "octets": 34811
+      "sha384": "sha384-AZE3O1/dUes0MMZTmLoqaCGgaagth2YcwgVt+HwNGpMVyhstzRFMG5utW3rgoeUN",
+      "sha256": "0x409eb0930937788cf56210610d6cac278ec8f196e0c82bc68a4e8889229fd14a",
+      "octets": 35723
     },
     {
       "chemin": "/statique/modules/@noble/curves/abstract/curve.js",

@@ -117,13 +117,8 @@ export function lireUnique(octets, profondeur = 1) {
   return e;
 }
 
-/** Types universels qui sont toujours construits (DER) ; les autres types universels employés sont toujours primitifs. */
+/** Types universels qui sont toujours construits (DER) ; tout autre type universel est primitif (CT-6 EX-9.4, révision 0.9). */
 const UNIVERSELS_CONSTRUITS = new Set([ETIQUETTE.SEQUENCE, ETIQUETTE.SET]);
-const UNIVERSELS_PRIMITIFS = new Set([
-  ETIQUETTE.BOOLEAN, ETIQUETTE.INTEGER, ETIQUETTE.BIT_STRING, ETIQUETTE.OCTET_STRING, ETIQUETTE.NULL, ETIQUETTE.OID, ETIQUETTE.ENUMERATED,
-  ETIQUETTE.UTF8_STRING, ETIQUETTE.NUMERIC_STRING, ETIQUETTE.PRINTABLE_STRING, ETIQUETTE.TELETEX_STRING, ETIQUETTE.IA5_STRING,
-  ETIQUETTE.UTC_TIME, ETIQUETTE.GENERALIZED_TIME, ETIQUETTE.UNIVERSAL_STRING, ETIQUETTE.BMP_STRING,
-]);
 
 /**
  * Parcourt un TLV et tout ce qu'il contient (lecture bornée, profondeur
@@ -131,14 +126,20 @@ const UNIVERSELS_PRIMITIFS = new Set([
  * découpé en ses éléments, les étiquettes universelles doivent avoir la forme
  * (construite ou primitive) que le DER leur impose. Lève `ErreurDer` à la
  * première défaillance ; sert aux valeurs d'attribut `ANY` d'un jeton (T-1,
- * CT-6 EX-9.7 : « toute défaillance de lecture selon 9.3 », correction R-A-2).
+ * CT-6 EX-9.7 : « toute défaillance de lecture selon 9.3 »).
  */
 export function parcourir(tlv) {
   if (tlv.classe === CLASSE.UNIVERSEL) {
+    // CT-6 EX-9.4, révision 0.9 : étiquette universelle 0 refusée ; SEQUENCE et SET construits,
+    // tout autre type universel primitif ; BOOLEAN 00 ou ff ; NULL de longueur nulle ; INTEGER non vide ; BIT STRING d'au moins
+    // un octet dont le premier, compte des bits inutilisés, vaut 0 à 7, et 0 s'il est seul.
+    if (tlv.numero === 0) throw new ErreurDer("étiquette universelle 0", tlv.debut);
     if (UNIVERSELS_CONSTRUITS.has(tlv.numero) && !tlv.construit) throw new ErreurDer(`type universel ${tlv.numero} de forme primitive`, tlv.debut);
-    if (UNIVERSELS_PRIMITIFS.has(tlv.numero) && tlv.construit) throw new ErreurDer(`type universel ${tlv.numero} de forme construite`, tlv.debut);
+    if (!UNIVERSELS_CONSTRUITS.has(tlv.numero) && tlv.construit) throw new ErreurDer(`type universel ${tlv.numero} de forme construite`, tlv.debut);
     if (tlv.numero === ETIQUETTE.BOOLEAN && (tlv.longueur !== 1 || (tlv.contenu[0] !== 0x00 && tlv.contenu[0] !== 0xff))) throw new ErreurDer("BOOLEAN hors de 00 ou ff", tlv.debut);
     if (tlv.numero === ETIQUETTE.NULL && tlv.longueur !== 0) throw new ErreurDer("NULL de longueur non nulle", tlv.debut);
+    if (tlv.numero === ETIQUETTE.INTEGER && tlv.longueur === 0) throw new ErreurDer("INTEGER vide", tlv.debut);
+    if (tlv.numero === ETIQUETTE.BIT_STRING && (tlv.longueur === 0 || tlv.contenu[0] > 7 || (tlv.longueur === 1 && tlv.contenu[0] !== 0))) throw new ErreurDer("BIT STRING mal codée (compte des bits inutilisés)", tlv.debut);
   }
   if (tlv.construit) for (const e of enfants(tlv)) parcourir(e);
 }
@@ -405,6 +406,7 @@ export function lireAlgorithme(tlv) {
   attendre(tlv, ETIQUETTE.SEQUENCE, true, "AlgorithmIdentifier");
   const e = enfants(tlv);
   if (e.length < 1 || e.length > 2) throw new ErreurDer("AlgorithmIdentifier mal formé", tlv.debut);
+  if (e[1]) parcourir(e[1]); // profil DER sur les paramètres (CT-6 EX-9.4 : algparam-bool, algparam-prof)
   return { oid: lireOid(e[0]), parametres: e[1] ?? null, tlv };
 }
 

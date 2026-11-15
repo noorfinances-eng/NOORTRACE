@@ -39,6 +39,9 @@ export const INTENTION_MAX = 4096;
 
 /** Attente de la requête `decisions` (EX-7.19 : au plus 25 000). */
 export const ATTENTE_DECISIONS_MS = 25000;
+/** Pause de la boucle `decisions` quand toutes les remises d'une réponse sont refusées ou différées. */
+export const PAUSE_REFUS_MIN_MS = 200;
+export const PAUSE_REFUS_MAX_MS = 5000;
 
 /**
  * `policy.rule` d'un appel relayé en mode observation (EX-14.14, CT-3
@@ -344,6 +347,7 @@ export class MoteurPolitique {
     const delai = wait_ms + (this.config.policy.approval?.timeout_ms ?? 2000);
     const tourner = async () => {
       let pause = 0;
+      let pauseRefus = 0;
       let indisponible = false;
       while (!etat.arret && !this.coeur.arrete) {
         const t0 = Date.now();
@@ -360,6 +364,15 @@ export class MoteurPolitique {
           indisponible = false;
           pause = 0;
           if (!acq.length && Date.now() - t0 < Math.min(100, wait_ms)) await dormir(100);
+          // Étape 8 (CT-2 EX-7.19) : une réponse dont toutes les remises sont refusées ou
+          // différées (remise représentée, service fautif) ne relance pas la boucle
+          // aussitôt : attente croissante, bornée (200 ms à 5 s).
+          if (acq.length && acq.every((x) => x.result === "refuse" || x.result === "temporaire")) {
+            pauseRefus = Math.min(Math.max(pauseRefus * 2, PAUSE_REFUS_MIN_MS), PAUSE_REFUS_MAX_MS);
+            await dormir(pauseRefus);
+          } else {
+            pauseRefus = 0;
+          }
         } catch (e) {
           if (!indisponible) this.coeur.journal.consigner("warning", "politique", "approval_service_unavailable", { message: "decisions", code: e?.code ?? "indisponible" });
           indisponible = true;

@@ -447,12 +447,12 @@ describe("CT-7 : modèle de menace et vérificateur de renvois (EX-3.1, EX-A.4, 
     for (const k of CLES.keys.filter((x) => x.algorithm === "secp256k1")) expect(k.address, k.label).to.equal("0x" + C.enHex(C.keccak256(C.depuisHex(k.public_key).slice(1))).slice(26));
   });
 
-  it("RV-7 : chaque occurrence de « CT-7 » dans CT-1 à CT-6 et spec/README.md a sa ligne dans la table 0.2 (101 lignes), et chaque section citée existe", function () {
+  it("RV-7 : chaque occurrence de « CT-7 » dans CT-1 à CT-6 et spec/README.md a sa ligne dans la table 0.2 (121 lignes), et chaque section citée existe", function () {
     const t = S.lireTablesCt7(CT7).tracabilite;
-    expect(t).to.have.length(101);
+    expect(t).to.have.length(121);
     let n = 0;
     for (const [nom, f] of R.FICHIERS_TRACABILITE) n += R.occurrencesCT7(nom, nom === "spec/README.md" ? README : SPECS[nom]).length;
-    expect(n).to.equal(101);
+    expect(n).to.equal(121);
     expect(R.sectionsCitees("Section 7 ; jonction au dossier : CT-7 EX-7.13.")).to.deep.equal(["7"]);
     expect(R.sectionsCitees("7.5 ; vecteurs : annexe A.7.")).to.have.members(["A.7", "7.5"]);
   });
@@ -549,7 +549,7 @@ describe("CT-7 : vecteurs attestations/ et outil de référence (EX-A.8, EX-A.9,
       const fIp = path.join(dossier, "ip.json");
       expect(spawnSync(process.execPath, [ATTESTATION_CLI, "condenser", fIp], { encoding: "utf8" }).status).to.equal(1);
       const cleIp = path.join(dossier, "cle-ip.hex");
-      fs.writeFileSync(cleIp, A.COMPTES[1].privateKey + "\n");
+      fs.writeFileSync(cleIp, A.COMPTES[1].privateKey + "\n", { mode: 0o600 });
       const sIp = spawnSync(process.execPath, [ATTESTATION_CLI, "signer", fIp, "--cle", `fichier:${cleIp}`, "--oui"], { encoding: "utf8" });
       expect(sIp.status).to.equal(1);
       expect(sIp.stdout).to.not.match(/"signature"/);
@@ -572,7 +572,7 @@ describe("CT-7 : vecteurs attestations/ et outil de référence (EX-A.8, EX-A.9,
       expect(v.stdout).to.match(/déclaré par ses signataires, non prouvé/);
       // signer --cle fichier: produit la signature de §7.2 ; assembler redonne l'attestation signée de l'exemple.
       const cle = path.join(dossier, "cle-1.hex");
-      fs.writeFileSync(cle, A.COMPTES[1].privateKey + "\n");
+      fs.writeFileSync(cle, A.COMPTES[1].privateKey + "\n", { mode: 0o600 });
       const s1 = spawnSync(process.execPath, [ATTESTATION_CLI, "signer", fP, "--cle", `fichier:${cle}`, "--oui"], { encoding: "utf8" });
       expect(s1.status).to.equal(0);
       const sig1 = JSON.parse(s1.stdout.slice(s1.stdout.lastIndexOf("{\n")));

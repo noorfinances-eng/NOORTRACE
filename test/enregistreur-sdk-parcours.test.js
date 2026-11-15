@@ -306,7 +306,7 @@ describe("enregistreur, SDK et OpenTelemetry : parcours de bout en bout (démon 
 
   it("le dossier d'un événement de chaque sorte est valide pour le binaire Go noortrace-verifier (go1.27.3)", function () {
     const bin = construireVerificateur(dir);
-    if (!bin) this.skip();
+    if (!bin) { this.test.title += " — en attente : go1.27.3 introuvable (NOORTRACE_GO_BIN ou PATH)"; this.skip(); }
     for (const [nom, d] of Object.entries(dossiers)) {
       const r = spawnSync(bin, [d, "--json"], { encoding: "utf8" });
       expect(r.status, `${nom} : ${r.stdout}${r.stderr}`).to.equal(0);

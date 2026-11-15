@@ -384,6 +384,56 @@ func lireReglesYAML(b []byte) []regleYAML {
 
 var reRunbook = regexp.MustCompile(`RB-[0-9]+`)
 
+// Forme « première occurrence » d'EX-10.6 (révision 0.8 de CT-8). S est un
+// sélecteur de série (nom et étiquettes), w une durée de Prometheus.
+var (
+	reIncrease       = regexp.MustCompile(`increase\(([a-zA-Z_:][a-zA-Z0-9_:]*(?:\{[^{}]*\})?)\[([0-9]+[smhdwy])\]\)`)
+	reIncreaseSimple = regexp.MustCompile(`^(increase|rate)\(([a-zA-Z_:][a-zA-Z0-9_:]*(?:\{[^{}]*\})?)\[([0-9]+[smhdwy])\]\) (>|<|>=|<=|==|!=) ([0-9.]+)$`)
+)
+
+// compteurPremiereOccurrence dit si le compteur S est de ceux que
+// l'extracteur, le démon ou le composant d'ancrage crée à sa première
+// occurrence (EX-10.6) : les séries noortrace_ de ces trois composants ; les
+// métriques noor_* du nœud du registre (10.1, `-metrics-addr`) n'en sont pas.
+func compteurPremiereOccurrence(s string) bool {
+	return strings.HasPrefix(s, "noortrace_")
+}
+
+// PremiereOccurrence réécrit une expression selon EX-10.6 : une règle
+// `increase(x[w]) OP n` devient `(increase(x[w]) OP n) or ((x unless x
+// offset w) OP n)` ; dans une expression composée, `increase(S[w])` devient
+// `((S unless S offset w) or increase(S[w]))`. Une expression qui porte déjà
+// `unless` (fichier régénéré) est rendue telle quelle. La forme simple vaut
+// aussi pour `rate(x[w]) OP n` (arbitrage du 14 novembre, révision d'EX-10.6
+// demandée) ; les formes composées ne réécrivent que `increase`.
+func PremiereOccurrence(expr string) string {
+	if strings.Contains(expr, " unless ") {
+		return expr
+	}
+	if m := reIncreaseSimple.FindStringSubmatch(expr); m != nil {
+		if !compteurPremiereOccurrence(m[2]) {
+			return expr
+		}
+		return fmt.Sprintf("(%s(%s[%s]) %s %s) or ((%s unless %s offset %s) %s %s)", m[1], m[2], m[3], m[4], m[5], m[2], m[2], m[3], m[4], m[5])
+	}
+	return reIncrease.ReplaceAllStringFunc(expr, func(x string) string {
+		m := reIncrease.FindStringSubmatch(x)
+		if !compteurPremiereOccurrence(m[1]) {
+			return x
+		}
+		return fmt.Sprintf("((%s unless %s offset %s) or increase(%s[%s]))", m[1], m[1], m[2], m[1], m[2])
+	})
+}
+
+// remplacerSeuil remplace le seuil par défaut par celui de la configuration
+// modifiée (SV-6) à chacune de ses occurrences : un fichier de référence
+// régénéré porte la forme « première occurrence » d'EX-10.6, où la série
+// d'une règle composée (noortrace_ancrage_inclusion_lente) paraît dans les
+// deux branches, avec la même borne.
+func remplacerSeuil(expr string, rp [2]string) string {
+	return strings.ReplaceAll(expr, rp[0], rp[1])
+}
+
 // reglesTables lit les tables de 10.4 à 10.7 : nom → cellules et section.
 func reglesTables(c *Contexte) (map[string][]string, map[string]string, []string) {
 	cellules := map[string][]string{}
@@ -429,7 +479,9 @@ func FamilleSupervision(c *Contexte) {
 	const f = "supervision"
 	rep := c.Chemin("supervision")
 	if _, err := os.Stat(rep); err != nil {
-		c.Rap.HorsPerimetre(f, "supervision", "présent", "présent", "famille absente")
+		// Revue de sécurité de l'étape 8 : une famille de
+		// l'annexe A absente est une erreur, non une valeur hors périmètre.
+		c.Rap.Erreur("famille supervision absente : %v", err)
 		return
 	}
 	// SV-5
@@ -535,8 +587,12 @@ func FamilleSupervision(c *Contexte) {
 		}
 		if rp, ok := remplacements[r.Nom]; ok {
 			c.Rap.Constater(f, r.Nom, "SV-6 : seuil par défaut dans la référence", strings.Contains(r.Champs["expr"], rp[0]), r.Champs["expr"])
-			attendu["expr"] = strings.Replace(r.Champs["expr"], rp[0], rp[1], 1)
+			attendu["expr"] = remplacerSeuil(r.Champs["expr"], rp)
 		}
+		// EX-10.6 : la règle régénérée porte la forme « première occurrence »
+		// (les tables, et un fichier de référence non régénéré, la forme
+		// courte).
+		attendu["expr"] = PremiereOccurrence(attendu["expr"])
 		if r.Nom == "noortrace_ancre_en_retard" {
 			c.Rap.Comparer(f, r.Nom, "SV-6 : clause for par défaut (7 200 s)", "2h", r.Champs["for"])
 			attendu["for"] = dureeSV(alerte)

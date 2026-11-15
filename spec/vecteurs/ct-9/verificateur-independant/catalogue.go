@@ -318,6 +318,8 @@ type Consignation struct {
 	TestID      string `json:"test_id"`
 	Participant struct {
 		Pseudonym string `json:"pseudonym"`
+		Condition string `json:"condition"`
+		External  *bool  `json:"external"`
 	} `json:"participant"`
 	Judge struct {
 		Pseudonym   string `json:"pseudonym"`

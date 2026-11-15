@@ -3,7 +3,7 @@
 // (§10.7), vérification d'une série de points contre son manifeste et ses
 // événements, avec les noms de règles de §10.5.
 
-import { ZERO32, concatener, decoderHorodatage, estHex, hexVersOctets, octetsVersHex } from "./conventions.mjs";
+import { ZERO32, concatener, decoderHorodatage, descriptionErreur, estHex, hexVersOctets, montrer, octetsVersHex } from "./conventions.mjs";
 import { jcs, jcsOctets } from "./json-strict.mjs";
 import { PREFIXES, sha256Hex, signerEd25519, verifierEd25519 } from "./hachage.mjs";
 import { preuveCoherence, racineMerkle } from "./merkle.mjs";
@@ -165,11 +165,20 @@ export function cleEnVigueur(parSeq, lastSeq, contexte = {}) {
  * l'ordre de REGLES_SERIE, puis, pour une règle, `prerequis_en_echec` avant
  * `piece_hors_dossier`. La série n'est valide que si les deux listes sont
  * vides.
+ *
+ * Bornes (revue de sécurité, CT-7 MN-68) : le travail est proportionnel au
+ * nombre de points et au nombre d'événements fournis, jamais à `tree_size`
+ * (un point de `tree_size` 2^53 − 1 est jugé aussitôt : `root` non évaluée,
+ * `last_seq` violée) ; le hash de chaque événement fourni n'est recalculé
+ * qu'une fois pour toute la série. Garde du point d'entrée (cause S-2) :
+ * une exception levée par un point ou un événement hostile ne sort jamais ;
+ * le résultat est alors un refus nommé, `valide` faux, listes vides et
+ * `erreur_interne` (description de l'exception), membre absent sinon.
  * @param {object[]} points la série, dans l'ordre
  * @param {object} manifeste manifeste de la période
  * @param {object[]} evenements événements fournis (tout ou partie de la période, et le dernier de la précédente)
  * @param {unknown} cles contenu de cles.json, ou null s'il n'est pas fourni
- * @returns {{valide: boolean, rules_failed: string[], rules_not_evaluated: {rule: string, reason: string}[], errors: string[]}}
+ * @returns {{valide: boolean, rules_failed: string[], rules_not_evaluated: {rule: string, reason: string}[], errors: string[], erreur_interne?: string}}
  * @throws {TypeError} manifeste non conforme à son schéma ou à ses relations (à vérifier d'abord)
  */
 export function verifierSeriePointsDeControle(points, manifeste, evenements, cles) {
@@ -177,6 +186,14 @@ export function verifierSeriePointsDeControle(points, manifeste, evenements, cle
   if (!Array.isArray(evenements)) throw new TypeError("tableau d'événements attendu");
   const ecartsM = ecartsManifeste(manifeste);
   if (ecartsM.length) throw new TypeError(`manifeste non conforme : ${ecartsM.join(" ; ")}`);
+  try {
+    return controlerSerie(points, manifeste, evenements, cles);
+  } catch (e) {
+    return { valide: false, rules_failed: [], rules_not_evaluated: [], errors: [], erreur_interne: descriptionErreur(e) };
+  }
+}
+
+function controlerSerie(points, manifeste, evenements, cles) {
   const erreurs = [];
   const regles = new Set();
   const nonEvaluees = new Map();
@@ -197,11 +214,43 @@ export function verifierSeriePointsDeControle(points, manifeste, evenements, cle
   const sansCles = cles === null || cles === undefined;
   const index = sansCles ? null : indexerCles(cles);
   const raisonCles = sansCles ? "piece_hors_dossier" : index.exploitable ? null : "prerequis_en_echec";
-  /** Hash recalculé de l'événement seq : { hash } ; { raison } s'il manque ou ne se recalcule pas. */
+  /** Hash recalculé de l'événement seq, une fois pour toute la série : { hash } ; { raison } s'il manque ou ne se recalcule pas. */
+  const hashesCalcules = new Map();
   const hashDe = (seq) => {
     if (!parSeq.has(seq)) return { raison: "piece_hors_dossier" };
-    const h = hashRecalcule(parSeq.get(seq));
-    return h === null ? { raison: "prerequis_en_echec" } : { hash: h };
+    let r = hashesCalcules.get(seq);
+    if (!r) {
+      const h = hashRecalcule(parSeq.get(seq));
+      r = h === null ? { raison: "prerequis_en_echec" } : { hash: h };
+      hashesCalcules.set(seq, r);
+    }
+    return r;
+  };
+  /**
+   * Règle root pour n ≥ 1 : les événements first_seq à first_seq + n − 1
+   * doivent être fournis et de hash recalculable. Le parcours porte sur les
+   * seuls événements fournis (jamais sur les n numéros, CT-7 MN-68) : il en
+   * compte ceux de l'intervalle ; s'il en manque un, `piece_hors_dossier`,
+   * sauf si l'un des fournis n'a pas de hash recalculable
+   * (`prerequis_en_echec` l'emporte, CT-6 EX-6.5) ; sinon la racine est
+   * recalculée sur les n hash, dans l'ordre des seq.
+   * @returns {{raison: string}|{racine: string}}
+   */
+  const racineDe = (n) => {
+    const premier = manifeste.first_seq;
+    const dernier = premier + n - 1;
+    let presents = 0;
+    let raison = null;
+    for (const seq of parSeq.keys()) {
+      if (!(Number.isSafeInteger(seq) && seq >= premier && seq <= dernier)) continue;
+      presents++;
+      if (hashDe(seq).raison) raison = "prerequis_en_echec";
+    }
+    if (raison) return { raison };
+    if (presents < n) return { raison: "piece_hors_dossier" };
+    const hashes = new Array(n);
+    for (let s = premier; s <= dernier; s++) hashes[s - premier] = hashDe(s).hash;
+    return { racine: racineMerkle(hashes) };
   };
   const debutPeriode = manifeste.period_start * 1000;
 
@@ -248,20 +297,9 @@ export function verifierSeriePointsDeControle(points, manifeste, evenements, cle
     } else if (p.root === ZERO32) {
       ecart("root", `${ici} : root nulle pour tree_size ${p.tree_size}`);
     } else {
-      const hashes = [];
-      let raison = null;
-      for (let s = manifeste.first_seq; s < manifeste.first_seq + p.tree_size; s++) {
-        const h = hashDe(s);
-        if (h.raison) {
-          // prerequis_en_echec l'emporte sur piece_hors_dossier (CT-6 EX-6.5).
-          if (raison !== "prerequis_en_echec") raison = h.raison;
-        } else hashes.push(h.hash);
-      }
-      if (raison) reportsRoot.push(raison);
-      else {
-        const racine = racineMerkle(hashes);
-        if (p.root !== racine) ecart("root", `${ici} : root ${p.root} différent de la racine recalculée ${racine}`);
-      }
+      const r = racineDe(p.tree_size);
+      if (r.raison) reportsRoot.push(r.raison);
+      else if (p.root !== r.racine) ecart("root", `${ici} : root ${p.root} différent de la racine recalculée ${r.racine}`);
     }
     const lastSeqAttendu = manifeste.first_seq + p.tree_size - 1;
     if (p.last_seq !== lastSeqAttendu) ecart("last_seq", `${ici} : last_seq ${p.last_seq} différent de first_seq + tree_size − 1 (${lastSeqAttendu})`);
@@ -302,10 +340,11 @@ export function verifierSeriePointsDeControle(points, manifeste, evenements, cle
   if (!dernier) {
     ecart("dernier_point", "série vide : aucun point ne rejoint le manifeste");
   } else {
-    if (dernier.tree_size !== manifeste.count) ecart("dernier_point", `dernier point : tree_size ${dernier.tree_size} différent de count ${manifeste.count}`);
-    if (dernier.root !== manifeste.root) ecart("dernier_point", `dernier point : root ${dernier.root} différent de celui du manifeste`);
+    // Le dernier point peut être contraire à son schéma : ses valeurs sont montrées en JSON.
+    if (dernier.tree_size !== manifeste.count) ecart("dernier_point", `dernier point : tree_size ${montrer(dernier.tree_size)} différent de count ${manifeste.count}`);
+    if (dernier.root !== manifeste.root) ecart("dernier_point", `dernier point : root ${montrer(dernier.root)} différent de celui du manifeste`);
     if (dernier.last_seq !== manifeste.last_seq) {
-      ecart("dernier_point", `dernier point : last_seq ${dernier.last_seq} différent de celui du manifeste ${manifeste.last_seq}`);
+      ecart("dernier_point", `dernier point : last_seq ${montrer(dernier.last_seq)} différent de celui du manifeste ${manifeste.last_seq}`);
     }
   }
   const rangs = new Map(REGLES_SERIE.map((r, k) => [r, k]));

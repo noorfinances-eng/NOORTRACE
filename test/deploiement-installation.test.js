@@ -87,7 +87,7 @@ function copieJournalVecteur(nom, vers) {
 
 let TRAVAIL;
 before(function () {
-  TRAVAIL = fs.mkdtempSync(path.join(TMP, "noortrace-lot-d-"));
+  TRAVAIL = fs.mkdtempSync(path.join(TMP, "noortrace-installation-"));
 });
 after(function () {
   if (TRAVAIL) fs.rmSync(TRAVAIL, { recursive: true, force: true });
@@ -129,7 +129,7 @@ function hoteSimule(rep, { node = "v22.23.4", installes = [], actifs = [], uid =
   // PATH : commandes simulées d'abord, puis le système pour sed, awk, tar, sha256sum… ; un `node` réel n'est pas visible.
   const sysbin = path.join(rep, "sysbin");
   fs.mkdirSync(sysbin, { recursive: true });
-  for (const c of ["bash", "sed", "awk", "tr", "cut", "grep", "sha256sum", "tar", "xz", "install", "ln", "uname", "cat", "printf", "date", "dirname", "mkdir", "rm", "env", "sh"]) {
+  for (const c of ["bash", "sed", "awk", "tr", "cut", "grep", "sha256sum", "tar", "xz", "install", "ln", "uname", "cat", "printf", "date", "dirname", "mkdir", "rm", "env", "sh", "mktemp", "cp", "mv", "chmod", "stat"]) {
     const r = spawnSync("/bin/sh", ["-c", `command -v ${c}`], { encoding: "utf8" });
     if (r.status === 0 && r.stdout.trim().startsWith("/")) fs.symlinkSync(r.stdout.trim(), path.join(sysbin, c));
   }
@@ -176,7 +176,8 @@ describe("CT-8 IC-2 : préparation de l'hôte (deploiement/hote/preparer-hote.sh
     const stockage = path.join(TRAVAIL, "ic2-vierge", "stockage");
     fs.mkdirSync(stockage);
     // --prefixe propre à l'essai : sans lui, la vérification lisait le node réel de /usr/local/bin de la machine d'essai.
-    const args = ["--os-release", h.osRelease, "--prefixe", path.join(TRAVAIL, "ic2-vierge", "prefixe"), "--utilisateur", "exploitant", "--stockage", stockage, "--declaration-cache", "cache protégé par batterie, fiche du contrôleur", "--pv", pv];
+    // --daemon-json propre à l'essai : le pas moteur (CT-8 CO-8) ne lit ni n'écrit /etc/docker/daemon.json de la machine d'essai.
+    const args = ["--os-release", h.osRelease, "--daemon-json", path.join(TRAVAIL, "ic2-vierge", "daemon.json"), "--prefixe", path.join(TRAVAIL, "ic2-vierge", "prefixe"), "--utilisateur", "exploitant", "--stockage", stockage, "--declaration-cache", "cache protégé par batterie, fiche du contrôleur", "--pv", pv];
     const sim = bash(PREPARER, ["--simulation", ...args], { env: h.env });
     expect(sim.status, sim.stdout + sim.stderr).to.equal(4);
     expect(sim.stdout).to.include("à faire : apt-get install docker.io docker-compose-v2 chrony");
@@ -204,10 +205,11 @@ describe("CT-8 IC-2 : préparation de l'hôte (deploiement/hote/preparer-hote.sh
     const prefixe = path.join(TRAVAIL, "ic2-node", "prefixe");
     const faux = path.join(TRAVAIL, "ic2-node", "node-v22.23.4-linux-x64.tar.xz");
     fs.writeFileSync(faux, "pas une archive de Node.js");
-    const sans = bash(PREPARER, ["--os-release", h.osRelease, "--prefixe", prefixe], { env: h.env });
+    const dj = ["--daemon-json", path.join(TRAVAIL, "ic2-node", "daemon.json")];
+    const sans = bash(PREPARER, ["--os-release", h.osRelease, ...dj, "--prefixe", prefixe], { env: h.env });
     expect(sans.status).to.equal(1);
     expect(sans.stdout).to.include("Node.js 22 absent");
-    const r = bash(PREPARER, ["--os-release", h.osRelease, "--prefixe", prefixe, "--archive-node", faux], { env: h.env });
+    const r = bash(PREPARER, ["--os-release", h.osRelease, ...dj, "--prefixe", prefixe, "--archive-node", faux], { env: h.env });
     expect(r.status).to.equal(1);
     expect(r.stdout).to.include("archive refusée, rien n'est installé");
     expect(fs.existsSync(prefixe)).to.equal(false);
@@ -217,7 +219,7 @@ describe("CT-8 IC-2 : préparation de l'hôte (deploiement/hote/preparer-hote.sh
     // --prefixe propre à l'essai : sans lui, la vérification lit $prefixe/bin/node de la machine
     // d'essai (/usr/local/bin/node : Node.js 20 sur l'exécuteur ubuntu-24.04 de la CI), échoue
     // à l'étape node et n'atteint jamais l'étape stockage.
-    const n = bash(PREPARER, ["--os-release", nfs.osRelease, "--prefixe", path.join(TRAVAIL, "ic2-nfs", "prefixe"), "--stockage", st], { env: nfs.env });
+    const n = bash(PREPARER, ["--os-release", nfs.osRelease, "--daemon-json", path.join(TRAVAIL, "ic2-nfs", "daemon.json"), "--prefixe", path.join(TRAVAIL, "ic2-nfs", "prefixe"), "--stockage", st], { env: nfs.env });
     expect(n.status, n.stdout + n.stderr).to.equal(1);
     expect(n.stdout).to.match(/^IC-2 node +déjà fait \(v22\.23\.4\)$/m);
     expect(n.stdout).to.match(/^IC-2 stockage +échec : .* sur nfs4 : ext4, xfs ou btrfs exigé, jamais NFS ni SMB \(CT-2 EX-12\.2\)$/m);
@@ -233,7 +235,7 @@ describe("CT-8 IC-2 : préparation de l'hôte (deploiement/hote/preparer-hote.sh
     const prefixe = path.join(TRAVAIL, "ic2-archive", "prefixe");
     const pv = path.join(TRAVAIL, "ic2-archive", "pv");
     fs.mkdirSync(pv);
-    const r = bash(PREPARER, ["--os-release", h.osRelease, "--prefixe", prefixe, "--archive-node", archive, "--pv", pv], { env: h.env });
+    const r = bash(PREPARER, ["--os-release", h.osRelease, "--daemon-json", path.join(TRAVAIL, "ic2-archive", "daemon.json"), "--prefixe", prefixe, "--archive-node", archive, "--pv", pv], { env: h.env });
     expect(r.status, r.stdout + r.stderr).to.equal(0);
     expect(r.stdout).to.match(/IC-2 node +fait \(v22\.23\.4\)/);
     expect(fs.readFileSync(path.join(pv, "IC-2-node-version.txt"), "utf8")).to.equal("v22.23.4\n");
@@ -676,8 +678,32 @@ describe("CT-8 §11.4 chemin A (TE-9, TM-37 hors système de référence) : sauv
     console.log(`      TM-37 (hors système de référence, reference=false) : ${JSON.stringify(mesures)}`);
   });
 
-  it("TE-9 : chemin B (copies WORM) et chemin C (journal neuf) — hors de cet essai", function () {
-    enAttente(this, "chemin B éprouvé par test/enregistreur-worm-restauration.test.js (simulateur S3 à verrouillage, Docker) ; chemin C : rotation de chaîne et journal neuf au registre, étape 8 ; TM-37 sur le système de référence de CT-9 §11.1");
+  it("TE-9 : chemin B (copies WORM) tenu par l'essai de reconstruction que cite le catalogue ; chemin C (journal neuf lié au registre) et TM-37 sur le système de référence, éprouvés par aucun essai, rattachés à la porte 2 avec leur motif", function () {
+    // Rattachement réel dans le catalogue publié (spec/vecteurs/ct-9/catalogue.json), sans attente : le chemin B
+    // (CT-8 §11.4) est éprouvé par un autre fichier, qui existe et porte mot pour mot le titre cité (CT-9 EX-5.4) ;
+    // le chemin C (CT-8 §11.4, CT-2 EX-11.16 : clé inutilisable, ancienne clé de chaîne révoquée, journal neuf
+    // inscrit et lié au registre) exige le registre sur le réseau de développement noorcore et n'est éprouvé par
+    // aucun essai : le complément de TE-9 le nomme (porte 2, étape 8), comme TM-37 (à écrire, système de référence).
+    const catalogue = lireJSON(path.join(RACINE, "spec", "vecteurs", "ct-9", "catalogue.json"));
+    const entree = (id) => catalogue.tests.find((e) => e.id === id);
+    const te9 = entree("TE-9");
+    expect(te9.status.state).to.equal("executable");
+    const cites = te9.status.tests.filter((t) => t.file === "test/enregistreur-worm-restauration.test.js");
+    expect(cites, "chemin B cité par TE-9").to.have.lengthOf(1);
+    expect(cites[0].describe).to.include("CT-8 §11.4 chemin B");
+    for (const t of te9.status.tests) {
+      const f = path.join(RACINE, t.file);
+      expect(fs.existsSync(f), t.file).to.equal(true);
+      const texte = fs.readFileSync(f, "utf8");
+      for (const titre of [t.describe, t.it].filter(Boolean)) expect(texte.includes(titre), `titre cité absent de ${t.file} : ${titre}`).to.equal(true);
+    }
+    expect(CT8).to.include("Chemin C : quand la clé courante est inutilisable");
+    expect(te9.status.complement.phase2_step).to.equal(8);
+    expect(te9.status.complement.blocking).to.match(/^Chemin C \(journal neuf, rotation de la clé au registre\)/);
+    expect(te9.status.complement.blocking).to.include("durées sur le système de référence (TM-37)");
+    const tm37 = entree("TM-37");
+    expect([tm37.status.state, tm37.status.phase2_step]).to.deep.equal(["a_ecrire", 8]);
+    expect(tm37.status.blocking).to.include("système de référence");
   });
 });
 

@@ -6,13 +6,13 @@
 // CT-1 §13, pont JSON-RPC vers le réseau Hardhat en mémoire.
 
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import http from "node:http";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import * as N from "@noortrace/noyau";
-import { Machine, lireJsonStrict, completer } from "@noortrace/approbation";
+import { Machine, lireJsonStrict, completer, jcsIntegral } from "@noortrace/approbation";
+import { creerRepertoireTemporaire } from "../../aides/temporaires.mjs";
 
 export const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 export const SPEC = path.join(RACINE, "spec");
@@ -48,9 +48,9 @@ export function signerVote(i, { decision, ticket, request_hash, org_id = ORG_ID,
   return N.signerApprobation(clePrivee(i), { decision, journal_id, org_id, request_hash, ticket });
 }
 
-/** Répertoire temporaire neuf (mode 0700). */
+/** Répertoire temporaire neuf (mode 0700), libéré à la fin du fichier d'essai, échec compris (test/aides/temporaires.mjs). */
 export function repertoireTemporaire(prefixe = "noortrace-approbation-") {
-  const d = fs.mkdtempSync(path.join(os.tmpdir(), prefixe));
+  const d = creerRepertoireTemporaire(prefixe);
   fs.chmodSync(d, 0o700);
   return d;
 }
@@ -66,15 +66,58 @@ export const hashEvenement = (seq) => N.sha256Hex(N.utf8(`noortrace/vecteurs/ct3
  * @param {object} tr trace `tickets/<nom>.json`
  * @param {object} [extra] options de Machine
  */
+/**
+ * Empreinte synthétique d'un ensemble de politique (CT-3 0.8, annexe A.6) :
+ * SHA-256(UTF-8(« ensemble de politique <version> »)), celle que le noyau
+ * d'une trace déclare au `charger`.
+ * @param {string} pv
+ */
+export function empreinteSynthetique(pv) {
+  return N.sha256Hex(N.utf8(`ensemble de politique ${pv}`));
+}
+
+/**
+ * Politique de trace (CT-3 0.8, annexe A.6) : défaut « revue », aucune règle,
+ * le jeu et la séparation de la trace.
+ * @param {{approver_set: object, separation: object}} tr
+ */
+export function politiqueDeTrace(tr) {
+  return {
+    version: 0, default: { name: "defaut : revue", description: null, level: "revue", decision: null, contest_ms: 0 }, rules: [],
+    approver_set: structuredClone(tr.approver_set), separation: structuredClone(tr.separation),
+  };
+}
+
+/**
+ * Membre `approval` qu'envoie le noyau d'une trace (CT-3 0.8, annexe A.6) :
+ * `{ rules: P, mode: "erreur", hold_timeout_ms: 50000, expire_after_ms, timeout_ms: 2000 }`,
+ * celui que porte `messageCharger` pour cette politique.
+ * @param {{approver_set: object, separation: object, expire_after_ms: number}} tr
+ */
+export function approvalDeTrace(tr) {
+  return { rules: politiqueDeTrace(tr), mode: "erreur", hold_timeout_ms: 50000, expire_after_ms: tr.expire_after_ms, timeout_ms: 2000 };
+}
+
+/**
+ * Machine d'une trace de `ct-3/tickets` : versions chargées comme le service
+ * les garde après un `charger` (12.2) de l'approval de trace d'A.6 —
+ * `policy_sha256` déclarée (empreinte synthétique), `approval_sha256` calculé
+ * comme le service le calcule (SHA-256 du JCS du membre reçu) — de sorte que
+ * chaque réponse `evaluer` porte les neuf membres des vecteurs (décision du porteur du 14 novembre 2026 et
+ * addendum).
+ */
 export function machineDeTrace(tr, extra = {}) {
   const p = {
     org_id: tr.org_id, journal_id: tr.journal_id, identifiants: { mode: "compteur" }, max_open_tickets: tr.service.max_open_tickets,
     escalation: tr.service.escalation, administrators: tr.service.administrators, ...extra,
   };
-  const version = (pv) => ({
-    policy_version: pv, environment: tr.environment,
-    approval: { rules: { approver_set: tr.approver_set, separation: tr.separation }, mode: "erreur", expire_after_ms: tr.expire_after_ms, timeout_ms: 2000 },
-  });
+  const version = (pv) => {
+    const approval = approvalDeTrace(tr);
+    return {
+      policy_version: pv, policy_sha256: empreinteSynthetique(pv), approval_sha256: N.sha256Hex(N.utf8(jcsIntegral(approval))),
+      environment: tr.environment, approval,
+    };
+  };
   const m = new Machine(p);
   m.ajouterVersion(version(tr.policy_version));
   m.fixerEnVigueur(tr.policy_version);
@@ -141,15 +184,37 @@ export const OUTIL_PAIEMENT = outilParcours("payments.create");
 export const OUTIL_LECTURE = outilParcours("claims.get");
 export const OUTIL_SUPPRESSION = outilParcours("claims.delete");
 
-/** Message `charger` (12.2). */
-export function messageCharger({ policy_version, rules, expire_after_ms = 3600000, mode = "erreur", environment = "developpement", org_id = ORG_ID, journal_id = JOURNAL_ID }) {
+/**
+ * Message `charger` (12.2). Avec `trace` (un document de `ct-3/tickets`),
+ * c'est le `charger` du noyau d'une trace (CT-3 0.8, annexe A.6) : l'approval
+ * de trace (`approvalDeTrace`), son `expire_after_ms`, son environnement, son
+ * organisation et son journal ; le service y calcule alors l'`approval_sha256`
+ * des vecteurs.
+ */
+export function messageCharger({ policy_version, rules, expire_after_ms = 3600000, mode = "erreur", environment = "developpement", org_id = ORG_ID, journal_id = JOURNAL_ID, trace = null }) {
+  if (trace) {
+    return messageCharger({
+      policy_version, rules: politiqueDeTrace(trace), expire_after_ms: trace.expire_after_ms, mode: "erreur", environment: trace.environment, org_id: trace.org_id, journal_id: trace.journal_id,
+    });
+  }
   return {
     org_id, journal_id, environment, policy_version,
-    policy_sha256: N.sha256Hex(N.utf8(`ensemble de politique ${policy_version}`)),
+    policy_sha256: empreinteSynthetique(policy_version),
     approval: { rules, mode, hold_timeout_ms: 50000, expire_after_ms, timeout_ms: 2000 },
     tools: OUTILS_PARCOURS.map((t) => ({ ...t })),
     requesters: [DEMANDEUR],
   };
+}
+
+/**
+ * Couple que le service garde au `charger` d'un message (CT-3 §12.2, §12.3 ;
+ * décision du porteur du 14 novembre 2026 et son addendum) et reporte dans chaque réponse `evaluer` de cette
+ * version : `policy_version`, `policy_sha256` déclarée, `approval_sha256`,
+ * SHA-256 du JCS du membre `approval` reçu.
+ * @param {{policy_version: string, policy_sha256: string, approval: object}} message
+ */
+export function coupleCharge(message) {
+  return { policy_version: message.policy_version, policy_sha256: message.policy_sha256, approval_sha256: N.sha256Hex(N.utf8(jcsIntegral(message.approval))) };
 }
 
 /** Requête `evaluer` (CT-2 EX-7.4) d'un appel d'outil du parcours. */

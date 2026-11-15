@@ -18,7 +18,7 @@ export function chargerPlaywright() {
   try {
     return { playwright: createRequire(import.meta.url)("playwright") };
   } catch (e) {
-    return { raison: `require("playwright") : ${e.code ?? e.message}` };
+    return { raison: `Playwright absent (require("playwright") : ${e.code ?? e.message})` };
   }
 }
 

@@ -271,7 +271,7 @@ describe("CT-2 révision 0.5 : Gemini à la passerelle et format gemini du SDK (
     expect(C.remplacerPromptSysteme("gemini", corps).systemInstruction).to.deep.equal({ role: "system", parts: [{ text: "[REDIGE:prompt-systeme]" }] });
     expect(C.extrairePromptSysteme("gemini", { contents: [], systemInstruction: "texte" })).to.equal(null);
     expect(C.remplacerPromptSysteme("gemini", { contents: [], systemInstruction: { parts: "x" } }).systemInstruction).to.deep.equal({ parts: "x" });
-    expect(C.redigerPromptEnPlace("gemini", { contents: [], systemInstruction: { parts: [{ text: "écrire à a.b@exemple.ch" }] } }, PII).systemInstruction.parts[0].text).to.equal("écrire à [REDIGE:email]");
+    expect(C.redigerPromptEnPlace("gemini", { contents: [], systemInstruction: { parts: [{ text: "écrire à a.b@ex.example" }] } }, PII).systemInstruction.parts[0].text).to.equal("écrire à [REDIGE:email]");
     expect(C.requeteDeForme("gemini", { contents: [] })).to.equal(true);
     expect(C.requeteDeForme("gemini", { contents: {} })).to.equal(false);
     const rep = { candidates: [{ content: { parts: [{ text: "pensée", thought: true }, { text: "Bon" }, { text: "jour" }, { functionCall: { name: "f" } }, { text: "après" }] } }] };
@@ -375,7 +375,7 @@ describe("CT-2 révision 0.5 : contrôles de démarrage ajoutés (EX-15.4 pas 3 
     expect(erreurs((c) => c.policy.model.routes.push({ ...c.policy.model.routes[0] }))).to.include("chemin en double");
     expect(erreurs((c) => (c.storage.seal.worm.mode = "governance"))).to.include("compliance exigé en production");
     expect(erreurs((c) => Object.assign(c.storage.seal.worm, { type: "azure-immutable-blob", endpoint: null }))).to.include("obligatoire pour azure-immutable-blob");
-    expect(erreurs((c) => Object.assign(c.storage.seal.worm, { type: "gcs-object-retention", endpoint: "https://stockage.exemple" }))).to.include("doit être nul pour gcs-object-retention");
+    expect(erreurs((c) => Object.assign(c.storage.seal.worm, { type: "gcs-object-retention", endpoint: "https://stockage.example" }))).to.include("doit être nul pour gcs-object-retention");
     expect(erreurs((c) => Object.assign(c.storage.seal.worm, { type: "gcs-object-retention", legal_hold_on_write: true }))).to.include("seulement avec s3-object-lock");
     expect(erreurs((c) => (c.storage.seal.worm.legal_hold_on_write = true))).to.include("refusé en production");
     expect(erreurs((c) => Object.assign(c.storage.seal.worm, { type: "gcs-object-retention", endpoint: null }))).to.include("n'est pas admis en production");
@@ -402,7 +402,7 @@ describe("CT-2 révision 0.5 : contrôles de démarrage ajoutés (EX-15.4 pas 3 
     expect(J.validerSchema(c, config, { registre: SCHEMAS })).to.deep.equal([]);
     const v = (w) => J.validerSchema(w, config, { registre: SCHEMAS, fragment: "#/$defs/worm" });
     expect(v({ ...fragment, type: "azure-immutable-blob", endpoint: null })).to.not.deep.equal([]);
-    expect(v({ ...fragment, type: "gcs-object-retention", endpoint: "https://stockage.exemple", legal_hold_on_write: false })).to.not.deep.equal([]);
+    expect(v({ ...fragment, type: "gcs-object-retention", endpoint: "https://stockage.example", legal_hold_on_write: false })).to.not.deep.equal([]);
     expect(v({ ...fragment, type: "gcs-object-retention", endpoint: null, legal_hold_on_write: true })).to.not.deep.equal([]);
     expect(v({ ...fragment, type: "gcs-object-retention", endpoint: null, legal_hold_on_write: false })).to.deep.equal([]);
   });
@@ -428,8 +428,8 @@ describe("CT-2 révision 0.5 : ingestion OpenTelemetry (6.8, EX-6.25 à EX-6.41)
   }
   const piecesDe = (s) => (s.pieces === null ? null : s.sorte === "outil" ? { source: avecOctets(s.pieces.source), envelope: avecOctets(s.pieces.envelope), arguments: avecOctets(s.pieces.arguments), result: avecOctets(s.pieces.result), system_prompt: null, intent: null } : { source: avecOctets(s.pieces.source), envelope: avecOctets(s.pieces.envelope), request: avecOctets(s.pieces.request), response: avecOctets(s.pieces.response), system_prompt: avecOctets(s.pieces.system_prompt), intent: avecOctets(s.pieces.intent) });
 
-  it("otel/ : les 48 cas de l'annexe B.8 rejoués (statut, réponse octet pour octet, issues, formes normalisées, pièces, événements, chaîne, E-1 à E-11, lag_ms)", function () {
-    expect(CAS).to.have.length(48);
+  it("otel/ : les 49 cas de l'annexe B.8 rejoués (statut, réponse octet pour octet, issues, formes normalisées, pièces, événements, chaîne, E-1 à E-11, lag_ms)", function () {
+    expect(CAS).to.have.length(49);
     const cles = { "rec-test-01": CLE_01.clePublique };
     for (const nom of CAS) {
       const { r, evenements, at, source } = rejouer(nom);

@@ -69,6 +69,14 @@ export function jcsIntegral(racine) {
   const sortie = [];
   const enCours = new Set();
   const pile = [{ v: racine }];
+  // Les tâches d'un conteneur sont empilées une à une : un appel
+  // `push(...taches)` passe autant d'arguments que d'éléments et lève
+  // RangeError au-delà d'environ 62 000 ; evaluer répondait alors 500.
+  const empiler = (taches, fermeture, ouverture, conteneur) => {
+    pile.push({ fin: conteneur }, fermeture);
+    for (let k = taches.length - 1; k >= 0; k--) pile.push(taches[k]);
+    pile.push(ouverture);
+  };
   while (pile.length) {
     const t = pile.pop();
     if (t.texte !== undefined) {
@@ -96,7 +104,7 @@ export function jcsIntegral(racine) {
           if (k > 0) taches.push({ texte: "," });
           taches.push({ v: v[k] });
         }
-        pile.push({ fin: v }, { texte: "]" }, ...taches.reverse(), { texte: "[" });
+        empiler(taches, { texte: "]" }, { texte: "[" }, v);
       } else {
         const cles = Object.keys(v).sort();
         cles.forEach((c, k) => {
@@ -104,7 +112,7 @@ export function jcsIntegral(racine) {
           if (k > 0) taches.push({ texte: "," });
           taches.push({ texte: ecrireChaine(c) + ":" }, { v: v[c] });
         });
-        pile.push({ fin: v }, { texte: "}" }, ...taches.reverse(), { texte: "{" });
+        empiler(taches, { texte: "}" }, { texte: "{" }, v);
       }
     } else {
       throw new ErreurJson("non_json", `valeur non JSON (${typeof v})`);

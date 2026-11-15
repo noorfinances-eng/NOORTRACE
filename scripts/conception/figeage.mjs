@@ -26,7 +26,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import {
   FICHIER_MANIFESTE, FICHIER_REGISTRE, REPERTOIRE_FIGE, VERSION_CONCEPTION,
-  cheminFigeable, consignerModification, ecrireManifeste, texteRegistre, verifierFigeage,
+  cheminFigeable, consignerModification, ecrireManifeste, sousFigeage, texteRegistre, verifierFigeage,
 } from "../lib/figeage.mjs";
 
 const USAGE = [
@@ -42,14 +42,18 @@ class ErreurUsage extends Error {}
 const sha256 = (octets) => createHash("sha256").update(octets).digest("hex");
 
 // Fichiers présents sous spec/ : suivis par git, plus les nouveaux non
-// ignorés ; un fichier suivi supprimé de l'arbre de travail est absent.
+// ignorés ; un fichier suivi supprimé de l'arbre de travail est absent. Seul
+// spec/figeage/ est écarté : un fichier au nom non figeable est rendu avec son
+// condensé et la vérification le signale en erreur, au lieu de
+// l'ignorer en silence.
 export function fichiersPresents(racine) {
   const r = spawnSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", REPERTOIRE_FIGE], { cwd: racine, encoding: "buffer" });
   if (r.error || r.status !== 0) throw new ErreurUsage(`git ls-files a échoué dans ${racine} : ${r.error?.message ?? r.stderr.toString("utf8").trim()}`);
   const chemins = [...new Set(r.stdout.toString("utf8").split("\0").filter((c) => c !== ""))];
   const table = new Map();
   for (const chemin of chemins) {
-    if (!cheminFigeable(chemin)) continue;
+    if (sousFigeage(chemin)) continue;
+    if (!cheminFigeable(chemin) && !chemin.startsWith(REPERTOIRE_FIGE)) continue;
     const absolu = path.join(racine, chemin);
     let st;
     try {
@@ -147,9 +151,12 @@ export function executer(argv, { sortie = process.stdout, erreur = process.stder
         etape = Number(o.etape);
       }
       const date = o.date ?? dateDuJour();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new ErreurUsage("--date attend AAAA-MM-JJ");
+      // une consignation datée après le jour de l'outil est refusée.
+      if (date > dateDuJour()) throw new ErreurUsage(`--date ${date} postérieure au jour de la consignation ${dateDuJour()}`);
       let suivant;
       try {
-        suivant = consignerModification({ ...entrees, fichiers, date, etape, motif: o.motif });
+        suivant = consignerModification({ ...entrees, fichiers, date, etape, motif: o.motif, dateMax: dateDuJour() });
       } catch (e) {
         erreur.write(`${e.message}\n`);
         return 1;
@@ -160,7 +167,7 @@ export function executer(argv, { sortie = process.stdout, erreur = process.stder
       for (const f of mod.fichiers) sortie.write(`  ${f.avant === null ? "ajouté " : f.apres === null ? "supprimé" : "modifié "} ${f.chemin}\n`);
       return 0;
     }
-    const { erreurs, ecarts, etat } = verifierFigeage({ ...entrees, fichiers });
+    const { erreurs, ecarts, etat } = verifierFigeage({ ...entrees, fichiers, dateMax: dateDuJour() });
     const conforme = erreurs.length === 0 && ecarts.length === 0;
     if (o.json) {
       sortie.write(JSON.stringify({

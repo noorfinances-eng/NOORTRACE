@@ -2,13 +2,15 @@
 // OP-1 (CT-4 §7.3 : « OP-2 avant OP-1 »), clés des comptes de l'exploitant
 // par rôle (EX-3.1, EX-7.3), dossier du client, lectures d'état du registre
 // des jeux (`isRegistered`, `curatorSetOf`, `admin`), confirmations hors
-// bande (EX-7.26).
+// bande (EX-7.26), provision d'un dossier (OP-4 : EX-4.19, EX-4.20, EX-8.20 ;
+// revue de l'étape 8 : l'outil de référence la recalcule depuis
+// `fees` du manifeste et compare `funder` à la trésorerie).
 
 import fs from "node:fs";
 import { keccak256, octetsVersHex, utf8 } from "@noortrace/noyau";
 import * as R from "@noortrace/ancrage/registre";
 import { op1, op2, lecture } from "../reseau.mjs";
-import { signataire, ErreurReference } from "../cles.mjs";
+import { signataire, ErreurReference, MESSAGE_REFERENCE_NON_RESOLUE, referenceDeTravail } from "../cles.mjs";
 import { lireDossier } from "../dossier.mjs";
 import * as J from "../jeu.mjs";
 import { ajouterLigne, lireLignes } from "../donnees.mjs";
@@ -45,35 +47,59 @@ export async function prealables(ctx, sortie) {
 }
 
 /**
- * Référence de la clé d'un rôle : celle du travail, sinon celle de la
+ * Référence de la clé d'un rôle : celle du travail (ramenée à sa référence
+ * effective par `referenceDeTravail` : fichier du répertoire de clés de
+ * l'agent ou alias de sa configuration, CT-4 EX-7.25), sinon celle de la
  * configuration (`comptes.<rôle>`, ou `comptes.exploitant` qui tient les
  * quatre rôles sur les réseaux 2124 et 31337, EX-7.3). Rend `{ reference,
- * role }` ou null.
+ * role, alias }` ou null ; lève `ErreurReference` pour une référence de
+ * travail refusée.
  */
 export function referenceRole(ctx, role, reference = null) {
-  if (reference) return { reference, role };
+  if (reference) {
+    const r = referenceDeTravail(role, reference, ctx.config.cles);
+    return { reference: r.reference, role, alias: r.alias };
+  }
   const c = ctx.config.comptes ?? {};
-  if (c[role]) return { reference: c[role], role };
-  if (c.exploitant) return { reference: c.exploitant, role: "exploitant" };
+  if (c[role]) return { reference: c[role], role, alias: null };
+  if (c.exploitant) return { reference: c.exploitant, role: "exploitant", alias: null };
   return null;
 }
 
 /**
  * Résout la clé d'un rôle ; arrêt `usage` si aucune n'est désignée ou si la
  * référence ne se résout pas. Une référence résolue est consignée
- * (`reference_employee` : travail, client, rôle, référence, jamais la clé) :
- * la recherche d'EX-7.21 du paquet porte sur les références qu'ont employées
- * les travaux du client.
+ * (`reference_employee` : travail, client, rôle, référence effective, alias,
+ * jamais la clé) : la recherche d'EX-7.21 du paquet porte sur les références
+ * qu'ont employées les travaux du client. Une référence qui ne se résout pas
+ * rend à l'interface le seul message `MESSAGE_REFERENCE_NON_RESOLUE` ; le
+ * détail (forme, motif, jamais une valeur) va au journal de l'agent
+ * (`reference_non_resolue`), CT-4 EX-7.25. Les refus
+ * d'EX-7.3 (`reseau_non_developpement`), qui ne dépendent que de la nature
+ * de l'instance et de la forme, gardent leur message.
  */
 export function cleRole(ctx, sortie, role, reference = null, { option = role } = {}) {
-  const r = referenceRole(ctx, role, reference);
+  const nonResolue = (e, r) => {
+    ctx.consigner?.("reference_non_resolue", { id: ctx.travailId ?? null, slug: ctx.slug ?? null, role: r?.role ?? role, forme: r ? String(r.reference).split(":")[0] : null, detail: String(e.detail ?? e.message).slice(0, 300) });
+    sortie.arreter("inutilisable", "usage", null, MESSAGE_REFERENCE_NON_RESOLUE);
+  };
+  let r;
+  try {
+    r = referenceRole(ctx, role, reference);
+  } catch (e) {
+    if (e instanceof ErreurReference) nonResolue(e, null);
+    throw e;
+  }
   if (!r) sortie.arreter("inutilisable", "usage", null, `${option} (ou exploitant sur le réseau de développement) est obligatoire`);
   try {
     const s = signataire(r.reference, { role: r.role, nature: ctx.instance.nature, evmChainId: ctx.instance.evmChainId });
-    ctx.consigner?.("reference_employee", { id: ctx.travailId ?? null, slug: ctx.slug ?? null, role: r.role, reference: r.reference });
+    ctx.consigner?.("reference_employee", { id: ctx.travailId ?? null, slug: ctx.slug ?? null, role: r.role, reference: r.reference, alias: r.alias });
     return s;
   } catch (e) {
-    if (e instanceof ErreurReference) sortie.arreter(e.code === "reseau_non_developpement" ? "refuse" : "inutilisable", e.code === "reseau_non_developpement" ? "reseau_non_developpement" : "usage", null, e.message);
+    if (e instanceof ErreurReference) {
+      if (e.code === "reseau_non_developpement") sortie.arreter("refuse", "reseau_non_developpement", null, e.message);
+      nonResolue(e, r);
+    }
     throw e;
   }
 }
@@ -101,6 +127,36 @@ export function ecartRolesDistincts(ctx, adresses) {
     vus.set(a, role);
   }
   return null;
+}
+
+/** Provision `P_k = provision_days × b_k + gas_limit` (EX-4.19), depuis les frais du manifeste. */
+export function provision(fees, budget) {
+  return BigInt(fees.provision_days) * BigInt(budget) + BigInt(fees.gas_limit);
+}
+
+/** Budget journalier au-delà de `fees.max_daily_budget_gas` (EX-8.20) ; un plafond nul ou absent n'en est pas un (`normaliserFees`). */
+export function budgetAuDelaDuPlafond(fees, budget) {
+  const plafond = fees.max_daily_budget_gas;
+  return plafond !== undefined && plafond !== null && BigInt(budget) > BigInt(plafond);
+}
+
+/**
+ * OP-4, provision d'un dossier d'inscription (point commun de la préparation
+ * et de l'exécution, comme `inscrire-client --preparer` et `--dossier` de
+ * l'outil) : `funding.funder` est le compte de rôle `tresorerie` du
+ * manifeste (`compte_inattendu`), `daily_budget_gas` ne dépasse pas le
+ * plafond et `amount_wei` est `P_k` recalculé depuis `fees` du manifeste
+ * (`provision_excessive`) ; la provision versée est toujours celle recalculée,
+ * jamais celle du dossier. Échec de la vérification OP-4 sinon.
+ */
+export function controlerProvisionDossier(ctx, sortie, { funder, budget, amountWei }) {
+  const tresorerie = ctx.instance.comptes.tresorerie ?? null;
+  if (!tresorerie) sortie.echec("OP-4", "refuse", "compte_inattendu", "aucun compte de rôle tresorerie dans le manifeste");
+  if (funder !== tresorerie) sortie.echec("OP-4", "refuse", "compte_inattendu", `funding.funder ${funder} ≠ compte de rôle tresorerie ${tresorerie} du manifeste (EX-4.19)`);
+  if (budgetAuDelaDuPlafond(ctx.instance.fees, budget)) sortie.echec("OP-4", "refuse", "provision_excessive", `funding.daily_budget_gas ${budget} au-delà de fees.max_daily_budget_gas ${ctx.instance.fees.max_daily_budget_gas} du manifeste (EX-8.20)`);
+  const attendu = provision(ctx.instance.fees, budget);
+  if (amountWei !== null && BigInt(amountWei) !== attendu) sortie.echec("OP-4", "refuse", "provision_excessive", `funding.amount_wei ${amountWei} ≠ provision_days × daily_budget_gas + gas_limit = ${attendu} wei recalculée depuis fees du manifeste (EX-4.19, EX-4.20)`);
+  return attendu;
 }
 
 /** Lit le dossier du client ; arrêt `entree_illisible` (OP-4) s'il est hors de son schéma, `usage` s'il manque. */
@@ -164,15 +220,31 @@ export class ConfirmationAbsente extends Error {
 }
 
 /**
- * Consomme, juste avant un versement, la plus ancienne confirmation non
- * consommée qui l'autorise ; lève `ConfirmationAbsente` s'il n'y en a pas
- * (l'agent ne croit pas l'admission faite à la remise). Rend son `id`.
+ * La plus ancienne confirmation non consommée qui autorise une opération
+ * (EX-7.26), sans la consommer ; lève `ConfirmationAbsente` s'il n'y en a pas
+ * (l'agent ne croit pas l'admission faite à la remise). Sa `piece_sha256`
+ * (le SHA-256 de la pièce qui porte la confirmation, saisi par l'exploitant
+ * qui l'a recueillie) est ce que l'outil de référence rend dans
+ * `outputs.confirmation_sha256` d'`approvisionner` et d'`administrer-jeu`
+ * depuis `--confirmation <fichier>` (CT-4 EX-8.21, revue de l'étape 8),
+ * y compris quand rien n'est versé (`deja_fait`) ; l'agent le rend de
+ * même (EX-7.24).
  */
-export function consommerConfirmation(ctx, { operations, orgId, cleChaine = null, digest = null }) {
+export function confirmationRequise(ctx, { operations, orgId, cleChaine = null, digest = null }) {
   const c = confirmationsPour(ctx, { operations, orgId, cleChaine, digest })[0];
   if (!c) throw new ConfirmationAbsente(digest !== null ? `confirmation hors bande absente pour la demande d'administration du jeu ${digest} (EX-7.26)` : `confirmation hors bande absente pour l'approvisionnement de ${cleChaine} (EX-7.26)`);
+  return c;
+}
+
+/**
+ * Consomme, juste avant un versement ou un relais, la plus ancienne
+ * confirmation non consommée qui l'autorise (`confirmationRequise`) ; rend la
+ * confirmation consommée.
+ */
+export function consommerConfirmation(ctx, { operations, orgId, cleChaine = null, digest = null }) {
+  const c = confirmationRequise(ctx, { operations, orgId, cleChaine, digest });
   ajouterLigne(ctx.donnees.confirmations, { consommation: c.id, travail: ctx.travailId, org_id: orgId, ...(digest !== null ? { digest } : { cle_chaine: cleChaine }), instant: ecrireHorodatage(ctx.horloge.murale()) });
-  return c.id;
+  return c;
 }
 
 export { ZERO20 };

@@ -25,7 +25,10 @@
 // exécute des motifs (rédaction d'une pièce, extract d'un gabarit d'effets,
 // examen d'une valeur en ligne) tourne dans un contexte node:vm avec l'option
 // timeout, qui interrompt une recherche en cours ; hors dépassement, le
-// résultat ne dépend pas de la machine. Les scripts
+// résultat ne dépend pas de la machine. Ce qui s'exécute hors de cette borne
+// sur une entrée d'hôte (contrôle des nombres d'EX-4.44, analyse SSE) est
+// linéaire en la taille de l'entrée : aucune expression qui revient en
+// arrière, aucun étalement d'arguments. Les scripts
 // (scripts/vecteurs/generer-ct2.mjs) lisent et écrivent les fichiers.
 
 import { createHmac } from "node:crypto";
@@ -369,18 +372,26 @@ export function sansBlancs(texte) {
   return out;
 }
 
-/** Valeur décimale exacte d'un texte de nombre JSON, sous la forme { signe, chiffres, exposant } normalisée (sans zéro de tête ni de queue). */
+/**
+ * Valeur décimale exacte d'un texte de nombre JSON, sous la forme { signe,
+ * chiffres, exposant } normalisée (sans zéro de tête ni de queue). Les zéros
+ * de tête et de queue sont retirés par un balayage linéaire, jamais par une
+ * expression qui revient en arrière (`/0+$/` est quadratique sur `1000…01`) :
+ * le contrôle d'EX-4.44 est sur le chemin de toute requête d'hôte, avant la
+ * borne de temps d'EX-10.23, et doit rester linéaire en la longueur du nombre.
+ */
 function decimalExact(t) {
   const m = /^(-?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(t);
   if (!m) return null;
-  let chiffres = m[2] + (m[3] ?? "");
+  const chiffres = m[2] + (m[3] ?? "");
   let exposant = BigInt(m[4] ?? "0") - BigInt((m[3] ?? "").length);
-  chiffres = chiffres.replace(/^0+/, "");
-  if (chiffres === "") return { signe: "", chiffres: "0", exposant: 0n };
-  const queue = chiffres.length - chiffres.replace(/0+$/, "").length;
-  chiffres = chiffres.slice(0, chiffres.length - queue);
-  exposant += BigInt(queue);
-  return { signe: m[1], chiffres, exposant };
+  let debut = 0;
+  while (debut < chiffres.length && chiffres[debut] === "0") debut++;
+  if (debut === chiffres.length) return { signe: "", chiffres: "0", exposant: 0n };
+  let fin = chiffres.length;
+  while (fin > debut && chiffres[fin - 1] === "0") fin--;
+  exposant += BigInt(chiffres.length - fin);
+  return { signe: m[1], chiffres: chiffres.slice(debut, fin), exposant };
 }
 
 /**
@@ -782,11 +793,34 @@ export function segmentsHorsJetons(s, reJetons) {
 }
 
 /**
+ * Correspondances successives d'un trouveur dans une chaîne (EX-10.9) : de
+ * gauche à droite, sans chevauchement, chaque recherche reprenant après la fin
+ * de la précédente, qui vaut frontière « comme le `]` du jeton qui la
+ * remplace ». Le reste de la chaîne est donc présenté au trouveur comme une
+ * chaîne à part entière (sous-chaîne depuis la fin de la correspondance
+ * précédente) : les ancres `^`, `\b` et `\B` d'un motif nommé y voient un
+ * début de chaîne, comme les frontières des détecteurs nommés, et aucun
+ * candidat ne commence dans une correspondance déjà remplacée. Rend
+ * [{ debut, fin, valeur }] aux positions de la chaîne d'origine.
+ */
+function correspondancesSuccessives(s, trouveur) {
+  const out = [];
+  let i = 0;
+  while (i <= s.length) {
+    const m = trouveur(i === 0 ? s : s.slice(i), 0);
+    if (!m) break;
+    out.push({ debut: m.debut + i, fin: m.fin + i, valeur: m.valeur });
+    i = m.fin + i;
+  }
+  return out;
+}
+
+/**
  * Applique un détecteur de texte à une chaîne (EX-10.9) : sur chaque segment
  * hors jeton, indépendamment, correspondances de gauche à droite, sans
  * chevauchement, chaque recherche reprenant après la fin de la précédente, qui
- * vaut frontière. `jeton(valeurNormalisee)` donne le remplacement. Rend
- * { texte, nombre }.
+ * vaut frontière (correspondancesSuccessives). `jeton(valeurNormalisee)` donne
+ * le remplacement. Rend { texte, nombre }.
  */
 export function appliquerDetecteurTexte(s, trouveur, jeton, reJetons = null) {
   let out = "";
@@ -798,9 +832,7 @@ export function appliquerDetecteurTexte(s, trouveur, jeton, reJetons = null) {
     }
     const x = seg.texte;
     let i = 0;
-    for (;;) {
-      const m = trouveur(x, i);
-      if (!m) break;
+    for (const m of correspondancesSuccessives(x, trouveur)) {
       out += x.slice(i, m.debut) + jeton(m.valeur);
       i = m.fin;
       nombre++;
@@ -810,18 +842,11 @@ export function appliquerDetecteurTexte(s, trouveur, jeton, reJetons = null) {
   return { texte: out, nombre };
 }
 
-/** Les correspondances d'un détecteur nommé dans une chaîne (pour les tests et l'inspection) : [{ debut, fin, valeur }]. */
+/** Les correspondances d'un détecteur nommé dans une chaîne (pour les tests et l'inspection) : [{ debut, fin, valeur }], règle d'EX-10.9 (correspondancesSuccessives). */
 export function correspondances(type, s, motif) {
   const trouveur = type === "regex" ? (x, d) => trouverRegex(compilerMotif(motif), x, d) : TROUVEURS[type];
   if (!trouveur) throw new Error(`détecteur inconnu : ${type}`);
-  const out = [];
-  let i = 0;
-  for (;;) {
-    const m = trouveur(s, i);
-    if (!m) return out;
-    out.push(m);
-    i = m.fin;
-  }
+  return correspondancesSuccessives(s, trouveur);
 }
 
 // ---------------------------------------------------------------------------
@@ -1368,13 +1393,20 @@ function passageRedaction(politique, v, { portee, outil, alias }) {
   return { valeur: v, change, comptes, notes };
 }
 
-/** Les passages d'EX-10.14 sur une copie de la valeur, sans borne de temps : { valeur, correspondances, notes }. */
+/**
+ * Les passages d'EX-10.14 sur une copie de la valeur, sans borne de temps :
+ * { valeur, correspondances, notes }. Le nombre de passages n'est borné que
+ * par la finitude qu'EX-10.14 établit (chaque passage qui change la valeur
+ * remplace des caractères hors jeton par un jeton ou retire un membre, les
+ * jetons ne sont jamais modifiés) et par la borne de temps d'EX-10.23 que
+ * l'appelant pose : aucun plafond arbitraire (une cascade de 65 candidats qui
+ * se libèrent l'un l'autre demande 66 passages et est une pièce rédigeable).
+ */
 function passagesRedaction(politique, valeur, { portee, outil, alias }) {
   let v = copieJSON(valeur);
   let notes = [];
   const cumul = new Map();
   for (let passage = 0; ; passage++) {
-    if (passage > 64) throw new Error("rédaction : la règle des passages ne converge pas (bogue)");
     const r = passageRedaction(politique, v, { portee, outil, alias });
     v = r.valeur;
     if (passage === 0) notes = r.notes;
@@ -1428,15 +1460,15 @@ const detecteursTexte = (regle) => (regle.detectors ?? []).filter((d) => d.type 
  * Applique à une chaîne les détecteurs de texte des règles données, chacune
  * avec son action (remplacer ou pseudonyme ; supprimer, qui n'a que le
  * détecteur champ, ne joue pas), dans l'ordre, par passages jusqu'au point
- * fixe comme EX-10.14. La chaîne est la racine : `path` ne s'applique pas à
+ * fixe comme EX-10.14 (nombre de passages fini, aucun plafond arbitraire, voir
+ * passagesRedaction). La chaîne est la racine : `path` ne s'applique pas à
  * une valeur en ligne. Sans borne de temps : l'appelant l'exécute sous
  * sousBudget. Rend { texte, correspondances: [{ rule, detector, count }] }.
  */
 function redigerChaineParDetecteurs(politique, chaine, regles) {
   let texte = chaine;
   const cumul = new Map();
-  for (let passage = 0; ; passage++) {
-    if (passage > 64) throw new Error("rédaction : la règle des passages ne converge pas (bogue)");
+  for (;;) {
     let change = false;
     for (const regle of regles) {
       regleEnCours = regle.id;
@@ -2147,7 +2179,8 @@ export class AnalyseurSSE {
       }
       this.ligne += c;
     }
-    this.evenements.push(...out);
+    // Un événement à la fois : un étalement d'arguments (push(...out)) déborde la pile au-delà d'environ 125 000 événements dans un fragment.
+    for (const e of out) this.evenements.push(e);
     return out;
   }
 

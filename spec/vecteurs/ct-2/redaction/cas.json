@@ -1517,6 +1517,126 @@
     "note": "Le pointeur /amount_cents ne résout pas : la règle est sans effet pour cette pièce, sans erreur (note du journal d'exploitation)."
   },
   {
+    "name": "motif-ancre-non-frontiere",
+    "policy": "pii-regles-test",
+    "scope": "resultat",
+    "tool": "ancres__test",
+    "input": {
+      "note": "zzz"
+    },
+    "expected": {
+      "piece": "{\"note\":\"z[REDIGE:ancre-non-frontiere]z\"}",
+      "sha256": "0x5ceb2aa00727c823f780e5ef86d031009eed48dbdeda8a7280545e1c21757737",
+      "length": 41,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "motifs-ancres",
+          "detector": "regex",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Motif \\Bz sur « zzz » : le z du milieu seul est rédigé ; la fin de la correspondance remplacée vaut frontière pour le candidat qui suit (comme le ] du jeton), donc \\B n'y tient pas et le troisième z reste (EX-10.9)."
+  },
+  {
+    "name": "motif-ancre-alternative",
+    "policy": "pii-regles-test",
+    "scope": "resultat",
+    "tool": "ancres__test",
+    "input": {
+      "note": "x#"
+    },
+    "expected": {
+      "piece": "{\"note\":\"[REDIGE:ancre-alternative]#\"}",
+      "sha256": "0x01b31e1a80d77967acece090f15f1b9a274be9c0fe2db4e83908864b1e7aff9f",
+      "length": 38,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "motifs-ancres",
+          "detector": "regex",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Motif x|\\b# sur « x# » : x rédigé ; # suit la frontière du jeton, \\b n'y tient pas, # reste (EX-10.9)."
+  },
+  {
+    "name": "motif-ancre-debut-adjacents",
+    "policy": "pii-regles-test",
+    "scope": "resultat",
+    "tool": "ancres__test",
+    "input": {
+      "note": "123123123"
+    },
+    "expected": {
+      "piece": "{\"note\":\"[REDIGE:ancre-debut][REDIGE:ancre-debut][REDIGE:ancre-debut]\"}",
+      "sha256": "0xcfaf180e6f85627f6d21cb8017f441c12dfd5414badf17dfe1bb3c644a38a61d",
+      "length": 71,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "motifs-ancres",
+          "detector": "regex",
+          "count": 3
+        }
+      ]
+    },
+    "note": "Motif ^[0-9]{3} sur trois candidats adjacents : après chaque correspondance remplacée, le candidat suivant est en début de chaîne ; les trois sont rédigés en un passage (EX-10.9)."
+  },
+  {
+    "name": "motif-ancre-frontiere-adjacents",
+    "policy": "pii-regles-test",
+    "scope": "resultat",
+    "tool": "ancres__test",
+    "input": {
+      "note": "AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234AB1234 fin"
+    },
+    "expected": {
+      "piece": "{\"note\":\"[REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere][REDIGE:ancre-frontiere] fin\"}",
+      "sha256": "0x5445959855f86fdfab30ea8e6670e11278e5c1ffefc8e0a6c8944c97749413bd",
+      "length": 1575,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "motifs-ancres",
+          "detector": "regex",
+          "count": 65
+        }
+      ]
+    },
+    "note": "Motif \\b[A-Z]{2}[0-9]{4} sur 65 candidats adjacents : la fin de chaque correspondance remplacée vaut frontière de mot pour le suivant ; 65 correspondances en un passage, pièce idempotente (EX-10.9, EX-10.15)."
+  },
+  {
+    "name": "passages-en-cascade",
+    "policy": "pii-regles-test",
+    "scope": "resultat",
+    "tool": "ancres__test",
+    "input": {
+      "note": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB"
+    },
+    "expected": {
+      "piece": "{\"note\":\"[REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-a][REDIGE:cascade-b]\"}",
+      "sha256": "0x78437ab32ac0eadaf2bbcad4d273d8bc802b51c002ee7de67eaeef65605e0033",
+      "length": 1199,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "motifs-ancres",
+          "detector": "regex",
+          "count": 1
+        },
+        {
+          "rule": "motifs-ancres",
+          "detector": "regex",
+          "count": 65
+        }
+      ]
+    },
+    "note": "Cascade de passages (EX-10.14) : B$ rédige le B au premier passage ; A\\b ne trouve alors que le dernier A (seul suivi d'une frontière) et chaque passage n'en libère qu'un : 66 passages, 65 + 1 correspondances, aucune borne arbitraire du nombre de passages (le texte n'exige que la finitude, EX-10.23 borne le temps)."
+  },
+  {
     "name": "pseudonyme-iban",
     "policy": "pii-pseudo-test",
     "scope": "arguments",

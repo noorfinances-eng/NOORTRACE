@@ -77,12 +77,12 @@ export function construireCas(C) {
   ajouter("valide-minimal", entree("TV-2"), "valide", null);
   ajouter("valide-ta", entree("TA-3"), "valide", null);
   { const t = entree("TV-2"); t.status = { state: "executable", command: "npm test" }; ajouter("invalide-executable-sans-titre", t, "invalide", "anyOf"); }
-  { const t = entree("TE-1"); delete t.status.phase2_step; ajouter("invalide-a-ecrire-sans-etape", t, "invalide", "required"); }
+  { const t = entree("TM-40"); delete t.status.phase2_step; ajouter("invalide-a-ecrire-sans-etape", t, "invalide", "required"); }
   { const t = entree("TA-3"); delete t.adversarial; ajouter("invalide-ta-sans-adversarial", t, "invalide", "required"); }
   { const t = entree("TV-2"); t.covers = ["E-2"]; ajouter("invalide-identifiant-sans-specification", t, "invalide", "pattern"); }
   { const t = entree("TM-1"); t.measure.measured = 4.2; ajouter("invalide-tm-mesure-inventee", t, "invalide", "type"); }
   { const t = entree("TA-3"); t.status.tests[0].it = ""; ajouter("invalide-ta-titre-vide", t, "invalide", "minLength"); }
-  { const t = entree("TA-14"); delete t.status.complement.phase2_step; ajouter("invalide-ta-complement-sans-etape", t, "invalide", "required"); }
+  { const t = entree("TA-41"); delete t.status.complement.phase2_step; ajouter("invalide-ta-complement-sans-etape", t, "invalide", "required"); }
   { const t = entree("TA-3"); t.adversarial.threat_test_text = t.adversarial.threat_test_text.replace("Le test échoue si la réponse est retirée : ", ""); ajouter("invalide-ta-prefixe-test", t, "invalide", "pattern"); }
   { const t = entree("TA-103"); delete t.adversarial.composition; ajouter("invalide-ta-scenario-sans-composition", t, "invalide", "required"); }
   for (const c of cas) if (!c.contenu.tests[0]) throw new Error(`cas ${c.file} : entrée source absente du catalogue`);

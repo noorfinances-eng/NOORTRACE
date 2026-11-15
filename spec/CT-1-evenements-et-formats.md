@@ -1,10 +1,17 @@
 # CT-1 — Modèle d'événement et formats
 
-Version 0.5, 3 novembre 2026 (révision 0.5 : passages que la version 0.4
-laissait ouverts et contradictions relevés par la construction, tranchés
-dans le texte, sections 3, 4, 5.3, 7.2, 10.5, 11.1, 11.4, 11.5, 13 et 17 ;
-aucun format v0 n'est retiré ni modifié, aucun dossier ni journal publié ne
-change de verdict ni de liste de contrôles en échec. La version 0.4 du
+Version 0.6, 14 novembre 2026 (révision 0.6, textuelle et minimale, suites
+de la revue de sécurité interne de l'étape 8 : borne des 1 024 décisions
+jugées une à une par A-2 (section 11.4), A-4 en échec pour un `approval`
+objet dont `request_hash` est absent ou mal typé (section 11.4) et plancher
+du vérificateur indépendant Go (section 13) ; aucun format v0 n'est retiré ni modifié, aucun
+dossier ni journal publié ne change de verdict ni de liste de contrôles en
+échec. La version 0.5 du 3 novembre 2026 avait tranché dans le texte les
+passages que la version 0.4
+laissait ouverts et les contradictions relevés par la construction,
+sections 3, 4, 5.3, 7.2, 10.5, 11.1, 11.4, 11.5, 13 et 17, sans format v0
+retiré ni modifié, sans changement de verdict ni de liste de contrôles en
+échec d'un dossier ou d'un journal publié. La version 0.4 du
 26 octobre 2026 avait ajouté la partie facultative
 `attestation-perimetre.json` du dossier, quatorzième partie, et les
 vérifications AT-1 à AT-7, sections 1, 2, 3, 11.1 à 11.5, 13, 15, 17 et
@@ -2303,7 +2310,11 @@ qui n'est ni nul ni un objet : E-1 échoue, et A-1 à A-4, dont les relations
 lisent `approval`, échouent (pour A-4, `request_hash` est un terme de sa
 propre règle, qui ne se lit pas : la règle n'est pas tenue ; un voisin
 candidat qui n'est pas un objet, lui, n'est seulement pas trouvé), en plus
-des cascades que la règle des relations donne (E-3, E-5, E-9…). `execution.tool` qui n'est pas une chaîne : E-1
+des cascades que la règle des relations donne (E-3, E-5, E-9…). Révision
+0.6 : de même, un `approval` objet dont `request_hash` est absent ou mal
+typé : E-1 échoue et A-4 échoue, `request_hash` étant un terme de sa propre
+règle ; la raison admise d'A-4 (événement de demande hors du dossier)
+suppose un `request_hash` lu (vecteur `invalide-a3-approval-vide`). `execution.tool` qui n'est pas une chaîne : E-1
 échoue, et E-3 échoue (la sorte ne se lit pas). La règle d'origine de C-2
 (`prev_hash` nul si et seulement si `seq = 1`) s'applique à chaque événement
 du dossier, voisins compris. Elle n'est évaluée que pour un événement dont `seq` est un entier : quand `seq` n'en est pas un (absent, chaîne, nombre non entier), la règle d'origine n'est ni tenue ni violée, elle n'est pas évaluée, et le défaut est porté par E-1 seule ; c'est la seule exception à la règle des relations à terme mal typé, et elle vaut à l'identique dans un journal (section 7.2, temps 1) et dans un dossier (section 11.4). Motif : « `seq = 1` » ne se décide pas sans `seq` entier, et un échec de l'origine ne dirait rien de plus que E-1 ; rien n'est caché, puisque E-1 échoue et que le `prev_hash` de l'événement reste comparé au hash recalculé de son précédent (temps 3, `rupture` ; C-2 dans un dossier). Vecteur : `journal-seq-chaine` (seq 11 écrit en chaîne : `schema`/E-1 puis `suppression`/C-1, aucun symptôme `origine`).
@@ -2433,9 +2444,9 @@ est en échec ou non exécutée pour une autre raison.
 | P-4 | `root` nulle si et seulement si `count = 0` ; `count ≥ 1` dans un dossier (il contient un événement). | 3 |
 | P-5 | `periodHash` recalculé (section 10.2) = `manifeste.sig.period_hash` ; `sig` valide sous la clé `manifeste.sig.recorder_key_id` de `cles.json` ; `manifeste.recorder_key_id` = `manifeste.sig.recorder_key_id` ; `generated_at` dans `[valid_from, valid_to]` (bornes incluses) de cette clé ; `cles.json` inexploitable (E-8) : non exécuté. Avec un second manifeste fourni à part : continuité de la section 10.3. | 3, 6 |
 | A-1 | `approbations.json` présent si et seulement si `approval ≠ null` ; `ticket` et `request_hash` égaux à ceux de `approval` ; révision 0.5 : `approval` nul exige la partie déclarée absente avec la raison exacte « aucune approbation liée » (section 11.1), et A-2, A-3, A-4 sont alors non exécutées, partie absente ; partie présente, ou absente sous une autre raison : A-1 en échec, A-2 à A-4 non exécutées sans raison admise ; `approval` non nul et partie déclarée absente : A-1 en échec, A-2 et A-3 non exécutées, A-4 exécutée. `approval` nul et partie déclarée présente : A-1 en échec, que le fichier existe ou non (D-2 échoue en plus quand il manque). | 7 |
-| A-2 | Chaque événement de `events` passe E-1 à E-11 ; `execution.tool = "noortrace.approbation.decision"` ; `approval` égal, clé pour clé, à celui de l'événement prouvé ; `execution.arguments.value = A` (section 6.3). Si l'événement prouvé n'est pas une décision : chaque décision a `seq` < `seq` de l'événement prouvé et `approval.at ≤ ts` de l'événement prouvé (la décision précède l'appel relayé qui en découle). Si l'événement prouvé est une décision : il figure dans `events` (hash recalculé égal). | 7 |
+| A-2 | Chaque événement de `events`, dans la limite des 1 024 que le schéma admet (CT-6 EX-15.1), passe E-1 à E-11 ; révision 0.6 : `events` compte au moins une décision (schéma, A-1) et, vide, A-2 échoue (« aucun événement de décision ») ; au-delà de 1 024 décisions, A-1 échoue par le schéma et A-2 échoue en comptant et en nommant les éléments en trop, qui ne sont ni contrôlés ni rapportés un à un ; `execution.tool = "noortrace.approbation.decision"` ; `approval` égal, clé pour clé, à celui de l'événement prouvé ; `execution.arguments.value = A` (section 6.3). Si l'événement prouvé n'est pas une décision : chaque décision a `seq` < `seq` de l'événement prouvé et `approval.at ≤ ts` de l'événement prouvé (la décision précède l'appel relayé qui en découle). Si l'événement prouvé est une décision : il figure dans `events` (hash recalculé égal). | 7 |
 | A-3 | Approbateurs distincts, tous membres de `approver_set.members`, en nombre ≥ `threshold.required` ; `threshold` de l'événement = `approver_set.threshold` ; `required ≤ size = longueur de members`. Pour `decision = "refuse"`, mêmes règles ; pour `expire`, aucune signature. | 7 |
-| A-4 | `request_hash` : la demande est le voisin (`previous` ou `next`) dont le `hash` recalculé égale `request_hash` ; s'il y en a un, son `execution.status = "retenue"`. Aucun voisin ne l'étant, même si un voisin est un appel retenu d'un autre hash : non exécuté, raison admise (événement de demande hors du dossier). Révision 0.5 : `voisins.json` inexploitable : non exécuté, sans raison admise ; un voisin qui n'est pas un objet n'est pas candidat (règle du voisin qui n'est pas un objet ci-dessus). | 7 |
+| A-4 | `request_hash` : la demande est le voisin (`previous` ou `next`) dont le `hash` recalculé égale `request_hash` ; s'il y en a un, son `execution.status = "retenue"`. Aucun voisin ne l'étant, même si un voisin est un appel retenu d'un autre hash : non exécuté, raison admise (événement de demande hors du dossier). Révision 0.5 : `voisins.json` inexploitable : non exécuté, sans raison admise ; un voisin qui n'est pas un objet n'est pas candidat (règle du voisin qui n'est pas un objet ci-dessus). Révision 0.6 : `request_hash` absent ou mal typé d'un `approval` objet : en échec, jamais non exécuté (« Autres termes mal typés » ci-dessus). | 7 |
 | K-1 | (révision 0.3) `points-de-controle.json` valide contre `#/$defs/points_de_controle` (le point contre `point-de-controle-v0.schema.json`) ; `checkpoint.org_id` et `journal_id` égaux à ceux de l'événement ; `checkpoint.period_start = manifeste.period_start` ; `1 ≤ tree_size ≤ manifeste.count` ; `last_seq = manifeste.first_seq + tree_size − 1` ; `root` non nulle ; `checkpoint_ts ≥ period_start` (instants, section 3). | 3 |
 | K-2 | (révision 0.3) `checkpointHash` recalculé (section 10.6) = `checkpoint_hash` déclaré. | 3 |
 | K-3 | (révision 0.3) `checkpoint.sig` valide sous la clé publique `key_id` de `cles.json`, sur `P_SK ‖ C_K` ; `checkpoint_ts` dans `[valid_from, valid_to]` (bornes incluses) de cette clé ; `cles.json` inexploitable (E-8) : non exécuté, l'échec étant porté par E-8 ; clé `key_id` absente d'un `cles.json` exploitable : échec (CT-6 §5.4 ; la section 11.2 n'exige pas que `cles.json` porte la clé du point, E-8 ne porte donc pas cet échec). | 6 |
@@ -2797,6 +2808,10 @@ l'identique par `test/journal.test.js`) sont disposés ainsi :
 Le vérificateur indépendant Go de `spec/vecteurs/ct-1/verificateur-independant`
 recalcule tout depuis ce document et confronte chaque valeur ; sa concordance
 avec l'implémentation de référence est la condition de publication des vecteurs.
+Révision 0.6 : le module rend le code 1 quand une famille de cette table est
+absente de la racine qu'il lit, ou quand il n'a recalculé aucune valeur ; un
+« tout concorde » rendu sans rien comparer n'est pas une concordance (revue de
+sécurité de l'étape 8). Ses cas sont comptés contre l'`INDEX.md` de la racine.
 Révision 0.4 : pour AT-3, il PEUT reprendre sans modification la courbe
 secp256k1 du vérificateur Go de `spec/vecteurs/ct-3/verificateur-independant`
 (`secp256k1.go`, avec l'en-tête « Copié sans modification de … »), le renommage
@@ -2939,15 +2954,15 @@ section 11.5 gardent leur verdict et leur liste exacte de contrôles en échec :
   la section 7.2, termes (section 2), constantes et familles de vecteurs
   (sections 11.5 et 13), limites (section 15).
 
-Alignement de la révision 0.3 avec le dépôt. « fait » : dans ce lot ; « à
-faire » : attendu d'un autre lot ou d'une autre spécification, nommé ; aucune
+Alignement de la révision 0.3 avec le dépôt. « fait » : dans cette révision ; « à
+faire » : attendu d'une autre révision ou d'une autre spécification, nommée ; aucune
 ligne ne change de format.
 
 | Emplacement | Avant | Attendu par la révision 0.3 | État |
 |---|---|---|---|
 | `spec/schemas/point-de-controle-v0.schema.json` | — | schéma du point (section 10.5), draft 2020-12, mode strict | fait |
 | `spec/schemas/dossier-v0.schema.json` | douze parties exactement | index à douze ou treize parties (`oneOf` de deux tuples, mode strict), `$defs` de la partie et de ses ancres ; les 40 dossiers de CT-1 et les 50 de CT-6 restent valides | fait |
-| `scripts/lib/journal.mjs` | arbre, inclusion, manifeste, dossier à douze parties | préfixes `P_K`, `P_SK` ; construction, hachage, signature et vérification d'un point ; `preuveCoherence`, `verifierCoherence` (section 10.7) ; partie `points_de_controle` (treizième, facultative) dans `indexDossier` et `verifierDossier` ; K-1 à K-6 (K-7 à K-9 dans `verificateur.mjs`, avec `horodatage.mjs`, `registre.mjs`, `ots.mjs` sur `checkpoint_hash`) ; `choisirPointCouvrant` avec les ancres (section 11.2) ; prérequis de K-2 à K-9 (section 11.4) ; registre de schémas à quatre entrées | fait (lot CT-5 ; précisions de la revue faites) |
+| `scripts/lib/journal.mjs` | arbre, inclusion, manifeste, dossier à douze parties | préfixes `P_K`, `P_SK` ; construction, hachage, signature et vérification d'un point ; `preuveCoherence`, `verifierCoherence` (section 10.7) ; partie `points_de_controle` (treizième, facultative) dans `indexDossier` et `verifierDossier` ; K-1 à K-6 (K-7 à K-9 dans `verificateur.mjs`, avec `horodatage.mjs`, `registre.mjs`, `ots.mjs` sur `checkpoint_hash`) ; `choisirPointCouvrant` avec les ancres (section 11.2) ; prérequis de K-2 à K-9 (section 11.4) ; registre de schémas à quatre entrées | fait (avec CT-5 ; précisions de la revue faites) |
 | `scripts/vecteurs/generer-ct1.mjs`, `spec/vecteurs/ct-1/INDEX.md` | familles de la section 13 | familles `points-de-controle/` et `merkle/coherence.json`, dossiers avec la partie (section 11.5), dont `valide-seq-7-point-de-cloture` et `invalide-k1-double-defaut` ; deux générations identiques ; les entrées existantes inchangées octet pour octet | fait |
 | `test/journal.test.js` | inclusion confrontée aux vecteurs de Certificate Transparency | cohérence confrontée aux mêmes vecteurs publics (section 10.7 : `(1, 1)`, `(1, 8)`, `(6, 8)`, `(2, 5)`, `(6, 7)` et leurs sondes, toute paire `1 ≤ m ≤ n ≤ 64`) ; `PROOF(1..4, D[5])`, `MTH(D[0:3])`, K1 à K6 de la section 10.8 ; exemples annotés `point-de-controle` et `points_de_controle` de ce document validés et recalculés ; rejeu de `merkle/coherence.json` et de `points-de-controle/attendu.json` ; `choisirPointCouvrant` | fait |
 | `spec/vecteurs/ct-1/verificateur-independant` | douze parties exactement (`dossier.go`) ; inclusion seule (`merkle.go`) | treizième partie facultative ; point, hachage, signature ; cohérence ; K-1 à K-6 (K-7 à K-9 hors périmètre, comme les contrôles 4, 5 et 8) ; nouvelles familles de vecteurs ; aucune K- au rapport sans la partie (section 11.4, CT-6 EX-5.7) | fait |
@@ -2983,19 +2998,19 @@ révision 0.3, gardent leur verdict et leur liste exacte de contrôles en
 - Termes (section 2), convention base64 (section 3), constantes et vecteurs
   (sections 11.5, 13), limites (section 15), préfixe (annexe B).
 
-Alignement de la révision 0.4 avec le dépôt. « fait » : dans ce lot ; « à
-faire » : attendu d'un autre lot, nommé ; aucune ligne ne change de format.
+Alignement de la révision 0.4 avec le dépôt. « fait » : dans cette révision ; « à
+faire » : attendu d'une autre révision, nommée ; aucune ligne ne change de format.
 
 | Emplacement | Avant | Attendu par la révision 0.4 | État |
 |---|---|---|---|
 | `spec/schemas/attestation-perimetre-v0.schema.json` | — | schéma de l'attestation, de l'attestation signée, du jeu déclaré et des cas de `ct-7/attestations`, draft 2020-12, mode strict | fait |
 | `spec/schemas/dossier-v0.schema.json` | douze ou treize parties | douze, treize ou quatorze parties (`oneOf` de trois tuples), `$defs/attestation_perimetre` et `$defs/base64_document` ; les 50 dossiers de CT-1 et les 68 de CT-6 restent valides | fait |
-| `scripts/lib/journal.mjs` | treize parties | `PARTIE_ATTESTATION_PERIMETRE`, raison « aucune attestation de périmètre », quatorzième partie dans `assemblerDossier`, `reindexerDossier` et `verifierDossier`, AT-1 à AT-7 (par `scripts/lib/securite.mjs`) exclues du verdict ; registre de schémas à cinq entrées | fait (lot de code de l'attestation) |
-| `scripts/vecteurs/generer-ct1.mjs`, `spec/vecteurs/ct-1/INDEX.md` | familles de la révision 0.3 | dossiers de la section 11.5 (journal rejoué de CT-7 §7.5) ; entrées existantes inchangées octet pour octet | fait (lot de code de l'attestation) |
-| `test/journal.test.js` | — | exemples annotés `attestation_perimetre` validés et recalculés (SHA-256 de 11.1, `D_P` de la section 13) ; rejeu des dossiers nouveaux | fait (lot de code de l'attestation) |
-| `spec/vecteurs/ct-1/verificateur-independant` (et sa copie de `ct-2`) | treize parties | quatorzième partie ; AT-1 à AT-7 ; aucune AT- au rapport sans la partie | fait (lot de code de l'attestation) |
-| CT-6 | révision 0.2 | rattachement des AT-, raisons, fragment FP, `facts.perimeter`, AV-AT- (révision 0.3) | fait (CT-6 révision 0.3, même lot) |
-| CT-7 | — | attestation de périmètre (section 7), condensé et signature, inscription, vecteurs `ct-7/attestations` | fait (CT-7 version 0.1, même lot) |
+| `scripts/lib/journal.mjs` | treize parties | `PARTIE_ATTESTATION_PERIMETRE`, raison « aucune attestation de périmètre », quatorzième partie dans `assemblerDossier`, `reindexerDossier` et `verifierDossier`, AT-1 à AT-7 (par `scripts/lib/securite.mjs`) exclues du verdict ; registre de schémas à cinq entrées | fait (code de l'attestation) |
+| `scripts/vecteurs/generer-ct1.mjs`, `spec/vecteurs/ct-1/INDEX.md` | familles de la révision 0.3 | dossiers de la section 11.5 (journal rejoué de CT-7 §7.5) ; entrées existantes inchangées octet pour octet | fait (code de l'attestation) |
+| `test/journal.test.js` | — | exemples annotés `attestation_perimetre` validés et recalculés (SHA-256 de 11.1, `D_P` de la section 13) ; rejeu des dossiers nouveaux | fait (code de l'attestation) |
+| `spec/vecteurs/ct-1/verificateur-independant` (et sa copie de `ct-2`) | treize parties | quatorzième partie ; AT-1 à AT-7 ; aucune AT- au rapport sans la partie | fait (code de l'attestation) |
+| CT-6 | révision 0.2 | rattachement des AT-, raisons, fragment FP, `facts.perimeter`, AV-AT- (révision 0.3) | fait (CT-6 révision 0.3, même livraison) |
+| CT-7 | — | attestation de périmètre (section 7), condensé et signature, inscription, vecteurs `ct-7/attestations` | fait (CT-7 version 0.1, même livraison) |
 | CT-2 | politique sans `perimeter` | membre `policy.perimeter` et unicité des noms de version de politique (CT-7 PA-8, PA-9) | à faire (proposition de CT-7, révision de CT-2 à décider) |
 | `spec/README.md` | CT-1 version 0.3 ; quatre schémas de CT-1 | CT-1 version 0.4 ; ligne du schéma `attestation-perimetre-v0` ; `-r spec/schemas/attestation-perimetre-v0.schema.json` dans toute commande qui charge le schéma de dossier | fait |
 | `README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md` | dossier à douze ou treize parties | quatorzième partie facultative `attestation-perimetre.json`, déclarative, rapportée « déclarée, non prouvée », sans effet sur le verdict | à faire (alignement des documents racine) |
@@ -3086,6 +3101,45 @@ ligne dit où il est éprouvé.
 | CT-6 | EX-4.11 à EX-4.15, EX-5.9 | même règle pour la partie manquante (D-2 seule), la limite (sept parties ; `dossier.json` au-delà de 1 Mio : D-1), l'index à clé en double (E-2) et la profondeur (définition de la section 4) ; K-6 sans raison admise quand `voisins.json` est inexploitable | fait (CT-6 révision 0.4) |
 | `spec/README.md`, CT-9 (table de la section 5.2 et ligne TC-1) | CT-1 version 0.4 ; renvoi de TC-1 à la ligne 2160 | CT-1 version 0.5 ; ligne de l'occurrence de « CT-9 » en section 12 après cette révision | fait (`spec/README.md` ; plan de tests, révision 0.3) |
 | `paquets/noyau/LISEZMOI.md` | section « Lectures de CT-1 » | lectures devenues règles du texte, renvoyées aux sections de la révision 0.5 | fait (section « Règles de CT-1 révision 0.5 appliquées ») |
+
+**Version 0.6** (14 novembre 2026), textuelle et minimale : suites de la
+revue de sécurité interne de l'étape 8. Aucun format v0 n'est retiré ni
+modifié ; aucun dossier ni journal publié ne change de verdict ni de liste de
+contrôles en échec ; aucun schéma ne change.
+
+- **A-2** (section 11.4) : les décisions de `events` sont jugées une à une
+  dans la limite des 1 024 que le schéma admet (CT-6 EX-15.1) ; au-delà, A-1
+  échoue par le schéma et A-2 compte et nomme les éléments en trop, qui ne
+  sont ni contrôlés ni rapportés un à un ; `events` vide fait échouer A-2
+  (« aucun événement de décision »). Motif : un `approbations.json` dans sa
+  limite de taille mais à très nombreux événements épuisait la mémoire du
+  vérificateur ; la bibliothèque noyau applique la borne, le vérificateur de
+  référence et le binaire de CT-6 doivent appliquer la même ; la lecture
+  « vide » tranche la discordance entre la référence et le module Go sur un
+  `approbations.json` dont `events` est vide (vecteur à publier avec la
+  révision).
+- **Section 13** : le vérificateur indépendant Go rend le code 1 quand une
+  famille est absente ou qu'aucune valeur n'a été recalculée (plancher d'un
+  oracle qu'un mutant doit pouvoir tuer ; même règle au plan de tests, TA-66).
+- **A-4** (section 11.4, « Autres termes mal typés », et table de 11.4) : un
+  `approval` objet dont `request_hash` est absent ou mal typé fait échouer
+  E-1 et A-4 ; A-4 n'est pas non exécutée sous la raison admise, qui suppose
+  un `request_hash` lu. Motif : la règle générale des relations le donnait
+  déjà (un terme absent d'une relation la rend non tenue), mais la
+  bibliothèque de référence, le binaire de CT-6 et le module Go lisaient
+  « demande non désignée, raison admise » sur le vecteur nouveau
+  `invalide-a3-approval-vide` (`approval: {}`), où le noyau rendait A-4 en
+  échec ; la phrase ferme cette lecture. Le vecteur, non encore publié, porte
+  A-4 en échec ; aucun vecteur publié ne change.
+
+| Emplacement | Avant | Attendu par la révision 0.6 | État |
+|---|---|---|---|
+| `paquets/noyau` | A-2 sans borne | 1 024 événements jugés un à un, les suivants comptés et nommés ; `events` vide : A-2 en échec | fait (correction de la revue de sécurité de l'étape 8) |
+| `scripts/lib/journal.mjs`, `scripts/lib/verificateur.mjs` (implémentation de référence) | A-2 sans borne ; `events` vide : « aucun événement de décision » | même borne que le noyau ; lecture « vide » conservée | borne : à faire (implémentation de référence) ; lecture « vide » : fait |
+| `verificateur/` (binaire Go de CT-6) | A-2 sans borne | même borne (CT-6 EX-15.1) | fait (correction de la revue de sécurité de l'étape 8) |
+| `spec/vecteurs/ct-1/verificateur-independant` | « tout concorde » possible sans rien comparer | code 1 sans famille ou sans valeur recalculée ; `events` vide : A-2 en échec | fait (revue de sécurité de l'étape 8 : `plancher.go`, A-2 vide et borne des 1 024, règle `root` sur les événements fournis ; `revue_etape8_test.go`) |
+| `paquets/noyau` ; `scripts/lib/journal.mjs` (référence et générateur de `ct-1`) ; `verificateur/` ; `spec/vecteurs/ct-1/verificateur-independant` | A-4 : le noyau en échec ; la référence, le binaire et le module non exécutée (« demande non désignée ») pour un `approval` objet sans `request_hash` | A-4 en échec (11.4) | noyau : fait ; référence, binaire et module : à aligner (revue de sécurité de l'étape 8), puis vecteur `invalide-a3-approval-vide` régénéré |
+| `spec/README.md` | CT-1 version 0.5 | CT-1 version 0.6 | fait |
 
 ## Annexe A — Les cinq événements de l'exemple de référence
 

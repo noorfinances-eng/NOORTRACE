@@ -56,7 +56,8 @@ MODELES = ("passerelle", "declarer")
 
 def nom_declarable(nom: Any) -> bool:
     """Le nom respecte-t-il le motif de 6.2 (motif de CT-1, sans ``__``, hors ``noortrace.``) ? (EX-6.18)"""
-    return isinstance(nom, str) and bool(_MOTIF_NOM_OUTIL.match(nom)) and "__" not in nom and not nom.startswith("noortrace.")
+    # ``fullmatch`` : un saut de ligne final n'est pas admis par le motif (étape 8).
+    return isinstance(nom, str) and bool(_MOTIF_NOM_OUTIL.fullmatch(nom)) and "__" not in nom and not nom.startswith("noortrace.")
 
 
 def texte_avant_execution(e: BaseException) -> str:

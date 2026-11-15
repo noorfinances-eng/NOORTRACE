@@ -1,4 +1,4 @@
-// Utilitaires des tests du lot B (client OpenTimestamps) : chemins des
+// Utilitaires des tests du client OpenTimestamps : chemins des
 // vecteurs, lecture, chaîne regtest synthétique, horloge fixe, transport
 // factice, détection de python-opentimestamps et du vérificateur Go.
 
@@ -86,7 +86,7 @@ export function chaineRegtest({ debut, nombre, racines = new Map(), nTime0 = 179
   let prev = prev0;
   for (let k = 0; k < nombre; k += 1) {
     const hauteur = debut + k;
-    const racine = racines.get(hauteur) ?? dsha(utf8(`noortrace/ancrage/lot-b/racine/${hauteur}`));
+    const racine = racines.get(hauteur) ?? dsha(utf8(`noortrace/ancrage/ots/racine/${hauteur}`));
     const base = new Uint8Array(80);
     base.set(petitBoutiste(0x20000000, 4), 0);
     base.set(prev, 4);
@@ -106,7 +106,7 @@ export function chaineRegtest({ debut, nombre, racines = new Map(), nTime0 = 179
     prev = hash;
   }
   return {
-    document: { version: 0, network: "regtest", start_height: debut, source: "chaîne regtest synthétique des tests du lot B, sans valeur hors des tests", headers },
+    document: { version: 0, network: "regtest", start_height: debut, source: "chaîne regtest synthétique des tests du client OpenTimestamps, sans valeur hors des tests", headers },
     enTetes,
   };
 }

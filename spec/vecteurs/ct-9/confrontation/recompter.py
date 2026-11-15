@@ -763,6 +763,18 @@ def main(argv):
             continue
         ids = m.group(1).split(" et ")
         mns = m.group(2).split(", ")
+        # EX-10.7, forme (4) (révision 0.10) : un scénario du plan (10.5, entrée à composition) nomme les menaces
+        # composées qu'il éprouve ; son oracle de bout en bout ne finit pas par « (tué) », son it « réponse
+        # retirée » si.
+        scenario = len(ids) == 1 and ids[0] in par_id and par_id[ids[0]].get("adversarial", {}).get("composition")
+        if scenario:
+            cites_ta.update(ids)
+            if not all(x in par_id[ids[0]]["threats"] for x in mns):
+                mal_formes.append(titre)
+            tue = titre.endswith("(tué)") or titre.endswith("(tués)")
+            if tue != ("réponse retirée" in titre):
+                sans_tue.append(titre.split(" : ", 1)[0])
+            continue
         if [x.split("-")[1] for x in ids] != [x.split("-")[1] for x in mns]:
             mal_formes.append(titre)
         cites_ta.update(ids)
@@ -784,14 +796,15 @@ def main(argv):
     describes_avec_it = sorted({t for t, a, b in d_adv if any(a <= p <= b for _, p in i_adv)
                                 and not any(a < a2 and b2 < b and any(a2 <= p <= b2 for _, p in i_adv) for _, a2, b2 in d_adv)})
     m_a11 = re.search(r"Il contient, au [0-9-]+, ([0-9]+) `it`", texte_ct9)
-    m_108 = re.search(r"Résultat : « ([0-9]+) passing", texte_ct9)
+    # 10.8 : « N passing … », M en attente (révision 0.10 : les it qui demandent le démon Docker sont en attente).
+    m_108 = re.search(r"Résultat : « ([0-9]+)\s+passing[^»]*»(?:, ([0-9]+) en attente)?", texte_ct9)
     dire("  %d it, %d dont le titre commence par « TA- », %d describe de composant ; EX-A.11 : %s it ; 10.8 : %s passing" % (
         len(i_adv), len(its_ta), len(describes_avec_it), m_a11.group(1) if m_a11 else "?", m_108.group(1) if m_108 else "?"))
     if len(i_adv) != len(its_ta):
         ecart("test/adversarial.test.js : %d it dont %d seulement commencent par « TA- »" % (len(i_adv), len(its_ta)))
     if not m_a11 or int(m_a11.group(1)) != len(i_adv):
         ecart("EX-A.11 annonce %s it, recompte %d" % (m_a11.group(1) if m_a11 else "?", len(i_adv)))
-    if not m_108 or int(m_108.group(1)) != len(i_adv):
+    if not m_108 or int(m_108.group(1)) + int(m_108.group(2) or 0) != len(i_adv):
         ecart("10.8 annonce %s passing, recompte %d it" % (m_108.group(1) if m_108 else "?", len(i_adv)))
     dire("  titres TA-n (MN-n) : %d mal formé(s) ; finissant par « (tué) » ou « (tués) » : %d sur %d ; oracle sur un vecteur (EX-10.4) : %d" % (
         len(mal_formes), len(its_ta) - len(sans_tue) - len(ex_10_4), len(its_ta), len(ex_10_4)))

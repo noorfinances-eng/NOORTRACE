@@ -413,10 +413,12 @@ export function verifierGarde(enregistrements) {
     for (const k of ["gel_id", "org_id", "journal_id", "support"]) if (jcs(r[k]) !== jcs(premier[k])) fautes.add("chaine_rompue");
     // premier_non_pose
     if (i === 0 && r.kind !== "pose") fautes.add("premier_non_pose");
-    // ordre_invalide
+    // ordre_invalide : les successions admises sont lues par Object.hasOwn, jamais par SUCCESSIONS[kind] seul
+    // (un kind venu du support au nom d'une propriété d'Object.prototype, « constructor », « toString », n'en est pas une).
     if (i > 0) {
       const prec = enregistrements[i - 1];
-      if (!(SUCCESSIONS[prec.kind] ?? []).includes(r.kind)) fautes.add("ordre_invalide");
+      const admises = Object.hasOwn(SUCCESSIONS, prec.kind) ? SUCCESSIONS[prec.kind] : [];
+      if (!admises.includes(r.kind)) fautes.add("ordre_invalide");
       const a = ms(r.at);
       const b = ms(prec.at);
       if (Number.isNaN(a) || Number.isNaN(b) || a < b) fautes.add("ordre_invalide");

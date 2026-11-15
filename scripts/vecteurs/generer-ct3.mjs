@@ -20,6 +20,9 @@
 //   acceptation/               l'épreuve des trois relecteurs (A.5) ;
 //   acceptation-attendu.json   ses décisions attendues, hors du répertoire ;
 //   tickets/                   traces de cycle de vie (A.6) ;
+//   reponses-evaluer/          réponses evaluer jugées par le noyau : couple
+//                              (policy_version, policy_sha256) de la révision
+//                              0.5, raison politique_non_epinglee (CT-2 EX-7.16) ;
 //   decisions/                 remises valides et invalides (A.7) ;
 //   signatures/                normalisation d'EX-9.3 (A.8) ;
 //   annuaire/                  annuaires, messages et inscriptions, opérations,
@@ -31,6 +34,9 @@
 //                              scripts/vecteurs/ct3/console.mjs) ;
 //   acceptation-console/       l'épreuve de lecture de la console (EX-A.17) ;
 //   acceptation-console-attendu.json  sa grille, hors du répertoire ;
+//   notifications/             documents de notification, corps envoyés au
+//                              webhook et signatures (13.19, EX-13.40,
+//                              EX-13.41 ; scripts/vecteurs/ct3/notifications.mjs) ;
 //   INDEX.md                   chaque cas et son attendu.
 //
 // Tout est déterministe (EX-A.1) : comptes 1 à 4 du mnémonique public de
@@ -56,6 +62,7 @@ import { HDNodeWallet, Signature, hashMessage, keccak256, toUtf8Bytes } from "et
 import * as J from "../lib/journal.mjs";
 import * as A from "../lib/approbation.mjs";
 import { familleAnnuaire, ORIGINE, EMETTEUR, ADMIN, INSTANT_BASE_ANNUAIRE, TTL_INSCRIPTION, ETIQUETTE_NONCE, IDENTITE_COMPTE } from "./ct3/annuaire.mjs";
+import { familleNotifications } from "./ct3/notifications.mjs";
 import { familleConsole, CONSIGNE_CONSOLE, GABARIT_CONSOLE, ATTENDU_ACCEPTATION_CONSOLE, MOT_DE_PASSE, ETIQUETTE_FICHIER_CLE, ETIQUETTE_DECOUVERTE, ETIQUETTE_ZERO, ETIQUETTE_EN_LIGNE } from "./ct3/console.mjs";
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -63,7 +70,7 @@ export const REPERTOIRE_CT3 = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-3"
 const REPERTOIRE_SCHEMAS = path.join(PROJECT_ROOT, "spec", "schemas");
 const REPERTOIRE_CT1 = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-1");
 /** Les seules entrées de premier niveau que le générateur écrit, et donc les seules qu'il efface (EX-A.1) ; verificateur-independant/ n'en est pas. */
-export const ENTREES_GENEREES = ["INDEX.md", "acceptation", "acceptation-attendu.json", "acceptation-console", "acceptation-console-attendu.json", "annuaire", "candidats", "console", "constantes.json", "decisions", "evaluation", "politiques", "politiques-invalides", "signatures", "tickets"];
+export const ENTREES_GENEREES = ["INDEX.md", "acceptation", "acceptation-attendu.json", "acceptation-console", "acceptation-console-attendu.json", "annuaire", "candidats", "console", "constantes.json", "decisions", "evaluation", "notifications", "politiques", "politiques-invalides", "reponses-evaluer", "signatures", "tickets"];
 /** Entrées de premier niveau que le générateur tolère sans jamais les lire ni les écrire (EX-A.1). */
 export const ENTREES_TOLEREES = ["confrontation", "verificateur-independant"];
 /** Les six schémas qui décrivent les familles annuaire/ et console/ (A.3). */
@@ -103,6 +110,8 @@ export const JOURNAL = "journal-approbations";
 export const JOURNAL_ID = keccak256(toUtf8Bytes(JOURNAL));
 export const V1 = "vecteurs-ct3-1";
 export const V2 = "vecteurs-ct3-2";
+/** Empreintes synthétiques des deux versions (A.6) : SHA-256 de « ensemble de politique <version> », celle que le noyau des traces déclare au charger et que chaque réponse evaluer recopie (12.3, révision 0.5). */
+export const EMPREINTES = { [V1]: A.empreinteSynthetique(V1), [V2]: A.empreinteSynthetique(V2) };
 export const CHAIN_ID = 2124;
 export const REGISTRE = sha("noortrace/vecteurs/ct3/registre").slice(0, 42);
 export const JEU = (n) => sha(`noortrace/vecteurs/ct3/jeu/${n}`).slice(0, 42);
@@ -736,7 +745,7 @@ function conceptionAcceptation() {
 const CONSIGNE = `# Épreuve d'acceptation de CT-3 : trois relecteurs, une politique, dix cas
 
 Ce répertoire, avec la partie A de la spécification CT-3, est tout ce que
-reçoit un relecteur. Il sert le critère d'acceptation du lot CT-3 : trois
+reçoit un relecteur. Il sert le critère d'acceptation de CT-3 : trois
 relecteurs, dans les rôles d'approbateur, d'auditeur et de développeur,
 lisent la même politique à l'aveugle et en tirent la même décision sur dix
 cas (CT-3, annexe A.5, EX-A.4 et EX-A.5).
@@ -1358,6 +1367,13 @@ function fichierTrace(c, schemas) {
     steps: [],
   };
   const service = new A.ServiceApprobation({ org_id: trace.org_id, journal_id: trace.journal_id, environment: trace.environment, policy_version: trace.policy_version, parametres: { expire_after_ms: trace.expire_after_ms, approver_set: trace.approver_set, separation: trace.separation }, service: trace.service, schemas });
+  /** Version de la requête qui a créé chaque ticket (réponse nouveau), pour juger l'épinglage d'une ré-émission (CT-3 EX-7.21). */
+  const versionDesTickets = {};
+  // Ce que le noyau de la trace détient pour chaque version (A.6) : l'empreinte synthétique et le condensé de l'approval de trace, politique valide d'EX-4.2.
+  const parametres = { expire_after_ms: trace.expire_after_ms, approver_set: trace.approver_set, separation: trace.separation };
+  exiger(A.erreursPolitique(A.politiqueTrace(parametres), { schemas, environment: trace.environment, expire_after_ms: trace.expire_after_ms }).length === 0, `trace ${c.id} : la politique de trace (A.6) n'est pas valide`);
+  const condense = A.condenseApproval(A.approvalTrace(parametres));
+  const detenues = Object.fromEntries([V1, V2].map((v) => [v, { policy_sha256: EMPREINTES[v], approval_sha256: condense }]));
   c.pas.forEach(([brute, k], i) => {
     const input = resoudreEntree(brute, service);
     const r = service.traiter(input);
@@ -1369,7 +1385,15 @@ function fichierTrace(c, schemas) {
     exiger(r.accepted === !k.r && r.reason === (k.r ?? null), `${ou} : accepted ${r.accepted} reason ${r.reason}, conception ${k.r ?? "acceptée"}`);
     if (k.rep === null) exiger(r.response === null, `${ou} : réponse attendue nulle`);
     else if (k.rep) for (const [cle, v] of Object.entries(k.rep)) exiger(J.egalJSON(r.response?.[cle], v), `${ou} : response.${cle} = ${JSON.stringify(r.response?.[cle])}, conception ${JSON.stringify(v)}`);
-    if (input.kind === "evaluer" && r.response) exiger(A.combinaisonAdmise(r.response), `${ou} : réponse hors des sept combinaisons d'EX-12.6`);
+    if (input.kind === "evaluer" && r.response) {
+      exiger(A.combinaisonAdmise(r.response), `${ou} : réponse hors des sept combinaisons d'EX-12.6`);
+      // 12.3 (révision 0.5), conception : version de la requête (évaluation, nouveau) ou du ticket rapproché, empreinte synthétique de cette version (A.6).
+      const rep = r.response;
+      const versionRequete = input.data.request.code.policy_version;
+      if (rep.ticket !== null && rep.ticket_state === "nouveau" && !Object.hasOwn(versionDesTickets, rep.ticket)) versionDesTickets[rep.ticket] = versionRequete;
+      const rapproche = rep.ticket !== null && rep.ticket_state !== "nouveau";
+      exiger(A.politiqueEpinglee(rep, { versions: detenues, versionRequete, versionRetenue: rapproche ? versionDesTickets[rep.ticket] : null }), `${ou} : épinglage ${JSON.stringify([rep.policy_version, rep.policy_sha256, rep.approval_sha256])} hors du charger attendu (CT-2 EX-7.16)`);
+    }
     const rem = k.rem ?? [];
     exiger(r.remises.length === rem.length, `${ou} : ${r.remises.length} remise(s), conception ${rem.length}`);
     rem.forEach(([decision, comptes, motif, source, seuil], j) => {
@@ -1382,6 +1406,68 @@ function fichierTrace(c, schemas) {
     trace.steps.push({ input, expected: r });
   });
   return trace;
+}
+
+// ---------------------------------------------------------------------------
+// Réponses evaluer jugées par le noyau (CT-2 EX-7.16, révision 0.8 ; CT-3 §12.3, EX-12.6, révision 0.5)
+// ---------------------------------------------------------------------------
+
+/**
+ * Cas de reponses-evaluer/cas.json : [id, description, contexte du noyau,
+ * réponse reçue, raison attendue (null : valide)]. Contexte : V1 et V2
+ * détenues avec leur empreinte synthétique (A.6) ; requête sous V2 ; ticket
+ * apr-0001 créé sous V1 (sa retenue porte V1) ; décision scellée par le noyau
+ * pour apr-0001, s'il y en a une (approuve ou refuse signés par les comptes 1
+ * et 2 sur la demande 1, ou expire scellé seul par le noyau).
+ */
+function conceptionReponsesEvaluer() {
+  const AT = T("09:15:02.000");
+  const SCELLEE = approvalSigne("apr-0001", 1, "approuve", [1, 2], AT, "Constat et facture concordants");
+  const REFUSEE = approvalSigne("apr-0001", 1, "refuse", [1, 2], AT, "Facture absente");
+  const EXPIREE = approvalNoyau("apr-0001", 1, T("10:00:02.200"));
+  const V9 = "vecteurs-ct3-9";
+  const JEU_V2 = { threshold: { required: 2, size: 3 }, members: A.trierAdresses([1, 2, 3].map(ADR)), source: `jeu statique de la politique ${V2}` };
+  // Approval de trace des paramètres par défaut (jeu du registre, séparation du demandeur, E) et celui d'autres règles (règle par défaut autorise : un charger pré-enregistré avec des règles permissives, addendum de la décision du porteur du 14 novembre 2026).
+  const PARAMETRES = { expire_after_ms: E, approver_set: APPROVER_SET_REGISTRE, separation: SEPARATION };
+  const CONDENSE = A.condenseApproval(A.approvalTrace(PARAMETRES));
+  const CONDENSE_AUTRES = A.condenseApproval(A.approvalCharger({ ...A.politiqueTrace(PARAMETRES), default: { name: "defaut : autorise", description: null, level: "automatique", decision: "autorise", contest_ms: null } }, { expire_after_ms: E }));
+  exiger(CONDENSE !== CONDENSE_AUTRES, "deux membres approval distincts ont deux condensés distincts");
+  const contexte = (o = {}) => ({ versions: Object.fromEntries([V1, V2].map((v) => [v, { policy_sha256: EMPREINTES[v], approval_sha256: CONDENSE }])), request_policy_version: V2, retained_policy_version: V1, sealed_decision: null, ...o });
+  const sous = (v) => ({ policy_version: v, policy_sha256: EMPREINTES[v] ?? A.empreinteSynthetique(v), approval_sha256: CONDENSE });
+  const rep = (o = {}) => ({ rule: "paiement > 5000 CHF", decision: "a_approuver", ticket: null, ticket_state: null, approval: null, approver_set: null, ...sous(V2), ...o });
+  const AUTORISE = { rule: "paiement <= 1000 CHF", decision: "autorise" };
+  const trie = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+  const v = (id, description, response, context = contexte()) => [id, description, context, response, null];
+  const iv = (id, description, response, raison, context = contexte()) => [id, description, context, response, raison];
+  const { policy_sha256: _empreinte, ...huitMembres } = rep(AUTORISE);
+  const { approval_sha256: _condense, ...huitSansCondense } = rep(AUTORISE);
+  const { policy_version: _version, policy_sha256: _empreinte2, approval_sha256: _condense2, ...sixMembres } = rep(AUTORISE);
+  return [
+    v("autorise-sans-ticket", "Évaluation autorise rendue sous la version de la requête (vecteurs-ct3-2) et l'empreinte déclarée à son charger : relais.", rep(AUTORISE)),
+    v("refuse-sans-ticket", "Évaluation refuse rendue sous la version de la requête : refus par la politique (EX-11.8).", rep({ rule: "beneficiaire hors liste blanche", decision: "refuse" })),
+    v("nouveau", "Ticket nouveau sous la version de la requête, jeu exploitable : retenue puis signal (EX-7.17).", rep({ ticket: "apr-0002", ticket_state: "nouveau", approver_set: JEU_V2 })),
+    v("version-du-ticket-rapproche", "Ticket apr-0001 rapproché (en_attente), créé sous vecteurs-ct3-1 alors que la requête porte vecteurs-ct3-2 : la réponse est rendue sous la version de la retenue du ticket (CT-3 EX-7.21), admise bien qu'elle diffère de celle de la requête.", rep({ ticket: "apr-0001", ticket_state: "en_attente", ...sous(V1) })),
+    v("approuve-scellee", "Décision approuve que le noyau a scellée pour apr-0001 : approval égal clé pour clé, version du ticket : vérifications de relais (EX-7.21).", rep({ decision: "autorise", ticket: "apr-0001", ticket_state: "approuve", approval: SCELLEE, ...sous(V1) }), contexte({ sealed_decision: SCELLEE })),
+    v("refuse-scellee", "Décision refuse scellée pour apr-0001, version du ticket : signal refuse.", rep({ decision: "refuse", ticket: "apr-0001", ticket_state: "refuse", approval: REFUSEE, ...sous(V1) }), contexte({ sealed_decision: REFUSEE })),
+    v("expire-scellee", "Expiration scellée seule par le noyau pour apr-0001 (EX-12.11), version du ticket : signal expire.", rep({ decision: "refuse", ticket: "apr-0001", ticket_state: "expire", approval: EXPIREE, ...sous(V1) }), contexte({ sealed_decision: EXPIREE })),
+    v("ordre-alphabetique", "La réponse autorise-sans-ticket, membres en ordre alphabétique (JCS) : l'ordre des membres n'a pas de sens (CT-2 EX-7.16).", trie(rep(AUTORISE))),
+    iv("huit-membres", "Huit membres : policy_sha256 absent. La réponse ne reporte pas la politique sous laquelle elle est rendue.", huitMembres, A.RAISON_POLITIQUE_NON_EPINGLEE),
+    iv("huit-membres-sans-approval-sha256", "Huit membres : approval_sha256 absent. La réponse ne lie pas la décision aux règles appliquées.", huitSansCondense, A.RAISON_POLITIQUE_NON_EPINGLEE),
+    iv("six-membres-revision-0-4", "La réponse de la révision 0.4 (six membres, sans policy_version, policy_sha256 ni approval_sha256) : refusée depuis la révision 0.5.", sixMembres, A.RAISON_POLITIQUE_NON_EPINGLEE),
+    iv("approval-sha256-autres-regles", "approval_sha256 d'autres règles (politique de trace dont la règle par défaut autorise) : le condensé calculé par le service n'est pas celui du membre approval que le noyau a envoyé au charger de vecteurs-ct3-2, même avec la version et l'empreinte honnêtes (un pair du canal du noyau a pré-enregistré la version avec des règles permissives, addendum de la décision du porteur du 14 novembre 2026).", rep({ ...AUTORISE, approval_sha256: CONDENSE_AUTRES }), A.RAISON_POLITIQUE_NON_EPINGLEE),
+    iv("empreinte-autre", "Empreinte autre que celle déclarée au charger de vecteurs-ct3-2 (ici l'empreinte de vecteurs-ct3-1) : la version est détenue, l'empreinte n'est pas la sienne.", rep({ ...AUTORISE, policy_sha256: EMPREINTES[V1] }), A.RAISON_POLITIQUE_NON_EPINGLEE),
+    iv("empreinte-quelconque", "Empreinte qui n'est celle d'aucune version chargée (SHA-256 de « noortrace/vecteurs/ct3/empreinte/quelconque »).", rep({ ...AUTORISE, policy_sha256: sha("noortrace/vecteurs/ct3/empreinte/quelconque") }), A.RAISON_POLITIQUE_NON_EPINGLEE),
+    iv("version-inconnue", "Version vecteurs-ct3-9 que le noyau n'a jamais chargée, même avec l'empreinte synthétique « correcte » pour elle : une version pré-enregistrée par un pair n'est pas épinglée par le noyau.", rep({ ...AUTORISE, ...sous(V9) }), A.RAISON_POLITIQUE_NON_EPINGLEE),
+    iv("version-detenue-autre-que-la-requete", "Version vecteurs-ct3-1 détenue avec la bonne empreinte, mais la requête porte vecteurs-ct3-2 et aucun ticket n'est rapproché.", rep({ ...AUTORISE, ...sous(V1) }), A.RAISON_POLITIQUE_NON_EPINGLEE),
+    iv("version-de-la-requete-pour-un-ticket-rapproche", "Ticket apr-0001 rapproché (en_attente) créé sous vecteurs-ct3-1, réponse rendue sous vecteurs-ct3-2, la version de la requête : la version attendue est celle de la retenue du ticket.", rep({ ticket: "apr-0001", ticket_state: "en_attente" }), A.RAISON_POLITIQUE_NON_EPINGLEE),
+    iv("version-de-la-requete-pour-une-decision-scellee", "Décision approuve scellée d'apr-0001 (vecteurs-ct3-1) rendue sous vecteurs-ct3-2 : même avec l'approval exact, la version n'est pas celle du ticket.", rep({ decision: "autorise", ticket: "apr-0001", ticket_state: "approuve", approval: SCELLEE }), A.RAISON_POLITIQUE_NON_EPINGLEE, contexte({ sealed_decision: SCELLEE })),
+    iv("empreinte-majuscules", "Empreinte en hexadécimal majuscule : hors de la forme hex 32 octets de 12.3 (CT-1 §3).", rep({ ...AUTORISE, policy_sha256: "0x" + EMPREINTES[V2].slice(2).toUpperCase() }), A.RAISON_POLITIQUE_NON_EPINGLEE),
+    iv("version-vide", "policy_version vide : hors de la forme de 12.3 (chaîne de 1 à 128).", rep({ ...AUTORISE, policy_version: "" }), A.RAISON_POLITIQUE_NON_EPINGLEE),
+    iv("approval-sha256-majuscules", "approval_sha256 en hexadécimal majuscule : hors de la forme hex 32 octets de 12.3.", rep({ ...AUTORISE, approval_sha256: "0x" + CONDENSE.slice(2).toUpperCase() }), A.RAISON_POLITIQUE_NON_EPINGLEE),
+    iv("hors-combinaisons", "a_approuver sans ticket : hors des sept combinaisons d'EX-12.6, bien que le couple soit celui du charger (raison forme de la bibliothèque de référence).", rep(), "forme"),
+    iv("approval-different", "Décision approuve scellée pour apr-0001 dont l'approval diffère de celui du noyau (motif) : RL-1 (raison approval_different de la bibliothèque de référence).", rep({ decision: "autorise", ticket: "apr-0001", ticket_state: "approuve", approval: { ...SCELLEE, reason: "Pieces validees" }, ...sous(V1) }), "approval_different", contexte({ sealed_decision: SCELLEE })),
+    iv("aucune-decision-scellee", "Décision approuve pour apr-0001 alors que le noyau n'en a scellé aucune (RL-1).", rep({ decision: "autorise", ticket: "apr-0001", ticket_state: "approuve", approval: SCELLEE, ...sous(V1) }), "approval_different"),
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -1494,13 +1580,13 @@ function conceptionNormalisation() {
 // ---------------------------------------------------------------------------
 
 const code = (s) => "`" + s + "`";
-function index({ constantes, politiques, invalides, evaluations, candidats, acceptation, tickets, decisions, normalisation, an, co }) {
+function index({ constantes, politiques, invalides, evaluations, candidats, acceptation, tickets, reponsesEvaluer, decisions, normalisation, an, co, nt }) {
   const L = [];
   L.push("# Vecteurs CT-3 — approbations");
   L.push("");
   L.push(MARQUE_INDEX + " (`npm run vecteurs:ct3`) ; ne pas l'éditer à la main. Spécification : [`spec/CT-3-approbations.md`](../../CT-3-approbations.md), annexe A. Rejoués par `test/approbation.test.js` avec l'implémentation de référence `scripts/lib/approbation.mjs`.");
   L.push("");
-  L.push("Le générateur n'efface et ne réécrit que ses propres entrées de premier niveau (`constantes.json`, `INDEX.md`, `acceptation-attendu.json`, `acceptation-console-attendu.json` et les répertoires `acceptation/`, `acceptation-console/`, `annuaire/`, `candidats/`, `console/`, `decisions/`, `evaluation/`, `politiques/`, `politiques-invalides/`, `signatures/`, `tickets/`), jamais `verificateur-independant/` ni `confrontation/` (EX-A.1). Les familles `annuaire/` et `console/` (révision 0.3) sont rejouées par `test/console.test.js` avec la bibliothèque de la console de référence `scripts/lib/console.mjs` ; leurs textes, condensés et signatures attendus sont calculés par `scripts/lib/journal.mjs`, ethers et `node:crypto`, indépendamment de `console.mjs`, puis confrontés à elle. Une partie des attendus est posée par conception dans le générateur (règle, décision et ouverture de chaque demande ; état de chaque ticket après chaque pas, sort et raison de chaque entrée ; décision, signataires, motif et source de chaque remise ; tickets des fenêtres) et confrontée à l'implémentation de référence avant d'être écrite. Le reste (seuil et membres d'une remise, objet approval rendu à une ré-émission, bornes et restant des fenêtres, jeu des réponses nouveau) sort de l'implémentation de référence sans contrôle de conception : le vérificateur Go indépendant (`verificateur-independant/`) le recalcule.");
+  L.push("Le générateur n'efface et ne réécrit que ses propres entrées de premier niveau (`constantes.json`, `INDEX.md`, `acceptation-attendu.json`, `acceptation-console-attendu.json` et les répertoires `acceptation/`, `acceptation-console/`, `annuaire/`, `candidats/`, `console/`, `decisions/`, `evaluation/`, `notifications/`, `politiques/`, `politiques-invalides/`, `reponses-evaluer/`, `signatures/`, `tickets/`), jamais `verificateur-independant/` ni `confrontation/` (EX-A.1). Les familles `annuaire/` et `console/` (révision 0.3) sont rejouées par `test/console.test.js` avec la bibliothèque de la console de référence `scripts/lib/console.mjs` ; leurs textes, condensés et signatures attendus sont calculés par `scripts/lib/journal.mjs`, ethers et `node:crypto`, indépendamment de `console.mjs`, puis confrontés à elle. Une partie des attendus est posée par conception dans le générateur (règle, décision et ouverture de chaque demande ; état de chaque ticket après chaque pas, sort et raison de chaque entrée ; décision, signataires, motif et source de chaque remise ; tickets des fenêtres) et confrontée à l'implémentation de référence avant d'être écrite. Le reste (seuil et membres d'une remise, objet approval rendu à une ré-émission, bornes et restant des fenêtres, jeu des réponses nouveau) sort de l'implémentation de référence sans contrôle de conception : le vérificateur Go indépendant (`verificateur-independant/`) le recalcule.");
   L.push("");
   L.push("## Constantes (A.2, `constantes.json`)");
   L.push("");
@@ -1558,6 +1644,10 @@ function index({ constantes, politiques, invalides, evaluations, candidats, acce
   L.push("");
   L.push("Chaque pas donne l'état de chaque ticket après l'entrée (minuteurs échus compris). Notation : entrée, instant, puis états ; « refus : » donne la raison d'une entrée refusée ; « remise : » la décision remise au noyau pendant le pas.");
   L.push("");
+  L.push("### Révision du protocole d'approbation (étape 8, décision du porteur du 14 novembre 2026)");
+  L.push("");
+  L.push(`Depuis la révision 0.5 de CT-3 (§12.2, §12.3, EX-12.6, EX-12.20) et la révision 0.8 de CT-2 (EX-7.15, EX-7.16, EX-7.23), chaque réponse \`evaluer\` porte neuf membres : les six de la révision 0.4 et \`policy_version\`, \`policy_sha256\`, \`approval_sha256\` : la version chargée sous laquelle elle est rendue, l'empreinte que le noyau a déclarée au \`charger\` de cette version (recopiée, jamais calculée par le service) et le SHA-256 du JCS (RFC 8785) du membre \`approval\` reçu à ce \`charger\`, que le service calcule et garde avec la version. Une évaluation et un ticket \`nouveau\` sont rendus sous \`code.policy_version\` de la requête ; un ticket rapproché (\`en_attente\`, \`approuve\`, \`refuse\`, \`expire\`) sous la version de sa création (EX-7.21). Les traces ne portent aucun ensemble de politique : l'empreinte d'une version y est synthétique, SHA-256 de l'étiquette UTF-8 \`ensemble de politique <version>\` (${code(V1)} : ${code(EMPREINTES[V1])} ; ${code(V2)} : ${code(EMPREINTES[V2])}), celle que le noyau des traces déclare au \`charger\` de la version, version de départ de la trace comprise ; le membre \`approval\` de ce \`charger\` est l'approval de trace : \`{ rules, mode: "erreur", hold_timeout_ms: 50000, expire_after_ms, timeout_ms: 2000 }\`, où \`rules\` est la politique de trace (\`version\` 0, règle par défaut \`defaut : revue\` de niveau \`revue\` et \`contest_ms\` 0, aucune règle, \`approver_set\` et \`separation\` de la trace) et \`expire_after_ms\` celui de la trace ; son condensé est l'\`approval_sha256\` de chaque réponse de la trace, le même pour ${code(V1)} et ${code(V2)} (la trace recharge les mêmes paramètres). Le noyau refuse toute réponse dont l'épinglage n'est pas celui d'un \`charger\` qu'il a lui-même émis pour la version attendue (\`approval_response_invalid\`, raison \`politique_non_epinglee\`) et n'évalue rien sous une version dont son \`charger\` n'a pas réussi (EX-7.15, \`approval_charger_refuse\`) : famille \`reponses-evaluer/\`.`);
+  L.push("");
   for (const tr of tickets) {
     L.push(`### ${code(tr.id + ".json")} (${tr.checks.join(", ")})`);
     L.push("");
@@ -1571,6 +1661,14 @@ function index({ constantes, politiques, invalides, evaluations, candidats, acce
     });
     L.push("");
   }
+  L.push("## reponses-evaluer/ (CT-2 EX-7.16, révision 0.8 ; CT-3 §12.3, révision 0.5)");
+  L.push("");
+  L.push(`\`cas.json\` : réponses \`evaluer\` reçues par le noyau et ce qu'il en fait. Contexte de chaque cas : les versions dont le noyau détient l'ensemble (${code(V1)} et ${code(V2)}, empreintes synthétiques ci-dessus, condensé de l'approval de trace des paramètres par défaut), la version de la requête (${code(V2)}), la version de la retenue du ticket rapproché \`apr-0001\` (${code(V1)}) et la décision scellée par le noyau pour ce ticket, s'il y en a une. Attendu : \`valid\`, \`reason\` (\`politique_non_epinglee\`, raison nommée par CT-2 ; \`forme\` et \`approval_different\`, raisons de la bibliothèque de référence pour les autres invalidités d'EX-7.16) et l'action du mandataire en mode erreur (section 11). Une réponse invalide est une indisponibilité du service : \`-31010\`, raison \`approbation\`, ligne \`approval_response_invalid\`, jamais un relais.`);
+  L.push("");
+  L.push("| Cas | Attendu | Ce qu'il exerce |");
+  L.push("|---|---|---|");
+  for (const c of reponsesEvaluer) L.push(`| ${code(c.id)} | ${c.expected.valid ? `valide, ${c.expected.action}` : `invalide, ${c.expected.reason}`} | ${c.description} |`);
+  L.push("");
   L.push("## decisions/ (A.7, SG-1 à SG-7)");
   L.push("");
   L.push("| Cas | Vérification visée | Résultat attendu | Ce qu'il exerce |");
@@ -1587,6 +1685,7 @@ function index({ constantes, politiques, invalides, evaluations, candidats, acce
   L.push("");
   indexAnnuaire(L, an);
   indexConsole(L, co);
+  indexNotifications(L, nt);
   return L.join("\n");
 }
 
@@ -1714,6 +1813,26 @@ function indexConsole(L, co) {
   L.push("");
 }
 
+function indexNotifications(L, nt) {
+  const f = nt.fichier;
+  L.push("## notifications/ (13.19 ; EX-13.40, EX-13.41)");
+  L.push("");
+  L.push(`\`notifications.json\` : un document de notification par nature, conforme à \`configuration-approbation-v0#/$defs/notification\`, son corps envoyé au webhook (le JCS du document, en UTF-8, qui est aussi la ligne de la boîte d'envoi) et l'en-tête \`${f.header}\` de la requête : \`sha256=\` suivi des 64 chiffres hexadécimaux minuscules de HMAC-SHA256 de clé \`K\` sur le préfixe ${code(JSON.stringify(f.prefix).slice(1, -1))} (${code(f.prefix_hex)}) suivi du corps. \`K\` est la clé de l'exemple d'EX-13.41, ${code(f.key)}, qui n'est pas tirée au hasard et n'est valable nulle part. Les identifiants \`ntf-…\`, que le service tire au hasard, sont ici les 32 premiers chiffres du SHA-256 de l'étiquette \`noortrace/vecteurs/ct3/notification/<cas>\`. Aucun document ne porte d'identité de personne (EX-13.11).`);
+  L.push("");
+  L.push(`Le générateur relit l'exemple d'EX-13.40 dans le texte et le recalcule : corps de ${nt.exemple.taille} octets, signature ${code(nt.exemple.signature)}, ceux que le texte imprime ; cet exemple n'est pas recopié ici.`);
+  L.push("");
+  L.push("| Cas | Nature | Destinataires | Corps (octets) | Signature | Ce qu'il exerce |");
+  L.push("|---|---|---|---|---|---|");
+  for (const c of f.cases) L.push(`| ${code(c.id)} | ${c.document.kind} | ${[...c.document.recipients.entries, ...c.document.recipients.roles.map((r) => `rôle ${r}`)].join(", ")} | ${c.expected.body_size} | ${code(abrege(c.expected.signature.slice(7)))} | ${c.description} |`);
+  L.push("");
+  L.push("Corps que le relais du client refuse (`refusals`) : la signature présentée n'est pas celle qu'il recalcule sur les octets reçus (`expected.signature`).");
+  L.push("");
+  L.push("| Cas | Ce qu'il exerce |");
+  L.push("|---|---|");
+  for (const c of f.refusals) L.push(`| ${code(c.id)} | ${c.description} |`);
+  L.push("");
+}
+
 // ---------------------------------------------------------------------------
 // Génération
 // ---------------------------------------------------------------------------
@@ -1831,6 +1950,23 @@ export function genererCt3({ racine = REPERTOIRE_CT3 } = {}) {
     return tr;
   });
 
+  // Réponses evaluer jugées par le noyau (CT-2 EX-7.16, révision 0.8).
+  const reponsesEvaluer = conceptionReponsesEvaluer().map(([id, description, context, response, raison]) => {
+    const politique = { versions: context.versions, versionRequete: context.request_policy_version, versionRetenue: context.retained_policy_version };
+    const r = A.raisonReponseInvalide(response, { decisionScellee: context.sealed_decision, politique });
+    exiger(r === raison, `reponses-evaluer ${id} : raison ${JSON.stringify(r)}, conception ${JSON.stringify(raison)}`);
+    const a = A.actionMandataire(response, { decisionScellee: context.sealed_decision, politique });
+    if (raison === null) exiger(A.erreursSchema(response, schemas, "reponse_evaluer").length === 0 && a.action !== "erreur", `reponses-evaluer ${id} : réponse valide non conforme ou refusée`);
+    else exiger(a.action === "erreur" && a.raison === raison && a.consigner === A.LIGNE_REPONSE_INVALIDE && a.error.code === -31010, `reponses-evaluer ${id} : ${JSON.stringify(a)}`);
+    return { id, description, context, response, expected: { valid: raison === null, reason: raison, action: a.action } };
+  });
+  exiger(J.egalJSON([...new Set(reponsesEvaluer.filter((c) => c.expected.valid).map((c) => `${c.response.decision}/${c.response.ticket_state}`))].sort(), ["a_approuver/en_attente", "a_approuver/nouveau", "autorise/approuve", "autorise/null", "refuse/expire", "refuse/null", "refuse/refuse"]), "reponses-evaluer : les sept combinaisons d'EX-7.16 ne sont pas toutes servies par un cas valide");
+  ecrire(path.join("reponses-evaluer", "cas.json"), {
+    version: 0,
+    description: "Réponses evaluer reçues par le noyau et ce qu'il en fait (CT-2 EX-7.16, révision 0.8 ; CT-3 §12.3, EX-12.6, révision 0.5). context : versions dont le noyau détient l'ensemble de politique, avec policy_sha256, l'empreinte qu'il a déclarée à leur charger (empreintes synthétiques de A.6), et approval_sha256, le SHA-256 du JCS du membre approval qu'il y a envoyé (l'approval de trace de A.6 : politique sans règle, défaut revue, jeu du registre, séparation du demandeur, mode erreur, hold_timeout_ms 50000, expire_after_ms 3600000, timeout_ms 2000) ; code.policy_version de la requête ; code.policy_version de la retenue du ticket rapproché (null sans ticket rapproché) ; décision scellée par le noyau pour le ticket (null sans). expected : valid ; reason (politique_non_epinglee, raison nommée par CT-2 ; forme et approval_different, raisons de la bibliothèque de référence) ; action du mandataire en mode erreur (section 11 : relayer, verifier_relais, resultat, erreur).",
+    cases: reponsesEvaluer,
+  });
+
   // Décisions.
   const decisions = conceptionDecisions().map(([rep, id, check, description, context, remise, raison]) => {
     const r = A.verifierRemise(remise, context, { schemas });
@@ -1874,8 +2010,12 @@ export function genererCt3({ racine = REPERTOIRE_CT3 } = {}) {
   ecrire(path.join("acceptation-console", "gabarit-reponse.md"), GABARIT_CONSOLE);
   ecrire("acceptation-console-attendu.json", ATTENDU_ACCEPTATION_CONSOLE);
 
-  ecrire("INDEX.md", index({ constantes, politiques, invalides, evaluations, candidats, acceptation: accCas.map(([id, , , , , ce]) => [id, ce]), tickets, decisions, normalisation, an, co }));
-  return { politiques: Object.keys(politiques).length, invalides: invalides.length, evaluation: Object.values(evaluations).reduce((n, d) => n + d.cases.length, 0), candidats: Object.values(candidats).reduce((n, d) => n + d.cases.length, 0), tickets: tickets.length, decisions: decisions.length, normalisation: normalisation.length, annuaire: an.messages.cases.length + an.inscriptions.cases.length + an.domaines.cases.length + an.traces.length + an.controlesVote.cases.length + an.controlesCanal.cases.length + an.exportsAttendu.cases.length, console: co.modeles.length + co.requetes.length + co.reponses.length + co.decouverte.length + co.fichiersCle.length };
+  // Famille notifications/ (13.19) : documents, corps envoyés au webhook et signatures (EX-13.40, EX-13.41).
+  const nt = familleNotifications({ ADR, ORIGINE, MD });
+  ecrire(path.join("notifications", "notifications.json"), nt.fichier);
+
+  ecrire("INDEX.md", index({ constantes, politiques, invalides, evaluations, candidats, acceptation: accCas.map(([id, , , , , ce]) => [id, ce]), tickets, reponsesEvaluer, decisions, normalisation, an, co, nt }));
+  return { politiques: Object.keys(politiques).length, invalides: invalides.length, evaluation: Object.values(evaluations).reduce((n, d) => n + d.cases.length, 0), candidats: Object.values(candidats).reduce((n, d) => n + d.cases.length, 0), tickets: tickets.length, reponsesEvaluer: reponsesEvaluer.length, decisions: decisions.length, normalisation: normalisation.length, annuaire: an.messages.cases.length + an.inscriptions.cases.length + an.domaines.cases.length + an.traces.length + an.controlesVote.cases.length + an.controlesCanal.cases.length + an.exportsAttendu.cases.length, console: co.modeles.length + co.requetes.length + co.reponses.length + co.decouverte.length + co.fichiersCle.length, notifications: nt.fichier.cases.length + nt.fichier.refusals.length };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
@@ -1886,5 +2026,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   }
   const racine = i !== -1 ? path.resolve(process.argv[i + 1]) : REPERTOIRE_CT3;
   const r = genererCt3({ racine });
-  process.stdout.write(`ct-3 : ${r.politiques} politiques valides, ${r.invalides} invalides, ${r.evaluation} cas d'évaluation, ${r.candidats} cas de candidats, 10 cas d'acceptation, ${r.tickets} traces, ${r.decisions} remises, ${r.normalisation} signatures, ${r.annuaire} cas d'annuaire, ${r.console} cas de console sous ${racine}\n`);
+  process.stdout.write(`ct-3 : ${r.politiques} politiques valides, ${r.invalides} invalides, ${r.evaluation} cas d'évaluation, ${r.candidats} cas de candidats, 10 cas d'acceptation, ${r.tickets} traces, ${r.reponsesEvaluer} réponses evaluer jugées, ${r.decisions} remises, ${r.normalisation} signatures, ${r.annuaire} cas d'annuaire, ${r.console} cas de console, ${r.notifications} cas de notification sous ${racine}\n`);
 }

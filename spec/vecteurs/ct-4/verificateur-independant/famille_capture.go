@@ -28,6 +28,13 @@ var ordreCP = []string{"CP-2", "CP-3", "CP-4", "CP-5", "CP-6"}
 // FamilleCapture vérifie capture/capture.json.
 func (c *Ctx) FamilleCapture() {
 	f := c.R.F("capture")
+	if c.Constantes == nil {
+		// Garde nil (revue de sécurité de l'étape 8) : les clés des
+		// enregistreurs viennent de constantes.json, dont l'absence est déjà
+		// une erreur de la famille constantes.
+		f.Erreur("capture/capture.json", "famille", fmt.Errorf("constantes.json absent ou illisible : famille capture non confrontée"), "A.2")
+		return
+	}
 	for _, cs := range c.lireFamille(f, "capture/capture.json", "capture") {
 		in := cs.Input
 		jeu, _ := c.jeuDe(in.Get("validators").S())

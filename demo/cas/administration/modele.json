@@ -1,0 +1,47 @@
+{
+  "modele": "modele-cas-1",
+  "etapes": [
+    {
+      "quand": "texte",
+      "id": "msg_cas_ad_0001",
+      "texte": "Je recherche la demande du demandeur D-07 avant de l'instruire.",
+      "outil": { "id": "toolu_cas_ad_0001", "name": "prestations__demandes_search", "input": { "query": "D-07" } },
+      "usage": { "input_tokens": 530, "output_tokens": 43 }
+    },
+    {
+      "quand": "toolu_cas_ad_0001",
+      "id": "msg_cas_ad_0002",
+      "texte": "La demande DEM-2026-01877 est la sienne : je lis le dossier.",
+      "outil": { "id": "toolu_cas_ad_0002", "name": "prestations__demandes_get", "input": { "demande_id": "DEM-2026-01877" } },
+      "usage": { "input_tokens": 600, "output_tokens": 48 }
+    },
+    {
+      "quand": "toolu_cas_ad_0002",
+      "id": "msg_cas_ad_0003",
+      "texte": "La condition de résidence est examinée : je vérifie les pièces reçues.",
+      "outil": { "id": "toolu_cas_ad_0003", "name": "prestations__pieces_verifier", "input": { "demande_id": "DEM-2026-01877" } },
+      "usage": { "input_tokens": 700, "output_tokens": 50 }
+    },
+    {
+      "quand": "toolu_cas_ad_0003",
+      "id": "msg_cas_ad_0004",
+      "texte": "L'attestation de résidence manque : je propose de notifier un refus pour condition de résidence non établie ; la décision est soumise aux instructeurs.",
+      "outil": { "id": "toolu_cas_ad_0004", "name": "prestations__decision_notify", "input": { "demande_id": "DEM-2026-01877", "decision": "refuser", "motif": "condition de residence continue non etablie : attestation de residence absente" } },
+      "usage": { "input_tokens": 810, "output_tokens": 104 }
+    },
+    {
+      "quand": "toolu_cas_ad_0004",
+      "id": "msg_cas_ad_0005",
+      "texte": "Les instructeurs ont refusé la notification de refus : une pièce manquante n'établit pas l'inéligibilité. Je notifie au demandeur les pièces à compléter.",
+      "outil": { "id": "toolu_cas_ad_0005", "name": "prestations__decision_notify", "input": { "demande_id": "DEM-2026-01877", "decision": "completer", "motif": "attestation de residence de la commune a fournir sous trente jours" } },
+      "usage": { "input_tokens": 930, "output_tokens": 96 }
+    },
+    {
+      "quand": "toolu_cas_ad_0005",
+      "id": "msg_cas_ad_0006",
+      "texte": "La demande DEM-2026-01877 est en attente de pièces : la notification de complément est envoyée, aucun refus n'a été notifié.",
+      "outil": null,
+      "usage": { "input_tokens": 1040, "output_tokens": 39 }
+    }
+  ]
+}

@@ -61,6 +61,23 @@ import { construireManifeste } from "../lib/journal.mjs";
 process.env.HARDHAT_CONFIG ??= fileURLToPath(new URL("../../hardhat.config.mjs", import.meta.url));
 const hre = (await import("hardhat")).default;
 
+/** Identifiants EVM des réseaux de développement et d'essai (CT-4 EX-7.2, EX-7.3) : seuls réseaux où un jeu existant se remplace. */
+const RESEAUX_DEVELOPPEMENT = new Set([2121n, 2122n, 2123n, 2124n, 31337n]);
+const HEX_CLE = /^0x[0-9a-fA-F]{64}$/;
+
+/** Une clé saisie : 0x suivi de 64 chiffres hexadécimaux ; le refus ne nomme que la variable et le rang, jamais la valeur. */
+function cleValidee(valeur, nom) {
+  if (typeof valeur !== "string" || !HEX_CLE.test(valeur.trim())) throw new Error(`${nom} : clé secp256k1 attendue, 0x suivi de 64 chiffres hexadécimaux ; la valeur saisie n'est pas recopiée`);
+  return valeur.trim();
+}
+
+/** Message d'erreur sans secret : hexadécimal long et identifiants d'URL effacés. */
+function messageSur(e) {
+  return String(e?.message ?? e)
+    .replace(/0x[0-9a-fA-F]{40,}/g, "0x…")
+    .replace(/\/\/[^/@\s]+@/g, "//");
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   await ensureCompiled(hre);
@@ -85,12 +102,16 @@ async function main() {
   const surcharges = txOverrides(conn);
 
   // 1. L'organisation : amorcée (jeu neuf, seuil 2) ou existante (jeu en place).
-  const approverKeys = process.env.NOORTRACE_APPROVER_KEYS ? process.env.NOORTRACE_APPROVER_KEYS.split(",").map((k) => k.trim()).filter(Boolean) : [];
+  const approverKeys = process.env.NOORTRACE_APPROVER_KEYS ? process.env.NOORTRACE_APPROVER_KEYS.split(",").map((k) => k.trim()).filter(Boolean).map((k, i) => cleValidee(k, `NOORTRACE_APPROVER_KEYS, clé de rang ${i + 1}`)) : [];
   const slugExplicite = args.org ?? process.env.NOORTRACE_ORG;
   const slug = String(slugExplicite ?? `e2e-${Date.now()}`);
   const orgId = orgIdOf(slug);
   const remplacerLeJeu = args["remplacer-le-jeu"] === true || process.env.NOORTRACE_REMPLACER_LE_JEU === "1";
   const dejaAmorcee = await curatorSetRegistry.isRegistered(orgId);
+  // EX-7.2 : le jeu d'une organisation inscrite ne se remplace que sur un réseau de développement ou d'essai ; ailleurs, la voie est reassigner (CT-4 EX-8.10).
+  if (dejaAmorcee && remplacerLeJeu && !RESEAUX_DEVELOPPEMENT.has(BigInt(chainId))) {
+    throw new Error(`« ${slug} » est déjà amorcée sur le réseau ${chainId}, hors des réseaux de développement : --remplacer-le-jeu refusé ; un changement de jeu suit CT-4 EX-8.10 (reassigner, demande écrite du client)`);
+  }
   let org;
   let signataires;
   if (dejaAmorcee && !remplacerLeJeu) {
@@ -271,6 +292,7 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error("Échec de l'aller-retour :", e);
+  // Le message seul, sans la saisie ni la pile.
+  console.error("Échec de l'aller-retour :", messageSur(e));
   process.exitCode = 1;
 });

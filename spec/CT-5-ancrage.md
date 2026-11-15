@@ -1,6 +1,6 @@
 # CT-5 — Ancrage
 
-Version 0.9, 2026-11-12 (la version 0.8 est du même jour, la version 0.7 du 2026-11-10, les versions 0.6 et 0.5 du même jour, la version 0.4 du
+Version 0.10, 2026-11-14 (la version 0.9 est du 2026-11-12, la version 0.8 du même jour, la version 0.7 du 2026-11-10, les versions 0.6 et 0.5 du même jour, la version 0.4 du
 2026-11-09, la version 0.3 du 2026-11-03, la version 0.2 du 2026-10-26, la
 version 0.1 du 2026-10-25). Spécification normative, soumise à la revue de la porte 1 du
 plan de projet (document interne). Elle met en œuvre les points 2
@@ -16,7 +16,7 @@ qu'il attend d'un ancrage jamais bloquant (CT-2 §14.2), et se conforme à ce qu
 [CT-6](CT-6-verificateur.md) §13.1, §13.2 et, depuis sa révision 0.2, §13.4
 (EX-13.14 à EX-13.19) exigent de CT-5. Elle ne change ni CT-4 ni CT-6 : ce
 qu'elle leur demande est écrit en section 14 et repris par leurs révisions,
-écrites avec ce lot (CT-4 0.3 : le libellé de `docType` du point, §6.4 et
+écrites avec cette version (CT-4 0.3 : le libellé de `docType` du point, §6.4 et
 EX-6.6 ; CT-6 0.2 : la vérification de la partie `points-de-controle.json`,
 §5.4, §7.9, §11.9 et §13.4).
 
@@ -90,7 +90,7 @@ de référence et ses vecteurs n'exercent toujours pas le retrait.
 **Révision 0.6** (2026-11-10), à la suite des mesures de l'étape 5 de la
 construction. Deux décisions du porteur, sans règle nouvelle (les exigences
 s'inscrivent dans les règles existantes, dont le texte est complété).
-(D2) **Taille de la file pendant une longue panne.** La campagne de l'étape 5
+**Taille de la file pendant une longue panne.** La campagne de l'étape 5
 (mesure TM-17 du plan de tests, panne d'une heure simulée) a relevé 59 demandes, 3 831 lignes,
 30,9 Mo et 1 886 tentatives : chaque tentative réécrivait la ligne de sa
 demande avec toutes ses tentatives, et la taille croissait comme le carré
@@ -103,7 +103,7 @@ neuf puis renommage atomique, sans perte d'une ligne écrite avant) à chaque
 clôture de période et dès que sa taille dépasse la clé nouvelle
 `queue.compact_bytes` (défaut 16 777 216), ce qui la borne (EX-8.5, règle 5,
 réécrite) ; la relecture accepte une file compactée (EX-8.12) ; un échec du
-compactage laisse l'ancienne file valide et ne bloque rien. (D3)
+compactage laisse l'ancienne file valide et ne bloque rien.
 **Décomposition de `d_jeton`.** La campagne a mesuré entre `checkpoint_ts`
 et l'admission du point par le composant d'ancrage un délai (médiane
 d'environ 0,7 s, 6,1 s au plus avant une correction de l'enregistreur qui
@@ -190,12 +190,72 @@ principal est refusé avec ces trois raisons. Ni le schéma `ancrage-v0` ni sa
 projection ne changent (la règle n'est pas exprimable par le schéma sans le
 profil, que le document ne porte pas ; la description de `url` renvoie déjà
 à AN-1) ; aucune trace, aucun vecteur, aucun outil de référence ne change
-(`verifierConfiguration` de la référence n'applique les règles d'adresse
-qu'en production). Le composant d'ancrage désigne ce principal au transport
+(révision 0.10 : `verifierConfiguration` de la référence applique les règles
+d'adresse et d'authentification de la règle 4 dans tout profil, et le reste
+de la règle 4 en production seulement). Le composant d'ancrage désigne ce principal au transport
 comme serveur interne (`serveur_interne`), qui l'admet alors en `http://`
 local. Sections touchées : en-tête et cette note ; 4.4 (EX-4.9, règle 4) ;
 5.2 (EX-5.5) ; 5.3 (table d'EX-5.6) ; 7.1 (EX-7.1, EX-7.3) ; 7.2 (AN-27) ;
 7.3 ; 11.3 ; 11.4 (AN-55) ; 14 (une ligne).
+
+**Révision 0.10** (2026-11-14), après la revue de sécurité interne de
+l'étape 8 (relecture du composant d'ancrage, de la référence et du module
+Go contre le texte) et les corrections qui l'ont suivie. Le texte tranche ce
+qu'il laissait ouvert et dit ce que le composant fait désormais : `url` sans
+identifiant (EX-4.8, AN-54, schéma) ; règle 4 d'AN-1 étendue (prestataire
+`interne` jamais `qualified`, `headers_source` exigé en production, document
+qui désigne un prestataire au retrait en vigueur refusé), règle 4 bis
+(`crl_hosts`, adresses de CRL locales et privées refusées en production, huit
+adresses par certificat) et règle 9 (OID encodables, arcs sur 128 bits, DER
+de 127 octets) ; recul de l'heure murale consigné et `due_at` borné au
+démarrage (EX-4.13) ; délai total de requête (EX-5.5) ; `promoted` sur une
+issue `obtenue` seulement et demande `obtenue` sans enregistrement rouverte
+(EX-5.8) ; retrait de `qualified` durable, automatique sur `PKIStatus` 4 ou 5,
+levé par le seul exploitant (EX-5.9, EX-5.12) ; `statut_<n>`, borne des
+vérifications de chemin, issue gardée à travers un échec d'écriture, règles
+des adresses de CRL (EX-5.10) ; pièces écrites complètes et fragment
+d'`acquisitions.ndjson` tronqué (EX-5.14) ; engagement présenté au
+calendrier (EX-6.2) ; attestation Bitcoin acquise après O-4 seulement,
+source indisponible distinguée de l'absence de source, `h' + 11` repris
+(EX-6.8, EX-6.9) ; jeton et preuve de l'empreinte `periodHash` seule remis au
+dossier (EX-6.10) ; numéro de série du serveur interne à travers une
+restauration et plusieurs processus (AN-26) ; passe du planificateur
+indépendante des demandes finales (EX-8.1) ; fragment de file retiré, ligne
+en échec effacée, lignes illisibles comptées au compactage (EX-8.5) ; reprise
+programmée pendant une tentative de l'autre prestataire (EX-8.8) ; rejeux par
+passe bornés à quatre (EX-8.10) ; relecture par lots de 10 000, relève
+reposée et EX-4.4 appliquée aux demandes relues, demande recréée `obtenue`
+(EX-8.12) ; compteur des tentatives et alerte `horloge_reculee` (8.9) ;
+ancre d'une période refusée `empreinte_squattee` (jeton de période en attente,
+`registry_pending`, trace `empreinte-squattee`) et refus constaté sur deux
+points (EX-9.7) ; lecture des listes de confiance hors du composant (15). La
+note de la révision 0.9 sur `verifierConfiguration` est corrigée. Schéma
+`ancrage-v0` : motif de `url`, `maxLength` de `$defs/oid`, membre facultatif
+`crl_hosts` d'un prestataire (extensions compatibles). Traces nouvelles de
+l'annexe A (`releve-pendant-reprise`, `redemarrage-releve`,
+`redemarrage-echeance-remplacee`, `file-lignes-illisibles`,
+`empreinte-squattee`) et cas `statut-6` : publiés avec cette révision par
+l'assemblage. Demandées après la première rédaction de cette révision
+(régénération consolidée des vecteurs, composants de l'étape 8) et écrites
+dans la même : règle 4 (`auth.method` et `auth.secret` cohérents dans tout
+profil, que seule la description du schéma disait) ; règle 4 bis
+(`crl_hosts` absent ou nul : seules les adresses publiques en production,
+comme la description du schéma) ; EX-5.10 étape 2 (`status` hors des
+entiers représentables : `reponse_illisible` ; schéma
+`planificateur-ancrage-v0` : `pki_status` de tout entier représentable) ;
+EX-8.3 (`envoyee` vers `envoyee` pendant une tentative de l'autre série) ;
+EX-8.9 (tentative `redemarrage` qui interrompt la série) ; A.3, A.4 (vingt-huit
+traces, `statut-6`) ; A.6 (jeton `integer-non-minimal` et réponse `statut-6`,
+limites d'OpenSSL).
+Sections touchées : en-tête et cette note ; 4.4 (EX-4.8,
+EX-4.9) ; 4.7 (EX-4.13) ; 5.1 (EX-5.1) ; 5.2 (EX-5.5) ; 5.3 (EX-5.8, EX-5.9) ;
+5.4 (EX-5.10, EX-5.12) ; 5.5 (EX-5.14) ; 6.2 (EX-6.2) ; 6.5 (EX-6.8, EX-6.9) ;
+6.6 (EX-6.10) ; 7.2 (AN-26) ; 8.1 (EX-8.1) ; 8.5 (EX-8.5) ; 8.7 (EX-8.8,
+EX-8.10) ; 8.8 (EX-8.12) ; 8.9 ; 9.2 (EX-9.7) ; 15 ; 8.3 (EX-8.3) ; 8.6 (EX-8.9) ;
+annexes A.3, A.4, A.6. Ce que la revue a laissé au porteur n'est pas écrit ici :
+mention « indépendant » du module Go de `ct-5` (A.5), risque du serveur
+interne de classe D (7.2, AN-31), source de la mesure d'écart d'horloge
+(AN-24), `second_rang` public sans compte (règle 4).
 
 La spécification a deux parties. La **partie A** (sections 0 à 6) dit ce que
 l'ancrage prouve et ne prouve pas, quelle fenêtre de réécriture il laisse,
@@ -260,7 +320,7 @@ délais d'obtention de chaque ancre (3.3) ; `W` la fenêtre de réécriture
 désigne la période de CT-1 §2 : une heure UTC pleine `[period_start,
 period_end)`.
 
-« La référence » désigne l'implémentation JavaScript de ce lot :
+« La référence » désigne l'implémentation JavaScript de cette version :
 `scripts/lib/journal.mjs` (construction et vérification d'un point de
 contrôle, preuve de cohérence, partie de dossier, CT-1 §10.5 à §11.2) et
 `scripts/lib/ancrage.mjs` (planificateur à horloge injectée : échéances, file
@@ -275,7 +335,7 @@ les requêtes, `python-opentimestamps` sur les fichiers `.ots`, `openssl ts
 -verify` sur les jetons). Les fonctions nommées dans ce document sont celles
 de la référence ; une autre implémentation peut nommer les siennes autrement.
 
-Les faits externes viennent de deux notes de recherche du lot CT-5, internes
+Les faits externes viennent de deux notes de recherche de CT-5, internes
 et non publiées, relues le 2026-10-25 sur les sources primaires qu'elles
 citent (textes des RFC 3161, 5035, 5816, 6962 et 9162 ; politiques et guides
 publics des prestataires d'horodatage ; listes de confiance signées ; code et
@@ -340,10 +400,10 @@ Ce que la version 0 livre :
 | Élément | Livré |
 |---|---|
 | Cette spécification ; les schémas `spec/schemas/ancrage-v0.schema.json` (4.4) et `spec/schemas/planificateur-ancrage-v0.schema.json` (8.10, annexe A) | avec CT-5 |
-| La référence JavaScript : `scripts/lib/journal.mjs` (point de contrôle, preuve de cohérence, partie de dossier) et `scripts/lib/ancrage.mjs` (planificateur à horloge injectée, requête DER, fichier `.ots`, formule de coût ; sans réseau) ; `scripts/lib/verificateur.mjs` et `scripts/verify/dossier.mjs` pour la partie (CT-6 0.2) | avec le lot CT-5 |
-| Les vecteurs `spec/vecteurs/ct-5` (annexe A) et les familles `points-de-controle/` et `merkle/coherence.json` de `spec/vecteurs/ct-1` (CT-1 §13), leurs générateurs et leurs tests | avec le lot CT-5 |
-| Les vérificateurs Go indépendants : extension de `spec/vecteurs/ct-1/verificateur-independant` (points, cohérence) et `spec/vecteurs/ct-5/verificateur-independant` | avec le lot CT-5 |
-| La confrontation par des implémentations tierces : `openssl ts` sur les requêtes et les jetons, `python-opentimestamps` sur les fichiers `.ots` (annexe A) | avec le lot CT-5 |
+| La référence JavaScript : `scripts/lib/journal.mjs` (point de contrôle, preuve de cohérence, partie de dossier) et `scripts/lib/ancrage.mjs` (planificateur à horloge injectée, requête DER, fichier `.ots`, formule de coût ; sans réseau) ; `scripts/lib/verificateur.mjs` et `scripts/verify/dossier.mjs` pour la partie (CT-6 0.2) | avec CT-5 |
+| Les vecteurs `spec/vecteurs/ct-5` (annexe A) et les familles `points-de-controle/` et `merkle/coherence.json` de `spec/vecteurs/ct-1` (CT-1 §13), leurs générateurs et leurs tests | avec CT-5 |
+| Les vérificateurs Go indépendants : extension de `spec/vecteurs/ct-1/verificateur-independant` (points, cohérence) et `spec/vecteurs/ct-5/verificateur-independant` | avec CT-5 |
+| La confrontation par des implémentations tierces : `openssl ts` sur les requêtes et les jetons, `python-opentimestamps` sur les fichiers `.ots` (annexe A) | avec CT-5 |
 | Le contrat avec un prestataire principal et un prestataire de secours (section 11), leurs identifiants d'accès et la procédure de qualification (5.3) | après la porte 1 ; les devis viennent après la conception |
 | Le serveur RFC 3161 interne en production (section 7) | optionnel ; le réseau de développement et les vecteurs en emploient un |
 
@@ -831,7 +891,10 @@ vide. Il est désigné par la configuration de l'enregistreur (CT-2 §15, clé
 `anchoring` ; proposition d'alignement en section 14) et validé au démarrage
 comme elle (CT-2 §15.4) : une configuration invalide empêche le démarrage du
 composant d'ancrage, et l'enregistreur continue de produire points et
-manifestes (CT-2 §14.2 : l'ancrage ne bloque jamais). Les secrets (identifiant
+manifestes (CT-2 §14.2 : l'ancrage ne bloque jamais). L'`url` d'un
+prestataire ne porte ni identifiant ni mot de passe : sa partie d'autorité
+ne contient pas `@` (motif `^https?://[^\s@/]+(/[^\s]*)?$` du schéma,
+révision 0.10 ; AN-54). Les secrets (identifiant
 et mot de passe d'accès à un prestataire, certificat client, authentification
 du nœud Bitcoin) sont désignés par leur emplacement (`env`, `file`, `vault`,
 CT-2 §15.2), jamais écrits en clair. Aucun prix n'y figure.
@@ -1002,7 +1065,23 @@ nominatif :
    … sans qualified`), et, s'il est désigné en `http://` ou sans
    authentification, chacune de ces deux formes est refusée avec la raison
    « le serveur RFC 3161 interne n'est admis comme principal que hors
-   production » ;
+   production » ; révision 0.10 : dans tout profil, un prestataire de rôle
+   `interne` a `qualified = null` (EX-5.6, EX-7.2) et tout `url` est sans
+   identifiant ni mot de passe (EX-4.8, AN-54) ; en production,
+   `opentimestamps.headers_source` est non nul (EX-6.6, EX-6.9 : sans source,
+   la borne Bitcoin n'est jamais acquise), et un document qui désigne comme
+   `principal` ou `secours` un prestataire dont le retrait de `qualified` est
+   en vigueur (EX-5.9) est refusé ; dans tout profil, `auth.method = aucune`
+   va avec `auth.secret = null`, `basic` et `certificat_client` avec un
+   secret non nul ;
+   4 bis. (révision 0.10) chaque prestataire PEUT porter une liste `crl_hosts`
+   des noms d'hôte dont la capture des CRL (EX-5.10, étape 10) est admise ;
+   en production, une adresse de CRL locale ou privée (RFC 1918, 3927, 4193,
+   6598) est refusée sans requête, et, quand `crl_hosts` est donnée, une
+   adresse dont l'hôte n'y figure pas aussi ; `crl_hosts` absent ou nul : en
+   production, seules les adresses publiques sont admises (locales et
+   privées refusées) ; hors production, la boucle locale reste admise
+   (serveur de CRL d'essai) ;
 5. `opentimestamps.enabled = true` ⇒ au moins deux `calendars` distincts,
    `min_responses ≤ longueur de calendars`, au moins une entrée dans
    `upgrade.whitelist` ;
@@ -1012,7 +1091,11 @@ nominatif :
    `provider_role = "interne"` ⇒ un prestataire de ce rôle existe ;
 8. chaque PEM d'`anchor_certificates` se lit comme un certificat par le
    lecteur de CT-6 §9.3 (sinon N-1 à l'acquisition : la configuration le dit
-   d'avance).
+   d'avance) ;
+9. (révision 0.10) chaque `policy_oid` et chaque OID d'`accepted_policies`
+   s'encode dans la requête d'EX-5.1 : premier arc 0, 1 ou 2, second arc
+   inférieur à 40 sous un premier arc 0 ou 1, chaque arc tenant sur 128 bits,
+   DER de l'OID d'au plus 127 octets (`maxLength` de `$defs/oid` du schéma).
 
 ### 4.5 Obligatoire et optionnel
 
@@ -1093,7 +1176,13 @@ tolérances de CT-2 bloque l'écrivain (CT-2 EX-7.9, EX-7.13) et donc la
 production des points ; le composant d'ancrage, lui, continue de servir la
 file (les demandes déjà inscrites sont envoyées) et n'en inscrit pas de
 nouvelles tant qu'aucun point n'est produit. Il ne corrige jamais un
-`checkpoint_ts`, un `generated_at` ni un `genTime`.
+`checkpoint_ts`, un `generated_at` ni un `genTime`. Quand l'heure murale
+recule derrière l'instant déjà servi au planificateur, le composant sert le
+temps sur son horloge monotone depuis cet instant, consigne
+`anchoring_clock_backwards` et lève `horloge_reculee` (mineure, 8.9) ; ses
+attentes en cours gardent leur durée restante, et l'heure murale fait foi de
+nouveau dès qu'elle le rattrape. Au démarrage, un `due_at` postérieur à
+l'instant courant plus `retry.max_ms` est ramené à cette borne.
 
 ### 4.8 Vérifications AN-1 à AN-4
 
@@ -1110,7 +1199,8 @@ nouvelles tant qu'aucun point n'est produit. Il ne corrige jamais un
 
 **EX-5.1** Une requête d'horodatage est une structure `TimeStampReq` (RFC
 3161 §2.4.1) encodée en DER, sans aucun autre champ que ceux de la table, dans
-cet ordre :
+cet ordre (chaque arc d'un OID tient sur 128 bits, à l'encodage comme au
+décodage ; au-delà, l'OID est refusé, EX-4.9 règle 9) :
 
 | Champ | Octets | Règle |
 |---|---|---|
@@ -1206,7 +1296,10 @@ la sienne, que `accepted_policies` contrôle à l'acquisition (T-9).
 ### 5.2 Transport
 
 **EX-5.5 (AN-7)** La requête est envoyée par HTTP sur TLS (version 1.2 au
-moins), méthode `POST`, vers `url` du prestataire, avec `Content-Type:
+moins), méthode `POST`, vers `url` du prestataire, sous le délai
+`request_timeout_ms`, délai total armé à l'envoi et qui couvre la réponse
+jusqu'à son dernier octet (une réponse au goutte-à-goutte est coupée) ; le
+même délai vaut pour la capture d'une CRL (EX-5.10, étape 10) ; avec `Content-Type:
 application/timestamp-query`, `Accept: application/timestamp-reply,
 application/timestamp-response`, `Content-Length` exact et le DER de la
 requête pour seul corps (RFC 3161 §3.4, R1-F9 : la RFC nomme la réponse
@@ -1274,7 +1367,10 @@ après ce moment (tentative de l'autre prestataire arrêtée trop tard, EX-5.7)
 ou une réponse tardive non promue (EX-5.11) est conservé comme pièce et n'est
 jamais promu. Le champ `promoted` d'EX-5.13 désigne ce choix ; il ne change
 qu'à une révocation constatée (EX-5.10, étape 10 ; `obtenue → a_reprendre`,
-EX-8.3).
+EX-8.3) ; `promoted` n'est vrai que sur un enregistrement d'issue `obtenue`.
+Au démarrage, une demande de jeton `obtenue` de la file sans enregistrement
+`obtenue` promu de même `token_sha256` dans `acquisitions.ndjson` est
+rouverte (`a_reprendre`) et alertée (`file_perdue`).
 
 **EX-5.9 (qualifié, mesurable)** Un prestataire est tenu pour qualifié par
 le composant d'ancrage, et son objet `qualified` renseigné, si et seulement si
@@ -1309,12 +1405,19 @@ is expected to use a Trusted List to establish whether the TSP and the TSU are
 Qualified »). Le statut est ré-établi à chaque nouvelle séquence de la liste
 et au plus tard tous les trente jours (valeur de conception, CT-8), et un
 changement (statut `withdrawn`, R1-F45, R1-F47) retire `qualified` et lève une
-alerte. Le rôle configuré ne change pas tant que l'exploitant n'a pas rechargé
+alerte. Le retrait de `qualified` est durable (fichier
+`qualifications-retirees.json` du journal), relu au démarrage, jamais levé par
+un rechargement ; il est automatique sur `PKIStatus` 4 ou 5 (EX-5.12) ; seul
+l'exploitant le lève (`retablirQualification`), après lecture de la liste de
+confiance (le ré-établissement périodique est son acte, CT-8 TP-2 ; le
+composant ne lit aucune liste). Le rôle configuré ne change pas tant que
+l'exploitant n'a pas rechargé
 une configuration : les jetons sont acquis avec l'instantané `qualified =
 null`, donc non qualifiés ; pour la clôture, la relève par le secours qualifié
 s'applique comme pour une erreur permanente du principal (EX-5.7) ; AN-1
 (règle 4) refuse tout rechargement tant qu'aucun principal qualifié n'est
-désigné. Cette règle est normative pour le composant d'ancrage ; dans la
+désigné, et, en production, tout document qui désigne comme `principal` ou
+`secours` un prestataire dont le retrait est en vigueur. Cette règle est normative pour le composant d'ancrage ; dans la
 version 0, ni la référence ni les vecteurs ne l'exercent (aucune entrée du
 planificateur ne porte le retrait) : l'exploitant l'applique en provoquant la
 relève ; le composant d'ancrage de production l'éprouve (relève par le
@@ -1333,15 +1436,15 @@ d'ancrage exécute, dans cet ordre, et s'arrête à la première étape en éche
 | Étape | Vérification | Code d'erreur | Classe (EX-5.12) | Source |
 |---|---|---|---|---|
 | 1 | Statut HTTP 200, `Content-Type` admis, corps ≤ 128 Kio (EX-5.5) | `http_<statut>`, `type_contenu`, `taille` | selon le statut (EX-5.12) | R1-F9 |
-| 2 | Le corps se lit comme une `TimeStampResp` par le lecteur DER borné de CT-6 §9.3 ; `status` (`PKIStatus`) vaut 0 ou 1 et un `TimeStampToken` est présent ; `status` 2 à 5 : pas de jeton, `PKIFailureInfo` lu ; toute autre valeur : erreur | `reponse_illisible`, `statut_<n>`, `echec_<failureInfo>` (`badAlg`, `badRequest`, `badDataFormat`, `timeNotAvailable`, `unacceptedPolicy`, `unacceptedExtension`, `addInfoNotAvailable`, `systemFailure`) | voir EX-5.12 | RFC 3161 §2.4.2, R1-F6, R1-F7 |
+| 2 | Le corps se lit comme une `TimeStampResp` par le lecteur DER borné de CT-6 §9.3 ; `status` (`PKIStatus`) vaut 0 ou 1 et un `TimeStampToken` est présent ; `status` 2 à 5 : pas de jeton, `PKIFailureInfo` lu ; toute autre valeur de `status` : `statut_<n>`, permanente, jeton non lu ; révision 0.10 : un `status` hors des entiers représentables (au-delà de ±(2^53 − 1)) : `reponse_illisible` ; la tentative consigne `pki_status` tel que lu (schéma `planificateur-ancrage-v0`) | `reponse_illisible`, `statut_<n>`, `echec_<failureInfo>` (`badAlg`, `badRequest`, `badDataFormat`, `timeNotAvailable`, `unacceptedPolicy`, `unacceptedExtension`, `addInfoNotAvailable`, `systemFailure`) | voir EX-5.12 | RFC 3161 §2.4.2, R1-F6, R1-F7 |
 | 3 | `messageImprint.hashAlgorithm` égal à celui de la requête et `hashedMessage` égal à l'empreinte envoyée | `empreinte_differente` | permanente, alerte | RFC 3161 §2.2, R1-F3 |
 | 4 | `nonce` présent dans `TSTInfo` et égal à celui de la requête | `nonce_absent`, `nonce_different` | permanente, alerte | RFC 3161 §2.4.2, R1-F2 |
 | 5 | Si `reqPolicy` a été envoyé : `policy` égal ; dans tous les cas, `policy` dans `accepted_policies` quand elle n'est pas `null` | `politique_differente`, `politique_refusee` | permanente | RFC 3161 §2.4.2, R1-F5 |
-| 6 | T-1 à T-9 de CT-6 §9.5 (`verifierJeton` d'`horodatage.mjs`, avec pour empreinte attendue celle de la requête et pour ancres les `anchor_certificates` et `accepted_policies` du prestataire), T-7 évaluée à `genTime` ; T-11 n'est pas exécutée ici (`qualified` est déclaratif, EX-5.9) | `verification_T-<n>` | permanente, alerte | CT-6 EX-13.2 |
+| 6 | T-1 à T-9 de CT-6 §9.5 (`verifierJeton` d'`horodatage.mjs`, avec pour empreinte attendue celle de la requête et pour ancres les `anchor_certificates` et `accepted_policies` du prestataire), T-7 évaluée à `genTime` ; la recherche du chemin de T-7 ne vérifie chaque couple (certificat émis, certificat émetteur) qu'une fois, au plus 16 × 17 vérifications de signature par autorité, la même borne qu'à la vérification (CT-6 EX-9.23) ; T-11 n'est pas exécutée ici (`qualified` est déclaratif, EX-5.9) | `verification_T-<n>` | permanente, alerte | CT-6 EX-13.2 |
 | 7 | Fraîcheur (EX-5.11) : `received_at − sent_at ≤ max_response_delay_s` | `reponse_tardive` | transitoire (nouvelle tentative, nouveau nonce) | RFC 3161 §4, point 4, R1-F13 |
 | 8 | Horloge (EX-5.11) : `\|genTime − sent_at\| ≤ clock_tolerance_s` | `horloge_suspecte` (avertissement : le jeton est promu) | — | R1, conséquence 1 |
-| 9 | Écriture (5.5) : requête, réponse complète, jeton extrait, enregistrement d'acquisition, puis `fsync` ; la demande passe à `obtenue` | `ecriture` | transitoire | CT-6 EX-13.3 |
-| 10 | Différé de `crl_capture.delay_s` : capture de la CRL (ou réponse OCSP) de chaque certificat du chemin de T-7, émise après `genTime`, puis T-10 ; une révocation lève une alerte critique, marque le jeton `revoque`, et la demande passe de `obtenue` à `a_reprendre` (EX-8.3) et repart au secours ; une même capture sert à tous les jetons d'une même unité dont le `genTime` la précède (CT-6 EX-13.17) | `crl_indisponible` (réessayée), `revoque` | — | CT-6 EX-13.12, EX-13.17, T-10 |
+| 9 | Écriture (5.5) : requête, réponse complète, jeton extrait, enregistrement d'acquisition, puis `fsync` ; la demande passe à `obtenue`. Quand l'écriture échoue, l'issue des étapes 1 à 8 est gardée et l'écriture est rejouée ; l'enregistrement finalement écrit porte cette issue, jamais `ecriture` | `ecriture` | transitoire | CT-6 EX-13.3 |
+| 10 | Différé de `crl_capture.delay_s` : capture de la CRL (ou réponse OCSP) de chaque certificat du chemin de T-7, émise après `genTime`, puis T-10 ; une adresse de CRL est `http://` ou `https://` sans identifiant ; en production, aucune adresse locale ni privée (RFC 1918, 3927, 4193, 6598), et seulement les hôtes admis du prestataire (`crl_hosts`, EX-4.9 règle 4 bis) ; au plus huit adresses distinctes sont demandées par certificat ; une adresse refusée est consignée sans requête ; une révocation lève une alerte critique, marque le jeton `revoque`, et la demande passe de `obtenue` à `a_reprendre` (EX-8.3) et repart au secours ; une même capture sert à tous les jetons d'une même unité dont le `genTime` la précède (CT-6 EX-13.17) | `crl_indisponible` (réessayée), `revoque` | — | CT-6 EX-13.12, EX-13.17, T-10 |
 
 Les étapes 3 à 6 refont ce que RFC 3161 §2.2 impose au demandeur (R1-F3 :
 « what was time-stamped corresponds to what was requested », identifiant de
@@ -1393,7 +1496,7 @@ configuration) :
 | Autre HTTP 4xx ou 5xx, `Content-Type` non admis, corps trop long, réponse illisible | permanente | ne pas rejouer ; alerte ; relève (EX-5.7) |
 | `PKIStatus` 2 (`rejection`) avec `badAlg`, `badRequest`, `badDataFormat`, `unacceptedPolicy`, `unacceptedExtension`, `addInfoNotAvailable` | permanente | la requête est en cause : alerte nominative ; relève |
 | `PKIStatus` 2 avec `timeNotAvailable` ou `systemFailure`, `PKIStatus` 3 (`waiting`) | transitoire | rejouer ; nouveau nonce |
-| `PKIStatus` 4 ou 5 (`revocationWarning`, `revocationNotification`) | permanente, alerte critique | le certificat de l'unité est ou va être révoqué : relève immédiate ; le prestataire perd `qualified` jusqu'à décision de l'exploitant |
+| `PKIStatus` 4 ou 5 (`revocationWarning`, `revocationNotification`) | permanente, alerte critique | le certificat de l'unité est ou va être révoqué : relève immédiate ; le prestataire perd `qualified`, retrait durable que seul l'exploitant lève (EX-5.9) |
 | Empreinte, nonce ou politique différents (étapes 3 à 5), T-1 à T-9 en échec | permanente, alerte | la réponse est conservée comme pièce ; relève |
 | Réponse tardive (étape 7) | transitoire | EX-5.11 |
 | Écriture impossible (étape 9) | transitoire | rejouer l'écriture ; la réponse reçue n'est pas renvoyée |
@@ -1427,7 +1530,13 @@ de ce que l'exportateur remet au réviseur (section 10).
 ### 5.5 Stockage et conservation
 
 **EX-5.14 (AN-14)** Les pièces d'horodatage sont écrites sous la racine de
-stockage de l'enregistreur (CT-2 EX-12.1), par journal :
+stockage de l'enregistreur (CT-2 EX-12.1), par journal. Une pièce n'existe
+sous son nom que complète : fichier provisoire du même répertoire, écriture
+jusqu'au dernier octet, `fsync`, puis lien exclusif sous son nom ; avant tout
+ajout à `acquisitions.ndjson`, une fin de fichier sans fin de ligne est
+tronquée à la dernière ligne complète ; une ligne tronquée ou illisible à la
+relecture lève l'alerte `file_perdue` et remet à `a_reprendre` la demande
+dont l'enregistrement manque :
 
 ```text
 <root>/<org_id>/<journal_id>/ancres/periode-<period_start>/
@@ -1538,7 +1647,9 @@ le point sélectionné à `D_{k_m}` est soumis quand même.
 2026-10-25 ; R1-F56, R1-F61, R1-F62) : (1) un nonce de 16 octets, tiré d'un
 générateur aléatoire cryptographique, est ajouté à la fin de l'empreinte
 (opération `f0`), puis le résultat est haché (opération `08`) : l'engagement
-`e = SHA-256(empreinte ‖ nonce)` ; (2) `e` (32 octets) est envoyé à chacun des
+`e = SHA-256(empreinte ‖ nonce)` ; l'engagement présenté à `GET
+<uri>/timestamp/<hex>` (EX-6.6) est le message du nœud en attente, de 1 à
+4 096 octets, non l'engagement de 32 octets ; (2) `e` (32 octets) est envoyé à chacun des
 `calendars` par `POST <url>/digest`, corps = les 32 octets, en-tête `Accept:
 application/vnd.opentimestamps.v1` (`opentimestamps/calendar.py`, R1-F63 ; le
 serveur refuse un condensé de plus de 64 octets, R1-F64) ; (3) chaque réponse
@@ -1700,7 +1811,8 @@ le composant d'ancrage produit, pour chaque période dont au moins une preuve
 est complète, le fichier `entetes-bitcoin.json` au schéma
 `entetes-bitcoin-v0` (CT-6 §10.3) : `network` celui de la source,
 `start_height = max(0, 2016 × (⌊h ÷ 2016⌋ − 1))` et une fin au moins égale à
-`h' + 11`, `h` et `h'` étant la plus petite et la plus grande hauteur
+`h' + 11` (le fichier est produit quand la source connaît `h' + 11`, et son
+écriture est reprise jusque-là), `h` et `h'` étant la plus petite et la plus grande hauteur
 attestées par les preuves de la période (manifeste et, le cas échéant, point ;
 CT-6 EX-13.13 et EX-10.13), `headers` les en-têtes bruts de 80 octets dans
 l'ordre de sérialisation de Bitcoin, jamais une valeur affichée par un
@@ -1720,7 +1832,16 @@ contre ses en-têtes (O-4 : le résultat des opérations est la racine de
 Merkle de l'en-tête attesté ; O-5 : chaînage et preuve de travail des
 en-têtes entre eux, CT-6 EX-10.9 sans point de contrôle de réviseur) avant de
 la promouvoir ; une discordance est consignée et alertée, la preuve restant
-conservée.
+conservée. Quand une source d'en-têtes est configurée, une preuve qui porte
+une attestation Bitcoin n'est écrite et la demande ne passe `complete` que si
+O-4 est `reussi` contre la source ; source indisponible ou hauteur absente :
+rien n'est écrit, la demande reste `en_attente` ; la même règle vaut pour une
+réponse à la soumission (EX-6.2) qui porterait une attestation Bitcoin ; O-4
+n'attend que l'en-tête `h'`, et `entetes-bitcoin.json` (`h' + 11`, EX-6.8) est
+repris au tic jusqu'à ce que la source le connaisse. Sans source (hors
+production, EX-4.9 règle 4), la preuve est admise, l'état
+`attestation_non_verifiee` est consigné et les autres promesses restent
+mises à niveau.
 
 ### 6.6 Ce qui est remis au dossier
 
@@ -1733,7 +1854,10 @@ pas été horodaté (CT-1 §11.2 : une seule disposition, ancres embarquées) ; 
 fichier `entetes-bitcoin.json` de la période, placé à côté du dossier et non
 dans ses parties (CT-6 EX-13.7, lu par le réviseur avec `--entetes-bitcoin`).
 Une preuve en attente est remise telle quelle ; l'exportateur consigne
-qu'une réexportation suivra la mise à niveau (EX-6.7).
+qu'une réexportation suivra la mise à niveau (EX-6.7). Le jeton et la preuve
+de la période remis au dossier sont ceux de l'empreinte `periodHash` ; un
+jeton promu d'une autre empreinte est un défaut d'export ; les fichiers du
+dossier sont écrits en `0600`, `dossier.json` en dernier.
 
 ### 6.7 Vérifications AN-16 à AN-21
 
@@ -1845,7 +1969,7 @@ jamais par la seule lecture d'une configuration.
 | AN-23 | Les condensés acceptés sont SHA-256, SHA-384, SHA-512 et rien d'autre : une requête SHA-1 ou MD5 reçoit `PKIStatus` 2 avec `badAlg` (R1-F8) ; la configuration de test d'uts-server qui admet `md5, sha1` (R1-F52) n'est jamais celle de production | requête `-sha1` → réponse de rejet `badAlg` (essai de la note R1 avec `openssl ts -reply` : « unrecognized or unsupported algorithm identifier », R1-F50) |
 | AN-24 | La précision déclarée (`accuracy`) est présente dans chaque jeton, au plus 1 s, et l'horloge du serveur est asservie à une source de temps dont l'écart mesuré est consigné (R1-F11, R1-F19 : un prestataire qualifié arrête le service au-delà de sa dérive admise ; le serveur interne DOIT cesser d'émettre au-delà de `accuracy`) | `accuracy` lu par T-1 ; journal d'exploitation `tsa_clock_offset` |
 | AN-25 | Le nonce de la requête est repris à l'identique dans le jeton (R1-F2) ; une requête sans nonce est refusée par le client de la section 5, jamais par le serveur | `openssl ts -verify -queryfile <requête>` : « nonce mismatch » si le nonce diffère (essai de cette spécification, annexe B.3) |
-| AN-26 | Le numéro de série est unique et strictement croissant à travers les redémarrages (RFC 3161 §2.4.2, R1-F10) ; `openssl ts` ne verrouille pas son fichier `serial` (R1-F49) : un seul processus émetteur par clé, ou un serveur qui sérialise ses émissions (uts-server, sigstore `timestamp-authority`) | deux jetons successifs du même serveur ont des `serialNumber` croissants ; épreuve de redémarrage (CT-9) |
+| AN-26 | Le numéro de série est unique et strictement croissant à travers les redémarrages et à travers une restauration du répertoire du serveur (RFC 3161 §2.4.2, R1-F10) : le numéro est composé d'une époque de démarrage (secondes × 2^20) et d'un rang, de sorte qu'une restauration ne rejoue rien, et chaque numéro est réservé par une création exclusive dans le répertoire du compteur, de sorte que deux processus qui ouvrent le répertoire ne l'émettent jamais ; `openssl ts` ne verrouille pas son fichier `serial` (R1-F49) : un seul processus émetteur par clé, ou un serveur qui sérialise ses émissions (uts-server, sigstore `timestamp-authority`) | deux jetons successifs du même serveur ont des `serialNumber` croissants ; épreuve de redémarrage et de restauration du répertoire (CT-9) |
 | AN-27 | Le serveur n'est joignable que par TLS avec authentification du client (certificat client ou `Basic` sur TLS), depuis les seules adresses de l'enregistreur, sauf une adresse locale (`127.0.0.1`, `::1`, `localhost`) en `http://` sans authentification, que la règle 4 d'EX-4.9 admet pour le seul serveur interne (rôle `interne`, ou `principal` non qualifié hors production, révision 0.9) ; `openssl ts` n'a pas de serveur HTTP (R1-F49 : « HTTP server support is provided in the form of a separate apache module ») : un frontal est obligatoire | tentative anonyme refusée ; `ssl_verify_peer` ou équivalent (R1-F52) |
 | AN-28 | Chaque jeton émis est journalisé **hors du serveur** (par le frontal ou par le client) avec son numéro de série, son `genTime`, son `messageImprint` et son nonce : `openssl ts -reply` n'écrit aucun journal, seul `serial` est mis à jour (R1-F50) | le journal porte une ligne par jeton reçu par le client |
 | AN-29 | La politique est un OID de l'arc privé de l'exploitant, déclaré dans `accepted_policies` de l'autorité du fichier d'ancres ; une requête qui porte une autre `reqPolicy` est refusée (`unacceptedPolicy`, R1-F5 ; essai : réponse de rejet de 50 octets, annexe B.3) | T-1 lit la politique ; `openssl ts -reply` sur une politique inconnue rend « the requested TSA policy is not supported by the TSA » |
@@ -1905,7 +2029,13 @@ jamais au chemin d'un appel d'outil (EX-4.12).
 fil ou processus distinct, qui ne détient aucun verrou de l'écrivain. La seule
 interaction de l'écrivain avec lui est la **remise** d'un point ou d'un
 manifeste signé, qui n'attend aucune réponse réseau (EX-4.12) ; le
-planificateur en déduit ses demandes et les écrit dans la file (8.5). Aucune
+planificateur en déduit ses demandes et les écrit dans la file (8.5). Le
+travail d'une passe du planificateur ne dépend pas du nombre de demandes
+finales : une passe ne parcourt que les demandes non finales et celles qui
+portent une minuterie ; les demandes finales des périodes closes dont les
+trois ancres sont obtenues PEUVENT quitter la mémoire du planificateur, leur
+identifiant restant connu pour la règle 2 d'EX-8.5, et la file les conserve
+(règle 5). Aucune
 panne d'un prestataire, du registre, d'un calendrier ou de la file elle-même
 ne bloque, ne retarde ni ne refuse un appel d'outil ou un échange de modèle :
 c'est la ligne « Ancrage (CT-5) indisponible » de CT-2 §14.2, « jamais
@@ -1982,7 +2112,7 @@ est écrit à part (8.5).
 |---|---|---|
 | `a_envoyer` | écrite dans la file, pas encore envoyée | → `envoyee` (envoi) ; → `remplacee` (EX-9.5, ancre de point couverte par un point plus récent) |
 | `attente_registre` | jeton RFC 3161 qui attend l'inclusion de l'ancre au registre du même sujet (EX-4.7, EX-8.4) | → `envoyee` (inclusion constatée, ou `squat_wait_s` écoulé pour un point) ; → `remplacee` (EX-4.4) |
-| `envoyee` | requête partie, réponse attendue (`en_cours`) | → `obtenue` (réponse promue, EX-5.10) ; → `en_attente` (preuve OpenTimestamps avec attestation en attente, EX-6.2) ; → `a_reprendre` (échec transitoire ou réponse tardive, EX-5.11, EX-5.12) ; → `envoyee` (relève : la demande est aussi en cours chez le secours, EX-5.7) ; → `a_envoyer` (relève immédiate après une `echec_permanente` sans autre tentative en cours : la demande est réécrite `a_envoyer` pour le secours, puis `envoyee`, EX-8.8) ; → `refusee` (échec permanent sans relève possible ; `empreinte_squattee`, EX-9.7) ; → `remplacee` (EX-4.4) |
+| `envoyee` | requête partie, réponse attendue (`en_cours`) | → `obtenue` (réponse promue, EX-5.10) ; → `en_attente` (preuve OpenTimestamps avec attestation en attente, EX-6.2) ; → `a_reprendre` (échec transitoire ou réponse tardive, EX-5.11, EX-5.12) ; → `envoyee` (relève : la demande est aussi en cours chez le secours, EX-5.7) ; → `envoyee` (révision 0.10 : échec transitoire ou réponse tardive d'une série pendant qu'une tentative de l'autre série est en cours : la demande reste en attente de réponse, la reprise de cette série est programmée et `due_at` la porte, EX-8.8 ; trace `releve-pendant-reprise`) ; → `a_envoyer` (relève immédiate après une `echec_permanente` sans autre tentative en cours : la demande est réécrite `a_envoyer` pour le secours, puis `envoyee`, EX-8.8) ; → `refusee` (échec permanent sans relève possible ; `empreinte_squattee`, EX-9.7) ; → `remplacee` (EX-4.4) |
 | `a_reprendre` | tentative suivante programmée à `due_at` (EX-8.9) | → `envoyee` ; → `remplacee` |
 | `en_attente` | preuve OpenTimestamps détenue, attestation en attente ; mise à niveau programmée (EX-6.6) | → `complete` ; → `en_attente` (mise à niveau sans attestation Bitcoin) |
 | `obtenue` | jeton promu et stocké (EX-5.8), ou ancre incluse et capturée | final, sauf → `a_reprendre` pour `jeton_periode` et `jeton_point` quand une révocation est constatée après coup (EX-5.10, étape 10 : la demande repart au secours ; révision 0.2) |
@@ -2081,6 +2211,11 @@ intégral par tentative, et c'est ce fichier que l'exportateur lit (section
    pour une tentative sans ligne `envoyee` (impossible par construction, sauf
    corruption) est écrite dans `acquisitions.ndjson` avec l'issue
    `echec_permanente` et le code `tentative_inconnue`, et n'est pas promue.
+   Après un échec d'écriture de la ligne `envoyee` (disque plein, `EIO`), la
+   requête ne part pas : la ligne en échec est effacée du fichier (le
+   fragment est retiré avant tout ajout, `anchor_queue_fragment_removed`) et
+   la demande reste à son état précédent, reprise à la passe suivante ; AN-32
+   porte sur l'ordre des actions d'une trace.
 2. **Une demande par clé.** `id = <kind>:<hash>` est unique ; une entrée reçue
    pour un `id` déjà présent dans un état final est ignorée et consignée
    (`anchor_duplicate_ignored`). Un redémarrage qui relit la file ne crée donc
@@ -2090,7 +2225,13 @@ intégral par tentative, et c'est ce fichier que l'exportateur lit (section
 3. **Dernière ligne fait foi.** À la lecture, les lignes sont rejouées dans
    l'ordre ; l'état courant d'une demande est sa dernière ligne ; une ligne
    tronquée en fin de fichier (arrêt pendant l'écriture) est ignorée et
-   consignée (`anchor_queue_truncated_line`), jamais réparée.
+   consignée (`anchor_queue_truncated_line`), jamais réparée ; à l'ouverture,
+   et après une écriture en échec, un fragment de fin de fichier qui ne finit
+   pas par une fin de ligne est retiré avant tout ajout
+   (`anchor_queue_fragment_removed`) ; une ligne mal formée hors de la fin du
+   fichier est consignée et ignorée ; le compactage (règle 5) consigne chaque
+   ligne illisible écartée (`anchor_queue_truncated_line`) et leur nombre
+   (`dropped_lines`).
 4. **Borne.** Le nombre de demandes **actives** (non finales) ne dépasse pas
    `queue.max_pending` (défaut 100 000) ; au-delà, l'alerte `file_pleine` est
    critique, un nouveau point n'est plus ancré (sa demande n'est pas créée,
@@ -2232,7 +2373,9 @@ prestataire, l'ordre est : `jeton_periode` par `period_start` croissant, puis
 après la première tentative, ou dès la première `echec_permanente`, la demande
 part **aussi** au `secours` (action `releve`), et les deux séries de
 tentatives sont poursuivies en parallèle, chacune avec ses nonces, jusqu'à la
-première réponse promue ; les tentatives de l'autre prestataire sont alors
+première réponse promue (la reprise programmée d'un prestataire part à son
+échéance même quand une tentative de l'autre est en cours : trace
+`releve-pendant-reprise`) ; les tentatives de l'autre prestataire sont alors
 arrêtées (aucune nouvelle requête) et une réponse qui arriverait encore est
 conservée sans être promue (EX-5.8). Pour un `jeton_point` dont
 `provider_role` est `principal`, même règle avec `checkpoints.fallback_after_s`
@@ -2259,7 +2402,12 @@ lue, plafonnée à 604 800 s, borne de `$defs/tentative` du schéma
 502 ou 504 n'est pas suivi) ; `d = 0` sur le premier 408 d'une demande chez
 un prestataire (R1-F70), puis la règle générale ; sinon `d = min(retry.max_ms,
 retry.initial_ms × retry.factor^(k−1)) + gigue`, `k` étant le nombre
-d'échecs transitoires consécutifs de cette demande chez ce prestataire et la
+d'échecs transitoires consécutifs de cette demande chez ce prestataire (révision
+0.10 : une tentative close par le redémarrage, EX-8.12, `error_code`
+`redemarrage`, n'est pas un échec du prestataire et interrompt la série :
+l'échec suivant a `k = 1` et attend `retry.initial_ms` plus la gigue ; sans
+tentative `redemarrage`, une demande relue `a_reprendre` garde ses échecs
+antérieurs dans `k` ; trace `redemarrage-releve`) et la
 gigue un entier de millisecondes de `[0, retry.jitter_ms]` (gigue bornée, comme
 celle du client de Certificate Transparency, R1-F70). Dans une trace
 normative la gigue est consommée dans `jitter_ms` (8.10). Un `jeton_periode`
@@ -2277,6 +2425,10 @@ qu'une fois l'index écrit (AN-48). Dans les traces normatives, l'entrée
 émet alors directement `stocker`, et l'action `programmer` de raison `capture`
 n'apparaît que lorsque la capture est différée (schéma,
 `$defs/action_attendue`) ; aucune trace de cette version ne l'exerce.
+Quand une passe franchit plusieurs échéances d'une même minuterie (saut
+d'horloge), au plus quatre sont rejouées par demande ; les suivantes sont
+comptées sur la ligne `anchor_retry` (`missed_deadlines`), jamais rejouées
+une à une (la trace `registre-indisponible` exerce trois rejeux).
 `empreinte_squattee` rend la demande `refusee` sans nouvel essai (EX-9.7). Un
 délai d'inclusion supérieur à `registry.inclusion_alert_s` lève `inclusion_late`
 (P-2).
@@ -2319,15 +2471,29 @@ fusion de tous les fichiers `file-*.ndjson` du répertoire (EX-8.5, règle 6).
 Puis, à chaque démarrage et quel que soit l'état de la file, il confronte
 les objets durables du stockage de l'enregistreur (CT-2 §12) aux demandes
 relues : l'entrée `stockage_relu` (8.10) porte les manifestes (`periods`) et
-les points (`checkpoints`) ; toute période close sans ses trois demandes
-reçoit celles qui manquent, et le dernier point d'une période ouverte sans
+les points (`checkpoints`) ; les objets durables sont transmis par entrées
+`stockage_relu` successives, par lots de 10 000 (borne du schéma de
+`stockage_relu`), les périodes les plus récentes d'abord, jusqu'à
+épuisement, et une coupe en lots est consignée (`anchoring_storage_batched`) ;
+toute période close sans ses trois demandes
+reçoit celles qui manquent (une demande de jeton recréée dont
+`acquisitions.ndjson` porte déjà un enregistrement `obtenue` promu est créée
+`obtenue` avec ce résultat, sans nouvelle requête), et le dernier point d'une
+période ouverte sans
 demande est admis comme à sa réception (EX-8.4, règles 1 et 3). Il consigne
 `anchoring_queue_rebuilt` avec le nombre de demandes recréées, de périodes et
 de points examinés, et lève `file_perdue` (critique) si au moins une demande
 est recréée : une file perdue ne fait perdre que du temps (traces
-`file-perdue` et `bascule-epoque-fichier-perdu`).
+`file-perdue` et `bascule-epoque-fichier-perdu`). La minuterie de relève
+d'EX-8.8 est reposée à `premier envoi + fallback_after_s` pour toute demande
+de jeton non finale qui admet la relève et dont le secours n'est ni engagé ni
+épuisé (trace `redemarrage-releve`) ; une demande `jeton_point` non finale
+dont toutes les échéances sont inférieures à une échéance `satisfaite` d'une
+autre demande de la période est close `remplacee` au démarrage, avec la
+ligne `checkpoint_anchor_late` (EX-4.4 ; trace
+`redemarrage-echeance-remplacee`).
 
-**EX-8.13** Références JavaScript du lot : `scripts/lib/ancrage.mjs` expose
+**EX-8.13** Références JavaScript de cette spécification : `scripts/lib/ancrage.mjs` expose
 le planificateur **à horloge injectée et sans réseau** (`creerPlanificateur
 (config, { maintenant, aleatoire })`, qui reçoit les entrées de
 `$defs/evenement_entree` et rend les actions de `$defs/action_attendue`), la
@@ -2404,10 +2570,15 @@ points, jamais sur leur contresignature, que `prestataire_injoignable` et
 (`genTime + précision < checkpoint_ts −
 clock_tolerance_s` : majeure, point antidaté ou horloge de l'enregistreur en
 avance, 3.4) ; `contresignature_tardive` (`genTime + précision − checkpoint_ts >
-c_T` : mineure) ; volume de requêtes (`noortrace_anchoring_attempts_total`
+c_T` : mineure) ; `horloge_reculee` (recul de l'heure murale derrière
+l'instant déjà servi, EX-4.13, ligne `anchoring_clock_backwards` : mineure) ;
+volume de requêtes (`noortrace_anchoring_attempts_total`
 au-delà de deux fois le comptage d'EX-4.11 sur une heure : majeure, 3.4
 « composant d'ancrage compromis » ; le compteur compte toutes les tentatives,
-quelle que soit leur issue (`outcome`), échecs compris : pendant une panne
+une fois chacune, à son issue d'EX-5.13 (`outcome`, jamais `en_cours`), pour
+les six sortes de demandes, les tentatives du registre (`provider` =
+`registre`) et des calendriers (`calendriers`) comprises, et ses séries
+énumérées sont exposées à 0 dès le démarrage : pendant une panne
 longue, les reprises des demandes accumulées peuvent dépasser ce seuil et
 lever l'alerte en même temps que `prestataire_injoignable`, et on les lit
 ensemble). Journal d'exploitation (CT-2 §17.3, format
@@ -4215,7 +4386,13 @@ nouvel essai pour ce point ; la demande passe `refusee`, l'incident est
 consigné avec `lookup(empreinte)` et le bloc de l'ancre étrangère, l'alerte est
 critique, et les points suivants continuent d'être ancrés. Le point garde son
 jeton RFC 3161 ; un dossier qui le choisit comme point couvrant porte
-`registry: null`.
+`registry: null`. Sur l'ancre d'une période (CT-4 EX-8.6) : même refus sans
+nouvel essai ; `jeton_periode` reste `attente_registre` (EX-8.4, règle 2 ;
+AN-36) et la période est signalée `registry_pending` ; le jeton du point de
+clôture (repli d'EX-8.4) date la tête (trace `empreinte-squattee`).
+`empreinte_squattee` n'est constatée que sur deux points de `--rpc` quand il
+y en a plusieurs : des lectures divergentes sont un échec transitoire
+(CT-4 EX-8.6).
 
 ### 9.3 Coût en gaz et provision
 
@@ -4268,10 +4445,10 @@ reprise par `capturer --transaction` tant que la fenêtre le permet.
 
 ### 9.5 Ce que CT-4 ajoute (révision 0.3)
 
-La révision 0.3 de CT-4, écrite avec ce lot et textuelle, applique les deux
+La révision 0.3 de CT-4, écrite avec cette version et textuelle, applique les deux
 premières lignes de la table (table des `docType` de §6.4, EX-6.6, section 0
-de CT-4) ; les autres lignes sont attendues d'une révision suivante et du lot
-de code (section 14).
+de CT-4) ; les autres lignes sont attendues d'une révision suivante et du
+code (section 14).
 
 | Emplacement de CT-4 | Ajout |
 |---|---|
@@ -4715,12 +4892,12 @@ l'ancrage peut retarder une preuve de date, jamais altérer ce qui est prouvé.
 
 ## 14. Alignement avec le dépôt
 
-Ce que cette spécification rend caduc ou attend d'autres lots. « fait » : dans
-ce lot de spécification ; « à faire » : attendu des références JavaScript, des
+Ce que cette spécification rend caduc ou attend d'autres livraisons. « fait » : dans
+cette version de la spécification ; « à faire » : attendu des références JavaScript, des
 vecteurs ou d'une autre spécification, nommés ; « proposition » : changement
 d'une autre spécification écrit ici, non appliqué. Les documents racine
 (`README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md`, `NOTICE`) ne
-sont pas modifiés par ce lot : la dernière ligne dit ce qui doit y changer.
+sont pas modifiés par cette version : la dernière ligne dit ce qui doit y changer.
 
 | Emplacement | Avant | Attendu par CT-5 | État |
 |---|---|---|---|
@@ -4736,10 +4913,10 @@ sont pas modifiés par ce lot : la dernière ligne dit ce qui doit y changer.
 | `test/ancrage.test.js`, `.github/workflows/ci.yml`, `package.json` | rien pour CT-5 | tests de l'annexe A.7, script `vecteurs:ct5`, étapes de CI | fait |
 | `spec/vecteurs/ct-6/` (CT-6 révision 0.2) | 50 dossiers sans la partie | nouveaux dossiers avec `points-de-controle.json` (valides et invalides, un par vérification K-7 à K-9), les 50 inchangés ; `openssl ts -verify` sur les jetons des nouveaux dossiers (A.6) | fait (`generer-ct6.mjs` ; confrontation par `spec/vecteurs/ct-5/confrontation/reponses/` et CT-6 A.8) |
 | CT-1 | révision 0.3 | aucune modification de format : CT-5 reprend §10.5 à §10.9 et §11.2 tels quels ; CT-1 §15 renvoie à CT-5 pour la cadence, la file et les prestataires ; K-3 (clé du point absente d'un `cles.json` exploitable : échec) et K-8 (`chain_id` rapporté, non comparé) alignés d'un mot sur CT-6 §5.4 et EX-11.25 | fait (renvoi ; alignement textuel de §11.4) |
-| CT-2 §15, clé `anchoring` | `registry {enabled, rpc_url, chain_key, next_chain_key}`, `rfc3161 {enabled, url}`, `opentimestamps {enabled, calendars}` | `anchoring.registry` inchangé (point RPC et clé de chaîne, EX-4.8 ; `rpc_url` en liste, CT-4 §13) ; `rfc3161` et `opentimestamps` remplacés par une référence au document `ancrage-v0` d'EX-4.8 (`anchoring.ancrage: <chemin>`), validé au démarrage avec la configuration (EX-4.9) ; schéma `configuration-enregistreur-v0` étendu de façon compatible (membre facultatif) | fait (CT-2 révision 0.4 : `anchoring.ancrage` et `checkpoint_interval_s` facultatifs, 15.1 ; `rfc3161` et `opentimestamps` de CT-2 restent en place jusqu'au lot de code) |
+| CT-2 §15, clé `anchoring` | `registry {enabled, rpc_url, chain_key, next_chain_key}`, `rfc3161 {enabled, url}`, `opentimestamps {enabled, calendars}` | `anchoring.registry` inchangé (point RPC et clé de chaîne, EX-4.8 ; `rpc_url` en liste, CT-4 §13) ; `rfc3161` et `opentimestamps` remplacés par une référence au document `ancrage-v0` d'EX-4.8 (`anchoring.ancrage: <chemin>`), validé au démarrage avec la configuration (EX-4.9) ; schéma `configuration-enregistreur-v0` étendu de façon compatible (membre facultatif) | fait (CT-2 révision 0.4 : `anchoring.ancrage` et `checkpoint_interval_s` facultatifs, 15.1 ; `rfc3161` et `opentimestamps` de CT-2 restent en place jusqu'au code) |
 | CT-2 §3.1, §3.2, §12.1, §12.6, §14.2, §17 | « Ancrage (CT-5) indisponible : l'ancre est réessayée par la supervision » ; aucun point de contrôle | production des points (`checkpoint_interval_s`, à la clôture ; CT-1 §10.5), écriture de la série `points/periode-<period_start>.ndjson` sous `storage.root` (10.1 ; CT-1 §15), remise des points et manifestes au composant d'ancrage (EX-4.12, EX-8.1), copie WORM des points et du répertoire `ancres/` (EX-5.15, EX-8.14, P-6) ; métriques et journal d'EX-8.15 ; alerte « Ancre en retard » à `queue.anchor_pending_alert_s` | fait pour la production, l'alignement, la série, la remise, la copie WORM et la ligne de 14.2 (CT-2 révision 0.4, 12.10, EX-12.24 à EX-12.28) ; métriques, journal et alerte de 8.9 : proposition (CT-2 §17, CT-8) ; code de l'enregistreur : fait (paquet de l'enregistreur, étapes 4 et 5 de la construction ; révision 0.7) |
 | CT-4 §0, §6.4, EX-6.6, EX-4.19 et §12 (notes) | un `docType` ; version 0.2 | ligne `noortrace/point-de-controle/v0` dans la table des `docType`, EX-6.6 complété, révision 0.3 minimale (9.5) ; constante `DOC_TYPE_POINT_DE_CONTROLE` des bibliothèques (`noortrace.mjs`, `registre.mjs`, `conventions-registre.mjs`) ; notes de révision à EX-4.19 et à la ligne « Débit d'une clé » (`24 × 62`, 63 opérations par période) | fait (CT-4 révision 0.3, texte ; constante faite) |
-| CT-4 §6.9 (RG-3, vecteur `doctypes.json`), exemple d'EX-4.19 et ligne « Débit d'une clé » de §12 recalculés, outil `ancrer --point` | un libellé dans le vecteur ; budget à deux opérations par période | section 9.5 | à faire (CT-4, révision suivante ; vecteurs ct-4 et outil inchangés par ce lot) |
+| CT-4 §6.9 (RG-3, vecteur `doctypes.json`), exemple d'EX-4.19 et ligne « Débit d'une clé » de §12 recalculés, outil `ancrer --point` | un libellé dans le vecteur ; budget à deux opérations par période | section 9.5 | à faire (CT-4, révision suivante ; vecteurs ct-4 et outil inchangés par cette version) |
 | CT-6 §5.4, §6.5, §6.7, §7.9, §9.9, §10.9, §11.9, §12.5, §13.4, annexe A | contrôle 4 sur `periodHash` seul ; `registre.json` à trois rôles ; aucune exigence pour les points | K-1 à K-9 rattachées aux contrôles 3 (K-1, K-2, K-4, K-5), 6 (K-3), 2 (K-6), 4 (K-7), 8 (K-8) et 5 (K-9), une K- `non_execute` étant sans effet sur le statut du contrôle (EX-5.7, EX-5.8) ; raisons de non-exécution `partie_absente` (ancre `null`), `ancre_absente`, `piece_hors_dossier` (K-6), `prerequis_en_echec` (EX-5.9) ; fragment FK de l'énoncé « l'événement est couvert par le point de contrôle du journal […], horodaté au plus tard le … ; une réécriture postérieure à cet instant serait détectée » (EX-6.16) et `facts.checkpoint` avec `rewrite_window_end` et `rewrite_window_ms` (EX-6.17) ; section 7.9 (ce que le verdict prouve de nouveau : fenêtre de réécriture bornée au point) ; rôle `ancre_point_de_controle` de `registre.json` (une entrée au plus, 17 entrées au plus), vérification R-11 à part, R-9 inchangée (§11.9) ; AV-K-1 à AV-K-3 ; EX-13.14 à EX-13.19 (§13.4) ; vecteurs EX-A.13 à EX-A.17 | fait (CT-6 révision 0.2, 2026-10-25 ; code et vecteurs faits) |
 | `scripts/lib/ancrage.mjs`, vérificateur Go, traces (révision 0.2) | — | ligne `envoyee` écrite avant l'envoi (EX-8.5, AN-32) ; dernier point contresigné et échéances rendues sur refus (EX-4.3) ; repli de clôture (EX-4.2) ; reconstruction de la file et fichiers d'époque (EX-8.12, EX-8.5 règle 6) ; alertes `point_manquant`, `jeton_anterieur_au_point`, `contresignature_tardive`, `reponse_tardive_promue` ; classement des étapes 1 et 5 (EX-5.10) ; admission avec racine et `last_hash` (AN-3) ; `constaterCadence`, `verifierCompletudeRegistre` (AN-61), `lireFiles` ; quatre composantes de `d_jeton` sur la ligne `checkpoint_countersigned` (EX-3.5, 8.9) ; neuf traces nouvelles (vingt et une) et la famille `completude` | fait |
 | `scripts/lib/ancrage.mjs`, vérificateur Go, traces (révision 0.4) | `Retry-After` suivi sans borne ; `point_manquant` armé à l'admission du point ; `verifierConfiguration` sans validation de schéma | `calculerAttente` borné par `[retry.initial_ms, retry.max_ms]`, `retry_after_s` plafonné à 604 800 s (EX-8.9) ; minuterie de cadence armée `2 × c_K` après le `checkpoint_ts` du dernier point admis, aucune pour le point de clôture (EX-4.1, 8.9) ; schéma `ancrage-v0` validé avant les huit règles, violations de règle `schema`, aucune levée sur un document de forme quelconque (EX-4.9) ; trace `point-manquant-saut-horloge`, trace `file-perdue` recalculée | fait |
@@ -4749,7 +4926,7 @@ sont pas modifiés par ce lot : la dernière ligne dit ce qui doit y changer.
 | CT-8 | — | alertes de 8.9, sauvegarde du répertoire d'ancres et de la file, fin de rétention (EX-5.15, EX-8.14), source d'en-têtes Bitcoin (EX-6.8), capacité de capture et dimensionnement (EX-9.9, 12.4), exploitation du serveur interne (7.2), réétablissement de `qualified` tous les trente jours (EX-5.9) | proposition |
 | CT-9 | — | tests attachés aux EX- et AN- des deux parties (AN-1 à AN-61) ; mesures P-1 à P-6 de 3.6 ; épreuve à l'aveugle (un relecteur qui n'a que CT-5 et CT-1 §9 à §11 dit la cadence des points, ce qu'un point prouve et ne prouve pas, la fenêtre, le coût pour un prix unitaire donné, la conduite quand le prestataire est injoignable ; un second relecteur lit CT-6 §7 révisée) | proposition |
 | `spec/README.md` | CT-5 « à écrire » | CT-5 version 0.2 en revue ; lignes des schémas `ancrage-v0` (4.4) et `planificateur-ancrage-v0` (8.10) ; section « CT-5 (`vecteurs/ct-5/`) » avec la table de l'annexe A.4 ; versions de CT-1 (0.3), CT-4 (0.3) et CT-6 (0.2) ; `-r spec/schemas/point-de-controle-v0.schema.json` dans les commandes qui chargent le schéma de dossier | fait |
-| `README.md`, `README.fr.md`, `ARCHITECTURE.md` (« Ancrage », point 2 et paragraphe « En option, un serveur RFC 3161 interne […] contresigne la chaîne toutes les minutes » ; « Modèle de menace », ligne « L'enregistreur lui-même est compromis » : « les ancres horaires bornent la fenêtre de réécriture ; contresignature interne à la minute en option »), `CHANGELOG.md` | contresignature interne « à la minute », fenêtre « une heure » | points de contrôle toutes les 60 s ancrés au registre, contresignés au plus toutes les 300 s par un prestataire extérieur ou interne, clôture horaire qualifiée inchangée ; fenêtre bornée au point (CT-1 §10.9 : `60 s + d_registre` pour l'ordre, `300 s + d_jeton` pour la date) ; CT-5 écrit ; schéma et vecteurs `ct-5` au journal des changements | à faire (documents racine, hors de ce lot) |
+| `README.md`, `README.fr.md`, `ARCHITECTURE.md` (« Ancrage », point 2 et paragraphe « En option, un serveur RFC 3161 interne […] contresigne la chaîne toutes les minutes » ; « Modèle de menace », ligne « L'enregistreur lui-même est compromis » : « les ancres horaires bornent la fenêtre de réécriture ; contresignature interne à la minute en option »), `CHANGELOG.md` | contresignature interne « à la minute », fenêtre « une heure » | points de contrôle toutes les 60 s ancrés au registre, contresignés au plus toutes les 300 s par un prestataire extérieur ou interne, clôture horaire qualifiée inchangée ; fenêtre bornée au point (CT-1 §10.9 : `60 s + d_registre` pour l'ordre, `300 s + d_jeton` pour la date) ; CT-5 écrit ; schéma et vecteurs `ct-5` au journal des changements | à faire (documents racine, hors de cette version) |
 | Composant d'ancrage `paquets/ancrage`, supervision du planificateur (révision 0.8) | `noortrace_anchoring_d_registre_s` observé pour chaque ancre `obtenue` de la file à chaque passe | une observation par ancre (EX-8.15) | fait (étape 7) |
 | Composant d'ancrage `paquets/ancrage` (AN-1, transport) ; installation rapide du déploiement (révision 0.9) | `principal` toujours en `https://` avec authentification ; installation rapide sans jeton RFC 3161 | hors production, `principal` = serveur interne non qualifié, `http://` local sans authentification (EX-4.9, règle 4) ; refus nommé en production ; service `horodatage` de `deploiement/compose/rapide.yaml` | fait (étape 7) |
 
@@ -4791,6 +4968,11 @@ sont pas modifiés par ce lot : la dernière ligne dit ce qui doit y changer.
   formule paramétrée de la section 12.
 - **La révocation d'une ancre** (`AttestationRegistry.revoke`) : hors de la
   version 0 (CT-4 §14) ; une ancre de point refusée reste refusée.
+- **La lecture des listes de confiance par le composant** : le retrait de
+  `qualified` est durable et automatique sur `PKIStatus` 4 ou 5 (EX-5.9),
+  mais le ré-établissement « à chaque séquence et au plus tard tous les
+  trente jours » est un acte de l'exploitant (`retablirQualification`, CT-8
+  TP-2) ; le composant ne lit aucune liste de confiance.
 - **Les variantes GET** de l'interface de P2 (requête dans l'URL, R1-F35) : le
   client n'emploie que POST.
 - **Les mesures en charge** du planificateur (débit de points, nombre de
@@ -4886,7 +5068,7 @@ spec/vecteurs/ct-5/
   reponses/
     reponses.json                réponses TimeStampResp de l'autorité de test et attendu d'EX-5.13 (issue, code)
     *.tsr, *.der                 réponses et jetons extraits : granted-*, rejet-*, reponse-tardive-1 à 3, horloge-suspecte,
-                                 t6-signature, statut-5, waiting (jetons sur checkpointHash K2 et sur les periodHash)
+                                 t6-signature, statut-5, statut-6 (révision 0.10), waiting (jetons sur checkpointHash K2 et sur les periodHash)
   ots/
     point-k2-minimal.ots         l'exemple d'EX-6.4 : deux promesses nues sous l'engagement (195 octets)
     point-k2-en-attente.ots      preuve en attente à deux calendriers sur checkpointHash K2, une branche par calendrier (233 octets, A.2)
@@ -4901,6 +5083,9 @@ spec/vecteurs/ct-5/
     bascule-epoque.json, bascule-epoque-fichier-perdu.json, registre-indisponible-cloture.json,
     mi-periode-impair.json, reponse-hors-profil.json, point-manquant.json   (révision 0.2 : vingt et une traces)
     point-manquant-saut-horloge.json   (révision 0.4 : vingt-deux traces)
+    file-fenetre-32.json, file-fenetre-32-redemarrage.json   (révision 0.6 : vingt-quatre traces)
+    releve-pendant-reprise.json, redemarrage-releve.json, redemarrage-echeance-remplacee.json,
+    file-lignes-illisibles.json   (révision 0.10 : vingt-huit traces ; empreinte-squattee.json, EX-9.7, publiée avec sa variante)
   reprise/
     <trace>.avant.ndjson, <trace>.apres.ndjson    files avant et après le démarrage des traces qui en ont une, une demande par ligne (JCS intégral)
     <trace>.epoque-<n>.ndjson                     fichiers d'époque relus ensemble (bascule-epoque, EX-8.5 règle 6)
@@ -4919,7 +5104,7 @@ spec/vecteurs/ct-5/
 | `requetes` | `requete-point-k2` (EX-5.1 : 69 octets, nonce `0x74a6f4979421411e`) ; `point-k2-exemple` (69 octets, nonce `0x018032ff0d74cfda`, SHA-256 `0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a`) ; `point-k2-exemple-politique-interne` (81 octets, `reqPolicy` `1.3.6.1.4.1.99999.1.1`) ; `periode-1-reference` (70 octets : nonce `0xf144cca6ec50dcdb` à bit haut, octet `00` de tête dans l'INTEGER) ; `periode-1-reference-tentative-2` (70 octets, nonce `0xe514f7e31f6ba99e`) ; `periode-1-vecteurs` (69 octets, nonce `0x29ccc3c9db80e87b`) ; cas refusés par le constructeur : condensé de 31 octets, nonce nul, nonce encodé avec un zéro superflu, `certReq` faux (EX-5.1, AN-5, AN-6) | EX-5.1, EX-5.3, EX-8.6 | octets DER exacts ; `openssl ts -query -in -text` lit `Version: 1`, `Hash Algorithm: sha256`, les 32 octets, `Policy OID`, `Nonce`, `Certificate required: yes` (A.6) |
 | `reponses` | réponse `granted` de l'autorité de test à chaque requête de `requetes/` (`genTime` fixé, `serialNumber` 1001 et suivants, `accuracy` 1 s ; pour `requete-point-k2`, le jeton de CT-1 §11.2 lui-même) ; `granted` avec nonce différent ; `granted` sans nonce ; `granted` sur une autre empreinte ; `granted` avec une politique hors `accepted_policies` ; rejet `unacceptedPolicy` (50 octets) ; rejet `badAlg` ; `waiting` (statut 3) ; statut 5 ; jeton dont T-6 échoue (signature altérée) ; réponse HTTP représentée 503 avec `Retry-After: 30`, 429, 408, 404, 401, corps de plus de 128 Kio ; réponse arrivée après `max_response_delay_s` (une, deux, puis trois fois) ; `genTime` hors `clock_tolerance_s` | EX-5.10 à EX-5.12, AN-8 à AN-11 | issue d'EX-5.13 (`obtenue`, `echec_transitoire`, `echec_permanente`, `reponse_tardive`), code d'EX-5.10 (`statut_2`, `echec_unacceptedPolicy`, `nonce_absent`, `nonce_different`, `empreinte_differente`, `politique_refusee`, `verification_T-6`, `reponse_tardive`, `http_503`…), avertissement `horloge_suspecte`, attente de reprise ; `openssl ts -verify -queryfile` : « Verification: OK » ou « nonce mismatch » (A.6) |
 | `ots` | `point-k2-minimal.ots`, l'exemple d'EX-6.4 (195 octets, deux attestations en attente sœurs, triées par URI comme la bibliothèque officielle) ; `point-k2-en-attente.ots` (233 octets : deux branches de calendrier à opérations propres, A.2) ; `periode-1-en-attente.ots` ; paire de mise à niveau | EX-6.2 à EX-6.7, AN-17 à AN-19, EX-8.11 | octets exacts ; lecture par `ots.mjs` : O-1 à O-3 réussies, O-7 `non_execute` (`partie_absente`) ; réécriture identique par la bibliothèque officielle (A.6) |
-| `planification` | les vingt-deux traces de 8.10 et A.3 | EX-4.1 à EX-4.7, EX-5.7, EX-5.10, EX-5.11, EX-5.12, EX-6.1, EX-8.3 à EX-8.12, EX-9.5 ; AN-2, AN-4, AN-12, AN-13 et les AN- des sections 8, 9 et 11 | `expected` et `queue_after` reproduits à l'identique par `rejouerTrace` |
+| `planification` | les vingt-huit traces de 8.10 et A.3 | EX-4.1 à EX-4.7, EX-5.7, EX-5.10, EX-5.11, EX-5.12, EX-6.1, EX-8.3 à EX-8.12, EX-9.5 ; AN-2, AN-4, AN-12, AN-13 et les AN- des sections 8, 9 et 11 | `expected` et `queue_after` reproduits à l'identique par `rejouerTrace` |
 | `reprise` | files avant et après `demarrage` (six traces), fichiers d'époque | EX-8.5 (règle 6), EX-8.12, AN-33 | lignes finales égales ; une seule demande par `id` ; fusion des époques par `lireFiles` |
 | `cout` | les onze cas de 12.3 | EX-4.11, EX-12.1, EX-12.2, AN-4 | six grandeurs par cas ; avec `a = 1`, égalité avec la table de 4.6 |
 | `completude` | `serie-publiee-complete`, `serie-reecrite-ancres-orphelines`, `ancres-hors-ordre`, `periode-suivante-dans-la-fenetre`, `periode-suivante-non-servie`, `emetteur-doctype-et-fenetre` | EX-10.7, AN-61 | `complete`, `orphans`, `out_of_order`, `attached` reproduits par `verifierCompletudeRegistre` |
@@ -4961,7 +5146,7 @@ versions, limites) :
 | Famille | Outil tiers | Ce qu'il confirme |
 |---|---|---|
 | `requetes/` | OpenSSL 3.0.13, `openssl ts -query -in <fichier>.tsq -text` | version, algorithme, les 32 octets du condensé, `Policy OID`, `Nonce`, `Certificate required` de chaque requête (EX-5.1) ; `openssl asn1parse` : structure DER, `NULL` explicite dans l'`AlgorithmIdentifier`, INTEGER du nonce (9 octets avec `00` de tête pour un bit haut à 1) ; `openssl ts -verify -queryfile requete-point-k2.tsq -token_in -in <jeton de CT-1 §11.2>` « Verification: OK » |
-| `reponses/` | OpenSSL 3.0.13, `openssl ts -reply -in <fichier>.tsr -text`, `openssl ts -verify -queryfile <requête> -in <réponse> -CAfile ac-test.pem -untrusted tsa-test.pem`, `openssl ts -reply -token_out` | statut, `failureInfo`, champs de `TSTInfo` ; « Verification: OK » pour une réponse `ok` et « nonce mismatch » pour un nonce différent ; jeton extrait égal au `.der` publié ; sur les jetons des nouveaux dossiers de CT-6 révision 0.2 (`points-de-controle.json`), `openssl ts -verify -digest <checkpoint_hash> -token_in` « Verification: OK » (confrontation de CT-6, A.8) |
+| `reponses/` | OpenSSL 3.0.13, `openssl ts -reply -in <fichier>.tsr -text`, `openssl ts -verify -queryfile <requête> -in <réponse> -CAfile ac-test.pem -untrusted tsa-test.pem`, `openssl ts -reply -token_out` | statut, `failureInfo`, champs de `TSTInfo` ; « Verification: OK » pour une réponse `ok` et « nonce mismatch » pour un nonce différent ; jeton extrait égal au `.der` publié ; sur les jetons des nouveaux dossiers de CT-6 révision 0.2 (`points-de-controle.json`), `openssl ts -verify -digest <checkpoint_hash> -token_in` « Verification: OK » (confrontation de CT-6, A.8) ; pour les jetons valides de CT-6, hors les limites nommées d'A.8 de CT-6 (`integer-non-minimal`, refusé par OpenSSL au décodage alors que CT-6 l'admet, EX-9.6 ; révision 0.10) ; la réponse `statut-6` (PKIStatus 6), qu'`openssl ts -reply` refuse de décoder (« token present ») : son statut est lu par `openssl asn1parse` et comparé, le refus est une limite de l'outil (EX-5.10, étape 2 ; révision 0.10) |
 | `ots/` | `python-opentimestamps` 0.4.5 (paquet PyPI `opentimestamps`, LGPL-3.0 ou ultérieure), hors ligne : `DetachedTimestampFile.deserialize`, `assert_eof`, `serialize`, `all_attestations` | lecture de chaque `.ots`, fin de fichier exacte, empreinte, attestations en attente avec leur URI, **réécriture octet pour octet identique** (l'ordre des branches est celui de la bibliothèque : attestations puis opérations, triées) |
 | `coherence/` | `transparency-dev/merkle` v0.0.2 (module Go épinglé par `go.sum`), `proof.VerifyConsistency` | preuves de cohérence de `spec/vecteurs/ct-1/merkle/coherence.json` et des séries `points-de-controle/` (CT-1 §10.7) : acceptées et refusées comme l'attendu ; limite décrite : la bibliothèque accepte une preuve depuis `size1 = 0`, que CT-1 §10.7 rejette (annexe B de CT-1) |
 | `planification/`, `cout/`, `completude/` | aucun outil tiers : la confrontation est celle du module Go (A.5) | — |
@@ -5080,7 +5265,7 @@ sauté quand Go est absent, et le job `confrontation` le fait.
 
 ## Annexe B — Sources des faits externes
 
-Les renvois R1 et R2 désignent deux notes de recherche du lot CT-5, internes
+Les renvois R1 et R2 désignent deux notes de recherche de CT-5, internes
 et non publiées, relues le 2026-10-25 sur les sources primaires qu'elles
 citent : R1 (prestataires RFC 3161, serveurs internes, OpenTimestamps,
 reprise), R2 (points de contrôle, cohérence RFC 9162, témoins, stockage

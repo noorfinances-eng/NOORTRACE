@@ -393,8 +393,10 @@ try {
 } catch (err) {
   const erreur = err instanceof V.EntreeInutilisable ? err : new V.EntreeInutilisable("erreur_interne", T(`erreur interne du vérificateur : ${err?.message ?? err}`, `internal verifier error: ${err?.message ?? err}`));
   const message = erreur.texte[etat.langue] ?? erreur.message;
-  process.stderr.write(`${etat.langue === "en" ? "Error: " : "Erreur : "}${message}\n`);
-  if (!(err instanceof V.EntreeInutilisable) && err?.stack) process.stderr.write(err.stack + "\n");
+  // La sortie d'erreur passe par le même point de neutralisation que le rapport lisible (CT-6 §8.5) : un message
+  // qui cite un octet d'une entrée (« caractère inattendu « \u001b » ») ne porte aucun caractère de commande.
+  process.stderr.write(`${etat.langue === "en" ? "Error: " : "Erreur : "}${V.neutraliserTexte(message)}\n`);
+  if (!(err instanceof V.EntreeInutilisable) && err?.stack) process.stderr.write(V.neutraliserTexte(err.stack) + "\n");
   if (etat.json) process.stdout.write(JSON.stringify(V.rapportErreur({ verifier: V.blocVerificateur(etat.schemas), langue: etat.langue, inputs: etat.inputs, erreur }), null, 2) + "\n");
   code = 2;
 }

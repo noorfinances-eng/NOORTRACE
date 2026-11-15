@@ -588,11 +588,11 @@
             },
             {
               "type": "integer",
-              "minimum": 0,
-              "maximum": 5
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
             }
           ],
-          "description": "PKIStatus de la réponse (RFC 3161 §2.4.2, R1-F6)."
+          "description": "PKIStatus lu (RFC 3161 §2.4.2, R1-F6) ; hors de 0 à 5 : statut_<n>, permanente, jeton non lu (CT-5 EX-5.10, étape 2 ; révision 0.10 : tout entier représentable est consigné tel que lu ; un status hors de ±(2^53 − 1) donne reponse_illisible)."
         },
         "failure_info": {
           "oneOf": [
@@ -1070,10 +1070,11 @@
                       },
                       {
                         "type": "integer",
-                        "minimum": 0,
-                        "maximum": 5
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
                       }
-                    ]
+                    ],
+                    "description": "PKIStatus lu (RFC 3161 §2.4.2, R1-F6) ; hors de 0 à 5 : statut_<n>, permanente, jeton non lu (CT-5 EX-5.10, étape 2 ; révision 0.10 : tout entier représentable est consigné tel que lu ; un status hors de ±(2^53 − 1) donne reponse_illisible)."
                   },
                   "failure_info": {
                     "oneOf": [

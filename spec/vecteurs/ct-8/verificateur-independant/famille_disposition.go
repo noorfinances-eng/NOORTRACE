@@ -18,7 +18,7 @@ import (
 // FamilleDisposition confronte le contenu de spec/vecteurs/ct-8 à la
 // disposition d'A.1. Une famille que la disposition annonce et que les
 // vecteurs n'ont pas encore est rapportée hors périmètre (A.1 : la famille
-// supervision/ était « à produire, lot suivant » en révision 0.2).
+// supervision/ était « à produire » en révision 0.2).
 func FamilleDisposition(c *Contexte) {
 	const f = "disposition"
 	sec, err := c.Texte.Section("### A.1 ")
@@ -42,7 +42,7 @@ func FamilleDisposition(c *Contexte) {
 		if err == nil {
 			c.Rap.Constater(f, nom, "présent (A.1)", true, "")
 		} else {
-			c.Rap.HorsPerimetre(f, nom, "présent (A.1)", "présent", "absent des vecteurs de ce lot (A.1 : à produire) : rien à recalculer")
+			c.Rap.HorsPerimetre(f, nom, "présent (A.1)", "présent", "absent des vecteurs de cette version (A.1 : à produire) : rien à recalculer")
 		}
 	}
 	es, _ := os.ReadDir(c.Racine)

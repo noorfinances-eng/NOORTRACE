@@ -252,7 +252,7 @@ describe("enregistreur, cœur : journal produit, vérifié par le noyau et par l
 
   it("le dossier exporté est valide pour le binaire Go noortrace-verifier (go1.27.3)", function () {
     const bin = construireVerificateur(dir);
-    if (!bin) this.skip();
+    if (!bin) { this.test.title += " — en attente : go1.27.3 introuvable (NOORTRACE_GO_BIN ou PATH)"; this.skip(); }
     const r = spawnSync(bin, [path.join(dir, "dossier"), "--json"], { encoding: "utf8" });
     expect(r.status, r.stdout + r.stderr).to.equal(0);
     const rapport = JSON.parse(r.stdout);
@@ -264,10 +264,10 @@ describe("enregistreur, cœur : journal produit, vérifié par le noyau et par l
   });
 });
 
-// Relecture adversariale A, R-A-11 (EX-17.5) : sans WORM, aucun contrôle
+// Relecture adversariale du cœur (EX-17.5) : sans WORM, aucun contrôle
 // périodique ne tournait ; avec WORM, la relecture quotidienne ne vérifiait
 // que la clé courante (segments signés avant une rotation tenus pour faux).
-describe("enregistreur, cœur : contrôles périodiques d'EX-17.5 sans WORM, avec toutes les clés de la chaîne (R-A-11)", function () {
+describe("enregistreur, cœur : contrôles périodiques d'EX-17.5 sans WORM, avec toutes les clés de la chaîne", function () {
   this.timeout(60000);
   const delegation = { launched_by: "x", on_behalf_of: null, scope: "s", run_id: null };
   async function echange(c, k) {

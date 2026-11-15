@@ -206,13 +206,13 @@ Livré en premier, avant le reste de la bibliothèque.
 | `analyserMessageInscription(texte)` | chaîne | `$defs/champs_inscription` | lève `message_invalide` | EX-13.12 |
 | `controleDefi(reponse, attendu)` | `$defs/reponse_preparer_inscription` ; `{ origine, identite, adresse }` (origine de la page, identité de la session, adresse choisie) | `null`, ou le premier de `message_invalide`, `origine_differente`, `identite_differente`, `adresse_differente`, dans cet ordre | — | EX-13.13 (côté console) |
 | `verifierInscription(annuaire, defis, requete, recuA, options?)` | document ; tableau de `$defs/defi` ; corps d'`inscrire` ; instant de réception ; `{ identifiant: "aleatoire" \| "compteur" }`, défaut `aleatoire` | `{ accepted, reason, entry, signature, defis }` : `defis` est un nouveau tableau, état après le pas 4 d'EX-13.15 (défi présenté marqué `used`, quel que soit le sort) ; `entry` est l'entrée qui reçoit l'adresse, existante ou à créer, ou `null` ; `signature`, la forme normalisée gardée dans la preuve, ou `null` | dans `reason`, la première raison d'EX-13.15, pas 1 à 13 | EX-13.15, EX-9.3 |
-| `appliquerOperation(annuaire, methode, requete, at, options?)` | document ; `preparer_inscription`, `inscrire`, `valider`, `revoquer`, `desactiver`, `reactiver`, `lier_demandeur` ou `delier_demandeur` ; corps de la méthode ; instant (horloge du service) ; `{ defis, nonce, identifiant }` (`defis` défaut `[]` ; `nonce` : celui que tire `preparer_inscription`, 32 chiffres hexadécimaux minuscules, tiré au hasard s'il est absent ; `identifiant` comme ci-dessus) | `{ annuaire, defis, accepted, reason, response }` : le nouvel annuaire (le même objet si refus), les défis après l'opération (défi ajouté ou remplacé ; défi présenté ; défis de l'identité effacés par `desactiver`), la réponse de la méthode (`$defs/reponse_preparer_inscription`, `reponse_adresse` ou `reponse_entree`) ou `null` | dans `reason`, la première raison de la méthode, forme et identité d'abord ; révision 0.6 : `limite_annuaire`, vérifiée en dernier, pour `inscrire` (65ᵉ adresse d'une entrée, tous états, ou 10 001ᵉ entrée ; défi présenté marqué comme pour tout refus à partir du pas 4) et `lier_demandeur` (65ᵉ alias) : une opération acceptée ne rend jamais un annuaire non conforme | EX-13.13, EX-13.15, EX-13.17, EX-13.10, EX-12.17 |
+| `appliquerOperation(annuaire, methode, requete, at, options?)` | document ; `preparer_inscription`, `inscrire`, `valider`, `revoquer`, `desactiver`, `reactiver`, `lier_demandeur` ou `delier_demandeur` ; corps de la méthode ; instant (horloge du service) ; `{ defis, nonce, identifiant }` (`defis` défaut `[]` ; `nonce` : celui que tire `preparer_inscription`, 32 chiffres hexadécimaux minuscules, tiré au hasard s'il est absent ; `identifiant` comme ci-dessus) | `{ annuaire, defis, accepted, reason, response }` : le nouvel annuaire (le même objet si refus), les défis après l'opération (défi ajouté ou remplacé ; défi présenté ; défis de l'identité effacés par `desactiver`), la réponse de la méthode (`$defs/reponse_preparer_inscription`, `reponse_adresse` ou `reponse_entree`) ou `null` | dans `reason`, la première raison de la méthode, forme et identité d'abord ; révision 0.6 : `limite_annuaire`, vérifiée en dernier, pour `inscrire` (65ᵉ adresse d'une entrée, tous états, ou 10 001ᵉ entrée ; défi présenté marqué comme pour tout refus à partir du pas 4) et `lier_demandeur` (65ᵉ alias) : une opération acceptée ne rend jamais un annuaire non conforme ; revue de sécurité de l'étape 8 : `preparer_inscription` est refusée `limite_annuaire`, sans changer les défis, quand elle ajouterait un cinquième défi non expiré pour l'identité ou un 1 025ᵉ au total (le remplacement du défi de la même identité et de la même adresse ne compte pas ; constantes exportées `MAX_DEFIS_PAR_IDENTITE` = 4, `MAX_DEFIS` = 1 024 ; révision d'EX-13.13 demandée) | EX-13.13, EX-13.15, EX-13.17, EX-13.10, EX-12.17 |
 | `defisNonExpires(defis, at)` | tableau de `$defs/defi`, instant | les défis dont `expires_at` est postérieur à `at` | — | EX-13.38 (défis persistés) |
 | `recopierAdministrateurs(annuaire, administrateurs, at)` | document, liste du réglage, instant | `{ annuaire, changed }` : l'opération `changer_administrateurs` (`by` `configuration`, `administrators` `{ before, after }`) si la liste diffère, comme liste, de la copie ; l'annuaire inchangé sinon | lève `identite_invalide` pour une liste hors de la forme d'EX-13.9 | EX-13.37 |
 | `controleVote(annuaire, session, action, adresse, ticket)` | document ; identité de session ; `voter` ou `recuser` ; adresse choisie (comparée en minuscules) ; `{ launched_by, self_approval, policy_requester_addresses, directory_requester_addresses, members }` (forme du `ticket` de `$defs/fichier_controles_vote`, `members` nul avant le gel) | `{ allowed, reason, warnings }`, `warnings` portant `separation_incomplete` et ses adresses | dans `reason`, la première condition d'EX-13.18, conditions 1 à 6 (1 à 5 pour `recuser`) | EX-13.18 |
 | `ticketDeControleVote(vue)` | `$defs/vue_ticket` | l'objet `ticket` de `controleVote`, tiré de la vue (`request.delegation.launched_by`, `separation`, `approver_set`) | — | EX-13.18, EX-12.15 |
 | `actionRetrait(annuaire, session, ticket)` | document ; identité ; `{ launched_by }` | le `by` d'un retrait que la console peut envoyer, ou `null` ; l'entrée de la session doit être **active**, comme EX-12.19 l'exige du service (révision 0.6) | — | EX-13.18, EX-7.15 |
-| `controleCanal(annuaire, methode, requete, ticket)` | document ; `tickets`, `consulter`, `voter`, `recuser` ou `retirer` ; corps ; `{ launched_by, eligible }` ou `null` (ticket inconnu dans l'organisation, et toujours pour `tickets`) | `null`, ou `requete_invalide` (forme de la requête, contrôlée d'abord : 1.2, EX-12.13 ; assemblage), `identite_invalide`, `session_non_autorisee`, `ticket_inconnu` | la première, dans l'ordre d'EX-12.14 et d'EX-12.19 | EX-12.13, EX-12.14, EX-12.16, EX-12.19 |
+| `controleCanal(annuaire, methode, requete, ticket)` | document ; `tickets`, `consulter`, `voter`, `recuser` ou `retirer` ; corps ; `{ launched_by, eligible }` ou `null` (ticket inconnu dans l'organisation, et pour `tickets` sans `related_to` ; avec `related_to`, le ticket désigné, CT-3 0.8 EX-13.32) | `null`, ou `requete_invalide` (forme de la requête, contrôlée d'abord : 1.2, EX-12.13 ; assemblage), `identite_invalide`, `session_non_autorisee`, `ticket_inconnu` | la première, dans l'ordre d'EX-12.14 et d'EX-12.19 | EX-12.13, EX-12.14, EX-12.16, EX-12.19 |
 | `verifierAnnuaireExporte(document, options?)` | document ; `{ conforme }`, fonction `(document) → booléen`, contrôle du schéma `annuaire-approbateurs-v0` par l'appelant | la liste complète des écarts `{ code, pointer }`, triée par pointeur puis par code (unités UTF-16) ; `[{ "code": "schema", "pointer": null }]` pour un document non conforme | — | EX-13.19, EX-13.37 |
 
 Précisions :
@@ -225,10 +225,12 @@ Précisions :
   `appliquerOperation(…, "inscrire", …)` applique le rendu de
   `verifierInscription` sur la même requête, au même instant : même sort,
   même raison, même `entry`, même signature normalisée.
-- **`tickets` avec `related_to`.** `controleCanal(annuaire, "tickets", …)`
-  n'applique que le point 1 d'EX-12.14 ; pour `related_to`, le service
-  appelle en plus `controleCanal(annuaire, "consulter", { ticket:
-  related_to, session_identity }, info)` (EX-12.21).
+- **`tickets` avec `related_to`.** Sans `related_to`,
+  `controleCanal(annuaire, "tickets", …)` n'applique que le point 1
+  d'EX-12.14 ; avec `related_to` (CT-3 révision 0.8, table d'EX-13.32 ; revue
+  de sécurité de l'étape 8), il applique au ticket désigné, reçu en `ticket`, l'ordre de
+  `consulter` ; le service le lui passe (`infoCanal`) puis contrôle encore
+  `ticket_non_ouvert` (EX-12.21 ; `test/approbation-revue-tickets-lies.test.js`).
 - **Pureté.** Aucune fonction ne modifie ses paramètres ; les rendus sont
   des objets neufs, sérialisables par `JSON.stringify`.
 
@@ -289,7 +291,7 @@ ce contrat les nomme.
 `lireFichierCle` et `signerCondense` (parcours d, EX-13.28) ne sont pas
 exportés : le parcours d n'est pas offert. Rien n'est écrit pour le
 parcours c (WalletConnect). Les cas `console/fichiers-cle/` des vecteurs sont
-inventoriés et mis en attente par les essais, avec cette raison.
+inventoriés par les essais, avec cette raison, et rattachés à CS-9 (TV-26).
 
 ### 1.7 Essais de la bibliothèque
 
@@ -387,9 +389,17 @@ référence illisible ou mal formée arrête le démarrage (code 1), en nommant 
 pointeur, jamais la valeur : une ligne `$defs/rapport_validation` sur la
 sortie d'erreur, code `reference_illisible` (révision 0.6, EX-10.14), dont un
 nom de compte local qui formerait avec `identity.domain` une identité de plus
-de 256 caractères (pointeur `/identity/accounts`). Une écoute impossible
-(port occupé, adresse absente) donne de même `ecoute_impossible` au pointeur
-`/listen`. Ces codes ne sont jamais rendus par `valider-configuration` ; une
+de 256 caractères (pointeur `/identity/accounts`). Revue CT-8 IP-10 (étape 8) :
+un fichier de secret (`tls.key`, `service.token`, `service.client_key`,
+`identity.client_secret`, `identity.accounts` ; liste `POINTEURS_SECRETS`)
+lisible par d'autres que son propriétaire (mode hors `0400` ou `0600`) ou
+d'un autre propriétaire que le compte du serveur est refusé de même,
+`reference_illisible` au pointeur, le message disant la cause sans la valeur
+(CT-8 : secrets « `0400`, propriété du compte du service qui le lit ») ; les
+certificats et autorités (`tls.cert`, `service.ca`, `service.client_cert`) et
+les références `{ "env" }` ne sont pas soumis à ce contrôle. Une écoute
+impossible (port occupé, adresse absente) donne de même `ecoute_impossible`
+au pointeur `/listen`. Ces codes ne sont jamais rendus par `valider-configuration` ; une
 cause non nommée (manifeste des pages en écart) est écrite en texte.
 
 ### 2.4 Adresses servies
@@ -481,7 +491,11 @@ un lien vers `/connexion` (EX-13.49, dernier paragraphe).
 ### 2.7 Sessions et cookies
 
 Exactement EX-13.48 : sessions en mémoire (au plus 10 000, la plus ancienne
-détruite au-delà), `sid` de 32 octets, échéance `session_max_age_s` depuis
+détruite au-delà ; revue de sécurité de l'étape 8 : au plus 8 par
+identité de session, `MAX_SESSIONS_PAR_IDENTITE`, la plus ancienne de cette
+identité détruite au-delà, de sorte qu'une identité n'évince jamais les
+sessions d'une autre ; révision d'EX-13.48 point 1 demandée), `sid` de 32
+octets, échéance `session_max_age_s` depuis
 la création, sans délai d'inactivité ; cookie `__Host-noortrace-session`
 (`Secure; HttpOnly; SameSite=Strict; Path=/`, valeur
 `base64url(sid) "." base64url(HMAC-SHA256(K_s, "noortrace/console/session/v0\n" ‖ sid))`,
@@ -606,7 +620,8 @@ Une ligne JSON par événement sur la sortie d'erreur : `{ "ts", "event",
 "data" }`. Événements : `serveur_pret`, `serveur_arrete`,
 `decouverte_oidc` (`ok`, `cause`), `session_ouverte` (`session_identity`,
 `auth_time`, `systeme`), `session_fermee` (`cause` : `deconnexion`,
-`remplacee`, `echeance`, `eviction`), `connexion_refusee` (`code`),
+`remplacee`, `echeance`, `eviction` ; `session_identity` de la session
+détruite, CT-3 EX-13.48), `connexion_refusee` (`code`),
 `reauthentification_requise` (`methode`, `auth_time`), `relais` (`methode`,
 `statut`, `duree_ms`, `session_identity`, `auth_time`). Jamais un jeton, un
 secret, une valeur de cookie, un mot de passe, un code d'autorisation ni un
@@ -734,13 +749,21 @@ que celui de l'écran, s'affiche `reponse_service_invalide` (révision 0.6) :
 rien n'est affiché du contenu, rien n'est signé.
 
 - **Tickets.** `tickets` (sans `related_to`) ; pour chaque ticket :
-  identifiant (lien `/tickets/<ticket>`), outil annoncé, demandeur,
+  identifiant (lien `/tickets/<ticket>` seulement s'il satisfait EX-7.1,
+  motif et 5 à 128 caractères ; sinon il est affiché comme une valeur avec
+  `reponse_service_invalide`, jamais placé dans un lien : revue de sécurité de l'étape 8,
+  `lienTicket` de `cadre.mjs`, aussi pour les tickets liés), outil annoncé, demandeur,
   échéance, votes `approuve` et `refuse` sur `effective_required`, état de
   la fenêtre de contestation (`contest_ms`, `contest`) ; nombre de tickets
   ouverts par demandeur (EX-14.2).
 - **Ticket et signature** (parcours a et b, 13.9 à 13.11) : pas 1,
   `consulter`, `annuaire` et `tickets` avec `related_to` ; affichage du modèle
-  (`modeleAffichage`) avec chaque marque et les consignes d'EX-9.20 (dont
+  (`modeleAffichage`) avec chaque marque (CT-3 EX-9.16 : chaque valeur
+  d'argument, et chaque valeur de `same_arguments`, sous sa forme JSON par
+  `texteValeur` de `cadre.mjs`, chaînes entre guillemets, blancs conservés
+  par `white-space: pre-wrap`, tout caractère des catégories Cc, Cf, Zl ou Zp
+  écrit `\uXXXX`, et la feuille marquée « contient des caractères invisibles
+  ou de sens d'écriture » ; révision d'EX-9.16 demandée) et les consignes d'EX-9.20 (dont
   l'origine `console_origin` de la console saine, lue dans l'annuaire),
   `opening.when` rendu en JSON indenté ; aucune empreinte de `D_A` avant le
   choix de la décision (sauf `empreinte_divergente`, qui montre les deux,
@@ -755,7 +778,19 @@ rien n'est affiché du contenu, rien n'est signé.
   portefeuille, non vérifié », « aucun portefeuille ne s'est annoncé »
   1 000 ms après `lancer()` si la liste est vide) ; `eth_requestAccounts`,
   `analyserComptes`, adresse active retenue (EX-13.23) ; pas 3, nouvelles
-  lectures, `modeleAffichage` et `controleVote` : `personal_sign` seulement
+  lectures, `modeleAffichage` et `controleVote` ; CT-3 EX-9.15 (revue de sécurité de
+  l'étape 8) : la page signe exactement ce qu'elle affiche : le modèle
+  affiché devient celui de la vue fraîche du pas 3 (jeu, votes, échéance,
+  avertissements, dont `membres_ajoutes`), et si cette vue diffère de la vue
+  affichée jusque-là sur un membre lié à la signature par EX-9.4 (`ticket`,
+  `org_id`, `journal_id`, `request_hash`, `request`, `retained_event`,
+  `arguments_piece`, `rule`, `opening`, `effects` ; `egaliteJson`), aucun
+  écran de signature : la décision est annulée, `demande_modifiee` est
+  affichée (clé `page.demande_modifiee`, code proposé pour
+  `$defs/code_console`) avec la consigne de prévenir l'administrateur par un
+  autre canal, et le choix est à refaire sur la vue affichée, suivie d'une
+  nouvelle lecture (révision d'EX-9.15, 13.9, EX-13.33, EX-13.36 demandée) ;
+  `personal_sign` seulement
   si `blocking` est vide, sur l'action explicite de l'écran qui affiche
   l'empreinte (EX-13.21), une requête à la fois, attente bornée par
   `echeanceAttente` avec le `delai_signature_ms` de `session` ; avant de

@@ -65,7 +65,10 @@ type Analyse struct {
 	// decisionsInvalides : rangs des éléments de events qui ne sont pas des
 	// objets (E-1 échoue pour eux).
 	decisionsInvalides []int
-	evenements         []*Evt
+	// decisionsEnTrop : éléments de events au-delà de
+	// MaxEvenementsApprobations, non lus (A-1 échoue, A-2 les compte).
+	decisionsEnTrop int
+	evenements      []*Evt
 	// evenementSansForme : evenement.json est un objet JSON sans forme
 	// canonique (E-2) ; Evenement vaut alors nil.
 	evenementSansForme bool
@@ -164,6 +167,10 @@ func Analyser(d *Dossier, opt Options) (*Analyse, *Defaut) {
 	return a, nil
 }
 
+// MaxEvenementsApprobations : nombre d'éléments de approbations.json/events
+// lus comme des événements (maxItems du schéma de CT-1, EX-15.1).
+const MaxEvenementsApprobations = 1024
+
 // IDsCT1 : les vingt-huit vérifications de CT-1 qui figurent toujours.
 var IDsCT1 = []string{"D-1", "D-2", "E-1", "E-2", "E-3", "E-4", "E-5", "E-6", "E-7", "E-8", "E-9", "E-10", "E-11", "C-1", "C-2", "C-3", "M-1", "M-2", "M-3", "P-1", "P-2", "P-3", "P-4", "P-5", "A-1", "A-2", "A-3", "A-4"}
 
@@ -245,7 +252,16 @@ func (a *Analyse) preparer() {
 	}
 	if p := a.Dossier.Partie(PApprobations); p.Exploitable() {
 		if ev := p.Valeur.Membre("events"); ev.EstTableau() {
+			// Seuls les MaxEvenementsApprobations premiers éléments (la
+			// borne maxItems du schéma) sont lus comme des événements et
+			// contrôlés un à un ; au-delà, A-1 échoue (enveloppe) et les
+			// éléments en trop sont comptés, non contrôlés ni rapportés un
+			// à un (revue de sécurité de l'étape 8 ; révision d'EX-15.1 demandée).
 			for i, x := range ev.Elements {
+				if i >= MaxEvenementsApprobations {
+					a.decisionsEnTrop = len(ev.Elements) - MaxEvenementsApprobations
+					break
+				}
 				if !x.EstObjet() {
 					a.decisionsInvalides = append(a.decisionsInvalides, i)
 					continue
@@ -413,7 +429,7 @@ func (a *Analyse) d2() {
 		}
 	}
 	if len(ecartsFr) > 0 {
-		a.ajouter(commun.Nouvelle("D-2", commun.Echoue, "", commun.T(strings.Join(ecartsFr, " ; "), strings.Join(ecartsEn, "; "))))
+		a.ajouter(commun.Nouvelle("D-2", commun.Echoue, "", commun.T(strings.Join(commun.BornerFr(ecartsFr), " ; "), strings.Join(commun.BornerEn(ecartsEn), "; "))))
 		return
 	}
 	a.ajouter(commun.Nouvelle("D-2", commun.Reussi, "", commun.Texte{}))
@@ -571,7 +587,7 @@ func (a *Analyse) nonObjetsNonExecutes() {
 	if len(roles) == 0 {
 		return
 	}
-	l := strings.Join(roles, ", ")
+	l, lEn := strings.Join(commun.BornerFr(roles), ", "), strings.Join(commun.BornerEn(roles), ", ")
 	for k, v := range a.Verifs {
 		switch v.ID {
 		case "E-2", "E-3", "E-4", "E-5", "E-6", "E-7", "E-8", "E-9", "E-10", "E-11":
@@ -581,7 +597,7 @@ func (a *Analyse) nonObjetsNonExecutes() {
 		if v.Statut != commun.Reussi {
 			continue
 		}
-		n := prerequis(v.ID, "non exécutée sur un événement qui n'est pas un objet : "+l, "not run on an event that is not an object: "+l, v.Controles...)
+		n := prerequis(v.ID, "non exécutée sur un événement qui n'est pas un objet : "+l, "not run on an event that is not an object: "+lEn, v.Controles...)
 		a.Verifs[k] = n
 		a.statut[v.ID] = n
 	}
@@ -1252,6 +1268,9 @@ func (a *Analyse) a2(ap, approbations *jsonv.Valeur) commun.Verification {
 	if !approbations.Membre("events").EstTableau() {
 		ecarts = append(ecarts, "events n'est pas un tableau")
 	}
+	if a.decisionsEnTrop > 0 {
+		ecarts = append(ecarts, fmt.Sprintf("events : %d élément(s) au-delà des %d que le schéma admet, non contrôlés un à un", a.decisionsEnTrop, MaxEvenementsApprobations))
+	}
 	for _, i := range a.decisionsInvalides {
 		ecarts = append(ecarts, fmt.Sprintf("approbation[%d] n'est pas un objet", i))
 	}
@@ -1287,29 +1306,53 @@ func (a *Analyse) a2(ap, approbations *jsonv.Valeur) commun.Verification {
 		ecarts = append(ecarts, "l'événement prouvé, une décision, ne figure pas dans events")
 	}
 	if len(ecarts) > 0 {
-		s := strings.Join(ecarts, " ; ")
-		return commun.Nouvelle("A-2", commun.Echoue, "", commun.T(s, s), 7)
+		return commun.Nouvelle("A-2", commun.Echoue, "", commun.T(strings.Join(commun.BornerFr(ecarts), " ; "), strings.Join(commun.BornerEn(ecarts), " ; ")), 7)
 	}
 	n := len(a.Decisions)
 	return commun.Nouvelle("A-2", commun.Reussi, "", commun.T(fmt.Sprintf("%d événement(s) de décision cohérent(s)", n), fmt.Sprintf("%d consistent decision event(s)", n)), 7)
 }
 
+// elements rend les éléments d'un tableau JSON, et faux si la valeur est
+// absente ou d'un autre genre : un terme absent ne tient aucune relation
+// (CT-1 §11.4), et l'accès ne panique jamais (A-3).
+func elements(v *jsonv.Valeur) ([]*jsonv.Valeur, bool) {
+	if !v.EstTableau() {
+		return nil, false
+	}
+	return v.Elements, true
+}
+
 func (a *Analyse) a3(ap, approbations *jsonv.Valeur) commun.Verification {
+	// Chaque terme de la relation est lu par un accès qui rend « absent »
+	// pour un membre manquant ou d'un autre genre : approver_set,
+	// approver_set.members, approval.approvers et approval.signatures. Un
+	// terme absent met A-3 en échec (relation non tenue, CT-1 §11.4, CT-6
+	// EX-5.13, EX-5.16) au lieu d'une panique rendue en code 2.
+	var ecarts []string
 	jeu := approbations.Membre("approver_set")
+	if !jeu.EstObjet() {
+		ecarts = append(ecarts, "approver_set absent ou qui n'est pas un objet")
+	}
+	membresJeu, okMembres := elements(jeu.Membre("members"))
+	if !okMembres {
+		ecarts = append(ecarts, "approver_set.members absent ou qui n'est pas un tableau")
+	}
 	membres := map[string]bool{}
-	for _, m := range jeu.Membre("members").Elements {
+	for _, m := range membresJeu {
 		membres[m.S()] = true
 	}
 	req, _ := jeu.Chemin("threshold", "required").Entier()
 	taille, _ := jeu.Chemin("threshold", "size").Entier()
-	var ecarts []string
 	if !jsonv.Egales(ap.Membre("threshold"), jeu.Membre("threshold")) {
 		ecarts = append(ecarts, "threshold de l'événement ≠ approver_set.threshold")
 	}
-	if req > taille || taille != int64(len(jeu.Membre("members").Elements)) {
+	if req > taille || taille != int64(len(membresJeu)) {
 		ecarts = append(ecarts, "required > size, ou size ≠ nombre de members")
 	}
-	adr := ap.Membre("approvers").Elements
+	adr, okAdr := elements(ap.Membre("approvers"))
+	if !okAdr {
+		ecarts = append(ecarts, "approval.approvers absent ou qui n'est pas un tableau")
+	}
 	vus := map[string]bool{}
 	for _, x := range adr {
 		if vus[x.S()] {
@@ -1320,17 +1363,20 @@ func (a *Analyse) a3(ap, approbations *jsonv.Valeur) commun.Verification {
 			ecarts = append(ecarts, "approbateur hors du jeu déclaré "+x.S())
 		}
 	}
+	sigs, okSigs := elements(ap.Membre("signatures"))
+	if !okSigs {
+		ecarts = append(ecarts, "approval.signatures absent ou qui n'est pas un tableau")
+	}
 	decision := ap.Membre("decision").S()
 	if decision == "expire" {
-		if len(ap.Membre("signatures").Elements) != 0 || len(adr) != 0 {
+		if len(sigs) != 0 || len(adr) != 0 {
 			ecarts = append(ecarts, "demande expirée qui porte des signatures")
 		}
 	} else if int64(len(vus)) < req {
 		ecarts = append(ecarts, fmt.Sprintf("%d approbateur(s) pour un seuil de %d", len(vus), req))
 	}
 	if len(ecarts) > 0 {
-		s := strings.Join(ecarts, " ; ")
-		return commun.Nouvelle("A-3", commun.Echoue, "", commun.T(s, s), 7)
+		return commun.Nouvelle("A-3", commun.Echoue, "", commun.T(strings.Join(commun.BornerFr(ecarts), " ; "), strings.Join(commun.BornerEn(ecarts), " ; ")), 7)
 	}
 	if decision == "expire" {
 		return commun.Nouvelle("A-3", commun.Reussi, "", commun.T(fmt.Sprintf("demande expirée sans signature, seuil de %d/%d", req, taille), fmt.Sprintf("request expired without signature, threshold %d/%d", req, taille)), 7)
@@ -1339,6 +1385,13 @@ func (a *Analyse) a3(ap, approbations *jsonv.Valeur) commun.Verification {
 }
 
 func (a *Analyse) a4(ap *jsonv.Valeur) commun.Verification {
+	// request_hash absent ou qui n'est pas une chaîne (type du schéma) : terme
+	// de la règle d'A-4 qui ne se lit pas ; la règle n'est pas tenue, A-4
+	// échoue avant toute recherche du voisin (CT-1 §11.4, règle générale des
+	// relations ; vecteur invalide-a3-approval-vide).
+	if !ap.Membre("request_hash").EstChaine() {
+		return commun.Nouvelle("A-4", commun.Echoue, "", commun.T("approval.request_hash absent ou qui n'est pas une chaîne : terme de la règle d'A-4 qui ne se lit pas, demande non désignée", "approval.request_hash missing or not a string: a term of the A-4 rule cannot be read, request not designated"), 7)
+	}
 	rh := ap.Membre("request_hash").S()
 	// voisins.json inexploitable : non exécutée, sans raison admise (CT-1
 	// §11.4, révision 0.5 ; CT-6 EX-5.18).

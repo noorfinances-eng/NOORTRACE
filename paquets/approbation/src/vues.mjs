@@ -14,6 +14,7 @@ import { jeuDeclare, jeuStatique } from "./jeux.mjs";
 import { cloner, comparerChaines, jcsIntegral, lireJsonStrict } from "./json.mjs";
 import { ETATS_NON_DECIDES } from "./tickets.mjs";
 import { entreeActive, adresseActive } from "./annuaire.mjs";
+import { BORNES, executerSousBorne, reecrireGroupesNommes } from "./bornes.mjs";
 
 const T = (s) => decoderHorodatage(s);
 const H = (ms) => ecrireHorodatage(ms);
@@ -165,11 +166,20 @@ const tronquer = (s, max) => {
  * `unresolved` ; un effet dont un pointeur vers les arguments ne se résout
  * pas, ou invalide au pas 4, est omis. Sans gabarit : effet par défaut d'une
  * écriture, aucun pour une lecture (EX-7.6, (2) et (3)).
+ *
+ * `extract` est compilé comme le noyau le compile (`(?P<` écrit `(?<`,
+ * CT-3 EX-12.14) et exécuté sous une borne de temps partagée par les effets de la
+ * vue (`BORNES.vue_budget_ms`) : un motif admis par le noyau mais
+ * quadratique (`[0-9]+$` sur un argument long choisi par l'agent) figeait le
+ * fil unique du service pendant des dizaines de secondes ; au-delà de la
+ * borne, l'effet est omis et `o.omis` le signale (révision d'EX-12.14
+ * demandée). Au plus `BORNES.effets_par_outil` effets sont évalués.
  * @param {{effects: object[]|null}|null} outil outil du message `charger`
  * @param {object} requete `request` du ticket
  * @param {unknown} argumentsRediges valeur JSON de la pièce « arguments »
+ * @param {{budgetMs?: number, omis?: (x: {member: string, cause: string}) => void}} [o]
  */
-export function effetsPrevus(outil, requete, argumentsRediges) {
+export function effetsPrevus(outil, requete, argumentsRediges, o = {}) {
   const gabarit = outil?.effects ?? null;
   if (!gabarit) {
     return requete.class === "ecriture"
@@ -178,7 +188,9 @@ export function effetsPrevus(outil, requete, argumentsRediges) {
   }
   const racine = { arguments: argumentsRediges };
   const effets = [];
-  for (const g of gabarit) {
+  const budget = o.budgetMs ?? BORNES.vue_budget_ms;
+  const debut = performance.now();
+  for (const g of gabarit.slice(0, BORNES.effets_par_outil)) {
     const unresolved = [];
     let omis = false;
     const valeur = (membre, champ) => {
@@ -203,12 +215,19 @@ export function effetsPrevus(outil, requete, argumentsRediges) {
     if (!objetNonResolu) {
       if (objet === null) continue;
       if (g.extract !== null && g.extract !== undefined) {
-        let m = null;
+        let re;
         try {
-          m = new RegExp(g.extract, "u").exec(objet);
+          re = new RegExp(reecrireGroupesNommes(g.extract), "u");
         } catch {
           continue;
         }
+        const restant = budget - (performance.now() - debut);
+        const x = restant > 0 ? executerSousBorne(() => re.exec(objet), restant) : { ok: false };
+        if (!x.ok) {
+          o.omis?.({ member: "object", cause: "budget" });
+          continue;
+        }
+        const m = x.valeur;
         if (!m) continue;
         objet = m.length > 1 && m[1] !== undefined ? m[1] : m[0];
       }
@@ -254,7 +273,9 @@ function regleDuTicket(version, t) {
 
 /**
  * Vue d'un ticket (EX-12.14, EX-12.15), contrôles faits par l'appelant.
- * @param {{machine: object, annuaire: object, ticket: object, bodyMax: number}} p
+ * @param {{machine: object, annuaire: object, ticket: object, bodyMax: number,
+ *   journal?: (type: string, detail: object) => void}} p `journal` : un effet omis
+ *   faute de temps est consigné (`vue_effet_omis`)
  */
 export function vueTicket(p) {
   const { machine, annuaire, ticket: t } = p;
@@ -271,7 +292,7 @@ export function vueTicket(p) {
   } catch {
     rediges = undefined;
   }
-  const effects = effetsPrevus(outil, t.request, rediges);
+  const effects = effetsPrevus(outil, t.request, rediges, { omis: (x) => p.journal?.("vue_effet_omis", { ticket: t.ticket, member: x.member, cause: x.cause }) });
   const sep = version?.approval?.rules?.separation ?? { self_approval: t.self_approval, identities: [] };
   const lb = t.request.delegation.launched_by;
   const annuaireDemandeur = [];

@@ -695,6 +695,21 @@ export const ID_SCHEMA_CEREMONIE = "https://noortrace.example/schemas/v0/ceremon
 export const LIMITE_PROCES_VERBAL = 1024 * 1024;
 /** Les douze vérifications, dans l'ordre (CT-7 §5.8). */
 export const IDS_CR = Object.freeze(Array.from({ length: 12 }, (_, i) => `CR-${i + 1}`));
+/**
+ * Réserve d'un procès-verbal de production (CT-7 EX-5.11, RA-77, menace
+ * MN-93) : en production, D_C DOIT être ancré, par un jeton RFC 3161 sur D_C
+ * conservé avec le procès-verbal, hors de son condensé, ou par sa
+ * transmission au registre comme preuve d'origine. Aucune CR- ne lit cette
+ * ancre et le fichier vérifié ne peut pas la porter : ce que le vérificateur
+ * lit est donc un procès-verbal sans ancre, dont la date n'est que déclarée.
+ * La réserve le dit au réviseur ; elle ne change pas le verdict.
+ */
+export const RESERVE_DATE_DECLAREE = "date_declaree_seulement";
+/** Phrase de chaque réserve, pour la sortie lisible de la commande de référence. */
+export const PHRASES_RESERVES_CEREMONIE = Object.freeze({
+  [RESERVE_DATE_DECLAREE]:
+    "Réserve : procès-verbal de production daté par déclaration seulement. Aucune vérification CR- ne lit l'ancre de D_C (jeton RFC 3161 sur D_C, ou inscription au registre) : le réviseur la contrôle lui-même, et sans elle la date du procès-verbal n'est que déclarée (CT-7 EX-5.11, RA-77).",
+});
 
 /**
  * Forme de `purpose_details` par objet (CT-7 5.1, CR-12) : null, ou la clé
@@ -836,11 +851,14 @@ function examinerSignatureCeremonie(M, signature) {
   }
 }
 
-/** Analyse d'une clé publique SubjectPublicKeyInfo DER : { type, courbe } ou null. */
-function analyserSpki(octets) {
+/**
+ * Analyse d'une clé publique SubjectPublicKeyInfo DER : { type, courbe, bits, der } ou null. `bits` est la longueur du
+ * module d'une clé RSA (nulle pour les autres types) : CR-5 exige 3 072 bits au moins (CT-7 révision 0.5, CLE-10).
+ */
+export function analyserSpki(octets) {
   try {
     const k = crypto.createPublicKey({ key: Buffer.from(octets), format: "der", type: "spki" });
-    return { type: k.asymmetricKeyType, courbe: k.asymmetricKeyDetails?.namedCurve ?? null, der: k.export({ type: "spki", format: "der" }) };
+    return { type: k.asymmetricKeyType, courbe: k.asymmetricKeyDetails?.namedCurve ?? null, bits: k.asymmetricKeyType === "rsa" ? k.asymmetricKeyDetails?.modulusLength ?? null : null, der: k.export({ type: "spki", format: "der" }) };
   } catch {
     return null;
   }
@@ -858,12 +876,15 @@ function adresseDeClePublique(pk) {
 /**
  * Vérifie un procès-verbal (octets ou chaîne du fichier) : CR-1 à CR-12 de
  * CT-7 §5.8, dans l'ordre. Rend { verdict, digest, statuses, failed,
- * not_executed, signers } : `statuses` donne, pour chaque CR-, son statut
+ * not_executed, signers, reserves } : `statuses` donne, pour chaque CR-, son statut
  * (`reussi`, `echoue`, `non_execute`), sa raison (`prerequis_en_echec` pour
  * une vérification non exécutée) et le détail des règles violées ;
  * `signers` liste, dans l'ordre de `participants` et sans doublon, les
  * adresses des participants dont la signature est canonique et recouvre leur
- * adresse (vide si CR-1 échoue).
+ * adresse (vide si CR-1 échoue) ; `reserves` porte RESERVE_DATE_DECLAREE pour
+ * tout procès-verbal lu dont `environment` vaut `production` (EX-5.11), quel
+ * que soit le verdict, qu'elle ne change pas (vide si CR-1 échoue :
+ * l'environnement n'est pas lu).
  */
 export function verifierCeremonie(octets, { schema = null } = {}) {
   const fautes = Object.fromEntries(IDS_CR.map((id) => [id, []]));
@@ -891,6 +912,7 @@ export function verifierCeremonie(octets, { schema = null } = {}) {
       failed: ["CR-1"],
       not_executed: IDS_CR.slice(1),
       signers: [],
+      reserves: [],
     };
   }
 
@@ -933,6 +955,8 @@ export function verifierCeremonie(octets, { schema = null } = {}) {
   // CR-4 : étapes.
   for (const st of pv.steps) {
     if (!parts.has(st.performed_by)) faute("CR-4", `étape ${st.n} : exécutant ${st.performed_by} inconnu`);
+    // CR-4 révisée (EX-5.2 : un témoin, un auditeur ou un observateur n'exécute aucune étape).
+    else if (!["officiant", "detenteur_part", "membre"].includes(role(st.performed_by))) faute("CR-4", `étape ${st.n} : exécutant ${st.performed_by} de rôle ${role(st.performed_by)} (officiant, detenteur_part ou membre attendu, EX-5.2)`);
     for (const w of st.witnessed_by) {
       if (role(w) !== "temoin" && role(w) !== "auditeur") faute("CR-4", `étape ${st.n} : ${w} n'est ni témoin ni auditeur`);
       if (w === st.performed_by) faute("CR-4", `étape ${st.n} : ${w} témoin de sa propre étape`);
@@ -960,6 +984,8 @@ export function verifierCeremonie(octets, { schema = null } = {}) {
         const spki = pk === null ? null : analyserSpki(pk);
         const bon = spki !== null && Buffer.compare(spki.der, Buffer.from(pk)) === 0 && (k.algorithm === "rsa" ? spki.type === "rsa" : spki.type === "ec" && spki.courbe === "prime256v1");
         if (!bon) faute("CR-5", `${q} : SubjectPublicKeyInfo DER ${k.algorithm} attendu`);
+        // CR-5 révisée : pour rsa, module d'au moins 3 072 bits (CLE-10, CT-5 AN-31) ; analyserSpki doit rendre la taille du module (`bits`).
+        else if (k.algorithm === "rsa" && !(spki.bits >= 3072)) faute("CR-5", `${q} : module RSA de ${spki.bits ?? "?"} bits, 3 072 au moins attendus (CLE-10)`);
         if (k.address !== null) faute("CR-5", `${q} : adresse non nulle pour ${k.algorithm}`);
         break;
       }
@@ -1079,7 +1105,9 @@ export function verifierCeremonie(octets, { schema = null } = {}) {
 
   const statuses = IDS_CR.map((id) => ({ id, status: fautes[id].length ? "echoue" : "reussi", reason: null, detail: fautes[id].length ? fautes[id].join(" ; ") : null }));
   const failed = statuses.filter((s) => s.status === "echoue").map((s) => s.id);
-  return { verdict: failed.length ? "invalide" : "valide", digest, statuses, failed, not_executed: [], signers };
+  // EX-5.11 (MN-93, RA-77) : aucune CR- ne lit l'ancre de D_C ; un procès-verbal de production est signalé comme daté par déclaration seulement.
+  const reserves = production ? [RESERVE_DATE_DECLAREE] : [];
+  return { verdict: failed.length ? "invalide" : "valide", digest, statuses, failed, not_executed: [], signers, reserves };
 }
 
 /** Le fichier attendu.json d'un résultat de verifierCeremonie (`#/$defs/attendu`). */
@@ -1090,6 +1118,11 @@ export function attenduCeremonie(r) {
 /** Phrase fixe de CT-7 §5.8 pour un procès-verbal valide. */
 export function phraseCeremonie(pv, r) {
   return `Procès-verbal ${pv.ceremony_id} : forme, chronologie, clés et ${pv.signatures.length} signatures vérifiées (D_C = ${r.digest}). Les identités, les rôles, les étapes et les constats sont déclarés par le procès-verbal et ses signataires.`;
+}
+
+/** Les phrases des réserves d'un résultat de verifierCeremonie, dans l'ordre de `reserves` (EX-5.11). */
+export function phrasesReservesCeremonie(r) {
+  return r.reserves.map((code) => PHRASES_RESERVES_CEREMONIE[code]);
 }
 
 // ===========================================================================

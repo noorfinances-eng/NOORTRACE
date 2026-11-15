@@ -1,6 +1,8 @@
 // Sessions et cookies du serveur de console (CT-3 EX-13.48, contrat 2.7) :
 // sessions en mémoire seulement (au plus 10 000, la plus ancienne détruite
-// au-delà), cookie de session `__Host-noortrace-session` signé par
+// au-delà ; au plus 8 par identité de session, la plus ancienne de cette
+// identité détruite au-delà : revue de sécurité de l'étape 8), cookie de session
+// `__Host-noortrace-session` signé par
 // HMAC-SHA256 sous `K_s`, cookie de transaction `__Host-noortrace-connexion`
 // chiffré par AES-256-GCM sous `K_t`, `tid` des transactions présentées
 // (au plus 100 000, gardés 600 s). `K_s` et `K_t` sont tirées au démarrage,
@@ -12,6 +14,8 @@ import { b64u, deB64u, egauxTempsConstant } from "./outils.mjs";
 export const COOKIE_SESSION = "__Host-noortrace-session";
 export const COOKIE_CONNEXION = "__Host-noortrace-connexion";
 export const MAX_SESSIONS = 10000;
+/** Plafond de sessions par identité de session (CT-3 EX-13.48). */
+export const MAX_SESSIONS_PAR_IDENTITE = 8;
 export const MAX_TIDS = 100000;
 export const DUREE_TRANSACTION_MS = 600000;
 
@@ -55,6 +59,8 @@ export class Sessions {
     this.cle = crypto.randomBytes(32);
     /** @type {Map<string, object>} sid (hexadécimal) → session, dans l'ordre de création */
     this.table = new Map();
+    /** @type {Map<string, Set<string>>} identité → sid de ses sessions, dans l'ordre de création */
+    this.parIdentite = new Map();
   }
 
   #mac(sid) {
@@ -66,6 +72,11 @@ export class Sessions {
    * @param {{identite: string, authTimeMs: number, systeme: string}} o
    */
   creer({ identite, authTimeMs, systeme }) {
+    // Plafond par identité d'abord : une identité n'évince que ses propres sessions.
+    while ((this.parIdentite.get(identite)?.size ?? 0) >= MAX_SESSIONS_PAR_IDENTITE) {
+      const [plusAncienne] = this.parIdentite.get(identite);
+      this.detruire(plusAncienne, "eviction");
+    }
     while (this.table.size >= MAX_SESSIONS) {
       const [plusAncienne] = this.table.keys();
       this.detruire(plusAncienne, "eviction");
@@ -84,6 +95,8 @@ export class Sessions {
       systeme,
     };
     this.table.set(session.sid, session);
+    if (!this.parIdentite.has(identite)) this.parIdentite.set(identite, new Set());
+    this.parIdentite.get(identite).add(session.sid);
     return { session, cookie: `${b64u(sid)}.${b64u(this.#mac(sid))}` };
   }
 
@@ -109,12 +122,17 @@ export class Sessions {
     return session;
   }
 
-  /** Détruit une session (sans effet si elle n'existe plus). */
+  /** Détruit une session (sans effet si elle n'existe plus) ; la ligne du journal nomme l'identité (CT-3 EX-13.48). */
   detruire(sid, cause) {
     const s = this.table.get(sid);
     if (!s) return;
     this.table.delete(sid);
-    this.journal("session_fermee", { cause });
+    const siens = this.parIdentite.get(s.identite);
+    if (siens) {
+      siens.delete(sid);
+      if (siens.size === 0) this.parIdentite.delete(s.identite);
+    }
+    this.journal("session_fermee", { cause, session_identity: s.identite });
   }
 
   /** Détruit les sessions échues (entretien). */

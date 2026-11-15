@@ -1,4 +1,4 @@
-// Planificateur d'ancrage (lot C) : unités hors traces. Requête TimeStampReq
+// Planificateur d'ancrage : unités hors traces. Requête TimeStampReq
 // d'EX-5.1 (famille requetes/, refusées, octets des .tsq), échéances et
 // cadence (EX-4.1 à EX-4.4, AN-2), admission par le noyau sur les séries de
 // spec/vecteurs/ct-1/points-de-controle (AN-3), sélection et comptages
@@ -245,6 +245,8 @@ describe("ancrage, planificateur : admission par le noyau (AN-3)", function () {
       "invalides/periode-1-cle-inconnue.json": ["signature", 10],
       "invalides/periode-1-last-hash.json": ["last_hash", 32],
       "invalides/periode-1-cle-last-seq-0.json": ["signature", 0],
+      // Revue de l'étape 8 (CT-7 MN-68) : tree_size 2^53 − 1 au point de clôture, refusé sans parcourir les numéros (attendu.json : point[60], last_seq).
+      "invalides/periode-1-tree-size-geant.json": ["last_seq", 60],
     };
     for (const inv of attendu.invalides) {
       const m = manifeste(inv.manifest);
@@ -425,14 +427,17 @@ describe("ancrage, planificateur : supervision (EX-8.15, AN-43)", function () {
     s.compter("noortrace_anchoring_deadlines_total", { state: "satisfaite" }, 3);
     s.observer("noortrace_anchoring_d_point_s", {}, 120);
     const texte = s.metriques();
-    expect(texte).to.include("# TYPE noortrace_anchor_pending gauge\nnoortrace_anchor_pending{anchor=\"rfc3161\"} 2\n");
+    // Revue de sécurité de l'étape 8 (CT-5 EX-5.13) : les trois ancres sont exposées dès la construction ; la jauge posée porte sa valeur, les autres 0.
+    expect(texte).to.include("# TYPE noortrace_anchor_pending gauge\n");
+    expect(texte).to.include("noortrace_anchor_pending{anchor=\"rfc3161\"} 2\n");
+    expect(texte).to.include("noortrace_anchor_pending{anchor=\"registre\"} 0\n");
     expect(texte).to.include("noortrace_anchoring_deadlines_total{state=\"satisfaite\"} 3");
     expect(texte).to.include("noortrace_anchoring_d_point_s_bucket{le=\"120\"} 1");
     expect(texte).to.include("noortrace_anchoring_d_point_s_sum 120");
     expect(texte).to.include("noortrace_anchoring_d_point_s_count 1");
     expect(texte.endsWith("\n")).to.equal(true);
     expect(() => s.jauge("noortrace_anchor_pending", { anchor: "rfc3161", host: "x" }, 1)).to.throw(TypeError);
-    // R-F-2 (lot H1) : une valeur d'étiquette hors motif n'est plus refusée mais normalisée (minuscules, caractères hors de [a-z0-9_:.-] remplacés par _).
+    // Corrections après la relecture adversariale de l'étape 5 : une valeur d'étiquette hors motif n'est plus refusée mais normalisée (minuscules, caractères hors de [a-z0-9_:.-] remplacés par _).
     s.jauge("noortrace_anchor_pending", { anchor: "réseau" }, 1);
     expect(s.metriques()).to.include('noortrace_anchor_pending{anchor="r_seau"} 1');
     expect(() => s.jauge("noortrace_inconnue", {}, 1)).to.throw(RangeError);
@@ -687,8 +692,12 @@ describe("ancrage, planificateur : conduites hors traces (EX-8.3 à EX-8.11, EX-
     ]);
     expect(actionsDe(r2.actions, { action: "alerter" }).map((a) => a.detail.code)).to.include("revoque");
     expect(actionsDe(r2.actions, { action: "rejeter_reponse" })[0].detail).to.deep.equal({ error_code: "statut_5", class: "permanente" });
-    // Un statut PKI hors de l'énumération du schéma n'entre pas dans le planificateur (EX-8.16, entrées conformes seulement).
-    expect(() => scenario(c, [e("2026-11-03T13:40:00.000Z", "demarrage"), e("2026-11-03T13:42:00.000Z", "point_produit", K1), e("2026-11-03T13:42:03.000Z", "inclusion_registre", INCLUSION(ancre, 20001)), e("2026-11-03T13:42:04.000Z", "reponse_rfc3161", ERREUR(id, 1, { pki_status: 7 }))])).to.throw(ErreurPlanificateur, /pki_status/);
+    // Révision 0.10 de CT-5 (EX-5.10, étape 2 ; schéma élargi) : un statut PKI hors de 0 à 5 mais représentable est
+    // consigné tel que lu, statut_<n>, permanente ; un statut hors de ±(2^53 − 1) n'entre pas dans le planificateur
+    // (EX-8.16, entrées conformes seulement).
+    const r7 = scenario(c, [e("2026-11-03T13:40:00.000Z", "demarrage"), e("2026-11-03T13:42:00.000Z", "point_produit", K1), e("2026-11-03T13:42:03.000Z", "inclusion_registre", INCLUSION(ancre, 20001)), e("2026-11-03T13:42:04.000Z", "reponse_rfc3161", ERREUR(id, 1, { pki_status: 7 }))]);
+    expect(actionsDe(r7.actions, { action: "rejeter_reponse" })[0].detail).to.deep.equal({ error_code: "statut_7", class: "permanente" });
+    expect(() => scenario(c, [e("2026-11-03T13:40:00.000Z", "demarrage"), e("2026-11-03T13:42:00.000Z", "point_produit", K1), e("2026-11-03T13:42:03.000Z", "inclusion_registre", INCLUSION(ancre, 20001)), e("2026-11-03T13:42:04.000Z", "reponse_rfc3161", ERREUR(id, 1, { pki_status: 2 ** 53 }))])).to.throw(ErreurPlanificateur, /pki_status/);
     for (const [champs, code] of [
       [{ nonce_in_response: "0x" + "00".repeat(7) + "01" }, "nonce_different"],
       [{ nonce_in_response: null }, "nonce_absent"],

@@ -21,12 +21,15 @@ pour le développement des contrats et de l'enregistreur ; rien ici n'est destin
 | Élément | Valeur |
 |---|---|
 | Dépôt | `https://github.com/noorfinances-eng/noorchain-core` |
-| Correctif | `0001-noor_getCommitCertificate.patch`, fourni hors dépôt public et déposé dans `chain/patches/` (voir son LISEZMOI), appliqué sur le commit `618fcef8805ef5b4cb9291a3dd97be710e489297` à la construction ; il ajoute la méthode JSON-RPC `noor_getCommitCertificate` (voir plus bas). Le dépôt noorchain-core n'est pas modifié |
+| Correctif | `0001-noor_getCommitCertificate.patch`, fourni hors dépôt public et déposé dans `chain/patches/` (voir son LISEZMOI), appliqué sur le commit `618fcef8805ef5b4cb9291a3dd97be710e489297` à la construction ; il ajoute la méthode JSON-RPC `noor_getCommitCertificate` (voir plus bas). Le dépôt noorchain-core n'est pas modifié. Son SHA-256 est inscrit dans le fichier suivi `chain/patches/EMPREINTES` et vérifié par `chain/scripts/verifier-correctifs.sh` avant toute application (CT-4 EX-10.1 d) |
 | Binaire | `chain/runtime/bin/noorcore`, construit le 21 octobre 2026 depuis le commit épinglé plus le correctif : `bash chain/scripts/build-noorcore.sh --force` (Go 1.26.9) |
 | Binaire précédent | `chain/runtime/bin/noorcore.618fcef` : le binaire construit depuis le commit `618fcef` seul, sans la méthode, conservé pour retour arrière |
 
 Le script `chain/scripts/build-noorcore.sh` clone le commit `618fcef` de noorchain-core,
-applique les correctifs de `chain/patches/` avec `git apply`, puis construit :
+vérifie les correctifs de `chain/patches/` contre `chain/patches/EMPREINTES` (empreinte
+de chaque correctif attendu, aucun correctif absent ni fichier non listé ; sans aucun
+correctif, seulement avec `NOORTRACE_SANS_CORRECTIF=1`), les applique avec `git apply`,
+puis construit :
 `build-noorcore.sh --force` reconstruit ainsi un binaire avec `noor_getCommitCertificate`
 sans qu'aucune branche n'existe dans noorchain-core. La chaîne existante reprend sans
 changement avec ce binaire : la méthode est additive, rien du consensus ni du format
@@ -48,9 +51,10 @@ pour le nôtre.
 - Linux, `bash` ≥ 4.4, `curl`, `git`.
 - `node` ≥ 18 : la génération des clés de validateur utilise uniquement le module
   `crypto` intégré (`createECDH("secp256k1")`), aucun paquet.
-- `go` : nécessaire seulement pour **reconstruire** le binaire. Le `go.mod` de
-  noorchain-core impose `go 1.26.9` ; avec `GOTOOLCHAIN=auto` (le défaut), la
-  chaîne de compilation est téléchargée si besoin.
+- `go` 1.26.9 : nécessaire seulement pour **reconstruire** le binaire. Le `go.mod`
+  de noorchain-core impose `go 1.26.9` ; `build-noorcore.sh` force
+  `GOTOOLCHAIN=local` : aucune chaîne de compilation n'est téléchargée, une autre
+  version de Go fait échouer la construction au lieu de changer de Go en silence.
 - Ports de boucle locale libres (tableau plus bas).
 
 ## Commandes
@@ -152,7 +156,7 @@ règles du nœud soit celle-ci quel que soit l'environnement de l'opérateur.
 Au premier démarrage, chaque nœud écrit dans son journal (`chain/runtime/logs/node1.log`) :
 
 ```
-[node] 2026/10/21 10:26:13 genesis rules: verified against /home/user/Polymarkets/chain/config/alloc-dev.json | chainId=noortrace-2124-dev evmChainId=2124 possEnabled=false possRewards=0x0000000000000000000000000000000000000000 possCapWei=0 possGenesisUnix=0 possHalvingSec=0 possSubperiodSec=0 possEmissionModel=noormint/v1
+[node] 2026/10/21 10:26:13 genesis rules: verified against …/chain/config/alloc-dev.json | chainId=noortrace-2124-dev evmChainId=2124 possEnabled=false possRewards=0x0000000000000000000000000000000000000000 possCapWei=0 possGenesisUnix=0 possHalvingSec=0 possSubperiodSec=0 possEmissionModel=noormint/v1
 [node] 2026/10/21 10:26:13 emission params: anchored | chainId=noortrace-2124-dev evmChainId=2124 possEnabled=false possRewards=0x0000000000000000000000000000000000000000 possCapWei=0 possGenesisUnix=0 possHalvingSec=0 possSubperiodSec=0 possEmissionModel=noormint/v1
 ```
 
@@ -289,7 +293,16 @@ un document de genèse qui ne précharge que lui.
 - Comptes préchargés publics.
 - Journaux dans des fichiers plats, sans rotation.
 
-## Ce qui change pour un réseau prod-like à quatre validateurs sur deux sites
+## Ce qui change pour un réseau prod-like à quatre validateurs
+
+Répartition exigée en production (CT-4 EX-4.12) : avec `N = 4` validateurs,
+`f = 1`, donc **quatre opérateurs et quatre sites**, un validateur chacun, dont au
+plus un chez l'exploitant ; aucun opérateur ni aucun site ne porte plus de `f`
+validateurs. Contre-exemple, nommé pour ce qu'il est : quatre validateurs sur deux
+sites (deux par site) ne sont **pas admis en production** : la perte d'un site
+entier (deux validateurs) tombe sous le quorum `2f + 1 = 3` et arrête la production
+de blocs, sans la corrompre ; cette répartition n'est bonne que pour un banc
+d'essai, et un manifeste de production qui la déclare est refusé (RG-18, EX-4.28).
 
 1. **Profil** `--network-profile prod-like` et `--bft-allow-experimental` sur
    chaque unité ; le nœud exige alors `--validator-key-file` (jamais de clé en
@@ -301,13 +314,15 @@ un document de genèse qui ne précharge que lui.
    définitivement (un autre numéro que 2124, qui reste celui du développement),
    déployeur hors dépôt à la place des comptes Hardhat ; le même fichier sur les
    quatre nœuds, vérifié par la ligne `genesis rules: verified against`.
-4. **Réseau** : deux validateurs par site, p2p sur une adresse non locale, donc
-   `--p2p-require-auth` avec un jeton d'au moins 32 caractères
-   (`NOOR_P2P_AUTH_TOKEN`), `--p2p-tls` avec certificats et CA
+4. **Réseau** : un validateur par site (quatre sites, EX-4.12), p2p sur une
+   adresse non locale, donc `--p2p-require-auth` avec un jeton d'au moins
+   32 caractères (`NOOR_P2P_AUTH_TOKEN`), `--p2p-tls` avec certificats et CA
    (`--p2p-tls-ca`, `--p2p-tls-require-client-cert` pour le mTLS),
-   `--p2p-allowed-cidrs` restreint aux deux sites, `--boot-peers` croisés entre
-   sites. Quorum 2f+1 = 3 : la perte d'un site entier (deux validateurs) arrête la
-   production de blocs sans la corrompre ; c'est la limite d'un jeu de quatre.
+   `--p2p-allowed-cidrs` restreint aux sites, `--boot-peers` croisés entre
+   sites. Quorum 2f+1 = 3 : la perte d'un site (un validateur) est tolérée ; la
+   perte de deux sites arrête la production de blocs sans la corrompre ; c'est la
+   limite d'un jeu de quatre, et la raison pour laquelle deux validateurs par
+   site ne sont pas admis (contre-exemple ci-dessus).
 5. **Exposition** : RPC derrière un mandataire TLS, `--rpc-trusted-proxies` posé,
    jeton HTTP (`NOOR_HTTP_AUTH_TOKEN`) sur rpc/santé/métriques ; jamais de
    `--allow-public-bind` sans ce périmètre.

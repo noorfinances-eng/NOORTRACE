@@ -1,6 +1,13 @@
 # Exemple : un suiveur noorcore en conteneur, qui relaie le JSON-RPC d'un leader.
 #
-#   NOORCORE_LEADER_RPC=https://rpc.exemple.ch docker compose -f chain/docker/docker-compose.yml up -d
+# DÉVELOPPEMENT SEULEMENT : ce fichier désigne l'image par son étiquette locale
+# (noortrace/noorcore:618fcef-noortrace), celle que `build` produit sur ce poste.
+# Un partenaire ou un client qui reçoit l'image l'emploie par son condensé
+# (`image: noortrace/noorcore@sha256:…`, celui du manifeste d'instance), jamais
+# par une étiquette (CT-4 EX-10.1) : la même étiquette peut désigner un binaire
+# construit sans correctif ou avec un autre correctif.
+#
+#   NOORCORE_LEADER_RPC=https://rpc.validateur.example docker compose -f chain/docker/docker-compose.yml up -d
 #   curl -s http://127.0.0.1:8545 -H 'content-type: application/json' \
 #     -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}'
 #

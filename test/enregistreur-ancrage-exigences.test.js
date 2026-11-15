@@ -1,6 +1,6 @@
-// Branchement du composant d'ancrage dans l'enregistreur (lot F2), essais en
-// cours de processus (cœur à l'horloge réglable, décor du lot F1 : autorités
-// RFC 3161 du lot E, calendriers factices, registre factice) : CT-5 EX-4.8
+// Branchement du composant d'ancrage dans l'enregistreur, essais en
+// cours de processus (cœur à l'horloge réglable, décor des essais du composant : autorités
+// RFC 3161 internes, calendriers factices, registre factice) : CT-5 EX-4.8
 // (configuration d'ancrage invalide, l'enregistreur démarre et consigne
 // `anchor_pending`), EX-4.12 (une remise rend la main sans réseau), EX-4.9
 // (rechargement), CT-2 §15.2 et TA-41 de CT-9 (secrets : chaîne en clair
@@ -60,7 +60,7 @@ async function expectRejet(promesse, motif, raison) {
   expect(e.raison).to.equal(raison);
 }
 
-describe("enregistreur + ancrage (lot F2) : branchement d'anchoring.ancrage, configuration refusée, secrets, clé de chaîne (CT-5 EX-4.8, EX-4.9 ; CT-2 §15.2, EX-11.19 ; TA-41)", function () {
+describe("enregistreur + ancrage : branchement d'anchoring.ancrage, configuration refusée, secrets, clé de chaîne (CT-5 EX-4.8, EX-4.9 ; CT-2 §15.2, EX-11.19 ; TA-41)", function () {
   this.timeout(300000);
   let dir;
   before(function () {
@@ -245,7 +245,7 @@ describe("enregistreur + ancrage (lot F2) : branchement d'anchoring.ancrage, con
   });
 });
 
-describe("enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence", function () {
+describe("enregistreur + ancrage : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence", function () {
   this.timeout(600000);
   let dir;
   let x;
@@ -466,7 +466,7 @@ describe("enregistreur + ancrage (lot F2) : période rejouée à l'horloge régl
   });
 });
 
-describe("enregistreur + ancrage (lot F2), TI-17 : serveur RFC 3161 interne du lot E éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)", function () {
+describe("enregistreur + ancrage, TI-17 : serveur RFC 3161 interne éprouvé par le client du composant à travers un redémarrage (AN-26, TM-18 : 0 paire non croissante ; AN-24, TM-19 : précision ≤ 1 s ; AN-22, AN-25, AN-29, AN-30)", function () {
   this.timeout(120000);
   let dir;
   before(function () {
@@ -487,7 +487,7 @@ describe("enregistreur + ancrage (lot F2), TI-17 : serveur RFC 3161 interne du l
     const journal = { consigner() {} };
     let autorite = chargerAutorite({ repertoire });
     let serveur = await demarrerServeur({ autorite, ecoute: { hote: "127.0.0.1", port }, horloge, journal });
-    const prestataire = { id: "tsa-interne", role: "interne", url: serveur.adresse.url, auth: { method: "aucune", secret: null }, hash: "sha256", policy_oid: "1.3.6.1.4.1.99999.2.9", accepted_policies: ["1.3.6.1.4.1.99999.2.9"], anchor_certificates: [init.acPem], qualified: null, min_interval_ms: 0, request_timeout_ms: 5000, correlation_header: "X-Request-ID", source: "autorité d'essai (lot E)" };
+    const prestataire = { id: "tsa-interne", role: "interne", url: serveur.adresse.url, auth: { method: "aucune", secret: null }, hash: "sha256", policy_oid: "1.3.6.1.4.1.99999.2.9", accepted_policies: ["1.3.6.1.4.1.99999.2.9"], anchor_certificates: [init.acPem], qualified: null, min_interval_ms: 0, request_timeout_ms: 5000, correlation_header: "X-Request-ID", source: "autorité d'essai" };
     const depot = DepotAncres.ouvrir({ racine: path.join(dir, "stockage"), orgId: "0x" + "11".repeat(32), journalId: "0x" + "22".repeat(32) });
     const { transportHttps } = await import("@noortrace/ancrage/rfc3161");
     // Sans connexion persistante : après le redémarrage du serveur, une connexion gardée ouverte par l'agent par défaut

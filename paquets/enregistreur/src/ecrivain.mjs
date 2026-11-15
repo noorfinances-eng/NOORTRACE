@@ -154,7 +154,7 @@ export class Ecrivain {
       this.degrade.entrer("stockage", { event: "disk_low" });
     }
     // EX-13.5 (1) : aucun fichier d'intention sous une époque supérieure présente
-    // dans le répertoire du journal (lot HA).
+    // dans le répertoire du journal (partie de haute disponibilité).
     await this._verifierOuverture("intentions");
     this.intentions = await FichierAjout.ouvrir(path.join(this.repertoire, "intentions", nomFichierIntentions(epoque)), {
       creer: true,
@@ -494,7 +494,10 @@ export class Ecrivain {
       if (err.raison === "stockage") await this._panneStockage(err);
       return;
     }
+    // Instant de retour du fdatasync qui couvre ces événements (CT-2 EX-16.2 pas 4) : propriété non énumérable, hors de la forme de l'événement.
+    const tSync = this.horloge.monotone();
     for (const { op, evt } of liste) {
+      Object.defineProperty(evt, "t_fdatasync_ms", { value: tSync, enumerable: false, configurable: true });
       this.index.ajouter(evt);
       this.metriques?.compter("noortrace_events_total", { kind: sorteMetrique(evt, op.options), status: evt.execution.status, is_error: String(evt.execution.is_error) });
       if (op.options?.leverIntention) {

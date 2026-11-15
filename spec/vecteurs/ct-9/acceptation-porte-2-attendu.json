@@ -44,21 +44,21 @@
           ]
         },
         {
-          "element": "Fenêtre de réécriture mesurée au plus égale à 5 min : Rapport de mesure : `vrai` si et seulement si la ligne `w_date_porte_2` (TM-42) rend `met` vrai (`W_date` p99 ≤ 300 s avec la configuration de la porte 2 : `c_T` = 60 s, points chez le principal) et si la ligne `w_ordre` (TM-41) figure dans le même rapport (une ligne `results[]` de nom `w_ordre` y est présente), quelle que soit sa valeur (`met`, valeur mesurée et `excluded_reason`, `null` compris) (son seuil de 120 s est une exigence de supervision dérivée de CT-5 §3.3, pas un critère de porte) ; `faux` dans tout autre cas ; lecture provisoire du critère (11.6, 16, `blocking` de TM-42) : tant que le plan n'a pas confirmé la configuration, la ligne se calcule avec la lecture de TM-42 (`W_date` p99 ≤ 300 s, `c_T` = 60 s, points chez le principal) et le rapport de mesure nomme cette lecture dans `conditions` ; la confirmation du plan ne suspend pas le calcul, elle peut seulement en changer la configuration à la révision suivante de CT-9 (section 16) ; la ligne rend donc toujours `vrai` ou `faux`",
+          "element": "Fenêtre de réécriture mesurée au plus égale à 5 min : Rapport de mesure : `vrai` si et seulement si la ligne `w_date_porte_2` (TM-42) rend `met` vrai (`W_date` p99 ≤ 300 s avec la configuration de la porte 2 : `c_T` = 60 s, points chez le principal) et si la ligne `w_ordre` (TM-41) figure dans le même rapport (une ligne `results[]` de nom `w_ordre` y est présente), quelle que soit sa valeur (`met`, valeur mesurée et `excluded_reason`, `null` compris) (son seuil de 120 s est une exigence de supervision dérivée de CT-5 §3.3, pas un critère de porte) ; `faux` dans tout autre cas ; lecture du critère confirmée par le plan le 13 novembre 2026 : `W_date` p99 ≤ 300 s dans la configuration de la porte 2 (`c_T` = 60 s, points chez le principal, cas `cadence-une-minute-principal` de CT-5 §12.3) ; le rapport de mesure nomme cette configuration dans `conditions` ; la ligne rend toujours `vrai` ou `faux`",
           "rules": [
             "CT-9 §14 (entrées : TM-42 (`W_date`, P-3 de CT-5), TM-41 (`W_ordre`))",
             "CT-9 EX-14.1"
           ]
         },
         {
-          "element": "Installation par une personne extérieure en 15 min : Pour l'exécution d'un participant extérieur : rapport de mesure, ligne `ir_total` (`result_name` de TM-21) `met` vrai (≤ 900 s) ; consignation de TR-12, partie phase 2 : `participant.external` vrai (extériorité d'EX-12.4) et dossier de CT-8 IR-8 au code 0 des deux vérificateurs ; TE-6 est l'entrée qui décrit ce parcours, son verdict `reussi` n'est pas exigé par cette ligne ; TM-21 a deux exécutions possibles : celle de l'ingénieur du lot, qui joue le parcours de TE-6 à l'étape 7 et publie sa ligne `ir_total` (publiée, non comptée : aucune consignation de TR-12 ne la porte avec `participant.external` vrai), et celle du participant extérieur de TR-12, partie phase 2, seule comptée par cette ligne ; plusieurs participants sont jugés un par un (EX-11.3) et la ligne rend `vrai` dès qu'une exécution extérieure satisfait le critère",
+          "element": "Installation par une personne extérieure en 15 min : Pour l'exécution d'un relecteur à l'aveugle (EX-12.1 ; le libellé du plan dit « personne extérieure », qui désigne ce relecteur en version 0) : rapport de mesure, ligne `ir_total` (`result_name` de TM-21) `met` vrai (≤ 900 s) ; consignation de TR-12, partie phase 2 : `participant.condition` renseignée (EX-12.4) et dossier de CT-8 IR-8 au code 0 des deux vérificateurs ; TE-6 est l'entrée qui décrit ce parcours, son verdict `reussi` n'est pas exigé par cette ligne ; TM-21 a deux exécutions possibles : celle de l'ingénieur du projet, qui joue le parcours de TE-6 à l'étape 7 et publie sa ligne `ir_total` (publiée, non comptée : aucune consignation de TR-12 ne la porte), et celle du participant de TR-12, partie phase 2, seule comptée par cette ligne ; plusieurs participants sont jugés un par un (EX-11.3) et la ligne rend `vrai` dès qu'une exécution d'un relecteur à l'aveugle satisfait le critère",
           "rules": [
             "CT-9 §14 (entrées : TE-6 ; TM-21 (IR-1 à IR-8), exécuté dans la partie phase 2 de TR-12)",
             "CT-9 EX-14.1"
           ]
         },
         {
-          "element": "Paquet réviseur produit : Rapport d'exécution : TV-71 `reussi` (étape de CI « paquet réviseur complet, construit deux fois, vérifié par le dépôt puis par sa copie jointe hors réseau » : mêmes octets, code 0 de la copie jointe), TU-39 et TI-20 `reussi` ; consignation de TR-10 : verdict `reussi` ; rapport de mesure : chaque ligne `reviseur_temps` (TM-25) publiée pour un réviseur extérieur (une par participant, EX-11.3) a `met` vrai (< 30 min ; l'oracle de TM-25 fait foi : `value < 1800` s pour chaque participant ; la règle « dès qu'une exécution » de la ligne 7 ne vaut pas ici) ; la vérification hors réseau par la copie jointe est celle de TR-12 (EX-12.9) et du poste sans réseau de TR-10",
+          "element": "Paquet réviseur produit : Rapport d'exécution : TV-71 `reussi` (étape de CI « paquet réviseur complet, construit deux fois, vérifié par le dépôt puis par sa copie jointe hors réseau » : mêmes octets, code 0 de la copie jointe), TU-39 et TI-20 `reussi` ; consignation de TR-10 : verdict `reussi` ; rapport de mesure : chaque ligne `reviseur_temps` (TM-25) publiée pour un réviseur, relecteur à l'aveugle (une par participant, EX-11.3) a `met` vrai (< 30 min ; l'oracle de TM-25 fait foi : `value < 1800` s pour chaque participant ; la règle « dès qu'une exécution » de la ligne 7 ne vaut pas ici) ; la vérification hors réseau par la copie jointe est celle de TR-12 (EX-12.9) et du poste sans réseau de TR-10",
           "rules": [
             "CT-9 §14 (entrées : TU-39, TV-71, TI-20 ; TR-10 (CT-8 épreuve (b)) ; TM-25 (EX-13.1 point 7))",
             "CT-9 EX-14.1"
@@ -68,13 +68,6 @@
           "element": "Intégrations OpenAI, Anthropic, Gemini, LangGraph, CrewAI, LlamaIndex, LiteLLM et OpenTelemetry exercées : Rapport d'exécution : huit `reussi`",
           "rules": [
             "CT-9 §14 (entrées : TI-4 à TI-11)",
-            "CT-9 EX-14.1"
-          ]
-        },
-        {
-          "element": "Un prestataire accepte l'horodatage horaire par lots à un prix compatible : Part calculable : fiche de prestataire (CT-5 §11) au statut `qualified` (CT-5 EX-5.9), jeton acquis et vérifié (TI-16 `reussi`) ; la compatibilité du prix est une décision du plan de projet, consignée hors du dépôt, que CT-9 enregistre sans la recalculer ; le prix n'entre jamais dans le dépôt : le verdict est `vrai`/`faux` sans montant, écrit par l'examinateur de la porte 2 dans le rapport d'exécution (EX-A.19), `result` de TI-16, membre `reason` : « prix : décision du plan du <date>, compatible » ou « … incompatible » ; un prestataire qualifié à prix incompatible rend la ligne `faux`, cas générique d'EX-14.1 (blocage sans reprise nommée)",
-          "rules": [
-            "CT-9 §14 (entrées : TI-16 (prestataires réels))",
             "CT-9 EX-14.1"
           ]
         }
@@ -119,6 +112,18 @@
           "rules": [
             "CT-9 EX-14.2"
           ]
+        },
+        {
+          "element": "qu'une personne extérieure au projet a reproduit, installé, vérifié ou compris quoi que ce soit (les épreuves TR- sont passées par des relecteurs internes à l'aveugle, EX-12.1)",
+          "rules": [
+            "CT-9 EX-14.2"
+          ]
+        },
+        {
+          "element": "la tenue d'une cérémonie de clés par des personnes (TA-95 et TA-97 sont joués par des rôles simulés, 10.1)",
+          "rules": [
+            "CT-9 EX-14.2"
+          ]
         }
       ]
     },
@@ -141,7 +146,7 @@
           ]
         },
         {
-          "element": "TI- (Interopérabilité) : continuer si : Paquet réviseur produit ; Intégrations OpenAI, Anthropic, Gemini, LangGraph, CrewAI, LlamaIndex, LiteLLM et OpenTelemetry exercées ; Un prestataire accepte l'horodatage horaire par lots à un prix compatible — arrêter ou reprendre si : Aucun prestataire n'accepte le lot horaire à un prix compatible",
+          "element": "TI- (Interopérabilité) : continuer si : Paquet réviseur produit ; Intégrations OpenAI, Anthropic, Gemini, LangGraph, CrewAI, LlamaIndex, LiteLLM et OpenTelemetry exercées",
           "rules": [
             "CT-9 §3.1",
             "CT-9 §14"

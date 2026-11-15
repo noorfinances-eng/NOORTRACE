@@ -1,4 +1,4 @@
-// Processus émetteur des essais d'AN-26 (lot E) : ouvre le compteur durable
+// Processus émetteur des essais d'AN-26 : ouvre le compteur durable
 // d'un répertoire, répond à une requête des vecteurs CT-5 avec l'autorité de
 // test de CT-6, écrit la réponse et imprime le numéro de série émis.
 // Arguments : <répertoire du compteur> <requête .tsq> <réponse .tsr>

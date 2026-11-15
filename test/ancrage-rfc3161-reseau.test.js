@@ -1,4 +1,4 @@
-// Lot A du composant d'ancrage : épreuve d'acceptation (CT-5 EX-11.4, AN-57)
+// Client RFC 3161 du composant d'ancrage : épreuve d'acceptation (CT-5 EX-11.4, AN-57)
 // jouée sur deux autorités d'horodatage publiques qui répondent sans compte,
 // par le transport de production (`transportHttps`, EX-5.5). Aucune de ces
 // autorités n'est déclarée `qualified` : l'épreuve vaut pour l'interface, la

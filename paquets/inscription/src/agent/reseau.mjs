@@ -89,17 +89,31 @@ const estLocal = (url) => {
 };
 
 /**
+ * EX-7.1 (ligne `--rpc`) : les points `http://` hors de la boucle locale,
+ * refusés sur une instance de nature `production`. Contrôle fait sur tous
+ * les points, au démarrage de l'agent (`lireConfiguration`) et dans OP-2
+ * avant le premier appel à l'un d'eux : le jeton du nœud ne part jamais vers
+ * un point refusé (revue de l'étape 8, CT-4 EX-7.1).
+ */
+export function pointsRefusesEnProduction(points) {
+  return points.filter((p) => typeof p === "string" && p.startsWith("http://") && !estLocal(p));
+}
+
+/**
  * OP-2 (CT-4 §7.3) : chaque point répond, et `noor_txindexStatus` y rend
  * `last_indexed_height` non nul et au moins égal à la hauteur lue ; en
- * production, `http://` seulement vers la boucle locale (EX-7.1). Rend
- * `{ ok, code, detail, hauteur }`.
+ * production, `http://` seulement vers la boucle locale (EX-7.1), contrôlé
+ * sur tous les points avant tout appel. Rend `{ ok, code, detail, hauteur }`.
  */
 export async function op2(rpc, { nature }) {
   let hauteur = null;
-  for (const point of rpc.points()) {
-    if (nature === "production" && point.startsWith("http://") && !estLocal(point)) {
-      return { ok: false, code: "noeud_injoignable", detail: `${point} : http:// n'est admis en production que vers 127.0.0.1, ::1 ou localhost (EX-7.1)` };
+  if (nature === "production") {
+    const refuses = pointsRefusesEnProduction(rpc.points());
+    if (refuses.length > 0) {
+      return { ok: false, code: "noeud_injoignable", detail: `${refuses[0]} : http:// n'est admis en production que vers 127.0.0.1, ::1 ou localhost (EX-7.1)` };
     }
+  }
+  for (const point of rpc.points()) {
     let h;
     let s;
     try {

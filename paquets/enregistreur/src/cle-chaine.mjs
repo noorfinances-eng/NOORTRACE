@@ -1,4 +1,4 @@
-// Clé de chaîne de l'enregistreur (CT-2 EX-11.19 ; étape 7, D-10) : la clé
+// Clé de chaîne de l'enregistreur (CT-2 EX-11.19 ; étape 7) : la clé
 // secp256k1 sous laquelle la clé Ed25519 est inscrite au registre, qui signe
 // les ancres et relaie les clôtures. Ce module construit, depuis
 // `anchoring.registry.chain_key` (et `next_chain_key`), un `SignataireChaine`

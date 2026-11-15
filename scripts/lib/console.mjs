@@ -1152,12 +1152,15 @@ export class Decouverte {
     } else {
       const { uuid, name, icon, rdns } = copie.info;
       const provider = copie.provider;
-      const present = this.#liste.find((f) => f.uuid === uuid);
-      if (this.#exclus.has(uuid)) rejeter(index, "annonce_en_double");
+      // EX-13.22, point 3 (révision 0.6) : deux uuid qui ne diffèrent que par la casse sont le même, sans quoi une
+      // imitation en majuscules échapperait à l'exclusion (revue de l'étape 8).
+      const cle = uuid.toLowerCase();
+      const present = this.#liste.find((f) => f.uuid.toLowerCase() === cle);
+      if (this.#exclus.has(cle)) rejeter(index, "annonce_en_double");
       else if (!present) this.#liste.push({ uuid, name, icon, rdns, provider, index });
       else if (present.provider !== provider) {
-        this.#liste = this.#liste.filter((f) => f.uuid !== uuid);
-        this.#exclus.add(uuid);
+        this.#liste = this.#liste.filter((f) => f.uuid.toLowerCase() !== cle);
+        this.#exclus.add(cle);
         rejeter(present.index, "annonce_en_double");
         rejeter(index, "annonce_en_double");
       }
@@ -1388,6 +1391,16 @@ const forme = (methode, q) => {
 };
 
 const entreeDe = (annuaire, session) => annuaire.entries.find((e) => e.session_identity === session);
+/**
+ * Bornes de l'annuaire (schéma annuaire-approbateurs-v0 : entries, addresses et
+ * requester_identities) : chaque méthode qui ajoute une entrée, une adresse ou
+ * un alias vérifie en dernier que l'annuaire résultant y reste, sinon
+ * `limite_annuaire` et l'annuaire ne change pas (EX-13.17, révision 0.6 ;
+ * revue de l'étape 8, CT-3 EX-13.22).
+ */
+export const BORNES_ANNUAIRE = Object.freeze({ entrees: 10000, adresses: 64, alias: 64 });
+/** Bornes des défis non expirés de preparer_inscription (EX-13.13 révisé). */
+export const BORNES_DEFIS = Object.freeze({ par_identite: 4, total: 1024 });
 const entreeDeAdresse = (annuaire, adresse) => annuaire.entries.find((e) => e.addresses.some((a) => a.address === adresse));
 const ADRESSE_VIDE = Object.freeze({ validated_at: null, validated_by: null, revoked_at: null, revoked_by: null, revocation_cause: null, revocation_reason: null, replaced_by: null });
 
@@ -1493,6 +1506,10 @@ export function appliquerOperation(annuaire, methode, requete, at, { defis = [],
       nonce = enHex(o).slice(2);
     }
     const fields = { origin: doc.console_origin, org: doc.org, org_id: doc.org_id, identity: session, address: requete.address, issued_at: at, expires_at: horodatage(msHorodatage(at) + doc.registration_ttl_ms), nonce };
+    // EX-13.13 révisé : au plus 4 défis non expirés par identité et 1 024 au total ; le remplacement du défi de la
+    // même identité et de la même adresse ne compte pas ; au-delà, limite_annuaire sans changer les défis.
+    const vivants = liste.filter((d) => !d.used && msHorodatage(d.fields.expires_at) > msHorodatage(at) && !(d.fields.identity === session && d.fields.address === requete.address));
+    if (vivants.filter((d) => d.fields.identity === session).length >= BORNES_DEFIS.par_identite || vivants.length >= BORNES_DEFIS.total) return refus("limite_annuaire");
     liste = liste.filter((d) => !(d.fields.identity === session && d.fields.address === requete.address));
     liste.push({ fields, used: false });
     return { annuaire: doc, defis: liste, accepted: true, reason: null, response: { fields, message: messageInscription(fields) } };
@@ -1504,6 +1521,8 @@ export function appliquerOperation(annuaire, methode, requete, at, { defis = [],
     if (!v.accepted) return refus(v.reason);
     const champs = analyserMessageInscription(requete.message);
     let e = entreeDe(doc, session);
+    // EX-13.17 (révision 0.6) : borne vérifiée en dernier, après les pas d'EX-13.15 ; le défi présenté est marqué utilisé.
+    if ((!e && doc.entries.length >= BORNES_ANNUAIRE.entrees) || (e && e.addresses.length >= BORNES_ANNUAIRE.adresses)) return { annuaire: copie(annuaire), defis: liste, accepted: false, reason: "limite_annuaire", response: null };
     if (!e) {
       e = { id: v.entry, session_identity: session, external_id: null, display_name: null, active: true, requester_identities: [], created_at: at, addresses: [] };
       doc.entries.push(e);
@@ -1563,6 +1582,7 @@ export function appliquerOperation(annuaire, methode, requete, at, { defis = [],
   }
   if (methode === "lier_demandeur") {
     if (doc.entries.some((x) => x.requester_identities.includes(requete.launched_by))) return refus("demandeur_deja_lie");
+    if (e.requester_identities.length >= BORNES_ANNUAIRE.alias) return refus("limite_annuaire");
     e.requester_identities.push(requete.launched_by);
     inscrireOperation(doc, at, "lier_demandeur", session, e.id, { launched_by: requete.launched_by });
     return accepte(reponseEntree());
@@ -1625,13 +1645,14 @@ export function controleVote(annuaire, session, action, adresseChoisie, ticket) 
 
 /**
  * Le `by` d'un retrait que la console peut envoyer (EX-13.18, EX-7.15) : le
- * launched_by du ticket quand il est un alias de demandeur de l'entrée de la
- * session, sinon l'identité de session quand elle est administrateur, sinon
+ * launched_by du ticket quand il est un alias de demandeur de l'entrée
+ * **active** de la session (révision 0.6, comme EX-12.19 ; revue de l'étape 8,
+ * CT-3 EX-13.22), sinon l'identité de session quand elle est administrateur, sinon
  * null (la console n'offre pas l'action).
  */
 export function actionRetrait(annuaire, session, ticket, administrateurs = annuaire.administrators) {
   const e = entreeDe(annuaire, session);
-  if (e && e.requester_identities.includes(ticket.launched_by)) return ticket.launched_by;
+  if (e && e.active && e.requester_identities.includes(ticket.launched_by)) return ticket.launched_by;
   if (administrateurs.includes(session)) return session;
   return null;
 }
@@ -1643,12 +1664,15 @@ export function actionRetrait(annuaire, session, ticket, administrateurs = annua
  * retirer ; `requete` : son corps, déjà conforme à sa définition de schéma ;
  * `ticket` : { launched_by, eligible }, `eligible` étant les membres
  * éligibles du jeu figé, ou, avant le gel, ceux du jeu de repli ; `null`
- * pour un ticket inconnu dans l'organisation (et toujours pour tickets).
+ * pour un ticket inconnu dans l'organisation (et pour tickets sans
+ * `related_to` ; avec `related_to`, c'est le ticket désigné, EX-12.21).
  * Rend null si la méthode passe, sinon la première raison : identite_invalide ;
  * puis, pour tickets et consulter, session_non_autorisee pour une session
  * hors de l'organisation (ni administrateur, ni entrée active), ticket_inconnu,
  * et session_non_autorisee pour une session qui ne peut pas voir les
- * arguments du ticket (EX-12.14) ; pour voter et recuser,
+ * arguments du ticket (EX-12.14) ; tickets sans related_to applique le point 1
+ * seul, tickets avec related_to applique au ticket désigné l'ordre de consulter
+ * (EX-12.21 ; revue de l'étape 8, J-§7.2) ; pour voter et recuser,
  * session_non_autorisee (adresse) puis ticket_inconnu ; pour retirer,
  * ticket_inconnu puis session_non_autorisee (EX-12.19).
  */
@@ -1661,7 +1685,7 @@ export function controleCanal(annuaire, methode, requete, ticket) {
   if (methode === "tickets" || methode === "consulter") {
     // (a) Session de l'organisation : administrateur, ou entrée active de l'annuaire.
     if (!admin && !(e && e.active)) return "session_non_autorisee";
-    if (methode === "tickets") return null;
+    if (methode === "tickets" && (requete.related_to === undefined || requete.related_to === null)) return null;
     // (b) Ticket inconnu dans l'organisation ; (c) session qui ne peut pas voir ses arguments.
     if (ticket === null) return "ticket_inconnu";
     return admin || (active !== null && ticket.eligible.includes(active)) ? null : "session_non_autorisee";

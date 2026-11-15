@@ -51,15 +51,21 @@
 // Les parties RFC 3161 et OpenTimestamps (CT-5) sont déclarées absentes : les
 // contrôles 4 et 5 ne sont pas exécutés, ce que le verdict rapporte.
 //
-// Sorties : tout ce que le parcours crée va dans --sortie (défaut : un
-// répertoire neuf sous le répertoire temporaire du système, jamais dans le
-// dépôt, EX-7.14) : cles/, dossier.json (d'inscription), captures/,
-// demande-*.json, periode-1/, parties-1/, dossier-1/, ancres.json, sorties/
-// (sortie JSON de chaque commande, numérotée), verificateurs/ et verdict.json,
-// que la sortie standard reprend. Codes : 0 parcours réussi et contrôle 8
-// réussi pour les deux vérificateurs ; 1 échec d'une étape ou d'un
-// vérificateur ; 2 préalable absent (binaire, vérificateur Go), rien n'est
-// envoyé.
+// Sorties : ce que le parcours crée pour le client fictif va dans --sortie
+// (défaut : un répertoire neuf sous le répertoire temporaire du système,
+// EX-7.14) : cles/, dossier.json (d'inscription), captures/, demande-*.json,
+// periode-1/, parties-1/, dossier-1/, ancres.json, sorties/ (sortie JSON de
+// chaque commande, numérotée), verificateurs/ et verdict.json, que la sortie
+// standard reprend. Rien de suivi par git n'est écrit ; trois répertoires de
+// l'arbre du dépôt, ignorés de git, peuvent l'être : hh-artifacts/ (compilation
+// des ABI si elles manquent), deployments/ (déploiement si
+// deployments/noorcore.json manque) et chain/runtime/ (réseau démarré par
+// dev-net.sh). verdict.json ne porte aucun chemin du poste (essai : nom du
+// répertoire de sortie seulement). Codes : 0 parcours réussi, contrôle 8
+// réussi pour les deux vérificateurs avec le même verdict, le même code et les
+// mêmes statuts (EX-9.2), et au moins un bloc dont le certificat est exigé ;
+// 1 échec d'une étape, d'un vérificateur ou divergence des deux vérificateurs ;
+// 2 préalable absent (binaire, vérificateur Go), rien n'est envoyé.
 //
 // Variables : NOORTRACE_RUNTIME_DIR (répertoire d'exécution du réseau, comme
 // dev-net.sh ; le jeu de validateurs lu par l'outil est alors celui de ce
@@ -70,7 +76,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { SigningKey, Wallet, computeAddress } from "ethers";
 import * as J from "../lib/journal.mjs";
 import * as C from "../lib/conventions-registre.mjs";
@@ -188,6 +194,22 @@ export function periodeDemo({ org_id, journal_id, graine, maintenantMs = Date.no
 // Parcours
 // ---------------------------------------------------------------------------
 
+/**
+ * Verdict final de TE-4 (CT-9 EX-9.2) : `reussi` et code 0 seulement
+ * si les deux vérificateurs ont rendu le code 0, le même verdict, le même code
+ * et les mêmes statuts (parity.equal), et si au moins un bloc a exigé un
+ * certificat ; sinon `echoue`, code 1, avec le motif.
+ */
+export function verdictFinal({ reference, go, parity, blocks }) {
+  const motifs = [];
+  if (!reference || reference.exit_code !== 0) motifs.push(`implémentation de référence : code ${reference?.exit_code ?? "absent"}`);
+  if (!go || go.exit_code !== 0) motifs.push(`vérificateur Go : code ${go?.exit_code ?? "absent"}`);
+  if (!parity || parity.equal !== true) motifs.push(`les deux vérificateurs divergent : ${(parity?.differences ?? ["parité non calculée"]).join(" ; ")}`);
+  if (!Array.isArray(blocks) || blocks.length === 0) motifs.push("aucun bloc n'a exigé de certificat");
+  if (motifs.length) return { code: 1, result: "echoue", error: `EX-9.2 : ${motifs.join(" ; ")}` };
+  return { code: 0, result: "reussi", error: null };
+}
+
 export async function parcours(argv = process.argv.slice(2), { stdout = process.stdout, stderr = process.stderr } = {}) {
   const { values: o } = parseArgs({ args: argv, options: { sortie: { type: "string" }, org: { type: "string" }, "verificateur-go": { type: "string" }, "garder-reseau": { type: "boolean" }, aide: { type: "boolean" } }, strict: true });
   if (o.aide) {
@@ -214,7 +236,7 @@ export async function parcours(argv = process.argv.slice(2), { stdout = process.
     result: "echoue",
     exit_code: 1,
     error: null,
-    essai: E,
+    essai: path.basename(E),
     organisation: { slug, org_id: null },
     journal: { name: NOM_JOURNAL, journal_id: null },
     recorder_key_id: KEY_ID,
@@ -516,8 +538,11 @@ export async function parcours(argv = process.argv.slice(2), { stdout = process.
     verdict.verifiers.parity = { equal: ecarts.length === 0, differences: ecarts };
     verdict.verifiers.tool_verifier = { status: verif.outputs.status, verifications: verif.outputs.verifications.map((v) => ({ id: v.id, status: v.status })) };
     verdict.durations_ms.verification = ms(process.hrtime.bigint() - tVerif);
-    code = 0;
-    verdict.result = "reussi";
+    // EX-9.2 : reussi seulement si les deux vérificateurs concordent.
+    const fin = verdictFinal({ reference: ref, go: gov, parity: verdict.verifiers.parity, blocks: verdict.blocks });
+    code = fin.code;
+    verdict.result = fin.result;
+    verdict.error = fin.error;
   } catch (err) {
     code = err instanceof EchecEtape ? err.code : 1;
     verdict.result = code === 2 ? "inutilisable" : "echoue";
@@ -547,7 +572,16 @@ export async function parcours(argv = process.argv.slice(2), { stdout = process.
   return { code, verdict };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+/** Chemin réel d'un fichier (liens symboliques résolus), ou null ; la garde de lancement le compare à celui du module. */
+function cheminReel(p) {
+  try {
+    return fs.realpathSync(path.resolve(p));
+  } catch {
+    return null;
+  }
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === cheminReel(process.argv[1])) {
   parcours().then(
     ({ code }) => {
       process.exitCode = code;

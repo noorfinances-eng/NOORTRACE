@@ -101,6 +101,11 @@ dont l'oracle porte sur un vecteur et dont le mutant est la régénération
 observée par l'intégration continue, portent « oracle sur le vecteur » à la
 place de « (tué) », comme EX-10.7 l'admet ; le programme les compte à part
 (ligne « EX-10.4 et EX-10.7 » de la section 6) sans les déclarer en écart.
+Révision 0.10 de CT-9 (forme (4) d'EX-10.7) : un `it` d'un scénario du plan
+(entrée à `composition`, TA-103 à TA-107) nomme des menaces qui sont parmi
+celles de l'entrée ; il finit par « (tué) » ou « (tués) » si et seulement si
+il retire une réponse (« réponse retirée »). Le résultat de 10.8 se lit
+« N passing … », M en attente : N + M égale le nombre d'`it` du fichier.
 
 ## Ce que le programme ne fait pas
 

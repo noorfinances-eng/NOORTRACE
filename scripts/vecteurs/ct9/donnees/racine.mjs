@@ -6,8 +6,8 @@ export const META = {
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.9",
-  "date": "2026-11-12"
+  "spec_version": "0.10",
+  "date": "2026-11-14"
 };
 
 export const LEVELS = [

@@ -49,7 +49,7 @@ export const DEFAUTS = Object.freeze({
 /** Codes des règles d'EX-10.12. */
 export const CODES_CONFIGURATION = Object.freeze([
   "json", "schema", "rpc_non_declare", "rpc_tls", "tls_exige", "authentification_exigee", "jeton_exige_production",
-  "jetons_egaux", "escalade_non_croissante", "webhook_http", "origine_port_par_defaut",
+  "jetons_egaux", "canaux_meme_autorite_sans_jeton", "escalade_non_croissante", "webhook_http", "origine_port_par_defaut",
 ]);
 
 /** Codes que seul le démarrage décèle (EX-10.14), jamais rendus par la validation. */
@@ -157,6 +157,20 @@ export function reglesConfiguration(c, o = {}) {
     const a = cleReference(c.noyau.token, o.base);
     const b = cleReference(c.console.token, o.base);
     if (a !== null && a === b) e.push({ code: "jetons_egaux", pointer: "/console/token" });
+    // canaux_meme_autorite_sans_jeton (CT-3 EX-12.5) : deux canaux en mTLS avec la
+    // même autorité de clients, qu'aucun jeton ne distingue, ne se distinguent
+    // pas : un certificat « console » ouvre le canal du noyau, et inversement.
+    // Règle nouvelle, au rang de jetons_egaux ; le code n'est pas encore dans
+    // l'énumération figée de $defs/rapport_validation (révision demandée
+    // d'EX-10.12). Les jetons distincts rendent la même autorité sûre (le
+    // porteur d'un seul certificat n'a pas le jeton de l'autre canal).
+    const caN = cleReference(objet(c.noyau.tls) ? c.noyau.tls.client_ca : null, o.base);
+    const caC = cleReference(objet(c.console.tls) ? c.console.tls.client_ca : null, o.base);
+    const jetonN = c.noyau.token !== undefined && c.noyau.token !== null;
+    const jetonC = c.console.token !== undefined && c.console.token !== null;
+    if (caN !== null && caN === caC && !(jetonN && jetonC)) {
+      e.push({ code: "canaux_meme_autorite_sans_jeton", pointer: "/noyau/tls/client_ca" });
+    }
   }
   if (Array.isArray(c.escalation)) {
     for (let k = 1; k < c.escalation.length; k++) {
@@ -205,19 +219,40 @@ export function lireEtValiderConfiguration(chemin) {
 // ---------------------------------------------------------------- secrets
 
 /**
+ * Contrôle d'un fichier de secret en production (même règle que
+ * IP-10 de CT-8 : mode `0400` ou `0600`, propriétaire le compte du service) :
+ * fichier ordinaire, aucun droit de groupe ni d'autrui, propriété de
+ * l'identité du processus quand elle est connue. Lève une erreur sans
+ * jamais lire ni nommer la valeur.
+ * @param {string} chemin chemin résolu
+ */
+function controlerFichierSecret(chemin) {
+  const st = fs.statSync(chemin);
+  if (!st.isFile()) throw new Error("secret : pas un fichier ordinaire");
+  if ((st.mode & 0o077) !== 0) throw new Error("secret lisible par le groupe ou les autres");
+  if (typeof process.getuid === "function" && st.uid !== process.getuid()) throw new Error("secret d'un autre proprietaire");
+}
+
+/**
  * Lit une référence de secret (fichier relatif au répertoire de la
- * configuration, ou variable d'environnement non vide).
+ * configuration, ou variable d'environnement non vide). En production, un
+ * fichier de secret (`secret` vrai, le défaut) doit passer
+ * `controlerFichierSecret` ; un certificat ou une autorité (`secret` faux)
+ * n'y est pas soumis.
  * @param {{file?: string, env?: string}} ref
  * @param {string} base
+ * @param {{production?: boolean, secret?: boolean}} [o]
  * @returns {Buffer}
  */
-export function lireSecret(ref, base) {
+export function lireSecret(ref, base, o = {}) {
   if (ref.env !== undefined) {
     const v = process.env[ref.env];
     if (v === undefined || v === "") throw new Error("variable absente");
     return Buffer.from(v, "utf8");
   }
-  return fs.readFileSync(path.resolve(base, ref.file));
+  const chemin = path.resolve(base, ref.file);
+  if (o.production && o.secret !== false) controlerFichierSecret(chemin);
+  return fs.readFileSync(chemin);
 }
 
 const ESPACES = /^[\t\n\v\f\r ]+|[\t\n\v\f\r ]+$/g;
@@ -280,10 +315,12 @@ export function decoderClePrivee(octets) {
  */
 export function resoudreSecrets(c, base) {
   const erreurs = [];
-  const lire = (ref, pointeur, decoder) => {
+  const production = c.environment === "production";
+  // CT-8 IP-10 : en production, le mode et le propriétaire d'un fichier de secret sont contrôlés (reference_illisible sinon)
+  const lire = (ref, pointeur, decoder, secret = true) => {
     if (ref === undefined || ref === null) return null;
     try {
-      return decoder(lireSecret(ref, base));
+      return decoder(lireSecret(ref, base, { production, secret }));
     } catch {
       erreurs.push({ code: "reference_illisible", pointer: pointeur });
       return null;
@@ -292,9 +329,9 @@ export function resoudreSecrets(c, base) {
   const ecoute = (l, ici) => {
     if (!l || !l.tls) return null;
     return {
-      cert: lire(l.tls.cert, `${ici}/tls/cert`, decoderCertificats),
+      cert: lire(l.tls.cert, `${ici}/tls/cert`, decoderCertificats, false),
       key: lire(l.tls.key, `${ici}/tls/key`, decoderClePrivee),
-      ca: lire(l.tls.client_ca, `${ici}/tls/client_ca`, decoderCertificats),
+      ca: lire(l.tls.client_ca, `${ici}/tls/client_ca`, decoderCertificats, false),
     };
   };
   const s = {
@@ -303,7 +340,7 @@ export function resoudreSecrets(c, base) {
     jetonConsole: c.console ? lire(c.console.token, "/console/token", decoderJeton) : null,
     jetonRpc: c.rpc ? lire(c.rpc.token, "/rpc/token", decoderJeton) : null,
     cleWebhook: c.notifications ? lire(c.notifications.key, "/notifications/key", decoderCleWebhook) : null,
-    caWebhook: c.notifications ? lire(c.notifications.ca, "/notifications/ca", decoderCertificats) : null,
+    caWebhook: c.notifications ? lire(c.notifications.ca, "/notifications/ca", decoderCertificats, false) : null,
     tls: { noyau: ecoute(c.noyau, "/noyau"), console: ecoute(c.console, "/console") },
   };
   if (erreurs.length) throw new ErreurConfiguration(trierErreurs(erreurs));

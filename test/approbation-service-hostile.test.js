@@ -235,7 +235,7 @@ describe("service d'approbation : entrées hostiles", function () {
       s.horloge.decalage = 10 * 60000;
       // Une entrée qui a un effet (vote refusé, inscrit dans la trace, EX-7.8) : son
       // instant est persisté avec elle. Une entrée sans effet (un tic sans minuteur
-      // échu) n'est plus persistée (EX-7.20, relecture C, R-C-10) : EX-7.23 ne fait
+      // échu) n'est plus persistée (EX-7.20, relecture adversariale des approbations) : EX-7.23 ne fait
       // relire que les documents, où elle ne laisse rien.
       await vote(s, t.ticket, 1, "approuve", "0x" + "11".repeat(65));
       const dernier = s.inst.service.machine.dernierAt;
@@ -371,12 +371,12 @@ describe("service d'approbation : entrées hostiles", function () {
   });
 });
 
-// ------------------------------------------------------------------ relecture adversariale C (non-régression)
+// ------------------------------------------------------------------ relecture adversariale des approbations (non-régression)
 //
-// Chaque essai de la relecture C (approbations de bout en bout) côté service,
+// Chaque essai de la relecture adversariale des approbations (de bout en bout) côté service,
 // transformé en test : il échouait avant la correction et passe après.
 
-describe("service d'approbation : non-régression de la relecture C", function () {
+describe("service d'approbation : non-régression de la relecture adversariale des approbations", function () {
   this.timeout(60000);
   const A = APPROBATION_RELECTURE;
   const REGISTRE = "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1";
@@ -423,7 +423,7 @@ describe("service d'approbation : non-régression de la relecture C", function (
     return t;
   }
 
-  it("R-C-1 : une lecture partie avant le calcul de la décision ne la confirme pas (EX-8.7, T8)", async function () {
+  it("une lecture partie avant le calcul de la décision ne la confirme pas (EX-8.7, T8)", async function () {
     const chaine = { hauteur: 100, membres: [adresse(1), adresse(2), adresse(3)] };
     let liberer = null;
     const lecteur = {
@@ -471,7 +471,7 @@ describe("service d'approbation : non-régression de la relecture C", function (
     }
   });
 
-  it("R-C-9 : un ticket d'une version précédente est lu avec son propre jeu épinglé (EX-7.21, EX-8.1)", async function () {
+  it("un ticket d'une version précédente est lu avec son propre jeu épinglé (EX-7.21, EX-8.1)", async function () {
     let h = 100;
     const S2 = "0x" + "52".repeat(20);
     const lecteur = {
@@ -506,7 +506,7 @@ describe("service d'approbation : non-régression de la relecture C", function (
     }
   });
 
-  it("R-C-2 : magasin : après un fdatasync en échec, aucun numéro n'est réutilisé ; reprise par l'état complet (EX-7.22, EX-7.23)", async function () {
+  it("magasin : après un fdatasync en échec, aucun numéro n'est réutilisé ; reprise par l'état complet (EX-7.22, EX-7.23)", async function () {
     const dir = repertoireTemporaire();
     const cle = N.sha256(N.utf8("cle"));
     const m = new A.MagasinEtat({ repertoire: dir, cle });
@@ -535,7 +535,7 @@ describe("service d'approbation : non-régression de la relecture C", function (
     expect(docs.meta).to.deep.equal({ troisieme: true });
   });
 
-  it("R-C-2 : service : une unité de fenêtre consommée (réponse autorise) reste consommée après un fdatasync en échec et un redémarrage (EX-6.5, EX-7.22)", async function () {
+  it("service : une unité de fenêtre consommée (réponse autorise) reste consommée après un fdatasync en échec et un redémarrage (EX-6.5, EX-7.22)", async function () {
     const x = await serviceDemarre();
     let inst = x.inst;
     try {
@@ -570,7 +570,7 @@ describe("service d'approbation : non-régression de la relecture C", function (
     expect(restant).to.equal(1);
   });
 
-  it("R-C-7 : les arguments d'un ticket consommé ne restent dans aucun fichier d'état (EX-7.24)", async function () {
+  it("les arguments d'un ticket consommé ne restent dans aucun fichier d'état (EX-7.24)", async function () {
     const x = await serviceDemarre();
     const s = x.inst.service;
     const IBAN = "CH9300762011623852957";
@@ -605,7 +605,7 @@ describe("service d'approbation : non-régression de la relecture C", function (
     expect(portent()).to.equal(0);
   });
 
-  it("R-C-7 : les arguments d'un ticket actif sont relus au redémarrage (clé de rapprochement, EX-7.23)", async function () {
+  it("les arguments d'un ticket actif sont relus au redémarrage (clé de rapprochement, EX-7.23)", async function () {
     const x = await serviceDemarre();
     let s = x.inst.service;
     const args = paiement("7400.00");
@@ -623,7 +623,7 @@ describe("service d'approbation : non-régression de la relecture C", function (
     }
   });
 
-  it("R-C-8 : jetons du noyau et de la console de même valeur : configuration refusée (EX-12.4)", function () {
+  it("jetons du noyau et de la console de même valeur : configuration refusée (EX-12.4)", function () {
     const dir = repertoireTemporaire();
     const cfg = ecrireConfiguration(dir, { socket: false });
     fs.writeFileSync(path.join(dir, "jeton-console"), cfg.jetonNoyau, { mode: 0o600 });
@@ -632,7 +632,7 @@ describe("service d'approbation : non-régression de la relecture C", function (
     expect(A.chargerConfiguration(cfg.chemin).secrets.jetonConsole).to.equal(cfg.jetonConsole);
   });
 
-  it("R-C-10 : un consommer répété, sans effet, n'est pas persisté (EX-7.20)", async function () {
+  it("un consommer répété, sans effet, n'est pas persisté (EX-7.20)", async function () {
     const x = await serviceDemarre();
     const s = x.inst.service;
     try {

@@ -219,7 +219,11 @@ describe("page de vérification : construction reproductible et fichiers produit
     expect(pageJs).to.include(`const VERSION_VERIFICATEUR = "${VERSION}";`);
     // Le travailleur n'est créé que depuis la chaîne constante travailleur.js.
     expect(pageJs.match(/new Worker\(/g)).to.have.length(2);
-    expect(pageJs).to.include('new Worker(politique.createScriptURL("travailleur.js"))');
+    // EX-18.12 : la seule politique admise, noortrace-travailleur, est créée une fois par page.js (la politique de
+    // contenu n'en admet pas deux du même nom) et gardée pour le travailleur neuf qui suit un arrêt (EX-18.9).
+    expect(pageJs).to.include('new Worker(politiqueTravailleur.createScriptURL("travailleur.js"))');
+    expect(pageJs.match(/createPolicy\(/g)).to.have.length(1);
+    expect(pageJs).to.include("if (politiqueTravailleur === null) {");
     expect(pageJs).to.include('new Worker("travailleur.js")');
     expect(pageJs).to.include('createPolicy("noortrace-travailleur"');
   });

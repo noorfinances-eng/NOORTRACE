@@ -194,7 +194,11 @@ describe("TI-13 — SDK Python et TypeScript : interface publique de CT-2 6.5, P
       ctx.test.title += ` — en attente : environnement absent (paquets/sdk-python/.environnements/${env} ; paquets/sdk-python/outils/environnements.sh preparer ${env})`;
       ctx.skip();
     }
-    if (!resultats.js) ctx.skip();
+    if (!resultats.js) {
+      // Rien à comparer si l'essai du SDK JavaScript n'est pas joué ou s'arrête avant sa fin (son échec est déjà compté).
+      ctx.test.title += " — en attente : résultat du SDK JavaScript absent (essai JavaScript précédent non joué ou interrompu)";
+      ctx.skip();
+    }
     const r = await jouer(`py${version.replace(".", "")}`, python);
     expect(r.sorties).to.deep.equal(resultats.js.sorties);
     expect(r.evenements).to.deep.equal(resultats.js.evenements);

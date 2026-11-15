@@ -25,6 +25,7 @@ import { analyserTexte, decoderUtf8Strict, ErreurTexteJson, membre, valeurDe, pr
 import { QuotasHote } from "../mcp/quotas.mjs";
 import { resoudreDelegation } from "../mcp/delegation.mjs";
 import { intentionBornee } from "../modele/extraction.mjs";
+import { ID_JSONRPC_MAX, SESSIONS_SDK_PAR_CONNEXION_MAX, copierChaine } from "../bornes.mjs";
 import { deriverEchangeSdk } from "./echange.mjs";
 import {
   ErreurEntree, controlerParametres, nomOutilSdk, controlerEffets, controlerIntention, controlerClasse, controlerContexte,
@@ -36,8 +37,15 @@ import {
 export const PREFIXE_METHODES = "noortrace/sdk/";
 /** Méthodes servies. */
 export const METHODES_SDK = Object.freeze(["ouvrir", "declarerContexte", "debutAppel", "finAppel", "echangeModele", "fermer"]);
-/** Méthodes soumises aux quotas de la connexion d'hôte (EX-4.47) ; `finAppel` et `fermer` ne le sont jamais (lecture du LISEZMOI). */
+/**
+ * Méthodes soumises à tous les quotas de la connexion d'hôte (EX-4.47) ;
+ * `finAppel` et `fermer` ne le sont jamais pour un appel ou une session connus
+ * de la connexion (lecture du LISEZMOI), et ne sont soumis qu'au quota d'octets
+ * reçus sinon (étape 8).
+ */
 const SOUS_QUOTA = new Set(["ouvrir", "declarerContexte", "debutAppel", "echangeModele"]);
+/** Lignes d'exploitation déclenchées par une connexion sans traitement, par seconde (lecture 159). */
+export const LIGNES_CONNEXION_PAR_SECONDE = 20;
 
 /**
  * Compteurs des identifiants de session et d'appel, propres au processus :
@@ -233,13 +241,20 @@ export class FrontalSdk {
     if (noeud.t !== "objet") return reponseErreur(null, -32600);
     const id = membre(noeud, "id");
     const idValide = id && (id.t === "chaine" || id.t === "nombre");
-    const idBrut = idValide ? texte.slice(id.d, id.f) : null;
+    // Étape 8 (S-1, CT-2 EX-4.47) : un `id` au-delà d'ID_JSONRPC_MAX caractères est
+    // refusé avant tout usage (-32600, `id: null`) ; un `id` admis est recopié,
+    // jamais une tranche du texte reçu.
+    if (idValide && id.f - id.d > ID_JSONRPC_MAX) {
+      this._consignerParConnexion(cx, "warning", "request_id_too_long", { length: id.f - id.d, limit: ID_JSONRPC_MAX });
+      return reponseErreur(null, -32600, { reason: "id_trop_long", limit: ID_JSONRPC_MAX });
+    }
+    const idBrut = idValide ? copierChaine(texte.slice(id.d, id.f)) : null;
     const jsonrpc = membre(noeud, "jsonrpc");
     const methodeNoeud = membre(noeud, "method");
     if (jsonrpc?.t !== "chaine" || jsonrpc.valeur !== "2.0" || methodeNoeud?.t !== "chaine" || (id && !idValide)) return reponseErreur(idBrut, -32600);
     if (!idBrut) {
-      // Le SDK n'envoie aucune notification (EX-6.10) : ignorée, consignée.
-      this.journal.consigner("info", "sdk", "notification_ignored", {}, { host: hote.id });
+      // Le SDK n'envoie aucune notification (EX-6.10) : ignorée, consignée (débit borné par connexion).
+      this._consignerParConnexion(cx, "info", "notification_ignored", {});
       return null;
     }
     const nomMethode = methodeNoeud.valeur;
@@ -251,8 +266,15 @@ export class FrontalSdk {
     // Instance passive (13.4, EX-14.17) : -31010 bail_non_detenu, sauf fermer.
     if (!this.coeur.bailDetenu && methode !== "fermer") return this._bloque(m, hote, "bail_non_detenu", null);
     let compte = false;
-    if (SOUS_QUOTA.has(methode)) {
-      const q = quotas.depasse(t_recu, { appel: true });
+    // EX-4.47 : `finAppel` et `fermer` ne sont jamais refusés par un quota pour
+    // un appel ou une session que cette connexion connaît (l'événement durable
+    // en dépend, EX-6.3) ; pour un `call` ou une `session` inconnus, ce sont des
+    // requêtes comme les autres, soumises au quota d'octets reçus (étape 8,
+    // CT-2 EX-4.47 : sinon un hôte les répète hors de tout quota).
+    const exempte = (methode === "finAppel" && typeof m.params?.call === "string" && cx.appels.has(m.params.call))
+      || (methode === "fermer" && typeof m.params?.session === "string" && cx.sessions.has(m.params.session));
+    if (!exempte) {
+      const q = quotas.depasse(t_recu, { appel: SOUS_QUOTA.has(methode) });
       if (q && this.observation) {
         // Mode observation (EX-14.16) : un quota d'hôte ne bloque pas.
         this.coeur.politique.consignerBlocageEvite({ would: "quota", raison: "quota", host: hote.id, request_id: idBrut });
@@ -261,6 +283,8 @@ export class FrontalSdk {
         this.metriques.compter("noortrace_calls_blocked_total", { code: String(CODES.TAILLE), reason: "quota", class: "" });
         return reponseErreur(idBrut, CODES.TAILLE, q);
       }
+    }
+    if (SOUS_QUOTA.has(methode)) {
       quotas.enCours++;
       compte = true;
     }
@@ -271,7 +295,7 @@ export class FrontalSdk {
     } catch (e) {
       if (e instanceof Rendu) return e.texte;
       if (e instanceof ErreurEntree) {
-        this.journal.consigner("info", "sdk", "sdk_input_refused", { method: methode, reason: e.raison }, { host: hote.id, request_id: idBrut });
+        this._consignerParConnexion(cx, "info", "sdk_input_refused", { method: methode, reason: e.raison }, idBrut);
         return reponseErreur(idBrut, -32602, { reason: e.raison });
       }
       if (e instanceof ErreurEnregistreur || e instanceof ErreurConstruction) return this._bloque(m, hote, e.raison ?? "stockage", null);
@@ -280,6 +304,30 @@ export class FrontalSdk {
     } finally {
       if (compte) quotas.enCours--;
     }
+  }
+
+  /**
+   * Ligne d'exploitation qu'une connexion déclenche par une requête refusée
+   * avant tout traitement (notification, entrée refusée, `id` trop long) : au
+   * plus LIGNES_CONNEXION_PAR_SECONDE par connexion et par seconde, les autres
+   * comptées et consignées en une ligne (même règle que le frontal MCP,
+   * lecture 159 ; étape 8, CT-2 EX-4.47).
+   */
+  _consignerParConnexion(cx, niveau, evenement, data, request_id = null) {
+    const f = (cx.lignes ??= { debut: -Infinity, n: 0, comptees: 0 });
+    const t = this.monotone();
+    if (t - f.debut >= 1000) {
+      if (f.comptees) this.journal.consigner("info", "sdk", "host_lines_dropped", { lines: f.comptees }, { host: cx.hote.id });
+      f.debut = t;
+      f.n = 0;
+      f.comptees = 0;
+    }
+    if (f.n >= LIGNES_CONNEXION_PAR_SECONDE) {
+      f.comptees++;
+      return;
+    }
+    f.n++;
+    this.journal.consigner(niveau, "sdk", evenement, data, { host: cx.hote.id, request_id });
   }
 
   /** -31010 (14.2) : rendu, consigné (`call_blocked`, EX-14.7) et compté. */
@@ -321,6 +369,11 @@ export class FrontalSdk {
     if (delegation.launched_by === null) throw new ErreurEntree("identite_sans_lanceur");
     if (Object.keys(declaree).length && hote.accept_declared_delegation === true) {
       this.journal.consigner("info", "sdk", "delegation_declared", { fields: Object.keys(declaree) }, { host: hote.id, request_id: m.idBrut });
+    }
+    // Étape 8 (CT-2 EX-4.47) : sessions ouvertes bornées par connexion ; au-delà, -31013.
+    if (cx.sessions.size >= SESSIONS_SDK_PAR_CONNEXION_MAX) {
+      this.journal.consigner("warning", "sdk", "call_blocked", { code: CODES.TAILLE, reason: "quota", limit_sessions: SESSIONS_SDK_PAR_CONNEXION_MAX, direction: "quota" }, { host: hote.id, request_id: m.idBrut });
+      throw new Rendu(reponseErreur(m.idBrut, CODES.TAILLE, { limit_sessions: SESSIONS_SDK_PAR_CONNEXION_MAX, direction: "quota" }));
     }
     const id = this._identifiant("s", ++COMPTEURS.session);
     cx.sessions.set(id, { id, cx, hote, delegation, contextes: new Map(), appels: new Map(), close: false });
@@ -364,6 +417,14 @@ export class FrontalSdk {
     const s = this._session(cx, p.session);
     const hote = cx.hote;
     const alias = hote.alias;
+    // Étape 8 : appels ouverts (debutAppel sans finAppel) bornés par
+    // connexion à `quota.max_concurrent`, comme les requêtes en cours (EX-4.47) ;
+    // au-delà, -31013 `limit_requests`.
+    if (cx.appels.size >= hote.quota.max_concurrent) {
+      this.journal.consigner("warning", "sdk", "call_blocked", { code: CODES.TAILLE, reason: "quota", limit_requests: hote.quota.max_concurrent, direction: "quota", open_calls: cx.appels.size }, { host: hote.id, request_id: m.idBrut });
+      this.metriques.compter("noortrace_calls_blocked_total", { code: String(CODES.TAILLE), reason: "quota", class: "" });
+      throw new Rendu(reponseErreur(m.idBrut, CODES.TAILLE, { limit_requests: hote.quota.max_concurrent, direction: "quota" }));
+    }
     const nom = nomOutilSdk(p.tool, alias);
     const declaree = controlerClasse(p.class);
     const context = controlerContexte(p.context, s.contextes);

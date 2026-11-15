@@ -1,0 +1,16 @@
+{
+  "valide": false,
+  "controle": "A-3",
+  "controles_en_echec": [
+    "E-1",
+    "E-5",
+    "E-7",
+    "E-8",
+    "E-9",
+    "C-2",
+    "M-1",
+    "A-2",
+    "A-3"
+  ],
+  "description": "evenement.json dont approval n'a pas de membre approvers (non rescellé, SHA-256 de l'index reporté) : E-1 (schéma), E-5 et E-9 (approvers absent), E-7, E-8, C-2 et M-1 (hash recalculé sur l'objet tel qu'il est), A-2 (approval différent de celui des décisions) et A-3 (aucun approbateur pour un seuil de 2) échouent."
+}

@@ -274,6 +274,13 @@ const DOC_REGLES = {
   pseudonym_key: null,
   named_patterns: {
     "numero-sinistre": { pattern: "\\b20[0-9]{2}-[0-9]{5}\\b", description: "Numero de dossier de sinistre AAAA-NNNNN de l'assureur de demonstration." },
+    // Motifs ancrés sur des candidats adjacents (EX-10.9 : la fin d'une correspondance remplacée vaut frontière, donc début de chaîne, pour le candidat qui suit).
+    "ancre-non-frontiere": { pattern: "\\Bz", description: "Lettre z qui ne suit pas une frontiere de mot : apres une correspondance remplacee, la frontiere du jeton empeche la suivante." },
+    "ancre-alternative": { pattern: "x|\\b#", description: "Alternative dont la seconde branche est ancree par une frontiere de mot." },
+    "ancre-debut": { pattern: "^[0-9]{3}", description: "Trois chiffres en debut de chaine : apres une correspondance remplacee, le candidat suivant est en debut de chaine." },
+    "ancre-frontiere": { pattern: "\\b[A-Z]{2}[0-9]{4}", description: "Deux majuscules et quatre chiffres apres une frontiere de mot." },
+    "cascade-a": { pattern: "A\\b", description: "Un A suivi d'une frontiere de mot : chaque passage n'en libere qu'un (EX-10.14)." },
+    "cascade-b": { pattern: "B$", description: "Un B en fin de chaine : son jeton cree la frontiere du dernier A." },
   },
   rules: [
     { id: "montant-champ", description: "Montant en centimes porte par un nombre JSON : remplace par un jeton.", scopes: ["arguments"], tools: ["demo__payments.create"], path: "/amount_cents", detectors: [{ type: "champ", label: "montant" }], action: { kind: "remplacer" } },
@@ -283,10 +290,22 @@ const DOC_REGLES = {
     { id: "identifiants", description: "Les cinq detecteurs de pii-v1, apres les regles precedentes.", scopes: ["arguments", "resultat", "requete", "reponse", "prompt_systeme"], tools: "*", detectors: DETECTEURS_PII, action: { kind: "remplacer" } },
     { id: "telephone-contexte", description: "Contexte : le telephone d'abord, l'IBAN ensuite, pour montrer la regle des passages (EX-10.14).", scopes: ["contexte"], tools: "*", detectors: [{ type: "telephone" }], action: { kind: "remplacer" } },
     { id: "iban-contexte", description: "Contexte : l'IBAN apres le telephone.", scopes: ["contexte"], tools: "*", detectors: [{ type: "iban" }], action: { kind: "remplacer" } },
+    { id: "motifs-ancres", description: "Resultats de l'outil ancres__test : motifs ancres (\\B, alternative a \\b, ^, \\b) sur des candidats adjacents et cascade de passages (EX-10.9, EX-10.14).", scopes: ["resultat"], tools: ["ancres__test"], detectors: [{ type: "regex", name: "ancre-non-frontiere" }, { type: "regex", name: "ancre-alternative" }, { type: "regex", name: "ancre-debut" }, { type: "regex", name: "ancre-frontiere" }, { type: "regex", name: "cascade-a" }, { type: "regex", name: "cascade-b" }], action: { kind: "remplacer" } },
   ],
 };
 for (const d of [DOC_PSEUDO, DOC_REGLES]) exiger(C.erreursPolitiqueRedaction(d, { schemas: SCHEMAS }).length === 0, `politique ${d.name} refusée : ${C.erreursPolitiqueRedaction(d, { schemas: SCHEMAS })}`);
 const PII = C.chargerPolitique(DOC_PII, { schemas: SCHEMAS });
+
+/**
+ * L'ensemble de politique de CT-2 §15.3 (bloc annoté configuration-enregistreur),
+ * sa version et son empreinte (EX-8.11, EX-10.21) : la politique que le noyau
+ * des cas d'approbation de pieces-mcp/appels/ a épinglée. Depuis la révision
+ * 0.8 (EX-7.16) la réponse d'evaluer recopie ce couple et le noyau le vérifie.
+ */
+const CONFIG_15_3 = C.analyserJSONIntegral(blocsSpec("configuration-enregistreur")[0]);
+const { service: _service153, ...APPROVAL_15_3 } = CONFIG_15_3.policy.approval; // le membre approval du charger : sans service (12.2)
+const EPINGLAGE_APPELS = { policy_version: CONFIG_15_3.policy.version, policy_sha256: C.empreinteEnsemblePolitique(CONFIG_15_3.policy).policy_sha256, approval_sha256: AP.condenseApproval(APPROVAL_15_3) };
+exiger(typeof EPINGLAGE_APPELS.policy_version === "string" && /^0x[0-9a-f]{64}$/.test(EPINGLAGE_APPELS.policy_sha256) && /^0x[0-9a-f]{64}$/.test(EPINGLAGE_APPELS.approval_sha256), "version, empreinte et condensé de l'ensemble de §15.3");
 const POLITIQUES = {
   "pii-v1": PII,
   "pii-pseudo-test": C.chargerPolitique(DOC_PSEUDO, { schemas: SCHEMAS, clePseudonyme: CLE_PSEUDO }),
@@ -410,6 +429,13 @@ const OUTIL_PAIEMENT = "demo__payments.create";
   }
   casRedaction("regles-enchainees", "pii-regles-test", "resultat", "demo__claims.get", { content: [{ type: "text", text: "Sinistre 2026-81044 : verser sur CH93 0076 2011 6238 5295 7." }], isError: false, note_interne: "à vérifier" }, { redacted: true, contient: ["Sinistre [REDIGE:numero-sinistre] : verser sur [REDIGE:iban]."], absent: ["note_interne"] }, "Trois règles modifient la même pièce, dans l'ordre : note-interne-supprimee, numero-sinistre puis identifiants ; montant-champ et copie-supprimee ne s'appliquent pas (portée), sans erreur.");
   casRedaction("pointeur-non-resolu", "pii-regles-test", "arguments", OUTIL_PAIEMENT, { claim_id: "2026-77812", amount: "7400.00" }, { redacted: false }, "Le pointeur /amount_cents ne résout pas : la règle est sans effet pour cette pièce, sans erreur (note du journal d'exploitation).");
+  // Motifs ancrés sur des candidats adjacents (EX-10.9) et cascade de passages (EX-10.14) : règle motifs-ancres de pii-regles-test, outil ancres__test.
+  const OUTIL_ANCRES = "ancres__test";
+  casRedaction("motif-ancre-non-frontiere", "pii-regles-test", "resultat", OUTIL_ANCRES, R("zzz"), { redacted: true, piece: '{"note":"z[REDIGE:ancre-non-frontiere]z"}' }, "Motif \\Bz sur « zzz » : le z du milieu seul est rédigé ; la fin de la correspondance remplacée vaut frontière pour le candidat qui suit (comme le ] du jeton), donc \\B n'y tient pas et le troisième z reste (EX-10.9).");
+  casRedaction("motif-ancre-alternative", "pii-regles-test", "resultat", OUTIL_ANCRES, R("x#"), { redacted: true, piece: '{"note":"[REDIGE:ancre-alternative]#"}' }, "Motif x|\\b# sur « x# » : x rédigé ; # suit la frontière du jeton, \\b n'y tient pas, # reste (EX-10.9).");
+  casRedaction("motif-ancre-debut-adjacents", "pii-regles-test", "resultat", OUTIL_ANCRES, R("123123123"), { redacted: true, piece: `{"note":"${"[REDIGE:ancre-debut]".repeat(3)}"}` }, "Motif ^[0-9]{3} sur trois candidats adjacents : après chaque correspondance remplacée, le candidat suivant est en début de chaîne ; les trois sont rédigés en un passage (EX-10.9).");
+  casRedaction("motif-ancre-frontiere-adjacents", "pii-regles-test", "resultat", OUTIL_ANCRES, R("AB1234".repeat(65) + " fin"), { redacted: true, piece: `{"note":"${"[REDIGE:ancre-frontiere]".repeat(65)} fin"}` }, "Motif \\b[A-Z]{2}[0-9]{4} sur 65 candidats adjacents : la fin de chaque correspondance remplacée vaut frontière de mot pour le suivant ; 65 correspondances en un passage, pièce idempotente (EX-10.9, EX-10.15).");
+  casRedaction("passages-en-cascade", "pii-regles-test", "resultat", OUTIL_ANCRES, R("A".repeat(65) + "B"), { redacted: true, piece: `{"note":"${"[REDIGE:cascade-a]".repeat(65)}[REDIGE:cascade-b]"}` }, "Cascade de passages (EX-10.14) : B$ rédige le B au premier passage ; A\\b ne trouve alors que le dernier A (seul suivi d'une frontière) et chaque passage n'en libère qu'un : 66 passages, 65 + 1 correspondances, aucune borne arbitraire du nombre de passages (le texte n'exige que la finitude, EX-10.23 borne le temps).");
   // Pseudonymes (CT-2 §10.3.9), un par détecteur.
   casRedaction("pseudonyme-iban", "pii-pseudo-test", "arguments", OUTIL_PAIEMENT, { beneficiary_iban: "CH93 0076 2011 6238 5295 7" }, { redacted: true, piece: '{"beneficiary_iban":"[PSEUDO:iban:50d46ea9a82b]"}' }, "Valeur normalisée CH9300762011623852957 : le jeton de CT-2 §10.9 ; la forme groupée et la forme compacte donnent le même pseudonyme.");
   casRedaction("pseudonyme-avs", "pii-pseudo-test", "arguments", OUTIL_PAIEMENT, R("Assuré 756.1234.5678.97."), { redacted: true, contient: ["[PSEUDO:avs:"] }, "Valeur normalisée : les treize chiffres.");
@@ -664,7 +690,7 @@ function ecrireCasAppel(nom, r, { note, protocoles, transports = TRANSPORTS_STDI
     is_error: r.resultat.is_error,
     duration_ms: r.duration_ms,
     error_rendered: r.errorRendered,
-    approval: r.approbation ? { response: r.approbation } : null,
+    approval: r.approbation ? { response: r.approbation, pinned: r.epinglage } : null,
     result_rendered: r.resultatRendu ?? null,
     protocols: protocoles,
     transports,
@@ -676,9 +702,11 @@ function ecrireCasAppel(nom, r, { note, protocoles, transports = TRANSPORTS_STDI
 /**
  * Un tools/call dont la politique d'approbation décide sans relais (4.4 pas 3
  * à 6, EX-4.49) : la réponse d'evaluer simulée (`reponse`,
- * ticket-v0#/$defs/reponse_evaluer), la pièce « arguments » écrite au pas 4,
- * le résultat que l'enregistreur rend lui-même (refus par la politique ou
- * signal d'approbation) ; ni ligne amont, ni pièce « résultat », ni durée.
+ * ticket-v0#/$defs/reponse_evaluer, rendue sous la politique épinglée de
+ * §15.3, EPINGLAGE_APPELS, que le noyau vérifie : EX-7.16, révision 0.8), la
+ * pièce « arguments » écrite au pas 4, le résultat que l'enregistreur rend
+ * lui-même (refus par la politique ou signal d'approbation) ; ni ligne amont,
+ * ni pièce « résultat », ni durée.
  */
 function decisionSansRelais({ ligneHote, tRecu, hoteModerne = true, reponse, politique = PII, liste = LISTE_APPELS, courantes = LISTE_APPELS }) {
   const lu = C.lireRequeteHote(ligneHote);
@@ -689,7 +717,12 @@ function decisionSansRelais({ ligneHote, tRecu, hoteModerne = true, reponse, pol
   exiger(courante, `outil ${annonce} absent de la liste courante`);
   const servie = liste.parNom.get(annonce) ?? courante;
   exiger(AP.erreursSchema(reponse, SCHEMAS, "reponse_evaluer").length === 0 && AP.combinaisonAdmise(reponse), "réponse d'evaluer conforme à ticket-v0 et à EX-7.16");
-  const action = AP.actionMandataire(reponse, { hoteModerne });
+  exiger(reponse.policy_version === EPINGLAGE_APPELS.policy_version && reponse.policy_sha256 === EPINGLAGE_APPELS.policy_sha256 && reponse.approval_sha256 === EPINGLAGE_APPELS.approval_sha256, "réponse d'evaluer rendue sous la politique épinglée de §15.3 (12.3, révision 0.5)");
+  // Contexte de politique du noyau (CT-2 EX-7.16) : la seule version épinglée est celle de §15.3 ; un ticket rapproché a été créé sous elle.
+  const contexteNoyau = { versions: { [EPINGLAGE_APPELS.policy_version]: { policy_sha256: EPINGLAGE_APPELS.policy_sha256, approval_sha256: EPINGLAGE_APPELS.approval_sha256 } }, versionRequete: EPINGLAGE_APPELS.policy_version, versionRetenue: reponse.ticket === null ? null : EPINGLAGE_APPELS.policy_version };
+  exiger(AP.actionMandataire({ ...reponse, policy_sha256: "0x" + "00".repeat(32) }, { hoteModerne, politique: contexteNoyau }).raison === AP.RAISON_POLITIQUE_NON_EPINGLEE, "une empreinte autre que celle du charger est refusée (politique_non_epinglee)");
+  exiger(AP.actionMandataire({ ...reponse, approval_sha256: AP.condenseApproval({ ...APPROVAL_15_3, mode: "retenir" }) }, { hoteModerne, politique: contexteNoyau }).raison === AP.RAISON_POLITIQUE_NON_EPINGLEE, "un condensé d'un autre membre approval est refusé (politique_non_epinglee)");
+  const action = AP.actionMandataire(reponse, { hoteModerne, politique: contexteNoyau });
   exiger(action.action === "resultat", `issue sans relais attendue : ${action.action}`);
   const args = C.pieceArguments(msg.params, { politique, outil: annonce });
   const ligneRendue = C.ligneHoteResultatEnregistreur(msg.id, action.result, { idHoteTexte: C.texteIdRequete(ligneHote) });
@@ -702,6 +735,7 @@ function decisionSansRelais({ ligneHote, tRecu, hoteModerne = true, reponse, pol
     resultat: { is_error: null },
     sansRelais: true,
     approbation: reponse,
+    epinglage: EPINGLAGE_APPELS,
     resultatRendu: action.result,
     ligneRendue,
     errorRendered: null,
@@ -857,6 +891,13 @@ const APPEL_LECTURE = {
   exiger(r14.refus && r14.errorRendered.code === -32600, "cas lot-refuse");
   ecrireCasAppel("lot-refuse", r14, { protocoles: PROT, note: "Un lot JSON-RPC (tableau) reçu de l'hôte : une seule erreur -32600, id null, data.reason lot_non_pris_en_charge, aucun élément relayé (EX-4.3)." });
 
+  // Un nombre 1.000…01 de 20 000 zéros (revue de sécurité, CT-2 EX-4.44) : refusé en temps linéaire en la longueur du nombre.
+  {
+    const r = relayer({ ligneHote: requeteHote("agent-demo-38", "demo__claims.search", `{"query":"collision","seuil":1.${"0".repeat(20000)}1}`, META_HOTE()), tRecu: T(10, 38, 4, 0) });
+    exiger(r.refus && r.errorRendered.data.reason === "nombre_non_representable" && JSON.parse(r.hote.at(-1)).line.includes('"id":"agent-demo-38"'), "cas nombre-zeros-non-representable");
+    ecrireCasAppel("nombre-zeros-non-representable", r, { protocoles: PROT, note: "Un nombre 1.000…01 (un, 20 000 zéros, un) dans les arguments : sa valeur décimale exacte diffère de celle de sa forme JCS intégral (1) ; refus -32602 data.reason nombre_non_representable avec l'id de la requête, sans relais, sans pièce, sans événement (EX-4.44). Le contrôle doit rester linéaire en la longueur du nombre : un retrait des zéros de queue par /0+$/ est quadratique sur cette forme et occupe le fil de l'enregistreur (EX-10.23 ne couvre que la rédaction)." });
+  }
+
   // Blancs non significatifs (EX-4.43) : retirés des octets relayés dans les deux sens.
   const r15 = relayer({
     ligneHote: `{"jsonrpc": "2.0", "id": "agent-demo-33", "method": "tools/call", "params": {"name": "demo__claims.get", "arguments": { "claim_id" :\t"2026-81044" } , "_meta": ${JSON.stringify(META_HOTE())}}}`,
@@ -915,7 +956,7 @@ const APPEL_LECTURE = {
   const r20 = decisionSansRelais({
     ligneHote: requeteHote("agent-demo-37", "demo__payments.create", '{"claim_id":"2026-81047","amount":"120.00","currency":"EUR","beneficiary_iban":"CH9300762011623852957"}', META_HOTE()),
     tRecu: T(10, 44, 0, 0),
-    reponse: { rule: "paiement hors CHF", decision: "refuse", ticket: null, ticket_state: null, approval: null, approver_set: null },
+    reponse: { rule: "paiement hors CHF", decision: "refuse", ticket: null, ticket_state: null, approval: null, approver_set: null, ...EPINGLAGE_APPELS },
   });
   exiger(r20.ligneRendue === `{"jsonrpc":"2.0","id":"agent-demo-37","result":${JSON.stringify(AP.resultatRefusPolitique())}}` && r20.resultatRendu.resultType === "complete", "cas approbation-refus");
   ecrireCasAppel("approbation-refus", r20, { protocoles: PROT, note: "Refus par la politique sans ticket (réponse d'evaluer refuse, ticket null) pour un hôte moderne : événement refusee (policy.decision refuse), pièce « arguments » écrite au pas 4, aucun relais ; l'hôte reçoit le résultat isError de texte fixe « noortrace: appel refuse par la politique », avec resultType complete et serverInfo, sans structuredContent ni nom de règle (EX-4.49, CT-3 EX-11.8) : ce n'est pas une erreur JSON-RPC." });
@@ -925,7 +966,7 @@ const APPEL_LECTURE = {
     hoteModerne: false,
     liste: listeServie(AGREGATION_MCP),
     tRecu: T(10, 45, 0, 0),
-    reponse: { rule: "paiement > 5000 CHF", decision: "a_approuver", ticket: "apr-demo-0042", ticket_state: "en_attente", approval: null, approver_set: null },
+    reponse: { rule: "paiement > 5000 CHF", decision: "a_approuver", ticket: "apr-demo-0042", ticket_state: "en_attente", approval: null, approver_set: null, ...EPINGLAGE_APPELS },
   });
   exiger(!Object.hasOwn(r21.resultatRendu, "resultType") && r21.resultatRendu._meta[AP.CLE_META_APPROBATION].state === "en_attente", "cas approbation-en-attente");
   ecrireCasAppel("approbation-en-attente", r21, { protocoles: { host: PROTOCOLE_HERITE, server: PROTOCOLE_MODERNE }, note: "Ré-émission reconnue d'un appel dont le ticket est en attente (ticket_state en_attente), hôte de l'ère héritée, mode erreur : aucun événement (CT-3 EX-7.19), aucun relais ; l'hôte reçoit le signal d'approbation, résultat isError de texte « noortrace: appel soumis a approbation ; ticket=apr-demo-0042 ; state=en_attente » dont _meta porte serverInfo et noortrace/approval { ticket, state }, sans resultType pour l'ère héritée (EX-4.49). La pièce « arguments » est celle qu'écrirait le pas 4." });
@@ -2224,6 +2265,16 @@ function casOtel(nom, { corps, fichier = "requete.json", methode = "POST", chemi
   ]), attente: { reasons: ["hors_genai", "operation_non_retenue", "operation_non_retenue"], response: { content_type: "application/json", retry_after: null, body_json: {} } }, note: "Span HTTP sans attribut GenAI (hors_genai), embeddings et invoke_agent (operation_non_retenue) : tous ignorés, acceptés au sens d'OTLP, réponse {}, aucune pièce, rien n'est stocké ni haché (EX-6.32)." });
 }
 {
+  // Opération au nom d'une propriété d'Object.prototype (revue de sécurité) : pas une sorte, span ignoré operation_non_retenue.
+  const c = "json-operation-prototypale";
+  casOtel(c, { corps: lotOtel([
+    spanOtel(c, 0, { name: "constructor", kind: 3, attributes: [kv("gen_ai.operation.name", sv("constructor")), kv("gen_ai.provider.name", sv("openai"))] }),
+    spanOtel(c, 1, { name: "toString", kind: 3, attributes: [kv("gen_ai.operation.name", sv("toString"))] }),
+    spanOtel(c, 2, { name: "__proto__", kind: 1, attributes: [kv("gen_ai.operation.name", sv("__proto__"))] }),
+    spanOtel(c, 3, { name: "chat modele-demo-1", kind: 3, attributes: attrsInference() }),
+  ]), attente: { issues: ["ignore", "ignore", "ignore", "scelle"], reasons: ["operation_non_retenue", "operation_non_retenue", "operation_non_retenue", null], response: { content_type: "application/json", retry_after: null, body_json: {} } }, note: "gen_ai.operation.name constructor, toString et __proto__ : noms de propriétés d'Object.prototype, qui ne sont pas des opérations retenues (EX-6.32) ; les trois spans sont ignorés (operation_non_retenue), sorte null, jamais une valeur héritée du prototype ; le span chat est scellé." });
+}
+{
   const c = "json-sorte-desactivee";
   casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "chat modele-demo-1", kind: 3, attributes: attrsInference() }), spanOtel(c, 1, { name: "execute_tool claims.get", attributes: attrsOutil() })]), politiqueSource: { ...OTEL_POLITIQUE, ingest: ["outil"] }, attente: { issues: ["ignore", "scelle"], reasons: ["sorte_desactivee", null] }, note: "ingest: [\"outil\"] : le span d'inférence est ignoré (sorte_desactivee), le span d'outil scellé." });
 }
@@ -2392,7 +2443,7 @@ casOtel("non-chemin-normalisable", { corps: lotOtel([spanOtel("non-chemin-normal
   exiger(N.events[0].attributes["gen_ai.tool.call.result"] === args && N.resource.attributes["gen_ai.system_instructions"] === '["x"]' && N.attributes.detail["gen_ai.tool.call.arguments"] === args, "contenu hors span gardé en chaîne");
 }
 casOtel("json-operation-renommee", { corps: lotOtel([spanOtel("json-operation-renommee", 0, { name: "execute_tool claims.get", attributes: [kv("gen_ai.operation", sv("execute_tool")), kv("gen_ai.tool.name", sv("claims.get"))] })]), attente: { issues: ["ignore"], reasons: ["hors_genai"] }, note: "gen_ai.operation.name renommé (gen_ai.operation) : le span n'a pas d'opération, il est ignoré (hors_genai) sans événement invalide ; la supervision le signale (EX-6.25, EX-6.41)." });
-exiger(CAS_OTEL.length === 48, `48 cas otel/ (annexe B.8), ${CAS_OTEL.length} obtenus`);
+exiger(CAS_OTEL.length === 49, `49 cas otel/ (annexe B.8), ${CAS_OTEL.length} obtenus`);
 
 // ---------------------------------------------------------------------------
 // 5. evenements/journal-demo/ (annexe B.6, scénario de CT-2 §19.2)
@@ -2841,7 +2892,13 @@ l'action pseudonyme sur chaque règle et la clé de test ci-dessus.
 \`politique-regles-test.json\` (\`pii-regles-test\`) : sélecteurs par pointeur JSON,
 détecteur champ (remplacer, supprimer), motif nommé, règles enchaînées, puis les
 cinq détecteurs ; elle porte les cas obligatoires que \`pii-v1\` ne peut pas
-porter (elle n'a ni path, ni champ, ni regex appliquée).
+porter (elle n'a ni path, ni champ, ni regex appliquée). Sa règle \`motifs-ancres\`
+(outil \`ancres__test\`, portée resultat) porte les motifs ancrés sur des candidats
+adjacents : la fin d'une correspondance remplacée vaut frontière pour le candidat
+qui suit, comme le \`]\` du jeton (EX-10.9), donc le reste de la chaîne est présenté
+au motif comme une chaîne à part entière où \`^\` et \`\\b\` tiennent et \`\\B\` ne tient
+pas (\`motif-ancre-*\`) ; et la cascade de passages \`passages-en-cascade\`, dont les
+66 passages ne sont bornés que par la finitude d'EX-10.14 et le temps d'EX-10.23.
 
 \`cas.json\` : tableau d'objets \`{ name, policy, scope, tool, input, expected, note }\`.
 \`expected.piece\` est le texte UTF-8 de la pièce stockée (JCS intégral de la
@@ -2871,10 +2928,25 @@ alias, classe (de la définition courante), \`rejected\` (refus au pas 1 : ni pi
 définition courante si elle diffère (sinon null) et « liste annoncée » (référence et
 octets), \`context\` (EX-4.45, EX-7.7), \`is_error\`, \`duration_ms\` (\`t_reponse − t_envoi\` ;
 pour une issue sans réponse, \`t_reponse\` suit EX-4.48), l'erreur rendue à l'hôte, la
-réponse d'\`evaluer\` simulée (\`approval\`) et le résultat que l'enregistreur rend
+réponse d'\`evaluer\` simulée (\`approval.response\`) avec la version et l'empreinte de la
+politique épinglée du noyau (\`approval.pinned\`) et le résultat que l'enregistreur rend
 lui-même (\`result_rendered\` : refus par la politique ou signal d'approbation,
 résultat \`isError\`, EX-4.49 ; les deux \`null\` hors des cas d'approbation), les
-deux ères (\`protocols\`) et les deux transports (\`transports\`). Les arguments sont
+deux ères (\`protocols\`) et les deux transports (\`transports\`).
+
+**Révision du protocole d'approbation (étape 8, décision du porteur du 14 novembre 2026).** Depuis la révision 0.8
+de CT-2 (EX-7.16, EX-7.23) et la révision 0.5 de CT-3 (§12.3, EX-12.6), la réponse
+d'\`evaluer\` porte neuf membres : \`policy_version\` et \`policy_sha256\` nomment la
+version chargée sous laquelle elle est rendue et l'empreinte que le noyau a déclarée au
+\`charger\` de cette version (EX-8.11) ; \`approval_sha256\` est le SHA-256 du JCS du membre
+\`approval\` reçu à ce \`charger\` (\`/policy/approval\` sans \`service\`), calculé par le
+service et comparé par le noyau au sien (EX-7.15, EX-7.16). Les cas \`approbation-refus\` et
+\`approbation-en-attente\` sont rendus sous l'ensemble de politique de §15.3 : version
+\`${EPINGLAGE_APPELS.policy_version}\`, empreinte \`${EPINGLAGE_APPELS.policy_sha256}\`,
+condensé \`${EPINGLAGE_APPELS.approval_sha256}\` (\`approval.pinned\`). Le noyau refuse toute réponse dont le couple n'est pas celui d'un
+\`charger\` qu'il a lui-même émis pour la version attendue (\`approval_response_invalid\`,
+raison \`politique_non_epinglee\`, \`-31010\`, jamais un relais) ; les cas négatifs sont dans
+\`ct-3/reponses-evaluer/\` et \`ct-8/observation/reponses.json\`. Les arguments sont
 rédigés par \`pii-v1\`. La ligne amont recopie les arguments reçus, blancs non
 significatifs retirés (EX-4.20, EX-4.43) ; la réponse rendue recopie \`result\` de même,
 avec les deux réécritures de 4.4 pas 14 (\`_meta\` \`io.modelcontextprotocol/serverInfo\`

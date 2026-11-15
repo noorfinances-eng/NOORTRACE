@@ -21,6 +21,12 @@ export const COOKIE = "__Host-noortrace-inscription";
 export const DUREE_SESSION_MS = 8 * 3600 * 1000;
 /** Paramètres scrypt du fichier des comptes (`configuration-console-v0#/$defs/fichier_comptes`). */
 export const SCRYPT = Object.freeze({ N: 131072, r: 8, p: 1, longueur: 32, maxmem: 256 * 1024 * 1024 });
+/** Sessions ouvertes au plus (revue de l'étape 8) : au-delà, la plus ancienne est fermée. */
+export const SESSIONS_MAX = 10000;
+/** En-tête posé par `bin/noortrace-inscription-web` : adresse du client de la requête (jamais celle d'un en-tête reçu). */
+export const ENTETE_ADRESSE_CLIENTE = "x-noortrace-adresse-cliente";
+/** Adresses d'écoute admises en production : boucle locale seulement, derrière le mandataire TLS de l'exploitant (CT-7 CLE-37). */
+export const HOTES_PRODUCTION = Object.freeze(["127.0.0.1", "::1", "localhost"]);
 
 const ETAT = Symbol.for("noortrace.inscription.interface");
 
@@ -79,14 +85,28 @@ export function lireConfigurationInterface(chemin) {
   }
   if (c.nature !== "developpement" && c.nature !== "production") throw refus("nature : developpement ou production");
   if (c.nature === "production" && !c.origine.startsWith("https://")) throw refus("origine https:// exigée en production");
+  // Revue de l'étape 8, CT-7 CLE-37 : en production, l'interface n'écoute que la boucle locale, derrière le mandataire TLS
+  // de l'exploitant ; un pair du réseau interne ne lui parle pas en clair.
+  if (c.nature === "production" && !HOTES_PRODUCTION.includes(c.ecoute.hote)) throw refus(`ecoute.hote : en production, ${HOTES_PRODUCTION.join(", ")} seulement (derrière le mandataire TLS)`);
   return { ...c };
 }
 
-/** Comptes de l'exploitant (`fichier:` de la configuration), lus une fois : `Map(name → { salt, key })`. */
-export function comptes() {
-  const e = etat();
-  if (e.comptes) return e.comptes;
-  const chemin = configuration().comptes.slice("fichier:".length);
+/**
+ * Lit le fichier des comptes : fichier ordinaire du compte du serveur de
+ * l'interface, lisible de son seul propriétaire (`0400` ou `0600`), comme le
+ * démon lit ses secrets (revue de l'étape 8 ; CLE-37 demandée) ;
+ * rend `Map(name → { salt, key })`.
+ */
+export function lireComptes(chemin) {
+  let st;
+  try {
+    st = fs.statSync(chemin);
+  } catch {
+    throw new ErreurConfigurationInterface("fichier des comptes : illisible");
+  }
+  if (!st.isFile()) throw new ErreurConfigurationInterface("fichier des comptes : fichier ordinaire attendu");
+  if ((st.mode & 0o077) !== 0) throw new ErreurConfigurationInterface(`fichier des comptes : mode ${(st.mode & 0o777).toString(8)}, lisible par d'autres que son propriétaire (0400 ou 0600 attendu)`);
+  if (typeof process.getuid === "function" && st.uid !== process.getuid()) throw new ErreurConfigurationInterface("fichier des comptes : d'un autre compte que celui du serveur de l'interface");
   const doc = lireJsonStrict(fs.readFileSync(chemin));
   if (!doc || doc.version !== 0 || !Array.isArray(doc.accounts) || doc.accounts.length < 1) throw new ErreurConfigurationInterface("fichier des comptes : { version: 0, accounts: [...] } attendu");
   const m = new Map();
@@ -95,8 +115,15 @@ export function comptes() {
     if (m.has(a.name)) throw new ErreurConfigurationInterface("fichier des comptes : noms en double");
     m.set(a.name, { salt: Buffer.from(a.salt, "hex"), key: Buffer.from(a.key, "hex") });
   }
-  e.comptes = m;
   return m;
+}
+
+/** Comptes de l'exploitant (`fichier:` de la configuration), lus une fois : `Map(name → { salt, key })`. */
+export function comptes() {
+  const e = etat();
+  if (e.comptes) return e.comptes;
+  e.comptes = lireComptes(configuration().comptes.slice("fichier:".length));
+  return e.comptes;
 }
 
 /** scrypt du mot de passe (octets UTF-8, sans normalisation). */
@@ -107,16 +134,31 @@ export function scrypt(motDePasse, sel) {
 const SEL_FIXE = Buffer.alloc(16, 0x5a);
 
 /**
- * Connexion (INTERFACES.md 1 ; verrou comme CT-3 EX-13.47) : deux calculs à
- * la fois au plus ; pour chaque nom, connu ou non, `f` échecs consécutifs ;
- * à partir de cinq, une requête reçue avant le dernier échec + min(2^(f − 5),
- * 900) s est refusée sans calcul ; un nom inconnu fait le même calcul. Rend
- * `{ statut: 204, session }`, `{ statut: 401, code }` ou `{ statut: 429,
- * code, retry_after_s }`.
+ * Adresse cliente d'une requête, pour le verrou de `connecter` : l'en-tête
+ * `ENTETE_ADRESSE_CLIENTE` que pose le binaire (adresse du pair ; en
+ * production, dernière adresse de `X-Forwarded-For` posée par le mandataire
+ * TLS, seul pair admis sur la boucle locale), ou "" si le serveur n'est pas
+ * le binaire.
  */
-export async function connecter(nom, motDePasse, maintenant = Date.now()) {
+export function adresseCliente(entetes) {
+  const v = entetes?.get?.(ENTETE_ADRESSE_CLIENTE);
+  return typeof v === "string" ? v.slice(0, 64) : "";
+}
+
+/**
+ * Connexion (INTERFACES.md 1 ; verrou comme CT-3 EX-13.47, par nom **et**
+ * par adresse cliente, CT-7 CLE-37) : deux calculs
+ * à la fois au plus ; pour chaque couple (adresse, nom), connu ou non, `f`
+ * échecs consécutifs ; à partir de cinq, une requête reçue avant le dernier
+ * échec + min(2^(f − 5), 900) s est refusée sans calcul ; un nom inconnu
+ * fait le même calcul. Un tiers qui échoue depuis une autre adresse ne
+ * ferme donc pas le compte de l'exploitant. Rend `{ statut: 204, session }`,
+ * `{ statut: 401, code }` ou `{ statut: 429, code, retry_after_s }`.
+ */
+export async function connecter(nom, motDePasse, maintenant = Date.now(), { adresse = "" } = {}) {
   const e = etat();
-  const suivi = e.echecs.get(nom);
+  const cle = `${adresse}\n${nom}`;
+  const suivi = e.echecs.get(cle);
   if (suivi && suivi.f >= 5) {
     const attente = Math.min(2 ** (suivi.f - 5), 900) * 1000;
     const reste = suivi.dernier + attente - maintenant;
@@ -133,27 +175,40 @@ export async function connecter(nom, motDePasse, maintenant = Date.now()) {
     e.calculs--;
   }
   if (!ok) {
-    const s = e.echecs.get(nom) ?? { f: 0, dernier: 0 };
+    const s = e.echecs.get(cle) ?? { f: 0, dernier: 0 };
     s.f++;
     s.dernier = Date.now();
-    e.echecs.delete(nom);
-    e.echecs.set(nom, s);
-    // Au plus 10 000 noms suivis : on oublie d'abord le plus ancien des noms non verrouillés.
+    e.echecs.delete(cle);
+    e.echecs.set(cle, s);
+    // Au plus 10 000 couples suivis : on oublie d'abord le plus ancien des couples non verrouillés.
     if (e.echecs.size > 10000) {
       const ancien = [...e.echecs.entries()].find(([, v]) => v.f < 5) ?? e.echecs.entries().next().value;
       e.echecs.delete(ancien[0]);
     }
     return { statut: 401, code: "identifiants_refuses" };
   }
-  e.echecs.delete(nom);
+  e.echecs.delete(cle);
   return { statut: 204, session: ouvrirSession(nom) };
 }
 
 const b64 = (o) => Buffer.from(o).toString("base64url");
 
-/** Ouvre une session : identifiant de 32 octets tiré au hasard ; rend la valeur du cookie (identifiant et MAC). */
+/** Retire les sessions échues (une session échue n'attendait que la présentation de son cookie). */
+export function purgerSessions(maintenant = Date.now()) {
+  const e = etat();
+  for (const [id, s] of e.sessions) if (s.expire <= maintenant) e.sessions.delete(id);
+}
+
+/**
+ * Ouvre une session : identifiant de 32 octets tiré au hasard ; rend la
+ * valeur du cookie (identifiant et MAC). Les sessions échues sont purgées à
+ * chaque ouverture et leur nombre est borné à `SESSIONS_MAX` : au-delà, la
+ * plus ancienne est fermée (revue de l'étape 8).
+ */
 export function ouvrirSession(nom) {
   const e = etat();
+  purgerSessions();
+  while (e.sessions.size >= SESSIONS_MAX) e.sessions.delete(e.sessions.keys().next().value);
   const id = crypto.randomBytes(32);
   e.sessions.set(id.toString("hex"), { nom, expire: Date.now() + DUREE_SESSION_MS });
   const mac = crypto.createHmac("sha256", e.cleMac).update(id).digest();

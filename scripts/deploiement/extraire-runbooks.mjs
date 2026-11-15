@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Copies dérivées des runbooks d'incident (CT-8 §10.12 à §10.19, RB-1 à
-// RB-8 ; décision D-6 de l'étape 7) : `deploiement/runbooks/RB-<n>.md`, que
+// RB-8 ; étape 7) : `deploiement/runbooks/RB-<n>.md`, que
 // l'archive de déploiement emporte pour l'exploitant hors ligne.
 //
 //   node scripts/deploiement/extraire-runbooks.mjs [--spec <CT-8.md>] [--sortie <répertoire>]

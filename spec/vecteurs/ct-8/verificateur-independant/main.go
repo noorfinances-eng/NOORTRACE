@@ -13,7 +13,11 @@
 // (exposition de l'extracteur de 10.3, règles des tables de 10.4 à 10.7 et
 // règles régénérées d'EX-10.6 : SV-1 en partie, SV-5, SV-6). Code de
 // retour 0 si et seulement si tout concorde ; 1 en cas de discordance ou
-// d'erreur ; 2 si l'usage est incorrect ou la racine introuvable.
+// d'erreur ; 2 si l'usage est incorrect ou la racine introuvable. Revue de
+// sécurité de l'étape 8 (CT-9 TA-66) : une famille absente ou sans valeur
+// recalculée, ou un cas que l'INDEX.md nomme sans qu'il soit présent (ou
+// l'inverse), est une erreur, code 1 (plancher.go) ; une panne d'une famille
+// est une erreur consignée, jamais une trace de pile.
 
 package main
 
@@ -42,6 +46,7 @@ func main() {
 		os.Exit(2)
 	}
 	rap := VerifierVecteurs(racine)
+	AppliquerPlancherCT8(rap, racine)
 	if *enJSON {
 		if err := rap.EcrireJSON(os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, err)

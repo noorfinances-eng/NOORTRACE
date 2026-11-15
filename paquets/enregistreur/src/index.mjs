@@ -1,5 +1,5 @@
 // Point d'entrée de @noortrace/enregistreur : le cœur du démon noortrace
-// (CT-2 version 0.6) et l'interface offerte aux lots suivants (frontaux MCP
+// (CT-2 version 0.6) et l'interface offerte aux parties suivantes (frontaux MCP
 // et modèle, SDK et OpenTelemetry, moteur de politique, rédaction, WORM,
 // haute disponibilité, ancrage). Le service d'approbation factice des tests
 // est exporté à part, « @noortrace/enregistreur/factice ».
@@ -15,6 +15,7 @@ export * from "./configuration.mjs";
 export * from "./horloge.mjs";
 export * from "./degrade.mjs";
 export * from "./journal-exploitation.mjs";
+export * from "./bornes.mjs";
 export * from "./supervision.mjs";
 export * from "./signataires.mjs";
 export * from "./signataires/index.mjs";
@@ -43,6 +44,7 @@ export * from "./redaction-detecteurs.mjs";
 export * from "./redaction-moteur.mjs";
 export * from "./redaction.mjs";
 export * from "./coffre.mjs";
+export * from "./empreinte-image.mjs";
 export * from "./mcp/index.mjs";
 export * from "./modele/index.mjs";
 export * from "./politique/index.mjs";

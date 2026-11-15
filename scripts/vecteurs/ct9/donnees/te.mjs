@@ -33,9 +33,17 @@ export const TE = [
     ],
     "oracle": "Dossier valide (code 0) avec les contrôles 1 à 8 réussis, A-1 à A-4 exécutés, point couvrant ancré ; verdict et énoncé identiques entre les deux vérificateurs ; paquet : code 0, PR-1 à PR-12 réussies ; la décision, son auteur et son instant sont dans le journal (CT-1 §5).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Cas construit à l'étape 8 du plan avec des données fictives ; composants non construits."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/cas-demonstration-composition.test.js",
+          "describe": "CT-9 TE-1 : cas de démonstration « assurance » (annexe III, point 5 c) : agent de souscription en assurance de personnes, de la capture au dossier vérifié, approbation depuis la console réelle avec deux comptes de test"
+        },
+        {
+          "file": "test/cas-demonstration.test.js",
+          "describe": "CT-9 TE-1, TE-2 : surcharge demo/cas/compose.cas.yaml et règles de contenu des cas, sans moteur de conteneurs"
+        }
+      ]
     },
     "threats": [
       "MN-1",
@@ -71,9 +79,17 @@ export const TE = [
     ],
     "oracle": "Comme le cas « assurance » ; le dossier du refus porte `approval.decision = refuse` et l'appel n'a pas été relayé (aucun événement `executee` pour l'appel refusé).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Cas construit à l'étape 8 ; composants non construits."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/cas-demonstration-composition.test.js",
+          "describe": "CT-9 TE-2 : cas de démonstration « administration » (annexe III, point 5 a) : agent qui instruit des demandes de prestations publiques, refus signé depuis la console réelle avec deux comptes de test, dossier du refus et dossier d'un appel autorisé"
+        },
+        {
+          "file": "test/cas-demonstration.test.js",
+          "describe": "CT-9 TE-1, TE-2 : surcharge demo/cas/compose.cas.yaml et règles de contenu des cas, sans moteur de conteneurs"
+        }
+      ]
     },
     "threats": [
       "MN-1",
@@ -103,9 +119,17 @@ export const TE = [
     ],
     "oracle": "Sortie égale à CT-2 §19.4 ; durée < 120 s ; aucune connexion de l'agent hors du réseau `hotes` ; aucune clé réelle, aucun prix.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Images non construites ; Docker indisponible sur la machine de rédaction."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/demonstration-composition.test.js",
+          "describe": "CT-9 TE-3 : démonstration de référence en une commande (CT-2 §19), composition lancée"
+        },
+        {
+          "file": "test/demonstration.test.js",
+          "describe": "CT-2 §19 : démonstration de référence, sans moteur de conteneurs (TE-3, partie statique)"
+        }
+      ]
     },
     "threats": [
       "MN-1",
@@ -324,7 +348,7 @@ export const TE = [
       "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-installation.test.js test/deploiement-images.test.js test/enregistreur-ctl-etape7.test.js",
       "complement": {
         "phase2_step": 8,
-        "blocking": "IR-1 à IR-8 enchaînés sur un hôte neuf du système de référence et chronométrés (TM-21), par une personne extérieure (porte 2) ; archive et images publiées (IR-1, IR-6). L'étape 7 joue IR-1 à IR-8 avec Docker dans l'environnement de construction (archive écrite par l'outil de la version, réseaux internes, serveur d'outils factice ; jeton de clôture du serveur RFC 3161 interne, prestataire principal hors production depuis CT-5 0.9 et CT-8 0.7 ; contrôle 4 réussi par les deux vérificateurs), en attente sans Docker ni images, et l'ancrage de test de 7.3 sur le démon."
+        "blocking": "Rattaché à la porte 2 (étape 8) : ligne « Installation par une personne extérieure en 15 min » de la section 14 ; IR-1 à IR-8 enchaînés sur un hôte neuf du système de référence et chronométrés (TM-21), par un relecteur à l'aveugle (porte 2) ; archive et images publiées (IR-1, IR-6). L'étape 7 joue IR-1 à IR-8 avec Docker dans l'environnement de construction (archive écrite par l'outil de la version, réseaux internes, serveur d'outils factice ; jeton de clôture du serveur RFC 3161 interne, prestataire principal hors production depuis CT-5 0.9 et CT-8 0.7 ; contrôle 4 réussi par les deux vérificateurs), en attente sans Docker ni images, et l'ancrage de test de 7.3 sur le démon."
       }
     },
     "threats": [
@@ -405,7 +429,7 @@ export const TE = [
       "CT-7 EX-7.9"
     ],
     "preconditions": [
-      "Machine vierge du système de référence ; ingénieur d'exploitation extérieur au projet (partie rattachée à l'étape 8 avec TR-12) ; archive de déploiement et images ; script de préparation de l'hôte (IC-2). À l'étape 7 : banc hors réseau public de l'environnement de construction (registre de développement 2124, KMS et S3 simulés, prestataires RFC 3161 internes, calendriers factices, identité OIDC et webhook locaux), installation déroulée par un harnais ; ses essais de bout en bout lisent le procès-verbal d'une exécution (`NOORTRACE_BANC_CLIENT`), sinon ils sont en attente, condition nommée (EX-3.11)."
+      "Machine vierge du système de référence ; ingénieur d'exploitation, relecteur à l'aveugle (partie rattachée à l'étape 8 avec TR-12) ; archive de déploiement et images ; script de préparation de l'hôte (IC-2). À l'étape 7 : banc hors réseau public de l'environnement de construction (registre de développement 2124, KMS et S3 simulés, prestataires RFC 3161 internes, calendriers factices, identité OIDC et webhook locaux), installation déroulée par un harnais ; ses essais de bout en bout lisent le procès-verbal d'une exécution (`NOORTRACE_BANC_CLIENT`), sinon ils sont en attente, condition nommée (EX-3.11)."
     ],
     "steps": [
       "Suivre IC-1 à IC-18 ; conduire la cérémonie de CT-7 §5.4 (IC-7) ; produire l'attestation (IC-17) ; poser les tâches planifiées TP-1 à TP-8 ; clore le procès-verbal.",
@@ -446,7 +470,7 @@ export const TE = [
       "command": "npx hardhat --config hardhat.config.mjs test test/banc-client-fictif.test.js test/deploiement-installation.test.js test/enregistreur-cle-chaine-etape7-reseau.test.js",
       "complement": {
         "phase2_step": 8,
-        "blocking": "Rattaché à l'étape 8 avec TR-12 : machine vierge du système de référence et ingénieur d'exploitation extérieur au projet ; contrôle préalable final `pret` (le banc de l'étape 7 rend `non_pret` : disque sous `local_bytes`, ni chrony ni systemd, ports d'IC-11) ; tâches planifiées posées par systemd et suivies ; attestation inscrite (AT-6) quand PA-8 sera adoptée. Le banc de l'étape 7 tient le premier dossier valide (contrôles 4, 7 et 8), la cérémonie vérifiée et la durée publiée (58 min, hors système de référence)."
+        "blocking": "Rattaché à la porte 2 (étape 8) : ligne « La vérification est reproduite sans aide » de la section 14, par la partie phase 2 de TR-12 ; machine vierge du système de référence et ingénieur d'exploitation, relecteur à l'aveugle ; contrôle préalable final `pret` (le banc de l'étape 7 rend `non_pret` : disque sous `local_bytes`, ni chrony ni systemd, ports d'IC-11) ; tâches planifiées posées par systemd et suivies ; attestation inscrite (AT-6) quand PA-8 sera adoptée. Le banc de l'étape 7 tient le premier dossier valide (contrôles 4, 7 et 8), la cérémonie vérifiée et la durée publiée (58 min, hors système de référence)."
       }
     },
     "threats": [
@@ -530,16 +554,24 @@ export const TE = [
       "CT-8 EX-10.23"
     ],
     "preconditions": [
-      "Déploiement de production de test (TE- installation complète) ; relevé du pare-feu ; supervision livrée (lot suivant)."
+      "Déploiement de production de test (TE- installation complète) ; relevé du pare-feu ; supervision livrée (CT-8 §10)."
     ],
     "steps": [
       "Relever chaque flux ouvert et chaque flux fermé pendant le scénario de démonstration ; provoquer chaque incident de RB-1 à RB-8 (écrivain arrêté, bail perdu, ancrage dégradé, prestataire injoignable, perte d'une copie WORM, saut d'horloge, RPC injoignable, suspicion de compromission) et dérouler le runbook."
     ],
     "oracle": "Seuls les flux FL- déclarés sont observés ; chaque runbook mène à l'état « rétabli » qu'il décrit sans supprimer, tronquer ni réécrire un fichier du journal ; l'après-incident nomme le test de CT-9 qui couvre la correction (CT-8 §10.11).",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Rattaché à l'étape 8 : flux FL- observés et runbooks RB-1 à RB-8 rejoués exigent des pannes provoquées et une supervision collectée par Prometheus 3.5.0 en charge (TE-17), que le banc de l'étape 7 n'a pas ; il établit seulement que les flux déclarés suffisent à l'installation complète et qu'une destination non déclarée n'est pas résolue (IC-3)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/pannes-bout-en-bout.test.js",
+          "describe": "CT-9 TE-8 et TM-36 : flux réseau observés et runbooks rejoués sur la démonstration de référence (CT-8 §5, §10.11)"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Partie non écrite : flux observés sur la seule démonstration de référence (FL-7, FL-8, FL-19 et les flux admis hors table par EX-5.1), non sur un déploiement de production ; RB-1 rejoué jusqu'à la vérification de sortie, RB-4 et RB-6 rejoués par les scénarios TA-107 et TA-105, RB-2, RB-3, RB-5, RB-7 et RB-8 non rejoués comme runbooks complets."
+      }
     },
     "threats": [
       "MN-29",
@@ -649,9 +681,13 @@ export const TE = [
     ],
     "oracle": "Aucun appel relayable bloqué ni retardé par une décision ; appels perdus comptés (EX-12.3, EX-12.14) ; rapport égal à ce que `rapport-observation.mjs` tire du journal ; passage refusé tant qu'une retenue n'a pas de décision.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Rattaché à l'étape 8 : le mode observation de bout en bout exige l'installation rapide jouée en entier (TE-6) avec un agent de démonstration et un passage au mode bloquant ; les bibliothèques et le démon sont couverts par TU-/TV- (OB-1 à OB-6) et par les essais du mode observation."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/cas-observation.test.js",
+          "describe": "CT-9 TE-10 : mode observation de bout en bout sur l'installation rapide (CT-8 §7, §12) : capture sans blocage, service d'approbation puis stockage coupés pendant des appels, rapport d'observation, passage au mode bloquant"
+        }
+      ]
     },
     "threats": []
   },
@@ -839,11 +875,11 @@ export const TE = [
       "tests": [
         {
           "file": "test/enregistreur-ancrage-parcours.test.js",
-          "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs"
+          "describe": "enregistreur + ancrage, TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs"
         },
         {
           "file": "test/enregistreur-ancrage-parcours.test.js",
-          "describe": "enregistreur + ancrage (lot F2), TE-12 sur le réseau de développement réel : démon réel, ancres des points et de la période incluses sur noorcore, clôture submitPeriod relayée, dossier vérifié sans réseau par les deux vérificateurs (CT-4 §7.4, §8.2, §8.6, §9.4 ; CT-5 P-5 ; CT-6 §7.9)"
+          "describe": "enregistreur + ancrage, TE-12 sur le réseau de développement réel : démon réel, ancres des points et de la période incluses sur noorcore, clôture submitPeriod relayée, dossier vérifié sans réseau par les deux vérificateurs (CT-4 §7.4, §8.2, §8.6, §9.4 ; CT-5 P-5 ; CT-6 §7.9)"
         }
       ]
     },
@@ -1093,8 +1129,8 @@ export const TE = [
         },
         {
           "file": "test/enregistreur-coeur-reprise.test.js",
-          "describe": "enregistreur, cœur : non-régression de la relecture A (stockage, reprise, bail)",
-          "it": "R-A-3 (EX-12.8) : fdatasync en erreur (EIO) pour un groupe de trois événements → refusés, segment tronqué à la dernière ligne synchronisée, la chaîne reprend sans eux"
+          "describe": "enregistreur, cœur : non-régression de la relecture adversariale du cœur (stockage, reprise, bail)",
+          "it": "EX-12.8 : fdatasync en erreur (EIO) pour un groupe de trois événements → refusés, segment tronqué à la dernière ligne synchronisée, la chaîne reprend sans eux"
         },
         {
           "file": "test/enregistreur-modele-exigences.test.js",
@@ -1218,7 +1254,7 @@ export const TE = [
         },
         {
           "file": "test/enregistreur-ancrage-exigences.test.js",
-          "describe": "enregistreur + ancrage (lot F2) : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence",
+          "describe": "enregistreur + ancrage : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence",
           "it": "le composant est attaché après l'écrivain (anchoring_attached, contexte depuis le stockage) ; EX-4.12 : avec un prestataire qui ne répond jamais, le tic qui produit et remet un point rend la main sans attendre le réseau"
         },
         {
@@ -1241,7 +1277,7 @@ export const TE = [
         },
         {
           "file": "test/enregistreur-coeur-config.test.js",
-          "describe": "horloge au tic (R-A-2, EX-7.13, EX-12.24)",
+          "describe": "horloge au tic (EX-7.13, EX-12.24)",
           "it": "saut en avant détecté par le tic lui-même (aucun scellement entre-temps) : mode dégradé « horloge », clock_forward_jump, rien n'est clos"
         },
         {
@@ -1276,7 +1312,7 @@ export const TE = [
         },
         {
           "file": "test/enregistreur-ancrage-parcours.test.js",
-          "describe": "enregistreur + ancrage (lot F2), TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
+          "describe": "enregistreur + ancrage, TE-12 hors réseau public : démon réel, trois ancres sur la racine, dossier vérifié hors ligne par les deux vérificateurs",
           "it": "noortrace-ctl ancrage etat | metriques | retirer-qualification <id> (SIGURG et demande écrite, réponse au journal) ; noortrace-ctl reload recharge le document ancrage-v0 avec la politique (EX-4.9) ; un rechargement d'un document invalide est refusé sans changer l'ancien"
         },
         {
@@ -1330,19 +1366,58 @@ export const TE = [
       "CT-5 §8.9"
     ],
     "preconditions": [
-      "Déploiement de test avec supervision (CT-8 §10, lot suivant) : enregistreur, extracteur et collecteur Prometheus chargé des règles de CT-8 §10.4 à §10.7 ; les deux vérificateurs de CT-6. Les seuils et échéances du déploiement de test (`pending_max_ms`, `min_free_bytes`, `queue.anchor_pending_alert_s`, …) sont abaissés, dans les bornes de leur schéma, pour que chaque condition provocable tienne dans la fenêtre de charge ; le fichier de règles est alors régénéré par la commande de CT-8 EX-10.6 (`node scripts/deploiement/regles.mjs`, livrée avec la supervision) et les valeurs employées sont consignées dans le rapport d'exécution ; une condition dont l'échéance ne peut pas être abaissée assez est marquée non provoquée.",
+      "Déploiement de test avec supervision (CT-8 §10) : enregistreur, extracteur et collecteur Prometheus chargé des règles de CT-8 §10.4 à §10.7 ; les deux vérificateurs de CT-6. Les seuils et échéances du déploiement de test (`pending_max_ms`, `min_free_bytes`, `queue.anchor_pending_alert_s`, …) sont abaissés, dans les bornes de leur schéma, pour que chaque condition provocable tienne dans la fenêtre de charge ; le fichier de règles est alors régénéré par la commande de CT-8 EX-10.6 (`node scripts/deploiement/regles.mjs`, livrée avec la supervision) et les valeurs employées sont consignées dans le rapport d'exécution ; une condition dont l'échéance ne peut pas être abaissée assez est marquée non provoquée.",
       "Hôte de test à cadence fixe du harnais de TM-3 (EX-11.9) ; cadence (appels par seconde) et durée de la fenêtre de charge fixées à l'étape 7 et consignées dans le rapport d'exécution.",
-      "Intervalle d'évaluation des règles : celui de `deploiement/observabilite/prometheus.yml` (CT-8 EX-10.4 ; fichier du lot suivant de CT-8) au commit éprouvé, consigné dans le rapport d'exécution ; une règle est comptée déclenchée une fois par transition de l'état inactif à l'état déclenché de ses séries `ALERTS` sur la fenêtre d'observation de la provocation, après sa clause `for`, toutes étiquettes confondues : une règle dont l'expression garde des étiquettes (`instance`, `reason`, `path`…) a une série `ALERTS` par jeu d'étiquettes, et elle compte une transition quand l'ensemble de ses séries passe d'aucune série à l'état déclenché (`firing`) à au moins une ; les transitions simultanées de plusieurs séries d'une même règle comptent une ; une série déjà déclenchée au début de la fenêtre compte zéro ; chaque provocation est maintenue au moins `for` plus deux intervalles d'évaluation, puis levée. La fenêtre d'observation s'entend par provocation : de l'application de la provocation à la résolution, après sa levée, de ses règles attendues ; chaque règle attendue d'une provocation y compte exactement une transition ; une règle commune à plusieurs provocations (`noortrace_appels_bloques` : stockage, quota, rédaction) compte une transition par provocation ; une règle à fenêtre longue (`increase(…[1h])`, `[1d]`) encore déclenchée au début d'une provocation suivante ne peut pas y être attendue : les provocations qui la partagent se jouent après sa résolution, ou dans des fenêtres de charge distinctes consignées dans le rapport d'exécution ; compter une transition par règle sur toute la fenêtre de charge ferait échouer une implémentation correcte."
+      "Intervalle d'évaluation des règles : celui de `deploiement/observabilite/prometheus.yml` (CT-8 EX-10.4) au commit éprouvé, consigné dans le rapport d'exécution ; une règle est comptée déclenchée une fois par transition de l'état inactif à l'état déclenché de ses séries `ALERTS` sur la fenêtre d'observation de la provocation, après sa clause `for`, toutes étiquettes confondues : une règle dont l'expression garde des étiquettes (`instance`, `reason`, `path`…) a une série `ALERTS` par jeu d'étiquettes, et elle compte une transition quand l'ensemble de ses séries passe d'aucune série à l'état déclenché (`firing`) à au moins une ; les transitions simultanées de plusieurs séries d'une même règle comptent une ; une série déjà déclenchée au début de la fenêtre compte zéro ; chaque provocation est maintenue au moins `for` plus deux intervalles d'évaluation, puis levée. La fenêtre d'observation s'entend par provocation : de l'application de la provocation à la résolution, après sa levée, de ses règles attendues ; chaque règle attendue d'une provocation y compte exactement une transition ; une règle commune à plusieurs provocations (`noortrace_appels_bloques` : stockage, quota, rédaction) compte une transition par provocation ; une règle à fenêtre longue (`increase(…[1h])`, `[1d]`) encore déclenchée au début d'une provocation suivante ne peut pas y être attendue : les provocations qui la partagent se jouent après sa résolution, ou dans des fenêtres de charge distinctes consignées dans le rapport d'exécution ; compter une transition par règle sur toute la fenêtre de charge ferait échouer une implémentation correcte."
     ],
     "steps": [
       "Pendant la fenêtre de charge, provoquer chaque condition d'alerte de CT-2 §17.4, de CT-2 EX-17.8 et de CT-5 §8.9 provocable sur le déploiement de test ; une condition qui exige une ressource absente du déploiement (support WORM, source OpenTelemetry, seconde instance, rétention de quatorze jours, réglage de l'horloge système, que la section 16 exclut) est marquée non provoquée dans le rapport d'exécution, qui en consigne la liste ; relever chaque règle déclenchée et sa gravité ; lire `/healthz`, `/readyz` et `/metrics` du démon.",
       "Exporter le dossier d'un appel d'écriture relayé pendant la fenêtre de charge (CT-1 §11) et le vérifier par les deux vérificateurs de CT-6."
     ],
-    "oracle": "Unité de comptage : la règle d'alerte de CT-8 §10.4 à §10.7 identifiée par son étiquette `exigence`. Pour chaque condition provoquée, la règle de cette condition (étiquette nommant la prescription : CT-2 §17.4, CT-2 EX-17.8, CT-5 §8.9 ; une règle par condition d'une ligne à « ou », CT-8 EX-10.1) passe à l'état déclenché exactement une fois pendant la fenêtre d'observation ; les autres règles de la même prescription ne sont attendues que si leur condition est provoquée et restent silencieuses sinon ; une condition est provoquée quand elle survient pendant la fenêtre par l'effet d'une provocation, directement ou par cascade (stockage indisponible, puis appels bloqués et événements en attente ; prestataire coupé, puis ancre en retard) ; les règles attendues d'une provocation sont celles de la condition provoquée et de ses conséquences, nommées dans le rapport d'exécution avant la provocation ; une règle qui se déclenche hors de cette liste est un échec ; la liste peut nommer toute règle de CT-8 §10.4 à §10.7, celles du registre (`noortrace_registre_*`, CT-4) comprises, que la condition entraîne, chaque conséquence y étant inscrite avant la provocation avec la chaîne causale qui la justifie ; une conséquence non justifiée est un défaut du rapport, relu par l'examinateur ; les deux exemples de cascade ci-dessus ne sont pas limitatifs ; deux règles levées par une même cause (« Mode dégradé » `horloge` et « Horloge ») comptent chacune une fois, cet exemple illustrant le comptage sans exiger la provocation de l'horloge ; les trois alertes du registre des gels : une seule alerte critique par cause (CT-2 EX-17.7), clause jouée seulement si un support WORM est monté ; sinon ses conditions figurent dans la liste des conditions non provoquées et la clause n'est pas jouée. La gravité relevée (étiquette `severity` de la règle déclenchée) doit égaler celle de la table de CT-8 §10.4 à §10.7, qui fait foi (CT-8 EX-10.1) ; une gravité différente est un échec (le fichier de règles ne suit pas sa table, ce que TV-76 éprouve aussi sans les composants) ; un écart entre la table de CT-8 et la prescription de CT-2 §17.4 ou de CT-5 §8.9 est consigné, non jugé par le test. Chaque métrique de la table CT-2 §17.2 et de CT-5 EX-8.15 est présente avec exactement ses étiquettes : « présente » signifie déclarée par son nom dans l'exposition `/metrics` du démon (ligne `# TYPE` ; un histogramme par ses séries `_bucket`, `_sum` et `_count`, avec l'étiquette `le`), lue sur le démon et non chez le collecteur, qui ajoute `instance` et `job` ; les séries d'étiquettes exigées sont celles que le montage de test crée ; une métrique d'une fonction absente du montage (WORM, OpenTelemetry) est déclarée mais peut n'avoir aucune série (le compte de CT-8 §10.2 est à aligner sur la table de CT-2 : PD-27). Le dossier exporté sous charge : code 0 des deux vérificateurs, énoncé identique.",
+    "oracle": "Unité de comptage : la règle d'alerte de CT-8 §10.4 à §10.7 identifiée par son étiquette `exigence`. Pour chaque condition provoquée, la règle de cette condition (étiquette nommant la prescription : CT-2 §17.4, CT-2 EX-17.8, CT-5 §8.9 ; une règle par condition d'une ligne à « ou », CT-8 EX-10.1) passe à l'état déclenché exactement une fois pendant la fenêtre d'observation ; les autres règles de la même prescription ne sont attendues que si leur condition est provoquée et restent silencieuses sinon ; une condition est provoquée quand elle survient pendant la fenêtre par l'effet d'une provocation, directement ou par cascade (stockage indisponible, puis appels bloqués et événements en attente ; prestataire coupé, puis ancre en retard) ; les règles attendues d'une provocation sont celles de la condition provoquée et de ses conséquences, nommées dans le rapport d'exécution avant la provocation ; une règle qui se déclenche hors de cette liste est un échec ; sous la charge nominale, hors provocation, aucune règle n'est déclenchée ni en cours de clause, sauf une règle d'absence (`absent(…)` à clause `for`) dont la source n'est pas montée au déploiement de test (relevés hors du composant de CT-8 EX-10.9, procès-verbal de sauvegarde de CT-8 EX-11.5) : elle est attendue en cours de clause, jamais déclenchée, sa clause dépassant la fenêtre de charge, et le rapport d'exécution la nomme ; la règle de la cible de TM-1 (`noortrace_latence`) est relevée sans être jugée hors du système de référence (complément) ; la liste peut nommer toute règle de CT-8 §10.4 à §10.7, celles du registre (`noortrace_registre_*`, CT-4) comprises, que la condition entraîne, chaque conséquence y étant inscrite avant la provocation avec la chaîne causale qui la justifie ; une conséquence non justifiée est un défaut du rapport, relu par l'examinateur ; les deux exemples de cascade ci-dessus ne sont pas limitatifs ; deux règles levées par une même cause (« Mode dégradé » `horloge` et « Horloge ») comptent chacune une fois, cet exemple illustrant le comptage sans exiger la provocation de l'horloge ; les trois alertes du registre des gels : une seule alerte critique par cause (CT-2 EX-17.7), clause jouée seulement si un support WORM est monté ; sinon ses conditions figurent dans la liste des conditions non provoquées et la clause n'est pas jouée. La gravité relevée (étiquette `severity` de la règle déclenchée) doit égaler celle de la table de CT-8 §10.4 à §10.7, qui fait foi (CT-8 EX-10.1) ; une gravité différente est un échec (le fichier de règles ne suit pas sa table, ce que TV-76 éprouve aussi sans les composants) ; un écart entre la table de CT-8 et la prescription de CT-2 §17.4 ou de CT-5 §8.9 est consigné, non jugé par le test. Chaque métrique de la table CT-2 §17.2 et de CT-5 EX-8.15 est présente avec exactement ses étiquettes : « présente » signifie déclarée par son nom dans l'exposition `/metrics` du démon (ligne `# TYPE` ; un histogramme par ses séries `_bucket`, `_sum` et `_count`, avec l'étiquette `le`), lue sur le démon et non chez le collecteur, qui ajoute `instance` et `job` ; les séries d'étiquettes exigées sont celles que le montage de test crée ; une métrique d'une fonction absente du montage (support WORM, source OpenTelemetry, composant d'ancrage non branché : CT-2 §17.2, révision 0.11) est déclarée mais peut n'avoir aucune série (le compte de CT-8 §10.2 est à aligner sur la table de CT-2 : PD-27). Le dossier exporté sous charge : code 0 des deux vérificateurs, énoncé identique.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Rattaché à l'étape 8 : un collecteur Prometheus 3.5.0 en marche chargé des règles (le binaire `prometheus` de la même archive), la charge à cadence fixe de TM-3, la provocation de chaque condition et le décompte des transitions `ALERTS` ; l'étape 7 livre les règles, leurs tests (`promtool`) et un évaluateur réduit des essais, qui n'est pas un collecteur."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/supervision-collecteur.test.js",
+          "describe": "CT-9 TE-17 : conditions d'alerte de CT-2 §17.4 et d'EX-17.8, provoquées ou marquées non provoquées (liste du rapport d'exécution)",
+          "it": "TE-17, liste des conditions : chaque alerte de CT-2 §17.4 (table générale et table d'EX-17.8) est provoquée par une provocation du montage ou marquée non provoquée avec son motif ; la gravité attendue de chaque règle d'une provocation est celle de la table de CT-8 §10.4 à §10.7 ; son étiquette exigence nomme la prescription"
+        },
+        {
+          "file": "test/supervision-collecteur.test.js",
+          "describe": "CT-9 TE-17 : supervision en charge — démon réel de l'enregistreur sous charge à cadence fixe, extracteur, sonde et collecteur Prometheus 3.5.0 chargé des règles de référence (CT-2 §17.4, EX-17.5 à EX-17.8 ; CT-5 §8.9)",
+          "it": "TE-17, nominal : sous la charge à cadence fixe, les 99 règles régénérées depuis la configuration du montage sont chargées et saines à 15 s, les cibles enregistreur (role active) et hote collectées ; aucune règle déclenchée ni en cours de clause, hors noortrace_latence (cible de TM-1, relevée, non jugée) et quatre règles d'absence en cours de clause ; /healthz ok, /readyz 200, /metrics l'exposition"
+        },
+        {
+          "file": "test/supervision-collecteur.test.js",
+          "describe": "CT-9 TE-17 : supervision en charge — démon réel de l'enregistreur sous charge à cadence fixe, extracteur, sonde et collecteur Prometheus 3.5.0 chargé des règles de référence (CT-2 §17.4, EX-17.5 à EX-17.8 ; CT-5 §8.9)",
+          "it": "TE-17, provocation « stockage indisponible » (espace libre sous min_free_bytes, RB-1) : mode dégradé stockage, appels d'écriture bloqués, événements en attente (non vide, ancienne) et ligne disk_low — chaque règle attendue passe exactement une fois à l'état déclenché, à la gravité de la table, se résout après la levée, et aucune autre règle ne se déclenche"
+        },
+        {
+          "file": "test/supervision-collecteur.test.js",
+          "describe": "CT-9 TE-17 : supervision en charge — démon réel de l'enregistreur sous charge à cadence fixe, extracteur, sonde et collecteur Prometheus 3.5.0 chargé des règles de référence (CT-2 §17.4, EX-17.5 à EX-17.8 ; CT-5 §8.9)",
+          "it": "TE-17, provocation « quota d'un hôte » (octets reçus au-delà de received_bytes_per_minute) : noortrace_quota_hote (mineure) et noortrace_appels_bloques (majeure) passent chacune exactement une fois à l'état déclenché, se résolvent, et aucune autre règle ne se déclenche"
+        },
+        {
+          "file": "test/supervision-collecteur.test.js",
+          "describe": "CT-9 TE-17 : supervision en charge — démon réel de l'enregistreur sous charge à cadence fixe, extracteur, sonde et collecteur Prometheus 3.5.0 chargé des règles de référence (CT-2 §17.4, EX-17.5 à EX-17.8 ; CT-5 §8.9)",
+          "it": "TE-17, provocation « serveur d'outils injoignable » (processus stdio arrêté à chaque relance) : noortrace_mode_degrade_serveur (mineure, raison serveur:<alias>) passe exactement une fois à l'état déclenché, avec ses conséquences nommées (quota de l'hôte par les appels en vol), se résout quand le serveur revient, et aucune autre règle ne se déclenche"
+        },
+        {
+          "file": "test/supervision-collecteur.test.js",
+          "describe": "CT-9 TE-17 : supervision en charge — démon réel de l'enregistreur sous charge à cadence fixe, extracteur, sonde et collecteur Prometheus 3.5.0 chargé des règles de référence (CT-2 §17.4, EX-17.5 à EX-17.8 ; CT-5 §8.9)",
+          "it": "TE-17, métriques : chaque métrique de la table de CT-2 §17.2 et de CT-5 EX-8.15 est déclarée par son nom et son type (ligne # TYPE) dans /metrics du démon, lu sur le démon ; chaque série présente porte exactement un jeu d'étiquettes de la table ; un histogramme observé a ses séries _bucket (étiquette le), _sum et _count"
+        },
+        {
+          "file": "test/supervision-collecteur.test.js",
+          "describe": "CT-9 TE-17 : supervision en charge — démon réel de l'enregistreur sous charge à cadence fixe, extracteur, sonde et collecteur Prometheus 3.5.0 chargé des règles de référence (CT-2 §17.4, EX-17.5 à EX-17.8 ; CT-5 §8.9)",
+          "it": "TE-17, dossier : un appel d'écriture relayé pendant la fenêtre de charge, exporté après la clôture de sa période (noortrace-ctl close-period --now, développement), est vérifié par les deux vérificateurs de CT-6 : code 0, verdict valide, énoncé identique"
+        }
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Rattaché à la porte 2 (étape 8) : la règle noortrace_latence porte la cible de TM-1 (ligne « La latence ajoutée mesurée respecte l'objectif de CT-2 » de la section 14) ; hors du système de référence son état dépend de la machine et TE-17 la relève sans la juger ; système de référence absent : aucune machine de référence n'est acquise (décision du plan du 13 novembre 2026) ; valeurs relevées dans l'environnement de construction publiées hors référence (counts_for_targets faux)"
+      }
     },
     "threats": [
       "MN-29"

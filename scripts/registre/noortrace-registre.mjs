@@ -24,6 +24,34 @@
 // <secondes>, --dossier <dossier d'inscription>. --sans-capture n'est admis
 // que pour l'identifiant EVM 31337 (réseau Hardhat des tests, EX-A.6).
 //
+// Règles de la revue de sécurité interne de l'étape 8 :
+// - administrer-jeu et approvisionner exigent --confirmation <fichier>, la
+//   confirmation hors bande du client (EX-8.21), consignée comme la demande
+//   écrite d'EX-8.10 : son SHA-256 est outputs.confirmation_sha256, refus
+//   usage sans elle (TA-73) ;
+// - une URL --rpc qui porte des identifiants ou une chaîne de requête est
+//   refusée (usage) et aucune URL n'entre dans un message ou une sortie
+//   autrement que par urlSansSecret (CT-4 EX-7.1) ; une réponse JSON-RPC est bornée
+//   à REPONSE_RPC_MAX octets, aucune redirection n'est suivie et son id est
+//   comparé à celui de la requête ;
+// - la capture (9.4) n'écrit rien avant CP-2 à CP-6 : l'en-tête, chaque reçu
+//   et le certificat sont contrôlés en forme (hauteur, hachages 0x + 64
+//   chiffres hexadécimaux, transactionHash du reçu égal à l'élément de
+//   transactions) et gardés en mémoire ; les noms de fichiers sont dérivés de
+//   valeurs validées ; un fichier présent qui ne passe pas ces contrôles est
+//   mis de côté (ecarte-<instant>-<nom>) et redemandé au nœud ; une commande
+//   qui échoue ne laisse aucun fichier nouveau (EX-9.3) ;
+// - tout index, reçu ou envoi relu dans --captures est validé contre son
+//   schéma et son nom de CP-6 ; condense cloture ne tient l'ancre pour capturée
+//   que si son index passe CP-2 à CP-6 contre le jeu du manifeste (CT-4 EX-8.4) ;
+// - inscrire-client recalcule la provision depuis fees du manifeste et le
+//   budget du dossier, exige funding.funder = trésorerie et applique
+//   fees.max_daily_budget_gas (OP-4 : provision_excessive, compte_inattendu),
+//   --preparer aussi ; condense cloture et clore contrôlent l'URI
+//   contre le slug et les noms de journaux du dossier (--dossier) et refusent
+//   une URI non vide sans dossier (EX-6.8) ; reassigner exige du
+//   nouveau jeu le code déployé de l'artefact CuratorSet (CT-4 EX-8.21).
+//
 // Les états d'une étape du dossier (EX-7.16) suivent l'envoi pas à pas :
 // envoyee dès l'envoi écrit, incluse dès le reçu, capturee après CP-6, echec
 // sur un status 0x0 ou une relecture contredite ; une étape envoyee ou
@@ -42,7 +70,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { HDNodeWallet, Interface, SigningKey, computeAddress, getAddress } from "ethers";
 import * as C from "../lib/conventions-registre.mjs";
 import { chargerJeuValidateurs, hachageJeuValidateurs } from "../lib/certificat-commit.mjs";
@@ -242,7 +270,7 @@ function artefact(nom) {
   const f = path.join(RACINE, "hh-artifacts", "contracts", `${nom}.sol`, `${nom}.json`);
   if (!fs.existsSync(f)) throw new Arret("entree_illisible", null, `artefact absent : ${f} (lancer d'abord npm run compile)`);
   const a = JSON.parse(fs.readFileSync(f, "utf8"));
-  ARTEFACTS[nom] = { abi: a.abi, bytecode: a.bytecode, iface: new Interface(a.abi) };
+  ARTEFACTS[nom] = { abi: a.abi, bytecode: a.bytecode, deployedBytecode: a.deployedBytecode ?? null, iface: new Interface(a.abi) };
   return ARTEFACTS[nom];
 }
 
@@ -442,24 +470,52 @@ function jetonDe(options) {
   return jeton;
 }
 
-/** Appel JSON-RPC brut : octets exacts de la réponse et valeur analysée. */
+/** Borne d'une réponse JSON-RPC (un certificat de bloc plein tient sous 2 Mio, chain/docker/README.md ; les 64 reçus d'un bloc plein sous quelques centaines de Kio). */
+const REPONSE_RPC_MAX = 32 * 1024 * 1024;
+let ID_RPC = 0;
+
+/**
+ * Appel JSON-RPC brut : octets exacts de la réponse et valeur analysée. La
+ * réponse est bornée à REPONSE_RPC_MAX octets (lecture arrêtée au-delà),
+ * aucune redirection n'est suivie, et son `id` doit être celui de la requête ;
+ * aucun message ne porte l'URL autrement que par urlSansSecret
+ * (CT-4 EX-7.1).
+ */
 async function rpcBrut(url, method, params) {
-  const corps = JSON.stringify({ jsonrpc: "2.0", id: 1, method, params });
+  const id = ++ID_RPC;
+  const corps = JSON.stringify({ jsonrpc: "2.0", id, method, params });
+  const vue = urlSansSecret(url);
   let reponse;
   try {
     const headers = { "Content-Type": "application/json" };
     if (JETON_BEARER) headers.Authorization = `Bearer ${JETON_BEARER}`;
-    reponse = await fetch(url, { method: "POST", headers, body: corps, signal: AbortSignal.timeout(15000) });
+    reponse = await fetch(url, { method: "POST", headers, body: corps, redirect: "error", signal: AbortSignal.timeout(15000) });
   } catch (err) {
-    throw new ErreurRPC(null, `${url} injoignable (${err.cause?.code ?? err.name})`, url);
+    throw new ErreurRPC(null, `${vue} injoignable (${err.cause?.code ?? err.name})`, url);
   }
-  const octets = Buffer.from(await reponse.arrayBuffer());
+  const annonce = Number(reponse.headers.get("content-length"));
+  if (Number.isFinite(annonce) && annonce > REPONSE_RPC_MAX) throw new ErreurRPC(null, `${vue} : réponse de ${annonce} octets, au-delà de ${REPONSE_RPC_MAX}`, url);
+  const morceaux = [];
+  let total = 0;
+  try {
+    for await (const m of reponse.body ?? []) {
+      total += m.length;
+      if (total > REPONSE_RPC_MAX) throw new ErreurRPC(null, `${vue} : réponse au-delà de ${REPONSE_RPC_MAX} octets, lecture arrêtée`, url);
+      morceaux.push(Buffer.from(m));
+    }
+  } catch (err) {
+    if (err instanceof ErreurRPC) throw err;
+    throw new ErreurRPC(null, `${vue} : lecture de la réponse interrompue (${err.cause?.code ?? err.name})`, url);
+  }
+  const octets = Buffer.concat(morceaux);
   let valeur;
   try {
     valeur = JSON.parse(octets.toString("utf8"));
   } catch {
-    throw new ErreurRPC(null, `${url} : réponse non JSON (HTTP ${reponse.status})`, url);
+    throw new ErreurRPC(null, `${vue} : réponse non JSON (HTTP ${reponse.status})`, url);
   }
+  if (!valeur || typeof valeur !== "object" || Array.isArray(valeur)) throw new ErreurRPC(null, `${vue} : réponse qui n'est pas un objet JSON-RPC`, url);
+  if (valeur.id !== id) throw new ErreurRPC(null, `${vue} : identifiant de réponse ${JSON.stringify(valeur.id ?? null).slice(0, 40)} au lieu de ${id}`, url);
   return { octets, valeur };
 }
 
@@ -479,7 +535,7 @@ class Client {
         derniere = err;
         continue;
       }
-      if (r.valeur.error) throw new ErreurRPC(r.valeur.error.code, r.valeur.error.message ?? JSON.stringify(r.valeur.error), u);
+      if (r.valeur.error) throw new ErreurRPC(r.valeur.error.code, String(r.valeur.error.message ?? JSON.stringify(r.valeur.error)).slice(0, 512), u);
       return r.valeur.result;
     }
     throw new Arret("noeud_injoignable", "OP-2", derniere?.message ?? "aucun point --rpc ne répond");
@@ -521,7 +577,7 @@ async function verifierInstanceEnLigne(ctx, instance, client, { sansCapture }) {
         try {
           u = new URL(url);
         } catch {
-          throw new Arret("noeud_injoignable", "OP-2", `${url} : URL invalide`);
+          throw new Arret("noeud_injoignable", "OP-2", `${urlSansSecret(url)} : URL invalide`);
         }
         if (u.protocol === "http:" && !["127.0.0.1", "localhost", "[::1]", "::1"].includes(u.hostname)) throw new Arret("noeud_injoignable", "OP-2", `${urlSansSecret(url)} : http:// vers un hôte non local n'est pas admis sur une instance de production (EX-7.1, EX-10.3)`);
       }
@@ -536,8 +592,8 @@ async function verifierInstanceEnLigne(ctx, instance, client, { sansCapture }) {
     for (const url of client.urls) {
       const id = BigInt(await client.appel("eth_chainId", [], { url }));
       if (id !== BigInt(m.evm_chain_id)) {
-        if (instance.defaut) throw new Arret("reseau_non_developpement", "OP-1", `${url} sert l'identifiant EVM ${id}, pas 2124 : sans --instance, l'outil n'admet que le réseau de développement (EX-7.2)`);
-        throw new Arret("chaine_differente", "OP-1", `${url} sert l'identifiant EVM ${id}, pas ${m.evm_chain_id}`);
+        if (instance.defaut) throw new Arret("reseau_non_developpement", "OP-1", `${urlSansSecret(url)} sert l'identifiant EVM ${id}, pas 2124 : sans --instance, l'outil n'admet que le réseau de développement (EX-7.2)`);
+        throw new Arret("chaine_differente", "OP-1", `${urlSansSecret(url)} sert l'identifiant EVM ${id}, pas ${m.evm_chain_id}`);
       }
     }
     if (sansCapture && m.evm_chain_id !== C.RESEAU_ESSAI.evm_chain_id) throw new Arret("usage", "OP-1", "--sans-capture n'est admis que pour l'identifiant EVM 31337 (EX-A.6)");
@@ -573,10 +629,10 @@ async function verifierInstanceEnLigne(ctx, instance, client, { sansCapture }) {
         try {
           st = await client.appel("noor_txindexStatus", [], { url });
         } catch (err) {
-          throw new Arret("noeud_suiveur", "OP-2", `${url} : noor_txindexStatus en erreur (${err.message})`);
+          throw new Arret("noeud_suiveur", "OP-2", `${urlSansSecret(url)} : noor_txindexStatus en erreur (${err.message})`);
         }
         const h = BigInt(st?.last_indexed_height ?? 0);
-        if (h === 0n || h < tete.hauteur) throw new Arret("noeud_suiveur", "OP-2", `${url} : last_indexed_height ${h} (tête ${tete.hauteur}) : point d'un suiveur, interroger un validateur (10.3)`);
+        if (h === 0n || h < tete.hauteur) throw new Arret("noeud_suiveur", "OP-2", `${urlSansSecret(url)} : last_indexed_height ${h} (tête ${tete.hauteur}) : point d'un suiveur, interroger un validateur (10.3)`);
       }
     });
   }
@@ -592,6 +648,7 @@ async function verifierInstanceEnLigne(ctx, instance, client, { sansCapture }) {
  */
 async function certificatAvecReessais(client, parametre, url, ctx, { hauteur = null } = {}) {
   let essais = 0;
+  const vue = urlSansSecret(url);
   const incertain = { result: "incertain" };
   const tete = async () => BigInt(await client.appel("eth_blockNumber", [], { url }));
   for (;;) {
@@ -605,9 +662,9 @@ async function certificatAvecReessais(client, parametre, url, ctx, { hauteur = n
     if (r.valeur.result) return { octets: r.octets, valeur: r.valeur.result, essais };
     const e = r.valeur.error ?? {};
     const msg = String(e.message ?? "");
-    if (e.code === -32601) throw new Arret("entree_illisible", "CP-4", `${url} ne sert pas noor_getCommitCertificate (binaire sans correctif, 4.7)`, { result: "inutilisable" });
+    if (e.code === -32601) throw new Arret("entree_illisible", "CP-4", `${vue} ne sert pas noor_getCommitCertificate (binaire sans correctif, 4.7)`, { result: "inutilisable" });
     if (e.code === -32602) throw new Arret("usage", "CP-4", `appel mal formé : ${msg}`);
-    if (/leader unreachable/.test(msg)) throw new Arret("noeud_suiveur", "CP-1", `${url} : point d'un suiveur sans meneur`, incertain);
+    if (/leader unreachable/.test(msg)) throw new Arret("noeud_suiveur", "CP-1", `${vue} : point d'un suiveur sans meneur`, incertain);
     if (/not yet persisted/.test(msg)) {
       // 9.3 : réessai toutes les 50 ms, au plus 100 fois et jusqu'à ce que la tête dépasse le bloc.
       const depassee = hauteur !== null && (await tete()) > BigInt(hauteur);
@@ -615,9 +672,9 @@ async function certificatAvecReessais(client, parametre, url, ctx, { hauteur = n
         await new Promise((res) => setTimeout(res, 50));
         continue;
       }
-      throw new Arret("certificat_indisponible", "CP-4", `${url} : ${msg} (${essais} essai(s)${depassee ? ", tête au-delà du bloc" : ""})`, incertain);
+      throw new Arret("certificat_indisponible", "CP-4", `${vue} : ${msg} (${essais} essai(s)${depassee ? ", tête au-delà du bloc" : ""})`, incertain);
     }
-    if (/prun|retention/i.test(msg) && !/inside the retention window/.test(msg)) throw new Arret("certificat_elague", "CP-4", `${url} : ${msg}`, incertain);
+    if (/prun|retention/i.test(msg) && !/inside the retention window/.test(msg)) throw new Arret("certificat_elague", "CP-4", `${vue} : ${msg}`, incertain);
     if (/unknown block/.test(msg) && hauteur !== null) {
       // 9.3 : relire la tête ; si elle dépasse la hauteur, certificat_indisponible sans réessai ; sinon le bloc n'est pas encore là.
       const h = await tete();
@@ -625,9 +682,9 @@ async function certificatAvecReessais(client, parametre, url, ctx, { hauteur = n
         await new Promise((res) => setTimeout(res, 50));
         continue;
       }
-      throw new Arret("certificat_indisponible", "CP-4", `${url} : ${msg} (tête ${h}, hauteur ${hauteur})`, incertain);
+      throw new Arret("certificat_indisponible", "CP-4", `${vue} : ${msg} (tête ${h}, hauteur ${hauteur})`, incertain);
     }
-    throw new Arret("certificat_indisponible", "CP-4", `${url} : ${msg || "certificat absent"}`, incertain);
+    throw new Arret("certificat_indisponible", "CP-4", `${vue} : ${msg || "certificat absent"}`, incertain);
   }
 }
 
@@ -645,6 +702,7 @@ function nomValidateur(url, instance) {
   }
 }
 
+/** URL d'un point RPC telle qu'elle peut être écrite : sans identifiants ni chaîne de requête ; une URL illisible n'est jamais recopiée (CT-4 EX-7.1). */
 function urlSansSecret(url) {
   try {
     const u = new URL(url);
@@ -653,15 +711,53 @@ function urlSansSecret(url) {
     u.search = "";
     return u.toString().replace(/\/$/, "");
   } catch {
-    return String(url).slice(0, 256);
+    return "<URL illisible>";
   }
 }
+
+/** Hachage de 32 octets en hexadécimal : élément de `transactions`, `hash`, `transactionHash`, `blockHash`. */
+const HEX32 = /^0x[0-9a-fA-F]{64}$/;
+/** Borne du nombre d'éléments de `transactions` lus dans un en-tête (CT-4 EX-4.14 : 64 par bloc sur l'instance ; borne large). */
+const TRANSACTIONS_MAX = 4096;
+
+/** Motif pour lequel une réponse `eth_getBlockByNumber` n'est pas un en-tête de la hauteur `h`, ou null (CP-6). */
+function motifFormeBloc(bloc, h) {
+  if (!bloc || typeof bloc !== "object" || Array.isArray(bloc)) return "en-tête absent ou qui n'est pas un objet";
+  if (typeof bloc.number !== "string" || !/^0x[0-9a-fA-F]{1,16}$/.test(bloc.number)) return "number qui n'est pas une quantité hexadécimale";
+  if (BigInt(bloc.number) !== BigInt(h)) return `number ${bloc.number} au lieu de la hauteur ${h}`;
+  if (typeof bloc.hash !== "string" || !HEX32.test(bloc.hash)) return "hash qui n'est pas 0x suivi de 64 chiffres hexadécimaux";
+  if (!Array.isArray(bloc.transactions)) return "transactions n'est pas une liste";
+  if (bloc.transactions.length > TRANSACTIONS_MAX) return `${bloc.transactions.length} éléments dans transactions (plus de ${TRANSACTIONS_MAX})`;
+  for (const [i, x] of bloc.transactions.entries()) {
+    const v = typeof x === "string" ? x : x && typeof x === "object" ? x.hash : null;
+    if (typeof v !== "string" || !HEX32.test(v)) return `transactions[${i}] n'est pas 0x suivi de 64 chiffres hexadécimaux`;
+  }
+  return null;
+}
+
+/** Motif pour lequel une réponse `eth_getTransactionReceipt` n'est pas le reçu de `t` au bloc `h`, ou null (CP-3 : la correspondance se lit dans le reçu). */
+function motifFormeRecu(recu, t, h) {
+  if (!recu || typeof recu !== "object" || Array.isArray(recu)) return "reçu absent ou qui n'est pas un objet";
+  if (typeof recu.transactionHash !== "string" || recu.transactionHash.toLowerCase() !== t) return `transactionHash ${JSON.stringify(recu.transactionHash ?? null).slice(0, 80)} au lieu de ${t}`;
+  if (typeof recu.blockHash !== "string" || !HEX32.test(recu.blockHash)) return "blockHash qui n'est pas 0x suivi de 64 chiffres hexadécimaux";
+  if (typeof recu.blockNumber !== "string" || !/^0x[0-9a-fA-F]{1,16}$/.test(recu.blockNumber) || BigInt(recu.blockNumber) !== BigInt(h)) return `blockNumber ${JSON.stringify(recu.blockNumber ?? null).slice(0, 40)} au lieu de la hauteur ${h}`;
+  if (!Array.isArray(recu.logs)) return "logs n'est pas une liste";
+  return null;
+}
+
+/** Hachage (en minuscules) d'un élément de `transactions` déjà passé par motifFormeBloc. */
+const hachageElement = (x) => (typeof x === "string" ? x : x.hash).toLowerCase();
 
 /**
  * Capture une transaction incluse : CP-1 (point de validateur), en-tête,
  * reçus de toutes les transactions du bloc, certificat ; CP-2 à CP-6 ; index
- * écrit et synchronisé. Les fichiers déjà présents ne sont jamais réécrits
- * (EX-9.3). Rend { nom, index, marge }.
+ * écrit et synchronisé. Rien n'est écrit avant que CP-2 à CP-6 aient réussi :
+ * les réponses sont contrôlées en forme (motifFormeBloc, motifFormeRecu) et
+ * gardées en mémoire, les noms de fichiers dérivent de valeurs validées. Un
+ * fichier déjà présent est repris s'il passe ces contrôles et CP-2 à CP-6
+ * (EX-9.3) ; sinon il est mis de côté (ecarte-<instant>-<nom>) et la réponse
+ * est redemandée au nœud ; une commande qui échoue ne laisse aucun fichier
+ * nouveau. Rend { nom, index, marge }.
  */
 async function capturerTransaction(ctx, { instance, client, repertoire, role, transactionHash, contrat, logIndex, sending, hauteur }) {
   const m = instance.manifeste;
@@ -673,111 +769,192 @@ async function capturerTransaction(ctx, { instance, client, repertoire, role, tr
   await ctx.op("CP-1", async () => {
     let raison = null;
     for (const u of client.urls) {
+      const vue = urlSansSecret(u);
       try {
         const id = BigInt(await client.appel("eth_chainId", [], { url: u }));
         if (id !== BigInt(m.evm_chain_id)) {
-          raison = new Arret("chaine_differente", "CP-1", `${u} : identifiant EVM ${id}`, incertain);
+          raison = new Arret("chaine_differente", "CP-1", `${vue} : identifiant EVM ${id}`, incertain);
           continue;
         }
         const st = await client.appel("noor_txindexStatus", [], { url: u });
         if (!(BigInt(st?.last_indexed_height ?? 0) >= BigInt(h) && BigInt(st?.last_indexed_height ?? 0) > 0n)) {
-          raison = new Arret("noeud_suiveur", "CP-1", `${u} : last_indexed_height ${st?.last_indexed_height} < ${h}`, incertain);
+          raison = new Arret("noeud_suiveur", "CP-1", `${vue} : last_indexed_height ${st?.last_indexed_height} < ${h}`, incertain);
           continue;
         }
         url = u;
         return;
       } catch (err) {
-        raison = err instanceof Arret ? err : new Arret("noeud_suiveur", "CP-1", `${u} : ${err.message}`, incertain);
+        raison = err instanceof Arret ? err : new Arret("noeud_suiveur", "CP-1", `${vue} : ${err.message}`, incertain);
         if (raison.result === "refuse") raison.result = "incertain";
       }
     }
     throw raison ?? new Arret("noeud_injoignable", "CP-1", "aucun point --rpc", incertain);
   });
-  const fichier = (nom) => path.join(repertoire, nom);
-  const lireFichier = (nom) => (fs.existsSync(fichier(nom)) ? fs.readFileSync(fichier(nom)) : null);
-  const garder = async (nom, obtenir) => {
-    if (fs.existsSync(fichier(nom))) return fs.readFileSync(fichier(nom));
-    const o = await obtenir();
-    ecrireSynchronise(fichier(nom), o);
-    return o;
+  const vueUrl = urlSansSecret(url);
+  // Noms de CP-6 seulement : un seul composant, dérivé de valeurs validées.
+  const fichier = (nom) => {
+    if (typeof nom !== "string" || path.basename(nom) !== nom || !/^[a-z]+-[0-9a-z]+(-[0-9a-z_]+)*\.json$/.test(nom)) throw new Arret("capture_incomplete", "CP-6", `nom de fichier hors de la convention de CP-6 : ${JSON.stringify(String(nom).slice(0, 80))}`, incertain);
+    return path.join(repertoire, nom);
+  };
+  /** Réponses retenues : nom → { octets, source } ; `source` dit si les octets viennent d'un fichier présent ou du nœud. */
+  const contenus = new Map();
+  const lireFichier = (nom) => contenus.get(nom)?.octets ?? null;
+  const analyser = (b) => {
+    try {
+      return JSON.parse(b.toString("utf8"));
+    } catch {
+      return undefined;
+    }
+  };
+  /** Un fichier présent qui ne passe pas les contrôles est mis de côté, jamais relu ni réécrit (EX-9.3, S-4). */
+  const ecarter = (nom, motif) => {
+    const vers = path.join(repertoire, `ecarte-${maintenant().replace(/[-:.]/g, "")}-${nom}`);
+    fs.renameSync(fichier(nom), vers);
+    contenus.delete(nom);
+    ctx.log(`avertissement : ${nom} présent dans ${repertoire} mais refusé (${motif}) : mis de côté sous ${path.basename(vers)} et redemandé au nœud (EX-9.3)`);
+  };
+  /**
+   * Réponse brute du nom `nom` : le fichier présent s'il est une réponse JSON-RPC
+   * complète dont `result` passe `motifForme`, sinon la réponse du nœud, elle
+   * aussi contrôlée ; rien n'est écrit. Rend `result`.
+   */
+  const obtenir = async (nom, check, demander, motifForme, absent) => {
+    const f = fichier(nom);
+    if (fs.existsSync(f)) {
+      const b = fs.readFileSync(f);
+      const v = analyser(b);
+      const motif = v === undefined ? "JSON illisible" : !v || typeof v !== "object" || v.result === undefined ? "réponse sans result" : motifForme(v.result);
+      if (motif === null) {
+        contenus.set(nom, { octets: b, source: "fichier" });
+        return v.result;
+      }
+      ecarter(nom, motif);
+    }
+    const r = await demander();
+    if (r.valeur.result === null || r.valeur.result === undefined) throw new Arret("capture_incomplete", check, absent, incertain);
+    const motif = motifForme(r.valeur.result);
+    if (motif) throw new Arret("capture_incomplete", check, `${nom} : réponse de ${vueUrl} hors de forme (${motif}) ; rien n'est écrit`, incertain);
+    contenus.set(nom, { octets: r.octets, source: "noeud" });
+    return r.valeur.result;
   };
   const q = C.quantiteRPC(h);
-  const blocBrut = await garder(`bloc-${h}.json`, async () => {
-    const r = await rpcBrut(url, "eth_getBlockByNumber", [q, false]);
-    if (!r.valeur.result) throw new Arret("capture_incomplete", "CP-2", `bloc ${h} introuvable chez ${url}`, incertain);
-    return r.octets;
-  });
-  const bloc = JSON.parse(blocBrut.toString("utf8")).result;
-  const recus = [];
-  for (const t of bloc.transactions.map((x) => (typeof x === "string" ? x : x.hash).toLowerCase())) {
-    const nom = `recu-${t}.json`;
-    const b = await garder(nom, async () => {
-      const r = await rpcBrut(url, "eth_getTransactionReceipt", [t]);
-      if (!r.valeur.result) throw new Arret("capture_incomplete", "CP-3", `reçu de ${t} introuvable chez ${url}`, incertain);
-      return r.octets;
-    });
-    recus.push({ name: nom, sha256: sha256(b) });
-  }
-  let essais = 1;
+  const nomBloc = `bloc-${h}.json`;
   const nomCert = `certificat-${h}.json`;
-  let certBrut = lireFichier(nomCert);
-  if (!certBrut) {
-    let dernier = null;
-    for (const u of [url, ...client.urls.filter((x) => x !== url)]) {
-      try {
-        const c = await certificatAvecReessais(client, q, u, ctx, { hauteur: h });
-        essais = c.essais;
-        certBrut = c.octets;
-        break;
-      } catch (err) {
-        dernier = err;
-        if (err instanceof Arret && ["certificat_elague", "entree_illisible", "usage"].includes(err.code)) break;
+  let essais = 1;
+  /** En-tête, reçus, certificat, index et CP-2 à CP-6 sur les réponses en mémoire. */
+  const collecter = async () => {
+    contenus.clear();
+    essais = 1;
+    const bloc = await obtenir(nomBloc, "CP-2", () => rpcBrut(url, "eth_getBlockByNumber", [q, false]), (v) => motifFormeBloc(v, h), `bloc ${h} introuvable chez ${vueUrl}`);
+    const hachages = bloc.transactions.map(hachageElement);
+    const recus = [];
+    for (const tx of hachages) {
+      const nom = `recu-${tx}.json`;
+      await obtenir(nom, "CP-3", () => rpcBrut(url, "eth_getTransactionReceipt", [tx]), (v) => motifFormeRecu(v, tx, h), `reçu de ${tx} introuvable chez ${vueUrl}`);
+      recus.push({ name: nom, sha256: sha256(contenus.get(nom).octets) });
+    }
+    await obtenir(
+      nomCert,
+      "CP-4",
+      async () => {
+        let dernier = null;
+        for (const u of [url, ...client.urls.filter((x) => x !== url)]) {
+          try {
+            const c = await certificatAvecReessais(client, q, u, ctx, { hauteur: h });
+            essais = c.essais;
+            return { octets: c.octets, valeur: { result: c.valeur } };
+          } catch (err) {
+            dernier = err;
+            if (err instanceof Arret && ["certificat_elague", "entree_illisible", "usage"].includes(err.code)) break;
+          }
+        }
+        throw dernier;
+      },
+      (v) => (v && typeof v === "object" && !Array.isArray(v) ? null : "certificat qui n'est pas un objet"),
+      `certificat du bloc ${h} absent`,
+    );
+    const transactionIndex = hachages.indexOf(transactionHash.toLowerCase());
+    if (transactionIndex === -1) throw new Arret("capture_incomplete", "CP-3", `transaction ${transactionHash} absente du bloc ${h}`, incertain);
+    const jeu = C.jeuPourHauteur(m, h);
+    if (!jeu) throw new Arret("certificat_invalide", "CP-4", `aucun jeu du manifeste ne couvre la hauteur ${h}`, incertain);
+    const index = {
+      version: 0,
+      role,
+      evm_chain_id: m.evm_chain_id,
+      bft_chain_id: m.bft_chain_id,
+      contract: contrat ? contrat.toLowerCase() : null,
+      transaction_hash: transactionHash.toLowerCase(),
+      block_number: h,
+      block_hash: String(bloc.hash).toLowerCase(),
+      transaction_index: transactionIndex,
+      log_index: logIndex,
+      files: { block: { name: nomBloc, sha256: sha256(contenus.get(nomBloc).octets) }, receipts: recus, certificate: { name: nomCert, sha256: sha256(contenus.get(nomCert).octets) } },
+      node: { rpc: vueUrl, validator_id: nomValidateur(url, instance) },
+      validator_set_hash: jeu.valset_hash,
+      captured_at: maintenant(),
+      attempts: Math.min(essais, 1000),
+      checks: ["CP-1", "CP-2", "CP-3", "CP-4", "CP-5", "CP-6"].map((id) => ({ id, status: "reussi", detail: "" })),
+      sending,
+    };
+    const nomIdx = C.nomIndex(h, transactionIndex, role);
+    if (fs.existsSync(fichier(nomIdx))) {
+      const existant = analyser(fs.readFileSync(fichier(nomIdx)));
+      if (existant && typeof existant === "object") {
+        if (typeof existant.captured_at === "string") index.captured_at = existant.captured_at;
+        if (Number.isInteger(existant.attempts)) index.attempts = existant.attempts;
+        index.sending = existant.sending ?? sending;
       }
     }
-    if (!certBrut) throw dernier;
-    ecrireSynchronise(fichier(nomCert), certBrut);
-  }
-  const transactionIndex = bloc.transactions.map((x) => (typeof x === "string" ? x : x.hash).toLowerCase()).indexOf(transactionHash.toLowerCase());
-  if (transactionIndex === -1) throw new Arret("capture_incomplete", "CP-3", `transaction ${transactionHash} absente du bloc ${h}`, incertain);
-  const jeu = C.jeuPourHauteur(m, h);
-  if (!jeu) throw new Arret("certificat_invalide", "CP-4", `aucun jeu du manifeste ne couvre la hauteur ${h}`, incertain);
-  const index = {
-    version: 0,
-    role,
-    evm_chain_id: m.evm_chain_id,
-    bft_chain_id: m.bft_chain_id,
-    contract: contrat ? contrat.toLowerCase() : null,
-    transaction_hash: transactionHash.toLowerCase(),
-    block_number: h,
-    block_hash: String(bloc.hash).toLowerCase(),
-    transaction_index: transactionIndex,
-    log_index: logIndex,
-    files: { block: { name: `bloc-${h}.json`, sha256: sha256(blocBrut) }, receipts: recus, certificate: { name: nomCert, sha256: sha256(certBrut) } },
-    node: { rpc: urlSansSecret(url), validator_id: nomValidateur(url, instance) },
-    validator_set_hash: jeu.valset_hash,
-    captured_at: maintenant(),
-    attempts: Math.min(essais, 1000),
-    checks: ["CP-1", "CP-2", "CP-3", "CP-4", "CP-5", "CP-6"].map((id) => ({ id, status: "reussi", detail: "" })),
-    sending,
+    let v;
+    try {
+      v = C.verifierCapture({ index, lireFichier, validators: { validators: jeu.validators }, bft_chain_id: m.bft_chain_id, schemas: schemas() });
+    } catch (err) {
+      // Une réponse hostile qui fait lever la vérification est un échec de capture, jamais une erreur interne (CT-4 §9.4).
+      v = { checks: [{ check: "CP-2", code: "capture_incomplete", status: "echoue", detail: `vérification impossible sur les réponses reçues : ${String(err?.message ?? err).slice(0, 300)}` }], contexte: {} };
+    }
+    return { index, nomIdx, v };
   };
-  const nomIdx = C.nomIndex(h, transactionIndex, role);
-  if (fs.existsSync(fichier(nomIdx))) {
-    const existant = JSON.parse(fs.readFileSync(fichier(nomIdx), "utf8"));
-    index.captured_at = existant.captured_at;
-    index.attempts = existant.attempts;
-    index.sending = existant.sending ?? sending;
+  let r;
+  for (let passe = 1; ; passe++) {
+    let enEchec = null;
+    try {
+      r = await collecter();
+      enEchec = r.v.checks.find((x) => x.status !== "reussi") ?? null;
+      if (!enEchec) break;
+    } catch (err) {
+      // Un en-tête présent peut nommer d'autres transactions que le bloc réel : le reçu redemandé échoue en forme (CP-3) ; même remède.
+      if (!(err instanceof Arret) || err.code !== "capture_incomplete") throw err;
+      enEchec = { check: err.check, code: err.code, detail: err.message, arret: err };
+    }
+    const relus = [...contenus].filter(([, c]) => c.source === "fichier").map(([nom]) => nom);
+    if (passe === 1 && relus.length) {
+      // Un fichier présent peut être faux ou tronqué (EX-9.3) : chaque fichier relu est mis de côté, tout est redemandé au nœud.
+      for (const nom of relus) ecarter(nom, `${enEchec.check} : ${String(enEchec.detail).slice(0, 200)}`);
+      continue;
+    }
+    if (enEchec.arret) throw enEchec.arret;
+    for (const x of r.v.checks) ctx.noter(x.check, x.status, x.status === "reussi" ? "" : x.detail);
+    throw new Arret(enEchec.code, enEchec.check, enEchec.detail, incertain);
   }
-  const v = C.verifierCapture({ index, lireFichier, validators: { validators: jeu.validators }, bft_chain_id: m.bft_chain_id, schemas: schemas() });
-  for (const r of v.checks) ctx.noter(r.check, r.status, r.status === "reussi" ? "" : r.detail);
-  const enEchec = v.checks.find((r) => r.status !== "reussi");
-  if (enEchec) throw new Arret(enEchec.code, enEchec.check, enEchec.detail, incertain);
+  const { index, nomIdx, v } = r;
+  for (const x of v.checks) ctx.noter(x.check, x.status, "");
   // EX-9.6 : marge de rétention.
-  const retention = v.contexte.certificat?.retention?.heights ?? null;
+  const retention = v.contexte?.certificat?.retention?.heights ?? null;
   let marge = null;
   if (retention) {
     const tete = BigInt(await client.appel("eth_blockNumber", [], { url }));
     marge = { retention_heights: retention, margin_heights: Number(BigInt(h) + BigInt(retention) - tete), alert: BigInt(h) + BigInt(retention) - tete < BigInt(retention) / 10n };
     if (marge.alert) ctx.log(`alerte : marge de rétention de ${marge.margin_heights} hauteurs, sous 10 % de la fenêtre (EX-9.6)`);
+  }
+  // CP-6 : écriture des réponses venues du nœud, telles que reçues, puis de l'index ; un fichier présent n'est jamais réécrit.
+  for (const [nom, c] of contenus) {
+    if (c.source !== "noeud") continue;
+    const f = fichier(nom);
+    if (fs.existsSync(f)) {
+      if (!fs.readFileSync(f).equals(c.octets)) throw new Arret("capture_incomplete", "CP-6", `${nom} écrit entre-temps dans ${repertoire} avec d'autres octets`, incertain);
+      continue;
+    }
+    ecrireSynchronise(f, c.octets);
   }
   if (!fs.existsSync(fichier(nomIdx))) ecrireSynchronise(fichier(nomIdx), texteJSON(index));
   return { nom: nomIdx, index, marge };
@@ -810,15 +987,37 @@ function envoiSansIssue(repertoire, transactionHash, profondeur = 0) {
   return false;
 }
 
-/** Envois d'un expéditeur sans issue connue dans le répertoire des captures (OP-3, EX-8.14) ; `sauf` : hachage non compté (l'envoi qu'un remplacement remplace). */
+/**
+ * Un envoi relu dans le répertoire des captures : JSON conforme à
+ * #/$defs/envoi, sinon null (avertissement sur `ctx`) ; aucune relecture ne
+ * lève (CT-4 EX-8.4).
+ */
+function envoiLu(f, ctx = null) {
+  let e;
+  try {
+    e = JSON.parse(fs.readFileSync(f, "utf8"));
+  } catch (err) {
+    ctx?.log(`avertissement : ${path.basename(f)} illisible (${err.message}), écarté`);
+    return null;
+  }
+  const err = conforme(e, C.ID_SCHEMA_OPERATIONS, "#/$defs/envoi");
+  if (err.length) {
+    ctx?.log(`avertissement : ${path.basename(f)} non conforme à #/$defs/envoi (${err[0].chemin} : ${err[0].message}), écarté`);
+    return null;
+  }
+  return e;
+}
+
+/** Envois d'un expéditeur sans issue connue dans le répertoire des captures (OP-3, EX-8.14) ; `sauf` : hachage non compté (l'envoi qu'un remplacement remplace). Un envoi illisible rend `entree_illisible` : rien n'est envoyé tant qu'il est là. */
 function envoisEnAttente(repertoire, from, { sauf = null } = {}) {
   if (!repertoire || !fs.existsSync(repertoire)) return [];
-  return fs
-    .readdirSync(repertoire)
-    .filter((f) => /^envoi-0x[0-9a-f]{64}\.json$/.test(f))
-    .map((f) => ({ f, e: JSON.parse(fs.readFileSync(path.join(repertoire, f), "utf8")) }))
-    .filter(({ e }) => e.from === from && e.transaction_hash !== sauf && envoiSansIssue(repertoire, e.transaction_hash))
-    .map(({ f }) => f);
+  const out = [];
+  for (const f of fs.readdirSync(repertoire).filter((x) => /^envoi-0x[0-9a-f]{64}\.json$/.test(x)).sort()) {
+    const e = envoiLu(path.join(repertoire, f));
+    if (!e) throw new Arret("entree_illisible", "OP-3", `${f} dans ${repertoire} est illisible ou non conforme à #/$defs/envoi : le corriger ou le retirer avant tout envoi (8.6)`);
+    if (e.from === from && e.transaction_hash !== sauf && envoiSansIssue(repertoire, e.transaction_hash)) out.push(f);
+  }
+  return out;
 }
 
 /** Écrit issue-<hachage>.json (#/$defs/issue) ; un fichier présent n'est réécrit qu'avec `remplacer`. */
@@ -927,7 +1126,7 @@ async function attendreEtCapturer(ctx, { instance, client, envoi, fEnvoi, appel,
         const r0 = await client.appel("eth_getTransactionReceipt", [remplace.hash]);
         if (r0) {
           const fOriginal = path.join(repertoire, `envoi-${remplace.hash}.json`);
-          const original = fs.existsSync(fOriginal) ? JSON.parse(fs.readFileSync(fOriginal, "utf8")) : null;
+          const original = fs.existsSync(fOriginal) ? envoiLu(fOriginal, ctx) : null;
           ctx.log(`l'envoi remplacé ${remplace.hash} est inclus au bloc ${BigInt(r0.blockNumber)} : le remplaçant ${envoi.transaction_hash} est écarté`);
           ecrireIssue(repertoire, envoi.transaction_hash, { state: "ecartee", replaces: remplace.hash });
           if (original) {
@@ -1076,9 +1275,15 @@ function curatorSetDuDossier(d, repertoireCaptures) {
   const s = d.steps.find((x) => x.step === "jeu_approbateurs");
   if (s?.contract) return s.contract;
   if (!s?.capture || !repertoireCaptures) return null;
+  if (typeof s.capture !== "string" || path.basename(s.capture) !== s.capture) return null;
   const f = path.join(repertoireCaptures, s.capture);
   if (!fs.existsSync(f)) return null;
-  return JSON.parse(fs.readFileSync(f, "utf8")).contract;
+  try {
+    const idx = JSON.parse(fs.readFileSync(f, "utf8"));
+    return typeof idx?.contract === "string" && /^0x[0-9a-f]{40}$/.test(idx.contract) ? idx.contract : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Crochets d'une étape du dossier (EX-7.16) : envoyee, incluse (et contract pour le jeu), echec ; le dossier est réécrit à chaque passage. */
@@ -1128,19 +1333,21 @@ async function reprendreEtape(ctx, e, { instance, client, repertoire, sansCaptur
   return recu;
 }
 
-/** L'envoi écrit pour un hachage, ou null. */
+/** L'envoi écrit pour un hachage (conforme à #/$defs/envoi), ou null. */
 function lireEnvoi(repertoire, transactionHash) {
-  const f = path.join(repertoire, `envoi-${transactionHash}.json`);
-  return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : null;
+  if (!HEX32.test(String(transactionHash))) return null;
+  const f = path.join(repertoire, `envoi-${String(transactionHash).toLowerCase()}.json`);
+  return fs.existsSync(f) ? envoiLu(f) : null;
 }
 
-/** Les envois du répertoire des captures qui portent exactement (from, to, data), les plus récents d'abord. */
+/** Les envois du répertoire des captures qui portent exactement (from, to, data), les plus récents d'abord ; un envoi illisible est écarté. */
 function envoisCorrespondants(repertoire, { from, to, data }) {
   if (!repertoire || !fs.existsSync(repertoire)) return [];
   return fs
     .readdirSync(repertoire)
     .filter((f) => /^envoi-0x[0-9a-f]{64}\.json$/.test(f))
-    .map((f) => JSON.parse(fs.readFileSync(path.join(repertoire, f), "utf8")))
+    .map((f) => envoiLu(path.join(repertoire, f)))
+    .filter(Boolean)
     .filter((e) => e.from === from && (e.to ?? null) === (to ?? null))
     .filter((e) => {
       try {
@@ -1156,11 +1363,24 @@ function envoisCorrespondants(repertoire, { from, to, data }) {
 // Commandes
 // ---------------------------------------------------------------------------
 
+/** Points --rpc : URL http(s) sans identifiants ni chaîne de requête (le jeton du nœud passe par --jeton, EX-7.1, EX-10.3) ; une URL à secret est refusée avant tout appel. */
 function urlsRPC(options) {
-  return String(options.rpc ?? RPC_DEFAUT)
+  const urls = String(options.rpc ?? RPC_DEFAUT)
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  if (!urls.length) throw new Arret("usage", null, "--rpc : au moins une URL");
+  for (const u of urls) {
+    let x;
+    try {
+      x = new URL(u);
+    } catch {
+      throw new Arret("usage", null, "--rpc : URL illisible");
+    }
+    if (x.protocol !== "http:" && x.protocol !== "https:") throw new Arret("usage", null, `--rpc : schéma ${x.protocol} refusé (http: ou https: seulement)`);
+    if (x.username || x.password || x.search) throw new Arret("usage", null, `--rpc : ${urlSansSecret(u)} porte des identifiants ou une chaîne de requête : aucun secret ne passe par l'URL, le jeton du nœud passe par --jeton (EX-7.1, EX-10.3)`);
+  }
+  return urls;
 }
 
 function delaiDe(options) {
@@ -1291,6 +1511,7 @@ async function inscrireClientPreparer(ctx) {
   });
   const budget = o["budget-jour"] === undefined ? C.BUDGET_JOUR_DEFAUT : Number(o["budget-jour"]);
   if (!Number.isSafeInteger(budget) || budget <= 0) throw new Arret("usage", null, "--budget-jour : entier positif attendu");
+  plafondBudget(m, budget, "--budget-jour", "OP-4");
   const comptes = comptesExploitant(o, instance, ["tresorerie"]);
   const tresorerie = adresseCle(comptes.tresorerie);
   let membres;
@@ -1330,7 +1551,7 @@ async function inscrireClientPreparer(ctx) {
   for (const j of d.journals) d.steps.push(vide("premiere_ancre", j.name), vide("premiere_cloture", j.name));
   await ctx.op("OP-4", async () => {
     if (!Number.isInteger(seuil) || seuil < 1 || seuil > membres.length) throw new Arret("jeu_invalide", "OP-4", `seuil ${seuil} hors de [1, ${membres.length}]`);
-    const r = C.verifierDossierInscription(d, { schemas: schemas(), nature: m.nature, comptes: m.accounts.map((a) => a.address) });
+    const r = C.verifierDossierInscription(d, { schemas: schemas(), nature: m.nature, comptes: m.accounts.map((a) => a.address), ...optionsProvision(m) });
     if (r.status !== "reussi") throw new Arret(r.code === "entree_illisible" ? "jeu_invalide" : r.code, "OP-4", r.detail);
     const deja = await client.vue(adressesContrats(m).curator_set_registry, "CuratorSetRegistry", "isRegistered", [orgId]);
     if (deja) throw new Arret("organisation_existante", "OP-4", `l'organisation ${slug} (${orgId}) a déjà un jeu : un slug n'est attribué qu'une fois (EX-6.3)`);
@@ -1342,6 +1563,46 @@ async function inscrireClientPreparer(ctx) {
   });
   ecrireDossier(sortieF, d);
   return { result: "reussi", outputs: { org_id: orgId, journal_ids: d.journals.map((j) => j.journal_id), amount_wei: provision_wei.toString(), dossier: sortieF } };
+}
+
+/**
+ * OP-4, provision du dossier (EX-4.19, EX-4.20, EX-8.20) : le dossier n'est
+ * authentifié par personne (EX-7.8), la provision versée n'en est donc jamais
+ * lue telle quelle : `funding.funder` est le compte de rôle `tresorerie` du
+ * manifeste, `daily_budget_gas` ne dépasse pas `fees.max_daily_budget_gas`
+ * quand le manifeste le fixe, et `amount_wei` égale la provision recalculée
+ * depuis `fees`. Rend P_k (CT-4 OP-4).
+ */
+function provisionDuDossier(m, d) {
+  const t = C.compteDuRole(m, "tresorerie");
+  if (!t || t.address !== d.funding.funder) throw new Arret("compte_inattendu", "OP-4", `funding.funder ${d.funding.funder} ≠ compte de rôle tresorerie ${t?.address ?? "absent"} du manifeste (EX-4.19)`);
+  const budget = d.funding.daily_budget_gas;
+  plafondBudget(m, budget, "funding.daily_budget_gas", "OP-4");
+  const { provision_wei } = C.provision(m.fees, budget);
+  if (BigInt(d.funding.amount_wei) !== provision_wei) throw new Arret("provision_excessive", "OP-4", `funding.amount_wei ${d.funding.amount_wei} ≠ provision_days × daily_budget_gas + gas_limit = ${provision_wei} wei recalculée depuis fees du manifeste (EX-4.19, EX-4.20)`);
+  return provision_wei;
+}
+
+/**
+ * Options de provision passées à OP-4 de la bibliothèque (`verifierDossierInscription`,
+ * part bibliothèque de) : `fees` du manifeste, pour que la
+ * provision soit recalculée avec les frais de l'instance et non avec ceux par
+ * défaut, et `tresorerie`, le compte de rôle du manifeste ; sans manifeste
+ * (réseau de développement, EX-7.2), rien n'est passé et la bibliothèque prend
+ * ses valeurs par défaut.
+ */
+function optionsProvision(m) {
+  const o = {};
+  if (m?.fees) o.fees = m.fees;
+  const t = m?.accounts ? C.compteDuRole(m, "tresorerie") : null;
+  if (t?.address) o.tresorerie = t.address;
+  return o;
+}
+
+/** EX-8.20 : un budget journalier ne dépasse jamais `fees.max_daily_budget_gas` quand le manifeste le fixe (`provision_excessive`). */
+function plafondBudget(m, budget, quoi, check) {
+  const plafond = m.fees.max_daily_budget_gas ?? null;
+  if (plafond !== null && budget > plafond) throw new Arret("provision_excessive", check, `${quoi} ${budget} gaz au-delà du plafond fees.max_daily_budget_gas ${plafond} du manifeste (EX-8.20)`);
 }
 
 function verifierRolesDistincts(m) {
@@ -1360,6 +1621,11 @@ async function inscrireClientDossier(ctx) {
   const d = lireDossier(fDossier);
   const { instance, client, sansCapture, m } = await preparer(ctx);
   verifierDossierInstance(d, instance);
+  // OP-4, provision : recalculée depuis le manifeste à chaque passage, jamais lue du dossier.
+  let P;
+  await ctx.op("OP-4", async () => {
+    P = provisionDuDossier(m, d);
+  });
   const rep = capturesDe(o);
   const delai = delaiDe(o);
   const comptes = comptesExploitant(o, instance, ["deployeur", "administrateur_registre", "tresorerie"]);
@@ -1403,7 +1669,7 @@ async function inscrireClientDossier(ctx) {
     if (!setAdresse) throw new Arret("entree_illisible", null, `étape jeu_approbateurs faite mais adresse du jeu introuvable : ni contract dans le dossier ni index ${eJeu.capture} dans ${rep} (EX-7.16)`);
   } else {
     await ctx.op("OP-4", async () => {
-      const r = C.verifierDossierInscription(d, { schemas: schemas(), nature: m.nature, comptes: m.accounts.map((a) => a.address) });
+      const r = C.verifierDossierInscription(d, { schemas: schemas(), nature: m.nature, comptes: m.accounts.map((a) => a.address), ...optionsProvision(m) });
       if (r.status !== "reussi") throw new Arret(r.code === "entree_illisible" ? "jeu_invalide" : r.code, "OP-4", r.detail);
       if (await client.vue(csr, "CuratorSetRegistry", "isRegistered", [orgId])) {
         // EX-7.16 : un jeu déjà assigné n'est adopté que s'il est celui du dossier et qu'il sort d'un envoi de ce déployeur.
@@ -1545,9 +1811,8 @@ async function inscrireClientDossier(ctx) {
     etat.faits++;
     ecrire();
   }
-  // 4. approvisionnement de chaque clé de chaîne
+  // 4. approvisionnement de chaque clé de chaîne, à la provision P recalculée (OP-4)
   const funded = [];
-  const P = BigInt(d.funding.amount_wei);
   for (const rec of d.recorders) {
     const e = etape(d, "approvisionnement", rec.chain_key);
     const repriseE = await reprise(e, { role: "approvisionnement", contrat: null, logIndex: null });
@@ -1601,10 +1866,25 @@ async function inscrireClientDossier(ctx) {
   };
 }
 
+/**
+ * EX-8.21 : l'exploitant ne relaie une administration du jeu et n'approvisionne
+ * une clé de chaîne que sur confirmation hors bande du client, consignée comme
+ * la demande écrite d'EX-8.10 : --confirmation <fichier> (non vide), dont le
+ * SHA-256 va dans outputs.confirmation_sha256 ; refus `usage` sans elle
+ * (CT-4 EX-8.21, TA-73).
+ */
+function confirmationHorsBande(o) {
+  const f = exigerOption(o, "confirmation");
+  const octets = lireOctets(f);
+  if (!octets.length) throw new Arret("entree_illisible", null, "--confirmation : le fichier de la confirmation hors bande du client est vide (EX-8.21)");
+  return sha256(octets);
+}
+
 // --- approvisionner ---------------------------------------------------------
 
 async function cmdApprovisionner(ctx) {
   const o = ctx.options;
+  const confirmationSha256 = confirmationHorsBande(o);
   const { instance, client, sansCapture, m } = await preparer(ctx);
   const rep = capturesDe(o);
   const vers = C.adresseMinuscule(exigerOption(o, "vers"));
@@ -1640,13 +1920,10 @@ async function cmdApprovisionner(ctx) {
     if (!admission) throw new Arret("compte_inattendu", "OP-5", `destinataire ${vers} hors d'EX-8.20 : ni clé de chaîne d'un dossier (--dossier), ni d'une demande d'inscription (--demande), ni clé active (--org-id), ni compte du manifeste`);
   });
   // OP-3 : le budget retenu ne dépasse pas fees.max_daily_budget_gas quand le manifeste le fixe (EX-8.20).
-  const plafond = m.fees.max_daily_budget_gas ?? null;
-  await ctx.op("OP-3", async () => {
-    if (plafond !== null && budget > plafond) throw new Arret("provision_excessive", "OP-3", `budget journalier ${budget} gaz au-delà du plafond fees.max_daily_budget_gas ${plafond} du manifeste (EX-8.20)`);
-  });
+  await ctx.op("OP-3", async () => plafondBudget(m, budget, "budget journalier", "OP-3"));
   const { provision_wei: P, refill_below_wei: seuil } = C.provision(m.fees, budget);
   const avant = BigInt(await client.appel("eth_getBalance", [vers, "latest"]));
-  const out = { to: vers, admitted_as: admission, balance_before_wei: avant.toString(), provision_wei: P.toString(), refill_below_wei: seuil.toString(), daily_budget_gas: budget, consumption_since_last_funding_wei: null, elapsed_seconds: null, review: o["apres-examen"] ?? null };
+  const out = { to: vers, admitted_as: admission, confirmation_sha256: confirmationSha256, balance_before_wei: avant.toString(), provision_wei: P.toString(), refill_below_wei: seuil.toString(), daily_budget_gas: budget, consumption_since_last_funding_wei: null, elapsed_seconds: null, review: o["apres-examen"] ?? null };
   // Étape approvisionnement du dossier (EX-7.16) : une étape envoyee ou incluse se reprend par la capture de sa transaction.
   const e = d ? etape(d, "approvisionnement", vers) : null;
   const ecrire = () => {
@@ -1660,15 +1937,20 @@ async function cmdApprovisionner(ctx) {
   }
   const suivi = e && e.state === "a_faire";
   // EX-8.18 : consommation depuis le dernier approvisionnement capturé.
-  const derniers = fs
-    .readdirSync(rep)
-    .filter((f) => /^capture-\d+-\d+-approvisionnement\.json$/.test(f))
-    .map((f) => JSON.parse(fs.readFileSync(path.join(rep, f), "utf8")))
-    .filter((i) => i.sending?.to === vers)
+  const derniers = lireIndexCaptures(rep, ctx)
+    .map(({ index }) => index)
+    .filter((i) => i.role === "approvisionnement" && i.sending?.to === vers && i.files.block.name === `bloc-${i.block_number}.json`)
     .sort((a, b) => b.block_number - a.block_number);
+  let bloc = null;
   if (derniers.length) {
-    const dernier = derniers[0];
-    const bloc = JSON.parse(fs.readFileSync(path.join(rep, dernier.files.block.name), "utf8")).result;
+    try {
+      bloc = JSON.parse(fs.readFileSync(path.join(rep, derniers[0].files.block.name), "utf8")).result ?? null;
+    } catch {
+      bloc = null;
+    }
+    if (!bloc || typeof bloc.timestamp !== "string" || !/^0x[0-9a-fA-F]{1,16}$/.test(bloc.timestamp)) throw new Arret("entree_illisible", null, `${derniers[0].files.block.name} : en-tête du dernier approvisionnement capturé illisible dans ${rep} (EX-8.18)`);
+  }
+  if (bloc) {
     const tete = await client.appel("eth_getBlockByNumber", ["latest", false]);
     const ecoule = Number(BigInt(tete.timestamp) - BigInt(bloc.timestamp));
     const conso = P - avant;
@@ -1765,6 +2047,7 @@ async function cmdCondense(ctx, positionnels) {
     case "cloture": {
       const man = lireJSONFichier(exigerOption(o, "manifeste"));
       const meta = C.metaDuManifeste(man, o.uri === undefined || o.uri === true ? "" : String(o.uri));
+      const contexteUri = contexteCloture(o.dossier ? lireDossier(o.dossier) : null, meta);
       const rep = capturesDe(o);
       if (o.expiration !== undefined && !/^[1-9][0-9]{0,8}$/.test(String(o.expiration))) throw new Arret("usage", null, "--expiration : entier positif, en secondes (EX-8.19)");
       const duree = o.expiration === undefined ? 86400 : Number(o.expiration);
@@ -1773,7 +2056,7 @@ async function cmdCondense(ctx, positionnels) {
       orgId = meta.org_id;
       await ctx.op("OP-10", async () => {
         const precedente = await periodePrecedente(client, contract, meta.org_id, meta.journal_id);
-        const r = C.verifier("RG-5", () => C.verifierChampsCloture(meta, { precedente }));
+        const r = C.verifier("RG-5", () => C.verifierChampsCloture(meta, { precedente, ...contexteUri }));
         if (r.status !== "reussi") throw new Arret(r.code, "OP-10", r.detail);
         // EX-8.4 : l'ancre de la période est incluse (émise par une clé de chaîne active) et capturée dans --captures.
         const empreinte = C.empreinteAncre({ org_id: meta.org_id, journal_id: meta.journal_id, period_hash: meta.period_hash }).fingerprint;
@@ -1781,7 +2064,15 @@ async function cmdCondense(ctx, positionnels) {
         const emetteur = String(l.issuer).toLowerCase();
         if (emetteur === C.ADRESSE_NULLE) throw new Arret("ancre_manquante", "OP-10", `ancre de la période ${empreinte} absente : ancrer d'abord, puis capturer (EX-8.4)`);
         if (!(await client.vue(c.recorder_registry, "RecorderRegistry", "isActiveRecorder", [meta.org_id, emetteur]))) throw new Arret("ancre_manquante", "OP-10", `ancre ${empreinte} émise par ${emetteur}, qui n'est pas une clé de chaîne active de ${meta.org_id} (EX-8.4)`);
-        const capturee = lireIndexCaptures(rep).some(({ index }) => index.role === "ancre" && index.contract === c.attestation_registry && recuDeIndex(rep, index).logs.some((j) => String(j.address).toLowerCase() === c.attestation_registry && j.topics[0] === C.EVENEMENTS.Anchored.topic && String(j.topics[1]).toLowerCase() === empreinte));
+        // L'index qui atteste la capture doit lui-même passer CP-2 à CP-6 contre le jeu du manifeste : un fichier déposé ne vaut rien.
+        const capturee = lireIndexCaptures(rep, ctx)
+          .filter(({ index }) => index.role === "ancre" && index.contract === c.attestation_registry)
+          .filter(({ index }) => (recuDeIndex(rep, index)?.logs ?? []).some((j) => j && String(j.address).toLowerCase() === c.attestation_registry && j.topics?.[0] === C.EVENEMENTS.Anchored.topic && String(j.topics?.[1]).toLowerCase() === empreinte))
+          .some((x) => {
+            const e = echecIndexRelu(m, rep, x);
+            if (e) ctx.log(`avertissement : index ${x.nom} de l'ancre ${empreinte} écarté, ${e.check} en échec : ${e.detail}`);
+            return e === null;
+          });
         // Sur le réseau Hardhat (--sans-capture, EX-A.6), l'ancre incluse suffit : aucune capture n'y est faite.
         if (!capturee && !sansCapture) throw new Arret("ancre_manquante", "OP-10", `ancre ${empreinte} incluse mais sans index de capture dans ${rep} : capturer --transaction --role ancre d'abord (EX-8.4)`);
         // EX-8.19 : une seule demande de clôture par position (org_id, journal_id, first_seq).
@@ -1848,6 +2139,23 @@ async function cmdCondense(ctx, positionnels) {
 
 function tupleEthers(meta) {
   return [meta.org_id, meta.journal_id, meta.period_hash, meta.root, BigInt(meta.period_start), BigInt(meta.period_end), BigInt(meta.first_seq), BigInt(meta.last_seq), meta.version, meta.uri];
+}
+
+/**
+ * EX-6.8 : l'URI d'une clôture ne porte ni le slug ni le nom du journal ;
+ * l'outil les lit dans le dossier d'inscription (--dossier) et les passe à
+ * RG-5 ; sans dossier, seule l'URI vide est admise. Rend
+ * { slug, nom_journal } ou {}.
+ */
+function contexteCloture(d, meta) {
+  if (!d) {
+    if (meta.uri !== "") throw new Arret("usage", null, "--uri non vide exige --dossier : l'URI est contrôlée contre le slug et les noms de journaux du dossier d'inscription (EX-6.8)");
+    return {};
+  }
+  if (d.organisation.org_id !== meta.org_id) throw new Arret("usage", null, `le dossier décrit l'organisation ${d.organisation.org_id}, pas celle du manifeste (${meta.org_id})`);
+  const j = d.journals.find((x) => x.journal_id === meta.journal_id);
+  if (!j) throw new Arret("usage", null, `journal ${meta.journal_id} absent du dossier d'inscription`);
+  return { slug: d.organisation.slug, nom_journal: j.name };
 }
 
 async function periodePrecedente(client, periodRegistry, orgId, journalId, bloc = "latest") {
@@ -2252,7 +2560,7 @@ async function cmdClore(ctx) {
       }
       throw new Arret("doublon", "OP-10", `periodHash ${periodHash} déjà enregistré et qui n'est pas la dernière période du journal`);
     }
-    const r = C.verifier("RG-5", () => C.verifierChampsCloture(meta, { precedente }));
+    const r = C.verifier("RG-5", () => C.verifierChampsCloture(meta, { precedente, ...contexteCloture(d, meta) }));
     if (r.status !== "reussi") throw new Arret(r.code, "OP-10", r.detail);
     const empreinte = C.empreinteAncre({ org_id: meta.org_id, journal_id: meta.journal_id, period_hash: periodHash }).fingerprint;
     const l = await client.vue(c.attestation_registry, "AttestationRegistry", "lookup", [empreinte]);
@@ -2306,6 +2614,7 @@ async function cmdClore(ctx) {
 
 async function cmdAdministrerJeu(ctx) {
   const o = ctx.options;
+  const confirmationSha256 = confirmationHorsBande(o);
   const { instance, client, sansCapture, m } = await preparer(ctx);
   const rep = capturesDe(o);
   const demande = lireJSONFichier(exigerOption(o, "demande"));
@@ -2355,7 +2664,7 @@ async function cmdAdministrerJeu(ctx) {
       },
     },
   });
-  return { result: "reussi", outputs: { operation: f.op, transaction_hash: r.transaction_hash, block_number: r.block_number, gas_used: r.gas_used, cost_wei: r.cost_wei, capture: r.capture } };
+  return { result: "reussi", outputs: { operation: f.op, confirmation_sha256: confirmationSha256, transaction_hash: r.transaction_hash, block_number: r.block_number, gas_used: r.gas_used, cost_wei: r.cost_wei, capture: r.capture } };
 }
 
 function OPERATION_VALEUR(f) {
@@ -2366,6 +2675,23 @@ function OPERATION_VALEUR(f) {
 }
 
 // --- reassigner -------------------------------------------------------------
+
+/** Code d'exécution sans son suffixe de métadonnées CBOR (dont la longueur tient dans les deux derniers octets), en minuscules ; null si la forme n'est pas celle d'un code. */
+function sansMetadonnees(hex) {
+  const h = String(hex ?? "").toLowerCase();
+  if (!/^0x([0-9a-f]{2})+$/.test(h) || h.length < 2 + 4) return null;
+  const n = parseInt(h.slice(-4), 16);
+  const coupe = h.length - 2 * (n + 2);
+  if (!Number.isFinite(n) || coupe <= 2) return null;
+  return h.slice(0, coupe);
+}
+
+/** Les deux codes sont égaux hors suffixe de métadonnées. */
+function memeCodeHorsMetadonnees(code, attendu) {
+  const a = sansMetadonnees(code);
+  const b = sansMetadonnees(attendu);
+  return a !== null && b !== null && a === b;
+}
 
 async function cmdReassigner(ctx) {
   const o = ctx.options;
@@ -2392,6 +2718,8 @@ async function cmdReassigner(ctx) {
     const code = await client.appel("eth_getCode", [nouveau, "latest"]);
     if (!code || code === "0x") throw new Arret("code_absent", "OP-5", `aucun code à ${nouveau}`);
     if (precedent === nouveau) return;
+    // Le nouveau jeu est reconnu à son code, pas à ses réponses : code déployé de l'artefact CuratorSet, hors suffixe de métadonnées (CT-4 EX-8.21).
+    if (!memeCodeHorsMetadonnees(String(code), artefact("CuratorSet").deployedBytecode)) throw new Arret("jeu_invalide", "OP-5", `${nouveau} : le code déployé n'est pas celui de l'artefact CuratorSet (hors suffixe de métadonnées) : un contrat qui répond comme un jeu n'en est pas un (EX-8.10)`);
     // Le nouveau jeu répond comme un CuratorSet (setCuratorSet accepterait toute adresse non nulle, EX-8.10).
     let adminNouveau;
     let seuil;
@@ -2604,10 +2932,10 @@ async function cmdCapturer(ctx) {
         try {
           t = await client.appel("eth_getTransactionByHash", [envoi.transaction_hash], { url });
         } catch (err) {
-          if (err instanceof ErreurRPC || (err instanceof Arret && err.code === "noeud_injoignable")) throw new Arret("noeud_injoignable", "OP-2", `${url} : ${err.message} ; impossible de savoir si ${envoi.transaction_hash} y est connue, ce qui compte comme un refus : --remplacer refusé (EX-8.16)`);
+          if (err instanceof ErreurRPC || (err instanceof Arret && err.code === "noeud_injoignable")) throw new Arret("noeud_injoignable", "OP-2", `${urlSansSecret(url)} : ${err.message} ; impossible de savoir si ${envoi.transaction_hash} y est connue, ce qui compte comme un refus : --remplacer refusé (EX-8.16)`);
           throw err;
         }
-        if (t) throw new Arret("usage", null, `${envoi.transaction_hash} est connue de ${url} : --renvoyer d'abord, jamais --remplacer (8.6)`);
+        if (t) throw new Arret("usage", null, `${envoi.transaction_hash} est connue de ${urlSansSecret(url)} : --renvoyer d'abord, jamais --remplacer (8.6)`);
       }
       const cle = cleSecp(exigerOption(o, "cle"), instance, { nom: "--cle" });
       if (adresseCle(cle) !== envoi.from) throw new Arret("compte_inattendu", null, `--cle ${adresseCle(cle)} n'est pas l'expéditeur ${envoi.from}`);
@@ -2660,17 +2988,68 @@ function conclureCapture(_ctx, r, complement = {}) {
 
 // --- exporter ---------------------------------------------------------------
 
-function lireIndexCaptures(rep) {
+/**
+ * Index de capture du répertoire : chaque `capture-*.json` lisible, conforme à
+ * operations-registre-v0 et nommé selon CP-6 ; un fichier qui ne l'est pas est
+ * écarté avec un avertissement, jamais une exception (CT-4 EX-8.4).
+ */
+function lireIndexCaptures(rep, ctx = null) {
   if (!fs.existsSync(rep)) throw new Arret("entree_illisible", null, `${rep} absent`);
-  return fs
-    .readdirSync(rep)
-    .filter((f) => /^capture-\d+-\d+-[a-z_]+\.json$/.test(f))
-    .sort()
-    .map((f) => ({ nom: f, index: JSON.parse(fs.readFileSync(path.join(rep, f), "utf8")) }));
+  const out = [];
+  for (const f of fs.readdirSync(rep).filter((x) => /^capture-\d+-\d+-[a-z_]+\.json$/.test(x)).sort()) {
+    let index;
+    try {
+      index = JSON.parse(fs.readFileSync(path.join(rep, f), "utf8"));
+    } catch (err) {
+      ctx?.log(`avertissement : index ${f} illisible (${err.message}), écarté`);
+      continue;
+    }
+    const e = conforme(index, C.ID_SCHEMA_OPERATIONS);
+    if (e.length) {
+      ctx?.log(`avertissement : index ${f} non conforme à operations-registre-v0 (${e[0].chemin} : ${e[0].message}), écarté`);
+      continue;
+    }
+    if (f !== C.nomIndex(index.block_number, index.transaction_index, index.role)) {
+      ctx?.log(`avertissement : ${f} n'est pas le nom de CP-6 de l'index qu'il porte, écarté`);
+      continue;
+    }
+    out.push({ nom: f, index });
+  }
+  return out;
 }
 
+/** Reçu de la transaction capturée d'un index relu : le fichier `recu-<transaction_hash>.json` que l'index désigne (CP-6), ou null s'il manque, est illisible ou porte un autre nom. */
 function recuDeIndex(rep, index) {
-  return JSON.parse(fs.readFileSync(path.join(rep, index.files.receipts[index.transaction_index].name), "utf8")).result;
+  const nom = index.files?.receipts?.[index.transaction_index]?.name;
+  if (nom !== `recu-${index.transaction_hash}.json`) return null;
+  try {
+    const v = JSON.parse(fs.readFileSync(path.join(rep, nom), "utf8"));
+    return v && typeof v === "object" && v.result && typeof v.result === "object" && Array.isArray(v.result.logs) ? v.result : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * CP-2 à CP-6 d'un index relu, contre le jeu du manifeste qui couvre sa
+ * hauteur (EX-8.4, EX-9.11) : rend la première vérification en échec
+ * ({ check, code, detail }) ou null ; une exception de la vérification est un
+ * échec CP-2 (CT-4 §9.4).
+ */
+function echecIndexRelu(m, rep, x) {
+  const lireFichier = (nom) => {
+    if (typeof nom !== "string" || path.basename(nom) !== nom) return null;
+    const f = path.join(rep, nom);
+    return fs.existsSync(f) ? fs.readFileSync(f) : null;
+  };
+  const jeu = C.jeuPourHauteur(m, x.index.block_number);
+  if (!jeu) return { check: "CP-4", code: "capture_incomplete", detail: `aucun jeu pour la hauteur ${x.index.block_number}` };
+  try {
+    const v = C.verifierCapture({ index: x.index, lireFichier, validators: { validators: jeu.validators }, bft_chain_id: m.bft_chain_id, schemas: schemas() });
+    return v.checks.find((r) => r.status !== "reussi") ?? null;
+  } catch (err) {
+    return { check: "CP-2", code: "capture_incomplete", detail: `vérification impossible : ${String(err?.message ?? err).slice(0, 300)}` };
+  }
 }
 
 async function cmdExporter(ctx) {
@@ -2688,9 +3067,14 @@ async function cmdExporter(ctx) {
   else throw new Arret("usage", null, "--cles ou --dossier est obligatoire (clés qui signent dans le dossier, EX-9.8)");
   const periodHash = hachageManifeste(manifeste);
   const empreinte = C.empreinteAncre({ org_id: manifeste.org_id, journal_id: manifeste.journal_id, period_hash: periodHash }).fingerprint;
-  const tous = lireIndexCaptures(rep);
+  const tous = lireIndexCaptures(rep, ctx);
   const c = adressesContrats(m);
-  const avecJournal = (role, pred) => tous.filter(({ index }) => index.role === role && pred(recuDeIndex(rep, index).logs[index.log_index]));
+  const avecJournal = (role, pred) =>
+    tous.filter(({ index }) => {
+      if (index.role !== role) return false;
+      const recu = recuDeIndex(rep, index);
+      return recu !== null && pred(recu.logs[index.log_index]);
+    });
   const cloture = avecJournal("cloture", (j) => j && j.address.toLowerCase() === c.period_registry && j.topics[2]?.toLowerCase() === periodHash);
   const ancre = avecJournal("ancre", (j) => j && j.address.toLowerCase() === c.attestation_registry && j.topics[1]?.toLowerCase() === empreinte);
   if (cloture.length !== 1) throw new Arret("capture_incomplete", "CP-5", `${cloture.length} capture(s) de la clôture de ${periodHash} au lieu d'une`);
@@ -2699,10 +3083,11 @@ async function cmdExporter(ctx) {
   const inscriptions = tous
     .filter(({ index }) => index.role === "inscription")
     .map(({ nom, index }) => {
-      const j = recuDeIndex(rep, index).logs[index.log_index];
-      return { nom, index, org: j.topics[1].toLowerCase(), chainKey: "0x" + j.topics[2].slice(26).toLowerCase(), ed: "0x" + j.data.slice(2, 66).toLowerCase() };
+      const j = recuDeIndex(rep, index)?.logs?.[index.log_index];
+      if (!j || !Array.isArray(j.topics) || j.topics.length < 3 || typeof j.data !== "string") return null;
+      return { nom, index, org: String(j.topics[1]).toLowerCase(), chainKey: "0x" + String(j.topics[2]).slice(26).toLowerCase(), ed: "0x" + j.data.slice(2, 66).toLowerCase() };
     })
-    .filter((x) => x.org === manifeste.org_id && x.index.contract === c.recorder_registry);
+    .filter((x) => x && x.org === manifeste.org_id && x.index.contract === c.recorder_registry);
   const cleManifeste = cles.find((k) => k.key_id === manifeste.recorder_key_id);
   const retenues = [];
   if (cleManifeste) {
@@ -2716,12 +3101,9 @@ async function cmdExporter(ctx) {
   }
   if (retenues.length > 8) throw new Arret("capture_incomplete", null, `${retenues.length} inscriptions : au plus 8 (CT-6 EX-13.9)`);
   const choisies = [cloture[0], ancre[0], ...retenues];
-  const lireFichier = (n) => (fs.existsSync(path.join(rep, n)) ? fs.readFileSync(path.join(rep, n)) : null);
+  const lireFichier = (n) => (typeof n === "string" && path.basename(n) === n && fs.existsSync(path.join(rep, n)) ? fs.readFileSync(path.join(rep, n)) : null);
   for (const x of choisies) {
-    const jeu = C.jeuPourHauteur(m, x.index.block_number);
-    if (!jeu) throw new Arret("capture_incomplete", "CP-4", `aucun jeu pour la hauteur ${x.index.block_number}`);
-    const v = C.verifierCapture({ index: x.index, lireFichier, validators: { validators: jeu.validators }, bft_chain_id: m.bft_chain_id, schemas: schemas() });
-    const e = v.checks.find((r) => r.status !== "reussi");
+    const e = echecIndexRelu(m, rep, x);
     if (e) throw new Arret("capture_incomplete", e.check, `${x.nom} : ${e.detail} (EX-9.11)`);
   }
   const dates = [...new Set(choisies.map((x) => x.index.captured_at.slice(0, 10)))].sort();
@@ -3217,7 +3599,7 @@ async function paquetProduire(ctx) {
   }
   // OP-4 hors ligne : le dossier remis est cohérent (slug, org_id, journaux, jeu, classes de garde en production).
   await ctx.op("OP-4", async () => {
-    const r = C.verifierDossierInscription(d, { schemas: schemas(), nature: instance.manifeste.nature, comptes: (instance.manifeste.accounts ?? []).map((x) => x.address) });
+    const r = C.verifierDossierInscription(d, { schemas: schemas(), nature: instance.manifeste.nature, comptes: (instance.manifeste.accounts ?? []).map((x) => x.address), ...optionsProvision(instance.manifeste) });
     if (r.status !== "reussi") throw new Arret(r.code === "entree_illisible" ? "jeu_invalide" : r.code, "OP-4", r.detail);
   });
   const secrets = secretsDesignes(o, instance);
@@ -3346,7 +3728,16 @@ export async function executer(argv, flux = { stdout: process.stdout, stderr: pr
   return { code: resultat.exit_code, sortie: resultat };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+/** Chemin réel d'un fichier (liens symboliques résolus), ou null ; la garde de lancement le compare à celui du module. */
+function cheminReel(p) {
+  try {
+    return fs.realpathSync(path.resolve(p));
+  } catch {
+    return null;
+  }
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === cheminReel(process.argv[1])) {
   executer(process.argv.slice(2)).then(({ code }) => {
     process.exitCode = code;
   });

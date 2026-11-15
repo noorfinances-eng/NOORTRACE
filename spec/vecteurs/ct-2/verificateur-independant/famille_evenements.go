@@ -114,6 +114,12 @@ func familleEvenements(rap *Rapport, ctx *contexteCT2) {
 		}
 	}
 	attendu := lireFichierJSON(rap, filepath.Join(dir, "attendu.json"))
+	if attendu == nil {
+		// L'erreur est consignée par lireFichierJSON : sans attendu, rien
+		// n'est confronté (revue de sécurité de l'étape 8, garde nil).
+		rap.Erreur("evenements/journal-demo/attendu.json : absent ou illisible ; famille evenements non confrontée")
+		return
+	}
 
 	// 1. verdict CT-1
 	res := ControlerChaine(evs, cles)

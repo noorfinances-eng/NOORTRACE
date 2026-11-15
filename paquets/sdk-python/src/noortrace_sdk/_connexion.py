@@ -21,7 +21,7 @@ import threading
 import time
 from typing import Any, Dict, Optional
 
-from ._commun import Adresse, creer_preuve, defi_valide, ligne_jsonrpc
+from ._commun import Adresse, controler_proprietaire_prise, creer_preuve, defi_valide, ligne_jsonrpc
 from .erreurs import NoortraceIndisponible, erreur_depuis_reponse
 
 
@@ -53,6 +53,11 @@ class Connexion:
         """Établit la connexion et la preuve d'identité, au plus ``delai_s`` (EX-6.10)."""
         fin = time.monotonic() + delai_s
         a = self.adresse
+        if a.socket:
+            # la prise appartient au compte attendu du démon, sinon rien n'est envoyé.
+            refus = controler_proprietaire_prise(a.socket, a.proprietaire)
+            if refus:
+                raise NoortraceIndisponible(f"noortrace: enregistreur injoignable ({refus})", False)
         try:
             if a.socket:
                 p = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)

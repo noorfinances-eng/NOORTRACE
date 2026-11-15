@@ -1,4 +1,4 @@
-// Lot WORM : exigences de CT-2 §12.6 (EX-12.16 à EX-12.18, EX-12.29 à
+// Partie WORM : exigences de CT-2 §12.6 (EX-12.16 à EX-12.18, EX-12.29 à
 // EX-12.33), §12.11 (EX-12.34 à EX-12.41), EX-17.5 à EX-17.7 et EX-18.9, en
 // réussite et en échec, contre un vrai service S3 à Object Lock (LocalStack,
 // image épinglée par condensé, lancée dans Docker) derrière un mandataire TLS
@@ -37,7 +37,7 @@ const horloge = (decalage) => ({ murale: () => Date.now() + decalage, monotone: 
 /** Décalage qui place l'horloge dans l'heure suivante, de moins d'une heure (tolérance d'EX-12.33). */
 const versHeureSuivante = () => 3600000 - (Date.now() % 3600000) + 2000;
 
-describe("lot WORM : exigences sur un S3 réel à Object Lock (EX-12.16 à EX-12.41, EX-17.5 à EX-17.7, EX-18.9)", function () {
+describe("partie WORM : exigences sur un S3 réel à Object Lock (EX-12.16 à EX-12.41, EX-17.5 à EX-17.7, EX-18.9)", function () {
   this.timeout(600000);
   const docker = dockerDisponible([IMAGES.s3]);
   let dir;
@@ -318,7 +318,7 @@ describe("lot WORM : exigences sur un S3 réel à Object Lock (EX-12.16 à EX-12
         const s = new SupervisionWorm(worm);
         await s.tic();
         // Manifeste, signature, continuité, signataire et relecture : contrôles du cœur,
-        // avec ou sans WORM (src/controles.mjs, R-A-11) ; copies et rétention : lot WORM.
+        // avec ou sans WORM (src/controles.mjs) ; copies et rétention : partie WORM.
         await c.controles.horaire(c.horlogeBrute.murale());
         await c.controles.quotidien(c.horlogeBrute.murale());
         const checks = c.journal.trouver("integrity_check").map((x) => [x.data.check, x.data.ok]);
@@ -529,8 +529,11 @@ describe("lot WORM : exigences sur un S3 réel à Object Lock (EX-12.16 à EX-12
       const j = await journal({ pieces_days: 30 });
       const { c, P } = await periodeClose(j);
       await c.arreter();
-      const r = await ctl(j, ["worm", "gel", "poser", "--configuration", "@cfg", "--identifiants", j.ref("gardien-pose"), "--identite", "j.dupont", "--de", String(P), "--a", String(P + 3600), "--motif", "litige"]);
-      expect(r.code).to.equal(1);
+      // L'outil voit l'heure du démon qui a clos P (heure suivante, periodeClose) : la période P + 3 600 de la plage est
+      // l'heure courante, non close (manifeste absent) ; sous l'heure réelle, un --a au-delà de l'heure courante rend 2
+      // (CT-2 12.11, « Sous poser, un --a au-delà de l'heure courante rend le code 2 »).
+      const r = await ctl(j, ["worm", "gel", "poser", "--configuration", "@cfg", "--identifiants", j.ref("gardien-pose"), "--identite", "j.dupont", "--de", String(P), "--a", String(P + 3600), "--motif", "litige"], { murale: () => (P + 3600) * 1000 + 2000 });
+      expect(r.code, r.erreur).to.equal(1);
       const gel = r.sortie.trim();
       const pose = JSON.parse((await admin(j).lire(`journal-test/gels/${gel}/0001-pose.json`)).corps.toString("utf8"));
       const kinds = pose.anomalies.map((a) => a.kind);

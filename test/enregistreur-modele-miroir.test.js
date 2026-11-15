@@ -225,7 +225,7 @@ describe("enregistreur, frontal modèle : mode miroir (EX-5.6, EX-14.12)", funct
       expect((await envoyer([couple()]))[0].ok).to.equal(true);
     });
 
-    it("relecture B, R-B-11 (EX-18.1) : la prise du miroir a le mode 0660 dès sa création, sans fenêtre où elle serait plus ouverte", async function () {
+    it("EX-18.1 : la prise du miroir a le mode 0660 dès sa création, sans fenêtre où elle serait plus ouverte", async function () {
       const sock = path.join(dir, "prise", "miroir-mode.sock");
       const r2 = new RecepteurMiroir({ coeur, config: { ...config, model: { ...config.model, mirror: { socket: sock } } } });
       // Mode relevé juste après la liaison de la prise, avant tout rappel (masque du processus ouvert).

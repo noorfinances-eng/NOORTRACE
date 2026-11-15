@@ -80,6 +80,37 @@ anglais, archives, interface. `travailleur.js` est exactement `prelude.js`,
 puis `wasm_exec.js` de go1.27.3 sans changement, puis `pilote.js` où la
 construction écrit `EMPREINTE_WASM` et la version.
 
+## Bornes et limites (EX-18.7 ; revue de sécurité de l'étape 8)
+
+Toutes les bornes sont des constantes nommées en tête de
+`src/page/archives.js` (`BORNES_ARCHIVE`), et nulle part ailleurs : 4 096
+entrées et 256 Mio décompressés par dossier (CT-6 EX-18.7), 64 composants et
+4 096 octets UTF-8 par chemin d'entrée, 512 Mio par fichier lu (valeurs
+proposées par la revue de sécurité de l'étape 8 ; un dossier de CT-6 §4 a ses parties à sa
+racine, soit au plus deux composants dans une archive, et au plus 64 Mio par
+partie, 247 Mio en tout). Un chemin d'entrée est borné avant tout autre
+examen, en temps linéaire en sa longueur : l'archive de 393 octets dont un
+chemin a 100 000 composants (CT-6 EX-18.7) est refusée en quelques millisecondes,
+raison `r_chemin_long`. La taille d'un fichier (archive, fichier d'un
+répertoire, ancres, en-têtes) est contrôlée sur la taille que le navigateur
+déclare, avant toute lecture (`r_fichier_trop_gros`). Le parcours d'un
+répertoire déposé s'arrête à la première entrée au-delà de 4 096 et au premier
+chemin trop long, avant toute lecture de fichier. L'arbre du travailleur est
+numéroté sans récursion : la profondeur d'un chemin ne borne pas la pile.
+Le bouton « Arrêter » met fin à une vérification en cours : le travailleur est
+détruit, la page affiche « vérification non faite » avec la cause, et un
+travailleur neuf reçoit l'artefact (une nouvelle demande de `travailleur.js`
+à la même origine, la seule après le chargement) ; demandé pendant la lecture
+du dossier, l'arrêt retient l'envoi. La page affiche « vérification non
+faite » quand la `version` du bloc `verifier` du rapport JSON diffère de celle
+qu'elle annonce. Toute chaîne venue d'une entrée (rapport lisible, énoncés,
+message d'erreur, sortie d'erreur, chemin d'entrée, nom de fichier) passe par
+`neutraliser` d'`interface.js` avant l'affichage : commandes C0 (sauf
+tabulation et saut de ligne), DEL, C1, U+2028, U+2029 et marques de direction
+sont rendues sous la forme visible `\u{…}`. La page n'impose aucun délai : un
+dossier de 247 Mio peut demander plusieurs minutes, et c'est l'utilisateur
+qui arrête.
+
 ## Essais
 
 | Fichier | Ce qu'il éprouve | Conditions |
@@ -88,6 +119,8 @@ construction écrit `EMPREINTE_WASM` et la version.
 | `test/verification-page-construction.test.js` | reproductibilité (deux copies, deux chemins, deux caches), formes des fichiers produits, en-têtes, `go list -deps` | go1.27.3, en attente sinon |
 | `test/verification-page-identite.test.js` | identité, octet pour octet, avec le binaire natif sur les 190 dossiers (6 460 exécutions) | go1.27.3 et `unshare --root`, en attente sinon |
 | `test/verification-page-chromium.test.js` | la page dans Chromium sous les en-têtes, échantillon fixé sous chaque forme, refus, requêtes, politiques, stockage, TA-101 ; Firefox et WebKit quand Playwright les a | Playwright 1.56.1 et son Chromium, go1.27.3, `unshare --root` ; échoue sous `NOORTRACE_EXIGER_CHROMIUM=1` |
+| `test/verification-page-revue.test.js` | revue de sécurité (étape 8) sous Node : bornes des chemins et des fichiers, archive hostile de 100 000 composants refusée en moins d'une seconde, compteur du parcours, arbre sans récursion, `neutraliser`, libellés des bornes | aucune ; `NOORTRACE_RACINE` pour éprouver une copie des sources |
+| `test/verification-page-revue-navigateurs.test.js` | revue de sécurité (étape 8) dans les trois moteurs : archive hostile (réponse en moins d'une seconde), fichier de 513 Mio, répertoire déposé, version du rapport, bouton « Arrêter », chaînes hostiles affichées | comme `verification-page-chromium.test.js` ; Firefox et WebKit en attente s'ils manquent |
 
 La chaîne Go est prise dans `NOORTRACE_GO_BIN`, à défaut dans le `PATH`.
 Playwright est chargé par `require("playwright")`, installé sans être

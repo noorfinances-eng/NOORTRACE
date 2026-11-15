@@ -1,0 +1,8 @@
+# Contexte de construction de noortrace/outils-demo (racine du dépôt) :
+# tout est exclu, sauf ce que l'image emploie.
+*
+!conteneurs/outils-demo/outils-demo.mjs
+!conteneurs/outils-demo/passwd
+!conteneurs/outils-demo/group
+!LICENSE
+!NOTICE

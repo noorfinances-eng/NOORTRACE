@@ -143,3 +143,19 @@ Ce qu'OpenSSL ne fait pas, en plus de ce qui précède :
   `signatureAlgorithm` et échoue sur la signature altérée.
 - EX-9.15 : le numéro de série de 168 bits de `serie-168-bits.der` est lu et
   accepté (« Verification: OK »).
+- EX-9.6 (révision 0.9 de CT-6) : OpenSSL refuse de décoder le témoin
+  `integer-non-minimal.der` (`SignedData.version` codé `02 02 00 03` :
+  « c2i_ibuf:illegal padding ») et la CRL
+  `crl-tsa-revoquee-serie-non-minimale.pem` (numéro de série révoqué codé
+  `02 02 00 02`), que CT-6 lit en version 0. Le programme les nomme dans
+  `JETONS_ILLISIBLES_PAR_OPENSSL` et `CRL_ILLISIBLES_PAR_OPENSSL` : pour le
+  jeton, aucune vérification T- ni aucun fait n'est établi par OpenSSL (bilan
+  « limites de l'outil ») et le refus est comparé au résultat présumé par
+  `attendu.json` ; pour la CRL, le SHA-256 est calculé sur le DER qu'`openssl
+  asn1parse` décode du PEM. Tout autre jeton ou CRL qu'OpenSSL refuse est une
+  discordance.
+- Jetons dont un champ de `TSTInfo` est illisible par `openssl asn1parse`
+  (`t1-tstinfo-integer-vide.der` : `accuracy.seconds` codé `02 00`) : le champ
+  est relevé tel quel et le cas doit avoir T-1 pour cible ; le nom `tsa` d'un
+  jeton qu'`openssl ts` refuse est lu attribut par attribut dans la sortie
+  d'`asn1parse`.

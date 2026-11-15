@@ -14,7 +14,10 @@
       "listen": "0.0.0.0:8300",
       "path": "/mcp",
       "allowed_origins": [],
-      "tls": null,
+      "tls": {
+        "cert_file": "/run/secrets/tls-enregistreur-certificat",
+        "key_file": "/run/secrets/tls-enregistreur-cle"
+      },
       "oauth": null,
       "static_tokens": [
         {
@@ -128,7 +131,10 @@
   "model": {
     "mode": "passerelle",
     "listen": "0.0.0.0:8400",
-    "tls": null,
+    "tls": {
+      "cert_file": "/run/secrets/tls-enregistreur-certificat",
+      "key_file": "/run/secrets/tls-enregistreur-cle"
+    },
     "hosts": [
       {
         "id": "agent-sinistres-passerelle",
@@ -392,7 +398,7 @@
           },
           {
             "name": "paiement <= 5000 CHF",
-            "description": null,
+            "description": "Un paiement de 0 à 5 000 CHF ouvre, une fois approuvé, une fenêtre de 24 heures pour au plus 10 autres paiements au même bénéficiaire (CT-3 §5.3) : le cumul par bénéficiaire et par jour est borné ; un montant négatif, non numérique ou sans bénéficiaire ne satisfait aucune règle et revient à la règle par défaut (revue).",
             "tools": [
               "sap__payments.create"
             ],
@@ -405,15 +411,26 @@
                 },
                 {
                   "path": "/arguments/amount",
+                  "op": "superieur_ou_egal",
+                  "value": "0"
+                },
+                {
+                  "path": "/arguments/amount",
                   "op": "inferieur_ou_egal",
                   "value": "5000"
                 }
               ]
             },
-            "level": "automatique",
-            "decision": "autorise",
-            "window": null,
-            "contest_ms": null
+            "level": "fenetre",
+            "decision": null,
+            "window": {
+              "duration_ms": 86400000,
+              "max_calls": 10,
+              "same_arguments": [
+                "/arguments/beneficiary_iban"
+              ]
+            },
+            "contest_ms": 0
           },
           {
             "name": "paiement > 5000 CHF",

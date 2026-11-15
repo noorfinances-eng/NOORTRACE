@@ -28,6 +28,13 @@
 // l'exportateur de nœud). Avec --intervalle : une passe par intervalle, en
 // ajout (seuls les octets nouveaux de chaque fichier sont lus ; un fichier
 // raccourci ou remplacé est relu depuis le début), jusqu'à SIGTERM ou SIGINT.
+// Témoin de vie (CT-8 EX-10.7) : en mode --intervalle, chaque passe réussie
+// ajoute à l'exposition la jauge noortrace_extracteur_derniere_passe_s
+// (instant de la passe, secondes UNIX) ; un extracteur arrêté laisse un
+// instant qui n'avance plus. Un procès-verbal dont finished_at dépasse
+// l'heure de la passe de plus de TOLERANCE_FUTUR_MS n'est pas lu (il le
+// sera quand sa date sera passée) et est signalé sur la sortie d'erreur :
+// une date future ferait taire noortrace_sauvegarde_en_retard jusqu'à elle.
 // Codes : 0 exposition écrite ; 1 chemin illisible ; 2 usage.
 
 import fs from "node:fs";
@@ -37,6 +44,10 @@ import { parseArgs } from "node:util";
 import { messageOptions } from "../lib/deploiement.mjs";
 import { verifierProcesVerbal } from "../lib/exploitation.mjs";
 import { Extracteur, SOURCES, analyserJSONStrict, lignesCompletes } from "../lib/supervision.mjs";
+import { TEMOIN_EXTRACTEUR, expositionTemoin } from "./sonde.mjs";
+
+/** Avance admise d'un procès-verbal sur l'heure de la passe (ms) ; au-delà, il est écarté jusqu'à sa date. */
+export const TOLERANCE_FUTUR_MS = 300000;
 
 const USAGE = [
   "Usage : node scripts/deploiement/extraire-journaux.mjs --repertoire <répertoire> [--sortie <fichier>] [--intervalle <s>]",
@@ -72,14 +83,21 @@ function pv1(texte) {
  * en ajout).
  */
 export class ExtracteurFichiers {
-  /** @param {Record<string, string[]>} chemins par source (et "proces-verbaux") */
-  constructor(chemins) {
+  /**
+   * @param {Record<string, string[]>} chemins par source (et "proces-verbaux")
+   * @param {{maintenant?: () => number, avertir?: (message: string) => void}} [o] horloge de la passe (ms) et sortie des avertissements
+   */
+  constructor(chemins, o = {}) {
     this.chemins = chemins;
     this.x = new Extracteur();
     /** @type {Map<string, {position: number}>} position lue, par « périphérique:inode » */
     this.positions = new Map();
     /** @type {Map<string, string>} empreinte (mtime, taille) des documents entiers déjà lus */
     this.documents = new Map();
+    this.maintenant = o.maintenant ?? (() => Date.now());
+    this.avertir = o.avertir ?? ((m) => process.stderr.write(`${m}\n`));
+    /** @type {Set<string>} procès-verbaux écartés pour date future, déjà signalés */
+    this.futurs = new Set();
   }
 
   /** Une passe : lit ce qui est nouveau. */
@@ -105,14 +123,24 @@ export class ExtracteurFichiers {
         const st = fs.statSync(f);
         const marque = `${st.ino}:${st.size}:${st.mtimeMs}`;
         if (this.documents.get(f) === marque) continue;
-        this.documents.set(f, marque);
         const texte = fs.readFileSync(f, "utf8");
         let doc = null;
         try {
           doc = analyserJSONStrict(texte);
         } catch {
+          this.documents.set(f, marque);
           continue;
         }
+        // Date future : le procès-verbal n'est pas lu tant que sa date n'est pas passée (il reste à réexaminer).
+        const fin = typeof doc?.finished_at === "string" ? Date.parse(doc.finished_at) : NaN;
+        if (Number.isFinite(fin) && fin > this.maintenant() + TOLERANCE_FUTUR_MS) {
+          if (!this.futurs.has(marque)) {
+            this.futurs.add(marque);
+            this.avertir(`Avertissement : procès-verbal écarté, finished_at dans le futur (${doc.finished_at}) : ${f}`);
+          }
+          continue;
+        }
+        this.documents.set(f, marque);
         this.x.ajouterProcesVerbal(doc, pv1(texte));
       }
     }
@@ -183,9 +211,10 @@ export function principal(argv, sortie = process.stdout, erreur = process.stderr
   } else {
     for (const s of OPTIONS_SOURCES) if (o[s] !== undefined) chemins[s] = o[s];
   }
-  const ex = new ExtracteurFichiers(chemins);
+  const ex = new ExtracteurFichiers(chemins, { avertir: (m) => erreur.write(`${m}\n`) });
   const unePasse = () => {
-    const texte = ex.passe();
+    // Témoin de vie en mode --intervalle : la jauge n'est écrite qu'au terme d'une passe réussie.
+    const texte = ex.passe() + (o.intervalle !== undefined ? expositionTemoin(TEMOIN_EXTRACTEUR, Date.now()) : "");
     if (o.sortie !== undefined) ecrireAtomique(o.sortie, texte);
     else sortie.write(texte);
   };

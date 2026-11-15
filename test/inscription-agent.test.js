@@ -31,6 +31,8 @@ const X = "exploitant operateur-1";
 const JOURNAL = "journal-principal";
 const JID = "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b";
 const SORTIE = "https://noortrace.example/schemas/v0/operations-registre.schema.json#/$defs/sortie";
+/** Autre racine du paquet pour l'agent principal (copie mutante hors du dépôt, revue de l'étape 8) ; le dépôt sinon. */
+const PAQUET = process.env.NOORTRACE_INSCRIPTION_PAQUET ? path.resolve(process.env.NOORTRACE_INSCRIPTION_PAQUET) : null;
 
 const enAttente = (ctx, condition) => {
   (ctx.currentTest ?? ctx.test).title += ` — en attente : ${condition}`;
@@ -104,12 +106,35 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
   };
   const dossierA = (p) => JSON.parse(fs.readFileSync(a.client(p.A.slug).dossier, "utf8"));
   const dossierB = (p) => JSON.parse(fs.readFileSync(p.B.dossier, "utf8"));
+  /**
+   * Pièce qui porte une confirmation hors bande (courrier signé, procès-verbal), recueillie par l'exploitant hors de
+   * l'application (EX-7.26, EX-8.21) : un fichier non vide sous `dir` et son SHA-256. L'exploitant saisit ce SHA-256
+   * (`piece_sha256`) dans la confirmation remise à l'agent, qui n'a jamais la pièce ; l'outil de référence reçoit la pièce
+   * elle-même (`--confirmation <fichier>`) et en recalcule le SHA-256 (`outputs.confirmation_sha256`).
+   */
+  let pieces = 0;
+  const piece = (nom) => {
+    pieces += 1;
+    const fichier = path.join(dir, `piece-${nom}-${pieces}.txt`);
+    fs.writeFileSync(fichier, `Confirmation hors bande ${nom} n° ${pieces} : courrier signé du client, recueilli par ${X}.\n`);
+    return { fichier, sha256: "0x" + crypto.createHash("sha256").update(fs.readFileSync(fichier)).digest("hex") };
+  };
+  /** Remet une confirmation par clé de chaîne du client ; rend les pièces, dans l'ordre des clés. */
   const confirmer = async (p, operation = "approvisionnement") => {
     const d = dossierA(p);
+    const liste = [];
     for (const c of p.A.cles) {
-      const r = await a.confirmation(X, { operation, objet: { org_id: d.organisation.org_id, cle_chaine: c.chaine.adresse }, personne_client: "Responsable de l'essai", canal: "appel téléphonique au numéro du contrat", instant: "2026-11-11T10:00:00.000Z", piece_sha256: "0x" + "ab".repeat(32) });
+      const pc = piece(`${p.A.slug}-${operation}`);
+      const r = await a.confirmation(X, { operation, objet: { org_id: d.organisation.org_id, cle_chaine: c.chaine.adresse }, personne_client: "Responsable de l'essai", canal: "appel téléphonique au numéro du contrat", instant: "2026-11-11T10:00:00.000Z", piece_sha256: pc.sha256 });
       expect(r.accepte, JSON.stringify(r)).to.equal(true);
+      liste.push(pc);
     }
+    return liste;
+  };
+  /** Même pièce des deux côtés (EX-7.24) : `outputs.confirmation_sha256` de l'agent et de l'outil valent le SHA-256 de la pièce. */
+  const memePiece = (sa, sb, pc) => {
+    expect(sa.outputs.confirmation_sha256, "agent : confirmation_sha256 = piece_sha256 de la confirmation").to.equal(pc.sha256);
+    expect(sb.outputs.confirmation_sha256, "outil : confirmation_sha256 = SHA-256 de --confirmation").to.equal(pc.sha256);
   };
   const inscrireClient = async (p, { confirmation = true } = {}) => {
     if (confirmation) await confirmer(p);
@@ -146,7 +171,8 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
     reseau = await E.demarrerReseau();
     pont = await E.ouvrirPont(reseau.provider, { noorcore: true });
     manifeste = E.ecrireManifesteEssai(path.join(dir, "instance"), reseau);
-    a = await O.demarrerAgentEssai({ manifeste, rpc: pont.url, delai_s: 3 });
+    // `dir` est le répertoire de clés de l'agent : un travail ne désigne un fichier que sous lui (CT-4 EX-7.25, revue de l'étape 8).
+    a = await O.demarrerAgentEssai({ manifeste, rpc: pont.url, delai_s: 3, clesRepertoire: dir, racinePaquet: PAQUET });
   });
 
   afterEach(async function () {
@@ -290,10 +316,10 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
     });
 
     it("une confirmation consigne l'exploitant, la personne du client, le canal, l'instant, l'opération, son objet et la pièce, en ajout seul (EX-7.26)", async function () {
-      await confirmer(p);
+      const [pc] = await confirmer(p);
       const lignes = fs.readFileSync(path.join(a.donnees, "confirmations.ndjson"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
       const c = lignes[lignes.length - 1];
-      expect(c).to.include({ operation: "approvisionnement", personne_client: "Responsable de l'essai", canal: "appel téléphonique au numéro du contrat", instant: "2026-11-11T10:00:00.000Z", piece_sha256: "0x" + "ab".repeat(32), exploitant: X });
+      expect(c).to.include({ operation: "approvisionnement", personne_client: "Responsable de l'essai", canal: "appel téléphonique au numéro du contrat", instant: "2026-11-11T10:00:00.000Z", piece_sha256: pc.sha256, exploitant: X });
       expect(c.objet).to.deep.equal({ org_id: dossierA(p).organisation.org_id, cle_chaine: p.A.cles[0].chaine.adresse });
       expect(c.id).to.match(/^cnf-[0-9a-f]{32}$/);
       expect(c.recu_a).to.match(/^\d{4}-\d{2}-\d{2}T/);
@@ -352,16 +378,19 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
     });
 
     it("approvisionner (8.7) : clé au-dessus du seuil (deja_fait), destinataire hors d'EX-8.20 (compte_inattendu), comme l'outil", async function () {
-      await confirmer(p, "approvisionner");
+      const [pc] = await confirmer(p, "approvisionner");
       let t = await agent({ commande: "approvisionner", slug: p.A.slug, parametres: { cle_chaine: p.A.cles[0].chaine.adresse } });
-      let sb = await outil(["approvisionner", "--vers", p.B.cles[0].chaine.adresse, "--dossier", p.B.dossier, "--tresorerie", "hardhat:0", "--captures", p.B.captures]);
+      let sb = await outil(["approvisionner", "--vers", p.B.cles[0].chaine.adresse, "--dossier", p.B.dossier, "--tresorerie", "hardhat:0", "--captures", p.B.captures, "--confirmation", pc.fichier]);
       memeForme(t.sortie, sb);
       expect(t.sortie.result).to.equal("deja_fait");
+      // Rien n'est versé : la confirmation n'est pas consommée, mais la sortie nomme la pièce qui autorise l'opération, comme l'outil (CT-4 EX-8.21).
+      memePiece(t.sortie, sb, pc);
       const autre = O.compteHardhat(9).adresse;
       const dA = dossierA(p);
-      await a.confirmation(X, { operation: "approvisionner", objet: { org_id: dA.organisation.org_id, cle_chaine: autre }, personne_client: "Responsable de l'essai", canal: "courrier signé", instant: "2026-11-11T10:00:00.000Z", piece_sha256: "0x" + "cd".repeat(32) });
+      const pcAutre = piece("autre");
+      await a.confirmation(X, { operation: "approvisionner", objet: { org_id: dA.organisation.org_id, cle_chaine: autre }, personne_client: "Responsable de l'essai", canal: "courrier signé", instant: "2026-11-11T10:00:00.000Z", piece_sha256: pcAutre.sha256 });
       t = await agent({ commande: "approvisionner", slug: p.A.slug, parametres: { cle_chaine: autre } });
-      sb = await outil(["approvisionner", "--vers", autre, "--dossier", p.B.dossier, "--tresorerie", "hardhat:0", "--captures", p.B.captures]);
+      sb = await outil(["approvisionner", "--vers", autre, "--dossier", p.B.dossier, "--tresorerie", "hardhat:0", "--captures", p.B.captures, "--confirmation", pcAutre.fichier]);
       memeForme(t.sortie, sb);
       expect(t.sortie.error.code).to.equal("compte_inattendu");
     });
@@ -369,11 +398,12 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
     it("approvisionner une clé neuve du dossier : versement capturé, même sortie que l'outil", async function () {
       const q = paire("verse");
       await preparer(q);
-      await confirmer(q, "approvisionner");
+      const [pc] = await confirmer(q, "approvisionner");
       const t = await agent({ commande: "approvisionner", slug: q.A.slug, parametres: { cle_chaine: q.A.cles[0].chaine.adresse } });
-      const sb = await outil(["approvisionner", "--vers", q.B.cles[0].chaine.adresse, "--dossier", q.B.dossier, "--tresorerie", "hardhat:0", "--captures", q.B.captures]);
+      const sb = await outil(["approvisionner", "--vers", q.B.cles[0].chaine.adresse, "--dossier", q.B.dossier, "--tresorerie", "hardhat:0", "--captures", q.B.captures, "--confirmation", pc.fichier]);
       memeForme(t.sortie, sb);
       expect(t.sortie.result).to.equal("reussi");
+      memePiece(t.sortie, sb, pc);
       expect(dossierA(q).steps.find((s) => s.step === "approvisionnement").state).to.equal("capturee");
     });
 
@@ -396,9 +426,10 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
       expect(r).to.deep.include({ accepte: false, code: "confirmation_absente" });
       expect(pont.envoisRecus.length).to.equal(envois);
       // Une nouvelle confirmation : admis ; la clé est au-dessus du seuil, rien n'est versé, la confirmation n'est pas consommée.
-      await confirmer(q, "approvisionner");
+      const [pc2] = await confirmer(q, "approvisionner");
       const t2 = await agent({ commande: "approvisionner", slug: q.A.slug, parametres: { cle_chaine: cle } });
       expect(t2.sortie.result).to.equal("deja_fait");
+      expect(t2.sortie.outputs.confirmation_sha256, "deja_fait : la pièce de la confirmation non consommée qui autorise l'opération").to.equal(pc2.sha256);
       expect(lignes().filter((l) => l.consommation && l.cle_chaine === cle).length).to.equal(1);
       expect(pont.envoisRecus.length).to.equal(envois);
     });
@@ -459,27 +490,29 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
         fs.writeFileSync(f, JSON.stringify(d));
         return f;
       };
-      const relaisB = (d) => outil(["administrer-jeu", "--demande", d, "--captures", p.B.captures, "--relayeur", "hardhat:0", "--delai", "3"]);
+      const relaisB = (d, pc) => outil(["administrer-jeu", "--demande", d, "--captures", p.B.captures, "--relayeur", "hardhat:0", "--delai", "3", "--confirmation", pc.fichier]);
       // Sans confirmation : refus confirmation_absente, rien n'est envoyé, aucune sortie (EX-7.26).
       const envois = pont.envoisRecus.length;
       const r = await a.travail(X, { commande: "administrer-jeu", slug: p.A.slug, parametres: { demande: bonneA, relayeur: true } });
       expect(r).to.deep.include({ accepte: false, code: "confirmation_absente" });
       expect(pont.envoisRecus.length).to.equal(envois);
       // Confirmation consignée pour cette demande (objet : son condensé).
-      const conf = await a.confirmation(X, { operation: "administrer-jeu", objet: { org_id: dossierA(p).organisation.org_id, digest: demA.digest }, personne_client: "Responsable de l'essai", canal: "courrier signé", instant: "2026-11-11T10:00:00.000Z", piece_sha256: "0x" + "ad".repeat(32) });
+      const pc = piece("admin");
+      const conf = await a.confirmation(X, { operation: "administrer-jeu", objet: { org_id: dossierA(p).organisation.org_id, digest: demA.digest }, personne_client: "Responsable de l'essai", canal: "courrier signé", instant: "2026-11-11T10:00:00.000Z", piece_sha256: pc.sha256 });
       expect(conf.accepte, JSON.stringify(conf)).to.equal(true);
       // Signataire qui n'est pas l'administrateur : pas_administrateur (OP-5), comme l'outil ; la confirmation n'est pas consommée.
       let t = await agent({ commande: "administrer-jeu", slug: p.A.slug, parametres: { demande: mauvaiseA, relayeur: true } });
-      let sb = await relaisB(ecrire("mauvaise", mauvaiseB));
+      let sb = await relaisB(ecrire("mauvaise", mauvaiseB), pc);
       memeForme(t.sortie, sb);
       expect(t.sortie.error).to.deep.include({ code: "pas_administrateur", check: "OP-5" });
       expect(pont.envoisRecus.length).to.equal(envois);
       // Demande signée par l'administrateur : relayée, capturée, même sortie que l'outil.
       t = await agent({ commande: "administrer-jeu", slug: p.A.slug, parametres: { demande: bonneA, relayeur: true } });
-      sb = await relaisB(ecrire("bonne", bonneB));
+      sb = await relaisB(ecrire("bonne", bonneB), pc);
       memeForme(t.sortie, sb);
       expect(t.sortie.result, JSON.stringify(t.sortie.error)).to.equal("reussi");
       expect(t.sortie.outputs.operation).to.equal("CuratorSet.addCurator");
+      memePiece(t.sortie, sb, pc);
       expect(fs.existsSync(path.join(a.client(p.A.slug).captures, t.sortie.outputs.capture))).to.equal(true);
       expect(t.sortie.outputs.capture).to.match(/-administration_jeu\.json$/);
       const lignes = fs.readFileSync(path.join(a.donnees, "confirmations.ndjson"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
@@ -487,10 +520,11 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
       // La même confirmation ne sert pas deux fois ; avec une nouvelle, le relais d'une demande consommée rend le refus de l'outil.
       const r2 = await a.travail(X, { commande: "administrer-jeu", slug: p.A.slug, parametres: { demande: bonneA, relayeur: true } });
       expect(r2).to.deep.include({ accepte: false, code: "confirmation_absente" });
-      await a.confirmation(X, { operation: "administrer-jeu", objet: { org_id: dossierA(p).organisation.org_id, digest: demA.digest }, personne_client: "Responsable de l'essai", canal: "courrier signé", instant: "2026-11-11T10:05:00.000Z", piece_sha256: "0x" + "ae".repeat(32) });
+      const pc2 = piece("admin-bis");
+      await a.confirmation(X, { operation: "administrer-jeu", objet: { org_id: dossierA(p).organisation.org_id, digest: demA.digest }, personne_client: "Responsable de l'essai", canal: "courrier signé", instant: "2026-11-11T10:05:00.000Z", piece_sha256: pc2.sha256 });
       const envois2 = pont.envoisRecus.length;
       t = await agent({ commande: "administrer-jeu", slug: p.A.slug, parametres: { demande: bonneA, relayeur: true } });
-      sb = await relaisB(ecrire("bonne", bonneB));
+      sb = await relaisB(ecrire("bonne", bonneB), pc2);
       memeForme(t.sortie, sb);
       expect(t.sortie.error).to.deep.include({ code: "pas_administrateur", check: "OP-5" });
       expect(pont.envoisRecus.length).to.equal(envois2);
@@ -513,6 +547,12 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
         nonce: mot(await appel(set, SEL_JEU.opNonce)),
       });
       let n = 0;
+      /**
+       * Pièces des confirmations non consommées, par condensé de demande : l'agent consomme la plus ancienne (base.mjs,
+       * EX-7.26), et une demande refusée avant l'envoi (acceptAdmin signée par l'ancien administrateur) laisse la sienne
+       * libre pour la même demande refaite (même condensé) ; l'outil reçoit cette pièce-là.
+       */
+      const confirmationsLibres = new Map();
       /** Une opération des deux côtés : condense, signature hors de l'application, confirmation (agent), relais ou expéditeur désigné. */
       const operation = async (op, arg, signataire, envoi) => {
         n += 1;
@@ -527,11 +567,20 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
         expect({ ...demA.fields, nonce: null }).to.deep.equal({ ...demB.fields, nonce: null });
         const fbs = path.join(dir, `${p.B.slug}-administration-${n}-signee.json`);
         fs.writeFileSync(fbs, JSON.stringify(demB));
-        const conf = await a.confirmation(X, { operation: "administrer-jeu", objet: { org_id: orgA, digest: demA.digest }, personne_client: "Responsable de l'essai", canal: "courrier signé", instant: "2026-11-11T11:00:00.000Z", piece_sha256: "0x" + "ac".repeat(32) });
+        const pc = piece(`admin-ops-${n}`);
+        const conf = await a.confirmation(X, { operation: "administrer-jeu", objet: { org_id: orgA, digest: demA.digest }, personne_client: "Responsable de l'essai", canal: "courrier signé", instant: "2026-11-11T11:00:00.000Z", piece_sha256: pc.sha256 });
         expect(conf.accepte, JSON.stringify(conf)).to.equal(true);
+        const libres = confirmationsLibres.get(demA.digest) ?? [];
+        libres.push(pc);
+        confirmationsLibres.set(demA.digest, libres);
+        const attendue = libres[0];
         const t = await agent({ commande: "administrer-jeu", slug: p.A.slug, parametres: envoi === "relayeur" ? { demande: demA, relayeur: true } : { demande: demA, expediteur: envoi } });
-        const sb = await outil(["administrer-jeu", "--demande", fbs, "--captures", p.B.captures, ...(envoi === "relayeur" ? ["--relayeur", "hardhat:0"] : ["--expediteur", envoi]), "--delai", "3"]);
+        const sb = await outil(["administrer-jeu", "--demande", fbs, "--captures", p.B.captures, ...(envoi === "relayeur" ? ["--relayeur", "hardhat:0"] : ["--expediteur", envoi]), "--delai", "3", "--confirmation", attendue.fichier]);
         memeForme(t.sortie, sb);
+        if (t.sortie.result === "reussi") {
+          memePiece(t.sortie, sb, attendue);
+          libres.shift();
+        }
         expect(t.sortie.checks.map((x) => `${x.id}:${x.status}`), op).to.deep.equal(sb.checks.map((x) => `${x.id}:${x.status}`));
         return { t, sb };
       };

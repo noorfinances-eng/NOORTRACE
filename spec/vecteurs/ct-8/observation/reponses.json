@@ -1,6 +1,6 @@
 {
   "version": 0,
-  "description": "OB-6 (CT-8 EX-12.16) : réponse reçue du service sous une version en mode observation et ce que le noyau en fait (CT-2 EX-7.23, EX-14.15 ; CT-3 EX-12.20) : relais, policy scellée, marque, ligne d'exploitation.",
+  "description": "OB-6 (CT-8 EX-12.16) : réponse reçue du service sous une version en mode observation et ce que le noyau en fait (CT-2 EX-7.23, EX-14.15 ; CT-3 EX-12.20) : relais, policy scellée, marque, ligne d'exploitation. Contexte du noyau (CT-2 EX-7.16, révision 0.8) : versions détenues 2026-11-05-observation (empreinte 0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912, condensé du membre approval 0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e, en vigueur, celle de la requête) et 2026-11-05-erreur (empreinte 0xa4fc605ed6150d195f39f0a17f48fd9868f73a4efee469ae7764a11f682a170f, condensé 0xa866fa5ab951735156052400d148b06654c1534b848251db81ab38b4af180589) ; une réponse admise recopie la version et l'empreinte du charger de 2026-11-05-observation et porte le condensé du membre approval reçu à ce charger.",
   "cases": [
     {
       "id": "reponse-admise",
@@ -14,7 +14,10 @@
         "ticket": null,
         "ticket_state": null,
         "approval": null,
-        "approver_set": null
+        "approver_set": null,
+        "policy_version": "2026-11-05-observation",
+        "policy_sha256": "0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912",
+        "approval_sha256": "0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e"
       },
       "expected": {
         "admitted": true,
@@ -61,7 +64,10 @@
         "ticket": null,
         "ticket_state": null,
         "approval": null,
-        "approver_set": null
+        "approver_set": null,
+        "policy_version": "2026-11-05-observation",
+        "policy_sha256": "0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912",
+        "approval_sha256": "0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e"
       },
       "expected": {
         "admitted": false,
@@ -88,7 +94,10 @@
         "ticket": null,
         "ticket_state": null,
         "approval": null,
-        "approver_set": null
+        "approver_set": null,
+        "policy_version": "2026-11-05-observation",
+        "policy_sha256": "0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912",
+        "approval_sha256": "0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e"
       },
       "expected": {
         "admitted": false,
@@ -115,7 +124,10 @@
         "ticket": null,
         "ticket_state": null,
         "approval": null,
-        "approver_set": null
+        "approver_set": null,
+        "policy_version": "2026-11-05-observation",
+        "policy_sha256": "0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912",
+        "approval_sha256": "0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e"
       },
       "expected": {
         "admitted": false,
@@ -142,7 +154,10 @@
         "ticket": null,
         "ticket_state": null,
         "approval": null,
-        "approver_set": null
+        "approver_set": null,
+        "policy_version": "2026-11-05-observation",
+        "policy_sha256": "0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912",
+        "approval_sha256": "0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e"
       },
       "expected": {
         "admitted": true,
@@ -169,7 +184,10 @@
         "ticket": null,
         "ticket_state": null,
         "approval": null,
-        "approver_set": null
+        "approver_set": null,
+        "policy_version": "2026-11-05-observation",
+        "policy_sha256": "0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912",
+        "approval_sha256": "0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e"
       },
       "expected": {
         "admitted": false,
@@ -196,7 +214,10 @@
         "ticket": "apr-0001",
         "ticket_state": "en_attente",
         "approval": null,
-        "approver_set": null
+        "approver_set": null,
+        "policy_version": "2026-11-05-observation",
+        "policy_sha256": "0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912",
+        "approval_sha256": "0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e"
       },
       "expected": {
         "admitted": false,
@@ -223,7 +244,10 @@
         "ticket": null,
         "ticket_state": null,
         "approval": null,
-        "approver_set": null
+        "approver_set": null,
+        "policy_version": "2026-11-05-observation",
+        "policy_sha256": "0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912",
+        "approval_sha256": "0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e"
       },
       "expected": {
         "admitted": false,
@@ -240,7 +264,7 @@
     },
     {
       "id": "membre-en-trop",
-      "description": "Septième membre contest_ms : forme non admise.",
+      "description": "Dixième membre contest_ms : forme non admise.",
       "checks": [
         "OB-6"
       ],
@@ -251,7 +275,157 @@
         "ticket_state": null,
         "approval": null,
         "approver_set": null,
+        "policy_version": "2026-11-05-observation",
+        "policy_sha256": "0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912",
+        "approval_sha256": "0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e",
         "contest_ms": 0
+      },
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_response_invalid"
+      }
+    },
+    {
+      "id": "six-membres",
+      "description": "Réponse de la révision 0.4, sans policy_version, policy_sha256 ni approval_sha256 : la réponse ne reporte pas la politique sous laquelle elle est rendue (CT-2 EX-7.16, révision 0.8) ; relais marqué inconnu.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null
+      },
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_response_invalid"
+      }
+    },
+    {
+      "id": "approval-sha256-autres-regles",
+      "description": "Condensé du membre approval de l'ensemble en mode erreur (0xa866fa5ab951735156052400d148b06654c1534b848251db81ab38b4af180589) sous la version en observation : ce n'est pas le SHA-256 du membre approval que le noyau a envoyé au charger de cette version ; relais marqué inconnu.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "2026-11-05-observation",
+        "policy_sha256": "0x94f80d3b8ee9935923e612b2f96a474b4955d656411c3a53eb1f810578fd2912",
+        "approval_sha256": "0xa866fa5ab951735156052400d148b06654c1534b848251db81ab38b4af180589"
+      },
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_response_invalid"
+      }
+    },
+    {
+      "id": "empreinte-autre",
+      "description": "Empreinte de l'ensemble en mode erreur (0xa4fc605ed6150d195f39f0a17f48fd9868f73a4efee469ae7764a11f682a170f) sous la version en observation : ce n'est pas l'empreinte déclarée au charger de cette version ; relais marqué inconnu.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "2026-11-05-observation",
+        "policy_sha256": "0xa4fc605ed6150d195f39f0a17f48fd9868f73a4efee469ae7764a11f682a170f",
+        "approval_sha256": "0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e"
+      },
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_response_invalid"
+      }
+    },
+    {
+      "id": "version-inconnue",
+      "description": "Version 2026-11-05-inconnue que le noyau n'a jamais chargée, avec une empreinte quelconque : relais marqué inconnu.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "2026-11-05-inconnue",
+        "policy_sha256": "0xa126e8b3638929fd98d8ea9a120ef941902fce41b31faa10b2f9bea5d62d31b0",
+        "approval_sha256": "0xe50e0dc12dad01f0407f0dca6ec2ea0a8293300c5b48f59f34c99ea8b215266e"
+      },
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_response_invalid"
+      }
+    },
+    {
+      "id": "version-detenue-autre-que-la-requete",
+      "description": "Version 2026-11-05-erreur détenue avec sa bonne empreinte et son bon condensé, mais la requête est évaluée sous 2026-11-05-observation et aucun ticket n'est rapproché : relais marqué inconnu.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "policy_version": "2026-11-05-erreur",
+        "policy_sha256": "0xa4fc605ed6150d195f39f0a17f48fd9868f73a4efee469ae7764a11f682a170f",
+        "approval_sha256": "0xa866fa5ab951735156052400d148b06654c1534b848251db81ab38b4af180589"
       },
       "expected": {
         "admitted": false,

@@ -171,21 +171,47 @@ export const refusDemarrage = (code, pointeur, message) =>
 const refus = (pointeur, quoi) => refusDemarrage("reference_illisible", pointeur, `référence ${quoi} : ${pointeur}`);
 
 /**
+ * Pointeurs dont la référence est un secret (IP-10) : le fichier doit
+ * être `0400` ou `0600` et appartenir au compte du serveur (CT-8, secrets
+ * « 0400, propriété du compte du service qui le lit »), comme pour le démon.
+ * Les certificats et autorités (`/tls/cert`, `/service/ca`,
+ * `/service/client_cert`) sont publics et ne sont pas soumis à ce contrôle.
+ */
+export const POINTEURS_SECRETS = Object.freeze(["/tls/key", "/service/token", "/service/client_key", "/identity/client_secret", "/identity/accounts"]);
+
+/**
  * Lit une référence de secret (`{ file }`, relatif au répertoire de la
- * configuration s'il n'est pas absolu, ou `{ env }`).
+ * configuration s'il n'est pas absolu, ou `{ env }`). Pour un pointeur de
+ * `POINTEURS_SECRETS`, un fichier lisible par d'autres que son propriétaire
+ * ou d'un autre propriétaire que le compte du serveur est refusé
+ * (`reference_illisible`, le message dit la cause sans la valeur).
  * @param {{file?: string, env?: string}} ref
  * @param {string} base
  * @param {string} pointeur
+ * @param {{uid?: number|null}} [contexte] `uid` : compte du serveur (défaut : celui du processus ; `null` : non comparé)
  * @returns {Buffer}
  */
-export function lireReference(ref, base, pointeur) {
+export function lireReference(ref, base, pointeur, contexte = {}) {
   if (ref.env !== undefined) {
     const v = process.env[ref.env];
     if (v === undefined) throw refus(pointeur, "illisible");
     return Buffer.from(v, "utf8");
   }
+  const chemin = path.resolve(base, ref.file);
+  if (POINTEURS_SECRETS.includes(pointeur)) {
+    let st;
+    try {
+      st = fs.statSync(chemin);
+    } catch {
+      throw refus(pointeur, "illisible");
+    }
+    const uid = contexte.uid === undefined ? (process.getuid?.() ?? null) : contexte.uid;
+    const refusSecret = (cause) => refusDemarrage("reference_illisible", pointeur, `référence illisible : ${pointeur} (${cause})`);
+    if ((st.mode & 0o077) !== 0) throw refusSecret("fichier de secret lisible par d'autres que son propriétaire ; 0400 ou 0600 attendu");
+    if (uid !== null && st.uid !== uid) throw refusSecret("fichier de secret d'un autre propriétaire que le compte du serveur");
+  }
   try {
-    return fs.readFileSync(path.resolve(base, ref.file));
+    return fs.readFileSync(chemin);
   } catch {
     throw refus(pointeur, "illisible");
   }
@@ -231,8 +257,8 @@ function clePrivee(octets, pointeur) {
  * @param {object} c configuration complétée
  * @param {string} base répertoire du fichier de configuration
  */
-export function resoudreReferences(c, base) {
-  const lire = (ref, p) => lireReference(ref, base, p);
+export function resoudreReferences(c, base, contexte = {}) {
+  const lire = (ref, p) => lireReference(ref, base, p, contexte);
   const tlsCert = certificats(lire(c.tls.cert, "/tls/cert"), "/tls/cert");
   const tlsCle = clePrivee(lire(c.tls.key, "/tls/key"), "/tls/key");
   try {

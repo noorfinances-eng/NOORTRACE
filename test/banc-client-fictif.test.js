@@ -129,7 +129,8 @@ describe("Étape 7 : banc client fictif — installation complète IC-1 à IC-18
       if (process.env.NOORTRACE_BANC_ORG) args.push("--org", process.env.NOORTRACE_BANC_ORG);
       const r = spawnSync(process.execPath, args, { cwd: RACINE, encoding: "utf8", timeout: 3 * 3600000, maxBuffer: 64 * 1024 * 1024 });
       if (r.status === 3) {
-        s.attente = `condition du banc absente : ${r.stderr.trim().split("\n").slice(1).join(" ; ")}`;
+        // Code 3 : « Conditions du banc absentes : » puis une ligne « - <condition> » par condition, la première en tête.
+        s.attente = `${r.stderr.trim().split("\n").slice(1).map((l) => l.replace(/^- /, "")).join(" ; ")} ; condition du banc absente (code 3 du harnais)`;
         return;
       }
     }
@@ -219,15 +220,44 @@ describe("Étape 7 : banc client fictif — installation complète IC-1 à IC-18
 });
 
 describe("Étape 7 : entrées de CT-9 que le banc ne tient pas (rattachement motivé)", function () {
-  it("TE-6, TM-21 : installation rapide IR-1 à IR-8 — non jouée par le banc de l'étape 7 (le banc tient l'installation complète, critère de l'étape 7) ; le remplacement du faux prestataire RFC 3161 de rapide.yaml par le serveur interne n'est pas fait (décision du porteur attendue sur le prestataire RFC 3161 hors production)", function () {
-    enAttente(this, "installation rapide hors du banc de l'étape 7 : rapide.yaml n'a pas de service d'horodatage, et IR-7 exige un serveur d'outils joint par l'enregistreur en mode observation");
+  // Le banc tient l'installation complète (critère de l'étape 7). Les entrées ci-dessous sont tenues hors du banc :
+  // chaque essai vérifie que le rattachement est réel dans le catalogue publié (spec/vecteurs/ct-9/catalogue.json) :
+  // l'entrée est exécutable par des essais d'autres fichiers, qui existent et portent mot pour mot les titres cités
+  // (CT-9 EX-5.4), ou elle est à écrire et rattachée à la porte 2 avec son motif.
+  const catalogue = lireJson(path.join(RACINE, "spec", "vecteurs", "ct-9", "catalogue.json"));
+  const entree = (id) => {
+    const e = catalogue.tests.find((x) => x.id === id);
+    expect(e, `${id} absente du catalogue`).to.not.equal(undefined);
+    return e;
+  };
+  function tenueHorsDuBanc(id) {
+    const e = entree(id);
+    expect(e.status.state, id).to.equal("executable");
+    expect(e.status.tests, id).to.have.length.above(0);
+    for (const t of e.status.tests) {
+      expect(t.file, id).to.not.equal("test/banc-client-fictif.test.js");
+      const f = path.join(RACINE, t.file);
+      expect(fs.existsSync(f), `${id} : ${t.file}`).to.equal(true);
+      const texte = fs.readFileSync(f, "utf8");
+      for (const titre of [t.describe, t.it].filter(Boolean)) expect(texte.includes(titre), `${id} : titre cité absent de ${t.file} : ${titre}`).to.equal(true);
+    }
+    return e.status.tests.map((t) => t.file);
+  }
+
+  it("TE-6, TM-21 : installation rapide IR-1 à IR-8, hors du banc de l'étape 7 (le banc tient l'installation complète) : TE-6 est tenue par les essais de l'installation rapide que cite le catalogue, TM-21 est à écrire et rattachée à la porte 2 avec son motif", function () {
+    expect(tenueHorsDuBanc("TE-6")).to.include("test/deploiement-installation.test.js");
+    const tm21 = entree("TM-21");
+    expect(tm21.status.state).to.equal("a_ecrire");
+    expect(tm21.status.phase2_step).to.equal(8);
+    expect(tm21.status.blocking).to.match(/porte 2/);
   });
 
-  it("TE-8, TM-36 : flux FL-1 à FL-31 relevés et runbooks RB-1 à RB-8 rejoués sur le déploiement de test — non joués (incidents provoqués, supervision collectée : TE-17, étape 8)", function () {
-    enAttente(this, "rejeu des runbooks et relevé des flux non construits sur le banc : à rattacher à l'étape 8 avec la démonstration de référence (TM-36 la nomme)");
+  it("TE-8, TM-36 : flux FL-1 à FL-31 relevés et runbooks RB-1 à RB-8 rejoués, hors du banc de l'étape 7 : tenus par l'essai de la démonstration de référence que cite le catalogue", function () {
+    expect(tenueHorsDuBanc("TE-8")).to.deep.equal(["test/pannes-bout-en-bout.test.js"]);
+    expect(tenueHorsDuBanc("TM-36")).to.deep.equal(["test/pannes-bout-en-bout.test.js"]);
   });
 
-  it("TE-10 : mode observation de bout en bout — exige l'installation rapide (précondition de CT-9), hors du banc de l'étape 7", function () {
-    enAttente(this, "installation rapide (mode observation) non jouée par le banc de l'étape 7");
+  it("TE-10 : mode observation de bout en bout, hors du banc de l'étape 7 : tenu par l'essai de l'installation rapide en mode observation que cite le catalogue", function () {
+    expect(tenueHorsDuBanc("TE-10")).to.deep.equal(["test/cas-observation.test.js"]);
   });
 });

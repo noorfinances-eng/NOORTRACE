@@ -30,6 +30,13 @@ export { ErreurConsole, analyserIdentite, estIdentiteCanonique, identiteCanoniqu
 const MAX_ENTREES = 10000;
 const MAX_ADRESSES = 64;
 const MAX_DEMANDEURS = 64;
+// Bornes des défis non expirés (revue de sécurité de l'étape 8 ; révision d'EX-13.13 demandée) :
+// `preparer_inscription` est refusée (`limite_annuaire`), sans changer les
+// défis, quand elle ajouterait un cinquième défi pour l'identité ou un
+// 1 025ᵉ défi au total ; le remplacement du défi de la même identité et de la
+// même adresse ne compte pas.
+export const MAX_DEFIS_PAR_IDENTITE = 4;
+export const MAX_DEFIS = 1024;
 
 const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const aCle = (o, c) => Object.prototype.hasOwnProperty.call(o, c);
@@ -562,6 +569,9 @@ export function appliquerOperation(annuaire, methode, requete, at, options) {
     const e = annuaire.entries.find((x) => x.session_identity === requete.session_identity);
     if (e !== undefined && e.active !== true) return refus("identite_desactivee");
     if (annuaire.entries.some((x) => x.addresses.some((a) => a.address === requete.address))) return refus("adresse_deja_attribuee");
+    // Bornes des défis non expirés, hors celui que ce défi remplacerait (CT-3 EX-13.13).
+    const tenus = defis.filter((d) => decoderInstant(d.fields.expires_at) > t && !(d.fields.identity === requete.session_identity && d.fields.address === requete.address));
+    if (tenus.length >= MAX_DEFIS || tenus.filter((d) => d.fields.identity === requete.session_identity).length >= MAX_DEFIS_PAR_IDENTITE) return refus("limite_annuaire");
     const nonce = opts.nonce !== undefined ? opts.nonce : versHex(aleaOctets(16)).slice(2);
     const fields = {
       origin: annuaire.console_origin,
@@ -686,7 +696,9 @@ const METHODES_CONTROLE_CANAL = Object.freeze(["tickets", "consulter", "voter", 
  * @param {object} annuaire
  * @param {"tickets"|"consulter"|"voter"|"recuser"|"retirer"} methode
  * @param {unknown} requete
- * @param {{launched_by: string|null, eligible: string[]}|null} ticket nul pour un ticket inconnu dans l'organisation, et toujours pour `tickets`
+ * @param {{launched_by: string|null, eligible: string[]}|null} ticket nul pour un ticket inconnu dans l'organisation, et pour `tickets`
+ *   sans `related_to` ; avec `related_to`, le ticket désigné, auquel s'applique l'ordre de `consulter` (CT-3 EX-13.32,
+ *   EX-12.21, révision 0.8)
  * @returns {null|"requete_invalide"|"identite_invalide"|"session_non_autorisee"|"ticket_inconnu"}
  */
 export function controleCanal(annuaire, methode, requete, ticket) {
@@ -701,7 +713,9 @@ export function controleCanal(annuaire, methode, requete, ticket) {
   const active = e === undefined ? null : adresseActive(e);
   switch (methode) {
     case "tickets":
-      return admin || e !== undefined ? null : "session_non_autorisee";
+      // CT-3 révision 0.8 (EX-13.32, EX-12.21 ; revue de l'étape 8) : avec `related_to`, l'ordre de `consulter`.
+      if (requete.related_to === undefined) return admin || e !== undefined ? null : "session_non_autorisee";
+    // falls through
     case "consulter":
       if (!admin && e === undefined) return "session_non_autorisee";
       if (ticket === null) return "ticket_inconnu";

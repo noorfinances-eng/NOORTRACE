@@ -97,21 +97,40 @@ function lireJson(octets) {
   }
 }
 
+/** Bornes du contrôle de réception (revue de l'étape 8) : taille d'un fichier du paquet, nombre d'entrées lues. */
+export const FICHIER_PAQUET_MAX_OCTETS = 64 * 1024 * 1024;
+export const ENTREES_PAQUET_MAX = 4096;
+
 /**
  * Parcourt le répertoire du paquet : rend `{ fichiers: Map<chemin relatif,
  * octets>, anomalies: [{ fichier, code }] }`. Seuls sont admis des fichiers
  * ordinaires à la racine et dans `captures/`, sans lien symbolique ni
- * sous-répertoire de `captures/`.
+ * sous-répertoire de `captures/`. Un fichier au-delà de
+ * `FICHIER_PAQUET_MAX_OCTETS` n'est pas lu (`fichier_trop_grand`) ; au-delà
+ * de `ENTREES_PAQUET_MAX` entrées, le parcours s'arrête
+ * (`trop_de_fichiers`) : le paquet vient de l'exploitant, que le client ne
+ * croit pas (EX-7.22).
  */
 function parcourir(repertoire) {
   const fichiers = new Map();
   const anomalies = [];
+  let entrees = 0;
   const lire = (relatif, absolu) => {
+    if (entrees >= ENTREES_PAQUET_MAX) {
+      if (anomalies.at(-1)?.code !== "trop_de_fichiers") anomalies.push({ fichier: relatif, code: "trop_de_fichiers" });
+      return;
+    }
+    entrees += 1;
     const st = fs.lstatSync(absolu);
-    if (st.isFile()) fichiers.set(relatif, new Uint8Array(fs.readFileSync(absolu)));
-    else anomalies.push({ fichier: relatif, code: "fichier_non_ordinaire" });
+    if (!st.isFile()) anomalies.push({ fichier: relatif, code: "fichier_non_ordinaire" });
+    else if (st.size > FICHIER_PAQUET_MAX_OCTETS) anomalies.push({ fichier: relatif, code: "fichier_trop_grand" });
+    else fichiers.set(relatif, new Uint8Array(fs.readFileSync(absolu)));
   };
-  for (const nom of fs.readdirSync(repertoire).sort(comparerOctets)) {
+  const noms = fs.readdirSync(repertoire).sort(comparerOctets);
+  // Le manifeste du paquet d'abord : les bornes ne doivent pas le faire passer pour absent (point 1).
+  if (noms.includes(MANIFESTE_PAQUET)) lire(MANIFESTE_PAQUET, path.join(repertoire, MANIFESTE_PAQUET));
+  for (const nom of noms) {
+    if (nom === MANIFESTE_PAQUET) continue;
     const absolu = path.join(repertoire, nom);
     const st = fs.lstatSync(absolu);
     if (nom === "captures" && st.isDirectory()) {

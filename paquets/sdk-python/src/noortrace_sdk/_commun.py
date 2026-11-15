@@ -15,8 +15,14 @@ import os
 import random
 import re
 import ssl
+import stat
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Union
+
+try:  # pwd n'existe que sur les systèmes POSIX
+    import pwd
+except ImportError:  # pragma: no cover
+    pwd = None  # type: ignore[assignment]
 
 from .erreurs import NoortraceConfiguration, NoortraceEntreeInvalide
 
@@ -51,11 +57,24 @@ def delai_reprise(n: int, u: Optional[float] = None) -> float:
     return min(0.5 * 2 ** n, 8.0) * (1 - 0.25 * u)
 
 
+def _chaine_representable(s: str) -> bool:
+    """Une ``str`` est une valeur JSON si elle s'encode en UTF-8 : un substitut
+    isolé (forme ``surrogateescape`` d'``os.listdir``) n'en est pas une (étape 8)."""
+    try:
+        s.encode("utf-8")
+    except UnicodeEncodeError:
+        return False
+    return True
+
+
 def est_valeur_json(v: Any, _vus: Optional[set] = None) -> bool:
-    """Valeur JSON au sens d'EX-6.9 : ``dict`` à clés chaînes, ``list``, ``str``,
-    ``int``, ``float`` fini, ``bool``, ``None``, récursivement (sans cycle)."""
-    if v is None or isinstance(v, (str, bool)):
+    """Valeur JSON au sens d'EX-6.9 : ``dict`` à clés chaînes, ``list``, ``str``
+    (représentable en UTF-8), ``int``, ``float`` fini, ``bool``, ``None``,
+    récursivement (sans cycle)."""
+    if v is None or isinstance(v, bool):
         return True
+    if isinstance(v, str):
+        return _chaine_representable(v)
     if isinstance(v, int):
         return True
     if isinstance(v, float):
@@ -69,7 +88,7 @@ def est_valeur_json(v: Any, _vus: Optional[set] = None) -> bool:
     try:
         if isinstance(v, list):
             return all(est_valeur_json(x, vus) for x in v)
-        return all(isinstance(k, str) and est_valeur_json(x, vus) for k, x in v.items())
+        return all(isinstance(k, str) and _chaine_representable(k) and est_valeur_json(x, vus) for k, x in v.items())
     finally:
         vus.discard(id(v))
 
@@ -87,9 +106,10 @@ def nom_de_classe(e: BaseException) -> str:
 def ligne_jsonrpc(id_: int, nom: str, params: Mapping[str, Any]) -> bytes:
     """Ligne JSON-RPC 2.0 d'une requête, ``\\n`` final (4.7.1).
 
-    Une valeur que JSON ne représente pas (objet quelconque, nombre non fini)
-    n'est jamais envoyée : ``NoortraceEntreeInvalide`` (raison
-    ``valeur_non_json``), levée avant l'écriture (LISEZMOI, lecture 145).
+    Une valeur que JSON ne représente pas (objet quelconque, nombre non fini,
+    chaîne à substitut isolé) n'est jamais envoyée : ``NoortraceEntreeInvalide``
+    (raison ``valeur_non_json``), levée avant l'écriture (LISEZMOI, lecture 145 ;
+    étape 8 : l'encodage UTF-8 est sous le même ``try``).
     """
     try:
         texte = json.dumps(
@@ -98,22 +118,61 @@ def ligne_jsonrpc(id_: int, nom: str, params: Mapping[str, Any]) -> bytes:
             separators=(",", ":"),
             allow_nan=False,
         )
-    except (TypeError, ValueError) as e:
+        return (texte + "\n").encode("utf-8")
+    except (TypeError, ValueError) as e:  # UnicodeEncodeError est une ValueError
         raise NoortraceEntreeInvalide(
             "noortrace: valeur non JSON dans les parametres", {"reason": "valeur_non_json"}
         ) from e
-    return (texte + "\n").encode("utf-8")
+
+
+def est_adresse_de_bouclage(hote: str) -> bool:
+    """Hôte de la boucle locale (étape 8, CT-2 EX-6.10) : ``localhost``, 127.0.0.0/8, ``::1``."""
+    h = (hote or "").lower()
+    return h == "localhost" or h in ("::1", "0:0:0:0:0:0:0:1") or bool(re.fullmatch(r"(::ffff:)?127\.\d{1,3}\.\d{1,3}\.\d{1,3}", h))
+
+
+def controler_proprietaire_prise(socket: str, proprietaire: Union[str, int, None]) -> Optional[str]:
+    """Compte attendu du démon pour la prise jointe (étape 8) : un uid (nombre
+    ou chaîne décimale), un nom de compte, ou rien ; sans compte attendu, la prise
+    doit appartenir au compte du processus ou au compte 0. Rend la raison du refus
+    (``prise_absente``, ``prise_non_prise``, ``prise_autre_compte``,
+    ``proprietaire_inconnu``) ou ``None``."""
+    if not hasattr(os, "getuid"):
+        return None
+    try:
+        st = os.lstat(socket)
+    except OSError:
+        return "prise_absente"
+    if not stat.S_ISSOCK(st.st_mode):
+        return "prise_non_prise"
+    if proprietaire is None or proprietaire == "":
+        return None if st.st_uid in (os.getuid(), 0) else "prise_autre_compte"
+    uid: Optional[int]
+    if isinstance(proprietaire, int) and not isinstance(proprietaire, bool):
+        uid = proprietaire
+    elif re.fullmatch(r"[0-9]{1,10}", str(proprietaire)):
+        uid = int(proprietaire)
+    else:
+        try:
+            uid = pwd.getpwnam(str(proprietaire)).pw_uid if pwd is not None else None
+        except KeyError:
+            uid = None
+    if uid is None:
+        return "proprietaire_inconnu"
+    return None if st.st_uid == uid else "prise_autre_compte"
 
 
 @dataclass(frozen=True)
 class Adresse:
-    """Adresse résolue du démon : prise Unix, ou TCP (jeton, ou mTLS)."""
+    """Adresse résolue du démon : prise Unix, ou TCP (jeton, ou mTLS) ;
+    ``proprietaire`` : compte attendu du démon pour une prise Unix."""
 
     socket: Optional[str]
     hote: Optional[str]
     port: Optional[int]
     jeton: Optional[str]
     tls: Optional[ssl.SSLContext]
+    proprietaire: Optional[str] = None
 
 
 def _analyser_tcp(tcp: str) -> tuple:
@@ -124,11 +183,13 @@ def _analyser_tcp(tcp: str) -> tuple:
 
 
 def resoudre_adresse(socket: Optional[str], tcp: Optional[str], jeton: Optional[str],
-                     env: Optional[Mapping[str, str]] = None) -> Adresse:
+                     env: Optional[Mapping[str, str]] = None, proprietaire: Optional[str] = None) -> Adresse:
     """Adresse du démon (EX-6.10), dans cet ordre : paramètres du constructeur,
     environnement (``NOORTRACE_SDK_SOCKET``, ``NOORTRACE_SDK_TCP``,
     ``NOORTRACE_SDK_TOKEN``, ``NOORTRACE_SDK_TLS_CA``, ``NOORTRACE_SDK_TLS_CERT``,
-    ``NOORTRACE_SDK_TLS_KEY``), à défaut la prise ``/run/noortrace/sdk.sock``."""
+    ``NOORTRACE_SDK_TLS_KEY``, ``NOORTRACE_SDK_PROPRIETAIRE``), à défaut la prise
+    ``/run/noortrace/sdk.sock``. Une prise TCP hors de la boucle locale n'est
+    admise qu'en mTLS (étape 8, CT-2 EX-6.10 : le jeton partirait en clair)."""
     env = os.environ if env is None else env
     if socket and tcp:
         raise NoortraceConfiguration("noortrace: socket et tcp exclusifs")
@@ -155,13 +216,17 @@ def resoudre_adresse(socket: Optional[str], tcp: Optional[str], jeton: Optional[
             return Adresse(None, hote, port, None, contexte)
         if not jeton:
             raise NoortraceConfiguration("noortrace: une prise TCP exige un jeton ou mTLS (EX-4.39)")
+        if not est_adresse_de_bouclage(hote):
+            raise NoortraceConfiguration("noortrace: une prise TCP hors de la boucle locale exige mTLS, le jeton partirait en clair (EX-6.10)")
         return Adresse(None, hote, port, jeton, None)
     if not isinstance(socket, str) or len(socket) == 0:
         raise NoortraceConfiguration("noortrace: chemin de prise invalide")
     # EX-6.10 : au plus 103 octets ; un chemin plus long joindrait une autre prise.
     if len(os.fsencode(socket)) > CHEMIN_PRISE_MAX:
         raise NoortraceConfiguration("noortrace: chemin de prise de plus de 103 octets")
-    return Adresse(socket, None, None, None, None)
+    if proprietaire is None and env.get("NOORTRACE_SDK_PROPRIETAIRE"):
+        proprietaire = env["NOORTRACE_SDK_PROPRIETAIRE"]
+    return Adresse(socket, None, None, None, None, proprietaire)
 
 
 def verifier_reglages(delai_s: Any, reprises: Any, sur: Any) -> None:
@@ -176,7 +241,8 @@ def verifier_reglages(delai_s: Any, reprises: Any, sur: Any) -> None:
 
 def defi_valide(m: Any) -> Optional[str]:
     """Défi de la preuve d'identité sur la prise Unix, s'il est bien formé."""
-    if isinstance(m, dict) and isinstance(m.get("noortrace_defi"), str) and _MOTIF_DEFI.match(m["noortrace_defi"]):
+    # ``fullmatch`` : un saut de ligne final n'est pas un défi (étape 8).
+    if isinstance(m, dict) and isinstance(m.get("noortrace_defi"), str) and _MOTIF_DEFI.fullmatch(m["noortrace_defi"]):
         return m["noortrace_defi"]
     return None
 

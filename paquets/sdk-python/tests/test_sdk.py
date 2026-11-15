@@ -10,6 +10,7 @@ import dataclasses
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -63,6 +64,8 @@ def intention_durable(banc, call: str) -> bool:
 def dossier_court():
     d = tempfile.mkdtemp(prefix="ntpy-")
     yield d
+    # Libéré après l'essai, échec compris (pytest joue la suite du générateur dans tous les cas).
+    shutil.rmtree(d, ignore_errors=True)
 
 
 # ---------------------------------------------------------------- interface de 6.5 (EX-6.9)

@@ -16,10 +16,48 @@ import { ErreurNoortraceIndisponible, erreurDepuisReponse } from "./erreurs.mjs"
 /** Préfixe du fichier de preuve d'identité, celui du connecteur stdio du démon. */
 export const PREFIXE_DEFI = ".noortrace-defi-";
 
+/**
+ * Compte attendu du démon pour la prise jointe (étape 8 : un membre
+ * du groupe des prises peut lier la sienne au chemin du démon pendant son
+ * arrêt). `attendu` : un uid (nombre ou chaîne décimale), un nom de compte de
+ * `/etc/passwd`, ou rien ; sans compte attendu, la prise doit appartenir au
+ * compte du processus ou au compte 0.
+ * @param {string} chemin
+ * @param {string|number|null|undefined} attendu
+ * @returns {string|null} raison du refus (`prise_absente`, `prise_non_prise`,
+ *   `prise_autre_compte`, `proprietaire_inconnu`), ou null
+ */
+export function controlerProprietairePrise(chemin, attendu) {
+  if (typeof process.getuid !== "function") return null;
+  let st;
+  try {
+    st = fs.lstatSync(chemin);
+  } catch {
+    return "prise_absente";
+  }
+  if (!st.isSocket()) return "prise_non_prise";
+  if (attendu === null || attendu === undefined || attendu === "") {
+    return st.uid === process.getuid() || st.uid === 0 ? null : "prise_autre_compte";
+  }
+  let uid;
+  if (typeof attendu === "number") uid = attendu;
+  else if (/^[0-9]{1,10}$/.test(String(attendu))) uid = Number(attendu);
+  else {
+    try {
+      const l = fs.readFileSync("/etc/passwd", "utf8").split("\n").map((x) => x.split(":")).find((c) => c[0] === String(attendu));
+      uid = l ? Number(l[2]) : undefined;
+    } catch {
+      uid = undefined;
+    }
+  }
+  if (!Number.isInteger(uid)) return "proprietaire_inconnu";
+  return st.uid === uid ? null : "prise_autre_compte";
+}
+
 export class Connexion {
   /**
    * @param {{socket?: string|null, tcp?: {hote: string, port: number}|null, jeton?: string|null,
-   *   tls?: {ca: Buffer, cert: Buffer, key: Buffer}|null}} o
+   *   tls?: {ca: Buffer, cert: Buffer, key: Buffer}|null, proprietaire?: string|number|null}} o
    */
   constructor(o) {
     this.o = o;
@@ -49,7 +87,12 @@ export class Connexion {
       const minuteur = setTimeout(() => echec("delai"), delaiMs);
       const o = this.o;
       let c;
-      if (o.socket) c = net.createConnection(o.socket);
+      if (o.socket) {
+        // la prise appartient au compte attendu du démon, sinon rien n'est envoyé.
+        const refus = controlerProprietairePrise(o.socket, o.proprietaire ?? null);
+        if (refus) return echec(refus);
+        c = net.createConnection(o.socket);
+      }
       else if (o.tls) c = tls.connect({ host: o.tcp.hote, port: o.tcp.port, ca: o.tls.ca, cert: o.tls.cert, key: o.tls.key, servername: net.isIP(o.tcp.hote) ? undefined : o.tcp.hote });
       else c = net.createConnection(o.tcp.port, o.tcp.hote);
       this.prise = c;

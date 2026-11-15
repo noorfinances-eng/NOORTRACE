@@ -1,7 +1,7 @@
-// Binaire `noortrace-ancrage` (lot F1 ; CT-5 EX-8.13, EX-10.6, EX-10.7,
+// Binaire `noortrace-ancrage` (CT-5 EX-8.13, EX-10.6, EX-10.7,
 // EX-12.1, EX-12.2, AN-1, AN-2, AN-3, AN-42, AN-54, AN-59, AN-61) : chaque
 // commande sur les vecteurs publiés (`configuration` sur l'exemple d'EX-4.8,
-// `trace` sur les vingt-quatre traces, `cout` sur les onze cas, `completude`
+// `trace` sur les vingt-huit traces, `cout` sur les onze cas, `completude`
 // sur les six cas, `serie` sur les séries valides et invalides de CT-1,
 // `fiche` sur l'autorité de test, `acquisitions` sur un fichier
 // d'enregistrements), codes de retour 0, 1, 2, messages en français, aucune
@@ -33,7 +33,7 @@ function blocApres(texte, marqueur) {
   return lignes.slice(i + 1, fin).join("\n");
 }
 
-describe("ancrage, composant F1 : binaire noortrace-ancrage", function () {
+describe("ancrage, composant : binaire noortrace-ancrage", function () {
   this.timeout(300000);
   let dir;
   let exemple;
@@ -66,7 +66,7 @@ describe("ancrage, composant F1 : binaire noortrace-ancrage", function () {
     const prodOk = bin(["configuration", exemple, "--profil", "production", "--checkpoint-interval", "60", "--json"]);
     expect(prodOk.code).to.equal(0);
     expect(JSON.parse(prodOk.stdout)).to.deep.include({ valide: true, profil: "production", erreurs: [] });
-    const trace = bin(["configuration", path.join(CT5, "planification", "heure-nominale-reference.json")]);
+    const trace = bin(["configuration", path.join(CT5, "planification", "heure-nominale-reference.json"), "--profil", "developpement"]);
     expect(trace.code).to.equal(1);
     expect(trace.stdout).to.include("[schema]");
     const mauvais = structuredClone(lireJson(exemple));
@@ -74,19 +74,22 @@ describe("ancrage, composant F1 : binaire noortrace-ancrage", function () {
     mauvais.rfc3161.providers.push({ ...mauvais.rfc3161.providers[0], id: "deuxieme-principal" });
     const f = path.join(dir, "mauvais.json");
     fs.writeFileSync(f, JSON.stringify(mauvais));
-    const r = bin(["configuration", f, "--json"]);
+    const r = bin(["configuration", f, "--json", "--profil", "developpement"]);
     expect(r.code).to.equal(1);
     expect(JSON.parse(r.stdout).erreurs.map((e) => e.regle).sort()).to.deep.equal(["2", "6"]);
     expect(bin(["configuration", f, "--profil", "autre"]).code).to.equal(2);
+    // Revue de sécurité de l'étape 8 (CT-5 EX-4.9) : sans --profil, usage (le profil pris par défaut dirait « valide » d'un document que la production refuse).
+    expect(bin(["configuration", f]).code).to.equal(2);
+    expect(bin(["configuration", f]).stderr).to.include("--profil");
     expect(bin(["configuration"]).code).to.equal(2);
-    expect(bin(["configuration", path.join(dir, "absent.json")]).code).to.equal(1);
+    expect(bin(["configuration", path.join(dir, "absent.json"), "--profil", "developpement"]).code).to.equal(1);
     // Aucune valeur de secret dans la sortie : les références sont des emplacements, le binaire n'en lit aucun.
     expect(ok.stdout + prod.stdout).to.not.include("NOORTRACE_TSA_PRINCIPAL");
   });
 
-  it("trace (AN-42) : chacune des vingt-quatre traces de planification/ (révision 0.6 de CT-5 : file-fenetre-32 et file-fenetre-32-redemarrage en plus) est rejouée conforme (code 0) ; une trace altérée donne un écart et le code 1", function () {
+  it("trace (AN-42) : chacune des vingt-huit traces de planification/ (révision 0.6 de CT-5 : file-fenetre-32 et file-fenetre-32-redemarrage ; revue de l'étape 8 : releve-pendant-reprise, redemarrage-releve, redemarrage-echeance-remplacee, file-lignes-illisibles) est rejouée conforme (code 0) ; une trace altérée donne un écart et le code 1", function () {
     const traces = fs.readdirSync(path.join(CT5, "planification")).filter((f) => f.endsWith(".json")).sort();
-    expect(traces).to.have.lengthOf(24);
+    expect(traces).to.have.lengthOf(28);
     for (const f of traces) {
       const r = bin(["trace", path.join(CT5, "planification", f)]);
       expect(r.code, `${f} : ${r.stdout} ${r.stderr}`).to.equal(0);

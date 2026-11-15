@@ -21,7 +21,7 @@ const chemin = path.resolve(args[1]);
 process.env.NOORTRACE_INSCRIPTION_CONFIG = chemin;
 process.env.NEXT_TELEMETRY_DISABLED = "1";
 const WEB = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "web");
-const { lireConfigurationInterface, comptes } = await import("../src/web/lib/serveur.mjs");
+const { lireConfigurationInterface, comptes, ENTETE_ADRESSE_CLIENTE } = await import("../src/web/lib/serveur.mjs");
 const { CORPS_MAX, DELAI_REQUETE_MS } = await import("../src/web/lib/bornes.mjs");
 let config;
 try {
@@ -51,7 +51,20 @@ function refuserCorps(req, res, statut, code, message) {
   });
   res.end(corps, () => req.socket.destroy());
 }
+/**
+ * Adresse cliente pour le verrou de connexion (CT-7 CLE-37) : l'adresse du pair ; en
+ * production, où seul le mandataire TLS joint la boucle locale, la dernière adresse de X-Forwarded-For qu'il pose.
+ * L'en-tête est toujours réécrit : une valeur reçue du client n'est jamais gardée.
+ */
+function adresseCliente(req) {
+  const pair = req.socket.remoteAddress ?? "";
+  if (config.nature !== "production") return pair;
+  const xff = req.headers["x-forwarded-for"];
+  const derniere = typeof xff === "string" ? xff.split(",").at(-1).trim() : "";
+  return derniere || pair;
+}
 const serveur = http.createServer((req, res) => {
+  req.headers[ENTETE_ADRESSE_CLIENTE] = adresseCliente(req);
   const annonce = req.headers["content-length"];
   if (annonce !== undefined && /^[0-9]+$/.test(annonce) && Number(annonce) > CORPS_MAX) return refuserCorps(req, res, 413, "corps_trop_grand", `corps au-delà de ${CORPS_MAX} octets`);
   if (req.headers["transfer-encoding"] !== undefined) return refuserCorps(req, res, 411, "longueur_exigee", "corps sans Content-Length refusé");

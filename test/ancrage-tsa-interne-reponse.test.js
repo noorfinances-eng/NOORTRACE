@@ -1,4 +1,4 @@
-// Réponses du serveur RFC 3161 interne (lot E, CT-5 §7) : les six requêtes
+// Réponses du serveur RFC 3161 interne (CT-5 §7) : les six requêtes
 // de spec/vecteurs/ct-5/requetes jouées avec l'autorité de test de CT-6
 // rendent, à série et horloge injectées, les six réponses `granted` de
 // référence OCTET POUR OCTET (RSA PKCS#1 v1.5 est déterministe), que
@@ -42,7 +42,7 @@ function requete({ algorithme = OID_TSA.sha256, condense = Buffer.alloc(32, 0xab
   return D.sequence(...parties);
 }
 
-describe("ancrage lot E — réponses granted : six requêtes des vecteurs CT-5, autorité de test de CT-6", function () {
+describe("ancrage, serveur RFC 3161 interne — réponses granted : six requêtes des vecteurs CT-5, autorité de test de CT-6", function () {
   this.timeout(60000);
   let rep;
   before(function () {
@@ -192,7 +192,7 @@ describe("ancrage lot E — réponses granted : six requêtes des vecteurs CT-5,
   });
 });
 
-describe("ancrage lot E — refus (PKIStatus 2, failInfo nommé, aucun jeton)", function () {
+describe("ancrage, serveur RFC 3161 interne — refus (PKIStatus 2, failInfo nommé, aucun jeton)", function () {
   this.timeout(60000);
   let rep;
   const h = horlogeFixe("2026-11-03T13:53:02Z");
@@ -354,7 +354,7 @@ describe("ancrage lot E — refus (PKIStatus 2, failInfo nommé, aucun jeton)", 
   });
 });
 
-describe("ancrage lot E — lecture de la requête et TSTInfo", function () {
+describe("ancrage, serveur RFC 3161 interne — lecture de la requête et TSTInfo", function () {
   it("lireRequeteTsa relit EX-5.1 : version, algorithme, empreinte, politique, nonce (octets reçus), certReq", function () {
     const q = lireRequeteTsa(lireRequete("point-k2-exemple-politique-interne"));
     expect(q.version).to.equal(1);
@@ -383,7 +383,7 @@ describe("ancrage lot E — lecture de la requête et TSTInfo", function () {
   });
 });
 
-describe("ancrage lot E — numéros de série (AN-26) : croissance stricte, durabilité, émetteur unique", function () {
+describe("ancrage, serveur RFC 3161 interne — numéros de série (AN-26) : croissance stricte, durabilité, émetteur unique", function () {
   this.timeout(60000);
   let rep;
   beforeEach(function () {

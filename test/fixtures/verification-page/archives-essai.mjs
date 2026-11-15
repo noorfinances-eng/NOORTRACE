@@ -219,6 +219,9 @@ export function casDeRefus() {
   const grand = Buffer.alloc(256 * 1024 * 1024 + 1);
   ajouter("plus de 256 Mio décompressés (ZIP, deflate)", "d.zip", zip([{ nom: "d/dossier.json", donnees: grand, methode: 8 }]), "r_trop_gros");
   ajouter("plus de 256 Mio décompressés (.tar.gz)", "d.tar.gz", zlib.gzipSync(tar([{ nom: "d/dossier.json", donnees: grand }])), "r_trop_gros");
+  // Bornes d'un chemin d'entrée (revue de sécurité de l'étape 8, CT-6 EX-18.7 : 64 composants, 4 096 octets).
+  ajouter("chemin pax de 65 composants", "d.tar", tar([{ nom: "d/dossier.json", donnees: DOSSIER }, { nom: "f", pax: { path: `d/${"a/".repeat(63)}f` }, donnees: "x" }]), "r_chemin_long");
+  ajouter("nom ZIP de 4 097 octets", "d.zip", zip([{ nom: "d/dossier.json", donnees: DOSSIER }, { nom: `d/${"x".repeat(4095)}`, donnees: "x" }]), "r_chemin_long");
   // Fichier épars et archives mal formées.
   ajouter("fichier épars pax (GNU.sparse)", "d.tar", tar([{ nom: "d/dossier.json", donnees: DOSSIER, pax: { "GNU.sparse.major": "1", "GNU.sparse.minor": "0" } }]), "r_pax_epars");
   ajouter("somme de contrôle tar fausse", "d.tar", tar([{ nom: "d/dossier.json", donnees: DOSSIER, sommeFausse: true }]), "r_illisible");

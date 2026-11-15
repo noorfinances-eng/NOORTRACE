@@ -354,7 +354,7 @@
           {
             "id": "PV-7",
             "status": "non_execute",
-            "detail": "racine_absente"
+            "detail": "prerequis_en_echec"
           },
           {
             "id": "PV-8",
@@ -368,8 +368,8 @@
           },
           {
             "id": "PV-10",
-            "status": "reussi",
-            "detail": null
+            "status": "non_execute",
+            "detail": "prerequis_en_echec"
           }
         ]
       }

@@ -167,7 +167,9 @@ export class ClientServiceApprobation extends ServiceApprobation {
           }
           if (res.statusCode >= 400) {
             const e = objet?.error;
-            const code = typeof e?.code === "string" ? e.code : "erreur_http";
+            // Seule une raison de la forme de CT-3 §12.8 (snake_case ASCII, 64 caractères au plus)
+            // est reprise ; toute autre chaîne du corps vaut `hors_forme` (EX-7.14, EX-17.3).
+            const code = typeof e?.code === "string" && /^[a-z][a-z0-9_]{0,63}$/.test(e.code) ? e.code : typeof e?.code === "string" ? "hors_forme" : "erreur_http";
             // 401 (canal non authentifié, CT-3 EX-12.2) et 5xx `requete_invalide` (erreur
             // interne du service, dont un échec d'écriture de son état) ne répondent pas
             // au message : indisponibilité, réessayée, jamais une réponse finale (EX-7.20).

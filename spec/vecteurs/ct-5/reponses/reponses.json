@@ -1294,6 +1294,45 @@
         "retry": null,
         "openssl_verify": "OK"
       }
+    },
+    {
+      "id": "statut-6",
+      "description": "PKIStatus 6, hors de 0 à 5, suivi d'un jeton par ailleurs valable : statut_6, permanente, le jeton n'est pas lu ni promu (EX-5.10, étape 2 : « toute autre valeur : erreur » ; revue de l'étape 8).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "statut-6.tsr",
+        "response_sha256": "0x813278ad0a352aecf90d64efebcf2b4294f6ea020df596574287ef88c0a28457",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "statut_6",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 6,
+        "failure_info": null,
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": null,
+        "openssl_verify": null
+      }
     }
   ]
 }

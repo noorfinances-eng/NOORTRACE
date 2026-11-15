@@ -1108,6 +1108,12 @@ function familleInscription(exemples) {
     "administrateur-exploitant.json": [{ ...copie(fini), organisation: { slug: "o-" + sha("noortrace/vecteurs/ct4/slug-production").slice(2, 34), org_id: C.orgIdDuSlug("o-" + sha("noortrace/vecteurs/ct4/slug-production").slice(2, 34)) }, approvers: { ...fini.approvers, set_admin: ADR(0) } }, "production", [ADR(0)], "instance de production : la clé de gouvernance est un compte de l'exploitant (EX-5.6)", refus("OP-4", "jeu_invalide")],
     "slug-lisible-production.json": [copie(fini), "production", [ADR(0)], "instance de production : slug lisible au lieu de « o- » et 32 chiffres hexadécimaux (EX-6.2)", refus("OP-4", "jeu_invalide")],
     "classe-d-production.json": [{ ...copie(fini), organisation: { slug: "o-" + sha("noortrace/vecteurs/ct4/slug-production").slice(2, 34), org_id: C.orgIdDuSlug("o-" + sha("noortrace/vecteurs/ct4/slug-production").slice(2, 34)) } }, "production", [ADR(0)], "instance de production : clé d'enregistreur et clé de chaîne de classe de garde D (CT-2 §11.2, EX-11.19)", refus("OP-4", "cle_invalide")],
+    // Revue de sécurité de l'étape 8 (EX-4.19, EX-4.20) : la provision est recalculée depuis les
+    // frais du manifeste (ici ceux par défaut), jamais lue dans le dossier ; le sixième élément porte fees et
+    // treasury (compte de rôle tresorerie) donnés à OP-4.
+    "provision-differente.json": [{ ...copie(fini), funding: { ...fini.funding, amount_wei: (BigInt(fini.funding.amount_wei) + 1n).toString() } }, "developpement", [], "amount_wei de un wei de plus que P_k = provision_days × daily_budget_gas + gas_limit recalculée depuis les frais : rien du dossier ne fixe le montant d'un virement (EX-4.20)", refus("OP-4", "provision_excessive")],
+    "budget-au-dela-du-plafond.json": [{ ...copie(fini), funding: { ...fini.funding, daily_budget_gas: C.BUDGET_JOUR_DEFAUT + 1, amount_wei: C.provision(C.FRAIS_DEFAUT, C.BUDGET_JOUR_DEFAUT + 1).provision_wei.toString() } }, "developpement", [], "daily_budget_gas d'un gaz de plus que fees.max_daily_budget_gas du manifeste (amount_wei cohérent) : le budget retenu ne dépasse jamais le plafond du manifeste (EX-8.20)", refus("OP-4", "provision_excessive"), { fees: { ...C.FRAIS_DEFAUT, max_daily_budget_gas: C.BUDGET_JOUR_DEFAUT } }],
+    "funder-etranger.json": [{ ...copie(fini), funding: { ...fini.funding, funder: ADR(4) } }, "developpement", [], "funder différent du compte de rôle tresorerie du manifeste donné à OP-4 : un dossier d'inscription ne désigne pas la trésorerie qui le finance (EX-4.19)", refus("OP-4", "compte_inattendu"), { treasury: ADR(0) }],
   };
   return { valides, invalides };
 }
@@ -1172,6 +1178,9 @@ function familleCapture(capture, schemas, ecrire, racine) {
     delete fichiers[t16648.fichiers.bloc];
     index.files.block.name = "bloc-16648-copie.json";
   }, refus("CP-6", "capture_incomplete"));
+  // Revue de sécurité de l'étape 8 (CT-4 §9.4) : réponse RPC capturée hors de sa forme, nom de fichier hors du répertoire.
+  variante("cp3-recu-topics-nul", "topics du journal du reçu capturé remplacé par null : la racine des reçus ne se recalcule pas, CP-3 échoue avec le code de la table 9.4 (capture_incomplete), jamais un code hors de 9.3 ni une exception ; CP-5 échoue aussi", ({ fichiers }) => modifierJSON(fichiers, t16648.fichiers.recus[0], (r) => (r.logs[0].topics = null)), refus("CP-3", "capture_incomplete"));
+  variante("cp2-nom-hors-repertoire", "en-tête désigné par l'index sous le nom ../bloc-16648.json : le nom est refusé avant toute lecture (CP-6), aucun fichier hors du répertoire des captures n'est lu ; CP-2 échoue le premier (en-tête absent ou illisible), CP-6 aussi (nom hors du répertoire)", ({ index }) => (index.files.block.name = "../bloc-16648.json"), refus("CP-2", "capture_incomplete"));
   const evaluer = (c) => {
     const index = JSON.parse(fs.readFileSync(path.join(racine, c.directory, c.index), "utf8"));
     const validators = c.validators === "jeu" ? valJeu : { validators: JEU_ESSAI };
@@ -1233,6 +1242,7 @@ function index(familles, constantes) {
   L.push("- `transactions.json` : `input.fields` sont les champs signés (6.7.3), `input.signer_key` la clé (constantes), `input.raw_transaction` la transaction vérifiée, `input.context` le contexte de RG-15 (`objet` : `appel`, `deploiement`, `approvisionnement` ; `remplace` : frais de la transaction remplacée).");
   L.push("- `manifestes.json` : `input.directory` est le répertoire du cas ; `manifest`, `previous`, `genesis` et les fichiers de preuve désignés par `contracts[].evidence` y sont des chemins relatifs ; `input.registry`, quand il figure, est l'ancre à comparer (RG-20).");
   L.push("- `capture.json` : `input.directory` contient l'index et les réponses brutes ; `input.validators` désigne le jeu contre lequel CP-4 vérifie le certificat (`test/fixtures/certificat-commit/validators.json`, ou le jeu d'essai de `constantes.json`).");
+  L.push("- `inscription.json` (revue de sécurité de l'étape 8) : OP-4 recalcule la provision `P_k = provision_days × daily_budget_gas + gas_limit` depuis les frais du manifeste (EX-4.19, EX-4.20) et compare `funding.funder` au compte de rôle `tresorerie` ; `input.fees` et `input.treasury`, quand ils figurent, sont ces frais et cette trésorerie ; absents, les frais par défaut de §4.8 s'appliquent et la trésorerie n'est pas comparée (cas `provision-differente`, `budget-au-dela-du-plafond`, `funder-etranger`). Famille `capture` : `cp3-recu-topics-nul` et `cp2-nom-hors-repertoire` éprouvent une réponse capturée hors de sa forme et un nom de fichier hors du répertoire des captures : codes de la table 9.4 seulement, aucun fichier hors du répertoire lu.");
   L.push("");
   L.push("## Constantes (A.2)");
   L.push("");
@@ -1384,11 +1394,12 @@ export function genererCt4({ racine = REPERTOIRE_CT4 } = {}) {
     exiger(r.status === "reussi", `dossier valide ${f} : ${r.code} ${r.detail}`);
     casIns.push(cas(f.replace(/\.json$/, ""), description, ["OP-4"], { file: `inscription/valides/${f}`, nature, operator_accounts: comptes }, { result: "valide", org_id: doc.organisation.org_id }));
   }
-  for (const [f, [doc, nature, comptes, description, ref]] of Object.entries(ins.invalides)) {
+  for (const [f, [doc, nature, comptes, description, ref, extra = {}]] of Object.entries(ins.invalides)) {
     ecrire(`inscription/invalides/${f}`, doc);
-    const r = C.verifierDossierInscription(doc, { schemas, nature, comptes });
+    const r = C.verifierDossierInscription(doc, { schemas, nature, comptes, ...(extra.fees ? { fees: extra.fees } : {}), ...(extra.treasury ? { tresorerie: extra.treasury } : {}) });
     exiger(r.status === "echoue" && r.check === ref.check && r.code === ref.code, `dossier invalide ${f} : ${r.status} ${r.code} (${r.detail}), conception ${ref.code}`);
-    casIns.push(cas(f.replace(/\.json$/, ""), description, ["OP-4"], { file: `inscription/invalides/${f}`, nature, operator_accounts: comptes }, null, ref));
+    // input.fees et input.treasury (revue de sécurité de l'étape 8) : frais du manifeste et compte de rôle tresorerie donnés à OP-4 ; absents, les frais par défaut (CT-4 §4.8) et aucune trésorerie.
+    casIns.push(cas(f.replace(/\.json$/, ""), description, ["OP-4"], { file: `inscription/invalides/${f}`, nature, operator_accounts: comptes, ...(extra.fees ? { fees: extra.fees } : {}), ...(extra.treasury ? { treasury: extra.treasury } : {}) }, null, ref));
   }
   poser("inscription/inscription.json", fichierFamille("inscription", "Dossiers d'inscription (inscription-client-v0) à toutes les étapes, valides et refusés : schéma et OP-4.", casIns));
 

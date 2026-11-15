@@ -261,7 +261,9 @@ func Executer(args []string, sortie, erreurs io.Writer) int {
 		if langue == "en" {
 			pref = "Error: "
 		}
-		fmt.Fprintln(erreurs, pref+msg.Langue(langue))
+		// Le message peut porter une chaîne venue d'une entrée : neutralisée
+		// comme une ligne du rapport lisible (EX-8.5, CT-6 EX-8.6).
+		fmt.Fprintln(erreurs, commun.Neutraliser(pref+msg.Langue(langue)))
 		return 2
 	}
 	if eu != nil {

@@ -46,12 +46,16 @@ python3 -I spec/vecteurs/ct-5/confrontation/reponses/confronter_reponses.py spec
 ```
 
 Code de retour : 0 si tout concorde, 1 sinon, 2 pour un usage incorrect. La
-sortie de référence est `../sorties/reponses.txt` (OpenSSL 3.0.13) : 28 cas
-de `reponses.json` (20 réponses DER, 8 réponses HTTP représentées sans
-objet), 19 dossiers de CT-6 à partie `points-de-controle.json` (17 jetons
+sortie de référence est `../sorties/reponses.txt` (OpenSSL 3.0.13) : 29 cas
+de `reponses.json` (22 réponses DER, 7 réponses HTTP représentées sans
+objet), 20 dossiers de CT-6 à partie `points-de-controle.json` (18 jetons
 vérifiés, dont ceux du point contresigné de 09:35 et du point de clôture ; 2
 sans jeton ; le dix-neuvième, `invalide-k8-empreinte-sans-registre` de CT-6
-révision 0.4, rejoué le 2026-11-03), 0 discordance, 0 limite de l'outil. Le dix-huitième,
+révision 0.4, rejoué le 2026-11-03 ; le vingtième, `invalide-r7-r11-non-executee`,
+à la régénération de l'étape 8), 0 discordance, 1 limite de l'outil : la
+réponse `statut-6` (PKIStatus 6, hors de 0 à 5), qu'`openssl ts -reply`
+refuse de décoder (« token present ») ; son statut est lu par `openssl
+asn1parse` et comparé, et CT-5 la classe `statut_6` (EX-5.10, étape 2). Le dix-huitième,
 `valide-point-de-controle-complet-attestation` (CT-7, CT-6 révision 0.3),
 reprend tel quel le `points-de-controle.json` de
 `valide-point-de-controle-complet`.

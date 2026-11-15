@@ -641,7 +641,7 @@
       }
     },
     "code_console": {
-      "description": "Raisons pour lesquelles la console ne demande pas de signature, n'envoie pas de vote ni d'inscription, ou constate une panne du portefeuille (CT-3 9.6, 9.7, 13.7, 13.14). Les raisons communes avec 12.8 et EX-13.15 ont le même sens. message_invalide, origine_differente et identite_differente sont les refus, par la console, d'un texte d'inscription servi par le service (EX-13.13) ; adresse_differente est soit l'adresse d'un tel texte différente du compte choisi, soit l'adresse recouvrée d'une signature différente de l'adresse choisie (EX-9.21) ; annonce_invalide est une annonce EIP-6963 ignorée (EX-13.22, pas 2). reponse_service_invalide (révision 0.6) : réponse du serveur de console ou du service hors de la forme de son $defs, ou vue d'un autre ticket que celui que la page a demandé ; rien n'est affiché de la réponse ni signé (EX-13.29).",
+      "description": "Raisons pour lesquelles la console ne demande pas de signature, n'envoie pas de vote ni d'inscription, ou constate une panne du portefeuille (CT-3 9.6, 9.7, 13.7, 13.14). Les raisons communes avec 12.8 et EX-13.15 ont le même sens. message_invalide, origine_differente et identite_differente sont les refus, par la console, d'un texte d'inscription servi par le service (EX-13.13) ; adresse_differente est soit l'adresse d'un tel texte différente du compte choisi, soit l'adresse recouvrée d'une signature différente de l'adresse choisie (EX-9.21) ; annonce_invalide est une annonce EIP-6963 ignorée (EX-13.22, pas 2). reponse_service_invalide (révision 0.6) : réponse du serveur de console ou du service hors de la forme de son $defs, ou vue d'un autre ticket que celui que la page a demandé ; rien n'est affiché de la réponse ni signé (EX-13.29). demande_modifiee (révision 0.8) : la vue fraîche lue après le choix de la décision diffère de la vue affichée jusque-là par un membre lié à la signature (ticket, org_id, journal_id, request_hash, request, retained_event, arguments_piece, rule, opening, effects) ; la console annule le choix, affiche le modèle de la vue fraîche et la consigne de prévenir l'administrateur, et ne demande aucune signature (EX-9.15).",
       "enum": [
         "evenement_invalide",
         "piece_invalide",
@@ -682,7 +682,8 @@
         "message_invalide",
         "origine_differente",
         "identite_differente",
-        "reponse_service_invalide"
+        "reponse_service_invalide",
+        "demande_modifiee"
       ]
     },
     "condenses": {

@@ -83,22 +83,44 @@ func VerifierVecteurs(racine string) *Rapport {
 		}
 		ctx.Schemas[nom] = s
 	}
-	familleComptes(rap, ctx)
-	familleCeremonies(rap, ctx)
-	familleExempleCeremonie(rap, ctx)
-	familleAttestations(rap, ctx)
-	familleExempleAttestation(rap, ctx)
-	familleCroises(rap, ctx)
-	familleMatrice(rap, ctx)
-	if m := lireJSON(rap, filepath.Join(racine, "menaces.json")); m != nil {
-		VerifierMenaces(rap, m, ctx.Schemas["modele-menace-v0"], t)
-		exempleMenaces(rap, ctx, m)
+	for _, fam := range []struct {
+		nom string
+		f   func()
+	}{
+		{"constantes", func() { familleComptes(rap, ctx) }},
+		{"ceremonies", func() { familleCeremonies(rap, ctx) }},
+		{"exemple 5.10", func() { familleExempleCeremonie(rap, ctx) }},
+		{"attestations", func() { familleAttestations(rap, ctx) }},
+		{"exemple 7.1-7.5", func() { familleExempleAttestation(rap, ctx) }},
+		{"croises", func() { familleCroises(rap, ctx) }},
+		{"matrice", func() { familleMatrice(rap, ctx) }},
+		{"menaces", func() {
+			if m := lireJSON(rap, filepath.Join(racine, "menaces.json")); m != nil {
+				VerifierMenaces(rap, m, ctx.Schemas["modele-menace-v0"], t)
+				exempleMenaces(rap, ctx, m)
+			}
+		}},
+		{"cles-de-test", func() { VerifierClesDeTest(rap, racine, ctx.Comptes) }},
+	} {
+		protegerFamille(rap, fam.nom, fam.f)
 	}
-	VerifierClesDeTest(rap, racine, ctx.Comptes)
 	for _, f := range []string{"acceptation-securite-attendu.json", "acceptation-attestation-attendu.json", "acceptation-conformite-attendu.json"} {
 		rap.HorsPerimetre("epreuves", f, "grille de l'épreuve à l'aveugle", "réponses d'un relecteur", "épreuve humaine (section 9) : aucune valeur à recalculer")
 	}
 	return rap
+}
+
+// protegerFamille exécute une famille ; une panne (entrée absente que la
+// famille n'aurait pas gardée, par exemple) devient une erreur consignée,
+// les autres familles sont confrontées, le rapport est imprimé et le code
+// est 1, jamais une trace de pile au code 2 (revue de sécurité de l'étape 8).
+func protegerFamille(rap *Rapport, nom string, f func()) {
+	defer func() {
+		if x := recover(); x != nil {
+			rap.Erreur("famille %s : panne interne (%v) ; famille non confrontée en entier", nom, x)
+		}
+	}()
+	f()
 }
 
 // familleComptes dérive les comptes du mnémonique de ct-3 et confronte

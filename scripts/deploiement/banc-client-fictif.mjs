@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Banc « client fictif » hors réseau public (étape 7) : installation
 // complète de production IC-1 à IC-18 (CT-8 §8.3), chronométrée pas par pas,
-// sur l'hôte de construction (décision D-9), avec les substituts locaux de
+// sur l'hôte de construction, avec les substituts locaux de
 // l'inventaire de l'étape 7 (section 2.3), les vraies images `noortrace/*`
 // (chargées par `docker load` depuis l'archive `docker save`, ou déjà
 // présentes) et le vrai `deploiement/compose/production.yaml` de l'archive de
@@ -69,6 +69,52 @@ const REGION = "eu-central-2";
 const KEY_ID = "rec-banc-01";
 const NOM_JOURNAL = "journal-sinistres";
 const MARQUE_HOTES = "# noortrace banc client fictif (étape 7)";
+/** Projet Compose propre au banc (revue de sécurité de l'étape 8) : jamais le projet `noortrace` d'une installation de référence. */
+export const PROJET_BANC = "noortrace-banc";
+/** Répertoire de l'hôte servi par le pont (montage lié de production.yaml). */
+export const REPERTOIRE_OUTILS = "/srv/noortrace-outils";
+
+/**
+ * Une installation du projet Compose `projet` existe-t-elle sur l'hôte
+ * (conteneur, volume ou réseau étiqueté com.docker.compose.project) ? Le banc
+ * refuse alors de tourner : il ne touche jamais une installation de référence.
+ */
+export function installationPresente(projet = "noortrace") {
+  const presents = [];
+  for (const [quoi, args] of [["conteneur", ["ps", "-a", "-q"]], ["volume", ["volume", "ls", "-q"]], ["réseau", ["network", "ls", "-q"]]]) {
+    const r = spawnSync("docker", [...args, "--filter", `label=com.docker.compose.project=${projet}`], { encoding: "utf8" });
+    if (r.status === 0 && r.stdout.trim() !== "") presents.push(quoi);
+  }
+  return presents;
+}
+
+/**
+ * Répertoire servi par le pont : créé par le banc s'il manque (propriété 10101,
+ * mode 0750), consigné pour le nettoyage ; un répertoire préexistant n'est ni
+ * changé de propriétaire ni de mode (revue de sécurité de l'étape 8), il doit appartenir à 10101.
+ */
+export function preparerRepertoireOutils(B, racine = REPERTOIRE_OUTILS) {
+  const fichiers = path.join(racine, "fichiers");
+  if (!fs.existsSync(racine)) {
+    fs.mkdirSync(racine, { recursive: true, mode: 0o755 });
+    B.srvParentCree = true;
+  }
+  if (!fs.existsSync(fichiers)) {
+    fs.mkdirSync(fichiers, { mode: 0o750 });
+    fs.chownSync(fichiers, 10101, 10101);
+    fs.chmodSync(fichiers, 0o750);
+    B.srvCree = true;
+    return;
+  }
+  const st = fs.statSync(fichiers);
+  if (st.uid !== 10101) throw new Error(`${fichiers} existe et appartient au compte ${st.uid}, non à 10101 : le banc ne change pas un répertoire préexistant`);
+}
+
+/** Nettoyage du répertoire servi par le pont : seulement ce que le banc a créé (fichiers/, puis le parent s'il l'a créé et qu'il est vide). */
+export function nettoyerRepertoireOutils(B, racine = REPERTOIRE_OUTILS) {
+  if (B.srvCree) fs.rmSync(path.join(racine, "fichiers"), { recursive: true, force: true });
+  if (B.srvParentCree && fs.existsSync(racine) && fs.readdirSync(racine).length === 0) fs.rmdirSync(racine);
+}
 
 /**
  * Serveurs d'outils du modèle de production que le client fictif n'a pas :
@@ -140,6 +186,8 @@ export async function conditionsBanc({ ipInterne = null } = {}) {
   const bin = process.env.NOORTRACE_VERIFIER_BIN;
   if (!bin || !fs.existsSync(bin)) manque.push("binaire noortrace-verifier absent (NOORTRACE_VERIFIER_BIN)");
   if (ipInterne && !Object.values(os.networkInterfaces()).flat().some((i) => i.address === ipInterne)) manque.push(`adresse interne ${ipInterne} portée par aucune interface de l'hôte`);
+  const presents = installationPresente("noortrace");
+  if (presents.length) manque.push(`une installation du projet Compose noortrace existe sur cet hôte (${presents.join(", ")}) : le banc tourne dans le projet ${PROJET_BANC} et ne touche jamais une installation de référence`);
   return manque;
 }
 
@@ -266,7 +314,7 @@ function surchargeBanc(B) {
 }
 
 function dcArgs(B, args) {
-  return ["compose", "--project-directory", ".", "-f", "compose/production.yaml", "-f", B.surcharge, ...args];
+  return ["compose", "-p", PROJET_BANC, "--project-directory", ".", "-f", "compose/production.yaml", "-f", B.surcharge, ...args];
 }
 
 async function dc(B, p, args, o = {}) {
@@ -275,8 +323,8 @@ async function dc(B, p, args, o = {}) {
 }
 
 function volume(nom) {
-  const r = spawnSync("docker", ["volume", "inspect", "-f", "{{ .Mountpoint }}", `noortrace_${nom}`], { encoding: "utf8" });
-  if (r.status !== 0) throw new Error(`volume noortrace_${nom} introuvable`);
+  const r = spawnSync("docker", ["volume", "inspect", "-f", "{{ .Mountpoint }}", `${PROJET_BANC}_${nom}`], { encoding: "utf8" });
+  if (r.status !== 0) throw new Error(`volume ${PROJET_BANC}_${nom} introuvable`);
   return r.stdout.trim();
 }
 
@@ -326,13 +374,8 @@ async function prealables(B, pvb) {
     B.origineRpc = `https://${NOMS.rpc}:${PORTS.rpc}`;
     B.identite = (sujet) => `oidc ${B.sub.oidc.issuer} ${sujet}`;
     B.origineConsole = `https://${NOMS.console}:8700`;
-    // Répertoire servi par le pont (montage lié de production.yaml).
-    if (!fs.existsSync("/srv/noortrace-outils/fichiers")) {
-      fs.mkdirSync("/srv/noortrace-outils/fichiers", { recursive: true });
-      B.srvCree = true;
-    }
-    fs.chownSync("/srv/noortrace-outils/fichiers", 10101, 10101);
-    fs.chmodSync("/srv/noortrace-outils/fichiers", 0o750);
+    // Répertoire servi par le pont (montage lié de production.yaml) : seul ce que le banc crée est à lui.
+    preparerRepertoireOutils(B);
     p.verifications.push({ quoi: "substituts à l'écoute", ok: true, detail: { ip: B.ip, issuer: B.sub.oidc.issuer, kms: B.sub.ls.origineKms, s3: B.sub.ls.origineS3, rpc: B.origineRpc, calendriers: B.sub.calendriers.uris } });
   });
 
@@ -391,7 +434,7 @@ async function ic1(B, p) {
   await cmd(p, "tar -xkf noortrace-deploiement-0.1.0.tar -C noortrace", "tar", ["-xkf", B.archive, "-C", poste]);
   await cmd(p, "(cd noortrace && sha256sum --strict -c SHA256SUMS --quiet)", "sha256sum", ["--strict", "-c", "SHA256SUMS", "--quiet"], { cwd: poste });
   ecrirePv(B, p, "IC-1-choix.txt", [
-    "Topologie (EX-3.4) : sur site, un hôte, une instance (banc client fictif, environnement de construction ; D-9).",
+    "Topologie (EX-3.4) : sur site, un hôte, une instance (banc client fictif, environnement de construction).",
     `Organisation : ${B.org} (${B.orgId}) ; journal : ${NOM_JOURNAL}.`,
     "Support WORM : S3 à verrouillage d'objets en mode conformité (simulateur LocalStack du banc), rétention par défaut 4018 jours.",
     "CLE-1 (enregistreur, Ed25519) : classe C, graine enveloppée par AWS KMS (simulé). CLE-2 (clé de chaîne, secp256k1) : classe C, scalaire enveloppé par AWS KMS (simulé).",
@@ -414,7 +457,7 @@ async function ic1(B, p) {
 async function ic2(B, p) {
   const r = await cmd(p, 'sudo bash deploiement/hote/preparer-hote.sh --simulation --stockage /var/lib/docker --declaration-cache "<déclaration du banc>" --pv "$PV"', "bash", ["deploiement/hote/preparer-hote.sh", "--simulation", "--stockage", "/var/lib/docker", "--declaration-cache", "cache d'écriture déclaré protégé pour le banc (disque virtuel de l'environnement de construction ; sans fiche)", "--pv", B.pv], { cwd: path.join(B.travail, "poste", "noortrace"), codes: [0, 3, 4], garderSortie: true });
   ecrirePv(B, p, "IC-2-simulation.txt", `code ${r.code}\n${r.stdout}${r.stderr}`);
-  if (r.code !== 0) ecart(p, `preparer-hote.sh --simulation rend ${r.code} : l'environnement de construction n'est pas une machine vierge (D-9) ; le script n'est pas exécuté pour de bon (paquets du système par FL-31, réseau public)`);
+  if (r.code !== 0) ecart(p, `preparer-hote.sh --simulation rend ${r.code} : l'environnement de construction n'est pas une machine vierge ; le script n'est pas exécuté pour de bon (paquets du système par FL-31, réseau public)`);
   ecart(p, "preparer-hote.sh est lancé depuis la copie de l'archive du poste (IC-1) : à IC-2, l'archive n'est pas encore sur l'hôte (IC-4)");
   for (const [nom, c, a] of [["docker-version", "docker", ["version"]], ["compose-version", "docker", ["compose", "version"]], ["node-version", "node", ["--version"]]]) {
     const x = await cmd(p, `${c} ${a.join(" ")}`, c, a);
@@ -500,15 +543,15 @@ async function ic6(B, p) {
   const fichier = Array.isArray(j.files) ? j.files[0] : j;
   verifier(p, "verdict conforme et toutes les images par condensé", (fichier.verdict ?? j.verdict) === "conforme" && (fichier.all_images_by_digest ?? j.all_images_by_digest) === true, j);
   if (B.imagesTar && fs.existsSync(B.imagesTar)) {
-    await cmd(p, "docker load -i noortrace-images-0.1.0.tar (au lieu de $DC pull : aucune image publiée, D-3)", "docker", ["load", "-i", B.imagesTar]);
+    await cmd(p, "docker load -i noortrace-images-0.1.0.tar (au lieu de $DC pull : aucune image publiée)", "docker", ["load", "-i", B.imagesTar]);
   } else {
-    ecart(p, "archive docker save absente : images déjà présentes dans le magasin local (aucune image publiée, D-3)");
+    ecart(p, "archive docker save absente : images déjà présentes dans le magasin local (aucune image publiée)");
   }
   for (const [ref, condense] of Object.entries(B.condenses)) {
     const x = await cmd(p, `docker image inspect ${ref}@${condense}`, "docker", ["image", "inspect", "-f", "{{.Id}}", `${ref}@${condense}`]);
     verifier(p, `${ref}@${condense.slice(0, 19)}… présente`, x.stdout.trim() === condense, x.stdout.trim());
   }
-  ecart(p, "$DC pull remplacé par docker load : aucune image n'est publiée (D-3) ; le registre de conteneurs (FL-29) n'est pas éprouvé");
+  ecart(p, "$DC pull remplacé par docker load : aucune image n'est publiée ; le registre de conteneurs (FL-29) n'est pas éprouvé");
   ecrirePv(B, p, "IC-6-conteneurs.sha256", `${sha256Fichier(f)}  compose/production.yaml\n`);
 }
 
@@ -689,7 +732,7 @@ async function ic11(B, p, ctx) {
   p.commandes.push({ commande: "console (Chromium) : approbateur-1 et approbateur-2 inscrivent leur adresse (portefeuille d'essai), admin-1 les valide", code: 0, duree_ms: null });
   const notif = await attendre(() => B.sub.webhook.recues.find((n) => n.signature_valide), 60000, "première notification livrée (HMAC vérifié)", 1000);
   ecrirePv(B, p, "IC-11-notification.json", `${JSON.stringify({ at: notif.at, kind: notif.document?.kind ?? null, signature_valide: notif.signature_valide }, null, 2)}\n`);
-  ecart(p, "Empreintes de la page de la console non comparées à une note de version (CT-7 EX-3.9) : aucune note publiée (D-3)");
+  ecart(p, "Empreintes de la page de la console non comparées à une note de version (CT-7 EX-3.9) : aucune note publiée");
 }
 
 async function ic12(B, p) {
@@ -899,7 +942,7 @@ async function ic15b(B, p) {
   const fa = path.join(B.travail, "poste", "ancres-ic15.json");
   fs.writeFileSync(fa, `${JSON.stringify(ancres, null, 2)}\n`);
   const exportsVol = volume("exports");
-  await cmd(p, `sudo install -o 10001 -g 10005 -m 0640 ancres.json "$(docker volume inspect -f '{{ .Mountpoint }}' noortrace_exports)/ancres-ic15.json"`, "install", ["-o", "10001", "-g", "10005", "-m", "0640", fa, path.join(exportsVol, "ancres-ic15.json")]);
+  await cmd(p, `sudo install -o 10001 -g 10005 -m 0640 ancres.json "$(docker volume inspect -f '{{ .Mountpoint }}' ${PROJET_BANC}_exports)/ancres-ic15.json"`, "install", ["-o", "10001", "-g", "10005", "-m", "0640", fa, path.join(exportsVol, "ancres-ic15.json")]);
   const dossier = path.join(exportsVol, "ic-15");
   const entetes = fs.existsSync(path.join(dossier, "entetes-bitcoin.json")) ? ["--entetes-bitcoin", "/var/lib/noortrace-exports/ic-15/entetes-bitcoin.json"] : [];
   const vc = await dc(B, p, ["--profile", "outils", "run", "--rm", "verificateur", "/var/lib/noortrace-exports/ic-15", "--ancres", "/var/lib/noortrace-exports/ancres-ic15.json", ...entetes, "--exiger", "7", "--json"], { codes: [0, 1, 2, 3] });
@@ -955,7 +998,7 @@ async function ic16(B, p) {
   const rg = await cmd(p, "node scripts/deploiement/regles.mjs --configuration config/production/configuration.json --ancrage config/production/ancrage.json > IC-16-regles.yml", process.execPath, [path.join(RACINE, "scripts", "deploiement", "regles.mjs"), "--configuration", B.configuration, "--ancrage", B.ancrage], { codes: [0, 1, 2] });
   ecrirePv(B, p, "IC-16-regles.yml", rg.stdout);
   if (rg.code !== 0) ecart(p, `regles.mjs : code ${rg.code} ${rg.stderr.slice(-300)}`);
-  ecart(p, "Aucune supervision branchée (D-5 : fichiers de référence seulement) ; sauvegarde (SAUVEGARDE) non posée");
+  ecart(p, "Aucune supervision branchée (fichiers de référence seulement) ; sauvegarde (SAUVEGARDE) non posée");
 }
 
 async function ic17(B, p) {
@@ -1046,7 +1089,7 @@ function mesures(B, pvb) {
     name, test_id, unit, n: value === null ? null : 1, value, p50: null, p95: null, p99: null, min: null, max: null, mean: null, text_value: null,
     target, met: null, conditions, excluded_reason: "hors_systeme_de_reference",
   });
-  const cond = ["banc client fictif de l'étape 7 : environnement de construction, substituts locaux de l'inventaire §2.3", "harnais automatique (aucun ingénieur extérieur ; D-7)", "horloge murale, une exécution"];
+  const cond = ["banc client fictif de l'étape 7 : environnement de construction, substituts locaux de l'inventaire §2.3", "harnais automatique (aucun ingénieur extérieur)", "horloge murale, une exécution"];
   const res = [];
   for (const id of Object.keys(BUDGETS_IC)) {
     const p = pvb.pas.find((x) => x.id === id);
@@ -1073,7 +1116,7 @@ async function nettoyer(B, ctx, { pile = true } = {}) {
   if (pile && B.dep && fs.existsSync(path.join(B.dep, "compose"))) {
     // Le compagnon des attributs pose « a » et « i » sur le journal : retirés avant la suppression du volume.
     await executer("docker", dcArgs(B, ["--profile", "outils", "--profile", "relais", "stop"]), { cwd: B.dep, env: B.envDc });
-    const j = spawnSync("docker", ["volume", "inspect", "-f", "{{ .Mountpoint }}", "noortrace_journal"], { encoding: "utf8" });
+    const j = spawnSync("docker", ["volume", "inspect", "-f", "{{ .Mountpoint }}", `${PROJET_BANC}_journal`], { encoding: "utf8" });
     if (j.status === 0) await executer("chattr", ["-R", "-i", "-a", j.stdout.trim()]);
     await executer("docker", dcArgs(B, ["--profile", "outils", "--profile", "relais", "down", "-v", "--remove-orphans"]), { cwd: B.dep, env: B.envDc });
   }
@@ -1084,7 +1127,7 @@ async function nettoyer(B, ctx, { pile = true } = {}) {
     const fin = t.indexOf(`${MARQUE_HOTES} (fin)\n`);
     if (debut >= 0 && fin > debut) fs.writeFileSync("/etc/hosts", t.slice(0, debut) + t.slice(fin + `${MARQUE_HOTES} (fin)\n`.length));
   }
-  if (B.srvCree && pile) fs.rmSync("/srv/noortrace-outils", { recursive: true, force: true });
+  if (pile) nettoyerRepertoireOutils(B);
   if (B.client?.baseAgent) fs.rmSync(B.client.baseAgent, { recursive: true, force: true });
 }
 

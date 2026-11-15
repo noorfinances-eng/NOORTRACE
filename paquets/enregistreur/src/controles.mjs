@@ -6,7 +6,7 @@
 // fermés de la journée (EX-12.10, pas 2, sur tout le segment) ». Ces
 // contrôles tournent avec ou sans `storage.seal.worm` ; la comparaison des
 // copies WORM, la rétention du support et le registre des gels restent au
-// lot WORM (`worm/controles.mjs`). Les signatures sont vérifiées avec les clés
+// la partie WORM (`worm/controles.mjs`). Les signatures sont vérifiées avec les clés
 // de la chaîne : clés annoncées par les rotations, puis clé initiale du
 // signataire (jamais la seule clé courante, qui ne vérifie pas les segments
 // signés avant une rotation). Résultats : lignes `integrity_check` et

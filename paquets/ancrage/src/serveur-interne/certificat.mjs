@@ -39,6 +39,8 @@ export function lireCertificat(entree) {
   exiger(parties[2], 0x03, "signatureValue");
 
   const champs = lireSuite(tbs.contenu, 2);
+  // Revue de sécurité de l'étape 8 : un TBSCertificate court est une erreur DER nommée, jamais une TypeError.
+  if (champs.length < 6) throw new ErreurDer(`TBSCertificate : ${champs.length} élément(s), au moins six attendus (serialNumber, signature, issuer, validity, subject, subjectPublicKeyInfo)`);
   let i = 0;
   if (champs[i]?.etiquette === 0xa0) {
     const v = lireSuite(champs[i].contenu, 3);
@@ -47,17 +49,21 @@ export function lireCertificat(entree) {
     if (version.length === 1 && version[0] === 0) throw new ErreurDer("version v1 encodée explicitement (valeur DEFAULT, EX-9.21)");
     i++;
   }
-  contenuEntier(champs[i], "serialNumber");
-  const serie = champs[i++].complet;
-  lireIdentifiantAlgorithme(champs[i++], "signature");
-  const emetteur = exiger(champs[i++], 0x30, "issuer").complet;
-  const validite = exiger(champs[i++], 0x30, "validity");
+  const champ = (nom) => {
+    if (i >= champs.length) throw new ErreurDer(`TBSCertificate : ${nom} absent`);
+    return champs[i++];
+  };
+  contenuEntier(champ("serialNumber"), "serialNumber");
+  const serie = champs[i - 1].complet;
+  lireIdentifiantAlgorithme(champ("signature"), "signature");
+  const emetteur = exiger(champ("issuer"), 0x30, "issuer").complet;
+  const validite = exiger(champ("validity"), 0x30, "validity");
   const dates = lireSuite(validite.contenu, 3);
   if (dates.length !== 2) throw new ErreurDer("validity : deux instants attendus");
   const notBefore = valeurTemps(dates[0], "notBefore");
   const notAfter = valeurTemps(dates[1], "notAfter");
-  const sujet = exiger(champs[i++], 0x30, "subject").complet;
-  const spki = exiger(champs[i++], 0x30, "subjectPublicKeyInfo");
+  const sujet = exiger(champ("subject"), 0x30, "subject").complet;
+  const spki = exiger(champ("subjectPublicKeyInfo"), 0x30, "subjectPublicKeyInfo");
   const spkiParties = lireSuite(spki.contenu, 3);
   if (spkiParties.length !== 2) throw new ErreurDer("subjectPublicKeyInfo : deux éléments attendus");
   const algorithmeCle = lireIdentifiantAlgorithme(spkiParties[0], "subjectPublicKeyInfo.algorithm").algorithme;

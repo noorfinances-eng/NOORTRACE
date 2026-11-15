@@ -32,7 +32,8 @@
 import net from "node:net";
 import fs from "node:fs";
 import { randomBytes } from "node:crypto";
-import { DecoupeurLignes, egauxTempsConstant, preparerRepertoirePrise, ecouterPriseUnix, verifierPreuveFichier } from "../mcp/hote-stdio.mjs";
+import { DecoupeurLignes, egauxTempsConstant, preparerRepertoirePrise, ecouterPriseUnix, verifierPreuveFichier, libererCheminPrise, tenirCheminPrise, instantCreationDisponible, GardeIdentification } from "../mcp/hote-stdio.mjs";
+import path from "node:path";
 import { reponseErreur } from "../mcp/messages.mjs";
 import { LimiteurEchecs } from "./limiteur.mjs";
 import { ecouterPriseTcp, identiteCertificat } from "../mcp/prise-tcp.mjs";
@@ -51,6 +52,8 @@ export class ServeurSdk {
     this.serveurs = [];
     this.connexions = new Set();
     this.limiteur = new LimiteurEchecs({ monotone: () => this.frontal.monotone() });
+    /** Délai d'identification et borne des connexions non identifiées (CT-2 EX-18.3). */
+    this.garde = new GardeIdentification(p.identification ?? {});
   }
 
   get journal() {
@@ -60,7 +63,11 @@ export class ServeurSdk {
   async ecouter() {
     if (this.socket) {
       preparerRepertoirePrise(this.socket);
-      fs.rmSync(this.socket, { force: true });
+      // la prise laissée par ce démon est retirée ; un chemin tenu par un autre compte est refusé (ErreurPriseTenue).
+      libererCheminPrise(this.socket);
+      if (!instantCreationDisponible(path.dirname(this.socket))) {
+        this.journal.consigner("warning", "sdk", "proof_birthtime_unavailable", { socket: this.socket, reason: "le système de fichiers ne rend pas l'instant de création : toute preuve par fichier sera refusée" });
+      }
       const s = net.createServer((c) => this._connexionUnix(c));
       // EX-18.1 : propriétaire = utilisateur du démon, mode 0660 dès la création.
       await ecouterPriseUnix(s, this.socket);
@@ -71,6 +78,7 @@ export class ServeurSdk {
         nom: "prise TCP du SDK",
         pointeur: "sdk.tcp_listen",
         connexions: this.connexions,
+        delaiIdentificationMs: this.garde.delaiMs,
         surJeton: (c) => this._connexionTcp(c),
         surMtls: (c) => this._connexionMtls(c),
         surEchecTls: (raison) => this.journal.consigner("warning", "sdk", "auth_failed", { transport: "tls", reason: raison }),
@@ -88,10 +96,12 @@ export class ServeurSdk {
   async fermer() {
     for (const c of this.connexions) c.destroy();
     await Promise.all(this.serveurs.map((s) => new Promise((r) => s.close(() => r()))));
-    if (this.socket) fs.rmSync(this.socket, { force: true });
+    // le chemin de la prise reste tenu par le démon après l'arrêt.
+    if (this.socket) tenirCheminPrise(this.socket);
   }
 
   _refuser(c, raison, cle = null, detail = null) {
+    this.garde.identifiee(c);
     if (cle) this.limiteur.echec(cle);
     this.journal.consigner("warning", "sdk", "auth_failed", { transport: c.encrypted ? "tls" : this.socket && !c.remoteAddress ? "unix" : "tcp", reason: raison, ...(detail ? { detail } : {}) });
     c.destroy();
@@ -101,6 +111,7 @@ export class ServeurSdk {
     this.connexions.add(c);
     c.on("close", () => this.connexions.delete(c));
     c.on("error", () => {});
+    if (!this.garde.admettre(c, (r) => this._refuser(c, r))) return;
     const defi = randomBytes(16).toString("hex");
     const instantDefi = Date.now();
     c.write(JSON.stringify({ noortrace_defi: defi }) + "\n");
@@ -121,6 +132,7 @@ export class ServeurSdk {
       const utilisateur = v.utilisateur;
       const hote = utilisateur === null ? null : this.frontal.hotePour({ peer_user: utilisateur });
       if (!hote) return this._refuser(c, "hote_inconnu");
+      this.garde.identifiee(c);
       c.write(JSON.stringify({ noortrace_identite: "acceptee" }) + "\n");
       this._servir(c, hote, { peer_user: utilisateur, transport: "unix" });
     }, () => this._refuser(c, "preuve"));
@@ -131,6 +143,7 @@ export class ServeurSdk {
     this.connexions.add(c);
     c.on("close", () => this.connexions.delete(c));
     c.on("error", () => {});
+    if (!this.garde.admettre(c, (r) => this._refuser(c, r))) return;
     let fini = false;
     const d = new DecoupeurLignes(4096, (l) => {
       if (fini) return;
@@ -142,7 +155,8 @@ export class ServeurSdk {
       } catch {
         jeton = null;
       }
-      if (typeof jeton !== "string") return this._refuser(c, "jeton");
+      // Une ligne de jeton vide est refusée avant toute comparaison (CT-2 EX-15.4).
+      if (typeof jeton !== "string" || jeton.length === 0) return this._refuser(c, "jeton");
       const recu = Buffer.from(jeton, "utf8");
       const cle = this.limiteur.cleJeton(recu);
       // EX-18.3 : un identifiant de jeton qui a trop échoué est refusé 60 s, jamais une adresse source.
@@ -151,6 +165,7 @@ export class ServeurSdk {
       for (const [k, v] of this.jetons) if (egauxTempsConstant(recu, v)) id = k;
       const hote = id === null ? null : this.frontal.hotePour({ static_token: id });
       if (!hote) return this._refuser(c, "jeton", cle);
+      this.garde.identifiee(c);
       c.write(JSON.stringify({ noortrace_identite: "acceptee" }) + "\n");
       this._servir(c, hote, { jeton: id, transport: c.encrypted ? "tls" : "tcp" });
     }, () => this._refuser(c, "jeton"));
@@ -161,12 +176,14 @@ export class ServeurSdk {
     this.connexions.add(c);
     c.on("close", () => this.connexions.delete(c));
     c.on("error", () => {});
+    if (!this.garde.admettre(c, (r) => this._refuser(c, r))) return;
     // Certificat absent, expiré ou d'une autre autorité : refus avant toute
     // lecture ; sinon rattachement à l'entrée d'hôte de son nom commun.
     const id = identiteCertificat(c);
     if (id.refus) return this._refuser(c, id.refus);
     const hote = this.frontal.hotePour({ peer_user: id.cn });
     if (!hote) return this._refuser(c, "hote_inconnu");
+    this.garde.identifiee(c);
     c.write(JSON.stringify({ noortrace_identite: "acceptee" }) + "\n");
     this._servir(c, hote, { peer_user: id.cn, transport: "mtls", certificat: id.empreinte });
   }

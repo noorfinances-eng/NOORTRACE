@@ -1,10 +1,10 @@
-// Lecteur DER borné du serveur interne (lot E), écrit depuis X.690 et le
+// Lecteur DER borné du serveur interne, écrit depuis X.690 et le
 // profil de lecture de CT-6 §9.3 (EX-9.4) : longueurs définies sous forme
 // minimale, numéros d'étiquette inférieurs à 31, BOOLEAN `00` ou `ff`,
 // profondeur d'imbrication bornée (32), aucun octet après la fin d'une
 // structure qui n'en admet pas. Il sert à relire la requête `TimeStampReq`
 // reçue et les certificats PEM confiés au serveur ; il ne remplace pas le
-// lecteur du lot A (`src/rfc3161/der.mjs`), écrit en parallèle.
+// lecteur du client RFC 3161 (`src/rfc3161/der.mjs`), écrit en parallèle.
 
 export const PROFONDEUR_MAX = 32;
 

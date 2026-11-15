@@ -287,17 +287,36 @@ function profondeurOctets(octets) {
   return R.profondeurJSON(Buffer.from(octets).toString("latin1"));
 }
 
-/** Analyse JSON stricte bornée en profondeur ; rend { valeur } ou { erreur }. */
-export function lireJSONBorne(octets, langue = "fr") {
+/**
+ * Analyse JSON stricte bornée en profondeur et en nombre de valeurs (une valeur
+ * par 16 octets de la limite `limite` de l'entrée, au moins 4 096 : CT-6
+ * EX-15.1, révision demandée) ; rend { valeur } ou { erreur }.
+ */
+export function lireJSONBorne(octets, langue = "fr", limite = octets.length) {
   if (profondeurOctets(octets) > LIMITES.profondeurJSON) return { erreur: T(`imbrication JSON de plus de ${LIMITES.profondeurJSON} niveaux`, `JSON nesting deeper than ${LIMITES.profondeurJSON} levels`) };
   try {
-    return { valeur: J.analyserJSONStrict(octets) };
+    return { valeur: J.analyserJSONStrict(octets, { valeursMax: J.valeursMaxPour(limite) }) };
   } catch (err) {
     return { erreur: T(`pas du JSON exploitable : ${err.message}`, `not usable JSON: ${err.message}`) };
   }
 }
 
-const resumerErreursSchema = (erreurs) => erreurs.slice(0, 4).map((e) => `${e.chemin} : ${e.message}`).join(" ; ") + (erreurs.length > 4 ? ` ; … (${erreurs.length})` : "");
+const resumerErreursSchema = (erreurs) => J.resumerErreurs(erreurs, 4).replace(/ ; … \((\d+) erreurs\)$/, " ; … ($1)");
+
+/**
+ * Neutralisation d'une chaîne issue d'une entrée avant son écriture sur un
+ * terminal (rapport lisible, sortie d'erreur ; CT-6 §8.5, révision demandée
+ * par la revue de sécurité, EX-8.6) : les caractères U+0000 à
+ * U+001F, U+007F à U+009F, U+2028, U+2029, U+202A à U+202E, U+2066 à U+2069,
+ * U+FEFF et tout substitut isolé sont remplacés par leur échappement
+ * `\uXXXX` (hexadécimal minuscule). Le rapport JSON n'y passe pas : RFC 8259
+ * §7 les échappe par construction. C'est le seul point d'échappement de la
+ * référence : toute ligne du rapport lisible y passe.
+ */
+const RE_NEUTRALISER = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069\ufeff]|[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g;
+export function neutraliserTexte(texte) {
+  return String(texte).replace(RE_NEUTRALISER, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
+}
 
 // ---------------------------------------------------------------------------
 // N-1 et N-2 : fichier d'ancres et fichier d'en-têtes (section 12.4)
@@ -315,7 +334,7 @@ export function controlerAncres(octets, schemas) {
     throw new EntreeInutilisable("ancres_inutilisables", T(`fichier d'ancres inutilisable : ${fr}`, `unusable anchors file: ${en}`), "N-1");
   };
   if (octets.length > LIMITES.ancres) refus(`${octets.length} octets, au-delà de la limite de ${LIMITES.ancres}`, `${octets.length} bytes, beyond the limit of ${LIMITES.ancres}`);
-  const lu = lireJSONBorne(octets);
+  const lu = lireJSONBorne(octets, "fr", LIMITES.ancres);
   if (lu.erreur) refus(lu.erreur.fr, lu.erreur.en);
   const ancres = lu.valeur;
   const erreurs = J.validerSchema(ancres, schemas[ID_SCHEMA_ANCRES], { registre: schemas });
@@ -349,7 +368,7 @@ export function controlerEntetes(octets, schemas) {
     throw new EntreeInutilisable(kind, T(`fichier d'en-têtes Bitcoin inutilisable : ${fr}`, `unusable Bitcoin headers file: ${en}`), "N-2");
   };
   if (octets.length > LIMITES.entetes) refus("taille_depassee", `${octets.length} octets, au-delà de la limite de ${LIMITES.entetes}`, `${octets.length} bytes, beyond the limit of ${LIMITES.entetes}`);
-  const lu = lireJSONBorne(octets);
+  const lu = lireJSONBorne(octets, "fr", LIMITES.entetes);
   if (lu.erreur) refus("entree_illisible", lu.erreur.fr, lu.erreur.en);
   const objet = lu.valeur;
   if (estObjet(objet) && Array.isArray(objet.headers) && objet.headers.length > LIMITES.nombreEntetes) refus("taille_depassee", `${objet.headers.length} en-têtes, au-delà de ${LIMITES.nombreEntetes}`, `${objet.headers.length} headers, beyond ${LIMITES.nombreEntetes}`);
@@ -369,7 +388,7 @@ export function controlerSecondManifeste(octets, schemas) {
     throw new EntreeInutilisable(kind, T(`second manifeste inutilisable : ${fr}`, `unusable second manifest: ${en}`));
   };
   if (octets.length > LIMITES.secondManifeste) refus("taille_depassee", `${octets.length} octets, au-delà de la limite de ${LIMITES.secondManifeste}`, `${octets.length} bytes, beyond the limit of ${LIMITES.secondManifeste}`);
-  const lu = lireJSONBorne(octets);
+  const lu = lireJSONBorne(octets, "fr", LIMITES.secondManifeste);
   if (lu.erreur) refus("entree_illisible", lu.erreur.fr, lu.erreur.en);
   const erreurs = J.validerSchema(lu.valeur, schemas[J.ID_SCHEMA_MANIFESTE], { registre: schemas });
   if (erreurs.length) refus("entree_illisible", `non conforme à manifeste-v0 : ${resumerErreursSchema(erreurs)}`, `does not conform to manifeste-v0: ${resumerErreursSchema(erreurs)}`);
@@ -596,7 +615,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     if (ev) roles.push({ role: "evenement", e: ev });
     if (voisins && estObjet(voisins.previous)) roles.push({ role: "voisin précédent", e: voisins.previous });
     if (voisins && estObjet(voisins.next)) roles.push({ role: "voisin suivant", e: voisins.next });
-    if (approbations && Array.isArray(approbations.events)) approbations.events.forEach((e, i) => estObjet(e) && roles.push({ role: `approbation[${i}]`, e }));
+    if (approbations && Array.isArray(approbations.events)) approbations.events.slice(0, J.EVENEMENTS_MAX_APPROBATIONS).forEach((e, i) => estObjet(e) && roles.push({ role: `approbation[${i}]`, e }));
     const cache = new Map();
     const fautes = [];
     let verifiees = 0;
@@ -824,8 +843,12 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
       else if (!registryAncre) poserK("K-8", [8], "non_execute", "ancre_absente", ancres ? "le fichier d'ancres ne donne pas d'ancre registry : contract non comparé" : "aucun fichier d'ancres : contract non comparé");
       else {
         const prouvee = c8.statut === "reussi" && Boolean(c8.entreePoint?.rattachee);
-        // AV-K-1 (EX-11.25) : référence déclarative faute d'entrée rattachée (parties absentes, entrée absente, R-11 non exécutée) ; une R-11 en échec est rapportée comme telle.
+        // AV-K-1 (EX-11.25) : référence déclarative faute d'entrée rattachée pour une raison admise (parties absentes, entrée
+        // absente, R-11 non exécutée sous partie_absente ou ancre_absente) ; une R-11 en échec est rapportée comme telle, et une
+        // R-11 non exécutée sous prerequis_en_echec (règle 3 d'EX-11.24, révision 0.9, ou R-6, R-7, K-2 non réussies) l'est par
+        // blocking_unexecuted : ni l'une ni l'autre ne lève AV-K-1 (comme le binaire Go ; revue de sécurité de l'étape 8).
         const r11Echoue = c8.verifications.some((v) => v.id === "R-11" && v.status === "echoue");
+        const r11Bloquee = c8.verifications.some((v) => v.id === "R-11" && v.status === "non_execute" && v.reason === "prerequis_en_echec");
         faitsPoint.registry = {
           chain_id_declared: ref.chain_id,
           contract: ref.contract,
@@ -840,7 +863,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
           issuer: prouvee ? c8.entreePoint.issuer : null,
         };
         poserK("K-8", [8], "reussi", null, `fingerprint ${ref.fingerprint} = keccak256(org_id ‖ journal_id ‖ checkpoint_hash), doc_type du point de contrôle, contract égal à AttestationRegistry de l'ancre ; inclusion ${prouvee ? `prouvée par R-11 (bloc ${c8.entreePoint.block_number})` : "déclarative"}`);
-        if (!prouvee && !r11Echoue) avertissementsK.push({ id: "AV-K-1", check: "K-8", detail: L(`référence au registre du point de contrôle déclarative (bloc ${ref.block_number}, transaction ${ref.transaction_hash}) : aucune entrée ancre_point_de_controle de registre.json rattachée par R-11, l'inclusion de l'ancre du point n'est pas prouvée`, `declarative registry reference of the checkpoint (block ${ref.block_number}, transaction ${ref.transaction_hash}): no ancre_point_de_controle entry of registre.json tied by R-11, the inclusion of the checkpoint anchor is not proven`) });
+        if (!prouvee && !r11Echoue && !r11Bloquee) avertissementsK.push({ id: "AV-K-1", check: "K-8", detail: L(`référence au registre du point de contrôle déclarative (bloc ${ref.block_number}, transaction ${ref.transaction_hash}) : aucune entrée ancre_point_de_controle de registre.json rattachée par R-11, l'inclusion de l'ancre du point n'est pas prouvée`, `declarative registry reference of the checkpoint (block ${ref.block_number}, transaction ${ref.transaction_hash}): no ancre_point_de_controle entry of registre.json tied by R-11, the inclusion of the checkpoint anchor is not proven`) });
       }
     }
     // Les détails de K-7 à K-9 sont déjà dans la langue de sortie : ils ne passent pas par la traduction de CT-1.
@@ -862,9 +885,18 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
       const ajouter = (e) => estObjet(e) && typeof e.recorder_key_id === "string" && signataires.add(e.recorder_key_id);
       ajouter(ev);
       if (voisins) [voisins.previous, voisins.next].forEach(ajouter);
-      if (approbations && Array.isArray(approbations.events)) approbations.events.forEach(ajouter);
+      if (approbations && Array.isArray(approbations.events)) approbations.events.slice(0, J.EVENEMENTS_MAX_APPROBATIONS).forEach(ajouter);
       if (manifesteSig && typeof manifesteSig.recorder_key_id === "string") signataires.add(manifesteSig.recorder_key_id);
       if (pointsPresents && k1Reussie && point && typeof point.key_id === "string") signataires.add(point.key_id);
+      // Clés employées par le verdict (EX-12.4, révision 0.9) : la clé de l'événement
+      // prouvé, celle du manifeste et, quand K-1 a réussi, celle du point de contrôle. Chacune doit être comparée et égale
+      // pour que N-3 réussisse ; une clé employée sans ancre dans recorders rend N-3 non exécutée (ancre_absente), et le
+      // contrôle 6 avec elle : un dossier entier forgé sous un key_id absent des enregistreurs ne passe plus avec --exiger 6.
+      const employees = [];
+      const employer = (k) => typeof k === "string" && !employees.includes(k) && employees.push(k);
+      employer(ev?.recorder_key_id);
+      employer(manifesteSig?.recorder_key_id);
+      if (pointsPresents && k1Reussie && point) employer(point.key_id);
       const comparees = [];
       const differences = [];
       for (const cle of clesListe) {
@@ -872,13 +904,15 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
         const a = recordersDossier.find((r) => r.key_id === cle.key_id);
         if (!a) continue;
         comparees.push({ cle, a });
-        pointeursN3.push(`/recorders/${a.indice}`);
         if (a.public_key !== cle.public_key) differences.push(T(`${cle.key_id} : public_key ${cle.public_key} de cles.json différente de ${a.public_key} de l'ancre (/recorders/${a.indice})`, `${cle.key_id}: public_key ${cle.public_key} of cles.json differs from ${a.public_key} of the anchors file (/recorders/${a.indice})`));
       }
-      pointeursN3.sort((x, y) => Number(x.split("/")[2]) - Number(y.split("/")[2]));
+      const nonComparees = employees.filter((k) => !comparees.some((x) => x.cle.key_id === k));
       if (differences.length) n3 = { status: "echoue", reason: null, detail: T(differences.map((d) => d.fr).join(" ; "), differences.map((d) => d.en).join("; ")) };
-      else if (comparees.length) {
+      else if (comparees.length && !nonComparees.length) {
         for (const { cle } of comparees) clesConfirmeesN3.add(cle.key_id);
+        // anchors_used du contrôle 6 : les seules ancres des clés employées (EX-12.4).
+        for (const x of comparees) if (employees.includes(x.cle.key_id)) pointeursN3.push(`/recorders/${x.a.indice}`);
+        pointeursN3.sort((x, y) => Number(x.split("/")[2]) - Number(y.split("/")[2]));
         const ids = comparees.map((x) => x.cle.key_id);
         const ptrs = comparees.map((x) => `/recorders/${x.a.indice}`).join(", ");
         n3 = {
@@ -886,7 +920,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
           reason: null,
           detail: T(`${joindreListe(ids, "fr")} de cles.json ${ids.length > 1 ? "égales aux clés" : "égale à la clé"} de l'ancre (${ptrs})`, `${joindreListe(ids, "en")} of cles.json equal to the anchors file's ${ids.length > 1 ? "keys" : "key"} (${ptrs})`),
         };
-      } else n3 = { status: "non_execute", reason: "ancre_absente", detail: T("aucune clé signataire du dossier dans les enregistreurs du fichier d'ancres", "no signing key of the dossier among the recorders of the anchors file") };
+      } else n3 = { status: "non_execute", reason: "ancre_absente", detail: T(`${joindreListe(nonComparees, "fr")}, clé(s) employée(s) par le dossier, sans ancre dans les enregistreurs du fichier d'ancres pour ce journal (EX-12.4)`, `${joindreListe(nonComparees, "en")}, key(s) the dossier uses, without anchor among the anchors file's recorders for this journal (EX-12.4)`) };
     }
   }
 
@@ -946,7 +980,8 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     3: statutCT1(idsControle[3], kDe(3)),
     4: { status: c4Final.status, reason: c4Final.reason },
     5: { status: c5Final.status, reason: c5Final.reason },
-    6: statutCT1(idsControle[6], ["N-3", ...kDe(6)]),
+    // EX-12.4 (révision 0.9) : N-3 non exécutée faute d'une clé employée dans recorders rend le contrôle 6 non_execute (ancre_absente).
+    6: statutCT1(idsControle[6], kDe(6)),
     7: statutCT1(idsControle[7]),
     8: { status: c8Final.status, reason: c8Final.reason },
   };
@@ -1496,7 +1531,9 @@ export function rapportLisible(rapport, { detail = false } = {}) {
   const langue = rapport.language;
   const E = ETIQUETTES[langue];
   const ligne = (etiquette, valeur) => `${etiquette.padEnd(14)}: ${valeur}`;
-  const out = [];
+  // Toute ligne écrite passe par neutraliserTexte (§8.5) : une chaîne du dossier, du fichier d'ancres ou d'un
+  // certificat ne porte au terminal ni caractère de commande ni saut de ligne hors de la fin des lignes d'EX-8.6.
+  const out = { lignes: [], push(l) { this.lignes.push(neutraliserTexte(l)); } };
   const v = rapport.verifier;
   const inp = rapport.inputs;
   out.push(E.titre);
@@ -1546,7 +1583,7 @@ export function rapportLisible(rapport, { detail = false } = {}) {
   if (rapport.bound) out.push(ligne(E.borne, rapport.bound));
   out.push(ligne(E.resultat, ligneResultat(rapport)));
   out.push(ligne(E.enonce, rapport.statement[langue]));
-  return out.join("\n");
+  return out.lignes.join("\n");
 }
 
 /**

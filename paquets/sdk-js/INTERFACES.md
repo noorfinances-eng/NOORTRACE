@@ -1,7 +1,7 @@
 # Interfaces de noortrace-sdk
 
-Ce document s'adresse aux auteurs des adaptateurs de cadres (CT-2 6.6, lot
-suivant) et à ceux qui raccordent un agent Node.js. Avec CT-2 6.2 et 6.5, il
+Ce document s'adresse aux auteurs des adaptateurs de cadres (CT-2 6.6, partie
+suivante) et à ceux qui raccordent un agent Node.js. Avec CT-2 6.2 et 6.5, il
 suffit.
 
 ## Interface publique (EX-6.9), et seulement elle

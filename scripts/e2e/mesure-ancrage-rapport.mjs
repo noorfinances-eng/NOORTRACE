@@ -21,9 +21,35 @@ import { spawnSync } from "node:child_process";
 import * as N from "@noortrace/noyau";
 import { lireFiles, constaterCadence } from "@noortrace/ancrage/planificateur";
 import { RACINE } from "./reseau-dev.mjs";
-import { agreger, systeme } from "./mesure-ancrage.mjs";
+import { agreger } from "./mesure-ancrage.mjs";
 
 const lireJson = (f) => JSON.parse(fs.readFileSync(f, "utf8"));
+
+/**
+ * TM-14 : nombre de calendriers qui ont reçu la preuve du manifeste, lu dans
+ * la preuve (attestations en attente plus attestations Bitcoin complètes),
+ * jamais une constante ; null si aucune preuve de manifeste n'est lisible
+ * (CT-9 EX-11.11).
+ */
+export function nombreCalendriers(preuves) {
+  const valeurs = (preuves ?? [])
+    .filter((p) => typeof p?.fichier === "string" && p.fichier.startsWith("manifeste-"))
+    .map((p) => {
+      const a = Number.isInteger(p.attestations_en_attente) ? p.attestations_en_attente : null;
+      const b = Number.isInteger(p.hauteurs_attestees) ? p.hauteurs_attestees : null;
+      return a === null && b === null ? null : (a ?? 0) + (b ?? 0);
+    })
+    .filter((x) => x !== null);
+  return valeurs.length ? Math.max(...valeurs) : null;
+}
+
+/** Machine de la collecte, telle que relevée (virtualisation, disque, charge à la collecte) ; rien d'écrit d'avance (CT-9 EX-11.11). */
+export function descriptionMachine(s) {
+  const virt = s?.virtualized === true ? "machine virtuelle" : s?.virtualized === false ? "machine physique" : "virtualisation non établie";
+  const disque = typeof s?.disk?.type === "string" ? `disque ${s.disk.type}` : "type de disque non relevé";
+  const charge = typeof s?.load_avg_1m === "number" ? `charge moyenne sur une minute relevée à la collecte : ${s.load_avg_1m}` : "charge à la collecte non relevée";
+  return `${virt}, ${disque}, ${charge} ; autres charges pendant la mesure non relevées ; hors du système de référence de CT-9 §11.1`;
+}
 const r3 = (x) => (x === null || x === undefined ? null : Math.round(x * 1000) / 1000);
 const ms = (t) => N.decoderHorodatage(t);
 
@@ -159,7 +185,7 @@ export async function rapport({ collectes, complements = null, p6 = null, sortie
     `démon noortrace réel (processus enfant, test/fixtures/enregistreur-ancrage/demon.mjs) avec le composant d'ancrage branché ; charge à cadence fixe de ${x.c.evenements_par_s} événement/s (EX-11.9), ${x.evenements.length} événements dans la période ${x.P} (${new Date(x.P * 1000).toISOString()})`,
     `${x.c.parametres.description} ; serveurs RFC 3161 internes de référence du paquet d'ancrage sur la boucle locale (principal en TLS mutuel avec un qualified d'exemple, CT-5 EX-7.4), calendriers OpenTimestamps factices à chaîne regtest en TLS`,
     "délais lus sur l'horloge de l'enregistreur, source unique des instants (CT-5 P-2, CT-9 EX-11.5) ; temps réel, aucune horloge manipulée pendant la mesure",
-    "autres charges sur la machine pendant la mesure : essais de l'étape 5 (démons et vérificateurs) exécutés en parallèle ; machine virtuelle, disque virtuel : hors du système de référence de CT-9 §11.1",
+    descriptionMachine(x.c.systeme),
   ];
   const ajouter = (l) => results.push(l);
   for (const [x, suffixe] of [[defaut, ""], [porte2, "_porte_2"]]) {
@@ -191,9 +217,8 @@ export async function rapport({ collectes, complements = null, p6 = null, sortie
     }
     // TM-14
     const v0 = x.verifications[0] ?? null;
-    const calendriers = x.preuves.filter((p) => p.fichier.startsWith("manifeste-")).map((p) => p.attestations_en_attente ?? (p.hauteurs_attestees && typeof p.hauteurs_attestees === "object" ? 2 : p.hauteurs_attestees)).filter((v) => typeof v === "number");
-    const nbCalendriers = x.c.systeme ? 2 : 2;
-    const texteP4 = `jeton ${v0 && v0.parts_present.includes("jeton_rfc3161") ? "qualifié" : "absent"} ; ${Math.max(nbCalendriers, ...calendriers, 0)} calendriers ; T-11 ${v0?.checks?.["T-11"] ?? "non_execute"}`;
+    const nbCalendriers = nombreCalendriers(x.preuves);
+    const texteP4 = `jeton ${v0 && v0.parts_present.includes("jeton_rfc3161") ? "qualifié" : "absent"} ; ${nbCalendriers === null ? "calendriers non lisibles dans la preuve du manifeste" : `${nbCalendriers} calendrier(s), lus dans la preuve du manifeste`} ; T-11 ${v0?.checks?.["T-11"] ?? "non_execute"}`;
     ajouter(ligne({ name: `p4_cloture${suffixe}`, test_id: "TM-14", unit: unite("TM-14"), text_value: texteP4, n: 1, target: cible("TM-14"), conditions: [...C, "prestataire principal : serveur interne de référence du paquet d'ancrage DÉCLARÉ qualifié par un instantané d'exemple (EX-4.8) dans la configuration et dans le fichier d'ancres de test du réviseur : T-11 reussi par cette déclaration seulement, aucun prestataire qualifié réel (hors de la condition « prestataire qualifié réel » de TM-14)", `dossier du premier événement de la période (seq ${v0?.seq ?? "-"}) : parties ${v0 ? v0.parts_present.join(", ") : "-"} ; deux calendriers factices (chaîne regtest), preuve mise à niveau`] }));
     // TM-41
     ajouter(ligne({ name: `w_ordre${suffixe}`, test_id: "TM-41", unit: unite("TM-41"), serie: x.wOrdre, target: cible("TM-41"), conditions: [...C, "inclusion au registre de l'ancre du premier point ancré qui engage l'événement (une ancre remplacée par celle d'un point plus récent, EX-9.5, est portée par ce point), moins ts de l'événement ; durée de conception, qu'aucun dossier ne prouve (CT-5 §3.3)"] }));
@@ -205,8 +230,9 @@ export async function rapport({ collectes, complements = null, p6 = null, sortie
     // TM-19 (jetons de TM-13 : configuration par défaut)
     if (!suffixe) {
       ajouter(ligne({ name: "an24_accuracy", test_id: "TM-19", unit: unite("TM-19"), serie: x.accuracy, target: cible("TM-19"), conditions: [...C, `accuracy lue par T-1 dans chaque jeton obtenu de la période (${x.accuracy.length} jetons des deux serveurs internes, points et clôture)`] }));
-      ajouter(ligne({ name: "an24_clock_offset", test_id: "TM-19", unit: unite("TM-19"), serie: x.offsets.length ? x.offsets : [0], target: cible("TM-19"), conditions: [...C, `écart d'horloge consigné par les serveurs internes (tsa_clock_offset_ms des lignes tsa_demarrage et tsa_refus, ${x.tsa.length} lignes) : horloge injectée sans écart déclaré (ecartMs 0)`] }));
-      notes.push(`TM-19 : accuracy max ${agreger(x.accuracy).max} s sur ${x.accuracy.length} jetons (cible 1 s ${agreger(x.accuracy).max <= 1 ? "tenue en valeur" : "dépassée en valeur"}) ; tsa_clock_offset max ${agreger(x.offsets.length ? x.offsets : [0]).max} s.`);
+      // Aucun écart consigné : série absente (n, échantillons et agrégats nuls), jamais un 0 inventé (EX-11.11).
+      ajouter(ligne({ name: "an24_clock_offset", test_id: "TM-19", unit: unite("TM-19"), serie: x.offsets.length ? x.offsets : null, target: cible("TM-19"), conditions: [...C, `écart d'horloge consigné par les serveurs internes (tsa_clock_offset_ms des lignes tsa_demarrage et tsa_refus, ${x.tsa.length} lignes)${x.offsets.length ? "" : " : aucun écart consigné, ligne sans valeur"}`] }));
+      notes.push(`TM-19 : accuracy max ${agreger(x.accuracy).max} s sur ${x.accuracy.length} jetons (cible 1 s ${agreger(x.accuracy).max <= 1 ? "tenue en valeur" : "dépassée en valeur"}) ; tsa_clock_offset ${x.offsets.length ? `max ${agreger(x.offsets).max} s sur ${x.offsets.length} relevés` : "non consigné par cette collecte (ligne an24_clock_offset sans valeur)"}.`);
     }
   }
   // Compléments : TM-18, TM-30, TM-17.
@@ -245,8 +271,7 @@ export async function rapport({ collectes, complements = null, p6 = null, sortie
   } else {
     notes.push("TM-16 : aucun relevé d'ancres/ sur le support réel joint (ligne p6_copie_worm absente de ce rapport) ; le complément est porté par test/enregistreur-journal-soi.test.js (LocalStack) et par test/enregistreur-ancrage-exigences.test.js (support en mémoire, sans valeur pour la cible).");
   }
-  // Rapport.
-  const sys = systeme();
+  // Rapport : la machine est celle relevée à la collecte, pas celle de l'écriture du rapport (CT-9 EX-11.11).
   const base = defaut ?? porte2;
   // Commit et arbre de travail relevés à la collecte, pas à l'écriture du rapport.
   const commits = [...new Set(lues.map((x) => x.c.commit))];
@@ -268,13 +293,13 @@ export async function rapport({ collectes, complements = null, p6 = null, sortie
     measured_at: instant,
     commit,
     spec_version: catalogue.spec_version,
-    system: { ...base.c.systeme, load_avg_1m: sys.load_avg_1m },
+    system: base.c.systeme,
     method: { warmup: 0, repetitions: Math.max(...lues.map((x) => x.evenements.length)), percentile_method: "plus_proche_rang", clock: "murale", pair_with_without: false, samples_published: true },
     configuration_sha256: configurationSha,
     counts_for_targets: false,
     results,
     notes: [
-      `Campagne de mesures de l'ancrage (TM-11 à TM-14, TM-16 à TM-19, TM-30, TM-41, TM-42) faite du ${debut} au ${lues.map((x) => x.c.fin).sort().at(-1)} sur le réseau de développement, hors du système de référence de CT-9 §11.1 (machine virtuelle KVM, disque virtuel) : counts_for_targets faux, met null sur chaque ligne (EX-11.2) ; les notes disent, à titre indicatif, si la cible est tenue en valeur.`,
+      `Campagne de mesures de l'ancrage (TM-11 à TM-14, TM-16 à TM-19, TM-30, TM-41, TM-42) faite du ${debut} au ${lues.map((x) => x.c.fin).sort().at(-1)} sur le réseau de développement, hors du système de référence de CT-9 §11.1 (${descriptionMachine(base.c.systeme)}) : counts_for_targets faux, met null sur chaque ligne (EX-11.2) ; les notes disent, à titre indicatif, si la cible est tenue en valeur.${lues.some((x) => x.c.evenements?.exports_erreur) ? ` Collecte interrompue : ${lues.filter((x) => x.c.evenements?.exports_erreur).map((x) => `${x.c.configuration} : ${x.c.evenements.exports_erreur}`).join(" ; ")} ; les lignes fondées sur les dossiers exportés (TM-42) ne portent que les dossiers vérifiés avant l'interruption.` : ""}`,
       `Commit ${commit} relevé à la collecte ; ${arbres.join(" ; ")}.`,
       ...notesOperateur,
       `method.clock murale : les délais entre composants sont lus sur l'horloge de l'enregistreur (EX-11.5) ; method.repetitions : nombre d'événements de la période mesurée ; échantillons publiés dans chaque ligne, dans l'ordre de collecte, aucun retiré.`,
@@ -282,6 +307,7 @@ export async function rapport({ collectes, complements = null, p6 = null, sortie
     ].join(" "),
   };
   const chemin = path.resolve(sortieRapport);
+  if (fs.existsSync(chemin)) throw new Error(`${chemin} existe déjà : un rapport n'est jamais remplacé (EX-11.11)`);
   fs.mkdirSync(path.dirname(chemin), { recursive: true });
   const provisoire = `${chemin}.provisoire`;
   fs.writeFileSync(provisoire, `${JSON.stringify(rapport, null, 2)}\n`);

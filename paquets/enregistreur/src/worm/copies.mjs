@@ -231,12 +231,12 @@ export class ServiceCopiesWorm extends SupportWorm {
         if (await fs.stat(path.join(this.repertoire, serie)).then(() => true, () => false)) ajouter(serie, "points");
       }
     }
-    // Répertoire `ancres/` de CT-5 (EX-5.15, EX-8.14 ; lecture 93, complétée par le lot F2) : chaque fichier fermé est
+    // Répertoire `ancres/` de CT-5 (EX-5.15, EX-8.14 ; lecture 93, complétée au branchement du composant d'ancrage) : chaque fichier fermé est
     // copié une fois sous sa clé. Sont fermés dès leur création les pièces écrites en création exclusive (`rfc3161/*`,
     // `ots/*.ots`, `ots/*.nonce`, `entetes-bitcoin.json`) ; `acquisitions.ndjson` (ajout seul) l'est quand la période est
     // close, que le jeton de clôture de la période est obtenu et promu (un enregistrement `obtenue` `promoted` non révoqué
     // d'objet `manifeste` ; EX-4.5 : il est toujours obtenu, quel que soit le délai, et sa ligne vient après la clôture ;
-    // correction R-G-1) et que la T-10 différée de chaque jeton promu est décidée (ou la capture des CRL désactivée) ;
+    // correction après la relecture adversariale de l'étape 5) et que la T-10 différée de chaque jeton promu est décidée (ou la capture des CRL désactivée) ;
     // après une révocation (`revoked`), la nouvelle promotion est attendue ; un fichier de file `file-<epoque>.ndjson`
     // (ajout seul) l'est quand son époque est inférieure à celle de l'écrivain.
     const configurationAncrage = this.coeur?.o?.ancrage?.configuration ?? null;

@@ -115,14 +115,20 @@ export function seuil(champ, v) {
   return v;
 }
 
-/** Montant ou budget : entier positif, nombre JSON sûr ou chaîne décimale. Rend un `bigint`. */
-export function montant(champ, v, { min = 0n } = {}) {
+/** Montant ou budget : entier positif, nombre JSON sûr ou chaîne décimale, de `min` à `max` (null : sans borne haute). Rend un `bigint`. */
+export function montant(champ, v, { min = 0n, max = null } = {}) {
   let x = null;
   if (Number.isSafeInteger(v) && v >= 0) x = BigInt(v);
   else if (typeof v === "string" && MOTIF_MONTANT.test(v)) x = BigInt(v);
-  if (x === null || x < min) throw new ErreurChamp("requete_invalide", champ, `entier décimal d'au moins ${min} attendu`);
+  if (x === null || x < min || (max !== null && x > max)) {
+    throw new ErreurChamp("requete_invalide", champ, max === null ? `entier décimal d'au moins ${min} attendu` : `entier décimal de ${min} à ${max} attendu`);
+  }
   return x;
 }
+
+/** Budget journalier en gaz (`budget_jour`) : de 1 à 2^53 − 1, comme la préparation du dossier (`daily_budget_gas` est un nombre JSON). */
+export const BUDGET_JOUR_MAX = BigInt(Number.MAX_SAFE_INTEGER);
+export const budgetJour = (champ, v) => montant(champ, v, { min: 1n, max: BUDGET_JOUR_MAX });
 
 /** Entier (EX-7.25, révision 0.7) : nombre JSON entier sûr, de `min` à `max`. */
 export function entier(champ, v, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) {

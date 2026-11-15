@@ -157,10 +157,15 @@ func verifierAppelMCP(rap *Rapport, ctx *contexteCT2, dir, nom string) {
 	// approbation (EX-4.49, EX-7.16) : réponse d'evaluer simulée par le cas ;
 	// les issues sans relais rendent un résultat de l'enregistreur.
 	if apv := att.Get("approval"); apv == nil {
-		rap.Comparer(f, nom, "approval présent (B.4 : null ou { response })", "présent", "absent")
+		rap.Comparer(f, nom, "approval présent (B.4 : null ou { response, pinned })", "présent", "absent")
 	} else if !apv.IsNull() {
 		rep := apv.Get("response")
 		issue, invalide := IssueReponseEvaluer(rep)
+		if invalide == "" {
+			// Révision 0.11 (EX-7.16, annexe B.4) : les trois membres de
+			// l'épinglage égaux à ceux de approval.pinned.
+			invalide = EpinglageReponseEvaluer(rep, apv.Get("pinned"))
+		}
 		rap.ComparerAvecNote(f, nom, "approval.response : combinaison de la table d'EX-7.16", "valide", valideOu(invalide), invalide == "", texteOuAbsent(rep))
 		if invalide == "" && issue != IssueRelais && issue != IssueRelaisApprouv {
 			verifierIssueSansRelais(rap, ctx, nom, att, hote, amont, servie, recue, rendue, lu, issue, rep)

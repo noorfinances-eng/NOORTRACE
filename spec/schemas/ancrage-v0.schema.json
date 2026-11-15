@@ -217,7 +217,7 @@
   },
   "$defs": {
     "identifiant": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$" },
-    "oid": { "type": "string", "pattern": "^[0-2](\\.(0|[1-9][0-9]*))+$" },
+    "oid": { "type": "string", "pattern": "^[0-2](\\.(0|[1-9][0-9]*))+$", "maxLength": 512, "description": "OID en notation pointée ; chaque arc tient sur 128 bits et le DER de l'OID fait au plus 127 octets (CT-5 EX-4.9, règle 9 ; EX-5.1), ce que la règle 9 d'AN-1 vérifie au-delà du schéma." },
     "chemin_absolu": { "type": "string", "pattern": "^/[^\\u0000]{1,4095}$" },
     "texte": { "type": "string", "minLength": 1, "maxLength": 512 },
     "pem_certificat": {
@@ -292,7 +292,7 @@
           "enum": [ "principal", "secours", "second_rang", "interne" ],
           "description": "principal : prestataire qualifié du manifeste et, par défaut, des points ; secours : prestataire qualifié de relève ; second_rang : autorité RFC 3161 des points intermédiaires, qualifiée ou non ; interne : serveur RFC 3161 interne non qualifié (CT-5 §7)."
         },
-        "url": { "type": "string", "pattern": "^https?://[^\\s]+$", "maxLength": 512, "description": "Point d'accès RFC 3161 §3.4 (POST, application/timestamp-query) ; https obligatoire sauf pour le rôle interne sur une adresse locale (AN-1)." },
+        "url": { "type": "string", "pattern": "^https?://[^\\s@/]+(/[^\\s]*)?$", "maxLength": 512, "description": "Point d'accès RFC 3161 §3.4 (POST, application/timestamp-query) ; https obligatoire sauf pour le rôle interne sur une adresse locale (AN-1) ; la partie d'autorité ne porte ni identifiant ni mot de passe (CT-5 EX-4.8, AN-54, révision 0.10)." },
         "auth": {
           "type": "object",
           "additionalProperties": false,
@@ -325,7 +325,11 @@
           "oneOf": [ { "type": "null" }, { "type": "string", "pattern": "^[A-Za-z0-9-]{1,64}$" } ],
           "description": "En-tête HTTP de corrélation que le prestataire accepte (par exemple X-Request-ID) ; CT-5 y place l'identifiant de tentative ; null : aucun."
         },
-        "source": { "$ref": "#/$defs/texte", "description": "D'où viennent le point d'accès, les algorithmes, la politique et les certificats (documentation publique du prestataire, date de lecture)." }
+        "source": { "$ref": "#/$defs/texte", "description": "D'où viennent le point d'accès, les algorithmes, la politique et les certificats (documentation publique du prestataire, date de lecture)." },
+        "crl_hosts": {
+          "oneOf": [ { "type": "null" }, { "type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": { "type": "string", "maxLength": 253, "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?)*$" } } ],
+          "description": "Révision 0.10 (CT-5 EX-4.9, règle 4 bis) : noms d'hôte dont la capture des CRL des certificats du chemin est admise (EX-5.10, étape 10) ; facultatif ; absent ou null : en production, seules les adresses publiques sont admises (adresses locales et privées refusées, RFC 1918, 3927, 4193, 6598) ; donnée : en production, une adresse dont l'hôte n'y figure pas est refusée aussi ; hors production, la liste n'est pas appliquée et la boucle locale reste admise."
+        }
       }
     }
   }

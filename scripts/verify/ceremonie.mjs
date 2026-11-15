@@ -11,7 +11,12 @@
 // --condense imprime D_C seul, sans exiger de signatures : c'est ce que le
 // participant recalcule sur son poste avant de signer (EX-5.8).
 // --json imprime le rapport : la forme de `attendu.json`
-// (ceremonie-cles-v0#/$defs/attendu) plus `statuses`.
+// (ceremonie-cles-v0#/$defs/attendu) plus `statuses` et `reserves`.
+//
+// Réserve d'EX-5.11 : aucune CR- ne lit l'ancre de D_C, que le réviseur
+// contrôle lui-même. Pour un procès-verbal de production, le rapport porte
+// la réserve `date_declaree_seulement` et la sortie lisible sa phrase ; le
+// verdict et le code de retour n'en dépendent pas.
 
 import fs from "node:fs";
 import * as S from "../lib/securite.mjs";
@@ -56,7 +61,7 @@ if (options.has("--condense")) {
 }
 
 if (options.has("--json")) {
-  console.log(JSON.stringify({ ...S.attenduCeremonie(r), statuses: r.statuses }, null, 2));
+  console.log(JSON.stringify({ ...S.attenduCeremonie(r), statuses: r.statuses, reserves: r.reserves }, null, 2));
   process.exit(r.verdict === "valide" ? 0 : 1);
 }
 
@@ -68,4 +73,5 @@ for (const s of r.statuses) {
 if (r.not_executed.length) console.log(`Non exécutées (prérequis en échec) : ${r.not_executed.join(", ")}`);
 if (r.signers.length) console.log(`Signataires vérifiés : ${r.signers.join(", ")}`);
 if (r.verdict === "valide") console.log(S.phraseCeremonie(JSON.parse(octets.toString("utf8")), r));
+for (const phrase of S.phrasesReservesCeremonie(r)) console.log(phrase);
 process.exit(r.verdict === "valide" ? 0 : 1);

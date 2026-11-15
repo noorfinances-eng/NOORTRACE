@@ -1,0 +1,208 @@
+# Surcharge de la démonstration de référence pour les deux cas de
+# démonstration (CT-9 TE-1 « assurance », TE-2 « administration » ; plan,
+# annexe III du règlement, points 5 c et 5 a). Elle se lit APRÈS
+# demo/compose.yaml, avec le fichier de variables du cas :
+#
+#   NOORTRACE_CAS_TRAVAIL=<répertoire de travail absolu> \
+#   docker compose --env-file demo/cas/<cas>/cas.env \
+#     -f demo/compose.yaml -f demo/cas/compose.cas.yaml up --detach
+#
+# Le répertoire de travail est préparé par `node demo/cas/preparer.mjs
+# preparer` (autorité du serveur RFC 3161 interne, document d'ancrage et
+# configuration du service d'approbation du passage). Mêmes images que la
+# démonstration de référence : aucune image n'est reconstruite ; les programmes
+# des cas (demo/cas/commun/*.mjs) sont montés dans les images, à côté des
+# programmes de la démonstration qu'ils réemploient.
+#
+# Ce qui change par rapport à la démonstration de référence (LISEZMOI.md) :
+#   - outils-demo, modele-demo, agent-demo : programmes et données du cas ;
+#   - approbateur-demo : ne détient que les clés de chaîne (inscription de la
+#     clé, demande de clôture) et NE VOTE PAS : les approbateurs décident
+#     depuis la console d'exploitation de CT-3, avec deux comptes de test, et
+#     le service d'approbation prend leurs votes par le canal de la console
+#     (prise du volume prise-console) ;
+#   - horodatage : serveur RFC 3161 interne (image noortrace/tsa-interne, CT-8
+#     §7) dans l'espace réseau de l'enregistreur, pour que le dossier porte le
+#     jeton de la période (contrôle 4 de CT-6) ;
+#   - exploitation-demo : exporte les dossiers que nomme le cas ;
+#   - verificateur : non lancé (profil `reference`) : les dossiers sont
+#     vérifiés hors de la composition, par les deux vérificateurs de CT-6 et
+#     par le paquet réviseur de CT-8 §13.
+
+services:
+  registre-dev:
+    environment:
+      REGISTRE_DEV_ORG_ID: ${NOORTRACE_CAS_ORG_ID:?NOORTRACE_CAS_ORG_ID (cas.env) requis}
+
+  outils-demo:
+    entrypoint: ["/usr/local/bin/node", "/opt/noortrace-demo/outils-cas.mjs"]
+    command: ["servir", "--ecoute", "0.0.0.0:8000"]
+    environment:
+      OUTILS_CAS_CATALOGUE: /etc/noortrace-demo/outils.json
+    volumes:
+      - type: bind
+        source: ./cas/commun/outils-cas.mjs
+        target: /opt/noortrace-demo/outils-cas.mjs
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./cas/${NOORTRACE_CAS:?NOORTRACE_CAS (cas.env) requis}/outils.json
+        target: /etc/noortrace-demo/outils.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+  modele-demo:
+    entrypoint: ["/usr/local/bin/node", "/opt/noortrace-demo/modele-cas.mjs"]
+    command: ["servir", "--ecoute", "0.0.0.0:8080"]
+    environment:
+      MODELE_CAS_SCENARIO: /etc/noortrace-demo/modele.json
+    volumes:
+      - type: bind
+        source: ./cas/commun/modele-cas.mjs
+        target: /opt/noortrace-demo/modele-cas.mjs
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./cas/${NOORTRACE_CAS}/modele.json
+        target: /etc/noortrace-demo/modele.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+  approbateur-demo:
+    entrypoint: ["/usr/local/bin/node", "/opt/noortrace/conteneurs/approbateur-demo/approbateur-cas.mjs"]
+    command: ["servir"]
+    environment:
+      APPROBATEUR_ORG_ID: ${NOORTRACE_CAS_ORG_ID}
+      APPROBATEUR_JOURNAL_ID: ${NOORTRACE_CAS_JOURNAL_ID:?NOORTRACE_CAS_JOURNAL_ID (cas.env) requis}
+    volumes:
+      - type: bind
+        source: ./cas/commun/approbateur-cas.mjs
+        target: /opt/noortrace/conteneurs/approbateur-demo/approbateur-cas.mjs
+        read_only: true
+        bind:
+          create_host_path: false
+
+  approbation:
+    volumes:
+      - type: bind
+        source: ${NOORTRACE_CAS_TRAVAIL:?NOORTRACE_CAS_TRAVAIL (répertoire de travail absolu du passage) requis}/approbation-cas.json
+        target: /etc/noortrace-approbation/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+  enregistreur:
+    volumes:
+      - type: bind
+        source: ./cas/${NOORTRACE_CAS}/configuration-cas.json
+        target: /etc/noortrace/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NOORTRACE_CAS_TRAVAIL}/ancrage-cas.json
+        target: /etc/noortrace/ancrage.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+  # Serveur RFC 3161 interne non qualifié (CT-5 §7, CT-8 §7.3), dans l'espace
+  # réseau de l'enregistreur (http://127.0.0.1:2020/), autorité créée dans le
+  # volume horodatage par horodatage-init (preparer.mjs), comme au pas IR-2.
+  horodatage:
+    image: noortrace/tsa-interne:0.1.0
+    user: "10004:10004"
+    command: ["servir", "--repertoire", "/var/lib/noortrace-tsa", "--hote", "127.0.0.1", "--port", "2020"]
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    tmpfs:
+      - /run/temporaire:size=16777216,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    network_mode: "service:enregistreur"
+    volumes:
+      - type: volume
+        source: horodatage
+        target: /var/lib/noortrace-tsa
+    depends_on:
+      enregistreur:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-tsa-interne", "sonde", "--url", "http://127.0.0.1:2020/sante"]
+      interval: 2s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  horodatage-init:
+    image: noortrace/tsa-interne:0.1.0
+    user: "10004:10004"
+    profiles: ["outils"]
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    tmpfs:
+      - /run/temporaire:size=16777216,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    network_mode: none
+    volumes:
+      - type: volume
+        source: horodatage
+        target: /var/lib/noortrace-tsa
+    healthcheck:
+      disable: true
+
+  agent-demo:
+    entrypoint: ["/usr/local/bin/node", "/opt/noortrace-demo/agent-cas.mjs"]
+    command: ["jouer"]
+    environment:
+      AGENT_CAS_SYSTEME: ${NOORTRACE_CAS_SYSTEME:?NOORTRACE_CAS_SYSTEME (cas.env) requis}
+      AGENT_CAS_DEMANDE: ${NOORTRACE_CAS_DEMANDE:?NOORTRACE_CAS_DEMANDE (cas.env) requis}
+      # Les approbateurs décident à la main depuis la console : l'agent attend jusqu'à dix minutes.
+      AGENT_DEMO_ATTENTE_MAX_MS: "600000"
+      AGENT_DEMO_PAUSE_MS: "2000"
+    volumes:
+      - type: bind
+        source: ./cas/commun/agent-cas.mjs
+        target: /opt/noortrace-demo/agent-cas.mjs
+        read_only: true
+        bind:
+          create_host_path: false
+
+  exploitation-demo:
+    entrypoint: ["/usr/local/bin/node", "/etc/noortrace-demo/exploitation-cas.mjs"]
+    environment:
+      EXPLOITATION_CAS_EXPORTS: ${NOORTRACE_CAS_EXPORTS:?NOORTRACE_CAS_EXPORTS (cas.env) requis}
+    volumes:
+      - type: bind
+        source: ./cas/${NOORTRACE_CAS}/configuration-cas.json
+        target: /etc/noortrace/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./cas/commun/exploitation-cas.mjs
+        target: /etc/noortrace-demo/exploitation-cas.mjs
+        read_only: true
+        bind:
+          create_host_path: false
+
+  # Le vérificateur de la démonstration de référence imprime la sortie de CT-2
+  # §19.4, propre au scénario de référence : il n'est pas lancé dans les cas.
+  verificateur:
+    profiles: ["reference"]
+
+volumes:
+  horodatage: {}
