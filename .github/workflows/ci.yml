@@ -833,6 +833,12 @@ jobs:
           sudo apt-get install -y strace util-linux
           strace -V
           unshare --version
+          # Espaces de noms d'utilisateur sans privilège pour la vérification sans réseau (unshare -rn) :
+          # Ubuntu 24.04 les restreint par AppArmor, comme pour le travail de la page de vérification.
+          if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          unshare -rn true
       - name: environnements Python des intégrations et des cadres depuis les verrous versionnés
         run: |
           uv --version

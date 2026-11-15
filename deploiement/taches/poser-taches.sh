@@ -91,15 +91,17 @@ case "$repertoire_supervision" in *[!A-Za-z0-9._/-]*) erreur_usage "--supervisio
 repertoire_supervision="${repertoire_supervision%/}"
 
 # Propriété de ce que le superutilisateur exécutera (CT-8 IC-16) : chaque composant de la racine
-# et chaque script lancé par les unités appartient au compte attendu et n'est inscriptible ni par le
-# groupe ni par les autres ; un répertoire à bit collant est admis (/tmp : nul autre que le
-# propriétaire n'y renomme ni ne supprime une entrée).
+# et chaque script lancé par les unités appartient au superutilisateur et n'est inscriptible ni par
+# le groupe ni par les autres ; un répertoire à bit collant est admis (/tmp : nul autre que le
+# propriétaire n'y renomme ni ne supprime une entrée). Lancé hors superutilisateur (essais, unités
+# écrites sous --sortie sans activation), le compte courant est admis en plus : les composants
+# communs du chemin (/, /home, /tmp) restent au superutilisateur.
 compte_attendu=0
 [ "$(id -u)" -eq 0 ] || compte_attendu="$(id -u)"
 controler_propriete() {
   local chemin="$1" uid mode
   read -r uid mode < <(stat -L -c '%u %a' -- "$chemin" 2>/dev/null) || erreur_usage "--racine : $chemin illisible"
-  [ "$uid" = "$compte_attendu" ] || erreur_usage "--racine : $chemin appartient au compte $uid, non au compte $compte_attendu : les minuteurs y exécutent des scripts en superutilisateur"
+  [ "$uid" = 0 ] || [ "$uid" = "$compte_attendu" ] || erreur_usage "--racine : $chemin appartient au compte $uid, non au compte 0$([ "$compte_attendu" = 0 ] || echo " ni au compte $compte_attendu") : les minuteurs y exécutent des scripts en superutilisateur"
   local droits=$(( 8#$mode ))
   if [ $(( droits & 8#22 )) -ne 0 ]; then
     [ -d "$chemin" ] && [ $(( droits & 8#1000 )) -ne 0 ] || erreur_usage "--racine : $chemin inscriptible par le groupe ou les autres (mode $mode)"
