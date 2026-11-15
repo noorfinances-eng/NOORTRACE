@@ -152,9 +152,12 @@ observability, runbooks and installation tooling.
   measurement is invented: every target is listed with its source and failure
   threshold, to be measured at the second gate.
 
-CT-1, CT-2, CT-3, CT-4, CT-5, CT-7, CT-8 and CT-9 vectors are also recomputed by
+CT-1, CT-2, CT-3, CT-4, CT-7, CT-8 and CT-9 vectors are also recomputed by
 Go verifiers written from the specification alone, without reading the
-JavaScript.
+JavaScript. CT-5 vectors are recomputed by a Go vector-consistency verifier
+that is partly copied from the JavaScript reference and is therefore not
+independent (CT-5 A.5); its directory keeps the historical name
+`verificateur-independant/`.
 
 The registry contracts, the commit-certificate verifier and the reference approval
 console exist and are tested, and so do the recorder, the anchoring component with

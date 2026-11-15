@@ -12082,6 +12082,157 @@
           "apres": "e42e5e64c037272877e74720eb10aca0ead13aa0f4b074b1a9ee1b80d520ce20"
         }
       ]
+    },
+    {
+      "id": "MC-84",
+      "date": "2026-11-15",
+      "etape": 8,
+      "motif": "Décision du porteur du 2026-11-15 (décision 9, option a) : le module Go de spec/vecteurs/ct-5/verificateur-independant, dont des parties sont identiques à la référence (lecture et construction des requêtes RFC 3161, lecture et classement des réponses, registre du planificateur), n'est plus présenté comme indépendant ; vérificateur Go de cohérence des vecteurs, en partie recopié de la référence, il ne compte plus parmi les confrontations indépendantes (CT-9 EX-13.2 : sept modules au lieu de huit ; TA-66 : six au lieu de sept) ; le répertoire garde son nom, historique pour ct-5. Compléments du 2026-11-15 : CT-5 (note de la révision 0.10, en-tête, 0, 1, 8.10, 14, A.5, A.6), CT-6 (révision 0.9, 16), CT-7 (en-tête, MN-66 en 3.4, 3.6), CT-9 (note de la révision 0.10, EX-3.3, 5.5, 7, EX-13.2, PD-5 ; TV-46, TA-66, TQ-5 et objet du niveau TV dans le catalogue), spec/README.md, README.md du module ct-5 ; vecteurs régénérés : ct-5 (INDEX.md), ct-7 (menaces.json), ct-9 (catalogue, couverture, INDEX.md, cas, extraits, sortie du recompte).",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-5-ancrage.md",
+          "avant": "6121bca42e6e55c148db5f9b981ca0b9141606539eac89b46286cb2d3c0b39e0",
+          "apres": "134910cc4306dd96983df4c0a3e34b9adc9adede845cfcd49760fda0ab9882e9"
+        },
+        {
+          "chemin": "spec/CT-6-verificateur.md",
+          "avant": "3f57cc0c0701e9e1ac5eb64233d1fa8b40c09e9b5d11421f32124a16a3a0858d",
+          "apres": "928989bf5fc4eb98509563236316b4d08a811a17c3752b8ffa26aef73de65d69"
+        },
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "f6918cdc6c12e17f3cb9e113b652f24e9c831162123cb2455274d48c397a2f16",
+          "apres": "50f7cca835118c2c3518c01eb0aa6872b48e89a1800a6c2628a75e0a2c16cc3c"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "fe5db30de67026ab5edc9787e5e880d15b1de98e13078f78b80499db88ec3ff4",
+          "apres": "4c538d0e866c0cb912d5fb4c1c7390283e40e0e16bc282822d93e827dbf4f3e7"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "d7cc33e90b123a8bca7fbb75d79a425038929c9f80c2a21d6241b86b0cb97230",
+          "apres": "4692fe967f5d7006796ef4be244d94b94a9eee4e1cf9e461a1019b07c3071e33"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/INDEX.md",
+          "avant": "27629c512c0074c684c1efdd42ad167e18e5721622f470084c408c1a792a3132",
+          "apres": "744b6c66f744bb4f689b6049d8c00da8c28d1d4ea48f7cd06a29b8982d2cfd05"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/README.md",
+          "avant": "b5f15188256ae823bb3085251e9f6b0c1a4d23562d02599c081cf7b56d686fc7",
+          "apres": "d509993f0c5910a6806c30b698b1ff639b525798b9a935cc5f13fbf443062002"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/menaces.json",
+          "avant": "aca02ec735d5f981f4fd187c67aa06b4451d406f8f7a6bd8004510e802755947",
+          "apres": "9241c999aebc50e1000c55ba82fa7f9ddf9d117bc8e3d28e56096962e41a2d81"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "c99486ae467460e86bd92f1697cbd23dc4a300bb112efdfc0a39c16a8962ada6",
+          "apres": "c577879e774d3ad2c9fa276a333c072f23de5ea9049af4f35401f4c9d8510369"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-a-ecrire-sans-etape.json",
+          "avant": "72baefedeb5bab07200b20f582d33bf3274cc11f20cf8988daa978e0827e6104",
+          "apres": "c45ff49695a797db2f69270a0e4d25c27fa5f905f53509720e3a20b09a96cb10"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-executable-sans-titre.json",
+          "avant": "0fee6cf8b7501282ec1dabcc40aa84decb0565848a1e740c696f1bcc65b96319",
+          "apres": "90f0550ec89b032de77227086232efbec2379a649d1523f1a7d0e87a45c8ca02"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-identifiant-sans-specification.json",
+          "avant": "175b93213b6bbf899a0ad19ccd1186a847e60f595aa56ece254bf3a638f97ce3",
+          "apres": "a6fb12406a0549d5eaeb4e8cf87acbc43564417ae04466c06c55b5d7a5ff97bc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-complement-sans-etape.json",
+          "avant": "0cf3805b523840dc61aa5176a5bff151be796aad639fd8bf4e3d41a582d66b30",
+          "apres": "bda1ce919c26781b9822046fa1cbb1ef51ed074cf0a9d54bbaf7b610ce27d796"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-prefixe-test.json",
+          "avant": "24a55b9ace0ab32660978d541d1735fdc71f99e2096746dc7a1015bc786ec3ca",
+          "apres": "5b78b8e8dd759e2be510891dc61b5ceadd3c6dc310c01b4c67d24916bc9ec033"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-sans-adversarial.json",
+          "avant": "f44ab88abab79e7f29561403e12aa95456b09b013eb86e39624076eab748cad1",
+          "apres": "c007d57849f8506aa0c781d7333757232fc269630b8b07cab98ca9cb7daeefd5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-scenario-sans-composition.json",
+          "avant": "96cc77dec3352e7af65df493988f51918dc338ade891f5daabd1eb47b19c42c9",
+          "apres": "3a693ac3e5abfd70acf59c8cdf474f0341da902d6c31565eed0813a262e006b5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-titre-vide.json",
+          "avant": "dfeabbdaf59f73ab5bbba99c1a26ba9d13f95cd348b84288838a734428550b85",
+          "apres": "6ca3cf312f905d029e1941f3ff1ed65e08f23cad27adb82a6931ee70ce24be47"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-tm-mesure-inventee.json",
+          "avant": "b984249afd583f6902bef739e96bc3cdf9d07d0ee31ed8fef899934ad98a215c",
+          "apres": "ea6e761d6aea1e01c83eda927ca0c78139e9d6c05064cd85fc42c366eabdf852"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-minimal.json",
+          "avant": "70590f5a917750949973e5338d5f2e93a395d7d987746b748ceab8ad392bb60d",
+          "apres": "c63e626cf8ffb24309ef059fe9642da8dc5c8179d74b2e6ce8aa6818bfe9a596"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-ta.json",
+          "avant": "681d03ae290fffd3f8e981101f6e5d4aca7ae0b8d09138890f5e513128632853",
+          "apres": "b28157551811942e2c264bc0530adb909f9a7df236a7bd028fd9835a539cb136"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "f81213dd29d7ca04130dc8abfb2d8f42e9efde5c741fbe41f716a82a40ecedfc",
+          "apres": "5a1a126c64e203a4d395ce228e62cefcfff9a1d2ec4fbc0b77d6625a03270a54"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "b71879f859271afece754573b7135ada14e6c5b6d2de9b9bd59e09f06b140728",
+          "apres": "132b2dcd756b755a14ac2ac97c63bf632feb7a6c1c02efd26958162053517b59"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "5f9bd42d41a49be1ebf03a8bf193721d6fdb3b63771fc5b27f679f6a58c0b96b",
+          "apres": "27a047e83415f9cadbd2b5aff16f43681fe44bff84421a97e4405aa4af972276"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "2bcb2ac33d070afb5eae7cdfe3ec84fb1a5288edfde652859edc8546bfac2f59",
+          "apres": "14cbe55ba11220aafc7f0ead1afc408b5d5bf5b280ae144c2cc1c23c2082c90d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "02a296c413883a16cef25abd32a864baafc7bda204fbd7fe0374cd82ab9ecfb8",
+          "apres": "e5ad77a8c974f6fc19bcffe038302537fabb66ff14648f8a5dd34c2086cb5e97"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "1ae89fca373b75dfe949ad7252d94cdcb2ef8f86978fc34237244c68f2533214",
+          "apres": "99aad967acb787392994877bc29c366516a2c220d18c74f33c296c90025d8022"
+        }
+      ]
+    },
+    {
+      "id": "MC-85",
+      "date": "2026-11-15",
+      "etape": 8,
+      "motif": "Décision du porteur du 2026-11-15 (décision 9, option a) : description du schéma planificateur-ancrage-v0 alignée, le module Go de ct-5 étant un vérificateur de cohérence des vecteurs et non une implémentation indépendante",
+      "fichiers": [
+        {
+          "chemin": "spec/schemas/planificateur-ancrage-v0.schema.json",
+          "avant": "5e33235ea71d3e1f651227694e26c00a19c5268aeca52cac82469a83bd34e6be",
+          "apres": "68d78041896df8023f29e45eb132063c41d7f3e525bf7fb260f46c30aa39b317"
+        }
+      ]
     }
   ]
 }

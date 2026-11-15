@@ -76,7 +76,7 @@ trace `file-perdue` recalculée (l'alerte `point_manquant` du point K3 relu au
 redémarrage de 13:56 est due à 13:56, deux minutes après son `checkpoint_ts`
 13:54, et non à 13:58) ; les vingt autres traces et les vingt-huit réponses
 ne changent pas. Aucun schéma ne change ; l'implémentation de référence
-(`scripts/lib/ancrage.mjs`) et le vérificateur Go indépendant sont alignés.
+(`scripts/lib/ancrage.mjs`) et le vérificateur Go de `ct-5` (A.5) sont alignés.
 
 **Révision 0.5** (2026-11-10), textuelle, à la fermeture de l'étape 5 de la
 construction : le test de la relève de la clôture par le secours qualifié
@@ -137,7 +137,7 @@ lignes `anchor_queue_compacted` et `anchor_queue_compaction_failed`. Vecteurs
 (`queue_after`, fichiers de `reprise/`) porte `attempts_total`, chaque ligne
 `checkpoint_countersigned` des traces porte `d_admission_s`, et une trace
 doit exercer une demande de plus de 32 tentatives ; la trace de référence de
-8.10 est imprimée sous sa forme nouvelle. Vérificateur Go indépendant : il
+8.10 est imprimée sous sa forme nouvelle. Vérificateur Go de `ct-5` (A.5) : il
 rejoue les traces à l'identique sous ces règles et valide les lignes de file
 contre le schéma révisé. Aucun autre schéma, aucune autre trace, aucun outil
 ne change ; CT-1, CT-4 et CT-6 ne changent pas.
@@ -253,9 +253,29 @@ EX-4.9) ; 4.7 (EX-4.13) ; 5.1 (EX-5.1) ; 5.2 (EX-5.5) ; 5.3 (EX-5.8, EX-5.9) ;
 6.6 (EX-6.10) ; 7.2 (AN-26) ; 8.1 (EX-8.1) ; 8.5 (EX-8.5) ; 8.7 (EX-8.8,
 EX-8.10) ; 8.8 (EX-8.12) ; 8.9 ; 9.2 (EX-9.7) ; 15 ; 8.3 (EX-8.3) ; 8.6 (EX-8.9) ;
 annexes A.3, A.4, A.6. Ce que la revue a laissé au porteur n'est pas écrit ici :
-mention « indépendant » du module Go de `ct-5` (A.5), risque du serveur
+mention « indépendant » du module Go de `ct-5` (A.5 ; tranchée depuis, voir le
+complément ci-dessous), risque du serveur
 interne de classe D (7.2, AN-31), source de la mesure d'écart d'horloge
 (AN-24), `second_rang` public sans compte (règle 4).
+Complément du 2026-11-15, décision du porteur : le module Go de
+`spec/vecteurs/ct-5/verificateur-independant` n'est plus présenté comme
+indépendant. La revue de sécurité interne de l'étape 8 a établi que des
+parties en sont identiques à la référence (lecture et construction des
+requêtes RFC 3161, lecture et classement des réponses, registre du
+planificateur, au moins) : c'est un vérificateur Go de cohérence des
+vecteurs, en partie recopié de la référence, qui ne compte plus parmi les
+confrontations indépendantes du plan de tests (TA-66 ; EX-13.2, revue de
+code). Le répertoire garde son nom, que suivent l'intégration continue,
+les renvois et les autres modules : pour `ct-5`, ce nom est historique et
+ne vaut pas déclaration d'indépendance. Passages touchés : notes des révisions 0.4,
+0.6 et 0.10 (désignation du module) ; 0 (« la référence ») ; 1 (table de ce
+que la version 0 livre) ; 8.10 ; 14 (une ligne) ; A.5 (titre, EX-A.4 et
+paragraphe final) ; A.6 (ligne `planification/`, `cout/`, `completude/`).
+EX-A.4 n'exige plus que le module soit écrit depuis la seule spécification,
+sans lire `scripts/` ni `test/` ; aucune autre règle, aucun schéma, aucune
+trace ni aucun outil de référence ne change ; dans les vecteurs, seul le
+commentaire de la commande du module change dans
+`spec/vecteurs/ct-5/INDEX.md`.
 
 La spécification a deux parties. La **partie A** (sections 0 à 6) dit ce que
 l'ancrage prouve et ne prouve pas, quelle fenêtre de réécriture il laisse,
@@ -327,8 +347,9 @@ contrôle, preuve de cohérence, partie de dossier, CT-1 §10.5 à §11.2) et
 d'attente, reprise, choix du prestataire ; construction d'une `TimeStampReq`
 DER ; construction d'un fichier `.ots` ; formule de coût ; sans réseau), avec
 le générateur `scripts/vecteurs/generer-ct5.mjs` et les tests. Elle et le
-vérificateur Go indépendant de `spec/vecteurs/ct-5/verificateur-independant`
-(annexe A), écrit depuis cette seule spécification, rendent sur les mêmes
+vérificateur Go de cohérence des vecteurs de
+`spec/vecteurs/ct-5/verificateur-independant` (annexe A.5), en partie
+recopié de la référence et donc non indépendant d'elle, rendent sur les mêmes
 entrées les mêmes octets et les mêmes verdicts AN- ; des implémentations
 tierces confrontent les sorties (annexe A : `openssl ts -query -in -text` sur
 les requêtes, `python-opentimestamps` sur les fichiers `.ots`, `openssl ts
@@ -402,7 +423,7 @@ Ce que la version 0 livre :
 | Cette spécification ; les schémas `spec/schemas/ancrage-v0.schema.json` (4.4) et `spec/schemas/planificateur-ancrage-v0.schema.json` (8.10, annexe A) | avec CT-5 |
 | La référence JavaScript : `scripts/lib/journal.mjs` (point de contrôle, preuve de cohérence, partie de dossier) et `scripts/lib/ancrage.mjs` (planificateur à horloge injectée, requête DER, fichier `.ots`, formule de coût ; sans réseau) ; `scripts/lib/verificateur.mjs` et `scripts/verify/dossier.mjs` pour la partie (CT-6 0.2) | avec CT-5 |
 | Les vecteurs `spec/vecteurs/ct-5` (annexe A) et les familles `points-de-controle/` et `merkle/coherence.json` de `spec/vecteurs/ct-1` (CT-1 §13), leurs générateurs et leurs tests | avec CT-5 |
-| Les vérificateurs Go indépendants : extension de `spec/vecteurs/ct-1/verificateur-independant` (points, cohérence) et `spec/vecteurs/ct-5/verificateur-independant` | avec CT-5 |
+| Les vérificateurs Go : extension du vérificateur indépendant `spec/vecteurs/ct-1/verificateur-independant` (points, cohérence) et vérificateur de cohérence des vecteurs `spec/vecteurs/ct-5/verificateur-independant`, en partie recopié de la référence, non indépendant (A.5) | avec CT-5 |
 | La confrontation par des implémentations tierces : `openssl ts` sur les requêtes et les jetons, `python-opentimestamps` sur les fichiers `.ots` (annexe A) | avec CT-5 |
 | Le contrat avec un prestataire principal et un prestataire de secours (section 11), leurs identifiants d'accès et la procédure de qualification (5.3) | après la porte 1 ; les devis viennent après la conception |
 | Le serveur RFC 3161 interne en production (section 7) | optionnel ; le réseau de développement et les vecteurs en emploient un |
@@ -2621,7 +2642,7 @@ Aucune ligne ne porte un secret, un jeton ni une pièce.
 
 Les traces sont des données de test normatives : chacune est validée par le
 schéma `planificateur-ancrage-v0` et rejouée par `rejouerTrace` et par le
-vérificateur Go indépendant (annexe A). Elles ne sont pas faites pour être
+vérificateur Go de cohérence (annexe A.5). Elles ne sont pas faites pour être
 lues : les règles du planificateur sont toutes énoncées par EX-8.1 à EX-8.15,
 et EX-8.16 n'ajoute que l'exigence de rejouer les traces à l'identique. Un
 lecteur qui cherche les règles peut sauter la suite de cette section sans
@@ -2639,7 +2660,7 @@ prestataires sont des entrées : la trace ne contient pas de jeton, seulement
 son SHA-256, sa taille, `genTime`, `accuracy`, le nonce lu et les
 vérifications T- réussies ; c'est pourquoi le planificateur de référence est
 sans réseau et prend ces résultats en entrée (EX-8.13). L'implémentation de
-référence et le vérificateur indépendant (annexe A.5) DOIVENT rendre, sur les
+référence et le vérificateur Go de cohérence (annexe A.5) DOIVENT rendre, sur les
 mêmes entrées, exactement la liste `expected` (égalité des formes canoniques
 JCS v0 de chaque action, dans l'ordre) et la file `queue_after`. Deux entrées
 de même instant sont traitées dans l'ordre de la liste ; une action produite à
@@ -4909,7 +4930,7 @@ sont pas modifiés par cette version : la dernière ligne dit ce qui doit y chan
 | `scripts/lib/verificateur.mjs`, `scripts/verify/dossier.mjs` | huit contrôles sans la partie | K-7 à K-9 sur `checkpoint_hash` (CT-6 révision 0.2) | fait (CT-6 révision 0.2) |
 | `scripts/lib/noortrace.mjs`, `scripts/lib/registre.mjs`, `scripts/lib/conventions-registre.mjs` | `DOC_TYPE_PERIODE` seul | `DOC_TYPE_POINT_DE_CONTROLE` = `0x72c4…2178` ; `ancrer --point` (9.5) | fait pour `DOC_TYPE_POINT_DE_CONTROLE` et le rôle `ancre_point_de_controle` (capture par `scripts/vecteurs/capturer-ct6.mjs --ancre-point`) ; `ancrer --point` de l'outil de CT-4 : à faire (CT-4, révision suivante) |
 | `scripts/vecteurs/generer-ct5.mjs`, `spec/vecteurs/ct-5/` | — | familles de l'annexe A, deux générations identiques, `INDEX.md` | fait |
-| `spec/vecteurs/ct-5/verificateur-independant/` | — | module Go écrit depuis la seule spécification (annexe A.5) | fait |
+| `spec/vecteurs/ct-5/verificateur-independant/` | — | module Go, vérificateur de cohérence des vecteurs (annexe A.5) | fait ; en partie recopié de la référence, il n'est pas indépendant (complément du 2026-11-15 de la révision 0.10) |
 | `test/ancrage.test.js`, `.github/workflows/ci.yml`, `package.json` | rien pour CT-5 | tests de l'annexe A.7, script `vecteurs:ct5`, étapes de CI | fait |
 | `spec/vecteurs/ct-6/` (CT-6 révision 0.2) | 50 dossiers sans la partie | nouveaux dossiers avec `points-de-controle.json` (valides et invalides, un par vérification K-7 à K-9), les 50 inchangés ; `openssl ts -verify` sur les jetons des nouveaux dossiers (A.6) | fait (`generer-ct6.mjs` ; confrontation par `spec/vecteurs/ct-5/confrontation/reponses/` et CT-6 A.8) |
 | CT-1 | révision 0.3 | aucune modification de format : CT-5 reprend §10.5 à §10.9 et §11.2 tels quels ; CT-1 §15 renvoie à CT-5 pour la cadence, la file et les prestataires ; K-3 (clé du point absente d'un `cles.json` exploitable : échec) et K-8 (`chain_id` rapporté, non comparé) alignés d'un mot sur CT-6 §5.4 et EX-11.25 | fait (renvoi ; alignement textuel de §11.4) |
@@ -5109,14 +5130,15 @@ spec/vecteurs/ct-5/
 | `cout` | les onze cas de 12.3 | EX-4.11, EX-12.1, EX-12.2, AN-4 | six grandeurs par cas ; avec `a = 1`, égalité avec la table de 4.6 |
 | `completude` | `serie-publiee-complete`, `serie-reecrite-ancres-orphelines`, `ancres-hors-ordre`, `periode-suivante-dans-la-fenetre`, `periode-suivante-non-servie`, `emetteur-doctype-et-fenetre` | EX-10.7, AN-61 | `complete`, `orphans`, `out_of_order`, `attached` reproduits par `verifierCompletudeRegistre` |
 
-### A.5 Vérificateur Go indépendant
+### A.5 Vérificateur Go de cohérence des vecteurs
 
 **EX-A.4** Le module `spec/vecteurs/ct-5/verificateur-independant`
-(`noortrace-ct5`, `go 1.24`, bibliothèque standard seulement) est écrit
-depuis la seule spécification (CT-5, et CT-1 §10.5 à §10.7 et CT-6 §9 et §10
-pour ce qu'ils définissent), sans lire `scripts/` ni `test/`, comme ceux de
-CT-1 à CT-4 ; il PEUT copier les fichiers de keccak256, JSON et JCS de ces
-modules en le disant en tête de fichier. Il recalcule : les `TimeStampReq`
+(`noortrace-ct5`, `go 1.24`, bibliothèque standard seulement) est un
+vérificateur Go de cohérence des vecteurs, écrit depuis la spécification
+(CT-5, et CT-1 §10.5 à §10.7 et CT-6 §9 et §10 pour ce qu'ils définissent)
+et en partie recopié de la référence (voir la fin de cette section) ; il
+PEUT copier les fichiers de keccak256, JSON et JCS des modules de CT-1 à
+CT-4 en le disant en tête de fichier. Il recalcule : les `TimeStampReq`
 DER (famille `requetes`, octet pour octet, EX-5.1) ; la lecture d'une
 `TimeStampResp` (statut, `failureInfo`, extraction du `TimeStampToken`, nonce,
 `messageImprint`, `genTime`, `accuracy`) et le classement d'EX-5.10 à EX-5.12
@@ -5131,11 +5153,28 @@ vérifications T- qu'une réponse exige sont, pour ce module, des entrées de la
 trace (résultats déclarés) : il ne réimplémente pas CT-6, dont le module de
 `ct-1` ne couvre pas non plus les contrôles 4, 5 et 8. Il recalcule aussi la
 famille `completude` (EX-10.7) et fusionne les fichiers d'époque de `reprise/` ;
-l'absence d'un `attendu.json` annoncé est une erreur, non une note. Indépendance
-(révision 0.2) : le module a été écrit depuis la spécification, puis audité et
-complété lors de la correction de la révision 0.2 par un rédacteur qui avait lu
-la référence ; son indépendance repose sur cette déclaration, que son
-`README.md` répète.
+l'absence d'un `attendu.json` annoncé est une erreur, non une note.
+
+Ce module n'est pas indépendant de la référence (complément du 2026-11-15 de
+la révision 0.10, décision du porteur). Écrit d'abord depuis la
+spécification, il a été audité et complété lors de la correction de la
+révision 0.2 par un rédacteur qui avait lu la référence ; la revue de
+sécurité interne de l'étape 8 a ensuite établi que des parties en sont
+identiques à la référence (même découpage, mêmes noms de variables, mêmes
+commentaires, mêmes messages d'erreur dans le même ordre) : la lecture et la
+construction des requêtes RFC 3161, la lecture et le classement des
+réponses, le registre du planificateur, au moins ; le reste n'a pas été relu
+à l'aveugle. Il est donc tenu pour en partie recopié de la référence : sa
+concordance avec les vecteurs n'est pas une confrontation indépendante, une
+erreur de la référence reprise dans une partie recopiée n'y apparaissant
+pas, et il ne compte pas parmi les confrontations indépendantes du plan de
+tests (TA-66 ; EX-13.2, revue de code). Les familles `requetes`,
+`reponses` et `ots` gardent leur confrontation tierce (A.6) ; les autres
+n'en ont pas. Le
+répertoire garde le nom `verificateur-independant/`, que suivent
+l'intégration continue, les renvois et les autres modules : pour `ct-5`, ce
+nom est historique et ne vaut pas déclaration d'indépendance. Le
+`README.md` du module dit la même chose.
 
 ### A.6 Confrontation par des implémentations tierces
 
@@ -5149,7 +5188,7 @@ versions, limites) :
 | `reponses/` | OpenSSL 3.0.13, `openssl ts -reply -in <fichier>.tsr -text`, `openssl ts -verify -queryfile <requête> -in <réponse> -CAfile ac-test.pem -untrusted tsa-test.pem`, `openssl ts -reply -token_out` | statut, `failureInfo`, champs de `TSTInfo` ; « Verification: OK » pour une réponse `ok` et « nonce mismatch » pour un nonce différent ; jeton extrait égal au `.der` publié ; sur les jetons des nouveaux dossiers de CT-6 révision 0.2 (`points-de-controle.json`), `openssl ts -verify -digest <checkpoint_hash> -token_in` « Verification: OK » (confrontation de CT-6, A.8) ; pour les jetons valides de CT-6, hors les limites nommées d'A.8 de CT-6 (`integer-non-minimal`, refusé par OpenSSL au décodage alors que CT-6 l'admet, EX-9.6 ; révision 0.10) ; la réponse `statut-6` (PKIStatus 6), qu'`openssl ts -reply` refuse de décoder (« token present ») : son statut est lu par `openssl asn1parse` et comparé, le refus est une limite de l'outil (EX-5.10, étape 2 ; révision 0.10) |
 | `ots/` | `python-opentimestamps` 0.4.5 (paquet PyPI `opentimestamps`, LGPL-3.0 ou ultérieure), hors ligne : `DetachedTimestampFile.deserialize`, `assert_eof`, `serialize`, `all_attestations` | lecture de chaque `.ots`, fin de fichier exacte, empreinte, attestations en attente avec leur URI, **réécriture octet pour octet identique** (l'ordre des branches est celui de la bibliothèque : attestations puis opérations, triées) |
 | `coherence/` | `transparency-dev/merkle` v0.0.2 (module Go épinglé par `go.sum`), `proof.VerifyConsistency` | preuves de cohérence de `spec/vecteurs/ct-1/merkle/coherence.json` et des séries `points-de-controle/` (CT-1 §10.7) : acceptées et refusées comme l'attendu ; limite décrite : la bibliothèque accepte une preuve depuis `size1 = 0`, que CT-1 §10.7 rejette (annexe B de CT-1) |
-| `planification/`, `cout/`, `completude/` | aucun outil tiers : la confrontation est celle du module Go (A.5) | — |
+| `planification/`, `cout/`, `completude/` | aucun outil tiers : ces familles ne sont rejouées que par le module Go (A.5), vérificateur de cohérence en partie recopié de la référence, qui n'en est pas une confrontation indépendante | — |
 
 Une limite d'un outil n'est pas une discordance et est décrite dans le
 `LISEZMOI.md` ; `test/confrontation.test.js` exige que les sorties publiées

@@ -169,8 +169,11 @@ jobs:
           npm run vecteurs:ct5
           git diff --exit-code -- spec/vecteurs/ct-5
           test -z "$(git status --porcelain --untracked-files=all -- spec/vecteurs/ct-5)"
-      # Vérificateur Go indépendant de CT-5 (EX-A.4, EX-A.7) : zéro discordance exigée.
-      - name: vérificateur Go indépendant contre les vecteurs CT-5
+      # Vérificateur Go de cohérence des vecteurs CT-5 (EX-A.4, EX-A.7) : zéro
+      # discordance exigée. En partie recopié de la référence, il n'est pas
+      # indépendant (CT-5 A.5) ; pour ct-5, le nom du répertoire
+      # verificateur-independant/ est historique.
+      - name: vérificateur Go de cohérence contre les vecteurs CT-5
         working-directory: spec/vecteurs/ct-5/verificateur-independant
         run: |
           gofmt -l . && test -z "$(gofmt -l .)"

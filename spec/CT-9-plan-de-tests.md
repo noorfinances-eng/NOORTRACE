@@ -186,16 +186,16 @@ les lignes.
 | TC-17 | CT-4 §1 (l. 309) | EX-, RG-, vecteurs `ct-4`, épreuve d'acceptation sur le réseau de développement. | TR-3 (§7.12, relecteur sur le réseau de développement) en §12 ; EX-, RG- et vecteurs ct-4 : TV- (§7), TE- (§9). |
 | TC-18 | CT-4 §9.2 (l. 3732) | Taille du certificat et de la capture d'une transaction d'un bloc plein de 64 ancres : mesure TM-31 de CT-9 du 2026-11-02 (certificat 32 587 octets ; capture 109 479 octets, 123 761 avec son index) ; bloc plein qui mêle des clôtures non mesuré. | TM-31 (§11, rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json`, ligne `b_cap_bloc_plein` ; index et certificat relevés dans `notes`) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8). |
 | TC-19 | CT-4 §B.1 (l. 4807) | Point non vérifié 14 de R1 (taille d'un certificat de bloc plein) clos par la mesure TM-31 de CT-9 et son rapport. | TM-31 (§11) : rapport du 2026-11-02, certificat de 32 587 octets pour 64 transactions d'ancre (`notes`). |
-| TC-20 | CT-5 §0 (l. 282) | Rattachement aux EX-. | §5.1, règle (a). |
-| TC-21 | CT-5 §1 (l. 396) | Périmètre. | Ce document. |
-| TC-22 | CT-5 §1 (l. 420) | EX-, AN-, vecteurs `ct-5`, épreuve à l'aveugle à deux relecteurs. | TR-4 (relecteur CT-5 et CT-1 §9 à §11) et TR-5 (second relecteur, CT-6 §7) en §12 ; consigne et grille sous spec/vecteurs/ct-9/ (EX-12.7) ; EX-, AN- et vecteurs ct-5 : TV- (§7). |
-| TC-23 | CT-5 §3.6 (l. 664) | Mesures P-1 à P-6 sur le réseau de développement et sur les vecteurs. | TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15), sur le réseau de développement (TM-11 à TM-14, exécutables depuis l'étape 5 par la campagne de `scripts/e2e/mesure-ancrage.mjs`, rapport `mesures/rapport-2026-11-10-ancrage.json` ; compléments à l'étape 8 : charge de TM-3 pour TM-11, prestataire qualifié réel pour TM-14) et sur le support WORM (TM-16, exécutable depuis l'étape 4, `ancres/` compris depuis l'étape 5). |
-| TC-24 | CT-5 §5.3 (l. 1425) | Test à écrire : relève par le secours qualifié après retrait de `qualified` (EX-5.9). | TI-16 (§8), exécutable depuis l'étape 5 : relève de la clôture par le secours qualifié après retrait de `qualified`, sans rechargement, sur le composant d'ancrage (`test/ancrage-composant-pannes.test.js`, serveurs internes déclarés qualifiés par un instantané d'exemple) ; complément à l'étape 8 : prestataire qualifié réel. |
-| TC-25 | CT-5 §7.2 (l. 1963) | AN-24 à AN-32 du serveur interne vérifiées sur un jeton émis. | TI-17 (§8), exécutable depuis l'étape 5 : AN-22 à AN-31 vérifiées sur les jetons émis par le serveur interne de référence du paquet d'ancrage (`test/ancrage-tsa-interne-*.test.js`, `test/enregistreur-ancrage-exigences.test.js`, `test/enregistreur-ancrage-parcours.test.js`) ; TM-18 (AN-26) et TM-19 (AN-24) en §11 pour les exigences mesurables, sur les mêmes essais et dans le rapport de la campagne de l'étape 5. |
-| TC-26 | CT-5 §7.2 (l. 1972) | Épreuve de redémarrage du serveur interne (AN-26). | TI-17 (§8) et TM-18 (AN-26) en §11, exécutables depuis l'étape 5 : quatre jetons avant et quatre après un redémarrage du serveur interne (compteur de série durable), numéros strictement croissants, et le relevé `an26_serie_croissante` de la campagne (dix jetons, redémarrage, dix jetons) ; TM-19 (AN-24). |
-| TC-27 | CT-5 §9.3 (l. 4423) | Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index). | TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8). |
-| TC-28 | CT-5 §14 (l. 4925) | Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9). | TI-16 (§8), exécutable depuis l'étape 5 (`test/ancrage-composant-pannes.test.js` : relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée ; rechargement sans principal qualifié refusé) ; mesures en charge du planificateur : TM-17 (§11). |
-| TC-29 | CT-5 §14 (l. 4927) | Tests EX- et AN-1 à AN-61, mesures P-1 à P-6, épreuve à l'aveugle. | §6, §7, §8 (TI-16, TI-17), §9 (TE-12), §11 (TM-10 à TM-19), §12 (TR-4, TR-5) ; état « proposition » levé par ce document. |
+| TC-20 | CT-5 §0 (l. 302) | Rattachement aux EX-. | §5.1, règle (a). |
+| TC-21 | CT-5 §1 (l. 417) | Périmètre. | Ce document. |
+| TC-22 | CT-5 §1 (l. 441) | EX-, AN-, vecteurs `ct-5`, épreuve à l'aveugle à deux relecteurs. | TR-4 (relecteur CT-5 et CT-1 §9 à §11) et TR-5 (second relecteur, CT-6 §7) en §12 ; consigne et grille sous spec/vecteurs/ct-9/ (EX-12.7) ; EX-, AN- et vecteurs ct-5 : TV- (§7). |
+| TC-23 | CT-5 §3.6 (l. 685) | Mesures P-1 à P-6 sur le réseau de développement et sur les vecteurs. | TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15), sur le réseau de développement (TM-11 à TM-14, exécutables depuis l'étape 5 par la campagne de `scripts/e2e/mesure-ancrage.mjs`, rapport `mesures/rapport-2026-11-10-ancrage.json` ; compléments à l'étape 8 : charge de TM-3 pour TM-11, prestataire qualifié réel pour TM-14) et sur le support WORM (TM-16, exécutable depuis l'étape 4, `ancres/` compris depuis l'étape 5). |
+| TC-24 | CT-5 §5.3 (l. 1446) | Test à écrire : relève par le secours qualifié après retrait de `qualified` (EX-5.9). | TI-16 (§8), exécutable depuis l'étape 5 : relève de la clôture par le secours qualifié après retrait de `qualified`, sans rechargement, sur le composant d'ancrage (`test/ancrage-composant-pannes.test.js`, serveurs internes déclarés qualifiés par un instantané d'exemple) ; complément à l'étape 8 : prestataire qualifié réel. |
+| TC-25 | CT-5 §7.2 (l. 1984) | AN-24 à AN-32 du serveur interne vérifiées sur un jeton émis. | TI-17 (§8), exécutable depuis l'étape 5 : AN-22 à AN-31 vérifiées sur les jetons émis par le serveur interne de référence du paquet d'ancrage (`test/ancrage-tsa-interne-*.test.js`, `test/enregistreur-ancrage-exigences.test.js`, `test/enregistreur-ancrage-parcours.test.js`) ; TM-18 (AN-26) et TM-19 (AN-24) en §11 pour les exigences mesurables, sur les mêmes essais et dans le rapport de la campagne de l'étape 5. |
+| TC-26 | CT-5 §7.2 (l. 1993) | Épreuve de redémarrage du serveur interne (AN-26). | TI-17 (§8) et TM-18 (AN-26) en §11, exécutables depuis l'étape 5 : quatre jetons avant et quatre après un redémarrage du serveur interne (compteur de série durable), numéros strictement croissants, et le relevé `an26_serie_croissante` de la campagne (dix jetons, redémarrage, dix jetons) ; TM-19 (AN-24). |
+| TC-27 | CT-5 §9.3 (l. 4444) | Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index). | TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8). |
+| TC-28 | CT-5 §14 (l. 4946) | Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9). | TI-16 (§8), exécutable depuis l'étape 5 (`test/ancrage-composant-pannes.test.js` : relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée ; rechargement sans principal qualifié refusé) ; mesures en charge du planificateur : TM-17 (§11). |
+| TC-29 | CT-5 §14 (l. 4948) | Tests EX- et AN-1 à AN-61, mesures P-1 à P-6, épreuve à l'aveugle. | §6, §7, §8 (TI-16, TI-17), §9 (TE-12), §11 (TM-10 à TM-19), §12 (TR-4, TR-5) ; état « proposition » levé par ce document. |
 | TC-30 | CT-6 §0 (l. 91) | Rattachement aux EX-. | §5.1, règle (a). |
 | TC-31 | CT-6 §1 (l. 257) | EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`. | §6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10). |
 | TC-32 | CT-6 §6.9 (l. 1914) | Exécution des V- par comparaison du rapport à `attendu.json`. | TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`. |
@@ -293,9 +293,9 @@ les lignes.
 | TC-124 | `spec/README.md` « Schémas (`schemas/`) » (l. 74) | Description du schéma `plan-de-tests-v0` : catalogue, rapport de couverture, rapport de mesure, consignation. | §4.2 (schéma), §5.4 (rapport de couverture), §11.3 (rapport de mesure), §12.1 (consignation) ; annexe A.2. |
 | TC-125 | `spec/README.md` « Schémas (`schemas/`) » (l. 74) | Description du schéma `plan-de-tests-v0` : catalogue, rapport de couverture, rapport de mesure, consignation. | §4.2 (schéma), §5.4 (rapport de couverture), §11.3 (rapport de mesure), §12.1 (consignation) ; annexe A.2. |
 | TC-126 | `spec/README.md` « Schémas (`schemas/`) » (l. 74) | Description du schéma `plan-de-tests-v0` : catalogue, rapport de couverture, rapport de mesure, consignation. | §4.2 (schéma), §5.4 (rapport de couverture), §11.3 (rapport de mesure), §12.1 (consignation) ; annexe A.2. |
-| TC-127 | `spec/README.md` « CT-9 (`vecteurs/ct-9/`) » (l. 455) | Titre de la section des vecteurs `ct-9/`. | Annexe A.1 (disposition de `spec/vecteurs/ct-9/`). |
-| TC-128 | `spec/README.md` « CT-9 (`vecteurs/ct-9/`) » (l. 457) | Renvoi à l'annexe A pour la disposition des vecteurs. | Annexe A.1 ; générateur et déterminisme : EX-A.1. |
-| TC-129 | `spec/README.md` « CT-9 (`vecteurs/ct-9/`) » (l. 457) | Renvoi à l'annexe A pour la disposition des vecteurs. | Annexe A.1 ; générateur et déterminisme : EX-A.1. |
+| TC-127 | `spec/README.md` « CT-9 (`vecteurs/ct-9/`) » (l. 457) | Titre de la section des vecteurs `ct-9/`. | Annexe A.1 (disposition de `spec/vecteurs/ct-9/`). |
+| TC-128 | `spec/README.md` « CT-9 (`vecteurs/ct-9/`) » (l. 459) | Renvoi à l'annexe A pour la disposition des vecteurs. | Annexe A.1 ; générateur et déterminisme : EX-A.1. |
+| TC-129 | `spec/README.md` « CT-9 (`vecteurs/ct-9/`) » (l. 459) | Renvoi à l'annexe A pour la disposition des vecteurs. | Annexe A.1 ; générateur et déterminisme : EX-A.1. |
 
 ### 0.3 Qui lit quoi
 
@@ -348,7 +348,8 @@ TM-39, TM-42, TQ- ; `it` écrits à l'étape 8), les tables qu'il imprime,
 `couverture.json`, les extraits, la grille de la porte 2 et les comptes
 d'EX-A.11 se régénèrent avec l'assemblage de l'étape 8. Ce qui reste au
 porteur n'est pas écrit : mention « indépendant » du module Go de `ct-5`
-(EX-13.2, TA-66), garde d'admission de CT-4 (TA-55), tirage d'EX-15.1.
+(EX-13.2, TA-66 ; tranchée depuis, voir le complément du 2026-11-15 à la fin
+de cette note), garde d'admission de CT-4 (TA-55), tirage d'EX-15.1.
 Demandés après la première rédaction de cette révision et écrits dans la
 même : table TC de 0.2 (129 occurrences de « CT-9 » sur 121 lignes ; sept
 lignes nouvelles pour CT-7 §5.2, §10 et §11 et pour CT-8 §14, §14.1, §14.2 et
@@ -382,6 +383,25 @@ date (CT-8 TC-133 en TV-67, titre « TC-1 à TC-133 » ; CT-7 TR-120 et TR-121
 en TV-56, oracle « 121 lignes TR- ») ; inventaire de 5.2 et chiffres de 5.5
 recomptés : 2470 identifiants, 2324 couverts par une entrée, 146 par une
 justification NC- ; tables TC et TV recollées depuis le catalogue (EX-4.4).
+Complément du 2026-11-15, décision du porteur : le module Go de `ct-5`
+n'est plus présenté comme indépendant ; c'est un vérificateur Go de
+cohérence des vecteurs, en partie recopié de la référence (CT-5 A.5,
+complément de la même date), dont le répertoire garde le nom
+`verificateur-independant/`, historique pour `ct-5`. EX-13.2 : TQ-5 relit
+sept modules Go indépendants (`ct-1` à `ct-4`, `ct-7`, `ct-8`, `ct-9`) au
+lieu de huit ; le module de `ct-5` ne compte plus parmi les confrontations
+indépendantes. TA-66 : six modules Go indépendants (`ct-1` à `ct-4`, `ct-7`,
+`ct-8`) au lieu de sept ; l'étape de `ct-5` est ôtée de ses préconditions,
+de ses étapes et de ses étapes de CI, et `expected_with_response` le dit.
+TV-46 : titre et préconditions ; son étape de `ci.yml` est renommée
+« vérificateur Go de cohérence contre les vecteurs CT-5 », sans changer ce
+qu'elle exécute. TQ-5 : relecture des modules et grille. Objet du niveau TV
+(3.1), EX-3.3 et introduction de 7 : pour `ct-5`, le mode de rejeu est ce
+vérificateur de cohérence. PD-5 : faite. Chiffres de 5.5 recomptés (694
+titres de tests ou étapes de CI cités, l'étape de `ct-5` n'étant plus citée
+par TA-66). Tables TC (numéros de ligne de CT-5 et de `spec/README.md`
+décalés par ces compléments), niveaux et TV recollées depuis le catalogue
+(EX-4.4).
 
 **Révision 0.9** (2026-11-12, alignement sur CT-2 (0.10), CT-3 (0.7), CT-5
 (0.9), CT-6 (0.8) et la spécification du déploiement (0.7 : serveur RFC 3161 interne de l'installation rapide, TE-6 joué avec Docker), qui inscrivent les
@@ -788,7 +808,7 @@ d'un outil tiers ou de l'outil officiel d'un format.
 | Niveau | Nom | Objet | Oracle | Section |
 |---|---|---|---|---|
 | TU- | Unitaires et propriétés | Bibliothèques de référence (`scripts/lib/*`, `console/`, contrats), noyau de CT-1 compris : canonicalisation, hachage, chaînage, Merkle, signatures, formats, et leurs règles en bibliothèque. | Valeur calculée dans le test, source primaire (vecteurs de RFC) ou bibliothèque tierce ; jamais un fichier des vecteurs publiés. | 6 |
-| TV- | Conformité aux vecteurs | Chaque famille de `spec/vecteurs/ct-1` à `ct-8`, rejouée par l'implémentation de référence, par le vérificateur Go indépendant et, quand elle existe, par la confrontation tierce ; génération déterministe. | Le fichier attendu de la famille (`attendu.json`, `cas.json`, `expected`), à l'égalité octet pour octet ou au verdict près. | 7 |
+| TV- | Conformité aux vecteurs | Chaque famille de `spec/vecteurs/ct-1` à `ct-8`, rejouée par l'implémentation de référence, par le vérificateur Go indépendant (pour `ct-5`, vérificateur Go de cohérence des vecteurs, non indépendant : CT-5 A.5) et, quand elle existe, par la confrontation tierce ; génération déterministe. | Le fichier attendu de la famille (`attendu.json`, `cas.json`, `expected`), à l'égalité octet pour octet ou au verdict près. | 7 |
 | TI- | Interopérabilité | Exports de CT-1 §12, formats d'API et transports de CT-2, SDK et adaptateurs de cadres, OpenTelemetry, canal du service d'approbation, supports WORM, prestataires d'horodatage, registre, ICAP, paquets lus par des outils tiers. | L'implémentation tierce ou l'outil officiel du format accepte ce que NOORTRACE produit, et NOORTRACE accepte ce qu'il produit ; écarts connus consignés. | 8 |
 | TE- | Bout en bout | Les deux cas de démonstration du plan et la démonstration de référence, de la capture au dossier vérifié ; installations, runbooks, sauvegarde, observation, haute disponibilité, ancrage complet, console, journal sur soi, construction des images, supervision. | Verdict du vérificateur de CT-6 (deux implémentations) sur les dossiers produits, plus l'observation nommée par chaque entrée. | 9 |
 | TA- | Adversariaux | Une entrée par menace MN-1 à MN-102 de CT-7 et les cinq scénarios du plan : la réponse retirée, l'attaque, l'observation avec et sans la réponse. | Le test passe avec la réponse et échoue sans elle (CT-7 EX-3.2). | 10 |
@@ -823,7 +843,8 @@ contre-exemple par le couple `seed`/`path` qui le rejoue (R11-F17, R11-F18)
 ; son oracle est le fichier attendu de la famille ; il DOIT exister au
 moins un TV- par famille de `ct-1` à `ct-8` et par mode de rejeu disponible
 : implémentation de référence (`describe`/`it`), vérificateur Go
-indépendant (étape de `ci.yml`), confrontation tierce (`describe` de
+indépendant (étape de `ci.yml` ; pour `ct-5`, vérificateur Go de cohérence
+des vecteurs, non indépendant, CT-5 A.5), confrontation tierce (`describe` de
 `test/confrontation.test.js`), plus un TV- de génération déterministe par
 répertoire `ct-n`. Un vérificateur Go absent (`ct-6`, CT-6 §14) donne un
 TV- « à écrire » rattaché à l'étape 2.
@@ -1355,7 +1376,7 @@ jamais corrigé à la main) :
   compte, 10.4 dit lesquelles) ;
 - 129 occurrences de « CT-9 » et 129 lignes TC-, sans manque ni orpheline
   (règle (c)) ;
-- 294 entrées exécutables citant 695 titres de tests ou étapes de CI, tous
+- 294 entrées exécutables citant 694 titres de tests ou étapes de CI, tous
   trouvés mot pour mot (règle (d)) ; verdict `reussi`.
 
 Par spécification (identifiants, couverts par une entrée, par une
@@ -1446,7 +1467,9 @@ preuve altérée, aller-retour Ed25519) sont écrites dans son entrée.
 
 Une entrée par famille de `spec/vecteurs/ct-1` à `ct-8` et par mode de
 rejeu : implémentation de référence, vérificateur Go indépendant (étape de
-`ci.yml` : `go run . ..`), confrontation tierce, génération déterministe.
+`ci.yml` : `go run . ..` ; pour `ct-5`, vérificateur Go de cohérence des
+vecteurs, non indépendant, CT-5 A.5), confrontation tierce, génération
+déterministe.
 Les soixante-seize entrées sont exécutables ; TV-55
 (vérificateur Go de CT-6) l'est depuis l'étape 2, et TV-76 (famille
 `supervision/`) depuis l'étape 7.
@@ -1508,7 +1531,7 @@ TV- de génération déterministe de chaque répertoire le garantit.
 | TV-43 | `ct-5/cout/` et `ct-5/completude/` : onze cas de coût, six cas de complétude | CT-5 EX-12- (2), CT-5 EX-10- (1), CT-5 AN- (2), CT-5 EX-4- (1) | MN-17 | exécutable : `test/ancrage.test.js` |
 | TV-44 | Vecteurs de CT-1 et de CT-6 inchangés par CT-5 ; aucun secret, prix ni adresse dans `ct-5` | CT-5 EX-A- (1), CT-5 AN- (2) | MN-41 | exécutable : `test/ancrage.test.js` |
 | TV-45 | Génération déterministe de `spec/vecteurs/ct-5` | CT-5 EX-A- (4) | — | exécutable : `test/ancrage.test.js` |
-| TV-46 | Vérificateur Go indépendant de CT-5 : zéro discordance sur `spec/vecteurs/ct-5` | CT-5 EX-A- (1), CT-5 EX-5- (1), CT-5 AN- (12) | MN-66 | exécutable : étape de `ci.yml` |
+| TV-46 | Vérificateur Go de cohérence des vecteurs de CT-5, non indépendant (CT-5 A.5) : zéro discordance sur `spec/vecteurs/ct-5` | CT-5 EX-A- (1), CT-5 EX-5- (1), CT-5 AN- (12) | MN-66 | exécutable : étape de `ci.yml` |
 | TV-47 | Confrontation tierce de `ct-5` : openssl, python-opentimestamps, transparency-dev/merkle | CT-5 EX-A- (1) | — | exécutable : `test/confrontation.test.js` |
 | TV-48 | `ct-6/rfc3161/` : jetons, clés, CRL, statuts T-1 à T-11, confrontation à `openssl ts -verify` | CT-6 T- (11), CT-6 EX-9- (2), CT-6 EX-A- (4) | MN-61 | exécutable : `test/horodatage.test.js` |
 | TV-49 | `ct-6/ots/` : en-têtes synthétiques, preuves, statuts O-1 à O-7 | CT-6 O- (7), CT-6 EX-10- (2), CT-6 EX-A- (3), CT-6 EX-4- (1) | MN-70 | exécutable : `test/ots.test.js` |
@@ -2909,11 +2932,15 @@ consignée avec le commit relu ; elle est réussie si chaque menace du
 composant a sa réponse localisée (fichier, fonction) et son TA- qui échoue
 quand la réponse est retirée, et si chaque écart est tracé en correction ou
 en risque accepté nommé, borné, attribué (CT-7 §3.5). **EX-13.2** TQ-5
-relit aussi les huit modules Go `verificateur-independant/` (`ct-1` à `ct-5`,
-`ct-7`, `ct-8`, `ct-9`) : bibliothèque
-standard seule, aucune lecture ni recopie du JavaScript ; pour `ct-5`, la
-partie que son `README.md` déclare non écrite à l'aveugle (R10-F35) est
-relue à l'aveugle ou la mention « indépendant » est retirée.
+relit aussi les sept modules Go indépendants `verificateur-independant/`
+(`ct-1` à `ct-4`, `ct-7`, `ct-8`, `ct-9`) : bibliothèque standard seule,
+aucune lecture ni recopie du JavaScript. Pour `ct-5` (R10-F35), la mention
+« indépendant » est retirée (décision du porteur du 2026-11-15) : des
+parties du module sont identiques à la référence ; vérificateur Go de
+cohérence des vecteurs, en partie recopié de la référence (CT-5 A.5), il ne
+compte pas parmi les confrontations indépendantes (TA-66), et TQ-5 n'en
+relit que l'emploi de la seule bibliothèque standard. Son répertoire garde
+le nom `verificateur-independant/`, historique pour `ct-5`.
 
 <!-- table TQ -->
 | Id | Objet | Identifiants couverts (famille : nombre) | Menaces | État |
@@ -3280,7 +3307,7 @@ du test concerné.
 | PD-2 | CT-1 §12.3 | Remplacer « les profils de reçus SCITT pour RFC 6962 sont encore en cours de définition » par le renvoi à RFC 9942 (COSE Receipts, profil `RFC9162_SHA256`, juin 2026, R11-F44) et à RFC 9943 (architecture, R11-F43) ; le report en v1 reste motivé par l'absence de dépendance CBOR/COSE du vérificateur v0 | proposition |
 | PD-3 | CT-2 §16.2, pas 7 | Le seuil de régression est celui d'EX-11.15 : après le premier rapport publié sur le système de référence, une mesure dont `p50` ou `p99` dépasse 1,2 fois la référence, dont le débit descend sous 0,9 fois la référence, ou dont une ligne `met` vrai devient `met` faux est une régression ; le harnais de CT-2 EX-16.2 (phase 2, `npm run mesures:ct2`) rendra le code 0 que les cibles soient atteintes ou non (pas 7), et `scripts/tests/mesures.mjs --reference --campagne` rend 1 sur une régression | proposition |
 | PD-4 | CT-2 EX-6.25 | Épingler, pour l'export OTel GenAI de CT-1 §12.1 (TI-1), une version du registre `gen_ai` : le dépôt `semantic-conventions-genai` n'a publié aucune version au 2026-11-01 (R11-F40) et `gen_ai.system` n'y figure plus (R11-F41) | proposition |
-| PD-5 | CT-5 annexe A.5, `README.md` du module `ct-5` | Lever la réserve d'indépendance par la relecture à l'aveugle de TQ-5, ou retirer la mention « indépendant » pour la partie concernée (R10-F35) | proposition |
+| PD-5 | CT-5 annexe A.5, `README.md` du module `ct-5` | Lever la réserve d'indépendance par la relecture à l'aveugle de TQ-5, ou retirer la mention « indépendant » pour la partie concernée (R10-F35) | faite le 2026-11-15, sur décision du porteur : mention « indépendant » retirée du module entier (CT-5 A.5 et complément de la révision 0.10 ; `README.md` du module ; EX-13.2, TA-66) |
 | PD-6 | CT-4 §7.12 | Écrire l'épreuve d'acceptation comme TR- de CT-9 (participant, matériel, sections interdites : « sans lire le code de `scripts/` », verdict EX-7.15) et son exécution automatique comme TE-4 ; les deux relectures déjà réussies n'ont pas de compte rendu dans le dépôt (R10-NV4) | proposition |
 | PD-7 | `package.json` | Ajouter `fast-check` à version exacte en dépendance de développement quand TU-12 est écrit (étape 1), avec sa graine et `numRuns` dans le test | proposition |
 | PD-8 | CT-8 §10.11 | Après chaque incident, nommer l'entrée du catalogue (identifiant TA-/TE-) qui couvre la correction, conformément à la phrase « le test de CT-9 qui la couvre » : la forme est « CT-9 TE-8 », vérifiable par l'outil de couverture | proposition |

@@ -26,15 +26,15 @@
       },
       {
         "file": "spec/CT-5-ancrage.md",
-        "sha256": "6121bca42e6e55c148db5f9b981ca0b9141606539eac89b46286cb2d3c0b39e0"
+        "sha256": "134910cc4306dd96983df4c0a3e34b9adc9adede845cfcd49760fda0ab9882e9"
       },
       {
         "file": "spec/CT-6-verificateur.md",
-        "sha256": "3f57cc0c0701e9e1ac5eb64233d1fa8b40c09e9b5d11421f32124a16a3a0858d"
+        "sha256": "928989bf5fc4eb98509563236316b4d08a811a17c3752b8ffa26aef73de65d69"
       },
       {
         "file": "spec/CT-7-securite-et-conformite.md",
-        "sha256": "f6918cdc6c12e17f3cb9e113b652f24e9c831162123cb2455274d48c397a2f16"
+        "sha256": "50f7cca835118c2c3518c01eb0aa6872b48e89a1800a6c2628a75e0a2c16cc3c"
       },
       {
         "file": "spec/CT-8-deploiement-et-exploitation.md",
@@ -43,11 +43,11 @@
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "f81213dd29d7ca04130dc8abfb2d8f42e9efde5c741fbe41f716a82a40ecedfc"
+      "sha256": "5a1a126c64e203a4d395ce228e62cefcfff9a1d2ec4fbc0b77d6625a03270a54"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
-      "sha256": "aca02ec735d5f981f4fd187c67aa06b4451d406f8f7a6bd8004510e802755947"
+      "sha256": "9241c999aebc50e1000c55ba82fa7f9ddf9d117bc8e3d28e56096962e41a2d81"
     },
     "tests": [
       {
@@ -80,7 +80,7 @@
       },
       {
         "file": "test/ancrage-empreinte-squattee.test.js",
-        "sha256": "f4ca49e380c7d26a2ffb90ec94d9b67198d557a4ece5e117c0cea30503db03ed"
+        "sha256": "4f29a45b5a27951169a8a7bea32b107cbf49f9a0c73cc7e6166f8ca57a31b07a"
       },
       {
         "file": "test/ancrage-exportateur.test.js",
@@ -1181,7 +1181,7 @@
   },
   "executable": {
     "total": 294,
-    "titles_checked": 695,
+    "titles_checked": 694,
     "titles_missing": []
   },
   "text_tables": {

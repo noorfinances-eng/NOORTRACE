@@ -21,7 +21,7 @@ export const LEVELS = [
   {
     "id": "TV",
     "name": "Conformité aux vecteurs",
-    "object": "Chaque famille de `spec/vecteurs/ct-1` à `ct-8`, rejouée par l'implémentation de référence, par le vérificateur Go indépendant et, quand elle existe, par la confrontation tierce ; génération déterministe.",
+    "object": "Chaque famille de `spec/vecteurs/ct-1` à `ct-8`, rejouée par l'implémentation de référence, par le vérificateur Go indépendant (pour `ct-5`, vérificateur Go de cohérence des vecteurs, non indépendant : CT-5 A.5) et, quand elle existe, par la confrontation tierce ; génération déterministe.",
     "oracle": "Le fichier attendu de la famille (`attendu.json`, `cas.json`, `expected`), à l'égalité octet pour octet ou au verdict près.",
     "section": "7"
   },

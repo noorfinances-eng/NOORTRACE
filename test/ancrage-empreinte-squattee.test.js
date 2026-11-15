@@ -17,8 +17,8 @@ import { genererCt5, traceEmpreinteSquattee } from "../scripts/vecteurs/generer-
 // La trace est construite par le générateur des vecteurs de CT-5
 // (traceEmpreinteSquattee ; option --avec-empreinte-squattee), puis rejouée
 // par la bibliothèque de référence (scripts/lib/ancrage.mjs, verifierTrace).
-// Elle n'est pas publiée parmi les vecteurs tant que le vérificateur Go
-// indépendant de ct-5 ne la rejoue pas sans écart : la génération par défaut
+// Elle n'est pas publiée parmi les vecteurs tant que le vérificateur Go de
+// cohérence de ct-5 (CT-5 A.5) ne la rejoue pas sans écart : la génération par défaut
 // garde ses vingt-huit traces. Le sort du jeton de clôture après le refus de
 // l'ancre est fixé par la (variante B : il reste
 // attente_registre, EX-8.4 règle 2, AN-36, EX-9.7 ; CT-4 EX-8.6), éprouvée par

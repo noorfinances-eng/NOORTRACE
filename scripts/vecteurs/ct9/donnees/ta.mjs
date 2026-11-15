@@ -2363,10 +2363,10 @@ export const TA = [
   {
     "id": "TA-66",
     "preconditions": [
-      "Job vecteurs de ci.yml (étapes « clean-room Go verifier against the CT-1 JavaScript vectors », « … CT-2 … », « vérificateur Go indépendant contre les vecteurs CT-3 », CT-4, CT-5, CT-7, CT-8) ; en local, Go 1.24."
+      "Job vecteurs de ci.yml (étapes « clean-room Go verifier against the CT-1 JavaScript vectors », « … CT-2 … », « vérificateur Go indépendant contre les vecteurs CT-3 », CT-4, CT-7, CT-8) ; en local, Go 1.24."
     ],
     "steps": [
-      "Exécuter go run . .. dans chaque module Go (les sept étapes citées du job vecteurs de ci.yml) ; code 0 attendu.",
+      "Exécuter go run . .. dans chaque module Go indépendant (les six étapes citées du job vecteurs de ci.yml) ; code 0 attendu.",
       "Rejouer confrontation/coherence (test cité de test/confrontation.test.js) : code 0, aucune discordance."
     ],
     "oracle": "Code 0 de chaque module Go et de la confrontation ; une discordance fait échouer l'étape. Le binaire reproductible et le module Go de CT-6 sont de phase 2, étape 2 (RA-57, complément).",
@@ -2389,7 +2389,6 @@ export const TA = [
         "clean-room Go verifier against the CT-2 JavaScript vectors",
         "vérificateur Go indépendant contre les vecteurs CT-3",
         "vérificateur Go indépendant contre les vecteurs CT-4",
-        "vérificateur Go indépendant contre les vecteurs CT-5",
         "vérificateur Go indépendant contre les vecteurs CT-7",
         "vérificateur Go indépendant contre les vecteurs CT-8",
         "binaire vérificateur Go, gofmt, vet et rejeu des dossiers CT-1 et CT-6 (zéro discordance)",
@@ -2398,11 +2397,11 @@ export const TA = [
     },
     "response_removed": {
       "what": "Vérificateurs indépendants confrontés sur les vecteurs (CT-6 §3.1) ; binaire reproductible (EX-14.6, EX-14.8)",
-      "how": "Retirer de l'intégration continue l'exécution des vérificateurs Go (les sept étapes go run . .. citées)",
+      "how": "Retirer de l'intégration continue l'exécution des vérificateurs Go indépendants (les six étapes go run . .. citées)",
       "where": ".github/workflows/ci.yml, job vecteurs"
     },
     "attack": "Une implémentation de référence qui dit « valide » à tort sur un vecteur.",
-    "expected_with_response": "Les sept modules Go (ct-1 à ct-5, ct-7, ct-8) rendent « 0 discordance » et le code 0 sur leurs vecteurs ; toute divergence fait échouer le job ; ct-6 n'a pas de module Go (TV-55, étape 2) ; les modules de ct-1 à ct-4, ct-7 et ct-8 rendent le code 1 sur une racine où une famille manque ou ne recalcule rien, ou dont un cas manque à l'INDEX.md (plancher : CT-1 §13 révision 0.6 et annexes des vecteurs de CT-2, CT-3, CT-4, CT-7 et CT-8 ; ct-5 : décision du porteur sur son module, EX-13.2).",
+    "expected_with_response": "Les six modules Go indépendants (ct-1 à ct-4, ct-7, ct-8) rendent « 0 discordance » et le code 0 sur leurs vecteurs ; toute divergence fait échouer le job ; ct-6 n'a pas de module Go (TV-55, étape 2) ; ces six modules rendent le code 1 sur une racine où une famille manque ou ne recalcule rien, ou dont un cas manque à l'INDEX.md (plancher : CT-1 §13 révision 0.6 et annexes des vecteurs de CT-2, CT-3, CT-4, CT-7 et CT-8). Le module de ct-5, vérificateur Go de cohérence des vecteurs en partie recopié de la référence, ne compte pas parmi ces confrontations (CT-5 A.5, EX-13.2 ; décision du porteur du 2026-11-15) : son étape de ci.yml est celle de TV-46.",
     "expected_without_response": "La divergence n'est pas vue ; le test échoue.",
     "execution": "vecteurs_et_depot"
   },

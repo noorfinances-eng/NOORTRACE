@@ -6303,7 +6303,7 @@ des vérificateurs Go ou d'une autre spécification, nommés) :
 | `scripts/verify/dossier.mjs` | huit schémas | neuf schémas (`point-de-controle-v0.schema.json` chargé et placé dans le registre) ; même interface, aucune option nouvelle | fait (avec CT-5) |
 | `scripts/vecteurs/generer-ct6.mjs`, `scripts/vecteurs/ct6/*`, `spec/vecteurs/ct-6/` | 50 dossiers ; jetons et preuves des périodes ; capture de sept blocs | nouveaux dossiers (EX-A.16), jeton et preuve du point couvrant (EX-A.13, EX-A.14), `chaine-points.json`, capture de l'ancre du point (EX-A.15), `INDEX.md` ; les 50 dossiers et leurs `attendu.json` inchangés octet pour octet ; deux générations identiques | fait (68 dossiers : 50 inchangés et 18 avec la partie, dont `valide-point-de-controle-point-contresigne`, `valide-point-de-controle-point-de-cloture` et `invalide-k1-double-defaut`, EX-A.16) |
 | `test/verificateur.test.js`, `test/confrontation.test.js`, `.github/workflows/ci.yml` | exemples 8.5 et 8.6 (huit schémas), 50 dossiers | V-9 ; exemple 8.6 à neuf schémas et `facts.checkpoint` ; nouveaux dossiers ; `openssl ts -verify -digest <checkpoint_hash> -token_in` et `python-opentimestamps` sur les nouveaux vecteurs (EX-A.17) | fait (avec CT-5) |
-| Vérificateurs Go indépendants (`spec/vecteurs/ct-1/verificateur-independant`, nouveau `spec/vecteurs/ct-5/verificateur-independant`) | douze parties, inclusion seule | treize parties, point, cohérence, K-1 à K-6 (CT-1 §17) ; K-7 à K-9 et R-11 hors du périmètre de ces modules, comme les contrôles 4, 5 et 8 | fait (CT-1 §17, CT-5 annexe A.5) |
+| Vérificateurs Go (`spec/vecteurs/ct-1/verificateur-independant`, indépendant ; nouveau `spec/vecteurs/ct-5/verificateur-independant`, vérificateur de cohérence des vecteurs, non indépendant depuis le complément du 2026-11-15 de CT-5 A.5) | douze parties, inclusion seule | treize parties, point, cohérence, K-1 à K-6 (CT-1 §17) ; K-7 à K-9 et R-11 hors du périmètre de ces modules, comme les contrôles 4, 5 et 8 | fait (CT-1 §17, CT-5 annexe A.5) |
 | CT-1 §11.4, K-3 | « clé absente : non exécuté, l'échec étant porté par E-8 » | la clé du point n'est pas exigée dans `cles.json` par CT-1 §11.2 : K-3 échoue quand elle en est absente (5.4) ; CT-1 à aligner d'un mot | fait (CT-1 §11.4, texte, 2026-10-25) |
 | CT-1 §11.4, K-8 | « `chain_id` et `contract` égaux à ceux du fichier d'ancres » | seul `contract` est comparé ; `chain_id` (identifiant EVM) n'a pas d'ancre et reste déclaratif (EX-11.25, section 17) ; CT-1 à aligner d'un mot | fait (CT-1 §11.4, texte, 2026-10-25) |
 | CT-5 §9.2 (EX-9.2), §14 | « R-9 étendu au `docType` du point » | vérification R-11 à part, R-9 inchangée (11.9) ; même effet sur les dossiers | fait (CT-5 version 0.1, EX-9.2, EX-10.4 et §14) |
@@ -6551,6 +6551,10 @@ changements de statut sont dits en place. Sections touchées : en-tête, 4.2
   certificat seul garde le refus structurel de la hauteur 0) ; annexe A.8
   (le refus d'OpenSSL sur le témoin `integer-non-minimal` est une limite de
   l'outil).
+- **Complément du 2026-11-15, décision du porteur** : dans la table de la
+  révision 0.2, la ligne des vérificateurs Go ne dit plus indépendant le
+  module de `ct-5`, en partie recopié de la référence (CT-5 A.5). Aucune
+  règle ne change.
 
 | Emplacement | Avant | Attendu par la révision 0.9 | État |
 |---|---|---|---|

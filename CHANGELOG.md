@@ -21,16 +21,24 @@ is tagged.
   the test that reproduces it. Specification revisions: CT-1 0.6, CT-2 0.11,
   CT-3 0.8, CT-4 0.8, CT-5 0.10, CT-6 0.9, CT-7 0.5, CT-8 0.8, CT-9 0.10;
   recorded changes MC-60 onwards. All test vectors regenerated from the
-  generators in dependency order (two generations byte-identical); the eight
-  clean-room Go verifiers replayed on them, all concordant except CT-5, whose
-  234 discrepancies await the owner's decision 9; third-party confrontations
-  (OpenSSL, python-opentimestamps, opentelemetry-proto, transparency-dev/merkle)
+  generators in dependency order (two generations byte-identical); the seven
+  clean-room Go verifiers (CT-1 to CT-4, CT-7 to CT-9) and the CT-5 Go
+  verifier replayed on them, all concordant once the CT-5 module was aligned
+  with CT-5 0.10. Owner's decision 9 (option a): parts of the CT-5 Go module
+  were found identical to the JavaScript reference (RFC 3161 request and
+  response reading, scheduler registry), so it is no longer presented as
+  independent; it is a vector-consistency verifier, no longer counted among
+  the independent confrontations (CT-9 EX-13.2: seven modules; TA-66: six),
+  its directory keeps the historical name `verificateur-independant/`, and
+  its CI step is renamed without changing what it runs; third-party
+  confrontations (OpenSSL, python-opentimestamps, opentelemetry-proto,
+  transparency-dev/merkle)
   replayed, with the inputs OpenSSL refuses to decode named as tool limits.
   Adversarial tests of the review merged into `test/adversarial.test.js`
   (112 tests: delivered packages, demonstration, plan scenarios), the CT-9
   catalogue updated (288 executable entries), and a CI guard that fails on any
   pending test whose condition is not one of the named admitted ones. Still
-  open, on the owner's decisions: decisions 2, 4, 5, 8, 9, 14 and 29, the
+  open, on the owner's decisions: decisions 2, 4, 5, 8, 14 and 29, the
   group of accepted risks and the question on CT-3 EX-13.13; their passages
   keep the published text. Docker-based campaigns (images rebuilt,
   demonstration, cases, integrations, failures) are not part of this entry.
@@ -381,7 +389,9 @@ is tagged.
 - CT-5 reference scheduler (`scripts/lib/ancrage.mjs`) with an injected clock,
   deterministic vectors (`spec/vecteurs/ct-5`, `npm run vecteurs:ct5`: 21
   normative traces, requests, responses, proofs, cost and completeness cases),
-  and a Go verifier written from the specification alone: 3,255 values
+  and a Go verifier written from the specification alone (corrected at build
+  step 8: partly copied from the reference, it is a vector-consistency
+  verifier, not an independent one, CT-5 A.5): 3,255 values
   recomputed, 3,227 matching, none discordant, 28 third-party tool verdicts
   outside its scope. Requests and responses are confronted with OpenSSL,
   proofs with the official OpenTimestamps library, and consistency proofs with

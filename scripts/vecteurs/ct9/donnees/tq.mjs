@@ -335,7 +335,7 @@ export const TQ = [
       "Pour chaque menace du composant (colonne `component` de `menaces.json`), localiser la réponse dans le code (fichier, fonction) et le TA- qui la tue.",
       "Relire chaque limite de confiance de CT-7 §3.2 : validation des entrées, secrets jamais journalisés, erreurs sans exception vers l'appelant.",
       "Consigner la grille remplie et les écarts (fichier, ligne, menace, décision).",
-      "Relire chaque module `verificateur-independant/` : aucune importation ni recopie du code JavaScript ; pour `ct-5`, relecture à l'aveugle de la partie que son README déclare non écrite à l'aveugle (R10-F35)."
+      "Relire chaque module Go indépendant `verificateur-independant/` (`ct-1` à `ct-4`, `ct-7` à `ct-9`) : aucune importation ni recopie du code JavaScript ; le module de `ct-5`, vérificateur de cohérence des vecteurs en partie recopié de la référence, n'est pas présenté comme indépendant (CT-5 A.5, EX-13.2, R10-F35) : n'en relire que l'emploi de la seule bibliothèque standard."
     ],
     "oracle": "Grille complète : zéro menace du composant sans réponse localisée, zéro réponse sans TA- qui échoue quand elle est retirée ; tout écart devient une correction tracée ou un risque accepté nommé, borné, attribué (CT-7 §3.5). Pour les modules Go : attestation écrite du relecteur que le code ne reprend rien du JavaScript, ou retrait de la mention « indépendant » du README.",
     "status": {
@@ -376,7 +376,7 @@ export const TQ = [
         "Lecture bornée de chaque entrée (CT-6 EX-4.11, EX-4.13, EX-4.15) ; jamais une exception, toujours un statut (EX-15.2).",
         "Aucun accès réseau ; déterminisme (EX-3.2, EX-3.3).",
         "Aucun texte du rapport n'applique « prouvé », « vérifié » ou « conforme » au périmètre (CT-6 EX-7.3).",
-        "Modules Go : bibliothèque standard seule, aucun fichier JavaScript lu ni recopié."
+        "Modules Go : bibliothèque standard seule ; aucun fichier JavaScript lu ni recopié, hors le module de `ct-5`, non indépendant (CT-5 A.5, EX-13.2)."
       ]
     }
   },

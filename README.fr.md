@@ -103,8 +103,10 @@ construction.
   les formats, CT-2 pour l'enregistreur, CT-3 pour les approbations, CT-4 pour le
   registre, CT-5 pour l'ancrage, CT-6 pour le vérificateur, CT-7 pour la sécurité
   et la conformité, CT-8 pour le déploiement et l'exploitation, CT-9 pour le
-  plan de tests. Les vecteurs de CT-1 à CT-5 et de CT-7 à CT-9 sont recalculés
-  par des vérificateurs Go écrits depuis la seule spécification ; ceux de CT-5 et de CT-6 aussi par
+  plan de tests. Les vecteurs de CT-1 à CT-4 et de CT-7 à CT-9 sont recalculés
+  par des vérificateurs Go écrits depuis la seule spécification ; ceux de CT-5
+  par un vérificateur Go de cohérence en partie recopié de la référence, donc
+  non indépendant (CT-5 A.5, nom de répertoire historique) ; ceux de CT-5 et de CT-6 aussi par
   OpenSSL et la bibliothèque officielle d'OpenTimestamps, ceux de CT-6 par
   go-ethereum, les preuves de cohérence par une implémentation publique de la
   RFC 9162, les échanges Gemini et les traces OpenTelemetry de CT-2 par les

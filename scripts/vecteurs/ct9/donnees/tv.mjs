@@ -2122,7 +2122,7 @@ export const TV = [
   {
     "id": "TV-46",
     "level": "TV",
-    "title": "Vérificateur Go indépendant de CT-5 : zéro discordance sur `spec/vecteurs/ct-5`",
+    "title": "Vérificateur Go de cohérence des vecteurs de CT-5, non indépendant (CT-5 A.5) : zéro discordance sur `spec/vecteurs/ct-5`",
     "specs": [
       "CT-5"
     ],
@@ -2143,7 +2143,7 @@ export const TV = [
       "CT-5 AN-61"
     ],
     "preconditions": [
-      "Go 1.24 (version du `go.mod` du module) ; module `spec/vecteurs/ct-5/verificateur-independant` écrit depuis le seul texte de la spécification, sans lire le code JavaScript."
+      "Go 1.24 (version du `go.mod` du module) ; module `spec/vecteurs/ct-5/verificateur-independant` (nom historique, CT-5 A.5) écrit depuis le texte de la spécification et en partie recopié de la référence JavaScript (lecture et construction des requêtes RFC 3161, lecture et classement des réponses, registre du planificateur, au moins) : vérificateur de cohérence des vecteurs, non indépendant."
     ],
     "steps": [
       "`gofmt -l .` vide ; `go vet ./...` ; `go test ./...` ; `go run . ..` depuis le répertoire du module."
@@ -2152,7 +2152,7 @@ export const TV = [
     "status": {
       "state": "executable",
       "ci_steps": [
-        "vérificateur Go indépendant contre les vecteurs CT-5"
+        "vérificateur Go de cohérence contre les vecteurs CT-5"
       ],
       "command": "cd spec/vecteurs/ct-5/verificateur-independant && gofmt -l . && go vet ./... && go test ./... && go run . .."
     },

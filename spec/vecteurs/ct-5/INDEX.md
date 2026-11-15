@@ -9,7 +9,7 @@ Le générateur rejoue tout à l'identique (EX-A.1) ; il lit sans les réécrire
 ```bash
 npm run vecteurs:ct5                                   # régénère spec/vecteurs/ct-5 (mêmes octets)
 node -e 'import("./scripts/lib/ancrage.mjs").then(A => console.log(A.verifierTrace(JSON.parse(require("fs").readFileSync("spec/vecteurs/ct-5/planification/heure-nominale-reference.json","utf8")))))'
-cd spec/vecteurs/ct-5/verificateur-independant && go run . ..   # vérificateur Go indépendant (A.5)
+cd spec/vecteurs/ct-5/verificateur-independant && go run . ..   # vérificateur Go de cohérence, non indépendant (A.5)
 ```
 
 ## constantes.json (A.2)

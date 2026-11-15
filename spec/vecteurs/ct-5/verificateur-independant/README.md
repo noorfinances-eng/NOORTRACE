@@ -1,27 +1,41 @@
-# Vérificateur indépendant CT-5 (Go, salle blanche)
+# Vérificateur Go de cohérence des vecteurs CT-5 (non indépendant)
 
-Un second vérificateur des vecteurs de CT-5, écrit en Go depuis la
-spécification [`spec/CT-5-ancrage.md`](../../../CT-5-ancrage.md) (et, pour
-ce qu'ils définissent, CT-1 §10.5 à §10.7, CT-6 §9 et §10, RFC 3161, le
-schéma `spec/schemas/planificateur-ancrage-v0.schema.json` qu'elle cite),
-sans importer ni reprendre le code JavaScript de `scripts/` ni les tests de
-`test/` (annexe A.5, EX-A.4). Il recalcule ce que la spécification définit et
-le confronte à chaque valeur attendue trouvée dans `spec/vecteurs/ct-5`. Deux
-implémentations écrites séparément qui tombent sur les mêmes octets rendent
-les vecteurs probants ; une discordance désigne une ambiguïté de la
-spécification ou une faute de l'une des deux, et le vérificateur la liste
-sans la masquer.
+Un vérificateur des vecteurs de CT-5, écrit en Go depuis la spécification
+[`spec/CT-5-ancrage.md`](../../../CT-5-ancrage.md) (et, pour ce qu'ils
+définissent, CT-1 §10.5 à §10.7, CT-6 §9 et §10, RFC 3161, le schéma
+`spec/schemas/planificateur-ancrage-v0.schema.json` qu'elle cite), et **en
+partie recopié de la référence JavaScript** (annexe A.5, EX-A.4). Il
+recalcule ce que la spécification définit et le confronte à chaque valeur
+attendue trouvée dans `spec/vecteurs/ct-5` ; une discordance désigne une
+ambiguïté de la spécification ou une faute de l'un des deux, et le
+vérificateur la liste sans la masquer. C'est un vérificateur de cohérence
+des vecteurs, **pas une implémentation indépendante** : sa concordance avec
+les vecteurs ne vaut pas confrontation indépendante, et il ne compte pas
+parmi les confrontations indépendantes du plan de tests (CT-9 EX-13.2,
+TA-66).
 
-**Indépendance (révision 0.2 de CT-5).** Le module a été écrit depuis la
-spécification seule. Lors de la correction de la révision 0.2, il a été audité
-puis complété (ordre « ligne `envoyee` puis envoi » d'AN-32, transitions
-`envoyee → a_envoyer` et `obtenue → a_reprendre` d'EX-8.3, échéances rendues
-sur refus, repli de clôture, reconstruction de la file et fichiers d'époque,
-nouvelles alertes, classement des étapes 1 et 5, famille `completude`, plafond
-d'ancres `2 + 3600 / c_K`) par un rédacteur qui avait aussi lu la référence
-JavaScript. Les règles ajoutées sont celles du texte révisé, mais cette partie
-du module n'est plus une écriture à l'aveugle : son indépendance repose sur
-cette déclaration, et une relecture à l'aveugle reste à faire (CT-9).
+**Nom du répertoire.** Le répertoire garde le nom
+`verificateur-independant/`, que suivent l'intégration continue, les renvois
+et les autres modules. Pour `ct-5`, ce nom est historique et ne vaut pas
+déclaration d'indépendance.
+
+**Pourquoi il n'est pas indépendant (CT-5 A.5, complément du 2026-11-15 de
+la révision 0.10, décision du porteur).** Le module a d'abord été écrit
+depuis la spécification seule. Lors de la correction de la révision 0.2 de
+CT-5, il a été audité puis complété (ordre « ligne `envoyee` puis envoi »
+d'AN-32, transitions `envoyee → a_envoyer` et `obtenue → a_reprendre`
+d'EX-8.3, échéances rendues sur refus, repli de clôture, reconstruction de
+la file et fichiers d'époque, nouvelles alertes, classement des étapes 1 et
+5, famille `completude`, plafond d'ancres `2 + 3600 / c_K`) par un rédacteur
+qui avait aussi lu la référence JavaScript. La revue de sécurité interne de
+l'étape 8 a ensuite établi que des parties du module sont identiques à la
+référence (même découpage, mêmes noms de variables, mêmes commentaires,
+mêmes messages d'erreur dans le même ordre) : la lecture et la construction
+des requêtes RFC 3161 (`der.go`), la lecture et le classement des réponses
+(`reponse.go`), le registre du planificateur (`planificateur.go`), au
+moins ; le reste n'a pas été relu à l'aveugle. Le module est donc tenu pour
+en partie recopié de la référence, et la mention « indépendant » lui est
+retirée.
 
 Bibliothèque standard uniquement (`crypto/sha256`, `crypto/sha3` pour les
 tests, `encoding/hex`, `math/big`, `encoding/json` pour la seule sortie du
@@ -169,8 +183,8 @@ Le module rejoue les vecteurs régénérés avec la révision 0.10 (traces
   (trace `file-lignes-illisibles`), puis la relecture à la file avant.
 
 Ces corrections ont été écrites depuis le texte révisé de CT-5 et les
-vecteurs ; la mention « indépendant » du module reste une question ouverte
-au porteur (note de la révision 0.10 de CT-5, A.5).
+vecteurs, sans lire la référence ; elles ne rendent pas le module
+indépendant (voir plus haut, et CT-5 A.5).
 
 ## Interprétations retenues
 

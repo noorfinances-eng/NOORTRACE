@@ -286,7 +286,7 @@ const tentative = ({ n, provider = null, started_at, nonce = null, kind, hash, o
  * Les vingt-huit traces normatives (A.3), dans l'ordre d'A.3 (23 et 24 : révision 0.6 ; 25 à 28 : revue de l'étape 8,
  * CT-5 EX-8.8, CT-5 EX-8.12, CT-5 EX-8.5 ; révision de l'annexe A.3 demandée). Avec
  * `avecEmpreinteSquattee`, la trace empreinte-squattee les suit (menace MN-58) : elle n'est pas publiée tant que le
- * vérificateur Go indépendant de ct-5 ne la rejoue pas sans écart : après le refus de l'ancre de la période, le jeton
+ * vérificateur Go de cohérence de ct-5 (A.5) ne la rejoue pas sans écart : après le refus de l'ancre de la période, le jeton
  * de clôture reste attente_registre (EX-8.4, règle 2 ; AN-36 ; CT-4 EX-8.6).
  */
 export function traces(ex, { avecEmpreinteSquattee = false } = {}) {
@@ -1522,7 +1522,7 @@ function index({ constantes: c, requetes, reponses, ots, traces: tr, cout, repri
   L.push("```bash");
   L.push("npm run vecteurs:ct5                                   # régénère spec/vecteurs/ct-5 (mêmes octets)");
   L.push("node -e 'import(\"./scripts/lib/ancrage.mjs\").then(A => console.log(A.verifierTrace(JSON.parse(require(\"fs\").readFileSync(\"spec/vecteurs/ct-5/planification/heure-nominale-reference.json\",\"utf8\")))))'");
-  L.push("cd spec/vecteurs/ct-5/verificateur-independant && go run . ..   # vérificateur Go indépendant (A.5)");
+  L.push("cd spec/vecteurs/ct-5/verificateur-independant && go run . ..   # vérificateur Go de cohérence, non indépendant (A.5)");
   L.push("```");
   L.push("");
   L.push("## constantes.json (A.2)");

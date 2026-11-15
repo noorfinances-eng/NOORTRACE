@@ -482,7 +482,8 @@ acceptés, nommés, bornés et attribués.
   de CT-1 (point de contrôle, preuve de cohérence, treizième partie du dossier),
   de CT-2 (production des points) et de CT-6 (vérifications K-7 à K-9) ; le
   planificateur de référence à horloge injectée, avec ses vecteurs, recalculés
-  par un vérificateur Go indépendant et confrontés à OpenSSL, à la bibliothèque
+  par un vérificateur Go de cohérence (en partie recopié de la référence, il
+  n'est pas indépendant : CT-5 A.5) et confrontés à OpenSSL, à la bibliothèque
   officielle d'OpenTimestamps et à une implémentation publique de la RFC 9162 ;
 - la révision 0.3 de CT-3 : approbation par une personne nommée depuis sa
   session, annuaire des approbateurs et inscription par preuve de possession,

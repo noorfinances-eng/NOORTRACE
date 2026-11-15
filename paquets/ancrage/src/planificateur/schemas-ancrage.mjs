@@ -804,7 +804,7 @@ export const SCHEMA_PLANIFICATEUR = Object.freeze({
       "items": {
         "$ref": "#/$defs/action_attendue"
       },
-      "description": "Actions que le planificateur produit, dans l'ordre ; l'implémentation de référence et le vérificateur indépendant doivent rendre exactement cette liste (égalité JSON après forme canonique JCS v0)."
+      "description": "Actions que le planificateur produit, dans l'ordre ; l'implémentation de référence et le vérificateur Go de cohérence des vecteurs doivent rendre exactement cette liste (égalité JSON après forme canonique JCS v0)."
     },
     "queue_after": {
       "type": "array",

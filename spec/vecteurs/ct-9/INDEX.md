@@ -107,7 +107,7 @@ par entrée : identifiant, niveau, état, titre.
 | TV-43 | TV- | exécutable | `ct-5/cout/` et `ct-5/completude/` : onze cas de coût, six cas de complétude |
 | TV-44 | TV- | exécutable | Vecteurs de CT-1 et de CT-6 inchangés par CT-5 ; aucun secret, prix ni adresse dans `ct-5` |
 | TV-45 | TV- | exécutable | Génération déterministe de `spec/vecteurs/ct-5` |
-| TV-46 | TV- | exécutable | Vérificateur Go indépendant de CT-5 : zéro discordance sur `spec/vecteurs/ct-5` |
+| TV-46 | TV- | exécutable | Vérificateur Go de cohérence des vecteurs de CT-5, non indépendant (CT-5 A.5) : zéro discordance sur `spec/vecteurs/ct-5` |
 | TV-47 | TV- | exécutable | Confrontation tierce de `ct-5` : openssl, python-opentimestamps, transparency-dev/merkle |
 | TV-48 | TV- | exécutable | `ct-6/rfc3161/` : jetons, clés, CRL, statuts T-1 à T-11, confrontation à `openssl ts -verify` |
 | TV-49 | TV- | exécutable | `ct-6/ots/` : en-têtes synthétiques, preuves, statuts O-1 à O-7 |
@@ -364,7 +364,7 @@ Sortie de l'outil de couverture (`node scripts/tests/couverture.mjs --json`,
 forme `rapport_couverture`) sur le dépôt et ce catalogue : verdict `reussi` ;
 2470 identifiants définis par CT-1 à CT-8, 2324 couverts par une entrée, 146 par
 une justification NC-, 0 non couvert(s) ; 102 menaces sur 102 avec un TA- ; 129
-occurrences de « CT-9 » et 129 lignes TC- ; 294 entrées exécutables citant 695
+occurrences de « CT-9 » et 129 lignes TC- ; 294 entrées exécutables citant 694
 titres ou étapes, 0 absent(s) ; 15 tables du texte comparées, 0 différence(s).
 
 ## `index-ta-par-menace.json`

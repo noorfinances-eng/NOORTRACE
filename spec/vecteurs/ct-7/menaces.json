@@ -3657,7 +3657,7 @@
           "owner": "reviseur"
         }
       },
-      "test": "Le test échoue si la réponse est retirée : les vérificateurs Go indépendants de `ct-1` à `ct-5` rendent les mêmes valeurs que l'implémentation de référence sur leurs vecteurs ; une discordance fait échouer le test.",
+      "test": "Le test échoue si la réponse est retirée : les vérificateurs Go indépendants de `ct-1` à `ct-4` et le vérificateur Go de cohérence de `ct-5` (en partie recopié de la référence, non indépendant : CT-5 A.5) rendent les mêmes valeurs que l'implémentation de référence sur leurs vecteurs ; une discordance fait échouer le test.",
       "sources": [
         {
           "spec": "CT-6",

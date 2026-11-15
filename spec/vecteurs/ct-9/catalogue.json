@@ -15,7 +15,7 @@
     {
       "id": "TV",
       "name": "Conformité aux vecteurs",
-      "object": "Chaque famille de `spec/vecteurs/ct-1` à `ct-8`, rejouée par l'implémentation de référence, par le vérificateur Go indépendant et, quand elle existe, par la confrontation tierce ; génération déterministe.",
+      "object": "Chaque famille de `spec/vecteurs/ct-1` à `ct-8`, rejouée par l'implémentation de référence, par le vérificateur Go indépendant (pour `ct-5`, vérificateur Go de cohérence des vecteurs, non indépendant : CT-5 A.5) et, quand elle existe, par la confrontation tierce ; génération déterministe.",
       "oracle": "Le fichier attendu de la famille (`attendu.json`, `cas.json`, `expected`), à l'égalité octet pour octet ou au verdict près.",
       "section": "7"
     },
@@ -4476,7 +4476,7 @@
     {
       "id": "TV-46",
       "level": "TV",
-      "title": "Vérificateur Go indépendant de CT-5 : zéro discordance sur `spec/vecteurs/ct-5`",
+      "title": "Vérificateur Go de cohérence des vecteurs de CT-5, non indépendant (CT-5 A.5) : zéro discordance sur `spec/vecteurs/ct-5`",
       "specs": [
         "CT-5"
       ],
@@ -4497,7 +4497,7 @@
         "CT-5 AN-61"
       ],
       "preconditions": [
-        "Go 1.24 (version du `go.mod` du module) ; module `spec/vecteurs/ct-5/verificateur-independant` écrit depuis le seul texte de la spécification, sans lire le code JavaScript."
+        "Go 1.24 (version du `go.mod` du module) ; module `spec/vecteurs/ct-5/verificateur-independant` (nom historique, CT-5 A.5) écrit depuis le texte de la spécification et en partie recopié de la référence JavaScript (lecture et construction des requêtes RFC 3161, lecture et classement des réponses, registre du planificateur, au moins) : vérificateur de cohérence des vecteurs, non indépendant."
       ],
       "steps": [
         "`gofmt -l .` vide ; `go vet ./...` ; `go test ./...` ; `go run . ..` depuis le répertoire du module."
@@ -4506,7 +4506,7 @@
       "status": {
         "state": "executable",
         "ci_steps": [
-          "vérificateur Go indépendant contre les vecteurs CT-5"
+          "vérificateur Go de cohérence contre les vecteurs CT-5"
         ],
         "command": "cd spec/vecteurs/ct-5/verificateur-independant && gofmt -l . && go vet ./... && go test ./... && go run . .."
       },
@@ -13062,10 +13062,10 @@
         "CT-6 §3.1"
       ],
       "preconditions": [
-        "Job vecteurs de ci.yml (étapes « clean-room Go verifier against the CT-1 JavaScript vectors », « … CT-2 … », « vérificateur Go indépendant contre les vecteurs CT-3 », CT-4, CT-5, CT-7, CT-8) ; en local, Go 1.24."
+        "Job vecteurs de ci.yml (étapes « clean-room Go verifier against the CT-1 JavaScript vectors », « … CT-2 … », « vérificateur Go indépendant contre les vecteurs CT-3 », CT-4, CT-7, CT-8) ; en local, Go 1.24."
       ],
       "steps": [
-        "Exécuter go run . .. dans chaque module Go (les sept étapes citées du job vecteurs de ci.yml) ; code 0 attendu.",
+        "Exécuter go run . .. dans chaque module Go indépendant (les six étapes citées du job vecteurs de ci.yml) ; code 0 attendu.",
         "Rejouer confrontation/coherence (test cité de test/confrontation.test.js) : code 0, aucune discordance."
       ],
       "oracle": "Code 0 de chaque module Go et de la confrontation ; une discordance fait échouer l'étape. Le binaire reproductible et le module Go de CT-6 sont de phase 2, étape 2 (RA-57, complément).",
@@ -13088,7 +13088,6 @@
           "clean-room Go verifier against the CT-2 JavaScript vectors",
           "vérificateur Go indépendant contre les vecteurs CT-3",
           "vérificateur Go indépendant contre les vecteurs CT-4",
-          "vérificateur Go indépendant contre les vecteurs CT-5",
           "vérificateur Go indépendant contre les vecteurs CT-7",
           "vérificateur Go indépendant contre les vecteurs CT-8",
           "binaire vérificateur Go, gofmt, vet et rejeu des dossiers CT-1 et CT-6 (zéro discordance)",
@@ -13104,15 +13103,15 @@
         "component": "verificateur",
         "response_removed": {
           "what": "Vérificateurs indépendants confrontés sur les vecteurs (CT-6 §3.1) ; binaire reproductible (EX-14.6, EX-14.8)",
-          "how": "Retirer de l'intégration continue l'exécution des vérificateurs Go (les sept étapes go run . .. citées)",
+          "how": "Retirer de l'intégration continue l'exécution des vérificateurs Go indépendants (les six étapes go run . .. citées)",
           "where": ".github/workflows/ci.yml, job vecteurs"
         },
         "attack": "Une implémentation de référence qui dit « valide » à tort sur un vecteur.",
-        "expected_with_response": "Les sept modules Go (ct-1 à ct-5, ct-7, ct-8) rendent « 0 discordance » et le code 0 sur leurs vecteurs ; toute divergence fait échouer le job ; ct-6 n'a pas de module Go (TV-55, étape 2) ; les modules de ct-1 à ct-4, ct-7 et ct-8 rendent le code 1 sur une racine où une famille manque ou ne recalcule rien, ou dont un cas manque à l'INDEX.md (plancher : CT-1 §13 révision 0.6 et annexes des vecteurs de CT-2, CT-3, CT-4, CT-7 et CT-8 ; ct-5 : décision du porteur sur son module, EX-13.2).",
+        "expected_with_response": "Les six modules Go indépendants (ct-1 à ct-4, ct-7, ct-8) rendent « 0 discordance » et le code 0 sur leurs vecteurs ; toute divergence fait échouer le job ; ct-6 n'a pas de module Go (TV-55, étape 2) ; ces six modules rendent le code 1 sur une racine où une famille manque ou ne recalcule rien, ou dont un cas manque à l'INDEX.md (plancher : CT-1 §13 révision 0.6 et annexes des vecteurs de CT-2, CT-3, CT-4, CT-7 et CT-8). Le module de ct-5, vérificateur Go de cohérence des vecteurs en partie recopié de la référence, ne compte pas parmi ces confrontations (CT-5 A.5, EX-13.2 ; décision du porteur du 2026-11-15) : son étape de ci.yml est celle de TV-46.",
         "expected_without_response": "La divergence n'est pas vue ; le test échoue.",
         "execution": "vecteurs_et_depot",
         "accepted_risk": "RA-57",
-        "threat_test_text": "Le test échoue si la réponse est retirée : les vérificateurs Go indépendants de `ct-1` à `ct-5` rendent les mêmes valeurs que l'implémentation de référence sur leurs vecteurs ; une discordance fait échouer le test."
+        "threat_test_text": "Le test échoue si la réponse est retirée : les vérificateurs Go indépendants de `ct-1` à `ct-4` et le vérificateur Go de cohérence de `ct-5` (en partie recopié de la référence, non indépendant : CT-5 A.5) rendent les mêmes valeurs que l'implémentation de référence sur leurs vecteurs ; une discordance fait échouer le test."
       }
     },
     {
@@ -19269,7 +19268,7 @@
         "Pour chaque menace du composant (colonne `component` de `menaces.json`), localiser la réponse dans le code (fichier, fonction) et le TA- qui la tue.",
         "Relire chaque limite de confiance de CT-7 §3.2 : validation des entrées, secrets jamais journalisés, erreurs sans exception vers l'appelant.",
         "Consigner la grille remplie et les écarts (fichier, ligne, menace, décision).",
-        "Relire chaque module `verificateur-independant/` : aucune importation ni recopie du code JavaScript ; pour `ct-5`, relecture à l'aveugle de la partie que son README déclare non écrite à l'aveugle (R10-F35)."
+        "Relire chaque module Go indépendant `verificateur-independant/` (`ct-1` à `ct-4`, `ct-7` à `ct-9`) : aucune importation ni recopie du code JavaScript ; le module de `ct-5`, vérificateur de cohérence des vecteurs en partie recopié de la référence, n'est pas présenté comme indépendant (CT-5 A.5, EX-13.2, R10-F35) : n'en relire que l'emploi de la seule bibliothèque standard."
       ],
       "oracle": "Grille complète : zéro menace du composant sans réponse localisée, zéro réponse sans TA- qui échoue quand elle est retirée ; tout écart devient une correction tracée ou un risque accepté nommé, borné, attribué (CT-7 §3.5). Pour les modules Go : attestation écrite du relecteur que le code ne reprend rien du JavaScript, ou retrait de la mention « indépendant » du README.",
       "status": {
@@ -19310,7 +19309,7 @@
           "Lecture bornée de chaque entrée (CT-6 EX-4.11, EX-4.13, EX-4.15) ; jamais une exception, toujours un statut (EX-15.2).",
           "Aucun accès réseau ; déterminisme (EX-3.2, EX-3.3).",
           "Aucun texte du rapport n'applique « prouvé », « vérifié » ou « conforme » au périmètre (CT-6 EX-7.3).",
-          "Modules Go : bibliothèque standard seule, aucun fichier JavaScript lu ni recopié."
+          "Modules Go : bibliothèque standard seule ; aucun fichier JavaScript lu ni recopié, hors le module de `ct-5`, non indépendant (CT-5 A.5, EX-13.2)."
         ]
       }
     },
@@ -20366,7 +20365,7 @@
       "threat": "MN-66",
       "test": "TA-66",
       "test_state": "executable",
-      "tested": "TA-66 éprouve la réponse qui borne le risque (Vérificateurs indépendants confrontés sur les vecteurs (CT-6 §3.1) ; binaire reproductible (EX-14.6, EX-14.8)) : avec elle, Les sept modules Go (ct-1 à ct-5, ct-7, ct-8) rendent « 0 discordance » et le code 0 sur leurs vecteurs ; toute divergence fait échouer le job ; ct-6 n'a pas de module Go (TV-55, étape 2) ; les modules de ct-1 à ct-4, ct-7 et ct-8 rendent le code 1 sur une racine où une famille manque ou ne recalcule rien, ou dont un cas manque à l'INDEX.md (plancher : CT-1 §13 révision 0.6 et annexes des vecteurs de CT-2, CT-3, CT-4, CT-7 et CT-8 ; ct-5 : décision du porteur sur son module, EX-13.2) ; sans elle, le test échoue.",
+      "tested": "TA-66 éprouve la réponse qui borne le risque (Vérificateurs indépendants confrontés sur les vecteurs (CT-6 §3.1) ; binaire reproductible (EX-14.6, EX-14.8)) : avec elle, Les six modules Go indépendants (ct-1 à ct-4, ct-7, ct-8) rendent « 0 discordance » et le code 0 sur leurs vecteurs ; toute divergence fait échouer le job ; ct-6 n'a pas de module Go (TV-55, étape 2) ; ces six modules rendent le code 1 sur une racine où une famille manque ou ne recalcule rien, ou dont un cas manque à l'INDEX.md (plancher : CT-1 §13 révision 0.6 et annexes des vecteurs de CT-2, CT-3, CT-4, CT-7 et CT-8). Le module de ct-5, vérificateur Go de cohérence des vecteurs en partie recopié de la référence, ne compte pas parmi ces confrontations (CT-5 A.5, EX-13.2 ; décision du porteur du 2026-11-15) : son étape de ci.yml est celle de TV-46 ; sans elle, le test échoue.",
       "not_tested": "l'environnement d'exécution du vérificateur jusqu'au binaire reproductible de la phase 2"
     },
     {
@@ -20829,70 +20828,70 @@
     {
       "id": "TC-20",
       "key": "CT-5 §0",
-      "line": 282,
+      "line": 302,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-21",
       "key": "CT-5 §1",
-      "line": 396,
+      "line": 417,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-22",
       "key": "CT-5 §1",
-      "line": 420,
+      "line": 441,
       "delegated": "EX-, AN-, vecteurs `ct-5`, épreuve à l'aveugle à deux relecteurs.",
       "response": "TR-4 (relecteur CT-5 et CT-1 §9 à §11) et TR-5 (second relecteur, CT-6 §7) en §12 ; consigne et grille sous spec/vecteurs/ct-9/ (EX-12.7) ; EX-, AN- et vecteurs ct-5 : TV- (§7)."
     },
     {
       "id": "TC-23",
       "key": "CT-5 §3.6",
-      "line": 664,
+      "line": 685,
       "delegated": "Mesures P-1 à P-6 sur le réseau de développement et sur les vecteurs.",
       "response": "TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15), sur le réseau de développement (TM-11 à TM-14, exécutables depuis l'étape 5 par la campagne de `scripts/e2e/mesure-ancrage.mjs`, rapport `mesures/rapport-2026-11-10-ancrage.json` ; compléments à l'étape 8 : charge de TM-3 pour TM-11, prestataire qualifié réel pour TM-14) et sur le support WORM (TM-16, exécutable depuis l'étape 4, `ancres/` compris depuis l'étape 5)."
     },
     {
       "id": "TC-24",
       "key": "CT-5 §5.3",
-      "line": 1425,
+      "line": 1446,
       "delegated": "Test à écrire : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
       "response": "TI-16 (§8), exécutable depuis l'étape 5 : relève de la clôture par le secours qualifié après retrait de `qualified`, sans rechargement, sur le composant d'ancrage (`test/ancrage-composant-pannes.test.js`, serveurs internes déclarés qualifiés par un instantané d'exemple) ; complément à l'étape 8 : prestataire qualifié réel."
     },
     {
       "id": "TC-25",
       "key": "CT-5 §7.2",
-      "line": 1963,
+      "line": 1984,
       "delegated": "AN-24 à AN-32 du serveur interne vérifiées sur un jeton émis.",
       "response": "TI-17 (§8), exécutable depuis l'étape 5 : AN-22 à AN-31 vérifiées sur les jetons émis par le serveur interne de référence du paquet d'ancrage (`test/ancrage-tsa-interne-*.test.js`, `test/enregistreur-ancrage-exigences.test.js`, `test/enregistreur-ancrage-parcours.test.js`) ; TM-18 (AN-26) et TM-19 (AN-24) en §11 pour les exigences mesurables, sur les mêmes essais et dans le rapport de la campagne de l'étape 5."
     },
     {
       "id": "TC-26",
       "key": "CT-5 §7.2",
-      "line": 1972,
+      "line": 1993,
       "delegated": "Épreuve de redémarrage du serveur interne (AN-26).",
       "response": "TI-17 (§8) et TM-18 (AN-26) en §11, exécutables depuis l'étape 5 : quatre jetons avant et quatre après un redémarrage du serveur interne (compteur de série durable), numéros strictement croissants, et le relevé `an26_serie_croissante` de la campagne (dix jetons, redémarrage, dix jetons) ; TM-19 (AN-24)."
     },
     {
       "id": "TC-27",
       "key": "CT-5 §9.3",
-      "line": 4423,
+      "line": 4444,
       "delegated": "Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
       "response": "TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
     },
     {
       "id": "TC-28",
       "key": "CT-5 §14",
-      "line": 4925,
+      "line": 4946,
       "delegated": "Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
       "response": "TI-16 (§8), exécutable depuis l'étape 5 (`test/ancrage-composant-pannes.test.js` : relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée ; rechargement sans principal qualifié refusé) ; mesures en charge du planificateur : TM-17 (§11)."
     },
     {
       "id": "TC-29",
       "key": "CT-5 §14",
-      "line": 4927,
+      "line": 4948,
       "delegated": "Tests EX- et AN-1 à AN-61, mesures P-1 à P-6, épreuve à l'aveugle.",
       "response": "§6, §7, §8 (TI-16, TI-17), §9 (TE-12), §11 (TM-10 à TM-19), §12 (TR-4, TR-5) ; état « proposition » levé par ce document."
     },
@@ -21578,21 +21577,21 @@
     {
       "id": "TC-127",
       "key": "`spec/README.md` « CT-9 (`vecteurs/ct-9/`) »",
-      "line": 455,
+      "line": 457,
       "delegated": "Titre de la section des vecteurs `ct-9/`.",
       "response": "Annexe A.1 (disposition de `spec/vecteurs/ct-9/`)."
     },
     {
       "id": "TC-128",
       "key": "`spec/README.md` « CT-9 (`vecteurs/ct-9/`) »",
-      "line": 457,
+      "line": 459,
       "delegated": "Renvoi à l'annexe A pour la disposition des vecteurs.",
       "response": "Annexe A.1 ; générateur et déterminisme : EX-A.1."
     },
     {
       "id": "TC-129",
       "key": "`spec/README.md` « CT-9 (`vecteurs/ct-9/`) »",
-      "line": 457,
+      "line": 459,
       "delegated": "Renvoi à l'annexe A pour la disposition des vecteurs.",
       "response": "Annexe A.1 ; générateur et déterminisme : EX-A.1."
     }
