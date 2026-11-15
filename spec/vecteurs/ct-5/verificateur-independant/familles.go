@@ -760,7 +760,16 @@ func familleReprise(rap *Rapport, racine string) {
 					continue
 				}
 				f := LireFile(string(b))
-				rap.Comparer(fam, id, nom+" : lignes toutes lisibles", "0 erreur(s), tronquée : false", fmt.Sprintf("%d erreur(s), tronquée : %v", len(f.Erreurs), f.Tronquee))
+				// EX-8.5, règle 3 (révision 0.10) : un fichier d'époque relu au démarrage
+				// peut porter des lignes illisibles (trace file-lignes-illisibles) ; la
+				// relecture consigne et ignore chaque ligne mal formée, retire le
+				// fragment de fin sans fin de ligne, et n'en répare aucune (la relecture
+				// est confrontée plus bas à la file avant).
+				malFormees, fragment := lignesIllisibles(string(b))
+				rap.Comparer(fam, id, nom+" : lignes illisibles consignées et ignorées, fragment de fin retiré (EX-8.5, règle 3)", fmt.Sprintf("%d ligne(s) mal formée(s) consignée(s), fragment de fin retiré : %v", malFormees, fragment), fmt.Sprintf("%d ligne(s) mal formée(s) consignée(s), fragment de fin retiré : %v", len(f.Erreurs), f.Tronquee))
+				for _, e := range f.Erreurs {
+					rap.Detail("reprise/%s : %s : %s (consignée, ignorée)", id, nom, e)
+				}
 				for _, d := range f.Demandes {
 					if _, ok := parID[d.ID]; !ok {
 						ordre = append(ordre, d.ID)
@@ -819,6 +828,30 @@ func familleReprise(rap *Rapport, racine string) {
 			}
 		}
 	}
+}
+
+// lignesIllisibles compte, ligne à ligne, les lignes terminées par une fin
+// de ligne qui ne se lisent pas comme une demande de $defs/demande (JSON
+// illisible, membre manquant ou id différent de <kind>:<hash>), et dit si le
+// fichier finit par un fragment sans fin de ligne (EX-8.5, règle 3).
+func lignesIllisibles(texte string) (int, bool) {
+	morceaux := strings.Split(texte, "\n")
+	fragment := morceaux[len(morceaux)-1] != ""
+	n := 0
+	for _, l := range morceaux[:len(morceaux)-1] {
+		if l == "" {
+			continue
+		}
+		v, err := ParseJSON([]byte(l))
+		if err != nil {
+			n++
+			continue
+		}
+		if d, err := DemandeDe(v); err != nil || d.ID != d.Kind+":"+d.Subject.Hash {
+			n++
+		}
+	}
+	return n, fragment
 }
 
 func lignesDe(texte string) []string {

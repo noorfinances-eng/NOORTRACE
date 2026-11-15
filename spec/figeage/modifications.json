@@ -12034,6 +12034,54 @@
           "apres": "5f9bd42d41a49be1ebf03a8bf193721d6fdb3b63771fc5b27f679f6a58c0b96b"
         }
       ]
+    },
+    {
+      "id": "MC-83",
+      "date": "2026-11-15",
+      "etape": 8,
+      "motif": "Module Go indépendant de CT-5 aligné sur la révision 0.10 du texte (EX-5.10 étape 2, EX-8.12, EX-4.4, EX-8.5 règle 3, EX-8.9, EX-5.1 et EX-4.9 règle 9), écrit depuis le texte et les vecteurs seuls : 0 discordance sur les vecteurs publiés",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/README.md",
+          "avant": "dc2ef90232d3e3953fbdfa55f43cb3eae70a3489164fca8dd8606e909840a400",
+          "apres": "b5f15188256ae823bb3085251e9f6b0c1a4d23562d02599c081cf7b56d686fc7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/demande.go",
+          "avant": "22553c885722d551480e40a4e197aec8e983fbaf2c83ddd6264b01668489df33",
+          "apres": "d0f95074fae4952f44058c94b7a30e262d9210ac2d602933e0c1b450f10ad978"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/der.go",
+          "avant": "ff5504f24f52138d234ee523a6eb301f3de5f39aadbda62d3ad8521bd4ca07fc",
+          "apres": "96d7611dedc4db55198ccde2c8a50b846f06b2e13ff4e15d8a0c1556bb23362f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/familles.go",
+          "avant": "316fcd5f2c7aacb6b9b0fc3ef44fa01d987fd2bb968544502cb9241b47b5f34a",
+          "apres": "22dc8cee7f71e4523cd684d6515b5c1a9b5a87d97064113d4ca82e713841620c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/invariants.go",
+          "avant": "eecd766a467bd2729c70e2310b55a34f71e33b5abb085e86910ef4fba49f8ef7",
+          "apres": "7a2c1494bfdc9b59c48fc187608f1dec6f1457e3a4cabf658ed09bde1d15ce1b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/planificateur.go",
+          "avant": "010b8de1191b9638e0b7546f47dd7a20acfdac4064f5dcb12d5f8b91a568eaa5",
+          "apres": "75578ef4bc282d85b67150adf24bc4580745829430add895b4aa95402d92c538"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/reponse.go",
+          "avant": "7a739e168354b93debbb2d4b9a3878ed895a39d69d5c5b725d76fbfa5e7fb269",
+          "apres": "8e43e1bdf8af0aa19843ca982f02805815f31c1ef76cd0d548322e1e39b267dd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/revision010_test.go",
+          "avant": null,
+          "apres": "e42e5e64c037272877e74720eb10aca0ead13aa0f4b074b1a9ee1b80d520ce20"
+        }
+      ]
     }
   ]
 }

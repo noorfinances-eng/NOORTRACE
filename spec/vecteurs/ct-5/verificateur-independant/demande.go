@@ -368,7 +368,10 @@ type FileLue struct {
 
 // LireFile relit une file NDJSON (EX-8.5, règle 3) : les lignes sont
 // rejouées dans l'ordre, la dernière ligne d'un id fait foi, une ligne
-// finale tronquée est ignorée et signalée, jamais réparée.
+// finale tronquée est ignorée et signalée, jamais réparée ; une ligne mal
+// formée hors de la fin du fichier est consignée (Erreurs) et ignorée.
+// Révision 0.10 : un fragment de fin de fichier qui ne finit pas par une fin
+// de ligne est retiré, qu'il se lise ou non (Tronquee).
 func LireFile(texte string) *FileLue {
 	morceaux := strings.Split(texte, "\n")
 	derniere := morceaux[len(morceaux)-1]
@@ -408,10 +411,10 @@ func LireFile(texte string) *FileLue {
 		}
 	}
 	if derniere != "" {
+		// EX-8.5, règle 3 (révision 0.10) : le fragment sans fin de ligne est
+		// retiré avant tout ajout ; il n'est jamais admis, même lisible.
 		r.Lignes++
-		if !admettre(derniere, len(morceaux)) {
-			r.Tronquee = true
-		}
+		r.Tronquee = true
 	}
 	for _, id := range ordre {
 		r.Demandes = append(r.Demandes, parID[id])

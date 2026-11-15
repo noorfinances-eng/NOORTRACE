@@ -591,8 +591,28 @@ func (a *analyseTrace) an36() {
 // prestataire, sinon min(max_ms, initial_ms × factor^(k−1)) plus la gigue
 // injectée, consommée dans l'ordre.
 func (a *analyseTrace) an37() {
-	a.declarer("AN-37", "attente de reprise d'EX-8.9 (Retry-After, premier 408, suite géométrique plafonnée, gigue)")
+	a.declarer("AN-37", "attente de reprise d'EX-8.9 (Retry-After, premier 408, suite géométrique plafonnée, gigue, série relue au démarrage)")
 	k := map[string]int64{}
+	// EX-8.9 (révision 0.10) : une demande de jeton relue garde, par
+	// prestataire, ses échecs transitoires consécutifs ; une tentative close par
+	// le redémarrage (error_code redemarrage, ou en cours au démarrage, qu'EX-8.12
+	// clôt ainsi) interrompt la série, comme tout autre résultat.
+	for id, d := range a.avant {
+		if !prefixe(d.Kind, "jeton_") || EtatsFinaux[d.State] {
+			continue
+		}
+		for _, att := range d.Attempts {
+			if att.Provider == nil {
+				continue
+			}
+			c := id + "|" + *att.Provider
+			if (att.Outcome == "echec_transitoire" || att.Outcome == "reponse_tardive") && (att.ErrorCode == nil || *att.ErrorCode != "redemarrage") {
+				k[c]++
+			} else {
+				k[c] = 0
+			}
+		}
+	}
 	premier408 := map[string]bool{}
 	gigue := 0
 	prendreGigue := func() int64 {

@@ -153,6 +153,11 @@ func EvaluerReponse(requete, reponse []byte, http HTTP, sentAt, receivedAt strin
 		r := echec(fmt.Sprintf("statut_%d", rep.Status), "permanente", fmt.Sprintf("PKIStatus %d (%s)", rep.Status, NomsPKI[rep.Status]))
 		r.Critical = true
 		return r, nil
+	case 0, 1:
+	default:
+		// EX-5.10, étape 2 (révision 0.10) : toute autre valeur de status donne
+		// statut_<n>, permanente, et le jeton qui suivrait n'est pas lu.
+		return echec(fmt.Sprintf("statut_%d", rep.Status), "permanente", fmt.Sprintf("PKIStatus %d hors de 0 a 5", rep.Status)), nil
 	}
 	if rep.Token == nil {
 		return echec("reponse_illisible", "permanente", fmt.Sprintf("PKIStatus %d sans TimeStampToken", rep.Status)), nil

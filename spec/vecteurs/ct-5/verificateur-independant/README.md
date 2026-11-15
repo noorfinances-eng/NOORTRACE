@@ -126,6 +126,52 @@ Le module rejoue les traces sous les règles de la révision 0.6 :
 Le compactage de la file (EX-8.5, règle 5) n'est pas une action de trace et
 ne change ni `expected` ni `queue_after` : il n'est pas recalculé ici.
 
+## Révision 0.10 de CT-5
+
+Le module rejoue les vecteurs régénérés avec la révision 0.10 (traces
+`redemarrage-releve`, `redemarrage-echeance-remplacee`,
+`file-lignes-illisibles`, `releve-pendant-reprise`, cas `statut-6` de
+`reponses/`). Ce qui a changé :
+
+- **Minuterie de relève reposée au démarrage** (EX-8.12, EX-8.8) : pour toute
+  demande de jeton non finale qui admet la relève et dont le secours n'est ni
+  engagé ni épuisé, la minuterie est reposée à premier envoi +
+  `fallback_after_s` ; échue, la relève part à l'instant du démarrage
+  (traces `redemarrage-releve` et `file-pleine` : cent jetons de clôture relevés
+  au démarrage). Le premier envoi est lu comme pour `d_jeton` (tentative de
+  rang 1, sinon la plus ancienne tentative portée).
+- **EX-4.4 appliquée aux demandes de points relues** (EX-8.12) : une demande
+  `jeton_point` non finale dont toutes les échéances sont inférieures à une
+  échéance `satisfaite` d'une autre demande de la période est close
+  `remplacee` au démarrage, avec `remplacer`, les échéances `remplacee`, la
+  ligne `checkpoint_anchor_late` et l'alerte de 8.9 (trace
+  `redemarrage-echeance-remplacee`) ; sa reprise programmée ne part pas.
+- **Série d'échecs relue** (EX-8.9) : `k` est repris de la ligne relue, par
+  prestataire ; une tentative `redemarrage` (ou en cours au démarrage, qu'EX-8.12
+  clôt ainsi) interrompt la série, et l'échec suivant a `k = 1` ; sans elle,
+  une demande relue `a_reprendre` garde ses échecs antérieurs. AN-37 reprend
+  la même série depuis `queue_before`.
+- **`PKIStatus` hors de 0 à 5** (EX-5.10, étape 2) : `statut_<n>`,
+  permanente, non critique, jeton non lu ni promu (cas `statut-6`) ; le
+  `status` est lu comme tout INTEGER (complément à deux, plusieurs octets
+  admis) et un `status` au-delà de ±(2^53 − 1) rend la réponse
+  `reponse_illisible` ; `pki_status` consigné tel que lu.
+- **Arcs d'OID sur 128 bits** (EX-5.1, EX-4.9 règle 9) : à l'encodage comme au
+  décodage d'une requête, un arc au-delà de 2^128 − 1 est refusé ; les arcs
+  sont lus et écrits en entiers non bornés (un arc de plus de 64 bits n'est
+  plus tronqué).
+- **Relecture de la file** (EX-8.5, règle 3) : un fragment de fin de fichier
+  sans fin de ligne est retiré, même lisible ; une ligne mal formée hors de
+  la fin est consignée et ignorée, la ligne valide précédente du même `id`
+  faisant foi. La famille `reprise` ne suppose plus les fichiers d'époque
+  tous lisibles : elle confronte le nombre de lignes mal formées et le
+  fragment de fin, comptés ligne à ligne, à ce que la relecture consigne
+  (trace `file-lignes-illisibles`), puis la relecture à la file avant.
+
+Ces corrections ont été écrites depuis le texte révisé de CT-5 et les
+vecteurs ; la mention « indépendant » du module reste une question ouverte
+au porteur (note de la révision 0.10 de CT-5, A.5).
+
 ## Interprétations retenues
 
 - EX-8.5, règle 1, dit que la ligne `envoyee` est écrite avant que la requête
@@ -150,6 +196,18 @@ ne change ni `expected` ni `queue_after` : il n'est pas recalculé ici.
   tentative la plus récente, dont l'issue (délai de relève ou erreur
   permanente) déclenche la relève ; `anchor_retry` porte la tentative qu'il
   renvoie (au démarrage) ou qu'il ouvre (après `echec_registre`).
+- Révision 0.10, EX-4.4 au démarrage : quand plusieurs demandes ont une
+  échéance satisfaite au-delà de celles de la demande close, `replaced_by`
+  nomme celle de la plus petite (la « `D_{k+1}` » d'EX-4.4), à défaut le
+  `jeton_periode` obtenu (échéance `n_T`) ; `window_s` se lit, comme en cours
+  de rejeu, sur la borne du jeton qui couvre moins `D_k` de la plus petite
+  échéance close. Une demande sans échéance (repli de clôture) n'est close au
+  démarrage que par le jeton de clôture obtenu (EX-4.2). Le texte ne dit pas
+  dans quel ordre ces fermetures et les transitions de reprise se suivent :
+  elles les précèdent ici, de sorte qu'une demande close ne repart pas.
+- Révision 0.10, série relue (EX-8.9) : un résultat autre qu'un échec
+  transitoire (`obtenue`, `echec_permanente`) interrompt aussi la série ;
+  `k` n'est compté que sur les tentatives que la ligne porte (fenêtre de 32).
 
 ## Tests du module
 
@@ -161,7 +219,14 @@ premier cas de 12.3, attente de reprise d'EX-8.9 et sa suite 5 s, 10 s, …,
 trace de référence, fenêtre de 32 tentatives et lecture des lignes d'avant
 la révision 0.6 (`TestFenetreTentatives06`), rejeu des traces publiées et confrontation complète
 des vecteurs (ces deux derniers ignorés quand les vecteurs sont absents, en
-échec quand le rapport porte une discordance).
+échec quand le rapport porte une discordance). Révision 0.10
+(`revision010_test.go`, un test par règle) : `PKIStatus` hors de 0 à 5 et
+hors des entiers représentables (`TestStatutHorsTableEX510`), arcs d'OID sur
+128 bits (`TestArcsOID128BitsEX51`), fragment de fin et ligne mal formée
+(`TestFragmentEtLignesIllisiblesEX85`), relève reposée au démarrage
+(`TestReleveReposeeAuDemarrageEX812`), EX-4.4 appliquée aux demandes relues
+(`TestEcheancesRemplaceesAuDemarrageEX812`), série d'échecs relue et AN-37
+(`TestSerieDeReprisesRelueEX89`).
 
 ## Limites
 
@@ -174,6 +239,17 @@ des vecteurs (ces deux derniers ignorés quand les vecteurs sont absents, en
   `../confrontation/`.
 - Le module ne valide pas les vecteurs contre les schémas JSON
   (`planificateur-ancrage-v0`) : c'est le rôle de `test/ancrage.test.js`.
-- La reconstruction de la file depuis le stockage (`anchoring_queue_rebuilt`,
-  EX-8.12) et les règles hors schéma de la configuration (EX-4.9) ne sont pas
-  exercées par les vecteurs et ne sont pas recalculées ici.
+- Les règles hors schéma de la configuration (EX-4.9) ne sont pas exercées
+  par les vecteurs et ne sont pas recalculées ici ; la reconstruction de la
+  file depuis le stockage (`anchoring_queue_rebuilt`, EX-8.12) l'est, par les
+  traces `file-perdue`, `bascule-epoque` et `bascule-epoque-fichier-perdu`.
+- Révision 0.10 : ne sont pas appliquées, faute de trace publiée qui les
+  exerce, le refus `empreinte_squattee` de l'ancre d'une période (EX-9.7 :
+  `jeton_periode` gardé en `attente_registre`, `registry_pending`, repli de
+  clôture ; le module envoie encore le jeton de clôture, comme avant la
+  révision), la borne de quatre rejeux par passe et `missed_deadlines`
+  (EX-8.10), le recul de l'heure murale (EX-4.13 : une entrée antérieure à
+  l'instant déjà servi est refusée), la demande recréée `obtenue` depuis
+  `acquisitions.ndjson` et la reprise des demandes `obtenue` sans
+  enregistrement (EX-8.12, EX-5.8 : `acquisitions.ndjson` n'est pas
+  représenté), et les règles 4, 4 bis et 9 d'EX-4.9.

@@ -547,6 +547,8 @@ func (p *Planificateur) demarrer(t int64) {
 			}
 		}
 	}
+	// EX-8.12 et EX-4.4 (révision 0.10) : échéances des demandes de points relues
+	p.remplacerRelues(t)
 	// EX-8.12 : transitions de reprise
 	for _, d := range file {
 		if EtatsFinaux[d.State] {
@@ -661,6 +663,133 @@ func (p *Planificateur) demarrer(t int64) {
 		case "a_envoyer":
 			p.pret(d, p.designe(d.Kind))
 		}
+		// EX-8.9 (révision 0.10) : k relu de la file, par prestataire.
+		p.relireSerie(d)
+		// EX-8.12 (révision 0.10) : la minuterie de relève d'EX-8.8, perdue avec
+		// le processus, est reposée à premier envoi + fallback_after_s pour une
+		// demande de jeton non finale qui admet la relève et dont le secours
+		// n'est ni engagé ni épuisé ; échue, elle relève à l'instant du démarrage.
+		if secours := p.roles["secours"]; p.releveAdmise(d) && len(d.Attempts) > 0 && !s.engages[secours.ID] && !s.epuises[secours.ID] {
+			at := p.premierEnvoi(d) + p.delaiReleve(d)
+			if at < t {
+				at = t
+			}
+			p.timer(at, "releve", d.ID, 0, "")
+		}
+	}
+}
+
+// relireSerie reprend, pour une demande de jeton relue au démarrage, le
+// nombre k d'échecs transitoires consécutifs de chaque série (EX-8.9,
+// révision 0.10) : sans tentative close par le redémarrage (error_code
+// redemarrage), la demande garde ses échecs antérieurs dans k ; une telle
+// tentative n'est pas un échec du prestataire et interrompt la série (l'échec
+// suivant a k = 1). Un autre résultat (obtenue, echec_permanente) interrompt
+// aussi la série. Les tentatives sorties de la fenêtre de 32 (EX-8.5, règle 7)
+// ne sont plus lues : k est compté sur celles que la ligne porte.
+func (p *Planificateur) relireSerie(d *Demande) {
+	s := p.int(d.ID)
+	for _, a := range d.Attempts {
+		if a.Provider == nil {
+			continue
+		}
+		if (a.Outcome == "echec_transitoire" || a.Outcome == "reponse_tardive") && (a.ErrorCode == nil || *a.ErrorCode != "redemarrage") {
+			s.k[*a.Provider]++
+		} else {
+			s.k[*a.Provider] = 0
+		}
+	}
+}
+
+// remplacerRelues applique EX-4.4 aux demandes de points relues au démarrage
+// (EX-8.12, révision 0.10) : une demande jeton_point non finale dont toutes
+// les échéances sont inférieures à une échéance satisfaite d'une autre
+// demande de la période est close remplacee, avec la ligne
+// checkpoint_anchor_late et l'alerte de 8.9, comme si cette échéance venait
+// d'être satisfaite (satisfaire). L'échéance n_T (la clôture) est satisfaite
+// par le jeton_periode obtenu (EX-8.4, règle 1). replaced_by nomme la demande
+// de la plus petite échéance satisfaite au-delà de celles de la demande
+// close (la « D_{k+1} » d'EX-4.4) ; window_s se lit sur sa borne. Une
+// demande de repli de clôture (sans échéance) n'est close que par le jeton de
+// clôture obtenu (EX-4.2), avec la ligne anchor_replaced.
+func (p *Planificateur) remplacerRelues(t int64) {
+	severite := "majeure"
+	if p.cfg.ProviderRole == "interne" {
+		severite = "mineure"
+	}
+	for _, d := range p.File() {
+		if d.Kind != "jeton_point" || EtatsFinaux[d.State] {
+			continue
+		}
+		per := p.periodes[cle(d.Subject)]
+		if per == nil {
+			continue
+		}
+		var cloture *Demande
+		for _, j := range p.demandes {
+			if j.Kind == "jeton_periode" && j.State == "obtenue" && cle(j.Subject) == cle(d.Subject) {
+				cloture = j
+			}
+		}
+		if len(d.Deadlines) == 0 {
+			if cloture == nil {
+				continue
+			}
+			d.ReplacedBy = ptrS(cloture.ID)
+			d.DueAt = nil
+			p.emettre(t, "remplacer", &d.ID, vObj("replaced_by", vStr(cloture.ID)))
+			p.ecrire(d, t, "remplacee")
+			p.journaliser(t, &d.ID, vObj("event", vStr("anchor_replaced"), "replaced_by", vStr(cloture.ID)))
+			continue
+		}
+		kmin, kmax := d.Deadlines[0], d.Deadlines[0]
+		for _, k := range d.Deadlines {
+			if k < kmin {
+				kmin = k
+			}
+			if k > kmax {
+				kmax = k
+			}
+		}
+		var couvrant *Demande
+		var kc int64
+		for _, k := range per.ordre {
+			e := per.echeances[k]
+			if k <= kmax || e.state != "satisfaite" || e.demande == nil || *e.demande == d.ID {
+				continue
+			}
+			if c := p.demandes[*e.demande]; c != nil && (couvrant == nil || k < kc) {
+				couvrant, kc = c, k
+			}
+		}
+		if couvrant == nil {
+			couvrant = cloture
+		}
+		if couvrant == nil {
+			continue
+		}
+		// borne « au plus tard » du jeton qui couvre (EX-8.2, $defs/resultat),
+		// à défaut l'instant de son obtention
+		borne := t
+		if r := couvrant.Result; r != nil {
+			texte := r.ObtainedAt
+			if r.Bound != nil {
+				texte = *r.Bound
+			}
+			if v, err := Ms(texte); err == nil {
+				borne = v
+			}
+		}
+		d.ReplacedBy = ptrS(couvrant.ID)
+		d.DueAt = nil
+		p.emettre(t, "remplacer", &d.ID, vObj("replaced_by", vStr(couvrant.ID)))
+		p.ecrire(d, t, "remplacee")
+		for _, k := range d.Deadlines {
+			per.get(k).state = "remplacee"
+			p.emettre(t, "echeance", &d.ID, vObj("k", vInt(k), "state", vStr("remplacee")))
+		}
+		p.journaliser(t, &d.ID, vObj("event", vStr("checkpoint_anchor_late"), "tree_size", vIntOuNul(d.Subject.TreeSize), "deadlines", vEntiers(d.Deadlines), "replaced_by", vStr(couvrant.ID), "window_s", vInt((borne-p.D(per, kmin))/1000)))
+		p.alerter(t, &d.ID, "checkpoint_anchor_late", severite)
 	}
 }
 

@@ -82,30 +82,48 @@ func EncoderEntierDER(v *big.Int) ([]byte, error) {
 	return tlv(0x02, octets), nil
 }
 
-func base128(n int64) []byte {
-	b := []byte{byte(n & 0x7f)}
-	n /= 128
-	for n > 0 {
-		b = append([]byte{byte(n&0x7f) | 0x80}, b...)
-		n /= 128
+func base128(n *big.Int) []byte {
+	v := new(big.Int).Set(n)
+	septBits := big.NewInt(0x7f)
+	b := []byte{byte(new(big.Int).And(v, septBits).Int64())}
+	v.Rsh(v, 7)
+	for v.Sign() > 0 {
+		b = append([]byte{byte(new(big.Int).And(v, septBits).Int64()) | 0x80}, b...)
+		v.Rsh(v, 7)
 	}
 	return b
 }
 
+// ArcMaxOID est le plus grand arc d'OID admis : 2^128 − 1. CT-5 EX-5.1
+// (révision 0.10) : chaque arc d'un OID tient sur 128 bits, à l'encodage comme
+// au décodage ; au-delà, l'OID est refusé (EX-4.9, règle 9).
+var ArcMaxOID = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1))
+
 // EncoderOIDDER rend l'OBJECT IDENTIFIER DER d'un OID en notation pointée.
+// Premier arc 0, 1 ou 2, second arc inférieur à 40 sous un premier arc 0 ou
+// 1, chaque arc sur 128 bits au plus (EX-5.1 et EX-4.9 règle 9, révision 0.10 :
+// un arc plus grand n'est jamais tronqué ni ramené à une autre valeur).
 func EncoderOIDDER(texte string) ([]byte, error) {
 	if !reOID.MatchString(texte) {
 		return nil, refus("", "OID invalide : %q", texte)
 	}
 	parties := strings.Split(texte, ".")
-	arcs := make([]int64, len(parties))
+	arcs := make([]*big.Int, len(parties))
 	for i, p := range parties {
-		arcs[i], _ = strconv.ParseInt(p, 10, 64)
+		a, ok := new(big.Int).SetString(p, 10)
+		if !ok {
+			return nil, refus("", "OID invalide : %q", texte)
+		}
+		if a.Cmp(ArcMaxOID) > 0 {
+			return nil, refus("", "OID %s : arc %d au-delà de 128 bits (EX-5.1, EX-4.9 règle 9)", texte, i+1)
+		}
+		arcs[i] = a
 	}
-	if arcs[0] < 2 && arcs[1] > 39 {
+	if arcs[0].Cmp(big.NewInt(2)) < 0 && arcs[1].Cmp(big.NewInt(39)) > 0 {
 		return nil, refus("", "OID invalide : %s", texte)
 	}
-	octets := base128(arcs[0]*40 + arcs[1])
+	premier := new(big.Int).Mul(arcs[0], big.NewInt(40))
+	octets := base128(premier.Add(premier, arcs[1]))
 	for _, a := range arcs[2:] {
 		octets = append(octets, base128(a)...)
 	}
@@ -238,31 +256,44 @@ func ParseDER(buf []byte) (*Noeud, error) {
 	return n, nil
 }
 
-func decoderOIDOctets(b []byte) (string, error) {
+// decoderOIDOctets relit le contenu d'un OBJECT IDENTIFIER. Les
+// sous-identifiants sont lus en entiers non bornés (aucun dépassement
+// silencieux) ; arcs128 (CT-5 EX-5.1, révision 0.10) refuse un arc au-delà de
+// 128 bits, au décodage d'une requête comme à son encodage.
+func decoderOIDOctets(b []byte, arcs128 bool) (string, error) {
 	if len(b) == 0 || b[len(b)-1]&0x80 != 0 {
 		return "", &erreurDER{"OID mal formé"}
 	}
-	var arcs []int64
-	var v int64
+	var arcs []*big.Int
+	v := new(big.Int)
+	debut := true
 	for i := 0; i < len(b); i++ {
-		if v == 0 && b[i] == 0x80 {
+		if debut && b[i] == 0x80 {
 			return "", &erreurDER{"OID : sous-identifiant non minimal"}
 		}
-		v = v*128 + int64(b[i]&0x7f)
+		debut = false
+		v.Lsh(v, 7)
+		v.Or(v, big.NewInt(int64(b[i]&0x7f)))
 		if b[i]&0x80 == 0 {
 			arcs = append(arcs, v)
-			v = 0
+			v = new(big.Int)
+			debut = true
 		}
 	}
 	premier := int64(2)
-	if arcs[0] < 40 {
+	if arcs[0].Cmp(big.NewInt(40)) < 0 {
 		premier = 0
-	} else if arcs[0] < 80 {
+	} else if arcs[0].Cmp(big.NewInt(80)) < 0 {
 		premier = 1
 	}
-	parties := []string{strconv.FormatInt(premier, 10), strconv.FormatInt(arcs[0]-premier*40, 10)}
-	for _, a := range arcs[1:] {
-		parties = append(parties, strconv.FormatInt(a, 10))
+	second := new(big.Int).Sub(arcs[0], big.NewInt(premier*40))
+	tous := append([]*big.Int{big.NewInt(premier), second}, arcs[1:]...)
+	parties := make([]string, len(tous))
+	for i, a := range tous {
+		if arcs128 && a.Cmp(ArcMaxOID) > 0 {
+			return "", &erreurDER{fmt.Sprintf("OID : arc %d au-delà de 128 bits (EX-5.1, EX-4.9 règle 9)", i+1)}
+		}
+		parties[i] = a.String()
 	}
 	return strings.Join(parties, "."), nil
 }
@@ -330,7 +361,7 @@ func LireRequete(octets []byte) (*Requete, error) {
 	}
 	r := &Requete{Digest: "0x" + hex.EncodeToString(hm.Val)}
 	if i < len(e) && e[i].Etiquette == 0x06 {
-		oid, err := decoderOIDOctets(e[i].Val)
+		oid, err := decoderOIDOctets(e[i].Val, true)
 		if err != nil {
 			return nil, refus("AN-5", "reqPolicy : %s", err.Error())
 		}
@@ -384,6 +415,11 @@ var NomsFailureInfo = map[int]string{0: "badAlg", 2: "badRequest", 5: "badDataFo
 // NomsPKI nomme les PKIStatus 0 à 5.
 var NomsPKI = []string{"granted", "grantedWithMods", "rejection", "waiting", "revocationWarning", "revocationNotification"}
 
+// StatutMaxRepresentable est 2^53 − 1 : au-delà (en valeur absolue), un
+// PKIStatus rend la réponse illisible (CT-5 EX-5.10, étape 2, révision 0.10 ;
+// pki_status du schéma planificateur-ancrage-v0).
+var StatutMaxRepresentable = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 53), big.NewInt(1))
+
 // ReponseTsa est une TimeStampResp relue.
 type ReponseTsa struct {
 	Status       int64
@@ -410,10 +446,18 @@ func LireReponseTsa(octets []byte) (*ReponseTsa, error) {
 		return nil, refus("", "PKIStatusInfo mal formé")
 	}
 	st := psi.Enfants[0]
-	if st.Etiquette != 0x02 || len(st.Val) != 1 {
-		return nil, refus("", "PKIStatusInfo.status : INTEGER d'un octet attendu")
+	if st.Etiquette != 0x02 || len(st.Val) == 0 {
+		return nil, refus("", "PKIStatusInfo.status : INTEGER non vide attendu")
 	}
-	r := &ReponseTsa{Status: int64(st.Val[0])}
+	// CT-5 EX-5.10, étape 2 (révision 0.10) : status est lu comme tout INTEGER
+	// (complément à deux, CT-6 §9.3) ; hors des entiers représentables, au-delà
+	// de ±(2^53 − 1), la réponse est illisible ; en deçà, la valeur lue est
+	// gardée telle quelle, de 0 à 5 comme hors de cette plage.
+	statut := entierDER(st.Val)
+	if new(big.Int).Abs(statut).Cmp(StatutMaxRepresentable) > 0 {
+		return nil, refus("", "PKIStatusInfo.status %s hors des entiers représentables (±(2^53 − 1))", statut.String())
+	}
+	r := &ReponseTsa{Status: statut.Int64()}
 	for _, n := range psi.Enfants[1:] {
 		switch {
 		case n.Etiquette == 0x30 && r.StatusString == nil && r.FailInfo == nil && r.FailInfoBits == nil:
@@ -490,7 +534,7 @@ func oidDe(n *Noeud, quoi string) (string, error) {
 	if n == nil || n.Etiquette != 0x06 {
 		return "", &erreurDER{quoi + " : OBJECT IDENTIFIER attendu"}
 	}
-	return decoderOIDOctets(n.Val)
+	return decoderOIDOctets(n.Val, false)
 }
 
 // LireJetonTST lit le TSTInfo d'un TimeStampToken (ContentInfo → SignedData
