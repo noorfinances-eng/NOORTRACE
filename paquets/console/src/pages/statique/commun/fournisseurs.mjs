@@ -10,8 +10,9 @@
 // `window.ethereum` n'est jamais lu.
 
 import { Decouverte, analyserComptes, codeErreurPortefeuille } from "noortrace-console/index.mjs";
-import { el, ajouter, bouton, message, remplacer } from "./dom.mjs";
+import { el, ajouter, bouton, message, pastille, remplacer } from "./dom.mjs";
 import { t, texteCode } from "./libelles.mjs";
+import { paragrapheCode, phraseCode } from "./cadre.mjs";
 
 /** Délai du point 6 d'EX-13.22, en millisecondes. */
 export const DELAI_AUCUN_FOURNISSEUR_MS = 1000;
@@ -59,18 +60,15 @@ export function lancerDecouverte() {
  * @param {object|null} choisi fournisseur choisi (comparé par `provider`)
  * @param {(f: object) => void} surChoix
  * @param {boolean} actif faux : les boutons de choix sont inactifs
+ * @param {boolean} titre faux : sans l'intitulé « Portefeuille » (l'écran le porte déjà)
  */
-export function rendreFournisseurs(conteneur, decouverte, choisi, surChoix, actif = true) {
+export function rendreFournisseurs(conteneur, decouverte, choisi, surChoix, actif = true, titre = true) {
   const liste = decouverte.fournisseurs;
-  const parties = [el("h3", { texte: t("portefeuille.titre") })];
+  const parties = titre ? [el("h3", { texte: t("portefeuille.titre") })] : [];
   if (liste.length === 0) {
-    parties.push(
-      decouverte.echu
-        ? message("alerte", el("p", { texte: texteCode("aucun_fournisseur", ["console."]), attributs: { "data-code": "aucun_fournisseur" } }))
-        : el("p", { classe: "discret", texte: t("portefeuille.recherche") }),
-    );
+    parties.push(decouverte.echu ? message("alerte", paragrapheCode("aucun_fournisseur", ["console."])) : el("p", { classe: "discret nt-attenue", texte: t("portefeuille.recherche") }));
   } else {
-    const ul = el("ul", { classe: "fournisseurs" });
+    const ul = el("ul", { classe: "liste-nue fournisseurs" });
     for (const f of liste) {
       const estChoisi = choisi !== null && choisi.provider === f.provider;
       const img = el("img", { attributs: { src: f.icon, alt: "", width: "32", height: "32" } });
@@ -80,23 +78,20 @@ export function rendreFournisseurs(conteneur, decouverte, choisi, surChoix, acti
           "li",
           { classe: estChoisi ? "fournisseur choisi" : "fournisseur", attributs: { "data-uuid": f.uuid } },
           img,
-          el("span", { classe: "fournisseur-nom", texte: f.name }),
-          el("span", { classe: "fournisseur-rdns", texte: t("portefeuille.rdns", { rdns: f.rdns }) }),
-          estChoisi
-            ? el("span", { classe: "etiquette", texte: t("portefeuille.choisi") })
-            : bouton(t("portefeuille.choisir"), () => surChoix(f), { actif }),
+          el("div", { classe: "fournisseur-texte" }, el("span", { classe: "fournisseur-nom", texte: f.name }), el("span", { classe: "fournisseur-rdns", texte: t("portefeuille.rdns", { rdns: f.rdns }) })),
+          estChoisi ? pastille("succes", t("portefeuille.choisi"), "coche") : bouton(t("portefeuille.choisir"), () => surChoix(f), { actif }),
         ),
       );
     }
     parties.push(ul);
-    if (choisi === null) parties.push(el("p", { classe: "discret", texte: texteCode("fournisseur_non_choisi", ["console."]) }));
+    if (choisi === null) parties.push(el("p", { classe: "discret nt-attenue nt-petit" }, ...phraseCode("fournisseur_non_choisi", ["console."])));
   }
   const ecartees = decouverte.ecartees;
   if (ecartees.some((e) => e.reason === "annonce_en_double")) {
-    parties.push(message("alerte", el("p", { texte: texteCode("annonce_en_double", ["console."]), attributs: { "data-code": "annonce_en_double" } })));
+    parties.push(message("alerte", paragrapheCode("annonce_en_double", ["console."])));
   }
   if (ecartees.some((e) => e.reason === "annonce_invalide")) {
-    parties.push(message("alerte", el("p", { texte: texteCode("annonce_invalide", ["console."]), attributs: { "data-code": "annonce_invalide" } })));
+    parties.push(message("alerte", paragrapheCode("annonce_invalide", ["console."])));
   }
   remplacer(conteneur, ...parties);
 }
@@ -178,4 +173,21 @@ export function textePanne(code, erreur, prefixes) {
     return `${base} ${t("portefeuille.erreur_recue", { code: erreur.code === null ? t("portefeuille.sans_code") : erreur.code, message: erreur.message })}`;
   }
   return base;
+}
+
+/**
+ * Les nœuds d'une panne du portefeuille : la phrase, son code entre
+ * parenthèses, et pour `erreur_portefeuille` le code et le message reçus,
+ * comme du texte. Le texte lu est celui de `textePanne`.
+ * @param {string} code
+ * @param {{code: number|null, message: string}|null} erreur
+ * @param {string[]} prefixes
+ * @returns {HTMLElement[]}
+ */
+export function noeudsPanne(code, erreur, prefixes) {
+  const noeuds = phraseCode(code, prefixes);
+  if (code === "erreur_portefeuille" && erreur) {
+    noeuds.push(el("span", { texte: ` ${t("portefeuille.erreur_recue", { code: erreur.code === null ? t("portefeuille.sans_code") : erreur.code, message: erreur.message })}` }));
+  }
+  return noeuds;
 }

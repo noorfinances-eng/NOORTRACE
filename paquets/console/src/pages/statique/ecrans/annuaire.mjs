@@ -7,15 +7,15 @@
 // octets reçus (`Blob` et lien `download`). Une autre session : l'écran le
 // dit et n'offre rien. Le service refait chaque contrôle.
 
-import { el, ajouter, bouton, code, definitions, message, remplacer } from "../commun/dom.mjs";
-import { t, texteCode } from "../commun/libelles.mjs";
+import { el, actions, ajouter, bouton, code, definitions, detail, message, pastille, remplacer } from "../commun/dom.mjs";
+import { t } from "../commun/libelles.mjs";
 import { appeler } from "../commun/client.mjs";
-import { afficherErreur, demarrerEcran, principal, section } from "../commun/cadre.mjs";
+import { afficherErreur, demarrerEcran, entete, instant, paragrapheCode, principal, texteInstant } from "../commun/cadre.mjs";
 
 const etat = { session: null, document: null, octets: null, confirmation: null };
 
 const zones = {
-  document: el("div", { attributs: { id: "zone-annuaire" } }),
+  document: el("div", { classe: "nt-pile nt-pile-large", attributs: { id: "zone-annuaire" } }),
   resultat: el("div", { attributs: { id: "zone-resultat", "aria-live": "polite" } }),
 };
 
@@ -39,7 +39,7 @@ async function agir(methode, corps) {
   etat.confirmation = null;
   try {
     await appeler(methode, { session_identity: identite(), ...corps });
-    remplacer(zones.resultat, message("info", el("p", { texte: t("annuaire.action_faite", { action: t(`annuaire.action.${methode}`) }), attributs: { "data-resultat": methode } })));
+    remplacer(zones.resultat, message("succes", el("p", { texte: t("annuaire.action_faite", { action: t(`annuaire.action.${methode}`) }), attributs: { "data-resultat": methode } })));
   } catch (e) {
     afficherErreur(zones.resultat, e);
   }
@@ -47,12 +47,16 @@ async function agir(methode, corps) {
 }
 
 function champMotif(id) {
-  return el("input", { attributs: { type: "text", id, maxlength: "4096", "aria-label": t("annuaire.motif") } });
+  return el("input", { classe: "nt-saisie", attributs: { type: "text", id, maxlength: "4096", "aria-label": t("annuaire.motif") } });
 }
 
 const motif = (champ) => (champ.value === "" ? null : champ.value);
 
-// Une action avec motif facultatif, confirmée par un second clic.
+// Une action avec motif facultatif, confirmée par un second clic. Révoquer et
+// désactiver sont des gestes qui retirent un droit : leurs boutons le disent
+// par leur genre.
+const GENRE_ACTION = Object.freeze({ valider: "principal", revoquer: "danger", desactiver: "danger", reactiver: "principal" });
+
 function actionAvecMotif(cle, methode, corps, avant = null) {
   const id = `motif-${methode}-${corps.entry}-${corps.address ?? ""}`;
   const confirmer = etat.confirmation === id;
@@ -61,23 +65,28 @@ function actionAvecMotif(cle, methode, corps, avant = null) {
     return el(
       "div",
       { classe: "action", attributs: { "data-action": methode } },
-      bouton(t(`annuaire.bouton.${cle}`), () => {
-        etat.confirmation = id;
-        rendre();
-      }),
+      bouton(
+        t(`annuaire.bouton.${cle}`),
+        () => {
+          etat.confirmation = id;
+          rendre();
+        },
+        { petit: true },
+      ),
     );
   }
   return el(
     "div",
-    { classe: "action confirmation", attributs: { "data-action": methode, "data-confirmation": "" } },
+    { classe: "action confirmation nt-pile", attributs: { "data-action": methode, "data-confirmation": "" } },
     avant,
-    methode === "valider" ? null : el("label", { texte: t("annuaire.motif"), attributs: { for: id } }),
-    methode === "valider" ? null : champ,
-    bouton(t(`annuaire.confirmer.${cle}`), () => void agir(methode, methode === "valider" ? corps : { ...corps, reason: motif(champ) }), { classe: "bouton principal" }),
-    bouton(t("action.annuler"), () => {
-      etat.confirmation = null;
-      rendre();
-    }),
+    methode === "valider" ? null : el("div", { classe: "nt-champ" }, el("label", { classe: "nt-libelle", texte: t("annuaire.motif"), attributs: { for: id } }), champ),
+    actions(
+      bouton(t(`annuaire.confirmer.${cle}`), () => void agir(methode, methode === "valider" ? corps : { ...corps, reason: motif(champ) }), { genre: GENRE_ACTION[cle] }),
+      bouton(t("action.annuler"), () => {
+        etat.confirmation = null;
+        rendre();
+      }),
+    ),
   );
 }
 
@@ -93,86 +102,102 @@ function exporter() {
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
+const ETATS_ADRESSE = Object.freeze({ en_attente: ["attente", "horloge"], active: ["succes", "coche"], revoquee: ["refus", "croix"] });
+
 function rendre() {
   const doc = etat.document;
   if (doc === null || typeof doc !== "object" || !Array.isArray(doc.entries)) {
-    remplacer(zones.document, message("erreur", el("p", { texte: texteCode("reponse_service_invalide", ["console."]), attributs: { "data-code": "reponse_service_invalide" } })));
+    remplacer(zones.document, message("erreur", paragrapheCode("reponse_service_invalide", ["console."])));
     return;
   }
+  const export_ = bouton(t("annuaire.exporter"), exporter, { icone: "dossier" });
+  export_.setAttribute("id", "exporter");
   const parties = [
-    definitions([
-      [t("annuaire.org"), code(String(doc.org))],
-      [t("annuaire.org_id"), code(String(doc.org_id))],
-      [t("annuaire.origine"), code(String(doc.console_origin))],
-      [t("annuaire.revision"), String(doc.revision)],
-      [t("annuaire.mise_a_jour"), doc.updated_at === null ? t("modele.vide") : code(String(doc.updated_at))],
-      [t("annuaire.administrateurs"), el("ul", {}, ...doc.administrators.map((a) => el("li", {}, code(a))))],
-    ]),
-    bouton(t("annuaire.exporter"), exporter, { classe: "bouton" }),
-    el("p", { classe: "discret", texte: t("annuaire.exporter_sens") }),
+    el(
+      "section",
+      { classe: "nt-carte" },
+      el("div", { classe: "nt-carte-titre" }, el("h2", { texte: t("annuaire.document") }), el("span", { classe: "nt-carte-note", texte: t("annuaire.compte", { entrees: doc.entries.length, revision: String(doc.revision) }) })),
+      definitions([
+        [t("annuaire.org"), code(String(doc.org))],
+        [t("annuaire.org_id"), code(String(doc.org_id))],
+        [t("annuaire.origine"), code(String(doc.console_origin))],
+        [t("annuaire.revision"), String(doc.revision)],
+        [t("annuaire.mise_a_jour"), doc.updated_at === null ? t("modele.vide") : instant(String(doc.updated_at))],
+        [t("annuaire.administrateurs"), el("ul", { classe: "liste-nue" }, ...doc.administrators.map((a) => el("li", {}, code(a))))],
+      ]),
+      actions(export_),
+      el("p", { classe: "nt-aide", texte: t("annuaire.exporter_sens") }),
+    ),
   ];
-  parties[1].setAttribute("id", "exporter");
   for (const e of doc.entries) {
     const soi = e.session_identity === identite();
-    const adresses = el("ul", { classe: "adresses" });
+    const adresses = el("ul", { classe: "liste-nue adresses" });
     for (const a of e.addresses) {
-      const actions = [];
+      const actionsAdresse = [];
       if (a.state === "en_attente" && e.active && !soi) {
-        actions.push(actionAvecMotif("valider", "valider", { entry: e.id, address: a.address }, message("alerte", el("p", { texte: t("annuaire.avant_valider_titre") }), el("p", { texte: t("annuaire.avant_valider") }))));
+        actionsAdresse.push(actionAvecMotif("valider", "valider", { entry: e.id, address: a.address }, message("alerte", el("p", { classe: "nt-bandeau-titre", texte: t("annuaire.avant_valider_titre") }), el("p", { texte: t("annuaire.avant_valider") }))));
       }
-      if (a.state === "en_attente" || a.state === "active") actions.push(actionAvecMotif("revoquer", "revoquer", { entry: e.id, address: a.address }));
+      if (a.state === "en_attente" || a.state === "active") actionsAdresse.push(actionAvecMotif("revoquer", "revoquer", { entry: e.id, address: a.address }));
+      const [genre, nomIcone] = ETATS_ADRESSE[a.state] ?? ["neutre", "question"];
       ajouter(
         adresses,
         el(
           "li",
-          { attributs: { "data-adresse": a.address, "data-etat": a.state } },
-          code(a.address),
-          " ",
-          t(`adresse_etat.${a.state}`),
-          a.validated_at !== null ? el("span", {}, " ", t("annuaire.validee", { par: String(a.validated_by), le: a.validated_at })) : null,
-          a.revoked_at !== null ? el("span", {}, " ", t("annuaire.revoquee", { par: String(a.revoked_by), le: a.revoked_at, cause: t(`revocation.${a.revocation_cause}`) })) : null,
-          a.revocation_reason ? el("span", {}, " ", t("modele.votes.motif", { motif: a.revocation_reason })) : null,
-          el("details", {}, el("summary", { texte: t("annuaire.preuve") }), el("pre", { classe: "fixe", texte: a.proof.message }), definitions([[t("annuaire.recue"), code(a.proof.received_at)]])),
-          ...actions,
+          { classe: "nt-encart nt-pile adresse", attributs: { "data-adresse": a.address, "data-etat": a.state } },
+          el("div", { classe: "adresse-tete" }, code(a.address), pastille(genre, t(`adresse_etat.${a.state}`), nomIcone)),
+          a.validated_at !== null ? el("p", { classe: "nt-attenue nt-petit", texte: t("annuaire.validee", { par: String(a.validated_by), le: texteInstant(a.validated_at) }) }) : null,
+          a.revoked_at !== null ? el("p", { classe: "nt-attenue nt-petit", texte: t("annuaire.revoquee", { par: String(a.revoked_by), le: texteInstant(a.revoked_at), cause: t(`revocation.${a.revocation_cause}`) }) }) : null,
+          a.revocation_reason ? el("p", { classe: "nt-attenue nt-petit", texte: t("modele.votes.motif", { motif: a.revocation_reason }) }) : null,
+          detail(t("annuaire.preuve"), null, el("pre", { classe: "nt-pre", texte: a.proof.message }), definitions([[t("annuaire.recue"), code(a.proof.received_at)]])),
+          actionsAdresse.length > 0 ? el("div", { classe: "actions-ligne" }, ...actionsAdresse) : null,
         ),
       );
     }
-    const alias = el("ul", { classe: "alias" });
+    const alias = el("ul", { classe: "liste-nue alias" });
     for (const lb of e.requester_identities) {
-      ajouter(alias, el("li", { attributs: { "data-alias": lb } }, code(lb), " ", bouton(t("annuaire.bouton.delier"), () => void agir("delier_demandeur", { entry: e.id, launched_by: lb }))));
+      ajouter(alias, el("li", { classe: "compte", attributs: { "data-alias": lb } }, code(lb), " ", bouton(t("annuaire.bouton.delier"), () => void agir("delier_demandeur", { entry: e.id, launched_by: lb }), { petit: true })));
     }
-    const champLier = el("input", { attributs: { type: "text", maxlength: "256", "aria-label": t("annuaire.alias_nouveau"), id: `lier-${e.id}` } });
+    const champLier = el("input", { classe: "nt-saisie", attributs: { type: "text", maxlength: "256", id: `lier-${e.id}` } });
     const lier = el(
       "div",
-      { classe: "action", attributs: { "data-action": "lier_demandeur" } },
-      el("label", { texte: t("annuaire.alias_nouveau"), attributs: { for: `lier-${e.id}` } }),
-      champLier,
-      bouton(t("annuaire.bouton.lier"), () => {
-        if (champLier.value !== "") void agir("lier_demandeur", { entry: e.id, launched_by: champLier.value });
-      }),
+      { classe: "action nt-champ", attributs: { "data-action": "lier_demandeur" } },
+      el("label", { classe: "nt-libelle", texte: t("annuaire.alias_nouveau"), attributs: { for: `lier-${e.id}` } }),
+      el(
+        "div",
+        { classe: "champ-et-bouton" },
+        champLier,
+        bouton(t("annuaire.bouton.lier"), () => {
+          if (champLier.value !== "") void agir("lier_demandeur", { entry: e.id, launched_by: champLier.value });
+        }),
+      ),
     );
     const entreeActions = e.active ? actionAvecMotif("desactiver", "desactiver", { entry: e.id }) : actionAvecMotif("reactiver", "reactiver", { entry: e.id });
     parties.push(
       el(
         "section",
-        { classe: "bloc entree", attributs: { "data-entree": e.id } },
-        el("h2", {}, code(e.id), " ", e.display_name === null ? "" : String(e.display_name)),
+        { classe: "nt-carte entree", attributs: { "data-entree": e.id } },
+        el(
+          "div",
+          { classe: "nt-carte-titre" },
+          el("h2", {}, e.display_name === null ? code(e.id) : el("span", { texte: String(e.display_name) }), soi ? el("span", { classe: "nt-attenue nt-petit", texte: ` ${t("annuaire.soi")}` }) : null),
+          e.active ? pastille("succes", t("inscription.entree.active"), "coche") : pastille("neutre", t("inscription.entree.desactivee"), "tiret"),
+        ),
         definitions([
+          [t("inscription.entree.id"), code(e.id)],
           [t("annuaire.identite"), code(e.session_identity)],
           [t("annuaire.external_id"), e.external_id === null ? t("modele.vide") : code(String(e.external_id))],
-          [t("annuaire.etat"), t(e.active ? "inscription.entree.active" : "inscription.entree.desactivee")],
-          [t("annuaire.creee"), code(e.created_at)],
+          [t("annuaire.creee"), instant(e.created_at)],
         ]),
         el("h3", { texte: t("annuaire.adresses") }),
-        e.addresses.length === 0 ? el("p", { texte: t("inscription.aucune_adresse") }) : adresses,
+        e.addresses.length === 0 ? el("p", { classe: "nt-attenue", texte: t("inscription.aucune_adresse") }) : adresses,
         el("h3", { texte: t("annuaire.alias") }),
-        e.requester_identities.length === 0 ? el("p", { texte: t("modele.vide") }) : alias,
+        e.requester_identities.length === 0 ? el("p", { classe: "nt-attenue", texte: t("annuaire.aucun_alias") }) : alias,
         lier,
         entreeActions,
       ),
     );
   }
-  if (doc.entries.length === 0) parties.push(el("p", { texte: t("annuaire.aucune_entree") }));
+  if (doc.entries.length === 0) parties.push(el("div", { classe: "nt-vide" }, el("p", { classe: "nt-vide-titre", texte: t("annuaire.aucune_entree") })));
   remplacer(zones.document, ...parties);
 }
 
@@ -180,14 +205,14 @@ async function demarrer() {
   const s = await demarrerEcran("annuaire");
   if (s === null) return;
   etat.session = s;
-  const contenu = el("main", { classe: "contenu" }, el("h1", { texte: t("annuaire.titre") }));
+  const contenu = el("main", { classe: "nt-page" }, entete({ titre: t("annuaire.titre"), sousTitre: t("annuaire.sous_titre") }));
   principal().appendChild(contenu);
   if (!s.administrator) {
     // Contrat 3.4 : l'écran le dit et n'offre rien.
     ajouter(contenu, message("alerte", el("p", { texte: t("annuaire.non_administrateur"), attributs: { "data-code": "non_administrateur" } })));
     return;
   }
-  ajouter(contenu, section(t("annuaire.document"), zones.resultat, zones.document));
+  ajouter(contenu, zones.resultat, zones.document);
   await lire();
 }
 

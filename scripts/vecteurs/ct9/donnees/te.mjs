@@ -938,10 +938,23 @@ export const TE = [
         {
           "file": "test/exploitation-console-parcours.test.js",
           "describe": "TE-13 (étape 6, critère de livraison), variante sans registre (intégration continue) : jeu statique, contrôle 4 réussi, contrôle 8 non exécuté"
+        },
+        {
+          "file": "test/exploitation-console-presentation-chromium.test.js",
+          "describe": "présentation des écrans de la console : résumé vérifié et formes lisibles (fonctions pures)"
+        },
+        {
+          "file": "test/exploitation-console-presentation-chromium.test.js",
+          "describe": "présentation des écrans de la console, dans Chromium"
+        },
+        {
+          "file": "test/theme-commun.test.js",
+          "describe": "thème commun des écrans : un même bloc, à l'octet, dans les trois feuilles de style"
         }
       ],
       "ci_steps": [
-        "parcours TE-13 de la console d'exploitation, variante sans registre sans saut ; seule la variante du réseau de développement 2124 en attente, avec son message"
+        "parcours TE-13 de la console d'exploitation, variante sans registre sans saut ; seule la variante du réseau de développement 2124 en attente, avec son message",
+        "bibliothèque et pages de la console d'exploitation dans Chromium, aucun essai en attente"
       ]
     },
     "threats": [
@@ -1685,7 +1698,22 @@ export const TE = [
         {
           "file": "test/inscription-reseau.test.js",
           "describe": "inscription : client fictif inscrit par l'application et l'agent sur le réseau de développement 2124 (EX-7.24, EX-7.15)"
+        },
+        {
+          "file": "test/inscription-presentation.test.js",
+          "describe": "inscription : présentation de l'interface d'exploitant (complément du 2026-11-17)"
+        },
+        {
+          "file": "test/inscription-presentation-chromium.test.js",
+          "describe": "inscription : écrans de l'interface d'exploitant dans Chromium (complément du 2026-11-17)"
+        },
+        {
+          "file": "test/theme-commun.test.js",
+          "describe": "thème commun des écrans : un même bloc, à l'octet, dans les trois feuilles de style"
         }
+      ],
+      "ci_steps": [
+        "outil d'inscription, écrans de l'interface d'exploitant dans Chromium, aucun essai en attente"
       ]
     },
     "threats": []
@@ -1749,11 +1777,28 @@ export const TE = [
         {
           "file": "test/exploitation-console-parcours.test.js",
           "describe": "TE-13 (étape 6, critère de livraison), variante sans registre (intégration continue) : jeu statique, contrôle 4 réussi, contrôle 8 non exécuté"
+        },
+        {
+          "file": "test/verification-page-presentation.test.js",
+          "describe": "page de vérification, présentation : sources (CT-6 §18, complément du 2026-11-17)"
+        },
+        {
+          "file": "test/verification-page-presentation.test.js",
+          "describe": "page de vérification, présentation, dans ${moteur} (CT-6 §18, complément du 2026-11-17)"
+        },
+        {
+          "file": "test/verification-page-presentation.test.js",
+          "describe": "page de vérification, présentation, de bout en bout dans chromium (CT-6 §18, complément du 2026-11-17)"
+        },
+        {
+          "file": "test/theme-commun.test.js",
+          "describe": "thème commun des écrans : un même bloc, à l'octet, dans les trois feuilles de style"
         }
       ],
       "ci_steps": [
         "page de vérification dans Chromium, Firefox et WebKit (TE-23, TA-101), aucun essai en attente",
-        "page de vérification, identité avec le binaire natif dans /entrees (CT-6 EX-18.10), aucun essai en attente"
+        "page de vérification, identité avec le binaire natif dans /entrees (CT-6 EX-18.10), aucun essai en attente",
+        "page de vérification, présentation (verdict, contrôles, blocs repliés, thème) dans Chromium, Firefox et WebKit, aucun essai en attente"
       ]
     },
     "threats": [

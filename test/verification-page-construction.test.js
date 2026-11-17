@@ -200,9 +200,13 @@ describe("page de vérification : construction reproductible et fichiers produit
     const sri = (n) => `sha384-${crypto.createHash("sha384").update(fs.readFileSync(path.join(page, n))).digest("base64")}`;
     expect(ressources).to.deep.equal([
       `<link rel="stylesheet" href="page.css" integrity="${sri("page.css")}" crossorigin="anonymous">`,
-      `<script src="verificateur-wasm.js" integrity="${sri("verificateur-wasm.js")}" crossorigin="anonymous">`,
+      // page.js dans l'en-tête (complément du 2026-11-17 de CT-6 §18) : il pose le thème avant le premier affichage ;
+      // verificateur-wasm.js reste en fin de corps.
       `<script src="page.js" integrity="${sri("page.js")}" crossorigin="anonymous">`,
+      `<script src="verificateur-wasm.js" integrity="${sri("verificateur-wasm.js")}" crossorigin="anonymous">`,
     ]);
+    expect(html.indexOf('<script src="page.js"')).to.be.lessThan(html.indexOf("</head>"));
+    expect(html.indexOf('<script src="verificateur-wasm.js"')).to.be.greaterThan(html.indexOf("</main>"));
     // Phrase fixe d'EX-18.2, en français, avec la version.
     expect(html).to.include(`le vérificateur noortrace-verifier ${VERSION}, compilé en WebAssembly ; aucun fichier ne quitte votre poste.`);
   });

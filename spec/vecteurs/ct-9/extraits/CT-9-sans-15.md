@@ -178,9 +178,9 @@ les lignes.
 | TC-9 | CT-2 §16.2 (l. 12280) | Seuil de régression des mesures de performance, à décider par CT-9. | §11.4 : seuil de régression EX-11.15 ; proposition PD- à CT-2 EX-16.2 pas 7 (§17.2). |
 | TC-10 | CT-2 §21 (l. 14365) | « Les tests » hors de CT-2. | Ce document. |
 | TC-11 | CT-3 §0 (l. 56) | Rattachement aux EX-. | §5.1, règle (a). |
-| TC-12 | CT-3 §1 (l. 667) | Périmètre. | Ce document. |
-| TC-13 | CT-3 §1 (l. 696) | EX-, AP-, TK-, SG-, AN-, CS-, vecteurs `ct-3`, épreuve à trois relecteurs, épreuve de lecture de la console. | TR-1 (A.5, trois relecteurs) et TR-2 (A.11, console) en §12 ; EX-, AP-, TK-, SG-, AN-, CS- et vecteurs ct-3 : TU-, TV- (§6, §7). |
-| TC-14 | CT-3 §7.12 (l. 2606) | Rattachement des TK-1 à TK-13 aux tests. | TV- `ct-3/tickets/` et TU- tickets (§6, §7) : `covers` CT-3 TK-1 à TK-13. |
+| TC-12 | CT-3 §1 (l. 682) | Périmètre. | Ce document. |
+| TC-13 | CT-3 §1 (l. 711) | EX-, AP-, TK-, SG-, AN-, CS-, vecteurs `ct-3`, épreuve à trois relecteurs, épreuve de lecture de la console. | TR-1 (A.5, trois relecteurs) et TR-2 (A.11, console) en §12 ; EX-, AP-, TK-, SG-, AN-, CS- et vecteurs ct-3 : TU-, TV- (§6, §7). |
+| TC-14 | CT-3 §7.12 (l. 2621) | Rattachement des TK-1 à TK-13 aux tests. | TV- `ct-3/tickets/` et TU- tickets (§6, §7) : `covers` CT-3 TK-1 à TK-13. |
 | TC-15 | CT-4 §0 (l. 103) | Rattachement aux EX-. | §5.1, règle (a). |
 | TC-16 | CT-4 §1 (l. 319) | Périmètre. | Ce document. |
 | TC-17 | CT-4 §1 (l. 347) | EX-, RG-, vecteurs `ct-4`, épreuve d'acceptation sur le réseau de développement. | TR-3 (§7.12, relecteur sur le réseau de développement) en §12 ; EX-, RG- et vecteurs ct-4 : TV- (§7), TE- (§9). |
@@ -196,9 +196,9 @@ les lignes.
 | TC-27 | CT-5 §9.3 (l. 5661) | Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index). | TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (§11, rapport de campagne `mesures/rapport-2026-11-13-capture-bloc-plein-clotures.json`). |
 | TC-28 | CT-5 §14 (l. 6165) | Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9). | TI-16 (§8), exécutable depuis l'étape 5 (`test/ancrage-composant-pannes.test.js` : relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée ; rechargement sans principal qualifié refusé) ; mesures en charge du planificateur : TM-17 (§11). |
 | TC-29 | CT-5 §14 (l. 6167) | Tests EX- et AN-1 à AN-61, mesures P-1 à P-6, épreuve à l'aveugle. | §6, §7, §8 (TI-16, TI-17), §9 (TE-12), §11 (TM-10 à TM-19), §12 (TR-4, TR-5) ; état « proposition » levé par ce document. |
-| TC-30 | CT-6 §0 (l. 94) | Rattachement aux EX-. | §5.1, règle (a). |
-| TC-31 | CT-6 §1 (l. 260) | EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`. | §6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10). |
-| TC-32 | CT-6 §6.9 (l. 1936) | Exécution des V- par comparaison du rapport à `attendu.json`. | TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`. |
+| TC-30 | CT-6 §0 (l. 99) | Rattachement aux EX-. | §5.1, règle (a). |
+| TC-31 | CT-6 §1 (l. 265) | EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`. | §6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10). |
+| TC-32 | CT-6 §6.9 (l. 1941) | Exécution des V- par comparaison du rapport à `attendu.json`. | TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`. |
 | TC-33 | CT-7 §0.1 (l. 118) | Rattachement aux EX-. | §5.1, règle (a). |
 | TC-34 | CT-7 §0.2 (l. 256) | Revue de code de l'enregistreur, périmètre fixé par CT-7 (3.2, 3.4). | §13 (TQ- enregistreur). |
 | TC-35 | CT-7 §0.3 (l. 384) | Ce que l'auteur de CT-9 lit dans CT-7. | Ce document ; annexe A. |
@@ -449,6 +449,15 @@ Complément du 2026-11-17 (renvois par numéro de ligne) : les citations
 CT-7 RV-3 les contrôle sur leur ancre ; la table TC de 0.2, dont le
 générateur relit les lignes sur le texte courant, est recollée (EX-4.4).
 Aucune entrée, aucune règle ni aucun identifiant nouveau.
+Complément du 2026-11-17, décision du porteur (présentation des écrans) :
+les essais de la présentation des écrans sont rattachés aux entrées qui
+couvrent déjà ces écrans, sans entrée nouvelle : TE-13 (console
+d'approbation), TE-22 (outil d'inscription) et TE-23 (page de
+vérification), chacune avec l'essai d'identité du thème commun et l'étape
+d'intégration continue qui joue ses écrans dans les navigateurs ; chiffres
+de 5.5 recomptés : 302 entrées exécutables citant 745 titres ou étapes ;
+tables TE et TC recollées depuis le catalogue (EX-4.4) ; les citations
+« l. N » de CT-3 et de CT-6 suivent les textes du jour.
 
 **Révision 0.9** (2026-11-12, alignement sur CT-2 (0.10), CT-3 (0.7), CT-5
 (0.9), CT-6 (0.8) et la spécification du déploiement (0.7 : serveur RFC 3161 interne de l'installation rapide, TE-6 joué avec Docker), qui inscrivent les
@@ -1441,7 +1450,7 @@ jamais corrigé à la main) :
   compte, 10.4 dit lesquelles) ;
 - 129 occurrences de « CT-9 » et 129 lignes TC-, sans manque ni orpheline
   (règle (c)) ;
-- 302 entrées exécutables citant 732 titres de tests ou étapes de CI, tous
+- 302 entrées exécutables citant 745 titres de tests ou étapes de CI, tous
   trouvés mot pour mot (règle (d)) ; verdict `reussi`.
 
 Par spécification (identifiants, couverts par une entrée, par une
@@ -1722,7 +1731,7 @@ compte rendu dans le dépôt (R10-NV4) ne valent pas ce test.
 | TE-10 | Mode observation de bout en bout : capture sans blocage, rapport d'observation, passage au mode bloquant | CT-8 EX-12- (1), CT-2 EX-14- (5), CT-3 EX-11- (5) | — | exécutable : `test/cas-observation.test.js` |
 | TE-11 | Haute disponibilité à écrivain unique : bascule du bail, pertes admises, jeton de clôture (CT-2 §13) | CT-2 EX-13- (10), CT-2 EX-12- (23) | MN-19, MN-26 | exécutable : `test/enregistreur-ha-bascule.test.js` |
 | TE-12 | Ancrage complet d'une racine : point de contrôle, ancre au registre, jeton RFC 3161, preuve OpenTimestamps, dossier vérifié hors ligne | CT-5 EX-9- (9), CT-5 EX-10- (6), CT-5 AN- (12), CT-5 EX-3- (5), CT-5 EX-4- (4), CT-5 EX-8- (2), CT-6 EX-13- (17), CT-6 EX-4- (7) | MN-17, MN-24 | exécutable : `test/enregistreur-ancrage-parcours.test.js` |
-| TE-13 | Console : un approbateur s'inscrit, signe une décision depuis son portefeuille, le dossier exporté passe le vérificateur | CT-3 EX-13- (13), CT-3 EX-14- (1) | MN-35, MN-51 | exécutable : `test/exploitation-console-parcours.test.js`, étape de `ci.yml` |
+| TE-13 | Console : un approbateur s'inscrit, signe une décision depuis son portefeuille, le dossier exporté passe le vérificateur | CT-3 EX-13- (13), CT-3 EX-14- (1) | MN-35, MN-51 | exécutable : `test/exploitation-console-parcours.test.js`, `test/exploitation-console-presentation-chromium.test.js`, `test/theme-commun.test.js`, étape de `ci.yml` |
 | TE-14 | Journal de l'enregistreur sur lui-même : JS-1 à JS-12 observés sur le démon | CT-7 JS- (12), CT-7 EX-6- (3), CT-2 EX-17- (4) | MN-18, MN-96 | exécutable : `test/enregistreur-journal-soi.test.js`, `test/enregistreur-cle-chaine-etape7.test.js`, `test/enregistreur-cle-chaine-etape7-reseau.test.js` |
 | TE-15 | Construction des images de référence : reproductibilité, `docker inspect`, volume nommé, compagnon d'immuabilité | CT-8 EX-4- (1), CT-8 EX-3- (4) | MN-22, MN-25 | exécutable : `test/deploiement-images.test.js`, étape de `ci.yml` |
 | TE-16 | Matrice des pannes de CT-2 §14 rejouée sur le démon : classification des outils, ce qui est rendu à l'hôte, ce qui est journalisé, mode dégradé | CT-2 EX-14- (13) | MN-10, MN-21, MN-26, MN-33 | exécutable : `test/enregistreur-signataires-parcours.test.js`, `test/enregistreur-matrice-pannes.test.js`, `test/enregistreur-mcp-exigences.test.js`, `test/enregistreur-coeur-reprise.test.js`, `test/enregistreur-modele-exigences.test.js`, `test/enregistreur-mcp-parcours.test.js`, `test/enregistreur-politique-exigences.test.js`, `test/enregistreur-sdk-exigences.test.js`, `test/enregistreur-coeur-approbations.test.js`, `test/enregistreur-ancrage-exigences.test.js`, `test/enregistreur-journal-soi.test.js`, `test/enregistreur-worm-exigences.test.js`, `test/enregistreur-coeur-config.test.js`, `test/enregistreur-modele-securite.test.js`, `test/enregistreur-ha-exigences.test.js`, `test/enregistreur-ancrage-parcours.test.js`, `test/enregistreur-coeur-attente-bornes.test.js` ; complément à écrire (étape 8) |
@@ -1731,8 +1740,8 @@ compte rendu dans le dépôt (R10-NV4) ne valent pas ce test.
 | TE-19 | Service d'approbation de la révision 0.5 de CT-3 : document de configuration, état chiffré, annuaire persistant, liste des tickets | CT-3 EX-7- (1), CT-3 EX-10- (2), CT-3 EX-12- (2), CT-3 EX-13- (1) | — | exécutable : `test/approbation-service-configuration.test.js`, `test/approbation-service-persistance.test.js`, `test/approbation-service-console.test.js` |
 | TE-20 | Serveur de console : document de configuration, adresses, santé et sonde, système d'identité local, sessions, garde d'hôte et relais | CT-3 EX-10- (2), CT-3 EX-13- (5) | MN-47 | exécutable : `test/exploitation-console-serveur-configuration.test.js`, `test/exploitation-console-serveur-http.test.js` |
 | TE-21 | Paquet client produit par l'outil du registre à la fin de l'inscription, puis contrôlé à la réception par le client | CT-4 EX-7- (6) | — | exécutable : `test/registre-paquet-client.test.js`, `test/inscription-paquet.test.js`, `test/inscription-reseau.test.js` |
-| TE-22 | Application d'exploitant : interface web et agent séparé conduisent l'inscription avec les sorties de l'outil de référence | CT-4 EX-7- (7) | — | exécutable : `test/inscription-application.test.js`, `test/inscription-agent.test.js`, `test/registre-paquet-client.test.js`, `test/inscription-reseau.test.js` |
-| TE-23 | Page de vérification : le vérificateur compilé en WebAssembly rend dans le navigateur le rapport du binaire | CT-6 EX-18- (13) | MN-101 | exécutable : `test/verification-page-construction.test.js`, `test/verification-page-identite.test.js`, `test/verification-page-sources.test.js`, `test/verification-page-chromium.test.js`, `test/exploitation-console-parcours.test.js`, étape de `ci.yml` |
+| TE-22 | Application d'exploitant : interface web et agent séparé conduisent l'inscription avec les sorties de l'outil de référence | CT-4 EX-7- (7) | — | exécutable : `test/inscription-application.test.js`, `test/inscription-agent.test.js`, `test/registre-paquet-client.test.js`, `test/inscription-reseau.test.js`, `test/inscription-presentation.test.js`, `test/inscription-presentation-chromium.test.js`, `test/theme-commun.test.js`, étape de `ci.yml` |
+| TE-23 | Page de vérification : le vérificateur compilé en WebAssembly rend dans le navigateur le rapport du binaire | CT-6 EX-18- (13) | MN-101 | exécutable : `test/verification-page-construction.test.js`, `test/verification-page-identite.test.js`, `test/verification-page-sources.test.js`, `test/verification-page-chromium.test.js`, `test/exploitation-console-parcours.test.js`, `test/verification-page-presentation.test.js`, `test/theme-commun.test.js`, étape de `ci.yml` |
 | TE-24 | Clé de chaîne vue par le composant d'ancrage, son relais d'inscription et le démon : OP-9 pour l'ancre d'une période, OP-8 « autre organisation », bloc de déploiement transmis, refus pour débit | CT-4 OP- (2), CT-4 EX-8- (1), CT-5 EX-9- (1) | MN-55 | exécutable : `test/ancrage-registre-cle-manifeste.test.js`, `test/ancrage-registre-inscription-organisation.test.js`, `test/ancrage-registre-refus-debit.test.js`, `test/enregistreur-ancrage-registre-deploiement.test.js` |
 | TE-25 | Prises Unix d'au plus 103 octets et lignes de commande strictes des programmes livrés : démon, miroir et connecteur, service d'approbation, serveur de console, agent et interface d'inscription, composant d'ancrage, serveur RFC 3161 interne | CT-2 EX-6- (1), CT-2 EX-18- (1), CT-2 EX-5- (1), CT-3 EX-10- (2), CT-3 EX-12- (1), CT-4 EX-7- (1), CT-5 EX-8- (1) | MN-12 | exécutable : `test/enregistreur-prises-unix.test.js`, `test/approbation-prises-unix.test.js`, `test/exploitation-console-prises-unix.test.js`, `test/inscription-prises-unix.test.js`, `test/ancrage-lignes-de-commande.test.js` |
 
@@ -3728,7 +3737,7 @@ ancre (CT-7 annexe A.10).
 | R10-F26 | `menaces.json` : 98 menaces, préfixe fixe du membre `test`, 14 composants | `spec/vecteurs/ct-7/menaces.json` ; CT-7 §3.8 | 2026-11-01 |
 | R10-F28 | Bijection RA- ↔ MN- par `accepted_risk` (RV-8) | CT-7 §3.5 l. 956-1060 ; `menaces.json` | 2026-11-01 |
 | R10-F30 | Exécution réelle de la suite avant cette version : 844 cas, 838 réussis, 6 en attente, code 0 (résumé Hardhat « 844 passing (844 mocha) », qui compte les cas en attente) ; après elle : EX-3.11 | `npx hardhat --config hardhat.config.mjs test`, journal de R10 ; exécution du commit éprouvé | 2026-11-01 |
-| R10-F35 | Modules Go `ct-1` à `ct-5`, `ct-7`, `ct-8` ; aucun pour `ct-6` ; réserve d'indépendance de `ct-5` | `spec/vecteurs/ct-*/verificateur-independant/README.md` ; CT-6 §14 l. 5960 | 2026-11-01 |
+| R10-F35 | Modules Go `ct-1` à `ct-5`, `ct-7`, `ct-8` ; aucun pour `ct-6` ; réserve d'indépendance de `ct-5` | `spec/vecteurs/ct-*/verificateur-independant/README.md` ; CT-6 §14 l. 5965 | 2026-11-01 |
 | R10-F37 à R10-F39 | `definitions()`, `renvoiExiste()`, `occurrences()` et leurs expressions ; comptes par spécification | `scripts/conformite/verifier-renvois.mjs` l. 28-61 ; `scripts/deploiement/renvois.mjs` l. 24-80 | 2026-11-01 |
 | R10-F41 | Familles et homonymies par spécification | tables de la section 0 de CT-2 à CT-8 ; CT-1 §11.4 | 2026-11-01 |
 | R10-F43, R10-F44 | Étapes de la phase 2, cas de démonstration (plan privé ; nom du concurrent non recopié) | document interne, lecture seule | 2026-11-01 |
@@ -3816,7 +3825,7 @@ Docker Compose (2026-11-02).
 | R11-F37, R11-F38 | reproductibilité : « Results Reproduced », « Functional » | NISO RP-31-2021 (2021-01-28), annexe A | 2026-11-01 |
 | R11-F5, R11-F53 | horloge injectée de CT-5 ; minuteries simulées de Node v22.22.0 | `scripts/lib/ancrage.mjs` l. 1098 ; exécution locale | 2026-11-01 |
 | R11-NV5 | aucune source dédiée à la mesure par paire | — | non vérifié |
-| R10-F4 à R10-F15 | épreuves déléguées : participants, matériel, grilles, verdicts | `spec/CT-3-approbations.md` l. 9210-9246, 9733-9765 ; `CT-4` l. 2932-2965 ; `CT-5` l. 924, 6167 ; `CT-6` l. 1953-1977, 2590-2703 ; `CT-7` l. 4034-4110, 4763-4775 ; `CT-8` l. 8456-8597 | 2026-11-01 |
+| R10-F4 à R10-F15 | épreuves déléguées : participants, matériel, grilles, verdicts | `spec/CT-3-approbations.md` l. 9257-9293, 9780-9812 ; `CT-4` l. 2932-2965 ; `CT-5` l. 924, 6167 ; `CT-6` l. 1958-1982, 2595-2708 ; `CT-7` l. 4034-4110, 4763-4775 ; `CT-8` l. 8456-8597 | 2026-11-01 |
 | R10-F16 à R10-F25 | cibles et méthode : CT-2 §16 ; CT-5 §3.6, §7.2, §15 ; CT-8 EX-7.1, EX-8.1, §9.2, §10, EX-11.5, §12.2, EX-13.1 | `spec/CT-2-enregistreur.md` l. 12220-12313 ; `CT-5` l. 1165-1178, 2548-2569, 6221-6230 ; `CT-8` l. 3135-3144, 3534-3551, 3588-3608, 4204-4229, 4588-4594, 5645-5664, 6302-6322, 6781-6819 | 2026-11-01 |
 | exécution | tailles des lignes du segment de la démonstration | `node -e` et `awk` sur `spec/vecteurs/ct-2/evenements/journal-demo/segment.ndjson` : 9 lignes, 14 293 octets, moyenne 1 588,11 | 2026-11-01 |
 | exécution | durée de vérification d'un dossier (illustration de la méthode) | `chronometrer.mjs`, 3 échauffements, 20 répétitions, horloge monotone : p50 454,14 ms, p99 563,47 ms | 2026-11-01 |

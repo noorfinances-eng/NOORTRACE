@@ -13653,6 +13653,84 @@
           "apres": "b08086752711d3c9c5f9f38f57333d1a3025c4addb78daf065ae68be76eba504"
         }
       ]
+    },
+    {
+      "id": "MC-96",
+      "date": "2026-11-17",
+      "etape": 8,
+      "motif": "Complément du 2026-11-17, décision du porteur (présentation des écrans) : compléments datés de CT-3 (EX-9.4, 13.1) et de CT-6 (18.3, EX-18.5, EX-18.6, EX-18.7, EX-18.9, EX-18.11), en-tête et section des révisions de CT-6, lignes de CT-3 et de CT-6 du sommaire ; numéros de ligne des tables de renvois de CT-7 et de CT-8 et citations par ligne de CT-8 et de CT-9 recollés sur les textes du jour ; essais de la présentation des écrans rattachés à TE-13, TE-22 et TE-23, chiffres de 5.5 de CT-9 recomptés, catalogue, couverture, index et extraits de ct-9 régénérés deux fois aux mêmes octets, recomptage indépendant republié (84 étapes de CI). Aucune règle de contrôle, aucun schéma, aucun rapport ni aucun vecteur de CT-1 à CT-8 ne change.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-3-approbations.md",
+          "avant": "ed019f614309b12bd3cd9e8334729e171f637deb7d7ebc21c54005ba3e9137f5",
+          "apres": "ee68a689aed2ed760c817d54c524f14fa3e42f02a9b1876e18ed8afd783bc722"
+        },
+        {
+          "chemin": "spec/CT-6-verificateur.md",
+          "avant": "101c8aef4daef45ed73fe82e7e7ae08364e0e6ba34e58e29884d921d2a46fd59",
+          "apres": "fed3d7bccb91dbf5f5fd7f1f4e40f5da3b187a1ef74ded41c485ce652cf1fb4b"
+        },
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "3d41db104eb3e685645027df6b39f47be25dd3bf6d02819088858e8aa238209e",
+          "apres": "d816519cb71b7cc09771e4935fc36a59a31b30440a3737fda41401b9ce805168"
+        },
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "6d436ada8c340abe5fc10cd2b6c2fb05cead4470730e43551409b224621438e5",
+          "apres": "63c34d14afe640d70275d004e76ffa61f3062df3f755632af357e52b6a8829cc"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "223628f0a7bf0aa2bb3cffb064d9050d46a486775d45c52d1c5afab62e3cfeed",
+          "apres": "4132380cca1a0948a0fea27abf549e58332df73f81e250c8d97d6bd4c50dcfc2"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "af004f8e551a6bb07d2fade44e091585896a1ac918537b7e25e0d0e6b0b344c7",
+          "apres": "7af7a556695e66d904cad8002215c1ff6a3255adc576bbf7655ed713b7b04108"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "1ceb7d9e22883045a9bb32c8d9dc24f6a98a6b861591cf3c32a1d61b4e0f7287",
+          "apres": "eb29a8c3aac68a19c00c943c952b5aa9906dcc4e67bdfcdfa0010ded502419d0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "9dcfef8779f55fb0a0b48c1d918665925dfe6f2eea89638cb7c9920bf2d25fbd",
+          "apres": "9a1689efe6c0c75a6d3fc97d55415eea0425b28c8e6565beec6f9e0e1aa3ecdb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "548c61aa18df0d4357166933e0c87bde905f615c1f8d1d375f3f2c4f7a58cb42",
+          "apres": "1330f56d6b7d4feba2a648709d5c8823082a021f8a6c1eecd41468b6a2f3f448"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "b08086752711d3c9c5f9f38f57333d1a3025c4addb78daf065ae68be76eba504",
+          "apres": "834809c17073e6f27bf1a5358980d1836ce565e5cb60d43259044df6b21dde2f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "99ac70551facd6b434679bdbafd8342dda0c77f75994ee3aff36eb5a97c29c8e",
+          "apres": "92b2888dff10e42978588535a29e8c2ff77056075b1961d78200ca00b76b1f44"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "4ac4db8f792a420bb2445f6285d3c7fffa355fb10fc10a20aed30761b34d6fd8",
+          "apres": "f1b27110d217e1751a50bca919a9b623996cfb89904b18b79780aa2e44871648"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "8899d44783e08b9aad9cd57d4cd4c4d599d55188f5edb5f45bd19dec36306be8",
+          "apres": "a1a36bd18c4425e58974b4cbf2f15c367e41fe93ab046463c43a019dec5ca6cc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "9f56ced14257af7b18ba3477a707cdd0a319fe180b9e22518d0dc95c740234f9",
+          "apres": "469b14eaf680ef89dd8b34b14d8b89f77c075ce0d17ab54a1e56c1585bc79063"
+        }
+      ]
     }
   ]
 }

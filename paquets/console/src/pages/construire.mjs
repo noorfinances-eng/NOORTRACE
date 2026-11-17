@@ -11,9 +11,12 @@
 //   `JSON.stringify` sans espace : `imports` (trois préfixes) et `integrity`
 //   (chaque module JavaScript servi sous `/statique/`, chemins absolus triés,
 //   `sha384-`) ;
-// - chaque écran : `<meta charset>`, `<meta name="viewport">`, `<title>`, la
-//   feuille de style à intégrité, la carte (seul script en ligne), le module
-//   d'entrée à intégrité.
+// - chaque écran : `<meta charset>`, `<meta name="viewport">`, `<meta
+//   name="theme-color">`, `<title>`, la feuille de style à intégrité, la carte
+//   (seul script en ligne), le module du thème à intégrité (il pose l'état
+//   clair ou sombre avant le module d'entrée ; `blocking="render"` retient
+//   le premier affichage jusqu'à lui), le module d'entrée à intégrité ; dans le corps, après le conteneur, un gabarit `<template>`
+//   par icône (SVG en ligne, tracés de `icones.mjs`), que les modules clonent.
 //
 // `node src/pages/construire.mjs` vérifie que les fichiers produits sont à
 // jour (code 1 sinon) ; `--ecrire` les réécrit. Les textes des écrans viennent
@@ -23,6 +26,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { ICONES, PLEINES, LOGO } from "./icones.mjs";
 
 const ICI = path.dirname(fileURLToPath(import.meta.url));
 const RACINE_PAQUET = path.resolve(ICI, "..", "..");
@@ -266,6 +270,30 @@ export function fichiersServis() {
 
 const echapper = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+/** Module du thème, premier module de chaque écran. */
+export const MODULE_THEME = "/statique/commun/theme.mjs";
+
+/** Couleur de la barre du navigateur dans l'état sombre, l'état sans attribut (jeton `--nt-fond` du thème). */
+export const COULEUR_THEME = "#060B16";
+
+const elementSvg = ([nom, attributs]) => `<${nom}${Object.entries(attributs).map(([k, v]) => ` ${k}="${echapper(v)}"`).join("")}/>`;
+
+/**
+ * Les gabarits d'icônes écrits dans chaque écran : un `<template
+ * id="icone-<nom>">` par icône et un pour le signe du logo, chacun avec un
+ * seul `<svg>` décoratif (`aria-hidden`). Aucune adresse, aucun style en ligne.
+ * @returns {string[]} une ligne par gabarit
+ */
+export function gabaritsIcones() {
+  const lignes = [];
+  for (const [nom, elements] of Object.entries(ICONES)) {
+    const classe = PLEINES.includes(nom) ? "nt-icone nt-icone-pleine" : "nt-icone";
+    lignes.push(`<template id="icone-${nom}"><svg class="${classe}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${elements.map(elementSvg).join("")}</svg></template>`);
+  }
+  lignes.push(`<template id="icone-logo"><svg class="nt-logo-signe" viewBox="0 0 28 28" aria-hidden="true" focusable="false">${LOGO.map(elementSvg).join("")}</svg></template>`);
+  return lignes;
+}
+
 /**
  * Construit les fichiers produits.
  * @returns {Promise<{fichiers: Map<string, Buffer>, manifeste: object, carte: string, servis: Map<string, object>}>}
@@ -281,6 +309,8 @@ export async function construire() {
   const feuille = sha384(octets.get("/statique/console.css"));
   const fichiers = new Map();
   const ecrans = {};
+  if (!Object.hasOwn(integrity, MODULE_THEME)) throw new Error(`module du thème absent : ${MODULE_THEME}`);
+  const gabarits = gabaritsIcones();
   for (const e of ECRANS) {
     const entree = `/statique/ecrans/${e}.mjs`;
     if (!Object.hasOwn(integrity, entree)) throw new Error(`module d'entrée absent : ${entree}`);
@@ -290,14 +320,17 @@ export async function construire() {
       "<head>",
       '<meta charset="utf-8">',
       '<meta name="viewport" content="width=device-width, initial-scale=1">',
+      `<meta name="theme-color" content="${COULEUR_THEME}">`,
       `<title>${echapper(libelles[`ecran.${e}.titre`])}</title>`,
       `<link rel="stylesheet" href="/statique/console.css" integrity="${feuille}">`,
       `<script type="importmap">${carte}</script>`,
+      `<script type="module" src="${MODULE_THEME}" integrity="${integrity[MODULE_THEME]}" blocking="render"></script>`,
       `<script type="module" src="${entree}" integrity="${integrity[entree]}"></script>`,
       "</head>",
       "<body>",
       '<div id="principal"></div>',
-      `<noscript><p>${echapper(libelles["ecran.sans_script"])}</p></noscript>`,
+      `<noscript><p class="sans-script">${echapper(libelles["ecran.sans_script"])}</p></noscript>`,
+      ...gabarits,
       "</body>",
       "</html>",
       "",

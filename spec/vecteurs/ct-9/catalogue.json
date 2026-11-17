@@ -8663,12 +8663,25 @@
           {
             "file": "test/exploitation-console-parcours.test.js",
             "describe": "TE-13 (étape 6, critère de livraison), variante sans registre (intégration continue) : jeu statique, contrôle 4 réussi, contrôle 8 non exécuté"
+          },
+          {
+            "file": "test/exploitation-console-presentation-chromium.test.js",
+            "describe": "présentation des écrans de la console : résumé vérifié et formes lisibles (fonctions pures)"
+          },
+          {
+            "file": "test/exploitation-console-presentation-chromium.test.js",
+            "describe": "présentation des écrans de la console, dans Chromium"
+          },
+          {
+            "file": "test/theme-commun.test.js",
+            "describe": "thème commun des écrans : un même bloc, à l'octet, dans les trois feuilles de style"
           }
         ],
         "ci_steps": [
-          "parcours TE-13 de la console d'exploitation, variante sans registre sans saut ; seule la variante du réseau de développement 2124 en attente, avec son message"
+          "parcours TE-13 de la console d'exploitation, variante sans registre sans saut ; seule la variante du réseau de développement 2124 en attente, avec son message",
+          "bibliothèque et pages de la console d'exploitation dans Chromium, aucun essai en attente"
         ],
-        "command": "npx hardhat --config hardhat.config.mjs test test/exploitation-console-parcours.test.js"
+        "command": "npx hardhat --config hardhat.config.mjs test test/exploitation-console-parcours.test.js && npx hardhat --config hardhat.config.mjs test test/exploitation-console-presentation-chromium.test.js && npx hardhat --config hardhat.config.mjs test test/theme-commun.test.js"
       },
       "threats": [
         "MN-35",
@@ -9416,9 +9429,24 @@
           {
             "file": "test/inscription-reseau.test.js",
             "describe": "inscription : client fictif inscrit par l'application et l'agent sur le réseau de développement 2124 (EX-7.24, EX-7.15)"
+          },
+          {
+            "file": "test/inscription-presentation.test.js",
+            "describe": "inscription : présentation de l'interface d'exploitant (complément du 2026-11-17)"
+          },
+          {
+            "file": "test/inscription-presentation-chromium.test.js",
+            "describe": "inscription : écrans de l'interface d'exploitant dans Chromium (complément du 2026-11-17)"
+          },
+          {
+            "file": "test/theme-commun.test.js",
+            "describe": "thème commun des écrans : un même bloc, à l'octet, dans les trois feuilles de style"
           }
         ],
-        "command": "npx hardhat --config hardhat.config.mjs test test/inscription-application.test.js && npx hardhat --config hardhat.config.mjs test test/inscription-agent.test.js && npx hardhat --config hardhat.config.mjs test test/registre-paquet-client.test.js && npx hardhat --config hardhat.config.mjs test test/inscription-reseau.test.js"
+        "ci_steps": [
+          "outil d'inscription, écrans de l'interface d'exploitant dans Chromium, aucun essai en attente"
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/inscription-application.test.js && npx hardhat --config hardhat.config.mjs test test/inscription-agent.test.js && npx hardhat --config hardhat.config.mjs test test/registre-paquet-client.test.js && npx hardhat --config hardhat.config.mjs test test/inscription-reseau.test.js && npx hardhat --config hardhat.config.mjs test test/inscription-presentation.test.js && npx hardhat --config hardhat.config.mjs test test/inscription-presentation-chromium.test.js && npx hardhat --config hardhat.config.mjs test test/theme-commun.test.js"
       },
       "threats": []
     },
@@ -9481,13 +9509,30 @@
           {
             "file": "test/exploitation-console-parcours.test.js",
             "describe": "TE-13 (étape 6, critère de livraison), variante sans registre (intégration continue) : jeu statique, contrôle 4 réussi, contrôle 8 non exécuté"
+          },
+          {
+            "file": "test/verification-page-presentation.test.js",
+            "describe": "page de vérification, présentation : sources (CT-6 §18, complément du 2026-11-17)"
+          },
+          {
+            "file": "test/verification-page-presentation.test.js",
+            "describe": "page de vérification, présentation, dans ${moteur} (CT-6 §18, complément du 2026-11-17)"
+          },
+          {
+            "file": "test/verification-page-presentation.test.js",
+            "describe": "page de vérification, présentation, de bout en bout dans chromium (CT-6 §18, complément du 2026-11-17)"
+          },
+          {
+            "file": "test/theme-commun.test.js",
+            "describe": "thème commun des écrans : un même bloc, à l'octet, dans les trois feuilles de style"
           }
         ],
         "ci_steps": [
           "page de vérification dans Chromium, Firefox et WebKit (TE-23, TA-101), aucun essai en attente",
-          "page de vérification, identité avec le binaire natif dans /entrees (CT-6 EX-18.10), aucun essai en attente"
+          "page de vérification, identité avec le binaire natif dans /entrees (CT-6 EX-18.10), aucun essai en attente",
+          "page de vérification, présentation (verdict, contrôles, blocs repliés, thème) dans Chromium, Firefox et WebKit, aucun essai en attente"
         ],
-        "command": "npx hardhat --config hardhat.config.mjs test test/verification-page-construction.test.js && npx hardhat --config hardhat.config.mjs test test/verification-page-identite.test.js && npx hardhat --config hardhat.config.mjs test test/verification-page-sources.test.js && npx hardhat --config hardhat.config.mjs test test/verification-page-chromium.test.js && npx hardhat --config hardhat.config.mjs test test/exploitation-console-parcours.test.js"
+        "command": "npx hardhat --config hardhat.config.mjs test test/verification-page-construction.test.js && npx hardhat --config hardhat.config.mjs test test/verification-page-identite.test.js && npx hardhat --config hardhat.config.mjs test test/verification-page-sources.test.js && npx hardhat --config hardhat.config.mjs test test/verification-page-chromium.test.js && npx hardhat --config hardhat.config.mjs test test/exploitation-console-parcours.test.js && npx hardhat --config hardhat.config.mjs test test/verification-page-presentation.test.js && npx hardhat --config hardhat.config.mjs test test/theme-commun.test.js"
       },
       "threats": [
         "MN-101"
@@ -21182,21 +21227,21 @@
     {
       "id": "TC-12",
       "key": "CT-3 §1",
-      "line": 667,
+      "line": 682,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-13",
       "key": "CT-3 §1",
-      "line": 696,
+      "line": 711,
       "delegated": "EX-, AP-, TK-, SG-, AN-, CS-, vecteurs `ct-3`, épreuve à trois relecteurs, épreuve de lecture de la console.",
       "response": "TR-1 (A.5, trois relecteurs) et TR-2 (A.11, console) en §12 ; EX-, AP-, TK-, SG-, AN-, CS- et vecteurs ct-3 : TU-, TV- (§6, §7)."
     },
     {
       "id": "TC-14",
       "key": "CT-3 §7.12",
-      "line": 2606,
+      "line": 2621,
       "delegated": "Rattachement des TK-1 à TK-13 aux tests.",
       "response": "TV- `ct-3/tickets/` et TU- tickets (§6, §7) : `covers` CT-3 TK-1 à TK-13."
     },
@@ -21308,21 +21353,21 @@
     {
       "id": "TC-30",
       "key": "CT-6 §0",
-      "line": 94,
+      "line": 99,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-31",
       "key": "CT-6 §1",
-      "line": 260,
+      "line": 265,
       "delegated": "EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`.",
       "response": "§6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10)."
     },
     {
       "id": "TC-32",
       "key": "CT-6 §6.9",
-      "line": 1936,
+      "line": 1941,
       "delegated": "Exécution des V- par comparaison du rapport à `attendu.json`.",
       "response": "TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`."
     },

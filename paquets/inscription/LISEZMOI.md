@@ -14,6 +14,17 @@ Fondation (`dapps/foundation` : comptes de l'exploitant, périmètre public,
 boucle de travaux d'un agent séparé) sont repris sans code : rien n'est
 recopié, aucun commentaire, aucune donnée.
 
+Complément du 2026-11-17, décision du porteur (présentation des écrans) :
+les écrans portent le thème commun des écrans NOORTRACE, dans la grammaire
+des hubs NOORCHAIN (deux états, sombre et clair ; mêmes valeurs de palette),
+sans Tailwind ni composant recopié : le bloc de jetons et de composants en
+tête de `src/web/app/globals.css` est écrit pour NOORTRACE et commun, à
+l'octet, à la console d'approbation et à la page de vérification. La
+bascule de thème reprend du hub son patron (clé `noor.theme` du stockage du
+navigateur, toute valeur autre que `clair` vaut `sombre`), récrit dans
+`src/web/lib/theme.mjs`. Aucune police, aucune image, aucune dépendance
+n'est ajoutée. Le détail est dans `INTERFACES.md` 2.4.
+
 ## Arborescence
 
 ```text
@@ -25,7 +36,9 @@ src/commun/                       modules partagés : champs typés, référence
                                   schémas, JSON strict, paquet client et controlerPaquet (EX-7.22)
 src/agent/                        agent : configuration, prise et compte du pair, file, données, instance,
                                   OP-1 à OP-12, envoi et capture, commandes, contrôle 8, paquet
-src/web/                          projet Next.js : app/ (pages et routes), proxy.mjs, next.config.mjs, lib/
+src/web/                          projet Next.js : app/ (pages, routes, globals.css), composants/ (barre haute,
+                                  formulaires, icônes), lib/ (serveur, données, mots du parcours, thème),
+                                  proxy.mjs, next.config.mjs
 ```
 
 ## Construire et lancer
@@ -338,7 +351,10 @@ l'installation) et n'entrent dans aucune image (étape 7) :
 | `test/inscription-application.test.js` | TE-22 : interface construite et lancée, agent réel derrière |
 | `test/inscription-paquet.test.js` | TE-21 : paquet produit, recherche d'EX-7.21, `controlerPaquet`, exemples de CT-4 7.13 ; pas 10 |
 | `test/inscription-reseau.test.js` | réseau de développement 2124 (en attente s'il n'est pas debout) : client fictif, épreuve d'EX-7.24 |
+| `test/inscription-presentation.test.js` | présentation (INTERFACES.md 2.4), sans navigateur : bloc de jetons commun et règles propres de la feuille, libellé de chaque étape, de chaque état, de chaque commande et de chaque erreur des schémas, prochaine action, détail technique aux valeurs exactes, bascule de thème ; mutants du module du parcours tués |
+| `test/inscription-presentation-chromium.test.js` | présentation dans Chromium par Playwright, interface construite et servie sur des données fictives (sans agent) : connexion et barre haute, bascule de thème et sa mémoire, liste, fiche et ses étapes à cinq états, blocs repliés et valeurs exactes, confirmations et paquet, formulaire et saisie refusée, 390 px et 1280 px |
 | `test/inscription-revue.test.js` | revue de l'étape 8 : comptes distincts (EX-7.28), production sans clé en clair (EX-7.3), points `http://` (EX-7.1), répertoire de clés et alias (EX-7.25), interface en production, verrou, sessions, hôte (CT-7 CLE-37), plafond nul et budget, instance relue, bornes ; un mutant sur copie du paquet par règle |
 
 Outils : `test/fixtures/inscription/` (réseau Hardhat et pont noorcore,
-agent et interface d'essai, outil de référence en boîte noire).
+agent et interface d'essai, outil de référence en boîte noire, données
+fictives des essais de présentation).

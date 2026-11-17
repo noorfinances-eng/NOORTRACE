@@ -6,5 +6,5 @@ export default function Deconnexion() {
     await fetch("/api/deconnexion", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
     window.location.assign("/connexion");
   };
-  return <button type="button" onClick={sortir}>Se déconnecter</button>;
+  return <button type="button" className="nt-bouton nt-bouton-petit nt-sans-impression" onClick={sortir}>Se déconnecter</button>;
 }

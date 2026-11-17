@@ -67,7 +67,7 @@ paquets/inscription/
     commun/               modules purs partagés par l'interface et l'agent : formes des travaux,
                           types de champs, références de clés, contrôle du paquet (4.3)
     agent/                agent (Node seulement)
-    web/                  projet Next.js (répertoire racine de « next build ») : app/, proxy.mjs, next.config.mjs
+    web/                  projet Next.js (répertoire racine de « next build ») : app/, composants/, lib/, proxy.mjs, next.config.mjs
 ```
 
 ### 0.3 Dépendances
@@ -219,6 +219,9 @@ pour l'affichage seulement).
 | `/clients/<slug>/confirmations` | registre des confirmations hors bande (EX-7.26), chacune avec le travail qui l'a consommée, et formulaire d'ajout |
 | `/clients/<slug>/paquet` | production du paquet client (sortie `paquet-client`), son contrôle, et le gabarit (`console_origin` et `administrators` donnés par écrit par le client, ou `null`) |
 
+Le contenu de chaque page est celui de cette table ; sa présentation est
+celle de 2.4.
+
 ### 2.3 Routes
 
 Routes de Next (`src/web/app/api/…/route.mjs`), toutes en JSON strict,
@@ -258,6 +261,83 @@ route, et le tronque sans le dire au-delà de sa propre borne
 (`experimental.proxyClientMaxBodySize`, réglée à 256 Kio + 1 octet au lieu de
 10 Mio). Une requête entière, corps compris, a 60 s. La route lit encore le
 corps par morceaux et le refuse (413) dès la borne franchie.
+
+### 2.4 Présentation des écrans
+
+Complément du 2026-11-17, décision du porteur (présentation des écrans).
+L'interface se lit comme un parcours guidé ; ce complément ne retire aucune
+action ni aucune donnée de 2.2, et ne change ni les routes, ni la politique
+de sécurité du contenu, ni les types de champ de 2.1.
+
+- **Thème commun.** `src/web/app/globals.css` s'ouvre par le bloc de jetons
+  et de composants commun aux écrans NOORTRACE, entre les repères
+  `/* noor-theme:debut */` et `/* noor-theme:fin */`, identique à l'octet à
+  celui de la console d'approbation et de la page de vérification ; les
+  règles propres de l'outil viennent après lui (classes `ins-`), lisent ses
+  jetons et n'en redéfinissent aucun. Aucune police, aucune image, aucune
+  adresse dans la feuille ; aucun attribut `style` dans les pages
+  (`style-src 'self'`) ; les icônes sont des SVG écrits dans le HTML.
+- **Deux états d'affichage.** Sombre : l'état du document sans attribut,
+  rendu sans script. Clair : `data-theme="clair"` sur `<html>`. Le bouton de
+  bascule de la barre haute mémorise le choix dans le navigateur
+  (`localStorage`, clé `noor.theme`, valeurs `clair` ou `sombre`,
+  `src/web/lib/theme.mjs`) ; toute autre valeur vaut `sombre`. C'est le
+  seul emploi du stockage du navigateur : ni clé, ni référence, ni donnée
+  d'un client, ni identité n'y entre (2.1 reste entier). L'état clair
+  mémorisé est posé avant le premier affichage par une amorce de quelques
+  octets dans l'en-tête du gabarit, en script porteur du nonce de la
+  réponse : `script-src 'nonce-…' 'self'` l'admet sans changement.
+  L'impression rend en clair ; les blocs repliés fermés sont ouverts
+  avant l'impression, puis refermés (un bloc fermé ne s'imprime pas).
+- **Barre haute.** Le mot NOORTRACE, « Inscription des clients », la
+  navigation (Clients, Nouveau client), l'identité de la session en entier,
+  la déconnexion, la bascule. Sans session (`/connexion`), ni navigation ni
+  identité. Sous la barre, quand `nature` de la configuration n'est pas
+  `production`, un bandeau dit « Réseau d'essai » (affichage seulement :
+  l'agent tranche, EX-7.3).
+- **Mots au lieu de codes** (`src/web/lib/parcours.mjs`, module pur). Chaque
+  étape (`steps[].step`) a un titre et une phrase qui dit ce qu'elle fait ;
+  chaque état d'EX-7.16 a un libellé : `a_faire` « À faire », `envoyee`
+  « Envoyée », `incluse` « Incluse », `capturee` et `faite` « Fait », `echec`
+  « Échec » ; chaque commande de 3.3, chaque état d'un travail et chaque
+  `result` d'une sortie ont le leur ; chaque `error.code` de
+  `operations-registre-v0` et chaque refus de l'interface reçoivent une
+  phrase et une conduite à tenir tirées de CT-4 7.11. Un code inconnu reste
+  affiché tel quel. Un état se lit par un mot et une icône, jamais par la
+  seule couleur. Les instants se lisent en UTC (« 12 novembre 2026 à
+  08:05 UTC »).
+- **Valeurs exactes.** Rien n'est abrégé ni reformulé. Les codes, l'objet,
+  le hachage de transaction, le bloc, la capture, le contrat, l'erreur et
+  l'instant exact d'une étape, l'`org_id`, les identifiants de l'instance,
+  les adresses et la sortie JSON d'un travail se lisent, tels quels, dans
+  un bloc replié (`<details>`) ouvert sur demande. Ce qui engage ne se
+  replie pas : sur `/clients/<slug>/confirmations`, la personne du client,
+  le canal, l'instant exact, l'objet visé, le SHA-256 de la pièce en
+  entier, l'exploitant et le travail qui a consommé la confirmation ; sur
+  `/clients/<slug>/paquet`, le SHA-256 du manifeste du paquet en entier.
+- **Parcours.** `/clients` : une carte par client (nom, état, « n étapes
+  sur m », prochaine action, date de la dernière action). `/clients/<slug>` :
+  le nom, l'état et la prochaine action avec son bouton ; une étape `echec`
+  en bandeau, avec la conduite à tenir ; puis les étapes dans l'ordre, la
+  préparation du dossier (pas 1) en étape 1 ; les autres actions de 2.2,
+  repliées ; les demandes de signature ; l'historique des travaux. La
+  prochaine action est un guide : confirmation hors bande à consigner tant
+  qu'une étape `approvisionnement` à faire n'a pas de confirmation inscrite
+  et non consommée (3.5), étapes 2 à 5, demande d'inscription à préparer,
+  puis à faire signer hors de l'application et à relayer (EX-7.27),
+  première période, export, vérification, paquet. Elle n'autorise rien :
+  l'agent refait chaque contrôle (EX-7.23).
+- **Formulaires.** Un libellé (`<label for>`) et une aide par champ, des
+  sections courtes, des exemples fictifs en `.example`. Une saisie refusée
+  dans la page se dit en clair sous le champ fautif, sans recopier la
+  valeur ; un refus du serveur ou de l'agent s'affiche en bandeau, avec la
+  conduite à tenir, le code et le message exacts au détail. Le refus
+  `confirmation_absente` affiche « confirmation hors bande absente »
+  (EX-7.26). Sur `/clients/<slug>/confirmations`, l'objet demandé suit
+  l'opération choisie (clé de chaîne, ou condensé de la demande). Quand un
+  travail finit, la page relit la fiche auprès du serveur.
+- **Accessibilité.** Focus visible, cibles de 44 px au toucher, lisible de
+  390 px à 1280 px de large sans défilement horizontal.
 
 ## 3. Agent (`src/agent/`, `bin/noortrace-inscription-agent`)
 
@@ -503,7 +583,12 @@ l'application, rend `deja_fait` et n'envoie rien ; `verifier` rend R-1 à R-10
 consignée, essai sous un second compte quand l'essai tourne en
 superutilisateur, en attente sinon ; aucune page ni aucun script servi ne
 contient le chemin de la prise), EX-7.25 (chaque champ refuse une valeur
-nue), EX-7.26, EX-7.27.
+nue), EX-7.26, EX-7.27. Complément du 2026-11-17 (2.4) :
+`test/inscription-presentation.test.js` (feuille de style, mots du
+parcours, prochaine action, détail technique, bascule de thème ; sans
+navigateur) et `test/inscription-presentation-chromium.test.js` (les écrans
+dans Chromium par Playwright, sur des données fictives sans agent ; en
+attente si Chromium manque, en échec sous `NOORTRACE_EXIGER_CHROMIUM=1`).
 
 ## 6. Précisions de la construction (étape 6)
 

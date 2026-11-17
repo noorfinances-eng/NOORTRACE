@@ -140,6 +140,15 @@ export async function attendreArtefact(page) {
   return page.textContent("#artefact");
 }
 
+/**
+ * Déplie le bloc des options de la page (fichiers facultatifs, contrôles à exiger, langue et détail du rapport y sont
+ * repliés, complément du 2026-11-17 de CT-6 §18) par son titre, comme le ferait la personne ; sans effet s'il est ouvert.
+ */
+export async function deplierOptions(page) {
+  if (!(await page.evaluate(() => document.getElementById("options").open))) await page.click("#options > summary");
+  await page.waitForFunction(() => document.getElementById("options").open);
+}
+
 /** Clique « Vérifier » et attend le résultat. */
 export async function lancerVerification(page) {
   await page.click("#verifier");

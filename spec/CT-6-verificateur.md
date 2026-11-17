@@ -12,7 +12,12 @@ la page de vérification (EX-18.7, EX-18.9) ; aucun format ni code de retour
 ne change ; détail en section 16 ; complément du 2026-11-16, décision du
 porteur : le fragment F3 de l'énoncé nomme la demande et le ticket que les
 approbateurs ont signés, non l'appel prouvé (EX-6.8, EX-6.11, 7.2, 3.4), sans
-changer aucun statut, verdict ni code de retour. Version 0.8, 2026-11-12, révision 0.8,
+changer aucun statut, verdict ni code de retour ; complément du 2026-11-17,
+décision du porteur (présentation des écrans) : la page de vérification met
+en avant le verdict, les huit contrôles et les avertissements, offre le
+rapport dans des blocs repliés et a deux états d'affichage (18.3, EX-18.5,
+EX-18.6, EX-18.7, EX-18.9, EX-18.11), sans changer aucune règle du
+vérificateur, aucun rapport ni aucun code de retour. Version 0.8, 2026-11-12, révision 0.8,
 textuelle et minimale : publication
 du binaire préparée à l'étape 7 sans rien publier, image de construction et
 noms des fichiers publiés fixés, forme du commentaire de confiance, détail en
@@ -6607,6 +6612,27 @@ changements de statut sont dits en place. Sections touchées : en-tête, 4.2
   jonction de la demande au dossier d'un appel relayé, comparée par A-4
   (outil, référence des arguments, délégation), est à l'ordre du jour de la
   prochaine révision de CT-1 (CT-1 section 15).
+- **Complément du 2026-11-17, décision du porteur (présentation des
+  écrans)** : présentation de la page de vérification (section 18). La page
+  écrit au-dessus du code un mot tiré du seul code de retour, puis la liste
+  des huit contrôles, tirée du membre `controls` du rapport JSON, et les
+  avertissements ; elle ne calcule aucun statut et n'affiche aucune liste
+  quand elle ne lit pas `controls` exactement (EX-18.9). Le rapport
+  lisible, le rapport JSON, l'énoncé dans l'autre langue et la ligne de
+  commande équivalente peuvent être offerts dans des blocs repliés ; le
+  verdict, le code et son sens, les contrôles, les avertissements, l'énoncé
+  dans la langue de la page et tout refus ne le sont jamais (EX-18.9). La
+  phrase de l'empreinte peut être repliée sous la phrase d'EX-18.2
+  (EX-18.5) ; les fichiers facultatifs et les options sont offerts dans un
+  bloc replié dont le titre résume les choix (EX-18.7) ; `page.js` est
+  chargé dans l'en-tête du document (EX-18.6) ; la page a deux états
+  d'affichage, sombre et clair, sans mémoire du choix (EX-18.11) ; la
+  feuille de style commence par le bloc commun aux écrans (18.3). Les
+  risques admis sont écrits à EX-18.5 et à EX-18.9. Aucune règle du
+  vérificateur, aucun contrôle, statut, verdict, code de retour, schéma ni
+  vecteur ne change ; la liste des fichiers de la page (18.3), ses en-têtes
+  et l'identité d'EX-18.10 ne changent pas ; les empreintes de `index.html`,
+  `page.css` et `page.js` changent avec leur contenu.
 
 | Emplacement | Avant | Attendu par la révision 0.9 | État |
 |---|---|---|---|
@@ -6626,6 +6652,14 @@ Alignement du complément du 2026-11-16 avec le dépôt :
 | `verificateur/` (binaire Go) | même F3 que la référence | F3 d'EX-6.8, valeurs d'EX-6.11 ; rejeu des dossiers de `ct-1` et de `ct-6` sans discordance | fait |
 | `paquets/verification-web` (page) | affiche l'énoncé que rend le binaire | aucun changement : la page ne construit pas l'énoncé | sans objet |
 | `spec/vecteurs/ct-6/dossiers` | 47 `attendu.json` à F3 `approuve` ou `refuse` | énoncé régénéré par la référence ; aucun autre champ ne change, sauf la description de `valide-decision-refusee` | fait (deux générations identiques) |
+
+Alignement du complément du 2026-11-17 avec le dépôt :
+
+| Emplacement | Avant | Attendu par le complément | État |
+|---|---|---|---|
+| `paquets/verification-web` (page) | résultat en un seul flot : fichiers choisis, ligne de commande, code, rapport lisible, énoncés, sortie d'erreur ; un seul état d'affichage | verdict, contrôles et avertissements d'emblée, blocs repliés, deux états d'affichage (18.3, EX-18.5, EX-18.6, EX-18.7, EX-18.9, EX-18.11) | fait (`test/verification-page-presentation.test.js` ; les essais existants de la page restent verts) |
+| `verificateur/` (binaire Go), `scripts/lib/verificateur.mjs` (référence) | — | aucun changement : la page n'ajoute rien au rapport et n'en retire rien | sans objet |
+| `spec/vecteurs/ct-6/` | — | aucun vecteur ne change | sans objet |
 
 ## 17. Ce que cette version ne couvre pas
 
@@ -6821,7 +6855,18 @@ artefact altered: digest <computed> instead of <expected>; no
 verification ») et aucun rapport. Sinon, la page affiche la version et
 l'empreinte, en hexadécimal `0x` (CT-1 §3), à côté de la phrase d'EX-18.2,
 pour que l'utilisateur la compare à la ligne `noortrace-verifier.wasm` du
-`SHA256SUMS` de la version. Tenu par la page.
+`SHA256SUMS` de la version. Complément du 2026-11-17, décision du porteur
+(présentation des écrans) : la phrase qui porte la version et l'empreinte PEUT
+figurer dans un bloc replié (élément `details`) placé juste sous la phrase
+d'EX-18.2, dont le titre nomme l'empreinte et que l'utilisateur ouvre d'un
+geste ; la phrase d'EX-18.2, qui porte la version, reste affichée en
+permanence hors de tout bloc replié, comme l'état du vérificateur (en
+chargement, prêt, indisponible). Le message d'un artefact altéré et celui
+d'un vérificateur qui n'a pas pu se charger ne sont jamais repliés. Risque
+admis : un utilisateur qui n'ouvre pas le bloc ne voit pas l'empreinte ; elle
+est calculée par la page elle-même, ne protège pas contre l'origine (EX-18.2)
+et ne sert qu'à qui la compare à `SHA256SUMS`, ce que la phrase d'EX-18.2
+demande. Tenu par la page.
 
 ### 18.3 Fichiers de la page
 
@@ -6833,6 +6878,17 @@ pour que l'utilisateur la compare à la ligne `noortrace-verifier.wasm` du
 | `verificateur-wasm.js` | l'artefact en base64 : exactement `globalThis.NOORTRACE_VERIFICATEUR_WASM = "`, puis les octets de `noortrace-verifier.wasm` en base64 (RFC 4648 §4, avec remplissage, sans saut de ligne), puis `";` et `\n` ; l'artefact est porté par un script parce que `connect-src 'none'` interdit `fetch` (EX-18.12) |
 | `travailleur.js` | le prélude du travailleur (système de fichiers et processus d'EX-18.8), puis `wasm_exec.js` de go1.27.3 sans changement (qui ne définit `globalThis.fs` et `globalThis.process` que s'ils sont absents), puis le pilote (constante `EMPREINTE_WASM`, exécutions d'EX-18.9) |
 | `noortrace-verifier.wasm` | l'artefact, publié pour comparaison et téléchargement ; la page ne le charge pas |
+
+Complément du 2026-11-17, décision du porteur (présentation des écrans) : la
+liste des fichiers ne change pas. `page.css` commence par le bloc de style
+commun aux écrans NOORTRACE, entre les repères `/* noor-theme:debut */` et
+`/* noor-theme:fin */`, identique à l'octet dans les feuilles de style de la
+console d'approbation (CT-3 §13) et de l'outil d'inscription (CT-4 §7) ; les
+règles propres à la page le suivent. La feuille ne porte aucune adresse
+(`url`), aucune importation et aucune police : elle nomme une police de
+préférence, que le système sert s'il l'a, puis les polices du système. Les
+icônes sont des tracés SVG écrits dans `index.html` ou construits élément par
+élément par `page.js`, sans image ni HTML inséré.
 
 **EX-18.6** Les fichiers de la page sont produits depuis le commit et
 l'artefact par un script du dépôt, de façon déterministe (aucune date, aucun
@@ -6846,7 +6902,13 @@ demandé en mode `no-cors` et bloqué (constaté dans Chromium 141 le
 2026-11-11) ; `page.js` crée le travailleur depuis
 `travailleur.js`, même origine, qu'aucun attribut d'intégrité ne peut
 couvrir : son contenu est couvert par `SHA256SUMS` (EX-18.4), et c'est lui qui
-contrôle l'artefact (EX-18.5). Tenu par le projet.
+contrôle l'artefact (EX-18.5). Complément du 2026-11-17, décision du porteur
+(présentation des écrans) : l'élément `script` de `page.js` est dans
+l'en-tête du document, celui de `verificateur-wasm.js` à la fin du corps.
+`page.js` pose l'état sombre ou clair de la page (EX-18.11) avant le premier
+affichage, puis attend la fin de la lecture du document pour lier l'interface
+et remettre l'artefact au travailleur ; les attributs des deux éléments et ce
+qu'ils couvrent ne changent pas. Tenu par le projet.
 
 ### 18.4 Entrées
 
@@ -6903,7 +6965,15 @@ lecture. Révision 0.9 : le parcours d'un répertoire déposé sur la page
 s'arrête à la première entrée au-delà de 4 096 et au premier chemin au-delà
 des bornes, avant toute lecture de fichier. Une archive `zip -X` (Info-ZIP 3.0) d'un dossier dont un nom n'est
 pas en ASCII n'a ni le bit 11 ni le champ Unicode, et est refusée pour ce
-nom, avec sa raison : la page ne devine pas l'encodage d'un nom. Tenu par la page.
+nom, avec sa raison : la page ne devine pas l'encodage d'un nom. Complément du
+2026-11-17, décision du porteur (présentation des écrans) : le choix du
+dossier et le bouton qui lance la vérification sont affichés d'emblée ; le
+fichier d'ancres, le fichier d'en-têtes et les options sont offerts dans un
+bloc replié (élément `details`) dont le titre résume les choix faits. Chaque
+option y porte un libellé en langage courant, et son nom de la ligne de
+commande entre parenthèses (`--ancres`, `--entetes-bitcoin`, `--exiger`,
+`--langue`, `--detail`) ; chaque contrôle à exiger porte un nom courant et son
+numéro. Les valeurs transmises au programme ne changent pas (EX-18.8). Tenu par la page.
 
 **EX-18.8** **Arbre présenté au programme.** Le travailleur présente au
 programme un système de fichiers en lecture seule :
@@ -6999,6 +7069,63 @@ donne le sens des codes de la table de 8.3 en ces termes :
 | 2 | no verdict. Unusable input: incorrect usage, unreadable dossier, schemas, anchors file or separate input, size limit exceeded, internal error of the verifier. Statement about the dossier: none. |
 | 3 | incomplete. As 0, but a control required by --exiger did not pass. Statement about the dossier: the statement, which proves less than required. |
 
+Complément du 2026-11-17, décision du porteur (présentation des écrans). La
+page met en avant ce que le rapport dit, sans rien y ajouter ni en retirer :
+
+1. **Verdict.** Au-dessus du code et de son sens, qui restent affichés en
+   entier, la page écrit un mot : « Valide » pour le code 0, « Non valide »
+   pour 1, « Aucun verdict » pour 2, « Incomplet » pour 3 (page anglaise :
+   « Valid », « Not valid », « No verdict », « Incomplete »). Ce mot ne se
+   tire que du code de retour.
+2. **Contrôles.** Pour les codes 0, 1 et 3, la page affiche la liste des huit
+   contrôles, tirée du membre `controls` du rapport JSON (EX-8.7) : pour
+   chacun, son numéro, un nom en langage courant, le statut que le rapport
+   lui donne (« Réussi », « Échec », « Non exécuté » ; page anglaise :
+   « Passed », « Failed », « Not run »), pour un contrôle non exécuté sa
+   raison de 6.2 dite en clair, avec son code entre parenthèses, et son
+   `summary` tel quel. La page ne calcule aucun statut : un contrôle que le
+   rapport ne dit pas `reussi` n'est jamais présenté comme réussi (EX-6.1,
+   EX-6.6). Sous le code 0, si un contrôle au moins n'est pas `reussi`, la
+   page l'écrit sous le verdict, avec les numéros de ces contrôles :
+   « Valide, avec des contrôles non exécutés : … » (« Valid, with controls
+   not run: … ») ; elle n'écrit que les huit contrôles ont réussi que si le
+   rapport les dit tous `reussi`. Sous le code 3, elle nomme les contrôles de
+   `inputs.required_controls` qui ne sont pas `reussi` ; sous le code 1, les
+   vérifications de `failed_checks` et de `blocking_unexecuted` (EX-6.7). Si
+   `controls` ne se lit pas exactement (huit contrôles numérotés de 1 à 8
+   dans l'ordre, un statut d'EX-6.1, une raison pour un contrôle non exécuté
+   et pour lui seul), ou contredit le code de retour (sous le code 0 ou 3, un
+   contrôle `echoue` ou non exécuté pour `prerequis_en_echec`), la page
+   n'affiche aucune liste et le dit ; le verdict, l'énoncé et les rapports
+   restent affichés.
+3. **Avertissements.** Les avertissements du rapport JSON (`warnings`, avec
+   leur identifiant et leur vérification) et la sortie d'erreur, quand elle
+   n'est pas vide, sont affichés sous le verdict.
+4. **Blocs repliés.** L'énoncé dans la langue de la page est affiché tel
+   quel. L'énoncé dans l'autre langue, le rapport lisible (toujours tel quel,
+   dans un élément préformaté), le rapport JSON (la sortie standard de la
+   seconde exécution, affichée selon les mêmes règles que le rapport
+   lisible), la ligne de commande équivalente avec les noms des fichiers
+   choisis (EX-18.8) et la mention d'une sortie d'erreur vide PEUVENT figurer
+   dans des blocs repliés (éléments `details`), que l'utilisateur ouvre d'un
+   geste et que la page ouvre à l'impression. Ne sont jamais repliés : le
+   mot du verdict, le code et son sens, ce que la page écrit sous le verdict,
+   la liste des contrôles, les avertissements et la sortie d'erreur non vide,
+   l'énoncé dans la langue de la page, le message d'erreur du code 2 et la
+   phrase qui le suit, « vérification non faite » et sa cause, la raison
+   d'un refus et « aucun rapport » (EX-18.7).
+5. **Copie.** La page PEUT offrir de copier un texte préformaté dans le
+   presse-papiers, à la demande de l'utilisateur : c'est le texte affiché ;
+   la copie ne fait ni requête ni stockage (EX-18.11).
+
+Risque admis : un lecteur qui ne déplie rien ne lit plus le rapport lisible,
+mais lit d'emblée le verdict, sa borne, les contrôles et les avertissements,
+qui étaient jusque-là dans le corps du rapport. La liste des contrôles peut
+être lue à la place du rapport : elle ne montre donc que des valeurs du
+rapport, et la page se tait quand elle ne les lit pas. L'identité d'EX-18.10
+porte sur les mêmes textes : le rapport lisible, le rapport JSON, la sortie
+d'erreur et le code.
+
 Tenu par la page.
 
 **EX-18.10** **Même rapport que le binaire.** Pour les mêmes entrées et les
@@ -7033,7 +7160,12 @@ pendant ni après une vérification, hormis (révision 0.9) la nouvelle demande
 de `travailleur.js`, à la même origine, qui suit un arrêt demandé par
 l'utilisateur (EX-18.9) (une requête que le navigateur fait de
 lui-même, pour l'icône de l'onglet par exemple, ne porte aucune donnée de
-l'utilisateur). Tenu par la page et l'hébergeur.
+l'utilisateur). Complément du 2026-11-17, décision du porteur (présentation
+des écrans) : la page a deux états d'affichage, sombre et clair. Elle s'ouvre
+dans celui que le système demande (`prefers-color-scheme` ; sombre à défaut),
+et un bouton passe de l'un à l'autre pour la page affichée ; ce choix n'est
+pas mémorisé, la page n'employant aucun stockage. L'impression rend en
+clair. Tenu par la page et l'hébergeur.
 
 **EX-18.12** **En-têtes.** L'hébergeur sert ces en-têtes, et la page
 fonctionne sous eux :

@@ -501,7 +501,8 @@ jobs:
           grep -E '^[[:space:]]+2 passing' "$RUNNER_TEMP/adversarial-chromium.txt"
 
   # Étape 6 : console d'exploitation (paquets/console), page de vérification
-  # (paquets/verification-web, CT-6 §18) et parcours du critère de livraison
+  # (paquets/verification-web, CT-6 §18), écrans de l'outil d'inscription
+  # (paquets/inscription) et parcours du critère de livraison
   # (TE-13) dans les navigateurs de Playwright 1.56.1, installé hors de
   # package.json avec Chromium, Firefox et WebKit et leurs dépendances du
   # système (les trois moteurs de TE-23, CT-9 0.8) ; ce travail n'accède au
@@ -564,12 +565,31 @@ jobs:
           set -o pipefail
           npx hardhat --config hardhat.config.mjs test $(ls test/exploitation-console-*-chromium.test.js) 2>&1 | tee "$RUNNER_TEMP/console-exploitation.txt"
           if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/console-exploitation.txt"; then exit 1; fi
+      # Présentation des écrans (compléments du 2026-11-17) : l'interface de l'outil
+      # d'inscription, construite par l'essai et servie sur des données fictives,
+      # sans agent ni chaîne ; les écrans de la console sont pris par l'étape
+      # précédente (test/exploitation-console-presentation-chromium.test.js).
+      - name: outil d'inscription, écrans de l'interface d'exploitant dans Chromium, aucun essai en attente
+        run: |
+          set -o pipefail
+          npx hardhat --config hardhat.config.mjs test test/inscription-presentation-chromium.test.js 2>&1 | tee "$RUNNER_TEMP/inscription-presentation.txt"
+          if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/inscription-presentation.txt"; then exit 1; fi
       - name: page de vérification dans Chromium, Firefox et WebKit (TE-23, TA-101), aucun essai en attente
         run: |
           set -o pipefail
           export NOORTRACE_GO_BIN="$(dirname "$(command -v go)")"
           npx hardhat --config hardhat.config.mjs test test/verification-page-chromium.test.js 2>&1 | tee "$RUNNER_TEMP/page.txt"
           if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/page.txt"; then exit 1; fi
+      # Présentation de la page (CT-6 §18, compléments du 2026-11-17) : verdict tiré
+      # du seul code, contrôles tirés du rapport JSON, blocs repliés, thème sans
+      # mémoire, dans les trois moteurs ; puis de bout en bout avec l'artefact
+      # construit par go1.27.3.
+      - name: page de vérification, présentation (verdict, contrôles, blocs repliés, thème) dans Chromium, Firefox et WebKit, aucun essai en attente
+        run: |
+          set -o pipefail
+          export NOORTRACE_GO_BIN="$(dirname "$(command -v go)")"
+          npx hardhat --config hardhat.config.mjs test test/verification-page-presentation.test.js 2>&1 | tee "$RUNNER_TEMP/page-presentation.txt"
+          if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/page-presentation.txt"; then exit 1; fi
       # Revue de l'étape 8 (EX-18.7, EX-18.9, EX-18.11, EX-18.13) : bornes des chemins
       # et des fichiers, arrêt par l'utilisateur, chaînes rendues visibles, dans les
       # trois moteurs.

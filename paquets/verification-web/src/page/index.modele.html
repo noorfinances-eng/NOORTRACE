@@ -4,76 +4,128 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#060B16">
 <title data-libelle="titre">{{titre}}</title>
 <link rel="stylesheet" href="page.css" integrity="{{INTEGRITE_PAGE_CSS}}" crossorigin="anonymous">
+<script src="page.js" integrity="{{INTEGRITE_PAGE_JS}}" crossorigin="anonymous"></script>
 </head>
 <body>
-<header>
-<h1 data-libelle="titre">{{titre}}</h1>
-<button type="button" id="autre-langue" lang="en" data-libelle="autre_langue">{{autre_langue}}</button>
+<header class="nt-barre">
+<div class="nt-barre-dedans">
+<div class="nt-logo">
+<svg class="nt-logo-signe" viewBox="0 0 28 28" aria-hidden="true"><rect class="nt-logo-cadre" x="2.5" y="2.5" width="23" height="23" rx="6.5"/><path class="nt-logo-trait-1" d="M9 19.5v-11"/><path class="nt-logo-trait-2" d="M9 8.5l10 11v-11"/></svg>
+<span class="nt-logo-texte"><span class="nt-logo-mot">NOOR<span class="nt-logo-accent">TRACE</span></span><span class="nt-outil" data-libelle="outil">{{outil}}</span></span>
+</div>
+<div class="nt-barre-outils">
+<button type="button" class="nt-bouton nt-bouton-petit" id="autre-langue" lang="en" data-libelle="autre_langue">{{autre_langue}}</button>
+<button type="button" class="nt-bascule" id="bascule-theme" aria-label="{{theme_vers_clair}}" title="{{theme_vers_clair}}"><svg class="nt-icone nt-icone-soleil" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2L5.5 5.5"/></svg><svg class="nt-icone nt-icone-lune" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.2A8.3 8.3 0 0 1 9.8 4a8.3 8.3 0 1 0 10.2 10.2z"/></svg></button>
+</div>
+</div>
 </header>
-<main>
-<section id="confiance" aria-labelledby="phrase-fixe">
+<main class="nt-page">
+<header class="nt-entete">
+<div class="nt-entete-texte">
+<h1 data-libelle="titre_action">{{titre_action}}</h1>
+<p class="nt-sous-titre" data-libelle="sous_titre">{{sous_titre}}</p>
+</div>
+<div class="nt-entete-etat">
+<p id="etat-verificateur" role="status"><span class="nt-pastille nt-pastille-grande"><svg class="nt-icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10M7 20h10M8 4c0 4.2 4 4.6 4 8s-4 3.8-4 8M16 4c0 4.2-4 4.6-4 8s4 3.8 4 8"/></svg><span>{{artefact_chargement}}</span></span></p>
+</div>
+</header>
+<section id="confiance" class="nt-bandeau" aria-labelledby="phrase-fixe">
+<svg class="nt-icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.7v.3"/></svg>
+<div class="nt-bandeau-texte pv-confiance">
 <p id="phrase-fixe" data-libelle="phrase_fixe">{{phrase_fixe}}</p>
-<p id="artefact" role="status">{{artefact_chargement}}</p>
+<div class="pv-alerte-verificateur" id="alerte-verificateur" role="alert" hidden></div>
+<details class="nt-detail pv-detail" id="detail-empreinte">
+<summary><span data-libelle="titre_empreinte">{{titre_empreinte}}</span><span class="nt-detail-note pv-detail-note" data-libelle="note_empreinte">{{note_empreinte}}</span></summary>
+<div class="nt-detail-corps" id="hote-artefact">
+<p id="artefact">{{artefact_chargement}}</p>
+</div>
+</details>
+</div>
 </section>
-<div id="formulaire">
-<fieldset id="choix-dossier">
-<legend data-libelle="titre_dossier">{{titre_dossier}}</legend>
-<p>
-<button type="button" id="choisir-repertoire" data-libelle="choisir_repertoire">{{choisir_repertoire}}</button>
+<div id="formulaire" class="nt-pile nt-pile-large">
+<section class="nt-carte" id="choix-dossier" aria-labelledby="titre-dossier">
+<h2 class="pv-etape" id="titre-dossier"><span class="nt-etape-rond">1</span><span data-libelle="titre_dossier">{{titre_dossier}}</span></h2>
+<div class="nt-depot" id="zone-depot">
+<svg class="nt-icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>
+<p class="pv-depot-titre"><strong data-libelle="deposer">{{deposer}}</strong></p>
+<p class="nt-attenue nt-petit" data-libelle="formes_admises">{{formes_admises}}</p>
+<div class="nt-actions pv-actions-centrees">
+<button type="button" class="nt-bouton" id="choisir-repertoire" data-libelle="choisir_repertoire">{{choisir_repertoire}}</button>
 <input type="file" id="entree-repertoire" hidden webkitdirectory multiple>
-<button type="button" id="choisir-archive" data-libelle="choisir_archive">{{choisir_archive}}</button>
+<button type="button" class="nt-bouton" id="choisir-archive" data-libelle="choisir_archive">{{choisir_archive}}</button>
 <input type="file" id="entree-archive" hidden accept=".zip,.tar,.tar.gz,.tgz">
-</p>
-<p data-libelle="deposer">{{deposer}}</p>
-<p id="dossier-choisi">{{aucun_dossier}}</p>
+</div>
+</div>
+<p class="pv-choisi" id="dossier-choisi" role="status">{{aucun_dossier}}</p>
+</section>
+<details class="nt-detail pv-options" id="options">
+<summary><span class="pv-etape"><span class="nt-etape-rond">2</span><span data-libelle="titre_options">{{titre_options}}</span></span><span class="nt-detail-note" id="resume-options">{{options_aucune}}</span></summary>
+<div class="nt-detail-corps pv-options-corps">
+<fieldset class="nt-groupe-champs">
+<legend class="pv-legende" data-libelle="titre_entrees">{{titre_entrees}}</legend>
+<div class="nt-champ">
+<p class="nt-libelle" id="libelle-ancres"><span data-libelle="choisir_ancres">{{choisir_ancres}}</span><span class="nt-facultatif nt-fixe">(--ancres)</span></p>
+<p class="nt-aide" id="aide-ancres" data-libelle="aide_ancres">{{aide_ancres}}</p>
+<div class="pv-fichier">
+<button type="button" class="nt-bouton nt-bouton-petit" id="choisir-ancres" aria-describedby="aide-ancres nom-ancres" data-libelle="bouton_choisir_ancres">{{bouton_choisir_ancres}}</button>
+<input type="file" id="entree-ancres" hidden>
+<span class="pv-fichier-nom" id="nom-ancres">{{aucun_fichier}}</span>
+<button type="button" class="nt-bouton nt-bouton-petit nt-bouton-discret" id="retirer-ancres" aria-describedby="libelle-ancres" data-libelle="retirer">{{retirer}}</button>
+</div>
+</div>
+<div class="nt-champ">
+<p class="nt-libelle" id="libelle-entetes"><span data-libelle="choisir_entetes">{{choisir_entetes}}</span><span class="nt-facultatif nt-fixe">(--entetes-bitcoin)</span></p>
+<p class="nt-aide" id="aide-entetes" data-libelle="aide_entetes">{{aide_entetes}}</p>
+<div class="pv-fichier">
+<button type="button" class="nt-bouton nt-bouton-petit" id="choisir-entetes" aria-describedby="aide-entetes nom-entetes" data-libelle="bouton_choisir_entetes">{{bouton_choisir_entetes}}</button>
+<input type="file" id="entree-entetes" hidden>
+<span class="pv-fichier-nom" id="nom-entetes">{{aucun_fichier}}</span>
+<button type="button" class="nt-bouton nt-bouton-petit nt-bouton-discret" id="retirer-entetes" aria-describedby="libelle-entetes" data-libelle="retirer">{{retirer}}</button>
+</div>
+</div>
 </fieldset>
-<fieldset>
-<legend data-libelle="titre_entrees">{{titre_entrees}}</legend>
-<p>
-<label for="entree-ancres" data-libelle="choisir_ancres">{{choisir_ancres}}</label>
-<input type="file" id="entree-ancres">
-<button type="button" id="retirer-ancres" data-libelle="retirer">{{retirer}}</button>
-</p>
-<p>
-<label for="entree-entetes" data-libelle="choisir_entetes">{{choisir_entetes}}</label>
-<input type="file" id="entree-entetes">
-<button type="button" id="retirer-entetes" data-libelle="retirer">{{retirer}}</button>
-</p>
+<fieldset class="nt-groupe-champs" id="exiger">
+<legend class="pv-legende"><span data-libelle="exiger">{{exiger}}</span><span class="nt-facultatif nt-fixe">(--exiger)</span></legend>
+<p class="nt-aide" data-libelle="aide_exiger">{{aide_exiger}}</p>
+<div class="pv-cases">
+<label class="nt-case"><input type="checkbox" name="exiger" value="1"><span><span data-libelle="controle_1">{{controle_1}}</span> <span class="nt-attenue">(1)</span></span></label>
+<label class="nt-case"><input type="checkbox" name="exiger" value="2"><span><span data-libelle="controle_2">{{controle_2}}</span> <span class="nt-attenue">(2)</span></span></label>
+<label class="nt-case"><input type="checkbox" name="exiger" value="3"><span><span data-libelle="controle_3">{{controle_3}}</span> <span class="nt-attenue">(3)</span></span></label>
+<label class="nt-case"><input type="checkbox" name="exiger" value="4"><span><span data-libelle="controle_4">{{controle_4}}</span> <span class="nt-attenue">(4)</span></span></label>
+<label class="nt-case"><input type="checkbox" name="exiger" value="5"><span><span data-libelle="controle_5">{{controle_5}}</span> <span class="nt-attenue">(5)</span></span></label>
+<label class="nt-case"><input type="checkbox" name="exiger" value="6"><span><span data-libelle="controle_6">{{controle_6}}</span> <span class="nt-attenue">(6)</span></span></label>
+<label class="nt-case"><input type="checkbox" name="exiger" value="7"><span><span data-libelle="controle_7">{{controle_7}}</span> <span class="nt-attenue">(7)</span></span></label>
+<label class="nt-case"><input type="checkbox" name="exiger" value="8"><span><span data-libelle="controle_8">{{controle_8}}</span> <span class="nt-attenue">(8)</span></span></label>
+<label class="nt-case"><input type="checkbox" id="exiger-tous" value="tous"><span><span data-libelle="exiger_tous">{{exiger_tous}}</span> <span class="nt-attenue nt-fixe">(tous)</span></span></label>
+</div>
 </fieldset>
-<fieldset>
-<legend data-libelle="titre_options">{{titre_options}}</legend>
-<fieldset id="exiger">
-<legend data-libelle="exiger">{{exiger}}</legend>
-<label><input type="checkbox" name="exiger" value="1"> 1</label>
-<label><input type="checkbox" name="exiger" value="2"> 2</label>
-<label><input type="checkbox" name="exiger" value="3"> 3</label>
-<label><input type="checkbox" name="exiger" value="4"> 4</label>
-<label><input type="checkbox" name="exiger" value="5"> 5</label>
-<label><input type="checkbox" name="exiger" value="6"> 6</label>
-<label><input type="checkbox" name="exiger" value="7"> 7</label>
-<label><input type="checkbox" name="exiger" value="8"> 8</label>
-<label><input type="checkbox" id="exiger-tous" value="tous"> <span data-libelle="exiger_tous">{{exiger_tous}}</span></label>
-</fieldset>
-<p>
-<label for="langue-rapport" data-libelle="langue_rapport">{{langue_rapport}}</label>
-<select id="langue-rapport">
+<div class="nt-champ pv-champ-court">
+<label class="nt-libelle" for="langue-rapport"><span data-libelle="langue_rapport">{{langue_rapport}}</span><span class="nt-facultatif nt-fixe">(--langue)</span></label>
+<select class="nt-saisie" id="langue-rapport">
 <option value="fr" data-libelle="langue_fr">{{langue_fr}}</option>
 <option value="en" data-libelle="langue_en">{{langue_en}}</option>
 </select>
-</p>
-<p><label><input type="checkbox" id="detail"> <span data-libelle="detail">{{detail}}</span></label></p>
-</fieldset>
-<p><button type="button" id="verifier" disabled data-libelle="verifier">{{verifier}}</button>
-<button type="button" id="arreter" disabled data-libelle="arreter">{{arreter}}</button></p>
 </div>
-<section id="resultat" aria-live="polite" hidden>
-<h2 data-libelle="titre_resultat">{{titre_resultat}}</h2>
-<div id="resultat-contenu"></div>
+<label class="nt-case"><input type="checkbox" id="detail"><span><span data-libelle="detail">{{detail}}</span> <span class="nt-attenue nt-fixe">(--detail)</span></span></label>
+</div>
+</details>
+<section class="nt-carte" id="lancer" aria-labelledby="titre-verifier">
+<h2 class="pv-etape" id="titre-verifier"><span class="nt-etape-rond">3</span><span data-libelle="titre_verifier">{{titre_verifier}}</span></h2>
+<p class="nt-attenue" id="aide-verifier">{{aide_verifier_chargement}}</p>
+<div class="nt-actions">
+<button type="button" class="nt-bouton nt-bouton-principal" id="verifier" disabled><svg class="nt-icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6z"/><path d="M8.8 12.2l2.4 2.4 4.2-4.6"/></svg><span data-libelle="verifier">{{verifier}}</span></button>
+<button type="button" class="nt-bouton" id="arreter" disabled data-libelle="arreter">{{arreter}}</button>
+</div>
+</section>
+</div>
+<section id="resultat" class="nt-pile nt-pile-large" aria-live="polite" aria-labelledby="titre-resultat" hidden>
+<h2 id="titre-resultat" data-libelle="titre_resultat">{{titre_resultat}}</h2>
+<div id="resultat-contenu" class="nt-pile nt-pile-large"></div>
 </section>
 </main>
 <script src="verificateur-wasm.js" integrity="{{INTEGRITE_VERIFICATEUR_WASM_JS}}" crossorigin="anonymous"></script>
-<script src="page.js" integrity="{{INTEGRITE_PAGE_JS}}" crossorigin="anonymous"></script>
 </body>
 </html>

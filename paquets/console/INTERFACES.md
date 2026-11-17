@@ -29,7 +29,10 @@ Décisions du porteur qui fondent ce contrat : serveur Node (`node:http`,
 `node:https`) sans cadriciel et pages statiques à intégrité ; parcours de
 signature a et b seulement (EX-13.20 : c n'est pas activé, d n'est pas
 offert) ; interface en français, avec un mécanisme de libellés qui admettra
-l'anglais ; OIDC, et système local refusé en production ; aucune marque.
+l'anglais ; OIDC, et système local refusé en production ; aucune marque
+(complément du 2026-11-17, décision du porteur, présentation des écrans :
+cette dernière décision est levée pour les pages, qui portent le thème commun
+des écrans NOORTRACE et son logo en texte ; voir 3.2).
 
 ## 0. Règles communes
 
@@ -682,6 +685,30 @@ assemblage).
 - `/statique/console.css` : la feuille de style ; polices du système ;
   thème clair et sombre par `prefers-color-scheme` seulement (aucun script,
   aucun stockage) ; aucune couleur, aucun logo ni nom de marque.
+  Complément du 2026-11-17, décision du porteur (présentation des écrans) :
+  la feuille s'ouvre par le thème commun des écrans NOORTRACE, placé entre
+  les repères `/* noor-theme:debut */` et `/* noor-theme:fin */`, identique à
+  l'octet dans les trois feuilles de style du dépôt (console d'approbation,
+  page de vérification, outil d'inscription ; `test/theme-commun.test.js`) ;
+  suivent les règles propres à la console, qui n'écrivent aucune classe
+  `nt-…`, ne redéfinissent aucun jeton et n'écrivent aucune couleur en dur.
+  **Couleurs et logo sont admis** : le logo est le mot « NOORTRACE » en
+  texte, avec un signe en SVG en ligne ; aucune image, aucune police
+  téléchargée (pile `Inter, system-ui, …` : une police n'est employée que si
+  le poste la possède), aucune adresse dans la feuille. Le thème a **deux
+  états** : sombre, l'état sans attribut sur `<html>` ; clair,
+  `data-theme="clair"`. **Le stockage reste interdit** (ni `localStorage`,
+  ni `sessionStorage`, ni IndexedDB, ni cookie) : l'état initial suit
+  `prefers-color-scheme` (clair si le système le demande, sombre sinon) et
+  ses changements ; la bascule de la barre vaut pour la page affichée
+  seulement et se perd au chargement suivant. L'impression rend en clair.
+- `/statique/commun/theme.mjs` (complément du 2026-11-17) : pose l'état du
+  thème ; premier module de chaque écran, servi avec son intégrité (CT-3
+  13.1), et qui retient le premier affichage (`blocking="render"`, 3.3) ;
+  aucun autre effet.
+- `/statique/commun/lisible.mjs` (complément du 2026-11-17) : fonctions pures
+  des formes lisibles (montant, durée, instant) et `resumeVerifie`, le résumé
+  d'une demande composé des seules valeurs vérifiées (3.4).
 - `/statique/ecrans/<écran>.mjs` : module d'entrée de chaque écran.
 - `/statique/commun/*.mjs` : client de `/v0/` (`fetch` de même origine,
   `credentials: "same-origin"`, `Content-Type: application/json`),
@@ -700,7 +727,29 @@ href="/statique/console.css" integrity="sha384-…">`, la carte
 d'importation `<script type="importmap">…</script>` (seul script en ligne),
 puis `<script type="module" src="/statique/ecrans/<écran>.mjs"
 integrity="sha384-…"></script>`. La carte est **la même** dans les cinq
-écrans (un seul condensé dans `script-src`) :
+écrans (un seul condensé dans `script-src`).
+
+Complément du 2026-11-17, décision du porteur (présentation des écrans) :
+l'en-tête porte en plus, après `<meta name="viewport">`, `<meta
+name="theme-color" content="#060B16">` (la couleur de la barre du navigateur
+dans l'état sombre ; le module du thème la met à jour), et, entre la carte
+et le module d'entrée, `<script type="module"
+src="/statique/commun/theme.mjs" integrity="sha384-…"
+blocking="render"></script>` : le thème est posé avant que le module
+d'entrée ne construise la page, et l'attribut `blocking="render"` retient le
+premier affichage jusqu'à l'exécution de ce module, pour qu'un poste réglé
+en clair n'entrevoie pas le fond sombre ; un navigateur qui ignore
+l'attribut affiche comme sans lui. Le module reste un `<script
+type="module">` à intégrité (CT-3 EX-13.33, point 2) : la politique de
+sécurité du contenu et l'intégrité des sous-ressources ne changent pas. Le
+corps porte,
+après `<div id="principal"></div>` et le `<noscript>`, un gabarit `<template
+id="icone-<nom>">` par icône et un pour le signe du logo, chacun avec un
+seul `<svg>` décoratif (`aria-hidden`), écrit par le générateur d'après
+`src/pages/icones.mjs` : aucune adresse, aucun script, aucun style en ligne.
+Les modules clonent ces gabarits (`icone()` de `commun/dom.mjs`,
+`cloneNode`) ; ils n'emploient ni `createElementNS`, ni `innerHTML`, et
+n'analysent aucun texte pour produire un nœud. La carte :
 
 ```json
 {"imports":{"noortrace-console/":"/statique/bibliotheque/","@noble/hashes/":"/statique/modules/@noble/hashes/","@noble/curves/":"/statique/modules/@noble/curves/"},"integrity":{"/statique/…":"sha384-…"}}
@@ -759,6 +808,76 @@ Toutes les lectures et actions passent par `POST /v0/<méthode>` (13.9,
 (13.14). Une réponse du serveur hors de sa forme, ou la vue d'un autre ticket
 que celui de l'écran, s'affiche `reponse_service_invalide` (révision 0.6) :
 rien n'est affiché du contenu, rien n'est signé.
+
+Complément du 2026-11-17, décision du porteur (présentation des écrans). Les
+comportements ci-dessous ne changent pas ; leur présentation est la
+suivante, éprouvée par `test/exploitation-console-presentation-chromium.test.js`.
+
+- **Cadre.** Barre haute : logo, navigation, personne connectée (le dernier
+  jeton de l'identité de session), « Se déconnecter », bascule de thème ;
+  sous la barre, l'identité de session en entier, dans son ordre (EX-13.7).
+  L'écran `identite_invalide` ne porte ni barre ni bouton.
+- **Mots au lieu de codes.** Chaque état, classe, niveau et avertissement a
+  son libellé (3.6) ; un état se lit par une pastille (un mot et une icône),
+  une marque par un rectangle (un mot et une icône), jamais par la seule
+  couleur. Le code d'une panne, d'une raison ou d'un avertissement reste
+  entre parenthèses à la suite de sa phrase (EX-13.29). Un instant s'affiche
+  en mots, dans le fuseau du navigateur et avec son décalage (« 5 novembre
+  2026 à 11:12 (UTC+1) ») ; l'instant exact reste dans l'attribut `datetime`
+  et, pour un ticket, dans le détail technique. Une adresse, un identifiant,
+  une empreinte ne s'abrègent jamais (hors `empreinte()` d'EX-9.18).
+- **Tickets.** Une carte par ticket (`#liste-tickets > li[data-ticket]`),
+  que le lien de l'identifiant couvre : l'outil annoncé, la pastille d'état,
+  le demandeur, l'échéance (temps restant, puis la date), les votes, la
+  contestation ; la liste ne porte pas les arguments, donc aucun montant.
+- **Ticket.** Dans l'ordre : l'en-tête (le retour à la liste, l'identifiant
+  et l'état sur une ligne, puis le titre et le sens de l'état) ; les raisons
+  qui bloquent et
+  les avertissements, en bandeaux ; la carte « essentiel » ; « Ce que vous
+  signez » (arguments, champs signés) ; « La demande en détail » (outil,
+  règle, délégation et intention, effets, ticket ouvrant) ; « La décision
+  collective » (échéance et contestation, jeu figé, votes) ; le détail
+  technique replié ; les tickets voisins ; la signature (portefeuille, écran
+  de signature, résultat) ; récusation et retrait.
+  - *Carte « essentiel »* : une phrase en langage courant, composée par
+    `resumeVerifie(modele)` des seules valeurs vérifiées (CT-3 EX-9.4,
+    complément du 2026-11-17) : l'outil annoncé, le demandeur et la règle
+    quand `blocking` ne porte ni `evenement_invalide` ni `champ_different` ;
+    un montant quand les feuilles `/amount` et `/currency` (ou `/montant` et
+    `/devise`) ont toutes deux l'état `verifie`, que le montant est un
+    nombre décimal écrit en chiffres et la devise trois capitales. Le
+    montant s'écrit à la française (« 9 500,00 CHF ») et la carte donne à
+    côté les deux valeurs telles qu'elles sont dans la demande. Chaque
+    feuille qui n'a pas l'état `verifie` est nommée dans la carte, avec sa
+    marque (six au plus, puis leur nombre) ; un montant non vérifié n'est
+    jamais repris, et la carte le dit. Les effets déclarés et l'intention
+    n'y entrent jamais. Suivent les votes, l'échéance et la décision.
+  - *Décision* : « Approuver » et « Refuser » sont deux boutons de même
+    taille et de même style, côte à côte, dont aucun n'est le bouton
+    principal (EX-9.5) ; ils ne restent pas collés au bas de l'écran. Le
+    motif se saisit à la confirmation de la décision, sous l'avertissement
+    d'EX-13.6. Un ticket qui n'accepte plus de votes n'offre ni bouton de
+    décision ni portefeuille ; un ticket décidé n'offre plus ni récusation
+    ni retrait (CT-3 7.5, T6 et T10 : le service ne les admet que sur un
+    ticket `ouvert`, `seuil_atteint` ou `verification`), et le résultat
+    d'un retrait qui vient d'être inscrit reste affiché quand la relecture
+    trouve le ticket décidé. Sur un poste (fenêtre d'au moins 56 rem de
+    large), le haut de l'écran est resserré pour que les deux boutons
+    tiennent dans une fenêtre de 1280 × 800 quand ni avertissement ni
+    réserve n'allonge la carte ; rien n'est retiré ni replié pour cela, et
+    aucune taille de texte ne passe sous celle du thème.
+  - *Détail technique* (`details#detail-technique`, replié) : les codes
+    bruts (`state`, `class`, `level`, avertissements, raisons), les noms des
+    champs, les instants exacts. Il ne porte aucun champ signé, aucune
+    valeur d'argument, aucune marque : tout ce qu'EX-9.4 demande reste
+    visible sans l'ouvrir, dont `seq` et `ts` de l'événement `retenue`.
+  - *Consignes d'EX-9.20* : avant le choix de la décision, offertes dans un
+    bloc replié ; sur l'écran de signature, affichées en entier.
+- **Mon adresse.** L'état de l'entrée en pastille, les adresses en tableau
+  (pastille d'état, validation et révocation en mots), l'inscription en
+  trois étapes (portefeuille, compte, texte à signer).
+- **Annuaire.** Une carte par entrée ; « Révoquer » et « Désactiver » se
+  confirment par un bouton de danger.
 
 - **Tickets.** `tickets` (sans `related_to`) ; pour chaque ticket :
   identifiant (lien `/tickets/<ticket>` seulement s'il satisfait EX-7.1,

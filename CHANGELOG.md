@@ -6,6 +6,61 @@ is tagged.
 
 ## Unreleased
 
+- Build step 8, supplements of 2026-11-17: presentation of the screens
+  (étape 8, compléments du 2026-11-17 : présentation des écrans). The three
+  tools that people look at, the approval console, the verification page and
+  the client onboarding tool, are redrawn at once after the owner's decision
+  of 2026-11-17: each screen now opens with the essential in one plain
+  sentence and the action to take, then what is needed to decide, and keeps
+  identifiers, digests and raw codes in a folded technical block. Codes are
+  said in everyday French, with the code still readable; every state is a
+  word and an icon, never a colour alone. A common theme, one block of
+  tokens and components that is byte-identical in the three style sheets,
+  gives two states, dark and light: the page opens in the one the system
+  asks for and a button switches it; the console and the verification page
+  store nothing, the onboarding tool remembers the choice (`noor.theme`,
+  its only use of browser storage); printing is always light. No font file,
+  no image, no external resource and no dependency is added, and no content
+  security policy, header or subresource-integrity rule is loosened; the
+  published digests of the pages are recomputed by the packages' build scripts.
+  Approval console (CT-3 EX-9.4, 13.1): a ticket opens with a summary made
+  only of values that the display model has verified (tool, requester,
+  rule, and an amount when both of its leaves are verified), shows beside
+  it the values exactly as signed, and names every leaf it leaves out with
+  its mark; nothing that EX-9.4 requires before a signature is folded;
+  "Approuver" and "Refuser" are two buttons of equal weight, side by side,
+  visible without scrolling in a 1280 × 800 window when no warning lengthens
+  the card; the reason is typed at the confirmation of the decision, under
+  its warning, and stays displayed until the signature; the instructions of
+  EX-9.20 may be folded before the choice and are shown in full on the
+  signing screen; a decided ticket no longer offers recusal or withdrawal,
+  and the result of a withdrawal stays on screen; the light state is set
+  before the first paint. Verification page (CT-6 §18): a verdict word drawn
+  from the exit code alone, then the eight controls read from the JSON
+  report, never shown as passed unless the report says so, and the warnings;
+  the readable report, the JSON report and the equivalent command line are
+  offered in folded blocks, opened for printing; the page computes no status
+  and shows no list when it cannot read the report exactly; the list of
+  published files does not change. Onboarding tool: steps, states and
+  errors in words, the next action stated, exact values kept in the folded
+  detail, and what commits the operator (document digest, manifest digest,
+  out-of-band confirmation) never folded. Specifications: dated supplements
+  in CT-3 (EX-9.4, 13.1) and CT-6 (18.3, EX-18.5, EX-18.6, EX-18.7, EX-18.9,
+  EX-18.11); no control rule, schema, report, exit code or vector changes;
+  the line citations of CT-7, CT-8 and CT-9 follow the moved texts. Tests:
+  `test/theme-commun.test.js` (identity of the common block),
+  `test/exploitation-console-presentation-chromium.test.js`,
+  `test/verification-page-presentation.test.js`,
+  `test/inscription-presentation.test.js` and
+  `test/inscription-presentation-chromium.test.js`, each red on the former
+  screens and green on the new ones, with mutants killed (an unverified
+  amount entering the summary, a control not run shown as passed, a folded
+  commitment); the existing screen tests keep their content oracles. CI: the
+  onboarding screens and the presentation of the verification page run in
+  the browser job, with no pending test. Test plan (CT-9): the new tests are
+  attached to TE-13, TE-22 and TE-23; catalogue regenerated twice,
+  byte-identical.
+
 - Build step 8, supplements of 2026-11-17 (étape 8, compléments du
   2026-11-17). Registry (CT-4, EX-8.14): a sender never signs below the
   nonce that follows its last send whose inclusion is recorded, so a send

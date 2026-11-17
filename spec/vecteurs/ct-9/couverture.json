@@ -18,7 +18,7 @@
       },
       {
         "file": "spec/CT-3-approbations.md",
-        "sha256": "ed019f614309b12bd3cd9e8334729e171f637deb7d7ebc21c54005ba3e9137f5"
+        "sha256": "ee68a689aed2ed760c817d54c524f14fa3e42f02a9b1876e18ed8afd783bc722"
       },
       {
         "file": "spec/CT-4-registre.md",
@@ -30,20 +30,20 @@
       },
       {
         "file": "spec/CT-6-verificateur.md",
-        "sha256": "101c8aef4daef45ed73fe82e7e7ae08364e0e6ba34e58e29884d921d2a46fd59"
+        "sha256": "fed3d7bccb91dbf5f5fd7f1f4e40f5da3b187a1ef74ded41c485ce652cf1fb4b"
       },
       {
         "file": "spec/CT-7-securite-et-conformite.md",
-        "sha256": "3d41db104eb3e685645027df6b39f47be25dd3bf6d02819088858e8aa238209e"
+        "sha256": "d816519cb71b7cc09771e4935fc36a59a31b30440a3737fda41401b9ce805168"
       },
       {
         "file": "spec/CT-8-deploiement-et-exploitation.md",
-        "sha256": "6d436ada8c340abe5fc10cd2b6c2fb05cead4470730e43551409b224621438e5"
+        "sha256": "63c34d14afe640d70275d004e76ffa61f3062df3f755632af357e52b6a8829cc"
       }
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "9dcfef8779f55fb0a0b48c1d918665925dfe6f2eea89638cb7c9920bf2d25fbd"
+      "sha256": "9a1689efe6c0c75a6d3fc97d55415eea0425b28c8e6565beec6f9e0e1aa3ecdb"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -776,15 +776,19 @@
       },
       {
         "file": "test/exploitation-console-pages-chromium.test.js",
-        "sha256": "9e7aa80677ff36590ed8dad9340c2ec779d4d7b158c51d1b3277d052c12a4357"
+        "sha256": "93ecbc4e53e33a643daefdf46d4eeed29c32629db68703bd454b037c7970cd6b"
       },
       {
         "file": "test/exploitation-console-pages.test.js",
-        "sha256": "b1890dc4cb30858841f7287ead2408ef42879e69ccc9e058836e024a3e59f84f"
+        "sha256": "ec696f10099bb47acd361eaf36c409e113f996ff90ab7cdfc57145e75b6c723f"
       },
       {
         "file": "test/exploitation-console-parcours.test.js",
         "sha256": "9f7cd58c8d5a5b84beb279766d9c35a53dc4f47847ec2ed566382147fe054bb4"
+      },
+      {
+        "file": "test/exploitation-console-presentation-chromium.test.js",
+        "sha256": "945aafb855f3f23a270ed10d986aee0a34dea962cae43e687f716cb60ca64e3e"
       },
       {
         "file": "test/exploitation-console-prises-unix.test.js",
@@ -844,11 +848,19 @@
       },
       {
         "file": "test/inscription-application.test.js",
-        "sha256": "2082be868d9f22d0d79b84d73da342e4950ccac86249eb51c0fd3ac0eeecfc66"
+        "sha256": "18b659095f36104f8fdfd6dbf812e9df0d0baa211033ab1e6ed7a5873f9da057"
       },
       {
         "file": "test/inscription-paquet.test.js",
         "sha256": "1c1ecb95e2f9157ddbd471ecf869d1b5614a03cb3dac8ae01f8dc53507545e88"
+      },
+      {
+        "file": "test/inscription-presentation-chromium.test.js",
+        "sha256": "6de89675bb6cae3256a4288a34e94f7c83d50137445bd808a15de7dc41344370"
+      },
+      {
+        "file": "test/inscription-presentation.test.js",
+        "sha256": "83858f9c1eba2144a93332eecae3c9dfcbac160f081cada5647cc6b38b57826d"
       },
       {
         "file": "test/inscription-prises-unix.test.js",
@@ -1027,6 +1039,10 @@
         "sha256": "69e9758ed03444234658682681d7c3d77934b7cdfd79f7dc9a56955149732d81"
       },
       {
+        "file": "test/theme-commun.test.js",
+        "sha256": "441856149d993afb72e03f143b29099a31fb4bbce6237e767baab6e13ce77ef1"
+      },
+      {
         "file": "test/thresholdSignatures.test.js",
         "sha256": "1577bf530b2ba19d1aad32906fc9caf9e8618a82b375b278f7165d3356392c19"
       },
@@ -1040,19 +1056,23 @@
       },
       {
         "file": "test/verification-page-chromium.test.js",
-        "sha256": "4c36afd842d30fb1e324d4bf16974cc70c53fb5b44bab00c78c1023038318ee5"
+        "sha256": "b1f643b5886d0fcfddb0e0828a9406927ea21df27e6453f97a9355220dd048be"
       },
       {
         "file": "test/verification-page-construction.test.js",
-        "sha256": "bcf3c7e179ec3ffbec207b7396c43584c17971600538279e3957fe80e590d7a5"
+        "sha256": "6f1044cb48d5e9c806af8c3da3728bcded5fb3f0ad0fb17576474637af70fe25"
       },
       {
         "file": "test/verification-page-identite.test.js",
         "sha256": "dada247ba8e31021e9b65e1906e2347998a5184a7e6d22505484e2113f1fb63e"
       },
       {
+        "file": "test/verification-page-presentation.test.js",
+        "sha256": "c872a60ad6dea414381f6bc40dd942f4a3fe9f878fc8040075982353a449825a"
+      },
+      {
         "file": "test/verification-page-revue-navigateurs.test.js",
-        "sha256": "302ec439296e94986e66cdac1db2eed18fef5f0638a2aaa45b4a6dee93e6da9f"
+        "sha256": "c8804c16ee24dc254b8f76ccc3b52b2d94fa17d3408aa80f9aa0157aa51d51bd"
       },
       {
         "file": "test/verification-page-revue.test.js",
@@ -1325,7 +1345,7 @@
   },
   "executable": {
     "total": 302,
-    "titles_checked": 732,
+    "titles_checked": 745,
     "titles_missing": []
   },
   "text_tables": {

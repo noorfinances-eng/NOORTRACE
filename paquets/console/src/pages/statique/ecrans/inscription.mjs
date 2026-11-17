@@ -12,16 +12,16 @@
 // signature jamais au-delà de `Expire le` du défi (EX-13.30) ; révocation de
 // sa propre adresse, confirmée comme définitive (EX-13.17, contrat 3.4).
 
-import { lancerDecouverte, rendreFournisseurs, demanderComptes, appelFournisseur, ecouter, textePanne } from "../commun/fournisseurs.mjs";
+import { lancerDecouverte, rendreFournisseurs, demanderComptes, appelFournisseur, ecouter, noeudsPanne } from "../commun/fournisseurs.mjs";
 
 // EX-13.22, point 1 : la découverte est posée avant toute autre opération.
 const decouverte = lancerDecouverte();
 
 import { analyserComptes, controleDefi, donneesPersonalSign, requetePersonalSign, verifierReponse, echeanceAttente, decoderInstant, utf8, entreeDeSession } from "noortrace-console/index.mjs";
-import { el, ajouter, bouton, code, definitions, message, remplacer, vider } from "../commun/dom.mjs";
-import { t, texteCode } from "../commun/libelles.mjs";
+import { el, actions, ajouter, bouton, code, definitions, icone, message, pastille, remplacer, vider } from "../commun/dom.mjs";
+import { t } from "../commun/libelles.mjs";
 import { ErreurAppel, appeler, allerConnexion, envoiDepuis, methodesDepuis, lireSession, maintenant } from "../commun/client.mjs";
-import { afficherErreur, demarrerEcran, principal, section } from "../commun/cadre.mjs";
+import { afficherErreur, demarrerEcran, entete, instant, paragrapheCode, principal } from "../commun/cadre.mjs";
 
 const PREFIXES = ["inscription.", "console."];
 
@@ -42,12 +42,38 @@ const etat = {
 };
 
 const zones = {
-  entree: el("div", { attributs: { id: "zone-entree" } }),
-  fournisseurs: el("div", { attributs: { id: "zone-fournisseurs" } }),
-  comptes: el("div", { attributs: { id: "zone-comptes" } }),
-  texte: el("div", { attributs: { id: "zone-texte" } }),
+  entree: el("div", { classe: "nt-pile nt-pile-large", attributs: { id: "zone-entree" } }),
+  inscription: el("section", { classe: "nt-carte zone-carte", attributs: { id: "inscription" } }),
+  fournisseurs: el("div", { classe: "nt-pile", attributs: { id: "zone-fournisseurs" } }),
+  comptes: el("div", { classe: "nt-pile", attributs: { id: "zone-comptes" } }),
+  texte: el("div", { classe: "nt-pile", attributs: { id: "zone-texte" } }),
   resultat: el("div", { attributs: { id: "zone-resultat", "aria-live": "polite" } }),
 };
+
+// Les trois étapes de l'inscription : portefeuille, compte, texte à signer.
+// Chaque étape garde son élément ; `rendreEtapes` en met l'état à jour.
+const etapes = [1, 2, 3].map((n) => {
+  const rond = el("span", { classe: "nt-etape-rond", attributs: { "aria-hidden": "true" } });
+  const pastilleEtape = el("span", {});
+  const titre = el("p", { classe: "nt-etape-titre" }, el("span", { texte: t(`inscription.etape.${n}`) }), pastilleEtape);
+  const zone = [zones.fournisseurs, zones.comptes, zones.texte][n - 1];
+  const corps = el("div", { classe: "nt-etape-corps" }, titre, el("p", { classe: "nt-etape-texte", texte: t(`inscription.etape_sens.${n}`) }), zone);
+  return { n, rond, pastilleEtape, element: el("li", { classe: "nt-etape nt-etape-a-faire" }, rond, corps) };
+});
+
+/** Met à jour l'état des étapes : faite, en cours ou à faire. */
+function rendreEtapes() {
+  const faites = [etat.fournisseur !== null, etat.compte !== null, false];
+  const enCours = faites.indexOf(false);
+  etapes.forEach((e, k) => {
+    const genre = faites[k] ? "faite" : k === enCours ? "en-cours" : "a-faire";
+    e.element.setAttribute("class", `nt-etape nt-etape-${genre}`);
+    e.element.setAttribute("data-etape", genre);
+    remplacer(e.rond, genre === "faite" ? icone("coche") : null);
+    if (genre !== "faite") e.rond.appendChild(document.createTextNode(String(e.n)));
+    remplacer(e.pastilleEtape, genre === "faite" ? pastille("succes", t("etape.faite"), "coche") : genre === "en-cours" ? pastille("info", t("etape.en_cours"), "horloge") : pastille("neutre", t("etape.a_faire"), "tiret"));
+  });
+}
 
 function identite() {
   return etat.session.session_identity;
@@ -90,36 +116,74 @@ function inscriptionOfferte() {
   return etat.annuaire !== null && (e === null || e.active === true);
 }
 
+// Pastille de l'état d'une adresse de l'annuaire ; le code reste dans `data-etat` de sa ligne.
+const ETATS_ADRESSE = Object.freeze({ en_attente: ["attente", "horloge"], active: ["succes", "coche"], revoquee: ["refus", "croix"] });
+function pastilleAdresse(etatAdresse) {
+  const [genre, nomIcone] = ETATS_ADRESSE[etatAdresse] ?? ["neutre", "question"];
+  return pastille(genre, t(`adresse_etat.${etatAdresse}`), nomIcone);
+}
+
 function rendreEntree() {
   const e = entree();
-  const parties = [el("h1", { texte: t("inscription.titre") })];
+  const pastilleEntree =
+    e === null
+      ? pastille("neutre", t("inscription.entree.aucune"), "tiret", { grande: true, attributs: { "data-entree": "absente" } })
+      : e.active
+        ? pastille("succes", t("inscription.entree.pastille_active"), "coche", { grande: true, attributs: { "data-entree": "active" } })
+        : pastille("neutre", t("inscription.entree.pastille_desactivee"), "tiret", { grande: true, attributs: { "data-entree": "desactivee" } });
+  const parties = [entete({ titre: t("inscription.titre"), sousTitre: t("inscription.sous_titre"), etat: [pastilleEntree] })];
   if (e === null) {
-    parties.push(el("p", { texte: t("inscription.entree.absente"), attributs: { "data-entree": "absente" } }));
+    parties.push(message("info", el("p", { texte: t("inscription.entree.absente") })));
   } else {
-    parties.push(
-      definitions([
-        [t("inscription.entree.id"), code(e.id)],
-        [t("inscription.entree.etat"), el("span", { texte: t(e.active ? "inscription.entree.active" : "inscription.entree.desactivee"), attributs: { "data-entree": e.active ? "active" : "desactivee" } })],
-        [t("inscription.entree.creee"), code(e.created_at)],
-        [t("inscription.entree.alias"), e.requester_identities.length === 0 ? t("modele.vide") : el("ul", {}, ...e.requester_identities.map((r) => el("li", {}, code(r))))],
-      ]),
-    );
-    const table = el("table", { classe: "table", attributs: { id: "adresses" } });
-    ajouter(table, el("thead", {}, el("tr", {}, ...["adresse", "etat", "validation", "revocation", "action"].map((c) => el("th", { texte: t(`inscription.colonne.${c}`), attributs: { scope: "col" } })))));
+    if (!e.active) parties.push(message("alerte", paragrapheCode("identite_desactivee", ["raison."]), el("p", { texte: t("inscription.prevenir") })));
+    const table = el("table", { classe: "nt-tableau", attributs: { id: "adresses" } });
+    // Validation et révocation partagent une colonne : l'adresse garde la place de s'écrire en entier, sur une ligne.
+    const colonnes = ["adresse", "etat", "historique", "action"];
+    ajouter(table, el("thead", {}, el("tr", {}, ...colonnes.map((c) => el("th", { texte: t(`inscription.colonne.${c}`), attributs: { scope: "col" } })))));
     const corps = el("tbody");
+    const libelle = (c) => ({ "data-libelle": t(`inscription.colonne.${c}`) });
     for (const a of e.addresses) {
-      const validation = a.validated_at === null ? t("modele.vide") : el("span", {}, code(a.validated_at), " ", code(String(a.validated_by)));
-      const revocation =
-        a.revoked_at === null
-          ? t("modele.vide")
-          : el("span", {}, code(a.revoked_at), " ", t(`revocation.${a.revocation_cause}`), a.replaced_by ? el("span", {}, " ", t("inscription.remplacee_par"), " ", code(a.replaced_by)) : null, a.revocation_reason ? el("span", {}, " ", t("modele.votes.motif", { motif: a.revocation_reason })) : null);
-      ajouter(corps, el("tr", { attributs: { "data-adresse": a.address, "data-etat": a.state } }, el("td", {}, code(a.address)), el("td", { texte: t(`adresse_etat.${a.state}`) }), el("td", {}, validation), el("td", {}, revocation), el("td", {}, actionRevocation(e, a))));
+      const lignes = [];
+      if (a.validated_at !== null) lignes.push(el("span", { classe: "fait-texte" }, t("inscription.validee_le"), " ", instant(a.validated_at)), el("span", { classe: "fait-second" }, t("inscription.par"), " ", code(String(a.validated_by))));
+      if (a.revoked_at !== null) {
+        lignes.push(el("span", { classe: "fait-texte" }, el("span", { texte: t(`revocation.${a.revocation_cause}`) }), t("inscription.le"), instant(a.revoked_at)));
+        if (a.replaced_by) lignes.push(el("span", { classe: "fait-second" }, t("inscription.remplacee_par"), " ", code(a.replaced_by)));
+        if (a.revocation_reason) lignes.push(el("span", { classe: "fait-second", texte: t("modele.votes.motif", { motif: a.revocation_reason }) }));
+      }
+      const historique = lignes.length === 0 ? el("span", { classe: "nt-attenue", texte: t("inscription.pas_validee") }) : el("span", {}, ...lignes);
+      ajouter(
+        corps,
+        el(
+          "tr",
+          { attributs: { "data-adresse": a.address, "data-etat": a.state } },
+          el("td", { classe: "nt-cellule-titre", attributs: libelle("adresse") }, code(a.address, "nt-fixe adresse-entiere")),
+          el("td", { attributs: libelle("etat") }, pastilleAdresse(a.state)),
+          el("td", { attributs: libelle("historique") }, historique),
+          el("td", { attributs: libelle("action") }, actionRevocation(e, a)),
+        ),
+      );
     }
     table.appendChild(corps);
-    parties.push(e.addresses.length === 0 ? el("p", { texte: t("inscription.aucune_adresse") }) : table);
-    if (!e.active) parties.push(message("alerte", el("p", { texte: texteCode("identite_desactivee", ["raison."]), attributs: { "data-code": "identite_desactivee" } }), el("p", { texte: t("inscription.prevenir") })));
+    parties.push(
+      el(
+        "section",
+        { classe: "nt-carte nt-carte-pleine" },
+        el("div", { classe: "nt-carte-titre" }, el("h2", { texte: t("inscription.adresses") })),
+        e.addresses.length === 0 ? el("p", { classe: "nt-attenue pied-carte", texte: t("inscription.aucune_adresse") }) : table,
+        el("p", { classe: "nt-attenue nt-petit pied-carte", texte: t("inscription.validation_sens") }),
+      ),
+      el(
+        "section",
+        { classe: "nt-carte" },
+        el("h2", { texte: t("inscription.entree.titre") }),
+        definitions([
+          [t("inscription.entree.id"), code(e.id)],
+          [t("inscription.entree.creee"), instant(e.created_at)],
+          [t("inscription.entree.alias"), e.requester_identities.length === 0 ? t("modele.vide") : el("ul", { classe: "liste-nue" }, ...e.requester_identities.map((r) => el("li", {}, code(r))))],
+        ]),
+      ),
+    );
   }
-  parties.push(el("p", { classe: "discret", texte: t("inscription.validation_sens") }));
   remplacer(zones.entree, ...parties);
   rendreFournisseursEtComptes();
 }
@@ -129,30 +193,35 @@ function rendreEntree() {
 // second clic avec la consigne qu'elle est définitive ; le serveur exige la
 // réauthentification d'EX-13.8 (la page navigue alors vers la connexion).
 function actionRevocation(e, a) {
-  if (a.state !== "en_attente" && a.state !== "active") return t("modele.vide");
+  if (a.state !== "en_attente" && a.state !== "active") return el("span", { classe: "nt-attenue", texte: t("modele.vide") });
   if (etat.revocation !== a.address) {
     return el(
       "div",
       { classe: "action", attributs: { "data-action": "revoquer" } },
-      bouton(t("inscription.revoquer"), () => {
-        etat.revocation = a.address;
-        rendreEntree();
-      }),
+      bouton(
+        t("inscription.revoquer"),
+        () => {
+          etat.revocation = a.address;
+          rendreEntree();
+        },
+        { petit: true },
+      ),
     );
   }
   const id = `motif-revoquer-${a.address}`;
-  const champ = el("input", { attributs: { type: "text", id, maxlength: "4096", "aria-label": t("annuaire.motif") } });
+  const champ = el("input", { classe: "nt-saisie", attributs: { type: "text", id, maxlength: "4096", "aria-label": t("annuaire.motif") } });
   return el(
     "div",
-    { classe: "action confirmation", attributs: { "data-action": "revoquer", "data-confirmation": "" } },
+    { classe: "action confirmation nt-pile", attributs: { "data-action": "revoquer", "data-confirmation": "" } },
     message("alerte", el("p", { texte: t("inscription.revoquer_definitif") })),
-    el("label", { texte: t("annuaire.motif"), attributs: { for: id } }),
-    champ,
-    bouton(t("inscription.revoquer_confirmer"), () => void revoquer(e.id, a.address, champ.value === "" ? null : champ.value), { classe: "bouton principal" }),
-    bouton(t("action.annuler"), () => {
-      etat.revocation = null;
-      rendreEntree();
-    }),
+    el("div", { classe: "nt-champ" }, el("label", { classe: "nt-libelle", texte: t("annuaire.motif"), attributs: { for: id } }), champ),
+    actions(
+      bouton(t("inscription.revoquer_confirmer"), () => void revoquer(e.id, a.address, champ.value === "" ? null : champ.value), { genre: "danger" }),
+      bouton(t("action.annuler"), () => {
+        etat.revocation = null;
+        rendreEntree();
+      }),
+    ),
   );
 }
 
@@ -160,7 +229,7 @@ async function revoquer(entree_, adresse, motif) {
   etat.revocation = null;
   try {
     const r = await appeler("revoquer", { session_identity: identite(), entry: entree_, address: adresse, reason: motif });
-    remplacer(zones.resultat, message("info", el("p", { texte: t("inscription.revoquee", { adresse: String(r.valeur.address) }), attributs: { "data-resultat": "revoquer" } })));
+    remplacer(zones.resultat, message("succes", el("p", { texte: t("inscription.revoquee", { adresse: String(r.valeur.address) }), attributs: { "data-resultat": "revoquer" } })));
   } catch (e) {
     if (afficherErreur(zones.resultat, e)) return;
   }
@@ -172,11 +241,13 @@ async function revoquer(entree_, adresse, motif) {
 
 function rendreFournisseursEtComptes() {
   if (!inscriptionOfferte()) {
-    vider(zones.fournisseurs);
-    vider(zones.comptes);
+    vider(zones.inscription);
     return;
   }
-  rendreFournisseurs(zones.fournisseurs, decouverte, etat.fournisseur, choisirFournisseur, true);
+  if (etapes[0].element.parentNode === null || zones.inscription.firstChild === null) {
+    remplacer(zones.inscription, el("h2", { texte: t("inscription.nouvelle") }), el("p", { classe: "nt-attenue", texte: t("inscription.sens") }), el("ol", { classe: "nt-etapes" }, ...etapes.map((e) => e.element)));
+  }
+  rendreFournisseurs(zones.fournisseurs, decouverte, etat.fournisseur, choisirFournisseur, true, false);
   rendreComptes();
 }
 
@@ -246,20 +317,11 @@ function rendreComptes() {
   if (etat.fournisseur !== null) parties.push(el("p", {}, t("portefeuille.courant", { nom: etat.fournisseur.name })));
   if (etat.comptes !== null) {
     parties.push(el("h3", { texte: t("inscription.comptes") }));
-    if (etat.comptes.length === 0) parties.push(el("p", { texte: t("inscription.aucun_compte") }));
-    const ul = el("ul", { classe: "comptes", attributs: { id: "comptes" } });
+    if (etat.comptes.length === 0) parties.push(el("p", { classe: "nt-attenue", texte: t("inscription.aucun_compte") }));
+    const ul = el("ul", { classe: "liste-nue comptes", attributs: { id: "comptes" } });
     for (const a of [...new Set(etat.comptes)]) {
       const choisi = a === etat.compte;
-      ajouter(
-        ul,
-        el(
-          "li",
-          { attributs: { "data-compte": a } },
-          code(a),
-          " ",
-          choisi ? el("span", { classe: "etiquette", texte: t("inscription.compte_choisi") }) : bouton(t("inscription.choisir_compte"), () => void choisirCompte(a), { actif: !etat.enCours }),
-        ),
-      );
+      ajouter(ul, el("li", { classe: "compte", attributs: { "data-compte": a } }, code(a), " ", choisi ? pastille("succes", t("inscription.compte_choisi"), "coche") : bouton(t("inscription.choisir_compte"), () => void choisirCompte(a), { actif: !etat.enCours, petit: true })));
     }
     parties.push(ul);
   }
@@ -267,12 +329,13 @@ function rendreComptes() {
     if (etat.panne.code === "adresse_retiree") parties.push(message("alerte", el("p", { texte: t("adresse.retiree"), attributs: { "data-code": "adresse_retiree" } })));
     else {
       parties.push(
-        message("erreur", el("p", { texte: textePanne(etat.panne.code, etat.panne.erreur, ["comptes.", ...PREFIXES]), attributs: { "data-code": etat.panne.code } })),
-        etat.fournisseur !== null ? bouton(t("portefeuille.redemander"), () => void obtenirComptes()) : null,
+        message("erreur", el("p", { attributs: { "data-code": etat.panne.code } }, ...noeudsPanne(etat.panne.code, etat.panne.erreur, ["comptes.", ...PREFIXES]))),
+        etat.fournisseur !== null ? actions(bouton(t("portefeuille.redemander"), () => void obtenirComptes())) : null,
       );
     }
   }
   remplacer(zones.comptes, ...parties);
+  rendreEtapes();
 }
 
 // ---------------------------------------------------------------------------
@@ -291,7 +354,7 @@ async function preparer() {
   etat.generation += 1;
   const g = etat.generation;
   const adresse = etat.compte;
-  remplacer(zones.texte, el("p", { classe: "discret", texte: t("inscription.preparation") }));
+  remplacer(zones.texte, el("p", { classe: "nt-attenue", texte: t("inscription.preparation") }));
   // EX-13.48, point 5 (révision 0.6) : l'authentification qui couvre
   // `preparer_inscription` doit couvrir aussi l'`inscrire` qui suit, au terme
   // de l'attente admise ; sinon la page fait réauthentifier d'abord, avant de
@@ -301,7 +364,7 @@ async function preparer() {
   if (s.etat !== "session") {
     vider(zones.texte);
     if (s.etat === "erreur") afficherErreur(zones.resultat, s.erreur);
-    else if (s.etat === "identite_invalide") remplacer(zones.resultat, message("erreur", el("p", { texte: texteCode("identite_invalide", ["raison."]) })));
+    else if (s.etat === "identite_invalide") remplacer(zones.resultat, message("erreur", paragrapheCode("identite_invalide", ["raison."])));
     return;
   }
   etat.session = s.session;
@@ -326,7 +389,7 @@ async function preparer() {
   if (ecart !== null) {
     // Aucune requête de signature ; la raison et la consigne (13.14).
     vider(zones.texte);
-    remplacer(zones.resultat, message("erreur", el("p", { texte: texteCode(ecart, ["defi.", "console."]), attributs: { "data-code": ecart } }), el("p", { texte: t("inscription.defi_refuse") })));
+    remplacer(zones.resultat, message("erreur", paragrapheCode(ecart, ["defi.", "console."]), el("p", { texte: t("inscription.defi_refuse") })));
     return;
   }
   etat.defi = { message: r.valeur.message, fields: r.valeur.fields, adresse };
@@ -337,20 +400,20 @@ function rendreTexte() {
   const d = etat.defi;
   if (d === null) {
     vider(zones.texte);
+    rendreEtapes();
     return;
   }
-  const ol = el("ol", { classe: "texte-inscription fixe", attributs: { id: "texte-inscription" } });
+  const ol = el("ol", { classe: "texte-inscription", attributs: { id: "texte-inscription" } });
   for (const ligne of d.message.split("\n")) ajouter(ol, el("li", { texte: ligne }));
   remplacer(
     zones.texte,
-    section(
-      t("inscription.texte"),
-      el("p", { texte: t("inscription.texte_verifier") }),
-      ol,
-      bouton(t("inscription.signer"), () => void signer(), { actif: !etat.enCours, classe: "bouton principal" }),
-      etat.enCours ? el("p", { classe: "discret", texte: t("signature.en_cours") }) : null,
-    ),
+    el("h3", { texte: t("inscription.texte") }),
+    el("p", { texte: t("inscription.texte_verifier") }),
+    ol,
+    actions(bouton(t("inscription.signer"), () => void signer(), { actif: !etat.enCours, genre: "principal", icone: "cadenas" })),
+    etat.enCours ? message("info", el("p", { texte: t("signature.en_cours") })) : null,
   );
+  rendreEtapes();
 }
 
 // Règle de 3.5 (même règle que pour un vote), avec l'exception de
@@ -382,7 +445,7 @@ async function signer() {
     etat.enCours = false;
     rendreTexte();
     if (s.etat === "erreur") afficherErreur(zones.resultat, s.erreur);
-    else if (s.etat === "identite_invalide") remplacer(zones.resultat, message("erreur", el("p", { texte: texteCode("identite_invalide", ["raison."]) })));
+    else if (s.etat === "identite_invalide") remplacer(zones.resultat, message("erreur", paragrapheCode("identite_invalide", ["raison."])));
     return;
   }
   if (s.session.session_identity !== identite()) {
@@ -398,7 +461,7 @@ async function signer() {
   if (attente <= 0) {
     abandonner();
     rendreComptes();
-    remplacer(zones.resultat, message("erreur", el("p", { texte: texteCode("inscription_expiree", ["raison."]), attributs: { "data-code": "inscription_expiree" } }), el("p", { texte: t("inscription.recommencer"), attributs: { "data-consigne": "recommencer" } })));
+    remplacer(zones.resultat, message("erreur", paragrapheCode("inscription_expiree", ["raison."]), el("p", { texte: t("inscription.recommencer"), attributs: { "data-consigne": "recommencer" } })));
     return;
   }
   if (reauthentificationAvant(s.session, m, attente, ["preparer_inscription"])) {
@@ -417,14 +480,14 @@ async function signer() {
   if (reponse.delai) {
     abandonner();
     rendreComptes();
-    remplacer(zones.resultat, message("erreur", el("p", { texte: textePanne("delai_depasse", null, PREFIXES), attributs: { "data-code": "delai_depasse" } })));
+    remplacer(zones.resultat, message("erreur", el("p", { attributs: { "data-code": "delai_depasse" } }, ...noeudsPanne("delai_depasse", null, PREFIXES))));
     return;
   }
   const verdict = verifierReponse(reponse, utf8(d.message), d.adresse);
   if (verdict.outcome !== "accepte") {
     abandonner();
     rendreComptes();
-    const parties = [el("p", { texte: textePanne(verdict.reason, reponse.error ?? null, PREFIXES), attributs: { "data-code": verdict.reason } })];
+    const parties = [el("p", { attributs: { "data-code": verdict.reason } }, ...noeudsPanne(verdict.reason, reponse.error ?? null, PREFIXES))];
     if (verdict.reason === "adresse_differente" && verdict.recovered) parties.push(el("p", {}, t("signature.adresse_recouvree"), " ", code(verdict.recovered)));
     remplacer(zones.resultat, message("erreur", ...parties));
     if (verdict.reason === "non_autorise") void obtenirComptes();
@@ -437,7 +500,7 @@ async function signer() {
     etat.compte = null;
     rendreComptes();
     const v = r.valeur;
-    remplacer(zones.resultat, message("info", el("p", { texte: t("inscription.inscrite", { adresse: String(v.address), etat: t(`adresse_etat.${v.state}`) }), attributs: { "data-resultat": "inscription_envoyee" } }), el("p", { texte: t("inscription.validation_sens") })));
+    remplacer(zones.resultat, message("succes", el("p", { texte: t("inscription.inscrite", { adresse: String(v.address), etat: t(`adresse_etat.${v.state}`) }), attributs: { "data-resultat": "inscription_envoyee" } }), el("p", { texte: t("inscription.validation_sens") })));
     await lireAnnuaire();
   } catch (e) {
     if (g !== etat.generation) return;
@@ -457,7 +520,7 @@ async function demarrer() {
   const s = await demarrerEcran("inscription");
   if (s === null) return;
   etat.session = s;
-  principal().appendChild(el("main", { classe: "contenu" }, zones.entree, el("section", { classe: "bloc", attributs: { id: "inscription" } }, el("h2", { texte: t("inscription.nouvelle") }), el("p", { texte: t("inscription.sens") }), zones.fournisseurs, zones.comptes), zones.texte, zones.resultat));
+  principal().appendChild(el("main", { classe: "nt-page" }, zones.entree, zones.inscription, zones.resultat));
   await lireAnnuaire();
 }
 

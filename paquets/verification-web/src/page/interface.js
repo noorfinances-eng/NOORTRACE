@@ -1,15 +1,24 @@
 // Interface de la page de vérification (CT-6 §18) : choix des fichiers,
 // lecture des archives (archives.js), transmission au travailleur, affichage
 // (EX-18.2, EX-18.5, EX-18.7, EX-18.9). Aucun HTML n'est inséré : tout texte
-// passe par textContent, après neutralisation des caractères de commande
-// (neutraliser) ; aucun stockage, aucune requête.
+// passe par textContent ou par un nœud de texte, après neutralisation des
+// caractères de commande (neutraliser) ; aucun stockage, aucune requête.
+//
+// Présentation (complément du 2026-11-17 de CT-6 §18) : le verdict, la liste
+// des contrôles et les avertissements se lisent dans le code de retour et
+// dans le rapport JSON du vérificateur ; la page ne calcule aucun statut. Un
+// contrôle que le rapport ne dit pas « reussi » n'est jamais montré réussi,
+// et un rapport dont la liste des contrôles ne se lit pas n'est pas résumé.
 
 const TABLES_LIBELLES = { fr: LIBELLES_FR, en: LIBELLES_EN };
 const CODES_CONNUS = [0, 1, 2, 3];
+const STATUTS_CONNUS = ["reussi", "echoue", "non_execute"];
+const RAISONS_CONNUES = ["partie_absente", "ancre_absente", "hors_perimetre_version", "piece_hors_dossier", "prerequis_en_echec"];
 
 const etat = {
   langue: "fr",
   langueRapportChoisie: false,
+  themeChoisi: false,
   travailleur: null,
   artefactOctets: null,
   pret: false,
@@ -21,6 +30,7 @@ const etat = {
   arret: false,
   attente: null,
   vue: null,
+  deplies: new Set(),
 };
 
 const $ = (id) => document.getElementById(id);
@@ -54,7 +64,88 @@ function element(balise, classe, texte) {
   return e;
 }
 
+/** Remplace le contenu d'un élément par un texte, neutralisé. */
+function ecrire(e, texte) {
+  e.replaceChildren(document.createTextNode(neutraliser(texte)));
+}
+
+// Icônes du thème : tracés au trait, construits élément par élément (aucun
+// HTML inséré, aucune image).
+const ICONES = {
+  coche: [["path", { d: "M5 12.5l4.5 4.5L19 7.5" }]],
+  croix: [["path", { d: "M6.5 6.5l11 11M17.5 6.5l-11 11" }]],
+  sablier: [["path", { d: "M7 4h10M7 20h10M8 4c0 4.2 4 4.6 4 8s-4 3.8-4 8M16 4c0 4.2-4 4.6-4 8s4 3.8 4 8" }]],
+  alerte: [["path", { d: "M12 4.5l8.5 14.5h-17z" }], ["path", { d: "M12 10.5v3.5M12 16.6v.3" }]],
+  question: [["circle", { cx: "12", cy: "12", r: "8.5" }], ["path", { d: "M9.7 9.7a2.4 2.4 0 1 1 3.5 2.2c-.8.4-1.2 1-1.2 1.8M12 16.6v.3" }]],
+  bouclier: [["path", { d: "M12 3.5l7 2.5v5.5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6z" }], ["path", { d: "M8.8 12.2l2.4 2.4 4.2-4.6" }]],
+  tiret: [["path", { d: "M7 12h10" }]],
+};
+
+function icone(nom) {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", "nt-icone");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  for (const [balise, attributs] of ICONES[nom]) {
+    const e = document.createElementNS(NS, balise);
+    for (const [k, v] of Object.entries(attributs)) e.setAttribute(k, v);
+    svg.append(e);
+  }
+  return svg;
+}
+
+/** Pastille d'état : une icône et un mot ; `ton` : succes, refus, attente, info ou rien (neutre). */
+function pastille(ton, nomIcone, texte) {
+  const p = element("span", ton ? `nt-pastille nt-pastille-${ton}` : "nt-pastille");
+  p.append(icone(nomIcone), element("span", null, texte));
+  return p;
+}
+
 const decodeur = new TextDecoder("utf-8");
+
+// --- Thème ------------------------------------------------------------------
+
+// Le sombre est l'état sans attribut ; le clair pose data-theme="clair" sur
+// <html>. Aucun stockage (EX-18.11) : la page s'ouvre selon le système
+// (prefers-color-scheme), et le choix fait par la bascule vaut pour la page
+// affichée seulement.
+const COULEURS_BARRE = { sombre: "#060B16", clair: "#F3F7FF" };
+
+function requeteSystemeClair() {
+  return typeof globalThis.matchMedia === "function" ? globalThis.matchMedia("(prefers-color-scheme: light)") : null;
+}
+
+function themeClair() {
+  return document.documentElement.getAttribute("data-theme") === "clair";
+}
+
+function poserTheme(clair) {
+  if (clair) document.documentElement.setAttribute("data-theme", "clair");
+  else document.documentElement.removeAttribute("data-theme");
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", clair ? COULEURS_BARRE.clair : COULEURS_BARRE.sombre);
+  afficherBascule();
+}
+
+function afficherBascule() {
+  const b = $("bascule-theme");
+  if (!b) return;
+  const texte = libelle(themeClair() ? "theme_vers_sombre" : "theme_vers_clair");
+  b.setAttribute("aria-label", texte);
+  b.setAttribute("title", texte);
+}
+
+/** Posé dès le chargement du script, avant le premier affichage du corps. */
+function amorcerTheme() {
+  const requete = requeteSystemeClair();
+  poserTheme(requete !== null && requete.matches);
+  if (requete !== null && typeof requete.addEventListener === "function") {
+    requete.addEventListener("change", (ev) => {
+      if (!etat.themeChoisi) poserTheme(ev.matches);
+    });
+  }
+}
 
 // --- Langue de la page ----------------------------------------------------
 
@@ -66,25 +157,53 @@ function appliquerLangue() {
   const autre = $("autre-langue");
   autre.lang = etat.langue === "fr" ? "en" : "fr";
   if (!etat.langueRapportChoisie) $("langue-rapport").value = etat.langue;
+  afficherBascule();
   afficherArtefact();
   afficherDossier();
+  afficherEntrees();
+  afficherOptions();
   afficherVue();
 }
 
 // --- Artefact ---------------------------------------------------------------
 
+/**
+ * État du vérificateur (EX-18.5). Prêt : une pastille dans l'en-tête de la
+ * page, et la phrase qui porte la version et l'empreinte dans le bloc replié
+ * « Empreinte du vérificateur ». Artefact altéré ou vérificateur indisponible : la phrase
+ * monte dans une alerte toujours visible, et le bloc replié disparaît.
+ */
 function afficherArtefact() {
   const p = $("artefact");
   const a = etat.artefact;
   p.className = "";
+  let marque = ["", "sablier", "artefact_chargement"];
   if (a.genre === "chargement") p.textContent = libelle("artefact_chargement");
-  else if (a.genre === "pret") p.textContent = libelle("artefact_pret", { version: a.version, empreinte: a.empreinte });
-  else if (a.genre === "altere") {
+  else if (a.genre === "pret") {
+    p.textContent = libelle("artefact_pret", { version: a.version, empreinte: a.empreinte });
+    marque = ["succes", "coche", "etat_pret"];
+  } else if (a.genre === "altere") {
     p.className = "alerte";
     p.textContent = libelle("artefact_altere", { calculee: a.calculee, attendue: a.attendue });
+    marque = ["refus", "croix", "etat_indisponible"];
   } else {
     p.className = "alerte";
     p.textContent = `${libelle("non_faite")}. ${libelle("cause", { cause: a.cause })}`;
+    marque = ["refus", "croix", "etat_indisponible"];
+  }
+  const enAlerte = a.genre === "altere" || a.genre === "non_faite";
+  const alerte = $("alerte-verificateur");
+  const detail = $("detail-empreinte");
+  if (alerte && detail) {
+    $(enAlerte ? "alerte-verificateur" : "hote-artefact").append(p);
+    alerte.hidden = !enAlerte;
+    detail.hidden = a.genre !== "pret";
+  }
+  const mot = $("etat-verificateur");
+  if (mot) {
+    const p = pastille(marque[0], marque[1], libelle(marque[2]));
+    p.classList.add("nt-pastille-grande");
+    mot.replaceChildren(p);
   }
   majBoutons();
 }
@@ -218,9 +337,47 @@ function recevoir(message) {
 function afficherDossier() {
   const p = $("dossier-choisi");
   const d = etat.dossier;
-  if (d === null) p.textContent = libelle("aucun_dossier");
-  else p.textContent = libelle(d.genre === "repertoire" ? "nom_dossier_repertoire" : "nom_dossier_archive", { nom: d.nom });
+  if (d === null) {
+    p.className = "pv-choisi";
+    p.textContent = libelle("aucun_dossier");
+  } else {
+    p.className = "pv-choisi pv-choisi-fait";
+    p.replaceChildren(icone("coche"), element("span", null, libelle(d.genre === "repertoire" ? "dossier_choisi_repertoire" : "dossier_choisi_archive", { nom: d.nom })));
+  }
   majBoutons();
+}
+
+/** Noms des fichiers facultatifs choisis, à côté de leurs boutons. */
+function afficherEntrees() {
+  for (const [id, fichier] of [["nom-ancres", etat.ancres], ["nom-entetes", etat.entetes]]) {
+    const e = $(id);
+    if (!e) continue;
+    e.className = fichier ? "pv-fichier-nom pv-fichier-choisi" : "pv-fichier-nom";
+    e.textContent = libelle(fichier ? "fichier_choisi" : "aucun_fichier", { nom: fichier ? fichier.name : "" });
+  }
+  afficherOptions();
+}
+
+/** Résumé des options choisies, lisible quand le bloc des options est replié. */
+function afficherOptions() {
+  const resume = $("resume-options");
+  if (!resume) return;
+  const parties = [];
+  if (etat.ancres) parties.push(libelle("options_ancres"));
+  if (etat.entetes) parties.push(libelle("options_entetes"));
+  const exiges = valeurExiger();
+  if (exiges === "tous") parties.push(libelle("options_exiger_tous"));
+  else if (exiges !== null) parties.push(libelle("options_exiger", { liste: exiges.split(",").join(", ") }));
+  const langue = $("langue-rapport").value === "en" ? "en" : "fr";
+  if (langue !== etat.langue) parties.push(libelle("options_langue", { langue: libelle(langue === "en" ? "langue_en" : "langue_fr") }));
+  if ($("detail").checked) parties.push(libelle("options_detail"));
+  ecrire(resume, parties.length === 0 ? libelle("options_aucune") : parties.join(" · "));
+}
+
+function cleAideVerifier() {
+  if (etat.artefact.genre === "altere" || etat.artefact.genre === "non_faite") return "aide_verifier_indisponible";
+  if (!etat.pret) return "aide_verifier_chargement";
+  return etat.dossier === null ? "aide_verifier_dossier" : "aide_verifier_pret";
 }
 
 function majBoutons() {
@@ -228,6 +385,8 @@ function majBoutons() {
   if (b) b.disabled = !(etat.pret && etat.dossier !== null && !etat.enCours);
   const a = $("arreter");
   if (a) a.disabled = !(etat.enCours && !etat.arret);
+  const aide = $("aide-verifier");
+  if (aide) aide.textContent = libelle(cleAideVerifier());
 }
 
 /** Octets propres d'un Uint8Array (tampon exact, transférable). */
@@ -329,6 +488,7 @@ async function deposer(ev) {
     afficherDossier();
     etat.vue = { genre: "refus", raison: "r_plusieurs", parametres: {}, noms: null };
     afficherVue();
+    montrerResultat();
     return;
   }
   const item = elements[0];
@@ -343,6 +503,7 @@ async function deposer(ev) {
       if (e instanceof RefusArchive) etat.vue = { genre: "refus", raison: e.raison, parametres: e.parametres, noms: null };
       else etat.vue = { genre: "refus", raison: "r_lecture", parametres: { nom: entree.name }, noms: null };
       afficherVue();
+      montrerResultat();
       return;
     }
     etat.dossier = dossierDeRepertoire(entree.name, liste);
@@ -357,6 +518,7 @@ async function deposer(ev) {
 function contraintesExiger() {
   const tous = $("exiger-tous").checked;
   for (const c of document.querySelectorAll('input[name="exiger"]')) c.disabled = tous;
+  afficherOptions();
 }
 
 /** Forme canonique d'EX-8.2 : « tous », ou numéros croissants séparés par une virgule. */
@@ -382,6 +544,7 @@ async function verifier() {
   etat.arret = false;
   majBoutons();
   etat.vue = { genre: "en_cours" };
+  etat.deplies.clear();
   afficherVue();
   const noms = {
     dossier: { genre: etat.dossier.genre, nom: etat.dossier.nom },
@@ -430,6 +593,7 @@ async function verifier() {
     etat.arret = false;
     majBoutons();
     afficherVue();
+    montrerResultat();
     // Après un arrêt, un travailleur neuf reçoit l'artefact ; la page
     // redevient prête quand il répond.
     if (arrete && etat.travailleur === null) lancerTravailleur();
@@ -473,6 +637,7 @@ function interpreter(reponse, noms) {
     code: lisible.code,
     lisible: decodeur.decode(lisible.sortie),
     erreur: decodeur.decode(lisible.erreur),
+    json: decodeur.decode(json.sortie),
   };
   if (lisible.code === 2) {
     const m = rapport.error && typeof rapport.error.message === "string" ? rapport.error.message : null;
@@ -485,16 +650,75 @@ function interpreter(reponse, noms) {
     }
     vue.enonceFr = s.fr;
     vue.enonceEn = s.en;
+    vue.resume = resumer(rapport, lisible.code);
   }
   return vue;
+}
+
+// --- Résumé tiré du rapport JSON ---------------------------------------------
+
+/**
+ * Les huit contrôles du rapport JSON (CT-6 EX-8.7, `controls`), ou null si
+ * la liste ne se lit pas exactement : huit objets numérotés de 1 à 8, un
+ * statut de CT-6 EX-6.1, une raison de CT-6 §6.2 pour un contrôle non exécuté
+ * et aucune pour les autres. Null aussi si la liste contredit le code de
+ * retour (un contrôle en échec, ou non exécuté pour un prérequis en échec,
+ * sous un code 0 ou 3). La page ne corrige ni ne complète rien : une liste
+ * qu'elle ne lit pas n'est pas résumée, et le rapport complet reste affiché.
+ */
+function lireControles(rapport, code) {
+  const liste = rapport.controls;
+  if (!Array.isArray(liste) || liste.length !== 8) return null;
+  const controles = [];
+  for (let i = 0; i < 8; i++) {
+    const c = liste[i];
+    if (c === null || typeof c !== "object" || c.number !== i + 1 || !STATUTS_CONNUS.includes(c.status)) return null;
+    if (c.status === "non_execute" ? typeof c.reason !== "string" : c.reason !== null && c.reason !== undefined) return null;
+    if ((code === 0 || code === 3) && (c.status === "echoue" || c.reason === "prerequis_en_echec")) return null;
+    controles.push({ numero: c.number, statut: c.status, raison: c.status === "non_execute" ? c.reason : null, resume: typeof c.summary === "string" ? c.summary : "" });
+  }
+  return controles;
+}
+
+/** Liste de chaînes du rapport, ou null si ce n'en est pas une. */
+function listeDeChaines(v) {
+  return Array.isArray(v) && v.every((x) => typeof x === "string") ? v : null;
+}
+
+/**
+ * Ce que la page résume d'un rapport de code 0, 1 ou 3, tiré du seul rapport
+ * JSON : contrôles (ou null), contrôles exigés (`inputs.required_controls`,
+ * ou null), vérifications en échec et bloquantes (EX-6.7), avertissements
+ * (`warnings`, ou null s'ils ne se lisent pas).
+ */
+function resumer(rapport, code) {
+  const exiges = rapport.inputs && Array.isArray(rapport.inputs.required_controls) && rapport.inputs.required_controls.every((n) => Number.isInteger(n) && n >= 1 && n <= 8) ? rapport.inputs.required_controls : null;
+  let avertissements = [];
+  if (rapport.warnings !== undefined) {
+    const w = rapport.warnings;
+    const lisibles = Array.isArray(w) && w.every((a) => a !== null && typeof a === "object" && typeof a.id === "string" && typeof a.detail === "string" && (a.check === null || a.check === undefined || typeof a.check === "string"));
+    avertissements = lisibles ? w.map((a) => ({ id: a.id, verification: typeof a.check === "string" ? a.check : null, detail: a.detail })) : null;
+  }
+  return {
+    controles: lireControles(rapport, code),
+    exiges,
+    echecs: listeDeChaines(rapport.failed_checks),
+    bloquantes: listeDeChaines(rapport.blocking_unexecuted),
+    avertissements,
+  };
+}
+
+/** Numéros des contrôles que le rapport ne dit pas réussis. */
+function controlesNonReussis(controles) {
+  return controles.filter((c) => c.statut !== "reussi").map((c) => c.numero);
 }
 
 // --- Affichage du résultat ----------------------------------------------------
 
 function blocNoms(noms) {
-  const div = element("div", "noms");
-  div.append(element("p", null, libelle("noms_choisis")));
-  const ul = element("ul");
+  const div = element("div", "noms nt-pile");
+  div.append(element("p", "nt-petit", libelle("noms_choisis")));
+  const ul = element("ul", "pv-liste nt-petit");
   const d = noms.dossier;
   ul.append(element("li", null, libelle(d.genre === "repertoire" ? "nom_dossier_repertoire" : "nom_dossier_archive", { nom: d.nom })));
   if (noms.ancres !== null) ul.append(element("li", null, libelle("nom_ancres", { nom: noms.ancres })));
@@ -516,6 +740,184 @@ function texteCause(cause) {
   return libelle(cause.cle, cause.parametres);
 }
 
+/** Raison d'une non-exécution en clair, son code entre parenthèses (CT-6 §6.2). */
+function texteRaison(code) {
+  return libelle("raison", { raison: libelle(RAISONS_CONNUES.includes(code) ? `raison_${code}` : "raison_inconnue"), code });
+}
+
+/**
+ * Bloc replié : titre, note, corps. Son état (ouvert ou non) est gardé d'un
+ * affichage à l'autre de la même vérification (changement de langue).
+ */
+function blocReplie(id, titre, note) {
+  const d = element("details", "nt-detail pv-detail");
+  d.id = id;
+  d.open = etat.deplies.has(id);
+  const s = element("summary");
+  s.append(element("span", null, titre));
+  if (note) s.append(element("span", "nt-detail-note pv-detail-note", note));
+  const corps = element("div", "nt-detail-corps");
+  d.append(s, corps);
+  d.addEventListener("toggle", () => {
+    if (d.open) etat.deplies.add(id);
+    else etat.deplies.delete(id);
+  });
+  return { bloc: d, corps };
+}
+
+/** Bouton « Copier » d'un texte préformaté : le texte affiché, tel quel ; rien si le navigateur ne l'offre pas. */
+function boutonCopier(pre) {
+  const presse = globalThis.navigator && globalThis.navigator.clipboard;
+  if (!presse || typeof presse.writeText !== "function") return null;
+  const ligne = element("div", "pv-copie");
+  const bouton = element("button", "nt-bouton nt-bouton-petit", libelle("copier"));
+  bouton.type = "button";
+  const suite = element("span", "nt-petit nt-attenue");
+  suite.setAttribute("role", "status");
+  bouton.addEventListener("click", () => {
+    presse.writeText(pre.textContent).then(
+      () => {
+        suite.textContent = libelle("copie_faite");
+      },
+      () => {
+        suite.textContent = libelle("copie_impossible");
+      },
+    );
+  });
+  ligne.append(bouton, suite);
+  return ligne;
+}
+
+/** Bloc replié « Fichiers choisis », quand aucune ligne de commande n'est à montrer. */
+function blocFichiers(noms) {
+  const { bloc, corps } = blocReplie("detail-fichiers", libelle("titre_fichiers"), null);
+  corps.append(blocNoms(noms));
+  return bloc;
+}
+
+/**
+ * Texte préformaté, tel quel (EX-18.9), avec son bouton de copie. Un texte
+ * long défile dans son cadre, que le clavier atteint.
+ */
+function blocPre(corps, pre) {
+  pre.classList.add("pv-pre");
+  pre.tabIndex = 0;
+  pre.setAttribute("role", "group");
+  pre.setAttribute("aria-label", libelle("texte_defilant"));
+  const copie = boutonCopier(pre);
+  if (copie) corps.append(copie);
+  corps.append(pre);
+}
+
+/** Grand verdict : un signe, un mot, une phrase ; `variante` : valide, non-valide, incomplet ou null (neutre). */
+function blocVerdict(variante, nomIcone) {
+  const s = element("section", variante ? `nt-verdict nt-verdict-${variante}` : "nt-verdict");
+  s.id = "verdict";
+  const signe = element("div", "nt-verdict-signe");
+  signe.append(icone(nomIcone));
+  s.append(signe);
+  return s;
+}
+
+/** Ligne d'alerte sous le verdict : ce que le verdict ne couvre pas. */
+function ligneBorne(id, texte) {
+  const p = element("p", "pv-verdict-borne");
+  p.id = id;
+  p.append(icone("alerte"), element("span", null, texte));
+  return p;
+}
+
+/** Énoncé du vérificateur, tel quel ; les empreintes hexadécimales sont mises en chasse fixe, sans qu'un caractère change. */
+function paragrapheEnonce(id, langue, texte) {
+  const p = element("p", "enonce");
+  p.id = id;
+  p.lang = langue;
+  for (const morceau of String(texte).split(/(0x[0-9a-f]{16,})/)) {
+    if (morceau === "") continue;
+    if (/^0x[0-9a-f]{16,}$/.test(morceau)) p.append(element("span", "pv-hex", morceau));
+    else p.append(document.createTextNode(neutraliser(morceau)));
+  }
+  return p;
+}
+
+const PASTILLES_STATUT = {
+  reussi: ["succes", "coche", "statut_reussi"],
+  echoue: ["refus", "croix", "statut_echoue"],
+  non_execute: ["", "tiret", "statut_non_execute"],
+};
+
+/** Carte des huit contrôles : l'état que le rapport donne à chacun, sa raison, son résumé. */
+function carteControles(resume) {
+  const carte = element("section", "nt-carte");
+  carte.id = "controles";
+  const titre = element("div", "nt-carte-titre");
+  titre.append(element("h3", null, libelle("titre_controles")));
+  const compte = (statut) => resume.controles.filter((c) => c.statut === statut).length;
+  const parties = [libelle("compte_reussis", { n: compte("reussi") })];
+  if (compte("non_execute") > 0) parties.push(libelle("compte_non_executes", { n: compte("non_execute") }));
+  if (compte("echoue") > 0) parties.push(libelle("compte_echoues", { n: compte("echoue") }));
+  const note = element("span", "nt-carte-note", parties.join(" · "));
+  note.id = "compte-controles";
+  titre.append(note);
+  const ul = element("ul", "nt-controles");
+  for (const c of resume.controles) {
+    const li = element("li", "nt-controle pv-controle");
+    li.dataset.numero = String(c.numero);
+    li.dataset.statut = c.statut;
+    const [ton, nomIcone, cle] = PASTILLES_STATUT[c.statut];
+    const marque = element("span");
+    marque.append(pastille(ton, nomIcone, libelle(cle)));
+    const texte = element("div", "nt-controle-texte");
+    const ligne = element("div", "pv-controle-ligne");
+    ligne.append(element("span", "nt-controle-titre", `${c.numero}. ${libelle(`controle_${c.numero}`)}`));
+    if (resume.exiges !== null && resume.exiges.includes(c.numero)) ligne.append(pastille("info", "alerte", libelle("controle_exige")));
+    texte.append(ligne);
+    if (c.statut === "non_execute") texte.append(element("span", "pv-controle-raison", texteRaison(c.raison)));
+    if (c.resume !== "") texte.append(element("span", "nt-attenue nt-petit", c.resume));
+    li.append(marque, texte);
+    ul.append(li);
+  }
+  carte.append(titre, ul);
+  return carte;
+}
+
+/** Bandeau des avertissements : ceux du rapport JSON, puis la sortie d'erreur si elle n'est pas vide. */
+function bandeauAvertissements(v) {
+  const avertissements = v.resume ? v.resume.avertissements : [];
+  if (v.erreur === "" && avertissements !== null && avertissements.length === 0) return null;
+  const bandeau = element("div", "nt-bandeau nt-bandeau-avertissement");
+  bandeau.id = "avertissements";
+  bandeau.append(icone("alerte"));
+  const texte = element("div", "nt-bandeau-texte");
+  if (avertissements === null) texte.append(element("p", "nt-bandeau-titre", libelle("avertissements_illisibles")));
+  else if (avertissements.length > 0) {
+    texte.append(element("p", "nt-bandeau-titre", libelle("titre_avertissements")));
+    const ul = element("ul", "pv-liste");
+    for (const a of avertissements) {
+      ul.append(element("li", null, a.verification === null ? libelle("avertissement_sans_verification", { detail: a.detail, id: a.id }) : libelle("avertissement", { detail: a.detail, id: a.id, check: a.verification })));
+    }
+    texte.append(ul);
+  }
+  if (v.erreur !== "") {
+    texte.append(element("p", "nt-bandeau-titre", libelle("titre_sortie_erreur")));
+    const err = element("pre", "sortie-erreur nt-pre", v.erreur);
+    err.id = "sortie-erreur";
+    texte.append(err);
+  }
+  bandeau.append(texte);
+  return bandeau;
+}
+
+/** Bloc replié « Refaire la vérification avec le binaire » : fichiers choisis et ligne de commande équivalente. */
+function blocCommande(v) {
+  const { bloc, corps } = blocReplie("detail-commande", libelle("titre_commande"), libelle("note_commande"));
+  if (v.noms) corps.append(blocNoms(v.noms));
+  corps.append(element("p", "nt-petit", libelle("commande")));
+  blocPre(corps, element("pre", "commande nt-pre", v.commandes.join("\n")));
+  corps.append(element("p", "nt-petit nt-attenue", libelle("nom_interne")));
+  return bloc;
+}
+
 function afficherVue() {
   const section = $("resultat");
   const contenu = $("resultat-contenu");
@@ -528,58 +930,133 @@ function afficherVue() {
   }
   section.hidden = false;
   if (v.genre === "en_cours") {
-    contenu.append(element("p", "en-cours", libelle("en_cours")));
+    const bandeau = element("div", "nt-bandeau");
+    bandeau.append(icone("sablier"));
+    const texte = element("div", "nt-bandeau-texte");
+    texte.append(element("p", "en-cours", libelle("en_cours")));
+    bandeau.append(texte);
+    contenu.append(bandeau);
     return;
   }
-  if (v.noms) contenu.append(blocNoms(v.noms));
   if (v.genre === "refus") {
-    contenu.append(element("p", "alerte", texteRefus(v.raison, v.parametres)));
-    contenu.append(element("p", "aucun-rapport", libelle("aucun_rapport")));
+    // EX-18.7 : la raison, « aucun rapport » et aucun code.
+    const verdict = blocVerdict(null, "alerte");
+    verdict.append(element("p", "nt-verdict-mot pv-mot aucun-rapport", libelle("aucun_rapport")));
+    verdict.append(element("p", "nt-verdict-phrase pv-phrase alerte", texteRefus(v.raison, v.parametres)));
+    const suite = element("div", "pv-verdict-suite");
+    suite.append(element("p", null, libelle("refus_suite")));
+    verdict.append(suite);
+    contenu.append(verdict);
+    if (v.noms) contenu.append(blocFichiers(v.noms));
     return;
-  }
-  if (v.commandes) {
-    contenu.append(element("p", null, libelle("commande")));
-    contenu.append(element("pre", "commande", v.commandes.join("\n")));
   }
   if (v.genre === "non_faite") {
-    contenu.append(element("p", "alerte non-faite", libelle("non_faite")));
-    contenu.append(element("p", "cause", libelle("cause", { cause: texteCause(v.cause) })));
+    // EX-18.9 : « vérification non faite » avec la cause, aucun rapport, aucun énoncé.
+    const verdict = blocVerdict(null, "question");
+    verdict.append(element("p", "nt-verdict-mot pv-mot alerte non-faite", libelle("non_faite")));
+    verdict.append(element("p", "nt-verdict-phrase pv-phrase cause", libelle("cause", { cause: texteCause(v.cause) })));
+    const suite = element("div", "pv-verdict-suite");
+    suite.append(element("p", null, libelle("non_faite_suite")));
+    verdict.append(suite);
+    contenu.append(verdict);
+    if (v.commandes) contenu.append(blocCommande(v));
+    else if (v.noms) contenu.append(blocFichiers(v.noms));
     return;
   }
-  const code = element("p", `code code-${v.code}`, libelle("code", { code: v.code, sens: libelle(`code_${v.code}`) }));
+
+  // Verdict : le mot suit le code de retour ; la phrase du code (table de CT-6 §8.3) reste entière dessous.
+  const variantes = { 0: ["valide", "bouclier"], 1: ["non-valide", "croix"], 2: [null, "question"], 3: ["incomplet", "alerte"] };
+  const verdict = blocVerdict(variantes[v.code][0], variantes[v.code][1]);
+  verdict.dataset.code = String(v.code);
+  const mot = element("p", "nt-verdict-mot pv-mot", libelle(`mot_${v.code}`));
+  mot.id = "verdict-mot";
+  const code = element("p", `nt-verdict-phrase pv-phrase code code-${v.code}`, libelle("code", { code: v.code, sens: libelle(`code_${v.code}`) }));
   code.id = "code";
-  contenu.append(code);
-  if (v.lisible !== "") {
-    contenu.append(element("p", null, libelle("rapport_lisible")));
-    const pre = element("pre", "rapport", v.lisible);
-    pre.id = "rapport-lisible";
-    contenu.append(pre);
-  }
+  const suite = element("div", "pv-verdict-suite");
+  suite.id = "verdict-suite";
+  verdict.append(mot, code, suite);
+  contenu.append(verdict);
+
   if (v.code === 2) {
-    contenu.append(element("p", null, libelle("message_erreur")));
+    const a = element("p", "aucune-affirmation pv-verdict-fort", libelle("aucune_affirmation"));
+    a.id = "aucune-affirmation";
+    suite.append(a);
+    suite.append(element("p", "nt-petit nt-attenue", libelle("message_erreur")));
     const m = element("p", "message-erreur", v.messageErreur);
     m.id = "message-erreur";
-    contenu.append(m);
-    const a = element("p", "aucune-affirmation", libelle("aucune_affirmation"));
-    a.id = "aucune-affirmation";
-    contenu.append(a);
+    suite.append(m);
   } else {
-    contenu.append(element("p", null, libelle("enonce_fr")));
-    const fr = element("p", "enonce", v.enonceFr);
-    fr.id = "enonce-fr";
-    fr.lang = "fr";
-    contenu.append(fr);
-    contenu.append(element("p", null, libelle("enonce_en")));
-    const en = element("p", "enonce", v.enonceEn);
-    en.id = "enonce-en";
-    en.lang = "en";
-    contenu.append(en);
+    const r = v.resume;
+    if (r.controles === null) suite.append(ligneBorne("resume-indisponible", libelle("resume_indisponible")));
+    else {
+      const nonReussis = controlesNonReussis(r.controles);
+      if (v.code === 0 && nonReussis.length === 0) {
+        const p = element("p", "pv-verdict-fort", libelle("tous_reussis"));
+        p.id = "tous-reussis";
+        suite.append(p);
+      } else if (v.code === 0) suite.append(ligneBorne("verdict-borne", libelle("valide_borne", { liste: nonReussis.join(", ") })));
+      else if (v.code === 3 && r.exiges !== null) {
+        suite.append(ligneBorne("exiges-non-reussis", libelle("exiges_non_reussis", { liste: r.exiges.filter((n) => nonReussis.includes(n)).join(", ") })));
+      }
+    }
+    if (v.code === 1) {
+      if (r.echecs !== null && r.echecs.length > 0) suite.append(element("p", "pv-verdict-fort", libelle("verifications_echec", { liste: r.echecs.join(", ") })));
+      if (r.bloquantes !== null && r.bloquantes.length > 0) suite.append(element("p", "pv-verdict-fort", libelle("verifications_bloquantes", { liste: r.bloquantes.join(", ") })));
+    }
   }
-  contenu.append(element("p", null, libelle("sortie_erreur")));
-  const err = element("pre", "sortie-erreur", v.erreur === "" ? libelle("sortie_erreur_vide") : v.erreur);
-  err.id = "sortie-erreur";
-  if (v.erreur === "") err.classList.add("vide");
-  contenu.append(err);
+
+  // Les avertissements montent sous le verdict : ils ne sont jamais repliés.
+  const avertissements = bandeauAvertissements(v);
+  if (avertissements) contenu.append(avertissements);
+
+  if (v.code !== 2) {
+    // Énoncé dans la langue de la page, tel quel ; l'autre langue dans un bloc replié de la même carte.
+    const carte = element("section", "nt-carte");
+    carte.id = "enonce";
+    const titre = element("div", "nt-carte-titre");
+    titre.append(element("h3", null, libelle(v.code === 1 ? "titre_enonce_invalide" : "titre_enonce")));
+    titre.append(element("span", "nt-carte-note", libelle("note_enonce")));
+    carte.append(titre);
+    const fr = paragrapheEnonce("enonce-fr", "fr", v.enonceFr);
+    const en = paragrapheEnonce("enonce-en", "en", v.enonceEn);
+    const [principal, autre, cleAutre, champAutre] = etat.langue === "en" ? [en, fr, "enonce_fr", "statement.fr"] : [fr, en, "enonce_en", "statement.en"];
+    carte.append(principal);
+    const { bloc, corps } = blocReplie("detail-enonce-autre", libelle(cleAutre), champAutre);
+    bloc.classList.add("pv-enonce-autre");
+    corps.append(autre);
+    carte.append(bloc);
+    contenu.append(carte);
+    if (v.resume.controles !== null) contenu.append(carteControles(v.resume));
+  }
+
+  // Rapport complet, rapport JSON, ligne de commande : tels quels, dans des blocs repliés.
+  if (v.lisible !== "" || v.erreur === "") {
+    const { bloc, corps } = blocReplie("detail-rapport", libelle("rapport_lisible"), libelle("note_rapport"));
+    if (v.lisible !== "") {
+      const pre = element("pre", "rapport nt-pre nt-pre-defile", v.lisible);
+      pre.id = "rapport-lisible";
+      blocPre(corps, pre);
+    }
+    if (v.erreur === "") {
+      corps.append(element("p", "nt-petit", libelle("sortie_erreur")));
+      const err = element("pre", "sortie-erreur nt-pre vide", libelle("sortie_erreur_vide"));
+      err.id = "sortie-erreur";
+      corps.append(err);
+    }
+    contenu.append(bloc);
+  }
+  const json = blocReplie("detail-json", libelle("rapport_json"), libelle("note_rapport_json"));
+  const preJson = element("pre", "rapport-json nt-pre nt-pre-defile", v.json);
+  preJson.id = "rapport-json";
+  blocPre(json.corps, preJson);
+  contenu.append(json.bloc);
+  contenu.append(blocCommande(v));
+}
+
+/** Après une vérification, le résultat vient à l'écran. */
+function montrerResultat() {
+  const section = $("resultat");
+  if (section && !section.hidden && typeof section.scrollIntoView === "function") section.scrollIntoView({ block: "start" });
 }
 
 // --- Liaisons -----------------------------------------------------------------
@@ -589,8 +1066,14 @@ function lier() {
     etat.langue = etat.langue === "fr" ? "en" : "fr";
     appliquerLangue();
   });
+  $("bascule-theme").addEventListener("click", () => {
+    etat.themeChoisi = true;
+    poserTheme(!themeClair());
+  });
   $("choisir-repertoire").addEventListener("click", () => $("entree-repertoire").click());
   $("choisir-archive").addEventListener("click", () => $("entree-archive").click());
+  $("choisir-ancres").addEventListener("click", () => $("entree-ancres").click());
+  $("choisir-entetes").addEventListener("click", () => $("entree-entetes").click());
   $("entree-repertoire").addEventListener("change", (ev) => {
     if (etat.enCours) return;
     choisirRepertoire(ev.target.files);
@@ -605,21 +1088,28 @@ function lier() {
   });
   $("entree-ancres").addEventListener("change", (ev) => {
     etat.ancres = ev.target.files[0] ?? null;
+    afficherEntrees();
   });
   $("entree-entetes").addEventListener("change", (ev) => {
     etat.entetes = ev.target.files[0] ?? null;
+    afficherEntrees();
   });
   $("retirer-ancres").addEventListener("click", () => {
     $("entree-ancres").value = "";
     etat.ancres = null;
+    afficherEntrees();
   });
   $("retirer-entetes").addEventListener("click", () => {
     $("entree-entetes").value = "";
     etat.entetes = null;
+    afficherEntrees();
   });
   $("exiger-tous").addEventListener("change", contraintesExiger);
+  for (const c of document.querySelectorAll('input[name="exiger"]')) c.addEventListener("change", afficherOptions);
+  $("detail").addEventListener("change", afficherOptions);
   $("langue-rapport").addEventListener("change", () => {
     etat.langueRapportChoisie = true;
+    afficherOptions();
   });
   $("verifier").addEventListener("click", () => {
     verifier();
@@ -627,12 +1117,39 @@ function lier() {
   $("arreter").addEventListener("click", () => {
     arreter();
   });
-  document.addEventListener("dragover", (ev) => ev.preventDefault());
+  const zone = $("zone-depot");
+  document.addEventListener("dragover", (ev) => {
+    ev.preventDefault();
+    zone.classList.add("pv-depot-survol");
+  });
+  document.addEventListener("dragleave", (ev) => {
+    if (ev.relatedTarget === null) zone.classList.remove("pv-depot-survol");
+  });
   document.addEventListener("drop", (ev) => {
+    zone.classList.remove("pv-depot-survol");
     deposer(ev);
+  });
+  // Un bloc replié ne s'imprime pas : le résultat s'imprime entier, puis reprend son état.
+  let fermes = [];
+  globalThis.addEventListener("beforeprint", () => {
+    fermes = [...document.querySelectorAll("#resultat-contenu details:not([open])")];
+    for (const d of fermes) d.open = true;
+  });
+  globalThis.addEventListener("afterprint", () => {
+    for (const d of fermes) d.open = false;
+    fermes = [];
   });
 }
 
-lier();
-appliquerLangue();
-demarrer();
+function initialiser() {
+  lier();
+  appliquerLangue();
+  demarrer();
+}
+
+// page.js est chargé dans l'en-tête : le thème est posé avant le premier
+// affichage, le reste attend que le document soit lu (verificateur-wasm.js,
+// en fin de corps, a alors défini l'artefact).
+amorcerTheme();
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialiser);
+else initialiser();

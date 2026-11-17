@@ -28,7 +28,7 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { casDeRefus, chargerArchives } from "./fixtures/verification-page/archives-essai.mjs";
-import { attendreArtefact, lancer, lancerVerification, ouvrir } from "./fixtures/verification-page/navigateur.mjs";
+import { attendreArtefact, deplierOptions, lancer, lancerVerification, ouvrir } from "./fixtures/verification-page/navigateur.mjs";
 import { ANCRES, CHAINE, RACINE, RacineNatif, VERSION, argumentsVerification, construireTout, enAttente, environnementGo, essaiRacineNatif, fichiersDe, repertoireTemporaire, sha256 } from "./fixtures/verification-page/outils.mjs";
 import { outilsArchivesDisponibles, recettesArchives } from "./fixtures/verification-page/recettes.mjs";
 
@@ -57,6 +57,7 @@ function libelle(table, cle, parametres = {}) {
 
 /** Choisit les options de l'échantillon dans la page. */
 async function choisirOptions(page, o) {
+  await deplierOptions(page);
   if (o.ancres) await page.setInputFiles("#entree-ancres", ANCRES);
   else await page.click("#retirer-ancres");
   if (o.entetes) await page.setInputFiles("#entree-entetes", CHAINE);
@@ -229,7 +230,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
           await choisirOptions(o.page, e.options);
           // Comme répertoire.
           await o.page.setInputFiles("#entree-repertoire", dossier);
-          expect(await o.page.textContent("#dossier-choisi")).to.equal(libelle(LIBELLES, "nom_dossier_repertoire", { nom: path.basename(dossier) }));
+          expect(await o.page.textContent("#dossier-choisi")).to.equal(libelle(LIBELLES, "dossier_choisi_repertoire", { nom: path.basename(dossier) }));
           await lancerVerification(o.page);
           comparer(await lireResultat(o.page), n.sorties, n.args, `${e.dossier} répertoire`);
           // Sous chaque recette.
@@ -238,7 +239,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
             fs.mkdirSync(path.dirname(nommee), { recursive: true });
             fs.renameSync(a.chemin, nommee);
             await o.page.setInputFiles("#entree-archive", nommee);
-            expect(await o.page.textContent("#dossier-choisi")).to.equal(libelle(LIBELLES, "nom_dossier_archive", { nom: a.fichier }));
+            expect(await o.page.textContent("#dossier-choisi")).to.equal(libelle(LIBELLES, "dossier_choisi_archive", { nom: a.fichier }));
             await lancerVerification(o.page);
             comparer(await lireResultat(o.page), n.sorties, n.args, `${e.dossier} ${a.recette}`);
           }
@@ -328,6 +329,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
           }
           document.body.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
         }, fichiers);
+        await deplierOptions(o.page);
         await o.page.click("#retirer-ancres");
         await o.page.click("#retirer-entetes");
         await deposer([{ nom: "depose.zip", b64: fs.readFileSync(archive.chemin).toString("base64") }]);

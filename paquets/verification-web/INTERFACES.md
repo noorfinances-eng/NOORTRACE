@@ -54,8 +54,8 @@ déterministe (aucune date, aucun aléa, aucun chemin de la machine) :
 
 | Fichier | Contenu (EX-18.5, EX-18.6, table de 18.3) |
 |---|---|
-| `index.html` | la page ; aucun script ni style en ligne, aucun attribut de gestionnaire d'événement ; `<link rel="stylesheet" href="page.css" integrity="sha384-…" crossorigin="anonymous">`, `<script src="verificateur-wasm.js" integrity="sha384-…" crossorigin="anonymous"></script>`, `<script src="page.js" integrity="sha384-…" crossorigin="anonymous"></script>`, dans cet ordre (`crossorigin="anonymous"` exigé sous `Integrity-Policy`, CT-6 0.7, EX-18.6) ; `lang="fr"` |
-| `page.css` | les styles ; polices du système |
+| `index.html` | la page ; aucun script ni style en ligne, aucun attribut de gestionnaire d'événement ; `<link rel="stylesheet" href="page.css" integrity="sha384-…" crossorigin="anonymous">` et `<script src="page.js" integrity="sha384-…" crossorigin="anonymous"></script>` dans l'en-tête, `<script src="verificateur-wasm.js" integrity="sha384-…" crossorigin="anonymous"></script>` à la fin du corps, dans cet ordre (`crossorigin="anonymous"` exigé sous `Integrity-Policy`, CT-6 0.7, EX-18.6 ; place des scripts : complément du 2026-11-17, point 10 de la section 6) ; `lang="fr"` |
+| `page.css` | le bloc de style commun aux écrans NOORTRACE (repères `/* noor-theme:debut */` et `/* noor-theme:fin */`), puis les styles de la page ; polices du système, aucune adresse |
 | `page.js` | un seul script classique, sans importation (aucune requête après le chargement, EX-18.11) : choix des fichiers, lecture des archives, transmission au travailleur, affichage |
 | `verificateur-wasm.js` | exactement `globalThis.NOORTRACE_VERIFICATEUR_WASM = "`, le base64 (RFC 4648 §4, avec remplissage, sans saut de ligne) de `noortrace-verifier.wasm`, `";`, LF |
 | `travailleur.js` | le prélude (système de fichiers, `process`, `path`, EX-18.8), puis `wasm_exec.js` sans changement, puis le pilote (constante `EMPREINTE_WASM`, exécutions d'EX-18.9) |
@@ -118,7 +118,35 @@ en français et en anglais (`statement.fr`, `statement.en`) pour 0, 1 et 3,
 rapport » sur un refus d'archive ; « vérification non faite » quand les
 deux codes diffèrent, qu'une exécution n'a pas de code, que la `version` du
 bloc `verifier` du rapport JSON n'est pas celle que la page annonce, ou que
-l'utilisateur a arrêté la vérification. Toute chaîne venue d'une entrée passe
+l'utilisateur a arrêté la vérification.
+
+Présentation (complément du 2026-11-17 de CT-6 §18 ; point 10 de la
+section 6). Identifiants stables de l'affichage, que les essais lisent :
+
+| Élément | Contenu | Replié |
+|---|---|---|
+| `#phrase-fixe`, `#etat-verificateur` | phrase d'EX-18.2 ; état du vérificateur (en chargement, prêt, indisponible) | jamais |
+| `#artefact` | phrase d'EX-18.5 (version et empreinte) dans `#detail-empreinte` ; artefact altéré ou vérificateur indisponible : dans `#alerte-verificateur` | seulement quand le vérificateur est prêt |
+| `#options` | fichier d'ancres, fichier d'en-têtes, `--exiger`, `--langue`, `--detail` ; `#resume-options` résume les choix dans son titre | oui |
+| `#dossier-choisi`, `#verifier`, `#arreter` | dossier choisi, lancement, arrêt | jamais |
+| `#verdict`, `#verdict-mot`, `#code` | grand verdict : mot tiré du code de retour, phrase du code (table de CT-6 §8.3) | jamais |
+| `#tous-reussis`, `#verdict-borne`, `#exiges-non-reussis`, `#resume-indisponible` | sous le verdict : les huit contrôles réussis ; « Valide, avec des contrôles non exécutés : … » ; contrôles exigés non réussis ; liste des contrôles illisible | jamais |
+| `#avertissements`, `#sortie-erreur` | `warnings` du rapport JSON ; sortie d'erreur non vide | jamais (une sortie d'erreur vide est dite vide dans `#detail-rapport`) |
+| `#enonce-fr`, `#enonce-en` | énoncés, tels quels | celui de l'autre langue, dans `#detail-enonce-autre` |
+| `#controles` (`li[data-numero][data-statut]`) | les huit contrôles de `controls` : statut, raison de CT-6 §6.2 et son code, `summary` | jamais |
+| `#message-erreur`, `#aucune-affirmation` | code 2 : `error.message`, phrase fixe | jamais |
+| `#rapport-lisible`, `#rapport-json`, `pre.commande` | sortie standard des deux exécutions et ligne de commande équivalente, telles quelles | oui (`#detail-rapport`, `#detail-json`, `#detail-commande`) |
+| `.aucun-rapport`, `.alerte`, `.non-faite`, `.cause` | refus d'archive ; « vérification non faite » et sa cause | jamais |
+
+Le mot du verdict ne dépend que du code de retour. La liste des contrôles ne
+montre que des valeurs du rapport JSON : `lireControles` rend `null` (aucune
+liste, « résumé indisponible ») si `controls` n'est pas exactement huit
+contrôles numérotés de 1 à 8, de statut `reussi`, `echoue` ou `non_execute`,
+avec une raison pour un contrôle non exécuté et pour lui seul, ou si la liste
+contredit le code (sous 0 ou 3, un contrôle `echoue` ou non exécuté pour
+`prerequis_en_echec`). Thème : `data-theme="clair"` sur `<html>` pour l'état
+clair, aucun attribut pour le sombre ; état initial selon
+`prefers-color-scheme`, bascule par `#bascule-theme`, aucun stockage. Toute chaîne venue d'une entrée passe
 par `neutraliser` avant `textContent` : commandes C0 (sauf tabulation et saut
 de ligne), DEL, C1, U+2028, U+2029 et marques de direction sont affichées
 sous la forme visible `\u{…}`. Langue de la page :
@@ -172,6 +200,14 @@ Playwright ou sans navigateur, les essais de navigateur aussi, et ils
   chargement, aucune violation de politique ; artefact altéré d'un octet non
   compilé et aucun rapport (TA-101) ; stockage vide et aucun service worker
   après une vérification ; en-têtes présents.
+- Présentation (complément du 2026-11-17), `verification-page-presentation.test.js` :
+  sous Node, lecture des contrôles, libellés, gabarit, feuille de style ;
+  dans un navigateur, sans chaîne Go (artefact factice, travailleur de
+  remplacement, rapports écrits par l'essai) : verdict selon le code, liste
+  selon le rapport, contrôle non exécuté jamais montré réussi (deux mutants
+  tués), rapports intacts dans leurs blocs repliés, avertissements visibles,
+  thème sans stockage ; de bout en bout avec go1.27.3 sur cinq dossiers des
+  vecteurs.
 - Gecko et WebKit : la même suite quand Playwright les a installés, en
   attente sinon ; l'épreuve complète d'EX-18.13 dans les trois moteurs, en
   leur dernière version publiée, précède la publication d'une version.
@@ -245,6 +281,17 @@ silence dans les sections précédentes :
    EX-18.11 ; comparaison de la version du rapport, à écrire dans EX-18.9 ;
    neutralisation des chaînes affichées, à rattacher à la règle commune
    d'EX-8.5 et EX-8.6.
+
+10. **Présentation des écrans (complément du 2026-11-17, décision du
+    porteur)**, écrit dans CT-6 §18 (18.3, EX-18.5, EX-18.6, EX-18.7,
+    EX-18.9, EX-18.11) : thème commun aux écrans du dépôt, en deux états
+    sans stockage ; `page.js` dans l'en-tête, `verificateur-wasm.js` en fin
+    de corps ; options et empreinte dans des blocs repliés ; grand verdict,
+    liste des contrôles et avertissements tirés du code de retour et du
+    rapport JSON ; rapport lisible, rapport JSON (affiché depuis ce
+    complément) et ligne de commande dans des blocs repliés, tels quels ;
+    bouton « Copier ». Les messages entre la page et le travailleur, le
+    travailleur, le prélude et l'artefact ne changent pas.
 
 Les points 1 à 5 sont versés dans les sections 2 et 3 ci-dessus (révision
 0.7 de CT-6) ; le point 6 est inscrit dans CT-6 0.7 (EX-18.3, annexe B.9).

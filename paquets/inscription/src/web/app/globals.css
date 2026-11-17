@@ -1,44 +1,2353 @@
-/* Interface d'exploitant : mise en forme neutre, sans police ni image externe (default-src 'none'). */
+/* noor-theme:debut */
+/*
+ * Thème commun des écrans NOORTRACE : jetons, base et composants.
+ * Ce bloc est identique à l'octet dans les trois feuilles de style
+ * (console d'approbation, page de vérification, outil d'inscription) ;
+ * un essai du dépôt le vérifie. Il se modifie dans les trois à la fois.
+ *
+ * Deux états, ceux du thème commun des outils NOORTRACE :
+ *   sombre : l'état sans attribut sur <html>, le défaut, rendu sans script ;
+ *   clair  : html[data-theme="clair"].
+ * L'impression rend toujours en clair.
+ *
+ * Règles tenues par ce bloc : polices du système seulement (aucun fichier
+ * de police), aucune ressource externe, aucune adresse dans la feuille,
+ * aucun style en ligne requis ; les icônes sont des SVG écrits dans le HTML
+ * ou le DOM. Chaque état se lit par un mot et une icône, jamais par la
+ * seule couleur. Toute classe commence par « nt- ».
+ */
+
+/* ------------------------------------------------------------------
+   1. Jetons : état sombre (défaut)
+   ------------------------------------------------------------------ */
 :root {
-  --fond: #ffffff;
-  --texte: #1d1d1f;
-  --discret: #5f6368;
-  --trait: #d0d4d9;
-  --accent: #1f5f8b;
-  --refus: #a3261d;
-  --succes: #1e6b3a;
-  color-scheme: light dark;
+  color-scheme: dark;
+
+  /* Charte */
+  --nt-navy: #0C2D48;
+  --nt-mint: #00D1B2;
+  --nt-bleu: #1A6AFF;
+  --nt-danger: #FF7A6E;
+  --nt-ambre: #FFC24D;
+
+  /* Fonds, lueurs, verres, bords */
+  --nt-fond: #060B16;
+  --nt-lueur-1: rgba(26, 106, 255, 0.34);
+  --nt-lueur-2: rgba(0, 209, 178, 0.22);
+  --nt-lueur-3: rgba(120, 190, 255, 0.10);
+  --nt-lueur-4: rgba(26, 106, 255, 0.18);
+  --nt-barre: rgba(7, 13, 26, 0.74);
+  --nt-verre: rgba(255, 255, 255, 0.06);
+  --nt-verre-2: rgba(255, 255, 255, 0.035);
+  --nt-verre-fort: rgba(255, 255, 255, 0.11);
+  --nt-essentiel: linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.05));
+  --nt-bord: rgba(255, 255, 255, 0.14);
+  --nt-bord-doux: rgba(255, 255, 255, 0.09);
+  --nt-bord-fort: rgba(255, 255, 255, 0.42);
+  --nt-ombre: 0 8px 28px rgba(2, 8, 18, 0.35);
+
+  /* Encres */
+  --nt-encre-titre: #F6F8FF;
+  --nt-encre: #EEF4FF;
+  --nt-encre-attenuee: #B4C2D9;
+  --nt-lien: #9DBEFF;
+  --nt-lien-survol: #C4D8FF;
+  --nt-degrade: linear-gradient(92deg, #7CB2FF 0%, #00D1B2 100%);
+  --nt-focus: #7CC4FF;
+  --nt-selection: rgba(0, 209, 178, 0.30);
+
+  /* États : encre, fond teinté, bord */
+  --nt-attente: #FFC24D;
+  --nt-attente-fond: rgba(255, 178, 46, 0.12);
+  --nt-attente-bord: rgba(255, 178, 46, 0.38);
+  --nt-succes: #55E9D0;
+  --nt-succes-fond: rgba(0, 209, 178, 0.12);
+  --nt-succes-bord: rgba(0, 209, 178, 0.38);
+  --nt-refus: #FFB4AC;
+  --nt-refus-fond: rgba(255, 99, 88, 0.13);
+  --nt-refus-bord: rgba(255, 122, 110, 0.42);
+  --nt-info: #ADCDFF;
+  --nt-info-fond: rgba(26, 106, 255, 0.18);
+  --nt-info-bord: rgba(124, 196, 255, 0.38);
+  --nt-neutre: #C9D4E6;
+  --nt-neutre-fond: rgba(255, 255, 255, 0.08);
+  --nt-neutre-bord: rgba(255, 255, 255, 0.22);
+
+  /* Actions */
+  --nt-action: #FFFFFF;
+  --nt-action-encre: #0C2D48;
+  --nt-action-survol: #EAF2FF;
+  --nt-action-ombre: 0 6px 20px rgba(0, 0, 0, 0.28);
+  --nt-action-danger: #FF8F85;
+  --nt-action-danger-encre: #2A0906;
+  --nt-action-danger-survol: #FFA79F;
+  --nt-inactif: rgba(255, 255, 255, 0.10);
+  --nt-inactif-encre: rgba(238, 244, 255, 0.55);
+
+  /* Champs */
+  --nt-champ: rgba(255, 255, 255, 0.06);
+  --nt-champ-bord: rgba(255, 255, 255, 0.42);
+  --nt-champ-focus: rgba(124, 196, 255, 0.20);
+  --nt-champ-indice: rgba(238, 244, 255, 0.70);
+
+  /* Polices */
+  --nt-police: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --nt-police-fixe: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Tailles de texte */
+  --nt-t-xs: 0.75rem;
+  --nt-t-s: 0.875rem;
+  --nt-t-m: 1rem;
+  --nt-t-l: 1.125rem;
+  --nt-t-xl: 1.375rem;
+  --nt-t-2xl: 1.75rem;
+  --nt-t-3xl: 2.375rem;
+
+  /* Espacements : échelle de 4 px */
+  --nt-e-1: 0.25rem;
+  --nt-e-2: 0.5rem;
+  --nt-e-3: 0.75rem;
+  --nt-e-4: 1rem;
+  --nt-e-5: 1.25rem;
+  --nt-e-6: 1.5rem;
+  --nt-e-8: 2rem;
+  --nt-e-10: 2.5rem;
+  --nt-e-12: 3rem;
+  --nt-e-16: 4rem;
+
+  /* Rayons, largeurs, cible tactile */
+  --nt-rayon-s: 8px;
+  --nt-rayon-m: 12px;
+  --nt-rayon-l: 16px;
+  --nt-rayon-xl: 24px;
+  --nt-rayon-pastille: 9999px;
+  --nt-largeur: 68rem;
+  --nt-largeur-etroite: 44rem;
+  --nt-cible: 2.75rem;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --fond: #16181b;
-    --texte: #e8eaed;
-    --discret: #9aa0a6;
-    --trait: #3c4043;
-    --accent: #8ab4f8;
-    --refus: #f28b82;
-    --succes: #81c995;
+
+/* ------------------------------------------------------------------
+   2. Jetons : état clair
+   ------------------------------------------------------------------ */
+html[data-theme="clair"] {
+  color-scheme: light;
+
+  --nt-fond: #F3F7FF;
+  --nt-lueur-1: rgba(26, 106, 255, 0.18);
+  --nt-lueur-2: rgba(0, 209, 178, 0.16);
+  --nt-lueur-3: rgba(120, 190, 255, 0.14);
+  --nt-lueur-4: rgba(26, 106, 255, 0.14);
+  --nt-barre: rgba(255, 255, 255, 0.78);
+  --nt-verre: rgba(255, 255, 255, 0.78);
+  --nt-verre-2: rgba(12, 45, 72, 0.045);
+  --nt-verre-fort: rgba(255, 255, 255, 0.92);
+  --nt-essentiel: linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(236, 243, 255, 0.92));
+  --nt-bord: rgba(12, 45, 72, 0.13);
+  --nt-bord-doux: rgba(12, 45, 72, 0.08);
+  --nt-bord-fort: rgba(26, 106, 255, 0.45);
+  --nt-ombre: 0 8px 28px rgba(12, 45, 72, 0.08);
+
+  --nt-encre-titre: #0C2D48;
+  --nt-encre: #123A66;
+  --nt-encre-attenuee: #425A73;
+  --nt-lien: #114ECB;
+  --nt-lien-survol: #0C3A9C;
+  --nt-degrade: linear-gradient(90deg, #1560EB 0%, #00786B 100%);
+  --nt-focus: #1A6AFF;
+  --nt-selection: rgba(0, 209, 178, 0.30);
+
+  --nt-attente: #7A4E00;
+  --nt-attente-fond: rgba(255, 178, 46, 0.18);
+  --nt-attente-bord: rgba(154, 98, 0, 0.42);
+  --nt-succes: #06695A;
+  --nt-succes-fond: rgba(0, 209, 178, 0.13);
+  --nt-succes-bord: rgba(6, 105, 90, 0.40);
+  --nt-refus: #9C2F28;
+  --nt-refus-fond: rgba(255, 99, 88, 0.12);
+  --nt-refus-bord: rgba(156, 47, 40, 0.40);
+  --nt-info: #114ECB;
+  --nt-info-fond: rgba(26, 106, 255, 0.10);
+  --nt-info-bord: rgba(17, 78, 203, 0.36);
+  --nt-neutre: #34506C;
+  --nt-neutre-fond: rgba(12, 45, 72, 0.06);
+  --nt-neutre-bord: rgba(12, 45, 72, 0.26);
+
+  --nt-action: #1A6AFF;
+  --nt-action-encre: #FFFFFF;
+  --nt-action-survol: #114ECB;
+  --nt-action-ombre: 0 6px 16px rgba(26, 106, 255, 0.28);
+  --nt-action-danger: #B0433B;
+  --nt-action-danger-encre: #FFFFFF;
+  --nt-action-danger-survol: #8F3229;
+  --nt-inactif: rgba(12, 45, 72, 0.08);
+  --nt-inactif-encre: rgba(12, 45, 72, 0.55);
+
+  --nt-champ: #FFFFFF;
+  --nt-champ-bord: rgba(12, 45, 72, 0.55);
+  --nt-champ-focus: rgba(26, 106, 255, 0.16);
+  --nt-champ-indice: rgba(12, 45, 72, 0.72);
+}
+
+/* ------------------------------------------------------------------
+   3. Base
+   ------------------------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--nt-fond);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--nt-encre);
+  font-family: var(--nt-police);
+  font-size: var(--nt-t-m);
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  overflow-wrap: break-word;
+}
+
+/* Les lueurs du fond : posées, immobiles, derrière tout le contenu. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px circle at 15% 8%, var(--nt-lueur-1), transparent 55%),
+    radial-gradient(950px circle at 85% 18%, var(--nt-lueur-2), transparent 55%),
+    radial-gradient(800px circle at 60% 55%, var(--nt-lueur-3), transparent 60%),
+    radial-gradient(1400px circle at 50% 118%, var(--nt-lueur-4), transparent 62%);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  color: var(--nt-encre-titre);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: var(--nt-t-2xl);
+}
+
+h2 {
+  font-size: var(--nt-t-xl);
+}
+
+h3 {
+  font-size: var(--nt-t-l);
+}
+
+h4 {
+  font-size: var(--nt-t-m);
+}
+
+p,
+ul,
+ol,
+dl,
+figure {
+  margin: 0;
+}
+
+a {
+  color: var(--nt-lien);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--nt-lien-survol);
+}
+
+strong,
+b {
+  color: var(--nt-encre-titre);
+  font-weight: 700;
+}
+
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--nt-police-fixe);
+  font-size: 0.875em;
+  overflow-wrap: anywhere;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--nt-focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--nt-selection);
+}
+
+/* ------------------------------------------------------------------
+   4. Utilitaires
+   ------------------------------------------------------------------ */
+.nt-attenue {
+  color: var(--nt-encre-attenuee);
+}
+
+.nt-petit {
+  font-size: var(--nt-t-s);
+}
+
+/* Chasse fixe. Un identifiant ne change jamais de casse ni d'espacement,
+   même dans un intitulé en capitales. */
+.nt-fixe {
+  font-family: var(--nt-police-fixe);
+  font-size: 0.875em;
+  overflow-wrap: anywhere;
+}
+
+code,
+.nt-fixe {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.nt-insecable {
+  white-space: nowrap;
+}
+
+/* Texte lu par les lecteurs d'écran, absent de l'affichage. */
+.nt-masque {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* La seule animation : une petite montée, posée au premier affichage. */
+@keyframes nt-monte {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.5 system-ui, sans-serif; }
-header { display: flex; gap: 1.5rem; align-items: center; padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--trait); }
-header strong { font-weight: 600; }
-nav a, header a { color: var(--accent); text-decoration: none; }
-main { max-width: 72rem; margin: 0 auto; padding: 1.5rem; }
-h1 { font-size: 1.4rem; margin: 0 0 1rem; }
-h2 { font-size: 1.1rem; margin: 2rem 0 0.75rem; }
-table { border-collapse: collapse; width: 100%; }
-th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--trait); vertical-align: top; }
-code, pre, textarea, input { font-family: ui-monospace, monospace; font-size: 0.85rem; }
-pre { white-space: pre-wrap; word-break: break-all; background: color-mix(in srgb, var(--trait) 25%, transparent); padding: 0.5rem; border-radius: 4px; max-height: 28rem; overflow: auto; }
-form { display: grid; gap: 0.75rem; max-width: 46rem; margin: 0.5rem 0 1.5rem; }
-label { display: grid; gap: 0.25rem; }
-label span { color: var(--discret); font-size: 0.85rem; }
-input, textarea, select { width: 100%; padding: 0.4rem; border: 1px solid var(--trait); border-radius: 4px; background: var(--fond); color: var(--texte); }
-textarea { min-height: 6rem; }
-button { justify-self: start; padding: 0.45rem 1rem; border: 1px solid var(--accent); border-radius: 4px; background: var(--accent); color: var(--fond); cursor: pointer; }
-.refus { color: var(--refus); }
-.succes { color: var(--succes); }
-.etat { font-family: ui-monospace, monospace; }
-.discret { color: var(--discret); }
+
+.nt-monte {
+  animation: nt-monte 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.nt-monte:nth-child(2) {
+  animation-delay: 0.05s;
+}
+
+.nt-monte:nth-child(3) {
+  animation-delay: 0.1s;
+}
+
+.nt-monte:nth-child(n + 4) {
+  animation-delay: 0.15s;
+}
+
+/* Icône : SVG en ligne, viewBox 0 0 24 24, tracé au trait. */
+.nt-icone {
+  flex: none;
+  width: 1.25em;
+  height: 1.25em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nt-icone-pleine {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* ------------------------------------------------------------------
+   5. Barre haute
+   ------------------------------------------------------------------ */
+.nt-barre {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--nt-barre);
+  border-bottom: 1px solid var(--nt-bord-doux);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.nt-barre-dedans {
+  display: flex;
+  align-items: center;
+  gap: var(--nt-e-3) var(--nt-e-5);
+  max-width: var(--nt-largeur);
+  min-height: 4rem;
+  margin: 0 auto;
+  padding: var(--nt-e-2) var(--nt-e-6);
+}
+
+.nt-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nt-e-3);
+  color: var(--nt-encre-titre);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nt-logo:hover {
+  color: var(--nt-encre-titre);
+}
+
+.nt-logo-texte {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.nt-logo-mot {
+  font-size: var(--nt-t-m);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.nt-logo-signe {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nt-logo-cadre {
+  stroke: var(--nt-mint);
+  stroke-width: 1.6;
+}
+
+.nt-logo-trait-1 {
+  stroke: var(--nt-mint);
+}
+
+.nt-logo-trait-2 {
+  stroke: var(--nt-bleu);
+}
+
+.nt-logo-accent {
+  color: var(--nt-succes);
+}
+
+/* Nom de l'outil, sous le mot NOORTRACE. */
+.nt-outil {
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.nt-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--nt-e-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nt-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--nt-cible);
+  padding: 0 var(--nt-e-4);
+  border-radius: var(--nt-rayon-pastille);
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.nt-nav a:hover {
+  background: var(--nt-neutre-fond);
+  color: var(--nt-encre-titre);
+}
+
+.nt-nav a[aria-current="page"] {
+  background: var(--nt-info-fond);
+  color: var(--nt-encre-titre);
+}
+
+.nt-barre-fin {
+  display: flex;
+  align-items: center;
+  gap: var(--nt-e-3);
+  margin-left: auto;
+  min-width: 0;
+}
+
+/* Bascule de thème et, s'il y a lieu, bascule de langue. */
+.nt-barre-outils {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--nt-e-2);
+  margin-left: auto;
+}
+
+.nt-barre-fin + .nt-barre-outils {
+  margin-left: 0;
+}
+
+/* Identité de session : montrée en entier, jamais abrégée. */
+.nt-session {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 22rem;
+  color: var(--nt-encre);
+  font-size: var(--nt-t-xs);
+  line-height: 1.4;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.nt-session-libelle {
+  color: var(--nt-encre-attenuee);
+  font-weight: 600;
+}
+
+/* Bascule de thème : le soleil s'offre en sombre, la lune en clair. */
+.nt-bascule {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--nt-cible);
+  height: var(--nt-cible);
+  padding: 0;
+  border: 1px solid var(--nt-bord);
+  border-radius: var(--nt-rayon-pastille);
+  background: var(--nt-verre);
+  color: var(--nt-encre);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.nt-bascule:hover {
+  border-color: var(--nt-bord-fort);
+  background: var(--nt-verre-fort);
+  color: var(--nt-encre-titre);
+}
+
+.nt-bascule .nt-icone-lune {
+  display: none;
+}
+
+html[data-theme="clair"] .nt-bascule .nt-icone-soleil {
+  display: none;
+}
+
+html[data-theme="clair"] .nt-bascule .nt-icone-lune {
+  display: block;
+}
+
+/* ------------------------------------------------------------------
+   6. Page, colonne, en-tête d'écran
+   ------------------------------------------------------------------ */
+.nt-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-6);
+  max-width: var(--nt-largeur);
+  margin: 0 auto;
+  padding: var(--nt-e-10) var(--nt-e-6) var(--nt-e-16);
+}
+
+.nt-page-etroite {
+  max-width: var(--nt-largeur-etroite);
+}
+
+.nt-pile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-4);
+}
+
+.nt-pile-large {
+  gap: var(--nt-e-6);
+}
+
+.nt-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--nt-e-6);
+  align-items: start;
+}
+
+.nt-fil {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nt-e-2);
+  min-height: var(--nt-cible);
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nt-fil:hover {
+  color: var(--nt-encre-titre);
+}
+
+.nt-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--nt-e-3) var(--nt-e-6);
+}
+
+.nt-entete-texte {
+  display: flex;
+  flex: 1 1 20rem;
+  flex-direction: column;
+  gap: var(--nt-e-2);
+  min-width: 0;
+}
+
+.nt-sur-titre {
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nt-sous-titre {
+  max-width: 46rem;
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-m);
+}
+
+.nt-entete-etat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-2);
+  padding-top: var(--nt-e-1);
+}
+
+/* ------------------------------------------------------------------
+   7. Cartes
+   ------------------------------------------------------------------ */
+.nt-carte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-4);
+  min-width: 0;
+  padding: var(--nt-e-6);
+  border: 1px solid var(--nt-bord);
+  border-radius: var(--nt-rayon-l);
+  background: var(--nt-verre);
+  box-shadow: var(--nt-ombre);
+}
+
+.nt-carte-titre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nt-e-2) var(--nt-e-4);
+}
+
+.nt-carte-note {
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+}
+
+/* Carte sans marge intérieure, pour un tableau bord à bord. */
+.nt-carte-pleine {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.nt-carte-pleine > .nt-carte-titre {
+  padding: var(--nt-e-5) var(--nt-e-6);
+  border-bottom: 1px solid var(--nt-bord-doux);
+}
+
+/* Bloc en retrait dans une carte. */
+.nt-encart {
+  padding: var(--nt-e-4);
+  border: 1px solid var(--nt-bord-doux);
+  border-radius: var(--nt-rayon-m);
+  background: var(--nt-verre-2);
+}
+
+/* Carte « essentiel » : la phrase d'en-tête et l'action. */
+.nt-essentiel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-5);
+  min-width: 0;
+  padding: var(--nt-e-8);
+  border: 1px solid var(--nt-bord-fort);
+  border-radius: var(--nt-rayon-xl);
+  background: var(--nt-essentiel);
+  box-shadow: var(--nt-ombre);
+}
+
+.nt-essentiel-phrase {
+  max-width: 44rem;
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-xl);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+/* Grand chiffre : encre pleine, toujours lisible (montant, compte). */
+.nt-chiffre {
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-3xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.nt-chiffre-unite {
+  margin-left: 0.25em;
+  color: var(--nt-encre-attenuee);
+  font-size: 0.5em;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Dégradé de signature : décor seulement, jamais sur une valeur signée. */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .nt-chiffre-degrade {
+    background: var(--nt-degrade);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+@media (forced-colors: active) {
+  .nt-chiffre-degrade {
+    background: none;
+    color: CanvasText;
+  }
+}
+
+/* Faits clés : libellé court au-dessus, valeur dessous. */
+.nt-faits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--nt-e-4) var(--nt-e-6);
+  margin: 0;
+  padding: var(--nt-e-5) 0 0;
+  border-top: 1px solid var(--nt-bord);
+}
+
+.nt-fait {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-1);
+  min-width: 0;
+}
+
+.nt-fait dt {
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nt-fait dd {
+  margin: 0;
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------
+   8. Pastilles d'état et marques de champ
+   ------------------------------------------------------------------ */
+.nt-pastille {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 1.75rem;
+  padding: 0.125rem 0.75rem 0.125rem 0.5rem;
+  border: 1px solid var(--nt-neutre-bord);
+  border-radius: var(--nt-rayon-pastille);
+  background: var(--nt-neutre-fond);
+  color: var(--nt-neutre);
+  font-size: var(--nt-t-s);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.nt-pastille .nt-icone {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 2.4;
+}
+
+.nt-pastille-attente {
+  border-color: var(--nt-attente-bord);
+  background: var(--nt-attente-fond);
+  color: var(--nt-attente);
+}
+
+.nt-pastille-succes {
+  border-color: var(--nt-succes-bord);
+  background: var(--nt-succes-fond);
+  color: var(--nt-succes);
+}
+
+.nt-pastille-refus {
+  border-color: var(--nt-refus-bord);
+  background: var(--nt-refus-fond);
+  color: var(--nt-refus);
+}
+
+.nt-pastille-info {
+  border-color: var(--nt-info-bord);
+  background: var(--nt-info-fond);
+  color: var(--nt-info);
+}
+
+.nt-pastille-grande {
+  min-height: 2.25rem;
+  padding: 0.25rem 1rem 0.25rem 0.75rem;
+  font-size: var(--nt-t-m);
+}
+
+.nt-pastille-grande .nt-icone {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Marque d'un champ : rectangle, pour ne pas la confondre avec un état. */
+.nt-marque {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--nt-neutre-bord);
+  border-radius: var(--nt-rayon-s);
+  background: var(--nt-neutre-fond);
+  color: var(--nt-neutre);
+  font-size: var(--nt-t-s);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.nt-marque .nt-icone {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 2.4;
+}
+
+.nt-marque-verifie {
+  border-color: var(--nt-succes-bord);
+  background: var(--nt-succes-fond);
+  color: var(--nt-succes);
+}
+
+.nt-marque-non-verifiable {
+  border-style: dashed;
+  border-color: var(--nt-attente);
+  background: var(--nt-attente-fond);
+  color: var(--nt-attente);
+}
+
+.nt-marque-different {
+  border-width: 2px;
+  border-color: var(--nt-refus);
+  background: var(--nt-refus-fond);
+  color: var(--nt-refus);
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------------
+   9. Boutons et groupes d'actions
+   ------------------------------------------------------------------ */
+.nt-bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--nt-e-2);
+  min-height: var(--nt-cible);
+  padding: 0 var(--nt-e-5);
+  border: 1px solid var(--nt-champ-bord);
+  border-radius: var(--nt-rayon-pastille);
+  background: var(--nt-verre);
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-m);
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nt-bouton:hover {
+  border-color: var(--nt-encre-titre);
+  background: var(--nt-verre-fort);
+  color: var(--nt-encre-titre);
+}
+
+.nt-bouton:active {
+  background: var(--nt-neutre-fond);
+}
+
+.nt-bouton-principal {
+  border-color: transparent;
+  background: var(--nt-action);
+  box-shadow: var(--nt-action-ombre);
+  color: var(--nt-action-encre);
+}
+
+.nt-bouton-principal:hover,
+.nt-bouton-principal:active {
+  border-color: transparent;
+  background: var(--nt-action-survol);
+  color: var(--nt-action-encre);
+}
+
+.nt-bouton-danger {
+  border-color: transparent;
+  background: var(--nt-action-danger);
+  color: var(--nt-action-danger-encre);
+}
+
+.nt-bouton-danger:hover,
+.nt-bouton-danger:active {
+  border-color: transparent;
+  background: var(--nt-action-danger-survol);
+  color: var(--nt-action-danger-encre);
+}
+
+.nt-bouton-discret {
+  padding: 0 var(--nt-e-3);
+  border-color: transparent;
+  background: transparent;
+  color: var(--nt-lien);
+}
+
+.nt-bouton-discret:hover,
+.nt-bouton-discret:active {
+  border-color: transparent;
+  background: var(--nt-neutre-fond);
+  color: var(--nt-lien-survol);
+}
+
+/* Choix d'une décision : deux boutons de même poids, sans préférence. */
+.nt-bouton-choix {
+  flex: 1 1 12rem;
+  min-height: 3.5rem;
+  border-width: 2px;
+  border-color: var(--nt-encre-attenuee);
+  border-radius: var(--nt-rayon-l);
+  font-size: var(--nt-t-l);
+  font-weight: 700;
+}
+
+.nt-bouton-choix[aria-pressed="true"] {
+  border-color: var(--nt-action);
+  background: var(--nt-action);
+  color: var(--nt-action-encre);
+}
+
+.nt-bouton-petit {
+  min-height: 2.25rem;
+  padding: 0 var(--nt-e-4);
+  font-size: var(--nt-t-s);
+  white-space: nowrap;
+}
+
+.nt-bouton:disabled,
+.nt-bouton[aria-disabled="true"] {
+  border-color: transparent;
+  background: var(--nt-inactif);
+  box-shadow: none;
+  color: var(--nt-inactif-encre);
+  cursor: not-allowed;
+}
+
+.nt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-3);
+}
+
+/* ------------------------------------------------------------------
+   10. Définitions et tableaux
+   ------------------------------------------------------------------ */
+.nt-definitions {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, min(14rem, 36%)) minmax(0, 1fr);
+  gap: var(--nt-e-3) var(--nt-e-6);
+  margin: 0;
+}
+
+.nt-definitions dt {
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.nt-definitions dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-1) var(--nt-e-2);
+  min-width: 0;
+  margin: 0;
+  color: var(--nt-encre-titre);
+  overflow-wrap: anywhere;
+}
+
+.nt-tableau {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.nt-tableau th {
+  padding: var(--nt-e-3);
+  border-bottom: 1px solid var(--nt-bord);
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+.nt-tableau td {
+  padding: var(--nt-e-4) var(--nt-e-3);
+  border-bottom: 1px solid var(--nt-bord-doux);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.nt-tableau tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.nt-tableau tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.nt-tableau tbody tr:hover {
+  background: var(--nt-verre-2);
+}
+
+.nt-carte-pleine .nt-tableau th:first-child,
+.nt-carte-pleine .nt-tableau td:first-child {
+  padding-left: var(--nt-e-6);
+}
+
+.nt-carte-pleine .nt-tableau th:last-child,
+.nt-carte-pleine .nt-tableau td:last-child {
+  padding-right: var(--nt-e-6);
+}
+
+.nt-cellule-titre {
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------
+   11. Bandeaux
+   ------------------------------------------------------------------ */
+.nt-bandeau {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--nt-e-3);
+  padding: var(--nt-e-4) var(--nt-e-5);
+  border: 1px solid var(--nt-info-bord);
+  border-radius: var(--nt-rayon-m);
+  background: var(--nt-info-fond);
+  color: var(--nt-encre);
+}
+
+.nt-bandeau > .nt-icone {
+  width: 1.375rem;
+  height: 1.375rem;
+  margin-top: 0.1rem;
+  color: var(--nt-info);
+}
+
+.nt-bandeau-texte {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--nt-e-1);
+  min-width: 0;
+}
+
+.nt-bandeau-titre {
+  color: var(--nt-encre-titre);
+  font-weight: 700;
+}
+
+.nt-bandeau-avertissement {
+  border-color: var(--nt-attente-bord);
+  background: var(--nt-attente-fond);
+}
+
+.nt-bandeau-avertissement > .nt-icone {
+  color: var(--nt-attente);
+}
+
+.nt-bandeau-erreur {
+  border-color: var(--nt-refus-bord);
+  background: var(--nt-refus-fond);
+}
+
+.nt-bandeau-erreur > .nt-icone {
+  color: var(--nt-refus);
+}
+
+.nt-bandeau-succes {
+  border-color: var(--nt-succes-bord);
+  background: var(--nt-succes-fond);
+}
+
+.nt-bandeau-succes > .nt-icone {
+  color: var(--nt-succes);
+}
+
+/* ------------------------------------------------------------------
+   12. Détail technique replié, code, empreintes
+   ------------------------------------------------------------------ */
+.nt-detail {
+  border: 1px solid var(--nt-bord-doux);
+  border-radius: var(--nt-rayon-m);
+  background: var(--nt-verre-2);
+}
+
+.nt-detail > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--nt-e-3);
+  min-height: var(--nt-cible);
+  padding: var(--nt-e-2) var(--nt-e-5);
+  border-radius: var(--nt-rayon-m);
+  color: var(--nt-encre);
+  font-size: var(--nt-t-s);
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.nt-detail > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Chevron dessiné : pointe à droite, replié ; pointe en bas, ouvert. */
+.nt-detail > summary::before {
+  content: "";
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin: 0 0.125rem 0 0.125rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.nt-detail[open] > summary::before {
+  transform: translateY(-0.125rem) rotate(45deg);
+}
+
+.nt-detail > summary:hover {
+  color: var(--nt-encre-titre);
+}
+
+.nt-detail-note {
+  margin-left: auto;
+  color: var(--nt-encre-attenuee);
+  font-weight: 400;
+}
+
+.nt-detail-corps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-4);
+  padding: var(--nt-e-4) var(--nt-e-5) var(--nt-e-5);
+  border-top: 1px solid var(--nt-bord-doux);
+}
+
+.nt-code {
+  padding: 0.1em 0.4em;
+  border-radius: 6px;
+  background: var(--nt-neutre-fond);
+  color: var(--nt-encre-titre);
+}
+
+/* Texte préformaté qui se coupe : jamais plus large que la page. */
+.nt-pre {
+  margin: 0;
+  padding: var(--nt-e-4);
+  border: 1px solid var(--nt-bord-doux);
+  border-radius: var(--nt-rayon-m);
+  background: var(--nt-verre-2);
+  color: var(--nt-encre);
+  font-size: var(--nt-t-s);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Variante qui garde ses colonnes et défile dans son cadre. */
+.nt-pre-defile {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+/* Empreinte à comparer : chasse fixe, grands caractères, groupes entiers. */
+.nt-empreinte {
+  color: var(--nt-encre-titre);
+  font-family: var(--nt-police-fixe);
+  font-size: clamp(1.25rem, 6.2vw, 2.125rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.nt-groupes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nt-e-1) var(--nt-e-3);
+  color: var(--nt-encre);
+  font-family: var(--nt-police-fixe);
+  font-size: var(--nt-t-m);
+}
+
+.nt-groupe {
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------
+   13. Formulaires
+   ------------------------------------------------------------------ */
+.nt-formulaire {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-5);
+}
+
+.nt-champ {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-2);
+  min-width: 0;
+}
+
+.nt-libelle {
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-s);
+  font-weight: 600;
+}
+
+.nt-facultatif {
+  margin-left: 0.375rem;
+  color: var(--nt-encre-attenuee);
+  font-weight: 400;
+}
+
+.nt-saisie {
+  display: block;
+  width: 100%;
+  min-height: var(--nt-cible);
+  padding: var(--nt-e-2) var(--nt-e-3);
+  border: 1px solid var(--nt-champ-bord);
+  border-radius: var(--nt-rayon-m);
+  background: var(--nt-champ);
+  color: var(--nt-encre-titre);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nt-saisie::placeholder {
+  color: var(--nt-champ-indice);
+  opacity: 1;
+}
+
+.nt-saisie:hover {
+  border-color: var(--nt-encre-attenuee);
+}
+
+.nt-saisie:focus {
+  border-color: var(--nt-focus);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--nt-champ-focus);
+}
+
+.nt-saisie:disabled {
+  border-color: var(--nt-bord);
+  background: var(--nt-inactif);
+  color: var(--nt-inactif-encre);
+  cursor: not-allowed;
+}
+
+textarea.nt-saisie {
+  min-height: 7rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.nt-saisie-fixe {
+  font-family: var(--nt-police-fixe);
+  font-size: var(--nt-t-s);
+}
+
+.nt-saisie[aria-invalid="true"] {
+  border-color: var(--nt-refus);
+}
+
+.nt-aide {
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+}
+
+.nt-erreur {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--nt-e-2);
+  color: var(--nt-refus);
+  font-size: var(--nt-t-s);
+  font-weight: 600;
+}
+
+.nt-erreur .nt-icone {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.1rem;
+}
+
+/* Case à cocher ou bouton radio, avec son libellé : cible de 44 px. */
+.nt-case {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nt-e-3);
+  min-height: var(--nt-cible);
+  padding-right: var(--nt-e-2);
+  color: var(--nt-encre);
+  cursor: pointer;
+}
+
+.nt-case input {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--nt-mint);
+  cursor: pointer;
+}
+
+html[data-theme="clair"] .nt-case input {
+  accent-color: var(--nt-bleu);
+}
+
+.nt-cases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--nt-e-5);
+}
+
+.nt-groupe-champs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.nt-groupe-champs > legend {
+  margin-bottom: var(--nt-e-2);
+  padding: 0;
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-s);
+  font-weight: 600;
+}
+
+/* Choix d'un fichier : le bouton du navigateur, habillé. */
+.nt-fichier {
+  display: block;
+  width: 100%;
+  padding: var(--nt-e-2);
+  border: 1px dashed var(--nt-champ-bord);
+  border-radius: var(--nt-rayon-m);
+  background: var(--nt-champ);
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+  cursor: pointer;
+}
+
+.nt-fichier::file-selector-button {
+  min-height: 2.25rem;
+  margin-right: var(--nt-e-3);
+  padding: 0 var(--nt-e-4);
+  border: 1px solid var(--nt-champ-bord);
+  border-radius: var(--nt-rayon-pastille);
+  background: var(--nt-verre-fort);
+  color: var(--nt-encre-titre);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Zone de dépôt d'un dossier ou d'une archive. */
+.nt-depot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--nt-e-3);
+  padding: var(--nt-e-8) var(--nt-e-6);
+  border: 1.5px dashed var(--nt-champ-bord);
+  border-radius: var(--nt-rayon-l);
+  background: var(--nt-verre-2);
+  text-align: center;
+}
+
+.nt-depot > .nt-icone {
+  width: 2rem;
+  height: 2rem;
+  color: var(--nt-encre-attenuee);
+  stroke-width: 1.6;
+}
+
+/* ------------------------------------------------------------------
+   14. État vide, jauge, étapes
+   ------------------------------------------------------------------ */
+.nt-vide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--nt-e-3);
+  padding: var(--nt-e-12) var(--nt-e-6);
+  border: 1px dashed var(--nt-bord);
+  border-radius: var(--nt-rayon-l);
+  background: var(--nt-verre-2);
+  text-align: center;
+}
+
+.nt-vide > .nt-icone {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--nt-encre-attenuee);
+  stroke-width: 1.5;
+}
+
+.nt-vide-titre {
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-l);
+  font-weight: 700;
+}
+
+.nt-vide-texte {
+  max-width: 30rem;
+  color: var(--nt-encre-attenuee);
+}
+
+/* Jauge : <progress value max>, sans style en ligne. */
+.nt-jauge {
+  display: block;
+  width: 100%;
+  height: 0.5rem;
+  border: 0;
+  border-radius: var(--nt-rayon-pastille);
+  background: var(--nt-neutre-fond);
+  color: var(--nt-mint);
+  overflow: hidden;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.nt-jauge::-webkit-progress-bar {
+  background: var(--nt-neutre-fond);
+}
+
+.nt-jauge::-webkit-progress-value {
+  border-radius: var(--nt-rayon-pastille);
+  background: linear-gradient(90deg, var(--nt-mint), var(--nt-bleu));
+}
+
+.nt-jauge::-moz-progress-bar {
+  border-radius: var(--nt-rayon-pastille);
+  background: linear-gradient(90deg, var(--nt-mint), var(--nt-bleu));
+}
+
+/* Étapes d'un parcours : fait, en cours, à faire, échec. */
+.nt-etapes {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nt-etape {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0 var(--nt-e-4);
+  padding-bottom: var(--nt-e-6);
+}
+
+.nt-etape:last-child {
+  padding-bottom: 0;
+}
+
+/* Le fil qui relie une étape à la suivante. */
+.nt-etape::before {
+  content: "";
+  position: absolute;
+  top: 2rem;
+  bottom: 0;
+  left: calc(1rem - 1px);
+  width: 2px;
+  background: var(--nt-bord);
+}
+
+.nt-etape:last-child::before {
+  display: none;
+}
+
+.nt-etape-rond {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--nt-neutre-bord);
+  border-radius: 50%;
+  background: var(--nt-fond);
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+  font-weight: 700;
+}
+
+.nt-etape-rond .nt-icone {
+  width: 1.125rem;
+  height: 1.125rem;
+  stroke-width: 2.6;
+}
+
+.nt-etape-corps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-1);
+  min-width: 0;
+  padding-top: 0.2rem;
+}
+
+.nt-etape-titre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-2) var(--nt-e-3);
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+}
+
+.nt-etape-texte {
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+}
+
+.nt-etape-faite .nt-etape-rond {
+  border-color: var(--nt-succes);
+  background: var(--nt-succes);
+  color: var(--nt-fond);
+}
+
+.nt-etape-faite::before {
+  background: var(--nt-succes-bord);
+}
+
+.nt-etape-en-cours .nt-etape-rond {
+  border-color: var(--nt-info);
+  color: var(--nt-info);
+  box-shadow: 0 0 0 4px var(--nt-info-fond);
+}
+
+.nt-etape-echec .nt-etape-rond {
+  border-color: var(--nt-refus);
+  background: var(--nt-refus);
+  color: var(--nt-fond);
+}
+
+.nt-etape-a-faire .nt-etape-titre {
+  color: var(--nt-encre);
+}
+
+/* ------------------------------------------------------------------
+   15. Grand verdict
+   ------------------------------------------------------------------ */
+.nt-verdict {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--nt-e-2) var(--nt-e-6);
+  align-items: center;
+  padding: var(--nt-e-8);
+  border: 1px solid var(--nt-neutre-bord);
+  border-radius: var(--nt-rayon-xl);
+  background: var(--nt-neutre-fond);
+  box-shadow: var(--nt-ombre);
+}
+
+.nt-verdict-signe {
+  display: flex;
+  grid-row: span 2;
+  align-items: center;
+  justify-content: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  color: var(--nt-neutre);
+}
+
+.nt-verdict-signe .nt-icone {
+  width: 2.25rem;
+  height: 2.25rem;
+  stroke-width: 2.2;
+}
+
+.nt-verdict-mot {
+  align-self: end;
+  color: var(--nt-neutre);
+  font-size: var(--nt-t-3xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.nt-verdict-phrase {
+  align-self: start;
+  max-width: 46rem;
+  color: var(--nt-encre);
+  font-size: var(--nt-t-l);
+}
+
+.nt-verdict-valide {
+  border-color: var(--nt-succes-bord);
+  background: var(--nt-succes-fond);
+}
+
+.nt-verdict-valide .nt-verdict-signe,
+.nt-verdict-valide .nt-verdict-mot {
+  color: var(--nt-succes);
+}
+
+.nt-verdict-non-valide {
+  border-color: var(--nt-refus-bord);
+  background: var(--nt-refus-fond);
+}
+
+.nt-verdict-non-valide .nt-verdict-signe,
+.nt-verdict-non-valide .nt-verdict-mot {
+  color: var(--nt-refus);
+}
+
+.nt-verdict-incomplet {
+  border-color: var(--nt-attente-bord);
+  background: var(--nt-attente-fond);
+}
+
+.nt-verdict-incomplet .nt-verdict-signe,
+.nt-verdict-incomplet .nt-verdict-mot {
+  color: var(--nt-attente);
+}
+
+/* Liste de contrôles : un mot d'état à gauche, le contrôle à droite. */
+.nt-controles {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nt-controle {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  gap: var(--nt-e-2) var(--nt-e-4);
+  align-items: start;
+  padding: var(--nt-e-3) 0;
+  border-bottom: 1px solid var(--nt-bord-doux);
+}
+
+.nt-controle:last-child {
+  border-bottom: 0;
+}
+
+.nt-controle-texte {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.nt-controle-titre {
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------
+   16. Pied de page
+   ------------------------------------------------------------------ */
+.nt-pied {
+  max-width: var(--nt-largeur);
+  margin: 0 auto;
+  padding: var(--nt-e-6);
+  border-top: 1px solid var(--nt-bord-doux);
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+}
+
+/* ------------------------------------------------------------------
+   17. Écrans étroits (téléphone)
+   ------------------------------------------------------------------ */
+@media (max-width: 56rem) {
+  .nt-barre {
+    position: static;
+  }
+
+  .nt-barre-dedans {
+    flex-wrap: wrap;
+    padding: var(--nt-e-3) var(--nt-e-4);
+  }
+
+  /* Première ligne : le logo et les bascules ; puis la navigation ; puis
+     la session. */
+  .nt-barre-outils,
+  .nt-barre-fin + .nt-barre-outils {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .nt-barre-dedans > nav {
+    order: 3;
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  /* La navigation défile dans sa ligne ; sa marge intérieure laisse voir
+     l'anneau de focus. */
+  .nt-nav {
+    margin: calc(-1 * var(--nt-e-1)) calc(-1 * var(--nt-e-2));
+    padding: var(--nt-e-1);
+    overflow-x: auto;
+  }
+
+  .nt-barre-fin {
+    order: 4;
+  }
+
+  .nt-session {
+    max-width: none;
+  }
+}
+
+@media (max-width: 37.5rem) {
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  .nt-barre-fin {
+    flex-basis: 100%;
+    justify-content: space-between;
+    margin-left: 0;
+  }
+
+  .nt-barre-fin .nt-session {
+    text-align: left;
+  }
+
+  .nt-page {
+    gap: var(--nt-e-5);
+    padding: var(--nt-e-6) var(--nt-e-4) var(--nt-e-12);
+  }
+
+  .nt-carte {
+    padding: var(--nt-e-5) var(--nt-e-4);
+  }
+
+  .nt-carte-pleine {
+    padding: 0;
+  }
+
+  .nt-carte-pleine > .nt-carte-titre {
+    padding: var(--nt-e-4);
+  }
+
+  .nt-essentiel,
+  .nt-verdict {
+    padding: var(--nt-e-5);
+    border-radius: var(--nt-rayon-l);
+  }
+
+  .nt-essentiel-phrase {
+    font-size: 1.25rem;
+  }
+
+  .nt-chiffre,
+  .nt-verdict-mot {
+    font-size: 2rem;
+  }
+
+  .nt-verdict {
+    gap: var(--nt-e-2) var(--nt-e-4);
+  }
+
+  .nt-verdict-signe {
+    grid-row: auto;
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .nt-verdict-signe .nt-icone {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .nt-verdict-mot {
+    align-self: center;
+  }
+
+  .nt-verdict-phrase {
+    grid-column: 1 / -1;
+    font-size: var(--nt-t-m);
+  }
+
+  /* Définitions : le libellé passe au-dessus de la valeur. */
+  .nt-definitions {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .nt-definitions dt {
+    margin-top: var(--nt-e-3);
+  }
+
+  .nt-definitions dt:first-child {
+    margin-top: 0;
+  }
+
+  /* Tableau : chaque ligne devient une carte, chaque cellule porte son
+     libellé (attribut data-libelle). */
+  .nt-tableau thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .nt-tableau,
+  .nt-tableau tbody,
+  .nt-tableau tr,
+  .nt-tableau td {
+    display: block;
+  }
+
+  .nt-tableau tr {
+    padding: var(--nt-e-4);
+    border-bottom: 1px solid var(--nt-bord);
+  }
+
+  .nt-tableau tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .nt-tableau td,
+  .nt-carte-pleine .nt-tableau td:first-child,
+  .nt-carte-pleine .nt-tableau td:last-child {
+    display: grid;
+    grid-template-columns: minmax(6rem, 34%) minmax(0, 1fr);
+    gap: var(--nt-e-3);
+    padding: var(--nt-e-1) 0;
+    border: 0;
+    text-align: left;
+  }
+
+  .nt-tableau td > * {
+    justify-self: start;
+  }
+
+  .nt-tableau td::before {
+    content: attr(data-libelle);
+    color: var(--nt-encre-attenuee);
+    font-size: var(--nt-t-s);
+    font-weight: 600;
+  }
+
+  .nt-tableau td.nt-cellule-titre,
+  .nt-carte-pleine .nt-tableau td.nt-cellule-titre {
+    display: block;
+    padding-bottom: var(--nt-e-2);
+    font-size: var(--nt-t-l);
+  }
+
+  .nt-tableau td.nt-cellule-titre::before {
+    display: none;
+  }
+
+  .nt-controle {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Actions : pleine largeur ; variante collante en bas de l'écran. */
+  .nt-actions .nt-bouton {
+    flex: 1 1 100%;
+  }
+
+  .nt-actions .nt-bouton-discret {
+    flex: 0 1 auto;
+  }
+
+  .nt-actions-collantes {
+    position: sticky;
+    bottom: var(--nt-e-3);
+    z-index: 10;
+    padding: var(--nt-e-3);
+    border: 1px solid var(--nt-bord);
+    border-radius: var(--nt-rayon-l);
+    background: var(--nt-fond);
+    box-shadow: var(--nt-ombre);
+  }
+}
+
+/* Au doigt, même un petit bouton offre une cible de 44 px. */
+@media (pointer: coarse), (max-width: 37.5rem) {
+  .nt-bouton-petit {
+    min-height: var(--nt-cible);
+  }
+}
+
+/* ------------------------------------------------------------------
+   18. Mouvement réduit, impression
+   ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .nt-monte {
+    animation: none;
+  }
+
+  a,
+  .nt-nav a,
+  .nt-bascule,
+  .nt-bouton,
+  .nt-saisie,
+  .nt-tableau tbody tr,
+  .nt-detail > summary {
+    transition: none;
+  }
+}
+
+@media print {
+  /* L'impression rend toujours en clair, quel que soit l'état choisi. */
+  :root,
+  html[data-theme="clair"] {
+    color-scheme: light;
+
+    --nt-fond: #FFFFFF;
+    --nt-lueur-1: transparent;
+    --nt-lueur-2: transparent;
+    --nt-lueur-3: transparent;
+    --nt-lueur-4: transparent;
+    --nt-barre: #FFFFFF;
+    --nt-verre: #FFFFFF;
+    --nt-verre-2: rgba(12, 45, 72, 0.045);
+    --nt-verre-fort: #FFFFFF;
+    --nt-essentiel: #FFFFFF;
+    --nt-bord: rgba(12, 45, 72, 0.30);
+    --nt-bord-doux: rgba(12, 45, 72, 0.18);
+    --nt-bord-fort: rgba(12, 45, 72, 0.55);
+    --nt-ombre: none;
+
+    --nt-encre-titre: #0C2D48;
+    --nt-encre: #123A66;
+    --nt-encre-attenuee: #425A73;
+    --nt-lien: #114ECB;
+    --nt-lien-survol: #0C3A9C;
+    --nt-degrade: linear-gradient(90deg, #1560EB 0%, #00786B 100%);
+    --nt-focus: #1A6AFF;
+
+    --nt-attente: #7A4E00;
+    --nt-attente-fond: rgba(255, 178, 46, 0.18);
+    --nt-attente-bord: rgba(154, 98, 0, 0.42);
+    --nt-succes: #06695A;
+    --nt-succes-fond: rgba(0, 209, 178, 0.13);
+    --nt-succes-bord: rgba(6, 105, 90, 0.40);
+    --nt-refus: #9C2F28;
+    --nt-refus-fond: rgba(255, 99, 88, 0.12);
+    --nt-refus-bord: rgba(156, 47, 40, 0.40);
+    --nt-info: #114ECB;
+    --nt-info-fond: rgba(26, 106, 255, 0.10);
+    --nt-info-bord: rgba(17, 78, 203, 0.36);
+    --nt-neutre: #34506C;
+    --nt-neutre-fond: rgba(12, 45, 72, 0.06);
+    --nt-neutre-bord: rgba(12, 45, 72, 0.26);
+
+    --nt-action: #1A6AFF;
+    --nt-action-encre: #FFFFFF;
+    --nt-action-survol: #114ECB;
+    --nt-action-ombre: none;
+    --nt-action-danger: #B0433B;
+    --nt-action-danger-encre: #FFFFFF;
+    --nt-action-danger-survol: #8F3229;
+    --nt-inactif: rgba(12, 45, 72, 0.08);
+    --nt-inactif-encre: rgba(12, 45, 72, 0.55);
+
+    --nt-champ: #FFFFFF;
+    --nt-champ-bord: rgba(12, 45, 72, 0.55);
+    --nt-champ-focus: transparent;
+    --nt-champ-indice: rgba(12, 45, 72, 0.72);
+  }
+
+  body::before {
+    display: none !important;
+  }
+
+  .nt-barre {
+    position: static !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .nt-bascule,
+  .nt-sans-impression {
+    display: none !important;
+  }
+
+  .nt-actions-collantes {
+    position: static !important;
+  }
+
+  .nt-carte,
+  .nt-essentiel,
+  .nt-verdict,
+  .nt-bandeau,
+  .nt-etape,
+  .nt-tableau tr {
+    break-inside: avoid;
+  }
+
+  .nt-monte {
+    animation: none !important;
+  }
+}
+/* noor-theme:fin */
+
+/*
+ * Outil d'inscription des clients : règles propres, après le bloc commun.
+ * Elles lisent les jetons du bloc et n'en redéfinissent aucun ; aucune
+ * classe « nt- » n'est écrite ici. Préfixe : « ins- ».
+ */
+
+/* Bandeau discret du réseau d'essai, sous la barre haute. */
+.ins-reseau {
+  margin: 0;
+  padding: var(--nt-e-2) var(--nt-e-6);
+  border-bottom: 1px solid var(--nt-attente-bord);
+  background: var(--nt-attente-fond);
+  color: var(--nt-attente);
+  font-size: var(--nt-t-s);
+  text-align: center;
+}
+
+.ins-reseau strong {
+  color: inherit;
+}
+
+/* Liste des clients : une carte par client. */
+.ins-clients {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+  gap: var(--nt-e-6);
+  align-items: start;
+}
+
+.ins-carte-tete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-3);
+  min-width: 0;
+}
+
+.ins-nom {
+  font-size: var(--nt-t-xl);
+  overflow-wrap: anywhere;
+}
+
+.ins-nom a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.ins-nom a:hover {
+  text-decoration: underline;
+}
+
+.ins-pastilles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-2);
+}
+
+.ins-prochaine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-1);
+}
+
+.ins-action {
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+}
+
+/* Fiche d'un client : les étapes à gauche, l'organisation à droite. */
+.ins-fiche {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: var(--nt-e-6);
+  align-items: start;
+}
+
+.ins-jauge {
+  max-width: 28rem;
+  margin-top: var(--nt-e-2);
+}
+
+.ins-essentiel-texte {
+  max-width: 46rem;
+}
+
+.ins-resultat {
+  color: var(--nt-encre);
+}
+
+.ins-groupe {
+  margin-top: var(--nt-e-2);
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ins-etat-travail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-2) var(--nt-e-3);
+}
+
+/* Section d'un formulaire : un intitulé net, un filet entre deux sections. */
+.ins-section {
+  padding-top: var(--nt-e-5);
+  border-top: 1px solid var(--nt-bord-doux);
+}
+
+.ins-section:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.ins-section > legend {
+  float: left;
+  width: 100%;
+  margin-bottom: 0;
+  font-size: var(--nt-t-l);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.ins-section > legend + * {
+  clear: both;
+}
+
+/* Détail replié léger, dans une étape, une carte ou un bandeau. */
+.ins-detail {
+  min-width: 0;
+}
+
+.ins-detail > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nt-e-2);
+  min-height: 2rem;
+  padding: 0 var(--nt-e-1);
+  border-radius: var(--nt-rayon-s);
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.ins-detail > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ins-detail > summary::before {
+  content: "";
+  flex: none;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin: 0 0.125rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.ins-detail[open] > summary::before {
+  transform: translateY(-0.1rem) rotate(45deg);
+}
+
+.ins-detail > summary:hover {
+  color: var(--nt-encre-titre);
+}
+
+.ins-detail-corps {
+  margin-top: var(--nt-e-2);
+  padding: var(--nt-e-4);
+  border: 1px solid var(--nt-bord-doux);
+  border-radius: var(--nt-rayon-m);
+  background: var(--nt-verre-2);
+  font-size: var(--nt-t-s);
+}
+
+/* Un couple libellé et valeur enveloppé garde les colonnes des définitions. */
+.ins-contenu {
+  display: contents;
+}
+
+.ins-ligne {
+  display: block;
+  width: 100%;
+}
+
+/* Liste de lignes : demandes, actions passées, pièces. */
+.ins-liste {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ins-liste > li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-2);
+  min-width: 0;
+  padding: var(--nt-e-4) 0;
+  border-top: 1px solid var(--nt-bord-doux);
+}
+
+.ins-liste > li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.ins-liste > li:last-child {
+  padding-bottom: 0;
+}
+
+.ins-ligne-tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nt-e-2) var(--nt-e-4);
+  min-width: 0;
+}
+
+.ins-fait-large {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 56rem) {
+  .ins-fiche {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Au doigt, le titre d'un détail replié offre une cible de 44 px. */
+@media (pointer: coarse), (max-width: 37.5rem) {
+  .ins-detail > summary {
+    min-height: 2.75rem;
+  }
+
+  .ins-reseau {
+    padding: var(--nt-e-2) var(--nt-e-4);
+    text-align: left;
+  }
+}
+
+@media print {
+  .ins-reseau {
+    border: 1px solid;
+    background: none;
+  }
+}

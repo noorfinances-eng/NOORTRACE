@@ -10,10 +10,19 @@ par EIP-6963, et par lui un portefeuille matériel) ; ni parcours c, ni
 parcours d, ni `window.ethereum`.
 
 Aucun fichier n'est repris de noorchain-core : la grammaire visuelle et les
-libellés de curators-hub n'ont servi que de patrons (deux thèmes par
-`prefers-color-scheme`, chaque encre ayant ses deux valeurs ; table de
-libellés par langue), avec une palette neutre (gris seulement) et les polices
-du système.
+libellés de curators-hub n'ont servi que de patrons (deux thèmes, chaque
+encre ayant ses deux valeurs ; table de libellés par langue), avec les
+polices du système.
+
+Complément du 2026-11-17, décision du porteur (présentation des écrans) : la
+palette neutre est remplacée par le thème commun des écrans NOORTRACE (deux
+états, sombre et clair ; couleurs, cartes, pastilles, logo en texte), dont le
+bloc ouvre `statique/console.css` entre deux repères et se retrouve à
+l'octet dans la page de vérification et l'outil d'inscription. Ses valeurs
+de couleur suivent celles du thème de curators-hub ; aucun fichier n'en est
+recopié, ni feuille, ni composant, ni police, ni image. Le contrat du paquet
+(`INTERFACES.md`, 3.2 à 3.4) dit ce qui est admis (couleurs, logo) et ce qui
+reste interdit (tout stockage, toute ressource, toute police téléchargée).
 
 ## Fichiers
 
@@ -21,12 +30,15 @@ du système.
 |---|---|
 | `construire.mjs` | générateur des cinq écrans et du manifeste (contrat 3.3) ; `node src/pages/construire.mjs` vérifie (code 1 si un fichier produit est périmé), `--ecrire` réécrit |
 | `manifeste.json`, `ecrans/*.html` | produits par `construire.mjs --ecrire`, versionnés |
-| `statique/console.css` | feuille de style |
+| `icones.mjs` | tracés des icônes et du signe du logo, que `construire.mjs` écrit dans chaque écran en gabarits `<template id="icone-<nom>">` ; non servi |
+| `statique/console.css` | feuille de style : le thème commun (entre `/* noor-theme:debut */` et `/* noor-theme:fin */`), puis les règles propres à la console |
+| `statique/commun/theme.mjs` | état du thème : sombre sans attribut, clair par `data-theme="clair"` ; suit `prefers-color-scheme`, bascule pour la page affichée, aucun stockage ; premier module de chaque écran |
+| `statique/commun/lisible.mjs` | fonctions pures : `resumeVerifie` (résumé d'une demande composé des seules valeurs vérifiées), `montantLisible`, parties d'une durée et d'un instant |
 | `statique/ecrans/<écran>.mjs` | module d'entrée de chaque écran : `tickets`, `ticket`, `inscription` (« Mon adresse »), `annuaire`, `connexion` |
 | `statique/commun/client.mjs` | client de `/v0/` (`fetch` de même origine, `credentials: "same-origin"`, JSON), lecture de la session, connexion locale, déconnexion |
-| `statique/commun/dom.mjs` | construction du DOM par `createElement` et `textContent` |
+| `statique/commun/dom.mjs` | construction du DOM par `createElement` et `textContent` ; composants du thème (bouton, bandeau, pastille, marque, bloc replié) ; `icone()` clone le gabarit d'une icône |
 | `statique/commun/libelles.mjs` | `t(cle, valeurs)`, table choisie selon `document.documentElement.lang` |
-| `statique/commun/cadre.mjs` | démarrage d'un écran (session, `identite_invalide`, navigation), bandeau, affichage d'une erreur et de son code |
+| `statique/commun/cadre.mjs` | démarrage d'un écran (session, `identite_invalide`), barre haute (logo, navigation, personne, déconnexion, bascule de thème), identité de session en entier sous la barre, affichage d'une erreur et de son code, instants et durées en mots, pastille d'un état |
 | `statique/commun/fournisseurs.mjs` | découverte EIP-6963, liste des portefeuilles, appels EIP-1193 lus sans confiance |
 | `statique/libelles/fr.mjs` | les textes (contrat 3.6) |
 
@@ -53,9 +65,12 @@ sert les fichiers de `src/bibliotheque/` eux-mêmes, et
 - Carte d'importation : `JSON.stringify` sans espace de `{ imports,
   integrity }`, `integrity` triée ; la même dans les cinq écrans.
 - Écrans : `<html lang="fr">`, dans le `<head>` et dans cet ordre `<meta
-  charset>`, `<meta name="viewport">`, `<title>` (texte de `fr.mjs`), la
-  feuille à intégrité, la carte, le module d'entrée à intégrité ; le corps est
-  `<div id="principal"></div>` et un `<noscript>`.
+  charset>`, `<meta name="viewport">`, `<meta name="theme-color">`, `<title>`
+  (texte de `fr.mjs`), la feuille à intégrité, la carte, le module du thème
+  à intégrité (avec `blocking="render"` : le premier affichage l'attend), le
+  module d'entrée à intégrité ; le corps est `<div
+  id="principal"></div>`, un `<noscript>`, puis un gabarit `<template>` par
+  icône (complément du 2026-11-17).
 - Déterministe : aucune date, aucun aléa, aucun chemin de la machine ; les
   mêmes octets quel que soit le répertoire courant.
 
@@ -117,10 +132,37 @@ Chacune est éprouvée par `test/exploitation-console-pages-chromium.test.js`.
   `libelles/<langue>.mjs`, que le générateur nomme dans la carte dès que le
   fichier existe.
 
+## Présentation (complément du 2026-11-17)
+
+Éprouvée par `test/exploitation-console-presentation-chromium.test.js` et
+`test/theme-commun.test.js`.
+
+- **Phrase d'en-tête.** `resumeVerifie(modele)` ne lit que le modèle
+  d'affichage : un argument n'y entre que si sa feuille a l'état `verifie` ;
+  l'outil, le demandeur et la règle n'y entrent que si l'événement est
+  vérifié et les champs liés égaux. Le montant n'est reconnu que par les
+  couples de pointeurs `/amount` et `/currency`, ou `/montant` et `/devise` :
+  la console ne devine pas le sens d'un autre champ. Les effets déclarés,
+  que le service évalue seul, ne servent jamais au résumé. Mutant tué : sans
+  la condition d'état, un montant non vérifiable s'affiche en tête.
+- **Rien d'exigé n'est replié.** Le détail technique ne porte que des codes
+  bruts, des noms de champs et des instants exacts ; il se rouvre de
+  lui-même après un nouvel affichage s'il était ouvert.
+- **Adresses en entier.** Une adresse ne s'abrège pas, même dans un tableau :
+  deux adresses qui partagent leurs extrémités se confondraient.
+- **Pas de capitale ajoutée à une phrase fixée.** Les phrases de 13.14 et
+  les marques d'EX-9.4 s'affichent telles que CT-3 les écrit ; la capitale
+  d'une pastille d'état est un rendu de la feuille de style, sauf pour la
+  décision d'un vote (`approuve`, `refuse`), valeur signée.
+- **Motif.** Le champ et son avertissement paraissent à la confirmation de
+  la décision : on ne saisit pas un motif sans voir l'avertissement.
+- **Limite.** La liste des tickets ne porte pas les arguments (`tickets` ne
+  les rend pas) : elle ne peut pas dire le montant d'une demande.
+
 ## Essais
 
 ```text
-npx mocha test/exploitation-console-pages.test.js test/exploitation-console-pages-chromium.test.js
+npx mocha test/exploitation-console-pages.test.js test/exploitation-console-pages-chromium.test.js test/exploitation-console-presentation-chromium.test.js test/theme-commun.test.js
 NOORTRACE_EXIGER_CHROMIUM=1 npx mocha test/exploitation-console-pages-chromium.test.js
 ```
 

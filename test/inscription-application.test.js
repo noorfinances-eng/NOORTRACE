@@ -379,6 +379,65 @@ describe("inscription : application d'exploitant, interface Next.js et agent ré
     });
   });
 
+  describe("présentation des écrans sur le dossier conduit par l'agent (complément du 2026-11-17 ; INTERFACES.md 2.4)", function () {
+    it("fiche, liste, confirmations et paquet du client inscrit : étapes en mots, prochaine action, valeurs exactes du dossier dans les blocs repliés seulement ; la pièce de la confirmation et le manifeste du paquet restent à lire sans rien ouvrir ; aucun attribut style", async function () {
+      const vue = (await req(`/api/clients/${slug}`)).json;
+      const fiche = await req(`/clients/${slug}`);
+      expect(fiche.statut).to.equal(200);
+      /** Le HTML rendu sans ses blocs repliés : ce qui se lit sans rien ouvrir (les scripts de Next, qui portent l'arbre des composants pour l'hydratation, ne sont pas du texte affiché). */
+      const sansDetails = (html) => html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, "").replace(/<details\b[^>]*>[\s\S]*?<\/details>/g, "");
+      const ouvert = sansDetails(fiche.texte);
+      expect(fiche.texte).to.not.match(/<details\b[^>]*\sopen\b/);
+      // Les étapes, dans l'ordre : la préparation puis celles du dossier, chacune avec son code et son état en attributs.
+      const etapes = [...fiche.texte.matchAll(/<li class="nt-etape nt-etape-([a-z-]+)" data-etape="([a-z_]+)" data-etat="([a-z_]+)"/g)].map((m) => [m[2], m[3], m[1]]);
+      expect(etapes).to.deep.equal([["preparation", "faite", "faite"], ...vue.dossier.steps.map((e) => [e.step, e.state, "faite"])]);
+      for (const mot of ["Préparer le dossier", "Créer le jeu d&#x27;approbateurs", "Assigner le jeu à l&#x27;organisation", "Relire le jeu", "Approvisionner la clé de chaîne", "Inscrire la clé d&#x27;enregistreur", "Première ancre", "Première clôture", "Fait sans transaction."]) expect(ouvert, mot).to.contain(mot);
+      expect(ouvert).to.contain('data-etat-client="inscrit"');
+      expect(ouvert).to.contain('data-prochaine-action="remettre_paquet"');
+      // Demandes de signature : la demande préparée dont la copie signée a été relayée n'est plus dite « à faire signer ».
+      expect([...ouvert.matchAll(/data-demande="([^"]+)"/g)].map((m) => m[1]).sort()).to.deep.equal(vue.demandes.map((x) => x.nom).sort());
+      expect(ouvert).to.contain("Préparée, depuis relayée");
+      expect(ouvert).to.contain(">Relayée<");
+      expect(ouvert).to.not.contain("À faire signer hors de l");
+      // Valeurs exactes : dans la page, et seulement dans un bloc replié.
+      let n = 0;
+      for (const e of vue.dossier.steps) {
+        for (const v of [e.transaction_hash, e.block_hash, e.capture]) {
+          if (v === null) continue;
+          n++;
+          expect(fiche.texte, `${e.step} : ${v}`).to.contain(v);
+          expect(ouvert, `${e.step} : ${v} hors d'un bloc replié`).to.not.contain(v);
+        }
+      }
+      expect(n).to.be.at.least(15);
+      expect(fiche.texte).to.contain(vue.dossier.organisation.org_id);
+      expect(ouvert).to.not.contain(vue.dossier.organisation.org_id);
+      expect(ouvert, "code d'étape ou d'état hors d'un bloc replié").to.not.match(/>(jeu_approbateurs|lecture_jeu|premiere_ancre|premiere_cloture|capturee|a_faire)</);
+      // Liste : la carte du client, son avancement et sa prochaine action.
+      const liste = await req("/clients");
+      expect(liste.texte).to.match(new RegExp(`<article class="nt-carte" data-client="${slug}">`));
+      expect(sansDetails(liste.texte)).to.contain(`${vue.dossier.steps.length + 1} étapes sur ${vue.dossier.steps.length + 1}`);
+      expect(sansDetails(liste.texte)).to.contain("Remettre le paquet au client");
+      // Confirmations : ce qui engage se lit sans rien ouvrir.
+      const conf = sansDetails((await req(`/clients/${slug}/confirmations`)).texte);
+      const registre = (await req(`/api/clients/${slug}/confirmations`)).json.confirmations;
+      expect(registre).to.have.length(1);
+      for (const v of [registre[0].piece_sha256, registre[0].instant, registre[0].canal, registre[0].exploitant, registre[0].objet.cle_chaine, registre[0].consommee_par]) expect(conf, v).to.contain(v);
+      expect(conf).to.contain("Consommée");
+      // Paquet : le SHA-256 du manifeste, en entier, sans rien ouvrir.
+      const paquet = sansDetails((await req(`/clients/${slug}/paquet`)).texte);
+      const manifeste = vue.travaux.find((t) => t.commande === "paquet").sortie.outputs.manifest_sha256;
+      expect(manifeste).to.match(/^0x[0-9a-f]{64}$/);
+      expect(paquet).to.contain(`data-manifeste-paquet="true">${manifeste}<`);
+      expect(paquet).to.contain(`href="/api/clients/${slug}/paquet"`);
+      // Politique style-src 'self' : aucun attribut style dans les pages servies.
+      for (const p of ["/connexion", "/clients", "/clients/nouveau", `/clients/${slug}`, `/clients/${slug}/confirmations`, `/clients/${slug}/paquet`]) {
+        const r = await req(p);
+        expect(r.texte, p).to.not.match(/<[a-z][^>]*\sstyle="/);
+      }
+    });
+  });
+
   describe("bornes des corps de requête (relecture de l'étape 6)", function () {
     /** Requête HTTP brute : écrit les en-têtes puis `envoyer(socket)`, sans finir le corps ; rend le statut et le corps de la réponse, ou null passé `attente` ms. */
     const brute = (entetes, envoyer, attente = 5000) => new Promise((ok) => {

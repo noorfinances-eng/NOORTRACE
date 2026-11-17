@@ -6,10 +6,10 @@
 // table, `/tickets` sinon). Refus : le texte et le code, et pour
 // `essai_trop_tot`, le délai. Cet écran ne lit pas la session.
 
-import { el, message, remplacer } from "../commun/dom.mjs";
+import { el, actions, message, remplacer } from "../commun/dom.mjs";
 import { t } from "../commun/libelles.mjs";
 import { ErreurAppel, connexionLocale } from "../commun/client.mjs";
-import { afficherErreur, estIdentifiantTicket, principal } from "../commun/cadre.mjs";
+import { afficherErreur, bascule, estIdentifiantTicket, logo, principal } from "../commun/cadre.mjs";
 
 /** Le chemin de retour retenu (EX-13.43) : aucune redirection ouverte. */
 export function retourRetenu(recherche) {
@@ -21,15 +21,15 @@ export function retourRetenu(recherche) {
 
 function demarrer() {
   const zone = el("div", { attributs: { id: "zone-resultat", "aria-live": "polite" } });
-  const nom = el("input", { attributs: { id: "nom", name: "nom", type: "text", autocomplete: "username", required: true, maxlength: "255" } });
-  const mdp = el("input", { attributs: { id: "mot-de-passe", name: "mot-de-passe", type: "password", autocomplete: "current-password", required: true, maxlength: "1024" } });
-  const envoi = el("button", { classe: "bouton principal", texte: t("connexion.envoyer"), attributs: { type: "submit" } });
+  const nom = el("input", { classe: "nt-saisie", attributs: { id: "nom", name: "nom", type: "text", autocomplete: "username", required: true, maxlength: "255" } });
+  const mdp = el("input", { classe: "nt-saisie", attributs: { id: "mot-de-passe", name: "mot-de-passe", type: "password", autocomplete: "current-password", required: true, maxlength: "1024" } });
+  const envoi = el("button", { classe: "nt-bouton nt-bouton-principal", texte: t("connexion.envoyer"), attributs: { type: "submit" } });
   const formulaire = el(
     "form",
-    { attributs: { id: "formulaire-connexion", novalidate: true } },
-    el("p", {}, el("label", { texte: t("connexion.nom"), attributs: { for: "nom" } }), nom),
-    el("p", {}, el("label", { texte: t("connexion.mot_de_passe"), attributs: { for: "mot-de-passe" } }), mdp),
-    envoi,
+    { classe: "nt-formulaire", attributs: { id: "formulaire-connexion", novalidate: true } },
+    el("div", { classe: "nt-champ" }, el("label", { classe: "nt-libelle", texte: t("connexion.nom"), attributs: { for: "nom" } }), nom),
+    el("div", { classe: "nt-champ" }, el("label", { classe: "nt-libelle", texte: t("connexion.mot_de_passe"), attributs: { for: "mot-de-passe" } }), mdp),
+    actions(envoi),
   );
   formulaire.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -38,7 +38,7 @@ function demarrer() {
       return;
     }
     envoi.disabled = true;
-    remplacer(zone, el("p", { classe: "discret", texte: t("connexion.en_cours") }));
+    remplacer(zone, el("p", { classe: "nt-attenue", texte: t("connexion.en_cours") }));
     try {
       await connexionLocale(nom.value, mdp.value);
       window.location.assign(retourRetenu(window.location.search));
@@ -52,7 +52,9 @@ function demarrer() {
       }
     }
   });
-  remplacer(principal(), el("main", { classe: "contenu" }, el("h1", { texte: t("connexion.titre") }), el("p", { texte: t("connexion.sens") }), formulaire, zone));
+  const barre = el("header", { classe: "nt-barre" }, el("div", { classe: "nt-barre-dedans" }, logo(null), el("div", { classe: "nt-barre-outils" }, bascule())));
+  const carte = el("section", { classe: "nt-carte carte-connexion" }, el("div", { classe: "nt-pile" }, el("h1", { texte: t("connexion.titre") }), el("p", { classe: "nt-sous-titre", texte: t("connexion.sens") })), formulaire, zone);
+  remplacer(principal(), barre, el("main", { classe: "nt-page nt-page-etroite" }, carte));
 }
 
 demarrer();

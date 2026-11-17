@@ -34,7 +34,7 @@ import vm from "node:vm";
 import zlib from "node:zlib";
 import { execFileSync } from "node:child_process";
 import { tar, zip } from "./fixtures/verification-page/archives-essai.mjs";
-import { attendreArtefact, lancer, lancerVerification, ouvrir } from "./fixtures/verification-page/navigateur.mjs";
+import { attendreArtefact, deplierOptions, lancer, lancerVerification, ouvrir } from "./fixtures/verification-page/navigateur.mjs";
 import { RACINE, RacineNatif, VERSION, argumentsVerification, construireArtefact, construireNatif, enAttente, environnementGo, essaiRacineNatif, repertoireTemporaire, sha256 } from "./fixtures/verification-page/outils.mjs";
 
 const EXIGER = process.env.NOORTRACE_EXIGER_CHROMIUM === "1";
@@ -174,6 +174,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       await o.page.goto("https://verification.example/index.html");
       await attendreArtefact(o.page);
       o.marquer();
+      await deplierOptions(o.page);
       await o.page.click("#retirer-ancres");
       await o.page.click("#retirer-entetes");
       return o;
@@ -309,7 +310,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         await deposer();
         await attendreSuite();
         r = await lireResultat(o.page);
-        expect(r.dossierChoisi).to.equal(libelle("nom_dossier_repertoire", { nom: "rep" }));
+        expect(r.dossierChoisi).to.equal(libelle("dossier_choisi_repertoire", { nom: "rep" }));
         await lancerVerification(o.page);
         r = await lireResultat(o.page);
         expect(r.code).to.match(/^Code de retour 1 /);
@@ -327,6 +328,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         await o.page.goto("https://verification.example/index.html");
         const t = await attendreArtefact(o.page);
         expect(t).to.include("noortrace-verifier 0.1.1");
+        await deplierOptions(o.page);
         await o.page.click("#retirer-ancres");
         await o.page.click("#retirer-entetes");
         await o.page.setInputFiles("#entree-repertoire", DOSSIER);
@@ -361,6 +363,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         await muet.page.goto("https://verification.example/index.html");
         await attendreArtefact(muet.page);
         muet.marquer();
+        await deplierOptions(muet.page);
         await muet.page.click("#retirer-ancres");
         await muet.page.click("#retirer-entetes");
         await muet.page.setInputFiles("#entree-repertoire", DOSSIER);
@@ -440,6 +443,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         try {
           await o.page.goto("https://verification.example/index.html");
           await attendreArtefact(o.page);
+          await deplierOptions(o.page);
           await o.page.click("#retirer-ancres");
           await o.page.click("#retirer-entetes");
           await o.page.setInputFiles("#entree-repertoire", DOSSIER);

@@ -3,7 +3,9 @@
 La page statique et publique qui exécute dans le navigateur, dans un
 travailleur, le vérificateur `noortrace-verifier` compilé en WebAssembly,
 sur un dossier que l'utilisateur choisit et qui ne quitte pas son poste ;
-elle affiche le rapport du binaire, sans rien y ajouter (CT-6 §18). Le
+elle affiche le rapport du binaire, sans rien y ajouter (CT-6 §18) : le
+verdict, la liste des contrôles et les avertissements qu'elle met en avant se
+lisent dans le code de retour et dans le rapport JSON du binaire. Le
 paquet porte le script qui produit, de façon déterministe, les fichiers de
 la page à partir de l'artefact WebAssembly. Le contrat est dans
 `INTERFACES.md` ; son état est à la fin de ce fichier.
@@ -45,15 +47,20 @@ de page par interception des requêtes dans Playwright, sur l'origine fictive
 les réponses et les messages du navigateur :
 
 ```js
-import { lancer, ouvrir, attendreArtefact, lancerVerification } from "./test/fixtures/verification-page/navigateur.mjs";
+import { lancer, ouvrir, attendreArtefact, deplierOptions, lancerVerification } from "./test/fixtures/verification-page/navigateur.mjs";
 const { navigateur } = await lancer("chromium");
 const o = await ouvrir(navigateur, "<répertoire de la page>");
 await o.page.goto("https://verification.example/index.html");
 await attendreArtefact(o.page);           // texte de #artefact : version et empreinte
 o.marquer();                              // requêtes relevées à partir d'ici
 await o.page.setInputFiles("#entree-repertoire", "<dossier exporté>");
-await lancerVerification(o.page);         // #code, #rapport-lisible, #enonce-fr, #enonce-en, #sortie-erreur
+await deplierOptions(o.page);             // fichiers facultatifs et options : dans le bloc replié #options
+await lancerVerification(o.page);         // #verdict-mot, #code, #controles, #enonce-fr, #enonce-en, #rapport-lisible, #rapport-json, #sortie-erreur
 ```
+
+`deplierOptions` vient du même fichier : le fichier d'ancres, le fichier
+d'en-têtes, les contrôles à exiger, la langue et le détail du rapport sont
+dans un bloc replié, qu'un essai ouvre par son titre avant d'y agir.
 
 `test/fixtures/verification-page/outils.mjs` construit l'artefact, la page
 et le binaire natif de la même construction (`construireTout`) et exécute ce
@@ -65,11 +72,11 @@ pour comparer son rapport à celui de la page (EX-18.10).
 ```text
 src/construire.mjs              assemble les fichiers de la page (EX-18.6)
 src/page/index.modele.html      modèle de index.html, rempli des libellés français et des intégrités
-src/page/page.css               styles, polices du système
+src/page/page.css               bloc de style commun aux écrans NOORTRACE, puis styles de la page ; polices du système
 src/page/libelles-fr.js         libellés français (phrases fixes de CT-6 §18 mot pour mot)
 src/page/libelles-en.js         libellés anglais, mêmes clés
 src/page/archives.js            lecture des archives .zip, .tar (ustar, pax, GNU), .tar.gz, .tgz (EX-18.7)
-src/page/interface.js           choix des fichiers, travailleur, affichage (EX-18.2, EX-18.5, EX-18.9)
+src/page/interface.js           choix des fichiers, travailleur, thème, affichage (EX-18.2, EX-18.5, EX-18.9, EX-18.11)
 src/travailleur/prelude.js      arbre /entrees en lecture seule, process, path (EX-18.8)
 src/travailleur/pilote.js       contrôle de l'empreinte, deux exécutions (EX-18.5, EX-18.9)
 ```
@@ -79,6 +86,44 @@ des quatre modules de `src/page/`, dans l'ordre libellés français, libellés
 anglais, archives, interface. `travailleur.js` est exactement `prelude.js`,
 puis `wasm_exec.js` de go1.27.3 sans changement, puis `pilote.js` où la
 construction écrit `EMPREINTE_WASM` et la version.
+
+## Présentation (complément du 2026-11-17 de CT-6 §18)
+
+La page se lit en trois temps : « 1. Choisissez le dossier » (une zone de
+dépôt, deux boutons), « 2. Options (facultatif) » (un bloc replié dont le
+titre résume les choix faits : fichier d'ancres, fichier d'en-têtes,
+contrôles à exiger, langue et détail du rapport, chacun avec un libellé
+courant et son nom de la ligne de commande entre parenthèses), « 3. Vérifier ».
+La phrase fixe d'EX-18.2 est dans un bandeau toujours visible, l'état du
+vérificateur dans l'en-tête ; la phrase qui porte l'empreinte est dans le bloc replié
+« Empreinte du vérificateur », juste dessous. Un artefact altéré ou un
+vérificateur indisponible s'affiche dans une alerte, jamais repliée.
+
+Le résultat commence par un grand verdict : un mot tiré du seul code de
+retour (« Valide », « Non valide », « Aucun verdict », « Incomplet »), puis la
+phrase du code, entière. Suivent les avertissements du rapport JSON et la
+sortie d'erreur si elle n'est pas vide, l'énoncé dans la langue de la page,
+tel quel, et la liste des huit contrôles : pour chacun, le statut que le
+rapport JSON lui donne, sa raison en clair avec son code, et son résumé.
+La page ne calcule aucun statut. Un contrôle que le rapport ne dit pas
+`reussi` n'est jamais montré réussi ; un verdict « valide » dont un contrôle
+n'est pas réussi le dit sous le verdict (« Valide, avec des contrôles non
+exécutés : … ») ; un rapport dont la liste des contrôles ne se lit pas
+exactement, ou contredit le code, n'est pas résumé, et la page le dit
+(`lireControles` d'`interface.js`). Le rapport lisible, le rapport JSON, la
+ligne de commande équivalente et l'énoncé dans l'autre langue sont dans des
+blocs repliés, tels quels, avec un bouton « Copier » quand le navigateur
+l'offre ; la page les ouvre à l'impression.
+
+Deux états d'affichage, sombre et clair : la page s'ouvre dans celui du
+système (`prefers-color-scheme`), un bouton passe de l'un à l'autre, et rien
+n'est mémorisé (EX-18.11 : aucun stockage). `page.js` est chargé dans
+l'en-tête pour poser cet état avant le premier affichage. `page.css` commence
+par le bloc de style commun aux trois écrans du dépôt, entre les repères
+`/* noor-theme:debut */` et `/* noor-theme:fin */` ; les règles de la page
+viennent après, sous le préfixe `pv-`, sans redéfinir un jeton du bloc. Les
+icônes sont des tracés SVG, écrits dans le gabarit ou construits par
+`interface.js` ; aucune image, aucune police embarquée.
 
 ## Bornes et limites (EX-18.7 ; revue de sécurité de l'étape 8)
 
@@ -120,6 +165,7 @@ qui arrête.
 | `test/verification-page-identite.test.js` | identité, octet pour octet, avec le binaire natif sur les 190 dossiers (6 460 exécutions) | go1.27.3 et `unshare --root`, en attente sinon |
 | `test/verification-page-chromium.test.js` | la page dans Chromium sous les en-têtes, échantillon fixé sous chaque forme, refus, requêtes, politiques, stockage, TA-101 ; Firefox et WebKit quand Playwright les a | Playwright 1.56.1 et son Chromium, go1.27.3, `unshare --root` ; échoue sous `NOORTRACE_EXIGER_CHROMIUM=1` |
 | `test/verification-page-revue.test.js` | revue de sécurité (étape 8) sous Node : bornes des chemins et des fichiers, archive hostile de 100 000 composants refusée en moins d'une seconde, compteur du parcours, arbre sans récursion, `neutraliser`, libellés des bornes | aucune ; `NOORTRACE_RACINE` pour éprouver une copie des sources |
+| `test/verification-page-presentation.test.js` | présentation : lecture des contrôles du rapport JSON, libellés, gabarit et feuille de style sous Node ; dans un navigateur, avec un artefact factice et un travailleur de remplacement, verdict selon le code, liste des contrôles selon le rapport, deux mutants tués, rapports intacts dans leurs blocs, avertissements visibles, thème ; de bout en bout sur cinq dossiers des vecteurs | Playwright et son Chromium pour la partie navigateur ; go1.27.3 pour le bout en bout ; en attente sinon |
 | `test/verification-page-revue-navigateurs.test.js` | revue de sécurité (étape 8) dans les trois moteurs : archive hostile (réponse en moins d'une seconde), fichier de 513 Mio, répertoire déposé, version du rapport, bouton « Arrêter », chaînes hostiles affichées | comme `verification-page-chromium.test.js` ; Firefox et WebKit en attente s'ils manquent |
 
 La chaîne Go est prise dans `NOORTRACE_GO_BIN`, à défaut dans le `PATH`.

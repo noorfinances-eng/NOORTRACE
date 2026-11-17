@@ -571,6 +571,19 @@ signature :
    chiffré, nommé par la spécification de la sécurité (complément du
    2026-11-16, décision du porteur). Aucune bibliothèque, aucun service ni
    aucun vecteur ne change.
+15. présentation des écrans de la console (complément du 2026-11-17,
+   décision du porteur : présentation des écrans) : « sur un même écran »
+   s'entend sans interaction ; une console peut replier ce que la table
+   d'EX-9.4 ne demande pas (codes bruts, noms de champs, forme exacte d'un
+   instant affiché en mots) et rien d'autre ; elle peut ouvrir l'écran par
+   un résumé en langage courant, qui ne se compose que de valeurs vérifiées
+   par les contrôles d'EX-9.15 et nomme celles qu'il ne reprend pas ; avant
+   le choix de la décision, les consignes d'EX-9.20 peuvent être offertes
+   repliées, l'écran de signature les affichant toujours en entier
+   (EX-9.4) ; le thème de la console d'exploitation a deux états, suit le
+   réglage du système et ne mémorise aucun choix (13.1). Aucune règle de
+   contrôle, aucun schéma, aucune bibliothèque ni aucun vecteur ne change ;
+   seules les pages de la console d'exploitation changent.
 
 - Règles ajoutées : EX-A.20 (A.12), EX-A.21 (A.13).
 - Règles modifiées : EX-7.8, EX-7.22, EX-7.24, EX-7.30 (table), EX-8.1, EX-8.5,
@@ -589,7 +602,8 @@ signature :
   (table), EX-A.13 (table) ; sections 15.2 (table), A.10 ; complément du
   2026-11-16 (point 13) : EX-13.19 (points 4 et 6), EX-A.10 ; sections 15.2
   (table), A.3 ; complément du 2026-11-16 (point 14) : EX-7.30, EX-A.10,
-  EX-A.13 (table) ; section 15.2 (table).
+  EX-A.13 (table) ; section 15.2 (table) ; complément du 2026-11-17
+  (point 15) : EX-9.4 ; section 13.1 (table).
 - Règles retirées : aucune ; aucun numéro réattribué.
 - Schémas : `ticket-v0` (`$defs/reponse_evaluer` : trois membres obligatoires
   de plus, `policy_version`, `policy_sha256`, `approval_sha256` ; extension
@@ -627,7 +641,8 @@ signature :
   `inscription-instant-indecodable.json`, `instants-indecodables-rejoues.json`
   et `remplacement-instants-indecodables.json` (`exports/attendu.json`
   suit) ; `INDEX.md` gagne la section « Cas nommés » ; aucun autre vecteur
-  ne change ; complément du 2026-11-16 (point 14) : aucun vecteur ne change.
+  ne change ; complément du 2026-11-16 (point 14) : aucun vecteur ne change ;
+  complément du 2026-11-17 (point 15) : aucun vecteur ne change.
 
 ## 1. Objet, périmètre et relations
 
@@ -2981,6 +2996,38 @@ un même écran, les éléments suivants :
 | Échéance et temps restant ; délai de contestation, fin de la fenêtre en cours, objections, et dernier instant où le seuil doit être atteint (10.2, EX-10.9) | service | non |
 | Jeu figé : seuil `t` sur `n`, membres, votes déjà exprimés et leur motif, source (8.4) | service | non |
 | Motif (facultatif) | approbateur | non : attesté par l'enregistreur |
+
+Complément du 2026-11-17, décision du porteur (présentation des écrans).
+« Sur un même écran » s'entend sans interaction : aucun élément de la table
+ci-dessus, ni sa valeur, ni sa marque, n'est placé dans un bloc que
+l'approbateur doit ouvrir. Une console PEUT placer dans un bloc replié,
+ouvert sur demande, ce que la table ne demande pas, et cela seulement : les
+codes bruts que l'écran dit en mots (`state`, `class`, `level`, les codes
+des avertissements et des raisons), les noms des champs, et la forme exacte
+d'un instant qu'elle affiche en mots, dans le fuseau du navigateur et avec
+son décalage ; le `seq` et le `ts` de l'événement `retenue` restent affichés
+tels quels.
+
+Une console PEUT ouvrir l'écran par un résumé en langage courant de la
+demande. Ce résumé NE DOIT se composer que de valeurs que les contrôles
+d'EX-9.15 ont vérifiées : un argument dont la feuille a l'état `verifie`
+(EX-9.16) ; le nom annoncé de l'outil, `launched_by` et `policy.rule` quand
+les contrôles 2 et 4 passent. Il NE DOIT reprendre ni une feuille
+`non_verifiable` ou `different`, ni un effet déclaré, ni l'intention, ni
+aucune valeur que le service donne seul ; il DOIT dire en clair que des
+feuilles n'y sont pas reprises, en les nommant avec leur marque (au-delà de
+six, en nommant les six premières, en donnant le nombre des autres et en
+renvoyant à la liste des arguments). Une valeur reprise au résumé reste
+affichée telle quelle, avec sa marque, à sa place dans la liste des
+arguments ; une forme lisible, comme les séparateurs d'un montant, ne
+remplace jamais la valeur de la demande, que le résumé donne à côté. Le
+résumé n'est pas un contrôle : il n'ajoute rien à `blocking` et ne change
+pas le modèle d'affichage.
+
+Avant le choix de la décision, les consignes d'EX-9.20 PEUVENT être
+offertes dans un bloc replié ; l'écran de signature les affiche toujours en
+entier, comme EX-9.20 l'exige. L'avertissement sur le motif (EX-13.6) est
+affiché là où le motif se saisit, avant toute signature.
 
 **EX-9.5** La console NE DOIT présenter aucune décision par défaut ni aucune
 recommandation de l'agent comme décisive (biais d'automatisation, art. 14
@@ -5584,7 +5631,7 @@ systèmes d'identité et ses sessions (13.21) ; leurs réglages sont en 10.3.
 | Libellés en deux langues, journal d'audit | Repris |
 | Jeton de session signé par HMAC-SHA256, vérifié en temps constant, avec identifiant et échéance (R5-F33 ; B.8) | Repris pour le cookie de session : identifiant tiré au hasard, signé par une clé tirée au démarrage et gardée en mémoire ; sessions en mémoire, sans base, bornées par `session_max_age_s` (EX-13.48) |
 | Garde d'hôte : refus (statut 421) d'une requête dont l'hôte n'est pas celui de l'origine publique (B.8) | Repris : l'hôte est celui de `console_origin` (EX-13.49) |
-| Thème clair et sombre, appliqué avant le premier affichage (B.8) | Repris, servi comme fichier avec son intégrité, sans script en ligne (EX-13.34, point 4) |
+| Thème clair et sombre, appliqué avant le premier affichage (B.8) | Repris, servi comme fichier avec son intégrité, sans script en ligne (EX-13.34, point 4) ; complément du 2026-11-17, décision du porteur (présentation des écrans) : deux états, l'état initial suit le réglage du système (`prefers-color-scheme`), une bascule vaut pour la page affichée, et aucun choix n'est mémorisé (ni stockage du navigateur, ni cookie) |
 | File des demandes à valider, sur un écran de validation (B.8) | Repris comme patron de la liste des tickets (EX-13.3, EX-12.21) |
 | Police de caractères embarquée, servie par l'application (B.8) | **Exclu** : polices du système seulement, aucune `font-src` (EX-13.35) |
 | Connexion par un identifiant système de 7 chiffres et un mot de passe, session de 8 heures (30 jours pour le propriétaire), aucune réauthentification avant un vote (R5-F32, R5-F33) | Remplacé : la personne est authentifiée par le système d'identité du client, et réauthentifiée depuis au plus `reauth_max_age_s` avant chaque méthode qui modifie l'annuaire ou un ticket (liste d'EX-13.8) ; le hachage scrypt et le verrou progressif des mots de passe ne sont repris que pour le système local, refusé en production (EX-13.47) |

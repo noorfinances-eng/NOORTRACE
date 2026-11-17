@@ -17,7 +17,7 @@
 // qui retire l'adresse, ou la sortie de la page abandonne l'écran de
 // signature et fait ignorer toute réponse tardive.
 
-import { lancerDecouverte, rendreFournisseurs, demanderComptes, appelFournisseur, ecouter, textePanne } from "../commun/fournisseurs.mjs";
+import { lancerDecouverte, rendreFournisseurs, demanderComptes, appelFournisseur, ecouter, noeudsPanne } from "../commun/fournisseurs.mjs";
 
 // EX-13.22, point 1 : la découverte est posée avant toute autre opération.
 const decouverte = lancerDecouverte();
@@ -41,12 +41,35 @@ import {
   decoderInstant,
   egaliteJson,
 } from "noortrace-console/index.mjs";
-import { el, ajouter, bouton, code, definitions, message, remplacer, vider } from "../commun/dom.mjs";
-import { t, texteCode } from "../commun/libelles.mjs";
+import { el, actions, ajouter, bouton, code, definitions, detail, icone, marque, message, note, pastille, remplacer, vider } from "../commun/dom.mjs";
+import { aCle, t } from "../commun/libelles.mjs";
 import { ErreurAppel, appeler, allerConnexion, envoiDepuis, erreurDeSession, lireSession, maintenant } from "../commun/client.mjs";
-import { afficherErreur, contientInvisibles, demarrerEcran, estIdentifiantTicket, lienTicket, marqueInvisibles, principal, section, texteDuree, texteErreur, texteValeur } from "../commun/cadre.mjs";
+import {
+  PREFIXES_ERREUR,
+  afficherErreur,
+  contientInvisibles,
+  demarrerEcran,
+  entete,
+  estIdentifiantTicket,
+  instant,
+  lienTicket,
+  marqueInvisibles,
+  paragrapheCode,
+  pastilleEtat,
+  phraseCode,
+  pluriel,
+  principal,
+  texteDuree,
+  texteRestant,
+  texteValeur,
+} from "../commun/cadre.mjs";
+import { resumeVerifie } from "../commun/lisible.mjs";
 
 const PREFIXES_VOTE = ["console."];
+
+// États d'un ticket dont la décision est scellée, ou qui est terminé (CT-3 7.3) : plus rien à décider.
+const ETATS_DECIDES = Object.freeze(["approuve", "refuse", "expire", "consomme", "clos", "abandonne"]);
+const estDecide = (vue) => vue !== null && ETATS_DECIDES.includes(vue.state);
 
 // Membres de la vue qu'EX-9.4 affiche et lie à la signature (CT-3 EX-9.15) :
 // la vue fraîche du pas 3 n'est signée que si elle porte, pour chacun, la
@@ -80,24 +103,27 @@ const etat = {
   // Action en cours (récusation, retrait) : confirmation affichée.
   confirmation: null,
   pas1: null,
+  // Le détail technique reste ouvert, s'il l'a été, d'un affichage au suivant.
+  detailOuvert: false,
 };
 
 const zones = {
-  lecture: el("div", { attributs: { id: "zone-lecture" } }),
-  modele: el("div", { attributs: { id: "zone-modele" } }),
-  lies: el("div", { attributs: { id: "zone-lies" } }),
-  decision: el("div", { attributs: { id: "zone-decision" } }),
-  motif: el("div", { attributs: { id: "zone-motif" } }),
-  fournisseurs: el("div", { attributs: { id: "zone-fournisseurs" } }),
-  comptes: el("div", { attributs: { id: "zone-comptes" } }),
-  signature: el("div", { attributs: { id: "zone-signature" } }),
-  resultat: el("div", { attributs: { id: "zone-resultat", "aria-live": "polite" } }),
-  consignes: el("div", { attributs: { id: "zone-consignes" } }),
-  recusation: el("div", { attributs: { id: "zone-recusation" } }),
-  retrait: el("div", { attributs: { id: "zone-retrait" } }),
+  lecture: el("div", { classe: "zone", attributs: { id: "zone-lecture" } }),
+  modele: el("div", { classe: "nt-pile nt-pile-large", attributs: { id: "zone-modele" } }),
+  lies: el("section", { classe: "nt-carte zone-carte", attributs: { id: "zone-lies" } }),
+  decision: el("div", { classe: "nt-pile", attributs: { id: "zone-decision" } }),
+  motif: el("div", { classe: "nt-champ", attributs: { id: "zone-motif" } }),
+  vote: el("section", { classe: "nt-carte zone-carte", attributs: { id: "vote" } }),
+  fournisseurs: el("div", { classe: "nt-pile", attributs: { id: "zone-fournisseurs" } }),
+  comptes: el("div", { classe: "nt-pile", attributs: { id: "zone-comptes" } }),
+  signature: el("div", { classe: "zone", attributs: { id: "zone-signature" } }),
+  resultat: el("div", { classe: "zone", attributs: { id: "zone-resultat", "aria-live": "polite" } }),
+  consignes: el("div", { classe: "zone", attributs: { id: "zone-consignes" } }),
+  recusation: el("section", { classe: "nt-carte zone-carte", attributs: { id: "zone-recusation" } }),
+  retrait: el("section", { classe: "nt-carte zone-carte", attributs: { id: "zone-retrait" } }),
 };
 
-const champMotif = el("textarea", { attributs: { id: "motif", rows: "3", maxlength: "4096", "aria-describedby": "motif-avertissement" } });
+const champMotif = el("textarea", { classe: "nt-saisie", attributs: { id: "motif", rows: "3", maxlength: "4096", "aria-describedby": "motif-avertissement" } });
 
 // ---------------------------------------------------------------------------
 // Abandon (EX-13.21, EX-13.23, EX-9.21 point 8)
@@ -159,7 +185,7 @@ async function lecturePas1() {
     lu = await lireVueEtAnnuaire();
   } catch (e) {
     afficherErreur(zones.lecture, e);
-    for (const z of ["modele", "decision", "signature", "consignes", "recusation", "retrait"]) vider(zones[z]);
+    for (const z of ["modele", "decision", "vote", "signature", "consignes", "recusation", "retrait"]) vider(zones[z]);
     return;
   }
   let calcul;
@@ -186,64 +212,276 @@ async function lectureLies() {
     const r = await appeler("tickets", { session_identity: identite(), related_to: etat.ticket });
     rendreLies(r.valeur);
   } catch (e) {
-    remplacer(zones.lies, el("h2", { texte: t("ticket.lies.titre") }));
     const z = el("div");
-    zones.lies.appendChild(z);
+    remplacer(zones.lies, el("h2", { texte: t("ticket.lies.titre") }), z);
     afficherErreur(z, e);
   }
 }
 
 // ---------------------------------------------------------------------------
-// Affichage du modèle (EX-9.4)
+// Affichage du modèle (EX-9.4). Tout ce qu'EX-9.4 demande de montrer avant
+// une signature reste visible sans interaction : seuls les codes bruts, les
+// noms de champs et les instants exacts vont dans le détail replié.
+
+const MARQUES_ARGUMENT = Object.freeze({ verifie: ["verifie", "coche"], non_verifiable: ["non-verifiable", "question"], different: ["different", "different"] });
 
 function marqueArgument(statut) {
-  return el("span", { classe: `marque marque-${statut}`, texte: t(`marque.${statut}`), attributs: { "data-marque": statut } });
+  const [genre, nomIcone] = MARQUES_ARGUMENT[statut] ?? [null, "info"];
+  return marque(genre, t(`marque.${statut}`), nomIcone, { "data-marque": statut });
+}
+
+// Marque déclarative (EX-9.4) : dit d'où vient la valeur, sans la vérifier.
+const marqueDeclarative = (cle) => marque(null, t(cle), "info");
+
+// Libellé d'un code à sens connu (classe d'outil, niveau de règle), suivi de
+// son explication ; un code inconnu est rendu tel quel.
+function libelleCode(famille, valeur) {
+  if (typeof valeur !== "string" || !aCle(`${famille}.${valeur}`)) return el("span", {}, code(String(valeur)));
+  return el("span", {}, t(`${famille}.${valeur}`), aCle(`${famille}_sens.${valeur}`) ? el("span", { classe: "nt-attenue nt-petit", texte: ` ${t(`${famille}_sens.${valeur}`)}` }) : null);
+}
+
+/** Décompte des votes du modèle : approbations, refus, seuil effectif. */
+function decompte(modele) {
+  const liste = Array.isArray(modele.votes) ? modele.votes : [];
+  return { approuve: liste.filter((v) => v.decision === "approuve").length, refuse: liste.filter((v) => v.decision === "refuse").length, requis: modele.effective_required };
+}
+
+function texteVotes(d) {
+  const approbations = pluriel(d.approuve, "votes.approbation", "votes.approbations");
+  return d.requis === null || d.requis === undefined ? t("tickets.votes.sans_seuil", { approbations }) : t("tickets.votes", { approbations, requis: pluriel(d.requis, "votes.requise", "votes.requises") });
+}
+
+const fait = (terme, ...valeur) => el("div", { classe: "nt-fait" }, el("dt", { texte: terme }), el("dd", {}, ...valeur));
+const faitLarge = (terme, ...valeur) => el("div", { classe: "nt-fait fait-large" }, el("dt", { texte: terme }), el("dd", {}, ...valeur));
+
+/**
+ * La carte « essentiel » : la phrase d'en-tête, composée des seules valeurs
+ * que le modèle a vérifiées (`resumeVerifie`), le montant s'il est vérifié,
+ * les réserves dites en clair, les faits clés, puis la décision.
+ */
+function rendreEssentiel(modele, clos) {
+  const r = resumeVerifie(modele);
+  const d = decompte(modele);
+  const parties = [el("p", { classe: "nt-sur-titre", texte: t(clos ? "essentiel.titre_clos" : "essentiel.titre"), attributs: { id: "essentiel-titre" } })];
+  const phrase = el("p", { classe: "nt-essentiel-phrase phrase-large", attributs: { id: "phrase-entete" } });
+  if (r.outil === null) {
+    ajouter(phrase, t("essentiel.non_liee"));
+  } else {
+    ajouter(phrase, t("essentiel.outil"), " ", el("code", { classe: "nt-fixe", texte: r.outil, attributs: { "data-resume": "outil" } }), r.montant === null ? t("essentiel.point") : t("essentiel.montant"));
+  }
+  parties.push(phrase);
+  if (r.outil !== null && r.montant !== null) {
+    parties.push(
+      el("p", { classe: "nt-chiffre", attributs: { id: "montant-entete" } }, document.createTextNode(r.montant.texte), el("span", { classe: "nt-chiffre-unite", texte: r.montant.devise })),
+      el(
+        "p",
+        { classe: "nt-attenue nt-petit", attributs: { id: "montant-signe" } },
+        t("essentiel.valeurs_signees"),
+        " ",
+        code(r.montant.pointeurs[0]),
+        " ",
+        el("code", { classe: "nt-code valeur", texte: texteValeur(r.montant.valeurs[0]) }),
+        t("essentiel.et"),
+        code(r.montant.pointeurs[1]),
+        " ",
+        el("code", { classe: "nt-code valeur", texte: texteValeur(r.montant.valeurs[1]) }),
+        t("essentiel.toutes_verifiees"),
+      ),
+    );
+  }
+  // Réserves : chaque valeur que la console n'a pas vérifiée est nommée, avec sa marque ; aucune n'entre dans la phrase.
+  if (r.reserves.length > 0) {
+    const MAX = 6;
+    const liste = el("ul", { classe: "liste-nue reserves", attributs: { id: "reserves" } });
+    for (const x of r.reserves.slice(0, MAX)) ajouter(liste, el("li", { attributs: { "data-reserve": x.pointer } }, code(x.pointer === "" ? t("modele.arguments.racine") : x.pointer), " ", marqueArgument(x.status)));
+    if (r.reserves.length > MAX) ajouter(liste, el("li", { texte: pluriel(r.reserves.length - MAX, "essentiel.reserves_autre", "essentiel.reserves_autres"), attributs: { id: "reserves-autres" } }));
+    parties.push(
+      note(
+        "alerte",
+        el("p", { classe: "nt-bandeau-titre", texte: pluriel(r.reserves.length, "essentiel.reserve", "essentiel.reserves") }),
+        liste,
+        r.outil !== null && r.montant === null && modele.arguments.some((a) => a.status !== "verifie" && (a.pointer === "/amount" || a.pointer === "/currency" || a.pointer === "/montant" || a.pointer === "/devise")) ? el("p", { texte: t("essentiel.montant_non_repris"), attributs: { id: "montant-non-repris" } }) : null,
+        clos ? null : el("p", { texte: t(r.reserves.length >= 2 ? "essentiel.reserves_lire" : "essentiel.reserve_lire") }),
+      ),
+    );
+  }
+  const faits = el("dl", { classe: "nt-faits faits-ligne" });
+  if (r.demandeur !== null) ajouter(faits, faitLarge(t("essentiel.demandeur"), el("code", { classe: "nt-fixe", texte: r.demandeur, attributs: { "data-resume": "demandeur" } }), el("span", { classe: "fait-second", texte: t("marque.configuration_hote") })));
+  if (r.regle !== null) ajouter(faits, fait(t("modele.regle"), el("span", { texte: r.regle, attributs: { "data-resume": "regle" } })));
+  ajouter(faits, fait(t("essentiel.votes"), el("span", { texte: texteVotes(d), attributs: { id: "resume-votes" } }), d.refuse > 0 ? el("span", { classe: "fait-second", texte: t("votes.refus", { n: d.refuse }) }) : null));
+  // Un ticket décidé ou clos n'a plus d'échéance à tenir.
+  if (!clos) ajouter(faits, fait(t("modele.echeance.deadline"), el("span", { texte: texteRestant(modele.remaining_ms), attributs: { id: "resume-echeance" } }), modele.deadline === null ? null : el("span", { classe: "fait-second" }, instant(modele.deadline))));
+  parties.push(faits, zones.decision);
+  return el("section", { classe: "nt-essentiel essentiel-serre", attributs: { id: "essentiel", "aria-labelledby": "essentiel-titre" } }, ...parties);
+}
+
+/** Le lien de retour vers la liste des tickets. */
+function filTickets() {
+  return el("a", { classe: "nt-fil", attributs: { href: "/tickets" } }, icone("retour"), t("ticket.fil"));
 }
 
 function rendreModele() {
   const { modele, controle, raisons } = etat.pas1;
   const vue = etat.vue;
+  const clos = raisons.includes("ticket_clos_aux_votes");
+  const etatConnu = aCle(`etat_pastille.${modele.state}`);
   const parties = [];
-  parties.push(el("h1", {}, t("ticket.titre"), " ", code(modele.ticket)));
 
-  // Raisons qui bloquent dès la lecture du pas 1, et avertissements.
-  parties.push(rendreRaisons(raisons, modele, vue));
-  parties.push(rendreAvertissements(modele.warnings, controle.warnings));
-
-  // Outil.
+  // En-tête : le ticket, son état en un mot, ce que cet état veut dire. Le retour à la liste, l'identifiant et
+  // l'état tiennent sur une ligne, pour que la décision reste dans le premier écran d'un poste.
   parties.push(
-    section(
-      t("modele.outil"),
+    entete({
+      surTitre: el(
+        "div",
+        { classe: "ligne-ticket" },
+        el("div", { classe: "ligne-ticket-debut" }, filTickets(), el("p", { classe: "nt-sur-titre" }, t("ticket.titre"), " ", code(modele.ticket))),
+        el(
+          "div",
+          { classe: "ligne-ticket-etat", attributs: { id: "etat-ticket" } },
+          pastilleEtat(modele.state, { grande: true }),
+          !clos && modele.remaining_ms !== null ? el("span", { classe: "nt-attenue nt-petit", texte: t("ticket.echeance_courte", { restant: texteRestant(modele.remaining_ms) }) }) : null,
+        ),
+      ),
+      titre: t(etatConnu ? `ticket.titre_etat.${modele.state}` : "ticket.titre_etat.inconnu"),
+      sousTitre: etatConnu ? t(`etat_sens.${modele.state}`) : null,
+    }),
+  );
+
+  // Raisons qui bloquent dès la lecture du pas 1, et avertissements : au-dessus de tout le reste.
+  parties.push(rendreRaisons(raisons, modele, vue));
+  parties.push(...rendreAvertissements(modele.warnings, controle.warnings));
+
+  // L'essentiel : ce qui est demandé, en une phrase de valeurs vérifiées, et la décision.
+  parties.push(rendreEssentiel(modele, clos));
+
+  // Ce que la signature engage : les arguments, puis les champs signés.
+  parties.push(el("div", { classe: "titre-groupe" }, el("h2", { texte: t("groupe.signe") }), el("p", { classe: "nt-attenue", texte: t("groupe.signe_sens") })));
+
+  // Arguments, chacun avec sa marque.
+  const table = el("table", { classe: "nt-tableau", attributs: { id: "arguments" } });
+  ajouter(table, el("thead", {}, el("tr", {}, ...["pointeur", "valeur", "marque"].map((c) => el("th", { texte: t(`modele.arguments.${c}`), attributs: { scope: "col" } })))));
+  const corps = el("tbody");
+  for (const a of modele.arguments) {
+    // Valeur sous sa forme JSON, caractères invisibles écrits `\uXXXX` et marqués (EX-9.16, revue de sécurité de l'étape 8).
+    const valeur = el("td", { attributs: { "data-libelle": t("modele.arguments.valeur") } }, el("span", {}, code(texteValeur(a.value), "nt-fixe valeur"), contientInvisibles(a.value) ? " " : null, contientInvisibles(a.value) ? marqueInvisibles() : null));
+    ajouter(
+      corps,
+      el(
+        "tr",
+        { attributs: { "data-pointeur": a.pointer } },
+        el("td", { classe: "nt-cellule-titre", attributs: { "data-libelle": t("modele.arguments.pointeur") } }, code(a.pointer === "" ? t("modele.arguments.racine") : a.pointer)),
+        valeur,
+        el("td", { attributs: { "data-libelle": t("modele.arguments.marque") } }, marqueArgument(a.status)),
+      ),
+    );
+  }
+  table.appendChild(corps);
+  const verifies = modele.arguments.filter((a) => a.status === "verifie").length;
+  parties.push(
+    el(
+      "section",
+      { classe: "nt-carte nt-carte-pleine", attributs: { "aria-labelledby": "arguments-titre" } },
+      el("div", { classe: "nt-carte-titre" }, el("h3", { texte: t("modele.arguments"), attributs: { id: "arguments-titre" } }), el("span", { classe: "nt-carte-note", texte: t("modele.arguments.compte", { champs: pluriel(modele.arguments.length, "modele.arguments.champ", "modele.arguments.champs"), verifies: pluriel(verifies, "modele.arguments.verifie", "modele.arguments.verifies") }) })),
+      table,
+      el("p", { classe: "nt-attenue nt-petit pied-carte", texte: t("modele.arguments.non_verifiable_sens") }),
+    ),
+  );
+
+  // Champs signés.
+  const evenementVerifie = !modele.blocking.includes("evenement_invalide");
+  parties.push(
+    el(
+      "section",
+      { classe: "nt-carte", attributs: { id: "champs-signes" } },
+      el("div", { classe: "nt-carte-titre" }, el("h3", { texte: t("modele.signes") }), el("span", { classe: "nt-carte-note", texte: t("modele.signes.note") })),
       definitions([
-        [t("modele.outil.annonce"), code(modele.tool.announced)],
-        [t("modele.outil.origine"), code(modele.tool.original)],
-        [t("modele.outil.alias"), code(modele.tool.server_alias)],
-        [t("modele.outil.classe"), modele.tool.class],
+        [t("modele.signes.decision"), etat.decision === null ? el("span", { classe: "nt-attenue", texte: t("modele.signes.decision_absente") }) : code(etat.decision)],
+        [t("modele.signes.ticket"), code(modele.ticket)],
+        [t("modele.signes.org_id"), code(modele.org_id)],
+        [t("modele.signes.journal_id"), code(modele.journal_id)],
+        [t("modele.signes.request_hash"), code(modele.request.request_hash)],
+        [
+          t("modele.signes.evenement"),
+          el(
+            "span",
+            { classe: "valeur-et-marque" },
+            el("span", { classe: "nt-fixe", texte: t("modele.signes.evenement_texte", { seq: modele.request.seq, ts: modele.request.ts }) }),
+            " ",
+            evenementVerifie ? marque("verifie", t("marque.verifie"), "coche", { "data-evenement": "verifie" }) : marque("different", t("marque.evenement_invalide"), "different", { "data-evenement": "invalide" }),
+          ),
+        ],
       ]),
     ),
   );
 
-  // Arguments, chacun avec sa marque.
-  const table = el("table", { classe: "table", attributs: { id: "arguments" } });
-  ajouter(table, el("thead", {}, el("tr", {}, el("th", { texte: t("modele.arguments.pointeur") }), el("th", { texte: t("modele.arguments.valeur") }), el("th", { texte: t("modele.arguments.marque") }))));
-  const corps = el("tbody");
-  for (const a of modele.arguments) {
-    // Valeur sous sa forme JSON, caractères invisibles écrits `\uXXXX` et marqués (EX-9.16, revue de sécurité de l'étape 8).
-    const valeur = el("td", {}, code(texteValeur(a.value), "fixe valeur"));
-    if (contientInvisibles(a.value)) ajouter(valeur, " ", marqueInvisibles());
-    ajouter(corps, el("tr", { attributs: { "data-pointeur": a.pointer } }, el("td", {}, code(a.pointer === "" ? t("modele.arguments.racine") : a.pointer)), valeur, el("td", {}, marqueArgument(a.status))));
-  }
-  table.appendChild(corps);
-  parties.push(section(t("modele.arguments"), table, el("p", { classe: "discret", texte: t("modele.arguments.non_verifiable_sens") })));
+  // Aucune empreinte de D_A avant le choix de la décision (EX-9.20, point 2 ;
+  // contrat 3.4, révision de l'étape 6) : seule celle de la décision choisie
+  // paraît, sur l'écran de signature ; `empreinte_divergente` montre les deux
+  // (table de 13.14).
+
+  // La demande : outil, règle, délégation et intention, effets, ticket ouvrant.
+  parties.push(el("div", { classe: "titre-groupe" }, el("h2", { texte: t("groupe.demande") })));
+  const d = modele.delegation;
+  const valeurEtMarque = (valeur, m) => el("span", { classe: "valeur-et-marque" }, valeur, " ", m);
+  parties.push(
+    el(
+      "div",
+      { classe: "nt-grille" },
+      el(
+        "section",
+        { classe: "nt-carte" },
+        el("h3", { texte: t("modele.outil") }),
+        definitions([
+          [t("modele.outil.annonce"), code(modele.tool.announced)],
+          [t("modele.outil.origine"), code(modele.tool.original)],
+          [t("modele.outil.alias"), code(modele.tool.server_alias)],
+          [t("modele.outil.classe"), libelleCode("classe", modele.tool.class)],
+        ]),
+      ),
+      el(
+        "section",
+        { classe: "nt-carte" },
+        el("h3", { texte: t("modele.regle") }),
+        definitions([
+          [t("modele.regle.policy_rule"), code(modele.rule.policy_rule)],
+          [t("modele.regle.nom"), modele.rule.name],
+          [t("modele.regle.description"), modele.rule.description === null ? t("modele.vide") : modele.rule.description],
+          [t("modele.regle.niveau"), libelleCode("niveau", modele.rule.level)],
+          [t("modele.regle.contestation"), modele.rule.contest_ms === 0 ? t("modele.regle.sans_contestation") : texteDuree(modele.rule.contest_ms)],
+        ]),
+      ),
+    ),
+  );
+  parties.push(
+    el(
+      "section",
+      { classe: "nt-carte" },
+      el("h3", { texte: t("modele.delegation") }),
+      modele.separation_banner ? message("alerte", paragrapheCode("separation_non_verifiable", ["avertissement."])) : null,
+      definitions([
+        [t("modele.delegation.launched_by"), valeurEtMarque(code(d.launched_by), marqueDeclarative("marque.configuration_hote"))],
+        [t("modele.delegation.scope"), valeurEtMarque(code(d.scope), marqueDeclarative("marque.configuration_hote"))],
+        [t("modele.delegation.on_behalf_of"), valeurEtMarque(d.on_behalf_of === null ? el("span", { texte: t("modele.vide") }) : code(d.on_behalf_of), marqueDeclarative("marque.declare_hote"))],
+        [t("modele.delegation.run_id"), valeurEtMarque(d.run_id === null ? el("span", { texte: t("modele.vide") }) : code(d.run_id), marqueDeclarative("marque.declare_hote"))],
+        [
+          t("modele.intention"),
+          valeurEtMarque(
+            el("span", { texte: modele.intent === null ? t("modele.vide") : modele.intent }),
+            modele.intent_status === "en_clair" ? marque(null, t("marque.intention_declaree"), "info", { "data-intention": modele.intent_status }) : marque("non-verifiable", t("marque.non_verifiable"), "question", { "data-intention": modele.intent_status }),
+          ),
+        ],
+      ]),
+    ),
+  );
 
   // Effets déclarés prévus.
-  const effets = el("ul", { classe: "effets", attributs: { id: "effets" } });
-  if (modele.effects.length === 0) ajouter(effets, el("li", { texte: t("modele.effets.aucun") }));
+  const effets = el("ul", { classe: "liste-nue effets", attributs: { id: "effets" } });
+  if (modele.effects.length === 0) ajouter(effets, el("li", { classe: "nt-attenue", texte: t("modele.effets.aucun") }));
   for (const e of modele.effects) {
     const nonResolus = new Map(e.unresolved.map((u) => [u.member, u.pointer]));
     const membre = (nom) => {
       if (nonResolus.has(nom)) {
-        return el("span", { attributs: { "data-connu-apres-execution": nom } }, el("span", { classe: "marque", texte: t("marque.connu_apres_execution") }), " ", code(nonResolus.get(nom)));
+        return el("span", { attributs: { "data-connu-apres-execution": nom } }, marque(null, t("marque.connu_apres_execution"), "horloge"), " ", code(nonResolus.get(nom)));
       }
       return e[nom] === null ? t("modele.vide") : code(e[nom]);
     };
@@ -254,7 +492,7 @@ function rendreModele() {
         {},
         definitions([
           [t("modele.effets.systeme"), code(e.system)],
-          [t("modele.effets.action"), e.action],
+          [t("modele.effets.action"), libelleCode("classe", e.action)],
           [t("modele.effets.objet"), membre("object")],
           [t("modele.effets.montant"), membre("amount")],
           [t("modele.effets.devise"), membre("currency")],
@@ -262,33 +500,21 @@ function rendreModele() {
       ),
     );
   }
-  parties.push(section(t("modele.effets"), el("p", { classe: "discret", texte: t("modele.effets.declaratif") }), effets));
-
-  // Règle déclenchée et délai de contestation.
-  parties.push(
-    section(
-      t("modele.regle"),
-      definitions([
-        [t("modele.regle.policy_rule"), code(modele.rule.policy_rule)],
-        [t("modele.regle.nom"), modele.rule.name],
-        [t("modele.regle.description"), modele.rule.description === null ? t("modele.vide") : modele.rule.description],
-        [t("modele.regle.niveau"), t(`niveau.${modele.rule.level}`)],
-        [t("modele.regle.contestation"), modele.rule.contest_ms === 0 ? t("modele.regle.sans_contestation") : texteDuree(modele.rule.contest_ms)],
-      ]),
-    ),
-  );
+  parties.push(el("section", { classe: "nt-carte" }, el("div", { classe: "nt-carte-titre" }, el("h3", { texte: t("modele.effets") }), el("span", { classe: "nt-carte-note", texte: t("modele.effets.declaratif") })), effets));
 
   // Ticket ouvrant (EX-5.4).
   if (modele.opening !== null) {
     const o = modele.opening;
-    const memes = el("ul");
-    for (const s of o.same_arguments) ajouter(memes, el("li", {}, code(s.pointer), " ", code(texteValeur(s.value), "fixe valeur"), contientInvisibles(s.value) ? " " : null, contientInvisibles(s.value) ? marqueInvisibles() : null));
+    const memes = el("ul", { classe: "liste-nue" });
+    for (const s of o.same_arguments) ajouter(memes, el("li", {}, code(s.pointer), " ", code(texteValeur(s.value), "nt-fixe valeur"), contientInvisibles(s.value) ? " " : null, contientInvisibles(s.value) ? marqueInvisibles() : null));
     parties.push(
-      section(
-        t("modele.ouvrant"),
+      el(
+        "section",
+        { classe: "nt-carte" },
+        el("h3", { texte: t("modele.ouvrant") }),
         definitions([
           [t("modele.ouvrant.outil"), code(o.tool)],
-          [t("modele.ouvrant.condition"), o.when === null ? t("modele.vide") : el("pre", { classe: "fixe", texte: JSON.stringify(o.when, null, 2) })],
+          [t("modele.ouvrant.condition"), o.when === null ? t("modele.vide") : el("pre", { classe: "nt-pre", texte: JSON.stringify(o.when, null, 2) })],
           [t("modele.ouvrant.memes_arguments"), o.same_arguments.length === 0 ? t("modele.vide") : memes],
           [t("modele.ouvrant.portee"), t("modele.ouvrant.portee_texte", { max_calls: o.max_calls, duree: texteDuree(o.duration_ms) })],
         ]),
@@ -296,115 +522,138 @@ function rendreModele() {
     );
   }
 
-  // Intention.
-  parties.push(
-    section(
-      t("modele.intention"),
-      el("p", {}, modele.intent === null ? t("modele.vide") : modele.intent),
-      el("p", {}, el("span", { classe: "marque", texte: t(modele.intent_status === "en_clair" ? "marque.intention_declaree" : "marque.non_verifiable"), attributs: { "data-intention": modele.intent_status } })),
-    ),
-  );
-
-  // Délégation.
-  const d = modele.delegation;
-  const delegation = [
-    section(
-      t("modele.delegation"),
-      definitions([
-        [t("modele.delegation.launched_by"), el("span", {}, code(d.launched_by), " ", el("span", { classe: "marque", texte: t("marque.configuration_hote") }))],
-        [t("modele.delegation.scope"), el("span", {}, code(d.scope), " ", el("span", { classe: "marque", texte: t("marque.configuration_hote") }))],
-        [t("modele.delegation.on_behalf_of"), el("span", {}, d.on_behalf_of === null ? t("modele.vide") : code(d.on_behalf_of), " ", el("span", { classe: "marque", texte: t("marque.declare_hote") }))],
-        [t("modele.delegation.run_id"), el("span", {}, d.run_id === null ? t("modele.vide") : code(d.run_id), " ", el("span", { classe: "marque", texte: t("marque.declare_hote") }))],
-      ]),
-      modele.separation_banner ? message("alerte", el("p", { texte: t("modele.separation_banniere"), attributs: { "data-code": "separation_non_verifiable" } })) : null,
-    ),
-  ];
-  parties.push(...delegation);
-
-  // Champs signés.
-  parties.push(
-    section(
-      t("modele.signes"),
-      definitions([
-        [t("modele.signes.ticket"), code(modele.ticket)],
-        [t("modele.signes.org_id"), code(modele.org_id)],
-        [t("modele.signes.journal_id"), code(modele.journal_id)],
-        [t("modele.signes.request_hash"), code(modele.request.request_hash)],
-        [t("modele.signes.evenement"), t("modele.signes.evenement_texte", { seq: modele.request.seq, ts: modele.request.ts })],
-      ]),
-    ),
-  );
-
-  // Aucune empreinte de D_A avant le choix de la décision (EX-9.20, point 2 ;
-  // contrat 3.4, révision de l'étape 6) : seule celle de la décision choisie
-  // paraît, sur l'écran de signature ; `empreinte_divergente` montre les deux
-  // (table de 13.14).
-
-  // Échéance, contestation.
+  // La décision collective : échéance et contestation, jeu figé, votes.
+  parties.push(el("div", { classe: "titre-groupe" }, el("h2", { texte: t("groupe.collectif") })));
   const c = modele.contest;
-  parties.push(
-    section(
-      t("modele.echeance"),
-      definitions([
-        [t("modele.echeance.deadline"), modele.deadline === null ? t("modele.vide") : code(modele.deadline)],
-        [t("modele.echeance.restant"), modele.remaining_ms === null ? t("modele.vide") : modele.remaining_ms <= 0 ? t("modele.echeance.depassee") : texteDuree(modele.remaining_ms)],
-        [t("modele.regle.contestation"), modele.rule.contest_ms === 0 ? t("modele.regle.sans_contestation") : texteDuree(modele.rule.contest_ms)],
-        [t("modele.contest.fin_fenetre"), c.window_end === null ? t("modele.contest.aucune_fenetre") : code(c.window_end)],
-        [t("modele.contest.objections"), c.objections.length === 0 ? t("modele.contest.aucune_objection") : el("ul", {}, ...c.objections.map((o) => el("li", {}, code(o.approver), " ", code(o.at))))],
-        [t("modele.contest.dernier_instant"), c.last_threshold_at === null ? t("modele.vide") : code(c.last_threshold_at)],
-      ]),
-    ),
-  );
+  const sansContestation = modele.rule.contest_ms === 0 && c.window_end === null && c.objections.length === 0 && c.last_threshold_at === null;
+  const echeance = [
+    [t("modele.echeance.deadline"), modele.deadline === null ? t("modele.vide") : instant(modele.deadline)],
+    [t("modele.echeance.restant"), el("span", { texte: texteRestant(modele.remaining_ms) })],
+    [t("modele.regle.contestation"), modele.rule.contest_ms === 0 ? t("modele.regle.sans_contestation") : texteDuree(modele.rule.contest_ms)],
+  ];
+  if (!sansContestation) {
+    echeance.push(
+      [t("modele.contest.fin_fenetre"), c.window_end === null ? t("modele.contest.aucune_fenetre") : instant(c.window_end)],
+      [t("modele.contest.objections"), c.objections.length === 0 ? t("modele.contest.aucune_objection") : el("ul", { classe: "liste-nue" }, ...c.objections.map((o) => el("li", {}, code(o.approver), " ", instant(o.at))))],
+      [t("modele.contest.dernier_instant"), c.last_threshold_at === null ? t("modele.vide") : instant(c.last_threshold_at)],
+    );
+  }
 
   // Jeu figé, votes.
   const jeu = modele.approver_set;
-  const votes = el("ul", { attributs: { id: "votes" } });
-  if (modele.votes.length === 0) ajouter(votes, el("li", { texte: t("modele.votes.aucun") }));
-  for (const v of modele.votes) {
-    ajouter(votes, el("li", {}, code(v.approver), " ", t(`decision.${v.decision}`), " ", code(v.at), " ", v.reason === null ? t("modele.votes.sans_motif") : t("modele.votes.motif", { motif: v.reason })));
+  const mien = etat.pas1.approver;
+  const votes = el("div", { attributs: { id: "votes" } });
+  if (modele.votes.length === 0) {
+    ajouter(votes, el("p", { classe: "nt-attenue corps-carte", texte: t("modele.votes.aucun") }));
+  } else {
+    const tv = el("table", { classe: "nt-tableau" });
+    ajouter(tv, el("thead", {}, el("tr", {}, ...["approbateur", "decision", "instant", "motif"].map((x) => el("th", { texte: t(`modele.votes.colonne.${x}`), attributs: { scope: "col" } })))));
+    const lignes = el("tbody");
+    for (const v of modele.votes) {
+      ajouter(
+        lignes,
+        el(
+          "tr",
+          { attributs: { "data-vote": v.approver, "data-decision": v.decision } },
+          el("td", { classe: "nt-cellule-titre", attributs: { "data-libelle": t("modele.votes.colonne.approbateur") } }, el("span", {}, code(v.approver), v.approver === mien ? el("span", { classe: "nt-attenue nt-petit", texte: ` ${t("modele.jeu.vous")}` }) : null)),
+          // La décision d'un vote est la valeur signée : `approuve` ou `refuse`, telle quelle, sans capitale.
+          el("td", { attributs: { "data-libelle": t("modele.votes.colonne.decision") } }, pastille(v.decision === "approuve" ? "succes" : "refus", t(`decision.${v.decision}`), v.decision === "approuve" ? "coche" : "croix", { telQuel: true })),
+          el("td", { attributs: { "data-libelle": t("modele.votes.colonne.instant") } }, instant(v.at)),
+          el("td", { attributs: { "data-libelle": t("modele.votes.colonne.motif") } }, v.reason === null ? el("span", { classe: "nt-attenue", texte: t("modele.votes.sans_motif") }) : el("span", { texte: v.reason })),
+        ),
+      );
+    }
+    tv.appendChild(lignes);
+    votes.appendChild(tv);
   }
   parties.push(
-    section(
-      t("modele.jeu"),
+    el("section", { classe: "nt-carte" }, el("h3", { texte: t("modele.echeance") }), definitions(echeance)),
+    el(
+      "section",
+      { classe: "nt-carte" },
+      el("h3", { texte: t("modele.jeu") }),
       jeu === null
         ? el("p", { texte: t("modele.jeu.non_fige") })
         : definitions([
-            [t("modele.jeu.seuil"), t("modele.jeu.seuil_texte", { t: jeu.threshold.required, n: jeu.threshold.size })],
+            [t("modele.jeu.seuil"), el("span", {}, t("modele.jeu.seuil_texte", { t: jeu.threshold.required, n: jeu.threshold.size }), el("span", { classe: "nt-attenue nt-petit", texte: ` ${t("modele.jeu.seuil_sens", { t: jeu.threshold.required, n: jeu.threshold.size })}` }))],
             [t("modele.jeu.seuil_effectif"), modele.effective_required === null ? t("modele.vide") : String(modele.effective_required)],
-            [t("modele.jeu.membres"), el("ul", {}, ...jeu.members.map((m) => el("li", {}, code(m))))],
-            [t("modele.jeu.source"), code(jeu.source)],
+            [t("modele.jeu.membres"), el("ul", { classe: "liste-nue" }, ...jeu.members.map((m) => el("li", {}, code(m), m === mien ? el("span", { classe: "nt-attenue nt-petit", texte: ` ${t("modele.jeu.vous")}` }) : null)))],
+            [t("modele.jeu.source"), el("span", { classe: "nt-fixe nt-petit", texte: jeu.source })],
           ]),
-      el("h3", { texte: t("modele.votes") }),
-      votes,
     ),
+    el("section", { classe: "nt-carte nt-carte-pleine" }, el("div", { classe: "nt-carte-titre" }, el("h3", { texte: t("modele.votes") }), el("span", { classe: "nt-carte-note", texte: texteVotes(decompte(modele)) })), votes),
   );
+
+  // Détail technique, replié : codes bruts, noms de champs, instants exacts.
+  // Rien de ce qu'EX-9.4 demande d'afficher n'y est : chaque valeur ci-dessous
+  // est déjà à l'écran sous sa forme lisible.
+  const exact = (v) => (v === null || v === undefined ? el("span", { texte: t("modele.vide") }) : code(String(v)));
+  const technique = [
+    [t("detail.etat"), exact(modele.state)],
+    [t("detail.classe"), exact(modele.tool.class)],
+    [t("detail.niveau"), exact(modele.rule.level)],
+    [t("detail.echeance"), exact(modele.deadline)],
+    [t("detail.restant"), modele.remaining_ms === null ? el("span", { texte: t("modele.vide") }) : el("span", { texte: modele.remaining_ms <= 0 ? t("modele.echeance.depassee") : texteDuree(modele.remaining_ms) })],
+    [t("detail.contestation"), exact(modele.rule.contest_ms)],
+    [t("detail.fin_fenetre"), exact(c.window_end)],
+    [t("detail.dernier_instant"), exact(c.last_threshold_at)],
+  ];
+  if (c.objections.length > 0) technique.push([t("detail.objections"), el("ul", { classe: "liste-nue" }, ...c.objections.map((o) => el("li", {}, code(o.approver), " ", code(o.at))))]);
+  if (modele.votes.length > 0) technique.push([t("detail.votes"), el("ul", { classe: "liste-nue" }, ...modele.votes.map((v) => el("li", {}, code(v.approver), " ", code(v.decision), " ", code(v.at))))]);
+  if (modele.warnings.length > 0) technique.push([t("detail.avertissements"), el("span", {}, ...modele.warnings.flatMap((w, k) => [k > 0 ? " " : null, code(w)]))]);
+  if (raisons.length > 0) technique.push([t("detail.raisons"), el("span", {}, ...raisons.flatMap((x, k) => [k > 0 ? " " : null, code(x)]))]);
+  technique.push([t("detail.champs"), el("span", { classe: "nt-fixe nt-petit", texte: t("detail.champs_texte") })]);
+  const bloc = detail(t("detail.titre"), t("detail.note"), definitions(technique));
+  bloc.setAttribute("id", "detail-technique");
+  bloc.open = etat.detailOuvert;
+  bloc.addEventListener("toggle", () => {
+    etat.detailOuvert = bloc.open;
+  });
+  parties.push(bloc);
 
   remplacer(zones.modele, ...parties);
 }
 
-/** Liste des raisons qui bloquent ; pour `empreinte_divergente`, les deux empreintes de chaque décision. */
+/**
+ * Les raisons qui bloquent ; pour `empreinte_divergente`, les deux empreintes
+ * de chaque décision. Un ticket qui n'accepte plus de votes, sans autre
+ * raison, n'est pas une panne : le bandeau le dit sans alarme.
+ */
 function rendreRaisons(raisons, modele, vue) {
   if (raisons.length === 0) return null;
-  const ul = el("ul", { classe: "raisons" });
+  const ul = el("ul", { classe: "liste-nue raisons" });
   for (const r of raisons) {
-    const li = el("li", { attributs: { "data-code": r } }, texteCode(r, PREFIXES_VOTE));
+    const li = el("li", { attributs: { "data-code": r } }, ...phraseCode(r, PREFIXES_VOTE));
     if (r === "empreinte_divergente" && modele.digests !== null) {
       const service = (d) => (vue.digests && typeof vue.digests[d] === "string" && /^0x[0-9a-f]{64}$/.test(vue.digests[d]) ? empreinte(vue.digests[d]) : t("modele.vide"));
-      const table = el("table", { classe: "table", attributs: { id: "empreintes-divergentes" } });
-      ajouter(table, el("thead", {}, el("tr", {}, el("th", { texte: t("divergence.decision") }), el("th", { texte: t("divergence.console") }), el("th", { texte: t("divergence.service") }))));
+      const table = el("table", { classe: "nt-tableau", attributs: { id: "empreintes-divergentes" } });
+      ajouter(table, el("thead", {}, el("tr", {}, ...["decision", "console", "service"].map((x) => el("th", { texte: t(`divergence.${x}`), attributs: { scope: "col" } })))));
       for (const d of ["approuve", "refuse"]) {
-        ajouter(table, el("tr", { attributs: { "data-decision": d } }, el("td", { texte: t(`decision.${d}`) }), el("td", {}, code(modele.digests[d].fingerprint)), el("td", {}, code(service(d)))));
+        ajouter(
+          table,
+          el(
+            "tr",
+            { attributs: { "data-decision": d } },
+            el("td", { classe: "nt-cellule-titre", texte: t(`decision.${d}`), attributs: { "data-libelle": t("divergence.decision") } }),
+            el("td", { attributs: { "data-libelle": t("divergence.console") } }, code(modele.digests[d].fingerprint)),
+            el("td", { attributs: { "data-libelle": t("divergence.service") } }, code(service(d))),
+          ),
+        );
       }
       ajouter(li, table, el("p", { texte: t("divergence.prevenir") }));
     }
     ul.appendChild(li);
   }
-  return message("erreur", el("p", { texte: t("raisons.titre") }), ul);
+  if (raisons.length === 1 && raisons[0] === "ticket_clos_aux_votes") {
+    const approuve = modele.state === "approuve" || modele.state === "consomme";
+    return message(approuve ? "succes" : "info", approuve ? el("p", { classe: "nt-bandeau-titre", texte: t("raisons.approuve", { votes: texteVotes(decompte(modele)) }), attributs: { id: "issue" } }) : null, ul, el("p", { texte: t("raisons.clos_sens") }));
+  }
+  return message("erreur", el("p", { classe: "nt-bandeau-titre", texte: t("raisons.titre") }), ul);
 }
 
+/** Un bandeau par avertissement : son titre, sa phrase et son code, puis ce qu'il veut dire et quoi faire. */
 function rendreAvertissements(warnings, avertissementsControle) {
-  if (warnings.length === 0) return null;
-  const ul = el("ul", { classe: "avertissements" });
+  const bandeaux = [];
   for (const w of warnings) {
     let txt = t(`avertissement.${w}`);
     if (w === "separation_incomplete") {
@@ -412,20 +661,28 @@ function rendreAvertissements(warnings, avertissementsControle) {
       if (a) txt = t("avertissement.separation_incomplete", { adresses: a.addresses.join(", ") });
       else txt = t("avertissement.separation_incomplete", { adresses: "" });
     }
-    ajouter(ul, el("li", { attributs: { "data-avertissement": w } }, `${txt} (${w})`));
+    bandeaux.push(
+      message(
+        "alerte",
+        aCle(`avertissement_titre.${w}`) ? el("p", { classe: "nt-bandeau-titre", texte: t(`avertissement_titre.${w}`) }) : null,
+        // Sans titre court, la phrase de l'avertissement est elle-même le titre du bandeau.
+        el("p", { classe: aCle(`avertissement_titre.${w}`) ? null : "nt-bandeau-titre", attributs: { "data-avertissement": w } }, el("span", { texte: txt }), el("span", { classe: "code-brut", texte: ` (${w})` })),
+        aCle(`avertissement_sens.${w}`) ? el("p", { texte: t(`avertissement_sens.${w}`) }) : null,
+      ),
+    );
   }
-  return message("alerte", ul);
+  return bandeaux;
 }
 
 function rendreLies(reponse) {
   const parties = [el("h2", { texte: t("ticket.lies.titre") })];
   const related = reponse !== null && typeof reponse === "object" ? reponse.related : undefined;
   if (!Array.isArray(related)) {
-    parties.push(el("p", { texte: t("ticket.lies.non_communique") }));
+    parties.push(el("p", { classe: "nt-attenue", texte: t("ticket.lies.non_communique") }));
   } else if (related.length === 0) {
-    parties.push(el("p", { texte: t("ticket.lies.aucun") }));
+    parties.push(el("p", { classe: "nt-attenue", texte: t("ticket.lies.aucun") }));
   } else {
-    const ul = el("ul", { attributs: { id: "lies" } });
+    const ul = el("ul", { classe: "liste-nue lies", attributs: { id: "lies" } });
     for (const r of related) {
       ajouter(
         ul,
@@ -436,7 +693,7 @@ function rendreLies(reponse) {
           " ",
           t(`decision_scellee.${r.decision === "refuse" ? "refuse" : "expire"}`),
           " ",
-          code(String(r.decided_at)),
+          instant(String(r.decided_at)),
           " ",
           r.reason === null ? t("modele.votes.sans_motif") : t("modele.votes.motif", { motif: String(r.reason) }),
         ),
@@ -448,7 +705,9 @@ function rendreLies(reponse) {
 }
 
 // ---------------------------------------------------------------------------
-// Décision (EX-9.5) : un clic puis une confirmation, pour chacune.
+// Décision (EX-9.5) : un clic puis une confirmation, pour chacune. Les deux
+// boutons ont le même poids : aucun n'est le bouton principal. Le motif,
+// facultatif, se saisit à la confirmation, sous son avertissement (EX-13.6).
 
 function libelleDecision(d) {
   const vue = etat.vue;
@@ -461,44 +720,63 @@ function libelleDecision(d) {
 }
 
 function rendreDecision() {
-  const parties = [el("h2", { texte: t("decision.titre") })];
-  const ouvert = etat.pas1 && etat.pas1.raisons.length === 0;
+  const raisons = etat.pas1 ? etat.pas1.raisons : [];
+  if (raisons.includes("ticket_clos_aux_votes")) {
+    // Ticket décidé ou clos : plus aucune décision à prendre, plus de bouton.
+    vider(zones.decision);
+    return;
+  }
+  const parties = [el("h2", { classe: "titre-decision", texte: t("decision.titre") })];
+  const ouvert = etat.pas1 && raisons.length === 0;
   if (etat.decision !== null) {
+    const m = motif();
     parties.push(
-      el("p", { attributs: { id: "decision-choisie", "data-decision": etat.decision } }, t("decision.choisie", { decision: t(`decision.${etat.decision}`) })),
-      bouton(t("decision.changer"), () => {
-        etat.decision = null;
-        etat.aConfirmer = null;
-        champMotif.disabled = false;
-        abandonner();
-        rendreModele();
-        rendreDecision();
-      }),
+      el("p", { classe: "decision-choisie", attributs: { id: "decision-choisie", "data-decision": etat.decision } }, t("decision.choisie", { decision: t(`decision.${etat.decision}`) })),
+      el("p", { classe: "nt-attenue", attributs: { id: "motif-choisi" } }, m === null ? t("motif.aucun") : t("modele.votes.motif", { motif: m })),
+      el("p", { texte: t("decision.suite") }),
+      actions(
+        el("a", { classe: "nt-bouton nt-bouton-principal", texte: t("decision.aller_signature"), attributs: { href: "#vote" } }),
+        bouton(
+          t("decision.changer"),
+          () => {
+            etat.decision = null;
+            etat.aConfirmer = null;
+            champMotif.disabled = false;
+            abandonner();
+            rendreModele();
+            rendreDecision();
+          },
+          { genre: "discret" },
+        ),
+      ),
     );
   } else if (etat.aConfirmer !== null) {
     const d = etat.aConfirmer;
     parties.push(
-      el("p", { texte: t("decision.confirmer_question", { decision: t(`decision.${d}`) }) }),
-      bouton(
-        t(`decision.confirmer.${d}`),
-        () => {
-          etat.decision = d;
+      el("p", { classe: "decision-question", texte: t("decision.confirmer_question", { decision: t(`decision.${d}`) }) }),
+      zones.motif,
+      actions(
+        bouton(
+          t(`decision.confirmer.${d}`),
+          () => {
+            etat.decision = d;
+            etat.aConfirmer = null;
+            champMotif.disabled = true;
+            abandonner();
+            rendreModele();
+            rendreDecision();
+            void lecturePas3();
+          },
+          { genre: "principal" },
+        ),
+        bouton(t("action.annuler"), () => {
           etat.aConfirmer = null;
-          champMotif.disabled = true;
-          abandonner();
-          rendreModele();
           rendreDecision();
-          void lecturePas3();
-        },
-        { classe: "bouton principal" },
+        }),
       ),
-      bouton(t("action.annuler"), () => {
-        etat.aConfirmer = null;
-        rendreDecision();
-      }),
     );
   } else {
-    const groupe = el("div", { classe: "groupe-boutons" });
+    const groupe = el("div", { classe: "nt-actions", attributs: { role: "group", "aria-label": t("decision.titre") } });
     for (const d of ["approuve", "refuse"]) {
       const b = bouton(
         libelleDecision(d),
@@ -506,14 +784,14 @@ function rendreDecision() {
           etat.aConfirmer = d;
           rendreDecision();
         },
-        { actif: ouvert },
+        { actif: ouvert, genre: "choix", icone: d === "approuve" ? "coche" : "croix" },
       );
       b.setAttribute("data-decision", d);
       groupe.appendChild(b);
     }
     parties.push(groupe);
-    if (!ouvert) parties.push(el("p", { classe: "discret", texte: t("decision.inactifs") }));
-    else parties.push(el("p", { classe: "discret", texte: texteCode("decision_absente", PREFIXES_VOTE) }));
+    if (!ouvert) parties.push(el("p", { classe: "nt-attenue nt-petit", texte: t("decision.inactifs") }));
+    else parties.push(el("p", { classe: "nt-attenue nt-petit" }, ...phraseCode("decision_absente", PREFIXES_VOTE), el("span", { texte: ` ${t("decision.sens")}` })));
   }
   remplacer(zones.decision, ...parties);
 }
@@ -521,9 +799,9 @@ function rendreDecision() {
 function rendreMotif() {
   remplacer(
     zones.motif,
-    el("label", { texte: t("motif.libelle"), attributs: { for: "motif" } }),
+    el("label", { classe: "nt-libelle", texte: t("motif.libelle"), attributs: { for: "motif" } }),
     champMotif,
-    message("alerte", el("p", { texte: t("motif.avertissement"), attributs: { id: "motif-avertissement" } })),
+    note("alerte", el("p", { texte: t("motif.avertissement"), attributs: { id: "motif-avertissement" } })),
   );
 }
 
@@ -536,6 +814,14 @@ function motif() {
 // Fournisseur et adresse (EX-13.22, EX-13.23)
 
 function rendreFournisseursEtComptes() {
+  // Sans demande lue, ou sur un ticket qui n'accepte plus de votes, il n'y a rien à signer : la section n'est pas offerte.
+  if (etat.pas1 === null || etat.pas1.raisons.includes("ticket_clos_aux_votes")) {
+    vider(zones.vote);
+    return;
+  }
+  if (zones.fournisseurs.parentNode !== zones.vote) {
+    remplacer(zones.vote, el("h2", { texte: t("vote.titre") }), el("p", { classe: "nt-attenue", texte: t("vote.sens") }), zones.fournisseurs, zones.comptes);
+  }
   rendreFournisseurs(zones.fournisseurs, decouverte, etat.fournisseur, choisirFournisseur, etat.vue !== null);
   rendreComptes();
 }
@@ -622,14 +908,14 @@ function rendreComptes(attente = false) {
   const parties = [];
   if (etat.fournisseur !== null) {
     parties.push(el("p", {}, t("portefeuille.courant", { nom: etat.fournisseur.name })));
-    if (attente) parties.push(el("p", { classe: "discret", texte: t("portefeuille.comptes_demandes") }));
+    if (attente) parties.push(el("p", { classe: "nt-attenue", texte: t("portefeuille.comptes_demandes") }));
   }
   if (etat.adresse !== null) {
     parties.push(el("p", { attributs: { id: "adresse-retenue" } }, t("adresse.retenue"), " ", code(etat.adresse)));
   } else if (etat.comptes !== null && etat.annuaire !== null) {
     const active = adresseAttribuee(etat.annuaire);
     if (active !== null) {
-      parties.push(message("alerte", el("p", { texte: texteCode("adresse_non_exposee", PREFIXES_VOTE), attributs: { "data-code": "adresse_non_exposee" } }), el("p", {}, t("adresse.active"), " ", code(active))));
+      parties.push(message("alerte", paragrapheCode("adresse_non_exposee", PREFIXES_VOTE), el("p", {}, t("adresse.active"), " ", code(active))));
     }
   }
   if (messageComptes !== null) {
@@ -638,8 +924,8 @@ function rendreComptes(attente = false) {
     } else {
       const prefixes = ["comptes.", ...PREFIXES_VOTE];
       parties.push(
-        message("erreur", el("p", { texte: textePanne(messageComptes.code, messageComptes.erreur, prefixes), attributs: { "data-code": messageComptes.code } })),
-        etat.fournisseur !== null ? bouton(t("portefeuille.redemander"), () => void obtenirComptes()) : null,
+        message("erreur", el("p", { attributs: { "data-code": messageComptes.code } }, ...noeudsPanne(messageComptes.code, messageComptes.erreur, prefixes))),
+        etat.fournisseur !== null ? actions(bouton(t("portefeuille.redemander"), () => void obtenirComptes())) : null,
       );
     }
   }
@@ -654,7 +940,7 @@ async function lecturePas3() {
   etat.generation += 1;
   const g = etat.generation;
   etat.lecture = null;
-  remplacer(zones.signature, el("p", { classe: "discret", texte: t("signature.verification") }));
+  remplacer(zones.signature, el("p", { classe: "nt-attenue", texte: t("signature.verification") }));
   let lu;
   try {
     lu = await lireVueEtAnnuaire();
@@ -698,7 +984,7 @@ async function lecturePas3() {
     rendreDecision();
     remplacer(
       zones.signature,
-      message("erreur", el("p", { texte: texteCode("demande_modifiee", ["page."]), attributs: { "data-code": "demande_modifiee" } }), el("p", { texte: t("signature.demande_modifiee_prevenir") })),
+      message("erreur", paragrapheCode("demande_modifiee", ["page."]), el("p", { texte: t("signature.demande_modifiee_prevenir") })),
     );
     rendreConsignes();
     return;
@@ -711,7 +997,7 @@ async function lecturePas3() {
 // Écran de signature (EX-9.18 à EX-9.20, EX-13.21)
 
 function groupesFixes(x) {
-  const p = el("p", { classe: "groupes fixe" });
+  const p = el("p", { classe: "groupes" });
   const g = groupes(x).split(" ");
   g.forEach((morceau, k) => {
     if (k > 0) p.appendChild(el("span", { texte: " " }));
@@ -737,26 +1023,30 @@ function rendreSignature() {
   }
   const d = l.modele.digests[etat.decision];
   const consignes = rendreConsignesElement();
+  // EX-9.18 : D_A en entier, ses groupes, son empreinte en grands caractères
+  // sous son intitulé ; puis, à part, le condensé EIP-191 sous le sien.
   const panneau = el(
     "section",
-    { classe: "bloc signature", attributs: { id: "ecran-signature", "data-decision": etat.decision } },
-    el("h2", { texte: t("signature.titre", { decision: t(`decision.${etat.decision}`) }) }),
+    { classe: "nt-carte signature", attributs: { id: "ecran-signature", "data-decision": etat.decision } },
+    el("div", { classe: "nt-carte-titre" }, el("h2", { texte: t("signature.titre", { decision: t(`decision.${etat.decision}`) }) }), etat.enCours ? pastille("info", t("signature.pastille_demandee"), "horloge") : null),
     definitions([
       [t("signature.adresse"), code(etat.adresse)],
       [t("signature.portefeuille"), etat.fournisseur.name],
     ]),
-    el("h3", { texte: t("signature.d_a") }),
-    el("p", {}, code(d.d_a, "fixe d-a")),
-    groupesFixes(d.d_a),
-    el("h3", { texte: t("signature.empreinte_d_a") }),
-    el("p", { classe: "empreinte fixe", texte: d.fingerprint, attributs: { id: "empreinte-d-a" } }),
-    el("h3", { texte: t("signature.eip191") }),
-    el("p", { classe: "empreinte-secondaire fixe", texte: d.h_fingerprint, attributs: { id: "empreinte-h" } }),
-    groupesFixes(d.h),
-    l.modele.warnings.includes("condense_utf8") ? message("alerte", el("p", { texte: `${t("avertissement.condense_utf8")} (condense_utf8)`, attributs: { "data-avertissement": "condense_utf8" } })) : null,
+    el(
+      "div",
+      { classe: "nt-encart nt-pile" },
+      el("h3", { classe: "intitule", texte: t("signature.d_a") }),
+      el("p", {}, code(d.d_a, "nt-fixe d-a")),
+      groupesFixes(d.d_a),
+      el("h3", { classe: "intitule", texte: t("signature.empreinte_d_a") }),
+      el("p", { classe: "nt-empreinte", texte: d.fingerprint, attributs: { id: "empreinte-d-a" } }),
+    ),
+    el("div", { classe: "nt-encart nt-pile" }, el("h3", { classe: "intitule", texte: t("signature.eip191") }), el("p", { classe: "empreinte-secondaire", texte: d.h_fingerprint, attributs: { id: "empreinte-h" } }), groupesFixes(d.h)),
+    l.modele.warnings.includes("condense_utf8") ? message("alerte", el("p", { attributs: { "data-avertissement": "condense_utf8" } }, el("span", { texte: t("avertissement.condense_utf8") }), el("span", { classe: "code-brut", texte: " (condense_utf8)" }))) : null,
     consignes,
-    bouton(t("signature.demander"), () => void demanderSignature(), { actif: !etat.enCours, classe: "bouton principal" }),
-    etat.enCours ? el("p", { classe: "discret", texte: t("signature.en_cours") }) : null,
+    actions(bouton(t("signature.demander"), () => void demanderSignature(), { actif: !etat.enCours, genre: "principal", icone: "cadenas" }), el("a", { classe: "nt-bouton nt-bouton-discret", texte: t("signature.revenir"), attributs: { href: "#essentiel" } })),
+    etat.enCours ? message("info", el("p", { texte: t("signature.en_cours") })) : null,
   );
   remplacer(zones.signature, panneau);
   vider(zones.consignes);
@@ -791,7 +1081,7 @@ async function demanderSignature() {
     etat.enCours = false;
     rendreSignature();
     if (s.etat === "erreur") afficherErreur(zones.resultat, s.erreur);
-    else if (s.etat === "identite_invalide") remplacer(zones.resultat, message("erreur", el("p", { texte: texteCode("identite_invalide", ["raison."]) })));
+    else if (s.etat === "identite_invalide") remplacer(zones.resultat, message("erreur", paragrapheCode("identite_invalide", ["raison."])));
     return;
   }
   if (s.session.session_identity !== identite()) {
@@ -869,7 +1159,7 @@ async function demanderSignature() {
     if (c.reason !== null) {
       etat.enCours = false;
       abandonnerApres();
-      remplacer(zones.resultat, message("erreur", el("p", { texte: texteCode(c.reason, PREFIXES_VOTE), attributs: { "data-code": c.reason } }), el("p", { texte: t("vote.non_envoye") })));
+      remplacer(zones.resultat, message("erreur", paragrapheCode(c.reason, PREFIXES_VOTE), el("p", { texte: t("vote.non_envoye") })));
       return;
     }
   }
@@ -900,7 +1190,7 @@ async function envoyerVote(corps, g) {
       etat.enCours = false;
       abandonnerApres();
       const v = r.valeur;
-      remplacer(zones.resultat, message("info", el("p", { texte: t("vote.inscrit", { etat: v && typeof v.state === "string" ? t(`etat.${v.state}`) : t("modele.vide") }), attributs: { "data-resultat": "vote_inscrit" } })));
+      remplacer(zones.resultat, message("succes", el("p", { texte: t("vote.inscrit", { etat: v && typeof v.state === "string" ? t(`etat.${v.state}`) : t("modele.vide") }), attributs: { "data-resultat": "vote_inscrit" } })));
       await lecturePas1();
       return;
     } catch (e) {
@@ -913,7 +1203,7 @@ async function envoyerVote(corps, g) {
       etat.enCours = false;
       abandonnerApres();
       if (e instanceof ErreurAppel && e.code === "vote_identique") {
-        remplacer(zones.resultat, message("info", el("p", { texte: `${t(essais > 0 ? "vote.deja_inscrit" : "vote.deja_inscrit_motif")} (vote_identique)`, attributs: { "data-resultat": "vote_identique" } })));
+        remplacer(zones.resultat, message("info", el("p", { attributs: { "data-resultat": "vote_identique" } }, el("span", { texte: t(essais > 0 ? "vote.deja_inscrit" : "vote.deja_inscrit_motif") }), el("span", { classe: "code-brut", texte: " (vote_identique)" }))));
         await lecturePas1();
         return;
       }
@@ -924,22 +1214,24 @@ async function envoyerVote(corps, g) {
         afficherErreur(
           z,
           e,
-          bouton(t("vote.renvoyer"), () => {
-            const g2 = etat.generation;
-            void envoyerVote(corps, g2);
-          }),
+          actions(
+            bouton(t("vote.renvoyer"), () => {
+              const g2 = etat.generation;
+              void envoyerVote(corps, g2);
+            }),
+          ),
         );
         return;
       }
       if (erreurDeSession(e)) return;
-      remplacer(zones.resultat, message("erreur", el("p", { texte: texteErreur(e), attributs: { "data-code": e instanceof ErreurAppel ? e.code : "erreur_page" } }), el("p", { texte: t("vote.non_inscrit") })));
+      remplacer(zones.resultat, message("erreur", paragrapheCode(e instanceof ErreurAppel ? e.code : "erreur_page", PREFIXES_ERREUR), el("p", { texte: t("vote.non_inscrit") })));
       return;
     }
   }
 }
 
 function afficherPanne(codePanne, erreur, recouvree = null) {
-  const parties = [el("p", { texte: textePanne(codePanne, erreur, PREFIXES_VOTE), attributs: { "data-code": codePanne } })];
+  const parties = [el("p", { attributs: { "data-code": codePanne } }, ...noeudsPanne(codePanne, erreur, PREFIXES_VOTE))];
   if (codePanne === "adresse_differente" && typeof recouvree === "string") parties.push(el("p", {}, t("signature.adresse_recouvree"), " ", code(recouvree)));
   if (codePanne === "refus_approbateur") parties.push(el("p", { texte: t("signature.refus_sens") }));
   remplacer(zones.resultat, message("erreur", ...parties));
@@ -956,13 +1248,18 @@ function origineSaine() {
 function rendreConsignesElement() {
   const ol = el("ol", { classe: "consignes", attributs: { id: "consignes" } });
   for (let k = 1; k <= 7; k += 1) ajouter(ol, el("li", { texte: t(`consigne.${k}`, { origine: origineSaine() }) }));
-  return el("div", { classe: "bloc-consignes" }, el("h3", { texte: t("consigne.titre") }), ol);
+  return el("div", { classe: "bloc-consignes nt-pile" }, el("h3", { texte: t("consigne.titre") }), ol);
 }
 
+// Avant le choix de la décision, les consignes d'EX-9.20 sont offertes dans un
+// bloc replié ; l'écran de signature, lui, les affiche toujours en entier
+// (EX-9.20 : « sur l'écran de signature »).
 function rendreConsignes() {
-  if (etat.vue === null) return vider(zones.consignes);
+  if (etat.vue === null || etat.pas1 === null || etat.pas1.raisons.includes("ticket_clos_aux_votes")) return vider(zones.consignes);
   if (zones.signature.querySelector("#consignes") !== null) return vider(zones.consignes);
-  return remplacer(zones.consignes, rendreConsignesElement());
+  const bloc = detail(t("consigne.titre"), t("consigne.note"), rendreConsignesElement().lastChild);
+  bloc.setAttribute("id", "consignes-repliees");
+  return remplacer(zones.consignes, bloc);
 }
 
 // ---------------------------------------------------------------------------
@@ -977,28 +1274,34 @@ function rendreRecusation() {
   } catch {
     c = { reason: "reponse_service_invalide" };
   }
-  const parties = [el("h2", { texte: t("recusation.titre") }), el("p", { texte: t("recusation.sens") })];
+  // Un ticket décidé n'offre plus aucune action.
+  if (c.reason === "ticket_clos_aux_votes" || estDecide(etat.vue)) return vider(zones.recusation);
+  const parties = [el("h2", { texte: t("recusation.titre") }), el("p", { classe: "nt-attenue", texte: t("recusation.sens") })];
   if (etat.confirmation === "recuser") {
     parties.push(
       message("alerte", el("p", { texte: t("recusation.confirmer_texte") })),
-      bouton(t("recusation.confirmer"), () => void recuser(), { classe: "bouton principal" }),
-      bouton(t("action.annuler"), () => {
-        etat.confirmation = null;
-        rendreRecusation();
-      }),
+      actions(
+        bouton(t("recusation.confirmer"), () => void recuser(), { genre: "danger" }),
+        bouton(t("action.annuler"), () => {
+          etat.confirmation = null;
+          rendreRecusation();
+        }),
+      ),
     );
   } else {
     parties.push(
-      bouton(
-        t("recusation.bouton"),
-        () => {
-          etat.confirmation = "recuser";
-          rendreRecusation();
-        },
-        { actif: c.reason === null },
+      actions(
+        bouton(
+          t("recusation.bouton"),
+          () => {
+            etat.confirmation = "recuser";
+            rendreRecusation();
+          },
+          { actif: c.reason === null },
+        ),
       ),
     );
-    if (c.reason !== null) parties.push(el("p", { classe: "discret", texte: texteCode(c.reason, PREFIXES_VOTE), attributs: { "data-code": c.reason } }));
+    if (c.reason !== null) parties.push(el("p", { classe: "nt-attenue nt-petit", attributs: { "data-code": c.reason } }, ...phraseCode(c.reason, PREFIXES_VOTE)));
   }
   const zoneR = el("div", { attributs: { id: "resultat-recusation" } });
   parties.push(zoneR);
@@ -1022,12 +1325,12 @@ async function recuser() {
   rendreRecusation();
   zones.recusation.appendChild(zone);
   if (c.reason !== null) {
-    remplacer(zone, message("erreur", el("p", { texte: texteCode(c.reason, PREFIXES_VOTE), attributs: { "data-code": c.reason } })));
+    remplacer(zone, message("erreur", paragrapheCode(c.reason, PREFIXES_VOTE)));
     return;
   }
   try {
     const r = await appeler("recuser", { ticket: etat.ticket, approver: adresse, session_identity: identite() });
-    remplacer(zone, message("info", el("p", { texte: t("recusation.inscrite", { etat: t(`etat.${r.valeur.state}`) }), attributs: { "data-resultat": "recusation_inscrite" } })));
+    remplacer(zone, message("succes", el("p", { texte: t("recusation.inscrite", { etat: t(`etat.${r.valeur.state}`) }), attributs: { "data-resultat": "recusation_inscrite" } })));
     await lecturePas1();
     zones.recusation.appendChild(zone);
   } catch (e) {
@@ -1038,33 +1341,38 @@ async function recuser() {
 // ---------------------------------------------------------------------------
 // Retrait (EX-7.15, EX-12.19, EX-13.18) : offert seulement si `actionRetrait` rend un `by`.
 
-const champMotifRetrait = el("textarea", { attributs: { id: "motif-retrait", rows: "2", maxlength: "4096" } });
+const champMotifRetrait = el("textarea", { classe: "nt-saisie", attributs: { id: "motif-retrait", rows: "2", maxlength: "4096" } });
 
 function rendreRetrait() {
-  if (etat.annuaire === null || etat.vue === null) return vider(zones.retrait);
+  // EX-7.15 : un retrait clôt un ticket non décidé ; un ticket décidé ne l'offre plus.
+  if (etat.annuaire === null || etat.vue === null || estDecide(etat.vue)) return vider(zones.retrait);
   const by = actionRetrait(etat.annuaire, identite(), { launched_by: etat.vue.request.delegation.launched_by });
   if (by === null) return vider(zones.retrait);
-  const parties = [el("h2", { texte: t("retrait.titre") }), el("p", { texte: t("retrait.sens") }), el("p", {}, t("retrait.par"), " ", code(by))];
-  parties.push(el("label", { texte: t("retrait.motif"), attributs: { for: "motif-retrait" } }), champMotifRetrait, el("p", { classe: "discret", texte: t("motif.avertissement") }));
+  const parties = [el("h2", { texte: t("retrait.titre") }), el("p", { classe: "nt-attenue", texte: t("retrait.sens") }), el("p", {}, t("retrait.par"), " ", code(by))];
+  parties.push(el("div", { classe: "nt-champ" }, el("label", { classe: "nt-libelle", texte: t("retrait.motif"), attributs: { for: "motif-retrait" } }), champMotifRetrait, el("p", { classe: "nt-aide", texte: t("motif.avertissement") })));
   if (etat.confirmation === "retirer") {
     parties.push(
       message("alerte", el("p", { texte: t("retrait.confirmer_texte") })),
-      bouton(t("retrait.confirmer"), () => void retirer(by), { classe: "bouton principal" }),
-      bouton(t("action.annuler"), () => {
-        etat.confirmation = null;
-        rendreRetrait();
-      }),
+      actions(
+        bouton(t("retrait.confirmer"), () => void retirer(by), { genre: "danger" }),
+        bouton(t("action.annuler"), () => {
+          etat.confirmation = null;
+          rendreRetrait();
+        }),
+      ),
     );
   } else {
     parties.push(
-      bouton(t("retrait.bouton"), () => {
-        if (champMotifRetrait.value === "") {
-          remplacer(zoneRetrait, message("erreur", el("p", { texte: t("retrait.motif_requis") })));
-          return;
-        }
-        etat.confirmation = "retirer";
-        rendreRetrait();
-      }),
+      actions(
+        bouton(t("retrait.bouton"), () => {
+          if (champMotifRetrait.value === "") {
+            remplacer(zoneRetrait, message("erreur", el("p", { texte: t("retrait.motif_requis") })));
+            return;
+          }
+          etat.confirmation = "retirer";
+          rendreRetrait();
+        }),
+      ),
     );
   }
   parties.push(zoneRetrait);
@@ -1079,8 +1387,10 @@ async function retirer(by) {
   rendreRetrait();
   try {
     const r = await appeler("retirer", { ticket: etat.ticket, by, reason, session_identity: identite() });
-    remplacer(zoneRetrait, message("info", el("p", { texte: t("retrait.inscrit", { etat: t(`etat.${r.valeur.state}`) }), attributs: { "data-resultat": "retrait_inscrit" } })));
+    remplacer(zoneRetrait, message("succes", el("p", { texte: t("retrait.inscrit", { etat: t(`etat.${r.valeur.state}`) }), attributs: { "data-resultat": "retrait_inscrit" } })));
     await lecturePas1();
+    // Le ticket relu peut être décidé, et n'offre alors plus le retrait : son résultat reste affiché.
+    if (!zones.retrait.contains(zoneRetrait)) zones.retrait.appendChild(zoneRetrait);
   } catch (e) {
     afficherErreur(zoneRetrait, e);
   }
@@ -1096,27 +1406,12 @@ async function demarrer() {
   etat.session = s;
   const racine = principal();
   if (!window.location.pathname.startsWith("/tickets/") || !estIdentifiantTicket(segment)) {
-    ajouter(racine, message("erreur", el("p", { texte: texteCode("ticket_inconnu", ["raison."]) })));
+    ajouter(racine, el("main", { classe: "nt-page" }, filTickets(), message("erreur", paragrapheCode("ticket_inconnu", ["raison."]))));
     return;
   }
   etat.ticket = segment;
   rendreMotif();
-  ajouter(
-    racine,
-    el(
-      "main",
-      { classe: "contenu" },
-      zones.lecture,
-      zones.modele,
-      zones.lies,
-      el("section", { classe: "bloc vote", attributs: { id: "vote" } }, zones.decision, zones.motif, zones.fournisseurs, zones.comptes),
-      zones.consignes,
-      zones.signature,
-      zones.resultat,
-      el("section", { classe: "bloc" }, zones.recusation),
-      el("section", { classe: "bloc" }, zones.retrait),
-    ),
-  );
+  ajouter(racine, el("main", { classe: "nt-page page-ticket" }, zones.lecture, zones.modele, zones.lies, zones.vote, zones.consignes, zones.signature, zones.resultat, el("div", { classe: "nt-grille autres-actions" }, zones.recusation, zones.retrait)));
   rendreFournisseursEtComptes();
   await Promise.all([lecturePas1(), lectureLies()]);
 }
