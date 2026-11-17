@@ -91,6 +91,7 @@ export const ADMISES = Object.freeze([
   /^compte 0\b/,
   /^setpriv absent$/,
   /^superutilisateur requis$/,
+  /^superutilisateur exigé$/,
   /^l'essai sous un second compte exige le superutilisateur$/,
   /^le démon doit être lancé par le superutilisateur pour /,
   /^essai hors du compte root$/,

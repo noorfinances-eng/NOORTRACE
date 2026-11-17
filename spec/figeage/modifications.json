@@ -13614,6 +13614,32 @@
           "apres": "b34992b0cb32d3235a137b453e60f91e236d2158ef88aeba67e6568e23a8349e"
         }
       ]
+    },
+    {
+      "id": "MC-93",
+      "date": "2026-11-17",
+      "etape": 8,
+      "motif": "Complément du 2026-11-17 : sortie publiée du recomptage indépendant de CT-9 republiée (81 étapes de CI : promtool ajouté au travail de l'ancrage).",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "1b9b3815842012714b65b468137c998d4126d6f8c51ba69a8696eb2d3e0295f6",
+          "apres": "13ab81788d4141b654826da6fec188aa86648c52d12640972ef874f80ad91443"
+        }
+      ]
+    },
+    {
+      "id": "MC-94",
+      "date": "2026-11-17",
+      "etape": 8,
+      "motif": "Complément du 2026-11-17 : sortie publiée du recomptage indépendant de CT-9 republiée (82 étapes de CI : matrice des pannes du stockage jouée sous sudo dans le travail du superutilisateur).",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "13ab81788d4141b654826da6fec188aa86648c52d12640972ef874f80ad91443",
+          "apres": "548c61aa18df0d4357166933e0c87bde905f615c1f8d1d375f3f2c4f7a58cb42"
+        }
+      ]
     }
   ]
 }

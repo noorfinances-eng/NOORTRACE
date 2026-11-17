@@ -666,7 +666,7 @@ jobs:
   # serveur d'outils du dépôt. La dernière commande refuse toute ligne
   # « pending » du rapport, comme le travail Chromium.
   parcours-superutilisateur:
-    name: parcours des signataires A, B et C en production sous le superutilisateur (EX-3.5), sans essai en attente
+    name: parcours des signataires A, B et C en production (EX-3.5) et matrice des pannes du stockage (TE-16) sous le superutilisateur
     runs-on: ubuntu-24.04
     env:
       GOTOOLCHAIN: local
@@ -703,6 +703,18 @@ jobs:
           sudo env "PATH=$PATH" "HOME=$HOME" "GOTOOLCHAIN=local" "NOORTRACE_GO_BIN=$(dirname "$(command -v go)")" \
             npx hardhat --config hardhat.config.mjs test test/enregistreur-signataires-parcours.test.js 2>&1 | tee "$RUNNER_TEMP/parcours.txt"
           if grep -E '[0-9]+ pending' "$RUNNER_TEMP/parcours.txt"; then exit 1; fi
+      # Lignes de la matrice des pannes (CT-9 TE-16) qui exigent le compte 0 :
+      # segment rendu immuable (chattr +i) et racine sur un tmpfs monté pour
+      # l'essai. Elles sont en attente dans le travail `tests` (« superutilisateur
+      # exigé ») et doivent passer ici ; seule l'horloge pilotée par libfaketime
+      # (paquet Debian à empreinte fixée, absent de ce système) reste admise.
+      - name: test/enregistreur-matrice-pannes.test.js sous sudo, seule attente admise libfaketime
+        run: |
+          set -o pipefail
+          sudo env "PATH=$PATH" "HOME=$HOME" "GOTOOLCHAIN=local" "NOORTRACE_VERIFIER_BIN=$RUNNER_TEMP/noortrace-verifier" \
+            npx hardhat --config hardhat.config.mjs test test/enregistreur-matrice-pannes.test.js 2>&1 | tee "$RUNNER_TEMP/pannes.txt"
+          if grep -E 'en attente : (superutilisateur|chattr|montage tmpfs)' "$RUNNER_TEMP/pannes.txt"; then exit 1; fi
+          node scripts/tests/attentes.mjs "$RUNNER_TEMP/pannes.txt"
 
   # Composant d'ancrage de CT-5 (paquets/ancrage) et son branchement dans
   # l'enregistreur (anchoring.ancrage), avec le binaire vérificateur Go de
@@ -736,6 +748,21 @@ jobs:
           python3 -m venv "$RUNNER_TEMP/venv-ots"
           "$RUNNER_TEMP/venv-ots/bin/pip" install --only-binary :all: opentimestamps==0.4.5 python-bitcoinlib==0.12.2
           openssl version
+      # promtool de la même archive officielle de Prometheus 3.5.0 que le travail
+      # principal, vérifiée par son SHA-256 avant extraction : l'essai des règles
+      # de la branche de l'ancre de la période (ancrage-registre-refus-definitif)
+      # le lance par NOORTRACE_PROMTOOL et n'est pas une attente admise ici.
+      - name: promtool 3.5.0 de l'archive officielle (CT-8 EX-10.10), SHA-256 vérifié avant extraction
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d)"
+          curl -fsSL -o "$d/prometheus.tar.gz" \
+            https://github.com/prometheus/prometheus/releases/download/v3.5.0/prometheus-3.5.0.linux-amd64.tar.gz
+          echo "e811827af26d822afb09a4f28314f61b618b12cff5369835a67f674d8b46f39a  $d/prometheus.tar.gz" | sha256sum --strict -c -
+          mkdir "$d/x"
+          tar -xzf "$d/prometheus.tar.gz" -C "$d/x" --strip-components=1 prometheus-3.5.0.linux-amd64/promtool
+          "$d/x/promtool" --version
+          echo "NOORTRACE_PROMTOOL=$d/x/promtool" >> "$GITHUB_ENV"
       - name: essais du composant d'ancrage et du branchement, attentes limitées au réseau de développement et au réseau public
         run: |
           set -o pipefail
