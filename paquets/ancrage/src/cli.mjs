@@ -13,6 +13,7 @@ import {
   validerConfiguration, admettrePoint, admettreManifeste, tableEcheances, constaterCadence, cout, verifierCompletudeRegistre, rejouerTrace, PROFILS,
 } from "./planificateur/index.mjs";
 import { construireFiche, verifierFiche, epreuveAcceptation, transportHttps } from "./rfc3161/index.mjs";
+import { lireArguments } from "./arguments.mjs";
 
 export const USAGE = `noortrace-ancrage — composant d'ancrage NOORTRACE (CT-5)
 
@@ -39,6 +40,9 @@ Commandes :
         EX-10.7, AN-61 : complete, orphans, out_of_order, attached ; code 1 si la série n'est pas complète.
   aide
 
+Chaque commande n'admet que ses options, chacune au plus une fois, avec sa valeur quand elle en prend une,
+et ses arguments ; toute autre forme est un usage incorrect.
+
 Codes de retour : 0 réussite ; 1 défaut constaté ou erreur ; 2 usage.
 `;
 
@@ -49,22 +53,40 @@ export class ErreurUsage extends Error {
   }
 }
 
-/** Analyse `--option valeur` et `--drapeau`. */
+/**
+ * Options et arguments de chaque commande (complément du 2026-11-16) :
+ * `valeurs`, options qui prennent une valeur ; `drapeaux`, options sans
+ * valeur ; `positionnels`, nombre d'arguments au plus après la commande.
+ */
+export const COMMANDES = Object.freeze({
+  configuration: { valeurs: ["profil", "checkpoint-interval"], drapeaux: ["json", "aide"], positionnels: 1 },
+  serie: { valeurs: ["configuration", "periode", "points", "cles", "evenements", "manifeste", "signature", "acquisitions"], drapeaux: ["json", "aide"], positionnels: 0 },
+  cout: {
+    valeurs: ["entrees", "journaux", "heures", "c-k", "c-t", "activite", "role", "registre", "prix-qualifie", "prix-second-rang", "forfait", "quota", "reprises"],
+    drapeaux: ["countersign-idle", "json", "aide"],
+    positionnels: 0,
+  },
+  trace: { valeurs: [], drapeaux: ["json", "aide"], positionnels: 1 },
+  fiche: { valeurs: ["prestataire", "configuration", "id", "sortie"], drapeaux: ["epreuve", "json", "aide"], positionnels: 0 },
+  acquisitions: { valeurs: [], drapeaux: ["json", "aide"], positionnels: 1 },
+  completude: { valeurs: [], drapeaux: ["json", "aide"], positionnels: 1 },
+  aide: { valeurs: [], drapeaux: ["aide"], positionnels: 0 },
+});
+
+/**
+ * Analyse stricte d'une ligne de commande (complément du 2026-11-16) : la
+ * commande en tête (`--aide` seul vaut `aide`), puis ses options et ses
+ * arguments ; lève `ErreurUsage` pour une commande inconnue, une option
+ * inconnue, en double ou sans sa valeur, un argument en trop.
+ * @param {string[]} argv
+ * @returns {{commande: string, options: Record<string, string|true>, positionnels: string[]}}
+ *   `positionnels[0]` est la commande
+ */
 export function analyserArguments(argv) {
-  const options = {};
-  const positionnels = [];
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a.startsWith("--")) {
-      const nom = a.slice(2);
-      const suivant = argv[i + 1];
-      if (suivant !== undefined && !suivant.startsWith("--")) {
-        options[nom] = suivant;
-        i++;
-      } else options[nom] = true;
-    } else positionnels.push(a);
-  }
-  return { options, positionnels };
+  const commande = argv[0] === "--aide" ? "aide" : argv[0];
+  if (!Object.hasOwn(COMMANDES, commande)) throw new ErreurUsage(`commande inconnue : ${commande}`);
+  const lu = lireArguments(argv[0] === "--aide" ? argv : argv.slice(1), COMMANDES[commande], ErreurUsage);
+  return { commande, options: lu.options, positionnels: [commande, ...lu.positionnels] };
 }
 
 const exiger = (options, nom) => {
@@ -107,12 +129,15 @@ const ecrireJson = (sortie, objet) => sortie.write(`${JSON.stringify(objet, null
  */
 export async function lancer(contexte) {
   const { argv, sortie, erreur } = contexte;
-  const { options, positionnels } = analyserArguments(argv);
-  const commande = positionnels[0];
   try {
-    if (commande === undefined || commande === "aide" || options.aide) {
+    if (argv.length === 0) {
       sortie.write(USAGE);
-      return commande === undefined && !options.aide ? 2 : 0;
+      return 2;
+    }
+    const { commande, options, positionnels } = analyserArguments(argv);
+    if (commande === "aide" || options.aide) {
+      sortie.write(USAGE);
+      return 0;
     }
     switch (commande) {
       case "configuration": return commandeConfiguration(positionnels, options, sortie);
@@ -286,6 +311,8 @@ function resoudreSecret(prestataire, env) {
 }
 
 async function commandeFiche(options, sortie, contexte) {
+  // complément du 2026-11-16 : une seule des deux formes ; l'autre n'est plus ignorée en silence
+  if (options.prestataire && (options.configuration || options.id)) throw new ErreurUsage("--prestataire, ou --configuration avec --id, pas les deux");
   let prestataire;
   if (options.prestataire) prestataire = lireJson(options.prestataire);
   else {

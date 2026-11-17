@@ -580,6 +580,61 @@
               "properties": {
                 "socket": {
                   "$ref": "#/$defs/socket_path"
+                },
+                "peer_user": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  ],
+                  "description": "Compte système de l'adaptateur noortrace-miroir admis sur la prise (CT-2 EX-5.6, EX-18.1) : prise en mode 0660 et preuve d'identité du pair d'EX-4.39 à chaque connexion. Absent ou nul : prise en mode 0600, réservée au compte du démon."
+                },
+                "listen": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/listen_address"
+                    }
+                  ],
+                  "description": "Adresse où l'adaptateur noortrace-miroir écoute la copie (CT-2 EX-5.6). Absente ou nulle : 127.0.0.1:8410. Hors de la boucle locale, exige tls et client_ca, ou allowed_sources."
+                },
+                "tls": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/tls_server"
+                    }
+                  ],
+                  "description": "Certificat de l'adaptateur pour la copie en TLS (CT-2 EX-5.6)."
+                },
+                "client_ca": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^/[^\\u0000]{1,4095}$"
+                    }
+                  ],
+                  "description": "Fichier PEM de l'autorité qui émet les certificats des équipements de copie admis (CT-2 EX-5.6) ; exige tls ; certificat client exigé à la poignée de main."
+                },
+                "allowed_sources": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "#/$defs/cidr"
+                  },
+                  "description": "Liste fermée des adresses des équipements de copie admis (CT-2 EX-5.6) ; absente ou vide : aucune liste."
                 }
               }
             }

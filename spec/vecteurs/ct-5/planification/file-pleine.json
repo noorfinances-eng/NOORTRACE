@@ -1,7 +1,7 @@
 {
   "version": 0,
   "id": "file-pleine",
-  "description": "queue.max_pending abaissé à 100 et une file qui porte déjà cent jetons de clôture en a_reprendre (cent heures de panne du prestataire, représentées ; prochaine tentative après la fin de la trace) : les points K1, K2 et K4 ne sont plus ancrés (anchor_queue_full, alerte file_pleine critique) mais la clôture crée toujours ses trois demandes et le jeton de clôture est obtenu (EX-8.5, règle 4). Les échéances de points restées ouvertes sont closes remplacee par la clôture (EX-4.4).",
+  "description": "queue.max_pending abaissé à 100 et une file qui porte déjà cent jetons de clôture en a_reprendre (cent heures de panne du prestataire, représentées ; prochaine tentative après la fin de la trace, à 14:30, que retry.max_ms porté à une heure admet : au démarrage, une reprise plus lointaine que retry.max_ms serait ramenée à cette borne, EX-4.13, complément du 2026-11-16) : les points K1, K2 et K4 ne sont plus ancrés (anchor_queue_full, alerte file_pleine critique) mais la clôture crée toujours ses trois demandes et le jeton de clôture est obtenu (EX-8.5, règle 4). Les échéances de points restées ouvertes sont closes remplacee par la clôture (EX-4.4).",
   "config": {
     "checkpoint_interval_s": 60,
     "rfc3161": {
@@ -47,7 +47,7 @@
       "retry": {
         "initial_ms": 5000,
         "factor": 2,
-        "max_ms": 300000,
+        "max_ms": 3600000,
         "jitter_ms": 250
       }
     },

@@ -114,23 +114,30 @@ func TestCarte(t *testing.T) {
 }
 
 func TestEmail(t *testing.T) {
-	attendreRedaction(t, "email", "j.dupont@example.ch", "[REDIGE:email]")
-	attendreRedaction(t, "email", "écrire à j.dupont@example.ch ; merci", "écrire à [REDIGE:email] ; merci")
+	attendreRedaction(t, "email", "j.dupont@ch.example", "[REDIGE:email]")
+	attendreRedaction(t, "email", "écrire à j.dupont@ch.example ; merci", "écrire à [REDIGE:email] ; merci")
 	// 10.3.5 : un « . » ou un « - » final n'appartient pas au domaine (point
 	// final d'une phrase)
-	attendreRedaction(t, "email", "écrire à j.dupont@example.ch.", "écrire à [REDIGE:email].")
-	attendreRedaction(t, "email", "j@example.ch- suite", "[REDIGE:email]- suite")
+	attendreRedaction(t, "email", "écrire à j.dupont@ch.example.", "écrire à [REDIGE:email].")
+	attendreRedaction(t, "email", "j@ch.example- suite", "[REDIGE:email]- suite")
 	l64 := strings.Repeat("a", 64)
 	l65 := strings.Repeat("a", 65)
-	attendreRedaction(t, "email", l64+"@example.ch", "[REDIGE:email]")
-	attendreRedaction(t, "email", l65+"@example.ch", l65+"@example.ch")
-	attendreRedaction(t, "email", ".j@example.ch", ".j@example.ch") // Dot-string : pas de « . » initial
-	attendreRedaction(t, "email", "a..b@example.ch", "a..b@example.ch")
-	attendreRedaction(t, "email", "j@example.c", "j@example.c") // dernier label d'une lettre
-	attendreRedaction(t, "email", "j@-example.ch", "j@-example.ch")
-	attendreRedaction(t, "email", "a@b.ch et c@d.fr", "[REDIGE:email] et [REDIGE:email]")
-	cs := DetecterEmail([]rune("x J.Dupont@EXAMPLE.CH y"))
-	if len(cs) != 1 || cs[0].Valeur != "J.Dupont@example.ch" {
+	attendreRedaction(t, "email", l64+"@ch.example", "[REDIGE:email]")
+	// complément du 2026-11-16 de la révision 0.11 : la partie locale est la
+	// plus longue fin Dot-string des 64 caractères les plus proches du « @ »
+	attendreRedaction(t, "email", l65+"@ch.example", "a[REDIGE:email]")
+	attendreRedaction(t, "email", ".j@ch.example", ".[REDIGE:email]") // Dot-string : pas de « . » initial
+	attendreRedaction(t, "email", "a..b@ch.example", "a..[REDIGE:email]")
+	attendreRedaction(t, "email", "j.@ch.example", "j.@ch.example") // Dot-string : pas de « . » final
+	// dernier label d'une lettre : « ch.example.c » n'est pas un domaine
+	// valide, le domaine est coupé au « . » qui précède « c »
+	attendreRedaction(t, "email", "j@ch.example.c", "[REDIGE:email].c")
+	attendreRedaction(t, "email", "j@-ch.example", "j@-ch.example")
+	// deux adresses dans une chaîne : la recherche reprend après la première
+	// correspondance, et chaque domaine court (deux labels) est admis
+	attendreRedaction(t, "email", "a@b.example et c@d.invalid", "[REDIGE:email] et [REDIGE:email]")
+	cs := DetecterEmail([]rune("x J.Dupont@CH.EXAMPLE y"))
+	if len(cs) != 1 || cs[0].Valeur != "J.Dupont@ch.example" {
 		t.Errorf("valeur du pseudonyme : %+v", cs)
 	}
 	// coût linéaire : lectures bornées autour de chaque « @ »

@@ -9,7 +9,9 @@
 // Lancé seulement comme programme : Hardhat charge tout fichier JavaScript de test/ (fixtures comprises) ;
 // chargé ainsi, le lanceur n'écrit rien et ne termine pas le processus de la suite.
 
-import { pathToFileURL } from "node:url";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { demarrerAgent, ErreurConfiguration } from "../../../paquets/inscription/src/agent/index.mjs";
 
 async function principal() {
@@ -37,4 +39,4 @@ async function principal() {
   process.on("SIGINT", arreter);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await principal();
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) await principal();

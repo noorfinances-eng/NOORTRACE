@@ -12,7 +12,10 @@
 // ligne ; une ligne n'a pas d'occurrence ; deux lignes portent le même TC- ou
 // les TC- ne se suivent pas ; une réponse cite un EX-, CO-, IP-, FL-, IR-,
 // IC-, TP- ou DM- qui n'existe pas dans CT-8 (un identifiant précédé de
-// « CT-n » est celui d'une autre spécification et n'est pas vérifié ici).
+// « CT-n » est celui d'une autre spécification et n'est pas vérifié ici) ;
+// complément du 2026-11-17 : les numéros de ligne (« (l. N) ») des lignes
+// d'une section ne sont pas, en multiensemble, ceux des occurrences de cette
+// section (citation décalée : la table est à recoller).
 // Imprime, pour chaque fichier, le nombre d'occurrences et de lignes de la
 // table. Réutilise definitions() de scripts/conformite/verifier-renvois.mjs,
 // sans le modifier. Codes : 0 réussi ; 1 écart ; 2 usage.
@@ -103,6 +106,13 @@ export function verifierRenvois(racine = RACINE) {
   const b = parCle(table);
   for (const [cle, n] of a) if ((b.get(cle) ?? 0) < n) erreurs.push(`${cle} : ${n} occurrence(s) de CT-8, ${b.get(cle) ?? 0} ligne(s) dans la table`);
   for (const [cle, n] of b) if ((a.get(cle) ?? 0) < n) erreurs.push(`${cle} : ${n} ligne(s) dans la table, ${a.get(cle) ?? 0} occurrence(s) de CT-8`);
+  // Complément du 2026-11-17 : numéros de ligne de la table égaux, section par section, à ceux des occurrences du texte courant.
+  for (const [cle, n] of a) {
+    if (b.get(cle) !== n) continue;
+    const attendues = occ.filter((o) => o.cle === cle).map((o) => o.ligne).sort((x, y) => x - y);
+    const citees = table.filter((t) => t.cle === cle).sort((x, y) => x.ligne - y.ligne);
+    if (citees.some((t, i) => t.ligne !== attendues[i])) erreurs.push(`${cle} : ${citees.map((t) => `${t.id} (l. ${t.ligne})`).join(", ")} dans la table, occurrences de CT-8 aux lignes ${attendues.join(", ")} (citation décalée : recoller la table)`);
+  }
   // TC- uniques et consécutifs.
   table.forEach((t, i) => { if (t.n !== i + 1) erreurs.push(`${t.id} : TC-${i + 1} attendu à cette place (numéros uniques et consécutifs)`); });
   // Identifiants cités par les réponses.

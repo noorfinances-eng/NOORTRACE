@@ -82,7 +82,11 @@ bibliothèque (le cas `n = 2^19` imposerait 512 Mo de mémoire).
 
 Sortie régénérée le 2026-10-26 pour les trois annuaires exportés `annuaire/exports/administrateurs-*.json` ajoutés par la fermeture de la révision 0.3 (EX-13.37) : douze preuves de plus, toutes `concorde` ; les 318 lignes précédentes sont inchangées.
 
-Sortie publiée : 330 signatures et fichiers ; 314 `concorde`, 9
+Sortie régénérée le 2026-11-16 pour les vecteurs de l'annuaire du complément du 2026-11-16 (expiration des entrées jamais validées et défi consommé, CT-3 EX-13.17, EX-13.19 point 6, A.10) : traces `annuaire/traces/expiration-entree.json` et `defi-consomme.json`, cas `annuaire/exports/expiration-rejouee.json`, `expiration-avant-borne.json`, `expiration-entree-validee.json`, `expiration-entree-portee.json` et `identifiant-reattribue.json` : vingt signatures de plus, toutes `concorde` ; les 330 lignes précédentes sont inchangées.
+
+Sortie régénérée le 2026-11-16 pour les quatre cas `annuaire/exports/` du complément du 2026-11-16 sur les instants indécodables au rejeu (CT-3 EX-13.19, points 4 et 6, A.10) : `expiration-instant-indecodable.json`, `inscription-instant-indecodable.json`, `instants-indecodables-rejoues.json` et `remplacement-instants-indecodables.json` : treize preuves de plus, toutes `concorde` ; les 350 lignes précédentes sont inchangées.
+
+Sortie publiée : 363 signatures et fichiers ; 347 `concorde`, 9
 `acceptee_par_la_bibliotheque` (`v = 37` et `v = 38`, 64 octets, et, présentés
 au noyau qui ne normalise pas, `v ∈ {0, 1}`), 7 `refusee_par_la_bibliotheque`
 (`s` haut là où CT-3 normalise), 0 `discordance`.

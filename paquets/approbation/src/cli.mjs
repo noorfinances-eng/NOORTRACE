@@ -26,6 +26,11 @@
 //       cas, usage incorrect compris (`--url` absente ou répétée, argument
 //       inconnu) ; aucune autre valeur ;
 //   noortrace-approbation --version
+//       seul.
+//
+// Complément du 2026-11-16 : toute autre forme (option inconnue, en double ou
+// sans sa valeur, argument en trop, `--version` avec autre chose) rend
+// l'usage sur la sortie d'erreur et le code 2 ; la sonde garde le code 1.
 
 import fs from "node:fs";
 import http from "node:http";
@@ -45,9 +50,25 @@ const USAGE = `usage :
 /** Délai total de la sonde, en millisecondes. */
 export const DELAI_SONDE_MS = 2500;
 
-function option(args, nom) {
-  const k = args.indexOf(nom);
-  return k >= 0 ? args[k + 1] : undefined;
+/** Une valeur d'option : présente et pas une autre option. */
+const valeur = (v) => typeof v === "string" && v !== "" && !v.startsWith("--");
+
+/**
+ * Arguments de `valider-politique` (complément du 2026-11-16) : un fichier,
+ * puis `--environment` et `--expire-after-ms`, chacune au plus une fois et
+ * avec sa valeur ; rend `{ fichier, options }`, ou null pour tout autre usage
+ * (option inconnue, en double ou sans valeur, argument en trop : code 2).
+ * @param {string[]} args arguments qui suivent `valider-politique`
+ */
+export function argumentsPolitique(args) {
+  if (!valeur(args[0])) return null;
+  const options = {};
+  for (let k = 1; k < args.length; k += 2) {
+    const nom = args[k];
+    if (!["--environment", "--expire-after-ms"].includes(nom) || nom in options || !valeur(args[k + 1])) return null;
+    options[nom] = args[k + 1];
+  }
+  return { fichier: args[0], options };
 }
 
 /**
@@ -142,14 +163,17 @@ function ecrireRapport(flux, rapport) {
  * @returns {Promise<number>} code de sortie (0, 1 refus, 2 usage)
  */
 export async function principal(args) {
-  if (args.includes("--version")) {
+  // complément du 2026-11-16 : `--version` seul ; toute autre forme qu'une des
+  // lignes de USAGE (option inconnue, en double ou sans valeur, argument en
+  // trop) rend l'usage et le code 2, sauf la sonde (code 1, EX-12.22)
+  if (args.length === 1 && args[0] === "--version") {
     const p = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
     process.stdout.write(`${p.name} ${p.version}\n`);
     return 0;
   }
   if (args[0] === "valider-configuration") {
     const fichier = args[1];
-    if (!fichier || args.length !== 2) {
+    if (args.length !== 2 || !valeur(fichier)) {
       process.stderr.write(USAGE + "\n");
       return 2;
     }
@@ -170,13 +194,14 @@ export async function principal(args) {
     return r.code;
   }
   if (args[0] === "valider-politique") {
-    const fichier = args[1];
-    if (!fichier) {
+    const a = argumentsPolitique(args.slice(1));
+    if (a === null) {
       process.stderr.write(USAGE + "\n");
       return 2;
     }
-    const environment = option(args, "--environment") ?? "developpement";
-    const expire = Number(option(args, "--expire-after-ms") ?? 3600000);
+    const fichier = a.fichier;
+    const environment = a.options["--environment"] ?? "developpement";
+    const expire = Number(a.options["--expire-after-ms"] ?? 3600000);
     let doc;
     try {
       doc = lireJsonStrict(fs.readFileSync(fichier), { substituts: "admis" });
@@ -189,8 +214,8 @@ export async function principal(args) {
     process.stdout.write(JSON.stringify({ valide: errors.length === 0, errors, warnings }) + "\n");
     return errors.length === 0 ? 0 : 1;
   }
-  const chemin = option(args, "--config");
-  if (!chemin || args.length !== 2 || args[0] !== "--config") {
+  const chemin = args[1];
+  if (args.length !== 2 || args[0] !== "--config" || !valeur(chemin)) {
     process.stderr.write(USAGE + "\n");
     return 2;
   }

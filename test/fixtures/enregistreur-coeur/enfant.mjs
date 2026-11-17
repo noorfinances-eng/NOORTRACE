@@ -10,7 +10,8 @@
 // tous les fichiers .mjs de test/), il ne fait rien.
 import fs from "node:fs";
 import fsp from "node:fs/promises";
-import { pathToFileURL } from "node:url";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Coeur, HorlogeReglable, pieceJson } from "@noortrace/enregistreur";
 import { decoderHorodatage } from "@noortrace/noyau";
 import { secretsDev } from "./outils.mjs";
@@ -107,4 +108,4 @@ async function principal() {
   setInterval(() => {}, 1000);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await principal();
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) await principal();

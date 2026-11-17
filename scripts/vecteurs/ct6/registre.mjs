@@ -35,7 +35,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { analyserEnveloppe, clePubliqueDe, hachageJeuValidateurs, signerEnveloppe } from "../../lib/certificat-commit.mjs";
 import { hachageManifeste } from "../../lib/journal.mjs";
 import * as R from "../../lib/registre.mjs";
@@ -953,7 +953,7 @@ export function genererRegistre({ sortie = REPERTOIRE_REGISTRE, capture = lireCa
   return [...fichiers.keys()];
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   const i = process.argv.indexOf("--sortie");
   const sortie = i !== -1 ? path.resolve(process.argv[i + 1]) : REPERTOIRE_REGISTRE;
   const ecrits = genererRegistre({ sortie });

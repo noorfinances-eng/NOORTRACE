@@ -16,7 +16,45 @@ empreintes (EX-10.1), agent et interface sous deux comptes (EX-7.28),
 références de clés d'un travail bornées (EX-7.25), code du jeu réassigné
 vérifié (EX-8.10), URI de clôture contrôlée avec le dossier (EX-6.8),
 renvoi d'EX-4.12 ; codes `compte_inattendu` et `provision_excessive` étendus
-à OP-4, code `nonce_incoherent` ; section 13 ; version 0.7 du 2026-11-11,
+à OP-4, code `nonce_incoherent` ; section 13 ; complément du 2026-11-16,
+décision du porteur : la garde d'admission d'EX-10.8 n'est pas livrée à
+l'étape 8 ; elle est un livrable dû avant la production, et le risque est
+accepté et nommé d'ici là dans la spécification de sécurité (EX-10.8, ligne
+de la révision 0.8 de la section 13, section 14) ; aucune autre règle, aucun
+schéma ni aucun vecteur ne change ; complément du 2026-11-16 : le chemin de
+la prise de l'agent fait au plus 103 octets, borne que l'agent,
+l'interface et le client de la prise appliquent, et les lignes de commande
+de l'agent et de l'interface sont strictes (EX-7.28) ; aucun schéma ni
+aucun vecteur ne change ; complément du 2026-11-16 : `inscrire-cle` refuse
+une clé de chaîne déjà inscrite sous une autre organisation (OP-8, code
+`cle_chaine_autre_organisation`, ajouté à `error.code` de
+`operations-registre-v0`, extension compatible ; limite de cette
+vérification en EX-8.22 ; CT-5 EX-9.4) ; aucun vecteur ne change ;
+complément du 2026-11-16 : l'agent d'inscription de 7.14 et le relais
+d'inscription du composant d'ancrage font la même vérification, par la même
+lecture (OP-8, EX-8.22) ; aucun schéma ni aucun vecteur ne change ;
+complément du 2026-11-16 : le démon enregistreur transmet au relais
+d'inscription du composant d'ancrage le bloc de déploiement du
+`RecorderRegistry` lu dans le manifeste d'instance, d'où part la lecture
+d'OP-8 (le relais du démon lisait depuis le bloc 0) ; aucun schéma ni
+aucun vecteur ne change ; complément du 2026-11-16 : la lecture
+d'OP-8 redemande, après une pause bornée, une tranche que le nœud refuse
+pour débit (`rate limited`), dans l'outil de référence comme dans l'agent
+d'inscription et le relais du composant d'ancrage (sur le réseau 2124, le
+nœud refusait la onzième tranche d'affilée et `inscrire-cle` rendait
+`noeud_injoignable`) ; aucun schéma ni aucun vecteur ne change ;
+complément du 2026-11-17 : le nonce signé n'est jamais inférieur au
+suivant du plus grand nonce des envois de l'expéditeur dont l'issue
+d'inclusion est écrite, et un tel plancher qui dépasse de plus de 1 la
+valeur des points ne fait rien signer (EX-8.14, `nonce_incoherent`) ;
+aucun schéma ni aucun vecteur ne change ;
+complément du 2026-11-17 (recoupement) : la valeur des points d'EX-8.14
+est précisée (un point qui rend moins est en retard ; un point qui rend
+plus que la valeur retenue + 1, ou aucune valeur rendue par deux points,
+ne fait rien signer), et l'outil de référence et l'agent d'inscription,
+qui ne recoupaient pas le nonce, l'appliquent ; aucun schéma ni aucun
+vecteur ne change ;
+version 0.7 du 2026-11-11,
 révision 0.7 : commande `paquet-client` de l'outil
 de référence, codes de refus du paquet, reprise d'une étape en échec déjà
 accomplie et questions de la construction de l'étape 6 sur 7.13 et 7.14 ;
@@ -2189,7 +2227,7 @@ chose que voulu.
 | OP-5 | **Comptes et administrateurs.** Chaque compte de l'exploitant que la commande emploie est celui de son rôle dans `accounts` du manifeste à la tête, et deux rôles n'ont pas la même adresse hors du réseau de développement (EX-3.1) ; `CuratorSetRegistry.admin()` égale l'administrateur du registre (`inscrire-client`, `reassigner`) ; pour `reassigner`, le nouveau jeu répond à `admin()`, `getThreshold()` et `getCuratorCount()` par `eth_call` et son `admin()` est celui du jeu précédent, sauf `--changement-administrateur` (EX-8.10) ; pour `administrer-jeu`, le signataire est `CuratorSet.admin()` (`pendingAdmin()` pour `acceptAdmin`) et le nonce de la demande égale `opNonce()` ; pour `approvisionner`, le destinataire est admis par EX-8.20 | `inscrire-client`, `approvisionner`, `reassigner`, `administrer-jeu`, `inscrire-cle` et `clore` avec `--relayeur` | `compte_inattendu`, `pas_administrateur`, `jeu_invalide` |
 | OP-6 | **Condensé** (EX-6.1). Le condensé de la demande, recalculé depuis `fields`, `evm_chain_id` et `contract` selon RG-6 à RG-11, égale celui de la demande et celui que rend la fonction de vue du contrat par `eth_call` (`registerDigest`, `revokeDigest`, `periodDigest`, `anchorDigest`, `adminOpDigest`) ; `eip191_digest` égale le hachage signé de 6.6.3 | `condense`, `signer` (hors ligne : recalcul seul), commandes d'écriture | `condense_different` |
 | OP-7 | **Signatures** (RG-12, RG-13). Chaque signature est canonique et recouvre son `signer` ; les signataires sont distincts et rangés par adresse croissante ; pour une opération au seuil, chacun est membre du jeu de l'organisation (`isCurator` à `latest`), leur nombre atteint `t` = `getThreshold()` lu à `latest`, et la transaction en joint exactement `t`, les `t` premières dans l'ordre des adresses ; pour une ancre, le signataire est l'émetteur, la clé de chaîne | `signer`, `inscrire-cle`, `revoquer-cle`, `ancrer`, `clore`, `administrer-jeu` | `signature_non_canonique`, `signataire_hors_jeu`, `signatures_insuffisantes` |
-| OP-8 | **Clé d'enregistreur.** Inscription : organisation enregistrée (`curatorSetOf(orgId)` non nul ; cette partie précède OP-7, qui lit le seuil du jeu) ; `recorderOf(orgId, chainKey)` a `registeredAt` et `revokedAt` nuls, sauf reprise : une clé active sous le même `journalId` et la même clé Ed25519 que la demande rend `deja_fait`, dossier ou non (EX-7.13) ; `recorderByPubKey(orgId, clé)` a une `chainKey` nulle ou un `revokedAt` non nul. Révocation : `registeredAt` non nul et égal au `registered_at` de la demande, `revokedAt` nul | `condense`, `inscrire-cle`, `revoquer-cle`, `clore` | `organisation_inconnue`, `cle_deja_active`, `cle_revoquee`, `cle_ed25519_active`, `cle_inconnue` |
+| OP-8 | **Clé d'enregistreur.** Inscription : organisation enregistrée (`curatorSetOf(orgId)` non nul ; cette partie précède OP-7, qui lit le seuil du jeu) ; `recorderOf(orgId, chainKey)` a `registeredAt` et `revokedAt` nuls, sauf reprise : une clé active sous le même `journalId` et la même clé Ed25519 que la demande rend `deja_fait`, dossier ou non (EX-7.13) ; `recorderByPubKey(orgId, clé)` a une `chainKey` nulle ou un `revokedAt` non nul ; complément du 2026-11-16 (CT-5 EX-9.4), pour `inscrire-cle` (outil de référence et, complément du 2026-11-16, agent d'inscription de 7.14) et pour le relais d'inscription du composant d'ancrage (CT-2 EX-11.16) : la clé de chaîne n'est inscrite sous aucune autre organisation, active ou révoquée, au `RecorderRegistry` en service, ce que chacun lit par `eth_getLogs` des événements `RecorderRegistered` dont le deuxième sujet indexé (`topics[2]`) est cette clé de chaîne, du bloc de déploiement du contrat (`block_number` de son entrée dans `contracts` du manifeste d'instance ; complément du 2026-11-16 : le démon enregistreur le transmet au composant d'ancrage avec l'instance du registre ; le bloc 0 seulement quand le manifeste ne le donne pas, lecture juste mais plus longue) à la tête, en tranches d'EX-5.11 ; complément du 2026-11-16 : une tranche que le nœud refuse pour débit (erreur `-32000`, message `rate limited`, qui ne dit rien des journaux) est redemandée aux mêmes paramètres après une pause de 250 ms, doublée à chaque refus et plafonnée à 4 s, tant que les pauses de cette tranche ne dépassent pas 30 s, par les trois voies ; au-delà, la lecture est impossible ; une lecture impossible arrête la commande ou le relais (`noeud_injoignable`, aucun envoi) : la vérification n'est jamais sautée. Révocation : `registeredAt` non nul et égal au `registered_at` de la demande, `revokedAt` nul | `condense`, `inscrire-cle`, `revoquer-cle`, `clore` | `organisation_inconnue`, `cle_deja_active`, `cle_revoquee`, `cle_ed25519_active`, `cle_chaine_autre_organisation`, `cle_inconnue` |
 | OP-9 | **Ancre.** `periodHash` recalculé depuis le manifeste (CT-1 §10.2), empreinte et `docType` de la section 6 ; `isActiveRecorder(orgId, clé de chaîne)` vrai et `recorderByPubKey(orgId, clé du manifeste).chainKey` égale la clé de chaîne ; `isAnchored(empreinte)` faux, sinon `deja_fait` si `lookup` rend cet émetteur et ce `docType`, et `empreinte_squattee` dans tout autre cas (8.3) | `ancrer` | `cle_chaine_non_inscrite`, `empreinte_squattee` |
 | OP-10 | **Clôture.** `PeriodMeta` et `uri` passent RG-5 ; `isKnown(orgId, periodHash)` faux, sinon `deja_fait` si la dernière période du journal porte ce `periodHash`, et `doublon` sinon ; continuité avec `getPeriod(latestPeriodOf(orgId, journalId))` ; ancre de la même période présente (`lookup(empreinte).issuer` égal à la clé de chaîne sous laquelle la clé du manifeste est inscrite, EX-8.4) et, pour `condense cloture`, capturée dans `--captures` ; pour `condense cloture`, aucune demande de clôture déjà relayée pour la même position (`org_id`, `journal_id`, `first_seq`) avec un autre `periodHash` (EX-8.19) | `condense cloture` (RG-5, continuité, ancre, position), `clore` (tout) | `periode_invalide`, `doublon`, `discontinuite_temporelle`, `discontinuite_sequence`, `ancre_manquante`, `demande_existante` |
 | OP-11 | **Reçu.** `status` `0x1` ; le reçu porte, émis par l'adresse du contrat, l'événement attendu (`CuratorSetAssigned`, `RecorderRegistered`, `RecorderRevoked`, `Anchored`, `PeriodSubmitted`, `AdminOpRelayed` ; adresse créée pour un déploiement ; aucun journal pour un approvisionnement), et ses valeurs décodées égalent les valeurs envoyées | celles qui envoient | `transaction_annulee` |
@@ -2848,10 +2886,11 @@ l'étape à `capturee`, 8.6), jamais en signant une nouvelle transaction
 | `provision_excessive` | OP-3, OP-4 | approvisionnement au-delà de `P_k` ; `daily_budget_gas` d'un dossier au-delà de `fees.max_daily_budget_gas`, ou `funding.amount_wei` différent de `P_k` recalculé depuis `fees` du manifeste (OP-4, EX-8.20) | revoir `--budget-jour` ou le dossier (EX-4.19, EX-4.20) |
 | `examen_requis` | 8.7 | consommation au-delà de deux fois le budget | examen par l'exploitant, puis `--apres-examen` (EX-8.18) |
 | `transaction_en_attente` | OP-3 | un envoi du même expéditeur est sans issue ; une étape `envoyee` dont la transaction n'a pas de reçu | `capturer --envoi [--dossier]` (8.6) |
-| `nonce_incoherent` | 8.6 (EX-8.14) | les points de `--rpc` rendent des nonces qui diffèrent de plus de 1, ou aucune valeur n'est rendue par deux points | transitoire : relancer quand les points concordent |
+| `nonce_incoherent` | 8.6 (EX-8.14) | les points de `--rpc` rendent des nonces qui diffèrent de plus de 1, ou aucune valeur n'est rendue par deux points (précision du 2026-11-17 : un point rend plus que la valeur retenue + 1 ; un point en retard ne compte pas) ; complément du 2026-11-17 : le plancher des envois dont l'issue d'inclusion est écrite dépasse de plus de 1 la valeur des points | transitoire : relancer quand les points concordent |
 | `condense_different` | OP-6 | demande altérée, autre contrat, autre chaîne | refaire la demande par `condense` ; ne pas signer |
 | `signature_non_canonique`, `signataire_hors_jeu`, `signatures_insuffisantes` | OP-7 | `signature_non_canonique` : signature à `s` haut ou à `v` hors {27, 28}, signataires non rangés par adresse croissante, signataire en double, signature qui ne recouvre pas son `signer` déclaré ; `signataire_hors_jeu` : non-membre, ou signataire d'une ancre autre que l'émetteur, ou signataire d'une opération du jeu autre que son administrateur ; `signatures_insuffisantes` : seuil non atteint ou relevé depuis la demande | obtenir d'autres signatures ; relire le jeu |
 | `cle_deja_active`, `cle_revoquee`, `cle_ed25519_active`, `cle_inconnue`, `organisation_inconnue` | OP-8 | clé de chaîne déjà inscrite ou révoquée (jamais réinscrite), clé Ed25519 active sous une autre clé de chaîne | nouvelle clé de chaîne (8.4) |
+| `cle_chaine_autre_organisation` | OP-8 | complément du 2026-11-16 : la clé de chaîne est déjà inscrite sous une autre organisation (CT-5 EX-9.4 : une même adresse n'est la clé de chaîne que d'un journal) ; le message nomme l'organisation, le bloc et la transaction de cette inscription | nouvelle clé de chaîne (8.4) ; ne jamais configurer une clé de chaîne d'une autre organisation |
 | `cle_chaine_non_inscrite` | OP-9 | ancre avant l'inscription, ou sous une autre clé de chaîne | inscrire d'abord (pas 6) |
 | `empreinte_squattee` | OP-9 | empreinte ancrée par un autre émetteur | ne pas réessayer ; signaler (8.3) |
 | `ancre_manquante` | OP-10 | demande de clôture préparée ou clôture soumise avant que l'ancre de la période soit incluse et capturée (EX-8.4) | `ancrer` d'abord, puis `capturer` si la capture manque |
@@ -3301,7 +3340,18 @@ consigne sans pouvoir la vérifier. Épreuve : l'agent n'a aucune prise
 d'écoute `AF_INET` ni `AF_INET6` ; une connexion à la prise depuis un autre
 compte que celui de l'interface est fermée, son refus consigné, et aucun
 travail n'est exécuté ; aucune page ni aucun script que sert l'interface ne
-contient le chemin de la prise. Tenu par l'application.
+contient le chemin de la prise. Complément du 2026-11-16 : le chemin de la
+prise fait au plus 103 octets UTF-8, borne du SDK et du démon de CT-2
+(EX-6.10, EX-18.1) et du service d'approbation de CT-3 (EX-12.2) : Node.js
+tronque sans erreur un chemin plus long à la taille de `sun_path` moins un
+(107 octets sous Linux, 103 sous macOS), et l'agent écouterait, l'interface
+joindrait, une autre prise, hors du répertoire que ce paragraphe fixe.
+L'agent et l'interface refusent de démarrer sur un chemin plus long
+(`chemin_prise_trop_long : <n> octets, au plus 103`, code 2) ; le client de
+la prise le refuse avant toute connexion. `noortrace-inscription-agent` et
+`noortrace-inscription-web` n'admettent que `--config <fichier>` : une
+option inconnue, donnée deux fois ou sans sa valeur, un argument en trop
+rendent l'usage et le code 2. Tenu par l'application.
 
 ## 8. Exploitation courante
 
@@ -3481,6 +3531,29 @@ capturé comme une autre transaction (rôle `revocation`). Le contrôle 8 ne
 prouve pas la non-révocation d'une clé (CT-6 §11.8) : la capture sert
 l'exploitation et la réponse aux incidents, pas le dossier.
 
+**EX-8.22** Complément du 2026-11-16. Une clé de chaîne ne sert qu'une
+organisation (CT-5 EX-9.4) : deux composants d'ancrage qui enverraient sous
+la même adresse liraient le même nonce. Le contrat ne l'assure pas, puisqu'il
+indexe les enregistreurs par organisation ; `inscrire-cle` le vérifie avant
+tout envoi (OP-8, `cle_chaine_autre_organisation`). Complément du
+2026-11-16 : trois voies d'inscription le vérifient, par la même lecture et
+avec le même code : `inscrire-cle` de l'outil de référence, `inscrire-cle`
+de l'agent d'inscription (7.14, même sortie que l'outil, EX-7.24) et le
+relais d'inscription du composant d'ancrage, par lequel le démon inscrit la
+clé de chaîne suivante pendant une rotation (CT-2 EX-11.16 ; refus
+`echec_registre` de ce code, sans envoi). Cette vérification a des
+limites, qu'aucun outil de CT-4 ne lève : elle ne voit que les inscriptions
+déjà incluses au `RecorderRegistry` en service, jusqu'à la tête lue sur le
+nœud interrogé ; une inscription incluse après cette lecture, une
+inscription relayée par une autre voie que ces trois-là (`registerRecorder`
+est relayé par quiconque, au seuil de l'organisation qui inscrit), et une
+adresse employée comme clé de chaîne sans être inscrite lui échappent. Le
+contrat ne demande pas non plus la signature de la clé de chaîne qu'il
+inscrit : une organisation peut inscrire l'adresse d'une clé qu'elle ne
+détient pas, et l'inscription légitime suivante est alors refusée ;
+l'exploitant emploie une nouvelle clé de chaîne (8.4) et traite
+l'inscription étrangère comme un incident (EX-8.12).
+
 ### 8.5 Changement du jeu d'approbateurs
 
 Deux voies, de portée différente :
@@ -3561,7 +3634,34 @@ plusieurs ; si les points diffèrent de plus de 1, rien n'est signé
 nonce `pending` de noorcore ne compte pas une transaction en attente
 (observé, R1-F30) : l'outil tient lui-même ses envois (`envoi-<hachage>.json`)
 et refuse d'en signer un autre pour un expéditeur dont un envoi est sans issue
-(OP-3).
+(OP-3). Complément du 2026-11-17 : le nonce signé n'est jamais inférieur à
+`n + 1`, où `n` est le plus grand nonce des envois de cet expéditeur dont
+l'issue d'inclusion est écrite (`issue-<hachage>.json` qui porte
+`block_number`, quel que soit son `status` ; ou original `remplacee` que
+l'issue `ecartee` de son remplaçant désigne par `replaces`, EX-8.16). Le nonce
+retenu est le plus grand de deux valeurs : celle des points, établie comme
+ci-dessus, et ce plancher. L'inclusion est conclue au premier point qui rend
+le reçu ; les autres peuvent ne pas avoir encore appliqué ce bloc, et la
+valeur qu'ils recoupent est alors le nonce qui vient d'être consommé : signée
+à ce nonce, une transaction est refusée par chaque point, ou admise par un
+nœud en retard puis écartée sans reçu (observé sur le réseau de
+développement). Un plancher égal à la valeur des points plus 1 est ce cas
+d'un bloc d'écart : la transaction est signée au plancher. Un plancher qui
+dépasse de plus de 1 la valeur des points ne vient pas d'un bloc d'écart :
+rien n'est signé (`nonce_incoherent`, transitoire). Un plancher inférieur ou
+égal à la valeur des points ne change rien, et la règle de recoupement des
+points s'applique sans changement. Le remplaçant d'EX-8.16 garde le nonce de
+l'envoi qu'il remplace, qui n'a pas d'issue d'inclusion. Précision du
+2026-11-17 (valeur des points) : avec un seul point, sa valeur ; avec
+plusieurs, la plus grande valeur rendue par au moins deux points, un point
+qui ne répond pas ne comptant pour aucune ; les points diffèrent de plus de
+1 quand aucune valeur n'est rendue par deux points, ou quand un point rend
+plus que la valeur retenue + 1 (il ne retarde pas : il ment ou diverge). Un
+point qui rend moins que la valeur retenue est en retard et ne bloque pas.
+La valeur des points est lue sur chaque point de `--rpc`, jamais au premier
+qui répond. Une transaction dont l'adresse dépend du nonce (déploiement,
+RG-19) est signée au nonce qui a servi au calcul de l'adresse, retenu une
+fois, plancher compris.
 
 **EX-8.15** Une transaction est soumise, en mêmes octets, à chaque validateur
 de `--rpc` : noorcore ne relaie pas les transactions entre validateurs et
@@ -4096,7 +4196,12 @@ mandataire ajoute le jeton `Bearer` du nœud ; un mandataire local par client
 l'identité du client, contrairement à un mandataire partagé qui ajouterait le
 jeton pour tous. CT-8 alerte sur la taille de la mempool de chaque validateur
 et sur tout `transaction underpriced` reçu pour un envoi conforme à EX-4.15.
-Le réseau de développement n'a pas cette garde (EX-4.20).
+Le réseau de développement n'a pas cette garde (EX-4.20). Complément du
+2026-11-16 (décision du porteur) : la version 0 ne livre aucune garde
+d'admission ; la garde que décrit cette exigence est un livrable dû avant la
+production, avec son test adversarial, et aucune instance de production ne
+s'ouvre sans elle ; d'ici là, le risque est accepté (CT-7 RA-94, porté par
+l'exploitant NOORTRACE).
 
 **EX-10.9** Le répertoire de données d'un validateur (`db/leveldb` : chaîne,
 état de consensus `cons/v1/*`, marqueur de reprise) N'EST JAMAIS restauré
@@ -4352,14 +4457,15 @@ appliqué.
 |---|---|---|---|
 | `chain/README.md`, « Identifiants (à réserver) », l. 35-44, et point 3 de « Ce qui change pour un réseau prod-like », l. 300-302 ; commentaire de `chain/scripts/dev-net.sh`, l. 30-31 | 2124 « à réserver », distinct de « 2121 (chaîne PoSS de NOORCHAIN), 2122 et 2123 » | 2124 est inscrit pour « Metaplayerone Dubai Testnet » depuis le 2023-04-23 et 2121 pour « Catena Mainnet » (R2-F8, R2-F9) : 2124 reste l'identifiant du seul réseau de développement, sans réservation possible ; l'identifiant de production est choisi absent du registre public et inscrit avant la première genèse (EX-4.7) | à faire |
 | `chain/README.md`, l. 39, et `ARCHITECTURE.md`, « Instance dédiée », l. 321-322 | 2121 et 2123 pour la chaîne du PoSS | une seule valeur, à établir (R1, point non vérifié 10) | à faire |
+| Complément du 2026-11-16 : OP-8, clé de chaîne inscrite sous une autre organisation (EX-8.22, CT-5 EX-9.4) | aucune vérification | `inscrire-cle` (outil de référence et agent d'inscription de 7.14) et le relais d'inscription du composant d'ancrage lisent les événements `RecorderRegistered` de la clé de chaîne et refusent `cle_chaine_autre_organisation` ; schéma `operations-registre-v0` : code ajouté à `error.code` (extension compatible) | fait : outil de référence et schéma ; complément du 2026-11-16 : agent d'inscription et relais du composant d'ancrage ; complément du 2026-11-16 : bloc de déploiement transmis par le démon au relais |
 | `chain/README.md`, « Rétention », l. 216-219 | « ≈ 73 h à la cadence de 1,14 bloc par seconde » | une fourchette : 1,10 bloc/s mesuré le 2026-10-25 (≈ 75,8 h), 1,14 annoncé (9.5) | à faire |
 | `chain/README.md`, « Ce qui change pour un réseau prod-like », point 4 | quatre validateurs sur deux sites, deux par site | aucun opérateur ni site avec plus de f validateurs (EX-4.12, EX-10.6) | à faire |
 | `chain/docker/Dockerfile` | images de base épinglées par étiquette | par condensé ; image publiée par condensé (EX-10.1) | images de base épinglées par condensé et image reconstruite avec le correctif : fait (phase 2, étape 3, `chain/docker/README.md`) ; publication de l'image par condensé : phase 2, étape 7 |
 | CT-6 EX-13.8 | « environ 73 h à la cadence de 1,14 bloc/s » | même fourchette, renvoi à CT-4 §9.5 | proposition (renvoi non indispensable : CT-6 inchangé par cette version) |
 | CT-6 EX-13.11 et §12.5, ligne `registry.contracts` | « CT-4 DEVRAIT prévoir une rétention étendue » ; « publiés par CT-4 (section 13) » | renvois à CT-4 EX-9.7 (au moins 3 000 000 hauteurs) et au manifeste d'instance de CT-4 §4.8 (EX-9.12) | proposition (renvoi non indispensable : CT-6 inchangé par cette version) |
-| CT-1 §8, règle 5, l. 627-630 | « la cohérence entre l'événement de rotation et le registre est un contrôle de CT-4 (section 11.4, contrôle 8) » | « relèvent de CT-4 (§8.4) ; la cohérence entre l'événement de rotation et le registre relève du contrôle 8 (CT-6 §11) » | fait (renvoi textuel) |
-| CT-1 §10.4, l. 915 | « Le contrôle de ces valeurs contre le registre est le contrôle 8 (CT-4). » | « … est le contrôle 8 (CT-6 §11). » | fait (renvoi textuel) |
-| CT-1 §15, l. 1415 | « Sans le contrôle 8 (CT-4) » | « Sans le contrôle 8 (CT-6) » | fait (renvoi textuel) |
+| CT-1 §8, règle 5, l. 828-831 | « la cohérence entre l'événement de rotation et le registre est un contrôle de CT-4 (section 11.4, contrôle 8) » | « relèvent de CT-4 (§8.4) ; la cohérence entre l'événement de rotation et le registre relève du contrôle 8 (CT-6 §11) » | fait (renvoi textuel) |
+| CT-1 §10.4, l. 1116 | « Le contrôle de ces valeurs contre le registre est le contrôle 8 (CT-4). » | « … est le contrôle 8 (CT-6 §11). » | fait (renvoi textuel) |
+| CT-1 §15, l. 2852 | « Sans le contrôle 8 (CT-4) » | « Sans le contrôle 8 (CT-6) » | fait (renvoi textuel) |
 | CT-2 EX-11.13 | « le contrôle 8 de CT-4 fait le reste » | « le contrôle 8 de CT-6 fait le reste » | fait (renvoi textuel) |
 | CT-2 §15, `anchoring.registry.rpc_url` | un seul point RPC | une liste de points de validateurs d'opérateurs distincts (EX-8.15, DOIT en production) ; schéma de configuration figé en version 0.3 | proposition |
 | CT-2 §9 et CT-5 : ordre des ancres | la racine est remise « à l'ancrage (CT-5) et au registre (CT-4) » sans ordre ; le jeton RFC 3161 révèle `periodHash` en clair (CT-6 EX-13.1) | ancre du registre incluse d'abord, puis requête RFC 3161 ; OpenTimestamps peut partir en parallèle (nonce avant les calendriers) ; ou risque accepté écrit (8.3, EX-8.4) | proposition |
@@ -4381,7 +4487,7 @@ appliqué.
 | Application d'exploitant (révision 0.6) | absente | interface web et agent séparé et privilégié d'EX-7.23 à EX-7.28 ; canal local par prise Unix, compte du pair vérifié (EX-7.28) ; épreuves d'EX-7.24 et d'EX-7.28 | construite à l'étape 6 (`paquets/inscription`) ; à faire (révision 0.7) : sortie `paquet-client` du travail de paquet et codes d'EX-7.30, recherche d'EX-7.21 sur chaque référence employée, travail `administrer-jeu` avec la confirmation d'EX-7.26, reprise d'EX-7.29 |
 | `test/registreCt4.test.js` (révision 0.6) | six exemples annotés, liste fermée | annoter l'exemple de manifeste et l'exemple de gabarit de 7.13, les ajouter à la liste, et charger `paquet-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` dans le registre des schémas du test | fait autrement : les deux exemples portent l'annotation `<!-- exemple: … -->` (celle des exemples de la révision 0.5 de CT-3), que la liste fermée des annotations `<!-- schema: … -->` (EX-A.6) ne lit pas ; un essai de ce fichier les valide contre `paquet-client-v0` chargé avec ces schémas et recalcule les SHA-256 et longueurs du manifeste |
 | `spec/README.md` (révision 0.6) | CT-4 version 0.5 ; table des schémas sans `paquet-client-v0` | CT-4 version 0.6 ; ligne `paquet-client-v0` (CT-4 §7.13), chargé avec `inscription-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` | fait |
-| Révision 0.8 (2026-11-14), revue de sécurité interne de l'étape 8 : EX-4.12, EX-6.8, EX-7.1 (`--rpc`), EX-7.3, OP-4, EX-7.25, EX-7.26, EX-7.28, 7.11 (`compte_inattendu`, `provision_excessive`, `nonce_incoherent`), EX-8.4, EX-8.6, EX-8.10, EX-8.14, EX-8.16, 8.7, EX-8.20, EX-8.21, 9.3, CP-4, CP-6, EX-9.3, EX-10.1 (d) | textes de la version 0.7 ; outil de référence, bibliothèque et composant d'ancrage corrigés à l'étape 8 d'après ces constats, module Go de `ct-4` à aligner | texte : fait ; schéma `operations-registre-v0` : `nonce_incoherent` ajouté à `error.code` (extension compatible) ; outil de référence, bibliothèque et composant d'ancrage : faits à l'étape 8 pour `--confirmation`, la provision, l'URI, les index relus, le code du jeu, les deux points, l'écriture après CP-2 à CP-6 ; à faire : module Go de `ct-4` (provision, repli de 9.3), vecteurs `ct-4/capture` (fichier présent faux, certificat gonflé), garde d'admission d'EX-10.8 (décision du porteur, section 14) ; révision 0.8, complément du 2026-11-15 (décision du porteur) : CP-6, fichiers et index de capture lisibles du groupe (0644 avant le masque), composant d'ancrage aligné ; révision 0.8, demandée après sa première rédaction : EX-A.5 (plancher du module Go : code 1 sans famille, sans cas ou sur un cas absent de l'`INDEX.md`) ; module Go de `ct-4` : provision d'OP-4, nom de capture contrôlé avant lecture et plancher faits (revue de sécurité de l'étape 8, aucune discordance sur les vecteurs régénérés), repli de 9.3 non établi |
+| Révision 0.8 (2026-11-14), revue de sécurité interne de l'étape 8 : EX-4.12, EX-6.8, EX-7.1 (`--rpc`), EX-7.3, OP-4, EX-7.25, EX-7.26, EX-7.28, 7.11 (`compte_inattendu`, `provision_excessive`, `nonce_incoherent`), EX-8.4, EX-8.6, EX-8.10, EX-8.14, EX-8.16, 8.7, EX-8.20, EX-8.21, 9.3, CP-4, CP-6, EX-9.3, EX-10.1 (d) | textes de la version 0.7 ; outil de référence, bibliothèque et composant d'ancrage corrigés à l'étape 8 d'après ces constats, module Go de `ct-4` à aligner | texte : fait ; schéma `operations-registre-v0` : `nonce_incoherent` ajouté à `error.code` (extension compatible) ; outil de référence, bibliothèque et composant d'ancrage : faits à l'étape 8 pour `--confirmation`, la provision, l'URI, les index relus, le code du jeu, les deux points, l'écriture après CP-2 à CP-6 (les deux points d'EX-8.14 : composant d'ancrage seul ; outil de référence et agent d'inscription : complément du 2026-11-17, ci-dessous) ; à faire : module Go de `ct-4` (provision, repli de 9.3), vecteurs `ct-4/capture` (fichier présent faux, certificat gonflé), garde d'admission d'EX-10.8 (décision du porteur du 2026-11-16 : livrable dû avant la production, EX-10.8, section 14) ; révision 0.8, complément du 2026-11-15 (décision du porteur) : CP-6, fichiers et index de capture lisibles du groupe (0644 avant le masque), composant d'ancrage aligné ; révision 0.8, demandée après sa première rédaction : EX-A.5 (plancher du module Go : code 1 sans famille, sans cas ou sur un cas absent de l'`INDEX.md`) ; module Go de `ct-4` : provision d'OP-4, nom de capture contrôlé avant lecture et plancher faits (revue de sécurité de l'étape 8, aucune discordance sur les vecteurs régénérés), repli de 9.3 non établi ; révision 0.8, complément du 2026-11-17 : EX-8.14, plancher du nonce (suivant du plus grand nonce des envois de l'expéditeur dont l'issue d'inclusion est écrite ; signé au plancher quand il dépasse de 1 la valeur des points, `nonce_incoherent` au-delà) ; outil de référence (envois et déploiement du jeu, dont l'adresse CREATE dépend du nonce), composant d'ancrage et agent d'inscription : faits ; aucun schéma ni aucun vecteur ne change ; module Go de `ct-4` : à aligner s'il lit le nonce ; révision 0.8, complément du 2026-11-17 (recoupement) : l'outil de référence lisait le nonce au premier point qui répond et l'agent d'inscription prenait la plus grande valeur de tous les points, sans le recoupement d'EX-8.14 que la mention « les deux points » ci-dessus disait fait ; valeur des points précisée dans EX-8.14 ; outil de référence (recoupement sur chaque point de `--rpc`, bibliothèque des conventions) et agent d'inscription (même règle que le composant d'ancrage, déploiement du jeu signé au nonce de son adresse CREATE) : faits ; aucun schéma ni aucun vecteur ne change ; module Go de `ct-4` : à aligner s'il lit le nonce |
 
 Décisions de l'architecture touchées :
 
@@ -4442,7 +4548,9 @@ Décisions de l'architecture touchées :
   l'admission, plafond de transactions par expéditeur, éviction des
   transactions non prêtes après k tours, limite de débit propre à
   `eth_sendRawTransaction`, garde d'admission limitée aux adresses connues
-  (EX-4.20, EX-10.8, section 12).
+  (EX-4.20, EX-10.8, section 12). Le mandataire de garde d'EX-10.8 lui-même
+  n'est pas livré à l'étape 8 (complément du 2026-11-16) : c'est un livrable
+  dû avant la production (EX-10.8).
 - **La trésorerie de production** : rôle `approvisionnement` dans
   `accounts` (schéma `instance-registre`, EX-3.1, 4.8, OP-5), trésorerie
   froide et compte d'approvisionnement borné (EX-8.20) ; un membre

@@ -501,7 +501,7 @@ async function principal() {
   });
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   principal().catch((e) => {
     process.stdout.write(JSON.stringify({ pret: false, erreur: String(e?.stack ?? e) }) + "\n");
     process.exit(2);

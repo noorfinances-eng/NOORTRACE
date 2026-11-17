@@ -206,8 +206,9 @@ Livré en premier, avant le reste de la bibliothèque.
 | `analyserMessageInscription(texte)` | chaîne | `$defs/champs_inscription` | lève `message_invalide` | EX-13.12 |
 | `controleDefi(reponse, attendu)` | `$defs/reponse_preparer_inscription` ; `{ origine, identite, adresse }` (origine de la page, identité de la session, adresse choisie) | `null`, ou le premier de `message_invalide`, `origine_differente`, `identite_differente`, `adresse_differente`, dans cet ordre | — | EX-13.13 (côté console) |
 | `verifierInscription(annuaire, defis, requete, recuA, options?)` | document ; tableau de `$defs/defi` ; corps d'`inscrire` ; instant de réception ; `{ identifiant: "aleatoire" \| "compteur" }`, défaut `aleatoire` | `{ accepted, reason, entry, signature, defis }` : `defis` est un nouveau tableau, état après le pas 4 d'EX-13.15 (défi présenté marqué `used`, quel que soit le sort) ; `entry` est l'entrée qui reçoit l'adresse, existante ou à créer, ou `null` ; `signature`, la forme normalisée gardée dans la preuve, ou `null` | dans `reason`, la première raison d'EX-13.15, pas 1 à 13 | EX-13.15, EX-9.3 |
-| `appliquerOperation(annuaire, methode, requete, at, options?)` | document ; `preparer_inscription`, `inscrire`, `valider`, `revoquer`, `desactiver`, `reactiver`, `lier_demandeur` ou `delier_demandeur` ; corps de la méthode ; instant (horloge du service) ; `{ defis, nonce, identifiant }` (`defis` défaut `[]` ; `nonce` : celui que tire `preparer_inscription`, 32 chiffres hexadécimaux minuscules, tiré au hasard s'il est absent ; `identifiant` comme ci-dessus) | `{ annuaire, defis, accepted, reason, response }` : le nouvel annuaire (le même objet si refus), les défis après l'opération (défi ajouté ou remplacé ; défi présenté ; défis de l'identité effacés par `desactiver`), la réponse de la méthode (`$defs/reponse_preparer_inscription`, `reponse_adresse` ou `reponse_entree`) ou `null` | dans `reason`, la première raison de la méthode, forme et identité d'abord ; révision 0.6 : `limite_annuaire`, vérifiée en dernier, pour `inscrire` (65ᵉ adresse d'une entrée, tous états, ou 10 001ᵉ entrée ; défi présenté marqué comme pour tout refus à partir du pas 4) et `lier_demandeur` (65ᵉ alias) : une opération acceptée ne rend jamais un annuaire non conforme ; revue de sécurité de l'étape 8 : `preparer_inscription` est refusée `limite_annuaire`, sans changer les défis, quand elle ajouterait un cinquième défi non expiré pour l'identité ou un 1 025ᵉ au total (le remplacement du défi de la même identité et de la même adresse ne compte pas ; constantes exportées `MAX_DEFIS_PAR_IDENTITE` = 4, `MAX_DEFIS` = 1 024 ; révision d'EX-13.13 demandée) | EX-13.13, EX-13.15, EX-13.17, EX-13.10, EX-12.17 |
+| `appliquerOperation(annuaire, methode, requete, at, options?)` | document ; `preparer_inscription`, `inscrire`, `valider`, `revoquer`, `desactiver`, `reactiver`, `lier_demandeur`, `delier_demandeur`, ou `expirer` (opération interne, complément du 2026-11-16 : requête `{ entry }`, sans session) ; corps de la méthode ; instant (horloge du service) ; `{ defis, nonce, identifiant, ttlEntree }` (`defis` défaut `[]` ; `nonce` : celui que tire `preparer_inscription`, 32 chiffres hexadécimaux minuscules, tiré au hasard s'il est absent ; `identifiant` comme ci-dessus ; `ttlEntree` : `registration_entry_ttl_ms` pour `expirer`, défaut 2 592 000 000) | `{ annuaire, defis, accepted, reason, response }` : le nouvel annuaire (le même objet si refus), les défis après l'opération (défi ajouté ou remplacé ; défi présenté retiré, accepté ou refusé, complément du 2026-11-16 ; défis de l'identité effacés par `desactiver`), la réponse de la méthode (`$defs/reponse_preparer_inscription`, `reponse_adresse` ou `reponse_entree`) ou `null` (refus, et `expirer` acceptée) ; `expirer` : `entree_inconnue`, puis `etat_incompatible` pour une entrée dont une adresse a été validée ou dont l'échéance `created_at + ttlEntree` n'est pas atteinte ; effet : entrée retirée, opération `expirer` (`by` `service`) | dans `reason`, la première raison de la méthode, forme et identité d'abord ; révision 0.6 : `limite_annuaire`, vérifiée en dernier, pour `inscrire` (65ᵉ adresse d'une entrée, tous états, ou 10 001ᵉ entrée ; défi présenté marqué comme pour tout refus à partir du pas 4) et `lier_demandeur` (65ᵉ alias) : une opération acceptée ne rend jamais un annuaire non conforme ; revue de sécurité de l'étape 8 : `preparer_inscription` est refusée `limite_annuaire`, sans changer les défis, quand elle ajouterait un cinquième défi non expiré pour l'identité ou un 1 025ᵉ au total (le remplacement du défi de la même identité et de la même adresse ne compte pas ; constantes exportées `MAX_DEFIS_PAR_IDENTITE` = 4, `MAX_DEFIS` = 1 024 ; EX-13.13, révision 0.8 ; complément du 2026-11-16 : défis non présentés seulement) | EX-13.13, EX-13.15, EX-13.17, EX-13.10, EX-12.17 |
 | `defisNonExpires(defis, at)` | tableau de `$defs/defi`, instant | les défis dont `expires_at` est postérieur à `at` | — | EX-13.38 (défis persistés) |
+| `expirerEntrees(annuaire, at, ttl?)` | document, instant, `registration_entry_ttl_ms` (défaut 2 592 000 000) | `{ annuaire, expirees }` : une opération `expirer` pour chaque entrée échue à `at` dont aucune adresse n'a jamais été validée, dans l'ordre de `entries` ; l'annuaire inchangé (même objet) si aucune | — | EX-13.10, EX-13.17 (complément du 2026-11-16) |
 | `recopierAdministrateurs(annuaire, administrateurs, at)` | document, liste du réglage, instant | `{ annuaire, changed }` : l'opération `changer_administrateurs` (`by` `configuration`, `administrators` `{ before, after }`) si la liste diffère, comme liste, de la copie ; l'annuaire inchangé sinon | lève `identite_invalide` pour une liste hors de la forme d'EX-13.9 | EX-13.37 |
 | `controleVote(annuaire, session, action, adresse, ticket)` | document ; identité de session ; `voter` ou `recuser` ; adresse choisie (comparée en minuscules) ; `{ launched_by, self_approval, policy_requester_addresses, directory_requester_addresses, members }` (forme du `ticket` de `$defs/fichier_controles_vote`, `members` nul avant le gel) | `{ allowed, reason, warnings }`, `warnings` portant `separation_incomplete` et ses adresses | dans `reason`, la première condition d'EX-13.18, conditions 1 à 6 (1 à 5 pour `recuser`) | EX-13.18 |
 | `ticketDeControleVote(vue)` | `$defs/vue_ticket` | l'objet `ticket` de `controleVote`, tiré de la vue (`request.delegation.launched_by`, `separation`, `approver_set`) | — | EX-13.18, EX-12.15 |
@@ -218,10 +219,12 @@ Livré en premier, avant le reste de la bibliothèque.
 Précisions :
 
 - **Identifiant d'une entrée créée.** `compteur` : `apb-` et, sur quatre
-  chiffres décimaux complétés de zéros, le nombre d'entrées avant la création
-  plus un (convention des vecteurs, A.10) ; `aleatoire` : `apb-` et 16
+  chiffres décimaux complétés de zéros, le nombre d'entrées jamais créées
+  avant celle-ci (entrées présentes et entrées retirées par `expirer`) plus
+  un (convention des vecteurs, A.10) ; `aleatoire` : `apb-` et 16
   chiffres hexadécimaux minuscules de 64 bits tirés au hasard (EX-13.9,
-  EX-13.38), tiré de nouveau en cas de collision avec une entrée existante.
+  EX-13.38), tiré de nouveau en cas de collision avec une entrée existante
+  ou expirée.
   `appliquerOperation(…, "inscrire", …)` applique le rendu de
   `verifierInscription` sur la même requête, au même instant : même sort,
   même raison, même `entry`, même signature normalisée.
@@ -328,7 +331,10 @@ des pages (2.12), lit la découverte OIDC (EX-13.45, point 1, sans en faire
 dépendre le démarrage), puis écoute et écrit sur la sortie standard une
 ligne `{"pret":true,"pid":<n>,"ecoute":{"host":<h>,"port":<p>}}`. SIGTERM et
 SIGINT l'arrêtent proprement. Usage incorrect : code 2, sauf pour `sonde`,
-qui rend 1 (EX-13.44 : aucune autre valeur ; révision 0.6).
+qui rend 1 (EX-13.44 : aucune autre valeur ; révision 0.6). Complément du
+2026-11-16 : un fichier qui commence par `--` est une option sans sa
+valeur, donc un usage incorrect (`--config --x`, `valider-configuration
+--x` : code 2).
 
 ### 2.2 Interface programmatique (`@noortrace/console/serveur`)
 
@@ -364,7 +370,10 @@ Puis les règles d'EX-10.13 (`identite_locale_en_production`, `tls_exige`,
 `https://…:443` écrite avec son port, et `url_illisible` au pointeur
 `/service/url` pour une adresse qui ne s'analyse pas ou dont le port est hors
 de 1 à 65 535 ; boucle locale écrite exactement : `127.0.0.1`, `::1`,
-`localhost`, en minuscules, comparés avant toute normalisation). Rapport
+`localhost`, en minuscules, comparés avant toute normalisation ; complément
+du 2026-11-16 : `chemin_prise_trop_long` au pointeur `/service/socket` pour
+un chemin de plus de 103 octets UTF-8, `CHEMIN_PRISE_MAX_OCTETS` de
+`src/serveur/outils.mjs`, CT-3 EX-12.2). Rapport
 `$defs/rapport_validation` : `{ "valide", "errors" }`, erreurs `{ "code",
 "pointer" }`, `json` (seule erreur, pointeur vide) pour un fichier illisible
 ou hors JSON strict, une erreur `schema` au pointeur de chaque membre fautif
@@ -553,7 +562,10 @@ des noms non verrouillés). `auth_time` est l'instant de la vérification.
 
 Le serveur est le seul client du canal de la console (CT-3 12.9, EX-12.4) :
 
-- base : `service.url`, ou `http://localhost` sur la prise `service.socket` ;
+- base : `service.url`, ou `http://localhost` sur la prise `service.socket`
+  (complément du 2026-11-16 : un chemin de plus de 103 octets est refusé à
+  la construction du client, avant toute connexion, `ErreurDemarrage` de
+  rapport `chemin_prise_trop_long`) ;
   requête `POST <base>/v0/<méthode>`, `Content-Type: application/json`,
   `Authorization: Bearer <service.token>` si le jeton est déclaré, certificat
   client si `service.client_cert` l'est, certificat du service vérifié contre

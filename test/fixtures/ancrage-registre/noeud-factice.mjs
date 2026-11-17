@@ -10,8 +10,11 @@
 //
 // Contrats simulés : AttestationRegistry (anchor, lookup, isAnchored,
 // anchorDigest), RecorderRegistry (isActiveRecorder, recorderOf,
-// recorderByPubKey), PeriodRegistry (submitPeriod, isKnown, latestPeriodOf,
-// getPeriod, periodDigest). Le transport factice rend les octets JSON exacts
+// recorderByPubKey ; registerRecorder et revokeRecorder relayés),
+// PeriodRegistry (submitPeriod, isKnown, latestPeriodOf, getPeriod,
+// periodDigest) ; `eth_blockNumber`, et `eth_getLogs` sur les journaux des
+// transactions incluses et des inscriptions directes (`inscrire`), plage de
+// 16 384 blocs au plus (complément du 2026-11-16, CT-4 OP-8). Le transport factice rend les octets JSON exacts
 // de la réponse ; des pannes (point injoignable), des délais d'inclusion et
 // des rejets sont programmables par point.
 
@@ -78,6 +81,8 @@ export class NoeudFactice {
     this.certificatsRetardes = new Map(); // hauteur → nombre de réponses « not yet persisted » avant de servir
     this.txindex = { last_indexed_height: () => this.hauteur };
     this.appels = []; // journal des méthodes appelées
+    this.journaux = []; // journaux des transactions incluses et des inscriptions directes, pour eth_getLogs
+    this.journauxRefuses = null; // message d'erreur JSON-RPC rendu à tout eth_getLogs (null : journaux servis)
     this.genese();
   }
 
@@ -94,6 +99,9 @@ export class NoeudFactice {
 
   inscrire({ orgId, chainKey, ed25519PubKey, journalId }) {
     this.enregistreurs.set(orgId + chainKey, { chainKey, ed25519PubKey, journalId, registeredAt: BigInt(this.horodatage), revokedAt: 0n });
+    // Journal RecorderRegistered de l'inscription, à la hauteur courante (lu par eth_getLogs, CT-4 OP-8).
+    const transactionHash = octetsVersHex(sha256(utf8Octets(`inscription-directe-${orgId}-${chainKey}-${this.journaux.length}`)));
+    this.journaux.push({ address: this.contrats.recorder_registry, blockHash: this.dernierHash, blockNumber: q(this.hauteur), data: ed25519PubKey + motAdr(ZERO20).slice(2), logIndex: "0x0", removed: false, topics: [SUJETS.RecorderRegistered, orgId, motAdr(chainKey), journalId], transactionHash, transactionIndex: "0x0" });
   }
 
   // ---------------------------------------------------------- exécution
@@ -243,6 +251,7 @@ export class NoeudFactice {
     t.hauteur = h;
     t.index = 0;
     t.recu = recuJson;
+    this.journaux.push(...recuJson.logs);
     this.blocs.set(h, { entete, transactions: [hash], recus: new Map([[hash, recuJson]]), certificat });
   }
 
@@ -375,6 +384,22 @@ export class NoeudFactice {
         return ok(b.certificat);
       }
       case "eth_getCode": return ok("0x6080");
+      case "eth_blockNumber": return ok(q(this.hauteur));
+      case "eth_getLogs": {
+        // Filtre d'un seul objet : plage de blocs (au plus 16 384, comme le nœud, CT-4 EX-5.11), adresse, sujets (null : tout).
+        if (this.journauxRefuses) return erreur(-32005, this.journauxRefuses);
+        const f = p[0] ?? {};
+        const de = f.fromBlock === undefined || f.fromBlock === "latest" ? this.hauteur : Number(BigInt(f.fromBlock));
+        const a = f.toBlock === undefined || f.toBlock === "latest" ? this.hauteur : Number(BigInt(f.toBlock));
+        if (a - de + 1 > 16384) return erreur(-32005, "query exceeds max block range 16384");
+        const sujets = Array.isArray(f.topics) ? f.topics : [];
+        return ok(this.journaux.filter((l) => {
+          const h = Number(BigInt(l.blockNumber));
+          if (h < de || h > a) return false;
+          if (f.address && String(f.address).toLowerCase() !== l.address.toLowerCase()) return false;
+          return sujets.every((t, k) => t === null || (l.topics[k] ?? "").toLowerCase() === String(t).toLowerCase());
+        }));
+      }
       default: return erreur(-32601, "method not found");
     }
   }

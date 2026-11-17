@@ -19,7 +19,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const lireJsonl = (f) => fs.readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
 
@@ -108,4 +108,4 @@ function servir() {
   rl.on("close", () => process.exit(0));
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) servir();
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) servir();

@@ -4,7 +4,10 @@
 // (EX-13.17) et invariants (EX-13.10), contrôles de la console avant un vote
 // ou une récusation (EX-13.18), vérification d'un annuaire exporté
 // (EX-13.19). Écrit depuis le seul texte de CT-3 et les schémas
-// annuaire-approbateurs-v0 et console-service-v0.
+// annuaire-approbateurs-v0 et console-service-v0. Complément du 2026-11-16
+// (décision du porteur) : opération interne expirer (EX-13.10, point 5 ;
+// EX-13.17, « Expiration »), défi présenté retiré (EX-13.13 ; EX-13.15,
+// pas 4) et leur rejeu (EX-13.19, point 6).
 //
 // L'annuaire est manipulé sous sa forme JSON (*Value), dans l'ordre des
 // membres du schéma, pour être confronté tel quel aux vecteurs.
@@ -192,11 +195,100 @@ const (
 	MaxDefisTotal       = 1024
 )
 
+// Durée de vie d'une entrée dont aucune adresse n'a jamais été validée
+// (10.3, complément du 2026-11-16) : « registration_entry_ttl_ms : de
+// 86 400 000 à 31 536 000 000 (1 à 365 jours), défaut 2 592 000 000
+// (30 jours) ». Les traces emploient le défaut (A.10) ; le rejeu d'un
+// annuaire exporté, qui ne porte pas le réglage, la borne basse (EX-13.19,
+// point 6).
+const (
+	TTLEntreeDefaut = 2592000000
+	TTLEntreeMin    = 86400000
+)
+
 // EtatAnnuaire est l'annuaire tenu par le service et ses défis en cours.
+// TTLEntree est registration_entry_ttl_ms ; nul, il vaut TTLEntreeDefaut.
+// TexteAt, posé par le rejeu d'un annuaire exporté, est le texte de l'at de
+// l'opération rejouée, écrit tel quel par ses effets (voir texte).
 type EtatAnnuaire struct {
-	Doc   *Value
-	Defis []*Defi
-	Sch   *Schemas
+	Doc       *Value
+	Defis     []*Defi
+	Sch       *Schemas
+	TTLEntree int64
+	TexteAt   string
+}
+
+// texte rend l'instant qu'écrivent les effets d'une opération (at d'une
+// opération, created_at, received_at, validated_at, revoked_at ; updated_at
+// hors du rejeu, voir noter).
+// Au rejeu d'un annuaire exporté, c'est le texte de l'at de l'opération,
+// même s'il ne se décode pas. EX-13.19, point 6 (complément du 2026-11-16,
+// point 13 de la section 0) : « Les instants que posent les opérations
+// rejouées sont le texte de leur at, caractère pour caractère, sans décodage
+// ni réécriture : created_at de l'entrée créée et received_at de la preuve
+// (inscrire) ; validated_at de l'adresse validée et revoked_at de l'adresse
+// active qu'elle remplace (valider) ; revoked_at de l'adresse révoquée
+// (revoquer) et de chaque adresse en_attente ou active de l'entrée
+// (desactiver) ; expirer, reactiver, lier_demandeur, delier_demandeur et
+// changer_administrateurs n'en posent aucun ». Ce sont les seuls appels de
+// texte hors de noter (Appliquer, ajouterAdresse, inscrire). « Le rejeu ne
+// pose pas updated_at, que le point 2 compare au texte de l'at de la
+// dernière opération » : voir noter, et le point 2 dans
+// VerifierAnnuaireExporte.
+func (e *EtatAnnuaire) texte(at Instant) string {
+	if e.TexteAt != "" {
+		return e.TexteAt
+	}
+	return at.String()
+}
+
+func (e *EtatAnnuaire) ttlEntree() int64 {
+	if e.TTLEntree > 0 {
+		return e.TTLEntree
+	}
+	return TTLEntreeDefaut
+}
+
+// jamaisValidee dit si aucune adresse de l'entrée n'a été validée : aucune
+// n'a validated_at non nul (EX-13.10, point 5 ; EX-13.17, « Expiration »).
+// Une adresse validée puis révoquée garde son validated_at.
+func jamaisValidee(x *Value) bool {
+	for _, a := range x.Get("addresses").Arr {
+		if v := a.Get("validated_at"); v != nil && !v.IsNull() {
+			return false
+		}
+	}
+	return true
+}
+
+// EntreesEchues rend, dans l'ordre de entries, les identifiants des entrées
+// jamais validées dont l'échéance est atteinte à t : « t ≥ created_at +
+// registration_entry_ttl_ms » (EX-13.17, « Expiration »). Complément du
+// 2026-11-16 (EX-13.17, EX-13.32, A.10) : une entrée dont le created_at ne
+// se décode pas « n'est jamais échue […] : elle n'entre pas dans la liste ».
+func (e *EtatAnnuaire) EntreesEchues(t Instant, ttl int64) []string {
+	out := []string{}
+	for _, x := range e.entrees() {
+		c, err := LireInstant(x.Get("created_at").S())
+		if err == nil && jamaisValidee(x) && t >= c+Instant(ttl) {
+			out = append(out, x.Get("id").S())
+		}
+	}
+	return out
+}
+
+// retirerDefi retire un défi de ceux que le service tient (EX-13.13,
+// complément du 2026-11-16 : « dès qu'un inscrire présente un défi (pas 4
+// d'EX-13.15), quel que soit le sort de la requête, le service le retire des
+// défis qu'il tient »).
+func (e *EtatAnnuaire) retirerDefi(d *Defi) {
+	garde := e.Defis[:0]
+	for _, x := range e.Defis {
+		if x != d {
+			garde = append(garde, x)
+		}
+	}
+	e.Defis = garde
 }
 
 func poser(o *Value, cle string, v *Value) {
@@ -280,10 +372,14 @@ func (e *EtatAnnuaire) noter(at Instant, op, by, entree string, adresse, launche
 	ops := e.Doc.Get("operations")
 	// EX-13.37 : administrators est nul pour toute opération d'EX-13.15 et
 	// d'EX-13.17.
-	ops.Arr = append(ops.Arr, Objet("seq", Entier(rev), "at", Chaine(at.String()), "op", Chaine(op), "by", Chaine(by),
+	ops.Arr = append(ops.Arr, Objet("seq", Entier(rev), "at", Chaine(e.texte(at)), "op", Chaine(op), "by", Chaine(by),
 		"entry", Chaine(entree), "address", adresse, "launched_by", launchedBy, "reason", motif, "administrators", Nul()))
 	poser(e.Doc, "revision", Entier(rev))
-	poser(e.Doc, "updated_at", Chaine(at.String()))
+	// EX-13.19, point 6 (complément du 2026-11-16, point 13 de la section
+	// 0) : « Le rejeu ne pose pas updated_at » ; seul le service le pose.
+	if e.TexteAt == "" {
+		poser(e.Doc, "updated_at", Chaine(at.String()))
+	}
 	return rev
 }
 
@@ -328,13 +424,23 @@ type ResultatInscription struct {
 	Raison    string // "" si acceptée
 	Champs    ChampsInscription
 	Signature string // signature normalisée
+	// Presente est le défi marqué présenté au pas 4 (mode service), que la
+	// requête soit acceptée ou refusée ensuite ; nil si le pas 4 n'est pas
+	// atteint ou passé.
+	Presente *Defi
 }
 
 // VerifierInscription applique EX-13.15, dans l'ordre, à la requête reçue à
 // l'instant r. En mode service, le défi est marqué présenté à partir du
-// pas 4, quel que soit le sort de la requête.
+// pas 4, quel que soit le sort de la requête, et rendu dans Presente : la
+// vérification seule (verifierInscription d'EX-13.32, inscriptions.json)
+// s'arrête là et rend nonce_deja_utilise pour un défi déjà marqué ; le
+// service le retire ensuite (Appliquer, EX-13.13).
 func (e *EtatAnnuaire) VerifierInscription(req *Value, r Instant, mode ModeInscription) ResultatInscription {
-	ko := func(raison string) ResultatInscription { return ResultatInscription{Raison: raison} }
+	var presente *Defi
+	ko := func(raison string) ResultatInscription {
+		return ResultatInscription{Raison: raison, Presente: presente}
+	}
 	// 1. forme de la requête.
 	if len(e.Sch.Valider(RefConsoleService+"#/$defs/requete_inscrire", req)) > 0 {
 		return ko("requete_invalide")
@@ -362,6 +468,7 @@ func (e *EtatAnnuaire) VerifierInscription(req *Value, r Instant, mode ModeInscr
 			return ko("nonce_deja_utilise")
 		}
 		defi.Utilise = true
+		presente = defi
 		// 5. Emis le ≤ r < Expire le.
 		emis, _ := LireInstant(ch.IssuedAt)
 		expire, _ := LireInstant(ch.ExpiresAt)
@@ -407,14 +514,25 @@ func (e *EtatAnnuaire) VerifierInscription(req *Value, r Instant, mode ModeInscr
 	if e.adresseDansAnnuaire(adr) {
 		return ko("adresse_deja_attribuee")
 	}
-	return ResultatInscription{Champs: ch, Signature: sig.Encoder()}
+	return ResultatInscription{Champs: ch, Signature: sig.Encoder(), Presente: presente}
+}
+
+// adresseSansPreuve construit l'adresse qu'ajoute, au rejeu d'un annuaire
+// exporté, l'inscription d'une entrée retirée depuis par expirer : la preuve
+// a quitté le document avec l'entrée (EX-13.19, point 6, complément du
+// 2026-11-16) ; l'entrée n'est jamais confrontée au document, qui ne la
+// porte plus.
+func adresseSansPreuve(adr string) *Value {
+	return Objet("address", Chaine(adr), "state", Chaine("en_attente"), "proof", Nul(),
+		"validated_at", Nul(), "validated_by", Nul(), "revoked_at", Nul(), "revoked_by", Nul(),
+		"revocation_cause", Nul(), "revocation_reason", Nul(), "replaced_by", Nul())
 }
 
 // adresseEnAttente construit l'adresse ajoutée par une inscription.
-func adresseEnAttente(adr, msg, sig string, ch ChampsInscription, r Instant) *Value {
+func adresseEnAttente(adr, msg, sig string, ch ChampsInscription, r string) *Value {
 	return Objet("address", Chaine(adr), "state", Chaine("en_attente"),
 		"proof", Objet("message", Chaine(msg), "signature", Chaine(sig), "nonce", Chaine(ch.Nonce),
-			"issued_at", Chaine(ch.IssuedAt), "expires_at", Chaine(ch.ExpiresAt), "received_at", Chaine(r.String())),
+			"issued_at", Chaine(ch.IssuedAt), "expires_at", Chaine(ch.ExpiresAt), "received_at", Chaine(r)),
 		"validated_at", Nul(), "validated_by", Nul(), "revoked_at", Nul(), "revoked_by", Nul(),
 		"revocation_cause", Nul(), "revocation_reason", Nul(), "replaced_by", Nul())
 }
@@ -423,18 +541,24 @@ func adresseEnAttente(adr, msg, sig string, ch ChampsInscription, r Instant) *Va
 // nouvelleEntree donne l'identifiant d'une entrée créée, que la
 // spécification laisse au service (EX-13.9). Rend l'entrée.
 func (e *EtatAnnuaire) inscrire(req *Value, res ResultatInscription, r Instant, nouvelleEntree string) (string, int64) {
-	sess := req.Get("session_identity").S()
 	adr := req.Get("address").S()
+	return e.ajouterAdresse(req.Get("session_identity").S(), adresseEnAttente(adr, req.Get("message").S(), res.Signature, res.Champs, e.texte(r)), r, nouvelleEntree)
+}
+
+// ajouterAdresse ajoute l'adresse à l'entrée de l'identité, créée au besoin
+// sous l'identifiant nouvelleEntree, et inscrit l'opération inscrire.
+func (e *EtatAnnuaire) ajouterAdresse(sess string, adresse *Value, r Instant, nouvelleEntree string) (string, int64) {
+	adr := adresse.Get("address").S()
 	x := e.entreeParIdentite(sess)
 	if x == nil {
 		x = Objet("id", Chaine(nouvelleEntree), "session_identity", Chaine(sess), "external_id", Nul(),
 			"display_name", Nul(), "active", Booleen(true), "requester_identities", Tableau(),
-			"created_at", Chaine(r.String()), "addresses", Tableau())
+			"created_at", Chaine(e.texte(r)), "addresses", Tableau())
 		ent := e.Doc.Get("entries")
 		ent.Arr = append(ent.Arr, x)
 	}
 	ad := x.Get("addresses")
-	ad.Arr = append(ad.Arr, adresseEnAttente(adr, req.Get("message").S(), res.Signature, res.Champs, r))
+	ad.Arr = append(ad.Arr, adresse)
 	id := x.Get("id").S()
 	rev := e.noter(r, "inscrire", sess, id, Chaine(adr), Nul(), Nul())
 	return id, rev
@@ -469,12 +593,22 @@ var refRequetes = map[string]string{
 // idEntree donne l'identifiant d'une entrée que crée une inscription.
 func (e *EtatAnnuaire) Appliquer(methode string, req *Value, at Instant, nonce string, idEntree func() string, mode ModeInscription) IssueOperation {
 	ko := func(r string) IssueOperation { return IssueOperation{Raison: r, Reponse: Nul()} }
+	if methode == "expirer" {
+		return e.expirer(req, at)
+	}
 	ref, connu := refRequetes[methode]
 	if !connu {
 		return ko("requete_invalide")
 	}
 	if methode == "inscrire" {
 		res := e.VerifierInscription(req, at, mode)
+		// EX-13.15, pas 4 (complément du 2026-11-16) : « le service retire
+		// alors ce défi de ceux qu'il tient (EX-13.13), de sorte qu'un nonce
+		// déjà présenté lui est inconnu (nonce_inconnu) », que la requête soit
+		// acceptée ou refusée ensuite.
+		if res.Presente != nil {
+			e.retirerDefi(res.Presente)
+		}
 		if res.Raison != "" {
 			return ko(res.Raison)
 		}
@@ -513,9 +647,15 @@ func (e *EtatAnnuaire) Appliquer(methode string, req *Value, at Instant, nonce s
 		// expirés par identité et MaxDefisTotal au total ; au-delà,
 		// limite_annuaire sans changer les défis. Le défi que celui-ci
 		// remplace (même identité, même adresse) ne compte pas.
+		// Complément du 2026-11-16 : « défis non présentés, puisqu'un défi
+		// présenté est retiré » ; un défi marqué présenté (fourni tel quel)
+		// ne compte pas non plus.
 		parIdentite, total := 0, 0
 		for _, d := range e.Defis {
 			if d.Champs.Identity == sess && d.Champs.Address == adr {
+				continue
+			}
+			if d.Utilise {
 				continue
 			}
 			if expire, err := LireInstant(d.Champs.ExpiresAt); err == nil && at >= expire {
@@ -562,11 +702,11 @@ func (e *EtatAnnuaire) Appliquer(methode string, req *Value, at Instant, nonce s
 		}
 		for _, p := range x.Get("addresses").Arr {
 			if p.Get("state").S() == "active" {
-				revoquerAdresse(p, at, sess, "remplacee", Nul(), Chaine(adr))
+				revoquerAdresse(p, e.texte(at), sess, "remplacee", Nul(), Chaine(adr))
 			}
 		}
 		poser(a, "state", Chaine("active"))
-		poser(a, "validated_at", Chaine(at.String()))
+		poser(a, "validated_at", Chaine(e.texte(at)))
 		poser(a, "validated_by", Chaine(sess))
 		rev := e.noter(at, "valider", sess, x.Get("id").S(), Chaine(adr), Nul(), Nul())
 		return IssueOperation{Accepte: true, Reponse: reponseAdresse(x.Get("id").S(), adr, "active", rev)}
@@ -590,7 +730,7 @@ func (e *EtatAnnuaire) Appliquer(methode string, req *Value, at Instant, nonce s
 		if personne {
 			cause = "personne"
 		}
-		revoquerAdresse(a, at, sess, cause, motif, Nul())
+		revoquerAdresse(a, e.texte(at), sess, cause, motif, Nul())
 		rev := e.noter(at, "revoquer", sess, x.Get("id").S(), Chaine(adr), Nul(), Copier(motif))
 		return IssueOperation{Accepte: true, Reponse: reponseAdresse(x.Get("id").S(), adr, "revoquee", rev)}
 	case "desactiver", "reactiver":
@@ -609,7 +749,7 @@ func (e *EtatAnnuaire) Appliquer(methode string, req *Value, at Instant, nonce s
 			poser(x, "active", Booleen(false))
 			for _, p := range x.Get("addresses").Arr {
 				if st := p.Get("state").S(); st == "en_attente" || st == "active" {
-					revoquerAdresse(p, at, sess, "desactivation", Nul(), Nul())
+					revoquerAdresse(p, e.texte(at), sess, "desactivation", Nul(), Nul())
 				}
 			}
 			// Les défis de l'identité sont effacés.
@@ -660,13 +800,74 @@ func (e *EtatAnnuaire) Appliquer(methode string, req *Value, at Instant, nonce s
 	return ko("requete_invalide")
 }
 
+// expirer applique l'opération interne expirer (EX-13.17, « Expiration »,
+// complément du 2026-11-16) : « L'opération vérifie, dans cet ordre, la forme
+// de sa requête { "entry" }, sans identité de session (requete_invalide),
+// l'entrée (entree_inconnue), puis qu'aucune adresse de l'entrée n'a été
+// validée et que l'échéance est atteinte (etat_incompatible) ». Effet :
+// l'entrée est retirée de entries avec ses adresses, leurs preuves et ses
+// alias ; l'opération est inscrite avec by « service », address,
+// launched_by, reason et administrators nuls ; revision est incrémentée et
+// updated_at posé à t ; les défis ne changent pas ; aucune réponse.
+func (e *EtatAnnuaire) expirer(req *Value, at Instant) IssueOperation {
+	ko := func(r string) IssueOperation { return IssueOperation{Raison: r, Reponse: Nul()} }
+	// Forme (complément du 2026-11-16) : « la requête est un objet au seul
+	// membre entry, conforme à $defs/identifiant_entree ($defs/requete_expirer
+	// d'annuaire-approbateurs-v0) ; toute autre forme est requete_invalide ».
+	// Sans schémas chargés, la même forme est vérifiée ici (13.4 : « motif
+	// ^apb-[0-9a-z]+(-[0-9a-z]+)*$, de 5 à 128 caractères »).
+	if req == nil || req.Kind != KindObject || len(req.Obj) != 1 || req.Obj[0].Key != "entry" {
+		return ko("requete_invalide")
+	}
+	if e.Sch != nil && len(e.Sch.Valider(RefAnnuaire+"#/$defs/requete_expirer", req)) > 0 {
+		return ko("requete_invalide")
+	}
+	v := req.Obj[0].Val
+	if v.Kind != KindString || len(v.S()) < 5 || len(v.S()) > 128 || !reIdentifiantEntree.MatchString(v.S()) {
+		return ko("requete_invalide")
+	}
+	id := v.S()
+	k := -1
+	for i, x := range e.entrees() {
+		if x.Get("id").S() == id {
+			k = i
+		}
+	}
+	if k < 0 {
+		return ko("entree_inconnue")
+	}
+	x := e.entrees()[k]
+	c, err := LireInstant(x.Get("created_at").S())
+	// « t ≥ created_at + registration_entry_ttl_ms ». Complément du
+	// 2026-11-16 : « Une entrée dont le created_at respecte le motif de
+	// $defs/horodatage sans se décoder (CT-1 §3) n'est jamais échue : expirer
+	// la refuse (etat_incompatible) ». Au rejeu, EX-13.19, point 6
+	// (complément du 2026-11-16, point 13 de la section 0) : « une opération
+	// expirer dont l'at respecte le motif sans se décoder (CT-1 §3) ne se
+	// rejoue pas, la condition at ≥ created_at + 86 400 000 ne pouvant être
+	// établie ; le rejeu s'arrête à elle (/operations/<j>), en plus de
+	// l'écart du point 2 ».
+	if err != nil || !jamaisValidee(x) || at < c+Instant(e.ttlEntree()) {
+		return ko("etat_incompatible")
+	}
+	if e.TexteAt != "" {
+		if _, err := LireInstant(e.TexteAt); err != nil {
+			return ko("etat_incompatible")
+		}
+	}
+	ent := e.Doc.Get("entries")
+	ent.Arr = append(ent.Arr[:k:k], ent.Arr[k+1:]...)
+	e.noter(at, "expirer", "service", id, Nul(), Nul(), Nul())
+	return IssueOperation{Accepte: true, Reponse: Nul()}
+}
+
 // revoquerAdresse pose l'état revoquee et ses champs (EX-13.17). Le motif
 // d'une révocation par la validation d'une autre adresse ou par la
 // désactivation de l'entrée n'est pas fixé par le texte : il est laissé nul
 // (aucun vecteur ne l'expose).
-func revoquerAdresse(a *Value, at Instant, par, cause string, motif, remplacant *Value) {
+func revoquerAdresse(a *Value, quand, par, cause string, motif, remplacant *Value) {
 	poser(a, "state", Chaine("revoquee"))
-	poser(a, "revoked_at", Chaine(at.String()))
+	poser(a, "revoked_at", Chaine(quand))
 	poser(a, "revoked_by", Chaine(par))
 	poser(a, "revocation_cause", Chaine(cause))
 	poser(a, "revocation_reason", motif)
@@ -834,17 +1035,29 @@ func VerifierAnnuaireExporte(sch *Schemas, doc *Value) []EcartExport {
 	if rev != int64(len(ops)) {
 		out = append(out, ecart("revision_incoherente", "/revision"))
 	}
+	// EX-13.19, point 2 (complément du 2026-11-16) : « l'instant d'une
+	// opération qui respecte le motif sans se décoder (CT-1 §3) est un écart
+	// revision_incoherente à son pointeur, et l'ordre de l'opération suivante
+	// se juge sur le dernier instant décodé ». Le schéma (point 1) a déjà
+	// vérifié le motif ; la première opération n'est exemptée que de l'ordre.
 	var prec Instant
+	decode := false
 	for j, op := range ops {
 		if s, _ := EntierJSON(op.Get("seq")); s != int64(j+1) {
 			out = append(out, ecart("revision_incoherente", fmt.Sprintf("/operations/%d/seq", j)))
 		}
-		t, _ := LireInstant(op.Get("at").S())
-		if j > 0 && t < prec {
+		t, err := LireInstant(op.Get("at").S())
+		if err != nil {
+			out = append(out, ecart("revision_incoherente", fmt.Sprintf("/operations/%d/at", j)))
+			continue
+		}
+		if decode && t < prec {
 			out = append(out, ecart("revision_incoherente", fmt.Sprintf("/operations/%d/at", j)))
 		}
-		prec = t
+		prec, decode = t, true
 	}
+	// updated_at est comparé au texte de l'at de la dernière opération, sans
+	// décodage (EX-13.19, point 6, complément du 2026-11-16, point 13).
 	maj := doc.Get("updated_at")
 	if len(ops) == 0 {
 		if !maj.IsNull() {
@@ -886,7 +1099,7 @@ func VerifierAnnuaireExporte(sch *Schemas, doc *Value) []EcartExport {
 	for i, x := range entrees {
 		for k, a := range x.Get("addresses").Arr {
 			ptr := fmt.Sprintf("/entries/%d/addresses/%d", i, k)
-			if code := verifierPreuve(doc, x, a); code != "" {
+			for _, code := range verifierPreuve(doc, x, a) {
 				out = append(out, ecart(code, ptr+"/proof"))
 			}
 			if vb := a.Get("validated_by"); vb != nil && !vb.IsNull() && vb.S() == x.Get("session_identity").S() {
@@ -907,22 +1120,37 @@ func VerifierAnnuaireExporte(sch *Schemas, doc *Value) []EcartExport {
 	return out
 }
 
-// verifierPreuve applique EX-13.19 point 4 à une adresse d'une entrée.
-func verifierPreuve(doc, entree, a *Value) string {
+// verifierPreuve applique EX-13.19 point 4 à une adresse d'une entrée et
+// rend ses codes. Révision 0.6 : « les deux examens sont faits l'un et
+// l'autre, et une preuve fautive aux deux porte les deux codes, au même
+// pointeur (liste complète) ; un message qui ne s'analyse pas selon EX-13.12
+// ne donne que preuve_invalide, ses lignes ne pouvant être comparées ».
+// Complément du 2026-11-16 (point 13 de la section 0) : « un received_at qui
+// respecte le motif sans se décoder (CT-1 §3) n'établit pas cette condition
+// et donne preuve_discordante » ; il s'ajoute à preuve_invalide quand la
+// signature est aussi fautive.
+func verifierPreuve(doc, entree, a *Value) []string {
 	p := a.Get("proof")
 	msg := p.Get("message").S()
 	ch, ok := AnalyserMessageInscription(msg)
 	if !ok {
-		return "preuve_invalide"
+		return []string{"preuve_invalide"}
 	}
-	sig, err := DecoderSignature(p.Get("signature").S())
-	if err != nil || !sig.Canonique() {
-		return "preuve_invalide"
+	var codes []string
+	// Premier examen : signature canonique (65 octets, v ∈ {27, 28}, s bas)
+	// qui recouvre l'adresse (preuve_invalide).
+	invalide := true
+	if sig, err := DecoderSignature(p.Get("signature").S()); err == nil && sig.Canonique() {
+		rec, err := AdresseRecouvree(CondenseEIP191([]byte(msg)), sig)
+		invalide = err != nil || rec != a.Get("address").S()
 	}
-	rec, err := AdresseRecouvree(CondenseEIP191([]byte(msg)), sig)
-	if err != nil || rec != a.Get("address").S() {
-		return "preuve_invalide"
+	if invalide {
+		codes = append(codes, "preuve_invalide")
 	}
+	// Second examen : lignes du message, nonce et instants de la preuve, et
+	// Emis le ≤ received_at < Expire le (preuve_discordante). Les instants du
+	// message se décodent, l'analyse l'a vérifié ; un received_at indécodable
+	// n'établit pas la condition.
 	emis, _ := LireInstant(ch.IssuedAt)
 	expire, _ := LireInstant(ch.ExpiresAt)
 	recu, err := LireInstant(p.Get("received_at").S())
@@ -931,9 +1159,9 @@ func verifierPreuve(doc, entree, a *Value) string {
 		ch.Address != a.Get("address").S() || ch.Nonce != p.Get("nonce").S() ||
 		ch.IssuedAt != p.Get("issued_at").S() || ch.ExpiresAt != p.Get("expires_at").S() ||
 		recu < emis || recu >= expire {
-		return "preuve_discordante"
+		codes = append(codes, "preuve_discordante")
 	}
-	return ""
+	return codes
 }
 
 // AnnuaireVide rend l'annuaire sans entrée ni opération de la même
@@ -952,11 +1180,35 @@ func AnnuaireVide(doc *Value) *Value {
 // d'administrateur étant jugés sur la liste en vigueur, qui part du before
 // de la première opération changer_administrateurs (sinon de administrators
 // du document) et que chaque changer_administrateurs remplace par son after
-// (EX-13.37). Rend le pointeur de la première opération qui ne se rejoue
-// pas, "/administrators" si le rejeu aboutit à une autre liste, "/entries"
-// s'il aboutit à d'autres entrées, ou "".
+// (EX-13.37). Complément du 2026-11-16 : expirer se rejoue sous la borne
+// basse de registration_entry_ttl_ms ; l'inscription d'une entrée retirée
+// par une opération expirer placée plus loin dans le journal se rejoue sans
+// preuve, sans la chercher dans le document ; un identifiant déjà créé plus
+// haut ne crée pas de nouvelle entrée ; les effets écrivent l'at de
+// l'opération tel quel. Rend le
+// pointeur de la première opération qui ne se rejoue pas, "/administrators"
+// si le rejeu aboutit à une autre liste, "/entries" s'il aboutit à d'autres
+// entrées, ou "".
 func rejouerOperations(sch *Schemas, doc *Value) string {
-	e := &EtatAnnuaire{Doc: AnnuaireVide(doc), Sch: sch}
+	// EX-13.19, point 6 (complément du 2026-11-16) : « at ≥ created_at +
+	// 86 400 000, borne basse de registration_entry_ttl_ms (le document ne
+	// porte pas le réglage) ».
+	e := &EtatAnnuaire{Doc: AnnuaireVide(doc), Sch: sch, TTLEntree: TTLEntreeMin}
+	// Identifiants créés plus haut dans le rejeu (même retirés depuis), et,
+	// pour chaque entrée, la dernière opération expirer qui la nomme.
+	// Complément du 2026-11-16 : « l'opération expirer qui fait rejouer une
+	// inscription sans preuve est une opération expirer de la même entry
+	// placée plus loin dans le journal ».
+	crees, derniereExpiration := map[string]bool{}, map[string]int{}
+	for j, op := range doc.Get("operations").Arr {
+		if op.Get("op").S() == "expirer" {
+			derniereExpiration[op.Get("entry").S()] = j
+		}
+	}
+	expireePlusLoin := func(j int, id string) bool {
+		k, ok := derniereExpiration[id]
+		return ok && k > j
+	}
 	for _, op := range doc.Get("operations").Arr {
 		if op.Get("op").S() == "changer_administrateurs" {
 			if a := op.Get("administrators"); a != nil && a.Kind == KindObject && a.Get("before") != nil {
@@ -982,13 +1234,64 @@ func rejouerOperations(sch *Schemas, doc *Value) string {
 		if a := op.Get("administrators"); a == nil || !a.IsNull() {
 			return ptr
 		}
+		// Les effets écrivent le texte de at tel quel, même s'il ne se décode
+		// pas (EX-13.19, point 6, complément du 2026-11-16, point 13 : « les
+		// instants que posent les opérations rejouées sont le texte de leur
+		// at, caractère pour caractère ») ; l'écart de cet instant est celui
+		// du point 2. « Hors expirer, une opération dont l'at ne se décode pas
+		// se rejoue donc, les pas qu'applique le rejeu ne lisant pas
+		// l'horloge ».
 		at, _ := LireInstant(op.Get("at").S())
+		e.TexteAt = op.Get("at").S()
 		by := op.Get("by").S()
 		id := op.Get("entry").S()
 		adr := op.Get("address")
 		var req *Value
 		switch m := op.Get("op").S(); m {
 		case "inscrire":
+			// L'identifiant de l'opération doit être celui de l'entrée de
+			// l'identité, ou un identifiant jamais créé plus haut dans le
+			// rejeu, même retiré depuis par expirer (complément du
+			// 2026-11-16 : « une opération inscrire qui créerait une entrée
+			// sous un identifiant déjà créé plus haut dans le journal, même
+			// retiré depuis par expirer, ne se rejoue pas (EX-13.9) »).
+			if x := e.entreeParIdentite(by); x != nil {
+				if x.Get("id").S() != id {
+					return ptr
+				}
+			} else if crees[id] {
+				return ptr
+			}
+			if expireePlusLoin(j, id) {
+				// « une opération inscrire dont l'entrée est retirée par une
+				// opération expirer du journal se rejoue sans sa preuve […] :
+				// seuls les pas 12 et 13 d'EX-13.15 et les conditions
+				// d'identifiant qui précèdent sont vérifiés, et l'adresse est
+				// ajoutée sans preuve ». Complément du 2026-11-16 : « La
+				// preuve d'une telle inscription n'est pas cherchée dans le
+				// document, même s'il porte encore une entrée de cet
+				// identifiant » ; l'adresse a « state en_attente, membres de
+				// validation et de révocation nuls, avec proof nul ; elle
+				// n'est jamais comparée au document » ; l'entrée créée a pour
+				// created_at l'at de cette opération (texte, ci-dessus).
+				if x := e.entreeParIdentite(by); x != nil && !x.Get("active").Bool {
+					return ptr
+				}
+				if adr == nil || adr.Kind != KindString || e.adresseDansAnnuaire(adr.S()) {
+					return ptr
+				}
+				e.ajouterAdresse(by, adresseSansPreuve(adr.S()), at, id)
+				crees[id] = true
+				continue
+			}
+			// Révision 0.6, que le complément du 2026-11-16 (point 12)
+			// rappelle : seuls le message et la signature sont pris au
+			// document ; la preuve inscrite dans l'état du rejeu est
+			// reconstruite par l'effet d'EX-13.15 (signature normalisée selon
+			// EX-9.3, nonce, issued_at et expires_at lus dans le message,
+			// received_at égal à l'at de l'opération), et c'est elle, non une
+			// copie de celle du document, que la comparaison finale confronte
+			// au document (/entries si elle diffère).
 			var preuve *Value
 			for _, x := range doc.Get("entries").Arr {
 				if x.Get("id").S() == id {
@@ -1001,15 +1304,6 @@ func rejouerOperations(sch *Schemas, doc *Value) string {
 			if preuve == nil {
 				return ptr
 			}
-			// L'identifiant de l'opération doit être celui de l'entrée de
-			// l'identité, ou un identifiant nouveau.
-			if x := e.entreeParIdentite(by); x != nil {
-				if x.Get("id").S() != id {
-					return ptr
-				}
-			} else if e.entreeParID(id) != nil {
-				return ptr
-			}
 			req = Objet("session_identity", Chaine(by), "address", Copier(adr),
 				"message", Copier(preuve.Get("message")), "signature", Copier(preuve.Get("signature")))
 		case "valider":
@@ -1020,12 +1314,26 @@ func rejouerOperations(sch *Schemas, doc *Value) string {
 			req = Objet("session_identity", Chaine(by), "entry", Chaine(id), "reason", Copier(op.Get("reason")))
 		case "lier_demandeur", "delier_demandeur":
 			req = Objet("session_identity", Chaine(by), "entry", Chaine(id), "launched_by", Copier(op.Get("launched_by")))
+		case "expirer":
+			// « une opération expirer se rejoue si son by est service, que
+			// l'entrée entry existe, qu'aucune de ses adresses n'a été
+			// validée et que at ≥ created_at + 86 400 000 ; elle retire
+			// l'entrée ».
+			// « Une opération expirer dont by n'est pas service n'atteint pas
+			// le rejeu : le schéma la refuse d'abord » ; contrôle gardé.
+			if by != "service" {
+				return ptr
+			}
+			req = Objet("entry", Chaine(id))
 		default:
 			return ptr
 		}
 		is := e.Appliquer(op.Get("op").S(), req, at, "", func() string { return id }, ModeRejeu)
 		if !is.Accepte {
 			return ptr
+		}
+		if is.NouvelleEntree {
+			crees[id] = true
 		}
 	}
 	// La liste d'administrateurs du rejeu est celle du document (EX-13.37).

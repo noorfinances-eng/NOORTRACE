@@ -11,9 +11,9 @@ import * as R from "@noortrace/ancrage/registre";
 import { LecteurJeu } from "@noortrace/approbation";
 import { Sortie } from "../sortie.mjs";
 import { TenueDossier, etape, referenceTransaction } from "../dossier.mjs";
-import { attendreHauteur, attendreRecu, capturerEtRelire, conclure, envoyer } from "../envoi.mjs";
+import { attendreHauteur, attendreRecu, capturerEtRelire, conclure, envoyer, nonceASigner } from "../envoi.mjs";
 import * as J from "../jeu.mjs";
-import { lecture, nonce as lireNonce, solde } from "../reseau.mjs";
+import { lecture, solde } from "../reseau.mjs";
 import { ecrireAtomique, serialiser } from "../donnees.mjs";
 import { cleRole, consommerConfirmation, controlerProvisionDossier, dossierClient, ecartCompte, ecartRolesDistincts, etat, prealables, provision, ZERO20 } from "./base.mjs";
 
@@ -178,10 +178,12 @@ export async function inscrireClient(ctx) {
       } catch (e) {
         sortie.arreter("inutilisable", "usage", null, `code de création de CuratorSet illisible (${J.ARTEFACT_CURATOR_SET}, npm run compile) : ${String(e.message).slice(0, 200)}`);
       }
-      const n = await lireNonce(ctx.rpc, deployeur.adresse());
+      // L'adresse CREATE dépend du nonce : il est retenu une fois (recoupement des points et plancher d'EX-8.14 de CT-4),
+      // puis imposé à l'envoi, comme le fait l'outil de référence pour le déploiement du jeu.
+      const n = await nonceASigner(ctx, sortie, deployeur.adresse());
       set = R.adresseCreation(deployeur.adresse(), n);
       await envoyer(ctx, sortie, {
-        tenue, etape: eJeu, cle: deployeur, objet: "deploiement", to: null, donnees: J.donneesDeploiement(code, setAdmin, membres, seuil),
+        tenue, etape: eJeu, cle: deployeur, objet: "deploiement", to: null, donnees: J.donneesDeploiement(code, setAdmin, membres, seuil), nonce: n,
         role: "jeu_approbateurs", contrat: set, contratCree: set, op11: op11Jeu(set), op12: op12Jeu(set),
       });
     }

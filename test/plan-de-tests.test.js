@@ -141,8 +141,9 @@ describe("CT-9 : catalogue, schéma et cas (section 4, annexe A.2, EX-4.3, EX-A.
       expect(t.id, t.title).to.equal(`${t.level}-${compteurs[t.level]}`);
     }
     expect(new Set(CATALOGUE.tests.map((t) => t.id)).size).to.equal(CATALOGUE.tests.length);
-    expect(CATALOGUE.tests).to.have.length(334);
-    expect(compteurs).to.deep.equal({ TU: 39, TV: 76, TI: 22, TE: 23, TA: 107, TM: 44, TR: 15, TQ: 8 });
+    // CT-9 0.4, complément du 2026-11-16 (assemblage) : 334 → 341 entrées, TU-40, TU-41, TV-77 à TV-79, TE-24, TE-25.
+    expect(CATALOGUE.tests).to.have.length(341);
+    expect(compteurs).to.deep.equal({ TU: 41, TV: 79, TI: 22, TE: 25, TA: 107, TM: 44, TR: 15, TQ: 8 });
     CATALOGUE.non_tests.forEach((n, i) => expect(n.id).to.equal(`NC-${i + 1}`));
     CATALOGUE.traceability.forEach((r, i) => expect(r.id).to.equal(`TC-${i + 1}`));
   });
@@ -171,7 +172,7 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
   this.timeout(300_000);
   const INV = P.inventaire(R);
 
-  it("règle (a) rejouée : chaque identifiant défini par CT-1 à CT-8 est couvert par covers, par threats d'un TA- ou par un NC-, et chaque identifiant cité existe ; 2470 identifiants", function () {
+  it("règle (a) rejouée : chaque identifiant défini par CT-1 à CT-8 est couvert par covers, par threats d'un TA- ou par un NC-, et chaque identifiant cité existe ; 2494 identifiants", function () {
     const couverts = new Set();
     const connu = (id) => { const m = /^(CT-[1-8]) (.+)$/.exec(id); return Boolean(m && INV[m[1]]?.ids.has(m[2])); };
     for (const t of CATALOGUE.tests) {
@@ -185,7 +186,8 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
     for (const [ct] of P.SPECIFICATIONS) for (const x of INV[ct].ids) { total++; const id = `${ct} ${x}`; if (couverts.has(id)) parEntree++; else if (parNC.has(id)) parJustification++; else nonCouverts.push(id); }
     expect(nonCouverts).to.deep.equal([]);
     expect([total, parEntree, parJustification]).to.deep.equal([COUVERTURE.identifiers.total, COUVERTURE.identifiers.covered_by_tests, COUVERTURE.identifiers.covered_by_nc]);
-    expect(total).to.equal(2470);
+    // CT-9 5.2 et 5.5, au 2026-11-16 : 2494 identifiants.
+    expect(total).to.equal(2494);
     expect(COUVERTURE.identifiers.unknown_cited).to.deep.equal([]);
     // EX-4.1 : specs est l'ensemble des spécifications de covers (entrées à covers non vide).
     for (const t of CATALOGUE.tests) if (t.covers.length) expect(t.specs, t.id).to.deep.equal([...new Set(t.covers.map((c) => c.split(" ")[0]))].sort((x, y) => Number(x.slice(3)) - Number(y.slice(3))));
@@ -507,8 +509,9 @@ describe("CT-9 : mesures TM- (section 11, EX-11.14, EX-11.16, annexe A.7, EX-A.9
     // vecteurs, dans les rapports de campagne de TM-31 (étape 3), de TM-16
     // (étape 4) et de l'étape 5, et dans les tests cités.
     // Étape 8 : harnais de CT-2 EX-16.2 (TM-1 à TM-5, TM-7 à TM-9, TM-38), relevé de la file (TM-35), campagne de la
-    // supervision (TM-34), durées des runbooks rejoués (TM-36) et durée de la démonstration (TM-43), avec leur complément.
-    expect(TM.filter((t) => t.status.state === "executable").map((t) => t.id)).to.deep.equal(["TM-1", "TM-2", "TM-3", "TM-4", "TM-5", "TM-6", "TM-7", "TM-8", "TM-9", "TM-10", "TM-11", "TM-12", "TM-13", "TM-14", "TM-15", "TM-16", "TM-17", "TM-18", "TM-19", "TM-20", "TM-22", "TM-24", "TM-26", "TM-28", "TM-29", "TM-30", "TM-31", "TM-34", "TM-35", "TM-36", "TM-38", "TM-41", "TM-42", "TM-43"]);
+    // supervision (TM-34), durées des runbooks rejoués (TM-36) et durée de la démonstration (TM-43), avec leur complément ;
+    // rapport de la campagne du bloc plein qui mêle des clôtures (TM-44), relu par test/mesures-campagnes-publiees.test.js.
+    expect(TM.filter((t) => t.status.state === "executable").map((t) => t.id)).to.deep.equal(["TM-1", "TM-2", "TM-3", "TM-4", "TM-5", "TM-6", "TM-7", "TM-8", "TM-9", "TM-10", "TM-11", "TM-12", "TM-13", "TM-14", "TM-15", "TM-16", "TM-17", "TM-18", "TM-19", "TM-20", "TM-22", "TM-24", "TM-26", "TM-28", "TM-29", "TM-30", "TM-31", "TM-34", "TM-35", "TM-36", "TM-38", "TM-41", "TM-42", "TM-43", "TM-44"]);
     // EX-11.14 : TM-22 a pour cible 450 min et un seuil d'échec à 480 min ;
     // les sources en « moins de » (TM-25, TM-35, TM-43) emploient
     // strictement_inferieur.

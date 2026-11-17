@@ -447,12 +447,13 @@ describe("CT-7 : modèle de menace et vérificateur de renvois (EX-3.1, EX-A.4, 
     for (const k of CLES.keys.filter((x) => x.algorithm === "secp256k1")) expect(k.address, k.label).to.equal("0x" + C.enHex(C.keccak256(C.depuisHex(k.public_key).slice(1))).slice(26));
   });
 
-  it("RV-7 : chaque occurrence de « CT-7 » dans CT-1 à CT-6 et spec/README.md a sa ligne dans la table 0.2 (121 lignes), et chaque section citée existe", function () {
+  it("RV-7 : chaque occurrence de « CT-7 » dans CT-1 à CT-6 et spec/README.md a sa ligne dans la table 0.2 (126 lignes), et chaque section citée existe", function () {
+    // CT-7 0.2, préambule (complément du 2026-11-16) : TR-126 reprend le renvoi de CT-3 EX-7.30 à RA-88.
     const t = S.lireTablesCt7(CT7).tracabilite;
-    expect(t).to.have.length(121);
+    expect(t).to.have.length(126);
     let n = 0;
     for (const [nom, f] of R.FICHIERS_TRACABILITE) n += R.occurrencesCT7(nom, nom === "spec/README.md" ? README : SPECS[nom]).length;
-    expect(n).to.equal(121);
+    expect(n).to.equal(126);
     expect(R.sectionsCitees("Section 7 ; jonction au dossier : CT-7 EX-7.13.")).to.deep.equal(["7"]);
     expect(R.sectionsCitees("7.5 ; vecteurs : annexe A.7.")).to.have.members(["A.7", "7.5"]);
   });

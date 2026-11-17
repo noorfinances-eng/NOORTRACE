@@ -281,7 +281,9 @@ func (a *analyseTrace) an32() {
 
 // AN-33 : une seule demande par id dans la file finale, état égal à la
 // dernière ligne écrite ; un demarrage ne produit que les transitions
-// d'EX-8.12 (envoyee → a_reprendre).
+// d'EX-8.12 (envoyee → a_reprendre) et les quatre écritures du démarrage
+// hors de la table d'EX-8.3 (exceptionDemarrage, et obtenue → a_reprendre de
+// la réouverture d'EX-5.8).
 func (a *analyseTrace) an33() {
 	a.declarer("AN-33", "une demande par id, dernière ligne fait foi, transitions du demarrage (EX-8.5, EX-8.12)")
 	dernier := map[string]string{}
@@ -328,6 +330,7 @@ func (a *analyseTrace) an33() {
 // réponse.
 func (a *analyseTrace) demarrageEX812(t int64) {
 	premiereEcriture := map[string]string{}
+	premiereAction := map[string]actionLue{}
 	actionsA := map[string]map[string]bool{}
 	for _, x := range a.actions {
 		if x.t != t {
@@ -345,8 +348,9 @@ func (a *analyseTrace) demarrageEX812(t int64) {
 			st := chaineOu(x.detail, "", "state")
 			if _, ok := premiereEcriture[x.id]; !ok {
 				premiereEcriture[x.id] = st
+				premiereAction[x.id] = x
 			}
-			if EtatsFinaux[st] && st != "remplacee" {
+			if EtatsFinaux[st] && st != "remplacee" && !a.exceptionDemarrage(x, "", st) {
 				a.ecart("AN-33", "", "%s demarrage : %s écrite %s sans réponse reçue", Iso(t), x.id, st)
 			}
 		}
@@ -396,12 +400,99 @@ func (a *analyseTrace) demarrageEX812(t int64) {
 					}
 				}
 			}
+		case d.State == "a_reprendre" && prefixe(d.Kind, "ots_") && enCours(d):
+			// AN-33 (complément du 2026-11-16) : « la reprise d'une soumission
+			// OpenTimestamps relue a_reprendre avec une tentative en_cours
+			// (a_reprendre → a_reprendre, EX-8.12) » ; EX-8.12 : elle « se
+			// reprend de même, comme une soumission envoyee ».
+			if x, ok := premiereAction[id]; !ok || premiereEcriture[id] != "a_reprendre" || !a.exceptionDemarrage(x, "a_reprendre", "a_reprendre") {
+				a.ecart("AN-33", "", "%s demarrage : soumission %s a_reprendre avec une tentative en cours non reprise comme envoyee (EX-8.12)", Iso(t), id)
+			}
 		case d.State == "a_reprendre":
-			if st, ok := premiereEcriture[id]; ok && st != "envoyee" && st != "remplacee" {
+			// AN-33 (complément du 2026-11-16) : « la borne d'EX-4.13
+			// (a_reprendre → a_reprendre) » ; la réécriture a_reprendre n'est
+			// admise que comme cette borne (après l'action programmer backoff).
+			st, ok := premiereEcriture[id]
+			if ok && st != "envoyee" && st != "remplacee" && st != "a_reprendre" {
 				a.ecart("AN-33", "", "%s demarrage : %s a_reprendre écrite %s", Iso(t), id, st)
+			}
+			if ok && st == "a_reprendre" && !a.exceptionDemarrage(premiereAction[id], "a_reprendre", "a_reprendre") {
+				a.ecart("AN-33", "", "%s demarrage : %s a_reprendre réécrite hors de la borne d'EX-4.13", Iso(t), id)
 			}
 		}
 	}
+}
+
+// enCours dit si la ligne porte une tentative en_cours.
+func enCours(d *Demande) bool {
+	for _, att := range d.Attempts {
+		if att.Outcome == "en_cours" {
+			return true
+		}
+	}
+	return false
+}
+
+// entreeA rend l'entrée d'un type donné à un instant, ou nil.
+func (a *analyseTrace) entreeA(typ string, t int64) *entreeLue {
+	for i := range a.entrees {
+		if a.entrees[i].typ == typ && a.entrees[i].t == t {
+			return &a.entrees[i]
+		}
+	}
+	return nil
+}
+
+// exceptionDemarrage dit si une écriture de la file, hors de la table
+// d'EX-8.3, est l'une des écritures du démarrage que les compléments du
+// 2026-11-16 imposent (EX-8.3, AN-33 et AN-34 en nomment quatre) :
+//   - EX-8.12 : « Une demande recréée obtenue porte le résultat de
+//     l'enregistrement [...] ; sa ligne est écrite obtenue » : première ligne
+//     obtenue d'une demande de jeton dont l'entrée stockage_relu du même
+//     instant porte un enregistrement (membre acquisitions) ;
+//   - EX-4.13 : « Quand elle s'applique, l'action programmer (raison
+//     backoff) porte la borne, puis la ligne de la demande est réécrite » :
+//     a_reprendre → a_reprendre à l'instant d'une entrée demarrage, juste
+//     après une action programmer backoff de la même demande ;
+//   - EX-8.12 (complément du 2026-11-16) : « une ligne a_reprendre qui porte
+//     encore une tentative en_cours [...] se reprend de même, comme une
+//     soumission envoyee » : la ligne d'une soumission OpenTimestamps relue
+//     a_reprendre avec une tentative en cours est réécrite a_reprendre, juste
+//     avant l'action programmer de raison immediat de la même demande.
+//
+// La quatrième, obtenue → a_reprendre de la réouverture d'EX-5.8, est déjà
+// dans la table (révocation constatée, EX-5.10).
+func (a *analyseTrace) exceptionDemarrage(x actionLue, prev, suivant string) bool {
+	if prev == "" && suivant == "obtenue" && prefixe(kindDe(x.id), "jeton_") {
+		if e := a.entreeA("stockage_relu", x.t); e != nil {
+			if l, err := AcquisitionsDe(e.data.Get("acquisitions")); err == nil {
+				for _, acq := range l {
+					if acq.RequestID == x.id {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+	if prev == "a_reprendre" && suivant == "a_reprendre" && a.entreeA("demarrage", x.t) != nil && x.i > 0 {
+		y := a.actions[x.i-1]
+		if y.action == "programmer" && y.id == x.id && y.t == x.t && chaineOu(y.detail, "", "reason") == "backoff" {
+			return true
+		}
+	}
+	if prev == "a_reprendre" && suivant == "a_reprendre" && prefixe(kindDe(x.id), "ots_") && a.entreeA("demarrage", x.t) != nil && x.i+1 < len(a.actions) {
+		d := a.avant[x.id]
+		y := a.actions[x.i+1]
+		if d != nil && d.State == "a_reprendre" && y.action == "programmer" && y.id == x.id && y.t == x.t && chaineOu(y.detail, "", "reason") == "immediat" {
+			for _, att := range d.Attempts {
+				if att.Outcome == "en_cours" {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // AN-34 : transitions conformes à la table d'EX-8.3 ; aucun jeton_periode
@@ -414,6 +505,9 @@ func (a *analyseTrace) an34() {
 			continue
 		}
 		prev, suivant := etats[x.i][x.id], chaineOu(x.detail, "", "state")
+		if a.exceptionDemarrage(x, prev, suivant) {
+			continue
+		}
 		if !TransitionAdmise(prev, suivant) {
 			if prev == "" {
 				prev = "(aucune ligne)"
@@ -527,9 +621,18 @@ func (a *analyseTrace) premiereEntree(typ, id string, avant int64, filtre func(*
 // AN-36 : jeton_periode envoyé après l'inclusion de l'ancre de la période ;
 // jeton_point envoyé après l'inclusion de l'ancre du point, ou au plus
 // squat_wait_s après l'admission avec ordre_ancres_non_respecte (EX-8.4,
-// EX-9.6, EX-9.7).
+// EX-9.6, EX-9.7) ; ancre d'une période envoyée après le reçu (ou un autre
+// état final) des ancres de ses points (EX-8.4, règle 2 ; EX-9.4) ; aucune
+// ancre envoyée tant qu'une ancre de période d'une période antérieure de sa
+// clé n'est pas finale, ni l'ancre d'un point tant que celle d'un point
+// antérieur de sa période ne l'est pas (EX-9.4 ; table de 8.11 : « aucune
+// ancre ne passe envoyee tant qu'une ancre de période d'une période
+// antérieure de sa clé n'est pas dans un état final ; [...] l'ancre d'un
+// point ne passe envoyee qu'une fois les ancres des points antérieurs de sa
+// période et de son journal [...] dans un état final »).
 func (a *analyseTrace) an36() {
-	a.declarer("AN-36", "ordre des ancres : inclusion au registre avant la requête RFC 3161 (EX-8.4, EX-9.6)")
+	a.declarer("AN-36", "ordre des ancres : inclusion au registre avant la requête RFC 3161, ancre de la période après celles de ses points, clé retenue par une période antérieure, points d'une période dans l'ordre (EX-8.4, EX-9.4, EX-9.6)")
+	a.periodeApresSesPoints()
 	premiers := map[string]bool{}
 	for _, x := range a.actions {
 		if x.action != "envoyer_rfc3161" || premiers[x.id] {
@@ -586,6 +689,150 @@ func (a *analyseTrace) an36() {
 	}
 }
 
+// periodeApresSesPoints : les trois invariants d'AN-36 que la trace établit
+// (A.4, complément du 2026-11-16, AN-36, ordre des ancres d'une clé) :
+// « L'état de chaque demande est suivi depuis queue_before et les actions
+// ecrire_file qui précèdent ; à chaque action ecrire_file qui fait passer une
+// ancre au registre à envoyee depuis un autre état (un renvoi ne le fait
+// pas) : (1) si c'est l'ancre d'une période, aucune ancre de point de même
+// org_id, journal_id et period_start n'est dans un état non final ; (2)
+// aucune ancre de période de même org_id et journal_id et de period_start plus
+// petit n'est dans un état non final ; complément du 2026-11-16 : (3) si c'est
+// l'ancre d'un point, aucune ancre d'un point antérieur de même org_id,
+// journal_id et period_start (checkpoint_ts plus petit, puis l'ordre de la
+// file) n'est dans un état non final ». (1) suit EX-8.4, règle 2, et EX-9.4
+// (l'ancre de la période après celles de ses points) ; (2), EX-9.4 (une ancre
+// de période qui attend retient sa clé) ; (3), EX-9.4 (l'ordre des ancres des
+// points d'une période).
+func (a *analyseTrace) periodeApresSesPoints() {
+	demande := func(id string) *Demande {
+		if d := a.finale[id]; d != nil {
+			return d
+		}
+		return a.avant[id]
+	}
+	etats := a.etatsSuccessifs()
+	for i, x := range a.actions {
+		if x.action != "ecrire_file" || !prefixe(kindDe(x.id), "ancre_registre_") || chaineOu(x.detail, "", "state") != "envoyee" || etats[i][x.id] == "envoyee" {
+			continue
+		}
+		dx := demande(x.id)
+		if dx == nil {
+			continue
+		}
+		sp := dx.Subject
+		var points, periodes, anterieurs []string
+		for id, st := range etats[i] {
+			if id == x.id || !prefixe(kindDe(id), "ancre_registre_") || EtatsFinaux[st] {
+				continue
+			}
+			dy := demande(id)
+			if dy == nil || dy.Subject.OrgID != sp.OrgID || dy.Subject.JournalID != sp.JournalID {
+				continue
+			}
+			s := dy.Subject
+			switch {
+			case kindDe(id) == "ancre_registre_periode" && s.PeriodStart < sp.PeriodStart:
+				periodes = append(periodes, id+" ("+st+")")
+			case kindDe(x.id) == "ancre_registre_periode" && kindDe(id) == "ancre_registre_point" && s.PeriodStart == sp.PeriodStart:
+				points = append(points, id+" ("+st+")")
+			case kindDe(x.id) == "ancre_registre_point" && kindDe(id) == "ancre_registre_point" && s.PeriodStart == sp.PeriodStart && PointAnterieur(dy, dx):
+				anterieurs = append(anterieurs, id+" ("+st+")")
+			}
+		}
+		sort.Strings(points)
+		sort.Strings(periodes)
+		sort.Strings(anterieurs)
+		for _, b := range points {
+			a.ecart("AN-36", "", "%s %s envoyee alors que l'ancre de point %s de sa période n'a ni reçu ni autre état final (EX-9.4)", Iso(x.t), x.id, b)
+		}
+		for _, b := range periodes {
+			a.ecart("AN-36", "", "%s %s envoyee alors que l'ancre %s d'une période antérieure de sa clé n'est pas dans un état final (EX-9.4, clé retenue)", Iso(x.t), x.id, b)
+		}
+		for _, b := range anterieurs {
+			a.ecart("AN-36", "", "%s %s envoyee alors que l'ancre %s d'un point antérieur de sa période n'est pas dans un état final (EX-9.4)", Iso(x.t), x.id, b)
+		}
+	}
+}
+
+// tentativesOtsOuvertes rend, pour chaque entrée reponse_ots (par indice
+// d'entrée), la sorte de la tentative ouverte à laquelle elle s'applique :
+// "soumission", "mise_a_niveau", ou "" si elle ne s'applique pas. A.4
+// (complément du 2026-11-16) : « Une tentative de la demande s'ouvre par une
+// action soumettre_ots ou mettre_a_niveau_ots de cette demande, ou se lit
+// en_cours sur sa ligne de queue_before ; elle se ferme à la première
+// reponse_ots de la demande qui suit et, pour une soumission, au demarrage
+// suivant, qui la clôt redemarrage (une mise à niveau en cours ne l'est pas,
+// EX-8.12). » Les actions d'un instant sont lues avant l'entrée de cet
+// instant (les minuteries échues passent avant l'entrée, 8.10 ; aucune
+// reponse_ots ne soumet de nouveau sa demande au même instant), sauf pour un
+// demarrage, qui clôt d'abord les soumissions ouvertes.
+func (a *analyseTrace) tentativesOtsOuvertes() map[int]string {
+	ouverte := map[string]string{}
+	for id, d := range a.avant {
+		if !prefixe(d.Kind, "ots_") || EtatsFinaux[d.State] {
+			continue
+		}
+		for _, att := range d.Attempts {
+			if att.Outcome == "en_cours" {
+				ouverte[id] = "soumission"
+				if d.State == "en_attente" {
+					ouverte[id] = "mise_a_niveau"
+				}
+			}
+		}
+	}
+	out := map[int]string{}
+	ia := 0
+	lire := func(jusque int64, inclus bool) {
+		for ia < len(a.actions) && (a.actions[ia].t < jusque || (inclus && a.actions[ia].t == jusque)) {
+			x := a.actions[ia]
+			switch x.action {
+			case "soumettre_ots":
+				ouverte[x.id] = "soumission"
+			case "mettre_a_niveau_ots":
+				ouverte[x.id] = "mise_a_niveau"
+			}
+			ia++
+		}
+	}
+	for ie, e := range a.entrees {
+		lire(e.t, false)
+		if e.typ == "demarrage" {
+			for id, sorte := range ouverte {
+				if sorte == "soumission" {
+					delete(ouverte, id)
+				}
+			}
+		}
+		lire(e.t, true)
+		if e.typ == "reponse_ots" {
+			id := chaineOu(e.data, "", "request_id")
+			out[ie] = ouverte[id]
+			delete(ouverte, id)
+		}
+	}
+	return out
+}
+
+// ageOts rend l'âge d'une demande OpenTimestamps à l'instant t, compté
+// depuis son created_at (EX-8.11, complément du 2026-11-16) ; -1 si la
+// demande est inconnue.
+func (a *analyseTrace) ageOts(id string, t int64) int64 {
+	d := a.finale[id]
+	if d == nil {
+		d = a.avant[id]
+	}
+	if d == nil {
+		return -1
+	}
+	c, err := Ms(d.CreatedAt)
+	if err != nil {
+		return -1
+	}
+	return t - c
+}
+
 // AN-37 : attente de reprise d'EX-8.9 recalculée depuis les entrées :
 // Retry-After pour 429 et 503, 0 pour le premier 408 d'une demande chez un
 // prestataire, sinon min(max_ms, initial_ms × factor^(k−1)) plus la gigue
@@ -597,15 +844,20 @@ func (a *analyseTrace) an37() {
 	// prestataire, ses échecs transitoires consécutifs ; une tentative close par
 	// le redémarrage (error_code redemarrage, ou en cours au démarrage, qu'EX-8.12
 	// clôt ainsi) interrompt la série, comme tout autre résultat.
+	// EX-8.9 (complément du 2026-11-16) : la série d'une soumission
+	// OpenTimestamps, sans prestataire, est rangée sous id + "|".
 	for id, d := range a.avant {
-		if !prefixe(d.Kind, "jeton_") || EtatsFinaux[d.State] {
+		if !(prefixe(d.Kind, "jeton_") || prefixe(d.Kind, "ots_")) || EtatsFinaux[d.State] {
 			continue
 		}
 		for _, att := range d.Attempts {
-			if att.Provider == nil {
+			if att.Provider == nil && !prefixe(d.Kind, "ots_") {
 				continue
 			}
-			c := id + "|" + *att.Provider
+			c := id + "|"
+			if att.Provider != nil {
+				c += *att.Provider
+			}
 			if (att.Outcome == "echec_transitoire" || att.Outcome == "reponse_tardive") && (att.ErrorCode == nil || *att.ErrorCode != "redemarrage") {
 				k[c]++
 			} else {
@@ -624,24 +876,98 @@ func (a *analyseTrace) an37() {
 		return g
 	}
 	// ordre de consommation des gigues : les entrées dans l'ordre de la trace
-	etatOts := map[string]string{}
-	for id, d := range a.avant {
-		if prefixe(d.Kind, "ots_") {
-			etatOts[id] = d.State
-		}
-	}
-	for _, e := range a.entrees {
+	ouvertes := a.tentativesOtsOuvertes()
+	for ie, e := range a.entrees {
 		switch e.typ {
 		case "reponse_ots":
+			// A.4 (complément du 2026-11-16, AN-37 pour les soumissions
+			// OpenTimestamps) : « Une reponse_ots s'applique si et seulement si
+			// la demande, dans un état non final, a alors une tentative ouverte
+			// [...] ; quand cette tentative est une soumission et que la réponse
+			// a moins de min_responses réponses valables, une attestation aucune
+			// ou une preuve nulle, c'est un échec de la série d'EX-8.9 : k est le
+			// nombre de soumissions en échec consécutives de la demande depuis la
+			// dernière tentative close redemarrage, celles que porte sa ligne de
+			// queue_before comprises, et la gigue est la valeur suivante de
+			// jitter_ms, dans l'ordre où la trace les consomme (8.10). » Le rejet
+			// s'établit ainsi depuis les entrées et les actions, sans lire
+			// l'action rejeter_reponse ; une soumission acceptée clôt la série.
 			id := chaineOu(e.data, "", "request_id")
-			st := etatOts[id]
-			for _, x := range a.actions {
-				if x.t < e.t && x.action == "ecrire_file" && x.id == id {
-					st = chaineOu(x.detail, "", "state")
+			if ouvertes[ie] != "soumission" {
+				continue
+			}
+			c := id + "|"
+			echec := chaineOu(e.data, "", "attestation") == "aucune" || entierOu(e.data, 0, "calendars_answered") < a.cfg.MinResponses || ptrChaine(e.data, "proof_sha256") == nil
+			if !echec {
+				k[c] = 0
+				continue
+			}
+			var prog *actionLue
+			for i := range a.actions {
+				x := &a.actions[i]
+				if x.t == e.t && x.id == id && x.action == "programmer" && chaineOu(x.detail, "", "reason") == "backoff" {
+					prog = x
+					break
 				}
 			}
-			if (st == "envoyee" || st == "a_reprendre") && (chaineOu(e.data, "", "attestation") == "aucune" || entierOu(e.data, 0, "calendars_answered") < a.cfg.MinResponses) {
-				prendreGigue()
+			k[c]++
+			attendu, raison := CalculerAttente(nil, nil, k[c], true, a.cfg.Retry, prendreGigue())
+			if prog == nil {
+				a.ecart("AN-37", "", "%s %s : aucune action programmer après l'échec de la soumission", Iso(e.t), id)
+				continue
+			}
+			if next, err := Ms(chaineOu(prog.detail, "", "next_at")); err != nil || float64(next-e.t) != attendu || chaineOu(prog.detail, "", "reason") != raison {
+				a.ecart("AN-37", "", "%s %s : attente de la soumission %s (%s), attendu %.0f ms (%s) pour k = %d", Iso(e.t), id, chaineOu(prog.detail, "", "next_at"), chaineOu(prog.detail, "", "reason"), attendu, raison, k[c])
+			}
+		case "echec_registre":
+			// EX-8.10 (complément du 2026-11-16) : un échec signalé par le
+			// registre pour une ancre en vol, hors empreinte_squattee et refus
+			// définitif, rend l'ancre a_reprendre à l'attente d'EX-8.9, « k :
+			// tentatives en échec de la demande, gigue comprise ». k se lit sur la
+			// ligne a_reprendre écrite à cet instant (tentatives non obtenues,
+			// celles sorties de la fenêtre de 32 comprises).
+			id := chaineOu(e.data, "", "request_id")
+			code := chaineOu(e.data, "", "code")
+			var ecrite, prog *actionLue
+			for i := range a.actions {
+				x := &a.actions[i]
+				if x.t != e.t || x.id != id {
+					continue
+				}
+				if x.action == "ecrire_file" && chaineOu(x.detail, "", "state") == "a_reprendre" && ecrite == nil {
+					ecrite = x
+				}
+				if ecrite != nil && x.action == "programmer" && prog == nil {
+					prog = x
+				}
+			}
+			if ecrite == nil || code == "empreinte_squattee" || strings.HasPrefix(code, "refus_") {
+				continue
+			}
+			g := prendreGigue()
+			ligne, ok := a.lignes[ecrite.i]
+			if !ok || prog == nil {
+				a.ecart("AN-37", "", "%s %s : reprise de l'ancre sans ligne ni action programmer", Iso(e.t), id)
+				continue
+			}
+			v, err := ParseJSON([]byte(ligne))
+			var d *Demande
+			if err == nil {
+				d, err = DemandeDe(v)
+			}
+			if err != nil {
+				a.ecart("AN-37", "", "%s %s : ligne illisible : %s", Iso(e.t), id, err.Error())
+				continue
+			}
+			kAncre := max(0, d.Total()-int64(len(d.Attempts)))
+			for _, att := range d.Attempts {
+				if att.Outcome != "obtenue" {
+					kAncre++
+				}
+			}
+			attendu, raison := CalculerAttente(nil, nil, kAncre, true, a.cfg.Retry, g)
+			if next, err := Ms(chaineOu(prog.detail, "", "next_at")); err != nil || float64(next-e.t) != attendu || chaineOu(prog.detail, "", "reason") != raison {
+				a.ecart("AN-37", "", "%s %s : reprise de l'ancre %s (%s), attendu %.0f ms (%s) pour k = %d", Iso(e.t), id, chaineOu(prog.detail, "", "next_at"), chaineOu(prog.detail, "", "reason"), attendu, raison, kAncre)
 			}
 		case "reponse_rfc3161":
 			id := chaineOu(e.data, "", "request_id")
@@ -658,7 +984,16 @@ func (a *analyseTrace) an37() {
 					prog = x
 				}
 			}
-			if rejet == nil || chaineOu(rejet.detail, "", "class") != "transitoire" {
+			// EX-8.9 (complément du 2026-11-16) : une tentative obtenue ou en échec
+			// permanent interrompt la série en cours de marche ; seule une
+			// echec_transitoire ou une reponse_tardive la prolonge.
+			promue := false
+			for _, x := range a.actions {
+				if x.t == e.t && x.id == id && x.action == "ecrire_file" && chaineOu(x.detail, "", "state") == "obtenue" {
+					promue = true
+				}
+			}
+			if rejet == nil && !promue {
 				continue
 			}
 			// prestataire de la tentative : lu sur sa requête (envoyer_rfc3161), la
@@ -678,6 +1013,10 @@ func (a *analyseTrace) an37() {
 				}
 			}
 			c := id + "|" + prov
+			if rejet == nil || chaineOu(rejet.detail, "", "class") != "transitoire" {
+				k[c] = 0
+				continue
+			}
 			k[c]++
 			httpStatus := ptrEntier(e.data, "http_status")
 			retryAfter := ptrEntier(e.data, "retry_after_s")
@@ -777,37 +1116,58 @@ func (a *analyseTrace) an40() {
 			a.ecart("AN-40", "", "%s %s : empreinte_squattee sans ligne refusee", Iso(e.t), id)
 		}
 	}
+	// EX-8.10 (complément du 2026-11-16) : « au reçu, ce délai court depuis la
+	// création de l'ancre (son admission), attente du nonce derrière une autre
+	// ancre de la clé comprise, et non depuis son premier envoi ; l'alerte
+	// n'est pas levée de nouveau au reçu quand un renvoi sans reçu l'a déjà
+	// levée depuis le dernier démarrage ». Seuls les reçus appliqués (ligne
+	// obtenue à cet instant) comptent.
 	for _, e := range a.entrees {
 		if e.typ != "inclusion_registre" {
 			continue
 		}
 		id := chaineOu(e.data, "", "request_id")
-		var premier *int64
-		if d, ok := a.avant[id]; ok && len(d.Attempts) > 0 && d.State == "envoyee" {
-			if v, err := Ms(d.Attempts[0].StartedAt); err == nil {
-				premier = &v
+		appliquee := false
+		for _, x := range a.actions {
+			if x.t == e.t && x.id == id && x.action == "ecrire_file" && chaineOu(x.detail, "", "state") == "obtenue" {
+				appliquee = true
 			}
 		}
-		if premier == nil {
+		if !appliquee {
+			continue
+		}
+		var creation *int64
+		if d, ok := a.avant[id]; ok {
+			if v, err := Ms(d.CreatedAt); err == nil {
+				creation = &v
+			}
+		}
+		if creation == nil {
 			for _, x := range a.actions {
-				if x.id == id && x.action == "envoyer_registre" && x.t <= e.t {
+				if x.id == id && x.action == "ecrire_file" && x.t <= e.t {
 					v := x.t
-					premier = &v
+					creation = &v
 					break
 				}
 			}
 		}
-		if premier == nil || e.t-*premier <= a.cfg.InclusionAlertS*1000 {
+		if creation == nil || e.t-*creation <= a.cfg.InclusionAlertS*1000 {
 			continue
+		}
+		demarrage := int64(math.MinInt64)
+		for _, f := range a.entrees {
+			if f.typ == "demarrage" && f.t <= e.t {
+				demarrage = f.t
+			}
 		}
 		alerte := false
 		for _, x := range a.actions {
-			if x.id == id && x.action == "alerter" && x.t <= e.t && chaineOu(x.detail, "", "code") == "inclusion_late" {
+			if x.id == id && x.action == "alerter" && x.t <= e.t && x.t >= demarrage && chaineOu(x.detail, "", "code") == "inclusion_late" {
 				alerte = true
 			}
 		}
 		if !alerte {
-			a.ecart("AN-40", "", "%s %s incluse %d s après l'envoi sans alerte inclusion_late", Iso(e.t), id, (e.t-*premier)/1000)
+			a.ecart("AN-40", "", "%s %s incluse %d s après sa création sans alerte inclusion_late", Iso(e.t), id, (e.t-*creation)/1000)
 		}
 	}
 }
@@ -871,8 +1231,15 @@ func (a *analyseTrace) an41() {
 			attendu := intervalle * 1000
 			if premiere {
 				attendu = a.cfg.UpgradeFirstAfterS * 1000
+			} else if a.ageOts(x.id, x.t) >= a.cfg.UpgradeGiveUpAfterS*1000 {
+				// EX-8.11 : « Au-delà de upgrade.give_up_after_s (14 jours),
+				// l'alerte ots_give_up est levée et la mise à niveau continue une
+				// fois par jour » ; complément du 2026-11-16 (origine de l'âge
+				// d'abandon) : « Cet âge court depuis created_at de la demande
+				// [...], au démarrage comme en marche ».
+				attendu = 86400 * 1000
 			}
-			if next-x.t != attendu && next-x.t != 86400*1000 {
+			if next-x.t != attendu {
 				a.ecart("AN-41", "", "%s %s : mise à niveau programmée %d s plus tard, attendu %d s", Iso(x.t), x.id, (next-x.t)/1000, attendu/1000)
 			}
 		case x.action == "ecrire_file" && chaineOu(x.detail, "", "state") == "complete":

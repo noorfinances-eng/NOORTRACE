@@ -17,9 +17,13 @@ const (
 	ProvDossier  = "dossier"
 )
 
-// Approbation : valeurs de F3 (contrôle 7 réussi).
+// Approbation : valeurs de F3 (contrôle 7 réussi). RequestHash et Ticket
+// nomment la demande que les approbateurs ont signée (CT-1 §6.3), non
+// l'appel prouvé (CT-6 EX-6.8, EX-6.11, §7.2).
 type Approbation struct {
 	Decision     string
+	RequestHash  string
+	Ticket       string
 	Approbateurs []string
 	Required     int64
 	Size         int64
@@ -127,11 +131,11 @@ func ConstruireEnonce(d DonneesEnonce) commun.Texte {
 		listeEn := commun.JoindreListe(a.Approbateurs, ", ", " and ")
 		switch a.Decision {
 		case "approuve":
-			fr += fmt.Sprintf(" ; l'événement a été approuvé par %s (%s, seuil de %d sur %d du jeu déclaré par le dossier)", listeFr, sigFr, a.Required, a.Size)
-			en += fmt.Sprintf("; the event was approved by %s (%s, threshold %d of %d of the set declared by the dossier)", listeEn, sigEn, a.Required, a.Size)
+			fr += fmt.Sprintf(" ; l'événement porte l'approbation de la demande %s (ticket %s), signée par %s (%s, seuil de %d sur %d du jeu déclaré par le dossier)", a.RequestHash, a.Ticket, listeFr, sigFr, a.Required, a.Size)
+			en += fmt.Sprintf("; the event carries the approval of request %s (ticket %s), signed by %s (%s, threshold %d of %d of the set declared by the dossier)", a.RequestHash, a.Ticket, listeEn, sigEn, a.Required, a.Size)
 		case "refuse":
-			fr += fmt.Sprintf(" ; l'événement porte un refus signé par %s (%s, seuil de %d sur %d du jeu déclaré par le dossier)", listeFr, sigFr, a.Required, a.Size)
-			en += fmt.Sprintf("; the event carries a refusal signed by %s (%s, threshold %d of %d of the set declared by the dossier)", listeEn, sigEn, a.Required, a.Size)
+			fr += fmt.Sprintf(" ; l'événement porte le refus de la demande %s (ticket %s), signé par %s (%s, seuil de %d sur %d du jeu déclaré par le dossier)", a.RequestHash, a.Ticket, listeFr, sigFr, a.Required, a.Size)
+			en += fmt.Sprintf("; the event carries the refusal of request %s (ticket %s), signed by %s (%s, threshold %d of %d of the set declared by the dossier)", a.RequestHash, a.Ticket, listeEn, sigEn, a.Required, a.Size)
 		case "expire":
 			fr += fmt.Sprintf(" ; l'événement porte une demande d'approbation expirée sans signature (seuil de %d sur %d du jeu déclaré par le dossier)", a.Required, a.Size)
 			en += fmt.Sprintf("; the event carries an approval request that expired without signature (threshold %d of %d of the set declared by the dossier)", a.Required, a.Size)

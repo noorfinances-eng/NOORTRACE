@@ -6,9 +6,10 @@
 //
 //   node agent.mjs <url> <fichier du jeton> <outil>
 import fs from "node:fs";
-import { pathToFileURL } from "node:url";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 // Exécuté seulement comme programme (jamais à l'import, par exemple par le chargeur des essais).
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   const [url, fichierJeton, outil] = process.argv.slice(2);
   const jeton = fs.readFileSync(fichierJeton, "utf8").trim();
   let session = null;

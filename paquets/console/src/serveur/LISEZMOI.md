@@ -86,6 +86,11 @@ tranche pas.
   `service.url` conforme au motif du schéma mais non analysable, ou de port
   hors de 1 à 65 535 : règle `url_illisible` de la validation (CT-3 0.6) ;
   `console_origin` au port 443 écrit : règle `origine_port_par_defaut`.
+- **Prise du service (complément du 2026-11-16).** `service.socket` de plus
+  de 103 octets UTF-8 : règle `chemin_prise_trop_long` de la validation, au
+  pointeur `/service/socket` (CT-3 EX-12.2) ; Node.js tronquerait le chemin
+  et le serveur joindrait une autre prise. Le client du service la refuse
+  aussi avant toute connexion.
 - **Refus au démarrage (EX-10.14).** Une ligne `$defs/rapport_validation`
   sur la sortie d'erreur, code 1 : `reference_illisible` (référence
   illisible ou mal formée, au pointeur de la référence), `ecoute_impossible`

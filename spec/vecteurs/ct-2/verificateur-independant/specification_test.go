@@ -139,7 +139,7 @@ func TestRedactionArgumentsAnnexeA(t *testing.T) {
 
 // §10.9, second exemple : cinq détecteurs, cinq correspondances.
 func TestRedactionTexteLibre(t *testing.T) {
-	v, err := ParseJSON([]byte(`{"note":"Virement au bénéficiaire CH93 0076 2011 6238 5295 7, assuré 756.1234.5678.97, joignable au +41 44 123 45 67 ou j.dupont@example.ch ; carte 3782 822463 10005."}`))
+	v, err := ParseJSON([]byte(`{"note":"Virement au bénéficiaire CH93 0076 2011 6238 5295 7, assuré 756.1234.5678.97, joignable au +41 44 123 45 67 ou j.dupont@ch.example ; carte 3782 822463 10005."}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,8 +167,8 @@ func TestPseudonymesDeTest(t *testing.T) {
 	if j := Pseudonyme(k, "iban", "CH9300762011623852957"); j != "50d46ea9a82b" {
 		t.Errorf("[PSEUDO:iban:%s], attendu 50d46ea9a82b", j)
 	}
-	if j := Pseudonyme(k, "email", "j.dupont@example.ch"); j != "b8ac789204a6" {
-		t.Errorf("[PSEUDO:email:%s], attendu b8ac789204a6", j)
+	if j := Pseudonyme(k, "email", "j.dupont@ch.example"); j != "ff93a7f99c38" {
+		t.Errorf("[PSEUDO:email:%s], attendu ff93a7f99c38", j)
 	}
 	// par la politique : même document que pii-v1, action pseudonyme, clé de test
 	doc := valeurSpec(t, "pii-v1.json")
@@ -186,8 +186,8 @@ func TestPseudonymesDeTest(t *testing.T) {
 	if s != "IBAN [PSEUDO:iban:50d46ea9a82b]." || n != 1 {
 		t.Errorf("pseudonyme iban : %q", s)
 	}
-	s, _ = pol.RedigerTexte("pseudonyme", Detecteur{Type: "email"}, "j.dupont@EXAMPLE.ch")
-	if s != "[PSEUDO:email:b8ac789204a6]" {
+	s, _ = pol.RedigerTexte("pseudonyme", Detecteur{Type: "email"}, "j.dupont@CH.Example")
+	if s != "[PSEUDO:email:ff93a7f99c38]" {
 		t.Errorf("pseudonyme email (domaine en minuscules) : %q", s)
 	}
 }

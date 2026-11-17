@@ -11,7 +11,7 @@
 import {
   estIdentiteCanonique, annuaireVide, entreeActive, adresseActive, sessionDeLOrganisation, adressesConnues,
   annuaireDeSession, appliquerOperation, verifierInscription, defisNonExpires, recopierAdministrateurs, controleCanal,
-  verifierAnnuaireExporte,
+  verifierAnnuaireExporte, expirerEntrees,
 } from "@noortrace/console/annuaire";
 import { IDS, registreSchemas } from "./schema.mjs";
 import { cloner, egaliteJson } from "./json.mjs";
@@ -19,7 +19,7 @@ import { cloner, egaliteJson } from "./json.mjs";
 export {
   estIdentiteCanonique, annuaireVide, entreeActive, adresseActive, sessionDeLOrganisation, adressesConnues,
   annuaireDeSession, appliquerOperation, verifierInscription, defisNonExpires, recopierAdministrateurs, controleCanal,
-  verifierAnnuaireExporte,
+  verifierAnnuaireExporte, expirerEntrees,
 };
 
 /** Méthodes du canal de la console qui passent par `appliquerOperation` (EX-13.13, EX-13.15, EX-13.17). */
@@ -114,7 +114,9 @@ export function annuaireDeDemarrage(p) {
     aEcrire = true;
     persiste = true;
   }
-  const defis = defisNonExpires(p.persiste.defis ?? [], p.at);
+  // CT-3 EX-13.13 (complément du 2026-11-16) : un défi présenté est retiré ; un état écrit avant ce complément peut
+  // en porter encore, marqués présentés : ils sont écartés à la relecture.
+  const defis = defisNonExpires(p.persiste.defis ?? [], p.at).filter((d) => d.used !== true);
   return { document, defis, persiste, aEcrire, changeAdministrateurs: r.changed };
 }
 
@@ -157,6 +159,19 @@ export class EtatAnnuaire {
       annuaireChange: r.annuaire !== this.document && !egaliteJson(r.annuaire, this.document),
       defisChanges: !egaliteJson(nouveauxDefis, this.defis),
     };
+  }
+
+  /**
+   * Expiration des entrées jamais validées à l'instant `at` (EX-13.17,
+   * « Expiration »), sans rien changer à l'état : rend l'annuaire calculé et
+   * les identifiants retirés (aucun : l'annuaire courant). Le service
+   * persiste, puis adopte.
+   * @param {string} at
+   * @param {number} ttl réglage `registration_entry_ttl_ms`
+   * @returns {{annuaire: object, expirees: string[]}}
+   */
+  calculerExpiration(at, ttl) {
+    return expirerEntrees(this.document, at, ttl);
   }
 
   /** Adopte un état calculé, une fois persisté. */

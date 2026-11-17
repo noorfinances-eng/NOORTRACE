@@ -26,8 +26,8 @@ import {
 import { verifierDemande } from "./demande.mjs";
 import { lireSignature } from "./cle-chaine.mjs";
 import {
-  ErreurLecture, anchorDigestContrat, classerEmpreinte, getPeriod, isActiveRecorder, isKnown, latestPeriodOf, lookup, periodDigestContrat,
-  recorderByPubKey, recorderOf,
+  ErreurLecture, anchorDigestContrat, classerEmpreinte, getPeriod, inscriptionAilleurs, isActiveRecorder, isKnown, latestPeriodOf, lookup,
+  periodDigestContrat, recorderByPubKey, recorderOf,
 } from "./lookup.mjs";
 import { estHexOctets, hexVersOctets, octetsVersHex, quantiteVersEntier, utf8Octets, utf8Texte, versEntier, MAX_U256, MAX_U64 } from "./octets.mjs";
 import { ErreurRpc } from "./rpc.mjs";
@@ -107,11 +107,82 @@ export function envoisSansIssueParHash(parHash, expediteur) {
 }
 
 /**
+ * Plancher du nonce d'EX-8.14 de CT-4 (complément du 2026-11-17) sur un index
+ * `hash → { envoi, issue|null }` : `n + 1`, où `n` est le plus grand nonce des
+ * envois de `expediteur` dont l'inclusion est écrite (issue portant
+ * `block_number`, quel que soit son `status` ; ou original `remplacee` inclus
+ * après son remplacement, que désigne l'issue `ecartee` de son remplaçant par
+ * `replaces`, EX-8.16) ; `null` sans tel envoi. Un nonce inclus est consommé :
+ * aucune transaction de cet expéditeur ne se signe plus en dessous.
+ */
+export function plancherNonceParHash(parHash, expediteur) {
+  const inclus = (e) => {
+    if (!e.issue) return false;
+    if (typeof e.issue.block_number === "number") return true;
+    if (e.issue.state !== "remplacee") return false;
+    const r = parHash.get(e.issue.replaced_by)?.issue;
+    return Boolean(r && r.state === "ecartee" && r.replaces === e.envoi.transaction_hash);
+  };
+  let n = null;
+  for (const e of parHash.values()) {
+    if (e.envoi.from !== expediteur || !inclus(e)) continue;
+    const k = BigInt(e.envoi.nonce);
+    if (n === null || k > n) n = k;
+  }
+  return n === null ? null : n + 1n;
+}
+
+/** Même plancher, lu dans le répertoire des envois. */
+export function plancherNonce(repertoire, expediteur) {
+  return plancherNonceParHash(new Map(lireEnvois(repertoire).map((e) => [e.envoi.transaction_hash, e])), expediteur);
+}
+
+/**
+ * Valeur des points d'EX-8.14 de CT-4 (recoupement) : `valeurs` sont les
+ * nonces (BigInt) rendus par les points qui ont répondu, `nombrePoints` le
+ * nombre de points configurés. Un seul point configuré : sa valeur. Plusieurs :
+ * la plus grande valeur rendue par au moins deux points ; aucune valeur rendue
+ * par deux points, ou un point qui rend plus que cette valeur + 1 (il ne
+ * retarde pas, il ment ou diverge), et rien n'est signé. Un point qui rend
+ * moins est en retard et ne bloque pas. Rend `{ nonce }` ou
+ * `{ incoherent: message }` ; `valeurs` vide : `{ nonce: null }`.
+ */
+export function recouperNonce(valeurs, nombrePoints) {
+  if (valeurs.length === 0) return { nonce: null };
+  if (nombrePoints < 2) return { nonce: valeurs.reduce((m, v) => (v > m ? v : m)) };
+  const comptes = new Map();
+  for (const v of valeurs) comptes.set(v, (comptes.get(v) ?? 0) + 1);
+  let retenu = null;
+  for (const [v, k] of comptes) if (k >= 2 && (retenu === null || v > retenu)) retenu = v;
+  if (retenu === null) return { incoherent: `eth_getTransactionCount : aucune valeur rendue par deux points (${valeurs.join(", ")})` };
+  const audela = valeurs.filter((v) => v > retenu + 1n);
+  if (audela.length) return { incoherent: `eth_getTransactionCount : un point rend ${audela[0]} pour un nonce recoupé ${retenu}` };
+  return { nonce: retenu };
+}
+
+/**
+ * Nonce à signer d'EX-8.14 (complément du 2026-11-17) : le plus grand de la
+ * valeur `lu` des points (déjà recoupée selon la règle de l'implémentation)
+ * et du `plancher`. Le plancher vaut au plus `lu + 1` : c'est le cas d'un
+ * point qui a rendu le reçu d'un envoi avant que les autres aient appliqué
+ * son bloc, et le nonce signé est le plancher ; au-delà, aucune lecture des
+ * points ne rejoint les inclusions écrites, rien n'est signé. Rend
+ * `{ nonce }` ou `{ incoherent: message }`.
+ */
+export function retenirNonce(lu, plancher) {
+  if (plancher === null || plancher <= lu) return { nonce: lu };
+  if (plancher > lu + 1n) return { incoherent: `eth_getTransactionCount rend ${lu}, en dessous du plancher ${plancher} des inclusions écrites de plus d'une unité` };
+  return { nonce: plancher };
+}
+
+/**
  * Envoyeur des transactions d'une instance.
  * @param {object} p
  * @param {import("./rpc.mjs").ClientRpc} p.rpc
  * @param {string} p.repertoireEnvois répertoire des envois, issues et captures (`--captures` de CT-4)
- * @param {{evmChainId: number, bftChainId: string, contrats: {attestation_registry: string, period_registry: string, recorder_registry: string}, fees: {gas_limit: number, gas_limit_max?: number}, jeux: object}} p.instance
+ * @param {{evmChainId: number, bftChainId: string, contrats: {attestation_registry: string, period_registry: string, recorder_registry: string}, fees: {gas_limit: number, gas_limit_max?: number}, jeux: object, deploiements?: {recorder_registry?: {block_number?: number|null}}}} p.instance
+ *   `deploiements.recorder_registry.block_number` : bloc de déploiement du `RecorderRegistry` en service (manifeste
+ *   d'instance), d'où `inscrire` lit les événements `RecorderRegistered` (OP-8) ; 0 à défaut.
  * @param {{murale(): number, monotone(): number}} p.horloge
  * @param {(ms: number) => Promise<void>} p.attendre
  * @param {{recuMs?: number, sondageMs?: number}} [p.delais]
@@ -350,7 +421,12 @@ export class Envoyeur {
    * `recorder_registry` et sa chaîne celle de l'instance ; OP-8 : la clé de
    * chaîne n'est ni active ni révoquée et la clé Ed25519 n'est active sous
    * aucune autre (une inscription déjà faite à l'identique rend `deja_fait`
-   * sans envoi). Rend `{ type: "inclusion_registre"|"deja_fait"|"echec_registre", data, outputs }`.
+   * sans envoi) ; complément du 2026-11-16 (CT-4 OP-8, EX-8.22 ; CT-5
+   * EX-9.4) : la clé de chaîne n'est inscrite sous aucune autre organisation,
+   * active ou révoquée, lu dans les événements `RecorderRegistered` comme le
+   * fait `inscrire-cle` de l'outil de référence (`inscriptionAilleurs`), sinon
+   * `cle_chaine_autre_organisation` sans envoi ; une lecture impossible rend
+   * `noeud_injoignable`, sans envoi. Rend `{ type: "inclusion_registre"|"deja_fait"|"echec_registre", data, outputs }`.
    * @param {{demande: object, cle: import("./cle-chaine.mjs").SignataireChaine, requestId?: string}} o
    */
   async inscrire({ demande, cle, requestId = null }) {
@@ -371,6 +447,15 @@ export class Envoyeur {
       }
       const p = await recorderByPubKey({ rpc: this.#rpc, contrat, orgId: f.org_id, clePublique: f.ed25519_public_key });
       if (p.registeredAt !== 0n && p.revokedAt === 0n) return this.#echec(id, "cle_ed25519_active", { registered_chain_key: p.chainKey });
+      // Complément du 2026-11-16 (CT-4 OP-8, EX-8.22) : une clé de chaîne ne sert qu'une organisation (CT-5 EX-9.4).
+      const depuis = this.#instance.deploiements?.recorder_registry?.block_number ?? 0;
+      const ailleurs = await inscriptionAilleurs({ rpc: this.#rpc, contrat, depuis, orgId: f.org_id, chainKey: f.chain_key });
+      if (ailleurs) {
+        return this.#echec(id, "cle_chaine_autre_organisation", {
+          message: `clé de chaîne ${f.chain_key} déjà inscrite sous l'organisation ${ailleurs.org_id} (bloc ${ailleurs.block_number}, transaction ${ailleurs.transaction_hash})`,
+          org_id: ailleurs.org_id, block_number: ailleurs.block_number, transaction_hash: ailleurs.transaction_hash,
+        });
+      }
       const donnees = encoderRegisterRecorder({ ...f, signatures: demande.signatures.map((s) => ({ v: s.v, r: s.r, s: s.s })) });
       return await this.#envoyerEtCapturer({
         id, cle, to: contrat, donnees, role: "inscription", contrat,
@@ -571,8 +656,24 @@ export class Envoyeur {
    * « replacement transaction underpriced » par le validateur en retard qui
    * la tient encore en mempool), observé sur le réseau de développement à
    * l'étape 5.
+   *
+   * Complément du 2026-11-17 : le nonce signé n'est jamais inférieur au
+   * plancher des envois de l'expéditeur dont l'inclusion est écrite
+   * (`plancherNonceParHash`). L'inclusion est conclue au premier point qui
+   * rend le reçu ; les autres peuvent ne pas avoir appliqué ce bloc, et le
+   * nonce recoupé par deux d'entre eux est alors celui qui vient d'être
+   * consommé (refus partout, ou admission par un nœud en retard puis écart
+   * sans reçu, observés sur le réseau de développement à l'étape 8).
    */
   async #nonce(adresse) {
+    const lu = await this.#nonceLu(adresse);
+    const r = retenirNonce(lu, plancherNonceParHash(this.#chargerIndex(), adresse));
+    if (r.incoherent) throw new ErreurLecture("nonce_incoherent", r.incoherent);
+    return r.nonce;
+  }
+
+  /** Valeur des points d'EX-8.14 : recoupée par deux points quand il y en a plusieurs. */
+  async #nonceLu(adresse) {
     const reponses = await this.#rpc.appelerTous("eth_getTransactionCount", [adresse, "latest"]);
     if (reponses.every((r) => r.panne)) throw reponses[0]?.panne ?? new ErreurRpc("noeud_injoignable", "aucun point", null);
     const valeurs = [];
@@ -583,16 +684,11 @@ export class Envoyeur {
     if (valeurs.length === 0) throw new ErreurLecture("retour_illisible", "eth_getTransactionCount illisible");
     // Revue de sécurité de l'étape 8 (CT-4 EX-8.14 ; cause S-4) : avec plusieurs points, le nonce retenu est le plus grand que rendent au moins
     // deux points ; un point qui rend une valeur au-delà de ce nonce + 1 n'est pas en retard, il ment ou diverge :
-    // rien n'est signé (`nonce_incoherent`, transitoire). Un seul point configuré : sa valeur, comme avant.
-    if (this.#rpc.points().length < 2) return valeurs.reduce((m, v) => (v > m ? v : m));
-    const comptes = new Map();
-    for (const v of valeurs) comptes.set(v, (comptes.get(v) ?? 0) + 1);
-    let retenu = null;
-    for (const [v, k] of comptes) if (k >= 2 && (retenu === null || v > retenu)) retenu = v;
-    if (retenu === null) throw new ErreurLecture("nonce_incoherent", `eth_getTransactionCount : aucune valeur rendue par deux points (${valeurs.join(", ")})`);
-    const audela = valeurs.filter((v) => v > retenu + 1n);
-    if (audela.length) throw new ErreurLecture("nonce_incoherent", `eth_getTransactionCount : un point rend ${audela[0]} pour un nonce recoupé ${retenu}`);
-    return retenu;
+    // rien n'est signé (`nonce_incoherent`, transitoire). Un seul point configuré : sa valeur, comme avant. Règle partagée
+    // avec l'agent d'inscription (`recouperNonce`).
+    const r = recouperNonce(valeurs, this.#rpc.points().length);
+    if (r.incoherent) throw new ErreurLecture("nonce_incoherent", r.incoherent);
+    return r.nonce;
   }
 
   async #solde(adresse) {

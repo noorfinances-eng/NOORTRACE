@@ -68,6 +68,30 @@ export const ICAP_CONNEXIONS_MAX = 1000;
 export const MIROIR_TRAME_MAX_OCTETS = 16777216;
 export const MIROIR_CONNEXIONS_MAX = 10000;
 
+/**
+ * Longueur maximale, en octets UTF-8, du chemin d'une prise Unix que le démon
+ * ou ses processus ouvrent ou joignent (`mcp.socket`, `sdk.socket`,
+ * `model.mirror.socket`, `policy.approval.service.socket`, `--socket` de
+ * `noortrace-miroir` et de `noortrace-connecteur` ; CT-2 EX-18.1, complément
+ * du 2026-11-16). Même borne que le SDK (`CHEMIN_PRISE_MAX` de
+ * paquets/sdk-js, `CHEMIN_PRISE_MAX` de paquets/sdk-python ; CT-2 EX-6.10) :
+ * Node.js tronque le chemin à `sizeof(sockaddr_un.sun_path) - 1`, 107 octets
+ * sous Linux et 103 sous macOS (R12-F50) ; un chemin plus long ferait écouter
+ * ou joindre une autre prise, souvent dans le répertoire parent.
+ */
+export const CHEMIN_PRISE_MAX_OCTETS = 103;
+
+/**
+ * Règle de longueur d'un chemin de prise Unix (EX-18.1, EX-6.10).
+ * @param {unknown} chemin
+ * @returns {string|null} la règle violée (`chemin_prise_trop_long : …`), ou null
+ */
+export function regleCheminPrise(chemin) {
+  if (typeof chemin !== "string") return null;
+  const n = Buffer.byteLength(chemin, "utf8");
+  return n > CHEMIN_PRISE_MAX_OCTETS ? `chemin_prise_trop_long : ${n} octets, au plus ${CHEMIN_PRISE_MAX_OCTETS} (EX-18.1, EX-6.10)` : null;
+}
+
 /** Attente de la réponse rédigée d'un échange par la corrélation d'un appel d'outil, en millisecondes (CT-2 EX-5.11). */
 export const CORRELATION_ATTENTE_MAX_MS = 5000;
 

@@ -12,7 +12,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const RACINE = fileURLToPath(new URL("../../", import.meta.url));
 /** Chemins servis depuis l'origine de la console (la racine du dépôt est servie telle quelle). */
@@ -56,7 +56,7 @@ export function empreintesConsole(racine = RACINE) {
   };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   const e = empreintesConsole();
   const fichier = path.join(RACINE, "console", "index.html");
   const actuel = fs.existsSync(fichier) ? fs.readFileSync(fichier, "utf8") : null;

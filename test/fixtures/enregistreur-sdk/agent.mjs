@@ -18,7 +18,7 @@ import fs from "node:fs";
 import path from "node:path";
 import http from "node:http";
 import readline from "node:readline";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { ClientNoortrace } from "noortrace-sdk";
 import { encoderProtobuf, lot, spanOutil, spanInference } from "../enregistreur-otel/lots.mjs";
 
@@ -162,4 +162,4 @@ async function principal() {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await principal();
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) await principal();

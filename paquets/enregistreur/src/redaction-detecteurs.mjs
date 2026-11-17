@@ -184,8 +184,15 @@ export function luhn(N) {
 }
 
 /**
- * Suite maximale de chiffres, SEP et `-` isolés, de 12 à 19 chiffres, qui
- * passe Luhn.
+ * Carte (10.3.4) : dans chaque suite maximale de chiffres et de SEP ou `-`
+ * isolés, les sous-suites de groupes consécutifs de 12 à 19 chiffres,
+ * bordées de frontières, éprouvées par premier groupe de gauche à droite, la
+ * plus longue d'abord ; la première qui passe Luhn est la correspondance, et
+ * la recherche reprend juste après elle, au groupe suivant de la même suite
+ * (complément du 2026-11-16 de la révision 0.11). Au plus huit épreuves par
+ * premier groupe, chacune en temps constant par des sommes préfixes : le
+ * coût reste linéaire en la longueur du segment, même pour une suite de
+ * millions de groupes.
  * @param {string} s
  * @param {number} a
  * @param {number} b
@@ -199,21 +206,68 @@ export function detecterCarte(s, a, b) {
       i++;
       continue;
     }
+    // Groupes de la suite maximale qui commence en i : [début, fin) dans la chaîne, et rang de leur premier chiffre dans la suite.
+    const debuts = [];
+    const fins = [];
+    const rangs = [];
     let j = i;
-    let N = "";
+    let n = 0;
     for (;;) {
-      if (j < b && estChiffre(s.charCodeAt(j))) {
-        if (N.length <= 19) N += s[j];
+      debuts.push(j);
+      rangs.push(n);
+      while (j < b && estChiffre(s.charCodeAt(j))) {
         j++;
-      } else if (j < b && j + 1 < b && (estSep(s.charCodeAt(j)) || s.charCodeAt(j) === 0x2d) && estChiffre(s.charCodeAt(j + 1))) {
-        j++;
-      } else {
-        break;
+        n++;
       }
+      fins.push(j);
+      if (j + 1 < b && (estSep(s.charCodeAt(j)) || s.charCodeAt(j) === 0x2d) && estChiffre(s.charCodeAt(j + 1))) j++;
+      else break;
     }
-    if (N.length >= 12 && N.length <= 19 && f.avant(i) && f.apres(j) && luhn(N)) {
-      sortie.push({ debut: i, fin: j, valeur: N });
-      f.marquer(j);
+    rangs.push(n);
+    if (n >= 12) {
+      // Sommes préfixes de Luhn : chiffres pris tels quels (T) ou doublés (D), par parité de rang.
+      const T = [new Int32Array(n + 1), new Int32Array(n + 1)];
+      const D = [new Int32Array(n + 1), new Int32Array(n + 1)];
+      let r = 0;
+      for (let g = 0; g < debuts.length; g++) {
+        for (let k = debuts[g]; k < fins[g]; k++, r++) {
+          const d = s.charCodeAt(k) - 0x30;
+          const dd = d * 2 > 9 ? d * 2 - 9 : d * 2;
+          const p = r % 2;
+          T[p][r + 1] = T[p][r] + d;
+          D[p][r + 1] = D[p][r] + dd;
+          T[1 - p][r + 1] = T[1 - p][r];
+          D[1 - p][r + 1] = D[1 - p][r];
+        }
+      }
+      // Luhn des chiffres de rangs [x, y] : ceux de la parité de y tels quels, les autres doublés.
+      const luhnRangs = (x, y) => {
+        const py = y % 2;
+        return (T[py][y + 1] - T[py][x] + D[1 - py][y + 1] - D[1 - py][x]) % 10 === 0;
+      };
+      let g1 = 0;
+      while (g1 < debuts.length) {
+        let g2 = -1;
+        if (f.avant(debuts[g1])) {
+          let gmax = -1;
+          for (let g = g1; g < debuts.length && rangs[g + 1] - rangs[g1] <= 19; g++) if (rangs[g + 1] - rangs[g1] >= 12) gmax = g;
+          for (let g = gmax; g >= g1 && rangs[g + 1] - rangs[g1] >= 12; g--) {
+            if (f.apres(fins[g]) && luhnRangs(rangs[g1], rangs[g + 1] - 1)) {
+              g2 = g;
+              break;
+            }
+          }
+        }
+        if (g2 === -1) {
+          g1++;
+          continue;
+        }
+        let N = "";
+        for (let g = g1; g <= g2; g++) N += s.slice(debuts[g], fins[g]);
+        sortie.push({ debut: debuts[g1], fin: fins[g2], valeur: N });
+        f.marquer(fins[g2]);
+        g1 = g2 + 1;
+      }
     }
     i = j;
   }
@@ -226,22 +280,43 @@ const LOCAL = new Set(Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrst
 const estLocal = (c) => LOCAL.has(c);
 const estDomaine = (c) => estAlnum(c) || c === 0x2e || c === 0x2d;
 
-function dotString(L) {
-  return L.length > 0 && !L.startsWith(".") && !L.endsWith(".") && !L.includes("..");
-}
-
-function domaineValide(D) {
-  const labels = D.split(".");
-  if (labels.length < 2) return false;
-  for (const l of labels) {
-    if (l.length < 1 || l.length > 63 || l.startsWith("-") || l.endsWith("-") || !/^[A-Za-z0-9-]+$/.test(l)) return false;
+/**
+ * Domaine d'une adresse (10.3.5) : longueur du plus long préfixe de
+ * `s[r0, r1)` qui est un domaine valide (deux labels au moins, chacun de 1 à
+ * 63 caractères de [A-Za-z0-9-] ne commençant ni ne finissant par `-`, le
+ * dernier de deux lettres ASCII au moins) et qui est la suite entière, si
+ * elle compte au plus 255 caractères, ou suivi dans la suite d'un `.` ou d'un
+ * `-` ; -1 sans un tel préfixe. Un seul parcours.
+ */
+function longueurDomaine(s, r0, r1) {
+  let meilleur = -1;
+  let debutLabel = r0;
+  let labels = 0;
+  let nonLettre = r0 - 1;
+  for (let k = r0; k <= r1; k++) {
+    const c = k < r1 ? s.charCodeAt(k) : -1;
+    const bord = k === r1 ? r1 - r0 <= 255 : c === 0x2e || c === 0x2d;
+    const l = k - debutLabel;
+    if (bord && labels >= 1 && l >= 2 && l <= 63 && nonLettre < debutLabel) meilleur = k - r0;
+    if (k === r1) break;
+    if (c === 0x2e) {
+      // Label complet [debutLabel, k) : 1 à 63 caractères, ni `-` initial ni `-` final.
+      if (l < 1 || l > 63 || s.charCodeAt(debutLabel) === 0x2d || s.charCodeAt(k - 1) === 0x2d) break;
+      labels++;
+      debutLabel = k + 1;
+    } else if (!estMajuscule(c) && !estMinuscule(c)) {
+      nonLettre = k;
+    }
   }
-  return /^[A-Za-z]{2,}$/.test(labels[labels.length - 1]);
+  return meilleur;
 }
 
 /**
  * Adresse `Dot-string@Domain` : lecture bornée à 64 caractères à gauche de
- * chaque `@` et 256 à droite.
+ * chaque `@` et 256 à droite ; la partie locale est la plus longue fin
+ * `Dot-string` de la suite lue à gauche, le domaine le plus long préfixe
+ * admissible de la suite lue à droite (complément du 2026-11-16 de la
+ * révision 0.11).
  * @param {string} s
  * @param {number} a
  * @param {number} b
@@ -252,21 +327,22 @@ export function detecterEmail(s, a, b) {
   let k = s.indexOf("@", a);
   while (k !== -1 && k < b) {
     let l = k;
-    let n = 0;
-    while (l > borneGauche && estLocal(s.charCodeAt(l - 1)) && n < 65) {
-      l--;
-      n++;
-    }
+    while (l > borneGauche && k - l < 64 && estLocal(s.charCodeAt(l - 1))) l--;
     let trouve = null;
-    if (n <= 64) {
-      const L = s.slice(l, k);
+    // Plus longue fin Dot-string de [l, k) : non vide, sans `.` final, après le dernier `..`, sans `.` initial.
+    if (l < k && s.charCodeAt(k - 1) !== 0x2e) {
+      let debut = l;
+      for (let x = k - 2; x >= l; x--) {
+        if (s.charCodeAt(x) === 0x2e && s.charCodeAt(x + 1) === 0x2e) {
+          debut = x + 2;
+          break;
+        }
+      }
+      if (s.charCodeAt(debut) === 0x2e) debut++;
       let r = k + 1;
       while (r < b && r - (k + 1) < 256 && estDomaine(s.charCodeAt(r))) r++;
-      if (r - (k + 1) <= 255 && dotString(L)) {
-        let D = s.slice(k + 1, r);
-        if (D.endsWith(".") || D.endsWith("-")) D = D.slice(0, -1);
-        if (domaineValide(D)) trouve = { debut: l, fin: k + 1 + D.length, valeur: `${L}@${D.toLowerCase()}` };
-      }
+      const n = longueurDomaine(s, k + 1, r);
+      if (n !== -1) trouve = { debut, fin: k + 1 + n, valeur: `${s.slice(debut, k)}@${s.slice(k + 1, k + 1 + n).toLowerCase()}` };
     }
     if (trouve) {
       sortie.push(trouve);
@@ -285,7 +361,10 @@ const estSepTel = (c) => estSep(c) || c === 0x2d || c === 0x2e;
 
 /**
  * Numéro international `+` suivi de 8 à 15 chiffres, groupe entre
- * parenthèses compris quand un chiffre le suit.
+ * parenthèses compris quand un chiffre le suit. Le candidat finit à la plus
+ * grande position prise par `fin` qui est une frontière et laisse de 8 à 15
+ * chiffres (reprise au séparateur, complément du 2026-11-16 de la révision
+ * 0.11) ; le parcours s'arrête au-delà de 15 chiffres.
  * @param {string} s
  * @param {number} a
  * @param {number} b
@@ -301,13 +380,12 @@ export function detecterTelephone(s, a, b) {
       continue;
     }
     let j = p + 1;
-    let fin = -1;
     let chiffres = 0;
     let N = "+";
     let enAttente = "";
     let groupeLu = false;
     let precedentSep = false;
-    let trop = false;
+    let trouve = null;
     while (j < b) {
       const c = s.charCodeAt(j);
       if (estChiffre(c)) {
@@ -315,12 +393,9 @@ export function detecterTelephone(s, a, b) {
         chiffres += enAttente.length + 1;
         enAttente = "";
         j++;
-        fin = j;
         precedentSep = false;
-        if (chiffres > 15) {
-          trop = true;
-          break;
-        }
+        if (chiffres > 15) break;
+        if (chiffres >= 8 && f.apres(j)) trouve = { debut: p, fin: j, valeur: N };
       } else if (estSepTel(c)) {
         if (precedentSep) break;
         precedentSep = true;
@@ -339,10 +414,10 @@ export function detecterTelephone(s, a, b) {
         break;
       }
     }
-    if (!trop && fin !== -1 && f.apres(fin) && chiffres >= 8 && chiffres <= 15) {
-      sortie.push({ debut: p, fin, valeur: N });
-      f.marquer(fin);
-      p = s.indexOf("+", fin);
+    if (trouve) {
+      sortie.push(trouve);
+      f.marquer(trouve.fin);
+      p = s.indexOf("+", trouve.fin);
       continue;
     }
     p = s.indexOf("+", p + 1);

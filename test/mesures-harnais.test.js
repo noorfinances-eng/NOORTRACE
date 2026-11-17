@@ -341,55 +341,61 @@ describe("Mesures : configuration de mesure de CT-2 EX-16.2 (pas 1) et harnais e
 
   it("ct-2-perf.mjs : les six campagnes avec un petit effectif (n 30, échauffement 3, segment de reprise 1 Mio) produisent un rapport par campagne, chacun accepté par scripts/tests/mesures.mjs, hors référence (counts_for_targets faux, met null, excluded_reason hors_systeme_de_reference), avec la ligne principale de chaque entrée et le SHA-256 de la configuration ; code 0", async () => {
     const d = tmp("noortrace-mesure-harnais-");
-    const sortie = path.join(d, "rapports");
-    const journal = [];
-    const code = await executerHarnais(["--sortie", sortie, "--repertoire", d, "--configuration", FIXTURE_CONFIGURATION, "--n", "30", "--echauffement", "3", "--cadence", "100", "--connexions-sse", "3", "--segment-reprise", "1048576", "--etiquette", "essai"], { log: (t) => journal.push(t) });
-    expect(code, journal.join("\n")).to.equal(0);
-    const attendu = { latence: ["latence_appel_relaye", "latence_appel_relaye_journal", "signature", "signature_classe_d_isolee"], sse: ["latence_premier_octet_sse"], debit: ["debit", "octets_pieces_par_appel", "octets_par_evenement_en_charge", "memoire_charge", "memoire_vide"], modele: ["latence_echange_modele"], reprise: ["reprise", "reprise_processus"], observation: ["observation_latence", "observation_latence_paire", "observation_latence_paire_sans", "observation_ecriture"] };
-    const { sha256 } = lireConfigurationPubliee(FIXTURE_CONFIGURATION);
-    for (const c of CAMPAGNES) {
-      const f = fs.readdirSync(sortie).find((x) => x.endsWith(`-essai-${c}.json`));
-      expect(f, c).to.be.a("string");
-      const r = JSON.parse(fs.readFileSync(path.join(sortie, f), "utf8"));
-      expect(r.kind).to.equal("rapport-mesure");
-      expect(r.counts_for_targets).to.equal(false);
-      expect(r.system.reference).to.equal(false);
-      expect(r.configuration_sha256).to.equal(sha256);
-      expect(r.method.percentile_method).to.equal("plus_proche_rang");
-      expect(r.results.map((l) => l.name)).to.deep.equal(attendu[c]);
-      for (const l of r.results) {
-        expect(l.met).to.equal(null);
-        expect(l.excluded_reason).to.equal("hors_systeme_de_reference");
-        expect(l.unit).to.equal(catalogue.tests.find((t) => t.id === l.test_id).measure.unit);
+    try {
+      // Le harnais classe le disque du répertoire de mesure (CT-2 EX-16.3, CT-9 EX-11.2) : sur tmpfs ou ramfs, le motif
+      // d'exclusion est disque_memoire, pas hors_systeme_de_reference. Cet essai exige donc un répertoire sur un disque réel.
+      expect(typeDisque(d), `répertoire de mesure ${d} sur un disque en mémoire : cet essai exige un disque réel (NOORTRACE_TMP ou TMPDIR hors tmpfs)`).to.not.equal("memoire");
+      const sortie = path.join(d, "rapports");
+      const journal = [];
+      const code = await executerHarnais(["--sortie", sortie, "--repertoire", d, "--configuration", FIXTURE_CONFIGURATION, "--n", "30", "--echauffement", "3", "--cadence", "100", "--connexions-sse", "3", "--segment-reprise", "1048576", "--etiquette", "essai"], { log: (t) => journal.push(t) });
+      expect(code, journal.join("\n")).to.equal(0);
+      const attendu = { latence: ["latence_appel_relaye", "latence_appel_relaye_journal", "signature", "signature_classe_d_isolee"], sse: ["latence_premier_octet_sse"], debit: ["debit", "octets_pieces_par_appel", "octets_par_evenement_en_charge", "memoire_charge", "memoire_vide"], modele: ["latence_echange_modele"], reprise: ["reprise", "reprise_processus"], observation: ["observation_latence", "observation_latence_paire", "observation_latence_paire_sans", "observation_ecriture"] };
+      const { sha256 } = lireConfigurationPubliee(FIXTURE_CONFIGURATION);
+      for (const c of CAMPAGNES) {
+        const f = fs.readdirSync(sortie).find((x) => x.endsWith(`-essai-${c}.json`));
+        expect(f, c).to.be.a("string");
+        const r = JSON.parse(fs.readFileSync(path.join(sortie, f), "utf8"));
+        expect(r.kind).to.equal("rapport-mesure");
+        expect(r.counts_for_targets).to.equal(false);
+        expect(r.system.reference).to.equal(false);
+        expect(r.configuration_sha256).to.equal(sha256);
+        expect(r.method.percentile_method).to.equal("plus_proche_rang");
+        expect(r.results.map((l) => l.name)).to.deep.equal(attendu[c]);
+        for (const l of r.results) {
+          expect(l.met).to.equal(null);
+          expect(l.excluded_reason).to.equal("hors_systeme_de_reference");
+          expect(l.unit).to.equal(catalogue.tests.find((t) => t.id === l.test_id).measure.unit);
+        }
+        expect(validerRapport(path.join(sortie, f)).code).to.equal(0);
       }
-      expect(validerRapport(path.join(sortie, f)).code).to.equal(0);
+      const latence = JSON.parse(fs.readFileSync(path.join(sortie, fs.readdirSync(sortie).find((x) => x.endsWith("-essai-latence.json"))), "utf8"));
+      const l1 = latence.results[0];
+      expect(l1.n).to.equal(30);
+      expect(l1.connections).to.equal(1);
+      expect(l1.samples).to.have.length(30);
+      expect(l1.p99).to.equal(null);
+      expect(latence.method).to.include({ warmup: 3, repetitions: 30, clock: "monotone", pair_with_without: false });
+      const debit = JSON.parse(fs.readFileSync(path.join(sortie, fs.readdirSync(sortie).find((x) => x.endsWith("-essai-debit.json"))), "utf8"));
+      expect(debit.results[0].value).to.be.greaterThan(0);
+      expect(debit.results[0].connections).to.equal(16);
+      expect(debit.results[1].value).to.be.greaterThan(16384);
+      expect(debit.results.find((l) => l.name === "memoire_vide").value).to.be.greaterThan(10000000);
+      const reprise = JSON.parse(fs.readFileSync(path.join(sortie, fs.readdirSync(sortie).find((x) => x.endsWith("-essai-reprise.json"))), "utf8"));
+      expect(reprise.method).to.include({ warmup: 3, repetitions: 10, clock: "murale" });
+      expect(reprise.results[0].n).to.equal(10);
+      expect(reprise.results[0].conditions.join(" ")).to.match(/segment de [0-9]{7,} octets/);
+      const observation = JSON.parse(fs.readFileSync(path.join(sortie, fs.readdirSync(sortie).find((x) => x.endsWith("-essai-observation.json"))), "utf8"));
+      expect(observation.method.pair_with_without).to.equal(true);
+      expect(observation.results[1].samples).to.have.length(30);
+      expect(observation.results[2].samples).to.have.length(30);
+      const resume = JSON.parse(fs.readFileSync(path.join(sortie, "resume.json"), "utf8"));
+      expect(resume.rapports.map((x) => x.campagne)).to.deep.equal([...CAMPAGNES]);
+      expect(fs.existsSync(path.join(sortie, "echantillons-essai-debit-latences-cadence-fixe.json"))).to.equal(true);
+      // Le répertoire de mesure est détruit sans --conserver.
+      expect(fs.readdirSync(d)).to.deep.equal(["rapports"]);
+    } finally {
+      fs.rmSync(d, { recursive: true, force: true });
     }
-    const latence = JSON.parse(fs.readFileSync(path.join(sortie, fs.readdirSync(sortie).find((x) => x.endsWith("-essai-latence.json"))), "utf8"));
-    const l1 = latence.results[0];
-    expect(l1.n).to.equal(30);
-    expect(l1.connections).to.equal(1);
-    expect(l1.samples).to.have.length(30);
-    expect(l1.p99).to.equal(null);
-    expect(latence.method).to.include({ warmup: 3, repetitions: 30, clock: "monotone", pair_with_without: false });
-    const debit = JSON.parse(fs.readFileSync(path.join(sortie, fs.readdirSync(sortie).find((x) => x.endsWith("-essai-debit.json"))), "utf8"));
-    expect(debit.results[0].value).to.be.greaterThan(0);
-    expect(debit.results[0].connections).to.equal(16);
-    expect(debit.results[1].value).to.be.greaterThan(16384);
-    expect(debit.results.find((l) => l.name === "memoire_vide").value).to.be.greaterThan(10000000);
-    const reprise = JSON.parse(fs.readFileSync(path.join(sortie, fs.readdirSync(sortie).find((x) => x.endsWith("-essai-reprise.json"))), "utf8"));
-    expect(reprise.method).to.include({ warmup: 3, repetitions: 10, clock: "murale" });
-    expect(reprise.results[0].n).to.equal(10);
-    expect(reprise.results[0].conditions.join(" ")).to.match(/segment de [0-9]{7,} octets/);
-    const observation = JSON.parse(fs.readFileSync(path.join(sortie, fs.readdirSync(sortie).find((x) => x.endsWith("-essai-observation.json"))), "utf8"));
-    expect(observation.method.pair_with_without).to.equal(true);
-    expect(observation.results[1].samples).to.have.length(30);
-    expect(observation.results[2].samples).to.have.length(30);
-    const resume = JSON.parse(fs.readFileSync(path.join(sortie, "resume.json"), "utf8"));
-    expect(resume.rapports.map((x) => x.campagne)).to.deep.equal([...CAMPAGNES]);
-    expect(fs.existsSync(path.join(sortie, "echantillons-essai-debit-latences-cadence-fixe.json"))).to.equal(true);
-    // Le répertoire de mesure est détruit sans --conserver.
-    expect(fs.readdirSync(d)).to.deep.equal(["rapports"]);
-    fs.rmSync(d, { recursive: true, force: true });
   });
 
   it("ct-2-perf.mjs : usage (code 2) sans --sortie, pour une campagne inconnue, un type de disque inconnu ; code 1 quand la configuration manque", async () => {

@@ -1934,7 +1934,7 @@ export const TV = [
   {
     "id": "TV-42",
     "level": "TV",
-    "title": "`ct-5/planification/` et `ct-5/reprise/` : vingt et une traces du planificateur, files avant et après",
+    "title": "`ct-5/planification/` et `ct-5/reprise/` : soixante-deux traces du planificateur, files avant et après de vingt-cinq d'entre elles",
     "specs": [
       "CT-5"
     ],
@@ -2880,6 +2880,11 @@ export const TV = [
       "CT-7 TR-119",
       "CT-7 TR-120",
       "CT-7 TR-121",
+      "CT-7 TR-122",
+      "CT-7 TR-123",
+      "CT-7 TR-124",
+      "CT-7 TR-125",
+      "CT-7 TR-126",
       "CT-7 EX-0.1",
       "CT-7 EX-3.1",
       "CT-7 EX-3.2",
@@ -2895,7 +2900,7 @@ export const TV = [
     "steps": [
       "Comparer `menaces.json` au schéma et à ce que `construireMenaces` tire des tables ; reconstruire la table 3.4 ; lancer `verifier-renvois.mjs` ; altérer des copies en mémoire ; vérifier que chaque vecteur nommé par la colonne « Test de CT-9 » existe."
     ],
-    "oracle": "Égalité octet pour octet ; code 0 ; chaque altération fait échouer la RV- visée ; 121 lignes TR- pour autant d'occurrences.",
+    "oracle": "Égalité octet pour octet ; code 0 ; chaque altération fait échouer la RV- visée ; 126 lignes TR- pour autant d'occurrences.",
     "status": {
       "state": "executable",
       "tests": [
@@ -3465,7 +3470,7 @@ export const TV = [
   {
     "id": "TV-67",
     "level": "TV",
-    "title": "Table de traçabilité de CT-8 : `renvois.mjs`, TC-1 à TC-133",
+    "title": "Table de traçabilité de CT-8 : `renvois.mjs`, TC-1 à TC-141",
     "specs": [
       "CT-8"
     ],
@@ -3603,6 +3608,14 @@ export const TV = [
       "CT-8 TC-131",
       "CT-8 TC-132",
       "CT-8 TC-133",
+      "CT-8 TC-134",
+      "CT-8 TC-135",
+      "CT-8 TC-136",
+      "CT-8 TC-137",
+      "CT-8 TC-138",
+      "CT-8 TC-139",
+      "CT-8 TC-140",
+      "CT-8 TC-141",
       "CT-8 EX-0.1",
       "CT-8 EX-0.2",
       "CT-8 EX-A.2",
@@ -4092,6 +4105,175 @@ export const TV = [
     },
     "threats": [
       "MN-29"
+    ]
+  },
+  {
+    "id": "TV-77",
+    "level": "TV",
+    "title": "`ct-5/configuration/configuration.json` : vingt-cinq cas de configuration `ancrage-v0`, schéma puis règles d'EX-4.9 (AN-1)",
+    "specs": [],
+    "covers": [
+      "CT-5 EX-4.9",
+      "CT-5 AN-1"
+    ],
+    "preconditions": [
+      "Vecteurs `ct-5/configuration` présents au commit éprouvé, régénérés sans différence (TV-45).",
+      "`npm ci` fait ; aucun réseau."
+    ],
+    "steps": [
+      "Valider chaque cas par la bibliothèque de référence (`verifierConfiguration`) et par la validation du composant d'ancrage (`validerConfiguration`) ; tuer les mutants qui retirent une règle de l'une ou de l'autre."
+    ],
+    "oracle": "Verdict et règles violées égaux à l'attendu de chaque cas, pour la référence et pour le composant ; les règles 4, 8 et 9 et le schéma (règle 4 bis) refusent chacun au moins un cas ; chaque mutant fait échouer un cas.",
+    "status": {
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/ancrage-configuration-vecteurs.test.js",
+          "describe": "CT-5 : famille configuration (EX-4.9, AN-1 ; règles 4, 4 bis et 9 ; complément du 2026-11-16)"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/ancrage-configuration-vecteurs.test.js"
+    },
+    "threats": []
+  },
+  {
+    "id": "TV-78",
+    "level": "TV",
+    "title": "Confrontation de la référence et du composant d'ancrage sur des parcours tirés de graines fixes, seize modes dont six à deux journaux (CT-5 A.4) : première divergence nommée, traces de l'ordre du démarrage, mutants",
+    "specs": [],
+    "covers": [
+      "CT-5 EX-8.5",
+      "CT-5 EX-8.8",
+      "CT-5 EX-8.10",
+      "CT-5 EX-8.12",
+      "CT-5 EX-8.16",
+      "CT-5 EX-9.4",
+      "CT-5 EX-9.5",
+      "CT-5 AN-36",
+      "CT-5 §A.4"
+    ],
+    "preconditions": [
+      "Vecteurs `ct-5/planification` et `ct-5/reprise` présents au commit éprouvé, régénérés sans différence (TV-45).",
+      "`npm ci` fait ; aucun réseau ; composant `paquets/ancrage` du dépôt."
+    ],
+    "steps": [
+      "Tirer des parcours de graines fixes dans chaque mode (points, réponses RFC 3161 et du registre de toute forme, échecs sans admission, redémarrages, arrêts brutaux, deux journaux) et les jouer, segment par segment, sur la référence et sur le composant.",
+      "Rejouer les traces de l'ordre du démarrage, de la clé de chaîne du verrou et des minuteries de deux journaux ; tuer les mutants de chaque règle."
+    ],
+    "oracle": "Mêmes actions et même file à chaque segment, invariants d'AN-36 tenus ; sinon la première divergence est nommée (graine, mode, segment, entrée, action) ; chaque mutant fait diverger au moins un parcours ou une trace.",
+    "status": {
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/ancrage-confrontation-aleatoire.test.js",
+          "describe": "CT-5 A.4 : confrontation de la référence et du composant d'ancrage sur des parcours tirés de graines fixes (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-confrontation-aleatoire.test.js",
+          "describe": "CT-5 EX-8.12, EX-8.10, EX-8.8 : ordre du démarrage et derniers écarts entre la référence et le composant (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-confrontation-aleatoire.test.js",
+          "describe": "CT-5 EX-9.4 : la clé de chaîne du verrou des envois au registre est le journal du sujet de l'ancre (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-confrontation-aleatoire.test.js",
+          "describe": "CT-5 EX-8.16 : minuteries de période de deux journaux au même instant, dans l'ordre où elles ont été armées (complément du 2026-11-16)"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/ancrage-confrontation-aleatoire.test.js"
+    },
+    "threats": [
+      "MN-64"
+    ]
+  },
+  {
+    "id": "TV-79",
+    "level": "TV",
+    "title": "Règles de reprise, d'ordre et de classement du planificateur d'ancrage des compléments du 2026-11-16 de CT-5, sur la référence et sur le composant, avec leurs traces et leurs mutants",
+    "specs": [],
+    "covers": [
+      "CT-5 EX-4.13",
+      "CT-5 EX-5.8",
+      "CT-5 EX-8.3",
+      "CT-5 EX-8.4",
+      "CT-5 EX-8.9",
+      "CT-5 EX-8.10",
+      "CT-5 EX-8.11",
+      "CT-5 EX-8.12",
+      "CT-5 EX-9.4",
+      "CT-5 EX-9.5",
+      "CT-5 AN-33",
+      "CT-5 AN-36",
+      "CT-5 AN-37",
+      "CT-5 AN-41"
+    ],
+    "preconditions": [
+      "Vecteurs `ct-5/planification` et `ct-5/reprise` présents au commit éprouvé, régénérés sans différence (TV-45).",
+      "`npm ci` fait ; aucun réseau ; composant `paquets/ancrage` du dépôt."
+    ],
+    "steps": [
+      "Rejouer, par la référence et par le composant, les traces publiées de chaque règle (borne de `due_at`, demande rouverte ou recréée, soumission OpenTimestamps, classement des codes du registre, ancre de période après ses points, clé retenue, points en reprise, âge d'abandon) et leurs files avant et après.",
+      "Construire les cas hors trace de chaque règle et tuer, pour chacune, le mutant qui la retire dans l'une puis dans l'autre implémentation."
+    ],
+    "oracle": "Actions, file finale et alertes égales à la trace pour les deux implémentations ; chaque cas hors trace rend ce que dit sa règle ; chaque mutant fait échouer son cas.",
+    "status": {
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/ancrage-reprise-acquisitions.test.js",
+          "describe": "CT-5, reprise au démarrage : borne de due_at, demande rouverte, demande recréée obtenue (EX-4.13, EX-5.8, EX-8.12 ; complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-reprise-acquisitions.test.js",
+          "describe": "CT-5, composant d'ancrage : acquisitions.ndjson relu au démarrage (EX-5.8, EX-8.12 ; complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-lectures-tranchees.test.js",
+          "describe": "CT-5 : passages tranchés par le complément du 2026-11-16 (EX-8.12, EX-8.10, EX-4.13, EX-8.4, EX-8.3, EX-4.9)"
+        },
+        {
+          "file": "test/ancrage-ots-soumission.test.js",
+          "describe": "CT-5 : soumission OpenTimestamps (EX-8.11, EX-8.12, EX-8.9 ; complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-ecarts-reference-composant.test.js",
+          "describe": "CT-5 : derniers écarts entre la référence et le composant d'ancrage (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-registre-refus-ordre.test.js",
+          "describe": "CT-5 EX-8.10 : refus définitif de l'ancre d'une période (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-registre-refus-ordre.test.js",
+          "describe": "CT-5 EX-9.4 : ordre des ancres d'une même clé, au démarrage et en marche (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-registre-refus-definitif.test.js",
+          "describe": "CT-5 EX-8.10 : codes du registre classés « refus définitif » ou « transitoire » ; refus d'OP-9 de l'ancre d'une période (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-periode-apres-point-de-cloture.test.js",
+          "describe": "CT-5 EX-9.4 : l'ancre d'une période ne part qu'après le reçu de l'ancre de son point de clôture (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-ots-abandon-origine.test.js",
+          "describe": "CT-5 EX-8.11 : l'âge d'abandon d'une preuve OpenTimestamps en attente court depuis created_at de la demande (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-cle-retenue.test.js",
+          "describe": "CT-5 EX-9.4, EX-8.12, AN-36, AN-37, EX-8.11, EX-8.10 : six passages écrits selon le comportement sûr (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-points-en-reprise.test.js",
+          "describe": "CT-5 EX-9.5, EX-9.4 : l'ancre d'un point en reprise quand le point suivant de sa période est admis (complément du 2026-11-16)"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/ancrage-reprise-acquisitions.test.js test/ancrage-lectures-tranchees.test.js test/ancrage-ots-soumission.test.js test/ancrage-ecarts-reference-composant.test.js test/ancrage-registre-refus-ordre.test.js test/ancrage-registre-refus-definitif.test.js test/ancrage-periode-apres-point-de-cloture.test.js test/ancrage-ots-abandon-origine.test.js test/ancrage-cle-retenue.test.js test/ancrage-points-en-reprise.test.js"
+    },
+    "threats": [
+      "MN-62",
+      "MN-64"
     ]
   }
 ];

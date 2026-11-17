@@ -72,15 +72,24 @@ et `test/exploitation-console-revue.test.js`) :
   d'un autre propriétaire que le compte du serveur, est refusé au démarrage
   (`reference_illisible`).
 - CT-3 EX-13.13 : `preparer_inscription` est refusée `limite_annuaire` au-delà de 4
-  défis non expirés par identité ou de 1 024 au total, sans changer les défis.
+  défis non expirés par identité ou de 1 024 au total, sans changer les défis ;
+  complément du 2026-11-16 (décision du porteur) : un défi présenté par
+  `inscrire`, accepté ou refusé, est retiré des défis rendus et ne compte plus.
+- CT-3 EX-13.10, point 5, et EX-13.17 (complément du 2026-11-16, décision du
+  porteur) : opération interne `expirer` (`appliquerOperation`, requête
+  `{ entry }`) et `expirerEntrees(annuaire, at, ttl)` : une entrée dont aucune
+  adresse n'a jamais été validée est retirée `registration_entry_ttl_ms` après
+  sa création (défaut 30 jours, `TTL_ENTREE_MS`) ; le rejeu d'un annuaire
+  exporté rejoue `expirer` (EX-13.19, point 6) ; un identifiant d'entrée
+  n'est jamais réattribué.
 
 Limites nommées : `demande_modifiee` n'est pas encore dans
 `$defs/code_console` (ajout demandé à l'assemblage) ; les bornes des défis et
-le plafond par identité attendent la révision d'EX-13.13 et d'EX-13.48 ;
-la borne des entrées de l'annuaire (10 000 entrées créées par toute identité) n'est pas corrigée : le
-comptage des seules entrées à adresse validée (CT-3 §14.8) contredit
-`entries.maxItems` du schéma et ferait refuser l'annuaire au redémarrage du
-service.
+le plafond par identité sont écrits par la révision 0.8 de CT-3 (EX-13.13,
+EX-13.48) ;
+la borne des entrées de l'annuaire (10 000 entrées) reste celle du schéma ;
+depuis le complément du 2026-11-16, les entrées jamais validées expirent, ce
+qui borne dans le temps leur saturation (CT-3 §14.8).
 
 ## Dépendances
 

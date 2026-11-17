@@ -147,7 +147,8 @@ describe("service d'approbation : état chiffré et annuaire persisté (EX-7.30,
       for (const l of e.lignes) expect(JSON.stringify(l.clair)).to.not.contain("CH9300762011623852957");
       const { annuaire, defis } = annuaireDeLEtat(e);
       expect(annuaire.revision).to.equal(2);
-      expect(defis.map((d) => [d.fields.identity, d.used])).to.deep.equal([[ID9, true], [ID8, false]]);
+      // CT-3 EX-13.13 (complément du 2026-11-16) : le défi présenté par l'inscription d'ID9 est retiré des défis tenus.
+      expect(defis.map((d) => [d.fields.identity, d.used])).to.deep.equal([[ID8, false]]);
       // nonces de 12 octets distincts
       const nonces = new Set();
       for (const f of ["journal.ndjson", "instantane.chiffre"]) {

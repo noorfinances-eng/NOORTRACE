@@ -4,7 +4,7 @@
 //
 //   noortrace-ctl reload [--configuration <fichier>] [--delai-ms <n>]
 //   noortrace-ctl clock --accept [--configuration <fichier>] [--delai-ms <n>]
-//   noortrace-ctl ancrage etat|metriques|retirer-qualification <id> [--configuration <fichier>] [--delai-ms <n>]
+//   noortrace-ctl ancrage etat|metriques|retirer-qualification <id>|retablir-qualification <id> [--configuration <fichier>] [--delai-ms <n>]
 //   noortrace-ctl dossier exporter (--seq <n> | --dernier | --ticket <ticket_id>) --vers <répertoire>
 //                                  [--configuration <fichier>] [--delai-ms <n>]
 //   noortrace-ctl close-period --now [--configuration <fichier>] [--delai-ms <n>]
@@ -43,7 +43,8 @@
 // rotation-urgence` : une demande écrite à côté du journal d'exploitation
 // (`{ demande: "ancrage", commande, id }`) et le signal SIGURG ; le démon
 // répond au journal (`anchoring_state`, `anchoring_metrics`,
-// `provider_qualification_withdrawn`, `anchoring_ctl_refused`) ; révision 0.9
+// `provider_qualification_withdrawn`, `provider_qualification_restored`,
+// `anchoring_ctl_refused`) ; révision 0.9
 // de CT-2 (EX-15.15) : la demande porte un `request_id`, et une ligne
 // `ctl_request_failed` de ce `request_id` arrête la commande aussitôt (code 1) ; pour
 // `metriques`, la commande lit aussi `/metrics` de `supervision.health_listen`
@@ -75,13 +76,15 @@ import {
 export const USAGE_CTL_DEMON = [
   "usage : noortrace-ctl reload [--configuration <fichier>] [--delai-ms <n>]",
   "        noortrace-ctl clock --accept [--configuration <fichier>] [--delai-ms <n>]",
-  "        noortrace-ctl ancrage etat|metriques|retirer-qualification <id> [--configuration <fichier>] [--delai-ms <n>]",
+  "        noortrace-ctl ancrage etat|metriques|retirer-qualification <id>|retablir-qualification <id> [--configuration <fichier>] [--delai-ms <n>]",
   "        noortrace-ctl cle rotation-urgence [--configuration <fichier>] [--delai-ms <n>]",
   "        noortrace-ctl dossier exporter (--seq <n> | --dernier | --ticket <ticket_id>) --vers <répertoire> [--configuration <fichier>] [--delai-ms <n>]",
   "        noortrace-ctl cle rapprocher --configuration <fichier> --audit <journal d'audit> [--cle <key_id>] [--de <horodatage>] [--a <horodatage>]",
   "        noortrace-ctl close-period --now [--configuration <fichier>] [--delai-ms <n>]",
   "        noortrace-ctl etat [--configuration <fichier>] [--delai-ms <n>]",
   "        noortrace-ctl sonde --url <url>",
+  "        noortrace-ctl journal successeur --configuration <fichier> --demande <demande d'inscription du nouveau journal>",
+  "        noortrace-ctl journal verifier-successeur (--configuration <fichier> | --journal <répertoire> --journal-exploitation <fichier>) --demande <fichier> [--note <fichier>]",
 ].join("\n");
 
 const ACTIONS = {
@@ -99,6 +102,8 @@ const COMMANDES_ANCRAGE = Object.freeze({
   etat: { fait: "anchoring_state", id: false },
   metriques: { fait: "anchoring_metrics", id: false },
   "retirer-qualification": { fait: "provider_qualification_withdrawn", id: true },
+  // CT-5 EX-5.9 (décision du porteur du 2026-11-16 ; CT-7 RA-90) : levée du retrait par l'exploitant, après lecture de la liste de confiance.
+  "retablir-qualification": { fait: "provider_qualification_restored", id: true },
 });
 
 /** Fichier de demande de `noortrace-ctl cle rotation-urgence`, à côté du journal d'exploitation du démon. */
@@ -185,6 +190,8 @@ export async function principalCtlDemon(argv, io = {}) {
   const action = argv[0];
   if (action === "dossier") return principalDossier(argv.slice(1), { stdout, stderr, racineProc: io.racineProc, cwd: io.cwd });
   if (action === "close-period") return principalCloture(argv.slice(1), { stdout, stderr, racineProc: io.racineProc });
+  // CT-2 EX-11.16, CT-8 §11.4 chemin C (complément du 2026-11-16) : outil hors démon, aucun signal.
+  if (action === "journal") return (await import("./ctl-journal.mjs")).principalCtlJournal(argv.slice(1), { stdout, stderr, racineProc: io.racineProc });
   if (action === "etat" || action === "sonde") {
     const m = await import("./ctl-sante.mjs");
     return action === "etat" ? m.principalEtat(argv.slice(1), { stdout, stderr, racineProc: io.racineProc }) : m.principalSonde(argv.slice(1), { stdout, stderr });
@@ -222,7 +229,7 @@ export async function principalCtlDemon(argv, io = {}) {
     reste.splice(0, 1);
     if (c.id) {
       if (!reste[0] || reste[0].startsWith("--")) {
-        stderr.write("noortrace-ctl ancrage retirer-qualification : identifiant de prestataire attendu\n");
+        stderr.write(`noortrace-ctl ancrage ${ancrage.commande} : identifiant de prestataire attendu\n`);
         return 2;
       }
       ancrage.id = reste.splice(0, 1)[0];
@@ -569,6 +576,34 @@ export function messageRefusExport(data) {
 }
 
 /**
+ * Répertoire de travail de la commande contre lequel un `--vers` relatif est
+ * résolu (EX-15.9 ; complément du 2026-11-16) : le chemin sous lequel
+ * l'exploitant l'a atteint, `PWD` (comme `pwd`), quand c'est un chemin
+ * absolu sans composant `.` ni `..` qui désigne ce répertoire (même
+ * périphérique et même nœud que `cwd`) ; sinon `cwd`, le chemin réel que rend
+ * le système. Le démon compare la destination, lexicalement, au répertoire
+ * des exports tel que la configuration le nomme (EX-15.12, ordre 3) : un
+ * répertoire de travail atteint par un lien symbolique ne doit pas faire
+ * sortir la destination de ce nom (le chemin réel de son parent reste
+ * vérifié par le démon).
+ * @param {{env?: Record<string, string|undefined>, cwd?: string}} [o]
+ * @returns {string}
+ */
+export function repertoireDeTravail({ env = process.env, cwd = process.cwd() } = {}) {
+  const pwd = env.PWD;
+  if (typeof pwd !== "string" || !pwd.startsWith("/") || pwd.includes("\0")) return cwd;
+  if (pwd.split("/").some((c) => c === "." || c === "..")) return cwd;
+  try {
+    const a = fs.statSync(pwd);
+    const b = fs.statSync(cwd);
+    if (a.isDirectory() && a.dev === b.dev && a.ino === b.ino) return path.posix.resolve(pwd);
+  } catch {
+    // PWD absent ou illisible : le chemin réel.
+  }
+  return cwd;
+}
+
+/**
  * Lit la ligne de commande de `dossier exporter` (EX-15.9) : rend les options
  * ou un message d'usage. Chaque option est suivie de sa valeur comme argument
  * distinct ; `--option=valeur` n'est pas admise.
@@ -619,7 +654,7 @@ export function lireOptionsDossier(argv, cwd) {
  */
 async function principalDossier(argv, io) {
   const { stdout, stderr } = io;
-  const o = lireOptionsDossier(argv, io.cwd ?? process.cwd());
+  const o = lireOptionsDossier(argv, io.cwd ?? repertoireDeTravail());
   if (o.erreur) {
     stderr.write(`${PREFIXE_DOSSIER}${o.erreur}\n${USAGE_CTL_DEMON}\n`);
     return 2;

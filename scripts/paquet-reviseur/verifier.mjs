@@ -297,14 +297,14 @@ export function verifierPaquet(cheminArchive, options) {
     }
     // PR-11 : vérificateur joint
     if (m.verifier === null) poser({ id: "PR-11", status: "non_execute", reason: "sans_objet", detail: { fr: "aucun vérificateur joint", en: "no verifier enclosed" } });
-    else if (outilExtraitDUnPaquet()) poser({ id: "PR-11", status: "non_execute", reason: "auto_comparaison", detail: { fr: "l'outil exécuté est le vérificateur joint d'un paquet extrait : la comparaison serait celle de la copie à elle-même ; comparez-la au SHA256SUMS publié (EX-3.14)", en: "the running tool is the enclosed verifier of an extracted package: the comparison would be of the copy with itself; compare it with the published SHA256SUMS (EX-3.14)" } });
+    else if (outilExtraitDUnPaquet()) poser({ id: "PR-11", status: "non_execute", reason: "auto_comparaison", detail: { fr: "l'outil exécuté est le vérificateur joint d'un paquet extrait : la comparaison serait celle de la copie à elle-même ; vérifiez avec l'outil du dépôt public (CT-8 EX-13.22)", en: "the running tool is the enclosed verifier of an extracted package: the comparison would be of the copy with itself; verify with the tool of the public repository (CT-8 EX-13.22)" } });
     else {
       const miens = P.fichiersVerificateur();
       const joints = new Map(r.entrees.filter((e) => e.nom.startsWith(`${P.RACINE}/verificateur/`)).map((e) => [e.nom.slice(P.RACINE.length + 1), e.donnees]));
       const diff = [...new Set([...miens.keys(), ...joints.keys()])].sort().filter((p) => !miens.has(p) || !joints.has(p) || !miens.get(p).equals(joints.get(p)));
       if (diff.length) {
         poser({ id: "PR-11", status: "echoue", reason: null, detail: { fr: `vérificateur joint différent de l'outil exécuté : ${diff.join(", ")}`, en: `enclosed verifier differs from the running tool: ${diff.join(", ")}` } });
-        rapport.warnings.push({ id: "AV-PR-1", detail: t(L, { fr: `${diff.length} fichier(s) du vérificateur joint diffèrent de l'outil exécuté : n'employez la copie jointe qu'après comparaison aux empreintes publiées`, en: `${diff.length} file(s) of the enclosed verifier differ from the running tool: use the enclosed copy only after comparing it with the published digests` }) });
+        rapport.warnings.push({ id: "AV-PR-1", detail: t(L, { fr: `${diff.length} fichier(s) du vérificateur joint diffèrent de l'outil exécuté : n'exécutez pas la copie jointe ; le résultat des dossiers vient de l'outil exécuté`, en: `${diff.length} file(s) of the enclosed verifier differ from the running tool: do not run the enclosed copy; the result of the dossiers comes from the running tool` }) });
       } else poser({ id: "PR-11", status: "reussi", reason: null, detail: { fr: `${joints.size} fichiers du vérificateur joint identiques à l'outil exécuté`, en: `${joints.size} files of the enclosed verifier identical to the running tool` } });
     }
     // PR-12 : attestation jointe
@@ -415,8 +415,10 @@ usage :
        [--conserver <répertoire à créer>]
   node <outil>/scripts/paquet-reviseur/verifier.mjs --version | --aide [--langue fr|en]
 
-<outil> est la racine du dépôt public, ou le répertoire verificateur/ d'un
-paquet complet extrait.
+<outil> est la racine du dépôt public. N'exécutez pas la copie jointe sous
+verificateur/ d'un paquet complet : jusqu'à la première publication d'une
+liste SHA256SUMS signée des fichiers du vérificateur, rien ne permet de la
+contrôler (CT-8 EX-13.22).
 
   <paquet.tar>   l'archive (.tar non compressé) ; exactement une
   --empreinte    SHA-256 attendu de l'archive, 64 chiffres hexadécimaux avec ou
@@ -433,8 +435,7 @@ paquet complet extrait.
                  et gardé ; sans elle, un répertoire temporaire est effacé
   --version      nom, version, environnement, puis SHA-256 de chaque fichier
                  du vérificateur que cet outil joindrait, calculés par l'outil
-                 lui-même : une copie se contrôle par le SHA256SUMS publié,
-                 jamais par cette sortie
+                 lui-même : cette sortie ne contrôle jamais une copie
   --aide         cette aide
 
 L'outil contrôle l'archive sans rien écrire (PR-1 à PR-9), puis seulement
@@ -460,8 +461,10 @@ usage:
        [--conserver <directory to create>]
   node <tool>/scripts/paquet-reviseur/verifier.mjs --version | --aide [--langue fr|en]
 
-<tool> is the root of the public repository, or the verificateur/ directory
-of an extracted full package.
+<tool> is the root of the public repository. Do not run the enclosed copy
+under verificateur/ of a full package: until the first publication of a
+signed SHA256SUMS list of the verifier's files, nothing allows it to be
+checked (CT-8 EX-13.22).
 
   <package.tar>  the archive (uncompressed .tar); exactly one
   --empreinte    expected SHA-256 of the archive, 64 hexadecimal digits with
@@ -480,8 +483,7 @@ of an extracted full package.
                  deleted
   --version      name, version, runtime, then SHA-256 of each file of the
                  verifier this tool would enclose, computed by the tool
-                 itself: a copy is checked against the published SHA256SUMS,
-                 never against this output
+                 itself: this output never checks a copy
   --aide         this help
 
 The tool checks the archive without writing anything (PR-1 to PR-9), then

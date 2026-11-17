@@ -497,7 +497,80 @@ signature :
    une lecture demandée pendant cette attente part à sa fin ; un appel
    refusé par le nœud pour débit est refait à la même hauteur après une
    pause croissante, dans la durée bornée de la lecture (EX-8.1 ; table de
-   10.3).
+   10.3) ;
+10. annuaire des approbateurs (complément du 2026-11-16, décision du
+   porteur) : une entrée dont aucune adresse n'a jamais été validée expire
+   `registration_entry_ttl_ms` après sa création (réglage nouveau, de 1 à
+   365 jours, défaut 30 jours) ; l'opération interne `expirer`, consignée
+   dans `operations` avec l'identifiant de l'entrée (`by` `service`),
+   notifiée (`operation_annuaire`) et rejouée par la vérification d'un
+   annuaire exporté, la retire avec ses adresses et ses alias ; un
+   identifiant d'entrée n'est jamais réattribué ; la saturation des
+   10 000 entrées par des inscriptions jamais validées ne dure donc qu'au
+   plus ce délai (EX-13.9, EX-13.10 points 2 et 5, EX-13.17, EX-13.19
+   point 6, EX-13.32, EX-13.40, 10.3, 12.8, 14.8, A.10) ; un défi présenté
+   par `inscrire`, accepté ou refusé, est retiré des défis du service : il
+   ne compte plus dans les 4 défis par identité ni dans les 1 024 au total,
+   et son nonce présenté de nouveau est inconnu (EX-13.13, EX-13.15 pas 4,
+   EX-13.38).
+11. prises Unix et lignes de commande (complément du 2026-11-16, revue de
+   sécurité de l'étape 8) : le chemin d'une prise Unix que le service écoute
+   ou que le serveur de console joint fait au plus 103 octets UTF-8, borne du
+   SDK et du démon de CT-2 ; la validation le refuse
+   (`chemin_prise_trop_long`), le démarrage aussi (code 1), la mise en écoute
+   et le client du serveur de console aussi ; le service n'emploie plus de
+   chemin provisoire qui dépasserait la borne. Motif : Node.js tronque un
+   chemin plus long sans erreur ; un service dont la prise configurée
+   dépassait 107 octets ne démarrait pas, sous un code qui n'en disait pas
+   la cause (`ecoute_impossible`) ; un chemin admis de 103 octets dans un
+   répertoire au nom long faisait tronquer le chemin provisoire et refuser
+   le démarrage ; un serveur de console aurait joint une autre prise que
+   celle du service. Les lignes de commande de
+   `noortrace-approbation` et de `noortrace-console` sont strictes : une
+   option inconnue, en double ou sans sa valeur, un argument en trop rendent
+   l'usage et le code 2 (les sondes gardent leurs codes) ; une option mal
+   écrite de `valider-politique` était ignorée (EX-10.12, EX-10.13, EX-12.2).
+12. annuaire des approbateurs, lignes que la rédaction du point 10 taisait
+   (complément du 2026-11-16, demandé par l'alignement du vérificateur Go
+   indépendant sur le point 10) : l'opération `expirer` qui fait rejouer une
+   inscription sans preuve est placée plus loin dans le journal, et la preuve
+   n'est pas cherchée dans le document, même s'il porte encore l'entrée ;
+   l'entrée du rejeu a pour `created_at` l'instant de l'opération `inscrire`
+   qui l'a créée ; l'adresse rejouée sans preuve a `proof` nul et n'est
+   jamais comparée au document ; une opération `expirer` dont `by` n'est pas
+   `service` est refusée par le schéma avant le rejeu (EX-13.19, point 6) ;
+   l'instant d'une opération qui ne se décode pas est un écart
+   `revision_incoherente` (EX-13.19, point 2) ; la requête d'`expirer` a sa
+   définition, `$defs/requete_expirer` (EX-13.17) ; une entrée dont
+   `created_at` ne se décode pas n'est jamais échue (EX-13.17, EX-13.32) ;
+   un vérificateur des traces recalcule avant chaque pas les entrées échues
+   (A.10). La bibliothèque de référence suit désormais deux règles que le
+   module d'annuaire du service suivait déjà : le point 2 ci-dessus, et la
+   preuve rejouée d'EX-13.19, point 6 (révision 0.6 : signature normalisée,
+   `received_at` égal à l'instant de l'opération), qu'elle copiait du
+   document.
+13. annuaire exporté et plancher du vérificateur Go, lignes que les points
+   10 et 12 taisaient (complément du 2026-11-16, demandé par l'alignement du
+   vérificateur Go indépendant sur le point 12) : une opération `expirer`
+   dont l'instant ne se décode pas ne se rejoue pas ; un `received_at` qui
+   ne se décode pas donne `preuve_discordante` ; les instants que posent les
+   opérations rejouées sont le texte de leur `at`, et le texte nomme ces
+   instants opération par opération (EX-13.19, points 4 et 6) ; le texte
+   nomme les vingt répertoires dont l'`INDEX.md` nomme chaque cas, dans une
+   section que le générateur écrit (EX-A.10). La bibliothèque de référence
+   et le module d'annuaire du service suivaient déjà ces lectures et ne
+   changent pas ; seul le générateur des vecteurs change.
+14. plancher du vérificateur Go et renvois, lignes que le point 13 taisait
+   (complément du 2026-11-16, demandé par l'alignement du vérificateur Go
+   indépendant sur le point 13) : la forme d'une ligne de la section « Cas
+   nommés » est celle qu'écrit le générateur ; une ligne mal formée, une
+   ligne d'un répertoire hors des vingt, une seconde ligne d'un même
+   répertoire sont des écarts (code 1), une section absente un seul écart
+   (EX-A.10) ; la table d'EX-A.13 nomme les quatre cas d'`exports/` du point
+   13 ; EX-7.30 renvoie au risque accepté du retour en arrière de l'état
+   chiffré, nommé par la spécification de la sécurité (complément du
+   2026-11-16, décision du porteur). Aucune bibliothèque, aucun service ni
+   aucun vecteur ne change.
 
 - Règles ajoutées : EX-A.20 (A.12), EX-A.21 (A.13).
 - Règles modifiées : EX-7.8, EX-7.22, EX-7.24, EX-7.30 (table), EX-8.1, EX-8.5,
@@ -506,7 +579,17 @@ signature :
   EX-13.13, EX-13.32 (table : `controleCanal`), EX-13.33 (point 5), EX-13.36
   (table), EX-13.39, EX-13.48 (point 1), EX-A.6, EX-A.10 ; sections 0 (en-tête), 7.5
   (table, T14), 12.2 (réponse de `charger`), 12.3 (table), 12.8 (table),
-  13.9 (lectures), 15.2, A.3, A.6.
+  13.9 (lectures), 15.2, A.3, A.6 ; complément du 2026-11-16 (point 10) :
+  EX-13.3, EX-13.9, EX-13.10, EX-13.13, EX-13.15, EX-13.17, EX-13.19,
+  EX-13.32 (table), EX-13.38, EX-13.40 (table), EX-A.13 (table) ; sections
+  10.3 (table), 12.8 (table), 13.1 (table), 13.16 (AN-3, AN-6, AN-9), 14.8
+  (table), 15.2, A.10 ; complément du 2026-11-16 (point 11) : EX-10.12
+  (table et lignes de commande), EX-10.13 (table), EX-12.2 ; complément du
+  2026-11-16 (point 12) : EX-13.17, EX-13.19 (points 2 et 6), EX-13.32
+  (table), EX-A.13 (table) ; sections 15.2 (table), A.10 ; complément du
+  2026-11-16 (point 13) : EX-13.19 (points 4 et 6), EX-A.10 ; sections 15.2
+  (table), A.3 ; complément du 2026-11-16 (point 14) : EX-7.30, EX-A.10,
+  EX-A.13 (table) ; section 15.2 (table).
 - Règles retirées : aucune ; aucun numéro réattribué.
 - Schémas : `ticket-v0` (`$defs/reponse_evaluer` : trois membres obligatoires
   de plus, `policy_version`, `policy_sha256`, `approval_sha256` ; extension
@@ -515,12 +598,36 @@ signature :
   (`$defs/rapport_validation` admet `canaux_meme_autorite_sans_jeton`),
   `console-approbation-v0` (`$defs/code_console` admet `demande_modifiee`),
   `annuaire-approbateurs-v0` (`$defs/fichier_controles_canal` admet un
-  ticket connu pour `tickets` avec `related_to`).
+  ticket connu pour `tickets` avec `related_to`) ; complément du 2026-11-16,
+  extensions compatibles : `annuaire-approbateurs-v0` (`$defs/type_operation`
+  et le `method` d'un pas de `$defs/trace_annuaire` admettent `expirer`,
+  `by` d'une opération admet `service`, réservé à `expirer` ;
+  `entries.maxItems` reste 10 000), `configuration-approbation-v0` (membre
+  facultatif `registration_entry_ttl_ms` ; `$defs/details_operation_annuaire`
+  admet `expirer`) ; complément du 2026-11-16 (point 11), extensions
+  compatibles : `$defs/rapport_validation` de `configuration-approbation-v0`
+  et de `configuration-console-v0` admet `chemin_prise_trop_long` ;
+  complément du 2026-11-16 (point 12), extension compatible :
+  `annuaire-approbateurs-v0` (`$defs/requete_expirer`, nouvelle : un objet au
+  seul membre `entry`, conforme à `$defs/identifiant_entree`).
 - Vecteurs : les 38 traces de `tickets/` changent (chaque réponse `evaluer`
   porte les trois membres de l'épinglage) ; familles nouvelles
   `reponses-evaluer/` et `notifications/` ; cas `related_to` de
   `annuaire/controles-canal.json` à produire ; les autres familles ne
-  changent pas.
+  changent pas ; complément du 2026-11-16 : traces
+  `annuaire/traces/expiration-entree.json` et `defi-consomme.json`, cas
+  `annuaire/exports/expiration-rejouee.json`, `expiration-avant-borne.json`,
+  `expiration-entree-validee.json` et `identifiant-reattribue.json` ; aucun
+  autre vecteur ne change ; complément du 2026-11-16 (point 11) : aucun
+  vecteur ne change (aucun ne porte un chemin de prise de plus de 103
+  octets) ; complément du 2026-11-16 (point 12) : cas
+  `annuaire/exports/expiration-entree-portee.json` (`exports/attendu.json`
+  et `INDEX.md` suivent) ; aucun autre vecteur ne change ; complément du
+  2026-11-16 (point 13) : cas `annuaire/exports/expiration-instant-indecodable.json`,
+  `inscription-instant-indecodable.json`, `instants-indecodables-rejoues.json`
+  et `remplacement-instants-indecodables.json` (`exports/attendu.json`
+  suit) ; `INDEX.md` gagne la section « Cas nommés » ; aucun autre vecteur
+  ne change ; complément du 2026-11-16 (point 14) : aucun vecteur ne change.
 
 ## 1. Objet, périmètre et relations
 
@@ -1651,7 +1758,7 @@ contrôle.
 | `automatique`, appel `autorise` ou `refusee` | Non exécuté, raison admise « aucune approbation liée » | Avec la pièce de l'ensemble de politique et la pièce « arguments » : la règle donne bien cette décision (6.8) | Qu'un humain a vu l'appel : aucun ne l'a vu. Que le service a évalué la politique : seule la réévaluation le montre |
 | `fenetre`, appel couvert | Non exécuté, même raison | Avec le dossier de la décision du ticket ouvrant nommé par `policy.rule` : des approbateurs ont signé la demande ouvrante, au seuil déclaré, à `approval.at`. Avec la politique : `fin = approval.at + duration_ms`. Avec l'événement `retenue` du ticket : même demandeur et même outil (`execution.tool`). Avec le journal : nombre d'appels couverts | Que les approbateurs ont vu cet appel : ils ne l'ont pas vu. Que `t < fin` exactement : `ts` de l'appel est postérieur à `t` (6.8) |
 | `revue` et demande ouvrante, appel relayé | Exécuté : les adresses nommées ont signé `A` pour cette demande exacte (`request_hash`, A-4 si la demande est un voisin), en nombre au moins égal au seuil du jeu déclaré | Avec la politique et l'événement `retenue` : la séparation des tâches (section 10) et une décision scellée avant l'échéance, `approval.at < ts + E` (EX-7.10, 10.5) | Que le jeu déclaré est celui du registre (CT-6 EX-3.6, section 8) ; que les approbateurs ont lu ce qu'ils signaient (CT-6 §7) ; que la fenêtre de contestation a été respectée |
-| `revue`, décision `refuse` ou `expire` | Exécuté : « porte un refus signé par … » ou « porte une demande d'approbation expirée sans signature » | — | Pourquoi personne n'a décidé, pour `expire` |
+| `revue`, décision `refuse` ou `expire` | Exécuté : « porte le refus de la demande … » (CT-6 EX-6.8, complément du 2026-11-16) ou « porte une demande d'approbation expirée sans signature » | — | Pourquoi personne n'a décidé, pour `expire` |
 
 ## 6. Évaluation
 
@@ -2398,7 +2505,12 @@ l'instantané, un fichier d'arguments ou une ligne du journal autre que la
 dernière ne se déchiffre pas, ou quand le clair d'un fichier d'arguments
 porte un autre nom que le sien ; une dernière ligne incomplète ou
 indéchiffrable est tronquée, comme une écriture interrompue, et le journal
-du service le consigne. Un nonce tiré au hasard ne se répète, sous une même
+du service le consigne. Un retour en arrière de l'état (instantané et
+journal antérieurs remis en place, dernières lignes retirées) n'est pas
+détecté par ce chiffrement, qui lie chaque enregistrement à sa nature et à
+son numéro, non à ses successeurs : c'est un risque accepté par le client
+(CT-7 RA-88, complément du 2026-11-16) ; l'annuaire et la trace sont
+déclaratifs (10.4). Un nonce tiré au hasard ne se répète, sous une même
 clé, qu'avec une probabilité inférieure à `q² / 2^97` après `q`
 enregistrements ; un nonce répété détruirait la confidentialité des deux
 enregistrements et l'intégrité de tout ce que la clé protège (RFC 5116
@@ -3722,10 +3834,11 @@ du serveur de console (document `configuration-console-v0`, EX-10.13) :
 | `rpc` : point RPC de la chaîne du registre (`url` ; `validator` : `client`, `partenaire` ou `developpement` ; `token` de la garde d'admission, par référence ; `timeout_ms` de 500 à 60 000, défaut 5 000 ; `logs_from_block`) ; `url` en `https`, sauf `http` vers la boucle locale hors production ; en production, déclaré `client` ou `partenaire` (EX-10.12) | configuration du service | lecture du jeu (EX-8.1) |
 | `notifications` : webhook de l'exploitant du client (`url` ; clé HMAC `key`, par référence, tirée au hasard ; `ca` ; `timeout_ms` de 1 000 à 30 000, défaut 10 000) ; destinataires désignés par l'identifiant de leur entrée d'annuaire ou par un rôle, adresses de messagerie tenues chez le client (révision 0.5 : la configuration de la console n'a plus de contacts) | configuration du service | notifications et escalade (7.7, 13.19) |
 | `etat` : écoute d'état, sans authentification ; défaut : aucune | configuration du service | `GET /v0/etat` (EX-12.12, EX-10.12) |
-| annuaire des approbateurs : identités de session, adresses attribuées, alias de demandeur | état du service, document `annuaire-approbateurs-v0` (13.4), modifié seulement par les méthodes de 12.9 et par la recopie d'EX-13.37 ; amorcé par `console.annuaire` de la configuration du service tant qu'aucun annuaire n'est persisté (EX-13.38) | identité de session et adresse attribuée (EX-13.2, EX-13.18), adresses connues pour la lecture du jeu (EX-8.1, pas 5) |
+| annuaire des approbateurs : identités de session, adresses attribuées, alias de demandeur | état du service, document `annuaire-approbateurs-v0` (13.4), modifié seulement par les méthodes de 12.9, par la recopie d'EX-13.37 et par l'expiration d'EX-13.17 ; amorcé par `console.annuaire` de la configuration du service tant qu'aucun annuaire n'est persisté (EX-13.38) | identité de session et adresse attribuée (EX-13.2, EX-13.18), adresses connues pour la lecture du jeu (EX-8.1, pas 5) |
 | `org` : nom court de l'organisation | configuration du service, recopiée dans l'annuaire | message d'inscription (EX-13.12) |
 | `console_origin` : origine HTTPS de la console | configuration du service, recopiée dans l'annuaire ; configuration du serveur de console, égale | message d'inscription (EX-13.12, EX-13.14), lien des notifications et garde d'hôte (EX-13.43, EX-13.49) |
 | `registration_ttl_ms` : de 60 000 à 3 600 000, défaut 600 000 (choix de CT-3, sans source externe) | configuration du service, recopiée dans l'annuaire | validité d'un message d'inscription (EX-13.13) |
+| `registration_entry_ttl_ms` : de 86 400 000 à 31 536 000 000 (1 à 365 jours), défaut 2 592 000 000 (30 jours) (complément du 2026-11-16, décision du porteur ; choix de CT-3, sans source externe) | configuration du service, non recopiée dans l'annuaire : le rejeu d'un annuaire exporté n'emploie que la borne basse (EX-13.19, point 6) | expiration d'une entrée dont aucune adresse n'a jamais été validée (EX-13.10, point 5 ; EX-13.17, « Expiration ») |
 | `reauth_max_age_s` : de 0 à 3 600, défaut 900 (choix de CT-3, EX-13.8) | configuration du serveur de console | réauthentification avant chaque méthode de la liste d'EX-13.8 |
 | `service_timeout_ms` : de 1 000 à 60 000, défaut 10 000 (choix de CT-3, sans source externe) | configuration du serveur de console | attente d'une réponse du service à une méthode du canal ; au-delà, « service indisponible » (12.7, 13.14) |
 | `delai_signature_ms` : de 30 000 à 1 800 000, défaut 300 000 (choix de CT-3, sans source externe) | configuration du serveur de console, transmis à la page par la méthode `session` (EX-13.48) | attente de la réponse du portefeuille, jamais au-delà de l'échéance du ticket (EX-13.30) |
@@ -3776,6 +3889,7 @@ n'en sont pas (révision 0.6) :
 | `escalade_non_croissante` | les `after_ms` de `escalation` sont strictement croissants (EX-10.10) | `/escalation/<k>/after_ms`, `k` la première étape fautive |
 | `webhook_http` | `notifications.url` est `https`, ou `http` vers une adresse de boucle locale hors `production` (EX-13.39) | `/notifications/url` |
 | `origine_port_par_defaut` | `console_origin` ne porte pas le port 443 écrit en clair : un navigateur sérialise l'origine sans le port par défaut (RFC 6454 §6.2), de sorte que chaque message d'inscription, qui reprend l'origine de la page, serait refusé (`origine_differente`, EX-13.13) (révision 0.6) | `/console_origin` |
+| `chemin_prise_trop_long` | le `socket` d'une écoute du noyau ou de la console fait au plus 103 octets UTF-8 (EX-12.2 ; complément du 2026-11-16) | `/noyau/socket`, `/console/socket` |
 
 Au démarrage, le service résout ensuite chaque référence de secret et
 refuse de démarrer, en nommant le pointeur et jamais la valeur, sur un
@@ -3824,6 +3938,19 @@ ne se décèlent qu'au démarrage, et leur rapport suit EX-10.14. Le plan de tes
 `rpc_non_declare` par cette commande (TA-51) : refus d'une configuration de
 production dont `rpc` est nul ou déclaré `developpement`, acceptation avec
 `client` comme avec `partenaire`.
+
+Complément du 2026-11-16, **lignes de commande**. `noortrace-approbation`
+n'admet que les formes `--config <fichier>`, `valider-configuration
+<fichier>`, `valider-politique <fichier>` suivie, au plus une fois chacune,
+de `--environment <valeur>` et `--expire-after-ms <n>`, `sonde --url <url>`
+(EX-12.22) et `--version` seul. Une option inconnue, donnée deux fois ou
+sans sa valeur (un argument qui commence par `--` ne tient pas lieu de
+valeur), un argument en trop, ou `--version` avec autre chose rendent
+l'usage sur la sortie d'erreur et le code de retour 2, sans rien lire ni
+écouter : une option mal écrite n'est plus ignorée en silence. La sonde
+garde le code 1 pour tout usage incorrect (EX-12.22). `noortrace-console`
+suit la même règle pour ses formes (EX-10.13), sa sonde gardant les codes 0
+et 1 (EX-13.44).
 
 Exemple : configuration de production du service de l'organisation des
 vecteurs, chaque secret monté sous `/run/secrets/`. La commande la rend
@@ -3949,6 +4076,7 @@ remplie :
 | `certificat_client_incomplet` | `service.client_cert` et `service.client_key` sont tous deux nuls ou tous deux non nuls | `/service` |
 | `origine_port_par_defaut` | `console_origin` ne porte pas le port 443 écrit en clair : le navigateur envoie `Host` et `Origin` sans le port par défaut, et chaque requête serait refusée (`hote_refuse`, `origine_refusee`, EX-13.49) (révision 0.6) | `/console_origin` |
 | `url_illisible` | `service.url`, conforme au motif du schéma, s'analyse comme une URL absolue (RFC 3986) dont le port, s'il figure, est un entier de 1 à 65 535 (révision 0.6) | `/service/url` |
+| `chemin_prise_trop_long` | `service.socket` fait au plus 103 octets UTF-8 (EX-12.2 ; complément du 2026-11-16) | `/service/socket` |
 
 La boucle locale de la règle `tls_exige` est celle d'EX-10.12, écrite
 exactement (révision 0.6).
@@ -4414,6 +4542,26 @@ manière (identité du pair ou certificat client, ou un jeton distinct par
 sens). Les décisions `autorise` et `refuse` ne sont pas signées : sans ce
 canal authentifié, quiconque répondrait à la place du service ferait
 relayer ou refuser n'importe quel appel.
+Complément du 2026-11-16, **longueur des chemins de prise**. Le chemin
+d'une prise Unix que le service écoute (`noyau.socket`, `console.socket`)
+ou que le serveur de console joint (`service.socket`, EX-10.13) DOIT faire
+au plus **103 octets** UTF-8, borne du SDK et du démon de CT-2 (EX-6.10,
+EX-18.1) : Node.js tronque un chemin plus long à la taille de
+`sun_path` moins un (107 octets sous Linux, 103 sous macOS), et la prise
+serait créée, ou jointe, sous un autre nom, souvent dans le répertoire
+parent, hors du répertoire dont ce paragraphe fixe les droits, où un autre
+processus pourrait la tenir et recevoir le jeton porteur. La validation
+refuse un chemin plus long (`chemin_prise_trop_long`, au pointeur du membre,
+EX-10.12, EX-10.13) ; le démarrage le refuse donc, avec le code 1 et le
+rapport d'EX-10.14 ; la mise en écoute du service et le client du serveur
+de console le refusent aussi, avant toute liaison ou connexion. La borne est
+en octets : les schémas ne la portent pas, `maxLength` d'un schéma JSON
+comptant des caractères. Le service crée sa prise dans un sous-répertoire
+privé du répertoire de la prise, puis la renomme à son chemin ; quand ce
+chemin provisoire dépasserait la borne alors que le chemin configuré la
+respecte, le service écoute directement au chemin configuré, sous un masque
+qui ne laisse aucun droit au groupe ni aux autres, puis pose le mode
+`socket_mode`.
 
 **EX-12.3** Le service NE DOIT PAS recevoir la clé du journal ni écrire
 d'événement (CT-2 EX-7.4) ; il ne joint que le noyau, le RPC du registre, la
@@ -4828,16 +4976,16 @@ dans la même liste fermée :
 | `non_administrateur` | service | méthode d'administration de l'annuaire par une identité absente de `administrators` |
 | `entree_inconnue`, `adresse_inconnue` | service | entrée ou adresse absente de l'annuaire |
 | `message_invalide` | service | message d'inscription hors de la forme exacte d'EX-13.12, ou différent du texte du défi |
-| `nonce_inconnu`, `nonce_deja_utilise` | service | nonce d'inscription jamais tiré, remplacé, ou déjà présenté (EX-13.13) |
+| `nonce_inconnu`, `nonce_deja_utilise` | service | nonce d'inscription jamais tiré, remplacé, ou déjà présenté (EX-13.13) ; complément du 2026-11-16, décision du porteur : le service retire le défi présenté et rend `nonce_inconnu` pour un nonce déjà présenté ; `nonce_deja_utilise` ne vient plus que de `verifierInscription` (EX-13.15, pas 4) |
 | `inscription_expiree` | service | réception hors de `[Emis le, Expire le)` |
 | `origine_differente`, `organisation_differente`, `identite_differente`, `adresse_differente` | service | champ du message différent de la configuration, de la session ou de l'adresse de la requête (EX-13.15) |
 | `identite_desactivee` | service | entrée désactivée (EX-13.17) |
 | `adresse_deja_attribuee` | service | adresse déjà présente dans l'annuaire, dans n'importe quel état (EX-13.10) |
-| `etat_incompatible` | service | opération impossible dans l'état de l'adresse ou de l'entrée |
+| `etat_incompatible` | service | opération impossible dans l'état de l'adresse ou de l'entrée ; pour `expirer`, entrée dont une adresse a été validée, ou échéance non atteinte (EX-13.17 ; complément du 2026-11-16, décision du porteur) |
 | `auto_validation` | service | validation par la personne de l'entrée (EX-13.17) |
 | `revocation_non_autorisee` | service | révocation par une autre identité que la personne de l'entrée ou un administrateur |
 | `demandeur_deja_lie`, `demandeur_inconnu` | service | alias de demandeur déjà lié à une entrée, ou absent de l'entrée |
-| `limite_annuaire` | service | opération qui ferait dépasser une borne d'`annuaire-approbateurs-v0` : 10 000 entrées, 64 adresses par entrée, 64 alias de demandeur par entrée (EX-13.17 ; révision 0.6) ; révision 0.8 : `preparer_inscription` qui dépasserait les bornes des défis non expirés, cinquième défi d'une identité ou 1 025ᵉ au total (EX-13.13) |
+| `limite_annuaire` | service | opération qui ferait dépasser une borne d'`annuaire-approbateurs-v0` : 10 000 entrées, 64 adresses par entrée, 64 alias de demandeur par entrée (EX-13.17 ; révision 0.6) ; révision 0.8 : `preparer_inscription` qui dépasserait les bornes des défis non expirés, cinquième défi d'une identité ou 1 025ᵉ au total (EX-13.13) ; complément du 2026-11-16, décision du porteur : un défi présenté est retiré et ne compte plus ; une entrée retirée par `expirer` ne compte plus dans les 10 000 (EX-13.17) |
 
 Les raisons de la table à partir de `session_non_autorisee` sont celles du canal
 de la console et de l'annuaire (12.9, 13.3 à 13.6), ajoutées par la version
@@ -5442,7 +5590,7 @@ systèmes d'identité et ses sessions (13.21) ; leurs réglages sont en 10.3.
 | Connexion par un identifiant système de 7 chiffres et un mot de passe, session de 8 heures (30 jours pour le propriétaire), aucune réauthentification avant un vote (R5-F32, R5-F33) | Remplacé : la personne est authentifiée par le système d'identité du client, et réauthentifiée depuis au plus `reauth_max_age_s` avant chaque méthode qui modifie l'annuaire ou un ticket (liste d'EX-13.8) ; le hachage scrypt et le verrou progressif des mots de passe ne sont repris que pour le système local, refusé en production (EX-13.47) |
 | La session est liée à la clé par le **nom affiché** (`session.name` → `curatorByName`, R5-F34) | **Exclu** : le lien passe par l'identité de session canonique (paire émetteur et sujet, R5-F8) et l'adresse attribuée par l'annuaire (EX-13.7, EX-13.18) ; un nom affiché n'est jamais un identifiant |
 | Paire de clés d'un curateur générée par le serveur (R5-F35) ; adresse de l'organisation inscrite **sans preuve de possession** (R5-F36) | **Exclu** : la clé naît chez l'approbateur (EX-13.1) et une adresse n'est attribuée que sur un message d'inscription signé par elle (EX-13.15) |
-| Suppression d'une identité refusée tant qu'elle est membre du jeu (R5-F35) | Repris sous une autre forme : une entrée n'est jamais supprimée ; elle est désactivée, et ses adresses restent dans l'annuaire, révoquées (EX-13.17, EX-13.10) |
+| Suppression d'une identité refusée tant qu'elle est membre du jeu (R5-F35) | Repris sous une autre forme : une entrée n'est jamais supprimée ; elle est désactivée, et ses adresses restent dans l'annuaire, révoquées (EX-13.17, EX-13.10) ; complément du 2026-11-16, décision du porteur : seule une entrée dont aucune adresse n'a jamais été validée est retirée, à son expiration (EX-13.10, point 5) |
 | Rapports et instantanés publics : des adresses, jamais des noms (R5-F37) | Repris (EX-13.11) |
 | Politique de sécurité du contenu à nonce avec `'strict-dynamic'`, en rapport seul par défaut ; ni Trusted Types ni intégrité des sous-ressources (R5-F45) | Remplacé : politique **bloquante**, sans `'strict-dynamic'`, Trusted Types et intégrité des scripts exigés et mesurés (EX-13.35) |
 
@@ -5491,7 +5639,7 @@ d'un refus en approbation, ou le vote d'un autre ticket, par une console
 compromise (9.3) ; ce que fait l'approbateur d'une notification qui diffère
 ou qui manque est en EX-9.20, point 7. Le service DOIT de même notifier à la
 personne chaque opération de l'annuaire qui vise son entrée (inscription,
-validation, révocation, désactivation, réactivation, alias ; notification
+validation, révocation, désactivation, réactivation, alias, expiration ; notification
 `operation_annuaire`, EX-13.40), ce qui rend visible l'usage d'une session
 volée (14.8). Il forme, inscrit et livre ces deux notifications comme les
 autres (EX-13.39 à EX-13.42) ; la console n'en livre aucune. Elles
@@ -5672,7 +5820,8 @@ clés sans objet présentes à `null`) :
 
 Une **entrée** porte : `id`, identifiant `apb-…` attribué par le service à
 sa création (motif `^apb-[0-9a-z]+(-[0-9a-z]+)*$`, de 5 à 128 caractères),
-unique et jamais réattribué, même après une perte d'état, aux conditions
+unique et jamais réattribué, même après une perte d'état ou l'expiration de
+l'entrée (EX-13.17, « Expiration »), aux conditions
 d'EX-7.1 (64 bits aléatoires ou époque conservée hors du service ; les
 vecteurs, qui partent d'un service sans perte d'état, emploient la
 convention de A.10) ; `session_identity`, unique dans l'annuaire ; `external_id`
@@ -5928,13 +6077,21 @@ violerait :
 1. une `session_identity` n'a qu'une entrée ;
 2. une adresse figure dans une seule entrée de l'annuaire, une seule fois,
    dans quelque état que ce soit, et n'est jamais attribuée à une autre
-   entrée, même révoquée (`adresse_deja_attribuee`) ;
+   entrée, même révoquée (`adresse_deja_attribuee`) ; complément du 2026-11-16, décision du porteur :
+   une adresse qui n'a jamais été validée quitte l'annuaire avec son entrée
+   quand celle-ci expire (point 5), et peut alors être inscrite de nouveau ;
+   une adresse qui a été active ne quitte jamais l'annuaire ;
 3. une entrée a au plus une adresse `active` : la validation d'une adresse
    révoque l'adresse active précédente de la même entrée (cause
    `remplacee`, `replaced_by` = la nouvelle adresse) ;
 4. une valeur de `requester_identities` appartient à une seule entrée
    (`demandeur_deja_lie`) ;
-5. aucune entrée n'est supprimée.
+5. aucune entrée n'est supprimée, sauf une entrée dont aucune adresse n'a
+   jamais été validée (aucune n'a `validated_at` non nul) :
+   `registration_entry_ttl_ms` après son `created_at` (10.3 ; défaut
+   30 jours), l'opération `expirer`, consignée dans `operations` avec
+   l'identifiant de l'entrée, la retire (EX-13.17, « Expiration ») ; le rejeu
+   d'EX-13.19 la reproduit (complément du 2026-11-16, décision du porteur).
 
 C'est l'application, du côté de l'organisation, d'EX-8.11 : deux adresses
 ne prouvent pas deux personnes, et une personne n'a qu'une voix. Ces
@@ -5951,7 +6108,8 @@ l'annuaire à un réviseur (EX-13.19) est un acte du client, hors de
 l'enregistreur.
 
 **EX-13.38** **Persistance de l'annuaire (révision 0.5).** Le service DOIT
-tenir l'annuaire et ses défis d'inscription non expirés (EX-13.13) dans son
+tenir l'annuaire et ses défis d'inscription non expirés et non présentés
+(EX-13.13) dans son
 état, sous `state_dir` (EX-10.12), chiffrés au repos par la clé de stockage
 `storage_key`, comme les documents de ticket (EX-7.24, EX-7.30), et les persister
 avec `fsync` avant la réponse de chaque méthode qui les change (EX-12.17).
@@ -6110,8 +6268,13 @@ un générateur cryptographique, pose `Emis le` à l'instant de la requête sur
 son horloge et `Expire le` à `Emis le + registration_ttl_ms`, construit le
 texte d'EX-13.12 et le rend avec ses champs. Un défi est à usage unique ;
 un nouveau défi pour la même identité et la même adresse remplace le
-précédent, dont le nonce devient inconnu. Révision 0.8 : le service tient au
-plus 4 défis non expirés par identité et 1 024 au total ; un
+précédent, dont le nonce devient inconnu. Complément du 2026-11-16, décision du porteur : dès
+qu'un `inscrire` présente un défi (pas 4 d'EX-13.15), quel que soit le sort
+de la requête, le service le retire des défis qu'il tient ; un défi consommé
+ne compte donc plus dans les bornes qui suivent, et son nonce, présenté de
+nouveau, est inconnu (`nonce_inconnu`). Révision 0.8 : le service tient au
+plus 4 défis non expirés par identité et 1 024 au total (défis non
+présentés, puisqu'un défi présenté est retiré) ; un
 `preparer_inscription` qui dépasserait l'une de ces bornes est refusé
 `limite_annuaire` (12.8), sans changer les défis (le remplacement du défi de
 la même identité et de la même adresse ne compte pas) ; la même borne vaut
@@ -6147,7 +6310,13 @@ s'applique est rendue) :
 3. `message` respecte EX-13.12 (`message_invalide`) ;
 4. le nonce du message est celui d'un défi connu (`nonce_inconnu`) et non
    encore présenté (`nonce_deja_utilise`) ; à partir de ce pas, le défi est
-   marqué présenté, quel que soit le sort de la requête ;
+   marqué présenté, quel que soit le sort de la requête ; complément du 2026-11-16, décision du porteur :
+   le service retire alors ce défi de ceux qu'il tient (EX-13.13), de sorte
+   qu'un nonce déjà présenté lui est inconnu (`nonce_inconnu`) ;
+   `nonce_deja_utilise` n'est plus rendu que par la fonction
+   `verifierInscription` de la bibliothèque, appliquée à une liste de défis
+   où celui du nonce est marqué présenté (EX-13.32 ; `inscriptions.json`,
+   A.10) ;
 5. l'instant de réception `r` vérifie `Emis le ≤ r < Expire le`
    (`inscription_expiree`) ;
 6. `Origine` est `console_origin` (`origine_differente`) ;
@@ -6317,7 +6486,11 @@ inscrite ; le détenteur fait tourner sa clé (« Rotation » ci-dessous : une
 nouvelle adresse, ajoutée au `CuratorSet`). Une libération, au profit de
 son détenteur prouvé, d'une adresse jamais validée est une proposition pour
 une version 1 (section 16). La trace `annuaire/traces/confiscation.json`
-(A.10) montre ce déroulé.
+(A.10) montre ce déroulé. Complément du 2026-11-16, décision du porteur : l'expiration
+(ci-dessous) libère, sans preuve et avec toute l'entrée, une adresse confisquée
+dans une entrée dont aucune adresse n'a jamais été validée,
+`registration_entry_ttl_ms` après la création de cette entrée ; une adresse
+confisquée dans une entrée dont une adresse a été validée reste confisquée.
 
 Toute opération acceptée est inscrite dans `operations` avec `seq`, son
 instant (horloge du service), `op`, `by` (l'identité de session qui l'a
@@ -6336,6 +6509,67 @@ jeu cesse de compter par le nouveau gel (EX-8.6), pas par l'annuaire.
 Validation et révocation ne sont pas signées en version 0 : elles sont
 attestées par le service, sur le canal authentifié de la console (EX-12.4).
 Une validation signée par un administrateur est une proposition (section 16).
+
+**Expiration (complément du 2026-11-16, décision du porteur).** Une entrée dont aucune adresse n'a jamais
+été validée (aucune n'a `validated_at` non nul), active ou désactivée, expire
+`registration_entry_ttl_ms` après son `created_at` (10.3 ; défaut
+2 592 000 000 ms, 30 jours). L'opération `expirer` qui la retire n'est la
+méthode d'aucun canal : avant de traiter chaque requête du canal de la
+console (12.9) reçue authentifiée (EX-12.4) avec un corps JSON lisible, y
+compris une requête qu'il refuse ensuite, le service fait,
+à l'instant `t` de son horloge, une opération `expirer` pour chaque entrée
+dont l'échéance est atteinte (`t ≥ created_at + registration_entry_ttl_ms`),
+dans l'ordre de `entries`, une opération par entrée ; il persiste l'annuaire
+avec `fsync` avant de traiter la requête et ne l'adopte que durable
+(EX-12.17), consigne chaque opération dans son journal (`operation_annuaire`,
+avec la méthode `expirer`, l'entrée et `revision`) et la notifie
+(`operation_annuaire`, EX-13.40). Aucune méthode du canal de la console ne
+voit donc une entrée échue. L'opération vérifie, dans cet ordre, la forme de sa requête
+`{ "entry" }`, sans identité de session (`requete_invalide`), l'entrée
+(`entree_inconnue`), puis qu'aucune adresse de l'entrée n'a été validée et
+que l'échéance est atteinte (`etat_incompatible`). Complément du 2026-11-16 :
+la requête est un objet au seul membre `entry`, conforme à
+`$defs/identifiant_entree` (`$defs/requete_expirer` d'`annuaire-approbateurs-v0`,
+exemple ci-dessous) ; toute autre forme est `requete_invalide`. Une entrée dont
+le `created_at` respecte le motif de `$defs/horodatage` sans se décoder
+(CT-1 §3 : 30 février, par exemple) n'est jamais échue : `expirer` la refuse
+(`etat_incompatible`), et l'expiration faite avant chaque requête la laisse.
+Le service n'en écrit pas, puisque son horloge donne `created_at`, et
+l'amorce d'EX-13.38 n'en admet pas, puisque le rejeu d'EX-13.19 la refuse
+(point 2, et `created_at` comparé à l'instant de l'opération `inscrire`). Effet : l'entrée est
+retirée de `entries`, avec ses adresses, leurs preuves et ses alias de
+demandeur ; l'opération est inscrite dans `operations` avec `op` `expirer`,
+`by` égal à la chaîne `service` (l'opération vient du service, non d'une
+session), `entry` l'identifiant de l'entrée, `address`, `launched_by`,
+`reason` et `administrators` nuls ; `revision` est incrémentée et
+`updated_at` posé à `t` ; les défis en cours ne changent pas ; l'opération
+n'a pas de réponse. Conséquences : l'identifiant de l'entrée n'est jamais
+réattribué (EX-13.9) ; ses adresses, jamais validées, quittent l'annuaire et
+peuvent être inscrites de nouveau, par la même personne ou par une autre
+(EX-13.10, point 2) ; l'identité peut s'inscrire de nouveau, ce qui crée une
+entrée neuve ; un alias de demandeur lié à l'entrée disparaît avec elle, et
+l'administrateur le lie de nouveau à l'entrée neuve ; une désactivation
+d'une entrée jamais validée ne dure donc que jusqu'à son échéance ; une
+adresse retirée n'est plus une adresse connue de la lecture du jeu (EX-8.1,
+pas 5 : si elle est membre du jeu, la lecture reconstitue les membres par
+les journaux du jeu). Une entrée retirée cesse de compter dans la borne de
+10 000 entrées : la saturation de l'annuaire par des inscriptions jamais
+validées ne dure qu'au plus `registration_entry_ttl_ms` (14.8). La fonction
+`expirerEntrees` de la bibliothèque (EX-13.32) réalise l'opération ; le
+rejeu d'un annuaire exporté la reproduit (EX-13.19, point 6 ; trace
+`annuaire/traces/expiration-entree.json`, cas `annuaire/exports/expiration-*.json`
+et `identifiant-reattribue.json`, A.10).
+
+Exemple (complément du 2026-11-16) : la requête de l'opération `expirer` qui
+retire l'entrée `apb-0001` à son échéance, pas 8 de la trace
+`annuaire/traces/expiration-entree.json`.
+
+<!-- schema: annuaire-approbateurs/requete_expirer -->
+```json
+{
+  "entry": "apb-0001"
+}
+```
 
 **EX-13.37** **Changement du réglage `administrators`.** Le réglage
 `administrators` de la configuration du service fait foi (10.3, EX-13.9).
@@ -6439,7 +6673,10 @@ administrateur). Le réviseur vérifie hors ligne, sans le service :
 1. la forme (`annuaire-approbateurs-v0`) ;
 2. `revision` égal au nombre d'opérations, `seq` de 1 à `revision`, instants
    croissants au sens large, `updated_at` égal à l'instant de la dernière
-   (`revision_incoherente`) ;
+   (`revision_incoherente`) ; complément du 2026-11-16 : l'instant d'une
+   opération qui respecte le motif sans se décoder (CT-1 §3) est un écart
+   `revision_incoherente` à son pointeur, et l'ordre de l'opération suivante
+   se juge sur le dernier instant décodé ;
 3. identifiants d'entrée uniques (`identifiant_double`), identités uniques
    (`identite_double`), chaque adresse dans une seule entrée, une seule fois
    (`adresse_double`), au plus une adresse active par entrée
@@ -6449,7 +6686,9 @@ administrateur). Le réviseur vérifie hors ligne, sans le service :
    (`preuve_invalide`) ; les lignes du message sont `console_origin`, `org`,
    `org_id`, l'identité de l'entrée et l'adresse, le nonce et les instants
    sont ceux de la preuve, et `Emis le ≤ received_at < Expire le`
-   (`preuve_discordante`) ; révision 0.6 : les deux examens sont faits l'un
+   (`preuve_discordante`) ; complément du 2026-11-16 : un `received_at` qui
+   respecte le motif sans se décoder (CT-1 §3) n'établit pas cette condition
+   et donne `preuve_discordante` ; révision 0.6 : les deux examens sont faits l'un
    et l'autre, et une preuve fautive aux deux porte les deux codes, au même
    pointeur (liste complète) ; un message qui ne s'analyse pas selon
    EX-13.12 ne donne que `preuve_invalide`, ses lignes ne pouvant être
@@ -6469,7 +6708,40 @@ administrateur). Le réviseur vérifie hors ligne, sans le service :
    signature sous sa forme normalisée (EX-9.3), comme EX-13.15 l'inscrit ;
    l'opération ne se rejoue pas quand l'adresse irait à une entrée existante
    de `by` dont l'identifiant n'est pas `entry`, ni quand l'entrée à créer
-   prendrait un identifiant déjà présent. Les droits
+   prendrait un identifiant déjà présent. Complément du 2026-11-16, décision du porteur :
+   une opération `expirer` se rejoue si son `by` est `service`, que l'entrée
+   `entry` existe, qu'aucune de ses adresses n'a été validée et que
+   `at ≥ created_at + 86 400 000`, borne basse de
+   `registration_entry_ttl_ms` (le document ne porte pas le réglage) ; elle
+   retire l'entrée ; une opération `inscrire` dont l'entrée est retirée par
+   une opération `expirer` du journal se rejoue sans sa preuve, qui a quitté
+   le document avec l'entrée : seuls les pas 12 et 13 d'EX-13.15 et les
+   conditions d'identifiant qui précèdent sont vérifiés, et l'adresse est
+   ajoutée sans preuve ; ce que le réviseur ne peut plus établir, ce sont les
+   preuves de possession des adresses d'une entrée expirée, jamais validées ;
+   une opération `inscrire` qui créerait une entrée sous un identifiant déjà
+   créé plus haut dans le journal, même retiré depuis par `expirer`, ne se
+   rejoue pas (EX-13.9). Complément du 2026-11-16 : l'opération `expirer` qui
+   fait rejouer une inscription sans preuve est une opération `expirer` de la
+   même `entry` placée plus loin dans le journal ; une opération `expirer`
+   placée plus haut a déjà retiré l'entrée, dont l'identifiant ne peut plus
+   être créé, et l'inscription ne se rejoue pas. La preuve d'une telle
+   inscription n'est pas cherchée dans le document, même s'il porte encore une
+   entrée de cet identifiant : si l'opération `expirer` se rejoue, elle retire
+   l'entrée du rejeu, et la comparaison finale relève l'entrée que le document
+   porte encore (`/entries`) ; sinon le rejeu s'arrête à elle (cas
+   `annuaire/exports/expiration-entree-portee.json`, A.10). Le `created_at`
+   de la condition `at ≥ created_at + 86 400 000` est celui de l'entrée dans
+   l'état du rejeu, soit l'`at` de l'opération `inscrire` qui l'a créée. Dans
+   l'état du rejeu, l'adresse ajoutée sans preuve a la forme d'une adresse
+   inscrite (`state` `en_attente`, membres de validation et de révocation
+   nuls) avec `proof` nul ; elle n'est jamais comparée au document :
+   l'opération `expirer` la retire avec son entrée, et, si cette opération ne
+   se rejoue pas (entrée validée entre-temps, `at` sous la borne basse ou
+   qui ne se décode pas), le rejeu s'arrête à elle et rend son pointeur
+   `/operations/<j>`. Une
+   opération `expirer` dont `by` n'est pas `service` n'atteint pas le rejeu :
+   le schéma la refuse d'abord (point 1, une seule erreur `schema`). Les droits
    d'administrateur d'une opération se jugent sur la liste en vigueur à
    cette opération : le rejeu part du `before` de la première opération
    `changer_administrateurs`, ou, s'il n'y en a pas, de `administrators` du
@@ -6480,7 +6752,29 @@ administrateur). Le réviseur vérifie hors ligne, sans le service :
    égale à `administrators` du document, puis sur `entries` ; elle exclut
    `external_id` et `display_name`, données sans effet (EX-13.9). Une
    preuve fausse donne donc à la fois l'écart du point 4 et
-   `operations_incoherentes`.
+   `operations_incoherentes`. Complément du 2026-11-16 : une opération
+   `expirer` dont l'`at` respecte le motif sans se décoder (CT-1 §3) ne se
+   rejoue pas, la condition `at ≥ created_at + 86 400 000` ne pouvant être
+   établie ; le rejeu s'arrête à elle (`/operations/<j>`), en plus de l'écart
+   du point 2 (cas `annuaire/exports/expiration-instant-indecodable.json`).
+   Les instants que posent les opérations rejouées sont le texte de leur
+   `at`, caractère pour caractère, sans décodage ni réécriture : `created_at`
+   de l'entrée créée et `received_at` de la preuve (`inscrire`) ;
+   `validated_at` de l'adresse validée et `revoked_at` de l'adresse active
+   qu'elle remplace (`valider`) ; `revoked_at` de l'adresse révoquée
+   (`revoquer`) et de chaque adresse `en_attente` ou `active` de l'entrée
+   (`desactiver`) ; `expirer`, `reactiver`, `lier_demandeur`,
+   `delier_demandeur` et `changer_administrateurs` n'en posent aucun. Le
+   rejeu ne pose pas `updated_at`, que le point 2 compare au texte de l'`at`
+   de la dernière opération. Hors `expirer`, une opération dont l'`at` ne se
+   décode pas se rejoue donc, les pas qu'applique le rejeu ne lisant pas
+   l'horloge : le point 2 la relève, et la comparaison finale ne relève rien
+   de plus quand le document porte le même texte ; une inscription avec
+   preuve à un tel instant donne en outre `preuve_discordante` (point 4),
+   sa preuve portant le même `received_at` (cas
+   `annuaire/exports/inscription-instant-indecodable.json`,
+   `instants-indecodables-rejoues.json` et
+   `remplacement-instants-indecodables.json`, A.10).
 
 Les écarts sont rapportés comme ceux de A.4 (liste complète, triée par
 pointeur puis par code ; une non-conformité au schéma donne une seule
@@ -7028,7 +7322,8 @@ argument), sans état global. Elle exporte au moins :
 | `lireFichierCle(texte, motDePasse, adresse)`, `signerCondense(cle, d_a)` | le contrôle et le déchiffrement d'un fichier de clé ; la signature RFC 6979 de `H`, puis l'effacement de la clé | EX-13.28 |
 | `messageInscription(champs)`, `analyserMessageInscription(texte)` | le texte exact ; les champs, ou `message_invalide` | EX-13.12 |
 | `verifierInscription(annuaire, defis, requete, recuA, { identifiant })` | `{ accepted, reason, entry, signature, defis }` : `defis` est la liste après le pas 4 d'EX-13.15, le défi présenté y étant marqué ; `identifiant` vaut `compteur` (convention des vecteurs, A.10) ou `aleatoire` (64 bits, défaut) | EX-13.15 |
-| `appliquerOperation(annuaire, methode, requete, at, { defis, nonce, identifiant })` | `{ annuaire, defis, accepted, reason, response }` : le nouvel annuaire et la réponse, ou la raison du refus ; `nonce` est celui que `preparer_inscription` tire (fixé par les vecteurs, aléatoire sinon) | EX-13.13, EX-13.17, EX-13.10 |
+| `appliquerOperation(annuaire, methode, requete, at, { defis, nonce, identifiant, ttlEntree })` | `{ annuaire, defis, accepted, reason, response }` : le nouvel annuaire et la réponse, ou la raison du refus ; `nonce` est celui que `preparer_inscription` tire (fixé par les vecteurs, aléatoire sinon) ; complément du 2026-11-16, décision du porteur : pour `inscrire`, `defis` est la liste sans le défi présenté, accepté ou refusé ; `methode` peut être `expirer`, de requête `{ entry }` et de réponse nulle, `ttlEntree` étant `registration_entry_ttl_ms` (défaut 2 592 000 000) | EX-13.13, EX-13.17, EX-13.10 |
+| `expirerEntrees(annuaire, at, ttl)` | `{ annuaire, expirees }` : l'annuaire après une opération `expirer` pour chaque entrée échue à `at`, dans l'ordre de `entries`, et les identifiants retirés ; l'annuaire inchangé si aucune n'est échue ; `ttl` défaut 2 592 000 000 (complément du 2026-11-16, décision du porteur) ; une entrée dont `created_at` ne se décode pas n'est jamais échue (complément du 2026-11-16) | EX-13.10, EX-13.17 |
 | `controleVote(annuaire, session, action, adresse, ticket)` | `{ allowed, reason, warnings }` ; l'adresse est comparée en minuscules | EX-13.18 |
 | `actionRetrait(annuaire, session, ticket)` | le `by` d'un retrait que la console peut envoyer : le `launched_by` du ticket quand il figure dans `requester_identities` de l'entrée active de la session (révision 0.6, comme EX-12.19), sinon l'identité de session quand elle est dans `administrators`, sinon `null` (la console n'offre pas l'action) | EX-13.18, EX-7.15 |
 | `controleCanal(annuaire, methode, requete, ticket)` | `null`, ou la première raison `identite_invalide`, `session_non_autorisee` ou `ticket_inconnu` du contrôle de session du service pour `tickets`, `consulter`, `voter`, `recuser` et `retirer`, dans l'ordre d'EX-12.14 et d'EX-12.19 ; `ticket` est nul pour un ticket inconnu dans l'organisation, et pour `tickets` sans `related_to` ; avec `related_to`, c'est le ticket désigné, auquel s'applique l'ordre de `consulter` (EX-12.21 ; révision 0.8) | EX-12.14, EX-12.16, EX-12.19, EX-12.21 |
@@ -7215,13 +7510,13 @@ travail. Les versions mesurées sont écrites dans `console/LISEZMOI.md`.
 |---|---|---|
 | AN-1 | Forme canonique d'une identité de session : `oidc` et `utilisateur`, longueur, caractères, `iss` sans `?` ni `#`. | EX-13.7 |
 | AN-2 | Message d'inscription : texte exact depuis les champs, octets passés à `personal_sign`, condensé EIP-191, longueur de préimage ; analyse stricte, toute variante refusée. | EX-13.12 |
-| AN-3 | Vérification d'une inscription : chaque raison, et l'ordre quand deux défauts se cumulent ; défi présenté une seule fois. | EX-13.13, EX-13.15 |
+| AN-3 | Vérification d'une inscription : chaque raison, et l'ordre quand deux défauts se cumulent ; défi présenté une seule fois, puis retiré des bornes (complément du 2026-11-16, décision du porteur). | EX-13.13, EX-13.15 |
 | AN-4 | Signature d'inscription : normalisation d'EX-9.3, recouvrement sur les octets du texte. | EX-13.15 |
 | AN-5 | Séparation des domaines : signature d'inscription refusée comme vote, signature de vote refusée comme inscription. | EX-13.16 |
-| AN-6 | Opérations : validation par un administrateur autre que la personne, rotation, révocation, désactivation, réactivation, alias de demandeur ; chaque raison. | EX-13.17 |
+| AN-6 | Opérations : validation par un administrateur autre que la personne, rotation, révocation, désactivation, réactivation, alias de demandeur, expiration d'une entrée jamais validée (complément du 2026-11-16, décision du porteur) ; chaque raison. | EX-13.17 |
 | AN-7 | Une personne, une clé : adresse jamais réattribuée, une adresse active par entrée, identité et alias uniques. | EX-13.10 |
 | AN-8 | Contrôles de la console avant un vote ou une récusation, ordre des raisons, avertissement `separation_incomplete`. | EX-13.18 |
-| AN-9 | Vérification d'un annuaire exporté : invariants, preuves, rejeu des opérations, dont la recopie du réglage `administrators`. | EX-13.19, EX-13.37 |
+| AN-9 | Vérification d'un annuaire exporté : invariants, preuves, rejeu des opérations, dont la recopie du réglage `administrators` et l'expiration (complément du 2026-11-16, décision du porteur). | EX-13.19, EX-13.37 |
 | AN-10 | Contrôle de l'identité de session par le service sur le canal de la console : `tickets`, `consulter`, `voter`, `recuser`, `retirer` ; `identite_invalide`, `session_non_autorisee`, `ticket_inconnu` et leur ordre. | EX-12.14, EX-12.16, EX-12.19 |
 
 ### 13.17 Pas à pas pour l'approbateur
@@ -7730,7 +8025,7 @@ aussi la ligne de la boîte d'envoi.
 | `nouveau_gel` | nouveau gel qui change le jeu figé (EX-8.6) | les entrées actives dont l'adresse active est un membre éligible après le gel | ceux du ticket | écran du ticket | `added_members` (adresses ajoutées depuis l'ouverture), `effective_required` |
 | `seuil_inatteignable` | moins de membres éligibles que le seuil effectif (EX-7.29) | les rôles `administrateur_jeu` et `administrateur` | ceux du ticket | écran du ticket | `eligible_count`, `effective_required` |
 | `vote_inscrit` | vote accepté sur le canal de la console (EX-13.3, EX-12.16) | l'entrée active dont l'adresse active est `approver` | ceux du ticket | écran du ticket | `approver`, `decision`, `digest` = `empreinte(D_A)` du vote (EX-9.18), `at` = instant d'inscription du vote |
-| `operation_annuaire` | opération acceptée `inscrire`, `valider`, `revoquer`, `desactiver`, `reactiver`, `lier_demandeur` ou `delier_demandeur` (EX-13.3) | l'entrée visée (`entry` de l'opération) | `null` | écran d'inscription | `op`, `entry`, `address` (celle de l'opération, nulle sinon), `revision` après l'opération, `at`, `by_self` (vrai si `by` est l'identité de session de l'entrée) |
+| `operation_annuaire` | opération acceptée `inscrire`, `valider`, `revoquer`, `desactiver`, `reactiver`, `lier_demandeur` ou `delier_demandeur` (EX-13.3), ou `expirer` (EX-13.17 ; complément du 2026-11-16, décision du porteur) | l'entrée visée (`entry` de l'opération ; pour `expirer`, l'entrée retirée, `by_self` faux) | `null` | écran d'inscription | `op`, `entry`, `address` (celle de l'opération, nulle sinon), `revision` après l'opération, `at`, `by_self` (vrai si `by` est l'identité de session de l'entrée) |
 | `plafond_atteint` | premier `evaluer` refusé par `plafond_atteint` (EX-14.1) d'un `launched_by` dans une période de 15 minutes ; les refus suivants de la période ne sont pas notifiés, et le journal du service les compte (`plafond_refus_non_notifies`, avec leur nombre, à la fin de la période) | le rôle `administrateur` | `null` | `null` | `max_open_tickets` |
 
 Les rôles sont `administrateur`, le contact administrateur de
@@ -8418,11 +8713,12 @@ quotas par connexion d'hôte de CT-2 (EX-4.47 de CT-2) bornent le reste.
 | Attaque | Parade | Reste |
 |---|---|---|
 | Inscrire l'adresse d'un autre à son nom | la preuve de possession exige la signature de l'adresse sur un texte qui nomme l'identité (EX-13.15) | — |
-| Faire signer à une personne une inscription de son adresse au nom de l'attaquant (confiscation) | le texte lisible nomme l'identité, l'origine et l'adresse ; le service exige que l'identité du message soit celle de la session qui présente la preuve (EX-13.15, pas 8) ; l'administrateur ne valide qu'après avoir établi, par un autre canal, que la personne de l'entrée détient l'adresse (EX-13.17, « Avant de valider ») | l'attaquant n'a besoin que de sa propre session : il prépare l'inscription de l'adresse de la victime, lui fait signer, sur un site d'hameçonnage, le texte qui nomme sa propre identité, puis le présente ; l'adresse est confisquée dès l'état `en_attente`, sans validation (EX-13.10, point 2) : l'administrateur la révoque et le détenteur change de clé (EX-13.17, « Confiscation » ; trace `annuaire/traces/confiscation.json`) ; déni de service ciblé, visible dans `operations` |
-| Rejouer une preuve | nonce à usage unique, expiration, adresse jamais réattribuée (EX-13.13, EX-13.10) | — |
+| Faire signer à une personne une inscription de son adresse au nom de l'attaquant (confiscation) | le texte lisible nomme l'identité, l'origine et l'adresse ; le service exige que l'identité du message soit celle de la session qui présente la preuve (EX-13.15, pas 8) ; l'administrateur ne valide qu'après avoir établi, par un autre canal, que la personne de l'entrée détient l'adresse (EX-13.17, « Avant de valider ») | l'attaquant n'a besoin que de sa propre session : il prépare l'inscription de l'adresse de la victime, lui fait signer, sur un site d'hameçonnage, le texte qui nomme sa propre identité, puis le présente ; l'adresse est confisquée dès l'état `en_attente`, sans validation (EX-13.10, point 2) : l'administrateur la révoque et le détenteur change de clé (EX-13.17, « Confiscation » ; trace `annuaire/traces/confiscation.json`) ; déni de service ciblé, visible dans `operations` ; complément du 2026-11-16, décision du porteur : si aucune adresse de l'entrée de l'attaquant n'a été validée, l'expiration retire l'entrée et libère l'adresse au plus `registration_entry_ttl_ms` après la création de l'entrée (EX-13.17, « Expiration ») |
+| Rejouer une preuve | nonce à usage unique, défi retiré dès qu'il est présenté (complément du 2026-11-16, décision du porteur), expiration, adresse jamais réattribuée (EX-13.13, EX-13.10) | — |
 | Faire prendre une inscription pour un vote, ou l'inverse | préimages distinctes ; vérifications sur `D_A` reconstruit et sur le texte du défi (EX-13.16) | — |
 | Administrateur malveillant | il ne valide pas sa propre adresse (`auto_validation`) ; ses opérations sont inscrites (`operations`) | il valide l'adresse d'un complice inscrite par celui-ci, lie un alias de demandeur à une mauvaise entrée : visible dans l'annuaire, sans effet sur le jeu, le seuil ni SG-7 (EX-12.18) ; il révoque ou désactive l'entrée d'un membre, qui ne peut plus voter par la console : déni de service, visible dans `operations` |
 | Session volée (jeton ou cookie de la console) | réauthentification depuis au plus `reauth_max_age_s` avant chaque méthode qui modifie l'annuaire ou un ticket (EX-13.8) ; une adresse inscrite sous la session volée attend une validation que l'administrateur ne donne qu'après vérification par un autre canal (EX-13.17) ; la clé n'est pas dans la session (EX-13.1) ; notification de chaque opération de l'annuaire qui vise la personne (EX-13.3) ; cookie `__Host-` `HttpOnly` et `SameSite=Strict`, contrôle de l'en-tête `Origin` sur toute requête qui n'est pas `GET` ou `HEAD`, session en mémoire bornée par `session_max_age_s` (EX-13.48, EX-13.49) | dans la fenêtre de `reauth_max_age_s`, ou à chaque réauthentification réussie par l'attaquant : révoquer l'adresse active de la personne, définitivement (EX-13.10, point 2), ce qui l'empêche de voter par la console jusqu'à une rotation de clé dans le `CuratorSet` (déni de service, visible dans `operations`, cause `personne`) ; inscrire une adresse de l'attaquant, en attente ; récuser la personne sur un ticket, ou retirer un ticket qu'elle a demandé ; lire les vues qu'elle peut voir |
+| Saturation de l'annuaire par des entrées jamais validées (complément du 2026-11-16, décision du porteur) | une entrée dont aucune adresse n'a jamais été validée expire `registration_entry_ttl_ms` après sa création (défaut 30 jours ; opération `expirer`, EX-13.10, point 5 ; EX-13.17, « Expiration ») ; une entrée par identité de session (EX-13.10, point 1) ; bornes des défis non présentés (EX-13.13) ; `limite_annuaire` à la 10 001ᵉ entrée, qui garde la borne de mémoire du schéma (EX-13.17) | `preparer_inscription` et `inscrire` n'exigent qu'une identité canonique et une clé que l'inscrit tire lui-même : qui dispose de nombreuses identités de l'organisation (système d'identité qui en délivre à la demande, ou identités d'un grand nombre de personnes) crée jusqu'à 10 000 entrées en attente, une par identité, et bloque toute inscription nouvelle (`limite_annuaire`) ; le blocage cesse à mesure que ses entrées expirent, au plus `registration_entry_ttl_ms` après leur création, et reprend s'il recommence ; déni de service des inscriptions nouvelles, visible dans `operations` ; les entrées validées, les votes et le jeu ne sont pas touchés |
 | Console compromise | présenter sous une identité de session le vote d'une adresse qui n'est pas l'adresse active de son entrée (`session_non_autorisee`, EX-12.16), ou un retrait sous une session qui n'est ni le demandeur ni un administrateur (EX-12.19) ; signer, hors du parcours d (EX-13.1) | présenter un vote signé par une adresse sous l'identité de session de son entrée sans que la personne soit connectée, le service ne voyant pas l'authentification (EX-13.8) ; omettre les contrôles d'EX-13.18 |
 | Service compromis | — | il fausse l'annuaire ; les preuves restent vérifiables (EX-13.19) et le jeu figé ne dépend pas de l'annuaire |
 
@@ -8570,6 +8866,7 @@ en dépendent le sont aussi (CT-2 §22).
 | `paquets/approbation`, `paquets/enregistreur`, `scripts/lib/approbation.mjs`, vecteurs `tickets/`, `ct-2/pieces-mcp/appels/approbation-*`, `ct-8/observation/`, module Go de `ct-3` (révision 0.8) | réponse `evaluer` à six membres ; `charger` à trois membres | neuf membres, `approval_sha256` calculé au `charger`, refus `politique_non_epinglee` du noyau, règle de CT-2 EX-7.15 (12.2, 12.3, EX-12.6, EX-12.20) ; famille `reponses-evaluer/` (A.12) | fait dans le code et la référence (étape 8, décision du porteur du 14 novembre 2026) ; vecteurs régénérés à publier par l'assemblage |
 | `scripts/lib/console.mjs` (révision 0.8) | `Decouverte` compare les `uuid` à la casse près ; `actionRetrait` sans condition d'entrée active ; aucune borne de l'annuaire ; `controleCanal` ignore `related_to` | alignement sur la révision 0.6 (EX-13.22 point 3, EX-13.32, EX-13.17 `limite_annuaire`) et sur EX-12.21 (`related_to`) ; bornes des défis d'EX-13.13 | fait (revue de sécurité de l'étape 8) pour l'alignement, `related_to` et les bornes des défis (trace `annuaire/traces/bornes-des-defis.json`, à publier par l'assemblage) |
 | `paquets/approbation`, `paquets/console` (révision 0.8) | pas de borne des entrées refusées, des défis, des sessions par identité, de la lecture du jeu ni du journal du service ; `extract` d'une vue compilé sans la réécriture du noyau ; `held` absent de `ticket_deja_decide` ; modèle de la lecture (i) signé | EX-7.8, EX-7.24, EX-7.30, EX-8.5, EX-9.15, EX-9.16, EX-10.12 (`canaux_meme_autorite_sans_jeton`, secrets), EX-10.13, EX-12.5, EX-12.9, EX-12.14, EX-12.17, EX-13.13, EX-13.39, EX-13.48 | fait (revue de sécurité de l'étape 8), sauf l'archivage des tickets terminaux et `held` sur T14 : correctifs préparés, à appliquer dans les paquets |
+| `paquets/approbation`, `paquets/console`, `scripts/lib/console.mjs`, vecteurs `annuaire/`, module Go de `ct-3` (complément du 2026-11-16, décision du porteur) | aucune entrée n'est supprimée ; un défi présenté reste tenu jusqu'à son expiration, compté dans les bornes par le module d'annuaire du service et non par la bibliothèque de référence | opération `expirer` et réglage `registration_entry_ttl_ms` (EX-13.10, point 5 ; EX-13.17) ; rejeu d'`expirer` et des inscriptions d'une entrée expirée (EX-13.19, point 6) ; identifiant compteur des vecteurs (A.10) ; défi présenté retiré (EX-13.13, EX-13.15, pas 4) | service, module d'annuaire, bibliothèque de référence, schémas, traces `expiration-entree` et `defi-consomme`, quatre cas d'`exports/` : faits ; module Go de `ct-3` : aligné sur ces règles et ces vecteurs (salle blanche) ; complément du 2026-11-16 (point 12 de la section 0) : bibliothèque de référence alignée sur EX-13.19, points 2 et 6 (instant indécodable, preuve rejouée), cas `exports/expiration-entree-portee.json` : faits ; module Go de `ct-3` : aligné sur ce point 12 (salle blanche) ; complément du 2026-11-16 (point 13 de la section 0) : instants indécodables au rejeu (EX-13.19, points 4 et 6), suivis déjà par la bibliothèque de référence et le module d'annuaire, quatre cas d'`exports/`, section « Cas nommés » d'`INDEX.md` (EX-A.10) : faits ; module Go de `ct-3` : aligné sur ce point 13 (salle blanche) ; complément du 2026-11-16 (point 14 de la section 0) : forme des lignes de la section « Cas nommés » et table d'EX-A.13 : textes faits ; module Go de `ct-3` : à aligner sur ce point 14 (salle blanche : une ligne d'un répertoire hors des vingt et une seconde ligne d'un même répertoire y sont des écarts) |
 | `spec/README.md` (révision 0.8) | ligne CT-3 en version 0.7 | ligne CT-3 en version 0.8 ; schémas `ticket-v0` (neuf membres), `configuration-approbation-v0`, `console-approbation-v0`, `annuaire-approbateurs-v0` | à faire (assemblage) |
 
 ## 16. Ce que cette version ne couvre pas
@@ -8785,7 +9082,7 @@ comptes et les adresses dérivées ; `INDEX.md` les imprime.
 
 ```text
 spec/vecteurs/ct-3/
-  INDEX.md                     généré : chaque cas, son attendu en une ligne, les constantes
+  INDEX.md                     généré : chaque cas, son attendu en une ligne, les constantes, les cas nommés (EX-A.10)
   constantes.json              A.2
   politiques/                  politiques valides, une par fichier (A.4)
   politiques-invalides/        politiques refusées, une par fichier, et attendu.json (A.4)
@@ -9178,7 +9475,38 @@ trouve au moins une discordance, qu'il liste, `2` pour un usage incorrect.
 Révision 0.8 : il rend aussi le code 1 quand une famille de cette annexe est
 absente ou n'a aucune valeur recalculée, et quand un cas que l'`INDEX.md`
 nomme est absent de la racine ou qu'un cas présent n'y est pas nommé (revue
-de sécurité de l'étape 8).
+de sécurité de l'étape 8). Complément du 2026-11-16 : les cas ainsi comptés,
+dans les deux sens, sont les fichiers `.json` de vingt répertoires, sans
+leurs sous-répertoires, `attendu.json` compris : `politiques/`,
+`politiques-invalides/`, `evaluation/`, `candidats/`, `acceptation/cas/`,
+`tickets/`, `reponses-evaluer/`, `decisions/valides/`,
+`decisions/invalides/`, `signatures/`, `annuaire/`, `annuaire/annuaires/`,
+`annuaire/traces/`, `annuaire/exports/`, `console/modeles/`,
+`console/requetes/`, `console/reponses/`, `console/decouverte/`,
+`console/fichiers-cle/` et `notifications/`. L'`INDEX.md` les nomme dans sa
+section « Cas nommés », que le générateur écrit : une ligne par répertoire,
+qui nomme le répertoire puis chacun de ses cas, par son chemin relatif à
+`spec/vecteurs/ct-3/` entre accents graves ; les noms que citent les autres
+sections ne servent pas à ce compte. Complément du 2026-11-16 (forme des
+lignes) : le générateur écrit cette section en dernier, sous le titre
+`## Cas nommés (EX-A.10)`, avec une ligne par répertoire, dans l'ordre de la
+liste ci-dessus, de la forme ``- `<rep>/` : `<rep>/<cas>.json`, …`` (chemins
+dans l'ordre des unités UTF-16) ; il ne nomme aucun autre répertoire, jamais
+deux fois le même, et refuse un répertoire de la liste sans cas comme un
+fichier `.json` qu'il écrirait hors de ces vingt répertoires, de la racine
+et d'`acceptation/`. Toute autre forme de la section est un écart, que le
+vérificateur liste comme une discordance (code 1) : une ligne qui n'a pas
+cette forme (un chemin hors des accents graves, qui ne finit pas par
+`.json`, ou qui n'est pas directement sous le répertoire de la ligne) ; une
+ligne d'un répertoire hors des vingt ; une seconde ligne d'un même
+répertoire ; une section absente, qui donne une seule discordance, nommant
+la section, et non une par répertoire. L'ordre des lignes et celui des
+chemins ne sont pas jugés par le vérificateur : l'intégration continue
+compare l'`INDEX.md` régénéré octet pour octet (EX-A.11). N'en sont pas : les fichiers de la
+racine (`constantes.json`, `acceptation-attendu.json`,
+`acceptation-console-attendu.json`), ceux d'`acceptation/` hors
+`acceptation/cas/` (consigne, politique et gabarit de l'épreuve, A.5),
+`acceptation-console/`, `confrontation/` et le module lui-même.
 
 **EX-A.11** L'intégration continue régénère `spec/vecteurs/ct-3` et exige
 `git diff --exit-code` et aucun fichier non suivi, puis lance dans le module
@@ -9207,7 +9535,8 @@ change pas :
 | Émetteur d'identité | `https://idp.assureur-demo.example` ; identités `oidc https://idp.assureur-demo.example approbateur-<n>` (comptes 1, 2 et 4), `… u.martin` (compte 3, alias de demandeur `u.martin@assureur-demo.example`), `… admin-1` (administrateur, sans adresse) | `annuaire/` |
 | Nonce d'inscription `k` | 16 premiers octets de `SHA-256(UTF-8("noortrace/vecteurs/ct3/inscription/nonce/<k>"))`, en hexadécimal minuscule | `annuaire/` |
 | Instant de base de l'annuaire | `2026-11-10T08:00:00.000Z` ; `registration_ttl_ms` 600 000 | `annuaire/` |
-| Identifiant d'une entrée créée | `apb-` suivi, en décimal sur 4 chiffres complétés de zéros à gauche, du nombre d'entrées de l'annuaire avant la création, augmenté de un (les entrées ne sont jamais supprimées) : depuis `annuaires/avant-inscriptions.json`, qui a deux entrées, la première création donne `apb-0003`. Les vecteurs partent d'un service sans perte d'état, comme les traces d'EX-7.2 ; en exploitation, EX-13.9 s'applique (64 bits aléatoires ou époque) | `annuaire/` |
+| Durée de vie d'une entrée jamais validée | `registration_entry_ttl_ms` 2 592 000 000 (défaut de 10.3) pour chaque trace (complément du 2026-11-16, décision du porteur) | `annuaire/` |
+| Identifiant d'une entrée créée | `apb-` suivi, en décimal sur 4 chiffres complétés de zéros à gauche, du nombre d'entrées jamais créées avant celle-ci, augmenté de un : entrées de l'annuaire et entrées retirées par `expirer` (une opération `expirer` de `operations` par entrée retirée ; complément du 2026-11-16, décision du porteur) : depuis `annuaires/avant-inscriptions.json`, qui a deux entrées et aucune opération `expirer`, la première création donne `apb-0003`. Les vecteurs partent d'un service sans perte d'état, comme les traces d'EX-7.2 ; en exploitation, EX-13.9 s'applique (64 bits aléatoires ou époque) | `annuaire/` |
 
 **EX-A.12** La famille `annuaire/` sert les vérifications AN-1 à AN-10
 (13.16). Ses fichiers :
@@ -9228,7 +9557,26 @@ change pas :
 Une trace d'annuaire part de l'annuaire `initial` ; chaque pas donne une
 méthode de 12.9, son instant (horloge du service), sa requête, le nonce que
 le service tire s'il s'agit de `preparer_inscription`, et l'attendu : sort,
-raison, réponse, `revision` et l'état résumé de chaque entrée. Les
+raison, réponse, `revision` et l'état résumé de chaque entrée. Les défis
+d'un pas sont ceux que rend le pas précédent, un défi présenté en étant
+retiré (EX-13.13). Complément du 2026-11-16, décision du porteur : un pas peut aussi être
+l'opération interne `expirer` (EX-13.17), de requête `{ entry }`, sans nonce,
+sous la durée de vie par défaut ; acceptée, elle n'a pas de réponse
+(`response` nul). Un service qui rejoue une trace par son canal n'envoie pas
+ce pas : il règle son horloge à l'instant du pas, et l'expiration qu'il fait
+avant la requête suivante retire l'entrée d'un pas accepté et aucune pour un
+pas refusé ; aucun autre pas d'une trace n'a lieu à une échéance.
+Complément du 2026-11-16 : un vérificateur des traces le contrôle ainsi.
+Avant chaque pas, à l'instant `at` du pas, il calcule, sur l'annuaire laissé
+par le pas précédent (l'annuaire `initial` avant le premier), la liste des
+entrées échues dans l'ordre de `entries` : celles dont aucune adresse n'a
+`validated_at` non nul et dont `created_at` + 2 592 000 000 ≤ `at`
+(`expirerEntrees(annuaire, at)` d'EX-13.32 en rend les identifiants). Cette
+liste est vide avant tout pas, sauf avant un pas `expirer` accepté, où elle
+est exactement l'entrée du pas. Une entrée dont le `created_at` respecte le
+motif sans se décoder (CT-1 §3) n'est jamais échue, comme pour le service
+(EX-13.17) : elle n'entre pas dans la liste, et un pas `expirer` qui la vise
+est refusé `etat_incompatible`. Les
 signatures sont de vraies signatures EIP-191 des comptes de A.2 ; les
 signatures non canoniques des cas de forme sont dérivées des signatures
 canoniques par les transformations d'EX-9.3 (`s` → `n − s`, `v` inversé ;
@@ -9249,9 +9597,11 @@ canoniques par les transformations d'EX-9.3 (`s` → `n − s`, `v` inversé ;
 | `traces/desactivation.json` | désactivation qui révoque tout, défi effacé, préparation refusée `identite_desactivee`, réactivation sans adresse rétablie, nouvelle inscription |
 | `traces/adresse-jamais-reattribuee.json` | adresse révoquée d'une entrée, que prépare une autre identité : `adresse_deja_attribuee` dès `preparer_inscription` |
 | `traces/alias-demandeur.json` | `lier_demandeur`, double liaison refusée, `delier_demandeur`, valeur inconnue refusée |
+| `traces/expiration-entree.json` | complément du 2026-11-16, décision du porteur : une entrée jamais validée, avec un alias de demandeur, n'expire pas une milliseconde avant `created_at + registration_entry_ttl_ms` (`etat_incompatible`) et expire à l'échéance exacte, avec son adresse et son alias ; une entrée validée n'expire pas (`etat_incompatible`) ; une entrée déjà retirée (`entree_inconnue`) ; l'adresse libérée est inscrite par une autre identité ; l'identité se réinscrit dans une entrée d'identifiant neuf ; l'alias est lié de nouveau |
+| `traces/defi-consomme.json` | complément du 2026-11-16, décision du porteur : quatre défis, le cinquième refusé (`limite_annuaire`) ; une inscription acceptée retire son défi et un cinquième défi est accepté ; une inscription refusée après le pas 4 (`signature_invalide`) retire aussi le sien ; le défi présenté une seconde fois : `nonce_inconnu` |
 | `controles-canal.json` | `consulter` par une session éligible, par un administrateur, par une session dont l'adresse active n'est pas éligible (le demandeur sous `interdite`, `session_non_autorisee`) et par une identité sans entrée ; pour un ticket inconnu (`ticket` nul), `consulter` par une session de l'organisation, éligible ou non (`ticket_inconnu`), par une session hors de l'organisation ou d'entrée désactivée (`session_non_autorisee`) et par une identité non canonique ; `tickets` par une session de l'organisation, par un administrateur, par une session hors de l'organisation et d'entrée désactivée ; `voter` et `recuser` de l'adresse active, d'une autre adresse, d'une adresse révoquée ; `voter` pour un ticket inconnu, de l'adresse active (`ticket_inconnu`) et d'une autre adresse (`session_non_autorisee`) ; `retirer` par le demandeur (`by` = `launched_by`), par un administrateur (`by` = son identité), par un approbateur qui n'est pas le demandeur avec `by` = `launched_by` (`session_non_autorisee`), par un administrateur avec `by` = `launched_by`, par un approbateur avec `by` = son identité, et d'un ticket inconnu (`ticket_inconnu`) ; une identité non canonique (`identite_invalide`) |
 | `controles-vote.json` | chaque raison d'EX-13.18 dans l'ordre, et chaque paire de raisons voisines (dont un demandeur par alias sous `interdite`, et le même autorisé sous `permise`), récusation par une adresse non attribuée, récusation par la session du demandeur (autorisée), vote autorisé, avertissement `separation_incomplete` |
-| `exports/` | l'annuaire de référence sans écart ; un cas par code d'EX-13.19 : preuve signée par une autre clé, preuve dont l'identité diffère de l'entrée, deux adresses actives, une adresse dans deux entrées, identité en double, auto-validation, `revision` faux, opérations qui ne se rejouent pas, document non conforme au schéma ; la recopie d'un nouveau réglage `administrators` suivie d'une opération du nouvel administrateur (sans écart), une liste d'administrateurs changée sans opération (`/operations/1`) et une liste qui diffère de celle du rejeu (`/administrators`) (EX-13.37) |
+| `exports/` | l'annuaire de référence sans écart ; un cas par code d'EX-13.19 : preuve signée par une autre clé, preuve dont l'identité diffère de l'entrée, deux adresses actives, une adresse dans deux entrées, identité en double, auto-validation, `revision` faux, opérations qui ne se rejouent pas, document non conforme au schéma ; la recopie d'un nouveau réglage `administrators` suivie d'une opération du nouvel administrateur (sans écart), une liste d'administrateurs changée sans opération (`/operations/1`) et une liste qui diffère de celle du rejeu (`/administrators`) (EX-13.37) ; complément du 2026-11-16, décision du porteur : l'annuaire final de la trace `expiration-entree` (sans écart, inscription d'une entrée expirée rejouée sans preuve), une expiration datée sous la borne basse, l'expiration d'une entrée validée et un identifiant d'entrée expirée réattribué (`operations_incoherentes`) ; complément du 2026-11-16 : l'annuaire de la trace `expiration-entree` juste après son expiration, dont `entries` porte encore l'entrée retirée, sa preuve signée par une autre clé (`preuve_invalide`, et `operations_incoherentes` `/entries` : l'inscription se rejoue sans chercher sa preuve dans le document) ; complément du 2026-11-16 (instants indécodables, EX-13.19, points 2, 4 et 6 ; dates au 31 novembre, conformes au motif) : une opération `expirer` dont l'instant ne se décode pas (`operations_incoherentes` `/operations/4`, `revision_incoherente` `/operations/4/at`), une inscription dont l'instant, et donc le `created_at` de l'entrée et le `received_at` de sa preuve, ne se décodent pas (`preuve_discordante` à la preuve, `revision_incoherente`), trois opérations `valider`, `revoquer` et `valider` rejouées à des instants indécodables, `validated_at`, `revoked_at` et `updated_at` portant le même texte (`revision_incoherente` aux trois opérations), et un remplacement puis une désactivation à des instants indécodables (`revoked_at` de `remplacee` et de `desactivation`, `revision_incoherente` aux deux opérations) |
 
 **EX-A.14** Implémentations et tests. `scripts/lib/console.mjs`
 (EX-13.32) rejoue toute la famille ; `test/console.test.js` régénère les

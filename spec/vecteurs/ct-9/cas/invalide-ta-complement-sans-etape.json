@@ -106,71 +106,65 @@
   ],
   "tests": [
     {
-      "id": "TA-41",
+      "id": "TA-25",
       "level": "TA",
-      "title": "Réponse retirée : Secrets par référence, jamais dans la file, les traces ni le journal (CT-5 EX-4.8, AN-43)",
+      "title": "Réponse retirée : Surfaces d'écoute exhaustives, moindre privilège (CT-2 EX-18.1, EX-18.2, EX-18.4, EX-18.7) ; version et empreinte de l'image consignées (EX-18.6, CT-7 EX-3.14)",
       "specs": [
-        "CT-5",
+        "CT-2",
         "CT-7"
       ],
       "covers": [
-        "CT-5 EX-4.8",
-        "CT-5 AN-43",
-        "CT-5 EX-5.5",
-        "CT-7 §4.6"
+        "CT-2 EX-18.1",
+        "CT-2 EX-18.2",
+        "CT-2 EX-18.4",
+        "CT-2 EX-18.7",
+        "CT-2 EX-18.6",
+        "CT-7 EX-3.14"
       ],
       "preconditions": [
-        "Démon de l'enregistreur (`paquets/enregistreur`, étape 4) avec le composant d'ancrage (`paquets/ancrage`, étape 5) branché (`anchoring.ancrage`, document `ancrage-v0`), en cours de processus à horloge réglable ; serveurs RFC 3161 internes de référence du paquet d'ancrage, le principal en TLS mutuel ; `providers[principal].auth` porte une référence de secret `file` dont la valeur résolue porte une chaîne marqueur injectée par l'essai (CT-5 EX-4.8, AN-43)."
+        "Images construites de façon reproductible (CT-8 §3.6, phase 2, étape 7) ; empreintes publiées."
       ],
       "steps": [
-        "Démarrer le démon avec le composant ; laisser partir des requêtes RFC 3161 authentifiées vers le principal (points contresignés, clôture).",
-        "Relire la file durable, les traces du planificateur, `acquisitions.ndjson`, le journal d'exploitation et les métriques ; y chercher la chaîne marqueur, le secret TLS et la clé de chaîne.",
-        "Présenter une chaîne en clair à la place de la référence, puis une référence `env` absente ; relever le refus.",
-        "Mutant (complément) : copie du paquet `paquets/ancrage` (EX-10.5) dont la journalisation ou la mise en file recopie la valeur résolue du secret."
+        "Installer le démon dans un arbre de la forme de l'image de référence, avec --image-attendue ; lire la ligne startup (image_expected, code_sha256, image_match).",
+        "Modifier un octet du code installé ; relancer ; relever image_mismatch et comparer."
       ],
-      "oracle": "Le marqueur, le secret TLS et la clé de chaîne n'apparaissent dans aucun fichier (file, traces, `acquisitions.ndjson`, journal d'exploitation, métriques) ; seule la référence (`file`) figure dans la configuration d'ancrage en vigueur ; une chaîne en clair est refusée par le schéma `ancrage-v0` (AN-1) ; une référence `env` absente refuse le démarrage de l'ancrage (`secret_non_resolu`, pointeur consigné, jamais une valeur) sans arrêter l'enregistreur. Avec le mutant du complément, le marqueur apparaît et le test échoue.",
+      "oracle": "Empreinte consignée égale à la publiée pour la première ; écart signalé pour la seconde.",
       "status": {
         "state": "executable",
         "tests": [
           {
-            "file": "test/enregistreur-ancrage-exigences.test.js",
-            "describe": "enregistreur + ancrage : branchement d'anchoring.ancrage, configuration refusée, secrets, clé de chaîne (CT-5 EX-4.8, EX-4.9 ; CT-2 §15.2, EX-11.19 ; TA-41)",
-            "it": "TA-41 : une chaîne en clair à la place d'une référence de secret est refusée (schéma ancrage-v0, AN-1) ; une référence env absente refuse le démarrage de l'ancrage sans arrêter l'enregistreur (secret_non_resolu, pointeur consigné, jamais une valeur) ; resoudreSecretsAncrage ne touche qu'aux pointeurs d'ancrage-v0"
-          },
-          {
-            "file": "test/enregistreur-ancrage-exigences.test.js",
-            "describe": "enregistreur + ancrage : période rejouée à l'horloge réglable (EX-4.12, AN-43, TA-62, EX-4.9), copie WORM d'ancres/ et de la file (EX-5.15, EX-8.14, TM-16), rotation d'urgence"
-          },
-          {
             "file": "test/adversarial.test.js",
-            "describe": "CT-9 : tests adversariaux TA- exécutables sur le composant d'ancrage de l'étape 5 (mutants du paquet @noortrace/ancrage, CT-7 EX-3.2)",
-            "it": "TA-41 (MN-41, complément ; mutants du composant d'ancrage) : secret du principal à valeur résolue marquée, jeton obtenu en TLS mutuel : marqueur absent des fichiers, du journal et des métriques, seule la référence dans la configuration en vigueur ; mutant sans la copie privée du prestataire résolu : la valeur y remplace la référence ; mutant dont le journal d'acquisition recopie la valeur (tués)"
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-25 (MN-25) : démon réel dans un arbre d'installation de la forme de l'image de référence, image attendue lue dans le fichier monté : l'arbre publié consigne à startup l'empreinte publiée ; l'arbre modifié d'un octet est signalé (image_match faux, ligne image_mismatch) ; mutant sans la comparaison de l'empreinte à la version publiée : l'arbre modifié tourne sans signal (tué)"
+          },
+          {
+            "file": "test/enregistreur-empreinte-image.test.js",
+            "describe": "enregistreur : empreinte du code en cours et image attendue (CT-7 EX-3.14, PA-4 ; MN-25)"
           }
         ],
-        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-ancrage-exigences.test.js && npx mocha --timeout 600000 test/adversarial.test.js",
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur-empreinte-image.test.js",
         "complement": {
-          "blocking": "Mutant du composant livré : une copie du paquet `paquets/ancrage` (EX-10.5) dont la journalisation ou la mise en file recopie la valeur résolue d'une référence de secret, rejouée par le même essai, qui doit alors trouver le marqueur ; les essais de l'étape 5 éprouvent la réponse sans ce mutant. Possible dès maintenant sur le composant livré et non écrit : étape 8 (EX-3.10). Les versions 0.1 et 0.2 rattachaient l'entrée aux étapes 4 puis 5."
+          "blocking": "Partie sur l'image construite : démarrage complet en conteneur d'une image de l'enregistreur reconstruite avec le code de PA-4 et code_sha256 publié dans la note de version (l'image attendue est montée par le fichier Compose de production depuis le complément du 2026-11-16, CT-8 EX-3.15) ; le démon est éprouvé ici hors conteneur, dans un arbre d'installation de la forme de l'image de référence."
         }
       },
       "threats": [
-        "MN-41"
+        "MN-25"
       ],
       "adversarial": {
-        "threat": "MN-41",
-        "component": "cles",
+        "threat": "MN-25",
+        "component": "ecrivain_stockage",
         "response_removed": {
-          "what": "Secrets par référence, jamais dans la file, les traces ni le journal (CT-5 EX-4.8, AN-43)",
-          "how": "Journaliser ou mettre en file la valeur résolue d'une référence de secret au lieu de la référence",
-          "where": "paquets/ancrage (file durable, traces du planificateur, acquisitions.ndjson, journal) et paquets/enregistreur (resoudreSecretsAncrage, journal d'exploitation)"
+          "what": "Surfaces d'écoute exhaustives, moindre privilège (CT-2 EX-18.1, EX-18.2, EX-18.4, EX-18.7) ; version et empreinte de l'image consignées (EX-18.6, CT-7 EX-3.14)",
+          "how": "Retirer la comparaison de l'empreinte de l'image à la version publiée",
+          "where": "paquets/enregistreur/src/empreinte-image.mjs (controlerImage) ; démarrage du démon (PA-4, CT-2 §18.4) ; procédure CT-7 EX-3.14"
         },
-        "attack": "Un planificateur qui consigne la valeur de l'identifiant d'accès au prestataire dans la file, une trace ou le journal.",
-        "expected_with_response": "Aucun fichier ne contient la valeur du secret : seule la référence (`env`, `file`, `vault`) y figure.",
-        "expected_without_response": "La valeur marqueur apparaît dans la file ou le journal ; le test échoue.",
+        "attack": "Image reconstruite localement avec un octet modifié, lancée à la place de la version publiée.",
+        "expected_with_response": "Le démarrage consigne l'empreinte de l'image et code.recorder ; la comparaison à la version publiée signale l'écart.",
+        "expected_without_response": "L'image modifiée tourne sans signal ; le test échoue.",
         "execution": "phase_2",
-        "accepted_risk": "RA-37",
-        "threat_test_text": "Le test échoue si la réponse est retirée : aucune ligne de la file ni du journal d'exploitation des vecteurs `ct-5/` ne contient un secret (AN-43) ; si un secret y est écrit, le test échoue."
-      },
-      "notes": "L'essai « AN-43 et TA-41 : des requêtes RFC 3161 authentifiées sont parties vers le principal… » de test/enregistreur-ancrage-exigences.test.js porte l'oracle du marqueur ; son titre (417 caractères) dépasse la borne de 400 de `titre_test` (plan-de-tests-v0) : il est cité par son describe, qui désigne tous ses it (EX-4.2), et se joue avec eux."
+        "accepted_risk": "RA-22",
+        "threat_test_text": "Le test échoue si la réponse est retirée : le démarrage consigne l'image attendue, l'empreinte du code en cours et `code.recorder` ; une image dont l'empreinte de code diffère de celle de la version publiée est signalée (`image_mismatch`) ; si la comparaison est retirée, le test échoue."
+      }
     }
   ],
   "non_tests": [],

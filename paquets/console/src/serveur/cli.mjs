@@ -4,7 +4,9 @@
 //   noortrace-console sonde [--config <fichier>]          sonde d'EX-13.44, codes 0 et 1
 //   noortrace-console --version                           nom et version du paquet
 // Usage incorrect : code 2, sauf pour `sonde`, qui ne rend que 0 ou 1
-// (EX-13.44 : « aucune autre valeur » ; révision 0.6 de CT-3, 15.2).
+// (EX-13.44 : « aucune autre valeur » ; révision 0.6 de CT-3, 15.2) ;
+// complément du 2026-11-16 : un fichier qui commence par `--` est une option
+// sans sa valeur, donc un usage incorrect.
 // Refus au démarrage : la ligne `$defs/rapport_validation` d'EX-10.14 sur la
 // sortie d'erreur, code 1 ; une cause qu'aucun code ne nomme (manifeste des
 // pages en écart) est écrite comme texte.
@@ -23,6 +25,9 @@ const USAGE = `usage :
   noortrace-console --version
 `;
 
+/** Valeur d'option présente, qui n'est pas une autre option (complément du 2026-11-16). */
+const valeur = (v) => typeof v === "string" && v !== "" && !v.startsWith("--");
+
 const usage = () => {
   process.stderr.write(USAGE);
   return 2;
@@ -39,7 +44,7 @@ export async function principal(args) {
     return 0;
   }
   if (args[0] === "valider-configuration") {
-    if (args.length !== 2) return usage();
+    if (args.length !== 2 || !valeur(args[1])) return usage();
     let octets;
     try {
       octets = fs.readFileSync(args[1]);
@@ -62,7 +67,7 @@ export async function principal(args) {
     process.stderr.write(r.erreur);
     return r.code;
   }
-  if (args.length === 2 && args[0] === "--config") return servir(args[1]);
+  if (args.length === 2 && args[0] === "--config" && valeur(args[1])) return servir(args[1]);
   return usage();
 }
 

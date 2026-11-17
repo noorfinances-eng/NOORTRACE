@@ -64,6 +64,10 @@
         {
           "target": "/etc/noortrace/instance-registre.json",
           "access": "ro"
+        },
+        {
+          "target": "/etc/noortrace/image-attendue.json",
+          "access": "ro"
         }
       ],
       "tmpfs": "/run/temporaire",

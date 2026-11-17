@@ -427,8 +427,102 @@ func TestLecturesProse(t *testing.T) {
 	if !ok || n != 12 || strings.Join(dont, ",") != "TA-95,TA-97" {
 		t.Errorf("16 phase 2 : %d %v %v", n, dont, ok)
 	}
-	n, ids, ok = LireEtape8_16(s16)
+	n, ids, ok = LireEtape16(s16, 8)
 	if !ok || n != 3 || strings.Join(ids, ",") != "TA-5,TA-14,TA-40" {
 		t.Errorf("16 étape 8 : %d %v %v", n, ids, ok)
+	}
+}
+
+// Section 16, complément du 2026-11-16 : une seule entrée TA- garde un
+// complément ; la phrase qui en donne le nombre se lit au pluriel avec un
+// nombre écrit, au pluriel sans nombre (nombre des TA- nommés) et au
+// singulier (1), sans jamais déduire le nombre du catalogue.
+func TestLectures16Nombre(t *testing.T) {
+	cas := []struct {
+		s      string
+		n      int
+		nommes string
+	}{
+		{"les compléments des deux TA- exécutables qui en portent un (TA-25, TA-41) et ceux de TV-55 n'ont aucun résultat", 2, "TA-25,TA-41"},
+		{"les compléments des TA- exécutables qui en portent un (TA-25) et ceux de TV-55 n'ont aucun résultat", 1, "TA-25"},
+		{"les compléments des TA- exécutables qui en portent un (TA-25, TA-41) et ceux de TV-55 n'ont aucun résultat", 2, "TA-25,TA-41"},
+		{"le complément du TA- exécutable qui en porte un (TA-25) et ceux de TV-55 n'ont aucun résultat", 1, "TA-25"},
+		{"le complément du seul TA- exécutable qui en porte un (TA-25) et ceux de TV-55 n'ont aucun résultat", 1, "TA-25"},
+		// Nombre écrit et liste en désaccord : le nombre écrit est rendu, la
+		// vérification compare les deux.
+		{"les compléments des trois TA- exécutables qui en portent un (TA-25) et ceux de TV-55 n'ont aucun résultat", 3, "TA-25"},
+	}
+	for _, c := range cas {
+		n, nommes, ok := LireNombreTA16(c.s)
+		if !ok || n != c.n || strings.Join(nommes, ",") != c.nommes {
+			t.Errorf("TA- avec complément « %s » : %d %v %v", c.s, n, nommes, ok)
+		}
+		ta, autres, ok := LireComplements16(c.s)
+		if !ok || strings.Join(ta, ",") != c.nommes || strings.Join(autres, ",") != "TV-55" {
+			t.Errorf("liste « %s » : %v %v %v", c.s, ta, autres, ok)
+		}
+	}
+	for _, s := range []string{
+		"les compléments des TA- exécutables qui en portent un () et ceux de TV-55",
+		"les compléments des quelques TA- exécutables qui en portent un (TA-25)",
+		"les compléments des TA- exécutables",
+	} {
+		if n, nommes, ok := LireNombreTA16(s); ok {
+			t.Errorf("lu à tort « %s » : %d %v", s, n, nommes)
+		}
+	}
+	etapes := []struct {
+		s      string
+		etape  int
+		n      int
+		nommes string
+		ok     bool
+	}{
+		{"les compléments des deux entrées de l'étape 8 (TA-25, TA-41) ;", 8, 2, "TA-25,TA-41", true},
+		{"les compléments des entrées de l'étape 8 (TA-25), celui de TA-41 étant levé", 8, 1, "TA-25", true},
+		{"le complément de l'entrée de l'étape 8 (TA-25) ;", 8, 1, "TA-25", true},
+		{"le complément de la seule entrée de l'étape 4 (TE-3) ;", 4, 1, "TE-3", true},
+		{"les compléments des deux entrées de l'étape 4 ;", 4, 2, "", true},
+		{"les compléments des entrées de l'étape 8 ;", 8, 0, "", false},
+		{"les compléments des entrées de l'étape 80 (TA-25)", 8, 0, "", false},
+	}
+	for _, c := range etapes {
+		n, nommes, ok := LireEtape16(c.s, c.etape)
+		if ok != c.ok || (ok && (n != c.n || strings.Join(nommes, ",") != c.nommes)) {
+			t.Errorf("étape %d « %s » : %d %v %v", c.etape, c.s, n, nommes, ok)
+		}
+	}
+	if l := LireLeves16("compléments des entrées de l'étape 8 (TA-25), celui de TA-41 étant levé (complément du 2026-11-16) ;"); strings.Join(l, ",") != "TA-41" {
+		t.Errorf("levé : %v", l)
+	}
+	if l := LireLeves16("ceux de TA-25 et TA-41 étant levés"); strings.Join(l, ",") != "TA-25,TA-41" {
+		t.Errorf("levés : %v", l)
+	}
+	if n, _, ok := LirePhase2_16("1 entrée TA- à menace d'exécution `phase_2` à écrire (dont TA-95 et TA-97"); !ok || n != 1 {
+		t.Errorf("phase 2 au singulier : %d %v", n, ok)
+	}
+}
+
+// Sur le dépôt, chaque phrase de la section 16 que le vérificateur lit
+// donne un contrôle concordant : aucune n'est sautée en silence.
+func TestDepot16(t *testing.T) {
+	racine, err := filepath.Abs(filepath.Join("..", "..", "..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rap, err := Verifier(racine)
+	if err != nil {
+		t.Fatal(err)
+	}
+	vus := map[string]string{}
+	for _, c := range rap.Controles {
+		if c.Regle == "16" {
+			vus[c.Objet] = c.Statut
+		}
+	}
+	for _, o := range []string{"entrées à écrire", "TA- avec complément", "compléments de l'étape 4", "TM- à écrire", "TA- avec complément (liste)", "autres entrées avec complément", "TA- à menace de phase 2 à écrire", "compléments de l'étape 8 nommés", "complément levé : TA-41"} {
+		if vus[o] != Concordant {
+			t.Errorf("16 | %s : %q", o, vus[o])
+		}
 	}
 }

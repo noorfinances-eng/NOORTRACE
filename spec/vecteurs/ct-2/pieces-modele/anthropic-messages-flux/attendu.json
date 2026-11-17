@@ -16,7 +16,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Le dossier 2026-81044 est presque complet ; l'assuré est joignable à j.dupont@example.ch pour la facture manquante."
+        "text": "Le dossier 2026-81044 est presque complet ; l'assuré est joignable à j.dupont@ch.example pour la facture manquante."
       }
     ],
     "stop_reason": "end_turn",

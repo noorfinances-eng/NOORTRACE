@@ -84,8 +84,17 @@ type etatInterne struct {
 	miseANiveauAt *int64
 	differe       *int64
 	renvois       int64
-	soumisA       *int64
 	premierEnvoi  *int64 // instant de la tentative de rang 1 d'un jeton, retenu dans ce processus (EX-3.5)
+	// nonces des tentatives que le planificateur a vues sortir de la fenêtre
+	// de 32 pendant le rejeu, par rang (8.5, règle 2, complément du 2026-11-16).
+	noncesSortis map[int64]string
+	// EX-9.5 (complément du 2026-11-16, l'ancre d'un point en reprise) : une
+	// tentative de l'ancre « sortie de la fenêtre de 32 avant le dernier
+	// démarrage, dont la file ne dit plus rien (EX-8.5, règle 7), a pu être
+	// admise » ; de même une tentative sortie pendant la marche close sur un
+	// autre code que ceux d'un échec sans admission, ou obtenue. Vrai : l'ancre
+	// n'est plus « encore à envoyer » et n'est pas remplacée.
+	peutEtreAdmise bool
 }
 
 // Ecriture relie une action ecrire_file (indice dans Actions) à la ligne
@@ -118,6 +127,16 @@ type Planificateur struct {
 	horloge       *int64
 	demarre       bool
 	admissions    map[string]int64 // instant d'admission de chaque point, par empreinte (EX-3.5, révision 0.6)
+	// passe en cours (EX-8.10, complément du 2026-11-16) : « une passe est le
+	// traitement d'une entrée : les minuteries échues jusqu'à son instant, puis
+	// l'entrée elle-même » ; instantPasse est l'instant de l'entrée, rejeux le
+	// nombre d'échéances rejouées par minuterie périodique et par demande.
+	instantPasse int64
+	rejeux       map[string]int
+	// enregistrements relus d'acquisitions.ndjson portés par l'entrée
+	// stockage_relu en cours de traitement, par request_id (EX-8.12,
+	// complément du 2026-11-16) ; nil hors de cette entrée ou sans le membre.
+	acquisRelues map[string]*Resultat
 }
 
 func sortePeriode(kind string) bool      { return len(kind) > 8 && kind[len(kind)-8:] == "_periode" }
@@ -165,7 +184,7 @@ func NouveauPlanificateur(config *Value, aleatoire Aleatoire) (*Planificateur, e
 func (p *Planificateur) int(id string) *etatInterne {
 	s, ok := p.interne[id]
 	if !ok {
-		s = &etatInterne{enCours: map[string]int64{}, engages: map[string]bool{}, epuises: map[string]bool{}, reprises: map[string]int64{}, k: map[string]int64{}, premier408: map[string]bool{}, alertes: map[string]bool{}}
+		s = &etatInterne{enCours: map[string]int64{}, engages: map[string]bool{}, epuises: map[string]bool{}, reprises: map[string]int64{}, k: map[string]int64{}, premier408: map[string]bool{}, alertes: map[string]bool{}, noncesSortis: map[int64]string{}}
 		p.interne[id] = s
 	}
 	return s
@@ -198,7 +217,23 @@ func (p *Planificateur) ecrire(d *Demande, t int64, state string) {
 	d.State = state
 	// EX-8.5, règle 7 (révision 0.6) : la ligne porte au plus 32 tentatives et
 	// toujours attempts_total, plus grand rang de la demande.
-	d.Attempts = Fenetre(d.Attempts)
+	gardees := Fenetre(d.Attempts)
+	if len(gardees) < len(d.Attempts) {
+		portees := map[int64]bool{}
+		for _, a := range gardees {
+			portees[a.N] = true
+		}
+		s := p.int(d.ID)
+		for _, a := range d.Attempts {
+			if !portees[a.N] && a.Nonce != nil {
+				s.noncesSortis[a.N] = *a.Nonce
+			}
+			if !portees[a.N] && !sansAdmission(a) {
+				s.peutEtreAdmise = true
+			}
+		}
+	}
+	d.Attempts = gardees
 	total := d.Total()
 	for _, a := range d.Attempts {
 		if a.N > total {
@@ -307,12 +342,35 @@ func (p *Planificateur) finPeriode(per *periode) int64 {
 
 // --- horloge et minuteries ----------------------------------------------
 
+// minuterieDePeriode : échéances et cadence des points, armées par période ou
+// par journal ; les autres minuteries sont celles d'une demande.
+func minuterieDePeriode(m *minuterie) bool { return m.typ == "echeance" || m.typ == "cadence" }
+
+// trierTimers range les minuteries par échéance. EX-8.16 (complément du
+// 2026-11-16) : « Deux minuteries de même échéance se déclenchent dans cet
+// ordre : celles des périodes (échéances, cadence des points) d'abord, dans
+// l'ordre où elles ont été armées ; puis celles des demandes, dans l'ordre de
+// la file (created_at, puis id) et, pour une même demande, dans l'ordre où
+// elles ont été armées » ; « l'ordre d'armement des minuteries de période vaut
+// quel que soit leur journal ».
 func (p *Planificateur) trierTimers() {
 	sort.SliceStable(p.timers, func(i, j int) bool {
-		if p.timers[i].at != p.timers[j].at {
-			return p.timers[i].at < p.timers[j].at
+		a, b := p.timers[i], p.timers[j]
+		if a.at != b.at {
+			return a.at < b.at
 		}
-		return p.timers[i].seq < p.timers[j].seq
+		pa, pb := minuterieDePeriode(a), minuterieDePeriode(b)
+		if pa != pb {
+			return pa
+		}
+		if !pa && a.id != b.id {
+			da, db := p.demandes[a.id], p.demandes[b.id]
+			if da != nil && db != nil && da.CreatedAt != db.CreatedAt {
+				return da.CreatedAt < db.CreatedAt
+			}
+			return a.id < b.id
+		}
+		return a.seq < b.seq
 	})
 }
 
@@ -351,7 +409,14 @@ func (p *Planificateur) declencher(m *minuterie) {
 		if s := p.int(d.ID); s.attenteAt == nil || *s.attenteAt != t {
 			return
 		}
-		p.examinerAttenteRegistre(d, t)
+		// EX-8.10 : l'examen de l'attente du registre d'un jeton_periode est une
+		// minuterie périodique, au plus quatre rejeux par passe.
+		quatrieme := false
+		if d.Kind == "jeton_periode" {
+			p.rejeux["attente_registre|"+d.ID]++
+			quatrieme = p.rejeux["attente_registre|"+d.ID] == 4
+		}
+		p.examinerAttenteRegistre(d, t, quatrieme)
 	case "reprise":
 		if d == nil || EtatsFinaux[d.State] {
 			return
@@ -361,7 +426,13 @@ func (p *Planificateur) declencher(m *minuterie) {
 			return
 		}
 		delete(s.reprises, m.provider)
-		if prefixe(d.Kind, "ots_") {
+		if prefixe(d.Kind, "ancre_registre_") {
+			// EX-8.10 (complément du 2026-11-16) : « À l'échéance, l'ancre est
+			// renvoyée si la clé de chaîne n'a pas de transaction sans reçu ;
+			// sinon elle attend (attente_nonce) et part au reçu de celle-ci
+			// (EX-9.4). »
+			p.attendOuEnvoie(d, t)
+		} else if prefixe(d.Kind, "ots_") {
 			p.soumettreOts(d, t)
 		} else {
 			p.pret(d, p.prestataires[m.provider])
@@ -403,19 +474,42 @@ func (p *Planificateur) declencher(m *minuterie) {
 			sev = "mineure"
 			detail = "renvoi des memes octets"
 		}
+		// EX-8.10 (complément du 2026-11-16) : « au plus quatre sont rejouées
+		// par minuterie et par demande [...] Au quatrième rejeu, la minuterie
+		// est reposée à sa première échéance postérieure à l'instant de
+		// l'entrée [...] pour le renvoi d'une ancre, elles sont comptées sur une
+		// ligne anchor_retry écrite au quatrième rejeu, avant son envoi, si elles
+		// sont au moins une (kind, mode renvoi, error_code recu_absent,
+		// missed_deadlines, puis attempt et attempt_id de la tentative que ce
+		// rejeu clôt) ».
+		p.rejeux["inclusion|"+d.ID]++
+		pas := p.cfg.InclusionAlertS * 1000
+		prochain, manquees := p.reposer(t, pas, p.rejeux["inclusion|"+d.ID] == 4)
 		p.alerter(t, &d.ID, "inclusion_late", sev)
+		clos := int64(0)
+		if len(d.Attempts) > 0 {
+			clos = d.Attempts[len(d.Attempts)-1].N
+		}
 		p.cloreTentativeRegistre(d, t, "recu_absent", "")
+		if manquees >= 1 {
+			p.journaliser(t, &d.ID, avecRang(vObj("event", vStr("anchor_retry"), "kind", vStr(d.Kind), "mode", vStr("renvoi"), "error_code", vStr("recu_absent"), "missed_deadlines", vInt(manquees)), d, clos))
+		}
 		p.ajouterTentative(d, nil, t, nil, detail)
+		// EX-8.10 (complément du 2026-11-16) : « une ancre renvoyée, comme toute
+		// ancre envoyee, n'a pas de due_at ».
+		d.DueAt = nil
 		p.ecrire(d, t, "envoyee")
 		p.emettre(t, "envoyer_registre", &d.ID, p.detailRegistre(d))
-		s.inclusionAt = ptrI(t + p.cfg.InclusionAlertS*1000)
+		s.inclusionAt = ptrI(prochain)
 		p.timer(*s.inclusionAt, "inclusion", d.ID, 0, "")
 	case "repli_cloture":
+		// EX-8.4, règle 2 : « registry.squat_wait_s après la clôture, si
+		// jeton_periode est encore attente_registre, une demande jeton_point
+		// sans échéance est créée pour le point de clôture » ; EX-9.7
+		// (complément du 2026-11-16) : « Le refus n'abandonne pas le repli de
+		// clôture » : seul l'état du jeton de la période compte, quel que soit
+		// celui de son ancre.
 		if d == nil || d.State != "attente_registre" {
-			return
-		}
-		ancre := p.demandes[idDemande("ancre_registre_periode", d.Subject.Hash)]
-		if ancre == nil || ancre.State == "obtenue" || ancre.State == "refusee" {
 			return
 		}
 		p.repliCloture(d, t)
@@ -457,11 +551,31 @@ func (p *Planificateur) Recevoir(entree *Value) {
 	if !p.demarre && typ != "demarrage" {
 		panic(refus("", "première entrée : demarrage attendu"))
 	}
-	p.avancer(t)
+	p.instantPasse = t
+	p.rejeux = map[string]int{}
 	data := entree.Get("data")
+	// Schéma planificateur-ancrage-v0, complément du 2026-11-16 : « membre
+	// facultatif acquisitions des entrées demarrage et stockage_relu
+	// ($defs/acquisition_relue) » ; un élément hors de cette forme refuse
+	// l'entrée.
+	var acquisitions []*AcquisitionRelue
+	avecAcquisitions := false
+	if typ == "demarrage" || typ == "stockage_relu" {
+		if a := champ(data, "acquisitions"); a != nil {
+			l, err := AcquisitionsDe(a)
+			if err != nil {
+				panic(refus("", "%s.acquisitions : %s", typ, err.Error()))
+			}
+			if typ == "stockage_relu" && len(l) > 20000 {
+				panic(refus("", "stockage_relu.acquisitions : au plus 20 000 éléments"))
+			}
+			acquisitions, avecAcquisitions = l, true
+		}
+	}
+	p.avancer(t)
 	switch typ {
 	case "demarrage":
-		p.demarrer(t)
+		p.demarrer(t, acquisitions, avecAcquisitions)
 	case "point_produit":
 		p.pointProduit(t, data)
 	case "periode_close":
@@ -476,7 +590,7 @@ func (p *Planificateur) Recevoir(entree *Value) {
 	case "echec_registre":
 		p.echecRegistre(t, data)
 	case "stockage_relu":
-		p.reconstruire(t, data)
+		p.reconstruire(t, data, acquisitions)
 	case "arret":
 		p.journaliser(t, nil, vObj("event", vStr("anchoring_stopped"), "queue_entries", vInt(int64(len(p.demandes)))))
 	default:
@@ -497,13 +611,38 @@ func (p *Planificateur) Recevoir(entree *Value) {
 func (p *Planificateur) Charger(demandes []*Demande) {
 	for _, d := range demandes {
 		p.demandes[d.ID] = d
+		p.noterFenetreRelue(d)
 	}
 	p.relues = int64(len(p.demandes))
 }
 
-func (p *Planificateur) demarrer(t int64) {
+func (p *Planificateur) demarrer(t int64, acquisitions []*AcquisitionRelue, avecAcquisitions bool) {
 	p.demarre = true
 	p.journaliser(t, nil, vObj("event", vStr("anchoring_started"), "queue_entries", vInt(p.relues)))
+	// EX-5.8 (complément du 2026-11-16) : « Au démarrage, une demande de jeton
+	// obtenue de la file sans enregistrement obtenue promu de même token_sha256
+	// dans acquisitions.ndjson est rouverte (a_reprendre) et alertée
+	// (file_perdue). [...] la réouverture efface le résultat, écrit la demande
+	// a_reprendre à l'instant du démarrage (due_at), lève l'alerte file_perdue
+	// (critique) sur cette demande, et la reprise d'EX-8.12 la renvoie au rang
+	// attempts_total + 1 ; ses échéances redeviennent celles d'une demande
+	// active (EX-4.4 s'applique). [...] sans ce membre, la règle ne s'applique
+	// pas. » La réouverture précède la relecture des échéances.
+	if avecAcquisitions {
+		promus := map[string]bool{}
+		for _, a := range acquisitions {
+			promus[a.RequestID+"|"+a.Result.SHA256] = true
+		}
+		for _, d := range p.File() {
+			if !prefixe(d.Kind, "jeton_") || d.State != "obtenue" || d.Result == nil || promus[d.ID+"|"+d.Result.SHA256] {
+				continue
+			}
+			d.Result = nil
+			d.DueAt = ptrS(Iso(t))
+			p.ecrire(d, t, "a_reprendre")
+			p.alerter(t, &d.ID, "file_perdue", "critique")
+		}
+	}
 	file := p.File()
 	closes := map[string]bool{}
 	for _, d := range file {
@@ -564,6 +703,10 @@ func (p *Planificateur) demarrer(t int64) {
 			}
 		}
 		if prefixe(d.Kind, "ancre_registre_") {
+			// EX-8.10 : l'alerte du refus définitif de l'ancre d'une période est
+			// « levée une fois par ancre depuis le dernier démarrage ».
+			delete(s.alertes, "prestataires_epuises")
+			p.noterFenetreRelue(d)
 			if d.State == "envoyee" {
 				ligne := vObj("event", vStr("anchor_retry"), "kind", vStr(d.Kind), "mode", vStr("renvoi"))
 				if len(d.Attempts) > 0 {
@@ -574,27 +717,47 @@ func (p *Planificateur) demarrer(t int64) {
 				p.emettre(t, "envoyer_registre", &d.ID, p.detailRegistre(d))
 				s.inclusionAt = ptrI(t + p.cfg.InclusionAlertS*1000)
 				p.timer(*s.inclusionAt, "inclusion", d.ID, 0, "")
-			} else if d.State == "a_envoyer" {
+			} else if d.State == "a_envoyer" && p.cleOccupee(d) {
+				// EX-8.12, ordre du démarrage, point 5 (complément du 2026-11-16) :
+				// « une ancre a_envoyer attend le nonce à sa place (action
+				// programmer de raison attente_nonce) si une ancre de sa clé de
+				// chaîne est en vol (ligne envoyee), et ne produit sinon aucune
+				// action dans la passe ».
 				p.programmer(d, t, t, "attente_nonce")
+			} else if d.State == "a_reprendre" {
+				// EX-8.12 et EX-4.13 (complément du 2026-11-16) : « a_reprendre →
+				// garde due_at (jeton, soumission OpenTimestamps ou ancre au
+				// registre ; borné par EX-4.13 ; une échéance passée pendant l'arrêt
+				// part au démarrage, jamais avant lui) ».
+				at := p.borneDueAt(d, t, dueOuT(d, t))
+				s.reprises[""] = at
+				p.timer(at, "reprise", d.ID, 0, "")
 			}
 			continue
 		}
-		dueOuT := func() int64 {
-			if d.DueAt == nil {
-				return t
-			}
-			v, err := Ms(*d.DueAt)
-			if err != nil {
-				panic(refus("", "%s", err.Error()))
-			}
-			if v < t {
-				return t
-			}
-			return v
-		}
 		if prefixe(d.Kind, "ots_") {
-			switch d.State {
+			// EX-8.11 (complément du 2026-11-16, soumission aboutie au-delà de
+			// l'âge d'abandon) : l'alerte ots_give_up est levée « une fois par
+			// demande depuis le dernier démarrage ».
+			delete(s.alertes, "ots_give_up")
+			// EX-8.12 (complément du 2026-11-16) : « une ligne a_reprendre qui
+			// porte encore une tentative en_cours [...] se reprend de même, comme
+			// une soumission envoyee ».
+			etat := d.State
+			if etat == "a_reprendre" {
+				for _, a := range d.Attempts {
+					if a.Outcome == "en_cours" {
+						etat = "envoyee"
+					}
+				}
+			}
+			switch etat {
 			case "envoyee":
+				// EX-8.12 (complément du 2026-11-16) : « sa tentative en cours est
+				// close echec_transitoire, code redemarrage [...], la ligne est
+				// réécrite a_reprendre et la soumission repart aussitôt (action
+				// programmer de raison immediat), au rang attempts_total + 1, mais
+				// avec le même nonce et le même engagement ».
 				p.perdreTentatives(d, t)
 				d.DueAt = ptrS(Iso(t))
 				p.ecrire(d, t, "a_reprendre")
@@ -602,28 +765,17 @@ func (p *Planificateur) demarrer(t int64) {
 				s.reprises[""] = t
 				p.timer(t, "reprise", d.ID, 0, "")
 			case "a_reprendre":
-				at := dueOuT()
+				at := p.borneDueAt(d, t, dueOuT(d, t))
 				s.reprises[""] = at
 				p.timer(at, "reprise", d.ID, 0, "")
 			case "en_attente":
-				at := dueOuT()
-				// première soumission : la tentative de rang 1 si la ligne la porte encore
-				// (EX-8.5, règle 7), sinon la création de la demande
-				debut := d.CreatedAt
-				for _, a := range d.Attempts {
-					if a.N == 1 {
-						debut = a.StartedAt
-					}
-				}
-				v, err := Ms(debut)
-				if err != nil {
-					panic(refus("", "%s", err.Error()))
-				}
-				s.soumisA = ptrI(v)
+				at := dueOuT(d, t)
 				s.miseANiveauAt = ptrI(at)
 				p.programmer(d, t, at, "mise_a_niveau")
 				p.timer(at, "mise_a_niveau", d.ID, 0, "")
 			}
+			// EX-8.9 : série de la soumission relue de la ligne.
+			p.relireSerie(d)
 			continue
 		}
 		// jetons
@@ -642,7 +794,7 @@ func (p *Planificateur) demarrer(t int64) {
 			p.programmer(d, t, t, "attente_registre")
 			p.timer(t, "attente_registre", d.ID, 0, "")
 		case "a_reprendre":
-			at := dueOuT()
+			at := p.borneDueAt(d, t, dueOuT(d, t))
 			var dernier *Tentative
 			for i := len(d.Attempts) - 1; i >= 0; i-- {
 				if d.Attempts[i].Provider != nil {
@@ -679,6 +831,40 @@ func (p *Planificateur) demarrer(t int64) {
 	}
 }
 
+// dueOuT rend max(due_at, t) : une reprise échue pendant l'arrêt part au
+// démarrage, jamais avant lui (EX-8.12).
+func dueOuT(d *Demande, t int64) int64 {
+	if d.DueAt == nil {
+		return t
+	}
+	v, err := Ms(*d.DueAt)
+	if err != nil {
+		panic(refus("", "%s", err.Error()))
+	}
+	if v < t {
+		return t
+	}
+	return v
+}
+
+// borneDueAt applique EX-4.13 à la reprise d'une demande a_reprendre relue
+// au démarrage : « Au démarrage, un due_at postérieur à l'instant courant plus
+// retry.max_ms est ramené à cette borne. Complément du 2026-11-16 : la borne
+// vise la seule attente de reprise d'une demande a_reprendre (EX-8.9 :
+// nouvelle tentative d'un jeton RFC 3161, nouvelle soumission
+// OpenTimestamps, renvoi d'une ancre au registre) [...] Quand elle
+// s'applique, l'action programmer (raison backoff) porte la borne, puis la
+// ligne de la demande est réécrite. » Une preuve en_attente n'y passe pas.
+func (p *Planificateur) borneDueAt(d *Demande, t, at int64) int64 {
+	borne := t + int64(p.cfg.Retry.MaxMs)
+	if at <= borne {
+		return at
+	}
+	p.programmer(d, t, borne, "backoff")
+	p.ecrire(d, t, "a_reprendre")
+	return borne
+}
+
 // relireSerie reprend, pour une demande de jeton relue au démarrage, le
 // nombre k d'échecs transitoires consécutifs de chaque série (EX-8.9,
 // révision 0.10) : sans tentative close par le redémarrage (error_code
@@ -687,109 +873,136 @@ func (p *Planificateur) demarrer(t int64) {
 // suivant a k = 1). Un autre résultat (obtenue, echec_permanente) interrompt
 // aussi la série. Les tentatives sorties de la fenêtre de 32 (EX-8.5, règle 7)
 // ne sont plus lues : k est compté sur celles que la ligne porte.
+//
+// EX-8.9 (complément du 2026-11-16) : « une soumission OpenTimestamps n'a pas
+// de prestataire, ses calendriers répondant ensemble (provider nul) : sa série
+// est celle de ses soumissions en échec [...] ; la tentative d'une soumission
+// close par le redémarrage (redemarrage, EX-8.12) l'interrompt comme celle d'un
+// jeton, et, relue au démarrage, la série ne compte que les tentatives que la
+// ligne porte » : sa série est rangée sous la clé "" (aucun prestataire).
 func (p *Planificateur) relireSerie(d *Demande) {
 	s := p.int(d.ID)
+	ots := prefixe(d.Kind, "ots_")
 	for _, a := range d.Attempts {
-		if a.Provider == nil {
+		cle := ""
+		if a.Provider != nil {
+			cle = *a.Provider
+		} else if !ots {
 			continue
 		}
 		if (a.Outcome == "echec_transitoire" || a.Outcome == "reponse_tardive") && (a.ErrorCode == nil || *a.ErrorCode != "redemarrage") {
-			s.k[*a.Provider]++
+			s.k[cle]++
 		} else {
-			s.k[*a.Provider] = 0
+			s.k[cle] = 0
 		}
 	}
 }
 
 // remplacerRelues applique EX-4.4 aux demandes de points relues au démarrage
-// (EX-8.12, révision 0.10) : une demande jeton_point non finale dont toutes
+// (EX-8.12). Révision 0.10 : « Une demande jeton_point non finale dont toutes
 // les échéances sont inférieures à une échéance satisfaite d'une autre
-// demande de la période est close remplacee, avec la ligne
-// checkpoint_anchor_late et l'alerte de 8.9, comme si cette échéance venait
-// d'être satisfaite (satisfaire). L'échéance n_T (la clôture) est satisfaite
-// par le jeton_periode obtenu (EX-8.4, règle 1). replaced_by nomme la demande
-// de la plus petite échéance satisfaite au-delà de celles de la demande
-// close (la « D_{k+1} » d'EX-4.4) ; window_s se lit sur sa borne. Une
-// demande de repli de clôture (sans échéance) n'est close que par le jeton de
-// clôture obtenu (EX-4.2), avec la ligne anchor_replaced.
+// demande de la période est close remplacee au démarrage, avec la ligne
+// checkpoint_anchor_late (EX-4.4). » Complément du 2026-11-16 : « l'échéance
+// n_T étant satisfaite par le jeton_periode (EX-8.4, règle 1), les demandes
+// couvrantes sont les demandes de jeton obtenue relues de la période ; chacune
+// s'applique comme à sa promotion, les jeton_point par plus petite échéance
+// croissante (un repli de clôture, sans échéance, compte pour n_T ; à
+// égalité, dans l'ordre de la file), puis le jeton_periode, et clôt les
+// demandes non finales qui servent une échéance encore ouverte inférieure à
+// sa plus grande échéance (n_T pour le jeton_periode et le repli).
+// replaced_by nomme donc la première demande qui couvre [...] ; window_s est,
+// comme en cours de marche, la borne (genTime + précision) de son jeton moins
+// la plus petite échéance de la demande close, en secondes entières
+// tronquées. » Le jeton de clôture obtenu clôt aussi un repli de clôture non
+// final, comme à sa promotion (EX-4.2), avec la ligne anchor_replaced.
 func (p *Planificateur) remplacerRelues(t int64) {
 	severite := "majeure"
 	if p.cfg.ProviderRole == "interne" {
 		severite = "mineure"
 	}
-	for _, d := range p.File() {
-		if d.Kind != "jeton_point" || EtatsFinaux[d.State] {
-			continue
+	file := p.File()
+	for _, c := range p.ordrePeriodes {
+		per := p.periodes[c]
+		// demandes couvrantes de la période, dans l'ordre du texte
+		type couvrante struct {
+			d          *Demande
+			kmin, kmax int64
 		}
-		per := p.periodes[cle(d.Subject)]
-		if per == nil {
-			continue
-		}
+		var points []couvrante
 		var cloture *Demande
-		for _, j := range p.demandes {
-			if j.Kind == "jeton_periode" && j.State == "obtenue" && cle(j.Subject) == cle(d.Subject) {
-				cloture = j
-			}
-		}
-		if len(d.Deadlines) == 0 {
-			if cloture == nil {
+		for _, d := range file {
+			if cle(d.Subject) != c || d.State != "obtenue" {
 				continue
 			}
-			d.ReplacedBy = ptrS(cloture.ID)
-			d.DueAt = nil
-			p.emettre(t, "remplacer", &d.ID, vObj("replaced_by", vStr(cloture.ID)))
-			p.ecrire(d, t, "remplacee")
-			p.journaliser(t, &d.ID, vObj("event", vStr("anchor_replaced"), "replaced_by", vStr(cloture.ID)))
-			continue
-		}
-		kmin, kmax := d.Deadlines[0], d.Deadlines[0]
-		for _, k := range d.Deadlines {
-			if k < kmin {
-				kmin = k
-			}
-			if k > kmax {
-				kmax = k
+			switch d.Kind {
+			case "jeton_point":
+				kmin, kmax := p.nT, p.nT // repli de clôture : n_T
+				if len(d.Deadlines) > 0 {
+					kmin, kmax = d.Deadlines[0], d.Deadlines[0]
+					for _, k := range d.Deadlines {
+						kmin, kmax = min(kmin, k), max(kmax, k)
+					}
+				}
+				points = append(points, couvrante{d, kmin, kmax})
+			case "jeton_periode":
+				cloture = d
 			}
 		}
-		var couvrant *Demande
-		var kc int64
-		for _, k := range per.ordre {
-			e := per.echeances[k]
-			if k <= kmax || e.state != "satisfaite" || e.demande == nil || *e.demande == d.ID {
-				continue
+		sort.SliceStable(points, func(i, j int) bool { return points[i].kmin < points[j].kmin })
+		couvrantes := points
+		if cloture != nil {
+			couvrantes = append(couvrantes, couvrante{cloture, p.nT, p.nT})
+		}
+		for _, cv := range couvrantes {
+			borne := t
+			if r := cv.d.Result; r != nil {
+				texte := r.ObtainedAt
+				if r.Bound != nil {
+					texte = *r.Bound
+				}
+				if v, err := Ms(texte); err == nil {
+					borne = v
+				}
 			}
-			if c := p.demandes[*e.demande]; c != nil && (couvrant == nil || k < kc) {
-				couvrant, kc = c, k
+			for _, d := range file {
+				if d == cv.d || d.Kind != "jeton_point" || EtatsFinaux[d.State] || cle(d.Subject) != c {
+					continue
+				}
+				if len(d.Deadlines) == 0 {
+					// repli de clôture non final : clos par le seul jeton de clôture (EX-4.2)
+					if cv.d.Kind != "jeton_periode" {
+						continue
+					}
+					d.ReplacedBy = ptrS(cv.d.ID)
+					d.DueAt = nil
+					p.emettre(t, "remplacer", &d.ID, vObj("replaced_by", vStr(cv.d.ID)))
+					p.ecrire(d, t, "remplacee")
+					p.journaliser(t, &d.ID, vObj("event", vStr("anchor_replaced"), "replaced_by", vStr(cv.d.ID)))
+					continue
+				}
+				sert := false
+				kmin := d.Deadlines[0]
+				for _, k := range d.Deadlines {
+					kmin = min(kmin, k)
+					if e, ok := per.echeances[k]; ok && e.state == "ouverte" && k < cv.kmax {
+						sert = true
+					}
+				}
+				if !sert {
+					continue
+				}
+				d.ReplacedBy = ptrS(cv.d.ID)
+				d.DueAt = nil
+				p.emettre(t, "remplacer", &d.ID, vObj("replaced_by", vStr(cv.d.ID)))
+				p.ecrire(d, t, "remplacee")
+				for _, k := range d.Deadlines {
+					per.get(k).state = "remplacee"
+					p.emettre(t, "echeance", &d.ID, vObj("k", vInt(k), "state", vStr("remplacee")))
+				}
+				p.journaliser(t, &d.ID, vObj("event", vStr("checkpoint_anchor_late"), "tree_size", vIntOuNul(d.Subject.TreeSize), "deadlines", vEntiers(d.Deadlines), "replaced_by", vStr(cv.d.ID), "window_s", vInt((borne-p.D(per, kmin))/1000)))
+				p.alerter(t, &d.ID, "checkpoint_anchor_late", severite)
 			}
 		}
-		if couvrant == nil {
-			couvrant = cloture
-		}
-		if couvrant == nil {
-			continue
-		}
-		// borne « au plus tard » du jeton qui couvre (EX-8.2, $defs/resultat),
-		// à défaut l'instant de son obtention
-		borne := t
-		if r := couvrant.Result; r != nil {
-			texte := r.ObtainedAt
-			if r.Bound != nil {
-				texte = *r.Bound
-			}
-			if v, err := Ms(texte); err == nil {
-				borne = v
-			}
-		}
-		d.ReplacedBy = ptrS(couvrant.ID)
-		d.DueAt = nil
-		p.emettre(t, "remplacer", &d.ID, vObj("replaced_by", vStr(couvrant.ID)))
-		p.ecrire(d, t, "remplacee")
-		for _, k := range d.Deadlines {
-			per.get(k).state = "remplacee"
-			p.emettre(t, "echeance", &d.ID, vObj("k", vInt(k), "state", vStr("remplacee")))
-		}
-		p.journaliser(t, &d.ID, vObj("event", vStr("checkpoint_anchor_late"), "tree_size", vIntOuNul(d.Subject.TreeSize), "deadlines", vEntiers(d.Deadlines), "replaced_by", vStr(couvrant.ID), "window_s", vInt((borne-p.D(per, kmin))/1000)))
-		p.alerter(t, &d.ID, "checkpoint_anchor_late", severite)
 	}
 }
 
@@ -858,13 +1071,188 @@ func (p *Planificateur) detailRegistre(d *Demande) *Value {
 	}
 	return vObj("fingerprint", vStr(EmpreinteAncre(s.OrgID, s.JournalID, s.Hash)), "doc_type", vStr(docType))
 }
-func (p *Planificateur) cleOccupee() bool {
-	for _, d := range p.demandes {
-		if prefixe(d.Kind, "ancre_registre_") && d.State == "envoyee" {
+
+// cleOccupee dit si la clé de chaîne de l'ancre d est occupée. EX-9.4
+// (complément du 2026-11-16) : « Pour ce verrou, la clé de chaîne d'une ancre
+// est celle du journal de son sujet : deux ancres ont la même clé de chaîne
+// quand leurs sujets ont le même org_id et le même journal_id, et un journal
+// n'a jamais plus d'une ancre envoyee » ; la clé est occupée pour d quand une
+// autre ancre de la file, de ce journal, est envoyee.
+func (p *Planificateur) cleOccupee(d *Demande) bool {
+	for _, x := range p.demandes {
+		if x != d && prefixe(x.Kind, "ancre_registre_") && x.State == "envoyee" && x.Subject.OrgID == d.Subject.OrgID && x.Subject.JournalID == d.Subject.JournalID {
 			return true
 		}
 	}
 	return false
+}
+
+// cleDeChaine : clé de chaîne d'une ancre pour le verrou d'EX-9.4.
+func cleDeChaine(d *Demande) string { return d.Subject.OrgID + "|" + d.Subject.JournalID }
+
+// periodeBloquee : EX-9.4 (complément du 2026-11-16, l'ancre de la période
+// après celles de ses points) : « L'ancre d'une période ne part pas tant
+// qu'une ancre de point de la même période et du même journal n'a ni son
+// reçu (obtenue) ni un autre état final (refusee, remplacee) ».
+func (p *Planificateur) periodeBloquee(d *Demande) bool {
+	if d.Kind != "ancre_registre_periode" {
+		return false
+	}
+	for _, x := range p.demandes {
+		if x.Kind == "ancre_registre_point" && !EtatsFinaux[x.State] && x.Subject.OrgID == d.Subject.OrgID && x.Subject.JournalID == d.Subject.JournalID && x.Subject.PeriodStart == d.Subject.PeriodStart {
+			return true
+		}
+	}
+	return false
+}
+
+// retenue : EX-9.4 (complément du 2026-11-16, une ancre de période qui
+// attend retient sa clé) : « La clé d'une ancre est libre quand elle n'a
+// aucune ancre en vol (envoyee) et qu'aucune ancre de période d'une période
+// antérieure de la même clé (même org_id et journal_id, period_start plus
+// petit) n'est dans un état non final ; sinon l'ancre est retenue » ;
+// EX-9.4 (complément du 2026-11-16, l'ordre des ancres des points d'une
+// période) : « L'ancre d'un point ne part pas tant que l'ancre d'un point
+// antérieur de la même période et du même journal (checkpoint_ts plus petit,
+// puis l'ordre de la file) n'a ni son reçu (obtenue) ni un autre état final
+// (refusee, remplacee) : elle est retenue, comme derrière une ancre en vol ».
+// L'ancre en vol est vue par cleOccupee, l'attente de ses points par
+// l'ancre de la période par periodeBloquee.
+func (p *Planificateur) retenue(d *Demande) bool {
+	for _, x := range p.demandes {
+		if x == d || EtatsFinaux[x.State] || x.Subject.OrgID != d.Subject.OrgID || x.Subject.JournalID != d.Subject.JournalID {
+			continue
+		}
+		if x.Kind == "ancre_registre_periode" && x.Subject.PeriodStart < d.Subject.PeriodStart {
+			return true
+		}
+		if d.Kind == "ancre_registre_point" && x.Kind == "ancre_registre_point" && x.Subject.PeriodStart == d.Subject.PeriodStart && PointAnterieur(x, d) {
+			return true
+		}
+	}
+	return false
+}
+
+// PointAnterieur : l'ancre de point b précède l'ancre de point a dans sa
+// période (EX-9.4, complément du 2026-11-16) : checkpoint_ts plus petit, en
+// instant, puis l'ordre de la file (8.5 : created_at, puis id).
+func PointAnterieur(b, a *Demande) bool {
+	tb, eb := Ms(b.Subject.DeclaredAt)
+	ta, ea := Ms(a.Subject.DeclaredAt)
+	if eb == nil && ea == nil && tb != ta {
+		return tb < ta
+	}
+	if (eb != nil || ea != nil) && b.Subject.DeclaredAt != a.Subject.DeclaredAt {
+		return b.Subject.DeclaredAt < a.Subject.DeclaredAt
+	}
+	cb, ebc := Ms(b.CreatedAt)
+	ca, eac := Ms(a.CreatedAt)
+	if ebc == nil && eac == nil && cb != ca {
+		return cb < ca
+	}
+	if (ebc != nil || eac != nil) && b.CreatedAt != a.CreatedAt {
+		return b.CreatedAt < a.CreatedAt
+	}
+	return b.ID < a.ID
+}
+
+// attend : l'ancre attend (attente_nonce) au lieu de partir : sa clé a une
+// ancre en vol, c'est une ancre de période dont une ancre de point de la
+// période n'est pas finale, ou elle est retenue (EX-9.4).
+func (p *Planificateur) attend(d *Demande) bool {
+	return p.cleOccupee(d) || p.periodeBloquee(d) || p.retenue(d)
+}
+
+// CodesSansAdmission : EX-9.5 (complément du 2026-11-16) : codes d'une
+// tentative « qui dit qu'aucune transaction n'est partie et qu'aucun nonce
+// n'est consommé, noeud_injoignable [...], nonce_incoherent [...],
+// transaction_refusee [...], ou l'un des codes du composant d'ancrage de même
+// sens (EX-8.10 : registre_absent, exception_client, reprise_impossible,
+// lecture_nonce_incoherent, lecture_incoherente) ».
+var CodesSansAdmission = map[string]bool{"noeud_injoignable": true, "nonce_incoherent": true, "transaction_refusee": true, "registre_absent": true, "exception_client": true, "reprise_impossible": true, "lecture_nonce_incoherent": true, "lecture_incoherente": true}
+
+// sansAdmission : la tentative est close sur un code de CodesSansAdmission
+// (une tentative obtenue, en cours ou de code nul a pu être admise).
+func sansAdmission(a *Tentative) bool {
+	return a.Outcome != "obtenue" && a.Outcome != "en_cours" && a.ErrorCode != nil && CodesSansAdmission[*a.ErrorCode]
+}
+
+// noterFenetreRelue : EX-9.5 (complément du 2026-11-16) : une tentative
+// « sortie de la fenêtre de 32 avant le dernier démarrage, dont la file ne
+// dit plus rien (EX-8.5, règle 7), a pu être admise » : relue, une ligne dont
+// attempts_total dépasse le nombre de ses tentatives n'est pas encore à
+// envoyer.
+func (p *Planificateur) noterFenetreRelue(d *Demande) {
+	if d.Kind == "ancre_registre_point" {
+		p.int(d.ID).peutEtreAdmise = d.Total() > int64(len(d.Attempts))
+	}
+}
+
+// encoreAEnvoyer : EX-9.5 (complément du 2026-11-16, l'ancre d'un point en
+// reprise) : « Une ancre de point a_reprendre après un échec signalé
+// (EX-8.10) est encore à envoyer, comme une ancre a_envoyer, quand aucune de
+// ses tentatives n'a pu être admise par un nœud » ; « Une tentative close sur
+// tout autre code [...] ou obtenue, ou une tentative sortie de la fenêtre de
+// 32 avant le dernier démarrage [...] a pu être admise : l'ancre n'est pas
+// remplacée et suit sa reprise ». Une a_reprendre sans tentative est encore à
+// envoyer.
+func (p *Planificateur) encoreAEnvoyer(d *Demande) bool {
+	switch d.State {
+	case "a_envoyer":
+		return true
+	case "a_reprendre":
+		if p.int(d.ID).peutEtreAdmise {
+			return false
+		}
+		for _, a := range d.Attempts {
+			if !sansAdmission(a) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+// attendOuEnvoie : EX-9.4 (complément du 2026-11-16) : « Une ancre part dès
+// sa création quand sa clé est libre (admission du point, clôture, EX-8.4,
+// règles 2 et 3), ou à l'échéance de sa reprise (EX-8.10) ; sinon elle
+// attend (action programmer de raison attente_nonce) » ; « à sa création ou
+// à l'échéance de sa reprise, l'ancre de la période attend alors comme
+// derrière une ancre en vol (attente_nonce) ».
+//
+// EX-9.4 (complément du 2026-11-16) : une ancre retenue « attend (action
+// programmer de raison attente_nonce, sans minuterie) à sa création, à
+// l'échéance de sa reprise et quand la clé se libère ».
+func (p *Planificateur) attendOuEnvoie(d *Demande, t int64) {
+	if p.attend(d) {
+		p.programmer(d, t, t, "attente_nonce")
+	} else {
+		p.envoyerRegistre(d, t)
+	}
+}
+
+// avantDansLaCle : ordre des ancres d'une clé (EX-9.4, complément du
+// 2026-11-16) : period_start croissant ; dans une période, les points par
+// checkpoint_ts (subject.declared_at) croissant, puis la période. Faux à
+// égalité : l'ordre de la file départage alors.
+func avantDansLaCle(a, b *Demande) bool {
+	if a.Subject.PeriodStart != b.Subject.PeriodStart {
+		return a.Subject.PeriodStart < b.Subject.PeriodStart
+	}
+	pa, pb := sortePeriode(a.Kind), sortePeriode(b.Kind)
+	if pa != pb {
+		return !pa
+	}
+	if pa {
+		return false
+	}
+	ta, ea := Ms(a.Subject.DeclaredAt)
+	tb, eb := Ms(b.Subject.DeclaredAt)
+	if ea != nil || eb != nil {
+		return a.Subject.DeclaredAt < b.Subject.DeclaredAt
+	}
+	return ta < tb
 }
 
 // --- point admis (EX-8.4, règles 1 et 3 ; EX-9.3 à EX-9.5) ---------------
@@ -913,21 +1301,26 @@ func (p *Planificateur) pointProduit(t int64, data *Value) {
 		ancre = p.creer("ancre_registre_point", sujet, nil, t)
 		p.ecrire(ancre, t, "a_envoyer")
 		per.dernierAncre = treeSize
+		// EX-9.5 : « les demandes ancre_registre_point encore a_envoyer d'une
+		// même période ne sont pas toutes envoyées : seule celle du point admis
+		// le plus récent part, les autres passent remplacee avec replaced_by » ;
+		// complément du 2026-11-16 (l'ancre d'un point en reprise) : une ancre
+		// a_reprendre dont aucune tentative n'a pu être admise par un nœud « est
+		// encore à envoyer, comme une ancre a_envoyer [...]. À l'admission d'un
+		// point plus récent de la même période et du même journal, elle passe
+		// remplacee (replaced_by), et sa reprise n'a pas lieu ».
 		for _, autre := range p.File() {
-			if autre == ancre || autre.Kind != "ancre_registre_point" || autre.State != "a_envoyer" || cle(autre.Subject) != cle(sujet) {
+			if autre == ancre || autre.Kind != "ancre_registre_point" || cle(autre.Subject) != cle(sujet) || !p.encoreAEnvoyer(autre) {
 				continue
 			}
+			delete(p.int(autre.ID).reprises, "")
 			autre.ReplacedBy = ptrS(ancre.ID)
 			autre.DueAt = nil
 			p.emettre(t, "remplacer", &autre.ID, vObj("replaced_by", vStr(ancre.ID)))
 			p.ecrire(autre, t, "remplacee")
 			p.journaliser(t, &autre.ID, vObj("event", vStr("anchor_replaced"), "replaced_by", vStr(ancre.ID)))
 		}
-		if p.cleOccupee() {
-			p.programmer(ancre, t, t, "attente_nonce")
-		} else {
-			p.envoyerRegistre(ancre, t)
-		}
+		p.attendOuEnvoie(ancre, t)
 	} else {
 		raison := "aucun_nouvel_evenement"
 		if regle == "aucun" {
@@ -951,7 +1344,28 @@ func (p *Planificateur) pointProduit(t int64, data *Value) {
 				per.get(k).demande = ptrS(j.ID)
 				p.emettre(t, "echeance", &j.ID, vObj("k", vInt(k), "state", vStr("ouverte")))
 			}
-			if ancre != nil && ancre.State != "obtenue" {
+			if res := p.acquisRelues[j.ID]; res != nil {
+				// EX-8.12 (complément du 2026-11-16) : demande recréée obtenue avec
+				// le résultat de l'enregistrement relu, aucune tentative ni requête ;
+				// ses échéances sont satisfaites.
+				copie := *res
+				j.Result = &copie
+				p.ecrire(j, t, "obtenue")
+				kmax := int64(0)
+				for _, k := range choisies {
+					per.get(k).state = "satisfaite"
+					p.emettre(t, "echeance", &j.ID, vObj("k", vInt(k), "state", vStr("satisfaite")))
+					kmax = max(kmax, k)
+				}
+				// EX-8.12 (complément du 2026-11-16) : « la demande recréée obtenue
+				// s'applique ensuite comme à sa promotion (EX-4.4 ; EX-8.4, règle
+				// 1) : les demandes de points non finales de la période qui servent
+				// une échéance encore ouverte inférieure à sa plus grande échéance
+				// [...] sont closes remplacee (replaced_by la demande recréée), avec
+				// la ligne checkpoint_anchor_late (window_s : borne de son jeton
+				// moins la plus petite échéance de la demande close) et l'alerte ».
+				p.appliquerPromotion(j, t, per, kmax, borneDuResultat(j.Result, t))
+			} else if ancre != nil && ancre.State != "obtenue" {
 				p.ecrire(j, t, "attente_registre")
 				s := p.int(j.ID)
 				s.attenteAt = ptrI(t + p.cfg.SquatWaitS*1000)
@@ -1012,20 +1426,39 @@ func (p *Planificateur) periodeClose(t int64, data *Value, seulement []string) {
 	if a != nil {
 		p.ecrire(a, t, "a_envoyer")
 	}
+	jObtenue := false
 	if j != nil {
-		p.ecrire(j, t, "attente_registre")
+		if res := p.acquisRelues[j.ID]; res != nil {
+			// EX-8.12 (complément du 2026-11-16) : « Une demande recréée obtenue
+			// porte le résultat de l'enregistrement [...], aucune tentative ; sa
+			// ligne est écrite obtenue, ses échéances sont satisfaites (l'échéance
+			// n_T pour le jeton_periode) ; aucune requête, aucune attente du
+			// registre, aucun repli de clôture, aucune pièce stockée de nouveau,
+			// aucune ligne checkpoint_countersigned ni period_timestamped ».
+			copie := *res
+			j.Result = &copie
+			p.ecrire(j, t, "obtenue")
+			p.emettre(t, "echeance", &j.ID, vObj("k", vInt(p.nT), "state", vStr("satisfaite")))
+			jObtenue = true
+			// EX-8.12 (complément du 2026-11-16) : elle s'applique comme à sa
+			// promotion (EX-4.4), jusqu'à n_T, « et le jeton_periode clôt un
+			// repli de clôture encore en cours ».
+			p.appliquerPromotion(j, t, per, p.nT, borneDuResultat(j.Result, t))
+		} else {
+			p.ecrire(j, t, "attente_registre")
+		}
 	}
 	if o != nil {
 		p.ecrire(o, t, "a_envoyer")
 	}
 	if a != nil {
-		if p.cleOccupee() {
-			p.programmer(a, t, t, "attente_nonce")
-		} else {
-			p.envoyerRegistre(a, t)
-		}
+		// EX-8.4, règle 2 (complément du 2026-11-16) : « L'ancre part dès que
+		// la clé de chaîne n'a plus de transaction sans reçu (EX-9.4) et [...]
+		// que les ancres des points de la période, celle du point de clôture
+		// comprise, ont leur reçu ou un autre état final ».
+		p.attendOuEnvoie(a, t)
 	}
-	if j != nil {
+	if j != nil && !jObtenue {
 		s := p.int(j.ID)
 		s.attenteAt = ptrI(t + p.cfg.InclusionAlertS*1000)
 		p.programmer(j, t, *s.attenteAt, "attente_registre")
@@ -1036,6 +1469,22 @@ func (p *Planificateur) periodeClose(t int64, data *Value, seulement []string) {
 	if o != nil {
 		p.soumettreOts(o, t)
 	}
+}
+
+// borneDuResultat rend la borne (genTime + précision) d'un résultat de
+// jeton, à défaut son instant d'obtention, à défaut t.
+func borneDuResultat(r *Resultat, t int64) int64 {
+	if r == nil {
+		return t
+	}
+	texte := r.ObtainedAt
+	if r.Bound != nil {
+		texte = *r.Bound
+	}
+	if v, err := Ms(texte); err == nil {
+		return v
+	}
+	return t
 }
 
 // repliCloture (EX-4.2, EX-8.4 règle 2) : jeton_periode attend l'inclusion de
@@ -1080,7 +1529,16 @@ func (p *Planificateur) repliCloture(dp *Demande, t int64) {
 // le stockage de l'enregistreur (entrée stockage_relu) sont confrontés à la
 // file ; toute demande manquante d'une période close est recréée, et le
 // dernier point de chaque période ouverte sans demande est traité comme admis.
-func (p *Planificateur) reconstruire(t int64, data *Value) {
+func (p *Planificateur) reconstruire(t int64, data *Value, acquisitions []*AcquisitionRelue) {
+	// EX-8.12 (complément du 2026-11-16) : « les enregistrements relus entrent
+	// par le membre acquisitions de l'entrée stockage_relu [...] ; sans ce
+	// membre, toute demande recréée l'est comme à la clôture ou à
+	// l'admission » ; pour une même demande, le dernier enregistrement fait foi.
+	p.acquisRelues = map[string]*Resultat{}
+	for _, a := range acquisitions {
+		p.acquisRelues[a.RequestID] = a.Result
+	}
+	defer func() { p.acquisRelues = nil }()
 	avant := len(p.demandes)
 	closes := map[string]bool{}
 	for _, d := range p.demandes {
@@ -1226,17 +1684,46 @@ func (p *Planificateur) servir(t int64) {
 			p.timer(libre, "dispatch", d.ID, 0, "")
 		}
 	}
-	// 2. registre : une transaction par clé de chaîne (EX-9.4), la période d'abord (EX-8.7)
-	if !p.cleOccupee() {
-		var candidats []*Demande
-		for _, d := range p.File() {
-			if prefixe(d.Kind, "ancre_registre_") && d.State == "a_envoyer" {
-				candidats = append(candidats, d)
-			}
+	// 2. registre : une transaction par clé de chaîne (EX-9.4). Complément du
+	// 2026-11-16 (EX-9.4, EX-8.10) : sont candidates les ancres a_envoyer et
+	// les ancres a_reprendre dont due_at ≤ t sans reprise programmée (elles
+	// attendent le nonce) ; « plusieurs clés libérées au même instant sont
+	// servies dans l'ordre de la file de leur première ancre en attente ».
+	// Deux journaux libres font donc partir chacun leur ancre.
+	parCle := map[string][]*Demande{}
+	var cles []string
+	for _, d := range p.File() {
+		if !prefixe(d.Kind, "ancre_registre_") || !p.ancreCandidate(d, t) {
+			continue
 		}
-		sort.SliceStable(candidats, func(i, j int) bool { return sortePeriode(candidats[i].Kind) && !sortePeriode(candidats[j].Kind) })
-		if len(candidats) > 0 {
-			p.envoyerRegistre(candidats[0], t)
+		c := cleDeChaine(d)
+		if _, ok := parCle[c]; !ok {
+			cles = append(cles, c)
+		}
+		parCle[c] = append(parCle[c], d)
+	}
+	for _, c := range cles {
+		candidats := parCle[c]
+		// EX-9.4 (complément du 2026-11-16, ordre des ancres d'une clé) :
+		// « part au plus une ancre de la clé : la première, dans cet ordre,
+		// des ancres qui attendent [...] — par period_start croissant
+		// (EX-8.7) ; dans une même période, les ancres de ses points par
+		// checkpoint_ts croissant, puis l'ancre de la période ; l'ordre de la
+		// file (8.5 : created_at, puis id) ne départage que les égalités ».
+		// p.File() rend déjà l'ordre de la file : le tri stable le garde.
+		sort.SliceStable(candidats, func(i, j int) bool { return avantDansLaCle(candidats[i], candidats[j]) })
+		premiere := candidats[0]
+		// « Si cette première est une ancre de période qui attend encore le
+		// reçu d'une ancre de point de sa période [...], rien ne part de la
+		// clé : l'ancre du point part à l'échéance de sa reprise, celle de la
+		// période à son reçu. »
+		// EX-9.4 (complément du 2026-11-16) : une ancre retenue « n'est pas
+		// candidate, pas plus que les candidates rangées après elle (elles sont
+		// d'une période postérieure) » ; et pour l'ancre d'un point retenue par
+		// celle d'un point antérieur : « à la libération de la clé, si la
+		// première candidate est ainsi retenue, rien ne part ».
+		if !p.attend(premiere) {
+			p.envoyerRegistre(premiere, t)
 		}
 	}
 	// 3. soumissions OpenTimestamps en attente d'envoi
@@ -1245,6 +1732,22 @@ func (p *Planificateur) servir(t int64) {
 			p.soumettreOts(d, t)
 		}
 	}
+}
+
+// ancreCandidate : ancre a_envoyer, ou a_reprendre échue sans reprise
+// programmée (EX-8.10 : elle attend le reçu de l'ancre en vol de sa clé).
+func (p *Planificateur) ancreCandidate(d *Demande, t int64) bool {
+	switch d.State {
+	case "a_envoyer":
+		return true
+	case "a_reprendre":
+		if _, ok := p.int(d.ID).reprises[""]; ok || d.DueAt == nil {
+			return false
+		}
+		v, err := Ms(*d.DueAt)
+		return err == nil && v <= t
+	}
+	return false
 }
 
 func (p *Planificateur) retirerPrete(e *prete) {
@@ -1300,9 +1803,6 @@ func (p *Planificateur) soumettreOts(d *Demande, t int64) {
 	p.ecrire(d, t, "envoyee")
 	p.emettre(t, "soumettre_ots", &d.ID, vObj("digest", vStr(d.Subject.Hash), "nonce", vStr("0x"+hex.EncodeToString(nonce)), "calendars", vChaines(cals)))
 	s.enCours[""] = n
-	if s.soumisA == nil {
-		s.soumisA = ptrI(t)
-	}
 }
 
 func (p *Planificateur) relever(d *Demande, t int64, cause string) {
@@ -1333,17 +1833,35 @@ func (p *Planificateur) jetonDuSujet(d *Demande) *Demande {
 	return p.demandes[idDemande(kind, d.Subject.Hash)]
 }
 
+// ignoree consigne un reçu ou un échec du registre qui ne s'applique pas.
+// EX-8.10 (complément du 2026-11-16) : « un reçu (inclusion_registre) ou un
+// échec signalé (echec_registre) ne s'applique qu'à une ancre dont une
+// tentative est en cours (sa transaction) ; pour une ancre a_envoyer ou
+// a_reprendre [...], ou close, il est ignoré et consigné
+// anchor_duplicate_ignored avec son état » ; 8.5, règle 2 : « avec state
+// (l'état de l'ancre) ou, pour une ancre inconnue, reason demande_inconnue ».
 func (p *Planificateur) ignoree(t int64, data *Value, d *Demande) {
-	raison := "demande_inconnue"
-	if d != nil {
-		raison = "etat " + d.State
+	if d == nil || !prefixe(d.Kind, "ancre_registre_") {
+		p.journaliser(t, ptrChaine(data, "request_id"), vObj("event", vStr("anchor_duplicate_ignored"), "reason", vStr("demande_inconnue")))
+		return
 	}
-	p.journaliser(t, ptrChaine(data, "request_id"), vObj("event", vStr("anchor_duplicate_ignored"), "reason", vStr(raison)))
+	p.journaliser(t, &d.ID, vObj("event", vStr("anchor_duplicate_ignored"), "state", vStr(d.State)))
+}
+
+// ancreEnVol : la dernière tentative de l'ancre est en cours.
+func ancreEnVol(d *Demande) bool {
+	var der *Tentative
+	for _, a := range d.Attempts {
+		if der == nil || a.N > der.N {
+			der = a
+		}
+	}
+	return !EtatsFinaux[d.State] && der != nil && der.Outcome == "en_cours"
 }
 
 func (p *Planificateur) inclusionRegistre(t int64, data *Value) {
 	d := p.demandes[chaineOu(data, "", "request_id")]
-	if d == nil || !prefixe(d.Kind, "ancre_registre_") || EtatsFinaux[d.State] || d.State == "a_envoyer" {
+	if d == nil || !prefixe(d.Kind, "ancre_registre_") || !ancreEnVol(d) {
 		p.ignoree(t, data, d)
 		return
 	}
@@ -1354,13 +1872,19 @@ func (p *Planificateur) inclusionRegistre(t int64, data *Value) {
 	capture := chaineOu(data, "", "capture_sha256")
 	d.Result = &Resultat{SHA256: capture, Size: TailleIndexCapture, ObtainedAt: Iso(t)}
 	d.DueAt = nil
+	s.inclusionAt = nil
 	p.emettre(t, "stocker", &d.ID, vObj("sha256", vStr(capture), "size", vInt(TailleIndexCapture), "bound", vNull()))
 	p.ecrire(d, t, "obtenue")
-	envoi, err := Ms(d.Attempts[0].StartedAt)
+	// EX-8.10 (complément du 2026-11-16) : « au reçu, ce délai court depuis la
+	// création de l'ancre (son admission), attente du nonce derrière une autre
+	// ancre de la clé comprise, et non depuis son premier envoi ; l'alerte
+	// n'est pas levée de nouveau au reçu quand un renvoi sans reçu l'a déjà
+	// levée depuis le dernier démarrage ».
+	creation, err := Ms(d.CreatedAt)
 	if err != nil {
 		panic(refus("", "%s", err.Error()))
 	}
-	if t-envoi > p.cfg.InclusionAlertS*1000 && s.renvois == 0 {
+	if t-creation > p.cfg.InclusionAlertS*1000 && s.renvois == 0 {
 		p.alerter(t, &d.ID, "inclusion_late", "mineure")
 	}
 	if j := p.jetonDuSujet(d); j != nil && j.State == "attente_registre" {
@@ -1370,39 +1894,99 @@ func (p *Planificateur) inclusionRegistre(t int64, data *Value) {
 
 func (p *Planificateur) echecRegistre(t int64, data *Value) {
 	d := p.demandes[chaineOu(data, "", "request_id")]
-	if d == nil || !prefixe(d.Kind, "ancre_registre_") || EtatsFinaux[d.State] {
+	if d == nil || !prefixe(d.Kind, "ancre_registre_") || !ancreEnVol(d) {
 		p.ignoree(t, data, d)
 		return
 	}
+	s := p.int(d.ID)
+	s.inclusionAt = nil
 	code := chaineOu(data, "", "code")
-	var att *Tentative
-	if len(d.Attempts) > 0 {
-		att = d.Attempts[len(d.Attempts)-1]
-	}
+	att := d.Attempts[len(d.Attempts)-1]
 	if code == "empreinte_squattee" {
-		if att != nil {
-			att.Outcome = "echec_permanente"
-			att.ErrorCode = ptrS(code)
-			att.Detail = "empreinte deja ancree par un tiers"
-		}
+		att.Outcome = "echec_permanente"
+		att.ErrorCode = ptrS(code)
+		att.Detail = "empreinte deja ancree par un tiers"
 		d.DueAt = nil
 		p.ecrire(d, t, "refusee")
 		p.alerter(t, &d.ID, "empreinte_squattee", "critique")
+		p.journaliser(t, &d.ID, vObj("event", vStr("anchor_refused"), "error_code", vStr(code)))
+		// EX-9.7 : sur l'ancre d'un point, « le point garde son jeton RFC 3161 »
+		// (AN-36 : le jeton_point part après ce refus) ; sur l'ancre d'une
+		// période (complément du 2026-11-16) : « Un refus n'est pas une
+		// inclusion : jeton_periode reste attente_registre (EX-8.4, règle 2 ;
+		// AN-36), aucune requête RFC 3161 sur periodHash ne part, et la période
+		// reste signalée registry_pending ».
+		if j := p.jetonDuSujet(d); j != nil && j.Kind == "jeton_point" && j.State == "attente_registre" {
+			p.pret(j, p.designe(j.Kind))
+		}
+		return
+	}
+	// EX-8.10 (complément du 2026-11-16) : « tout autre échec que le registre
+	// signale pour une ancre en vol [...] ne la renvoie pas aussitôt : la
+	// tentative est close (echec_transitoire, ou echec_permanente pour un refus
+	// définitif, code refus_*) ».
+	definitif := strings.HasPrefix(code, "refus_")
+	att.Outcome = "echec_transitoire"
+	if definitif {
+		att.Outcome = "echec_permanente"
+	}
+	att.ErrorCode = ptrS(code)
+	att.Detail = "registre : " + code
+	if definitif && d.Kind == "ancre_registre_point" {
+		// « un refus définitif rend refusee l'ancre d'un point (alerte
+		// prestataires_epuises majeure, ligne anchor_refused), dont le jeton
+		// part alors sans elle (EX-9.7) ».
+		att.NextAt = nil
+		d.DueAt = nil
+		p.ecrire(d, t, "refusee")
+		p.alerter(t, &d.ID, "prestataires_epuises", "majeure")
 		p.journaliser(t, &d.ID, vObj("event", vStr("anchor_refused"), "error_code", vStr(code)))
 		if j := p.jetonDuSujet(d); j != nil && j.State == "attente_registre" {
 			p.pret(j, p.designe(j.Kind))
 		}
 		return
 	}
-	p.cloreTentativeRegistre(d, t, code, "registre : "+code)
-	// EX-8.15 (révision 0.6) : la tentative que ce renvoi ouvre
-	p.journaliser(t, &d.ID, avecRang(vObj("event", vStr("anchor_retry"), "kind", vStr(d.Kind), "error_code", vStr(code)), d, d.Total()+1))
-	p.ajouterTentative(d, nil, t, nil, "renvoi des memes octets")
-	p.ecrire(d, t, "envoyee")
-	p.emettre(t, "envoyer_registre", &d.ID, p.detailRegistre(d))
-	s := p.int(d.ID)
-	s.inclusionAt = ptrI(t + p.cfg.InclusionAlertS*1000)
-	p.timer(*s.inclusionAt, "inclusion", d.ID, 0, "")
+	// « sinon la ligne anchor_retry (mode reprise, error_code, rang et
+	// attempt_id de la tentative close) est écrite et la demande passe
+	// a_reprendre, due_at à l'attente d'EX-8.9 (k : tentatives en échec de la
+	// demande, gigue comprise ; retry.max_ms pour le refus définitif d'une
+	// ancre de période, jamais abandonnée, EX-4.5), action programmer de raison
+	// backoff ». Les tentatives sorties de la fenêtre de 32, jamais obtenues
+	// (l'ancre n'est pas finale), comptent parmi les échecs.
+	var delai int64
+	if definitif {
+		delai = int64(p.cfg.Retry.MaxMs)
+	} else {
+		k := d.Total() - int64(len(d.Attempts))
+		if k < 0 {
+			k = 0
+		}
+		for _, a := range d.Attempts {
+			if a.Outcome != "obtenue" {
+				k++
+			}
+		}
+		v, _ := CalculerAttente(nil, nil, k, true, p.cfg.Retry, p.aleatoire.Gigue())
+		delai = int64(v)
+	}
+	next := t + delai
+	att.NextAt = ptrS(Iso(next))
+	p.journaliser(t, &d.ID, avecRang(vObj("event", vStr("anchor_retry"), "kind", vStr(d.Kind), "mode", vStr("reprise"), "error_code", vStr(code)), d, att.N))
+	// EX-8.10 (complément du 2026-11-16) : « ce refus définitif de l'ancre
+	// d'une période est un incident [...] ; la ligne anchor_retry est suivie
+	// de l'alerte prestataires_epuises critique (8.9) [...], levée une fois
+	// par ancre depuis le dernier démarrage, puis de l'écriture a_reprendre et
+	// de l'action programmer ; un refus suivant de la même ancre ne la lève
+	// pas de nouveau ». La marque est effacée à chaque démarrage (demarrer).
+	if definitif && !s.alertes["prestataires_epuises"] {
+		s.alertes["prestataires_epuises"] = true
+		p.alerter(t, &d.ID, "prestataires_epuises", "critique")
+	}
+	d.DueAt = ptrS(Iso(next))
+	p.ecrire(d, t, "a_reprendre")
+	p.programmer(d, t, next, "backoff")
+	s.reprises[""] = next
+	p.timer(next, "reprise", d.ID, 0, "")
 }
 
 func (p *Planificateur) cloreTentativeRegistre(d *Demande, t int64, code, detail string) {
@@ -1422,14 +2006,31 @@ func (p *Planificateur) cloreTentativeRegistre(d *Demande, t int64, code, detail
 	att.Detail = detail
 }
 
-func (p *Planificateur) examinerAttenteRegistre(d *Demande, t int64) {
+// reposer rend la prochaine échéance d'une minuterie périodique de pas donné
+// échue à t et le nombre d'échéances sautées : au quatrième rejeu d'une passe
+// (EX-8.10), la première échéance postérieure à l'instant de l'entrée, les
+// échéances intermédiaires n'étant jamais rejouées ; sinon t + pas.
+func (p *Planificateur) reposer(t, pas int64, quatrieme bool) (int64, int64) {
+	prochain := t + pas
+	if !quatrieme || pas <= 0 || prochain > p.instantPasse {
+		return prochain, 0
+	}
+	n := (p.instantPasse-t)/pas + 1
+	return t + n*pas, n - 1
+}
+
+func (p *Planificateur) examinerAttenteRegistre(d *Demande, t int64, quatrieme bool) {
 	s := p.int(d.ID)
 	kind := "ancre_registre_periode"
 	if d.Subject.Kind == "point" {
 		kind = "ancre_registre_point"
 	}
 	ancre := p.demandes[idDemande(kind, d.Subject.Hash)]
-	if ancre == nil || ancre.State == "obtenue" || ancre.State == "refusee" {
+	// EX-9.7 (complément du 2026-11-16) : l'ancre d'une période refusée ne
+	// libère pas jeton_periode, qui attend son inclusion sans borne (« rien ne
+	// lève ce signal tant que la période n'a pas de jeton ») ; l'ancre d'un
+	// point refusée libère son jeton_point.
+	if ancre == nil || ancre.State == "obtenue" || (ancre.State == "refusee" && d.Kind == "jeton_point") {
 		p.pret(d, p.designe(d.Kind))
 		return
 	}
@@ -1462,7 +2063,11 @@ func (p *Planificateur) examinerAttenteRegistre(d *Demande, t int64) {
 		p.journaliser(t, &d.ID, vObj("event", vStr("anchor_pending"), "age_s", vInt(age)))
 		p.alerter(t, &d.ID, "anchor_pending", "majeure")
 	}
-	s.attenteAt = ptrI(t + p.cfg.InclusionAlertS*1000)
+	// EX-8.10 : au quatrième rejeu d'une passe, reposée à la première échéance
+	// postérieure à l'instant de l'entrée ; les échéances sautées ne sont pas
+	// consignées pour l'examen de l'attente du registre.
+	prochain, _ := p.reposer(t, p.cfg.InclusionAlertS*1000, quatrieme)
+	s.attenteAt = ptrI(prochain)
 	p.programmer(d, t, *s.attenteAt, "attente_registre")
 	p.timer(*s.attenteAt, "attente_registre", d.ID, 0, "")
 }
@@ -1536,8 +2141,11 @@ func (p *Planificateur) classer(d *Demande, att *Tentative, data *Value, t int64
 	}
 	switch *st {
 	case 2:
+		// EX-5.10, étape 2 (complément du 2026-11-16) : « un PKIFailureInfo hors
+		// des huit valeurs nommées (autre dans les traces) donne statut_2, comme
+		// un status 2 sans PKIFailureInfo ».
 		fi := ptrChaine(data, "failure_info")
-		if fi == nil {
+		if fi == nil || !failureInfoNommee(*fi) {
 			return fin("echec_permanente", "statut_2", "PKIStatus 2 (rejection)")
 		}
 		issue := "echec_permanente"
@@ -1554,6 +2162,12 @@ func (p *Planificateur) classer(d *Demande, att *Tentative, data *Value, t int64
 	case 0, 1:
 	default:
 		return fin("echec_permanente", fmt.Sprintf("statut_%d", *st), fmt.Sprintf("PKIStatus %d inconnu", *st))
+	}
+	// EX-5.10, étape 2 (complément du 2026-11-16) : « une réponse de status 0
+	// ou 1 sans TimeStampToken est reponse_illisible (permanente, détail
+	// TimeStampToken absent), jamais promue ».
+	if ptrChaine(data, "token_sha256") == nil {
+		return fin("echec_permanente", "reponse_illisible", "TimeStampToken absent")
 	}
 	if im := ptrBool(data, "imprint_matches"); im == nil || !*im {
 		return piece("empreinte_differente", "messageImprint different de l'empreinte demandee")
@@ -1596,7 +2210,13 @@ func (p *Planificateur) classer(d *Demande, att *Tentative, data *Value, t int64
 	if err != nil {
 		panic(refus("", "%s", err.Error()))
 	}
-	bound := genTime + int64(nombreOu(data, 0, "accuracy_s")*1000)
+	bound, dansLaPlage := borneDansLaPlage(genTime, nombreOu(data, 0, "accuracy_s"))
+	if !dansLaPlage {
+		// EX-5.10, étape 6 (complément du 2026-11-16) : « genTime plus la
+		// précision hors de la plage d'un instant (±8,64 × 10^15 ms) est
+		// verification_T-7 ».
+		return piece("verification_T-7", "precision hors de la plage d'un instant (T-7)")
+	}
 	envoi, err := Ms(att.StartedAt)
 	if err != nil {
 		panic(refus("", "%s", err.Error()))
@@ -1630,6 +2250,70 @@ func (p *Planificateur) classer(d *Demande, att *Tentative, data *Value, t int64
 	return res
 }
 
+// failureInfoNommee : l'une des huit valeurs de PKIFailureInfo que la RFC 3161
+// nomme (§2.4.2).
+func failureInfoNommee(fi string) bool {
+	for _, nom := range NomsFailureInfo {
+		if nom == fi {
+			return true
+		}
+	}
+	return false
+}
+
+// InstantMaxMs borne la valeur d'un instant (±8,64 × 10^15 ms, EX-5.10).
+const InstantMaxMs = 8_640_000_000_000_000
+
+// borneDansLaPlage rend genTime plus la précision, et si la somme tient dans la
+// plage d'un instant.
+func borneDansLaPlage(genTime int64, accuracyS float64) (int64, bool) {
+	somme := float64(genTime) + accuracyS*1000
+	if somme > InstantMaxMs || somme < -InstantMaxMs {
+		return 0, false
+	}
+	return genTime + int64(accuracyS*1000), true
+}
+
+// borneDePiece rend la borne d'une pièce, jeton d'une réponse à une
+// tentative qui n'est plus en cours. 8.5, règle 2 (complément du 2026-11-16) :
+// « la borne d'une telle pièce (bound de l'action stocker) est genTime plus la
+// précision quand le jeton passe les étapes 3 à 6 d'EX-5.10 pour la tentative
+// qu'il désigne (avec le nonce de cette tentative, que le planificateur garde
+// aussi quand il la voit sortir de la fenêtre de la règle 7), nulle sinon ».
+func borneDePiece(data *Value, nonceTentative *string) *Value {
+	g, ok := chaineDe(data, "gen_time")
+	if !ok {
+		return vNull()
+	}
+	if im := ptrBool(data, "imprint_matches"); im == nil || !*im {
+		return vNull()
+	}
+	if n := ptrChaine(data, "nonce_in_response"); n == nil || nonceTentative == nil || *n != *nonceTentative {
+		return vNull()
+	}
+	if pc := ptrChaine(data, "policy_check"); pc != nil && *pc != "conforme" {
+		return vNull()
+	}
+	passes := map[string]bool{}
+	for _, c := range chainesDe(data, "checks_passed") {
+		passes[c] = true
+	}
+	for i := 1; i <= 9; i++ {
+		if !passes[fmt.Sprintf("T-%d", i)] {
+			return vNull()
+		}
+	}
+	gm, err := Ms(g)
+	if err != nil {
+		return vNull()
+	}
+	b, dansLaPlage := borneDansLaPlage(gm, nombreOu(data, 0, "accuracy_s"))
+	if !dansLaPlage {
+		return vNull()
+	}
+	return vStr(Iso(b))
+}
+
 func (p *Planificateur) reponseRfc3161(t int64, data *Value) {
 	requestID := ptrChaine(data, "request_id")
 	var d *Demande
@@ -1648,27 +2332,42 @@ func (p *Planificateur) reponseRfc3161(t int64, data *Value) {
 	}
 	pki := ptrEntier(data, "pki_status")
 	tokenSHA := ptrChaine(data, "token_sha256")
-	jeton := pki != nil && *pki <= 1 && tokenSHA != nil
-	// EX-8.5, règle 7 (révision 0.6) : rang connu (1 à attempts_total) d'une
-	// tentative que la ligne ne porte plus ; traitée comme une tentative close.
-	horsFenetre := d != nil && att == nil && attempt != nil && *attempt >= 1 && *attempt <= d.Total()
-	if d == nil || (att == nil && !horsFenetre) || !prefixe(d.Kind, "jeton_") {
-		p.journaliser(t, requestID, vObj("event", vStr("anchor_response_rejected"), "error_code", vStr("tentative_inconnue"), "attempt", vIntOuNul(attempt)))
+	// EX-8.5, règle 2 (complément du 2026-11-16) : « Une réponse de status 2 à
+	// 5 ne porte jamais de jeton » : seul un status 0 ou 1 avec token_sha256.
+	jeton := pki != nil && (*pki == 0 || *pki == 1) && tokenSHA != nil
+	tokenSize := ptrEntier(data, "token_size")
+	// 8.5, règle 2 (complément du 2026-11-16) : « demande_inconnue quand la
+	// file n'a aucune demande de cet id de la sorte attendue (rien n'est
+	// gardé) » ; la ligne porte attempt (le rang de l'entrée), provider nul,
+	// kept faux, et pas d'attempt_id.
+	if d == nil || !prefixe(d.Kind, "jeton_") {
+		p.journaliser(t, requestID, vObj("event", vStr("anchor_response_rejected"), "error_code", vStr("demande_inconnue"), "attempt", vIntOuNul(attempt), "provider", vNull(), "kept", vBool(false)))
 		return
 	}
-	tokenSize := ptrEntier(data, "token_size")
-	accuracyMs := int64(nombreOu(data, 0, "accuracy_s") * 1000)
+	// EX-8.5, règle 7 (révision 0.6) : rang connu (1 à attempts_total) d'une
+	// tentative que la ligne ne porte plus ; traitée comme une tentative close.
+	horsFenetre := att == nil && attempt != nil && *attempt >= 1 && *attempt <= d.Total()
+	if att == nil && !horsFenetre {
+		// EX-8.5, règle 1 (complément du 2026-11-16) : « de même pour une
+		// réponse RFC 3161 d'un rang que la demande n'a jamais ouvert (au-delà
+		// d'attempts_total) : jeton gardé comme pièce (action stocker, borne
+		// nulle), jamais promu, ligne anchor_response_rejected de code
+		// tentative_inconnue ».
+		if jeton {
+			p.emettre(t, "stocker", &d.ID, vObj("sha256", vStr(*tokenSHA), "size", vIntOuNul(tokenSize), "bound", vNull()))
+		}
+		p.journaliser(t, &d.ID, vObj("event", vStr("anchor_response_rejected"), "error_code", vStr("tentative_inconnue"), "attempt", vIntOuNul(attempt), "attempt_id", vNull(), "provider", vNull(), "kept", vBool(jeton)))
+		return
+	}
 	if EtatsFinaux[d.State] || horsFenetre || att.Outcome != "en_cours" {
 		if jeton {
-			var bound *Value = vNull()
-			if g, ok := chaineDe(data, "gen_time"); ok {
-				gm, err := Ms(g)
-				if err != nil {
-					panic(refus("", "%s", err.Error()))
-				}
-				bound = vStr(Iso(gm + accuracyMs))
+			var nonce *string
+			if att != nil {
+				nonce = att.Nonce
+			} else if n, ok := p.int(d.ID).noncesSortis[*attempt]; ok {
+				nonce = &n
 			}
-			p.emettre(t, "stocker", &d.ID, vObj("sha256", vStrOuNul(tokenSHA), "size", vIntOuNul(tokenSize), "bound", bound))
+			p.emettre(t, "stocker", &d.ID, vObj("sha256", vStrOuNul(tokenSHA), "size", vIntOuNul(tokenSize), "bound", borneDePiece(data, nonce)))
 		}
 		code := "tentative_close"
 		if EtatsFinaux[d.State] {
@@ -1704,6 +2403,13 @@ func (p *Planificateur) reponseRfc3161(t int64, data *Value) {
 	att.ErrorCode = r.code
 	att.Detail = r.detail
 	delete(s.enCours, pr.ID)
+	// EX-8.9 (complément du 2026-11-16) : « une tentative obtenue ou en échec
+	// permanent chez ce prestataire interrompt aussi la série, en cours de
+	// marche comme à la relecture, et seule une echec_transitoire ou une
+	// reponse_tardive la prolonge ».
+	if r.issue == "obtenue" || r.issue == "echec_permanente" {
+		s.k[pr.ID] = 0
+	}
 	if r.issue == "obtenue" {
 		if tokenSHA == nil || tokenSize == nil {
 			panic(refus("", "reponse_rfc3161 : token_sha256 et token_size attendus pour un jeton accepté"))
@@ -1950,6 +2656,16 @@ func (p *Planificateur) satisfaire(d *Demande, t int64, pr *Prestataire, r *clas
 			p.alerter(t, &d.ID, "contresignature_tardive", "mineure")
 		}
 	}
+	p.appliquerPromotion(d, t, per, kmax, *r.bound)
+}
+
+// appliquerPromotion applique EX-4.4 après la promotion du jeton de d (ou sa
+// recréation obtenue, EX-8.12) : les demandes non finales qui servent une
+// échéance ouverte inférieure à kmax sont closes remplacee, une échéance
+// ouverte sans demande passe remplacee, et le jeton de clôture rend sans objet
+// un repli de clôture encore en cours (EX-4.2). borne est genTime plus la
+// précision du jeton (window_s).
+func (p *Planificateur) appliquerPromotion(d *Demande, t int64, per *periode, kmax, borne int64) {
 	severite := "majeure"
 	if p.cfg.ProviderRole == "interne" {
 		severite = "mineure"
@@ -1978,7 +2694,7 @@ func (p *Planificateur) satisfaire(d *Demande, t int64, pr *Prestataire, r *clas
 					kmin = k2
 				}
 			}
-			p.journaliser(t, &r2.ID, vObj("event", vStr("checkpoint_anchor_late"), "tree_size", vIntOuNul(r2.Subject.TreeSize), "deadlines", vEntiers(r2.Deadlines), "replaced_by", vStr(d.ID), "window_s", vInt((*r.bound-p.D(per, kmin))/1000)))
+			p.journaliser(t, &r2.ID, vObj("event", vStr("checkpoint_anchor_late"), "tree_size", vIntOuNul(r2.Subject.TreeSize), "deadlines", vEntiers(r2.Deadlines), "replaced_by", vStr(d.ID), "window_s", vInt((borne-p.D(per, kmin))/1000)))
 			p.alerter(t, &r2.ID, "checkpoint_anchor_late", severite)
 		} else if r2 == nil || EtatsFinaux[r2.State] {
 			e.state = "remplacee"
@@ -2012,26 +2728,41 @@ func (p *Planificateur) reponseOts(t int64, data *Value) {
 	if requestID != nil {
 		d = p.demandes[*requestID]
 	}
-	if d == nil || !prefixe(d.Kind, "ots_") || EtatsFinaux[d.State] {
-		code := "tentative_inconnue"
-		if d != nil && EtatsFinaux[d.State] {
+	preuve := ptrChaine(data, "proof_sha256")
+	// EX-8.5, règle 2 (complément du 2026-11-16) : « Une réponse qui ne
+	// s'applique pas est consignée anchor_response_rejected : demande_inconnue
+	// quand la file n'a aucune demande de cet id de la sorte attendue (rien
+	// n'est gardé), [...] tentative_close quand la tentative désignée n'est plus
+	// en cours, demande_close quand la demande est dans un état final ; la
+	// ligne porte attempt (pour une réponse des calendriers, la dernière
+	// tentative de la demande, attempts_total, et nul pour une demande
+	// inconnue), attempt_id (celui de ce rang quand la demande l'a ouvert, nul
+	// sinon ; absent pour une demande inconnue), provider (nul pour les
+	// calendriers) et kept (la réponse portait [...] une preuve) ».
+	if d == nil || !prefixe(d.Kind, "ots_") {
+		p.journaliser(t, requestID, vObj("event", vStr("anchor_response_rejected"), "error_code", vStr("demande_inconnue"), "attempt", vNull(), "provider", vNull(), "kept", vBool(false)))
+		return
+	}
+	var att *Tentative
+	for _, a := range d.Attempts {
+		if att == nil || a.N > att.N {
+			att = a
+		}
+	}
+	if EtatsFinaux[d.State] || att == nil || att.Outcome != "en_cours" {
+		code := "tentative_close"
+		if EtatsFinaux[d.State] {
 			code = "demande_close"
 		}
-		p.journaliser(t, requestID, vObj("event", vStr("anchor_response_rejected"), "error_code", vStr(code)))
+		total := d.Total()
+		var attemptID *Value = vNull()
+		if total > 0 {
+			attemptID = vStr(IdentifiantCorrelation(d.Kind, d.Subject.Hash, total))
+		}
+		p.journaliser(t, &d.ID, vObj("event", vStr("anchor_response_rejected"), "error_code", vStr(code), "attempt", vInt(total), "attempt_id", attemptID, "provider", vNull(), "kept", vBool(preuve != nil)))
 		return
 	}
 	s := p.int(d.ID)
-	var att *Tentative
-	for i := len(d.Attempts) - 1; i >= 0; i-- {
-		if d.Attempts[i].Outcome == "en_cours" {
-			att = d.Attempts[i]
-			break
-		}
-	}
-	if att == nil {
-		p.journaliser(t, &d.ID, vObj("event", vStr("anchor_response_rejected"), "error_code", vStr("tentative_inconnue")))
-		return
-	}
 	delete(s.enCours, "")
 	n := entierOu(data, 0, "calendars_answered")
 	attestation := chaineOu(data, "", "attestation")
@@ -2042,10 +2773,34 @@ func (p *Planificateur) reponseOts(t int64, data *Value) {
 		p.emettre(t, "stocker", &d.ID, vObj("sha256", vStr(sha), "size", vInt(size), "bound", vNull()))
 	}
 	if d.State == "envoyee" || d.State == "a_reprendre" {
+		// EX-8.11 (complément du 2026-11-16) : « avec moins de min_responses
+		// réponses valables, quelle que soit l'attestation [...], la tentative est
+		// close echec_transitoire, code reponses_insuffisantes [...] : action
+		// rejeter_reponse (error_code reponses_insuffisantes, classe
+		// transitoire), ligne anchor_response_rejected (error_code, rang attempt
+		// et attempt_id de la tentative, provider nul ; 8.9), puis la demande
+		// passe a_reprendre, due_at à l'attente d'EX-8.9 (k : la série de la
+		// soumission, gigue comprise), action programmer de raison backoff » ;
+		// « une réponse sans preuve écrite (proof_sha256 nul) n'est jamais
+		// promue. À la soumission, avec au moins min_responses réponses valables
+		// et une attestation en_attente ou complete, la tentative est close de
+		// même, code preuve_absente, détail <n> calendriers ; aucune preuve
+		// ecrite (rejet, ligne et attente identiques ; la série d'EX-8.9 la
+		// compte) ».
+		code, detail := "", ""
 		if attestation == "aucune" || n < p.cfg.MinResponses {
+			code, detail = "reponses_insuffisantes", fmt.Sprintf("%d calendrier(s) ; moins de %d reponses valables", n, p.cfg.MinResponses)
+		} else if preuve == nil {
+			code, detail = "preuve_absente", fmt.Sprintf("%d calendriers ; aucune preuve ecrite", n)
+		}
+		if code != "" {
 			att.Outcome = "echec_transitoire"
-			att.ErrorCode = ptrS("reponses_insuffisantes")
-			att.Detail = fmt.Sprintf("%d calendrier(s) ; moins de %d reponses valables", n, p.cfg.MinResponses)
+			att.ErrorCode = ptrS(code)
+			att.Detail = detail
+			p.emettre(t, "rejeter_reponse", &d.ID, vObj("error_code", vStr(code), "class", vStr("transitoire")))
+			ligne := avecRang(vObj("event", vStr("anchor_response_rejected"), "error_code", vStr(code)), d, att.N)
+			ligne.Obj = append(ligne.Obj, Member{Key: "provider", Val: vNull()})
+			p.journaliser(t, &d.ID, ligne)
 			delai, raison := p.attenteReprise(d, "", vObj())
 			next := t + delai
 			att.NextAt = ptrS(Iso(next))
@@ -2057,6 +2812,7 @@ func (p *Planificateur) reponseOts(t int64, data *Value) {
 			return
 		}
 		att.Outcome = "obtenue"
+		s.k[""] = 0 // EX-8.9 : une soumission obtenue clôt la série
 		if attestation == "complete" {
 			att.Detail = fmt.Sprintf("%d calendriers ; attestation Bitcoin", n)
 			stocker()
@@ -2067,6 +2823,17 @@ func (p *Planificateur) reponseOts(t int64, data *Value) {
 		}
 		att.Detail = fmt.Sprintf("%d calendriers ; attestation en attente", n)
 		stocker()
+		// EX-8.11 (complément du 2026-11-16, soumission aboutie au-delà de
+		// l'âge d'abandon) : « Quand une soumission aboutit (passage en_attente,
+		// preuve écrite) alors que l'âge de la demande (t − created_at) atteint
+		// déjà upgrade.give_up_after_s [...], l'alerte ots_give_up est levée dès
+		// ce passage, une fois par demande depuis le dernier démarrage (après
+		// l'action stocker, avant l'écriture en_attente) [...] ; cette première
+		// mise à niveau reste programmée à now + upgrade.first_after_s ».
+		if creation, err := Ms(d.CreatedAt); err == nil && t-creation >= p.cfg.UpgradeGiveUpAfterS*1000 && !s.alertes["ots_give_up"] {
+			s.alertes["ots_give_up"] = true
+			p.alerter(t, &d.ID, "ots_give_up", "majeure")
+		}
 		next := t + p.cfg.UpgradeFirstAfterS*1000
 		att.NextAt = ptrS(Iso(next))
 		p.ecrire(d, t, "en_attente")
@@ -2075,8 +2842,11 @@ func (p *Planificateur) reponseOts(t int64, data *Value) {
 		p.timer(next, "mise_a_niveau", d.ID, 0, "")
 		return
 	}
-	// en_attente : réponse à une mise à niveau
-	if attestation == "complete" {
+	// en_attente : réponse à une mise à niveau. EX-8.11 (complément du
+	// 2026-11-16) : « à la mise à niveau, une attestation Bitcoin sans preuve
+	// laisse la preuve en_attente, tentative close echec_transitoire de code
+	// en_attente, comme une réponse 404 ».
+	if attestation == "complete" && preuve != nil {
 		att.Outcome = "obtenue"
 		att.Detail = "mise a niveau : attestation Bitcoin"
 		stocker()
@@ -2093,15 +2863,15 @@ func (p *Planificateur) reponseOts(t int64, data *Value) {
 		intervalle = 60
 	}
 	intervalle *= 1000
-	debut := s.soumisA
-	if debut == nil {
-		v, err := Ms(d.CreatedAt)
-		if err != nil {
-			panic(refus("", "%s", err.Error()))
-		}
-		debut = &v
+	// EX-8.11 (complément du 2026-11-16, origine de l'âge d'abandon) : « Cet
+	// âge court depuis created_at de la demande, écrit à sa création, porté
+	// par chaque ligne et jamais réécrit, au démarrage comme en marche
+	// (EX-8.12) ».
+	debut, err := Ms(d.CreatedAt)
+	if err != nil {
+		panic(refus("", "%s", err.Error()))
 	}
-	if t-*debut >= p.cfg.UpgradeGiveUpAfterS*1000 {
+	if t-debut >= p.cfg.UpgradeGiveUpAfterS*1000 {
 		if !s.alertes["ots_give_up"] {
 			s.alertes["ots_give_up"] = true
 			p.alerter(t, &d.ID, "ots_give_up", "majeure")

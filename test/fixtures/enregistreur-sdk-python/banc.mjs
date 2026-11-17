@@ -46,7 +46,7 @@ import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
 import { spawn, spawnSync, execFileSync } from "node:child_process";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const ICI = path.dirname(fileURLToPath(import.meta.url));
 export const ALIAS_SDK = "agent-py";
@@ -475,7 +475,7 @@ async function principal() {
   });
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   principal().catch((e) => {
     process.stdout.write(JSON.stringify({ pret: false, erreur: String(e?.stack ?? e) }) + "\n");
     process.exit(2);

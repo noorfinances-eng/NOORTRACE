@@ -122,9 +122,14 @@ export async function resoudreSecretsAncrage(document, o = {}) {
 
 /**
  * Instance du registre pour le composant (`{ evmChainId, bftChainId, contrats,
- * fees, jeux }`) depuis un manifeste d'instance de CT-4 §4.8
+ * fees, jeux, deploiements? }`) depuis un manifeste d'instance de CT-4 §4.8
  * (`instance-registre-v0` : `evm_chain_id`, `bft_chain_id`, `contracts[]`
  * nommés, `fees`, `validator_sets[]`). Rend `{ instance }` ou `{ erreur }`.
+ * `deploiements` (complément du 2026-11-16, CT-4 OP-8) porte
+ * `recorder_registry: { address, block_number }` quand l'entrée retenue du
+ * `RecorderRegistry` dans `contracts[]` donne un `block_number` entier : le
+ * relais d'inscription du composant lit les `RecorderRegistered` depuis ce
+ * bloc de déploiement, et non depuis le bloc 0.
  */
 export function instanceDepuisManifeste(manifeste) {
   if (!estObjet(manifeste)) return { instance: null, erreur: "manifeste d'instance : objet attendu" };
@@ -133,10 +138,15 @@ export function instanceDepuisManifeste(manifeste) {
   if (!Number.isSafeInteger(evm) || evm < 1) return { instance: null, erreur: "evm_chain_id entier attendu" };
   if (typeof bft !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(bft)) return { instance: null, erreur: "bft_chain_id attendu" };
   const contrats = {};
+  const blocs = {};
   const noms = { AttestationRegistry: "attestation_registry", PeriodRegistry: "period_registry", RecorderRegistry: "recorder_registry" };
   if (Array.isArray(manifeste.contracts)) {
     for (const c of manifeste.contracts) {
-      if (estObjet(c) && noms[c.name] && /^0x[0-9a-fA-F]{40}$/.test(c.address)) contrats[noms[c.name]] = c.address.toLowerCase();
+      if (estObjet(c) && noms[c.name] && /^0x[0-9a-fA-F]{40}$/.test(c.address)) {
+        contrats[noms[c.name]] = c.address.toLowerCase();
+        // Bloc de déploiement de l'entrée retenue (CT-4 §4.8, `block_number`), celle qui donne l'adresse.
+        blocs[noms[c.name]] = Number.isSafeInteger(c.block_number) && c.block_number >= 0 ? c.block_number : null;
+      }
     }
   } else if (estObjet(manifeste.contracts)) {
     for (const k of Object.values(noms)) if (/^0x[0-9a-fA-F]{40}$/.test(manifeste.contracts[k])) contrats[k] = manifeste.contracts[k].toLowerCase();
@@ -146,10 +156,12 @@ export function instanceDepuisManifeste(manifeste) {
   const fees = estObjet(manifeste.fees) ? manifeste.fees : {};
   const gasLimit = Number.isSafeInteger(fees.gas_limit) ? fees.gas_limit : 3000000;
   const gasLimitMax = Number.isSafeInteger(fees.gas_limit_max) ? fees.gas_limit_max : 16777216;
+  const blocRegistre = blocs.recorder_registry ?? null;
   return {
     instance: {
       evmChainId: evm, bftChainId: bft, contrats, fees: { gas_limit: gasLimit, gas_limit_max: gasLimitMax },
       jeux: { validator_sets: manifeste.validator_sets, source: typeof manifeste.source === "string" ? manifeste.source : `manifeste d'instance ${bft}` },
+      ...(blocRegistre !== null ? { deploiements: { recorder_registry: { address: contrats.recorder_registry, block_number: blocRegistre } } } : {}),
     },
     erreur: null,
   };

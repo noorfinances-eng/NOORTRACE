@@ -10,10 +10,11 @@
 import fs from "node:fs";
 import https from "node:https";
 import crypto from "node:crypto";
-import { pathToFileURL } from "node:url";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 // Exécuté seulement comme programme (jamais à l'import, par exemple par le chargeur des essais).
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   const [cle, certificat, port = "443"] = process.argv.slice(2);
   const OUTIL = { name: "read_file", description: "Lit un fichier (serveur factice de l'essai)", inputSchema: { type: "object", properties: { path: { type: "string" } }, required: ["path"] } };
 

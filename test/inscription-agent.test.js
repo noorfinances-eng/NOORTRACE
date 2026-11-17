@@ -185,6 +185,7 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
     pont.suiveur = false;
     pont.certificatsIndisponiblesDepuis = null;
     pont.refuserEnvois = null;
+    pont.refuserJournaux = null;
   });
 
   after(async function () {
@@ -460,6 +461,82 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
         memeForme(s.sa, s.sb);
         expect(s.sa.error.code).to.equal(memeCle === "chaine" ? "cle_deja_active" : "cle_ed25519_active");
       }
+    });
+
+    it("OP-8, complément du 2026-11-16 (CT-4 EX-8.22, CT-5 EX-9.4) : clé de chaîne déjà inscrite sous une autre organisation → cle_chaine_autre_organisation ; journaux RecorderRegistered illisibles → noeud_injoignable, OP-8 en échec ; rien n'est envoyé, mêmes sorties que l'outil ; mutant qui saute la vérification sur une lecture impossible : tué", async function () {
+      // L'autre organisation : un client inscrit, dont le jeu signe l'inscription d'adresses qu'elle ne détient pas (EX-8.22).
+      const autre = await inscrit("ailleurs-org");
+      const orgAutre = dossierA(autre).organisation.org_id;
+      const q = paire("ailleurs");
+      await preparer(q);
+      await inscrireClient(q);
+      const c = await condense(q);
+      const demA = O.signerDemande(c.demA, [1, 2]);
+      const demB = O.signerDemande(c.demB, [1, 2]);
+      const etatInscription = (d) => d.steps.find((s) => s.step === "inscription").state;
+      // Les adresses des deux clés de chaîne inscrites sous l'autre organisation, relayées au seuil de son jeu.
+      for (const [k, cote] of [["a", q.A], ["b", q.B]]) {
+        const f = path.join(dir, `ailleurs-autre-org-${k}.json`);
+        const sc = await outil(["condense", "inscription", "--org-id", orgAutre, "--journal-id", JID, "--cle-chaine-adresse", cote.cles[0].chaine.adresse, "--cle-ed25519", O.cleEd25519(`ailleurs-autre-org-${k}`).publique, "--sortie", f]);
+        expect(sc.result, JSON.stringify(sc.error)).to.equal("reussi");
+        fs.writeFileSync(f, JSON.stringify(O.signerDemande(JSON.parse(fs.readFileSync(f, "utf8")), [1, 2])));
+        const si = await outil(["inscrire-cle", "--demande", f, "--relayeur", "hardhat:0", "--captures", path.join(dir, "ailleurs-autre-org-captures"), "--delai", "3"]);
+        expect(si.result, JSON.stringify(si.error)).to.equal("reussi");
+      }
+      const envois2 = pont.envoisRecus.length;
+      const r = await inscrireCle(q, demA, demB);
+      memeForme(r.sa, r.sb);
+      expect(r.sa.result, JSON.stringify(r.sa.error)).to.equal("refuse");
+      expect(r.sa.error).to.deep.include({ code: "cle_chaine_autre_organisation", check: "OP-8" });
+      expect(r.sa.error.message).to.include(orgAutre);
+      expect(r.sb.error.message).to.include(orgAutre);
+      expect(pont.envoisRecus.length, "rien n'est envoyé").to.equal(envois2);
+      expect(etatInscription(dossierA(q))).to.equal(etatInscription(dossierB(q)));
+      // Journaux illisibles (borne de plage du nœud) : la commande s'arrête, la vérification n'est pas sautée.
+      const envois3 = pont.envoisRecus.length;
+      pont.refuserJournaux = "query exceeds max block range 16384";
+      const lu = await inscrireCle(q, demA, demB);
+      pont.refuserJournaux = null;
+      memeForme(lu.sa, lu.sb);
+      expect(lu.sa.result, JSON.stringify(lu.sa.error)).to.equal("inutilisable");
+      expect(lu.sa.error).to.deep.include({ code: "noeud_injoignable", check: "OP-2" });
+      expect(lu.sa.checks.find((x) => x.id === "OP-8")?.status).to.equal("echoue");
+      expect(pont.envoisRecus.length, "rien n'est envoyé").to.equal(envois3);
+      expect(etatInscription(dossierA(q))).to.equal(etatInscription(dossierB(q)));
+      // Mutant : une lecture impossible des journaux laisse passer la clé (vérification sautée) ; la sortie n'est plus celle
+      // de l'outil (tué).
+      const copie = O.repertoireTemporaire("noortrace-mutant-inscription-op8-");
+      const web = path.join(E.RACINE, "paquets", "inscription", "src", "web");
+      for (const d of ["src", "schemas", "bin"]) fs.cpSync(path.join(E.RACINE, "paquets", "inscription", d), path.join(copie, d), { recursive: true, filter: (f) => f !== web && !f.startsWith(web + path.sep) });
+      fs.copyFileSync(path.join(E.RACINE, "paquets", "inscription", "package.json"), path.join(copie, "package.json"));
+      fs.symlinkSync(path.join(E.RACINE, "node_modules"), path.join(copie, "node_modules"));
+      const fichier = path.join(copie, "src", "agent", "commandes", "inscription-cle.mjs");
+      const texte = fs.readFileSync(fichier, "utf8");
+      const ancien = 'sortie.noter("OP-8", "echoue", e.message);\n    sortie.arreter("inutilisable", "noeud_injoignable", "OP-2", e.message);';
+      expect(texte.split(ancien).length - 1, "remplacement du mutant unique").to.equal(1);
+      fs.writeFileSync(fichier, texte.replace(ancien, () => "ailleurs = null;"));
+      const principal = a;
+      const mutant = await O.demarrerAgentEssai({ manifeste, rpc: pont.url, delai_s: 3, clesRepertoire: dir, racinePaquet: copie });
+      this.retablir = async () => {
+        a = principal;
+        pont.refuserJournaux = null;
+        await mutant.arreter();
+        fs.rmSync(mutant.base, { recursive: true, force: true });
+        fs.rmSync(copie, { recursive: true, force: true });
+      };
+      a = mutant;
+      const m = paire("ailleurs-mut");
+      await preparer(m);
+      await inscrireClient(m);
+      const cm = await condense(m);
+      pont.refuserJournaux = "query exceeds max block range 16384";
+      const rm = await inscrireCle(m, O.signerDemande(cm.demA, [1, 2]), O.signerDemande(cm.demB, [1, 2]));
+      pont.refuserJournaux = null;
+      await this.retablir();
+      this.retablir = null;
+      expect(rm.sb.result, "outil : lecture impossible").to.equal("inutilisable");
+      expect(rm.sa.result, "mutant : inscription envoyée sans la vérification").to.equal("reussi");
+      expect(O.formeSortie(rm.sa), "mutant tué : sortie différente de celle de l'outil").to.not.deep.equal(O.formeSortie(rm.sb));
     });
   });
 

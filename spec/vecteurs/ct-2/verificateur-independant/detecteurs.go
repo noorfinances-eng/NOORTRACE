@@ -224,11 +224,24 @@ func CleAVSValide(n string) bool {
 
 // ---------------------------------------------------------------- carte
 
-// DetecterCarte applique le détecteur carte (10.3.4). Un candidat est la
-// suite maximale qui commence et finit par un chiffre, dont les séparateurs
-// (SEP et « - ») sont isolés et suivis d'un chiffre ; elle doit être précédée
-// et suivie d'une frontière et compter de 12 à 19 chiffres. Une suite qui
-// échoue n'est pas raccourcie : la recherche reprend après elle.
+// DetecterCarte applique le détecteur carte (10.3.4).
+//
+// Règle (complément du 2026-11-16 de la révision 0.11 de CT-2, décision du
+// porteur) : « Une suite est une suite maximale de caractères de l'alphabet
+// [0-9], SEP et -, commençant et finissant par un chiffre, dont les
+// séparateurs sont isolés. [...] Les groupes de la suite sont ses suites
+// maximales de chiffres [...]. Un candidat est une sous-suite de groupes
+// consécutifs de la suite, du premier chiffre de son premier groupe au
+// dernier chiffre de son dernier groupe, qui compte entre 12 et 19 chiffres
+// et qui est précédée et suivie d'une frontière (le séparateur qui la borde à
+// l'intérieur de la suite en est une). Les candidats d'une suite sont
+// éprouvés au pas 3 dans cet ordre : par premier groupe, de gauche à droite,
+// et, pour un même premier groupe, le plus long d'abord [...]. Le premier
+// candidat qui passe le pas 3 est la correspondance, et la recherche reprend
+// immédiatement après lui (EX-10.9), le reste de la suite compris ; si aucun
+// ne passe, aucune correspondance ne commence dans la suite. »
+// Pas 4 : « Correspondance : le candidat retenu, séparateurs intérieurs
+// compris. Valeur pour le pseudonyme : N » (les chiffres seuls du candidat).
 func DetecterCarte(s []rune) []Correspondance { return toutes(s, chercherCarte) }
 
 func chercherCarte(s []rune, depart int) (Correspondance, bool) {
@@ -237,30 +250,66 @@ func chercherCarte(s []rune, depart int) (Correspondance, bool) {
 			p++
 			continue
 		}
-		debut := p
-		i, fin := p, p
-		var chiffres []rune
-		for i < len(s) {
-			if estChiffre(s[i]) {
-				chiffres = append(chiffres, s[i])
-				i++
-				fin = i
+		// la suite maximale qui commence à p, découpée en groupes [debut, fin) ;
+		// les groupes sont lus à mesure (au plus 19 au-delà du premier groupe
+		// éprouvé), pour que le coût reste linéaire quand la recherche reprend
+		// au milieu d'une longue suite (EX-10.23)
+		var groupes [][2]int
+		complete := false
+		lire := func(h int) bool {
+			for len(groupes) <= h && !complete {
+				i := p
+				if len(groupes) > 0 {
+					i = groupes[len(groupes)-1][1] + 1 // après le séparateur
+				}
+				d := i
+				for i < len(s) && estChiffre(s[i]) {
+					i++
+				}
+				groupes = append(groupes, [2]int{d, i})
+				// la suite continue sur un séparateur isolé suivi d'un chiffre
+				complete = !(i+1 < len(s) && estSepCarte(s[i]) && estChiffre(s[i+1]))
+			}
+			return h < len(groupes)
+		}
+		for g := 0; lire(g); g++ {
+			// frontière avant : celle de la suite pour le premier groupe ; pour
+			// les suivants, le séparateur intérieur qui les précède
+			if !frontiereAvant(s, groupes[g][0], depart) {
 				continue
 			}
-			if estSepCarte(s[i]) && i+1 < len(s) && estChiffre(s[i+1]) {
-				i++
-				continue
+			// sous-suites de premier groupe g : au plus 19 chiffres, la plus
+			// longue d'abord (au plus huit candidats de 12 à 19 chiffres)
+			var derniers []int
+			n := 0
+			for h := g; lire(h); h++ {
+				n += groupes[h][1] - groupes[h][0]
+				if n > 19 {
+					break
+				}
+				if n >= 12 {
+					derniers = append(derniers, h)
+				}
 			}
-			break
+			for k := len(derniers) - 1; k >= 0; k-- {
+				h := derniers[k]
+				debut, fin := groupes[g][0], groupes[h][1]
+				if !frontiereApres(s, fin) {
+					continue
+				}
+				var chiffres []rune
+				for _, r := range s[debut:fin] {
+					if estChiffre(r) {
+						chiffres = append(chiffres, r)
+					}
+				}
+				if LuhnValide(string(chiffres)) {
+					return Correspondance{Debut: debut, Fin: fin, Valeur: string(chiffres)}, true
+				}
+			}
 		}
-		p = fin
-		if !frontiereAvant(s, debut, depart) || !frontiereApres(s, fin) || len(chiffres) < 12 || len(chiffres) > 19 {
-			continue
-		}
-		if !LuhnValide(string(chiffres)) {
-			continue
-		}
-		return Correspondance{Debut: debut, Fin: fin, Valeur: string(chiffres)}, true
+		// aucun candidat de la suite ne passe : la recherche reprend après elle
+		p = groupes[len(groupes)-1][1]
 	}
 	return Correspondance{}, false
 }
@@ -307,6 +356,21 @@ var reDernierLabel = regexp.MustCompile(`^[A-Za-z]{2,}$`)
 // DetecterEmail applique le détecteur email (10.3.5) : chaque « @ » est un
 // point de départ ; lectures bornées (64 points de code à gauche, 256 à
 // droite), coût linéaire.
+//
+// Règle (complément du 2026-11-16 de la révision 0.11 de CT-2, décision du
+// porteur) : « la partie locale : soit W la suite maximale, immédiatement à
+// gauche du @, de caractères de [A-Za-z0-9!#$%&'*+/=?^_`{|}~.-], sans
+// dépasser vers la gauche le début de la chaîne (ou du segment, EX-10.9) ni
+// la fin de la correspondance précédente de ce détecteur, lue sur 64
+// caractères au plus [...] ; la partie locale L est la plus longue fin de W
+// qui est une Dot-string [...] ; sans une telle fin (W vide ou finissant par
+// un .), aucun candidat à ce @ ; le domaine : soit S la suite maximale,
+// immédiatement à droite du @, de caractères de [A-Za-z0-9.-], lue sur 256
+// caractères au plus. [...] Le domaine D est le plus long préfixe de S qui
+// est un domaine valide et qui est, soit S entière si elle compte au plus 255
+// caractères, soit suivi dans S d'un . ou d'un - ; sans un tel préfixe, aucun
+// candidat à ce @. » Pas 2 : « Correspondance : L @ D » ; aucune frontière
+// n'est exigée avant L (mention contraire réservée par 10.3.1).
 func DetecterEmail(s []rune) []Correspondance { return toutes(s, chercherEmail) }
 
 func chercherEmail(s []rune, depart int) (Correspondance, bool) {
@@ -314,53 +378,88 @@ func chercherEmail(s []rune, depart int) (Correspondance, bool) {
 		if s[a] != '@' {
 			continue
 		}
-		// partie locale : suite maximale à gauche, sans dépasser depart, lue sur 65
+		// W : suite maximale à gauche, bornée par depart, lue sur 64 au plus
 		g := a
-		for g > depart && a-g <= 64 && carLocal(s[g-1]) {
+		for g > depart && a-g < 64 && carLocal(s[g-1]) {
 			g--
 		}
-		if a-g > 64 || a == g {
+		// L : plus longue fin Dot-string de W
+		l := finDotString(s[g:a])
+		if l < 0 {
 			continue
 		}
-		local := string(s[g:a])
-		if strings.HasPrefix(local, ".") || strings.HasSuffix(local, ".") || strings.Contains(local, "..") {
-			continue
-		}
-		// domaine : suite maximale à droite, lue sur 256
+		local := string(s[g+l : a])
+		// S : suite maximale à droite, lue sur 256 au plus
 		d := a + 1
-		for d < len(s) && d-a-1 <= 255 && carDomaine(s[d]) {
+		for d < len(s) && d-a-1 < 256 && carDomaine(s[d]) {
 			d++
 		}
-		if d-a-1 > 255 {
-			continue
-		}
-		fin := d
-		if fin > a+1 && (s[fin-1] == '.' || s[fin-1] == '-') {
-			fin-- // le point final d'une phrase n'appartient pas au domaine
-		}
-		domaine := string(s[a+1 : fin])
-		labels := strings.Split(domaine, ".")
-		if len(labels) < 2 || !reDernierLabel.MatchString(labels[len(labels)-1]) {
-			continue
-		}
-		valide := true
-		for _, l := range labels {
-			if !reLabelEmail.MatchString(l) {
-				valide = false
+		S := s[a+1 : d]
+		// D : plus long préfixe admissible de S
+		lg := -1
+		for e := len(S); e >= 1; e-- {
+			admissible := (e == len(S) && len(S) <= 255) || (e < len(S) && (S[e] == '.' || S[e] == '-'))
+			if admissible && domaineValide(string(S[:e])) {
+				lg = e
 				break
 			}
 		}
-		if !valide {
+		if lg < 0 {
 			continue
 		}
-		return Correspondance{Debut: g, Fin: fin, Valeur: local + "@" + strings.ToLower(domaine)}, true
+		domaine := string(S[:lg])
+		return Correspondance{Debut: g + l, Fin: a + 1 + lg, Valeur: local + "@" + strings.ToLower(domaine)}, true
 	}
 	return Correspondance{}, false
+}
+
+// finDotString rend l'indice, dans w, du début de la plus longue fin de w qui
+// est une Dot-string (non vide, ni « . » initial, ni « . » final, ni « .. »),
+// ou -1 s'il n'y en a pas (w vide ou finissant par un « . »).
+func finDotString(w []rune) int {
+	if len(w) == 0 || w[len(w)-1] == '.' {
+		return -1
+	}
+	k := 0
+	for i := len(w) - 1; i > 0; i-- {
+		if w[i] == '.' && w[i-1] == '.' {
+			k = i + 1
+			break
+		}
+	}
+	if w[k] == '.' {
+		k++
+	}
+	return k
+}
+
+// domaineValide : au moins deux labels séparés par « . », chacun de 1 à 63
+// caractères de [A-Za-z0-9-] ne commençant ni ne finissant par « - », le
+// dernier fait d'au moins deux lettres ASCII (10.3.5).
+func domaineValide(domaine string) bool {
+	labels := strings.Split(domaine, ".")
+	if len(labels) < 2 || !reDernierLabel.MatchString(labels[len(labels)-1]) {
+		return false
+	}
+	for _, l := range labels {
+		if !reLabelEmail.MatchString(l) {
+			return false
+		}
+	}
+	return true
 }
 
 // ---------------------------------------------------------------- telephone
 
 // DetecterTelephone applique le détecteur telephone (10.3.6).
+//
+// Règle (complément du 2026-11-16 de la révision 0.11 de CT-2, décision du
+// porteur) : « Le candidat va de p à q (exclu), où q est la plus grande des
+// positions prises par fin au cours du parcours telle que le caractère à q
+// est une frontière et que le nombre de chiffres de [p, q), groupe compris
+// s'il précède q, est entre 8 et 15 ; sans une telle position, aucun
+// candidat à p. [...] le parcours peut donc s'arrêter dès que ce nombre
+// dépasse 15. »
 func DetecterTelephone(s []rune) []Correspondance { return toutes(s, chercherTelephone) }
 
 func chercherTelephone(s []rune, depart int) (Correspondance, bool) {
@@ -371,15 +470,24 @@ func chercherTelephone(s []rune, depart int) (Correspondance, bool) {
 		if p+1 >= len(s) || s[p+1] < '1' || s[p+1] > '9' {
 			continue
 		}
-		i, fin := p+2, p+2
+		// n : chiffres lus depuis p, groupe compris une fois lu ; q : plus
+		// grande position fin admissible trouvée jusqu'ici (-1 : aucune)
+		i, n, q := p+2, 1, -1
+		noter := func(fin int) {
+			if n >= 8 && n <= 15 && frontiereApres(s, fin) {
+				q = fin
+			}
+		}
+		noter(i)
 		groupe := false
 	boucle:
-		for i < len(s) {
+		for i < len(s) && n <= 15 {
 			r := s[i]
 			switch {
 			case estChiffre(r):
 				i++
-				fin = i
+				n++
+				noter(i) // fin passe derrière le chiffre
 			case estSepTelephone(r):
 				if estSepTelephone(s[i-1]) {
 					break boucle // deux séparateurs consécutifs
@@ -397,24 +505,22 @@ func chercherTelephone(s []rune, depart int) (Correspondance, bool) {
 					break boucle
 				}
 				groupe = true
-				i = j + 1 // le groupe est lu sans déplacer fin
+				n += j - i - 1 // compté pour les positions fin qui le suivent
+				i = j + 1      // le groupe est lu sans déplacer fin
 			default:
 				break boucle
 			}
 		}
-		if !frontiereApres(s, fin) {
+		if q < 0 {
 			continue
 		}
 		var chiffres []rune
-		for _, r := range s[p+1 : fin] {
+		for _, r := range s[p+1 : q] {
 			if estChiffre(r) {
 				chiffres = append(chiffres, r)
 			}
 		}
-		if len(chiffres) < 8 || len(chiffres) > 15 {
-			continue
-		}
-		return Correspondance{Debut: p, Fin: fin, Valeur: "+" + string(chiffres)}, true
+		return Correspondance{Debut: p, Fin: q, Valeur: "+" + string(chiffres)}, true
 	}
 	return Correspondance{}, false
 }

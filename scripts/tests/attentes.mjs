@@ -53,6 +53,8 @@
 // illisible.
 
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 export const ADMISES = Object.freeze([
   // Docker, images, banc client fictif
@@ -184,4 +186,4 @@ function principal(argv) {
   return r.nonAdmises.length ? 1 : 0;
 }
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) process.exitCode = principal(process.argv.slice(2));
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) process.exitCode = principal(process.argv.slice(2));

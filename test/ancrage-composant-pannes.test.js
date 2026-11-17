@@ -126,7 +126,7 @@ describe("ancrage, composant : pannes et reprises (CT-5 §5.3, §8, §9)", funct
       fs.rmSync(dir, { recursive: true, force: true });
     });
 
-    it("registre en panne depuis 07:50 : ancres a_reprendre, jeton du point de D_11 part après squat_wait_s avec ordre_ancres_non_respecte ; à la clôture jeton_periode attend, repli de clôture sur le point de clôture (checkpoint_closing_fallback)", async function () {
+    it("registre en panne depuis 07:50 : ancres a_reprendre, jeton du point de D_11 part après squat_wait_s avec ordre_ancres_non_respecte ; à la clôture jeton_periode attend, l'ancre de la période attend le reçu des ancres des points (EX-9.4), repli de clôture sur le point de clôture (checkpoint_closing_fallback)", async function () {
       if (m.condition) return enAttente(this, m.condition);
       await rejouer(m, composant, calme, 0, 49);
       for (const p of m.registre.points) m.registre.noeud.pannes.add(p);
@@ -139,8 +139,15 @@ describe("ancrage, composant : pannes et reprises (CT-5 §5.3, §8, §9)", funct
       const periode = composant.demandes().find((d) => d.kind === "jeton_periode");
       expect(periode.state).to.equal("attente_registre");
       const ancre = composant.demandes().find((d) => d.kind === "ancre_registre_periode");
-      expect(["a_reprendre", "envoyee"]).to.include(ancre.state);
-      expect(ancre.attempts.at(-1).error_code === "noeud_injoignable" || ancre.attempts.at(-1).outcome === "en_cours").to.equal(true);
+      // CT-5 EX-9.4 (complément du 2026-11-16) : l'ancre de la période ne part qu'après le reçu des ancres des points de sa
+      // période, celle du point de clôture comprise ; pendant la panne, celles-ci sont en reprise : l'ancre de la période
+      // attend, sans tentative.
+      expect(ancre.state).to.equal("a_envoyer");
+      expect(ancre.attempts).to.deep.equal([]);
+      const pendantes = composant.demandes().filter((d) => d.kind === "ancre_registre_point" && !["obtenue", "refusee", "remplacee"].includes(d.state));
+      expect(pendantes.length).to.be.at.least(1);
+      expect(pendantes.every((d) => d.subject.period_start === ancre.subject.period_start)).to.equal(true);
+      expect(pendantes.some((d) => d.attempts.at(-1)?.error_code === "noeud_injoignable" || d.attempts.at(-1)?.outcome === "en_cours")).to.equal(true);
       expect(m.journal.de("checkpoint_closing_fallback")).to.have.lengthOf(1);
       const repli = composant.demandes().find((d) => d.kind === "jeton_point" && d.deadlines.length === 0);
       expect(repli, "jeton_point sans échéance pour le point de clôture").to.not.equal(undefined);
@@ -223,14 +230,14 @@ describe("ancrage, composant : pannes et reprises (CT-5 §5.3, §8, §9)", funct
       fs.rmSync(dir, { recursive: true, force: true });
     });
 
-    it("503 puis silence : calendriers_insuffisants, a_reprendre, la soumission est rejouée avec le même engagement (nonce durable) ; au retour, en_attente et fichier .ots écrit", async function () {
+    it("503 puis silence : reponses_insuffisantes (CT-5 EX-8.11), a_reprendre, la soumission est rejouée avec le même engagement (nonce durable) ; au retour, en_attente et fichier .ots écrit", async function () {
       if (m.condition) return enAttente(this, m.condition);
       m.calendriers.etat.panne = true;
       await rejouer(m, composant, calme, 0, 30);
       const ots = composant.demandes().find((d) => d.kind === "ots_point");
       expect(ots, "ots_point du point médian D_6").to.not.equal(undefined);
       expect(ots.state).to.equal("a_reprendre");
-      expect(ots.attempts[0]).to.include({ outcome: "echec_transitoire", error_code: "calendriers_insuffisants" });
+      expect(ots.attempts[0]).to.include({ outcome: "echec_transitoire", error_code: "reponses_insuffisantes" });
       const corps = m.calendriers.etat.requetes.filter((r) => r.methode === "POST").map((r) => Buffer.from(r.corps).toString("hex"));
       expect(new Set(corps).size).to.equal(1, "même engagement à chaque rejeu (EX-6.2)");
       m.calendriers.etat.panne = false;
@@ -246,7 +253,7 @@ describe("ancrage, composant : pannes et reprises (CT-5 §5.3, §8, §9)", funct
       expect(nonces.size).to.equal(1);
       expect(fs.existsSync(path.join(dir, "stockage", ORG.slice(2), JOURNAL.slice(2), "ancres", `periode-${PERIODE}`, "ots", `point-${apres.subject.hash.slice(2)}-1.ots`))).to.equal(true);
       expect(fs.readFileSync(path.join(dir, "stockage", ORG.slice(2), JOURNAL.slice(2), "ancres", `periode-${PERIODE}`, "ots", `point-${apres.subject.hash.slice(2)}.nonce`), "utf8")).to.match(/^0x[0-9a-f]{32}\n$/);
-      expect(m.journal.de("anchor_response_rejected").some((l) => l.data.error_code === "calendriers_insuffisants")).to.equal(true);
+      expect(m.journal.de("anchor_response_rejected").some((l) => l.data.error_code === "reponses_insuffisantes")).to.equal(true);
     });
   });
 

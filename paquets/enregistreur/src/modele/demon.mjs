@@ -47,7 +47,7 @@ export async function demarrerFrontalModele(coeur, secrets, o = {}) {
   if (m.mode === "miroir") {
     const miroir = new RecepteurMiroir({ coeur, moteur });
     await miroir.ecouter();
-    coeur.journal.consigner("info", "frontal_modele", "model_mirror_listening", { socket: m.mirror.socket });
+    coeur.journal.consigner("info", "frontal_modele", "model_mirror_listening", { socket: m.mirror.socket, peer_user: m.mirror.peer_user ?? null });
     return { ...vide, correlateur, miroir, arreter: () => miroir.arreter() };
   }
   throw new Error(`mode ${m.mode} du frontal modèle inconnu (EX-5.1)`);

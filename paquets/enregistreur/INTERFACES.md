@@ -114,6 +114,10 @@ await coeur.preparerRelais(appel, { reponse, argumentsEnClair, upstream_id, time
 await coeur.terminerRelais(relais, { resultat, resultatRedige, argumentsRediges, duration_ms, is_error, sourceNonRedigeable }) → événement `executee`
 ```
 
+Complément du 2026-11-16 : `src/bornes.mjs` exporte aussi `CHEMIN_PRISE_MAX_OCTETS` (103, CT-2
+EX-18.1 et EX-6.10) et `regleCheminPrise(chemin)` (→ règle `chemin_prise_trop_long : …` ou null),
+employés par la validation (pas 3), `ecouterPriseUnix`, `lancerAdaptateur` et `noortrace-connecteur`.
+
 Étape 8 : `src/bornes.mjs` exporte `ID_JSONRPC_MAX`, `CHAINE_JOURNAL_MAX`,
 `JOURNAL_MEMOIRE_MAX_OCTETS`, `NOEUDS_JSON_MAX`, `CHIFFRES_ENTIER_MAX`, `MESSAGE_PG_MAX_OCTETS`,
 `SCRAM_ITERATIONS_MAX`, `REPONSE_ETCD_MAX_OCTETS`, `DELAI_IDENTIFICATION_MS`,
@@ -378,6 +382,9 @@ await mcp.arreter(); await modele.arreter();                         // avant co
 validerConfiguration(octets, { reglesSupplementaires: [controleModele] })  // EX-15.4 pas 3 : routes, modes, hôtes, OAuth, ICAP, TLS
 uriPasserelle(config)                                                // audience d'un jeton oauth_subject (EX-5.8 point 2)
 await lancerAdaptateur({ socket, ecoute: "127.0.0.1:0", sortie })   // bin/noortrace-miroir : copie → couples (EX-5.6)
+// ecoute absente : MIROIR_ECOUTE_DEFAUT (127.0.0.1:8410) ; hors de la boucle locale, sources: [cidr…] ou
+// tls: { cert, key, ca } exigés (sinon erreur ecoute_non_authentifiee) ; preuve: true quand model.mirror.peer_user est posé
+// (sinon erreur preuve_refusee). ecouteLocaleModele(ecoute), copieAuthentifiee({ tls, sources }) : règles d'EX-5.6
 ```
 
 Moteur d'échanges (`src/modele/echange.mjs`), employé par la passerelle,
@@ -1164,7 +1171,7 @@ await ancrage.recharger()            // à noortrace-ctl reload, après la polit
 ancrage.retirerQualification(id)     // EX-5.9
 await coeur.exporterDossier(seq, destination)   // par l'exportateur du composant quand il est démarré
 await coeur.reexportsDus()           // EX-10.5
-await coeur.commandeAncrage({ commande: "etat" | "metriques" | "retirer-qualification", id })
+await coeur.commandeAncrage({ commande: "etat" | "metriques" | "retirer-qualification" | "retablir-qualification", id })
 ```
 
 - **Démarrage** (`cli.mjs`, avant `Coeur.demarrer`) : document `ancrage-v0`
@@ -1173,7 +1180,11 @@ await coeur.commandeAncrage({ commande: "etat" | "metriques" | "retirer-qualific
   (`env`, `file`, `vault`) ; clés de chaîne de `anchoring.registry.chain_key`
   et `next_chain_key` construites par `src/cle-chaine.mjs` (rubrique
   « Clé de chaîne » ci-dessous) ; manifeste d'instance lu dans
-  `instance-registre.json` à côté du document.
+  `instance-registre.json` à côté du document (`instanceDepuisManifeste` :
+  adresses des contrats et, complément du 2026-11-16, bloc de déploiement du
+  `RecorderRegistry`, `deploiements.recorder_registry.block_number`, d'où
+  le relais d'inscription du composant lit les `RecorderRegistered`, CT-4
+  OP-8 ; absent quand le manifeste ne le donne pas).
   Une classe A refuse le démarrage du démon
   (`demarrage_refuse : ancrage : classe_cle_chaine`, code 2), une clé
   illisible ou d'une autre adresse aussi (`… : cle_chaine`) ; tout autre
@@ -1223,10 +1234,11 @@ await coeur.commandeAncrage({ commande: "etat" | "metriques" | "retirer-qualific
 - **Copie WORM** (`worm/copies.mjs`, `fichiersACopier`) : `ancres/` et la
   file sous `queue.path` par la règle des fichiers fermés (lecture 93) ;
   `registre/` de même.
-- **`noortrace-ctl ancrage etat | metriques | retirer-qualification <id>`**
+- **`noortrace-ctl ancrage etat | metriques | retirer-qualification <id> | retablir-qualification <id>`**
   (`ctl-demon.mjs`) : fichier de demande `{ demande: "ancrage", commande, id }`
   et SIGURG, réponse au journal (`anchoring_state`, `anchoring_metrics`,
-  `provider_qualification_withdrawn`, refus `anchoring_ctl_refused`) ;
+  `provider_qualification_withdrawn`, `provider_qualification_restored`
+  (complément du 2026-11-16), refus `anchoring_ctl_refused`) ;
   `metriques` lit aussi `/metrics`.
 - **Lignes du journal d'exploitation ajoutées** : `anchoring_attached`,
   `anchoring_not_started`, `anchoring_state`, `anchoring_metrics`,
@@ -1312,6 +1324,12 @@ coeur.controles                  // SupervisionIntegrite (src/controles.mjs) : a
 await verifierRepertoireJournal(rep, { org_id, journal_id, clePublique, dernierOuvert, signatureAbsenteAdmise })
   // → { incidents, evenements, lastSeq, lastHash, cles } (src/verification.mjs)
 await principalCtlDemon(["reload" | "clock", "--accept", "--configuration", f])  // bin/noortrace-ctl, codes 0, 1, 2, 4
+// Journal neuf (CT-2 EX-11.16, CT-8 §11.4 chemin C ; src/ctl-journal.mjs, complément du 2026-11-16) :
+await principalCtlJournal(["successeur", "--configuration", f, "--demande", d], { stdout, stderr, racineProc })  // codes 0, 1, 2
+await principalCtlJournal(["verifier-successeur", "--journal", rep, "--journal-exploitation", ops, "--demande", d], io)
+await finDuJournal(rep)          // → { org_id, journal_id, last_seq, last_hash, tronque } ; RefusSuccession sinon
+await verifierSuccession({ journal, journalExploitation, demande, note })  // → { valide, checks, fin, lien }
+cheminNoteExploitant(demande)    // <demande sans .json>.note-exploitant.json
 ```
 
 - Écrivain : au démarrage, fichiers `.tmp-*` supprimés, manifeste sans
@@ -1363,7 +1381,7 @@ frontal.refusAvantAnalyse(hote)     // → texte -31013 (id null) si quota d'oct
 cleIdJson(texte, noeud)             // clé d'un id JSON-RPC par valeur (annulation)
 
 // Prises locales (src/mcp/hote-stdio.mjs), employées aussi par sdk/prise.mjs et modele/miroir.mjs
-await ecouterPriseUnix(serveur, chemin, 0o660)   // mode posé dès la création (EX-18.1)
+await ecouterPriseUnix(serveur, chemin, 0o660)   // mode posé dès la création (EX-18.1) ; chemin de plus de 103 octets : erreur code chemin_prise_trop_long, avant toute liaison
 preparerRepertoirePrise(socket)                   // crée (1770) ou refuse un répertoire où un pair renommerait la preuve d'un autre
 controlerRepertoirePrise(dir)                     // → raison | null
 verifierPreuveFichier(socket, defi, instantDefi)  // → { utilisateur } | { refus, detail? }
@@ -1529,7 +1547,7 @@ noortrace-ctl dossier exporter (--seq <n> | --dernier | --ticket <ticket_id>) --
 
 Le démon lit puis supprime le fichier de demande et exécute l'action que
 nomme `demande`, elle seule : `rotation-urgence` (EX-11.16), `ancrage`
-(`commande` `etat`, `metriques` ou `retirer-qualification`, `id`),
+(`commande` `etat`, `metriques`, `retirer-qualification` ou `retablir-qualification`, `id`),
 `dossier` (export). Refus sans rien exécuter, dans cet ordre : objet JSON
 illisible (`ctl_request_refused`, `demande_illisible`) ; `demande` inconnue
 (`ctl_request_refused`, `demande_inconnue`, valeur tronquée à 64

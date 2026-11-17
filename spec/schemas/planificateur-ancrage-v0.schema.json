@@ -693,6 +693,24 @@
         }
       }
     },
+    "acquisition_relue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "result"
+      ],
+      "description": "Complément du 2026-11-16 (CT-5 EX-5.8, EX-8.12) : un enregistrement d'issue obtenue, promu et non révoqué, relu d'acquisitions.ndjson (EX-5.13 ; dernier état de chaque tentative) : la demande de jeton qu'il sert et son résultat (sha256 : token_sha256 ; size : token_size ; provider : provider_id ; obtained_at : received_at ; bound : upper_bound).",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^jeton_(point|periode):0x[0-9a-f]{64}$"
+        },
+        "result": {
+          "$ref": "#/$defs/resultat"
+        }
+      }
+    },
     "demande": {
       "type": "object",
       "additionalProperties": false,
@@ -917,6 +935,32 @@
         }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "demarrage"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "description": "Démarrage (EX-8.12). Complément du 2026-11-16 : membre facultatif acquisitions, les enregistrements obtenue promus d'acquisitions.ndjson des demandes de jeton obtenue de la file relue ; présent, une demande de jeton obtenue sans enregistrement de même token_sha256 est rouverte (EX-5.8) ; absent, la règle ne s'applique pas.",
+                "properties": {
+                  "acquisitions": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/acquisition_relue"
+                    },
+                    "description": "Enregistrements obtenue promus relus (EX-5.8), un au plus par demande de jeton obtenue de la file relue : non borné, comme la file."
+                  }
+                }
+              }
+            }
+          }
+        },
         {
           "if": {
             "properties": {
@@ -1369,7 +1413,7 @@
                   "periods",
                   "checkpoints"
                 ],
-                "description": "Reconstruction de la file (EX-8.12) : les objets durables sans ancre obtenue que l'enregistreur relit dans son stockage (CT-2 §12) au démarrage ; periods : données de periode_close des manifestes ; checkpoints : données de point_produit des points.",
+                "description": "Reconstruction de la file (EX-8.12) : les objets durables sans ancre obtenue que l'enregistreur relit dans son stockage (CT-2 §12) au démarrage ; periods : données de periode_close des manifestes ; checkpoints : données de point_produit des points. Complément du 2026-11-16 : membre facultatif acquisitions, les enregistrements obtenue promus d'acquisitions.ndjson des demandes de jeton des objets de l'entrée ; une demande de jeton recréée qui en a un est créée obtenue avec ce résultat, sans requête (EX-8.12).",
                 "properties": {
                   "periods": {
                     "type": "array",
@@ -1442,6 +1486,14 @@
                         }
                       }
                     }
+                  },
+                  "acquisitions": {
+                    "type": "array",
+                    "maxItems": 20000,
+                    "items": {
+                      "$ref": "#/$defs/acquisition_relue"
+                    },
+                    "description": "Enregistrements obtenue promus relus (EX-8.12)."
                   }
                 }
               }
@@ -2202,7 +2254,7 @@
         "description",
         "cases"
       ],
-      "description": "Un fichier de famille des vecteurs de CT-5 (annexe A.4) : requetes (cas_requete), cout (cas_cout), completude (cas_completude). Les traces de planification sont des fichiers à part, conformes à la racine de ce schéma ; les files de reprise sont des NDJSON de demandes.",
+      "description": "Un fichier de famille des vecteurs de CT-5 (annexe A.4) : requetes (cas_requete), cout (cas_cout), completude (cas_completude), configuration (cas_configuration ; complément du 2026-11-16). Les traces de planification sont des fichiers à part, conformes à la racine de ce schéma ; les files de reprise sont des NDJSON de demandes.",
       "properties": {
         "version": {
           "const": 0
@@ -2211,7 +2263,8 @@
           "enum": [
             "requetes",
             "cout",
-            "completude"
+            "completude",
+            "configuration"
           ]
         },
         "description": {
@@ -2233,6 +2286,9 @@
               },
               {
                 "$ref": "#/$defs/cas_completude"
+              },
+              {
+                "$ref": "#/$defs/cas_configuration"
               }
             ]
           }
@@ -2405,6 +2461,96 @@
               "minimum": 0,
               "maximum": 9007199254740991,
               "description": "Nombre d'ancres rattachées à un point publié."
+            }
+          }
+        }
+      }
+    },
+    "cas_configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "input",
+        "expected"
+      ],
+      "description": "Complément du 2026-11-16 : un cas de la famille configuration (AN-1, EX-4.9) : un document ancrage-v0, conforme ou non à son schéma, le profil de CT-2 §15 et la valeur checkpoint_interval_s de l'enregistreur ; attendu : le verdict et la liste triée des règles violées.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "document",
+            "profil",
+            "checkpoint_interval_s"
+          ],
+          "properties": {
+            "document": {
+              "type": "object",
+              "description": "Document ancrage-v0 (ancrage-v0.schema.json), éventuellement non conforme : la règle schema le dit."
+            },
+            "profil": {
+              "enum": [
+                "developpement",
+                "test",
+                "production"
+              ]
+            },
+            "checkpoint_interval_s": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600
+                }
+              ],
+              "description": "Valeur de l'enregistreur (CT-2 révision 0.4) ; null : inconnue (règle 1 en production)."
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "valide",
+            "regles"
+          ],
+          "properties": {
+            "valide": {
+              "type": "boolean"
+            },
+            "regles": {
+              "type": "array",
+              "maxItems": 10,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "schema",
+                  "1",
+                  "2",
+                  "3",
+                  "4",
+                  "5",
+                  "6",
+                  "7",
+                  "8",
+                  "9"
+                ]
+              },
+              "description": "Règles violées, triées : schema (le document ne suit pas ancrage-v0 ; les règles suivantes ne sont pas évaluées), puis les règles d'EX-4.9 (4 bis compte pour 4)."
             }
           }
         }

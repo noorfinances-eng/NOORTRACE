@@ -12,9 +12,10 @@
 // seulement si tout concorde ; 1 en cas de discordance ou d'erreur ; 2 si
 // l'usage est incorrect ou la racine introuvable (EX-A.10). Revue de
 // sécurité de l'étape 8 (CT-9 TA-66) : une famille sans valeur recalculée,
-// ou un cas que l'INDEX.md nomme sans qu'il soit présent (ou l'inverse),
-// est une erreur, code 1 (plancher.go) ; une panne d'une famille est une
-// erreur consignée, jamais une trace de pile.
+// ou un cas que la section « Cas nommés » de l'INDEX.md nomme sans qu'il
+// soit présent (ou l'inverse), dans les vingt répertoires d'EX-A.10, est une
+// erreur, code 1 (plancher.go) ; une panne d'une famille est une erreur
+// consignée, jamais une trace de pile.
 
 package main
 

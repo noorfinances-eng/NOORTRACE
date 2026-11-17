@@ -40,7 +40,12 @@
 // est SHA-256(UTF-8("noortrace/parcours-registre/v0/<nom>")), <nom> étant
 // admin-jeu, approbateur-1, approbateur-2, approbateur-3,
 // cle-chaine-rec-demo-01 (clés secp256k1) et rec-demo-01 (graine Ed25519) ;
-// l'exploitant est le compte Hardhat 0 de la mnémonique publique (EX-7.3).
+// la clé de chaîne, seule, dépend aussi du slug : son secret est
+// SHA-256(UTF-8("noortrace/parcours-registre/v0/<slug>/cle-chaine-rec-demo-01")),
+// car une clé de chaîne ne sert qu'une organisation (CT-4 OP-8 et EX-8.22,
+// complément du 2026-11-16) : chaque exécution, au slug neuf, inscrit et
+// approvisionne une clé de chaîne neuve, et le parcours se rejoue sur le même
+// déploiement ; l'exploitant est le compte Hardhat 0 de la mnémonique publique (EX-7.3).
 // Ces clés n'ont de sens que sur le réseau de développement 2124.
 //
 // Journal de la période : à la place de « manifeste-essai » (hachages
@@ -134,13 +139,14 @@ class EchecEtape extends Error {
 // Clés de test publiées (même disposition que « cles-essai », CT-4 7.5)
 // ---------------------------------------------------------------------------
 
-function ecrireClesPubliees(rep, journalId) {
+function ecrireClesPubliees(rep, journalId, slug) {
   fs.mkdirSync(rep, { recursive: true, mode: 0o700 });
   const ecrire = (nom, contenu) => fs.writeFileSync(path.join(rep, nom), contenu, { mode: 0o600 });
   const noms = ["admin-jeu", "approbateur-1", "approbateur-2", "approbateur-3", `cle-chaine-${KEY_ID}`];
   const adresses = {};
   for (const nom of noms) {
-    const k = secretPublie(nom);
+    // Clé de chaîne propre à l'organisation (CT-4 OP-8, EX-8.22) ; les autres clés sont communes.
+    const k = secretPublie(nom === `cle-chaine-${KEY_ID}` ? `${slug}/${nom}` : nom);
     ecrire(`${nom}.cle`, k + "\n");
     adresses[nom] = computeAddress(new SigningKey(k).publicKey).toLowerCase();
   }
@@ -151,7 +157,7 @@ function ecrireClesPubliees(rep, journalId) {
   ecrire(`${KEY_ID}.json`, J.texteJSON(cle));
   const publiques = {
     version: 0,
-    description: `Clés de test publiées du parcours du registre : chaque secret est SHA-256(UTF-8("${PREFIXE_GRAINE}<nom>")) ; adresses et clé publique seulement ici.`,
+    description: `Clés de test publiées du parcours du registre : chaque secret est SHA-256(UTF-8("${PREFIXE_GRAINE}<nom>")), celui de la clé de chaîne SHA-256(UTF-8("${PREFIXE_GRAINE}${slug}/cle-chaine-${KEY_ID}")) ; adresses et clé publique seulement ici.`,
     journal: { name: NOM_JOURNAL, journal_id: journalId },
     set_admin: adresses["admin-jeu"],
     approvers: [1, 2, 3].map((i) => adresses[`approbateur-${i}`]),
@@ -343,8 +349,8 @@ export async function parcours(argv = process.argv.slice(2), { stdout = process.
     const cles = path.join(E, "cles");
     const k = (nom) => `fichier:${path.join(cles, `${nom}.cle`)}`;
     await etape("cles-de-test-publiees", async (e) => {
-      e.command = `écriture de cles/ (secrets SHA-256(UTF-8("${PREFIXE_GRAINE}<nom>")))`;
-      ecrireClesPubliees(cles, journalId);
+      e.command = `écriture de cles/ (secrets SHA-256(UTF-8("${PREFIXE_GRAINE}<nom>")) ; clé de chaîne : <nom> = ${slug}/cle-chaine-${KEY_ID})`;
+      ecrireClesPubliees(cles, journalId, slug);
       e.output = "cles/cles-essai.json";
     });
     const dossier = path.join(E, "dossier.json");

@@ -247,7 +247,15 @@ describe("TE-14 : journal de l'enregistreur sur lui-même, JS-1 à JS-12 de CT-7
     await demon.evenement(6);
     await demon.avancer((PERIODE + 3601) * 1000 - m.horloge.murale());
     await demon.attendre((l) => l.some((x) => x.event === "period_closed" && x.data.period_start === PERIODE), 60000, "period_closed");
-    await demon.attendre((l) => l.some((x) => x.event === "registry_send_failed" && x.data.request_id?.startsWith("ancre_registre_periode")), 60000, "échec d'envoi de l'ancre de la période");
+    // CT-5 EX-9.4 (complément du 2026-11-16, l'ancre d'une période après celles de ses points) : « L'ancre d'une période ne
+    // part pas tant qu'une ancre de point de la même période et du même journal n'a ni son reçu (`obtenue`) ni un autre
+    // état final […] ; l'ancre du point de clôture en est une, et la règle […] vaut ainsi […] quand elle attend sa reprise
+    // après un échec transitoire alors que la clé est libre ; à sa création […], l'ancre de la période attend alors comme
+    // derrière une ancre en vol (`attente_nonce`). » Registre coupé : c'est l'ancre du point de clôture qui part et échoue
+    // (`noeud_injoignable`, transitoire, EX-8.10) ; l'ancre de la période reste `a_envoyer`, sans envoi ni échec d'envoi.
+    await demon.attendre((l) => l.some((x) => x.event === "registry_send_failed" && x.data.request_id?.startsWith("ancre_registre_point") && x.data.code === "noeud_injoignable" && N.decoderHorodatage(x.ts) >= (PERIODE + 3600) * 1000), 60000, "échec d'envoi de l'ancre du point de clôture");
+    const ancreCloture = demon.de("registry_send_failed").find((x) => x.data.request_id?.startsWith("ancre_registre_point") && N.decoderHorodatage(x.ts) >= (PERIODE + 3600) * 1000).data.request_id;
+    expect(demon.de("registry_send_failed").filter((x) => x.data.request_id?.startsWith("ancre_registre_") && N.decoderHorodatage(x.ts) >= (PERIODE + 3600) * 1000).map((x) => x.data.code)).to.satisfy((codes) => codes.every((c) => c === "noeud_injoignable"), "registre coupé : seulement des échecs transitoires");
     await demon.avancer(61000);
     // CT-5 EX-8.4, EX-8.15 : le jeton de la période attend l'inclusion de son ancre ; passé inclusion_alert_s puis anchor_pending_alert_s,
     // le planificateur consigne registry_pending et anchor_pending sur la demande jeton_periode, avec leurs alertes.
@@ -258,7 +266,10 @@ describe("TE-14 : journal de l'enregistreur sur lui-même, JS-1 à JS-12 de CT-7
     expect(texte).to.include("# TYPE noortrace_anchor_pending gauge");
     expect(metrique(texte, "noortrace_anchor_pending", 'anchor="registre"')).to.be.at.least(1);
     expect(texte).to.include("# TYPE noortrace_anchoring_queue_entries gauge");
-    expect(metrique(texte, "noortrace_anchoring_queue_entries", 'kind="ancre_registre_periode",state="a_reprendre"') ?? metrique(texte, "noortrace_anchoring_queue_entries", 'kind="ancre_registre_periode",state="envoyee"')).to.be.at.least(1);
+    // EX-9.4 (même complément) : l'ancre de la période, retenue derrière celle du point de clôture, est `a_envoyer`.
+    expect(metrique(texte, "noortrace_anchoring_queue_entries", 'kind="ancre_registre_periode",state="a_envoyer"')).to.equal(1);
+    expect(metrique(texte, "noortrace_anchoring_queue_entries", 'kind="ancre_registre_point",state="a_reprendre"')).to.be.at.least(1);
+    for (const ev of ["registry_sent", "registry_send_failed"]) expect(demon.de(ev).filter((x) => x.data.request_id?.startsWith("ancre_registre_periode")), `${ev} de l'ancre de la période pendant la coupure`).to.deep.equal([]);
     expect(texte).to.include("# TYPE noortrace_anchoring_attempts_total counter");
     expect(texte).to.include("# TYPE noortrace_anchoring_d_registre_s histogram");
     // Registre de retour sur le même port : le nœud factice répond de nouveau ; l'ancre de la période est incluse puis le jeton de clôture obtenu.
@@ -285,7 +296,14 @@ describe("TE-14 : journal de l'enregistreur sur lui-même, JS-1 à JS-12 de CT-7
       await demon.avancer(61000);
       await new Promise((r) => setTimeout(r, 4000));
     }
-    await demon.attendre((l) => l.some((x) => x.event === "registry_included" && x.data.request_id?.startsWith("ancre_registre_periode")), 60000, "ancre de la période incluse au retour");
+    const lignesRetour = await demon.attendre((l) => l.some((x) => x.event === "registry_included" && x.data.request_id?.startsWith("ancre_registre_periode")), 60000, "ancre de la période incluse au retour");
+    // EX-9.4 : au retour du registre, l'ancre du point de clôture est incluse avant que celle de la période ne parte
+    // (trace publiée `registre-indisponible-cloture`, annexe A de CT-5).
+    const rang = (p) => lignesRetour.findIndex(p);
+    const inclusionPoint = rang((x) => x.event === "registry_included" && x.data.request_id === ancreCloture);
+    const envoiPeriode = rang((x) => x.event === "registry_sent" && x.data.request_id?.startsWith("ancre_registre_periode"));
+    expect(inclusionPoint, "ancre du point de clôture incluse").to.be.at.least(0);
+    expect(envoiPeriode, "ancre de la période envoyée après l'inclusion de celle du point de clôture").to.be.above(inclusionPoint);
     await demon.attendre((l) => l.some((x) => x.event === "period_timestamped"), 120000, "period_timestamped");
   });
 
@@ -344,11 +362,13 @@ describe("TE-14 : journal de l'enregistreur sur lui-même, JS-1 à JS-12 de CT-7
       fs.rmdirSync(chemin);
       fs.renameSync(`${chemin}.hors-ligne`, chemin);
     }
+    const retabli = m.horloge.murale();
     const fin = metrique((await demon.commande({ cmd: "metriques" })).texte, "noortrace_ops_log_dropped_total");
     expect(fin).to.be.a("number");
-    // Le journal reprend dans le fichier restauré : une ligne postérieure à la panne y figure.
+    // Le journal reprend dans le fichier restauré : une ligne postérieure à la panne y figure. L'instant de référence est
+    // celui du rétablissement, et non une heure fixe qui supposait l'horloge déjà avancée par les sauts de JS-11.
     await demon.avancer(10000);
-    await demon.attendre((l) => l.some((x) => x.event === "checkpoint_written" && N.decoderHorodatage(x.ts) > (PERIODE + 3600) * 1000 + 150000), 30000, "ligne écrite après la panne");
+    await demon.attendre((l) => l.some((x) => x.event === "checkpoint_written" && N.decoderHorodatage(x.ts) > retabli), 30000, "ligne écrite après la panne");
   });
 
   it("JS-3 perte du bail (EX-13.6) : le verrou du bail rendu par le noyau (auxiliaire flock terminé) → lease_lost à l'écriture suivante, mode dégradé bail, santé down ; JS-2 arrêt : code 0, aucun événement d'arrêt dans la chaîne (CT-7 : hors chaîne, PA-3 ; la ligne shutdown du journal d'exploitation est constatée)", async function () {
@@ -536,6 +556,18 @@ describe("TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3
     expect(cles).to.include(`${PREFIXE}manifestes/periode-${PERIODE}.json`);
     expect(cles).to.include(`${PREFIXE}points/periode-${PERIODE}.ndjson`);
     expect(cles.some((k) => k.startsWith(`${PREFIXE}ancres/periode-${PERIODE}/rfc3161/`))).to.equal(true);
+    // Fin de ligne « Support WORM » de la matrice de CT-2 §14.2 (CT-9 TE-16) : dossier du premier événement de la période
+    // close pendant la coupure, exporté après le rétablissement, valide pour l'implémentation de référence et le binaire Go.
+    const dossier = path.join(dir, "dossier-js10");
+    await demon.commande({ cmd: "exporter", seq: 1, destination: dossier });
+    const js = spawnSync(process.execPath, [path.join(import.meta.dirname, "..", "scripts", "verify", "dossier.mjs"), dossier, "--json"], { encoding: "utf8", cwd: path.join(import.meta.dirname, "..") });
+    expect(js.status, js.stdout + js.stderr).to.equal(0);
+    expect(JSON.parse(js.stdout).verdict).to.equal("valide");
+    const go = process.env.NOORTRACE_VERIFIER_BIN;
+    if (!go || !fs.existsSync(go)) return enAttente(this, "binaire noortrace-verifier absent (NOORTRACE_VERIFIER_BIN)");
+    const g = spawnSync(go, [dossier, "--json"], { encoding: "utf8" });
+    expect(g.status, g.stdout + g.stderr).to.equal(0);
+    expect(JSON.parse(g.stdout).verdict).to.equal("valide");
   });
 
   it("JS-9 gel juridique posé par l'outil de l'exploitant (noortrace-ctl worm gel poser) : la lecture quotidienne du registre des gels consigne worm_legal_hold_observed par enregistrement (pose, pose_resultat), garde respectée ; noortrace_worm_legal_holds_active 1", async function () {

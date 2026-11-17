@@ -28,10 +28,10 @@ livré, est [`INTERFACES.md`](INTERFACES.md) ; les sections « Lectures » et
 | `src/rfc3161/` | requête `TimeStampReq` octet pour octet, transport TLS, lecture bornée de la réponse, T-1 à T-9 à l'acquisition, T-10 différée sur les CRL capturées, classement des erreurs, dépôt des pièces et `acquisitions.ndjson`, fiche de prestataire et épreuve d'acceptation | CT-5 §5, §10.2, §11 ; CT-6 §9, §12, §13, §15 |
 | `src/ots/` | format `.ots` (lecture stricte, écriture dans l'ordre de la bibliothèque de référence, fusion), O-1 à O-5 et O-7, soumission aux calendriers, mise à niveau, fichier d'en-têtes Bitcoin, dépôt des preuves | CT-5 §6 ; CT-6 §10, §13 |
 | `src/planificateur/` | configuration `ancrage-v0` (AN-1) et projection, automate déterministe d'EX-8.16 (six sortes de demandes, dix états, treize actions, dix entrées, trois méthodes hors schéma), file durable, échéances, cadence et alertes de 8.9 (AN-2), admission par le noyau (AN-3), comptages, coût, complétude au registre, supervision | CT-5 §4, §5.3, §6.1, §8, §9.2, §10.2, §12 |
-| `src/registre/` | clé de chaîne, encodages de CT-4 §6, transactions de type 2, client JSON-RPC, `Envoyeur` (`anchor`, `submitPeriod`, renvoi, remplacement), capture CP-1 à CP-6, export des parties du registre | CT-5 §9 ; CT-4 §6 à §9 ; CT-6 §11 |
+| `src/registre/` | clé de chaîne, encodages de CT-4 §6, transactions de type 2, client JSON-RPC, `Envoyeur` (`anchor`, `submitPeriod`, renvoi, remplacement), capture CP-1 à CP-6, export des parties du registre ; classement des codes du registre pour le planificateur (`classement.mjs` : préfixe `refus_` des refus définitifs, complément du 2026-11-16) | CT-5 §9, EX-8.10 ; CT-4 §6 à §9 ; CT-6 §11 |
 | `src/serveur-interne/` | autorité RFC 3161 de développement (AC, unité, CRL), réponse `granted` ou refus, frontal HTTP local ou TLS mutuel, compteur de série durable, binaire `noortrace-tsa-interne` | CT-5 §7 ; RFC 3161, RFC 5816 |
 | `src/composant.mjs` | le composant temps réel : interface `ComposantAncrage` de l'enregistreur, planificateur et file sous `queue.path`, exécution des actions avec les clients A, B, D, réinjection des résultats, tics et reprises sur l'horloge injectée, relecture du stockage au démarrage, T-10 différée, nonce OpenTimestamps durable, supervision | CT-5 §4.7, §5.4, §8 ; CT-2 §14.2, §15.2, §17 |
-| `src/cli.mjs`, `bin/noortrace-ancrage` | `configuration`, `serie`, `cout`, `trace`, `fiche`, `acquisitions`, `completude` | CT-5 EX-8.13, EX-10.6, EX-10.7, EX-12 |
+| `src/cli.mjs`, `bin/noortrace-ancrage` | `configuration`, `serie`, `cout`, `trace`, `fiche`, `acquisitions`, `completude` ; lignes de commande strictes de l'outil et du serveur interne (`src/arguments.mjs`, complément du 2026-11-16) | CT-5 EX-8.13, EX-10.6, EX-10.7, EX-12 ; 7.3 |
 
 Aucun module de `src/` ne lit l'horloge ni l'aléa du système ni un secret :
 tout est injecté (règle 2 d'`INTERFACES.md`) ; les binaires `bin/` branchent
@@ -92,7 +92,7 @@ const dus = reexportsDus({ dossiersProduits: [r.resume], etatAncres: (P) => etat
 
 Dans le démon, `noortrace` passe par lui dès qu'`anchoring.ancrage` est
 configuré (`Coeur.exporterDossier`, `Coeur.reexportsDus`) ; `noortrace-ctl
-ancrage etat|metriques|retirer-qualification <id>` interroge le composant
+ancrage etat|metriques|retirer-qualification <id>|retablir-qualification <id>` interroge le composant
 branché (LISEZMOI de l'enregistreur, section « Ancrage »).
 
 ## Configuration
@@ -312,7 +312,7 @@ ancres (CT-5 §10.1, EX-10.1 à EX-10.5, AN-50 à AN-53) :
    après l'écrivain (`anchoring_attached`) et arrêté après lui ;
    `remettrePoint`/`remettreCloture` rendent la main sans attendre le réseau
    (EX-4.12) ; `noortrace-ctl reload` recharge le document avec la politique
-   (`recharger`) ; `noortrace-ctl ancrage etat|metriques|retirer-qualification <id>`.
+   (`recharger`) ; `noortrace-ctl ancrage etat|metriques|retirer-qualification <id>|retablir-qualification <id>`.
 5. **Export** : `Coeur.exporterDossier` passe par l'exportateur quand le
    composant est démarré ; `Coeur.reexportsDus` liste les dossiers dus.
 6. **Copie WORM** (EX-5.15, EX-8.14) : les fichiers d'`ancres/` et de la
@@ -427,8 +427,10 @@ par partie du composant. Chaque lecture est vérifiée par les vecteurs quand il
 11. **`arret`** : les minuteries échues à l'instant de l'arrêt sont servies.
 12. **Noms des règles d'admission** (AN-3) : `format`, `period_start`,
     `signature`, `chainage`, `monotonie`, `racine`, `last_seq`, `last_hash`.
-13. **Règle 8 (PEM)** : forme d'un certificat (bornes et étiquettes) ; la
-    lecture complète est celle du client RFC 3161.
+13. **Règle 8 (PEM)** : forme d'un certificat (bornes et étiquettes), puis
+    lecture complète par le lecteur du client RFC 3161, celui des certificats
+    d'ancre à l'acquisition (CT-6 §9.3 ; CT-5 EX-4.9, complément du
+    2026-11-16).
 14. **Point déjà connu** (EX-8.5 règle 2) : `anchor_duplicate_ignored` par
     demande existante, sans `checkpoint_not_anchored`.
 15. **`provider_role` `aucun`** : échéances closes `sans_objet`
@@ -771,6 +773,18 @@ par partie du composant. Chaque lecture est vérifiée par les vecteurs quand il
     validateur ait le bloc avant de relire l'état sur le premier point
     (`tousAuBloc`, déjà employé pour l'empreinte prise), ce qui faisait
     échouer la course à l'inclusion et la relecture de la clôture.
+    Suites : la revue de sécurité de l'étape 8 a remplacé cette lecture par
+    le recoupement d'EX-8.14 (plus grande valeur rendue par au moins deux
+    points ; `lecture_nonce_incoherent` si aucune valeur n'est rendue par
+    deux points ou si un point rend plus que cette valeur + 1). Complément
+    du 2026-11-17 : le nonce signé n'est jamais inférieur au plancher `n + 1`
+    des envois de l'expéditeur dont l'inclusion est écrite, parce que le
+    reçu est pris au premier point qui le rend et que deux validateurs en
+    retard d'un bloc recoupent alors le nonce consommé ; un plancher au-delà
+    de la valeur des points + 1 ne fait rien signer. La règle de recoupement
+    est la fonction exportée `recouperNonce`, que l'agent d'inscription
+    emploie aussi. Essais : `test/ancrage-registre-nonce-plancher.test.js`,
+    `test/inscription-agent-nonce-plancher.test.js`.
 15. **Ancre à reprendre pendant l'envoi d'une autre ancre** (EX-9.4 : une
     ancre qui attend son tour « part au reçu (ou au refus) de l'ancre en
     vol » ; EX-8.10). Quand la minuterie de reprise d'une ancre
@@ -797,7 +811,8 @@ par partie du composant. Chaque lecture est vérifiée par les vecteurs quand il
     deux `Content-Length` répond `400` (le serveur HTTP de Node le fait avant
     tout gestionnaire) : sur l'intégration continue (Node 22 plus récent que
     celui de la machine de construction), aucune soumission n'atteignait les
-    calendriers factices, `calendriers_insuffisants` à chaque essai ; un vrai
+    calendriers factices, `calendriers_insuffisants` (aujourd'hui
+    `reponses_insuffisantes`) à chaque essai ; un vrai
     calendrier derrière un frontal strict aurait fait de même. Lecture
     retenue : l'en-tête n'est pas posé, `fetch` l'écrit une fois. Essai :
     « POST : méthode, Accept, corps de 32 octets sans Content-Length posé à
@@ -868,7 +883,7 @@ par partie du composant. Chaque lecture est vérifiée par les vecteurs quand il
    (`anchoring_stop_timeout` au-delà), puis traite `arret`.
 9. **Nonce OpenTimestamps non durable** (lecture a, EX-6.2). Tant que
    `ots/<objet>.nonce` ne s'écrit pas, rien n'est soumis : la soumission est
-   rejouée au pas de `retry` (`calendriers_insuffisants`, même engagement en
+   rejouée au pas de `retry` (`reponses_insuffisantes`, même engagement en
    mémoire) et l'écriture retentée à chaque reprise.
 10. **Prestataire révoqué** (lecture b, EX-8.3). Après `revoquer`,
     l'alternance d'EX-8.9 entre prestataires épuisés exclut le prestataire

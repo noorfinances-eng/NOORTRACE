@@ -23,43 +23,38 @@ section 13) ; chaque dossier se vérifie selon la spécification CT-6.
   et recouper vos ancres (fiches de prestataire, manifeste d'instance du
   registre…). Elles sont déclaratives : l'outil ne les lit pas, et elles ne
   remplacent pas vos propres sources.
-- `verificateur/` (si présent) : le vérificateur de référence, l'outil de
-  vérification du paquet et la seule bibliothèque dont ils dépendent.
+- `verificateur/` (si présent) : une copie du vérificateur de référence, de
+  l'outil de vérification du paquet et de la seule bibliothèque dont ils
+  dépendent. N'exécutez pas cette copie (pas 1 ci-dessous).
 
 ## Vérifier en une commande
 
 Il faut Node.js 22 (éprouvé avec v22.22.0 sous Linux ; les versions
-ultérieures et les autres systèmes ne sont pas vérifiés) ; aucun accès au
-réseau n'est nécessaire.
+ultérieures et les autres systèmes ne sont pas vérifiés) ; la vérification
+ne demande aucun accès au réseau.
 
-1. Prenez l'outil de vérification dans une source que vous jugez sûre : le
-   dépôt public de NOORTRACE, dont la note de version donne l'adresse et le
-   commit, à une version publiée, ou la copie jointe sous `verificateur/`.
-   Pour employer la copie jointe :
-   - extrayez le paquet dans un répertoire neuf et vide par
-     `tar -xkf <paquet.tar> -C <répertoire>` (jamais avec l'option `-P`) et
-     exigez le code 0 : avec `-k`, un nom en double fait échouer `tar` au
-     lieu de remplacer le premier fichier par le second ;
-   - dans `<répertoire>/paquet-reviseur/verificateur/`, contrôlez les
-     fichiers extraits par `sha256sum --strict -c <SHA256SUMS>`, où
-     `<SHA256SUMS>` est la liste signée des SHA-256 du vérificateur publiée
-     avec la note de version, par un autre canal que le paquet ; ni le
-     manifeste du paquet ni la sortie de `--version` de la copie ne la
-     remplacent. Tant qu'aucune version de l'outil n'est publiée, il n'y a
-     pas de telle liste et ce contrôle n'est pas possible : prenez l'outil
-     dans le dépôt public, à un commit que l'exploitant vous nomme avec
-     l'empreinte du paquet, par le même canal ; vous vous fiez alors à lui
-     pour l'outil.
+1. Prenez l'outil de vérification dans le dépôt public de NOORTRACE : à une
+   version publiée, dont la note de version donne l'adresse et le commit ;
+   tant qu'aucune version n'est publiée, au commit que l'exploitant vous
+   nomme avec l'empreinte du paquet, par le même canal (vous vous fiez alors
+   à lui pour l'outil). Dans ce dépôt, installez une fois ses dépendances
+   par `npm ci`, avec accès au réseau, avant de vérifier.
+   N'exécutez pas la copie jointe sous `verificateur/` : c'est du code remis
+   avec le paquet, et rien ne permet de la contrôler jusqu'à la première
+   publication d'une liste `SHA256SUMS` signée des fichiers du vérificateur,
+   avec la note de version et par un autre canal que le paquet. Cette voie
+   reviendra avec cette publication : la copie sera alors contrôlée contre
+   la liste, fichier par fichier et sans fichier de plus. D'ici là, l'outil
+   du dépôt compare la copie jointe à lui-même sans l'exécuter (`PR-11`).
 2. Lancez, depuis n'importe quel répertoire :
 
        node <outil>/scripts/paquet-reviseur/verifier.mjs <paquet.tar> \
             --empreinte <SHA-256 du paquet reçu par un autre canal> \
             --ancres <votre fichier d'ancres>
 
-   `<outil>` est la racine du dépôt, ou le répertoire `verificateur/` de la
-   copie extraite. Les deux options sont facultatives ; sans elles, le
-   rapport le signale. `--json` donne le rapport en JSON, `--langue en` en
-   anglais. `--exiger` exige des contrôles de CT-6 (numéros 1 à 8).
+   `<outil>` est la racine du dépôt. Les deux options sont facultatives ;
+   sans elles, le rapport le signale. `--json` donne le rapport en JSON,
+   `--langue en` en anglais. `--exiger` exige des contrôles de CT-6 (numéros 1 à 8).
 
 L'outil contrôle l'archive sans rien écrire (en-têtes, noms, fichiers contre
 le manifeste), puis seulement l'extrait dans un répertoire neuf sous le
@@ -73,7 +68,10 @@ précaution omise ; `PR-11 (sans_objet)` si le paquet n'a pas de vérificateur
 joint ; `PR-12 (sans_objet)` s'il n'a pas d'attestation. Avec la commande
 recommandée, sur un paquet sans vérificateur joint et avec attestation, il
 n'en reste qu'une : `PR-11`. `PR-11 (auto_comparaison)` dit que l'outil
-exécuté est la copie jointe elle-même, qui ne peut pas se contrôler.
+exécuté est la copie jointe elle-même, et non l'outil du dépôt public :
+recommencez avec celui-ci. `PR-11` en échec (avertissement AV-PR-1) dit que
+la copie jointe diffère de l'outil exécuté ; elle n'est pas exécutée, et le
+résultat des dossiers n'en dépend pas.
 
 Les contrôles 1 à 8 et les identifiants `D-`, `E-`, `C-`, `M-` d'un dossier
 sont ceux de CT-6 (section 8) ; la section 13.7 de CT-8 nomme les huit

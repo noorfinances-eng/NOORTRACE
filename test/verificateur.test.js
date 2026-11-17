@@ -183,7 +183,7 @@ describe("CT-6 : énoncé du dossier complet reconstruit fragment par fragment (
       `L'événement seq ${ev.seq} (hachage ${ev.hash}) du journal ${ev.journal_id} de l'organisation ${ev.org_id}` +
       ` est bien formé, chaîné à ses voisins seq 6 et 8 et inclus dans la période du ${instant(m.period_start)} au ${instant(m.period_end)} close par le manifeste ${ph}` +
       ` ; l'événement est signé par la clé d'enregistreur rec-test-01 et le manifeste par la clé rec-test-02, clés fournies par le fichier d'ancres` +
-      ` ; l'événement a été approuvé par ${ev.approval.approvers[0]} et ${ev.approval.approvers[1]} (2 signatures, seuil de ${ev.approval.threshold.required} sur ${ev.approval.threshold.size} du jeu déclaré par le dossier)` +
+      ` ; l'événement porte l'approbation de la demande ${ev.approval.request_hash} (ticket ${ev.approval.ticket}), signée par ${ev.approval.approvers[0]} et ${ev.approval.approvers[1]} (2 signatures, seuil de ${ev.approval.threshold.required} sur ${ev.approval.threshold.size} du jeu déclaré par le dossier)` +
       ` ; selon ${ts.authority} (unité ${ts.tsu_subject_cn}), le manifeste d'empreinte ${ph} existait au plus tard le ${ts.upper_bound} UTC` +
       ` ; le manifeste d'empreinte ${ph} existait avant la création du bloc Bitcoin ${btc.retained_height} (${btc.block_hash}, réseau ${btc.network}), sous ${btc.confirmations} blocs dont le travail se rattache au point de contrôle ${btc.checkpoint.height} du réviseur ; heure inscrite par le mineur : ${btc.block_time} UTC, précision non garantie par le protocole ; borne sous hypothèse : ${btc.median_bound} UTC (réseau d'essai, sans valeur probante)` +
       ` ; sur le registre ${reg.chain_id}, la clôture de cette période (organisation ${m.org_id}, journal ${m.journal_id}) figure au bloc ${clo.block_number} (heure déclarée par le bloc : ${clo.block_time} UTC), émise par le contrat PeriodRegistry ${clo.emitter}, et son ancre ${anc.event.fingerprint} au bloc ${anc.block_number} (heure déclarée ${anc.block_time} UTC), émise par AttestationRegistry ${anc.emitter} pour l'émetteur ${anc.event.issuer}, clé de chaîne inscrite au bloc ${insc.block_number} pour la clé d'enregistreur rec-test-02, que le réviseur tient pour la clé de chaîne de rec-test-02 ; chacun de ces blocs est signé par ${n} des ${cert.set_size} validateurs du jeu ${cert.valset_hash} que le réviseur déclare (${cert.set_source})` +
@@ -192,7 +192,7 @@ describe("CT-6 : énoncé du dossier complet reconstruit fragment par fragment (
       `Event seq ${ev.seq} (hash ${ev.hash}) of journal ${ev.journal_id} of organisation ${ev.org_id}` +
       ` is well-formed, chained to its neighbours seq 6 and 8 and included in the period from ${instant(m.period_start)} to ${instant(m.period_end)} closed by manifest ${ph}` +
       `; the event is signed by recorder key rec-test-01 and the manifest by key rec-test-02, keys given by the anchors file` +
-      `; the event was approved by ${ev.approval.approvers[0]} and ${ev.approval.approvers[1]} (2 signatures, threshold ${ev.approval.threshold.required} of ${ev.approval.threshold.size} of the set declared by the dossier)` +
+      `; the event carries the approval of request ${ev.approval.request_hash} (ticket ${ev.approval.ticket}), signed by ${ev.approval.approvers[0]} and ${ev.approval.approvers[1]} (2 signatures, threshold ${ev.approval.threshold.required} of ${ev.approval.threshold.size} of the set declared by the dossier)` +
       `; according to ${ts.authority} (unit ${ts.tsu_subject_cn}), the manifest with digest ${ph} existed no later than ${ts.upper_bound} UTC` +
       `; the manifest with digest ${ph} existed before Bitcoin block ${btc.retained_height} (${btc.block_hash}, ${btc.network} network) was created, under ${btc.confirmations} blocks whose work connects to the reviewer's checkpoint ${btc.checkpoint.height}; time written by the miner: ${btc.block_time} UTC, accuracy not guaranteed by the protocol; bound under assumption: ${btc.median_bound} UTC (test network, no evidential value)` +
       `; on registry ${reg.chain_id}, the closing of this period (organisation ${m.org_id}, journal ${m.journal_id}) is in block ${clo.block_number} (time declared by the block: ${clo.block_time} UTC), emitted by contract PeriodRegistry ${clo.emitter}, and its anchor ${anc.event.fingerprint} in block ${anc.block_number} (declared time ${anc.block_time} UTC), emitted by AttestationRegistry ${anc.emitter} for issuer ${anc.event.issuer}, chain key registered in block ${insc.block_number} for recorder key rec-test-02, which the reviewer holds as the chain key of rec-test-02; each of these blocks is signed by ${n} of the ${cert.set_size} validators of set ${cert.valset_hash} declared by the reviewer (${cert.set_source})` +
@@ -654,8 +654,8 @@ describe("CT-6 : règles précisées par la revue", function () {
   it("F3 selon approval.decision : refus signé, demande expirée sans signature ; facts.approval.decision (EX-6.8, EX-6.11)", function () {
     const refus = rapportJSON(argumentsDossier("valide-decision-refusee").args);
     expect(refus.code).to.equal(0);
-    expect(refus.doc.statement.fr).to.include(" ; l'événement porte un refus signé par 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 et 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, seuil de 2 sur 3 du jeu déclaré par le dossier) ; ");
-    expect(refus.doc.statement.en).to.include("; the event carries a refusal signed by 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 and 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, threshold 2 of 3 of the set declared by the dossier); ");
+    expect(refus.doc.statement.fr).to.include(" ; l'événement porte le refus de la demande 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d (ticket apr-2201), signé par 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 et 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, seuil de 2 sur 3 du jeu déclaré par le dossier) ; ");
+    expect(refus.doc.statement.en).to.include("; the event carries the refusal of request 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d (ticket apr-2201), signed by 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 and 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, threshold 2 of 3 of the set declared by the dossier); ");
     expect(refus.doc.statement.fr).to.not.include("approuvé");
     expect(refus.doc.facts.approval.decision).to.equal("refuse");
     expect(refus.doc.controls[6].summary).to.equal("apr-2201 (refus) : 2 signatures, seuil 2 sur 3");
@@ -667,6 +667,46 @@ describe("CT-6 : règles précisées par la revue", function () {
     expect(expire.doc.controls[6].summary).to.equal("apr-2201 (demande expirée) : aucune signature, seuil 2 sur 3");
     const complet = rapportJSON([COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]);
     expect(complet.doc.facts.approval.decision).to.equal("approuve");
+  });
+
+  it("F3 nomme la demande (request_hash) et le ticket que les approbateurs ont signés, non l'appel prouvé : énoncé du vérificateur et attendu.json de chaque dossier à approbation ou refus (EX-6.8, EX-6.11, §7.2 ; décision du porteur du 2026-11-16)", function () {
+    const f3 = (ap) => {
+      const liste = (et) => (ap.approvers.length === 1 ? ap.approvers[0] : `${ap.approvers.slice(0, -1).join(", ")} ${et} ${ap.approvers.at(-1)}`);
+      const sig = ap.approvers.length === 1 ? "1 signature" : `${ap.approvers.length} signatures`;
+      const { required, size } = ap.threshold;
+      return ap.decision === "approuve"
+        ? { fr: ` ; l'événement porte l'approbation de la demande ${ap.request_hash} (ticket ${ap.ticket}), signée par ${liste("et")} (${sig}, seuil de ${required} sur ${size} du jeu déclaré par le dossier)`, en: `; the event carries the approval of request ${ap.request_hash} (ticket ${ap.ticket}), signed by ${liste("and")} (${sig}, threshold ${required} of ${size} of the set declared by the dossier)` }
+        : { fr: ` ; l'événement porte le refus de la demande ${ap.request_hash} (ticket ${ap.ticket}), signé par ${liste("et")} (${sig}, seuil de ${required} sur ${size} du jeu déclaré par le dossier)`, en: `; the event carries the refusal of request ${ap.request_hash} (ticket ${ap.ticket}), signed by ${liste("and")} (${sig}, threshold ${required} of ${size} of the set declared by the dossier)` };
+    };
+    // Le vérificateur de référence, sur un dossier à approbation et sur un dossier à refus.
+    for (const nom of ["valide-seq-7-complet", "valide-decision-refusee"]) {
+      const { args } = argumentsDossier(nom);
+      const { doc } = rapportJSON(args);
+      const ap = lireJSON(DOSSIERS, nom, "evenement.json").approval;
+      expect(doc.controls[6].status, nom).to.equal("reussi");
+      expect(doc.statement.fr, nom).to.include(f3(ap).fr + " ; ");
+      expect(doc.statement.en, nom).to.include(f3(ap).en + "; ");
+    }
+    // Chaque attendu.json de ct-6 dont le contrôle 7 réussit sur une approbation ou un refus porte F3 sous cette forme, et jamais l'ancienne.
+    let vus = 0;
+    for (const nom of fs.readdirSync(DOSSIERS).sort()) {
+      const a = lireJSON(DOSSIERS, nom, "attendu.json");
+      for (const s of [a.statement?.fr ?? "", a.statement?.en ?? ""]) {
+        expect(s, nom).to.not.match(/a été approuvé par|was approved by|porte un refus signé par|carries a refusal signed by/);
+      }
+      if (!a.statement || ![0, 3].includes(a.exit_code) || a.control_statuses?.["7"] !== "reussi") continue;
+      let ev;
+      try {
+        ev = lireJSON(DOSSIERS, nom, "evenement.json");
+      } catch {
+        continue;
+      }
+      if (!["approuve", "refuse"].includes(ev?.approval?.decision)) continue;
+      expect(a.statement.fr, nom).to.include(f3(ev.approval).fr);
+      expect(a.statement.en, nom).to.include(f3(ev.approval).en);
+      vus++;
+    }
+    expect(vus).to.be.at.least(47);
   });
 
   it("provenance clé par clé (révision 0.9 de CT-6, annexe A.7) : le fichier d'ancres ne porte pas rec-test-02, clé du manifeste : N-3 et le contrôle 6 sont non exécutés (ancre_absente, EX-12.4) ; rec-test-01 déclarée par le dossier, rec-test-02 inscrite au registre (R-10 réussie) : provenance mixte écrite clé par clé dans l'énoncé (EX-6.8) ; N-4 absente", function () {

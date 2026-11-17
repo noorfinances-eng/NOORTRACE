@@ -18,7 +18,7 @@ export const METRIQUES_ANCRAGE = Object.freeze({
   noortrace_anchoring_d_jeton_s: { type: "histogram", etiquettes: ["kind", "provider"], aide: "d_jeton (CT-5 EX-5.11)" },
   noortrace_anchoring_d_point_s: { type: "histogram", etiquettes: [], aide: "d_point (CT-5 EX-3.5)" },
   noortrace_anchoring_d_registre_s: { type: "histogram", etiquettes: ["kind"], aide: "d_registre (CT-5 P-2)" },
-  noortrace_anchoring_ots_pending_age_s: { type: "gauge", etiquettes: [], aide: "Age de la preuve en attente la plus ancienne" },
+  noortrace_anchoring_ots_pending_age_s: { type: "gauge", etiquettes: [], aide: "Age de la preuve en attente la plus ancienne, depuis la creation de sa demande" },
 });
 
 /** Bornes des histogrammes (secondes). */
@@ -269,8 +269,11 @@ export class Supervision {
           if (b !== null && (borneExterieure === null || b > borneExterieure)) borneExterieure = b;
         }
       }
+      // CT-5 EX-8.11 (complément du 2026-11-16) : l'âge d'une preuve en attente court depuis created_at de sa demande,
+      // l'origine de l'âge d'abandon (ots_give_up) ; la règle noortrace_ancrage_ots_abandon de CT-8 compare cette jauge à
+      // give_up_after_s. Il courait depuis result.obtained_at, plus tard que l'alerte du planificateur.
       if (d.kind.startsWith("ots") && d.state === "en_attente" && d.result) {
-        const t = decoderHorodatage(d.result.obtained_at);
+        const t = decoderHorodatage(d.created_at);
         if (t !== null && (plusVieillePreuve === null || t < plusVieillePreuve)) plusVieillePreuve = t;
       }
     }

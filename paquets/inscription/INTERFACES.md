@@ -125,7 +125,7 @@ De `@noortrace/ancrage/registre` (exports réels) :
 | Transactions (RG-15) | `construireTransaction`, `signerTransaction`, `serialiserTransaction`, `lireTransaction`, `verifierRG15`, `adresseCreation`, `chargeASignerDe`, `fraisRemplacement`, `LIMITE_GAZ_MAX`, `FRAIS_NOMINAUX` |
 | Clés de chaîne (classe D, développement) | `SignataireChaineFichier`, `SignataireChaine`, `adresseDepuisClePublique`, `recouvrerSignataire` |
 | JSON-RPC vers les validateurs | `ClientRpc`, `ErreurRpc`, `clientSurPoint` |
-| Lectures du registre (OP-8, OP-12) | `appelLecture`, `recorderOf`, `recorderByPubKey`, `isActiveRecorder`, `SELECTEURS`, `SIGNATURES_FONCTIONS`, `SIGNATURES_EVENEMENTS`, `SUJETS`, `EVENEMENT_PAR_ROLE` |
+| Lectures du registre (OP-8, OP-12) | `appelLecture`, `recorderOf`, `recorderByPubKey`, `isActiveRecorder`, `inscriptionAilleurs` (complément du 2026-11-16 : clé de chaîne inscrite sous une autre organisation, `cle_chaine_autre_organisation`, CT-4 EX-8.22), `ErreurLecture`, `SELECTEURS`, `SIGNATURES_FONCTIONS`, `SIGNATURES_EVENEMENTS`, `SUJETS`, `EVENEMENT_PAR_ROLE` |
 | Condensés et demandes (pas 6) | `registerDigest`, `hachageSigne`, `verifierSignatureCondense`, `verifierJeuSignatures`, `encoderRegisterRecorder`, `condenseDemande`, `verifierDemande`, `verifierSlug`, `verifierNomJournal` |
 | Envois, issues, captures (8.6, §9) | `nomEnvoi`, `nomIssue`, `lireEnvois`, `envoisSansIssue`, `ecrireExclusif`, `synchroniserRepertoire`, `capturer`, `verifierCapture`, `listerCaptures`, `obtenirCertificat`, `ROLES_CAPTURE` |
 | Export et contrôle 8 (pas 10) | `exporterPartiesRegistre`, `entreeRegistre`, `choisirCaptures`, `lireCapture` |
@@ -271,7 +271,7 @@ Document JSON strict, `version` 0 :
 
 | Membre | Contenu |
 |---|---|
-| `prise` | chemin absolu de la prise `AF_UNIX` (EX-7.28) |
+| `prise` | chemin absolu de la prise `AF_UNIX` (EX-7.28), de 103 octets UTF-8 au plus (complément du 2026-11-16 : `chemin_prise_trop_long`, `CHEMIN_PRISE_MAX_OCTETS` de `src/agent/client.mjs`) |
 | `interface_uid` | identifiant numérique du compte du serveur de l'interface, seul pair admis |
 | `donnees` | répertoire des données de l'agent (3.6) |
 | `nature` | `developpement` ou `production` (celle de l'instance) |
@@ -515,7 +515,12 @@ l'étape. Le détail est dans `LISEZMOI.md`.
 
 - **Ligne de commande et démarrage.** `noortrace-inscription-agent --config
   <fichier>` ; une configuration refusée (EX-7.3, EX-7.28, forme) rend le code
-  2 et le message sur la sortie d'erreur. Le membre `comptes` admet les rôles
+  2 et le message sur la sortie d'erreur. Complément du 2026-11-16 : toute
+  autre ligne (option inconnue, en double ou sans sa valeur, argument en
+  trop) rend l'usage et le code 2 ; une `prise` de plus de 103 octets est
+  refusée (`chemin_prise_trop_long : <n> octets, au plus 103`), comme par
+  l'interface (`lireConfigurationInterface`) et par le client de la prise
+  (`remettre`, avant toute connexion). Le membre `comptes` admet les rôles
   `deployeur`, `administrateur`, `tresorerie`, `relayeur` et `exploitant` ;
   il peut être vide (production : aucune clé de l'exploitant n'y est admise,
   EX-7.3). Le jeton (`env:` ou `fichier:` lisible de son seul propriétaire)

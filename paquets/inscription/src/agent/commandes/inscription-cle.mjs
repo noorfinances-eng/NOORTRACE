@@ -166,6 +166,18 @@ export async function inscrireCle(ctx, travail) {
   }
   const parCle = await R.recorderByPubKey({ rpc: ctx.rpc, contrat, orgId: f.org_id, clePublique: f.ed25519_public_key });
   if (parCle.chainKey !== ZERO20 && parCle.revokedAt === 0n) sortie.echec("OP-8", "refuse", "cle_ed25519_active", `clé Ed25519 active sous la clé de chaîne ${parCle.chainKey}`);
+  // Complément du 2026-11-16 (CT-4 OP-8, EX-8.22 ; CT-5 EX-9.4) : une clé de chaîne ne sert qu'une organisation ; même
+  // lecture des événements RecorderRegistered que l'outil de référence, depuis le bloc de déploiement du contrat. Une
+  // lecture impossible arrête la commande comme l'outil (OP-8 en échec, noeud_injoignable de OP-2) : jamais sautée.
+  let ailleurs;
+  try {
+    ailleurs = await R.inscriptionAilleurs({ rpc: ctx.rpc, contrat, depuis: ctx.instance.deploiements?.recorder_registry?.block_number ?? 0, orgId: f.org_id, chainKey: f.chain_key });
+  } catch (e) {
+    if (!(e instanceof R.ErreurLecture)) throw e;
+    sortie.noter("OP-8", "echoue", e.message);
+    sortie.arreter("inutilisable", "noeud_injoignable", "OP-2", e.message);
+  }
+  if (ailleurs) sortie.echec("OP-8", "refuse", "cle_chaine_autre_organisation", `clé de chaîne ${f.chain_key} déjà inscrite sous l'organisation ${ailleurs.org_id} (bloc ${ailleurs.block_number}, transaction ${ailleurs.transaction_hash})`);
   sortie.reussie("OP-8");
   // OP-3 et envoi.
   const enAttente = R.envoisSansIssue(ctx.captures, expediteur.adresse());

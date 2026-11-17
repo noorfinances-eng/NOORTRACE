@@ -276,6 +276,489 @@ sans lire `scripts/` ni `test/` ; aucune autre règle, aucun schéma, aucune
 trace ni aucun outil de référence ne change ; dans les vecteurs, seul le
 commentaire de la commande du module change dans
 `spec/vecteurs/ct-5/INDEX.md`.
+Complément du 2026-11-16, décision du porteur : deux limites de la version 0
+que la revue avait laissées au porteur sont des risques acceptés, attribués
+au client et nommés dans la spécification de sécurité, auxquels ce texte
+renvoie : le serveur RFC 3161 interne livré, de classe D, sans révocation
+outillée ni CRL servie, borné aux points (7.3, dernière puce) ; le
+ré-établissement de `qualified`, acte de l'exploitant, le retrait restant
+durable et automatique sur `PKIStatus` 4 ou 5 (15, puce de la lecture des
+listes de confiance). Aucune règle, aucun schéma, aucun vecteur ni aucun
+outil ne change.
+Complément du 2026-11-16, décision du porteur (ancre de période refusée
+`empreinte_squattee`, lecture littérale d'EX-8.4, règle 2, et d'AN-36) :
+après le refus de l'ancre de la période, le jeton de clôture reste
+`attente_registre`, sans requête RFC 3161 sur `periodHash`, et la période
+reste signalée `registry_pending`, comme le dit CT-4 EX-8.6 ; la référence
+et le composant d'ancrage le faisaient déjà. EX-9.7 le précise, et précise
+que le refus n'abandonne pas le repli de clôture d'EX-8.4 (règle 2), que la
+référence abandonnait quand le refus arrivait avant `registry.squat_wait_s`
+(corrigé). La trace `empreinte-squattee` est publiée parmi les vecteurs par
+défaut (A.3), avec deux traces nouvelles : `empreinte-squattee-repli` (repli
+de clôture après ce refus) et `registre-saut-horloge` (EX-8.10). Le texte
+tranche des points qu'il laissait ouverts, d'après la référence, corrigée là
+où elle n'était pas saine : la demande que nomme `replaced_by` quand
+plusieurs jetons obtenus relus couvrent une demande de point, `window_s` au
+démarrage et le jeton de clôture obtenu compté parmi les demandes couvrantes,
+que la référence ne comptait pas au démarrage (EX-8.12, corrigé) ; le premier
+envoi de la relève reposée quand la tentative de rang 1 est sortie de la
+fenêtre de 32 (EX-8.12) ; `k` interrompu par une tentative obtenue ou en
+échec permanent, en cours de marche comme à la relecture, où seule la
+relecture l'interrompait (EX-8.9, corrigé) ; la passe, la ligne
+`anchor_retry` qui porte `missed_deadlines` et ses membres, et la même borne
+pour l'examen de l'attente du registre (EX-8.10 ; la référence rejouait
+chaque échéance franchie : corrigé). A.3 nomme les règles du planificateur
+qui n'ont pas de trace, et pourquoi ; trois d'entre elles, que la note de la
+révision 0.10 comptait parmi ce que le composant fait (borne de `due_at` au
+démarrage, EX-4.13 ; demande `obtenue` sans enregistrement rouverte, EX-5.8 ;
+demande recréée `obtenue`, EX-8.12), ne sont appliquées ni par le composant
+ni par la référence : correction du code à faire. Sections touchées : cette note ; 8.6
+(EX-8.9, EX-8.10) ; 8.7 (EX-8.12) ; 9.2 (EX-9.7) ; annexes A.3, A.4. Aucun
+schéma ne change ; vecteurs : trois traces nouvelles dans `planification/` et
+leurs lignes d'`INDEX.md`, les vingt-huit autres traces aux mêmes octets.
+Complément du 2026-11-16, décision du porteur (règles de reprise que la
+révision 0.10 comptait parmi ce que le composant fait ; famille de vecteurs
+`configuration` ; levée du retrait de `qualified`) : les trois règles que le
+complément précédent disait à corriger dans le code sont appliquées par la
+référence et par le composant d'ancrage, et précisées. EX-4.13 : la borne de
+`due_at` au démarrage vise la seule attente de reprise d'une demande
+`a_reprendre` ; lue à la lettre, elle aurait ramené à `retry.max_ms` la
+prochaine mise à niveau d'une preuve OpenTimestamps en attente
+(`upgrade.first_after_s`), qu'elle ne vise pas. EX-5.8 : la demande rouverte
+perd son résultat, est écrite `a_reprendre` à l'instant du démarrage et
+renvoyée au rang `attempts_total + 1`. EX-8.12 : la demande recréée
+`obtenue` ne porte aucune tentative, satisfait ses échéances et n'envoie
+aucune requête. Les enregistrements relus d'`acquisitions.ndjson` entrent
+dans le planificateur par le membre facultatif `acquisitions` des entrées
+`demarrage` et `stockage_relu` ; sans lui, les deux règles ne s'appliquent
+pas, et aucune trace écrite avant ce complément ne change pour elles.
+EX-5.9 et 15 : le retrait de `qualified` est levé par la commande
+`noortrace-ctl ancrage retablir-qualification <id>` (CT-2 EX-15.10),
+consignée au journal d'exploitation. EX-4.9 : la référence applique les
+règles 4 (prestataire interne jamais qualifié, source d'en-têtes exigée en
+production) et 9, que seul le composant appliquait ; le composant borne les
+arcs d'un OID à 128 bits et refuse `auth.method` `aucune` avec un secret,
+comme le texte le disait. Sections touchées : cette note ; 4.7 (EX-4.13) ;
+5.3 (EX-5.8, EX-5.9) ; 8.7 (EX-8.12) ; 15 ; annexes A.3, A.4. Schéma
+`planificateur-ancrage-v0` : membre facultatif `acquisitions` des entrées
+`demarrage` et `stockage_relu` (`$defs/acquisition_relue`) et famille
+`configuration` (`$defs/cas_configuration`), extensions compatibles sans
+changement d'`$id`. Vecteurs : quatre traces nouvelles
+(`redemarrage-due-at-borne`, `redemarrage-jeton-sans-acquisition`,
+`file-perdue-jeton-point-obtenu`, `file-perdue-jeton-periode-obtenu`), leurs
+fichiers de `reprise/` et la famille `configuration` (dix-neuf cas), avec
+leurs lignes d'`INDEX.md` ; la trace `file-pleine` porte un `retry.max_ms`
+d'une heure, que sa reprise programmée après la fin de la trace exige
+désormais (EX-4.13 ; ses actions et sa file finale ne changent pas) ; les
+trente autres traces aux mêmes octets.
+Complément du 2026-11-16 (neuf passages que le texte ne tranchait pas,
+relevés en alignant le vérificateur Go de cohérence sur le texte et les
+vecteurs) : le texte écrit la ligne qui manquait, selon la lecture la plus
+sûre, et le code le rejoint là où il suivait une autre lecture. EX-8.3,
+AN-33 et AN-34 : trois écritures du démarrage hors de la table (première
+ligne `obtenue` d'une demande recréée, `a_reprendre → a_reprendre` de la
+borne d'EX-4.13, `obtenue → a_reprendre` de la réouverture d'EX-5.8).
+EX-5.8 : le rapprochement se fait par la demande (`request_id`) et par le
+jeton (`token_sha256`), comme la référence et le composant d'ancrage le
+faisaient. EX-8.12 : une demande de jeton recréée `obtenue` s'applique comme
+à sa promotion (EX-4.4) ; ni la référence ni le composant ne le faisaient
+(corrigé). EX-4.9 : règle 9, les 127 octets comptent l'`OBJECT IDENTIFIER`
+entier, étiquette et longueur comprises, et la parenthèse qui renvoyait au
+`maxLength` du schéma, qui borne la chaîne, est corrigée ; règle 8, ce que
+la validation contrôle et ce qu'un vérificateur de cohérence refait (le
+composant ne lisait que le squelette du certificat : corrigé) ; règle 4,
+l'adresse et l'authentification du rôle `interne` lui-même (le composant
+admettait `https://` sans authentification vers une adresse locale et
+`http://` local avec authentification : corrigé). EX-8.10 et EX-4.13 : une
+ancre au registre passe `a_reprendre` après un échec signalé par le
+registre et garde son `due_at` au démarrage, comme le composant le faisait
+(la référence la renvoyait aussitôt et ne la reprenait pas au démarrage :
+corrigé) ; une soumission OpenTimestamps `a_reprendre` garde aussi le sien
+(le composant la soumettait de nouveau au démarrage : corrigé), et une
+reprise échue pendant l'arrêt part au démarrage, jamais avant (le composant
+datait la reprise d'un jeton de son `due_at` passé : corrigé). EX-8.9 : la
+série d'une soumission OpenTimestamps obtenue est close ; les mises à niveau
+n'en font pas partie. EX-8.4, règle 2, EX-4.2 et EX-4.11 : le repli de
+clôture se lit à la lettre, `jeton_periode` encore `attente_registre`
+quelle qu'en soit la cause, ancre incluse et requête retenue par
+`min_interval_ms` comprises, comme le composant le faisait (la référence
+l'écartait alors : corrigé). Sections touchées : cette note ; 4.2 (EX-4.2) ;
+4.4 (EX-4.9) ; 4.6 (EX-4.11) ; 4.7 (EX-4.13) ; 5.3 (EX-5.8) ; 8.3 (EX-8.3) ;
+8.4 (EX-8.4) ; 8.6 (EX-8.9, EX-8.10) ; 8.7 (EX-8.12) ; 8.11 (AN-33, AN-34) ;
+annexes A.3, A.4. Aucun schéma ne change. Vecteurs : trois traces nouvelles
+(`redemarrage-jeton-recree-couvrant`, `redemarrage-ancres-a-reprendre`,
+`repli-ancre-incluse-jeton-retenu`), leurs fichiers de `reprise/` pour les
+deux premières, six cas nouveaux de la famille `configuration` (vingt-cinq
+cas), avec leurs lignes d'`INDEX.md` ; les trente-cinq autres traces et les
+dix-neuf cas existants aux mêmes octets.
+Complément du 2026-11-16 (lignes de commande des programmes livrés) :
+`noortrace-ancrage` et `noortrace-tsa-interne` lisaient leurs options sans
+les connaître. Une option mal écrite était ignorée (`servir --prot 2020`
+écoutait sur un port tiré au hasard, `serie --cle` admettait les points sans
+vérifier leur signature, `servir --tls-ac-client` faisait écouter sans TLS
+ni authentification du client), une option répétée prenait sa dernière valeur, une option à
+valeur laissée sans valeur prenait une valeur par défaut (`--hote` seul :
+`127.0.0.1` ; `--checkpoint-interval` seul : 1 s), et une option d'une
+autre forme de `servir` ou de `fiche` était ignorée. Chaque commande
+n'admet désormais que ses options, chacune au plus une fois, avec sa valeur
+quand elle en prend une, et ses arguments ; toute autre forme rend l'usage
+et le code 2, sans rien écrire ni écouter (EX-8.13, 7.3). Aucun des deux
+programmes n'ouvre ni ne joint de prise Unix (TCP seulement) : la borne de
+longueur des chemins de prise des autres composants (CT-2 EX-18.1, CT-3
+EX-12.2) n'a pas d'objet ici. Sections touchées : cette note ; 7.3 ; 8.7
+(EX-8.13). Aucune autre règle, aucun schéma ni aucun vecteur ne change.
+Complément du 2026-11-16 (deux passages OpenTimestamps où la référence et le
+composant d'ancrage divergeaient, sans trace qui les exerce) : le texte
+écrit la ligne qui manquait, selon la lecture la plus sûre et le traitement
+du jeton RFC 3161 dans le cas analogue, et l'implémentation qui divergeait
+la rejoint. EX-8.12 : une soumission OpenTimestamps `envoyee` au démarrage
+est traitée comme la tentative d'un jeton : sa tentative en cours est close
+`echec_transitoire`, code `redemarrage`, et la soumission repart aussitôt,
+au rang suivant, avec le même nonce et le même engagement (EX-6.2) ; la
+tentative `redemarrage` interrompt sa série (EX-8.9) ; la référence le
+faisait, le composant laissait la tentative `en_cours` et en ouvrait une
+seconde (corrigé). EX-8.11 : une soumission qui obtient moins de
+`min_responses` réponses valables, quelle que soit l'attestation (EX-6.2,
+point 4), est close `echec_transitoire`, code `reponses_insuffisantes`, et
+traitée comme une réponse RFC 3161 en échec transitoire (EX-5.12) : action
+`rejeter_reponse` de classe `transitoire` et ligne
+`anchor_response_rejected` (8.9), sans quoi l'historique des soumissions
+sorties de la fenêtre de la file (EX-8.5, règle 7) se perdrait, puis
+`a_reprendre` à l'attente d'EX-8.9, dont `k` est la série de la soumission ;
+la référence n'écrivait ni l'action ni la ligne (corrigé) ; le composant
+écrivait le code `calendriers_insuffisants`, admettait une attestation
+Bitcoin rapportée par un seul calendrier et comptait dans `k` toutes les
+tentatives en échec, celle d'un redémarrage et celles qu'une file relue ne
+porte plus comprises (corrigé). CT-5 ne nommait aucun des deux codes ;
+`reponses_insuffisantes` reprend les mots d'EX-6.2 et d'EX-8.9 (« réponses
+valables ») et figurait déjà dans les vecteurs publiés (trace
+`redemarrage-ancres-a-reprendre`). Sections touchées : cette note ; 8.6
+(EX-8.9, EX-8.11) ; 8.7 (EX-8.12) ; 8.9 ; annexes A.3, A.4. Aucun schéma ne
+change. Vecteurs : deux traces nouvelles (`ots-reponses-insuffisantes`,
+`redemarrage-ots-soumission-envoyee`), les fichiers de `reprise/` de la
+seconde, avec leurs lignes d'`INDEX.md` ; les trente-huit autres traces aux
+mêmes octets.
+Complément du 2026-11-16 (derniers écarts entre la référence et le composant
+d'ancrage : quatre passages OpenTimestamps, puis ceux qu'a montrés une
+confrontation des deux implémentations sur des parcours tirés au hasard ;
+aucune trace ne les exerçait) : le texte écrit la ligne qui manquait et
+l'implémentation qui divergeait la rejoint. EX-6.2 : le nonce d'une
+soumission est tiré une seule fois par demande et repris par chaque
+soumission de la demande, après un échec comme après un redémarrage ; la
+source d'aléa d'exploitation de la référence en tirait un neuf à chaque
+soumission (corrigé ; le composant le gardait déjà dans
+`ots/<objet>.nonce`). EX-8.11 : une réponse des calendriers sans preuve
+écrite (`proof_sha256` nul) n'est jamais promue ; à la soumission, avec
+assez de réponses valables, la tentative est close `echec_transitoire`, code
+`preuve_absente`, comme une soumission à trop peu de réponses ; à la mise à
+niveau, une attestation Bitcoin sans preuve laisse la preuve en attente,
+comme une réponse 404 ; la référence promouvait un résultat de SHA-256 nul
+(corrigé), le composant écrivait `reponses_insuffisantes` (corrigé). Le
+schéma admet `proof_sha256` nul quelle que soit l'attestation et le garde :
+c'est la forme de la réponse à une mise à niveau dont la preuve est
+introuvable, la règle dépend de l'état de la demande, que le schéma d'une
+entrée ne connaît pas, et un resserrement pour la seule attestation
+`complete` ne changerait pas l'issue (jamais promue) mais ferait passer le cas
+par le refus d'une entrée hors schéma, sous un autre code ; la règle est donc
+celle du planificateur, une seule pour les trois attestations. EX-8.12 : une
+ligne `a_reprendre` qui porte encore une tentative en cours (écrite par un
+composant d'avant le complément précédent) se reprend comme une soumission
+`envoyee` (les deux implémentations la laissaient en cours : corrigé) ; une
+demande de jeton dont les deux séries avaient une tentative en cours ne
+reçoit qu'une action `programmer` de raison `immediat`, et chaque série
+repart dans l'ordre des tentatives que ce démarrage clôt (le composant
+émettait une action par série et suivait aussi les tentatives closes par un
+redémarrage antérieur : corrigé). EX-8.16 : le détail des tentatives fait
+partie de `queue_after` et ses textes sont désormais écrits (8.10) : ceux de
+la référence, que le composant ne suivait pas pour la soumission
+OpenTimestamps (`soumission envoyee`), les renvois au registre, quatre
+refus RFC 3161 et le jeton promu avec deux avertissements ou de `status` 1
+(corrigé) ; deux minuteries de même échéance se déclenchent dans l'ordre de
+la file, puis dans l'ordre où elles ont été armées (la référence suivait le
+seul ordre d'armement : corrigé). EX-8.5, règles 1 et 2, et 8.9 : codes et
+membres de la ligne `anchor_response_rejected` d'une réponse qui ne
+s'applique pas, borne d'une pièce, forme d'`anchor_duplicate_ignored` (la
+référence écrivait d'autres codes et d'autres membres, ne gardait pas le
+jeton d'un rang jamais ouvert et bornait le jeton d'une tentative close
+sans le vérifier ; une précision hors de la plage d'un instant faisait
+lever une exception aux deux implémentations : corrigé). EX-5.10 : une
+réponse de `status` 0 ou 1 sans `TimeStampToken` est `reponse_illisible` et
+un `PKIFailureInfo` hors de la liste de la RFC donne `statut_2` (la
+référence poursuivait la vérification d'une réponse sans jeton et écrivait
+`echec_autre` : corrigé) ; une précision hors de la plage d'un instant est
+`verification_T-7` et les avertissements suivent l'ordre des étapes 7 et 8
+(le composant n'avait pas ce contrôle et rangeait les avertissements
+autrement : corrigé). EX-8.10 : un reçu ou un échec du registre ne
+s'applique qu'à une ancre dont une tentative est en cours (les deux
+implémentations divergeaient pour une ancre `a_envoyer` ou `a_reprendre` :
+corrigé) et une ancre renvoyée n'a plus de `due_at` (le composant gardait
+celui de sa reprise : corrigé). 8.2 : toute action `programmer` pose
+`due_at` (le composant ne le faisait pas pour une ancre qui attend le
+nonce : corrigé). EX-8.8 : une erreur permanente d'une série pendant que
+l'autre reste active est écrite dans la file (le composant ne réécrivait
+pas la ligne : corrigé). Sections
+touchées : cette note ; 5.4 (EX-5.10) ; 6.2 (EX-6.2) ; 8.2 ; 8.5 (EX-8.5) ;
+8.6 (EX-8.8, EX-8.10, EX-8.11) ; 8.7 (EX-8.12) ; 8.9 ; 8.10 (EX-8.16) ;
+annexes A.3, A.4. Aucun schéma ne change. Vecteurs : sept traces nouvelles
+(`ots-preuve-absente`, `redemarrage-ots-a-reprendre-en-cours`,
+`reponses-hors-tentative`, `registre-renvois`,
+`redemarrage-releve-deux-series`, `minuteries-simultanees`,
+`jeton-tardif-avertissements`), les fichiers de `reprise/` de la deuxième et
+de la cinquième, avec leurs lignes d'`INDEX.md` ; les quarante autres traces
+aux mêmes octets.
+Complément du 2026-11-16 (ordre du démarrage, et derniers écarts que la
+confrontation des deux implémentations sur des parcours tirés au hasard
+montrait encore) : EX-8.12 écrit l'ordre des actions du démarrage, que le
+texte ne fixait pas (il énumérait les transitions sans ordre entre les
+demandes) et que les deux implémentations suivaient différemment. L'ordre
+retenu : ligne `anchoring_started`, réouvertures d'EX-5.8, échéances relues,
+EX-4.4 appliquée aux demandes de points relues, puis une seule passe sur la
+file, dans l'ordre de la file, chaque demande non finale traitée selon son
+état, `a_envoyer` comprise, puis les départs comme après toute entrée
+(EX-8.7, EX-9.4), puis les minuteries échues à l'instant du démarrage
+(EX-8.16). EX-4.4 vient avant la passe, et non après : aucune requête ne
+repart et aucune ligne n'est réécrite pour une échéance déjà couverte, et
+c'est l'ordre que fixent déjà les traces publiées
+(`redemarrage-echeance-remplacee`, `redemarrage-jeton-recree-couvrant`) ;
+les départs viennent après la passe parce qu'EX-8.7 et EX-9.4 ordonnent les
+demandes prêtes (le jeton et l'ancre de la période d'abord) et qu'un ordre
+propre au démarrage ferait partir ce que la marche ordinaire retiendrait.
+Une ancre `a_envoyer` n'attend le nonce que si une ancre de sa clé est en
+vol, comme à sa création (la référence émettait toujours `attente_nonce` ;
+le composant traitait les demandes `a_envoyer` dans une boucle finale, dans
+l'ordre de la file, et pouvait faire partir une ancre de point avant celle
+de la période : corrigés). Les échéances d'une demande `remplacee` relue
+restent closes (le composant les rouvrait, puis les closait une seconde
+fois : corrigé) ; seule une période ouverte retrouve ses échéances passées
+sans demande (le composant le faisait aussi pour une période close :
+corrigé). EX-8.12 et EX-8.8 : les prestataires épuisés d'une demande de
+jeton se relisent de ses tentatives `echec_permanente`, la file étant le
+seul état du planificateur (le composant les oubliait au redémarrage :
+l'erreur permanente de l'autre prestataire laissait alors la demande
+`a_reprendre` sans reprise programmée ; corrigé). EX-8.10 : le délai
+d'inclusion constaté au reçu d'une ancre court depuis sa création, attente
+du nonce comprise (la référence le comptait depuis le premier envoi :
+corrigé ; les traces publiées admettent ces deux lectures, mais non un
+délai compté depuis `checkpoint_ts`, que l'histogramme
+`noortrace_anchoring_d_registre_s` garde seul). Sections
+touchées : cette note ; 8.6 (EX-8.10) ; 8.7 (EX-8.12) ; 8.9 ; annexes A.3,
+A.4. Aucun schéma ne change. Vecteurs : cinq traces nouvelles
+(`redemarrage-ordre-de-la-file`, `redemarrage-a-envoyer-cle-libre`,
+`redemarrage-echeances-remplacees`, `registre-inclusion-apres-attente`,
+`redemarrage-prestataires-epuises`), les fichiers de `reprise/` des trois
+premières et de la cinquième, avec leurs lignes d'`INDEX.md` ; les
+quarante-sept autres traces aux mêmes octets. La confrontation des deux
+implémentations est désormais un essai du dépôt (A.4).
+Complément du 2026-11-16 (clé de chaîne du verrou d'EX-9.4) : le texte
+disait « une même clé de chaîne » sans dire ce que le planificateur compare,
+et les deux implémentations différaient : la référence tenait un seul verrou
+pour toute la file, le composant un verrou par journal (`org_id`,
+`journal_id`). EX-9.4 le définit : pour ce verrou, la clé de chaîne d'une
+ancre est celle du journal de son sujet. Une clé de chaîne ne sert qu'un
+journal (dans une organisation, le registre l'assure ; d'une organisation à
+l'autre, la règle est écrite, aucun verrou ne sérialisant deux composants) ;
+un composant ne sert qu'un journal ; les deux clés de chaîne d'un journal
+pendant une rotation comptent pour une. Les deux verrous ne différaient que
+sur une file de deux journaux, qu'aucun composant ne tient ; la référence
+suit désormais le journal. Sections touchées : cette note ; 9.2 (EX-9.4) ;
+annexes A.3, A.4. Aucun schéma ne change. Vecteurs : une trace nouvelle
+(`registre-cle-par-journal`) et sa ligne d'`INDEX.md` ; les cinquante-deux
+autres traces aux mêmes octets. La confrontation des deux implémentations
+gagne trois modes à deux journaux (A.4).
+
+Complément du 2026-11-16 (contrôle d'OP-9 pour l'ancre d'une période ;
+clé de chaîne d'une seule organisation ; minuteries de deux journaux) :
+trois points que le texte laissait ouverts. (1) CT-4 OP-9 demande, avant
+toute ancre, que la clé Ed25519 qui a signé le document soit inscrite sous
+la clé de chaîne qui envoie ; le composant ne le vérifiait que pour l'ancre
+d'un point : un démon configuré par erreur avec la clé de chaîne d'un autre
+journal de l'organisation ancrait ses périodes sous cette clé, sur le nonce
+de l'autre démon (EX-9.4), et R-10 échouait au dossier. EX-9.1 dit
+désormais que le contrôle vaut pour les deux ancres, avec le même code et
+les mêmes lignes ; AN-46 suit. Le planificateur, et donc la référence, ne
+lisent pas le registre : ils reçoivent l'échec comme une entrée, et aucune
+trace ne change pour ce point. (2) La règle d'EX-9.4 qui interdit une même
+clé de chaîne dans deux organisations est vérifiée à l'inscription par
+l'outil du registre (CT-4 OP-8, `cle_chaine_autre_organisation`, dans les
+limites de CT-4 EX-8.22). (3) Deux minuteries de période de deux journaux
+au même instant : la référence suivait l'ordre d'armement qu'EX-8.16
+prescrit, le composant rangeait toutes les échéances avant toutes les
+cadences ; le composant suit désormais l'ordre d'armement, quel que soit
+le journal. Sections touchées : cette note ; 8.10 (EX-8.16) ; 9.1
+(EX-9.1) ; 9.2 (EX-9.4) ; 9.4 (AN-46) ; annexes A.3, A.4. Aucun schéma ne
+change. Vecteurs : une trace nouvelle (`minuteries-deux-journaux`) et sa
+ligne d'`INDEX.md` ; les cinquante-trois autres traces aux mêmes octets. La
+confrontation des deux implémentations gagne trois modes où les deux
+journaux ont des points (A.4).
+
+Complément du 2026-11-16 (cinq passages que le texte ne tranchait pas
+encore, relevés en alignant le vérificateur Go de cohérence sur le texte et
+les vecteurs ; vérification d'une clé de chaîne d'une autre organisation par
+le relais du composant d'ancrage) : le texte écrit la ligne qui manquait,
+selon ce que la référence et le composant d'ancrage font quand c'est sûr,
+et l'implémentation qui divergeait rejoint la règle. EX-8.3, AN-33 et
+AN-34 : quatre écritures du démarrage hors de la table, dont
+`a_reprendre → a_reprendre` d'une soumission OpenTimestamps relue avec une
+tentative `en_cours` (EX-8.12), que les deux implémentations faisaient
+déjà. EX-8.10 et 8.9 : le refus définitif (`refus_*`) de l'ancre d'une
+période la reprend exactement au pas `retry.max_ms`, sans gigue, comme les
+deux implémentations le faisaient, et lève l'alerte `prestataires_epuises`
+critique, une fois par ancre depuis le démarrage : sans cette ancre, aucun
+jeton de clôture ne part, et ni l'une ni l'autre n'alertait (corrigé).
+EX-9.4 et EX-8.12 : quand la clé de chaîne se libère, au démarrage comme en
+marche, l'ancre qui part est la première des ancres de période par
+`period_start`, puis des ancres de points par `checkpoint_ts`, l'ordre de
+la file ne départageant que les égalités ; la référence suivait l'ordre de
+la file, qui n'est pas celui des `checkpoint_ts` pour des ancres créées au
+même instant par une reconstruction (corrigé ; le composant suivait déjà la
+règle). EX-8.11 : une réponse des calendriers se rapporte à la dernière
+tentative en cours de la demande ; sans tentative en cours, notamment pour
+une soumission `a_reprendre` dont la dernière soumission est close, elle
+est consignée `tentative_close` et ne change rien, comme les deux
+implémentations le faisaient. AN-37 et A.4 : comment un vérificateur
+établit, depuis la trace et sans rejouer le planificateur, qu'une réponse
+des calendriers s'applique, et pourquoi les seules entrées ne le
+permettent pas ; aucune extension du schéma n'est retenue. EX-9.4 : l'agent
+d'inscription et le relais d'inscription du composant d'ancrage vérifient
+eux aussi qu'une clé de chaîne n'est inscrite sous aucune autre
+organisation (CT-4 OP-8, EX-8.22 ; la note précédente ne nommait que
+l'outil du registre), le relais en lisant le registre depuis le bloc de
+déploiement du `RecorderRegistry`, que le démon enregistreur lui transmet
+désormais (il le lisait depuis le bloc 0 : corrigé). Sections touchées :
+cette note ; 8.3 (EX-8.3) ; 8.6 (EX-8.10, EX-8.11) ; 8.7 (EX-8.12) ; 8.9 ;
+8.11 (AN-33, AN-34, AN-37) ; 9.2 (EX-9.4) ; annexes A.3, A.4. Aucun schéma
+ne change. Vecteurs : deux traces nouvelles (`registre-refus-ancre-periode`,
+`registre-ordre-des-points`), les fichiers de `reprise/` de la seconde, avec
+leurs lignes d'`INDEX.md` ; les cinquante-quatre autres traces aux mêmes
+octets.
+
+Complément du 2026-11-16 (l'ancre d'une période après celle de son point
+de clôture ; classement des codes du registre ; alerte du refus de l'ancre
+d'une période ; origine de l'âge d'abandon OpenTimestamps). EX-9.4 dit que
+l'ancre de la période ne part qu'après le reçu de l'ancre du point de
+clôture de la même clé ; l'ordre « période d'abord » (EX-8.12, point 6, et
+le complément précédent d'EX-9.4) la faisait pourtant partir avant, quand
+l'ancre du point de clôture attendait le nonce à la clôture. Les deux
+implémentations le faisaient ; l'ancre du point, incluse après celle de la
+période, tombait dans la fenêtre de blocs de la période suivante, où le
+contrôle d'EX-10.7 la dit orpheline (corrigé dans les deux). Règle écrite
+(EX-9.4) : l'ancre d'une période ne part pas tant qu'une ancre de point de
+sa période et de son journal n'a ni son reçu ni un autre état final ;
+l'ordre de départ des ancres d'une clé est celui des périodes
+(`period_start`), et, dans une période, ses points par `checkpoint_ts`, puis
+la période ; une ancre de période qui attend ainsi retient sa clé. EX-8.4
+(règle 2), EX-8.12 (point 6) et EX-9.4 sont réécrits ensemble. Deux traces
+publiées changent, parce que le texte d'EX-9.4 l'exige :
+`redemarrage-a-envoyer-cle-libre` (l'ancre de K2, point de clôture de sa
+période, part avant celle de la période) et `registre-indisponible-cloture`
+(au retour du registre, l'ancre du point de clôture avant celle de la
+période) ; la description de `registre-ordre-des-points` suit la règle
+(mêmes entrées, mêmes actions). Trace nouvelle
+`registre-periode-apres-point-de-cloture` : ancre du point de clôture en
+attente du nonce à la clôture, puis en échec transitoire alors que la clé
+est libre. EX-8.10 : table des codes de CT-4 §7.11, « refus définitif » ou
+« transitoire », avec le motif de chaque classement ; le composant
+d'ancrage passait au planificateur les codes de son `Envoyeur` tels quels,
+qu'il tenait tous pour transitoires, si bien qu'un refus d'OP-9 de l'ancre
+d'une période était repris avec gigue et sans alerte ; il préfixe désormais
+`refus_` aux codes définitifs (corrigé). 8.9 : la règle d'alerte
+`noortrace_ancrage_prestataires_epuises_periode` couvre aussi ce refus.
+EX-8.11, EX-6.6 et 8.9 : l'âge d'abandon d'une preuve OpenTimestamps en
+attente (`upgrade.give_up_after_s`), et la jauge
+`noortrace_anchoring_ots_pending_age_s`, courent depuis `created_at` de la
+demande ; la référence comptait depuis la première soumission de sa marche,
+le composant depuis la preuve en attente, et l'un comme l'autre faisaient
+repartir l'attente à chaque redémarrage pendant la soumission (corrigé dans
+les deux ; trace nouvelle `redemarrage-ots-abandon-origine`, à horloge
+avancée). Sections touchées : cette note ; 6.4 (EX-6.6) ; 8.4 (EX-8.4) ;
+8.6 (EX-8.10, EX-8.11) ; 8.7 (EX-8.12) ; 8.9 ; 9.2 (EX-9.4) ; annexes A.3,
+A.4. Aucun schéma ne change. Vecteurs : deux traces nouvelles, les fichiers
+de `reprise/` de la seconde, trois traces publiées changées (deux par leurs
+entrées et leurs actions, une par sa description) avec le fichier
+`reprise/` d'après de la première, et leurs lignes d'`INDEX.md` ; les
+cinquante-trois autres traces aux mêmes octets.
+
+Complément du 2026-11-16 (six passages que le texte ne tranchait pas encore,
+relevés en alignant le vérificateur Go de cohérence sur le texte et les
+vecteurs) : le texte écrit la ligne qui manquait, selon ce que la référence
+et le composant d'ancrage font quand c'est sûr ; là où ce n'était pas sûr,
+les deux rejoignent la règle sûre. EX-9.4 : une ancre de période qui n'a ni
+son reçu ni un autre état final retient sa clé : aucune ancre d'une période
+postérieure de la même clé ne part avant elle, à sa création, à l'échéance
+de sa reprise ni quand la clé se libère, et la « clé libre » le dit
+désormais. Les deux implémentations ne retenaient la clé que lorsque l'ancre
+de la période, attendant encore ses points, était la première candidate à la
+libération de la clé : l'ancre d'un point de la période suivante partait dès
+que la clé n'avait plus d'ancre en vol, et l'ancre de cette période suivante
+aussi, avant celle de la période qui attendait le reçu d'un de ses points ou
+sa propre reprise, à l'encontre de l'ordre des périodes et des fenêtres de
+blocs d'EX-10.7 (corrigé dans les deux ; trace
+`registre-periode-retient-la-cle`). EX-9.4 et EX-8.12, point 6 : les
+candidates au départ sont les mêmes au démarrage et en marche ; une ancre
+`a_reprendre` dont l'échéance est passée n'en est pas au point 6, la passe
+ayant programmé sa reprise, et part au point 7, comme les deux
+implémentations le faisaient. AN-36 et A.4 : l'ancre d'une période après
+celles de ses points, et la clé retenue, sont deux invariants d'AN-36, qui
+se vérifient sur la trace. A.4 (AN-37) : ordre d'une action et d'une entrée
+du même instant, établi depuis le comportement des deux implémentations.
+EX-8.11 : une soumission OpenTimestamps qui aboutit au-delà de
+`upgrade.give_up_after_s` après `created_at` lève l'alerte `ots_give_up` dès
+la preuve en attente, et sa première mise à niveau reste à `first_after_s` ;
+la référence et le composant n'alertaient qu'à la réponse de cette mise à
+niveau (corrigé dans les deux ; trace
+`redemarrage-ots-abandon-soumission-tardive`, à horloge avancée). EX-8.10 :
+l'alerte du refus définitif de l'ancre d'une période, levée une fois par
+ancre depuis le dernier démarrage, l'est de nouveau après un redémarrage,
+comme les deux implémentations le faisaient (trace
+`registre-refus-ancre-periode-redemarrage`). EX-10.7 : le cas où la série de
+la période suivante est requise suit EX-9.4. Sections touchées : cette
+note ; 8.6 (EX-8.10, EX-8.11) ; 8.7 (EX-8.12) ; 8.11 (AN-36, AN-41) ; 9.2
+(EX-9.4) ; 10.2 (EX-10.7) ; annexes A.3, A.4. Aucun schéma ne change.
+Vecteurs : trois traces nouvelles, les fichiers de `reprise/` de deux
+d'entre elles, et leurs lignes d'`INDEX.md` ; les cinquante-huit autres
+traces aux mêmes octets.
+
+Complément du 2026-11-16 (l'ancre d'un point en reprise quand le point
+suivant de sa période est admis) : le texte ne disait pas ce que devient
+l'ancre d'un point `a_reprendre` après un échec signalé (EX-8.10) quand le
+point suivant de sa période est admis, et les deux implémentations
+différaient. EX-9.5 ne remplaçait que les
+ancres `a_envoyer` : la référence renvoyait l'ancre en reprise à son
+échéance, après celle du point plus récent, partie dès son admission, la
+clé n'ayant aucune ancre en vol ; le composant d'ancrage la remplaçait
+quand aucune de ses tentatives n'avait pu être admise par un nœud, mais il
+ne comptait pas `nonce_incoherent` parmi ces échecs. Et quand une tentative
+avait pu partir (`recu_absent`), l'une et l'autre faisaient partir le point
+plus récent avant le renvoi de l'ancre en reprise : incluses dans cet ordre,
+les deux ancres renversaient l'ordre des blocs de la série, qu'EX-10.7
+signale `hors_ordre` sur un journal honnête. Règles écrites : EX-9.5, une
+ancre `a_reprendre` dont aucune tentative n'a pu être admise par un nœud
+(`noeud_injoignable`, `nonce_incoherent`, `transaction_refusee`, et les
+codes du composant de même sens) est encore à envoyer, et le point plus
+récent la remplace (la référence rejoint le composant ; le composant compte
+`nonce_incoherent`) ; EX-9.4, l'ancre d'un point ne part pas tant que celle
+d'un point antérieur de sa période n'a ni son reçu ni un autre état final
+(corrigé dans les deux). AN-36 gagne ce troisième invariant, vérifié sur la
+trace et à chaque segment de la confrontation des deux implémentations,
+qui tire désormais ces échecs (deux modes de plus). Sections touchées :
+cette note ; 8.11 (AN-36) ; 9.2 (EX-9.4, EX-9.5) ; annexes A.3, A.4. Aucun
+schéma ne change. Vecteurs : une trace nouvelle
+(`registre-points-en-reprise`) et sa ligne d'`INDEX.md` ; les soixante et
+une autres traces aux mêmes octets.
+
+Complément du 2026-11-16 (quatre lignes que le complément précédent taisait,
+relevées par l'alignement du vérificateur Go de `ct-5`) : le texte les écrit
+selon le comportement commun de la référence et du composant d'ancrage, qui
+ne changent pas. EX-9.5 : une ancre dont la ligne relue porte moins de
+tentatives qu'`attempts_total` n'est plus jamais « encore à envoyer », et une
+tentative sortie de la fenêtre de 32 pendant la marche reste connue jusqu'au
+démarrage suivant ; le point qu'admet de nouveau la reconstruction du
+démarrage (EX-8.12) remplace et attend comme en marche ; le `jeton_point`
+d'un point dont l'ancre est remplacée suit son attente. AN-41 : sur la
+trace, l'alerte `ots_give_up` d'une soumission aboutie au-delà de
+`give_up_after_s` se place entre `stocker` et l'écriture `en_attente`.
+Sections touchées : cette note ; 8.11 (AN-41) ; 9.2 (EX-9.5). Aucun schéma,
+aucune trace ni aucun vecteur ne change.
 
 La spécification a deux parties. La **partie A** (sections 0 à 6) dit ce que
 l'ancrage prouve et ne prouve pas, quelle fenêtre de réécriture il laisse,
@@ -763,9 +1246,14 @@ et ne crée pas le risque de CT-4 §8.3. Ce jeton borne la fin de l'heure tant
 que le jeton qualifié du manifeste attend ; il ne le remplace pas (EX-3.4) ;
 il est consigné `checkpoint_closing_fallback` (8.9) et se compte dans les
 jetons de points (trace `registre-indisponible-cloture`, annexe A). Il n'a
-lieu que si le registre tarde, hors du fonctionnement nominal : il s'ajoute
-aux maxima d'EX-4.11, au plus un par période, de sorte qu'une telle période
-peut compter `n_T` jetons de points au lieu de `n_T − 1`.
+lieu que si le jeton de clôture n'est pas parti `registry.squat_wait_s`
+après la clôture, hors du fonctionnement nominal : registre qui tarde, ancre
+de la période refusée (EX-9.7), ou, la règle se lisant à la lettre
+(complément du 2026-11-16 ; EX-8.4, règle 2), ancre incluse mais requête du
+jeton de clôture retenue par `min_interval_ms` du principal (EX-8.7 ; trace
+`repli-ancre-incluse-jeton-retenu`) ; il s'ajoute aux maxima d'EX-4.11, au
+plus un par période, de sorte qu'une telle période peut compter `n_T`
+jetons de points au lieu de `n_T − 1`.
 
 **EX-4.3** À l'échéance `D_k`, le point à contresigner est le **premier point
 de la période dont `checkpoint_ts ≥ D_k`** ; la requête part dès que ce point
@@ -1094,7 +1582,18 @@ nominatif :
    `principal` ou `secours` un prestataire dont le retrait de `qualified` est
    en vigueur (EX-5.9) est refusé ; dans tout profil, `auth.method = aucune`
    va avec `auth.secret = null`, `basic` et `certificat_client` avec un
-   secret non nul ;
+   secret non nul ; complément du 2026-11-16 : dans tout profil, le rôle
+   `interne` lui-même suit ces règles d'adresse et d'authentification, comme
+   le `principal` non qualifié hors production : `url` en `http://` vers une
+   adresse locale avec `auth.method = aucune`, ou `url` en `https://` avec
+   `basic` ou `certificat_client` ; toute autre combinaison est refusée :
+   `http://` vers une autre adresse, `http://` avec `basic` ou
+   `certificat_client` (`basic` seulement sur TLS, EX-5.5 ; un certificat
+   client suppose TLS), `https://` sans authentification (AN-27 : le serveur
+   n'est joignable que par TLS avec authentification du client, hors de
+   l'adresse locale en `http://`) (cas `interne-https-sans-authentification`,
+   `interne-http-local-basic` et `interne-https-basic` de la famille
+   `configuration`) ;
    4 bis. (révision 0.10) chaque prestataire PEUT porter une liste `crl_hosts`
    des noms d'hôte dont la capture des CRL (EX-5.10, étape 10) est admise ;
    en production, une adresse de CRL locale ou privée (RFC 1918, 3927, 4193,
@@ -1112,11 +1611,30 @@ nominatif :
    `provider_role = "interne"` ⇒ un prestataire de ce rôle existe ;
 8. chaque PEM d'`anchor_certificates` se lit comme un certificat par le
    lecteur de CT-6 §9.3 (sinon N-1 à l'acquisition : la configuration le dit
-   d'avance) ;
+   d'avance) ; complément du 2026-11-16 : la validation contrôle que le PEM
+   (forme de `$defs/pem_certificat` du schéma : un seul bloc `CERTIFICATE`,
+   lignes de 76 caractères au plus) est en base64 canonique et que son DER se
+   lit par le lecteur de CT-6 §9.3 que le client RFC 3161 applique aux
+   certificats d'ancre à l'acquisition (T-7) : lecteur DER borné d'EX-9.4
+   (longueurs définies et minimales, étiquettes de numéro inférieur à 31,
+   formes de X.690, profondeur 32, aucun octet après la structure), squelette
+   `Certificate` (`tbsCertificate`, `signatureAlgorithm`, `signatureValue`
+   sans bit inutilisé), puis champs du `TBSCertificate` (version, une
+   `version` `v1` encodée étant refusée par EX-9.21, numéro de série,
+   algorithmes, noms, validité, clé publique, extensions) ; la référence et
+   le composant d'ancrage appliquent tous deux ce lecteur ; aucune signature
+   n'est vérifiée. Un vérificateur de cohérence des vecteurs (A.5) refait le
+   PEM, le lecteur borné et le squelette, qui suffisent aux cas de la famille
+   `configuration` (`certificat-tronque`), et laisse la lecture des champs à
+   CT-6 et à ses vecteurs (T-1, EX-9.21), qu'il ne refait pas (EX-A.4) ;
 9. (révision 0.10) chaque `policy_oid` et chaque OID d'`accepted_policies`
    s'encode dans la requête d'EX-5.1 : premier arc 0, 1 ou 2, second arc
    inférieur à 40 sous un premier arc 0 ou 1, chaque arc tenant sur 128 bits,
-   DER de l'OID d'au plus 127 octets (`maxLength` de `$defs/oid` du schéma).
+   DER de l'OID d'au plus 127 octets ; complément du 2026-11-16 : les 127
+   octets comptent l'`OBJECT IDENTIFIER` entier, étiquette `06` et longueur
+   comprises, soit au plus 125 octets de contenu (cas `oid-der-127-octets` et
+   `oid-der-128-octets`) ; le schéma ne borne que la chaîne (`maxLength` 512
+   de `$defs/oid`), et la règle 9 seule borne le DER.
 
 ### 4.5 Obligatoire et optionnel
 
@@ -1173,7 +1691,8 @@ de points déjà créées sont servies dans la limite de `n_T − 1` par périod
 Seuls s'y ajoutent les jetons obtenus en double pendant une relève, quand
 les deux prestataires sont sollicités en parallèle (EX-5.7, EX-8.8), qui se
 comptent dans `r` (12.2), et le jeton du repli de clôture, au plus un par
-période et seulement quand le registre tarde (EX-4.2). Une
+période et seulement quand le jeton de clôture n'est pas parti
+`registry.squat_wait_s` après la clôture (EX-4.2). Une
 requête en échec (réponse d'erreur, 50 à 60 octets, R1-F16) compte ou non dans
 la facturation selon le modèle du prestataire (section 11, section 12 :
 paramètre).
@@ -1203,7 +1722,18 @@ temps sur son horloge monotone depuis cet instant, consigne
 `anchoring_clock_backwards` et lève `horloge_reculee` (mineure, 8.9) ; ses
 attentes en cours gardent leur durée restante, et l'heure murale fait foi de
 nouveau dès qu'elle le rattrape. Au démarrage, un `due_at` postérieur à
-l'instant courant plus `retry.max_ms` est ramené à cette borne.
+l'instant courant plus `retry.max_ms` est ramené à cette borne. Complément du
+2026-11-16 : la borne vise la seule attente de reprise d'une demande
+`a_reprendre` (EX-8.9 : nouvelle tentative d'un jeton RFC 3161, nouvelle
+soumission OpenTimestamps, renvoi d'une ancre au registre après un échec
+signalé par le registre, EX-8.10), qui ne dépasse
+jamais `retry.max_ms` plus la gigue : une échéance plus lointaine ne vient
+que d'une heure murale avancée avant l'arrêt. Elle ne vise pas la prochaine
+mise à niveau d'une preuve OpenTimestamps `en_attente` (`upgrade.first_after_s`,
+`upgrade.interval_s`, EX-6.4), reprogrammée à `max(due_at, now)` (EX-8.12), ni
+les états qui ne gardent pas leur `due_at` au démarrage (EX-8.12). Quand elle
+s'applique, l'action `programmer` (raison `backoff`) porte la borne, puis la
+ligne de la demande est réécrite (trace `redemarrage-due-at-borne`).
 
 ### 4.8 Vérifications AN-1 à AN-4
 
@@ -1391,7 +1921,25 @@ qu'à une révocation constatée (EX-5.10, étape 10 ; `obtenue → a_reprendre`
 EX-8.3) ; `promoted` n'est vrai que sur un enregistrement d'issue `obtenue`.
 Au démarrage, une demande de jeton `obtenue` de la file sans enregistrement
 `obtenue` promu de même `token_sha256` dans `acquisitions.ndjson` est
-rouverte (`a_reprendre`) et alertée (`file_perdue`).
+rouverte (`a_reprendre`) et alertée (`file_perdue`). Complément du
+2026-11-16 : la réouverture efface le résultat, écrit la demande
+`a_reprendre` à l'instant du démarrage (`due_at`), lève l'alerte
+`file_perdue` (critique) sur cette demande, et la reprise d'EX-8.12 la
+renvoie au rang `attempts_total + 1` ; ses échéances redeviennent celles
+d'une demande active (EX-4.4 s'applique). Le planificateur reçoit les
+enregistrements relus par le membre `acquisitions` de l'entrée `demarrage`
+(8.10 ; le composant d'ancrage y met, pour chaque demande de jeton `obtenue`
+relue, l'enregistrement d'issue `obtenue`, promu et non révoqué, de sa
+période) ; sans ce membre, la règle ne s'applique pas (trace
+`redemarrage-jeton-sans-acquisition`). Complément du 2026-11-16 : le
+rapprochement se fait par la demande et par le jeton : un enregistrement ne
+vaut pour une demande que s'il est de la même demande (`request_id` de
+l'élément d'`acquisitions`, `<kind>:<empreinte>`, que le composant d'ancrage
+dérive de l'objet et de l'`imprint` de l'enregistrement d'EX-5.13) et si son
+`token_sha256` (`result.sha256` de l'élément) est le `result.sha256` de la
+demande ; un enregistrement d'un jeton de même SHA-256 tenu pour une autre
+demande ne la retient pas ; la référence et le composant d'ancrage
+appliquent ce critère.
 
 **EX-5.9 (qualifié, mesurable)** Un prestataire est tenu pour qualifié par
 le composant d'ancrage, et son objet `qualified` renseigné, si et seulement si
@@ -1429,7 +1977,11 @@ changement (statut `withdrawn`, R1-F45, R1-F47) retire `qualified` et lève une
 alerte. Le retrait de `qualified` est durable (fichier
 `qualifications-retirees.json` du journal), relu au démarrage, jamais levé par
 un rechargement ; il est automatique sur `PKIStatus` 4 ou 5 (EX-5.12) ; seul
-l'exploitant le lève (`retablirQualification`), après lecture de la liste de
+l'exploitant le lève (`retablirQualification`, commande
+`noortrace-ctl ancrage retablir-qualification <id>` de CT-2 EX-15.10,
+complément du 2026-11-16, consignée au journal d'exploitation :
+`provider_qualification_restored`, refus `anchoring_ctl_refused` quand aucun
+retrait n'est en vigueur), après lecture de la liste de
 confiance (le ré-établissement périodique est son acte, CT-8 TP-2 ; le
 composant ne lit aucune liste). Le rôle configuré ne change pas tant que
 l'exploitant n'a pas rechargé
@@ -1478,7 +2030,16 @@ révocation). Dans les traces du planificateur (8.10), l'entrée
 la vérification du réviseur (CT-6 contrôle 4), qui refait tout avec ses propres
 ancres ; elles garantissent qu'aucun jeton inutilisable n'est stocké comme
 ancre, et que le défaut est vu à l'instant où une nouvelle tentative est encore
-utile.
+utile. Complément du 2026-11-16 : à l'étape 2, une réponse de `status` 0 ou 1
+sans `TimeStampToken` est `reponse_illisible` (permanente, détail
+`TimeStampToken absent`), jamais promue, et un `PKIFailureInfo` hors des huit
+valeurs nommées (`autre` dans les traces) donne `statut_2`, comme un `status`
+2 sans `PKIFailureInfo` ; à l'étape 6, `genTime` plus la précision hors de la
+plage d'un instant (±8,64 × 10^15 ms) est `verification_T-7` ; les
+avertissements des étapes 7 et 8 sont rangés dans l'ordre des étapes
+(`reponse_tardive`, puis `horloge_suspecte`), et les alertes du jeton promu
+sont `horloge_suspecte`, puis `reponse_tardive_promue` (trace
+`jeton-tardif-avertissements`).
 
 **EX-5.11 (AN-10, fraîcheur)** `sent_at` et `received_at` sont lus sur
 l'horloge monotone de l'enregistreur et convertis en instants UTC au moment
@@ -1685,7 +2246,11 @@ fichier `.ots` est écrit (6.3) ; sinon la demande reste dans la file et la
 soumission est rejouée plus tard avec le **même** nonce et le même engagement
 (un calendrier qui a déjà journalisé `e` rend la même promesse : le journal du
 calendrier est écrit avant toute réponse, R1-F65 ; rejouer ne crée pas de
-doublon). Le nonce rend l'engagement sans lien calculable avec `periodHash`
+doublon). Complément du 2026-11-16 : le nonce est tiré une seule fois par
+demande ; chaque soumission de la demande le reprend, après un échec comme
+après un redémarrage (le composant le garde à côté des preuves de la
+période ; la source d'aléa d'exploitation de la référence le garde par
+demande, dans un magasin que l'appelant peut rendre durable). Le nonce rend l'engagement sans lien calculable avec `periodHash`
 ou `checkpointHash` : les calendriers ne voient jamais l'empreinte (CT-4 §8.3,
 CT-6 EX-A.7), et c'est pourquoi la soumission peut partir en même temps que
 l'ancre du registre (EX-4.7). Les agrégateurs publics du client officiel sont
@@ -1808,7 +2373,9 @@ corrompue). Cadence : première tentative `upgrade.first_after_s` après la
 soumission (défaut 21 600 s : le serveur officiel n'émet une transaction qu'à
 un intervalle de 6 à 12 h, puis attend 6 confirmations, R1-F66), puis toutes
 les `upgrade.interval_s` (défaut 1 800 s) jusqu'à une attestation Bitcoin ;
-au-delà de `upgrade.give_up_after_s` (défaut 14 jours) sans attestation, une
+au-delà de `upgrade.give_up_after_s` (défaut 14 jours) sans attestation,
+comptés depuis la création de la demande (EX-8.11, complément du
+2026-11-16), une
 alerte est levée et les tentatives continuent une fois par jour : la preuve
 en attente n'est jamais supprimée, le calendrier promettant de garder les
 engagements complétés indéfiniment (R1-F59).
@@ -2030,6 +2597,24 @@ une racine RSA-3072).
   un point signé par l'enregistreur et contresigné par l'exploitant ; le
   chaînage et la monotonie (CT-1 §10.5) sont vérifiés par CT-5 sur la série,
   pas par lui.
+- Le serveur interne livré (`noortrace-tsa-interne`, `paquets/ancrage`)
+  garde la clé de son unité et celle de son AC dans des fichiers du volume
+  qu'il sert (classe D) ; il n'outille aucune révocation (la commande `crl`
+  republie une CRL vide) et ne sert pas sa CRL. Il ne remplit donc pas, en
+  production, la garde qu'exige EX-7.3 : employé pour les points, c'est un
+  risque accepté par le client, borné aux points (CT-7 RA-89, complément du
+  2026-11-16) ; la clôture reste qualifiée (EX-7.1).
+- Complément du 2026-11-16 : la ligne de commande du serveur interne livré
+  est stricte. Chaque commande (`init`, `servir`, `crl`, `ac`, `sonde`,
+  `aide`) n'admet que ses options, chacune au plus une fois, avec sa valeur
+  quand elle en prend une (une valeur absente, vide ou qui commence par `--`
+  n'en est pas une), et aucun argument ; `servir` prend `--repertoire` ou
+  `--cle` avec `--certificat`, jamais les deux, et `--inclure-ac` avec
+  `--repertoire` seulement. Toute autre forme rend l'usage et le code 2, sans
+  rien écrire ni écouter : une faute de frappe sur une option d'écoute ou
+  d'authentification (`--prot`, `--tls-ac-client`) ne fait plus écouter le
+  serveur à une autre adresse ou sans authentification du client (AN-27). Le
+  serveur n'écoute qu'en TCP, jamais sur une prise Unix.
 
 ## 8. Planificateur
 
@@ -2096,7 +2681,10 @@ Une **demande** est l'unité de la file : une sorte (`kind`), un sujet (une
 période ou un point : `org_id`, `journal_id`, `period_start`, l'empreinte
 ancrée `hash`, `tree_size` pour un point, l'instant déclaré par
 l'enregistreur), pour une demande de point les indices `k` des échéances
-qu'elle sert (EX-4.3), un état (8.3), une échéance interne `due_at`, ses
+qu'elle sert (EX-4.3), un état (8.3), une échéance interne `due_at`
+(complément du 2026-11-16 : toute action `programmer` la pose à son
+`next_at`, et l'envoi d'une ancre au registre ou d'une soumission
+OpenTimestamps la remet à nul), ses
 tentatives (au plus les 32 dernières, avec leur nombre total
 `attempts_total`, EX-8.5, règle 7 ; révision 0.6) et, quand elle aboutit, un
 résultat (fichier conservé,
@@ -2134,7 +2722,7 @@ est écrit à part (8.5).
 | `a_envoyer` | écrite dans la file, pas encore envoyée | → `envoyee` (envoi) ; → `remplacee` (EX-9.5, ancre de point couverte par un point plus récent) |
 | `attente_registre` | jeton RFC 3161 qui attend l'inclusion de l'ancre au registre du même sujet (EX-4.7, EX-8.4) | → `envoyee` (inclusion constatée, ou `squat_wait_s` écoulé pour un point) ; → `remplacee` (EX-4.4) |
 | `envoyee` | requête partie, réponse attendue (`en_cours`) | → `obtenue` (réponse promue, EX-5.10) ; → `en_attente` (preuve OpenTimestamps avec attestation en attente, EX-6.2) ; → `a_reprendre` (échec transitoire ou réponse tardive, EX-5.11, EX-5.12) ; → `envoyee` (relève : la demande est aussi en cours chez le secours, EX-5.7) ; → `envoyee` (révision 0.10 : échec transitoire ou réponse tardive d'une série pendant qu'une tentative de l'autre série est en cours : la demande reste en attente de réponse, la reprise de cette série est programmée et `due_at` la porte, EX-8.8 ; trace `releve-pendant-reprise`) ; → `a_envoyer` (relève immédiate après une `echec_permanente` sans autre tentative en cours : la demande est réécrite `a_envoyer` pour le secours, puis `envoyee`, EX-8.8) ; → `refusee` (échec permanent sans relève possible ; `empreinte_squattee`, EX-9.7) ; → `remplacee` (EX-4.4) |
-| `a_reprendre` | tentative suivante programmée à `due_at` (EX-8.9) | → `envoyee` ; → `remplacee` |
+| `a_reprendre` | tentative suivante programmée à `due_at` (EX-8.9) : jeton RFC 3161, soumission OpenTimestamps, ou, complément du 2026-11-16, ancre au registre après un échec signalé par le registre (EX-8.10) ; `due_at` gardé au démarrage (EX-8.12), borné par EX-4.13 | → `envoyee` ; → `remplacee` |
 | `en_attente` | preuve OpenTimestamps détenue, attestation en attente ; mise à niveau programmée (EX-6.6) | → `complete` ; → `en_attente` (mise à niveau sans attestation Bitcoin) |
 | `obtenue` | jeton promu et stocké (EX-5.8), ou ancre incluse et capturée | final, sauf → `a_reprendre` pour `jeton_periode` et `jeton_point` quand une révocation est constatée après coup (EX-5.10, étape 10 : la demande repart au secours ; révision 0.2) |
 | `complete` | preuve OpenTimestamps avec attestation Bitcoin, stockée (EX-6.7) | final |
@@ -2147,7 +2735,21 @@ abandonné (EX-4.5, EX-5.7) ; après un échec permanent chez le principal et le
 secours, il reste `a_reprendre` au pas `retry.max_ms` et la supervision alerte.
 Toute transition écrit une nouvelle ligne de la demande dans la file **avant**
 que l'action qui en découle soit entreprise (8.5) ; la dernière ligne d'un
-`id` fait foi.
+`id` fait foi. Complément du 2026-11-16 : hors de cette table, quatre
+écritures du démarrage, et elles seules : la première ligne d'une demande de
+jeton recréée `obtenue` depuis `acquisitions.ndjson` (EX-8.12 : aucune ligne
+`a_envoyer` ni `attente_registre` ne la précède, aucune requête ne part, et
+la règle 1 d'EX-8.5 ne s'y applique pas) ; `a_reprendre → a_reprendre`
+quand la borne d'EX-4.13 réécrit la ligne d'une demande à reprendre ;
+complément du 2026-11-16, `a_reprendre → a_reprendre` quand le démarrage
+reprend une soumission OpenTimestamps relue `a_reprendre` qui porte encore
+une tentative `en_cours` (ligne écrite par une version antérieure du
+composant, EX-8.12 : la tentative est close `redemarrage`, la ligne est
+réécrite `a_reprendre`, puis l'action `programmer` de raison `immediat` ;
+trace `redemarrage-ots-a-reprendre-en-cours`) ; et `obtenue → a_reprendre`
+à la réouverture d'EX-5.8 (demande de jeton `obtenue` sans enregistrement
+promu), comme à une révocation. AN-33 et AN-34 les admettent, et aucune
+autre.
 
 ### 8.4 Échéances et ordre des ancres
 
@@ -2178,7 +2780,10 @@ que l'action qui en découle soit entreprise (8.5) ; la dernière ligne d'un
 2. **Clôture.** À la clôture, trois demandes sont écrites :
    `ancre_registre_periode` (`a_envoyer`), `jeton_periode`
    (`attente_registre`), `ots_periode` (`a_envoyer`). L'ancre part dès que la
-   clé de chaîne n'a plus de transaction sans reçu (EX-9.4). La requête
+   clé de chaîne n'a plus de transaction sans reçu (EX-9.4) et, complément
+   du 2026-11-16, que les ancres des points de la période, celle du point
+   de clôture comprise, ont leur reçu ou un autre état final (EX-9.4, ordre
+   des ancres d'une clé). La requête
    RFC 3161 du `periodHash` NE DOIT PAS partir avant l'inclusion **et** la
    capture de l'ancre (CT-4 EX-8.4, DOIT sans borne) ; tant que le registre ne
    répond pas, `jeton_periode` reste `attente_registre`, réexaminée à chaque
@@ -2186,7 +2791,12 @@ que l'action qui en découle soit entreprise (8.5) ; la dernière ligne d'un
    alerte `registry_pending` puis « ancre en retard » à
    `queue.anchor_pending_alert_s` (EX-4.5). Repli de clôture (EX-4.2) :
    `registry.squat_wait_s` après la clôture, si `jeton_periode` est encore
-   `attente_registre`, une demande `jeton_point` sans échéance est créée pour
+   `attente_registre`, quelle qu'en soit la cause (complément du 2026-11-16 :
+   la règle se lit à la lettre ; ancre de la période non incluse, refusée,
+   EX-9.7, ou incluse alors que la requête du jeton est retenue par
+   `min_interval_ms` du principal, EX-8.7 ; trace
+   `repli-ancre-incluse-jeton-retenu`), une demande `jeton_point` sans
+   échéance est créée pour
    le point de clôture (s'il n'a pas déjà de demande et engage un nouvel
    événement), avec la ligne `checkpoint_closing_fallback` ; elle suit la
    règle 3 pour l'ancre de ce point, et elle est close `remplacee` si le jeton
@@ -2232,6 +2842,10 @@ intégral par tentative, et c'est ce fichier que l'exportateur lit (section
    pour une tentative sans ligne `envoyee` (impossible par construction, sauf
    corruption) est écrite dans `acquisitions.ndjson` avec l'issue
    `echec_permanente` et le code `tentative_inconnue`, et n'est pas promue.
+   Complément du 2026-11-16 : de même pour une réponse RFC 3161 d'un rang que
+   la demande n'a jamais ouvert (au-delà d'`attempts_total`) : jeton gardé
+   comme pièce (action `stocker`, borne nulle), jamais promu, ligne
+   `anchor_response_rejected` de code `tentative_inconnue` (règle 2).
    Après un échec d'écriture de la ligne `envoyee` (disque plein, `EIO`), la
    requête ne part pas : la ligne en échec est effacée du fichier (le
    fragment est retiré avant tout ajout, `anchor_queue_fragment_removed`) et
@@ -2243,6 +2857,26 @@ intégral par tentative, et c'est ce fichier que l'exportateur lit (section
    jamais deux demandes pour un même sujet ; une réponse tardive à une
    tentative remplacée ou relevée (nonce différent de la tentative en cours)
    est conservée comme pièce (EX-5.8, EX-5.11) mais ne change pas l'état.
+   Complément du 2026-11-16 : la borne d'une telle pièce (`bound` de
+   l'action `stocker`) est `genTime` plus la précision quand le jeton passe
+   les étapes 3 à 6 d'EX-5.10 pour la tentative qu'il désigne (avec le nonce
+   de cette tentative, que le planificateur garde aussi quand il la voit
+   sortir de la fenêtre de la règle 7), nulle sinon. Une réponse qui ne
+   s'applique pas est consignée `anchor_response_rejected` :
+   `demande_inconnue` quand la file n'a aucune demande de cet `id` de la
+   sorte attendue (rien n'est gardé), `tentative_inconnue` (règle 1),
+   `tentative_close` quand la tentative désignée n'est plus en cours,
+   `demande_close` quand la demande est dans un état final ; la ligne porte
+   `attempt` (le rang de l'entrée ; pour une réponse des calendriers, la
+   dernière tentative de la demande, `attempts_total`, et nul pour une
+   demande inconnue), `attempt_id` (celui de ce rang quand la demande l'a
+   ouvert, nul sinon ; absent pour une demande inconnue), `provider` (celui
+   de la tentative, nul pour les calendriers) et `kept` (la réponse portait
+   un jeton ou une preuve). Un reçu ou un échec du registre qui ne
+   s'applique pas est consigné `anchor_duplicate_ignored`, avec `state`
+   (l'état de l'ancre) ou, pour une ancre inconnue, `reason`
+   `demande_inconnue` (EX-8.10 ; traces `ots-preuve-absente`,
+   `reponses-hors-tentative`).
 3. **Dernière ligne fait foi.** À la lecture, les lignes sont rejouées dans
    l'ordre ; l'état courant d'une demande est sa dernière ligne ; une ligne
    tronquée en fin de fichier (arrêt pendant l'écriture) est ignorée et
@@ -2408,7 +3042,11 @@ soit satisfaite et la close `remplacee` (EX-4.4). Une relève qui suit une
 prestataires d'une demande de point la rend `refusee` et rend ses échéances
 (EX-4.3) ; chez le principal et le secours d'un
 `jeton_periode`, la demande reste ouverte au pas `retry.max_ms` (EX-5.7) et
-l'alerte `prestataires_epuises` est critique.
+l'alerte `prestataires_epuises` est critique. Complément du 2026-11-16 :
+une `echec_permanente` d'une série pendant que l'autre a une tentative en
+cours ou une reprise programmée est écrite dans la file (ligne `envoyee`,
+ou `a_reprendre` sans tentative en cours ; EX-8.5, une ligne par état
+successif ; trace `redemarrage-releve-deux-series`).
 
 **EX-8.9** Attente de reprise (EX-5.12). Après une `echec_transitoire` ou une
 `reponse_tardive`, la tentative suivante est programmée à `now + d`, où : `d =
@@ -2428,7 +3066,24 @@ d'échecs transitoires consécutifs de cette demande chez ce prestataire (révis
 `redemarrage`, n'est pas un échec du prestataire et interrompt la série :
 l'échec suivant a `k = 1` et attend `retry.initial_ms` plus la gigue ; sans
 tentative `redemarrage`, une demande relue `a_reprendre` garde ses échecs
-antérieurs dans `k` ; trace `redemarrage-releve`) et la
+antérieurs dans `k` ; trace `redemarrage-releve` ; complément du
+2026-11-16 : une tentative `obtenue` ou en échec permanent chez ce
+prestataire interrompt aussi la série, en cours de marche comme à la
+relecture, et seule une `echec_transitoire` ou une `reponse_tardive` la
+prolonge ; en cours de marche, la série se poursuit dans les tentatives
+sorties de la fenêtre de 32 de la règle 7 d'EX-8.5 ; relue au démarrage, elle
+ne compte que les tentatives que la ligne porte ; complément du 2026-11-16 :
+une soumission OpenTimestamps n'a pas de prestataire, ses calendriers
+répondant ensemble (`provider` nul) : sa série est celle de ses soumissions
+en échec (moins de `min_responses` réponses valables, EX-8.11) ; la
+tentative d'une soumission close par le redémarrage (`redemarrage`, EX-8.12)
+l'interrompt comme celle d'un jeton, et, relue au démarrage, la série ne
+compte que les tentatives que la ligne porte ; une
+soumission obtenue, la preuve passant `en_attente` ou `complete`, clôt la
+série, et aucune soumission ne la suit ; les mises à niveau qui suivent n'en
+font jamais partie et n'entrent pas dans `k` : leur cadence est
+`upgrade.first_after_s`, puis `upgrade.interval_s`, puis une fois par jour
+au-delà de `upgrade.give_up_after_s`, EX-8.11) et la
 gigue un entier de millisecondes de `[0, retry.jitter_ms]` (gigue bornée, comme
 celle du client de Certificate Transparency, R1-F70). Dans une trace
 normative la gigue est consommée dans `jitter_ms` (8.10). Un `jeton_periode`
@@ -2446,13 +3101,114 @@ qu'une fois l'index écrit (AN-48). Dans les traces normatives, l'entrée
 émet alors directement `stocker`, et l'action `programmer` de raison `capture`
 n'apparaît que lorsque la capture est différée (schéma,
 `$defs/action_attendue`) ; aucune trace de cette version ne l'exerce.
-Quand une passe franchit plusieurs échéances d'une même minuterie (saut
-d'horloge), au plus quatre sont rejouées par demande ; les suivantes sont
-comptées sur la ligne `anchor_retry` (`missed_deadlines`), jamais rejouées
-une à une (la trace `registre-indisponible` exerce trois rejeux).
-`empreinte_squattee` rend la demande `refusee` sans nouvel essai (EX-9.7). Un
+Une passe est le traitement d'une entrée (8.10) : les minuteries échues
+jusqu'à son instant, puis l'entrée elle-même. Quand une passe franchit
+plusieurs échéances d'une même minuterie périodique (saut d'horloge), au
+plus quatre sont rejouées par minuterie et par demande ; les minuteries
+périodiques sont le renvoi d'une ancre sans reçu et l'examen de l'attente du
+registre d'un `jeton_periode` (EX-8.4, règle 2). Au quatrième rejeu, la
+minuterie est reposée à sa première échéance postérieure à l'instant de
+l'entrée, et les échéances sautées ne sont jamais rejouées une à une ; pour le
+renvoi d'une ancre, elles sont comptées sur une ligne `anchor_retry` écrite
+au quatrième rejeu, avant son envoi, si elles sont au moins une (`kind`,
+`mode` `renvoi`, `error_code` `recu_absent`, `missed_deadlines`, puis
+`attempt` et `attempt_id` de la tentative que ce rejeu clôt) ; pour l'examen
+de l'attente du registre, elles ne sont pas consignées (traces
+`registre-indisponible`, trois rejeux, et `registre-saut-horloge`, quatre
+rejeux et 35 échéances sautées ; complément du 2026-11-16).
+`empreinte_squattee` rend la demande `refusee` sans nouvel essai (EX-9.7).
+Complément du 2026-11-16 : tout autre échec que le registre signale pour une
+ancre en vol (entrée `echec_registre`, codes de CT-4 §7.11 :
+`noeud_injoignable`, `nonce_incoherent`, `recu_absent`…) ne la renvoie pas
+aussitôt : la tentative est close (`echec_transitoire`, ou `echec_permanente`
+pour un refus définitif, code `refus_*`) ; un refus définitif rend `refusee`
+l'ancre d'un point (alerte `prestataires_epuises` majeure, ligne
+`anchor_refused`), dont le jeton part alors sans elle (EX-9.7) ; sinon la
+ligne `anchor_retry` (mode `reprise`, `error_code`, rang et `attempt_id` de
+la tentative close) est écrite et la demande passe `a_reprendre`, `due_at` à
+l'attente d'EX-8.9 (`k` : tentatives en échec de la demande, gigue
+comprise ; `retry.max_ms` pour le refus définitif d'une ancre de période,
+jamais abandonnée, EX-4.5 : complément du 2026-11-16, exactement
+`retry.max_ms`, sans gigue, aucune valeur de `jitter_ms` n'étant consommée),
+action `programmer` de raison `backoff`. Complément du 2026-11-16 : ce
+refus définitif de l'ancre d'une période est un incident, puisque, sans
+ancre incluse, aucun jeton de clôture ne part (EX-8.4, règle 2) ; la ligne
+`anchor_retry` est suivie de l'alerte `prestataires_epuises` critique (8.9),
+comme pour un `jeton_periode` que ses deux prestataires refusent (EX-8.8),
+levée une fois par ancre depuis le dernier démarrage, puis de l'écriture
+`a_reprendre` et de l'action `programmer` ; un refus suivant de la même
+ancre ne la lève pas de nouveau (trace `registre-refus-ancre-periode`) ;
+complément du 2026-11-16 : la marque de cette alerte n'est pas dans la file,
+et le premier refus qui suit un redémarrage la lève de nouveau, une fois
+(trace `registre-refus-ancre-periode-redemarrage`). À
+l'échéance, l'ancre est renvoyée si la clé de chaîne n'a pas de transaction
+sans reçu et, complément du 2026-11-16, si aucune ancre de période d'une
+période antérieure ne la retient (EX-9.4) ; sinon elle attend
+(`attente_nonce`) et part quand sa clé se libère
+(EX-9.4). Le renvoi périodique ci-dessus, faute de reçu dans
+`registry.inclusion_alert_s`, ne passe pas par `a_reprendre`. Une ancre
+`a_reprendre` garde son `due_at` au démarrage (EX-8.12), borné par EX-4.13
+(trace `redemarrage-ancres-a-reprendre`). Un
 délai d'inclusion supérieur à `registry.inclusion_alert_s` lève `inclusion_late`
-(P-2).
+(P-2) ; complément du 2026-11-16 : au reçu, ce délai court depuis la
+création de l'ancre (son admission), attente du nonce derrière une autre
+ancre de la clé comprise, et non depuis son premier envoi ; l'alerte n'est
+pas levée de nouveau au reçu quand un renvoi sans reçu l'a déjà levée depuis
+le dernier démarrage (trace `registre-inclusion-apres-attente`).
+Complément du 2026-11-16 : un reçu (`inclusion_registre`) ou un échec
+signalé (`echec_registre`) ne s'applique qu'à une ancre dont une tentative
+est en cours (sa transaction) ; pour une ancre `a_envoyer` ou `a_reprendre`
+(aucune transaction en vol, EX-9.5), ou close, il est ignoré et consigné
+`anchor_duplicate_ignored` avec son état. Le premier renvoi sans reçu porte le
+détail `renvoi des memes octets`, les suivants `remplacement au meme nonce`
+(CT-4 EX-8.16) ; une ancre renvoyée, comme toute ancre `envoyee`, n'a pas de
+`due_at` ; une ancre qui attend le nonce (`attente_nonce`) a `due_at` à
+l'instant de cette action (trace `registre-renvois`).
+
+Complément du 2026-11-16 (classement des codes du registre). Le
+planificateur tient pour définitif un code d'`echec_registre` qui commence
+par `refus_`, pour transitoire tout autre code, `empreinte_squattee` gardant
+sa conduite propre (EX-9.7). Le composant d'ancrage reçoit de son
+`Envoyeur` les codes de CT-4 §7.11 et les passe au planificateur selon la
+table ci-dessous : un code classé « refus définitif » devient
+`refus_<code>` (`cle_chaine_non_inscrite` devient
+`refus_cle_chaine_non_inscrite`), un code classé « transitoire » passe tel
+quel. Règle : un refus d'inscription ou de clé, qu'un renvoi des mêmes
+octets rend à l'identique tant que l'exploitant n'a pas agi, est définitif ;
+une annulation, une erreur de nœud ou de lecture, une attente, est
+transitoire.
+
+| Code de CT-4 §7.11 | Classement | Motif |
+|---|---|---|
+| `cle_chaine_non_inscrite` (OP-9) | refus définitif | la clé de chaîne n'est pas inscrite et active sous l'organisation, ou la clé Ed25519 du document est inscrite sous une autre clé de chaîne : seule une inscription (CT-4, pas 6) ou une correction de la configuration y remédie ; un renvoi rend le même refus |
+| `cle_chaine_autre_organisation`, `cle_deja_active`, `cle_revoquee`, `cle_ed25519_active`, `cle_inconnue`, `organisation_inconnue` (OP-8) | refus définitif | état de la clé au registre, qu'aucun renvoi ne change ; une clé révoquée n'est jamais réinscrite ; remède : une nouvelle clé de chaîne (CT-4 8.4) |
+| `cle_invalide` (OP-4) | refus définitif | clé de classe de garde D sur une instance de production : le remède est dans la configuration |
+| `signature_non_canonique`, `signataire_hors_jeu` (OP-7) | refus définitif | la signature de la clé de chaîne est refusée, ou son signataire n'est pas l'émetteur de l'ancre : défaut de la clé ou de sa configuration, que le renvoi reproduit |
+| `empreinte_squattee` (OP-9) | refus, conduite propre | `refusee` sans nouvel essai, pour une période comme pour un point (EX-9.7) ; code inchangé |
+| `noeud_injoignable`, `noeud_suiveur` (OP-2, CP-1), `nonce_incoherent` | transitoire | panne ou désaccord des nœuds : un autre point, ou le même plus tard, répond |
+| `transaction_en_attente` (OP-3) | transitoire | un envoi du même expéditeur est sans issue ; il se reprend (CT-4 8.6 ; EX-9.4) |
+| `transaction_annulee` (OP-11, OP-12) | transitoire | CT-4 dit de relancer, les vérifications préalables relisant l'état (EX-5.12) |
+| `transaction_refusee` | transitoire | erreur JSON-RPC à l'envoi, rien n'est parti ; la cause (frais, file du nœud) peut cesser sans action sur le composant ; la règle d'alerte `noortrace_registre_sous_tarif` la signale |
+| `solde_insuffisant` (OP-3) | transitoire | l'approvisionnement de la clé (CT-4 8.7) lève la cause sans action sur le composant ; la règle d'alerte `noortrace_registre_solde_bas` signale le solde |
+| `condense_different` (OP-6) | transitoire | le condensé est lu au contrat par le nœud : un nœud qui ne sert pas le contrat de l'instance le rend, et la reprise relit ; une instance mal configurée laisse l'ancre sans reçu, ce que signalent `registry_pending` et « ancre en retard » pour une période (8.9) |
+| `recu_absent` | transitoire | aucun reçu dans le délai : renvoi, puis remplacement au même nonce (CT-4 8.6) |
+| `certificat_indisponible`, `certificat_elague`, `certificat_invalide`, `capture_incomplete` (CP-1 à CP-6) | transitoire | la capture se reprend, auprès d'un autre nœud pour un certificat élagué (CT-4 9.5) |
+| `chaine_differente`, `jeu_validateurs_different`, `code_absent` (OP-1) | transitoire | ils décrivent le nœud joint, non l'ancre : un réseau rétabli ou un autre nœud répond autrement |
+| `usage`, `instance_illisible`, `entree_illisible`, `reseau_non_developpement`, `organisation_existante`, `jeu_invalide`, `compte_inattendu`, `pas_administrateur`, `provision_excessive`, `examen_requis`, `signatures_insuffisantes`, `ancre_manquante`, `demande_existante`, `demande_expiree`, `periode_invalide`, `doublon`, `discontinuite_temporelle`, `discontinuite_sequence` | transitoire | ils ne viennent pas de l'envoi d'une ancre (commandes de l'outil, inscription d'une organisation, clôture) ; s'ils parvenaient au planificateur, la reprise et les alertes de l'attente s'appliqueraient |
+
+Les codes propres à l'`Envoyeur` et au composant, hors de CT-4 §7.11
+(`lecture_incoherente`, `lecture_<code>`, `empreinte_<motif>`,
+`recu_incertain`, `deja_fait`, `envoi_existant`, `reprise_impossible`,
+`exception_client`, `registre_absent`), sont transitoires : lecture non
+recoupée, issue incertaine, ancre déjà au registre sans capture, défaut
+interne, que la reprise relit. Un refus définitif rend `refusee` l'ancre
+d'un point (alerte `prestataires_epuises` majeure, ligne `anchor_refused`)
+et reprend celle d'une période au pas `retry.max_ms`, avec l'alerte
+`prestataires_epuises` critique (ci-dessus ; règle d'alerte
+`noortrace_ancrage_prestataires_epuises_periode`). Le composant
+passait les codes tels quels : aucun ne commençant par `refus_`, le refus
+d'OP-9 de l'ancre d'une période était repris avec gigue, sans l'alerte
+(corrigé ; essai `ancrage-registre-refus-definitif`).
 
 **EX-8.11** OpenTimestamps (EX-6.2 à EX-6.7). `ots_periode` et `ots_point`
 soumettent l'engagement `e = SHA-256(empreinte ‖ nonce de 16 octets)` à
@@ -2460,7 +3216,26 @@ chaque calendrier ; la demande passe `en_attente` dès que `min_responses`
 réponses valables sont arrivées dans `timeout_ms` et que le fichier `.ots` est
 écrit (EX-6.4, EX-6.5), sinon elle reste `a_reprendre` et la soumission est
 rejouée avec le **même** engagement (EX-6.2 : le calendrier a journalisé `e`
-avant de répondre, R1-F65). La mise à niveau est programmée à `now +
+avant de répondre, R1-F65). Complément du 2026-11-16 : avec moins de
+`min_responses` réponses valables, quelle que soit l'attestation (une
+attestation Bitcoin rapportée par un seul calendrier comprise, EX-6.2,
+point 4), la tentative est close `echec_transitoire`, code
+`reponses_insuffisantes`, comme une réponse RFC 3161 en échec transitoire
+(EX-5.12) : action `rejeter_reponse` (`error_code`
+`reponses_insuffisantes`, classe `transitoire`), ligne
+`anchor_response_rejected` (`error_code`, rang `attempt` et `attempt_id` de
+la tentative, `provider` nul ; 8.9), puis la demande passe `a_reprendre`,
+`due_at` à l'attente d'EX-8.9 (`k` : la série de la soumission, gigue
+comprise), action `programmer` de raison `backoff` (trace
+`ots-reponses-insuffisantes`). Complément du 2026-11-16 : une réponse sans
+preuve écrite (`proof_sha256` nul) n'est jamais promue. À la soumission, avec
+au moins `min_responses` réponses valables et une attestation `en_attente` ou
+`complete`, la tentative est close de même, code `preuve_absente`, détail
+`<n> calendriers ; aucune preuve ecrite` (rejet, ligne et attente
+identiques ; la série d'EX-8.9 la compte) ; à la mise à niveau, une
+attestation Bitcoin sans preuve laisse la preuve `en_attente`, tentative close
+`echec_transitoire` de code `en_attente`, comme une réponse 404 (trace
+`ots-preuve-absente`). La mise à niveau est programmée à `now +
 upgrade.first_after_s` (21 600 s), puis toutes les `upgrade.interval_s`
 (1 800 s, jamais moins de 60 s, R1-F64) ; une réponse 404 laisse `en_attente`,
 une attestation Bitcoin fusionnée et vérifiée (EX-6.6) écrit la nouvelle
@@ -2468,6 +3243,62 @@ version et passe `complete`, ce qui déclenche le réexport (EX-6.7, section
 10). Au-delà de `upgrade.give_up_after_s` (14 jours), l'alerte `ots_give_up`
 est levée et la mise à niveau continue une fois par jour : une preuve en
 attente n'est jamais supprimée (R1-F59).
+Complément du 2026-11-16 (origine de l'âge d'abandon). Cet âge court
+depuis `created_at` de la demande, écrit à sa création, porté par chaque
+ligne et jamais réécrit, au démarrage comme en marche (EX-8.12) ; la jauge
+`noortrace_anchoring_ots_pending_age_s` (8.9), que la règle d'alerte
+`noortrace_ancrage_ots_abandon` compare à `give_up_after_s`, part
+de la même origine. C'est l'origine la plus sûre : la plus ancienne (la
+demande est écrite avant sa première soumission, EX-8.5, règle 1 ; celle
+d'une période l'est à la clôture, et sa soumission part aussitôt), toujours
+connue (la tentative de rang 1 sort de la fenêtre de 32 tentatives en moins
+d'un jour de mises à niveau, EX-8.5, règle 7), et qu'aucun redémarrage ne
+déplace. La référence comptait depuis la première soumission de sa marche,
+que la soumission reprise après un redémarrage remplaçait, et le composant
+d'ancrage depuis la preuve en attente (`result.obtained_at`) : l'un et
+l'autre faisaient repartir l'attente à chaque redémarrage pendant la
+soumission (corrigé ; trace `redemarrage-ots-abandon-origine`, à horloge
+avancée).
+Complément du 2026-11-16 (soumission aboutie au-delà de l'âge d'abandon).
+Quand une soumission aboutit (passage `en_attente`, preuve écrite) alors que
+l'âge de la demande (`t − created_at`) atteint déjà
+`upgrade.give_up_after_s` — calendriers longtemps injoignables, ou composant
+longtemps arrêté —, l'alerte `ots_give_up` est levée dès ce passage, une
+fois par demande depuis le dernier démarrage (après l'action `stocker`,
+avant l'écriture `en_attente`), et non à la réponse de la première mise à
+niveau ; cette première mise à niveau reste programmée à `now +
+upgrade.first_after_s`, et c'est à sa réponse sans attestation Bitcoin que
+la cadence passe à une fois par jour, sans nouvelle alerte. Motifs :
+l'alerte dit qu'une preuve en attente a dépassé l'âge d'abandon, ce qui est
+vrai dès qu'elle existe ; la jauge `noortrace_anchoring_ots_pending_age_s`,
+de même origine, compte la preuve dès son passage `en_attente`, et la règle
+d'alerte `noortrace_ancrage_ots_abandon` se déclenche alors : le
+planificateur ne l'annonce pas `first_after_s` plus tard. La première mise à
+niveau ne gagne rien, elle, à attendre un jour : l'engagement vient d'être
+soumis aux calendriers, et son attestation Bitcoin s'attend comme pour toute
+preuve fraîche. La référence et le composant d'ancrage n'alertaient qu'à la
+réponse de la première mise à niveau (corrigé dans les deux ; trace
+`redemarrage-ots-abandon-soumission-tardive`, à horloge avancée).
+Complément du 2026-11-16 (réponse des calendriers qui ne s'applique pas).
+Une réponse des calendriers (`reponse_ots`) ne porte pas de rang : elle se
+rapporte à la **dernière tentative en cours** de la demande, soumission ou
+mise à niveau. Une demande OpenTimestamps n'a jamais plus d'une tentative en
+cours (une seule série, sans prestataire, EX-8.9), de sorte que ce
+rapprochement est sans ambiguïté. La réponse ne s'applique que si la
+demande n'est pas dans un état final et que sa dernière tentative est
+`en_cours` ; les règles ci-dessus qui parlent d'une demande `envoyee` (ou
+`a_reprendre`) visent une telle demande. Sinon la réponse est consignée et
+ne change rien d'autre (EX-8.5, règle 2) : `tentative_close` pour une
+demande non finale dont la dernière tentative est close ou absente,
+`demande_close` pour une demande finale, `demande_inconnue` pour un `id`
+absent ou d'une autre sorte. En particulier, une réponse à une soumission
+`a_reprendre` sans tentative en cours, parce que sa dernière soumission a
+déjà été close (moins de `min_responses` réponses valables, preuve absente,
+redémarrage), est `tentative_close` (`attempt` = `attempts_total`, `kept`
+selon `proof_sha256`) ; elle n'ouvre ni ne clôt aucune tentative et ne
+programme rien (trace `ots-preuve-absente`). Seule une ligne écrite par une
+version antérieure du composant est `a_reprendre` avec une tentative en
+cours, et le démarrage la clôt (EX-8.12).
 
 ### 8.7 Reprise au démarrage et références
 
@@ -2480,8 +3311,27 @@ se perdre ; nouvelle tentative, nouveau nonce, nouvel `attempt_id`, de même
 préfixe `<kind>:<16 premiers hex de l'empreinte>` et de rang `n + 1`, `n`
 étant `attempts_total` (EX-8.5, règle 7 ; annexe A.2), l'`attempt_id`
 restant unique par tentative, EX-5.13 ; une réponse tardive à l'ancien nonce est conservée, non promue) ;
+complément du 2026-11-16 : une soumission OpenTimestamps `envoyee` de même,
+comme la tentative d'un jeton : sa tentative en cours est close
+`echec_transitoire`, code `redemarrage` (la réponse des calendriers a pu se
+perdre), la ligne est réécrite `a_reprendre` et la soumission repart
+aussitôt (action `programmer` de raison `immediat`), au rang
+`attempts_total + 1`, mais avec le **même** nonce et le même engagement
+(EX-6.2, EX-8.11) ; la tentative `redemarrage` interrompt sa série (EX-8.9 ; trace
+`redemarrage-ots-soumission-envoyee`) ;
+complément du 2026-11-16 : une ligne `a_reprendre` qui porte encore une
+tentative `en_cours` (écrite par une version antérieure du composant, qui ne
+la fermait pas) se reprend de même, comme une soumission `envoyee` (trace
+`redemarrage-ots-a-reprendre-en-cours`) ; une demande de jeton dont les deux
+séries de la relève (EX-8.8) avaient une tentative en cours reçoit une seule
+action `programmer` de raison `immediat`, et chaque série repart chez son
+prestataire dans l'ordre des tentatives que ce démarrage clôt (trace
+`redemarrage-releve-deux-series`) ;
 `attente_registre` → interroge l'inclusion (`lookup(empreinte)` de CT-4 OP-9
-et l'index de capture) ; `a_reprendre` → garde `due_at` ; `en_attente` → mise
+et l'index de capture) ; `a_reprendre` → garde `due_at` (jeton, soumission
+OpenTimestamps ou ancre au registre ; borné par EX-4.13 ; une échéance passée
+pendant l'arrêt part au démarrage, jamais avant lui ; complément du
+2026-11-16, trace `redemarrage-ancres-a-reprendre`) ; `en_attente` → mise
 à niveau à `max(due_at, now)` ; `ancre_registre_*` `envoyee` → reprise de CT-4
 §8.6. Il relit aussi les échéances de la période en cours depuis les demandes
 de points de la file (celles qui sont `obtenue` disent les échéances
@@ -2501,18 +3351,118 @@ reçoit celles qui manquent (une demande de jeton recréée dont
 `acquisitions.ndjson` porte déjà un enregistrement `obtenue` promu est créée
 `obtenue` avec ce résultat, sans nouvelle requête), et le dernier point d'une
 période ouverte sans
-demande est admis comme à sa réception (EX-8.4, règles 1 et 3). Il consigne
+demande est admis comme à sa réception (EX-8.4, règles 1 et 3). Complément
+du 2026-11-16 : les enregistrements relus entrent par le membre
+`acquisitions` de l'entrée `stockage_relu` (le composant d'ancrage y met
+celui des demandes de jeton des périodes et des points de l'entrée) ; sans
+ce membre, toute demande recréée l'est comme à la clôture ou à l'admission.
+Une demande recréée `obtenue` porte le résultat de l'enregistrement
+(`sha256` : `token_sha256`, `size` : `token_size`, `provider` :
+`provider_id`, `obtained_at` : `received_at`, `bound` : `upper_bound`), aucune
+tentative ; sa ligne est écrite `obtenue`, ses échéances sont satisfaites
+(l'échéance `n_T` pour le `jeton_periode`) ; aucune requête, aucune attente
+du registre, aucun repli de clôture, aucune pièce stockée de nouveau, aucune
+ligne `checkpoint_countersigned` ni `period_timestamped` (écrites à la
+promotion d'origine) (traces `file-perdue-jeton-point-obtenu` et
+`file-perdue-jeton-periode-obtenu`). Complément du 2026-11-16 : la demande
+recréée `obtenue` s'applique ensuite comme à sa promotion (EX-4.4 ; EX-8.4,
+règle 1) : les demandes de points non finales de la période qui servent une
+échéance encore ouverte inférieure à sa plus grande échéance (`n_T` pour le
+`jeton_periode`) sont closes `remplacee` (`replaced_by` la demande
+recréée), avec la ligne `checkpoint_anchor_late` (`window_s` : borne de son
+jeton moins la plus petite échéance de la demande close) et l'alerte, et le
+`jeton_periode` clôt un repli de clôture encore en cours ; sans cela, une
+telle demande resterait active, et reprise, pour des échéances déjà
+couvertes (trace `redemarrage-jeton-recree-couvrant`). Il consigne
 `anchoring_queue_rebuilt` avec le nombre de demandes recréées, de périodes et
 de points examinés, et lève `file_perdue` (critique) si au moins une demande
 est recréée : une file perdue ne fait perdre que du temps (traces
 `file-perdue` et `bascule-epoque-fichier-perdu`). La minuterie de relève
 d'EX-8.8 est reposée à `premier envoi + fallback_after_s` pour toute demande
 de jeton non finale qui admet la relève et dont le secours n'est ni engagé ni
-épuisé (trace `redemarrage-releve`) ; une demande `jeton_point` non finale
-dont toutes les échéances sont inférieures à une échéance `satisfaite` d'une
-autre demande de la période est close `remplacee` au démarrage, avec la
-ligne `checkpoint_anchor_late` (EX-4.4 ; trace
-`redemarrage-echeance-remplacee`).
+épuisé (trace `redemarrage-releve`) ; le premier envoi est celui de la tentative de rang 1
+si la ligne la porte, sinon celui de la plus ancienne tentative que la ligne
+porte (EX-8.5, règle 7 ; comme pour `d_jeton`, 8.9). Une demande `jeton_point`
+non finale dont toutes les échéances sont inférieures à une échéance
+`satisfaite` d'une autre demande de la période est close `remplacee` au
+démarrage, avec la ligne `checkpoint_anchor_late` (EX-4.4 ; trace
+`redemarrage-echeance-remplacee`). Complément du 2026-11-16 : l'échéance
+`n_T` étant satisfaite par le `jeton_periode` (EX-8.4, règle 1), les
+demandes couvrantes sont les demandes de jeton `obtenue` relues de la
+période ; chacune s'applique comme à sa promotion, les `jeton_point` par plus
+petite échéance croissante (un repli de clôture, sans échéance, compte pour
+`n_T` ; à égalité, dans l'ordre de la file), puis le `jeton_periode`, et clôt
+les demandes non finales qui servent une échéance encore ouverte inférieure à
+sa plus grande échéance (`n_T` pour le `jeton_periode` et le repli).
+`replaced_by` nomme donc la première demande qui couvre : celle de `D_{k+1}`
+quand elle existe, le `jeton_periode` à défaut ; `window_s` est, comme en
+cours de marche, la borne (`genTime + précision`) de son jeton moins la plus
+petite échéance de la demande close, en secondes entières tronquées.
+
+Complément du 2026-11-16 (ordre du démarrage). Les actions du démarrage
+sont produites dans cet ordre, et dans celui-là seul :
+
+1. la ligne `anchoring_started` ;
+2. les réouvertures d'EX-5.8, dans l'ordre de la file ;
+3. les échéances relues des demandes de points, sans action : `satisfaite`
+   pour une demande `obtenue`, `remplacee` pour une demande `remplacee` (ni
+   rouverte ni close une seconde fois), ouverte et tenue par la demande pour
+   une demande non finale ; une demande `refusee` rend les siennes (EX-4.3) ;
+   dans une période ouverte, et là seulement, toute échéance passée que
+   ne tient aucune demande est ouverte (une échéance `sans_objet` n'est pas
+   conservée) ; une période close ne retrouve que les échéances de ses
+   demandes ;
+4. EX-4.4 appliquée aux demandes de points relues (demandes couvrantes
+   ci-dessus, puis le repli de clôture), avant toute reprise ;
+5. une seule passe sur la file, dans l'ordre de la file (8.5 : `created_at`,
+   puis `id`), où chaque demande non finale est traitée selon son état par
+   les transitions ci-dessus, `a_envoyer` comprise : une ancre `a_envoyer`
+   attend le nonce à sa place (action `programmer` de raison
+   `attente_nonce`) si une ancre de sa clé de chaîne est en vol (ligne
+   `envoyee`), et ne produit sinon aucune action dans la passe ; une demande
+   de jeton ou une soumission OpenTimestamps `a_envoyer` n'en produit
+   aucune ;
+6. après la passe, les départs, comme après toute entrée : les requêtes
+   RFC 3161 des demandes de jeton `a_envoyer`, à leur prestataire désigné,
+   dans l'ordre d'EX-8.7 (`min_interval_ms` compris) ; puis, pour chaque clé
+   sans ancre en vol, l'ancre `a_envoyer` suivante (EX-9.4, ordre des
+   ancres d'une clé, le même qu'en marche ; complément du 2026-11-16 : par
+   `period_start`, puis, dans une même période, les ancres de ses points
+   par `checkpoint_ts` avant l'ancre de la période, qui ne part qu'après
+   leur reçu, l'ordre de la file ne départageant que les égalités), les
+   autres attendant son reçu ; complément du 2026-11-16 : les candidates
+   sont celles de la marche (EX-9.4 : ancres `a_envoyer` non retenues, et
+   ancres `a_reprendre` dont l'échéance est passée et dont la minuterie de
+   reprise est déjà tombée) ; la passe ayant programmé la reprise de toute
+   ancre `a_reprendre` (point 5 : `due_at` gardé), aucune ne l'est ici, et
+   une ancre `a_reprendre` dont l'échéance est passée pendant l'arrêt part à
+   sa minuterie, au point 7, si sa clé est alors libre, sinon quand sa clé
+   se libère ; puis les soumissions OpenTimestamps `a_envoyer`,
+   dans l'ordre de
+   la file ;
+7. les minuteries échues à l'instant du démarrage (reprises de raison
+   `immediat`, examens `attente_registre`, relèves, reprises échues pendant
+   l'arrêt), dans l'ordre d'EX-8.16.
+
+Cet ordre est le plus simple à vérifier — une passe, l'ordre de la file,
+les règles de départ de la marche ordinaire — et le plus sûr : EX-4.4 avant
+la passe ne renvoie rien pour une échéance déjà couverte, et les départs
+après la passe ne font jamais partir ce que la marche ordinaire retiendrait
+(l'ancre d'une période avant le reçu des ancres de ses points, complément
+du 2026-11-16 ; un jeton de point avant celui de la période chez le même
+prestataire). Une demande `a_envoyer` est
+une demande dont la ligne a été écrite et dont l'envoi n'a pas eu lieu
+(EX-8.5, règle 1 : la ligne précède l'action) ; elle part donc comme à sa
+création (traces `redemarrage-ordre-de-la-file`,
+`redemarrage-a-envoyer-cle-libre`, `redemarrage-echeances-remplacees`).
+Complément du 2026-11-16 : la file étant le seul état du planificateur
+(13), ce que la passe sait d'une demande de jeton se relit de sa ligne :
+les prestataires sollicités sont ceux de ses tentatives, et les prestataires
+épuisés (EX-8.8) ceux de ses tentatives `echec_permanente` ; une erreur
+permanente de l'autre prestataire après le démarrage épuise donc la
+demande (alerte `prestataires_epuises`, reprise au pas `retry.max_ms` pour
+le `jeton_periode`, `refusee` pour un `jeton_point`), comme sans arrêt
+(trace `redemarrage-prestataires-epuises`).
 
 **EX-8.13** Références JavaScript de cette spécification : `scripts/lib/ancrage.mjs` expose
 le planificateur **à horloge injectée et sans réseau** (`creerPlanificateur
@@ -2527,7 +3477,16 @@ appels réseau (HTTP vers les prestataires et les calendriers, JSON-RPC vers le
 registre par `noortrace.mjs` et `conventions-registre.mjs`) sont dans un
 adaptateur distinct que les vecteurs n'exercent pas. Un outil de ligne de
 commande `noortrace-ancrage` (`serie`, `cout`, `trace`) PEUT être fourni ; il
-n'est pas exigé par cette version.
+n'est pas exigé par cette version. Complément du 2026-11-16 : l'outil livré
+(commandes `configuration`, `serie`, `cout`, `trace`, `fiche`,
+`acquisitions`, `completude`, `aide`) n'admet, pour chaque commande, que ses
+options, chacune au plus une fois, avec sa valeur quand elle en prend une
+(une valeur absente, vide ou qui commence par `--` n'en est pas une), et ses
+arguments ; `fiche` prend `--prestataire` ou `--configuration` avec `--id`,
+jamais les deux. Une option inconnue, donnée deux fois ou sans sa valeur,
+un argument en trop ou deux formes mêlées rendent l'usage et le code 2, sans
+rien lire ni écrire : une faute de frappe (`--cle` pour `--cles`) ne fait
+plus admettre une série sans en vérifier les signatures.
 
 ### 8.8 Conservation
 
@@ -2563,7 +3522,7 @@ identifiant de compte) :
 | `noortrace_anchoring_d_jeton_s` | histogramme | `kind`, `provider` | `d_jeton` d'EX-5.11 (`genTime + précision − D_k`, ou `− period_end`) |
 | `noortrace_anchoring_d_point_s` | histogramme | — | `d_point` d'EX-3.5 (`checkpoint_ts − D_k` du point sélectionné) ; `d_admission`, `d_attente`, `d_relève` et `d_tsa` se lisent sur les lignes `checkpoint_countersigned` (`d_admission_s`, `d_attente_s`, `d_releve_s`, `d_tsa_s` ; `d_admission_s` depuis la révision 0.6) |
 | `noortrace_anchoring_d_registre_s` | histogramme | `kind` | `d_registre` de P-2 (instant du reçu − `checkpoint_ts` ou `generated_at`) ; révision 0.8 : observé une fois par ancre, à la passe où l'écriture de la file la fait passer à `obtenue`, jamais à une passe suivante ni à la relecture d'une file après un redémarrage |
-| `noortrace_anchoring_ots_pending_age_s` | jauge | — | âge de la preuve en attente la plus ancienne |
+| `noortrace_anchoring_ots_pending_age_s` | jauge | — | âge de la preuve en attente la plus ancienne (complément du 2026-11-16 : depuis `created_at` de sa demande, EX-8.11) |
 
 Alertes prescrites (CT-8 donne les règles) : `anchor_pending` et
 `registry_pending` (CT-2 §14.2) ; « ancre en retard »
@@ -2571,10 +3530,15 @@ Alertes prescrites (CT-8 donne les règles) : `anchor_pending` et
 CT-2 §17.4 : majeure) ; `checkpoint_anchor_late` (une échéance `remplacee`,
 EX-4.4 : majeure quand le prestataire des points est extérieur, mineure pour
 le serveur interne) ; `inclusion_late`
-(`d_registre > registry.inclusion_alert_s`, P-2 : mineure, majeure si répétée) ;
+(`d_registre > registry.inclusion_alert_s`, P-2 : mineure, majeure si répétée ;
+complément du 2026-11-16 : au reçu, délai compté depuis la création de
+l'ancre, EX-8.10) ;
 `prestataire_injoignable` (aucun `obtenue` d'un prestataire depuis 15 min alors
 qu'il a été sollicité : majeure pour le principal) ; `prestataires_epuises`
-(critique pour une période, majeure pour un point) ; `file_pleine`,
+(critique pour une période, majeure pour un point ; complément du
+2026-11-16 : critique aussi au refus définitif, `refus_*`, de l'ancre d'une
+période, EX-8.10 ; complément du 2026-11-16 : codes classés par la table
+d'EX-8.10, règle d'alerte `noortrace_ancrage_prestataires_epuises_periode`) ; `file_pleine`,
 `file_perdue` (`anchor_queue_full`, `anchor_queue_truncated_line`,
 `anchor_queue_write_failed` : critique) ; `ots_give_up` (majeure) ;
 `ordre_ancres_non_respecte` répété (mineure) ; `empreinte_squattee` (critique :
@@ -2623,7 +3587,11 @@ ensemble la relève et les attentes de reprise, EX-3.5), `checkpoint_closing_fal
 (`last_checkpoint_ts`, `gap_s`), `checkpoint_not_anchored` (point sans
 nouvel événement), `checkpoint_anchor_late`, `deadline_sans_objet`,
 `period_timestamped`, `anchor_retry`, `anchor_fallback`,
-`anchor_response_rejected` (code d'EX-5.10, jamais le jeton),
+`anchor_response_rejected` (code d'EX-5.10, ou, complément du 2026-11-16,
+`reponses_insuffisantes` ou `preuve_absente` d'une soumission
+OpenTimestamps, EX-8.11, ou `demande_inconnue`, `tentative_inconnue`,
+`tentative_close`, `demande_close` d'une réponse qui ne s'applique pas,
+EX-8.5, règle 2, avec ses membres ; jamais le jeton),
 `anchor_replaced`, `anchor_refused`, `ots_submitted`, `ots_upgraded`,
 `ots_complete`, `anchor_queue_full`, `anchor_queue_write_failed`,
 `anchor_queue_truncated_line`, `anchor_duplicate_ignored`,
@@ -2668,6 +3636,34 @@ l'instant d'une entrée porte cet instant, et les actions d'un même instant
 sont rangées dans l'ordre où les règles les produisent. Les nonces et
 `attempt_id` d'une trace sont dérivés d'étiquettes (annexe A.2) ; l'horloge
 n'est jamais lue.
+
+Complément du 2026-11-16. Deux minuteries de même échéance se déclenchent
+dans cet ordre : celles des périodes (échéances, cadence des points) d'abord,
+dans l'ordre où elles ont été armées ; puis celles des demandes, dans l'ordre
+de la file (`created_at`, puis `id`) et, pour une même demande, dans l'ordre
+où elles ont été armées (trace `minuteries-simultanees`). Complément du
+2026-11-16 : l'ordre d'armement des minuteries de période vaut quel que
+soit leur journal ; les échéances d'une période sont armées ensemble quand
+elle s'ouvre, la cadence d'un journal (alerte `point_manquant`, EX-4.1,
+8.9) à chaque point admis, et une file qui porte deux journaux les
+déclenche dans cet ordre, non toutes les échéances avant toutes les
+cadences (trace `minuteries-deux-journaux`). Le `detail` d'une
+tentative fait partie de `queue_after` et se compare comme le reste ; ses
+textes sont ceux de la table suivante (ASCII, sans accent ; entre chevrons,
+les valeurs de la tentative ou de l'entrée). Les chemins propres au
+composant d'ancrage, sans entrée de trace (entrée hors schéma, prestataire
+retiré par un rechargement, révocation constatée par T-10), ont leurs
+propres textes, hors de cette comparaison.
+
+| Tentative | `detail` |
+|---|---|
+| requête RFC 3161 envoyée | `requete envoyee` |
+| jeton promu | `<granted ou grantedWithMods> ; T-1 a T-9 reussies`, suivi de ` ; avertissement <a>[, <b>]` (ordre d'EX-5.10, étapes 7 et 8) |
+| échec RFC 3161 | `erreur de transport`, `delai de reponse depasse`, `transport inconnu`, `http <statut>` (suivi de ` ; Retry-After <s> s` quand l'entrée en porte un), `Content-Type <type> non admis`, `corps de <n> octets, au plus 131072`, `TimeStampResp illisible`, `TimeStampToken absent`, `PKIStatus 2 (rejection)` (suivi de ` ; <failureInfo>` pour les huit valeurs nommées), `PKIStatus 3 (waiting)`, `PKIStatus <4 ou 5> (<revocationWarning ou revocationNotification>)`, `PKIStatus <n> inconnu`, `messageImprint different de l'empreinte demandee`, `nonce absent du TSTInfo`, `nonce <nonce lu> different de <nonce de la tentative>`, `politique differente de la politique demandee`, `politique hors de accepted_policies`, `verification T-<i> en echec`, `precision hors de la plage d'un instant (T-7)`, `reponse recue <s> s apres l'envoi` |
+| close par le redémarrage | `redemarrage : reponse non recue` |
+| ancre au registre | `transaction envoyee` (envoi, reprise), `renvoi des memes octets` (premier renvoi sans reçu), `remplacement au meme nonce` (renvois suivants), `aucun recu en <registry.inclusion_alert_s> s`, `registre : <code>`, `empreinte deja ancree par un tiers`, `ancre incluse au bloc <n>` |
+| soumission OpenTimestamps | `soumission a <nombre de calendars> calendriers`, `<n> calendriers ; attestation en attente`, `<n> calendriers ; attestation Bitcoin`, `<n> calendrier(s) ; moins de <min_responses> reponses valables`, `<n> calendriers ; aucune preuve ecrite` |
+| mise à niveau OpenTimestamps | `mise a niveau demandee`, `mise a niveau : engagement en attente`, `mise a niveau : attestation Bitcoin` |
 
 Trace de référence : la période 1 de l'exemple de référence de CT-1 (annexe A
 de CT-1 : points `K1` à `K4` de CT-1 §10.8, clôture à 14:00:00.250 Z,
@@ -4310,15 +5306,15 @@ contresignature tardive).
 | Id | Vérification |
 |---|---|
 | AN-32 | Toute requête réseau est précédée, dans la file, d'une ligne `envoyee` de la demande portant le nonce de la requête : dans chaque trace, l'action `ecrire_file` d'état `envoyee` précède l'action d'envoi de la même demande, et `mettre_a_niveau_ots` suit une ligne `en_attente` (épreuve : couper l'alimentation du processus entre l'écriture et l'envoi n'y laisse jamais une requête sans ligne) |
-| AN-33 | Une seule demande par `id` dans l'état courant de la file ; un `demarrage` sur une file donnée produit les transitions d'EX-8.12 et aucune autre |
-| AN-34 | Transitions d'état conformes à la table d'EX-8.3 sur chaque trace ; aucun `jeton_periode` dans un état final autre qu'`obtenue` |
+| AN-33 | Une seule demande par `id` dans l'état courant de la file ; un `demarrage` sur une file donnée produit les transitions d'EX-8.12 et aucune autre, dont, complément du 2026-11-16, la réouverture d'EX-5.8 (`obtenue → a_reprendre`), la borne d'EX-4.13 (`a_reprendre → a_reprendre`), complément du 2026-11-16, la reprise d'une soumission OpenTimestamps relue `a_reprendre` avec une tentative `en_cours` (`a_reprendre → a_reprendre`, EX-8.12) et, à la reconstruction, la demande de jeton recréée dont la première ligne est `obtenue` (EX-8.3) |
+| AN-34 | Transitions d'état conformes à la table d'EX-8.3 et à ses quatre écritures du démarrage (complément du 2026-11-16 : première ligne `obtenue` d'une demande de jeton recréée, `a_reprendre → a_reprendre` de la borne d'EX-4.13, `a_reprendre → a_reprendre` d'une soumission OpenTimestamps relue avec une tentative `en_cours`, `obtenue → a_reprendre` de la réouverture d'EX-5.8) sur chaque trace ; aucun `jeton_periode` dans un état final autre qu'`obtenue` |
 | AN-35 | Échéances : pour chaque trace, liste des `D_k`, point sélectionné par échéance (premier point de `checkpoint_ts ≥ D_k`), une demande par point, `sans_objet` sans nouvel événement par rapport au dernier point contresigné, échéances rendues par une demande refusée, `remplacee` quand l'échéance suivante est satisfaite d'abord (EX-4.3, EX-4.4, EX-8.4) |
-| AN-36 | Ordre des ancres d'EX-8.4 : `jeton_periode` ne part qu'après `inclusion_registre` de son ancre ; `jeton_point` part au plus `squat_wait_s` après son admission, avec `ordre_ancres_non_respecte` si l'ancre n'est pas incluse |
-| AN-37 | Attente de reprise conforme à EX-8.9 (table des cas : `Retry-After`, 408, suite 5 s, 10 s, 20 s, …, 300 s avec gigue injectée) |
+| AN-36 | Ordre des ancres d'EX-8.4 : `jeton_periode` ne part qu'après `inclusion_registre` de son ancre ; `jeton_point` part au plus `squat_wait_s` après son admission, avec `ordre_ancres_non_respecte` si l'ancre n'est pas incluse ; complément du 2026-11-16, ordre des ancres d'une clé d'EX-9.4 : l'ancre d'une période ne passe `envoyee` qu'une fois les ancres des points de sa période et de son journal dans un état final, et aucune ancre ne passe `envoyee` tant qu'une ancre de période d'une période antérieure de sa clé n'est pas dans un état final ; complément du 2026-11-16 : l'ancre d'un point ne passe `envoyee` qu'une fois les ancres des points antérieurs de sa période et de son journal (`checkpoint_ts` plus petit, puis l'ordre de la file) dans un état final (vérifiés sur la trace, A.4) |
+| AN-37 | Attente de reprise conforme à EX-8.9 (table des cas : `Retry-After`, 408, suite 5 s, 10 s, 20 s, …, 300 s avec gigue injectée) ; complément du 2026-11-16 : pour une soumission OpenTimestamps, l'échec que l'attente suit et la série `k` s'établissent depuis la trace, sans rejouer le planificateur, mais non depuis ses seules entrées (A.4) |
 | AN-38 | Relève conforme à EX-8.8 : instant de la relève, tentatives parallèles, arrêt de l'autre prestataire à la première promotion, réponse tardive conservée non promue |
 | AN-39 | File et priorité : `jeton_periode` servi avant `jeton_point` à égalité d'échéance ; `min_interval_ms` respecté toutes demandes confondues (EX-8.7) |
 | AN-40 | Registre : capture avant `obtenue` ; `empreinte_squattee` → `refusee` sans nouvel essai ; `inclusion_late` au-delà de `inclusion_alert_s` (EX-8.10) |
-| AN-41 | OpenTimestamps : `en_attente` dès `min_responses` réponses, mise à niveau à `first_after_s` puis `interval_s` (≥ 60 s), `complete` à la première attestation Bitcoin, réexport demandé, `ots_give_up` au-delà de `give_up_after_s` (EX-8.11) |
+| AN-41 | OpenTimestamps : `en_attente` dès `min_responses` réponses, mise à niveau à `first_after_s` puis `interval_s` (≥ 60 s), `complete` à la première attestation Bitcoin, réexport demandé, `ots_give_up` au-delà de `give_up_after_s` (EX-8.11) ; complément du 2026-11-16 : `ots_give_up` dès le passage `en_attente` d'une soumission aboutie au-delà de `give_up_after_s` après `created_at`, première mise à niveau à `first_after_s` ; complément du 2026-11-16 : sur la trace, cette action `alerter` (`ots_give_up`, majeure) est exigée, à l'instant de la réponse, après l'action `stocker` de la preuve et avant l'action `ecrire_file` de l'état `en_attente` |
 | AN-42 | Chaque trace de la famille `planification/` rejouée rend `expected` et `queue_after` à l'identique (référence et vérificateur Go) |
 | AN-43 | Aucune ligne du journal d'exploitation ni de la file ne contient un jeton, une pièce, un secret ou une adresse de compte |
 
@@ -4343,6 +5339,23 @@ l'exemple de référence de CT-1 a pour empreinte
 `0xa1aeb874daa988a4833c394476c4ea740096a3496ed081ae6f8592fb4912a837` et
 `0xa7f0a30f11f724f5ae4bd7ba952079fa513dfe0ed70c051bdfc5bbe9c67b3792`
 (calculs de cette spécification, annexe A.2).
+
+Complément du 2026-11-16 (contrôle d'OP-9 pour les deux ancres). Avant
+chaque envoi, le composant d'ancrage vérifie la condition de CT-4 OP-9 pour
+l'ancre d'une période comme pour celle d'un point : la clé de chaîne qui
+envoie est active (`isActiveRecorder(org_id, adresse)`) et la clé Ed25519
+qui a signé le document, celle du point (`key_id`) ou celle du manifeste de
+la période (`recorder_key_id`), y est inscrite
+(`recorderByPubKey(org_id, clé).chainKey` égale cette adresse). Sinon
+l'ancre ne part pas, quel que soit l'objet : même code
+(`cle_chaine_non_inscrite`), mêmes lignes du journal d'exploitation (la
+ligne d'échec de l'envoi, qui nomme la clé de chaîne sous laquelle la clé
+Ed25519 est inscrite, puis `anchor_retry` : l'ancre est `a_reprendre`,
+EX-8.10, et l'ancre d'une période n'est jamais abandonnée, EX-4.5). Un
+démon configuré par erreur avec la clé de chaîne d'un autre journal de son
+organisation ne peut donc ancrer ni ses points ni ses périodes sous cette
+clé, ce qui prendrait le nonce de l'autre démon (EX-9.4) et ferait échouer
+R-10 au dossier.
 
 **EX-9.2** L'ancre d'un point se distingue de l'ancre d'une période par son
 seul `docType` : la vérification R-9 de CT-6 n'admet que le `docType` de
@@ -4380,6 +5393,163 @@ cadence par défaut (un point par minute, un bloc par seconde environ, CT-4
 attente en régime normal ; l'ancre de la période ne part qu'après le reçu de
 l'ancre du point de clôture de la même clé.
 
+Complément du 2026-11-16 (clé de chaîne de ce verrou). Pour ce verrou, la
+clé de chaîne d'une ancre est celle du journal de son sujet : deux ancres
+ont la même clé de chaîne quand leurs sujets ont le même `org_id` et le même
+`journal_id`, et un journal n'a jamais plus d'une ancre `envoyee`. Cette
+lecture tient parce qu'une clé de chaîne ne sert qu'un journal. Dans une
+organisation, le registre l'assure : une clé de chaîne ne s'inscrit qu'une
+fois, sous un seul journal, et ne se réinscrit jamais (CT-2 EX-11.19 ;
+`registerRecorder`, CT-4). D'une organisation à l'autre, le contrat ne
+l'empêche pas : une même adresse NE DOIT PAS être la clé de chaîne
+(`anchoring.registry.chain_key` ou `next_chain_key`, CT-2 §15) de deux
+journaux, car deux composants d'ancrage ont chacun leur planificateur, leurs
+envois et leur lecture du nonce (CT-4 EX-8.14), et aucun verrou ne les
+sérialise ; un composant ne voit pas la configuration d'un autre et ne
+vérifie pas cette règle. Complément du 2026-11-16 : l'outil du registre la
+vérifie à l'inscription d'une clé (CT-4 OP-8 : `inscrire-cle` refuse une
+clé de chaîne déjà inscrite sous une autre organisation,
+`cle_chaine_autre_organisation`), dans les limites que CT-4 EX-8.22 nomme ;
+complément du 2026-11-16 : l'agent d'inscription (CT-4 7.14) et le relais
+d'inscription du composant d'ancrage (`Envoyeur.inscrire`, par lequel le
+démon inscrit la clé de chaîne suivante pendant une rotation, CT-2
+EX-11.16) font la même vérification, par la même lecture et la même règle
+(`inscriptionAilleurs` de `@noortrace/ancrage/registre`) : les événements
+`RecorderRegistered` de cette clé de chaîne, lus du bloc de déploiement du
+`RecorderRegistry` (que le démon transmet au composant avec l'instance du
+registre) à la tête. Le relais refuse avant tout envoi (`echec_registre`,
+code `cle_chaine_autre_organisation`, qui nomme l'organisation, le bloc et
+la transaction de l'inscription trouvée ; `noeud_injoignable` quand la
+lecture est impossible, la vérification n'étant jamais sautée), et le démon
+refuse alors la rotation (CT-4 OP-8 et EX-8.22).
+Un composant d'ancrage sert un seul journal (CT-2
+EX-13.7), celui de l'`org_id` et du `journal_id` de son contexte : il refuse
+à l'admission (`anchor_admission_refused`) le point d'un autre journal
+(règle `period_start`) et son manifeste (règle `signature`, ou
+`period_start` quand la clé qui l'a signé est aussi l'une des siennes) ; ni
+l'un ni l'autre ne crée de demande. À l'inverse, un journal
+a deux clés de chaîne pendant une rotation, la courante et la suivante,
+chaque document étant ancré par celle sous laquelle sa clé Ed25519 est
+inscrite (CT-2 EX-11.19, point 3) : elles comptent pour une. Le
+planificateur ne sait pas quelle adresse signera, puisque le composant la
+choisit à l'envoi, et une seule ancre en vol par journal garde l'ordre
+d'inclusion des ancres d'un journal égal à celui de leurs envois (l'ancre de
+la période après celle du point de clôture, ci-dessus ; ordre des points
+d'EX-10.7). Ce verrou s'ajoute à la garde de l'envoi, qui refuse un second
+envoi d'un expéditeur tant que le premier est sans issue (CT-4 OP-3,
+`attente_nonce`). La référence tenait un seul verrou pour toute la file et
+le composant un verrou par journal : ils ne différaient que sur une file de
+deux journaux, qu'aucun composant ne tient ; la référence suit désormais le
+journal (trace `registre-cle-par-journal`).
+
+Complément du 2026-11-16 (ordre des ancres d'une clé ; l'ancre de la
+période après celles de ses points). Une ancre part dès sa création quand
+sa clé est libre (admission du point, clôture, EX-8.4, règles 2 et 3 ;
+complément du 2026-11-16 : « clé libre » est défini ci-dessous), ou
+à l'échéance de sa reprise (EX-8.10) ; sinon elle attend (action
+`programmer` de raison `attente_nonce`). L'ancre d'une période ne part pas
+tant qu'une ancre de point de la même période et du même journal n'a ni
+son reçu (`obtenue`) ni un autre état final (`refusee`, `remplacee`) ;
+l'ancre du point de clôture en est une, et la règle du reçu ci-dessus vaut
+ainsi quand cette ancre attend le nonce à la clôture, comme quand elle
+attend sa reprise après un échec transitoire alors que la clé est libre ;
+à sa création ou à l'échéance de sa reprise, l'ancre de la période attend
+alors comme derrière une ancre en vol (`attente_nonce`). Quand la clé se
+libère (reçu ou échec signalé de l'ancre en vol), ainsi qu'après la passe
+du démarrage (EX-8.12, point 6), part au plus une ancre de la clé : la
+première, dans cet ordre, des ancres qui attendent (`a_envoyer`, et
+`a_reprendre` dont l'échéance est passée ; complément du 2026-11-16 : et dont
+la minuterie de reprise est déjà tombée, trouvant la clé occupée ou l'ancre
+retenue, ce qui, en marche, est le cas de toute `a_reprendre` échue, sa
+minuterie passant avant l'entrée ; au démarrage, EX-8.12, point 6) — par
+`period_start` croissant
+(EX-8.7) ; dans une même période, les ancres de ses points par
+`checkpoint_ts` croissant, puis l'ancre de la période ; l'ordre de la file
+(8.5 : `created_at`, puis `id`) ne départage que les égalités. Si cette
+première est une ancre de période qui attend encore le reçu d'une ancre de
+point de sa période (une ancre `a_reprendre` dont l'échéance n'est pas
+passée), rien ne part de la clé : l'ancre du point part à l'échéance de sa
+reprise, celle de la période à son reçu. La règle est la même au démarrage
+et en marche ; plusieurs clés libérées au même instant sont servies dans
+l'ordre de la file de leur première ancre en attente. Motifs : la fenêtre
+de blocs d'une période s'arrête au bloc de son ancre (EX-10.7) ; une ancre
+d'un point de la période incluse après elle tombe dans la fenêtre de la
+période suivante, où elle paraît orpheline ; et l'ordre d'inclusion des
+ancres des points d'une série doit suivre celui de leurs `checkpoint_ts`
+(`hors_ordre`), que l'ordre de la file ne donne pas quand plusieurs ancres
+sont créées au même instant, ce que fait une reconstruction (EX-8.12 : le
+dernier point de chaque période ouverte relue est admis) : les
+identifiants, dérivés des empreintes, les rangent alors au hasard. La
+référence et le composant d'ancrage faisaient partir l'ancre de la période
+d'abord, avant celle de son point de clôture quand celle-ci attendait le
+nonce (traces publiées `redemarrage-a-envoyer-cle-libre` et
+`registre-indisponible-cloture`, changées pour suivre ce texte) ; ils
+suivent désormais la règle (trace `registre-periode-apres-point-de-cloture`).
+La référence suivait en outre l'ordre de la file pour les ancres de points,
+le composant celui des `checkpoint_ts` ; la référence suit la règle (trace
+`registre-ordre-des-points`).
+
+Complément du 2026-11-16 (une ancre de période qui attend retient sa clé).
+La clé d'une ancre est libre quand elle n'a aucune ancre en vol (`envoyee`)
+et qu'aucune ancre de période d'une période antérieure de la même clé (même
+`org_id` et `journal_id`, `period_start` plus petit) n'est dans un état non
+final ; sinon l'ancre est retenue. Une ancre retenue attend (action
+`programmer` de raison `attente_nonce`, sans minuterie) à sa création, à
+l'échéance de sa reprise et quand la clé se libère : elle n'est pas
+candidate, pas plus que les candidates rangées après elle (elles sont d'une
+période postérieure), de sorte que rien ne part de la clé avant l'ancre de
+période qui la retient. Les ancres de la période de cette ancre, et celles
+des périodes antérieures, ne sont pas retenues : l'ancre de la période
+attend leurs reçus (ci-dessus). Une ancre de période qui attend — le reçu
+d'une ancre de point de sa période, ou l'échéance de sa propre reprise après
+un échec — retient donc sa clé pour l'ancre d'un point de la période
+suivante comme pour l'ancre de cette période suivante : les ancres d'une clé
+sont incluses dans l'ordre des périodes, et aucune ancre d'un point d'une
+période postérieure, sauf un point parti avant la clôture qui crée l'ancre
+de la période, n'est incluse avant elle (EX-10.7). La règle est la même au
+démarrage et en marche ; dans la passe du démarrage, une ancre `a_envoyer`
+retenue dont la clé n'a pas d'ancre en vol ne produit aucune action
+(EX-8.12, point 5), et elle n'est pas candidate au point 6. Motifs : la
+fenêtre de blocs de la période suivante commence au bloc de l'ancre de la
+période (EX-10.7) ; si l'ancre de la période suivante était incluse la
+première, cette fenêtre serait renversée, et les ancres des points de la
+période d'après tomberaient dans la fenêtre de la période, où elles
+paraîtraient orphelines. Contrepartie : l'ancre d'une période refusée définitivement
+(`refus_*`, EX-8.10), reprise au pas `retry.max_ms` jusqu'à l'action de
+l'exploitant, retient les ancres des périodes suivantes du journal ;
+l'alerte `prestataires_epuises` critique est alors levée, et les jetons
+RFC 3161 des points continuent de partir sans leur ancre au registre
+(EX-9.6). Les deux implémentations ne retenaient la clé que lorsque l'ancre
+de la période, attendant encore ses points, était la première candidate à la
+libération de la clé : l'ancre d'un point de la période suivante partait dès
+que la clé n'avait plus d'ancre en vol (à sa création, à l'échéance de sa
+reprise, ou à la libération de la clé quand l'ancre de la période attendait
+sa propre reprise), et l'ancre de la période suivante partait de même, avant
+celle de la période qui attendait (corrigé dans les deux ; trace
+`registre-periode-retient-la-cle`).
+
+Complément du 2026-11-16 (l'ordre des ancres des points d'une période).
+L'ancre d'un point ne part pas tant que l'ancre d'un point antérieur de la
+même période et du même journal (`checkpoint_ts` plus petit, puis l'ordre
+de la file) n'a ni son reçu (`obtenue`) ni un autre état final (`refusee`,
+`remplacee`) : elle est retenue, comme derrière une ancre en vol, à sa
+création, à l'échéance de sa reprise et quand la clé se libère (action
+`programmer` de raison `attente_nonce`, sans minuterie ; à la libération de
+la clé, si la première candidate est ainsi retenue, rien ne part). Une
+telle ancre antérieure est en reprise après un échec où une transaction a
+pu partir (`recu_absent`…) : elle n'est pas remplacée (EX-9.5) et n'est
+jamais abandonnée ; l'ancre d'un point plus récent, partie avant son
+renvoi, serait incluse avant elle et renverserait l'ordre des blocs de la
+série (`hors_ordre`, EX-10.7). Les ancres que le point plus récent remplace
+(EX-9.5) sont finales et ne le retiennent pas. Contrepartie : une ancre de point en
+échec transitoire durable retient les ancres des points suivants de sa
+période, puis celle de la période ; les alertes de l'attente
+(`registry_pending`, « ancre en retard ») s'appliquent, et les jetons
+RFC 3161 des points partent sans leur ancre (EX-9.6). La référence et le
+composant d'ancrage faisaient partir l'ancre d'un point plus récent dès que
+la clé n'avait plus d'ancre en vol (corrigé dans les deux ; trace
+`registre-points-en-reprise`).
+
 **EX-9.5** Rattrapage. Quand le registre redevient joignable après une
 indisponibilité, les demandes `ancre_registre_point` encore `a_envoyer` d'une
 même période ne sont pas toutes envoyées : seule celle du point admis le plus
@@ -4391,6 +5561,42 @@ pour l'ordre, de l'absence de rattrapage des points d'EX-4.4. Les ancres déjà
 **envoyées** suivent la reprise de CT-4 §8.6 (renvoi des mêmes octets, puis
 remplacement au même nonce), jamais un abandon : un nonce n'est jamais employé
 pour un autre contenu. L'ancre d'une période n'est jamais remplacée (EX-4.5).
+
+Complément du 2026-11-16 (l'ancre d'un point en reprise). Une ancre de point
+`a_reprendre` après un échec signalé (EX-8.10) est encore à envoyer, comme
+une ancre `a_envoyer`, quand aucune de ses tentatives n'a pu être admise par
+un nœud : chacune est close sur un code qui dit qu'aucune transaction n'est
+partie et qu'aucun nonce n'est consommé, `noeud_injoignable` (aucun point
+n'a répondu), `nonce_incoherent` (les points ne concordent pas sur le nonce :
+rien n'est signé, CT-4 EX-8.14), `transaction_refusee` (erreur JSON-RPC à
+l'envoi : rien n'est parti, CT-4 §7.11), ou l'un des codes du composant
+d'ancrage de même sens (EX-8.10 : `registre_absent`, `exception_client`,
+`reprise_impossible`, `lecture_nonce_incoherent`, `lecture_incoherente`).
+À l'admission d'un point plus récent de la même période et du même journal,
+elle passe `remplacee` (`replaced_by`), et sa reprise n'a pas lieu. Une
+tentative close sur tout autre code (`recu_absent` : la transaction est
+partie et peut encore être incluse ; un refus) ou obtenue, ou une tentative
+sortie de la fenêtre de 32 avant le dernier démarrage, dont la file ne dit
+plus rien (EX-8.5, règle 7), a pu être admise : l'ancre n'est pas remplacée
+et suit sa reprise ; le point plus récent attend son reçu (EX-9.4). La
+référence ne remplaçait que les ancres `a_envoyer` et renvoyait l'ancre en
+reprise après celle du point plus récent ; le composant d'ancrage ne comptait
+pas `nonce_incoherent` (corrigés ; trace `registre-points-en-reprise`).
+Complément du 2026-11-16 (tentatives inconnues, reconstruction, jeton du
+point). La file relue au démarrage ne dit rien des tentatives sorties de la
+fenêtre de 32 avant l'arrêt : une ancre dont la ligne relue porte moins de
+tentatives qu'`attempts_total` n'est plus jamais encore à envoyer, à ce
+démarrage comme aux suivants, et suit sa reprise jusqu'à un état final. Une
+tentative qui sort de la fenêtre pendant la marche reste connue jusqu'au
+démarrage suivant : obtenue ou close sur un autre code que ceux de la liste
+ci-dessus, elle empêche aussitôt le remplacement ; close sur un de ces
+codes, elle ne l'empêche qu'à partir de ce démarrage. Le point de chaque
+période ouverte qu'admet de nouveau la reconstruction du démarrage
+(EX-8.12) remplace de même une ancre `a_reprendre` encore à envoyer de sa
+période et de son journal, et son ancre attend comme en marche (EX-9.4). Le
+`jeton_point` d'un point dont l'ancre est remplacée n'est pas touché : s'il
+est encore `attente_registre`, il suit son attente (`squat_wait_s`,
+EX-9.6), comme celui d'un point dont l'ancre `a_envoyer` est remplacée.
 
 **EX-9.6** Ordre vis-à-vis des autres ancres du même point (EX-4.7, CT-4
 §8.3). L'ancre du registre part d'abord ; la requête RFC 3161 du point attend
@@ -4408,9 +5614,20 @@ consigné avec `lookup(empreinte)` et le bloc de l'ancre étrangère, l'alerte e
 critique, et les points suivants continuent d'être ancrés. Le point garde son
 jeton RFC 3161 ; un dossier qui le choisit comme point couvrant porte
 `registry: null`. Sur l'ancre d'une période (CT-4 EX-8.6) : même refus sans
-nouvel essai ; `jeton_periode` reste `attente_registre` (EX-8.4, règle 2 ;
-AN-36) et la période est signalée `registry_pending` ; le jeton du point de
-clôture (repli d'EX-8.4) date la tête (trace `empreinte-squattee`).
+nouvel essai. Un refus n'est pas une inclusion : `jeton_periode` reste
+`attente_registre` (EX-8.4, règle 2 ; AN-36), aucune requête RFC 3161 sur
+`periodHash` ne part, et la période reste signalée `registry_pending`, comme
+le dit CT-4 EX-8.6 : l'attente du registre est réexaminée toutes les
+`inclusion_alert_s` (EX-8.10 pour un saut d'horloge), chaque examen écrit la
+ligne `registry_pending`, l'alerte `registry_pending` est levée une fois,
+puis « ancre en retard » à `queue.anchor_pending_alert_s` (EX-8.4, règle 2),
+et rien ne lève ce signal tant que la période n'a pas de jeton. Le refus
+n'abandonne pas le repli de clôture : `registry.squat_wait_s` après la
+clôture, le point de clôture reçoit sa demande `jeton_point` sans échéance
+s'il n'a pas déjà de demande et engage un nouvel événement (EX-8.4, règle 2),
+et ce jeton date la tête ; sinon, c'est le jeton du point de clôture déjà
+demandé (traces `empreinte-squattee` et `empreinte-squattee-repli` ;
+complément du 2026-11-16).
 `empreinte_squattee` n'est constatée que sur deux points de `--rpc` quand il
 y en a plusieurs : des lectures divergentes sont un échec transitoire
 (CT-4 EX-8.6).
@@ -4459,7 +5676,7 @@ reprise par `capturer --transaction` tant que la fenêtre le permet.
 |---|---|
 | AN-44 | `fingerprint` recalculée depuis `org_id`, `journal_id` et `checkpointHash` du point (CT-1 §10.6) égale celle des données d'appel ; non nulle |
 | AN-45 | `docType` des données d'appel égal à `0x72c4…2178` pour un point, à `0x2970…71ee` pour une période ; jamais l'un pour l'autre |
-| AN-46 | Émetteur de l'ancre = clé de chaîne sous laquelle `key_id` du point est inscrite (`recorderOf`, CT-4 OP-9) |
+| AN-46 | Émetteur de l'ancre = clé de chaîne sous laquelle `key_id` du point est inscrite (`recorderOf`, CT-4 OP-9) ; complément du 2026-11-16 : pour l'ancre d'une période, sous laquelle `recorder_key_id` du manifeste est inscrite ; sinon, pour l'une comme pour l'autre, aucun envoi et `cle_chaine_non_inscrite` (`recorderByPubKey`, EX-9.1) |
 | AN-47 | Transaction conforme à CT-4 RG-15 (type 2, `chainId`, 1 wei, limite `gas_limit`) ; `gasUsed ≤ 96 977` |
 | AN-48 | Index de capture conforme à `operations-registre-v0` avec le rôle `ancre` et CP-2 à CP-6 réussies, écrit avant que la demande passe `obtenue` (section 8) |
 | AN-49 | Après un rattrapage, exactement une ancre envoyée pour le dernier point admis de la période, et les demandes antérieures non envoyées en `remplacee` avec `replaced_by` (trace `registre-indisponible-cloture`, annexe A : deux points admis pendant l'indisponibilité, la première ancre passe `remplacee`) ; aucune ancre de période remplacée |
@@ -4594,8 +5811,10 @@ journal_id ‖ checkpointHash)` d'un point de la série publiée de la période 
 de celle de la période suivante ; une ancre qui n'en a pas est **orpheline**
 (signe d'une série réécrite et ancrée à part, 3.3). La série de la période
 suivante est requise quand elle existe : son premier point qui engage un
-événement peut être ancré avant l'ancre de la période, qui attend le reçu de
-l'ancre du point de clôture (EX-9.4), donc dans la même fenêtre de blocs ;
+événement peut être ancré avant l'ancre de la période, quand son ancre part
+avant la clôture de la période, qui crée l'ancre de celle-ci (complément du
+2026-11-16 : une fois créée, l'ancre de la période retient sa clé jusqu'à
+son reçu, EX-9.4), donc dans la même fenêtre de blocs ;
 sans elle, cette ancre paraîtrait orpheline (cas
 `periode-suivante-non-servie`). Dans chaque série (les points d'une période
 d'un journal), l'ordre des blocs (puis des `log_index`) des ancres rattachées
@@ -4993,7 +6212,10 @@ sont pas modifiés par cette version : la dernière ligne dit ce qui doit y chan
   `qualified` est durable et automatique sur `PKIStatus` 4 ou 5 (EX-5.9),
   mais le ré-établissement « à chaque séquence et au plus tard tous les
   trente jours » est un acte de l'exploitant (`retablirQualification`, CT-8
-  TP-2) ; le composant ne lit aucune liste de confiance.
+  TP-2) ; le composant ne lit aucune liste de confiance. C'est un risque
+  accepté par le client (CT-7 RA-90, complément du 2026-11-16) ; la levée
+  d'un retrait est la commande `noortrace-ctl ancrage retablir-qualification
+  <id>` (EX-5.9, complément du 2026-11-16).
 - **Les variantes GET** de l'interface de P2 (requête dans l'URL, R1-F35) : le
   client n'emploie que POST.
 - **Les mesures en charge** du planificateur (débit de points, nombre de
@@ -5106,7 +6328,30 @@ spec/vecteurs/ct-5/
     point-manquant-saut-horloge.json   (révision 0.4 : vingt-deux traces)
     file-fenetre-32.json, file-fenetre-32-redemarrage.json   (révision 0.6 : vingt-quatre traces)
     releve-pendant-reprise.json, redemarrage-releve.json, redemarrage-echeance-remplacee.json,
-    file-lignes-illisibles.json   (révision 0.10 : vingt-huit traces ; empreinte-squattee.json, EX-9.7, publiée avec sa variante)
+    file-lignes-illisibles.json   (révision 0.10 : vingt-huit traces)
+    empreinte-squattee.json, empreinte-squattee-repli.json, registre-saut-horloge.json   (complément du 2026-11-16 : trente et une traces ; EX-9.7, EX-8.10)
+    redemarrage-due-at-borne.json, redemarrage-jeton-sans-acquisition.json,
+    file-perdue-jeton-point-obtenu.json, file-perdue-jeton-periode-obtenu.json   (complément du 2026-11-16 : trente-cinq traces ; EX-4.13, EX-5.8, EX-8.12)
+    redemarrage-jeton-recree-couvrant.json, redemarrage-ancres-a-reprendre.json,
+    repli-ancre-incluse-jeton-retenu.json   (complément du 2026-11-16 : trente-huit traces ; EX-8.12, EX-8.10, EX-4.13, EX-8.4 règle 2)
+    ots-reponses-insuffisantes.json, redemarrage-ots-soumission-envoyee.json   (complément du 2026-11-16 : quarante traces ; EX-8.11, EX-8.12, EX-8.9)
+    ots-preuve-absente.json, redemarrage-ots-a-reprendre-en-cours.json,
+    reponses-hors-tentative.json, registre-renvois.json,
+    redemarrage-releve-deux-series.json, minuteries-simultanees.json,
+    jeton-tardif-avertissements.json   (complément du 2026-11-16 : quarante-sept traces ; EX-5.10, EX-8.5, EX-8.8, EX-8.10, EX-8.11, EX-8.12, EX-8.16)
+    redemarrage-ordre-de-la-file.json, redemarrage-a-envoyer-cle-libre.json,
+    redemarrage-echeances-remplacees.json,
+    registre-inclusion-apres-attente.json,
+    redemarrage-prestataires-epuises.json   (complément du 2026-11-16 : cinquante-deux traces ; EX-8.12, EX-4.4, EX-9.4, EX-8.10, EX-8.8)
+    registre-cle-par-journal.json   (complément du 2026-11-16 : cinquante-trois traces ; EX-9.4)
+    minuteries-deux-journaux.json   (complément du 2026-11-16 : cinquante-quatre traces ; EX-8.16)
+    registre-refus-ancre-periode.json,
+    registre-ordre-des-points.json   (complément du 2026-11-16 : cinquante-six traces ; EX-8.10, EX-9.4)
+    registre-periode-apres-point-de-cloture.json,
+    redemarrage-ots-abandon-origine.json   (complément du 2026-11-16 : cinquante-huit traces ; EX-9.4, EX-8.11)
+    registre-periode-retient-la-cle.json, redemarrage-ots-abandon-soumission-tardive.json,
+    registre-refus-ancre-periode-redemarrage.json   (complément du 2026-11-16 : soixante et une traces ; EX-9.4, EX-8.11, EX-8.10)
+    registre-points-en-reprise.json   (complément du 2026-11-16 : soixante-deux traces ; EX-9.5, EX-9.4)
   reprise/
     <trace>.avant.ndjson, <trace>.apres.ndjson    files avant et après le démarrage des traces qui en ont une, une demande par ligne (JCS intégral)
     <trace>.epoque-<n>.ndjson                     fichiers d'époque relus ensemble (bascule-epoque, EX-8.5 règle 6)
@@ -5114,9 +6359,41 @@ spec/vecteurs/ct-5/
     cout.json                    famille cout (#/$defs/cas_cout) : les onze cas de 12.3
   completude/
     completude.json              famille completude (#/$defs/cas_completude) : six cas d'EX-10.7 (AN-61)
+  configuration/
+    configuration.json           famille configuration (#/$defs/cas_configuration) : documents ancrage-v0, verdict et règles violées d'AN-1 (EX-4.9 ; complément du 2026-11-16)
   verificateur-independant/      module Go, jamais écrit par le générateur (A.5)
   confrontation/                 programmes et sorties tiers, jamais écrits par le générateur (A.6)
 ```
+
+Complément du 2026-11-16. `npm run vecteurs:ct5` écrit les soixante-deux
+traces, `empreinte-squattee.json` comprise (décision du porteur du
+2026-11-16 : lecture littérale d'EX-8.4, règle 2, et d'AN-36 ; le générateur
+n'a plus d'option qui la retienne), et la famille `configuration`. Règles du
+planificateur sans trace publiée, et pourquoi :
+
+- le recul de l'heure murale en cours de marche (EX-4.13) ne se représente
+  pas dans une trace : le planificateur reçoit l'instant servi, qui ne recule
+  jamais (la référence et le composant d'ancrage refusent une entrée
+  antérieure à l'instant déjà servi) ; servir le temps sur l'horloge
+  monotone, la ligne `anchoring_clock_backwards` et l'alerte
+  `horloge_reculee` sont du composant d'ancrage, qui les éprouve hors des
+  vecteurs ;
+- la borne de `due_at` au démarrage (EX-4.13), la réouverture d'une demande
+  `obtenue` sans enregistrement promu dans `acquisitions.ndjson` (EX-5.8) et
+  la demande recréée `obtenue` depuis `acquisitions.ndjson` (EX-8.12) ont
+  désormais leurs traces (`redemarrage-due-at-borne`,
+  `redemarrage-jeton-sans-acquisition`, `file-perdue-jeton-point-obtenu`,
+  `file-perdue-jeton-periode-obtenu`) : la référence et le composant
+  d'ancrage les appliquent, et le membre facultatif `acquisitions` des
+  entrées `demarrage` et `stockage_relu` porte les enregistrements relus
+  (complément du 2026-11-16) ;
+- les règles 4, 4 bis, 8 et 9 d'AN-1 (EX-4.9) ont la famille
+  `configuration` (A.4) ; restent hors des vecteurs, parce qu'ils ne se lisent pas dans le
+  document : le refus d'un document qui désigne un prestataire au retrait de
+  `qualified` en vigueur (état du composant d'ancrage, EX-5.9) et, pour la
+  règle 4 bis, le contrôle de chaque adresse de CRL à la capture (adresses
+  locales et privées, liste `crl_hosts`, huit adresses par certificat,
+  EX-5.10, étape 10), que le composant d'ancrage éprouve hors des vecteurs.
 
 ### A.4 Familles
 
@@ -5125,10 +6402,103 @@ spec/vecteurs/ct-5/
 | `requetes` | `requete-point-k2` (EX-5.1 : 69 octets, nonce `0x74a6f4979421411e`) ; `point-k2-exemple` (69 octets, nonce `0x018032ff0d74cfda`, SHA-256 `0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a`) ; `point-k2-exemple-politique-interne` (81 octets, `reqPolicy` `1.3.6.1.4.1.99999.1.1`) ; `periode-1-reference` (70 octets : nonce `0xf144cca6ec50dcdb` à bit haut, octet `00` de tête dans l'INTEGER) ; `periode-1-reference-tentative-2` (70 octets, nonce `0xe514f7e31f6ba99e`) ; `periode-1-vecteurs` (69 octets, nonce `0x29ccc3c9db80e87b`) ; cas refusés par le constructeur : condensé de 31 octets, nonce nul, nonce encodé avec un zéro superflu, `certReq` faux (EX-5.1, AN-5, AN-6) | EX-5.1, EX-5.3, EX-8.6 | octets DER exacts ; `openssl ts -query -in -text` lit `Version: 1`, `Hash Algorithm: sha256`, les 32 octets, `Policy OID`, `Nonce`, `Certificate required: yes` (A.6) |
 | `reponses` | réponse `granted` de l'autorité de test à chaque requête de `requetes/` (`genTime` fixé, `serialNumber` 1001 et suivants, `accuracy` 1 s ; pour `requete-point-k2`, le jeton de CT-1 §11.2 lui-même) ; `granted` avec nonce différent ; `granted` sans nonce ; `granted` sur une autre empreinte ; `granted` avec une politique hors `accepted_policies` ; rejet `unacceptedPolicy` (50 octets) ; rejet `badAlg` ; `waiting` (statut 3) ; statut 5 ; jeton dont T-6 échoue (signature altérée) ; réponse HTTP représentée 503 avec `Retry-After: 30`, 429, 408, 404, 401, corps de plus de 128 Kio ; réponse arrivée après `max_response_delay_s` (une, deux, puis trois fois) ; `genTime` hors `clock_tolerance_s` | EX-5.10 à EX-5.12, AN-8 à AN-11 | issue d'EX-5.13 (`obtenue`, `echec_transitoire`, `echec_permanente`, `reponse_tardive`), code d'EX-5.10 (`statut_2`, `echec_unacceptedPolicy`, `nonce_absent`, `nonce_different`, `empreinte_differente`, `politique_refusee`, `verification_T-6`, `reponse_tardive`, `http_503`…), avertissement `horloge_suspecte`, attente de reprise ; `openssl ts -verify -queryfile` : « Verification: OK » ou « nonce mismatch » (A.6) |
 | `ots` | `point-k2-minimal.ots`, l'exemple d'EX-6.4 (195 octets, deux attestations en attente sœurs, triées par URI comme la bibliothèque officielle) ; `point-k2-en-attente.ots` (233 octets : deux branches de calendrier à opérations propres, A.2) ; `periode-1-en-attente.ots` ; paire de mise à niveau | EX-6.2 à EX-6.7, AN-17 à AN-19, EX-8.11 | octets exacts ; lecture par `ots.mjs` : O-1 à O-3 réussies, O-7 `non_execute` (`partie_absente`) ; réécriture identique par la bibliothèque officielle (A.6) |
-| `planification` | les vingt-huit traces de 8.10 et A.3 | EX-4.1 à EX-4.7, EX-5.7, EX-5.10, EX-5.11, EX-5.12, EX-6.1, EX-8.3 à EX-8.12, EX-9.5 ; AN-2, AN-4, AN-12, AN-13 et les AN- des sections 8, 9 et 11 | `expected` et `queue_after` reproduits à l'identique par `rejouerTrace` |
-| `reprise` | files avant et après `demarrage` (six traces), fichiers d'époque | EX-8.5 (règle 6), EX-8.12, AN-33 | lignes finales égales ; une seule demande par `id` ; fusion des époques par `lireFiles` |
+| `planification` | les soixante-deux traces de 8.10 et A.3 | EX-4.1 à EX-4.7, EX-5.7, EX-5.10, EX-5.11, EX-5.12, EX-6.1, EX-8.3 à EX-8.12, EX-9.5 ; AN-2, AN-4, AN-12, AN-13 et les AN- des sections 8, 9 et 11 | `expected` et `queue_after` reproduits à l'identique par `rejouerTrace` |
+| `reprise` | files avant et après `demarrage` (vingt-cinq traces), fichiers d'époque | EX-8.5 (règle 6), EX-8.12, AN-33 | lignes finales égales ; une seule demande par `id` ; fusion des époques par `lireFiles` |
 | `cout` | les onze cas de 12.3 | EX-4.11, EX-12.1, EX-12.2, AN-4 | six grandeurs par cas ; avec `a = 1`, égalité avec la table de 4.6 |
 | `completude` | `serie-publiee-complete`, `serie-reecrite-ancres-orphelines`, `ancres-hors-ordre`, `periode-suivante-dans-la-fenetre`, `periode-suivante-non-servie`, `emetteur-doctype-et-fenetre` | EX-10.7, AN-61 | `complete`, `orphans`, `out_of_order`, `attached` reproduits par `verifierCompletudeRegistre` |
+| `configuration` | complément du 2026-11-16 : vingt-cinq documents tirés de l'exemple d'EX-4.8 (l'adresse locale du serveur interne écrite `localhost`, EX-A.6), en profil `developpement` ou `production` avec la valeur de l'enregistreur : l'exemple valide ; règle 4 (prestataire interne qualifié, identifiant dans l'url, source d'en-têtes nulle en production, `basic` sans secret, `aucune` avec un secret, serveur interne comme principal hors production et en production) ; règle 4 bis (`crl_hosts` donnée, vide, hors du motif) ; règle 9 (second arc de 40, arc de 2^128 et de 2^128 − 1, DER de plus de 127 octets) ; règles 4 et 9 ensemble ; puis, complément du 2026-11-16 : règle 9, DER de 127 et de 128 octets, étiquette et longueur comprises ; règle 4, rôle `interne` lui-même (`https://` sans authentification, `http://` local avec `basic`, `https://` avec `basic`) ; règle 8 (certificat tronqué) | EX-4.9 (règles 4, 4 bis, 8 et 9), AN-1 | `valide` et la liste triée des règles violées (`schema`, puis `1` à `9`) reproduits par `verifierConfiguration` et par `validerConfiguration` du composant d'ancrage |
+
+Complément du 2026-11-16 (confrontation des deux implémentations). Hors des
+familles, l'essai `test/ancrage-confrontation-aleatoire.test.js` confronte
+la référence et le composant d'ancrage sur des parcours tirés de graines
+fixes : points `K1` à `K4` (chacun admis ou non), clôture de la période 1 de
+référence, réponses des calendriers, réponses RFC 3161 et événements du
+registre de toute forme, arrêts et redémarrages, et arrêts brutaux qui ne
+laissent sur le disque que les premières lignes écrites (EX-8.5, règle 1),
+en huit modes ; complément du 2026-11-16 : trois modes de plus mettent deux
+journaux dans la même file, le second, de la même organisation ou d'une
+autre, clôturant sa période précédente pendant les points du premier
+(EX-9.4) ; complément du 2026-11-16 : trois modes encore, où le second
+journal produit aussi les points de la période 1, aux mêmes instants que
+le premier, de sorte que leurs échéances et leurs cadences tombent
+ensemble (EX-8.16) ; complément du 2026-11-16 : deux modes encore, où les
+quatre points sont ancrés et où le registre signale parfois, juste avant
+l'admission d'un point, l'échec de l'ancre du point précédent
+(`noeud_injoignable`, `nonce_incoherent`, `transaction_refusee` ou
+`recu_absent`), de sorte que le point suivant est admis pendant la reprise
+de cette ancre (EX-9.5, EX-9.4). Chaque segment, d'un démarrage à un arrêt,
+est rejoué des deux côtés avec les mêmes gigues et les nonces de A.2 ; à la
+première divergence, l'essai nomme la graine, le mode, le segment, l'entrée et
+l'action (ou la ligne de file) des deux côtés. Il garde l'alignement des
+deux implémentations sur les règles que les traces n'exercent qu'en partie
+(EX-8.5, EX-8.10 à EX-8.12, EX-8.16, EX-5.10, EX-9.4) ; il ne remplace aucune
+trace : chaque règle qu'il a départagée a la sienne.
+
+Complément du 2026-11-16 (AN-37 pour les soumissions OpenTimestamps).
+L'attente qui suit l'échec d'une soumission (EX-8.11 : moins de
+`min_responses` réponses valables, attestation `aucune` ou preuve absente)
+se vérifie comme celle d'un jeton, à une différence près : l'entrée
+`reponse_ots` nomme la demande, non la tentative, et ne dit donc pas, à
+elle seule, si elle s'applique. Un vérificateur l'établit depuis la trace,
+sans rejouer le planificateur. Une tentative de la demande s'ouvre par une
+action `soumettre_ots` ou `mettre_a_niveau_ots` de cette demande, ou se lit
+`en_cours` sur sa ligne de `queue_before` ; elle se ferme à la première
+`reponse_ots` de la demande qui suit et, pour une soumission, au
+`demarrage` suivant, qui la clôt `redemarrage` (une mise à niveau en cours
+ne l'est pas, EX-8.12). Une `reponse_ots` s'applique si et seulement si la
+demande, dans un état non final, a alors une tentative ouverte (la dernière
+tentative en cours d'EX-8.11) ; quand cette tentative est une soumission
+et que la réponse a moins de `min_responses` réponses valables, une
+attestation `aucune` ou une preuve nulle, c'est un échec de la série
+d'EX-8.9 : `k` est le nombre de soumissions en échec consécutives de la
+demande depuis la dernière tentative close `redemarrage`, celles que porte
+sa ligne de `queue_before` comprises, et la gigue est la valeur suivante de
+`jitter_ms`, dans l'ordre où la trace les consomme (8.10). Les seules
+entrées ne suffisent pas : l'ouverture d'une tentative est une action du
+planificateur. Une extension compatible de l'entrée (le rang de la
+tentative, comme le membre `attempt` de `reponse_rfc3161`) n'a pas été
+retenue : savoir si ce rang est encore en cours dépendrait toujours des
+actions de la trace et des démarrages, comme pour un jeton ; le
+rapprochement par la dernière tentative en cours est sans ambiguïté, une
+demande OpenTimestamps n'ayant jamais plus d'une tentative en cours ; et
+trente-sept des traces publiées gagneraient le membre. C'est la limite
+d'AN-37 de ce côté : il se vérifie depuis les entrées et les actions de la
+trace, non depuis les seules entrées.
+
+Complément du 2026-11-16 (ordre d'une action et d'une entrée du même
+instant). Les entrées et les actions d'une trace sont deux suites ; pour la
+lecture ci-dessus, une action d'instant `t` précède l'entrée de même instant
+`t`, et une entrée `demarrage` clôt d'abord les soumissions ouvertes (lues
+`en_cours` dans `queue_before`), puis viennent les actions de son instant,
+dont la soumission reprise (EX-8.12). C'est l'ordre du planificateur : les
+minuteries échues jusqu'à l'instant d'une entrée passent avant elle (8.10) ;
+le traitement d'une réponse des calendriers n'ouvre aucune tentative de sa
+demande au même instant (sa reprise attend au moins `retry.initial_ms`, sa
+mise à niveau `first_after_s` ou `interval_s`, 60 s au moins) ; une entrée
+qui la précède au même instant a déjà produit ses actions ; et le démarrage,
+toujours la première entrée d'une trace, clôt `redemarrage` les soumissions
+relues avant de les reprendre. Lue ainsi, chaque réponse des calendriers des
+traces publiées, et des segments des parcours de la confrontation des deux
+implémentations (ci-dessus), reçoit le verdict de la référence (elle
+s'applique, ou elle est consignée `tentative_close`, `demande_close` ou
+`demande_inconnue`) ; lire les actions d'un instant après l'entrée, ou le
+démarrage après elles, ne le rend pas.
+
+Complément du 2026-11-16 (AN-36, ordre des ancres d'une clé). AN-36 range
+les deux invariants d'EX-9.4 qu'un vérificateur établit depuis la trace,
+sans rejouer le planificateur. L'état de chaque demande est suivi depuis
+`queue_before` et les actions `ecrire_file` qui précèdent ; à chaque action
+`ecrire_file` qui fait passer une ancre au registre à `envoyee` depuis un
+autre état (un renvoi ne le fait pas) : (1) si c'est l'ancre d'une période,
+aucune ancre de point de même `org_id`, `journal_id` et `period_start` n'est
+dans un état non final ; (2) aucune ancre de période de même `org_id` et
+`journal_id` et de `period_start` plus petit n'est dans un état non final ;
+complément du 2026-11-16 : (3) si c'est l'ancre d'un point, aucune ancre
+d'un point antérieur de même `org_id`, `journal_id` et `period_start`
+(`checkpoint_ts` plus petit, puis l'ordre de la file) n'est dans un état non
+final. Les soixante-deux traces publiées vérifient les trois ; le premier et
+le troisième sont vérifiés aussi à chaque segment de la confrontation des
+deux implémentations.
 
 ### A.5 Vérificateur Go de cohérence des vecteurs
 

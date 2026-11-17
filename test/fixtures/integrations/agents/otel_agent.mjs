@@ -18,7 +18,8 @@
 
 import { createRequire } from "node:module";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const require = createRequire(path.join(RACINE, "package.json"));
@@ -88,4 +89,4 @@ async function principal() {
   process.stdout.write(`noortrace-agent ${JSON.stringify(t)}\n`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await principal();
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) await principal();

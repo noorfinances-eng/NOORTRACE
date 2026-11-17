@@ -41,7 +41,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import * as J from "../lib/journal.mjs";
 import * as V from "../lib/verificateur.mjs";
 import * as S from "../lib/securite.mjs";
@@ -237,7 +237,7 @@ export function conceptionDossiers() {
   ajouter("valide-deux-jeux-validateurs", { ancres: "ancres-deux-jeux.json", description: "Le dossier complet, vérifié avec ancres-deux-jeux.json : les blocs des inscriptions et de l'ancre relèvent du premier jeu, celui de la clôture du second ; la proposition de l'énoncé nomme les deux groupes (EX-11.22)." });
   ajouter("invalide-p1-manifeste-membre-en-trop", { manifeste: "membre-en-trop", cible: "P-1", echecs: ["P-1", "P-5"], statuts: { 3: "echoue", 4: "non_execute", 5: "non_execute", 6: "echoue", 8: "non_execute" }, raisons: { 4: "prerequis_en_echec", 5: "prerequis_en_echec", 8: "prerequis_en_echec" }, description: "manifeste.json porte un membre « extra » de plus (dossier.json réindexé) : P-1 échoue, et P-5 aussi, la forme canonique du manifeste modifié n'étant plus celle que manifeste.sig signe ; periodHash n'est pas recalculé pour les ancres ; T-2, O-2, R-9 et R-10 sont non exécutées (prerequis_en_echec), toutes les autres vérifications T-, O- et R- s'exécutent (EX-5.4) ; le contrôle 5 n'est pas réussi sans O-2 (EX-10.12)." });
   for (const [nom, desc] of [
-    ["valide-decision-refusee", "décision du ticket apr-2201 refusée (decision = refuse), signée par les comptes Hardhat 1 et 2 ; l'énoncé dit « porte un refus signé par » (EX-6.8, F3)"],
+    ["valide-decision-refusee", "décision du ticket apr-2201 refusée (decision = refuse), signée par les comptes Hardhat 1 et 2 ; l'énoncé dit « porte le refus de la demande » (EX-6.8, F3)"],
     ["valide-decision-expiree", "décision du ticket apr-2201 expirée (decision = expire), sans approbateur ni signature ; l'énoncé dit « porte une demande d'approbation expirée sans signature » et facts.approval.approvers est vide (EX-6.8, F3)"],
   ]) {
     ajouter(nom, { base: nom, ancres: null, entetes: null, statuts: { 4: "non_execute", 5: "non_execute", 8: "non_execute" }, raisons: HORS_CT1, avertissements: [], description: `Dossier de la décision (seq 6) d'une variante du journal de CT-1 produite par scripts/vecteurs/ct6/decisions.mjs : ${desc}. Les cinq parties réservées sont absentes (hors périmètre CT-1) ; vérifié sans ancres.` });
@@ -871,7 +871,7 @@ export function genererCt6({ racine = REPERTOIRE_CT6 } = {}) {
   return { dossiers, ancres };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   const i = process.argv.indexOf("--sortie");
   if (i !== -1 && (!process.argv[i + 1] || process.argv[i + 1].startsWith("--"))) {
     process.stderr.write("generer-ct6 : --sortie attend un répertoire\n");

@@ -27,10 +27,11 @@ import { decoderHorodatage, ecrireHorodatage, empreinteAncre, hacherManifeste, h
 import { COMPACT_BYTES_DEFAUT, FileDurable, Supervision, admettreManifeste, admettrePoint, commeServeurInterne, creerPlanificateur, lireFiles, noncesAleatoires, validerConfiguration } from "./planificateur/index.mjs";
 import {
   DepotAncres, acquerir, attenteReprise, capturerCrls, politiqueCaptureCrl, construireFiche, epreuveAcceptation, tirerNonce, transportHttps as transportRfc3161,
-  verifierFiche, verifierJeton, verifierRevocation,
+  verifierFiche, verifierJeton, verifierRevocation, identifiantDemande,
 } from "./rfc3161/index.mjs";
 import { DepotOts, fichierEntetes, hauteursAttestees, lireOts, mettreANiveau, rpcBitcoinHttp, soumettre, transportHttps as transportOts } from "./ots/index.mjs";
 import { ClientRpc, Envoyeur, lireEnvois, lireTransaction } from "./registre/index.mjs";
+import { codePlanificateur } from "./registre/classement.mjs";
 
 /** Cadence du tic de l'horloge injectée (ms) quand aucune minuterie plus proche n'est programmée. */
 export const TIC_MS = 1000;
@@ -361,7 +362,10 @@ export class ComposantAncrage {
       sansRegistre: this.envoyeur === null,
     });
     this.demarre = true;
-    await this.#injecter({ type: "demarrage", data: {} });
+    // CT-5 EX-5.8 (complément du 2026-11-16) : les enregistrements `obtenue` promus d'`acquisitions.ndjson` des demandes de
+    // jeton `obtenue` relues accompagnent le démarrage ; une demande sans le sien est rouverte par le planificateur.
+    const acquisitions = this.#acquisitionsPromues(relue.demandes.filter((d) => d.kind.startsWith("jeton_") && d.state === "obtenue").map((d) => ({ request_id: d.id, period_start: d.subject.period_start })));
+    await this.#injecter({ type: "demarrage", data: acquisitions ? { acquisitions } : {} });
     await this.#relireStockage();
     this.#reconstruireT10();
     this.#reprendreClotures();
@@ -465,8 +469,53 @@ export class ComposantAncrage {
     const lots = Math.max(1, Math.ceil(periodes.length / LOT_STOCKAGE_RELU), Math.ceil(checkpoints.length / LOT_STOCKAGE_RELU));
     if (lots > 1) this.supervision.consigner("warning", "anchoring_storage_batched", { periods: periodes.length, checkpoints: checkpoints.length, batches: lots, batch_size: LOT_STOCKAGE_RELU });
     for (let k = 0; k < lots; k++) {
-      await this.#injecter({ type: "stockage_relu", data: { periods: periodes.slice(k * LOT_STOCKAGE_RELU, (k + 1) * LOT_STOCKAGE_RELU), checkpoints: checkpoints.slice(k * LOT_STOCKAGE_RELU, (k + 1) * LOT_STOCKAGE_RELU) } });
+      const lotPeriodes = periodes.slice(k * LOT_STOCKAGE_RELU, (k + 1) * LOT_STOCKAGE_RELU);
+      const lotPoints = checkpoints.slice(k * LOT_STOCKAGE_RELU, (k + 1) * LOT_STOCKAGE_RELU);
+      // CT-5 EX-8.12 (complément du 2026-11-16) : une demande de jeton recréée dont `acquisitions.ndjson` porte un
+      // enregistrement `obtenue` promu est créée `obtenue` avec ce résultat, sans requête.
+      const acquisitions = this.#acquisitionsPromues([
+        ...lotPeriodes.map((x) => ({ request_id: `jeton_periode:${x.period_hash}`, period_start: x.period_start })),
+        ...lotPoints.map((x) => ({ request_id: `jeton_point:${x.checkpoint_hash}`, period_start: x.period_start })),
+      ]);
+      await this.#injecter({ type: "stockage_relu", data: { periods: lotPeriodes, checkpoints: lotPoints, ...(acquisitions ? { acquisitions } : {}) } });
     }
+  }
+
+  /**
+   * CT-5 EX-5.8 et EX-8.12 (complément du 2026-11-16) : pour chaque demande de jeton visée (`{ request_id, period_start }`),
+   * l'enregistrement d'issue `obtenue`, promu et non révoqué, d'`acquisitions.ndjson` (dernier état de chaque
+   * tentative ; le dernier s'il y en a plusieurs), sous la forme du membre `acquisitions` des entrées `demarrage` et
+   * `stockage_relu` (`{ request_id, result }`). Une ligne illisible est ignorée (signalée par le dépôt) : l'acquisition
+   * manque. Un fichier qu'on ne peut pas lire rend `null` (membre absent : rien n'est rouvert ni recréé `obtenue`) et
+   * est consigné `anchoring_storage_unreadable`.
+   * @param {{request_id: string, period_start: number}[]} cibles
+   * @returns {{request_id: string, result: object}[]|null}
+   */
+  #acquisitionsPromues(cibles) {
+    const voulues = new Set(cibles.map((c) => c.request_id));
+    const trouvees = new Map();
+    try {
+      for (const P of new Set(cibles.map((c) => c.period_start))) {
+        for (const e of this.depotAncres.dernieresAcquisitions(P).enregistrements) {
+          if (e.outcome !== "obtenue" || e.promoted !== true || e.revoked === true || (e.object !== "manifeste" && e.object !== "point")) continue;
+          let id;
+          try {
+            id = identifiantDemande(e.object, e.imprint);
+          } catch {
+            continue;
+          }
+          if (!voulues.has(id)) continue;
+          if (typeof e.token_sha256 !== "string" || !/^0x[0-9a-f]{64}$/.test(e.token_sha256) || !Number.isSafeInteger(e.token_size) || e.token_size < 1) continue;
+          if (typeof e.provider_id !== "string" || decoderHorodatage(e.received_at) === null) continue;
+          const bound = typeof e.upper_bound === "string" && decoderHorodatage(e.upper_bound) !== null ? e.upper_bound : null;
+          trouvees.set(id, { request_id: id, result: { sha256: e.token_sha256, size: e.token_size, provider: e.provider_id, obtained_at: e.received_at, bound } });
+        }
+      }
+    } catch (e) {
+      this.supervision.consigner("error", "anchoring_storage_unreadable", { reason: `acquisitions:${String(e?.code ?? e?.message ?? e).slice(0, 180)}` });
+      return null;
+    }
+    return [...trouvees.values()];
   }
 
   // ------------------------------------------------------- remises (CT-2 g)
@@ -1297,8 +1346,11 @@ export class ComposantAncrage {
       await this.#injecter({ type: "echec_registre", data: { request_id: a.request_id, code: "registre_absent" } });
       return;
     }
-    const point = req.subject.kind === "point" ? this.points.get(req.subject.hash) : null;
-    const clePublique = point ? this.contexte.clePublique?.(point.key_id) ?? null : null;
+    // CT-4 OP-9 (complément du 2026-11-16) : pour l'ancre d'une période comme pour celle d'un point, la clé Ed25519
+    // qui a signé le document (manifeste de la période, point) doit être inscrite sous la clé de chaîne qui envoie
+    // (`recorderByPubKey(orgId, clé).chainKey` égale l'adresse ; sinon `cle_chaine_non_inscrite`, sans envoi).
+    const keyId = req.subject.kind === "point" ? this.points.get(req.subject.hash)?.key_id : this.clotures.get(req.subject.hash)?.manifeste?.recorder_key_id;
+    const clePublique = typeof keyId === "string" ? this.contexte.clePublique?.(keyId) ?? null : null;
     let r = await this.envoyeur.ancrer({
       orgId: req.subject.org_id, journalId: req.subject.journal_id, objet: req.subject.hash, docType: a.detail.doc_type, cle: this.#cleChaineDe(req),
       fingerprint: a.detail.fingerprint, clePublique: clePublique instanceof Uint8Array ? octetsVersHex(clePublique) : clePublique, requestId: a.request_id,
@@ -1381,7 +1433,11 @@ export class ComposantAncrage {
       }
       await this.#injecter({ type: "inclusion_registre", data });
     } else {
-      await this.#injecter({ type: "echec_registre", data: { request_id: requestId, code: String(r.data.code).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64) } });
+      // CT-5 EX-8.10 (complément du 2026-11-16) : les codes de CT-4 §7.11 que la table d'EX-8.10 classe « refus
+      // définitif » (refus d'inscription ou de clé…) parviennent au planificateur préfixés `refus_` ; les autres sont
+      // transitoires. Avant, tous passaient tels quels : un refus OP-9 de l'ancre d'une période était repris avec gigue,
+      // sans l'alerte prestataires_epuises.
+      await this.#injecter({ type: "echec_registre", data: { request_id: requestId, code: codePlanificateur(String(r.data.code).replace(/[^a-zA-Z0-9_-]/g, "_")).slice(0, 64) } });
     }
   }
 
@@ -1444,7 +1500,7 @@ export class ComposantAncrage {
     const o = this.configuration.opentimestamps;
     if (!this.#nonceOtsDurable(req.subject.period_start, this.#objetOts(req), a.detail.nonce)) {
       // Lecture a des corrections (EX-6.2) : rien n'est soumis tant que le nonce n'est pas durable ; la soumission est rejouée
-      // avec le même engagement au pas de `retry` (calendriers_insuffisants).
+      // avec le même engagement au pas de `retry` (reponses_insuffisantes, CT-5 EX-8.11).
       this.supervision.consigner("warning", "ots_submitted", { request_id: a.request_id, calendars_answered: 0, attestation: "aucune", errors: "nonce_non_durable" });
       await this.#injecter({ type: "reponse_ots", data: { request_id: a.request_id, calendars_answered: 0, attestation: "aucune", proof_sha256: null, proof_size: null } });
       return;

@@ -12,7 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import http from "node:http";
 import { execFileSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import * as N from "@noortrace/noyau";
 import { initialiserAutorite, chargerAutorite, publierCrl, CompteurMemoire, demarrerServeur } from "@noortrace/ancrage/serveur-interne";
 import { transportHttps as transportRfc3161 } from "@noortrace/ancrage/rfc3161";
@@ -631,8 +631,10 @@ export function transportCommutable(base, ErreurTransport) {
  * avec `qualified` d'exemple), calendriers factices, série synthétique,
  * registre factice, configuration d'essai. `creer({ epoque, clients })`
  * construit un composant sur ce contexte (un second pour un redémarrage).
+ * `racineComposant` : racine d'une copie du dépôt dont `paquets/ancrage/src/composant.mjs` est chargé à la place de
+ * celui du dépôt (mutant d'un essai ; le contexte et les serveurs restent ceux du dépôt).
  */
-export async function monterComposant({ dir, periodStart, evenements, evenementsCloture = 0, surcharges = {}, graineAlea = 5, transportRfc3161: transportDonne = null, calendriersOptions = {}, registreOptions = {}, contexteSurcharges = {}, ErreurTransport = null }) {
+export async function monterComposant({ dir, periodStart, evenements, evenementsCloture = 0, surcharges = {}, graineAlea = 5, transportRfc3161: transportDonne = null, calendriersOptions = {}, registreOptions = {}, contexteSurcharges = {}, ErreurTransport = null, racineComposant = null }) {
   const tls = materielTls(path.join(dir, "tls"));
   if (!tls) return { condition: "openssl indisponible pour le matériel TLS" };
   const horloge = new HorlogeReglable(periodStart * 1000);
@@ -668,7 +670,7 @@ export async function monterComposant({ dir, periodStart, evenements, evenements
     signaturesCloture: signaturesClotureEssai(registre, Rmod),
     ...contexteSurcharges,
   };
-  const { creerComposantAncrage } = await import("../../../paquets/ancrage/src/composant.mjs");
+  const { creerComposantAncrage } = await import(racineComposant ? pathToFileURL(path.join(racineComposant, "paquets", "ancrage", "src", "composant.mjs")).href : "../../../paquets/ancrage/src/composant.mjs");
   const creer = ({ epoque = 1, clients = {}, configuration: conf = configuration, profil = "test", journal: j = journal, options = {} } = {}) => creerComposantAncrage({
     configuration: conf,
     profil,

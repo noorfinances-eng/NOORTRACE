@@ -264,7 +264,7 @@ describe("enregistreur, frontal modèle : exigences (§5, EX-8.5 à EX-8.7, §13
       const ok = await envoyer(principale, "/v1/messages", { corps: MSG, entetes: { ...BASE, "x-noortrace-run-id": "run-modele-0001", "x-noortrace-on-behalf-of": "service-sinistres" } });
       expect(ok.echange.evenement.delegation).to.deep.equal({ launched_by: "agent-modele", on_behalf_of: "service-sinistres", scope: "sinistres:lecture", run_id: "run-modele-0001" });
       expect(Object.keys(fournisseur.requetes.at(-1).entetes).filter((k) => k.startsWith("x-noortrace"))).to.deep.equal([]);
-      const ko = await envoyer(principale, "/v1/messages", { corps: MSG, entetes: { ...BASE, "x-noortrace-run-id": "jean@example.ch", "x-noortrace-on-behalf-of": "inconnu" } });
+      const ko = await envoyer(principale, "/v1/messages", { corps: MSG, entetes: { ...BASE, "x-noortrace-run-id": "jean@ch.example", "x-noortrace-on-behalf-of": "inconnu" } });
       expect(ko.echange.evenement.delegation).to.deep.equal({ launched_by: "agent-modele", on_behalf_of: "service-sinistres", scope: "sinistres:lecture", run_id: null });
       const refus = ops().filter((l) => l.event === "delegation_refused").slice(-2).map((l) => [l.data.field, l.data.reason]);
       expect(refus).to.deep.equal([["on_behalf_of", "hors_liste"], ["run_id", "motif"]]);
@@ -417,7 +417,7 @@ describe("enregistreur, frontal modèle : exigences (§5, EX-8.5 à EX-8.7, §13
       const r = await envoyer(principale, "/v1/chat/completions", { corps: CHAT });
       expect(r.echange.evenement.intent).to.deep.include({ length: 5000, redacted: false, media_type: "text/plain" });
       expect(await piece(r.echange.evenement.intent)).to.equal(texte);
-      fournisseur.prochaine({ statut: 200, entetes: { "content-type": "application/json" }, morceaux: [JSON.stringify({ ...reponseEntiere("openai-chat", CHAT, 5), choices: [{ index: 0, message: { role: "assistant", content: "Ecrire a j.dupont@example.ch." }, finish_reason: "stop" }] })] });
+      fournisseur.prochaine({ statut: 200, entetes: { "content-type": "application/json" }, morceaux: [JSON.stringify({ ...reponseEntiere("openai-chat", CHAT, 5), choices: [{ index: 0, message: { role: "assistant", content: "Ecrire a j.dupont@ch.example." }, finish_reason: "stop" }] })] });
       const r2 = await envoyer(principale, "/v1/chat/completions", { corps: CHAT });
       expect(r2.echange.evenement.intent.redacted).to.equal(true);
       expect(await piece(r2.echange.evenement.intent)).to.equal("Ecrire a [REDIGE:email].");
@@ -831,7 +831,7 @@ describe("enregistreur, frontal modèle : exigences (§5, EX-8.5 à EX-8.7, §13
       const lignes = ops().filter((l) => l.component === "frontal_modele").map((l) => JSON.stringify(l));
       expect(lignes.length).to.be.greaterThan(20);
       for (const l of lignes) {
-        for (const interdit of [JETON_MODELE, "cle-fournisseur-fictive-de-test", "cle-de-l-hote", "Tu es un agent de test", "Statut ?", "j.dupont@example.ch", "noortrace_degrade"]) expect(l, interdit).to.not.include(interdit);
+        for (const interdit of [JETON_MODELE, "cle-fournisseur-fictive-de-test", "cle-de-l-hote", "Tu es un agent de test", "Statut ?", "j.dupont@ch.example", "noortrace_degrade"]) expect(l, interdit).to.not.include(interdit);
       }
       expect(coeur.metriques.valeur("noortrace_upstream_latency_ms", { provider: "anthropic" })).to.be.greaterThan(5);
       expect(coeur.metriques.valeur("noortrace_upstream_errors_total", { provider: "anthropic", kind: "http_5xx" })).to.be.greaterThan(0);

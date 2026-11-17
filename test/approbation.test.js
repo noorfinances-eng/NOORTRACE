@@ -1243,7 +1243,7 @@ describe("CT-2 §7.5 : échanges du noyau avec le service, partie calculable (EX
       { id: "champ", scopes: ["arguments"], tools: "*", path: "/iban", detectors: [{ type: "champ", label: "iban" }], action: { kind: "supprimer" } },
     ] };
     const P = C.chargerPolitique(doc);
-    expect(A.redigerMotifDecision(P, "IBAN CH9300762011623852957 vérifié avec j.dupont@example.ch (sinistre 2026-77812)")).to.equal("IBAN [REDIGE:iban] vérifié avec [REDIGE:email] (sinistre [REDIGE:sinistre])");
+    expect(A.redigerMotifDecision(P, "IBAN CH9300762011623852957 vérifié avec j.dupont@ch.example (sinistre 2026-77812)")).to.equal("IBAN [REDIGE:iban] vérifié avec [REDIGE:email] (sinistre [REDIGE:sinistre])");
     // Le path d'une règle n'est pas résolu : la chaîne du motif est la racine (EX-10.24).
     const avecPath = C.chargerPolitique({ version: 0, name: "path-v1", pseudonym_key: null, rules: [{ id: "iban-champ", scopes: ["arguments"], tools: ["sap__payments.create"], path: "/beneficiary_iban", detectors: [{ type: "iban" }], action: { kind: "remplacer" } }] });
     expect(A.redigerMotifDecision(avecPath, "Verse sur CH9300762011623852957")).to.equal("Verse sur [REDIGE:iban]");

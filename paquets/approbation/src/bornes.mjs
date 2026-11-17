@@ -154,3 +154,20 @@ export function reecrireGroupesNommes(motif) {
   }
   return sortie;
 }
+
+/**
+ * Longueur maximale, en octets UTF-8, d'un chemin de prise Unix que le service
+ * écoute (`noyau.socket`, `console.socket` ; CT-3 EX-12.2, complément du
+ * 2026-11-16). Node.js tronque un chemin plus long à `sizeof(sun_path) - 1`
+ * (107 octets sous Linux, 103 sous macOS) et la prise serait créée sous un
+ * autre nom, hors du répertoire dont EX-12.2 fixe les droits : c'est la borne
+ * du SDK et du démon (CT-2 EX-6.10, EX-18.1). Aucun module commun ne la
+ * partage avec le démon (`paquets/enregistreur/src/bornes.mjs`) : constante
+ * nommée, même valeur.
+ */
+export const CHEMIN_PRISE_MAX_OCTETS = 103;
+
+/** Le chemin de prise `chemin` dépasse-t-il `CHEMIN_PRISE_MAX_OCTETS` octets UTF-8 ? */
+export function cheminPriseTropLong(chemin) {
+  return typeof chemin === "string" && Buffer.byteLength(chemin, "utf8") > CHEMIN_PRISE_MAX_OCTETS;
+}

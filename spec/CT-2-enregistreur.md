@@ -6,7 +6,9 @@ des règles d'approbation, que le noyau compare à son épinglage, et le
 service est tenu pour indisponible tant que le `charger` de la version
 épinglée n'a pas réussi ; révisions de texte demandées par la revue de
 sécurité de l'étape 8 : bornes, règles de production, limites écrites de la
-version 0 ; version 0.10 du 2026-11-12, révision 0.10 : commandes
+version 0 ; complément du 2026-11-16, décision du porteur : candidat plus
+court des détecteurs `carte`, `email` et `telephone`, adresses d'exemple
+sous `ch.example` ; version 0.10 du 2026-11-12, révision 0.10 : commandes
 `noortrace-ctl sonde`, `etat` et `close-period --now`, règle du pair d'une
 prise du service d'approbation, clé de chaîne de classe B ou C et rotation
 de la seule clé de chaîne relayée au registre, questions de la construction
@@ -316,6 +318,23 @@ changés et motif court :
     `@opentelemetry/exporter-trace-otlp-http` 0.223.0), et ce que leur essai
     établit de la lecture de l'environnement de 6.8.15 (motif : les paquets
     0.300.0 cités n'étaient ni dans le dépôt ni éprouvés).
+14. **Complément du 2026-11-16, décision du porteur** (rédaction). 10.3.4 :
+    les sous-suites de groupes d'une suite de chiffres sont éprouvées, de
+    gauche à droite et la plus longue d'abord, quand la suite entière
+    échoue ; 10.3.5 : la partie locale est la plus longue fin `Dot-string`
+    des 64 caractères les plus proches du `@`, et le domaine le plus long
+    préfixe admissible de la suite lue à droite ; 10.3.6 : reprise au
+    séparateur, le candidat finit au dernier chiffre suivi d'une frontière
+    qui laisse de 8 à 15 chiffres ; 10.8 : ce que ces règles rédigent de plus
+    et leurs contreparties ; 10.3.5 et 10.9 : adresses d'exemple sous
+    `ch.example` (domaine de premier niveau réservé), pseudonyme de
+    l'adresse d'exemple recalculé ; annexe B.3 : cas obligatoires nouveaux
+    (vecteurs `redaction/cas.json` régénérés). Motif : un numéro de carte
+    suivi de son échéance ou de son cryptogramme, une adresse au bout d'une
+    adresse web ou d'un enregistrement à barres verticales, une adresse
+    suivie de `-1` et un numéro de téléphone suivi d'une date restaient en
+    clair, la pièce marquée `redacted: false`, sans trace au journal
+    d'exploitation.
 
 - Règles nouvelles : EX-18.10.
 - Règles modifiées : EX-3.6, EX-4.11, EX-4.35, EX-4.39, EX-4.46, EX-4.47,
@@ -344,7 +363,119 @@ changés et motif court :
   politique garde ses valeurs de 10.6.
 - Décisions encore ouvertes, préparées sans être appliquées : rédaction
   (10.3.4 à 10.3.6, 10.8), mode miroir (EX-5.6, EX-18.1, 5.8), domaine
-  d'exemple de 10.3.5 et 10.6, membre `wrap.endpoint`.
+  d'exemple de 10.3.5 et 10.6, membre `wrap.endpoint` (la rédaction et le
+  domaine d'exemple sont tranchés depuis par le complément du 2026-11-16,
+  point 14 ci-dessus ; le mode miroir, pour EX-5.6 et EX-18.1, par le
+  complément du 2026-11-16 sur le mode miroir ci-dessous).
+
+**Complément du 2026-11-16, décision du porteur (risques acceptés de la
+version 0).** EX-18.7 et section 21 (puce `mlockall`) : les vidages mémoire
+ne sont pas désactivés par les fichiers Compose de référence, dont la liste
+fermée des clés d'un service n'admet pas `ulimits` ; la révision 0.11 les
+disait interdits par le déploiement, ce qu'aucun fichier ne fait. La mémoire
+des secrets non verrouillée et le point d'accès `AWS_ENDPOINT_URL_KMS` hors
+des vérifications du déploiement sont des risques acceptés par le client,
+RA-87 et RA-93, nommés dans la spécification de sécurité (section 21, puces
+`mlockall` et `wrap.endpoint`). Aucune règle nouvelle ni retirée ; aucun
+schéma, aucun vecteur ni aucun code ne change.
+
+**Complément du 2026-11-16, décision du porteur (mode miroir ; reprise dans
+un journal neuf).** EX-5.6 : l'adaptateur de capture écoute la copie sur la
+boucle locale par défaut (`model.mirror.listen`, `127.0.0.1:8410`) ; hors
+d'elle, il exige une authentification de la source de la copie, TLS avec
+certificat client d'une autorité propre (`model.mirror.tls`,
+`model.mirror.client_ca`) ou liste fermée de sources
+(`model.mirror.allowed_sources`), sinon il refuse de démarrer et la
+validation refuse la configuration ; une connexion de copie non admise est
+fermée avant toute lecture ; la prise `model.mirror.socket` est réservée au
+compte du démon (mode `0600`), ou, avec `model.mirror.peer_user`, ouverte au
+groupe (`0660`) avec la preuve d'identité du pair d'EX-4.39 ; en
+production, la source de la copie est authentifiée quelle que soit l'adresse
+d'écoute ; ce qui reste non couvert est le risque accepté RA-95 de la
+spécification de sécurité (§3.5.1). EX-18.1 : la surface d'écoute nomme la
+prise du miroir et l'adresse d'écoute de l'adaptateur. EX-18.3 : exception
+de l'adaptateur sur la boucle locale hors production. EX-15.4, pas 3 :
+règles de `model.mirror` et règle de production ; table de 15.1, ligne
+`model`. Section 21, puce du mode miroir. Motif : en mode miroir, toute
+machine qui joignait le port de l'adaptateur, et tout compte du groupe de la
+prise, faisait sceller un échange fabriqué sous l'identité d'hôte de son
+choix (revue de sécurité de l'étape 8). EX-11.16 : le lien entre un journal
+qui ne peut plus être continué et le journal neuf est l'inscription du
+nouveau journal au registre, dont la demande est accompagnée d'une note
+d'exploitant, et la ligne `journal_successor` du journal d'exploitation de
+l'ancien démon, toutes deux écrites par `noortrace-ctl journal successeur`
+depuis la fin réelle de l'ancien journal et contrôlées par `noortrace-ctl
+journal verifier-successeur` ; EX-17.2 : `journal_successor`, et
+`auth_failed` de transport `miroir`. Motif : le texte disait le lien
+« consigné au registre et dans le journal d'exploitation » sans champ, sans
+ligne ni opération qui le porte, et le chemin C de la reprise (CT-8 §11.4)
+n'avait pas d'épreuve. Règles modifiées : EX-5.6, EX-11.16, EX-15.4 (pas 3),
+EX-17.2, EX-18.1, EX-18.3 ; table de 15.1 ; section 21. Aucune règle
+retirée. Schéma `configuration-enregistreur-v0` : ajouts compatibles,
+membres facultatifs de `model.mirror` (`peer_user`, `listen`, `tls`,
+`client_ca`, `allowed_sources`), `additionalProperties: false` gardé ; un
+document valide reste valide. Aucun vecteur figé ne change (aucun ne porte
+`model.mirror` non nul). Le point 5.8 préparé avec la décision sur le mode
+miroir (requête hors des routes en modes `icap` et `miroir`) n'est pas
+repris ici ; il l'est par le complément du 2026-11-16 sur la longueur des
+prises, ci-dessous.
+
+**Complément du 2026-11-16 (longueur des prises Unix ; requêtes hors des
+routes ; fermeture d'un connecteur stdio).** EX-18.1 : tout chemin de prise
+Unix que le démon ou ses processus ouvrent ou joignent (`mcp.socket`,
+`sdk.socket`, `model.mirror.socket`, `policy.approval.service.socket`, le
+`--socket` de `noortrace-miroir` et de `noortrace-connecteur`) fait au plus
+103 octets, borne du SDK ; la validation le refuse
+(`chemin_prise_trop_long`), le démarrage aussi (code 2), la mise en écoute
+aussi, et les deux programmes avant toute connexion (code 2) ; les lignes
+de commande de `noortrace-connecteur` et de `noortrace validate-config`
+sont strictes. EX-15.4, pas 3 : la règle de longueur. EX-6.10 : renvoi à
+EX-18.1. EX-5.6 : ligne de commande stricte de `noortrace-miroir` (option
+inconnue, en double ou sans valeur : usage et code 2) ; fin de l'adaptateur
+quand la prise du démon se ferme (code 3, sans reconnexion), déjà faite par
+le code et désormais écrite. 5.8 et EX-17.2 : une requête hors des routes
+en modes `icap` et `miroir` n'est ni bloquée ni capturée, consignée sans
+pièce ni événement (`model_route_not_found` avec `mode`,
+`icap_respmod_non_capture`), et se déclare à l'attestation de périmètre.
+EX-4.23 : la fermeture de la connexion d'un connecteur stdio vaut
+annulation de ses requêtes en cours, requête retenue comprise. Motif : un
+démon dont la prise configurée dépassait 107 octets écoutait, sans refuser,
+sous un nom tronqué dans le répertoire parent, hors du répertoire dont
+EX-4.39 et EX-18.1 fixent le propriétaire et le mode, où un autre processus
+pouvait la tenir ; une option mal écrite de `noortrace-miroir` était
+ignorée et l'adaptateur écoutait sur l'adresse par défaut ; 5.8 ne disait
+que le mode `passerelle` ; EX-4.23 ne disait rien de la fermeture d'un
+connecteur, et une requête retenue, approuvée après le départ de l'hôte,
+était relayée (revue de sécurité de l'étape 8). Règles modifiées : EX-4.23,
+EX-5.6, EX-6.10, EX-15.4 (pas 3), EX-17.2, EX-18.1 ; 5.8. Aucune règle
+retirée. Schéma `configuration-enregistreur-v0` inchangé : la borne est en
+octets et `maxLength` compte des caractères. Aucun vecteur ne change (aucun
+ne porte un chemin de prise de plus de 103 octets).
+
+**Complément du 2026-11-16, décision du porteur (levée du retrait de
+`qualified`).** EX-15.10, pas 5, ligne `ancrage` : la commande
+`retablir-qualification` (`noortrace-ctl ancrage retablir-qualification
+<id>`) lève le retrait de `qualified` d'un prestataire (CT-5 EX-5.9), acte de
+l'exploitant après lecture de la liste de confiance ; elle est consignée au
+journal d'exploitation (`provider_qualification_restored`, refus
+`anchoring_ctl_refused` de raison `retrait_absent` quand aucun retrait n'est
+en vigueur). Motif : le retrait est durable et automatique, et le risque
+accepté du ré-établissement nommé dans la spécification de sécurité en fait
+un acte de l'exploitant, qu'aucune commande ne permettait. Aucune autre règle
+ne change ; aucun schéma ni aucun vecteur ne change.
+
+**Complément du 2026-11-16 (`--vers` relatif depuis un répertoire de travail
+atteint par un lien symbolique).** EX-15.9 : un `--vers` relatif est résolu
+contre le répertoire de travail de la commande sous le nom par lequel
+l'exploitant l'a atteint (`PWD`, comme `pwd`), quand ce nom est un chemin
+absolu sans composant `.` ni `..` qui désigne ce répertoire ; sinon contre
+son chemin réel. Motif : la commande résolvait contre le chemin réel du
+répertoire de travail, que le démon compare lexicalement au répertoire des
+exports tel que la configuration le nomme (EX-15.12, ordre 3) ; lancée
+depuis le répertoire des exports atteint par un lien symbolique, elle était
+refusée (`destination_hors_exports`) pour une destination qui y était bien.
+Le contrôle du chemin réel du parent (ordre 3) ne change pas. Aucune autre
+règle ne change ; aucun schéma ni aucun vecteur ne change.
 
 **Révision 0.10** (2026-11-12). Questions de la construction de l'étape 7
 (images de conteneur, exploitation, clé de chaîne servie), tranchées dans le
@@ -1933,6 +2064,15 @@ et la pièce `{"noortrace_jsonrpc_error": {"code": -31012, "message":
 envoyé au serveur peut avoir produit son effet : l'événement le dit par
 `effects` déclarés et `is_error: true`, et la réponse amont tardive, si elle
 arrive, est consignée dans le journal d'exploitation avec son `sha256`.
+Complément du 2026-11-16 : la fermeture de la connexion d'un connecteur
+stdio (prise Unix ou TCP du connecteur) vaut annulation par l'hôte de
+chacune de ses requêtes en cours : un appel déjà envoyé au serveur suit ce
+paragraphe (annulation relayée, événement `-31012`) ; un appel qui n'est pas
+encore parti n'est pas relayé ; une requête retenue par le mode `retenir`
+(EX-4.50) prend fin (`approval_hold_cancelled`) et une décision `approuve`
+qui suit ne la relaie pas (`held: false`) : aucun effet n'est produit pour
+un hôte qui n'est plus là pour en recevoir le résultat. La fin d'une
+session HTTP n'annule rien (phrase citée ci-dessus).
 
 **Codes d'erreur de l'enregistreur.** JSON-RPC 2.0 réserve `-32768` à
 `-32000` aux erreurs prédéfinies et laisse le reste de l'espace des entiers
@@ -2604,6 +2744,60 @@ retenu ; une réponse tronquée dans la copie est marquée
 `noortrace_flux_incomplet` (5.4). Le réassemblage HTTP/2 n'est pas couvert par
 la version 0 : la documentation d'intégration le dit, et le mode miroir n'est
 construit que si un client l'exige (section 21).
+
+Complément du 2026-11-16 (décision du porteur), **authentification du mode
+miroir**. L'adaptateur écoute la copie à l'adresse `model.mirror.listen`,
+par défaut `127.0.0.1:8410`, sur la boucle locale. Une adresse hors de la
+boucle locale (autre que `127.0.0.0/8`, `::1` ou `localhost`) n'est admise
+qu'avec une authentification de la source de la copie : TLS avec
+certificat client émis par une autorité propre à l'adaptateur
+(`model.mirror.tls` et `model.mirror.client_ca` ; la poignée de main échoue
+sans certificat de cette autorité), ou liste fermée des adresses des
+équipements de copie (`model.mirror.allowed_sources`, même forme que
+`model.icap.allowed_sources`, contrôlée sur la connexion avant la poignée de
+main et toute lecture). Sans l'une ni l'autre, l'adaptateur refuse de
+démarrer (`ecoute_non_authentifiee`, code 2 de `noortrace-miroir`) et la
+validation refuse la configuration (EX-15.4, pas 3). Une connexion de copie
+non admise est fermée avant toute lecture et l'adaptateur le consigne sur
+sa sortie ; le champ `source` d'une trame est cru d'une connexion admise.
+`noortrace-miroir --config <fichier>` lit ces membres de la configuration du
+démon. La prise du démon `model.mirror.socket` est en mode `0600`,
+réservée au compte du démon, sans `model.mirror.peer_user` ; avec lui, elle
+est en mode `0660` dans un répertoire tenu comme celui de `mcp.socket`, et
+chaque connexion prouve son compte par la preuve par fichier d'EX-4.39
+(défi `noortrace_defi`, fichier `.noortrace-defi-<défi>` créé par
+l'adaptateur, preuve `noortrace_preuve`, acceptation `noortrace_identite`)
+avant de remettre un couple ; une preuve absente ou fausse, ou un compte
+autre que `peer_user`, est refusé sans lecture d'un couple (`auth_failed`,
+transport `miroir`, raison `preuve`, `pair_refuse`, `repertoire_prise`,
+`delai_identification` ou `connexions_non_identifiees`, avec le délai et la
+borne d'EX-4.39).
+En `environment: "production"`, la source de la copie DOIT être
+authentifiée (certificat client ou liste de sources), quelle que soit
+l'adresse d'écoute. Ce qui reste non couvert est un risque accepté par le
+client (CT-7 RA-95, §3.5.1) : la copie elle-même n'est pas authentifiable,
+un équipement admis, ou qui use d'une adresse de la liste, fait sceller un
+échange sous l'adresse source de son choix ; la liste de sources
+n'authentifie qu'une adresse ; hors production, une copie écoutée sur la
+boucle locale sans authentification est ouverte à tout processus de l'hôte ;
+sans `peer_user`, l'adaptateur tourne sous le compte du démon.
+
+Complément du 2026-11-16, **ligne de commande et fin de l'adaptateur**.
+`noortrace-miroir` admet `--config <fichier>` seul, ou `--socket <prise du
+démon>` avec, au plus une fois chacune, `--ecoute <hôte:port>`, `--sources
+<cidr,…>`, `--tls-cert <pem>` et `--tls-key <pem>` (ensemble), `--tls-ca
+<pem>` (avec eux) et `--preuve` ; une option inconnue, donnée deux fois ou
+sans sa valeur, un argument en trop, ou `--config` avec une autre option,
+rendent l'usage et le code 2, sans écouter : une faute de frappe sur une
+option de sécurité (`--source` pour `--sources`) ne laisse plus l'adaptateur
+écouter sur l'adresse par défaut sans authentification. Un chemin de prise
+du démon de plus de 103 octets est refusé (`chemin_prise_trop_long`, code 2,
+EX-18.1). Quand la prise du démon se ferme, l'adaptateur le consigne sur sa
+sortie et sa sortie d'erreur, cesse d'écouter la copie et se termine avec le
+code 3, sans se reconnecter : un couple observé ensuite n'est écrit nulle
+part, et c'est la supervision de l'adaptateur qui le relance. Codes : 0 arrêt
+demandé, 1 prise du démon injoignable ou preuve d'identité refusée, 2 usage
+ou configuration refusée, 3 prise du démon fermée.
 
 ### 5.2 Formats de la version 0 et de la version 1
 
@@ -3687,8 +3881,22 @@ la chaîne. Elle relaie `retry-after` et `x-should-retry` tels quels (R7 F-35).
 
 - Les couples (méthode, chemin) de la liste `passthrough` d'une route
   (`/v1/messages/count_tokens`, `/v1/models`) : relayés sans événement,
-  consignés ; tout autre chemin (lots, fichiers, plongements, modération) est
-  refusé par `404` (EX-5.2).
+  consignés ; en mode `passerelle`, tout autre chemin (lots, fichiers,
+  plongements, modération) est refusé par `404` (EX-5.2). Complément du
+  2026-11-16 : en modes `icap` et `miroir`, une requête hors des routes
+  (chemin d'aucune route, couple `passthrough` compris, ou cible illisible)
+  n'est ni bloquée ni capturée : elle est consignée
+  (`model_route_not_found` : méthode, longueur du chemin, `mode` ; jamais
+  le chemin), sans pièce ni événement. En `icap`, le REQMOD rend la requête
+  inchangée (`200`, sans `X-Noortrace-*` ni identifiant d'échange, corps
+  inchangé) et le RESPMOD qui suit rend la réponse inchangée
+  (`icap_respmod_non_capture`, raison `route_ou_hote`) : le mandataire du
+  client la transmet au fournisseur et à l'hôte. En `miroir`, l'adaptateur
+  reçoit le refus `route_inconnue` du couple. Ces requêtes, et ce qui leur
+  répond, échappent donc à la preuve : l'organisation qui déclare les canaux
+  `icap` ou `miroir` dans son attestation de périmètre y déclare dans
+  `not_captured` les chemins du fournisseur que ses agents appellent hors
+  des routes, ou n'en déclare aucun en connaissance de cause.
 - Les transports non HTTP (WebSocket du SDK Agents, `OPENAI_WEBSOCKET_BASE_URL`,
   R7 F-67 ; API temps réel) : non pris en charge en version 0.
 - Les formats de la version 1 (5.2).
@@ -4034,7 +4242,9 @@ paramètres du constructeur ; les variables d'environnement
 prise Unix DOIT faire au plus 103 octets : Node.js tronque ce chemin à
 `sizeof(sockaddr_un.sun_path) - 1`, typiquement 107 octets sous Linux et 103
 sous macOS (R12-F50) ; le SDK refuse un chemin plus long à la construction
-(`NoortraceConfiguration`), au lieu de joindre une autre prise. Sur une
+(`NoortraceConfiguration`), au lieu de joindre une autre prise ; le démon
+et ses processus appliquent la même borne à leurs prises (EX-18.1,
+complément du 2026-11-16). Sur une
 prise TCP, la première ligne envoyée est `{"noortrace_token": "<jeton>"}`
 (EX-4.39), sauf en mTLS. Révision 0.11 : une prise TCP hors de la boucle
 locale (`localhost`, `127.0.0.0/8`, `::1`) n'est admise qu'en mTLS ; avec un
@@ -7296,24 +7506,45 @@ sourcé et aucun n'est employé (R6 § 2). Le détecteur ne distingue pas les
 réseaux : il reconnaît une suite de chiffres de longueur plausible qui passe
 Luhn.
 
-1. **Candidat.** Une suite maximale de caractères de l'alphabet `[0-9]`, `SEP`
-   et `-`, commençant et finissant par un chiffre, précédée et suivie d'une
-   frontière, dont les séparateurs sont isolés, et qui compte entre 12 et 19
-   chiffres. Le point n'est pas admis (il sépare les groupes du numéro AVS et
-   les décimales des montants).
-2. **Forme normalisée** `N` : les chiffres seuls.
+1. **Candidat.** Une **suite** est une suite maximale de caractères de
+   l'alphabet `[0-9]`, `SEP` et `-`, commençant et finissant par un chiffre,
+   dont les séparateurs sont isolés. Le point n'est pas admis (il sépare les
+   groupes du numéro AVS et les décimales des montants). Les **groupes** de la
+   suite sont ses suites maximales de chiffres ; deux groupes voisins sont
+   séparés par un séparateur. Un candidat est une **sous-suite de groupes**
+   consécutifs de la suite, du premier chiffre de son premier groupe au
+   dernier chiffre de son dernier groupe, qui compte entre 12 et 19 chiffres
+   et qui est précédée et suivie d'une frontière (le séparateur qui la borde
+   à l'intérieur de la suite en est une). Les candidats d'une suite sont
+   éprouvés au pas 3 dans cet ordre : par premier groupe, de gauche à droite,
+   et, pour un même premier groupe, le plus long d'abord ; la suite entière,
+   si elle est un candidat, est donc éprouvée la première. Le premier
+   candidat qui passe le pas 3 est la correspondance, et la recherche reprend
+   immédiatement après lui (EX-10.9), le reste de la suite compris ; si aucun
+   ne passe, aucune correspondance ne commence dans la suite. Un groupe
+   comptant au moins un chiffre, un même premier groupe donne au plus huit
+   candidats (de 12 à 19 chiffres) : le coût reste linéaire (EX-10.23).
+   (Complément du 2026-11-16 de la révision 0.11, décision du porteur : la
+   version 0.11 n'éprouvait que la suite entière, de sorte qu'un numéro suivi
+   d'une échéance ou d'un cryptogramme restait en clair.)
+2. **Forme normalisée** `N` : les chiffres seuls du candidat.
 3. **Luhn.** En parcourant `N` de droite à gauche, le chiffre de rang 1 (le
    dernier) est pris tel quel, le rang 2 est doublé, le rang 3 tel quel, et
    ainsi de suite en alternant ; un produit supérieur à 9 est diminué de 9 ;
    la somme de tous les termes est `S`. Le candidat est valide si et
    seulement si `S mod 10 = 0`.
-4. **Correspondance** : la suite entière, séparateurs compris. Valeur pour le
-   pseudonyme : `N`.
+4. **Correspondance** : le candidat retenu, séparateurs intérieurs compris.
+   Valeur pour le pseudonyme : `N`.
 
 Exemples : `378282246310005` (15 chiffres, commence par `37`) : valide ;
-`3782 822463 10005` : même `N`, valide ; `378282246310006` : invalide. Un
-numéro écrit avec des points, ou porté par un nombre JSON, n'est pas détecté
-(10.8).
+`3782 822463 10005` : même `N`, valide ; `378282246310006` : invalide.
+`4111 1111 1111 1111 12/27` : la suite entière (18 chiffres) échoue à Luhn, la
+sous-suite `4111 1111 1111 1111` passe : `[REDIGE:carte] 12/27` ;
+`4111-1111-1111-1111 123` → `[REDIGE:carte] 123` ; `AB12 4111 1111 1111 1111` :
+la suite est précédée d'une lettre, le candidat qui commence au deuxième
+groupe ne l'est pas : `AB12 [REDIGE:carte]` ; `1234 5678 9012` (Luhn faux)
+reste en clair. Un numéro écrit avec des points, ou porté par un nombre JSON,
+n'est pas détecté (10.8).
 
 #### 10.3.5 `email`
 
@@ -7333,32 +7564,55 @@ est quadratique : environ 2 s pour 64 000 caractères et 5 à 10 s pour
 
 1. **Candidat.** Pour chaque `@` de la chaîne (de gauche à droite, hors des
    correspondances déjà trouvées) :
-   - la partie locale `L` est la suite maximale, immédiatement à gauche du
+   - la partie locale : soit `W` la suite maximale, immédiatement à gauche du
      `@`, de caractères de `[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]`, sans dépasser
      vers la gauche le début de la chaîne (ou du segment, EX-10.9) ni la fin
-     de la correspondance précédente de ce détecteur ; la lecture vers la
-     gauche s'arrête au 65e caractère : si `L` en compte plus de 64, aucun
-     candidat à ce `@` ; `L` DOIT être une `Dot-string` (non vide, ni `.`
-     initial, ni `.` final, ni `..`) ;
-   - le domaine `D` est la suite maximale, immédiatement à droite du `@`, de
-     caractères de `[A-Za-z0-9.-]`, lue sur 256 caractères au plus : si elle
-     en compte plus de 255, aucun candidat ; si `D` se termine par un `.` ou
-     un `-`, ce dernier caractère n'en fait pas partie (le point final d'une
-     phrase : `… j.dupont@example.ch.`) ; `D` DOIT alors être formé d'au
-     moins deux labels séparés par `.`, chacun de 1 à 63 caractères de
-     `[A-Za-z0-9-]` ne commençant ni ne finissant par `-`, le dernier fait
-     d'au moins deux lettres ASCII.
-2. **Correspondance** : `L @ D`. Par la maximalité de `L` et de `D`, le
-   caractère qui la précède n'est pas dans l'alphabet de `L`, et celui qui la
-   suit n'est pas dans `[A-Za-z0-9]` (c'est au plus le `.` ou le `-` retiré
-   de `D`). Les deux parties ne contiennent que de l'ASCII : 64 caractères
+     de la correspondance précédente de ce détecteur, lue sur 64 caractères
+     au plus (si la suite en compte davantage, `W` en est la fin de 64
+     caractères, les plus proches du `@`) ; la partie locale `L` est la plus
+     longue fin de `W` qui est une `Dot-string` (non vide, ni `.` initial, ni
+     `.` final, ni `..`) ; sans une telle fin (`W` vide ou finissant par un
+     `.`), aucun candidat à ce `@` ;
+   - le domaine : soit `S` la suite maximale, immédiatement à droite du `@`,
+     de caractères de `[A-Za-z0-9.-]`, lue sur 256 caractères au plus. Un
+     **domaine valide** est formé d'au moins deux labels séparés par `.`,
+     chacun de 1 à 63 caractères de `[A-Za-z0-9-]` ne commençant ni ne
+     finissant par `-`, le dernier fait d'au moins deux lettres ASCII. Le
+     domaine `D` est le plus long préfixe de `S` qui est un domaine valide et
+     qui est, soit `S` entière si elle compte au plus 255 caractères, soit
+     suivi dans `S` d'un `.` ou d'un `-` ; sans un tel préfixe, aucun
+     candidat à ce `@`. Le point final d'une phrase (`… j.dupont@ch.example.`)
+     ou un trait d'union final n'appartient donc pas au domaine, et un
+     domaine suivi d'un `-` ou d'un `.` puis d'autres caractères est coupé
+     au dernier `-` ou `.` qui laisse un domaine valide
+     (`jean.dupont@ch.example-1` : `D = ch.example`).
+
+   (Complément du 2026-11-16 de la révision 0.11, décision du porteur : la
+   version 0.11 abandonnait le candidat quand la suite lue à gauche
+   comptait plus de 64 caractères, quand elle n'était pas une `Dot-string`,
+   ou quand la suite lue à droite n'était pas un domaine valide après le
+   retrait d'un `.` ou d'un `-` final ; une adresse collée à une adresse web
+   ou à un enregistrement à barres verticales, ou suivie de `-1`, restait en
+   clair.)
+2. **Correspondance** : `L @ D`. Le caractère qui la suit n'est pas dans
+   `[A-Za-z0-9]` (c'est un `.` ou un `-` de `S`, ou un caractère hors de
+   l'alphabet du domaine) ; celui qui la précède peut être un caractère de
+   l'alphabet de la partie locale, lettre ou chiffre compris, quand `L` est
+   plus courte que la suite lue à gauche (c'est la mention contraire que
+   réserve la règle des frontières de 10.3.1) : ce reste de la suite reste
+   en clair. Les deux parties ne contiennent que de l'ASCII : 64 caractères
    sont 64 octets (RFC 5321 § 4.5.3.1.1, § 4.5.3.1.2). Valeur pour le
    pseudonyme : partie locale telle quelle, `@`, domaine en minuscules ASCII
    (la partie locale « MAY be case-sensitive », RFC 5321).
 
-Exemples : `j.dupont@example.ch` → `[REDIGE:email]` ; `Écrire à
-j.dupont@example.ch.` → `Écrire à [REDIGE:email].` ; `a..b@example.ch` et
-`x@example` ne sont pas rédigés.
+Exemples : `j.dupont@ch.example` → `[REDIGE:email]` ; `Écrire à
+j.dupont@ch.example.` → `Écrire à [REDIGE:email].` ;
+`export-jean.dupont@ch.example-1` → `[REDIGE:email]-1` ; `a..b@ch.example` →
+`a..[REDIGE:email]` (la plus longue fin `Dot-string` de `a..b` est `b`) ;
+`…/recherche?tri=nom&ordre=asc&page=1&filtre=actif&courriel=jean.dupont@ch.example`,
+où la suite lue à gauche du `@` dépasse 64 caractères (`/`, `?`, `=` et `&`
+sont de l'alphabet de la partie locale), → `…/rech[REDIGE:email]` ;
+`j.@ch.example` et `x@example` ne sont pas rédigés.
 
 #### 10.3.6 `telephone`
 
@@ -7384,21 +7638,38 @@ spécification (aucune borne basse lue), pour écarter des suites courtes
      s'arrête ;
    - tout autre caractère arrête le parcours.
 
-   Le candidat va de `p` à `fin` (exclu) : il finit toujours par un chiffre,
-   et un groupe entre parenthèses n'en fait partie que si un chiffre le suit
-   (`+41 (0)44 123 45 67`). C'est le plus long préfixe qui respecte les
-   contraintes : une `(` non refermée sur des chiffres, ou un groupe que rien
-   ne suit, termine le candidat avant la `(`. Le caractère à `fin` DOIT être
-   une frontière, sinon aucun candidat à `p` (aucun préfixe plus court n'est
-   essayé). Le nombre de chiffres du candidat, groupe compris, est entre 8 et
-   15.
+   Le candidat va de `p` à `q` (exclu), où `q` est la plus grande des
+   positions prises par `fin` au cours du parcours telle que le caractère à
+   `q` est une frontière et que le nombre de chiffres de `[p, q)`, groupe
+   compris s'il précède `q`, est entre 8 et 15 ; sans une telle position,
+   aucun candidat à `p`. C'est la **reprise au séparateur** : quand le
+   parcours s'arrête sur un caractère qui n'est pas une frontière (une
+   lettre collée au dernier chiffre), ou quand le nombre de chiffres dépasse
+   15, le candidat n'est pas abandonné, il finit au dernier chiffre suivi
+   d'un séparateur ou d'une `(` qui laisse entre 8 et 15 chiffres ; le
+   parcours peut donc s'arrêter dès que ce nombre dépasse 15. Le candidat finit
+   toujours par un chiffre, et un groupe entre parenthèses n'en fait partie
+   que si un chiffre le suit (`+41 (0)44 123 45 67`) : une `(` non refermée
+   sur des chiffres, ou un groupe que rien ne suit, termine le parcours avant
+   la `(`. (Complément du 2026-11-16 de la révision 0.11, décision du
+   porteur : la version 0.11 abandonnait le candidat, sans essayer de
+   préfixe plus court, quand le caractère à `fin` n'était pas une frontière
+   ou quand il comptait plus de 15 chiffres ; un numéro suivi d'une date en
+   chiffres restait en clair.)
 2. **Forme normalisée** `N` : `+` suivi des chiffres seuls.
 3. **Correspondance** : du `+` au dernier chiffre. Valeur pour le pseudonyme :
    `N`.
 
 Exemples : `+41 44 123 45 67` → `N = +41441234567` → `[REDIGE:telephone]` ;
 `+41 44 123 45 67 (9h-17h)` → `[REDIGE:telephone] (9h-17h)` ;
-`+33 1 23 45 67 89 (2)` → `[REDIGE:telephone] (2)`.
+`+33 1 23 45 67 89 (2)` → `[REDIGE:telephone] (2)` ;
+`+41 44 123 45 67 13.11.2026` → `[REDIGE:telephone].2026` (le point est un
+séparateur : le plus long préfixe de 15 chiffres au plus finit à `13.11`) ;
+`+41 44 123 45 67a` → `[REDIGE:telephone] 67a` ; `+41441234567a` n'est pas
+rédigé (aucun séparateur avant la lettre). Par ce seul détecteur,
+`+41 44 123 45 67 89021` (16 chiffres) → `[REDIGE:telephone] 89021` ; sous
+`pii-v1`, le détecteur `carte`, appliqué avant, y trouve d'abord la
+sous-suite `44 123 45 67 89021`, qui passe Luhn (10.8).
 
 #### 10.3.7 `regex` (motif nommé)
 
@@ -7746,11 +8017,25 @@ EX-3.11).
   passant Luhn, sans point ; adresse en forme `Dot-string@Domain` ; numéro
   international commençant par `+`. Ne sont pas détectés en version 0 : IBAN
   hors table ou en minuscules, numéros nationaux sans `+`, cartes écrites avec
-  des points, chiffres de pleine chasse ou homoglyphes (UTS #39), données
+  des points ou avec d'autres séparateurs que `SEP` et `-` (barre oblique,
+  barre verticale), chiffres de pleine chasse ou homoglyphes (UTS #39), données
   encodées (base64, pourcent, R6 § 1.5), noms de personnes, adresses postales,
   dates de naissance, NIR français, Steuer-ID allemande, codice fiscale
   italien (formats lus mais sommes de contrôle non sourcées, R6 § 2) ; un
-  client qui en a besoin ajoute un motif nommé ou une règle `champ`.
+  client qui en a besoin ajoute un motif nommé ou une règle `champ`. Depuis
+  le complément du 2026-11-16 de la révision 0.11 (décision du porteur), un
+  candidat plus court est éprouvé quand le plus long échoue (10.3.4 à
+  10.3.6) : un numéro de carte suivi ou précédé, à un séparateur près,
+  d'autres groupes de chiffres (échéance, cryptogramme), une adresse collée à une adresse web ou à un
+  enregistrement à barres verticales, ou suivie de `-1`, un numéro de
+  téléphone suivi d'une date en chiffres ou d'une lettre sont rédigés. En
+  contrepartie, la valeur rédigée peut emporter des caractères voisins (une
+  partie locale lue sur les 64 caractères les plus proches du `@`, les
+  chiffres d'une date qui suivent un numéro de téléphone), une suite de
+  groupes de chiffres a plus de chances de contenir une sous-suite qui passe
+  Luhn (faux positifs de `carte`, jusqu'aux chiffres d'un numéro de
+  téléphone de plus de 15 chiffres, `+41 [REDIGE:carte]`), et le reste
+  d'une partie locale de plus de 64 caractères demeure en clair.
 - **Rédaction n'est pas anonymisation.** Une pièce rédigée peut rester
   identifiante par son contexte (un montant, une date, un numéro de dossier) ;
   un pseudonyme est une donnée personnelle ; le journal entier est une donnée
@@ -7869,7 +8154,7 @@ cinq correspondances) :
 
 | | Octets | `length` | `sha256` |
 |---|---|---|---|
-| Valeur reçue | `{"note":"Virement au bénéficiaire CH93 0076 2011 6238 5295 7, assuré 756.1234.5678.97, joignable au +41 44 123 45 67 ou j.dupont@example.ch ; carte 3782 822463 10005."}` | 171 | — |
+| Valeur reçue | `{"note":"Virement au bénéficiaire CH93 0076 2011 6238 5295 7, assuré 756.1234.5678.97, joignable au +41 44 123 45 67 ou j.dupont@ch.example ; carte 3782 822463 10005."}` | 171 | — |
 | Pièce stockée | `{"note":"Virement au bénéficiaire [REDIGE:iban], assuré [REDIGE:avs], joignable au [REDIGE:telephone] ou [REDIGE:email] ; carte [REDIGE:carte]."}` | 148 | `0x89a34ad286014dee1e1030caf6d50d32327a77da216dfb4a19154f15b73d5f8e` |
 
 Avec l'action `pseudonyme` et la clé de test des vecteurs `K =
@@ -7877,7 +8162,13 @@ SHA-256(UTF-8("noortrace/vecteurs/v0/cle-pseudonyme/test")) =
 0x139011dc372b3ce979a162b0dee18753e67e1477ea4db3c55f929829c2ca3808` (clé
 publique et jetable, annexe B), les mêmes valeurs donnent
 `[PSEUDO:iban:50d46ea9a82b]` pour `CH9300762011623852957` et
-`[PSEUDO:email:b8ac789204a6]` pour `j.dupont@example.ch`.
+`[PSEUDO:email:ff93a7f99c38]` pour `j.dupont@ch.example`. (Complément du
+2026-11-16 de la révision 0.11, décision du porteur : le domaine des adresses
+d'exemple de la section 10 et des vecteurs est `ch.example`, sous le domaine
+de premier niveau `.example` réservé par la RFC 2606 ; celui de la version
+0.11, de même longueur, ne l'était pas. Les `length` et le `sha256` des deux
+tables ne changent pas ; le pseudonyme de l'adresse d'exemple, qui était
+`[PSEUDO:email:b8ac789204a6]` en version 0.11, change.)
 
 ## 11. Clés de l'enregistreur
 
@@ -8212,6 +8503,42 @@ clé, `seq = 1`) dont le lien avec l'ancien est consigné au registre et dans
 le journal d'exploitation, hors chaîne. Cette rupture est dite ici parce que
 CT-1 l'impose : la continuité d'un journal passe par une signature de la clé
 précédente.
+
+Complément du 2026-11-16 (décision du porteur), **lien du journal neuf**. Le
+lien est l'inscription du nouveau journal au registre (CT-4 §8.4), dont la
+demande `demande_signature` est accompagnée d'une **note d'exploitant**, et
+la ligne `journal_successor` du journal d'exploitation de l'ancien démon.
+La note est le fichier `<nom de la demande sans .json>.note-exploitant.json`,
+à côté de la demande : `version` (0), `kind` (`journal_successor`),
+`org_id`, `old_journal_id`, `last_seq` et `last_hash` (`seq` et `hash` du
+dernier événement de l'ancien journal), `new_journal_id` (le
+`fields.journal_id` de la demande), `registration_digest` (le `digest` de la
+demande) et `written_at`. La forme `demande_signature` n'a aucun membre
+libre et la note n'entre pas dans le condensé que signent les approbateurs :
+elle est un fichier distinct, lié à la demande par son `digest`, ni signé ni
+écrit dans la chaîne du registre, et vaut par sa concordance avec l'ancien
+journal, que chacun recalcule. La ligne `journal_successor` a la forme
+d'EX-9.5 (niveau `info`, composant `noyau`, `org_id` et `journal_id` de
+l'ancien journal, `seq` nul ; `data` : `old_journal_id`, `last_seq`,
+`last_hash`, `new_journal_id`). La commande `noortrace-ctl journal
+successeur --configuration <configuration de l'ancien démon> --demande
+<demande>` écrit les deux, l'ancien démon arrêté (refus `demon_en_marche`
+sinon) : `last_seq` et `last_hash` sont lus de la fin réelle de l'ancien
+journal (segments relus dans l'ordre : en-têtes, `first_seq`, `prev_hash`,
+`hash` recalculé ; une fin incomplète n'est admise que pour le dernier
+segment ; les signatures sont vérifiées par CT-8 EX-11.7), jamais fournis par
+l'exploitant. Elle refuse une demande qui n'est pas une inscription de la
+même organisation sous un `journal_id` distinct et non nul
+(`demande_invalide`), et une note ou une ligne qui porte déjà un autre lien
+(`note_existante`, `successeur_existant`) ; rejouée sur le même lien, elle
+n'écrit rien (`deja_fait`). `noortrace-ctl journal verifier-successeur`
+(avec la configuration, ou avec `--journal` et `--journal-exploitation`,
+`--demande`, et `--note` pour une note ailleurs) recalcule la fin de l'ancien
+journal et rend `lien_valide` (code 0) quand la demande, la note et chaque
+ligne `journal_successor` de l'ancien journal (fichier courant et fichiers
+tournés) la portent, `lien_invalide` (code 1) sinon, avec la liste de ses
+contrôles (`fin_ancien_journal`, `demande`, `note_exploitant`,
+`ligne_journal_exploitation`) ; code 2 pour l'usage.
 
 Révision 0.10, **opérations au seuil relayées par le démon**. L'inscription
 de la nouvelle paire et la révocation de l'ancienne `chainKey` sont des
@@ -10311,7 +10638,7 @@ la troisième colonne) :
 | `restart` | `max_attempts`, `backoff_ms` | 4.7.1 | `restart.*` → `/restart/*` |
 | `auth` | `strip_headers` | 4.8 | `auth.strip_headers` → `/auth/strip_headers` |
 | `clock` | `max_backstep_ms`, `warn_skew_ms`, `max_forward_ms`, `max_wait_ms` | 7.4, 14 | `clock.*` → `/clock/*` |
-| `model` | frontal modèle : `mode`, `listen`, `tls`, **connexions d'hôte** de la passerelle, de l'ICAP et du miroir (`hosts[]`, même forme que `mcp.hosts`), `static_tokens`, `forward_headers`, `strip_headers`, `prompt_in_request` (`reference` ou `inline`, EX-8.5), `prompt_system` (`redige` ou `named`, EX-8.6), délais, `correlation_window_ms`, `icap` (`listen`, `tls_listen`, `client_ca`, `allowed_sources`, `client_address_header`), `mirror` ; les **routes** sont dans `policy.model` | 5, 8 | `model.*` → `/model/*` ; `connect_timeout_ms`, `first_byte_timeout_ms`, `idle_timeout_ms` → `/model/…` ; routes, `credentials`, `provider_label`, `passthrough` → `/policy/model/routes/<i>/…` |
+| `model` | frontal modèle : `mode`, `listen`, `tls`, **connexions d'hôte** de la passerelle, de l'ICAP et du miroir (`hosts[]`, même forme que `mcp.hosts`), `static_tokens`, `forward_headers`, `strip_headers`, `prompt_in_request` (`reference` ou `inline`, EX-8.5), `prompt_system` (`redige` ou `named`, EX-8.6), délais, `correlation_window_ms`, `icap` (`listen`, `tls_listen`, `client_ca`, `allowed_sources`, `client_address_header`), `mirror` (`socket`, `peer_user`, `listen`, `tls`, `client_ca`, `allowed_sources`, EX-5.6) ; les **routes** sont dans `policy.model` | 5, 8 | `model.*` → `/model/*` ; `connect_timeout_ms`, `first_byte_timeout_ms`, `idle_timeout_ms` → `/model/…` ; routes, `credentials`, `provider_label`, `passthrough` → `/policy/model/routes/<i>/…` |
 | `sdk` | `enabled`, `socket`, `tcp_listen` (jeton ou mTLS), `hosts[]` (avec `alias`, EX-6.6) | 6 | — |
 | `otel` | (révision 0.5, facultatif) point d'entrée OpenTelemetry : `enabled`, `listen`, `tls`, `path`, `encodings`, `max_body_bytes`, `static_tokens`, `hosts[]` (même forme que `mcp.hosts`, `alias` non nul : la source), `dedup_window_ms`, `overlap_window_ms`, `retry_after_s`, et, facultatifs, `spans_per_request`, `events_per_minute`, `event_bytes_per_minute`, `min_free_bytes` (EX-6.28) | 6.8 | `otel.*` → `/otel/*` |
 | `signer` | `class`, `key_id`, `backend`, `verify_after_sign`, `max_message_bytes`, `timeout_ms`, `health_interval_ms`, `rotation` | 11 | `signer.*` → `/signer/*` |
@@ -11031,6 +11358,10 @@ valeur fautive sauf pour les secrets) et un code de retour `2` :
      `vault-transit`, `openbao-transit`, `aws-kms`, `gcp-kms` ; C ↔
      `envelope` ; D ↔ `file`) ; `environment: "production"` refuse D
      (EX-11.8) et le mode local du connecteur (EX-3.3) ;
+   - (complément du 2026-11-16) `mcp.socket`, `sdk.socket`,
+     `model.mirror.socket` et `policy.approval.service.socket`, membre actif
+     ou non, font au plus 103 octets UTF-8 (`chemin_prise_trop_long`,
+     EX-18.1, EX-6.10) ;
    - alias de serveurs uniques, aucun alias `noortrace` (EX-4.9) ;
      `tools.prefix: false` seulement avec un seul serveur (EX-4.10) ;
    - (révision 0.4) `checkpoint_interval_s`, s'il est présent, divise 3600
@@ -11080,7 +11411,10 @@ valeur fautive sauf pour les secrets) et un code de retour `2` :
      `provider_cache` sur une route d'un autre format est une erreur (le
      schéma l'impose) ;
      `listen` non nul en mode `passerelle` ; `icap` non nul en mode `icap` ;
-     `mirror` non nul en mode `miroir` ; révision 0.11 : en `environment:
+     `mirror` non nul en mode `miroir` ; complément du 2026-11-16 :
+     `mirror.client_ca` exige `mirror.tls`, et un `mirror.listen` hors de la
+     boucle locale exige `tls` et `client_ca`, ou `allowed_sources` non vide
+     (EX-5.6) ; révision 0.11 : en `environment:
      "production"`, une route (`policy.model.routes[].upstream`) en `http://`
      hors de la boucle locale est une erreur, et un avertissement ailleurs ;
      un serveur d'outils (`policy.servers.<alias>.transport.url`) en
@@ -11118,7 +11452,9 @@ valeur fautive sauf pour les secrets) et un code de retour `2` :
      HTTP à OAuth a `issuer` et `resource_metadata_url` (EX-4.40) ; toute
      prise TCP (`mcp.connector_tcp`, `sdk.tcp_listen`) a une authentification
      du client (EX-4.39) ; le mode `icap` a `client_ca` ou `allowed_sources`
-     (EX-5.3) ; `anchoring.registry.chain_key` n'est pas de classe D
+     (EX-5.3) ; le mode `miroir` a `mirror.tls` et `mirror.client_ca`, ou
+     `mirror.allowed_sources` non vide (EX-5.6, complément du 2026-11-16) ;
+     `anchoring.registry.chain_key` n'est pas de classe D
      (EX-11.19) ; `lease.fencing` est non nul avec un magasin `postgresql`
      ou `etcd` (EX-13.10) ; le service d'approbation embarqué de
      démonstration est refusé (EX-18.8) ; **erreur en production,
@@ -11316,7 +11652,7 @@ Domaines :
 | `--seq <n>` | entier décimal de 1 à 2^53 − 1, sans signe ni zéro de tête |
 | `--dernier` | aucune valeur |
 | `--ticket <ticket_id>` | identifiant de ticket de CT-3 EX-7.1 : de 5 à 128 caractères, motif `^apr-[0-9a-z]+(-[0-9a-z]+)*$` (`ticket-v0.schema.json#/$defs/identifiant_ticket`) |
-| `--vers <répertoire>` | chemin non vide, sans octet nul ; un chemin relatif est résolu contre le répertoire de travail de la commande ; la commande envoie le chemin absolu normalisé (sans composant `.` ni `..`, sans barre oblique doublée ni finale), de 4 096 octets au plus, dont chaque composant fait de 1 à 255 octets et dont le dernier composant n'est ni `.` ni `..` ; révision 0.9 : les longueurs portent sur le chemin rendu absolu et normalisé, « le dernier composant » sur le chemin tel qu'il est donné, et `/`, qui n'a aucun composant, n'est pas du domaine ; aucun composant ne commence par `.noortrace-partiel-`, nom réservé aux répertoires temporaires d'EX-15.13 (point 2), que le démon supprime à l'acquisition du bail : un dossier écrit sous ce nom serait effacé au démarrage suivant |
+| `--vers <répertoire>` | chemin non vide, sans octet nul ; un chemin relatif est résolu contre le répertoire de travail de la commande (complément du 2026-11-16 : sous le nom par lequel l'exploitant l'a atteint, `PWD`, quand c'est un chemin absolu sans composant `.` ni `..` qui désigne ce répertoire ; sinon sous son chemin réel ; un répertoire de travail atteint par un lien symbolique ne fait donc pas sortir la destination du répertoire des exports tel que la configuration le nomme, EX-15.12, ordre 3) ; la commande envoie le chemin absolu normalisé (sans composant `.` ni `..`, sans barre oblique doublée ni finale), de 4 096 octets au plus, dont chaque composant fait de 1 à 255 octets et dont le dernier composant n'est ni `.` ni `..` ; révision 0.9 : les longueurs portent sur le chemin rendu absolu et normalisé, « le dernier composant » sur le chemin tel qu'il est donné, et `/`, qui n'a aucun composant, n'est pas du domaine ; aucun composant ne commence par `.noortrace-partiel-`, nom réservé aux répertoires temporaires d'EX-15.13 (point 2), que le démon supprime à l'acquisition du bail : un dossier écrit sous ce nom serait effacé au démarrage suivant |
 | `--configuration <fichier>` | document de configuration du démon visé (EX-15.10, pas 1) |
 | `--delai-ms <n>` | entier décimal de 0 à 86 400 000, sans signe ni zéro de tête ; défaut 120 000 (un export lit toute une période ; les autres commandes adressées au démon attendent 10 000 ms par défaut) ; un seul délai pour toute la commande, compté depuis le début du pas 3 d'EX-15.10 |
 
@@ -11375,7 +11711,7 @@ n'ouvre aucune prise et le démon n'en écoute aucune de plus (EX-18.1) :
    | `demande` | Membres de la demande | Action | Lignes de réponse |
    |---|---|---|---|
    | `rotation-urgence` | `demande`, `pid`, `at` ; révision 0.9 : `request_id`, facultatif | rotation d'urgence de la clé de l'enregistreur (EX-11.16), demandée par `noortrace-ctl cle rotation-urgence` | `key_rotation_emergency` ou `key_rotation_emergency_refused` |
-   | `ancrage` | `demande`, `commande` (`etat`, `metriques` ou `retirer-qualification`), `id` (l'identifiant du prestataire pour `retirer-qualification`, `null` sinon), `pid`, `at` ; révision 0.9 : `request_id`, facultatif | commande du composant d'ancrage branché : état, métriques (CT-5 EX-8.15), retrait de `qualified` d'un prestataire (CT-5 EX-5.9), demandée par `noortrace-ctl ancrage <commande> [<id>]` | `anchoring_state`, `anchoring_metrics`, `provider_qualification_withdrawn` ou `anchoring_ctl_refused` |
+   | `ancrage` | `demande`, `commande` (`etat`, `metriques`, `retirer-qualification` ou, complément du 2026-11-16, `retablir-qualification`), `id` (l'identifiant du prestataire pour `retirer-qualification` et `retablir-qualification`, `null` sinon), `pid`, `at` ; révision 0.9 : `request_id`, facultatif | commande du composant d'ancrage branché : état, métriques (CT-5 EX-8.15), retrait de `qualified` d'un prestataire (CT-5 EX-5.9) et levée de ce retrait par l'exploitant, refusée (`retrait_absent`) quand aucun retrait n'est en vigueur (CT-5 EX-5.9), demandée par `noortrace-ctl ancrage <commande> [<id>]` | `anchoring_state`, `anchoring_metrics`, `provider_qualification_withdrawn`, `provider_qualification_restored` ou `anchoring_ctl_refused` |
    | `dossier` | ceux du pas 3 | export du dossier (EX-15.11 à EX-15.13) | `dossier_exported` ou `dossier_export_refused` (EX-15.14) |
    | `cloture-anticipee` | `demande`, `request_id`, `pid`, `at` | clôture anticipée de la période courante (EX-19.4, EX-15.18), demandée par `noortrace-ctl close-period --now` | `period_closed_early` ou `period_close_refused` (EX-15.18) |
 
@@ -12304,8 +12640,9 @@ champ refusé `run_id` ou `on_behalf_of`, raison `motif`, `detecteur` ou
 `hors_liste`, longueur ; jamais la valeur, EX-7.2, ligne `delegation.run_id`
 de la table d'EX-6.36), `correlation_declaree` (`seq` de l'échange déclaré
 par le SDK retenu faute d'échange interposé, EX-5.22),
-`model_route_not_found` (méthode, longueur du chemin ; jamais le chemin, qui
-peut porter une donnée de l'agent), `provider_mcp_bypass` (route, nombre
+`model_route_not_found` (méthode, longueur du chemin, et `mode` en modes
+`icap` et `miroir`, 5.8 ; jamais le chemin, qui peut porter une donnée de
+l'agent), `provider_mcp_bypass` (route, nombre
 d'entrées), `model_response_truncated` (route, octets reçus),
 `sse_data_final_sans_ligne_vide` (route), `host_disconnected` (route),
 `sdk_member_removed` (nom du membre, EX-6.8), `model_exchange_relayed`
@@ -12373,6 +12710,15 @@ et `host_lines_dropped` (connexion du SDK, EX-4.47) ; `server_progress_refused`
 compagnon des attributs (EX-12.18) ; `worm_versions_unexpected` étendu au
 registre des gels (EX-17.7) ; `sdk_class_override_refused` est retiré (la
 classe d'un appel du SDK est celle que l'agent déclare, table de 6.2).
+Complément du 2026-11-16 : `journal_successor` (composant `noyau` ;
+`old_journal_id`, `last_seq`, `last_hash`, `new_journal_id`), écrite dans le
+journal d'exploitation de l'ancien démon par `noortrace-ctl journal
+successeur` (EX-11.16) ; `auth_failed` de transport `miroir` pour une
+connexion à `model.mirror.socket` sans preuve d'identité ou d'un autre compte
+que `model.mirror.peer_user` (EX-5.6). Complément du 2026-11-16 (requêtes
+hors des routes, 5.8) : `icap_respmod_non_capture` (composant
+`frontal_modele`, niveau `info` ; raison `route_ou_hote` ou
+`req_hdr_absent`), RESPMOD rendu inchangé sans capture.
 
 **EX-17.3** Ne vont **jamais** dans le journal d'exploitation : une pièce ou
 un fragment de pièce (arguments, résultats, messages, prompt), une valeur
@@ -12583,10 +12929,44 @@ terminaison Streamable HTTP (`mcp.http.listen`, `127.0.0.1` par défaut) ; la
 passerelle de modèle (`model.listen`) ; le serveur ICAP (`model.icap.listen`)
 en mode `icap` ; la santé et les métriques (`supervision.health_listen`) ;
 depuis la révision 0.5, le point d'entrée OpenTelemetry (`otel.listen`) quand
-`otel.enabled` est vrai (EX-6.40) ; rien d'autre. Aucune interface
+`otel.enabled` est vrai (EX-6.40) ; depuis le complément du 2026-11-16, en
+mode `miroir`, la prise `model.mirror.socket` (propriétaire = utilisateur du
+démon, mode `0600`, ou `0660` avec la preuve d'identité de
+`model.mirror.peer_user`, EX-5.6) et l'adresse où l'adaptateur de capture
+`noortrace-miroir`, processus séparé, écoute la copie (`model.mirror.listen`,
+`127.0.0.1:8410` par défaut ; hors de la boucle locale, avec certificat
+client ou liste de sources, EX-5.6) ; rien d'autre. Aucune interface
 d'administration réseau en version 0 : la gestion passe par la ligne de
 commande locale (`noortrace-ctl`, même utilisateur que le démon) et par la
 configuration.
+
+Complément du 2026-11-16, **longueur des chemins de prise**. Tout chemin de
+prise Unix que le démon ou ses processus ouvrent ou joignent DOIT faire au
+plus **103 octets** (UTF-8) : `mcp.socket`, `sdk.socket`,
+`model.mirror.socket` et `policy.approval.service.socket` de la
+configuration, membre actif ou non, et le `--socket` de `noortrace-miroir`
+et de `noortrace-connecteur`. C'est la borne du SDK (EX-6.10), valable sous
+Linux et sous macOS : Node.js tronque un chemin plus long à
+`sizeof(sockaddr_un.sun_path) - 1` (107 octets sous Linux, 103 sous macOS,
+R12-F50), et la prise serait créée, ou jointe, sous un autre nom, souvent
+dans le répertoire parent de celui configuré, hors du répertoire dont ce
+paragraphe et EX-4.39 fixent le propriétaire et le mode, où un autre
+processus peut la tenir. La validation refuse un chemin plus long (EX-15.4,
+pas 3 : règle `chemin_prise_trop_long : <n> octets, au plus 103 (EX-18.1,
+EX-6.10)` au pointeur du membre) ; le démarrage le refuse donc (code 2), et
+la mise en écoute d'une prise le refuse aussi, avant toute liaison.
+`noortrace-miroir` (`--socket`, ou `model.mirror.socket` lu par `--config`)
+et `noortrace-connecteur --socket` le refusent avant toute connexion
+(`chemin_prise_trop_long`, code 2). La borne est en octets : le schéma
+`configuration-enregistreur-v0` ne la porte pas, `maxLength` d'un schéma
+JSON comptant des caractères (un chemin de 100 caractères accentués dépasse
+103 octets) ; elle est une règle du pas 3. `noortrace-ctl` n'ouvre ni ne
+joint aucune prise Unix. Les lignes de commande de `noortrace-miroir` (EX-5.6)
+et de `noortrace-connecteur` sont strictes : `noortrace-connecteur` n'admet
+que `--socket <chemin>` ou `--tcp <hôte:port>`, et toute autre forme
+(option inconnue, en double ou sans sa valeur, argument en trop) rend
+l'usage et le code 2, comme `noortrace validate-config` avec un argument en
+trop.
 
 **EX-18.2** Surface sortante, exhaustive : les serveurs d'outils configurés,
 les fournisseurs de modèle des routes, le signataire (classes A et B), le
@@ -12621,7 +13001,11 @@ jeton ou de cette connexion pendant 60 s), **jamais par adresse source** : sur
 adresse, et un processus local ne doit pas pouvoir bloquer les hôtes légitimes
 ; un jeton valide n'est jamais refusé à cause des échecs d'un autre. Les points
 `/healthz` et `/readyz` sont publics sur leur adresse d'écoute ; `/metrics`
-l'est aussi mais ne porte aucune donnée de client (17.2).
+l'est aussi mais ne porte aucune donnée de client (17.2). Complément du
+2026-11-16 : la source de la copie du mode miroir est authentifiée par
+certificat client ou liste de sources (EX-5.6), sauf, hors production, une
+copie écoutée sur la boucle locale ; la copie elle-même n'est pas
+authentifiable (risque accepté RA-95, EX-5.6).
 
 ### 18.3 Moindre privilège
 
@@ -12738,12 +13122,15 @@ rend aussi le processus non traçable par un processus de même utilisateur.
 La graine de classe C n'est jamais écrite en clair. Ce que la version 0 fait
 et ne fait pas (révision 0.11) : `mlockall` et `prctl(PR_SET_DUMPABLE, 0)`
 ne sont pas demandés, le démon n'ayant aucun module natif ; il le consigne
-au démarrage (`memory_protection_unavailable`) ; les fichiers de vidage sont
-interdits par le déploiement (`ulimits core: 0` du fichier Compose, CT-8) ;
+au démarrage (`memory_protection_unavailable`) ; les fichiers de vidage ne
+sont pas désactivés par les fichiers Compose de référence, dont la liste
+fermée des clés d'un service n'admet pas `ulimits` (CO-8 de CT-8) : le
+client les désactive sur l'hôte ;
 à l'arrêt, tous les secrets résolus sont effacés (tampons mis à zéro, table
 vidée) ; les copies que le langage fait d'un secret (chaîne d'un jeton
 Transit, base64 d'un clair, PIN passé à l'auxiliaire) ne sont pas
-effaçables. Cette limite est portée à CT-7 §3.5 (section 21).
+effaçables. Cette limite est un risque accepté par le client (RA-87,
+complément du 2026-11-16), nommé dans CT-7 §3.5.1 (section 21).
 
 **EX-18.8** **Service d'approbation.** Ses décisions ne sont pas signées
 quand elles disent `autorise` ou `refuse` (seules les décisions `approuve`
@@ -13991,6 +14378,11 @@ les cas. ARCHITECTURE.md est aligné en conséquence (section 22).
 - **Les mesures de performance** : des cibles et une méthode (16), aucune
   valeur avant la phase 2.
 - **Le mode miroir** n'est construit que si un client l'exige (EX-5.6).
+  Complément du 2026-11-16 : la source de sa copie est authentifiée par
+  certificat client ou liste de sources (obligatoire en production) et sa
+  prise par le compte du démon ou la preuve d'identité de
+  `model.mirror.peer_user` ; la copie elle-même n'est pas authentifiable
+  (risque accepté RA-95, EX-5.6).
 - **Les messages `annulation` et `liberer` du noyau vers le service**, que
   CT-3 §16 propose : en version 0.3, l'annulation par l'hôte d'une requête
   retenue n'est pas transmise au service, et une approbation servie dont le
@@ -14088,10 +14480,11 @@ les cas. ARCHITECTURE.md est aligné en conséquence (section 22).
   sans effet ; aucune ligne `pieces_purged` n'est écrite ; la rétention des
   pièces est celle des segments (CT-7 §8.8, CT-8 §8.3).
 - (révision 0.11) **`mlockall` et `prctl(PR_SET_DUMPABLE, 0)`** (EX-18.7) :
-  non demandés, aucun module natif ; avertissement consigné, `ulimits core:
-  0` posé par le déploiement, secrets effacés à l'arrêt ; les copies que le
-  langage fait d'un secret ne sont pas effaçables. Limite nommée dans CT-7
-  §3.5.
+  non demandés, aucun module natif ; avertissement consigné, secrets
+  effacés à l'arrêt ; vidages mémoire non désactivés par les fichiers
+  Compose de référence (`ulimits` hors de leur liste fermée, EX-18.7) ; les
+  copies que le langage fait d'un secret ne sont pas effaçables. Risque
+  accepté RA-87 (complément du 2026-11-16), nommé dans CT-7 §3.5.1.
 - (révision 0.11) **La copie WORM vers Azure en production**
   (`azure-immutable-blob`) : la copie, la liste des versions, la lecture et
   l'écriture du registre des gels n'y sont pas fixées ; refusée en
@@ -14104,7 +14497,8 @@ les cas. ARCHITECTURE.md est aligné en conséquence (section 22).
   d'enveloppe de la classe C, aujourd'hui `AWS_ENDPOINT_URL_KMS` seulement,
   EX-11.19) : à l'ordre du jour d'une révision suivante ; d'ici là, un client
   qui pose cette variable sort son fichier Compose des vérifications CO- de
-  CT-8 (risque nommé dans CT-7 §3.5).
+  CT-8 (risque accepté RA-93, complément du 2026-11-16, nommé dans CT-7
+  §3.5.1).
 
 ## 22. Alignement avec le dépôt
 
@@ -14181,7 +14575,7 @@ Révision 0.8 :
 
 | Emplacement | Avant la révision 0.8 | Attendu par la révision 0.8 | État |
 |---|---|---|---|
-| `paquets/enregistreur/src/ctl-demon.mjs`, `paquets/enregistreur/bin/noortrace-ctl` | commandes adressées au démon : `reload`, `clock --accept`, `ancrage etat \| metriques \| retirer-qualification`, `cle rotation-urgence`, `cle rapprocher` ; fichier de demande écrit en remplacement (sans création exclusive) ; réponse reconnue à son seul nom d'événement ; `bin/noortrace-ctl` ne passe à `principalCtlDemon` que `reload`, `clock` et `cle` | `dossier exporter` (EX-15.9, EX-15.10) : domaines des options, demande `dossier` par création exclusive, `request_id`, réponse reconnue à son `request_id`, délai par défaut de 120 000 ms et délai unique pour toute la commande, suppression de sa demande quand le signal échoue, messages d'EX-15.12, codes 0, 1, 2 et 4 ; routage de `dossier` et d'`ancrage` (que le code envoie aujourd'hui à l'outil WORM) dans `bin/noortrace-ctl` | fait (étape 6 ; `request_id` de `ctl_request_failed`, révision 0.9) |
+| `paquets/enregistreur/src/ctl-demon.mjs`, `paquets/enregistreur/bin/noortrace-ctl` | commandes adressées au démon : `reload`, `clock --accept`, `ancrage etat \| metriques \| retirer-qualification \| retablir-qualification` (complément du 2026-11-16), `cle rotation-urgence`, `cle rapprocher` ; fichier de demande écrit en remplacement (sans création exclusive) ; réponse reconnue à son seul nom d'événement ; `bin/noortrace-ctl` ne passe à `principalCtlDemon` que `reload`, `clock` et `cle` | `dossier exporter` (EX-15.9, EX-15.10) : domaines des options, demande `dossier` par création exclusive, `request_id`, réponse reconnue à son `request_id`, délai par défaut de 120 000 ms et délai unique pour toute la commande, suppression de sa demande quand le signal échoue, messages d'EX-15.12, codes 0, 1, 2 et 4 ; routage de `dossier` et d'`ancrage` (que le code envoie aujourd'hui à l'outil WORM) dans `bin/noortrace-ctl` | fait (étape 6 ; `request_id` de `ctl_request_failed`, révision 0.9) |
 | `paquets/enregistreur/src/cli.mjs` (traitement de `SIGURG`) | l. 298-302 : toute demande dont `demande` ne vaut pas `ancrage` déclenche la rotation d'urgence (`coeur.rotationUrgence()`), quelle que soit sa valeur ; un fichier de demande illisible donne `key_rotation_emergency_ignored`, comme un fichier absent ; aucune demande n'est jamais tenue pour périmée ; un fichier resté en place au démarrage est exécuté au premier signal | les trois valeurs connues, `rotation-urgence`, `ancrage` et `dossier`, et l'action que nomme `demande`, elle seule ; `dossier` mène à l'export ; refus dans l'ordre d'EX-15.10, pas 5 : `demande_illisible`, `demande_inconnue` (aucune action, `ctl_request_refused`), `demande_invalide`, `demande_perimee` (600 s, ou antérieure au démarrage) ; fichier de demande supprimé sans exécution au démarrage ; ce changement précède toute livraison de la commande, sans quoi une demande d'export ferait tourner la clé | fait (étape 6 ; essai « défaut corrigé » de `test/enregistreur-demandes-demon.test.js`) |
 | `paquets/enregistreur/src/journal-exploitation.mjs` (`consigner`) | une ligne de niveau inférieur à `supervision.ops_log.level` n'est pas écrite dans le fichier | `dossier_exported`, `dossier_export_refused` et `ctl_request_refused` écrites quel que soit le niveau (EX-15.14) | fait (étape 6) |
 | `paquets/enregistreur/src/configuration.mjs` (validation) | membre `exports_dir` inconnu, refusé comme toute clé inconnue | `exports_dir` facultatif admis, contrôlé au pas 3 d'EX-15.4 (ni `storage.root`, ni un répertoire qui le contient ou qu'il contient) et employé comme répertoire des exports (EX-15.12) | fait pour la validation (copie embarquée du schéma, pas 3, essai de `test/enregistreur-coeur-config.test.js`) ; emploi comme répertoire des exports : à faire (code de l'enregistreur) |
@@ -14221,6 +14615,7 @@ Révision 0.11 :
 | `paquets/enregistreur` (règles de la revue de sécurité de l'étape 8 : EX-3.6, 4.4 pas 10, EX-4.11, EX-4.35, EX-4.39, EX-4.47, EX-5.3, EX-5.27, EX-5.33, 5.6, EX-6.9, EX-6.10, EX-6.28, EX-7.14, EX-7.19, EX-7.21, EX-11.18, EX-12.18, EX-12.35, EX-12.36, EX-12.40, 13.2, EX-14.7, EX-14.12, EX-15.4, EX-15.10, EX-15.11, EX-15.13, 17.1, 17.2, EX-17.3, EX-17.6, EX-17.7, EX-18.4, EX-18.7, EX-18.10) | texte muet ou contraire | règles telles qu'écrites | fait, sauf : la borne de 20 lignes `call_blocked` par connexion et par seconde (EX-4.47), à faire ; `rpc_token` et l'autorité cliente propre (schéma ci-dessus), à faire ; l'alerte « Image différente de la version publiée » (17.4) : règle Prometheus à écrire par le déploiement (CT-8 §10.4) ; la relance de `decisions` à 200 ms–5 s (EX-7.19), faite ; EX-11.10 (`CKM_CLOUDHSM_EDDSA` refusé au démarrage), à vérifier côté enregistreur |
 | 4.4 pas 12 et 14, EX-10.9, EX-10.14 (référence `scripts/lib/`, vecteurs `redaction/motif-ancre-*`, `passages-en-cascade`) | texte ambigu | textes de la révision 0.11 | référence et vecteurs régénérés par la revue de sécurité de l'étape 8 ; publication par l'assemblage |
 | `spec/README.md`, ligne CT-2 | « version 0.10 » | « version 0.11 » | fait |
+| 10.3.4 à 10.3.6, 10.8, 10.9, annexe B.3 (complément du 2026-11-16 de la révision 0.11, décision du porteur) ; `scripts/lib/capture.mjs`, `paquets/enregistreur/src/redaction-detecteurs.mjs`, `scripts/vecteurs/generer-ct2.mjs`, `spec/vecteurs/ct-2/redaction/cas.json` et les autres vecteurs qui portaient l'adresse d'exemple, module Go `spec/vecteurs/ct-2/verificateur-independant/` | candidat le plus long seul : carte suivie d'une échéance ou d'un cryptogramme, adresse collée à une adresse web ou à un enregistrement à barres, adresse suivie de `-1`, téléphone suivi d'une date laissés en clair ; adresses d'exemple sous un domaine qui n'est pas réservé | candidat plus court : sous-suites de groupes (10.3.4), plus longue fin `Dot-string` des 64 caractères les plus proches du `@` et plus long préfixe de domaine admissible (10.3.5), reprise au séparateur (10.3.6) ; adresses d'exemple sous `ch.example` | texte, référence, démon et vecteurs : faits ; module Go de `ct-2` : à aligner |
 
 ## Annexe B — Disposition des vecteurs `spec/vecteurs/ct-2`
 
@@ -14415,11 +14810,19 @@ pour chacun des cinq détecteurs, en forme compacte et en forme avec
 séparateurs ; les onze pays de la table IBAN (un IBAN valide chacun, construit
 par le générateur avec la méthode de génération de 10.3.2) ; un IBAN d'un
 pays hors table (non rédigé) ; une adresse avec partie locale de 64 octets
-et une de 65 (non rédigée) ; une adresse suivie d'un point final et une
+et une de 65 (rédigée sur ses 64 derniers caractères depuis le complément
+du 2026-11-16) ; une adresse suivie d'un point final et une
 suivie d'un trait d'union (rédigées, 10.3.5) ; une adresse longue (cas
-`email-long`, EX-10.23) ; un numéro de téléphone à 15 chiffres et un à 16
-(non rédigé), deux numéros collés (EX-10.9) et les groupes entre
-parenthèses de 10.3.6 ; les deux exemples de 10.9 ; un cas `path` + `champ`
+`email-long`, EX-10.23) ; un numéro de téléphone à 15 chiffres et deux à 16
+(l'un rédigé par la reprise au séparateur, l'autre par une sous-suite qui
+passe Luhn), deux numéros collés (EX-10.9) et les groupes entre
+parenthèses de 10.3.6 ; depuis le complément du 2026-11-16 de la révision
+0.11 (décision du porteur), les formes qu'un candidat plus court rédige
+(10.3.4 à 10.3.6) : une carte suivie d'une échéance, une suivie d'un
+cryptogramme, une précédée d'un groupe de chiffres, une adresse au bout
+d'une adresse web, une au bout d'un enregistrement à barres verticales,
+une suivie de `-1`, un numéro de téléphone suivi d'une date et un dont le
+dernier groupe est collé à une lettre ; les deux exemples de 10.9 ; un cas `path` + `champ`
 avec `remplacer` sur un nombre JSON ; un cas `supprimer` sur un membre et
 sur un élément de tableau ; un cas de motif nommé ; un cas où plusieurs
 règles s'enchaînent ; un cas qui exige un second passage (EX-10.14) ; un

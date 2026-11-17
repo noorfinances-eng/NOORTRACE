@@ -84,6 +84,15 @@ EX-7.28 demandées) :
 - En production, un point `rpc` en `http://` hors de `127.0.0.1`, `::1` et
   `localhost` est refusé au démarrage, et OP-2 contrôle tous les points
   avant le premier appel : le jeton ne part jamais vers un point refusé.
+- Le nonce d'un envoi est lu sur chaque point `rpc` et recoupé comme dans
+  le composant d'ancrage (CT-4 EX-8.14, précision et complément du
+  2026-11-17) : avec plusieurs points, la plus grande valeur rendue par au
+  moins deux d'entre eux ; aucune valeur rendue par deux points, ou un point
+  au-delà de cette valeur + 1, et rien n'est signé (`nonce_incoherent`,
+  transitoire : relancer quand les points concordent). Un point en retard
+  ne bloque pas. Le nonce n'est jamais inférieur au plancher des envois de
+  l'expéditeur dont l'inclusion est écrite dans les captures du client ; le
+  déploiement du jeu est signé au nonce qui a servi au calcul de son adresse.
 - L'agent relit l'instance à chaque travail : une révision du manifeste qui
   change sa nature ou ses identifiants refuse le travail
   (`instance_illisible`).
@@ -324,6 +333,8 @@ l'installation) et n'entrent dans aucune image (étape 7) :
 | Fichier | Objet |
 |---|---|
 | `test/inscription-agent.test.js` | agent sur le réseau Hardhat 31337 : refus OP-, reprises d'EX-7.16, sorties comparées à l'outil de référence, prise et compte du pair (EX-7.28), références (EX-7.3, EX-7.25), confirmations (EX-7.26) |
+| `test/inscription-agent-nonce-plancher.test.js` | nonce d'EX-8.14 sur le nœud factice : plancher des inclusions écrites, recoupement des points (`nonce_incoherent`) |
+| `test/inscription-agent-nonce-deploiement.test.js` | déploiement du jeu sur le réseau Hardhat derrière trois points : signé au plancher, à l'adresse CREATE de ce même nonce |
 | `test/inscription-application.test.js` | TE-22 : interface construite et lancée, agent réel derrière |
 | `test/inscription-paquet.test.js` | TE-21 : paquet produit, recherche d'EX-7.21, `controlerPaquet`, exemples de CT-4 7.13 ; pas 10 |
 | `test/inscription-reseau.test.js` | réseau de développement 2124 (en attente s'il n'est pas debout) : client fictif, épreuve d'EX-7.24 |

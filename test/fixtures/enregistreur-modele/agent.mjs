@@ -10,7 +10,9 @@
 //   node agent.mjs '<paramètres JSON>'
 //   { passerelle, jetonModele, mcp, jetonMcp, runId }
 
-import { pathToFileURL } from "node:url";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const SYSTEME = "Tu es l'agent sinistres de l'assureur de demonstration.";
 const QUESTION = "Ou en est le sinistre 2026-81044 ?";
@@ -164,7 +166,7 @@ async function principal() {
   process.stdout.write(`${JSON.stringify(resume)}\n`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   principal().catch((e) => {
     process.stderr.write(`agent : ${e?.stack ?? e}\n`);
     process.exit(1);

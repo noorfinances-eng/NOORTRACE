@@ -472,6 +472,17 @@ export function adresseDans(liste, adresse) {
 }
 
 /**
+ * L'hôte d'une adresse d'écoute `hôte:port` est-il sur la boucle locale
+ * (`127.0.0.0/8`, `::1`, `localhost`) ? Règle de `model.mirror.listen` (EX-5.6).
+ * @param {string} ecoute
+ */
+export function ecouteLocaleModele(ecoute) {
+  const [h] = String(ecoute).split(/:(?=[0-9]+$)/);
+  const hote = h.replace(/^\[(.*)\]$/, "$1");
+  return hote.toLowerCase() === "localhost" || adresseDans(listeAdresses(["127.0.0.0/8", "::1/128"]), hote);
+}
+
+/**
  * Connexion d'hôte des modes `icap` et `miroir` (EX-5.8 point 3) : l'entrée
  * de `model.hosts` dont `match.source_addresses` contient l'adresse, à défaut
  * l'entrée d'`id` `"inconnu"`, sinon null.
@@ -526,6 +537,19 @@ export function controleModele(c) {
   if (m.mode === "passerelle" && !m.listen) err("/model/listen", "adresse d'écoute exigée en mode passerelle (EX-5.2)", m.listen ?? null);
   if (m.mode === "icap" && !m.icap) err("/model/icap", "membre icap exigé en mode icap (EX-5.3)", null);
   if (m.mode === "miroir" && !m.mirror) err("/model/mirror", "membre mirror exigé en mode miroir (EX-5.6)", null);
+  // Complément du 2026-11-16 (EX-5.6, EX-18.1, EX-15.4 pas 3) : écoute de la copie par l'adaptateur et
+  // authentification de sa source (certificat client d'une autorité propre, ou liste fermée de sources).
+  const mi = m.mirror;
+  if (m.mode === "miroir" && mi) {
+    if (mi.client_ca && !mi.tls) err("/model/mirror/client_ca", "client_ca exige mirror.tls : le certificat client est vérifié par TLS (EX-5.6)", mi.client_ca);
+    const authentifiee = Boolean(mi.tls && mi.client_ca) || (mi.allowed_sources ?? []).length > 0;
+    if (typeof mi.listen === "string" && !ecouteLocaleModele(mi.listen) && !authentifiee) {
+      err("/model/mirror/listen", "écoute de la copie hors de la boucle locale sans certificat client (tls et client_ca) ni liste de sources (allowed_sources) (EX-5.6)", mi.listen);
+    }
+    if (c.recorder?.environment === "production" && !authentifiee) {
+      err("/model/mirror", "en production, la source de la copie du mode miroir est authentifiée : TLS avec certificat client (tls et client_ca) ou liste de sources (allowed_sources) (EX-5.6)", null);
+    }
+  }
   if (m.mode && m.mode !== "desactive" && !(m.hosts ?? []).length) err("/model/hosts", "au moins une connexion d'hôte par frontal actif (EX-7.3)", null);
   (m.hosts ?? []).forEach((h, k) => {
     if (h.match?.source_addresses !== undefined && m.mode === "passerelle") err(`/model/hosts/${k}/match`, "source_addresses seulement en modes icap et miroir (EX-5.8)", null);

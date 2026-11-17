@@ -1020,6 +1020,74 @@ function envoisEnAttente(repertoire, from, { sauf = null } = {}) {
   return out;
 }
 
+/**
+ * Plancher du nonce d'EX-8.14 (complément du 2026-11-17) : n + 1, où n est le plus grand nonce des envois de `from`
+ * dont l'inclusion est écrite dans le répertoire des captures (issue portant `block_number`, quel que soit son
+ * `status` ; ou original `remplacee` que l'issue `ecartee` de son remplaçant désigne par `replaces`, EX-8.16) ; null
+ * sans tel envoi.
+ */
+function plancherNonce(repertoire, from) {
+  if (!repertoire || !fs.existsSync(repertoire)) return null;
+  let n = null;
+  for (const f of fs.readdirSync(repertoire).filter((x) => /^envoi-0x[0-9a-f]{64}\.json$/.test(x))) {
+    const e = envoiLu(path.join(repertoire, f));
+    if (!e || e.from !== from) continue;
+    const issue = lireIssue(repertoire, e.transaction_hash);
+    let inclus = Number.isSafeInteger(issue?.block_number) && issue.block_number >= 0;
+    if (!inclus && issue?.state === "remplacee" && typeof issue.replaced_by === "string") {
+      const r = lireIssue(repertoire, issue.replaced_by);
+      inclus = r?.state === "ecartee" && r.replaces === e.transaction_hash;
+    }
+    if (inclus && (n === null || BigInt(e.nonce) > n)) n = BigInt(e.nonce);
+  }
+  return n === null ? null : n + 1n;
+}
+
+/**
+ * Valeur des points d'EX-8.14 : `eth_getTransactionCount(from, "latest")` lu sur chaque point de `--rpc`, puis
+ * recoupé (`C.recouperNonce`) : un seul point, sa valeur ; plusieurs, la plus grande valeur rendue par au moins deux
+ * points, et rien n'est signé si les points diffèrent de plus de 1 (`nonce_incoherent`, transitoire). Aucun point ne
+ * répond : `noeud_injoignable`, comme une lecture ; aucune valeur lisible : l'erreur JSON-RPC du premier point qui en
+ * rend une.
+ */
+async function nonceDesPoints(client, from) {
+  const reponses = await Promise.all(client.urls.map(async (u) => {
+    try {
+      const r = await rpcBrut(u, "eth_getTransactionCount", [from, "latest"]);
+      if (r.valeur.error) return { erreur: new ErreurRPC(r.valeur.error.code, String(r.valeur.error.message ?? JSON.stringify(r.valeur.error)).slice(0, 512), u) };
+      const v = r.valeur.result;
+      if (typeof v !== "string" || !/^0x[0-9a-fA-F]{1,16}$/.test(v)) return { erreur: new ErreurRPC(null, `${urlSansSecret(u)} : eth_getTransactionCount illisible`, u) };
+      return { valeur: BigInt(v) };
+    } catch (err) {
+      if (!(err instanceof ErreurRPC)) throw err;
+      return { panne: err };
+    }
+  }));
+  const valeurs = reponses.filter((r) => "valeur" in r).map((r) => r.valeur);
+  if (valeurs.length === 0) {
+    const e = reponses.find((r) => r.erreur);
+    if (e) throw e.erreur;
+    throw new Arret("noeud_injoignable", "OP-2", reponses.at(-1)?.panne?.message ?? "aucun point --rpc ne répond");
+  }
+  const r = C.recouperNonce(valeurs, client.urls.length);
+  if (r.incoherent) throw new Arret("nonce_incoherent", null, `eth_getTransactionCount pour ${from} : ${r.incoherent} ; transitoire, relancer quand les points concordent (EX-8.14)`);
+  return r.nonce;
+}
+
+/**
+ * Nonce à signer d'EX-8.14 : la valeur des points (`nonceDesPoints`), portée au plancher des inclusions écrites
+ * (complément du 2026-11-17). Un reçu lu sur un point peut précéder l'application de son bloc par les autres : relu
+ * sur des points en retard d'un bloc, le nonce serait celui qui vient d'être consommé. Le plancher vaut au plus la
+ * valeur des points + 1 ; au-delà, rien n'est signé (`nonce_incoherent`, transitoire).
+ */
+async function nonceASigner(client, from, repertoire) {
+  const lu = await nonceDesPoints(client, from);
+  const plancher = plancherNonce(repertoire, from);
+  if (plancher === null || plancher <= lu) return lu;
+  if (plancher > lu + 1n) throw new Arret("nonce_incoherent", null, `eth_getTransactionCount rend ${lu} pour ${from}, en dessous de plus d'une unité du plancher ${plancher} des inclusions écrites dans ${repertoire} : transitoire, relancer quand les points concordent (EX-8.14)`);
+  return plancher;
+}
+
 /** Écrit issue-<hachage>.json (#/$defs/issue) ; un fichier présent n'est réécrit qu'avec `remplacer`. */
 function ecrireIssue(repertoire, transactionHash, issue, { remplacer = false } = {}) {
   const f = path.join(repertoire, `issue-${transactionHash}.json`);
@@ -1057,7 +1125,7 @@ async function verifierExpediteur(ctx, { client, instance, from, value = 0n, rep
 async function envoyer(ctx, { instance, client, cle, appel, repertoire, sansCapture, delai, remplace = null, nonceImpose = null }) {
   const m = instance.manifeste;
   const from = adresseCle(cle);
-  const nonce = nonceImpose ?? BigInt(await client.appel("eth_getTransactionCount", [from, "latest"]));
+  const nonce = nonceImpose ?? (await nonceASigner(client, from, repertoire));
   const prix = remplace !== null ? C.fraisRemplacement(remplace.prix) : BigInt(m.fees.max_fee_per_gas_wei);
   const champs = { chain_id: m.evm_chain_id, nonce, max_priority_fee_per_gas: prix, max_fee_per_gas: prix, gas_limit: m.fees.gas_limit, to: appel.objet === "deploiement" ? null : appel.to, value: appel.value ?? 0n, data: appel.data };
   const signee = C.signerTransaction(champs, cle.privateKey);
@@ -1699,7 +1767,8 @@ async function inscrireClientDossier(ctx) {
   }
   if (setAdresse === null) {
     await verifierExpediteur(ctx, { client, instance, from: adresseCle(dep), repertoire: rep });
-    const nonce = BigInt(await client.appel("eth_getTransactionCount", [adresseCle(dep), "latest"]));
+    // L'adresse CREATE dépend du nonce : il est retenu une fois, plancher compris (EX-8.14), et imposé à l'envoi.
+    const nonce = await nonceASigner(client, adresseCle(dep), rep);
     const attendue = C.adresseCreation(adresseCle(dep), nonce);
     const r = await envoyer(ctx, {
       instance,
@@ -2266,6 +2335,58 @@ async function verifierRelayeur(ctx, m, exp) {
   });
 }
 
+/** Plus grande tranche de blocs d'un `eth_getLogs` (EX-5.11, borne du nœud). */
+const TRANCHE_JOURNAUX = 16384n;
+/** Refus pour débit d'un nœud (noorcore : erreur `-32000`, message `rate limited`) ; OP-8, complément du 2026-11-16. */
+const REFUS_DEBIT = /\brate limited\b/i;
+/** Première pause après un refus pour débit, doublée à chaque refus. */
+const PAUSE_DEBIT_MS = 250;
+/** Plafond d'une pause après un refus pour débit. */
+const PAUSE_DEBIT_MAX_MS = 4000;
+/** Somme des pauses admises pour une même tranche ; au-delà, la lecture est impossible. */
+const ATTENTE_DEBIT_MAX_MS = 30000;
+
+/**
+ * CT-4 OP-8 (complément du 2026-11-16 ; CT-5 EX-9.4) : la première inscription de la clé de chaîne `chainKey` sous une
+ * autre organisation que `orgId` au `RecorderRegistry` en service, active ou révoquée, ou `null`. Lue par `eth_getLogs`
+ * des événements `RecorderRegistered` dont le deuxième sujet indexé est cette clé de chaîne, du bloc de déploiement du
+ * contrat (manifeste de l'instance) à la tête, en tranches de 16 384 blocs (EX-5.11). Une lecture impossible arrête
+ * la commande : la vérification n'est pas faite. Un refus pour débit du nœud (`-32000`, `rate limited`) ne dit rien
+ * des journaux : la tranche est redemandée aux mêmes paramètres après une pause de 250 ms, doublée à chaque refus et
+ * plafonnée à 4 s, tant que les pauses de la tranche ne dépassent pas 30 s ; au-delà, la lecture est impossible.
+ */
+async function inscriptionAilleurs(client, { contrat, depuis, orgId, chainKey }) {
+  const sujet = "0x" + "0".repeat(24) + chainKey.slice(2).toLowerCase();
+  const topic = C.EVENEMENTS.RecorderRegistered.topic;
+  let tete;
+  try {
+    tete = BigInt(await client.appel("eth_blockNumber", []));
+    for (let de = BigInt(depuis); de <= tete; de += TRANCHE_JOURNAUX) {
+      const a = de + TRANCHE_JOURNAUX - 1n < tete ? de + TRANCHE_JOURNAUX - 1n : tete;
+      const params = [{ fromBlock: C.quantiteRPC(de), toBlock: C.quantiteRPC(a), address: contrat, topics: [topic, null, sujet] }];
+      let journaux;
+      for (let p = PAUSE_DEBIT_MS, cumul = 0; ; cumul += p, p = Math.min(2 * p, PAUSE_DEBIT_MAX_MS)) {
+        try {
+          journaux = await client.appel("eth_getLogs", params);
+          break;
+        } catch (err) {
+          if (!(err instanceof ErreurRPC) || !REFUS_DEBIT.test(err.message) || cumul + p > ATTENTE_DEBIT_MAX_MS) throw err;
+          await new Promise((ok) => setTimeout(ok, p));
+        }
+      }
+      for (const j of Array.isArray(journaux) ? journaux : []) {
+        const t = (j?.topics ?? []).map((x) => String(x).toLowerCase());
+        if (String(j?.address).toLowerCase() !== contrat.toLowerCase() || t[0] !== topic || t[2] !== sujet || t.length < 4) continue;
+        if (t[1] !== orgId.toLowerCase()) return { org_id: t[1], block_number: Number(BigInt(j.blockNumber)), transaction_hash: String(j.transactionHash).toLowerCase() };
+      }
+    }
+  } catch (err) {
+    if (err instanceof ErreurRPC) throw new Arret("noeud_injoignable", "OP-2", `eth_getLogs de RecorderRegistered : ${err.message} ; l'inscription de ${chainKey} sous une autre organisation n'a pas pu être vérifiée (OP-8)`);
+    throw err;
+  }
+  return null;
+}
+
 async function cmdInscrireCle(ctx) {
   const o = ctx.options;
   const { instance, client, sansCapture, m } = await preparer(ctx);
@@ -2308,6 +2429,10 @@ async function cmdInscrireCle(ctx) {
     if (actuel.registeredAt !== 0n) throw new Arret("cle_deja_active", "OP-8", `clé de chaîne ${f.chain_key} déjà inscrite`);
     const parCle = await client.vue(c.recorder_registry, "RecorderRegistry", "recorderByPubKey", [f.org_id, f.ed25519_public_key]);
     if (parCle.chainKey !== "0x0000000000000000000000000000000000000000" && parCle.revokedAt === 0n) throw new Arret("cle_ed25519_active", "OP-8", `clé Ed25519 active sous ${parCle.chainKey.toLowerCase()}`);
+    // Complément du 2026-11-16 (CT-5 EX-9.4) : une clé de chaîne ne sert qu'une organisation ; le contrat, qui indexe
+    // les enregistreurs par organisation, ne l'empêche pas.
+    const ailleurs = await inscriptionAilleurs(client, { contrat: c.recorder_registry, depuis: C.contratEnService(m, "RecorderRegistry").block_number ?? 0, orgId: f.org_id, chainKey: f.chain_key });
+    if (ailleurs) throw new Arret("cle_chaine_autre_organisation", "OP-8", `clé de chaîne ${f.chain_key} déjà inscrite sous l'organisation ${ailleurs.org_id} (bloc ${ailleurs.block_number}, transaction ${ailleurs.transaction_hash})`);
   });
   await verifierExpediteur(ctx, { client, instance, from: adresseCle(exp.cle), repertoire: rep });
   const r = await envoyer(ctx, {

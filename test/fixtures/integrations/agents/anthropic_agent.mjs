@@ -139,7 +139,7 @@ async function principal() {
   process.stdout.write(`noortrace-agent ${JSON.stringify(trace)}\n`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   principal().then(
     () => process.exit(0),
     (e) => {

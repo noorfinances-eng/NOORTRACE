@@ -715,7 +715,8 @@ func (d *Depot) verifierProse(rap *Rapport) {
 			}
 		}
 		if t.Status.Complement != nil {
-			// Section 16 : « les compléments des n TA- exécutables » ;
+			// Section 16 : « les compléments des [n] TA- exécutables qui en
+			// portent un » (ou « le complément du TA- exécutable… ») ;
 			// le complément de TV-55 (publication, étape 7) est nommé à part.
 			if t.Level == "TA" {
 				compl++
@@ -734,15 +735,24 @@ func (d *Depot) verifierProse(rap *Rapport) {
 		n, okN := EntierFrancais(x[1])
 		rap.Verdict(okN && int(n) == attendu, "16", objet, "texte %s, recalculé %d", x[1], attendu)
 	}
-	lire(regexp.MustCompile(`: ([0-9]+) entrées du catalogue \(table de 5\.5\)`), "entrées à écrire", aEcrire)
-	lire(regexp.MustCompile(`les compléments des ([a-z]+) TA- exécutables`), "TA- avec complément", compl)
+	lire(regexp.MustCompile(`: ([0-9]+) entrées? du catalogue \(table de 5\.5\)`), "entrées à écrire", aEcrire)
+	// Le nombre des TA- avec complément est écrit (« des deux TA- »), ou se
+	// lit au singulier (1) ou au nombre des TA- nommés ; il égale le nombre
+	// recalculé et celui des TA- nommés.
+	if n, nommes, ok := LireNombreTA16(s16); !ok {
+		rap.Discorde("16", "TA- avec complément", "non lu dans le texte")
+	} else {
+		rap.Verdict(n == compl && n == len(nommes), "16", "TA- avec complément", "texte %d %v, recalculé %d", n, nommes, compl)
+	}
 	// Révision 0.2 : sans complément rattaché à l'étape 4, le texte le dit en toutes lettres.
 	if compl4 == 0 {
 		rap.Verdict(strings.Contains(s16, "aucun complément n'est rattaché à l'étape 4"), "16", "compléments de l'étape 4", "texte « aucun complément n'est rattaché à l'étape 4 », recalculé %d", compl4)
+	} else if n, nommes, ok := LireEtape16(s16, 4); !ok {
+		rap.Discorde("16", "compléments de l'étape 4", "non lu dans le texte")
 	} else {
-		lire(regexp.MustCompile(`les compléments des ([a-z]+) entrées de l'étape 4`), "compléments de l'étape 4", compl4)
+		rap.Verdict(n == compl4 && (len(nommes) == 0 || len(nommes) == n), "16", "compléments de l'étape 4", "texte %d %v, recalculé %d", n, nommes, compl4)
 	}
-	lire(regexp.MustCompile(`les ([0-9]+) entrées TM- « à écrire »`), "TM- à écrire", tmAE)
+	lire(regexp.MustCompile(`([0-9]+) entrées? TM- « à écrire »`), "TM- à écrire", tmAE)
 	// Révision 0.10 : les entrées qui portent un complément sont nommées, les
 	// TA- d'abord (« (TA-25, TA-41) »), les autres ensuite (« ceux de TV-55,
 	// …, de TM-1 à TM-5, … n'ont aucun résultat »).
@@ -778,16 +788,36 @@ func (d *Depot) verifierProse(rap *Rapport) {
 		}
 		rap.Verdict(n == len(ids) && contient(ids, dont[0]) && contient(ids, dont[1]), "16", "TA- à menace de phase 2 à écrire", "texte %d (dont %s et %s), catalogue %d %v", n, dont[0], dont[1], len(ids), ids)
 	}
-	// « les compléments des N entrées de l'étape 8 (TA-…) » : chaque entrée
-	// nommée porte un complément rattaché à l'étape 8.
-	if n, nommees, ok := LireEtape8_16(s16); ok {
+	// « les compléments des [N] entrées de l'étape 8 (TA-…) », au point des
+	// tests adversariaux : chaque entrée nommée porte un complément rattaché
+	// à l'étape 8, le nombre lu égale celui des entrées nommées, et ce sont
+	// tous les TA- du catalogue qui en portent un. La phrase n'est facultative
+	// que si aucun TA- n'en porte.
+	var ta8 []string
+	for i := range d.Cat.Tests {
+		t := &d.Cat.Tests[i]
+		if t.Level == "TA" && t.Status.Complement != nil && t.Status.Complement.Phase2Step == 8 {
+			ta8 = append(ta8, t.ID)
+		}
+	}
+	if n, nommees, ok := LireEtape16(s16, 8); !ok {
+		if len(ta8) > 0 {
+			rap.Discorde("16", "compléments de l'étape 8 nommés", "phrase « les compléments des [N] entrées de l'étape 8 (…) » non lue ; catalogue %v", ta8)
+		}
+	} else {
 		var sans []string
 		for _, id := range nommees {
 			if t := d.ParID[id]; t == nil || t.Status.Complement == nil || t.Status.Complement.Phase2Step != 8 {
 				sans = append(sans, id)
 			}
 		}
-		rap.Verdict(n == len(nommees) && len(sans) == 0, "16", "compléments de l'étape 8 nommés", "texte %d entrées %v ; sans complément de l'étape 8 au catalogue : %v", n, nommees, sans)
+		rap.Verdict(n == len(nommees) && len(sans) == 0 && egalesTriees(nommees, ta8), "16", "compléments de l'étape 8 nommés", "texte %d entrées %v ; TA- avec complément de l'étape 8 au catalogue : %v ; sans complément de l'étape 8 : %v", n, nommees, ta8, sans)
+	}
+	// « celui de TA-n étant levé (complément du …) » : l'entrée existe et ne
+	// porte plus de complément.
+	for _, id := range LireLeves16(s16) {
+		t := d.ParID[id]
+		rap.Verdict(t != nil && t.Status.Complement == nil, "16", "complément levé : "+id, "texte : levé ; catalogue : état %s, complément %v", etatDe(t), t != nil && t.Status.Complement != nil)
 	}
 }
 

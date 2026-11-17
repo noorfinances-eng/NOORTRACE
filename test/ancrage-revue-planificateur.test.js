@@ -189,29 +189,101 @@ describe("ancrage, revue de sécurité de l'étape 8 : supervision, noortrace_an
 
 describe("ancrage, revue de sécurité de l'étape 8 : coût d'une passe sur une file ancienne (CT-5 EX-8.1, EX-8.5 règle 5 ; correction partielle)", function () {
   this.timeout(120000);
-  it("une passe de tic et sa relève de supervision sur 20 000 demandes finales ne recopient ni ne trient la file : moins de 400 ms, et moins de 8 fois le coût de 2 500", function () {
-    const mesurer = (n) => {
-      const config = structuredClone(TRACE.config);
-      const pl = new Planificateur(config, { nonces: nonces(), sansRegistre: true });
-      const s = new Supervision({ prestatairesExterieurs: ["qtsa-principal"] });
-      pl.traiter({ t: h(T0), type: "demarrage", data: {} });
-      for (let k = 0; k < n; k++) {
-        const hash = "0x" + Buffer.from(randomBytes(32)).toString("hex");
-        const id = `jeton_point:${hash}`;
-        pl.chargerDemande({ version: 0, id, kind: "jeton_point", subject: { kind: "point", org_id: SUJET.org_id, journal_id: SUJET.journal_id, period_start: P - 3600 * (1 + (k % 5000)), hash, tree_size: 1, declared_at: h(T0 - 1000) }, deadlines: [], state: "obtenue", created_at: h(T0 - 1000 - k), due_at: null, attempts: [{ n: 1, provider: "tsa-interne", started_at: h(T0 - 1000), nonce: "0x0000000000000001", correlation_id: `jeton_point:${hash.slice(2, 18)}:1`, outcome: "obtenue", error_code: null, http_status: 200, pki_status: 0, failure_info: null, retry_after_s: null, next_at: null, detail: "x" }], attempts_total: 1, result: { sha256: hash, size: 1000, provider: "tsa-interne", obtained_at: h(T0 - 900), bound: h(T0 - 900) }, replaced_by: null });
-      }
-      // Une minuterie existe (clôture en cours) : c'est le cas où la passe triait toute la file.
-      pl.traiter({ t: h(T0 + 1000), type: "periode_close", data: SUJET });
+  // Le coût est compté, non chronométré seulement. La relève de supervision lit
+  // toute la file par construction (jauges par sorte et état) : son coût croît
+  // avec les demandes finales, et le rapport de deux durées (borne 8 pour un
+  // facteur 8 de demandes) ne départageait pas une passe saine d'une passe qui
+  // recopie la file à chaque événement ; il a aussi échoué une fois sous charge
+  // (8,28), sans défaut. On compte donc ce que la passe du planificateur lit de
+  // la file (éléments rendus par un parcours de la table des demandes : toute
+  // copie ou tout tri de la file la parcourt), et ce que la relève en lit ; la
+  // durée garde sa borne absolue, prise au minimum de cinq passes.
+  class DemandesComptees extends Map {
+    constructor(entrees) {
+      super(entrees);
+      this.actif = false;
+      this.lues = 0;
+    }
+    compter(iterateur) {
+      if (!this.actif) return iterateur;
+      const soi = this;
+      return {
+        next() {
+          const r = iterateur.next();
+          if (!r.done) soi.lues += 1;
+          return r;
+        },
+        [Symbol.iterator]() {
+          return this;
+        },
+      };
+    }
+    values() {
+      return this.compter(super.values());
+    }
+    keys() {
+      return this.compter(super.keys());
+    }
+    entries() {
+      return this.compter(super.entries());
+    }
+    [Symbol.iterator]() {
+      return this.compter(super.entries());
+    }
+    forEach(f, ceci) {
+      if (this.actif) this.lues += this.size;
+      super.forEach(f, ceci);
+    }
+  }
+  const mesurer = (n) => {
+    const config = structuredClone(TRACE.config);
+    const pl = new Planificateur(config, { nonces: nonces(), sansRegistre: true });
+    const s = new Supervision({ prestatairesExterieurs: ["qtsa-principal"] });
+    pl.traiter({ t: h(T0), type: "demarrage", data: {} });
+    for (let k = 0; k < n; k++) {
+      const hash = "0x" + Buffer.from(randomBytes(32)).toString("hex");
+      const id = `jeton_point:${hash}`;
+      pl.chargerDemande({ version: 0, id, kind: "jeton_point", subject: { kind: "point", org_id: SUJET.org_id, journal_id: SUJET.journal_id, period_start: P - 3600 * (1 + (k % 5000)), hash, tree_size: 1, declared_at: h(T0 - 1000) }, deadlines: [], state: "obtenue", created_at: h(T0 - 1000 - k), due_at: null, attempts: [{ n: 1, provider: "tsa-interne", started_at: h(T0 - 1000), nonce: "0x0000000000000001", correlation_id: `jeton_point:${hash.slice(2, 18)}:1`, outcome: "obtenue", error_code: null, http_status: 200, pki_status: 0, failure_info: null, retry_after_s: null, next_at: null, detail: "x" }], attempts_total: 1, result: { sha256: hash, size: 1000, provider: "tsa-interne", obtained_at: h(T0 - 900), bound: h(T0 - 900) }, replaced_by: null });
+    }
+    // Une minuterie existe (clôture en cours) : c'est le cas où la passe triait toute la file.
+    pl.traiter({ t: h(T0 + 1000), type: "periode_close", data: SUJET });
+    const demandes = new DemandesComptees(pl.demandes);
+    pl.demandes = demandes;
+    let luesReleve = 0;
+    const durees = [];
+    for (let i = 0; i < 5; i++) {
       const debut = performance.now();
-      for (let i = 0; i < 5; i++) {
-        const actions = pl.traiter({ t: h(T0 + 2000 + i * 1000), type: "tic", data: {} });
-        s.releverActions({ actions, file: pl.demandes.values(), maintenant: T0 + 2000 + i * 1000 });
+      demandes.actif = true;
+      let actions;
+      try {
+        actions = pl.traiter({ t: h(T0 + 2000 + i * 1000), type: "tic", data: {} });
+      } finally {
+        demandes.actif = false;
       }
-      return (performance.now() - debut) / 5;
-    };
+      const file = demandes.values();
+      const lue = {
+        next() {
+          const r = file.next();
+          if (!r.done) luesReleve += 1;
+          return r;
+        },
+        [Symbol.iterator]() {
+          return this;
+        },
+      };
+      s.releverActions({ actions, file: lue, maintenant: T0 + 2000 + i * 1000 });
+      durees.push(performance.now() - debut);
+    }
+    return { luesPasse: demandes.lues, luesReleve, taille: demandes.size, duree: Math.min(...durees) };
+  };
+  it("une passe de tic et sa relève de supervision sur 20 000 demandes finales ne recopient ni ne trient la file : cinq passes du planificateur lisent autant de demandes qu'avec 2 500 (aucune demande finale), la relève lit chaque demande une fois, et la passe la plus courte prend moins de 400 ms", function () {
     const petit = mesurer(2500);
     const grand = mesurer(20000);
-    expect(grand, `passe sur 20 000 demandes finales : ${grand.toFixed(1)} ms (2 500 : ${petit.toFixed(1)} ms)`).to.be.below(400);
-    expect(grand / Math.max(petit, 1), "le coût ne croît pas linéairement avec les demandes finales").to.be.below(8);
+    expect(grand.luesPasse, `demandes lues par cinq passes du planificateur : ${grand.luesPasse} sur 20 000, ${petit.luesPasse} sur 2 500 ; le coût ne croît pas avec les demandes finales`).to.equal(petit.luesPasse);
+    expect(grand.luesPasse, "aucune demande finale n'est lue par la passe").to.be.below(2500);
+    expect(grand.taille, "la file porte les 20 000 demandes finales et celles de la clôture").to.be.above(20000);
+    expect(petit.luesReleve, "chacune des cinq relèves lit chaque demande une fois (2 500 demandes finales et celles de la clôture)").to.equal(5 * petit.taille);
+    expect(grand.luesReleve, "chacune des cinq relèves lit chaque demande une fois (20 000 demandes finales et celles de la clôture)").to.equal(5 * grand.taille);
+    expect(grand.duree, `passe sur 20 000 demandes finales : ${grand.duree.toFixed(1)} ms au mieux de cinq (2 500 : ${petit.duree.toFixed(1)} ms)`).to.be.below(400);
   });
 });

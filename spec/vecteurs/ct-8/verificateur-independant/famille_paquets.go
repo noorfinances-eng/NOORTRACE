@@ -275,7 +275,8 @@ func verifierTablePaquets(c *Contexte, sec []string, cas *Value, archives map[st
 			c.Rap.Comparer(f, nom, g+"--empreinte de l'archive", SHA256Hex(b), opt.Get("expected_sha256").Str)
 		case strings.HasPrefix(o, "--empreinte "):
 			p := strings.TrimSuffix(strings.TrimSpace(strings.TrimPrefix(o, "--empreinte ")), "…")
-			c.Rap.Constater(f, nom, g+"--empreinte "+p+"…", strings.HasPrefix(opt.Get("expected_sha256").Str, p) && opt.Get("expected_sha256").Str != SHA256Hex(b), opt.Get("expected_sha256").Str)
+			ok, detail := empreinteAutrePaquet(p, opt.Get("expected_sha256").Str, arch, archives)
+			c.Rap.Constater(f, nom, g+"--empreinte "+p+"…", ok, detail)
 		case strings.HasPrefix(o, "--ancres "):
 			c.Rap.Comparer(f, nom, g+"--ancres", strings.TrimPrefix(o, "--ancres "), opt.Get("anchors").Str)
 		default:
@@ -304,6 +305,36 @@ func verifierTablePaquets(c *Contexte, sec []string, cas *Value, archives map[st
 		c.Rap.Comparer(f, nom, g+"ce qui change = description du cas", l[8], k.Get("description").Str)
 	}
 	c.Rap.Comparer(f, "cas.json", "cas = lignes de la table d'EX-A.13, dans l'ordre", Liste(dansTable), Liste(noms))
+}
+
+// empreinteAutrePaquet juge l'option --empreinte d'un cas dont la table
+// d'EX-A.13 ne donne qu'un préfixe (« l'empreinte d'un autre paquet ») :
+// l'option commence par le préfixe du texte et n'est pas l'empreinte de
+// l'archive du cas. Le détail d'un échec nomme les archives de la famille
+// que l'option et le préfixe désignent, pour dire de quel côté est l'écart.
+func empreinteAutrePaquet(prefixe, option, archive string, archives map[string][]byte) (bool, string) {
+	designees := func(p string) string {
+		var n []string
+		for a, b := range archives {
+			if strings.HasPrefix(SHA256Hex(b), p) {
+				n = append(n, a)
+			}
+		}
+		if len(n) == 0 {
+			return "aucune archive de la famille"
+		}
+		sort.Strings(n)
+		return strings.Join(n, ", ")
+	}
+	auCas := option == SHA256Hex(archives[archive])
+	if strings.HasPrefix(option, prefixe) && !auCas {
+		return true, ""
+	}
+	d := "option " + option + " (SHA-256 de " + designees(option) + ")"
+	if auCas {
+		d += ", égale à l'empreinte de l'archive du cas"
+	}
+	return false, d + " ; préfixe du texte " + prefixe + "… : désigne " + designees(prefixe)
 }
 
 func entreeNommee(r ResultatPaquet, nom string) (EntreeTar, bool) {

@@ -12233,6 +12233,1387 @@
           "apres": "68d78041896df8023f29e45eb132063c41d7f3e525bf7fb260f46c30aa39b317"
         }
       ]
+    },
+    {
+      "id": "MC-86",
+      "date": "2026-11-16",
+      "etape": 8,
+      "motif": "Étape 8, compléments du 2026-11-16 : décisions du porteur du 2026-11-16 appliquées (énoncé de l'approbation, mode miroir sécurisé, reprise dans un journal neuf, expiration des entrées de l'annuaire, masquage renforcé, copie jointe retirée du paquet réviseur, entrées EX-3.12 réglées) ; passages laissés ouverts par la revue de l'étape 8 écrits dans CT-2 à CT-9 (prises Unix bornées, lignes de commande strictes, ancrage : démarrage, ordre des ancres, reprise, refus définitifs, OpenTimestamps, clé de chaîne par journal, OP-8 et OP-9) ; vecteurs régénérés et modules Go de cohérence alignés",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-1-evenements-et-formats.md",
+          "avant": "dc2c2c32c64bbac51d87fa78471103989a79eb2090aae430d6afdd1a5c9ca0d5",
+          "apres": "0c7dd0e158a0596f2ea7a24bbc3bd3d1b2ee834247160ac3341358caf38c771e"
+        },
+        {
+          "chemin": "spec/CT-2-enregistreur.md",
+          "avant": "b6aaf3490e803027cc2c0f09cd939cb9dd96c8d28ee546c46de27796b8378e49",
+          "apres": "cffcad4e9975136a529372236e9a820dc0cf06a118dc8df9171da3e89ddb2369"
+        },
+        {
+          "chemin": "spec/CT-3-approbations.md",
+          "avant": "77515510fc408a80cd1ca498f2813341f5480794c8f59712be32704d86bcc64d",
+          "apres": "ed019f614309b12bd3cd9e8334729e171f637deb7d7ebc21c54005ba3e9137f5"
+        },
+        {
+          "chemin": "spec/CT-4-registre.md",
+          "avant": "72b0e1293ebcf8d827011bbff03da304a4f806d7c1ed767503121a4f460bd60b",
+          "apres": "8cc0960eda34279cfaace1082ede5088edade3845cabcc18755554c2fef76dd2"
+        },
+        {
+          "chemin": "spec/CT-5-ancrage.md",
+          "avant": "134910cc4306dd96983df4c0a3e34b9adc9adede845cfcd49760fda0ab9882e9",
+          "apres": "0d7f7d3deb9c5fcb1738b5e3338bbc311a6b4ba47b61766d40dc66b3f15c9229"
+        },
+        {
+          "chemin": "spec/CT-6-verificateur.md",
+          "avant": "928989bf5fc4eb98509563236316b4d08a811a17c3752b8ffa26aef73de65d69",
+          "apres": "101c8aef4daef45ed73fe82e7e7ae08364e0e6ba34e58e29884d921d2a46fd59"
+        },
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "50f7cca835118c2c3518c01eb0aa6872b48e89a1800a6c2628a75e0a2c16cc3c",
+          "apres": "724f4e65cfb531acdcb7f631184bd9b4386ca919c034fc86ec95d60dd47048fb"
+        },
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "6692c282693648f93a79226e31e3f41f855e2b5507c373fecbd1b96e31a4ee37",
+          "apres": "653a092434bfbe761af865745fa281b520d57c04601256b4391d1d8c4363789c"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "4c538d0e866c0cb912d5fb4c1c7390283e40e0e16bc282822d93e827dbf4f3e7",
+          "apres": "e67414db61adebf70eb78bc6127b036ccec5db2ca5a6583854941b7d1256e434"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "4692fe967f5d7006796ef4be244d94b94a9eee4e1cf9e461a1019b07c3071e33",
+          "apres": "af004f8e551a6bb07d2fade44e091585896a1ac918537b7e25e0d0e6b0b344c7"
+        },
+        {
+          "chemin": "spec/schemas/annuaire-approbateurs-v0.schema.json",
+          "avant": "7611428cdbd983ff2795fc7696fed8ab1004edf482a38938b455bacf53d738f2",
+          "apres": "b7159b11bc5b84d9ccfd34c30660656f4b96c39f523a7a507d473b90eda9c328"
+        },
+        {
+          "chemin": "spec/schemas/configuration-approbation-v0.schema.json",
+          "avant": "53224416456d60d87eab13fb72c0d0f7243fc9abc648ee679b5db4605696e3c8",
+          "apres": "1aa279d9728e75b5c7e0b4564cd8be3b7ec7759deb89e4247a5aaa52207e2c44"
+        },
+        {
+          "chemin": "spec/schemas/configuration-console-v0.schema.json",
+          "avant": "390d48d7c757d5da7dad9e603b7ecdd590ee4b48c2a10a068eea66fddf27fde5",
+          "apres": "7d9a7b4bbd4efda318eaa9f63d642260e0b2cfb1599f05e7e6531a929a0c333f"
+        },
+        {
+          "chemin": "spec/schemas/configuration-enregistreur-v0.schema.json",
+          "avant": "23c28a3c5950d956b4ab1b397d48c85b1618bb2c4ec366eb866c5b11d6f6ad16",
+          "apres": "e8e1d5fb7eeb8460170fdb1a19fcea9cb172a80ad4d7819347470c9f3ab786d0"
+        },
+        {
+          "chemin": "spec/schemas/operations-registre-v0.schema.json",
+          "avant": "5b5b3727d63d6a36fb7ecb9bca8b5041f9941051013f1f63a431edc758a573f8",
+          "apres": "fbb02f70d55d7902e3c984f284e3dada2d73856709565539dc11de2802b49310"
+        },
+        {
+          "chemin": "spec/schemas/planificateur-ancrage-v0.schema.json",
+          "avant": "68d78041896df8023f29e45eb132063c41d7f3e525bf7fb260f46c30aa39b317",
+          "apres": "5687a7bb59967805073619445e3bd924848362f798114605788dabaae1775dca"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/INDEX.md",
+          "avant": "bdb8af0d6a3430f72e90becbec8c4510bd5295511483453afa80f307e311f88a",
+          "apres": "2b34234c02a6affe17b80c26104dc9522c2b6f14c89f9b17646630b186e7c979"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/confrontation/sorties/gemini.txt",
+          "avant": "36076ea395ef6c37c757f45b52a61af70660668950e0d9eb25717bc29f27dae7",
+          "apres": "7babc12d22e18778300b0dfdf549cc32c936a5407dbd9798e1f17a5d43c38408"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/evenements/journal-demo/entrees.json",
+          "avant": "bfa61e9472af5406ecd48040324520d3fe1890ffddc19707c49284dae524be45",
+          "apres": "d57e2f5ebf1e26810b21166def449df9429063e5abe475fbfa2e8f898d01d1e7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/pieces-modele/anthropic-messages-flux/attendu.json",
+          "avant": "2d4ec14c89ba0973f7e3c34e61ce539d48f7e301b916beb27006e19121e19d2b",
+          "apres": "ffd1be5bf935ba928961e03bfca202134f6c00ec278ce5c58f690c3d556d3e22"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/pieces-modele/anthropic-messages-flux/reponse.sse",
+          "avant": "a48671e3c3be56a1fc1a12239c8d1fdccb04cf17679ff329ad04f734377510b3",
+          "apres": "3f15f4e720030907b15f631fc6380092e447d0d700a479ab9e2ad909f69d1f18"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/pieces-modele/gemini-flux/attendu.json",
+          "avant": "9e6f011d17027671c946b47da31fc0b26a0425950995ac956994d181dfa92366",
+          "apres": "0b6a4b67f153ebb72a31a4bf62b37923aa8a3fc1f3a9b799a0b4532cfb1ef564"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/pieces-modele/gemini-flux/reponse.sse",
+          "avant": "c8811a843bf55deb86070ad105187deed462d9539fbae0584271cffb3cc6a895",
+          "apres": "77ddb70116440b46a6806f49690653df2d5c1738c6d059b0b98dedcb25d64a05"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/redaction/cas.json",
+          "avant": "681f59304da8bca919e84ebfae9cfb3a060f8acc5edf224e1025fdb933b6c87c",
+          "apres": "1e2011765a2f1f6848467b9ed2dab47f3363d7290f34e693b365a174d13a6ca1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/verificateur-independant/README.md",
+          "avant": "3b9b8c6f56957f8456d88addb4e68ba505a99e4743acc424157c4600b7f4a431",
+          "apres": "175f384dcd6a94a8ab725d47807eaf062b6c52c1d70bd61ba8d8470cee027075"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/verificateur-independant/detecteurs.go",
+          "avant": "b8cd05fb3215bb5dbedd09172a2b9df0d5fa7e14d3c3f9aa2cfe55b461c5a28d",
+          "apres": "e4e5ab155e96d3739d5e2fb522acb97cc1f544e599e1fe5cfbdb08080ccb9f91"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/verificateur-independant/detecteurs_candidat_court_test.go",
+          "avant": null,
+          "apres": "2c4806dcc0ea38c98f3e886f4237856844e8c7bab4024af0055e6394d2ab13b7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/verificateur-independant/detecteurs_test.go",
+          "avant": "6442da5a5a38ee57625ff9255ebdc1b0fa3d9e89d88332d37af83259b69d9916",
+          "apres": "4f1bbdb9f2627712a2ad9691c3689ea93fd2d0a4f6b6f3372cede3b0c77251d2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/verificateur-independant/specification_test.go",
+          "avant": "f245d8aa115726d4ed4bec4ae9cd5eaa89e62aed469dd5d085e6b15da7de68be",
+          "apres": "2d7aa46bbe8bfe019a718983c48f5649ae4b34f4ecdbf4b21e2551dd5cd78266"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-2/verificateur-independant/synthetique_test.go",
+          "avant": "35bd4e26798acf017239ecf414f822a9be8a320259cb86e8982b3b30167eb9e0",
+          "apres": "20d6bd7e89af01ad586d8401adb9e77403737810e3767c28a450a8329dab5722"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/INDEX.md",
+          "avant": "c66abcb1ab23adea148f0b34ab3b8379ec8800d54aa1312b7796afa21451d768",
+          "apres": "c73b10f1c9e1414b7acd9d3477071affa544590a4e237ee65763ebdaf9d0820e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/annuaire/exports/attendu.json",
+          "avant": "fa4288422d228c51ccefb05ce41e53c455deb1c9fde773c4556d27c049b79edd",
+          "apres": "74843606622b997e1e327ef164fb009c020922d97c9651598263b7df6e9cf130"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/annuaire/exports/expiration-avant-borne.json",
+          "avant": null,
+          "apres": "43151a7df20fe0bfa8363974e5e9e931cba7bb5bf0b54b33caaf9daba2623b61"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/annuaire/exports/expiration-entree-portee.json",
+          "avant": null,
+          "apres": "e520d2043b324196183b04581c54699ccb475673d1b407818f1157c244e4d6c9"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/annuaire/exports/expiration-entree-validee.json",
+          "avant": null,
+          "apres": "3ce64b6481dde48f6342ebf19a7479a0ed186fbec5f06cf23d7411af2aa82cb1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/annuaire/exports/expiration-instant-indecodable.json",
+          "avant": null,
+          "apres": "58391a346375ba5f33800f99d38c3fd6060e99186d07a636963ecd5a808f22b7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/annuaire/exports/expiration-rejouee.json",
+          "avant": null,
+          "apres": "86f38bd6c67e0a6cd4ec7d01aa8fad5a3e0fb03d10027f9659818994c6a3c69b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/annuaire/exports/identifiant-reattribue.json",
+          "avant": null,
+          "apres": "d59487e1d19ca4c04c15437fc5d32356c8aa2809cd3b07c5511505e221191964"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/annuaire/exports/inscription-instant-indecodable.json",
+          "avant": null,
+          "apres": "d72fc1aa141c6ac9b5dce03a9a8bf81cd1740ed765691e2c49359b9c3c0ae7f4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/annuaire/exports/instants-indecodables-rejoues.json",
+          "avant": null,
+          "apres": "54945b23610c67c2c332935d619266bdb461335a6be0691f7695a450335126f8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/annuaire/exports/remplacement-instants-indecodables.json",
+          "avant": null,
+          "apres": "619d5c8a45966878f0afcd1034ab4b21aad6e616044bba73b5e9951a3952c4fd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/annuaire/traces/defi-consomme.json",
+          "avant": null,
+          "apres": "6920374da2c33068acd36cc4760d6faadd6947ba2fe4c0a646557a5b6c129f87"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/annuaire/traces/expiration-entree.json",
+          "avant": null,
+          "apres": "d216ed53eb644869c54214d85085a620ed26dcce02f4f067d07c27d755d94b7a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/confrontation/eth-account/LISEZMOI.md",
+          "avant": "253f649c68be2e025b28b7c8320a2bd90d7eb9a75595dd832f31bcb9ae913097",
+          "apres": "cc5bc1ab57e30fc46ccf3c0aa3d1fc7f121abdc22a80deea5057272cd231b723"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/confrontation/ethers/LISEZMOI.md",
+          "avant": "1d37746257df8be54cabf679a17ddc8a2e4f0a173984e97e0d8ffc8ccb65a389",
+          "apres": "50b38747cecdb6248fe2e2bf0574d98c9aac98b5e69b3b87aed43aa9b29e600b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/confrontation/sorties/eth-account.txt",
+          "avant": "924d619429b7cde078ba77f92466f22848eaccf5141d88b0118b4d701d394971",
+          "apres": "18cbc48b143636566d11a8233f462666d5be9918b4291a0b05b6e41afcd75966"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/confrontation/sorties/ethers.txt",
+          "avant": "126d291faa6e8f89e41b233ff5075d06085002b2749c4b72fb4aaf813106bcfa",
+          "apres": "3ebe1e2993574fc331c8db17807d11ba432cee1e7d5a7b834a0fc4f66e766405"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/verificateur-independant/README.md",
+          "avant": "5881792cd7d3b8ba035671c98f3e1bf16f9cac2d1cf8e20b0b6770a6f71a73b6",
+          "apres": "dbe453e85036dac47af6e422dbc53ec9c26ab0e65fbcdc2a2653d7cc37a86543"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/verificateur-independant/annuaire.go",
+          "avant": "ce1e2566fec78bcb5c0b8e1a06c7037589cced926faddc2ce8e58bb5a8330d57",
+          "apres": "0e03689bdd029033e661035531796e008e6bc1d1b6fe508874f3ea74c26f7839"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/verificateur-independant/cas_nommes_test.go",
+          "avant": null,
+          "apres": "243bc1e6fcdf209457c0d85e16326ad021667f0fab29c09d3bb07d0d8ca09a26"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/verificateur-independant/console_test.go",
+          "avant": "c352d165a0f3b101144aaa2bffba655ec10a32c297986e9f20c4f53b6468878a",
+          "apres": "5fbffff375148882dd970378ba4baf5da0a14840b333e7083924b95eb5d730ae"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/verificateur-independant/expiration_test.go",
+          "avant": null,
+          "apres": "0ac2c3489f1f44fb07c8ac7c987959b0e8dcc7432ef6d3d2eb5b75a0849ef7a6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/verificateur-independant/familles_annuaire.go",
+          "avant": "52665179d556beabbcc4fe5bbde4d2c9a194cb3fd04f5734eb954f2f11938a24",
+          "apres": "247bd68aec2b6ba117519648f05c9f80be71e94ee0f9f4a7ca7d72b5b313ab78"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/verificateur-independant/instants_indecodables_test.go",
+          "avant": null,
+          "apres": "7ee44005956c6743af24b9d1a761763c6a1a140d5b58be06f8a9777bb2e00e4f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/verificateur-independant/main.go",
+          "avant": "1db0ec26b144aade39f40da72c011a557743a03ee3b8cd20a83e07f9b18f1fb7",
+          "apres": "867684e0e11c5f020aab2cb5946744c697149a9154eadcca0e6f6ff9a1e5b36f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/verificateur-independant/plancher.go",
+          "avant": "1eb0b0bf8206d9560bbf3550ec31c6b8b0385aedd6a7c3270d6ff3d53390ab06",
+          "apres": "dab51147675219640305a8ac044cc1ab89908527630fb83fe28a25cdccbd26ee"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/verificateur-independant/rejeu_annuaire_test.go",
+          "avant": null,
+          "apres": "e75428477443cebb5054593fda4f3beda054a548f7d133425be0117ab13a1d6f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/verificateur-independant/revue_etape8_test.go",
+          "avant": "ec20ba28a43209084d168926abbf558995a0d58aa662a900d155e7c97886ed2e",
+          "apres": "8881938d2067f6015bb5d8a7f1af4f187ab1ae710425b8a7df759e9439c2d60b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/INDEX.md",
+          "avant": "744b6c66f744bb4f689b6049d8c00da8c28d1d4ea48f7cd06a29b8982d2cfd05",
+          "apres": "8a80405df8ccaf54775e400a8db4939003a21e620a9f2b040b89fc69fc60b982"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/configuration/configuration.json",
+          "avant": null,
+          "apres": "3b6cfc03794969c92f2f918a31225cd0e739f5e4285f515596ff2987f5fd9d40"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/empreinte-squattee-repli.json",
+          "avant": null,
+          "apres": "21203c334708ab36f52818d91b2ab6d699d716289e19ab9da2e39904236aaece"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/empreinte-squattee.json",
+          "avant": null,
+          "apres": "ce197f15c85ecb54f590c895c86275ff72ffc13c605d9d6b88b17a84d584a588"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/file-perdue-jeton-periode-obtenu.json",
+          "avant": null,
+          "apres": "bce329a3ef078d8c193380535d982b34b75107307dd946793b146f03d726b528"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/file-perdue-jeton-point-obtenu.json",
+          "avant": null,
+          "apres": "a1baab45c3e73c3c17757be0ac6139b96162ad52fc1938b2f07e52b24038585e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/file-pleine.json",
+          "avant": "db977648933f681588f45a7dc827be793b83582adc46c9306e6b58cc459b78e7",
+          "apres": "51dccf68dc0fb9381c2dfd2ac40822881137d24d32feef1393f60b6f3879b77e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/jeton-tardif-avertissements.json",
+          "avant": null,
+          "apres": "9d61041d0e79a8b284e32d910ed0cca5ad6f0cec73a75d95a2879c5f8f5ae324"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/minuteries-deux-journaux.json",
+          "avant": null,
+          "apres": "08a3d261aa94635d64f8f22e29fe7edd9e166627ce0cbe5b71f47e93c5b5fe30"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/minuteries-simultanees.json",
+          "avant": null,
+          "apres": "89d32f383b2b74834986e4f4f34b8445caeee07f6f4c28bbb9f460d886df4950"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/ots-preuve-absente.json",
+          "avant": null,
+          "apres": "08d3c5f625587e66549217503d64cd03eab5327ee72475ff18de0ef06f40f7a2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/ots-reponses-insuffisantes.json",
+          "avant": null,
+          "apres": "8701678a2f235165183cbae846050908a229a5e38f6845c296dc6e184bf3834a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-a-envoyer-cle-libre.json",
+          "avant": null,
+          "apres": "458300033e038985ff88c5a78a6cd2cab1e65175d84ed851e6b6b24ae87d58b1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-ancres-a-reprendre.json",
+          "avant": null,
+          "apres": "6a8142af8f20bf12c12d8ad718a609b75b657db858ca5ef1534c983ac4475ac0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-due-at-borne.json",
+          "avant": null,
+          "apres": "fcf0180f385682dfe84638d5a64a0e54406b64cc77a05f6181e1a0b64ae5c410"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-echeances-remplacees.json",
+          "avant": null,
+          "apres": "d1112cd21b7dfd8a1ba5adeb3246bed8b680e49e50474c1c30bca353bcc000eb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-jeton-recree-couvrant.json",
+          "avant": null,
+          "apres": "02ce6098491b7db9edaa6a3ebc6e8ee39e1564572d8a1c3c434530bd6ddfa26d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-jeton-sans-acquisition.json",
+          "avant": null,
+          "apres": "540a7d3a316324075cf6e9043596d6d2b83803f6c68c2c8f2d76b686fe5493fc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-ordre-de-la-file.json",
+          "avant": null,
+          "apres": "5325f53f0dc7ecd3522927bfd0a2b0387298c29a5641a99a6a68d5642a76a35a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-ots-a-reprendre-en-cours.json",
+          "avant": null,
+          "apres": "96cb69abdb6399d4fbbe95555ea278a9ebeb3fb8dff67b1780292e18d8598e22"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-ots-abandon-origine.json",
+          "avant": null,
+          "apres": "1f45ffb68ee2552cd6382259feb1d20b03d4886aad6d1e093c76663bb24972f9"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-ots-abandon-soumission-tardive.json",
+          "avant": null,
+          "apres": "55537ff05ef50e9b2c62c2b100489c57bb8f11e975edf822a595c774e0dfa2b4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-ots-soumission-envoyee.json",
+          "avant": null,
+          "apres": "01fd6193096d7e8b63f0c165c49a4e39ac82ef291c38340cb5eb9476b0323893"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-prestataires-epuises.json",
+          "avant": null,
+          "apres": "6afc434008620efaf18244a4d661149a7d0e84224ec99533d177ae5cdfd66668"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/redemarrage-releve-deux-series.json",
+          "avant": null,
+          "apres": "b2aa30a7abb2e7b8e92e31e8ee7a2217701880b0fa88eea61befeeb5c0382f52"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-cle-par-journal.json",
+          "avant": null,
+          "apres": "f76187d688333010640e4947292bc7e0f3a19e674667a3e5bacaceadbeca6bc3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-inclusion-apres-attente.json",
+          "avant": null,
+          "apres": "b76202d39e88f30be6eafc3edd01ac25e0d5b8319e393df105ed9d253bed6ca3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-indisponible-cloture.json",
+          "avant": "81504146e983b4a38bd32d794f1384cbf96ecaa5e0b3da25eeff2b284edc6d9a",
+          "apres": "8380f7dbf8f8f08037f7a3820aa2d9d93c08846c33692fae354413e8a0b76340"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-ordre-des-points.json",
+          "avant": null,
+          "apres": "62473366713ac2343263d786d340d79f30bd41e2c86c2bab30b20e6c798e180a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-periode-apres-point-de-cloture.json",
+          "avant": null,
+          "apres": "3aafff60cfe0fa0af5052670bff54dd399660f1ea9aab6e09948d9cb89e8885c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-periode-retient-la-cle.json",
+          "avant": null,
+          "apres": "d688890153b4f3ec8a20258c4779671ebcf8b392189bf1934c86f65a395393b4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-points-en-reprise.json",
+          "avant": null,
+          "apres": "64b51e45d83339f04a66af28b2ddc6e293ad97b173a7188feeb6d3ec53aec7f7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-refus-ancre-periode-redemarrage.json",
+          "avant": null,
+          "apres": "fffcdd3c5de4b831179d131ac4edcc154e58f9ebfdae38f3ceebdd020dfc040a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-refus-ancre-periode.json",
+          "avant": null,
+          "apres": "3c902d16cab9e01493d2a44ca28479324471d1eeff7f9ebacf3904a0b2bea784"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-renvois.json",
+          "avant": null,
+          "apres": "c39dc217bc8c12be121c50432c6346f14b4bfe331f32fb90e140cfdee6c26f52"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/registre-saut-horloge.json",
+          "avant": null,
+          "apres": "36c5f40b25756f7525cca4939a04b5417b502be5bbca01e4981d8766911c7707"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/repli-ancre-incluse-jeton-retenu.json",
+          "avant": null,
+          "apres": "c911974fdaa2e5f16ccd596e6d7de352a7ba7cede4e5c5f2ec902ee66a098135"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/planification/reponses-hors-tentative.json",
+          "avant": null,
+          "apres": "727d7c756c282a06c8ac0a37b9979200f177eb1a86989a5e79e9d5a269d70e2a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-a-envoyer-cle-libre.apres.ndjson",
+          "avant": null,
+          "apres": "a56e379f7eae204cf850702fa4ef826891144eed7b43a722419f7070f377d67e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-a-envoyer-cle-libre.avant.ndjson",
+          "avant": null,
+          "apres": "5374d5c646904e62b259640aabf9b53b91d6ed7178fd07734c9ad8417c92d9ad"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-ancres-a-reprendre.apres.ndjson",
+          "avant": null,
+          "apres": "3b6dfe30d08d3131bbe779e90761a6d056e616508c62d44401957ed2dfeef15e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-ancres-a-reprendre.avant.ndjson",
+          "avant": null,
+          "apres": "c0e908c4d211d4fad1c0c5e5658e8470d1a85ef8f54552385f06e63ef2a6aaf1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-due-at-borne.apres.ndjson",
+          "avant": null,
+          "apres": "0eda7817e91ddb6de1193c729c14d9780a8dda344e136e3e9ebfb7eb55a23ae2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-due-at-borne.avant.ndjson",
+          "avant": null,
+          "apres": "0e1052426d208cbaf49ac2a8ea17762c67585e20985011878f35d4155fc9b6f5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-echeances-remplacees.apres.ndjson",
+          "avant": null,
+          "apres": "7021dbb660b41792ea6a2f882f72212b40f98aef25599196804f6b685386f896"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-echeances-remplacees.avant.ndjson",
+          "avant": null,
+          "apres": "569e6250455954f7265dfcdac74608d2cfe57287c99684a13dfd7f082d5c6432"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-jeton-recree-couvrant.apres.ndjson",
+          "avant": null,
+          "apres": "d49163ed2e323f04083d324511f99ab9167d4cf2cb48c159d13d628d35bdc839"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-jeton-recree-couvrant.avant.ndjson",
+          "avant": null,
+          "apres": "0b5ce54d611f15e535bba90c30bd664d2b372eda9f359f1b72529d6499c66b52"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-jeton-sans-acquisition.apres.ndjson",
+          "avant": null,
+          "apres": "428a459e90b48b971c7d6fe17379c5fc6becc930380ea63d1ff6a170ae46e7a0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-jeton-sans-acquisition.avant.ndjson",
+          "avant": null,
+          "apres": "aa36a926acead27aa6ee82bc29dacb22e7e4747dea6552e3e20376c30f637cba"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-ordre-de-la-file.apres.ndjson",
+          "avant": null,
+          "apres": "4982491601fd530bc323551917b86752ec1d304ff8d0304c7886356d7073beb6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-ordre-de-la-file.avant.ndjson",
+          "avant": null,
+          "apres": "335990471b4907f3d6d93a35fe0e0db19136a3a2103218e4d8713d98250bbc08"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-ots-a-reprendre-en-cours.apres.ndjson",
+          "avant": null,
+          "apres": "2870b3bb44534ed33ba579294bb751bcb1ddc4f3fb63a2d3dbcaf59d6667ba39"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-ots-a-reprendre-en-cours.avant.ndjson",
+          "avant": null,
+          "apres": "c23b55adc16a4bda0c90585dbef7869c12dc54b77ee6273c77a1c4ba43c57b66"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-ots-abandon-origine.apres.ndjson",
+          "avant": null,
+          "apres": "68ba443f446cf381c9b68fb2225edb753e7ddcedf2b08d1a23b79f21e9ac64b0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-ots-abandon-origine.avant.ndjson",
+          "avant": null,
+          "apres": "b58a6017becca91355990e6cf12101a7967d69f7dfdace194d650ec0de0cf8fc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-ots-abandon-soumission-tardive.apres.ndjson",
+          "avant": null,
+          "apres": "a5cdf5003752b0f2928a40bd29b85793a03c0dca138583791199ca793731d100"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-ots-abandon-soumission-tardive.avant.ndjson",
+          "avant": null,
+          "apres": "b58a6017becca91355990e6cf12101a7967d69f7dfdace194d650ec0de0cf8fc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-ots-soumission-envoyee.apres.ndjson",
+          "avant": null,
+          "apres": "4be43414d8f8f34defd7e1875827faca533ddc9a438dcef2f02b7b9ada956390"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-ots-soumission-envoyee.avant.ndjson",
+          "avant": null,
+          "apres": "be418970e11a773a0d2c13777515d65648b81e476dc78511fa2eec7f9870ffb2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-prestataires-epuises.apres.ndjson",
+          "avant": null,
+          "apres": "a99cf1da8ca6128355b22db51ff419cbd2abff2a50210ffa1a6eee4dfbe17b6d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-prestataires-epuises.avant.ndjson",
+          "avant": null,
+          "apres": "f357acc0156a09ebc823a2517448fce00c5b32c03f1591aeab49a04bd7e6feb3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-releve-deux-series.apres.ndjson",
+          "avant": null,
+          "apres": "816cd2da452b06c2ba2020bc42dc4657535f6d1c22658a2dd029bebeb61b7cf2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/redemarrage-releve-deux-series.avant.ndjson",
+          "avant": null,
+          "apres": "3beaf3aa7c53ffc379ec5eb51ad89024facf24cf189d2225add4b7ad5ff85e9b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/registre-ordre-des-points.apres.ndjson",
+          "avant": null,
+          "apres": "e4ad9747301b690598371f2787e58b5cc971951a85f2fae52732927546958552"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/registre-ordre-des-points.avant.ndjson",
+          "avant": null,
+          "apres": "a25fef902df23ea204306bbd8ddd4251e7d283d900223b0ec1fb169f4a5d2216"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/registre-refus-ancre-periode-redemarrage.apres.ndjson",
+          "avant": null,
+          "apres": "db6b04ffe9b423f58e204a914953d2bd6588b37875c28741a45f8bfb84b8a93a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/reprise/registre-refus-ancre-periode-redemarrage.avant.ndjson",
+          "avant": null,
+          "apres": "c7a3e53b127e62cb2dcee2037a3fd7638de2e1c9512420c5928ef006a534dd22"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/README.md",
+          "avant": "d509993f0c5910a6806c30b698b1ff639b525798b9a935cc5f13fbf443062002",
+          "apres": "0a4194ffeabb58c9b49e2a6fecf18d799f10074f8299b90e2ef861622b2b15fa"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/cle_retenue_test.go",
+          "avant": null,
+          "apres": "1e80e4dc85ce69cf45eacfd37409d097ed2f719c3753c9ba56ac59c7ebde8575"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/complement20261116_test.go",
+          "avant": null,
+          "apres": "1b5d7d65ff51a737b5ce2280d99322e43c6af33a9a94ac0814b36b46cee00d0f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/complements20261116_suite_test.go",
+          "avant": null,
+          "apres": "0db5b9b5a6e7084c70a89baf447b86546b40536fd0f927e3b60f56a1d72a2cb2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/demande.go",
+          "avant": "d0f95074fae4952f44058c94b7a30e262d9210ac2d602933e0c1b450f10ad978",
+          "apres": "8f06094bda4283601a7357138a35fd09845e7d2c780c2a015d01d8eb3d801050"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/familles.go",
+          "avant": "22dc8cee7f71e4523cd684d6515b5c1a9b5a87d97064113d4ca82e713841620c",
+          "apres": "32b32b19cf0a454d65bde010deb9769343b8aa74087a922e8a733403dd112a57"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/invariants.go",
+          "avant": "7a2c1494bfdc9b59c48fc187608f1dec6f1457e3a4cabf658ed09bde1d15ce1b",
+          "apres": "bea930472d9705d0e298bf79ba548336a6941e9d4ab7eb6370e053326d70c176"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/main.go",
+          "avant": "f09c73bfa01a2ec8499b0095b0238d0fc5f12d0e9012cc2b6c48cf669f57cae2",
+          "apres": "87593b20ebc4ca3a55642dbd80ed6ce0be111862f8e3a317b22c3cd76205b22a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/ordre_des_ancres_test.go",
+          "avant": null,
+          "apres": "b3197d2e9a64a5439ff31837ea184f084120af356be885d44bfbc48bc0d16038"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/planificateur.go",
+          "avant": "75578ef4bc282d85b67150adf24bc4580745829430add895b4aa95402d92c538",
+          "apres": "911e0c711f932f122a832db2e3947e660fdd27305c10cab1c2d6f580331282dd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/rapport.go",
+          "avant": "80791fe9811fd5464abc58ca7fc638d21ef24668a77059ef570461d11f97ed9f",
+          "apres": "5eac283c70e99a194c03b5d676749796770a5c4bf27e1f2f8c009632ac6296ba"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/regles_an1.go",
+          "avant": null,
+          "apres": "a071b5db6ade087021f15add1ac941deda081e762cd6be811a99a4f9e154a6c6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-5/verificateur-independant/schema.go",
+          "avant": null,
+          "apres": "7dc44c0ffcc28fbe1c2ad7dc54f4d337694de21b564aa7f89f534930c2ab52c3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/INDEX.md",
+          "avant": "5491032c48a58651c1f1f95d289d1a3ae9a5cf6863a80d6043c9397673ccc986",
+          "apres": "ed79a665584b82836e7ad534351aee553878cf7387870771a1d1fbf6aaaa401a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/non-execute-n3-cle-non-ancree/attendu.json",
+          "avant": "b7ebf70dc18fd725e0e001a748522d2ba37ac247b1e913c7380683bbf2b045fa",
+          "apres": "513ca9439d696acb8b9f22236d423bbe24c322700526fcb2479c84d66a5169b5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/non-execute-o5-point-de-controle-hors-entetes/attendu.json",
+          "avant": "bf8cb2d60326af543ad5f9c39fe7bea3e0e86b5fccc5450e773b8318697df0a9",
+          "apres": "6da85951c663917144700e7947aa0fca130244d74fb8dfc7dc4d8e3dd0b2004e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/non-execute-o6-profondeur/attendu.json",
+          "avant": "4e2a5f3d36835efbf3532c55398e63aea159d94500f53340d9dbcdb741148d2a",
+          "apres": "57a43d4103c89f3900a72bf8e72d9108d73a9504c7b37293cbcf8febc1cbcb2d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/non-execute-o7-en-attente/attendu.json",
+          "avant": "ca72b2aa5485cefa13e05380d46338de70031702c1382d0135b24c9baf4f648b",
+          "apres": "fb67e5b57326a2e1ba7115e431e84fb7cd8c9bdf983acce39d74d3a2bdac1f8d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/non-execute-t10-crl-entree-extension-critique-inconnue/attendu.json",
+          "avant": "26eced79a63040ee00ede53a45a1c99eb2249ad8f35913858b7ff8aaee418dcb",
+          "apres": "87d70c8c9d153908ac6befb0002c918b667776417f94ca1c701c795fe691077e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/non-execute-t10-crl-extension-critique-inconnue/attendu.json",
+          "avant": "d2b59fc40a93f4d402acbe04a16ec0a101d3ea9fca2b17885928b9c1f53823ed",
+          "apres": "9c238616ebcdc91b530f8f5833fa7368278fa8e50bec453ff99d27ae14fddc85"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-attente-uri-vide/attendu.json",
+          "avant": "92749b3741d1de8e88d90dae240a47b1f8227f52ef47aa958c5842a02cbb4a33",
+          "apres": "e43c35cce3c615a295614460553c41b54e9f9fed02d5fe5d161cc840558704b9"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-decision-refusee/attendu.json",
+          "avant": "d5eadfd4dc61e60cd146df841bc3ad16ade889f350265e77d3fa06c36e4d9085",
+          "apres": "16bd05fc176dca78b40e20882688db637f81c571f3324346fb1bd983c1704fca"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-deux-attestations/attendu.json",
+          "avant": "fa1a0437e9b63bb2ddd5395de35d5113146c729a35d6c433a46f2f8dcf29eb89",
+          "apres": "b56a987a17106bbaae8b33af8df40165217d332eec396f5864762ab7687dd6e1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-deux-jeux-validateurs/attendu.json",
+          "avant": "9c6324e914cc7ed32798e89187b9f0b816049497030c5bc13f90d39fd3837f5b",
+          "apres": "6e1af8e413c6bbc38dcb46f32b23a5cb9440e6fc33210e29ad0d0176967d7794"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-integer-non-minimal/attendu.json",
+          "avant": "dfae8c0a2306a8cedac001447ed6e670afe7097b061eabcee86024e16d9463aa",
+          "apres": "cd1147de7e05df7144c981ed0e7a7624dfbe4611b088d2b1458e36520b2bee94"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-ligne-4mio-ascii/attendu.json",
+          "avant": "4a8ebc41a5ae1c82867308dcf0b12bb786e5ca1aaeb2ada11ed5cd9437dc5530",
+          "apres": "b26a3b8326070ea76605a7a0b04736b6e573740f786ad9475f875ab010937b57"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-ligne-espaces/attendu.json",
+          "avant": "38552c041230ca643a17bd2c2862b103bdf55289eb9fefb10cfd6f93e323a077",
+          "apres": "8f2687aa43fd48266e9db974436447f641d50823daf0f6e577fb83939fc0700d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-ligne-membre-inconnu-nombre-long/attendu.json",
+          "avant": "f164d6d8cac5cafdcb91c747e0fc07ee6a4fdac5bb5c97276f69dd4b5cef3847",
+          "apres": "2c79f29751e38d542fb5b80d00db6d38c051e716830aa005d025adf5a626e07f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-ligne-membre-inconnu/attendu.json",
+          "avant": "751dcf74189fb9e7a180d10b5d493ab2fcd55941046114549de1abcd45013a10",
+          "apres": "2f2dbb88482a324e491fa70db95ba420699a570050e1518c87b1e30d53af9a6c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-ligne-non-canonique/attendu.json",
+          "avant": "3fb60bcc0d86c736f505e0064d14f58cc97c103e16ec120debe94ed4f25be6c8",
+          "apres": "14c6da1377673daef2d4d485ddee6e688875cec62f4d1905ea9f4bc73503e599"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-o3-branche-hors-profil/attendu.json",
+          "avant": "46b147b4f565302ab90311a43a31f9a6ec56f30e4b382aaa9047166266f4c501",
+          "apres": "20e9273847b30bd74f5a943c32bfdda39865ec524ed22218dd3ce061b7a5c11c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-o3-hors-profil-seul/attendu.json",
+          "avant": "68cc3bfc0f6c4f289ad80bc46f342885d41962ac7a83a737b262a93ac86729b6",
+          "apres": "ef83fca5fb33871f08e6de50ed1083bf2b7c565ebb9e255a157810d44d70f2a5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-point-de-controle-complet-attestation/attendu.json",
+          "avant": "ef77c7d28f981a4ccecb05838b387552db568c8afb3968bcfcdb406dcdacbea4",
+          "apres": "1f1deedf65020862a7e4574b6fd04d8157c5118a7af23a2e3217a572ed025050"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-point-de-controle-complet/attendu.json",
+          "avant": "5d4f359b32c694bc3ce04cd2c277e3edc1dfefd890a46362e3f21b719ef76af5",
+          "apres": "ea72fec71e706cb5a829c1cdc9180006a37f5d0935985adc4411ab6284e46acb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-point-de-controle-declare-absent/attendu.json",
+          "avant": "1225d9c2d82cabdf03fce7507b4e375c578a40564290295eb3ec108f9939226c",
+          "apres": "ba3cffcb397a12f2fe37d4180940b1ffe6e73fed5ed42082bae73c3c501a72c3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-point-de-controle-jeton-seul/attendu.json",
+          "avant": "38bae713f62376970466a0bfa47f47312daeac175aa77c65de7e6fe1b1383eb9",
+          "apres": "034f49356d4291615cb99840e3332751d0f197a05f9a9c24da4095e53bec1058"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-point-de-controle-ots-en-attente/attendu.json",
+          "avant": "970be7ef3d312fb460f72ae6ad7ad216b049a3120622b2dab861dc2362338ed7",
+          "apres": "c6b726421a3d937813a08f5dbc033a84499845a1cb0eabd0c3dc9f8edc469f44"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-point-de-controle-point-contresigne/attendu.json",
+          "avant": "08568324a5bd96f20d49ec8c10390c4bd71be86c19d875485d7630313c1936e9",
+          "apres": "306a5bc49adb218c7292efcd7c2a45dac7f7c80f18fb07a81205f4803dc5e078"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-point-de-controle-point-de-cloture/attendu.json",
+          "avant": "0922fe16d88be1a2073a47c23a07389c54986b9979fb2018b8b52bcb938e4d5f",
+          "apres": "a8c07be7b4ac27e63e294cd136485792672973ef301fcc9adfeab0c8ce82241b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-point-de-controle-reference-declarative/attendu.json",
+          "avant": "e72152ccda7cfa1ed57266446cba02ae83d1fc5a5903b5de523439f68938ffb1",
+          "apres": "8ff072cb4e5762df9cbafaa23d67aad9cca5155d923e29ce6bd2cac939e2148b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-point-de-controle-sans-ancre/attendu.json",
+          "avant": "52dea761710bef260e71db63c7a498d97203fb5f7d412ac46329937f1341d8f9",
+          "apres": "595c8bd33ef0dc101861bbe78c5d0a8fa545fb730f3b445da86e92b881cc788d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-point-de-controle-sans-ancres-reviseur/attendu.json",
+          "avant": "2ab0b4b2398bc73afd19141198d1d2479d3cdaeea5f391ce3e0bd135f0e19954",
+          "apres": "dcaf845d78ac350570d66408339a6004810cb7f32ee6f32e9fcb7defd4fa2433"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-precommit-type-tolere/attendu.json",
+          "avant": "40c0d774749af36a05bdfb65d24452b5478c8d887a42f199566e38d2a013e22f",
+          "apres": "95ae82c35517f2c08e6ecfddc9fac82e7a1116136b433bb2338a6adeffbcf830"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-provenance-mixte/attendu.json",
+          "avant": "e810bde7b39c6032ef33c5fb361dd12b6a648603c488c9fde90dd16d100dcc04",
+          "apres": "0df11930657975b2e2cb1df1402f1070887f2cc0f26ff87352869e365b4ff0f5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-provenance-registre/attendu.json",
+          "avant": "1126563a8f4b30b9831fccd065017c441954c84127b975856aa97b3ee1b5bbf7",
+          "apres": "1906cecc5bb6715a2cf4a780740edb06f6a8418456a192316bdd24bf2a99bae8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-raison-sequences/attendu.json",
+          "avant": "a3d7e1ae074d4fbbf1fb91c1d46d4f0032c49c6eb3f1ef52734f5a543ced0bc5",
+          "apres": "f19d001688db13729a001e842235b93c37fd83559cab328c1d18bdb1560001e5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-rsa-8192/attendu.json",
+          "avant": "679d52f1b964e0a064e7ee2cbfe489c4a254641a505e7b938e9e551edf6c37a8",
+          "apres": "dadba15cf3ce406b4e770b756409c4cd3816131b13eebcb646783190faf6db86"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-sans-inscription/attendu.json",
+          "avant": "7d2d8e1dad28636dfbf0ca3c022180c2885eb22aa9bdea42f34f4aa808cee0c0",
+          "apres": "4d0ad88da0683c0ee22d5165b66239ba1d177bf9d76db9dcd66a97e30c23ab09"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-seq-7-complet-attestation-cle-non-ancree/attendu.json",
+          "avant": "77c3aa8f7fb4d38a57cbf2a53feb9e374aa3d51048ce5d193a5f31359c908901",
+          "apres": "4a45b56bf475dc4c4afb88698e9abba80b7c044b930479748b8ef8170a12e25d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-seq-7-complet-attestation-non-retenue/attendu.json",
+          "avant": "984735fbbb4598ce41db08a1c12a5926c5dd83710b592a2d78374a55c17f633a",
+          "apres": "0f78faddb7dd9f82122441d0ea5c0c18df598be970df5770cbbac98777ede972"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-seq-7-complet-attestation/attendu.json",
+          "avant": "280a07affcd96babedfde60340453edcf115d5d187c04b278f02b311a56cf1f9",
+          "apres": "aac00b5e3b6023f4b0960864d20ab85e871d86ed3509ac1cf93ddbddeef3b555"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-seq-7-complet-sans-ancres/attendu.json",
+          "avant": "4e2a34a80fc91e471098f30d79e453c04c8e4f3f3f0755c13e6e3dc6357ff15f",
+          "apres": "f1cce0cb365481927ad5b102e54643323e1b9e90f74cbfdee25b035b6b0100fd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-seq-7-complet-sans-entetes/attendu.json",
+          "avant": "e1483905ad77d4f2a608286bc1c68f8c0fe564f75b7314957d263ca7b5a47928",
+          "apres": "6fdcd71fc259f7116b4dc1a3759c22e04ef1243f95265cf242dcf02c58a86359"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-seq-7-complet/attendu.json",
+          "avant": "d0ea2cf47dd7a4ac8a4164dcffdc37d1f50b2f82b3f314ca2357956babcd3ae8",
+          "apres": "5e7f21a387df68a5773c64bd76a5b9a6d8c40c4b2321168e2bf81b16d7e8ccf4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-serie-168-bits/attendu.json",
+          "avant": "03cdc2f22a6522c067e88d48a67be5f33d54e057abdf8f375e81768b6ca4a09c",
+          "apres": "69516a7fda0ecf36142ccaf59456fb8d15c61dedb10e50cc643a5619b5ced609"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-t11-qualification-declaree/attendu.json",
+          "avant": "8169d8f0edb58a7ccc147bd96ae9f097b1cf40d616cac8ee10d91fc9c914e748",
+          "apres": "5de8c2207ee357100fb8b3b27142b42e3c3c2e8b9a1d44368832d9dfc87f0423"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-t4-jeton-sans-certificat-sans-ancres/attendu.json",
+          "avant": "5df608f2989e15efb00b5276cb3277f697bcdc04840517b74a4d230e1dc48a28",
+          "apres": "a13b3453e41ff9916ee3d6bc2ac70ca9eb9f1bd3b640c1eb41e559b9848867d4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-t4-unite-en-intermediaire/attendu.json",
+          "avant": "78dc4e8bae93dc5f8d6e21e8f9ed4121ebf02e6724c67d8933685300dc817733",
+          "apres": "4dbee7efd2d3463c90e7e74c6d5f3a3070a0535cfd2ec1f45ef98467fbd41fed"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-t5-cle-ed25519/attendu.json",
+          "avant": "23304a2b87ec01593af43787359c790ded495b7ce0561075dbf5cf20a13f42e1",
+          "apres": "eb419f3e9d9663b76e2e3d87bef56dc914295caebfe3fef160eabd12eeff8520"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-t7-deux-autorites/attendu.json",
+          "avant": "33f7911e9ec1063b74307e76e65f8d74e30aed9a141d3aacf3407312aea8a6df",
+          "apres": "6b1cd534c2580f89212fd7500e36f159b92dacfabeefe43dcc781df938143a10"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/dossiers/valide-unite-sans-cn/attendu.json",
+          "avant": "e46ead46be9c877a015bec3887bc9b2f831a2d670d86aba7aa30bf64e45de15e",
+          "apres": "14ed437c74411589b2a5f70796768c40143108809ebb3261c79fc696555b8cdd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/INDEX.md",
+          "avant": "ccafa1bf1cc45829019e463de7e29db8ab3dc179ef6da19b36a61222028208cd",
+          "apres": "9cdfdd3380d5dadab5ff4ec870dc4f53e8f95dd279f01e771cb397b2200591c0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-7/menaces.json",
+          "avant": "9241c999aebc50e1000c55ba82fa7f9ddf9d117bc8e3d28e56096962e41a2d81",
+          "apres": "4f86f07bfcf57b9cbd17521961e7b214584af7b21051cfb87c6c18b2f573e5fa"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/INDEX.md",
+          "avant": "194092034d8d634c2930950acdf9cabc819f34fd0cc773edd75dc347502161de",
+          "apres": "a41039c63578b49690020202fc2e1560c969df9c9816cceed959068de5aaf517"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/confrontation/paquets/LISEZMOI.md",
+          "avant": "4d6e157090b243bf71ab13195da4b8aec9ca1caf62ede62cbdfc2cf4eabf3090",
+          "apres": "ee37cf81ebb36de3a8dc0d830a7ca6f9c4e95f2d053db706ce6c6673ff661e55"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/confrontation/paquets/sorties/gnutar.txt",
+          "avant": "7d56084d327d7a34639245cbe9d8e42e8cb33006c0adf3c674daba6a0d277d36",
+          "apres": "2a0f7be9dfa0328a4662fdf09dc7db5689ce207f58d3cabfe84c817abf73093d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/confrontation/paquets/sorties/tarfile.txt",
+          "avant": "ef8870acdb17711d1e64daade7f2a70a8a2d2bb386d93dcb28bb6c06dafdc722",
+          "apres": "165ae519b024079092030739dc2eae3a84d27fa9aea9a5952c849515295927c8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/dependance-sans-condition.attendu.json",
+          "avant": "dc24089e4c6e94cf4d07df7ea350afa9db325d1ee6bb4366273c921c1d427245",
+          "apres": "b0ca4243e59351b9e74c6ab2ce5275064a5d26c7cb303ba3f4a51dd9fb0b6975"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/dependance-sans-condition.yaml",
+          "avant": "0c682cbde8c82c5bfc1ffce977e1195db6a7cdaae7cec16dc3c36c99064c4283",
+          "apres": "6b7e49639b613fae9f1dc4fa837e11d297a357a879e7a33ae445a3ad328e8689"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/images.json",
+          "avant": "1beb7505070aa54b9ea07ae24564d0089f84ceac943bd064b83692eb1aad4891",
+          "apres": "46961ed68968db701d7f1133ef59acc94eeb46b4a00d9425fb67d3562e01356d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/reseau-outils-non-interne.attendu.json",
+          "avant": "a12411ca1cb6cb3815cf9f9be3608b22c2ac9060e102f31d92e2dc4a8af9dadd",
+          "apres": "e893d0c6d0a980ad3912768d2915889ba5e7a96587dbb96c4c6df2af3b1a1481"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/reseau-outils-non-interne.yaml",
+          "avant": "aeccaa6eb13185e1a93c7d777bde8efe5e46de3e168deef33bbe00b791b68237",
+          "apres": "bdf8a337f3689781312e75d93d5c5c8e4ce76d6f56243725f457a4277dbe435e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-partage-entre-comptes.attendu.json",
+          "avant": "a382f14e4e2d410290b682027d1a96a81bb2fac23d50b473942772d0f6eb8816",
+          "apres": "02055868da02d97ad53ee4cf1f579260bf63828b3d89073aea70f6af937bc62d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/secret-partage-entre-comptes.yaml",
+          "avant": "bb12b33db12e7ff3b8c52075019221fb89cae35504013c083ad3742228a21305",
+          "apres": "ab8b75707c02bf29ac4c7cdf81ddaa8a04c3b7089d030bdc4567f45b6fa4f295"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production-condenses.attendu.json",
+          "avant": "30780095258c0565e01813f84cfe0cc4f5abd0bfd76197c2bf8582e1a2800659",
+          "apres": "30e7ec3676fc78b29dad0cf728f53f3df9c5d5e9bd343710fceaf57718220c4b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production-condenses.yaml",
+          "avant": "4a67c4a8577619d3500e5387c45ae675a53f93501bd60f9595e1acbb617d4f4d",
+          "apres": "122d5ad98be030f5728c9417ed5e62d8be14318ad07bbf4aa5b2a440d32fac60"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production.attendu.json",
+          "avant": "5ea008a43b5b9600a56260d4d787d031ab30c8494b7faa911faeae78cd42b876",
+          "apres": "989b331ab9a77badf3bcf64d85c131459a7cb3fc05b3563ad5a6a4f264ccaec7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/conteneurs/valide-production.yaml",
+          "avant": "5d009e70fa9ec50a02a75197366389c9e65d2bb7c4b908e86ff31efff2a8afac",
+          "apres": "b41fdb782af59b7f19adc6169d825b5ce5796cb4e612446bf7ca9088059a879b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/cas.json",
+          "avant": "77664feb916a54a9c3ca1bbe004d0be1ef9b76b040297613fb6e6d28c39b4303",
+          "apres": "0980fe7517db6dcce7d8528de8c4f6b737a72c84ef0c71775a96c34e4d40dd51"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/chemin-absolu.tar",
+          "avant": "6f07e6e4cb1dc1e6ebeac41a546ab140be71dd974d08a54cbbd084a5b1251fe2",
+          "apres": "3f6e990edd6c176650e1538eebdb96d5d719fb42464688bc420f51d6c34ae107"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/chemin-hors-archive.tar",
+          "avant": "fc6446e02c04c10aea067a848c0fdc263d8f5a4a8242bec113475340dc678253",
+          "apres": "8fc463d87c78dcca039fd16e7fe290937a0a9f2d7e0eb7070257a8b62acc87d5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/contrefacon-coherente.tar",
+          "avant": "d806d8e7af25c118d9f241ead0c8b51892e10e778a8f1a0238f831334e822344",
+          "apres": "ae31214b730fca87ac605964f5d3336eb43a47f65bde5ba1733a3c34cd66f96e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/fichier-altere.tar",
+          "avant": "b41b49dbe9b529f90b4de5b1c73986406951af163e0f9ed2a8381481227e7d29",
+          "apres": "12862e28ab1cafe6c8c89bda6823f96a6e895be92609af3135d4a3c2ad59a0b1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/fichier-en-trop.tar",
+          "avant": "40558d06651fd5f539942952a9d6ea0f2a1322f0262ec41d06e8b0e00fa4730d",
+          "apres": "732e95671da52608cfe89a2629028c5d9f591793d65e0dda626c0c78a31492b7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/fichier-manquant.tar",
+          "avant": "92dd0e6f2d3f76d8281925c73ae0d31fe8bfc80f6112b506e6cd39f794c8acbe",
+          "apres": "d2196a662e1914840728ad3a8230f56118d3aec025fe1bad22dd736d5209ba91"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/lien-physique.tar",
+          "avant": "e8c92cba21f5c6ada90b7e17a595923888056f51345fbfacd35402437c186735",
+          "apres": "d1024fdfad447035f903381d97051f71a72453d15d9397198756b51ae2dec008"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/lien-symbolique.tar",
+          "avant": "f036a91c971e6fbd3c75da67ddc90f5e3f6522e8a7a3c250f7178bf644c25071",
+          "apres": "9991ca51ed861fb78ab0c99787946961a8caf0c8318df4517a563b190b2efc71"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/manifeste-altere.tar",
+          "avant": "32ba2c02676d40d5d25f42e90a235763c53c78cd8348f18e34ae82e51473b122",
+          "apres": "932576a2a32fdc8c4fa08281a9a5b2e67182dc1e205a696026e4f3716ebca41f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/metadonnees-non-fixees.tar",
+          "avant": "275277ac3f74b02b8902301de1c5441b71803d2aace807511b87421af26410a3",
+          "apres": "e9ecb529e428b0f2c443ecc3ffa59704f5a41a560c9833b36f05871efd1ab3db"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/nom-en-double.tar",
+          "avant": "cfbc9d58c6e0174c3fdb86d10155ad642741166434522a94ca82b495398d2697",
+          "apres": "e272d022b01bea28ba2074929c98b17c1608edef35eb776a4a2e36899a7ebb3a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/observation.tar",
+          "avant": "d3d6ea7fc3c69d731fe1f33b7fde85db0ff0c3ca8b9e714fe6a714a336b3e064",
+          "apres": "813fd05b9fb84cf99a4bfa7afccd3df53223feb0081951b5aa21725aa9031810"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/paquets/valide.tar",
+          "avant": "8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+          "apres": "df2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/supervision/regles-attendues.yml",
+          "avant": "c22b24dd3277e7d9f2090d30eeb40da554450c3034cfac2da46f3a954337d3d6",
+          "apres": "13b08058ba48de3fe5256b7dfcae996bf3dee8e279e9884859378069dc11da75"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/verificateur-independant/README.md",
+          "avant": "fdba85d7142b24783fd8c1d3eeabd642c5b6887c59f5af5bf83b4687056c71ca",
+          "apres": "66727fc500650d87d406aac947d46df86ebb72992fc9448141f66a278d4d295a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/verificateur-independant/empreinte_test.go",
+          "avant": null,
+          "apres": "8dd3591a084a0f07de3f55de21ef76e1be3b35bf352532d8eb2b1bded7d068d1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-8/verificateur-independant/famille_paquets.go",
+          "avant": "16f7e519b912500615be67b34d044f0ba852f9c87488e4c5a1929fbb7bffddb5",
+          "apres": "39be132076f01a4b89ad2628291f92b06e1d868552af53f28a8d11e5ea3aa457"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "c577879e774d3ad2c9fa276a333c072f23de5ea9049af4f35401f4c9d8510369",
+          "apres": "1ceb7d9e22883045a9bb32c8d9dc24f6a98a6b861591cf3c32a1d61b4e0f7287"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-complement-sans-etape.json",
+          "avant": "bda1ce919c26781b9822046fa1cbb1ef51ed074cf0a9d54bbaf7b610ce27d796",
+          "apres": "95083da1809fd79dddfbc831572711a7d82915140f82062efbd245775f10ea30"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "5a1a126c64e203a4d395ce228e62cefcfff9a1d2ec4fbc0b77d6625a03270a54",
+          "apres": "d604ef50fe56d85b4922552589c79f1cafd3a2b5b77afc9b5a543527b15fc155"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "132b2dcd756b755a14ac2ac97c63bf632feb7a6c1c02efd26958162053517b59",
+          "apres": "72a94e8cc5c808894e816b084fa89aa53806581a017ffb860ea0063017649480"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "27a047e83415f9cadbd2b5aff16f43681fe44bff84421a97e4405aa4af972276",
+          "apres": "4c281c26ae1d9116002ff255e1104a81d6bf1a1dea4c5158ec69c70f14a1cdab"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-7.md",
+          "avant": "6aa571e54b354195fa07c83fbd8af9c530723b933d6fe7fee30b47be636f77c2",
+          "apres": "785b8b7fbd6900507b94df5adf0bd442a7cd89ededf398ccc5436602c16ba346"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "14cbe55ba11220aafc7f0ead1afc408b5d5bf5b280ae144c2cc1c23c2082c90d",
+          "apres": "3bef2f6e4b396fffdcbbb61fcf497472ea9e410eb148952f66b0624a740061d8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-13.md",
+          "avant": "bd1079bc1474f503f54fe12ef21f525b077a6bbb8b559c732198bdce4c4222e4",
+          "apres": "8196e4f5b3713ba90d3abdf0b0e368c1aaf42893e52251ed9cd66ccd80df03c9"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "27ff00af0bf19960a798a32640da22af2e133f461359746f22671c5f477632f5",
+          "apres": "d26055b35216b8c3f5b8fd370c01fab932e014c56f8504558f5c19b53a4d8092"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "e5ad77a8c974f6fc19bcffe038302537fabb66ff14648f8a5dd34c2086cb5e97",
+          "apres": "570b3c4e94fd7a84c64c2a5a191b391739a5dc6a0d0fa1152f1e7f5b9a182214"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "99aad967acb787392994877bc29c366516a2c220d18c74f33c296c90025d8022",
+          "apres": "a8475d8ab4a92d38213c0c24c91ea6c91876ec418f40a99ea64d0a53be30c195"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/rapport-2026-11-13-capture-bloc-plein-clotures.json",
+          "avant": null,
+          "apres": "9cd408095d1c5fe8f9517461e92bce6597f6db131817c2f5541a9b0f882f49ef"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/rapport-2026-11-13-tm-30-calendriers-publics.json",
+          "avant": null,
+          "apres": "a82178058380487c1b034365d4bc66e13e82b24fb3fdc0fdc27c5d89f9e3acc5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/README.md",
+          "avant": "1d8776d8b9efd6c492002b6237cfbd1a42509b1fec881b4b49b42dcf4a44e117",
+          "apres": "63afab0ccdcf84125a6e4194765f54d6114e70268a05a9433b2e3eaa6a0c2c36"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/texte.go",
+          "avant": "823320995345bb670a30e94cb7a0c34437a2acd8837784aa18f900cc7e27281e",
+          "apres": "f2c8d6bff89eb78d81e44cd341213e1d60d74cb641d2063c534befe18f3924f9"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/vecteurs.go",
+          "avant": "4cd5248ce995a700a679268ce02df5b5b6e2d0810fe5eb4c8d51f39203190398",
+          "apres": "0dedbc47ef3d30996d93058281702dcfe293ea2a58e0a1ef03840ecc9dea71ce"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/verificateur_test.go",
+          "avant": "988a2e4a9e569cff24fe931f2e9d630867cab50860aa51b8198759d15c53e3c2",
+          "apres": "d76fc2113fce96e51282467eb9466f993688d4c4f06de12916b57a9dcb893bf2"
+        }
+      ]
+    },
+    {
+      "id": "MC-87",
+      "date": "2026-11-16",
+      "etape": 8,
+      "motif": "Sorties publiées de la confrontation des signatures de CT-3 par ethers et eth-account régénérées pour les quatre cas d'annuaire/exports du complément du 2026-11-16 sur les instants indécodables au rejeu (CT-3 EX-13.19, points 4 et 6, A.10) : treize preuves de plus, toutes concordantes, aucune discordance ; totaux des deux LISEZMOI mis à jour.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-3/confrontation/eth-account/LISEZMOI.md",
+          "avant": "cc5bc1ab57e30fc46ccf3c0aa3d1fc7f121abdc22a80deea5057272cd231b723",
+          "apres": "1aa48396278300a6001d7113aea8f5b6ec75f458dc236dcc805dbe213da79dfd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/confrontation/ethers/LISEZMOI.md",
+          "avant": "50b38747cecdb6248fe2e2bf0574d98c9aac98b5e69b3b87aed43aa9b29e600b",
+          "apres": "3df4c43edba66723990a9a110e7098776a3c3682a7b2a42cf8892b9fe6cbe3ad"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/confrontation/sorties/eth-account.txt",
+          "avant": "18cbc48b143636566d11a8233f462666d5be9918b4291a0b05b6e41afcd75966",
+          "apres": "bf50323739653780373f7c54b75354112ed01f3c18f5d98b8bd69351ae5840f2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-3/confrontation/sorties/ethers.txt",
+          "avant": "3ebe1e2993574fc331c8db17807d11ba432cee1e7d5a7b834a0fc4f66e766405",
+          "apres": "be213376bc33ff317f8abf4cc7b4f6a4e7ce09e6ae61e203e95fc578440faff9"
+        }
+      ]
+    },
+    {
+      "id": "MC-88",
+      "date": "2026-11-16",
+      "etape": 8,
+      "motif": "Couverture de CT-9 régénérée (deux générations identiques) : seules changent les empreintes de trois fichiers d'essai dont l'oracle ou le mutant suivait un texte ou un code antérieur (mutant de TA-64 sur la reconstruction de la file, rattachement de TE-9 aux essais du chemin C, nombre de cas de rédaction rejoués par le SDK Python) ; identifiants, couverture et tables inchangés.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "4c281c26ae1d9116002ff255e1104a81d6bf1a1dea4c5158ec69c70f14a1cdab",
+          "apres": "fec58f389b12b9b445c3ce8a5f747ec166d497cc03facd7320a6670f5129ecb5"
+        }
+      ]
+    },
+    {
+      "id": "MC-89",
+      "date": "2026-11-17",
+      "etape": 8,
+      "motif": "Complément du 2026-11-17 de CT-4 (EX-8.14, table de 7.11, ligne de la révision 0.8) : le nonce signé n'est jamais inférieur au suivant du plus grand nonce des envois de l'expéditeur dont l'issue d'inclusion est écrite ; numéros de ligne de CT-4 recollés dans la table TC de CT-9, vecteurs ct-9 régénérés et recompte republié",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-4-registre.md",
+          "avant": "8cc0960eda34279cfaace1082ede5088edade3845cabcc18755554c2fef76dd2",
+          "apres": "cc16a8b5321e3f8f8306d3846ef682716635818c004676616b5c13687d90a5d2"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "e67414db61adebf70eb78bc6127b036ccec5db2ca5a6583854941b7d1256e434",
+          "apres": "9ebf3dc1ea0ec642e71269a664e0b7223348645c84fbec8a5f6bfd70f1fbaecb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "d604ef50fe56d85b4922552589c79f1cafd3a2b5b77afc9b5a543527b15fc155",
+          "apres": "9d61e07300fe874173ce28209450d35a4dfd94c7f2440825c9fc4631a7fe11d4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "72a94e8cc5c808894e816b084fa89aa53806581a017ffb860ea0063017649480",
+          "apres": "b87e2050ee92743db9ea0baf362db62030310e7ea80f81550d2b4aeae16966aa"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "fec58f389b12b9b445c3ce8a5f747ec166d497cc03facd7320a6670f5129ecb5",
+          "apres": "8d572085a3dd54a4c4ab87f8477a2d6ee32e85976e729ef4d8c817a154537cbc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "570b3c4e94fd7a84c64c2a5a191b391739a5dc6a0d0fa1152f1e7f5b9a182214",
+          "apres": "c49322710f6a4e3bd7e8b5216e66cab94ba4cdb439a21345d35a123d9bb3dcd1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "a8475d8ab4a92d38213c0c24c91ea6c91876ec418f40a99ea64d0a53be30c195",
+          "apres": "a261b8e404c2e4c85dcd867b3b195504c6630cd67b18d92b108f977e03c9bd36"
+        }
+      ]
+    },
+    {
+      "id": "MC-90",
+      "date": "2026-11-17",
+      "etape": 8,
+      "motif": "Compléments du 2026-11-17 : CT-4 EX-8.14 (valeur des points précisée, recoupement appliqué par l'outil de référence et par l'agent d'inscription ; en-tête, table de 7.11 et ligne de la révision 0.8) ; renvois par numéro de ligne : CT-7 (0.2, RV-3 et RV-7 de l'annexe A.10, section 11), table de 0.2 et annexes A.2 et B de la spécification du déploiement, annexe B et note de révision du plan de tests, numéros de ligne recollés et contrôlés ; vecteurs ct-9 régénérés et recompte republié",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-4-registre.md",
+          "avant": "cc16a8b5321e3f8f8306d3846ef682716635818c004676616b5c13687d90a5d2",
+          "apres": "f468379850df0601fd5b7bc1def896166fe493cb4f770e42ef67e312bd3583a8"
+        },
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "724f4e65cfb531acdcb7f631184bd9b4386ca919c034fc86ec95d60dd47048fb",
+          "apres": "3d41db104eb3e685645027df6b39f47be25dd3bf6d02819088858e8aa238209e"
+        },
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "653a092434bfbe761af865745fa281b520d57c04601256b4391d1d8c4363789c",
+          "apres": "6d436ada8c340abe5fc10cd2b6c2fb05cead4470730e43551409b224621438e5"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "9ebf3dc1ea0ec642e71269a664e0b7223348645c84fbec8a5f6bfd70f1fbaecb",
+          "apres": "223628f0a7bf0aa2bb3cffb064d9050d46a486775d45c52d1c5afab62e3cfeed"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "9d61e07300fe874173ce28209450d35a4dfd94c7f2440825c9fc4631a7fe11d4",
+          "apres": "18928c233803b48cec8724a98b6ec15709db6209ebd26586f26ef25d41b9c795"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "b87e2050ee92743db9ea0baf362db62030310e7ea80f81550d2b4aeae16966aa",
+          "apres": "1b9b3815842012714b65b468137c998d4126d6f8c51ba69a8696eb2d3e0295f6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "8d572085a3dd54a4c4ab87f8477a2d6ee32e85976e729ef4d8c817a154537cbc",
+          "apres": "c8f50a47470ad658341220a9f7e9af840cdbe5c3b8848e0b63d7a885268e47c3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "3bef2f6e4b396fffdcbbb61fcf497472ea9e410eb148952f66b0624a740061d8",
+          "apres": "99ac70551facd6b434679bdbafd8342dda0c77f75994ee3aff36eb5a97c29c8e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "d26055b35216b8c3f5b8fd370c01fab932e014c56f8504558f5c19b53a4d8092",
+          "apres": "4ac4db8f792a420bb2445f6285d3c7fffa355fb10fc10a20aed30761b34d6fd8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "c49322710f6a4e3bd7e8b5216e66cab94ba4cdb439a21345d35a123d9bb3dcd1",
+          "apres": "8899d44783e08b9aad9cd57d4cd4c4d599d55188f5edb5f45bd19dec36306be8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "a261b8e404c2e4c85dcd867b3b195504c6630cd67b18d92b108f977e03c9bd36",
+          "apres": "9f56ced14257af7b18ba3477a707cdd0a319fe180b9e22518d0dc95c740234f9"
+        }
+      ]
+    },
+    {
+      "id": "MC-91",
+      "date": "2026-11-17",
+      "etape": 8,
+      "motif": "Complément du 2026-11-17 : plage de CT-4 citée par l'entrée TR- de l'épreuve de 7.12 rétablie (l. 183-186), catalogue et couverture régénérés.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "18928c233803b48cec8724a98b6ec15709db6209ebd26586f26ef25d41b9c795",
+          "apres": "9dcfef8779f55fb0a0b48c1d918665925dfe6f2eea89638cb7c9920bf2d25fbd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "c8f50a47470ad658341220a9f7e9af840cdbe5c3b8848e0b63d7a885268e47c3",
+          "apres": "d187767029c052581eddd2a8940a796510f150d81a311f23d8231faf041800ac"
+        }
+      ]
+    },
+    {
+      "id": "MC-92",
+      "date": "2026-11-17",
+      "etape": 8,
+      "motif": "Complément du 2026-11-17 : empreintes de deux fichiers d'essai dans la couverture (attente d'un point stocké avant l'arrêt brutal de TA-106 ; précondition de disque réel et nettoyage garanti de l'essai du harnais de mesure).",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "d187767029c052581eddd2a8940a796510f150d81a311f23d8231faf041800ac",
+          "apres": "b34992b0cb32d3235a137b453e60f91e236d2158ef88aeba67e6568e23a8349e"
+        }
+      ]
     }
   ]
 }

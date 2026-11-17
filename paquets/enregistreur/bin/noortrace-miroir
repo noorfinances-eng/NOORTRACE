@@ -1,21 +1,99 @@
 #!/usr/bin/env node
 // Adaptateur de capture du mode miroir (CT-2 §5.1.3, EX-5.6) : voir src/modele/miroir.mjs.
-//   noortrace-miroir --socket <prise du démon> --ecoute <hôte:port de la copie>
+//   noortrace-miroir --config <configuration du démon>
+//   noortrace-miroir --socket <prise du démon> [--ecoute <hôte:port>] [--sources <cidr,…>]
+//                    [--tls-cert <pem> --tls-key <pem> [--tls-ca <pem>]] [--preuve]
+// Avec --config, tout est lu de `model.mirror` (socket, listen, tls, client_ca,
+// allowed_sources, peer_user), la configuration que la validation contrôle
+// (EX-15.4 pas 3). L'écoute vaut par défaut 127.0.0.1:8410 ; hors de la boucle
+// locale, une authentification de la source de la copie est exigée (certificat
+// client ou liste de sources ; CT-2 EX-5.6). Codes : 0 arrêt demandé, 1 prise
+// du démon injoignable ou preuve d'identité refusée, 2 usage ou configuration
+// refusée, 3 prise du démon fermée.
+// Complément du 2026-11-16 (CT-2 EX-5.6, EX-18.1) : la ligne de commande est
+// stricte : une option inconnue, donnée deux fois ou sans sa valeur, un
+// argument en trop, ou `--config` avec une autre option, rendent l'usage et
+// le code 2 (une faute de frappe sur une option de sécurité, `--source` pour
+// `--sources`, laissait l'adaptateur écouter sur l'adresse par défaut sans
+// rien dire) ; un chemin de prise du démon de plus de 103 octets est refusé
+// (`chemin_prise_trop_long`, code 2).
+import fs from "node:fs";
 import { lancerAdaptateur } from "../src/modele/miroir.mjs";
 
-const a = process.argv.slice(2);
+/** Options à valeur et option sans valeur de la ligne de commande. */
+const A_VALEUR = new Set(["--config", "--socket", "--ecoute", "--sources", "--tls-cert", "--tls-key", "--tls-ca"]);
+const SANS_VALEUR = new Set(["--preuve"]);
+
+/**
+ * Lecture stricte des arguments ; null : usage.
+ * @param {string[]} argv
+ * @returns {Map<string, string|true>|null}
+ */
+function lireArguments(argv) {
+  const lus = new Map();
+  for (let k = 0; k < argv.length; k++) {
+    const n = argv[k];
+    if (lus.has(n)) return null;
+    if (SANS_VALEUR.has(n)) lus.set(n, true);
+    else if (A_VALEUR.has(n)) {
+      const v = argv[k + 1];
+      if (v === undefined || v === "" || v.startsWith("--")) return null;
+      lus.set(n, v);
+      k++;
+    } else return null;
+  }
+  if (lus.has("--config") && lus.size !== 1) return null;
+  return lus;
+}
+
+const lus = lireArguments(process.argv.slice(2));
 const val = (n) => {
-  const k = a.indexOf(n);
-  return k >= 0 ? a[k + 1] : undefined;
+  const v = lus?.get(n);
+  return typeof v === "string" ? v : undefined;
 };
-const socket = val("--socket");
-const ecoute = val("--ecoute");
-if (!socket || !ecoute || !/^[^\s]+:[0-9]{1,5}$/.test(ecoute)) {
-  process.stderr.write("usage : noortrace-miroir --socket <prise du démon> --ecoute <hôte:port>\n");
+const USAGE = "usage : noortrace-miroir --config <fichier> | --socket <prise du démon> [--ecoute <hôte:port>] [--sources <cidr,…>] [--tls-cert <pem> --tls-key <pem> [--tls-ca <pem>]] [--preuve]\n";
+
+/** Options de l'adaptateur, depuis la configuration ou la ligne de commande ; null : usage. */
+function options() {
+  if (lus === null) return null;
+  if (val("--config") !== undefined) {
+    const c = JSON.parse(fs.readFileSync(val("--config"), "utf8"));
+    const mi = c?.model?.mirror;
+    if (c?.model?.mode !== "miroir" || !mi || typeof mi.socket !== "string") throw Object.assign(new Error("model.mode n'est pas miroir ou model.mirror est absent"), { code: "configuration" });
+    return {
+      socket: mi.socket,
+      ecoute: mi.listen ?? undefined,
+      sources: mi.allowed_sources ?? [],
+      tls: mi.tls ? { cert: fs.readFileSync(mi.tls.cert_file), key: fs.readFileSync(mi.tls.key_file), ca: mi.client_ca ? fs.readFileSync(mi.client_ca) : null } : null,
+      preuve: typeof mi.peer_user === "string",
+    };
+  }
+  const socket = val("--socket");
+  const ecoute = val("--ecoute");
+  if (!socket || (ecoute !== undefined && !/^[^\s]+:[0-9]{1,5}$/.test(ecoute))) return null;
+  if ((val("--tls-cert") === undefined) !== (val("--tls-key") === undefined) || (val("--tls-ca") !== undefined && val("--tls-cert") === undefined)) return null;
+  return {
+    socket,
+    ecoute,
+    sources: val("--sources") ? val("--sources").split(",").map((x) => x.trim()).filter(Boolean) : [],
+    tls: val("--tls-cert") ? { cert: fs.readFileSync(val("--tls-cert")), key: fs.readFileSync(val("--tls-key")), ca: val("--tls-ca") ? fs.readFileSync(val("--tls-ca")) : null } : null,
+    preuve: lus.has("--preuve"),
+  };
+}
+
+let o = null;
+try {
+  o = options();
+} catch (e) {
+  process.stderr.write(`noortrace-miroir : configuration illisible (${e?.code ?? "erreur"} : ${e?.message ?? e})\n`);
   process.exitCode = 2;
-} else {
+}
+if (o === null && process.exitCode !== 2) {
+  process.stderr.write(USAGE);
+  process.exitCode = 2;
+} else if (o !== null) {
   try {
-    const x = await lancerAdaptateur({ socket, ecoute, sortie: process.stdout });
+    const x = await lancerAdaptateur({ ...o, sortie: process.stdout });
     // Étape 8 (CT-2 EX-5.6) : la prise du démon fermée arrête l'adaptateur avec un code non nul (3) : rien n'est écrit dans le vide.
     x.perte.then(() => {
       process.stderr.write("noortrace-miroir : prise du demon fermee, capture arretee (code 3)\n");
@@ -28,7 +106,15 @@ if (!socket || !ecoute || !/^[^\s]+:[0-9]{1,5}$/.test(ecoute)) {
     process.on("SIGTERM", arreter);
     process.on("SIGINT", arreter);
   } catch (e) {
-    process.stderr.write(`noortrace-miroir : prise du démon injoignable (${e?.code ?? "erreur"})\n`);
-    process.exitCode = 1;
+    if (e?.code === "ecoute_non_authentifiee" || e?.code === "chemin_prise_trop_long") {
+      process.stderr.write(`noortrace-miroir : ${e.message}\n`);
+      process.exitCode = 2;
+    } else if (e?.code === "preuve_refusee") {
+      process.stderr.write(`noortrace-miroir : ${e.message}\n`);
+      process.exitCode = 1;
+    } else {
+      process.stderr.write(`noortrace-miroir : prise du démon injoignable (${e?.code ?? "erreur"})\n`);
+      process.exitCode = 1;
+    }
   }
 }

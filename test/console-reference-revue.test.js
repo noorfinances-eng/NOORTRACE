@@ -133,7 +133,7 @@ describe("CT-3, référence : bornes de l'annuaire, limite_annuaire (EX-13.17, r
     const r = K.appliquerOperation(a, "lier_demandeur", { session_identity: ADMIN(a), entry: e.id, launched_by: e.requester_identities[0] }, T);
     expect(r.reason).to.equal("demandeur_deja_lie");
   });
-  it("CT-3 EX-13.22 : un inscrire qui créerait la 65e adresse d'une entrée, ou la 10 001e entrée, est refusé limite_annuaire après les pas d'EX-13.15 (signature valide) ; le défi présenté est marqué utilisé ; l'annuaire ne change pas ; une signature fausse est refusée pour sa propre raison, avant la borne", async function () {
+  it("CT-3 EX-13.22 : un inscrire qui créerait la 65e adresse d'une entrée, ou la 10 001e entrée, est refusé limite_annuaire après les pas d'EX-13.15 (signature valide) ; le défi présenté est retiré (EX-13.13, complément du 2026-11-16) ; l'annuaire ne change pas ; une signature fausse est refusée pour sa propre raison, avant la borne", async function () {
     const portefeuille = Wallet.createRandom();
     const adresse = portefeuille.address.toLowerCase();
     const inscrire = async (annuaire, identite) => {
@@ -150,7 +150,7 @@ describe("CT-3, référence : bornes de l'annuaire, limite_annuaire (EX-13.17, r
     expect(r.accepted).to.equal(false);
     expect(r.reason).to.equal("limite_annuaire");
     expect(JSON.stringify(r.annuaire)).to.equal(JSON.stringify(a));
-    expect(r.defis.find((d) => d.fields.identity === e.session_identity && d.fields.address === adresse).used).to.equal(true);
+    expect(r.defis.some((d) => d.fields.identity === e.session_identity && d.fields.address === adresse)).to.equal(false);
     const faux = K.appliquerOperation(a, "inscrire", { session_identity: e.session_identity, address: adresse, message: prep.response.message, signature: "0x" + "11".repeat(65) }, T, { defis: prep.defis });
     expect(faux.accepted).to.equal(false);
     expect(faux.reason).to.not.equal("limite_annuaire");

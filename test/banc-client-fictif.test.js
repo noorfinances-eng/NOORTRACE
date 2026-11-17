@@ -77,6 +77,24 @@ describe("Étape 7 : banc client fictif — harnais et substituts (statique)", f
     }
   });
 
+  it("CT-8 EX-3.15, IC-6 : compose/production.yaml lance l'enregistreur avec --image-attendue et monte ./config/production/image-attendue.json en lecture seule sur ce fichier ; une copie sans l'option, sans le montage ou avec une autre cible est refusée ; images.json décrit la cible (CO-11)", async function () {
+    const { ecartsImageAttendue } = await import(HARNAIS);
+    const dep = path.join(RACINE, "deploiement");
+    const production = fs.readFileSync(path.join(dep, "compose", "production.yaml"), "utf8");
+    expect(ecartsImageAttendue(production)).to.deep.equal([]);
+    const option = '"--image-attendue", "/etc/noortrace/image-attendue.json"';
+    expect(production.split(option)).to.have.lengthOf(2);
+    const montage = "      - type: bind\n        source: ./config/production/image-attendue.json\n        target: /etc/noortrace/image-attendue.json\n        read_only: true\n        bind:\n          create_host_path: false\n";
+    expect(production.split(montage)).to.have.lengthOf(2);
+    // Copies altérées : chacune refusée.
+    expect(ecartsImageAttendue(production.replace(`, ${option}`, ""))).to.deep.equal(["commande de l'enregistreur sans --image-attendue"]);
+    expect(ecartsImageAttendue(production.replace(montage, ""))).to.deep.equal(["./config/production/image-attendue.json non monté dans l'enregistreur"]);
+    expect(ecartsImageAttendue(production.replace(montage, montage.replace("        read_only: true\n", "")))).to.have.lengthOf(1);
+    expect(ecartsImageAttendue(production.replace(montage, montage.replace("target: /etc/noortrace/image-attendue.json", "target: /etc/noortrace/autre.json")))).to.deep.equal(["cible du montage (/etc/noortrace/autre.json) différente du fichier de --image-attendue (/etc/noortrace/image-attendue.json)"]);
+    const description = JSON.parse(fs.readFileSync(path.join(dep, "images", "images.json"), "utf8"));
+    expect(description.services.enregistreur.volumes).to.deep.include({ access: "ro", target: "/etc/noortrace/image-attendue.json" });
+  });
+
   it("usage : sans --travail, code 2 et l'usage ; répertoire existant refusé (code 2)", function () {
     const r = spawnSync(process.execPath, [HARNAIS], { encoding: "utf8" });
     expect(r.status).to.equal(2);

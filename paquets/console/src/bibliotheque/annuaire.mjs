@@ -6,7 +6,8 @@
 // défis persistés (EX-13.38) ; message d'inscription (EX-13.12) ; défi et
 // contrôle du texte par la console (EX-13.13) ; vérification d'une inscription
 // (EX-13.15, normalisation d'EX-9.3) ; opérations de l'annuaire et bornes du
-// schéma (EX-13.17, `limite_annuaire`) ;
+// schéma (EX-13.17, `limite_annuaire`) ; expiration des entrées jamais
+// validées (EX-13.10, point 5 ; EX-13.17, opération interne `expirer`) ;
 // recopie du réglage `administrators` (EX-13.37) ; contrôles de la console
 // avant un vote, une récusation ou un retrait (EX-13.18, EX-7.15) ; contrôle
 // de session du canal (EX-12.13, EX-12.14, EX-12.16, EX-12.19) ; document
@@ -37,6 +38,11 @@ const MAX_DEMANDEURS = 64;
 // même adresse ne compte pas.
 export const MAX_DEFIS_PAR_IDENTITE = 4;
 export const MAX_DEFIS = 1024;
+// Durée de vie d'une entrée dont aucune adresse n'a jamais été validée
+// (réglage `registration_entry_ttl_ms`, CT-3 10.3 ; EX-13.10, point 5 ;
+// EX-13.17), défaut et bornes ; la borne basse sert au rejeu d'un annuaire
+// exporté, qui ne porte pas le réglage (EX-13.19, point 6).
+export const TTL_ENTREE_MS = Object.freeze({ defaut: 2592000000, min: 86400000, max: 31536000000 });
 
 const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const aCle = (o, c) => Object.prototype.hasOwnProperty.call(o, c);
@@ -281,10 +287,14 @@ function aleaOctets(n) {
   return o;
 }
 
+// Compteur (A.10) : nombre d'entrées jamais créées, présentes ou retirées par
+// `expirer`, augmenté de un ; un identifiant n'est jamais réattribué (EX-13.9).
+// Les identifiants aléatoires évitent aussi ceux des entrées expirées.
 function nouvelIdentifiant(annuaire, mode) {
   const pris = new Set(annuaire.entries.map((e) => e.id));
+  for (const o of annuaire.operations) if (o.op === "expirer" && o.entry !== null) pris.add(o.entry);
   if (mode === "compteur") {
-    const id = `apb-${String(annuaire.entries.length + 1).padStart(4, "0")}`;
+    const id = `apb-${String(annuaire.entries.length + annuaire.operations.filter((o) => o.op === "expirer").length + 1).padStart(4, "0")}`;
     if (pris.has(id)) throw new TypeError(`identifiant compteur deja attribue : ${id}`);
     return id;
   }
@@ -520,6 +530,7 @@ function executer(doc, methode, req, at, admins) {
 }
 
 const METHODES_OPERATION = Object.freeze([
+  "expirer",
   "preparer_inscription",
   "inscrire",
   "valider",
@@ -537,7 +548,8 @@ const METHODES_OPERATION = Object.freeze([
  * @param {string} methode
  * @param {unknown} requete corps de la méthode
  * @param {string} at instant de l'horloge du service
- * @param {{defis?: object[], nonce?: string, identifiant?: "aleatoire"|"compteur"}} [options]
+ * @param {{defis?: object[], nonce?: string, identifiant?: "aleatoire"|"compteur", ttlEntree?: number}} [options]
+ *   `ttlEntree` : réglage `registration_entry_ttl_ms` pour `expirer` (défaut 30 jours)
  * @returns {{annuaire: object, defis: object[], accepted: boolean, reason: string|null, response: object|null}}
  */
 export function appliquerOperation(annuaire, methode, requete, at, options) {
@@ -554,12 +566,18 @@ export function appliquerOperation(annuaire, methode, requete, at, options) {
   const copieDefis = () => defis.map((d) => cloner(d));
   const refus = (reason, d = copieDefis()) => ({ annuaire, defis: d, accepted: false, reason, response: null });
 
+  if (methode === "expirer") return expirer(annuaire, requete, t, at, opts, refus);
+
   if (methode === "inscrire") {
     const v = verifierInscription(annuaire, defis, requete, at, { identifiant: mode });
-    if (!v.accepted) return refus(v.reason, v.defis);
+    // EX-13.13 (complément du 2026-11-16) : le défi présenté au pas 4 d'EX-13.15
+    // est retiré, quel que soit le sort de la requête ; il ne compte plus dans
+    // les bornes, et son nonce présenté de nouveau est inconnu.
+    const restants = v.defis.filter((d) => d.used !== true);
+    if (!v.accepted) return refus(v.reason, restants);
     const doc = cloner(annuaire);
     const response = effetInscription(doc, requete.session_identity, requete.address, requete.message, v.signature, at, v.entry);
-    return { annuaire: doc, defis: v.defis, accepted: true, reason: null, response };
+    return { annuaire: doc, defis: restants, accepted: true, reason: null, response };
   }
 
   if (!formeRequete(methode, requete)) return refus("requete_invalide");
@@ -570,7 +588,7 @@ export function appliquerOperation(annuaire, methode, requete, at, options) {
     if (e !== undefined && e.active !== true) return refus("identite_desactivee");
     if (annuaire.entries.some((x) => x.addresses.some((a) => a.address === requete.address))) return refus("adresse_deja_attribuee");
     // Bornes des défis non expirés, hors celui que ce défi remplacerait (CT-3 EX-13.13).
-    const tenus = defis.filter((d) => decoderInstant(d.fields.expires_at) > t && !(d.fields.identity === requete.session_identity && d.fields.address === requete.address));
+    const tenus = defis.filter((d) => d.used !== true && decoderInstant(d.fields.expires_at) > t && !(d.fields.identity === requete.session_identity && d.fields.address === requete.address));
     if (tenus.length >= MAX_DEFIS || tenus.filter((d) => d.fields.identity === requete.session_identity).length >= MAX_DEFIS_PAR_IDENTITE) return refus("limite_annuaire");
     const nonce = opts.nonce !== undefined ? opts.nonce : versHex(aleaOctets(16)).slice(2);
     const fields = {
@@ -595,6 +613,64 @@ export function appliquerOperation(annuaire, methode, requete, at, options) {
   let apres = copieDefis();
   if (r.effacer !== undefined) apres = apres.filter((d) => d.fields.identity !== r.effacer);
   return { annuaire: doc, defis: apres, accepted: true, reason: null, response: r.response };
+}
+
+// ---------------------------------------------------------------------------
+// Expiration des entrées jamais validées (EX-13.10, point 5 ; EX-13.17)
+
+function lireTtl(v, nom) {
+  const ttl = v === undefined ? TTL_ENTREE_MS.defaut : v;
+  if (!Number.isSafeInteger(ttl) || ttl < 0) throw new TypeError(`${nom} : ttlEntree entier positif attendu`);
+  return ttl;
+}
+
+// Aucune adresse jamais validée, et l'échéance `created_at + ttl` atteinte à `t`.
+function expirable(e, t, ttl) {
+  const cree = decoderInstant(e.created_at);
+  return !e.addresses.some((a) => a.validated_at !== null) && cree !== null && t >= cree + ttl;
+}
+
+// Opération interne `expirer` (méthode d'aucun canal) : requête `{ entry }`,
+// refus `requete_invalide`, `entree_inconnue`, `etat_incompatible` ; effet :
+// l'entrée est retirée avec ses adresses, ses preuves et ses alias ; aucune
+// réponse ; les défis ne changent pas.
+function expirer(annuaire, requete, t, at, opts, refus) {
+  const ttl = lireTtl(opts.ttlEntree, "appliquerOperation");
+  if (!estObjet(requete) || Object.keys(requete).length !== 1 || typeof requete.entry !== "string" || !/^apb-[0-9a-z]+(-[0-9a-z]+)*$/.test(requete.entry) || requete.entry.length > 128) {
+    return refus("requete_invalide");
+  }
+  const k = annuaire.entries.findIndex((e) => e.id === requete.entry);
+  if (k < 0) return refus("entree_inconnue");
+  if (!expirable(annuaire.entries[k], t, ttl)) return refus("etat_incompatible");
+  const doc = cloner(annuaire);
+  doc.entries.splice(k, 1);
+  inscrireOperation(doc, operation(doc, at, "expirer", "service", { entry: requete.entry }));
+  const defis = opts.defis === undefined ? [] : opts.defis.map((d) => cloner(d));
+  return { annuaire: doc, defis, accepted: true, reason: null, response: null };
+}
+
+/**
+ * Expire, à l'instant `at`, chaque entrée dont aucune adresse n'a jamais été
+ * validée et dont l'échéance `created_at + ttl` est atteinte, dans l'ordre de
+ * `entries`, une opération `expirer` par entrée (EX-13.17, « Expiration »).
+ * @param {object} annuaire
+ * @param {string} at instant de l'horloge du service
+ * @param {number} [ttl] réglage `registration_entry_ttl_ms` (défaut 30 jours)
+ * @returns {{annuaire: object, expirees: string[]}} l'annuaire inchangé (même objet) si rien n'expire
+ */
+export function expirerEntrees(annuaire, at, ttl) {
+  exigerAnnuaire(annuaire, "expirerEntrees");
+  const t = instantParametre(at, "expirerEntrees (at)");
+  const duree = lireTtl(ttl, "expirerEntrees");
+  const ids = annuaire.entries.filter((e) => expirable(e, t, duree)).map((e) => e.id);
+  if (ids.length === 0) return { annuaire, expirees: [] };
+  // Une seule copie du document pour toutes les opérations : la même suite
+  // d'opérations `expirer`, une par entrée, que des appels successifs.
+  const doc = cloner(annuaire);
+  const retirees = new Set(ids);
+  doc.entries = doc.entries.filter((e) => !retirees.has(e.id));
+  for (const id of ids) inscrireOperation(doc, operation(doc, at, "expirer", "service", { entry: id }));
+  return { annuaire: doc, expirees: ids };
 }
 
 // ---------------------------------------------------------------------------
@@ -810,6 +886,7 @@ function ecartsPreuve(d, e, a) {
 // `address` de l'opération, preuve tirée du document exporté).
 function rejouerInscription(d, travail, o) {
   if (o.address === null || o.entry === null || o.launched_by !== null || o.reason !== null || !estIdentiteCanonique(o.by)) return false;
+  if (travail.expirees.has(o.entry)) return rejouerInscriptionExpiree(travail, o);
   const source = d.entries.find((e) => e.id === o.entry);
   const adresse = source === undefined ? undefined : source.addresses.find((a) => a.address === o.address);
   if (adresse === undefined) return false;
@@ -828,8 +905,29 @@ function rejouerInscription(d, travail, o) {
   const existante = travail.entries.find((e) => e.session_identity === o.by);
   if (existante !== undefined && existante.active !== true) return false;
   if (travail.entries.some((e) => e.addresses.some((a) => a.address === o.address))) return false;
-  if (existante !== undefined ? existante.id !== o.entry : travail.entries.some((e) => e.id === o.entry)) return false;
+  if (existante !== undefined ? existante.id !== o.entry : travail.entries.some((e) => e.id === o.entry) || travail.crees.has(o.entry)) return false;
+  if (existante === undefined) travail.crees.add(o.entry);
   effetInscription(travail, o.by, o.address, message, v.signature, o.at, o.entry);
+  return true;
+}
+
+// Rejeu d'une opération `inscrire` dont l'entrée est retirée plus loin par
+// `expirer` : la preuve a quitté le document avec l'entrée ; seuls les pas 12
+// et 13 d'EX-13.15 se rejouent, avec l'identifiant jamais réattribué
+// (EX-13.19, point 6, complément du 2026-11-16).
+function rejouerInscriptionExpiree(travail, o) {
+  const existante = travail.entries.find((e) => e.session_identity === o.by);
+  if (existante !== undefined && existante.active !== true) return false;
+  if (travail.entries.some((e) => e.addresses.some((a) => a.address === o.address))) return false;
+  if (existante !== undefined ? existante.id !== o.entry : travail.entries.some((e) => e.id === o.entry) || travail.crees.has(o.entry)) return false;
+  let entree = existante;
+  if (entree === undefined) {
+    entree = { id: o.entry, session_identity: o.by, external_id: null, display_name: null, active: true, requester_identities: [], created_at: o.at, addresses: [] };
+    travail.entries.push(entree);
+    travail.crees.add(o.entry);
+  }
+  entree.addresses.push({ address: o.address, state: "en_attente", proof: null, validated_at: null, validated_by: null, revoked_at: null, revoked_by: null, revocation_cause: null, revocation_reason: null, replaced_by: null });
+  inscrireOperation(travail, operation(travail, o.at, "inscrire", o.by, { entry: o.entry, address: o.address }));
   return true;
 }
 
@@ -842,6 +940,17 @@ function rejouerOperation(d, travail, o, admins) {
   }
   if (o.administrators !== null) return null;
   if (o.op === "inscrire") return rejouerInscription(d, travail, o) ? admins : null;
+  if (o.op === "expirer") {
+    // EX-13.19, point 6 (complément du 2026-11-16) : le réglage n'est pas dans
+    // le document exporté ; le rejeu exige sa borne basse.
+    if (o.by !== "service" || o.entry === null || o.address !== null || o.launched_by !== null || o.reason !== null) return null;
+    const t = decoderInstant(o.at);
+    const k = travail.entries.findIndex((e) => e.id === o.entry);
+    if (t === null || k < 0 || !expirable(travail.entries[k], t, TTL_ENTREE_MS.min)) return null;
+    travail.entries.splice(k, 1);
+    inscrireOperation(travail, operation(travail, o.at, "expirer", "service", { entry: o.entry }));
+    return admins;
+  }
   const formes = {
     valider: { session_identity: o.by, entry: o.entry, address: o.address },
     revoquer: { session_identity: o.by, entry: o.entry, address: o.address, reason: o.reason },
@@ -924,6 +1033,10 @@ export function verifierAnnuaireExporte(doc, options) {
   const premierChangement = d.operations.find((o) => o.op === "changer_administrateurs");
   let admins = premierChangement !== undefined && premierChangement.administrators !== null ? [...premierChangement.administrators.before] : [...d.administrators];
   const travail = { ...cloner({ ...d, entries: [], operations: [] }), revision: 0, updated_at: null };
+  // identifiants d'entrée créés par le rejeu, présents ou expirés : jamais réattribués (EX-13.9)
+  Object.defineProperty(travail, "crees", { value: new Set(), enumerable: false });
+  // entrées retirées par une opération expirer du journal : leurs inscriptions se rejouent sans preuve
+  Object.defineProperty(travail, "expirees", { value: new Set(d.operations.filter((o) => o.op === "expirer" && typeof o.entry === "string").map((o) => o.entry)), enumerable: false });
   let echec = null;
   for (let j = 0; j < d.operations.length; j++) {
     const suivants = rejouerOperation(d, travail, d.operations[j], admins);

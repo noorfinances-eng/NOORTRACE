@@ -59,6 +59,13 @@ export const CODES_EIP1193 = Object.freeze({ 4001: "refus_approbateur", 4100: "n
 export const BORNES_FICHIER_CLE = Object.freeze({ c_max: 10000000, n_max: 262144, r_max: 8, p_max: 4, sel_min: 16, c_faible: 262144, n_faible: 131072 });
 /** Délai d'attente du portefeuille par défaut et ses bornes (EX-13.30). */
 export const DELAI_SIGNATURE_MS = Object.freeze({ defaut: 300000, min: 30000, max: 1800000 });
+/**
+ * Durée de vie d'une entrée de l'annuaire dont aucune adresse n'a jamais été
+ * validée (réglage registration_entry_ttl_ms, 10.3 ; EX-13.10, point 5 ;
+ * EX-13.17, « Expiration »), défaut et bornes ; la borne basse sert aussi au
+ * rejeu d'un annuaire exporté (EX-13.19, point 6).
+ */
+export const TTL_ENTREE_MS = Object.freeze({ defaut: 2592000000, min: 86400000, max: 31536000000 });
 /** Délai après lequel la page dit qu'aucun portefeuille ne s'est annoncé (EX-13.22, pas 6). */
 export const DELAI_ANNONCE_MS = 1000;
 /** Méthodes du canal de la console qui modifient l'annuaire ou y préparent un défi (12.9). */
@@ -1404,9 +1411,14 @@ export const BORNES_DEFIS = Object.freeze({ par_identite: 4, total: 1024 });
 const entreeDeAdresse = (annuaire, adresse) => annuaire.entries.find((e) => e.addresses.some((a) => a.address === adresse));
 const ADRESSE_VIDE = Object.freeze({ validated_at: null, validated_by: null, revoked_at: null, revoked_by: null, revocation_cause: null, revocation_reason: null, replaced_by: null });
 
-/** Identifiant d'une nouvelle entrée : compteur sur 4 chiffres (vecteurs) ou 64 bits aléatoires (EX-13.9, EX-7.1). */
+/**
+ * Identifiant d'une nouvelle entrée : compteur sur 4 chiffres (vecteurs) ou
+ * 64 bits aléatoires (EX-13.9, EX-7.1). Le compteur est le nombre d'entrées
+ * jamais créées, augmenté de un : entrées présentes et entrées retirées par
+ * `expirer` (A.10), de sorte qu'un identifiant n'est jamais réattribué.
+ */
 function nouvelIdentifiant(annuaire, mode) {
-  if (mode === "compteur") return `apb-${String(annuaire.entries.length + 1).padStart(4, "0")}`;
+  if (mode === "compteur") return `apb-${String(annuaire.entries.length + annuaire.operations.filter((o) => o.op === "expirer").length + 1).padStart(4, "0")}`;
   const o = new Uint8Array(8);
   globalThis.crypto.getRandomValues(o);
   return `apb-${enHex(o).slice(2)}`;
@@ -1486,11 +1498,21 @@ export function verifierInscription(annuaire, defis, requete, recuA, { identifia
  * ("compteur" pour les vecteurs, "aleatoire" sinon) }. Ne modifie pas ses
  * arguments. Rend { annuaire, defis, accepted, reason, response }.
  */
-export function appliquerOperation(annuaire, methode, requete, at, { defis = [], nonce = null, identifiant = "aleatoire" } = {}) {
+export function appliquerOperation(annuaire, methode, requete, at, { defis = [], nonce = null, identifiant = "aleatoire", ttlEntree = TTL_ENTREE_MS.defaut } = {}) {
   const doc = copie(annuaire);
   let liste = copie(defis);
   const refus = (reason) => ({ annuaire: copie(annuaire), defis: liste, accepted: false, reason, response: null });
   const accepte = (response) => ({ annuaire: doc, defis: liste, accepted: true, reason: null, response });
+  if (methode === "expirer") {
+    // Opération interne du service, méthode d'aucun canal (EX-13.17, « Expiration ») : requête { entry }, aucune réponse.
+    if (!aCles(requete, ["entry"]) || typeof requete.entry !== "string" || !RE_ENTREE.test(requete.entry) || requete.entry.length > 128) return refus("requete_invalide");
+    const k = doc.entries.findIndex((x) => x.id === requete.entry);
+    if (k < 0) return refus("entree_inconnue");
+    if (!expirable(doc.entries[k], at, ttlEntree)) return refus("etat_incompatible");
+    doc.entries.splice(k, 1);
+    inscrireOperation(doc, at, "expirer", "service", requete.entry);
+    return accepte(null);
+  }
   if (!METHODES_ANNUAIRE.includes(methode) || !forme(methode, requete)) return refus("requete_invalide");
   if (!estIdentite(requete.session_identity)) return refus("identite_invalide");
   const session = requete.session_identity;
@@ -1517,7 +1539,9 @@ export function appliquerOperation(annuaire, methode, requete, at, { defis = [],
 
   if (methode === "inscrire") {
     const v = verifierInscription(doc, liste, requete, at, { identifiant });
-    liste = v.defis;
+    // EX-13.13 (complément du 2026-11-16) : le défi présenté au pas 4 d'EX-13.15 est retiré des défis, quel que soit le
+    // sort de la requête ; il ne compte plus dans les bornes, et son nonce présenté de nouveau est inconnu.
+    liste = v.defis.filter((d) => !d.used);
     if (!v.accepted) return refus(v.reason);
     const champs = analyserMessageInscription(requete.message);
     let e = entreeDe(doc, session);
@@ -1592,6 +1616,30 @@ export function appliquerOperation(annuaire, methode, requete, at, { defis = [],
   e.requester_identities = e.requester_identities.filter((x) => x !== requete.launched_by);
   inscrireOperation(doc, at, "delier_demandeur", session, e.id, { launched_by: requete.launched_by });
   return accepte(reponseEntree());
+}
+
+/** L'entrée expire-t-elle à `at` : aucune adresse jamais validée et `at` ≥ created_at + ttl (EX-13.10, point 5 ; EX-13.17) ? */
+function expirable(e, at, ttl) {
+  return !e.addresses.some((a) => a.validated_at !== null) && msHorodatage(at) >= msHorodatage(e.created_at) + ttl;
+}
+
+/**
+ * Expiration des entrées jamais validées (EX-13.17, « Expiration ») : à
+ * l'instant `at`, une opération `expirer` pour chaque entrée dont aucune
+ * adresse n'a jamais été validée et dont `created_at + ttl` est atteint, dans
+ * l'ordre de `entries`. Ne modifie pas ses arguments. Rend { annuaire,
+ * expirees } : le nouvel annuaire (le même objet si rien n'expire) et les
+ * identifiants retirés, dans l'ordre.
+ */
+export function expirerEntrees(annuaire, at, ttl = TTL_ENTREE_MS.defaut) {
+  const ids = annuaire.entries.filter((e) => expirable(e, at, ttl)).map((e) => e.id);
+  if (ids.length === 0) return { annuaire, expirees: [] };
+  // Une seule copie pour toutes les opérations : la même suite d'opérations expirer, une par entrée.
+  const doc = copie(annuaire);
+  const retirees = new Set(ids);
+  doc.entries = doc.entries.filter((e) => !retirees.has(e.id));
+  for (const id of ids) inscrireOperation(doc, at, "expirer", "service", id);
+  return { annuaire: doc, expirees: ids };
 }
 
 /** Résumé des entrées ($defs/resume_entree) : identifiant, état, alias, adresses et leur état. */
@@ -1725,10 +1773,32 @@ function rejouerOperation(etat, doc, op) {
   if (op.administrators !== null) return false;
   const admin = etat.administrators.includes(op.by);
   const e = etat.entries.find((x) => x.id === op.entry);
+  if (op.op === "expirer") {
+    // EX-13.19, point 6 (complément du 2026-11-16) : le réglage n'est pas dans le document ; le rejeu exige sa borne basse.
+    if (op.by !== "service" || !e || op.address !== null || op.launched_by !== null || op.reason !== null || !expirable(e, op.at, TTL_ENTREE_MS.min)) return false;
+    etat.entries = etat.entries.filter((x) => x !== e);
+    return true;
+  }
   switch (op.op) {
     case "inscrire": {
       if (e && e.session_identity !== op.by) return false;
       if (!e && etat.entries.some((x) => x.session_identity === op.by)) return false;
+      // Un identifiant d'entrée n'est jamais réattribué, même après une expiration (EX-13.9).
+      if (!e && etat.crees.has(op.entry)) return false;
+      if (etat.expirees.has(op.entry)) {
+        // Entrée retirée plus loin par expirer : sa preuve a quitté le document avec elle ; seuls les pas 12 et 13
+        // d'EX-13.15 se rejouent (EX-13.19, point 6, complément du 2026-11-16).
+        if (e && !e.active) return false;
+        if (etat.entries.some((x) => x.addresses.some((a) => a.address === op.address))) return false;
+        let cible = e;
+        if (!cible) {
+          cible = { id: op.entry, session_identity: op.by, active: true, requester_identities: [], created_at: op.at, addresses: [] };
+          etat.entries.push(cible);
+          etat.crees.add(op.entry);
+        }
+        cible.addresses.push({ address: op.address, state: "en_attente", proof: null, ...ADRESSE_VIDE });
+        return op.launched_by === null && op.reason === null;
+      }
       const source = doc.entries.find((x) => x.id === op.entry)?.addresses.find((a) => a.address === op.address);
       if (!source || !estObjet(source.proof)) return false;
       let champs;
@@ -1738,15 +1808,20 @@ function rejouerOperation(etat, doc, op) {
         return false;
       }
       if (champs.origin !== doc.console_origin || champs.org !== doc.org || champs.org_id !== doc.org_id || champs.identity !== op.by || champs.address !== op.address) return false;
-      if (!verifierSignature(utf8(source.proof.message), source.proof.signature, op.address).ok) return false;
+      const verif = verifierSignature(utf8(source.proof.message), source.proof.signature, op.address);
+      if (!verif.ok) return false;
       if (e && !e.active) return false;
       if (etat.entries.some((x) => x.addresses.some((a) => a.address === op.address))) return false;
       let cible = e;
       if (!cible) {
         cible = { id: op.entry, session_identity: op.by, active: true, requester_identities: [], created_at: op.at, addresses: [] };
         etat.entries.push(cible);
+        etat.crees.add(op.entry);
       }
-      cible.addresses.push({ address: op.address, state: "en_attente", proof: copie(source.proof), ...ADRESSE_VIDE });
+      // EX-13.19, point 6 (révision 0.6) : la preuve rejouée est celle qu'EX-13.15 inscrit (message, signature normalisée,
+      // nonce et instants du message, received_at égal à l'instant de l'opération), non une copie de la preuve du document.
+      const preuve = { message: source.proof.message, signature: verif.signature, nonce: champs.nonce, issued_at: champs.issued_at, expires_at: champs.expires_at, received_at: op.at };
+      cible.addresses.push({ address: op.address, state: "en_attente", proof: preuve, ...ADRESSE_VIDE });
       return op.launched_by === null && op.reason === null;
     }
     case "revoquer": {
@@ -1813,9 +1888,13 @@ export function verifierAnnuaireExporte(document, { conforme = null } = {}) {
     const doc = document;
     // 2. Révision, numéros, instants.
     if (doc.revision !== doc.operations.length) ecart("revision_incoherente", "/revision");
+    // Un instant qui respecte le motif sans se décoder (CT-1 §3) est un écart ; l'ordre se juge sur le dernier instant décodé.
+    let precedent = NaN;
     doc.operations.forEach((o, j) => {
       if (o.seq !== j + 1) ecart("revision_incoherente", `/operations/${j}/seq`);
-      if (j > 0 && msHorodatage(o.at) < msHorodatage(doc.operations[j - 1].at)) ecart("revision_incoherente", `/operations/${j}/at`);
+      const t = msHorodatage(o.at);
+      if (Number.isNaN(t) || t < precedent) ecart("revision_incoherente", `/operations/${j}/at`);
+      if (!Number.isNaN(t)) precedent = t;
     });
     const derniere = doc.operations.length ? doc.operations[doc.operations.length - 1].at : null;
     if (doc.updated_at !== derniere) ecart("revision_incoherente", "/updated_at");
@@ -1861,7 +1940,7 @@ export function verifierAnnuaireExporte(document, { conforme = null } = {}) {
     // administrateurs de départ est le before de la première opération
     // changer_administrateurs, ou, sans elle, administrators (EX-13.37).
     const premier = doc.operations.find((o) => o.op === "changer_administrateurs");
-    const etat = { entries: [], administrators: copie(premier ? premier.administrators?.before ?? [] : doc.administrators) };
+    const etat = { entries: [], crees: new Set(), expirees: new Set(doc.operations.filter((o) => o.op === "expirer").map((o) => o.entry)), administrators: copie(premier ? premier.administrators?.before ?? [] : doc.administrators) };
     const j = doc.operations.findIndex((o) => !rejouerOperation(etat, doc, o));
     if (j !== -1) ecart("operations_incoherentes", `/operations/${j}`);
     else if (!egalJSON(etat.administrators, doc.administrators)) ecart("operations_incoherentes", "/administrators");

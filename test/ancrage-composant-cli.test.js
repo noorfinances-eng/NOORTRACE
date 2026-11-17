@@ -1,7 +1,7 @@
 // Binaire `noortrace-ancrage` (CT-5 EX-8.13, EX-10.6, EX-10.7,
 // EX-12.1, EX-12.2, AN-1, AN-2, AN-3, AN-42, AN-54, AN-59, AN-61) : chaque
 // commande sur les vecteurs publiés (`configuration` sur l'exemple d'EX-4.8,
-// `trace` sur les vingt-huit traces, `cout` sur les onze cas, `completude`
+// `trace` sur les soixante-deux traces, `cout` sur les onze cas, `completude`
 // sur les six cas, `serie` sur les séries valides et invalides de CT-1,
 // `fiche` sur l'autorité de test, `acquisitions` sur un fichier
 // d'enregistrements), codes de retour 0, 1, 2, messages en français, aucune
@@ -87,9 +87,10 @@ describe("ancrage, composant : binaire noortrace-ancrage", function () {
     expect(ok.stdout + prod.stdout).to.not.include("NOORTRACE_TSA_PRINCIPAL");
   });
 
-  it("trace (AN-42) : chacune des vingt-huit traces de planification/ (révision 0.6 de CT-5 : file-fenetre-32 et file-fenetre-32-redemarrage ; revue de l'étape 8 : releve-pendant-reprise, redemarrage-releve, redemarrage-echeance-remplacee, file-lignes-illisibles) est rejouée conforme (code 0) ; une trace altérée donne un écart et le code 1", function () {
+  it("trace (AN-42) : chacune des soixante-deux traces de planification/ (révision 0.6 de CT-5 : file-fenetre-32 et file-fenetre-32-redemarrage ; revue de l'étape 8 : releve-pendant-reprise, redemarrage-releve, redemarrage-echeance-remplacee, file-lignes-illisibles ; complément du 2026-11-16 : empreinte-squattee, empreinte-squattee-repli, registre-saut-horloge, redemarrage-due-at-borne, redemarrage-jeton-sans-acquisition, file-perdue-jeton-point-obtenu, file-perdue-jeton-periode-obtenu, redemarrage-jeton-recree-couvrant, redemarrage-ancres-a-reprendre, repli-ancre-incluse-jeton-retenu, ots-reponses-insuffisantes, redemarrage-ots-soumission-envoyee, ots-preuve-absente, redemarrage-ots-a-reprendre-en-cours, reponses-hors-tentative, registre-renvois, redemarrage-releve-deux-series, minuteries-simultanees, jeton-tardif-avertissements, redemarrage-ordre-de-la-file, redemarrage-a-envoyer-cle-libre, redemarrage-echeances-remplacees, registre-inclusion-apres-attente, redemarrage-prestataires-epuises, registre-cle-par-journal, minuteries-deux-journaux, registre-refus-ancre-periode, registre-ordre-des-points, registre-periode-apres-point-de-cloture, redemarrage-ots-abandon-origine, registre-periode-retient-la-cle, redemarrage-ots-abandon-soumission-tardive, registre-refus-ancre-periode-redemarrage, registre-points-en-reprise) est rejouée conforme (code 0) ; une trace altérée donne un écart et le code 1", function () {
     const traces = fs.readdirSync(path.join(CT5, "planification")).filter((f) => f.endsWith(".json")).sort();
-    expect(traces).to.have.lengthOf(28);
+    // CT-5 A.3 et A.4 (complément du 2026-11-16, ordre du démarrage ; puis clé de chaîne du verrou d'EX-9.4 ; puis minuteries de deux journaux, EX-8.16 ; puis refus de l'ancre d'une période et ordre des ancres de points, EX-8.10 et EX-9.4 : deux de plus ; puis l'ancre de la période après celle de son point de clôture et l'âge d'abandon OpenTimestamps, EX-9.4 et EX-8.11 : deux de plus, dont une à file ; puis la clé retenue par l'ancre d'une période, la soumission OpenTimestamps tardive et l'alerte du refus après un redémarrage, EX-9.4, EX-8.11 et EX-8.10 : trois de plus, dont deux à file ; puis l'ancre d'un point en reprise quand le point suivant de sa période est admis, EX-9.5 et EX-9.4 : une de plus, sans file) : soixante-deux traces.
+    expect(traces).to.have.lengthOf(62);
     for (const f of traces) {
       const r = bin(["trace", path.join(CT5, "planification", f)]);
       expect(r.code, `${f} : ${r.stdout} ${r.stderr}`).to.equal(0);

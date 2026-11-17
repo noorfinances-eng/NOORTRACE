@@ -59,7 +59,7 @@ function fichiers(dir) {
 // Données sensibles des captures, et leurs formes normalisées (10.3).
 const IBAN = "CH93 0076 2011 6238 5295 7";
 const IBAN_N = "CH9300762011623852957";
-const COURRIEL = "j.dupont@example.ch";
+const COURRIEL = "j.dupont@ch.example";
 const TELEPHONE = "+41 44 123 45 67";
 const TELEPHONE_N = "+41441234567";
 const AVS = "756.1234.5678.97";

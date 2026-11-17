@@ -8,7 +8,7 @@
 
 import http from "node:http";
 import https from "node:https";
-import { magasinSysteme } from "./outils.mjs";
+import { magasinSysteme, cheminPriseTropLong, CHEMIN_PRISE_MAX_OCTETS, ErreurDemarrage } from "./outils.mjs";
 
 export const TAILLE_MAX_REPONSE = 16777216;
 
@@ -45,6 +45,14 @@ export class ClientService {
       this.https = u.protocol === "https:";
       this.cible = { hostname: u.hostname.replace(/^\[|\]$/g, ""), port: u.port === "" ? (this.https ? 443 : 80) : Number(u.port), socketPath: undefined, hote: u.host };
     } else {
+      // Complément du 2026-11-16 : refus avant toute connexion d'un chemin que
+      // Node.js tronquerait (une autre prise recevrait le jeton porteur).
+      if (cheminPriseTropLong(service.socket)) {
+        const pointeur = "/service/socket";
+        throw new ErreurDemarrage(`chemin_prise_trop_long : ${Buffer.byteLength(service.socket, "utf8")} octets, au plus ${CHEMIN_PRISE_MAX_OCTETS} (${pointeur})`, {
+          pointeur, rapport: { valide: false, errors: [{ code: "chemin_prise_trop_long", pointer: pointeur }] },
+        });
+      }
       this.https = false;
       this.cible = { hostname: undefined, port: undefined, socketPath: service.socket, hote: "localhost" };
     }

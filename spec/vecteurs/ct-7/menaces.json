@@ -124,7 +124,7 @@
     {
       "spec": "CT-3",
       "section": "14.8",
-      "rows": 8
+      "rows": 9
     },
     {
       "spec": "CT-3",
@@ -2526,9 +2526,9 @@
         "usurpation",
         "deni_de_service"
       ],
-      "actor": "Un attaquant qui vole une session de la console, un administrateur d'annuaire malveillant, ou un site d'hameçonnage.",
+      "actor": "Un attaquant qui vole une session de la console, un administrateur d'annuaire malveillant, un site d'hameçonnage, ou qui dispose de nombreuses identités de l'organisation.",
       "asset": "Annuaire des approbateurs : inscriptions, validations, révocations.",
-      "effect": "Il inscrit l'adresse d'un autre, confisque une adresse, rejoue une preuve, révoque ou désactive un membre.",
+      "effect": "Il inscrit l'adresse d'un autre, confisque une adresse, rejoue une preuve, révoque ou désactive un membre, ou sature l'annuaire d'entrées jamais validées.",
       "response": {
         "text": "Preuve de possession sur un texte qui nomme l'identité, nonce unique, adresse jamais réattribuée (CT-3 EX-13.13, CT-3 EX-13.15, CT-3 EX-13.10) ; réauthentification récente (CT-3 EX-13.8) ; validation après vérification par un autre canal, jamais de sa propre adresse (CT-3 EX-13.17) ; séparation des domaines (CT-3 EX-13.16) ; cookie de session `__Host-`, `HttpOnly` et `SameSite=Strict`, contrôle de l'en-tête `Origin`, sessions en mémoire bornées par `session_max_age_s` (CT-3 EX-13.48, CT-3 EX-13.49).",
         "refs": [
@@ -2550,7 +2550,7 @@
         ]
       },
       "residual": {
-        "text": "Confiscation et révocation par session volée restent possibles : déni de service visible (CT-3 §14.8).",
+        "text": "Confiscation et révocation par session volée restent possibles : déni de service visible (CT-3 §14.8) ; la saturation de l'annuaire par des entrées jamais validées bloque les inscriptions nouvelles jusqu'à leur expiration (CT-3 §14.8).",
         "accepted_risk": {
           "id": "RA-43",
           "name": "Déni de service sur l'annuaire",
@@ -2589,6 +2589,11 @@
           "spec": "CT-3",
           "section": "14.8",
           "row": "Session volée (jeton ou cookie de la console)"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.8",
+          "row": "Saturation de l'annuaire par des entrées jamais validées (complément du 2026-11-16, décision du porteur)"
         }
       ]
     },

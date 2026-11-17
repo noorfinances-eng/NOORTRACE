@@ -12,7 +12,7 @@
 // SIGUSR2 porte la confirmation de l'exploitant après un saut d'horloge
 // (EX-7.13) ; SIGURG, avec la demande écrite à côté du journal
 // d'exploitation, porte `noortrace-ctl cle rotation-urgence` et
-// `noortrace-ctl ancrage <etat|metriques|retirer-qualification>` et, étape 7,
+// `noortrace-ctl ancrage <etat|metriques|retirer-qualification|retablir-qualification>` et, étape 7,
 // `noortrace-ctl close-period --now` (CT-2 EX-19.4, développement seulement) :
 // `noortrace-ctl` les envoie (src/ctl-demon.mjs). Avec `anchoring.ancrage`,
 // le composant d'ancrage de CT-5 est branché avant le cœur
@@ -80,7 +80,8 @@ export async function principal(argv, io = {}) {
   const stdout = io.stdout ?? process.stdout;
   const stderr = io.stderr ?? process.stderr;
   if (argv[0] === "validate-config") {
-    if (!argv[1]) {
+    // Exactement un fichier : un argument en trop n'est pas ignoré en silence (complément du 2026-11-16).
+    if (!argv[1] || argv.length !== 2) {
       stderr.write(`${USAGE}\n`);
       return 2;
     }
@@ -379,7 +380,7 @@ export function superviserProcessus(r, o = {}) {
   // de demande écrit par noortrace-ctl à côté du journal d'exploitation. Le
   // membre `demande` nomme l'action, et elle seule : `rotation-urgence`
   // (`noortrace-ctl cle rotation-urgence`, CT-8 EX-10.14, CT-2 EX-11.16),
-  // `ancrage` (`noortrace-ctl ancrage <etat|metriques|retirer-qualification>`),
+  // `ancrage` (`noortrace-ctl ancrage <etat|metriques|retirer-qualification|retablir-qualification>`),
   // `dossier` (`noortrace-ctl dossier exporter`, EX-15.11 à EX-15.14) ou
   // `cloture-anticipee` (`noortrace-ctl close-period --now`, EX-19.4) ; une
   // demande illisible, inconnue, hors de son domaine ou périmée est refusée

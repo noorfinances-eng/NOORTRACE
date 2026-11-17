@@ -24,15 +24,50 @@
 // connexion TCP et de chaque sens, en trames : une ligne JSON
 //   { "connexion", "sens": "client"|"serveur"|"fin", "source", "longueur" }
 // suivie de `longueur` octets.
+//
+// Authentification (CT-2 EX-5.6, EX-18.1 ; complément du 2026-11-16) :
+//   - la copie est écoutée par défaut sur la boucle locale
+//     (`MIROIR_ECOUTE_DEFAUT`) ; une adresse hors de la boucle locale n'est
+//     admise qu'avec une authentification de la source de la copie : TLS
+//     avec certificat client d'une autorité propre (`model.mirror.tls` et
+//     `client_ca`), ou une liste fermée de sources (`allowed_sources`) ;
+//     sinon l'adaptateur refuse de démarrer (`ecoute_non_authentifiee`) ;
+//     une connexion de copie non admise est fermée avant toute lecture ;
+//   - la prise du démon est en mode 0600 (seul le compte du démon la joint)
+//     sans `model.mirror.peer_user` ; avec lui, en mode 0660, et chaque
+//     connexion prouve son compte par la preuve de fichier d'EX-4.39
+//     (défi, `.noortrace-defi-<défi>` créé par le pair, propriétaire lu par
+//     le démon) : un autre compte est refusé (`auth_failed`).
 
 import net from "node:net";
+import tls from "node:tls";
 import fs from "node:fs";
+import path from "node:path";
+import { randomBytes } from "node:crypto";
 import { decoderHorodatage } from "@noortrace/noyau";
-import { normaliserCible, trouverRoute, hotePourAdresse, declarationsFournisseur } from "./formats.mjs";
+import { normaliserCible, trouverRoute, hotePourAdresse, declarationsFournisseur, listeAdresses, adresseDans, ecouteLocaleModele } from "./formats.mjs";
 import { analyserCorpsJson } from "./extraction.mjs";
 import { MoteurEchanges } from "./echange.mjs";
-import { ecouterPriseUnix } from "../mcp/hote-stdio.mjs";
-import { MIROIR_TRAME_MAX_OCTETS, MIROIR_CONNEXIONS_MAX } from "../bornes.mjs";
+import {
+  ecouterPriseUnix, preparerRepertoirePrise, libererCheminPrise, GardeIdentification, verifierPreuveFichier, DecoupeurLignes, PREFIXE_DEFI,
+} from "../mcp/hote-stdio.mjs";
+import { MIROIR_TRAME_MAX_OCTETS, MIROIR_CONNEXIONS_MAX, regleCheminPrise } from "../bornes.mjs";
+
+/** Adresse d'écoute de la copie par défaut (CT-2 EX-5.6) : la boucle locale. */
+export const MIROIR_ECOUTE_DEFAUT = "127.0.0.1:8410";
+
+/** Mode de la prise du démon : réservée au compte du démon sans `peer_user`, au groupe avec (EX-18.1). */
+export const MODE_PRISE_MIROIR = 0o600;
+export const MODE_PRISE_MIROIR_PAIR = 0o660;
+
+/**
+ * La copie a-t-elle une authentification de sa source (EX-5.6) : TLS avec
+ * certificat client (autorité donnée), ou liste fermée de sources non vide ?
+ * @param {{tls?: {ca?: unknown}|null, sources?: string[]|null}} o
+ */
+export function copieAuthentifiee(o) {
+  return Boolean(o.tls && o.tls.ca) || (Array.isArray(o.sources) && o.sources.length > 0);
+}
 
 /** Borne d'une ligne de la prise du miroir : corps en base64 et en-têtes. */
 function borneLigne(lim) {
@@ -88,18 +123,73 @@ export class RecepteurMiroir {
     return this.moteur.registre;
   }
 
-  /** Prise locale `model.mirror.socket`, réservée à l'utilisateur du démon et de son groupe. */
+  /**
+   * Prise locale `model.mirror.socket` (EX-5.6, EX-18.1) : réservée au compte
+   * du démon (mode 0600) sans `peer_user` ; avec lui, mode 0660 dans un
+   * répertoire contrôlé (EX-4.39), et preuve d'identité du pair à chaque connexion.
+   */
   async ecouter() {
     const chemin = this.config.model.mirror.socket;
-    fs.mkdirSync(chemin.slice(0, chemin.lastIndexOf("/")) || "/", { recursive: true });
-    try {
-      if (fs.lstatSync(chemin).isSocket()) fs.rmSync(chemin);
-    } catch {
-      // absente
+    this.pair = this.config.model.mirror.peer_user ?? null;
+    if (this.pair !== null) {
+      // Même règle de répertoire que mcp.socket : un pair ne peut ni renommer la preuve d'un autre, ni tenir le chemin.
+      preparerRepertoirePrise(chemin);
+      libererCheminPrise(chemin);
+      this.garde = new GardeIdentification();
+    } else {
+      fs.mkdirSync(chemin.slice(0, chemin.lastIndexOf("/")) || "/", { recursive: true });
+      try {
+        if (fs.lstatSync(chemin).isSocket()) fs.rmSync(chemin);
+      } catch {
+        // absente
+      }
     }
-    this.serveur = net.createServer((s) => this._connexion(s));
-    // EX-18.1 : mode 0660 dès la création de la prise, sans fenêtre plus ouverte.
-    await ecouterPriseUnix(this.serveur, chemin);
+    this.serveur = net.createServer((s) => (this.pair !== null ? this._identifier(s) : this._connexion(s)));
+    // EX-18.1 : mode posé dès la création de la prise, sans fenêtre plus ouverte.
+    await ecouterPriseUnix(this.serveur, chemin, this.pair !== null ? MODE_PRISE_MIROIR_PAIR : MODE_PRISE_MIROIR);
+  }
+
+  /**
+   * Preuve d'identité du pair de la prise (EX-5.6, EX-4.39) : défi, fichier
+   * `.noortrace-defi-<défi>` créé par le pair dans le répertoire de la prise,
+   * propriétaire égal à `model.mirror.peer_user` ; sinon `auth_failed` et
+   * connexion fermée, sans lire un couple.
+   * @param {net.Socket} socket
+   */
+  _identifier(socket) {
+    this.prises.add(socket);
+    socket.on("close", () => this.prises.delete(socket));
+    socket.on("error", () => {});
+    const refuser = (raison, detail = null) => {
+      this.garde.identifiee(socket);
+      this.journal.consigner("warning", "frontal_modele", "auth_failed", { transport: "miroir", reason: raison, ...(detail ? { detail } : {}) });
+      socket.destroy();
+    };
+    if (!this.garde.admettre(socket, (r) => refuser(r))) return;
+    const defi = randomBytes(16).toString("hex");
+    const instantDefi = Date.now();
+    socket.write(`${JSON.stringify({ noortrace_defi: defi })}\n`);
+    let fini = false;
+    const d = new DecoupeurLignes(4096, (l) => {
+      if (fini) return;
+      fini = true;
+      socket.removeAllListeners("data");
+      let preuve = null;
+      try {
+        preuve = JSON.parse(Buffer.from(l).toString("utf8")).noortrace_preuve;
+      } catch {
+        preuve = null;
+      }
+      if (preuve !== defi) return refuser("preuve");
+      const v = verifierPreuveFichier(this.config.model.mirror.socket, defi, instantDefi);
+      if (v.refus) return refuser(v.refus, v.detail);
+      if (v.utilisateur !== this.pair) return refuser("pair_refuse", v.utilisateur ?? "compte_inconnu");
+      this.garde.identifiee(socket);
+      socket.write(`${JSON.stringify({ noortrace_identite: "acceptee" })}\n`);
+      // Le pair n'écrit aucun couple avant `acceptee` (adaptateur, `lancerAdaptateur`).
+      this._connexion(socket);
+    }, () => refuser("preuve"));
+    socket.on("data", (x) => d.pousser(x));
   }
 
   async arreter() {
@@ -111,9 +201,11 @@ export class RecepteurMiroir {
   }
 
   _connexion(socket) {
-    this.prises.add(socket);
-    socket.on("close", () => this.prises.delete(socket));
-    socket.on("error", () => {});
+    if (!this.prises.has(socket)) {
+      this.prises.add(socket);
+      socket.on("close", () => this.prises.delete(socket));
+      socket.on("error", () => {});
+    }
     const borne = borneLigne(this.config.limits);
     // Ligne en cours : morceaux reçus, sans recopie ; la fin de ligne n'est cherchée que dans le morceau nouveau.
     let morceaux = [];
@@ -515,20 +607,98 @@ export class AdaptateurMiroir {
   }
 }
 
+/** Délai de la preuve d'identité de l'adaptateur sur la prise du démon. */
+const DELAI_PREUVE_MS = 10000;
+
+/**
+ * Preuve d'identité de l'adaptateur sur la prise du démon (EX-5.6, EX-4.39) :
+ * lit le défi, crée en exclusion le fichier de preuve dans le répertoire de
+ * la prise, envoie la preuve et attend `acceptee` ; sinon erreur
+ * `preuve_refusee`.
+ * @param {net.Socket} versDemon
+ * @param {string} socket chemin de la prise
+ */
+async function prouverIdentite(versDemon, socket) {
+  let fichier = null;
+  try {
+    await new Promise((res, rej) => {
+      let tampon = "";
+      const delai = setTimeout(() => rej(new Error("délai de la preuve dépassé")), DELAI_PREUVE_MS);
+      delai.unref?.();
+      const fin = (e) => {
+        clearTimeout(delai);
+        versDemon.removeListener("data", surDonnees);
+        versDemon.removeListener("close", surFermeture);
+        if (e) rej(e);
+        else res();
+      };
+      const surFermeture = () => fin(new Error("prise fermée par le démon pendant la preuve"));
+      const surDonnees = (d) => {
+        tampon += d.toString("utf8");
+        let k;
+        while ((k = tampon.indexOf("\n")) >= 0) {
+          const l = tampon.slice(0, k);
+          tampon = tampon.slice(k + 1);
+          let m = null;
+          try {
+            m = JSON.parse(l);
+          } catch {
+            return fin(new Error("ligne illisible pendant la preuve"));
+          }
+          if (fichier === null && typeof m?.noortrace_defi === "string" && /^[0-9a-f]{32}$/.test(m.noortrace_defi)) {
+            fichier = path.join(path.dirname(socket), PREFIXE_DEFI + m.noortrace_defi);
+            fs.closeSync(fs.openSync(fichier, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY, 0o600));
+            versDemon.write(`${JSON.stringify({ noortrace_preuve: m.noortrace_defi })}\n`);
+          } else if (fichier !== null && m?.noortrace_identite === "acceptee") return fin(null);
+          else return fin(new Error("réponse inattendue pendant la preuve"));
+        }
+      };
+      versDemon.on("data", surDonnees);
+      versDemon.on("close", surFermeture);
+    });
+  } catch (e) {
+    if (fichier !== null) fs.rmSync(fichier, { force: true });
+    versDemon.destroy();
+    throw Object.assign(new Error(`preuve d'identité refusée par le démon (${e.message})`), { code: "preuve_refusee" });
+  }
+}
+
 /**
  * Processus de l'adaptateur : lit la copie en trames sur `ecoute` et remet
  * les couples à la prise du démon, dans l'ordre.
- * @param {{socket: string, ecoute: string, sortie?: NodeJS.WritableStream}} o
- * @returns {Promise<{serveur: net.Server, arreter: () => Promise<void>}>}
+ *
+ * Étape 8 (CT-2 EX-5.6, EX-18.1) : `ecoute` vaut par défaut la boucle locale
+ * (`MIROIR_ECOUTE_DEFAUT`) ; une adresse hors de la boucle locale exige une
+ * authentification de la source de la copie (`tls` avec `ca`, ou `sources`),
+ * sinon `ecoute_non_authentifiee` avant toute connexion. Une connexion de
+ * copie dont l'adresse est hors de `sources`, ou sans certificat client de
+ * l'autorité `tls.ca`, est fermée avant toute lecture. `preuve` : la prise du
+ * démon exige la preuve d'identité (`model.mirror.peer_user`). Un chemin de
+ * prise du démon de plus de `CHEMIN_PRISE_MAX_OCTETS` octets est refusé avant
+ * toute connexion (`chemin_prise_trop_long`, complément du 2026-11-16).
+ * @param {{socket: string, ecoute?: string, sources?: string[]|null, tls?: {cert: Buffer, key: Buffer, ca?: Buffer|null}|null,
+ *   preuve?: boolean, sortie?: NodeJS.WritableStream, surPerte?: (x: object) => void}} o
+ * @returns {Promise<{serveur: net.Server, perte: Promise<object>, perdue: () => boolean, arreter: () => Promise<void>}>}
  */
 export async function lancerAdaptateur(o) {
+  const ecoute = o.ecoute ?? MIROIR_ECOUTE_DEFAUT;
+  const sources = Array.isArray(o.sources) ? o.sources : [];
+  const optionsTls = o.tls ?? null;
+  if (!ecouteLocaleModele(ecoute) && !copieAuthentifiee({ tls: optionsTls, sources })) {
+    throw Object.assign(new Error(`écoute de la copie ${ecoute} hors de la boucle locale sans authentification de la source (certificat client ou liste de sources ; CT-2 EX-5.6)`), { code: "ecoute_non_authentifiee" });
+  }
+  // EX-18.1, EX-6.10 (complément du 2026-11-16) : un chemin plus long serait tronqué et joindrait une autre prise.
+  const regle = regleCheminPrise(o.socket);
+  if (regle) throw Object.assign(new Error(`prise du démon ${o.socket} : ${regle}`), { code: "chemin_prise_trop_long" });
+  const listeSources = sources.length ? listeAdresses(sources) : null;
   const versDemon = net.connect(o.socket);
   await new Promise((res, rej) => {
     versDemon.once("connect", res);
     versDemon.once("error", rej);
   });
-  versDemon.on("data", () => {});
   versDemon.on("error", () => {});
+  if (o.preuve) await prouverIdentite(versDemon, o.socket);
+  versDemon.on("data", () => {});
   // Étape 8 (CT-2 EX-5.6) : la prise du démon fermée (redémarrage, panne) est
   // une perte dite et rendue (`perte`, `surPerte`) ; l'adaptateur n'écrit plus
   // dans le vide : il refuse la copie (`arreter`) et le processus s'arrête avec un code non nul.
@@ -544,7 +714,14 @@ export async function lancerAdaptateur(o) {
   });
   const adaptateur = new AdaptateurMiroir({ remettre: (c) => { if (!perdue && !versDemon.destroyed) versDemon.write(`${JSON.stringify(c)}\n`); } });
   const copies = new Set();
-  const serveur = net.createServer((s) => {
+  const refuser = (s, motif) => {
+    o.sortie?.write(`noortrace-miroir: connexion de copie refusee (${s.remoteAddress ?? "?"}, ${motif})\n`);
+    s.destroy();
+  };
+  // Liste fermée de sources : vérifiée sur la connexion brute, avant la poignée de main TLS et toute lecture.
+  const sourceAdmise = (s) => listeSources === null || adresseDans(listeSources, s.remoteAddress);
+  const surCopie = (s) => {
+    if (!optionsTls && !sourceAdmise(s)) return refuser(s, "source");
     let tampon = Buffer.alloc(0);
     let trame = null;
     copies.add(s);
@@ -580,8 +757,17 @@ export async function lancerAdaptateur(o) {
         trame = null;
       }
     });
-  });
-  const [h, p] = o.ecoute.split(/:(?=[0-9]+$)/);
+  };
+  let serveur;
+  if (optionsTls) {
+    // Certificat client exigé quand l'autorité est donnée : la poignée de main échoue sans lui (EX-5.6).
+    serveur = tls.createServer({ cert: optionsTls.cert, key: optionsTls.key, ca: optionsTls.ca ?? undefined, requestCert: Boolean(optionsTls.ca), rejectUnauthorized: Boolean(optionsTls.ca), minVersion: "TLSv1.2" }, surCopie);
+    serveur.on("connection", (s) => {
+      if (!sourceAdmise(s)) refuser(s, "source");
+    });
+    serveur.on("tlsClientError", (e, s) => o.sortie?.write(`noortrace-miroir: connexion de copie refusee (${s?.remoteAddress ?? "?"}, tls : ${e?.code ?? "erreur"})\n`));
+  } else serveur = net.createServer(surCopie);
+  const [h, p] = ecoute.split(/:(?=[0-9]+$)/);
   await new Promise((res) => serveur.listen(Number(p), h, res));
   o.sortie?.write(`noortrace-miroir: copie ecoutee sur ${serveur.address().address}:${serveur.address().port}\n`);
   const arreter = async () => {

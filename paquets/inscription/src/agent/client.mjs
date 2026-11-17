@@ -5,6 +5,29 @@
 
 import net from "node:net";
 
+/**
+ * Longueur maximale, en octets UTF-8, du chemin de la prise de l'agent
+ * (`prise` de l'agent et de l'interface ; CT-4 EX-7.28, complément du
+ * 2026-11-16). Node.js tronque un chemin plus long à `sizeof(sun_path) - 1`
+ * (107 octets sous Linux, 103 sous macOS) : l'agent écouterait, et
+ * l'interface joindrait, une autre prise, hors du répertoire d'EX-7.28. C'est
+ * la borne du SDK et du démon (CT-2 EX-6.10, EX-18.1) et du service
+ * d'approbation (CT-3 EX-12.2) ; aucun module commun ne la porte : constante
+ * nommée, même valeur.
+ */
+export const CHEMIN_PRISE_MAX_OCTETS = 103;
+
+/**
+ * Règle de longueur d'un chemin de prise : le texte du refus
+ * (`chemin_prise_trop_long : <n> octets, au plus 103`), ou null.
+ * @param {unknown} chemin
+ */
+export function refusCheminPrise(chemin) {
+  if (typeof chemin !== "string") return null;
+  const n = Buffer.byteLength(chemin, "utf8");
+  return n > CHEMIN_PRISE_MAX_OCTETS ? `chemin_prise_trop_long : ${n} octets, au plus ${CHEMIN_PRISE_MAX_OCTETS} (EX-7.28)` : null;
+}
+
 /** Erreur de transport : agent injoignable, réponse illisible, connexion fermée sans réponse. */
 export class ErreurAgent extends Error {
   constructor(message) {
@@ -19,6 +42,9 @@ export class ErreurAgent extends Error {
  */
 export function remettre(prise, requete, { delaiMs = 10000 } = {}) {
   return new Promise((resolve, reject) => {
+    // complément du 2026-11-16 : refus avant toute connexion d'un chemin que Node.js tronquerait
+    const refus = refusCheminPrise(prise);
+    if (refus !== null) return reject(new ErreurAgent(`prise : ${refus}`));
     const s = net.createConnection(prise);
     let tampon = "";
     let fini = false;

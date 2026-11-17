@@ -53,6 +53,9 @@ function tlv(etiquette, contenu) {
   return Uint8Array.from([etiquette, ...longueur(contenu.length), ...contenu]);
 }
 
+/** Plus grand arc d'OID admis (EX-5.1, EX-4.9 règle 9) : 2^128 - 1. */
+const ARC_OID_MAX = (1n << 128n) - 1n;
+
 /**
  * Encodage DER d'un OBJECT IDENTIFIER en notation pointée.
  * @param {string} oid
@@ -62,6 +65,8 @@ export function encoderOid(oid) {
   if (typeof oid !== "string" || !MOTIF_OID.test(oid)) throw new ErreurRequete("AN-5", `policy_oid : OID mal formé (${String(oid)})`);
   const arcs = oid.split(".").map((a) => BigInt(a));
   if (arcs[0] < 2n && arcs[1] >= 40n) throw new ErreurRequete("AN-5", `policy_oid : second arc ${arcs[1]} trop grand pour l'arc ${arcs[0]}`);
+  // CT-5 EX-4.9, règle 9, et EX-5.1 (complément du 2026-11-16, famille configuration) : chaque arc tient sur 128 bits.
+  for (const a of arcs) if (a > ARC_OID_MAX) throw new ErreurRequete("AN-5", `policy_oid : arc au-delà de 2^128 - 1`);
   const contenu = [];
   const base128 = (valeur) => {
     const groupes = [Number(valeur & 0x7fn)];

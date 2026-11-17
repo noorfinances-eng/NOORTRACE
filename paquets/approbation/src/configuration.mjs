@@ -30,6 +30,7 @@ import path from "node:path";
 import { X509Certificate, createPrivateKey } from "node:crypto";
 import { lireJsonStrict, comparerChaines } from "./json.mjs";
 import { IDS, registreSchemas } from "./schema.mjs";
+import { cheminPriseTropLong } from "./bornes.mjs";
 
 /** Adresses de boucle locale d'EX-10.12. */
 export const BOUCLE_LOCALE = Object.freeze(["127.0.0.1", "::1", "localhost"]);
@@ -39,6 +40,7 @@ export const DEFAUTS = Object.freeze({
   max_open_tickets: 20,
   set_poll_interval_ms: 10000,
   registration_ttl_ms: 600000,
+  registration_entry_ttl_ms: 2592000000,
   remise_representation_ms: 30000,
   body_max_bytes: 16 * 1024 * 1024,
   rpc_timeout_ms: 5000,
@@ -50,6 +52,7 @@ export const DEFAUTS = Object.freeze({
 export const CODES_CONFIGURATION = Object.freeze([
   "json", "schema", "rpc_non_declare", "rpc_tls", "tls_exige", "authentification_exigee", "jeton_exige_production",
   "jetons_egaux", "canaux_meme_autorite_sans_jeton", "escalade_non_croissante", "webhook_http", "origine_port_par_defaut",
+  "chemin_prise_trop_long",
 ]);
 
 /** Codes que seul le démarrage décèle (EX-10.14), jamais rendus par la validation. */
@@ -152,6 +155,9 @@ export function reglesConfiguration(c, o = {}) {
     if (tcp && !estBoucleLocale(tcp.host) && tls === null) e.push({ code: "tls_exige", pointer: ici });
     if ((canal === "console" || tcp) && !jeton && !mtls) e.push({ code: "authentification_exigee", pointer: ici });
     if (prod && typeof l.socket === "string" && !jeton) e.push({ code: "jeton_exige_production", pointer: ici });
+    // chemin_prise_trop_long (EX-12.2, complément du 2026-11-16) : au-delà de 103 octets, Node.js
+    // tronquerait le chemin et la prise serait créée sous un autre nom, hors du répertoire configuré
+    if (cheminPriseTropLong(l.socket)) e.push({ code: "chemin_prise_trop_long", pointer: `${ici}/socket` });
   }
   if (objet(c.noyau) && objet(c.console)) {
     const a = cleReference(c.noyau.token, o.base);
@@ -380,6 +386,7 @@ export function completer(c) {
     escalation: [],
     set_poll_interval_ms: DEFAUTS.set_poll_interval_ms,
     registration_ttl_ms: DEFAUTS.registration_ttl_ms,
+    registration_entry_ttl_ms: DEFAUTS.registration_entry_ttl_ms,
     rpc: null,
     notifications: null,
     remise_representation_ms: DEFAUTS.remise_representation_ms,

@@ -21,7 +21,7 @@ node scripts/conformite/attestation.mjs verifier spec/vecteurs/ct-7/attestations
 
 Le modèle de menace de CT-7 §3.8, tiré des tables 3.2 à 3.5 du texte (EX-A.4) :
 14 composants, 102 menaces (MN-1 à MN-102), dont 86 avec un risque accepté et 16
-sans, 15 tables sources de 154 lignes. Schéma :
+sans, 15 tables sources de 155 lignes. Schéma :
 `spec/schemas/modele-menace-v0.schema.json`.
 
 | Composant | Menaces |
@@ -98,6 +98,7 @@ sans, 15 tables sources de 154 lignes. Schéma :
 | CT-3 | 14.8 | Faire prendre une inscription pour un vote, ou l'inverse | MN-47 |
 | CT-3 | 14.8 | Administrateur malveillant | MN-47 |
 | CT-3 | 14.8 | Session volée (jeton ou cookie de la console) | MN-47 |
+| CT-3 | 14.8 | Saturation de l'annuaire par des entrées jamais validées (complément du 2026-11-16, décision du porteur) | MN-47 |
 | CT-3 | 14.8 | Console compromise | MN-45 |
 | CT-3 | 14.8 | Service compromis | MN-44 |
 | CT-3 | 14.9 | Un faux portefeuille s'annonce sous le nom, l'icône ou le `rdns` d'un autre (R4-F6) | MN-46 |

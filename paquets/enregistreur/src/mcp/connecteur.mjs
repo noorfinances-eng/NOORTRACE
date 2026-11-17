@@ -23,6 +23,7 @@ import tls from "node:tls";
 import fs from "node:fs";
 import path from "node:path";
 import { DecoupeurLignes, PREFIXE_DEFI, PREFIXE_JOURNAL, controlerProprietairePrise } from "./hote-stdio.mjs";
+import { regleCheminPrise } from "../bornes.mjs";
 
 const ERREUR_CR = '{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error","data":{"reason":"cr_dans_la_ligne"}}}';
 const JOURNAL = Buffer.from(PREFIXE_JOURNAL);
@@ -141,15 +142,29 @@ export function executerConnecteur(o) {
  * `noortrace-connecteur --tcp <hôte:port>` (jeton dans NOORTRACE_CONNECTEUR_JETON ;
  * TLS par NOORTRACE_CONNECTEUR_TLS_CA, et mTLS par NOORTRACE_CONNECTEUR_TLS_CERT
  * et NOORTRACE_CONNECTEUR_TLS_KEY, chemins de fichiers PEM).
+ * Codes : 2 usage, chemin de prise de plus de 103 octets
+ * (`chemin_prise_trop_long`, EX-18.1, EX-6.10) ou configuration TLS refusée.
  * @param {string[]} argv
  * @param {NodeJS.ProcessEnv} [env]
  */
 export async function principalConnecteur(argv, env = process.env) {
-  const k = argv.indexOf("--socket");
-  const t = argv.indexOf("--tcp");
-  // NOORTRACE_CONNECTEUR_PROPRIETAIRE, compte attendu du démon (uid ou nom).
-  if (k >= 0 && argv[k + 1]) return executerConnecteur({ socket: argv[k + 1], proprietaire: env.NOORTRACE_CONNECTEUR_PROPRIETAIRE ?? null });
-  if (t >= 0 && argv[t + 1]) {
+  // Complément du 2026-11-16 : exactement `--socket <chemin>` ou `--tcp
+  // <hôte:port>` ; toute autre forme (option inconnue, en double, sans valeur,
+  // argument en trop) rend l'usage et le code 2, au lieu d'être ignorée.
+  const valeur = argv.length === 2 && typeof argv[1] === "string" && argv[1] !== "" && !argv[1].startsWith("--");
+  const k = valeur && argv[0] === "--socket" ? 0 : -1;
+  const t = valeur && argv[0] === "--tcp" ? 0 : -1;
+  if (k >= 0) {
+    // EX-18.1, EX-6.10 : un chemin plus long serait tronqué et joindrait une autre prise.
+    const regle = regleCheminPrise(argv[k + 1]);
+    if (regle) {
+      process.stderr.write(`noortrace-connecteur: prise refusee (${regle})\n`);
+      return 2;
+    }
+    // NOORTRACE_CONNECTEUR_PROPRIETAIRE, compte attendu du démon (uid ou nom).
+    return executerConnecteur({ socket: argv[k + 1], proprietaire: env.NOORTRACE_CONNECTEUR_PROPRIETAIRE ?? null });
+  }
+  if (t >= 0) {
     const [hote, port] = argv[t + 1].split(/:(?=[0-9]+$)/);
     const { NOORTRACE_CONNECTEUR_TLS_CA: ca, NOORTRACE_CONNECTEUR_TLS_CERT: cert, NOORTRACE_CONNECTEUR_TLS_KEY: key } = env;
     let options = null;

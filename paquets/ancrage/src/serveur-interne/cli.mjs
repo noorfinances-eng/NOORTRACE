@@ -15,6 +15,7 @@ import { initialiserAutorite, publierCrl, chargerAutorite, ALGORITHMES, FICHIERS
 import { demarrerServeur, CHEMIN_SANTE } from "./serveur.mjs";
 import { Compteur } from "./compteur.mjs";
 import { Autorite } from "./autorite.mjs";
+import { lireArguments } from "../arguments.mjs";
 
 export const USAGE = `noortrace-tsa-interne — serveur RFC 3161 interne non qualifié (CT-5 §7)
 
@@ -38,29 +39,44 @@ Commandes :
          une adresse hors de la boucle locale est refusée sans connexion.
   aide   Affiche cette aide.
 
+Chaque commande n'admet que ses options, chacune au plus une fois, avec sa
+valeur quand elle en prend une ; servir n'admet qu'une de ses deux formes.
+Toute autre ligne est un usage incorrect, refusé sans rien écrire ni écouter.
+
 Codes de retour : 0 réussite ; 1 erreur ; 2 usage.
 `;
 
-/** Analyse `--option valeur` et `--drapeau`. */
+/**
+ * Options de chaque commande (complément du 2026-11-16) : `valeurs`, options
+ * qui prennent une valeur ; `drapeaux`, options sans valeur ; aucune commande
+ * ne prend d'argument.
+ */
+export const COMMANDES = Object.freeze({
+  init: { valeurs: ["repertoire", "politique", "crl-url", "algorithme", "validite-jours", "validite-ac-jours", "validite-crl-jours"], drapeaux: ["aide"] },
+  servir: {
+    valeurs: ["repertoire", "politique", "cle", "certificat", "chaine", "compteur", "hote", "port", "ecart-ms", "tls-cle", "tls-certificat", "tls-ac-clients", "taille-max"],
+    drapeaux: ["inclure-ac", "aide"],
+  },
+  crl: { valeurs: ["repertoire", "validite-crl-jours"], drapeaux: ["aide"] },
+  ac: { valeurs: ["repertoire"], drapeaux: ["crl", "aide"] },
+  sonde: { valeurs: ["url"], drapeaux: ["aide"] },
+  aide: { valeurs: [], drapeaux: ["aide"] },
+});
+
+/**
+ * Analyse stricte d'une ligne de commande (complément du 2026-11-16) : la
+ * commande en tête (`--aide` seul vaut `aide`), puis ses options ; lève
+ * `ErreurUsage` pour une commande inconnue, une option inconnue, en double
+ * ou sans sa valeur, un argument en trop.
+ * @param {string[]} argv
+ * @returns {{commande: string, options: Record<string, string|true>, positionnels: string[]}}
+ *   `positionnels[0]` est la commande
+ */
 export function analyserArguments(argv) {
-  const options = {};
-  const positionnels = [];
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a.startsWith("--")) {
-      const nom = a.slice(2);
-      const suivant = argv[i + 1];
-      if (suivant !== undefined && !suivant.startsWith("--")) {
-        options[nom] = suivant;
-        i++;
-      } else {
-        options[nom] = true;
-      }
-    } else {
-      positionnels.push(a);
-    }
-  }
-  return { options, positionnels };
+  const commande = argv[0] === "--aide" ? "aide" : argv[0];
+  if (!Object.hasOwn(COMMANDES, commande)) throw new ErreurUsage(`commande inconnue : ${commande}`);
+  const lu = lireArguments(argv[0] === "--aide" ? argv : argv.slice(1), COMMANDES[commande], ErreurUsage);
+  return { commande, options: lu.options, positionnels: [commande, ...lu.positionnels] };
 }
 
 function entierOption(options, nom, defaut) {
@@ -101,12 +117,15 @@ export function journalFlux(flux, horloge) {
  */
 export async function lancer(contexte) {
   const { argv, horloge, aleatoire, sortie, erreur } = contexte;
-  const { options, positionnels } = analyserArguments(argv);
-  const commande = positionnels[0];
   try {
-    if (commande === undefined || commande === "aide" || options.aide) {
+    if (argv.length === 0) {
       sortie.write(USAGE);
-      return commande === undefined && !options.aide ? 2 : 0;
+      return 2;
+    }
+    const { commande, options } = analyserArguments(argv);
+    if (commande === "aide" || options.aide) {
+      sortie.write(USAGE);
+      return 0;
     }
     if (commande === "init") return commandeInit(options, horloge, aleatoire, sortie);
     if (commande === "crl") return commandeCrl(options, horloge, sortie);
@@ -206,6 +225,9 @@ async function commandeServir(options, horloge, sortie, erreur, signaux) {
   const horlogeServeur = { murale: horloge.murale, monotone: horloge.monotone, ecartMs: ecart };
   const journal = journalFlux(erreur, horloge);
 
+  // complément du 2026-11-16 : une seule des deux formes ; une option de l'autre n'est plus ignorée en silence
+  if (options.repertoire && (options.cle || options.certificat || options.chaine)) throw new ErreurUsage("--repertoire, ou --cle avec --certificat, pas les deux");
+  if (!options.repertoire && options["inclure-ac"]) throw new ErreurUsage("--inclure-ac : avec --repertoire seulement");
   let autorite;
   if (options.repertoire) {
     const rep = exiger(options, "repertoire");

@@ -390,9 +390,14 @@ describe("service d'approbation : canal de la console (12.9)", function () {
           for (const [k, pas] of tr.steps.entries()) {
             h.regler(pas.at);
             nonce = pas.challenges[0];
-            const r = await s.appel(pas.method, traduire(pas.request, versService));
             const ici = `${f} pas ${k} (${pas.method})`;
-            if (pas.expected.accepted) {
+            // expirer (CT-3 EX-13.17, complément du 2026-11-16) n'est la méthode d'aucun canal : le service expire, avant
+            // de servir la requête suivante (ici la lecture de l'annuaire), chaque entrée dont l'échéance est atteinte ;
+            // un pas refusé n'expire rien, un pas accepté retire l'entrée qu'il nomme.
+            const r = pas.method === "expirer" ? null : await s.appel(pas.method, traduire(pas.request, versService));
+            if (r === null) {
+              // rien à comparer avant la lecture de l'annuaire
+            } else if (pas.expected.accepted) {
               expect(r.statut, `${ici} ${JSON.stringify(r.corps)}`).to.equal(200);
               if (r.corps.entry && !versVecteur.has(r.corps.entry)) {
                 expect(r.corps.entry, ici).to.match(/^apb-[0-9a-f]{16}$/);

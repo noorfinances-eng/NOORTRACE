@@ -10,6 +10,7 @@ import path from "node:path";
 import { lireJsonStrict } from "@noortrace/approbation";
 import { FORMES_CONFIGURATION, lireReference, MOTIF_ALIAS, motifRefusReference } from "../commun/references.mjs";
 import { pointsRefusesEnProduction } from "./reseau.mjs";
+import { refusCheminPrise } from "./client.mjs";
 
 /** Erreur de configuration ou de démarrage (l'agent ne démarre pas). */
 export class ErreurConfiguration extends Error {
@@ -41,7 +42,9 @@ export function lireConfiguration(source) {
     return v;
   };
   absolu("prise", c.prise);
-  if (Buffer.byteLength(c.prise) > 107) throw refus("prise : chemin au-delà de 107 octets (sun_path)");
+  // complément du 2026-11-16 : 103 octets au plus (et non 107, taille de sun_path sous Linux seulement)
+  const refusPrise = refusCheminPrise(c.prise);
+  if (refusPrise !== null) throw refus(`prise : ${refusPrise}`);
   absolu("donnees", c.donnees);
   if (!Number.isSafeInteger(c.interface_uid) || c.interface_uid < 0) throw refus("interface_uid : entier positif attendu");
   if (c.nature !== "developpement" && c.nature !== "production") throw refus("nature : developpement ou production");

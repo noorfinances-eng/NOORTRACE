@@ -44,7 +44,7 @@ import { lireComptes } from "./amont.mjs";
 import { reponseErreur } from "./messages.mjs";
 import { ecouterPriseTcp, identiteCertificat } from "./prise-tcp.mjs";
 import { LimiteurEchecs } from "../sdk/limiteur.mjs";
-import { DELAI_IDENTIFICATION_MS, CONNEXIONS_NON_IDENTIFIEES_MAX } from "../bornes.mjs";
+import { DELAI_IDENTIFICATION_MS, CONNEXIONS_NON_IDENTIFIEES_MAX, regleCheminPrise } from "../bornes.mjs";
 
 /** Préfixe des fichiers de preuve d'identité. */
 export const PREFIXE_DEFI = ".noortrace-defi-";
@@ -70,11 +70,18 @@ export const CONTEXTE_CONNEXION = new AsyncLocalStorage();
  * Met une prise de domaine Unix en écoute avec son mode dès la liaison : le
  * masque du processus est posé le temps de l'appel synchrone qui crée le
  * fichier, de sorte qu'il n'existe jamais avec un mode plus ouvert (EX-18.1).
+ * Un chemin de plus de `CHEMIN_PRISE_MAX_OCTETS` octets est refusé avant
+ * toute liaison (`chemin_prise_trop_long`, EX-18.1, EX-6.10) : Node.js le
+ * tronquerait et la prise serait créée ailleurs, souvent dans le répertoire
+ * parent. Toute erreur après la liaison ferme le serveur (un serveur resté
+ * en écoute gardait le processus vivant après le refus du démarrage).
  * @param {net.Server} serveur
  * @param {string} chemin
  * @param {number} [mode]
  */
 export async function ecouterPriseUnix(serveur, chemin, mode = MODE_PRISE) {
+  const regle = regleCheminPrise(chemin);
+  if (regle) throw Object.assign(new Error(`prise ${chemin} : ${regle}`), { code: "chemin_prise_trop_long" });
   const pret = new Promise((res, rej) => {
     serveur.once("error", rej);
     serveur.once("listening", res);
@@ -86,9 +93,16 @@ export async function ecouterPriseUnix(serveur, chemin, mode = MODE_PRISE) {
     process.umask(ancien);
   }
   await pret;
-  if ((fs.statSync(chemin).mode & 0o777) !== mode) {
+  let lu;
+  try {
+    lu = fs.statSync(chemin).mode & 0o777;
+  } catch (e) {
     serveur.close();
-    throw new Error(`prise ${chemin} : mode ${(fs.statSync(chemin).mode & 0o777).toString(8)} au lieu de ${mode.toString(8)} (EX-18.1)`);
+    throw e;
+  }
+  if (lu !== mode) {
+    serveur.close();
+    throw new Error(`prise ${chemin} : mode ${lu.toString(8)} au lieu de ${mode.toString(8)} (EX-18.1)`);
   }
 }
 

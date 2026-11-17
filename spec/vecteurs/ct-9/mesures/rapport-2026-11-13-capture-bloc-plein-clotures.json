@@ -1,0 +1,85 @@
+{
+  "version": 0,
+  "kind": "rapport-mesure",
+  "date": "2026-11-13",
+  "measured_at": "2026-11-13T12:31:39Z",
+  "commit": "cd1d1938a3ddf817617a47d487c405c339cb3570",
+  "spec_version": "0.9",
+  "system": {
+    "reference": false,
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cores": 4,
+    "memory_bytes": 16867405824,
+    "disk": {
+      "type": "virtuel",
+      "fsync": null
+    },
+    "os": "Ubuntu 24.04.5 LTS",
+    "kernel": "6.18.44-fc-v445",
+    "node": "v22.22.0",
+    "go": "go1.24.7",
+    "python": "3.13.16",
+    "cpu_scaling": "inconnu",
+    "aslr": "actif",
+    "load_avg_1m": 5.01,
+    "virtualized": true
+  },
+  "method": {
+    "warmup": 0,
+    "repetitions": 3,
+    "percentile_method": "plus_proche_rang",
+    "clock": "sans_objet",
+    "pair_with_without": false,
+    "samples_published": true
+  },
+  "configuration_sha256": "7a36b86e7df5e298c01c2cdfba485237c4e8874419337ac1f60bbd6a8f41704b",
+  "counts_for_targets": false,
+  "results": [
+    {
+      "name": "b_cap_bloc_plein_clotures",
+      "test_id": "TM-44",
+      "unit": "octets",
+      "n": 12,
+      "connections": null,
+      "samples": [
+        110930,
+        110930,
+        110930,
+        110930,
+        110930,
+        110930,
+        114859,
+        114859,
+        114860,
+        114860,
+        114853,
+        114853
+      ],
+      "samples_sha256": null,
+      "value": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": 110930,
+      "max": 114860,
+      "mean": 112893.67,
+      "text_value": null,
+      "target": null,
+      "met": null,
+      "conditions": [
+        "bloc de 64 transactions sur le réseau de développement (noortrace-2124-dev, quatre validateurs BFT en boucle locale, binaire noorcore du répertoire d'exécution avec noor_getCommitCertificate, SHA-256 b02a011a2fddd77b7ca6a00b8f376320dc7a419c6a5f47dcaca2a35a56ef33c6), clôtures et ancres mêlées",
+        "composition 1, répétition 1 : bloc 183980, 1 clôture(s) de journaux distincts (mesure-tm44-20261113123139-01) et 63 ancres",
+        "composition 1, répétition 2 : bloc 184008, 1 clôture(s) de journaux distincts (mesure-tm44-20261113123139-02) et 63 ancres",
+        "composition 1, répétition 3 : bloc 184036, 1 clôture(s) de journaux distincts (mesure-tm44-20261113123139-03) et 63 ancres",
+        "composition 4, répétition 1 : bloc 184124, 4 clôture(s) de journaux distincts (mesure-tm44-20261113123139-04, mesure-tm44-20261113123139-05, mesure-tm44-20261113123139-06, mesure-tm44-20261113123139-07) et 60 ancres",
+        "composition 4, répétition 2 : bloc 184212, 4 clôture(s) de journaux distincts (mesure-tm44-20261113123139-08, mesure-tm44-20261113123139-09, mesure-tm44-20261113123139-10, mesure-tm44-20261113123139-11) et 60 ancres",
+        "composition 4, répétition 3 : bloc 184300, 4 clôture(s) de journaux distincts (mesure-tm44-20261113123139-12, mesure-tm44-20261113123139-13, mesure-tm44-20261113123139-14, mesure-tm44-20261113123139-15) et 60 ancres",
+        "seuil de deux approbateurs par clôture (PeriodRegistry.submitPeriod, deux signatures) ; une clôture et une ancre capturées par bloc par noortrace-registre capturer --role cloture / --role ancre : bloc-<h>.json, recu-<hachage>.json de chacune des 64 transactions et certificat-<h>.json, réponses JSON-RPC telles que reçues (CT-4 CP-6)",
+        "index de capture exclu de la ligne, relevé dans notes",
+        "64 expéditeurs d'ancres de test publiés (clé SHA-256(UTF-8(\"noortrace/tm-31/v0/expediteur/<i>\"))), une organisation neuve par clôture (clés SHA-256(UTF-8(\"noortrace/tm-44/v0/<organisation>/<nom>\"))) ; limite de gaz 150000 par ancre, 400000 par clôture"
+      ],
+      "excluded_reason": "hors_systeme_de_reference"
+    }
+  ],
+  "notes": "TM-44 (CT-8 EX-9.1 ; réserve de CT-8 §9.2 sur b_cap, mesuré par TM-31 sur un bloc d'ancres seules). Relevé de tailles, 2 composition(s) (1 clôture(s) et 63 ancres ; 4 clôture(s) et 60 ancres), 3 répétitions par composition sans échauffement, deux captures par bloc : max 114860 octets (ligne b_cap_bloc_plein_clotures, index exclu). composition 1 répétition 1, bloc 183980 (1 clôture(s) + 63 ancres, 6357853 gaz), capture de la transaction de cloture d'indice 0 = 110930 octets = en-tête 5847 + certificat 33199 + 64 reçus 71884 (1109 à 1818 par reçu, 1818 pour la transaction capturée) ; index de capture 14286 octets en plus ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. composition 1 répétition 1, bloc 183980 (1 clôture(s) + 63 ancres, 6357853 gaz), capture de la transaction de ancre d'indice 55 = 110930 octets = en-tête 5847 + certificat 33199 + 64 reçus 71884 (1109 à 1818 par reçu, 1113 pour la transaction capturée) ; index de capture 14285 octets en plus ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. composition 1 répétition 2, bloc 184008 (1 clôture(s) + 63 ancres, 6357805 gaz), capture de la transaction de cloture d'indice 0 = 110930 octets = en-tête 5847 + certificat 33199 + 64 reçus 71884 (1109 à 1818 par reçu, 1818 pour la transaction capturée) ; index de capture 14286 octets en plus ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. composition 1 répétition 2, bloc 184008 (1 clôture(s) + 63 ancres, 6357805 gaz), capture de la transaction de ancre d'indice 48 = 110930 octets = en-tête 5847 + certificat 33199 + 64 reçus 71884 (1109 à 1818 par reçu, 1113 pour la transaction capturée) ; index de capture 14285 octets en plus ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. composition 1 répétition 3, bloc 184036 (1 clôture(s) + 63 ancres, 6357787 gaz), capture de la transaction de cloture d'indice 0 = 110930 octets = en-tête 5847 + certificat 33199 + 64 reçus 71884 (1109 à 1818 par reçu, 1818 pour la transaction capturée) ; index de capture 14286 octets en plus ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. composition 1 répétition 3, bloc 184036 (1 clôture(s) + 63 ancres, 6357787 gaz), capture de la transaction de ancre d'indice 63 = 110930 octets = en-tête 5847 + certificat 33199 + 64 reçus 71884 (1109 à 1818 par reçu, 1113 pour la transaction capturée) ; index de capture 14285 octets en plus ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. composition 4 répétition 1, bloc 184124 (4 clôture(s) + 60 ancres, 6812578 gaz), capture de la transaction de cloture d'indice 3 = 114859 octets = en-tête 5847 + certificat 34999 + 64 reçus 74013 (1109 à 1819 par reçu, 1818 pour la transaction capturée) ; index de capture 14286 octets en plus ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. composition 4 répétition 1, bloc 184124 (4 clôture(s) + 60 ancres, 6812578 gaz), capture de la transaction de ancre d'indice 48 = 114859 octets = en-tête 5847 + certificat 34999 + 64 reçus 74013 (1109 à 1819 par reçu, 1113 pour la transaction capturée) ; index de capture 14285 octets en plus ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. composition 4 répétition 2, bloc 184212 (4 clôture(s) + 60 ancres, 6812320 gaz), capture de la transaction de cloture d'indice 0 = 114860 octets = en-tête 5847 + certificat 34999 + 64 reçus 74014 (1109 à 1819 par reçu, 1818 pour la transaction capturée) ; index de capture 14286 octets en plus ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. composition 4 répétition 2, bloc 184212 (4 clôture(s) + 60 ancres, 6812320 gaz), capture de la transaction de ancre d'indice 48 = 114860 octets = en-tête 5847 + certificat 34999 + 64 reçus 74014 (1109 à 1819 par reçu, 1113 pour la transaction capturée) ; index de capture 14285 octets en plus ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. composition 4 répétition 3, bloc 184300 (4 clôture(s) + 60 ancres, 6812182 gaz), capture de la transaction de cloture d'indice 0 = 114853 octets = en-tête 5847 + certificat 34995 + 64 reçus 74011 (1109 à 1819 par reçu, 1818 pour la transaction capturée) ; index de capture 14286 octets en plus ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. composition 4 répétition 3, bloc 184300 (4 clôture(s) + 60 ancres, 6812182 gaz), capture de la transaction de ancre d'indice 57 = 114853 octets = en-tête 5847 + certificat 34995 + 64 reçus 74011 (1109 à 1819 par reçu, 1113 pour la transaction capturée) ; index de capture 14285 octets en plus ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. Plus grande capture index compris : 129146 octets, au-delà de b_cap = 123761 octets de CT-8 §9.2 (TM-31, index compris). Aucun essai repris. Mesure faite du 2026-11-13T12:31:39.849Z au 2026-11-13T12:36:38.280Z hors du système de référence de CT-9 §11.1 (machine virtuelle, disque virtuel) : elle ne compte pour aucune cible ; TM-44 n'a pas de cible (aucune_cible). Configuration (configuration_sha256) : {\"outil\":\"scripts/e2e/mesure-capture-bloc-plein.mjs --clotures\",\"compositions\":[1,4],\"expediteurs_ancres\":\"noortrace/tm-31/v0/expediteur/<i>\",\"cles_clotures\":\"noortrace/tm-44/v0/<organisation>/<nom>\",\"gas_limit_ancre\":150000,\"gas_limit_cloture\":400000,\"seuil_approbateurs\":2,\"frais\":\"type 2, maxFeePerGas = max(baseFee, 1), maxPriorityFeePerGas 1 wei\",\"soumission\":\"validateur v1 (127.0.0.1:8645), juste après un bloc qu'il a proposé, clôtures puis ancres dans le même lot\",\"capture\":\"noortrace-registre capturer --role cloture et --role ancre (CT-4 §9.4)\",\"repetitions\":3,\"reseau\":\"noortrace-2124-dev, 4 validateurs BFT en boucle locale (chain/scripts/dev-net.sh)\"}. Commit : tête du dépôt au moment de la mesure, arbre de travail modifié."
+}

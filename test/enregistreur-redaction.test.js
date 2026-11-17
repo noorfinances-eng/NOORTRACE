@@ -93,7 +93,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
 
     it("cas.json : octets, référence et comptes de chaque cas, dans le fil appelant et par les fils de calcul", async function () {
       const cas = json(path.join(R, "cas.json"));
-      expect(cas.length).to.equal(78);
+      expect(cas.length).to.equal(87); // neuf cas du complément du 2026-11-16 de CT-2 (10.3.4 à 10.3.6)
       for (const c of cas) egalAttendu(produirePiece(pol(c.policy), demandeCas(c), O), c.expected, c.name);
       const fils = Object.fromEntries(
         Object.entries(POLITIQUES).map(([n, d]) => [n, new Redacteur({ politique: d, cle: d.pseudonym_key ? CLE_TEST : null, fils: 2 })]),
@@ -195,10 +195,10 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
       const d = POLITIQUES["pii-pseudo-test"];
       const red = new Redacteur({ politique: d, cle: CLE_TEST, fils: 0, journal, metriques });
       const clair = "CH9300762011623852957";
-      const r = await red.redigerArguments({ beneficiary_iban: clair, note: "j.dupont@example.ch" }, { outil: "demo__payments.create", id: "req-7" });
+      const r = await red.redigerArguments({ beneficiary_iban: clair, note: "j.dupont@ch.example" }, { outil: "demo__payments.create", id: "req-7" });
       const traces = [texte(r.piece), JSON.stringify(journal.lignes), metriques.exposer()].join("\n");
-      const hachages = [clair, "j.dupont@example.ch"].flatMap((v) => [N.sha256Hex(N.utf8(v)).slice(2), N.octetsVersHex(N.keccak256(N.utf8(v))).slice(2)]);
-      for (const v of [clair, "j.dupont@example.ch", ...hachages]) expect(traces).to.not.include(v);
+      const hachages = [clair, "j.dupont@ch.example"].flatMap((v) => [N.sha256Hex(N.utf8(v)).slice(2), N.octetsVersHex(N.keccak256(N.utf8(v))).slice(2)]);
+      for (const v of [clair, "j.dupont@ch.example", ...hachages]) expect(traces).to.not.include(v);
       expect(texte(r.piece)).to.match(/\[PSEUDO:iban:[0-9a-f]{12}\]/);
       // Échec : sans clé, l'action pseudonyme est refusée (une empreinte sans secret se renverse).
       expect(() => new PolitiqueCompilee(d, { cle: null })).to.throw(/sans clé/);
@@ -215,7 +215,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
     });
 
     it("EX-10.4 : déterministe (deux exécutions, fil appelant et fil de calcul, mêmes octets) ; seul le dépassement de la borne en dépend", async function () {
-      const v = { note: "Virement CH93 0076 2011 6238 5295 7, +41 44 123 45 67, 756.1234.5678.97, 3782 822463 10005, j.dupont@example.ch" };
+      const v = { note: "Virement CH93 0076 2011 6238 5295 7, +41 44 123 45 67, 756.1234.5678.97, 3782 822463 10005, j.dupont@ch.example" };
       const a = produirePiece(compilee(PII), { genre: "json", portee: "resultat", outil: "a__b", valeur: v }, O);
       const b = produirePiece(compilee(PII), { genre: "json", portee: "resultat", outil: "a__b", valeur: v }, O);
       expect(Buffer.compare(Buffer.from(a.piece.octets), Buffer.from(b.piece.octets))).to.equal(0);
@@ -309,7 +309,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
     it("EX-10.9 : frontières, non-chevauchement, fin de correspondance frontière, jetons opaques", function () {
       expect(un(detecterTelephone, "+41441234567+41441234567")).to.have.length(2);
       expect(un(detecterTelephone, "x+41441234567")).to.deep.equal([]);
-      expect(un(detecterEmail, "a@example.ch@b.example.ch")).to.deep.equal(["a@example.ch"]);
+      expect(un(detecterEmail, "a@ch.example@b.ch.example")).to.deep.equal(["a@ch.example"]);
       const p = compilee(PII);
       // Un pseudonyme dont les douze chiffres passent Luhn n'est pas une carte.
       const r = produirePiece(p, { genre: "texte", portee: "contexte", texte: "[PSEUDO:iban:378282246313] 378282246310005" }, O);
@@ -330,25 +330,58 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
     });
 
     it("courriel : domaine à deux labels, dernier label de lettres, point ou trait final hors du domaine", function () {
-      expect(un(detecterEmail, "x@a-.example.ch")).to.deep.equal([]);
+      expect(un(detecterEmail, "x@a-.ch.example")).to.deep.equal([]);
       expect(un(detecterEmail, "x@exemple.c1")).to.deep.equal([]);
       expect(un(detecterEmail, "Ecrire a x@com.example.")).to.deep.equal(["x@com.example"]);
-      expect(un(detecterEmail, ".x@com.example")).to.deep.equal([]);
+      // Plus longue fin Dot-string de la partie locale (complément du 2026-11-16 de la révision 0.11).
+      expect(un(detecterEmail, ".x@com.example")).to.deep.equal(["x@com.example"]);
       expect(un(detecterEmail, `x@${"a".repeat(64)}.ch`)).to.deep.equal([]);
       expect(un(detecterEmail, `x@${"a.".repeat(127)}ch`)).to.deep.equal([]);
     });
 
-    it("téléphone : groupe entre parenthèses compté seulement suivi d'un chiffre ; 8 à 15 chiffres ; frontière à la fin", function () {
+    it("téléphone : groupe entre parenthèses compté seulement suivi d'un chiffre ; 8 à 15 chiffres ; frontière à la fin, reprise au séparateur", function () {
       expect(un(detecterTelephone, "+41 (0)44 123 45 67")).to.deep.equal(["+41 (0)44 123 45 67"]);
       expect(un(detecterTelephone, "+41 (0)(1)44 123 45 67")).to.deep.equal([]);
-      expect(un(detecterTelephone, "+41 44 123 45 67a")).to.deep.equal([]);
+      // Reprise au séparateur (complément du 2026-11-16 de la révision 0.11) : le candidat finit au dernier chiffre suivi d'une frontière.
+      expect(un(detecterTelephone, "+41 44 123 45 67a")).to.deep.equal(["+41 44 123 45"]);
       expect(un(detecterTelephone, "+0 44 123 45 67")).to.deep.equal([]);
       expect(un(detecterTelephone, "+41--44 123 45 67")).to.deep.equal([]);
     });
 
+    it("10.3.4 à 10.3.6, candidat plus court (complément du 2026-11-16) : adresse dans une adresse web, enregistrement à barres, domaine suivi de -1, carte suivie d'une échéance ou d'un cryptogramme, téléphone suivi d'une date", function () {
+      const p = compilee(PII);
+      const note = (t) => texte(produirePiece(p, { genre: "json", portee: "arguments", outil: "crm__chercher", valeur: { note: t } }, O).piece);
+      // Les six formes que la règle d'avant laissait en clair, redacted faux.
+      expect(note("https://crm.ch.example/api/v1/clients/recherche?tri=nom&ordre=asc&page=1&filtre=actif&courriel=jean.dupont@ch.example")).to.equal('{"note":"https://crm.ch.example/api/v1/clients/rech[REDIGE:email]"}');
+      expect(note("DUPONT|Jean|1980-02-29|Rue-du-Lac-12|1003|Lausanne|VD|CH|client-premium|jean.dupont@ch.example")).to.equal('{"note":"DUPONT|Jean|1980-02[REDIGE:email]"}');
+      expect(note("export-jean.dupont@ch.example-1")).to.equal('{"note":"[REDIGE:email]-1"}');
+      expect(note("4111 1111 1111 1111 12/27")).to.equal('{"note":"[REDIGE:carte] 12/27"}');
+      expect(note("4111-1111-1111-1111 123")).to.equal('{"note":"[REDIGE:carte] 123"}');
+      expect(note("+41 44 123 45 67 13.11.2026")).to.equal('{"note":"[REDIGE:telephone].2026"}');
+      // Règles détaillées, détecteur par détecteur.
+      expect(un(detecterEmail, `${"a".repeat(65)}@ch.example`)).to.deep.equal([`${"a".repeat(64)}@ch.example`]);
+      expect(un(detecterEmail, "a..b@ch.example")).to.deep.equal(["b@ch.example"]);
+      expect(un(detecterEmail, "j.@ch.example")).to.deep.equal([]);
+      expect(un(detecterEmail, "x@ch.example.1")).to.deep.equal(["x@ch.example"]);
+      expect(un(detecterEmail, "x@ch.example..")).to.deep.equal(["x@ch.example"]);
+      expect(un(detecterEmail, "x@ch.ex-ample")).to.deep.equal(["x@ch.ex"]);
+      const [a63, b63, c63, d63] = ["a", "b", "c", "d"].map((c) => c.repeat(63));
+      expect(un(detecterEmail, `x@${a63}.${b63}.${c63}.${d63}`)).to.deep.equal([`x@${a63}.${b63}.${c63}.${d63}`]);
+      expect(un(detecterEmail, `x@${a63}.${b63}.${c63}.${d63}x`)).to.deep.equal([`x@${a63}.${b63}.${c63}`]);
+      expect(un(detecterCarte, "12 4111 1111 1111 1111")).to.deep.equal(["4111 1111 1111 1111"]);
+      expect(un(detecterCarte, "AB12 4111 1111 1111 1111")).to.deep.equal(["4111 1111 1111 1111"]);
+      expect(un(detecterCarte, "4111 1111 1111 1111 4111 1111 1111 1111")).to.deep.equal(["4111 1111 1111 1111", "4111 1111 1111 1111"]);
+      expect(un(detecterCarte, "1234 5678 9012")).to.deep.equal([]);
+      expect(un(detecterTelephone, "+41 44 123 45 67 89021")).to.deep.equal(["+41 44 123 45 67"]);
+      expect(un(detecterTelephone, "+41 44 123 45 67a")).to.deep.equal(["+41 44 123 45"]);
+      expect(un(detecterTelephone, "+41441234567a")).to.deep.equal([]);
+      // Sous pii-v1, la carte passe avant le téléphone : seize chiffres dont une sous-suite passe Luhn (10.8).
+      expect(note("+41 44 123 45 67 89021")).to.equal('{"note":"+41 [REDIGE:carte]"}');
+    });
+
     it("EX-10.23 : détecteurs nommés en temps linéaire (entrées hostiles de grande taille)", function () {
       const t0 = Date.now();
-      for (const s of ["@".repeat(200000), "a".repeat(100000) + "@", "+1".repeat(100000), "7".repeat(200000), "CH93".repeat(50000), "756.".repeat(50000), "1 ".repeat(100000)]) {
+      for (const s of ["@".repeat(200000), "a".repeat(100000) + "@", "+1".repeat(100000), "7".repeat(200000), "CH93".repeat(50000), "756.".repeat(50000), "1 ".repeat(100000), "4111111111111111 ".repeat(60000)]) {
         produirePiece(compilee(PII), { genre: "texte", portee: "contexte", texte: s }, { budgetMs: 60000 });
       }
       expect(Date.now() - t0).to.be.below(20000);
@@ -388,7 +421,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
 
     it("EX-10.12 : pseudonymes publiés de 10.9 ; encodages de la clé ; moins de 32 octets refusés (pas 4)", function () {
       expect(jetonPseudonyme(CLE_TEST, "iban", "CH9300762011623852957")).to.equal("[PSEUDO:iban:50d46ea9a82b]");
-      expect(jetonPseudonyme(CLE_TEST, "email", "j.dupont@example.ch")).to.equal("[PSEUDO:email:b8ac789204a6]");
+      expect(jetonPseudonyme(CLE_TEST, "email", "j.dupont@ch.example")).to.equal("[PSEUDO:email:ff93a7f99c38]");
       const c = configurationExemple();
       c.policy.redaction = POLITIQUES["pii-pseudo-test"];
       const hex = Buffer.from(CLE_TEST).toString("hex");
@@ -403,9 +436,9 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
     });
 
     it("EX-10.13 : même valeur, même jeton sous une clé ; une autre clé rompt l'intégrité référentielle", function () {
-      const a = jetonPseudonyme(CLE_TEST, "email", "j.dupont@example.ch");
-      expect(jetonPseudonyme(CLE_TEST, "email", "j.dupont@example.ch")).to.equal(a);
-      expect(jetonPseudonyme(new Uint8Array(32).fill(7), "email", "j.dupont@example.ch")).to.not.equal(a);
+      const a = jetonPseudonyme(CLE_TEST, "email", "j.dupont@ch.example");
+      expect(jetonPseudonyme(CLE_TEST, "email", "j.dupont@ch.example")).to.equal(a);
+      expect(jetonPseudonyme(new Uint8Array(32).fill(7), "email", "j.dupont@ch.example")).to.not.equal(a);
     });
   });
 
@@ -675,7 +708,7 @@ describe("enregistreur, rédaction (§10) : vecteurs, exigences, entrées hostil
       expect(redigerMotifDecision(compilee(lente), lourd, 5)).to.include({ motif: null, depassement: true });
       const pseudo = new Redacteur({ politique: POLITIQUES["pii-pseudo-test"], cle: CLE_TEST, fils: 1 });
       try {
-        expect(await pseudo.redigerMotif("vu j.dupont@example.ch")).to.equal("vu [PSEUDO:email:b8ac789204a6]");
+        expect(await pseudo.redigerMotif("vu j.dupont@ch.example")).to.equal("vu [PSEUDO:email:ff93a7f99c38]");
       } finally {
         await pseudo.fermer();
       }

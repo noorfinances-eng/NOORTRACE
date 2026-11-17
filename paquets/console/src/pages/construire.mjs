@@ -366,6 +366,6 @@ export async function principal(argv) {
   return 0;
 }
 
-if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   process.exitCode = await principal(process.argv.slice(2));
 }

@@ -2898,6 +2898,16 @@ d'export (section 12), l'enveloppe COSE, les hachages de bord dans le manifeste.
   politique de l'événement porte l'attestation (AT-7 ne compare que des
   noms). L'appartenance de l'inscription à la chaîne se prouve, comme une
   décision de `approbations.json`, par son propre dossier.
+- **La demande d'un appel relayé** (complément du 2026-11-16, décision du
+  porteur). Le contrôle 7 prouve que les approbateurs ont signé la demande
+  que nomment `request_hash` et `ticket` (section 6.3) ; A-4 ne cherche
+  cette demande que parmi les voisins, et rien ne compare son outil, sa
+  référence d'arguments ni sa délégation à ceux de l'appel relayé (CT-6
+  §7.2). Joindre l'événement de demande au dossier d'un appel relayé et
+  faire comparer ces trois éléments par A-4 est à l'ordre du jour de la
+  prochaine révision de CT-1 ; ce changement toucherait le schéma du
+  dossier (une partie facultative de plus en 11.2), l'exportateur de CT-2,
+  les vérificateurs et tous les vecteurs de dossiers.
 
 ## 16. Alignement avec le dépôt
 
@@ -3140,6 +3150,11 @@ contrôles en échec ; aucun schéma ne change.
 | `spec/vecteurs/ct-1/verificateur-independant` | « tout concorde » possible sans rien comparer | code 1 sans famille ou sans valeur recalculée ; `events` vide : A-2 en échec | fait (revue de sécurité de l'étape 8 : `plancher.go`, A-2 vide et borne des 1 024, règle `root` sur les événements fournis ; `revue_etape8_test.go`) |
 | `paquets/noyau` ; `scripts/lib/journal.mjs` (référence et générateur de `ct-1`) ; `verificateur/` ; `spec/vecteurs/ct-1/verificateur-independant` | A-4 : le noyau en échec ; la référence, le binaire et le module non exécutée (« demande non désignée ») pour un `approval` objet sans `request_hash` | A-4 en échec (11.4) | noyau : fait ; référence, binaire et module : à aligner (revue de sécurité de l'étape 8), puis vecteur `invalide-a3-approval-vide` régénéré |
 | `spec/README.md` | CT-1 version 0.5 | CT-1 version 0.6 | fait |
+
+**Complément du 2026-11-16**, décision du porteur, sans règle, format ni
+vecteur changé : section 15, point « La demande d'un appel relayé », inscrit
+à l'ordre du jour de la prochaine révision de CT-1 (CT-6 §7.2, complément du
+même jour, qui dit la limite dans l'énoncé).
 
 ## Annexe A — Les cinq événements de l'exemple de référence
 

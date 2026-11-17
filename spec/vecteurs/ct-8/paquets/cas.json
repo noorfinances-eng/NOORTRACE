@@ -6,7 +6,7 @@
     {
       "name": "valide",
       "archive": "valide.tar",
-      "archive_sha256": "0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+      "archive_sha256": "0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd",
       "options": {
         "expected_sha256": null,
         "anchors": null
@@ -112,9 +112,9 @@
     {
       "name": "valide-empreinte",
       "archive": "valide.tar",
-      "archive_sha256": "0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+      "archive_sha256": "0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd",
       "options": {
-        "expected_sha256": "0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+        "expected_sha256": "0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd",
         "anchors": null
       },
       "expected": {
@@ -218,9 +218,9 @@
     {
       "name": "empreinte-fausse",
       "archive": "valide.tar",
-      "archive_sha256": "0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+      "archive_sha256": "0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd",
       "options": {
-        "expected_sha256": "0xb41b49dbe9b529f90b4de5b1c73986406951af163e0f9ed2a8381481227e7d29",
+        "expected_sha256": "0x12862e28ab1cafe6c8c89bda6823f96a6e895be92609af3135d4a3c2ad59a0b1",
         "anchors": null
       },
       "expected": {
@@ -303,7 +303,7 @@
     {
       "name": "fichier-altere",
       "archive": "fichier-altere.tar",
-      "archive_sha256": "0xb41b49dbe9b529f90b4de5b1c73986406951af163e0f9ed2a8381481227e7d29",
+      "archive_sha256": "0x12862e28ab1cafe6c8c89bda6823f96a6e895be92609af3135d4a3c2ad59a0b1",
       "options": {
         "expected_sha256": null,
         "anchors": null
@@ -388,7 +388,7 @@
     {
       "name": "fichier-manquant",
       "archive": "fichier-manquant.tar",
-      "archive_sha256": "0x92dd0e6f2d3f76d8281925c73ae0d31fe8bfc80f6112b506e6cd39f794c8acbe",
+      "archive_sha256": "0xd2196a662e1914840728ad3a8230f56118d3aec025fe1bad22dd736d5209ba91",
       "options": {
         "expected_sha256": null,
         "anchors": null
@@ -473,7 +473,7 @@
     {
       "name": "fichier-en-trop",
       "archive": "fichier-en-trop.tar",
-      "archive_sha256": "0x40558d06651fd5f539942952a9d6ea0f2a1322f0262ec41d06e8b0e00fa4730d",
+      "archive_sha256": "0x732e95671da52608cfe89a2629028c5d9f591793d65e0dda626c0c78a31492b7",
       "options": {
         "expected_sha256": null,
         "anchors": null
@@ -558,7 +558,7 @@
     {
       "name": "manifeste-altere",
       "archive": "manifeste-altere.tar",
-      "archive_sha256": "0x32ba2c02676d40d5d25f42e90a235763c53c78cd8348f18e34ae82e51473b122",
+      "archive_sha256": "0x932576a2a32fdc8c4fa08281a9a5b2e67182dc1e205a696026e4f3716ebca41f",
       "options": {
         "expected_sha256": null,
         "anchors": null
@@ -643,7 +643,7 @@
     {
       "name": "contrefacon-coherente",
       "archive": "contrefacon-coherente.tar",
-      "archive_sha256": "0xd806d8e7af25c118d9f241ead0c8b51892e10e778a8f1a0238f831334e822344",
+      "archive_sha256": "0xae31214b730fca87ac605964f5d3336eb43a47f65bde5ba1733a3c34cd66f96e",
       "options": {
         "expected_sha256": null,
         "anchors": null
@@ -749,7 +749,7 @@
     {
       "name": "chemin-hors-archive",
       "archive": "chemin-hors-archive.tar",
-      "archive_sha256": "0xfc6446e02c04c10aea067a848c0fdc263d8f5a4a8242bec113475340dc678253",
+      "archive_sha256": "0x8fc463d87c78dcca039fd16e7fe290937a0a9f2d7e0eb7070257a8b62acc87d5",
       "options": {
         "expected_sha256": null,
         "anchors": null
@@ -834,7 +834,7 @@
     {
       "name": "chemin-absolu",
       "archive": "chemin-absolu.tar",
-      "archive_sha256": "0x6f07e6e4cb1dc1e6ebeac41a546ab140be71dd974d08a54cbbd084a5b1251fe2",
+      "archive_sha256": "0x3f6e990edd6c176650e1538eebdb96d5d719fb42464688bc420f51d6c34ae107",
       "options": {
         "expected_sha256": null,
         "anchors": null
@@ -919,7 +919,7 @@
     {
       "name": "lien-symbolique",
       "archive": "lien-symbolique.tar",
-      "archive_sha256": "0xf036a91c971e6fbd3c75da67ddc90f5e3f6522e8a7a3c250f7178bf644c25071",
+      "archive_sha256": "0x9991ca51ed861fb78ab0c99787946961a8caf0c8318df4517a563b190b2efc71",
       "options": {
         "expected_sha256": null,
         "anchors": null
@@ -1004,7 +1004,7 @@
     {
       "name": "lien-physique",
       "archive": "lien-physique.tar",
-      "archive_sha256": "0xe8c92cba21f5c6ada90b7e17a595923888056f51345fbfacd35402437c186735",
+      "archive_sha256": "0xd1024fdfad447035f903381d97051f71a72453d15d9397198756b51ae2dec008",
       "options": {
         "expected_sha256": null,
         "anchors": null
@@ -1089,7 +1089,7 @@
     {
       "name": "nom-en-double",
       "archive": "nom-en-double.tar",
-      "archive_sha256": "0xcfbc9d58c6e0174c3fdb86d10155ad642741166434522a94ca82b495398d2697",
+      "archive_sha256": "0xe272d022b01bea28ba2074929c98b17c1608edef35eb776a4a2e36899a7ebb3a",
       "options": {
         "expected_sha256": null,
         "anchors": null
@@ -1174,7 +1174,7 @@
     {
       "name": "metadonnees-non-fixees",
       "archive": "metadonnees-non-fixees.tar",
-      "archive_sha256": "0x275277ac3f74b02b8902301de1c5441b71803d2aace807511b87421af26410a3",
+      "archive_sha256": "0xe9ecb529e428b0f2c443ecc3ffa59704f5a41a560c9833b36f05871efd1ab3db",
       "options": {
         "expected_sha256": null,
         "anchors": null
@@ -1259,7 +1259,7 @@
     {
       "name": "ancres-du-reviseur-discordantes",
       "archive": "valide.tar",
-      "archive_sha256": "0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+      "archive_sha256": "0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd",
       "options": {
         "expected_sha256": null,
         "anchors": "spec/vecteurs/ct-6/ancres/ancres-cle-enregistreur-autre.json"
@@ -1363,7 +1363,7 @@
     {
       "name": "ancres-non-conformes",
       "archive": "valide.tar",
-      "archive_sha256": "0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+      "archive_sha256": "0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd",
       "options": {
         "expected_sha256": null,
         "anchors": "spec/vecteurs/ct-6/ots/entetes/chaine.json"
@@ -1467,7 +1467,7 @@
     {
       "name": "observation",
       "archive": "observation.tar",
-      "archive_sha256": "0xd3d6ea7fc3c69d731fe1f33b7fde85db0ff0c3ca8b9e714fe6a714a336b3e064",
+      "archive_sha256": "0x813fd05b9fb84cf99a4bfa7afccd3df53223feb0081951b5aa21725aa9031810",
       "options": {
         "expected_sha256": null,
         "anchors": null

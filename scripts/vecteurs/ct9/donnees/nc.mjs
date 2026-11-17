@@ -136,9 +136,19 @@ export const NON_TESTS = [
       "CT-7 RA-83",
       "CT-7 RA-84",
       "CT-7 RA-85",
-      "CT-7 RA-86"
+      "CT-7 RA-86",
+      "CT-7 RA-87",
+      "CT-7 RA-88",
+      "CT-7 RA-89",
+      "CT-7 RA-90",
+      "CT-7 RA-91",
+      "CT-7 RA-92",
+      "CT-7 RA-93",
+      "CT-7 RA-94",
+      "CT-7 RA-95",
+      "CT-7 RA-96"
     ],
-    "justification": "Risque accepté : réponse écrite d'une menace, nommé, borné, attribué (CT-7 §3.5), en bijection avec les menaces par `accepted_risk` (CT-7 RV-8, R10-F28). Le test d'un RA- est le TA- de sa menace ; la table TA- par menace (section des tests adversariaux) le rend lisible."
+    "justification": "Risque accepté : réponse écrite d'une menace, nommé, borné, attribué (CT-7 §3.5), en bijection avec les menaces par `accepted_risk` (CT-7 RV-8, R10-F28). Le test d'un RA- est le TA- de sa menace ; la table TA- par menace (section des tests adversariaux) le rend lisible. RA-87 à RA-96 (CT-7 §3.5.1, complément du 2026-11-16) complètent, hors de `menaces.json`, le risque résiduel des menaces qu'ils citent : leur test est celui de ces menaces."
   },
   {
     "id": "NC-3",

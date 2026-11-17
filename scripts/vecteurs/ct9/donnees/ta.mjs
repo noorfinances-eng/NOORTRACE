@@ -884,7 +884,7 @@ export const TA = [
       ],
       "complement": {
         "phase2_step": 8,
-        "blocking": "Partie sur l'image construite : démarrage complet en conteneur d'une image de l'enregistreur reconstruite avec le code de PA-4, image attendue montée par les fichiers Compose et code_sha256 publié dans la note de version ; le démon est éprouvé ici hors conteneur, dans un arbre d'installation de la forme de l'image de référence."
+        "blocking": "Partie sur l'image construite : démarrage complet en conteneur d'une image de l'enregistreur reconstruite avec le code de PA-4 et code_sha256 publié dans la note de version (l'image attendue est montée par le fichier Compose de production depuis le complément du 2026-11-16, CT-8 EX-3.15) ; le démon est éprouvé ici hors conteneur, dans un arbre d'installation de la forme de l'image de référence."
       }
     },
     "response_removed": {
@@ -1421,9 +1421,9 @@ export const TA = [
       "Démarrer le démon avec le composant ; laisser partir des requêtes RFC 3161 authentifiées vers le principal (points contresignés, clôture).",
       "Relire la file durable, les traces du planificateur, `acquisitions.ndjson`, le journal d'exploitation et les métriques ; y chercher la chaîne marqueur, le secret TLS et la clé de chaîne.",
       "Présenter une chaîne en clair à la place de la référence, puis une référence `env` absente ; relever le refus.",
-      "Mutant (complément) : copie du paquet `paquets/ancrage` (EX-10.5) dont la journalisation ou la mise en file recopie la valeur résolue du secret."
+      "Mutants : copies du paquet `paquets/ancrage` (EX-10.5), l'une dont la configuration en vigueur reçoit la valeur résolue à la place de la référence (copie privée du prestataire résolu retirée), l'autre dont le journal d'acquisition (`acquisitions.ndjson`) recopie la valeur résolue du secret ; rejouer le même essai."
     ],
-    "oracle": "Le marqueur, le secret TLS et la clé de chaîne n'apparaissent dans aucun fichier (file, traces, `acquisitions.ndjson`, journal d'exploitation, métriques) ; seule la référence (`file`) figure dans la configuration d'ancrage en vigueur ; une chaîne en clair est refusée par le schéma `ancrage-v0` (AN-1) ; une référence `env` absente refuse le démarrage de l'ancrage (`secret_non_resolu`, pointeur consigné, jamais une valeur) sans arrêter l'enregistreur. Avec le mutant du complément, le marqueur apparaît et le test échoue.",
+    "oracle": "Le marqueur, le secret TLS et la clé de chaîne n'apparaissent dans aucun fichier (file, traces, `acquisitions.ndjson`, journal d'exploitation, métriques) ; seule la référence (`file`) figure dans la configuration d'ancrage en vigueur ; une chaîne en clair est refusée par le schéma `ancrage-v0` (AN-1) ; une référence `env` absente refuse le démarrage de l'ancrage (`secret_non_resolu`, pointeur consigné, jamais une valeur) sans arrêter l'enregistreur. Avec chaque mutant, le marqueur apparaît (configuration en vigueur, puis `acquisitions.ndjson`) et le test échoue.",
     "status": {
       "state": "executable",
       "tests": [
@@ -1441,11 +1441,7 @@ export const TA = [
           "describe": "CT-9 : tests adversariaux TA- exécutables sur le composant d'ancrage de l'étape 5 (mutants du paquet @noortrace/ancrage, CT-7 EX-3.2)",
           "it": "TA-41 (MN-41, complément ; mutants du composant d'ancrage) : secret du principal à valeur résolue marquée, jeton obtenu en TLS mutuel : marqueur absent des fichiers, du journal et des métriques, seule la référence dans la configuration en vigueur ; mutant sans la copie privée du prestataire résolu : la valeur y remplace la référence ; mutant dont le journal d'acquisition recopie la valeur (tués)"
         }
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Mutant du composant livré : une copie du paquet `paquets/ancrage` (EX-10.5) dont la journalisation ou la mise en file recopie la valeur résolue d'une référence de secret, rejouée par le même essai, qui doit alors trouver le marqueur ; les essais de l'étape 5 éprouvent la réponse sans ce mutant. Possible dès maintenant sur le composant livré et non écrit : étape 8 (EX-3.10). Les versions 0.1 et 0.2 rattachaient l'entrée aux étapes 4 puis 5."
-      }
+      ]
     },
     "response_removed": {
       "what": "Secrets par référence, jamais dans la file, les traces ni le journal (CT-5 EX-4.8, AN-43)",
@@ -1961,21 +1957,22 @@ export const TA = [
   {
     "id": "TA-55",
     "preconditions": [
+      "Garde d'admission d'EX-10.8 de CT-4 livrée (mandataire devant `eth_sendRawTransaction` ; livrable dû avant la production, absent du dépôt à l'étape 8).",
       "Réseau de développement lancé par chain/scripts/dev-net.sh start (exécution réelle, hors npm test ; la CI n'exécute jamais noorcore, CT-5 EX-A.7)."
     ],
     "steps": [
-      "Lancer le réseau ; soumettre les transactions parasites ; soumettre une ancre par l'outil de référence ; mesurer le délai d'inclusion ; arrêter le réseau (dev-net.sh stop)."
+      "Lancer le réseau et la garde devant le point RPC d'un validateur ; soumettre par la garde les transactions parasites, puis une ancre par l'outil de référence ; mesurer le délai d'inclusion ; recommencer en soumettant directement au point RPC du validateur, sans la garde ; arrêter le réseau (dev-net.sh stop)."
     ],
     "oracle": "Délai d'inclusion dans la borne de SU-2 et refus des parasites ; comparaison avec et sans la garde.",
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Décision du porteur attendue (CT-9 TA-55) : aucune garde d'admission d'EX-10.8 n'existe dans le dépôt ; la coder ou la proposer en CT-4 §14 est l'objet de la décision."
+      "blocking": "Renvoi au lancement : la garde d'admission d'EX-10.8 de CT-4 (mandataire devant `eth_sendRawTransaction` : jeton ou certificat client, quota, solde et nonce exacts, refus journalisés) n'est pas livrée à l'étape 8 (décision du porteur du 2026-11-16) ; elle est un livrable dû avant la production (CT-4 EX-10.8, §14), et TA-55 s'écrit avec elle ; d'ici là, le risque est accepté (CT-7 RA-94). TA-55 sert la ligne 4 de la section 14, qui rend `faux` tant qu'il n'est pas `reussi` (CT-9 EX-3.12, EX-14.1)."
     },
     "response_removed": {
       "what": "Garde d'admission par client, RPC des validateurs fermés (CT-4 EX-10.8, EX-10.3, EX-8.15)",
-      "how": "Retirer la garde d'admission du relais RPC du réseau de développement",
-      "where": "garde d'admission d'EX-10.8 (absente du réseau de développement, EX-4.20)"
+      "how": "Soumettre les mêmes transactions directement au point RPC du validateur, sans passer par la garde d'admission d'EX-10.8",
+      "where": "garde d'admission d'EX-10.8 (à coder avant la production : absente du dépôt et du réseau de développement, EX-4.20)"
     },
     "attack": "Transactions à 1 wei de frais soumises en nombre depuis un expéditeur sans provision ; épreuve SU-2 de CT-4 §11.2 rejouée.",
     "expected_with_response": "Les transactions non prêtes sont refusées à l'admission ; les ancres et clôtures obtiennent leur reçu dans le délai de SU-2.",
@@ -3194,8 +3191,8 @@ export const TA = [
     "oracle": "Ligne présente.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "PA-10 non adoptée par CT-2 : la consigne perimeter_unlisted_host n'est pas une exigence de CT-2 0.6, et le démon de l'étape 4 ne l'écrit pas (aucune occurrence dans paquets/enregistreur/src) ; le test s'écrit sur ce démon après l'adoption.",
+      "phase2_step": 8,
+      "blocking": "Retrait motivé : la réponse éprouvée n'est pas une exigence de la version livrée ; PA-10 (CT-7) n'est pas adoptée par CT-2 à l'étape 8, la consigne `perimeter_unlisted_host` n'est donc pas spécifiée et le démon de l'étape 4 ne l'écrit pas (aucune occurrence dans `paquets/enregistreur/src`) ; l'adopter est une révision de CT-2, hors de cette livraison. TA-88, entièrement conditionné par PA-10 (`depends_on`), est compté `non_applicable` à la porte 2 tant qu'elle n'est pas adoptée et ne rend aucune ligne `faux` (EX-14.1) ; RA-74 demeure ; le test s'écrit sur le démon dans la livraison qui adopte PA-10.",
       "depends_on": [
         "PA-10"
       ]

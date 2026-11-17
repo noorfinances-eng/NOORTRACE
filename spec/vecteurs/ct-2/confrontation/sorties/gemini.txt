@@ -273,7 +273,7 @@ Types : modèles pydantic du SDK (alias camelCase, membres inconnus refusés : e
 -- gemini-erreur-http-sse (reponse.sse, SHA-256 0xd4075c5e958d5c70001fba0907281e1fe122e748b57a3c7225e813752b86c8e1, statut 400, text/event-stream)
   objets lus par le SDK (corps d'erreur JSON sans data:) : vecteur [{"error":{"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"}],"message":"API key not valid (message fictif de test).","status":"INVALID_ARGUMENT"}}] ; outil [{"error":{"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"}],"message":"API key not valid (message fictif de test).","status":"INVALID_ARGUMENT"}}] : concorde
   corps analysé par l'enregistreur (EX-5.31) = objet lu par le SDK : vecteur {"error":{"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"}],"message":"API key not valid (message fictif de test).","status":"INVALID_ARGUMENT"}} ; outil {"error":{"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"}],"message":"API key not valid (message fictif de test).","status":"INVALID_ARGUMENT"}} : concorde
--- gemini-flux (reponse.sse, SHA-256 0xc8811a843bf55deb86070ad105187deed462d9539fbae0584271cffb3cc6a895, statut 200, text/event-stream)
+-- gemini-flux (reponse.sse, SHA-256 0x77ddb70116440b46a6806f49690653df2d5c1738c6d059b0b98dedcb25d64a05, statut 200, text/event-stream)
   nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 3 ; outil 3 : concorde
   objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
   data[0] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
@@ -387,7 +387,7 @@ Types : modèles pydantic du SDK (alias camelCase, membres inconnus refusés : e
   réponse[1] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
   réponse[2] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
   aucune erreur levée par le client : vecteur None ; outil None : concorde
-  intent : référence à une pièce (texte rédigé ou long) : sans objet ; texte du SDK "Le dossier 2026-81044 est presque complet ; l'assuré est joignable à j.dupont@example.ch pour la facture manquante."
+  intent : référence à une pièce (texte rédigé ou long) : sans objet ; texte du SDK "Le dossier 2026-81044 est presque complet ; l'assuré est joignable à j.dupont@ch.example pour la facture manquante."
   tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
 -- gemini-flux-crlf-data-final (reponse.sse, statut 200)
   objets GenerateContentResponse rendus avant toute erreur : vecteur 2 ; outil 2 : concorde

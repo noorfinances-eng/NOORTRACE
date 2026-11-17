@@ -276,6 +276,9 @@ func familleAnnuaire(c *Contexte) {
 	}
 
 	// ---- traces (AN-6, AN-7).
+	// Couverture d'EX-A.13 du complément du 2026-11-16 (traces
+	// expiration-entree et defi-consomme).
+	var cvExp struct{ avant, echeance, validee, retiree, acceptee, refusee, reprise bool }
 	for _, fic := range c.fichiers("annuaire/traces/*.json") {
 		tr, ok := c.lire(fic)
 		if !ok {
@@ -285,6 +288,7 @@ func familleAnnuaire(c *Contexte) {
 		if !ok {
 			continue
 		}
+		presentes := map[string]bool{}
 		for n, pas := range tr.Get("steps").Arr {
 			id := fmt.Sprintf("%s pas %d (%s)", fic, n+1, pas.Get("method").S())
 			at, err := LireInstant(pas.Get("at").S())
@@ -293,6 +297,28 @@ func familleAnnuaire(c *Contexte) {
 				continue
 			}
 			exp := pas.Get("expected")
+			methode := pas.Get("method").S()
+			// A.10 (complément du 2026-11-16) : « l'expiration qu'il fait avant
+			// la requête suivante retire l'entrée d'un pas accepté et aucune
+			// pour un pas refusé ; aucun autre pas d'une trace n'a lieu à une
+			// échéance » (durée de vie par défaut).
+			echues := TableauChaines(e.EntreesEchues(at, TTLEntreeDefaut))
+			attendues := Tableau()
+			if methode == "expirer" && exp.Get("accepted").Bool {
+				attendues = TableauChaines([]string{pas.Get("request").Get("entry").S()})
+			}
+			c.R.ComparerJSON(f, id, "entrées échues avant le pas (durée de vie par défaut)", attendues, echues, "CT-3 A.10 : « aucun autre pas d'une trace n'a lieu à une échéance » ; EX-13.17, « Expiration »")
+			var cible *Value
+			if methode == "expirer" {
+				cible = e.entreeParID(pas.Get("request").Get("entry").S())
+			}
+			nonceInscr := ""
+			if methode == "inscrire" {
+				if ch, ok := AnalyserMessageInscription(pas.Get("request").Get("message").S()); ok {
+					nonceInscr = ch.Nonce
+				}
+			}
+			defisAvant := len(e.Defis)
 			nonce := ""
 			if ch := pas.Get("challenges").Arr; len(ch) > 0 {
 				nonce = ch[0].S()
@@ -304,7 +330,26 @@ func familleAnnuaire(c *Contexte) {
 				return attribue
 			}, ModeService)
 			fond := "CT-3 EX-13.13, EX-13.15, EX-13.17 (ordre des vérifications et effets) ; EX-12.17"
-			raisonsInscription[is.Raison] = raisonsInscription[is.Raison] || pas.Get("method").S() == "inscrire"
+			raisonsInscription[is.Raison] = raisonsInscription[is.Raison] || methode == "inscrire"
+			switch {
+			case methode == "expirer" && cible == nil:
+				cvExp.retiree = cvExp.retiree || is.Raison == "entree_inconnue"
+			case methode == "expirer":
+				cr, _ := LireInstant(cible.Get("created_at").S())
+				ech := cr + Instant(TTLEntreeDefaut)
+				cvExp.avant = cvExp.avant || (at == ech-1 && is.Raison == "etat_incompatible")
+				cvExp.echeance = cvExp.echeance || (at == ech && is.Accepte && len(cible.Get("requester_identities").Arr) > 0)
+				cvExp.validee = cvExp.validee || (!jamaisValidee(cible) && is.Raison == "etat_incompatible")
+			case methode == "inscrire" && nonceInscr != "":
+				// EX-13.13 : le défi présenté est retiré, accepté ou refusé.
+				if len(e.Defis) < defisAvant {
+					cvExp.acceptee = cvExp.acceptee || is.Accepte
+					cvExp.refusee = cvExp.refusee || !is.Accepte
+					presentes[nonceInscr] = true
+				} else if presentes[nonceInscr] && is.Raison == "nonce_inconnu" {
+					cvExp.reprise = true
+				}
+			}
 			if is.NouvelleEntree {
 				// L'identifiant recalculé (A.10) est comparé avec la réponse ci-dessous.
 				nb := 0
@@ -313,9 +358,16 @@ func familleAnnuaire(c *Contexte) {
 						nb++
 					}
 				}
-				c.R.Exiger(f, id, "identifiant d'entrée nouveau et de la forme apb-…", reIdentifiantEntree.MatchString(attribue) && nb == 1, attribue, "CT-3 EX-13.9 : « unique et jamais réattribué »")
+				// Complément du 2026-11-16 : jamais réattribué, même après
+				// l'expiration de l'entrée (13.4).
+				for _, op := range e.Doc.Get("operations").Arr {
+					if op.Get("op").S() == "expirer" && op.Get("entry").S() == attribue {
+						nb++
+					}
+				}
+				c.R.Exiger(f, id, "identifiant d'entrée nouveau et de la forme apb-…", reIdentifiantEntree.MatchString(attribue) && nb == 1, attribue, "CT-3 EX-13.9 : « unique et jamais réattribué » ; 13.4 : « même après […] l'expiration de l'entrée »")
 			}
-			if is.Accepte && pas.Get("method").S() == "inscrire" {
+			if is.Accepte && methode == "inscrire" {
 				q := pas.Get("request")
 				x := e.entreeParIdentite(q.Get("session_identity").S())
 				sig := adresseDeLEntree(x, q.Get("address").S()).Get("proof").Get("signature").S()
@@ -336,6 +388,20 @@ func familleAnnuaire(c *Contexte) {
 			}
 			c.R.ComparerJSON(f, fic, "état final = annuaires/reference.json (noms affichés mis à part)", ref, fin, "CT-3 EX-A.13 et 13.4 : « l'annuaire de l'organisation des vecteurs après neuf opérations »")
 		}
+	}
+	for _, x := range []struct {
+		nom string
+		vu  bool
+	}{
+		{"expirer une milliseconde avant l'échéance : etat_incompatible", cvExp.avant},
+		{"expirer à l'échéance exacte d'une entrée avec un alias : acceptée", cvExp.echeance},
+		{"expirer d'une entrée validée : etat_incompatible", cvExp.validee},
+		{"expirer d'une entrée déjà retirée : entree_inconnue", cvExp.retiree},
+		{"inscription acceptée qui retire son défi", cvExp.acceptee},
+		{"inscription refusée après le pas 4 qui retire son défi", cvExp.refusee},
+		{"défi présenté une seconde fois : nonce_inconnu", cvExp.reprise},
+	} {
+		c.R.Exiger(f, "annuaire/traces/", "cas exercé : "+x.nom, x.vu, "absent", "CT-3 EX-A.13 : traces expiration-entree et defi-consomme (complément du 2026-11-16)")
 	}
 	for _, r := range []string{"requete_invalide", "identite_invalide", "message_invalide", "nonce_inconnu", "nonce_deja_utilise", "inscription_expiree",
 		"origine_differente", "organisation_differente", "identite_differente", "adresse_differente", "signature_invalide", "identite_desactivee", "adresse_deja_attribuee"} {
@@ -422,12 +488,46 @@ func familleAnnuaire(c *Contexte) {
 		c.R.Exiger(f, fic, "cas exercé : identite_invalide", vues["consulter identite_invalide"] || vues["retirer identite_invalide"] || vues["voter identite_invalide"] || vues["recuser identite_invalide"], "absent", "CT-3 EX-12.19 et A.10 : controles-canal.json")
 	}
 
+	// ---- exemple de la requête expirer (EX-13.17, complément du
+	// 2026-11-16) : « la requête est un objet au seul membre entry, conforme
+	// à $defs/identifiant_entree ($defs/requete_expirer […], exemple
+	// ci-dessous) » ; l'exemple est « la requête de l'opération expirer qui
+	// retire l'entrée apb-0001 à son échéance, pas 8 de la trace
+	// annuaire/traces/expiration-entree.json ».
+	if c.Spec != "" {
+		const vec = "CT-3 EX-13.17 (exemple)"
+		if ex, err := blocJSON(c.Spec, "<!-- schema: annuaire-approbateurs/requete_expirer -->"); err == nil {
+			c.R.Exiger(f, vec, "requête conforme à $defs/requete_expirer", len(c.Sch.Valider(RefAnnuaire+"#/$defs/requete_expirer", ex)) == 0, "non conforme",
+				"CT-3 EX-13.17 (complément du 2026-11-16) : $defs/requete_expirer d'annuaire-approbateurs-v0")
+			if tr, ok := c.lire("annuaire/traces/expiration-entree.json"); ok {
+				var req *Value
+				if st := tr.Get("steps"); st != nil && len(st.Arr) >= 8 && st.Arr[7].Get("method").S() == "expirer" {
+					req = st.Arr[7].Get("request")
+				}
+				if req == nil {
+					req = Nul()
+				}
+				c.R.ComparerJSON(f, vec, "égale à la requête du pas 8 de traces/expiration-entree.json", ex, req,
+					"CT-3 EX-13.17 : « la requête de l'opération expirer qui retire l'entrée apb-0001 à son échéance, pas 8 de la trace »")
+			}
+		} else {
+			c.R.Erreur("spécification : %v", err)
+		}
+	}
+
 	// ---- exports (AN-9).
 	if d, ok := c.lire("annuaire/exports/attendu.json"); ok {
 		codes := map[string]bool{}
 		// EX-A.13 : recopie d'administrators sans écart, liste changée sans
 		// opération, liste différente de celle du rejeu (EX-13.37).
 		recopieSansEcart, pointeurs := false, map[string]bool{}
+		// Complément du 2026-11-16 : expiration rejouée sans écart, expirer
+		// sous la borne basse, expirer d'une entrée validée, identifiant
+		// d'entrée expirée réattribué ; puis (point 12 de la section 0) une
+		// entrée retirée par un expirer du journal que entries porte encore,
+		// sa preuve signée par une autre clé (preuve_invalide, et
+		// operations_incoherentes /entries).
+		var cvRejeu struct{ sansEcart, sousBorne, validee, reattribue, portee bool }
 		for _, cas := range d.Get("cases").Arr {
 			fe := "annuaire/exports/" + cas.Get("file").S()
 			doc, ok := c.lire(fe)
@@ -449,6 +549,22 @@ func familleAnnuaire(c *Contexte) {
 					pointeurs[*x.Pointeur] = true
 				}
 			}
+			if ops := doc.Get("operations"); ops != nil {
+				expire := false
+				for _, op := range ops.Arr {
+					expire = expire || op.Get("op").S() == "expirer"
+				}
+				cvRejeu.sansEcart = cvRejeu.sansEcart || (expire && len(ecarts) == 0)
+				cvRejeu.portee = cvRejeu.portee || entreeExpireePortee(doc, ecarts)
+				for _, x := range ecarts {
+					if x.Code == "operations_incoherentes" && x.Pointeur != nil {
+						s, v, r := natureRejeuExpiration(ops.Arr, *x.Pointeur)
+						cvRejeu.sousBorne = cvRejeu.sousBorne || s
+						cvRejeu.validee = cvRejeu.validee || v
+						cvRejeu.reattribue = cvRejeu.reattribue || r
+					}
+				}
+			}
 			t := Tableau()
 			for _, x := range ecarts {
 				codes[x.Code] = true
@@ -467,12 +583,91 @@ func familleAnnuaire(c *Contexte) {
 		for _, ptr := range []string{"/operations/1", "/administrators"} {
 			c.R.Exiger(f, "annuaire/exports/attendu.json", "cas exercé : administrateurs, "+ptr, pointeurs[ptr], "absent", "CT-3 EX-A.13 : « une liste d'administrateurs changée sans opération (/operations/1) et une liste qui diffère de celle du rejeu (/administrators) »")
 		}
+		for _, x := range []struct {
+			nom string
+			vu  bool
+		}{
+			{"expiration rejouée sans écart", cvRejeu.sansEcart},
+			{"expiration datée sous la borne basse", cvRejeu.sousBorne},
+			{"expiration d'une entrée validée", cvRejeu.validee},
+			{"identifiant d'entrée expirée réattribué", cvRejeu.reattribue},
+			{"entrée expirée encore portée par le document, preuve signée par une autre clé", cvRejeu.portee},
+		} {
+			c.R.Exiger(f, "annuaire/exports/attendu.json", "cas exercé : "+x.nom, x.vu, "absent", "CT-3 EX-A.13 : exports/ (complément du 2026-11-16)")
+		}
 	}
 
 	// ---- nonces de A.10.
 	for n := range nonces {
 		c.R.Exiger(f, "annuaire/", "nonce "+n+" = nonce k de A.10", indiceNonce(n, 1000) > 0, "aucun k ≤ 1000", "CT-3 A.10 : « 16 premiers octets de SHA-256(UTF-8(\"noortrace/vecteurs/ct3/inscription/nonce/<k>\")) »")
 	}
+}
+
+// natureRejeuExpiration qualifie l'opération désignée par un pointeur
+// /operations/<j> d'operations_incoherentes (couverture d'EX-A.13) : expirer
+// datée sous created_at + 86 400 000 de l'entrée (created_at pris à la
+// première opération inscrire de l'entrée), expirer d'une entrée validée
+// plus haut, inscrire sous l'identifiant d'une entrée expirée plus haut.
+func natureRejeuExpiration(ops []*Value, ptr string) (sousBorne, validee, reattribue bool) {
+	var j int
+	if _, err := fmt.Sscanf(ptr, "/operations/%d", &j); err != nil || fmt.Sprintf("/operations/%d", j) != ptr || j < 0 || j >= len(ops) {
+		return
+	}
+	op := ops[j]
+	id := op.Get("entry").S()
+	at, _ := LireInstant(op.Get("at").S())
+	creee := Instant(-1)
+	for _, p := range ops[:j] {
+		switch p.Get("op").S() {
+		case "inscrire":
+			if p.Get("entry").S() == id && creee < 0 {
+				creee, _ = LireInstant(p.Get("at").S())
+			}
+		case "valider":
+			validee = validee || (op.Get("op").S() == "expirer" && p.Get("entry").S() == id)
+		case "expirer":
+			reattribue = reattribue || (op.Get("op").S() == "inscrire" && p.Get("entry").S() == id)
+		}
+	}
+	sousBorne = op.Get("op").S() == "expirer" && creee >= 0 && at < creee+TTLEntreeMin
+	return
+}
+
+// entreeExpireePortee dit si les écarts d'un export sont ceux du cas d'EX-A.13
+// (complément du 2026-11-16) : « l'annuaire de la trace expiration-entree
+// juste après son expiration, dont entries porte encore l'entrée retirée, sa
+// preuve signée par une autre clé (preuve_invalide, et operations_incoherentes
+// /entries : l'inscription se rejoue sans chercher sa preuve dans le
+// document) ». L'entrée est reconnue à son identifiant, nommé par une
+// opération expirer précédée de l'inscrire qui l'a créée.
+func entreeExpireePortee(doc *Value, ecarts []EcartExport) bool {
+	inscrites, expirees := map[string]bool{}, map[string]bool{}
+	for _, op := range doc.Get("operations").Arr {
+		id := op.Get("entry").S()
+		switch op.Get("op").S() {
+		case "inscrire":
+			inscrites[id] = true
+		case "expirer":
+			expirees[id] = expirees[id] || inscrites[id]
+		}
+	}
+	entrees := doc.Get("entries").Arr
+	finale, preuve := false, false
+	for _, x := range ecarts {
+		if x.Pointeur == nil {
+			continue
+		}
+		var i int
+		switch {
+		case x.Code == "operations_incoherentes" && *x.Pointeur == "/entries":
+			finale = true
+		case x.Code == "preuve_invalide":
+			if _, err := fmt.Sscanf(*x.Pointeur, "/entries/%d/", &i); err == nil && i >= 0 && i < len(entrees) {
+				preuve = preuve || expirees[entrees[i].Get("id").S()]
+			}
+		}
+	}
+	return finale && preuve
 }
 
 // couvertureMessages vérifie la liste des textes refusés qu'EX-A.13 exige
@@ -539,7 +734,18 @@ func couvertureMessages(c *Contexte, d *Value) {
 
 // identifiantA10 rend l'identifiant de la prochaine entrée créée selon la
 // convention des vecteurs (CT-3 A.10) : « apb- » suivi, sur 4 chiffres
-// décimaux complétés de zéros, du nombre d'entrées augmenté de un.
+// décimaux complétés de zéros, « du nombre d'entrées jamais créées avant
+// celle-ci, augmenté de un : entrées de l'annuaire et entrées retirées par
+// expirer (une opération expirer de operations par entrée retirée) »
+// (complément du 2026-11-16).
 func identifiantA10(e *EtatAnnuaire) string {
-	return fmt.Sprintf("apb-%04d", len(e.entrees())+1)
+	n := len(e.entrees())
+	if ops := e.Doc.Get("operations"); ops != nil {
+		for _, op := range ops.Arr {
+			if op.Get("op").S() == "expirer" {
+				n++
+			}
+		}
+	}
+	return fmt.Sprintf("apb-%04d", n+1)
 }

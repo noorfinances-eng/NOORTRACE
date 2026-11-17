@@ -89,7 +89,16 @@ périmètre) ; sans `-v`, seules les discordances sont détaillées.
   cellule par cellule ; les chiffres de 5.5 (EX-5.10) ; les chiffres et
   identifiants que la prose énonce sans ambiguïté (sections 6, 7, 12.2,
   13, 16 : entrées à écrire, entrées avec complément nommées, TA- à menace
-  d'exécution `phase_2` à écrire, compléments de l'étape 8 nommés).
+  d'exécution `phase_2` à écrire, compléments de l'étape 8 nommés). En 16,
+  depuis le complément du 2026-11-16, le nombre des TA- avec complément et
+  celui des compléments de l'étape 8 se lisent écrits (« des deux TA- »),
+  au pluriel sans nombre (le nombre des entrées nommées entre parenthèses)
+  ou au singulier (« le complément du TA- exécutable qui en porte un »,
+  « de l'entrée de l'étape 8 ») ; le nombre lu égale le nombre recalculé
+  et celui des entrées nommées, les TA- nommés pour l'étape 8 sont tous
+  ceux qui portent un complément de l'étape 8, la phrase n'étant
+  facultative que s'il n'y en a aucun ; un complément dit levé
+  (« celui de TA-n étant levé ») est absent du catalogue.
 - **`couverture.json`** membre par membre : totaux, détail par
   spécification (identifiants, couverts, NC-, non couverts et leur liste,
   familles), menaces, traçabilité, exécutables et titres, tables,

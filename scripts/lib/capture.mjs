@@ -660,6 +660,14 @@ function trouverAvs(s, depart) {
   return null;
 }
 
+/**
+ * Détecteur carte (CT-2 §10.3.4) : dans chaque suite maximale de chiffres et
+ * de séparateurs isolés (espaces admis, trait d'union), les sous-suites de
+ * groupes consécutifs de 12 à 19 chiffres, bordées de frontières, sont
+ * éprouvées par premier groupe de gauche à droite, la plus longue d'abord ;
+ * la première qui passe Luhn est la correspondance (complément du
+ * 2026-11-16 de la révision 0.11). Au plus huit épreuves par premier groupe.
+ */
 function trouverCarte(s, depart) {
   let p = depart;
   while (p < s.length) {
@@ -667,17 +675,34 @@ function trouverCarte(s, depart) {
       p++;
       continue;
     }
-    // La suite maximale de chiffres et de séparateurs isolés (espaces admis, trait d'union) qui commence en p.
+    // La suite maximale qui commence en p, découpée en groupes [début, fin) de chiffres.
+    const groupes = [];
     let q = p;
-    let N = "";
-    while (q < s.length) {
-      if (estChiffre(s[q])) {
-        N += s[q++];
-      } else if ((estSep(s[q]) || s[q] === "-") && estChiffre(s[q + 1])) {
-        q++;
-      } else break;
+    for (;;) {
+      const d = q;
+      while (estChiffre(s[q])) q++;
+      groupes.push([d, q]);
+      if ((estSep(s[q]) || s[q] === "-") && estChiffre(s[q + 1])) q++;
+      else break;
     }
-    if (frontiereAvant(s, p, depart) && frontiereApres(s, q) && N.length >= 12 && N.length <= 19 && luhnValide(N)) return { debut: p, fin: q, valeur: N };
+    for (let i = 0; i < groupes.length; i++) {
+      if (!frontiereAvant(s, groupes[i][0], depart)) continue;
+      // Fins possibles pour ce premier groupe : 12 à 19 chiffres, la plus longue d'abord.
+      const fins = [];
+      let n = 0;
+      for (let j = i; j < groupes.length; j++) {
+        n += groupes[j][1] - groupes[j][0];
+        if (n > 19) break;
+        if (n >= 12) fins.push(j);
+      }
+      for (let k = fins.length - 1; k >= 0; k--) {
+        const j = fins[k];
+        if (!frontiereApres(s, groupes[j][1])) continue;
+        let N = "";
+        for (let g = i; g <= j; g++) N += s.slice(groupes[g][0], groupes[g][1]);
+        if (luhnValide(N)) return { debut: groupes[i][0], fin: groupes[j][1], valeur: N };
+      }
+    }
     p = q;
   }
   return null;
@@ -689,28 +714,61 @@ const RE_CAR_DOMAINE = /[A-Za-z0-9.-]/;
 const RE_LABEL = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
 
 /**
- * Détecteur email (CT-2 §10.3.5) : chaque « @ » est un point de départ ; la
- * partie locale est la suite maximale à sa gauche de caractères
- * atext ou « . » (au plus 64, lue sur 65), le domaine la suite maximale à sa
- * droite de [A-Za-z0-9.-] (au plus 255, lue sur 256), privée d'un « . » ou
- * d'un « - » final. Coût linéaire en la longueur de la chaîne.
+ * Domaine `D` d'une adresse (CT-2 §10.3.5) : le plus long préfixe de `S` qui
+ * est un domaine valide (deux labels au moins, chacun de 1 à 63 caractères de
+ * [A-Za-z0-9-] ne commençant ni ne finissant par « - », le dernier fait de
+ * deux lettres ASCII au moins) et qui est `S` entière, si elle compte au plus
+ * 255 caractères, ou suivi dans `S` d'un « . » ou d'un « - ». Un seul
+ * parcours de `S` ; null sans un tel préfixe.
+ */
+function domaineAdresse(S) {
+  let meilleur = -1;
+  let debutLabel = 0;
+  let labels = 0;
+  let valides = true;
+  let nonLettre = -1;
+  for (let k = 0; k <= S.length && valides; k++) {
+    const c = S[k];
+    const bord = k === S.length ? S.length <= 255 : c === "." || c === "-";
+    // Préfixe S[0, k) : labels complets valides, et label en cours fait de 2 à 63 lettres.
+    if (bord && labels >= 1 && k - debutLabel >= 2 && k - debutLabel <= 63 && nonLettre < debutLabel) meilleur = k;
+    if (k === S.length) break;
+    if (c === ".") {
+      valides = RE_LABEL.test(S.slice(debutLabel, k));
+      labels++;
+      debutLabel = k + 1;
+    } else if (!((c >= "A" && c <= "Z") || (c >= "a" && c <= "z"))) nonLettre = k;
+  }
+  return meilleur === -1 ? null : S.slice(0, meilleur);
+}
+
+/**
+ * Détecteur email (CT-2 §10.3.5) : chaque « @ » est un point de départ. À sa
+ * gauche, `W` est la suite maximale de caractères atext ou « . », lue sur 64
+ * caractères au plus, et la partie locale la plus longue fin de `W` qui est
+ * une Dot-string. À sa droite, `S` est la suite maximale de [A-Za-z0-9.-],
+ * lue sur 256 caractères au plus, et le domaine le plus long préfixe de `S`
+ * qui est un domaine valide et qui est `S` entière (255 caractères au plus)
+ * ou suivi dans `S` d'un « . » ou d'un « - » (complément du 2026-11-16 de la
+ * révision 0.11). Coût linéaire en la longueur de la chaîne.
  */
 function trouverEmail(s, depart) {
   for (let a = s.indexOf("@", depart); a !== -1; a = s.indexOf("@", a + 1)) {
     let g = a;
-    while (g > depart && a - g <= 64 && RE_CAR_LOCAL.test(s[g - 1])) g--;
-    if (a - g > 64 || a - g === 0) continue;
-    const local = s.slice(g, a);
-    if (local.startsWith(".") || local.endsWith(".") || local.includes("..")) continue;
+    while (g > depart && a - g < 64 && RE_CAR_LOCAL.test(s[g - 1])) g--;
+    const W = s.slice(g, a);
+    if (W.length === 0 || W.endsWith(".")) continue;
+    // Plus longue fin Dot-string : après le dernier « .. », sans « . » initial.
+    const dd = W.lastIndexOf("..");
+    let debut = dd === -1 ? 0 : dd + 2;
+    if (W[debut] === ".") debut++;
+    const local = W.slice(debut);
     let d = a + 1;
-    while (d < s.length && d - a - 1 <= 255 && RE_CAR_DOMAINE.test(s[d])) d++;
-    if (d - a - 1 > 255) continue;
-    let fin = d;
-    if (fin > a + 1 && (s[fin - 1] === "." || s[fin - 1] === "-")) fin--;
-    const domaine = s.slice(a + 1, fin);
-    const labels = domaine.split(".");
-    if (labels.length < 2 || !labels.every((l) => RE_LABEL.test(l)) || !/^[A-Za-z]{2,}$/.test(labels[labels.length - 1])) continue;
-    return { debut: g, fin, valeur: `${local}@${domaine.toLowerCase()}` };
+    while (d < s.length && d - a - 1 < 256 && RE_CAR_DOMAINE.test(s[d])) d++;
+    const S = s.slice(a + 1, d);
+    const domaine = domaineAdresse(S);
+    if (domaine === null) continue;
+    return { debut: a - local.length, fin: a + 1 + domaine.length, valeur: `${local}@${domaine.toLowerCase()}` };
   }
   return null;
 }
@@ -718,22 +776,29 @@ function trouverEmail(s, depart) {
 const estSepTelephone = (c) => estSep(c) || c === "-" || c === ".";
 
 /**
- * Détecteur telephone (CT-2 §10.3.6) : le plus long préfixe qui respecte les
- * contraintes ; un groupe « (chiffres) » n'entre dans le candidat que si un
- * chiffre le suit ; aucun préfixe plus court n'est essayé si le caractère qui
- * suit le candidat n'est pas une frontière.
+ * Détecteur telephone (CT-2 §10.3.6) : un groupe « (chiffres) » ne compte
+ * que si un chiffre le suit ; le candidat finit à la plus grande position
+ * prise par `fin` dont le caractère est une frontière et qui laisse de 8 à 15
+ * chiffres (reprise au séparateur, complément du 2026-11-16 de la révision
+ * 0.11) ; le parcours s'arrête dès que le nombre de chiffres dépasse 15.
  */
 function trouverTelephone(s, depart) {
   for (let p = depart; p < s.length; p++) {
     if (s[p] !== "+" || !frontiereAvant(s, p, depart) || !(s[p + 1] >= "1" && s[p + 1] <= "9")) continue;
-    let i = p + 2;
-    let fin = p + 2;
+    let i = p + 1;
+    let chiffres = "";
+    let enAttente = "";
     let groupe = false;
+    let candidat = null;
     while (i < s.length) {
       const c = s[i];
       if (estChiffre(c)) {
+        chiffres += enAttente + c;
+        enAttente = "";
         i++;
-        fin = i;
+        if (chiffres.length > 15) break;
+        // `fin` passe derrière ce chiffre : position retenue si elle est une frontière et laisse au moins 8 chiffres.
+        if (chiffres.length >= 8 && frontiereApres(s, i)) candidat = { debut: p, fin: i, valeur: "+" + chiffres };
       } else if (estSepTelephone(c)) {
         if (estSepTelephone(s[i - 1])) break;
         i++;
@@ -743,14 +808,11 @@ function trouverTelephone(s, depart) {
         while (j < s.length && estChiffre(s[j])) j++;
         if (j === i + 1 || s[j] !== ")") break;
         groupe = true;
+        enAttente = s.slice(i + 1, j);
         i = j + 1;
       } else break;
     }
-    if (!frontiereApres(s, fin)) continue;
-    let chiffres = "";
-    for (let k = p + 1; k < fin; k++) if (estChiffre(s[k])) chiffres += s[k];
-    if (chiffres.length < 8 || chiffres.length > 15) continue;
-    return { debut: p, fin, valeur: "+" + chiffres };
+    if (candidat) return candidat;
   }
   return null;
 }

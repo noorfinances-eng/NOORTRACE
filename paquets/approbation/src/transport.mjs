@@ -27,6 +27,7 @@ import { ErreurJson } from "@noortrace/noyau";
 import { lireJsonStrict, jcsIntegral } from "./json.mjs";
 import { ErreurService } from "./erreurs.mjs";
 import { METHODES_NOYAU, METHODES_CONSOLE } from "./service.mjs";
+import { CHEMIN_PRISE_MAX_OCTETS, cheminPriseTropLong } from "./bornes.mjs";
 
 /** Compare deux jetons en temps constant. */
 export function jetonsEgaux(a, b) {
@@ -149,9 +150,19 @@ export class Ecoute {
     throw new ErreurService("requete_invalide", {}, "methode hors du canal de la console");
   }
 
-  /** Démarre l'écoute ; rend l'adresse (port réel en TCP). */
+  /**
+   * Démarre l'écoute ; rend l'adresse (port réel en TCP). Un chemin de prise
+   * de plus de `CHEMIN_PRISE_MAX_OCTETS` octets est refusé avant toute liaison
+   * (erreur de code `chemin_prise_trop_long` ; EX-12.2, complément du
+   * 2026-11-16) : Node.js le tronquerait et la prise serait créée sous un autre
+   * nom, souvent dans le répertoire parent.
+   */
   async demarrer() {
     const c = this.config;
+    if (cheminPriseTropLong(c.socket)) {
+      const n = Buffer.byteLength(c.socket, "utf8");
+      throw Object.assign(new Error(`chemin_prise_trop_long : ${n} octets, au plus ${CHEMIN_PRISE_MAX_OCTETS} (EX-12.2)`), { code: "chemin_prise_trop_long" });
+    }
     const gestion = (req, res) => {
       this.#traiter(req, res);
     };
@@ -190,14 +201,19 @@ export class Ecoute {
    * Crée la prise Unix dans un répertoire privé (0700) du répertoire de la
    * prise, lui pose `mode`, puis la renomme à son chemin : le chemin final
    * n'est jamais visible avec les droits que laisse le masque du processus
-   * entre l'écoute et le `chmod`. Si le chemin privé est trop long
-   * pour une prise, repli : écoute au chemin final sous un masque
+   * entre l'écoute et le `chmod`. Si le chemin privé dépasse
+   * `CHEMIN_PRISE_MAX_OCTETS` octets (complément du 2026-11-16 : Node.js le
+   * tronquerait sans erreur, et la prise provisoire serait créée sous un
+   * autre nom dans le répertoire de la prise), ou si la liaison le refuse
+   * comme trop long, repli : écoute au chemin final sous un masque
    * restrictif, puis `chmod`.
    * @param {string} chemin
    * @param {number} mode
    * @returns {Promise<string>} chemin de la prise
    */
   async #ecouterPrisePrivee(chemin, mode) {
+    // `.p-XXXXXX/s` : longueur du chemin provisoire, connue avant de créer le répertoire privé
+    if (cheminPriseTropLong(path.join(path.dirname(chemin), ".p-XXXXXX", "s"))) return this.#ecouterSousMasque(chemin, mode);
     const prive = await fsp.mkdtemp(path.join(path.dirname(chemin), ".p-"));
     const provisoire = path.join(prive, "s");
     try {
@@ -208,17 +224,22 @@ export class Ecoute {
     } catch (e) {
       if (e?.code !== "ENAMETOOLONG") throw e;
       this.serveur.removeAllListeners("error");
-      const masque = process.umask(0o077);
-      try {
-        await new Promise((ok, ko) => this.serveur.once("error", ko).listen(chemin, ok));
-      } finally {
-        process.umask(masque);
-      }
-      await fsp.chmod(chemin, mode);
-      return chemin;
+      return await this.#ecouterSousMasque(chemin, mode);
     } finally {
       await fsp.rm(prive, { recursive: true, force: true });
     }
+  }
+
+  /** Écoute au chemin final sous le masque 077, puis pose `mode`. */
+  async #ecouterSousMasque(chemin, mode) {
+    const masque = process.umask(0o077);
+    try {
+      await new Promise((ok, ko) => this.serveur.once("error", ko).listen(chemin, ok));
+    } finally {
+      process.umask(masque);
+    }
+    await fsp.chmod(chemin, mode);
+    return chemin;
   }
 
   async arreter() {

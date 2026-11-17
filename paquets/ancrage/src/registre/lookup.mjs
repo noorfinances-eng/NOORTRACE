@@ -1,15 +1,16 @@
 // Lectures d'état par `eth_call` (CT-4 OP-9, §8.3 ; CT-5 EX-9.7) : `lookup`,
 // `isAnchored`, `anchorDigest` d'`AttestationRegistry` ; `recorderOf`,
 // `recorderByPubKey`, `isActiveRecorder` de `RecorderRegistry` ; `isKnown`,
-// `latestPeriodOf`, `getPeriod` de `PeriodRegistry`. Ces lectures ne sont
-// pas des preuves (CT-6 §11.1) : elles évitent une transaction qui
-// échouerait, et classent une empreinte déjà prise (`deja_fait`,
-// `empreinte_squattee`).
+// `latestPeriodOf`, `getPeriod` de `PeriodRegistry` ; et une lecture de
+// journaux, `inscriptionAilleurs` (OP-8, événements `RecorderRegistered`).
+// Ces lectures ne sont pas des preuves (CT-6 §11.1) : elles évitent une
+// transaction qui échouerait, et classent une empreinte déjà prise
+// (`deja_fait`, `empreinte_squattee`).
 
 import {
   decoderBool, decoderBytes32, decoderGetPeriod, decoderLookup, decoderRecorder, decoderUint,
   encoderAnchorDigest, encoderGetPeriod, encoderIsActiveRecorder, encoderIsAnchored, encoderIsKnown, encoderLatestPeriodOf,
-  encoderLookup, encoderPeriodDigest, encoderRecorderByPubKey, encoderRecorderOf,
+  encoderLookup, encoderPeriodDigest, encoderRecorderByPubKey, encoderRecorderOf, SUJETS,
 } from "./encodage.mjs";
 import { octetsVersHex } from "./octets.mjs";
 import { ErreurRpc } from "./rpc.mjs";
@@ -83,6 +84,81 @@ export async function recorderByPubKey({ rpc, contrat, orgId, clePublique, haute
 /** `RecorderRegistry.isActiveRecorder(orgId, chainKey)`. */
 export async function isActiveRecorder({ rpc, contrat, orgId, chainKey, hauteur, point }) {
   return decoder(decoderBool, await appelLecture(rpc, contrat, encoderIsActiveRecorder(orgId, chainKey), { hauteur, point }), "isActiveRecorder");
+}
+
+/** Plus grande tranche de blocs d'un `eth_getLogs` (CT-4 EX-5.11, borne du nœud). */
+export const TRANCHE_JOURNAUX = 16384n;
+
+/** Refus pour débit d'un nœud (noorcore : erreur `-32000`, message `rate limited`). */
+const REFUS_DEBIT = /\brate limited\b/i;
+/** Première pause après un refus pour débit, doublée à chaque refus (CT-3 EX-8.1, même règle). */
+export const PAUSE_DEBIT_MS = 250;
+/** Plafond d'une pause après un refus pour débit. */
+export const PAUSE_DEBIT_MAX_MS = 4000;
+/** Somme des pauses admises pour une même tranche ; au-delà, la lecture est impossible. */
+export const ATTENTE_DEBIT_MAX_MS = 30000;
+const pause = (ms) => new Promise((ok) => setTimeout(ok, ms));
+
+/**
+ * CT-4 OP-8 (complément du 2026-11-16 ; CT-5 EX-9.4 ; EX-8.22) : première
+ * inscription de la clé de chaîne `chainKey` sous une autre organisation que
+ * `orgId` au `RecorderRegistry` `contrat`, active ou révoquée, ou `null`.
+ * Même lecture que l'outil de référence : `eth_getLogs` des événements
+ * `RecorderRegistered` dont le deuxième sujet indexé (`topics[2]`) est cette
+ * clé de chaîne, du bloc `depuis` (bloc de déploiement du contrat, 0 à
+ * défaut) à la tête, en tranches de 16 384 blocs, sur le premier point qui
+ * répond à `eth_blockNumber` (la tête et les journaux sont lus sur le même
+ * nœud). Rend `{ org_id, block_number, transaction_hash }`. Une lecture
+ * impossible (point injoignable, erreur JSON-RPC, retour illisible) lève
+ * `ErreurLecture("noeud_injoignable")` : la vérification n'est jamais sautée.
+ *
+ * Refus pour débit : noorcore refuse un `eth_getLogs` par l'erreur `-32000`,
+ * message `rate limited`, quand on lui en enchaîne une dizaine d'affilée,
+ * ce que fait la lecture en tranches dès que le contrat est ancien (relevé
+ * sur le réseau de développement 2124, comme CT-3 EX-8.1). Ce refus ne dit
+ * rien des journaux : la tranche est redemandée, aux mêmes paramètres, après
+ * une pause de `PAUSE_DEBIT_MS` doublée à chaque refus et plafonnée à
+ * `PAUSE_DEBIT_MAX_MS`, tant que les pauses de la tranche ne dépassent pas
+ * `ATTENTE_DEBIT_MAX_MS` ; au-delà, `noeud_injoignable`. `attendre` (pause en
+ * millisecondes) est remplaçable par les essais.
+ */
+export async function inscriptionAilleurs({ rpc, contrat, depuis = 0, orgId, chainKey, attendre = pause }) {
+  const adresse = String(contrat).toLowerCase();
+  const sujet = "0x" + "00".repeat(12) + String(chainKey).slice(2).toLowerCase();
+  const organisation = String(orgId).toLowerCase();
+  const echec = (detail) => new ErreurLecture("noeud_injoignable", `eth_getLogs de RecorderRegistered : ${detail} ; l'inscription de ${chainKey} sous une autre organisation n'a pas pu être vérifiée (OP-8)`);
+  let point;
+  let tete;
+  try {
+    const r = await rpc.appelerPremier("eth_blockNumber", []);
+    if (r.erreur || typeof r.resultat !== "string" || !/^0x[0-9a-f]+$/i.test(r.resultat)) throw echec(r.erreur?.message ?? "eth_blockNumber illisible");
+    point = r.point;
+    tete = BigInt(r.resultat);
+    let de = BigInt(depuis ?? 0);
+    if (de < 0n) de = 0n;
+    for (; de <= tete; de += TRANCHE_JOURNAUX) {
+      const a = de + TRANCHE_JOURNAUX - 1n < tete ? de + TRANCHE_JOURNAUX - 1n : tete;
+      const q = (x) => "0x" + x.toString(16);
+      const params = [{ fromBlock: q(de), toBlock: q(a), address: adresse, topics: [SUJETS.RecorderRegistered, null, sujet] }];
+      let j = await rpc.appeler("eth_getLogs", params, { point });
+      for (let p = PAUSE_DEBIT_MS, cumul = 0; j.erreur && REFUS_DEBIT.test(String(j.erreur.message)) && cumul + p <= ATTENTE_DEBIT_MAX_MS; cumul += p, p = Math.min(2 * p, PAUSE_DEBIT_MAX_MS)) {
+        await attendre(p);
+        j = await rpc.appeler("eth_getLogs", params, { point });
+      }
+      if (j.erreur) throw echec(j.erreur.message ?? "erreur JSON-RPC");
+      if (!Array.isArray(j.resultat)) throw echec("retour illisible");
+      for (const l of j.resultat) {
+        const t = Array.isArray(l?.topics) ? l.topics.map((x) => String(x).toLowerCase()) : [];
+        if (String(l?.address).toLowerCase() !== adresse || t.length < 4 || t[0] !== SUJETS.RecorderRegistered || t[2] !== sujet) continue;
+        if (t[1] !== organisation) return { org_id: t[1], block_number: Number(BigInt(l.blockNumber)), transaction_hash: String(l.transactionHash).toLowerCase() };
+      }
+    }
+  } catch (e) {
+    if (e instanceof ErreurLecture) throw e;
+    if (e instanceof ErreurRpc) throw echec(e.message);
+    throw e;
+  }
+  return null;
 }
 
 /** `PeriodRegistry.isKnown(orgId, periodHash)`. */

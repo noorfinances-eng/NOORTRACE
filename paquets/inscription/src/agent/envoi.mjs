@@ -76,20 +76,38 @@ export async function retention(ctx, captures, index) {
 }
 
 /**
+ * Nonce à signer d'EX-8.14 de CT-4 pour `from` : valeur des points recoupée,
+ * puis plancher des inclusions écrites dans `ctx.captures` ; arrête la
+ * commande (`refuse`, `nonce_incoherent`) quand rien ne doit être signé.
+ */
+export async function nonceASigner(ctx, sortie, from) {
+  // CT-4 EX-8.14 : valeur des points recoupée (plus grande valeur rendue par au moins deux points quand il y en a
+  // plusieurs), puis, complément du 2026-11-17, jamais en dessous du plancher des envois de l'expéditeur dont
+  // l'inclusion est écrite. Le reçu est pris au premier point qui le rend ; les autres, en retard d'un bloc, peuvent
+  // rendre le nonce qui vient d'être consommé.
+  const lu = await lireNonce(ctx.rpc, from);
+  const lecture = lu.incoherent ? lu : R.retenirNonce(lu.nonce, R.plancherNonce(ctx.captures, from));
+  if (lecture.incoherent) sortie.arreter("refuse", "nonce_incoherent", null, `${lecture.incoherent} ; transitoire : relancer quand les points concordent (CT-4 EX-8.14)`);
+  return lecture.nonce;
+}
+
+/**
  * Envoie une transaction et la conduit jusqu'à sa capture. Paramètres :
  * `sortie` ; `tenue` et `etape` (le dossier et l'étape suivie, ou null) ;
  * `cle` (signataire) ; `objet` (`appel`, `deploiement`,
  * `approvisionnement`, RG-15) ; `to`, `donnees` (hexadécimal), `value`,
  * `provision` ; `role` et `contrat` de la capture ; `contratCree` (adresse
  * créée par un déploiement, écrite dans `contract` de l'étape) ; `op11(recu)`
- * → `{ ok, detail }` ; `op12(hauteurHex)` → `{ ok, detail }`.
+ * → `{ ok, detail }` ; `op12(hauteurHex)` → `{ ok, detail }` ; `nonce`
+ * (facultatif) : nonce déjà retenu par `nonceASigner`.
  * Rend `{ envoi, transactionHash, blockNumber, blockHash, gasUsed, coutWei,
  * capture, retention }` ou lève `FinCommande`.
  */
 export async function envoyer(ctx, sortie, p) {
   const { instance, rpc } = ctx;
   const from = p.cle.adresse();
-  const n = await lireNonce(rpc, from);
+  // `p.nonce` : nonce déjà retenu par `nonceASigner` (déploiement : l'adresse CREATE en dépend) ; sinon retenu ici.
+  const n = p.nonce ?? (await nonceASigner(ctx, sortie, from));
   const value = p.value ?? 0n;
   const tx = R.construireTransaction({
     chain_id: instance.evmChainId, nonce: n, max_priority_fee_per_gas: R.FRAIS_NOMINAUX, max_fee_per_gas: R.FRAIS_NOMINAUX,

@@ -1,5 +1,5 @@
 // Familles de vecteurs (CT-5 annexe A.4) : constantes, requetes, reponses,
-// ots, planification, reprise, cout. Chaque valeur attendue est recalculée
+// ots, planification, reprise, cout, completude, configuration. Chaque valeur attendue est recalculée
 // et confrontée ; une disposition non reconnue est une erreur.
 
 package main
@@ -26,7 +26,67 @@ func VerifierVecteurs(racine string) *Rapport {
 	familleReprise(rap, racine)
 	familleCout(rap, racine)
 	familleCompletude(rap, racine)
+	familleConfiguration(rap, racine)
 	return rap
+}
+
+// --- configuration (AN-1, EX-4.9 ; complément du 2026-11-16) ---------------------------
+
+// familleConfiguration vérifie chaque cas de configuration/configuration.json
+// ($defs/cas_configuration) : le document ancrage-v0 est validé contre le
+// schéma spec/schemas/ancrage-v0.schema.json (relu à côté des vecteurs),
+// puis les règles 1 à 9 d'EX-4.9 sont appliquées pour le profil et la valeur
+// checkpoint_interval_s de l'enregistreur ; le verdict et la liste triée des
+// règles violées sont confrontés à l'attendu.
+func familleConfiguration(rap *Rapport, racine string) {
+	const fam = "configuration"
+	doc := lireJSON(rap, filepath.Join(racine, "configuration", "configuration.json"))
+	if doc == nil {
+		return
+	}
+	if f, _ := chaineDe(doc, "family"); f != fam {
+		rap.Erreur("configuration.json : famille %q, configuration attendue", f)
+		return
+	}
+	cheminSchema := filepath.Join(racine, "..", "..", "schemas", "ancrage-v0.schema.json")
+	octets := lireOctets(rap, cheminSchema)
+	if octets == nil {
+		return
+	}
+	sch, err := ChargerSchema(octets)
+	if err != nil {
+		rap.Erreur("%s : %s", cheminSchema, err.Error())
+		return
+	}
+	for _, c := range casDe(rap, "configuration.json", doc) {
+		id := chaineOu(c, "?", "id")
+		in := c.Get("input")
+		if err := clesExactes(in, "configuration/"+id+" : input", "document", "profil", "checkpoint_interval_s"); err != nil {
+			rap.Erreur("%s", err.Error())
+			continue
+		}
+		profil := chaineOu(in, "", "profil")
+		if !dans(profil, []string{"developpement", "test", "production"}) {
+			rap.Erreur("configuration/%s : profil %q inconnu", id, profil)
+			continue
+		}
+		var ck *int64
+		if !estNul(in, "checkpoint_interval_s") {
+			n, ok := entierDe(in, "checkpoint_interval_s")
+			if !ok {
+				rap.Erreur("configuration/%s : checkpoint_interval_s entier ou null attendu", id)
+				continue
+			}
+			ck = &n
+		}
+		v := VerifierConfiguration(sch, in.Get("document"), profil, ck)
+		for _, r := range v.Regles {
+			rap.Detail("configuration/%s : règle %s : %s", id, r, strings.Join(v.Raisons[r], " ; "))
+		}
+		attendu := c.Get("expected")
+		rap.Comparer(fam, id, "AN-1 : valide", canon(attendu.Get("valide")), canon(vBool(v.Valide)))
+		rap.Comparer(fam, id, "AN-1 : règles violées (EX-4.9)", canon(attendu.Get("regles")), canon(vChaines(v.Regles)))
+	}
 }
 
 // --- completude (AN-61, EX-10.7) ------------------------------------------------------------

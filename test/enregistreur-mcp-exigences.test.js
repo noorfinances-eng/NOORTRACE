@@ -488,6 +488,31 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
       await b.fermer();
     });
 
+    it("EX-4.23 (complément du 2026-11-16) : la connexion du connecteur stdio fermée vaut annulation de l'appel en vol : annulation relayée au serveur ; événement -31012", async function () {
+      const b = await banc({ repondre: () => null });
+      const p = b.frontal.recevoir(b.session, appel("a-2", "demo__slow.op", {}));
+      for (let k = 0; k < 500 && !b.ecrit.some((l) => JSON.parse(l).method === "tools/call"); k++) await laisserTourner(10);
+      b.frontal.fermerSession(b.session);
+      expect(await Promise.race([p, new Promise((r) => setTimeout(() => r("toujours_en_vol"), 2000))])).to.equal(null);
+      const annul = JSON.parse(b.ecrit.at(-1));
+      expect(annul).to.deep.include({ method: "notifications/cancelled" });
+      expect(annul.params.requestId).to.match(/^e-[0-9]{12}$/);
+      const [e] = await b.evenements();
+      expect(e.execution.is_error).to.equal(true);
+      expect(Buffer.from(await b.coeur.pieces.lire(e.execution.result.sha256)).toString()).to.equal('{"noortrace_jsonrpc_error":{"code":-31012,"message":"noortrace: appel annule par l\'hote"}}');
+      await b.fermer();
+    });
+
+    it("EX-4.23 : la fin d'une session HTTP héritée n'annule pas l'appel en vol (la déconnexion n'est pas une annulation)", async function () {
+      const b = await banc({ repondre: (m) => (m.params.name === "slow.op" ? null : undefined), transport: "http" });
+      const p = b.frontal.recevoir(b.session, appel("a-3", "demo__slow.op", {}));
+      for (let k = 0; k < 500 && !b.ecrit.some((l) => JSON.parse(l).method === "tools/call"); k++) await laisserTourner(10);
+      b.frontal.fermerSession(b.session);
+      expect(await Promise.race([p, new Promise((r) => setTimeout(() => r("toujours_en_vol"), 300))])).to.equal("toujours_en_vol");
+      expect(b.ecrit.map((l) => JSON.parse(l).method)).to.not.include("notifications/cancelled");
+      await b.fermer();
+    });
+
     it("EX-4.24 : l'enregistreur n'émet que les codes de la table de 4.4, les codes JSON-RPC standard et -32020 à -32022", function () {
       for (const c of [-31010, -31011, -31012, -31013, -31014, -31016, -31017, -32700, -32600, -32601, -32602, -32603, -32020, -32022]) expect(() => objetErreur(c)).to.not.throw();
       for (const c of [-31015, -32000, -32001, -32002, -32042, -32050, 404, 500]) expect(() => objetErreur(c), String(c)).to.throw(RangeError);

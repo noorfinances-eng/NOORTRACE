@@ -753,8 +753,11 @@ describe("ancrage, planificateur : conduites hors traces (EX-8.3 à EX-8.11, EX-
     const c = configReference();
     c.registry.checkpoints = "tous";
     const periode = `ancre_registre_periode:${CLOTURE.period_hash}`;
-    // Premier point de l'heure suivante, produit pendant la reprise de l'ancre de la période.
-    const K5 = { org_id: ORG, journal_id: JOURNAL, period_start: PERIODE + 3600, tree_size: 1, checkpoint_hash: "0x" + "5a".repeat(32), checkpoint_ts: "2026-11-03T14:00:02.000Z" };
+    // Point de la période close, admis tard pendant la reprise de l'ancre de la période. CT-5 EX-9.4 (complément du
+    // 2026-11-16, une ancre de période qui attend retient sa clé) : le premier point de l'heure suivante, que cet essai
+    // admettait auparavant, est retenu par l'ancre de la période en reprise et ne part plus avant elle
+    // (test/ancrage-cle-retenue.test.js) ; l'ancre en vol est donc ici celle d'un point de la même période.
+    const K5 = { org_id: ORG, journal_id: JOURNAL, period_start: PERIODE, tree_size: 6, checkpoint_hash: "0x" + "5a".repeat(32), checkpoint_ts: "2026-11-03T13:59:30.000Z" };
     const point = `ancre_registre_point:${K5.checkpoint_hash}`;
     const r = scenario(c, [
       e("2026-11-03T13:40:00.000Z", "demarrage"),

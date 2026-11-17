@@ -477,7 +477,7 @@
       }
     },
     "type_operation": {
-      "description": "Opérations de l'annuaire : les méthodes d'EX-13.15 et d'EX-13.17, et changer_administrateurs, recopie d'un nouveau réglage administrators de la configuration du service (EX-13.37).",
+      "description": "Opérations de l'annuaire : les méthodes d'EX-13.15 et d'EX-13.17, changer_administrateurs, recopie d'un nouveau réglage administrators de la configuration du service (EX-13.37), et expirer, opération interne du service qui retire une entrée jamais validée (EX-13.17 ; complément du 2026-11-16).",
       "enum": [
         "inscrire",
         "valider",
@@ -486,11 +486,12 @@
         "reactiver",
         "lier_demandeur",
         "delier_demandeur",
-        "changer_administrateurs"
+        "changer_administrateurs",
+        "expirer"
       ]
     },
     "operation": {
-      "description": "Opération acceptée (CT-3 EX-13.17, EX-13.37) : by est l'identité de session qui l'a faite, ou « configuration » pour changer_administrateurs ; entry est l'entrée visée, nulle pour changer_administrateurs ; address pour inscrire, valider et revoquer ; launched_by pour lier_demandeur et delier_demandeur ; reason pour revoquer, desactiver et reactiver ; administrators, pour changer_administrateurs seulement, la liste avant (before) et après (after) la recopie du réglage, null pour toute autre opération.",
+      "description": "Opération acceptée (CT-3 EX-13.17, EX-13.37) : by est l'identité de session qui l'a faite, « configuration » pour changer_administrateurs, ou « service » pour expirer ; entry est l'entrée visée, nulle pour changer_administrateurs ; address pour inscrire, valider et revoquer ; launched_by pour lier_demandeur et delier_demandeur ; reason pour revoquer, desactiver et reactiver ; administrators, pour changer_administrateurs seulement, la liste avant (before) et après (after) la recopie du réglage, null pour toute autre opération. Complément du 2026-11-16 (décision du porteur) : expirer, opération interne du service, retire une entrée dont aucune adresse n'a jamais été validée, registration_entry_ttl_ms après sa création (EX-13.10, point 5 ; EX-13.17) ; elle porte by « service », l'entrée retirée, et address, launched_by, reason et administrators nuls.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -523,6 +524,9 @@
             },
             {
               "const": "configuration"
+            },
+            {
+              "const": "service"
             }
           ]
         },
@@ -704,15 +708,46 @@
             }
           },
           "else": {
-            "properties": {
-              "by": {
-                "$ref": "#/$defs/identite_session"
-              },
-              "entry": {
-                "$ref": "#/$defs/identifiant_entree"
-              },
-              "administrators": {
-                "type": "null"
+            "if": {
+              "properties": {
+                "op": {
+                  "const": "expirer"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "by": {
+                  "const": "service"
+                },
+                "entry": {
+                  "$ref": "#/$defs/identifiant_entree"
+                },
+                "address": {
+                  "type": "null"
+                },
+                "launched_by": {
+                  "type": "null"
+                },
+                "reason": {
+                  "type": "null"
+                },
+                "administrators": {
+                  "type": "null"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "by": {
+                  "$ref": "#/$defs/identite_session"
+                },
+                "entry": {
+                  "$ref": "#/$defs/identifiant_entree"
+                },
+                "administrators": {
+                  "type": "null"
+                }
               }
             }
           }
@@ -761,7 +796,7 @@
       }
     },
     "defi": {
-      "description": "Défi d'inscription tiré par le service (réponse de preparer_inscription, CT-3 12.9) : champs et état d'usage.",
+      "description": "Défi d'inscription tiré par le service (réponse de preparer_inscription, CT-3 12.9) : champs et état d'usage. used vrai : défi marqué présenté par la vérification d'une inscription (EX-13.15, pas 4) ; complément du 2026-11-16 : le service retire un défi présenté, et ne tient donc que des défis à used faux (EX-13.13).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -993,6 +1028,19 @@
         }
       }
     },
+    "requete_expirer": {
+      "description": "Requête de l'opération interne expirer (CT-3 EX-13.17, « Expiration » ; complément du 2026-11-16, décision du porteur) : un seul membre, entry, identifiant de l'entrée à retirer, sans identité de session ; une autre forme est refusée (requete_invalide). expirer n'est la méthode d'aucun canal : cette forme est celle de la requête d'un pas expirer d'une trace (trace_annuaire).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry"
+      ],
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        }
+      }
+    },
     "fichier_inscriptions": {
       "description": "Vecteurs annuaire/inscriptions.json : vérification d'une inscription par le service, dans l'ordre d'EX-13.15 (AN-3 à AN-5, AN-7).",
       "type": "object",
@@ -1104,7 +1152,7 @@
       }
     },
     "trace_annuaire": {
-      "description": "Vecteurs annuaire/traces/<nom>.json : suite d'opérations sur un annuaire, chacune avec son sort et l'état résumé après elle (AN-6, AN-7).",
+      "description": "Vecteurs annuaire/traces/<nom>.json : suite d'opérations sur un annuaire, chacune avec son sort et l'état résumé après elle (AN-6, AN-7). Un pas expirer (complément du 2026-11-16) a pour requête { entry }, sans session, et la durée de vie registration_entry_ttl_ms par défaut, 2 592 000 000 (A.10) ; une expiration acceptée n'a pas de réponse (response null).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -1158,7 +1206,8 @@
                   "desactiver",
                   "reactiver",
                   "lier_demandeur",
-                  "delier_demandeur"
+                  "delier_demandeur",
+                  "expirer"
                 ]
               },
               "at": {

@@ -26,6 +26,7 @@ import {
 import { cloner, comparerChaines, egaliteJson, jcsIntegral } from "./json.mjs";
 import { infoCanal, membresAjoutes, reponseTickets, vueTicket } from "./vues.mjs";
 import { SuiviPlafond } from "./notifications.mjs";
+import { DEFAUTS } from "./configuration.mjs";
 
 const HEX32 = /^0x[0-9a-f]{64}$/;
 const objet = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -473,6 +474,7 @@ export class ServiceApprobation {
   console(methode, corps) {
     return this.#executer(async () => {
       if (this.arrete) throw new ErreurService("requete_invalide", {}, "service arrete");
+      await this.#expirerEntrees();
       const def = REQUETES_CONSOLE[methode];
       if (!def) throw invalide("methode hors du canal de la console");
       if (!registreSchemas().estValide(`${def[0]}#/$defs/${def[1]}`, corps)) throw invalide(`corps de ${methode}`);
@@ -589,6 +591,38 @@ export class ServiceApprobation {
       });
     }
     return r.response;
+  }
+
+  /**
+   * Expiration des entrées jamais validées (CT-3 10.3, EX-13.10 point 5,
+   * EX-13.17 « Expiration ») : avant de traiter chaque requête du canal de la
+   * console, chaque entrée dont aucune adresse n'a jamais été validée et dont
+   * l'échéance `created_at + registration_entry_ttl_ms` est atteinte est
+   * retirée par l'opération `expirer`, une par entrée, à l'instant de
+   * l'horloge du service. L'annuaire est persisté avec fsync avant que la
+   * requête soit traitée (EX-12.17) et n'est adopté que durable ; chaque
+   * opération est consignée et notifiée (`operation_annuaire`, EX-13.40), à
+   * l'entrée retirée.
+   */
+  async #expirerEntrees() {
+    const at = ecrireHorodatage(this.#maintenant());
+    const r = this.annuaire.calculerExpiration(at, this.config.registration_entry_ttl_ms ?? DEFAUTS.registration_entry_ttl_ms);
+    if (r.expirees.length === 0) return;
+    const etatAvant = this.annuaire.sauvegarde();
+    this.annuaire.adopter({ annuaire: r.annuaire, persiste: true });
+    try {
+      await this.#persister({ annuaire: r.annuaire, defis: this.annuaire.defis });
+    } catch (e) {
+      this.annuaire.restaurer(etatAvant);
+      throw e;
+    }
+    for (const op of r.annuaire.operations.slice(-r.expirees.length)) {
+      this.supervision.consigner("operation_annuaire", { methode: "expirer", entry: op.entry, revision: op.seq });
+      this.#notifier("operation_annuaire", {
+        entries: [op.entry], roles: [], ticket: null,
+        details: { op: "expirer", entry: op.entry, address: null, revision: op.seq, at: op.at, by_self: false },
+      });
+    }
   }
 
   // -------------------------------------------------------------- notifications (13.19)

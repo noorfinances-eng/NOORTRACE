@@ -22,6 +22,7 @@ import { cadenceAdmise } from "./points.mjs";
 import { estPointeur } from "./effets.mjs";
 import { resoudreSecret, ErreurSecret } from "./secrets.mjs";
 import { analyserDsn } from "./ha/pg-protocole.mjs";
+import { regleCheminPrise } from "./bornes.mjs";
 
 /**
  * Longueur minimale, en octets après décodage, d'un jeton statique
@@ -182,6 +183,19 @@ export function reglesHorsSchema(c) {
   }
   if (c.signer.rotation.next_key_id !== null && c.signer.rotation.next_key_id === c.signer.key_id) {
     err("/signer/rotation/next_key_id", "identique à signer.key_id", c.signer.rotation.next_key_id);
+  }
+
+  // Chemins de prise Unix (EX-18.1, EX-6.10 ; complément du 2026-11-16) : au
+  // plus CHEMIN_PRISE_MAX_OCTETS octets, membre actif ou non. Node.js tronque
+  // un chemin plus long et ferait écouter ou joindre une autre prise.
+  for (const [pointeur, chemin] of [
+    ["/mcp/socket", c.mcp?.socket],
+    ["/sdk/socket", c.sdk?.socket],
+    ["/model/mirror/socket", c.model?.mirror?.socket],
+    ["/policy/approval/service/socket", c.policy?.approval?.service?.socket],
+  ]) {
+    const regle = regleCheminPrise(chemin);
+    if (regle) err(pointeur, regle, chemin);
   }
 
   // Alias de serveurs (EX-4.9, EX-4.10).

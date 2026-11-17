@@ -45,7 +45,7 @@ export { ClientRpc, ErreurRpc, transportHttp, lireReponseRpc, clientSurPoint, TA
 
 export {
   ErreurLecture, appelLecture, lookup, isAnchored, anchorDigestContrat, periodDigestContrat, recorderOf, recorderByPubKey,
-  isActiveRecorder, isKnown, latestPeriodOf, getPeriod, classerEmpreinte,
+  isActiveRecorder, isKnown, latestPeriodOf, getPeriod, classerEmpreinte, inscriptionAilleurs, TRANCHE_JOURNAUX,
 } from "./lookup.mjs";
 
 export {
@@ -53,7 +53,9 @@ export {
   verifierCapture, capturer, obtenirCertificat, ecrireExclusif, synchroniserRepertoire, serialiserIndex,
 } from "./capture.mjs";
 
-export { Envoyeur, DELAIS_DEFAUT, lireEnvois, envoisSansIssue, envoisSansIssueParHash, nomEnvoi, nomIssue } from "./envoi.mjs";
+export {
+  Envoyeur, DELAIS_DEFAUT, lireEnvois, envoisSansIssue, envoisSansIssueParHash, plancherNonce, plancherNonceParHash, recouperNonce, retenirNonce, nomEnvoi, nomIssue,
+} from "./envoi.mjs";
 
 export {
   ROLES_EXPORTES, BORNES_EXPORT, lireCapture, roleEntree, entreeRegistre, exporterPartiesRegistre, choisirCaptures,

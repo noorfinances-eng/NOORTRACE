@@ -1,0 +1,120 @@
+{
+  "version": 0,
+  "org": "assureur-demo",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "console_origin": "https://console.assureur-demo.example",
+  "registration_ttl_ms": 600000,
+  "administrators": [
+    "oidc https://idp.assureur-demo.example admin-1"
+  ],
+  "revision": 5,
+  "updated_at": "2026-11-31T09:10:00.000Z",
+  "entries": [
+    {
+      "id": "apb-0001",
+      "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+      "external_id": null,
+      "display_name": null,
+      "active": false,
+      "requester_identities": [],
+      "created_at": "2026-11-10T08:00:30.000Z",
+      "addresses": [
+        {
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "state": "revoquee",
+          "proof": {
+            "message": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example approbateur-1\nAdresse: 0x70997970c51812dc3a010c7d01b50e0d17dc79c8\nEmis le: 2026-11-10T08:00:00.000Z\nExpire le: 2026-11-10T08:10:00.000Z\nNonce: e53662ca9aea02341aab3b86c84cd691",
+            "signature": "0x0d213fd0b1074eda5168a35568086aa9b6e6fa9ec2b7d908cf20ccd6653de6cf3e2b6b071c9b965af180b043b307ba9e0d293b2a52f5b56d5b251c209491c3fa1c",
+            "nonce": "e53662ca9aea02341aab3b86c84cd691",
+            "issued_at": "2026-11-10T08:00:00.000Z",
+            "expires_at": "2026-11-10T08:10:00.000Z",
+            "received_at": "2026-11-10T08:00:30.000Z"
+          },
+          "validated_at": "2026-11-10T08:05:00.000Z",
+          "validated_by": "oidc https://idp.assureur-demo.example admin-1",
+          "revoked_at": "2026-11-31T09:05:00.000Z",
+          "revoked_by": "oidc https://idp.assureur-demo.example admin-1",
+          "revocation_cause": "remplacee",
+          "revocation_reason": null,
+          "replaced_by": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+        },
+        {
+          "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "state": "revoquee",
+          "proof": {
+            "message": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example approbateur-1\nAdresse: 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc\nEmis le: 2026-11-10T09:00:00.000Z\nExpire le: 2026-11-10T09:10:00.000Z\nNonce: 3f561755d60e91cc293601d3901f038a",
+            "signature": "0x2b6d025b3ffa993a4c57844ac083a13e010d0b512d8a7a299dbc8ead4c37ffa55b3b0b01bd0d511249444f10358da81e781a2a6c4f4ee81d4b4c6db2d1d319501c",
+            "nonce": "3f561755d60e91cc293601d3901f038a",
+            "issued_at": "2026-11-10T09:00:00.000Z",
+            "expires_at": "2026-11-10T09:10:00.000Z",
+            "received_at": "2026-11-10T09:00:30.000Z"
+          },
+          "validated_at": "2026-11-31T09:05:00.000Z",
+          "validated_by": "oidc https://idp.assureur-demo.example admin-1",
+          "revoked_at": "2026-11-31T09:10:00.000Z",
+          "revoked_by": "oidc https://idp.assureur-demo.example admin-1",
+          "revocation_cause": "desactivation",
+          "revocation_reason": null,
+          "replaced_by": null
+        }
+      ]
+    }
+  ],
+  "operations": [
+    {
+      "seq": 1,
+      "at": "2026-11-10T08:00:30.000Z",
+      "op": "inscrire",
+      "by": "oidc https://idp.assureur-demo.example approbateur-1",
+      "entry": "apb-0001",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "launched_by": null,
+      "reason": null,
+      "administrators": null
+    },
+    {
+      "seq": 2,
+      "at": "2026-11-10T08:05:00.000Z",
+      "op": "valider",
+      "by": "oidc https://idp.assureur-demo.example admin-1",
+      "entry": "apb-0001",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "launched_by": null,
+      "reason": null,
+      "administrators": null
+    },
+    {
+      "seq": 3,
+      "at": "2026-11-10T09:00:30.000Z",
+      "op": "inscrire",
+      "by": "oidc https://idp.assureur-demo.example approbateur-1",
+      "entry": "apb-0001",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "launched_by": null,
+      "reason": null,
+      "administrators": null
+    },
+    {
+      "seq": 4,
+      "at": "2026-11-31T09:05:00.000Z",
+      "op": "valider",
+      "by": "oidc https://idp.assureur-demo.example admin-1",
+      "entry": "apb-0001",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "launched_by": null,
+      "reason": null,
+      "administrators": null
+    },
+    {
+      "seq": 5,
+      "at": "2026-11-31T09:10:00.000Z",
+      "op": "desactiver",
+      "by": "oidc https://idp.assureur-demo.example admin-1",
+      "entry": "apb-0001",
+      "address": null,
+      "launched_by": null,
+      "reason": null,
+      "administrators": null
+    }
+  ]
+}

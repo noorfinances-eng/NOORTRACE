@@ -153,6 +153,12 @@
       "minimum": 60000,
       "maximum": 3600000
     },
+    "registration_entry_ttl_ms": {
+      "description": "Complément du 2026-11-16 (décision du porteur) : durée de vie d'une entrée de l'annuaire dont aucune adresse n'a jamais été validée, comptée depuis sa création ; à l'échéance, le service la retire par l'opération expirer (CT-3 EX-13.10, point 5 ; EX-13.17) ; défaut 2 592 000 000 (30 jours).",
+      "type": "integer",
+      "minimum": 86400000,
+      "maximum": 31536000000
+    },
     "rpc": {
       "description": "Point RPC de la chaîne du registre, pour la lecture du jeu (EX-8.1), ou null (défaut). En production, il DOIT être déclaré, validator client ou partenaire (règle rpc_non_declare, EX-10.12).",
       "oneOf": [
@@ -958,7 +964,7 @@
       }
     },
     "details_operation_annuaire": {
-      "description": "details de operation_annuaire (EX-13.40) : opération, entrée visée, adresse ou null, revision après l'opération, instant, et by_self vrai si l'opération vient de la session de l'entrée.",
+      "description": "details de operation_annuaire (EX-13.40) : opération, entrée visée, adresse ou null, revision après l'opération, instant, et by_self vrai si l'opération vient de la session de l'entrée (faux pour expirer, opération du service ; complément du 2026-11-16).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -978,7 +984,8 @@
             "desactiver",
             "reactiver",
             "lier_demandeur",
-            "delier_demandeur"
+            "delier_demandeur",
+            "expirer"
           ]
         },
         "entry": {
@@ -1022,7 +1029,7 @@
       }
     },
     "rapport_validation": {
-      "description": "Sortie de noortrace-approbation valider-configuration (EX-10.12) : une ligne JSON ; errors triées par pointer puis par code, vide si et seulement si valide. Chaque erreur a les membres code et pointer, comme les erreurs de politique d'EX-4.2. Révision 0.6 de CT-3 : origine_port_par_defaut (EX-10.12) ; reference_illisible, jetons_egaux entre deux valeurs et ecoute_impossible, que seul le démarrage décèle et que la commande de validation ne rend jamais (EX-10.14). Révision 0.8 de CT-3 : canaux_meme_autorite_sans_jeton, même autorité de clients (tls.client_ca) sur les écoutes du noyau et de la console sans jeton qui les distingue (EX-10.12, EX-12.4).",
+      "description": "Sortie de noortrace-approbation valider-configuration (EX-10.12) : une ligne JSON ; errors triées par pointer puis par code, vide si et seulement si valide. Chaque erreur a les membres code et pointer, comme les erreurs de politique d'EX-4.2. Révision 0.6 de CT-3 : origine_port_par_defaut (EX-10.12) ; reference_illisible, jetons_egaux entre deux valeurs et ecoute_impossible, que seul le démarrage décèle et que la commande de validation ne rend jamais (EX-10.14). Révision 0.8 de CT-3 : canaux_meme_autorite_sans_jeton, même autorité de clients (tls.client_ca) sur les écoutes du noyau et de la console sans jeton qui les distingue (EX-10.12, EX-12.4). Complément du 2026-11-16 : chemin_prise_trop_long, socket du noyau ou de la console de plus de 103 octets UTF-8, au pointeur du membre (EX-10.12, EX-12.2).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -1057,6 +1064,7 @@
                   "escalade_non_croissante",
                   "webhook_http",
                   "origine_port_par_defaut",
+                  "chemin_prise_trop_long",
                   "reference_illisible",
                   "ecoute_impossible"
                 ]

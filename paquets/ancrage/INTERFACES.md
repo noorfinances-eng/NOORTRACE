@@ -529,8 +529,10 @@ import {
   construireTransaction, signerTransaction, lireTransaction, verifierRG15, // CT-4 RG-15
   ClientRpc,                                   // JSON-RPC vers un ou plusieurs validateurs (EX-8.15 : mêmes octets à chacun)
   Envoyeur, lireEnvois, envoisSansIssue,       // CT-4 §8.6 : envoi-<hachage>.json, attente du reçu, renvoyer, remplacer, issue
+  recouperNonce, plancherNonce, plancherNonceParHash, retenirNonce, // CT-4 EX-8.14 : valeur des points, plancher des inclusions écrites (complément du 2026-11-17)
   capturer, verifierCapture, listerCaptures,   // CT-4 §9.4 : CP-1 à CP-6, index de capture
   lookup, recorderOf, recorderByPubKey, isKnown, latestPeriodOf, getPeriod, classerEmpreinte, // CT-4 OP-9, OP-10, OP-12
+  inscriptionAilleurs,                         // CT-4 OP-8 (complément du 2026-11-16) : clé de chaîne inscrite sous une autre organisation
   entreeRegistre, exporterPartiesRegistre, choisirCaptures, // EX-10.4 ; CT-4 §9.6
   DOC_TYPE_PERIODE, DOC_TYPE_POINT_DE_CONTROLE,
 } from "@noortrace/ancrage/registre";
@@ -538,23 +540,51 @@ import {
 
 Contrat :
 
-- `new Envoyeur({ rpc, repertoireEnvois, instance: { evmChainId, bftChainId, contrats, fees, jeux }, horloge, attendre, delais, journal })`.
+- `new Envoyeur({ rpc, repertoireEnvois, instance: { evmChainId, bftChainId, contrats, fees, jeux, deploiements? }, horloge, attendre, delais, journal })`
+  (`deploiements.recorder_registry.block_number` : bloc de déploiement du
+  `RecorderRegistry` en service, tiré du manifeste ; 0 à défaut).
   `ancrer({ orgId, journalId, objet, docType, cle, fingerprint?, clePublique?, requestId?, sansInscription? })`
   envoie `anchor` (EX-9.3) et rend `{ type: "inclusion_registre", data: { request_id, block_number, capture_sha256 }, outputs }`
   une fois le reçu obtenu **et la capture écrite** (AN-48), ou
   `{ type: "echec_registre", data: { request_id, code }, outputs }` (codes :
   `empreinte_squattee`, `noeud_injoignable`, `recu_absent`, `attente_nonce`,
   `transaction_refusee`, `transaction_annulee`, `deja_fait`,
-  `cle_chaine_non_inscrite`, `refus_<raison>`…). `objet` est le
+  `cle_chaine_non_inscrite`, `refus_<raison>`…). Le composant passe ces codes
+  au planificateur par `codePlanificateur` de `src/registre/classement.mjs`
+  (module interne, hors de l'export du paquet) : un code que la table de CT-5
+  EX-8.10 classe « refus définitif » devient `refus_<code>`, tout autre passe
+  tel quel (complément du 2026-11-16). `objet` est le
   `checkpointHash` ou le `periodHash` (l'empreinte est recalculée, AN-44) ;
-  `clePublique` (clé Ed25519 du point) sert AN-46 ; `requestId` est celui de
-  la file (`LISEZMOI.md`, lecture 1 du registre). Le nonce signé est le plus
-  grand `eth_getTransactionCount(expéditeur, "latest")` des points qui
-  répondent (CT-4 EX-8.14 ; un validateur en retard d'un bloc ne fait pas
-  signer un nonce déjà consommé). L'`Envoyeur` refuse un
+  `clePublique` (clé Ed25519 du point ; pour une période, celle du manifeste,
+  `recorder_key_id`, complément du 2026-11-16) sert AN-46 et CT-4 OP-9 ;
+  le composant la passe pour les deux ancres ; `requestId` est celui de
+  la file (`LISEZMOI.md`, lecture 1 du registre). Le nonce signé suit CT-4
+  EX-8.14 (précision et complément du 2026-11-17) : la valeur des points est
+  `eth_getTransactionCount(expéditeur, "latest")` lu sur chaque point, sa
+  valeur avec un seul point configuré, sinon la plus grande valeur rendue par
+  au moins deux points (`recouperNonce`) ; aucune valeur rendue par deux
+  points, ou un point au-delà de cette valeur + 1, et rien n'est signé
+  (`lecture_nonce_incoherent`) ; un point en retard ne bloque pas. Le nonce
+  retenu est ensuite le plus grand de cette valeur et du plancher `n + 1` des
+  envois de l'expéditeur dont l'inclusion est écrite (`plancherNonceParHash`
+  sur l'index en mémoire, relu du répertoire au démarrage ; `retenirNonce`) :
+  un validateur en retard d'un bloc après le reçu ne fait pas signer un
+  nonce déjà consommé, et un plancher au-delà de la valeur des points + 1 ne
+  fait rien signer (`lecture_nonce_incoherent`). L'`Envoyeur` refuse un
   second envoi tant que le premier est sans issue (OP-3, `attente_nonce`,
   `outputs.pending`) ; `renvoyer(transactionHash, { requestId })` et
   `remplacer(transactionHash, { cle, requestId })` appliquent CT-4 EX-8.16.
+- `recouperNonce(valeurs, nombrePoints)` (CT-4 EX-8.14) : `valeurs`, nonces
+  (`bigint`) rendus par les points qui ont répondu ; rend `{ nonce }`
+  (`null` sans valeur) ou `{ incoherent: message }`. L'agent d'inscription
+  (`paquets/inscription`) lit le nonce par cette même fonction.
+- `plancherNonce(repertoire, expediteur)` et
+  `plancherNonceParHash(parHash, expediteur)` (complément du 2026-11-17)
+  rendent `n + 1` (`bigint`) ou `null`, `n` étant le plus grand nonce des
+  envois de `expediteur` dont l'issue porte `block_number`, ou de l'original
+  `remplacee` que l'issue `ecartee` de son remplaçant désigne par `replaces` ;
+  `retenirNonce(lu, plancher)` rend `{ nonce }` (le plus grand des deux, le
+  plancher au plus `lu + 1`) ou `{ incoherent: message }`.
   Un reçu `0x1` sans le journal attendu ne clôt jamais l'envoi : relu sur
   chaque autre point, puis issue incertaine (`recu_incertain`, aucun fichier
   d'issue) et renvoi jusqu'à la capture ; un `deja_fait` sans capture relit
@@ -573,13 +603,34 @@ Contrat :
   envoi, opération, `evm_chain_id` et `contract` (= `recorder_registry`) de
   l'instance, OP-6 et OP-7 au seuil (`verifierDemande`), OP-8 (inscription :
   clé de chaîne ni active ni révoquée, `cle_revoquee`, `cle_deja_active`,
-  clé Ed25519 active ailleurs `cle_ed25519_active` ; révocation :
-  `registeredAt` lu égal à `registered_at`, `cle_inconnue`) ; une opération
+  clé Ed25519 active ailleurs `cle_ed25519_active` ; complément du
+  2026-11-16, CT-4 EX-8.22 : clé de chaîne inscrite sous aucune autre
+  organisation, active ou révoquée, `cle_chaine_autre_organisation`, avec
+  `outputs` `org_id`, `block_number`, `transaction_hash` de cette
+  inscription, et une lecture impossible des journaux `noeud_injoignable`,
+  sans envoi ; révocation : `registeredAt` lu égal à `registered_at`,
+  `cle_inconnue`) ; une opération
   déjà faite à l'identique rend `{ type: "deja_fait" }` sans envoi (ligne
   `registry_already_done`) ; sinon envoi, reçu, capture (rôles
   `inscription`, `revocation` : journaux `RecorderRegistered`,
   `RecorderRevoked`, décodés par `decoderJournal`) et le même résultat
   qu'`ancrer`.
+- `inscriptionAilleurs({ rpc, contrat, depuis, orgId, chainKey, attendre })` (CT-4
+  OP-8, complément du 2026-11-16) rend la première inscription de
+  `chainKey` sous une autre organisation que `orgId` (`{ org_id,
+  block_number, transaction_hash }`), active ou révoquée, ou `null` : la
+  lecture de l'outil de référence, `eth_getLogs` des événements
+  `RecorderRegistered` dont `topics[2]` est la clé de chaîne, du bloc
+  `depuis` à la tête, en tranches de 16 384 blocs (`TRANCHE_JOURNAUX`), sur
+  le premier point qui répond ; une lecture impossible lève
+  `ErreurLecture("noeud_injoignable")`. Un refus pour débit du nœud (erreur
+  `-32000`, message `rate limited`, que noorcore rend quand les tranches
+  s'enchaînent) ne dit rien des journaux : la tranche est redemandée aux
+  mêmes paramètres après une pause de 250 ms doublée à chaque refus et
+  plafonnée à 4 s, au plus 30 s de pause par tranche, puis
+  `noeud_injoignable` (`attendre`, la pause, est remplaçable par les essais).
+  L'`Envoyeur` (`inscrire`) et l'agent d'inscription (`paquets/inscription`,
+  `inscrire-cle`) l'emploient.
 - `capturer({ rpc, transactionHash, role, contrat, horloge, repertoire, instance, attendre, sending, attendu, point, recu })`
   applique CP-1 à CP-6 et écrit `bloc-<h>.json`, `recu-<hash>.json`,
   `certificat-<h>.json`, `capture-<h>-<index>-<rôle>.json` (noms exacts,
@@ -681,6 +732,13 @@ Contrat :
  `noortrace-tsa-interne servir` ouvre le compteur avec `epoque`.
   Limite nommée (CT-5 AN-31, risque RA-38) : clé de classe D en fichier,
   aucune commande de révocation, CRL non servie.
+- Complément du 2026-11-16 (CT-5 7.3) : ligne de commande stricte
+  (`COMMANDES`, `analyserArguments`, `src/arguments.mjs`) : chaque commande
+  n'admet que ses options, chacune au plus une fois, avec sa valeur quand
+  elle en prend une, et aucun argument ; `servir` prend `--repertoire` ou
+  `--cle` avec `--certificat`, jamais les deux, `--inclure-ac` avec
+  `--repertoire` seulement ; sinon usage et code 2, sans rien écrire ni
+  écouter.
 
 ## F. Assemblage : composant temps réel (`src/composant.mjs`), outil (`bin/noortrace-ancrage`), intégration à l'enregistreur
 
@@ -767,7 +825,15 @@ await composant.arreter({ attendre });
   relecture de tous les `file-*.ndjson` (`anchor_queue_truncated_line`,
   `file_perdue`), `demarrage` puis `stockage_relu` borné aux périodes closes
   sans leurs trois demandes finales et au dernier point de chaque période
-  ouverte (`anchoring_started`, `anchoring_queue_rebuilt`) ; T-10 différées
+  ouverte (`anchoring_started`, `anchoring_queue_rebuilt`) ; complément du
+  2026-11-16 (CT-5 EX-5.8, EX-8.12) : `demarrage` et chaque lot de
+  `stockage_relu` portent `acquisitions`, les enregistrements `obtenue` promus
+  et non révoqués d'`acquisitions.ndjson` des demandes de jeton visées (un
+  jeton `obtenue` de la file sans le sien est rouvert, une demande de jeton
+  recréée qui a le sien est créée `obtenue`, sans requête) ; un fichier
+  illisible les fait omettre (`anchoring_storage_unreadable`) ; au démarrage,
+  un `due_at` d'une demande `a_reprendre` au-delà de `retry.max_ms` est ramené à
+  cette borne (EX-4.13) ; T-10 différées
   reconstruites depuis `acquisitions.ndjson` (`acquisitions_ligne_illisible`
   une fois par fichier illisible par endroits) ; `remettrePoint`/`remettreCloture` : AN-3
   (refus consigné `anchor_admission_refused` et alerté, jamais ancré), puis
@@ -869,6 +935,13 @@ est le point d'entrée injectable.
 - Revue de sécurité interne de l'étape 8 : `configuration` exige
   `--profil` (usage, code 2, sans valeur par défaut : CT-5 EX-4.9) ; `acquisitions`
   ne compte « promu » qu'un enregistrement `promoted` d'issue `obtenue` (EX-5.10).
+- Complément du 2026-11-16 (CT-5 EX-8.13) : ligne de commande stricte
+  (`COMMANDES`, `analyserArguments`, `src/arguments.mjs`) : la commande en
+  tête, puis ses seules options, chacune au plus une fois, avec sa valeur
+  quand elle en prend une (absente, vide ou commençant par `--` : pas une
+  valeur), et ses arguments ; un drapeau ne prend jamais l'argument qui le
+  suit ; `fiche` prend `--prestataire` ou `--configuration` avec `--id`,
+  jamais les deux ; sinon usage et code 2.
 
 ### F.3 Intégration à l'enregistreur et exportateur
 
@@ -943,7 +1016,7 @@ de l'enregistreur). Ce que l'enregistreur fournit au composant, exactement :
   `remettreCloture` par `Ecrivain` (EX-12.27) ; `recharger()` à
   `noortrace-ctl reload` (après la politique ; un document invalide est
   consigné `config_reload_rejected`, l'ancien reste) ; `arreter()` après
-  `ecrivain.fermer()` ; `noortrace-ctl ancrage etat|metriques|retirer-qualification <id>`
+  `ecrivain.fermer()` ; `noortrace-ctl ancrage etat|metriques|retirer-qualification <id>|retablir-qualification <id>`
   par le canal de `ctl-demon.mjs` (SIGURG et fichier de demande).
 
 **Exportateur** (`src/exportateur.mjs`, EX-10.1 à EX-10.5, AN-50 à AN-53) :

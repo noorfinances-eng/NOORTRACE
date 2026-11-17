@@ -241,6 +241,8 @@ export async function demarrerService(p) {
     await console_?.arreter().catch(() => {});
     await etat?.arreter().catch(() => {});
     await service.arreter();
+    // chemin de prise refusé avant toute liaison (EX-12.2, complément du 2026-11-16) : le code de la validation, au pointeur du membre
+    if (e?.code === "chemin_prise_trop_long") throw Object.assign(new ErreurConfiguration([{ code: "chemin_prise_trop_long", pointer: `${pointeur}/socket` }]), { cause: e });
     throw Object.assign(new ErreurConfiguration([{ code: "ecoute_impossible", pointer: pointeur }]), { cause: e });
   }
   supervision.consigner("ecoute", { noyau: noyau.adresse, console: console_?.adresse ?? null, etat: etat?.adresse ?? null });

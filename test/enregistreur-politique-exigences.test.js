@@ -18,7 +18,7 @@ import {
   REGLE_EVALUATION_IMPOSSIBLE, analyserJsonIntegral, pieceTexte,
 } from "@noortrace/enregistreur";
 import { secretsDev, repertoireTemporaire } from "./fixtures/enregistreur-coeur/outils.mjs";
-import { ServiceSimule, monterBanc, attendre, texteSignal, configurationPolitique, politiqueApprobationTest } from "./fixtures/enregistreur-politique/outils.mjs";
+import { ServiceSimule, monterBanc, attendre, texteSignal, configurationPolitique, politiqueApprobationTest, ligneAppel, ligneListe } from "./fixtures/enregistreur-politique/outils.mjs";
 
 const PAIEMENT = Object.freeze({ claim_id: "2026-81044", amount: "9000.00", currency: "CHF", beneficiary_iban: "CH9300762011623852957" });
 const PAIEMENT_EUR = Object.freeze({ claim_id: "2026-81047", amount: "120.00", currency: "EUR", beneficiary_iban: "CH9300762011623852957" });
@@ -488,6 +488,26 @@ describe("enregistreur, moteur de politique : exigences (CT-2 §7.5, §14.2, §1
       await ticketOuvert(banc, ticket);
       await decider(banc, ticket);
       expect((await b.reponse).result.isError).to.equal(false);
+    });
+
+    it("EX-4.23 (complément du 2026-11-16) : la connexion du connecteur stdio fermée pendant la rétention annule la requête retenue ; l'approbation qui suit ne la relaie pas (held:false)", async function () {
+      const args = { ...PAIEMENT, amount: "7850.00" };
+      const s2 = banc.frontal.ouvrirSession({ hote: banc.config.mcp.hosts[0], identite: { peer_user: "agent-demo" }, transport: "stdio" });
+      await banc.frontal.recevoir(s2, ligneListe("liste-ferme"));
+      const avant = banc.lignes("approval_hold_cancelled").length;
+      const a = banc.frontal.recevoir(s2, ligneAppel("h-ferme", "demo__payments.create", args));
+      const ticket = await attendre(() => [...banc.frontal.retentions.entries()].find(([, r]) => r.ctx.session === s2)?.[0]);
+      await ticketOuvert(banc, ticket);
+      banc.frontal.fermerSession(s2);
+      const issue = await Promise.race([a, new Promise((r) => setTimeout(() => r("toujours_retenue"), 2000))]);
+      expect(issue).to.equal(null);
+      expect(banc.frontal.retentions.has(ticket)).to.equal(false);
+      expect(banc.lignes("approval_hold_cancelled").length).to.equal(avant + 1);
+      const acq = await decider(banc, ticket);
+      expect(acq).to.include({ result: "scelle", held: false });
+      await new Promise((r) => setTimeout(r, 200));
+      // Seul l'événement de la décision (outil réservé noortrace.approbation.decision) porte le ticket : aucun relais.
+      expect((await banc.evenements()).filter((e) => e.approval?.ticket === ticket && !e.execution.tool.startsWith("noortrace.")).map((e) => e.execution.tool)).to.deep.equal([]);
     });
 
     it("expiration par le noyau seul pendant la rétention (EX-9.4) : décision expire, refusee, signal expire, annonce expiration", async function () {

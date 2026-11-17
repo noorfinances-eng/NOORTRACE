@@ -91,7 +91,7 @@ export const TC_REPONSES = [
   {
     "key": "CT-4 §9.2",
     "delegated": "Taille du certificat et de la capture d'une transaction d'un bloc plein de 64 ancres : mesure TM-31 de CT-9 du 2026-11-02 (certificat 32 587 octets ; capture 109 479 octets, 123 761 avec son index) ; bloc plein qui mêle des clôtures non mesuré.",
-    "response": "TM-31 (§11, rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json`, ligne `b_cap_bloc_plein` ; index et certificat relevés dans `notes`) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
+    "response": "TM-31 (§11, rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json`, ligne `b_cap_bloc_plein` ; index et certificat relevés dans `notes`) ; bloc plein qui mêle des clôtures : TM-44 (§11, rapport de campagne `mesures/rapport-2026-11-13-capture-bloc-plein-clotures.json`)."
   },
   {
     "key": "CT-4 §B.1",
@@ -136,7 +136,7 @@ export const TC_REPONSES = [
   {
     "key": "CT-5 §9.3",
     "delegated": "Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
-    "response": "TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
+    "response": "TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (§11, rapport de campagne `mesures/rapport-2026-11-13-capture-bloc-plein-clotures.json`)."
   },
   {
     "key": "CT-5 §14",
@@ -251,7 +251,7 @@ export const TC_REPONSES = [
   {
     "key": "CT-7 §7.10",
     "delegated": "Tests des menaces de l'attestation MN-78 à MN-91, MN-98.",
-    "response": "TA-78 à TA-91 et TA-98 (§10.4) : tous exécutables sauf TA-88 (phase 2, étape 4, après PA-10)."
+    "response": "TA-78 à TA-91 et TA-98 (§10.4) : tous exécutables sauf TA-88 (à écrire, retrait motivé tant que PA-10 n'est pas adoptée)."
   },
   {
     "key": "CT-7 §10",
@@ -436,7 +436,7 @@ export const TC_REPONSES = [
   {
     "key": "CT-8 §9.2",
     "delegated": "`b_cap` = 123 761 octets : mesure TM-31 de CT-9 du 2026-11-02, transaction d'un bloc plein de 64 ancres (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
-    "response": "TM-31 (rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json` : ligne `b_cap_bloc_plein`, index relevé dans `notes`) ; réserve du bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
+    "response": "TM-31 (rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json` : ligne `b_cap_bloc_plein`, index relevé dans `notes`) ; réserve du bloc plein qui mêle des clôtures : TM-44 (§11, rapport de campagne `mesures/rapport-2026-11-13-capture-bloc-plein-clotures.json`)."
   },
   {
     "key": "CT-8 §9.2",

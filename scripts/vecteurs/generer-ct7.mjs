@@ -35,7 +35,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import * as J from "../lib/journal.mjs";
 import * as C from "../lib/console.mjs";
 import * as S from "../lib/securite.mjs";
@@ -517,7 +517,7 @@ export function genererCt7({ racine = REPERTOIRE_CT7 } = {}) {
   return f.size;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   const i = process.argv.indexOf("--sortie");
   if (i !== -1 && (!process.argv[i + 1] || process.argv[i + 1].startsWith("--"))) {
     console.error("usage : node scripts/vecteurs/generer-ct7.mjs [--sortie <répertoire>]");

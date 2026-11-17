@@ -116,9 +116,11 @@ Partie « rédaction » (INTERFACES.md, section e) : `redaction*.mjs`, `coffre.m
   borne (EX-10.23 opération 4) ; même contrôle pour `extract` (EX-7.6).
 - **Détecteurs exacts** (10.3) : `iban` (onze pays, MOD 97-10 par blocs),
   `avs` (clé de l'ordonnance, séparateurs identiques), `carte` (Luhn, 12 à 19
-  chiffres), `email` (lecture bornée à 64 et 256 caractères autour de chaque
-  `@`), `telephone` (8 à 15 chiffres, groupe entre parenthèses), en temps
-  linéaire ; `regex` (EX-10.10) ; `champ` (EX-10.11) ; segments entre jetons
+  chiffres, sous-suites de groupes), `email` (lecture bornée à 64 et 256
+  caractères autour de chaque `@`, plus longue fin `Dot-string`, plus long
+  préfixe de domaine admissible), `telephone` (8 à 15 chiffres, groupe entre
+  parenthèses, reprise au séparateur), en temps linéaire (candidat plus
+  court : complément du 2026-11-16 de CT-2 révision 0.11) ; `regex` (EX-10.10) ; `champ` (EX-10.11) ; segments entre jetons
   opaques, fin de correspondance frontière (EX-10.9).
 - **Application** (10.4) : règles retenues par portée et outil (`<alias>__*`),
   passages jusqu'à stabilité (EX-10.14), idempotence (EX-10.15), `redacted`
@@ -503,9 +505,16 @@ une perte dite par l'adaptateur (`perte`, `noortrace-miroir` sort avec le code
 fermeture, un sens illisible (HTTP/2) jette ses octets, les connexions suivies
 (`MIROIR_CONNEXIONS_MAX`, 10 000) et la longueur d'une trame
 (`MIROIR_TRAME_MAX_OCTETS`, 16 Mio) sont bornées, un couple dont le traitement
-lève reçoit `ok: false` sans figer la connexion (CT-2 EX-5.6). L'authentification
-du mode miroir n'est pas changée : correction préparée
-hors du dépôt, non appliquée.
+lève reçoit `ok: false` sans figer la connexion (CT-2 EX-5.6). Complément du
+2026-11-16 (CT-2 EX-5.6, EX-18.1) : la copie est écoutée par défaut sur
+`127.0.0.1:8410` ; hors de la boucle locale, l'adaptateur exige un certificat
+client (`model.mirror.tls`, `client_ca`) ou une liste fermée de sources
+(`allowed_sources`), sinon il refuse de démarrer (`ecoute_non_authentifiee`), et
+une connexion de copie non admise est fermée avant toute lecture ; la prise du
+démon est en mode `0600` sans `model.mirror.peer_user`, en `0660` avec preuve
+d'identité du pair (EX-4.39) avec lui ; en production, la validation refuse un
+mode miroir sans certificat client ni liste de sources. La copie elle-même
+n'est pas authentifiable : risque accepté de CT-7.
 
 ## WORM, gel juridique et haute disponibilité (§12.6, §12.11, §13)
 
@@ -838,10 +847,14 @@ cœur).
   couvre `ancres/` (pièces, `acquisitions.ndjson`, `entetes-bitcoin.json`) et
   la file `file-<epoque>.ndjson` sous `queue.path` quand il est sous le
   répertoire du journal, par la règle des fichiers fermés (lecture 93).
-- **`noortrace-ctl ancrage etat | metriques | retirer-qualification <id>`** :
+- **`noortrace-ctl ancrage etat | metriques | retirer-qualification <id> | retablir-qualification <id>`** :
   même canal que `cle rotation-urgence` (fichier de demande et SIGURG,
   lecture 201) ; réponse au journal (`anchoring_state`, `anchoring_metrics`,
-  `provider_qualification_withdrawn` ; refus `anchoring_ctl_refused`).
+  `provider_qualification_withdrawn`, `provider_qualification_restored` ;
+  refus `anchoring_ctl_refused`, dont `retrait_absent` pour une levée sans
+  retrait en vigueur). `retablir-qualification` (CT-5 EX-5.9, complément du
+  2026-11-16) lève le retrait de `qualified`, après lecture de la liste de
+  confiance par l'exploitant.
 - **Arrêt** : `anchoring_stopped` après la fermeture de l'écrivain, avant
   `shutdown`.
 - **Essais** : `test/enregistreur-ancrage-parcours.test.js` (TE-12 : démon
@@ -1097,6 +1110,7 @@ noortrace-ctl worm gel liste --configuration configuration.json --identifiants '
 noortrace-ctl ancrage etat [--configuration configuration.json]                     # CT-5 : état du composant d'ancrage, au journal (anchoring_state)
 noortrace-ctl ancrage metriques [--configuration configuration.json]                # noortrace_anchor* lues sur /metrics de la supervision
 noortrace-ctl ancrage retirer-qualification <id> [--configuration configuration.json]   # CT-5 EX-5.9 : retrait de `qualified`, relève des demandes en cours
+noortrace-ctl ancrage retablir-qualification <id> [--configuration configuration.json]  # CT-5 EX-5.9 : levée du retrait, après lecture de la liste de confiance
 noortrace-ctl dossier exporter --ticket apr-2201 --vers /var/lib/noortrace-exports/apr-2201 [--configuration configuration.json] [--delai-ms 120000]   # CT-2 EX-15.9 à EX-15.14
 noortrace-ctl sonde --url http://127.0.0.1:8500/readyz                 # sonde des fichiers Compose (CT-8 §4.4) : 0 sur 200, 1 sinon ; lecture 232
 noortrace-ctl etat [--configuration configuration.json] [--delai-ms 5000]   # /healthz, /readyz, époque du bail (CT-8 EX-10.14) ; lecture 233
@@ -1133,8 +1147,27 @@ transmet l'adresse de l'hôte par l'en-tête `client_address_header`. Avec
 l'adaptateur de capture remet les couples :
 
 ```sh
+noortrace-miroir --config /etc/noortrace/configuration.json
 noortrace-miroir --socket /run/noortrace/miroir.sock --ecoute 127.0.0.1:9100
 ```
+
+Avec `--config`, l'adaptateur lit `model.mirror` (`socket`, `listen`, `tls`,
+`client_ca`, `allowed_sources`, `peer_user`) ; sans `--ecoute`, il écoute
+`127.0.0.1:8410` ; hors de la boucle locale, `--sources <cidr,…>` ou
+`--tls-cert`, `--tls-key` et `--tls-ca` sont exigés (CT-2 EX-5.6) ;
+`--preuve` répond au défi de la prise quand `peer_user` est posé.
+La ligne de commande est stricte (complément du 2026-11-16) : une option
+inconnue, donnée deux fois ou sans sa valeur, un argument en trop, ou
+`--config` avec une autre option rendent l'usage et le code 2 ; de même pour
+`noortrace-connecteur` (exactement `--socket <chemin>` ou `--tcp
+<hôte:port>`). Tout chemin de prise Unix (`mcp.socket`, `sdk.socket`,
+`model.mirror.socket`, `policy.approval.service.socket`, `--socket` des deux
+programmes) fait au plus 103 octets (`CHEMIN_PRISE_MAX_OCTETS` de
+`src/bornes.mjs`, même borne que le SDK) : au-delà, Node.js tronquerait le
+chemin et la prise serait créée ou jointe ailleurs, souvent dans le
+répertoire parent ; la validation, le démarrage (code 2), la mise en écoute
+et les deux programmes (code 2) le refusent (`chemin_prise_trop_long`, CT-2
+EX-18.1).
 
 L'adresse d'écoute effective de chaque mode est consignée au journal
 d'exploitation (`model_gateway_listening`, `model_icap_listening`,
@@ -1333,6 +1366,7 @@ politiques, clés) se dérivent des segments à la reprise.
 | `controles.mjs` | contrôles périodiques d'EX-17.5 hors WORM (période close, signataire, relecture quotidienne) | EX-17.5 |
 | `ctl-demon.mjs`, `bin/noortrace-ctl` | `noortrace-ctl reload`, `noortrace-ctl clock --accept`, `noortrace-ctl cle rotation-urgence`, `noortrace-ctl ancrage etat|metriques|retirer-qualification`, `noortrace-ctl dossier exporter`, `noortrace-ctl close-period --now` (étape 7, lecture 234) ; demandes par création exclusive ; journal suivi à travers la rotation | EX-15.5, EX-7.13, EX-18.1, EX-15.9, EX-15.10, EX-17.4, EX-19.4 ; CT-5 EX-5.9 |
 | `ctl-sante.mjs` | `noortrace-ctl sonde --url` (sonde des fichiers Compose) et `noortrace-ctl etat` (`/healthz`, `/readyz`, époque du bail) ; étape 7, lectures 232 et 233 | EX-17.1, §17.2 ; CT-8 §4.4, EX-10.14 |
+| `ctl-journal.mjs` | `noortrace-ctl journal successeur` et `noortrace-ctl journal verifier-successeur` : lien d'un journal neuf (note d'exploitant à côté de la demande d'inscription, ligne `journal_successor` au journal d'exploitation de l'ancien démon), fin réelle de l'ancien journal relue ; complément du 2026-11-16 | EX-11.16, EX-17.2 ; CT-8 §11.4 chemin C |
 | `demandes-demon.mjs` | lecture des demandes du démon (fichier de demande, SIGURG) et leurs refus ; domaines d'EX-15.9 | EX-15.10 pas 5, EX-15.14 |
 | `export-dossier.mjs` | export d'une demande `dossier` : refus d'EX-15.12, choix de l'événement (fil de calcul), écriture atomique, restes supprimés à l'acquisition du bail | EX-15.11 à EX-15.14 ; CT-7 EX-3.16 |
 | `lui-meme.mjs` | journal sur lui-même | §9.1 |
@@ -1416,8 +1450,8 @@ fichier de même nom ; le compagnon le détecte au passage suivant par l'inode e
 copie WORM) ;
 revue de sécurité de l'étape 8, non fait ou limité : refus des serveurs MCP déclarés au
 fournisseur hors du format `gemini` (fait externe non vérifié,
-réseau public non admis ; risque et révision d'EX-5.32 au porteur) ; authentification du
-mode miroir (CT-2 EX-5.6 : correction préparée, non appliquée) ; détecteurs de
+réseau public non admis ; risque et révision d'EX-5.32 au porteur) ; authentification de
+la copie elle-même en mode miroir (CT-2 EX-5.6 : risque accepté de CT-7) ; détecteurs de
 rédaction sur les formes courantes (EX-10.3 : correction préparée, non
 appliquée, texte d'abord) ; classe d'un appel du SDK déclarée par l'agent (EX-6.15,
 texte révisé) ; borne par connexion des lignes `call_blocked` de quota du

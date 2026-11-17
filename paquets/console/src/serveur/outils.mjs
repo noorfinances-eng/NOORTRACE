@@ -15,6 +15,21 @@ import tls from "node:tls";
  */
 export const magasinSysteme = () => tls.getCACertificates("system");
 
+/**
+ * Longueur maximale, en octets UTF-8, du chemin de la prise du service que
+ * joint le serveur (`service.socket` ; CT-3 EX-10.13, complément du
+ * 2026-11-16). Node.js tronque un chemin plus long à `sizeof(sun_path) - 1`
+ * (107 octets sous Linux, 103 sous macOS) et joindrait une autre prise,
+ * souvent dans le répertoire parent : c'est la borne du SDK, du démon et du
+ * service (CT-2 EX-6.10, EX-18.1 ; CT-3 EX-12.2). Le contrat 2.2 ne prend de
+ * `@noortrace/approbation` que `RegistreSchemas` et `lireJsonStrict` :
+ * constante nommée, même valeur que celle du service.
+ */
+export const CHEMIN_PRISE_MAX_OCTETS = 103;
+
+/** Le chemin de prise `chemin` dépasse-t-il `CHEMIN_PRISE_MAX_OCTETS` octets UTF-8 ? */
+export const cheminPriseTropLong = (chemin) => typeof chemin === "string" && Buffer.byteLength(chemin, "utf8") > CHEMIN_PRISE_MAX_OCTETS;
+
 /** Erreur qui arrête le démarrage du serveur (code de sortie 1). */
 export class ErreurDemarrage extends Error {
   /**

@@ -7,6 +7,7 @@
 import { RegistreSchemas } from "@noortrace/noyau";
 import { SCHEMA_ANCRAGE, SCHEMA_PLANIFICATEUR } from "./schemas-ancrage.mjs";
 import { encoderOid } from "./requete-der.mjs";
+import { lireCertificat } from "../rfc3161/x509.mjs";
 
 /** Taille maximale du DER d'un OID de politique porté par la requête (règle 9 proposée d'EX-4.9). */
 export const OID_DER_MAX = 127;
@@ -100,8 +101,9 @@ function hoteDe(url) {
  * Lecture bornée d'un certificat PEM : un seul bloc `CERTIFICATE`, base64
  * canonique, DER d'une `SEQUENCE` de trois éléments (`tbsCertificate`
  * `SEQUENCE`, `signatureAlgorithm` `SEQUENCE`, `signatureValue` `BIT STRING`)
- * dont les longueurs se recoupent exactement (CT-6 §9.3, règle 8 d'EX-4.9).
- * La lecture complète des champs est celle du lecteur DER du client RFC 3161.
+ * dont les longueurs se recoupent exactement, puis lecture complète du
+ * certificat par le lecteur DER du client RFC 3161 (CT-6 §9.3 : EX-9.4,
+ * EX-9.21, noms ; règle 8 d'EX-4.9, complément du 2026-11-16).
  * @param {string} pem
  * @returns {string|null} motif du refus, ou null
  */
@@ -139,6 +141,13 @@ export function motifCertificatPemIllisible(pem) {
   const sig = lireTlv(alg.fin, racine.fin);
   if (!sig || sig.etiquette !== 0x03 || sig.fin !== racine.fin) return "signatureValue : BIT STRING final attendu";
   if (sig.fin - sig.debut < 2 || der[sig.debut] !== 0) return "signatureValue : bits inutilisés non nuls";
+  // CT-5 EX-4.9, règle 8 (complément du 2026-11-16) : le DER se lit comme un certificat par le lecteur de CT-6 §9.3
+  // (EX-9.4, EX-9.21, noms), celui que le client RFC 3161 applique aux certificats d'ancre à l'acquisition (T-7).
+  try {
+    lireCertificat(new Uint8Array(der));
+  } catch (e) {
+    return String(e?.message ?? e);
+  }
   return null;
 }
 
@@ -242,7 +251,14 @@ export function validerConfiguration(document, options = {}) {
           : `prestataire ${p.id} : auth aucune n'est admise que pour le serveur interne sur une adresse locale (EX-5.5)`,
       );
     }
+    // CT-5 EX-4.9, règle 4 (complément du 2026-11-16) : le serveur interne (rôle interne, ou principal non qualifié hors
+    // production) est soit en http:// local sans authentification, soit en https:// avec basic ou certificat_client (AN-27) ;
+    // basic n'est admis que sur TLS (EX-5.5) et un certificat client suppose TLS.
+    if (interne && u.protocole === "http:" && p.auth.method !== "aucune") violer("4", `prestataire ${p.id} (${p.role}, serveur interne) : http:// vers une adresse locale n'est admis que sans authentification (auth ${p.auth.method} : TLS exigé, EX-5.5)`);
+    if (interne && u.protocole === "https:" && p.auth.method === "aucune") violer("4", `prestataire ${p.id} (${p.role}, serveur interne) : https:// exige l'authentification basic ou certificat_client (AN-27)`);
     if (p.auth.method !== "aucune" && p.auth.secret === null) violer("4", `prestataire ${p.id} : auth ${p.auth.method} sans secret`);
+    // CT-5 EX-4.9, règle 4 (révision 0.10 ; complément du 2026-11-16, famille configuration) : dans tout profil, auth.method aucune va avec un secret nul.
+    if (p.auth.method === "aucune" && p.auth.secret !== null && p.auth.secret !== undefined) violer("4", `prestataire ${p.id} : auth aucune avec un secret non nul`);
   }
 
   // Règle 5 : OpenTimestamps activé ⇒ deux calendriers, min_responses, liste blanche.

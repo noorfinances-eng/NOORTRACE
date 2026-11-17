@@ -90,7 +90,7 @@ func (r *Rapport) ToutConcorde() bool {
 
 // EcrireTexte imprime le rapport en français.
 func (r *Rapport) EcrireTexte(w io.Writer, verbeux bool) {
-	fmt.Fprintf(w, "Vérificateur indépendant CT-5 (Go, salle blanche) — racine des vecteurs : %s\n\n", r.Racine)
+	fmt.Fprintf(w, "Vérificateur Go de cohérence des vecteurs CT-5 (non indépendant, CT-5 A.5) — racine des vecteurs : %s\n\n", r.Racine)
 	familles := map[string][]Comparaison{}
 	var ordre []string
 	for _, c := range r.Comparaisons {

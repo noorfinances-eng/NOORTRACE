@@ -541,15 +541,15 @@ groups:
           summary: 'Prestataire d''horodatage sans succès depuis quinze minutes malgré des tentatives'
           description: 'Prestataire d''horodatage sans succès depuis quinze minutes malgré des tentatives. Gravité majeure, composant ancrage. Exigence : CT-5 §8.9 prestataire_injoignable. Runbook : RB-4.'
       - alert: noortrace_ancrage_prestataires_epuises_periode
-        expr: 'noortrace_anchoring_queue_entries{kind="jeton_periode",state="a_reprendre"} > 0 and on () ((noortrace_anchoring_attempts_total{kind="jeton_periode",outcome="echec_permanente"} unless noortrace_anchoring_attempts_total{kind="jeton_periode",outcome="echec_permanente"} offset 1h) or increase(noortrace_anchoring_attempts_total{kind="jeton_periode",outcome="echec_permanente"}[1h])) > 0'
+        expr: '(noortrace_anchoring_queue_entries{kind="jeton_periode",state="a_reprendre"} > 0 and on () ((noortrace_anchoring_attempts_total{kind="jeton_periode",outcome="echec_permanente"} unless noortrace_anchoring_attempts_total{kind="jeton_periode",outcome="echec_permanente"} offset 1h) or increase(noortrace_anchoring_attempts_total{kind="jeton_periode",outcome="echec_permanente"}[1h])) > 0) or (noortrace_anchoring_queue_entries{kind="ancre_registre_periode",state="a_reprendre"} > 0 and on () ((noortrace_anchoring_attempts_total{kind="ancre_registre_periode",outcome="echec_permanente"} unless noortrace_anchoring_attempts_total{kind="ancre_registre_periode",outcome="echec_permanente"} offset 1h) or increase(noortrace_anchoring_attempts_total{kind="ancre_registre_periode",outcome="echec_permanente"}[1h])) > 0)'
         labels:
           severity: 'critique'
           component: 'ancrage'
           exigence: 'CT-5 §8.9 prestataires_epuises (période)'
           runbook: 'RB-4'
         annotations:
-          summary: 'Prestataires épuisés pour le jeton d''une période'
-          description: 'Prestataires épuisés pour le jeton d''une période. Gravité critique, composant ancrage. Exigence : CT-5 §8.9 prestataires_epuises (période). Runbook : RB-4.'
+          summary: 'Prestataires épuisés pour le jeton d''une période, ou ancre d''une période refusée définitivement par le registre'
+          description: 'Prestataires épuisés pour le jeton d''une période, ou ancre d''une période refusée définitivement par le registre. Gravité critique, composant ancrage. Exigence : CT-5 §8.9 prestataires_epuises (période). Runbook : RB-4.'
       - alert: noortrace_ancrage_prestataires_epuises_point
         expr: '(increase(noortrace_journal_lignes_total{event="anchor_refused",detail="autre"}[1h]) > 0) or ((noortrace_journal_lignes_total{event="anchor_refused",detail="autre"} unless noortrace_journal_lignes_total{event="anchor_refused",detail="autre"} offset 1h) > 0)'
         labels:

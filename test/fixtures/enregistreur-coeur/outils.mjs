@@ -75,6 +75,7 @@ export function configurationDev(dir, o = {}) {
   c.recorder.environment = o.environment ?? "developpement";
   c.recorder.instance_id = o.instance_id ?? "enregistreur-test";
   if (o.journal_id) c.recorder.journal_id = o.journal_id;
+  if (o.org_id) c.recorder.org_id = o.org_id;
   c.signer = {
     class: "D",
     key_id: "rec-test-01",

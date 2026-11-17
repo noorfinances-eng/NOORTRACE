@@ -15,15 +15,13 @@ import { genererCt5, traceEmpreinteSquattee } from "../scripts/vecteurs/generer-
 // consigné.
 //
 // La trace est construite par le générateur des vecteurs de CT-5
-// (traceEmpreinteSquattee ; option --avec-empreinte-squattee), puis rejouée
-// par la bibliothèque de référence (scripts/lib/ancrage.mjs, verifierTrace).
-// Elle n'est pas publiée parmi les vecteurs tant que le vérificateur Go de
-// cohérence de ct-5 (CT-5 A.5) ne la rejoue pas sans écart : la génération par défaut
-// garde ses vingt-huit traces. Le sort du jeton de clôture après le refus de
-// l'ancre est fixé par la (variante B : il reste
-// attente_registre, EX-8.4 règle 2, AN-36, EX-9.7 ; CT-4 EX-8.6), éprouvée par
-// test/ancrage-reference-revue.test.js ; ces essais portent sur ce que les
-// textes cités fixent par ailleurs.
+// (traceEmpreinteSquattee), rejouée par la bibliothèque de référence
+// (scripts/lib/ancrage.mjs, verifierTrace) et publiée par défaut dans
+// spec/vecteurs/ct-5/planification depuis la décision du porteur du
+// 2026-11-16 (variante B) : après le refus de l'ancre, le jeton de clôture
+// reste attente_registre et la période reste signalée registry_pending
+// (EX-8.4 règle 2, AN-36, EX-9.7 ; CT-4 EX-8.6). Les mutants de la variante B
+// sont dans test/ancrage-reference-revue.test.js.
 
 describe("CT-5 §8.10 : trace de planification empreinte-squattee (ancre de période refusée sur empreinte_squattee ; CT-4 EX-8.4, EX-8.6 ; CT-5 EX-4.7, EX-8.10)", function () {
   this.timeout(300_000);
@@ -39,7 +37,7 @@ describe("CT-5 §8.10 : trace de planification empreinte-squattee (ancre de pér
   const actions = (action, pred = () => true) => trace.expected.filter((a) => a.action === action && pred(a));
   const demande = (kind) => trace.queue_after.find((d) => d.kind === kind);
 
-  it("la trace est conforme au schéma planificateur-ancrage-v0 et rejouée sans écart par verifierTrace ; la génération par défaut ne la publie pas (vingt-huit traces), l'option avecEmpreinteSquattee l'écrit en vingt-neuvième, aux mêmes octets", function () {
+  it("la trace est conforme au schéma planificateur-ancrage-v0 et rejouée sans écart par verifierTrace ; la génération par défaut la publie (soixante-deux traces depuis le complément du 2026-11-16 ; décision du porteur du 2026-11-16), aux mêmes octets que traceEmpreinteSquattee et que spec/vecteurs/ct-5", function () {
     const schema = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "spec", "schemas", "planificateur-ancrage-v0.schema.json"), "utf8"));
     expect(J.validerSchema(trace, schema)).to.deep.equal([]);
     expect(A.verifierTrace(trace)).to.deep.equal([]);
@@ -50,16 +48,14 @@ describe("CT-5 §8.10 : trace de planification empreinte-squattee (ancre de pér
     const echec = trace.inputs.find((e) => e.type === "echec_registre");
     expect(echec.data).to.deep.equal({ request_id: demande("ancre_registre_periode").id, code: "empreinte_squattee" });
     const defaut = path.join(sortie, "defaut");
-    const avec = path.join(sortie, "avec");
     genererCt5({ racine: defaut });
-    genererCt5({ racine: avec, avecEmpreinteSquattee: true });
-    const fichiers = (rep) => fs.readdirSync(path.join(rep, "planification")).sort();
-    expect(fichiers(defaut)).to.have.length(28).and.to.not.include("empreinte-squattee.json");
-    expect(fichiers(avec)).to.deep.equal([...fichiers(defaut), "empreinte-squattee.json"].sort());
-    expect(fs.readFileSync(path.join(avec, "planification", "empreinte-squattee.json"), "utf8")).to.equal(JSON.stringify(trace, null, 2) + "\n");
-    for (const f of fichiers(defaut)) expect(fs.readFileSync(path.join(avec, "planification", f)).equals(fs.readFileSync(path.join(defaut, "planification", f))), f).to.equal(true);
-    expect(fs.readFileSync(path.join(avec, "INDEX.md"), "utf8")).to.match(/^\| `empreinte-squattee\.json` \| \d+ \| \d+ \| 0 \| 5 \| /m);
-    expect(fs.readFileSync(path.join(defaut, "INDEX.md"), "utf8")).to.not.include("empreinte-squattee");
+    const fichiers = fs.readdirSync(path.join(defaut, "planification")).sort();
+    // CT-5 A.3 (complément du 2026-11-16, ordre du démarrage ; puis clé de chaîne du verrou d'EX-9.4 ; puis minuteries de deux journaux, EX-8.16 ; puis refus de l'ancre d'une période et ordre des ancres de points, EX-8.10 et EX-9.4 : deux de plus ; puis l'ancre de la période après celle de son point de clôture et l'âge d'abandon OpenTimestamps, EX-9.4 et EX-8.11 : deux de plus, dont une à file ; puis la clé retenue par l'ancre d'une période, la soumission OpenTimestamps tardive et l'alerte du refus après un redémarrage, EX-9.4, EX-8.11 et EX-8.10 : trois de plus, dont deux à file ; puis l'ancre d'un point en reprise quand le point suivant de sa période est admis, EX-9.5 et EX-9.4 : une de plus, sans file) : soixante-deux traces.
+    expect(fichiers).to.have.length(62).and.to.include("empreinte-squattee.json");
+    const ecrite = fs.readFileSync(path.join(defaut, "planification", "empreinte-squattee.json"), "utf8");
+    expect(ecrite).to.equal(JSON.stringify(trace, null, 2) + "\n");
+    expect(ecrite).to.equal(fs.readFileSync(path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-5", "planification", "empreinte-squattee.json"), "utf8"));
+    expect(fs.readFileSync(path.join(defaut, "INDEX.md"), "utf8")).to.match(/^\| `empreinte-squattee\.json` \| \d+ \| \d+ \| 0 \| 5 \| /m);
   });
 
   it("ancre d'abord : aucune requête RFC 3161 sur periodHash ne part avant la transaction de l'ancre de la période, ni avant son refus (CT-4 EX-8.4, CT-5 EX-4.7)", function () {
@@ -94,6 +90,19 @@ describe("CT-5 §8.10 : trace de planification empreinte-squattee (ancre de pér
     const lignes = actions("journaliser", (a) => a.detail.event === "anchor_refused");
     expect(lignes).to.have.length(1);
     expect([lignes[0].t, lignes[0].request_id, lignes[0].detail.error_code]).to.deep.equal(["2026-11-03T14:00:04.000Z", d.id, "empreinte_squattee"]);
+  });
+
+  it("trace publiée (spec/vecteurs/ct-5/planification/empreinte-squattee.json) : la période dont l'ancre est refusée reste signalée registry_pending (CT-4 EX-8.6 ; CT-5 EX-9.7) : jeton de clôture attente_registre sans tentative, examiné toutes les inclusion_alert_s après le refus (registry_pending à 14:01:00.250 et 14:02:00.250, âges 60 et 120 s), alerte majeure une fois, prochain examen programmé à 14:03:00.250 ; aucune requête RFC 3161 sur periodHash", function () {
+    const publiee = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-5", "planification", "empreinte-squattee.json"), "utf8"));
+    expect(A.verifierTrace(publiee)).to.deep.equal([]);
+    const jeton = publiee.queue_after.find((d) => d.kind === "jeton_periode");
+    expect([jeton.state, jeton.attempts.length, jeton.result, jeton.due_at]).to.deep.equal(["attente_registre", 0, null, "2026-11-03T14:03:00.250Z"]);
+    const refus = publiee.expected.findIndex((a) => a.action === "journaliser" && a.detail.event === "anchor_refused");
+    const apres = publiee.expected.slice(refus + 1).filter((a) => a.request_id === jeton.id);
+    expect(apres.filter((a) => a.action === "journaliser").map((a) => [a.t, a.detail.event, a.detail.age_s])).to.deep.equal([["2026-11-03T14:01:00.250Z", "registry_pending", 60], ["2026-11-03T14:02:00.250Z", "registry_pending", 120]]);
+    expect(apres.filter((a) => a.action === "alerter").map((a) => [a.t, a.detail.code, a.detail.severity])).to.deep.equal([["2026-11-03T14:01:00.250Z", "registry_pending", "majeure"]]);
+    expect(apres.filter((a) => a.action === "programmer").map((a) => [a.detail.next_at, a.detail.reason]).at(-1)).to.deep.equal(["2026-11-03T14:03:00.250Z", "attente_registre"]);
+    expect(publiee.expected.filter((a) => a.action === "envoyer_rfc3161" && a.request_id === jeton.id)).to.deep.equal([]);
   });
 
   it("les autres ancres ne sont pas touchées par le refus : preuve OpenTimestamps de la période en attente, ancre et jeton du point de clôture obtenus ; cinq demandes dans la file", function () {

@@ -33,7 +33,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { principal, superviserProcessus, pieceJson } from "@noortrace/enregistreur";
 import { HorlogeHybride } from "../ancrage-composant/outils.mjs";
 
@@ -198,4 +198,4 @@ async function principalEnfant() {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await principalEnfant();
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) await principalEnfant();

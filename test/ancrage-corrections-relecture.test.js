@@ -934,7 +934,8 @@ describe("ancrage : corrections après la relecture adversariale de l'étape 5",
       expect(m.journal.de("ots_submitted").some((l) => l.data.errors === "nonce_non_durable")).to.equal(true);
       let d = m.composant.demandes().find((x) => x.kind === "ots_periode");
       expect(d.state).to.equal("a_reprendre");
-      expect(d.attempts[0]).to.include({ outcome: "echec_transitoire", error_code: "calendriers_insuffisants" });
+      // Code de CT-5 EX-8.11 (complément du 2026-11-16) : moins de min_responses réponses valables.
+      expect(d.attempts[0]).to.include({ outcome: "echec_transitoire", error_code: "reponses_insuffisantes" });
       const nonceMemoire = m.composant.planificateur.interne.get(d.id).nonceOts;
       // Le disque redevient écrivable : la reprise écrit le nonce puis soumet le même engagement.
       fs.rmdirSync(path.join(m.repertoirePeriode, "ots", "manifeste.nonce"));

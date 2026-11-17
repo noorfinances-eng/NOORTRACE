@@ -208,6 +208,142 @@
           "pointer": "/administrators"
         }
       ]
+    },
+    {
+      "file": "expiration-rejouee.json",
+      "description": "L'annuaire final de la trace expiration-entree : l'opération 5 expirer retire apb-0001, dont l'inscription (opération 1) se rejoue sans preuve, celle-ci ayant quitté le document avec l'entrée ; le compte 1 est réinscrit dans apb-0003, approbateur-1 dans apb-0004 : aucun écart.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": []
+    },
+    {
+      "file": "expiration-avant-borne.json",
+      "description": "L'opération 5 expirer est datée de created_at d'apb-0001 + 86 399 999 ms, sous la borne basse de registration_entry_ttl_ms (le document ne porte pas le réglage) : elle ne se rejoue pas.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/operations/4"
+        }
+      ]
+    },
+    {
+      "file": "expiration-entree-validee.json",
+      "description": "Une opération expirer ajoutée en dernier retire apb-0002, dont le compte 2 a été validé : elle ne se rejoue pas.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/operations/8"
+        }
+      ]
+    },
+    {
+      "file": "identifiant-reattribue.json",
+      "description": "L'entrée d'u.martin, créée après l'expiration d'apb-0001, porte l'identifiant apb-0001 au lieu d'apb-0003 : un identifiant n'est jamais réattribué, l'inscription ne se rejoue pas.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/operations/5"
+        }
+      ]
+    },
+    {
+      "file": "expiration-entree-portee.json",
+      "description": "L'annuaire de la trace expiration-entree juste après l'opération 5 expirer, dont entries porte encore apb-0001 telle qu'avant elle, sa preuve signée par la clé du compte 2 : preuve_invalide ; l'inscription de l'opération 1, dont l'entrée est retirée par l'expirer placé plus loin, se rejoue sans chercher sa preuve dans le document, l'expirer rejoué retire l'entrée, et le rejeu aboutit à d'autres entrées (/entries), non à /operations/0.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/entries"
+        },
+        {
+          "code": "preuve_invalide",
+          "pointer": "/entries/0/addresses/0/proof"
+        }
+      ]
+    },
+    {
+      "file": "expiration-instant-indecodable.json",
+      "description": "expiration-rejouee.json dont l'opération 5 expirer porte l'instant 2026-11-31T08:00:30.000Z, qui respecte le motif sans se décoder : revision_incoherente à son at (point 2) ; l'échéance at ≥ created_at + 86 400 000 n'est pas établie, l'opération ne se rejoue pas et le rejeu s'arrête à elle, après l'inscription de l'opération 1 rejouée sans preuve.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/operations/4"
+        },
+        {
+          "code": "revision_incoherente",
+          "pointer": "/operations/4/at"
+        }
+      ]
+    },
+    {
+      "file": "inscription-instant-indecodable.json",
+      "description": "reference.json dont l'opération 3 inscrire porte l'instant 2026-11-31T09:00:30.000Z, repris par le created_at de apb-0002 et le received_at de sa preuve : revision_incoherente à son at (point 2) ; Emis le ≤ received_at < Expire le ne s'établit pas : preuve_discordante (point 4) ; l'inscription se rejoue (le rejeu ne lit pas l'horloge), et la preuve et l'entrée rejouées portent le même texte : aucun écart /entries.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "preuve_discordante",
+          "pointer": "/entries/1/addresses/0/proof"
+        },
+        {
+          "code": "revision_incoherente",
+          "pointer": "/operations/2/at"
+        }
+      ]
+    },
+    {
+      "file": "instants-indecodables-rejoues.json",
+      "description": "reference.json dont les opérations 2 valider, 6 revoquer et 9 valider, la dernière, portent un instant du 31 novembre, repris par le validated_at, le revoked_at et le validated_at qu'elles posent, et par updated_at : revision_incoherente à chacun de ces at (point 2) ; ces opérations se rejouent, et les instants qu'elles posent sont le texte de leur at : aucun écart /entries ni /updated_at.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "revision_incoherente",
+          "pointer": "/operations/1/at"
+        },
+        {
+          "code": "revision_incoherente",
+          "pointer": "/operations/5/at"
+        },
+        {
+          "code": "revision_incoherente",
+          "pointer": "/operations/8/at"
+        }
+      ]
+    },
+    {
+      "file": "remplacement-instants-indecodables.json",
+      "description": "L'annuaire final de la trace rotation, dont l'opération 4 valider, qui remplace le compte 1 par le compte 2, porte un instant du 31 novembre, suivi de l'opération 5 desactiver de apb-0001 à un autre : revision_incoherente à ces deux at (point 2) ; le validated_at du compte 2, le revoked_at du compte 1 (remplacee) et celui du compte 2 (desactivation) sont le texte de l'at de l'opération qui les pose : aucun écart /entries.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "revision_incoherente",
+          "pointer": "/operations/3/at"
+        },
+        {
+          "code": "revision_incoherente",
+          "pointer": "/operations/4/at"
+        }
+      ]
     }
   ]
 }

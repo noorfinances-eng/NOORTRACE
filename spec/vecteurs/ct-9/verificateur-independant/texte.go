@@ -456,10 +456,62 @@ func LireCasA8(s string) (int, []string, bool) {
 	return int(n), fichiers, ok
 }
 
+// Section 16, révision du 2026-11-16 : la phrase qui donne le nombre des
+// TA- avec complément peut l'écrire en lettres (« les compléments des deux
+// TA- exécutables qui en portent un (TA-25, TA-41) »), au pluriel sans
+// nombre (« les compléments des TA- exécutables qui en portent un
+// (TA-25) ») ou au singulier (« le complément du TA- exécutable qui en
+// porte un (TA-25) ») ; de même pour « les compléments des N entrées de
+// l'étape 8 (…) ». Le nombre lu est le nombre écrit, sinon 1 au singulier,
+// sinon le nombre d'identifiants nommés ; il n'est jamais déduit du
+// catalogue.
+
+// identifiantsEntrees rend les identifiants d'entrées (TU- à TQ-) qu'une
+// prose énumère, plages développées, famille par famille.
+func identifiantsEntrees(s string) []string {
+	var out []string
+	for _, f := range []string{"TU", "TV", "TI", "TE", "TA", "TM", "TR", "TQ"} {
+		out = append(out, IdentifiantsPlages(s, f)...)
+	}
+	return out
+}
+
+// nombreLu rend le nombre qu'énonce une phrase au singulier (1), au
+// pluriel avec un nombre écrit (ce nombre, en chiffres ou en lettres) ou
+// au pluriel sans nombre (le nombre d'identifiants nommés, qui doivent
+// l'être) ; faux si le nombre ne se lit pas.
+func nombreLu(singulier bool, ecrit string, nommes []string) (int, bool) {
+	switch {
+	case singulier:
+		return 1, true
+	case ecrit != "":
+		n, ok := EntierFrancais(ecrit)
+		return int(n), ok
+	case len(nommes) > 0:
+		return len(nommes), true
+	}
+	return 0, false
+}
+
+var reTA16 = regexp.MustCompile(`(?:(les compléments des (?:([0-9a-zé-]+) )?TA- exécutables qui en portent un)|le complément (?:du (?:seul )?|de l'unique )TA- exécutable qui en porte un) \(([^)]*)\)`)
+
+// LireNombreTA16 lit, dans 16, le nombre des TA- exécutables qui portent un
+// complément et les TA- nommés entre parenthèses.
+func LireNombreTA16(s16 string) (int, []string, bool) {
+	x := reTA16.FindStringSubmatch(s16)
+	if x == nil {
+		return 0, nil, false
+	}
+	nommes := IdentifiantsPlages(x[3], "TA")
+	n, ok := nombreLu(x[1] == "", x[2], nommes)
+	return n, nommes, ok
+}
+
 // LireComplements16 lit, dans 16, « TA- exécutables qui en portent un (…)
-// et ceux de … n'ont aucun résultat » : les TA- puis les autres entrées.
+// et ceux de … n'ont aucun résultat » (ou « TA- exécutable qui en porte un
+// (…) ») : les TA- puis les autres entrées.
 func LireComplements16(s16 string) ([]string, []string, bool) {
-	x := regexp.MustCompile(`TA- exécutables qui en portent un \(([^)]*)\) et ceux de (.*?) n'ont aucun résultat`).FindStringSubmatch(s16)
+	x := regexp.MustCompile(`TA- exécutables? qui en port(?:e|ent) un \(([^)]*)\) et ceux de (.*?) n'ont aucun résultat`).FindStringSubmatch(s16)
 	if x == nil {
 		return nil, nil, false
 	}
@@ -473,7 +525,7 @@ func LireComplements16(s16 string) ([]string, []string, bool) {
 // LirePhase2_16 lit, dans 16, « N entrées TA- à menace d'exécution
 // `phase_2` à écrire (dont TA-a et TA-b » : N et les deux TA- nommés.
 func LirePhase2_16(s16 string) (int, []string, bool) {
-	x := regexp.MustCompile("([0-9]+) entrées TA- à menace d'exécution `phase_2` à écrire \\(dont (TA-[0-9]+) et (TA-[0-9]+)").FindStringSubmatch(s16)
+	x := regexp.MustCompile("([0-9]+) entrées? TA- à menace d'exécution `phase_2` à écrire \\(dont (TA-[0-9]+) et (TA-[0-9]+)").FindStringSubmatch(s16)
 	if x == nil {
 		return 0, nil, false
 	}
@@ -481,13 +533,26 @@ func LirePhase2_16(s16 string) (int, []string, bool) {
 	return n, []string{x[2], x[3]}, true
 }
 
-// LireEtape8_16 lit, dans 16, « les compléments des N entrées de l'étape 8
-// (TA-…) » : N en lettres et les TA- nommés.
-func LireEtape8_16(s16 string) (int, []string, bool) {
-	x := regexp.MustCompile(`les compléments des ([a-zé-]+) entrées de l'étape 8 \(([^)]*)\)`).FindStringSubmatch(s16)
+// LireEtape16 lit, dans 16, « les compléments des [N] entrées de l'étape e
+// (…) » ou « le complément de l'entrée de l'étape e (…) » : le nombre lu
+// et les entrées nommées (parenthèse facultative si le nombre est écrit).
+func LireEtape16(s16 string, etape int) (int, []string, bool) {
+	re := regexp.MustCompile(`(?:(les compléments des (?:([0-9a-zé-]+) )?entrées)|le complément de (?:l'|la seule )entrée) de l'étape ` + strconv.Itoa(etape) + `\b(?: \(([^)]*)\))?`)
+	x := re.FindStringSubmatch(s16)
 	if x == nil {
 		return 0, nil, false
 	}
-	n, ok := EntierFrancais(x[1])
-	return int(n), IdentifiantsPlages(x[2], "TA"), ok
+	nommes := identifiantsEntrees(x[3])
+	n, ok := nombreLu(x[1] == "", x[2], nommes)
+	return n, nommes, ok
+}
+
+// LireLeves16 lit, dans 16, « celui de TA-n étant levé » (ou « ceux de TA-a
+// et TA-b étant levés ») : les entrées dont le complément est levé.
+func LireLeves16(s16 string) []string {
+	x := regexp.MustCompile(`(?:celui|ceux) de ((?:(?:TA|TU|TV|TI|TE|TM|TR|TQ)-[0-9]+(?:, | et | à )?)+) étant levés?`).FindStringSubmatch(s16)
+	if x == nil {
+		return nil
+	}
+	return identifiantsEntrees(x[1])
 }

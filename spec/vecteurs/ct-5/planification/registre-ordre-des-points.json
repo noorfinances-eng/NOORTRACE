@@ -1,0 +1,904 @@
+{
+  "version": 0,
+  "id": "registre-ordre-des-points",
+  "description": "Période 1 de référence, registry.checkpoints = tous. L'ancre de K3 part à 13:54 ; le composant s'arrête brutalement juste après sa ligne envoyee (EX-8.5, règle 1) : la file relue ne porte qu'elle. Au redémarrage à 14:01:30, l'ancre de K3 est renvoyée (anchor_retry de mode renvoi) ; l'enregistreur relit dans son stockage les points K1 à K4 de la période 1, dont le manifeste n'est pas relu, et K5 de la période 2, sans ancre obtenue (stockage_relu) : le dernier point de chaque période ouverte est admis (EX-8.12), K4 puis K5, au même instant ; leurs ancres attendent le nonce (la clé a l'ancre de K3 en vol). Dans l'ordre de la file (created_at, puis id), l'ancre de K5 précède celle de K4. EX-9.4 (complément du 2026-11-16, ordre des ancres d'une clé) : quand la clé se libère, part la première candidate de la clé, par period_start, puis, dans une même période, les ancres de points par checkpoint_ts avant l'ancre de la période, l'ordre de la file ne départageant que les égalités : au reçu de l'ancre de K3 (14:01:32), l'ancre de K4 part ; à son reçu (14:01:33), son jeton part, puis l'ancre de K5, incluse à 14:01:34. L'ordre d'inclusion des ancres des points d'un journal est ainsi celui de leurs checkpoint_ts (EX-10.7).",
+  "config": {
+    "checkpoint_interval_s": 60,
+    "rfc3161": {
+      "providers": [
+        {
+          "id": "qtsa-principal",
+          "role": "principal",
+          "policy_oid": null,
+          "qualified": true,
+          "min_interval_ms": 0,
+          "request_timeout_ms": 10000
+        },
+        {
+          "id": "qtsa-secours",
+          "role": "secours",
+          "policy_oid": null,
+          "qualified": true,
+          "min_interval_ms": 0,
+          "request_timeout_ms": 10000
+        },
+        {
+          "id": "tsa-interne",
+          "role": "interne",
+          "policy_oid": "1.3.6.1.4.1.99999.1.1",
+          "qualified": false,
+          "min_interval_ms": 0,
+          "request_timeout_ms": 5000
+        }
+      ],
+      "manifest": {
+        "fallback_after_s": 300
+      },
+      "checkpoints": {
+        "interval_s": 300,
+        "provider_role": "interne",
+        "fallback_after_s": 120,
+        "countersign_idle": false
+      },
+      "freshness": {
+        "max_response_delay_s": 60,
+        "clock_tolerance_s": 120
+      },
+      "retry": {
+        "initial_ms": 5000,
+        "factor": 2,
+        "max_ms": 300000,
+        "jitter_ms": 250
+      }
+    },
+    "registry": {
+      "checkpoints": "tous",
+      "squat_wait_s": 5,
+      "inclusion_alert_s": 60
+    },
+    "opentimestamps": {
+      "enabled": true,
+      "calendars": [
+        "https://alice.btc.calendar.opentimestamps.org",
+        "https://bob.btc.calendar.opentimestamps.org"
+      ],
+      "min_responses": 2,
+      "timeout_ms": 5000,
+      "checkpoint": "aucun",
+      "upgrade": {
+        "first_after_s": 21600,
+        "interval_s": 1800,
+        "give_up_after_s": 1209600
+      }
+    },
+    "queue": {
+      "max_pending": 100000,
+      "anchor_pending_alert_s": 7200
+    }
+  },
+  "jitter_ms": [],
+  "queue_before": [
+    {
+      "attempts": [
+        {
+          "correlation_id": "ancre_registre_point:3feb86ac4d6d8c05:1",
+          "detail": "transaction envoyee",
+          "error_code": null,
+          "failure_info": null,
+          "http_status": null,
+          "n": 1,
+          "next_at": null,
+          "nonce": null,
+          "outcome": "en_cours",
+          "pki_status": null,
+          "provider": null,
+          "retry_after_s": null,
+          "started_at": "2026-11-03T13:54:00.000Z"
+        }
+      ],
+      "attempts_total": 1,
+      "created_at": "2026-11-03T13:54:00.000Z",
+      "deadlines": [],
+      "due_at": null,
+      "id": "ancre_registre_point:0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
+      "kind": "ancre_registre_point",
+      "replaced_by": null,
+      "result": null,
+      "state": "envoyee",
+      "subject": {
+        "declared_at": "2026-11-03T13:54:00.000Z",
+        "hash": "0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
+        "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+        "kind": "point",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "period_start": 1793710800,
+        "tree_size": 4
+      },
+      "version": 0
+    }
+  ],
+  "inputs": [
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "type": "demarrage",
+      "data": {}
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "type": "stockage_relu",
+      "data": {
+        "periods": [],
+        "checkpoints": [
+          {
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+            "period_start": 1793710800,
+            "tree_size": 2,
+            "checkpoint_hash": "0xfbc4715789d5bfeec5b3a0b44e26d13236a726950e92e03a2fce8c6f7b4284f4",
+            "checkpoint_ts": "2026-11-03T13:42:00.000Z"
+          },
+          {
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+            "period_start": 1793710800,
+            "tree_size": 4,
+            "checkpoint_hash": "0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff",
+            "checkpoint_ts": "2026-11-03T13:53:00.000Z"
+          },
+          {
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+            "period_start": 1793710800,
+            "tree_size": 4,
+            "checkpoint_hash": "0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
+            "checkpoint_ts": "2026-11-03T13:54:00.000Z"
+          },
+          {
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+            "period_start": 1793710800,
+            "tree_size": 5,
+            "checkpoint_hash": "0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+            "checkpoint_ts": "2026-11-03T14:00:00.250Z"
+          },
+          {
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+            "period_start": 1793714400,
+            "tree_size": 0,
+            "checkpoint_hash": "0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153",
+            "checkpoint_ts": "2026-11-03T14:01:00.000Z"
+          }
+        ]
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:32.000Z",
+      "type": "inclusion_registre",
+      "data": {
+        "request_id": "ancre_registre_point:0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
+        "block_number": 21150,
+        "capture_sha256": "0xe0a220b0e794292c75c84149bb4bd705a4c18c4ff4e0c182c014deb2a6eec653"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:33.000Z",
+      "type": "inclusion_registre",
+      "data": {
+        "request_id": "ancre_registre_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+        "block_number": 21151,
+        "capture_sha256": "0xfa31fdb0b1409352c35a8e8cb8eaf74eeb8a4faea6a5fe8f5b46bdbfa6f7d967"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:34.000Z",
+      "type": "inclusion_registre",
+      "data": {
+        "request_id": "ancre_registre_point:0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153",
+        "block_number": 21152,
+        "capture_sha256": "0x202e37417a76795128976827a6d81ef7de3148f6c9b01749345415624c54d6bd"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "type": "reponse_rfc3161",
+      "data": {
+        "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+        "attempt": 1,
+        "transport": "reponse",
+        "http_status": 200,
+        "pki_status": 0,
+        "failure_info": null,
+        "retry_after_s": null,
+        "nonce_in_response": "0x9cd8e6f026675bc3",
+        "imprint_matches": true,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ],
+        "gen_time": "2026-11-03T14:01:34Z",
+        "accuracy_s": 1,
+        "token_sha256": "0x280cd2543d695c068853c3c79af58b63d8199a361ec105d0a068ccea2145efe5",
+        "token_size": 2104
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:40.000Z",
+      "type": "arret",
+      "data": {}
+    }
+  ],
+  "expected": [
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "anchoring_started",
+        "queue_entries": 1
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "journaliser",
+      "request_id": "ancre_registre_point:0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
+      "detail": {
+        "event": "anchor_retry",
+        "kind": "ancre_registre_point",
+        "mode": "renvoi",
+        "attempt": 1,
+        "attempt_id": "ancre_registre_point:3feb86ac4d6d8c05:1"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "envoyer_registre",
+      "request_id": "ancre_registre_point:0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
+      "detail": {
+        "fingerprint": "0xa1aeb874daa988a4833c394476c4ea740096a3496ed081ae6f8592fb4912a837",
+        "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "state": "a_envoyer"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "programmer",
+      "request_id": "ancre_registre_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "next_at": "2026-11-03T14:01:30.000Z",
+        "reason": "attente_nonce"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 1,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 2,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 3,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 4,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 5,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 6,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 7,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 8,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 9,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 10,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 11,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "state": "attente_registre"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "programmer",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "next_at": "2026-11-03T14:01:35.000Z",
+        "reason": "attente_registre"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153",
+      "detail": {
+        "state": "a_envoyer"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "programmer",
+      "request_id": "ancre_registre_point:0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153",
+      "detail": {
+        "next_at": "2026-11-03T14:01:30.000Z",
+        "reason": "attente_nonce"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "anchoring_queue_rebuilt",
+        "recreated": 3,
+        "periods": 0,
+        "checkpoints": 2
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:30.000Z",
+      "action": "alerter",
+      "request_id": null,
+      "detail": {
+        "code": "file_perdue",
+        "severity": "critique"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:32.000Z",
+      "action": "stocker",
+      "request_id": "ancre_registre_point:0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
+      "detail": {
+        "sha256": "0xe0a220b0e794292c75c84149bb4bd705a4c18c4ff4e0c182c014deb2a6eec653",
+        "size": 4096,
+        "bound": null
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:32.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
+      "detail": {
+        "state": "obtenue"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:32.000Z",
+      "action": "alerter",
+      "request_id": "ancre_registre_point:0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
+      "detail": {
+        "code": "inclusion_late",
+        "severity": "mineure"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:32.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:32.000Z",
+      "action": "envoyer_registre",
+      "request_id": "ancre_registre_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "fingerprint": "0xa7f0a30f11f724f5ae4bd7ba952079fa513dfe0ed70c051bdfc5bbe9c67b3792",
+        "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:33.000Z",
+      "action": "stocker",
+      "request_id": "ancre_registre_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "sha256": "0xfa31fdb0b1409352c35a8e8cb8eaf74eeb8a4faea6a5fe8f5b46bdbfa6f7d967",
+        "size": 4096,
+        "bound": null
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:33.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "state": "obtenue"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:33.000Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:33.000Z",
+      "action": "envoyer_rfc3161",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "provider": "tsa-interne",
+        "attempt": 1,
+        "digest": "0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+        "nonce": "0x9cd8e6f026675bc3",
+        "policy_oid": "1.3.6.1.4.1.99999.1.1",
+        "request_sha256": "0x6f88f4e45d32b85bd8a49454ac91a0bf859a7b58225be8de0fc634aa59d787bd",
+        "request_size": 82
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:33.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:33.000Z",
+      "action": "envoyer_registre",
+      "request_id": "ancre_registre_point:0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153",
+      "detail": {
+        "fingerprint": "0xe2a9b1f020f6c1d383e63014cfc0d62e7481d27c0136a8ecf81c3170d8c0c020",
+        "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:34.000Z",
+      "action": "stocker",
+      "request_id": "ancre_registre_point:0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153",
+      "detail": {
+        "sha256": "0x202e37417a76795128976827a6d81ef7de3148f6c9b01749345415624c54d6bd",
+        "size": 4096,
+        "bound": null
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:34.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153",
+      "detail": {
+        "state": "obtenue"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "stocker",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "sha256": "0x280cd2543d695c068853c3c79af58b63d8199a361ec105d0a068ccea2145efe5",
+        "size": 2104,
+        "bound": "2026-11-03T14:01:35.000Z"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "state": "obtenue"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 1,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 2,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 3,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 4,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 5,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 6,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 7,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 8,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 9,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 10,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "k": 11,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:35.000Z",
+      "action": "journaliser",
+      "request_id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "detail": {
+        "event": "checkpoint_countersigned",
+        "tree_size": 5,
+        "provider": "tsa-interne",
+        "deadlines": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "d_jeton_s": 395,
+        "d_point_s": 300,
+        "d_admission_s": 90,
+        "d_attente_s": 3,
+        "d_releve_s": 0,
+        "d_tsa_s": 2
+      }
+    },
+    {
+      "t": "2026-11-03T14:01:40.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "anchoring_stopped",
+        "queue_entries": 4
+      }
+    }
+  ],
+  "queue_after": [
+    {
+      "attempts": [
+        {
+          "correlation_id": "ancre_registre_point:3feb86ac4d6d8c05:1",
+          "detail": "ancre incluse au bloc 21150",
+          "error_code": null,
+          "failure_info": null,
+          "http_status": null,
+          "n": 1,
+          "next_at": null,
+          "nonce": null,
+          "outcome": "obtenue",
+          "pki_status": null,
+          "provider": null,
+          "retry_after_s": null,
+          "started_at": "2026-11-03T13:54:00.000Z"
+        }
+      ],
+      "attempts_total": 1,
+      "created_at": "2026-11-03T13:54:00.000Z",
+      "deadlines": [],
+      "due_at": null,
+      "id": "ancre_registre_point:0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
+      "kind": "ancre_registre_point",
+      "replaced_by": null,
+      "result": {
+        "sha256": "0xe0a220b0e794292c75c84149bb4bd705a4c18c4ff4e0c182c014deb2a6eec653",
+        "size": 4096,
+        "provider": null,
+        "obtained_at": "2026-11-03T14:01:32.000Z",
+        "bound": null
+      },
+      "state": "obtenue",
+      "subject": {
+        "declared_at": "2026-11-03T13:54:00.000Z",
+        "hash": "0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
+        "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+        "kind": "point",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "period_start": 1793710800,
+        "tree_size": 4
+      },
+      "version": 0
+    },
+    {
+      "version": 0,
+      "id": "ancre_registre_point:0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153",
+      "kind": "ancre_registre_point",
+      "subject": {
+        "kind": "point",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+        "period_start": 1793714400,
+        "hash": "0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153",
+        "tree_size": 0,
+        "declared_at": "2026-11-03T14:01:00.000Z"
+      },
+      "deadlines": [],
+      "state": "obtenue",
+      "created_at": "2026-11-03T14:01:30.000Z",
+      "due_at": null,
+      "attempts": [
+        {
+          "n": 1,
+          "provider": null,
+          "started_at": "2026-11-03T14:01:33.000Z",
+          "nonce": null,
+          "correlation_id": "ancre_registre_point:3c4bd86148138e52:1",
+          "outcome": "obtenue",
+          "error_code": null,
+          "http_status": null,
+          "pki_status": null,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": null,
+          "detail": "ancre incluse au bloc 21152"
+        }
+      ],
+      "attempts_total": 1,
+      "result": {
+        "sha256": "0x202e37417a76795128976827a6d81ef7de3148f6c9b01749345415624c54d6bd",
+        "size": 4096,
+        "provider": null,
+        "obtained_at": "2026-11-03T14:01:34.000Z",
+        "bound": null
+      },
+      "replaced_by": null
+    },
+    {
+      "version": 0,
+      "id": "ancre_registre_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "kind": "ancre_registre_point",
+      "subject": {
+        "kind": "point",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+        "period_start": 1793710800,
+        "hash": "0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+        "tree_size": 5,
+        "declared_at": "2026-11-03T14:00:00.250Z"
+      },
+      "deadlines": [],
+      "state": "obtenue",
+      "created_at": "2026-11-03T14:01:30.000Z",
+      "due_at": null,
+      "attempts": [
+        {
+          "n": 1,
+          "provider": null,
+          "started_at": "2026-11-03T14:01:32.000Z",
+          "nonce": null,
+          "correlation_id": "ancre_registre_point:804585ae4e9601a9:1",
+          "outcome": "obtenue",
+          "error_code": null,
+          "http_status": null,
+          "pki_status": null,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": null,
+          "detail": "ancre incluse au bloc 21151"
+        }
+      ],
+      "attempts_total": 1,
+      "result": {
+        "sha256": "0xfa31fdb0b1409352c35a8e8cb8eaf74eeb8a4faea6a5fe8f5b46bdbfa6f7d967",
+        "size": 4096,
+        "provider": null,
+        "obtained_at": "2026-11-03T14:01:33.000Z",
+        "bound": null
+      },
+      "replaced_by": null
+    },
+    {
+      "version": 0,
+      "id": "jeton_point:0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+      "kind": "jeton_point",
+      "subject": {
+        "kind": "point",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+        "period_start": 1793710800,
+        "hash": "0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+        "tree_size": 5,
+        "declared_at": "2026-11-03T14:00:00.250Z"
+      },
+      "deadlines": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "state": "obtenue",
+      "created_at": "2026-11-03T14:01:30.000Z",
+      "due_at": null,
+      "attempts": [
+        {
+          "n": 1,
+          "provider": "tsa-interne",
+          "started_at": "2026-11-03T14:01:33.000Z",
+          "nonce": "0x9cd8e6f026675bc3",
+          "correlation_id": "jeton_point:804585ae4e9601a9:1",
+          "outcome": "obtenue",
+          "error_code": null,
+          "http_status": 200,
+          "pki_status": 0,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": null,
+          "detail": "granted ; T-1 a T-9 reussies"
+        }
+      ],
+      "attempts_total": 1,
+      "result": {
+        "sha256": "0x280cd2543d695c068853c3c79af58b63d8199a361ec105d0a068ccea2145efe5",
+        "size": 2104,
+        "provider": "tsa-interne",
+        "obtained_at": "2026-11-03T14:01:35.000Z",
+        "bound": "2026-11-03T14:01:35.000Z"
+      },
+      "replaced_by": null
+    }
+  ]
+}

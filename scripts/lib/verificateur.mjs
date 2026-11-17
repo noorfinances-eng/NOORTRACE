@@ -1250,21 +1250,23 @@ export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEve
     fr.push(` ; l'événement est signé, comme le manifeste, par la clé d'enregistreur ${cleEvenement}, ${provenanceTexte.fr}`);
     en.push(`; the event is signed, like the manifest, by recorder key ${cleEvenement}, ${provenanceTexte.en}`);
   }
-  // F3 : selon approval.decision (approuve, refuse, expire).
+  // F3 : selon approval.decision (approuve, refuse, expire). Les approbateurs
+  // signent la demande (request_hash, ticket : CT-1 §6.3), non l'appel prouvé :
+  // une approbation ou un refus est dit de la demande qu'il nomme (EX-6.8, §7.2).
   if (approbation) {
     const k = approbation.approvers.length;
     const sig = k === 1 ? "1 signature" : `${k} signatures`;
     const seuilFr = `seuil de ${approbation.threshold.required} sur ${approbation.threshold.size} du jeu déclaré par le dossier`;
     const seuilEn = `threshold ${approbation.threshold.required} of ${approbation.threshold.size} of the set declared by the dossier`;
     if (approbation.decision === "refuse") {
-      fr.push(` ; l'événement porte un refus signé par ${joindreListe(approbation.approvers, "fr")} (${sig}, ${seuilFr})`);
-      en.push(`; the event carries a refusal signed by ${joindreListe(approbation.approvers, "en")} (${sig}, ${seuilEn})`);
+      fr.push(` ; l'événement porte le refus de la demande ${approbation.request_hash} (ticket ${approbation.ticket}), signé par ${joindreListe(approbation.approvers, "fr")} (${sig}, ${seuilFr})`);
+      en.push(`; the event carries the refusal of request ${approbation.request_hash} (ticket ${approbation.ticket}), signed by ${joindreListe(approbation.approvers, "en")} (${sig}, ${seuilEn})`);
     } else if (approbation.decision === "expire") {
       fr.push(` ; l'événement porte une demande d'approbation expirée sans signature (${seuilFr})`);
       en.push(`; the event carries an approval request that expired without signature (${seuilEn})`);
     } else {
-      fr.push(` ; l'événement a été approuvé par ${joindreListe(approbation.approvers, "fr")} (${sig}, ${seuilFr})`);
-      en.push(`; the event was approved by ${joindreListe(approbation.approvers, "en")} (${sig}, ${seuilEn})`);
+      fr.push(` ; l'événement porte l'approbation de la demande ${approbation.request_hash} (ticket ${approbation.ticket}), signée par ${joindreListe(approbation.approvers, "fr")} (${sig}, ${seuilFr})`);
+      en.push(`; the event carries the approval of request ${approbation.request_hash} (ticket ${approbation.ticket}), signed by ${joindreListe(approbation.approvers, "en")} (${sig}, ${seuilEn})`);
     }
   }
   // F4, F5, F6

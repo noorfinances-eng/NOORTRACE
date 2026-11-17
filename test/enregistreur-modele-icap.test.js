@@ -341,6 +341,32 @@ describe("enregistreur, frontal modèle : mode ICAP (EX-5.3 à EX-5.5, EX-14.12)
       expect(derniere("model_route_not_found").data).to.include({ mode: "icap" });
     });
 
+    it("CT-2 §5.8 (complément du 2026-11-16) : requête hors des routes en mode icap : ni bloquée ni capturée ; REQMOD et RESPMOD rendus inchangés, model_route_not_found (méthode, longueur du chemin, mode), aucune pièce, aucun événement", async function () {
+      const pieces = () => (fs.existsSync(coeur.pieces.racine) ? fs.readdirSync(coeur.pieces.racine, { recursive: true }).filter((x) => fs.statSync(path.join(coeur.pieces.racine, x)).isFile()).length : 0);
+      const n = await nb();
+      const p = pieces();
+      const corps = Buffer.from(JSON.stringify({ model: "m", input: "Texte de l'agent" }));
+      const depart = "POST https://api.fournisseur.example/v1/embeddings?dimensions=8 HTTP/1.1";
+      const r1 = await transaction(adresse, { methode: "REQMOD", service: "/noortrace/reqmod", entetes: { ...IDENT, Allow: "204" }, req: enteteRequete(depart, [["Host", "api.fournisseur.example"], ["Content-Type", "application/json"], ["Content-Length", String(corps.length)]]), corps: [corps] });
+      expect(r1.statut).to.equal(200);
+      expect(r1.entetes.encapsulated).to.match(/^req-hdr=0, req-body=[0-9]+$/);
+      const h = lireEntete(r1.sections["req-hdr"]);
+      expect(h.depart).to.equal(depart);
+      expect(h.entetes.map(([x]) => x.toLowerCase())).to.not.include("x-noortrace-exchange");
+      expect(r1.corps.equals(corps)).to.equal(true);
+      expect(derniere("model_route_not_found").data).to.deep.equal({ method: "POST", path_length: Buffer.byteLength("/v1/embeddings?dimensions=8"), mode: "icap" });
+      const rep = Buffer.from('{"data":[{"embedding":[0.5]}]}');
+      const r2 = await transaction(adresse, { methode: "RESPMOD", service: "/noortrace/respmod", entetes: IDENT, req: r1.sections["req-hdr"], res: "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n", corps: [rep] });
+      expect(r2.statut).to.equal(200);
+      expect(lireEntete(r2.sections["res-hdr"]).depart).to.equal("HTTP/1.1 200 OK");
+      expect(r2.corps.equals(rep)).to.equal(true);
+      expect(derniere("icap_respmod_non_capture").data).to.deep.equal({ reason: "route_ou_hote" });
+      expect(fs.readFileSync(config.supervision.ops_log.path, "utf8")).to.not.include("Texte de l'agent");
+      await pause(100);
+      expect(await nb()).to.equal(n);
+      expect(pieces()).to.equal(p);
+    });
+
     it("une requête partie sans RESPMOD dans le délai du premier octet : échange is_error, pièce noortrace_timeout", async function () {
       const s = await ouvrir((c) => {
         c.model.first_byte_timeout_ms = 300;

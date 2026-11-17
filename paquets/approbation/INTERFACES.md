@@ -141,7 +141,15 @@ Les règles de l'annuaire ont une seule implémentation, celle de
 `entreeActive`, `adresseActive`, `sessionDeLOrganisation`, `adressesConnues`,
 `annuaireDeSession`, `verifierInscription`, `appliquerOperation`,
 `defisNonExpires`, `recopierAdministrateurs`, `controleCanal`,
-`verifierAnnuaireExporte`. `src/annuaire.mjs` n'en garde aucune copie : le
+`verifierAnnuaireExporte`, `expirerEntrees`. Complément du 2026-11-16
+(décision du porteur, CT-3 EX-13.17, « Expiration ») : avant de traiter
+chaque requête du canal de la console, le service retire par l'opération
+`expirer` chaque entrée jamais validée dont l'échéance
+`created_at + registration_entry_ttl_ms` est atteinte, persiste l'annuaire,
+consigne `operation_annuaire` (méthode `expirer`) et notifie
+`operation_annuaire` à l'entrée retirée ; un défi présenté est retiré des
+défis tenus, et ceux qu'un état plus ancien porterait marqués présentés sont
+écartés au démarrage. `src/annuaire.mjs` n'en garde aucune copie : le
 prédicat `identiteCanonique`, la classe `Annuaire` et `controleCanal` de
 l'étape 4 sont retirés au profit de ces imports (le paquet dépend déjà de
 `@noortrace/console`). Le service garde l'état de l'annuaire (document

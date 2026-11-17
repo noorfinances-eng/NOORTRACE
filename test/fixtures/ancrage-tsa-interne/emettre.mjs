@@ -8,7 +8,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { Autorite, Compteur, ErreurCompteur, repondre } from "@noortrace/ancrage/serveur-interne";
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -46,4 +46,4 @@ async function principal() {
   autorite.fermer();
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await principal();
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) await principal();

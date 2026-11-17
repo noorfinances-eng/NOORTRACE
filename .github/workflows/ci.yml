@@ -210,7 +210,8 @@ jobs:
       # Vérificateur de renvois de CT-7 (EX-A.13, EX-A.18) : RV-1 à RV-9 (chaque
       # renvoi EX- de menaces.json et de la table de traçabilité existe, chaque
       # menace a une réponse, tables du texte égales au fichier, occurrences de
-      # « CT-7 » toutes tracées) et MX-1 à MX-9 sur matrice-conformite.json.
+      # « CT-7 » toutes tracées, à leur numéro de ligne ; renvois « l. N » hors
+      # des tables sur leur ancre) et MX-1 à MX-9 sur matrice-conformite.json.
       - name: vérificateur de renvois et de la matrice de CT-7 (code 0 exigé)
         run: node scripts/conformite/verifier-renvois.mjs
       - name: vérificateur de procès-verbal de cérémonie sur l'exemple de CT-7 §5.10 (code 0)
@@ -253,8 +254,8 @@ jobs:
             NOORCORE_LEADER_RPC=https://registre-test.example/rpc \
             docker compose --project-directory deploiement -f deploiement/compose/production.yaml config --quiet
       # Renvois vers CT-8 (EX-0.1, annexe A.2) : chaque occurrence de « CT-8 »
-      # de spec/*.md a sa ligne dans la table de CT-8 §0.2, et chaque réponse
-      # cite des identifiants qui existent dans CT-8.
+      # de spec/*.md a sa ligne dans la table de CT-8 §0.2, à son numéro de
+      # ligne, et chaque réponse cite des identifiants qui existent dans CT-8.
       - name: vérificateur de renvois de CT-8 (code 0 exigé)
         run: npm run deploiement:renvois
       # Calculateur et contrôle préalable rejoués sur un cas de chaque famille

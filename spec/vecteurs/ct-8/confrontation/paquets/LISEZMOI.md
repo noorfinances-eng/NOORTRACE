@@ -61,7 +61,7 @@ chaque sortie donne le bilan.
 Treize archives. Aucune discordance ; aucun des deux outils n'a écrit hors
 de son répertoire de destination ; `valide.tar` est reconstruit à
 l'identique par GNU tar (SHA-256
-`8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982`).
+`df2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd`).
 
 | Archive | Règle de CT-8 | GNU tar | `tarfile` (`data`) |
 |---|---|---|---|

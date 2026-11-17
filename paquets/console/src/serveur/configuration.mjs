@@ -12,7 +12,7 @@ import crypto from "node:crypto";
 import tls from "node:tls";
 import { fileURLToPath } from "node:url";
 import { RegistreSchemas, lireJsonStrict } from "@noortrace/approbation";
-import { ErreurDemarrage, blocsPem, retirerBlancs } from "./outils.mjs";
+import { ErreurDemarrage, blocsPem, retirerBlancs, cheminPriseTropLong } from "./outils.mjs";
 
 /** Répertoire des copies des schémas (comparées à spec/schemas par les essais). */
 export const REPERTOIRE_SCHEMAS = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "schemas");
@@ -119,6 +119,9 @@ export function erreursDocument(doc) {
   // `Origin` ; une origine qui l'écrit ferait refuser chaque requête.
   if (doc.console_origin.endsWith(":443")) errors.push({ code: "origine_port_par_defaut", pointer: "/console_origin" });
   if (url !== null && !urlLisible(url)) errors.push({ code: "url_illisible", pointer: "/service/url" });
+  // Complément du 2026-11-16 : au-delà de 103 octets, Node.js tronquerait le
+  // chemin et le serveur joindrait une autre prise que celle du service.
+  if (cheminPriseTropLong(doc.service.socket)) errors.push({ code: "chemin_prise_trop_long", pointer: "/service/socket" });
   return trier(errors);
 }
 

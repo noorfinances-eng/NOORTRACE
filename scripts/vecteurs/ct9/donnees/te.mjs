@@ -607,6 +607,7 @@ export const TE = [
       "CT-8 EX-11.22",
       "CT-8 EX-11.23",
       "CT-8 EX-11.24",
+      "CT-2 EX-11.16",
       "CT-2 EX-12.16",
       "CT-2 EX-12.17",
       "CT-7 EX-8.12",
@@ -619,7 +620,7 @@ export const TE = [
     "steps": [
       "Sauvegarder ; détruire le volume ; restaurer par le chemin A, puis B, puis C sur trois copies du déploiement ; vérifier la continuité de la chaîne et les procès-verbaux par `proces-verbal.mjs verifier`."
     ],
-    "oracle": "Après chaque chemin, le vérificateur accepte un dossier qui chevauche la reprise ; PV-1 à PV-10 réussies ; les durées sont publiées (mesure TM-37 : RPO et RTO par composant, cadence de sauvegarde ; rapport de mesure, jamais la consignation), aucune n'est inventée.",
+    "oracle": "Après chaque chemin, le vérificateur accepte un dossier qui chevauche la reprise (chemins A et B) ; chemin C : `noortrace-ctl journal verifier-successeur` rend `lien_valide`, `last_seq` et `last_hash` du lien égaux à la fin de l'ancien journal établie par `verifier-journal.mjs`, et refuse un lien faussé (CT-2 EX-11.16) ; PV-1 à PV-10 réussies ; les durées sont publiées (mesure TM-37 : RPO et RTO par composant, cadence de sauvegarde ; rapport de mesure, jamais la consignation), aucune n'est inventée ; chemin C, pas 5 : inscription du nouveau journal relayée et capturée, ancienne clé de chaîne révoquée (réinscription refusée), premier événement du nouveau journal à `seq` 1 et `prev_hash` nul.",
     "status": {
       "state": "executable",
       "tests": [
@@ -638,12 +639,20 @@ export const TE = [
         {
           "file": "test/enregistreur-worm-restauration.test.js",
           "describe": "reconstruction du journal depuis les copies WORM (CT-2 EX-12.17, CT-8 §11.4 chemin B, EX-10.14)"
+        },
+        {
+          "file": "test/enregistreur-journal-neuf.test.js",
+          "describe": "CT-8 §11.4 chemin C (TE-9) : reprise dans un journal neuf, lien consigné au registre et au journal d'exploitation, contrôlé contre la fin réelle de l'ancien journal (CT-2 EX-11.16)"
+        },
+        {
+          "file": "test/enregistreur-journal-neuf-registre.test.js",
+          "describe": "CT-8 §11.4 chemin C, pas 5 (TE-9) sur le réseau de développement 2124 : inscription du nouveau journal relayée et capturée, ancienne clé de chaîne révoquée, nouveau démon démarré à seq 1 (CT-2 EX-11.16, CT-4 §8.4)"
         }
       ],
-      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-installation.test.js test/enregistreur-worm-restauration.test.js",
+      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-installation.test.js test/enregistreur-worm-restauration.test.js test/enregistreur-journal-neuf.test.js test/enregistreur-journal-neuf-registre.test.js",
       "complement": {
         "phase2_step": 8,
-        "blocking": "Chemin C (journal neuf, rotation de la clé au registre) ; chemins A et B sur une installation en conteneurs, avec le remplissage d'un volume nommé neuf ; durées sur le système de référence (TM-37). L'étape 7 éprouve le chemin A sur le démon réel (sauvegarde, perte du volume, restauration, reprise d'époque supérieure, dossiers valides), l'outil de sauvegarde et l'archivage du journal d'exploitation ; le chemin B l'est par la reconstruction depuis les copies WORM."
+        "blocking": "Partie non écrite, possible dès maintenant avec Docker et les images construites (EX-3.10) : chemins A et B sur une installation en conteneurs, avec le remplissage d'un volume nommé neuf ; les durées des chemins sur le système de référence sont la mesure TM-37. L'étape 7 éprouve le chemin A sur le démon réel (sauvegarde, perte du volume, restauration, reprise d'époque supérieure, dossiers valides), l'outil de sauvegarde et l'archivage du journal d'exploitation ; le chemin B l'est par la reconstruction depuis les copies WORM. L'étape 8 éprouve le chemin C sans réseau (pas 1 à 4 et démarrage du nouveau journal) : ancien journal clos puis clé perdue, nouveau journal à `seq` 1, demande d'inscription signée au seuil par l'outil de référence hors ligne, lien écrit par `noortrace-ctl journal successeur`, contrôlé par `noortrace-ctl journal verifier-successeur` contre la fin établie par `verifier-journal.mjs`, mutants refusés ; puis le pas 5 sur le réseau de développement 2124 (en attente, condition nommée, sans lui), contrats déployés pour l'essai : client inscrit avec l'ancien journal, demande du nouveau journal condensée sur le registre et signée au seuil, inscription relayée (`inscrire-cle`) et capturée, ancienne clé de chaîne révoquée au seuil (`revoquer-cle`) et jamais réinscrite, nouveau démon démarré à `seq` 1."
       }
     },
     "threats": [
@@ -1123,6 +1132,10 @@ export const TE = [
           "describe": "CT-9 TE-16, ligne « clé indisponible » de la matrice de CT-2 §14.2 (et « panne après relais »), rejouée sur le démon réel : Vault suspendu pendant une lecture puis une écriture, puis rétabli"
         },
         {
+          "file": "test/enregistreur-matrice-pannes.test.js",
+          "describe": "CT-9 TE-16 : matrice des pannes de CT-2 §14.2 rejouée sur le démon réel, ligne par ligne, chaque ligne finie par un dossier vérifié par les deux vérificateurs (référence et binaire Go)"
+        },
+        {
           "file": "test/enregistreur-mcp-exigences.test.js",
           "describe": "approbation au pas 3 à 7 (EX-4.49, EX-4.50, EX-7.16, 14.2)",
           "it": "14.2, EX-14.6, EX-14.8 : mode dégradé « stockage » : lecture passante relayée, réponse normale, événement en attente ; écriture bloquée ; « clé » bloque tout"
@@ -1338,7 +1351,7 @@ export const TE = [
       ],
       "complement": {
         "phase2_step": 8,
-        "blocking": "Partie non écrite, possible dès maintenant sur le dépôt (EX-3.10) : le rejeu de la matrice entière sur le démon réel, ligne par ligne, chaque ligne finie par un dossier vérifié par les deux vérificateurs de CT-6 (EX-3.5) — seules « Clé indisponible » et « Panne après relais » sont rejouées ainsi (essai TE-16 de test/enregistreur-signataires-parcours.test.js), les autres lignes sont éprouvées une à une par les essais du paquet, le plus souvent sur le cœur en cours de processus et sans dossier vérifié ; les lignes « Disque presque plein » (`storage.min_free_bytes`, `disk_low`, -31010 `stockage`) et « Mémoire » (bornes `pending_max_events`, `pending_max_ms` et `limits.pending_max_bytes`, `pending_limit_reached`, -31010 `attente`) sont éprouvées sur le chemin du relais par test/enregistreur-coeur-attente-bornes.test.js, sur le cœur en cours de processus et sans dossier vérifié. Étape 8 (tests de bout en bout). Les versions 0.2 à 0.4 rattachaient l'entrée à l'étape 4, faute de signataires des classes A à C (livrés à l'étape 4) et du composant d'ancrage (livré à l'étape 5)."
+        "blocking": "Partie non écrite, possible dès maintenant sur le dépôt (EX-3.10) : dix lignes de la matrice de CT-2 §14.2 restent à rejouer sur le démon réel jusqu'à un dossier vérifié par les deux vérificateurs de CT-6 (EX-3.5) — « Fournisseur de modèle injoignable ou en erreur », « Service d'approbation en défaut », « Rédaction au-delà de la borne de temps », « Remise refusée », « Décision d'approbation en attente », « Décision remise pendant un mode dégradé », « Expiration atteinte pendant un mode dégradé », « Ancrage (CT-5) indisponible », « Ancrage des points (CT-5) indisponible » et « Registre (CT-4) indisponible » ; elles sont éprouvées une à une par les essais du paquet cités, le plus souvent sur le cœur en cours de processus et sans dossier vérifié. Les seize autres lignes sont rejouées ainsi : quatorze par test/enregistreur-matrice-pannes.test.js (stockage coupé par `chattr +i`, disque presque plein sur un tmpfs, horloge murale par libfaketime : superutilisateur et NOORTRACE_LIBFAKETIME exigés, sinon en attente, condition nommée), « Clé indisponible » par test/enregistreur-signataires-parcours.test.js (Vault en conteneur) et « Support WORM » par test/enregistreur-journal-soi.test.js (JS-10, S3 à Object Lock en conteneur). Étape 8 (tests de bout en bout). Les versions 0.2 à 0.4 rattachaient l'entrée à l'étape 4, faute de signataires des classes A à C (livrés à l'étape 4) et du composant d'ancrage (livré à l'étape 5)."
       }
     },
     "threats": [
@@ -1745,6 +1758,125 @@ export const TE = [
     },
     "threats": [
       "MN-101"
+    ]
+  },
+  {
+    "id": "TE-24",
+    "level": "TE",
+    "title": "Clé de chaîne vue par le composant d'ancrage, son relais d'inscription et le démon : OP-9 pour l'ancre d'une période, OP-8 « autre organisation », bloc de déploiement transmis, refus pour débit",
+    "specs": [],
+    "covers": [
+      "CT-4 OP-8",
+      "CT-4 OP-9",
+      "CT-4 EX-8.22",
+      "CT-5 EX-9.4"
+    ],
+    "preconditions": [
+      "Composant d'ancrage `paquets/ancrage` et démon de l'enregistreur du dépôt ; nœud factice du registre qui sert `recorderByPubKey`, `isActiveRecorder` et les journaux `RecorderRegistered`, avec des refus pour débit (`-32000`, `rate limited`) à la demande ; aucun réseau."
+    ],
+    "steps": [
+      "Envoyer l'ancre d'une période et celle d'un point sous une clé de chaîne inscrite pour une autre clé Ed25519 que celle du manifeste.",
+      "Relayer pendant une rotation l'inscription d'une clé de chaîne déjà inscrite sous une autre organisation, active ou révoquée ; démarrer le démon sur un manifeste d'instance qui donne le bloc de déploiement du contrat ; faire refuser des tranches de la lecture pour débit."
+    ],
+    "oracle": "Ancre de période et ancre de point refusées `cle_chaine_non_inscrite` sans envoi (OP-9) ; relais refusé `cle_chaine_autre_organisation`, sans envoi (OP-8, EX-8.22) ; le relais lit depuis le bloc de déploiement transmis par le démon ; une tranche refusée pour débit est redemandée aux mêmes paramètres après une pause croissante, et la vérification n'est jamais sautée (lecture impossible : `noeud_injoignable`) ; mutants tués.",
+    "status": {
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/ancrage-registre-cle-manifeste.test.js",
+          "describe": "CT-4 OP-9 : l'ancre d'une période vérifie, comme celle d'un point, que la clé du manifeste est inscrite sous la clé de chaîne qui envoie (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-registre-inscription-organisation.test.js",
+          "describe": "composant d'ancrage, relais d'inscription : clé de chaîne d'une autre organisation (CT-4 OP-8, EX-8.22, complément du 2026-11-16 ; CT-5 EX-9.4)"
+        },
+        {
+          "file": "test/ancrage-registre-refus-debit.test.js",
+          "describe": "CT-4 OP-8, lecture inscriptionAilleurs : refus pour débit du nœud (-32000 rate limited) refait après une pause, jamais une vérification sautée"
+        },
+        {
+          "file": "test/enregistreur-ancrage-registre-deploiement.test.js",
+          "describe": "démon enregistreur et composant d'ancrage : bloc de déploiement du RecorderRegistry transmis au relais d'inscription (CT-4 OP-8, complément du 2026-11-16)"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/ancrage-registre-cle-manifeste.test.js test/ancrage-registre-inscription-organisation.test.js test/ancrage-registre-refus-debit.test.js test/enregistreur-ancrage-registre-deploiement.test.js"
+    },
+    "threats": [
+      "MN-55"
+    ]
+  },
+  {
+    "id": "TE-25",
+    "level": "TE",
+    "title": "Prises Unix d'au plus 103 octets et lignes de commande strictes des programmes livrés : démon, miroir et connecteur, service d'approbation, serveur de console, agent et interface d'inscription, composant d'ancrage, serveur RFC 3161 interne",
+    "specs": [],
+    "covers": [
+      "CT-2 EX-6.10",
+      "CT-2 EX-18.1",
+      "CT-2 EX-5.6",
+      "CT-3 EX-10.12",
+      "CT-3 EX-10.13",
+      "CT-3 EX-12.2",
+      "CT-4 EX-7.28",
+      "CT-5 EX-8.13",
+      "CT-5 §7"
+    ],
+    "preconditions": [
+      "Paquets `enregistreur`, `approbation`, `console`, `inscription` et `ancrage` du dépôt et leurs programmes de `bin/` ; répertoire temporaire au nom assez long pour porter des chemins de 103, 104 et plus de 107 octets ; aucun réseau."
+    ],
+    "steps": [
+      "Valider des configurations dont un membre de prise fait 103, puis 104 octets (et 108 octets UTF-8 en 59 caractères) ; démarrer chaque programme et joindre chaque prise cliente sur ces chemins.",
+      "Lancer chaque programme avec une option inconnue, en double, sans sa valeur, un argument en trop et les deux formes mêlées d'une commande ; relancer les formes admises."
+    ],
+    "oracle": "`chemin_prise_trop_long` au pointeur du membre au-delà de 103 octets UTF-8, à la validation, au démarrage (code du programme : 2 pour le démon et l'inscription, 1 pour le service et la console) et avant toute connexion ; aucune prise créée, ni au chemin ni dans le répertoire parent, et une prise de 103 octets écoutée à son chemin exact ; chaque ligne de commande fautive rend l'usage et le code 2 sans écouter ni écrire ; les formes admises et les codes des sondes sont inchangés.",
+    "status": {
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-prises-unix.test.js",
+          "describe": "enregistreur : longueur des chemins de prise Unix (CT-2 EX-18.1, EX-6.10, complément du 2026-11-16)"
+        },
+        {
+          "file": "test/enregistreur-prises-unix.test.js",
+          "describe": "enregistreur : lignes de commande strictes de noortrace-miroir, noortrace-connecteur et noortrace validate-config (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/approbation-prises-unix.test.js",
+          "describe": "service d'approbation : longueur des chemins de prise Unix (CT-3 EX-12.2, EX-10.12 ; CT-2 EX-6.10 ; complément du 2026-11-16)"
+        },
+        {
+          "file": "test/approbation-prises-unix.test.js",
+          "describe": "noortrace-approbation : ligne de commande stricte (CT-3 EX-10.12 ; complément du 2026-11-16)"
+        },
+        {
+          "file": "test/exploitation-console-prises-unix.test.js",
+          "describe": "serveur de console : longueur du chemin de la prise du service (CT-3 EX-10.13, EX-12.2 ; CT-2 EX-6.10 ; complément du 2026-11-16)"
+        },
+        {
+          "file": "test/exploitation-console-prises-unix.test.js",
+          "describe": "noortrace-console : ligne de commande stricte (CT-3 EX-10.13 ; complément du 2026-11-16)"
+        },
+        {
+          "file": "test/inscription-prises-unix.test.js",
+          "describe": "inscription : longueur du chemin de la prise de l'agent (CT-4 EX-7.28 ; CT-2 EX-6.10 ; complément du 2026-11-16)"
+        },
+        {
+          "file": "test/inscription-prises-unix.test.js",
+          "describe": "inscription : lignes de commande strictes (complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-lignes-de-commande.test.js",
+          "describe": "noortrace-ancrage : ligne de commande stricte (CT-5 EX-8.13 ; complément du 2026-11-16)"
+        },
+        {
+          "file": "test/ancrage-lignes-de-commande.test.js",
+          "describe": "noortrace-tsa-interne : ligne de commande stricte (CT-5 §7 ; complément du 2026-11-16)"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-prises-unix.test.js test/approbation-prises-unix.test.js test/exploitation-console-prises-unix.test.js test/inscription-prises-unix.test.js test/ancrage-lignes-de-commande.test.js"
+    },
+    "threats": [
+      "MN-12"
     ]
   }
 ];

@@ -114,7 +114,7 @@ describe("enregistreur, SDK Python noortrace-sdk et adaptateurs de cadres Python
         const r = pytest(python, ["tests/test_sdk.py", "tests/test_vecteurs.py"]);
         exigerSucces(r, 26);
         // Vecteurs rejoués (annexe B) : nombre de cas par famille.
-        expect(r.sortie).to.match(/noortrace-vecteurs redaction pii-v1 : 59 cas rejoues/);
+        expect(r.sortie).to.match(/noortrace-vecteurs redaction pii-v1 : 68 cas rejoues/);
         expect(r.sortie).to.match(/noortrace-vecteurs redaction pii-pseudo-test : 6 cas rejoues/);
         expect(r.sortie).to.match(/noortrace-vecteurs pieces-mcp : 17 cas rejoues/);
       });

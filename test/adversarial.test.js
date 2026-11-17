@@ -1102,8 +1102,8 @@ describe("CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques
 
     it("TA-64 (MN-64) : planification/file-perdue.json : les demandes manquantes sont recréées au démarrage et l'alerte file_perdue est levée ; mutant sans la reconstruction : la trace diverge dès le pas 1 et sur la file finale ; mutant sans l'alerte : la trace diverge au pas 17 (tués)", async function () {
       await traceDiverge("file-perdue", mutant("mn64-reconstruction", [
-        { fichier: "lib/ancrage.mjs", ancien: "      this.periodeClose(t, m, { seulement: manquantes });\n", nouveau: "      ;\n" },
-        { fichier: "lib/ancrage.mjs", ancien: "      this.pointProduit(t, k);\n", nouveau: "      ;\n" },
+        { fichier: "lib/ancrage.mjs", ancien: "      this.periodeClose(t, m, { seulement: manquantes, acquisitions });\n", nouveau: "      ;\n" },
+        { fichier: "lib/ancrage.mjs", ancien: "      this.pointProduit(t, k, { acquisitions });\n", nouveau: "      ;\n" },
       ]), { index: 1, attendu: "ecrire_file", file: true });
       await traceDiverge("file-perdue", mutant("mn64-alerte", [{ fichier: "lib/ancrage.mjs", ancien: 'if (recreees > 0) this.alerter(t, null, "file_perdue", "critique");', nouveau: 'if (false) this.alerter(t, null, "file_perdue", "critique");' }]), { index: 17, attendu: "alerter" });
     });
@@ -3303,6 +3303,14 @@ describe("CT-9 §10.5 : scénarios adversariaux joués sur la démonstration de 
       expect(ev.every((e, i) => i === 0 || (e.seq === ev[i - 1].seq + 1 && e.prev_hash === N.hacherEvenement(ev[i - 1]))), "chaîne continue sans fourche").to.equal(true);
       expect(ev.length, "l'événement de la ligne déchirée est perdu, les suivants repartent").to.be.at.least(evAvant.length - 1);
       // File d'ancrage effacée pendant un arrêt : reconstruite, alerte file_perdue.
+      // Précondition : un point de contrôle est au stockage avant l'arrêt. L'enregistreur produit ses points à la cadence
+      // c_K (checkpoint_interval_s) ; quand ses deux marches de ce scénario tombent chacune entre deux limites de c_K,
+      // il n'en a produit aucun, la file ne porte aucune demande, et rien n'est à recréer : CT-5 EX-8.12 ne recrée que
+      // les demandes d'une période close et celles du dernier point d'une période ouverte, et ne lève file_perdue que si
+      // au moins une demande est recréée. L'appel ci-dessus est un événement nouveau : le point suivant le couvre.
+      const cK = JSON.parse(fs.readFileSync(path.join(passage, "configuration-pannes.json"), "utf8")).checkpoint_interval_s ?? 60;
+      const point = await P.jusqua((3 * cK + 30) * 1000, () => c.points(CONFIG).length > 0, 1000);
+      expect(point, `un point de contrôle est au stockage avant l'arrêt (attendu au plus ${3 * cK + 30} s)`).to.equal(true);
       const nOps2 = c.journalExploitation().length;
       c.dc(["stop", "-t", "10", "enregistreur"]);
       const file = JSON.parse(c.ecrireVolume("journal", `const fs=require("fs");const d="/v/ancrage";const l=fs.existsSync(d)?fs.readdirSync(d,{recursive:true}):[];console.log(JSON.stringify(l));fs.rmSync(d,{recursive:true,force:true});`).trim().split("\n").at(-1));

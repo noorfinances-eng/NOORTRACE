@@ -428,3 +428,203 @@ describe("CT-5, référence : règle 4 d'AN-1, auth.method et auth.secret cohér
     expect(oracle(M)).to.equal(false);
   });
 });
+
+// --- Décision du porteur du 2026-11-16 (variante B) : repli de clôture après le refus empreinte_squattee de l'ancre de
+// la période. EX-8.4, règle 2 : squat_wait_s après la clôture, si jeton_periode est encore attente_registre, le point
+// de clôture reçoit une demande jeton_point sans échéance ; EX-9.7 : sur l'ancre d'une période refusée, ce jeton date la
+// tête. Scénario : période 1 de référence avec c_T = 600 s (n_T = 6) ; D_5 (13:50) est servie par K2, de sorte que le
+// point de clôture K4 (tree_size 5) n'a aucune échéance ; l'ancre de la période est refusée à 14:00:03, avant
+// squat_wait_s (5 s) après la clôture.
+import * as Composant from "@noortrace/ancrage/planificateur";
+
+/** Trace du repli après refus, construite sur les entrées de la trace de référence (sans attendu). */
+function traceRepliApresRefus() {
+  const ref = lireJSON(CT5, "planification", "heure-nominale-reference.json");
+  const config = JSON.parse(JSON.stringify(ref.config));
+  config.rfc3161.checkpoints.interval_s = 600;
+  const e = ref.inputs;
+  const ap1 = e[16].data.request_id;
+  const jetonK4 = { ...e[15], t: "2026-11-03T14:00:07.000Z", data: { ...e[15].data, gen_time: "2026-11-03T14:00:06Z" } };
+  const inputs = [
+    ...e.slice(0, 15),
+    { t: "2026-11-03T14:00:03.000Z", type: "echec_registre", data: { request_id: ap1, code: "empreinte_squattee" } },
+    jetonK4,
+    { t: "2026-11-03T14:01:10.000Z", type: "tic", data: {} },
+    { t: "2026-11-03T14:02:10.000Z", type: "tic", data: {} },
+    { t: "2026-11-03T14:03:00.000Z", type: "arret", data: {} },
+  ];
+  return { ...ref, id: "repli-apres-refus", description: "essai", config, inputs, expected: [], queue_after: [] };
+}
+
+describe("CT-5, référence : repli de clôture après le refus empreinte_squattee de l'ancre de la période (EX-8.4 règle 2, EX-9.7 ; décision du porteur du 2026-11-16)", function () {
+  this.timeout(120000);
+  let A;
+  before(async function () {
+    A = await importer(RACINE);
+  });
+  const oracle = (M) => {
+    const base = traceRepliApresRefus();
+    const r = M.rejouerTrace(base);
+    const jk4 = r.file.find((d) => d.kind === "jeton_point" && d.subject.declared_at === "2026-11-03T14:00:00.250Z");
+    const repli = r.actions.filter((a) => a.action === "journaliser" && a.detail.event === "checkpoint_closing_fallback");
+    const pendings = r.actions.filter((a) => a.action === "journaliser" && a.detail.event === "registry_pending").map((a) => a.t);
+    const jp = r.file.find((d) => d.kind === "jeton_periode");
+    return { r, ok: repli.length === 1 && repli[0].t === "2026-11-03T14:00:05.250Z" && Boolean(jk4) && jk4.state === "obtenue" && jk4.deadlines.length === 0 && jp.state === "attente_registre" && r.actions.filter((a) => a.action === "envoyer_rfc3161" && a.request_id === jp.id).length === 0 && JSON.stringify(pendings) === JSON.stringify(["2026-11-03T14:01:00.250Z", "2026-11-03T14:02:00.250Z"]) };
+  };
+  it("CT-5 EX-9.7, EX-8.4 règle 2 : l'ancre de la période refusée avant squat_wait_s, le point de clôture sans échéance reçoit son jeton de repli à 14:00:05.250 (checkpoint_closing_fallback) et l'obtient ; le jeton de clôture reste attente_registre, registry_pending à 14:01:00.250 et 14:02:00.250 ; le composant d'ancrage rejoue la trace sans écart", function () {
+    const { r, ok } = oracle(A);
+    expect(ok).to.equal(true);
+    const trace = { ...traceRepliApresRefus(), expected: r.actions, queue_after: r.file };
+    expect(A.verifierTrace(trace)).to.deep.equal([]);
+    expect(Composant.rejouerTrace(trace).ecarts).to.deep.equal([]);
+  });
+  it("mutant CT-5 EX-9.7 (repli) : un repli de clôture abandonné sur une ancre refusée laisse la tête de la période sans jeton (tué par l'oracle)", async function () {
+    const M = await importer(mutant("squat-repli", "if (!ancre) return;\n        this.repliCloture(d, t);", "if (!ancre || ancre.state === \"refusee\") return;\n        this.repliCloture(d, t);"));
+    expect(oracle(M).ok).to.equal(false);
+  });
+});
+
+// --- Revue de l'étape 8 (EX-8.10) : au plus REJEUX_PAR_PASSE_MAX rejeux d'une minuterie périodique (renvoi d'une ancre,
+// examen de l'attente du registre) par demande et par passe ; au-delà, les échéances sautées sont comptées sur la ligne
+// anchor_retry (missed_deadlines), jamais rejouées une à une. Scénario : clôture de la période 1 de référence, l'ancre de
+// la période envoyée à 14:00:02 n'est pas incluse ; l'horloge saute de 14:00:03 à 14:40:00 (inclusion_alert_s = 60 s).
+function traceSautHorloge() {
+  const ref = lireJSON(CT5, "planification", "heure-nominale-reference.json");
+  const e = ref.inputs;
+  const inclusionAp1 = { ...e[16], t: "2026-11-03T14:40:01.000Z" };
+  const jetonPh1 = { ...e[17], t: "2026-11-03T14:40:03.000Z", data: { ...e[17].data, gen_time: "2026-11-03T14:40:02Z" } };
+  const inputs = [
+    { ...e[0], t: "2026-11-03T13:59:00.000Z" },
+    ...e.slice(11, 16),
+    { t: "2026-11-03T14:40:00.000Z", type: "tic", data: {} },
+    inclusionAp1,
+    jetonPh1,
+    { t: "2026-11-03T14:41:00.000Z", type: "arret", data: {} },
+  ];
+  return { ...ref, id: "saut-horloge", description: "essai", inputs, expected: [], queue_after: [] };
+}
+
+describe("CT-5, référence : rejeux par passe bornés après un saut d'horloge (EX-8.10, REJEUX_PAR_PASSE_MAX)", function () {
+  this.timeout(120000);
+  let A;
+  before(async function () {
+    A = await importer(RACINE);
+  });
+  const oracle = (M) => {
+    const r = M.rejouerTrace(traceSautHorloge());
+    const ap1 = r.file.find((d) => d.kind === "ancre_registre_periode");
+    const ph1 = r.file.find((d) => d.kind === "jeton_periode");
+    const envois = r.actions.filter((a) => a.action === "envoyer_registre" && a.request_id === ap1.id).map((a) => a.t);
+    const retry = r.actions.filter((a) => a.action === "journaliser" && a.request_id === ap1.id && a.detail.event === "anchor_retry");
+    const pendings = r.actions.filter((a) => a.action === "journaliser" && a.request_id === ph1.id && a.detail.event === "registry_pending").map((a) => [a.t, a.detail.age_s]);
+    return {
+      r,
+      ok:
+        JSON.stringify(envois) === JSON.stringify(["2026-11-03T14:00:02.000Z", "2026-11-03T14:01:02.000Z", "2026-11-03T14:02:02.000Z", "2026-11-03T14:03:02.000Z", "2026-11-03T14:04:02.000Z"]) &&
+        retry.length === 1 && retry[0].t === "2026-11-03T14:04:02.000Z" &&
+        JSON.stringify(retry[0].detail) === JSON.stringify({ event: "anchor_retry", kind: "ancre_registre_periode", mode: "renvoi", error_code: "recu_absent", missed_deadlines: 35, attempt: 4, attempt_id: A.identifiantCorrelation("ancre_registre_periode", ap1.subject.hash, 4) }) &&
+        JSON.stringify(pendings) === JSON.stringify([["2026-11-03T14:01:00.250Z", 60], ["2026-11-03T14:02:00.250Z", 120], ["2026-11-03T14:03:00.250Z", 180], ["2026-11-03T14:04:00.250Z", 240], ["2026-11-03T14:40:00.250Z", 2400]]) &&
+        ap1.state === "obtenue" && ap1.attempts_total === 5 && ph1.state === "obtenue",
+    };
+  };
+  it("CT-5 EX-8.10 : saut d'horloge de 14:00:03 à 14:40:00 : l'ancre de la période est renvoyée quatre fois dans la passe (14:01:02 à 14:04:02), la ligne anchor_retry du quatrième rejeu compte les 35 échéances sautées (missed_deadlines) ; l'attente du registre est examinée quatre fois, puis à 14:40:00.250 ; le composant d'ancrage rejoue la trace sans écart", function () {
+    const { r, ok } = oracle(A);
+    expect(ok).to.equal(true);
+    const trace = { ...traceSautHorloge(), expected: r.actions, queue_after: r.file };
+    expect(A.verifierTrace(trace)).to.deep.equal([]);
+    expect(Composant.rejouerTrace(trace).ecarts).to.deep.equal([]);
+  });
+  it("mutant CT-5 EX-8.10 : sans la borne des rejeux par passe, chaque échéance franchie est rejouée (tué par l'oracle)", async function () {
+    const M = await importer(mutant("rejeux-passe", "const REJEUX_PAR_PASSE_MAX = 4;", "const REJEUX_PAR_PASSE_MAX = Infinity;"));
+    expect(oracle(M).ok).to.equal(false);
+  });
+});
+
+// --- EX-8.9 : `k` compte les échecs transitoires consécutifs de la demande chez ce prestataire ; une tentative obtenue,
+// en échec permanent ou close par le redémarrage interrompt la série, en cours de marche comme relue au démarrage.
+// Scénario : jeton de clôture ; principal : deux délais (5 s, puis 10 s), puis unacceptedPolicy (relève) ; secours :
+// unacceptedPolicy (les deux épuisés, alternance au pas retry.max_ms) ; principal à 14:05:41 : délai. La série du
+// principal repart de k = 1 : reprise 5 s après (14:05:56), et non 20 s après comme si les deux délais d'avant l'échec
+// permanent comptaient encore.
+function traceSerieInterrompue() {
+  const ref = lireJSON(CT5, "planification", "heure-nominale-reference.json");
+  const e = ref.inputs;
+  const ph1 = e[17].data.request_id;
+  const echec = (t, n, extra) => ({ t, type: "reponse_rfc3161", data: { request_id: ph1, attempt: n, transport: "reponse", http_status: 200, pki_status: null, failure_info: null, retry_after_s: null, nonce_in_response: null, imprint_matches: null, checks_passed: [], gen_time: null, accuracy_s: null, token_sha256: null, token_size: null, ...extra } });
+  const delai = (t, n) => echec(t, n, { transport: "delai", http_status: null });
+  const permanent = (t, n) => echec(t, n, { pki_status: 2, failure_info: "unacceptedPolicy" });
+  const inputs = [
+    { ...e[0], t: "2026-11-03T13:59:00.000Z" },
+    ...e.slice(11, 17),
+    delai("2026-11-03T14:00:14.000Z", 1),
+    delai("2026-11-03T14:00:29.000Z", 2),
+    permanent("2026-11-03T14:00:40.000Z", 3),
+    permanent("2026-11-03T14:00:41.000Z", 4),
+    delai("2026-11-03T14:05:51.000Z", 5),
+    { t: "2026-11-03T14:06:30.000Z", type: "arret", data: {} },
+  ];
+  return { ...ref, id: "serie-interrompue", description: "essai", jitter_ms: [0, 0, 0, 0, 0, 0, 0, 0], inputs, expected: [], queue_after: [] };
+}
+
+describe("CT-5, référence : série k interrompue par un résultat non transitoire en cours de marche (EX-8.9)", function () {
+  this.timeout(120000);
+  let A;
+  before(async function () {
+    A = await importer(RACINE);
+  });
+  const oracle = (M) => {
+    const r = M.rejouerTrace(traceSerieInterrompue());
+    const reprises = r.actions.filter((a) => a.action === "programmer" && a.request_id.startsWith("jeton_periode:") && a.detail.reason === "backoff").map((a) => [a.t, a.detail.next_at]);
+    return { r, ok: JSON.stringify(reprises) === JSON.stringify([["2026-11-03T14:00:14.000Z", "2026-11-03T14:00:19.000Z"], ["2026-11-03T14:00:29.000Z", "2026-11-03T14:00:39.000Z"], ["2026-11-03T14:00:41.000Z", "2026-11-03T14:05:41.000Z"], ["2026-11-03T14:05:51.000Z", "2026-11-03T14:05:56.000Z"]]) };
+  };
+  it("CT-5 EX-8.9 : après deux délais puis un échec permanent chez le principal, le délai suivant chez lui attend retry.initial_ms (k = 1) ; le composant d'ancrage programme les mêmes reprises aux mêmes instants (le prestataire de la reprise en alternance n'est pas comparé ici)", function () {
+    const { r, ok } = oracle(A);
+    expect(ok).to.equal(true);
+    const trace = { ...traceSerieInterrompue(), expected: r.actions, queue_after: r.file };
+    expect(A.verifierTrace(trace)).to.deep.equal([]);
+    const reprises = (actions) => actions.filter((a) => a.action === "programmer" && a.request_id.startsWith("jeton_periode:") && a.detail.reason === "backoff").map((a) => [a.t, a.detail.next_at]);
+    expect(reprises(Composant.rejouerTrace(trace).actions)).to.deep.equal(reprises(r.actions));
+  });
+  it("mutant CT-5 EX-8.9 : une série qui n'est pas interrompue par l'échec permanent attend 20 s (tué par l'oracle)", async function () {
+    const M = await importer(mutant("serie-rompue", '    if (precedente !== null && precedente.outcome !== "echec_transitoire" && precedente.outcome !== "reponse_tardive") s.k.set(cle, 0);\n', ""));
+    expect(oracle(M).ok).to.equal(false);
+  });
+});
+
+// --- EX-8.12, demandes de points relues (complément du 2026-11-16) : l'échéance n_T est satisfaite par le jeton_periode
+// (EX-8.4, règle 1) ; une demande jeton_point non finale relue dont toutes les échéances lui sont inférieures est close
+// remplacee au démarrage, replaced_by le jeton_periode, comme à la promotion de celui-ci. Scénario : file finale de la
+// trace de référence, la demande du jeton de K4 (D_11) relue a_reprendre après un délai, le jeton de clôture obtenu.
+function traceRelueJetonPeriode() {
+  const ref = lireJSON(CT5, "planification", "heure-nominale-reference.json");
+  const file = JSON.parse(JSON.stringify(ref.queue_after));
+  const k4 = file.find((d) => d.kind === "jeton_point" && JSON.stringify(d.deadlines) === "[11]");
+  k4.state = "a_reprendre";
+  k4.result = null;
+  k4.due_at = "2026-11-03T14:00:08.000Z";
+  Object.assign(k4.attempts[0], { outcome: "echec_transitoire", error_code: "delai", detail: "delai de reponse depasse", next_at: "2026-11-03T14:00:08.000Z" });
+  const inputs = [{ t: "2026-11-03T14:00:07.000Z", type: "demarrage", data: {} }, { t: "2026-11-03T14:00:30.000Z", type: "tic", data: {} }, { t: "2026-11-03T14:01:00.000Z", type: "arret", data: {} }];
+  return { ...ref, id: "relue-jeton-periode", description: "essai", queue_before: file, inputs, expected: [], queue_after: [] };
+}
+
+describe("CT-5, référence : demande de point relue close par le jeton de clôture obtenu (EX-8.12, EX-4.4 ; complément du 2026-11-16)", function () {
+  this.timeout(120000);
+  let A;
+  before(async function () {
+    A = await importer(RACINE);
+  });
+  const oracle = (M) => {
+    const r = M.rejouerTrace(traceRelueJetonPeriode());
+    const k4 = r.file.find((d) => d.kind === "jeton_point" && JSON.stringify(d.deadlines) === "[11]");
+    const ph1 = r.file.find((d) => d.kind === "jeton_periode");
+    const tard = r.actions.filter((a) => a.action === "journaliser" && a.detail.event === "checkpoint_anchor_late");
+    return k4.state === "remplacee" && k4.replaced_by === ph1.id && tard.length === 1 && tard[0].t === "2026-11-03T14:00:07.000Z" && JSON.stringify(tard[0].detail) === JSON.stringify({ event: "checkpoint_anchor_late", tree_size: 5, deadlines: [11], replaced_by: ph1.id, window_s: 306 }) && r.actions.filter((a) => a.action === "envoyer_rfc3161").length === 0;
+  };
+  it("CT-5 EX-8.12 : la demande du jeton de K4 relue a_reprendre est close remplacee au démarrage, replaced_by le jeton de clôture obtenu, checkpoint_anchor_late avec window_s = 306 (borne du jeton de clôture moins D_11) ; aucune requête ne part", function () {
+    expect(oracle(A)).to.equal(true);
+  });
+  it("mutant CT-5 EX-8.12 : sans le jeton de clôture parmi les demandes couvrantes relues, la demande de K4 est renvoyée au prestataire (tué par l'oracle)", async function () {
+    const M = await importer(mutant("relue-periode", 'const couvrantes = file.filter((d) => (d.kind === "jeton_point" || d.kind === "jeton_periode") && d.state === "obtenue")', 'const couvrantes = file.filter((d) => d.kind === "jeton_point" && d.state === "obtenue")'));
+    expect(oracle(M)).to.equal(false);
+  });
+});

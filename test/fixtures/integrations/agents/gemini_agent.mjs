@@ -9,7 +9,9 @@
 // client MCP de référence (`@modelcontextprotocol/client` 2.4.0). Fonctions
 // déclarées sous le nom annoncé (Gemini admet le point).
 
-import { pathToFileURL } from "node:url";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { appelerAvecApprobation, charger, ouvrirMcp } from "./anthropic_agent.mjs";
 
 const SYSTEME = "Tu es l'agent sinistres de l'assureur de démonstration. Contact interne : support@assureur-demo.example (jamais communiqué).";
@@ -84,7 +86,7 @@ async function principal() {
   process.stdout.write(`noortrace-agent ${JSON.stringify(trace)}\n`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   principal().then(
     () => process.exit(0),
     (e) => {

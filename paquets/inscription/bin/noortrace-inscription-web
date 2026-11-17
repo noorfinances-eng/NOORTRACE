@@ -13,7 +13,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const args = process.argv.slice(2);
-if (args.length !== 2 || args[0] !== "--config") {
+// Complément du 2026-11-16 : un fichier qui commence par `--` est une option sans sa valeur.
+if (args.length !== 2 || args[0] !== "--config" || args[1] === "" || args[1].startsWith("--")) {
   process.stderr.write("usage : noortrace-inscription-web --config <fichier>\n");
   process.exit(2);
 }

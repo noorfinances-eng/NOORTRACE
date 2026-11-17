@@ -1,4 +1,7 @@
-// Vérificateur indépendant CT-5 (Go, bibliothèque standard uniquement).
+// Vérificateur Go de cohérence des vecteurs CT-5 (bibliothèque standard
+// uniquement). Le nom du répertoire est historique : ce module est en partie
+// recopié de la référence JavaScript et n'est pas une implémentation
+// indépendante (CT-5 A.5, décision du porteur du 2026-11-15).
 //
 // Usage : go run . [-json] [-v] <racine des vecteurs CT-5>
 //

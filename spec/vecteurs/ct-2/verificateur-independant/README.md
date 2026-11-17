@@ -76,10 +76,59 @@ autre implémentation :
   consignée, et toute panne d'une famille devient une erreur consignée
   (`protegerFamille`) : rapport imprimé, code 1, jamais une trace de pile.
 
-Les vecteurs publiés de `pieces-mcp/appels/approbation-{refus,en-attente}`
-portent encore des réponses à six membres sans `pinned` : contre eux, le
-module rend six discordances et deux erreurs, attendues tant que les
-vecteurs régénérés à neuf membres ne sont pas publiés.
+Les vecteurs de `pieces-mcp/appels/approbation-{refus,en-attente}` portent
+désormais des réponses à neuf membres avec `pinned` : le module n'y trouve
+plus ni discordance ni erreur.
+
+Règles du complément du 2026-11-16 de la révision 0.11 de CT-2 (décision du
+porteur), écrites depuis le texte de 10.3.4 à 10.3.6 et 10.9, sans lire
+aucune autre implémentation (`detecteurs.go`, chaque règle citée en
+commentaire) :
+
+- `carte` (10.3.4) : la suite maximale (chiffres, `SEP` et `-` isolés) est
+  découpée en groupes ; les candidats sont les sous-suites de groupes
+  consécutifs de 12 à 19 chiffres bordées de frontières (le séparateur
+  intérieur en est une), éprouvés par premier groupe de gauche à droite puis
+  le plus long d'abord ; le premier qui passe Luhn est la correspondance (du
+  premier au dernier chiffre, `N` = ses chiffres) et la recherche reprend
+  juste après lui, le reste de la suite compris. Les groupes sont lus à
+  mesure : au plus huit candidats par premier groupe, coût linéaire même
+  quand la recherche reprend au milieu d'une longue suite (EX-10.23) ;
+- `email` (10.3.5) : `W` = suite lue à gauche du `@` dans l'alphabet de la
+  partie locale, bornée par le début du segment et la fin de la
+  correspondance précédente, sur 64 caractères au plus ; `L` = plus longue
+  fin `Dot-string` de `W` ; `S` = suite lue à droite dans `[A-Za-z0-9.-]`
+  sur 256 caractères au plus ; `D` = plus long préfixe de `S` qui est un
+  domaine valide et qui est `S` entière (au plus 255 caractères) ou suivi
+  dans `S` d'un `.` ou d'un `-` ; aucune frontière avant ;
+- `telephone` (10.3.6) : le candidat finit à la plus grande position `fin`
+  du parcours dont le caractère est une frontière et qui laisse de 8 à 15
+  chiffres (groupe entre parenthèses compté s'il précède) ; le parcours
+  s'arrête dès que le nombre dépasse 15 ;
+- 10.9 : adresse d'exemple `j.dupont@ch.example` (domaine sous `.example`,
+  RFC 2606), pseudonyme de test `[PSEUDO:email:ff93a7f99c38]` ; `length`
+  171 et 148 et `sha256` `0x89a3…5f8e` inchangés. Les tests du module
+  emploient le domaine `ch.example`.
+
+Tests de ces règles : `detecteurs_candidat_court_test.go` (un test par
+règle : exemples imprimés par le texte, cas obligatoires de l'annexe B.3 et
+cas qui isolent chaque clause) ; les assertions de `detecteurs_test.go` qui
+portaient l'ancienne règle de la partie locale (adresse de 65 caractères,
+`.` initial, `..`) suivent la nouvelle.
+
+Confrontation du 2026-11-16, vecteurs de `ct-2` régénérés pour ce
+complément (`redaction/cas.json` à 87 cas, `pieces-modele/anthropic-messages-flux`,
+`pieces-modele/gemini-flux`, `evenements/journal-demo`) : 6 227 valeurs
+recalculées, 6 220 concordantes, **0 discordante**, 7 hors périmètre, 0
+erreur ; `redaction` 694 valeurs, toutes concordantes. Avant l'alignement,
+64 discordances, toutes dans `redaction`, sur les 13 cas dont l'attendu
+dépend des nouvelles règles (`carte-suivie-echeance`,
+`carte-suivie-cryptogramme`, `carte-precedee-de-chiffres`,
+`email-points-doubles`, `email-long`, `email-partie-locale-65`,
+`email-adresse-web`, `email-enregistrement-barres`,
+`email-domaine-suivi-de-chiffres`, `telephone-seize-chiffres`,
+`telephone-seize-chiffres-reprise`, `telephone-suivi-date`,
+`telephone-colle-a-une-lettre`).
 
 Le rapport dit, pour chaque valeur : la famille, le vecteur, la grandeur,
 l'**attendu** (la valeur déclarée par le vecteur, ou, pour un contrôle de
@@ -387,7 +436,8 @@ la famille `evenements` (`comparerDossierCT1`, `dossier_ct1_test.go`).
   débordement refusés ; cas obligatoires de B.2 ; table des nombres de 8.1.
 - Détecteurs : exemples valides et invalides de 10.3.2 à 10.3.6 (IBAN suisse
   et Pay.UK, reste 28, AVS de l'ordonnance, Luhn, adresses de 64 et 65
-  octets, adresse suivie d'un point ou d'un trait d'union, coût linéaire,
+  octets (la seconde rédigée sur ses 64 derniers caractères depuis le
+  complément du 2026-11-16), adresse suivie d'un point ou d'un trait d'union, coût linéaire,
   téléphones de 15 et 16 chiffres, numéros collés, groupes entre
   parenthèses) ; onze IBAN construits par la méthode de génération de
   10.3.2 ; frontières, séparateurs, jetons jamais détectés ; règles `champ`,

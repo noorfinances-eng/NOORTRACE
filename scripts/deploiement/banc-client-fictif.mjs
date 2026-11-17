@@ -43,6 +43,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
+import yaml from "js-yaml";
 import * as N from "@noortrace/noyau";
 import { AccesS3, requeteS3ConfigurationVerrou, requeteS3LireConfiguration, lireConfigurationVerrou, lireEvenements } from "@noortrace/enregistreur";
 import { crlVersPem } from "@noortrace/ancrage";
@@ -73,6 +74,41 @@ const MARQUE_HOTES = "# noortrace banc client fictif (étape 7)";
 export const PROJET_BANC = "noortrace-banc";
 /** Répertoire de l'hôte servi par le pont (montage lié de production.yaml). */
 export const REPERTOIRE_OUTILS = "/srv/noortrace-outils";
+/** Fichier de l'image attendue, écrit à IC-6 depuis la note de version (CT-8 EX-3.15, IC-6 ; CT-2 EX-18.10). */
+export const SOURCE_IMAGE_ATTENDUE = "./config/production/image-attendue.json";
+
+/**
+ * Vérification d'IC-6 sur le fichier Compose de production (CT-8 EX-3.15) :
+ * le service `enregistreur` est lancé avec `--image-attendue <fichier>`, une
+ * seule fois, et `./config/production/image-attendue.json` y est monté en
+ * lecture seule sur ce fichier (montage lié, `create_host_path: false`).
+ * CO-1 à CO-14 ne lisent ni la commande ni l'absence d'un montage. Rend la
+ * liste des écarts, vide si le fichier est conforme.
+ */
+export function ecartsImageAttendue(texteCompose) {
+  let doc;
+  try {
+    doc = yaml.load(texteCompose);
+  } catch (e) {
+    return [`fichier Compose illisible : ${e.message}`];
+  }
+  const s = doc?.services?.enregistreur;
+  if (!s || typeof s !== "object") return ["service enregistreur absent"];
+  const ecarts = [];
+  const commande = Array.isArray(s.command) ? s.command.map(String) : [];
+  const k = commande.indexOf("--image-attendue");
+  const cible = k >= 0 ? commande[k + 1] : undefined;
+  if (k < 0) ecarts.push("commande de l'enregistreur sans --image-attendue");
+  else if (!cible || cible.startsWith("--") || commande.indexOf("--image-attendue", k + 1) >= 0) ecarts.push("--image-attendue sans valeur, ou donnée deux fois");
+  const montages = (Array.isArray(s.volumes) ? s.volumes : []).filter((v) => v && typeof v === "object" && v.source === SOURCE_IMAGE_ATTENDUE);
+  if (montages.length !== 1) ecarts.push(`${SOURCE_IMAGE_ATTENDUE} non monté dans l'enregistreur`);
+  else {
+    const v = montages[0];
+    if (v.type !== "bind" || v.read_only !== true || v.bind?.create_host_path !== false) ecarts.push(`${SOURCE_IMAGE_ATTENDUE} : montage lié en lecture seule, sans création du chemin, attendu`);
+    if (cible && v.target !== cible) ecarts.push(`cible du montage (${v.target}) différente du fichier de --image-attendue (${cible})`);
+  }
+  return ecarts;
+}
 
 /**
  * Une installation du projet Compose `projet` existe-t-elle sur l'hôte
@@ -552,6 +588,25 @@ async function ic6(B, p) {
     verifier(p, `${ref}@${condense.slice(0, 19)}… présente`, x.stdout.trim() === condense, x.stdout.trim());
   }
   ecart(p, "$DC pull remplacé par docker load : aucune image n'est publiée ; le registre de conteneurs (FL-29) n'est pas éprouvé");
+  // Image attendue (CT-8 EX-3.15, IC-6 ; CT-2 EX-18.10) : le fichier Compose lance le démon avec --image-attendue et
+  // monte le fichier écrit ici ; condensé de l'image de l'enregistreur et code_sha256 de la note de version. Aucune
+  // note n'est publiée : code_sha256 est ce que `noortrace empreinte` imprime dans l'image désignée par ce condensé.
+  const ecartsIc6 = ecartsImageAttendue(texte);
+  verifier(p, "compose/production.yaml : enregistreur lancé avec --image-attendue, ./config/production/image-attendue.json monté en lecture seule", ecartsIc6.length === 0, ecartsIc6);
+  const refEnregistreur = `noortrace/enregistreur:0.1.0@${B.condenses["noortrace/enregistreur:0.1.0"]}`;
+  const e = await cmd(p, `docker run --rm --network none ${refEnregistreur} empreinte (code_sha256 de la note de version)`, "docker", ["run", "--rm", "--network", "none", refEnregistreur, "empreinte"]);
+  const codeSha256 = e.stdout.trim();
+  verifier(p, "code_sha256 de l'image de l'enregistreur (0x suivi de 64 hex)", /^0x[0-9a-f]{64}$/.test(codeSha256), codeSha256);
+  const prod = path.join(B.dep, "config", "production");
+  fs.mkdirSync(prod, { recursive: true });
+  B.imageAttendue = { version: 0, image: refEnregistreur, code_sha256: codeSha256 };
+  const fia = path.join(prod, "image-attendue.json");
+  fs.writeFileSync(fia, `${JSON.stringify(B.imageAttendue, null, 2)}\n`, { mode: 0o400 });
+  fs.chownSync(fia, 10001, 10001);
+  fs.chmodSync(fia, 0o400);
+  p.commandes.push({ commande: "config/production/image-attendue.json écrit depuis la note de version ; sudo chown 10001:10001 ; sudo chmod 0400", code: 0, duree_ms: 0 });
+  ecrirePv(B, p, "IC-6-image-attendue.json", fs.readFileSync(fia));
+  ecart(p, "code_sha256 de la note de version relevé par `noortrace empreinte` dans l'image chargée : aucune note de version n'est publiée");
   ecrirePv(B, p, "IC-6-conteneurs.sha256", `${sha256Fichier(f)}  compose/production.yaml\n`);
 }
 
@@ -855,6 +910,9 @@ async function ic15a(B, p) {
   const ready = await fetch("http://127.0.0.1:8500/readyz");
   verifier(p, "/readyz rend 200", ready.status === 200, ready.status);
   const lignes = lignesExploitation();
+  const demarrage = lignes.find((l) => l.event === "startup");
+  verifier(p, "ligne startup : image attendue consignée et concordante (image_expected, code_sha256, image_match vrai ; CT-8 EX-3.15)", demarrage?.data?.image_match === true && demarrage.data.image_expected === B.imageAttendue?.image && demarrage.data.code_sha256 === B.imageAttendue?.code_sha256, demarrage?.data ?? null);
+  verifier(p, "aucune ligne image_mismatch", !lignes.some((l) => l.event === "image_mismatch"), null);
   const verrou = lignes.find((l) => l.event === "worm_lock_config_check");
   ecrirePv(B, p, "IC-15-worm-lock-config-check.json", `${JSON.stringify(verrou ?? null, null, 2)}\n`);
   verifier(p, "première ligne worm_lock_config_check conforme", verrou && (verrou.data?.conforme === true || verrou.data?.verdict === "conforme" || verrou.level === "info"), verrou);

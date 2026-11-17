@@ -267,8 +267,8 @@ func TestRevuePlancherCT3(t *testing.T) {
 	}
 	cas := []struct{ nom, racine, message string }{
 		{"sans signatures/", monterRacineCT3(t, nil, map[string]bool{"signatures": true}), "plancher (CT-9 TA-66) : famille signatures : aucune valeur recalculée"},
-		{"un cas d'evaluation retiré", monterRacineCT3(t, []string{"evaluation"}, map[string]bool{filepath.Join("evaluation", retire): true}), "le cas " + retire + " est nommé mais absent de la racine"},
-		{"un cas d'evaluation non indexé", enTrop, "le cas copie-non-indexee.json est présent mais l'index ne le nomme pas"},
+		{"un cas d'evaluation retiré", monterRacineCT3(t, []string{"evaluation"}, map[string]bool{filepath.Join("evaluation", retire): true}), "le cas evaluation/" + retire + " est nommé mais absent de la racine"},
+		{"un cas d'evaluation non indexé", enTrop, "le cas evaluation/copie-non-indexee.json est présent mais l'index ne le nomme pas"},
 		{"sans INDEX.md", monterRacineCT3(t, nil, map[string]bool{"INDEX.md": true}), "plancher (CT-9 TA-66) : INDEX.md illisible"},
 	}
 	for _, c := range cas {

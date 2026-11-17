@@ -19,7 +19,8 @@
 // `retenir` (une transaction soumise est acceptée mais gardée hors de la
 // chaîne, comme une mempool qui ne l'inclut pas), `relacher`, `avantEnvoi`
 // (fonction appelée avant de relayer une transaction, pour qu'un essai fasse
-// inclure d'abord une transaction concurrente), `certificatsIndisponibles`.
+// inclure d'abord une transaction concurrente), `certificatsIndisponibles`,
+// `refuserJournaux` (tout `eth_getLogs` rendu en erreur JSON-RPC).
 
 import fs from "node:fs";
 import http from "node:http";
@@ -155,6 +156,8 @@ export async function ouvrirPont(provider, { noorcore = true, bftChainId = BFT_E
     suiveur: false,
     /** Message d'erreur JSON-RPC rendu à toute soumission (null : soumissions relayées). */
     refuserEnvois: null,
+    /** Message d'erreur JSON-RPC rendu à tout `eth_getLogs` (null : journaux servis), comme un nœud qui borne la plage. */
+    refuserJournaux: null,
     envoisRecus: [],
   };
 
@@ -230,6 +233,7 @@ export async function ouvrirPont(provider, { noorcore = true, bftChainId = BFT_E
   async function repondre(requete) {
     const { method: m, params: p = [] } = requete;
     etat.appels.push(m);
+    if (m === "eth_getLogs" && etat.refuserJournaux) return { erreur: { code: -32005, message: etat.refuserJournaux } };
     if (noorcore) {
       if (m === "noor_txindexStatus") return { resultat: { enabled: true, ready: true, ok: true, last_indexed_height: etat.suiveur ? 0 : Number(BigInt(await brut("eth_blockNumber", []))) } };
       if (m === "noor_getCommitCertificate") {

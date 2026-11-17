@@ -195,6 +195,6 @@ export function executer(argv, { sortie = process.stdout, erreur = process.stder
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   process.exitCode = executer(process.argv.slice(2));
 }

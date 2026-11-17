@@ -2511,8 +2511,8 @@ tests:
               severity: 'critique'
               state: 'a_reprendre'
             exp_annotations:
-              summary: 'Prestataires épuisés pour le jeton d''une période'
-              description: 'Prestataires épuisés pour le jeton d''une période. Gravité critique, composant ancrage. Exigence : CT-5 §8.9 prestataires_epuises (période). Runbook : RB-4.'
+              summary: 'Prestataires épuisés pour le jeton d''une période, ou ancre d''une période refusée définitivement par le registre'
+              description: 'Prestataires épuisés pour le jeton d''une période, ou ancre d''une période refusée définitivement par le registre. Gravité critique, composant ancrage. Exigence : CT-5 §8.9 prestataires_epuises (période). Runbook : RB-4.'
   - name: 'noortrace_ancrage_prestataires_epuises_periode silencieuse'
     interval: 1m
     input_series:

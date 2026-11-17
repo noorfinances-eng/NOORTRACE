@@ -2223,9 +2223,9 @@ export const TU = [
       "Aucun réseau, aucun conteneur, aucun binaire noorcore."
     ],
     "steps": [
-      "Erreurs d'usage, archive absente, gzip, PR-1, PR-3, PR-7, PR-9 chacune seule, découpage GNU tar, PR-10, `--conserver`, paquet complet et PR-11, marque d'observation, `package.json` d'ethers ; construction : refus en code 2 ; instructions égales aux blocs de 13.11 et de même structure ; aucun « prouvé » sur le périmètre ni sur les ancres."
+      "Erreurs d'usage, archive absente, gzip, PR-1, PR-3, PR-7, PR-9 chacune seule, découpage GNU tar, PR-10, `--conserver`, paquet complet et PR-11, marque d'observation, `package.json` d'ethers ; construction : refus en code 2 ; instructions égales aux blocs de 13.11 et de même structure ; aucun « prouvé » sur le périmètre ni sur les ancres ; voie « copie jointe » retirée (complément du 2026-11-16 de CT-8, EX-13.22) : ni les instructions, ni l'aide de l'outil, ni AV-PR-1 n'offrent d'exécuter la copie jointe, et les instructions font prendre l'outil dans le dépôt public."
     ],
-    "oracle": "Codes 0, 2, 4 et statuts PR- attendus ; octets égaux aux blocs de CT-8 ; résumés sans caractère de contrôle.",
+    "oracle": "Codes 0, 2, 4 et statuts PR- attendus ; octets égaux aux blocs de CT-8 ; résumés sans caractère de contrôle ; aucun pas qui fasse exécuter la copie jointe.",
     "status": {
       "state": "executable",
       "tests": [
@@ -2250,6 +2250,67 @@ export const TU = [
     },
     "threats": [
       "MN-78"
+    ]
+  },
+  {
+    "id": "TU-40",
+    "level": "TU",
+    "title": "Outils du dépôt lancés par un chemin qui passe par un lien symbolique : même code et même sortie qu'en direct (vérificateur de renvois, figeage, gardes des essais, pages de la console)",
+    "specs": [],
+    "covers": [
+      "CT-7 EX-A.13",
+      "CT-7 EX-A.18"
+    ],
+    "preconditions": [
+      "`npm ci` fait ; aucun réseau ; répertoire temporaire où créer un lien symbolique vers une copie du dépôt."
+    ],
+    "steps": [
+      "Parcourir les fichiers `.mjs` et `.js` du dépôt et relever chaque garde « ce module est le programme lancé » qui compare le module au programme lancé sans résoudre les liens symboliques (`realpathSync`).",
+      "Lancer `scripts/conformite/verifier-renvois.mjs`, `scripts/conception/figeage.mjs`, `scripts/tests/attentes.mjs`, `scripts/tests/temporaires.mjs`, `scripts/console/empreintes.mjs` et `paquets/console/src/pages/construire.mjs` en direct puis par un chemin qui passe par un lien symbolique, sur un dépôt conforme et sur un dépôt altéré."
+    ],
+    "oracle": "Aucune garde sans résolution des liens ; par le lien, chaque outil rend le même code et la même sortie qu'en direct : verdict de RV-1 à RV-9 et de MX-1 à MX-9 (CT-7 EX-A.13, EX-A.18), écart de figeage, échec d'essai, entrée temporaire laissée et fichier périmé signalés (code 1), jamais un code 0 sans rien faire.",
+    "status": {
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/lancement-direct.test.js",
+          "describe": "Lancement direct des outils : la garde « ce module est le programme lancé » compare des chemins réels (liens symboliques résolus)"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/lancement-direct.test.js"
+    },
+    "threats": []
+  },
+  {
+    "id": "TU-41",
+    "level": "TU",
+    "title": "Sauvegarde du journal écrite en flux par `sauvegarde.mjs creer` : archive de 13.4 identique, procès-verbal, mémoire indépendante de la taille du journal (CT-8 §11.2)",
+    "specs": [],
+    "covers": [
+      "CT-8 EX-11.1",
+      "CT-8 EX-11.2",
+      "CT-8 EX-11.4"
+    ],
+    "preconditions": [
+      "`npm ci` fait ; aucun réseau ; journaux des vecteurs de CT-8, et un journal de 96 Mio (vingt-quatre pièces de 4 Mio) construit dans un répertoire temporaire."
+    ],
+    "steps": [
+      "Créer l'archive de chaque journal des vecteurs que `creer` accepte, et la comparer à celle du chemin d'avant (inventaire puis `ecrireArchive`) ; lire le procès-verbal `sauvegarde`.",
+      "Créer l'archive du journal de 96 Mio et relever le pic de mémoire résidente du processus, à comparer à celui du journal des vecteurs."
+    ],
+    "oracle": "Archive octet pour octet celle du chemin d'avant, procès-verbal portant la longueur et le SHA-256 de chaque fichier ; le pic de mémoire du journal de 96 Mio dépasse de moins de 32 Mio celui du journal des vecteurs (écriture en flux, décision du porteur du 2026-11-16).",
+    "status": {
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/deploiement-sauvegarde-flux.test.js",
+          "describe": "CT-8 §11.2, EX-11.1 : sauvegarde.mjs creer écrit l'archive en flux (décision du porteur du 2026-11-16)"
+        }
+      ],
+      "command": "npx hardhat --config hardhat.config.mjs test test/deploiement-sauvegarde-flux.test.js"
+    },
+    "threats": [
+      "MN-22"
     ]
   }
 ];

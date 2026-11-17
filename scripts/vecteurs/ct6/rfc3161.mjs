@@ -22,7 +22,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import * as H from "../../lib/horodatage.mjs";
 import { hachageManifeste, analyserJSONStrict, cleEd25519DepuisGraine, sha256 as sha256Hex0x } from "../../lib/journal.mjs";
 
@@ -903,7 +903,7 @@ export function genererRfc3161({ racine = path.join(PROJECT_ROOT, "spec", "vecte
   return { jetons, materiel, fragments, ancres, attendu, manifestes };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   const i = process.argv.indexOf("--sortie");
   const racine = i !== -1 ? path.resolve(process.argv[i + 1]) : undefined;
   const r = genererRfc3161({ racine });

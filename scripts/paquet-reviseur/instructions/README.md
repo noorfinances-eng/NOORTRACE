@@ -22,42 +22,39 @@ CT-8, section 13); each dossier is verified according to specification CT-6.
   cross-check your anchors (provider records, registry instance manifest…).
   They are declarative: the tool does not read them, and they do not replace
   your own sources.
-- `verificateur/` (if present): the reference verifier, the package
-  verification tool and the only library they depend on.
+- `verificateur/` (if present): a copy of the reference verifier, of the
+  package verification tool and of the only library they depend on. Do not
+  run this copy (step 1 below).
 
 ## Verifying in one command
 
 Node.js 22 is required (tested with v22.22.0 on Linux; later versions and
-other systems are not verified); no network access is needed.
+other systems are not verified); the verification needs no network access.
 
-1. Take the verification tool from a source you trust: the public NOORTRACE
-   repository, whose address and commit the release note gives, at a
-   published version, or the enclosed copy under `verificateur/`. To use the
-   enclosed copy:
-   - extract the package into a new, empty directory with
-     `tar -xkf <package.tar> -C <directory>` (never with the `-P` option)
-     and require exit code 0: with `-k`, a duplicate name makes `tar` fail
-     instead of replacing the first file with the second;
-   - in `<directory>/paquet-reviseur/verificateur/`, check the extracted
-     files with `sha256sum --strict -c <SHA256SUMS>`, where `<SHA256SUMS>`
-     is the signed list of the verifier's SHA-256 published with the
-     release note, over another channel than the package; neither the
-     package manifest nor the `--version` output of the copy replaces it.
-     As long as no version of the tool is published, there is no such
-     list and this check is not possible: take the tool from the public
-     repository, at a commit that the operator names to you together with
-     the package digest, over the same channel; you then trust the
-     operator for the tool.
+1. Take the verification tool from the public NOORTRACE repository: at a
+   published version, whose address and commit the release note gives; as
+   long as no version is published, at the commit that the operator names
+   to you together with the package digest, over the same channel (you
+   then trust the operator for the tool). In that repository, install its
+   dependencies once with `npm ci`, with network access, before verifying.
+   Do not run the enclosed copy under `verificateur/`: it is code delivered
+   with the package, and nothing allows you to check it until the first
+   publication of a signed `SHA256SUMS` list of the verifier's files, with
+   the release note and over another channel than the package. This option
+   will return with that publication: the copy will then be checked
+   against the list, file by file and with no extra file. Until then, the
+   repository tool compares the enclosed copy with itself without running
+   it (`PR-11`).
 2. Run, from any directory:
 
        node <tool>/scripts/paquet-reviseur/verifier.mjs <package.tar> \
             --empreinte <SHA-256 of the package received over another channel> \
             --ancres <your anchors file>
 
-   `<tool>` is the root of the repository, or the `verificateur/` directory
-   of the extracted copy. Both options are optional; without them, the
-   report says so. `--json` gives the report in JSON, `--langue en` in
-   English. `--exiger` requires CT-6 controls (numbers 1 to 8).
+   `<tool>` is the root of the repository. Both options are optional;
+   without them, the report says so. `--json` gives the report in JSON,
+   `--langue en` in English. `--exiger` requires CT-6 controls (numbers 1
+   to 8).
 
 The tool checks the archive without writing anything (headers, names,
 files against the manifest), then only extracts it into a new directory
@@ -71,7 +68,10 @@ if the package has no enclosed verifier; `PR-12 (sans_objet)` if it has no
 attestation. With the recommended command, on a package without an enclosed
 verifier and with an attestation, only one remains: `PR-11`.
 `PR-11 (auto_comparaison)` says that the running tool is the enclosed copy
-itself, which cannot check itself.
+itself, not the tool of the public repository: start again with the latter.
+`PR-11` failed (warning AV-PR-1) says that the enclosed copy differs from the
+running tool; it is not run, and the result of the dossiers does not depend
+on it.
 
 Controls 1 to 8 and the `D-`, `E-`, `C-`, `M-` identifiers of a dossier are
 those of CT-6 (section 8); section 13.7 of CT-8 names the eight controls.

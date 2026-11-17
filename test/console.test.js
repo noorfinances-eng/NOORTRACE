@@ -158,7 +158,9 @@ describe("CT-3 0.3 : annuaire/ rejoué par console.mjs (AN-1 à AN-10)", functio
         const app = K.appliquerOperation(depart, "inscrire", c.request, c.received_at, { defis: c.challenges, identifiant: "compteur" });
         expect(app.response, c.id).to.deep.equal({ entry: c.expected.entry, address: c.request.address, state: "en_attente", revision: depart.revision + 1 });
         expect(app.annuaire.entries.find((e) => e.id === c.expected.entry).addresses.at(-1).proof.signature, c.id).to.equal(c.expected.signature);
-        expect(app.defis.find((d) => d.used)?.fields.nonce, c.id).to.equal(K.analyserMessageInscription(c.request.message).nonce);
+        // EX-13.13 (complément du 2026-11-16) : appliquerOperation retire le défi présenté ; verifierInscription le marque.
+        expect(r.defis.find((d) => d.used)?.fields.nonce, c.id).to.equal(K.analyserMessageInscription(c.request.message).nonce);
+        expect(app.defis.some((d) => d.fields.nonce === K.analyserMessageInscription(c.request.message).nonce), c.id).to.equal(false);
       }
     }
     const raisons = new Set(doc.cases.map((c) => c.expected.reason));

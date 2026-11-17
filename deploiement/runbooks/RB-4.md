@@ -47,7 +47,10 @@ calendriers OpenTimestamps ne répondent pas, ou un jeton est révoqué.
   `anchor_response_rejected`, `period_timestamped`.
 - **Après l'incident.** Réexport des dossiers ; si le prestataire est
   qualifié et que le statut a changé, réétablissement de `qualified`
-  (EX-11.24). La relève et le rattrapage font dépasser à
+  (EX-11.24) ; un retrait de `qualified` en vigueur (automatique sur
+  `PKIStatus` 4 ou 5) ne se lève qu'après lecture de la liste de confiance,
+  par `noortrace-ctl ancrage retablir-qualification <id>` (complément du
+  2026-11-16) ; porte : ligne `provider_qualification_restored`. La relève et le rattrapage font dépasser à
   `noortrace_anchoring_attempts_total` deux fois le volume nominal : une
   alerte `noortrace_ancrage_volume` pendant ou juste après l'incident relève
   de ce runbook, non de RB-8, quand la ventilation par prestataire et par

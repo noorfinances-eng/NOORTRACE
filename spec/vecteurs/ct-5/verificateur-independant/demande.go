@@ -7,6 +7,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -339,23 +340,85 @@ func DemandeDe(v *Value) (*Demande, error) {
 		d.Attempts = append(d.Attempts, a)
 	}
 	if !estNul(v, "result") {
-		r := v.Get("result")
-		if err := clesExactes(r, "result", "sha256", "size", "provider", "obtained_at", "bound"); err != nil {
+		res, err := ResultatDe(v.Get("result"))
+		if err != nil {
 			return nil, err
-		}
-		res := &Resultat{Provider: ptrChaine(r, "provider"), Bound: ptrChaine(r, "bound")}
-		if res.SHA256, ok = chaineDe(r, "sha256"); !ok {
-			return nil, fmt.Errorf("result.sha256 : chaîne attendue")
-		}
-		if res.Size, ok = entierDe(r, "size"); !ok {
-			return nil, fmt.Errorf("result.size : entier attendu")
-		}
-		if res.ObtainedAt, ok = chaineDe(r, "obtained_at"); !ok {
-			return nil, fmt.Errorf("result.obtained_at : chaîne attendue")
 		}
 		d.Result = res
 	}
 	return d, nil
+}
+
+// ResultatDe lit un résultat (`$defs/resultat`).
+func ResultatDe(r *Value) (*Resultat, error) {
+	if err := clesExactes(r, "result", "sha256", "size", "provider", "obtained_at", "bound"); err != nil {
+		return nil, err
+	}
+	res := &Resultat{Provider: ptrChaine(r, "provider"), Bound: ptrChaine(r, "bound")}
+	var ok bool
+	if res.SHA256, ok = chaineDe(r, "sha256"); !ok {
+		return nil, fmt.Errorf("result.sha256 : chaîne attendue")
+	}
+	if res.Size, ok = entierDe(r, "size"); !ok {
+		return nil, fmt.Errorf("result.size : entier attendu")
+	}
+	if res.ObtainedAt, ok = chaineDe(r, "obtained_at"); !ok {
+		return nil, fmt.Errorf("result.obtained_at : chaîne attendue")
+	}
+	return res, nil
+}
+
+// AcquisitionRelue est un enregistrement d'issue obtenue, promu et non
+// révoqué, relu d'acquisitions.ndjson (`$defs/acquisition_relue` du schéma
+// planificateur-ancrage-v0, complément du 2026-11-16 de CT-5 : « la demande
+// de jeton qu'il sert et son résultat (sha256 : token_sha256 ; size :
+// token_size ; provider : provider_id ; obtained_at : received_at ; bound :
+// upper_bound) »).
+type AcquisitionRelue struct {
+	RequestID string
+	Result    *Resultat
+}
+
+var (
+	reDemandeJeton = regexp.MustCompile(`^jeton_(point|periode):0x[0-9a-f]{64}$`)
+	reHorodatage   = regexp.MustCompile(`^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\.[0-9]{3}Z$`)
+	reIdentifiant  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
+)
+
+// AcquisitionsDe lit le membre acquisitions d'une entrée demarrage ou
+// stockage_relu : une liste d'objets de `$defs/acquisition_relue`, chacun avec
+// exactement request_id (une demande de jeton) et result (`$defs/resultat` :
+// sha256 hex32, size de 1 à 268 435 456, provider identifiant ou null,
+// obtained_at horodatage, bound horodatage ou null).
+func AcquisitionsDe(v *Value) ([]*AcquisitionRelue, error) {
+	if v == nil || v.Kind != KindArray {
+		return nil, fmt.Errorf("liste attendue")
+	}
+	l := []*AcquisitionRelue{}
+	for i, x := range v.Arr {
+		if err := clesExactes(x, fmt.Sprintf("acquisitions[%d]", i), "request_id", "result"); err != nil {
+			return nil, err
+		}
+		id, ok := chaineDe(x, "request_id")
+		if !ok || !reDemandeJeton.MatchString(id) {
+			return nil, fmt.Errorf("acquisitions[%d].request_id : demande de jeton attendue", i)
+		}
+		res, err := ResultatDe(x.Get("result"))
+		if err != nil {
+			return nil, fmt.Errorf("acquisitions[%d] : %s", i, err.Error())
+		}
+		if !reHex32.MatchString(res.SHA256) || res.Size < 1 || res.Size > 268435456 || !reHorodatage.MatchString(res.ObtainedAt) || (res.Provider != nil && !reIdentifiant.MatchString(*res.Provider)) || (res.Bound != nil && !reHorodatage.MatchString(*res.Bound)) {
+			return nil, fmt.Errorf("acquisitions[%d].result : hors de $defs/resultat", i)
+		}
+		if p := x.Get("result").Get("provider"); p.Kind != KindNull && res.Provider == nil {
+			return nil, fmt.Errorf("acquisitions[%d].result.provider : chaîne ou null attendu", i)
+		}
+		if b := x.Get("result").Get("bound"); b.Kind != KindNull && res.Bound == nil {
+			return nil, fmt.Errorf("acquisitions[%d].result.bound : chaîne ou null attendu", i)
+		}
+		l = append(l, &AcquisitionRelue{RequestID: id, Result: res})
+	}
+	return l, nil
 }
 
 // FileLue est le résultat de la relecture d'une file NDJSON.

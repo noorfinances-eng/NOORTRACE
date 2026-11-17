@@ -1,7 +1,7 @@
 {
   "version": 0,
   "id": "registre-indisponible-cloture",
-  "description": "Journal des vecteurs, période 1 (un point par minute) ; le registre n'inclut plus rien à partir de l'ancre du point de 09:13 (inclusion_alert_s porté à 1800 s pour raccourcir la trace). L'ancre du point de 09:32 attend la clé (a_envoyer) puis est remplacée par celle du point de clôture (EX-9.5, rattrapage). À la clôture, le jeton de la période attend l'inclusion de son ancre ; squat_wait_s après la clôture, le point de clôture (tree_size 9, aucune échéance ne l'a sélectionné) reçoit un jeton_point de repli auprès du prestataire des points (EX-4.2, EX-8.4 règle 2), envoyé squat_wait_s plus tard avec ordre_ancres_non_respecte, ce qui borne la date du dernier intervalle. Le registre revient à 10:20 : ancre de la période, jeton qualifié de la clôture, puis ancre du point de clôture.",
+  "description": "Journal des vecteurs, période 1 (un point par minute) ; le registre n'inclut plus rien à partir de l'ancre du point de 09:13 (inclusion_alert_s porté à 1800 s pour raccourcir la trace). L'ancre du point de 09:32 attend la clé (a_envoyer) puis est remplacée par celle du point de clôture (EX-9.5, rattrapage). À la clôture, le jeton de la période attend l'inclusion de son ancre ; squat_wait_s après la clôture, le point de clôture (tree_size 9, aucune échéance ne l'a sélectionné) reçoit un jeton_point de repli auprès du prestataire des points (EX-4.2, EX-8.4 règle 2), envoyé squat_wait_s plus tard avec ordre_ancres_non_respecte, ce qui borne la date du dernier intervalle. Le registre revient à 10:20 : ancre du point de clôture, puis ancre de la période, puis jeton qualifié de la clôture. EX-9.4 (complément du 2026-11-16 : « l'ancre de la période ne part qu'après le reçu de l'ancre du point de clôture de la même clé ») : l'ancre du point de clôture attendait le nonce à la clôture ; elle part la première au reçu de l'ancre de 09:13, l'ancre de la période à son reçu.",
   "config": {
     "checkpoint_interval_s": 60,
     "rfc3161": {
@@ -941,13 +941,22 @@
       "t": "2026-11-05T10:20:02.000Z",
       "type": "inclusion_registre",
       "data": {
-        "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
         "block_number": 31201,
-        "capture_sha256": "0x8d5735744103133677b5557a957e7fb33eb4e3839773630a2ce1e4a6cd180ecc"
+        "capture_sha256": "0x5691748b6d24b06cd9c99956d8ad8cec8116657fbb204f3b22dc917369cec340"
       }
     },
     {
       "t": "2026-11-05T10:20:04.000Z",
+      "type": "inclusion_registre",
+      "data": {
+        "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "block_number": 31203,
+        "capture_sha256": "0x5745aa005d09ade48c8f89385b08512ddb7ddc18ddc37467b7efe0fcf6839958"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:06.000Z",
       "type": "reponse_rfc3161",
       "data": {
         "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
@@ -970,19 +979,10 @@
           "T-8",
           "T-9"
         ],
-        "gen_time": "2026-11-05T10:20:03Z",
+        "gen_time": "2026-11-05T10:20:05Z",
         "accuracy_s": 1,
         "token_sha256": "0x60c908cc1952d1d343c7b63ce1f4640bfd8926b1fc9e5003cd13d49747a11fbe",
         "token_size": 3082
-      }
-    },
-    {
-      "t": "2026-11-05T10:20:06.000Z",
-      "type": "inclusion_registre",
-      "data": {
-        "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
-        "block_number": 31203,
-        "capture_sha256": "0x3ef639fa43a2ef589be55ea7a69754256fec06eb524e490b8ae8d979cab6ed28"
       }
     },
     {
@@ -2391,13 +2391,48 @@
     {
       "t": "2026-11-05T10:20:00.000Z",
       "action": "ecrire_file",
-      "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
       "detail": {
         "state": "envoyee"
       }
     },
     {
       "t": "2026-11-05T10:20:00.000Z",
+      "action": "envoyer_registre",
+      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "fingerprint": "0xba83d601401e77c24b8b4211e3cbc2fbb3308b1a607058b117bf3c9f79680fd2",
+        "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:02.000Z",
+      "action": "stocker",
+      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "sha256": "0x5691748b6d24b06cd9c99956d8ad8cec8116657fbb204f3b22dc917369cec340",
+        "size": 4096,
+        "bound": null
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:02.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "state": "obtenue"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:02.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:02.000Z",
       "action": "envoyer_registre",
       "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
       "detail": {
@@ -2406,17 +2441,17 @@
       }
     },
     {
-      "t": "2026-11-05T10:20:02.000Z",
+      "t": "2026-11-05T10:20:04.000Z",
       "action": "stocker",
       "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
       "detail": {
-        "sha256": "0x8d5735744103133677b5557a957e7fb33eb4e3839773630a2ce1e4a6cd180ecc",
+        "sha256": "0x5745aa005d09ade48c8f89385b08512ddb7ddc18ddc37467b7efe0fcf6839958",
         "size": 4096,
         "bound": null
       }
     },
     {
-      "t": "2026-11-05T10:20:02.000Z",
+      "t": "2026-11-05T10:20:04.000Z",
       "action": "ecrire_file",
       "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
       "detail": {
@@ -2424,7 +2459,7 @@
       }
     },
     {
-      "t": "2026-11-05T10:20:02.000Z",
+      "t": "2026-11-05T10:20:04.000Z",
       "action": "ecrire_file",
       "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
       "detail": {
@@ -2432,7 +2467,7 @@
       }
     },
     {
-      "t": "2026-11-05T10:20:02.000Z",
+      "t": "2026-11-05T10:20:04.000Z",
       "action": "envoyer_rfc3161",
       "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
       "detail": {
@@ -2446,34 +2481,17 @@
       }
     },
     {
-      "t": "2026-11-05T10:20:02.000Z",
-      "action": "ecrire_file",
-      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
-      "detail": {
-        "state": "envoyee"
-      }
-    },
-    {
-      "t": "2026-11-05T10:20:02.000Z",
-      "action": "envoyer_registre",
-      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
-      "detail": {
-        "fingerprint": "0xba83d601401e77c24b8b4211e3cbc2fbb3308b1a607058b117bf3c9f79680fd2",
-        "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
-      }
-    },
-    {
-      "t": "2026-11-05T10:20:04.000Z",
+      "t": "2026-11-05T10:20:06.000Z",
       "action": "stocker",
       "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
       "detail": {
         "sha256": "0x60c908cc1952d1d343c7b63ce1f4640bfd8926b1fc9e5003cd13d49747a11fbe",
         "size": 3082,
-        "bound": "2026-11-05T10:20:04.000Z"
+        "bound": "2026-11-05T10:20:06.000Z"
       }
     },
     {
-      "t": "2026-11-05T10:20:04.000Z",
+      "t": "2026-11-05T10:20:06.000Z",
       "action": "ecrire_file",
       "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
       "detail": {
@@ -2481,7 +2499,7 @@
       }
     },
     {
-      "t": "2026-11-05T10:20:04.000Z",
+      "t": "2026-11-05T10:20:06.000Z",
       "action": "echeance",
       "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
       "detail": {
@@ -2490,31 +2508,13 @@
       }
     },
     {
-      "t": "2026-11-05T10:20:04.000Z",
+      "t": "2026-11-05T10:20:06.000Z",
       "action": "journaliser",
       "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
       "detail": {
         "event": "period_timestamped",
         "provider": "qtsa-principal",
-        "d_jeton_s": 1204
-      }
-    },
-    {
-      "t": "2026-11-05T10:20:06.000Z",
-      "action": "stocker",
-      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
-      "detail": {
-        "sha256": "0x3ef639fa43a2ef589be55ea7a69754256fec06eb524e490b8ae8d979cab6ed28",
-        "size": 4096,
-        "bound": null
-      }
-    },
-    {
-      "t": "2026-11-05T10:20:06.000Z",
-      "action": "ecrire_file",
-      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
-      "detail": {
-        "state": "obtenue"
+        "d_jeton_s": 1206
       }
     },
     {
@@ -2737,7 +2737,7 @@
         {
           "n": 1,
           "provider": null,
-          "started_at": "2026-11-05T10:20:00.000Z",
+          "started_at": "2026-11-05T10:20:02.000Z",
           "nonce": null,
           "correlation_id": "ancre_registre_periode:ae22426f25529379:1",
           "outcome": "obtenue",
@@ -2747,15 +2747,15 @@
           "failure_info": null,
           "retry_after_s": null,
           "next_at": null,
-          "detail": "ancre incluse au bloc 31201"
+          "detail": "ancre incluse au bloc 31203"
         }
       ],
       "attempts_total": 1,
       "result": {
-        "sha256": "0x8d5735744103133677b5557a957e7fb33eb4e3839773630a2ce1e4a6cd180ecc",
+        "sha256": "0x5745aa005d09ade48c8f89385b08512ddb7ddc18ddc37467b7efe0fcf6839958",
         "size": 4096,
         "provider": null,
-        "obtained_at": "2026-11-05T10:20:02.000Z",
+        "obtained_at": "2026-11-05T10:20:04.000Z",
         "bound": null
       },
       "replaced_by": null
@@ -2781,7 +2781,7 @@
         {
           "n": 1,
           "provider": null,
-          "started_at": "2026-11-05T10:20:02.000Z",
+          "started_at": "2026-11-05T10:20:00.000Z",
           "nonce": null,
           "correlation_id": "ancre_registre_point:c3240f32131acca5:1",
           "outcome": "obtenue",
@@ -2791,15 +2791,15 @@
           "failure_info": null,
           "retry_after_s": null,
           "next_at": null,
-          "detail": "ancre incluse au bloc 31203"
+          "detail": "ancre incluse au bloc 31201"
         }
       ],
       "attempts_total": 1,
       "result": {
-        "sha256": "0x3ef639fa43a2ef589be55ea7a69754256fec06eb524e490b8ae8d979cab6ed28",
+        "sha256": "0x5691748b6d24b06cd9c99956d8ad8cec8116657fbb204f3b22dc917369cec340",
         "size": 4096,
         "provider": null,
-        "obtained_at": "2026-11-05T10:20:06.000Z",
+        "obtained_at": "2026-11-05T10:20:02.000Z",
         "bound": null
       },
       "replaced_by": null
@@ -2825,7 +2825,7 @@
         {
           "n": 1,
           "provider": "qtsa-principal",
-          "started_at": "2026-11-05T10:20:02.000Z",
+          "started_at": "2026-11-05T10:20:04.000Z",
           "nonce": "0x29ccc3c9db80e87b",
           "correlation_id": "jeton_periode:ae22426f25529379:1",
           "outcome": "obtenue",
@@ -2843,8 +2843,8 @@
         "sha256": "0x60c908cc1952d1d343c7b63ce1f4640bfd8926b1fc9e5003cd13d49747a11fbe",
         "size": 3082,
         "provider": "qtsa-principal",
-        "obtained_at": "2026-11-05T10:20:04.000Z",
-        "bound": "2026-11-05T10:20:04.000Z"
+        "obtained_at": "2026-11-05T10:20:06.000Z",
+        "bound": "2026-11-05T10:20:06.000Z"
       },
       "replaced_by": null
     },

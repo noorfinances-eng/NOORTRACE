@@ -37,7 +37,8 @@
 //   notifications/             documents de notification, corps envoyés au
 //                              webhook et signatures (13.19, EX-13.40,
 //                              EX-13.41 ; scripts/vecteurs/ct3/notifications.mjs) ;
-//   INDEX.md                   chaque cas et son attendu.
+//   INDEX.md                   chaque cas et son attendu ; section « Cas nommés »
+//                              (FAMILLES_NOMMEES, plancher d'EX-A.10).
 //
 // Tout est déterministe (EX-A.1) : comptes 1 à 4 du mnémonique public de
 // Hardhat, adresses de registre, de jeu, de bloc, de demande et d'événement
@@ -57,11 +58,12 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { HDNodeWallet, Signature, hashMessage, keccak256, toUtf8Bytes } from "ethers";
 import * as J from "../lib/journal.mjs";
 import * as A from "../lib/approbation.mjs";
-import { familleAnnuaire, ORIGINE, EMETTEUR, ADMIN, INSTANT_BASE_ANNUAIRE, TTL_INSCRIPTION, ETIQUETTE_NONCE, IDENTITE_COMPTE } from "./ct3/annuaire.mjs";
+import * as K from "../lib/console.mjs";
+import { familleAnnuaire, ORIGINE, EMETTEUR, ADMIN, INSTANT_BASE_ANNUAIRE, TTL_INSCRIPTION, TTL_ENTREE, ETIQUETTE_NONCE, IDENTITE_COMPTE } from "./ct3/annuaire.mjs";
 import { familleNotifications } from "./ct3/notifications.mjs";
 import { familleConsole, CONSIGNE_CONSOLE, GABARIT_CONSOLE, ATTENDU_ACCEPTATION_CONSOLE, MOT_DE_PASSE, ETIQUETTE_FICHIER_CLE, ETIQUETTE_DECOUVERTE, ETIQUETTE_ZERO, ETIQUETTE_EN_LIGNE } from "./ct3/console.mjs";
 
@@ -77,6 +79,14 @@ export const ENTREES_TOLEREES = ["confrontation", "verificateur-independant"];
 export const FICHIERS_SCHEMAS_CONSOLE = [...A.FICHIERS_SCHEMAS, "console-approbation-v0.schema.json", "annuaire-approbateurs-v0.schema.json", "console-service-v0.schema.json"];
 /** Troisième ligne d'INDEX.md : la marque d'un répertoire produit par ce générateur. */
 const MARQUE_INDEX = "Produit par `scripts/vecteurs/generer-ct3.mjs`";
+/**
+ * Répertoires dont INDEX.md nomme chaque fichier `.json`, sans descendre dans leurs sous-répertoires, dans sa section
+ * « Cas nommés » (plancher d'EX-A.10, complément du 2026-11-16) : le vérificateur Go les compte dans les deux sens.
+ */
+export const FAMILLES_NOMMEES = [
+  "politiques/", "politiques-invalides/", "evaluation/", "candidats/", "acceptation/cas/", "tickets/", "reponses-evaluer/", "decisions/valides/", "decisions/invalides/", "signatures/",
+  "annuaire/", "annuaire/annuaires/", "annuaire/traces/", "annuaire/exports/", "console/modeles/", "console/requetes/", "console/reponses/", "console/decouverte/", "console/fichiers-cle/", "notifications/",
+];
 
 const texteJSON = (v) => JSON.stringify(v, null, 2) + "\n";
 const exiger = (condition, message) => {
@@ -1580,7 +1590,7 @@ function conceptionNormalisation() {
 // ---------------------------------------------------------------------------
 
 const code = (s) => "`" + s + "`";
-function index({ constantes, politiques, invalides, evaluations, candidats, acceptation, tickets, reponsesEvaluer, decisions, normalisation, an, co, nt }) {
+function index({ constantes, politiques, invalides, evaluations, candidats, acceptation, tickets, reponsesEvaluer, decisions, normalisation, an, co, nt, ecrits }) {
   const L = [];
   L.push("# Vecteurs CT-3 — approbations");
   L.push("");
@@ -1686,11 +1696,190 @@ function index({ constantes, politiques, invalides, evaluations, candidats, acce
   indexAnnuaire(L, an);
   indexConsole(L, co);
   indexNotifications(L, nt);
+  indexCasNommes(L, ecrits);
   return L.join("\n");
 }
 
 const abrege = (h) => `${h.slice(0, 10)}…${h.slice(-8)}`;
 const sortie = (accepted, reason) => (accepted ? "acceptée" : `refus : ${reason}`);
+
+/**
+ * Cas d'AN-9 ajouté par le complément du 2026-11-16 (EX-13.19, point 6) : l'opération expirer qui fait rejouer une
+ * inscription sans preuve est placée plus loin dans le journal ; quand le document porte encore l'entrée, sa preuve
+ * n'est pas cherchée dans le document : l'expirer rejoué retire l'entrée, et le rejeu aboutit à d'autres entrées
+ * (/entries), non à /operations/0. Document : l'annuaire de la trace expiration-entree juste après son pas expirer
+ * accepté, dont entries porte encore apb-0001 telle qu'avant ce pas, sa preuve signée par la clé du compte 2.
+ */
+function completerExportsAnnuaire(an, valider) {
+  const conforme = (doc) => valider(doc, "annuaire-approbateurs", null).length === 0;
+  const trace = an.traces.find((t) => t.id === "expiration-entree");
+  exiger(trace && trace.initial.startsWith("annuaires/"), "trace expiration-entree");
+  let doc = copie(an.annuaires[trace.initial.slice("annuaires/".length)]);
+  let defis = [];
+  let avant = null;
+  for (const p of trace.steps) {
+    const r = K.appliquerOperation(doc, p.method, p.request, p.at, { defis, nonce: p.challenges[0] ?? null, identifiant: "compteur" });
+    exiger(r.accepted === p.expected.accepted && r.reason === p.expected.reason, `trace expiration-entree, pas ${p.method} ${p.at}`);
+    if (p.method === "expirer" && r.accepted) {
+      avant = doc;
+      doc = r.annuaire;
+      break;
+    }
+    doc = r.annuaire;
+    defis = r.defis;
+  }
+  exiger(avant !== null, "trace expiration-entree : pas expirer accepté");
+  const retiree = doc.operations.at(-1).entry;
+  const porte = copie(doc);
+  porte.entries = copie(avant.entries);
+  const k = porte.entries.findIndex((e) => e.id === retiree);
+  exiger(k === 0 && porte.entries[0].addresses.length === 1, "entrée retirée en tête, une adresse");
+  const preuve = porte.entries[0].addresses[0].proof;
+  preuve.signature = Signature.from(COMPTES[2].signingKey.sign(hashMessage(toUtf8Bytes(preuve.message)))).serialized;
+  const file = "expiration-entree-portee.json";
+  const description = `L'annuaire de la trace expiration-entree juste après l'opération ${doc.revision} expirer, dont entries porte encore ${retiree} telle qu'avant elle, sa preuve signée par la clé du compte 2 : preuve_invalide ; l'inscription de l'opération 1, dont l'entrée est retirée par l'expirer placé plus loin, se rejoue sans chercher sa preuve dans le document, l'expirer rejoué retire l'entrée, et le rejeu aboutit à d'autres entrées (/entries), non à /operations/0.`;
+  const errors = [{ code: "operations_incoherentes", pointer: "/entries" }, { code: "preuve_invalide", pointer: "/entries/0/addresses/0/proof" }];
+  exiger(conforme(porte), `export ${file} non conforme au schéma`);
+  const r = K.verifierAnnuaireExporte(porte, { conforme });
+  exiger(J.egalJSON(r, errors), `export ${file} : ${JSON.stringify(r)}, conception ${JSON.stringify(errors)}`);
+  exiger(!(file in an.fichiersExports), `export ${file} déjà présent`);
+  an.fichiersExports[file] = porte;
+  an.exportsAttendu.cases.push({ file, description, checks: ["AN-9"], errors });
+  exiger(valider(an.exportsAttendu, "annuaire-approbateurs", "attendu_exports").length === 0, "exports/attendu.json non conforme");
+}
+
+/**
+ * Cas d'AN-9 des instants indécodables au rejeu (EX-13.19, points 4 et 6 ; complément du 2026-11-16) : chaque
+ * instant porte une date absente du calendrier (31 novembre), qui respecte le motif de `$defs/horodatage` sans se
+ * décoder (CT-1 §3). Une opération expirer à un tel instant ne se rejoue pas ; un received_at indécodable est
+ * preuve_discordante ; les instants que posent les autres opérations rejouées sont le texte de leur at, si bien que
+ * seul le point 2 relève ces opérations. Écarts posés par conception, puis confrontés à la référence.
+ */
+function completerExportsInstants(an, valider) {
+  const conforme = (doc) => valider(doc, "annuaire-approbateurs", null).length === 0;
+  const illisible = (at) => {
+    exiger(at.startsWith("2026-1") && at.slice(4, 10) !== "-11-31", `instant ${at}`);
+    return "2026-11-31" + at.slice(10);
+  };
+  const base = (f) => {
+    exiger(f in an.fichiersExports, `export ${f} absent`);
+    return copie(an.fichiersExports[f]);
+  };
+  const cas = [];
+
+  // Point 6 : une opération expirer dont l'instant ne se décode pas ne se rejoue pas.
+  {
+    const d = base("expiration-rejouee.json");
+    const j = d.operations.findIndex((o) => o.op === "expirer");
+    exiger(j === 4 && d.operations[0].entry === d.operations[j].entry && d.operations[j + 1], "expiration-rejouee : expirer en opération 5, ni première ni dernière");
+    d.operations[j].at = illisible(d.operations[j].at);
+    cas.push({
+      file: "expiration-instant-indecodable.json",
+      doc: d,
+      description: `expiration-rejouee.json dont l'opération ${j + 1} expirer porte l'instant ${d.operations[j].at}, qui respecte le motif sans se décoder : revision_incoherente à son at (point 2) ; l'échéance at ≥ created_at + 86 400 000 n'est pas établie, l'opération ne se rejoue pas et le rejeu s'arrête à elle, après l'inscription de l'opération 1 rejouée sans preuve.`,
+      errors: [{ code: "operations_incoherentes", pointer: `/operations/${j}` }, { code: "revision_incoherente", pointer: `/operations/${j}/at` }],
+    });
+  }
+
+  // Points 4 et 6 : inscription avec preuve à un instant indécodable ; created_at et received_at en sont le texte.
+  {
+    const d = base("reference.json");
+    const j = 2;
+    const o = d.operations[j];
+    const i = d.entries.findIndex((e) => e.id === o.entry);
+    exiger(o.op === "inscrire" && i === 1 && d.entries[i].created_at === o.at && d.entries[i].addresses[0].address === o.address && d.entries[i].addresses[0].proof.received_at === o.at, "reference : opération 3 inscrire, entrée 1 créée par elle");
+    o.at = illisible(o.at);
+    d.entries[i].created_at = o.at;
+    d.entries[i].addresses[0].proof.received_at = o.at;
+    cas.push({
+      file: "inscription-instant-indecodable.json",
+      doc: d,
+      description: `reference.json dont l'opération ${j + 1} inscrire porte l'instant ${o.at}, repris par le created_at de ${o.entry} et le received_at de sa preuve : revision_incoherente à son at (point 2) ; Emis le ≤ received_at < Expire le ne s'établit pas : preuve_discordante (point 4) ; l'inscription se rejoue (le rejeu ne lit pas l'horloge), et la preuve et l'entrée rejouées portent le même texte : aucun écart /entries.`,
+      errors: [{ code: "preuve_discordante", pointer: `/entries/${i}/addresses/0/proof` }, { code: "revision_incoherente", pointer: `/operations/${j}/at` }],
+    });
+  }
+
+  // Point 6 : validated_at (valider), revoked_at (revoquer), updated_at (dernière opération) au texte de l'at.
+  {
+    const d = base("reference.json");
+    const ops = [1, 5, 8];
+    exiger(ops.map((j) => d.operations[j].op).join() === "valider,revoquer,valider" && ops.at(-1) === d.operations.length - 1, "reference : opérations 2, 6 et 9");
+    for (const j of ops) {
+      const o = d.operations[j];
+      const a = d.entries.find((e) => e.id === o.entry).addresses.find((x) => x.address === o.address);
+      const membre = o.op === "valider" ? "validated_at" : "revoked_at";
+      exiger(a[membre] === o.at, `reference : ${membre} de l'opération ${j + 1}`);
+      o.at = illisible(o.at);
+      a[membre] = o.at;
+    }
+    d.updated_at = d.operations.at(-1).at;
+    cas.push({
+      file: "instants-indecodables-rejoues.json",
+      doc: d,
+      description: "reference.json dont les opérations 2 valider, 6 revoquer et 9 valider, la dernière, portent un instant du 31 novembre, repris par le validated_at, le revoked_at et le validated_at qu'elles posent, et par updated_at : revision_incoherente à chacun de ces at (point 2) ; ces opérations se rejouent, et les instants qu'elles posent sont le texte de leur at : aucun écart /entries ni /updated_at.",
+      errors: ops.map((j) => ({ code: "revision_incoherente", pointer: `/operations/${j}/at` })),
+    });
+  }
+
+  // Point 6 : revoked_at d'une adresse remplacée (valider) et d'une désactivation (desactiver), au texte de l'at.
+  {
+    const trace = an.traces.find((t) => t.id === "rotation");
+    exiger(trace && trace.initial.startsWith("annuaires/") && trace.steps.length === 6 && trace.steps[5].method === "valider", "trace rotation");
+    let doc = copie(an.annuaires[trace.initial.slice("annuaires/".length)]);
+    let defis = [];
+    for (const [k, p] of trace.steps.entries()) {
+      const at = k === 5 ? illisible(p.at) : p.at;
+      const r = K.appliquerOperation(doc, p.method, p.request, at, { defis, nonce: p.challenges[0] ?? null, identifiant: "compteur" });
+      exiger(r.accepted === p.expected.accepted && r.reason === p.expected.reason, `trace rotation, pas ${k + 1}`);
+      doc = r.annuaire;
+      defis = r.defis;
+    }
+    const entree = doc.operations.at(-1).entry;
+    const r = K.appliquerOperation(doc, "desactiver", { session_identity: ADMIN, entry: entree, reason: null }, illisible("2026-11-10T09:10:00.000Z"), { defis, identifiant: "compteur" });
+    exiger(r.accepted, "rotation : desactiver");
+    const d = r.annuaire;
+    const [ancienne, nouvelle] = d.entries[0].addresses;
+    exiger(ancienne.revocation_cause === "remplacee" && nouvelle.revocation_cause === "desactivation" && ancienne.revoked_at === nouvelle.validated_at && nouvelle.revoked_at === d.updated_at, "rotation : remplacement puis désactivation");
+    cas.push({
+      file: "remplacement-instants-indecodables.json",
+      doc: d,
+      description: `L'annuaire final de la trace rotation, dont l'opération 4 valider, qui remplace le compte 1 par le compte 2, porte un instant du 31 novembre, suivi de l'opération 5 desactiver de ${entree} à un autre : revision_incoherente à ces deux at (point 2) ; le validated_at du compte 2, le revoked_at du compte 1 (remplacee) et celui du compte 2 (desactivation) sont le texte de l'at de l'opération qui les pose : aucun écart /entries.`,
+      errors: [{ code: "revision_incoherente", pointer: "/operations/3/at" }, { code: "revision_incoherente", pointer: "/operations/4/at" }],
+    });
+  }
+
+  for (const { file, doc, description, errors } of cas) {
+    exiger(conforme(doc), `export ${file} non conforme au schéma`);
+    const r = K.verifierAnnuaireExporte(doc, { conforme });
+    exiger(J.egalJSON(r, errors), `export ${file} : ${JSON.stringify(r)}, conception ${JSON.stringify(errors)}`);
+    exiger(!(file in an.fichiersExports), `export ${file} déjà présent`);
+    an.fichiersExports[file] = doc;
+    an.exportsAttendu.cases.push({ file, description, checks: ["AN-9"], errors });
+  }
+  exiger(valider(an.exportsAttendu, "annuaire-approbateurs", "attendu_exports").length === 0, "exports/attendu.json non conforme");
+}
+
+/**
+ * Section « Cas nommés » d'INDEX.md (plancher d'EX-A.10) : pour chaque répertoire de FAMILLES_NOMMEES, chacun de ses
+ * fichiers `.json` écrits, par son chemin relatif à la racine, dans l'ordre des chemins (unités UTF-16).
+ */
+function indexCasNommes(L, ecrits) {
+  L.push("## Cas nommés (EX-A.10)");
+  L.push("");
+  L.push(`Chaque ligne nomme un répertoire, puis chacun de ses fichiers \`.json\`, sans ses sous-répertoires, \`attendu.json\` compris, par son chemin relatif à \`spec/vecteurs/ct-3/\`. Ce sont les ${FAMILLES_NOMMEES.length} répertoires dont le vérificateur Go indépendant compte les cas dans les deux sens : un fichier nommé ici et absent de la racine, ou un fichier présent et non nommé, donne le code 1 (EX-A.10, complément du 2026-11-16).`);
+  L.push("");
+  const avant = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+  // Tout répertoire écrit qui porte des fichiers .json est nommé, hors la racine et acceptation/ (consigne, politique et
+  // gabarit de l'épreuve, A.5) : une famille nouvelle ne peut pas échapper au plancher.
+  const reps = new Set(ecrits.filter((e) => e.endsWith(".json")).map((e) => e.slice(0, e.lastIndexOf("/") + 1)));
+  for (const r of reps) exiger(r === "" || r === "acceptation/" || FAMILLES_NOMMEES.includes(r), `cas nommés : ${r} hors de FAMILLES_NOMMEES`);
+  for (const f of FAMILLES_NOMMEES) {
+    const cas = ecrits.filter((e) => e.endsWith(".json") && e.startsWith(f) && !e.slice(f.length).includes("/")).sort(avant);
+    exiger(cas.length > 0, `cas nommés : ${f} vide`);
+    L.push(`- ${code(f)} : ${cas.map(code).join(", ")}`);
+  }
+  L.push("");
+}
 
 function indexAnnuaire(L, an) {
   L.push("## annuaire/ (A.10, AN-1 à AN-10)");
@@ -1706,7 +1895,8 @@ function indexAnnuaire(L, an) {
   L.push(`| Alias de demandeur | ${code(DEMANDEUR)}, lié à l'entrée de ${code(IDENTITE_COMPTE[3])} |`);
   L.push(`| Nonce d'inscription \`k\` | 16 premiers octets de SHA-256 de ${code(ETIQUETTE_NONCE)}, en hexadécimal minuscule |`);
   L.push(`| Instant de base, validité d'un message | ${code(INSTANT_BASE_ANNUAIRE)}, \`registration_ttl_ms\` ${TTL_INSCRIPTION} |`);
-  L.push("| Identifiant d'une entrée créée | `apb-` suivi, en décimal sur 4 chiffres complétés de zéros à gauche, du nombre d'entrées de l'annuaire avant la création augmenté de un (A.10 ; en exploitation, 64 bits aléatoires ou époque, EX-13.9) |");
+  L.push(`| Durée de vie d'une entrée jamais validée | \`registration_entry_ttl_ms\` ${TTL_ENTREE} (défaut, 30 jours) ; le rejeu d'un export exige la borne basse, 86400000 (EX-13.19, point 6) |`);
+  L.push("| Identifiant d'une entrée créée | `apb-` suivi, en décimal sur 4 chiffres complétés de zéros à gauche, du nombre d'entrées jamais créées avant celle-ci (entrées de l'annuaire et entrées retirées par `expirer`) augmenté de un (A.10 ; en exploitation, 64 bits aléatoires ou époque, EX-13.9) |");
   L.push("");
   L.push("| Annuaire de départ | Contenu |");
   L.push("|---|---|");
@@ -1741,7 +1931,8 @@ function indexAnnuaire(L, an) {
     L.push("");
     L.push(t.description);
     L.push("");
-    t.steps.forEach((p, i) => L.push(`${i + 1}. ${p.method} ${p.at.slice(11, 23)} → ${sortie(p.expected.accepted, p.expected.reason)}, revision ${p.expected.revision}`));
+    // Un pas d'un autre jour que le premier (expiration, 30 jours plus tard) porte sa date entière.
+    t.steps.forEach((p, i) => L.push(`${i + 1}. ${p.method} ${p.at.slice(0, 10) === t.steps[0].at.slice(0, 10) ? p.at.slice(11, 23) : p.at} → ${sortie(p.expected.accepted, p.expected.reason)}, revision ${p.expected.revision}`));
     L.push("");
   }
   L.push(`### \`controles-vote.json\` (AN-8) — annuaire ${code(an.controlesVote.annuaire)}`);
@@ -1854,7 +2045,9 @@ export function genererCt3({ racine = REPERTOIRE_CT3 } = {}) {
   racineAdmise(racine);
   fs.mkdirSync(racine, { recursive: true });
   for (const e of ENTREES_GENEREES) fs.rmSync(path.join(racine, e), { recursive: true, force: true });
+  const ecrits = [];
   const ecrire = (rel, valeur) => {
+    ecrits.push(rel.split(path.sep).join("/"));
     const f = path.join(racine, rel);
     fs.mkdirSync(path.dirname(f), { recursive: true });
     fs.writeFileSync(f, typeof valeur === "string" ? valeur : texteJSON(valeur));
@@ -1990,6 +2183,8 @@ export function genererCt3({ racine = REPERTOIRE_CT3 } = {}) {
   const MD = fs.readFileSync(path.join(PROJECT_ROOT, "spec", "CT-3-approbations.md"), "utf8");
   const ctx = { COMPTES, ADR, ORG, ORG_ID, JOURNAL_ID, REGISTRE, JEU, BLOC, DEMANDE, DEMANDEUR, V1, exiger, valider, MD };
   const an = familleAnnuaire(ctx);
+  completerExportsAnnuaire(an, valider);
+  completerExportsInstants(an, valider);
   for (const [f, doc] of Object.entries(an.annuaires)) ecrire(path.join("annuaire", "annuaires", f), doc);
   ecrire(path.join("annuaire", "messages.json"), an.messages);
   ecrire(path.join("annuaire", "inscriptions.json"), an.inscriptions);
@@ -2014,11 +2209,11 @@ export function genererCt3({ racine = REPERTOIRE_CT3 } = {}) {
   const nt = familleNotifications({ ADR, ORIGINE, MD });
   ecrire(path.join("notifications", "notifications.json"), nt.fichier);
 
-  ecrire("INDEX.md", index({ constantes, politiques, invalides, evaluations, candidats, acceptation: accCas.map(([id, , , , , ce]) => [id, ce]), tickets, reponsesEvaluer, decisions, normalisation, an, co, nt }));
+  ecrire("INDEX.md", index({ constantes, politiques, invalides, evaluations, candidats, acceptation: accCas.map(([id, , , , , ce]) => [id, ce]), tickets, reponsesEvaluer, decisions, normalisation, an, co, nt, ecrits }));
   return { politiques: Object.keys(politiques).length, invalides: invalides.length, evaluation: Object.values(evaluations).reduce((n, d) => n + d.cases.length, 0), candidats: Object.values(candidats).reduce((n, d) => n + d.cases.length, 0), tickets: tickets.length, reponsesEvaluer: reponsesEvaluer.length, decisions: decisions.length, normalisation: normalisation.length, annuaire: an.messages.cases.length + an.inscriptions.cases.length + an.domaines.cases.length + an.traces.length + an.controlesVote.cases.length + an.controlesCanal.cases.length + an.exportsAttendu.cases.length, console: co.modeles.length + co.requetes.length + co.reponses.length + co.decouverte.length + co.fichiersCle.length, notifications: nt.fichier.cases.length + nt.fichier.refusals.length };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   const i = process.argv.indexOf("--sortie");
   if (i !== -1 && !process.argv[i + 1]) {
     process.stderr.write("generer-ct3 : --sortie demande un répertoire\n");

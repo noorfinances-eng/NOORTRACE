@@ -135,15 +135,15 @@ func construireArbre(t *testing.T) string {
 	    "sha256":"0x6cfc43b54a70eee0141d2fc7d1acc06003ee23354ac76f2097ef74958d91bbb4","length":96,"redacted":true,
 	    "matches":[{"rule":"identifiants-arguments-resultat","detector":"iban","count":1}]}}`))
 	red.Arr = append(red.Arr, doit(t, `{"name":"exemple-10-9-resultat","policy":"pii-v1","scope":"resultat","tool":"sap.payments.create",
-	  "input":{"note":"Virement au bénéficiaire CH93 0076 2011 6238 5295 7, assuré 756.1234.5678.97, joignable au +41 44 123 45 67 ou j.dupont@example.ch ; carte 3782 822463 10005."},
+	  "input":{"note":"Virement au bénéficiaire CH93 0076 2011 6238 5295 7, assuré 756.1234.5678.97, joignable au +41 44 123 45 67 ou j.dupont@ch.example ; carte 3782 822463 10005."},
 	  "expected":{"piece":"{\"note\":\"Virement au bénéficiaire [REDIGE:iban], assuré [REDIGE:avs], joignable au [REDIGE:telephone] ou [REDIGE:email] ; carte [REDIGE:carte].\"}",
 	    "sha256":"0x89a34ad286014dee1e1030caf6d50d32327a77da216dfb4a19154f15b73d5f8e","length":148,"redacted":true,
 	    "matches":[{"rule":"identifiants-arguments-resultat","detector":"iban","count":1},{"rule":"identifiants-arguments-resultat","detector":"avs","count":1},
 	      {"rule":"identifiants-arguments-resultat","detector":"carte","count":1},{"rule":"identifiants-arguments-resultat","detector":"email","count":1},
 	      {"rule":"identifiants-arguments-resultat","detector":"telephone","count":1}]}}`))
-	pseudoPiece := `[PSEUDO:iban:50d46ea9a82b] et [PSEUDO:email:b8ac789204a6]`
+	pseudoPiece := `[PSEUDO:iban:50d46ea9a82b] et [PSEUDO:email:ff93a7f99c38]`
 	red.Arr = append(red.Arr, Objet("name", Chaine("pseudonyme-10-9"), "policy", Chaine("pii-pseudo-test"), "scope", Chaine("prompt_systeme"), "tool", Nul(),
-		"input", Chaine("CH9300762011623852957 et j.dupont@example.ch"),
+		"input", Chaine("CH9300762011623852957 et j.dupont@ch.example"),
 		"expected", Objet("piece", Chaine(pseudoPiece), "sha256", Chaine(Hex0x(SHA256([]byte(pseudoPiece)))), "length", Entier(int64(len(pseudoPiece))), "redacted", Booleen(true),
 			"matches", doit(t, `[{"rule":"identifiants-modele","detector":"iban","count":1},{"rule":"identifiants-modele","detector":"email","count":1}]`))))
 	a.json("redaction/cas.json", red)
@@ -246,7 +246,7 @@ func construireArbre(t *testing.T) string {
 	  "rejected":[{"server_alias":"demo","original":"noortrace.x","reason":"nom_reserve"}],"pages":[["demo__claims.get","demo__payments.create"]]}`))
 
 	// ---- pieces-modele : flux Anthropic
-	req := doit(t, `{"model":"modele-demo-1","max_tokens":1024,"stream":true,"system":"Tu es l'agent sinistres. Contact : j.dupont@example.ch","messages":[{"role":"user","content":"Règle le sinistre 2026-77812, IBAN CH9300762011623852957"}]}`)
+	req := doit(t, `{"model":"modele-demo-1","max_tokens":1024,"stream":true,"system":"Tu es l'agent sinistres. Contact : j.dupont@ch.example","messages":[{"role":"user","content":"Règle le sinistre 2026-77812, IBAN CH9300762011623852957"}]}`)
 	a.json("pieces-modele/anthropic-messages-flux/requete.json", req)
 	a.json("pieces-modele/anthropic-messages-flux/requete-entetes.json", doit(t, `{"anthropic-version":"2023-06-01"}`))
 	a.ecrire("pieces-modele/anthropic-messages-flux/reponse.sse", []byte(fluxAnthropic))

@@ -32,7 +32,9 @@ import { configurationDev, RACINE } from "../enregistreur-coeur/outils.mjs";
 
 export { RACINE };
 export const PAQUET = path.join(RACINE, "paquets", "enregistreur");
-export const BIN_CTL = path.join(PAQUET, "bin", "noortrace-ctl");
+// Sous NOORTRACE_REVUE_CTL (racine d'une copie de paquets/enregistreur), la commande est lancée depuis cette copie (code
+// d'avant : essai rouge) ; le démon reste celui du dépôt.
+export const BIN_CTL = path.join(process.env.NOORTRACE_REVUE_CTL ? path.resolve(process.env.NOORTRACE_REVUE_CTL) : PAQUET, "bin", "noortrace-ctl");
 export const DEMON_HORLOGE = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "enregistreur-ancrage", "demon.mjs");
 export const VERIFICATEUR_JS = path.join(RACINE, "scripts", "verify", "dossier.mjs");
 export const TMP = process.env.NOORTRACE_TMP ?? os.tmpdir();
@@ -73,7 +75,10 @@ export function lignesJournal(chemin) {
  */
 export function ctl(args, o = {}) {
   return new Promise((res) => {
-    const p = spawn(process.execPath, [o.bin ?? BIN_CTL, ...args], { cwd: o.cwd ?? TMP, env: { ...process.env, ...(o.env ?? {}) }, stdio: ["ignore", "pipe", "pipe"] });
+    // PWD : le répertoire de travail sous le nom donné, comme le pose un interpréteur de commandes après `cd`
+    // (CT-2 EX-15.9, complément du 2026-11-16) ; `o.env` peut le remplacer.
+    const cwd = o.cwd ?? TMP;
+    const p = spawn(process.execPath, [o.bin ?? BIN_CTL, ...args], { cwd, env: { ...process.env, PWD: cwd, ...(o.env ?? {}) }, stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
     p.stdout.on("data", (d) => (stdout += d));

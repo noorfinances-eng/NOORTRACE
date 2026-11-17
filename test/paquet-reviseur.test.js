@@ -95,8 +95,8 @@ describe("CT-8 : paquet réviseur, vecteurs de la famille paquets (annexe A.10, 
     // Valeurs imprimées par CT-8 (13.3, EX-A.13).
     const valide = fs.readFileSync(path.join(VECT, "valide.tar"));
     expect(valide.length).to.equal(296_960);
-    expect(P.sha256(valide)).to.equal("0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982");
-    expect(P.sha256(fs.readFileSync(path.join(VECT, "cas.json")))).to.equal("0x77664feb916a54a9c3ca1bbe004d0be1ef9b76b040297613fb6e6d28c39b4303");
+    expect(P.sha256(valide)).to.equal("0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd");
+    expect(P.sha256(fs.readFileSync(path.join(VECT, "cas.json")))).to.equal("0x0980fe7517db6dcce7d8528de8c4f6b737a72c84ef0c71775a96c34e4d40dd51");
     expect(tars.reduce((s, f) => s + fs.statSync(path.join(VECT, f)).size, 0)).to.equal(3_624_960);
   });
 
@@ -135,7 +135,7 @@ describe("CT-8 : paquet réviseur, vecteurs de la famille paquets (annexe A.10, 
     expect(blocs).to.have.length(4);
     const invocations = [
       [path.join(VECT, "valide.tar")],
-      [path.join(VECT, "valide.tar"), "--langue", "en", "--empreinte", "8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982", "--ancres", path.join(SPEC, "vecteurs", "ct-6", "ancres", "ancres-test.json")],
+      [path.join(VECT, "valide.tar"), "--langue", "en", "--empreinte", "df2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd", "--ancres", path.join(SPEC, "vecteurs", "ct-6", "ancres", "ancres-test.json")],
       [path.join(VECT, "fichier-altere.tar")],
       [path.join(VECT, "contrefacon-coherente.tar")],
     ];
@@ -162,17 +162,17 @@ describe("CT-8 : paquet réviseur, vecteurs de la famille paquets (annexe A.10, 
     expect(fs.readFileSync(path.join(VECT, "description.json"), "utf8")).to.equal(json(bloc));
   });
 
-  it("le manifeste de valide.tar égale l'exemple annoté de 13.3 (49 fichiers, 241 340 octets, 11 274 octets et SHA-256 imprimés) ; la longueur suit la formule d'EX-13.14", function () {
+  it("le manifeste de valide.tar égale l'exemple annoté de 13.3 (49 fichiers, 241 334 octets, 11 274 octets et SHA-256 imprimés) ; la longueur suit la formule d'EX-13.14", function () {
     const valide = fs.readFileSync(path.join(VECT, "valide.tar"));
     const lu = P.lireArchive(valide);
     const man = lu.entrees.find((e) => e.nom === P.MANIFESTE).donnees;
     expect(man.length).to.equal(11_274);
-    expect(P.sha256(man)).to.equal("0x5667fad9e2d6f8da8e3960304a8bb227638834f3e9319da20241f1f86a353fb1");
+    expect(P.sha256(man)).to.equal("0x678a6b89e6714557b43e0cc8c00bc9842ccb9d2da5fe1da9f6c7317ff4102e99");
     const exemple = annotes.find(([def]) => def === "")[1];
     expect(J.analyserJSONStrict(man)).to.deep.equal(exemple);
     expect(man.toString("utf8")).to.equal(json(exemple));
     expect(exemple.files).to.have.length(49);
-    expect(exemple.files.reduce((s, f) => s + f.size, 0)).to.equal(241_340);
+    expect(exemple.files.reduce((s, f) => s + f.size, 0)).to.equal(241_334);
     expect(valide.length).to.equal(P.longueurCanonique(lu.entrees.map((e) => e.taille)));
     expect(lu.entrees.every((e) => e.mtime === 1_793_059_200)).to.equal(true);
   });
@@ -342,7 +342,7 @@ describe("CT-8 : outil de vérification du paquet réviseur, cas des tests (13.7
     expect(fs.statSync(dest).mode & 0o777).to.equal(0o700);
     const man = path.join(dest, P.RACINE, "MANIFESTE.json");
     expect(fs.statSync(man).mode & 0o777).to.equal(0o600);
-    expect(P.sha256(fs.readFileSync(man))).to.equal("0x5667fad9e2d6f8da8e3960304a8bb227638834f3e9319da20241f1f86a353fb1");
+    expect(P.sha256(fs.readFileSync(man))).to.equal("0x678a6b89e6714557b43e0cc8c00bc9842ccb9d2da5fe1da9f6c7317ff4102e99");
   });
 
   it("paquet complet construit dans le test : code 0, PR-11 réussie ; un fichier de verificateur/ changé et le manifeste recalculé : code 0, PR-11 en échec, AV-PR-1 (EX-13.34)", function () {
@@ -406,8 +406,8 @@ describe("CT-8 : outil de construction du paquet réviseur (13.5)", function () 
     const r = construireCli(["--description", path.join(VECT, "description.json"), "--sortie", sortie]);
     expect(r.status, r.stderr).to.equal(0);
     expect(fs.readFileSync(sortie).equals(fs.readFileSync(path.join(VECT, "valide.tar")))).to.equal(true);
-    expect(r.stdout).to.include("296960 octets, SHA-256 0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982");
-    expect(r.stdout).to.include("49 fichiers, 3 dossier(s), SHA-256 0x5667fad9e2d6f8da8e3960304a8bb227638834f3e9319da20241f1f86a353fb1");
+    expect(r.stdout).to.include("296960 octets, SHA-256 0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd");
+    expect(r.stdout).to.include("49 fichiers, 3 dossier(s), SHA-256 0x678a6b89e6714557b43e0cc8c00bc9842ccb9d2da5fe1da9f6c7317ff4102e99");
     expect(r.stdout).to.match(/par un autre canal/);
     const s = construireCli([`--description=${path.join(TRAVAIL, "absente.json")}`, "--sortie", sortie]);
     expect(s.status).to.equal(2);
@@ -455,8 +455,8 @@ describe("CT-8 : instructions au réviseur et textes des résumés (13.10, 13.11
   it("LISEZMOI.md et README.md égalent, octet pour octet, les blocs de 13.11 et les SHA-256 d'EX-13.36", function () {
     expect(fs.readFileSync(path.join(INSTR, "LISEZMOI.md"), "utf8")).to.equal(blocFichier("LISEZMOI.md"));
     expect(fs.readFileSync(path.join(INSTR, "README.md"), "utf8")).to.equal(blocFichier("README.md"));
-    expect(P.sha256(fs.readFileSync(path.join(INSTR, "LISEZMOI.md")))).to.equal("0x858905b068fdf7cb3db303e3d614e8ac8712e2833f8c13522325c22a44aeac14");
-    expect(P.sha256(fs.readFileSync(path.join(INSTR, "README.md")))).to.equal("0x4874a8613621cd372cfe8fef9bacb391d4772d4ee1bd9bfe74a421b8f2743d34");
+    expect(P.sha256(fs.readFileSync(path.join(INSTR, "LISEZMOI.md")))).to.equal("0x79a7c482fbc9710fbb54a4add1d19436f827448c8730dcc1f3599f168102282c");
+    expect(P.sha256(fs.readFileSync(path.join(INSTR, "README.md")))).to.equal("0x1e52fe934d562dc71341984ce9e8649add608ddb34bac9ed4154e3569ebcac23");
   });
 
   it("les deux instructions ont la même structure : titres de niveau 1 et 2 en même nombre, mêmes blocs de commande indentés (aux noms de paramètres près), table des codes de cinq lignes 0 à 4", function () {
@@ -495,6 +495,40 @@ describe("CT-8 : instructions au réviseur et textes des résumés (13.10, 13.11
         const pr12 = r.checks.find((x) => x.id === "PR-12");
         expect(affirme.test(pr12.detail), `${c.name} ${langue} PR-12`).to.equal(false);
       }
+    }
+  });
+
+  it("voie « copie jointe » retirée jusqu'à la première publication d'une liste SHA256SUMS du vérificateur (décision du porteur du 2026-11-16 ; 13.11, EX-13.22) : les instructions, l'aide de l'outil et AV-PR-1 font prendre l'outil dans le dépôt public et n'offrent pas d'exécuter la copie jointe", function () {
+    // Texte aux blancs réduits : les mots cherchés peuvent être coupés en fin de ligne.
+    const fr = fs.readFileSync(path.join(INSTR, "LISEZMOI.md"), "utf8").replace(/\s+/g, " ");
+    const en = fs.readFileSync(path.join(INSTR, "README.md"), "utf8").replace(/\s+/g, " ");
+    // Plus de pas qui fasse exécuter la copie jointe, ni de répertoire verificateur/ pour <outil>.
+    expect(fr).to.not.include("Pour employer la copie jointe");
+    expect(en).to.not.include("To use the enclosed copy");
+    expect(fr).to.not.include("ou le répertoire `verificateur/` de la");
+    expect(en).to.not.include("or the `verificateur/` directory");
+    // Le réviseur prend l'outil dans le dépôt public ; la copie jointe n'est pas exécutée ; la voie revient avec une liste fermée à la première publication.
+    expect(fr).to.include("N'exécutez pas la copie jointe");
+    expect(en).to.include("Do not run the enclosed copy");
+    for (const [t, mots] of [[fr, ["dépôt public", "première publication", "SHA256SUMS", "npm ci"]], [en, ["public repository", "first publication", "SHA256SUMS", "npm ci"]]]) {
+      for (const m of mots) expect(t, m).to.include(m);
+    }
+    // L'aide de l'outil.
+    for (const [langue, interdit, exige] of [["fr", "ou le répertoire verificateur/ d'un", "N'exécutez pas la copie jointe"], ["en", "or the verificateur/ directory", "Do not run the enclosed copy"]]) {
+      const aide = spawnSync(process.execPath, [OUTIL, "--aide", "--langue", langue], { encoding: "utf8" });
+      expect(aide.status).to.equal(0);
+      const texte = aide.stdout.replace(/\s+/g, " ");
+      expect(texte, langue).to.not.include(interdit);
+      expect(texte, langue).to.include(exige);
+    }
+    // AV-PR-1 et PR-11 (auto_comparaison) renvoient à l'outil du dépôt public, non à une comparaison qui ferait exécuter la copie.
+    const { archive } = construire(descriptionAbsolue(true), PROJECT_ROOT);
+    const change = rebatir(archive, (e) => e.map((x) => (x.nom === `${P.RACINE}/verificateur/scripts/lib/paquet.mjs` ? { nom: x.nom, octets: Buffer.concat([x.octets, Buffer.from("// ajout\n")]) } : x)));
+    const g = path.join(neuf(), "change.tar");
+    fs.writeFileSync(g, change);
+    for (const [langue, exige] of [["fr", "n'exécutez pas la copie jointe"], ["en", "do not run the enclosed copy"]]) {
+      const av = verifier([g, "--json", "--langue", langue]).rapport.warnings.find((w) => w.id === "AV-PR-1");
+      expect(av.detail, langue).to.include(exige);
     }
   });
 

@@ -1727,12 +1727,14 @@ export const TM = [
     ],
     "preconditions": [
       "Composant d'ancrage avec mise à niveau OpenTimestamps auprès de deux calendriers réels ; une preuve mise à niveau après inclusion dans Bitcoin.",
-      "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2)."
+      "Campagne de l'étape 5 par `scripts/e2e/mesure-ancrage.mjs` : démon `noortrace` réel avec le composant d'ancrage `paquets/ancrage` branché (`anchoring.ancrage`), réseau de développement noorcore à quatre validateurs (`chain/scripts/dev-net.sh`, client inscrit par `npm run e2e:registre`), serveur RFC 3161 interne de référence du paquet d'ancrage comme principal qualifié d'exemple (CT-5 EX-7.4) et second serveur interne pour les points, deux calendriers OpenTimestamps factices à chaîne regtest, charge à cadence fixe (EX-11.9), une période complète d'une heure en temps réel, délais lus sur l'horloge de l'enregistreur (EX-11.5) ; hors du système de référence (machine virtuelle, disque virtuel) : `counts_for_targets` faux, `met` null (EX-11.2).",
+      "Campagne publique nommée de l'étape 8 (décision du plan du 13 novembre 2026, point 7) par `scripts/mesures/tm-30-calendriers-publics.mjs` : dix engagements de 32 octets soumis aux deux agrégateurs publics par défaut de CT-5 EX-6.2, preuves mises à niveau auprès des deux calendriers réels que leurs réponses désignent, après inclusion dans Bitcoin ; sans compte ni dépense ; jamais dans la suite d'essais (aucun réseau public) ; hors du système de référence (la taille d'une preuve ne dépend pas de la machine)."
     ],
     "steps": [
       "Mesurer la taille en octets de dix preuves `.ots` mises à niveau ; rapport : ligne `b_ots_mis_a_niveau`, `max` et `mean`.",
       "`node scripts/e2e/mesure-ancrage.mjs collecter --parcours <sortie de npm run e2e:registre> --configuration defaut --sortie <répertoire>`, puis de même avec `--configuration porte2` ; `complements --sortie <répertoire>` ; `rapport --collecte <défaut> --collecte <porte 2> --complements <répertoire> [--p6 <relevé de TM-16>] --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json` : rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit (EX-11.11).",
-      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif."
+      "Relire le rapport publié (`spec/vecteurs/ct-9/mesures/rapport-2026-11-10-ancrage.json`) par l'essai cité de `test/plan-de-tests.test.js` : forme `rapport_mesure`, ligne du `result_name` de l'entrée, unité, valeur et effectif.",
+      "Campagne publique : `node scripts/mesures/tm-30-calendriers-publics.mjs soumettre --etat <répertoire> --reseau-public`, puis `mettre-a-niveau --etat <répertoire> --reseau-public` au plus une fois par minute (CT-5 EX-6.6) jusqu'à ce qu'aucune attestation en attente ne reste, puis `rapport --etat <répertoire> --sortie-rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-13-tm-30-calendriers-publics.json` (validé par `scripts/tests/mesures.mjs` avant d'être écrit) ; rapport relu par l'essai cité de `test/mesures-campagnes-publiees.test.js` : ligne `b_ots_mis_a_niveau`, dix preuves sans attestation en attente, chaque taille au-dessus de 233 octets, effet de la valeur sur le calculateur (`dimensionner`, membre `coefficients`)."
     ],
     "oracle": "Ligne présente, `met` null ; la valeur remplace 233 dans les entrées du calculateur (membre `coefficients`).",
     "status": {
@@ -1742,12 +1744,13 @@ export const TM = [
           "file": "test/plan-de-tests.test.js",
           "describe": "CT-9 : rapport de la campagne de mesures de l'étape 5 (composant d'ancrage ; TM-11 à TM-14, TM-17 à TM-19, TM-30, TM-41, TM-42 ; EX-11.11, EX-11.16)",
           "it": "mesures/rapport-2026-11-10-ancrage.json, écrit par scripts/e2e/mesure-ancrage.mjs : conforme à rapport_mesure et accepté par scripts/tests/mesures.mjs ; pour chaque entrée, la ligne de son result_name, à l'unité du catalogue, avec sa valeur et son effectif ; lignes supplémentaires nommées par la table de 11.3 ; met null hors du système de référence"
+        },
+        {
+          "file": "test/mesures-campagnes-publiees.test.js",
+          "describe": "CT-9 : rapports des campagnes de mesure de l'étape 8 publiés (TM-30 calendriers publics, TM-44 bloc plein qui mêle des clôtures ; EX-11.11, EX-11.16)",
+          "it": "TM-30 : rapport de la campagne publique nommée vers deux calendriers réels : ligne b_ots_mis_a_niveau, dix preuves mises à niveau par les deux calendriers, aucune attestation en attente, met null ; chaque preuve dépasse le défaut de 233 octets de CT-8 §9.2, que la valeur relevée remplace dans les entrées du calculateur (coefficients)"
         }
-      ],
-      "complement": {
-        "phase2_step": 8,
-        "blocking": "Mise à niveau réelle : la campagne de l'étape 5 mesure dix preuves mises à niveau par les deux calendriers factices (chemin Bitcoin complet sur une chaîne regtest, CT-5 EX-6.9) et, avec `--reseau-public`, des preuves en attente des agrégateurs publics ; la taille d'une preuve mise à niveau par deux calendriers réels après inclusion dans Bitcoin (plusieurs heures d'attente) n'est pas relevée : possible dès maintenant, non faite, étape 8."
-      }
+      ]
     },
     "threats": [],
     "measure": {
@@ -1847,8 +1850,8 @@ export const TM = [
     "oracle": "Ligne présente, `met` null ; la valeur remplace 1,10 dans les entrées du calculateur.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 3,
-      "blocking": "Instance de production du registre non déployée (hors du déploiement chez un client, CT-8 §15) ; elle n'existe pas à la livraison de l'étape 3 et attend la décision ouverte 6 (identifiant de production, validateurs partenaires) : la mesure se fera sur son manifeste publié."
+      "phase2_step": 8,
+      "blocking": "Renvoi au lancement : l'instance de production du registre n'existe pas ; elle vient après le pilote, avec ses premiers validateurs partenaires sur leurs machines et son identifiant, objet de la décision ouverte 6 (CT-4 §1, §13), hors du déploiement chez un client (CT-8 §15) ; la mesure se fait sur son manifeste publié (CT-4 §4.8). Aucune ligne de la section 14 ne lit `blocs_par_s_production` ; d'ici là, le calculateur garde 1,10 bloc par seconde, mesuré sur le réseau de développement le 2026-10-25 (CT-8 §9.2)."
     },
     "threats": [],
     "measure": {
@@ -2525,13 +2528,19 @@ export const TM = [
     "steps": [
       "Émettre dans un même bloc de 64 transactions des clôtures de journaux distincts et des ancres ; au moins deux compositions : une clôture et 63 ancres, puis autant de clôtures que de journaux préparés, le reste en ancres ; la composition de chaque bloc est écrite dans `conditions`.",
       "Capturer une transaction de clôture et une transaction d'ancre de chaque bloc par l'outil de référence (`capturer`, CT-4 §9.4 : en-tête, reçu de chacune des 64 transactions, certificat de commit, CP-1 à CP-6 réussies) ; mesurer les octets des réponses JSON-RPC conservées, index de capture exclu, et relever l'index à part dans `notes`, comme TM-31.",
-      "Trois répétitions par composition ; rapport : ligne `b_cap_bloc_plein_clotures`, `max`."
+      "Trois répétitions par composition ; rapport : ligne `b_cap_bloc_plein_clotures`, `max`.",
+      "`node scripts/e2e/mesure-capture-bloc-plein.mjs --clotures 1,4 --repetitions 3 --rapport spec/vecteurs/ct-9/mesures/rapport-2026-11-13-capture-bloc-plein-clotures.json` (réseau de développement démarré au besoin, rapport validé par `scripts/tests/mesures.mjs` avant d'être écrit) ; rapport relu par l'essai cité de `test/mesures-campagnes-publiees.test.js` : compositions, décomposition de chaque capture, CP-1 à CP-6, plus grande capture index compris comparée à `b_cap`, effet sur le calculateur (`dimensionner`, membre `coefficients`)."
     ],
     "oracle": "Ligne présente, `met` null ; la plus grande capture, index compris, est comparée à `b_cap` = 123 761 octets de CT-8 §9.2 (TM-31, bloc d'ancres seules) : plus grande, elle remplace `b_cap` dans les entrées du calculateur (membre `coefficients`, CT-8 EX-9.1) et lève la réserve de CT-8 §9.2 ; plus petite ou égale, la réserve est levée sans changer `b_cap`.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 8,
-      "blocking": "Mesure non écrite, possible dès maintenant sur le réseau de développement avec l'outil de référence de CT-4 (méthode et outil de TM-31, `scripts/e2e/mesure-capture-bloc-plein.mjs`, à étendre aux clôtures de journaux distincts) ; due au plus tard à l'étape 8."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/mesures-campagnes-publiees.test.js",
+          "describe": "CT-9 : rapports des campagnes de mesure de l'étape 8 publiés (TM-30 calendriers publics, TM-44 bloc plein qui mêle des clôtures ; EX-11.11, EX-11.16)",
+          "it": "TM-44 : rapport du réseau de développement : ligne b_cap_bloc_plein_clotures, deux compositions (1 clôture et 63 ancres ; 4 clôtures et 60 ancres), trois répétitions, une clôture et une ancre capturées par bloc, CP-1 à CP-6 réussies, met null ; la plus grande capture, index compris, dépasse b_cap = 123 761 octets de CT-8 §9.2 et le remplace dans les entrées du calculateur (coefficients)"
+        }
+      ]
     },
     "threats": [],
     "measure": {

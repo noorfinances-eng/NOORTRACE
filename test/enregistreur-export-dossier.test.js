@@ -32,7 +32,7 @@ import { spawnSync } from "node:child_process";
 import * as N from "@noortrace/noyau";
 import { Coeur, HorlogeReglable, validerConfiguration, resoudreSecrets, pieceJson, principalCtlDemon } from "@noortrace/enregistreur";
 import { exporterDemande, cheminReelSous } from "../paquets/enregistreur/src/export-dossier.mjs";
-import { messageRefusExport, SuiviJournal } from "../paquets/enregistreur/src/ctl-demon.mjs";
+import { messageRefusExport, SuiviJournal, repertoireDeTravail } from "../paquets/enregistreur/src/ctl-demon.mjs";
 import { configurationDev } from "./fixtures/enregistreur-coeur/outils.mjs";
 import { binaireGo, enAttente } from "./fixtures/enregistreur-ancrage/outils.mjs";
 import {
@@ -208,6 +208,16 @@ describe("TE-18 : noortrace-ctl dossier exporter sur le démon réel à horloge 
     if (!bin) return enAttente(this, "vérificateur Go de CT-6 : vérification JavaScript faite, vérification Go non faite");
   });
 
+  it("--vers relatif depuis un répertoire de travail atteint par un lien symbolique (complément du 2026-11-16, EX-15.9) : résolu contre ce répertoire sous le nom que PWD lui donne, non contre son chemin réel ; destination lexicalement sous le répertoire des exports, dossier écrit sous le chemin réel", async function () {
+    const reel = path.join(j.exports, "travail-reel");
+    const lien = path.join(j.exports, "travail-lien");
+    fs.mkdirSync(reel);
+    fs.symlinkSync(reel, lien);
+    const r = await reussite(["--dernier", "--vers", "d"], { cwd: lien });
+    expect(r.ligne.data.destination).to.equal(path.join(lien, "d"));
+    expect(fs.readdirSync(path.join(reel, "d"))).to.include("dossier.json");
+  });
+
   it("ordres 7 à 9 d'EX-15.12 : evenement_inconnu, ticket_inconnu, ticket_non_decide, ticket_sans_appel_execute (refuse, expire, approuve sans relais), periode_non_close (--seq et --ticket), approbations_introuvables : code 1, message d'EX-15.12, ligne de refus aux membres d'EX-15.14, rien d'écrit", async function () {
     const dest = (n) => path.join(j.exports, n);
     let r = await refus(["--seq", "999999", "--vers", dest("x1")], "evenement_inconnu");
@@ -327,7 +337,8 @@ describe("TE-18 : noortrace-ctl dossier exporter sur le démon réel à horloge 
       const rid = atteint.slice("atteint-".length);
       const temporaire = fs.readFileSync(path.join(arret, atteint), "utf8");
       expect(path.basename(temporaire)).to.equal(`.noortrace-partiel-${rid}`);
-      expect(path.dirname(temporaire)).to.equal(j.exports);
+      // Le démon écrit sous le chemin réel du parent (EX-15.13, point 2) : chemins réels comparés.
+      expect(path.dirname(temporaire)).to.equal(fs.realpathSync(j.exports));
       expect(fs.statSync(temporaire).mode & 0o7777).to.equal(0o750);
       fs.mkdirSync(destination);
       fs.writeFileSync(path.join(destination, "intrus"), "x");
@@ -577,7 +588,11 @@ describe("TE-18 : noortrace-ctl dossier exporter sur le démon réel à horloge 
     const l = lignesJournal(j.journal).slice(n0).filter((x) => x.event === "dossier_export_partial_removed");
     expect(l).to.have.lengthOf(1);
     expect(l[0]).to.include({ level: "warning", component: "noyau", seq: null, request_id: null });
-    expect(l[0].data).to.deep.equal({ path: temporaire });
+    // `path` : chemin absolu du répertoire supprimé (EX-15.14) ; le même répertoire que le temporaire, chemins réels comparés.
+    expect(Object.keys(l[0].data)).to.deep.equal(["path"]);
+    expect(path.isAbsolute(l[0].data.path)).to.equal(true);
+    expect(path.basename(l[0].data.path)).to.equal(path.basename(temporaire));
+    expect(fs.realpathSync(path.dirname(l[0].data.path))).to.equal(fs.realpathSync(path.dirname(temporaire)));
     const ordre = lignesJournal(j.journal).slice(n0).map((x) => x.event);
     expect(ordre.indexOf("dossier_export_partial_removed")).to.be.above(ordre.indexOf("lease_acquired"));
     expect(fs.existsSync(temporaire)).to.equal(false);
@@ -682,6 +697,28 @@ describe("export en cours de processus (exporterDemande) : aucune période close
       coeur.config.recorder.environment = "developpement";
       fs.chmodSync(ex, 0o750);
       fs.chownSync(ex, 0, 0);
+    }
+  });
+
+  it("répertoire de travail de la commande (complément du 2026-11-16, EX-15.9) : PWD quand il désigne le répertoire de travail (lien compris) ; le chemin réel quand PWD est absent, relatif, porte . ou .., ou désigne un autre répertoire", function () {
+    const base = repertoireTemporaire("noortrace-te18-pwd-");
+    try {
+      const reel = path.join(base, "reel");
+      const lien = path.join(base, "lien");
+      fs.mkdirSync(reel);
+      fs.symlinkSync(reel, lien);
+      const cwd = fs.realpathSync(reel);
+      expect(repertoireDeTravail({ env: { PWD: lien }, cwd })).to.equal(lien);
+      expect(repertoireDeTravail({ env: { PWD: `${lien}/` }, cwd })).to.equal(lien);
+      expect(repertoireDeTravail({ env: { PWD: cwd }, cwd })).to.equal(cwd);
+      expect(repertoireDeTravail({ env: {}, cwd })).to.equal(cwd);
+      expect(repertoireDeTravail({ env: { PWD: "lien" }, cwd })).to.equal(cwd);
+      expect(repertoireDeTravail({ env: { PWD: `${lien}/../lien` }, cwd })).to.equal(cwd);
+      expect(repertoireDeTravail({ env: { PWD: `${lien}/.` }, cwd })).to.equal(cwd);
+      expect(repertoireDeTravail({ env: { PWD: base }, cwd })).to.equal(cwd);
+      expect(repertoireDeTravail({ env: { PWD: path.join(base, "absent") }, cwd })).to.equal(cwd);
+    } finally {
+      fs.rmSync(base, { recursive: true, force: true });
     }
   });
 

@@ -34,6 +34,11 @@ contrôle par `configuration-approbation-v0` puis par les règles de la table
 d'EX-10.12, sans lire de secret, d'état ni d'écoute ; elle écrit une ligne
 `{"valide":…,"errors":[{"code","pointer"}…]}` (erreurs triées par pointeur
 puis par code), code 0 si le document est valide, 1 sinon, 2 sans fichier.
+Complément du 2026-11-16 : chaque commande n'admet que sa forme ;
+`valider-politique` n'admet, après le fichier, que `--environment` et
+`--expire-after-ms`, chacune au plus une fois et avec sa valeur ; une option
+inconnue, en double ou sans sa valeur, un argument en trop ou `--version`
+avec autre chose rendent l'usage et le code 2 (la sonde : 1).
 La règle `canaux_meme_autorite_sans_jeton` (CT-3 EX-12.5, au rang de `jetons_egaux`,
 code pas encore dans l'énumération figée de `$defs/rapport_validation` :
 révision demandée) refuse deux canaux en mTLS avec la même autorité de clients
@@ -147,7 +152,8 @@ EX-10.12) ; l'exemple d'EX-10.12 est valide tel quel. Membres requis :
 distinctes), `console_origin` ; les autres prennent le défaut de leur
 description (`console`, `etat`, `rpc`, `notifications` nuls ;
 `max_open_tickets` 20, `set_poll_interval_ms` 10 000, `registration_ttl_ms`
-600 000, `remise_representation_ms` 30 000, `body_max_bytes` 16 777 216,
+600 000, `registration_entry_ttl_ms` 2 592 000 000 (complément du
+2026-11-16), `remise_representation_ms` 30 000, `body_max_bytes` 16 777 216,
 `socket_mode` 0660, `rpc.timeout_ms` 5 000, `notifications.timeout_ms`
 10 000). Règles de la table d'EX-10.12, chacune à son pointeur :
 `rpc_non_declare`, `rpc_tls`, `tls_exige`, `authentification_exigee`,
@@ -177,7 +183,13 @@ peuvent désigner le même fichier).
 
 - `noyau`, `console` : exactement une écoute (`socket` ou `tcp`). Le jeton du
   noyau est la valeur que référence `policy.approval.service.token` de
-  l'enregistreur. `console.annuaire` : amorce de l'annuaire, lue seulement
+  l'enregistreur. Complément du 2026-11-16 : `socket` fait au plus 103
+  octets UTF-8 (`CHEMIN_PRISE_MAX_OCTETS` de `bornes.mjs`, CT-3 EX-12.2) ;
+  au-delà, la validation le refuse (`chemin_prise_trop_long`, au pointeur
+  du membre), le démarrage aussi (code 1) et la mise en écoute aussi, avant
+  toute liaison ; un chemin admis dont le chemin provisoire (`.p-XXXXXX/s`
+  du même répertoire) dépasserait la borne est écouté directement à son
+  chemin, sous le masque 077, puis reçoit son mode. `console.annuaire` : amorce de l'annuaire, lue seulement
   tant qu'aucun annuaire n'est persisté (EX-13.38).
 - `etat` : écoute TCP sans TLS ni authentification qui ne sert que
   `GET /v0/etat` (404 `requete_invalide` sinon).
@@ -388,8 +400,9 @@ Passages ambigus ou que le texte ne tranche pas, avec la lecture retenue.
     votes courants.
 34. **Persistance de l'annuaire** (EX-13.38, point 1 ; EX-12.17) : tant que
     l'annuaire n'est pas persisté, un défi est persisté seul (membre
-    `defis`) ; une inscription refusée après le pas 4 d'EX-13.15 persiste le
-    défi marqué présenté. Un `registration_ttl_ms` recopié sur un annuaire
+    `defis`) ; une inscription refusée après le pas 4 d'EX-13.15 persiste les
+    défis sans le défi présenté, retiré (EX-13.13, complément du
+    2026-11-16). Un `registration_ttl_ms` recopié sur un annuaire
     persisté est persisté au démarrage, sans opération (point 5).
 35. **Rechargement de la configuration** (EX-13.37 : « quand le service
     démarre ou recharge sa configuration ») : le service ne recharge pas sa

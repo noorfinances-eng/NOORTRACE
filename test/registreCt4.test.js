@@ -964,20 +964,62 @@ describe("CT-4 — outil de référence sur le réseau Hardhat en mémoire (3133
     attendreRefus(await outil(["etat", "--instance", instance, "--rpc", url]), "noeud_suiveur");
     delete crochets.intercepter;
     // OP-4 : organisation existante ; seuil hors bornes.
-    const prepare = (org, seuil, sortieF) => R(["inscrire-client", "--preparer", "--org", org, "--journal", "journal-principal", "--seuil", String(seuil), "--cles-essai", path.join(E, "cles", "cles-essai.json"), "--exploitant", "hardhat:0", "--sortie", sortieF]);
+    const prepare = (org, seuil, sortieF, cles = "cles") => R(["inscrire-client", "--preparer", "--org", org, "--journal", "journal-principal", "--seuil", String(seuil), "--cles-essai", path.join(E, cles, "cles-essai.json"), "--exploitant", "hardhat:0", "--sortie", sortieF]);
     attendreRefus(await prepare("essai-ct4", 2, path.join(E, "d-existant.json")), "organisation_existante");
     attendreRefus(await prepare("essai-ct4-bis", 4, path.join(E, "d-seuil.json")), "jeu_invalide");
     // OP-5 : compte inattendu pour la trésorerie.
     attendreRefus(await R(["inscrire-client", "--preparer", "--org", "essai-ct4-ter", "--journal", "journal-principal", "--seuil", "2", "--cles-essai", path.join(E, "cles", "cles-essai.json"), "--tresorerie", "hardhat:1", "--sortie", path.join(E, "d-tre.json")]), "compte_inattendu");
-    // Nouveau client pour les refus OP-3 et OP-6 à OP-11.
-    attendreReussite(await prepare("essai-ct4-refus", 2, path.join(E, "d2.json")));
+    // Nouveau client pour les refus OP-3 et OP-6 à OP-11, avec ses propres clés d'essai (une clé de chaîne ne sert
+    // qu'une organisation : CT-4 OP-8, CT-5 EX-9.4, complément du 2026-11-16).
+    attendreReussite(await outil(["cles-essai", "--instance", instance, "--sortie", path.join(E, "cles-d2")]));
+    attendreReussite(await prepare("essai-ct4-refus", 2, path.join(E, "d2.json"), "cles-d2"));
     attendreReussite(await R(["inscrire-client", "--dossier", path.join(E, "d2.json"), "--exploitant", "hardhat:0", "--captures", path.join(E, "c2")]));
     const d2 = lireJSON(path.join(E, "d2.json"));
-    const cles = Object.fromEntries(["approbateur-1", "approbateur-2", "approbateur-3"].map((n) => [n, `fichier:${path.join(E, "cles", `${n}.cle`)}`]));
+    const cles = Object.fromEntries(["approbateur-1", "approbateur-2", "approbateur-3"].map((n) => [n, `fichier:${path.join(E, "cles-d2", `${n}.cle`)}`]));
     // OP-6 : demande altérée (condensé).
     attendreReussite(await R(["condense", "inscription", "--dossier", path.join(E, "d2.json"), "--key-id", "rec-essai-01", "--sortie", path.join(E, "d2-demande.json")]));
-    // Le dossier d2 reprend la clé Ed25519 et la clé de chaîne du premier client : une autre organisation, donc admises.
     for (const k of ["approbateur-1", "approbateur-2"]) attendreReussite(await outil(["signer", "--demande", path.join(E, "d2-demande.json"), "--cle", cles[k]]));
+    // OP-8 (complément du 2026-11-16, CT-5 EX-9.4) : la clé de chaîne du premier client, inscrite sous l'organisation
+    // essai-ct4 (et révoquée depuis), demandée sous essai-ct4-refus : refusée avant tout envoi (événements RecorderRegistered).
+    const premier = lireJSON(path.join(E, "dossier.json"));
+    attendreReussite(await R(["condense", "inscription", "--org-id", d2.organisation.org_id, "--journal-id", d2.journals[0].journal_id, "--cle-chaine-adresse", premier.recorders[0].chain_key, "--cle-ed25519", sha("cle ed25519 d'une autre organisation"), "--sortie", path.join(E, "d2-demande-autre-org.json")]));
+    for (const k of ["approbateur-1", "approbateur-2"]) attendreReussite(await outil(["signer", "--demande", path.join(E, "d2-demande-autre-org.json"), "--cle", cles[k]]));
+    // Journaux illisibles (borne du nœud dépassée) : la vérification n'est pas sautée, la commande s'arrête (EX-8.22).
+    crochets.intercepter = (m) => (m === "eth_getLogs" ? Promise.reject(Object.assign(new Error("query exceeds max block range 16384"), { code: -32005 })) : undefined);
+    const sansJournaux = await R(["inscrire-cle", "--demande", path.join(E, "d2-demande-autre-org.json"), "--relayeur", "hardhat:0", "--captures", path.join(E, "c2")]);
+    attendreRefus(sansJournaux, "noeud_injoignable", "inutilisable");
+    expect(sansJournaux.checks.find((c) => c.id === "OP-8")?.status).to.equal("echoue");
+    // Refus pour débit (complément du 2026-11-16, OP-8 et EX-5.11) : les trois premières lectures eth_getLogs refusées
+    // par -32000 « rate limited », puis servies : la tranche est redemandée aux mêmes paramètres après 250, 500 et
+    // 1 000 ms, et la vérification aboutit (même conduite que le composant d'ancrage).
+    let refusDebit = 0;
+    const tranches = [];
+    crochets.intercepter = (m, p) => (m === "eth_getLogs" ? (tranches.push(JSON.stringify(p)), refusDebit < 3 ? (refusDebit++, Promise.reject(Object.assign(new Error("rate limited"), { code: -32000 }))) : undefined) : undefined);
+    const t1Debit = Date.now();
+    const autreOrg = await R(["inscrire-cle", "--demande", path.join(E, "d2-demande-autre-org.json"), "--relayeur", "hardhat:0", "--captures", path.join(E, "c2")]);
+    const dureeDebit = Date.now() - t1Debit;
+    delete crochets.intercepter;
+    attendreRefus(autreOrg, "cle_chaine_autre_organisation");
+    expect(autreOrg.error.check).to.equal("OP-8");
+    expect(autreOrg.error.message).to.include(premier.organisation.org_id);
+    expect(fs.readdirSync(path.join(E, "c2")).filter((x) => x.startsWith("envoi-") && lireJSON(path.join(E, "c2", x)).to === manifeste.contracts[3].address)).to.deep.equal([]);
+    expect(refusDebit).to.equal(3);
+    expect(tranches).to.have.lengthOf(4);
+    expect(new Set(tranches).size).to.equal(1);
+    expect(dureeDebit).to.be.at.least(1750);
+    // Un nœud qui refuse sans fin rend la lecture impossible après 27,75 s de pauses (250 ms doublées, plafond 4 s,
+    // 30 s au plus par tranche) : noeud_injoignable, OP-8 en échec, la vérification n'est pas sautée.
+    refusDebit = 0;
+    crochets.intercepter = (m) => (m === "eth_getLogs" ? (refusDebit++, Promise.reject(Object.assign(new Error("rate limited"), { code: -32000 }))) : undefined);
+    const t0Debit = Date.now();
+    const debitSansFin = await R(["inscrire-cle", "--demande", path.join(E, "d2-demande-autre-org.json"), "--relayeur", "hardhat:0", "--captures", path.join(E, "c2")]);
+    const dureeSansFin = Date.now() - t0Debit;
+    delete crochets.intercepter;
+    attendreRefus(debitSansFin, "noeud_injoignable", "inutilisable");
+    expect(debitSansFin.checks.find((c) => c.id === "OP-8")?.status).to.equal("echoue");
+    expect(debitSansFin.error.message).to.include("rate limited");
+    expect(refusDebit).to.equal(11);
+    expect(dureeSansFin).to.be.at.least(27750);
     fs.writeFileSync(path.join(E, "d2-alteree.json"), JSON.stringify({ ...lireJSON(path.join(E, "d2-demande.json")), digest: sha("x") }));
     attendreRefus(await R(["inscrire-cle", "--demande", path.join(E, "d2-alteree.json"), "--relayeur", "hardhat:0", "--captures", path.join(E, "c2")]), "condense_different");
     // OP-7 : signataire hors du jeu.
@@ -1002,14 +1044,14 @@ describe("CT-4 — outil de référence sur le réseau Hardhat en mémoire (3133
     attendreRefus(dejaActive, "cle_deja_active");
     expect(dejaActive.error.check).to.equal("OP-8");
     // OP-9 : empreinte prise par un autre émetteur (8.3).
-    attendreReussite(await R(["manifeste-essai", "--dossier", path.join(E, "d2.json"), "--key-id", "rec-essai-01", "--graine", `graine:${path.join(E, "cles", "rec-essai-01.graine")}`, "--sortie", path.join(E, "d2-p1")]));
+    attendreReussite(await R(["manifeste-essai", "--dossier", path.join(E, "d2.json"), "--key-id", "rec-essai-01", "--graine", `graine:${path.join(E, "cles-d2", "rec-essai-01.graine")}`, "--sortie", path.join(E, "d2-p1")]));
     const man = lireJSON(path.join(E, "d2-p1", "manifeste.json"));
     const f = C.empreinteAncre({ org_id: man.org_id, journal_id: man.journal_id, period_hash: J.hachageManifeste(man) }).fingerprint;
     const tiers = Wallet.createRandom();
     const att = await conn.ethers.getContractAt("AttestationRegistry", manifeste.contracts[0].address);
     const sig = C.signerCondense(tiers.privateKey, C.condenseAncre({ chain_id: 31337, contract: manifeste.contracts[0].address, fingerprint: f, doc_type: C.DOC_TYPE_PERIODE }).digest);
     await (await att.anchor(f, C.DOC_TYPE_PERIODE, tiers.address, { v: sig.v, r: sig.r, s: sig.s })).wait();
-    const sq = await R(["ancrer", "--manifeste", path.join(E, "d2-p1", "manifeste.json"), "--cle-chaine", `fichier:${path.join(E, "cles", "cle-chaine-rec-essai-01.cle")}`, "--dossier", path.join(E, "d2.json"), "--captures", path.join(E, "c2")]);
+    const sq = await R(["ancrer", "--manifeste", path.join(E, "d2-p1", "manifeste.json"), "--cle-chaine", `fichier:${path.join(E, "cles-d2", "cle-chaine-rec-essai-01.cle")}`, "--dossier", path.join(E, "d2.json"), "--captures", path.join(E, "c2")]);
     attendreRefus(sq, "empreinte_squattee");
     // OP-10 : période non vide à racine nulle (RG-5).
     fs.mkdirSync(path.join(E, "d2-hs"));

@@ -678,12 +678,13 @@ describe("CT-8 §11.4 chemin A (TE-9, TM-37 hors système de référence) : sauv
     console.log(`      TM-37 (hors système de référence, reference=false) : ${JSON.stringify(mesures)}`);
   });
 
-  it("TE-9 : chemin B (copies WORM) tenu par l'essai de reconstruction que cite le catalogue ; chemin C (journal neuf lié au registre) et TM-37 sur le système de référence, éprouvés par aucun essai, rattachés à la porte 2 avec leur motif", function () {
+  it("TE-9 : chemin B (copies WORM) et chemin C (journal neuf lié au registre, pas 5 sur le réseau de développement 2124) tenus par les essais que cite le catalogue ; chemins A et B en conteneurs et TM-37 sur le système de référence, éprouvés par aucun essai, rattachés à l'étape 8 avec leur motif", function () {
     // Rattachement réel dans le catalogue publié (spec/vecteurs/ct-9/catalogue.json), sans attente : le chemin B
-    // (CT-8 §11.4) est éprouvé par un autre fichier, qui existe et porte mot pour mot le titre cité (CT-9 EX-5.4) ;
-    // le chemin C (CT-8 §11.4, CT-2 EX-11.16 : clé inutilisable, ancienne clé de chaîne révoquée, journal neuf
-    // inscrit et lié au registre) exige le registre sur le réseau de développement noorcore et n'est éprouvé par
-    // aucun essai : le complément de TE-9 le nomme (porte 2, étape 8), comme TM-37 (à écrire, système de référence).
+    // (CT-8 §11.4) est éprouvé par la reconstruction depuis les copies WORM, le chemin C (CT-8 §11.4, CT-2 EX-11.16 :
+    // clé inutilisable, journal neuf lié au registre) par l'essai sans réseau et par celui du pas 5 sur le réseau de
+    // développement (CT-9, complément du 2026-11-16, décision du porteur : TE-9 avance) ; chaque fichier existe et porte
+    // mot pour mot le titre cité (CT-9 EX-5.4). Le complément de TE-9 garde la partie faisable non faite (chemins A et B
+    // sur une installation en conteneurs) et les durées sur le système de référence (TM-37, à écrire), à l'étape 8.
     const catalogue = lireJSON(path.join(RACINE, "spec", "vecteurs", "ct-9", "catalogue.json"));
     const entree = (id) => catalogue.tests.find((e) => e.id === id);
     const te9 = entree("TE-9");
@@ -691,6 +692,9 @@ describe("CT-8 §11.4 chemin A (TE-9, TM-37 hors système de référence) : sauv
     const cites = te9.status.tests.filter((t) => t.file === "test/enregistreur-worm-restauration.test.js");
     expect(cites, "chemin B cité par TE-9").to.have.lengthOf(1);
     expect(cites[0].describe).to.include("CT-8 §11.4 chemin B");
+    const cheminC = te9.status.tests.filter((t) => t.file === "test/enregistreur-journal-neuf.test.js" || t.file === "test/enregistreur-journal-neuf-registre.test.js");
+    expect(cheminC.map((t) => t.file).sort(), "chemin C cité par TE-9 (sans réseau, puis pas 5 sur le réseau de développement)").to.deep.equal(["test/enregistreur-journal-neuf-registre.test.js", "test/enregistreur-journal-neuf.test.js"]);
+    for (const t of cheminC) expect(t.describe, t.file).to.include("CT-8 §11.4 chemin C");
     for (const t of te9.status.tests) {
       const f = path.join(RACINE, t.file);
       expect(fs.existsSync(f), t.file).to.equal(true);
@@ -699,8 +703,9 @@ describe("CT-8 §11.4 chemin A (TE-9, TM-37 hors système de référence) : sauv
     }
     expect(CT8).to.include("Chemin C : quand la clé courante est inutilisable");
     expect(te9.status.complement.phase2_step).to.equal(8);
-    expect(te9.status.complement.blocking).to.match(/^Chemin C \(journal neuf, rotation de la clé au registre\)/);
-    expect(te9.status.complement.blocking).to.include("durées sur le système de référence (TM-37)");
+    expect(te9.status.complement.blocking).to.include("chemins A et B sur une installation en conteneurs");
+    expect(te9.status.complement.blocking).to.include("les durées des chemins sur le système de référence sont la mesure TM-37");
+    expect(te9.status.complement.blocking).to.include("L'étape 8 éprouve le chemin C");
     const tm37 = entree("TM-37");
     expect([tm37.status.state, tm37.status.phase2_step]).to.deep.equal(["a_ecrire", 8]);
     expect(tm37.status.blocking).to.include("système de référence");

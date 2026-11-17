@@ -12,7 +12,9 @@
 // de test/), il ne fait rien.
 
 import readline from "node:readline";
-import { pathToFileURL } from "node:url";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const herite = process.argv.includes("--herite");
 const nom = herite ? "archives-test" : "outils-test";
@@ -94,4 +96,4 @@ rl.on("line", (ligne) => {
 rl.on("close", () => process.exit(0));
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) servir();
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) servir();

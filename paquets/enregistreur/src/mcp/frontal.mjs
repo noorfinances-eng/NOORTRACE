@@ -444,6 +444,14 @@ export class FrontalMcp {
     s.fermee = true;
     this.sessions.delete(s);
     s.ecoute?.fin?.();
+    // EX-4.23 (complément du 2026-11-16) : la connexion d'un connecteur stdio
+    // fermée vaut annulation de chacune de ses requêtes en cours (appel en
+    // vol : annulation relayée au serveur, événement -31012 ; requête retenue
+    // par le mode retenir : retenue terminée, jamais relayée après le départ
+    // de l'hôte). En HTTP, la fin d'une session n'annule rien (« Disconnection
+    // SHOULD NOT be interpreted as the client cancelling ») : seule la
+    // notification explicite ou la fermeture du flux de réponse annule.
+    if (s.transport === "stdio") for (const c of [...s.enCours.values()]) c.annuler();
     // Ses continuations MRTR ne peuvent plus servir (EX-4.21 : même connexion d'hôte).
     for (const [k, c] of this.continuations) if (c.session === s) this.continuations.delete(k);
   }

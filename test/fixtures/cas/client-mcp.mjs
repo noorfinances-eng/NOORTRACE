@@ -10,9 +10,10 @@
 // <appels JSON> : `[{ "name": "outils__read_file", "arguments": { … } }, …]`.
 
 import fs from "node:fs";
-import { pathToFileURL } from "node:url";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   const [url, fichierJeton, appelsJson, pauseMs = "0"] = process.argv.slice(2);
   const jeton = fs.readFileSync(fichierJeton, "utf8").trim();
   const appels = JSON.parse(appelsJson);

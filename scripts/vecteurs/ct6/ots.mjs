@@ -17,7 +17,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import * as O from "../../lib/ots.mjs";
 import { manifestesCT1 } from "./rfc3161.mjs";
 
@@ -335,7 +335,7 @@ export function genererOts({ racine = path.join(PROJECT_ROOT, "spec", "vecteurs"
   return { preuves, entetes, ancre, attendu, racines };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   const i = process.argv.indexOf("--sortie");
   const racine = i !== -1 ? path.resolve(process.argv[i + 1]) : undefined;
   const r = genererOts({ racine });

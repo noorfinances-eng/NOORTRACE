@@ -136,7 +136,7 @@ func (c *calcul) construireRapport(verifs []commun.Verification, parID map[strin
 		fa.Required, _ = ap.Chemin("threshold", "required").Entier()
 		fa.Size, _ = ap.Chemin("threshold", "size").Entier()
 		r.Facts.Approval = fa
-		approbation = &rapport.Approbation{Decision: fa.Decision, Approbateurs: fa.Approvers, Required: fa.Required, Size: fa.Size}
+		approbation = &rapport.Approbation{Decision: fa.Decision, RequestHash: ap.Membre("request_hash").S(), Ticket: fa.Ticket, Approbateurs: fa.Approvers, Required: fa.Required, Size: fa.Size}
 	}
 	if ctrls[4].Statut == commun.Reussi && c.jeton != nil {
 		r.Facts.Timestamp = c.jeton.Faits

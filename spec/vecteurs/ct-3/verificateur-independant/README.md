@@ -62,16 +62,126 @@ autre implémentation :
 - bornes des défis (EX-13.13) : au plus 4 défis non expirés par identité et
   1 024 au total ; au-delà, `preparer_inscription` est refusé
   `limite_annuaire` sans changer les défis ; le défi que le nouveau remplace
-  (même identité, même adresse) et les défis expirés ne comptent pas ; un
-  défi déjà utilisé mais non expiré compte (lecture de « non expirés ») ;
+  (même identité, même adresse) et les défis expirés ne comptent pas ; depuis
+  le complément du 2026-11-16, un défi présenté ne compte pas non plus (voir
+  ci-dessous) ;
 - plancher (CT-9 TA-66) : une famille de l'annexe A sans aucune valeur
   recalculée est une erreur (`plancher.go`) ;
-- cas comptés contre l'`INDEX.md` : les fichiers d'`evaluation/`, de
-  `tickets/`, de `politiques/` et `politiques-invalides/` et de
-  `candidats/` que l'index nomme sans qu'ils soient présents, ou présents
-  sans que l'index les nomme, sont des erreurs ; `INDEX.md` absent aussi ;
+- cas comptés contre l'`INDEX.md` (EX-A.10, complément du 2026-11-16) :
+  les fichiers `.json` des vingt répertoires d'EX-A.10 (sans leurs
+  sous-répertoires, `attendu.json` compris), lus dans la seule section
+  « `## Cas nommés (EX-A.10)` » ; un chemin nommé absent, un `.json` présent
+  non nommé, la ligne d'un des vingt répertoires absente ou la section
+  absente sont des erreurs ; `INDEX.md` absent aussi ; les tables et titres
+  des autres sections ne comptent plus (voir plus bas) ;
 - garde commune : toute panne d'une famille devient une erreur consignée
   (`protegerFamille`) : rapport imprimé, code 1, jamais une trace de pile.
+
+Règles du complément du 2026-11-16 de CT-3 (décision du porteur), écrites
+depuis le seul texte révisé (EX-13.10 point 5, EX-13.13, EX-13.15 pas 4,
+EX-13.17 « Expiration », EX-13.19 point 6, 13.4, 12.8, A.10, EX-A.12,
+EX-A.13) et les schémas, sans lire aucune autre implémentation :
+
+- opération interne `expirer` (`annuaire.go`, `expirer`) : requête
+  exactement `{ "entry" }`, identifiant d'entrée de 5 à 128 caractères au
+  motif `^apb-[0-9a-z]+(-[0-9a-z]+)*$`, sans identité de session
+  (`requete_invalide`), puis `entree_inconnue`, puis `etat_incompatible`
+  si une adresse de l'entrée a `validated_at` non nul (même révoquée
+  depuis) ou si `t < created_at + registration_entry_ttl_ms` ; effet :
+  entrée retirée de `entries` avec ses adresses, preuves et alias,
+  opération `{ seq, at, op: "expirer", by: "service", entry, address: null,
+  launched_by: null, reason: null, administrators: null }`, `revision` + 1,
+  `updated_at` = `t`, défis inchangés, réponse nulle ; une entrée
+  désactivée jamais validée expire aussi ; durée de vie par défaut
+  2 592 000 000 ms dans les traces (A.10) ;
+- identifiant d'une entrée créée (A.10) : `apb-` et, sur 4 chiffres, le
+  nombre d'entrées de l'annuaire plus le nombre d'opérations `expirer` de
+  `operations`, augmenté de un ; un identifiant attribué n'est ni présent
+  ni celui d'une entrée expirée (13.4) ;
+- défi présenté retiré (EX-13.13, EX-13.15 pas 4) : dès qu'`inscrire`
+  atteint le pas 4, accepté ou refusé ensuite, le service retire le défi ;
+  le même nonce présenté de nouveau donne `nonce_inconnu` ; les bornes de
+  `preparer_inscription` ne comptent que des défis non expirés et non
+  présentés ; la vérification seule (`inscriptions.json`) garde
+  `nonce_deja_utilise` pour un défi fourni `used: true` ;
+- traces (A.10) : avant chaque pas, les entrées échues sous la durée de vie
+  par défaut sont recalculées ; elles doivent être l'entrée du pas pour un
+  `expirer` accepté, aucune sinon (« aucun autre pas d'une trace n'a lieu
+  à une échéance ») ;
+- rejeu d'un annuaire exporté (EX-13.19, point 6) : `expirer` se rejoue si
+  `by` vaut `service`, que l'entrée est présente dans le rejeu, jamais
+  validée, et que `at ≥ created_at + 86 400 000` (borne basse, incluse) ;
+  un `inscrire` dont l'`entry` figure dans une opération `expirer` du
+  journal se rejoue sans preuve (pas 12 et 13 d'EX-13.15 et conditions
+  d'identifiant seulement, adresse ajoutée `en_attente` sans preuve) ; un
+  `inscrire` qui créerait une entrée sous un identifiant déjà créé plus
+  haut dans le rejeu, même expiré, ne se rejoue pas ;
+- couverture d'EX-A.13 : les cas des traces `expiration-entree` et
+  `defi-consomme` et les quatre cas nouveaux d'`exports/` sont exigés.
+
+Lignes du même complément que la première rédaction taisait (point 12 de la
+section 0 : EX-13.17, EX-13.19 points 2 et 6, EX-13.32, A.10, EX-A.13,
+`$defs/requete_expirer`), appliquées depuis le texte :
+
+- instant d'opération indécodable (EX-13.19, point 2) : un `at` qui respecte
+  le motif sans se décoder (CT-1 §3, 30 février par exemple) est un écart
+  `revision_incoherente` à `/operations/<j>/at`, première opération
+  comprise ; l'ordre de l'opération suivante se juge sur le dernier instant
+  décodé ;
+- preuve rejouée (EX-13.19, point 6, révision 0.6) : l'inscription rejouée
+  avec preuve inscrit dans l'état du rejeu la preuve reconstruite (message
+  du document, signature normalisée, nonce et instants lus dans le message,
+  `received_at` égal à l'`at` de l'opération), et c'est elle qui est
+  comparée au document (`/entries` si elle diffère) ; les effets du rejeu
+  écrivent l'`at` de l'opération tel quel (`created_at`, `received_at`,
+  `validated_at`, `revoked_at`), même indécodable ;
+- inscription rejouée sans preuve (EX-13.19, point 6) : seulement quand une
+  opération `expirer` de la même `entry` est placée plus loin dans le
+  journal ; la preuve n'est jamais cherchée dans le document, même s'il
+  porte encore l'entrée ; l'adresse est `en_attente` avec `proof` nul et
+  n'est jamais comparée ; l'entrée a pour `created_at` l'`at` de
+  l'`inscrire` qui l'a créée ; un `expirer` dont `by` n'est pas `service`
+  est refusé par le schéma (une seule erreur `schema`) ;
+- entrée au `created_at` indécodable (EX-13.17, EX-13.32, A.10) : jamais
+  échue ; `expirer` la refuse `etat_incompatible` et elle n'entre pas dans
+  la liste des entrées échues ;
+- traces (A.10) : avant chaque pas, la liste des entrées échues
+  (2 592 000 000 ms, ordre de `entries`) est vide, sauf avant un `expirer`
+  accepté, où elle est exactement l'entrée du pas ;
+- requête d'`expirer` : validée par `$defs/requete_expirer`
+  d'`annuaire-approbateurs-v0` ; l'exemple d'EX-13.17 est validé par cette
+  définition et comparé à la requête du pas 8 de
+  `traces/expiration-entree.json` ;
+- cas `exports/expiration-entree-portee.json` : ses deux écarts
+  (`operations_incoherentes` `/entries`, `preuve_invalide`) sont recalculés,
+  sa couverture est exigée (EX-A.13) et il est compté contre l'`INDEX.md`.
+
+Lignes que les points 10 et 12 taisaient (point 13 de la section 0 :
+EX-13.19 points 4 et 6, EX-A.10), appliquées depuis le texte :
+
+- `expirer` à l'`at` indécodable (EX-13.19, point 6) : ne se rejoue pas ;
+  le rejeu s'arrête à elle (`operations_incoherentes` `/operations/<j>`), en
+  plus de `revision_incoherente` `/operations/<j>/at` ; les inscriptions de
+  la même entrée placées plus haut se rejouent sans preuve ;
+- `received_at` indécodable (EX-13.19, point 4) : `preuve_discordante` ;
+  les deux examens du point 4 sont faits l'un et l'autre (révision 0.6),
+  et une preuve fautive aux deux porte `preuve_discordante` et
+  `preuve_invalide` au même pointeur ; un message qui ne s'analyse pas ne
+  donne que `preuve_invalide` (`verifierPreuve` rend désormais une liste) ;
+- instants posés par le rejeu (EX-13.19, point 6) : le texte de l'`at`,
+  caractère pour caractère : `created_at` et `received_at` (`inscrire`),
+  `validated_at` et `revoked_at` de l'adresse remplacée (`valider`),
+  `revoked_at` (`revoquer`, et `desactiver` pour chaque adresse
+  `en_attente` ou `active`) ; aucun pour `expirer`, `reactiver`,
+  `lier_demandeur`, `delier_demandeur`, `changer_administrateurs` ; le
+  rejeu ne pose pas `updated_at`, que le point 2 compare au texte de l'`at`
+  de la dernière opération ;
+- cas nommés (EX-A.10) : voir la liste ci-dessus ; les quatre cas nouveaux
+  d'`exports/` (`expiration-instant-indecodable.json`,
+  `inscription-instant-indecodable.json`,
+  `instants-indecodables-rejoues.json`,
+  `remplacement-instants-indecodables.json`) sont recalculés contre
+  `exports/attendu.json`.
 
 Le rapport imprime, par famille puis au total, le nombre de valeurs
 recalculées, concordantes, discordantes et hors périmètre, puis
@@ -93,7 +203,7 @@ recalculées, concordantes, discordantes et hors périmètre, puis
 | reponses-evaluer | `reponses-evaluer/cas.json` | pour chaque réponse d'`evaluer` reçue par le noyau, `expected.valid`, `expected.reason` et `expected.action` par CT-2 EX-7.16 (révision 0.8) : exactement les neuf membres (12.3, révision 0.5), forme de `$defs/reponse_evaluer`, l'une des sept combinaisons d'EX-12.6 avec un `approver_set` exploitable pour `nouveau`, l'épinglage (`policy_version`, `policy_sha256`, `approval_sha256`) d'un `charger` que le noyau a lui-même émis pour la version attendue (celle de la requête sans ticket rapproché, celle de la retenue du ticket rapproché ; `approval_sha256` égal au SHA-256 du JCS du membre `approval` envoyé ; sinon `politique_non_epinglee`, raison aussi rendue pour un épinglage absent ou mal formé), l'`approval` d'une décision scellée égal à celui du noyau (RL-1, `approval_different`) ; action du mandataire en mode erreur (section 11) ; présence des cinq cas négatifs de la révision et des sept combinaisons parmi les cas valides |
 | decisions | `decisions/valides/*.json`, `decisions/invalides/*.json` | `expected.result`, `expected.reason` et `check` par SG-1 à SG-7 dans l'ordre d'EX-9.11 et de CT-2 EX-7.5 (recouvrement secp256k1 de chaque signature sur `D_A`, canonicité, A-3 ; SG-7, séparation des tâches : sous `self_approval` `interdite` du contexte, aucune adresse de `approvers` parmi celles de l'entrée de `separation.identities` dont `launched_by` est, octet pour octet, celui de la `retenue` de `request_hash`) ; couverture d'EX-A.8 (une raison par cas de refus du noyau, `auto_approbation` comprise, signature sur la chaîne `"0x…"` de `D_A`, signature `approuve` dans une remise `refuse`, `s` haut, signature d'un autre journal, écriture à l'échéance ; pour chaque paire de vérifications voisines, de SG-1/SG-2 à SG-6/SG-7, un cas où les deux échouent, chaque vérification étant aussi évaluée seule, refusé par la première ; les cinq remises valides exigées et une approbation signée par une adresse du demandeur sous `permise`) ; SG-1 exige un `remise_id` de la forme `<ticket>/<n>` ; le cas `ct1-apr-2201` : `approval` plus `at` égal à l'événement seq 6 du journal valide de CT-1, remise égale à l'exemple de §12.5 |
 | signatures | `signatures/normalisation.json`, et les signatures valides des deux familles précédentes | forme normalisée d'EX-9.3 ou refus `signature_invalide` (`r` ou `s` hors de `[1, n − 1]` compris) ; même adresse recouvrée avant et après normalisation (A.8), sur le `D_A` où la forme canonique figure ; présence des sept formes exigées par A.8 ; **reproduction octet pour octet** de chaque signature valide par la clé du compte (ECDSA à nonce RFC 6979) |
-| annuaire | `annuaire/` (A.10, AN-1 à AN-10) | `annuaires/reference.json` égal à l'exemple de 13.4 lu dans le texte, `vide.json` égal au même annuaire sans entrée ; `messages.json` : texte construit depuis les champs (EX-13.12), analyse stricte et champs relus, longueur, donnée de `personal_sign`, condensé EIP-191, longueur de la préimage ; l'exemple d'EX-13.12 (516 octets, préimage de 545, condensé imprimé) ; `inscriptions.json` : `accepted`, `reason`, `entry` (identifiant d'une entrée créée recalculé selon la convention de A.10), signature normalisée par les treize vérifications d'EX-13.15 dans l'ordre (défi marqué présenté dès le pas 4) ; `domaines.json` : adresse recouvrée sur `D_A` ou sur le texte (EX-13.16) et les deux adresses que le texte imprime ; chaque trace de `traces/` rejouée pas à pas (défi d'EX-13.13 avec le nonce du pas, inscription, opérations d'EX-13.17 et leurs raisons dans l'ordre de la table, invariants d'EX-13.10) : `accepted`, `reason`, `response` complète, `revision`, état résumé de chaque entrée, et l'état final de `annuaire-de-reference` égal à `annuaires/reference.json` (noms affichés mis à part) ; `controles-vote.json` : `allowed`, `reason`, `warnings` d'EX-13.18 et `directory_requester_addresses` recalculé depuis l'annuaire (EX-12.15) ; `controles-canal.json` : `reason` du contrôle de l'identité de session des méthodes `tickets`, `consulter`, `voter`, `recuser` et `retirer` (EX-12.13 : `identite_invalide` d'abord ; EX-12.14 : session hors de l'organisation, puis `ticket_inconnu` pour un ticket nul, puis session qui ne peut pas voir les arguments ; EX-12.16, EX-12.19 : contrôle d'adresse avant `ticket_inconnu` pour `voter` et `recuser`, `ticket_inconnu` d'abord pour `retirer`), requête conforme au `$defs` de sa méthode, chaque méthode exercée en passe et en refus, et `ticket_inconnu` exercé pour `consulter`, `voter` et `retirer` ; `exports/` : liste complète des écarts d'EX-13.19 (forme, `revision`, unicités, preuves, auto-validation, rejeu des opérations depuis un annuaire vide, droits d'administrateur jugés sur la liste en vigueur, opération `changer_administrateurs` d'EX-13.37 et pointeur `/administrators`), triée par pointeur puis par code ; chaque signature d'inscription acceptée **reproduite** par la clé du compte ; chaque nonce égal au nonce `k` de A.10 ; couverture d'EX-A.13 (textes refusés, raisons d'EX-13.15, formes de signature, instants limites, raisons d'EX-13.18, codes d'EX-13.19) |
+| annuaire | `annuaire/` (A.10, AN-1 à AN-10) | `annuaires/reference.json` égal à l'exemple de 13.4 lu dans le texte, `vide.json` égal au même annuaire sans entrée ; `messages.json` : texte construit depuis les champs (EX-13.12), analyse stricte et champs relus, longueur, donnée de `personal_sign`, condensé EIP-191, longueur de la préimage ; l'exemple d'EX-13.12 (516 octets, préimage de 545, condensé imprimé) ; `inscriptions.json` : `accepted`, `reason`, `entry` (identifiant d'une entrée créée recalculé selon la convention de A.10), signature normalisée par les treize vérifications d'EX-13.15 dans l'ordre (défi marqué présenté dès le pas 4) ; `domaines.json` : adresse recouvrée sur `D_A` ou sur le texte (EX-13.16) et les deux adresses que le texte imprime ; chaque trace de `traces/` rejouée pas à pas (défi d'EX-13.13 avec le nonce du pas, défi présenté retiré, inscription, opérations d'EX-13.17 et leurs raisons dans l'ordre de la table, dont `expirer`, invariants d'EX-13.10 ; entrées échues avant chaque pas, A.10) : `accepted`, `reason`, `response` complète, `revision`, état résumé de chaque entrée, et l'état final de `annuaire-de-reference` égal à `annuaires/reference.json` (noms affichés mis à part) ; `controles-vote.json` : `allowed`, `reason`, `warnings` d'EX-13.18 et `directory_requester_addresses` recalculé depuis l'annuaire (EX-12.15) ; `controles-canal.json` : `reason` du contrôle de l'identité de session des méthodes `tickets`, `consulter`, `voter`, `recuser` et `retirer` (EX-12.13 : `identite_invalide` d'abord ; EX-12.14 : session hors de l'organisation, puis `ticket_inconnu` pour un ticket nul, puis session qui ne peut pas voir les arguments ; EX-12.16, EX-12.19 : contrôle d'adresse avant `ticket_inconnu` pour `voter` et `recuser`, `ticket_inconnu` d'abord pour `retirer`), requête conforme au `$defs` de sa méthode, chaque méthode exercée en passe et en refus, et `ticket_inconnu` exercé pour `consulter`, `voter` et `retirer` ; `exports/` : liste complète des écarts d'EX-13.19 (forme, `revision`, unicités, preuves, auto-validation, rejeu des opérations depuis un annuaire vide, droits d'administrateur jugés sur la liste en vigueur, opération `changer_administrateurs` d'EX-13.37 et pointeur `/administrators`, rejeu d'`expirer` sous la borne basse et des inscriptions d'une entrée expirée), triée par pointeur puis par code ; chaque signature d'inscription acceptée **reproduite** par la clé du compte ; chaque nonce égal au nonce `k` de A.10 ; couverture d'EX-A.13 (textes refusés, raisons d'EX-13.15, formes de signature, instants limites, raisons d'EX-13.18, codes d'EX-13.19) |
 | console | `console/` (A.11, CS-1 à CS-9) | `modeles/` : chaque membre du modèle d'affichage (EX-9.4) par les treize contrôles d'EX-9.15 dans l'ordre (hachage recalculé de l'événement `retenue` par CT-1 §6.1, pièce base64 contre `sha256` et `length` ou valeur en ligne par CT-1 §5.4, champs liés, feuilles d'EX-9.16, `A`, `JCS(A)`, `D_A`, `H`, empreintes, groupes et UTF-8 des deux décisions, comparaison à `digests`, annuaire, éligibilité, motif en points de code) et les avertissements, `intent_status` (contrôle 4 : `reference_non_verifiable` pour une intention que l'événement porte par un objet) et les effets copiés de la vue, dont chaque membre listé dans `unresolved` est nul et désigne `/result` (EX-12.14) ; l'événement seq 10 de l'intention par référence chaîné à l'événement seq 9 ; la vue d'exemple d'EX-12.15 et ce que le texte en dit (`blocking` vide, `remaining_ms` 2 829 904, empreinte, refus du compte 3), l'exemple d'EX-9.16, les valeurs d'EX-9.17 et d'EX-9.18 ; événement seq 5 et pièce de CT-1 repris tels quels ; signature Ed25519 de l'événement en ligne par `rec-test-01` (CT-1 §6.2) ; `requetes/` : condensés, préimage de 60 octets, requête `personal_sign` d'EX-13.24, signature **reproduite** par la clé du compte, égale à celle de CT-1 pour `apr-2201`, `D_A` et `H` imprimés pour `apr-0001`, plus petit `k` d'`apr-c0-<k>` (542) recherché ; `reponses/` : issue d'EX-9.21 et de la table de 13.14 (code, signature normalisée, adresse recouvrée, vote construit), l'exemple d'EX-9.21 lu dans le texte ; `decouverte/` : liste proposée et annonces écartées (EX-13.22) ; `fichiers-cle/` : issue d'EX-13.28 (format, dérivation admise, MAC, AES-128-CTR, intervalle de la clé, adresse, `derivation_faible`), sel, vecteur d'initialisation et identifiant tirés des étiquettes de A.11, l'exemple d'EX-13.28 ; couverture d'EX-A.15 |
 | acceptation-console | `acceptation-console-attendu.json`, `acceptation-console/` | rôles, sections et questions de la table d'EX-A.17, chaque règle citée définie dans CT-3, questions présentes dans la consigne, gabarit présent, grille hors du répertoire remis |
 
@@ -147,7 +257,11 @@ vérificateur lit ainsi (aucun ne donne de discordance) :
 
 - **Rejeu d'un annuaire exporté** (EX-13.19, point 6) : une opération
   `inscrire` reprend la preuve que l'entrée `op.entry` du document porte pour
-  `op.address` (introuvable : l'opération ne se rejoue pas) ; une entrée créée
+  `op.address` (introuvable : l'opération ne se rejoue pas), sauf, depuis le
+  complément du 2026-11-16, quand une opération `expirer` de la même
+  `entry` est placée plus loin dans le journal (le texte le dit désormais) :
+  l'opération se rejoue alors sans preuve, même si le document porte encore
+  une entrée de cet identifiant ; une entrée créée
   prend l'identifiant `op.entry` ; les vérifications d'EX-13.15 « hors nonce
   et horloge » omettent les pas 4, 5 et la comparaison au défi des pas 8 à
   10 ; `external_id` et `display_name`, qu'aucune opération ne pose, sont
@@ -173,6 +287,52 @@ vérificateur lit ainsi (aucun ne donne de discordance) :
 
 ## Tests du module (`go test`)
 
+- Complément du 2026-11-16 (`expiration_test.go`) : `expirer` (six formes
+  refusées `requete_invalide`, `entree_inconnue`, échéance moins une
+  milliseconde, entrée validée, entrée validée puis révoquée, acceptation à
+  l'échéance exacte avec l'opération inscrite, `revision`, `updated_at`,
+  défis inchangés et réponse nulle, entrée désactivée jamais validée,
+  adresse et identité libérées, identifiants `apb-0003` et `apb-0004`) ;
+  identifiant compteur avec des opérations `expirer` ; défi présenté retiré
+  après une inscription acceptée et après un refus au-delà du pas 4, gardé
+  après un refus avant le pas 4, `nonce_inconnu` à la seconde
+  présentation ; bornes qui ignorent les défis présentés et
+  `nonce_deja_utilise` de la vérification seule ; rejeu d'un annuaire
+  construit ici (sans écart, borne basse incluse, une milliseconde sous la
+  borne, entrée validée, entrée déjà retirée, identifiant réattribué,
+  inscription sans preuve ni expiration) ; une trace dont un pas du canal
+  tombe à l'échéance est relevée. `TestAnnuaireScenario` attend désormais
+  `nonce_inconnu` pour le défi présenté deux fois.
+
+- Lignes que la rédaction du complément taisait (`rejeu_annuaire_test.go`) :
+  instant indécodable en tête du journal et au milieu, ordre jugé sur le
+  dernier instant décodé ; preuve rejouée reconstruite (`received_at`
+  décalé, signature haute dans le document, inscription à un instant
+  indécodable) ; inscription sans preuve (cas publié
+  `expiration-entree-portee.json`, entrée encore portée avec sa preuve
+  exacte, `expirer` placé plus haut, `created_at` indécodable qui empêche
+  l'expiration, `by` autre que `service`) ; entrée au `created_at`
+  indécodable jamais échue ; deux entrées échues avant un `expirer` accepté
+  relevées ; neuf formes de requête `expirer` refusées et l'exemple
+  d'EX-13.17 contrôlé ; couverture du cas nouveau et son nom dans la
+  section « Cas nommés » exigé (code 1 sans lui).
+
+- Lignes du point 13 de la section 0 (`instants_indecodables_test.go`,
+  `cas_nommes_test.go`) : `expirer` à l'`at` indécodable, au milieu du
+  journal et en dernière opération ; `received_at` indécodable seul, avec
+  une signature haute, avec une signature d'une autre clé, `received_at` à
+  `Expire le` avec une autre clé (deux codes au même pointeur), message
+  non analysable (`preuve_invalide` seul) ; instants posés par `valider`,
+  le remplacement, `revoquer`, `desactiver`, et `updated_at`, égaux au
+  texte de l'`at` (un autre texte à l'une de ces places donne `/entries`
+  ou `/updated_at`) ; les quatre cas nouveaux d'`exports/` recalculés et
+  ce que chacun exerce ; cas nommés : une note par répertoire dans l'ordre
+  d'EX-A.10, puis, par le code de retour, un cas présent non nommé
+  (`notifications/`), un cas nommé absent (`console/decouverte/`), la ligne
+  de `signatures/` retirée, `attendu.json` non nommé, un cas nommé hors de
+  la section, la section absente (code 1), et la ligne de la table
+  d'`exports/` retirée (code 0).
+
 - Revue de sécurité de l'étape 8 (`revue_etape8_test.go`,
   `revue_etape8_garde_test.go`) : huit cas de `tickets` avec `related_to`
   (contrôle du canal et famille rejouée sur une copie de
@@ -180,7 +340,8 @@ vérificateur lit ainsi (aucun ne donne de discordance) :
   d'une identité refusé sans changer les défis, remplacement admis, autre
   identité admise, défi admis après expiration, 1 025e défi refusé) ; garde
   commune des familles ; plancher par le code de retour du programme (sans
-  `signatures/`, cas d'`evaluation/` retiré ou non indexé, sans `INDEX.md`).
+  `signatures/`, cas d'`evaluation/` retiré ou non indexé, sans `INDEX.md` ;
+  messages au chemin relatif à la racine depuis la section « Cas nommés »).
 
 - Révision 0.3, sans les vecteurs : identités de session canoniques et
   refusées (EX-13.7) ; l'exemple d'EX-13.12 (516 octets, préimage de 545,
@@ -267,3 +428,30 @@ seul texte de CT-3 (EX-12.14, EX-12.19, EX-13.19, EX-13.37, EX-9.15,
 contrôle 4, EX-A.13, EX-A.15) ; une altération d'un attendu de chacun des
 cas nouveaux (raison d'un ticket inconnu, `intent_status`, `by` d'une
 opération après la recopie) y est relevée comme discordance.
+
+Confrontation du 2026-11-16 avec le complément du 2026-11-16 de CT-3
+(opération `expirer`, défi présenté retiré, traces `expiration-entree` et
+`defi-consomme`, quatre cas nouveaux d'`exports/`) : 7 799 valeurs
+recalculées, 7 799 concordantes, **0 discordante**, 84 hors périmètre (81
+`data.evaluation` des traces, `INDEX.md`, textes des deux consignes). Avant
+la mise à jour de ce vérificateur, 7 692 valeurs recalculées, dont 42
+discordantes, toutes dans la famille `annuaire/` (pas `expirer` refusés
+`requete_invalide`, défis présentés encore comptés, `nonce_deja_utilise`
+au lieu de `nonce_inconnu`, quatre cas d'`exports/` arrêtés à
+`/operations/0`) : c'est l'effet attendu de la révision, pas un écart.
+
+Confrontation avec les lignes ajoutées au complément (point 12 de la
+section 0 ; cas `exports/expiration-entree-portee.json`) : 7 805 valeurs
+recalculées, 7 805 concordantes, **0 discordante**, 84 hors périmètre ;
+`annuaire/exports/` : 19 cas nommés par `INDEX.md`, 19 présents. Avant la
+mise à jour, le cas nouveau concordait déjà (7 802 valeurs, 0 discordante) ;
+les règles nouvelles ne se voient que sur des annuaires construits par les
+tests (instant indécodable, `created_at` indécodable au rejeu).
+
+Confrontation avec les lignes du point 13 de la section 0 (quatre cas
+nouveaux d'`exports/`, section « Cas nommés » d'`INDEX.md`) : 7 817 valeurs
+recalculées, 7 817 concordantes, **0 discordante**, 84 hors périmètre ; les
+vingt répertoires d'EX-A.10 comptés, 281 cas nommés, 281 présents. Avant la
+mise à jour, les quatre cas concordaient déjà ; les changements ne se
+voient que sur des annuaires et des index construits par les tests (preuve
+fautive aux deux examens, comptage par la seule section « Cas nommés »).

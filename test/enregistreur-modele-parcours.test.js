@@ -43,6 +43,22 @@ const BIN_MIROIR = path.join(RACINE, "paquets", "enregistreur", "bin", "noortrac
 const FORMATS = ["anthropic-messages", "openai-chat", "openai-responses", "gemini"];
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Démons et adaptateurs lancés par les essais : un échec entre le lancement et l'arrêt prévu ne
+// laisse aucun processus derrière lui (arrêt forcé après chaque essai de ces suites).
+const lances = new Set();
+function suivre(p) {
+  lances.add(p);
+  return p;
+}
+async function arreterRestants() {
+  const vivants = [...lances].filter((p) => p.exitCode === null && p.signalCode === null);
+  lances.clear();
+  await Promise.all(vivants.map((p) => new Promise((res) => {
+    p.once("exit", res);
+    p.kill("SIGKILL");
+  })));
+}
+
 /** Construit noortrace-verifier avec go1.27.3, ou rend null (GOFLAGS posé pour cette seule commande). */
 function construireVerificateur(dir) {
   const dirGo = process.env.NOORTRACE_GO_BIN ?? null;
@@ -249,7 +265,10 @@ describe("enregistreur, frontal modèle : démon réel bin/noortrace", function 
     fournisseur = await new FournisseurSimule({ pauseMs: 3 }).demarrer();
   });
 
+  afterEach(arreterRestants);
+
   after(async function () {
+    await arreterRestants();
     await fournisseur?.arreter();
   });
 
@@ -257,7 +276,7 @@ describe("enregistreur, frontal modèle : démon réel bin/noortrace", function 
     const c = configurationModele(dir, fournisseur.url);
     const chemin = path.join(dir, "configuration.json");
     fs.writeFileSync(chemin, JSON.stringify(c.config, null, 2));
-    const p = spawn(process.execPath, [BIN_NOORTRACE, "--config", chemin], { env: { ...process.env, ...c.env }, stdio: ["ignore", "pipe", "pipe"] });
+    const p = suivre(spawn(process.execPath, [BIN_NOORTRACE, "--config", chemin], { env: { ...process.env, ...c.env }, stdio: ["ignore", "pipe", "pipe"] }));
     let sortie = "";
     let erreurs = "";
     p.stderr.on("data", (d) => (erreurs += d));
@@ -340,7 +359,10 @@ describe("enregistreur, frontal modèle : démon réel bin/noortrace en modes ic
     fournisseur = await new FournisseurSimule({ pauseMs: 3 }).demarrer();
   });
 
+  afterEach(arreterRestants);
+
   after(async function () {
+    await arreterRestants();
     await fournisseur?.arreter();
   });
 
@@ -348,7 +370,7 @@ describe("enregistreur, frontal modèle : démon réel bin/noortrace en modes ic
   async function lancerDemon(dir, c, evenement) {
     const chemin = path.join(dir, "configuration.json");
     fs.writeFileSync(chemin, JSON.stringify(c.config, null, 2));
-    const p = spawn(process.execPath, [BIN_NOORTRACE, "--config", chemin], { env: { ...process.env, ...c.env }, stdio: ["ignore", "pipe", "pipe"] });
+    const p = suivre(spawn(process.execPath, [BIN_NOORTRACE, "--config", chemin], { env: { ...process.env, ...c.env }, stdio: ["ignore", "pipe", "pipe"] }));
     let sortie = "";
     let erreurs = "";
     p.stderr.on("data", (d) => (erreurs += d));
@@ -463,7 +485,7 @@ describe("enregistreur, frontal modèle : démon réel bin/noortrace en modes ic
     const c = configurationMiroir(dir, fournisseur.url);
     const { p, ligne } = await lancerDemon(dir, c, "model_mirror_listening");
     expect(ligne.data.socket).to.equal(c.config.model.mirror.socket);
-    const ad = spawn(process.execPath, [BIN_MIROIR, "--socket", ligne.data.socket, "--ecoute", "127.0.0.1:0"], { stdio: ["ignore", "pipe", "pipe"] });
+    const ad = suivre(spawn(process.execPath, [BIN_MIROIR, "--socket", ligne.data.socket, "--ecoute", "127.0.0.1:0"], { stdio: ["ignore", "pipe", "pipe"] }));
     const ecoute = await new Promise((res, rej) => {
       let sortie = "";
       ad.stdout.on("data", (d) => {

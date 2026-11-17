@@ -13,6 +13,7 @@
 //   OP-4, OP-6,    vérifications des outils qui se calculent hors chaîne
 //   OP-7           (dossier d'inscription, demande de signature, 7.3) ;
 //   CP-2 à CP-6    capture d'une transaction, relue sur ses fichiers (9.4) ;
+//   EX-8.14        recoupement du nonce rendu par les points de --rpc (8.6) ;
 //   export         parties registre.json, certificat-commit.json et
 //                  validateurs.json d'un dossier (9.6).
 //
@@ -954,6 +955,29 @@ export function decoderTransaction(brutHex) {
 /** Adresse créée par `deployer` à son nonce `nonce` : keccak256(RLP([a20, nonce]))[12:]. */
 export function adresseCreation(deployer, nonce) {
   return hex(keccak(rlp([a20(deployer), octetsEntier(entier(nonce, "nonce"))])).subarray(12));
+}
+
+/**
+ * Valeur des points d'EX-8.14 (§8.6) : `valeurs` sont les nonces (BigInt) que
+ * rendent à `eth_getTransactionCount(expéditeur, "latest")` les points de
+ * `--rpc` qui ont répondu, `nombrePoints` le nombre de points de `--rpc`. Un
+ * seul point : sa valeur. Plusieurs : la plus grande valeur rendue par au
+ * moins deux points ; si aucune valeur n'est rendue par deux points, ou si un
+ * point rend plus que cette valeur + 1, les points diffèrent de plus de 1 et
+ * rien n'est signé. Un point qui rend moins est en retard. Rend `{ nonce }`
+ * ou `{ incoherent: message }`.
+ */
+export function recouperNonce(valeurs, nombrePoints) {
+  if (valeurs.length === 0) throw new Error("recouperNonce : aucune valeur");
+  if (nombrePoints < 2) return { nonce: valeurs.reduce((m, v) => (v > m ? v : m)) };
+  const comptes = new Map();
+  for (const v of valeurs) comptes.set(v, (comptes.get(v) ?? 0) + 1);
+  let retenu = null;
+  for (const [v, k] of comptes) if (k >= 2 && (retenu === null || v > retenu)) retenu = v;
+  if (retenu === null) return { incoherent: `aucune valeur rendue par deux points (${valeurs.join(", ")})` };
+  const audela = valeurs.find((v) => v > retenu + 1n);
+  if (audela !== undefined) return { incoherent: `un point rend ${audela} pour un nonce recoupé ${retenu}` };
+  return { nonce: retenu };
 }
 
 /** p' = ⌈1,1 × p⌉ (EX-4.15) pour le remplacement d'une transaction au même nonce. */

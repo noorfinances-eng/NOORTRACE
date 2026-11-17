@@ -39,6 +39,13 @@ export const SORTES = ["ancre_registre_point", "jeton_point", "ots_point", "ancr
 /** États d'une demande (EX-8.3). */
 export const ETATS = ["a_envoyer", "attente_registre", "envoyee", "a_reprendre", "en_attente", "obtenue", "complete", "sans_objet", "refusee", "remplacee"];
 export const ETATS_FINAUX = new Set(["obtenue", "complete", "sans_objet", "refusee", "remplacee"]);
+/**
+ * EX-8.10 : rejeux d'une minuterie périodique (renvoi d'une ancre sans reçu, examen de l'attente du registre) par
+ * demande et par passe, une passe étant le traitement d'une entrée. Seul un saut d'horloge fait franchir plusieurs
+ * échéances dans une passe ; au-delà de ce nombre, les échéances franchies sont comptées (`missed_deadlines` sur la
+ * ligne `anchor_retry` du renvoi), jamais rejouées une à une.
+ */
+export const REJEUX_PAR_PASSE_MAX = 4;
 export const ROLES = ["principal", "secours", "second_rang", "interne"];
 /** Politique de l'autorité de test de CT-6 (serveur interne des vecteurs, EX-7.4). */
 export const POLITIQUE_TEST = "1.3.6.1.4.1.99999.1.1";
@@ -81,6 +88,15 @@ export const DEFAUTS_CONFIGURATION = Object.freeze({
 export const COMPACT_BYTES_DEFAUT = 16777216;
 /** Nombre maximal de tentatives portées par une ligne de file (EX-8.5, règle 7 ; révision 0.6). */
 export const FENETRE_TENTATIVES = 32;
+/**
+ * CT-5 EX-9.5 (complément du 2026-11-16) : codes d'échec d'une ancre au registre qui disent qu'aucune transaction n'a été
+ * admise par un nœud ni aucun nonce consommé : `noeud_injoignable` (aucun point n'a répondu), `nonce_incoherent` (rien
+ * n'est signé, CT-4 EX-8.14), `transaction_refusee` (erreur JSON-RPC à l'envoi, rien n'est parti, CT-4 §7.11), et les
+ * codes du composant d'ancrage de même sens (EX-8.10 : `registre_absent`, `exception_client`, `reprise_impossible`,
+ * `lecture_nonce_incoherent`, `lecture_incoherente`). Une ancre de point `a_reprendre` dont toutes les tentatives ont
+ * échoué ainsi est encore à envoyer : un point plus récent de sa période la remplace (EX-9.5).
+ */
+export const CODES_ANCRE_NON_ADMISE = Object.freeze(["noeud_injoignable", "nonce_incoherent", "transaction_refusee", "registre_absent", "exception_client", "reprise_impossible", "lecture_nonce_incoherent", "lecture_incoherente"]);
 
 // ---------------------------------------------------------------------------
 // Instants
@@ -298,8 +314,15 @@ export function aleatoireVecteurs({ gigues = [] } = {}) {
   };
 }
 
-/** Source d'aléa d'exploitation (générateur cryptographique du système). */
-export function aleatoireSysteme(jitter_ms = DEFAUTS_CONFIGURATION.retry.jitter_ms) {
+/**
+ * Source d'aléa d'exploitation (générateur cryptographique du système). Le nonce OpenTimestamps est tiré une fois par
+ * demande (`<kind>:<empreinte>`) et rendu à l'identique ensuite : une soumission rejouée, après un échec ou après un
+ * redémarrage du planificateur sur la même source, garde son nonce et son engagement (EX-6.2, EX-8.11, EX-8.12 ;
+ * complément du 2026-11-16). `noncesOts` (une Map ou un objet de mêmes méthodes get/set) est le magasin de ces nonces :
+ * l'appelant qui le rend durable garde l'engagement d'un processus à l'autre, comme le composant d'ancrage
+ * (`ots/<objet>.nonce`).
+ */
+export function aleatoireSysteme(jitter_ms = DEFAUTS_CONFIGURATION.retry.jitter_ms, { noncesOts = new Map() } = {}) {
   return {
     nonceTsa: () => {
       for (;;) {
@@ -307,7 +330,15 @@ export function aleatoireSysteme(jitter_ms = DEFAUTS_CONFIGURATION.retry.jitter_
         if (n >= 1n) return n;
       }
     },
-    nonceOts: () => crypto.randomBytes(16),
+    nonceOts: ({ kind, subject }) => {
+      const cle = idDemande(kind, subject.hash);
+      let n = noncesOts.get(cle);
+      if (!n) {
+        n = crypto.randomBytes(16);
+        noncesOts.set(cle, n);
+      }
+      return Buffer.from(n);
+    },
     gigue: () => crypto.randomInt(0, jitter_ms + 1),
   };
 }
@@ -815,6 +846,8 @@ export function verifierConfiguration(doc, { profil = "production", checkpoint_i
     if (principal && (principal.qualified === null || principal.qualified === undefined)) v(4, `le principal ${principal.id} n'a pas de statut qualified`);
     const secours = parRole("secours")[0];
     if (secours && (secours.qualified === null || secours.qualified === undefined)) v(4, `le secours ${secours.id} n'a pas de statut qualified`);
+    // Révision 0.10 (EX-6.6, EX-6.9) : sans source d'en-têtes, la borne Bitcoin d'une preuve n'est jamais acquise ; exigée en production.
+    if (o.enabled === true && o.headers_source === null) v(4, "opentimestamps.headers_source null : refusé en production");
   }
   // 4, adresse et authentification, dans tout profil (révision 0.9 ; AN-27 ; 5.2 : « basic » seulement sur TLS,
   // « aucune » pour le seul serveur interne sur une adresse locale). Le serveur RFC 3161 interne est le rôle
@@ -823,6 +856,10 @@ export function verifierConfiguration(doc, { profil = "production", checkpoint_i
   for (const p of providers) {
     const url = String(p.url ?? "");
     const sansAuthentification = p.auth?.method === "aucune";
+    // Révision 0.10 (EX-5.6, EX-7.2) : dans tout profil, un prestataire de rôle interne n'est jamais qualifié.
+    if (p.role === "interne" && p.qualified !== null && p.qualified !== undefined) v(4, `prestataire interne ${p.id} déclaré qualified`);
+    // Révision 0.10 (EX-4.8, AN-54) : aucun identifiant ni mot de passe dans l'url (le schéma le refuse déjà).
+    if (/^[a-z][a-z0-9+.-]*:\/\/[^/]*@/i.test(url)) v(4, `prestataire ${p.id} : identifiant ou mot de passe dans l'url`);
     // CT-5 EX-4.9 (revue de l'étape 8) : « aucune » va avec un secret nul ; « basic » et « certificat_client » exigent un secret non nul (5.2).
     if (sansAuthentification && p.auth?.secret !== null && p.auth?.secret !== undefined) v(4, `prestataire ${p.id} : auth.method aucune avec un secret non nul`);
     if (!sansAuthentification && p.auth && (p.auth.secret === null || p.auth.secret === undefined)) v(4, `prestataire ${p.id} : auth.method ${p.auth.method} sans secret`);
@@ -866,8 +903,26 @@ export function verifierConfiguration(doc, { profil = "production", checkpoint_i
       }
     }
   }
+  // 9 (révision 0.10 ; EX-5.1) : chaque policy_oid et chaque OID d'accepted_policies s'encode dans la requête :
+  // second arc inférieur à 40 sous un premier arc 0 ou 1, chaque arc sur 128 bits, DER d'au plus 127 octets.
+  for (const p of providers) {
+    const oids = [...(typeof p.policy_oid === "string" ? [["policy_oid", p.policy_oid]] : []), ...(Array.isArray(p.accepted_policies) ? p.accepted_policies.map((x) => ["accepted_policies", x]) : [])];
+    for (const [ou, oid] of oids) {
+      let der = null;
+      try {
+        der = encoderOIDDER(oid);
+      } catch (e) {
+        v(9, `prestataire ${p.id}, ${ou} ${oid} : ${e.message}`);
+        continue;
+      }
+      if (der.length > OID_DER_MAX) v(9, `prestataire ${p.id}, ${ou} : DER de ${der.length} octets, au plus ${OID_DER_MAX}`);
+    }
+  }
   return { valide: violations.length === 0, violations };
 }
+
+/** DER d'un OID de politique porté par la requête d'EX-5.1 : au plus 127 octets (EX-4.9, règle 9 ; maxLength de $defs/oid). */
+export const OID_DER_MAX = 127;
 
 // ---------------------------------------------------------------------------
 // Échéances, admission, série (AN-2, AN-3)
@@ -1276,9 +1331,27 @@ export const totalTentatives = (d) => (Number.isInteger(d.attempts_total) ? d.at
 const SORTE_PERIODE = (kind) => kind.endsWith("_periode");
 const SORTE_PREFIXE = (kind) => kind.split("_").slice(0, -1).join("_");
 const idDemande = (kind, hash) => `${kind}:${hash}`;
+
+/**
+ * Enregistrements `obtenue` promus d'`acquisitions.ndjson` (EX-5.8, EX-8.12 ; complément du 2026-11-16) que porte
+ * une entrée `demarrage` ou `stockage_relu` (membre facultatif `acquisitions`, liste de `{ request_id, result }`),
+ * rangés par demande ; null quand l'entrée ne le porte pas (les règles qui les lisent ne s'appliquent pas).
+ */
+function indexAcquisitions(liste) {
+  if (!Array.isArray(liste)) return null;
+  const index = new Map();
+  for (const a of liste) {
+    if (!a || typeof a.request_id !== "string" || !a.result || typeof a.result !== "object") continue;
+    if (!index.has(a.request_id)) index.set(a.request_id, []);
+    index.get(a.request_id).push(a.result);
+  }
+  return index;
+}
 const copie = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const NOMS_PKI = ["granted", "grantedWithMods", "rejection", "waiting", "revocationWarning", "revocationNotification"];
 const ECHECS_TRANSITOIRES = new Set(["timeNotAvailable", "systemFailure"]);
+/** Les huit PKIFailureInfo nommés par EX-5.10, étape 2 (RFC 3161 §2.4.2). */
+const FAILURE_INFOS = new Set(["badAlg", "badRequest", "badDataFormat", "timeNotAvailable", "unacceptedPolicy", "unacceptedExtension", "addInfoNotAvailable", "systemFailure"]);
 const HTTP_TRANSITOIRES = new Set([408, 429, 500, 502, 503, 504]);
 
 function normaliserProjection(config) {
@@ -1325,6 +1398,8 @@ class Planificateur {
     this.admissions = new Map();
     this.horloge = -Infinity;
     this.demarre = false;
+    // Passe en cours (EX-8.10) : instant de l'entrée traitée et rejeux par minuterie et par demande ; null hors passe.
+    this.passe = null;
   }
 
   // --- état interne ---------------------------------------------------------
@@ -1332,7 +1407,7 @@ class Planificateur {
   int(id) {
     let s = this.interne.get(id);
     if (!s) {
-      s = { enCours: new Map(), engages: new Set(), epuises: new Set(), reprises: new Map(), k: new Map(), premier408: new Set(), tardives: 0, alertes: new Set(), attenteAt: null, inclusionAt: null, miseANiveauAt: null, differe: null, renvois: 0, soumisA: null, premierEnvoi: null };
+      s = { enCours: new Map(), engages: new Set(), epuises: new Set(), reprises: new Map(), k: new Map(), premier408: new Set(), tardives: 0, alertes: new Set(), attenteAt: null, inclusionAt: null, miseANiveauAt: null, differe: null, renvois: 0, premierEnvoi: null, nonceOts: null, noncesHorsFenetre: new Map(), admiseHorsFenetre: false, inconnues: 0 };
       this.interne.set(id, s);
     }
     return s;
@@ -1353,8 +1428,13 @@ class Planificateur {
   }
   ecrire(d, t, state) {
     d.state = state;
-    // EX-8.5, règle 7 (révision 0.6) : au plus 32 tentatives par ligne, attempts_total toujours écrit.
-    d.attempts = fenetreTentatives(d.attempts);
+    // EX-8.5, règle 7 (révision 0.6) : au plus 32 tentatives par ligne, attempts_total toujours écrit. Le nonce d'une
+    // requête RFC 3161 qui sort de la fenêtre est gardé : une réponse tardive se rapporte encore à elle.
+    const gardees = fenetreTentatives(d.attempts);
+    for (const a of d.attempts) if (!gardees.includes(a) && a.nonce) this.int(d.id).noncesHorsFenetre.set(a.n, a.nonce);
+    // EX-9.5 (complément du 2026-11-16) : une tentative qui sort de la fenêtre et qu'un nœud a pu admettre est retenue.
+    for (const a of d.attempts) if (!gardees.includes(a) && (a.outcome === "obtenue" || !CODES_ANCRE_NON_ADMISE.includes(a.error_code))) this.int(d.id).admiseHorsFenetre = true;
+    d.attempts = gardees;
     this.poserTotal(d, Math.max(totalTentatives(d), ...d.attempts.map((a) => a.n)));
     this.emettre(t, "ecrire_file", d.id, { state });
     this.lignes.push(ligneFile(d));
@@ -1383,9 +1463,38 @@ class Planificateur {
   rangTentative(d, n) {
     return { attempt: n, attempt_id: identifiantCorrelation(d.kind, d.subject.hash, n) };
   }
+  /**
+   * Rang et attempt_id d'une réponse qui ne s'applique pas (EX-8.5, règle 2, complément du 2026-11-16) : `attempt` est le
+   * rang désigné (entier, sinon nul), `attempt_id` celui de la tentative de ce rang quand la demande l'a ouverte
+   * (1 ≤ n ≤ attempts_total), sinon nul.
+   */
+  rangDesigne(d, n) {
+    const entier = Number.isSafeInteger(n);
+    return { attempt: entier ? n : null, attempt_id: d && entier && n >= 1 && n <= totalTentatives(d) ? identifiantCorrelation(d.kind, d.subject.hash, n) : null };
+  }
   programmer(d, t, at, reason) {
     d.due_at = iso(at);
     this.emettre(t, "programmer", d.id, { next_at: iso(at), reason });
+  }
+  /**
+   * EX-8.10 : prochaine échéance `{ at, manquees }` d'une minuterie périodique de pas `pasMs` déclenchée à `t`. Jusqu'au
+   * REJEUX_PAR_PASSE_MAX-ième rejeu de la passe pour cette minuterie et cette demande, `t + pasMs` ; à ce rejeu, la
+   * première échéance postérieure à l'instant de l'entrée, les échéances sautées étant comptées dans `manquees`.
+   */
+  echeanceApresPasse(type, id, t, pasMs) {
+    let at = t + pasMs;
+    let manquees = 0;
+    if (!this.passe) return { at, manquees };
+    const cle = `${type}|${id}`;
+    const n = (this.passe.rejoues.get(cle) ?? 0) + 1;
+    this.passe.rejoues.set(cle, n);
+    if (n >= REJEUX_PAR_PASSE_MAX) {
+      while (at <= this.passe.limite) {
+        at += pasMs;
+        manquees += 1;
+      }
+    }
+    return { at, manquees };
   }
   timer(at, type, id, extra = {}) {
     this.timers.push({ at, seq: this.seq++, type, id, ...extra });
@@ -1460,9 +1569,30 @@ class Planificateur {
 
   // --- horloge et minuteries ----------------------------------------------
 
+  /**
+   * EX-8.16 (complément du 2026-11-16) : minuteries par échéance ; à échéance égale, celles des périodes (échéances,
+   * cadence) d'abord, dans l'ordre où elles ont été armées, puis celles des demandes, par demande (created_at puis id,
+   * l'ordre de la file) et, pour une même demande, dans l'ordre où elles ont été armées.
+   */
+  trierMinuteries() {
+    const rang = (m) => {
+      const d = this.demandes.get(m.id);
+      return d ? [1, d.created_at, d.id] : [0, "", ""];
+    };
+    this.timers.sort((a, b) => {
+      if (a.at !== b.at) return a.at - b.at;
+      const [ca, ta, ia] = rang(a);
+      const [cb, tb, ib] = rang(b);
+      if (ca !== cb) return ca - cb;
+      if (ta !== tb) return ta < tb ? -1 : 1;
+      if (ia !== ib) return ia < ib ? -1 : 1;
+      return a.seq - b.seq;
+    });
+  }
+
   avancer(t) {
     for (;;) {
-      this.timers.sort((a, b) => a.at - b.at || a.seq - b.seq);
+      this.trierMinuteries();
       if (!this.timers.length || this.timers[0].at > t) return;
       const m = this.timers.shift();
       this.declencher(m);
@@ -1491,7 +1621,15 @@ class Planificateur {
         if (s.reprises.get(m.provider ?? null) !== t) return;
         s.reprises.delete(m.provider ?? null);
         if (d.kind.startsWith("ots_")) this.soumettreOts(d, t);
-        else this.pret(d, this.prestataires.get(m.provider), t);
+        else if (d.kind.startsWith("ancre_registre_")) {
+          // EX-8.10, EX-9.4 : une ancre à reprendre part si la clé de chaîne n'a pas de transaction sans reçu ; sinon elle
+          // attend (attente_nonce) et part au reçu de celle-ci (servir, ci-dessous). Complément du 2026-11-16 : l'ancre
+          // d'une période attend de même le reçu des ancres des points de sa période (attendPoints).
+          if (d.state !== "a_reprendre") return;
+          if (this.cleOccupee(d) || this.attendPoints(d)) this.programmer(d, t, t, "attente_nonce");
+          else if (this.attendPeriode(d)) this.programmer(d, t, t, "attente_nonce");
+          else this.envoyerRegistre(d, t);
+        } else this.pret(d, this.prestataires.get(m.provider), t);
         break;
       }
       case "releve": {
@@ -1516,18 +1654,28 @@ class Planificateur {
         const s = this.int(d.id);
         s.renvois++;
         this.alerter(t, d.id, "inclusion_late", s.renvois === 1 ? "mineure" : "majeure");
+        const close = d.attempts[d.attempts.length - 1] ?? null;
         this.cloreTentativeRegistre(d, t);
+        // EX-8.10 : au quatrième rejeu de la passe, les échéances suivantes jusqu'à l'instant de l'entrée sont sautées
+        // et comptées sur la ligne anchor_retry de ce renvoi (rang et attempt_id de la tentative close).
+        const { at, manquees } = this.echeanceApresPasse("inclusion", d.id, t, this.cfg.registry.inclusion_alert_s * 1000);
+        if (manquees > 0) this.journaliser(t, d.id, { event: "anchor_retry", kind: d.kind, mode: "renvoi", error_code: "recu_absent", missed_deadlines: manquees, ...(close ? this.rangTentative(d, close.n) : { attempt: null, attempt_id: null }) });
         this.nouvelleTentative(d, { provider: null, t, nonce: null, detail: s.renvois === 1 ? "renvoi des memes octets" : "remplacement au meme nonce" });
         this.ecrire(d, t, "envoyee");
         this.emettre(t, "envoyer_registre", d.id, this.detailRegistre(d));
-        s.inclusionAt = t + this.cfg.registry.inclusion_alert_s * 1000;
+        s.inclusionAt = at;
         this.timer(s.inclusionAt, "inclusion", d.id);
         break;
       }
       case "repli_cloture": {
         if (!d || d.state !== "attente_registre") return;
         const ancre = this.demandes.get(idDemande("ancre_registre_periode", d.subject.hash)) ?? null;
-        if (!ancre || ancre.state === "obtenue" || ancre.state === "refusee") return;
+        // EX-8.4 règle 2 : le repli ne dépend que de jeton_periode encore attente_registre. Une ancre refusée
+        // (empreinte_squattee) ne le libère pas (EX-9.7) : le jeton du point de clôture date alors la tête de la période
+        // (décision du porteur du 2026-11-16, variante B). Complément du 2026-11-16 (lecture littérale) : une ancre
+        // incluse dont le jeton n'est pas encore parti (min_interval_ms du principal, EX-8.7) ne l'empêche pas non plus
+        // (trace repli-ancre-incluse-jeton-retenu). Sans registre (pas d'ancre), le jeton de clôture part aussitôt.
+        if (!ancre) return;
         this.repliCloture(d, t);
         break;
       }
@@ -1557,11 +1705,13 @@ class Planificateur {
     if (t < this.horloge) throw new ErreurAncrage(`horloge en recul : ${iso(t)} après ${iso(this.horloge)}`);
     if (!this.demarre && entree.type !== "demarrage") throw new ErreurAncrage("première entrée : demarrage attendu");
     const depart = this.actions.length;
+    // EX-8.10 : une passe est le traitement de cette entrée ; ses rejeux sont comptés par minuterie et par demande.
+    this.passe = { limite: t, rejoues: new Map() };
     this.avancer(t);
     const data = entree.data ?? {};
     switch (entree.type) {
       case "demarrage":
-        this.demarrer(t);
+        this.demarrer(t, data);
         break;
       case "point_produit":
         this.pointProduit(t, data);
@@ -1594,10 +1744,11 @@ class Planificateur {
     }
     for (;;) {
       this.servir(t);
-      this.timers.sort((a, b) => a.at - b.at || a.seq - b.seq);
+      this.trierMinuteries();
       if (!this.timers.length || this.timers[0].at > t) break;
       this.avancer(t);
     }
+    this.passe = null;
     this.horloge = t;
     return this.actions.slice(depart);
   }
@@ -1609,13 +1760,30 @@ class Planificateur {
       const defaut = defautDemande(d);
       if (defaut !== null) throw new ErreurAncrage(`ligne de file mal formée (${defaut}) : ${JSON.stringify(brut).slice(0, 80)}`);
       this.demandes.set(d.id, d);
+      // EX-9.5 (complément du 2026-11-16) : les tentatives sorties de la fenêtre avant l'arrêt sont inconnues.
+      this.int(d.id).inconnues = Math.max(0, totalTentatives(d) - d.attempts.length);
     }
     this.relues = this.demandes.size;
   }
 
-  demarrer(t) {
+  demarrer(t, data = {}) {
     this.demarre = true;
     this.journaliser(t, null, { event: "anchoring_started", queue_entries: this.relues });
+    // EX-5.8 (complément du 2026-11-16) : quand l'entrée porte les acquisitions relues (membre `acquisitions`), une
+    // demande de jeton `obtenue` de la file sans enregistrement `obtenue` promu de même `token_sha256` est rouverte :
+    // résultat effacé, `a_reprendre` à l'instant du démarrage (ligne réécrite), alerte `file_perdue` ; ses échéances
+    // redeviennent celles d'une demande active, et la reprise ci-dessous la renvoie (rang attempts_total + 1).
+    const acquisitions = indexAcquisitions(data.acquisitions);
+    if (acquisitions) {
+      for (const d of this.file()) {
+        if ((d.kind !== "jeton_point" && d.kind !== "jeton_periode") || d.state !== "obtenue") continue;
+        if ((acquisitions.get(d.id) ?? []).some((r) => r.sha256 === d.result?.sha256)) continue;
+        d.result = null;
+        d.due_at = iso(t);
+        this.ecrire(d, t, "a_reprendre");
+        this.alerter(t, d.id, "file_perdue", "critique");
+      }
+    }
     const file = this.file();
     // périodes relues : échéances et derniers points depuis les demandes de points
     const closes = new Set(file.filter((d) => SORTE_PERIODE(d.kind)).map((d) => this.cle(d.subject)));
@@ -1637,8 +1805,15 @@ class Planificateur {
     // point non finale dont toutes les échéances sont inférieures à une échéance satisfaite par une autre demande de
     // la période est close remplacee au démarrage, avec checkpoint_anchor_late ; un repli de clôture encore en cours
     // est clos par le jeton de clôture obtenu (EX-4.2). Même point commun que l'arrivée d'un jeton (satisfaire).
-    for (const d of file) {
-      if (d.kind !== "jeton_point" || !["obtenue"].includes(d.state)) continue;
+    // Complément du 2026-11-16 : les jetons obtenus relus s'appliquent comme à leur promotion, les demandes de points
+    // par plus petite échéance croissante (un repli de clôture, sans échéance, compte pour n_T ; à égalité, dans l'ordre
+    // de la file), puis le jeton_periode, qui satisfait l'échéance n_T (EX-8.4, règle 1) : replaced_by nomme ainsi la
+    // première demande couvrante, celle de D_{k+1} quand elle existe ; window_s est la borne de son jeton moins la plus
+    // petite échéance close.
+    const couvrantes = file.filter((d) => (d.kind === "jeton_point" || d.kind === "jeton_periode") && d.state === "obtenue");
+    const rangCouvrante = (d) => (d.kind === "jeton_periode" ? this.nT + 1 : d.deadlines.length ? Math.min(...d.deadlines) : this.nT);
+    couvrantes.sort((a, b) => rangCouvrante(a) - rangCouvrante(b));
+    for (const d of couvrantes) {
       const p = this.periodes.get(this.cle(d.subject));
       const bound = ms(d.result?.bound ?? d.created_at);
       this.clorePointsAnterieurs(d, t, p, bound);
@@ -1662,11 +1837,22 @@ class Planificateur {
           this.emettre(t, "envoyer_registre", d.id, this.detailRegistre(d));
           s.inclusionAt = t + this.cfg.registry.inclusion_alert_s * 1000;
           this.timer(s.inclusionAt, "inclusion", d.id);
-        } else if (d.state === "a_envoyer") this.programmer(d, t, t, "attente_nonce");
+        } else if (d.state === "a_reprendre") {
+          // EX-8.12 (a_reprendre garde due_at) et EX-4.13 : reprise à due_at, borné à t + retry.max_ms.
+          const at = this.borneReprise(d, t);
+          s.reprises.set(null, at);
+          this.timer(at, "reprise", d.id, { provider: null });
+        } else if (d.state === "a_envoyer" && this.cleOccupee(d)) {
+          // EX-8.12 (complément du 2026-11-16, ordre du démarrage) : comme à sa création, une ancre à envoyer n'attend
+          // (attente_nonce) que si une ancre est en vol ; sinon elle part après la passe (servir), avec les autres départs.
+          this.programmer(d, t, t, "attente_nonce");
+        }
         continue;
       }
       if (d.kind.startsWith("ots_")) {
-        if (d.state === "envoyee") {
+        // EX-8.12 (complément du 2026-11-16) : une ligne a_reprendre qui porte encore une tentative en_cours (file écrite
+        // par une version antérieure du composant) se reprend comme une soumission envoyee : sa réponse a pu se perdre.
+        if (d.state === "envoyee" || (d.state === "a_reprendre" && d.attempts.some((a) => a.outcome === "en_cours"))) {
           this.perdreTentatives(d, t);
           d.due_at = iso(t);
           this.ecrire(d, t, "a_reprendre");
@@ -1674,13 +1860,11 @@ class Planificateur {
           s.reprises.set(null, t);
           this.timer(t, "reprise", d.id, { provider: null });
         } else if (d.state === "a_reprendre") {
-          const at = Math.max(ms(d.due_at ?? iso(t)), t);
+          const at = this.borneReprise(d, t);
           s.reprises.set(null, at);
           this.timer(at, "reprise", d.id, { provider: null });
         } else if (d.state === "en_attente") {
           const at = Math.max(ms(d.due_at ?? iso(t)), t);
-          // Première soumission : la tentative de rang 1 si la fenêtre la porte encore, sinon la création de la demande (EX-8.5, règle 7).
-          s.soumisA = ms(d.attempts.find((a) => a.n === 1)?.started_at ?? d.created_at);
           s.miseANiveauAt = at;
           this.programmer(d, t, at, "mise_a_niveau");
           this.timer(at, "mise_a_niveau", d.id);
@@ -1702,7 +1886,7 @@ class Planificateur {
         this.programmer(d, t, t, "attente_registre");
         this.timer(t, "attente_registre", d.id);
       } else if (d.state === "a_reprendre") {
-        const at = Math.max(ms(d.due_at ?? iso(t)), t);
+        const at = this.borneReprise(d, t);
         const dernier = [...d.attempts].reverse().find((a) => a.provider !== null);
         const prov = dernier && !s.epuises.has(dernier.provider) ? dernier.provider : this.designe(d)?.id ?? null;
         if (prov !== null) {
@@ -1721,6 +1905,44 @@ class Planificateur {
     }
   }
   /**
+   * EX-4.13 (complément du 2026-11-16) : au démarrage, le `due_at` d'une demande `a_reprendre` (attente de reprise
+   * d'EX-8.9, d'un jeton ou d'une soumission OpenTimestamps) postérieur à l'instant courant plus `retry.max_ms` est
+   * ramené à cette borne : l'action `programmer` (raison `backoff`) le porte, puis la ligne est réécrite. Rend
+   * l'instant de la reprise. Une attente de reprise ne dépasse jamais `retry.max_ms` (plus la gigue) ; une échéance
+   * plus lointaine ne vient que d'une heure murale avancée avant l'arrêt.
+   */
+  borneReprise(d, t) {
+    const borne = t + this.cfg.rfc3161.retry.max_ms;
+    if (d.due_at !== null && d.due_at !== undefined && ms(d.due_at) > borne) {
+      this.programmer(d, t, borne, "backoff");
+      this.ecrire(d, t, "a_reprendre");
+    }
+    return Math.max(ms(d.due_at ?? iso(t)), t);
+  }
+  /**
+   * EX-8.12 (complément du 2026-11-16) : une demande de jeton recréée dont `acquisitions.ndjson` porte un
+   * enregistrement `obtenue` promu (membre `acquisitions` de `stockage_relu`) est créée `obtenue` avec ce résultat,
+   * sans tentative ni requête ; ses échéances (`n_T` pour un `jeton_periode`) sont satisfaites. Ni pièce stockée, ni
+   * ligne `checkpoint_countersigned` ou `period_timestamped` : elles l'ont été à la promotion d'origine.
+   */
+  obtenueRecreee(d, t, r) {
+    d.result = { sha256: r.sha256, size: r.size, provider: r.provider, obtained_at: r.obtained_at, bound: r.bound };
+    this.ecrire(d, t, "obtenue");
+    const p = this.periode(d.subject, t);
+    if (d.kind === "jeton_point") {
+      for (const k of d.deadlines) {
+        p.echeances.get(k).state = "satisfaite";
+        this.emettre(t, "echeance", d.id, { k, state: "satisfaite" });
+      }
+    } else this.emettre(t, "echeance", d.id, { k: this.nT, state: "satisfaite" });
+    // EX-8.12 (complément du 2026-11-16) : la demande recréée obtenue s'applique comme à sa promotion (EX-4.4 ; EX-8.4,
+    // règle 1) : les demandes de points non finales de la période qui servent une échéance encore ouverte inférieure à
+    // sa plus grande échéance sont closes remplacee (checkpoint_anchor_late), et le jeton de clôture clôt un repli de
+    // clôture encore en cours (trace redemarrage-jeton-recree-couvrant).
+    this.clorePointsAnterieurs(d, t, p, ms(r.bound), d.kind === "jeton_point" ? Math.max(...d.deadlines) : this.nT);
+    if (d.kind === "jeton_periode") this.cloreRepliCloture(d, t);
+  }
+  /**
    * Reconstruction (EX-8.12) : à chaque démarrage, quel que soit l'état de la
    * file relue, les objets durables sans ancre obtenue que l'enregistreur relit
    * dans son stockage (CT-2 §12 ; entrée `stockage_relu` : `periods`, données de
@@ -1732,6 +1954,7 @@ class Planificateur {
    */
   reconstruire(t, data) {
     const avant = this.demandes.size;
+    const acquisitions = indexAcquisitions(data.acquisitions);
     const periodes = Array.isArray(data.periods) ? data.periods : [];
     const points = Array.isArray(data.checkpoints) ? data.checkpoints : [];
     const closes = new Set();
@@ -1743,7 +1966,7 @@ class Planificateur {
       const manquantes = sortes.filter((k) => !this.demandes.has(idDemande(k, m.period_hash)));
       if (!manquantes.length) continue;
       nPeriodes++;
-      this.periodeClose(t, m, { seulement: manquantes });
+      this.periodeClose(t, m, { seulement: manquantes, acquisitions });
     }
     const derniers = new Map();
     for (const k of points) {
@@ -1756,7 +1979,7 @@ class Planificateur {
     for (const k of derniers.values()) {
       if (["ancre_registre_point", "jeton_point", "ots_point"].some((kind) => this.demandes.has(idDemande(kind, k.checkpoint_hash)))) continue;
       nPoints++;
-      this.pointProduit(t, k);
+      this.pointProduit(t, k, { acquisitions });
     }
     const recreees = this.demandes.size - avant;
     this.journaliser(t, null, { event: "anchoring_queue_rebuilt", recreated: recreees, periods: nPeriodes, checkpoints: nPoints });
@@ -1809,14 +2032,89 @@ class Planificateur {
       ? { fingerprint: J.empreinteAncrePoint(s.org_id, s.journal_id, s.hash), doc_type: J.DOC_TYPE_POINT_DE_CONTROLE }
       : { fingerprint: anchorFingerprint({ orgId: s.org_id, journalId: s.journal_id, periodHash: s.hash }), doc_type: DOC_TYPE_PERIODE };
   }
-  cleOccupee() {
-    for (const d of this.demandes.values()) if (d.kind.startsWith("ancre_registre_") && d.state === "envoyee") return true;
+  /**
+   * Clé de chaîne d'une ancre, au sens du verrou d'EX-9.4 (complément du 2026-11-16) : le journal de son sujet,
+   * (`org_id`, `journal_id`). Une clé de chaîne ne sert qu'un journal ; les clés d'un même journal (courante et
+   * suivante, pendant une rotation) comptent pour une.
+   */
+  cleChaine(s) {
+    return `${s.org_id}|${s.journal_id}`;
+  }
+  /** Une autre ancre de la clé de chaîne de `d` attend-elle son reçu (EX-9.4) ? */
+  cleOccupee(d) {
+    const k = this.cleChaine(d.subject);
+    for (const autre of this.demandes.values()) if (autre !== d && autre.kind.startsWith("ancre_registre_") && autre.state === "envoyee" && this.cleChaine(autre.subject) === k) return true;
+    return false;
+  }
+  /**
+   * EX-9.4 (complément du 2026-11-16, l'ancre de la période après celles de ses points) : l'ancre d'une période ne part
+   * pas tant qu'une ancre de point de la même période et du même journal n'a ni son reçu (`obtenue`) ni un autre état
+   * final (`refusee`, `remplacee`) ; celle du point de clôture en est une. Sans cela, l'ancre d'un point de la période
+   * incluse après celle de la période tombe dans la fenêtre de blocs de la période suivante, où elle paraît orpheline
+   * (EX-10.7 ; trace registre-periode-apres-point-de-cloture).
+   */
+  attendPoints(d) {
+    if (d.kind === "ancre_registre_point") return this.pointAnterieurEnAttente(d);
+    if (d.kind !== "ancre_registre_periode") return false;
+    const k = this.cleChaine(d.subject);
+    for (const autre of this.demandes.values()) {
+      if (autre.kind === "ancre_registre_point" && !ETATS_FINAUX.has(autre.state) && autre.subject.period_start === d.subject.period_start && this.cleChaine(autre.subject) === k) return true;
+    }
+    return false;
+  }
+
+  /**
+   * EX-9.4 (complément du 2026-11-16, l'ancre d'un point en reprise quand le point suivant de sa période est admis) :
+   * l'ancre d'un point ne part pas tant que l'ancre d'un point antérieur de la même période et du même journal
+   * (`checkpoint_ts` plus petit, puis l'ordre de la file) n'a ni son reçu (`obtenue`) ni un autre état final : elle
+   * attend (attente_nonce), à sa création, à l'échéance de sa reprise et quand la clé se libère. Une telle ancre
+   * antérieure est en reprise après un échec où une transaction a pu partir (`recu_absent`…) : elle n'est jamais
+   * abandonnée (EX-9.5), et le point plus récent, parti avant elle, serait inclus avant elle (`hors_ordre`, EX-10.7).
+   */
+  pointAnterieurEnAttente(d) {
+    const k = this.cleChaine(d.subject);
+    const td = ms(d.subject.declared_at);
+    for (const autre of this.demandes.values()) {
+      if (autre === d || autre.kind !== "ancre_registre_point" || ETATS_FINAUX.has(autre.state) || autre.subject.period_start !== d.subject.period_start || this.cleChaine(autre.subject) !== k) continue;
+      const ta = ms(autre.subject.declared_at);
+      if (ta < td || (ta === td && (autre.created_at < d.created_at || (autre.created_at === d.created_at && autre.id < d.id)))) return true;
+    }
+    return false;
+  }
+  /**
+   * EX-9.5 (complément du 2026-11-16) : une ancre de point est encore à envoyer quand elle est `a_envoyer`, ou
+   * `a_reprendre` sans qu'aucune de ses tentatives ait pu être admise par un nœud (codes de CODES_ANCRE_NON_ADMISE) ;
+   * une tentative sortie de la fenêtre avant l'arrêt, inconnue, a pu l'être.
+   */
+  ancreEncoreAEnvoyer(d) {
+    if (d.state === "a_envoyer") return true;
+    if (d.state !== "a_reprendre") return false;
+    const s = this.int(d.id);
+    if (s.admiseHorsFenetre || s.inconnues > 0) return false;
+    return d.attempts.every((a) => a.outcome !== "obtenue" && CODES_ANCRE_NON_ADMISE.includes(a.error_code));
+  }
+
+  /**
+   * EX-9.4 (complément du 2026-11-16, une ancre de période qui attend retient sa clé) : une ancre ne part pas tant que
+   * l'ancre d'une période antérieure de sa clé de chaîne (même `org_id` et `journal_id`, `period_start` plus petit) n'a
+   * ni son reçu (`obtenue`) ni un autre état final (`refusee`) : elle attend (attente_nonce), à sa création, à
+   * l'échéance de sa reprise et quand la clé se libère. Sans cela, l'ancre d'un point d'une période suivante partait
+   * dès que la clé n'avait plus d'ancre en vol, et l'ancre de la période suivante aussi, avant celle de la période
+   * qui attendait le reçu d'un de ses points ou sa propre reprise : l'ordre des périodes d'EX-9.4 et les fenêtres de
+   * blocs d'EX-10.7 étaient rompus (trace registre-periode-retient-la-cle). Les ancres de la période elle-même, et
+   * celles des périodes antérieures, ne sont pas retenues : l'ancre de la période attend leurs reçus.
+   */
+  attendPeriode(d) {
+    const k = this.cleChaine(d.subject);
+    for (const autre of this.demandes.values()) {
+      if (autre !== d && autre.kind === "ancre_registre_periode" && !ETATS_FINAUX.has(autre.state) && autre.subject.period_start < d.subject.period_start && this.cleChaine(autre.subject) === k) return true;
+    }
     return false;
   }
 
   // --- point admis (EX-8.4, règles 1 et 3 ; EX-9.3 à EX-9.5) ---------------
 
-  pointProduit(t, data) {
+  pointProduit(t, data, { acquisitions = null } = {}) {
     const sujet = { kind: "point", org_id: data.org_id, journal_id: data.journal_id, period_start: data.period_start, hash: data.checkpoint_hash, tree_size: data.tree_size, declared_at: data.checkpoint_ts };
     const p = this.periode(sujet, t, { nouvelle: true });
     const tsPoint = ms(data.checkpoint_ts);
@@ -1850,15 +2148,16 @@ class Planificateur {
       ancre = this.creer("ancre_registre_point", sujet, [], t);
       this.ecrire(ancre, t, "a_envoyer");
       p.dernierAncre = sujet.tree_size;
+      // EX-9.5 (complément du 2026-11-16) : une ancre a_reprendre sans tentative admise par un nœud est remplacée de même.
       for (const autre of this.file()) {
-        if (autre === ancre || autre.kind !== "ancre_registre_point" || autre.state !== "a_envoyer" || this.cle(autre.subject) !== this.cle(sujet)) continue;
+        if (autre === ancre || autre.kind !== "ancre_registre_point" || !this.ancreEncoreAEnvoyer(autre) || this.cle(autre.subject) !== this.cle(sujet)) continue;
         autre.replaced_by = ancre.id;
         autre.due_at = null;
         this.emettre(t, "remplacer", autre.id, { replaced_by: ancre.id });
         this.ecrire(autre, t, "remplacee");
         this.journaliser(t, autre.id, { event: "anchor_replaced", replaced_by: ancre.id });
       }
-      if (this.cleOccupee()) this.programmer(ancre, t, t, "attente_nonce");
+      if (this.cleOccupee(ancre) || this.attendPeriode(ancre) || this.attendPoints(ancre)) this.programmer(ancre, t, t, "attente_nonce");
       else this.envoyerRegistre(ancre, t);
     } else this.journaliser(t, null, { event: "checkpoint_not_anchored", reason: regle === "aucun" ? "ancre_des_points_desactivee" : "aucun_nouvel_evenement", tree_size: sujet.tree_size });
     // échéances (EX-4.3, EX-8.4 règle 1)
@@ -1873,7 +2172,9 @@ class Planificateur {
           p.echeances.get(k).demande = j.id;
           this.emettre(t, "echeance", j.id, { k, state: "ouverte" });
         }
-        if (ancre && ancre.state !== "obtenue") {
+        const recu = acquisitions?.get(j.id)?.at(-1) ?? null;
+        if (recu) this.obtenueRecreee(j, t, recu);
+        else if (ancre && ancre.state !== "obtenue") {
           this.ecrire(j, t, "attente_registre");
           const s = this.int(j.id);
           s.attenteAt = t + this.cfg.registry.squat_wait_s * 1000;
@@ -1909,7 +2210,7 @@ class Planificateur {
    * Clôture (EX-8.4, règle 2) : les trois demandes de la période ; `seulement`
    * restreint les sortes créées (reconstruction d'EX-8.12).
    */
-  periodeClose(t, data, { seulement = null } = {}) {
+  periodeClose(t, data, { seulement = null, acquisitions = null } = {}) {
     const sujet = { kind: "periode", org_id: data.org_id, journal_id: data.journal_id, period_start: data.period_start, hash: data.period_hash, tree_size: null, declared_at: data.generated_at };
     const p = this.periode(sujet, t, { fermee: true });
     p.close = true;
@@ -1917,14 +2218,19 @@ class Planificateur {
     const a = veut("ancre_registre_periode") ? this.creer("ancre_registre_periode", sujet, [], t) : null;
     const j = veut("jeton_periode") ? this.creer("jeton_periode", sujet, [], t) : null;
     const o = this.cfg.opentimestamps.enabled && veut("ots_periode") ? this.creer("ots_periode", sujet, [], t) : null;
+    const recu = j ? acquisitions?.get(j.id)?.at(-1) ?? null : null;
     if (a) this.ecrire(a, t, "a_envoyer");
-    if (j) this.ecrire(j, t, "attente_registre");
+    if (j && recu) this.obtenueRecreee(j, t, recu);
+    else if (j) this.ecrire(j, t, "attente_registre");
     if (o) this.ecrire(o, t, "a_envoyer");
     if (a) {
-      if (this.cleOccupee()) this.programmer(a, t, t, "attente_nonce");
+      // EX-9.4 : la clé de chaîne a une ancre en vol, ou une ancre d'un point de la période attend encore son reçu
+      // (complément du 2026-11-16) : l'ancre de la période attend (attente_nonce) et part par servir.
+      if (this.cleOccupee(a) || this.attendPoints(a)) this.programmer(a, t, t, "attente_nonce");
+      else if (this.attendPeriode(a)) this.programmer(a, t, t, "attente_nonce");
       else this.envoyerRegistre(a, t);
     }
-    if (j) {
+    if (j && j.state === "attente_registre") {
       const s = this.int(j.id);
       s.attenteAt = t + this.cfg.registry.inclusion_alert_s * 1000;
       this.programmer(j, t, s.attenteAt, "attente_registre");
@@ -2004,11 +2310,25 @@ class Planificateur {
         }
       }
     }
-    // 2. registre : une transaction par clé de chaîne (EX-9.4), la période d'abord (EX-8.7)
-    if (!this.cleOccupee()) {
-      const candidats = this.file().filter((d) => d.kind.startsWith("ancre_registre_") && d.state === "a_envoyer");
-      candidats.sort((a, b) => (SORTE_PERIODE(a.kind) ? 0 : 1) - (SORTE_PERIODE(b.kind) ? 0 : 1));
-      if (candidats.length) this.envoyerRegistre(candidats[0], t);
+    // 2. registre : une transaction par clé de chaîne, c'est-à-dire par journal (EX-9.4, complément du 2026-11-16). Une
+    // ancre a_reprendre dont la minuterie de reprise est tombée pendant l'envoi d'une autre ancre de la clé
+    // (attente_nonce) part au même titre (EX-8.10). Les clés sont servies dans l'ordre de la file.
+    // EX-9.4 (complément du 2026-11-16, ordre des ancres d'une clé) : au démarrage comme en marche, part la première
+    // candidate de la clé, dans l'ordre des périodes (period_start croissant) ; dans une même période, les ancres de ses
+    // points d'abord, par checkpoint_ts croissant, l'ancre de la période ensuite ; à égalité, l'ordre de la file (tri
+    // stable). Une ancre de période qui attend encore le reçu d'une ancre de point de sa période (attendPoints) ne part
+    // pas, et rien de la clé ne part avant elle : la période d'abord faisait partir l'ancre de la période avant celle de
+    // son point de clôture quand celle-ci attendait le nonce à la clôture (trace registre-periode-apres-point-de-cloture),
+    // et l'ordre de la file seul l'ancre d'un point avant celle d'un point antérieur créée au même instant (trace
+    // registre-ordre-des-points), à l'encontre des fenêtres et de l'ordre des blocs qu'EX-10.7 vérifie.
+    // Complément du 2026-11-16 : une ancre retenue par l'ancre d'une période antérieure de sa clé (attendPeriode) n'est
+    // pas candidate ; toute candidate rangée après elle l'est aussi, si bien que rien ne part de la clé avant cette ancre.
+    const candidats = this.file().filter((d) => d.kind.startsWith("ancre_registre_") && (d.state === "a_envoyer" || (d.state === "a_reprendre" && d.due_at !== null && ms(d.due_at) <= t && !this.int(d.id).reprises.has(null))) && !this.attendPeriode(d));
+    const cles = [...new Set(candidats.map((d) => this.cleChaine(d.subject)))];
+    candidats.sort((a, b) => a.subject.period_start - b.subject.period_start || (SORTE_PERIODE(a.kind) ? 1 : 0) - (SORTE_PERIODE(b.kind) ? 1 : 0) || (SORTE_PERIODE(a.kind) ? 0 : ms(a.subject.declared_at) - ms(b.subject.declared_at)));
+    for (const k of cles) {
+      const d = candidats.find((x) => this.cleChaine(x.subject) === k);
+      if (!this.cleOccupee(d) && !this.attendPoints(d)) this.envoyerRegistre(d, t);
     }
     // 3. soumissions OpenTimestamps en attente d'envoi
     for (const d of this.file()) if (d.kind.startsWith("ots_") && d.state === "a_envoyer") this.soumettreOts(d, t);
@@ -2041,14 +2361,15 @@ class Planificateur {
   }
   soumettreOts(d, t) {
     const s = this.int(d.id);
-    const nonce = this.aleatoire.nonceOts({ kind: d.kind, subject: d.subject });
+    // EX-6.2 (complément du 2026-11-16) : un seul nonce par demande ; chaque soumission de la demande le reprend.
+    s.nonceOts ??= Buffer.from(this.aleatoire.nonceOts({ kind: d.kind, subject: d.subject }));
+    const nonce = s.nonceOts;
     const cals = this.cfg.opentimestamps.calendars;
     const { n } = this.nouvelleTentative(d, { provider: null, t, nonce: null, detail: `soumission a ${cals.length} calendriers` });
     d.due_at = null;
     this.ecrire(d, t, "envoyee");
     this.emettre(t, "soumettre_ots", d.id, { digest: d.subject.hash, nonce: "0x" + Buffer.from(nonce).toString("hex"), calendars: [...cals] });
     s.enCours.set(null, n);
-    s.soumisA ??= t;
   }
   relever(d, t, cause) {
     const s = this.int(d.id);
@@ -2066,8 +2387,12 @@ class Planificateur {
   }
   inclusionRegistre(t, data) {
     const d = this.demandes.get(data.request_id);
-    if (!d || !d.kind.startsWith("ancre_registre_") || ETATS_FINAUX.has(d.state) || d.state === "a_envoyer") {
-      this.journaliser(t, data.request_id ?? null, { event: "anchor_duplicate_ignored", reason: d ? `etat ${d.state}` : "demande_inconnue" });
+    // EX-8.10 (complément du 2026-11-16) : un reçu ne s'applique qu'à une ancre dont une tentative est en cours (sa
+    // transaction) ; sans tentative en cours (a_envoyer, a_reprendre : aucune transaction en vol, EX-9.5), ou close, il
+    // est ignoré et consigné avec l'état de l'ancre.
+    const enVol = d?.attempts[d.attempts.length - 1]?.outcome === "en_cours";
+    if (!d || !d.kind.startsWith("ancre_registre_") || ETATS_FINAUX.has(d.state) || !enVol) {
+      this.journaliser(t, data.request_id ?? null, d && d.kind.startsWith("ancre_registre_") ? { event: "anchor_duplicate_ignored", state: d.state } : { event: "anchor_duplicate_ignored", reason: "demande_inconnue" });
       return;
     }
     const s = this.int(d.id);
@@ -2078,15 +2403,20 @@ class Planificateur {
     d.due_at = null;
     this.emettre(t, "stocker", d.id, { sha256: data.capture_sha256, size: TAILLE_INDEX_CAPTURE, bound: null });
     this.ecrire(d, t, "obtenue");
-    const envoi = ms(d.attempts[0].started_at);
-    if (t - envoi > this.cfg.registry.inclusion_alert_s * 1000 && s.renvois === 0) this.alerter(t, d.id, "inclusion_late", "mineure");
+    // EX-8.10 (complément du 2026-11-16) : le délai d'inclusion constaté au reçu court depuis la création de l'ancre (son
+    // admission), attente d'une autre ancre de la clé comprise (attente_nonce), non depuis son premier envoi.
+    const creation = ms(d.created_at);
+    if (t - creation > this.cfg.registry.inclusion_alert_s * 1000 && s.renvois === 0) this.alerter(t, d.id, "inclusion_late", "mineure");
     const j = this.jetonDuSujet(d);
     if (j && j.state === "attente_registre") this.pret(j, this.designe(j), t);
   }
   echecRegistre(t, data) {
     const d = this.demandes.get(data.request_id);
-    if (!d || !d.kind.startsWith("ancre_registre_") || ETATS_FINAUX.has(d.state)) {
-      this.journaliser(t, data.request_id ?? null, { event: "anchor_duplicate_ignored", reason: d ? `etat ${d.state}` : "demande_inconnue" });
+    // EX-8.10 (complément du 2026-11-16) : un échec signalé ne s'applique, comme un reçu, qu'à une ancre dont une
+    // tentative est en cours ; sinon il est ignoré et consigné avec l'état de l'ancre.
+    const enVol = d?.attempts[d.attempts.length - 1]?.outcome === "en_cours";
+    if (!d || !d.kind.startsWith("ancre_registre_") || ETATS_FINAUX.has(d.state) || !enVol) {
+      this.journaliser(t, data.request_id ?? null, d && d.kind.startsWith("ancre_registre_") ? { event: "anchor_duplicate_ignored", state: d.state } : { event: "anchor_duplicate_ignored", reason: "demande_inconnue" });
       return;
     }
     const att = d.attempts[d.attempts.length - 1] ?? null;
@@ -2106,15 +2436,46 @@ class Planificateur {
       if (j && j.kind === "jeton_point" && j.state === "attente_registre") this.pret(j, this.designe(j), t);
       return;
     }
-    this.cloreTentativeRegistre(d, t, data.code, `registre : ${data.code}`);
-    // EX-8.15 (révision 0.6) : rang et attempt_id de la tentative que ce renvoi ouvre.
-    this.journaliser(t, d.id, { event: "anchor_retry", kind: d.kind, error_code: data.code, ...this.rangTentative(d, totalTentatives(d) + 1) });
-    this.nouvelleTentative(d, { provider: null, t, nonce: null, detail: "renvoi des memes octets" });
-    this.ecrire(d, t, "envoyee");
-    this.emettre(t, "envoyer_registre", d.id, this.detailRegistre(d));
+    // EX-8.10 (complément du 2026-11-16) : un autre échec signalé par le registre (CT-4 §7.11) ne renvoie pas
+    // l'ancre aussitôt. Un refus définitif (code refus_*) rend refusee l'ancre d'un point, dont le jeton part alors
+    // sans elle (EX-9.7) ; l'ancre d'une période n'est jamais abandonnée (EX-4.5) : a_reprendre au pas retry.max_ms.
+    // Un échec transitoire rend l'ancre a_reprendre, due_at à l'attente d'EX-8.9 (k : tentatives de la demande en
+    // échec, gigue), qu'elle garde au démarrage (EX-8.12), borné par EX-4.13 (trace redemarrage-ancres-a-reprendre).
     const s = this.int(d.id);
-    s.inclusionAt = t + this.cfg.registry.inclusion_alert_s * 1000;
-    this.timer(s.inclusionAt, "inclusion", d.id);
+    const permanent = String(data.code).startsWith("refus_");
+    if (att && att.outcome === "en_cours") {
+      att.outcome = permanent ? "echec_permanente" : "echec_transitoire";
+      att.error_code = data.code;
+      att.detail = `registre : ${data.code}`;
+    }
+    s.inclusionAt = null;
+    if (permanent && d.subject.kind === "point") {
+      if (att) att.next_at = null;
+      d.due_at = null;
+      this.ecrire(d, t, "refusee");
+      this.alerter(t, d.id, "prestataires_epuises", "majeure");
+      this.journaliser(t, d.id, { event: "anchor_refused", error_code: data.code });
+      const jp = this.jetonDuSujet(d);
+      if (jp?.state === "attente_registre") this.pret(jp, this.designe(jp), t);
+      return;
+    }
+    const r = this.cfg.rfc3161.retry;
+    const k = d.attempts.filter((x) => x.outcome !== "obtenue").length + Math.max(0, totalTentatives(d) - d.attempts.length);
+    const next = t + (permanent ? r.max_ms : Math.min(r.max_ms, r.initial_ms * r.factor ** Math.max(0, k - 1)) + this.aleatoire.gigue());
+    if (att) att.next_at = iso(next);
+    this.journaliser(t, d.id, { event: "anchor_retry", kind: d.kind, mode: "reprise", error_code: data.code, ...(att ? this.rangTentative(d, att.n) : { attempt: null, attempt_id: null }) });
+    // EX-8.10 (complément du 2026-11-16) : le refus définitif de l'ancre d'une période est un incident (sans elle, aucun
+    // jeton de clôture, EX-8.4, règle 2) : alerte prestataires_epuises critique, comme un jeton de clôture dont les deux
+    // prestataires ont refusé (EX-8.8), une fois par ancre depuis le démarrage ; reprise au pas retry.max_ms, sans gigue.
+    if (permanent && !s.alertes.has("prestataires_epuises")) {
+      s.alertes.add("prestataires_epuises");
+      this.alerter(t, d.id, "prestataires_epuises", "critique");
+    }
+    d.due_at = iso(next);
+    this.ecrire(d, t, "a_reprendre");
+    this.programmer(d, t, next, "backoff");
+    s.reprises.set(null, next);
+    this.timer(next, "reprise", d.id, { provider: null });
   }
   /** Clôt la tentative de registre en cours (sans reçu) avant un renvoi ou un remplacement au même nonce. */
   cloreTentativeRegistre(d, t, code = "recu_absent", detail = null) {
@@ -2157,7 +2518,8 @@ class Planificateur {
       this.journaliser(t, d.id, { event: "anchor_pending", age_s: age });
       this.alerter(t, d.id, "anchor_pending", "majeure");
     }
-    s.attenteAt = t + this.cfg.registry.inclusion_alert_s * 1000;
+    // EX-8.10 : au plus REJEUX_PAR_PASSE_MAX examens par passe ; les échéances sautées ne sont pas consignées.
+    s.attenteAt = this.echeanceApresPasse("attente_registre", d.id, t, this.cfg.registry.inclusion_alert_s * 1000).at;
     this.programmer(d, t, s.attenteAt, "attente_registre");
     this.timer(s.attenteAt, "attente_registre", d.id);
   }
@@ -2179,12 +2541,16 @@ class Planificateur {
     if (!Number.isSafeInteger(st)) return { ...res, code: "reponse_illisible", detail: "TimeStampResp illisible" };
     if (st === 2) {
       const fi = data.failure_info;
-      if (fi === null || fi === undefined) return { ...res, code: "statut_2", detail: "PKIStatus 2 (rejection)" };
+      // EX-5.10, étape 2 : `echec_<failureInfo>` pour les huit valeurs de la RFC ; absente ou hors de la liste
+      // (`autre` du schéma) : `statut_2` (complément du 2026-11-16).
+      if (fi === null || fi === undefined || !FAILURE_INFOS.has(fi)) return { ...res, code: "statut_2", detail: "PKIStatus 2 (rejection)" };
       return { ...res, issue: ECHECS_TRANSITOIRES.has(fi) ? "echec_transitoire" : "echec_permanente", code: `echec_${fi}`, detail: `PKIStatus 2 (rejection) ; ${fi}` };
     }
     if (st === 3) return { ...res, issue: "echec_transitoire", code: "statut_3", detail: "PKIStatus 3 (waiting)" };
     if (st === 4 || st === 5) return { ...res, code: `statut_${st}`, critique: true, detail: `PKIStatus ${st} (${NOMS_PKI[st]})` };
     if (st !== 0 && st !== 1) return { ...res, code: `statut_${st}`, detail: `PKIStatus ${st} inconnu` };
+    // EX-5.10, étape 2 : status 0 ou 1 sans TimeStampToken : réponse illisible, jamais promue (complément du 2026-11-16).
+    if (data.token_sha256 === null || data.token_sha256 === undefined) return { ...res, code: "reponse_illisible", detail: "TimeStampToken absent" };
     if (data.imprint_matches !== true) return { ...res, code: "empreinte_differente", piece: true, detail: "messageImprint different de l'empreinte demandee" };
     if (data.nonce_in_response === null || data.nonce_in_response === undefined) return { ...res, code: "nonce_absent", piece: true, detail: "nonce absent du TSTInfo" };
     if (data.nonce_in_response !== att.nonce) return { ...res, code: "nonce_different", piece: true, detail: `nonce ${data.nonce_in_response} different de ${att.nonce}` };
@@ -2212,14 +2578,30 @@ class Planificateur {
     const jeton = (data.pki_status === 0 || data.pki_status === 1) && typeof data.token_sha256 === "string";
     // EX-8.5, règle 7 (révision 0.6) : une tentative de rang connu (au plus attempts_total) que la fenêtre ne porte plus.
     const horsFenetre = !!d && att === null && Number.isInteger(data.attempt) && data.attempt >= 1 && data.attempt <= totalTentatives(d);
-    if (!d || (!att && !horsFenetre) || !d.kind.startsWith("jeton_")) {
-      this.journaliser(t, data.request_id ?? null, { event: "anchor_response_rejected", error_code: "tentative_inconnue", attempt: data.attempt ?? null });
+    // EX-8.5, règle 2 (complément du 2026-11-16) : aucune demande de jeton de cet id : demande_inconnue, rien n'est gardé.
+    if (!d || !d.kind.startsWith("jeton_")) {
+      this.journaliser(t, data.request_id ?? null, { event: "anchor_response_rejected", error_code: "demande_inconnue", attempt: data.attempt ?? null, provider: null, kept: false });
+      return;
+    }
+    // Rang que la demande n'a jamais ouvert : tentative_inconnue ; le jeton est gardé comme pièce, sans borne, jamais
+    // promu (EX-8.5, règle 1 : « écrite … avec le code tentative_inconnue, et n'est pas promue »).
+    if (!att && !horsFenetre) {
+      if (jeton) this.emettre(t, "stocker", d.id, { sha256: data.token_sha256, size: data.token_size, bound: null });
+      this.journaliser(t, d.id, { event: "anchor_response_rejected", error_code: "tentative_inconnue", ...this.rangDesigne(d, data.attempt), provider: null, kept: jeton });
       return;
     }
     if (ETATS_FINAUX.has(d.state) || horsFenetre || att.outcome !== "en_cours") {
       // réponse à une tentative close (remplacée, relevée, redémarrage) ou sortie de la fenêtre de la file :
       // pièce conservée, état inchangé, jamais promue (EX-8.5, règles 2 et 7)
-      if (jeton) this.emettre(t, "stocker", d.id, { sha256: data.token_sha256, size: data.token_size, bound: data.gen_time ? iso(ms(data.gen_time) + (data.accuracy_s ?? 0) * 1000) : null });
+      // Complément du 2026-11-16 : la borne d'une pièce n'est donnée que si le jeton passe les étapes 3 à 6 d'EX-5.10
+      // pour la tentative qu'il désigne (empreinte, nonce de cette tentative, politique, T-1 à T-9) ; pour une tentative
+      // sortie de la fenêtre, son nonce est celui que le planificateur a gardé en la voyant sortir, sinon la borne est
+      // nulle (une ligne relue ne porte plus ce nonce).
+      const nonceDesigne = att ? att.nonce : this.int(d.id).noncesHorsFenetre.get(data.attempt) ?? null;
+      const valable = nonceDesigne !== null && data.gen_time && data.imprint_matches === true && data.nonce_in_response === nonceDesigne && (data.policy_check ?? "conforme") === "conforme" && ["T-1", "T-2", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9"].every((x) => (data.checks_passed ?? []).includes(x));
+      // Une précision hors de la plage d'un instant (T-7) ne donne aucune borne.
+      const borne = valable ? ms(data.gen_time) + (data.accuracy_s ?? 0) * 1000 : null;
+      if (jeton) this.emettre(t, "stocker", d.id, { sha256: data.token_sha256, size: data.token_size, bound: borne !== null && borneInstantValide(ms(data.gen_time), data.accuracy_s ?? 0) ? iso(borne) : null });
       this.journaliser(t, d.id, { event: "anchor_response_rejected", error_code: ETATS_FINAUX.has(d.state) ? "demande_close" : "tentative_close", ...this.rangTentative(d, data.attempt), provider: att?.provider ?? null, kept: jeton });
       return;
     }
@@ -2318,7 +2700,11 @@ class Planificateur {
     const cle = pr?.id ?? null;
     // EX-8.9 (arbitrage du 14 novembre) : `k` compte les échecs transitoires consécutifs de la demande chez ce
     // prestataire, y compris ceux d'avant un redémarrage que la file relue porte ; une tentative close par le
-    // redémarrage (`redemarrage`, EX-8.12) n'est pas un échec du prestataire et interrompt la série.
+    // redémarrage (`redemarrage`, EX-8.12) n'est pas un échec du prestataire et interrompt la série. En cours de marche
+    // comme à la relecture, une tentative obtenue ou en échec permanent chez ce prestataire l'interrompt aussi : la série
+    // repart de la tentative qui suit (EX-8.9, complément du 2026-11-16).
+    const precedente = [...d.attempts].reverse().find((a) => a !== att && (a.provider ?? null) === cle) ?? null;
+    if (precedente !== null && precedente.outcome !== "echec_transitoire" && precedente.outcome !== "reponse_tardive") s.k.set(cle, 0);
     if (!s.k.has(cle)) s.k.set(cle, echecsTransitoiresRelus(d, cle, att));
     const k = (s.k.get(cle) ?? 0) + 1;
     s.k.set(cle, k);
@@ -2451,16 +2837,20 @@ class Planificateur {
 
   reponseOts(t, data) {
     const d = this.demandes.get(data.request_id);
-    if (!d || !d.kind.startsWith("ots_") || ETATS_FINAUX.has(d.state)) {
-      this.journaliser(t, data.request_id ?? null, { event: "anchor_response_rejected", error_code: ETATS_FINAUX.has(d?.state) ? "demande_close" : "tentative_inconnue" });
+    // EX-8.5, règle 2 (complément du 2026-11-16) : une réponse des calendriers qui ne s'applique pas est consignée, rang de
+    // la dernière tentative de la demande (attempts_total) ; `kept` dit qu'elle portait une preuve.
+    const preuve = data.proof_sha256 !== null && data.proof_sha256 !== undefined;
+    if (!d || !d.kind.startsWith("ots_")) {
+      this.journaliser(t, data.request_id ?? null, { event: "anchor_response_rejected", error_code: "demande_inconnue", attempt: null, provider: null, kept: false });
+      return;
+    }
+    const derniere = d.attempts[d.attempts.length - 1] ?? null;
+    if (ETATS_FINAUX.has(d.state) || !derniere || derniere.outcome !== "en_cours") {
+      this.journaliser(t, d.id, { event: "anchor_response_rejected", error_code: ETATS_FINAUX.has(d.state) ? "demande_close" : "tentative_close", ...this.rangDesigne(d, totalTentatives(d)), provider: null, kept: preuve });
       return;
     }
     const s = this.int(d.id);
-    const att = [...d.attempts].reverse().find((a) => a.outcome === "en_cours") ?? null;
-    if (!att) {
-      this.journaliser(t, d.id, { event: "anchor_response_rejected", error_code: "tentative_inconnue" });
-      return;
-    }
+    const att = derniere;
     s.enCours.delete(null);
     const o = this.cfg.opentimestamps;
     const n = data.calendars_answered ?? 0;
@@ -2469,10 +2859,18 @@ class Planificateur {
       this.emettre(t, "stocker", d.id, { sha256: data.proof_sha256, size: data.proof_size, bound: null });
     };
     if (d.state === "envoyee" || d.state === "a_reprendre") {
-      if (data.attestation === "aucune" || n < o.min_responses) {
+      const insuffisantes = data.attestation === "aucune" || n < o.min_responses;
+      if (insuffisantes || !preuve) {
+        // EX-8.11 (complément du 2026-11-16) : moins de `min_responses` réponses valables, quelle que soit l'attestation
+        // (`reponses_insuffisantes`), ou assez de réponses mais aucune preuve écrite (`proof_sha256` nul :
+        // `preuve_absente`, jamais promue). Comme une réponse RFC 3161 en échec transitoire (EX-5.12) : `rejeter_reponse`
+        // de classe transitoire et ligne `anchor_response_rejected` (rang et attempt_id de la tentative, `provider` nul),
+        // puis l'attente d'EX-8.9, dont la série s'arrête à une tentative close par le redémarrage.
         att.outcome = "echec_transitoire";
-        att.error_code = "reponses_insuffisantes";
-        att.detail = `${n} calendrier(s) ; moins de ${o.min_responses} reponses valables`;
+        att.error_code = insuffisantes ? "reponses_insuffisantes" : "preuve_absente";
+        att.detail = insuffisantes ? `${n} calendrier(s) ; moins de ${o.min_responses} reponses valables` : `${n} calendriers ; aucune preuve ecrite`;
+        this.emettre(t, "rejeter_reponse", d.id, { error_code: att.error_code, class: "transitoire" });
+        this.journaliser(t, d.id, { event: "anchor_response_rejected", error_code: att.error_code, ...this.rangTentative(d, att.n), provider: null });
         const { delai, raison } = this.attenteReprise(d, null, {}, att);
         const next = t + delai;
         att.next_at = iso(next);
@@ -2494,6 +2892,13 @@ class Planificateur {
       }
       att.detail = `${n} calendriers ; attestation en attente`;
       stocker();
+      // EX-8.11 (complément du 2026-11-16) : une soumission qui aboutit au-delà de give_up_after_s après created_at lève
+      // l'alerte ots_give_up dès la preuve en attente, comme la jauge noortrace_anchoring_ots_pending_age_s, de même
+      // origine, la signale ; la première mise à niveau reste à first_after_s (trace redemarrage-ots-abandon-soumission-tardive).
+      if (t - ms(d.created_at) >= o.upgrade.give_up_after_s * 1000 && !s.alertes.has("ots_give_up")) {
+        s.alertes.add("ots_give_up");
+        this.alerter(t, d.id, "ots_give_up", "majeure");
+      }
       const next = t + o.upgrade.first_after_s * 1000;
       att.next_at = iso(next);
       this.ecrire(d, t, "en_attente");
@@ -2502,8 +2907,9 @@ class Planificateur {
       this.timer(next, "mise_a_niveau", d.id);
       return;
     }
-    // en_attente : réponse à une mise à niveau
-    if (data.attestation === "complete") {
+    // en_attente : réponse à une mise à niveau ; une attestation Bitcoin sans preuve écrite (`proof_sha256` nul) n'est
+    // jamais promue : la preuve reste en attente, comme après une réponse 404 (EX-8.11, complément du 2026-11-16).
+    if (data.attestation === "complete" && preuve) {
       att.outcome = "obtenue";
       att.detail = "mise a niveau : attestation Bitcoin";
       stocker();
@@ -2516,7 +2922,10 @@ class Planificateur {
     att.error_code = "en_attente";
     att.detail = "mise a niveau : engagement en attente";
     let intervalle = Math.max(60, o.upgrade.interval_s) * 1000;
-    if (t - (s.soumisA ?? ms(d.created_at)) >= o.upgrade.give_up_after_s * 1000) {
+    // EX-8.11 (complément du 2026-11-16) : l'âge d'abandon court depuis created_at de la demande, écrit à sa création et
+    // porté par chaque ligne, au démarrage comme en marche : ni la soumission reprise après un redémarrage ni la fenêtre
+    // des tentatives ne le déplacent (trace redemarrage-ots-abandon-origine).
+    if (t - ms(d.created_at) >= o.upgrade.give_up_after_s * 1000) {
       if (!s.alertes.has("ots_give_up")) {
         s.alertes.add("ots_give_up");
         this.alerter(t, d.id, "ots_give_up", "majeure");

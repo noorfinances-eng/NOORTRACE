@@ -11,7 +11,7 @@ event: content_block_delta
 data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Le dossier 2026-81044 est presque complet ; "}}
 
 event: content_block_delta
-data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"l'assuré est joignable à j.dupont@example.ch "}}
+data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"l'assuré est joignable à j.dupont@ch.example "}}
 
 event: content_block_delta
 data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"pour la facture manquante."}}

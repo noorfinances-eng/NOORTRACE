@@ -222,20 +222,26 @@ export async function solde(rpc, adresse) {
   return n;
 }
 
-/** Nonce d'EX-8.14 : le plus grand `eth_getTransactionCount(expéditeur, "latest")` des points qui répondent. */
+/**
+ * Valeur des points d'EX-8.14 de CT-4 : `eth_getTransactionCount(expéditeur, "latest")`, recoupée comme le fait le
+ * composant d'ancrage (`recouperNonce`) : un seul point configuré, sa valeur ; plusieurs, la plus grande valeur rendue
+ * par au moins deux points. Rend `{ nonce }` ou `{ incoherent }` (aucune valeur rendue par deux points, ou un point
+ * au-delà de la valeur recoupée + 1 : rien n'est signé, `nonce_incoherent`) ; lève la panne quand aucun point ne
+ * répond, `retour_illisible` quand aucune valeur n'est lisible.
+ */
 export async function nonce(rpc, adresse) {
   const reponses = await rpc.appelerTous("eth_getTransactionCount", [adresse, "latest"]);
-  let n = null;
+  const valeurs = [];
   for (const r of reponses) {
     const v = r.panne || r.erreur ? null : R.quantiteVersEntier(r.resultat, MAX_U64);
-    if (v !== null && (n === null || v > n)) n = v;
+    if (v !== null) valeurs.push(v);
   }
-  if (n === null) {
+  if (valeurs.length === 0) {
     const p = reponses.find((r) => r.panne);
     if (p) throw p.panne;
     throw new R.ErreurLecture("retour_illisible", "eth_getTransactionCount illisible");
   }
-  return n;
+  return R.recouperNonce(valeurs, rpc.points().length);
 }
 
 /** Tête (`eth_blockNumber`) du premier point qui répond. */

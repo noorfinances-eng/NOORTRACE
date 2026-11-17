@@ -9,11 +9,15 @@
 import { expect } from "chai";
 import fs from "node:fs";
 import net from "node:net";
+import os from "node:os";
 import path from "node:path";
+import tls from "node:tls";
 import { spawnSync } from "node:child_process";
-import { RecepteurMiroir, AdaptateurMiroir, lancerAdaptateur, lireEvenements, CLE_INCOMPLET } from "@noortrace/enregistreur";
+import * as enregistreur from "@noortrace/enregistreur";
+import { RecepteurMiroir, AdaptateurMiroir, lancerAdaptateur, lireEvenements, CLE_INCOMPLET, validerConfiguration, controleRedaction, controleModele } from "@noortrace/enregistreur";
 import { RACINE, repertoireTemporaire } from "./fixtures/enregistreur-coeur/outils.mjs";
 import { configurationMiroir, valider, demarrerCoeur } from "./fixtures/enregistreur-modele/outils.mjs";
+import { genererCertificats, opensslDisponible } from "./fixtures/enregistreur-modele/certificats.mjs";
 import { FournisseurSimule, evenementsFlux, reponseEntiere } from "./fixtures/enregistreur-modele/fournisseur.mjs";
 import { demarrerCopie } from "./fixtures/enregistreur-modele/copie-miroir.mjs";
 
@@ -159,6 +163,19 @@ describe("enregistreur, frontal modèle : mode miroir (EX-5.6, EX-14.12)", funct
       expect(x.ok).to.equal(true);
       await s.arreter();
     });
+    it("CT-2 §5.8 (complément du 2026-11-16) : requête hors des routes en mode miroir : model_route_not_found (méthode, longueur du chemin, mode), refus route_inconnue à l'adaptateur, aucune pièce, aucun événement", async function () {
+      const pieces = () => (fs.existsSync(coeur.pieces.racine) ? fs.readdirSync(coeur.pieces.racine, { recursive: true }).filter((x) => fs.statSync(path.join(coeur.pieces.racine, x)).isFile()).length : 0);
+      const n = (await evts()).length;
+      const p = pieces();
+      const cible = "/v1/embeddings?dimensions=8";
+      const r = await envoyer([couple({ cible, requete: { model: "m", input: "Texte de l'agent" } })]);
+      expect(r).to.deep.equal([{ ok: false, reason: "route_inconnue" }]);
+      expect(derniere("model_route_not_found").data).to.deep.equal({ method: "POST", path_length: Buffer.byteLength(cible), mode: "miroir" });
+      expect(fs.readFileSync(config.supervision.ops_log.path, "utf8")).to.not.include("Texte de l'agent");
+      await pause(100);
+      expect((await evts()).length).to.equal(n);
+      expect(pieces()).to.equal(p);
+    });
   });
 
   describe("EX-14.12 : le miroir ne bloque rien", function () {
@@ -225,7 +242,7 @@ describe("enregistreur, frontal modèle : mode miroir (EX-5.6, EX-14.12)", funct
       expect((await envoyer([couple()]))[0].ok).to.equal(true);
     });
 
-    it("EX-18.1 : la prise du miroir a le mode 0660 dès sa création, sans fenêtre où elle serait plus ouverte", async function () {
+    it("EX-18.1 : sans model.mirror.peer_user, la prise du miroir a le mode 0600 dès sa création, sans fenêtre où elle serait plus ouverte", async function () {
       const sock = path.join(dir, "prise", "miroir-mode.sock");
       const r2 = new RecepteurMiroir({ coeur, config: { ...config, model: { ...config.model, mirror: { socket: sock } } } });
       // Mode relevé juste après la liaison de la prise, avant tout rappel (masque du processus ouvert).
@@ -243,8 +260,8 @@ describe("enregistreur, frontal modèle : mode miroir (EX-5.6, EX-14.12)", funct
         process.umask(masque);
         net.Server.prototype.listen = origine;
       }
-      expect(modes).to.deep.equal([0o660]);
-      expect(fs.statSync(sock).mode & 0o777).to.equal(0o660);
+      expect(modes).to.deep.equal([0o600]);
+      expect(fs.statSync(sock).mode & 0o777).to.equal(0o600);
       await r2.arreter();
     });
   });
@@ -323,6 +340,179 @@ describe("enregistreur, frontal modèle : mode miroir (EX-5.6, EX-14.12)", funct
       expect(e.every((x) => x.execution.is_error === false)).to.equal(true);
       await copie.arreter();
       await ad.arreter();
+    });
+  });
+
+  describe("EX-5.6, EX-18.1, EX-15.4 pas 3 : écoute et authentification du mode miroir", function () {
+    /** Trames d'une transaction complète (requête, réponse, fin) sur une connexion vers l'adaptateur. */
+    function transaction(s, connexion) {
+      const corps = JSON.stringify(MSG);
+      const repCorps = JSON.stringify(reponseEntiere("anthropic-messages", MSG, 1));
+      const morceaux = [
+        ["client", `POST /v1/messages HTTP/1.1\r\nHost: x\r\nContent-Type: application/json\r\nContent-Length: ${Buffer.byteLength(corps)}\r\n\r\n${corps}`],
+        ["serveur", `HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: ${Buffer.byteLength(repCorps)}\r\n\r\n${repCorps}`],
+        ["fin", ""],
+      ];
+      for (const [sens, o] of morceaux) {
+        const b = Buffer.from(o);
+        s.write(`${JSON.stringify({ connexion, sens, source: "127.0.0.1", longueur: b.length })}\n`);
+        if (b.length) s.write(b);
+      }
+    }
+
+    /** Ouvre une connexion de copie (TCP, ou TLS avec `o.tls`), joue une transaction et rend si l'adaptateur l'a fermée. */
+    async function copier(port, o = {}) {
+      const s = o.tls ? tls.connect({ port, host: "127.0.0.1", rejectUnauthorized: false, ...o.tls }) : net.connect(port, "127.0.0.1");
+      s.on("error", () => {});
+      const fermee = new Promise((r) => s.on("close", () => r(true)));
+      const prete = await Promise.race([new Promise((r) => s.once(o.tls ? "secureConnect" : "connect", () => r(true))), fermee.then(() => false)]);
+      if (prete) transaction(s, `c-${Math.random().toString(16).slice(2)}`);
+      const fin = await Promise.race([fermee, pause(o.attente ?? 500).then(() => false)]);
+      s.destroy();
+      return { fermeeParAdaptateur: fin === true };
+    }
+
+    async function attendreEvenements(n, ms = 3000) {
+      for (let i = 0; i < ms / 20 && (await evts()).length < n; i++) await pause(20);
+      return (await evts()).length;
+    }
+
+    /** Erreurs de la validation (pas 1 à 3) dont le pointeur est sous /model/mirror. */
+    function erreursMiroir(mirror, environnement) {
+      const c = configurationMiroir(dir, fournisseur.url);
+      c.config.model.mirror = mirror;
+      if (environnement) c.config.recorder.environment = environnement;
+      const v = validerConfiguration(new TextEncoder().encode(JSON.stringify(c.config)), { reglesSupplementaires: [controleRedaction, controleModele] });
+      return v.erreurs.filter((e) => String(e.pointeur).startsWith("/model/mirror"));
+    }
+
+    it("écoute de la copie par défaut sur la boucle locale ; adresse hors de la boucle sans authentification refusée par l'adaptateur et par la validation", async function () {
+      expect(enregistreur.MIROIR_ECOUTE_DEFAUT).to.equal("127.0.0.1:8410");
+      const ad = await lancerAdaptateur({ socket: config.model.mirror.socket });
+      try {
+        expect(ad.serveur.address()).to.deep.include({ address: "127.0.0.1", port: 8410 });
+      } finally {
+        await ad.arreter();
+      }
+      let erreur = null;
+      try {
+        const x = await lancerAdaptateur({ socket: config.model.mirror.socket, ecoute: "192.0.2.10:0" });
+        await x.arreter();
+      } catch (e) {
+        erreur = e;
+      }
+      expect(erreur?.code).to.equal("ecoute_non_authentifiee");
+      const sock = config.model.mirror.socket;
+      expect(erreursMiroir({ socket: sock, listen: "192.0.2.10:8410" }).map((e) => e.pointeur)).to.deep.equal(["/model/mirror/listen"]);
+      expect(erreursMiroir({ socket: sock, listen: "127.0.0.1:8410" })).to.deep.equal([]);
+      expect(erreursMiroir({ socket: sock, listen: "192.0.2.10:8410", allowed_sources: ["192.0.2.0/24"] })).to.deep.equal([]);
+    });
+
+    it("processus bin/noortrace-miroir : écoute hors de la boucle locale sans authentification refusée (code 2), par la ligne de commande comme par --config", function () {
+      const r = spawnSync(process.execPath, [BIN_MIROIR, "--socket", path.join(dir, "absente.sock"), "--ecoute", "192.0.2.10:0"], { encoding: "utf8" });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.match(/hors de la boucle locale sans authentification/);
+      const c = configurationMiroir(dir, fournisseur.url);
+      c.config.model.mirror = { socket: path.join(dir, "absente.sock"), listen: "192.0.2.10:8410" };
+      const f = path.join(dir, "configuration-miroir-hors-boucle.json");
+      fs.writeFileSync(f, JSON.stringify(c.config));
+      const r2 = spawnSync(process.execPath, [BIN_MIROIR, "--config", f], { encoding: "utf8" });
+      expect(r2.status).to.equal(2);
+      expect(r2.stderr).to.match(/hors de la boucle locale sans authentification/);
+    });
+
+    it("production : mode miroir sans authentification de la copie refusé ; liste de sources ou certificat client admis", function () {
+      const sock = config.model.mirror.socket;
+      const sansAuth = erreursMiroir({ socket: sock }, "production");
+      expect(sansAuth.map((e) => e.pointeur)).to.deep.equal(["/model/mirror"]);
+      expect(sansAuth[0].regle).to.match(/EX-5\.6/);
+      expect(erreursMiroir({ socket: sock, tls: { cert_file: "/etc/noortrace/miroir.pem", key_file: "/etc/noortrace/miroir.key" } }, "production").map((e) => e.pointeur)).to.deep.equal(["/model/mirror"]);
+      expect(erreursMiroir({ socket: sock, allowed_sources: ["192.0.2.0/24"] }, "production")).to.deep.equal([]);
+      expect(erreursMiroir({ socket: sock, tls: { cert_file: "/etc/noortrace/miroir.pem", key_file: "/etc/noortrace/miroir.key" }, client_ca: "/etc/noortrace/miroir-ca.pem" }, "production")).to.deep.equal([]);
+      expect(erreursMiroir({ socket: sock, client_ca: "/etc/noortrace/miroir-ca.pem" }).map((e) => e.pointeur)).to.deep.equal(["/model/mirror/client_ca"]);
+    });
+
+    it("source hors de la liste fermée : connexion de copie refusée, aucun événement ; source de la liste : échange scellé", async function () {
+      const sorties = [];
+      const sortie = { write: (x) => sorties.push(String(x)) };
+      const refuse = await lancerAdaptateur({ socket: config.model.mirror.socket, ecoute: "127.0.0.1:0", sources: ["192.0.2.0/24"], sortie });
+      const n = (await evts()).length;
+      try {
+        const r = await copier(refuse.serveur.address().port);
+        expect(r.fermeeParAdaptateur).to.equal(true);
+        expect(await attendreEvenements(n + 1, 500)).to.equal(n);
+        expect(sorties.join("")).to.match(/connexion de copie refusee \(127\.0\.0\.1, source\)/);
+      } finally {
+        await refuse.arreter();
+      }
+      const admis = await lancerAdaptateur({ socket: config.model.mirror.socket, ecoute: "127.0.0.1:0", sources: ["127.0.0.0/8"] });
+      try {
+        const r = await copier(admis.serveur.address().port);
+        expect(r.fermeeParAdaptateur).to.equal(false);
+        expect(await attendreEvenements(n + 1)).to.equal(n + 1);
+        expect((await evts()).at(-1).code.model).to.equal("anthropic/modele-miroir");
+      } finally {
+        await admis.arreter();
+      }
+    });
+
+    it("TLS avec certificat client : sans certificat ou d'une autre autorité, refusé sans événement ; certificat de model.mirror.client_ca, échange scellé", async function () {
+      if (!opensslDisponible()) throw new Error("openssl requis pour générer les certificats de l'essai");
+      const c = genererCertificats(path.join(dir, "certificats-miroir"));
+      const lire = (f) => fs.readFileSync(f);
+      const ad = await lancerAdaptateur({ socket: config.model.mirror.socket, ecoute: "127.0.0.1:0", tls: { cert: lire(c.serveurCert), key: lire(c.serveurCle), ca: lire(c.ca) } });
+      const port = ad.serveur.address().port;
+      const n = (await evts()).length;
+      try {
+        expect((await copier(port, { tls: {} })).fermeeParAdaptateur).to.equal(true);
+        expect((await copier(port, { tls: { cert: lire(c.etrangerCert), key: lire(c.etrangerCle) } })).fermeeParAdaptateur).to.equal(true);
+        expect(await attendreEvenements(n + 1, 500)).to.equal(n);
+        const r = await copier(port, { tls: { cert: lire(c.clientCert), key: lire(c.clientCle) } });
+        expect(r.fermeeParAdaptateur).to.equal(false);
+        expect(await attendreEvenements(n + 1)).to.equal(n + 1);
+      } finally {
+        await ad.arreter();
+      }
+    });
+
+    it("prise du démon avec model.mirror.peer_user : sans preuve d'identité, refusée (auth_failed) ; adaptateur qui prouve le compte attendu, admis ; autre compte, refusé", async function () {
+      const moi = os.userInfo().username;
+      const sock = path.join(dir, "prise-pair", "miroir.sock");
+      const r2 = new RecepteurMiroir({ coeur, config: { ...config, model: { ...config.model, mirror: { socket: sock, peer_user: moi } } } });
+      await r2.ecouter();
+      try {
+        expect(fs.statSync(sock).mode & 0o777).to.equal(0o660);
+        // Un pair qui écrit un couple sans répondre au défi n'obtient aucune réponse de couple.
+        const rep = await envoyer([couple()], { socket: sock, attendues: 1, fermeture: true });
+        expect(rep.filter((x) => "ok" in x)).to.deep.equal([]);
+        expect(derniere("auth_failed").data).to.deep.include({ transport: "miroir", reason: "preuve" });
+        const n = (await evts()).length;
+        const ad = await lancerAdaptateur({ socket: sock, ecoute: "127.0.0.1:0", preuve: true });
+        try {
+          await copier(ad.serveur.address().port);
+          expect(await attendreEvenements(n + 1)).to.equal(n + 1);
+        } finally {
+          await ad.arreter();
+        }
+      } finally {
+        await r2.arreter();
+      }
+      const sock3 = path.join(dir, "prise-pair", "miroir-3.sock");
+      const r3 = new RecepteurMiroir({ coeur, config: { ...config, model: { ...config.model, mirror: { socket: sock3, peer_user: "compte-absent-de-l-essai" } } } });
+      await r3.ecouter();
+      try {
+        let erreur = null;
+        try {
+          const x = await lancerAdaptateur({ socket: sock3, ecoute: "127.0.0.1:0", preuve: true });
+          await x.arreter();
+        } catch (e) {
+          erreur = e;
+        }
+        expect(erreur?.code).to.equal("preuve_refusee");
+        expect(derniere("auth_failed").data).to.deep.include({ transport: "miroir", reason: "pair_refuse" });
+      } finally {
+        await r3.arreter();
+      }
     });
   });
 });

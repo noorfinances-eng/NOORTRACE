@@ -6,6 +6,65 @@ is tagged.
 
 ## Unreleased
 
+- Build step 8, supplements of 2026-11-17 (étape 8, compléments du
+  2026-11-17). Registry (CT-4, EX-8.14): a sender never signs below the
+  nonce that follows its last send whose inclusion is recorded, so a send
+  made one block after an inclusion, while the nodes are a block apart, no
+  longer reuses a consumed nonce; the nonce read from the RPC points is
+  cross-checked on two points by the reference tool and the onboarding agent,
+  as the anchoring component already did; the onboarding agent computes the
+  `CREATE` address of the set on the nonce it signs. Cross-references: every
+  `l. N` citation of one specification by another (tables of CT-7, CT-8 and
+  CT-9, and citations outside the tables) is checked against its anchor by
+  the cross-reference tools and by `test/renvois-lignes.test.js`. Tests: the
+  TA-106 scenario waits for a stored checkpoint before the hard stop; the
+  measurement-harness test states that it needs a directory on a real disk
+  and always removes its directory. Test plan (CT-9) regenerated twice,
+  byte-identical, and replayed by its clean-room Go verifier with no
+  discrepancy.
+
+- Build step 8, supplements of 2026-11-16 (étape 8, compléments du
+  2026-11-16). The owner's decisions of 2026-11-16 are applied and the
+  passages that the review left open are written into the specifications,
+  each in a dated supplement of the current revision (no revision number
+  changes). Recorder (CT-2): stronger masking of card numbers, e-mail
+  addresses and telephone numbers (shorter candidates, 10.3.4 to 10.3.6),
+  example addresses moved under `ch.example`; mirror mode secured (loopback by
+  default, client certificate or closed list of sources, mandatory in
+  production, socket mode 0600 or 0660 with peer proof); resumption into a
+  new journal (`noortrace-ctl journal successeur`, link recorded in the
+  registry and the operations log); Unix socket paths bounded to 103 bytes
+  and strict command lines for every delivered program; requests outside the
+  routes in `icap` and `miroir` modes declared, never blocked. Approvals
+  (CT-3): never-validated directory entries expire
+  (`registration_entry_ttl_ms`, internal `expirer` operation); a presented
+  challenge is withdrawn; replay of an exported directory with undecodable
+  instants; the vector index names every case of twenty directories, and the
+  form of its lines is fixed. Registry (CT-4): admission guard due before
+  production; a chain key serves a single organisation, checked by the
+  reference tool, the onboarding agent and the anchoring relay, with retries
+  on rate-limited reads. Anchoring (CT-5): the reference and the anchoring
+  component now agree on every published trace and on a seeded randomised
+  confrontation in sixteen modes (restart order, chain-key lock per journal,
+  OP-9 check for period anchors, classification of registry refusals, period
+  anchor after its points, retained key, point anchors in retry); qualified
+  status restored by `noortrace-ctl ancrage retablir-qualification`;
+  sixty-two scheduler traces, twenty-five with queues, and a new
+  `configuration/` family of twenty-five cases. Verifier (CT-6): the F3
+  statement names the request (`request_hash`) and the ticket. Security
+  (CT-7): ten
+  accepted risks of version 0 named outside the threat model (RA-87 to
+  RA-96, section 3.5.1). Deployment (CT-8): the "attached copy" path of the
+  reviewer package is withdrawn; the production Compose file passes
+  `--image-attendue` and mounts the expected image; the backup archive is
+  written as a stream. Test plan (CT-9): eleven entries without a
+  closing formula settled (TA-41, TM-30 and TM-44 executable, TA-88 and TM-32
+  with a reasoned formula), seven new entries (341), 2,494 identifiers
+  covered; cross-reference line numbers of the CT-7 and CT-8 tables
+  recalculated. Vectors of CT-1 to CT-8 regenerated twice, byte-identical,
+  and replayed by the clean-room Go verifiers of CT-1 to CT-4, CT-7 and CT-8
+  and by the CT-5 consistency verifier, with no discrepancy.
+
 - Build step 8, internal security review and its corrections. Every component
   was reviewed by internal reviewers working blind (310 findings, consolidated
   into owner decisions and correction batches). Approval bypass fixed: the

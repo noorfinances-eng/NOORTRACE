@@ -14,6 +14,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { lireJsonStrict } from "../../commun/json.mjs";
 import { lireReference } from "../../commun/references.mjs";
+import { refusCheminPrise } from "../../agent/client.mjs";
 
 /** Nom du cookie de session (INTERFACES.md 1). */
 export const COOKIE = "__Host-noortrace-inscription";
@@ -78,6 +79,9 @@ export function lireConfigurationInterface(chemin) {
   if (!c.ecoute || typeof c.ecoute.hote !== "string" || !Number.isSafeInteger(c.ecoute.port) || c.ecoute.port < 1 || c.ecoute.port > 65535) throw refus("ecoute : { hote, port } attendu");
   if (typeof c.origine !== "string" || !/^https?:\/\/[a-z0-9.-]+(?::[1-9][0-9]{0,4})?$/.test(c.origine)) throw refus("origine : origine http(s) sans chemin attendue");
   for (const k of ["prise", "donnees"]) if (typeof c[k] !== "string" || !c[k].startsWith("/")) throw refus(`${k} : chemin absolu attendu`);
+  // complément du 2026-11-16 : la prise que joint l'interface fait au plus 103 octets (Node.js tronquerait le chemin)
+  const refusPrise = refusCheminPrise(c.prise);
+  if (refusPrise !== null) throw refus(`prise : ${refusPrise}`);
   try {
     lireReference("comptes", c.comptes, { formes: ["fichier"] });
   } catch (e) {

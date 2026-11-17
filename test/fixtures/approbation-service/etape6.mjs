@@ -94,6 +94,7 @@ export function configurationEtape6(dir, o = {}) {
     administrators: o.administrators ?? [SESSIONS.admin],
     console_origin: ORIGINE,
     registration_ttl_ms: o.registration_ttl_ms ?? 600000,
+    ...(o.registration_entry_ttl_ms !== undefined ? { registration_entry_ttl_ms: o.registration_entry_ttl_ms } : {}),
     rpc: o.rpc ?? null,
     notifications: o.webhook ? { url: o.webhook.url, key: { file: "cle-webhook" }, ca: o.webhook.ca ? { file: o.webhook.ca } : null, timeout_ms: o.webhook.timeout_ms ?? 2000 } : null,
   };

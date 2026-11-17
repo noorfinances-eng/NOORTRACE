@@ -858,6 +858,7 @@
                     "cle_deja_active",
                     "cle_revoquee",
                     "cle_ed25519_active",
+                    "cle_chaine_autre_organisation",
                     "cle_inconnue",
                     "cle_chaine_non_inscrite",
                     "empreinte_squattee",

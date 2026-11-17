@@ -1,4 +1,4 @@
-// Planificateur d'ancrage (CT-5 §8) : rejeu des vingt-huit traces
+// Planificateur d'ancrage (CT-5 §8) : rejeu des soixante-deux traces
 // normatives de spec/vecteurs/ct-5/planification (EX-8.16, AN-42) et des
 // files de spec/vecteurs/ct-5/reprise (EX-8.5 règles 3 et 6, EX-8.12, AN-33).
 // Chaque trace est validée contre le schéma planificateur-ancrage-v0, rejouée
@@ -44,8 +44,9 @@ const TRANSITIONS = {
 describe("ancrage, planificateur : traces normatives de CT-5 §8.10", function () {
   this.timeout(60000);
 
-  it("vingt-huit traces sont publiées (révision 0.6 de CT-5 : file-fenetre-32 et file-fenetre-32-redemarrage ; revue de l'étape 8 : releve-pendant-reprise, redemarrage-releve, redemarrage-echeance-remplacee, file-lignes-illisibles), toutes conformes à la racine du schéma planificateur-ancrage-v0", function () {
-    expect(TRACES).to.have.lengthOf(28);
+  it("soixante-deux traces sont publiées (révision 0.6 de CT-5 : file-fenetre-32 et file-fenetre-32-redemarrage ; revue de l'étape 8 : releve-pendant-reprise, redemarrage-releve, redemarrage-echeance-remplacee, file-lignes-illisibles ; complément du 2026-11-16 : empreinte-squattee, empreinte-squattee-repli, registre-saut-horloge, redemarrage-due-at-borne, redemarrage-jeton-sans-acquisition, file-perdue-jeton-point-obtenu, file-perdue-jeton-periode-obtenu, redemarrage-jeton-recree-couvrant, redemarrage-ancres-a-reprendre, repli-ancre-incluse-jeton-retenu, ots-reponses-insuffisantes, redemarrage-ots-soumission-envoyee, ots-preuve-absente, redemarrage-ots-a-reprendre-en-cours, reponses-hors-tentative, registre-renvois, redemarrage-releve-deux-series, minuteries-simultanees, jeton-tardif-avertissements, redemarrage-ordre-de-la-file, redemarrage-a-envoyer-cle-libre, redemarrage-echeances-remplacees, registre-inclusion-apres-attente, redemarrage-prestataires-epuises, registre-cle-par-journal, minuteries-deux-journaux, registre-refus-ancre-periode, registre-ordre-des-points, registre-periode-apres-point-de-cloture, redemarrage-ots-abandon-origine, registre-periode-retient-la-cle, redemarrage-ots-abandon-soumission-tardive, registre-refus-ancre-periode-redemarrage), toutes conformes à la racine du schéma planificateur-ancrage-v0", function () {
+    // CT-5 A.3 et A.4 (complément du 2026-11-16, ordre du démarrage : cinq traces de plus ; clé de chaîne du verrou d'EX-9.4 : une de plus ; minuteries de deux journaux, EX-8.16 : une de plus ; puis refus de l'ancre d'une période et ordre des ancres de points, EX-8.10 et EX-9.4 : deux de plus ; puis l'ancre de la période après celle de son point de clôture et l'âge d'abandon OpenTimestamps, EX-9.4 et EX-8.11 : deux de plus, dont une à file ; puis la clé retenue par l'ancre d'une période, la soumission OpenTimestamps tardive et l'alerte du refus après un redémarrage, EX-9.4, EX-8.11 et EX-8.10 : trois de plus, dont deux à file ; puis l'ancre d'un point en reprise quand le point suivant de sa période est admis, EX-9.5 et EX-9.4 : une de plus, sans file) : soixante-deux traces.
+    expect(TRACES).to.have.lengthOf(62);
     for (const f of TRACES) {
       const v = REGISTRE_ANCRAGE.valider(ID_SCHEMA_PLANIFICATEUR, lire("planification", f));
       expect(v.valide, `${f} : ${v.erreurs[0]}`).to.equal(true);
@@ -117,7 +118,9 @@ describe("ancrage, planificateur : traces normatives de CT-5 §8.10", function (
 
       it("AN-36 : un jeton_periode ne part qu'après l'inclusion de son ancre ; un jeton_point part au plus squat_wait_s après son admission", function () {
         const inclusions = new Map();
-        for (const e of trace.inputs) if (e.type === "inclusion_registre") inclusions.set(e.data.request_id, e.t);
+        // L'inclusion qui compte est la première : un second reçu pour une ancre obtenue est ignoré (CT-5 EX-8.10 et EX-8.5,
+        // règle 2, complément du 2026-11-16 ; trace reponses-hors-tentative).
+        for (const e of trace.inputs) if (e.type === "inclusion_registre" && !inclusions.has(e.data.request_id)) inclusions.set(e.data.request_id, e.t);
         for (const a of r.actions) {
           if (a.action !== "envoyer_rfc3161" || !a.request_id.startsWith("jeton_periode") || a.detail.attempt !== 1) continue;
           const ancre = `ancre_registre_periode:${a.request_id.split(":")[1]}`;
@@ -156,8 +159,9 @@ describe("ancrage, planificateur : traces normatives de CT-5 §8.10", function (
       fs.rmSync(dir, { recursive: true, force: true });
     });
 
-    it("dix traces ont une file avant et après (révision 0.6 : file-fenetre-32-redemarrage en plus ; revue de l'étape 8 : file-lignes-illisibles, redemarrage-echeance-remplacee et redemarrage-releve en plus)", function () {
-      expect(REPRISES).to.have.lengthOf(10);
+    it("vingt-cinq traces ont une file avant et après (révision 0.6 : file-fenetre-32-redemarrage en plus ; revue de l'étape 8 : file-lignes-illisibles, redemarrage-echeance-remplacee et redemarrage-releve en plus ; complément du 2026-11-16 : redemarrage-due-at-borne et redemarrage-jeton-sans-acquisition en plus ; puis redemarrage-jeton-recree-couvrant et redemarrage-ancres-a-reprendre ; puis redemarrage-ots-soumission-envoyee ; puis redemarrage-ots-a-reprendre-en-cours et redemarrage-releve-deux-series ; puis redemarrage-ordre-de-la-file, redemarrage-a-envoyer-cle-libre, redemarrage-echeances-remplacees et redemarrage-prestataires-epuises ; puis registre-ordre-des-points ; puis redemarrage-ots-abandon-origine ; puis redemarrage-ots-abandon-soumission-tardive et registre-refus-ancre-periode-redemarrage)", function () {
+      // CT-5 A.4 (complément du 2026-11-16, ordre du démarrage : quatre traces à file de plus ; puis registre-ordre-des-points, EX-9.4 : une de plus ; puis redemarrage-ots-abandon-origine, EX-8.11 : une de plus ; puis redemarrage-ots-abandon-soumission-tardive et registre-refus-ancre-periode-redemarrage, EX-8.11 et EX-8.10 : deux de plus) : vingt-cinq traces à file.
+      expect(REPRISES).to.have.lengthOf(25);
     });
 
     for (const nom of REPRISES) {

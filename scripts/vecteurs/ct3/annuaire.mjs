@@ -21,6 +21,8 @@ export const ID = (nom) => `oidc ${EMETTEUR} ${nom}`;
 export const ADMIN = ID("admin-1");
 export const INSTANT_BASE_ANNUAIRE = "2026-11-10T08:00:00.000Z";
 export const TTL_INSCRIPTION = 600000;
+/** Durée de vie d'une entrée jamais validée : défaut de registration_entry_ttl_ms (CT-3 10.3 ; EX-13.17, complément du 2026-11-16). */
+export const TTL_ENTREE = 2592000000;
 export const ETIQUETTE_NONCE = "noortrace/vecteurs/ct3/inscription/nonce/<k>";
 export const NONCE = (k) => J.sha256(Buffer.from(`noortrace/vecteurs/ct3/inscription/nonce/${k}`, "utf8")).slice(2, 34);
 const D = (hms) => `2026-11-10T${hms}Z`;
@@ -49,6 +51,7 @@ export function familleAnnuaire(ctx) {
   // -------------------------------------------------------------------------
   // Service simulé : appliquerOperation de console.mjs, nonces fixés.
   // -------------------------------------------------------------------------
+  exiger(K.TTL_ENTREE_MS.defaut === TTL_ENTREE && K.TTL_ENTREE_MS.min === 86400000, "durée de vie d'une entrée (10.3)");
   const vide = { version: 0, org: ORG, org_id: ORG_ID, console_origin: ORIGINE, registration_ttl_ms: TTL_INSCRIPTION, administrators: [ADMIN], revision: 0, updated_at: null, entries: [], operations: [] };
   exiger(valider(vide, "annuaire-approbateurs", null).length === 0, "annuaire vide non conforme");
 
@@ -380,9 +383,62 @@ export function familleAnnuaire(ctx) {
         lier("apb-9999", DEMANDEUR, T("11:05:00.000"), ADMIN, "entree_inconnue"),
       ],
     ],
+    // Complément du 2026-11-16 (décision du porteur) : expiration des entrées jamais validées (EX-13.10, point 5 ; EX-13.17).
+    [
+      "expiration-entree",
+      `Expiration d'une entrée jamais validée (registration_entry_ttl_ms par défaut, ${TTL_ENTREE} ms, 30 jours) : apb-0001 (approbateur-1, compte 1, alias u.dupont@assureur-demo.example) reste en attente ; apb-0002 (approbateur-2, compte 2) est validée. expirer apb-0001 une milliseconde avant created_at + 30 jours : etat_incompatible ; à l'échéance exacte : acceptée, l'entrée est retirée avec son adresse et son alias. expirer apb-0002, validée : etat_incompatible ; expirer apb-0001 de nouveau : entree_inconnue. Le compte 1, jamais validé, est libéré : u.martin l'inscrit (apb-0003) ; approbateur-1 se réinscrit avec le compte 4 dans une entrée neuve (apb-0004, jamais apb-0001) ; l'alias est lié à apb-0004.`,
+      ["AN-6", "AN-7"],
+      "vide.json",
+      [
+        ...inscription(A1, 1, T("08:00:00.000"), 70),
+        ...inscription(A2, 2, T("08:10:00.000"), 71),
+        valid("apb-0002", 2, T("08:20:00.000")),
+        lier("apb-0001", "u.dupont@assureur-demo.example", T("08:25:00.000")),
+        { method: "expirer", at: plus(T("08:00:30.000"), TTL_ENTREE - 1), request: { entry: "apb-0001" }, reason: "etat_incompatible" },
+        { method: "expirer", at: plus(T("08:00:30.000"), TTL_ENTREE), request: { entry: "apb-0001" }, reason: null },
+        { method: "expirer", at: plus(T("08:00:30.000"), TTL_ENTREE + 60000), request: { entry: "apb-0002" }, reason: "etat_incompatible" },
+        { method: "expirer", at: plus(T("08:00:30.000"), TTL_ENTREE + 120000), request: { entry: "apb-0001" }, reason: "entree_inconnue" },
+        ...inscription(U, 1, plus(T("08:00:00.000"), TTL_ENTREE + 600000), 72),
+        ...inscription(A1, 4, plus(T("08:00:00.000"), TTL_ENTREE + 1200000), 73),
+        lier("apb-0004", "u.dupont@assureur-demo.example", plus(T("08:00:00.000"), TTL_ENTREE + 1800000)),
+      ],
+    ],
+    // Complément du 2026-11-16 (décision du porteur) : un défi présenté est retiré et ne compte plus dans les bornes (EX-13.13).
+    (() => {
+      const message = (etat, k) => texte(etat.defis.find((d) => d.fields.nonce === NONCE(k)).fields);
+      let premiere = null;
+      return [
+        "defi-consomme",
+        "EX-13.13 : approbateur-1 prépare quatre défis (comptes 1 à 4) ; le cinquième est refusé limite_annuaire. L'inscription du compte 1 est acceptée : son défi est retiré, et un cinquième défi est alors accepté. L'inscription du compte 2 signée par le compte 3 est refusée signature_invalide : son défi est retiré aussi, et un sixième défi est accepté. Quatre défis non présentés de nouveau : le suivant est refusé limite_annuaire. L'inscription du compte 1 présentée une seconde fois : nonce_inconnu (le défi présenté n'est plus tenu).",
+        ["AN-3", "AN-6"],
+        "vide.json",
+        [
+          { method: "preparer_inscription", at: T("12:00:00.000"), request: { session_identity: A1, address: ADR(1) }, k: 80, reason: null },
+          { method: "preparer_inscription", at: T("12:00:10.000"), request: { session_identity: A1, address: ADR(2) }, k: 81, reason: null },
+          { method: "preparer_inscription", at: T("12:00:20.000"), request: { session_identity: A1, address: ADR(3) }, k: 82, reason: null },
+          { method: "preparer_inscription", at: T("12:00:30.000"), request: { session_identity: A1, address: ADR(4) }, k: 83, reason: null },
+          { method: "preparer_inscription", at: T("12:00:40.000"), request: { session_identity: A1, address: `0x${"ab".repeat(18)}0005` }, k: 84, reason: "limite_annuaire" },
+          {
+            method: "inscrire", at: T("12:01:00.000"), reason: null,
+            request: ({ etat }) => {
+              const m = message(etat, 80);
+              premiere = { session_identity: A1, address: ADR(1), message: m, signature: sigTexte(1, m) };
+              return premiere;
+            },
+          },
+          { method: "preparer_inscription", at: T("12:01:10.000"), request: { session_identity: A1, address: `0x${"ab".repeat(18)}0005` }, k: 85, reason: null },
+          { method: "inscrire", at: T("12:01:20.000"), request: ({ etat }) => ({ session_identity: A1, address: ADR(2), message: message(etat, 81), signature: sigTexte(3, message(etat, 81)) }), reason: "signature_invalide" },
+          { method: "preparer_inscription", at: T("12:01:30.000"), request: { session_identity: A1, address: `0x${"ab".repeat(18)}0006` }, k: 86, reason: null },
+          { method: "preparer_inscription", at: T("12:01:40.000"), request: { session_identity: A1, address: `0x${"ab".repeat(18)}0007` }, k: 87, reason: "limite_annuaire" },
+          { method: "inscrire", at: T("12:01:50.000"), request: () => premiere, reason: "nonce_inconnu" },
+        ],
+      ];
+    })(),
   ];
+  const finsDeTraces = {};
   const traces = conceptionTraces.map(([id, description, checks, initial, pas]) => {
     const r = rejouer(annuaires[initial], pas);
+    finsDeTraces[id] = r.annuaire;
     const doc = { version: 0, id, description, checks, initial: `annuaires/${initial}`, steps: r.steps };
     const erreurs = valider(doc, "annuaire-approbateurs", "trace_annuaire");
     exiger(erreurs.length === 0, `trace ${id} non conforme : ${JSON.stringify(erreurs.slice(0, 3))}`);
@@ -391,7 +447,20 @@ export function familleAnnuaire(ctx) {
   });
   // Réponses acceptées conformes à console-service-v0.
   const defService = { preparer_inscription: "reponse_preparer_inscription", inscrire: "reponse_adresse", valider: "reponse_adresse", revoquer: "reponse_adresse", desactiver: "reponse_entree", reactiver: "reponse_entree", lier_demandeur: "reponse_entree", delier_demandeur: "reponse_entree" };
-  for (const t of traces) for (const s of t.steps) if (s.expected.accepted) exiger(valider(s.expected.response, "console-service", defService[s.method]).length === 0, `trace ${t.id} : réponse ${s.method} non conforme`);
+  for (const t of traces) for (const s of t.steps) {
+    // expirer (complément du 2026-11-16) : opération interne, méthode d'aucun canal, sans réponse.
+    if (s.method === "expirer") exiger(s.expected.response === null, `trace ${t.id} : expirer sans réponse`);
+    else if (s.expected.accepted) exiger(valider(s.expected.response, "console-service", defService[s.method]).length === 0, `trace ${t.id} : réponse ${s.method} non conforme`);
+  }
+  // Conception des deux traces du complément du 2026-11-16.
+  {
+    const ex = traces.find((t) => t.id === "expiration-entree");
+    const pasExpire = ex.steps.find((s) => s.method === "expirer" && s.expected.accepted);
+    exiger(pasExpire.at === "2026-12-10T08:00:30.000Z" && !pasExpire.expected.entries.some((e) => e.id === "apb-0001") && J.egalJSON(finsDeTraces["expiration-entree"].entries.map((e) => e.id), ["apb-0002", "apb-0003", "apb-0004"]), "expiration-entree : échéance, entrée retirée, identifiants neufs");
+    exiger(J.egalJSON(finsDeTraces["expiration-entree"].operations.find((o) => o.op === "expirer"), { seq: 5, at: "2026-12-10T08:00:30.000Z", op: "expirer", by: "service", entry: "apb-0001", address: null, launched_by: null, reason: null, administrators: null }), "expiration-entree : opération expirer");
+    const dc = traces.find((t) => t.id === "defi-consomme");
+    exiger(J.egalJSON(dc.steps.map((s) => s.expected.reason), [null, null, null, null, "limite_annuaire", null, null, "signature_invalide", null, "limite_annuaire", "nonce_inconnu"]), "defi-consomme : sorts");
+  }
 
   // -------------------------------------------------------------------------
   // controles-vote.json (AN-8)
@@ -529,6 +598,49 @@ export function familleAnnuaire(ctx) {
       [{ code: "operations_incoherentes", pointer: "/administrators" }],
     ],
   ];
+  // Complément du 2026-11-16 (décision du porteur) : rejeu de l'opération expirer (EX-13.19, point 6).
+  const expire = finsDeTraces["expiration-entree"];
+  const jExpire = expire.operations.findIndex((o) => o.op === "expirer");
+  const varianteExpire = (f) => {
+    const d = copie(expire);
+    f(d);
+    return d;
+  };
+  conceptionExports.push(
+    [
+      "expiration-rejouee.json",
+      "L'annuaire final de la trace expiration-entree : l'opération 5 expirer retire apb-0001, dont l'inscription (opération 1) se rejoue sans preuve, celle-ci ayant quitté le document avec l'entrée ; le compte 1 est réinscrit dans apb-0003, approbateur-1 dans apb-0004 : aucun écart.",
+      expire,
+      [],
+    ],
+    [
+      "expiration-avant-borne.json",
+      "L'opération 5 expirer est datée de created_at d'apb-0001 + 86 399 999 ms, sous la borne basse de registration_entry_ttl_ms (le document ne porte pas le réglage) : elle ne se rejoue pas.",
+      varianteExpire((d) => (d.operations[jExpire].at = plus(T("08:00:30.000"), 86399999))),
+      [{ code: "operations_incoherentes", pointer: `/operations/${jExpire}` }],
+    ],
+    [
+      "expiration-entree-validee.json",
+      "Une opération expirer ajoutée en dernier retire apb-0002, dont le compte 2 a été validé : elle ne se rejoue pas.",
+      varianteExpire((d) => {
+        const at = plus(T("08:00:30.000"), 2 * TTL_ENTREE);
+        d.entries = d.entries.filter((e) => e.id !== "apb-0002");
+        d.operations.push({ seq: d.operations.length + 1, at, op: "expirer", by: "service", entry: "apb-0002", address: null, launched_by: null, reason: null, administrators: null });
+        d.revision = d.operations.length;
+        d.updated_at = at;
+      }),
+      [{ code: "operations_incoherentes", pointer: `/operations/${expire.operations.length}` }],
+    ],
+    [
+      "identifiant-reattribue.json",
+      "L'entrée d'u.martin, créée après l'expiration d'apb-0001, porte l'identifiant apb-0001 au lieu d'apb-0003 : un identifiant n'est jamais réattribué, l'inscription ne se rejoue pas.",
+      varianteExpire((d) => {
+        d.entries.find((e) => e.id === "apb-0003").id = "apb-0001";
+        for (const o of d.operations) if (o.entry === "apb-0003") o.entry = "apb-0001";
+      }),
+      [{ code: "operations_incoherentes", pointer: `/operations/${expire.operations.findIndex((o) => o.entry === "apb-0003")}` }],
+    ],
+  );
   const exportsAttendu = { version: 0, cases: [] };
   const fichiersExports = {};
   for (const [file, description, doc, errors] of conceptionExports) {
@@ -541,6 +653,7 @@ export function familleAnnuaire(ctx) {
   exiger(valider(exportsAttendu, "annuaire-approbateurs", "attendu_exports").length === 0, "exports/attendu.json non conforme");
   for (const code of ["schema", "identifiant_double", "revision_incoherente", "operations_incoherentes", "identite_double", "adresse_double", "deux_adresses_actives", "preuve_invalide", "preuve_discordante", "auto_validation"]) exiger(exportsAttendu.cases.some((c) => c.errors.some((e) => e.code === code)), `AN-9 : ${code} sans cas`);
   exiger(exportsAttendu.cases.some((c) => c.errors.length === 0 && fichiersExports[c.file].operations.some((o) => o.op === "changer_administrateurs")), "EX-13.37 : recopie d'administrators sans cas");
+  exiger(exportsAttendu.cases.some((c) => c.errors.length === 0 && fichiersExports[c.file].operations.some((o) => o.op === "expirer")) && exportsAttendu.cases.filter((c) => c.errors.length > 0 && (fichiersExports[c.file].operations ?? []).some((o) => o.op === "expirer")).length === 3, "EX-13.19 : rejeu d'expirer sans cas");
 
   // -------------------------------------------------------------------------
   // controles-canal.json (AN-10) : contrôle de l'identité de session par le

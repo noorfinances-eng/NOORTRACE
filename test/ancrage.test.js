@@ -61,7 +61,8 @@ describe("CT-5 : génération déterministe de spec/vecteurs/ct-5 (EX-A.1, EX-A.
       const produits = lister(sortie);
       expect(produits).to.deep.equal(lister(CT5).filter((f) => !conservee(f)));
       for (const f of produits) expect(J.sha256(lire(sortie, f)), f).to.equal(J.sha256(lire(CT5, f)));
-      expect(produits.filter((f) => f.startsWith("planification/"))).to.have.length(28);
+      // CT-5 A.3 (complément du 2026-11-16, ordre du démarrage ; puis clé de chaîne du verrou d'EX-9.4 ; puis minuteries de deux journaux, EX-8.16 ; puis refus de l'ancre d'une période et ordre des ancres de points, EX-8.10 et EX-9.4 : deux de plus ; puis l'ancre de la période après celle de son point de clôture et l'âge d'abandon OpenTimestamps, EX-9.4 et EX-8.11 : deux de plus, dont une à file ; puis la clé retenue par l'ancre d'une période, la soumission OpenTimestamps tardive et l'alerte du refus après un redémarrage, EX-9.4, EX-8.11 et EX-8.10 : trois de plus, dont deux à file ; puis l'ancre d'un point en reprise quand le point suivant de sa période est admis, EX-9.5 et EX-9.4 : une de plus, sans file) : soixante-deux traces.
+      expect(produits.filter((f) => f.startsWith("planification/"))).to.have.length(62);
     } finally {
       fs.rmSync(sortie, { recursive: true, force: true });
     }
@@ -97,7 +98,7 @@ describe("CT-5 : schémas ancrage-v0 et planificateur-ancrage-v0 (EX-4.8, EX-8.1
     expect(J.canonicaliserJCS(planificateur[0])).to.equal(J.canonicaliserJCS(REFERENCE));
   });
 
-  it("les vingt-huit traces sont conformes à la racine du schéma ; requetes.json, cout.json et completude.json à $defs/fichier_vecteurs ; chaque demande des files à $defs/demande", function () {
+  it("les soixante-deux traces sont conformes à la racine du schéma ; requetes.json, cout.json, completude.json et configuration.json à $defs/fichier_vecteurs ; chaque demande des files à $defs/demande", function () {
     for (const f of TRACES) {
       const trace = lireJSON(CT5, "planification", f);
       expect(valider(trace, SCHEMA_PLANIFICATEUR), f).to.deep.equal([]);
@@ -107,6 +108,7 @@ describe("CT-5 : schémas ancrage-v0 et planificateur-ancrage-v0 (EX-4.8, EX-8.1
     expect(valider(lireJSON(CT5, "requetes", "requetes.json"), SCHEMA_PLANIFICATEUR, "#/$defs/fichier_vecteurs")).to.deep.equal([]);
     expect(valider(lireJSON(CT5, "cout", "cout.json"), SCHEMA_PLANIFICATEUR, "#/$defs/fichier_vecteurs")).to.deep.equal([]);
     expect(valider(lireJSON(CT5, "completude", "completude.json"), SCHEMA_PLANIFICATEUR, "#/$defs/fichier_vecteurs")).to.deep.equal([]);
+    expect(valider(lireJSON(CT5, "configuration", "configuration.json"), SCHEMA_PLANIFICATEUR, "#/$defs/fichier_vecteurs")).to.deep.equal([]);
     // Toute ligne des files est une demande conforme, sauf les deux lignes rendues illisibles à dessein dans le fichier
     // d'époque de file-lignes-illisibles (ligne mal formée, fragment final ; INDEX de ct-5), qui ne sont ni du JSON
     // complet ni des demandes.
@@ -280,7 +282,8 @@ describe("CT-5 : familles planification et reprise (EX-8.12, EX-8.16, EX-A.6)", 
   this.timeout(120_000);
 
   it("chaque trace est reproduite à l'identique par rejouerTrace (actions et file finale)", function () {
-    expect(TRACES).to.have.length(28);
+    // CT-5 A.3 (complément du 2026-11-16, ordre du démarrage ; puis clé de chaîne du verrou d'EX-9.4 ; puis minuteries de deux journaux, EX-8.16 ; puis refus de l'ancre d'une période et ordre des ancres de points, EX-8.10 et EX-9.4 : deux de plus ; puis l'ancre de la période après celle de son point de clôture et l'âge d'abandon OpenTimestamps, EX-9.4 et EX-8.11 : deux de plus, dont une à file ; puis la clé retenue par l'ancre d'une période, la soumission OpenTimestamps tardive et l'alerte du refus après un redémarrage, EX-9.4, EX-8.11 et EX-8.10 : trois de plus, dont deux à file ; puis l'ancre d'un point en reprise quand le point suivant de sa période est admis, EX-9.5 et EX-9.4 : une de plus, sans file) : soixante-deux traces.
+    expect(TRACES).to.have.length(62);
     for (const f of TRACES) {
       const trace = lireJSON(CT5, "planification", f);
       const ecarts = A.verifierTrace(trace);
@@ -317,8 +320,14 @@ describe("CT-5 : familles planification et reprise (EX-8.12, EX-8.16, EX-A.6)", 
 
   it("reprise/ : chaque file avant est la forme canonique de queue_before ; relue puis rejouée, elle donne la file après, une demande par id ; les fichiers d'époques relus ensemble (lireFiles) donnent la file avant", function () {
     const noms = fs.readdirSync(path.join(CT5, "reprise")).filter((f) => f.endsWith(".avant.ndjson")).map((f) => f.replace(/\.avant\.ndjson$/, "")).sort();
-    // Dix traces à file (INDEX de ct-5, reprise/) : les sept de la révision 0.6 et les trois de la revue de l'étape 8.
-    expect(noms).to.deep.equal(["bascule-epoque", "bascule-epoque-fichier-perdu", "file-fenetre-32-redemarrage", "file-lignes-illisibles", "file-pleine", "redemarrage-echeance-remplacee", "redemarrage-releve", "redemarrage-reprise", "refus-puis-preuve-de-vie-redemarrage", "registre-indisponible"]);
+    // Vingt-cinq traces à file (INDEX de ct-5, reprise/ ; CT-5 A.4) : les sept de la révision 0.6, les trois de la revue de l'étape 8 et
+    // les quinze du complément du 2026-11-16 (EX-4.13, EX-5.8 ; EX-8.12 et EX-4.4, EX-8.10 et EX-8.12 ; EX-8.12 et EX-8.9 pour OpenTimestamps ;
+    // EX-8.12 pour une soumission a_reprendre encore en cours et pour les deux séries de la relève ; EX-8.12 pour l'ordre du démarrage,
+    // les ancres à envoyer, les échéances d'une demande remplacée et les prestataires épuisés ; EX-9.4 pour l'ordre des ancres de points
+    // d'une clé, registre-ordre-des-points ; EX-8.11 pour l'âge d'abandon OpenTimestamps, redemarrage-ots-abandon-origine ; EX-8.11 et
+    // EX-8.10 pour la soumission tardive et l'alerte du refus après un redémarrage, redemarrage-ots-abandon-soumission-tardive et
+    // registre-refus-ancre-periode-redemarrage).
+    expect(noms).to.deep.equal(["bascule-epoque", "bascule-epoque-fichier-perdu", "file-fenetre-32-redemarrage", "file-lignes-illisibles", "file-pleine", "redemarrage-a-envoyer-cle-libre", "redemarrage-ancres-a-reprendre", "redemarrage-due-at-borne", "redemarrage-echeance-remplacee", "redemarrage-echeances-remplacees", "redemarrage-jeton-recree-couvrant", "redemarrage-jeton-sans-acquisition", "redemarrage-ordre-de-la-file", "redemarrage-ots-a-reprendre-en-cours", "redemarrage-ots-abandon-origine", "redemarrage-ots-abandon-soumission-tardive", "redemarrage-ots-soumission-envoyee", "redemarrage-prestataires-epuises", "redemarrage-releve", "redemarrage-releve-deux-series", "redemarrage-reprise", "refus-puis-preuve-de-vie-redemarrage", "registre-indisponible", "registre-ordre-des-points", "registre-refus-ancre-periode-redemarrage"]);
     const epoques = fs.readdirSync(path.join(CT5, "reprise")).filter((f) => /\.epoque-\d+\.ndjson$/.test(f)).sort();
     expect(epoques).to.deep.equal(["bascule-epoque.epoque-1.ndjson", "bascule-epoque.epoque-2.ndjson", "file-lignes-illisibles.epoque-1.ndjson", "redemarrage-echeance-remplacee.epoque-1.ndjson", "redemarrage-releve.epoque-1.ndjson"]);
     for (const nom of ["bascule-epoque", "file-lignes-illisibles", "redemarrage-echeance-remplacee", "redemarrage-releve"]) {
@@ -863,7 +872,9 @@ describe("CT-5 révision 0.6 : fenêtre de 32 tentatives, attempts_total, rang d
     for (const f of TRACES) {
       const trace = lireJSON(CT5, "planification", f);
       for (const x of trace.expected.filter((y) => y.action === "journaliser" && Object.hasOwn(vus, y.detail.event))) {
-        if (x.detail.error_code === "tentative_inconnue") continue;
+        // Une réponse qui ne désigne aucune tentative : rang jamais ouvert, ou demande inconnue (CT-5 EX-8.5, règle 2,
+        // complément du 2026-11-16 : attempt_id nul ou absent).
+        if (x.detail.error_code === "tentative_inconnue" || x.detail.error_code === "demande_inconnue") continue;
         const [kind, hash] = x.request_id.split(":");
         expect(Number.isInteger(x.detail.attempt), `${f} ${x.detail.event}`).to.equal(true);
         expect(x.detail.attempt_id, `${f} ${x.detail.event}`).to.equal(A.identifiantCorrelation(kind, hash, x.detail.attempt));

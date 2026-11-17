@@ -54,3 +54,4 @@ export * from "./worm/index.mjs";
 export * from "./ha/index.mjs";
 export { principal, superviserProcessus } from "./cli.mjs";
 export { principalCtlDemon, trouverDemons } from "./ctl-demon.mjs";
+export { principalCtlJournal, finDuJournal, verifierSuccession, cheminNoteExploitant, lignesSuccesseur, controlerDemande, EVENEMENT_SUCCESSEUR } from "./ctl-journal.mjs";

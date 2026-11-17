@@ -181,7 +181,7 @@ export async function demarrerAgentEssai({ manifeste, rpc, comptes = { exploitan
   fs.chmodSync(prises, 0o750);
   fs.mkdirSync(donnees, { mode: 0o750 });
   fs.chmodSync(donnees, 0o750);
-  const config = { version: 0, prise: path.join(prises, "agent.sock"), interface_uid: interfaceUid, donnees, nature, instance: manifeste, rpc: [rpc], jeton, comptes, cles: { repertoire: clesRepertoire, alias }, delai_s };
+  const config = { version: 0, prise: path.join(prises, "agent.sock"), interface_uid: interfaceUid, donnees, nature, instance: manifeste, rpc: Array.isArray(rpc) ? [...rpc] : [rpc], jeton, comptes, cles: { repertoire: clesRepertoire, alias }, delai_s };
   const cheminConfig = path.join(base, "agent.json");
   fs.writeFileSync(cheminConfig, JSON.stringify(config, null, 2));
   const lance = await lancerAgent(cheminConfig, { env, racinePaquet });

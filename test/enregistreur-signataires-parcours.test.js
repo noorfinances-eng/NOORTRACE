@@ -475,6 +475,20 @@ describe("CT-9 TE-16, ligne « clé indisponible » de la matrice de CT-2 §14.2
       }
       ev.lignes = p.lignes();
       ev.evts = await lireEvenements(c.journal);
+      // Fin de ligne (TE-16) : période close à l'heure suivante par une instance du cœur (même signataire, Vault
+      // rétabli), dossier de l'écriture E2, scellée après le rétablissement, exporté pour les deux vérificateurs.
+      const v = validerConfiguration(new TextEncoder().encode(JSON.stringify({ ...c.config, recorder: { ...c.config.recorder, instance_id: "inst-cloture" }, supervision: { ...c.config.supervision, ops_log: { ...c.config.supervision.ops_log, path: path.join(c.dir, "exploitation-cloture.ndjson") } } })));
+      const s = resoudreSecrets(v.config, { env: { ...process.env, ...c.env } });
+      const backend = await signataireDepuisConfiguration(v.config, s.secrets, { env: { ...process.env, ...c.env }, ca: tls.caPem });
+      const C = await Coeur.demarrer({ config: v.config, secrets: s.secrets, signataire: backend, horloge: horlogeDecalee(versHeureSuivante()) });
+      try {
+        await C.tic();
+        const e2 = (await lireEvenements(C.repertoire)).filter((e) => e.execution.tool === "demo__ecrire").at(-1);
+        ev.dossiers = [path.join(c.dir, "dossier-e2")];
+        await C.exporterDossier(e2.seq, ev.dossiers[0]);
+      } finally {
+        await C.arreter();
+      }
     } finally {
       await srv.arreter();
     }
@@ -516,5 +530,12 @@ describe("CT-9 TE-16, ligne « clé indisponible » de la matrice de CT-2 §14.2
     expect(ev.apres.corps?.result?.isError, JSON.stringify(ev.apres.corps)).to.equal(false);
     expect(ev.santeApres.corps).to.deep.equal({ status: "ok" });
     ev.evts.forEach((e, k) => expect(e.seq).to.equal(k + 1));
+  });
+
+  it("fin de ligne : période close, dossier de l'écriture scellée après le rétablissement valide pour l'implémentation de référence (scripts/verify/dossier.mjs) et pour le binaire Go", function () {
+    const r = spawnSync(process.execPath, [path.join(RACINE, "scripts", "verify", "dossier.mjs"), ev.dossiers[0], "--json"], { encoding: "utf8", cwd: RACINE });
+    expect(r.status, r.stdout + r.stderr).to.equal(0);
+    expect(JSON.parse(r.stdout).verdict).to.equal("valide");
+    verifierParGo(this, ev);
   });
 });

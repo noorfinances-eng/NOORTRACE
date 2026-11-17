@@ -143,10 +143,13 @@ func TestAnnuaireScenario(t *testing.T) {
 	if r := inscrire(p1, k.Comptes[1], nonceA10(1), t0); !r.Accepte || !r.NouvelleEntree || r.Reponse.Get("state").S() != "en_attente" {
 		t.Fatalf("inscription : %+v %s", r, Compact(r.Reponse))
 	}
-	// Défi présenté une seconde fois : nonce_deja_utilise.
+	// Défi présenté une seconde fois : nonce_inconnu (complément du
+	// 2026-11-16, EX-13.13 et EX-13.15 pas 4 : le service retire le défi
+	// présenté ; nonce_deja_utilise ne vient plus que de la vérification
+	// seule).
 	msg := MessageInscription(ChampsInscription{"https://console.assureur-demo.example", "assureur-demo", k.OrgID, p1, k.Comptes[1], t0.String(), (t0 + 600000).String(), nonceA10(1)})
 	sig, _ := SignerMessage(k.Prives[k.Comptes[1]], []byte(msg))
-	if r := e.Appliquer("inscrire", Objet("session_identity", Chaine(p1), "address", Chaine(k.Comptes[1]), "message", Chaine(msg), "signature", Chaine(sig)), t0+40000, "", id, ModeService); r.Raison != "nonce_deja_utilise" {
+	if r := e.Appliquer("inscrire", Objet("session_identity", Chaine(p1), "address", Chaine(k.Comptes[1]), "message", Chaine(msg), "signature", Chaine(sig)), t0+40000, "", id, ModeService); r.Raison != "nonce_inconnu" {
 		t.Errorf("rejeu du défi : %+v", r)
 	}
 	valider := func(sess, adr string, at Instant) IssueOperation {

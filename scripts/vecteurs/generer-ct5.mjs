@@ -2,7 +2,7 @@
 // Générateur des vecteurs de CT-5 (spec/CT-5-ancrage.md, annexe A) :
 // spec/vecteurs/ct-5/.
 //
-//   node scripts/vecteurs/generer-ct5.mjs [--sortie <répertoire ct-5>] [--avec-empreinte-squattee]
+//   node scripts/vecteurs/generer-ct5.mjs [--sortie <répertoire ct-5>]
 //   npm run vecteurs:ct5
 //
 // Familles (A.3, A.4) :
@@ -14,12 +14,16 @@
 //                     HTTP représentées, classées selon EX-5.10 à EX-5.12 ;
 //   ots/              fichiers .ots en attente (EX-6.4), paire de mise à niveau
 //                     (EX-6.6) sur les preuves de CT-6 ;
-//   planification/    les vingt-huit traces normatives de §8.10, rejouées par
-//                     scripts/lib/ancrage.mjs (rejouerTrace) ; avec
-//                     --avec-empreinte-squattee, la trace empreinte-squattee
-//                     en plus (menace MN-58 ; voir traceEmpreinteSquattee) ;
+//   planification/    les soixante-deux traces normatives de §8.10 et A.3,
+//                     rejouées par scripts/lib/ancrage.mjs (rejouerTrace),
+//                     dont empreinte-squattee (menace MN-58 ; voir
+//                     traceEmpreinteSquattee), publiée par défaut depuis la
+//                     décision du porteur du 2026-11-16 (variante B) ;
 //   reprise/          files NDJSON avant et après le redémarrage des traces qui partent d'une file ;
 //   cout/             les onze cas de la formule de coût (§12.3) ;
+//   configuration/    cas valides et refusés de la configuration ancrage-v0
+//                     (AN-1, EX-4.9 : règles 4, 4 bis et 9 ; complément du
+//                     2026-11-16), avec leur verdict et leurs règles violées ;
 //   INDEX.md          chaque cas et son attendu.
 //
 // Tout est déterministe (EX-A.1) : aucune horloge ni valeur aléatoire ; les
@@ -42,7 +46,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import * as A from "../lib/ancrage.mjs";
 import * as H from "../lib/horodatage.mjs";
 import * as J from "../lib/journal.mjs";
@@ -61,7 +65,7 @@ const SCHEMA_PLANIFICATEUR = path.join(PROJECT_ROOT, "spec", "schemas", "planifi
 /** Entrées de premier niveau jamais touchées (A.1). */
 const CONSERVEES = new Set(["verificateur-independant", "confrontation"]);
 /** Entrées que le générateur écrit : seules elles sont effacées avant une génération. */
-const ENTREES_GENEREES = ["INDEX.md", "constantes.json", "requetes", "reponses", "ots", "planification", "reprise", "cout", "completude"];
+const ENTREES_GENEREES = ["INDEX.md", "constantes.json", "requetes", "reponses", "ots", "planification", "reprise", "cout", "completude", "configuration"];
 
 const texteJSON = (v) => JSON.stringify(v, null, 2) + "\n";
 const sha256 = (b) => crypto.createHash("sha256").update(b).digest();
@@ -200,8 +204,9 @@ class Scenario {
     this.trace.inputs.push({ t, type, data });
     return this;
   }
-  demarrage(t) {
-    return this.entree(t, "demarrage");
+  /** Démarrage ; `acquisitions` (complément du 2026-11-16, EX-5.8) : enregistrements obtenue promus relus d'acquisitions.ndjson. */
+  demarrage(t, { acquisitions = null } = {}) {
+    return this.entree(t, "demarrage", acquisitions ? { acquisitions } : {});
   }
   tic(t) {
     return this.entree(t, "tic");
@@ -225,8 +230,8 @@ class Scenario {
     return this.entree(t ?? c.generated_at, "periode_close", c);
   }
   /** Objets durables sans ancre obtenue relus dans le stockage (EX-8.12). */
-  stockage(t, { periods = [], checkpoints = [] }) {
-    return this.entree(t, "stockage_relu", { periods, checkpoints: checkpoints.map(donneesPoint) });
+  stockage(t, { periods = [], checkpoints = [], acquisitions = null }) {
+    return this.entree(t, "stockage_relu", { periods, checkpoints: checkpoints.map(donneesPoint), ...(acquisitions ? { acquisitions } : {}) });
   }
   inclusion(t, request_id, bloc) {
     return this.entree(t, "inclusion_registre", { request_id, block_number: bloc, capture_sha256: shaTexte(`capture ${request_id} ${bloc}`) });
@@ -283,13 +288,44 @@ const sujetPoint = (nom) => ({ kind: "point", org_id: ORG_ID, journal_id: JOURNA
 const tentative = ({ n, provider = null, started_at, nonce = null, kind, hash, outcome = "en_cours", error_code = null, http_status = null, pki_status = null, failure_info = null, retry_after_s = null, next_at = null, detail }) => ({ n, provider, started_at, nonce, correlation_id: A.identifiantCorrelation(kind, hash, n), outcome, error_code, http_status, pki_status, failure_info, retry_after_s, next_at, detail });
 
 /**
- * Les vingt-huit traces normatives (A.3), dans l'ordre d'A.3 (23 et 24 : révision 0.6 ; 25 à 28 : revue de l'étape 8,
- * CT-5 EX-8.8, CT-5 EX-8.12, CT-5 EX-8.5 ; révision de l'annexe A.3 demandée). Avec
- * `avecEmpreinteSquattee`, la trace empreinte-squattee les suit (menace MN-58) : elle n'est pas publiée tant que le
- * vérificateur Go de cohérence de ct-5 (A.5) ne la rejoue pas sans écart : après le refus de l'ancre de la période, le jeton
- * de clôture reste attente_registre (EX-8.4, règle 2 ; AN-36 ; CT-4 EX-8.6).
+ * Les soixante-deux traces normatives (A.3), dans l'ordre d'A.3 (23 et 24 : révision 0.6 ; 25 à 28 : revue de l'étape 8,
+ * CT-5 EX-8.8, CT-5 EX-8.12, CT-5 EX-8.5 ; 29 à 62 : complément du 2026-11-16). La trace empreinte-squattee (menace
+ * MN-58) est publiée par défaut depuis la décision du porteur du 2026-11-16 (variante B) : après le refus de l'ancre de
+ * la période, le jeton de clôture reste attente_registre et la période signalée registry_pending (EX-8.4, règle 2 ;
+ * AN-36 ; EX-9.7 ; CT-4 EX-8.6) ; empreinte-squattee-repli exerce le repli de clôture après ce refus (EX-8.4, règle 2 ;
+ * EX-9.7) et registre-saut-horloge la borne des rejeux par passe (EX-8.10) ; redemarrage-due-at-borne la borne de
+ * due_at au démarrage (EX-4.13), redemarrage-jeton-sans-acquisition la réouverture d'EX-5.8, file-perdue-jeton-point-obtenu
+ * et file-perdue-jeton-periode-obtenu la demande recréée obtenue d'EX-8.12, depuis le membre acquisitions des entrées
+ * demarrage et stockage_relu ; redemarrage-jeton-recree-couvrant EX-4.4 appliquée à une demande recréée obtenue,
+ * redemarrage-ancres-a-reprendre le due_at gardé au démarrage par une ancre au registre et une soumission
+ * OpenTimestamps a_reprendre, repli-ancre-incluse-jeton-retenu le repli de clôture lu à la lettre (EX-8.4, règle 2) ;
+ * ots-reponses-insuffisantes la soumission OpenTimestamps qui obtient moins de min_responses réponses valables (EX-8.11)
+ * et redemarrage-ots-soumission-envoyee la soumission en cours close par le redémarrage (EX-8.12, EX-8.9) ;
+ * ots-preuve-absente la réponse des calendriers sans preuve écrite (EX-8.11) et les réponses qui ne s'appliquent pas
+ * (EX-8.5, règle 2), redemarrage-ots-a-reprendre-en-cours la ligne a_reprendre d'une version antérieure qui porte
+ * encore une soumission en cours (EX-8.12, EX-8.16), reponses-hors-tentative les réponses RFC 3161 et événements du
+ * registre qui ne s'appliquent pas et les détails des tentatives closes (EX-8.5, EX-5.10, EX-8.10), registre-renvois
+ * les renvois au registre et les due_at d'ancre (EX-8.10), redemarrage-releve-deux-series le redémarrage des deux
+ * séries de la relève (EX-8.12, EX-8.8), minuteries-simultanees l'ordre de deux minuteries de même échéance
+ * (EX-8.16) et jeton-tardif-avertissements la précision hors de la plage d'un instant et la réponse tardive promue avec
+ * ses deux avertissements (EX-5.10, EX-5.11) ; redemarrage-ordre-de-la-file et redemarrage-a-envoyer-cle-libre l'ordre
+ * du démarrage (une passe sur la file dans l'ordre de la file, a_envoyer comprise, puis les départs ; EX-8.12, EX-9.4),
+ * redemarrage-echeances-remplacees les échéances d'une demande remplacee relue (EX-8.12, EX-4.4) et
+ * registre-inclusion-apres-attente le délai d'inclusion compté depuis la création de l'ancre (EX-8.10),
+ * redemarrage-prestataires-epuises les prestataires épuisés relus de la file au démarrage (EX-8.12, EX-8.8) ;
+ * registre-cle-par-journal le verrou de la clé de chaîne, porté par le journal du sujet de l'ancre (EX-9.4) ;
+ * minuteries-deux-journaux l'ordre d'armement des minuteries de période de deux journaux au même instant (EX-8.16) ;
+ * registre-refus-ancre-periode le refus définitif de l'ancre d'une période (EX-8.10) et registre-ordre-des-points l'ordre
+ * des ancres de points d'une clé, par checkpoint_ts (EX-9.4) ; registre-periode-apres-point-de-cloture l'ancre de la
+ * période partie après le reçu de celle de son point de clôture (EX-9.4) et redemarrage-ots-abandon-origine l'âge
+ * d'abandon d'une preuve OpenTimestamps compté depuis created_at (EX-8.11) ; registre-periode-retient-la-cle l'ancre de
+ * période sans reçu qui retient sa clé (EX-9.4), redemarrage-ots-abandon-soumission-tardive la soumission
+ * OpenTimestamps aboutie au-delà de l'âge d'abandon (EX-8.11) et registre-refus-ancre-periode-redemarrage l'alerte du
+ * refus de l'ancre d'une période levée de nouveau après un redémarrage (EX-8.10) ; registre-points-en-reprise l'ancre d'un
+ * point en reprise quand le point suivant de sa période est admis : remplacée si rien n'est parti, attendue sinon
+ * (EX-9.5, EX-9.4).
  */
-export function traces(ex, { avecEmpreinteSquattee = false } = {}) {
+export function traces(ex) {
   const liste = [];
   const ajouter = (s, controles) => {
     const trace = s.construire();
@@ -574,8 +610,8 @@ export function traces(ex, { avecEmpreinteSquattee = false } = {}) {
     }
     const s = new Scenario(
       "file-pleine",
-      "queue.max_pending abaissé à 100 et une file qui porte déjà cent jetons de clôture en a_reprendre (cent heures de panne du prestataire, représentées ; prochaine tentative après la fin de la trace) : les points K1, K2 et K4 ne sont plus ancrés (anchor_queue_full, alerte file_pleine critique) mais la clôture crée toujours ses trois demandes et le jeton de clôture est obtenu (EX-8.5, règle 4). Les échéances de points restées ouvertes sont closes remplacee par la clôture (EX-4.4).",
-      configuration({ queue: { max_pending: 100 } }),
+      "queue.max_pending abaissé à 100 et une file qui porte déjà cent jetons de clôture en a_reprendre (cent heures de panne du prestataire, représentées ; prochaine tentative après la fin de la trace, à 14:30, que retry.max_ms porté à une heure admet : au démarrage, une reprise plus lointaine que retry.max_ms serait ramenée à cette borne, EX-4.13, complément du 2026-11-16) : les points K1, K2 et K4 ne sont plus ancrés (anchor_queue_full, alerte file_pleine critique) mais la clôture crée toujours ses trois demandes et le jeton de clôture est obtenu (EX-8.5, règle 4). Les échéances de points restées ouvertes sont closes remplacee par la clôture (EX-4.4).",
+      configuration({ queue: { max_pending: 100 }, retry: { max_ms: 3600000 } }),
       { queue_before: fileAvant },
     );
     s.demarrage("2026-11-03T13:40:00.000Z").point("K1").tic("2026-11-03T13:45:00.000Z").tic("2026-11-03T13:50:00.000Z").point("K2").tic("2026-11-03T13:55:00.000Z").point("K4").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" });
@@ -761,7 +797,7 @@ export function traces(ex, { avecEmpreinteSquattee = false } = {}) {
   {
     const s = new Scenario(
       "registre-indisponible-cloture",
-      "Journal des vecteurs, période 1 (un point par minute) ; le registre n'inclut plus rien à partir de l'ancre du point de 09:13 (inclusion_alert_s porté à 1800 s pour raccourcir la trace). L'ancre du point de 09:32 attend la clé (a_envoyer) puis est remplacée par celle du point de clôture (EX-9.5, rattrapage). À la clôture, le jeton de la période attend l'inclusion de son ancre ; squat_wait_s après la clôture, le point de clôture (tree_size 9, aucune échéance ne l'a sélectionné) reçoit un jeton_point de repli auprès du prestataire des points (EX-4.2, EX-8.4 règle 2), envoyé squat_wait_s plus tard avec ordre_ancres_non_respecte, ce qui borne la date du dernier intervalle. Le registre revient à 10:20 : ancre de la période, jeton qualifié de la clôture, puis ancre du point de clôture.",
+      "Journal des vecteurs, période 1 (un point par minute) ; le registre n'inclut plus rien à partir de l'ancre du point de 09:13 (inclusion_alert_s porté à 1800 s pour raccourcir la trace). L'ancre du point de 09:32 attend la clé (a_envoyer) puis est remplacée par celle du point de clôture (EX-9.5, rattrapage). À la clôture, le jeton de la période attend l'inclusion de son ancre ; squat_wait_s après la clôture, le point de clôture (tree_size 9, aucune échéance ne l'a sélectionné) reçoit un jeton_point de repli auprès du prestataire des points (EX-4.2, EX-8.4 règle 2), envoyé squat_wait_s plus tard avec ordre_ancres_non_respecte, ce qui borne la date du dernier intervalle. Le registre revient à 10:20 : ancre du point de clôture, puis ancre de la période, puis jeton qualifié de la clôture. EX-9.4 (complément du 2026-11-16 : « l'ancre de la période ne part qu'après le reçu de l'ancre du point de clôture de la même clé ») : l'ancre du point de clôture attendait le nonce à la clôture ; elle part la première au reçu de l'ancre de 09:13, l'ancre de la période à son reçu.",
       configuration({ registry: { inclusion_alert_s: 1800 } }),
     );
     s.demarrage(jour("08:59:30"));
@@ -772,14 +808,15 @@ export function traces(ex, { avecEmpreinteSquattee = false } = {}) {
     }
     s.clotureSerie(C1).ots(jour("10:00:01"), OPS1, { nom: "en attente sinistres periode 1" });
     s.granted(jour("10:00:12"), JS(clotureS1), 1, { gen_time: "2026-11-05T10:00:11Z", nom: "sinistres point de cloture", journal: SIN });
-    s.inclusion(jour("10:20:00"), AS(pt(S1, "09:13")), 30013).inclusion(jour("10:20:02"), APS1, 31201).granted(jour("10:20:04"), PHS1, 1, { gen_time: "2026-11-05T10:20:03Z", nom: "sinistres periode 1", size: 3082, journal: SIN });
-    s.inclusion(jour("10:20:06"), AS(clotureS1), 31203).arret(jour("10:21:00"));
+    s.inclusion(jour("10:20:00"), AS(pt(S1, "09:13")), 30013).inclusion(jour("10:20:02"), AS(clotureS1), 31201).inclusion(jour("10:20:04"), APS1, 31203);
+    s.granted(jour("10:20:06"), PHS1, 1, { gen_time: "2026-11-05T10:20:05Z", nom: "sinistres periode 1", size: 3082, journal: SIN }).arret(jour("10:21:00"));
     ajouter(s, (t) => [
       ["ancre du point de 09:32 remplacée par celle du point de clôture (EX-9.5)", dem(t, AS(pt(S1, "09:32"))).state === "remplacee" && dem(t, AS(pt(S1, "09:32"))).replaced_by === AS(clotureS1) && actions(t, "envoyer_registre", (a) => a.request_id === AS(pt(S1, "09:32"))).length === 0],
       ["repli : jeton_point du point de clôture sans échéance, créé squat_wait_s après la clôture", actions(t, "journaliser", (a) => a.detail.event === "checkpoint_closing_fallback").length === 1 && JSON.stringify(dem(t, JS(clotureS1)).deadlines) === "[]" && dem(t, JS(clotureS1)).state === "obtenue"],
       ["jeton de repli envoyé avec ordre_ancres_non_respecte", actions(t, "journaliser", (a) => a.request_id === JS(clotureS1) && a.detail.event === "ordre_ancres_non_respecte").length === 1],
       ["contresignature du repli marquée closing_fallback", actions(t, "journaliser", (a) => a.request_id === JS(clotureS1) && a.detail.event === "checkpoint_countersigned")[0]?.detail.closing_fallback === true],
       ["jeton de clôture obtenu après le retour du registre", dem(t, PHS1).state === "obtenue"],
+      ["EX-9.4 : l'ancre du point de clôture part au reçu de celle de 09:13, l'ancre de la période au reçu de celle du point de clôture", JSON.stringify(actions(t, "envoyer_registre", (a) => a.t >= jour("10:20:00")).map((a) => [a.t, a.request_id])) === JSON.stringify([[jour("10:20:00"), AS(clotureS1)], [jour("10:20:02"), APS1]])],
     ]);
   }
 
@@ -1056,8 +1093,8 @@ export function traces(ex, { avecEmpreinteSquattee = false } = {}) {
     liste[liste.length - 1].fichiers = [{ nom: "file-1.ndjson", texte: fichier }];
   }
 
-  // 29, sur demande. empreinte-squattee : l'empreinte d'ancre de la période est prise par un tiers (menace MN-58).
-  if (avecEmpreinteSquattee) {
+  // 29. empreinte-squattee : l'empreinte d'ancre de la période est prise par un tiers (menace MN-58).
+  {
     const s = new Scenario(
       "empreinte-squattee",
       "Clôture de la période 1 de référence ; l'ancre de la période part au registre avant toute requête RFC 3161 sur periodHash (CT-4 EX-8.4, EX-4.7), puis le registre répond empreinte_squattee : l'empreinte est déjà ancrée par un autre émetteur (CT-4 OP-9, §8.3). La demande passe refusee sans nouvel essai, ni renvoi ni remplacement au même nonce, l'alerte est critique et la ligne anchor_refused consigne l'incident (CT-4 EX-8.6 ; EX-8.10, EX-9.7). La requête RFC 3161 du periodHash ne part jamais : son ancre n'est pas incluse (EX-8.4, règle 2 ; AN-36) ; le jeton de clôture reste attente_registre et la période est signalée registry_pending à chaque inclusion_alert_s (60 s ; CT-4 EX-8.6). La preuve OpenTimestamps, soumise à la clôture, reste en attente ; l'ancre et le jeton du point de clôture K4, d'une autre empreinte, sont obtenus : ce jeton date la tête de la période.",
@@ -1082,14 +1119,892 @@ export function traces(ex, { avecEmpreinteSquattee = false } = {}) {
     });
   }
 
-  exiger(liste.length === (avecEmpreinteSquattee ? 29 : 28), avecEmpreinteSquattee ? "vingt-neuf traces attendues" : "vingt-huit traces attendues");
+  // 30. empreinte-squattee-repli (EX-8.4 règle 2, EX-9.7) : l'ancre de la période est refusée avant squat_wait_s ; le point
+  // de clôture, qu'aucune échéance n'a sélectionné, reçoit le jeton de repli, qui date la tête de la période.
+  {
+    const config = configuration();
+    config.rfc3161.checkpoints.interval_s = 600;
+    const s = new Scenario(
+      "empreinte-squattee-repli",
+      "Période 1 de référence avec c_T = 600 s (n_T = 6 ; D_1 à D_5 de 13:10 à 13:50) : K1 sert D_1 à D_4, K2 sert D_5, de sorte que le point de clôture K4 (tree_size 5, nouvel événement) n'est sélectionné par aucune échéance. À la clôture, l'ancre du point de clôture est incluse à 14:00:02 et l'ancre de la période part aussitôt (EX-9.4) ; le registre répond empreinte_squattee à 14:00:03 : demande refusee sans nouvel essai, alerte critique, anchor_refused (EX-9.7 ; CT-4 EX-8.6). Le refus ne libère pas le jeton de clôture, qui reste attente_registre (EX-8.4, règle 2 ; AN-36), et n'abandonne pas le repli : squat_wait_s (5 s) après la clôture, à 14:00:05.250, le point de clôture reçoit une demande jeton_point sans échéance (checkpoint_closing_fallback ; EX-4.2, EX-8.4 règle 2), envoyée aussitôt puisque son ancre est incluse, et obtenue à 14:00:07 : ce jeton date la tête de la période (EX-9.7). La période est signalée registry_pending à chaque inclusion_alert_s (60 s ; CT-4 EX-8.6) ; la preuve OpenTimestamps reste en attente.",
+      config,
+    );
+    s.demarrage("2026-11-03T13:40:00.000Z").point("K1").inclusion("2026-11-03T13:42:03.000Z", ANCRE("K1"), 20001).granted("2026-11-03T13:42:05.000Z", JETON("K1"), 1, { gen_time: "2026-11-03T13:42:04Z", nom: "K1" });
+    s.tic("2026-11-03T13:45:00.000Z").tic("2026-11-03T13:50:00.000Z").point("K2").inclusion("2026-11-03T13:53:02.000Z", ANCRE("K2"), 20660).granted("2026-11-03T13:53:04.000Z", JETON("K2"), 1, { gen_time: "2026-11-03T13:53:03Z", nom: "K2" });
+    s.point("K3").tic("2026-11-03T13:55:00.000Z").point("K4").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" });
+    s.inclusion("2026-11-03T14:00:02.000Z", ANCRE("K4"), 21085).echecRegistre("2026-11-03T14:00:03.000Z", AP1, "empreinte_squattee");
+    s.granted("2026-11-03T14:00:07.000Z", JETON("K4"), 1, { gen_time: "2026-11-03T14:00:06Z", nom: "K4" });
+    s.tic("2026-11-03T14:01:10.000Z").tic("2026-11-03T14:02:10.000Z").arret("2026-11-03T14:03:00.000Z");
+    ajouter(s, (t) => [
+      ["K1 sert D_1 à D_4, K2 sert D_5", JSON.stringify(dem(t, JETON("K1")).deadlines) === "[1,2,3,4]" && JSON.stringify(dem(t, JETON("K2")).deadlines) === "[5]"],
+      ["ancre de la période envoyée une fois, refusee, alerte critique", actions(t, "envoyer_registre", (a) => a.request_id === AP1).length === 1 && dem(t, AP1).state === "refusee" && actions(t, "alerter", (a) => a.request_id === AP1 && a.detail.code === "empreinte_squattee" && a.detail.severity === "critique").length === 1],
+      ["repli à 14:00:05.250 après le refus (checkpoint_closing_fallback)", JSON.stringify(actions(t, "journaliser", (a) => a.detail.event === "checkpoint_closing_fallback").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T14:00:05.250Z", JETON("K4")]])],
+      ["jeton du point de clôture sans échéance, obtenu, contresignature closing_fallback", JSON.stringify(dem(t, JETON("K4")).deadlines) === "[]" && dem(t, JETON("K4")).state === "obtenue" && actions(t, "journaliser", (a) => a.request_id === JETON("K4") && a.detail.event === "checkpoint_countersigned")[0]?.detail.closing_fallback === true],
+      ["aucune requête RFC 3161 sur periodHash ; jeton de clôture en attente_registre", actions(t, "envoyer_rfc3161", (a) => a.request_id === PH1).length === 0 && dem(t, PH1).state === "attente_registre"],
+      ["registry_pending consigné à 14:01:00.250 et 14:02:00.250", JSON.stringify(actions(t, "journaliser", (a) => a.request_id === PH1 && a.detail.event === "registry_pending").map((a) => a.t)) === JSON.stringify(["2026-11-03T14:01:00.250Z", "2026-11-03T14:02:00.250Z"])],
+    ]);
+  }
+
+  // 31. registre-saut-horloge (EX-8.10) : au plus REJEUX_PAR_PASSE_MAX rejeux par minuterie, par demande et par passe.
+  {
+    const s = new Scenario(
+      "registre-saut-horloge",
+      "Clôture de la période 1 de référence : l'ancre du point de clôture K4 est incluse et son jeton obtenu ; l'ancre de la période, envoyée à 14:00:02, n'est pas incluse (inclusion_alert_s = 60 s). L'entrée suivante arrive à 14:40:00 (saut d'horloge) : la passe franchit trente-neuf échéances de renvoi de l'ancre (14:01:02 à 14:39:02) et autant d'examen de l'attente du registre (14:01:00.250 à 14:39:00.250). Au plus quatre rejeux par minuterie et par demande (EX-8.10) : l'ancre est renvoyée à 14:01:02 (renvoi des mêmes octets, inclusion_late mineure), puis remplacée au même nonce à 14:02:02, 14:03:02 et 14:04:02 (inclusion_late majeure) ; la ligne anchor_retry du quatrième rejeu (mode renvoi, error_code recu_absent, rang et attempt_id de la tentative close) porte missed_deadlines = 35, les échéances de 14:05:02 à 14:39:02, jamais rejouées une à une, et le renvoi suivant est programmé à 14:40:02. L'attente du registre du jeton de clôture est examinée quatre fois (registry_pending de 14:01:00.250 à 14:04:00.250, alerte majeure une fois), puis à 14:40:00.250 ; les examens sautés ne sont pas consignés. L'ancre est incluse à 14:40:01 et le jeton de clôture obtenu à 14:40:03.",
+      configuration(),
+    );
+    s.demarrage("2026-11-03T13:59:00.000Z").point("K4").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" });
+    s.inclusion("2026-11-03T14:00:02.000Z", ANCRE("K4"), 21085).granted("2026-11-03T14:00:03.000Z", JETON("K4"), 1, { gen_time: "2026-11-03T14:00:02Z", nom: "K4" });
+    s.tic("2026-11-03T14:40:00.000Z").inclusion("2026-11-03T14:40:01.000Z", AP1, 23487);
+    s.granted("2026-11-03T14:40:03.000Z", PH1, 1, { gen_time: "2026-11-03T14:40:02Z", nom: "periode 1", size: 3082 }).arret("2026-11-03T14:41:00.000Z");
+    ajouter(s, (t) => {
+      const ap1 = dem(t, AP1);
+      const retry = actions(t, "journaliser", (a) => a.request_id === AP1 && a.detail.event === "anchor_retry");
+      return [
+        ["ancre de la période envoyée à 14:00:02 puis rejouée quatre fois dans la passe", JSON.stringify(actions(t, "envoyer_registre", (a) => a.request_id === AP1).map((a) => a.t)) === JSON.stringify(["2026-11-03T14:00:02.000Z", "2026-11-03T14:01:02.000Z", "2026-11-03T14:02:02.000Z", "2026-11-03T14:03:02.000Z", "2026-11-03T14:04:02.000Z"])],
+        ["inclusion_late mineure puis trois majeures", JSON.stringify(actions(t, "alerter", (a) => a.request_id === AP1 && a.detail.code === "inclusion_late").map((a) => a.detail.severity)) === JSON.stringify(["mineure", "majeure", "majeure", "majeure"])],
+        ["une ligne anchor_retry, au quatrième rejeu, missed_deadlines 35, tentative close 4", retry.length === 1 && retry[0].t === "2026-11-03T14:04:02.000Z" && JSON.stringify(retry[0].detail) === JSON.stringify({ event: "anchor_retry", kind: "ancre_registre_periode", mode: "renvoi", error_code: "recu_absent", missed_deadlines: 35, attempt: 4, attempt_id: A.identifiantCorrelation("ancre_registre_periode", ex.periodHash[1], 4) })],
+        ["registry_pending quatre fois dans la passe, puis à 14:40:00.250", JSON.stringify(actions(t, "journaliser", (a) => a.request_id === PH1 && a.detail.event === "registry_pending").map((a) => [a.t, a.detail.age_s])) === JSON.stringify([["2026-11-03T14:01:00.250Z", 60], ["2026-11-03T14:02:00.250Z", 120], ["2026-11-03T14:03:00.250Z", 180], ["2026-11-03T14:04:00.250Z", 240], ["2026-11-03T14:40:00.250Z", 2400]])],
+        ["ancre obtenue en cinq tentatives, jeton de clôture obtenu", ap1.state === "obtenue" && ap1.attempts_total === 5 && dem(t, PH1).state === "obtenue"],
+      ];
+    });
+  }
+
+  // 32. redemarrage-due-at-borne (EX-4.13 ; complément du 2026-11-16) : l'heure murale, avancée de deux heures, a daté la
+  // reprise d'un jeton ; redémarré après la correction de l'heure, le planificateur ramène ce due_at à now + retry.max_ms.
+  {
+    const avant = new Scenario("redemarrage-due-at-borne-avant", "x", configuration(), { jitter: [0] });
+    avant.demarrage("2026-11-03T13:40:00.000Z").point("K1").inclusion("2026-11-03T13:42:03.000Z", ANCRE("K1"), 20001);
+    avant.echec("2026-11-03T15:42:05.000Z", JETON("K1"), 1, { transport: "delai" });
+    avant.construire();
+    const lus = A.lireFile(avant.lignes.map((l) => l + "\n").join(""));
+    const jk1 = lus.demandes.find((d) => d.id === JETON("K1"));
+    exiger(!lus.truncated && lus.errors.length === 0 && jk1?.state === "a_reprendre" && jk1.due_at === "2026-11-03T15:42:10.000Z", `redemarrage-due-at-borne : file avant le redémarrage (${JSON.stringify({ etat: jk1?.state, due_at: jk1?.due_at })})`);
+    const s = new Scenario(
+      "redemarrage-due-at-borne",
+      "Période 1 de référence, serveur interne pour les points : la requête du jeton de K1, partie à 13:42:03, reste sans réponse ; l'heure murale ayant avancé de deux heures, son délai est constaté à 15:42:05 et la reprise programmée à 15:42:10 (a_reprendre, retry.initial_ms, gigue nulle). Le composant s'arrête ; l'heure est corrigée ; il redémarre à 13:43:00 sur cette file. EX-4.13 (complément du 2026-11-16) : au démarrage, le due_at d'une demande a_reprendre postérieur à l'instant courant plus retry.max_ms (300 s) est ramené à cette borne, 13:48:00 (programmer backoff, ligne réécrite) ; la tentative 2 part à 13:48:00 et le jeton est obtenu. Sans la borne, la reprise attendrait deux heures.",
+      configuration(),
+      { queue_before: lus.demandes },
+    );
+    s.demarrage("2026-11-03T13:43:00.000Z").tic("2026-11-03T13:47:59.000Z").tic("2026-11-03T13:48:00.000Z");
+    s.granted("2026-11-03T13:48:01.000Z", JETON("K1"), 2, { gen_time: "2026-11-03T13:48:00Z", nom: "K1 reprise" }).arret("2026-11-03T13:49:00.000Z");
+    ajouter(s, (t) => [
+      ["due_at ramené à 13:48:00 au démarrage (programmer backoff, puis ligne a_reprendre)", JSON.stringify(t.expected.slice(1, 3).map((a) => [a.t, a.action, a.request_id, a.detail])) === JSON.stringify([["2026-11-03T13:43:00.000Z", "programmer", JETON("K1"), { next_at: "2026-11-03T13:48:00.000Z", reason: "backoff" }], ["2026-11-03T13:43:00.000Z", "ecrire_file", JETON("K1"), { state: "a_reprendre" }]])],
+      ["tentative 2 envoyée à 13:48:00, aucune avant", JSON.stringify(actions(t, "envoyer_rfc3161").map((a) => [a.t, a.detail.attempt])) === JSON.stringify([["2026-11-03T13:48:00.000Z", 2]])],
+      ["jeton de K1 obtenu", dem(t, JETON("K1")).state === "obtenue" && dem(t, JETON("K1")).attempts_total === 2],
+    ]);
+  }
+
+  const nominale = liste.find((x) => x.trace.id === "heure-nominale-reference").trace;
+  const acquisitionDe = (d) => ({ request_id: d.id, result: { ...d.result } });
+
+  // 33. redemarrage-jeton-sans-acquisition (EX-5.8 ; complément du 2026-11-16) : la demande du jeton de clôture est
+  // obtenue dans la file, mais acquisitions.ndjson ne porte pas son enregistrement promu : elle est rouverte et renvoyée.
+  {
+    const file = JSON.parse(JSON.stringify(nominale.queue_after));
+    const relues = file.filter((d) => (d.kind === "jeton_point" || d.kind === "jeton_periode") && d.state === "obtenue" && d.id !== PH1).map(acquisitionDe);
+    const s = new Scenario(
+      "redemarrage-jeton-sans-acquisition",
+      "La file finale de la trace de référence, relue au redémarrage de 14:05:00 avec les enregistrements obtenue promus d'acquisitions.ndjson (entrée demarrage, membre acquisitions) : ceux des jetons de K1, K2 et K4 y sont, celui du jeton de clôture manque (fragment perdu, EX-5.14). EX-5.8 (complément du 2026-11-16) : la demande du jeton de clôture, obtenue dans la file sans enregistrement de même token_sha256, est rouverte (résultat effacé, a_reprendre à 14:05:00, ligne réécrite, alerte file_perdue critique) et renvoyée au principal au rang 2 ; le jeton obtenu à 14:05:01 est promu. Les trois autres demandes ne changent pas.",
+      configuration(),
+      { queue_before: file },
+    );
+    s.demarrage("2026-11-03T14:05:00.000Z", { acquisitions: relues });
+    s.granted("2026-11-03T14:05:01.000Z", PH1, 2, { gen_time: "2026-11-03T14:05:01Z", nom: "periode 1 reprise", size: 3082 }).arret("2026-11-03T14:06:00.000Z");
+    ajouter(s, (t) => [
+      ["trois enregistrements relus, le jeton de clôture n'en a pas", relues.length === 3],
+      ["jeton de clôture rouvert au démarrage : ligne a_reprendre et alerte file_perdue", JSON.stringify(t.expected.slice(1, 3).map((a) => [a.action, a.request_id, a.detail])) === JSON.stringify([["ecrire_file", PH1, { state: "a_reprendre" }], ["alerter", PH1, { code: "file_perdue", severity: "critique" }]])],
+      ["renvoyé au principal au rang 2, puis obtenu avec le nouveau jeton", JSON.stringify(actions(t, "envoyer_rfc3161").map((a) => [a.t, a.request_id, a.detail.provider, a.detail.attempt])) === JSON.stringify([["2026-11-03T14:05:00.000Z", PH1, "qtsa-principal", 2]]) && dem(t, PH1).state === "obtenue" && dem(t, PH1).result.sha256 === shaTexte("jeton periode 1 reprise")],
+      ["aucune autre demande réécrite", actions(t, "ecrire_file", (a) => a.request_id !== PH1).length === 0],
+    ]);
+  }
+
+  // 34. file-perdue-jeton-point-obtenu (EX-8.12 ; complément du 2026-11-16) : comme file-perdue, mais acquisitions.ndjson
+  // porte le jeton promu de K3 : sa demande est recréée obtenue, sans requête.
+  {
+    const s = new Scenario(
+      "file-perdue-jeton-point-obtenu",
+      "Période 1 de l'exemple de référence : la file est perdue après l'obtention du jeton de K3 ; le composant redémarre à 13:56 avec une file vide. L'enregistreur relève dans son stockage les points K1 à K3 (stockage_relu) et le composant y joint l'enregistrement obtenue promu du jeton de K3 relu d'acquisitions.ndjson (membre acquisitions). EX-8.12 (complément du 2026-11-16) : le dernier point de la période ouverte, K3, est traité comme admis ; son ancre au registre est recréée et envoyée, sa demande de jeton est recréée obtenue avec ce résultat, sans requête, et satisfait D_1 à D_10 ; anchoring_queue_rebuilt et alerte file_perdue. La suite de l'heure est servie normalement.",
+      configuration(),
+    );
+    const resultatK3 = { sha256: shaTexte("jeton K3"), size: 2104, provider: "tsa-interne", obtained_at: "2026-11-03T13:54:04.000Z", bound: "2026-11-03T13:54:04.000Z" };
+    s.demarrage("2026-11-03T13:56:00.000Z").stockage("2026-11-03T13:56:00.000Z", { checkpoints: ["K1", "K2", "K3"].map((n) => ({ org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: PERIOD_START_1, tree_size: POINTS[n].tree_size, checkpoint_hash: POINTS[n].hash, checkpoint_ts: POINTS[n].ts })), acquisitions: [{ request_id: JETON("K3"), result: resultatK3 }] });
+    s.inclusion("2026-11-03T13:56:02.000Z", ANCRE("K3"), 20730);
+    s.point("K4").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" });
+    s.inclusion("2026-11-03T14:00:02.000Z", ANCRE("K4"), 21085).granted("2026-11-03T14:00:03.000Z", JETON("K4"), 1, { gen_time: "2026-11-03T14:00:02Z", nom: "K4" });
+    s.inclusion("2026-11-03T14:00:04.000Z", AP1, 21087).granted("2026-11-03T14:00:05.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:05Z", nom: "periode 1", size: 3082 }).arret("2026-11-03T14:01:00.000Z");
+    ajouter(s, (t) => [
+      ["deux demandes recréées (ancre et jeton de K3), file_perdue", actions(t, "journaliser", (a) => a.detail.event === "anchoring_queue_rebuilt")[0]?.detail.recreated === 2 && actions(t, "alerter", (a) => a.detail.code === "file_perdue").length === 1],
+      ["jeton de K3 recréé obtenu avec le résultat relu, sans requête", JSON.stringify(dem(t, JETON("K3")).result) === JSON.stringify(resultatK3) && dem(t, JETON("K3")).state === "obtenue" && dem(t, JETON("K3")).attempts_total === 0 && actions(t, "envoyer_rfc3161", (a) => a.request_id === JETON("K3")).length === 0],
+      ["D_1 à D_10 satisfaites par le jeton recréé", JSON.stringify(actions(t, "echeance", (a) => a.request_id === JETON("K3") && a.detail.state === "satisfaite").map((a) => a.detail.k)) === "[1,2,3,4,5,6,7,8,9,10]"],
+      ["ancre de K3 recréée et incluse ; K4 et la clôture servis", dem(t, ANCRE("K3")).state === "obtenue" && dem(t, JETON("K4")).state === "obtenue" && dem(t, PH1).state === "obtenue"],
+    ]);
+  }
+
+  // 35. file-perdue-jeton-periode-obtenu (EX-8.12 ; complément du 2026-11-16) : la file est perdue après la clôture ; le
+  // jeton de clôture promu est relu d'acquisitions.ndjson : sa demande est recréée obtenue, sans requête.
+  {
+    const s = new Scenario(
+      "file-perdue-jeton-periode-obtenu",
+      "Période 1 de l'exemple de référence : la file est perdue après l'obtention du jeton de clôture, avant l'inclusion de l'ancre de la période ; le composant redémarre à 14:05 avec une file vide. L'enregistreur relève le manifeste de la période 1, sans ancre obtenue (stockage_relu), et le composant y joint l'enregistrement obtenue promu du jeton de clôture relu d'acquisitions.ndjson (membre acquisitions). EX-8.12 (complément du 2026-11-16) : la période close reçoit ses trois demandes ; celle du jeton de clôture est créée obtenue avec ce résultat, sans requête, et satisfait l'échéance n_T ; l'ancre de la période est envoyée puis incluse ; la preuve OpenTimestamps est soumise ; anchoring_queue_rebuilt et alerte file_perdue.",
+      configuration(),
+    );
+    const resultatPH1 = { sha256: shaTexte("jeton periode 1"), size: 3082, provider: "qtsa-principal", obtained_at: "2026-11-03T14:00:05.000Z", bound: "2026-11-03T14:00:06.000Z" };
+    s.demarrage("2026-11-03T14:05:00.000Z").stockage("2026-11-03T14:05:00.000Z", { periods: [sujetPeriode(ex, 1)], acquisitions: [{ request_id: PH1, result: resultatPH1 }] });
+    s.inclusion("2026-11-03T14:05:02.000Z", AP1, 21187).ots("2026-11-03T14:05:03.000Z", OP1, { nom: "en attente periode 1" }).arret("2026-11-03T14:06:00.000Z");
+    ajouter(s, (t) => [
+      ["trois demandes recréées, file_perdue", actions(t, "journaliser", (a) => a.detail.event === "anchoring_queue_rebuilt")[0]?.detail.recreated === 3 && actions(t, "alerter", (a) => a.detail.code === "file_perdue").length === 1],
+      ["jeton de clôture recréé obtenu avec le résultat relu, sans requête ni attente du registre", JSON.stringify(dem(t, PH1).result) === JSON.stringify(resultatPH1) && dem(t, PH1).state === "obtenue" && actions(t, "envoyer_rfc3161").length === 0 && actions(t, "programmer", (a) => a.request_id === PH1).length === 0],
+      ["échéance n_T satisfaite par le jeton recréé", JSON.stringify(actions(t, "echeance", (a) => a.request_id === PH1).map((a) => a.detail)) === JSON.stringify([{ k: 12, state: "satisfaite" }])],
+      ["ancre de la période incluse, preuve en attente", dem(t, AP1).state === "obtenue" && dem(t, OP1).state === "en_attente"],
+    ]);
+  }
+
+  // 36. redemarrage-jeton-recree-couvrant (EX-8.12, EX-4.4 ; complément du 2026-11-16) : la demande de jeton recréée
+  // obtenue s'applique comme à sa promotion : elle clôt remplacee la demande de point relue qui sert des échéances
+  // antérieures.
+  {
+    const avant = new Scenario("redemarrage-jeton-recree-couvrant-avant", "x", configuration(), { jitter: [0] });
+    avant.demarrage("2026-11-03T13:40:00.000Z").point("K1").inclusion("2026-11-03T13:42:03.000Z", ANCRE("K1"), 20001);
+    avant.echec("2026-11-03T13:42:13.000Z", JETON("K1"), 1, { transport: "delai" });
+    avant.construire();
+    const lus = A.lireFile(avant.lignes.map((l) => l + "\n").join(""));
+    const jk1 = lus.demandes.find((d) => d.id === JETON("K1"));
+    exiger(!lus.truncated && lus.errors.length === 0 && jk1?.state === "a_reprendre" && JSON.stringify(jk1.deadlines) === "[1,2,3,4,5,6,7,8]", `redemarrage-jeton-recree-couvrant : file avant le redémarrage (${JSON.stringify({ etat: jk1?.state, deadlines: jk1?.deadlines })})`);
+    const resultatK3 = { sha256: shaTexte("jeton K3"), size: 2104, provider: "tsa-interne", obtained_at: "2026-11-03T13:54:04.000Z", bound: "2026-11-03T13:54:04.000Z" };
+    const s = new Scenario(
+      "redemarrage-jeton-recree-couvrant",
+      "Période 1 de l'exemple de référence, serveur interne pour les points. La file relue ne porte que les demandes de K1 : son ancre incluse et son jeton (D_1 à D_8) a_reprendre après un délai d'attente à 13:42:13 ; le fichier de file qui portait la suite est perdu (EX-8.5, règle 6). Au redémarrage de 13:56:00, le jeton de K1, dont la reprise est échue, part aussitôt au rang 2 (EX-8.12). L'enregistreur relit K1 à K3 dans son stockage (stockage_relu) et le composant y joint l'enregistrement obtenue promu du jeton de K3 (membre acquisitions) : K3, dernier point de la période ouverte sans demande, est admis, son ancre recréée et envoyée, et sa demande de jeton recréée obtenue avec ce résultat, sans requête, qui satisfait D_9 et D_10. EX-8.12 (complément du 2026-11-16) : la demande recréée obtenue s'applique comme à sa promotion (EX-4.4 ; EX-8.4, règle 1) : la demande de K1, qui sert D_1 à D_8, est close remplacee (replaced_by le jeton de K3), avec la ligne checkpoint_anchor_late (window_s : borne du jeton de K3 moins D_1) et l'alerte mineure du serveur interne. Sans cette règle, la demande de K1 resterait active pour des échéances déjà couvertes.",
+      configuration(),
+      { queue_before: lus.demandes },
+    );
+    s.demarrage("2026-11-03T13:56:00.000Z").stockage("2026-11-03T13:56:00.000Z", { checkpoints: ["K1", "K2", "K3"].map((n) => ({ org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: PERIOD_START_1, tree_size: POINTS[n].tree_size, checkpoint_hash: POINTS[n].hash, checkpoint_ts: POINTS[n].ts })), acquisitions: [{ request_id: JETON("K3"), result: resultatK3 }] });
+    s.inclusion("2026-11-03T13:56:02.000Z", ANCRE("K3"), 20730).arret("2026-11-03T13:57:00.000Z");
+    ajouter(s, (t) => {
+      const late = actions(t, "journaliser", (a) => a.detail.event === "checkpoint_anchor_late");
+      return [
+        ["jeton de K1 renvoyé au rang 2 au démarrage", JSON.stringify(actions(t, "envoyer_rfc3161").map((a) => [a.t, a.request_id, a.detail.attempt])) === JSON.stringify([["2026-11-03T13:56:00.000Z", JETON("K1"), 2]])],
+        ["jeton de K3 recréé obtenu, D_9 et D_10 satisfaites", dem(t, JETON("K3")).state === "obtenue" && JSON.stringify(dem(t, JETON("K3")).deadlines) === "[9,10]" && dem(t, JETON("K3")).attempts_total === 0],
+        ["demande de K1 close remplacee par le jeton recréé de K3", dem(t, JETON("K1")).state === "remplacee" && dem(t, JETON("K1")).replaced_by === JETON("K3")],
+        ["checkpoint_anchor_late de K1 (D_1 à D_8, window_s 2944), alerte mineure", late.length === 1 && late[0].request_id === JETON("K1") && late[0].detail.window_s === 2944 && JSON.stringify(late[0].detail.deadlines) === "[1,2,3,4,5,6,7,8]" && actions(t, "alerter", (a) => a.detail.code === "checkpoint_anchor_late")[0]?.detail.severity === "mineure"],
+      ];
+    });
+  }
+
+  // 37. redemarrage-ancres-a-reprendre (EX-8.10, EX-8.12, EX-4.13 ; complément du 2026-11-16) : une ancre au registre et
+  // une soumission OpenTimestamps a_reprendre gardent leur due_at au démarrage.
+  {
+    const avant = new Scenario("redemarrage-ancres-a-reprendre-avant", "x", configuration(), { jitter: [0, 0] });
+    avant.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).echecRegistre("2026-11-03T14:00:01.000Z", AP1, "noeud_injoignable");
+    avant.ots("2026-11-03T14:00:02.000Z", OP1, { calendars_answered: 1, nom: null });
+    avant.construire();
+    const lus = A.lireFile(avant.lignes.map((l) => l + "\n").join(""));
+    const ap = lus.demandes.find((d) => d.id === AP1);
+    const op = lus.demandes.find((d) => d.id === OP1);
+    exiger(!lus.truncated && lus.errors.length === 0 && ap?.state === "a_reprendre" && ap.due_at === "2026-11-03T14:00:06.000Z" && op?.state === "a_reprendre" && op.due_at === "2026-11-03T14:00:07.000Z", `redemarrage-ancres-a-reprendre : file avant le redémarrage (${JSON.stringify({ ancre: [ap?.state, ap?.due_at], ots: [op?.state, op?.due_at] })})`);
+    const s = new Scenario(
+      "redemarrage-ancres-a-reprendre",
+      "Clôture de la période 1 de référence. Avant l'arrêt, le registre signale noeud_injoignable pour l'ancre de la période (14:00:01) : échec transitoire, l'ancre passe a_reprendre, due_at 14:00:06 (retry.initial_ms, gigue nulle ; ligne anchor_retry de mode reprise, EX-8.10) ; la soumission OpenTimestamps n'obtient qu'un calendrier sur deux (14:00:02) : a_reprendre, due_at 14:00:07 (EX-8.11). Le composant s'arrête et redémarre à 14:00:04 sur cette file. EX-8.12 (a_reprendre garde due_at) et EX-4.13 (complément du 2026-11-16) : ni l'ancre ni la soumission ne repartent au démarrage ; l'ancre est renvoyée à 14:00:06 (rang 2), la soumission rejouée à 14:00:07 avec un nouvel essai (rang 2) ; leurs due_at sont sous la borne t + retry.max_ms. L'ancre est incluse à 14:00:08 ; le jeton de clôture, qui attendait son inclusion (attente_registre), part alors au principal et il est obtenu ; la preuve est en attente à 14:00:09.",
+      configuration(),
+      { queue_before: lus.demandes, jitter: [] },
+    );
+    s.demarrage("2026-11-03T14:00:04.000Z").tic("2026-11-03T14:00:05.000Z").tic("2026-11-03T14:00:07.000Z");
+    s.inclusion("2026-11-03T14:00:08.000Z", AP1, 21087).ots("2026-11-03T14:00:09.000Z", OP1, { nom: "en attente periode 1" });
+    s.granted("2026-11-03T14:00:10.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:10Z", nom: "periode 1", size: 3082 }).arret("2026-11-03T14:01:00.000Z");
+    ajouter(s, (t) => [
+      ["rien ne repart au démarrage (14:00:04)", actions(t, "envoyer_registre").every((a) => a.t !== "2026-11-03T14:00:04.000Z") && actions(t, "soumettre_ots").every((a) => a.t !== "2026-11-03T14:00:04.000Z")],
+      ["ancre de la période renvoyée à 14:00:06 au rang 2", JSON.stringify(actions(t, "envoyer_registre").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T14:00:06.000Z", AP1]]) && dem(t, AP1).attempts_total === 2 && dem(t, AP1).state === "obtenue"],
+      ["soumission OpenTimestamps rejouée à 14:00:07, puis en attente", JSON.stringify(actions(t, "soumettre_ots").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T14:00:07.000Z", OP1]]) && dem(t, OP1).state === "en_attente"],
+      ["jeton de clôture envoyé après l'inclusion, obtenu", actions(t, "envoyer_rfc3161", (a) => a.request_id === PH1)[0]?.t === "2026-11-03T14:00:08.000Z" && dem(t, PH1).state === "obtenue"],
+    ]);
+  }
+
+  // 38. repli-ancre-incluse-jeton-retenu (EX-8.4 règle 2, EX-4.2 ; complément du 2026-11-16) : lu à la lettre, le repli
+  // de clôture part quand jeton_periode est encore attente_registre squat_wait_s après la clôture, même si l'ancre de la
+  // période est incluse et que seule min_interval_ms du principal retient le jeton.
+  {
+    const config = configuration({ provider_role: "principal", min_interval: { principal: 480000 } });
+    config.rfc3161.checkpoints.interval_s = 600;
+    const s = new Scenario(
+      "repli-ancre-incluse-jeton-retenu",
+      "Période 1 de référence avec c_T = 600 s (n_T = 6) et les points contresignés par le principal, dont min_interval_ms vaut 480 000 (huit minutes) : K1 sert D_1 à D_4 (jeton à 13:42:03), K2 sert D_5 (jeton à 13:53:02, qui rend le principal indisponible jusqu'à 14:01:02), et le point de clôture K4 n'est sélectionné par aucune échéance. À la clôture, l'ancre de K4 est incluse à 14:00:02, puis l'ancre de la période à 14:00:03 : le jeton de clôture est prêt, mais retenu par min_interval_ms jusqu'à 14:01:02 (EX-8.7) ; sa ligne reste attente_registre. EX-8.4, règle 2, lue à la lettre (complément du 2026-11-16) : squat_wait_s (5 s) après la clôture, à 14:00:05.250, jeton_periode est encore attente_registre ; le point de clôture reçoit donc la demande du repli (checkpoint_closing_fallback), prête au principal derrière le jeton de clôture (EX-8.7). À 14:01:02 le jeton de clôture part le premier ; obtenu à 14:01:03, il clôt remplacee la demande du repli, qui n'est jamais envoyée (EX-4.2) : aucun jeton de plus que les maxima d'EX-4.11.",
+      config,
+    );
+    s.demarrage("2026-11-03T13:40:00.000Z").point("K1").inclusion("2026-11-03T13:42:03.000Z", ANCRE("K1"), 20001).granted("2026-11-03T13:42:05.000Z", JETON("K1"), 1, { gen_time: "2026-11-03T13:42:04Z", nom: "K1 qualifie", size: 3082 });
+    s.tic("2026-11-03T13:45:00.000Z").tic("2026-11-03T13:50:00.000Z").point("K2").inclusion("2026-11-03T13:53:02.000Z", ANCRE("K2"), 20660).granted("2026-11-03T13:53:04.000Z", JETON("K2"), 1, { gen_time: "2026-11-03T13:53:03Z", nom: "K2 qualifie", size: 3082 });
+    s.point("K3").tic("2026-11-03T13:55:00.000Z").point("K4").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" });
+    s.inclusion("2026-11-03T14:00:02.000Z", ANCRE("K4"), 21085).inclusion("2026-11-03T14:00:03.000Z", AP1, 21087);
+    s.granted("2026-11-03T14:01:03.000Z", PH1, 1, { gen_time: "2026-11-03T14:01:03Z", nom: "periode 1", size: 3082 }).arret("2026-11-03T14:02:00.000Z");
+    ajouter(s, (t) => [
+      ["K1 sert D_1 à D_4, K2 sert D_5 ; K4 sans échéance", JSON.stringify(dem(t, JETON("K1")).deadlines) === "[1,2,3,4]" && JSON.stringify(dem(t, JETON("K2")).deadlines) === "[5]" && JSON.stringify(dem(t, JETON("K4")).deadlines) === "[]"],
+      ["ancre de la période obtenue à 14:00:03, jeton de clôture retenu jusqu'à 14:01:02", dem(t, AP1).state === "obtenue" && JSON.stringify(actions(t, "envoyer_rfc3161", (a) => a.request_id === PH1).map((a) => a.t)) === JSON.stringify(["2026-11-03T14:01:02.000Z"])],
+      ["repli à 14:00:05.250 (checkpoint_closing_fallback) malgré l'ancre incluse", JSON.stringify(actions(t, "journaliser", (a) => a.detail.event === "checkpoint_closing_fallback").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T14:00:05.250Z", JETON("K4")]])],
+      ["repli jamais envoyé, clos remplacee par le jeton de clôture", actions(t, "envoyer_rfc3161", (a) => a.request_id === JETON("K4")).length === 0 && dem(t, JETON("K4")).state === "remplacee" && dem(t, JETON("K4")).replaced_by === PH1 && dem(t, PH1).state === "obtenue"],
+    ]);
+  }
+
+  // 39. ots-reponses-insuffisantes (EX-8.11, EX-6.2, EX-8.9 ; complément du 2026-11-16) : une soumission OpenTimestamps
+  // qui obtient moins de min_responses réponses valables, quelle que soit l'attestation, est rejetée comme une réponse
+  // RFC 3161 en échec transitoire (rejeter_reponse, anchor_response_rejected), puis rejouée à l'attente d'EX-8.9.
+  {
+    const s = new Scenario(
+      "ots-reponses-insuffisantes",
+      "Clôture de la période 1 de référence, deux calendriers et min_responses 2 (gigues 250 et 500 ms). EX-8.11 (complément du 2026-11-16) : la soumission OpenTimestamps n'obtient qu'un calendrier à 14:00:01 : la tentative 1 est close echec_transitoire, code reponses_insuffisantes, comme une réponse RFC 3161 en échec transitoire (EX-5.12) : action rejeter_reponse de classe transitoire et ligne anchor_response_rejected (rang et attempt_id de la tentative, provider nul) ; la demande passe a_reprendre, programmée à l'attente d'EX-8.9 (k = 1 : retry.initial_ms plus la gigue, 14:00:06.250). La tentative 2 rapporte à 14:00:07 une attestation Bitcoin d'un seul calendrier : moins de min_responses réponses valables, la soumission échoue encore (EX-6.2, point 4), même code, k = 2 (14:00:17.500). La tentative 3 obtient les deux calendriers à 14:00:18 : la preuve est en attente, la série est close (EX-8.9) et la mise à niveau programmée à upgrade.first_after_s. L'ancre de la période est incluse et le jeton de clôture obtenu entre-temps.",
+      configuration(),
+      { jitter: [250, 500] },
+    );
+    s.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { calendars_answered: 1, nom: null });
+    s.inclusion("2026-11-03T14:00:02.000Z", AP1, 21087).granted("2026-11-03T14:00:03.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:03Z", nom: "periode 1", size: 3082 });
+    s.tic("2026-11-03T14:00:06.250Z").ots("2026-11-03T14:00:07.000Z", OP1, { attestation: "complete", calendars_answered: 1, nom: "complete d'un seul calendrier", size: 316 });
+    s.tic("2026-11-03T14:00:17.500Z").ots("2026-11-03T14:00:18.000Z", OP1, { nom: "en attente periode 1" }).arret("2026-11-03T14:01:00.000Z");
+    ajouter(s, (t) => {
+      const ots = dem(t, OP1);
+      const rejets = actions(t, "journaliser", (a) => a.request_id === OP1 && a.detail.event === "anchor_response_rejected");
+      return [
+        ["deux rejets reponses_insuffisantes de classe transitoire", JSON.stringify(actions(t, "rejeter_reponse").map((a) => [a.t, a.request_id, a.detail.error_code, a.detail.class])) === JSON.stringify([["2026-11-03T14:00:01.000Z", OP1, "reponses_insuffisantes", "transitoire"], ["2026-11-03T14:00:07.000Z", OP1, "reponses_insuffisantes", "transitoire"]])],
+        ["deux lignes anchor_response_rejected (rangs 1 et 2, attempt_id, provider nul)", JSON.stringify(rejets.map((a) => [a.detail.error_code, a.detail.attempt, a.detail.attempt_id, a.detail.provider])) === JSON.stringify([["reponses_insuffisantes", 1, A.identifiantCorrelation("ots_periode", ex.periodHash[1], 1), null], ["reponses_insuffisantes", 2, A.identifiantCorrelation("ots_periode", ex.periodHash[1], 2), null]])],
+        ["reprises à l'attente d'EX-8.9 (k = 1 puis 2, gigue comprise)", JSON.stringify(actions(t, "programmer", (a) => a.request_id === OP1 && a.detail.reason === "backoff").map((a) => a.detail.next_at)) === JSON.stringify(["2026-11-03T14:00:06.250Z", "2026-11-03T14:00:17.500Z"]) && JSON.stringify(actions(t, "soumettre_ots").map((a) => a.t)) === JSON.stringify(["2026-11-03T14:00:00.250Z", "2026-11-03T14:00:06.250Z", "2026-11-03T14:00:17.500Z"])],
+        ["attestation Bitcoin d'un seul calendrier refusée, puis preuve en attente au rang 3", JSON.stringify(ots.attempts.map((a) => [a.n, a.outcome, a.error_code])) === JSON.stringify([[1, "echec_transitoire", "reponses_insuffisantes"], [2, "echec_transitoire", "reponses_insuffisantes"], [3, "obtenue", null]]) && ots.state === "en_attente" && ots.result.sha256 === shaTexte("preuve en attente periode 1")],
+        ["même nonce à chaque soumission (EX-6.2)", new Set(actions(t, "soumettre_ots").map((a) => a.detail.nonce)).size === 1],
+      ];
+    });
+  }
+
+  // 40. redemarrage-ots-soumission-envoyee (EX-8.12, EX-8.9, EX-8.11 ; complément du 2026-11-16) : une soumission
+  // OpenTimestamps envoyee au démarrage est close redemarrage, comme la tentative d'un jeton, et repart aussitôt ; la
+  // tentative redemarrage interrompt sa série.
+  {
+    const avant = new Scenario("redemarrage-ots-soumission-envoyee-avant", "x", configuration(), { jitter: [0] });
+    avant.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { calendars_answered: 1, nom: null });
+    avant.inclusion("2026-11-03T14:00:02.000Z", AP1, 21087).granted("2026-11-03T14:00:03.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:03Z", nom: "periode 1", size: 3082 }).tic("2026-11-03T14:00:06.000Z");
+    avant.construire();
+    const lus = A.lireFile(avant.lignes.map((l) => l + "\n").join(""));
+    const op = lus.demandes.find((d) => d.id === OP1);
+    exiger(!lus.truncated && lus.errors.length === 0 && op?.state === "envoyee" && JSON.stringify(op.attempts.map((a) => [a.n, a.outcome, a.error_code])) === JSON.stringify([[1, "echec_transitoire", "reponses_insuffisantes"], [2, "en_cours", null]]) && lus.demandes.filter((d) => d.state === "obtenue").length === 2, `redemarrage-ots-soumission-envoyee : file avant le redémarrage (${JSON.stringify({ etat: op?.state, tentatives: op?.attempts.map((a) => [a.n, a.outcome]) })})`);
+    const s = new Scenario(
+      "redemarrage-ots-soumission-envoyee",
+      "Clôture de la période 1 de référence. Avant l'arrêt, la soumission OpenTimestamps n'a obtenu qu'un calendrier sur deux (14:00:01, tentative 1 close reponses_insuffisantes) et sa reprise est partie à 14:00:06 (tentative 2, envoyee) ; l'ancre de la période et le jeton de clôture sont obtenus. Le composant s'arrête et redémarre à 14:00:30 sur cette file. EX-8.12 (complément du 2026-11-16) : la soumission envoyee est traitée comme la tentative d'un jeton : sa tentative en cours est close echec_transitoire, code redemarrage (la réponse des calendriers a pu se perdre), la demande passe a_reprendre et la soumission repart aussitôt au rang 3, avec le même nonce et le même engagement (EX-6.2). Elle n'obtient encore qu'un calendrier à 14:00:31 : rejeter_reponse et anchor_response_rejected (reponses_insuffisantes, EX-8.11) ; la tentative redemarrage a interrompu la série (EX-8.9) : k = 1, attente retry.initial_ms plus la gigue de 750 ms (14:00:36.750), et non celle de deux ou trois échecs. La tentative 4 obtient les deux calendriers à 14:00:37 : preuve en attente.",
+      configuration(),
+      { queue_before: lus.demandes, jitter: [750] },
+    );
+    s.demarrage("2026-11-03T14:00:30.000Z").ots("2026-11-03T14:00:31.000Z", OP1, { calendars_answered: 1, nom: null });
+    s.tic("2026-11-03T14:00:36.750Z").ots("2026-11-03T14:00:37.000Z", OP1, { nom: "en attente periode 1" }).arret("2026-11-03T14:01:00.000Z");
+    ajouter(s, (t) => {
+      const ots = dem(t, OP1);
+      return [
+        ["au démarrage : tentative 2 close redemarrage, a_reprendre, programmée immédiatement", JSON.stringify(t.expected.filter((a) => a.t === "2026-11-03T14:00:30.000Z" && a.request_id === OP1).map((a) => [a.action, a.detail.state ?? a.detail.reason ?? null])) === JSON.stringify([["ecrire_file", "a_reprendre"], ["programmer", "immediat"], ["ecrire_file", "envoyee"], ["soumettre_ots", null]]) && ots.attempts.find((a) => a.n === 2)?.error_code === "redemarrage"],
+        ["soumission rejouée au rang 3 avec le nonce d'avant l'arrêt (EX-6.2)", actions(t, "soumettre_ots")[0]?.detail.nonce === actions(avant.trace, "soumettre_ots")[0]?.detail.nonce && ots.attempts.find((a) => a.n === 3)?.started_at === "2026-11-03T14:00:30.000Z"],
+        ["reponses_insuffisantes rejetée et consignée au rang 3", JSON.stringify(actions(t, "rejeter_reponse").map((a) => [a.t, a.detail.error_code, a.detail.class])) === JSON.stringify([["2026-11-03T14:00:31.000Z", "reponses_insuffisantes", "transitoire"]]) && actions(t, "journaliser", (a) => a.detail.event === "anchor_response_rejected" && a.detail.attempt === 3).length === 1],
+        ["série interrompue par la tentative redemarrage : k = 1 (5 s plus 750 ms)", JSON.stringify(actions(t, "programmer", (a) => a.request_id === OP1 && a.detail.reason === "backoff").map((a) => a.detail.next_at)) === JSON.stringify(["2026-11-03T14:00:36.750Z"])],
+        ["preuve en attente au rang 4", ots.state === "en_attente" && ots.attempts_total === 4 && JSON.stringify(ots.attempts.map((a) => [a.n, a.outcome, a.error_code])) === JSON.stringify([[1, "echec_transitoire", "reponses_insuffisantes"], [2, "echec_transitoire", "redemarrage"], [3, "echec_transitoire", "reponses_insuffisantes"], [4, "obtenue", null]])],
+      ];
+    });
+  }
+
+
+  // 41. ots-preuve-absente (EX-8.11, EX-8.5 règle 2, 8.9 ; complément du 2026-11-16) : une réponse des calendriers sans
+  // preuve écrite n'est jamais promue (soumission : preuve_absente ; mise à niveau : la preuve reste en attente) ; une
+  // réponse qui ne s'applique pas est consignée (tentative_close, demande_close, demande_inconnue).
+  {
+    const OK2 = ID("ots_point", POINTS.K2.hash);
+    const s = new Scenario(
+      "ots-preuve-absente",
+      "Clôture de la période 1 de référence, deux calendriers et min_responses 2 (gigues 250 et 500 ms). EX-8.11 (complément du 2026-11-16) : à 14:00:01 la soumission OpenTimestamps obtient les deux calendriers, attestation en attente, mais sans preuve écrite (proof_sha256 nul) : elle n'est jamais promue ; la tentative 1 est close echec_transitoire, code preuve_absente, avec rejeter_reponse de classe transitoire et la ligne anchor_response_rejected, puis a_reprendre à l'attente d'EX-8.9 (k = 1, 14:00:06.250). Une seconde réponse à 14:00:02, sans tentative en cours, est consignée tentative_close (EX-8.5, règle 2 : rang et attempt_id de la dernière tentative, provider nul, kept faux) et ne change rien. La tentative 2 rapporte à 14:00:07 une attestation Bitcoin de deux calendriers, toujours sans preuve : preuve_absente, k = 2 (14:00:17.500). La tentative 3 obtient la preuve en attente à 14:00:18 ; la mise à niveau part à upgrade.first_after_s (20:00:18). Sa réponse à 20:00:19 annonce une attestation Bitcoin sans preuve écrite : la preuve reste en attente, comme après une réponse 404, et la mise à niveau suivante part à upgrade.interval_s (20:30:19) ; elle rend l'attestation Bitcoin avec sa preuve à 20:30:20 : complete. Une réponse tardive à 20:30:21 est consignée demande_close (kept vrai : elle portait une preuve) ; une réponse des calendriers à une demande que la file ne connaît pas (ots_point de K2), demande_inconnue.",
+      configuration(),
+      { jitter: [250, 500] },
+    );
+    s.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: null });
+    s.ots("2026-11-03T14:00:02.000Z", OP1, { nom: null });
+    s.inclusion("2026-11-03T14:00:03.000Z", AP1, 21087).granted("2026-11-03T14:00:04.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:04Z", nom: "periode 1", size: 3082 });
+    s.tic("2026-11-03T14:00:06.250Z").ots("2026-11-03T14:00:07.000Z", OP1, { attestation: "complete", nom: null });
+    s.tic("2026-11-03T14:00:17.500Z").ots("2026-11-03T14:00:18.000Z", OP1, { nom: "en attente periode 1" });
+    s.tic("2026-11-03T20:00:18.000Z").ots("2026-11-03T20:00:19.000Z", OP1, { attestation: "complete", nom: null });
+    s.tic("2026-11-03T20:30:19.000Z").ots("2026-11-03T20:30:20.000Z", OP1, { attestation: "complete", nom: "complete periode 1", size: 316 });
+    s.ots("2026-11-03T20:30:21.000Z", OP1, { attestation: "complete", nom: "complete periode 1", size: 316 });
+    s.ots("2026-11-03T20:30:22.000Z", OK2, { nom: "en attente K2" }).arret("2026-11-03T20:31:00.000Z");
+    ajouter(s, (t) => {
+      const ots = dem(t, OP1);
+      const rejets = actions(t, "journaliser", (a) => a.detail.event === "anchor_response_rejected").map((a) => [a.t, a.request_id, a.detail.error_code, a.detail.attempt ?? null, a.detail.attempt_id ?? null, a.detail.provider, a.detail.kept ?? null]);
+      const id = (n) => A.identifiantCorrelation("ots_periode", ex.periodHash[1], n);
+      return [
+        ["deux rejets preuve_absente de classe transitoire", JSON.stringify(actions(t, "rejeter_reponse").map((a) => [a.t, a.detail.error_code, a.detail.class])) === JSON.stringify([["2026-11-03T14:00:01.000Z", "preuve_absente", "transitoire"], ["2026-11-03T14:00:07.000Z", "preuve_absente", "transitoire"]])],
+        ["lignes anchor_response_rejected : preuve_absente (rangs 1 et 2), tentative_close, demande_close, demande_inconnue", JSON.stringify(rejets) === JSON.stringify([
+          ["2026-11-03T14:00:01.000Z", OP1, "preuve_absente", 1, id(1), null, null],
+          ["2026-11-03T14:00:02.000Z", OP1, "tentative_close", 1, id(1), null, false],
+          ["2026-11-03T14:00:07.000Z", OP1, "preuve_absente", 2, id(2), null, null],
+          ["2026-11-03T20:30:21.000Z", OP1, "demande_close", 5, id(5), null, true],
+          ["2026-11-03T20:30:22.000Z", OK2, "demande_inconnue", null, null, null, false],
+        ])],
+        ["aucun stocker sans preuve ; reprises à l'attente d'EX-8.9 (k = 1 puis 2)", actions(t, "stocker", (a) => a.request_id === OP1).every((a) => a.detail.sha256 !== null) && JSON.stringify(actions(t, "programmer", (a) => a.request_id === OP1 && a.detail.reason === "backoff").map((a) => a.detail.next_at)) === JSON.stringify(["2026-11-03T14:00:06.250Z", "2026-11-03T14:00:17.500Z"])],
+        ["attestation Bitcoin sans preuve à la mise à niveau : en attente, mise à niveau suivante à interval_s", JSON.stringify(ots.attempts.map((a) => [a.n, a.outcome, a.error_code])) === JSON.stringify([[1, "echec_transitoire", "preuve_absente"], [2, "echec_transitoire", "preuve_absente"], [3, "obtenue", null], [4, "echec_transitoire", "en_attente"], [5, "obtenue", null]]) && actions(t, "programmer", (a) => a.request_id === OP1 && a.t === "2026-11-03T20:00:19.000Z")[0]?.detail.next_at === "2026-11-03T20:30:19.000Z"],
+        ["complete avec la preuve de 20:30:20", ots.state === "complete" && ots.result.sha256 === shaTexte("preuve complete periode 1")],
+      ];
+    });
+  }
+
+  // 42. redemarrage-ots-a-reprendre-en-cours (EX-8.12, EX-8.16 ; complément du 2026-11-16) : une ligne a_reprendre qui
+  // porte encore une soumission en cours (file écrite par une version antérieure du composant) se reprend au démarrage
+  // comme une soumission envoyee ; la tentative de soumission porte le détail « soumission a <n> calendriers ».
+  {
+    const avant = new Scenario("redemarrage-ots-a-reprendre-en-cours-avant", "x", configuration(), { jitter: [0] });
+    avant.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { calendars_answered: 1, nom: null });
+    avant.inclusion("2026-11-03T14:00:02.000Z", AP1, 21087).granted("2026-11-03T14:00:03.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:03Z", nom: "periode 1", size: 3082 }).tic("2026-11-03T14:00:06.000Z");
+    avant.construire();
+    const lus = A.lireFile(avant.lignes.map((l) => l + "\n").join(""));
+    // La ligne qu'écrivait au démarrage un composant d'avant ce complément : a_reprendre, due_at à l'instant de ce
+    // démarrage (14:00:20), la tentative 2 laissée en_cours.
+    const file = lus.demandes.map((d) => (d.id === OP1 ? { ...d, state: "a_reprendre", due_at: "2026-11-03T14:00:20.000Z" } : d));
+    const op = file.find((d) => d.id === OP1);
+    exiger(!lus.truncated && lus.errors.length === 0 && JSON.stringify(op.attempts.map((a) => [a.n, a.outcome, a.error_code])) === JSON.stringify([[1, "echec_transitoire", "reponses_insuffisantes"], [2, "en_cours", null]]), "redemarrage-ots-a-reprendre-en-cours : file avant le redémarrage");
+    const s = new Scenario(
+      "redemarrage-ots-a-reprendre-en-cours",
+      "Clôture de la période 1 de référence. La soumission OpenTimestamps n'a obtenu qu'un calendrier (14:00:01, tentative 1 close reponses_insuffisantes) et sa reprise est partie à 14:00:06 (tentative 2) ; l'ancre de la période et le jeton de clôture sont obtenus. Un composant d'une version antérieure a redémarré à 14:00:20 : il a réécrit la ligne a_reprendre (due_at 14:00:20) en laissant la tentative 2 en_cours. Le composant redémarre à 14:00:30 sur cette file. EX-8.12 (complément du 2026-11-16) : une ligne a_reprendre qui porte encore une tentative en_cours se reprend comme une soumission envoyee : la tentative 2 est close echec_transitoire, code redemarrage, la ligne est réécrite a_reprendre et la soumission repart aussitôt (programmer immediat) au rang 3, avec le même nonce (EX-6.2). Le composant s'arrête à 14:01:00 sans réponse : la file finale porte la soumission en cours, de détail « soumission a 2 calendriers » (EX-8.16).",
+      configuration(),
+      { queue_before: file, jitter: [] },
+    );
+    s.demarrage("2026-11-03T14:00:30.000Z").arret("2026-11-03T14:01:00.000Z");
+    ajouter(s, (t) => {
+      const ots = dem(t, OP1);
+      return [
+        ["au démarrage : tentative 2 close redemarrage, a_reprendre, programmée immédiatement, soumise au rang 3", JSON.stringify(t.expected.filter((a) => a.request_id === OP1).map((a) => [a.t, a.action, a.detail.state ?? a.detail.reason ?? null])) === JSON.stringify([["2026-11-03T14:00:30.000Z", "ecrire_file", "a_reprendre"], ["2026-11-03T14:00:30.000Z", "programmer", "immediat"], ["2026-11-03T14:00:30.000Z", "ecrire_file", "envoyee"], ["2026-11-03T14:00:30.000Z", "soumettre_ots", null]])],
+        ["même nonce qu'avant l'arrêt (EX-6.2)", actions(t, "soumettre_ots")[0]?.detail.nonce === actions(avant.trace, "soumettre_ots")[0]?.detail.nonce],
+        ["file finale : rangs 2 redemarrage et 3 en cours, détail « soumission a 2 calendriers »", ots.state === "envoyee" && JSON.stringify(ots.attempts.map((a) => [a.n, a.outcome, a.error_code, a.detail])) === JSON.stringify([[1, "echec_transitoire", "reponses_insuffisantes", "1 calendrier(s) ; moins de 2 reponses valables"], [2, "echec_transitoire", "redemarrage", "redemarrage : reponse non recue"], [3, "en_cours", null, "soumission a 2 calendriers"]])],
+      ];
+    });
+  }
+
+  // 43. reponses-hors-tentative (EX-8.5 règles 1 et 2, EX-5.10 étape 2, EX-5.12, EX-8.10, 8.9 ; complément du
+  // 2026-11-16) : réponses et événements du registre qui ne s'appliquent pas ; détails des tentatives en échec.
+  {
+    const JK2 = ID("jeton_point", POINTS.K2.hash);
+    const AK2 = ID("ancre_registre_point", POINTS.K2.hash);
+    const s = new Scenario(
+      "reponses-hors-tentative",
+      "Clôture de la période 1 de référence. EX-8.5, règle 2, et 8.9 (complément du 2026-11-16) : une réponse RFC 3161 pour une demande que la file ne connaît pas (jeton de K2, 14:00:00.500) est consignée demande_inconnue, rien n'est gardé ; un échec du registre pour une ancre inconnue (14:00:00.750), anchor_duplicate_ignored de raison demande_inconnue. L'ancre de la période est incluse à 14:00:02 ; un second reçu et un échec du registre pour cette ancre obtenue (14:00:03) sont ignorés et consignés avec son état (EX-8.10). Le jeton de clôture part au principal (rang 1). Une réponse granted d'un rang que la demande n'a jamais ouvert (rang 9, 14:00:04) : son jeton est gardé comme pièce, sans borne, et la ligne tentative_inconnue porte ce rang, attempt_id nul (EX-8.5, règle 1) ; la même réponse de status 2 (14:00:04.500) ne porte pas de jeton (EX-5.10, étape 2) : rien n'est gardé, kept faux. EX-5.10, étape 2 : une réponse de status 0 sans TimeStampToken (14:00:05) est reponse_illisible, permanente, jamais promue : relève au secours (rang 2). Une réponse tardive du principal au rang 1, de nonce faux (14:00:06), est gardée sans borne (le jeton ne passe pas les étapes 3 à 6 pour cette tentative) et consignée tentative_close. Le secours répond status 2 avec un PKIFailureInfo hors de la liste de la RFC (autre, 14:00:07) : statut_2, permanente ; les deux prestataires sont épuisés et le jeton de clôture alterne au pas retry.max_ms (EX-8.8) : nonce différent (rang 3, détail portant les deux nonces), politique différente (rang 4), HTTP 400 avec Retry-After (rang 5, permanente, le Retry-After lu est rapporté ; le jeton que l'entrée porte n'est pas gardé : un refus avant l'étape 3 ne fait pas de pièce), puis granted au rang 6 (14:20:11). Les détails des tentatives closes sont ceux de la référence (EX-8.16).",
+      configuration(),
+      { jitter: [] },
+    );
+    s.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1);
+    s.granted("2026-11-03T14:00:00.500Z", JK2, 1, { gen_time: "2026-11-03T14:00:00Z", nom: "K2 inconnu", journal: JOURNAL });
+    s.echecRegistre("2026-11-03T14:00:00.750Z", AK2, "noeud_injoignable");
+    s.inclusion("2026-11-03T14:00:02.000Z", AP1, 21087);
+    s.inclusion("2026-11-03T14:00:03.000Z", AP1, 21087).echecRegistre("2026-11-03T14:00:03.000Z", AP1, "noeud_injoignable");
+    s.granted("2026-11-03T14:00:04.000Z", PH1, 9, { gen_time: "2026-11-03T14:00:04Z", nom: "rang inconnu", size: 3082 });
+    s.echec("2026-11-03T14:00:04.500Z", PH1, 9, { pki_status: 2, failure_info: "unacceptedPolicy", extra: { token_sha256: shaTexte("jeton statut 2"), token_size: 10 } });
+    s.granted("2026-11-03T14:00:05.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:05Z", nom: "sans jeton", size: 3082, extra: { token_sha256: null, token_size: null } });
+    s.granted("2026-11-03T14:00:06.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:06Z", nom: "tardif nonce faux", size: 3082, nonce: "0x0123456789abcdef" });
+    s.echec("2026-11-03T14:00:07.000Z", PH1, 2, { pki_status: 2, failure_info: "autre" });
+    s.tic("2026-11-03T14:05:07.000Z").granted("2026-11-03T14:05:08.000Z", PH1, 3, { gen_time: "2026-11-03T14:05:08Z", nom: "nonce faux", size: 3082, nonce: "0x0123456789abcdef" });
+    s.tic("2026-11-03T14:10:08.000Z").granted("2026-11-03T14:10:09.000Z", PH1, 4, { gen_time: "2026-11-03T14:10:09Z", nom: "politique", size: 3082, extra: { policy_check: "politique_differente" } });
+    s.tic("2026-11-03T14:15:09.000Z").echec("2026-11-03T14:15:10.000Z", PH1, 5, { http_status: 400, retry_after_s: 5, extra: { pki_status: 0, token_sha256: shaTexte("jeton http 400"), token_size: 2104 } });
+    s.tic("2026-11-03T14:20:10.000Z").granted("2026-11-03T14:20:11.000Z", PH1, 6, { gen_time: "2026-11-03T14:20:11Z", nom: "periode 1", size: 3082 });
+    s.ots("2026-11-03T14:20:12.000Z", OP1, { nom: "en attente periode 1" }).arret("2026-11-03T14:21:00.000Z");
+    ajouter(s, (t) => {
+      const ph = dem(t, PH1);
+      const ligne = (tt) => actions(t, "journaliser", (a) => a.t === tt)[0]?.detail ?? null;
+      const id = (n) => A.identifiantCorrelation("jeton_periode", ex.periodHash[1], n);
+      return [
+        ["demande inconnue : demande_inconnue, rien n'est gardé", JSON.stringify(ligne("2026-11-03T14:00:00.500Z")) === JSON.stringify({ event: "anchor_response_rejected", error_code: "demande_inconnue", attempt: 1, provider: null, kept: false }) && actions(t, "stocker", (a) => a.request_id === JK2).length === 0],
+        ["événements du registre qui ne s'appliquent pas : demande_inconnue, puis état de l'ancre obtenue", JSON.stringify(ligne("2026-11-03T14:00:00.750Z")) === JSON.stringify({ event: "anchor_duplicate_ignored", reason: "demande_inconnue" }) && JSON.stringify(actions(t, "journaliser", (a) => a.t === "2026-11-03T14:00:03.000Z").map((a) => a.detail)) === JSON.stringify([{ event: "anchor_duplicate_ignored", state: "obtenue" }, { event: "anchor_duplicate_ignored", state: "obtenue" }])],
+        ["rang jamais ouvert : jeton gardé sans borne, tentative_inconnue au rang 9, attempt_id nul", JSON.stringify(actions(t, "stocker", (a) => a.t === "2026-11-03T14:00:04.000Z").map((a) => a.detail.bound)) === "[null]" && JSON.stringify(ligne("2026-11-03T14:00:04.000Z")) === JSON.stringify({ event: "anchor_response_rejected", error_code: "tentative_inconnue", attempt: 9, attempt_id: null, provider: null, kept: true })],
+        ["status 2 : aucun jeton gardé, kept faux ; HTTP 400 : jeton de l'entrée non gardé", actions(t, "stocker", (a) => a.t === "2026-11-03T14:00:04.500Z" || a.t === "2026-11-03T14:15:10.000Z").length === 0 && ligne("2026-11-03T14:00:04.500Z")?.kept === false],
+        ["réponse tardive de nonce faux : gardée sans borne, tentative_close", JSON.stringify(actions(t, "stocker", (a) => a.t === "2026-11-03T14:00:06.000Z").map((a) => a.detail.bound)) === "[null]" && JSON.stringify(ligne("2026-11-03T14:00:06.000Z")) === JSON.stringify({ event: "anchor_response_rejected", error_code: "tentative_close", attempt: 1, attempt_id: id(1), provider: "qtsa-principal", kept: true })],
+        ["codes et détails des tentatives closes", JSON.stringify(ph.attempts.map((a) => [a.n, a.outcome, a.error_code, a.detail])) === JSON.stringify([
+          [1, "echec_permanente", "reponse_illisible", "TimeStampToken absent"],
+          [2, "echec_permanente", "statut_2", "PKIStatus 2 (rejection)"],
+          [3, "echec_permanente", "nonce_different", "nonce 0x0123456789abcdef different de " + nonceDe("periode", ex.periodHash[1], 3)],
+          [4, "echec_permanente", "politique_differente", "politique differente de la politique demandee"],
+          [5, "echec_permanente", "http_400", "http 400 ; Retry-After 5 s"],
+          [6, "obtenue", null, "granted ; T-1 a T-9 reussies"],
+        ]) && ph.state === "obtenue"],
+      ];
+    });
+  }
+
+  // 44. registre-renvois (EX-8.10, EX-8.16, CT-4 EX-8.16 ; complément du 2026-11-16) : détails des renvois au registre ;
+  // reçu et échec pour une ancre sans transaction en vol ; due_at d'une ancre renvoyée et d'une ancre qui attend le nonce.
+  {
+    const s = new Scenario(
+      "registre-renvois",
+      "Point K1 admis à 13:42 : son ancre part au registre (rang 1, « transaction envoyee »). Aucun reçu en registry.inclusion_alert_s : renvoi des mêmes octets à 13:43 (rang 2). Le registre signale noeud_injoignable à 13:43:30 : rang 2 clos, a_reprendre, reprise à 13:43:40 (EX-8.10, k = 2, gigue nulle). EX-8.10 (complément du 2026-11-16) : un reçu (13:43:35) et un échec (13:43:36) pour cette ancre, qui n'a plus de transaction en vol, sont ignorés et consignés avec son état (a_reprendre). À 13:43:40 l'ancre repart (rang 3, « transaction envoyee ») : la ligne envoyee n'a plus de due_at. Sans reçu, les renvois suivants remplacent la transaction au même nonce (CT-4 EX-8.16 : « remplacement au meme nonce »), le dernier au rang 8 dans la passe de 13:53 (EX-8.10 : missed_deadlines 4). Le point K2 admis à 13:53 trouve la clé occupée : son ancre attend le nonce (programmer attente_nonce) et sa ligne porte due_at = 13:53. Le composant s'arrête à 13:53:30 : la file finale porte le renvoi en cours de K1 et l'ancre de K2 a_envoyer.",
+      configuration(),
+      { jitter: [0] },
+    );
+    s.demarrage("2026-11-03T13:40:00.000Z").point("K1").tic("2026-11-03T13:43:00.000Z");
+    s.echecRegistre("2026-11-03T13:43:30.000Z", ANCRE("K1"), "noeud_injoignable");
+    s.inclusion("2026-11-03T13:43:35.000Z", ANCRE("K1"), 20001).echecRegistre("2026-11-03T13:43:36.000Z", ANCRE("K1"), "noeud_injoignable");
+    s.tic("2026-11-03T13:43:40.000Z").tic("2026-11-03T13:44:40.000Z");
+    s.point("K2").arret("2026-11-03T13:53:30.000Z");
+    ajouter(s, (t) => {
+      const k1 = dem(t, ANCRE("K1"));
+      const k2 = dem(t, ANCRE("K2"));
+      return [
+        ["reçu et échec sur l'ancre a_reprendre : ignorés, consignés avec son état", JSON.stringify(actions(t, "journaliser", (a) => a.request_id === ANCRE("K1") && a.detail.event === "anchor_duplicate_ignored").map((a) => [a.t, a.detail.state])) === JSON.stringify([["2026-11-03T13:43:35.000Z", "a_reprendre"], ["2026-11-03T13:43:36.000Z", "a_reprendre"]])],
+        ["ancre de K1 en vol au rang 8, « remplacement au meme nonce », due_at nul", k1.state === "envoyee" && k1.due_at === null && k1.attempts.at(-1).n === 8 && k1.attempts.at(-1).outcome === "en_cours" && k1.attempts.at(-1).detail === "remplacement au meme nonce" && k1.attempts.find((a) => a.n === 2)?.error_code === "noeud_injoignable"],
+        ["ancre de K2 en attente du nonce, due_at 13:53", k2.state === "a_envoyer" && k2.due_at === "2026-11-03T13:53:00.000Z" && actions(t, "programmer", (a) => a.request_id === ANCRE("K2"))[0]?.detail.reason === "attente_nonce"],
+      ];
+    });
+  }
+
+  // 45. redemarrage-releve-deux-series (EX-8.12, EX-8.8, EX-8.5 ; complément du 2026-11-16) : redémarrage d'un jeton dont
+  // les deux séries de la relève avaient une tentative en cours ; erreur permanente d'une série pendant que l'autre est
+  // en vol.
+  {
+    const avant1 = new Scenario("redemarrage-releve-deux-series-avant-1", "x", configuration(), { jitter: [] });
+    avant1.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).inclusion("2026-11-03T14:00:01.000Z", AP1, 21087).ots("2026-11-03T14:00:02.000Z", OP1, { nom: "en attente periode 1" });
+    avant1.tic("2026-11-03T14:05:01.000Z").arret("2026-11-03T14:05:30.000Z");
+    avant1.construire();
+    const lus1 = A.lireFile(avant1.lignes.map((l) => l + "\n").join(""));
+    const avant2 = new Scenario("redemarrage-releve-deux-series-avant-2", "x", configuration(), { queue_before: lus1.demandes, jitter: [0] });
+    avant2.demarrage("2026-11-03T14:06:00.000Z").echec("2026-11-03T14:06:01.000Z", PH1, 3, { http_status: 503 }).tic("2026-11-03T14:06:06.000Z").arret("2026-11-03T14:06:10.000Z");
+    avant2.construire();
+    // La file est en ajout seul : les lignes des deux marches avant ce démarrage, relues ensemble.
+    const lus = A.lireFile([...avant1.lignes, ...avant2.lignes].map((l) => l + "\n").join(""));
+    const ph = lus.demandes.find((d) => d.id === PH1);
+    exiger(!lus.truncated && lus.errors.length === 0 && lus.demandes.length === 3 && JSON.stringify(ph.attempts.map((a) => [a.n, a.provider, a.outcome, a.error_code])) === JSON.stringify([[1, "qtsa-principal", "echec_transitoire", "redemarrage"], [2, "qtsa-secours", "echec_transitoire", "redemarrage"], [3, "qtsa-principal", "echec_transitoire", "http_503"], [4, "qtsa-secours", "en_cours", null], [5, "qtsa-principal", "en_cours", null]]), `redemarrage-releve-deux-series : file avant le redémarrage (${JSON.stringify(ph.attempts.map((a) => [a.n, a.provider, a.outcome, a.error_code]))})`);
+    const s = new Scenario(
+      "redemarrage-releve-deux-series",
+      "Clôture de la période 1 de référence ; ancre incluse à 14:00:01, jeton de clôture au principal (rang 1), relève au secours à 14:05:01 (rang 2, EX-8.8). Un premier redémarrage à 14:06:00 a clos les rangs 1 et 2 (redemarrage) et renvoyé le principal (rang 3) puis le secours (rang 4) ; le principal a répondu 503 à 14:06:01 et sa reprise est partie à 14:06:06 (rang 5). Le composant redémarre à 14:06:30 sur cette file : les deux séries ont une tentative en cours, celle du secours (rang 4) avant celle du principal (rang 5). EX-8.12 (complément du 2026-11-16) : les deux tentatives sont closes redemarrage ; une seule action programmer de raison immediat pour la demande ; chaque série repart dans l'ordre des tentatives closes par ce démarrage : le secours (rang 6) puis le principal (rang 7), les tentatives closes par le redémarrage précédent n'y comptant pas. Le principal refuse à 14:06:31 (unacceptedPolicy, permanente) pendant que le secours est en vol : la tentative close est écrite, la ligne reste envoyee (EX-8.5 : une ligne par état successif). Le secours rend le jeton à 14:06:32.",
+      configuration(),
+      { queue_before: lus.demandes, jitter: [] },
+    );
+    s.demarrage("2026-11-03T14:06:30.000Z");
+    s.echec("2026-11-03T14:06:31.000Z", PH1, 7, { pki_status: 2, failure_info: "unacceptedPolicy" });
+    s.granted("2026-11-03T14:06:32.000Z", PH1, 6, { gen_time: "2026-11-03T14:06:32Z", nom: "periode 1 secours", size: 3082 }).arret("2026-11-03T14:07:00.000Z");
+    ajouter(s, (t) => {
+      const d = dem(t, PH1);
+      return [
+        ["une seule action programmer immediat au démarrage", actions(t, "programmer", (a) => a.request_id === PH1 && a.t === "2026-11-03T14:06:30.000Z").length === 1],
+        ["secours renvoyé avant le principal (rangs 6 et 7)", JSON.stringify(actions(t, "envoyer_rfc3161").map((a) => [a.t, a.detail.provider, a.detail.attempt])) === JSON.stringify([["2026-11-03T14:06:30.000Z", "qtsa-secours", 6], ["2026-11-03T14:06:30.000Z", "qtsa-principal", 7]])],
+        ["refus du principal écrit, la ligne reste envoyee", JSON.stringify(t.expected.filter((a) => a.t === "2026-11-03T14:06:31.000Z").map((a) => [a.action, a.detail.state ?? a.detail.event ?? a.detail.error_code])) === JSON.stringify([["rejeter_reponse", "echec_unacceptedPolicy"], ["journaliser", "anchor_response_rejected"], ["ecrire_file", "envoyee"]])],
+        ["jeton du secours obtenu", d.state === "obtenue" && d.result.provider === "qtsa-secours"],
+      ];
+    });
+  }
+
+  // 46. minuteries-simultanees (EX-8.16, EX-8.10, EX-8.4 règle 2 ; complément du 2026-11-16) : deux minuteries de même
+  // échéance, de deux demandes, armées dans l'ordre inverse de la file, se déclenchent dans l'ordre de la file.
+  {
+    const s = new Scenario(
+      "minuteries-simultanees",
+      "Clôture de la période 1 de référence : l'ancre de la période part au registre, le jeton de clôture attend son inclusion (attente_registre, examen toutes les registry.inclusion_alert_s). Sans reçu, l'ancre est renvoyée à 14:01:00.250 ; le registre signale noeud_injoignable à 14:01:50.250 : reprise de l'ancre à 14:02:00.250 (k = 1, gigue nulle), le même instant que l'examen suivant du jeton de clôture, armé avant elle. EX-8.16 (complément du 2026-11-16) : deux minuteries de même échéance se déclenchent dans l'ordre de la file (created_at puis id), celles des périodes d'abord, et, pour une même demande, dans l'ordre où elles ont été armées : l'ancre repart avant l'examen du jeton. L'ancre est incluse à 14:02:01 et le jeton de clôture obtenu à 14:02:02.",
+      configuration(),
+      { jitter: [0] },
+    );
+    s.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" });
+    s.tic("2026-11-03T14:01:00.250Z").echecRegistre("2026-11-03T14:01:50.250Z", AP1, "noeud_injoignable").tic("2026-11-03T14:02:00.250Z");
+    s.inclusion("2026-11-03T14:02:01.000Z", AP1, 21087).granted("2026-11-03T14:02:02.000Z", PH1, 1, { gen_time: "2026-11-03T14:02:02Z", nom: "periode 1", size: 3082 }).arret("2026-11-03T14:03:00.000Z");
+    ajouter(s, (t) => [
+      ["à 14:02:00.250, l'ancre (avant dans la file) repart avant l'examen du jeton de clôture", JSON.stringify(t.expected.filter((a) => a.t === "2026-11-03T14:02:00.250Z").map((a) => [a.action, a.request_id])) === JSON.stringify([["ecrire_file", AP1], ["envoyer_registre", AP1], ["journaliser", PH1], ["programmer", PH1]])],
+      ["examen du jeton armé avant la reprise de l'ancre", actions(t, "programmer", (a) => a.request_id === PH1 && a.detail.next_at === "2026-11-03T14:02:00.250Z")[0]?.t === "2026-11-03T14:01:00.250Z" && actions(t, "programmer", (a) => a.request_id === AP1 && a.detail.next_at === "2026-11-03T14:02:00.250Z")[0]?.t === "2026-11-03T14:01:50.250Z"],
+      ["ancre incluse, jeton de clôture obtenu", dem(t, AP1).state === "obtenue" && dem(t, PH1).state === "obtenue"],
+    ]);
+  }
+
+  // 47. jeton-tardif-avertissements (EX-5.10 étapes 6 à 8, EX-5.11, EX-8.16 ; complément du 2026-11-16) : précision hors
+  // de la plage d'un instant, pièce sans borne, troisième réponse tardive promue avec ses deux avertissements.
+  {
+    const s = new Scenario(
+      "jeton-tardif-avertissements",
+      "Clôture de la période 1 de référence ; l'ancre est incluse à 14:00:01 et le jeton de clôture part au principal (rang 1). EX-5.10 (complément du 2026-11-16) : sa réponse à 14:00:02 porte une précision qui met genTime + précision hors de la plage d'un instant : verification_T-7, permanente (« precision hors de la plage d'un instant (T-7) ») ; relève au secours (rang 2). La même réponse, rejouée à 14:00:03 pour le rang 1 désormais clos, est gardée comme pièce sans borne (EX-8.5, règle 2). Le secours répond trois fois plus de max_response_delay_s après l'envoi (EX-5.11) : les deux premières réponses sont tardives (rangs 2 et 3, reprises à k = 1 puis 2), la troisième (rang 4, status 1, genTime à plus de clock_tolerance_s de l'envoi) est promue avec les avertissements reponse_tardive et horloge_suspecte, dans l'ordre des étapes 7 et 8 ; le détail est « grantedWithMods ; T-1 a T-9 reussies ; avertissement reponse_tardive, horloge_suspecte » (EX-8.16) et les alertes horloge_suspecte puis reponse_tardive_promue sont levées.",
+      configuration(),
+      { jitter: [0, 0] },
+    );
+    s.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).inclusion("2026-11-03T14:00:01.000Z", AP1, 21087).ots("2026-11-03T14:00:01.500Z", OP1, { nom: "en attente periode 1" });
+    s.granted("2026-11-03T14:00:02.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:02Z", nom: "precision hors plage", size: 3082, accuracy_s: 9000000000000 });
+    s.granted("2026-11-03T14:00:03.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:02Z", nom: "precision hors plage", size: 3082, accuracy_s: 9000000000000 });
+    s.granted("2026-11-03T14:01:03.000Z", PH1, 2, { gen_time: "2026-11-03T14:01:03Z", nom: "tardif 2", size: 3082 });
+    s.tic("2026-11-03T14:01:08.000Z").granted("2026-11-03T14:02:09.000Z", PH1, 3, { gen_time: "2026-11-03T14:02:09Z", nom: "tardif 3", size: 3082 });
+    s.tic("2026-11-03T14:02:19.000Z").granted("2026-11-03T14:03:20.000Z", PH1, 4, { gen_time: "2026-11-03T14:06:30Z", nom: "periode 1", size: 3082, pki_status: 1 }).arret("2026-11-03T14:04:00.000Z");
+    ajouter(s, (t) => {
+      const ph = dem(t, PH1);
+      return [
+        ["précision hors plage : verification_T-7 permanente, relève au secours", ph.attempts.find((a) => a.n === 1)?.error_code === "verification_T-7" && ph.attempts.find((a) => a.n === 1)?.detail === "precision hors de la plage d'un instant (T-7)" && actions(t, "releve").length === 1],
+        ["pièce du rang 1 clos gardée sans borne", JSON.stringify(actions(t, "stocker", (a) => a.t === "2026-11-03T14:00:03.000Z").map((a) => a.detail.bound)) === "[null]"],
+        ["deux réponses tardives, puis la troisième promue avec ses deux avertissements", JSON.stringify(ph.attempts.map((a) => [a.n, a.outcome, a.error_code])) === JSON.stringify([[1, "echec_permanente", "verification_T-7"], [2, "reponse_tardive", "reponse_tardive"], [3, "reponse_tardive", "reponse_tardive"], [4, "obtenue", null]]) && ph.attempts.at(-1).detail === "grantedWithMods ; T-1 a T-9 reussies ; avertissement reponse_tardive, horloge_suspecte"],
+        ["alertes horloge_suspecte puis reponse_tardive_promue", JSON.stringify(actions(t, "alerter", (a) => a.request_id === PH1 && a.t === "2026-11-03T14:03:20.000Z").map((a) => a.detail.code)) === JSON.stringify(["horloge_suspecte", "reponse_tardive_promue"])],
+      ];
+    });
+  }
+
+  // 48. redemarrage-ordre-de-la-file (EX-8.12 ; complément du 2026-11-16) : au démarrage, une seule passe sur la file, dans
+  // l'ordre de la file ; une ancre a_envoyer dont la clé a une ancre en vol attend le nonce à sa place dans la passe.
+  {
+    const avant = new Scenario("redemarrage-ordre-de-la-file-avant", "x", configuration(), { jitter: [] });
+    avant.demarrage("2026-11-03T13:52:30.000Z").point("K2").granted("2026-11-03T13:53:06.000Z", JETON("K2"), 1, { gen_time: "2026-11-03T13:53:06Z", nom: "K2" });
+    avant.cloture(ex, 1).arret("2026-11-03T14:00:01.000Z");
+    avant.construire();
+    const lus = A.lireFile(avant.lignes.map((l) => l + "\n").join(""));
+    const etats = lus.demandes.map((d) => [d.id.split(":")[0], d.state]);
+    exiger(!lus.truncated && lus.errors.length === 0 && JSON.stringify(etats) === JSON.stringify([["ancre_registre_point", "envoyee"], ["jeton_point", "obtenue"], ["ancre_registre_periode", "a_envoyer"], ["jeton_periode", "attente_registre"], ["ots_periode", "envoyee"]]), `redemarrage-ordre-de-la-file : file avant le redémarrage (${JSON.stringify(etats)})`);
+    const s = new Scenario(
+      "redemarrage-ordre-de-la-file",
+      "Période 1 de référence, à partir de K2 (admis à 13:53) : son ancre reste sans reçu (renvois toutes les registry.inclusion_alert_s), son jeton est obtenu. À la clôture (14:00:00.250), l'ancre de la période attend le nonce (attente_nonce : la clé a l'ancre de K2 en vol), le jeton de clôture attend l'inclusion, la preuve OpenTimestamps est soumise. Le composant s'arrête à 14:00:01 et redémarre à 14:00:30. EX-8.12 (complément du 2026-11-16, ordre du démarrage) : une seule passe sur la file, dans l'ordre de la file (created_at puis id), chaque demande non finale traitée selon son état, a_envoyer comprise : l'ancre de K2 est renvoyée (anchor_retry de mode renvoi), l'ancre de la période, a_envoyer, attend le nonce à sa place (la clé a une ancre en vol), puis le jeton de clôture réexamine l'inclusion (programmer attente_registre) et la soumission OpenTimestamps est close redemarrage et reprise aussitôt ; les minuteries échues à l'instant du démarrage viennent après la passe. L'ancre de K2 est incluse à 14:00:31 : l'ancre de la période part alors (EX-9.4) ; incluse à 14:00:32, le jeton de clôture part et il est obtenu à 14:00:33 ; la preuve est en attente à 14:00:34.",
+      configuration(),
+      { queue_before: lus.demandes, jitter: [] },
+    );
+    s.demarrage("2026-11-03T14:00:30.000Z").inclusion("2026-11-03T14:00:31.000Z", ANCRE("K2"), 20660).inclusion("2026-11-03T14:00:32.000Z", AP1, 21087);
+    s.granted("2026-11-03T14:00:33.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:33Z", nom: "periode 1", size: 3082 });
+    s.ots("2026-11-03T14:00:34.000Z", OP1, { nom: "en attente periode 1" }).arret("2026-11-03T14:01:00.000Z");
+    ajouter(s, (t) => {
+      const demarrage = t.expected.filter((a) => a.t === "2026-11-03T14:00:30.000Z").map((a) => [a.action, a.request_id?.split(":")[0] ?? null, a.detail.event ?? a.detail.state ?? a.detail.reason ?? null]);
+      return [
+        ["au démarrage, la passe suit l'ordre de la file : l'ancre de la période attend le nonce entre le renvoi de l'ancre de K2 et le jeton de clôture", JSON.stringify(demarrage.slice(0, 7)) === JSON.stringify([["journaliser", null, "anchoring_started"], ["journaliser", "ancre_registre_point", "anchor_retry"], ["envoyer_registre", "ancre_registre_point", null], ["programmer", "ancre_registre_periode", "attente_nonce"], ["programmer", "jeton_periode", "attente_registre"], ["ecrire_file", "ots_periode", "a_reprendre"], ["programmer", "ots_periode", "immediat"]])],
+        ["ancre de la période envoyée au reçu de celle de K2, jeton de clôture obtenu", JSON.stringify(actions(t, "envoyer_registre", (a) => a.request_id === AP1).map((a) => a.t)) === JSON.stringify(["2026-11-03T14:00:31.000Z"]) && dem(t, PH1).state === "obtenue" && dem(t, ANCRE("K2")).state === "obtenue"],
+        ["preuve OpenTimestamps en attente", dem(t, OP1).state === "en_attente"],
+      ];
+    });
+  }
+
+  // 49. redemarrage-a-envoyer-cle-libre (EX-8.12, EX-9.4 ; complément du 2026-11-16) : arrêt entre la ligne obtenue d'une
+  // ancre et le départ de la suivante ; au démarrage, les ancres a_envoyer partent après la passe : celle du point de la
+  // période d'abord, celle de la période à son reçu (EX-9.4 ; la trace publiée faisait partir la période d'abord).
+  {
+    const avant = new Scenario("redemarrage-a-envoyer-cle-libre-avant", "x", configuration(), { jitter: [] });
+    avant.demarrage("2026-11-03T13:41:00.000Z").point("K1").granted("2026-11-03T13:42:06.000Z", JETON("K1"), 1, { gen_time: "2026-11-03T13:42:06Z", nom: "K1" });
+    avant.point("K2").granted("2026-11-03T13:53:06.000Z", JETON("K2"), 1, { gen_time: "2026-11-03T13:53:06Z", nom: "K2" });
+    avant.cloture(ex, 1).inclusion("2026-11-03T14:00:01.000Z", ANCRE("K1"), 20001).arret("2026-11-03T14:00:02.000Z");
+    avant.construire();
+    const etat = (l) => JSON.parse(l);
+    const iO = avant.lignes.findIndex((l) => etat(l).id === ANCRE("K1") && etat(l).state === "obtenue");
+    // EX-9.4 (complément du 2026-11-16) : l'ancre suivante est celle de K2, le point de clôture ; celle de la période attend son reçu.
+    exiger(iO >= 0 && etat(avant.lignes[iO + 1]).id === ANCRE("K2") && etat(avant.lignes[iO + 1]).state === "envoyee", "redemarrage-a-envoyer-cle-libre : lignes obtenue de l'ancre de K1 puis envoyee de l'ancre de K2 attendues consécutives");
+    const lus = A.lireFile(avant.lignes.slice(0, iO + 1).map((l) => l + "\n").join(""));
+    const etats = lus.demandes.map((d) => [d.id.split(":")[0], d.state]);
+    exiger(!lus.truncated && lus.errors.length === 0 && JSON.stringify(etats) === JSON.stringify([["ancre_registre_point", "obtenue"], ["jeton_point", "obtenue"], ["ancre_registre_point", "a_envoyer"], ["jeton_point", "obtenue"], ["ancre_registre_periode", "a_envoyer"], ["jeton_periode", "attente_registre"], ["ots_periode", "envoyee"]]), `redemarrage-a-envoyer-cle-libre : file coupée (${JSON.stringify(etats)})`);
+    const s = new Scenario(
+      "redemarrage-a-envoyer-cle-libre",
+      "Période 1 de référence : l'ancre de K1 reste sans reçu (renvois toutes les registry.inclusion_alert_s) ; l'ancre de K2 (13:53) et celle de la période (clôture, 14:00:00.250) attendent le nonce. Le reçu de l'ancre de K1 arrive à 14:00:01 ; le processus s'arrête entre la ligne obtenue de cette ancre et la ligne envoyee de l'ancre suivante, qu'EX-8.5, règle 1, fait écrire avant l'envoi. Au redémarrage à 14:00:30, la file porte deux ancres a_envoyer et aucune ancre en vol. EX-8.12 (complément du 2026-11-16, ordre du démarrage) : la passe, dans l'ordre de la file, ne fait rien partir ; une ancre a_envoyer n'attend le nonce que si une ancre de sa clé est en vol ; après la passe, les demandes à envoyer partent comme après toute entrée : l'ancre de K2 d'abord, celle de la période à son reçu (14:00:31). EX-9.4 (« l'ancre de la période ne part qu'après le reçu de l'ancre du point de clôture de la même clé ») : complément du 2026-11-16, cette trace change ; elle faisait partir l'ancre de la période la première, avant celle de K2, le point de clôture de sa période. La soumission OpenTimestamps envoyee est close redemarrage et rejouée aussitôt, à l'instant du démarrage, après ce départ (minuterie échue).",
+      configuration(),
+      { queue_before: lus.demandes, jitter: [] },
+    );
+    s.demarrage("2026-11-03T14:00:30.000Z").inclusion("2026-11-03T14:00:31.000Z", ANCRE("K2"), 20660).inclusion("2026-11-03T14:00:32.000Z", AP1, 21087);
+    s.granted("2026-11-03T14:00:33.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:33Z", nom: "periode 1", size: 3082 }).ots("2026-11-03T14:00:34.000Z", OP1, { nom: "en attente periode 1" }).arret("2026-11-03T14:01:00.000Z");
+    ajouter(s, (t) => {
+      const demarrage = t.expected.filter((a) => a.t === "2026-11-03T14:00:30.000Z");
+      return [
+        ["aucune attente du nonce au démarrage (aucune ancre en vol)", demarrage.every((a) => a.detail.reason !== "attente_nonce")],
+        ["l'ancre de K2 part la première, après la passe ; celle de la période au reçu de celle de K2 (EX-9.4)", JSON.stringify(actions(t, "envoyer_registre").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T14:00:30.000Z", ANCRE("K2")], ["2026-11-03T14:00:31.000Z", AP1]]) && demarrage.findIndex((a) => a.action === "envoyer_registre") > demarrage.findIndex((a) => a.action === "programmer" && a.request_id === OP1)],
+        ["soumission rejouée après le départ de l'ancre ; jeton de clôture obtenu, preuve en attente", demarrage.findIndex((a) => a.action === "soumettre_ots") > demarrage.findIndex((a) => a.action === "envoyer_registre") && dem(t, PH1).state === "obtenue" && dem(t, OP1).state === "en_attente" && dem(t, ANCRE("K2")).state === "obtenue"],
+      ];
+    });
+  }
+
+  // 50. redemarrage-echeances-remplacees (EX-8.12, EX-4.4 ; complément du 2026-11-16) : les échéances d'une demande de point
+  // remplacee relue restent closes ; elles ne sont pas closes une seconde fois au démarrage.
+  {
+    const avant = new Scenario("redemarrage-echeances-remplacees-avant", "x", configuration(), { jitter: [] });
+    avant.demarrage("2026-11-03T13:41:00.000Z").point("K1").inclusion("2026-11-03T13:42:03.000Z", ANCRE("K1"), 20001);
+    avant.point("K2").inclusion("2026-11-03T13:53:03.000Z", ANCRE("K2"), 20660).granted("2026-11-03T13:53:04.000Z", JETON("K2"), 1, { gen_time: "2026-11-03T13:53:04Z", nom: "K2" }).arret("2026-11-03T13:54:00.000Z");
+    avant.construire();
+    const lus = A.lireFile(avant.lignes.map((l) => l + "\n").join(""));
+    const k1 = lus.demandes.find((d) => d.id === JETON("K1"));
+    exiger(!lus.truncated && lus.errors.length === 0 && k1.state === "remplacee" && JSON.stringify(k1.deadlines) === "[1,2,3,4,5,6,7,8]" && lus.demandes.find((d) => d.id === JETON("K2")).state === "obtenue", "redemarrage-echeances-remplacees : file avant le redémarrage");
+    const s = new Scenario(
+      "redemarrage-echeances-remplacees",
+      "Période 1 de référence, serveur interne pour les points : le jeton de K1 (D_1 à D_8) reste sans réponse ; celui de K2 (D_9, D_10), obtenu à 13:53:04, le remplace (EX-4.4 : D_1 à D_8 closes remplacee, checkpoint_anchor_late). Le composant s'arrête à 13:54 et redémarre à 13:55 sur cette file. EX-8.12 (complément du 2026-11-16) : les échéances d'une demande remplacee relue restent closes remplacee ; elles ne sont ni rouvertes ni closes une seconde fois (aucune action echeance au démarrage : la supervision ne les compte pas deux fois). K4 est admis à 14:00:00.250 (D_11) ; son jeton est obtenu.",
+      configuration(),
+      { queue_before: lus.demandes, jitter: [] },
+    );
+    s.demarrage("2026-11-03T13:55:00.000Z").point("K4").inclusion("2026-11-03T14:00:01.000Z", ANCRE("K4"), 21085);
+    s.granted("2026-11-03T14:00:02.000Z", JETON("K4"), 1, { gen_time: "2026-11-03T14:00:02Z", nom: "K4" }).arret("2026-11-03T14:00:30.000Z");
+    ajouter(s, (t) => [
+      ["aucune action echeance au démarrage", actions(t, "echeance", (a) => a.t === "2026-11-03T13:55:00.000Z").length === 0],
+      ["aucune échéance de D_1 à D_10 close de nouveau", actions(t, "echeance", (a) => a.detail.k <= 10 && a.detail.state !== "ouverte").length === 0],
+      ["jeton de K4 obtenu (D_11)", dem(t, JETON("K4")).state === "obtenue" && JSON.stringify(dem(t, JETON("K4")).deadlines) === "[11]"],
+    ]);
+  }
+
+  // 51. registre-inclusion-apres-attente (EX-8.10 ; complément du 2026-11-16) : le délai d'inclusion constaté au reçu
+  // court depuis la création de l'ancre, attente du nonce comprise.
+  {
+    const s = new Scenario(
+      "registre-inclusion-apres-attente",
+      "Période 1 de référence. L'ancre de K1 (13:42) reste sans reçu : renvois toutes les registry.inclusion_alert_s (60 s), alerte inclusion_late. L'ancre de K2, admise à 13:53, attend le nonce (attente_nonce). Le reçu de l'ancre de K1 arrive à 13:54:30 : l'ancre de K2 part alors et elle est incluse à 13:54:40, dix secondes après son envoi mais cent secondes après sa création. EX-8.10 (complément du 2026-11-16) : le délai d'inclusion constaté au reçu court depuis la création de l'ancre (son admission), attente d'une autre ancre de la clé comprise, et non depuis son premier envoi : alerte inclusion_late mineure pour l'ancre de K2 (P-2).",
+      configuration(),
+      { jitter: [] },
+    );
+    s.demarrage("2026-11-03T13:41:00.000Z").point("K1").point("K2").inclusion("2026-11-03T13:54:30.000Z", ANCRE("K1"), 20001).inclusion("2026-11-03T13:54:40.000Z", ANCRE("K2"), 20661).arret("2026-11-03T13:55:00.000Z");
+    ajouter(s, (t) => [
+      ["ancre de K2 en attente du nonce à 13:53, envoyée à 13:54:30", actions(t, "programmer", (a) => a.request_id === ANCRE("K2") && a.detail.reason === "attente_nonce")[0]?.t === "2026-11-03T13:53:00.000Z" && JSON.stringify(actions(t, "envoyer_registre", (a) => a.request_id === ANCRE("K2")).map((a) => a.t)) === JSON.stringify(["2026-11-03T13:54:30.000Z"])],
+      ["inclusion_late mineure au reçu de l'ancre de K2 (cent secondes depuis sa création)", JSON.stringify(actions(t, "alerter", (a) => a.request_id === ANCRE("K2")).map((a) => [a.t, a.detail.code, a.detail.severity])) === JSON.stringify([["2026-11-03T13:54:40.000Z", "inclusion_late", "mineure"]])],
+      ["ancres de K1 et K2 obtenues", dem(t, ANCRE("K1")).state === "obtenue" && dem(t, ANCRE("K2")).state === "obtenue"],
+    ]);
+  }
+
+  // 52. redemarrage-prestataires-epuises (EX-8.12, EX-8.8 ; complément du 2026-11-16) : la file est le seul état du
+  // planificateur ; les prestataires épuisés d'une demande de jeton se relisent de ses tentatives echec_permanente.
+  {
+    const avant = new Scenario("redemarrage-prestataires-epuises-avant", "x", configuration(), { jitter: [] });
+    avant.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).inclusion("2026-11-03T14:00:01.000Z", AP1, 21087).ots("2026-11-03T14:00:01.500Z", OP1, { nom: "en attente periode 1" });
+    avant.echec("2026-11-03T14:00:02.000Z", PH1, 1, { pki_status: 2, failure_info: "unacceptedPolicy" }).arret("2026-11-03T14:00:03.000Z");
+    avant.construire();
+    const lus = A.lireFile(avant.lignes.map((l) => l + "\n").join(""));
+    const ph = lus.demandes.find((d) => d.id === PH1);
+    exiger(!lus.truncated && lus.errors.length === 0 && ph.state === "envoyee" && JSON.stringify(ph.attempts.map((a) => [a.n, a.provider, a.outcome])) === JSON.stringify([[1, "qtsa-principal", "echec_permanente"], [2, "qtsa-secours", "en_cours"]]), "redemarrage-prestataires-epuises : file avant le redémarrage");
+    const s = new Scenario(
+      "redemarrage-prestataires-epuises",
+      "Clôture de la période 1 de référence ; ancre incluse à 14:00:01, preuve OpenTimestamps en attente. Le principal refuse le jeton de clôture (unacceptedPolicy, permanente, 14:00:02) : relève immédiate au secours (rang 2, EX-8.8). Le composant s'arrête à 14:00:03 et redémarre à 14:00:30 : la tentative du secours est close redemarrage et la demande repart au secours (rang 3, EX-8.12). Le secours refuse à son tour (14:00:31, permanente). EX-8.12 et EX-8.8 (complément du 2026-11-16) : la file est le seul état du planificateur ; le principal, épuisé avant l'arrêt, l'est encore après (tentative 1 echec_permanente) : les deux prestataires sont épuisés, alerte prestataires_epuises critique, la demande passe a_reprendre et sa reprise est programmée au pas retry.max_ms (14:05:31), en alternant ; le jeton de clôture n'est jamais abandonné (EX-4.5). Le principal répond à 14:05:32 avec un jeton promu.",
+      configuration(),
+      { queue_before: lus.demandes, jitter: [] },
+    );
+    s.demarrage("2026-11-03T14:00:30.000Z").echec("2026-11-03T14:00:31.000Z", PH1, 3, { pki_status: 2, failure_info: "unacceptedPolicy" }).tic("2026-11-03T14:05:31.000Z");
+    s.granted("2026-11-03T14:05:32.000Z", PH1, 4, { gen_time: "2026-11-03T14:05:32Z", nom: "periode 1 apres epuisement", size: 3082 }).arret("2026-11-03T14:06:00.000Z");
+    ajouter(s, (t) => {
+      const ph2 = dem(t, PH1);
+      return [
+        ["au refus du secours : alerte prestataires_epuises critique, a_reprendre, reprise au pas retry.max_ms", JSON.stringify(t.expected.filter((a) => a.t === "2026-11-03T14:00:31.000Z" && a.request_id === PH1).map((a) => [a.action, a.detail.code ?? a.detail.state ?? a.detail.reason ?? a.detail.event ?? a.detail.error_code])) === JSON.stringify([["rejeter_reponse", "echec_unacceptedPolicy"], ["journaliser", "anchor_response_rejected"], ["alerter", "prestataires_epuises"], ["ecrire_file", "a_reprendre"], ["programmer", "backoff"]]) && actions(t, "programmer", (a) => a.t === "2026-11-03T14:00:31.000Z" && a.request_id === PH1)[0]?.detail.next_at === "2026-11-03T14:05:31.000Z"],
+        ["reprise à 14:05:31 (rang 4), jeton obtenu", JSON.stringify(actions(t, "envoyer_rfc3161", (a) => a.request_id === PH1).map((a) => [a.t, a.detail.attempt])) === JSON.stringify([["2026-11-03T14:00:30.000Z", 3], ["2026-11-03T14:05:31.000Z", 4]]) && ph2.state === "obtenue"],
+      ];
+    });
+  }
+
+  // 53. registre-cle-par-journal (EX-9.4 ; complément du 2026-11-16) : le verrou de la clé de chaîne porte sur le journal
+  // du sujet de l'ancre ; une ancre d'un autre journal n'attend pas.
+  {
+    const s = new Scenario(
+      "registre-cle-par-journal",
+      "Deux journaux de la même organisation dans la même file : le journal des vecteurs (journal-sinistres), dont le point de 09:13 est admis et ancré, et le journal de référence (journal-principal), dont la clôture de la période 1 est remise en retard, à 09:13:10, pendant que l'ancre de ce point attend son reçu. EX-9.4 (complément du 2026-11-16) : une seule transaction en vol par clé de chaîne, et la clé de chaîne d'une ancre, pour ce verrou, est celle du journal de son sujet (org_id, journal_id), une clé de chaîne ne servant qu'un journal. L'ancre de la période du journal de référence part donc aussitôt, sans attendre le nonce ; elle est incluse à 09:13:12 et le jeton de clôture part puis est obtenu ; l'ancre du point est incluse à 09:13:40.",
+      configuration(),
+      { jitter: [] },
+    );
+    const p0913 = pt(S1, "09:13");
+    s.demarrage(jour("09:12:30")).pointSerie(p0913).entree(jour("09:13:10"), "periode_close", sujetPeriode(ex, 1)).inclusion(jour("09:13:12"), AP1, 30101);
+    s.granted(jour("09:13:13"), PH1, 1, { gen_time: "2026-11-05T09:13:13Z", nom: "periode 1 remise en retard", size: 3082 }).inclusion(jour("09:13:40"), AS(p0913), 30113).arret(jour("09:13:50"));
+    ajouter(s, (t) => [
+      ["l'ancre de la période du journal de référence part à sa clôture, pendant que celle du point de 09:13 du journal des vecteurs attend son reçu", JSON.stringify(actions(t, "envoyer_registre").map((a) => [a.t, a.request_id])) === JSON.stringify([[jour("09:13:00"), AS(p0913)], [jour("09:13:10"), AP1]])],
+      ["aucune attente du nonce", actions(t, "programmer", (a) => a.detail.reason === "attente_nonce").length === 0],
+      ["les deux ancres et le jeton de clôture obtenus", [AP1, AS(p0913), PH1].every((id) => dem(t, id).state === "obtenue")],
+    ]);
+  }
+
+  // 54. minuteries-deux-journaux (EX-8.16 ; complément du 2026-11-16) : minuteries de période de deux journaux d'une
+  // même file, au même instant, déclenchées dans l'ordre où elles ont été armées, quel que soit leur journal.
+  {
+    const point1354 = { org_id: ORG_ID, journal_id: journalIdOf(SIN), period_start: PERIOD_START_1, tree_size: 3, checkpoint_hash: shaTexte("noortrace/vecteurs/ct5/minuteries-deux-journaux/point-13:54"), checkpoint_ts: "2026-11-03T13:54:00.000Z" };
+    const s = new Scenario(
+      "minuteries-deux-journaux",
+      "Deux journaux de la même organisation dans la même file, période 1 de référence (13:00 à 14:00). Le point K2 du journal de référence (journal-principal) est admis à 13:53 : il ouvre la période de ce journal, dont l'échéance D_11 (13:55) est armée, puis arme la cadence de ce journal (alerte point_manquant à 13:55, 2 × checkpoint_interval_s après K2). Un point du journal des vecteurs (journal-sinistres, empreinte SHA-256(UTF-8(« noortrace/vecteurs/ct5/minuteries-deux-journaux/point-13:54 »)), tree_size 3) est admis à 13:54 : il ouvre la période de ce journal, dont l'échéance D_11 tombe aussi à 13:55, armée après la cadence du premier. EX-8.16 (complément du 2026-11-16) : les minuteries de période de même instant se déclenchent dans l'ordre où elles ont été armées, quel que soit leur journal : à 13:55, l'échéance du journal de référence, son alerte point_manquant, puis l'échéance du journal des vecteurs ; à 13:56, l'alerte point_manquant du journal des vecteurs. Aucune réponse : les deux ancres et les deux jetons sont encore en vol à l'arrêt.",
+      configuration(),
+      { jitter: [] },
+    );
+    s.demarrage("2026-11-03T13:52:30.000Z").point("K2").entree("2026-11-03T13:54:00.000Z", "point_produit", point1354);
+    s.tic("2026-11-03T13:55:00.000Z").tic("2026-11-03T13:56:00.000Z").arret("2026-11-03T13:56:30.000Z");
+    ajouter(s, (t) => {
+      const periodiques = (instant) => t.expected.filter((a) => a.t === instant && a.request_id === null && (a.action === "echeance" || a.detail.event === "point_manquant" || a.detail.code === "point_manquant")).map((a) => [a.action, a.detail.k ?? a.detail.last_checkpoint_ts ?? a.detail.code]);
+      return [
+        ["à 13:55 : échéance D_11 du journal de référence, son alerte point_manquant, puis l'échéance D_11 du journal des vecteurs", JSON.stringify(periodiques("2026-11-03T13:55:00.000Z")) === JSON.stringify([["echeance", 11], ["journaliser", "2026-11-03T13:53:00.000Z"], ["alerter", "point_manquant"], ["echeance", 11]])],
+        ["à 13:56 : alerte point_manquant du journal des vecteurs", JSON.stringify(periodiques("2026-11-03T13:56:00.000Z")) === JSON.stringify([["journaliser", "2026-11-03T13:54:00.000Z"], ["alerter", "point_manquant"]])],
+        ["deux journaux dans la file", new Set(t.queue_after.map((d) => d.subject.journal_id)).size === 2],
+      ];
+    });
+  }
+
+  // 55. registre-refus-ancre-periode (EX-8.10, 8.9 ; complément du 2026-11-16) : le refus définitif de l'ancre d'une
+  // période la reprend au pas retry.max_ms, sans gigue, avec l'alerte prestataires_epuises critique, une fois.
+  {
+    const s = new Scenario(
+      "registre-refus-ancre-periode",
+      "Clôture de la période 1 de référence : l'ancre de la période part à 14:00:00.250, le jeton de clôture attend son inclusion (attente_registre), la preuve OpenTimestamps est en attente à 14:00:01. Le registre refuse définitivement l'ancre (refus_emetteur_inconnu, 14:00:02). EX-8.10 (complément du 2026-11-16) : l'ancre d'une période n'est jamais abandonnée (EX-4.5) : tentative close echec_permanente, ligne anchor_retry de mode reprise, alerte prestataires_epuises critique (sans cette ancre, aucun jeton de clôture : un incident, comme un jeton de clôture refusé par ses deux prestataires, EX-8.8), puis a_reprendre au pas retry.max_ms (14:05:02), sans gigue. Renvoyée à 14:05:02, elle est refusée de nouveau à 14:05:03 : même reprise (14:10:03), sans seconde alerte. Renvoyée à 14:10:03, elle reçoit noeud_injoignable à 14:10:04 : échec transitoire, attente d'EX-8.9 (k = 3 tentatives en échec : 20 s) plus la première gigue de la trace (137 ms), que les refus n'ont pas consommée. Renvoyée à 14:10:24.137, elle est incluse à 14:10:30 ; le jeton de clôture part et il est obtenu. Entre-temps, l'attente du registre du jeton de clôture est réexaminée toutes les registry.inclusion_alert_s (registry_pending).",
+      configuration(),
+      { jitter: [137] },
+    );
+    s.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" });
+    s.echecRegistre("2026-11-03T14:00:02.000Z", AP1, "refus_emetteur_inconnu").tic("2026-11-03T14:05:02.000Z").echecRegistre("2026-11-03T14:05:03.000Z", AP1, "refus_emetteur_inconnu");
+    s.tic("2026-11-03T14:10:03.000Z").echecRegistre("2026-11-03T14:10:04.000Z", AP1, "noeud_injoignable").tic("2026-11-03T14:10:24.137Z").inclusion("2026-11-03T14:10:30.000Z", AP1, 21390);
+    s.granted("2026-11-03T14:10:31.000Z", PH1, 1, { gen_time: "2026-11-03T14:10:31Z", nom: "periode 1 apres refus", size: 3082 }).arret("2026-11-03T14:11:00.000Z");
+    ajouter(s, (t) => [
+      ["une seule alerte prestataires_epuises, critique, au premier refus", JSON.stringify(actions(t, "alerter", (a) => a.request_id === AP1 && a.detail.code === "prestataires_epuises").map((a) => [a.t, a.detail.code, a.detail.severity])) === JSON.stringify([["2026-11-03T14:00:02.000Z", "prestataires_epuises", "critique"]])],
+      ["au refus : anchor_retry de mode reprise, alerte, a_reprendre, reprise au pas retry.max_ms sans gigue", JSON.stringify(t.expected.filter((a) => a.t === "2026-11-03T14:00:02.000Z" && a.request_id === AP1).map((a) => [a.action, a.detail.event ?? a.detail.code ?? a.detail.state ?? a.detail.reason])) === JSON.stringify([["journaliser", "anchor_retry"], ["alerter", "prestataires_epuises"], ["ecrire_file", "a_reprendre"], ["programmer", "backoff"]]) && actions(t, "programmer", (a) => a.t === "2026-11-03T14:00:02.000Z" && a.request_id === AP1)[0]?.detail.next_at === "2026-11-03T14:05:02.000Z"],
+      ["renvois à 14:05:02, 14:10:03 et 14:10:24.137 (gigue de 137 ms consommée par l'échec transitoire seul)", JSON.stringify(actions(t, "envoyer_registre", (a) => a.request_id === AP1).map((a) => a.t)) === JSON.stringify(["2026-11-03T14:00:00.250Z", "2026-11-03T14:05:02.000Z", "2026-11-03T14:10:03.000Z", "2026-11-03T14:10:24.137Z"])],
+      ["tentatives : deux refus définitifs, un échec transitoire, l'inclusion", JSON.stringify(dem(t, AP1).attempts.map((a) => [a.outcome, a.error_code])) === JSON.stringify([["echec_permanente", "refus_emetteur_inconnu"], ["echec_permanente", "refus_emetteur_inconnu"], ["echec_transitoire", "noeud_injoignable"], ["obtenue", null]])],
+      ["jeton de clôture envoyé après l'inclusion, obtenu", actions(t, "envoyer_rfc3161", (a) => a.request_id === PH1)[0]?.t === "2026-11-03T14:10:30.000Z" && dem(t, PH1).state === "obtenue"],
+    ]);
+  }
+
+  // 56. registre-ordre-des-points (EX-9.4, EX-8.12 ; complément du 2026-11-16) : quand la clé se libère, l'ancre de
+  // point qui part est celle du plus petit checkpoint_ts, non la première dans l'ordre de la file.
+  {
+    const avant = new Scenario("registre-ordre-des-points-avant", "x", configuration({ registry: { checkpoints: "tous" } }), { jitter: [] });
+    avant.demarrage("2026-11-03T13:53:30.000Z").point("K3").arret("2026-11-03T13:54:10.000Z");
+    avant.construire();
+    const coupe = avant.lignes.findIndex((l) => { const d = JSON.parse(l); return d.id === ANCRE("K3") && d.state === "envoyee"; });
+    exiger(coupe >= 0, "registre-ordre-des-points : ligne envoyee de l'ancre de K3");
+    const lus = A.lireFile(avant.lignes.slice(0, coupe + 1).map((l) => l + "\n").join(""));
+    exiger(!lus.truncated && lus.errors.length === 0 && lus.demandes.length === 1 && lus.demandes[0].state === "envoyee", "registre-ordre-des-points : file avant le redémarrage");
+    const s = new Scenario(
+      "registre-ordre-des-points",
+      "Période 1 de référence, registry.checkpoints = tous. L'ancre de K3 part à 13:54 ; le composant s'arrête brutalement juste après sa ligne envoyee (EX-8.5, règle 1) : la file relue ne porte qu'elle. Au redémarrage à 14:01:30, l'ancre de K3 est renvoyée (anchor_retry de mode renvoi) ; l'enregistreur relit dans son stockage les points K1 à K4 de la période 1, dont le manifeste n'est pas relu, et K5 de la période 2, sans ancre obtenue (stockage_relu) : le dernier point de chaque période ouverte est admis (EX-8.12), K4 puis K5, au même instant ; leurs ancres attendent le nonce (la clé a l'ancre de K3 en vol). Dans l'ordre de la file (created_at, puis id), l'ancre de K5 précède celle de K4. EX-9.4 (complément du 2026-11-16, ordre des ancres d'une clé) : quand la clé se libère, part la première candidate de la clé, par period_start, puis, dans une même période, les ancres de points par checkpoint_ts avant l'ancre de la période, l'ordre de la file ne départageant que les égalités : au reçu de l'ancre de K3 (14:01:32), l'ancre de K4 part ; à son reçu (14:01:33), son jeton part, puis l'ancre de K5, incluse à 14:01:34. L'ordre d'inclusion des ancres des points d'un journal est ainsi celui de leurs checkpoint_ts (EX-10.7).",
+      configuration({ registry: { checkpoints: "tous" } }),
+      { queue_before: lus.demandes, jitter: [] },
+    );
+    s.demarrage("2026-11-03T14:01:30.000Z").stockage("2026-11-03T14:01:30.000Z", { checkpoints: ["K1", "K2", "K3", "K4", "K5"].map((n) => ({ org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: POINTS[n].periode === 1 ? PERIOD_START_1 : PERIOD_START_2, tree_size: POINTS[n].tree_size, checkpoint_hash: POINTS[n].hash, checkpoint_ts: POINTS[n].ts })) });
+    s.inclusion("2026-11-03T14:01:32.000Z", ANCRE("K3"), 21150).inclusion("2026-11-03T14:01:33.000Z", ANCRE("K4"), 21151).inclusion("2026-11-03T14:01:34.000Z", ANCRE("K5"), 21152);
+    s.granted("2026-11-03T14:01:35.000Z", JETON("K4"), 1, { gen_time: "2026-11-03T14:01:34Z", nom: "K4 apres reconstruction" }).arret("2026-11-03T14:01:40.000Z");
+    ajouter(s, (t) => {
+      const file = [...t.queue_after].sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : a.id < b.id ? -1 : 1));
+      const ancres = file.filter((d) => d.kind === "ancre_registre_point" && d.created_at === "2026-11-03T14:01:30.000Z").map((d) => d.id);
+      return [
+        ["les ancres de K4 et K5 créées au même instant, celle de K5 la première dans l'ordre de la file", JSON.stringify(ancres) === JSON.stringify([ANCRE("K5"), ANCRE("K4")])],
+        ["les deux ancres attendent le nonce à 14:01:30", JSON.stringify(actions(t, "programmer", (a) => a.detail.reason === "attente_nonce").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T14:01:30.000Z", ANCRE("K4")], ["2026-11-03T14:01:30.000Z", ANCRE("K5")]])],
+        ["envois : K3 renvoyée au démarrage, K4 au reçu de K3, K5 au reçu de K4 (checkpoint_ts croissants)", JSON.stringify(actions(t, "envoyer_registre").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T14:01:30.000Z", ANCRE("K3")], ["2026-11-03T14:01:32.000Z", ANCRE("K4")], ["2026-11-03T14:01:33.000Z", ANCRE("K5")]])],
+        ["trois ancres obtenues, jeton de K4 obtenu", [ANCRE("K3"), ANCRE("K4"), ANCRE("K5"), JETON("K4")].every((id) => dem(t, id)?.state === "obtenue")],
+      ];
+    });
+  }
+
+  // 57. registre-periode-apres-point-de-cloture (EX-9.4 ; complément du 2026-11-16) : l'ancre du point de clôture attend
+  // le nonce à la clôture ; l'ancre de la période ne part qu'après son reçu, même quand la clé se libère avant.
+  {
+    const s = new Scenario(
+      "registre-periode-apres-point-de-cloture",
+      "Période 1 de référence, registry.inclusion_alert_s porté à 600 s (aucun renvoi pendant la trace). L'ancre de K3 part à 13:54 et reste sans reçu ; son jeton part squat_wait_s plus tard (ordre_ancres_non_respecte). Aucun point n'est admis entre K3 et K4 : point_manquant à 13:56 (EX-4.1). K4, le point de clôture, est admis à 14:00:00.250 : son ancre attend le nonce (attente_nonce, la clé a l'ancre de K3 en vol) ; à la clôture, au même instant, l'ancre de la période attend aussi. EX-9.4 (complément du 2026-11-16 : « l'ancre de la période ne part qu'après le reçu de l'ancre du point de clôture de la même clé ») : au reçu de l'ancre de K3 (14:00:01), l'ancre de K4 part, non celle de la période (dans une même période, les ancres de ses points d'abord, la période ensuite). L'envoi de l'ancre de K4 échoue (noeud_injoignable, 14:00:02) : a_reprendre, reprise à l'attente d'EX-8.9 (k = 1 : 5 s, plus la gigue de 137 ms). La clé est libre, mais l'ancre de la période attend le reçu de celle de K4 : rien ne part. Le jeton de K4 part squat_wait_s après son admission (ordre_ancres_non_respecte) et il est obtenu ; le repli de clôture ne crée rien (le point de clôture a déjà sa demande). L'ancre de K4 repart à 14:00:07.137 ; à son reçu (14:00:08), l'ancre de la période part ; incluse à 14:00:09, le jeton de clôture part et il est obtenu. Les ancres de la période 1 sont ainsi incluses avant celle de la période (EX-10.7 : aucune ancre de point de la période 1 dans la fenêtre de la période 2). Auparavant, l'ancre de la période partait au reçu de celle de K3, puis à l'échec de celle de K4.",
+      configuration({ registry: { inclusion_alert_s: 600 } }),
+      { jitter: [137] },
+    );
+    s.demarrage("2026-11-03T13:53:30.000Z").point("K3").granted("2026-11-03T13:54:06.000Z", JETON("K3"), 1, { gen_time: "2026-11-03T13:54:06Z", nom: "K3 avant le point de cloture" });
+    s.point("K4").cloture(ex, 1).inclusion("2026-11-03T14:00:01.000Z", ANCRE("K3"), 21080).echecRegistre("2026-11-03T14:00:02.000Z", ANCRE("K4"), "noeud_injoignable");
+    s.ots("2026-11-03T14:00:03.000Z", OP1, { nom: "en attente periode 1" }).granted("2026-11-03T14:00:06.000Z", JETON("K4"), 1, { gen_time: "2026-11-03T14:00:06Z", nom: "K4 point de cloture" });
+    s.tic("2026-11-03T14:00:07.137Z").inclusion("2026-11-03T14:00:08.000Z", ANCRE("K4"), 21082).inclusion("2026-11-03T14:00:09.000Z", AP1, 21083);
+    s.granted("2026-11-03T14:00:10.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:10Z", nom: "periode 1 apres le point de cloture", size: 3082 }).arret("2026-11-03T14:00:30.000Z");
+    ajouter(s, (t) => [
+      ["à la clôture, l'ancre de K4 puis celle de la période attendent le nonce", JSON.stringify(actions(t, "programmer", (a) => a.detail.reason === "attente_nonce").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T14:00:00.250Z", ANCRE("K4")], ["2026-11-03T14:00:00.250Z", AP1]])],
+      ["envois : K3, K4 au reçu de K3, K4 de nouveau à sa reprise, la période au reçu de K4 seulement", JSON.stringify(actions(t, "envoyer_registre").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T13:54:00.000Z", ANCRE("K3")], ["2026-11-03T14:00:01.000Z", ANCRE("K4")], ["2026-11-03T14:00:07.137Z", ANCRE("K4")], ["2026-11-03T14:00:08.000Z", AP1]])],
+      ["aucun envoi au registre à l'échec de l'ancre de K4 (la clé est libre, la période attend son reçu)", actions(t, "envoyer_registre", (a) => a.t === "2026-11-03T14:00:02.000Z").length === 0 && dem(t, ANCRE("K4")).attempts.map((a) => a.error_code).join(",") === "noeud_injoignable,"],
+      ["ancres de K3, K4 et de la période obtenues ; jetons de K3, K4 et de la clôture obtenus", [ANCRE("K3"), ANCRE("K4"), AP1, JETON("K3"), JETON("K4"), PH1].every((id) => dem(t, id)?.state === "obtenue")],
+    ]);
+  }
+
+  // 58. redemarrage-ots-abandon-origine (EX-8.11, EX-8.12 ; complément du 2026-11-16) : l'âge d'abandon d'une preuve
+  // OpenTimestamps en attente court depuis created_at de la demande, que la soumission reprise au démarrage ne déplace pas.
+  {
+    const cfg = configuration({ upgrade: { first_after_s: 60, interval_s: 1800, give_up_after_s: 3600 } });
+    const avant = new Scenario("redemarrage-ots-abandon-origine-avant", "x", cfg, { jitter: [] });
+    avant.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).inclusion("2026-11-03T14:00:01.000Z", AP1, 21087);
+    avant.granted("2026-11-03T14:00:02.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:02Z", nom: "periode 1", size: 3082 }).arret("2026-11-03T14:00:03.000Z");
+    avant.construire();
+    const lus = A.lireFile(avant.lignes.map((l) => l + "\n").join(""));
+    const etats = lus.demandes.map((d) => [d.id.split(":")[0], d.state]);
+    exiger(!lus.truncated && lus.errors.length === 0 && JSON.stringify(etats) === JSON.stringify([["ancre_registre_periode", "obtenue"], ["jeton_periode", "obtenue"], ["ots_periode", "envoyee"]]), `redemarrage-ots-abandon-origine : file avant le redémarrage (${JSON.stringify(etats)})`);
+    const s = new Scenario(
+      "redemarrage-ots-abandon-origine",
+      "Clôture de la période 1 de référence, cadence de mise à niveau raccourcie (upgrade.first_after_s 60 s, interval_s 1 800 s, give_up_after_s 3 600 s, le minimum). La file relue porte l'ancre et le jeton de la période obtenus et la soumission OpenTimestamps envoyee à la clôture (created_at 14:00:00.250), sans réponse : le composant s'est arrêté à 14:00:03. Au redémarrage, à 14:30:00, la soumission est close redemarrage et repart aussitôt (EX-8.12) ; la preuve est en attente à 14:30:01. Mises à niveau à 14:31:01 puis à 15:01:02, sans attestation Bitcoin (404). EX-8.11 (complément du 2026-11-16) : l'âge d'abandon court depuis created_at de la demande, écrit à sa création et porté par chaque ligne : à la réponse de 15:01:03, il dépasse give_up_after_s (3 602,75 s) ; l'alerte ots_give_up est levée et la mise à niveau suivante part un jour plus tard. Compté depuis la soumission reprise (14:30:00) ou depuis la preuve en attente (14:30:01), comme le faisaient la référence et le composant d'ancrage, il repartait à chaque redémarrage pendant la soumission, et l'alerte attendait 15:31.",
+      cfg,
+      { queue_before: lus.demandes, jitter: [] },
+    );
+    s.demarrage("2026-11-03T14:30:00.000Z").ots("2026-11-03T14:30:01.000Z", OP1, { nom: "en attente periode 1 apres redemarrage" });
+    s.ots("2026-11-03T14:31:02.000Z", OP1, { attestation: "en_attente", calendars_answered: 1 }).ots("2026-11-03T15:01:03.000Z", OP1, { attestation: "en_attente", calendars_answered: 1 }).arret("2026-11-03T15:02:00.000Z");
+    ajouter(s, (t) => [
+      ["soumission reprise au démarrage, au rang 2 ; preuve en attente à 14:30:01", JSON.stringify(actions(t, "soumettre_ots").map((a) => a.t)) === JSON.stringify(["2026-11-03T14:30:00.000Z"]) && dem(t, OP1).result?.obtained_at === "2026-11-03T14:30:01.000Z" && dem(t, OP1).created_at === "2026-11-03T14:00:00.250Z"],
+      ["mises à niveau à 14:31:01 et 15:01:02", JSON.stringify(actions(t, "mettre_a_niveau_ots").map((a) => a.t)) === JSON.stringify(["2026-11-03T14:31:01.000Z", "2026-11-03T15:01:02.000Z"])],
+      ["ots_give_up levée à 15:01:03, depuis created_at ; mise à niveau suivante un jour plus tard", JSON.stringify(actions(t, "alerter", (a) => a.request_id === OP1).map((a) => [a.t, a.detail.code, a.detail.severity])) === JSON.stringify([["2026-11-03T15:01:03.000Z", "ots_give_up", "majeure"]]) && dem(t, OP1).due_at === "2026-11-04T15:01:03.000Z" && dem(t, OP1).state === "en_attente"],
+    ]);
+  }
+
+  // 59. registre-periode-retient-la-cle (EX-9.4, EX-10.7 ; complément du 2026-11-16) : une ancre de période qui n'a pas
+  // son reçu retient sa clé ; aucune ancre d'une période postérieure de la même clé ne part avant elle.
+  {
+    const cfg = configuration({ registry: { checkpoints: "tous", inclusion_alert_s: 3600 }, retry: { initial_ms: 600000, factor: 10, max_ms: 86400000 } });
+    const s = new Scenario(
+      "registre-periode-retient-la-cle",
+      "Période 1 de référence, registry.checkpoints = tous, registry.inclusion_alert_s 3 600 s ; attente de reprise allongée (retry.initial_ms 600 000, factor 10, max_ms 86 400 000 : 10 min, puis 100 min, plus la gigue). L'ancre de K4, point de clôture, part à 14:00:00.250 ; à la clôture, l'ancre de la période attend son reçu (EX-9.4), puis part à 14:00:01. K5, premier point de la période 2, est admis à 14:01 : son ancre attend le nonce (l'ancre de la période 1 est en vol). L'envoi de l'ancre de la période 1 échoue (noeud_injoignable, 14:01:01) : a_reprendre, reprise à 14:11:01.137. La clé n'a plus d'ancre en vol, mais EX-9.4 (complément du 2026-11-16 : une ancre de période qui attend retient sa clé) : aucune ancre d'une période postérieure ne part tant que l'ancre de la période 1 n'a ni son reçu ni un autre état final ; l'ancre de K5 ne part pas. La reprise de 14:11:01.137 échoue de nouveau (14:11:02 ; reprise à 15:51:02.041). K6, point de clôture de la période 2, est admis à 15:00:00.112 : son ancre remplace celle de K5 (EX-9.5) et attend, la clé n'ayant pourtant aucune ancre en vol ; la clôture de la période 2 arrive à 15:00:02 : son ancre attend celle de K6 et celle de la période 1. À 15:51:02.041, l'ancre de la période 1 repart ; à son reçu (15:51:03), le jeton de clôture de la période 1 part, puis l'ancre de K6 ; à son reçu (15:51:04), l'ancre de la période 2. Les ancres sont ainsi incluses dans l'ordre des périodes, et la fenêtre de blocs de la période 2 (EX-10.7) commence après l'ancre de la période 1. Auparavant, l'ancre de K5 partait à l'échec de 14:01:01 et, si son reçu précédait la clôture de la période 2, l'ancre de celle-ci partait avant celle de la période 1.",
+      cfg,
+      { jitter: [137, 41] },
+    );
+    s.demarrage("2026-11-03T13:59:00.000Z").point("K4").cloture(ex, 1).inclusion("2026-11-03T14:00:01.000Z", ANCRE("K4"), 21500);
+    s.point("K5").echecRegistre("2026-11-03T14:01:01.000Z", AP1, "noeud_injoignable").tic("2026-11-03T14:11:01.137Z").echecRegistre("2026-11-03T14:11:02.000Z", AP1, "noeud_injoignable");
+    s.point("K6").entree("2026-11-03T15:00:02.000Z", "periode_close", sujetPeriode(ex, 2));
+    s.tic("2026-11-03T15:51:02.041Z").inclusion("2026-11-03T15:51:03.000Z", AP1, 21900).inclusion("2026-11-03T15:51:04.000Z", ANCRE("K6"), 21901).inclusion("2026-11-03T15:51:05.000Z", AP2, 21902).arret("2026-11-03T15:52:00.000Z");
+    ajouter(s, (t) => [
+      ["envois : K4, la période 1 et ses deux reprises, K6 au reçu de la période 1, la période 2 au reçu de K6", JSON.stringify(actions(t, "envoyer_registre").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T14:00:00.250Z", ANCRE("K4")], ["2026-11-03T14:00:01.000Z", AP1], ["2026-11-03T14:11:01.137Z", AP1], ["2026-11-03T15:51:02.041Z", AP1], ["2026-11-03T15:51:03.000Z", ANCRE("K6")], ["2026-11-03T15:51:04.000Z", AP2]])],
+      ["attentes du nonce : la période 1 à sa clôture, K5, K6 et la période 2 à leur création", JSON.stringify(actions(t, "programmer", (a) => a.detail.reason === "attente_nonce").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T14:00:00.250Z", AP1], ["2026-11-03T14:01:00.000Z", ANCRE("K5")], ["2026-11-03T15:00:00.112Z", ANCRE("K6")], ["2026-11-03T15:00:02.000Z", AP2]])],
+      ["aucun envoi au registre à l'échec de 14:01:01 (la clé est libre d'ancre en vol, la période 1 la retient)", actions(t, "envoyer_registre", (a) => a.t === "2026-11-03T14:01:01.000Z").length === 0],
+      ["K5 remplacée par K6 ; ancres de K4, K6, des périodes 1 et 2 obtenues", dem(t, ANCRE("K5")).state === "remplacee" && [ANCRE("K4"), ANCRE("K6"), AP1, AP2].every((id) => dem(t, id)?.state === "obtenue")],
+    ]);
+  }
+
+  // 60. redemarrage-ots-abandon-soumission-tardive (EX-8.11, EX-8.12 ; complément du 2026-11-16) : une soumission qui
+  // aboutit au-delà de give_up_after_s après created_at lève ots_give_up dès la preuve en attente ; la première mise à
+  // niveau reste à first_after_s, puis une fois par jour.
+  {
+    const cfg = configuration({ upgrade: { first_after_s: 60, interval_s: 1800, give_up_after_s: 3600 } });
+    const avant = new Scenario("redemarrage-ots-abandon-soumission-tardive-avant", "x", cfg, { jitter: [] });
+    avant.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).inclusion("2026-11-03T14:00:01.000Z", AP1, 21087);
+    avant.granted("2026-11-03T14:00:02.000Z", PH1, 1, { gen_time: "2026-11-03T14:00:02Z", nom: "periode 1", size: 3082 }).arret("2026-11-03T14:00:03.000Z");
+    avant.construire();
+    const lus = A.lireFile(avant.lignes.map((l) => l + "\n").join(""));
+    const etats = lus.demandes.map((d) => [d.id.split(":")[0], d.state]);
+    exiger(!lus.truncated && lus.errors.length === 0 && JSON.stringify(etats) === JSON.stringify([["ancre_registre_periode", "obtenue"], ["jeton_periode", "obtenue"], ["ots_periode", "envoyee"]]), `redemarrage-ots-abandon-soumission-tardive : file avant le redémarrage (${JSON.stringify(etats)})`);
+    const s = new Scenario(
+      "redemarrage-ots-abandon-soumission-tardive",
+      "Clôture de la période 1 de référence, cadence de mise à niveau raccourcie (upgrade.first_after_s 60 s, interval_s 1 800 s, give_up_after_s 3 600 s, le minimum). La file relue porte l'ancre et le jeton de la période obtenus et la soumission OpenTimestamps envoyee à la clôture (created_at 14:00:00.250), sans réponse : le composant s'est arrêté à 14:00:03 et ne redémarre qu'à 15:30:00, au-delà de give_up_after_s (horloge avancée). La soumission est close redemarrage et repart aussitôt (EX-8.12) ; la preuve est en attente à 15:30:01, 5 400,75 s après created_at. EX-8.11 (complément du 2026-11-16) : l'alerte ots_give_up est levée dès ce passage en_attente, comme la jauge noortrace_anchoring_ots_pending_age_s, de même origine, le signale ; la première mise à niveau reste à first_after_s (15:31:01) : la preuve vient d'être soumise aux calendriers ; à sa réponse sans attestation Bitcoin (404, 15:31:02), la mise à niveau suivante part un jour plus tard, sans nouvelle alerte. Auparavant, la référence et le composant d'ancrage ne levaient l'alerte qu'à cette réponse.",
+      cfg,
+      { queue_before: lus.demandes, jitter: [] },
+    );
+    s.demarrage("2026-11-03T15:30:00.000Z").ots("2026-11-03T15:30:01.000Z", OP1, { nom: "en attente periode 1 apres un long arret" });
+    s.ots("2026-11-03T15:31:02.000Z", OP1, { attestation: "en_attente", calendars_answered: 1 }).arret("2026-11-03T15:32:00.000Z");
+    ajouter(s, (t) => [
+      ["soumission reprise au démarrage ; preuve en attente à 15:30:01 ; created_at inchangé", JSON.stringify(actions(t, "soumettre_ots").map((a) => a.t)) === JSON.stringify(["2026-11-03T15:30:00.000Z"]) && dem(t, OP1).result?.obtained_at === "2026-11-03T15:30:01.000Z" && dem(t, OP1).created_at === "2026-11-03T14:00:00.250Z"],
+      ["ots_give_up levée une fois, à 15:30:01, avant l'écriture en_attente", JSON.stringify(actions(t, "alerter", (a) => a.request_id === OP1).map((a) => [a.t, a.detail.code, a.detail.severity])) === JSON.stringify([["2026-11-03T15:30:01.000Z", "ots_give_up", "majeure"]]) && JSON.stringify(t.expected.filter((a) => a.t === "2026-11-03T15:30:01.000Z" && a.request_id === OP1).map((a) => a.action)) === JSON.stringify(["stocker", "alerter", "ecrire_file", "programmer"])],
+      ["première mise à niveau à first_after_s (15:31:01), la suivante un jour plus tard", JSON.stringify(actions(t, "mettre_a_niveau_ots").map((a) => a.t)) === JSON.stringify(["2026-11-03T15:31:01.000Z"]) && dem(t, OP1).due_at === "2026-11-04T15:31:02.000Z" && dem(t, OP1).state === "en_attente"],
+    ]);
+  }
+
+  // 61. registre-refus-ancre-periode-redemarrage (EX-8.10, EX-8.12 ; complément du 2026-11-16) : l'alerte du refus
+  // définitif de l'ancre d'une période est levée une fois par ancre depuis le dernier démarrage : de nouveau après un
+  // redémarrage, puis plus.
+  {
+    const avant = new Scenario("registre-refus-ancre-periode-redemarrage-avant", "x", configuration(), { jitter: [] });
+    avant.demarrage("2026-11-03T13:59:00.000Z").cloture(ex, 1).ots("2026-11-03T14:00:01.000Z", OP1, { nom: "en attente periode 1" });
+    avant.echecRegistre("2026-11-03T14:00:02.000Z", AP1, "refus_emetteur_inconnu").arret("2026-11-03T14:00:03.000Z");
+    const a = avant.construire();
+    exiger(JSON.stringify(actions(a, "alerter", (x) => x.request_id === AP1).map((x) => [x.t, x.detail.code, x.detail.severity])) === JSON.stringify([["2026-11-03T14:00:02.000Z", "prestataires_epuises", "critique"]]), "registre-refus-ancre-periode-redemarrage : alerte du premier refus avant l'arrêt");
+    exiger(dem(a, AP1)?.state === "a_reprendre" && dem(a, AP1)?.due_at === "2026-11-03T14:05:02.000Z", "registre-refus-ancre-periode-redemarrage : file avant le redémarrage");
+    const s = new Scenario(
+      "registre-refus-ancre-periode-redemarrage",
+      "Suite de la trace registre-refus-ancre-periode après un redémarrage. Avant l'arrêt (14:00:03), le registre a refusé définitivement l'ancre de la période 1 (refus_emetteur_inconnu, 14:00:02) et l'alerte prestataires_epuises critique a été levée ; la file relue porte l'ancre a_reprendre (due_at 14:05:02, exactement retry.max_ms après le refus), le jeton de clôture attente_registre et la preuve OpenTimestamps en attente. Au redémarrage (14:01:00), l'ancre garde son due_at (EX-8.12) ; elle repart à 14:05:02 et le registre la refuse de nouveau (14:05:03). EX-8.10 : l'alerte est levée une fois par ancre depuis le dernier démarrage : la marque de l'alerte d'avant l'arrêt n'est pas dans la file, et ce premier refus après le redémarrage la lève de nouveau ; le refus suivant (14:10:04) ne la lève pas. L'ancre repart à 14:15:04, au pas retry.max_ms sans gigue, et elle est incluse à 14:15:05 ; le jeton de clôture part alors et il est obtenu.",
+      configuration(),
+      { queue_before: a.queue_after, jitter: [] },
+    );
+    s.demarrage("2026-11-03T14:01:00.000Z").tic("2026-11-03T14:05:02.000Z").echecRegistre("2026-11-03T14:05:03.000Z", AP1, "refus_emetteur_inconnu");
+    s.tic("2026-11-03T14:10:03.000Z").echecRegistre("2026-11-03T14:10:04.000Z", AP1, "refus_emetteur_inconnu").tic("2026-11-03T14:15:04.000Z").inclusion("2026-11-03T14:15:05.000Z", AP1, 21400);
+    s.granted("2026-11-03T14:15:06.000Z", PH1, 1, { gen_time: "2026-11-03T14:15:06Z", nom: "periode 1 apres refus et redemarrage", size: 3082 }).arret("2026-11-03T14:16:00.000Z");
+    ajouter(s, (t) => [
+      ["une alerte prestataires_epuises critique, au premier refus après le redémarrage seulement", JSON.stringify(actions(t, "alerter", (x) => x.request_id === AP1 && x.detail.code === "prestataires_epuises").map((x) => [x.t, x.detail.severity])) === JSON.stringify([["2026-11-03T14:05:03.000Z", "critique"]])],
+      ["renvois à 14:05:02, 14:10:03 et 14:15:04 (retry.max_ms, sans gigue)", JSON.stringify(actions(t, "envoyer_registre", (x) => x.request_id === AP1).map((x) => x.t)) === JSON.stringify(["2026-11-03T14:05:02.000Z", "2026-11-03T14:10:03.000Z", "2026-11-03T14:15:04.000Z"])],
+      ["ancre et jeton de clôture obtenus", dem(t, AP1)?.state === "obtenue" && dem(t, PH1)?.state === "obtenue"],
+    ]);
+  }
+
+  // 62. registre-points-en-reprise (EX-9.5, EX-9.4, EX-10.7 ; complément du 2026-11-16) : l'ancre d'un point en reprise
+  // quand le point suivant de sa période est admis : remplacée si aucune de ses tentatives n'a pu être admise par un
+  // nœud, attendue sinon.
+  {
+    const cfg = configuration({ registry: { checkpoints: "tous", inclusion_alert_s: 3600 }, retry: { initial_ms: 600000, max_ms: 3600000 } });
+    const s = new Scenario(
+      "registre-points-en-reprise",
+      "Période 1 de référence, registry.checkpoints = tous, registry.inclusion_alert_s 3 600 s ; attente de reprise allongée (retry.initial_ms 600 000, max_ms 3 600 000 : 10 min, plus la gigue). L'ancre de K2 part à 13:53:00 ; le registre signale son échec à 13:53:01 (noeud_injoignable : aucun point n'a répondu, rien n'est parti) : a_reprendre, reprise à 14:03:01.137. K3 est admis à 13:54:00, pendant cette reprise. EX-9.5 (complément du 2026-11-16) : une ancre a_reprendre dont aucune tentative n'a pu être admise par un nœud est encore à envoyer ; l'ancre de K3 la remplace et part aussitôt, la clé n'ayant aucune ancre en vol. Le registre signale l'échec de l'ancre de K3 à 13:54:01, cette fois recu_absent : la transaction est partie et peut encore être incluse ; a_reprendre, reprise à 14:04:01.041. K4, point de clôture, est admis à 14:00:00.250, puis la période se clôt : l'ancre de K3 n'est ni remplacée (EX-9.5 : une ancre qui a pu partir n'est jamais abandonnée) ni dépassée : EX-9.4 (complément du 2026-11-16) : l'ancre d'un point ne part pas tant que celle d'un point antérieur de sa période n'a ni son reçu ni un autre état final ; l'ancre de K4 attend le nonce, la clé n'ayant pourtant aucune ancre en vol, et l'ancre de la période attend celle de K4. L'ancre de K3 repart à 14:04:01.041 ; à son reçu (14:04:02), l'ancre de K4 part ; à son reçu (14:04:03), l'ancre de la période ; incluse à 14:04:04, le jeton de clôture part. Les ancres des points sont incluses dans l'ordre de leurs checkpoint_ts (EX-10.7). Auparavant, la référence renvoyait l'ancre de K2 après celle de K3 (le composant d'ancrage la remplaçait), et les deux faisaient partir l'ancre de K4 à 14:00:00.250, avant le renvoi de celle de K3 : incluses dans cet ordre, la série était hors_ordre.",
+      cfg,
+      { jitter: [137, 41] },
+    );
+    s.demarrage("2026-11-03T13:52:30.000Z").point("K2").echecRegistre("2026-11-03T13:53:01.000Z", ANCRE("K2"), "noeud_injoignable");
+    s.point("K3").echecRegistre("2026-11-03T13:54:01.000Z", ANCRE("K3"), "recu_absent").point("K4").cloture(ex, 1);
+    s.tic("2026-11-03T14:04:01.041Z").inclusion("2026-11-03T14:04:02.000Z", ANCRE("K3"), 21500).inclusion("2026-11-03T14:04:03.000Z", ANCRE("K4"), 21501).inclusion("2026-11-03T14:04:04.000Z", AP1, 21502).arret("2026-11-03T14:05:00.000Z");
+    ajouter(s, (t) => [
+      ["envois : K2, K3 qui la remplace, K3 à sa reprise, K4 au reçu de K3, la période au reçu de K4", JSON.stringify(actions(t, "envoyer_registre").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T13:53:00.000Z", ANCRE("K2")], ["2026-11-03T13:54:00.000Z", ANCRE("K3")], ["2026-11-03T14:04:01.041Z", ANCRE("K3")], ["2026-11-03T14:04:02.000Z", ANCRE("K4")], ["2026-11-03T14:04:03.000Z", AP1]])],
+      ["K2 remplacée par K3 à 13:54:00", JSON.stringify(actions(t, "remplacer").map((a) => [a.t, a.request_id, a.detail.replaced_by])) === JSON.stringify([["2026-11-03T13:54:00.000Z", ANCRE("K2"), ANCRE("K3")]]) && dem(t, ANCRE("K2")).state === "remplacee"],
+      ["attentes du nonce : K4 à sa création, la clé libre, et la période", JSON.stringify(actions(t, "programmer", (a) => a.detail.reason === "attente_nonce").map((a) => [a.t, a.request_id])) === JSON.stringify([["2026-11-03T14:00:00.250Z", ANCRE("K4")], ["2026-11-03T14:00:00.250Z", AP1]])],
+      ["ancres de K3, K4 et de la période obtenues ; jeton de clôture envoyé à 14:04:04", [ANCRE("K3"), ANCRE("K4"), AP1].every((id) => dem(t, id)?.state === "obtenue") && actions(t, "envoyer_rfc3161", (a) => a.request_id === PH1).map((a) => a.t)[0] === "2026-11-03T14:04:04.000Z"],
+    ]);
+  }
+
+  exiger(liste.length === 62, "soixante-deux traces attendues");
   return liste;
 }
 
 /** La trace empreinte-squattee (menace MN-58), rejouée par la bibliothèque de référence, sans rien écrire. */
 export function traceEmpreinteSquattee() {
-  const { trace } = traces(exempleCT1(), { avecEmpreinteSquattee: true }).at(-1);
-  exiger(trace.id === "empreinte-squattee", "trace empreinte-squattee attendue en dernier");
+  const { trace } = traces(exempleCT1()).find((x) => x.trace.id === "empreinte-squattee") ?? { trace: null };
+  exiger(trace !== null, "trace empreinte-squattee attendue");
   return trace;
 }
 
@@ -1392,6 +2307,75 @@ export function familleCout() {
 }
 
 // ---------------------------------------------------------------------------
+// Famille configuration (AN-1, EX-4.9 ; complément du 2026-11-16)
+// ---------------------------------------------------------------------------
+
+/**
+ * Cas de la configuration ancrage-v0 (AN-1 : schéma, puis les règles hors schéma d'EX-4.9), tirés de l'exemple d'EX-4.8 :
+ * règle 4 (prestataire interne jamais qualifié, identifiant dans l'url, source d'en-têtes en production, authentification
+ * et secret cohérents, serveur interne comme principal hors production seulement), 4 bis (forme de crl_hosts) et 9 (OID
+ * de politique encodables). Attendu : `valide` et la liste triée des règles violées (`schema`, `1` à `9`), calculés par
+ * verifierConfiguration de la référence et contrôlés ici contre l'attendu écrit à la main.
+ */
+export function familleConfiguration() {
+  // L'adresse locale du serveur interne est écrite `localhost` (même règle 4) : aucune adresse IP dans les vecteurs (EX-A.6).
+  const exemple = () => JSON.parse(JSON.stringify(blocsSpec(SPEC_CT5, "ancrage")[0]).replaceAll("http://127.0.0.1:", "http://localhost:"));
+  const de = (doc, role) => doc.rfc3161.providers.find((p) => p.role === role);
+  const cases = [];
+  const ajouter = (id, description, profil, modifier, regles) => {
+    const document = exemple();
+    modifier(document);
+    const r = A.verifierConfiguration(document, { profil, checkpoint_interval_s: 60 });
+    const obtenues = [...new Set(r.violations.map((v) => String(v.rule)))].sort();
+    exiger(JSON.stringify(obtenues) === JSON.stringify([...regles].sort()), `configuration ${id} : règles ${JSON.stringify(obtenues)}, attendu ${JSON.stringify(regles)} (${JSON.stringify(r.violations.slice(0, 3))})`);
+    cases.push({ id, description, input: { document, profil, checkpoint_interval_s: 60 }, expected: { valide: obtenues.length === 0, regles: obtenues } });
+  };
+  const rien = () => {};
+  const qualifie = (doc) => JSON.parse(JSON.stringify(de(doc, "principal").qualified));
+  ajouter("exemple-production", "L'exemple d'EX-4.8 en production, avec la valeur checkpoint_interval_s de l'enregistreur : aucune règle violée.", "production", rien, []);
+  ajouter("exemple-developpement", "L'exemple d'EX-4.8 en développement : aucune règle violée.", "developpement", rien, []);
+  ajouter("interne-qualifie", "Règle 4 (révision 0.10) : le prestataire de rôle interne déclaré qualified, dans tout profil (EX-5.6, EX-7.2).", "developpement", (d) => { de(d, "interne").qualified = qualifie(d); }, ["4"]);
+  ajouter("interne-qualifie-production", "Règle 4 : le même document en production.", "production", (d) => { de(d, "interne").qualified = qualifie(d); }, ["4"]);
+  ajouter("url-avec-identifiant", "Règle 4 et EX-4.8 (AN-54) : url du principal portant un identifiant et un mot de passe ; le schéma la refuse (motif de url).", "developpement", (d) => { de(d, "principal").url = "https://compte:secret@horodatage-principal.example/tsa"; }, ["schema"]);
+  ajouter("source-entetes-nulle-production", "Règle 4 (révision 0.10 ; EX-6.6, EX-6.9) : opentimestamps.headers_source nul en production.", "production", (d) => { d.opentimestamps.headers_source = null; }, ["4"]);
+  ajouter("source-entetes-nulle-developpement", "Règle 4 : opentimestamps.headers_source nul hors production : admis.", "developpement", (d) => { d.opentimestamps.headers_source = null; }, []);
+  ajouter("basic-sans-secret", "Règle 4 (révision 0.10) : principal en basic sans secret, dans tout profil.", "developpement", (d) => { de(d, "principal").auth.secret = null; }, ["4"]);
+  ajouter("aucune-avec-secret", "Règle 4 (révision 0.10) : prestataire interne sans authentification portant un secret.", "developpement", (d) => { de(d, "interne").auth.secret = { env: "NOORTRACE_TSA_ESSAI" }; }, ["4"]);
+  const principalInterne = (d) => {
+    const p = de(d, "principal");
+    p.url = "http://localhost:2020/";
+    p.auth = { method: "aucune", secret: null };
+    p.qualified = null;
+  };
+  ajouter("principal-interne-developpement", "Règle 4 (révision 0.9) : hors production, le principal peut être le serveur RFC 3161 interne (http:// local, sans authentification, qualified nul).", "developpement", principalInterne, []);
+  ajouter("principal-interne-production", "Règle 4 : le même principal en production est refusé (sans qualified, http://, sans authentification).", "production", principalInterne, ["4"]);
+  ajouter("crl-hotes-donnes", "Règle 4 bis (révision 0.10) : crl_hosts donnée pour le principal, noms d'hôte en minuscules : admise dans tout profil.", "production", (d) => { de(d, "principal").crl_hosts = ["crl.horodatage-principal.example", "ocsp.horodatage-principal.example"]; }, []);
+  ajouter("crl-hotes-vide", "Règle 4 bis : crl_hosts vide ; le schéma exige au moins un nom (null pour aucune liste).", "production", (d) => { de(d, "principal").crl_hosts = []; }, ["schema"]);
+  ajouter("crl-hotes-majuscules", "Règle 4 bis : un nom de crl_hosts hors du motif des noms d'hôte (majuscules) ; refusé par le schéma.", "production", (d) => { de(d, "principal").crl_hosts = ["CRL.Horodatage-Principal.example"]; }, ["schema"]);
+  ajouter("oid-second-arc-40", "Règle 9 (révision 0.10) : policy_oid du serveur interne 1.40.5, second arc supérieur à 39 sous le premier arc 1 : non encodable dans la requête d'EX-5.1.", "developpement", (d) => { de(d, "interne").policy_oid = "1.40.5"; }, ["9"]);
+  ajouter("oid-arc-2-128", "Règle 9 : un OID d'accepted_policies dont un arc vaut 2^128, au-delà des 128 bits admis.", "developpement", (d) => { de(d, "interne").accepted_policies = ["1.3.6.1.4.1.99999.1.1", "2.25.340282366920938463463374607431768211456"]; }, ["9"]);
+  ajouter("oid-arc-2-128-moins-1", "Règle 9 : le même OID dont l'arc vaut 2^128 - 1 : encodable, admis.", "developpement", (d) => { de(d, "interne").accepted_policies = ["1.3.6.1.4.1.99999.1.1", "2.25.340282366920938463463374607431768211455"]; }, []);
+  ajouter("oid-der-trop-long", "Règle 9 : policy_oid de deux cents arcs (DER de plus de 127 octets) ; la chaîne tient dans maxLength.", "developpement", (d) => { de(d, "interne").policy_oid = `1.3${".1".repeat(198)}`; }, ["9"]);
+  // Complément du 2026-11-16 : les 127 octets de la règle 9 comptent l'OBJECT IDENTIFIER entier (étiquette 06, longueur,
+  // contenu) ; 1.3 suivi de n arcs 1 a un contenu de n + 1 octets.
+  ajouter("oid-der-127-octets", "Règle 9 (complément du 2026-11-16) : policy_oid 1.3 suivi de 124 arcs 1 : contenu de 125 octets, DER de 127 octets étiquette et longueur comprises : admis.", "developpement", (d) => { de(d, "interne").policy_oid = `1.3${".1".repeat(124)}`; }, []);
+  ajouter("oid-der-128-octets", "Règle 9 (complément du 2026-11-16) : policy_oid 1.3 suivi de 125 arcs 1 : contenu de 126 octets, DER de 128 octets étiquette et longueur comprises : refusé (un compte du seul contenu l'admettrait).", "developpement", (d) => { de(d, "interne").policy_oid = `1.3${".1".repeat(125)}`; }, ["9"]);
+  // Complément du 2026-11-16 : règles d'adresse et d'authentification du rôle interne lui-même, dans tout profil.
+  ajouter("interne-https-sans-authentification", "Règle 4 (complément du 2026-11-16) : prestataire interne en https:// vers localhost, auth.method aucune : refusé (https:// exige basic ou certificat_client ; AN-27).", "developpement", (d) => { de(d, "interne").url = "https://localhost:2020/"; }, ["4"]);
+  ajouter("interne-http-local-basic", "Règle 4 (complément du 2026-11-16) : prestataire interne en http:// vers localhost avec basic et un secret : refusé (http:// local va sans authentification ; basic seulement sur TLS, EX-5.5).", "developpement", (d) => { de(d, "interne").auth = { method: "basic", secret: { env: "NOORTRACE_TSA_INTERNE" } }; }, ["4"]);
+  ajouter("interne-https-basic", "Règle 4 (complément du 2026-11-16) : prestataire interne en https:// avec basic et un secret : admis dans tout profil (ici en production).", "production", (d) => { const p = de(d, "interne"); p.url = "https://horodatage-interne.example/tsa"; p.auth = { method: "basic", secret: { env: "NOORTRACE_TSA_INTERNE" } }; }, []);
+  // Complément du 2026-11-16 : règle 8, certificat dont le DER s'arrête avant la fin de sa structure (lecteur DER borné, EX-9.4 de CT-6).
+  const tronque = (pem) => {
+    const der = Buffer.from(pem.replace(/-----[A-Z ]+-----/g, "").replace(/\s+/g, ""), "base64");
+    const b64 = der.subarray(0, der.length - 3).toString("base64");
+    return `-----BEGIN CERTIFICATE-----\n${b64.match(/.{1,64}/g).join("\n")}\n-----END CERTIFICATE-----\n`;
+  };
+  ajouter("certificat-tronque", "Règle 8 (complément du 2026-11-16) : le certificat d'ancre du serveur interne privé de ses trois derniers octets (PEM canonique) : son DER s'arrête avant la fin de la SEQUENCE Certificate : illisible par le lecteur DER borné de CT-6 §9.3.", "developpement", (d) => { const p = de(d, "interne"); p.anchor_certificates = [tronque(p.anchor_certificates[0])]; }, ["8"]);
+  ajouter("regles-4-et-9","Règles 4 et 9 ensemble : prestataire interne qualified et policy_oid non encodable ; la liste porte les deux règles.", "developpement", (d) => { de(d, "interne").qualified = qualifie(d); de(d, "interne").policy_oid = "0.40"; }, ["4", "9"]);
+  return { version: 0, family: "configuration", description: "Configuration ancrage-v0 (AN-1, EX-4.9 ; complément du 2026-11-16) : pour un document, un profil de CT-2 §15 et la valeur checkpoint_interval_s de l'enregistreur, le verdict et la liste triée des règles violées (schema, puis 1 à 9). Documents tirés de l'exemple d'EX-4.8, l'adresse locale du serveur interne écrite localhost (EX-A.6).", cases };
+}
+
+// ---------------------------------------------------------------------------
 // Famille completude (AN-61, EX-10.7)
 // ---------------------------------------------------------------------------
 
@@ -1509,7 +2493,7 @@ function constantes(ex, requetes, ots) {
 // INDEX.md
 // ---------------------------------------------------------------------------
 
-function index({ constantes: c, requetes, reponses, ots, traces: tr, cout, reprise }) {
+function index({ constantes: c, requetes, reponses, ots, traces: tr, cout, reprise, configuration: conf }) {
   const L = [];
   L.push("# Vecteurs CT-5 — ancrage");
   L.push("");
@@ -1606,7 +2590,7 @@ function index({ constantes: c, requetes, reponses, ots, traces: tr, cout, repri
     "file-perdue": "EX-8.12 (reconstruction, file_perdue), EX-4.1 (point_manquant depuis le checkpoint_ts du point relu)",
     "bascule-epoque": "EX-8.5 règle 6 (fichiers d'époque), EX-8.12",
     "bascule-epoque-fichier-perdu": "EX-8.5 règle 6, EX-8.12 (reconstruction)",
-    "registre-indisponible-cloture": "EX-4.2 (repli de clôture), EX-8.4, EX-8.10",
+    "registre-indisponible-cloture": "EX-4.2 (repli de clôture), EX-8.4, EX-8.10, EX-9.4 (au retour du registre, l'ancre du point de clôture avant celle de la période ; complément du 2026-11-16 ; trace changée, EX-9.4 : « l'ancre de la période ne part qu'après le reçu de l'ancre du point de clôture de la même clé »)",
     "mi-periode-impair": "EX-6.1 (mi_periode, n_T impair)",
     "reponse-hors-profil": "EX-5.10, EX-5.12 (réponse hors profil, permanente)",
     "point-manquant": "EX-4.1, EX-4.3, 8.9 (point_manquant, AN-2)",
@@ -1617,7 +2601,40 @@ function index({ constantes: c, requetes, reponses, ots, traces: tr, cout, repri
     "redemarrage-releve": "EX-8.8, EX-8.12 (minuterie de relève reposée au démarrage ; revue de l'étape 8)",
     "redemarrage-echeance-remplacee": "EX-4.4, EX-8.12 (EX-4.4 appliquée aux demandes de points relues ; revue de l'étape 8)",
     "file-lignes-illisibles": "EX-8.5 règle 3, EX-8.12 (ligne mal formée ou fragment ignorés et consignés, reprise quel que soit l'état de la file ; revue de l'étape 8)",
-    "empreinte-squattee": "EX-4.7, EX-8.4, EX-8.10, EX-9.7 ; CT-4 EX-8.4, EX-8.6 (ancre de période refusée sur empreinte_squattee, sans nouvel essai ; AN-36, AN-40)",
+    "empreinte-squattee": "EX-4.7, EX-8.4, EX-8.10, EX-9.7 ; CT-4 EX-8.4, EX-8.6 (ancre de période refusée sur empreinte_squattee, sans nouvel essai ; jeton de clôture en attente_registre, période signalée registry_pending ; AN-36, AN-40 ; décision du porteur du 2026-11-16)",
+    "empreinte-squattee-repli": "EX-4.2, EX-8.4 règle 2, EX-9.7 (repli de clôture après le refus empreinte_squattee de l'ancre de la période : le jeton du point de clôture date la tête ; AN-36, AN-40 ; complément du 2026-11-16)",
+    "registre-saut-horloge": "EX-8.10 (au plus quatre rejeux par minuterie, par demande et par passe ; missed_deadlines sur la ligne anchor_retry du quatrième renvoi), EX-8.4 règle 2 (registry_pending ; complément du 2026-11-16)",
+    "redemarrage-due-at-borne": "EX-4.13 (au démarrage, due_at d'une demande a_reprendre ramené à l'instant courant plus retry.max_ms ; complément du 2026-11-16), EX-8.12",
+    "redemarrage-jeton-sans-acquisition": "EX-5.8 (demande de jeton obtenue sans enregistrement obtenue promu de même token_sha256 rouverte au démarrage, file_perdue ; complément du 2026-11-16), EX-8.12",
+    "file-perdue-jeton-point-obtenu": "EX-8.12 (demande de jeton de point recréée obtenue depuis acquisitions.ndjson, sans requête ; complément du 2026-11-16), EX-4.3",
+    "file-perdue-jeton-periode-obtenu": "EX-8.12 (demande de jeton de clôture recréée obtenue depuis acquisitions.ndjson, sans requête ; complément du 2026-11-16), EX-8.4 règle 2",
+    "redemarrage-jeton-recree-couvrant": "EX-8.12, EX-4.4, EX-8.4 règle 1 (demande de jeton recréée obtenue appliquée comme à sa promotion : demande de point relue antérieure close remplacee ; complément du 2026-11-16)",
+    "redemarrage-ancres-a-reprendre": "EX-8.10 (échec transitoire du registre : ancre a_reprendre), EX-8.11, EX-8.12 et EX-4.13 (ancre au registre et soumission OpenTimestamps a_reprendre gardent due_at au démarrage ; complément du 2026-11-16)",
+    "repli-ancre-incluse-jeton-retenu": "EX-8.4 règle 2, EX-4.2, EX-8.7 (repli de clôture lu à la lettre : jeton_periode encore attente_registre, ancre incluse, jeton retenu par min_interval_ms ; complément du 2026-11-16)",
+    "ots-reponses-insuffisantes": "EX-8.11, EX-6.2 point 4, EX-8.9 (soumission OpenTimestamps à moins de min_responses réponses valables, attestation Bitcoin comprise : reponses_insuffisantes, rejeter_reponse et anchor_response_rejected comme une réponse RFC 3161 en échec transitoire ; complément du 2026-11-16)",
+    "redemarrage-ots-soumission-envoyee": "EX-8.12, EX-8.9, EX-8.11 (soumission OpenTimestamps envoyee au démarrage close redemarrage et rejouée aussitôt avec le même engagement ; la tentative redemarrage interrompt la série ; complément du 2026-11-16)",
+    "ots-preuve-absente": "EX-8.11, EX-8.5 règle 2, 8.9 (réponse des calendriers sans preuve écrite jamais promue : preuve_absente à la soumission, en attente à la mise à niveau ; réponses qui ne s'appliquent pas : tentative_close, demande_close, demande_inconnue ; complément du 2026-11-16)",
+    "redemarrage-ots-a-reprendre-en-cours": "EX-8.12, EX-8.16 (ligne a_reprendre d'une version antérieure portant une soumission en_cours, reprise comme une soumission envoyee ; détail « soumission a <n> calendriers » ; complément du 2026-11-16)",
+    "reponses-hors-tentative": "EX-8.5 règles 1 et 2, EX-5.10 étape 2, EX-5.12, EX-8.10, 8.9, EX-8.16 (demande_inconnue, tentative_inconnue, tentative_close ; jeton absent, PKIFailureInfo hors liste ; borne d'une pièce ; événements du registre qui ne s'appliquent pas ; détails des tentatives closes ; complément du 2026-11-16)",
+    "registre-renvois": "EX-8.10, EX-8.16, CT-4 EX-8.16 (renvoi des mêmes octets puis remplacement au même nonce ; reçu et échec sans transaction en vol ignorés ; due_at d'une ancre renvoyée et d'une ancre en attente du nonce ; complément du 2026-11-16)",
+    "redemarrage-releve-deux-series": "EX-8.12, EX-8.8, EX-8.5 (une action programmer immediat par demande ; séries reprises dans l'ordre des tentatives closes par le démarrage ; erreur permanente d'une série pendant que l'autre est en vol écrite ; complément du 2026-11-16)",
+    "minuteries-simultanees": "EX-8.16, EX-8.10, EX-8.4 règle 2 (deux minuteries de même échéance : ordre de la file, puis ordre d'armement ; complément du 2026-11-16)",
+    "redemarrage-ordre-de-la-file": "EX-8.12 (ordre du démarrage : une seule passe sur la file, dans l'ordre de la file ; une ancre a_envoyer dont la clé a une ancre en vol attend le nonce à sa place ; complément du 2026-11-16), EX-9.4",
+    "redemarrage-a-envoyer-cle-libre": "EX-8.12, EX-9.4, EX-8.5 règle 1 (arrêt entre une ligne obtenue et l'envoi suivant : ancres a_envoyer parties après la passe, celle du point de la période d'abord, celle de la période à son reçu ; complément du 2026-11-16 ; trace changée, EX-9.4 : « l'ancre de la période ne part qu'après le reçu de l'ancre du point de clôture de la même clé »)",
+    "redemarrage-echeances-remplacees": "EX-8.12, EX-4.4 (échéances d'une demande remplacee relue gardées closes, aucune action echeance au démarrage ; complément du 2026-11-16)",
+    "registre-inclusion-apres-attente": "EX-8.10, P-2 (délai d'inclusion compté depuis la création de l'ancre, attente du nonce comprise : inclusion_late au reçu ; complément du 2026-11-16)",
+    "redemarrage-prestataires-epuises": "EX-8.12, EX-8.8, EX-4.5 (prestataires épuisés relus des tentatives echec_permanente de la file : après le redémarrage, l'erreur permanente de l'autre prestataire épuise la demande, alerte et reprise au pas retry.max_ms ; complément du 2026-11-16)",
+    "registre-cle-par-journal": "EX-9.4 (une transaction en vol par clé de chaîne, c'est-à-dire par journal du sujet de l'ancre : l'ancre de la période d'un autre journal part aussitôt, sans attendre le nonce ; complément du 2026-11-16)",
+    "minuteries-deux-journaux": "EX-8.16, EX-4.1, 8.9 (minuteries de période de deux journaux au même instant : échéances et cadences dans l'ordre où elles ont été armées, quel que soit le journal ; complément du 2026-11-16)",
+    "jeton-tardif-avertissements": "EX-5.10 étapes 6 à 8, EX-5.11, EX-8.5 règle 2, EX-8.16 (précision hors de la plage d'un instant : verification_T-7 ; pièce sans borne ; troisième réponse tardive promue avec reponse_tardive et horloge_suspecte, détail et alertes ; complément du 2026-11-16)",
+    "registre-refus-ancre-periode": "EX-8.10, 8.9, EX-4.5 (refus définitif de l'ancre d'une période : reprise au pas retry.max_ms sans gigue, alerte prestataires_epuises critique une fois ; complément du 2026-11-16)",
+    "registre-ordre-des-points": "EX-9.4, EX-8.12, EX-10.7 (ordre des ancres d'une clé : par period_start, puis, dans une période, les points par checkpoint_ts avant la période, l'ordre de la file aux égalités ; ancres créées au même instant par une reconstruction ; complément du 2026-11-16)",
+    "registre-periode-apres-point-de-cloture": "EX-9.4, EX-8.10, EX-10.7 (ancre du point de clôture en attente du nonce à la clôture : elle part avant l'ancre de la période, qui attend son reçu, même après un échec transitoire qui libère la clé ; complément du 2026-11-16)",
+    "redemarrage-ots-abandon-origine": "EX-8.11, EX-8.12 (âge d'abandon d'une preuve OpenTimestamps en attente compté depuis created_at de la demande, au démarrage comme en marche : la soumission reprise au redémarrage ne le déplace pas ; complément du 2026-11-16)",
+    "registre-periode-retient-la-cle": "EX-9.4, EX-9.5, EX-10.7 (une ancre de période sans reçu retient sa clé : ni l'ancre d'un point de la période suivante ni celle de cette période ne part avant elle, même quand la clé n'a aucune ancre en vol ; complément du 2026-11-16)",
+    "redemarrage-ots-abandon-soumission-tardive": "EX-8.11, EX-8.12 (soumission OpenTimestamps aboutie au-delà de give_up_after_s après created_at : ots_give_up dès la preuve en attente, première mise à niveau à first_after_s, puis une fois par jour ; complément du 2026-11-16)",
+    "registre-refus-ancre-periode-redemarrage": "EX-8.10, EX-8.12 (alerte du refus définitif de l'ancre d'une période levée une fois par ancre depuis le dernier démarrage : de nouveau au premier refus après un redémarrage ; complément du 2026-11-16)",
+    "registre-points-en-reprise": "EX-9.5, EX-9.4, EX-10.7 (ancre d'un point en reprise quand le point suivant de sa période est admis : remplacée si aucune de ses tentatives n'a pu être admise par un nœud, noeud_injoignable ; attendue sinon, recu_absent : le point suivant ne part qu'à son reçu ; complément du 2026-11-16)",
   };
   for (const { trace: t } of tr) L.push(`| \`${t.id}.json\` | ${t.inputs.length} | ${t.expected.length} | ${t.queue_before.length} | ${t.queue_after.length} | ${regles[t.id]} |`);
   L.push("");
@@ -1638,6 +2655,16 @@ function index({ constantes: c, requetes, reponses, ots, traces: tr, cout, repri
   for (const x of cout.cases) L.push(`| \`${x.id}\` | ${x.expected.qualified_tokens_per_journal} | ${x.expected.second_rank_tokens_per_journal} | ${x.expected.registry_anchors_per_journal} | ${x.expected.gas_upper_bound_per_journal} | ${x.expected.cost_per_journal} p | ${x.expected.cost_total} p |`);
   L.push("");
   for (const x of cout.cases) L.push(`- \`${x.id}\` : ${x.description}`);
+  L.push("");
+  L.push("## configuration/ (EX-4.9, AN-1 ; complément du 2026-11-16)");
+  L.push("");
+  L.push("`configuration.json` (`#/$defs/fichier_vecteurs`, `#/$defs/cas_configuration`) : un document `ancrage-v0` tiré de l'exemple d'EX-4.8, un profil et la valeur `checkpoint_interval_s` de l'enregistreur ; attendu : `valide` et la liste triée des règles violées (`schema`, puis `1` à `9`), que `verifierConfiguration` de la référence et `validerConfiguration` du composant d'ancrage rendent à l'identique.");
+  L.push("");
+  L.push("| Cas | Profil | Valide | Règles violées |");
+  L.push("|---|---|---|---|");
+  for (const x of conf.cases) L.push(`| \`${x.id}\` | ${x.input.profil} | ${x.expected.valide ? "oui" : "non"} | ${x.expected.regles.length ? x.expected.regles.join(", ") : "—"} |`);
+  L.push("");
+  for (const x of conf.cases) L.push(`- \`${x.id}\` : ${x.description}`);
   L.push("");
   return L.join("\n") + "\n";
 }
@@ -1676,7 +2703,7 @@ function confronterReference(trace) {
   }
 }
 
-export function genererCt5({ racine = REPERTOIRE_CT5, avecEmpreinteSquattee = false } = {}) {
+export function genererCt5({ racine = REPERTOIRE_CT5 } = {}) {
   fs.mkdirSync(racine, { recursive: true });
   const etrangeres = fs.readdirSync(racine).filter((e) => !CONSERVEES.has(e) && !ENTREES_GENEREES.includes(e)).sort();
   exiger(etrangeres.length === 0, `${racine} porte des entrées que le générateur n'écrit pas (${etrangeres.slice(0, 3).join(", ")}) : nommer un répertoire vide ou déjà produit par lui`);
@@ -1689,10 +2716,11 @@ export function genererCt5({ racine = REPERTOIRE_CT5, avecEmpreinteSquattee = fa
   const ots = familleOts();
   const cout = familleCout();
   const completude = familleCompletude();
-  const liste = traces(ex, { avecEmpreinteSquattee });
+  const configurationCas = familleConfiguration();
+  const liste = traces(ex);
   validerTraces(liste, schema);
   confronterReference(liste[0].trace);
-  for (const f of [requetes.fichier, cout, completude]) {
+  for (const f of [requetes.fichier, cout, completude, configurationCas]) {
     const e = J.validerSchema(f, schema, { fragment: "#/$defs/fichier_vecteurs" });
     exiger(e.length === 0, `famille ${f.family} hors schéma : ${JSON.stringify(e.slice(0, 3))}`);
   }
@@ -1729,17 +2757,19 @@ export function genererCt5({ racine = REPERTOIRE_CT5, avecEmpreinteSquattee = fa
   fs.writeFileSync(path.join(racine, "cout", "cout.json"), texteJSON(cout));
   fs.mkdirSync(path.join(racine, "completude"));
   fs.writeFileSync(path.join(racine, "completude", "completude.json"), texteJSON(completude));
-  fs.writeFileSync(path.join(racine, "INDEX.md"), index({ constantes: c, requetes, reponses, ots, traces: liste, cout, reprise }));
-  return { constantes: c, requetes, reponses, ots, traces: liste, cout, reprise };
+  fs.mkdirSync(path.join(racine, "configuration"));
+  fs.writeFileSync(path.join(racine, "configuration", "configuration.json"), texteJSON(configurationCas));
+  fs.writeFileSync(path.join(racine, "INDEX.md"), index({ constantes: c, requetes, reponses, ots, traces: liste, cout, reprise, configuration: configurationCas }));
+  return { constantes: c, requetes, reponses, ots, traces: liste, cout, reprise, configuration: configurationCas };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   const i = process.argv.indexOf("--sortie");
   if (i !== -1 && (!process.argv[i + 1] || process.argv[i + 1].startsWith("--"))) {
     process.stderr.write("generer-ct5 : --sortie attend un répertoire\n");
     process.exit(2);
   }
   const racine = i !== -1 ? path.resolve(process.argv[i + 1]) : REPERTOIRE_CT5;
-  const r = genererCt5({ racine, avecEmpreinteSquattee: process.argv.includes("--avec-empreinte-squattee") });
+  const r = genererCt5({ racine });
   process.stdout.write(`ct-5 : ${r.requetes.fichier.cases.length} requêtes, ${r.reponses.fichier.cases.length} réponses, ${r.ots.fichier.cases.length} preuves, ${r.traces.length} traces, ${r.cout.cases.length} cas de coût sous ${racine}\n`);
 }

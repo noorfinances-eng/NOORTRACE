@@ -33,7 +33,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { HDNodeWallet, SigningKey, computeAddress } from "ethers";
 import * as C from "../lib/conventions-registre.mjs";
 import * as J from "../lib/journal.mjs";
@@ -1413,7 +1413,7 @@ export function genererCt4({ racine = REPERTOIRE_CT4 } = {}) {
   return Object.fromEntries(familles.map(([f, d]) => [d.family, d.cases.length]));
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(path.resolve(process.argv[1]))) {
   const i = process.argv.indexOf("--sortie");
   if (i !== -1 && !process.argv[i + 1]) {
     process.stderr.write("generer-ct4 : --sortie demande un répertoire\n");

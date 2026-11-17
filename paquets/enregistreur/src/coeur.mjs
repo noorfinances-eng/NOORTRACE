@@ -398,7 +398,10 @@ export class Coeur {
     // CT-2 EX-18.7 (étape 8) : sans module natif, le démon
     // ne demande ni `mlockall` ni `prctl(PR_SET_DUMPABLE, 0)` ; l'avertissement
     // qu'EX-18.7 prescrit « quand le déploiement ne le permet pas » est consigné
-    // au démarrage, et le fichier de composition pose `ulimits core: 0` (CT-8).
+    // au démarrage. Les fichiers de vidage mémoire ne sont pas désactivés par les
+    // fichiers Compose de référence, dont la liste fermée des clés d'un service
+    // n'admet pas `ulimits` (CT-8 CO-8) : le client les désactive sur l'hôte
+    // (risque accepté RA-87 de CT-7 §3.5.1).
     this.journal.consigner("warning", "noyau", "memory_protection_unavailable", { mlockall: false, dumpable_cleared: false, reason: "aucun module natif en version 0 (CT-2 §21)" });
     this.pret = true;
     await this._servirSupervision();
@@ -2427,10 +2430,11 @@ export class Coeur {
   }
 
   /**
-   * `noortrace-ctl ancrage <etat|metriques|retirer-qualification> [id]`
+   * `noortrace-ctl ancrage <etat|metriques|retirer-qualification|retablir-qualification> [id]`
    * (demande écrite à côté du journal d'exploitation, SIGURG) : la réponse
    * est consignée (`anchoring_state`, `anchoring_metrics`,
-   * `provider_qualification_withdrawn`, ou `anchoring_ctl_refused`).
+   * `provider_qualification_withdrawn`, `provider_qualification_restored`, ou
+   * `anchoring_ctl_refused`).
    * @param {{commande: string, id?: string|null}} demande
    */
   async commandeAncrage(demande) {
@@ -2461,6 +2465,19 @@ export class Coeur {
           return refus(/inconnu/.test(String(e?.message)) ? "prestataire_inconnu" : "erreur");
         }
         return { accepte: true };
+      }
+      case "retablir-qualification": {
+        // CT-5 EX-5.9 (décision du porteur du 2026-11-16 ; CT-7 RA-90) : levée du retrait de `qualified` par
+        // l'exploitant, après lecture de la liste de confiance ; durable ; refusée si aucun retrait n'est en vigueur.
+        if (typeof demande.id !== "string" || !demande.id) return refus("identifiant_absent");
+        if (!a.demarre) return refus("composant_non_demarre");
+        let leve;
+        try {
+          leve = await a.retablirQualification(demande.id);
+        } catch {
+          return refus("erreur");
+        }
+        return leve ? { accepte: true } : refus("retrait_absent");
       }
       default:
         return refus("commande_inconnue");

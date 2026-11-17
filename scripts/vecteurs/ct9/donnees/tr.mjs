@@ -111,7 +111,7 @@ export const TR = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 8,
-      "blocking": "Épreuve humaine ; le réseau de développement et l'outil existent ; CT-4 l'a déjà rejouée deux fois sans consignation publiée (CT-4 l. 119-122, R10-NV4)."
+      "blocking": "Épreuve humaine ; le réseau de développement et l'outil existent ; CT-4 l'a déjà rejouée deux fois sans consignation publiée (CT-4 l. 183-186, R10-NV4)."
     },
     "threats": [],
     "replay": {
