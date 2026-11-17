@@ -1068,7 +1068,7 @@
       },
       {
         "file": "test/verification-page-presentation.test.js",
-        "sha256": "c872a60ad6dea414381f6bc40dd942f4a3fe9f878fc8040075982353a449825a"
+        "sha256": "dfe07110d58a3223dd279ae7e9c01f894829ad331e8f8b161be9b4e9310682f4"
       },
       {
         "file": "test/verification-page-revue-navigateurs.test.js",

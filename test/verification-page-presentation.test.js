@@ -380,15 +380,30 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       return false;
     }
 
-    /** Ouvre la page servie avec le travailleur du cas, choisit le dossier et vérifie ; rend l'ouverture. */
+    // Ouvre la page servie avec le travailleur du cas, choisit le dossier et vérifie ; rend l'ouverture.
+    // WebKit (Playwright 1.56.1), constaté en intégration continue le 2026-11-17 : le premier choix d'un répertoire fait
+    // juste après le lancement du moteur est resté sans réponse 30 s (page.setInputFiles, élément trouvé), alors que
+    // les mêmes choix, dans des pages ouvertes ensuite, aboutissent en moins de 3 s. La cause n'est pas établie ; la
+    // page est servie de la même façon dans les deux cas. Le choix reçoit donc 10 s sous WebKit et, s'il n'aboutit
+    // pas, la page est rouverte (au plus deux reprises, chacune écrite sur la sortie d'erreur). Les autres moteurs
+    // gardent le délai de Playwright et n'ont aucune reprise.
     async function verifierCas(cas, { page = pageConstruite, langue = "fr", options = {} } = {}) {
-      const o = await ouvrir(navigateur, page, { remplacements: { "travailleur.js": travailleurFactice(cas) }, ...options });
-      await o.page.goto("https://verification.example/index.html");
-      await attendreArtefact(o.page);
-      if (langue === "en") await o.page.click("#autre-langue");
-      await o.page.setInputFiles("#entree-repertoire", DOSSIER);
-      await lancerVerification(o.page);
-      return o;
+      for (let reprise = 0; ; reprise++) {
+        const o = await ouvrir(navigateur, page, { remplacements: { "travailleur.js": travailleurFactice(cas) }, ...options });
+        try {
+          await o.page.goto("https://verification.example/index.html");
+          await attendreArtefact(o.page);
+          if (langue === "en") await o.page.click("#autre-langue");
+          await o.page.setInputFiles("#entree-repertoire", DOSSIER, moteur === "webkit" ? { timeout: 10000 } : {});
+        } catch (e) {
+          await o.fermer();
+          if (moteur !== "webkit" || !/setInputFiles: Timeout/.test(e.message) || reprise >= 2) throw e;
+          process.stderr.write(`page de vérification, webkit : choix du répertoire sans réponse en 10 s, page rouverte, reprise ${reprise + 1}\n`);
+          continue;
+        }
+        await lancerVerification(o.page);
+        return o;
+      }
     }
 
     it("le mot du verdict suit le code de retour, et l'état de chaque contrôle est celui du rapport JSON : valide, valide borné, non valide, incomplet, aucun verdict ; en français et en anglais ; un contrôle non exécuté n'est jamais montré réussi", async function () {
@@ -616,6 +631,9 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         navigateur.newContext = (options = {}) => origine({ ...options, colorScheme: schema });
         try {
           const o = await ouvrir(navigateur, pageConstruite, { remplacements: { "travailleur.js": travailleurFactice(CAS.valide) } });
+          // La préférence est aussi posée sur la page elle-même : sous Firefox, la page rouverte après une première
+          // navigation bloquée (reprise de l'ouverture) ne recevait pas celle du contexte.
+          await o.page.emulateMedia({ colorScheme: schema });
           await o.page.goto("https://verification.example/index.html");
           await attendreArtefact(o.page);
           return o;

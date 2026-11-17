@@ -13731,6 +13731,19 @@
           "apres": "469b14eaf680ef89dd8b34b14d8b89f77c075ce0d17ab54a1e56c1585bc79063"
         }
       ]
+    },
+    {
+      "id": "MC-97",
+      "date": "2026-11-17",
+      "etape": 8,
+      "motif": "Complément du 2026-11-17 : empreinte d'un fichier d'essai dans la couverture (essai de présentation de la page de vérification : préférence de couleur posée sur la page sous Firefox, reprise bornée du premier choix de répertoire sous WebKit).",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "834809c17073e6f27bf1a5358980d1836ce565e5cb60d43259044df6b21dde2f",
+          "apres": "729a0ff6b21edb2ae7c99a86ffd3d605d2f6403a80d2efada5b4f6ea836c8025"
+        }
+      ]
     }
   ]
 }
