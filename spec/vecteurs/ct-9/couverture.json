@@ -680,7 +680,7 @@
       },
       {
         "file": "test/enregistreur-revue-frontaux.test.js",
-        "sha256": "915e6277b34e8c0fb7a0d4749dfd4dcd06af70072c88325fa958fc39ffcc50be"
+        "sha256": "830dd69e025e830103ddfc3f79193504e5d05b139ed7d0fd754924911d239a8e"
       },
       {
         "file": "test/enregistreur-revue-modele.test.js",

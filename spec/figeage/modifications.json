@@ -13640,6 +13640,19 @@
           "apres": "548c61aa18df0d4357166933e0c87bde905f615c1f8d1d375f3f2c4f7a58cb42"
         }
       ]
+    },
+    {
+      "id": "MC-95",
+      "date": "2026-11-17",
+      "etape": 8,
+      "motif": "Complément du 2026-11-17 : empreinte d'un fichier d'essai dans la couverture (essai des frontaux : attentes de condition au lieu de délais fixes de 50 ms).",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "b34992b0cb32d3235a137b453e60f91e236d2158ef88aeba67e6568e23a8349e",
+          "apres": "b08086752711d3c9c5f9f38f57333d1a3025c4addb78daf065ae68be76eba504"
+        }
+      ]
     }
   ]
 }

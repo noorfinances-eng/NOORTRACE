@@ -19,7 +19,9 @@ is tagged.
   the cross-reference tools and by `test/renvois-lignes.test.js`. Tests: the
   TA-106 scenario waits for a stored checkpoint before the hard stop; the
   measurement-harness test states that it needs a directory on a real disk
-  and always removes its directory. CI: the anchoring job installs promtool
+  and always removes its directory; the front-end review tests wait for the
+  relayed call, the refusal line and the relayed notification instead of a
+  fixed 50 ms delay. CI: the anchoring job installs promtool
   3.5.0 from the official archive, so the alerting-rule test of the period
   anchor runs there; the storage rows of the fault matrix (TE-16) that need
   root run under sudo in the superuser job. Test plan (CT-9) regenerated twice,

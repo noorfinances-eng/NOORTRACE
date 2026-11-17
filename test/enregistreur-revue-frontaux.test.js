@@ -97,6 +97,18 @@ async function banc(o = {}) {
   return { dir, config: v.config, coeur, frontal, sessions, enfants, ecrit, evenements, fermer, lignes: (ev) => coeur.journal.trouver(ev) };
 }
 
+// Attend qu'une condition soit vraie, au plus `ms` millisecondes : un délai fixe
+// ne suffit pas sur une machine chargée (relais, écriture durable de l'intention).
+async function attendreQue(cond, description, ms = 10000) {
+  const limite = Date.now() + ms;
+  for (;;) {
+    const v = cond();
+    if (v) return v;
+    if (Date.now() > limite) throw new Error(`${description} : non atteint en ${ms} ms`);
+    await laisserTourner(10);
+  }
+}
+
 describe("enregistreur, revue (étape 8) : frontaux, prises et commandes", function () {
   this.timeout(60000);
 
@@ -111,20 +123,19 @@ describe("enregistreur, revue (étape 8) : frontaux, prises et commandes", funct
       try {
         const [victime, autre] = b.sessions;
         const enVol = victime.recevoir(appel(1, "banque__lire", {}, { ...META, progressToken: "jeton-de-la-victime" }));
-        await laisserTourner(50);
-        const relaye = b.ecrit.filter((x) => x.serveur === "banque").map((x) => JSON.parse(x.ligne)).find((m) => m.method === "tools/call");
+        const relaye = await attendreQue(() => b.ecrit.filter((x) => x.serveur === "banque").map((x) => JSON.parse(x.ligne)).find((m) => m.method === "tools/call"), "appel relayé au serveur « banque »");
         const jetonAmont = relaye.params._meta.progressToken;
         await autre.recevoir(appel(7, "meteo__prevoir", {}));
         // Le serveur « meteo » devine le jeton amont de l'appel de la victime.
         b.enfants.meteo.repondre(ligne({ jsonrpc: "2.0", method: "notifications/progress", params: { progressToken: jetonAmont, progress: 1, total: 2, message: "TEXTE CHOISI PAR LE SERVEUR METEO" } }));
-        await laisserTourner(50);
+        await attendreQue(() => b.lignes("server_progress_refused").length > 0, "refus server_progress_refused consigné");
         expect(victime.emis.filter((x) => x.includes("notifications/progress"))).to.deep.equal([]);
         const refus = b.lignes("server_progress_refused");
         expect(refus).to.have.length(1);
         expect(refus[0].data).to.include({ server: "meteo", token_server: "banque" });
         // Le serveur appelé, lui, est relayé, avec le jeton de l'hôte.
         b.enfants.banque.repondre(ligne({ jsonrpc: "2.0", method: "notifications/progress", params: { progressToken: jetonAmont, progress: 1, total: 2 } }));
-        await laisserTourner(50);
+        await attendreQue(() => victime.emis.some((x) => x.includes("notifications/progress")), "progression du serveur appelé relayée à l'hôte");
         const relayees = victime.emis.filter((x) => x.includes("notifications/progress")).map((x) => JSON.parse(x));
         expect(relayees).to.have.length(1);
         expect(relayees[0].params.progressToken).to.equal("jeton-de-la-victime");
@@ -185,7 +196,7 @@ describe("enregistreur, revue (étape 8) : frontaux, prises et commandes", funct
         };
         const r3 = await h.recevoir(appel(4, "web__payer", { compte: "CH-3" }));
         expect(r3.error?.code, JSON.stringify(r3)).to.equal(-31014);
-        await laisserTourner(50);
+        await attendreQue(() => b.frontal.appelsEnVol.size === 0 && cx.enVol.size === 0 && b.lignes("upstream_send_failed").length > 0, "appel en vol retiré et upstream_send_failed consigné");
         expect(b.frontal.appelsEnVol.size, "aucun appel en vol").to.equal(0);
         expect(cx.enVol.size, "aucune attente amont").to.equal(0);
         const l = b.lignes("upstream_send_failed");
