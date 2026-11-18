@@ -28,7 +28,7 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { execFileSync } from "node:child_process";
-import { attendreArtefact, deplierOptions, lancer, lancerVerification, ouvrir } from "./fixtures/verification-page/navigateur.mjs";
+import { attendreArtefact, choisirRepertoire, deplierOptions, lancer, lancerVerification, ouvrir } from "./fixtures/verification-page/navigateur.mjs";
 import { ANCRES, CHAINE, RACINE, VERSION, construireArtefact, enAttente, environnementGo, repertoireTemporaire } from "./fixtures/verification-page/outils.mjs";
 
 const RACINE_SOURCES = process.env.NOORTRACE_RACINE ? path.resolve(process.env.NOORTRACE_RACINE) : RACINE;
@@ -380,30 +380,15 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       return false;
     }
 
-    // Ouvre la page servie avec le travailleur du cas, choisit le dossier et vérifie ; rend l'ouverture.
-    // WebKit (Playwright 1.56.1), constaté en intégration continue le 2026-11-17 : le premier choix d'un répertoire fait
-    // juste après le lancement du moteur est resté sans réponse 30 s (page.setInputFiles, élément trouvé), alors que
-    // les mêmes choix, dans des pages ouvertes ensuite, aboutissent en moins de 3 s. La cause n'est pas établie ; la
-    // page est servie de la même façon dans les deux cas. Le choix reçoit donc 10 s sous WebKit et, s'il n'aboutit
-    // pas, la page est rouverte (au plus deux reprises, chacune écrite sur la sortie d'erreur). Les autres moteurs
-    // gardent le délai de Playwright et n'ont aucune reprise.
+    /** Ouvre la page servie avec le travailleur du cas, choisit le dossier et vérifie ; rend l'ouverture. */
     async function verifierCas(cas, { page = pageConstruite, langue = "fr", options = {} } = {}) {
-      for (let reprise = 0; ; reprise++) {
-        const o = await ouvrir(navigateur, page, { remplacements: { "travailleur.js": travailleurFactice(cas) }, ...options });
-        try {
-          await o.page.goto("https://verification.example/index.html");
-          await attendreArtefact(o.page);
-          if (langue === "en") await o.page.click("#autre-langue");
-          await o.page.setInputFiles("#entree-repertoire", DOSSIER, moteur === "webkit" ? { timeout: 10000 } : {});
-        } catch (e) {
-          await o.fermer();
-          if (moteur !== "webkit" || !/setInputFiles: Timeout/.test(e.message) || reprise >= 2) throw e;
-          process.stderr.write(`page de vérification, webkit : choix du répertoire sans réponse en 10 s, page rouverte, reprise ${reprise + 1}\n`);
-          continue;
-        }
-        await lancerVerification(o.page);
-        return o;
-      }
+      const o = await ouvrir(navigateur, page, { remplacements: { "travailleur.js": travailleurFactice(cas) }, ...options });
+      await o.page.goto("https://verification.example/index.html");
+      await attendreArtefact(o.page);
+      if (langue === "en") await o.page.click("#autre-langue");
+      await choisirRepertoire(o.page, DOSSIER);
+      await lancerVerification(o.page);
+      return o;
     }
 
     it("le mot du verdict suit le code de retour, et l'état de chaque contrôle est celui du rapport JSON : valide, valide borné, non valide, incomplet, aucun verdict ; en français et en anglais ; un contrôle non exécuté n'est jamais montré réussi", async function () {
@@ -608,7 +593,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         expect(await o.page.textContent("#nom-ancres")).to.equal(T.aucun_fichier);
         await o.page.click("#options > summary");
         expect(await o.page.textContent("#resume-options")).to.equal([T.options_entetes, libelle(T, "options_exiger", { liste: "4, 8" }), T.options_detail].join(" · "));
-        await o.page.setInputFiles("#entree-repertoire", DOSSIER);
+        await choisirRepertoire(o.page, DOSSIER);
         expect(await o.page.textContent("#dossier-choisi")).to.equal(libelle(T, "dossier_choisi_repertoire", { nom: path.basename(DOSSIER) }));
         expect(await o.page.isEnabled("#verifier")).to.equal(true);
         expect(await o.page.textContent("#aide-verifier")).to.equal(T.aide_verifier_pret);
@@ -731,7 +716,7 @@ describe("page de vérification, présentation, de bout en bout dans chromium (C
         if (e.entetes) await o.page.setInputFiles("#entree-entetes", CHAINE);
         else await o.page.click("#retirer-entetes");
         for (let n = 1; n <= 8; n++) await o.page.setChecked(`input[name="exiger"][value="${n}"]`, (e.exiger ?? []).includes(n));
-        await o.page.setInputFiles("#entree-repertoire", path.join(VECTEURS, e.dossier));
+        await choisirRepertoire(o.page, path.join(VECTEURS, e.dossier));
         await lancerVerification(o.page);
         const ecran = await lireEcran(o.page);
         const json = JSON.parse(ecran.json);

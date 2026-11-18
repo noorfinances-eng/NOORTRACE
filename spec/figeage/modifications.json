@@ -13744,6 +13744,19 @@
           "apres": "729a0ff6b21edb2ae7c99a86ffd3d605d2f6403a80d2efada5b4f6ea836c8025"
         }
       ]
+    },
+    {
+      "id": "MC-98",
+      "date": "2026-11-17",
+      "etape": 8,
+      "motif": "essais de la page de vérification : choix d'un répertoire par une aide commune qui pose sa propre écoute de l'événement input avant l'appel, le pilote de navigateur envoyant le choix avant de poser la sienne ; empreintes des fichiers d'essai dans la couverture de CT-9",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "729a0ff6b21edb2ae7c99a86ffd3d605d2f6403a80d2efada5b4f6ea836c8025",
+          "apres": "0b0230699eb7e1646855dc659e290619477f5da080a8545b32fa4d40a2acc240"
+        }
+      ]
     }
   ]
 }

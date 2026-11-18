@@ -34,7 +34,7 @@ import vm from "node:vm";
 import zlib from "node:zlib";
 import { execFileSync } from "node:child_process";
 import { tar, zip } from "./fixtures/verification-page/archives-essai.mjs";
-import { attendreArtefact, deplierOptions, lancer, lancerVerification, ouvrir } from "./fixtures/verification-page/navigateur.mjs";
+import { attendreArtefact, choisirRepertoire, deplierOptions, lancer, lancerVerification, ouvrir } from "./fixtures/verification-page/navigateur.mjs";
 import { RACINE, RacineNatif, VERSION, argumentsVerification, construireArtefact, construireNatif, enAttente, environnementGo, essaiRacineNatif, repertoireTemporaire, sha256 } from "./fixtures/verification-page/outils.mjs";
 
 const EXIGER = process.env.NOORTRACE_EXIGER_CHROMIUM === "1";
@@ -331,7 +331,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         await deplierOptions(o.page);
         await o.page.click("#retirer-ancres");
         await o.page.click("#retirer-entetes");
-        await o.page.setInputFiles("#entree-repertoire", DOSSIER);
+        await choisirRepertoire(o.page, DOSSIER);
         await lancerVerification(o.page);
         const r = await lireResultat(o.page);
         expect(r.nonFaite).to.equal(LIBELLES.non_faite);
@@ -345,7 +345,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       const n = natif();
       const o2 = await ouvrirPage();
       try {
-        await o2.page.setInputFiles("#entree-repertoire", DOSSIER);
+        await choisirRepertoire(o2.page, DOSSIER);
         await lancerVerification(o2.page);
         const r = await lireResultat(o2.page);
         expect(r.nonFaite).to.equal(null);
@@ -366,7 +366,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         await deplierOptions(muet.page);
         await muet.page.click("#retirer-ancres");
         await muet.page.click("#retirer-entetes");
-        await muet.page.setInputFiles("#entree-repertoire", DOSSIER);
+        await choisirRepertoire(muet.page, DOSSIER);
         expect(await muet.page.isDisabled("#arreter"), "Arrêter inactif avant la vérification").to.equal(true);
         await muet.page.click("#verifier");
         await muet.page.waitForFunction(() => !document.getElementById("arreter").disabled, null, { timeout: 30000 });
@@ -400,7 +400,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       const n = natif();
       const o = await ouvrirPage();
       try {
-        await o.page.setInputFiles("#entree-repertoire", DOSSIER);
+        await choisirRepertoire(o.page, DOSSIER);
         await o.page.evaluate(() => {
           document.getElementById("verifier").click();
           document.getElementById("arreter").click();
@@ -446,7 +446,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
           await deplierOptions(o.page);
           await o.page.click("#retirer-ancres");
           await o.page.click("#retirer-entetes");
-          await o.page.setInputFiles("#entree-repertoire", DOSSIER);
+          await choisirRepertoire(o.page, DOSSIER);
           await lancerVerification(o.page);
           const r = await lireResultat(o.page);
           expect(r.nonFaite, `code ${code}`).to.equal(null);

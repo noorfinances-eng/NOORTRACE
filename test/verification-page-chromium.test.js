@@ -28,7 +28,7 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { casDeRefus, chargerArchives } from "./fixtures/verification-page/archives-essai.mjs";
-import { attendreArtefact, deplierOptions, lancer, lancerVerification, ouvrir } from "./fixtures/verification-page/navigateur.mjs";
+import { attendreArtefact, choisirRepertoire, deplierOptions, lancer, lancerVerification, ouvrir } from "./fixtures/verification-page/navigateur.mjs";
 import { ANCRES, CHAINE, RACINE, RacineNatif, VERSION, argumentsVerification, construireTout, enAttente, environnementGo, essaiRacineNatif, fichiersDe, repertoireTemporaire, sha256 } from "./fixtures/verification-page/outils.mjs";
 import { outilsArchivesDisponibles, recettesArchives } from "./fixtures/verification-page/recettes.mjs";
 
@@ -229,7 +229,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
           o.marquer();
           await choisirOptions(o.page, e.options);
           // Comme répertoire.
-          await o.page.setInputFiles("#entree-repertoire", dossier);
+          await choisirRepertoire(o.page, dossier);
           expect(await o.page.textContent("#dossier-choisi")).to.equal(libelle(LIBELLES, "dossier_choisi_repertoire", { nom: path.basename(dossier) }));
           await lancerVerification(o.page);
           comparer(await lireResultat(o.page), n.sorties, n.args, `${e.dossier} répertoire`);
@@ -362,7 +362,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         await o.page.goto("https://verification.example/index.html");
         await attendreArtefact(o.page);
         o.marquer();
-        await o.page.setInputFiles("#entree-repertoire", rep);
+        await choisirRepertoire(o.page, rep);
         await lancerVerification(o.page);
         const r = await lireResultat(o.page);
         expect(r.alerte).to.equal(libelle(LIBELLES, "refus_archive", { raison: LIBELLES.r_trop_entrees }));
@@ -395,7 +395,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         await attendreArtefact(o.page);
         o.marquer();
         await choisirOptions(o.page, { ancres: true, entetes: true, exiger: [4, 5, 8], detail: true });
-        await o.page.setInputFiles("#entree-repertoire", path.join(VECTEURS, "ct-6/dossiers/valide-seq-7-complet"));
+        await choisirRepertoire(o.page, path.join(VECTEURS, "ct-6/dossiers/valide-seq-7-complet"));
         await lancerVerification(o.page);
         expect(await o.page.textContent("#code")).to.match(/^Code de retour 0 /);
         await o.page.waitForTimeout(2000);
@@ -447,7 +447,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
           expect(t).to.equal(libelle(LIBELLES, "artefact_pret", { version: VERSION, empreinte: `0x${sha256(fs.readFileSync(path.join(copie, "noortrace-verifier.wasm")))}` }));
         } else {
           expect(t.startsWith(`${LIBELLES.non_faite}. ${libelle(LIBELLES, "cause", { cause: "compilation refusée : " })}`), t).to.equal(true);
-          await o.page.setInputFiles("#entree-repertoire", path.join(VECTEURS, "ct-1/dossiers/valide-seq-7"));
+          await choisirRepertoire(o.page, path.join(VECTEURS, "ct-1/dossiers/valide-seq-7"));
           expect(await o.page.isDisabled("#verifier")).to.equal(true);
           expect(await o.page.isHidden("#resultat")).to.equal(true);
         }
@@ -464,7 +464,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       try {
         await m.page.goto("https://verification.example/index.html");
         await attendreArtefact(m.page);
-        await m.page.setInputFiles("#entree-repertoire", path.join(VECTEURS, "ct-1/dossiers/valide-seq-7"));
+        await choisirRepertoire(m.page, path.join(VECTEURS, "ct-1/dossiers/valide-seq-7"));
         await lancerVerification(m.page);
         const r = await lireResultat(m.page);
         expect(r.nonFaite).to.equal(LIBELLES.non_faite);
@@ -495,7 +495,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       try {
         await o.page.goto("https://verification.example/index.html");
         expect(await attendreArtefact(o.page)).to.equal(libelle(LIBELLES, "artefact_altere", { calculee, attendue }));
-        await o.page.setInputFiles("#entree-repertoire", path.join(VECTEURS, "ct-1/dossiers/valide-seq-7"));
+        await choisirRepertoire(o.page, path.join(VECTEURS, "ct-1/dossiers/valide-seq-7"));
         expect(await o.page.isDisabled("#verifier")).to.equal(true);
         await o.page.click("#verifier", { force: true });
         await o.page.waitForTimeout(1000);
@@ -514,7 +514,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         try {
           await m.page.goto("https://verification.example/index.html");
           expect(await attendreArtefact(m.page)).to.equal(libelle(LIBELLES, "artefact_pret", { version: VERSION, empreinte: calculee }));
-          await m.page.setInputFiles("#entree-repertoire", path.join(VECTEURS, "ct-1/dossiers/valide-seq-7"));
+          await choisirRepertoire(m.page, path.join(VECTEURS, "ct-1/dossiers/valide-seq-7"));
           await lancerVerification(m.page);
           const r = await lireResultat(m.page);
           expect(r.lisible.split("\n")[0]).to.equal("Vérification Hors ligne d'un dossier de preuve NOORTRACE (format v0, CT-1 et CT-6)");

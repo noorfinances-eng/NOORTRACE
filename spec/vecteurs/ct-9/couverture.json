@@ -1056,7 +1056,7 @@
       },
       {
         "file": "test/verification-page-chromium.test.js",
-        "sha256": "b1f643b5886d0fcfddb0e0828a9406927ea21df27e6453f97a9355220dd048be"
+        "sha256": "220d634688748886d21cc0a3390b1c3dc88fb88f86246a80ed0feeabd525cc80"
       },
       {
         "file": "test/verification-page-construction.test.js",
@@ -1068,11 +1068,11 @@
       },
       {
         "file": "test/verification-page-presentation.test.js",
-        "sha256": "dfe07110d58a3223dd279ae7e9c01f894829ad331e8f8b161be9b4e9310682f4"
+        "sha256": "7c2b9a133b8d5658c97ed18ac4dd68aa3d8260702f809051d2296bbf43a2b0a2"
       },
       {
         "file": "test/verification-page-revue-navigateurs.test.js",
-        "sha256": "c8804c16ee24dc254b8f76ccc3b52b2d94fa17d3408aa80f9aa0157aa51d51bd"
+        "sha256": "b0c7da6f227b2174be5f49745ffa4ac2fca349ee76cbaf07ec22ad8eead9eaa4"
       },
       {
         "file": "test/verification-page-revue.test.js",

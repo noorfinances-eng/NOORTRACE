@@ -59,7 +59,15 @@ is tagged.
   onboarding screens and the presentation of the verification page run in
   the browser job, with no pending test. Test plan (CT-9): the new tests are
   attached to TE-13, TE-22 and TE-23; catalogue regenerated twice,
-  byte-identical.
+  byte-identical. Tests of the verification page, two weaknesses of the
+  tests seen in Firefox and WebKit, the page not being at fault: the colour
+  scheme preference is set on the page itself before navigation, not only on
+  the browser context; a directory is chosen through one shared helper that
+  sets its own listener for the `input` event before the call, because the
+  browser driver sends the choice before it sets its own listener and then
+  waits for an event that may already have fired. When the helper has seen
+  the event, the test goes on and says so on the error output; when it has
+  not, the test fails with what it observed. No retry, no oracle changed.
 
 - Build step 8, supplements of 2026-11-17 (étape 8, compléments du
   2026-11-17). Registry (CT-4, EX-8.14): a sender never signs below the
