@@ -9,11 +9,18 @@
 // « Confirmations du client » et dit ce qu'est une confirmation, à quoi elle sert et ce qu'on y note. Chaque
 // valeur qui engage garde sa place, avec une demi-phrase qui dit pourquoi on la montre. La mention que CT-4 fixe
 // mot pour mot (« confirmation hors bande absente », EX-7.26) reste celle du refus, sous sa phrase courante.
+//
+// Troisième lecture des écrans (même complément) : quand aucune confirmation n'est attendue pour ce client (le
+// versement de l'inscription est fait, ou une confirmation prête à servir l'attend déjà ; aucun changement des
+// approbateurs préparé n'en attend), l'écran le dit et le formulaire se range dans un bloc replié, « Noter une autre
+// confirmation (rare) » : on ne note pas par mégarde une confirmation inutile, qui ne s'effacerait pas. L'adresse du
+// compte et les empreintes d'une carte se copient d'un bouton.
 
 import { notFound } from "next/navigation";
 import { client, confirmations } from "../../../../lib/donnees.mjs";
 import { exigerSession } from "../../../../lib/page.mjs";
-import { OPERATIONS_CONFIRMATION, dateLisible, libelleCommande } from "../../../../lib/parcours.mjs";
+import { OPERATIONS_CONFIRMATION, confirmationsAttendues, dateLisible, libelleCommande } from "../../../../lib/parcours.mjs";
+import { CopierValeur } from "../../../../composants/CopierTexte.js";
 import FormulaireConfirmation from "../../../../composants/FormulaireConfirmation.js";
 import Icone from "../../../../composants/Icone.js";
 import Lexique from "../../../../composants/Lexique.js";
@@ -31,6 +38,9 @@ export default async function PageConfirmations({ params }) {
   const disponibles = liste.filter((x) => !x.consommee_par).length;
   const comptes = c.dossier.recorders.map((r) => ({ adresse: r.chain_key, nom: r.key_id }));
   const nomDe = (adresse) => comptes.find((x) => x.adresse === adresse)?.nom ?? null;
+  const attendues = confirmationsAttendues({ dossier: c.dossier, confirmations: liste, demandes: c.demandes });
+  const texteAjout = "Notez ce que le client a confirmé, qui l'a confirmé, par quel moyen et quand, puis désignez la pièce qui en garde la trace. L'outil vous fait relire le tout avant de noter. Une fois notée, la confirmation rejoint la liste ci-dessus et l'opération qu'elle autorise peut être lancée depuis la fiche du client.";
+  const formulaire = <FormulaireConfirmation slug={slug} orgId={c.dossier.organisation.org_id} comptes={comptes} montant={c.dossier.funding?.amount_wei ?? null} />;
   return (
     <main className="nt-page">
       <a className="nt-fil" href={`/clients/${slug}`}><Icone nom="retour" />Fiche du client</a>
@@ -66,9 +76,9 @@ export default async function PageConfirmations({ params }) {
                 <dt>Personne qui a confirmé</dt><dd><span data-valeur="">{x.personne_client}</span></dd>
                 <dt>Moyen de la confirmation</dt><dd><span data-valeur="">{x.canal}</span></dd>
                 <dt>Date de la confirmation</dt><dd><time dateTime={x.instant}>{dateLisible(x.instant)}</time><span className="nt-attenue nt-petit">valeur enregistrée : <Valeur>{x.instant}</Valeur></span></dd>
-                {x.objet?.cle_chaine ? <div className="ins-contenu"><dt>Compte technique concerné</dt><dd>{nomDe(x.objet.cle_chaine) ? <span>celui de l'enregistreur <Valeur>{nomDe(x.objet.cle_chaine)}</Valeur></span> : null}<Valeur>{x.objet.cle_chaine}</Valeur></dd></div> : null}
-                {x.objet?.digest ? <div className="ins-contenu"><dt>Empreinte du document concerné</dt><dd><Valeur>{x.objet.digest}</Valeur></dd></div> : null}
-                <dt>Empreinte de la pièce</dt><dd><Valeur data-piece>{x.piece_sha256}</Valeur><span className="nt-attenue nt-petit">à comparer avec celle de la pièce rangée dans le dossier du client : identiques, c'est bien la même pièce. Pour la recalculer, choisissez la pièce avec « Choisir la pièce », plus bas, sans rien noter.</span></dd>
+                {x.objet?.cle_chaine ? <div className="ins-contenu"><dt>Compte technique concerné</dt><dd>{nomDe(x.objet.cle_chaine) ? <span>celui de l'enregistreur <Valeur>{nomDe(x.objet.cle_chaine)}</Valeur></span> : null}<CopierValeur valeur={x.objet.cle_chaine} forme="adresse" libelle="Copier l'adresse" /></dd></div> : null}
+                {x.objet?.digest ? <div className="ins-contenu"><dt>Empreinte du document concerné</dt><dd><CopierValeur valeur={x.objet.digest} forme="empreinte" libelle="Copier l'empreinte" /></dd></div> : null}
+                <dt>Empreinte de la pièce</dt><dd><CopierValeur valeur={x.piece_sha256} forme="empreinte" libelle="Copier l'empreinte" data-piece="" /><span className="nt-attenue nt-petit">à comparer avec celle de la pièce rangée dans le dossier du client : identiques, c'est bien la même pièce. Pour la recalculer, choisissez la pièce avec « Choisir la pièce », dans le formulaire {attendues.length > 0 ? "plus bas" : "replié « Noter une autre confirmation (rare) », plus bas"}, sans rien noter : ce choix n'enregistre rien.</span></dd>
                 <dt>Notée par</dt><dd><Valeur>{x.exploitant}</Valeur></dd>
                 <dt>Notée le</dt><dd><time dateTime={x.recu_a}>{dateLisible(x.recu_a)}</time><span className="nt-attenue nt-petit">valeur enregistrée : <Valeur>{x.recu_a}</Valeur></span></dd>
                 <dt>À quoi elle a servi</dt>
@@ -95,11 +105,25 @@ export default async function PageConfirmations({ params }) {
         })}
       </section>
 
-      <section className="nt-carte" aria-labelledby="ajout-titre">
-        <h2 id="ajout-titre">Noter une confirmation</h2>
-        <p className="nt-attenue">Notez ce que le client a confirmé, qui l'a confirmé, par quel moyen et quand, puis désignez la pièce qui en garde la trace. L'outil vous fait relire le tout avant de noter. Une fois notée, la confirmation rejoint la liste ci-dessus et l'opération qu'elle autorise peut être lancée depuis la fiche du client.</p>
-        <FormulaireConfirmation slug={slug} orgId={c.dossier.organisation.org_id} comptes={comptes} montant={c.dossier.funding?.amount_wei ?? null} />
-      </section>
+      {attendues.length > 0 ? (
+        <section className="nt-carte" aria-labelledby="ajout-titre" data-confirmation-attendue={attendues.map((x) => x.operation).join(" ")}>
+          <h2 id="ajout-titre">Noter une confirmation</h2>
+          <p className="nt-attenue">{texteAjout}</p>
+          {formulaire}
+        </section>
+      ) : (
+        <section className="nt-pile" aria-labelledby="ajout-titre" data-aucune-attendue="">
+          <h2 id="ajout-titre">Noter une confirmation</h2>
+          <p className="nt-encart">Aucune confirmation n'est attendue pour ce client pour l'instant.</p>
+          <details className="nt-detail" data-autre-confirmation="">
+            <summary>Noter une autre confirmation (rare)<span className="nt-detail-note">seulement si le client a confirmé une autre opération</span></summary>
+            <div className="nt-detail-corps nt-pile">
+              <p className="nt-attenue">{texteAjout}</p>
+              {formulaire}
+            </div>
+          </details>
+        </section>
+      )}
       <Lexique />
     </main>
   );

@@ -1000,60 +1000,125 @@ Il remplace, dans le complément ci-dessus, ce qui suit ; il est éprouvé par
 les mêmes essais.
 
 - **Écran de signature** (CT-3 EX-9.18 et EX-9.20, compléments du
-  2026-11-18). Avant le bouton : « Avant de signer » et les quatre
-  consignes courantes (`ol#consignes-courantes`, clés
-  `consigne_courante.1` à `.4`, mot pour mot celles du complément
-  d'EX-9.20 ; `{debut}` et `{fin}` sont les deux extrémités de l'empreinte
-  de la décision choisie) ; une seule empreinte en grand (`#empreinte-d-a`,
-  sous son intitulé fixé) ; `D_A` en entier juste dessous, en petit. Après
-  le bouton, le bloc replié `details#consignes-completes`, « Consignes
-  complètes (texte de référence) » : les groupes de `D_A`, à part le
-  condensé EIP-191 sous son intitulé fixé, et les sept consignes d'EX-9.20,
-  entières. Après un vote inscrit, le résultat dit en langage courant ce
-  que le point 7 d'EX-9.20 demande (`#apres-decision`).
-- **Valeurs à contrôler.** Une seule explication dans l'encadré, qui dit
-  avec quoi comparer (`controle.sens`) ; la phrase gardée du complément du
-  2026-11-17 (`modele.arguments.non_verifiable_sens`) est au détail
-  technique. La mention que la signature ne porte pas sur les effets
-  annoncés est dans la carte des effets, et dit ce qu'elle désigne ; les
-  lignes de cette carte se nomment « Montant annoncé », « Devise annoncée ».
-- **Codes** (CT-3 EX-13.29, complément du 2026-11-18). Le code entre
-  parenthèses accompagne une panne. Pour un état attendu du parcours
+  2026-11-18). Avant le bouton : « Avant de signer » et les quatre consignes
+  courantes (`ol#consignes-courantes`, clés `consigne_courante.1` à `.4`,
+  mot pour mot celles du complément d'EX-9.20 ; `{debut}` et `{fin}` sont
+  les deux extrémités de l'empreinte de la décision choisie) ; une seule
+  empreinte en grand (`#empreinte-d-a`, sous son intitulé fixé) ; `D_A` en
+  entier juste dessous, en petit. Après le bouton, le bloc replié
+  `details#consignes-completes`, « Consignes complètes (texte de référence)
+  » : les groupes de `D_A`, à part le condensé EIP-191 sous son intitulé
+  fixé, et les sept consignes d'EX-9.20, entières. Après un vote inscrit, le
+  résultat dit en langage courant ce que le point 7 d'EX-9.20 demande
+  (`#apres-decision`). - **Valeurs à contrôler.** Une seule explication dans
+  l'encadré, qui dit avec quoi comparer (`controle.sens`) ; la phrase gardée
+  du complément du 2026-11-17 (`modele.arguments.non_verifiable_sens`) est
+  au détail technique. La mention que la signature ne porte pas sur les
+  effets annoncés est dans la carte des effets, et dit ce qu'elle désigne ;
+  les lignes de cette carte se nomment « Montant annoncé », « Devise
+  annoncée ». - **Codes** (CT-3 EX-13.29, complément du 2026-11-18). Le code
+  entre parenthèses accompagne une panne. Pour un état attendu du parcours
   (`decision_absente`, `fournisseur_non_choisi`, `ticket_clos_aux_votes` :
   `ETATS_ATTENDUS` de `cadre.mjs`) et pour un avertissement, la phrase
-  s'affiche sans code ; l'élément garde `data-code` ou
-  `data-avertissement`, et le détail technique porte les codes (« Où en
-  est la page », « Codes des raisons », « Codes des avertissements »).
-- **Résultat d'une signature** (panne, refus, décision enregistrée) :
-  `#zone-resultat` est en tête du bloc de signature, avant `.bas-demande` ;
-  la page y amène la personne (défilement et focus), et une panne porte un
-  lien « Revenir à ma décision ».
-- **Demande où la personne a déjà décidé, encore ouverte** : le titre est
-  « Vous avez déjà décidé », la pastille « En attente d'autres
+  s'affiche sans code ; l'élément garde `data-code` ou `data-avertissement`,
+  et le détail technique porte les codes (« Où en est la page », « Codes des
+  raisons », « Codes des avertissements »). - **Résultat d'une signature**
+  (panne, refus, décision enregistrée) : `#zone-resultat` est en tête du
+  bloc de signature, avant `.bas-demande` ; la page y amène la personne
+  (défilement et focus), et une panne porte un lien « Revenir à ma décision
+  ». - **Demande où la personne a déjà décidé, encore ouverte** : le titre
+  est « Vous avez déjà décidé », la pastille « En attente d'autres
   approbations » (`[data-deja]`), et la ligne « Aucune décision n'est
-  choisie d'avance… » ne s'affiche pas.
-- **Demande approuvée** : la console dit que l'action est autorisée,
-  qu'elle ne sait pas si elle a été exécutée, et où le savoir.
-- **Liste** (CT-3 EX-13.3, complément du 2026-11-18). Pour les dix
-  premières demandes à décider au plus, la liste lit ensuite `annuaire`
-  (une fois) puis `consulter` de chaque demande, l'une après l'autre, et
-  affiche sous le titre de la carte le montant que `montantVerifie` de
-  `lisible.mjs` rend (`[data-montant]` : le montant et la marque
-  « vérifié ») : la même porte que le montant en grand de l'écran d'une
-  demande ; rien quand le montant n'est pas vérifié. Ce sont des lectures :
-  aucune écriture, aucune requête à un portefeuille. La liste s'affiche
-  d'abord ; une lecture qui échoue laisse sa ligne sans montant, sans
-  erreur ; un identifiant hors d'EX-7.1 n'est jamais lu. Chaque date porte
-  ce qu'elle est : pour une demande à décider dont la règle prévoit un
+  choisie d'avance… » ne s'affiche pas. - **Demande approuvée** : la console
+  dit que l'action est autorisée, qu'elle ne sait pas si elle a été
+  exécutée, et où le savoir. - **Liste** (CT-3 EX-13.3, complément du
+  2026-11-18). Pour les dix premières demandes à décider au plus, la liste
+  lit ensuite `annuaire` (une fois) puis `consulter` de chaque demande,
+  l'une après l'autre, et affiche sous le titre de la carte le montant que
+  `montantVerifie` de `lisible.mjs` rend (`[data-montant]` : le montant et
+  la marque « vérifié ») : la même porte que le montant en grand de l'écran
+  d'une demande ; rien quand le montant n'est pas vérifié. Ce sont des
+  lectures : aucune écriture, aucune requête à un portefeuille. La liste
+  s'affiche d'abord ; une lecture qui échoue laisse sa ligne sans montant,
+  sans erreur ; un identifiant hors d'EX-7.1 n'est jamais lu. Chaque date
+  porte ce qu'elle est : pour une demande à décider dont la règle prévoit un
   délai de contestation, « À décider avant » donne le dernier moment où
   l'approuver à temps (`[data-dernier-instant]`) et l'expiration est dite à
   part (`[data-expiration]`) ; pour une autre demande en cours, le fait
-  s'intitule « Expire le ».
-- **Portefeuille sans icône.** L'icône qu'un portefeuille annonce est
-  affichée telle quelle ; si elle manque, ne se charge pas ou est d'une
-  seule couleur, un pictogramme neutre la remplace
+  s'intitule « Expire le ». - **Portefeuille sans icône.** L'icône qu'un
+  portefeuille annonce est affichée telle quelle ; si elle manque, ne se
+  charge pas ou est d'une seule couleur, un pictogramme neutre la remplace
   (`.fournisseur-icone[data-icone="neutre"]`, gabarit `icone-portefeuille`
-  de la page : rien n'est chargé).
+  de la page : rien n'est chargé). Troisième complément du 2026-11-18,
+  décision du porteur (langage des écrans). Il remplace, dans les deux
+  compléments ci-dessus, ce qui suit ; il est éprouvé par les mêmes essais,
+  avec les polices de la machine et avec celles d'un poste qui n'a pas Inter
+  (DejaVu Sans). - **Barre et défilement.** Sur un poste, la barre tient sur
+  une ligne à 1280 de large avec toute police courante (classes propres
+  `barre-console…` : navigation et espacements resserrés, la personne
+  connectée sur trois lignes au plus) ; plus étroite, sa fin passe à la
+  ligne au lieu de se tasser. La page note la hauteur réelle de la barre sur
+  la racine (`data-barre`, en rem entiers ; 0 quand la barre défile avec la
+  page, `noterHauteurBarre` de `cadre.mjs`, relue à chaque changement de
+  taille) et la feuille en tire `scroll-padding-top` : le choix du
+  portefeuille, l'écran de signature, le résultat d'une signature et tout
+  bloc visé par un lien viennent sous la barre, quelle que soit sa hauteur
+  (`amenerSousLaBarre`), sans constante. - **Carte « essentiel ».** Sous les
+  valeurs vérifiées, une légende bien visible (`#legende-verifie`, encre des
+  titres) : « « vérifié » veut dire : c'est bien la valeur que l'agent
+  logiciel a envoyée, personne ne l'a changée depuis. La console ne dit pas
+  que cette valeur est juste : comparez le montant, le compte et le
+  bénéficiaire à vos pièces avant d'approuver. » (sans l'invitation sur une
+  demande décidée) ; elle paraît aussi dans la liste, sous « À décider »,
+  dès qu'un montant vérifié y paraît. « Demandé par » porte, avant la marque
+  fixée « configuration de la connexion d'hôte », la phrase « Identité tirée
+  du réglage de la connexion de l'agent : la console ne peut pas vérifier
+  qui l'a lancé. » La phrase d'en-tête et le montant se suivent sur une
+  ligne quand la place le permet ; « Votre décision » est à gauche des deux
+  boutons, qui restent côte à côte, de même taille, aussi sur un téléphone.
+  Les deux boutons de décision tiennent dans le premier écran à 1280 × 800
+  (demande sans avertissement ni valeur à contrôler) avec une marge, quelle
+  que soit la police (bas des boutons à 747 px avec Inter, 746 px avec
+  DejaVu Sans). - **Décision déjà enregistrée, demande encore ouverte.** Les
+  deux boutons ne se représentent pas d'emblée : ils sont dans le bloc
+  `details#changer-decision`, « Changer ma décision », fermé à l'ouverture
+  de l'écran ; ouvert, la phrase `#decision-changer` et les deux boutons, de
+  même poids (CT-3 EX-9.4, complément du 2026-11-18, point 8). -
+  **Récusation et retrait.** Ils sont avec le reste de la demande : la
+  récusation au pied de la carte « Qui décide » (`#zone-recusation`), le
+  retrait au pied de la carte « Qui demande » (`#zone-retrait`) ; aucun de
+  ces deux gestes définitifs ne se trouve entre le choix du portefeuille et
+  la signature, à aucune largeur. - **« Contester ».** Le mot est expliqué
+  une fois par écran, là où il paraît pour la première fois
+  (`expliquerContestation` de `cadre.mjs`, `[data-sens-contestation]`,
+  replacée à chaque affichage), selon CT-3 10.2 ; sans délai de
+  contestation, l'explication dit que la règle ne le permet pas. -
+  **Liste.** Une demande qui a réuni ses approbations (ou dont la décision
+  s'enregistre) donne son échéance telle quelle (« Échéance »), sans « si
+  elle n'est pas approuvée d'ici là » ; avec la contestation, ce qui peut
+  encore lui arriver : « Elle peut encore être contestée … jusqu'au … »,
+  puis « Si personne ne la conteste d'ici là, elle sera approuvée, et
+  l'action autorisée. » ; ou, si le délai finit après l'échéance (CT-3
+  EX-10.9), qu'elle expirera sans être approuvée. - **Écran de signature**
+  (CT-3 EX-9.18 et EX-9.20, compléments du 2026-11-18). En tête, la décision
+  en toutes lettres ; puis le rappel de la demande et, à côté, « Avant de
+  signer » et les quatre consignes courantes, sans sigle, mot anglais ni
+  parenthèse ; dessous, sur une rangée, la décision signée, l'adresse et le
+  portefeuille ; puis les deux codes, en grand, début et fin : « Code de
+  contrôle de votre décision » (`#empreinte-d-a`, `D_A` en entier juste
+  dessous) et « Autre forme de ce code » (`#empreinte-h`, suivi de «
+  Certaines applications l'affichent en plus du long code. ») ; sur un
+  poste, les deux cartes partagent leurs rangées (grille et sous-grille) :
+  intitulés et codes sont à la même hauteur quelle que soit la police ; puis
+  le bouton, visible sans défiler à 1280 × 800 avec les deux polices. Chaque
+  ligne de l'application se compare à un seul code (EX-9.20, point 3). Le
+  bloc replié « Consignes complètes (texte de référence) » porte les
+  intitulés fixés d'EX-9.18, chacun avec le nom courant du code qu'il
+  désigne et ses groupes, et les sept consignes d'EX-9.20, entières.
+- **Annuaire.** Révoquer une adresse, désactiver une personne et valider
+  une adresse quand la personne en a déjà une active portent la mention
+  « définitif » juste à côté du bouton (`[data-definitif]`, nommée par
+  `aria-describedby`) ; la confirmation le redit.
 
 - **Tickets.** `tickets` (sans `related_to`) ; pour chaque ticket :
   identifiant (lien `/tickets/<ticket>` seulement s'il satisfait EX-7.1,

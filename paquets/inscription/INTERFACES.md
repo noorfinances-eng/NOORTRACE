@@ -203,8 +203,10 @@ répertoire du client sans composant `.` ni `..`, et la liste de valeurs d'un
 de ces types (`liste_adresses`, `liste_noms_journal`, `liste_identites`,
 `liste_documents`) ; aucun autre. Une liste de choix porte le type de ses
 valeurs (`adresse` pour une clé de chaîne du dossier, `chemin` pour une
-période, `texte` pour un identifiant de clé, une opération du jeu ou
-« oui »/« non »). La valeur est contrôlée côté serveur par
+période, `texte` pour un identifiant de clé ou une opération du jeu). Le
+champ des documents `cle_enregistreur` (`liste_documents`) a une zone par
+document ; toutes les zones portent son nom et son type : ce sont les
+valeurs d'une même liste (2.5). La valeur est contrôlée côté serveur par
 `src/commun/champs.mjs` et `src/commun/travaux.mjs` (et répétée dans la page
 pour l'affichage seulement).
 
@@ -389,15 +391,24 @@ un envoi est resté sans réponse ; le reste de 2.4 tient.
   dit ce que le client doit confirmer : le montant du versement, le nom de
   l'enregistreur et l'adresse exacte du compte technique. « Commencer » se
   dit quand rien n'a été tenté, « Continuer » après un arrêt sans échec,
-  « Reprendre » seulement après un échec ou un envoi resté sans réponse.
+  « Reprendre » seulement après un échec ; pour un envoi resté sans
+  réponse, la consigne dit « aller chercher la réponse ».
   Un client inscrit dont le paquet est produit n'a plus de « prochaine
   action » : l'intitulé devient « Inscription terminée ».
 - **Envoi resté sans réponse.** Tant qu'une étape est `envoyee` ou
-  `incluse`, la consigne est de reprendre cet envoi, avant toute autre
-  (confirmation du client comprise) : le bouton remet le travail `capturer`
-  avec le hachage de l'étape (`envoi` pour `envoyee`, `transaction` pour
-  `incluse`), sans champ à remplir. C'est la reprise d'EX-7.13 : jamais une
-  nouvelle transaction, et aucune confirmation n'est exigée pour elle.
+  `incluse`, la consigne est d'aller chercher la réponse du registre public
+  pour cet envoi, avant toute autre (confirmation du client comprise) :
+  « Allez chercher la réponse du registre public pour l'étape N », bouton
+  « Chercher la réponse », et dessous « Rien n'est renvoyé, rien n'est
+  dépensé. » Le bouton remet le travail `capturer` avec le hachage de
+  l'étape (`envoi` pour `envoyee`, `transaction` pour `incluse`), sans champ
+  à remplir. Ce travail ne fait que lire le registre (le reçu de la
+  transaction connue, sa preuve) et ranger la preuve dans le dossier ; il ne
+  soumet aucune transaction. C'est la reprise d'EX-7.13 : jamais une
+  nouvelle transaction, et aucune confirmation n'est exigée pour elle. Le
+  même geste a la même formule partout : nom de l'action (« Aller chercher
+  la réponse du registre public »), étiquette de la liste et de la fiche
+  (« Réponse à aller chercher »), messages d'erreur qui y renvoient.
   L'écran ne propose alors aucune autre action à côté de la consigne.
   La reprise n'est proposée que pour une étape dont l'agent envoie
   lui-même la transaction (pas 2, 3, 5 et 6) : il a écrit l'envoi dans les
@@ -453,15 +464,19 @@ un envoi est resté sans réponse ; le reste de 2.4 tient.
   donc pas au premier niveau des écrans (l'essai le refuse) ; le verbe
   reste. Les noms de fichier, de commande et de paramètre (`demande`,
   `demandes/`) ne changent pas.
-- **Qui envoie le document signé.** Pour `inscrire-cle` et
-  `administrer-jeu`, les deux choix sont montrés, chacun avec sa phrase :
-  « Notre compte d'envoi » (cas habituel : le relayeur de l'exploitant) et
-  « Le compte désigné par une référence » (essais seulement). **Aucun n'est
-  présélectionné** : un envoi sur le registre ne part pas d'un choix fait à
-  la place de la personne. Sans choix, la page refuse l'envoi et le dit.
-  La référence n'est demandée qu'avec le second choix. Ce que la route
-  reçoit ne change pas : `relayeur: true` pour le premier, la référence
-  seule (`cle_chaine` ou `expediteur`) pour le second.
+- **Qui envoie le document signé.** Aucun choix à faire, et rien de
+  présélectionné : un envoi sur le registre ne part pas d'un choix fait à
+  la place de la personne, et l'écran ne lui pose pas de question qu'elle
+  ne peut pas trancher. Pour `inscrire-cle` et `administrer-jeu`, le bouton
+  dit lui-même qui envoie : « Envoyer par notre compte d'envoi » (le
+  relayeur de l'exploitant, seul admis pour un vrai client), avec dessous
+  « C'est le cas habituel : notre société envoie le document signé au
+  registre public et paie cet envoi. » L'envoi par le compte que désigne
+  une référence (essais seulement) est une action à part, rangée dans
+  « Actions rarement utiles », avec son champ, que la page refuse vide. Ce
+  que la route reçoit pour chacun ne change pas : `relayeur: true`, après le
+  document, pour le premier ; la référence seule (`cle_chaine` ou
+  `expediteur`) pour le second.
 - **Aides de saisie** (CT-4 EX-7.25, complément du 2026-11-18). Elles
   remplissent un champ d'un type déclaré, n'ont pas de nom de champ et
   n'envoient rien. `/clients/<slug>/confirmations` : « Choisir la pièce »
@@ -502,7 +517,8 @@ un envoi est resté sans réponse ; le reste de 2.4 tient.
   - *Dates.* Chaque date porte son libellé : « Dossier préparé le … »,
     « Dernière action : …, le … ».
   - *Une étiquette, un sens.* « Réponse à aller chercher » : un envoi de
-    l'agent attend sa reprise, une action attend la personne. « En attente
+    l'agent attend qu'on aille chercher sa réponse, une action attend la
+    personne. « En attente
     du registre » : une étape envoyée par le client attend sa réponse.
     « En attente chez le client » : la suite se fait chez lui. Dans ces
     deux cas la personne n'a rien à faire. Une étape `a_faire` que le
@@ -533,15 +549,61 @@ un envoi est resté sans réponse ; le reste de 2.4 tient.
     le champ, la date choisie est redite en toutes lettres, en français
     (« 18 novembre 2026 à 10 h 12, heure de votre poste »), au-dessus de
     l'instant converti.
-  - *Qui envoie.* Toujours aucune présélection. Le choix habituel est mis
-    en avant sans être coché : il vient le premier, il est plus large, et
-    son bouton porte « — cas habituel » (l'autre, « — essais seulement ») ;
-    une ligne dit au-dessus : « Choisissez qui envoie : rien n'est choisi
-    d'avance. »
+  - *Qui envoie.* Remplacé à la troisième lecture : plus aucun choix (voir
+    « Qui envoie le document signé »).
   - *Nom tiré au hasard.* Sous le champ du nom court, et sur la fiche d'un
     client dont le nom a la forme de production d'EX-6.2 : « Ce nom ne dit
     pas qui est le client : notez la correspondance dans votre fichier des
     clients. » Aucun champ n'est ajouté ; le dossier ne change pas.
+- **Troisième lecture** (même complément, après une nouvelle lecture des
+  écrans par une personne sans formation). Rien de ce qui suit ne change
+  une route, un corps envoyé, l'agent ni le dossier.
+  - *Fiches d'enregistreur.* Au pas 1, la personne colle le contenu de
+    chaque fichier que le client a envoyé, tel quel, dans une zone par
+    fiche ; « Ajouter une autre fiche » ouvre une zone de plus (seize au
+    plus), « Retirer cette zone » en retire une. La page assemble la liste,
+    dans l'ordre des zones : le corps envoyé est celui que donnait la saisie
+    à la main de « [ fiche, fiche ] ». Une zone vide, une liste entre
+    crochets ou un texte qui n'est pas une fiche entière (il lui manque un
+    membre exigé par `#/$defs/cle_enregistreur`) est refusé dans la page,
+    sous la zone, avec ce qu'il faut faire ; rien n'est envoyé. Le serveur
+    et l'agent contrôlent la fiche contre son schéma, comme avant. La
+    première zone ne peut pas rester vide : une liste sans fiche, que la
+    route admet (`min: 0`), est refusée dans la page, et la phrase dit
+    pourquoi (« Il faut au moins une fiche : l'outil n'inscrit au registre
+    public que les enregistreurs dont la fiche est donnée ici, et il ne
+    pourra plus en ajouter une fois le dossier préparé. ») : le travail
+    `condense-inscription` ne prend que le `key_id` d'un enregistreur du
+    dossier, et un dossier ne se prépare qu'une fois (CT-4 7.1, pas 6 ;
+    7.5) ; CT-4 ne décrit pas d'inscription sans enregistreur.
+  - *Formulaire de confirmation.* Chaque pas a sa phrase, sous son bouton,
+    et seulement à ce pas : « Ce bouton n'enregistre rien : il vous montre
+    ce que vous allez noter. », puis, à la relecture, « Ce bouton enregistre
+    la confirmation. Elle ne pourra plus être effacée. »
+  - *Confirmation attendue.* Une confirmation est attendue pour un
+    versement de l'inscription à faire (étape `approvisionnement` à faire
+    ou en échec) sans confirmation prête à servir pour ce compte (la règle de
+    la consigne de la fiche), ou pour un document de changement des
+    approbateurs préparé, ni envoyé ni remplacé par sa version signée, sans
+    confirmation prête à servir pour son empreinte. Sinon l'écran des
+    confirmations dit « Aucune confirmation n'est attendue pour ce client
+    pour l'instant. » et range le formulaire dans un bloc replié, « Noter
+    une autre confirmation (rare) ».
+  - *Copier.* Un bouton « Copier » suit l'adresse du compte technique (fiche,
+    formulaire et cartes des confirmations) et chaque empreinte qui se
+    compare ou se transmet (pièce d'une confirmation, document de
+    changement des approbateurs, paquet). La copie se fait par
+    `navigator.clipboard.writeText`, dans le clic ; si le navigateur la
+    refuse, le texte exact est sélectionné et la phrase dit de le copier au
+    clavier. Rien n'est envoyé ; la politique de 2.3 ne change pas (le
+    presse-papiers n'en relève pas, et aucun en-tête `Permissions-Policy`
+    ne le restreint). Sur téléphone, une adresse se coupe en deux moitiés
+    de 21 caractères, une empreinte en deux de 33.
+  - *Premier écran, quelle que soit la police.* À 1280 px, la fiche prend
+    la largeur de l'écran (80rem) et une consigne sans champ met son bouton
+    à droite de ses phrases : le bouton reste dans le premier écran, et une
+    étape faite ou à venir sur une ligne, avec une police de remplacement
+    plus large que celle du thème (celle d'un poste qui n'a pas Inter).
 
 ## 3. Agent (`src/agent/`, `bin/noortrace-inscription-agent`)
 
@@ -797,10 +859,16 @@ Complément du 2026-11-18 (2.5) : les mêmes fichiers portent les libellés du
 langage courant, l'essai « aucun mot de technicien au premier niveau » sur
 chaque écran et chaque état, les aides de saisie (empreinte égale à celle
 de `sha256sum`, aucune requête au choix du fichier, instant accepté par le
-contrôle de la route), le choix sans présélection du compte qui envoie,
-la consigne unique d'un envoi resté sans réponse, les erreurs en clair et
-la cohérence des états ; `test/fixtures/inscription/langage.mjs` publie la
-liste des mots.
+contrôle de la route), le bouton qui nomme le compte qui envoie (aucun
+choix à faire), la consigne unique d'un envoi resté sans réponse, les
+erreurs en clair et la cohérence des états ; à la troisième lecture, les
+fiches collées une par zone (corps envoyé au caractère près), « Copier »,
+les phrases de chaque pas du formulaire de confirmation, la confirmation
+attendue et les heures des données fictives dans l'ordre des étapes ;
+`test/fixtures/inscription/langage.mjs` publie la liste des mots. Les
+essais dans Chromium se jouent aussi avec les polices d'un poste qui n'a
+pas Inter (une configuration de fontconfig qui la retire) : la mise en page
+doit tenir avec l'une comme avec l'autre.
 
 ## 6. Précisions de la construction (étape 6)
 

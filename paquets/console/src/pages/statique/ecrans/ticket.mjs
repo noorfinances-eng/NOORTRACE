@@ -47,11 +47,14 @@ import { ErreurAppel, appeler, allerConnexion, envoiDepuis, erreurDeSession, lir
 import {
   PREFIXES_ERREUR,
   afficherErreur,
+  amenerSousLaBarre,
+  expliquerContestation,
   contientInvisibles,
   demarrerEcran,
   entete,
   estIdentifiantTicket,
   instant,
+  legendeVerifie,
   lienTicket,
   marqueInvisibles,
   paragrapheCode,
@@ -104,16 +107,18 @@ const etat = {
   // Action en cours (récusation, retrait) : confirmation affichée.
   confirmation: null,
   pas1: null,
-  // Le détail technique reste ouvert, s'il l'a été, d'un affichage au suivant ; les consignes complètes aussi.
+  // Le détail technique reste ouvert, s'il l'a été, d'un affichage au suivant ; les consignes complètes et le bloc
+  // « Changer ma décision » aussi.
   detailOuvert: false,
   completesOuvert: false,
+  changerOuvert: false,
   // La dernière lecture de la demande a échoué.
   lectureEchouee: false,
 };
 
 const zones = {
   lecture: el("div", { classe: "zone", attributs: { id: "zone-lecture" } }),
-  modele: el("div", { classe: "nt-pile nt-pile-large", attributs: { id: "zone-modele" } }),
+  modele: el("div", { classe: "nt-pile nt-pile-large pile-demande", attributs: { id: "zone-modele" } }),
   lies: el("div", { classe: "zone", attributs: { id: "zone-lies" } }),
   decision: el("div", { classe: "nt-pile", attributs: { id: "zone-decision" } }),
   motif: el("div", { classe: "nt-champ", attributs: { id: "zone-motif" } }),
@@ -123,8 +128,9 @@ const zones = {
   signature: el("div", { classe: "zone", attributs: { id: "zone-signature" } }),
   resultat: el("div", { classe: "zone zone-resultat", attributs: { id: "zone-resultat", "aria-live": "polite", tabindex: "-1" } }),
   consignes: el("div", { classe: "zone", attributs: { id: "zone-consignes" } }),
-  recusation: el("section", { classe: "nt-carte zone-carte", attributs: { id: "zone-recusation" } }),
-  retrait: el("section", { classe: "nt-carte zone-carte", attributs: { id: "zone-retrait" } }),
+  // La récusation, au pied de la carte « Qui décide » ; le retrait, au pied de la carte « Qui demande » (rendreModele).
+  recusation: el("section", { classe: "action-carte", attributs: { id: "zone-recusation" } }),
+  retrait: el("section", { classe: "action-carte", attributs: { id: "zone-retrait" } }),
 };
 
 const champMotif = el("textarea", { classe: "nt-saisie", attributs: { id: "motif", rows: "3", maxlength: "4096", "aria-describedby": "motif-avertissement" } });
@@ -277,8 +283,8 @@ const fait = (terme, ...valeur) => el("div", { classe: "nt-fait" }, el("dt", { t
  * couple nul est sauté ; un troisième élément vrai donne à la valeur toute
  * la largeur, sous son terme (une liste d'adresses, une valeur longue).
  */
-function lignes(couples, attributs = {}) {
-  const dl = el("dl", { classe: "lignes", attributs });
+function lignes(couples, attributs = {}, classe = null) {
+  const dl = el("dl", { classe: classe === null ? "lignes" : `lignes ${classe}`, attributs });
   for (const c of couples) {
     if (c) ajouter(dl, el("div", { classe: c[2] ? "ligne ligne-pleine" : "ligne" }, el("dt", { texte: c[0] }), el("dd", {}, ...[c[1]].flat())));
   }
@@ -354,12 +360,7 @@ function rendreValeurs(modele, clos) {
   const classeListe = total > 8 ? "liste-nue liste-valeurs valeurs-denses" : "liste-nue liste-valeurs";
   const liste = (feuilles, id) => el("ul", { classe: classeListe, attributs: { id } }, ...feuilles.map(ligneValeur));
   const parties = [
-    el(
-      "div",
-      { classe: "valeurs-titre" },
-      el("h3", { classe: "nt-sur-titre", texte: t(clos ? "valeurs.titre_clos" : "valeurs.titre"), attributs: { id: "arguments-titre" } }),
-      g.verifiees.length > 0 ? el("span", { classe: "nt-attenue nt-petit", texte: t("valeurs.verifie_note") }) : null,
-    ),
+    el("h3", { classe: "nt-sur-titre valeurs-titre", texte: t(clos ? "valeurs.titre_clos" : "valeurs.titre"), attributs: { id: "arguments-titre" } }),
   ];
   if (total === 0) parties.push(el("p", { classe: "nt-attenue", texte: t("valeurs.aucune") }));
   if (g.differentes.length > 0) {
@@ -373,7 +374,9 @@ function rendreValeurs(modele, clos) {
       ),
     );
   }
-  if (g.verifiees.length > 0) parties.push(liste(g.verifiees, "valeurs-verifiees"));
+  // Sous les valeurs vérifiées, ce que « vérifié » veut dire, et ce qu'il ne veut pas dire : la console ne dit pas
+  // qu'une valeur est juste. Sur une demande à décider, l'invitation à comparer les valeurs aux pièces, avant d'approuver.
+  if (g.verifiees.length > 0) parties.push(liste(g.verifiees, "valeurs-verifiees"), legendeVerifie(clos));
   // Une valeur qui cache des caractères invisibles (EX-9.16) : ce que cela veut dire, et quoi faire.
   if (modele.arguments.some((a) => contientInvisibles(a.value))) parties.push(note("alerte", el("p", { texte: t("marque_sens.caracteres_invisibles"), attributs: { id: "invisibles-sens" } })));
   if (g.aControler.length > 0) {
@@ -427,7 +430,8 @@ function rendreEssentiel(modele, clos) {
       fait(
         t("essentiel.demandeur"),
         el("code", { classe: "nt-fixe", texte: r.demandeur, attributs: { "data-resume": "demandeur", "data-valeur": "" } }),
-        el("span", { classe: "fait-second" }, marqueDeclarative("marque.configuration_hote")),
+        // D'où vient cette identité, en mots, puis la marque fixée (EX-9.4).
+        el("span", { classe: "fait-second demandeur-sens" }, el("span", { texte: t("essentiel.demandeur_sens") }), " ", marqueDeclarative("marque.configuration_hote")),
         mentionSeparation(modele),
       ),
     );
@@ -525,7 +529,7 @@ function rendreModele() {
       null,
       { id: "carte-demandeur" },
       lignes([
-        r.demandeur === null ? [t("modele.delegation.launched_by"), [valeurEtMarque(code(d.launched_by), marqueDeclarative("marque.configuration_hote")), mentionSeparation(modele)]] : null,
+        r.demandeur === null ? [t("modele.delegation.launched_by"), [code(d.launched_by), el("span", { classe: "fait-second demandeur-sens" }, el("span", { texte: t("essentiel.demandeur_sens") }), " ", marqueDeclarative("marque.configuration_hote")), mentionSeparation(modele)]] : null,
         [t("modele.delegation.scope"), valeurEtMarque(code(d.scope), marqueDeclarative("marque.configuration_hote"))],
         [t("modele.delegation.on_behalf_of"), valeurEtMarque(d.on_behalf_of === null ? el("span", { texte: t("modele.vide") }) : code(d.on_behalf_of), marqueDeclarative("marque.declare_hote"))],
         [t("modele.delegation.run_id"), valeurEtMarque(d.run_id === null ? el("span", { texte: t("modele.vide") }) : code(d.run_id), marqueDeclarative("marque.declare_hote"))],
@@ -538,6 +542,8 @@ function rendreModele() {
         ],
       ]),
       clos ? null : el("p", { classe: "nt-attenue note-carte", texte: t("modele.delegation.sens") }),
+      // Le retrait de la demande, offert à qui l'a lancée : avec le reste de la demande, au pied de « Qui demande ».
+      zones.retrait,
     ),
   );
 
@@ -672,9 +678,13 @@ function rendreModele() {
             { id: "contestation" },
           ),
       votes,
+      // Se retirer de la demande (récusation) : avec le reste de la demande, au pied de « Qui décide ».
+      zones.recusation,
     ),
   );
-  // Les cartes courtes en colonnes équilibrées ; la carte des identifiants signés sur toute la largeur, une ligne par identifiant.
+  // Les cartes courtes en colonnes équilibrées ; la carte des identifiants signés sur toute la largeur, une ligne par
+  // identifiant. La récusation et le retrait, deux gestes définitifs, sont dans ces cartes, avec le reste de la
+  // demande : jamais entre le choix du portefeuille et la signature.
   parties.push(el("div", { classe: "colonnes-cartes" }, ...cartes), ...signes);
 
   // Détail technique, replié : codes bruts, noms de champs, instants exacts.
@@ -710,7 +720,19 @@ function rendreModele() {
 
   remplacer(zones.modele, ...parties);
   majParcours();
+  sensContestation();
 }
+
+/**
+ * « Contester » expliqué une fois, là où le mot paraît pour la première fois sur l'écran de la demande (le résumé,
+ * la décision et le reste de la demande sont dans `zones.modele`) ; replacé à chaque affichage, et quand un bloc
+ * replié s'ouvre ou se ferme.
+ */
+function sensContestation() {
+  if (etat.vue === null || typeof etat.vue !== "object" || etat.vue.rule === null || typeof etat.vue.rule !== "object") return;
+  expliquerContestation(zones.modele, etat.vue.rule.contest_ms > 0);
+}
+zones.modele.addEventListener("toggle", () => sensContestation(), true);
 
 /** Les codes des états attendus du parcours (décision ou portefeuille pas encore choisis), au détail technique. */
 function majParcours() {
@@ -890,13 +912,13 @@ function montrerResultat(...noeuds) {
 
 function amenerAuResultat() {
   if (zones.resultat.firstChild === null) return;
-  zones.resultat.scrollIntoView({ block: "center" });
+  amenerSousLaBarre(zones.resultat, "center");
   zones.resultat.focus({ preventScroll: true });
 }
 
 function amenerAuPortefeuille() {
   if (zones.vote.firstChild === null) return;
-  zones.vote.scrollIntoView({ block: "start" });
+  amenerSousLaBarre(zones.vote);
   zones.vote.focus({ preventScroll: true });
 }
 
@@ -908,15 +930,15 @@ function rendreDecision() {
     return;
   }
   // Un nouveau vote remplace le précédent tant que la demande accepte des décisions (EX-7.26) : les deux
-  // boutons restent, de même poids, sous un intertitre et une phrase qui disent ce que cela fait.
+  // boutons restent offerts, de même poids, sous un intitulé et une phrase qui disent ce que cela fait.
   const deja = maDecisionEnregistree() !== null;
   const titreDecision = t(deja ? "decision.titre_changer" : "decision.titre");
-  const parties = [el("h2", { classe: "titre-decision", texte: titreDecision })];
-  if (deja && etat.decision === null && etat.aConfirmer === null) parties.push(el("p", { classe: "nt-attenue", texte: t("decision.changer_sens"), attributs: { id: "decision-changer" } }));
   const ouvert = etat.pas1 && raisons.length === 0;
   if (etat.decision !== null) {
     const m = motif();
-    parties.push(
+    remplacer(
+      zones.decision,
+      el("h2", { classe: "titre-decision", texte: titreDecision }),
       el("p", { classe: "decision-choisie", texte: t(`decision.choisie.${etat.decision}`), attributs: { id: "decision-choisie", "data-decision": etat.decision } }),
       el("p", { classe: "nt-attenue", attributs: { id: "motif-choisi" } }, m === null ? t("motif.aucun") : donnee(t("modele.votes.motif", { motif: m }))),
       el("p", { texte: t("decision.suite") }),
@@ -939,7 +961,9 @@ function rendreDecision() {
     );
   } else if (etat.aConfirmer !== null) {
     const d = etat.aConfirmer;
-    parties.push(
+    remplacer(
+      zones.decision,
+      el("h2", { classe: "titre-decision", texte: titreDecision }),
       el("p", { classe: "decision-question", texte: t(`decision.confirmer_question.${d}`) }),
       zones.motif,
       actions(
@@ -963,27 +987,46 @@ function rendreDecision() {
         }),
       ),
     );
+  } else if (deja) {
+    // La personne a déjà décidé et la demande reste ouverte (CT-3 EX-9.4, complément du 2026-11-18, point 8) : elle
+    // n'est pas en train de décider. Les deux décisions restent offertes, de même poids, dans un bloc fermé à
+    // l'ouverture de l'écran, « Changer ma décision », avec ce que cela fait.
+    const bloc = detail(titreDecision, null, el("p", { classe: "nt-attenue", texte: t("decision.changer_sens"), attributs: { id: "decision-changer" } }), boutonsDecision(ouvert, titreDecision), ouvert ? null : el("p", { classe: "nt-attenue nt-petit", texte: t("decision.inactifs") }));
+    bloc.setAttribute("id", "changer-decision");
+    bloc.open = etat.changerOuvert;
+    bloc.addEventListener("toggle", () => {
+      etat.changerOuvert = bloc.open;
+    });
+    remplacer(zones.decision, bloc);
   } else {
-    const groupe = el("div", { classe: "nt-actions", attributs: { role: "group", "aria-label": titreDecision } });
-    for (const d of ["approuve", "refuse"]) {
-      const b = bouton(
-        libelleDecision(d),
-        () => {
-          etat.aConfirmer = d;
-          rendreDecision();
-        },
-        { actif: ouvert, genre: "choix", icone: d === "approuve" ? "coche" : "croix" },
-      );
-      b.setAttribute("data-decision", d);
-      groupe.appendChild(b);
-    }
-    parties.push(groupe);
-    if (!ouvert) parties.push(el("p", { classe: "nt-attenue nt-petit", texte: t("decision.inactifs") }));
-    // « Aucune décision n'est choisie d'avance » ne se dit pas à qui a déjà décidé ; ce n'est pas une panne : sans code.
-    else if (!deja) parties.push(el("p", { classe: "nt-attenue nt-petit", attributs: { id: "decision-suite", "data-code": "decision_absente" } }, el("span", { texte: t("console.decision_absente") }), " ", el("span", { texte: t("decision.etapes") })));
+    // « Votre décision », puis les deux boutons, sur une ligne quand la place le permet.
+    remplacer(
+      zones.decision,
+      el("div", { classe: "decision-tete" }, el("h2", { classe: "titre-decision", texte: titreDecision }), boutonsDecision(ouvert, titreDecision)),
+      // Ce n'est pas une panne : sans code.
+      ouvert ? el("p", { classe: "nt-attenue nt-petit", attributs: { id: "decision-suite", "data-code": "decision_absente" } }, el("span", { texte: t("console.decision_absente") }), " ", el("span", { texte: t("decision.etapes") })) : el("p", { classe: "nt-attenue nt-petit", texte: t("decision.inactifs") }),
+    );
   }
-  remplacer(zones.decision, ...parties);
   majParcours();
+  sensContestation();
+}
+
+/** Les deux boutons de décision (EX-9.5) : même poids, aucun présélectionné ; chacun demande une confirmation. */
+function boutonsDecision(ouvert, libelleGroupe) {
+  const groupe = el("div", { classe: "nt-actions boutons-decision", attributs: { role: "group", "aria-label": libelleGroupe } });
+  for (const d of ["approuve", "refuse"]) {
+    const b = bouton(
+      libelleDecision(d),
+      () => {
+        etat.aConfirmer = d;
+        rendreDecision();
+      },
+      { actif: ouvert, genre: "choix", icone: d === "approuve" ? "coche" : "croix" },
+    );
+    b.setAttribute("data-decision", d);
+    groupe.appendChild(b);
+  }
+  return groupe;
 }
 
 function rendreMotif() {
@@ -1245,22 +1288,17 @@ function rendreSignature() {
     return;
   }
   const d = l.modele.digests[etat.decision];
-  // En tête : ce que la personne s'apprête à faire et le rappel de la demande ; à côté, les consignes courantes
-  // (CT-3 EX-9.20, complément du 2026-11-18), le code à comparer en grand, sous son intitulé fixé, et `D_A` en
-  // entier juste dessous (EX-9.4) ; puis le bouton. Ensuite, dans un bloc ouvert sur demande : les groupes de
-  // `D_A`, à part le condensé EIP-191 sous son intitulé fixé (EX-9.18), et les consignes d'EX-9.20, entières.
+  // En tête : ce que la personne s'apprête à faire ; puis le rappel de la demande et, à côté, les consignes courantes
+  // (CT-3 EX-9.20, complément du 2026-11-18) ; puis les deux codes, en grand, début et fin : le code de contrôle de la
+  // décision, `empreinte(D_A)`, avec `D_A` en entier juste dessous (EX-9.4), et l'autre forme de ce code,
+  // `empreinte(H)`, que certaines applications affichent en plus (EX-9.18, complément du 2026-11-18) ; puis le bouton.
+  // Ensuite, dans un bloc ouvert sur demande : les noms exacts des deux codes, sous les intitulés que fixe EX-9.18,
+  // leurs groupes, et les consignes d'EX-9.20, entières.
   const completes = detail(
     t("consigne.completes"),
     t("consigne.completes_note"),
-    el("div", { classe: "nt-encart nt-pile" }, el("h3", { classe: "intitule-clair", texte: t("signature.groupes_titre") }), groupesFixes(d.d_a)),
-    el(
-      "div",
-      { classe: "nt-encart nt-pile" },
-      fixe(t("signature.eip191"), "intitule", "h3"),
-      el("p", { classe: "nt-petit", texte: t("signature.eip191_sens") }),
-      el("p", { classe: "empreinte-secondaire", texte: d.h_fingerprint, attributs: { id: "empreinte-h", "data-valeur": "" } }),
-      groupesFixes(d.h),
-    ),
+    el("div", { classe: "nt-encart nt-pile" }, fixe(t("signature.empreinte_d_a"), "intitule", "h3"), el("p", { classe: "nt-petit", texte: t("signature.d_a_sens") }), groupesFixes(d.d_a)),
+    el("div", { classe: "nt-encart nt-pile" }, fixe(t("signature.eip191"), "intitule", "h3"), el("p", { classe: "nt-petit", texte: t("signature.eip191_sens") }), groupesFixes(d.h)),
     rendreConsignesElement(),
   );
   completes.setAttribute("id", "consignes-completes");
@@ -1282,30 +1320,40 @@ function rendreSignature() {
     el(
       "div",
       { classe: "signature-haut" },
-      el("div", { classe: "nt-pile" }, rendreRappel(l.modele)),
+      el("div", { classe: "nt-pile signature-gauche" }, rendreRappel(l.modele)),
+      // Les consignes courantes, à côté du rappel et au-dessus des codes et du bouton : on les lit avant de signer.
+      el("div", { classe: "nt-pile avant-de-signer" }, el("h3", { classe: "intitule-clair", texte: t("signature.avant_titre"), attributs: { id: "avant-de-signer" } }), rendreConsignesCourantes()),
+    ),
+    // La décision telle qu'elle est signée (`approuve` ou `refuse`, EX-9.4), l'adresse retenue et le portefeuille
+    // choisi : sur une rangée, sur un poste.
+    lignes(
+      [
+        [t("signature.decision_signee"), code(etat.decision)],
+        [t("signature.adresse"), code(etat.adresse)],
+        [t("signature.portefeuille"), donnee(etat.fournisseur.name)],
+      ],
+      { id: "signature-faits" },
+      "faits-signature",
+    ),
+    // Les deux codes, en grand, début et fin (EX-9.18, complément du 2026-11-18).
+    el(
+      "div",
+      { classe: "codes-signature", attributs: { id: "codes-signature" } },
       el(
         "div",
-        { classe: "nt-pile" },
-        el(
-          "div",
-          { classe: "nt-encart encart-empreinte" },
-          el("p", { classe: "nt-attenue nt-petit" }, el("span", { texte: t("signature.intitule_exact") }), " ", fixe(t("signature.empreinte_d_a"), "intitule")),
-          el("p", { classe: "nt-empreinte", texte: d.fingerprint, attributs: { id: "empreinte-d-a", "data-valeur": "" } }),
-          el("p", { classe: "nt-petit code-entier" }, el("span", { texte: t("signature.code_entier") }), " ", code(d.d_a, "nt-fixe d-a")),
-        ),
-        // La décision telle qu'elle est signée (`approuve` ou `refuse`, EX-9.4), l'adresse retenue et le portefeuille choisi.
-        lignes(
-          [
-            [t("signature.decision_signee"), code(etat.decision)],
-            [t("signature.adresse"), code(etat.adresse)],
-            [t("signature.portefeuille"), donnee(etat.fournisseur.name)],
-          ],
-          { id: "signature-faits" },
-        ),
+        { classe: "nt-encart encart-empreinte", attributs: { id: "code-controle" } },
+        el("h3", { classe: "intitule-clair", texte: t("signature.code_controle") }),
+        el("p", { classe: "nt-empreinte", texte: d.fingerprint, attributs: { id: "empreinte-d-a", "data-valeur": "" } }),
+        el("p", { classe: "nt-petit code-entier" }, el("span", { texte: t("signature.code_entier") }), " ", code(d.d_a, "nt-fixe d-a")),
+      ),
+      el(
+        "div",
+        { classe: "nt-encart encart-empreinte", attributs: { id: "code-autre" } },
+        el("h3", { classe: "intitule-clair", texte: t("signature.code_autre") }),
+        el("p", { classe: "nt-empreinte", texte: d.h_fingerprint, attributs: { id: "empreinte-h", "data-valeur": "" } }),
+        el("p", { classe: "nt-petit code-autre-sens", texte: t("signature.code_autre_sens") }),
       ),
     ),
-    // Les consignes courantes, sur toute la largeur, juste avant le bouton : on les lit avant de signer.
-    el("div", { classe: "nt-pile avant-de-signer" }, el("h3", { classe: "intitule-clair", texte: t("signature.avant_titre"), attributs: { id: "avant-de-signer" } }), rendreConsignesCourantes(d.fingerprint)),
     l.modele.warnings.includes("condense_utf8") ? rendreAvertissements(["condense_utf8"], []) : null,
     actions(bouton(t("signature.demander"), () => void demanderSignature(), { actif: !etat.enCours, genre: "principal", icone: "cadenas" }), el("a", { classe: "nt-bouton nt-bouton-discret", texte: t("signature.revenir"), attributs: { href: "#essentiel" } })),
     etat.enCours ? message("info", el("p", { texte: t("signature.en_cours") })) : null,
@@ -1317,33 +1365,20 @@ function rendreSignature() {
   remplacer(zones.signature, panneau);
   vider(zones.consignes);
   if (!paraissait) {
-    panneau.scrollIntoView({ block: "start" });
+    amenerSousLaBarre(panneau);
     panneau.focus({ preventScroll: true });
   }
 }
 
-/** Le libellé qu'un appareil de signature donne au condensé EIP-191 : cité tel quel dans une consigne courante. */
-const LIBELLE_APPAREIL = "« Message hash »";
-
 /**
  * Les consignes courantes (CT-3 EX-9.20, complément du 2026-11-18) : quatre
  * lignes, fixées mot pour mot par ce complément, affichées avant le bouton
- * de signature. `{debut}` et `{fin}` sont les deux extrémités de l'empreinte
- * de la décision choisie (EX-9.18).
+ * de signature, sans sigle ni mot anglais. Les noms exacts des codes sont
+ * dans le bloc « Consignes complètes ».
  */
-function rendreConsignesCourantes(empreinteDecision) {
-  const extremites = { "{debut}": empreinteDecision.slice(0, 8), "{fin}": empreinteDecision.slice(-8) };
+function rendreConsignesCourantes() {
   const ol = el("ol", { classe: "consignes consignes-courantes", attributs: { id: "consignes-courantes", "aria-labelledby": "avant-de-signer" } });
-  for (let k = 1; k <= 4; k += 1) {
-    const li = el("li", { attributs: { "data-consigne": String(k) } });
-    for (const morceau of t(`consigne_courante.${k}`, { debut: "{debut}", fin: "{fin}" }).split(/(\{debut\}|\{fin\}|« Message hash »)/)) {
-      if (morceau === "") continue;
-      if (Object.hasOwn(extremites, morceau)) li.appendChild(el("strong", { classe: "nt-fixe extremite", texte: extremites[morceau], attributs: { "data-valeur": "" } }));
-      else if (morceau === LIBELLE_APPAREIL) li.appendChild(donnee(morceau));
-      else li.appendChild(el("span", { texte: morceau }));
-    }
-    ol.appendChild(li);
-  }
+  for (let k = 1; k <= 4; k += 1) ol.appendChild(el("li", { texte: t(`consigne_courante.${k}`), attributs: { "data-consigne": String(k) } }));
   return ol;
 }
 
@@ -1587,7 +1622,7 @@ function rendreRecusation() {
   }
   // Un ticket décidé n'offre plus aucune action.
   if (c.reason === "ticket_clos_aux_votes" || estDecide(etat.vue)) return vider(zones.recusation);
-  const parties = [el("h2", { texte: t("recusation.titre") }), el("p", { classe: "nt-attenue", texte: t("recusation.sens") })];
+  const parties = [el("h4", { classe: "action-carte-titre", texte: t("recusation.titre") }), el("p", { classe: "nt-attenue", texte: t("recusation.sens") })];
   if (etat.confirmation === "recuser") {
     parties.push(
       message("alerte", el("p", { texte: t("recusation.confirmer_texte") })),
@@ -1608,7 +1643,7 @@ function rendreRecusation() {
             etat.confirmation = "recuser";
             rendreRecusation();
           },
-          { actif: c.reason === null },
+          { actif: c.reason === null, petit: true },
         ),
       ),
     );
@@ -1659,7 +1694,7 @@ function rendreRetrait() {
   if (etat.annuaire === null || etat.vue === null || estDecide(etat.vue)) return vider(zones.retrait);
   const by = actionRetrait(etat.annuaire, identite(), { launched_by: etat.vue.request.delegation.launched_by });
   if (by === null) return vider(zones.retrait);
-  const parties = [el("h2", { texte: t("retrait.titre") }), el("p", { classe: "nt-attenue", texte: t("retrait.sens") }), el("p", {}, t("retrait.par"), " ", code(by))];
+  const parties = [el("h4", { classe: "action-carte-titre", texte: t("retrait.titre") }), el("p", { classe: "nt-attenue", texte: t("retrait.sens") }), el("p", {}, t("retrait.par"), " ", code(by))];
   parties.push(el("div", { classe: "nt-champ" }, el("label", { classe: "nt-libelle", texte: t("retrait.motif"), attributs: { for: "motif-retrait" } }), champMotifRetrait, el("p", { classe: "nt-aide", texte: t("motif.avertissement") })));
   if (etat.confirmation === "retirer") {
     parties.push(
@@ -1723,8 +1758,10 @@ async function demarrer() {
   etat.ticket = segment;
   rendreMotif();
   // Sous la demande : le résultat de la dernière signature, en tête du bloc où elle se fait ; le choix du portefeuille
-  // et, à côté, les autres actions et les consignes repliées ; puis l'écran de signature.
-  ajouter(racine, el("main", { classe: "nt-page page-ticket" }, zones.lecture, zones.modele, zones.lies, zones.resultat, el("div", { classe: "bas-demande" }, zones.vote, el("div", { classe: "autres-actions" }, zones.recusation, zones.retrait, zones.consignes)), zones.signature));
+  // et, à côté, les consignes repliées ; puis l'écran de signature. La récusation et le retrait sont avec le reste de
+  // la demande (`rendreModele`) : aucun de ces deux gestes définitifs ne se trouve entre le choix du portefeuille et
+  // la signature.
+  ajouter(racine, el("main", { classe: "nt-page page-ticket" }, zones.lecture, zones.modele, zones.lies, zones.resultat, el("div", { classe: "bas-demande" }, zones.vote, el("div", { classe: "autres-actions" }, zones.consignes)), zones.signature));
   rendreFournisseursEtComptes();
   await Promise.all([lecturePas1(), lectureLies()]);
 }

@@ -7,7 +7,7 @@
 // octets reçus (`Blob` et lien `download`). Une autre session : l'écran le
 // dit et n'offre rien. Le service refait chaque contrôle.
 
-import { el, actions, ajouter, bouton, code, definitions, detail, donnee, message, pastille, remplacer } from "../commun/dom.mjs";
+import { el, actions, ajouter, bouton, code, definitions, detail, donnee, icone, message, pastille, remplacer } from "../commun/dom.mjs";
 import { t } from "../commun/libelles.mjs";
 import { appeler } from "../commun/client.mjs";
 import { afficherErreur, demarrerEcran, entete, instant, paragrapheCode, principal, texteInstant } from "../commun/cadre.mjs";
@@ -58,23 +58,30 @@ const motif = (champ) => (champ.value === "" ? null : champ.value);
 // par leur genre.
 const GENRE_ACTION = Object.freeze({ valider: "principal", revoquer: "danger", desactiver: "danger", reactiver: "principal" });
 
-function actionAvecMotif(cle, methode, corps, avant = null) {
+/**
+ * Une action qu'on ne peut pas défaire porte la mention « définitif » juste
+ * à côté de son bouton (complément du 2026-11-18), et sa confirmation le
+ * redit (EX-13.17) : révoquer une adresse ; désactiver une personne, dont
+ * toutes les adresses sont révoquées ; valider une adresse quand la
+ * personne en a déjà une active, qui est alors révoquée. `definitif` : la
+ * clé de la mention, ou `null`.
+ */
+function actionAvecMotif(cle, methode, corps, avant = null, definitif = null) {
   const id = `motif-${methode}-${corps.entry}-${corps.address ?? ""}`;
   const confirmer = etat.confirmation === id;
   const champ = champMotif(id);
   if (!confirmer) {
-    return el(
-      "div",
-      { classe: "action", attributs: { "data-action": methode } },
-      bouton(
-        t(`annuaire.bouton.${cle}`),
-        () => {
-          etat.confirmation = id;
-          rendre();
-        },
-        { petit: true },
-      ),
+    const b = bouton(
+      t(`annuaire.bouton.${cle}`),
+      () => {
+        etat.confirmation = id;
+        rendre();
+      },
+      { petit: true },
     );
+    const mention = definitif === null ? null : el("span", { classe: "mention-definitif", attributs: { id: `definitif-${id}`, "data-definitif": "" } }, icone("alerte"), el("span", { texte: t(definitif) }));
+    if (mention !== null) b.setAttribute("aria-describedby", `definitif-${id}`);
+    return el("div", { classe: "action", attributs: { "data-action": methode } }, b, mention);
   }
   return el(
     "div",
@@ -140,9 +147,19 @@ function rendre() {
     for (const a of e.addresses) {
       const actionsAdresse = [];
       if (a.state === "en_attente" && e.active && !soi) {
-        actionsAdresse.push(actionAvecMotif("valider", "valider", { entry: e.id, address: a.address }, message("alerte", el("p", { classe: "nt-bandeau-titre", texte: t("annuaire.avant_valider_titre") }), el("p", { texte: t("annuaire.avant_valider") }))));
+        // Valider une adresse révoque l'adresse active de la personne, s'il y en a une (EX-13.17) : c'est définitif pour elle.
+        const remplace = e.addresses.some((x) => x.state === "active");
+        actionsAdresse.push(
+          actionAvecMotif(
+            "valider",
+            "valider",
+            { entry: e.id, address: a.address },
+            message("alerte", el("p", { classe: "nt-bandeau-titre", texte: t("annuaire.avant_valider_titre") }), el("p", { texte: t("annuaire.avant_valider") }), remplace ? el("p", { texte: t("annuaire.avant.valider_remplace"), attributs: { "data-definitif": "" } }) : null),
+            remplace ? "annuaire.definitif.valider" : null,
+          ),
+        );
       }
-      if (a.state === "en_attente" || a.state === "active") actionsAdresse.push(actionAvecMotif("revoquer", "revoquer", { entry: e.id, address: a.address }));
+      if (a.state === "en_attente" || a.state === "active") actionsAdresse.push(actionAvecMotif("revoquer", "revoquer", { entry: e.id, address: a.address }, null, "annuaire.definitif.revoquer"));
       const [genre, nomIcone] = ETATS_ADRESSE[a.state] ?? ["neutre", "question"];
       ajouter(
         adresses,
@@ -177,7 +194,7 @@ function rendre() {
         }),
       ),
     );
-    const entreeActions = e.active ? actionAvecMotif("desactiver", "desactiver", { entry: e.id }) : actionAvecMotif("reactiver", "reactiver", { entry: e.id });
+    const entreeActions = e.active ? actionAvecMotif("desactiver", "desactiver", { entry: e.id }, null, "annuaire.definitif.desactiver") : actionAvecMotif("reactiver", "reactiver", { entry: e.id });
     parties.push(
       el(
         "section",

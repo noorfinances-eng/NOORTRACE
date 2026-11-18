@@ -247,7 +247,17 @@ function nonProuveAttendu(nonReussis, T) {
   return libelle(T, "non_prouve_plusieurs", { liste: `${noms.slice(0, -1).join(T.non_prouve_sep)}${T.non_prouve_dernier}${noms[noms.length - 1]}` });
 }
 
-function attendu(cas, T) {
+/**
+ * Clé de la phrase d'un contrôle non fait, écrite ici une seconde fois d'après la table de CT-6 §18 (point 8) : la
+ * raison du rapport, le numéro du contrôle, et les pièces que la personne a ajoutées à l'étape 2.
+ */
+function cleRaisonAttendue(raison, numero, { ancres = false, entetes = false } = {}) {
+  if (raison === "ancre_absente") return !ancres ? "raison_ancre_absente" : numero === 5 && entetes ? "raison_ancre_absente_liste_extrait" : "raison_ancre_absente_liste";
+  if (raison === "partie_absente" && numero === 5 && !entetes) return ancres ? "raison_partie_absente_extrait" : "raison_partie_absente_liste_extrait";
+  return ["partie_absente", "hors_perimetre_version", "piece_hors_dossier", "prerequis_en_echec"].includes(raison) ? `raison_${raison}` : "raison_inconnue";
+}
+
+function attendu(cas, T, pieces = {}) {
   const mots = { 0: ["mot_0", "nt-verdict-valide"], 1: ["mot_1", "nt-verdict-non-valide"], 2: ["mot_2", ""], 3: ["mot_3", "nt-verdict-incomplet"] };
   const r = { mot: T[mots[cas.code][0]], variante: mots[cas.code][1], teinte: "", mention: null, nonProuve: null, code: libelle(T, "code", { code: cas.code, sens: T[`code_${cas.code}`] }) };
   if (cas.code === 2) return { ...r, controles: [], pastillesReussi: 0, tousReussis: null, borne: null, exiges: null };
@@ -260,7 +270,7 @@ function attendu(cas, T) {
       etat: reserves.length > 0 ? T.statut_reussi_reserve : T[`statut_${c.status}`],
       montreReussi: c.status === "reussi" && reserves.length === 0,
       titre: `${c.number}. ${T[`controle_${c.number}`]}`,
-      raison: c.status === "non_execute" ? libelle(T, "raison", { raison: T[`raison_${c.reason}`], code: c.reason }) : null,
+      raison: c.status === "non_execute" ? libelle(T, "raison", { raison: T[cleRaisonAttendue(c.reason, c.number, pieces)], code: c.reason }) : null,
       exige: exiges.includes(c.number) ? T.controle_exige : null,
       reserves: reserves.length > 0 ? reserves.join(" ") : null,
     };
@@ -289,7 +299,7 @@ const CLES_VERDICT = ["mot", "variante", "teinte", "mention", "nonProuve", "code
 // --- Langage (complément du 2026-11-18 de CT-6 §18) ------------------------------
 
 /** Les fonctions et tables du langage courant d'interface.js, telles qu'écrites ; null si les sources ne les ont pas. */
-const NOMS_LANGAGE = ["clePhraseCourante", "cleAvertissement", "cleRefusCourant", "membresEnonce", "aDesReserves", "PHRASES_COURANTES", "LIMITES", "SUITES", "presentationVerdict", "clesNonProuve", "controlesDeLAvertissement", "reservesDuControle", "grouperAvertissements", "clePieceEnCause", "PIECES_EN_CAUSE", "instantDeSecondes", "instantDeTexte", "lignesEnResume", "CONTROLE_DU_RESUME", "GABARITS_DECISION"];
+const NOMS_LANGAGE = ["clePhraseCourante", "cleAvertissement", "cleRefusCourant", "cleRaisonCourante", "membresEnonce", "aDesReserves", "PHRASES_COURANTES", "LIMITES", "SUITES", "presentationVerdict", "clesNonProuve", "controlesDeLAvertissement", "reservesDuControle", "grouperAvertissements", "clePieceEnCause", "PIECES_EN_CAUSE", "instantDeSecondes", "instantDeTexte", "lignesEnResume", "CONTROLE_DU_RESUME", "GABARITS_DECISION"];
 
 /** `transformer` : changement appliqué à la source avant de l'évaluer (mutant joué sous Node) ; il doit la changer. */
 function chargerLangage(transformer = null) {
@@ -555,6 +565,8 @@ async function lireLangage(page) {
       introCode: code === null ? null : code.parentElement.querySelector(".pv-exact-intro").textContent,
       codeMarqueExact: code === null ? null : code.hasAttribute("data-exact"),
       codeReplie: code === null ? null : code.closest("details") !== null,
+      // Complément du 2026-11-18, troisième lecture (point 6) : la formule exacte est en tête des spécialistes, hors du cadre du verdict.
+      codeEnTeteSpecialistes: code === null ? null : code.closest("#verdict") === null && code.closest("#specialistes > .pv-exact") !== null && code.closest("#specialistes > .pv-exact").previousElementSibling.matches("#specialistes > h3, #specialistes > .nt-aide"),
       ordre: { motPuisPhrase: avant("#verdict-mot", "#phrase-courante"), phrasePuisCode: avant("#phrase-courante", "#code"), verdictPuisReserves: avant("#verdict", "#avertissements"), reservesPuisControles: avant("#avertissements", "#controles"), controlesPuisEnonce: avant("#controles", "#enonce"), enoncePuisLimites: avant("#enonce", "#limites"), enoncePuisSuite: avant("#enonce", "#suite"), suitePuisSpecialistes: avant("#suite", "#specialistes") },
       listeReserves: [...document.querySelectorAll("#avertissements li.pv-reserve")].map((li) => {
         const courante = li.querySelector(".pv-reserve-courante");
@@ -603,6 +615,7 @@ function attenduLangage(cas, T) {
     introCode: T.formule_exacte,
     codeMarqueExact: true,
     codeReplie: false,
+    codeEnTeteSpecialistes: true,
     listeReserves: groupes.map((g) => ({
       id: g[0].id,
       courante: Object.hasOwn(T, cleAv(g[0].id)) ? `${T[cleAv(g[0].id)]}${g.length > 1 ? ` ${libelle(T, "reserve_fois", { n: g.length })}` : ""}` : null,
@@ -615,7 +628,7 @@ function attenduLangage(cas, T) {
     suite: [1, 2, 3].map((n) => T[`suite_${cas.code}_${n}`]),
   };
 }
-const CLES_LANGAGE = ["mot", "phrase", "phraseDansLeVerdict", "reserves", "code", "introCode", "codeMarqueExact", "codeReplie", "listeReserves", "limites", "suite"];
+const CLES_LANGAGE = ["mot", "phrase", "phraseDansLeVerdict", "reserves", "code", "introCode", "codeMarqueExact", "codeReplie", "codeEnTeteSpecialistes", "listeReserves", "limites", "suite"];
 
 describe("page de vérification, présentation : sources (CT-6 §18, complément du 2026-11-17)", function () {
   it("lecture des contrôles du rapport JSON : huit contrôles numérotés, statut de CT-6 EX-6.1, raison de CT-6 §6.2 pour un contrôle non exécuté ; toute autre liste, ou une liste qui contredit le code, n'est pas résumée", function () {
@@ -669,11 +682,12 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
 
   it("libellés : nom courant des huit contrôles, statuts, raisons de CT-6 §6.2 et mots du verdict, en français et en anglais ; le sens fixé des codes reste entier", function () {
     const { fr, en } = tables();
-    const cles = [...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `controle_${n}`), "statut_reussi", "statut_echoue", "statut_non_execute", ...raisonsCt6().map((r) => `raison_${r}`), "raison_inconnue", "mot_0", "mot_1", "mot_2", "mot_3", "tous_reussis", "valide_borne", "exiges_non_reussis", "resume_indisponible", "controle_exige"];
+    const RAISONS_PIECES = ["raison_ancre_absente_liste", "raison_ancre_absente_liste_extrait", "raison_partie_absente_extrait", "raison_partie_absente_liste_extrait"];
+    const cles = [...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `controle_${n}`), "statut_reussi", "statut_echoue", "statut_non_execute", ...raisonsCt6().map((r) => `raison_${r}`), ...RAISONS_PIECES, "raison_inconnue", "mot_0", "mot_1", "mot_2", "mot_3", "tous_reussis", "valide_borne", "exiges_non_reussis", "resume_indisponible", "controle_exige"];
     for (const T of [fr, en]) {
       for (const cle of cles) expect(typeof T[cle] === "string" && T[cle].length > 0, cle).to.equal(true);
       // Aucun libellé de statut ou de raison non réussi ne dit « réussi ».
-      for (const cle of ["statut_echoue", "statut_non_execute", ...raisonsCt6().map((r) => `raison_${r}`), "raison_inconnue"]) expect(T[cle], cle).to.not.match(/réussi|passed|valide|valid/i);
+      for (const cle of ["statut_echoue", "statut_non_execute", ...raisonsCt6().map((r) => `raison_${r}`), ...RAISONS_PIECES, "raison_inconnue"]) expect(T[cle], cle).to.not.match(/réussi|passed|valide|valid/i);
       expect(new Set([T.statut_reussi, T.statut_echoue, T.statut_non_execute]).size).to.equal(3);
       expect(new Set([T.mot_0, T.mot_1, T.mot_2, T.mot_3]).size).to.equal(4);
     }
@@ -817,7 +831,7 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     }
     expect([...f.membresEnonce(s.fr)]).to.have.length(5);
     // Les lignes de « Et maintenant ? » existent pour chaque code, un refus et une vérification non faite.
-    expect(Object.keys(f.SUITES).sort()).to.deep.equal(["0", "1", "2", "3", "non_faite", "refus"]);
+    expect(Object.keys(f.SUITES).sort()).to.deep.equal(["0", "1", "2", "3", "non_faite", "refus", "refus_piece"]);
     for (const cles of Object.values(f.SUITES)) for (const cle of cles) for (const T of [fr, en]) expect(typeof T[cle] === "string" && T[cle].length > 0, cle).to.equal(true);
   });
 
@@ -1029,6 +1043,58 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
       expect(m.vu(g), `mutant vu : ${m.titre}`).to.equal(true);
     }
   });
+
+  it("troisième lecture (complément du 2026-11-18, points 2, 4 et 7) : la phrase d'un contrôle non fait suit la table de CT-6 §18, d'après la raison, le contrôle et les pièces ajoutées à l'étape 2 ; chaque réserve dit sa conséquence ; une réserve signalée plusieurs fois le dit en une phrase ; la consigne de sûreté de l'étape 2 est une phrase à part ; mutants vus", function () {
+    const { fr, en } = tables();
+    const f = chargerLangage();
+    expect(f.cleRaisonCourante, "cleRaisonCourante dans interface.js").to.be.a("function");
+    // Table de CT-6 §18 (point 8) : les phrases de la page, mot pour mot, dans les deux langues et dans l'ordre.
+    const cles = ["raison_ancre_absente", "raison_ancre_absente_liste", "raison_ancre_absente_liste_extrait", "raison_partie_absente_liste_extrait", "raison_partie_absente_extrait", "raison_partie_absente", "raison_hors_perimetre_version", "raison_piece_hors_dossier", "raison_prerequis_en_echec", "raison_inconnue"];
+    const table = tableCt6("| Raison, contrôle, pièces ajoutées à l'étape 2 | Phrase de la page française | Phrase de la page anglaise |");
+    expect(table.map((l) => [l[1], l[2]])).to.deep.equal(cles.map((c) => [fr[c], en[c]]));
+    // Le choix de la phrase, écrit ici une seconde fois, sur toutes les raisons, tous les contrôles et toutes les pièces.
+    for (const r of [...raisonsCt6(), "raison_nouvelle", "", null, undefined, "__proto__", "toString"]) {
+      for (let n = 1; n <= 8; n++) for (const ancres of [false, true]) for (const entetes of [false, true]) expect(f.cleRaisonCourante(r, n, ancres, entetes), `${r}, contrôle ${n}, liste ${ancres}, extrait ${entetes}`).to.equal(cleRaisonAttendue(r, n, { ancres, entetes }));
+    }
+    // Les phrases demandées pour une liste non ajoutée et pour une liste qui ne contient pas la référence ; la raison exacte suit, entre parenthèses.
+    expect(fr.raison_ancre_absente).to.equal("Non fait : vous n'avez pas ajouté la liste des références de confiance (étape 2). Demandez-la à l'organisation qui vous a remis le dossier, puis recommencez.");
+    expect(fr.raison_ancre_absente_liste).to.equal("Non fait : la liste que vous avez ajoutée ne contient pas la référence qu'il faut pour ce dossier. Demandez la bonne liste à l'organisation qui vous a remis le dossier.");
+    expect([fr.raison, en.raison]).to.deep.equal(["{raison} ({code})", "{raison} ({code})"]);
+    for (const T of [fr, en]) {
+      for (const c of cles) expect(T[c], c).to.match(/^(?:Non fait|Not done)[ ,:]/);
+      // Quand la raison met en cause le dossier, la phrase ne renvoie pas à l'étape 2 : elle renvoie à l'organisation.
+      for (const c of ["raison_partie_absente", "raison_hors_perimetre_version"]) expect(T[c], c).to.match(/pas une pièce à ajouter à l'étape 2|not a document to add at step 2/).and.match(/organisation/);
+      // La raison non admise (CT-6 6.2) le dit en mots courants, au lieu d'un « cette raison n'est pas admise » qui ne
+      // dit rien à qui n'a pas lu la spécification.
+      expect(T.raison_prerequis_en_echec).to.match(/(?:Le vérificateur ne l'accepte pas comme raison de ne pas faire un contrôle|The verifier does not accept this as a reason for not doing a control)\.$/).and.not.match(/; (?:cette raison|this reason)/);
+      // Chaque réserve de la table dit sa conséquence, une fois, après ce qui est signalé.
+      for (const k of Object.keys(T).filter((x) => /^av_[a-z]+_[0-9]+$/.test(x))) {
+        const marque = T === fr ? " Conséquence : " : " Consequence: ";
+        expect(T[k].split(marque), k).to.have.length(2);
+        expect(T[k].split(marque)[0], k).to.match(/[.:;] ?\S|[.]$/);
+      }
+      // Une réserve signalée plusieurs fois : une phrase, sans parenthèses.
+      expect(T.reserve_fois).to.match(/^(?:Le vérificateur la signale|The verifier reports it) \{n\} /).and.match(/\.$/).and.not.match(/[()]/);
+      // La consigne de sûreté de l'étape 2 n'est plus dans l'aide en petit.
+      expect(T.aide_ancres).to.not.match(/Vérifiez d'où|Check where/);
+    }
+    expect([fr.consigne_ancres, en.consigne_ancres]).to.deep.equal(["Vérifiez d'où vient cette liste : c'est elle qui désigne les tiers de confiance.", "Check where this list comes from: it is the list that names the trusted third parties."]);
+    const html = lire("index.modele.html");
+    expect(html).to.include('<p class="nt-aide" id="aide-ancres" data-libelle="aide_ancres">{{aide_ancres}}</p>\n<p class="pv-consigne" id="consigne-ancres" data-libelle="consigne_ancres">{{consigne_ancres}}</p>');
+    expect(html).to.include('aria-describedby="aide-ancres consigne-ancres nom-ancres"');
+    const texte = texteCt6().replace(/\s+/g, " ");
+    expect(texte).to.include(`la consigne de sûreté « ${fr.consigne_ancres} » (« ${en.consigne_ancres} »)`);
+    // Mutants, joués ici sur la source : chacun rend une phrase que la table refuse.
+    const mutants = [
+      { titre: "liste ajoutée ignorée : toujours dite non ajoutée", avant: '    if (!ancres) return "raison_ancre_absente";', apres: '    return "raison_ancre_absente";', vu: (g) => g.cleRaisonCourante("ancre_absente", 4, true, false) !== "raison_ancre_absente_liste" },
+      { titre: "extrait mis en cause pour un autre contrôle que le 5", avant: '    return numero === 5 && entetes ?', apres: "    return entetes ?", vu: (g) => g.cleRaisonCourante("ancre_absente", 8, true, true) !== "raison_ancre_absente_liste" },
+      { titre: "pièce absente du dossier renvoyée à l'étape 2", avant: "    if (numero === 5 && !entetes) return ancres ?", apres: "    if (!entetes) return ancres ?", vu: (g) => g.cleRaisonCourante("partie_absente", 2, true, false) !== "raison_partie_absente" },
+    ];
+    for (const m of mutants) {
+      expect(m.vu(f), `témoin : ${m.titre}`).to.equal(false);
+      expect(m.vu(chargerLangage((source) => source.replace(m.avant, m.apres))), `mutant vu : ${m.titre}`).to.equal(true);
+    }
+  });
 });
 
 for (const moteur of ["chromium", "firefox", "webkit"]) {
@@ -1061,13 +1127,19 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       return false;
     }
 
-    /** Ouvre la page servie avec le travailleur du cas, choisit le dossier et vérifie ; rend l'ouverture. */
-    async function verifierCas(cas, { page = pageConstruite, langue = "fr", options = {} } = {}) {
+    /**
+     * Ouvre la page servie avec le travailleur du cas, choisit le dossier, ajoute les pièces demandées (`pieces` :
+     * { ancres, entetes }) et vérifie ; rend l'ouverture.
+     */
+    async function verifierCas(cas, { page = pageConstruite, langue = "fr", options = {}, pieces = {} } = {}) {
       const o = await ouvrir(navigateur, page, { remplacements: { "travailleur.js": travailleurFactice(cas) }, ...options });
       await o.page.goto("https://verification.example/index.html");
       await attendreArtefact(o.page);
       if (langue === "en") await o.page.click("#autre-langue");
       await choisirRepertoire(o.page, DOSSIER);
+      if (pieces.ancres || pieces.entetes) await deplierOptions(o.page);
+      if (pieces.ancres) await o.page.setInputFiles("#entree-ancres", ANCRES);
+      if (pieces.entetes) await o.page.setInputFiles("#entree-entetes", CHAINE);
       await lancerVerification(o.page);
       return o;
     }
@@ -1418,13 +1490,16 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
           for (const code of [0, 1, 2, 3]) expect(ecran.resultat.includes(L[`phrase_${code}`]), `${langue}, phrase du code ${code}`).to.equal(false);
           expect(ecran.suite, langue).to.deep.equal([1, 2, 3].map((n) => L[`suite_non_faite_${n}`]));
           expect(ecran.limites, langue).to.deep.equal([]);
+          // Aucun rapport : la rubrique des spécialistes n'annonce ni résultat ni rapport (troisième lecture).
+          expect(await o.page.evaluate(() => document.querySelector("#specialistes .nt-aide")), langue).to.equal(null);
+          expect(ecran.resultat.includes(L.intro_specialistes), langue).to.equal(false);
         } finally {
           await o.fermer();
         }
       }
     });
 
-    it("langage, mutants : phrase d'un autre code, phrase inventée pour un avertissement hors table, réserves tues, formule exacte retirée, énoncé abrégé, terme de technicien réintroduit, marque « exact » détournée, mise en garde restée au-dessus du résultat ou retirée ; l'essai les voit (tués)", async function () {
+    it("langage, mutants : phrase d'un autre code, phrase inventée pour un avertissement hors table, réserves tues, formule exacte retirée ou restée dans le cadre du verdict, énoncé abrégé, terme de technicien réintroduit, marque « exact » détournée, mise en garde restée au-dessus du résultat ou retirée ; l'essai les voit (tués)", async function () {
       if (!pret(this)) return;
       const T = tables();
       const nonFaits = CAS_LANGAGE.valideNonFaits;
@@ -1440,7 +1515,8 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         { titre: "la phrase d'un autre code sous « Valide »", fichier: "interface.js", avant: 'const PHRASES_COURANTES = Object.freeze({ 0: "phrase_0", 1: "phrase_1", 2: "phrase_2", 3: "phrase_3" });', apres: 'const PHRASES_COURANTES = Object.freeze({ 0: "phrase_3", 1: "phrase_1", 2: "phrase_2", 3: "phrase_3" });', cas: nonFaits, conforme: langage },
         { titre: "une phrase inventée pour un avertissement hors table", fichier: "interface.js", avant: "  return Object.hasOwn(table, cle) ? cle : null;", apres: '  return Object.hasOwn(table, cle) ? cle : "av_o_3";', cas: averti, conforme: langage },
         { titre: "les réserves tues sous « Valide »", fichier: "interface.js", avant: "  return avertissements === null || avertissements.length > 0;", apres: "  return false;", cas: averti, conforme: langage },
-        { titre: "la formule exacte du vérificateur retirée", fichier: "interface.js", avant: '  suite.append(ligneExacte("formule_exacte", code));', apres: "", cas: nonFaits, conforme: langage },
+        { titre: "la formule exacte du vérificateur retirée", fichier: "interface.js", avant: "  contenu.append(rubriqueSpecialistes(blocs, { tete: formule }));", apres: "  contenu.append(rubriqueSpecialistes(blocs, { tete: null }));", cas: nonFaits, conforme: langage },
+        { titre: "la formule exacte restée dans le cadre du verdict", fichier: "interface.js", avant: "  contenu.append(rubriqueSpecialistes(blocs, { tete: formule }));", apres: "  suite.append(formule);\n  contenu.append(rubriqueSpecialistes(blocs, { tete: null }));", cas: nonFaits, conforme: langage },
         { titre: "l'énoncé abrégé à ses deux premiers membres", fichier: "interface.js", avant: "  for (const membre of membresEnonce(String(texte))) {", apres: "  for (const membre of membresEnonce(String(texte)).slice(0, 2)) {", cas: nonFaits, conforme: async (o, cas) => (await o.page.textContent("#enonce-fr")) === cas.json.statement.fr },
         { titre: "un drapeau de ligne de commande à côté d'un libellé du résultat", fichier: "libelles-fr.js", avant: '  titre_controles: "Les huit contrôles",', apres: '  titre_controles: "Les huit contrôles (--exiger)",', cas: nonFaits, conforme: async (o) => termesTrouves((await premierNiveau(o.page)).textes).length === 0 },
         { titre: "un texte de la page marqué « exact » pour le soustraire à l'épreuve", fichier: "interface.js", avant: '  const p = element("p", "nt-verdict-phrase pv-courante", libelle(cle));', apres: '  const p = exact(element("p", "nt-verdict-phrase pv-courante", libelle(cle)));', cas: nonFaits, conforme: async (o) => (await premierNiveau(o.page)).horsListe.length === 0 },
@@ -1768,7 +1844,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       }
     });
 
-    it("seconde lecture : après un refus, un titre courant précède la mention fixée « aucun rapport » ; le choix du dossier dit le refus, sans coche ni « tout est prêt » ; un autre choix l'efface", async function () {
+    it("seconde lecture : après un refus, un titre courant précède la mention fixée « aucun rapport », placée en tête des spécialistes ; le choix du dossier dit le refus, sans coche ni « tout est prêt », et « Vérifier » est inactif ; un autre choix l'efface", async function () {
       if (!pret(this)) return;
       const T = tables().fr;
       const o = await ouvrir(navigateur, pageConstruite, { remplacements: { "travailleur.js": travailleurFactice(CAS_SECONDE.plein) } });
@@ -1776,7 +1852,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         const t = (s) => (document.querySelector(s) === null ? null : document.querySelector(s).textContent);
         const choisi = document.getElementById("dossier-choisi");
         const mention = document.querySelector(".aucun-rapport");
-        return { choisi: choisi.textContent, classes: choisi.className, aide: t("#aide-verifier"), titre: t("#refus-titre"), mention: mention === null ? null : mention.textContent, intro: mention === null ? null : mention.parentElement.querySelector(".pv-exact-intro").textContent, marquee: mention === null ? null : mention.hasAttribute("data-exact"), mot: t("#verdict-mot") };
+        return { choisi: choisi.textContent, classes: choisi.className, aide: t("#aide-verifier"), titre: t("#refus-titre"), mention: mention === null ? null : mention.textContent, intro: mention === null ? null : mention.parentElement.querySelector(".pv-exact-intro").textContent, marquee: mention === null ? null : mention.hasAttribute("data-exact"), mot: t("#verdict-mot"), inactif: document.getElementById("verifier").disabled, mentionEnTeteSpecialistes: mention === null ? null : mention.closest("#verdict") === null && mention.closest("details") === null && mention.parentElement.matches("#specialistes > h3 + .pv-exact") };
       });
       try {
         await o.page.goto("https://verification.example/index.html");
@@ -1785,13 +1861,14 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         fs.writeFileSync(refuse, "x");
         await o.page.setInputFiles("#entree-archive", refuse);
         // Avant la vérification : le fichier est choisi, rien n'est encore refusé.
-        expect(garder(await lire(), ["choisi", "classes", "aide", "titre"])).to.deep.equal({ choisi: libelle(T, "dossier_choisi_archive", { nom: "contrat-refuse.rar" }), classes: "pv-choisi pv-choisi-fait", aide: T.aide_verifier_pret, titre: null });
+        expect(garder(await lire(), ["choisi", "classes", "aide", "titre", "inactif"])).to.deep.equal({ choisi: libelle(T, "dossier_choisi_archive", { nom: "contrat-refuse.rar" }), classes: "pv-choisi pv-choisi-fait", aide: T.aide_verifier_pret, titre: null, inactif: false });
         await lancerVerification(o.page);
-        expect(await lire()).to.deep.equal({ choisi: libelle(T, "dossier_refuse_archive", { nom: "contrat-refuse.rar" }), classes: "pv-choisi pv-choisi-refuse", aide: T.aide_verifier_refus, titre: T.titre_refus, mention: T.aucun_rapport, intro: T.mention_refus, marquee: true, mot: null });
+        // Troisième lecture (points 3 et 6) : la mention fixée est en tête des spécialistes, et « Vérifier » est inactif.
+        expect(await lire()).to.deep.equal({ choisi: libelle(T, "dossier_refuse_archive", { nom: "contrat-refuse.rar" }), classes: "pv-choisi pv-choisi-refuse", aide: T.aide_verifier_refus, titre: T.titre_refus, mention: T.aucun_rapport, intro: T.mention_refus, marquee: true, mot: null, inactif: true, mentionEnTeteSpecialistes: true });
         expect(await o.page.evaluate(() => document.querySelector("#dossier-choisi svg path").getAttribute("d"))).to.not.equal("M5 12.5l4.5 4.5L19 7.5");
         // Un autre choix efface le refus de l'étape 1 ; un rapport suit, sans trace du refus.
         await choisirRepertoire(o.page, DOSSIER);
-        expect(garder(await lire(), ["choisi", "classes", "aide"])).to.deep.equal({ choisi: libelle(T, "dossier_choisi_repertoire", { nom: path.basename(DOSSIER) }), classes: "pv-choisi pv-choisi-fait", aide: T.aide_verifier_pret });
+        expect(garder(await lire(), ["choisi", "classes", "aide", "inactif"])).to.deep.equal({ choisi: libelle(T, "dossier_choisi_repertoire", { nom: path.basename(DOSSIER) }), classes: "pv-choisi pv-choisi-fait", aide: T.aide_verifier_pret, inactif: false });
         await lancerVerification(o.page);
         expect(garder(await lire(), ["titre", "mention", "mot"])).to.deep.equal({ titre: null, mention: null, mot: T.mot_0 });
         expect(await o.page.textContent("#nom-verifie")).to.equal(libelle(T, "dossier_verifie_repertoire", { nom: path.basename(DOSSIER) }));
@@ -1857,7 +1934,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         }
       }
       // Coche gardée à l'étape 1 après un refus : le fichier refusé y reste dit « choisi ».
-      const m = { titre: "coche et « tout est prêt » gardés après un refus", avant: '    etat.refuse = etat.vue.genre === "refus";', apres: "    etat.refuse = false;" };
+      const m = { titre: "coche et « tout est prêt » gardés après un refus", avant: '    etat.refuse = etat.vue.genre === "refus" ? etat.vue.vise : null;', apres: "    etat.refuse = null;" };
       const refuse = path.join(dir, "mutant-refuse.rar");
       fs.writeFileSync(refuse, "x");
       const apresRefus = async (page) => {
@@ -1877,6 +1954,234 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       const { copie, page } = muter(m);
       try {
         expect(await apresRefus(page), `mutant vu : ${m.titre}`).to.not.deep.equal(attenduRefus);
+      } finally {
+        fs.rmSync(copie, { recursive: true, force: true });
+      }
+    });
+
+    it("troisième lecture (points 1 et 3) : « Valide » et sa mention d'un seul tenant, à la même taille ; ce que le dossier ne prouve pas, en gras, juste dessous ; la formule exacte en tête des spécialistes, hors du cadre du verdict et jamais repliée ; en français et en anglais ; mutant vu", async function () {
+      if (!pret(this)) return;
+      const T = tables();
+      const lireTitre = (o) => o.page.evaluate(() => {
+        const e = (s) => document.querySelector(s);
+        const style = (x) => { const c = getComputedStyle(x); return [c.fontSize, c.fontWeight, c.fontFamily, c.fontStyle, c.color, c.letterSpacing, c.lineHeight]; };
+        const titre = e("#verdict-titre");
+        const mot = e("#verdict-mot");
+        const mention = e("#verdict-mention");
+        const suivant = titre.nextElementSibling;
+        const code = e("#code");
+        return {
+          titre: titre.textContent,
+          enfants: [...titre.childNodes].map((n) => (n.nodeType === Node.ELEMENT_NODE ? n.id : `texte ${JSON.stringify(n.textContent)}`)),
+          memeStyle: mention !== null && JSON.stringify(style(mot)) === JSON.stringify(style(mention)),
+          suivant: suivant === null ? null : suivant.id,
+          suivantGras: suivant === null ? null : Number(getComputedStyle(suivant).fontWeight) >= 700,
+          verdict: e("#verdict").textContent,
+          formule: code === null ? null : code.closest(".pv-exact").textContent,
+          formuleEnTete: code !== null && code.closest("#verdict") === null && code.closest("details") === null && code.closest("#specialistes > .pv-exact") !== null && code.closest(".pv-exact").previousElementSibling.matches("#specialistes > .nt-aide") && code.closest(".pv-exact").getClientRects().length > 0,
+        };
+      });
+      for (const langue of ["fr", "en"]) {
+        const L = T[langue];
+        for (const [nom, cas] of [["contrôles non faits", CAS_SECONDE.nonFaits], ["les deux", CAS_SECONDE.lesDeux], ["réserves", CAS_SECONDE.reserves], ["incomplet", CAS_SECONDE.incomplet]]) {
+          const quoi = `${nom}, ${langue}`;
+          const o = await verifierCas(cas, { langue });
+          try {
+            const a = attendu(cas, L);
+            const lu = await lireTitre(o);
+            const formule = `${L.formule_exacte} ${libelle(L, "code", { code: cas.code, sens: L[`code_${cas.code}`] })}`;
+            expect([lu.formule, lu.formuleEnTete], quoi).to.deep.equal([formule, true]);
+            // Le cadre du verdict n'est écrit qu'en langage courant : ni la formule, ni son introduction.
+            expect([lu.verdict.includes(L.formule_exacte), lu.verdict.includes(L[`code_${cas.code}`])], quoi).to.deep.equal([false, false]);
+            if (a.mention === null) continue;
+            expect([lu.titre, lu.enfants, lu.memeStyle], quoi).to.deep.equal([`${a.mot}${a.mention}`, ["verdict-mot", "verdict-mention"], true]);
+            // Juste sous le titre : ce que le dossier ne prouve pas, en gras, avant toute autre phrase ; sinon la phrase du code.
+            expect([lu.suivant, lu.suivantGras], quoi).to.deep.equal(a.nonProuve !== null ? ["non-prouve", true] : ["phrase-courante", lu.suivantGras]);
+          } finally {
+            await o.fermer();
+          }
+        }
+      }
+      // Mutant : la mention écrite en plus petit que le mot ; l'essai le voit.
+      const copie = path.join(dir, "mutant-titre");
+      fs.cpSync(SOURCES, path.join(copie, "src"), { recursive: true });
+      const css = path.join(copie, "src", "page", "page.css");
+      const source = fs.readFileSync(css, "utf8");
+      const avant = ".pv-mention {\n  font: inherit;";
+      expect(source.split(avant)).to.have.length(2);
+      fs.writeFileSync(css, source.replace(avant, ".pv-mention {\n  font: inherit;\n  font-size: 0.6em;"));
+      const o = await verifierCas(CAS_SECONDE.nonFaits, { page: construirePageFactice(path.join(copie, "construite"), path.join(copie, "src")) });
+      try {
+        expect((await lireTitre(o)).memeStyle, "mutant vu : mention plus petite que le mot").to.equal(false);
+      } finally {
+        await o.fermer();
+        fs.rmSync(copie, { recursive: true, force: true });
+      }
+    });
+
+    it("troisième lecture (point 2) : un contrôle non fait dit quoi demander, d'après les pièces ajoutées à l'étape 2 (aucune, la liste, la liste et l'extrait, l'extrait seul) ; la raison exacte suit, entre parenthèses ; aucun terme de technicien ; en français et en anglais ; mutant vu", async function () {
+      if (!pret(this)) return;
+      const T = tables();
+      const rapports = [
+        rapportAuxFaits({ statuts: [R, N, N, N, N, R, R, N], raisons: { 2: "partie_absente", 3: "hors_perimetre_version", 4: "ancre_absente", 5: "partie_absente", 8: "ancre_absente" } }),
+        rapportAuxFaits({ statuts: [R, R, R, R, N, R, R, R], raisons: { 5: "ancre_absente" } }),
+      ];
+      const raisonsLues = (o) => o.page.evaluate(() => [...document.querySelectorAll("#controles li")].filter((li) => li.dataset.statut === "non_execute").map((li) => {
+        const r = li.querySelector(".pv-controle-raison");
+        return [Number(li.dataset.numero), r.textContent, [...r.querySelectorAll("[data-valeur]")].map((v) => v.textContent)];
+      }));
+      for (const langue of ["fr", "en"]) {
+        for (const pieces of [{}, { ancres: true }, { ancres: true, entetes: true }, { entetes: true }]) {
+          for (const json of rapports) {
+            const cas = { code: 0, json };
+            const quoi = `${langue}, pièces ${JSON.stringify(pieces)}, contrôles non faits ${json.controls.filter((c) => c.status === N).map((c) => c.number)}`;
+            const o = await verifierCas(cas, { langue, pieces });
+            try {
+              const a = attendu(cas, T[langue], pieces);
+              expect(await raisonsLues(o), quoi).to.deep.equal(a.controles.filter((c) => c.statut === N).map((c) => [c.numero, c.raison, [json.controls[c.numero - 1].reason]]));
+              expect(termesTrouves((await premierNiveau(o.page)).textes), quoi).to.deep.equal([]);
+            } finally {
+              await o.fermer();
+            }
+          }
+        }
+      }
+      // Mutant : la page ignore les pièces ajoutées (la liste toujours dite non ajoutée) ; l'essai le voit.
+      const copie = path.join(dir, "mutant-raisons");
+      fs.cpSync(SOURCES, path.join(copie, "src"), { recursive: true });
+      const fichier = path.join(copie, "src", "page", "interface.js");
+      const source = fs.readFileSync(fichier, "utf8");
+      const avant = "numero, noms !== null && noms.ancres !== null, noms !== null && noms.entetes !== null);";
+      expect(source.split(avant)).to.have.length(2);
+      fs.writeFileSync(fichier, source.replace(avant, "numero, false, false);"));
+      const o = await verifierCas({ code: 0, json: rapports[0] }, { page: construirePageFactice(path.join(copie, "construite"), path.join(copie, "src")), pieces: { ancres: true } });
+      try {
+        const a = attendu({ code: 0, json: rapports[0] }, T.fr, { ancres: true });
+        expect(await raisonsLues(o), "mutant vu : pièces ignorées").to.not.deep.equal(a.controles.filter((c) => c.statut === N).map((c) => [c.numero, c.raison, [rapports[0].controls[c.numero - 1].reason]]));
+      } finally {
+        await o.fermer();
+        fs.rmSync(copie, { recursive: true, force: true });
+      }
+    });
+
+    it("troisième lecture (points 6 et 7) : après le refus d'un fichier ou d'une pièce complémentaire, « Vérifier » est inactif et l'aide dit pourquoi ; la chose refusée est dite refusée là où elle a été choisie ; un autre choix l'efface ; la consigne de sûreté de l'étape 2 est à la taille du texte courant ; mutant vu", async function () {
+      if (!pret(this)) return;
+      const T = tables().fr;
+      const etat = (page) => page.evaluate(() => {
+        const t = (s) => (document.querySelector(s) === null ? null : document.querySelector(s).textContent);
+        return { inactif: document.getElementById("verifier").disabled, aide: t("#aide-verifier"), choisi: t("#dossier-choisi"), classeChoisi: document.getElementById("dossier-choisi").className, ancres: t("#nom-ancres"), classeAncres: document.getElementById("nom-ancres").className, titre: t("#refus-titre"), suite: [...document.querySelectorAll("#suite li")].map((li) => li.textContent), mention: t("#specialistes > h3 + .pv-exact > .aucun-rapport") };
+      });
+      const creux = path.join(dir, "troisieme", "ancres-geantes.json");
+      fs.mkdirSync(path.dirname(creux), { recursive: true });
+      fs.writeFileSync(creux, "");
+      fs.truncateSync(creux, 512 * 1024 * 1024 + 1);
+      const refuse = path.join(dir, "troisieme", "contrat.rar");
+      fs.writeFileSync(refuse, "x");
+      const scenario = async (page) => {
+        const o = await ouvrir(navigateur, page, { remplacements: { "travailleur.js": travailleurFactice(CAS_SECONDE.plein) } });
+        const vu = {};
+        try {
+          await o.page.goto("https://verification.example/index.html");
+          await attendreArtefact(o.page);
+          // Étape 2 : la consigne de sûreté, à part, à la taille du texte courant, plus grande que l'aide en petit.
+          await deplierOptions(o.page);
+          vu.consigne = await o.page.evaluate(() => {
+            const c = document.getElementById("consigne-ancres");
+            const aide = document.getElementById("aide-ancres");
+            return { texte: c.textContent, taille: getComputedStyle(c).fontSize, courant: getComputedStyle(document.body).fontSize, plusGrandeQueLAide: parseFloat(getComputedStyle(c).fontSize) > parseFloat(getComputedStyle(aide).fontSize), horsDeLAide: !aide.contains(c), visible: c.getClientRects().length > 0 };
+          });
+          // Refus du fichier choisi : « Vérifier » inactif jusqu'au choix d'un autre dossier.
+          await o.page.setInputFiles("#entree-archive", refuse);
+          await lancerVerification(o.page);
+          vu.refusFichier = await etat(o.page);
+          await choisirRepertoire(o.page, DOSSIER);
+          vu.apresChoix = await etat(o.page);
+          // Refus d'une pièce complémentaire : le dossier reste choisi, la pièce est dite refusée ; « Vérifier » inactif.
+          await deplierOptions(o.page);
+          await o.page.setInputFiles("#entree-ancres", creux);
+          await lancerVerification(o.page);
+          vu.refusPiece = await etat(o.page);
+          // La pièce remplacée efface le refus.
+          await deplierOptions(o.page);
+          await o.page.setInputFiles("#entree-ancres", ANCRES);
+          vu.pieceRemplacee = await etat(o.page);
+          await o.page.setInputFiles("#entree-ancres", creux);
+          await lancerVerification(o.page);
+          await deplierOptions(o.page);
+          await o.page.click("#retirer-ancres");
+          vu.pieceRetiree = await etat(o.page);
+          vu.premierNiveau = termesTrouves((await premierNiveau(o.page)).textes);
+          return vu;
+        } finally {
+          await o.fermer();
+        }
+      };
+      const vu = await scenario(pageConstruite);
+      expect(vu.consigne).to.deep.equal({ texte: T.consigne_ancres, taille: vu.consigne.courant, courant: vu.consigne.courant, plusGrandeQueLAide: true, horsDeLAide: true, visible: true });
+      const choisi = libelle(T, "dossier_choisi_repertoire", { nom: path.basename(DOSSIER) });
+      expect(vu.refusFichier).to.deep.equal({ inactif: true, aide: T.aide_verifier_refus, choisi: libelle(T, "dossier_refuse_archive", { nom: "contrat.rar" }), classeChoisi: "pv-choisi pv-choisi-refuse", ancres: T.aucun_fichier, classeAncres: "pv-fichier-nom", titre: T.titre_refus, suite: [T.suite_refus_1, T.suite_refus_2], mention: T.aucun_rapport });
+      expect(garder(vu.apresChoix, ["inactif", "aide", "choisi", "classeChoisi"])).to.deep.equal({ inactif: false, aide: T.aide_verifier_pret, choisi, classeChoisi: "pv-choisi pv-choisi-fait" });
+      expect(vu.refusPiece).to.deep.equal({ inactif: true, aide: T.aide_verifier_refus_piece, choisi, classeChoisi: "pv-choisi pv-choisi-fait", ancres: libelle(T, "fichier_refuse", { nom: "ancres-geantes.json" }), classeAncres: "pv-fichier-nom pv-fichier-refuse", titre: T.titre_refus, suite: [T.suite_refus_piece_1, T.suite_refus_piece_2], mention: T.aucun_rapport });
+      expect(garder(vu.pieceRemplacee, ["inactif", "aide", "ancres", "classeAncres"])).to.deep.equal({ inactif: false, aide: T.aide_verifier_pret, ancres: libelle(T, "fichier_choisi", { nom: path.basename(ANCRES) }), classeAncres: "pv-fichier-nom pv-fichier-choisi" });
+      expect(garder(vu.pieceRetiree, ["inactif", "aide", "ancres", "choisi"])).to.deep.equal({ inactif: false, aide: T.aide_verifier_pret, ancres: T.aucun_fichier, choisi });
+      expect(vu.premierNiveau).to.deep.equal([]);
+      // Mutant : « Vérifier » laissé actif après un refus ; l'essai le voit.
+      const copie = path.join(dir, "mutant-bouton");
+      fs.cpSync(SOURCES, path.join(copie, "src"), { recursive: true });
+      const fichier = path.join(copie, "src", "page", "interface.js");
+      const source = fs.readFileSync(fichier, "utf8");
+      const avant = " && !etat.enCours && etat.refuse === null);";
+      expect(source.split(avant)).to.have.length(2);
+      fs.writeFileSync(fichier, source.replace(avant, " && !etat.enCours);"));
+      try {
+        const m = await scenario(construirePageFactice(path.join(copie, "construite"), path.join(copie, "src")));
+        expect([m.refusFichier.inactif, m.refusPiece.inactif], "mutant vu : « Vérifier » actif après un refus").to.deep.equal([false, false]);
+      } finally {
+        fs.rmSync(copie, { recursive: true, force: true });
+      }
+    });
+
+    it("barre haute : la page amène le résultat, puis l'étape 1 (« Vérifier un autre dossier »), sous la barre, d'après sa hauteur réelle, à 1280×800 et à 390×844 ; mutant vu", async function () {
+      if (!pret(this)) return;
+      const mesure = async (page, fenetre) => {
+        const o = await ouvrir(navigateur, page, { remplacements: { "travailleur.js": travailleurFactice(CAS_SECONDE.nonFaits) } });
+        try {
+          await o.page.setViewportSize(fenetre);
+          await o.page.goto("https://verification.example/index.html");
+          await attendreArtefact(o.page);
+          await choisirRepertoire(o.page, DOSSIER);
+          await lancerVerification(o.page);
+          const lire = (id) => o.page.evaluate((x) => {
+            const b = document.querySelector(".nt-barre").getBoundingClientRect();
+            const r = document.getElementById(x).getBoundingClientRect();
+            return { barre: Math.max(0, b.bottom), haut: r.top, fenetre: innerHeight };
+          }, id);
+          const resultat = await lire("resultat");
+          await o.page.click("#verifier-autre");
+          await o.page.waitForFunction(() => document.getElementById("verifier-autre").hidden);
+          const etape = await lire("choix-dossier");
+          return { resultat, etape, focus: await o.page.evaluate(() => document.activeElement.id) };
+        } finally {
+          await o.fermer();
+        }
+      };
+      const sousLaBarre = (v) => v.haut >= v.barre && v.haut < v.barre + 48;
+      for (const fenetre of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+        const v = await mesure(pageConstruite, fenetre);
+        const quoi = `${fenetre.width}×${fenetre.height} : ${JSON.stringify(v)}`;
+        expect([sousLaBarre(v.resultat), sousLaBarre(v.etape), v.focus], quoi).to.deep.equal([true, true, "choisir-archive"]);
+      }
+      // Mutant : la hauteur de la barre n'est pas lue ; à 1280, où la barre reste collée en haut, l'étape 1 passe dessous.
+      const copie = path.join(dir, "mutant-barre");
+      fs.cpSync(SOURCES, path.join(copie, "src"), { recursive: true });
+      const fichier = path.join(copie, "src", "page", "interface.js");
+      const source = fs.readFileSync(fichier, "utf8");
+      const avant = 'position === "sticky" || position === "fixed" ? barre.getBoundingClientRect().height : 0;';
+      expect(source.split(avant)).to.have.length(2);
+      fs.writeFileSync(fichier, source.replace(avant, "0;"));
+      try {
+        const v = await mesure(construirePageFactice(path.join(copie, "construite"), path.join(copie, "src")), { width: 1280, height: 800 });
+        expect([sousLaBarre(v.resultat), sousLaBarre(v.etape)], `mutant vu : ${JSON.stringify(v)}`).to.deep.equal([false, false]);
       } finally {
         fs.rmSync(copie, { recursive: true, force: true });
       }
@@ -1987,7 +2292,8 @@ describe("page de vérification, présentation, de bout en bout dans chromium (C
         const ecran = await lireEcran(o.page);
         const json = JSON.parse(ecran.json);
         expect(json.exit_code, e.titre).to.equal(e.code);
-        const a = attendu({ code: e.code, json }, T);
+        // La phrase d'un contrôle non fait dépend des pièces ajoutées à l'étape 2 (complément du 2026-11-18, point 8).
+        const a = attendu({ code: e.code, json }, T, { ancres: e.ancres === true, entetes: e.entetes === true });
         expect(garder(ecran, CLES_VERDICT), e.titre).to.deep.equal(garder(a, CLES_VERDICT));
         if (e.nonReussis) expect(ecran.controles.filter((c) => !c.montreReussi && c.reserves === null).map((c) => c.numero), e.titre).to.deep.equal(e.nonReussis);
         if (e.code === 0) expect([ecran.tousReussis !== null, ecran.borne !== null], e.titre).to.deep.equal([e.nonReussis.length === 0, e.nonReussis.length > 0]);

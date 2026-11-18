@@ -1,8 +1,8 @@
 "use client";
 // Formulaire d'un travail typé (INTERFACES.md 3.3) : chaque champ a un type déclaré de la liste close d'EX-7.25
 // (attribut data-type), contrôlé dans la page pour l'affichage puis par le serveur et l'agent. Un champ à `options`
-// est une liste de choix de ce type ; `parametre` nomme le paramètre du travail quand il diffère du champ ; `oui`
-// fait d'un choix de texte un paramètre booléen (vrai si la valeur choisie est `oui`, absent sinon). Le travail est remis par POST /api/travaux ; la page
+// est une liste de choix de ce type ; `parametre` nomme le paramètre du travail quand il diffère du champ ; `fixe`
+// porte les paramètres que le bouton envoie d'office. Le travail est remis par POST /api/travaux ; la page
 // suit son état par GET /api/travaux/<id> et affiche la sortie de la commande. Aucun champ ne reçoit une clé, une
 // graine, une mnémonique, un jeton ni un mot de passe de clé : une clé se désigne par une référence (EX-7.3).
 //
@@ -17,26 +17,28 @@
 // se range dans un bloc replié ; un champ `tirage` offre un bouton qui tire un nom court au hasard dans la page ;
 // un refus dit ce qui s'est passé, si quelque chose a été envoyé ou dépensé, et quoi faire.
 //
-// Un champ `choix` (même complément) montre tous ses choix, chacun avec sa phrase, sans en présélectionner aucun :
-// un envoi sur le registre ne part pas d'un choix fait à la place de la personne. Tant qu'aucun choix n'est fait,
-// la page refuse l'envoi et le dit. Ce que la route reçoit pour chaque choix ne change pas : `oui` donne le
-// paramètre booléen vrai, l'autre choix ne donne aucun paramètre. Un champ `visibleSi` ne s'affiche qu'avec le
-// choix qui le demande ; `requisSi` dit, dans la page, qu'il est alors nécessaire. Un choix `habituel` est mis en
-// avant (premier, plus large, sa `marque` écrite dans le bouton) sans être coché : `avant` dit, au-dessus des
-// choix, que rien n'est choisi d'avance.
+// Troisième lecture des écrans (même complément) : aucun choix à faire avant un envoi, aucune case ni aucun bouton
+// présélectionné. Le bouton dit lui-même ce qu'il fait (« Envoyer par notre compte d'envoi ») et `sousBouton` le
+// redit dessous ; une valeur que le bouton porte d'office (`fixe`, par exemple `relayeur: true`) s'ajoute après les
+// champs, à la place où le paramètre se trouvait déjà dans le corps envoyé. Un champ `obligatoire` est refusé vide
+// par la page, avec sa phrase. Un champ `fiches` (les fiches d'enregistreur, `liste_documents`) a une zone par
+// fiche, où l'on colle le contenu d'un fichier du client tel quel, et un bouton « Ajouter une autre fiche » ; la
+// page assemble la liste, la même que donnait la saisie à la main de « [ fiche, fiche ] ». Ce que la route reçoit
+// ne change pas.
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
-import { lireChamp } from "./champs-page.js";
+import { lireChamp, lireFiches } from "./champs-page.js";
 import Icone from "./Icone.js";
 import Pastille from "./Pastille.js";
-import { etatTravail, explicationErreur, explicationSaisie, libelleCommande } from "../lib/parcours.mjs";
+import { etatTravail, explicationErreur, explicationFiche, explicationSaisie, libelleCommande } from "../lib/parcours.mjs";
 
 const ATTENTE_MS = 1000;
 /** Types saisis en chasse fixe : identifiants, adresses, empreintes, références, documents. */
 const TYPES_FIXES = new Set(["adresse", "liste_adresses", "hachage", "cle_publique_ed25519", "slug", "nom_journal", "liste_noms_journal", "reference_cle", "chemin", "document", "liste_documents", "origine", "identite", "liste_identites", "montant"]);
 const ZONES = ["liste_adresses", "liste_noms_journal", "document", "liste_documents", "liste_identites"];
-const CHOIX_MANQUANT = "Faites un choix : l'outil n'en fait aucun à votre place. Rien n'a été envoyé.";
+/** Nombre de fiches d'enregistreur au plus (`parametres.cles_enregistreur`, 16 éléments : src/commun/travaux.mjs). */
+const FICHES_MAX = 16;
 
 /** Nom court tiré au hasard dans la page, de la forme des clients de production (CT-4 EX-6.2) : « o- » et 32 chiffres hexadécimaux. */
 function tirerNomCourt() {
@@ -45,33 +47,43 @@ function tirerNomCourt() {
   return `o-${[...o].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** Champ à choix visibles, sans présélection : un bouton par choix, sa phrase dessous ; la valeur choisie est portée par un champ caché du type déclaré. */
-function ChampChoix({ champ, id, erreur, regle, choisi, setChoisi }) {
+/** Identifiant de la zone `k` du champ des fiches (la première porte celui du champ). */
+const idZone = (id, k) => (k === 0 ? id : `${id}-${k + 1}`);
+
+/**
+ * Champ des fiches d'enregistreur : une zone par fiche, chacune avec son libellé ; les zones ajoutées peuvent se
+ * retirer. Toutes portent le nom et le type déclaré du champ (`liste_documents`) : ce sont les éléments d'une même
+ * liste. Aucune n'est requise par le navigateur : une zone vide est refusée par la page, avec sa phrase.
+ */
+function ChampFiches({ champ, id, saisie, zones, ajouter, retirer }) {
+  const decrit = (k) => [`${id}-aide`, champ.exemple ? `${id}-exemple` : null, saisie?.zone === k ? `${idZone(id, k)}-erreur` : null].filter(Boolean).join(" ");
   return (
-    <div className="nt-champ" role="group" aria-labelledby={`${id}-libelle`} data-choix={champ.nom}>
-      <p className="nt-libelle" id={`${id}-libelle`}>{champ.libelle}</p>
-      {champ.avant ? <p className="nt-aide" id={`${id}-avant`} data-choix-avant="">{champ.avant}</p> : null}
-      <input type="hidden" id={id} name={champ.nom} data-type={champ.type} value={choisi} readOnly />
-      <div className="ins-choix">
-        {champ.choix.map((o, k) => (
-          <div className={o.habituel ? "ins-choix-un ins-choix-habituel" : "ins-choix-un"} key={o.valeur} data-choix-habituel={o.habituel ? "" : undefined}>
-            <button type="button" className="nt-bouton nt-bouton-choix" aria-pressed={choisi === o.valeur} aria-describedby={`${id}-phrase-${k}`} onClick={() => setChoisi(o.valeur)} data-choix-valeur={o.valeur}><span>{o.libelle}{o.marque ? <span className="ins-choix-marque"> — {o.marque}</span> : null}</span></button>
-            <p className="nt-aide" id={`${id}-phrase-${k}`}>{o.phrase}</p>
-          </div>
-        ))}
-      </div>
-      {erreur ? <p className="nt-erreur" id={`${id}-erreur`} role="alert" data-regle={regle}><Icone nom="alerte" /><span>{erreur}</span></p> : null}
-      {champ.aide ? <p className="nt-aide" id={`${id}-aide`}>{champ.aide}</p> : null}
+    <div className="nt-champ" data-fiches={champ.nom}>
+      {zones.map((cle, k) => (
+        <div className="ins-fiche-zone" key={cle} data-zone={k}>
+          <label className="nt-libelle" htmlFor={idZone(id, k)}>{k === 0 ? champ.libelle : `${champ.libelleAutre} (fiche ${k + 1})`}</label>
+          <textarea id={idZone(id, k)} name={champ.nom} className="nt-saisie nt-saisie-fixe" data-type={champ.type} autoComplete="off" spellCheck={false} aria-required="true" aria-describedby={decrit(k)} aria-invalid={saisie?.zone === k ? "true" : undefined} />
+          {saisie?.zone === k ? <p className="nt-erreur" id={`${idZone(id, k)}-erreur`} role="alert" data-regle={saisie.regle}><Icone nom="alerte" /><span>{saisie.message}</span></p> : null}
+          {k > 0 ? <div className="nt-actions"><button type="button" className="nt-bouton nt-bouton-petit" onClick={() => retirer(cle)} data-retirer-fiche={k}>Retirer cette zone</button></div> : null}
+        </div>
+      ))}
+      {zones.length < FICHES_MAX ? (
+        <div className="nt-actions">
+          <button type="button" className="nt-bouton nt-bouton-petit" onClick={ajouter} data-ajouter-fiche="">Ajouter une autre fiche</button>
+        </div>
+      ) : null}
+      <p className="nt-aide" id={`${id}-aide`}>{champ.aide}</p>
+      {champ.exemple ? <p className="nt-aide ins-exemple" id={`${id}-exemple`} data-exemple="">Exemple : <span className="nt-fixe" data-valeur="">{champ.exemple}</span></p> : null}
     </div>
   );
 }
 
-function Champ({ champ, prefixe, erreur, regle, choisi, setChoisi }) {
+function Champ({ champ, prefixe, erreur, regle, saisie, zones, ajouter, retirer }) {
   const id = `${prefixe}-${champ.nom}`;
-  if (champ.choix) return <ChampChoix champ={champ} id={id} erreur={erreur} regle={regle} choisi={choisi} setChoisi={setChoisi} />;
+  if (champ.fiches) return <ChampFiches champ={champ} id={id} saisie={saisie} zones={zones} ajouter={ajouter} retirer={retirer} />;
   const decrit = [champ.aide ? `${id}-aide` : null, champ.exemple ? `${id}-exemple` : null, erreur ? `${id}-erreur` : null].filter(Boolean).join(" ") || undefined;
   const classes = ["nt-saisie", TYPES_FIXES.has(champ.type) ? "nt-saisie-fixe" : ""].filter(Boolean).join(" ");
-  const commun = { id, name: champ.nom, className: classes, "data-type": champ.type, required: !champ.facultatif, defaultValue: champ.defaut ?? undefined, autoComplete: "off", spellCheck: false, "aria-describedby": decrit, "aria-invalid": erreur ? "true" : undefined };
+  const commun = { id, name: champ.nom, className: classes, "data-type": champ.type, required: !champ.facultatif && !champ.obligatoire, "aria-required": champ.obligatoire ? "true" : undefined, defaultValue: champ.defaut ?? undefined, autoComplete: "off", spellCheck: false, "aria-describedby": decrit, "aria-invalid": erreur ? "true" : undefined };
   let entree;
   // Une liste dont les choix viennent des données (noms, adresses) est marquée comme une valeur.
   if (champ.options) entree = <select {...commun} data-valeur={champ.donnees ? "" : undefined}>{champ.options.map((o) => <option key={o.valeur} value={o.valeur}>{o.libelle}</option>)}</select>;
@@ -83,7 +95,7 @@ function Champ({ champ, prefixe, erreur, regle, choisi, setChoisi }) {
   };
   return (
     <div className="nt-champ">
-      <label className="nt-libelle" htmlFor={id}>{champ.libelle}{champ.facultatif && !champ.requisSi ? <span className="nt-facultatif">(facultatif)</span> : null}</label>
+      <label className="nt-libelle" htmlFor={id}>{champ.libelle}{champ.facultatif ? <span className="nt-facultatif">(facultatif)</span> : null}</label>
       {entree}
       {erreur ? <p className="nt-erreur" id={`${id}-erreur`} role="alert" data-regle={regle}><Icone nom="alerte" /><span>{erreur}</span></p> : null}
       {champ.tirage ? (
@@ -127,14 +139,22 @@ export function Refus({ code, message, slug = null, titre = null }) {
   );
 }
 
-export default function FormulaireTravail({ commande, slug, champs = [], sections = null, fixe = {}, bouton = "Lancer l'action", principal = true, note = null }) {
+export default function FormulaireTravail({ commande, slug, champs = [], sections = null, fixe = {}, bouton = "Lancer l'action", sousBouton = null, principal = true, note = null, classe = "" }) {
   const prefixe = useId();
   const router = useRouter();
   const [etat, setEtat] = useState({ saisie: null, refus: null, travail: null, envoi: false });
-  // Choix faits dans les champs `choix` : aucun au départ.
-  const [choisis, setChoisis] = useState({});
-  const visible = (c) => !c.visibleSi || choisis[c.visibleSi.champ] === c.visibleSi.valeur;
-  const tous = (sections ? sections.flatMap((s) => s.champs) : champs).filter(visible);
+  // Zones du champ des fiches : une clé stable par zone (une zone retirée garde le texte des autres).
+  const [zones, setZones] = useState([0]);
+  const [prochaineZone, setProchaineZone] = useState(1);
+  const ajouterZone = () => {
+    setZones((l) => [...l, prochaineZone]);
+    setProchaineZone((n) => n + 1);
+  };
+  const retirerZone = (cle) => {
+    setZones((l) => l.filter((x) => x !== cle));
+    setEtat((e) => ({ ...e, saisie: null }));
+  };
+  const tous = sections ? sections.flatMap((s) => s.champs) : champs;
   const suivre = async (id) => {
     for (;;) {
       let r;
@@ -159,24 +179,24 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
     ev.preventDefault();
     const formulaire = ev.currentTarget;
     const f = new FormData(formulaire);
-    const parametres = { ...fixe };
-    /** Refuse la saisie d'un champ : le message sous le champ, le bloc replié ouvert, le champ visé ; rien n'est envoyé. */
-    const refuser = (c, message, regle) => {
-      setEtat({ saisie: { champ: c.nom, message, regle }, refus: null, travail: null, envoi: false });
-      const fautif = document.getElementById(`${prefixe}-${c.nom}`);
+    const parametres = {};
+    /** Refuse la saisie d'un champ (ou d'une zone du champ des fiches) : le message sous le champ, le bloc replié ouvert, le champ visé ; rien n'est envoyé. */
+    const refuser = (c, message, regle, zone = null) => {
+      setEtat({ saisie: { champ: c.nom, message, regle, zone }, refus: null, travail: null, envoi: false });
+      const fautif = document.getElementById(zone === null ? `${prefixe}-${c.nom}` : idZone(`${prefixe}-${c.nom}`, zone));
       fautif?.closest("details")?.setAttribute("open", "");
-      if (c.choix) formulaire.querySelector(`[data-choix="${c.nom}"] button`)?.focus();
-      else fautif?.focus();
+      fautif?.focus();
     };
     for (const c of tous) {
       const brut = String(f.get(c.nom) ?? "");
       const cle = c.parametre ?? c.nom;
-      if (c.choix && brut === "") return refuser(c, c.choixManquant ?? CHOIX_MANQUANT, "choix_absent");
-      if (c.requisSi && String(f.get(c.requisSi.champ) ?? "") === c.requisSi.valeur && brut.trim() === "") return refuser(c, c.requisSi.message, "requis_avec_ce_choix");
-      if (c.oui) {
-        if (brut === "oui") parametres[cle] = true;
+      if (c.fiches) {
+        const v = lireFiches(c, f.getAll(c.nom));
+        if (v.erreur) return refuser(c, explicationFiche(v.regle, v.zone > 0), v.regle, v.zone);
+        parametres[cle] = v.valeur;
         continue;
       }
+      if (c.obligatoire && brut.trim() === "") return refuser(c, c.obligatoire, "obligatoire");
       if (c.nullSiVide && brut.trim() === "") {
         parametres[cle] = null;
         continue;
@@ -191,6 +211,8 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
       if (c.nullSiVide && (v.valeur === "" || (Array.isArray(v.valeur) && v.valeur.length === 0))) parametres[cle] = null;
       else parametres[cle] = v.valeur;
     }
+    // Ce que le bouton porte d'office vient après les champs, comme le paramètre que portait autrefois un champ.
+    Object.assign(parametres, fixe);
     setEtat({ saisie: null, refus: null, travail: null, envoi: true });
     const slugTravail = commande === "inscrire-client-preparer" ? parametres.org : slug;
     let r;
@@ -215,7 +237,7 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
   const codeEchec = t?.motif?.code ?? t?.sortie?.error?.code ?? null;
   const messageEchec = t?.motif?.message ?? t?.sortie?.error?.message ?? null;
   const enCours = etat.envoi || (t !== null && !e.termine);
-  const rendreChamp = (c) => (visible(c) ? <Champ key={c.nom} champ={c} prefixe={prefixe} erreur={etat.saisie?.champ === c.nom ? etat.saisie.message : null} regle={etat.saisie?.champ === c.nom ? etat.saisie.regle : undefined} choisi={choisis[c.nom] ?? ""} setChoisi={(v) => setChoisis((avant) => ({ ...avant, [c.nom]: v }))} /> : null);
+  const rendreChamp = (c) => <Champ key={c.nom} champ={c} prefixe={prefixe} erreur={etat.saisie?.champ === c.nom ? etat.saisie.message : null} regle={etat.saisie?.champ === c.nom ? etat.saisie.regle : undefined} saisie={etat.saisie?.champ === c.nom ? etat.saisie : null} zones={zones} ajouter={ajouterZone} retirer={retirerZone} />;
   const rendreSection = (s) => {
     const groupe = (
       <fieldset className="nt-groupe-champs ins-section" key={s.titre}>
@@ -233,12 +255,13 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
     );
   };
   return (
-    <div className="nt-pile">
+    <div className={["nt-pile", classe].filter(Boolean).join(" ")}>
       <form className="nt-formulaire" onSubmit={envoyer} data-commande={commande}>
         {sections ? sections.map(rendreSection) : champs.map(rendreChamp)}
         {note ? <p className="nt-aide" data-apres-clic="">{note}</p> : null}
-        <div className="nt-actions">
-          <button type="submit" className={principal ? "nt-bouton nt-bouton-principal" : "nt-bouton"} disabled={enCours}>{bouton}</button>
+        <div className="nt-actions ins-actions-bouton">
+          <button type="submit" className={principal ? "nt-bouton nt-bouton-principal" : "nt-bouton"} disabled={enCours} aria-describedby={sousBouton ? `${prefixe}-sous-bouton` : undefined}>{bouton}</button>
+          {sousBouton ? <p className="nt-aide" id={`${prefixe}-sous-bouton`} data-sous-bouton="">{sousBouton}</p> : null}
         </div>
       </form>
       <div className="nt-pile" role="status" aria-live="polite">

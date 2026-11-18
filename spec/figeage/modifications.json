@@ -13926,6 +13926,59 @@
           "apres": "0320e97dabbf1692ee1400a92f1e5375581d9d408920827e4365ee833c17e8e3"
         }
       ]
+    },
+    {
+      "id": "MC-102",
+      "date": "2026-11-18",
+      "etape": 8,
+      "motif": "langage des écrans, suites de la troisième lecture (compléments du 2026-11-18, décision du porteur) : dans la console, les deux codes de l'écran de signature en grand sous des intitulés courants, intitulés et codes alignés, chaque ligne de l'application comparée à un seul code, sens de « vérifié » dit sous les valeurs, les deux décisions dans un bloc replié pour qui a déjà décidé, ce qui peut encore arriver à une demande qui a réuni ses approbations, « contester » expliqué et « définitif » à côté des opérations de l'annuaire qui ne se défont pas (CT-3 EX-9.4, EX-9.18, EX-9.20, EX-13.3, 13.1, en-tête) ; dans la page de vérification, code de retour et son sens en tête de la rubrique des spécialistes, phrase d'un contrôle non fait choisie d'après les pièces ajoutées à l'étape 2, conséquence de chaque réserve, « Vérifier » inactif après un refus, consigne de sûreté de l'étape 2 à la taille du texte courant (CT-6 EX-18.7, EX-18.9, en-tête et section 16) ; pages tenues avec une police de remplacement ; table des versions de spec/README.md ; renvois par numéro de ligne de CT-7 recollés ; catalogue de CT-9 régénéré, sans entrée ni identifiant nouveau ; aucune règle de contrôle, aucun schéma, aucun rapport, aucun code de retour ni aucun vecteur des autres familles ne change",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-3-approbations.md",
+          "avant": "2aefb1654e56147d51faf7ca2105433e24153dcac7dfecc457c010331accc20b",
+          "apres": "f603a2d892a5d6de244bd23049f28004026c57839df7f31dc8d98b3a98522db5"
+        },
+        {
+          "chemin": "spec/CT-6-verificateur.md",
+          "avant": "f24bc274f448ef413018fd1a41f99084a0478d1eecec227918532fd47b6e5d8c",
+          "apres": "1143d0a9f4d38f2010c21d220620a7a8e995f876dd3ccc819191f1fafa78b2e4"
+        },
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "6e1833b224d5762bd6970cc39a6ef9019852afba28cae5e65518beeb0fc4d609",
+          "apres": "81e770f1ddd538860cd1dfa598e420ddaafe7488c9b45bef8b092506ad671d86"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "a5da96701b1e4e4573188ebe346d991363ad766a8eed954cdd4b8c207b784791",
+          "apres": "aa6a6caea461ad3929472f07a458287bf3117b54f49fb13a2dd426a41421f3ba"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "4f613bb51ef20cb379126efe73e111b4db413a4f9ba9509f8a9085c78cc4bb12",
+          "apres": "a0bc0d7a159067d6220665e268dfd839f21b5a394a98f95ab496e251bc33d3f5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "643a1b11977119e3ba6c4f88877a6d5cb72f0b35b324f00875a8528c19b5aaa2",
+          "apres": "2a80b573db2344766e3b92dd0c95a778e28f6901e0185b025fcda155c9f54ff1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "c72089ed819a619bae7f177e3e2b6e157e109d401d737b0e2d5adb00ea34d4da",
+          "apres": "cf0f9a73e73fd4fc73ab5524ffa8ac8d283b96d745bf07fbee062c094e15b68d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "f64e9526e3a59400d686b487ec43ae68b5cc79bff19c981adf863a12e5519c77",
+          "apres": "4aa6343e06973c343485e12370a6d39d09e00339584524f04f2aa65b7b9f7c19"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "0320e97dabbf1692ee1400a92f1e5375581d9d408920827e4365ee833c17e8e3",
+          "apres": "f15aae13a6f38ec7d4b97715ad5f1f417c1bb382023394652004fb835a90600c"
+        }
+      ]
     }
   ]
 }

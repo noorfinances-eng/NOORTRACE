@@ -2102,9 +2102,11 @@ html[data-theme="clair"] .nt-case input {
    polices du système, aucune ressource d'une autre origine, aucun jeton
    redéfini. Les classes de la page portent le préfixe « pv- ». */
 
-/* Après une vérification, le résultat vient sous la barre haute, pas dessous. */
-#resultat {
-  scroll-margin-top: 5.5rem;
+/* Écart sous la barre haute quand la page amène le résultat, ou l'étape 1, en haut de l'écran : la page y ajoute
+   la hauteur réelle de la barre quand celle-ci reste collée en haut (montrerSousLaBarre). */
+#resultat,
+#choix-dossier {
+  scroll-margin-top: var(--nt-e-4);
 }
 
 /* Titre d'une étape : son numéro dans un rond, puis son nom. */
@@ -2342,6 +2344,19 @@ html[data-theme="clair"] .nt-case input {
   font-weight: 600;
 }
 
+/* Pièce complémentaire refusée par la vérification : ni vert, ni « ajouté ». */
+.pv-fichier-refuse {
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+}
+
+/* Consigne de sûreté de l'étape 2 : à la taille du texte courant, hors de l'aide en petit. */
+.pv-consigne {
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-m);
+  font-weight: 600;
+}
+
 /* Titre d'un groupe d'options : au-dessus des libellés de ses champs. */
 .pv-options-corps .pv-legende {
   margin-bottom: var(--nt-e-1);
@@ -2372,11 +2387,15 @@ html[data-theme="clair"] .nt-case input {
   color: var(--nt-attente);
 }
 
-/* La mention fixe suit le mot, dans le titre, un ton plus bas. */
+/* La mention fixe suit le mot, dans le titre, d'un seul tenant et à la même taille : le titre entier prend une
+   taille plus petite que le mot seul. */
+.pv-mot.pv-titre-mention {
+  font-size: var(--nt-t-2xl);
+}
+
 .pv-mention {
-  font-size: var(--nt-t-xl);
-  font-weight: 700;
-  letter-spacing: 0;
+  font: inherit;
+  letter-spacing: inherit;
 }
 
 /* Tout ce qui suit le titre du verdict reste dans la colonne du texte. */
@@ -2648,13 +2667,6 @@ pre.vide {
   font-weight: 600;
 }
 
-/* Sous 900 px la barre haute ne colle plus : le résultat vient en haut de l'écran. */
-@media (max-width: 56rem) {
-  #resultat {
-    scroll-margin-top: var(--nt-e-4);
-  }
-}
-
 @media (max-width: 37.5rem) {
   .pv-cases {
     row-gap: var(--nt-e-2);
@@ -2696,8 +2708,8 @@ pre.vide {
     font-size: var(--nt-t-m);
   }
 
-  .pv-mention {
-    font-size: var(--nt-t-l);
+  .pv-mot.pv-titre-mention {
+    font-size: var(--nt-t-xl);
   }
 
   /* Contrôles : l'état, puis le nom à sa suite. Ce qu'un contrôle réussi sert à prouver se lit dans le bloc replié

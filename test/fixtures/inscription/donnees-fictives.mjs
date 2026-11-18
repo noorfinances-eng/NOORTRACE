@@ -8,6 +8,13 @@
 // confirmation du client, notée puis consommée par le travail qui a versé (CT-4 EX-7.26) ; une étape envoyée ou en
 // échec a le travail qui l'a envoyée, et la confirmation que l'agent exige avant de l'admettre. Un paquet produit
 // porte la recherche de secrets d'EX-7.21 sur les références employées.
+//
+// Heures (troisième lecture des écrans) : elles suivent l'ordre des étapes et celui des travaux. Le dossier est
+// préparé à 07:55 ; le client confirme à 07:58, la confirmation est notée à 08:00 ; le travail des étapes 2 à 5 est
+// reçu à 08:05 et fait ses étapes de 08:05:10 à 08:05:40 (une étape en échec l'est à l'heure de ce travail ; la
+// confirmation est consommée juste avant le versement, à 08:05:35) ; le document d'inscription est préparé à 08:10,
+// envoyé signé à 09:30 (étape 6 à 09:30:10) ; chez le client, la première preuve de date est déposée à 10:00:07 et la
+// première période close à 11:00:07 ; le paquet est produit le lendemain.
 
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -18,6 +25,12 @@ const adr = (nom) => h32(nom).slice(0, 42);
 
 /** Les sept étapes d'un dossier à une clé et un journal, dans l'ordre de CT-4 7.1. */
 export const CODES_ETAPES = ["jeu_approbateurs", "assignation", "lecture_jeu", "approvisionnement", "inscription", "premiere_ancre", "premiere_cloture"];
+
+/** Réception du travail qui conduit les étapes 2 à 5, et instant de la consommation de la confirmation (avant le versement). */
+export const DEBUT_ETAPES = "2026-11-12T08:05:00.000Z";
+export const CONSOMMATION = "2026-11-12T08:05:35.000Z";
+/** Instant de la dernière écriture d'une étape (indice dans `CODES_ETAPES`), dans l'ordre du parcours. */
+const INSTANTS_ETAPES = ["2026-11-12T08:05:10.250Z", "2026-11-12T08:05:20.250Z", "2026-11-12T08:05:30.250Z", "2026-11-12T08:05:40.250Z", "2026-11-12T09:30:10.250Z", "2026-11-12T10:00:07.250Z", "2026-11-12T11:00:07.250Z"];
 
 /**
  * Dossier fictif. `etats` : état de chaque étape, dans l'ordre de `CODES_ETAPES` ; `erreur` : `{ code, message }`
@@ -33,7 +46,7 @@ export function dossierFictif(slug, etats, { erreur = { code: "transaction_annul
     const state = etats[k];
     const e = { step, subject: sujets[step], state, transaction_hash: null, block_number: null, block_hash: null, capture: null, error: null, updated_at: null };
     const bloc = 100 + k;
-    if (state !== "a_faire") e.updated_at = `2026-11-12T08:0${k}:07.250Z`;
+    if (state !== "a_faire") e.updated_at = INSTANTS_ETAPES[k];
     if (["envoyee", "incluse", "capturee", "echec"].includes(state)) e.transaction_hash = h32(`${slug}/${step}/transaction`);
     if (["incluse", "capturee", "faite"].includes(state)) Object.assign(e, { block_number: bloc, block_hash: h32(`${slug}/${step}/bloc`) });
     if (state === "capturee") e.capture = `capture-${bloc}-0-${roles[step]}.json`;
@@ -103,17 +116,17 @@ export function ecrireDonneesFictives(donnees) {
   // Travaux : les plus récents d'abord à l'affichage.
   const travaux = [
     travailFictif(1, { slug: "client-en-cours", commande: "inscrire-client-preparer", recu_a: "2026-11-12T07:55:00.000Z" }),
-    travailFictif(2, { slug: "client-en-cours", commande: "inscrire-client", recu_a: "2026-11-12T08:05:00.000Z", outputs: { curator_set: adr("client-en-cours/jeu") } }),
+    travailFictif(2, { slug: "client-en-cours", commande: "inscrire-client", recu_a: DEBUT_ETAPES, outputs: { curator_set: adr("client-en-cours/jeu") } }),
     travailFictif(3, { slug: "client-en-cours", commande: "condense-inscription", recu_a: "2026-11-12T08:10:00.000Z", outputs: { digest: demande.digest } }),
-    travailFictif(4, { slug: "client-en-echec", commande: "inscrire-client", result: "echoue", recu_a: "2026-11-12T08:20:00.000Z", error: { code: "transaction_annulee", check: "OP-11", message: "transaction incluse à status 0x0" } }),
+    travailFictif(4, { slug: "client-en-echec", commande: "inscrire-client", result: "echoue", recu_a: DEBUT_ETAPES, error: { code: "transaction_annulee", check: "OP-11", message: "transaction incluse à status 0x0" } }),
     travailFictif(5, { slug: "client-inscrit", commande: "paquet", recu_a: "2026-11-13T10:00:00.000Z", outputs: { directory: paquet, org: "client-inscrit", org_id: clients["client-inscrit"].dossier.organisation.org_id, files: 28, manifest_sha256: manifestePaquet, secrets_checked: { count: 2, references: [{ option: "--relayeur", reference: "alias:relayeur" }, { option: "--tresorerie", reference: "alias:tresorerie" }] } } }),
     travailFictif(6, { slug: "client-neuf", commande: "inscrire-client-preparer", recu_a: "2026-11-12T07:55:00.000Z" }),
     // Ce qu'un agent aurait écrit pour les trois autres clients (cohérence, complément du 2026-11-18).
     travailFictif(7, { slug: "client-en-echec", commande: "inscrire-client-preparer", recu_a: "2026-11-12T07:55:00.000Z" }),
     travailFictif(8, { slug: "client-envoye", commande: "inscrire-client-preparer", recu_a: "2026-11-12T07:55:00.000Z" }),
-    travailFictif(9, { slug: "client-envoye", commande: "inscrire-client", result: "incertain", recu_a: "2026-11-12T08:00:00.000Z", error: { code: "recu_absent", check: null, message: `aucun reçu pour ${clients["client-envoye"].dossier.steps[0].transaction_hash} en 120 s ; reprendre par le travail capturer` } }),
+    travailFictif(9, { slug: "client-envoye", commande: "inscrire-client", result: "incertain", recu_a: DEBUT_ETAPES, error: { code: "recu_absent", check: null, message: `aucun reçu pour ${clients["client-envoye"].dossier.steps[0].transaction_hash} en 120 s ; reprendre par le travail capturer` } }),
     travailFictif(10, { slug: "client-inscrit", commande: "inscrire-client-preparer", recu_a: "2026-11-12T07:55:00.000Z" }),
-    travailFictif(11, { slug: "client-inscrit", commande: "inscrire-client", recu_a: "2026-11-12T08:05:00.000Z", outputs: { curator_set: adr("client-inscrit/jeu") } }),
+    travailFictif(11, { slug: "client-inscrit", commande: "inscrire-client", recu_a: DEBUT_ETAPES, outputs: { curator_set: adr("client-inscrit/jeu") } }),
     travailFictif(12, { slug: "client-inscrit", commande: "condense-inscription", recu_a: "2026-11-12T08:10:00.000Z", outputs: { digest: h32("client-inscrit/demande/condense") } }),
     travailFictif(13, { slug: "client-inscrit", commande: "inscrire-cle", recu_a: "2026-11-12T09:30:00.000Z", outputs: {} }),
   ];
@@ -126,7 +139,7 @@ export function ecrireDonneesFictives(donnees) {
   // cohérence : une en réserve (client envoyé : l'agent l'exige avant d'admettre les étapes 2 à 5) et une consommée
   // (client inscrit).
   const confirmations = [confirmation(1, "client-en-cours", "approvisionnement", piece), confirmation(2, "client-en-echec", "approvisionnement", h32("piece/2")), confirmation(3, "client-envoye", "approvisionnement", h32("piece/3")), confirmation(4, "client-inscrit", "approvisionnement", h32("piece/4"))];
-  const consommation = (c, t) => ({ consommation: c.id, travail: t.id, org_id: c.objet.org_id, cle_chaine: c.objet.cle_chaine, instant: "2026-11-12T08:05:02.000Z" });
+  const consommation = (c, t) => ({ consommation: c.id, travail: t.id, org_id: c.objet.org_id, cle_chaine: c.objet.cle_chaine, instant: CONSOMMATION });
   const lignes = [confirmations[0], consommation(confirmations[0], travaux[1]), confirmations[1], confirmations[2], confirmations[3], consommation(confirmations[3], travaux[10])];
   fs.writeFileSync(path.join(donnees, "confirmations.ndjson"), lignes.map((l) => JSON.stringify(l)).join("\n") + "\n");
   return { clients, confirmations, travaux, piece, manifestePaquet, demande };
@@ -157,7 +170,7 @@ export function ajouterClientFictif(donnees, slug, etats, { confirmation = false
       const echec = conduites.includes("echec");
       const enVol = conduites.includes("envoyee") || conduites.includes("incluse");
       const conduite = travailFictif(n(2), {
-        slug, commande: "inscrire-client", recu_a: "2026-11-12T08:05:00.000Z",
+        slug, commande: "inscrire-client", recu_a: DEBUT_ETAPES,
         ...(echec ? { result: "echoue", error: { code: dossier.steps.find((e) => e.state === "echec").error.code, check: "OP-11", message: dossier.steps.find((e) => e.state === "echec").error.message } } : enVol ? { result: "incertain", error: { code: "recu_absent", check: null, message: "aucun reçu en 120 s ; reprendre par le travail capturer" } } : {}),
       });
       travaux.push(conduite);
@@ -170,7 +183,7 @@ export function ajouterClientFictif(donnees, slug, etats, { confirmation = false
   if (confirmation) {
     const c = { id: `cnf-${crypto.createHash("sha256").update(slug).digest("hex").slice(0, 32)}`, operation: "approvisionnement", objet: { org_id: dossier.organisation.org_id, cle_chaine: dossier.recorders[0].chain_key }, personne_client: "Camille Durand (personne fictive)", canal: "appel au numéro du contrat", instant: "2026-11-12T07:58:00.000Z", piece_sha256: h32(`piece/${slug}`), exploitant: "exploitant operateur-1", recu_a: "2026-11-12T08:00:00.000Z" };
     fs.appendFileSync(registre, JSON.stringify(c) + "\n");
-    if (histoire?.versee) fs.appendFileSync(registre, JSON.stringify({ consommation: c.id, travail: histoire.conduite.id, org_id: c.objet.org_id, cle_chaine: c.objet.cle_chaine, instant: "2026-11-12T08:05:02.000Z" }) + "\n");
+    if (histoire?.versee) fs.appendFileSync(registre, JSON.stringify({ consommation: c.id, travail: histoire.conduite.id, org_id: c.objet.org_id, cle_chaine: c.objet.cle_chaine, instant: CONSOMMATION }) + "\n");
   }
   fs.mkdirSync(path.join(donnees, "travaux"), { recursive: true });
   const fichiers = travaux.map((t) => {

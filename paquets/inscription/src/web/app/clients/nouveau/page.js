@@ -73,7 +73,8 @@ export default async function PageNouveau() {
               titre: "Son enregistreur",
               // CT-2 EX-11.13 : documents cle_enregistreur fournis par le démon de l'enregistreur.
               texte: "L'enregistreur est le logiciel qui note chaque action de l'agent logiciel du client au moment où elle a lieu.",
-              champs: [{ nom: "cles_enregistreur", libelle: "Fiche de l'enregistreur du client", type: "liste_documents", exemple: "[ { tout le contenu de la fiche, tel quel } ]", aide: "À son installation, l'enregistreur du client produit une fiche : un petit fichier de texte qui le décrit, lui et son compte technique, sans aucun secret. Le client vous envoie ce fichier. Ouvrez-le, copiez tout son contenu sans rien y changer, et collez-le ici entre un crochet ouvrant « [ » et un crochet fermant « ] ». Pour plusieurs enregistreurs, séparez les fiches par une virgule." }],
+              // Une zone par fiche, collée telle quelle ; la page assemble la liste (troisième lecture des écrans).
+              champs: [{ nom: "cles_enregistreur", libelle: "Fiche de l'enregistreur du client", libelleAutre: "Fiche d'un autre enregistreur du client", type: "liste_documents", fiches: true, exemple: "{ tout le contenu du fichier, tel quel }", aide: "À son installation, l'enregistreur du client produit une fiche : un petit fichier de texte qui le décrit, lui et son compte technique, sans aucun secret. Le client vous envoie ce fichier. Ouvrez-le, copiez tout son contenu et collez-le ici, sans rien y ajouter ni retirer. Si le client a plusieurs enregistreurs, il vous envoie une fiche pour chacun : cliquez sur « Ajouter une autre fiche » pour chacune des suivantes." }],
             },
             VERSEMENT,
           ]}

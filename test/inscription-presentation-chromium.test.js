@@ -21,7 +21,7 @@ import { enAttente } from "./fixtures/ancrage-rfc3161/outils.mjs";
 import { chargerPlaywright } from "./fixtures/verification-page/navigateur.mjs";
 import * as O from "./fixtures/inscription/outils.mjs";
 import * as I from "./fixtures/inscription/interface.mjs";
-import { ajouterClientFictif, ecrireDonneesFictives, travailFictif } from "./fixtures/inscription/donnees-fictives.mjs";
+import { DEBUT_ETAPES, ajouterClientFictif, ecrireDonneesFictives, travailFictif } from "./fixtures/inscription/donnees-fictives.mjs";
 import { MOTS_TECHNIQUES, motsTechniquesDans, textePremierNiveau } from "./fixtures/inscription/langage.mjs";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -204,7 +204,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect((await lire("client-en-echec")).code).to.equal("conduire_etapes");
     expect((await lire("client-en-echec")).action).to.equal("Reprenez à l'étape 3");
     expect((await lire("client-neuf")).action).to.equal("Notez la confirmation du client");
-    expect((await lire("client-envoye")).action).to.equal("Reprenez l'envoi resté sans réponse à l'étape 2");
+    expect((await lire("client-envoye")).action).to.equal("Allez chercher la réponse du registre public pour l'étape 2");
     expect((await lire("client-inscrit")).action).to.equal("Remettez le paquet au client");
     // L'écran d'accueil dit à quoi il sert et explique le parcours une fois, en cinq lignes au plus.
     expect(await page.locator(".nt-sous-titre").innerText()).to.match(/^Cet écran montre où en est l'inscription de chaque client et ce qu'il vous reste à faire pour lui\./);
@@ -235,7 +235,10 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     const essentiel = page.locator("section.nt-essentiel[data-prochaine-action]");
     expect(await essentiel.getAttribute("data-prochaine-action")).to.equal("relayer_demande");
     expect(await essentiel.innerText()).to.match(/Prochaine action/i);
-    expect(await essentiel.locator('form[data-commande="inscrire-cle"] button[type="submit"]').innerText()).to.equal("Envoyer le document signé");
+    // Troisième lecture : le bouton dit qui envoie ; la phrase dessous, lue avec lui, dit que c'est le cas habituel.
+    const envoyerSigne = essentiel.locator('form[data-commande="inscrire-cle"] button[type="submit"]');
+    expect(await envoyerSigne.innerText()).to.equal("Envoyer par notre compte d'envoi");
+    expect(await page.locator(`[id="${await envoyerSigne.getAttribute("aria-describedby")}"]`).innerText()).to.equal("C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi.");
     expect(await essentiel.locator("h2").innerText()).to.equal("Faites signer le document par les approbateurs du client, puis envoyez-le");
     // La consigne dit aussi quoi avoir sous la main et ce qui se passe après le clic.
     expect(await essentiel.locator("[data-a-preparer]").innerText()).to.equal("Ensuite : Ayez sous la main : le document signé, tel que le client vous l'a rendu.");
@@ -290,22 +293,26 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(await page.locator('li.nt-etape[data-etape="jeu_approbateurs"] .nt-pastille-info').innerText()).to.equal("Envoyée");
 
     expect(await page.locator("[data-etat-client]").innerText()).to.equal("Réponse à aller chercher");
-    // Envoi resté sans réponse : l'écran ne dit qu'une chose, reprendre cet envoi. La consigne ne parle pas de la
+    // Envoi resté sans réponse : l'écran ne dit qu'une chose, aller chercher la réponse du registre public. La consigne ne parle pas de la
     // confirmation, et aucune autre action n'est proposée à côté d'elle (le même état sans aucune confirmation
     // notée est joué plus bas, dans l'essai de la seconde lecture). Le dernier travail, resté sans réponse, ne
     // monte pas en bandeau : il dirait la même chose que la consigne.
     expect(await page.locator(".nt-bandeau-erreur[data-derniere-action]").count(), "pas de bandeau à côté de la consigne").to.equal(0);
     const envoi = page.locator("section.nt-essentiel[data-prochaine-action]");
     expect(await envoi.getAttribute("data-prochaine-action")).to.equal("reprendre_envoi");
-    expect(await envoi.locator("h2").innerText()).to.equal("Reprenez l'envoi resté sans réponse à l'étape 2");
-    expect((await envoi.locator("dl.nt-faits").innerText()).replace(/\s+/g, " ")).to.match(/celui de l'étape 2, « Enregistrer les approbateurs »$/);
+    expect(await envoi.locator("h2").innerText()).to.equal("Allez chercher la réponse du registre public pour l'étape 2");
+    expect(await envoi.locator("dl.nt-faits dt").evaluate((x) => x.textContent)).to.equal("Réponse à aller chercher");
+    expect((await envoi.locator("dl.nt-faits dd").innerText()).replace(/\s+/g, " ")).to.equal("celle de l'étape 2, « Enregistrer les approbateurs »");
     expect(await envoi.innerText()).to.not.match(/confirmation du client/i);
     expect(await page.locator("[data-actions-utiles]").count(), "aucune autre action proposée à côté de la consigne").to.equal(0);
     expect(await page.locator('a[href="/clients/client-envoye/confirmations"].nt-bouton').count(), "aucun bouton vers les confirmations").to.equal(0);
-    // Le bouton reprend l'envoi connu : l'identifiant exact part tel quel, sans que la personne le recopie ni ne le choisisse.
+    // Le bouton va chercher la réponse de l'envoi connu : l'identifiant exact part tel quel, sans que la personne le
+    // recopie ni ne le choisisse ; dessous, « Rien n'est renvoyé, rien n'est dépensé. » (le travail ne fait que lire).
     const reprise = envoi.locator('form[data-commande="capturer"]');
     expect(await reprise.locator("[name]").count(), "aucun champ à remplir").to.equal(0);
-    expect(await reprise.locator('button[type="submit"]').innerText()).to.equal("Reprendre cet envoi");
+    expect(await reprise.locator('button[type="submit"]').innerText()).to.equal("Chercher la réponse");
+    expect(await reprise.locator("[data-sous-bouton]").innerText()).to.equal("Rien n'est renvoyé, rien n'est dépensé.");
+    expect(await envoi.innerText(), "aucune autre formule pour ce geste").to.not.match(/repren[a-z]* (?:cet |l'|un )?envoi/i);
     const [demandeReprise] = await Promise.all([page.waitForRequest((r) => r.url().endsWith("/api/travaux") && r.method() === "POST"), reprise.locator('button[type="submit"]').click()]);
     expect(JSON.parse(demandeReprise.postData())).to.deep.equal({ commande: "capturer", slug: "client-envoye", parametres: { envoi: F.clients["client-envoye"].dossier.steps[0].transaction_hash } });
     await page.locator('section.nt-essentiel .nt-bandeau-erreur[data-refus="agent_injoignable"]').waitFor();
@@ -411,6 +418,17 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(texte).to.contain("à comparer avec celle de la pièce rangée dans le dossier du client");
     expect(texte.replace(/\s+/g, " ")).to.contain("À quoi elle a servi au versement fait pendant l'action « Faire les étapes 2 à 5 » du 12 novembre 2026 à 08:05 UTC ; elle ne peut plus servir");
     expect(await page.locator("h1").innerText()).to.equal("Confirmations du client");
+    // Troisième lecture : le versement de ce client est fait, aucune confirmation n'est attendue ; l'écran le dit, et
+    // le formulaire est rangé dans un bloc replié, pour ne pas noter par mégarde une confirmation qui ne s'effacerait pas.
+    const aucune = page.locator("[data-aucune-attendue]");
+    expect(await aucune.locator("p.nt-encart").innerText()).to.equal("Aucune confirmation n'est attendue pour ce client pour l'instant.");
+    const autre = aucune.locator("details[data-autre-confirmation]");
+    expect(await autre.evaluate((x) => x.open), "formulaire replié").to.equal(false);
+    expect((await autre.locator("> summary").innerText()).split("\n")[0]).to.equal("Noter une autre confirmation (rare)");
+    expect(await autre.locator('form[data-formulaire="confirmation"]').count()).to.equal(1);
+    expect(await page.locator("[data-confirmation-attendue]").count()).to.equal(0);
+    expect(texte).to.contain("dans le formulaire replié « Noter une autre confirmation (rare) », plus bas, sans rien noter : ce choix n'enregistre rien.");
+    await autre.locator("> summary").click();
     // Le formulaire d'ajout : un libellé par champ, le type déclaré de chaque champ (EX-7.25).
     const lireChamps = () => page.locator('form[data-formulaire="confirmation"] [name]').evaluateAll((l) => l.map((x) => ({ nom: x.getAttribute("name"), type: x.getAttribute("data-type"), libelle: x.id ? document.querySelectorAll(`label[for="${x.id}"]`).length : 0 })));
     let champs = await lireChamps();
@@ -425,6 +443,13 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     // Une confirmation en réserve se dit « Disponible ».
     await aller("/clients/client-en-echec/confirmations");
     expect(await page.locator(`[data-confirmation="${F.confirmations[1].id}"]`).locator(".nt-pastille").innerText()).to.equal("Prête à servir");
+    // Une confirmation prête à servir attend déjà le versement : aucune autre n'est attendue.
+    expect(await page.locator("[data-aucune-attendue] details[data-autre-confirmation]").evaluate((x) => x.open)).to.equal(false);
+    // Le client neuf attend la confirmation de son premier versement : le formulaire est déployé, sans la phrase.
+    await aller("/clients/client-neuf/confirmations");
+    expect(await page.locator("section[data-confirmation-attendue]").getAttribute("data-confirmation-attendue")).to.equal("approvisionnement");
+    expect(await page.locator('section[data-confirmation-attendue] > form[data-formulaire="confirmation"]').isVisible()).to.equal(true);
+    expect(await page.locator("[data-aucune-attendue]").count()).to.equal(0);
     // Paquet produit : téléchargement et empreinte du manifeste, en entier, hors de tout bloc replié.
     await aller("/clients/client-inscrit/paquet");
     const manifeste = page.locator("[data-manifeste-paquet]");
@@ -576,7 +601,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
         ["client-neuf", "consigner_confirmation", "Notez la confirmation du client"],
         ["essai-a-preparer", "preparer_demande", "Préparez le document d'inscription de l'enregistreur"],
         ["client-en-cours", "relayer_demande", "Faites signer le document par les approbateurs du client, puis envoyez-le"],
-        ["client-envoye", "reprendre_envoi", "Reprenez l'envoi resté sans réponse à l'étape 2"],
+        ["client-envoye", "reprendre_envoi", "Allez chercher la réponse du registre public pour l'étape 2"],
         ["client-en-echec", "conduire_etapes", "Reprenez à l'étape 3"],
         ["essai-periode", "attendre_premiere_periode", "Attendez la première preuve de date du client"],
         ["client-inscrit", "remettre_paquet", "Remettez le paquet au client"],
@@ -777,72 +802,74 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(ecarts).to.deep.equal([]);
   });
 
-  it("qui envoie la demande au registre public : les deux choix sont montrés, chacun avec sa phrase, et aucun n'est présélectionné ; sans choix, l'écran refuse l'envoi et le dit, rien ne part ; chaque choix envoie à la route ce qu'il envoyait déjà (notre compte d'envoi : relayeur vrai ; l'autre : la référence seule) ; la référence n'est demandée qu'avec le choix qui s'en sert, et elle est alors nécessaire", async function () {
+  it("qui envoie le document signé (troisième lecture) : aucun choix à faire, aucune case ni aucun bouton présélectionné sur aucun écran ; le bouton de la consigne dit qui envoie (« Envoyer par notre compte d'envoi », le cas habituel, dit dessous) et envoie à la route, au caractère près, ce qu'elle recevait déjà (relayeur vrai) ; l'envoi par le compte qu'une référence désigne (essais seulement) est une action rangée, avec son champ, refusé vide, qui envoie la référence seule ; de même pour un changement des approbateurs", async function () {
     const { page, ecarts, aller } = await ouvrir();
+    // Aucun écran ne porte de choix à faire avant un envoi : ni case, ni bouton radio, ni bouton enfoncé, ni groupe de choix.
+    for (const e of ["/clients/nouveau", "/clients/client-neuf", "/clients/client-en-cours", "/clients/client-envoye", "/clients/client-en-echec", "/clients/client-inscrit", "/clients/client-neuf/confirmations", "/clients/client-en-cours/confirmations", "/clients/client-inscrit/paquet"]) {
+      await aller(e);
+      await page.evaluate(() => document.querySelectorAll("details").forEach((x) => (x.open = true)));
+      expect(await page.locator('input[type="radio"], input[type="checkbox"], [aria-pressed], [data-choix], input[type="hidden"][name]').count(), `${e} : aucun choix ni valeur cachée`).to.equal(0);
+    }
     await aller("/clients/client-en-cours");
     const forme = page.locator('section.nt-essentiel form[data-commande="inscrire-cle"]');
-    const groupe = forme.locator('[data-choix="relayeur"]');
-    // Hors de tout bloc replié, deux choix de même poids, chacun avec sa phrase ; aucun n'est choisi à l'arrivée.
-    expect(await groupe.evaluate((x) => x.closest("details") === null), "pas dans un bloc replié").to.equal(true);
-    expect(await groupe.locator("button[data-choix-valeur]").evaluateAll((l) => l.map((b) => ({ texte: b.textContent, valeur: b.getAttribute("data-choix-valeur"), choisi: b.getAttribute("aria-pressed"), type: b.getAttribute("type"), classes: b.className, phrase: document.getElementById(b.getAttribute("aria-describedby")).textContent })))).to.deep.equal([
-      { texte: "Notre compte d'envoi — cas habituel", valeur: "oui", choisi: "false", type: "button", classes: "nt-bouton nt-bouton-choix", phrase: "Notre société envoie le document signé et paie cet envoi." },
-      { texte: "Le compte désigné par une référence — essais seulement", valeur: "non", choisi: "false", type: "button", classes: "nt-bouton nt-bouton-choix", phrase: "L'équipe technique vous donne la référence, que l'outil vous demande alors." },
-    ]);
-    // Le choix habituel est mis en avant sans être coché : une ligne le dit au-dessus des choix, il vient le premier
-    // et il est plus large que l'autre ; à l'arrivée, son apparence est celle d'un bouton non choisi, comme l'autre.
-    expect(await groupe.locator("[data-choix-avant]").innerText()).to.equal("Choisissez qui envoie : rien n'est choisi d'avance.");
-    expect(await groupe.evaluate((g) => Boolean(g.querySelector("[data-choix-avant]").compareDocumentPosition(g.querySelector("button[data-choix-valeur]")) & Node.DOCUMENT_POSITION_FOLLOWING)), "la ligne précède les choix").to.equal(true);
-    const apparence = await groupe.locator("button[data-choix-valeur]").evaluateAll((l) => l.map((b) => ({ habituel: b.parentElement.hasAttribute("data-choix-habituel"), largeur: Math.round(b.getBoundingClientRect().width), gauche: Math.round(b.getBoundingClientRect().left), fond: getComputedStyle(b).backgroundColor, bord: getComputedStyle(b).borderTopColor })));
-    expect(apparence.map((x) => x.habituel)).to.deep.equal([true, false]);
-    expect(apparence[0].largeur, "le choix habituel est plus large").to.be.greaterThan(apparence[1].largeur + 100);
-    expect(apparence[0].gauche).to.be.lessThan(apparence[1].gauche);
-    expect([apparence[0].fond, apparence[0].bord], "aucun des deux ne paraît choisi").to.deep.equal([apparence[1].fond, apparence[1].bord]);
-    const porte = groupe.locator('input[name="relayeur"]');
-    expect(await porte.evaluate((x) => [x.type, x.value, x.getAttribute("data-type")])).to.deep.equal(["hidden", "", "texte"]);
-    expect(await forme.locator("select[name=relayeur], input[type=radio], input[type=checkbox]").count(), "ni liste ni case qui porterait un choix par défaut").to.equal(0);
-    // La référence, qui ne sert qu'au second choix, n'est demandée qu'avec lui.
-    expect(await forme.locator('[name="cle_chaine"]').count(), "référence non demandée avant le choix").to.equal(0);
+    // La consigne : le document signé à coller, et un seul bouton, qui nomme notre compte d'envoi ; la phrase dessous est lue avec lui.
+    expect(await forme.locator("[name]").evaluateAll((l) => l.map((x) => x.getAttribute("name")))).to.deep.equal(["demande"]);
+    expect(await forme.locator("select").count(), "aucune liste où un choix serait fait d'avance").to.equal(0);
+    const bouton = forme.locator('button[type="submit"]');
+    expect(await forme.locator("button").count()).to.equal(1);
+    expect(await bouton.innerText()).to.equal("Envoyer par notre compte d'envoi");
+    expect(await bouton.evaluate((b) => b.classList.contains("nt-bouton-principal") && b.closest("details") === null)).to.equal(true);
+    const dessous = forme.locator("[data-sous-bouton]");
+    expect(await dessous.innerText()).to.equal("C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi.");
+    expect(await bouton.getAttribute("aria-describedby")).to.equal(await dessous.getAttribute("id"));
+    expect(await bouton.evaluate((b) => Boolean(b.compareDocumentPosition(b.closest("form").querySelector("[data-sous-bouton]")) & Node.DOCUMENT_POSITION_FOLLOWING)), "la phrase est sous le bouton").to.equal(true);
+    expect(await page.locator("section.nt-essentiel").innerText(), "plus de question à trancher").to.not.match(/Choisissez qui envoie|rien n'est choisi d'avance|essais seulement/);
     const envois = [];
     page.on("request", (r) => {
-      if (r.method() === "POST") envois.push(JSON.parse(r.postData()));
+      if (r.method() === "POST") envois.push(r.postData());
     });
-    const envoyer = () => forme.locator('button[type="submit"]').click();
-    const erreur = forme.locator('p.nt-erreur[role="alert"]');
-    await forme.locator('[name="demande"]').fill(JSON.stringify(F.demande));
-    // Sans choix : refus dit sous les choix, rien ne part.
-    await envoyer();
+    const texteDemande = JSON.stringify(F.demande, null, 2);
+    await forme.locator('[name="demande"]').fill(texteDemande);
+    const [une] = await Promise.all([page.waitForRequest((r) => r.url().endsWith("/api/travaux") && r.method() === "POST"), bouton.click()]);
+    // Ce que la route reçoit est ce qu'elle recevait déjà avec « Notre compte d'envoi », au caractère près : la demande, puis « relayeur : vrai ».
+    expect(une.postData()).to.equal(JSON.stringify({ commande: "inscrire-cle", slug: "client-en-cours", parametres: { demande: F.demande, relayeur: true } }));
+    await page.locator('section.nt-essentiel .nt-bandeau-erreur[data-refus="agent_injoignable"]').waitFor();
+    // L'autre façon d'envoyer, par le compte qu'une référence désigne : rangée, avec son champ, pour les essais seulement.
+    await aller("/clients/client-en-cours");
+    const rares = page.locator("details[data-actions-rares]");
+    await rares.locator("> summary").click();
+    const variante = rares.locator('details[data-action="inscrire-cle-reference"]');
+    expect(await variante.locator("> summary").innerText()).to.equal("Envoyer le document d'inscription signé par le compte désigné par une référence (essais seulement)");
+    await variante.locator("> summary").click();
+    const fv = variante.locator('form[data-commande="inscrire-cle"]');
+    expect(await fv.locator("[name]").evaluateAll((l) => l.map((x) => [x.getAttribute("name"), x.getAttribute("data-type")]))).to.deep.equal([["demande", "document"], ["cle_chaine", "reference_cle"]]);
+    expect(await fv.locator(`label[for="${await fv.locator('[name="cle_chaine"]').getAttribute("id")}"]`).innerText(), "nécessaire, elle n'est pas dite facultative").to.equal("Référence du compte technique du client");
+    expect(await fv.locator('[name="cle_chaine"]').getAttribute("aria-required")).to.equal("true");
+    expect(await fv.locator('button[type="submit"]').innerText()).to.equal("Envoyer par le compte désigné");
+    const avant = envois.length;
+    await fv.locator('[name="demande"]').fill(texteDemande);
+    await fv.locator('button[type="submit"]').click();
+    const erreur = fv.locator('p.nt-erreur[role="alert"]');
     await erreur.waitFor();
-    expect(await erreur.innerText()).to.equal("Choisissez qui envoie le document signé : l'outil ne fait pas ce choix à votre place. Rien n'a été envoyé.");
-    expect(await erreur.evaluate((x) => x.closest("[data-choix]")?.getAttribute("data-choix"))).to.equal("relayeur");
-    expect(await erreur.getAttribute("data-regle")).to.equal("choix_absent");
-    expect(envois, "aucun envoi sans choix").to.deep.equal([]);
-    // Notre compte d'envoi : la route reçoit la demande et « relayeur : vrai », comme avant ; pas de référence.
-    await groupe.getByRole("button", { name: "Notre compte d'envoi" }).click();
-    expect(await groupe.locator("button[data-choix-valeur]").evaluateAll((l) => l.map((b) => b.getAttribute("aria-pressed")))).to.deep.equal(["true", "false"]);
-    expect(await porte.inputValue()).to.equal("oui");
-    await envoyer();
-    await forme.page().locator('section.nt-essentiel .nt-bandeau-erreur[data-refus="agent_injoignable"]').waitFor();
-    expect(envois).to.deep.equal([{ commande: "inscrire-cle", slug: "client-en-cours", parametres: { demande: F.demande, relayeur: true } }]);
-    // Avec ce choix, aucune référence n'est demandée : les deux ne peuvent pas partir ensemble.
-    expect(await forme.locator('[name="cle_chaine"]').count(), "référence non demandée avec notre compte d'envoi").to.equal(0);
-    // L'autre choix : la référence est alors demandée, et nécessaire ; donnée, elle part seule, sans « relayeur », comme avant.
-    await groupe.getByRole("button", { name: "Le compte désigné par une référence" }).click();
-    expect(await porte.inputValue()).to.equal("non");
-    expect(await forme.locator('[name="cle_chaine"]').getAttribute("data-type")).to.equal("reference_cle");
-    expect(await forme.locator(`label[for="${await forme.locator('[name="cle_chaine"]').getAttribute("id")}"]`).innerText(), "demandée avec ce choix, elle n'est pas dite facultative").to.equal("Référence du compte technique du client");
-    await envoyer();
-    await page.waitForFunction(() => /Avec ce choix, écrivez ici la référence que l'équipe technique vous a donnée\./.test(document.querySelector('section.nt-essentiel form[data-commande="inscrire-cle"] p.nt-erreur')?.textContent ?? ""));
-    expect(envois).to.have.length(1);
-    await forme.locator('[name="cle_chaine"]').fill("alias:compte-d-essai");
-    const [demande] = await Promise.all([page.waitForRequest((r) => r.url().endsWith("/api/travaux") && r.method() === "POST"), envoyer()]);
-    expect(JSON.parse(demande.postData())).to.deep.equal({ commande: "inscrire-cle", slug: "client-en-cours", parametres: { demande: F.demande, cle_chaine: "alias:compte-d-essai" } });
-    // Le même choix, sans présélection, pour l'envoi d'un changement des approbateurs (action rangée).
+    expect(await erreur.innerText()).to.equal("Écrivez ici la référence que l'équipe technique vous a donnée. Si vous n'en avez pas, servez-vous du bouton « Envoyer par notre compte d'envoi ». Rien n'a été envoyé.");
+    expect(envois.length, "rien ne part sans la référence").to.equal(avant);
+    await fv.locator('[name="cle_chaine"]').fill("alias:compte-d-essai");
+    const [deux] = await Promise.all([page.waitForRequest((r) => r.url().endsWith("/api/travaux") && r.method() === "POST"), fv.locator('button[type="submit"]').click()]);
+    expect(deux.postData()).to.equal(JSON.stringify({ commande: "inscrire-cle", slug: "client-en-cours", parametres: { demande: F.demande, cle_chaine: "alias:compte-d-essai" } }));
+    // Le changement des approbateurs signé : les deux mêmes façons, rangées ; ce que la route reçoit pour chacune ne change pas.
     await aller("/clients/client-en-cours");
     await page.locator("details[data-actions-rares] > summary").click();
-    await page.locator('details[data-actions-rares] details[data-action="administrer-jeu"] > summary').click();
-    const autre = page.locator('details[data-action="administrer-jeu"] [data-choix="relayeur"]');
-    expect(await autre.locator("button[data-choix-valeur]").evaluateAll((l) => l.map((b) => b.getAttribute("aria-pressed")))).to.deep.equal(["false", "false"]);
-    expect(await autre.locator('input[name="relayeur"]').inputValue()).to.equal("");
+    const changement = { version: 0, operation: "administration_jeu", digest: `0x${"cd".repeat(32)}`, signatures: [] };
+    for (const [cle, plus, attendu] of [["administrer-jeu", null, { demande: changement, relayeur: true }], ["administrer-jeu-reference", "alias:compte-d-essai", { demande: changement, expediteur: "alias:compte-d-essai" }]]) {
+      const d = page.locator(`details[data-actions-rares] details[data-action="${cle}"]`);
+      await d.locator("> summary").click();
+      const f = d.locator('form[data-commande="administrer-jeu"]');
+      expect(await f.locator('button[type="submit"]').innerText(), cle).to.equal(plus ? "Envoyer par le compte désigné" : "Envoyer par notre compte d'envoi");
+      await f.locator('[name="demande"]').fill(JSON.stringify(changement));
+      if (plus) await f.locator('[name="expediteur"]').fill(plus);
+      const [r] = await Promise.all([page.waitForRequest((x) => x.url().endsWith("/api/travaux") && x.method() === "POST"), f.locator('button[type="submit"]').click()]);
+      expect(r.postData(), cle).to.equal(JSON.stringify({ commande: "administrer-jeu", slug: "client-en-cours", parametres: attendu }));
+    }
     expect(ecarts).to.deep.equal([]);
   });
 
@@ -911,7 +938,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       await jouer({ statut: 200, corps: { id } }, t({ sortie: { version: 0, command: "inscrire-client", result: "incertain", exit_code: 3, checks: [], error: { code: "recu_absent", check: null, message: "aucun reçu dans le délai" }, outputs: {} } }));
       const inconnu = await lireRefus("recu_absent");
       expect(inconnu[1]).to.equal("L'opération est partie vers le registre public ; elle a pu coûter des crédits d'écriture.");
-      expect(inconnu[2]).to.equal("Que faire : Ne renvoyez rien. Actualisez la fiche du client : elle vous propose de reprendre cet envoi.");
+      expect(inconnu[2]).to.equal("Que faire : Ne renvoyez rien. Actualisez la fiche du client : elle vous propose d'aller chercher la réponse du registre public.");
       expect(await page.locator(`${carte} [data-etat-travail="incertain"] .nt-pastille`).innerText()).to.equal("Résultat pas encore connu");
       await fin();
       // Un code que cette version ne connaît pas : explication générale, et le code reste lisible au détail.
@@ -940,13 +967,13 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
   });
 
   it("états cohérents et fiche courte : un travail « réussi » dont une étape est en échec se lit « Terminé, avec une étape en échec » sur la liste comme dans l'historique, jamais « réussi » ; à 1280 sur 800, le premier écran de la fiche montre l'avancement, la consigne et son bouton ; les actions qui ne servent pas dans l'état courant sont rangées, chacune avec ce qu'elle fait et quand s'en servir", async function () {
-    const reussi = travailFictif(77, { slug: "essai-contradiction", commande: "inscrire-client", recu_a: "2026-11-12T08:20:00.000Z" });
+    const reussi = travailFictif(77, { slug: "essai-contradiction", commande: "inscrire-client", recu_a: DEBUT_ETAPES });
     const plus = ajouterClientFictif(donneesFictives, "essai-contradiction", ["capturee", "echec", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"], { confirmation: true, travaux: [reussi] });
     try {
       const { page, ecarts, aller } = await ouvrir();
       const carteListe = page.locator('article[data-client="essai-contradiction"]');
       expect(await carteListe.locator(".nt-pastille-refus").innerText()).to.equal("À reprendre");
-      expect((await carteListe.innerText()).replace(/\s+/g, " ")).to.contain("Dernière action : Faire les étapes 2 à 5 (terminé, avec une étape en échec), le 12 novembre 2026 à 08:20 UTC.");
+      expect((await carteListe.innerText()).replace(/\s+/g, " ")).to.contain("Dernière action : Faire les étapes 2 à 5 (terminé, avec une étape en échec), le 12 novembre 2026 à 08:05 UTC.");
       expect(await carteListe.innerText()).to.not.match(/réussi/i);
       await aller("/clients/essai-contradiction");
       const historique = page.locator("details[data-historique]");
@@ -969,6 +996,8 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
         const h = await premier(slug);
         hauteurs[slug] = h.page;
         for (const quoi of ["etat", "jauge", "titre", "phrase", "bouton"]) expect(h[quoi], `${slug} : ${quoi} dans le premier écran`).to.be.at.most(800);
+        // Une marge sous le bouton, pour une police plus large que celle du thème (celle d'un poste qui n'a pas Inter).
+        expect(h.bouton, `${slug} : bouton à 40 px au moins du bas du premier écran`).to.be.at.most(760);
       }
       // La fiche à formulaire (demande signée à coller) montre au moins l'avancement et toute la consigne.
       const cours = await premier("client-en-cours");
@@ -982,7 +1011,8 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       expect(await rares.evaluate((x) => x.open)).to.equal(false);
       expect(await rares.locator("> summary").innerText()).to.match(/^Actions rarement utiles/);
       const actions = await rares.locator("details[data-action]").evaluateAll((l) => l.map((x) => ({ commande: x.getAttribute("data-action"), titre: x.querySelector("summary").textContent, texte: [...x.querySelectorAll(".nt-detail-corps > p")].map((p) => p.textContent) })));
-      expect(actions.map((x) => x.commande).sort()).to.deep.equal(["administrer-jeu", "approvisionner", "capturer", "condense-administration", "condense-inscription", "inscrire-client"]);
+      // Troisième lecture : l'envoi d'un document signé par le compte qu'une référence désigne (essais seulement) est une action rangée, à part.
+      expect(actions.map((x) => x.commande).sort()).to.deep.equal(["administrer-jeu", "administrer-jeu-reference", "approvisionner", "capturer", "condense-administration", "condense-inscription", "inscrire-cle-reference", "inscrire-client"]);
       for (const x of actions) {
         expect(x.texte[0], x.commande).to.match(/^Ce que fait cette action : .{40,}\.$/);
         expect(x.texte[1], x.commande).to.match(/^Quand s'en servir : .{20,}\.$/);
@@ -1076,7 +1106,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       expect(await page.locator('li.nt-etape[data-etape="premiere_ancre"] .nt-pastille').innerText()).to.equal("Envoyée");
       expect(await page.locator('li.nt-etape[data-etape="premiere_cloture"] .nt-pastille').innerText()).to.equal("À faire par le client");
       const attente = page.locator("section.nt-essentiel[data-prochaine-action]");
-      expect(await attente.locator(".ins-essentiel-texte").first().innerText()).to.equal("Cette étape se fait chez le client, avec ses propres outils : vous n'avez rien à lancer d'ici. Elle est notée « Envoyée » depuis le 12 novembre 2026 à 08:05 UTC et attend la réponse du registre public. Le client a fait sa part : si la fiche n'a pas changé à votre prochaine visite, prévenez l'équipe technique.");
+      expect(await attente.locator(".ins-essentiel-texte").first().innerText()).to.equal("Cette étape se fait chez le client, avec ses propres outils : vous n'avez rien à lancer d'ici. Elle est notée « Envoyée » depuis le 12 novembre 2026 à 10:00 UTC et attend la réponse du registre public. Le client a fait sa part : si la fiche n'a pas changé à votre prochaine visite, prévenez l'équipe technique.");
       expect(await attente.locator("form").count(), "aucune action à lancer").to.equal(0);
       expect(await attente.innerText(), "aucune durée inventée").to.not.match(/[0-9]+ (?:minutes?|heures?|jours?)|quelques (?:minutes|heures|jours)|une heure/);
       await sansMotTechnique("fiche, en attente du registre");
@@ -1159,6 +1189,197 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       expect(await visible()).to.not.match(/n'était à chercher|Recherche de secrets/i);
       await sansMotTechnique("paquet");
       expect(ecarts).to.deep.equal([]);
+    } finally {
+      for (const x of plus) x.retirer();
+    }
+  });
+
+  it("troisième lecture des écrans : la fiche de chaque enregistreur se colle telle quelle dans sa zone, « Ajouter une autre fiche » en ouvre une autre, une zone vide ou un texte qui n'est pas une fiche est refusé sans rien envoyer, et le corps envoyé est, au caractère près, celui de la saisie à la main ; « Copier » met dans le presse-papiers l'adresse du compte technique et chaque empreinte à comparer ou à transmettre, ou sélectionne le texte si le navigateur refuse ; sur téléphone, une adresse et une empreinte se coupent en deux moitiés égales ; chaque pas du formulaire de confirmation a sa phrase ; les heures d'une fiche suivent l'ordre des étapes", async function () {
+    const { lireChamp } = await import("../paquets/inscription/src/web/composants/champs-page.js");
+    const FAIT = ["capturee", "capturee", "faite", "capturee"];
+    const plus = [ajouterClientFictif(donneesFictives, "essai-changement", [...FAIT, "capturee", "a_faire", "a_faire"], { histoire: true })];
+    // Un document de changement des approbateurs préparé, pas encore envoyé : son empreinte se reporte sur la confirmation.
+    const changement = { version: 0, operation: "administration_jeu", digest: `0x${"5e".repeat(32)}`, signatures: [], prepared_at: "2026-11-13T09:00:00.000Z" };
+    fs.mkdirSync(path.join(donneesFictives, "clients", "essai-changement", "demandes"), { recursive: true });
+    fs.writeFileSync(path.join(donneesFictives, "clients", "essai-changement", "demandes", `demande-administration-trv-${"0".repeat(30)}55.json`), JSON.stringify(changement, null, 2));
+    try {
+      const { page, ecarts, aller, contexte } = await ouvrir();
+      await contexte.grantPermissions(["clipboard-read", "clipboard-write"], { origin: web.url });
+      const plat = (x) => x.replace(/\s+/g, " ").trim();
+
+      // 1. Nouveau client : une zone par fiche, collée telle quelle.
+      await aller("/clients/nouveau");
+      const forme = page.locator('form[data-commande="inscrire-client-preparer"]').first();
+      const zones = forme.locator('[data-fiches="cles_enregistreur"] textarea[name="cles_enregistreur"]');
+      expect(await zones.count()).to.equal(1);
+      expect(await zones.first().getAttribute("data-type")).to.equal("liste_documents");
+      expect(await forme.locator(`label[for="${await zones.first().getAttribute("id")}"]`).innerText()).to.equal("Fiche de l'enregistreur du client");
+      const aide = await forme.locator(`[id="${await zones.first().getAttribute("id")}-aide"]`).innerText();
+      expect(aide).to.equal("À son installation, l'enregistreur du client produit une fiche : un petit fichier de texte qui le décrit, lui et son compte technique, sans aucun secret. Le client vous envoie ce fichier. Ouvrez-le, copiez tout son contenu et collez-le ici, sans rien y ajouter ni retirer. Si le client a plusieurs enregistreurs, il vous envoie une fiche pour chacun : cliquez sur « Ajouter une autre fiche » pour chacune des suivantes.");
+      expect(await page.locator("main").innerText(), "plus de crochets ni de virgules à taper").to.not.match(/crochet|séparez les fiches/);
+      const envois = [];
+      page.on("request", (r) => {
+        if (r.method() === "POST") envois.push(r.postData());
+      });
+      const APP = ["0x70997970c51812dc3a010c7d01b50e0d17dc79c8", "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"];
+      await forme.locator('[name="org"]').fill("essai-fiches");
+      await forme.locator('[name="journaux"]').fill("journal-principal");
+      await forme.locator('[name="approbateurs"]').fill(APP.join("\n"));
+      await forme.locator('[name="seuil"]').fill("2");
+      await forme.locator('[name="admin_jeu"]').fill("0x15d34aaf54267db7d7c367839aaf71a00a2c6a65");
+      const fiche = (n) => F.clients[n].dossier.recorders[0];
+      const t1 = JSON.stringify(fiche("client-neuf"), null, 2);
+      const t2 = `\n${JSON.stringify(fiche("client-en-cours"), null, 4)}\n\n`;
+      const refus = async (zone, attendu) => {
+        await forme.locator('button[type="submit"]').click();
+        const e = forme.locator(`[data-zone="${zone}"] p.nt-erreur[role="alert"]`);
+        await e.waitFor();
+        expect(await e.innerText()).to.equal(attendu);
+        expect(await zones.nth(zone).getAttribute("aria-invalid")).to.equal("true");
+        expect(await page.evaluate(() => document.activeElement?.getAttribute("name"))).to.equal("cles_enregistreur");
+        expect(envois, "rien n'est envoyé").to.deep.equal([]);
+      };
+      // Une zone vide, une liste entre crochets, un texte qui n'est pas une fiche entière : refusés, avec quoi faire.
+      // La première zone vide : refusée (une liste vide n'est pas admise par la page), avec la raison.
+      await refus(0, "Cette zone est vide. Collez-y tout le contenu du fichier que le client vous a envoyé pour son enregistreur, sans rien y changer. Il faut au moins une fiche : l'outil n'inscrit au registre public que les enregistreurs dont la fiche est donnée ici, et il ne pourra plus en ajouter une fois le dossier préparé.");
+      await zones.first().fill("[]");
+      await refus(0, "Cette zone contient une liste entre crochets « [ » et « ] », et non une seule fiche. Collez ici le contenu d'un seul fichier, tel que le client l'a envoyé ; pour une autre fiche, cliquez sur « Ajouter une autre fiche ».");
+      const illisible = "Ce texte n'est pas une fiche d'enregistreur, ou il en manque une partie. Ouvrez le fichier que le client vous a envoyé, copiez tout son contenu, du premier caractère « { » au dernier « } », et collez-le ici sans rien y changer. Si le fichier ne commence pas par « { », demandez au client de vous le renvoyer.";
+      await zones.first().fill(t1.slice(0, -1));
+      await refus(0, illisible);
+      await zones.first().fill(JSON.stringify({ key_id: "rec-client-neuf-01" }));
+      await refus(0, illisible);
+      expect(await forme.locator("p.nt-erreur").innerText(), "la valeur refusée n'est pas recopiée").to.not.contain("rec-client-neuf-01");
+      // Une autre fiche : sa zone s'ajoute, vide ; laissée vide, elle est refusée, et peut se retirer.
+      await zones.first().fill(t1);
+      await forme.locator("[data-ajouter-fiche]").click();
+      expect(await zones.count()).to.equal(2);
+      expect(await forme.locator(`label[for="${await zones.nth(1).getAttribute("id")}"]`).innerText()).to.equal("Fiche d'un autre enregistreur du client (fiche 2)");
+      await refus(1, "Cette zone est vide. Collez-y tout le contenu du fichier que le client vous a envoyé pour son enregistreur, sans rien y changer. Si vous n'avez pas d'autre fiche, cliquez sur « Retirer cette zone ».");
+      await forme.locator('[data-retirer-fiche="1"]').click();
+      expect(await zones.count()).to.equal(1);
+      expect(await zones.first().inputValue(), "la première fiche reste").to.equal(t1);
+      // Le corps est celui que donnait la saisie à la main de « [ fiche ] » dans une seule zone, au caractère près.
+      const corps = (textes) => JSON.stringify({ commande: "inscrire-client-preparer", slug: "essai-fiches", parametres: { org: "essai-fiches", journaux: ["journal-principal"], approbateurs: APP, seuil: 2, admin_jeu: "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65", cles_enregistreur: lireChamp({ nom: "cles_enregistreur", type: "liste_documents" }, `[${textes.join(",")}]`).valeur } });
+      const [une] = await Promise.all([page.waitForRequest((r) => r.url().endsWith("/api/travaux") && r.method() === "POST"), forme.locator('button[type="submit"]').click()]);
+      expect(une.postData()).to.equal(corps([t1]));
+      expect(JSON.parse(une.postData()).parametres.cles_enregistreur).to.deep.equal([fiche("client-neuf")]);
+      // La route accepte cette forme ; le refus qui suit est celui du service d'inscription, absent de cet essai.
+      await page.locator('.nt-bandeau-erreur[data-refus="agent_injoignable"]').waitFor();
+      // Deux fiches : deux zones, dans l'ordre ; le corps est celui de « [ fiche, fiche ] ».
+      await forme.locator("[data-ajouter-fiche]").click();
+      await zones.nth(1).fill(t2);
+      const [deux] = await Promise.all([page.waitForRequest((r) => r.url().endsWith("/api/travaux") && r.method() === "POST"), forme.locator('button[type="submit"]').click()]);
+      expect(deux.postData()).to.equal(corps([t1, t2]));
+      expect(JSON.parse(deux.postData()).parametres.cles_enregistreur).to.deep.equal([fiche("client-neuf"), fiche("client-en-cours")]);
+      expect(motsTechniquesDans(await page.evaluate(textePremierNiveau))).to.deep.equal([]);
+
+      // 2. Copier : l'adresse du compte technique (fiche, formulaire de confirmation, carte d'une confirmation) et chaque
+      // empreinte qui se compare ou se transmet (pièce, document de changement, paquet). Rien d'autre n'est envoyé.
+      const copier = async (zone, valeur, forme_) => {
+        const v = zone.locator(`[data-a-copier="${forme_}"]`).first();
+        expect(await v.locator("[data-valeur]").innerText()).to.equal(valeur);
+        await page.evaluate(() => navigator.clipboard.writeText("vide"));
+        const avant = envois.length;
+        await v.locator("button[data-copier]").click();
+        await page.waitForFunction((x) => navigator.clipboard.readText().then((t) => t === x), valeur);
+        expect(await v.locator("[data-copie-etat]").innerText()).to.equal("Copié.");
+        expect(envois.length, "la copie n'envoie rien").to.equal(avant);
+        return v;
+      };
+      const dNeuf = F.clients["client-neuf"].dossier;
+      await aller("/clients/client-neuf");
+      const adresseFiche = await copier(page.locator("section.nt-essentiel"), dNeuf.recorders[0].chain_key, "adresse");
+      expect(await adresseFiche.locator("button[data-copier]").innerText()).to.equal("Copier l'adresse");
+      // Le navigateur refuse la copie : le texte exact est sélectionné, et la phrase dit comment le copier au clavier.
+      await page.evaluate(() => { navigator.clipboard.writeText = () => Promise.reject(new Error("refusé")); });
+      await adresseFiche.locator("button[data-copier]").click();
+      await adresseFiche.locator("[data-copie-etat]:not(:empty)").waitFor();
+      expect(await adresseFiche.locator("[data-copie-etat]").innerText()).to.equal("La copie automatique n'a pas pu se faire : le texte est sélectionné, copiez-le au clavier (Ctrl+C, ou Cmd+C sur Mac).");
+      expect(await page.evaluate(() => String(window.getSelection()))).to.equal(dNeuf.recorders[0].chain_key);
+      await aller("/clients/client-neuf/confirmations");
+      await copier(page.locator("[data-ce-que-confirme]"), dNeuf.recorders[0].chain_key, "adresse");
+      await aller("/clients/client-en-cours/confirmations");
+      const carte = page.locator(`[data-confirmation="${F.confirmations[0].id}"]`);
+      await copier(carte, F.confirmations[0].objet.cle_chaine, "adresse");
+      expect(await (await copier(carte, F.confirmations[0].piece_sha256, "empreinte")).locator("[data-piece]").innerText()).to.equal(F.confirmations[0].piece_sha256);
+      await aller("/clients/client-inscrit/paquet");
+      await copier(page.locator("section.nt-essentiel"), F.manifestePaquet, "empreinte");
+      await aller("/clients/essai-changement");
+      const doc = page.locator('[data-demande^="demande-administration-"]');
+      expect(plat(await doc.locator("[data-empreinte-document]").innerText())).to.equal(`Son empreinte, à reporter telle quelle sur la confirmation du client : ${changement.digest} Copier l'empreinte`);
+      await copier(doc, changement.digest, "empreinte");
+      // Ce changement préparé attend sa confirmation : le formulaire est déployé ; l'aide dit où copier l'empreinte.
+      await aller("/clients/essai-changement/confirmations");
+      expect(await page.locator("section[data-confirmation-attendue]").getAttribute("data-confirmation-attendue")).to.equal("administrer-jeu");
+      await page.locator('form[data-formulaire="confirmation"] [name="operation"]').selectOption("administrer-jeu");
+      expect(await page.locator(`[id="${await page.locator('[name="digest"]').getAttribute("id")}-aide"]`).innerText()).to.equal("L'empreinte du document que le client a confirmé. Elle est sur la fiche du client, sous « Documents à faire signer par le client », avec un bouton « Copier l'empreinte ». Collez-la ici sans la retaper : « 0x » suivi de 64 caractères.");
+
+      // 3. Formulaire de confirmation : chaque pas a sa phrase, sous son bouton, et seulement à ce pas.
+      await aller("/clients/client-neuf/confirmations");
+      const f = page.locator('form[data-formulaire="confirmation"]');
+      const phrases = () => f.locator("[data-phrase-du-pas]").evaluateAll((l) => l.map((x) => [x.getAttribute("data-phrase-du-pas"), x.textContent]));
+      expect(await phrases()).to.deep.equal([["relire", "Ce bouton n'enregistre rien : il vous montre ce que vous allez noter."]]);
+      expect(await f.locator('button[type="submit"]').getAttribute("aria-describedby")).to.equal(await f.locator('[data-phrase-du-pas="relire"]').getAttribute("id"));
+      expect(await f.locator(".nt-bandeau-avertissement").innerText(), "plus de « premier bouton » à côté du bouton définitif").to.not.match(/premier bouton|n'envoie rien/);
+      await f.locator('[name="personne_client"]').fill("Camille Durand (personne fictive)");
+      await f.locator('[name="canal"]').fill("courrier signé");
+      await f.locator('[data-aide-saisie="date"]').fill("2026-11-17T10:12");
+      await f.locator('[name="piece_sha256"]').fill(`0x${"ab".repeat(32)}`);
+      await f.locator('button[type="submit"]').click();
+      await f.locator("[data-relecture]").waitFor();
+      expect(await phrases()).to.deep.equal([["noter", "Ce bouton enregistre la confirmation. Elle ne pourra plus être effacée."]]);
+      expect(await f.locator("button[data-noter]").getAttribute("aria-describedby")).to.equal(await f.locator('[data-phrase-du-pas="noter"]').getAttribute("id"));
+      expect(await f.locator("button[data-noter]").evaluate((b) => Boolean(b.compareDocumentPosition(b.parentElement.querySelector('[data-phrase-du-pas="noter"]')) & Node.DOCUMENT_POSITION_FOLLOWING)), "la phrase est sous le bouton qui note").to.equal(true);
+      expect(envois.filter((x) => (x ?? "").includes("personne_client")), "rien n'est noté avant le second clic").to.deep.equal([]);
+
+      // 4. Heures : sur chaque fiche, les étapes sont datées dans leur ordre ; un même échec a une seule heure, partout.
+      for (const slug of ["client-en-cours", "client-en-echec", "client-envoye", "client-inscrit", "essai-changement"]) {
+        await aller(`/clients/${slug}`);
+        const instants = await page.locator("ol.nt-etapes > li.nt-etape").evaluateAll((l) => l.map((x) => [...x.querySelectorAll("dt")].find((t) => t.textContent.trim() === "Instant exact")?.nextElementSibling?.textContent.trim()).filter(Boolean));
+        expect(instants.length, slug).to.be.greaterThan(1);
+        expect(instants, `${slug} : étapes datées dans leur ordre`).to.deep.equal([...instants].sort());
+      }
+      await aller("/clients/client-en-echec");
+      const heureEchec = await page.locator('li.nt-etape[data-etape="assignation"] .ins-resultat time').innerText();
+      expect(heureEchec).to.equal("12 novembre 2026 à 08:05 UTC");
+      expect(await page.locator("details[data-historique] > summary").innerText()).to.contain(`la dernière : Faire les étapes 2 à 5 (échec), le ${heureEchec}`);
+      await aller("/clients");
+      expect(plat(await page.locator('article[data-client="client-en-echec"] [data-derniere-action]').innerText())).to.equal(`Dernière action : Faire les étapes 2 à 5 (échec), le ${heureEchec}.`);
+      expect(ecarts).to.deep.equal([]);
+
+      // 5. Sur téléphone : une adresse se coupe en deux moitiés de 21 caractères, une empreinte en deux de 33 ; rien ne déborde.
+      const tel = await ouvrir({ largeur: 390, hauteur: 844 });
+      const coupe = (loc) => loc.evaluate((e) => {
+        const n = e.firstChild;
+        const r = document.createRange();
+        const lignes = [];
+        let haut = null;
+        for (let k = 0; k < n.length; k++) {
+          r.setStart(n, k);
+          r.setEnd(n, k + 1);
+          const y = Math.round(r.getBoundingClientRect().top);
+          if (y !== haut) lignes.push(0);
+          haut = y;
+          lignes[lignes.length - 1]++;
+        }
+        return lignes;
+      });
+      const sansDebord = () => tel.page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+      await tel.aller("/clients/client-neuf");
+      expect(await coupe(tel.page.locator("section.nt-essentiel .ins-adresse"))).to.deep.equal([21, 21]);
+      expect(await sansDebord()).to.equal(true);
+      await tel.aller("/clients/client-neuf/confirmations");
+      expect(await coupe(tel.page.locator("[data-ce-que-confirme] .ins-adresse"))).to.deep.equal([21, 21]);
+      await tel.aller("/clients/client-en-cours/confirmations");
+      expect(await coupe(tel.page.locator("[data-piece]"))).to.deep.equal([33, 33]);
+      expect(await coupe(tel.page.locator(`[data-confirmation="${F.confirmations[0].id}"] .ins-adresse`))).to.deep.equal([21, 21]);
+      expect(await sansDebord()).to.equal(true);
+      await tel.aller("/clients/client-inscrit/paquet");
+      expect(await coupe(tel.page.locator("[data-manifeste-paquet]"))).to.deep.equal([33, 33]);
+      expect(await tel.page.locator("[data-manifeste-paquet]").innerText(), "la valeur reste entière").to.equal(F.manifestePaquet);
+      expect(await sansDebord()).to.equal(true);
+      expect(tel.ecarts).to.deep.equal([]);
     } finally {
       for (const x of plus) x.retirer();
     }

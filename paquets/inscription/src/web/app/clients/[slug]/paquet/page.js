@@ -9,6 +9,7 @@
 // paquet, ce qu'il contient (EX-7.18), à qui on le remet et comment le client contrôle qu'il a reçu le bon :
 // l'empreinte affichée est celle du fichier `paquet-client.json`, qui liste tous les autres avec leur empreinte
 // (EX-7.19). Un paquet déjà produit ne se refait que sur une raison dite ; son formulaire est alors replié.
+// Troisième lecture (même complément) : l'empreinte, qui se transmet au client par écrit, se copie d'un bouton.
 
 import { notFound } from "next/navigation";
 import { client } from "../../../../lib/donnees.mjs";
@@ -19,6 +20,7 @@ import Icone from "../../../../composants/Icone.js";
 import Lexique from "../../../../composants/Lexique.js";
 import Pastille from "../../../../composants/Pastille.js";
 import TelechargerPaquet from "../../../../composants/TelechargerPaquet.js";
+import { CopierValeur } from "../../../../composants/CopierTexte.js";
 import Valeur from "../../../../composants/Valeur.js";
 
 export const dynamic = "force-dynamic";
@@ -94,7 +96,7 @@ export default async function PagePaquet({ params }) {
               <div className="nt-fait ins-fait-large">
                 <dt>Empreinte du paquet</dt>
                 <dd>
-                  <Valeur data-manifeste-paquet>{o.manifest_sha256}</Valeur>
+                  <CopierValeur valeur={o.manifest_sha256} forme="empreinte" libelle="Copier l'empreinte" data-manifeste-paquet />
                   <span className="ins-ligne nt-petit nt-attenue">À donner au client par un autre moyen que le paquet lui-même, et par écrit : 66 caractères ne se dictent pas sans erreur. C'est l'empreinte du fichier <Valeur>paquet-client.json</Valeur>, qui liste tous les autres fichiers du paquet : si le client retrouve la même sur le fichier qu'il a reçu, il a le bon paquet.</span>
                 </dd>
               </div>

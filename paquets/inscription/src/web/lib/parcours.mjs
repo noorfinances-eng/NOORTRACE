@@ -167,7 +167,7 @@ export function etapesDuParcours(dossier) {
  * Avancement d'un dossier : `{ faites, total, echecs, enVol, etat, attente, libelle, ton, icone, phrase,
  * phraseFaites, resume }` ; `etat` vaut `a_reprendre` (une étape en échec), `inscrit` (toutes faites) ou
  * `en_cours`. `resume` est la phrase qui dit où en est le client. Une étiquette n'a qu'un sens (complément du
- * 2026-11-18) : « Réponse à aller chercher » quand un envoi parti d'ici attend que la personne le reprenne
+ * 2026-11-18) : « Réponse à aller chercher » quand un envoi parti d'ici attend que la personne aille chercher sa réponse
  * (`attente` : `reponse_a_chercher`) ; « En attente du registre » quand une étape envoyée par le client attend sa
  * réponse (`registre`) et « En attente chez le client » quand la suite se fait chez lui (`client`) : dans ces deux
  * cas, la personne n'a rien à faire.
@@ -201,8 +201,9 @@ export function avancement(dossier) {
  * elle n'autorise rien.
  *
  * Un envoi resté sans réponse passe avant tout (complément du 2026-11-18) : tant qu'une étape est `envoyee` ou
- * `incluse`, la consigne est de reprendre cet envoi par la capture de la transaction connue (EX-7.13 : jamais une
- * nouvelle transaction), ce qui ne demande aucune confirmation du client ; l'écran ne dit alors qu'une chose.
+ * `incluse`, la consigne est d'aller chercher la réponse du registre public pour cet envoi, par la capture de la
+ * transaction connue (EX-7.13 : jamais une nouvelle transaction ; le travail `capturer` ne fait que lire le registre),
+ * ce qui ne demande aucune confirmation du client ; l'écran ne dit alors qu'une chose.
  * La reprise n'est proposée que pour une étape que le service d'inscription envoie lui-même (étapes 2, 3, 5 et 6) :
  * `capturer` avec `envoi` relit l'envoi qu'il a écrit pour une étape `envoyee`, avec `transaction` range la preuve
  * d'une étape `incluse`. Pour les deux dernières étapes, faites chez le client, la consigne reste neutre : attendre,
@@ -239,26 +240,24 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       etape: n,
       parametre: envoyee ? "envoi" : "transaction",
       valeur: partie.transaction_hash,
-      titre: `Reprenez l'envoi resté sans réponse à l'étape ${n}`,
+      titre: `Allez chercher la réponse du registre public pour l'étape ${n}`,
       phrase: envoyee
         ? "Une opération est partie vers le registre public, mais sa réponse n'est pas rangée dans le dossier. L'outil va chercher cette réponse et range la preuve de l'opération. Il ne renvoie jamais une opération déjà partie."
         : "Le registre public a inscrit l'opération, mais sa preuve n'est pas encore rangée dans le dossier. L'outil va la chercher et la range. Il ne renvoie jamais une opération déjà partie.",
-      aPreparer: "Rien à préparer : l'outil connaît l'envoi à reprendre.",
+      aPreparer: "Rien à préparer : l'outil sait quelle opération est partie.",
       // L'attente de la réponse est réglée dans le service d'inscription (`delai_s`, 120 secondes par défaut, comme
       // `--delai` de CT-4 7.3) : la consigne dit cette durée comme l'ordinaire, pas comme une promesse.
       apres: envoyee
-        ? "Après le clic : l'outil va chercher la réponse du registre public et l'attend, quelques minutes d'ordinaire. S'il l'obtient, l'étape passe à « Fait » et la fiche vous donne la consigne suivante. Sinon, la fiche ne change pas : prévenez alors l'équipe technique, sans rien lancer d'autre. Rien n'est renvoyé, rien n'est dépensé."
-        : "Après le clic : l'outil range la preuve, l'étape passe à « Fait » et la fiche vous donne la consigne suivante. Si la fiche ne change pas, prévenez l'équipe technique, sans rien lancer d'autre. Rien n'est renvoyé, rien n'est dépensé.",
-      bouton: "Reprendre cet envoi",
+        ? "Après le clic : l'outil va chercher la réponse du registre public et l'attend, quelques minutes d'ordinaire. S'il l'obtient, l'étape passe à « Fait » et la fiche vous donne la consigne suivante. Sinon, la fiche ne change pas : prévenez alors l'équipe technique, sans rien lancer d'autre."
+        : "Après le clic : l'outil range la preuve, l'étape passe à « Fait » et la fiche vous donne la consigne suivante. Si la fiche ne change pas, prévenez l'équipe technique, sans rien lancer d'autre.",
+      bouton: CHERCHER_LA_REPONSE.bouton,
+      sousBouton: CHERCHER_LA_REPONSE.sousBouton,
     };
   }
   const conduites = etapes.filter((e) => ETAPES_CONDUITES.includes(e.step));
   const restantes = conduites.filter((e) => !faite(e));
   if (restantes.length > 0) {
-    // EX-7.26 : une confirmation hors bande, non consommée, pour chaque clé de chaîne dont l'approvisionnement reste à faire.
-    const cles = etapes.filter((e) => e.step === "approvisionnement" && (e.state === "a_faire" || e.state === "echec"))
-      .filter((e) => !confirmations.some((c) => c.operation === "approvisionnement" && c.objet?.cle_chaine === e.subject && !c.consommee_par))
-      .map((e) => e.subject);
+    const cles = versementsSansConfirmation(dossier, confirmations);
     if (cles.length > 0) {
       return {
         code: "consigner_confirmation",
@@ -336,7 +335,8 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       phrase: "Le document d'inscription de l'enregistreur est prêt. Remettez-le aux approbateurs du client : ils le contrôlent et le signent avec leur propre outil, jamais dans celui-ci. Quand le client vous rend le document signé, envoyez-le ici.",
       aPreparer: "Ayez sous la main : le document signé, tel que le client vous l'a rendu.",
       apres: "Après le clic : l'outil contrôle les signatures, puis envoie le document signé au registre public, qui inscrit l'enregistreur. Cet envoi coûte des crédits d'écriture. Un document mal signé est refusé avant tout envoi.",
-      bouton: "Envoyer le document signé",
+      bouton: PAR_NOTRE_COMPTE.bouton,
+      sousBouton: PAR_NOTRE_COMPTE.sousBouton,
     };
   }
   const premiere = etapes.find((e) => (e.step === "premiere_ancre" || e.step === "premiere_cloture") && !faite(e));
@@ -415,6 +415,41 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
 }
 
 /**
+ * Comptes techniques dont le versement de l'inscription reste à faire (étape `approvisionnement` à faire ou en
+ * échec) sans confirmation du client prête à servir pour lui (EX-7.26 : une confirmation non consommée par
+ * versement).
+ */
+function versementsSansConfirmation(dossier, confirmations) {
+  return (dossier.steps ?? []).filter((e) => e.step === "approvisionnement" && (e.state === "a_faire" || e.state === "echec"))
+    .filter((e) => !confirmations.some((c) => c.operation === "approvisionnement" && c.objet?.cle_chaine === e.subject && !c.consommee_par))
+    .map((e) => e.subject);
+}
+
+/** Un document préparé (`demande-…`) que l'agent a relayé signé (`demande-<opération>-relayee-…`). */
+const estRelayee = (x) => /^demande-(inscription|administration)-relayee-/.test(x.nom);
+
+/**
+ * Confirmations du client qu'on attend de noter maintenant (complément du 2026-11-18, troisième lecture des
+ * écrans) : `[{ operation, cle_chaine }]` pour un versement de l'inscription qui reste à faire sans confirmation prête
+ * à servir (la même règle que la consigne de la fiche), `[{ operation: "administrer-jeu", digest }]` pour un document
+ * de changement des approbateurs préparé, ni envoyé ni remplacé par sa version signée, sans confirmation prête à
+ * servir pour son empreinte. Liste vide : aucune confirmation n'est attendue (un nouveau versement, après
+ * l'inscription, n'est pas prévisible d'ici ; il reste possible de le noter). L'agent refait son contrôle (EX-7.26).
+ */
+export function confirmationsAttendues({ dossier, confirmations = [], demandes = [] }) {
+  const l = versementsSansConfirmation(dossier, confirmations).map((cle) => ({ operation: "approvisionnement", cle_chaine: cle }));
+  const relayees = new Set(demandes.filter(estRelayee).map((x) => x.document?.digest));
+  for (const x of demandes) {
+    if (!x.nom.startsWith("demande-administration-") || estRelayee(x)) continue;
+    const digest = x.document?.digest;
+    if (typeof digest !== "string" || relayees.has(digest)) continue;
+    if (confirmations.some((c) => !c.consommee_par && c.operation === "administrer-jeu" && c.objet?.digest === digest)) continue;
+    l.push({ operation: "administrer-jeu", digest });
+  }
+  return l;
+}
+
+/**
  * Ce que sont les crédits d'écriture, pour que la personne sache l'expliquer au client (CT-4 EX-4.16 : ils ne
  * servent qu'à payer les écritures, ne se vendent, ne s'achètent ni ne s'échangent, et ne circulent que de notre
  * compte de paiement vers un compte approvisionné ; EX-4.19 : le compte technique de chaque enregistreur en reçoit).
@@ -426,6 +461,26 @@ export const CREDITS_EN_CLAIR = "Les crédits d'écriture paient les écritures 
  */
 export const ADRESSE_A_CONFIRMER = "Ne la dictez pas : 42 caractères ne se lisent pas à voix haute sans erreur. Envoyez-la au client par écrit, par un autre moyen que cet outil, et demandez-lui de vous répondre par écrit qu'elle est bien, en entier, celle du compte technique de son enregistreur. Gardez sa réponse avec la pièce de la confirmation.";
 
+/**
+ * Envoi d'un document signé (`inscrire-cle`, `administrer-jeu`) par notre compte d'envoi, le relayeur de
+ * l'exploitant (CT-4 EX-7.3, OP-5) : c'est le cas habituel, et le bouton dit lui-même qui envoie ; la route reçoit
+ * `relayeur: true`, comme avant (complément du 2026-11-18, troisième lecture des écrans). L'envoi par le compte
+ * qu'une référence désigne, pour les essais, est une action à part, rangée, avec son champ.
+ */
+export const PAR_NOTRE_COMPTE = Object.freeze({
+  bouton: "Envoyer par notre compte d'envoi",
+  sousBouton: "C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi.",
+});
+/**
+ * Reprise d'un envoi resté sans réponse (travail `capturer`) : elle ne fait que lire le registre public (le reçu
+ * de la transaction connue, sa preuve) et ranger cette preuve dans le dossier ; elle ne soumet aucune transaction
+ * (EX-7.13, EX-7.16). Une seule formule pour ce geste, partout : aller chercher la réponse du registre public.
+ */
+export const CHERCHER_LA_REPONSE = Object.freeze({
+  bouton: "Chercher la réponse",
+  sousBouton: "Rien n'est renvoyé, rien n'est dépensé.",
+});
+
 /** Commandes des travaux (INTERFACES.md 3.3) : nom courant de l'action. */
 export const COMMANDES = Object.freeze({
   "inscrire-client-preparer": "Préparer le dossier",
@@ -435,7 +490,7 @@ export const COMMANDES = Object.freeze({
   "inscrire-cle": "Envoyer le document d'inscription signé",
   "condense-administration": "Préparer un changement des approbateurs",
   "administrer-jeu": "Envoyer un changement des approbateurs signé",
-  capturer: "Reprendre un envoi resté sans réponse",
+  capturer: "Aller chercher la réponse du registre public",
   exporter: "Préparer les pièces du dossier de preuve",
   verifier: "Contrôler les pièces du dossier de preuve",
   paquet: "Produire le paquet du client",
@@ -449,7 +504,7 @@ const RESULTATS = Object.freeze({
   deja_fait: { libelle: "Déjà fait", ton: "succes", icone: "coche", explication: "Il n'y avait plus rien à faire : c'était déjà fait. Rien n'a été envoyé." },
   refuse: { libelle: "Refusé avant envoi", ton: "refus", icone: "croix", explication: "L'outil a contrôlé avant d'agir et s'est arrêté : rien n'a été envoyé, rien n'a été dépensé." },
   echoue: { libelle: "Échec", ton: "refus", icone: "croix", explication: "L'opération a été envoyée, mais elle n'a pas abouti." },
-  incertain: { libelle: "Résultat pas encore connu", ton: "attente", icone: "question", explication: "L'opération est partie, mais la réponse du registre public n'est pas arrivée. Ne relancez pas l'action : reprenez cet envoi." },
+  incertain: { libelle: "Résultat pas encore connu", ton: "attente", icone: "question", explication: "L'opération est partie, mais la réponse du registre public n'est pas arrivée. Ne relancez pas l'action : allez chercher la réponse du registre public, depuis la fiche du client." },
   inutilisable: { libelle: "Impossible à exécuter", ton: "", icone: "question", explication: "L'outil n'a pas pu aller au bout et n'affirme rien. La fiche du client dit ce qui est réellement fait." },
 });
 
@@ -499,7 +554,7 @@ const VOIR_FICHE = "La liste des étapes, sur la fiche du client, dit ce qui est
 const PARTI = "L'opération est partie vers le registre public ; elle a pu coûter des crédits d'écriture.";
 const PREUVE = "L'opération elle-même est partie ; seule sa preuve manque dans le dossier. Rien n'est à renvoyer.";
 const PREVENIR = "Si cela se reproduit, prévenez l'équipe technique en lui donnant le détail ci-dessous.";
-const REPRENDRE = "Ne renvoyez rien. Actualisez la fiche du client : elle vous propose de reprendre cet envoi.";
+const REPRENDRE = "Ne renvoyez rien. Actualisez la fiche du client : elle vous propose d'aller chercher la réponse du registre public.";
 const E = (phrase, effet, quoiFaire, plus = {}) => Object.freeze({ phrase, effet, quoiFaire, ...plus });
 const CERTIFICAT = E("L'opération est inscrite, mais sa preuve n'a pas pu être rangée dans le dossier.", PREUVE, `${REPRENDRE} Si la preuve reste introuvable, prévenez l'équipe technique sans attendre : elle n'est gardée qu'un temps.`);
 const CLE_OCCUPEE = E("Cet enregistreur ou son compte technique ne peut pas être inscrit : il l'est déjà, il a été retiré, ou il sert à un autre client.", RIEN, "Demandez au client la fiche d'un nouvel enregistreur, avec un nouveau compte technique. Un compte technique retiré ne se réinscrit jamais.");
@@ -612,12 +667,38 @@ const SAISIES = Object.freeze({
   texte: "Ce texte est refusé : il est vide, trop long, ou il ressemble à une clé secrète. Écrivez un texte court, en mots.",
   chemin: "Ce n'est pas un nom de fichier admis. Gardez le choix proposé, ou laissez le champ vide.",
   document: "Ce document est illisible. Collez-le en entier, de la première accolade « { » à la dernière « } », sans rien y changer.",
-  liste_documents: "Ces fiches sont illisibles. Collez chaque fiche en entier, sans rien y changer, le tout entre un crochet ouvrant « [ » et un crochet fermant « ] ».",
+  liste_documents: "Ces fiches sont illisibles. Collez chaque fiche dans sa propre zone, en entier, sans rien y changer.",
   horodatage: "La date et l'heure n'ont pas la forme attendue. Servez-vous du champ « Date et heure » ou du bouton « Maintenant », qui l'écrivent pour vous.",
 });
 
 /** Phrase d'une saisie refusée, d'après le type déclaré du champ. */
 export const explicationSaisie = (type) => SAISIES[type] ?? "Cette saisie n'a pas la forme attendue. Relisez l'aide écrite sous le champ.";
+
+/**
+ * Fiche d'un enregistreur refusée dans la page (complément du 2026-11-18, troisième lecture des écrans) : le champ
+ * des fiches (`liste_documents`) a une zone par fiche, où l'on colle le contenu d'un fichier du client tel quel ;
+ * une zone vide ou un texte qui n'est pas une fiche est refusé, sans rien envoyer, avec ce qu'il faut faire.
+ */
+const FICHES = Object.freeze({
+  fiche_vide: "Cette zone est vide. Collez-y tout le contenu du fichier que le client vous a envoyé pour son enregistreur, sans rien y changer.",
+  fiche_liste: "Cette zone contient une liste entre crochets « [ » et « ] », et non une seule fiche. Collez ici le contenu d'un seul fichier, tel que le client l'a envoyé ; pour une autre fiche, cliquez sur « Ajouter une autre fiche ».",
+  fiche_illisible: "Ce texte n'est pas une fiche d'enregistreur, ou il en manque une partie. Ouvrez le fichier que le client vous a envoyé, copiez tout son contenu, du premier caractère « { » au dernier « } », et collez-le ici sans rien y changer. Si le fichier ne commence pas par « { », demandez au client de vous le renvoyer.",
+});
+
+/**
+ * Pourquoi la première zone ne reste pas vide (une liste vide, que la route admet, est refusée dans la page) : le
+ * service d'inscription n'inscrit au registre public que les enregistreurs du dossier (travail `condense-inscription`,
+ * paramètre `key_id` d'un enregistreur du dossier), et un dossier préparé ne se prépare pas une seconde fois (CT-4
+ * §7.1, pas 6 ; §7.5) : un client préparé sans fiche n'aurait jamais d'enregistreur inscrit par cet outil.
+ */
+const AU_MOINS_UNE = " Il faut au moins une fiche : l'outil n'inscrit au registre public que les enregistreurs dont la fiche est donnée ici, et il ne pourra plus en ajouter une fois le dossier préparé.";
+
+/** Phrase d'une fiche refusée ; `retirable` : la zone peut être retirée (ce n'est pas la première). */
+export const explicationFiche = (regle, retirable = false) => {
+  const base = FICHES[regle] ?? FICHES.fiche_illisible;
+  if (regle !== "fiche_vide") return base;
+  return `${base}${retirable ? " Si vous n'avez pas d'autre fiche, cliquez sur « Retirer cette zone »." : AU_MOINS_UNE}`;
+};
 
 /** Opérations sur la liste des approbateurs d'un client (CT-4 6.6.2) : nom courant ; le nom de l'opération reste dans l'option. */
 export const OPERATIONS_JEU = Object.freeze({

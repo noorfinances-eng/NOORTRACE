@@ -304,10 +304,10 @@ lignes, comme ceux de `spec/README.md`.
 | TR-83 | CT-6 §12.5 (l. 5802) | Ligne `recorders` : procès-verbal d'inscription de la clé et cérémonie des clés. | 5.9 (même réponse). |
 | TR-84 | CT-6 §16 (l. 6377) | Le schéma `attestation-perimetre-v0`. | 7.1 ; `spec/schemas/attestation-perimetre-v0.schema.json`. |
 | TR-85 | CT-6 §16 (l. 6379) | Les dossiers de la famille `ct-6`. | Annexe A.7 (EX-A.10). |
-| TR-86 | CT-6 « A.8 Confrontation par des implémentations tierces » (l. 8174) | Les dossiers avec la partie. | Annexe A.7. |
-| TR-87 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8624) | Les notes de recherche de CT-7. | Annexe B.1 (R7). |
-| TR-88 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8626) | Les faits R7-F51 à R7-F53. | Annexe B.1. |
-| TR-89 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8633) | Les extraits exacts des sources. | Annexe B.1, extraits cités par la section 7. |
+| TR-86 | CT-6 « A.8 Confrontation par des implémentations tierces » (l. 8216) | Les dossiers avec la partie. | Annexe A.7. |
+| TR-87 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8666) | Les notes de recherche de CT-7. | Annexe B.1 (R7). |
+| TR-88 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8668) | Les faits R7-F51 à R7-F53. | Annexe B.1. |
+| TR-89 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8675) | Les extraits exacts des sources. | Annexe B.1, extraits cités par la section 7. |
 | TR-90 | spec/README.md « Spécifications » (l. 21) | L'état de CT-7. | Ce document, version 0.4 du 2026-11-11 (version 0.3 du 2026-11-10, version 0.2 du 2026-11-03, version 0.1 du 2026-10-26). |
 | TR-91 | spec/README.md « Spécifications » (l. 21) | Le lien vers ce document. | Ce document. |
 | TR-92 | spec/README.md « Spécifications » (l. 26) | Ordre d'écriture : CT-7 après CT-3, CT-4 et CT-5. | Respecté (section 1) : CT-7 0.1 reprend CT-2 0.5, CT-3 0.3, CT-4 0.4 et CT-5 0.2 en l'état, et accompagne CT-1 0.4 et CT-6 0.3. |

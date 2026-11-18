@@ -40,7 +40,8 @@ const etat = {
   attente: null,
   vue: null,
   reduit: false,
-  refuse: false,
+  // Ce qu'un refus vise, tant qu'il est affiché : "dossier", "ancres" ou "entetes" ; null sans refus.
+  refuse: null,
   confiance: null,
   confianceDessous: false,
   deplies: new Set(),
@@ -426,7 +427,7 @@ function afficherDossier() {
   if (d === null) {
     p.className = "pv-choisi";
     p.textContent = libelle("aucun_dossier");
-  } else if (etat.refuse) {
+  } else if (etat.refuse === "dossier") {
     // Le dossier choisi vient d'être refusé : ni coche, ni « dossier choisi ».
     p.className = "pv-choisi pv-choisi-refuse";
     p.replaceChildren(icone("alerte"), elementLibelle("span", null, d.genre === "repertoire" ? "dossier_refuse_repertoire" : "dossier_refuse_archive", { nom: d.nom }));
@@ -437,15 +438,24 @@ function afficherDossier() {
   majBoutons();
 }
 
-/** Noms des fichiers facultatifs choisis, à côté de leurs boutons. */
+/** Noms des fichiers facultatifs choisis, à côté de leurs boutons ; une pièce que la vérification a refusée le dit. */
 function afficherEntrees() {
-  for (const [id, fichier] of [["nom-ancres", etat.ancres], ["nom-entetes", etat.entetes]]) {
+  for (const [id, fichier, piece] of [["nom-ancres", etat.ancres, "ancres"], ["nom-entetes", etat.entetes, "entetes"]]) {
     const e = $(id);
     if (!e) continue;
-    e.className = fichier ? "pv-fichier-nom pv-fichier-choisi" : "pv-fichier-nom";
-    composer(e, fichier ? "fichier_choisi" : "aucun_fichier", { nom: fichier ? fichier.name : "" });
+    const refusee = fichier !== null && etat.refuse === piece;
+    e.className = refusee ? "pv-fichier-nom pv-fichier-refuse" : fichier ? "pv-fichier-nom pv-fichier-choisi" : "pv-fichier-nom";
+    composer(e, refusee ? "fichier_refuse" : fichier ? "fichier_choisi" : "aucun_fichier", { nom: fichier ? fichier.name : "" });
   }
   afficherOptions();
+}
+
+/** Une pièce complémentaire changée (ajoutée, remplacée ou retirée) efface le refus qui la visait. */
+function changerPiece(piece, fichier) {
+  etat[piece] = fichier;
+  if (etat.refuse === piece) etat.refuse = null;
+  afficherEntrees();
+  majBoutons();
 }
 
 /** Résumé des options choisies, lisible quand le bloc des options est replié. */
@@ -473,7 +483,8 @@ function cleAideVerifier() {
   if (etat.enCours) return "aide_verifier_en_cours";
   if (etat.artefact.genre === "altere" || etat.artefact.genre === "non_faite") return "aide_verifier_indisponible";
   if (!etat.pret) return "aide_verifier_chargement";
-  if (etat.dossier !== null && etat.refuse) return "aide_verifier_refus";
+  if (etat.dossier !== null && etat.refuse === "dossier") return "aide_verifier_refus";
+  if (etat.dossier !== null && etat.refuse !== null) return "aide_verifier_refus_piece";
   return etat.dossier === null ? "aide_verifier_dossier" : "aide_verifier_pret";
 }
 
@@ -501,14 +512,16 @@ function afficherReduction() {
 
 function rouvrirFormulaire() {
   etat.reduit = false;
-  // Un autre choix efface le refus du précédent.
-  etat.refuse = false;
+  // Un autre choix efface le refus du précédent, et la pièce complémentaire refusée n'est plus marquée.
+  etat.refuse = null;
   afficherReduction();
+  afficherEntrees();
 }
 
 function majBoutons() {
   const b = $("verifier");
-  if (b) b.disabled = !(etat.pret && etat.dossier !== null && !etat.enCours);
+  // Tant qu'un refus est affiché, « Vérifier » est inactif : un autre choix le rend actif (l'aide dit lequel).
+  if (b) b.disabled = !(etat.pret && etat.dossier !== null && !etat.enCours && etat.refuse === null);
   const a = $("arreter");
   if (a) {
     a.disabled = !(etat.enCours && !etat.arret);
@@ -687,14 +700,18 @@ async function verifier() {
   try {
     let contenu;
     const fichiers = [];
+    // Ce qui est lu : le dossier, puis chaque pièce complémentaire ; un refus vise ce qui était lu.
+    let lu = "dossier";
     try {
       contenu = await etat.dossier.lire();
       for (const f of contenu.fichiers) fichiers.push({ chemin: `dossier/${f.chemin}`, octets: tamponExact(f.octets) });
+      lu = "ancres";
       if (etat.ancres) fichiers.push({ chemin: "ancres.json", octets: tamponExact(await lireFichier(etat.ancres)) });
+      lu = "entetes";
       if (etat.entetes) fichiers.push({ chemin: "entetes-bitcoin.json", octets: tamponExact(await lireFichier(etat.entetes)) });
     } catch (e) {
       if (e instanceof RefusArchive) {
-        etat.vue = { genre: "refus", raison: e.raison, parametres: e.parametres, noms };
+        etat.vue = { genre: "refus", raison: e.raison, parametres: e.parametres, noms, vise: lu };
         return;
       }
       throw e;
@@ -725,9 +742,10 @@ async function verifier() {
     const arrete = etat.arret;
     etat.arret = false;
     etat.reduit = etat.vue.genre === "resultat";
-    // Un refus de ce qui a été choisi se dit aussi à l'étape 1, à la place de « dossier choisi ».
-    etat.refuse = etat.vue.genre === "refus";
+    // Un refus se dit aussi là où la chose refusée a été choisie : à l'étape 1 pour le dossier, à l'étape 2 pour une pièce.
+    etat.refuse = etat.vue.genre === "refus" ? etat.vue.vise : null;
     afficherDossier();
+    afficherEntrees();
     afficherVue();
     montrerResultat();
     // Après un arrêt, un travailleur neuf reçoit l'artefact ; la page
@@ -821,6 +839,25 @@ function cleRefusCourant(raison, table) {
   return /^r_[a-z0-9_]+$/.test(String(raison)) && Object.hasOwn(table, cle) ? cle : null;
 }
 
+/**
+ * Clé de la phrase courante d'un contrôle non fait (table de CT-6 §18) : d'après la raison que le rapport donne, le
+ * numéro du contrôle et ce que la personne a ajouté à l'étape 2 (`ancres`, `entetes` : vrai si la pièce a été
+ * ajoutée). C'est un état de la page, pas un statut calculé : la raison exacte suit, entre parenthèses. Une raison
+ * hors de la table reçoit la phrase « raison inconnue ».
+ */
+function cleRaisonCourante(raison, numero, ancres, entetes) {
+  if (raison === "ancre_absente") {
+    if (!ancres) return "raison_ancre_absente";
+    return numero === 5 && entetes ? "raison_ancre_absente_liste_extrait" : "raison_ancre_absente_liste";
+  }
+  if (raison === "partie_absente") {
+    if (numero === 5 && !entetes) return ancres ? "raison_partie_absente_extrait" : "raison_partie_absente_liste_extrait";
+    return "raison_partie_absente";
+  }
+  if (raison === "hors_perimetre_version" || raison === "piece_hors_dossier" || raison === "prerequis_en_echec") return `raison_${raison}`;
+  return "raison_inconnue";
+}
+
 // « Ce que ce résultat ne dit pas » et « Et maintenant ? » : lignes fixes par
 // code de retour ; rien pour le code 2 dans la première liste (le vérificateur
 // n'a rien examiné).
@@ -832,6 +869,7 @@ const SUITES = Object.freeze({
   3: ["suite_3_1", "suite_3_2", "suite_3_3"],
   non_faite: ["suite_non_faite_1", "suite_non_faite_2", "suite_non_faite_3"],
   refus: ["suite_refus_1", "suite_refus_2"],
+  refus_piece: ["suite_refus_piece_1", "suite_refus_piece_2"],
 });
 
 /**
@@ -1135,9 +1173,13 @@ function paragrapheCause(cause) {
   return composer(p, "cause", {}, { cause: composer(element("span"), cause.cle, cause.parametres) });
 }
 
-/** Raison d'une non-exécution en clair, son code exact entre parenthèses (CT-6 §6.2). */
-function elementRaison(code) {
-  return elementLibelle("span", "pv-controle-raison", "raison", { code }, { raison: libelle(RAISONS_CONNUES.includes(code) ? `raison_${code}` : "raison_inconnue") });
+/**
+ * Raison d'une non-exécution en clair, d'après ce que la personne a ajouté à l'étape 2 (`noms`), puis son code exact
+ * entre parenthèses (CT-6 §6.2).
+ */
+function elementRaison(code, numero, noms) {
+  const cle = cleRaisonCourante(RAISONS_CONNUES.includes(code) ? code : null, numero, noms !== null && noms.ancres !== null, noms !== null && noms.entetes !== null);
+  return elementLibelle("span", "pv-controle-raison", "raison", { code }, { raison: libelle(cle) });
 }
 
 /**
@@ -1334,7 +1376,7 @@ function carteEnResume(lignes) {
  * vérificateur en dit. Le résumé que le vérificateur donne de chaque contrôle
  * est repris tel quel dans un bloc replié de la carte.
  */
-function carteControles(resume) {
+function carteControles(resume, noms) {
   const { section, titre } = carte("controles", "titre_controles");
   const compte = (statut) => resume.controles.filter((c) => c.statut === statut).length;
   const reserves = new Map(resume.controles.map((c) => [c.numero, c.statut === "reussi" ? reservesDuControle(c.numero, resume.controles, resume.avertissements) : []]));
@@ -1365,7 +1407,7 @@ function carteControles(resume) {
     if (resume.exiges !== null && resume.exiges.includes(c.numero)) ligne.append(pastille("info", "alerte", libelle("controle_exige")));
     ligne.append(element("span", "pv-controle-prouve", libelle(`prouve_${c.numero}`)));
     texte.append(ligne);
-    if (c.statut === "non_execute") texte.append(elementRaison(c.raison));
+    if (c.statut === "non_execute") texte.append(elementRaison(c.raison, c.numero, noms));
     if (ids.length > 0) {
       const renvoi = element("a", null, libelle("renvoi_reserves"));
       renvoi.href = "#avertissements";
@@ -1481,11 +1523,18 @@ function blocCommande(v) {
   return bloc;
 }
 
-/** Rubrique « Pour les spécialistes » : un titre, une phrase, puis les blocs repliés donnés. */
-function rubriqueSpecialistes(blocs) {
+/**
+ * Rubrique « Pour les spécialistes » : un titre, une phrase (`cleIntro`, ou aucune), un texte exact affiché en tête
+ * hors de tout bloc replié (`tete` : la formule exacte du vérificateur, ou la mention fixée pour un refus), puis les
+ * blocs repliés donnés.
+ */
+function rubriqueSpecialistes(blocs, { cleIntro = "intro_specialistes", tete = null } = {}) {
   const section = element("section", "nt-pile pv-specialistes");
   section.id = "specialistes";
-  section.append(element("h3", null, libelle("titre_specialistes")), element("p", "nt-aide", libelle("intro_specialistes")), ...blocs);
+  section.append(element("h3", null, libelle("titre_specialistes")));
+  if (cleIntro !== null) section.append(element("p", "nt-aide", libelle(cleIntro)));
+  if (tete !== null) section.append(tete);
+  section.append(...blocs);
   return section;
 }
 
@@ -1523,8 +1572,10 @@ function ecrireVue() {
   if (v.genre === "refus") {
     // EX-18.7 : la raison, « aucun rapport » et aucun code. La raison en langage courant précède la raison exacte.
     const verdict = blocVerdict(null, "alerte");
-    // Titre courant du refus, selon ce qui a été choisi : un fichier, un dossier de fichiers, ou un dépôt que la page n'a pas pu prendre.
-    const cleTitre = !v.noms ? "titre_refus_choix" : v.noms.dossier.genre === "repertoire" ? "titre_refus_repertoire" : "titre_refus";
+    // Titre courant du refus, selon ce qui est refusé : un fichier (dossier compressé ou pièce complémentaire), un
+    // dossier de fichiers, ou un dépôt que la page n'a pas pu prendre.
+    const piece = v.vise === "ancres" || v.vise === "entetes";
+    const cleTitre = !v.noms ? "titre_refus_choix" : !piece && v.noms.dossier.genre === "repertoire" ? "titre_refus_repertoire" : "titre_refus";
     const titreRefus = element("p", "nt-verdict-mot pv-mot", libelle(cleTitre));
     titreRefus.id = "refus-titre";
     verdict.append(titreRefus, phraseCourante("phrase_refus"));
@@ -1536,11 +1587,12 @@ function ecrireVue() {
       suite.append(courant);
     }
     suite.append(ligneExacte("raison_exacte", element("span", "alerte", texteRefus(v.raison, v.parametres))));
-    // EX-18.7 : la mention fixée « aucun rapport » reste, sous le titre courant.
-    suite.append(ligneExacte("mention_refus", element("span", "aucun-rapport", libelle("aucun_rapport"))));
     verdict.append(suite);
-    contenu.append(verdict, carteSuite("refus", false));
-    if (v.noms) contenu.append(rubriqueSpecialistes([blocFichiers(v.noms)]));
+    contenu.append(verdict, carteSuite(piece ? "refus_piece" : "refus", false));
+    // EX-18.7 : la mention fixée « aucun rapport » reste affichée, hors de tout bloc replié, en tête des spécialistes.
+    const mention = ligneExacte("mention_refus", element("span", "aucun-rapport", libelle("aucun_rapport")));
+    mention.id = "mention-refus";
+    contenu.append(rubriqueSpecialistes(v.noms ? [blocFichiers(v.noms)] : [], { cleIntro: null, tete: mention }));
     return;
   }
   if (v.genre === "non_faite") {
@@ -1551,8 +1603,9 @@ function ecrireVue() {
     suite.append(paragrapheCause(v.cause));
     verdict.append(suite);
     contenu.append(verdict, carteSuite("non_faite", false));
-    if (v.commandes) contenu.append(rubriqueSpecialistes([blocCommande(v)]));
-    else if (v.noms) contenu.append(rubriqueSpecialistes([blocFichiers(v.noms)]));
+    // Aucun rapport : la rubrique ne porte que ses blocs, sans la phrase qui annonce les rapports.
+    if (v.commandes) contenu.append(rubriqueSpecialistes([blocCommande(v)], { cleIntro: null }));
+    else if (v.noms) contenu.append(rubriqueSpecialistes([blocFichiers(v.noms)], { cleIntro: null }));
     return;
   }
 
@@ -1575,6 +1628,8 @@ function ecrireVue() {
     const mention = element("span", "pv-mention", libelle(presentation.mention));
     mention.id = "verdict-mention";
     titre.append(mention);
+    // Le mot et sa mention se lisent d'un seul tenant, à la même taille.
+    titre.classList.add("pv-titre-mention");
   }
   verdict.append(titre);
   // Juste sous le titre : ce que les contrôles non réussis laissent sans preuve, en mots.
@@ -1633,16 +1688,18 @@ function ecrireVue() {
       if (r.bloquantes !== null && r.bloquantes.length > 0) suite.append(elementLibelle("p", "pv-references", "verifications_bloquantes", { liste: r.bloquantes.join(", ") }));
     }
   }
+  // Le code et son sens (table de CT-6 §8.3), entiers et jamais repliés, en tête de « Pour les spécialistes ».
   const code = element("span", `code code-${v.code}`, libelle("code", { code: v.code, sens: libelle(`code_${v.code}`) }));
   code.id = "code";
-  suite.append(ligneExacte("formule_exacte", code));
+  const formule = ligneExacte("formule_exacte", code);
+  formule.id = "formule-exacte";
 
   // Les réserves viennent aussitôt sous le verdict : elles ne sont jamais repliées.
   const avertissements = bandeauAvertissements(v);
   if (avertissements) contenu.append(avertissements);
 
   if (v.code !== 2) {
-    if (v.resume.controles !== null) contenu.append(carteControles(v.resume));
+    if (v.resume.controles !== null) contenu.append(carteControles(v.resume, v.noms));
     const enResume = carteEnResume(v.resume.enResume);
     if (enResume) contenu.append(enResume);
     // Énoncé dans la langue de la page, tel quel ; l'autre langue dans un bloc replié de la même carte.
@@ -1692,13 +1749,27 @@ function ecrireVue() {
   preJson.id = "rapport-json";
   blocPre(json.corps, preJson);
   blocs.push(json.bloc, blocCommande(v));
-  contenu.append(rubriqueSpecialistes(blocs));
+  contenu.append(rubriqueSpecialistes(blocs, { tete: formule }));
+}
+
+/**
+ * Amène `e` en haut de l'écran, sous la barre haute quand elle reste collée en haut : la hauteur de la barre est
+ * lue à chaque fois (elle change avec la police et la largeur), et l'écart sous elle est la marge de défilement
+ * que la feuille de style donne à `e`.
+ */
+function montrerSousLaBarre(e) {
+  if (!e || typeof globalThis.scrollTo !== "function") return;
+  const barre = document.querySelector(".nt-barre");
+  const position = barre ? getComputedStyle(barre).position : "static";
+  const dessous = position === "sticky" || position === "fixed" ? barre.getBoundingClientRect().height : 0;
+  const marge = parseFloat(getComputedStyle(e).scrollMarginTop) || 0;
+  globalThis.scrollTo(0, Math.max(0, e.getBoundingClientRect().top + globalThis.scrollY - dessous - marge));
 }
 
 /** Après une vérification, le résultat vient à l'écran. */
 function montrerResultat() {
   const section = $("resultat");
-  if (section && !section.hidden && typeof section.scrollIntoView === "function") section.scrollIntoView({ block: "start" });
+  if (section && !section.hidden) montrerSousLaBarre(section);
 }
 
 // --- Liaisons -----------------------------------------------------------------
@@ -1729,23 +1800,15 @@ function lier() {
     rouvrirFormulaire();
     afficherDossier();
   });
-  $("entree-ancres").addEventListener("change", (ev) => {
-    etat.ancres = ev.target.files[0] ?? null;
-    afficherEntrees();
-  });
-  $("entree-entetes").addEventListener("change", (ev) => {
-    etat.entetes = ev.target.files[0] ?? null;
-    afficherEntrees();
-  });
+  $("entree-ancres").addEventListener("change", (ev) => changerPiece("ancres", ev.target.files[0] ?? null));
+  $("entree-entetes").addEventListener("change", (ev) => changerPiece("entetes", ev.target.files[0] ?? null));
   $("retirer-ancres").addEventListener("click", () => {
     $("entree-ancres").value = "";
-    etat.ancres = null;
-    afficherEntrees();
+    changerPiece("ancres", null);
   });
   $("retirer-entetes").addEventListener("click", () => {
     $("entree-entetes").value = "";
-    etat.entetes = null;
-    afficherEntrees();
+    changerPiece("entetes", null);
   });
   $("exiger-tous").addEventListener("change", contraintesExiger);
   for (const c of document.querySelectorAll('input[name="exiger"]')) c.addEventListener("change", afficherOptions);
@@ -1759,9 +1822,8 @@ function lier() {
   });
   $("verifier-autre").addEventListener("click", () => {
     rouvrirFormulaire();
-    const etape = $("choix-dossier");
-    if (typeof etape.scrollIntoView === "function") etape.scrollIntoView({ block: "start" });
-    $("choisir-archive").focus();
+    $("choisir-archive").focus({ preventScroll: true });
+    montrerSousLaBarre($("choix-dossier"));
   });
   $("arreter").addEventListener("click", () => {
     arreter();

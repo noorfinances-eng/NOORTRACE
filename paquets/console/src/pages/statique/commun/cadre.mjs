@@ -157,10 +157,10 @@ export function bascule() {
  */
 function personneConnectee(identite) {
   const p = partiesIdentite(identite);
-  if (p === null) return el("p", { classe: "nt-session" }, el("span", { classe: "nt-session-libelle", texte: t("cadre.personne") }), el("code", { classe: "nt-fixe", texte: String(identite), attributs: { "data-valeur": "", "data-personne": "" } }));
+  if (p === null) return el("p", { classe: "nt-session barre-console-session" }, el("span", { classe: "nt-session-libelle", texte: t("cadre.personne") }), el("code", { classe: "nt-fixe", texte: String(identite), attributs: { "data-valeur": "", "data-personne": "" } }));
   return el(
     "p",
-    { classe: "nt-session" },
+    { classe: "nt-session barre-console-session" },
     el("span", {}, el("span", { classe: "nt-session-libelle", texte: t("cadre.personne") }), " ", el("strong", { classe: "personne-connectee", texte: p.personne, attributs: { "data-valeur": "", "data-personne": "" } })),
     el("span", { classe: "nt-attenue" }, el("span", { texte: t(`cadre.compte.${p.genre}`) }), " ", el("code", { classe: "nt-fixe", texte: p.systeme, attributs: { "data-valeur": "", "data-systeme": p.genre } })),
   );
@@ -197,7 +197,7 @@ export async function demarrerEcran(ecran) {
     ajouter(liens, el("li", {}, el("a", { texte: t(`cadre.lien.${nom}`), attributs: { href: chemin, "aria-current": nom === ecran || (ecran === "ticket" && nom === "tickets") ? "page" : null } })));
   }
   const nav = el("nav", { attributs: { "aria-label": t("cadre.navigation") } }, liens);
-  const sortie = bouton(t("cadre.deconnexion"), null, { petit: true, classe: "nt-sans-impression" });
+  const sortie = bouton(t("cadre.deconnexion"), null, { petit: true, classe: "nt-sans-impression barre-console-sortie" });
   const zoneSortie = el("div", { classe: "zone-sortie" });
   sortie.addEventListener("click", async () => {
     sortie.disabled = true;
@@ -209,10 +209,11 @@ export async function demarrerEcran(ecran) {
       afficherErreur(zoneSortie, e);
     }
   });
+  // Les classes `barre-console…` portent les règles propres de la console : la barre tient sur une ligne à 1280 de large.
   const barre = el(
     "header",
-    { classe: "nt-barre" },
-    el("div", { classe: "nt-barre-dedans" }, logo("/tickets"), nav, el("div", { classe: "nt-barre-fin" }, personneConnectee(s.session_identity), sortie), el("div", { classe: "nt-barre-outils" }, bascule())),
+    { classe: "nt-barre barre-console" },
+    el("div", { classe: "nt-barre-dedans barre-console-ligne" }, logo("/tickets"), nav, el("div", { classe: "nt-barre-fin barre-console-fin" }, personneConnectee(s.session_identity), sortie), el("div", { classe: "nt-barre-outils barre-console-outils" }, bascule())),
   );
   const identite = el("div", { classe: "bande-session" }, zoneSortie);
   // EX-13.7 : l'identité de session est une chaîne canonique ; elle reste lisible en entier, dans son ordre, au pied de l'écran.
@@ -220,7 +221,88 @@ export async function demarrerEcran(ecran) {
   exacte.setAttribute("id", "detail-connexion");
   zoneContenu = el("div", { classe: "contenu-ecran" });
   remplacer(racine, barre, identite, zoneContenu, el("footer", { classe: "pied-session" }, exacte));
+  // La hauteur de la barre dépend de la police et de la largeur : elle est relue à chaque changement.
+  noterHauteurBarre();
+  new ResizeObserver(() => noterHauteurBarre()).observe(barre);
+  window.addEventListener("resize", () => noterHauteurBarre());
   return s;
+}
+
+/**
+ * Ce que la marque « vérifié » veut dire, et ce qu'elle ne veut pas dire
+ * (complément du 2026-11-18) : bien visible, sur chaque écran qui montre
+ * une valeur vérifiée ; sur une demande encore à décider, avec l'invitation
+ * à comparer les valeurs aux pièces avant d'approuver.
+ * @param {boolean} clos la demande n'accepte plus de décision
+ */
+export function legendeVerifie(clos = false) {
+  return el("p", { classe: "legende-verifie", attributs: { id: "legende-verifie" } }, icone("info"), el("span", { texte: t(clos ? "valeurs.verifie_legende_clos" : "valeurs.verifie_legende") }));
+}
+
+/**
+ * « Contester » expliqué une fois par écran, là où le mot paraît pour la
+ * première fois (complément du 2026-11-18) : l'explication suit le premier
+ * texte visible qui le porte, hors des blocs repliés fermés ; elle est
+ * replacée à chaque nouvel affichage. Dans un bouton, elle suit le groupe de
+ * boutons ; dans une valeur de liste, elle s'y ajoute ; ailleurs, elle suit
+ * le paragraphe ou le titre. `avecDelai` : la règle de la demande prévoit un
+ * délai de contestation.
+ * @param {HTMLElement} racine
+ * @param {boolean} avecDelai
+ */
+export function expliquerContestation(racine, avecDelai) {
+  for (const n of racine.querySelectorAll("[data-sens-contestation]")) n.remove();
+  const marcheur = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT);
+  for (let n = marcheur.nextNode(); n !== null; n = marcheur.nextNode()) {
+    const parent = n.parentElement;
+    if (!/contest/i.test(n.data) || parent === null || parent.closest("details:not([open]) > :not(summary)") !== null) continue;
+    if (typeof parent.checkVisibility === "function" && !parent.checkVisibility()) continue;
+    const texte = t(avecDelai ? "contestation.sens" : "contestation.sens_aucun");
+    const bouton_ = parent.closest("button");
+    // Un bouton : après la rangée qui le porte (le titre et les boutons de la décision, ou le groupe de boutons).
+    const hote = bouton_ !== null ? (bouton_.closest(".decision-tete") ?? bouton_.closest(".nt-actions") ?? bouton_) : parent.closest("dd, dt, p, h1, h2, h3, h4, li");
+    if (hote === null) return;
+    if (hote.tagName === "DD" || hote.tagName === "LI") {
+      hote.appendChild(el("span", { classe: "sens-contestation", texte, attributs: { "data-sens-contestation": "" } }));
+    } else if (hote.tagName === "DT" && hote.nextElementSibling !== null && hote.nextElementSibling.tagName === "DD") {
+      hote.nextElementSibling.appendChild(el("span", { classe: "sens-contestation", texte, attributs: { "data-sens-contestation": "" } }));
+    } else {
+      hote.after(el("p", { classe: "sens-contestation", texte, attributs: { "data-sens-contestation": "" } }));
+    }
+    return;
+  }
+}
+
+/** Hauteur notée au plus, en rem (au-delà, la barre couvre de toute façon une bonne part de la fenêtre). */
+const BARRE_MAX_REM = 12;
+
+/**
+ * Note sur la racine du document (`data-barre`) la hauteur réelle de la
+ * barre haute quand elle reste en haut de la fenêtre (position collante, sur
+ * un poste), arrondie au rem supérieur ; 0 quand elle défile avec la page
+ * (téléphone). La feuille de style en tire `scroll-padding-top` : tout bloc
+ * amené dans la fenêtre (défilement de la page, lien vers un bloc, focus au
+ * clavier) vient sous la barre, quelle que soit sa hauteur, sans constante.
+ */
+export function noterHauteurBarre() {
+  const racine = document.documentElement;
+  const barre = document.querySelector("header.nt-barre");
+  let n = 0;
+  if (barre !== null && getComputedStyle(barre).position === "sticky") {
+    const rem = parseFloat(getComputedStyle(racine).fontSize) || 16;
+    n = Math.min(BARRE_MAX_REM, Math.ceil(barre.getBoundingClientRect().height / rem));
+  }
+  if (racine.getAttribute("data-barre") !== String(n)) racine.setAttribute("data-barre", String(n));
+}
+
+/**
+ * Amène un bloc dans la fenêtre, sous la barre haute : la hauteur de la
+ * barre est relue juste avant (`noterHauteurBarre`). `bloc` : `start` (en
+ * haut de la place laissée sous la barre) ou `center`.
+ */
+export function amenerSousLaBarre(noeud, bloc = "start") {
+  noterHauteurBarre();
+  noeud.scrollIntoView({ block: bloc });
 }
 
 // Caractères qu'un écran ne montre pas ou qui changent le sens de lecture

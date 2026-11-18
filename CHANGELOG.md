@@ -115,7 +115,59 @@ is tagged.
   package screen says in four lines what the package contains, what it does
   not contain, to whom it is handed and what the client checks; no duration
   is promised for an answer of the public registry ("quelques minutes
-  d'ordinaire"). No dependency,
+  d'ordinaire").
+  After a third cold reading of the three tools: in the console, the signing
+  screen shows the two codes in large type, side by side, headings and codes
+  aligned whatever the font, under plain headings ("Code de contrôle de
+  votre décision"; "Autre forme de ce code", with "Certaines applications
+  l'affichent en plus du long code."); the four plain instructions compare
+  each line shown by the wallet with one code only, never with either of the
+  two (EX-9.20, point 3), and keep no acronym, English word or technical
+  bracket; withdrawing from or recusing on a request sits with the rest of
+  the request, never between the wallet choice and the signature; a legend
+  says that "vérifié" means the value is the one the software agent sent,
+  unchanged since, not that it is right, and asks the approver to compare
+  the amount, the account and the payee with the supporting documents;
+  "contester" is explained once per screen; a request that has gathered its
+  approvals says what can still happen to it instead of "expires if not
+  approved"; after the person's own vote, both decisions sit in a block
+  folded by default; the directory marks each action that cannot be undone
+  "définitif" beside its button and again in its confirmation; the requester
+  line says that the console cannot check who launched the agent. On the
+  verification page, the verdict word and its mention read as one title, at
+  the same size, the sentence of what is not proven right below, in bold;
+  the exit code and its meaning head the "Pour les spécialistes" section;
+  the sentence of a control not done says what to ask for and from whom,
+  from the reason in the report and the files added at step 2, the exact
+  reason following in brackets; each reservation states its consequence;
+  after a refusal "Vérifier" is inactive and the refusal is said where the
+  refused file was chosen; the safety instruction of step 2 is at body size.
+  In the onboarding tool, a signed document is sent by a button that names
+  the sender ("Envoyer par notre compte d'envoi"), with no choice to make,
+  sending by a test reference being a separate, tucked-away action; each
+  recorder record is pasted as it is into its own box and the page builds
+  the list, an empty first box being refused with the reason (the tool
+  registers only the recorders of the dossier, which is prepared once);
+  resuming a send is called "Aller chercher la réponse du registre public"
+  everywhere, since it only reads the registry; each step of the
+  confirmation form has its own sentence, and the form is folded when no
+  confirmation is expected; "Copier" buttons sit beside the address of the
+  technical account and each fingerprint to compare or pass on. The bodies
+  sent to the routes are byte-identical to those of the former screens. The
+  continuous integration of the previous commit failed on two console tests
+  (decision buttons outside the first screen, signing screen brought under
+  the top bar), and two onboarding tests failed the same way: the runner has
+  no Inter font and renders with a wider fallback (DejaVu Sans), as most
+  users would. The pages are fixed, not the tests: the console bar stays on
+  one line at 1280 pixels, the page reads the real height of the bar instead
+  of a constant before bringing a block under it, and the decision and
+  signature buttons stay in the first screen at 1280 × 800 with the fallback
+  font, at 760 pixels at most; the onboarding client record takes the screen
+  width and puts the button of an instruction without a field beside its
+  sentences. Every browser test of the three tools is run with the fonts of
+  the machine and with a simulation of the runner's fonts; no threshold is
+  relaxed, and no test depends on the font.
+  No dependency,
   font, image or external resource is added; no content security policy,
   header or subresource-integrity rule is loosened; the console and the
   verification page still store nothing; the common theme block is
@@ -123,7 +175,8 @@ is tagged.
   recomputed by the package's build script. Specifications: dated
   supplements in CT-3 (EX-9.4, EX-9.18, EX-9.20, EX-12.21, EX-13.3,
   EX-13.7, EX-13.29, 13.1), CT-6 (EX-18.2, EX-18.5, EX-18.7, EX-18.9) and
-  CT-4 (EX-7.25, EX-7.26); no control rule,
+  CT-4 (EX-7.25, EX-7.26), those of CT-3 and CT-6 rewritten in place after
+  the third reading; no control rule,
   schema, report, exit code or vector changes; the line citations of CT-7,
   CT-8 and CT-9 follow the moved texts. Tests:
   `test/exploitation-console-langage-chromium.test.js` (new), and new cases
@@ -146,7 +199,14 @@ is tagged.
   of the console through its file pattern; the new cases of the
   verification page run in the three engines in the presentation step, with
   no pending test. Test plan (CT-9): the new tests are attached to TE-13,
-  TE-22 and TE-23; catalogue regenerated twice, byte-identical.
+  TE-22 and TE-23; catalogue regenerated twice, byte-identical. After the
+  third reading, new cases in the same files (codes aligned, recusing never
+  between wallet and signature, legend of "vérifié", "définitif", reason of
+  a control not done per added file, consequence of each reservation,
+  inactive button after a refusal, sender named by the button, one box per
+  recorder record, copy buttons), each red on the former screens and green
+  on the new ones, with mutants killed; the whole set is green with both
+  fonts.
 - Build step 8, supplements of 2026-11-17: presentation of the screens
   (étape 8, compléments du 2026-11-17 : présentation des écrans). The three
   tools that people look at, the approval console, the verification page and

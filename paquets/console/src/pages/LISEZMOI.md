@@ -213,6 +213,24 @@ service simulés par interception, en-têtes de 2.6, espions du stockage).
   lit la vue de chaque demande et affiche le montant vérifié
   (`montantVerifie`), rien sinon ; des lectures seulement. Mutant vu : le
   montant non vérifié affiché.
+- **Barre et défilement.** À 1280 de large, la barre tient sur une ligne
+  avec toute police courante ; la page note sa hauteur réelle
+  (`data-barre`) et la feuille en tire `scroll-padding-top` : ce que la
+  page amène vient sous la barre, quelle que soit sa hauteur. Les essais
+  du navigateur se jouent avec les polices de la machine et avec celles
+  d'un poste sans Inter (`FONTCONFIG_FILE` qui écarte Inter : DejaVu Sans).
+  Mutant vu : la hauteur supposée de 5 rem.
+- **« vérifié ».** Sous les valeurs vérifiées, et dans la liste dès qu'un
+  montant vérifié y paraît, une légende bien visible dit ce que la marque
+  veut dire et ne veut pas dire, et invite à comparer aux pièces. Mutant
+  vu : la légende retirée.
+- **Récusation et retrait.** Au pied des cartes « Qui décide » et « Qui
+  demande » : jamais entre le choix du portefeuille et la signature.
+  Mutant vu : la récusation remise à côté du portefeuille.
+- **« Contester ».** Expliqué une fois par écran, là où le mot paraît
+  d'abord.
+- **Annuaire.** « définitif » à côté de chaque action qu'on ne peut pas
+  défaire, redit à la confirmation. Mutant vu : la mention retirée.
 - **Limites.** Dans la liste, le montant n'est affiché que pour les dix
   premières demandes à décider, et seulement quand la console l'a vérifié
   (la réponse `tickets` ne porte pas les arguments). Les autres approbateurs restent des adresses

@@ -2127,6 +2127,75 @@ html[data-theme="clair"] .nt-case input {
   font-weight: 700;
 }
 
+/* Le nom de la personne et l'adresse du système de connexion passent à la ligne d'un seul tenant ; trop longs, ils se coupent où il faut. */
+.personne-connectee,
+.barre-console-session code {
+  display: inline-block;
+  max-width: 100%;
+}
+
+/*
+ * Sur un poste, la barre tient sur une ligne à 1280 de large avec toute
+ * police courante, pas seulement celle du thème : navigation et espacements
+ * resserrés, la personne connectée sur trois lignes au plus. Plus étroite,
+ * la fin de la barre passe à la ligne au lieu de se tasser en une colonne
+ * de quelques lettres. La page lit la hauteur réelle de la barre pour
+ * amener un bloc dessous (`amenerSousLaBarre`).
+ */
+@media (min-width: 56rem) {
+  .barre-console-ligne {
+    flex-wrap: wrap;
+    gap: var(--nt-e-2) var(--nt-e-3);
+  }
+
+  .barre-console nav a {
+    padding: 0 var(--nt-e-3);
+  }
+
+  /* La fin de la barre se resserre jusqu'à sa largeur de base, puis passe à la ligne. */
+  .barre-console-fin {
+    flex: 1 1 24rem;
+    justify-content: flex-end;
+    gap: var(--nt-e-2) var(--nt-e-3);
+  }
+
+  .barre-console-session {
+    min-width: 13rem;
+  }
+
+  .barre-console-sortie {
+    padding: 0 var(--nt-e-3);
+  }
+
+  /* Passée à la ligne, la bascule de thème reste à droite. */
+  .barre-console-fin + .barre-console-outils {
+    margin-left: auto;
+  }
+}
+
+/*
+ * Un bloc amené dans la fenêtre (défilement de la page, lien vers un bloc,
+ * focus au clavier) vient sous la barre haute : la page note la hauteur
+ * réelle de la barre, en rem entiers, sur la racine (`data-barre`, 0 quand
+ * la barre défile avec la page), et la marge du haut de la fenêtre en suit.
+ */
+html {
+  scroll-padding-top: 0.25rem;
+}
+
+html[data-barre="1"] { scroll-padding-top: 1.25rem; }
+html[data-barre="2"] { scroll-padding-top: 2.25rem; }
+html[data-barre="3"] { scroll-padding-top: 3.25rem; }
+html[data-barre="4"] { scroll-padding-top: 4.25rem; }
+html[data-barre="5"] { scroll-padding-top: 5.25rem; }
+html[data-barre="6"] { scroll-padding-top: 6.25rem; }
+html[data-barre="7"] { scroll-padding-top: 7.25rem; }
+html[data-barre="8"] { scroll-padding-top: 8.25rem; }
+html[data-barre="9"] { scroll-padding-top: 9.25rem; }
+html[data-barre="10"] { scroll-padding-top: 10.25rem; }
+html[data-barre="11"] { scroll-padding-top: 11.25rem; }
+html[data-barre="12"] { scroll-padding-top: 12.25rem; }
+
 .pied-session {
   width: 100%;
   max-width: var(--nt-largeur);
@@ -2175,12 +2244,14 @@ html[data-theme="clair"] .nt-case input {
   max-width: none;
 }
 
-/* La phrase d'en-tête et, à sa suite quand la place le permet, le montant en grand. */
-.phrase-et-montant {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--nt-e-1) var(--nt-e-3);
+/* La phrase d'en-tête et, à sa suite sur la même ligne quand la place le permet, le montant en grand. */
+.phrase-et-montant > p {
+  display: inline;
+}
+
+.phrase-et-montant > p + p {
+  margin-left: var(--nt-e-2);
+  white-space: nowrap;
 }
 
 /* Valeur d'un argument (EX-9.16, revue de sécurité de l'étape 8) : les blancs ne sont pas fusionnés. */
@@ -2359,26 +2430,96 @@ html[data-theme="clair"] .nt-case input {
 
 @media (min-width: 56rem) {
   .page-ticket {
-    padding-top: var(--nt-e-4);
+    padding-top: var(--nt-e-2);
   }
 
   .essentiel-serre {
-    gap: 0.625rem;
+    gap: var(--nt-e-2);
     padding-top: var(--nt-e-4);
     padding-bottom: var(--nt-e-4);
   }
 
+  /* Le demandeur, sa provenance et sa marque prennent la colonne la plus large. */
   .faits-ligne {
-    grid-template-columns: minmax(0, 2.3fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.6fr);
-    gap: var(--nt-e-3) var(--nt-e-5);
-    padding-top: var(--nt-e-3);
+    grid-template-columns: minmax(0, 3.2fr) minmax(0, 1.75fr) minmax(0, 1fr) minmax(0, 1.55fr);
+    gap: var(--nt-e-3) var(--nt-e-4);
+    padding-top: var(--nt-e-2);
+  }
+
+  /* Les blocs de la demande se suivent de près : l'en-tête, la carte « essentiel », le reste. */
+  .pile-demande {
+    gap: var(--nt-e-4);
   }
 }
 
-/* Carte « essentiel » : la décision, sous les faits. */
+/* Carte « essentiel » : la décision, sous les faits ; sur un poste, « Votre décision » à gauche des deux boutons. */
 .titre-decision {
   font-size: var(--nt-t-l);
 }
+
+.decision-tete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-3);
+}
+
+/*
+ * Les deux boutons de décision côte à côte, même sur un téléphone : deux
+ * colonnes égales, quelle que soit la longueur de chaque libellé, donc même
+ * largeur et même poids ; un libellé long passe à la ligne.
+ */
+.boutons-decision:has(> button[data-decision]) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.boutons-decision > button[data-decision] {
+  min-width: 0;
+  padding-right: var(--nt-e-3);
+  padding-left: var(--nt-e-3);
+}
+
+@media (max-width: 37.5rem) {
+  .boutons-decision > button[data-decision] {
+    padding-right: var(--nt-e-2);
+    padding-left: var(--nt-e-2);
+    font-size: var(--nt-t-m);
+  }
+}
+
+@media (min-width: 56rem) {
+  .decision-tete {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--nt-e-5);
+  }
+}
+
+/*
+ * Ce que « vérifié » veut dire, sous les valeurs qui portent cette marque :
+ * dans le texte courant, pas en note grise, pour qu'on ne le manque pas.
+ */
+.legende-verifie {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--nt-e-2);
+  margin: 0;
+  padding: 0.375rem var(--nt-e-3);
+  border-left: 3px solid var(--nt-info);
+  border-radius: var(--nt-rayon-s);
+  background: var(--nt-info-fond);
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-s);
+  line-height: 1.4;
+}
+
+.legende-verifie svg {
+  flex: none;
+  margin-top: 0.125rem;
+}
+
 
 .decision-question,
 .decision-choisie {
@@ -2559,6 +2700,33 @@ html[data-theme="clair"] .nt-case input {
   flex: 1 1 100%;
 }
 
+/* Annuaire : une action qu'on ne peut pas défaire porte « définitif » juste à côté de son bouton. */
+.action:has(> .mention-definitif) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-1) var(--nt-e-2);
+}
+
+.mention-definitif {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nt-e-1);
+  color: var(--nt-attente);
+  font-size: var(--nt-t-s);
+  font-weight: 700;
+}
+
+/* « Contester » expliqué, une fois, là où le mot paraît pour la première fois. */
+.sens-contestation {
+  display: block;
+  margin: 0;
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
 /* Mon adresse : sur grand écran, l'adresse s'écrit en entier sur une ligne. */
 @media (min-width: 62rem) {
   .adresse-entiere {
@@ -2634,7 +2802,7 @@ html[data-theme="clair"] .nt-case input {
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) auto;
   align-items: baseline;
   gap: var(--nt-e-1) var(--nt-e-4);
-  padding: 0.1875rem 0;
+  padding: 0.125rem 0;
   border-top: 1px solid var(--nt-bord-doux);
 }
 
@@ -2771,11 +2939,36 @@ html[data-theme="clair"] .nt-case input {
   }
 }
 
-/* Le choix du portefeuille, où la page amène après la confirmation de la décision : sous la barre, pas dessous. */
+/*
+ * Avec le reste de la demande, au pied d'une carte : la récusation (« Qui
+ * décide ») et le retrait (« Qui demande »), deux gestes définitifs, séparés
+ * du contenu de la carte par un trait.
+ */
+.action-carte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-2);
+  padding-top: var(--nt-e-3);
+  border-top: 1px solid var(--nt-bord-doux);
+}
+
+.action-carte:empty {
+  display: none;
+}
+
+.action-carte-titre {
+  font-size: var(--nt-t-m);
+}
+
+.action-carte > p {
+  margin: 0;
+  font-size: var(--nt-t-s);
+}
+
+/* Le choix du portefeuille, où la page amène après la confirmation de la décision (sous la barre : voir `data-barre`). */
 .bas-demande .zone-carte {
   gap: var(--nt-e-3);
   padding: var(--nt-e-4) var(--nt-e-5);
-  scroll-margin-top: 5rem;
 }
 
 /* Le bloc où la page vient d'amener la personne se voit : l'anneau de focus, même après un clic de souris. */
@@ -2883,10 +3076,7 @@ html[data-theme="clair"] .nt-case input {
   font-size: var(--nt-t-s);
 }
 
-/* Écran de signature : ce que la personne s'apprête à faire, le rappel de la demande, l'empreinte à comparer. */
-.signature {
-  scroll-margin-top: 5rem;
-}
+/* Écran de signature : ce que la personne s'apprête à faire, le rappel de la demande, les codes à comparer. */
 
 .signature-haut {
   display: grid;
@@ -2895,9 +3085,15 @@ html[data-theme="clair"] .nt-case input {
 }
 
 @media (min-width: 56rem) {
+  /* Le rappel et la décision signée à gauche ; à droite, les consignes courantes. */
   .signature-haut {
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
     gap: var(--nt-e-6);
+  }
+
+  .signature {
+    gap: var(--nt-e-3);
+    padding: var(--nt-e-4) var(--nt-e-5);
   }
 }
 
@@ -2987,6 +3183,11 @@ html[data-theme="clair"] .nt-case input {
     display: none;
   }
 
+  /* La carte « essentiel » : un peu plus de place pour le texte. */
+  .essentiel-serre {
+    padding: var(--nt-e-4);
+  }
+
   /* Les faits de la carte : deux par rangée. */
   .faits-ligne {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -3020,6 +3221,11 @@ html[data-theme="clair"] .nt-case input {
     padding: var(--nt-e-3) var(--nt-e-4);
   }
 
+  /* Sur un téléphone, la légende de « vérifié » prend toute la largeur : son trait de gauche suffit à la signaler. */
+  .legende-verifie svg {
+    display: none;
+  }
+
   .zone-sortie {
     padding-right: var(--nt-e-4);
     padding-left: var(--nt-e-4);
@@ -3039,6 +3245,55 @@ html[data-theme="clair"] .nt-case input {
   }
 }
 
+
+/*
+ * Les deux codes de l'écran de signature, en grand, côte à côte sur un
+ * poste : le code de contrôle, puis son autre forme. Leurs intitulés et
+ * leurs codes s'alignent d'une carte à l'autre (rangées partagées).
+ */
+.codes-signature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--nt-e-3);
+}
+
+@media (min-width: 56rem) {
+  .codes-signature {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+  }
+
+  /*
+   * Chaque carte reprend les trois rangées de la grille (intitulé, code, ce
+   * qui suit) : quelle que soit la police, un intitulé qui passerait sur
+   * deux lignes ne décale pas son code par rapport à l'autre.
+   */
+  .codes-signature > .encart-empreinte {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    row-gap: var(--nt-e-2);
+    align-content: start;
+  }
+
+  /* La décision signée, l'adresse et le portefeuille : une rangée de trois, l'intitulé à gauche de la valeur. */
+  .faits-signature {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.9fr) minmax(0, 1fr);
+    gap: 0 var(--nt-e-5);
+  }
+
+  .faits-signature > .ligne {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 var(--nt-e-2);
+  }
+}
+
+.codes-signature > div {
+  padding: var(--nt-e-3) var(--nt-e-4);
+}
 
 /* Complément du 2026-11-18 : consignes courantes de l'écran de signature, avant le bouton. */
 .consignes-courantes {
@@ -3078,11 +3333,12 @@ html[data-theme="clair"] .nt-case input {
   overflow-wrap: anywhere;
 }
 
-/* Le résultat d'une signature, là où la page amène la personne : sous la barre, sans anneau de focus. */
-.zone-resultat {
-  scroll-margin-top: 5rem;
+/* Le code en entier suit son libellé sur la même ligne, et se coupe où il faut. */
+.code-entier .d-a {
+  word-break: break-all;
 }
 
+/* Le résultat d'une signature, là où la page amène la personne : sous la barre, sans anneau de focus. */
 .zone-resultat:focus,
 .signature:focus {
   outline: none;

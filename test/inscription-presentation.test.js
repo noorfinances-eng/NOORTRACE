@@ -286,7 +286,8 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         // 2026-11-18 : la consigne est la capture de cet envoi (`capturer --envoi`), qui ne demande aucune confirmation.
         const envoye = dossierFictif("client-neuf", ["capturee", "capturee", "faite", "envoyee", "a_faire", "a_faire", "a_faire"]);
         a = M.prochaineAction(vue(envoye));
-        expect(a).to.include({ code: "reprendre_envoi", commande: "capturer", etape: 5, parametre: "envoi", valeur: envoye.steps[3].transaction_hash, titre: "Reprenez l'envoi resté sans réponse à l'étape 5", bouton: "Reprendre cet envoi" });
+        // Troisième lecture : le travail `capturer` ne fait que lire le registre ; une seule formule pour ce geste.
+        expect(a).to.include({ code: "reprendre_envoi", commande: "capturer", etape: 5, parametre: "envoi", valeur: envoye.steps[3].transaction_hash, titre: "Allez chercher la réponse du registre public pour l'étape 5", bouton: "Chercher la réponse", sousBouton: "Rien n'est renvoyé, rien n'est dépensé." });
         expect(a.phrase).to.equal("Une opération est partie vers le registre public, mais sa réponse n'est pas rangée dans le dossier. L'outil va chercher cette réponse et range la preuve de l'opération. Il ne renvoie jamais une opération déjà partie.");
         // Envoi sans réponse et confirmation non notée : la consigne est la reprise de l'envoi, et elle seule ; la
         // confirmation ne redevient la consigne qu'une fois l'envoi rangé.
@@ -295,14 +296,15 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         expect(a).to.include({ code: "reprendre_envoi", commande: "capturer", etape: 2, parametre: "envoi", valeur: parti.steps[0].transaction_hash });
         // L'attente a sa durée ordinaire, celle que règle le service d'inscription (120 secondes par défaut), et une
         // conduite sans chiffre inventé : si la fiche ne change pas, prévenir, sans relancer.
-        expect(a.apres).to.equal("Après le clic : l'outil va chercher la réponse du registre public et l'attend, quelques minutes d'ordinaire. S'il l'obtient, l'étape passe à « Fait » et la fiche vous donne la consigne suivante. Sinon, la fiche ne change pas : prévenez alors l'équipe technique, sans rien lancer d'autre. Rien n'est renvoyé, rien n'est dépensé.");
+        expect(a.apres).to.equal("Après le clic : l'outil va chercher la réponse du registre public et l'attend, quelques minutes d'ordinaire. S'il l'obtient, l'étape passe à « Fait » et la fiche vous donne la consigne suivante. Sinon, la fiche ne change pas : prévenez alors l'équipe technique, sans rien lancer d'autre.");
         expect(a.cles, "aucune confirmation demandée tant que l'envoi n'est pas repris").to.equal(undefined);
         expect(M.prochaineAction(vue(dossierFictif("client-neuf", ["capturee", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]))).code, "l'envoi rangé, la confirmation redevient la consigne").to.equal("consigner_confirmation");
         // Opération inscrite dont la preuve manque : même consigne, par la transaction (`capturer --transaction`).
         const inscriteSansPreuve = dossierFictif("client-neuf", ["capturee", "incluse", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]);
         a = M.prochaineAction(vue(inscriteSansPreuve, { confirmations: [conf(null)] }));
         expect(a).to.include({ code: "reprendre_envoi", commande: "capturer", etape: 3, parametre: "transaction", valeur: inscriteSansPreuve.steps[1].transaction_hash });
-        expect(a.apres).to.equal("Après le clic : l'outil range la preuve, l'étape passe à « Fait » et la fiche vous donne la consigne suivante. Si la fiche ne change pas, prévenez l'équipe technique, sans rien lancer d'autre. Rien n'est renvoyé, rien n'est dépensé.");
+        expect(a.apres).to.equal("Après le clic : l'outil range la preuve, l'étape passe à « Fait » et la fiche vous donne la consigne suivante. Si la fiche ne change pas, prévenez l'équipe technique, sans rien lancer d'autre.");
+        expect(a).to.include({ titre: "Allez chercher la réponse du registre public pour l'étape 3", bouton: "Chercher la réponse", sousBouton: "Rien n'est renvoyé, rien n'est dépensé." });
         // L'envoi de l'étape 6 (inscription de l'enregistreur) part aussi du service d'inscription : même reprise.
         const sixEnvoyee = dossierFictif("client-neuf", ["capturee", "capturee", "faite", "capturee", "envoyee", "a_faire", "a_faire"]);
         a = M.prochaineAction(vue(sixEnvoyee));
@@ -323,7 +325,8 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
           expect(a, etats.join(",")).to.include({ code: "attendre_envoi", etape: n, titre: envoyee ? `Attendez la réponse du registre public pour l'étape ${n}` : `Attendez que la preuve de l'étape ${n} soit rangée dans le dossier`, bouton: "Actualiser la fiche", lien: "/clients/client-neuf" });
           expect(a.commande, "aucune action proposée").to.equal(undefined);
           // D'abord à qui est l'étape, puis où elle en est et depuis quand, puis à partir de quand s'inquiéter : sans durée inventée.
-          const depuis = `depuis le 12 novembre 2026 à 08:0${n - 2} UTC`;
+          // Heures des données fictives, dans l'ordre des étapes : la première preuve de date à 10:00, la clôture à 11:00.
+          const depuis = `depuis le 12 novembre 2026 à ${n === 7 ? "10:00" : "11:00"} UTC`;
           expect(a.phrase).to.equal(`Cette étape se fait chez le client, avec ses propres outils : vous n'avez rien à lancer d'ici. ${envoyee ? `Elle est notée « Envoyée » ${depuis} et attend la réponse du registre public` : `Le registre public l'a inscrite ${depuis}, mais sa preuve n'est pas encore rangée dans le dossier`}. Le client a fait sa part : si la fiche n'a pas changé à votre prochaine visite, prévenez l'équipe technique.`);
           expect(a.apres).to.equal("Le bouton relit seulement la fiche : rien n'est envoyé, rien n'est dépensé. Cet outil ne sait pas combien de temps le registre public mettra à répondre.");
           neutres.push(vue(chezLeClient));
@@ -333,7 +336,8 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         a = M.prochaineAction(vue(cours));
         expect(a).to.include({ code: "preparer_demande", commande: "condense-inscription", keyId: cours.recorders[0].key_id, titre: "Préparez le document d'inscription de l'enregistreur" });
         a = M.prochaineAction(vue(cours, { demandes: [{ nom: `demande-inscription-${cours.recorders[0].key_id}-trv-1.json`, document: { signatures: [] } }] }));
-        expect(a).to.include({ code: "relayer_demande", commande: "inscrire-cle", titre: "Faites signer le document par les approbateurs du client, puis envoyez-le", bouton: "Envoyer le document signé" });
+        // Troisième lecture : le bouton dit lui-même qui envoie, et la phrase dessous dit que c'est le cas habituel.
+        expect(a).to.include({ code: "relayer_demande", commande: "inscrire-cle", titre: "Faites signer le document par les approbateurs du client, puis envoyez-le", bouton: "Envoyer par notre compte d'envoi", sousBouton: "C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi." });
         expect(a.phrase).to.equal("Le document d'inscription de l'enregistreur est prêt. Remettez-le aux approbateurs du client : ils le contrôlent et le signent avec leur propre outil, jamais dans celui-ci. Quand le client vous rend le document signé, envoyez-le ici.");
         // Enregistreur inscrit : la première période se fait hors de l'outil.
         const inscrite = dossierFictif("client-neuf", ["capturee", "capturee", "faite", "capturee", "capturee", "a_faire", "a_faire"]);
@@ -529,6 +533,135 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       expect(P.nombreLisible("327000000")).to.equal("327\u00a0000\u00a0000");
       expect(P.nombreLisible("327000000").replace(/\u00a0/g, "")).to.equal("327000000");
       expect(P.nombreLisible("12 wei")).to.equal("12 wei");
+    });
+
+    it("troisième lecture des écrans : une seule formule pour la reprise d'un envoi, qui ne fait que lire le registre (« Allez chercher la réponse du registre public », « Chercher la réponse ») ; le bouton de l'envoi d'un document signé dit qui envoie ; une confirmation n'est attendue que pour un versement à faire ou un changement des approbateurs préparé ; les fiches d'enregistreur se lisent une par zone et donnent la liste de la saisie à la main ; les heures des données fictives suivent l'ordre des étapes ; mutants tués", async function () {
+      const neuf = dossierFictif("client-neuf", ["a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]);
+      const vue = (dossier, plus = {}) => ({ slug: dossier.organisation.slug, dossier, confirmations: [], demandes: [], periodes: [], parties: [], travaux: [], paquet: { present: false, dernier: null }, ...plus });
+      // 1. Une formule pour la reprise : la consigne, le nom de l'action, les erreurs qui y renvoient, le résultat pas encore connu.
+      const formule = (M) => {
+        const textes = [M.libelleCommande("capturer"), M.etatTravail({ etat: "fini", sortie: { result: "incertain" } }).explication];
+        for (const code of ["recu_absent", "transaction_en_attente", "certificat_indisponible", "certificat_elague", "certificat_invalide", "capture_incomplete"]) {
+          const x = M.explicationErreur(code);
+          textes.push(x.phrase, x.effet, x.quoiFaire);
+          expect(x.quoiFaire, code).to.contain("Actualisez la fiche du client : elle vous propose d'aller chercher la réponse du registre public.");
+        }
+        for (const etats of [["envoyee", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"], ["capturee", "incluse", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"], ["capturee", "capturee", "faite", "capturee", "envoyee", "a_faire", "a_faire"]]) {
+          const a = M.prochaineAction(vue(dossierFictif("client-neuf", etats)));
+          expect(a.code).to.equal("reprendre_envoi");
+          expect(a.titre).to.match(/^Allez chercher la réponse du registre public pour l'étape [2-6]$/);
+          expect([a.bouton, a.sousBouton]).to.deep.equal(["Chercher la réponse", "Rien n'est renvoyé, rien n'est dépensé."]);
+          textes.push(a.titre, a.phrase, a.aPreparer, a.apres, a.bouton, a.sousBouton);
+        }
+        expect(M.libelleCommande("capturer")).to.equal("Aller chercher la réponse du registre public");
+        expect(M.etatTravail({ etat: "fini", sortie: { result: "incertain" } }).explication).to.equal("L'opération est partie, mais la réponse du registre public n'est pas arrivée. Ne relancez pas l'action : allez chercher la réponse du registre public, depuis la fiche du client.");
+        // Rien ne dit « reprendre » un envoi : le mot fait croire qu'on renvoie.
+        for (const t of textes) expect(t, t).to.not.match(/repren[a-z]* (?:cet |l'|un |votre )?envoi|reprise de l'envoi/i);
+        expect(motsTechniquesDans(textes.join("\n"))).to.deep.equal([]);
+      };
+      formule(P);
+      let tue = false;
+      try { formule(await mutant("reprendre-cet-envoi", "  bouton: \"Chercher la réponse\",", "  bouton: \"Reprendre cet envoi\",")); } catch { tue = true; }
+      expect(tue, "mutant « Reprendre cet envoi » tué").to.equal(true);
+      // 2. L'envoi d'un document signé : le bouton nomme notre compte d'envoi ; la phrase dessous dit le cas habituel.
+      expect(P.PAR_NOTRE_COMPTE).to.deep.equal({ bouton: "Envoyer par notre compte d'envoi", sousBouton: "C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi." });
+      // 3. Confirmation attendue : la même règle que la consigne pour le versement, et un changement des approbateurs préparé.
+      const attendues = (M) => {
+        const cle = neuf.recorders[0].chain_key;
+        const conf = (plus) => ({ id: "cnf-1", operation: "approvisionnement", objet: { org_id: neuf.organisation.org_id, cle_chaine: cle }, consommee_par: null, ...plus });
+        expect(M.confirmationsAttendues({ dossier: neuf })).to.deep.equal([{ operation: "approvisionnement", cle_chaine: cle }]);
+        expect(M.confirmationsAttendues({ dossier: neuf, confirmations: [conf()] }), "une confirmation prête à servir attend déjà").to.deep.equal([]);
+        expect(M.confirmationsAttendues({ dossier: neuf, confirmations: [conf({ consommee_par: "trv-1" })] }), "une confirmation déjà utilisée ne compte pas").to.have.length(1);
+        const verse = dossierFictif("client-verse", ["capturee", "capturee", "faite", "capturee", "a_faire", "a_faire", "a_faire"]);
+        expect(M.confirmationsAttendues({ dossier: verse }), "versement fait").to.deep.equal([]);
+        const echec = dossierFictif("client-echec", ["capturee", "capturee", "faite", "echec", "a_faire", "a_faire", "a_faire"]);
+        expect(M.confirmationsAttendues({ dossier: echec }).map((x) => x.operation), "versement en échec, à refaire").to.deep.equal(["approvisionnement"]);
+        const digest = `0x${"ab".repeat(32)}`;
+        const prepare = { nom: "demande-administration-trv-7.json", document: { operation: "administration_jeu", digest } };
+        expect(M.confirmationsAttendues({ dossier: verse, demandes: [prepare] })).to.deep.equal([{ operation: "administrer-jeu", digest }]);
+        expect(M.confirmationsAttendues({ dossier: verse, demandes: [prepare], confirmations: [{ id: "cnf-2", operation: "administrer-jeu", objet: { org_id: verse.organisation.org_id, digest }, consommee_par: null }] })).to.deep.equal([]);
+        expect(M.confirmationsAttendues({ dossier: verse, demandes: [prepare, { nom: "demande-administration-relayee-trv-8.json", document: { digest } }] }), "changement envoyé").to.deep.equal([]);
+        // La consigne de la fiche et l'écran des confirmations disent la même chose.
+        for (const v of [vue(neuf), vue(neuf, { confirmations: [conf()] }), vue(verse), vue(echec)]) expect(M.prochaineAction(v).code === "consigner_confirmation", v.dossier.organisation.slug).to.equal(M.confirmationsAttendues(v).length > 0);
+      };
+      attendues(P);
+      tue = false;
+      try { attendues(await mutant("toujours-attendue", "const l = versementsSansConfirmation(dossier, confirmations).map(", "const l = [{ operation: \"approvisionnement\" }, ...versementsSansConfirmation(dossier, confirmations)].map(")); } catch { tue = true; }
+      expect(tue, "mutant « confirmation toujours attendue » tué").to.equal(true);
+      // 4. Les fiches d'enregistreur : une par zone ; la liste assemblée est celle de la saisie à la main « [ fiche, fiche ] ».
+      const C = await import(pathToFileURL(path.join(WEB, "composants", "champs-page.js")).href);
+      expect([...C.MEMBRES_FICHE].sort(), "membres exigés par le schéma").to.deep.equal([...schema("inscription-client-v0.schema.json").$defs.cle_enregistreur.required].sort());
+      const champ = { nom: "cles_enregistreur", type: "liste_documents" };
+      const fiche = (n) => ({ ...dossierFictif(`fiche-${n}`, ["a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]).recorders[0], created_at: "2026-11-10T09:00:00.000Z" });
+      const [t1, t2] = [JSON.stringify(fiche(1), null, 2), `\n  ${JSON.stringify(fiche(2))}  \n`];
+      expect(C.lireFiches(champ, [t1])).to.deep.equal({ valeur: [fiche(1)] });
+      expect(C.lireFiches(champ, [t1, t2])).to.deep.equal({ valeur: [fiche(1), fiche(2)] });
+      // Le corps envoyé est celui que produisait la saisie à la main dans une seule zone, au caractère près.
+      expect(JSON.stringify(C.lireFiches(champ, [t1, t2]).valeur)).to.equal(JSON.stringify(C.lireChamp(champ, `[${t1},${t2}]`).valeur));
+      for (const [textes, attendu] of [
+        [[""], { zone: 0, regle: "fiche_vide" }], [[t1, "   "], { zone: 1, regle: "fiche_vide" }], [["[]"], { zone: 0, regle: "fiche_liste" }], [[`[${t1}]`], { zone: 0, regle: "fiche_liste" }],
+        [[t1.slice(0, -1)], { zone: 0, regle: "fiche_illisible" }], [["0x70997970c51812dc3a010c7d01b50e0d17dc79c8"], { zone: 0, regle: "fiche_illisible" }], [['"texte"'], { zone: 0, regle: "fiche_illisible" }],
+        [[t1, JSON.stringify({ key_id: "rec-1" })], { zone: 1, regle: "fiche_illisible" }],
+      ]) {
+        const r = C.lireFiches(champ, textes);
+        expect(r, textes.join("|").slice(0, 40)).to.include(attendu);
+        expect(r.valeur).to.equal(undefined);
+        expect(r.erreur, "la valeur refusée n'est pas recopiée").to.not.contain("0x7099");
+      }
+      for (const regle of ["fiche_vide", "fiche_liste", "fiche_illisible"]) {
+        for (const retirable of [false, true]) {
+          const t = P.explicationFiche(regle, retirable);
+          expect(t, regle).to.match(/^[A-ZÀ-Ý].+\.$/);
+          expect(t, regle).to.match(/[Cc]ollez/);
+          expect(motsTechniquesDans(t), regle).to.deep.equal([]);
+        }
+      }
+      expect(P.explicationFiche("fiche_vide", true)).to.match(/« Retirer cette zone »\.$/);
+      // La première zone ne reste pas vide, et la phrase dit pourquoi (une liste vide, que la route admet, est
+      // refusée dans la page) : cet outil n'inscrit que les enregistreurs du dossier, qui ne se prépare qu'une fois.
+      expect(P.explicationFiche("fiche_vide", false)).to.equal("Cette zone est vide. Collez-y tout le contenu du fichier que le client vous a envoyé pour son enregistreur, sans rien y changer. Il faut au moins une fiche : l'outil n'inscrit au registre public que les enregistreurs dont la fiche est donnée ici, et il ne pourra plus en ajouter une fois le dossier préparé.");
+      for (const regle of ["fiche_liste", "fiche_illisible"]) for (const retirable of [false, true]) expect(P.explicationFiche(regle, retirable), regle).to.not.contain("au moins une fiche");
+      expect(P.explicationFiche("fiche_vide", true), "une zone ajoutée peut se retirer").to.not.contain("au moins une fiche");
+      expect(P.explicationSaisie("liste_documents"), "plus de crochets à taper").to.not.match(/crochet/);
+      // 5. Heures des données fictives : dans l'ordre des étapes et des travaux (un même échec n'a qu'une heure).
+      const { ecrireDonneesFictives, ajouterClientFictif } = await import("./fixtures/inscription/donnees-fictives.mjs");
+      const d = path.join(dir, "donnees-heures");
+      fs.mkdirSync(d);
+      const F = ecrireDonneesFictives(d);
+      ajouterClientFictif(d, "client-etape-7-envoyee", ["capturee", "capturee", "faite", "capturee", "capturee", "envoyee", "a_faire"], { histoire: true });
+      ajouterClientFictif(d, "client-premiere-periode", ["capturee", "capturee", "faite", "capturee", "capturee", "a_faire", "a_faire"], { histoire: true });
+      const travaux = fs.readdirSync(path.join(d, "travaux")).map((n) => JSON.parse(fs.readFileSync(path.join(d, "travaux", n), "utf8")));
+      const lignes = fs.readFileSync(path.join(d, "confirmations.ndjson"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+      let vus = 0;
+      for (const slug of fs.readdirSync(path.join(d, "clients"))) {
+        const dossier = JSON.parse(fs.readFileSync(path.join(d, "clients", slug, "dossier.json"), "utf8"));
+        const siens = travaux.filter((t) => t.slug === slug);
+        const instants = dossier.steps.filter((e) => e.updated_at).map((e) => e.updated_at);
+        expect(instants, `${slug} : étapes dans l'ordre`).to.deep.equal([...instants].sort());
+        for (const e of dossier.steps.filter((x) => x.updated_at)) {
+          expect(e.updated_at > dossier.prepared_at, `${slug} ${e.step} après la préparation`).to.equal(true);
+          const commande = { jeu_approbateurs: "inscrire-client", assignation: "inscrire-client", lecture_jeu: "inscrire-client", approvisionnement: "inscrire-client", inscription: "inscrire-cle" }[e.step];
+          const t = siens.filter((x) => x.commande === commande).sort((a, b) => (a.recu_a < b.recu_a ? 1 : -1))[0];
+          if (!commande || !t) continue;
+          vus++;
+          // L'étape est écrite par le travail qui la conduit : après sa réception, à la même minute affichée.
+          expect(e.updated_at > t.recu_a, `${slug} ${e.step} après son travail`).to.equal(true);
+          expect(P.dateLisible(e.updated_at), `${slug} ${e.step} : même heure que son travail`).to.equal(P.dateLisible(t.recu_a));
+        }
+        // La confirmation est notée avant le travail qui la consomme, et consommée avant le versement.
+        for (const l of lignes.filter((x) => x.consommation && x.org_id === dossier.organisation.org_id)) {
+          const c = lignes.find((x) => x.id === l.consommation);
+          const verse = dossier.steps.find((e) => e.step === "approvisionnement");
+          const t = travaux.find((x) => x.id === l.travail);
+          expect([c.instant < c.recu_a, c.recu_a <= t.recu_a, t.recu_a < l.instant, l.instant < verse.updated_at], slug).to.deep.equal([true, true, true, true]);
+        }
+      }
+      expect(vus, "étapes confrontées à leur travail").to.be.greaterThan(12);
+      // Les deux incohérences relevées par la lecture : l'échec de « client-en-echec » et les étapes 6 et 7.
+      const echoue = F.travaux.find((t) => t.slug === "client-en-echec" && t.commande === "inscrire-client");
+      expect(P.dateLisible(F.clients["client-en-echec"].dossier.steps[1].updated_at)).to.equal(P.dateLisible(echoue.recu_a));
+      const sept = JSON.parse(fs.readFileSync(path.join(d, "clients", "client-etape-7-envoyee", "dossier.json"), "utf8")).steps;
+      expect(sept[5].updated_at > sept[4].updated_at, "étape 7 envoyée après l'étape 6").to.equal(true);
     });
   });
 

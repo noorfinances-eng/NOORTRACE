@@ -2166,10 +2166,16 @@ html[data-theme="clair"] .nt-case input {
   font-weight: 600;
 }
 
-/* Fiche d'un client : les étapes à gauche, l'organisation à droite. */
+/* Fiche d'un client : elle prend la largeur d'un écran de 1280 px, pour qu'une étape faite ou à venir tienne sur
+   une ligne quelle que soit la police du poste (une police de remplacement est plus large que celle du thème). */
+.ins-page-fiche {
+  max-width: 80rem;
+}
+
+/* Les étapes à gauche, l'organisation à droite. */
 .ins-fiche {
   display: grid;
-  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
   gap: var(--nt-e-6);
   align-items: start;
 }
@@ -2181,6 +2187,72 @@ html[data-theme="clair"] .nt-case input {
 
 .ins-essentiel-texte {
   max-width: 46rem;
+}
+
+/* Corps de la consigne : ses phrases, puis son bouton. Sur un écran large, une consigne sans champ met son bouton
+   à droite de ses phrases, en haut : il reste dans le premier écran quelle que soit la longueur des phrases et la
+   police du poste. Ce que le formulaire affiche après le clic (état, refus) reprend toute la largeur. */
+.ins-consigne-corps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-5);
+  min-width: 0;
+}
+
+@media (min-width: 64rem) {
+  .ins-consigne-corps[data-en-colonnes] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0 var(--nt-e-8);
+    align-items: start;
+  }
+
+  .ins-consigne-corps[data-en-colonnes] > .ins-consigne {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .ins-consigne-corps[data-en-colonnes] > .ins-consigne-lien {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .ins-consigne-corps[data-en-colonnes] > .ins-consigne-formulaire {
+    display: contents;
+  }
+
+  .ins-consigne-corps[data-en-colonnes] > .ins-consigne-formulaire > form {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .ins-consigne-corps[data-en-colonnes] > .ins-consigne-formulaire > :not(form) {
+    grid-column: 1 / -1;
+  }
+
+  .ins-consigne-corps[data-en-colonnes] > .ins-consigne-formulaire > :not(form):not(:empty) {
+    margin-top: var(--nt-e-5);
+  }
+
+  .ins-consigne-corps[data-en-colonnes] [data-sous-bouton] {
+    max-width: 18rem;
+  }
+}
+
+/* Le bouton d'un formulaire, et dessous la phrase qui dit ce qu'il fait. */
+.ins-actions-bouton {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--nt-e-2);
+}
+
+/* Récapitulatif d'une confirmation : « C'est exact, noter la confirmation » et sa phrase, puis « Corriger » à côté. */
+.ins-actions-relecture {
+  align-items: flex-start;
+}
+
+.ins-actions-relecture .ins-actions-bouton {
+  flex: 0 1 22rem;
 }
 
 /* La consigne : son intitulé et son titre, puis ses phrases, plus serrés que les blocs de la carte. */
@@ -2412,29 +2484,32 @@ html[data-theme="clair"] .nt-case input {
   overflow-wrap: anywhere;
 }
 
-/* Choix sans présélection : les choix côte à côte, chacun avec sa phrase dessous ; aucun n'est coché à l'arrivée.
-   Le choix habituel est mis en avant par sa place (le premier) et sa largeur, non par un état « choisi ». */
-.ins-choix {
+/* Champ des fiches d'enregistreur : une zone par fiche, chacune avec son libellé. */
+.ins-fiche-zone {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--nt-e-3) var(--nt-e-4);
-  align-items: flex-start;
-}
-
-.ins-choix-un {
-  display: flex;
-  flex: 1 1 15rem;
   flex-direction: column;
   gap: var(--nt-e-2);
   min-width: 0;
 }
 
-.ins-choix-habituel {
-  flex: 2 1 22rem;
+.ins-fiche-zone + .ins-fiche-zone {
+  margin-top: var(--nt-e-3);
 }
 
-.ins-choix-marque {
-  font-weight: 400;
+/* Valeur à copier (adresse, empreinte) : la valeur exacte, puis son bouton « Copier ». */
+.ins-a-copier {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-1) var(--nt-e-3);
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.ins-adresse,
+.ins-empreinte {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* Ce qu'il faut retenir d'un champ : une icône et une phrase, sous l'aide. */
@@ -2478,16 +2553,27 @@ html[data-theme="clair"] .nt-case input {
   max-width: 62rem;
 }
 
-/* Dans cette colonne, le bouton garde sa hauteur de bouton (sa base de 12rem vaut pour une rangée). */
-.ins-choix-un > button {
-  flex: none;
-  width: 100%;
-  font-size: var(--nt-t-m);
-}
-
 @media (max-width: 56rem) {
   .ins-fiche {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Sur téléphone, une adresse (42 caractères) se coupe en deux moitiés de 21, une empreinte (66) en deux de 33,
+   au lieu de laisser quelques caractères seuls sur la ligne suivante ; la valeur copiée reste entière. */
+@media (max-width: 37.5rem) {
+  .ins-adresse,
+  .ins-empreinte {
+    display: inline-block;
+    word-break: break-all;
+  }
+
+  .ins-adresse {
+    max-width: 21.5ch;
+  }
+
+  .ins-empreinte {
+    max-width: 33.5ch;
   }
 }
 

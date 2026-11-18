@@ -25,11 +25,17 @@
 // contrôler la saisie et afficher un récapitulatif à relire ; seul le second clic, « C'est exact, noter la
 // confirmation », envoie, et il envoie l'objet relu, celui que la route recevait déjà. Toute retouche d'un champ
 // annule la relecture.
+//
+// Troisième lecture (même complément) : chaque pas a sa phrase, sous son bouton, et seulement à ce pas : avant la
+// relecture, « Ce bouton n'enregistre rien : il vous montre ce que vous allez noter. » ; à la relecture, « Ce bouton
+// enregistre la confirmation. Elle ne pourra plus être effacée. » L'adresse du compte que le client confirme se
+// copie d'un bouton.
 
 import { useId, useRef, useState } from "react";
 import { lireChamp } from "./champs-page.js";
 import Icone from "./Icone.js";
 import { Refus } from "./FormulaireTravail.js";
+import { CopierValeur } from "./CopierTexte.js";
 import { ADRESSE_A_CONFIRMER, CREDITS_EN_CLAIR, OPERATIONS_CONFIRMATION, dateLisible, explicationSaisie, jourLisible, nombreLisible } from "../lib/parcours.mjs";
 
 const MOTIF_INSTANT = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/;
@@ -160,7 +166,7 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
           </select>
         ))}
         {administration
-          ? champ("digest", "Empreinte du document de changement", "L'empreinte du document que le client a confirmé. Elle est écrite dans le document préparé : fiche du client, « Documents à faire signer par le client », ligne « digest ». Copiez-la sans la retaper : « 0x » suivi de 64 caractères.", (a) => <input {...a} className="nt-saisie nt-saisie-fixe" data-type="hachage" required />)
+          ? champ("digest", "Empreinte du document de changement", "L'empreinte du document que le client a confirmé. Elle est sur la fiche du client, sous « Documents à faire signer par le client », avec un bouton « Copier l'empreinte ». Collez-la ici sans la retaper : « 0x » suivi de 64 caractères.", (a) => <input {...a} className="nt-saisie nt-saisie-fixe" data-type="hachage" required />)
           : champ("cle_chaine", "Compte technique concerné", "Le compte technique de l'enregistreur du client, sur lequel portera le versement. C'est ce compte, avec son adresse entière, que le client confirme.", (a) => (
             <select {...a} className="nt-saisie nt-saisie-fixe" data-type="adresse" data-valeur="" value={compte} onChange={(ev) => setCompte(ev.target.value)}>{comptes.map((c) => <option key={c.adresse} value={c.adresse}>{c.nom ? `${c.nom} · ${c.adresse}` : c.adresse}</option>)}</select>
           ))}
@@ -173,7 +179,7 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
               <p>
                 {operation === "approvisionnement" ? "Le versement de " : "Un nouveau versement, qui complète le compte jusqu'à "}
                 {montant ? <><span data-valeur="">{nombreLisible(montant)}</span> crédits d'écriture</> : "crédits d'écriture"}
-                {operation === "approvisionnement" ? " sur le compte technique" : ", sur le compte technique"}{choisi?.nom ? <> de son enregistreur <span className="nt-fixe" data-valeur="">{choisi.nom}</span></> : null}, dont l'adresse est <span className="nt-fixe" data-valeur="">{compte}</span>.
+                {operation === "approvisionnement" ? " sur le compte technique" : ", sur le compte technique"}{choisi?.nom ? <> de son enregistreur <span className="nt-fixe" data-valeur="">{choisi.nom}</span></> : null}, dont l'adresse est <CopierValeur valeur={compte} forme="adresse" libelle="Copier l'adresse" suite="." />
               </p>
               <p className="nt-aide">{CREDITS_EN_CLAIR}</p>
               <p className="nt-aide">L'adresse : {ADRESSE_A_CONFIRMER.charAt(0).toLowerCase()}{ADRESSE_A_CONFIRMER.slice(1)}</p>
@@ -216,7 +222,7 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
         <Icone nom="alerte" />
         <div className="nt-bandeau-texte">
           <p className="nt-bandeau-titre">Une confirmation notée ne s'efface pas.</p>
-          <p>C'est pourquoi l'outil vous fait relire avant de noter : le premier bouton n'envoie rien, il affiche ce que vous allez noter. Si vous découvrez une erreur après coup, ne lancez rien : prévenez l'équipe technique, car une confirmation fausse reste dans la liste et peut encore autoriser l'opération.</p>
+          <p>C'est pourquoi l'outil vous fait relire avant de noter. Si vous découvrez une erreur après coup, ne lancez rien : prévenez l'équipe technique, car une confirmation fausse reste dans la liste et peut encore autoriser l'opération.</p>
         </div>
       </div>
       {relecture ? (
@@ -249,15 +255,18 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
               <span>son empreinte commence par <span className="nt-fixe" data-valeur="">{relecture.confirmation.piece_sha256.slice(0, 10)}</span> et finit par <span className="nt-fixe" data-valeur="">{relecture.confirmation.piece_sha256.slice(-8)}</span></span>
             </dd>
           </dl>
-          <div className="nt-actions">
-            <button type="button" className="nt-bouton nt-bouton-principal" onClick={envoyer} disabled={etat.envoi} data-noter="">C'est exact, noter la confirmation</button>
+          <div className="nt-actions ins-actions-relecture">
+            <div className="nt-actions ins-actions-bouton">
+              <button type="button" className="nt-bouton nt-bouton-principal" onClick={envoyer} disabled={etat.envoi} aria-describedby={`${prefixe}-phrase-noter`} data-noter="">C'est exact, noter la confirmation</button>
+              <p className="nt-aide" id={`${prefixe}-phrase-noter`} data-phrase-du-pas="noter">Ce bouton enregistre la confirmation. Elle ne pourra plus être effacée.</p>
+            </div>
             <button type="button" className="nt-bouton" onClick={() => setRelecture(null)} disabled={etat.envoi} data-corriger="">Corriger</button>
           </div>
-          <p className="nt-aide">Après ce clic : la confirmation rejoint la liste, et elle n'en sortira plus.</p>
         </section>
       ) : (
-        <div className="nt-actions">
-          <button type="submit" className="nt-bouton nt-bouton-principal" disabled={etat.envoi}>Relire avant de noter</button>
+        <div className="nt-actions ins-actions-bouton">
+          <button type="submit" className="nt-bouton nt-bouton-principal" disabled={etat.envoi} aria-describedby={`${prefixe}-phrase-relire`}>Relire avant de noter</button>
+          <p className="nt-aide" id={`${prefixe}-phrase-relire`} data-phrase-du-pas="relire">Ce bouton n'enregistre rien : il vous montre ce que vous allez noter.</p>
         </div>
       )}
       {etat.refus ? <Refus code={etat.refus.code} message={etat.refus.message} titre="La confirmation n'a pas été notée." /> : null}

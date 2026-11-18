@@ -15,14 +15,21 @@
 // seules l'étape où l'on en est et une étape en échec sont développées. Les actions qui ne servent pas dans l'état
 // courant restent accessibles (INTERFACES.md 2.2) dans un bloc replié, chacune avec ce qu'elle fait et quand s'en
 // servir ; l'historique est replié. Un travail « réussi » dont une étape est en échec ne se dit jamais « réussi ».
-// Le compte qui envoie une demande signée se choisit : aucun choix n'est présélectionné. Tant qu'un envoi est resté
-// sans réponse, la consigne est de le reprendre, et l'écran ne dit que cela.
+// Tant qu'un envoi est resté sans réponse, la consigne est d'aller chercher la réponse du registre public pour cet
+// envoi, et l'écran ne dit que cela.
+//
+// Troisième lecture des écrans (même complément) : aucun choix n'est demandé pour envoyer un document signé ; le
+// bouton dit qui envoie (« Envoyer par notre compte d'envoi », le cas habituel) et l'envoi par le compte qu'une
+// référence désigne, pour les essais, est une action rangée, avec son champ ; ce que la route reçoit pour chacun ne
+// change pas. L'adresse du compte technique et l'empreinte d'un document de changement se copient d'un bouton. À
+// 1280 px, la fiche prend la largeur de l'écran et la consigne sans champ met son bouton à droite de ses phrases,
+// pour que le bouton tienne dans le premier écran quelle que soit la police du poste.
 
 import { notFound } from "next/navigation";
 import { client, confirmations } from "../../../lib/donnees.mjs";
 import { exigerSession, nature } from "../../../lib/page.mjs";
-import { OPERATIONS_JEU, avancement, dateLisible, etapesDuParcours, etatsTravaux, explicationErreur, jourLisible, libelleCommande, nombreLisible, prochaineAction } from "../../../lib/parcours.mjs";
-import CopierTexte from "../../../composants/CopierTexte.js";
+import { CHERCHER_LA_REPONSE, OPERATIONS_JEU, PAR_NOTRE_COMPTE, avancement, dateLisible, etapesDuParcours, etatsTravaux, explicationErreur, jourLisible, libelleCommande, nombreLisible, prochaineAction } from "../../../lib/parcours.mjs";
+import CopierTexte, { CopierValeur } from "../../../composants/CopierTexte.js";
 import FormulaireTravail from "../../../composants/FormulaireTravail.js";
 import Icone from "../../../composants/Icone.js";
 import Lexique from "../../../composants/Lexique.js";
@@ -33,82 +40,80 @@ export const dynamic = "force-dynamic";
 
 const OPERATIONS = Object.entries(OPERATIONS_JEU).map(([o, libelle]) => ({ valeur: o, libelle: `${libelle} (${o})` }));
 const NOMS_DEMANDE = { inscription: "Document d'inscription d'un enregistreur", administration_jeu: "Document de changement des approbateurs", revocation: "Document de retrait d'un enregistreur", cloture: "Document de clôture d'une période" };
-/** Codes d'erreur après lesquels « Reprendre un envoi resté sans réponse » est l'action à faire. */
+/** Codes d'erreur après lesquels « Aller chercher la réponse du registre public » est l'action à faire. */
 const ENVOI_A_REPRENDRE = new Set(["transaction_en_attente", "recu_absent", "certificat_indisponible", "certificat_elague", "certificat_invalide", "capture_incomplete"]);
 
 /** Une demande que l'agent a relayée (`demande-inscription-relayee-…`, `demande-administration-relayee-…`). */
 const estRelayee = (x) => /^demande-(inscription|administration)-relayee-/.test(x.nom);
 
-/**
- * Qui envoie une demande signée au registre : notre compte d'envoi (le relayeur de l'exploitant, seul admis pour
- * un vrai client : CT-4 EX-7.3, OP-5), ou le compte que désigne une référence, pour les essais. Les deux choix
- * sont montrés, aucun n'est présélectionné : la page refuse l'envoi tant que la personne n'a pas choisi. Le choix
- * habituel est mis en avant (premier, plus large, marqué « cas habituel ») sans être coché. Ce que la
- * route reçoit ne change pas : `relayeur: true` pour le premier, la référence seule pour le second.
- */
-const QUI_ENVOIE = {
-  nom: "relayeur", libelle: "Qui envoie le document signé au registre public", type: "texte", oui: true,
-  avant: "Choisissez qui envoie : rien n'est choisi d'avance.",
-  choix: [
-    { valeur: "oui", libelle: "Notre compte d'envoi", marque: "cas habituel", habituel: true, phrase: "Notre société envoie le document signé et paie cet envoi." },
-    { valeur: "non", libelle: "Le compte désigné par une référence", marque: "essais seulement", phrase: "L'équipe technique vous donne la référence, que l'outil vous demande alors." },
-  ],
-  choixManquant: "Choisissez qui envoie le document signé : l'outil ne fait pas ce choix à votre place. Rien n'a été envoyé.",
-};
-/** La référence ne se demande qu'avec le choix qui s'en sert ; elle est alors nécessaire, et la page le dit. */
-const AVEC_CHOIX = {
-  visibleSi: { champ: "relayeur", valeur: "non" },
-  requisSi: { champ: "relayeur", valeur: "non", message: "Avec ce choix, écrivez ici la référence que l'équipe technique vous a donnée. Rien n'a été envoyé." },
-};
+/** Le document signé à coller, pour l'envoi d'une inscription ou d'un changement des approbateurs. */
+const DOCUMENT_INSCRIPTION = { nom: "demande", libelle: "Document signé", type: "document", aide: "Collez ici, en entier et sans rien y changer, le texte que le client vous a rendu après signature : il commence par « { » et finit par « } »." };
+const DOCUMENT_ADMINISTRATION = { nom: "demande", libelle: "Document signé", type: "document", aide: "Collez ici, en entier et sans rien y changer, le texte du document signé par le responsable des approbateurs du client." };
+/** Une référence d'essai, refusée vide par la page : l'action ne part pas sans elle. */
+const REFERENCE_REQUISE = "Écrivez ici la référence que l'équipe technique vous a donnée. Si vous n'en avez pas, servez-vous du bouton « Envoyer par notre compte d'envoi ». Rien n'a été envoyé.";
+/** Identifiant de l'élément qui affiche le texte exact d'un document (sélectionné si la copie est refusée). */
+const idTexte = (nom) => `texte-${nom.replace(/[^A-Za-z0-9-]/g, "-")}`;
 
-/** Les actions de la fiche : nom, ce que l'action fait, quand s'en servir, et le formulaire de son travail. */
+/**
+ * Les actions de la fiche : nom, ce que l'action fait, quand s'en servir, et le formulaire de son travail. `cle`
+ * distingue deux actions d'une même commande : l'envoi d'un document signé par notre compte d'envoi (le relayeur de
+ * l'exploitant, seul admis pour un vrai client : CT-4 EX-7.3, OP-5 ; la route reçoit `relayeur: true`) et son envoi
+ * par le compte qu'une référence désigne, pour les essais (la route reçoit la référence seule).
+ */
 function actions({ d, c, action, etapes }) {
   const cles = d.recorders.map((r) => ({ valeur: r.chain_key, libelle: `${r.key_id} · ${r.chain_key}` }));
   const keyIds = d.recorders.map((r) => ({ valeur: r.key_id, libelle: r.key_id }));
   const periodes = c.periodes.map((p) => ({ valeur: p, libelle: p }));
   const parties = c.parties.map((p) => ({ valeur: p, libelle: p }));
-  // Les envois que « Reprendre un envoi resté sans réponse » peut reprendre : l'étape se choisit, son identifiant ne se recopie pas.
+  // Les envois dont « Aller chercher la réponse du registre public » peut lire la réponse : l'étape se choisit, son identifiant ne se recopie pas.
   const enVol = (etat) => etapes.filter((e) => e.etat === etat).map((e) => ({ valeur: e.technique.find((x) => x.membre === "transaction_hash")?.valeur ?? "", libelle: `Étape ${e.numero} : ${e.titre}` })).filter((x) => x.valeur !== "");
   const choix = (liste, parDefaut = true) => (liste.length > 0 ? { options: [...liste, { valeur: "", libelle: "Aucune" }], defaut: parDefaut ? liste[0].valeur : "" } : {});
   const envoyees = enVol("envoyee");
   const inscrites = enVol("incluse");
   const l = [
     {
-      commande: "inscrire-client", groupe: "Inscription", titre: libelleCommande("inscrire-client"),
+      commande: "inscrire-client", cle: "inscrire-client", groupe: "Inscription", titre: libelleCommande("inscrire-client"),
       quoi: "Fait, dans l'ordre, celles des étapes 2 à 5 qui restent : enregistrer les approbateurs, les rattacher au client, les contrôler, alimenter le compte technique. Une étape déjà faite n'est pas refaite.",
       quand: "Quand la prochaine action, en haut de la fiche, vous le propose. Ici, seulement si l'équipe technique vous le demande.",
       bouton: action.code === "conduire_etapes" ? action.bouton : libelleCommande("inscrire-client"), champs: [],
     },
     {
-      commande: "condense-inscription", groupe: "Inscription", titre: libelleCommande("condense-inscription"),
+      commande: "condense-inscription", cle: "condense-inscription", groupe: "Inscription", titre: libelleCommande("condense-inscription"),
       quoi: "Prépare le document d'inscription d'un enregistreur, à faire signer par les approbateurs du client. L'outil ne le signe jamais. Rien n'est envoyé au registre public.",
       quand: "Quand le client a plusieurs enregistreurs, pour préparer le document de chacun ; ou pour refaire un document perdu ou modifié.",
       bouton: "Préparer le document",
       champs: [{ nom: "key_id", libelle: "Enregistreur concerné", type: "texte", options: keyIds, donnees: true, defaut: action.keyId, aide: "L'enregistreur du client dont vous demandez l'inscription." }],
     },
     {
-      commande: "inscrire-cle", groupe: "Inscription", titre: libelleCommande("inscrire-cle"),
-      quoi: "Envoie au registre public un document d'inscription que les approbateurs du client ont signé avec leur propre outil. L'envoi coûte des crédits d'écriture.",
+      commande: "inscrire-cle", cle: "inscrire-cle", groupe: "Inscription", titre: libelleCommande("inscrire-cle"),
+      quoi: "Envoie au registre public, par notre compte d'envoi, un document d'inscription que les approbateurs du client ont signé avec leur propre outil. L'envoi coûte des crédits d'écriture, que notre société paie.",
       quand: "Quand le client vous rend le document signé d'un autre enregistreur que celui de la prochaine action.",
-      bouton: "Envoyer le document signé",
+      ...PAR_NOTRE_COMPTE,
+      fixe: { relayeur: true },
+      champs: [DOCUMENT_INSCRIPTION],
+    },
+    {
+      commande: "inscrire-cle", cle: "inscrire-cle-reference", groupe: "Inscription", titre: "Envoyer le document d'inscription signé par le compte désigné par une référence (essais seulement)",
+      quoi: "Envoie au registre public un document d'inscription signé, non par notre compte d'envoi, mais par le compte que désigne une référence donnée par l'équipe technique. Cela ne sert qu'aux essais. L'envoi coûte des crédits d'écriture.",
+      quand: "Seulement pour un essai, quand l'équipe technique vous donne une référence. Pour un vrai client, servez-vous du bouton « Envoyer par notre compte d'envoi ».",
+      bouton: "Envoyer par le compte désigné",
       champs: [
-        { nom: "demande", libelle: "Document signé", type: "document", aide: "Collez ici, en entier et sans rien y changer, le texte que le client vous a rendu après signature : il commence par « { » et finit par « } »." },
-        QUI_ENVOIE,
-        { nom: "cle_chaine", libelle: "Référence du compte technique du client", type: "reference_cle", facultatif: true, exemple: "alias:compte-technique-du-client", ...AVEC_CHOIX, aide: "Pour les essais seulement. Une référence dit où une clé est rangée (elle commence par « fichier: » ou « alias: ») ; ce n'est jamais la clé secrète elle-même." },
+        DOCUMENT_INSCRIPTION,
+        { nom: "cle_chaine", libelle: "Référence du compte technique du client", type: "reference_cle", obligatoire: REFERENCE_REQUISE, exemple: "alias:compte-technique-du-client", aide: "L'équipe technique vous la donne. Une référence dit où une clé est rangée (elle commence par « fichier: » ou « alias: ») ; ce n'est jamais la clé secrète elle-même." },
       ],
     },
     {
-      commande: "capturer", groupe: "Après un envoi resté sans réponse", titre: libelleCommande("capturer"),
+      commande: "capturer", cle: "capturer", groupe: "Après un envoi resté sans réponse", titre: libelleCommande("capturer"),
       quoi: "Va chercher la réponse du registre public pour une opération déjà partie, puis range sa preuve dans le dossier. Rien n'est renvoyé, rien n'est dépensé.",
       quand: "Quand un message de l'outil vous envoie ici. Si une étape reste « Envoyée » ou « Inscrite », la consigne du haut de la fiche le fait pour vous.",
-      bouton: "Reprendre cet envoi",
+      ...CHERCHER_LA_REPONSE,
       champs: [
         { nom: "envoi", libelle: "Étape restée « Envoyée »", type: "hachage", facultatif: true, ...choix(envoyees), aide: envoyees.length > 0 ? "L'étape dont l'envoi attend la réponse du registre public. L'outil connaît son identifiant : vous n'avez rien à recopier." : "Aucune étape n'est « Envoyée » pour l'instant. Laissez vide, sauf si l'équipe technique vous donne un identifiant d'envoi à coller ici." },
         { nom: "transaction", libelle: "Étape restée « Inscrite »", type: "hachage", facultatif: true, ...choix(inscrites, envoyees.length === 0), aide: inscrites.length > 0 ? "L'étape inscrite sur le registre public dont la preuve reste à ranger dans le dossier. Si vous avez choisi une étape au champ précédent, choisissez ici « Aucune »." : "Aucune étape n'est « Inscrite » sans sa preuve pour l'instant. Laissez vide, sauf si l'équipe technique vous donne un identifiant à coller ici." },
       ],
     },
     {
-      commande: "approvisionner", groupe: "Après l'inscription", titre: libelleCommande("approvisionner"),
+      commande: "approvisionner", cle: "approvisionner", groupe: "Après l'inscription", titre: libelleCommande("approvisionner"),
       quoi: "Verse de nouveau des crédits d'écriture sur un compte technique qui n'en a presque plus. Le client doit d'abord confirmer ce versement par un autre moyen que cet outil, et vous devez avoir noté sa confirmation.",
       quand: "Après l'inscription, quand l'équipe technique signale qu'un compte technique va manquer de crédits, ou quand un message de l'outil vous envoie ici.",
       bouton: "Alimenter le compte",
@@ -118,7 +123,7 @@ function actions({ d, c, action, etapes }) {
       ],
     },
     {
-      commande: "condense-administration", groupe: "Changer les approbateurs du client", titre: libelleCommande("condense-administration"),
+      commande: "condense-administration", cle: "condense-administration", groupe: "Changer les approbateurs du client", titre: libelleCommande("condense-administration"),
       quoi: "Prépare un document de changement de la liste des approbateurs : ajouter ou retirer une personne, changer le nombre d'approbations requises, changer de responsable. Le document est à faire signer par le responsable des approbateurs du client.",
       quand: "Seulement si le client vous le demande par écrit, une fois ses approbateurs enregistrés.",
       bouton: "Préparer le document",
@@ -129,20 +134,27 @@ function actions({ d, c, action, etapes }) {
       ],
     },
     {
-      commande: "administrer-jeu", groupe: "Changer les approbateurs du client", titre: libelleCommande("administrer-jeu"),
-      quoi: "Envoie au registre public le changement que le responsable des approbateurs du client a signé ; il prend effet aussitôt. Le client doit l'avoir confirmé par un autre moyen que cet outil, et vous devez avoir noté sa confirmation.",
+      commande: "administrer-jeu", cle: "administrer-jeu", groupe: "Changer les approbateurs du client", titre: libelleCommande("administrer-jeu"),
+      quoi: "Envoie au registre public, par notre compte d'envoi, le changement que le responsable des approbateurs du client a signé ; il prend effet aussitôt. Le client doit l'avoir confirmé par un autre moyen que cet outil, et vous devez avoir noté sa confirmation.",
       quand: "Quand le client vous rend le document de changement signé.",
-      bouton: "Envoyer le document signé",
+      ...PAR_NOTRE_COMPTE,
+      fixe: { relayeur: true },
+      champs: [DOCUMENT_ADMINISTRATION],
+    },
+    {
+      commande: "administrer-jeu", cle: "administrer-jeu-reference", groupe: "Changer les approbateurs du client", titre: "Envoyer un changement des approbateurs signé par le compte désigné par une référence (essais seulement)",
+      quoi: "Envoie au registre public le changement signé, non par notre compte d'envoi, mais par le compte que désigne une référence donnée par l'équipe technique. Cela ne sert qu'aux essais. Le client doit l'avoir confirmé par un autre moyen que cet outil, et vous devez avoir noté sa confirmation.",
+      quand: "Seulement pour un essai, quand l'équipe technique vous donne une référence. Pour un vrai client, servez-vous du bouton « Envoyer par notre compte d'envoi ».",
+      bouton: "Envoyer par le compte désigné",
       champs: [
-        { nom: "demande", libelle: "Document signé", type: "document", aide: "Collez ici, en entier et sans rien y changer, le texte du document signé par le responsable des approbateurs du client." },
-        QUI_ENVOIE,
-        { nom: "expediteur", libelle: "Référence du compte qui envoie", type: "reference_cle", facultatif: true, exemple: "alias:compte-d-essai", ...AVEC_CHOIX, aide: "Pour les essais seulement. Une référence dit où une clé est rangée ; ce n'est jamais la clé secrète elle-même." },
+        DOCUMENT_ADMINISTRATION,
+        { nom: "expediteur", libelle: "Référence du compte qui envoie", type: "reference_cle", obligatoire: REFERENCE_REQUISE, exemple: "alias:compte-d-essai", aide: "L'équipe technique vous la donne. Une référence dit où une clé est rangée ; ce n'est jamais la clé secrète elle-même." },
       ],
     },
   ];
   if (periodes.length > 0) {
     l.push({
-      commande: "exporter", groupe: "Dossier de preuve", titre: libelleCommande("exporter"),
+      commande: "exporter", cle: "exporter", groupe: "Dossier de preuve", titre: libelleCommande("exporter"),
       quoi: "Copie, depuis le registre public, les pièces qui entrent dans le dossier de preuve du client. Rien n'est écrit sur le registre public.",
       quand: "Quand la prochaine action vous le propose, ou pour une période suivante du journal.",
       bouton: "Préparer les pièces",
@@ -154,7 +166,7 @@ function actions({ d, c, action, etapes }) {
   }
   if (parties.length > 0) {
     l.push({
-      commande: "verifier", groupe: "Dossier de preuve", titre: libelleCommande("verifier"),
+      commande: "verifier", cle: "verifier", groupe: "Dossier de preuve", titre: libelleCommande("verifier"),
       quoi: "Contrôle les pièces préparées, comme le fera l'outil de vérification du client. Rien n'est écrit sur le registre public.",
       quand: "Quand la prochaine action vous le propose, après avoir préparé les pièces.",
       bouton: "Contrôler les pièces",
@@ -231,12 +243,12 @@ function Etape({ e }) {
 /** Une action de la fiche, repliée : ce qu'elle fait, quand s'en servir, son formulaire. */
 function Action({ x, slug }) {
   return (
-    <details className="nt-detail" data-action={x.commande}>
+    <details className="nt-detail" data-action={x.cle}>
       <summary>{x.titre}</summary>
       <div className="nt-detail-corps">
         <p><strong>Ce que fait cette action :</strong> {x.quoi}</p>
         <p><strong>Quand s'en servir :</strong> {x.quand}</p>
-        <FormulaireTravail commande={x.commande} slug={slug} champs={x.champs} bouton={x.bouton} principal={false} />
+        <FormulaireTravail commande={x.commande} slug={slug} champs={x.champs} fixe={x.fixe ?? {}} bouton={x.bouton} sousBouton={x.sousBouton ?? null} principal={false} />
       </div>
     </details>
   );
@@ -254,10 +266,13 @@ export default async function PageClient({ params }) {
   const action = prochaineAction({ ...c, confirmations: registre });
   const production = nature() === "production";
   const toutes = actions({ d, c, action, etapes });
-  // L'action de la consigne. Reprendre un envoi : l'envoi est connu, la personne n'a rien à choisir ni à recopier.
+  // L'action de la consigne. Aller chercher la réponse d'un envoi : l'envoi est connu, la personne n'a rien à choisir
+  // ni à recopier. Envoyer le document signé : par notre compte d'envoi, que le bouton nomme.
   const principale = action.code === "reprendre_envoi"
-    ? { commande: "capturer", champs: [], fixe: { [action.parametre]: action.valeur } }
-    : action.commande ? toutes.find((x) => x.commande === action.commande) : null;
+    ? { commande: "capturer", cle: "capturer", champs: [], fixe: { [action.parametre]: action.valeur } }
+    : action.commande ? toutes.find((x) => x.cle === action.commande) : null;
+  // Sans champ, le bouton de la consigne se met à droite de ses phrases sur un écran large (premier écran).
+  const enColonnes = !principale || principale.champs.length === 0;
   const echecs = etapes.filter((e) => e.rang === "echec");
   const etats = etatsTravaux(c.travaux, d);
   const dernier = c.travaux[0] ?? null;
@@ -268,7 +283,7 @@ export default async function PageClient({ params }) {
   // l'attendre), le bandeau se tait : l'écran ne dit qu'une chose.
   const consigneSurEnvoi = (action.code === "reprendre_envoi" || action.code === "attendre_envoi") && ENVOI_A_REPRENDRE.has(codeDernier);
   const dernierRefuse = echecs.length === 0 && dernier && etatDernier.termine && etatDernier.ton !== "succes" && etatDernier.code !== "abandonne" && codeDernier !== "" && !consigneSurEnvoi;
-  // Hors de la consigne, « Reprendre un envoi resté sans réponse » n'est proposé qu'après une erreur qui y renvoie
+  // Hors de la consigne, « Aller chercher la réponse du registre public » n'est proposé qu'après une erreur qui y renvoie
   // alors qu'aucune étape du dossier ne porte cet envoi (sinon la consigne le fait déjà : l'écran ne dit qu'une chose).
   const envoiAReprendre = action.code !== "reprendre_envoi" && action.code !== "attendre_envoi" && (ENVOI_A_REPRENDRE.has(codeDernier) || echecs.some((e) => ENVOI_A_REPRENDRE.has(e.erreur.code)));
   const autres = toutes.filter((x) => x !== principale);
@@ -302,7 +317,7 @@ export default async function PageClient({ params }) {
   const nomEnregistreur = (adresse) => d.recorders.find((x) => x.chain_key === adresse)?.key_id ?? null;
   const etapeReprise = action.code === "reprendre_envoi" ? etapes.find((e) => e.numero === action.etape) ?? null : null;
   return (
-    <main className="nt-page">
+    <main className="nt-page ins-page-fiche">
       <a className="nt-fil" href="/clients"><Icone nom="retour" />Tous les clients</a>
       <header className="nt-entete">
         <div className="nt-entete-texte">
@@ -343,46 +358,48 @@ export default async function PageClient({ params }) {
           <p className="nt-sur-titre">{action.surTitre}</p>
           <h2 className="nt-essentiel-phrase" id="prochaine-titre">{action.titre}</h2>
         </div>
-        <div className="ins-consigne">
-          <p className="ins-essentiel-texte">{action.phrase}</p>
-          {action.cles ? (
-            <dl className="nt-faits">
-              {action.cles.map((cle) => (
-                <div className="nt-fait ins-fait-large" key={cle}>
-                  <dt>Ce que le client doit confirmer</dt>
-                  <dd>
-                    <span className="ins-ligne">le versement de <span data-valeur="">{nombreLisible(d.funding.amount_wei)}</span> crédits d'écriture sur le compte technique{nomEnregistreur(cle) ? <> de son enregistreur <Valeur>{nomEnregistreur(cle)}</Valeur></> : null}</span>
-                    <span className="ins-ligne">l'adresse de ce compte : <Valeur>{cle}</Valeur></span>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          ) : null}
-          {action.keyId ? (
-            <dl className="nt-faits">
-              <div className="nt-fait"><dt>Enregistreur concerné</dt><dd><Valeur>{action.keyId}</Valeur></dd></div>
-              <div className="nt-fait"><dt>Signatures à réunir</dt><dd>{d.approvers.threshold} sur {d.approvers.members.length} {d.approvers.members.length > 1 ? "approbateurs" : "approbateur"}</dd></div>
-            </dl>
-          ) : null}
-          {etapeReprise ? (
-            <dl className="nt-faits">
-              <div className="nt-fait ins-fait-large"><dt>Envoi à reprendre</dt><dd>celui de l'étape {etapeReprise.numero}, « {etapeReprise.titre} »</dd></div>
-            </dl>
-          ) : null}
-          {aRemettre ? (
-            <p className="ins-essentiel-texte" data-demande-a-remettre="">
-              <strong>D'abord :</strong> copiez le document et envoyez-le au client (<a href="#demandes-titre">voir son texte</a>). <CopierTexte texte={JSON.stringify(aRemettre.document, null, 2)} libelle="Copier le document" />
-            </p>
-          ) : null}
-          <p className="ins-essentiel-texte" data-a-preparer="">{aRemettre ? <><strong>Ensuite :</strong> </> : null}{action.aPreparer}</p>
-        </div>
-        {principale ? (
-          <FormulaireTravail commande={principale.commande} slug={slug} champs={principale.champs} fixe={principale.fixe ?? {}} bouton={action.bouton} />
-        ) : (
-          <div className="nt-actions">
-            <a className={action.code === "attendre_premiere_periode" || action.code === "attendre_envoi" || action.code === "etape_inconnue" ? "nt-bouton" : "nt-bouton nt-bouton-principal"} href={action.lien}>{action.bouton}</a>
+        <div className="ins-consigne-corps" data-en-colonnes={enColonnes ? "" : undefined}>
+          <div className="ins-consigne">
+            <p className="ins-essentiel-texte">{action.phrase}</p>
+            {action.cles ? (
+              <dl className="nt-faits">
+                {action.cles.map((cle) => (
+                  <div className="nt-fait ins-fait-large" key={cle}>
+                    <dt>Ce que le client doit confirmer</dt>
+                    <dd>
+                      <span className="ins-ligne">le versement de <span data-valeur="">{nombreLisible(d.funding.amount_wei)}</span> crédits d'écriture sur le compte technique{nomEnregistreur(cle) ? <> de son enregistreur <Valeur>{nomEnregistreur(cle)}</Valeur></> : null}</span>
+                      <span className="ins-ligne">l'adresse de ce compte : <CopierValeur valeur={cle} forme="adresse" libelle="Copier l'adresse" /></span>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+            {action.keyId ? (
+              <dl className="nt-faits">
+                <div className="nt-fait"><dt>Enregistreur concerné</dt><dd><Valeur>{action.keyId}</Valeur></dd></div>
+                <div className="nt-fait"><dt>Signatures à réunir</dt><dd>{d.approvers.threshold} sur {d.approvers.members.length} {d.approvers.members.length > 1 ? "approbateurs" : "approbateur"}</dd></div>
+              </dl>
+            ) : null}
+            {etapeReprise ? (
+              <dl className="nt-faits">
+                <div className="nt-fait ins-fait-large"><dt>Réponse à aller chercher</dt><dd>celle de l'étape {etapeReprise.numero}, « {etapeReprise.titre} »</dd></div>
+              </dl>
+            ) : null}
+            {aRemettre ? (
+              <p className="ins-essentiel-texte" data-demande-a-remettre="">
+                <strong>D'abord :</strong> copiez le document et envoyez-le au client (<a href="#demandes-titre">voir son texte</a>). <CopierTexte texte={JSON.stringify(aRemettre.document, null, 2)} libelle="Copier le document" cible={idTexte(aRemettre.nom)} faite="Copié : collez-le dans votre message au client." />
+              </p>
+            ) : null}
+            <p className="ins-essentiel-texte" data-a-preparer="">{aRemettre ? <><strong>Ensuite :</strong> </> : null}{action.aPreparer}</p>
           </div>
-        )}
+          {principale ? (
+            <FormulaireTravail commande={principale.commande} slug={slug} champs={principale.champs} fixe={principale.fixe ?? {}} bouton={action.bouton} sousBouton={action.sousBouton ?? null} classe="ins-consigne-formulaire" />
+          ) : (
+            <div className="nt-actions ins-consigne-lien">
+              <a className={action.code === "attendre_premiere_periode" || action.code === "attendre_envoi" || action.code === "etape_inconnue" ? "nt-bouton" : "nt-bouton nt-bouton-principal"} href={action.lien}>{action.bouton}</a>
+            </div>
+          )}
+        </div>
         <p className="ins-essentiel-texte nt-attenue nt-petit" data-apres-clic="">{action.apres}</p>
         {action.cles ? (
           <dl className="nt-definitions ins-pour-expliquer" data-pour-expliquer="">
@@ -397,7 +414,7 @@ export default async function PageClient({ params }) {
       {utiles.length > 0 ? (
         <section className="nt-pile" aria-labelledby="utiles-titre" data-actions-utiles="">
           <h2 id="utiles-titre">Autre action utile maintenant</h2>
-          {utiles.map((x) => <Action key={x.commande} x={x} slug={slug} />)}
+          {utiles.map((x) => <Action key={x.cle} x={x} slug={slug} />)}
         </section>
       ) : null}
 
@@ -495,12 +512,18 @@ export default async function PageClient({ params }) {
                       {n === 0 ? "Aucune signature" : `${n} ${n > 1 ? "signatures" : "signature"}`}{Number.isSafeInteger(requises) ? `, sur ${requises} ${requises > 1 ? "requises" : "requise"}.` : "."}
                       {relayee ? " C'est la version signée, telle qu'elle est partie au registre public." : suivie ? " C'est le texte d'avant signature : rien à en faire." : " Envoyez ce texte au client : ses approbateurs le contrôlent et le signent avec leur propre outil, puis le client vous le renvoie signé."}
                     </p>
-                    {!relayee && !suivie ? <CopierTexte texte={texte} libelle="Copier le document" data-copier-demande="" /> : null}
+                    {!relayee && !suivie ? <CopierTexte texte={texte} libelle="Copier le document" cible={idTexte(x.nom)} faite="Copié : collez-le dans votre message au client." data-copier-demande="" /> : null}
+                    {x.document?.operation === "administration_jeu" && !relayee && !suivie && typeof x.document?.digest === "string" ? (
+                      <p className="nt-petit" data-empreinte-document="">
+                        <span className="ins-ligne">Son empreinte, à reporter telle quelle sur la confirmation du client :</span>
+                        <CopierValeur valeur={x.document.digest} forme="empreinte" libelle="Copier l'empreinte" />
+                      </p>
+                    ) : null}
                     <details className="ins-detail">
                       <summary>Texte exact du document</summary>
                       <div className="ins-detail-corps nt-pile">
                         <p>Fichier <span className="nt-fixe">{x.nom}</span></p>
-                        <pre className="nt-pre">{texte}</pre>
+                        <pre className="nt-pre" id={idTexte(x.nom)}>{texte}</pre>
                       </div>
                     </details>
                   </li>
@@ -518,7 +541,7 @@ export default async function PageClient({ params }) {
           {groupes.map((g) => (
             <div className="nt-pile" key={g}>
               <h3 className="ins-groupe">{g}</h3>
-              {rares.filter((x) => x.groupe === g).map((x) => <Action key={x.commande} x={x} slug={slug} />)}
+              {rares.filter((x) => x.groupe === g).map((x) => <Action key={x.cle} x={x} slug={slug} />)}
             </div>
           ))}
         </div>

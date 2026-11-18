@@ -33,3 +33,36 @@ export function lireChamp(champ, brut) {
     return { erreur: e instanceof SyntaxError ? `${champ.nom} : JSON illisible` : e.message };
   }
 }
+
+/**
+ * Membres qu'exige une fiche d'enregistreur (`inscription-client-v0#/$defs/cle_enregistreur`, `required` ; CT-2
+ * EX-11.13). La page ne s'en sert que pour dire tôt qu'un texte collé n'est pas une fiche ; le serveur et l'agent
+ * contrôlent la fiche entière contre son schéma.
+ */
+export const MEMBRES_FICHE = Object.freeze(["key_id", "journal_id", "algorithm", "public_key", "custody_class", "backend_type", "created_at", "chain_key", "chain_key_class", "origin_proof"]);
+
+/**
+ * Lit les fiches d'enregistreur d'un champ `liste_documents` saisi en une zone par fiche (complément du 2026-11-18,
+ * troisième lecture des écrans) : chaque zone porte le contenu d'un fichier du client, tel quel ; la page assemble
+ * la liste, dans l'ordre des zones. Rend `{ valeur }` (la liste, celle qu'aurait donnée la saisie à la main de
+ * « [ fiche, fiche ] » dans une seule zone) ou `{ erreur, zone, regle }` : la zone fautive (0 pour la première) et la
+ * règle (`fiche_vide`, `fiche_liste`, `fiche_illisible`), sans la valeur refusée.
+ */
+export function lireFiches(champ, textes) {
+  const valeur = [];
+  for (const [zone, brut] of textes.entries()) {
+    const texte = String(brut ?? "").trim();
+    const refus = (regle) => ({ erreur: `${champ.nom}[${zone}] : ${regle}`, zone, regle });
+    if (texte === "") return refus("fiche_vide");
+    let v;
+    try {
+      v = JSON.parse(texte);
+    } catch {
+      return refus("fiche_illisible");
+    }
+    if (Array.isArray(v)) return refus("fiche_liste");
+    if (v === null || typeof v !== "object" || MEMBRES_FICHE.some((m) => !Object.hasOwn(v, m))) return refus("fiche_illisible");
+    valeur.push(v);
+  }
+  return { valeur };
+}

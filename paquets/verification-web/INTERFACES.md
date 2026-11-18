@@ -150,7 +150,7 @@ ci-dessus, sans en retirer :
 | `#dossier-verifie`, `#nom-verifie`, `#verifier-autre` | après un rapport : le dossier examiné, et le bouton qui ramène les étapes (`#formulaire` porte alors la classe `pv-reduit`) | jamais |
 | `#phrase-courante` | sous `#verdict-mot` : la phrase en langage courant du code de retour, d'un refus ou d'une vérification non faite | jamais |
 | `#reserves` | la ligne fixe des réserves, quand `warnings` porte un avertissement ou ne se lit pas (codes 0 et 3) | jamais |
-| `#code` | inchangé (« Code de retour … »), dans une ligne `.pv-exact` introduite par « Formule exacte du vérificateur : » | jamais |
+| `#code` | inchangé (« Code de retour … »), dans une ligne `.pv-exact` (`#formule-exacte`) introduite par « Formule exacte du vérificateur : », en tête de `#specialistes` (troisième lecture) | jamais |
 | `#avertissements li.pv-reserve[data-id]` | `.pv-reserve-courante` (phrase de la table, absente hors table), puis `.pv-reserve-exacte` (texte du vérificateur) | jamais |
 | `#controles li` | `.nt-controle-titre`, `.pv-controle-prouve`, `.pv-controle-raison` (non fait), `.pv-controle-echec` et `.pv-controle-dit` (échoué) | jamais |
 | `#detail-controles .pv-resume-exact[data-numero]` | le `summary` de chaque contrôle, tel quel | oui |
@@ -172,7 +172,20 @@ Seconde lecture, même date (CT-6 §18, EX-18.9, points 14 à 19). S'ajoutent :
 | `.pv-controle-dit[data-verification]` | code 1 : ce que le vérificateur dit d'une vérification en échec (`detail`), l'identifiant à la fin ; sur la ligne du contrôle qui la porte, sinon sous le verdict | jamais |
 | `#piece-en-cause` | code 2 : la pièce en cause, d'après `error.kind` | jamais |
 | `#refus-titre` | titre courant d'un refus, au-dessus de `.aucun-rapport` (introduite par « Mention fixée pour un refus : ») | jamais |
-| `#dossier-choisi.pv-choisi-refuse` | étape 1, tant qu'un refus de ce qui a été choisi est affiché | jamais |
+| `#dossier-choisi.pv-choisi-refuse` | étape 1, tant qu'un refus du dossier choisi est affiché | jamais |
+
+Troisième lecture, même date (CT-6 §18, EX-18.7 et EX-18.9). S'ajoutent, sans
+rien retirer ; `#code` et `.aucun-rapport` ne sont plus dans `#verdict` :
+
+| Élément | Contenu | Replié |
+|---|---|---|
+| `#verdict-titre.pv-titre-mention` | titre dont le mot porte une mention : le mot et la mention à la même taille | jamais |
+| `#formule-exacte` | en tête de `#specialistes`, après sa phrase : la ligne qui porte `#code` | jamais |
+| `#mention-refus` | après un refus, en tête de `#specialistes` : la ligne qui porte `.aucun-rapport` (« Mention fixée pour un refus : ») | jamais |
+| `#controles .pv-controle-raison` | la phrase d'un contrôle non fait, d'après la raison, le contrôle et les pièces ajoutées à l'étape 2, puis la raison exacte (`data-valeur`) entre parenthèses | jamais |
+| `#consigne-ancres` | étape 2 : la consigne de sûreté sur la liste des références de confiance, à la taille du texte courant | avec `#options` |
+| `#nom-ancres.pv-fichier-refuse`, `#nom-entetes.pv-fichier-refuse` | étape 2, tant qu'un refus de cette pièce complémentaire est affiché | avec `#options` |
+| `#verifier` | inactif tant qu'un refus est affiché ; `#aide-verifier` dit pourquoi | jamais |
 
 `presentationVerdict`, `clesNonProuve`, `controlesDeLAvertissement`,
 `grouperAvertissements`, `clePieceEnCause` et `lignesEnResume` (section

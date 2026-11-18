@@ -203,6 +203,10 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         expect(r.aucunRapport).to.equal(LIBELLES.aucun_rapport);
         expect([r.code, r.lisible, r.enonceFr, r.commande, r.nonFaite]).to.deep.equal([null, null, null, null, null]);
         expect(ms, `réponse en ${ms} ms`).to.be.lessThan(1000);
+        // La page reste utilisable : « Vérifier » est inactif tant que le refus est affiché (complément du 2026-11-18 de
+        // CT-6 EX-18.7), et redevient actif dès qu'un autre dossier est choisi.
+        expect(await o.page.isDisabled("#verifier")).to.equal(true);
+        await choisirRepertoire(o.page, DOSSIER);
         expect(await o.page.isDisabled("#verifier")).to.equal(false);
         expect(o.requetesDepuisMarque()).to.deep.equal([]);
       } finally {

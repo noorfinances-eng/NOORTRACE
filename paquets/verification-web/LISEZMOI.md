@@ -150,8 +150,7 @@ suit le complète, et en remplace les mots là où c'est dit.
   courant fixée par code de retour ; la ligne « Attention : ce résultat a des
   réserves… » quand le rapport porte un avertissement (codes 0 et 3) ; ce que
   la page tire du rapport (« Les huit contrôles ont réussi. », « Contrôles qui
-  n'ont pas pu être faits : n° … ») ; la phrase du code, entière,
-  en petit, introduite par « Formule exacte du vérificateur : ». Puis les
+  n'ont pas pu être faits : n° … »). Puis les
   réserves (chaque avertissement en langage courant, puis tel quel), les huit
   contrôles (une ligne chacun : « Réussi », « Échoué » ou « Non fait », le nom
   courant, ce qu'il sert à prouver ; la raison dessous quand il n'est pas
@@ -159,7 +158,9 @@ suit le complète, et en remplace les mots là où c'est dit.
   vérificateur (l'énoncé, chaque membre de phrase dans un bloc à part, sans
   qu'un caractère change, texte copié compris), « Ce que ce résultat ne dit
   pas », « Et maintenant ? » (avec « Imprimer ce résultat »), et « Pour les
-  spécialistes » (rapport lisible, rapport JSON, ligne de commande, repliés).
+  spécialistes » : en tête, la phrase du code, entière, en petit, introduite
+  par « Formule exacte du vérificateur : » ; puis le rapport lisible, le
+  rapport JSON et la ligne de commande, repliés.
 - **Tables fixées.** Les phrases par code de retour, les phrases par
   avertissement (`AV-…`) et les lignes de « Ce que ce résultat ne dit pas »
   sont celles des tables de CT-6 §18 (EX-18.9, points 6, 7 et 10), mot pour
@@ -207,7 +208,8 @@ retour dit ; ce qu'elle ajoute vient du seul rapport JSON, lu exactement.
   devient « …, dont N avec réserve ». Sans rattachement donné par le rapport,
   aucune ligne ne change.
 - **Réserve signalée plusieurs fois.** Même identifiant, même phrase : dite
-  une fois, « (signalée N fois) », puis chacun des textes exacts.
+  une fois, suivie de « Le vérificateur la signale N fois dans ce dossier. »,
+  puis chacun des textes exacts.
 - **En résumé.** Avant le texte exact, quelques champs du rapport recopiés
   dans des gabarits fixes : le numéro d'ordre de l'action (`event.seq`), la
   période (`period`, en toutes lettres, temps universel, sans conversion de
@@ -222,11 +224,36 @@ retour dit ; ce qu'elle ajoute vient du seul rapport JSON, lu exactement.
   vérificateur dit de la vérification en échec, son identifiant à la fin
   entre parenthèses. Sous « Aucun verdict », la pièce en cause en clair,
   d'après le type de l'erreur (`error.kind`). Un refus porte le titre
-  « Fichier refusé » au-dessus de la mention fixée « aucun rapport », et
-  l'étape 1 dit le fichier refusé, sans coche ni « Tout est prêt ».
+  « Fichier refusé » ; la mention fixée « aucun rapport » est en tête de
+  « Pour les spécialistes ». L'étape 1 dit le fichier refusé, sans coche ni
+  « Tout est prêt ».
 - **Étape 2.** Sous « Liste des références de confiance » : l'organisation
   qui a remis le dossier la fournit avec lui, c'est un fichier dont le nom
   finit par .json, et ce qui se passe sans elle.
+
+Troisième lecture, même date (CT-6 §18, EX-18.7 et EX-18.9) :
+
+- **Titre du verdict.** Le mot et sa mention se lisent d'un seul tenant, à
+  la même taille (« Valide, mais tout n'est pas prouvé ») ; ce que le dossier
+  ne prouve pas suit, en gras, avant toute autre phrase. Le cadre du verdict
+  n'est écrit qu'en langage courant : la formule exacte du vérificateur est
+  en tête de « Pour les spécialistes », entière et jamais repliée.
+- **Contrôle non fait.** Sa phrase dit quoi demander, et à qui, d'après la
+  raison du rapport, le numéro du contrôle et les pièces ajoutées à l'étape
+  2 (table de CT-6 §18, point 8) ; la raison exacte suit, entre parenthèses.
+  Une pièce absente du dossier renvoie à l'organisation qui l'a remis, non à
+  l'étape 2. « Et maintenant ? » renvoie à ces lignes.
+- **Réserves.** Chaque phrase de la table dit ce qui est signalé, puis sa
+  conséquence (« Conséquence : … »).
+- **Refus.** Tant qu'un refus est affiché, « Vérifier » est inactif et l'aide
+  dit pourquoi ; ce qui est refusé (le dossier, ou une pièce complémentaire)
+  est dit refusé là où il a été choisi ; un autre choix efface le refus.
+- **Étape 2.** « Vérifiez d'où vient cette liste : c'est elle qui désigne
+  les tiers de confiance. » est une phrase à part, à la taille du texte
+  courant.
+- **Barre haute.** Quand la page amène le résultat, ou l'étape 1, en haut de
+  l'écran, elle lit la hauteur réelle de la barre haute (qui change avec la
+  police et la largeur) et place l'élément dessous.
 
 ## Bornes et limites (EX-18.7 ; revue de sécurité de l'étape 8)
 

@@ -33,7 +33,7 @@ import { modeleAffichage, sessionDuModele, entreeDeSession, adresseActive } from
 import { el, ajouter, code, detail, icone, marque, message, pastille, remplacer } from "../commun/dom.mjs";
 import { t } from "../commun/libelles.mjs";
 import { appeler, maintenant } from "../commun/client.mjs";
-import { afficherErreur, demarrerEcran, entete, estIdentifiantTicket, instant, lienTicket, paragrapheCode, pastilleEtat, pluriel, principal, texteDuree, texteDureeCourte, texteRestant } from "../commun/cadre.mjs";
+import { afficherErreur, demarrerEcran, entete, estIdentifiantTicket, expliquerContestation, instant, legendeVerifie, lienTicket, paragrapheCode, pastilleEtat, pluriel, principal, texteDuree, texteDureeCourte, texteRestant } from "../commun/cadre.mjs";
 import { montantVerifie } from "../commun/lisible.mjs";
 
 const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -50,10 +50,16 @@ function contestation(tk) {
   const lignes = [];
   const n = Array.isArray(c.objections) ? c.objections.length : 0;
   const contestee = (classe) => el("span", { classe, texte: pluriel(n, "tickets.contestation.objection", "tickets.contestation.objections"), attributs: { "data-objections": String(n) } });
-  if (c.window_end !== null) {
+  if (c.window_end !== null && tk.state === "seuil_atteint" && typeof tk.deadline === "string" && Date.parse(String(c.window_end)) > Date.parse(tk.deadline)) {
+    // Approbations réunies trop tard : l'échéance passe avant la fin du délai, et la demande expire (CT-3 EX-10.9).
+    lignes.push(el("span", { classe: "fait-texte", texte: t("tickets.contestation.trop_tard"), attributs: { "data-trop-tard": "" } }));
+  } else if (c.window_end !== null) {
     const reste = Date.parse(String(c.window_end)) - Date.now();
     lignes.push(el("span", { classe: "fait-texte" }, reste > 0 ? t("tickets.contestation.en_cours", { duree: texteDureeCourte(reste) }) : t("tickets.contestation.jusqu_au"), " ", instant(String(c.window_end)), "."));
     if (n > 0) lignes.push(contestee("fait-second"));
+    // Approbations réunies : ce qui peut encore arriver à la demande. Sans contestation d'ici la fin du délai, elle
+    // est approuvée, et l'action est autorisée (CT-3 5.6, EX-5.9, 10.2).
+    else if (tk.state === "seuil_atteint") lignes.push(el("span", { classe: "fait-second", texte: t("tickets.contestation.ensuite"), attributs: { "data-ensuite": "" } }));
   } else if (n > 0) {
     // Une contestation en cours annule le délai, ou l'empêche de commencer (EX-5.9, point 4) : c'est elle qui se
     // lit d'abord ; un délai entier recommence quand elle est retirée et que les approbations sont réunies.
@@ -84,8 +90,10 @@ function dernierInstant(tk) {
  * L'échéance d'une carte, chaque date avec ce qu'elle est. Demande à décider
  * avec un délai de contestation : le dernier moment pour l'approuver à temps,
  * puis l'expiration, dite à part. Demande à décider sans ce délai : son
- * échéance. Autre demande en cours : « Expire le », si elle n'est pas
- * approuvée d'ici là.
+ * échéance. Demande qui a réuni ses approbations, ou dont la décision
+ * s'enregistre : son échéance, sans plus (ce qui peut encore lui arriver est
+ * dit avec la contestation). Demande en préparation : « Expire le », si elle
+ * n'est pas approuvée d'ici là.
  */
 function faitEcheance(tk) {
   const reste = (iso) => el("span", { classe: "fait-second", texte: texteRestant(Date.parse(iso) - Date.now()) });
@@ -95,13 +103,15 @@ function faitEcheance(tk) {
     // Une contestation en cours suspend la demande : le dernier moment où la retirer à temps est dit, avec ce qu'il est.
     const c = estObjet(tk.contest) ? tk.contest : null;
     const suspendue = c !== null && Array.isArray(c.objections) && c.objections.length > 0 && typeof c.last_threshold_at === "string";
+    // Approbations réunies, décision en cours d'enregistrement : « si elle n'est pas approuvée d'ici là » ne se dit pas.
+    const reunies = ["seuil_atteint", "verification", "a_remettre"].includes(tk.state);
     return faitLibelle(
       "echeance",
-      t("tickets.colonne.expiration"),
+      t(reunies ? "tickets.colonne.echeance_seule" : "tickets.colonne.expiration"),
       "nt-fait",
       instant(echeance),
       reste(echeance),
-      el("span", { classe: "fait-second", texte: t("tickets.echeance.sinon") }),
+      reunies ? null : el("span", { classe: "fait-second", texte: t("tickets.echeance.sinon") }),
       suspendue ? el("span", { classe: "fait-second", attributs: { "data-dernier-instant": "" } }, t("tickets.echeance.retrait"), " ", instant(c.last_threshold_at), ".") : null,
     );
   }
@@ -142,6 +152,7 @@ async function lireMontants(identite, aDecider) {
       if (mien !== undefined) rangerDejaDecidee(String(tk.ticket), mien.decision);
       const m = montantVerifie(modeleAffichage(vue, { session: sessionDuModele(annuaire, identite, vue), decision: null, approver, reason: null, now: maintenant() }));
       if (m === null) continue;
+      montrerLegende();
       remplacer(
         zonesMontant.get(String(tk.ticket)),
         el("span", { classe: "nt-masque", texte: t("tickets.montant") }),
@@ -152,6 +163,15 @@ async function lireMontants(identite, aDecider) {
       // La ligne reste sans montant.
     }
   }
+}
+
+/**
+ * Ce que « vérifié » veut dire, dès qu'un montant vérifié paraît dans la
+ * liste : sous l'intertitre « À décider », une fois.
+ */
+function montrerLegende() {
+  const groupe = document.querySelector('#liste-tickets li[data-groupe="a_decider"]');
+  if (groupe !== null && groupe.querySelector(".legende-verifie") === null) groupe.appendChild(legendeVerifie(false));
 }
 
 function votes(tk) {
@@ -240,6 +260,8 @@ function rangerDejaDecidee(id, decision) {
     const vide = el("li", { classe: "nt-attenue", texte: t("tickets.aucun"), attributs: { id: "aucune-a-decider" } });
     cartes.querySelector('li[data-groupe="a_decider"]').after(vide);
   }
+  // L'ordre des cartes a changé : l'explication de « contester » suit de nouveau le premier endroit qui en parle.
+  expliquerContestation(cartes, true);
 }
 
 // Un intertitre de la liste : un groupe de demandes, et ce que ce groupe veut dire.
@@ -291,6 +313,9 @@ function rendre(conteneur, reponse) {
   resume.appendChild(corpsResume);
   parties.push(el("section", { classe: "nt-carte nt-carte-pleine" }, el("div", { classe: "nt-carte-titre" }, el("h2", { texte: t("tickets.par_demandeur") })), resume));
   remplacer(conteneur, ...parties);
+  // « Contester » expliqué une fois, là où le mot paraît pour la première fois : la liste n'en parle que pour une
+  // demande dont la règle prévoit un délai de contestation.
+  expliquerContestation(cartes, true);
   return aDecider;
 }
 
