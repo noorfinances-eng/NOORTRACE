@@ -2169,7 +2169,7 @@ html[data-theme="clair"] .nt-case input {
 /* Fiche d'un client : les étapes à gauche, l'organisation à droite. */
 .ins-fiche {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
   gap: var(--nt-e-6);
   align-items: start;
 }
@@ -2181,6 +2181,21 @@ html[data-theme="clair"] .nt-case input {
 
 .ins-essentiel-texte {
   max-width: 46rem;
+}
+
+/* La consigne : son intitulé et son titre, puis ses phrases, plus serrés que les blocs de la carte. */
+.ins-consigne-tete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-2);
+  min-width: 0;
+}
+
+.ins-consigne {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-3);
+  min-width: 0;
 }
 
 .ins-resultat {
@@ -2325,6 +2340,149 @@ html[data-theme="clair"] .nt-case input {
 
 .ins-fait-large {
   grid-column: 1 / -1;
+}
+
+/* Étapes : une ligne par étape faite ou à venir ; le détail s'ouvre sous la ligne. */
+.ins-etapes > li[data-developpee="non"] {
+  padding-bottom: var(--nt-e-3);
+}
+
+.ins-etape-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--nt-e-1) var(--nt-e-3);
+  min-width: 0;
+}
+
+/* Le nom de l'étape prend la place libre et se replie sur lui-même ; « Détail » reste à sa droite. */
+.ins-etape-ligne > p {
+  flex: 1 1 10rem;
+  min-width: 0;
+  min-height: 2rem;
+}
+
+.ins-etape-ligne > details {
+  margin-left: auto;
+}
+
+.ins-etape-ligne > details[open] {
+  flex-basis: 100%;
+  margin-left: 0;
+}
+
+/* Lignes numérotées d'une explication (« Comment ça marche », les étapes une par une). */
+.ins-lignes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-2);
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+/* Aide de saisie : un bouton ou un champ qui remplit le champ voisin, et sa phrase. */
+.ins-aide-saisie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-2) var(--nt-e-3);
+  min-width: 0;
+}
+
+.ins-aide-saisie > input {
+  flex: 1 1 14rem;
+  width: auto;
+  min-width: 0;
+}
+
+.ins-aide-saisie > p {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.ins-copier {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-2) var(--nt-e-3);
+}
+
+/* L'exemple d'un champ : sous le champ, jamais dans le champ. */
+.ins-exemple {
+  overflow-wrap: anywhere;
+}
+
+/* Choix sans présélection : les choix côte à côte, chacun avec sa phrase dessous ; aucun n'est coché à l'arrivée.
+   Le choix habituel est mis en avant par sa place (le premier) et sa largeur, non par un état « choisi ». */
+.ins-choix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nt-e-3) var(--nt-e-4);
+  align-items: flex-start;
+}
+
+.ins-choix-un {
+  display: flex;
+  flex: 1 1 15rem;
+  flex-direction: column;
+  gap: var(--nt-e-2);
+  min-width: 0;
+}
+
+.ins-choix-habituel {
+  flex: 2 1 22rem;
+}
+
+.ins-choix-marque {
+  font-weight: 400;
+}
+
+/* Ce qu'il faut retenir d'un champ : une icône et une phrase, sous l'aide. */
+.ins-a-retenir {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--nt-e-2);
+}
+
+.ins-a-retenir > svg {
+  flex: none;
+  margin-top: 0.15em;
+}
+
+/* Récapitulatif à relire avant de noter une confirmation. */
+.ins-relecture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-3);
+}
+
+.ins-relecture > h3 {
+  margin: 0;
+}
+
+.ins-relecture dd {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--nt-e-1);
+  overflow-wrap: anywhere;
+}
+
+.ins-paquet-en-clair {
+  margin: 0;
+}
+
+/* Sous le bouton de la consigne : ce que la personne doit savoir expliquer au client. */
+.ins-pour-expliquer {
+  margin: 0;
+  max-width: 62rem;
+}
+
+/* Dans cette colonne, le bouton garde sa hauteur de bouton (sa base de 12rem vaut pour une rangée). */
+.ins-choix-un > button {
+  flex: none;
+  width: 100%;
+  font-size: var(--nt-t-m);
 }
 
 @media (max-width: 56rem) {

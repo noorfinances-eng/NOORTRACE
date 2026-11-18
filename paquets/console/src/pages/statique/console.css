@@ -2117,22 +2117,28 @@ html[data-theme="clair"] .nt-case input {
   padding: var(--nt-e-10) var(--nt-e-6);
 }
 
-/* Identité de session, sous la barre : en entier, dans son ordre (CT-3 EX-13.7). */
-.bande-session {
-  border-bottom: 1px solid var(--nt-bord-doux);
+/*
+ * La personne connectée est dite en mots dans la barre ; l'identité de
+ * session canonique reste lisible en entier, dans son ordre, au pied de
+ * l'écran, dans un bloc replié (CT-3 EX-13.7).
+ */
+.personne-connectee {
+  color: var(--nt-encre-titre);
+  font-weight: 700;
 }
 
-.bande-session-dedans {
+.pied-session {
+  width: 100%;
   max-width: var(--nt-largeur);
   margin: 0 auto;
-  padding: var(--nt-e-2) var(--nt-e-6);
-  color: var(--nt-encre-attenuee);
-  font-size: var(--nt-t-xs);
-  overflow-wrap: anywhere;
+  padding: 0 var(--nt-e-6) var(--nt-e-8);
 }
 
-.bande-session-libelle {
-  font-weight: 600;
+/* Une phrase que la spécification fixe mot pour mot, sous sa phrase en langage courant : plus discrète. */
+.phrase-fixee {
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+  font-weight: 400;
 }
 
 .zone-sortie {
@@ -2141,7 +2147,8 @@ html[data-theme="clair"] .nt-case input {
   padding: 0 var(--nt-e-6);
 }
 
-.zone-sortie:empty {
+.zone-sortie:empty,
+.bande-session:not(:has(> :not(:empty))) {
   display: none;
 }
 
@@ -2152,21 +2159,28 @@ html[data-theme="clair"] .nt-case input {
   display: none;
 }
 
+/* L'écran d'une demande : blocs rapprochés, sans grand vide avant le pied. */
+.page-ticket {
+  gap: var(--nt-e-3);
+  padding-bottom: var(--nt-e-6);
+}
+
 /* Phrase d'en-tête : toute la largeur de la carte. */
 .phrase-large {
   max-width: none;
 }
 
-/* Corps d'une carte bord à bord, hors tableau. */
-.corps-carte {
-  padding: var(--nt-e-5) var(--nt-e-6);
+/* La phrase de l'état d'une demande : toute la largeur de l'écran. */
+.sous-titre-large {
+  max-width: none;
 }
 
-/* Un fait dont la valeur est longue (un identifiant de demandeur) prend deux colonnes. */
-@media (min-width: 56rem) {
-  .fait-large {
-    grid-column: span 2;
-  }
+/* La phrase d'en-tête et, à sa suite quand la place le permet, le montant en grand. */
+.phrase-et-montant {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--nt-e-1) var(--nt-e-3);
 }
 
 /* Valeur d'un argument (EX-9.16, revue de sécurité de l'étape 8) : les blancs ne sont pas fusionnés. */
@@ -2229,10 +2243,15 @@ html[data-theme="clair"] .nt-case input {
   font-weight: 400;
 }
 
-/* Les faits d'un ticket de la liste : le demandeur et la contestation ont besoin de place. */
+/* Les faits d'une demande de la liste : le demandeur tient sur une ligne ; la contestation, dite en phrases, prend
+   la ligne entière sous les trois autres faits (elle n'existe que si la règle prévoit un délai de contestation). */
 @media (min-width: 56rem) {
   .faits-ticket {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1.7fr);
+    grid-template-columns: minmax(0, 2.6fr) minmax(0, 1.6fr) minmax(0, 1.6fr);
+  }
+
+  .fait-large {
+    grid-column: 1 / -1;
   }
 }
 
@@ -2344,14 +2363,15 @@ html[data-theme="clair"] .nt-case input {
   }
 
   .essentiel-serre {
-    gap: var(--nt-e-3);
-    padding-top: var(--nt-e-5);
-    padding-bottom: var(--nt-e-5);
+    gap: 0.625rem;
+    padding-top: var(--nt-e-4);
+    padding-bottom: var(--nt-e-4);
   }
 
   .faits-ligne {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
-    padding-top: var(--nt-e-4);
+    grid-template-columns: minmax(0, 2.3fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.6fr);
+    gap: var(--nt-e-3) var(--nt-e-5);
+    padding-top: var(--nt-e-3);
   }
 }
 
@@ -2365,10 +2385,6 @@ html[data-theme="clair"] .nt-case input {
   color: var(--nt-encre-titre);
   font-size: var(--nt-t-l);
   font-weight: 700;
-}
-
-.reserves {
-  gap: var(--nt-e-1);
 }
 
 /* Raisons qui bloquent : une ligne par raison. */
@@ -2578,8 +2594,432 @@ html[data-theme="clair"] .nt-case input {
   padding: var(--nt-e-8);
 }
 
+/*
+ * Écran d'une demande, resserré (complément du 2026-11-18) : les valeurs de
+ * la demande dans la carte « essentiel », une ligne par valeur ; le reste de
+ * la demande en cartes denses, sur deux colonnes quand la place le permet.
+ * Rien de ce que CT-3 EX-9.4 demande avant une signature n'est replié.
+ */
+.page-ticket .titre-groupe {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--nt-e-1) var(--nt-e-4);
+  max-width: none;
+  margin-top: var(--nt-e-2);
+}
+
+.valeurs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-2);
+  min-width: 0;
+}
+
+.valeurs-titre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--nt-e-1) var(--nt-e-4);
+}
+
+.liste-valeurs {
+  gap: 0;
+}
+
+/* Une valeur : son libellé courant et son chemin exact, sa valeur telle quelle, sa marque. */
+.ligne-valeur {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) auto;
+  align-items: baseline;
+  gap: var(--nt-e-1) var(--nt-e-4);
+  padding: 0.1875rem 0;
+  border-top: 1px solid var(--nt-bord-doux);
+}
+
+.valeur-nom,
+.valeur-contenu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--nt-e-2);
+  min-width: 0;
+}
+
+.valeur-libelle {
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+}
+
+.valeur-chemin {
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-xs);
+}
+
+.valeur-contenu {
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+}
+
+/* Au-delà de huit valeurs : une présentation plus dense, toujours visible. */
+.valeurs-denses .ligne-valeur {
+  padding: var(--nt-e-1) 0;
+  font-size: var(--nt-t-s);
+}
+
+/* Un groupe de valeurs à part : celles que la console n'a pas pu vérifier, celles qui diffèrent. */
+.groupe-valeurs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-2);
+  padding: var(--nt-e-3) var(--nt-e-4);
+  border: 1px solid var(--nt-bord-doux);
+  border-radius: var(--nt-rayon-m);
+  background: var(--nt-verre-2);
+}
+
+.groupe-controle {
+  border-color: var(--nt-attente-bord);
+  background: var(--nt-attente-fond);
+}
+
+.groupe-different {
+  border-color: var(--nt-refus-bord);
+  background: var(--nt-refus-fond);
+}
+
+.groupe-valeurs-titre {
+  display: flex;
+  align-items: center;
+  gap: var(--nt-e-2);
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-m);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.groupe-valeurs-titre svg {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.groupe-controle .groupe-valeurs-titre svg {
+  color: var(--nt-attente);
+}
+
+.groupe-different .groupe-valeurs-titre svg {
+  color: var(--nt-refus);
+}
+
+.groupe-valeurs .ligne-valeur:first-child {
+  border-top: 0;
+}
+
+/* Le reste de la demande : cartes denses, en colonnes équilibrées. */
+.colonnes-cartes {
+  columns: 2 26rem;
+  column-gap: var(--nt-e-3);
+}
+
+.colonnes-cartes > * {
+  break-inside: avoid;
+  margin-bottom: var(--nt-e-3);
+}
+
+.colonnes-cartes > :last-child {
+  margin-bottom: 0;
+}
+
+.carte-serree {
+  gap: var(--nt-e-2);
+  padding: var(--nt-e-4) var(--nt-e-5);
+}
+
+.carte-serree h3,
+.titre-lies {
+  font-size: var(--nt-t-m);
+}
+
+.note-carte {
+  font-size: var(--nt-t-xs);
+}
+
+/* Sous la demande : le choix du portefeuille et, à côté, les autres actions. */
+.bas-demande {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--nt-e-4);
+  align-items: start;
+}
+
+.bas-demande:not(:has(> .zone-carte:not(:empty), .autres-actions > :not(:empty))) {
+  display: none;
+}
+
+.autres-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-4);
+  min-width: 0;
+}
+
+@media (min-width: 56rem) {
+  .bas-demande:has(> .zone-carte:not(:empty)):has(.autres-actions > :not(:empty)) {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+/* Le choix du portefeuille, où la page amène après la confirmation de la décision : sous la barre, pas dessous. */
+.bas-demande .zone-carte {
+  gap: var(--nt-e-3);
+  padding: var(--nt-e-4) var(--nt-e-5);
+  scroll-margin-top: 5rem;
+}
+
+/* Le bloc où la page vient d'amener la personne se voit : l'anneau de focus, même après un clic de souris. */
+.bas-demande .zone-carte:focus {
+  outline: 2px solid var(--nt-focus);
+  outline-offset: 2px;
+}
+
+.bas-demande h2 {
+  font-size: var(--nt-t-l);
+}
+
+.bas-demande .zone-carte > p {
+  font-size: var(--nt-t-s);
+}
+
+/* Une liste dense de couples : le terme à gauche, la valeur à droite, une ligne par couple. */
+.lignes {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.ligne {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 36%) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0 var(--nt-e-3);
+  padding: 0.1875rem 0;
+}
+
+/* Une valeur longue : sous son terme, sur toute la largeur. */
+.ligne-pleine {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ligne dt {
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+  font-weight: 600;
+}
+
+.ligne dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--nt-e-2);
+  min-width: 0;
+  margin: 0;
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-s);
+  overflow-wrap: anywhere;
+}
+
+/* Une personne : son nom s'il est connu, puis son adresse de signature, entière, en petit. */
+.personne {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--nt-e-2);
+  min-width: 0;
+}
+
+.personne-nom {
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+}
+
+.personne-adresse,
+.personne-presentation {
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-xs);
+}
+
+.membres {
+  gap: var(--nt-e-1);
+}
+
+.votes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-1);
+  padding-top: var(--nt-e-2);
+  border-top: 1px solid var(--nt-bord-doux);
+}
+
+.liste-votes {
+  gap: 0;
+}
+
+.vote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-1) var(--nt-e-3);
+  padding: var(--nt-e-2) 0;
+}
+
+.vote + .vote {
+  border-top: 1px solid var(--nt-bord-doux);
+}
+
+.vote time,
+.vote-motif {
+  font-size: var(--nt-t-s);
+}
+
+/* Écran de signature : ce que la personne s'apprête à faire, le rappel de la demande, l'empreinte à comparer. */
+.signature {
+  scroll-margin-top: 5rem;
+}
+
+.signature-haut {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--nt-e-4);
+}
+
+@media (min-width: 56rem) {
+  .signature-haut {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: var(--nt-e-6);
+  }
+}
+
+.signature-vous {
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-xl);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.rappel,
+.encart-empreinte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-2);
+}
+
+.rappel-phrase {
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-l);
+  font-weight: 600;
+}
+
+.rappel-montant {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Dans le rappel, une valeur à contrôler : son libellé, puis sa valeur et sa marque sur la ligne suivante. */
+.rappel .ligne-valeur {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.rappel .valeur-nom {
+  flex: 1 1 100%;
+}
+
+.intitule-clair {
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-m);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.consigne-titre {
+  display: block;
+  color: var(--nt-encre-titre);
+}
+
+.consigne-texte {
+  display: block;
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+}
+
+/* Liste des demandes : un intertitre par groupe ; le titre d'une carte nomme l'outil. */
+.groupe-liste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-1);
+  margin-top: var(--nt-e-2);
+}
+
+.groupe-liste h2 {
+  font-size: var(--nt-t-l);
+}
+
+.groupe-liste-nombre {
+  font-weight: 400;
+}
+
+.carte-ticket-nom {
+  font-size: var(--nt-t-l);
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 37.5rem) {
-  .bande-session-dedans,
+  .pied-session {
+    padding-right: var(--nt-e-4);
+    padding-left: var(--nt-e-4);
+  }
+
+  /* Sur téléphone, le titre d'un bloc replié suffit : sa précision est omise. */
+  .note-detail {
+    display: none;
+  }
+
+  /* Les faits de la carte : deux par rangée. */
+  .faits-ligne {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .faits-ligne > :first-child,
+  .faits-ligne > :nth-child(2):not(:nth-last-child(1)):not(:nth-last-child(2)) {
+    grid-column: 1 / -1;
+  }
+
+  /* Sur téléphone : le libellé, puis la valeur et sa marque sur la ligne suivante. */
+  .ligne-valeur {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .valeur-nom {
+    flex: 1 1 100%;
+  }
+
+  /* Un couple court tient sur une ligne ; une valeur longue passe sous son terme. */
+  .ligne {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0 var(--nt-e-3);
+  }
+
+  .carte-serree {
+    padding: var(--nt-e-3) var(--nt-e-4);
+  }
+
   .zone-sortie {
     padding-right: var(--nt-e-4);
     padding-left: var(--nt-e-4);
@@ -2597,4 +3037,97 @@ html[data-theme="clair"] .nt-case input {
   .texte-inscription {
     padding-left: var(--nt-e-10);
   }
+}
+
+
+/* Complément du 2026-11-18 : consignes courantes de l'écran de signature, avant le bouton. */
+.consignes-courantes {
+  margin: 0;
+  padding-left: 1.4em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-1);
+}
+
+.consignes-courantes li {
+  line-height: 1.45;
+}
+
+.avant-de-signer {
+  gap: var(--nt-e-2);
+}
+
+.signature-titre {
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--nt-e-1) var(--nt-e-5);
+}
+
+.signature-titre .signature-vous {
+  margin: 0;
+}
+
+
+.consignes-courantes .extremite {
+  font-size: 1.05em;
+  white-space: nowrap;
+}
+
+.code-entier {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Le résultat d'une signature, là où la page amène la personne : sous la barre, sans anneau de focus. */
+.zone-resultat {
+  scroll-margin-top: 5rem;
+}
+
+.zone-resultat:focus,
+.signature:focus {
+  outline: none;
+}
+
+/* L'icône d'un portefeuille : celle qu'il annonce, ou un pictogramme neutre dans un cadre. */
+.fournisseur-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+}
+
+.fournisseur-icone[data-icone="neutre"] {
+  border: 1px solid var(--nt-bord-doux);
+  border-radius: var(--nt-rayon-s);
+  color: var(--nt-encre-attenuee);
+}
+
+/* Le montant vérifié d'une demande de la liste : vide tant que la vue n'est pas lue. */
+.carte-ticket-montant {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-2);
+}
+
+.carte-ticket-montant:empty {
+  display: none;
+}
+
+/* Dans la liste, ce que la personne connectée a déjà décidé d'une demande encore ouverte. */
+.carte-ticket-deja {
+  margin: 0;
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+}
+
+.carte-ticket-somme {
+  font-size: var(--nt-t-l);
+}
+
+.code-parcours + .code-parcours {
+  margin-left: var(--nt-e-2);
 }

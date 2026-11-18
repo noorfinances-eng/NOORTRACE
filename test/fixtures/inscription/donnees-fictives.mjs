@@ -2,6 +2,12 @@
 // (complément du 2026-11-17) : l'interface lit ces fichiers en lecture seule (INTERFACES.md 3.6), aucun agent
 // n'est nécessaire. Cinq clients, à des états différents du parcours ; chaque valeur est dérivée d'un nom par
 // SHA-256, aucune n'a de sens hors de l'essai. Les dossiers suivent les membres d'`inscription-client-v0`.
+//
+// Cohérence (complément du 2026-11-18, seconde lecture des écrans) : les données disent ce qu'un agent aurait
+// écrit. Chaque dossier a son travail de préparation, au même instant que `prepared_at` ; un versement fait a sa
+// confirmation du client, notée puis consommée par le travail qui a versé (CT-4 EX-7.26) ; une étape envoyée ou en
+// échec a le travail qui l'a envoyée, et la confirmation que l'agent exige avant de l'admettre. Un paquet produit
+// porte la recherche de secrets d'EX-7.21 sur les références employées.
 
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -100,16 +106,87 @@ export function ecrireDonneesFictives(donnees) {
     travailFictif(2, { slug: "client-en-cours", commande: "inscrire-client", recu_a: "2026-11-12T08:05:00.000Z", outputs: { curator_set: adr("client-en-cours/jeu") } }),
     travailFictif(3, { slug: "client-en-cours", commande: "condense-inscription", recu_a: "2026-11-12T08:10:00.000Z", outputs: { digest: demande.digest } }),
     travailFictif(4, { slug: "client-en-echec", commande: "inscrire-client", result: "echoue", recu_a: "2026-11-12T08:20:00.000Z", error: { code: "transaction_annulee", check: "OP-11", message: "transaction incluse à status 0x0" } }),
-    travailFictif(5, { slug: "client-inscrit", commande: "paquet", recu_a: "2026-11-13T10:00:00.000Z", outputs: { directory: paquet, org: "client-inscrit", org_id: clients["client-inscrit"].dossier.organisation.org_id, files: 28, manifest_sha256: manifestePaquet, secrets_checked: { count: 0, references: [] } } }),
-    travailFictif(6, { slug: "client-neuf", commande: "inscrire-client-preparer", recu_a: "2026-11-14T16:30:00.000Z" }),
+    travailFictif(5, { slug: "client-inscrit", commande: "paquet", recu_a: "2026-11-13T10:00:00.000Z", outputs: { directory: paquet, org: "client-inscrit", org_id: clients["client-inscrit"].dossier.organisation.org_id, files: 28, manifest_sha256: manifestePaquet, secrets_checked: { count: 2, references: [{ option: "--relayeur", reference: "alias:relayeur" }, { option: "--tresorerie", reference: "alias:tresorerie" }] } } }),
+    travailFictif(6, { slug: "client-neuf", commande: "inscrire-client-preparer", recu_a: "2026-11-12T07:55:00.000Z" }),
+    // Ce qu'un agent aurait écrit pour les trois autres clients (cohérence, complément du 2026-11-18).
+    travailFictif(7, { slug: "client-en-echec", commande: "inscrire-client-preparer", recu_a: "2026-11-12T07:55:00.000Z" }),
+    travailFictif(8, { slug: "client-envoye", commande: "inscrire-client-preparer", recu_a: "2026-11-12T07:55:00.000Z" }),
+    travailFictif(9, { slug: "client-envoye", commande: "inscrire-client", result: "incertain", recu_a: "2026-11-12T08:00:00.000Z", error: { code: "recu_absent", check: null, message: `aucun reçu pour ${clients["client-envoye"].dossier.steps[0].transaction_hash} en 120 s ; reprendre par le travail capturer` } }),
+    travailFictif(10, { slug: "client-inscrit", commande: "inscrire-client-preparer", recu_a: "2026-11-12T07:55:00.000Z" }),
+    travailFictif(11, { slug: "client-inscrit", commande: "inscrire-client", recu_a: "2026-11-12T08:05:00.000Z", outputs: { curator_set: adr("client-inscrit/jeu") } }),
+    travailFictif(12, { slug: "client-inscrit", commande: "condense-inscription", recu_a: "2026-11-12T08:10:00.000Z", outputs: { digest: h32("client-inscrit/demande/condense") } }),
+    travailFictif(13, { slug: "client-inscrit", commande: "inscrire-cle", recu_a: "2026-11-12T09:30:00.000Z", outputs: {} }),
   ];
   fs.mkdirSync(path.join(donnees, "travaux"), { recursive: true });
   for (const t of travaux) fs.writeFileSync(path.join(donnees, "travaux", `${t.id}.json`), JSON.stringify(t));
-  // Confirmations hors bande : une consommée (client en cours), une en réserve (client en échec).
+  // Confirmations hors bande.
   const piece = h32("piece/confirmation");
   const confirmation = (n, slug, operation, pieceSha) => ({ id: `cnf-${String(n).padStart(32, "0")}`, operation, objet: { org_id: clients[slug].dossier.organisation.org_id, cle_chaine: clients[slug].dossier.recorders[0].chain_key }, personne_client: "Camille Durand (personne fictive)", canal: "appel au numéro du contrat", instant: "2026-11-12T07:58:00.000Z", piece_sha256: pieceSha, exploitant: "exploitant operateur-1", recu_a: "2026-11-12T08:00:00.000Z" });
-  const confirmations = [confirmation(1, "client-en-cours", "approvisionnement", piece), confirmation(2, "client-en-echec", "approvisionnement", h32("piece/2"))];
-  const lignes = [confirmations[0], { consommation: confirmations[0].id, travail: travaux[1].id, org_id: confirmations[0].objet.org_id, cle_chaine: confirmations[0].objet.cle_chaine, instant: "2026-11-12T08:05:02.000Z" }, confirmations[1]];
+  // Une consommée (client en cours), une en réserve (client en échec : le versement n'est pas fait) ; puis, pour la
+  // cohérence : une en réserve (client envoyé : l'agent l'exige avant d'admettre les étapes 2 à 5) et une consommée
+  // (client inscrit).
+  const confirmations = [confirmation(1, "client-en-cours", "approvisionnement", piece), confirmation(2, "client-en-echec", "approvisionnement", h32("piece/2")), confirmation(3, "client-envoye", "approvisionnement", h32("piece/3")), confirmation(4, "client-inscrit", "approvisionnement", h32("piece/4"))];
+  const consommation = (c, t) => ({ consommation: c.id, travail: t.id, org_id: c.objet.org_id, cle_chaine: c.objet.cle_chaine, instant: "2026-11-12T08:05:02.000Z" });
+  const lignes = [confirmations[0], consommation(confirmations[0], travaux[1]), confirmations[1], confirmations[2], confirmations[3], consommation(confirmations[3], travaux[10])];
   fs.writeFileSync(path.join(donnees, "confirmations.ndjson"), lignes.map((l) => JSON.stringify(l)).join("\n") + "\n");
   return { clients, confirmations, travaux, piece, manifestePaquet, demande };
+}
+
+/**
+ * Ajoute sous `donnees` un client fictif de plus (complément du 2026-11-18, langage des écrans) : son dossier, à
+ * l'état donné, et, si demandé, une confirmation du client prête à servir pour son compte technique et des
+ * travaux. Rend `{ dossier, retirer() }` ; `retirer` efface le client, ses travaux et sa confirmation.
+ *
+ * `histoire` (seconde lecture des écrans) : écrit en outre ce qu'un agent aurait écrit pour arriver à cet état : le
+ * travail de préparation, à l'instant de `prepared_at` ; dès qu'une des étapes 2 à 5 a été tentée, le travail qui
+ * les conduit et la confirmation du client que l'agent exige avant de l'admettre, consommée si le versement est fait.
+ */
+export function ajouterClientFictif(donnees, slug, etats, { confirmation = false, travaux = [], erreur = undefined, histoire = false } = {}) {
+  const dossier = dossierFictif(slug, etats, erreur ? { erreur } : undefined);
+  const dir = path.join(donnees, "clients", slug);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "dossier.json"), JSON.stringify(dossier, null, 2) + "\n");
+  const registre = path.join(donnees, "confirmations.ndjson");
+  const avant = fs.existsSync(registre) ? fs.readFileSync(registre, "utf8") : null;
+  const conduites = etats.slice(0, 4);
+  const tentee = conduites.some((e) => e !== "a_faire");
+  if (histoire) {
+    const n = (k) => parseInt(crypto.createHash("sha256").update(`${slug}/travail/${k}`).digest("hex").slice(0, 12), 16);
+    travaux = [...travaux, travailFictif(n(1), { slug, commande: "inscrire-client-preparer", recu_a: dossier.prepared_at })];
+    if (tentee) {
+      const echec = conduites.includes("echec");
+      const enVol = conduites.includes("envoyee") || conduites.includes("incluse");
+      const conduite = travailFictif(n(2), {
+        slug, commande: "inscrire-client", recu_a: "2026-11-12T08:05:00.000Z",
+        ...(echec ? { result: "echoue", error: { code: dossier.steps.find((e) => e.state === "echec").error.code, check: "OP-11", message: dossier.steps.find((e) => e.state === "echec").error.message } } : enVol ? { result: "incertain", error: { code: "recu_absent", check: null, message: "aucun reçu en 120 s ; reprendre par le travail capturer" } } : {}),
+      });
+      travaux.push(conduite);
+      // L'enregistreur inscrit : le document préparé, puis envoyé signé.
+      if (etats[4] === "capturee") travaux.push(travailFictif(n(3), { slug, commande: "condense-inscription", recu_a: "2026-11-12T08:10:00.000Z" }), travailFictif(n(4), { slug, commande: "inscrire-cle", recu_a: "2026-11-12T09:30:00.000Z" }));
+      confirmation = true;
+      histoire = { conduite, versee: etats[3] === "capturee" };
+    }
+  }
+  if (confirmation) {
+    const c = { id: `cnf-${crypto.createHash("sha256").update(slug).digest("hex").slice(0, 32)}`, operation: "approvisionnement", objet: { org_id: dossier.organisation.org_id, cle_chaine: dossier.recorders[0].chain_key }, personne_client: "Camille Durand (personne fictive)", canal: "appel au numéro du contrat", instant: "2026-11-12T07:58:00.000Z", piece_sha256: h32(`piece/${slug}`), exploitant: "exploitant operateur-1", recu_a: "2026-11-12T08:00:00.000Z" };
+    fs.appendFileSync(registre, JSON.stringify(c) + "\n");
+    if (histoire?.versee) fs.appendFileSync(registre, JSON.stringify({ consommation: c.id, travail: histoire.conduite.id, org_id: c.objet.org_id, cle_chaine: c.objet.cle_chaine, instant: "2026-11-12T08:05:02.000Z" }) + "\n");
+  }
+  fs.mkdirSync(path.join(donnees, "travaux"), { recursive: true });
+  const fichiers = travaux.map((t) => {
+    const f = path.join(donnees, "travaux", `${t.id}.json`);
+    fs.writeFileSync(f, JSON.stringify(t));
+    return f;
+  });
+  return {
+    dossier,
+    retirer() {
+      fs.rmSync(dir, { recursive: true, force: true });
+      for (const f of fichiers) fs.rmSync(f, { force: true });
+      if (confirmation) {
+        if (avant === null) fs.rmSync(registre, { force: true });
+        else fs.writeFileSync(registre, avant);
+      }
+    },
+  };
 }

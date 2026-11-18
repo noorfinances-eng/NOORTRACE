@@ -54,6 +54,13 @@ plus que la valeur retenue + 1, ou aucune valeur rendue par deux points,
 ne fait rien signer), et l'outil de référence et l'agent d'inscription,
 qui ne recoupaient pas le nonce, l'appliquent ; aucun schéma ni aucun
 vecteur ne change ;
+complément du 2026-11-18, décision du porteur (langage des écrans) :
+l'interface de l'application d'exploitant parle à une personne qui n'est
+pas développeuse ; la mention « confirmation hors bande absente » reste
+affichée mot pour mot, sous une phrase en langage courant (EX-7.26), et
+trois aides de saisie remplissent un champ sans rien envoyer elles-mêmes
+(EX-7.25) ; ni les routes, ni l'agent, ni aucun schéma, ni aucun vecteur
+ne changent ;
 version 0.7 du 2026-11-11,
 révision 0.7 : commande `paquet-client` de l'outil
 de référence, codes de refus du paquet, reprise d'une étape en échec déjà
@@ -3284,7 +3291,28 @@ n'est admise que dans la configuration de l'agent. Le refus d'une référence
 qui ne se résout pas rend à l'interface un message unique, qui ne dit ni si
 le fichier existe, ni son mode, ni son contenu ; le détail va au journal de
 l'agent. L'interface n'affiche, ne consigne ni ne garde jamais une valeur
-résolue. Tenu par l'application.
+résolue. Complément du 2026-11-18, décision du porteur (langage des
+écrans) : une **aide de saisie** n'est pas un champ au sens de ce
+paragraphe quand elle n'a pas de nom de champ, n'est envoyée à aucune route
+et ne fait que remplir, dans la page, un champ d'un type déclaré ; elle
+porte le type du champ qu'elle remplit. Trois aides sont admises, et
+aucune autre. Sur l'écran des confirmations d'EX-7.26 : le choix de la
+pièce, dont le fichier est lu dans la page pour le seul calcul de son
+SHA-256 par le navigateur, écrit dans le champ de type hachage, le fichier
+n'étant ni envoyé, ni gardé, ni consigné ; et un champ de date et d'heure
+du poste, avec un bouton « Maintenant », qui écrivent l'instant en UTC, à
+la forme `AAAA-MM-JJThh:mm:ss.sssZ`, dans le champ de l'instant ; sous ce
+champ, l'interface dit que l'heure saisie est celle du poste et qu'elle
+la convertit, et affiche en clair la valeur convertie, pour que l'heure du
+poste ne soit pas prise pour l'heure enregistrée. Sur l'écran du pas 1 : un bouton qui tire dans la page, du générateur
+aléatoire cryptographique du navigateur, un slug de la forme de production
+d'EX-6.2 et l'écrit dans le champ de type slug. Ce qui est envoyé aux
+routes ne change pas, la saisie à la main reste possible, et l'agent
+contrôle le hachage, l'instant et le slug comme toute autre saisie.
+Épreuve : aucune requête ne part au choix de la pièce ; le corps de la
+confirmation ne porte que les membres d'EX-7.26 ; l'empreinte calculée
+est celle que rend `sha256sum` sur le même fichier. Tenu par
+l'application.
 
 **EX-7.26** **Confirmation hors bande consignée.** Avant de relayer une
 demande `administration_jeu` (`administrer-jeu`) et avant tout
@@ -3301,7 +3329,18 @@ elle, l'agent n'exécute pas la commande (aucune
 sortie n'est produite, rien n'est envoyé) et l'interface affiche
 « confirmation hors bande absente ». Le registre de ces confirmations est
 gardé avec la copie du dossier de l'exploitant (EX-7.12) ; il n'entre pas
-dans le paquet. Tenu par l'application.
+dans le paquet. Complément du 2026-11-18, décision du porteur (langage des
+écrans) : la mention reste affichée mot pour mot ; l'interface la fait
+précéder d'une phrase en langage courant qui dit la même chose sans rien
+affirmer de plus (« Rien n'a été envoyé : il manque la confirmation du
+client pour cette opération. ») et la fait suivre de la conduite à tenir.
+Ailleurs, l'interface PEUT nommer ces confirmations « confirmations du
+client » et dire « par un autre moyen que cet outil » pour « hors bande » ;
+elle PEUT de même nommer « document à faire signer par le client », puis
+« document signé », le document `demande_signature` d'EX-7.27, le mot
+« demande » désignant, dans la console d'approbation de CT-3, ce qu'un
+approbateur doit décider : ce sont des libellés, la règle ne change pas.
+Tenu par l'application.
 
 **EX-7.27** **Signature des condensés du registre.** L'application ne change
 pas la règle d'EX-7.3 : les approbateurs signent `registerDigest` (et
@@ -4485,6 +4524,7 @@ appliqué.
 | Outil de référence `scripts/registre/noortrace-registre.mjs` (révision 0.6) | aucun paquet | production du paquet et son contrôle d'EX-7.21, contrôle de réception d'EX-7.22 ; une commande nouvelle exige d'ajouter son nom à l'énumération `command` de `operations-registre-v0#/$defs/sortie` (ajout compatible) | commande `paquet-client` écrite à l'étape 6 ; nom et codes ajoutés au schéma par la révision 0.7 (EX-7.30) ; à faire : reprise d'une étape `echec` déjà accomplie par `capturer --transaction --dossier` (EX-7.29), `funding` nul (EX-7.29) |
 | `spec/schemas/operations-registre-v0.schema.json`, `inscription-client-v0.schema.json` (révision 0.7) | `command` sans `paquet-client` ; aucun code de refus du paquet ; `funding` toujours une transaction | `paquet-client` ; `paquet_manifeste` à `paquet_captures`, `secret_present`, `dossier_inacheve` ; `funding` nul admis (extensions compatibles) | fait |
 | Application d'exploitant (révision 0.6) | absente | interface web et agent séparé et privilégié d'EX-7.23 à EX-7.28 ; canal local par prise Unix, compte du pair vérifié (EX-7.28) ; épreuves d'EX-7.24 et d'EX-7.28 | construite à l'étape 6 (`paquets/inscription`) ; à faire (révision 0.7) : sortie `paquet-client` du travail de paquet et codes d'EX-7.30, recherche d'EX-7.21 sur chaque référence employée, travail `administrer-jeu` avec la confirmation d'EX-7.26, reprise d'EX-7.29 |
+| Complément du 2026-11-18, décision du porteur (langage des écrans) : EX-7.25, EX-7.26 | interface écrite pour un technicien ; empreinte de la pièce et instant d'une confirmation saisis à la main | libellés en langage courant ; mention « confirmation hors bande absente » gardée mot pour mot sous une phrase courante ; trois aides de saisie qui remplissent un champ sans rien envoyer (pièce, date et heure, slug tiré au hasard) | fait : interface de `paquets/inscription` (`src/web/`) ; les routes, l'agent, les schémas et les vecteurs ne changent pas |
 | `test/registreCt4.test.js` (révision 0.6) | six exemples annotés, liste fermée | annoter l'exemple de manifeste et l'exemple de gabarit de 7.13, les ajouter à la liste, et charger `paquet-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` dans le registre des schémas du test | fait autrement : les deux exemples portent l'annotation `<!-- exemple: … -->` (celle des exemples de la révision 0.5 de CT-3), que la liste fermée des annotations `<!-- schema: … -->` (EX-A.6) ne lit pas ; un essai de ce fichier les valide contre `paquet-client-v0` chargé avec ces schémas et recalcule les SHA-256 et longueurs du manifeste |
 | `spec/README.md` (révision 0.6) | CT-4 version 0.5 ; table des schémas sans `paquet-client-v0` | CT-4 version 0.6 ; ligne `paquet-client-v0` (CT-4 §7.13), chargé avec `inscription-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` | fait |
 | Révision 0.8 (2026-11-14), revue de sécurité interne de l'étape 8 : EX-4.12, EX-6.8, EX-7.1 (`--rpc`), EX-7.3, OP-4, EX-7.25, EX-7.26, EX-7.28, 7.11 (`compte_inattendu`, `provision_excessive`, `nonce_incoherent`), EX-8.4, EX-8.6, EX-8.10, EX-8.14, EX-8.16, 8.7, EX-8.20, EX-8.21, 9.3, CP-4, CP-6, EX-9.3, EX-10.1 (d) | textes de la version 0.7 ; outil de référence, bibliothèque et composant d'ancrage corrigés à l'étape 8 d'après ces constats, module Go de `ct-4` à aligner | texte : fait ; schéma `operations-registre-v0` : `nonce_incoherent` ajouté à `error.code` (extension compatible) ; outil de référence, bibliothèque et composant d'ancrage : faits à l'étape 8 pour `--confirmation`, la provision, l'URI, les index relus, le code du jeu, les deux points, l'écriture après CP-2 à CP-6 (les deux points d'EX-8.14 : composant d'ancrage seul ; outil de référence et agent d'inscription : complément du 2026-11-17, ci-dessous) ; à faire : module Go de `ct-4` (provision, repli de 9.3), vecteurs `ct-4/capture` (fichier présent faux, certificat gonflé), garde d'admission d'EX-10.8 (décision du porteur du 2026-11-16 : livrable dû avant la production, EX-10.8, section 14) ; révision 0.8, complément du 2026-11-15 (décision du porteur) : CP-6, fichiers et index de capture lisibles du groupe (0644 avant le masque), composant d'ancrage aligné ; révision 0.8, demandée après sa première rédaction : EX-A.5 (plancher du module Go : code 1 sans famille, sans cas ou sur un cas absent de l'`INDEX.md`) ; module Go de `ct-4` : provision d'OP-4, nom de capture contrôlé avant lecture et plancher faits (revue de sécurité de l'étape 8, aucune discordance sur les vecteurs régénérés), repli de 9.3 non établi ; révision 0.8, complément du 2026-11-17 : EX-8.14, plancher du nonce (suivant du plus grand nonce des envois de l'expéditeur dont l'issue d'inclusion est écrite ; signé au plancher quand il dépasse de 1 la valeur des points, `nonce_incoherent` au-delà) ; outil de référence (envois et déploiement du jeu, dont l'adresse CREATE dépend du nonce), composant d'ancrage et agent d'inscription : faits ; aucun schéma ni aucun vecteur ne change ; module Go de `ct-4` : à aligner s'il lit le nonce ; révision 0.8, complément du 2026-11-17 (recoupement) : l'outil de référence lisait le nonce au premier point qui répond et l'agent d'inscription prenait la plus grande valeur de tous les points, sans le recoupement d'EX-8.14 que la mention « les deux points » ci-dessus disait fait ; valeur des points précisée dans EX-8.14 ; outil de référence (recoupement sur chaque point de `--rpc`, bibliothèque des conventions) et agent d'inscription (même règle que le composant d'ancrage, déploiement du jeu signé au nonce de son adresse CREATE) : faits ; aucun schéma ni aucun vecteur ne change ; module Go de `ct-4` : à aligner s'il lit le nonce |

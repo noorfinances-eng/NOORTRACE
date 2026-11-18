@@ -6,6 +6,147 @@ is tagged.
 
 ## Unreleased
 
+- Build step 8, supplements of 2026-11-18: wording of the screens (étape 8,
+  compléments du 2026-11-18 : langage des écrans). After the owner's
+  decision of 2026-11-18, every text of the three tools that people look at,
+  the approval console, the verification page and the client onboarding
+  tool, is rewritten for a reader who has not read the specifications:
+  each screen says what it is for and what to do next, each failure says
+  what happened, whether anything was sent, and what to do, and its code
+  comes last, in small type. A sentence that a specification fixes word for
+  word is kept as it is and shown under a plain sentence that says the same
+  thing and no more. One word has one meaning across the three tools
+  (fingerprint, evidence dossier, recorded action, log, recorder, proof of
+  date, public registry, signing address, number of approvals required);
+  "demande" is what an approver decides in the console, so the onboarding
+  tool now says "document à faire signer par le client" for what the client
+  signs. Two rules are lifted by the owner, each written in a dated
+  supplement with its safeguards. Approval console (CT-3 EX-9.4): a value of
+  the request that the console cannot verify is now shown in the summary
+  card, with its value and its mark, in a separate group headed "À contrôler
+  par vous-même", and nowhere else; the opening sentence is still made only
+  of verified values, and the display model and the computation of the marks
+  do not change. A fixed table gives a plain label to the last segment of
+  some argument paths (twenty segments, twelve labels); the exact path stays
+  displayed beside it and the label enters no check. Also in the console: a
+  ticket still open on which the signed-in person has already voted says so
+  at the top ("Vous avez approuvé cette demande le … Elle attend encore
+  1 approbation.") and keeps both decisions on offer, of equal weight, under
+  "Changer ma décision", since a new vote replaces the former one (EX-7.26);
+  the list says in words whether and until when a request can still be
+  contested, and says nothing for a rule without a contest window
+  (EX-12.21); the bar names the signed-in person and the identity service,
+  both readable without opening anything, the canonical session identity
+  staying whole in a folded block (EX-13.7); after a decision is confirmed
+  the page brings the wallet choice into view and selects no wallet; a
+  decided ticket says what was decided and what follows, without claiming
+  that the action was carried out. Nothing that EX-9.4 requires before a
+  signature is folded; "Approuver" and "Refuser" keep the same weight.
+  After a second cold reading of the console: four plain instructions are
+  displayed, word for word, on the signing screen before the signature
+  button (compare the beginning and the end of the code shown by the
+  wallet, validate if it is the same, refuse in the wallet otherwise), and
+  the seven original instructions stay whole, unchanged, in a reference
+  block opened on demand, with the grouped form of the code and the second
+  code (EX-9.20, EX-9.18); the fingerprint of the digest and the whole
+  digest stay displayed before the button. In the list, a request that
+  awaits a decision shows its amount when the console could verify it,
+  composed by the same function as on the request screen (read-only views
+  of at most ten open requests, EX-13.3), and each instant says what it is;
+  a request on which the signed-in person has already decided leaves "À
+  décider", is no longer counted there, and is ranged with the other
+  requests in progress under "Vous avez déjà approuvé cette demande." (or
+  "refusé"), where it can still be opened and the decision changed. The
+  code of a state that is not a failure (no decision chosen yet, no wallet
+  chosen yet, request closed to votes) moves to the technical detail block,
+  and the code of a failure stays at the end of its sentence (EX-13.29); an
+  approved request says "La console ne sait pas si l'agent logiciel l'a déjà
+  exécutée" and where to find out.
+  Verification page (CT-6 EX-18.9): under the verdict word, a plain sentence
+  fixed per exit code, above the exact wording of the verifier, which is
+  neither changed nor shortened; a plain sentence fixed per warning above
+  its exact text, and none for a warning outside the table; the verdict
+  still comes from the exit code alone and the page computes no status;
+  "valid" is not turned into "authentic". The statement is shown whole, one
+  block per clause, the copied text being the statement character for
+  character; two new headings, "Ce que ce résultat ne dit pas" (lines taken
+  from CT-6 §7.2 and §7.4) and "Et maintenant ?"; after a report the steps
+  shrink to one line and the notice of EX-18.2, still displayed word for
+  word and never folded, moves below the result (risk written in the text);
+  the two optional files are named in plain words and the page says what
+  their absence prevents. After a second cold reading of the page (EX-18.9,
+  points 14 to 19): what the page adds can only restrict what the exit code
+  says, never extend it, and is taken from the JSON report alone. Under exit
+  code 0 the full presentation is kept only for eight passed controls
+  without warning; otherwise the result is tinted amber and a fixed mention
+  follows the verdict word in the title (", mais tout n'est pas prouvé",
+  ", avec des réserves", or both), with a sentence that names what the
+  dossier does not prove; a passed control that a warning concerns reads
+  "Réussi, avec réserve"; two warnings with the same identifier are said
+  once, all their exact texts staying displayed; a block "En résumé" copies
+  a few fields of the report into fixed templates (sequence number of the
+  action, name of the tool called, copied as it is, untranslated, in
+  fixed-width type, declared period, signatures of the approval, "no later
+  than" instant of the time-stamping authority), each line only when its
+  field reads and its control passed, and says that only the exact text
+  below is authoritative; the detail of a failed check is said on the line
+  of its control; under exit code 2 the page says which piece is at fault;
+  the line above a report reads "Dossier examiné", and a refusal is titled
+  after what was chosen ("Fichier refusé", "Dossier de fichiers refusé").
+  Onboarding tool (CT-4 EX-7.25, EX-7.26): steps
+  named by plain verbs, an instruction for the next action (what, why, what
+  to have at hand, what happens after the click), sixty-nine refusals
+  explained, the client record shortened; no account is preselected to send
+  a signed document, and what the route receives is unchanged; while a step
+  sent by the tool itself awaits its answer the only instruction is to
+  resume that send, and a step done on the client's side gets a neutral
+  instruction; three input helpers fill a field without sending anything
+  (the file of the supporting document is hashed in the browser and never
+  leaves it; local date and time are converted to UTC and the converted
+  value is shown; a random short name); the mention "confirmation hors bande
+  absente" stays word for word under its plain sentence. After a second cold
+  reading of the tool: a confirmation is recorded in two clicks, "Relire
+  avant de noter" checking the input and showing what will be recorded, and
+  only "C'est exact, noter la confirmation" sending it, the body sent being
+  unchanged; one label has one meaning ("Réponse à aller chercher" when a
+  send started from the tool waits to be resumed, "En attente du registre"
+  and "En attente chez le client" when the person has nothing to do); the
+  two steps that the client carries out read "À faire par le client"; the
+  package screen says in four lines what the package contains, what it does
+  not contain, to whom it is handed and what the client checks; no duration
+  is promised for an answer of the public registry ("quelques minutes
+  d'ordinaire"). No dependency,
+  font, image or external resource is added; no content security policy,
+  header or subresource-integrity rule is loosened; the console and the
+  verification page still store nothing; the common theme block is
+  unchanged, byte for byte; the published digests of the console pages are
+  recomputed by the package's build script. Specifications: dated
+  supplements in CT-3 (EX-9.4, EX-9.18, EX-9.20, EX-12.21, EX-13.3,
+  EX-13.7, EX-13.29, 13.1), CT-6 (EX-18.2, EX-18.5, EX-18.7, EX-18.9) and
+  CT-4 (EX-7.25, EX-7.26); no control rule,
+  schema, report, exit code or vector changes; the line citations of CT-7,
+  CT-8 and CT-9 follow the moved texts. Tests:
+  `test/exploitation-console-langage-chromium.test.js` (new), and new cases
+  in `test/exploitation-console-presentation-chromium.test.js`,
+  `test/verification-page-presentation.test.js`,
+  `test/inscription-presentation.test.js` and
+  `test/inscription-presentation-chromium.test.js`: the tables of the pages
+  are, word for word, those of the specifications (labels of CT-3 EX-9.4;
+  sentences per exit code and per warning of CT-6 EX-18.9, in both
+  languages); no technician's word is read at the first level of any screen,
+  against a published list per tool; each new test is red on the former
+  screens and green on the new ones, with mutants killed (an unverifiable
+  value among the verified ones, the sentence of another exit code under
+  "Valide", an invented sentence for an unknown warning, a preselected
+  sender, a file hashed with another algorithm, an already decided request
+  left under "À décider", a tool name shown when control 1 did not pass).
+  Label oracles are replaced
+  by the new exact text; the behaviour oracles that change do so with the
+  supplement beside them. CI: the new console file joins the Chromium step
+  of the console through its file pattern; the new cases of the
+  verification page run in the three engines in the presentation step, with
+  no pending test. Test plan (CT-9): the new tests are attached to TE-13,
+  TE-22 and TE-23; catalogue regenerated twice, byte-identical.
 - Build step 8, supplements of 2026-11-17: presentation of the screens
   (étape 8, compléments du 2026-11-17 : présentation des écrans). The three
   tools that people look at, the approval console, the verification page and

@@ -371,7 +371,7 @@ Sortie de l'outil de couverture (`node scripts/tests/couverture.mjs --json`,
 forme `rapport_couverture`) sur le dépôt et ce catalogue : verdict `reussi` ;
 2494 identifiants définis par CT-1 à CT-8, 2338 couverts par une entrée, 156 par
 une justification NC-, 0 non couvert(s) ; 102 menaces sur 102 avec un TA- ; 129
-occurrences de « CT-9 » et 129 lignes TC- ; 302 entrées exécutables citant 745
+occurrences de « CT-9 » et 129 lignes TC- ; 302 entrées exécutables citant 747
 titres ou étapes, 0 absent(s) ; 15 tables du texte comparées, 0 différence(s).
 
 ## `index-ta-par-menace.json`

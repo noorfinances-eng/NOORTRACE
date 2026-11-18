@@ -927,7 +927,7 @@ export const TE = [
     "steps": [
       "Inscrire un approbateur par preuve de possession ; soumettre un appel à approuver ; signer depuis la console ; exporter le dossier de l'appel approuvé (`--ticket`) et celui de la décision (`--seq`)."
     ],
-    "oracle": "Inscription acceptée (AN-3) ; `approbations.json` porte la signature recouvrée à l'adresse inscrite ; dossier de l'appel approuvé : code 0 des deux vérificateurs avec `--exiger 7`, contrôle 7 réussi, A-1 à A-3 réussies et A-4 non exécutée avec une raison admise (`piece_hors_dossier` : la demande n'est pas l'événement voisin de l'appel, la décision étant scellée entre les deux) ; dossier de la décision : code 0 des deux vérificateurs avec `--exiger 7`, A-1 à A-4 réussies.",
+    "oracle": "Inscription acceptée (AN-3) ; `approbations.json` porte la signature recouvrée à l'adresse inscrite ; dossier de l'appel approuvé : code 0 des deux vérificateurs avec `--exiger 7`, contrôle 7 réussi, A-1 à A-3 réussies et A-4 non exécutée avec une raison admise (`piece_hors_dossier` : la demande n'est pas l'événement voisin de l'appel, la décision étant scellée entre les deux) ; dossier de la décision : code 0 des deux vérificateurs avec `--exiger 7`, A-1 à A-4 réussies. Écrans (complément du 2026-11-18 de CT-3 EX-9.4, EX-12.21 et EX-13.7) : la phrase d'en-tête ne reprend que des valeurs vérifiées ; une valeur que la console ne peut pas vérifier figure dans la carte avec sa valeur et sa marque, dans le groupe à contrôler et là seulement ; la table des libellés courants du module est celle d'EX-9.4 ; les phrases fixées restent mot pour mot ; rien de ce qu'EX-9.4 exige avant une signature n'est replié ; la décision déjà donnée sur un ticket encore ouvert est rappelée, les deux décisions restant offertes ; la personne connectée et le système qui a fourni son compte se lisent sans rien ouvrir.",
     "status": {
       "state": "executable",
       "tests": [
@@ -946,6 +946,14 @@ export const TE = [
         {
           "file": "test/exploitation-console-presentation-chromium.test.js",
           "describe": "présentation des écrans de la console, dans Chromium"
+        },
+        {
+          "file": "test/exploitation-console-langage-chromium.test.js",
+          "describe": "langage des écrans de la console : libellés courants, groupes de valeurs, phrases fixées (fonctions pures)"
+        },
+        {
+          "file": "test/exploitation-console-langage-chromium.test.js",
+          "describe": "langage des écrans de la console, dans Chromium"
         },
         {
           "file": "test/theme-commun.test.js",
@@ -1675,7 +1683,7 @@ export const TE = [
     "steps": [
       "Conduire par l'application les pas de 7.1 et la production du paquet pour un client fictif, puis les mêmes pas par l'outil de référence sur un second client ; relever chaque champ de chaque page et chaque méthode de l'agent ; demander une administration du jeu et un approvisionnement sans, puis avec la confirmation hors bande ; joindre l'agent depuis un autre compte et par une adresse IP."
     ],
-    "oracle": "Dossiers, envois, captures et paquet de mêmes formes et mêmes états que ceux de l'outil de référence (EX-7.24) ; aucun champ ni aucune méthode ne reçoit une clé, une graine, une mnémonique, un jeton ou un mot de passe (EX-7.25) ; aucune demande d'administration ni aucun approvisionnement sans confirmation consignée (EX-7.26) ; aucun condensé du registre signé par l'application (EX-7.27) ; l'agent n'écoute qu'une prise et refuse un pair d'un autre compte (EX-7.28) ; les refus de la table de 7.11 que les travaux offerts peuvent rendre, `administrer-jeu` compris (`cle_revoquee`, qu'aucun travail offert n'atteint, est sans objet) ; une étape `echec` déjà accomplie passe à `capturee` par `capturer --transaction --dossier` (EX-7.29).",
+    "oracle": "Dossiers, envois, captures et paquet de mêmes formes et mêmes états que ceux de l'outil de référence (EX-7.24) ; aucun champ ni aucune méthode ne reçoit une clé, une graine, une mnémonique, un jeton ou un mot de passe (EX-7.25) ; aucune demande d'administration ni aucun approvisionnement sans confirmation consignée (EX-7.26) ; aucun condensé du registre signé par l'application (EX-7.27) ; l'agent n'écoute qu'une prise et refuse un pair d'un autre compte (EX-7.28) ; les refus de la table de 7.11 que les travaux offerts peuvent rendre, `administrer-jeu` compris (`cle_revoquee`, qu'aucun travail offert n'atteint, est sans objet) ; une étape `echec` déjà accomplie passe à `capturee` par `capturer --transaction --dossier` (EX-7.29). Écrans (complément du 2026-11-18 de CT-4 EX-7.25 et EX-7.26) : aucune aide de saisie n'envoie rien (le fichier de la pièce ne part pas, l'empreinte calculée est celle de `sha256sum`, l'instant converti est celui du champ envoyé, sous plusieurs fuseaux) ; le compte qui envoie un document signé se choisit sans présélection et la route reçoit ce qu'elle recevait ; la mention « confirmation hors bande absente » reste mot pour mot sous sa phrase courante ; aucun mot de technicien au premier niveau des écrans (liste publiée dans `test/fixtures/inscription/langage.mjs`).",
     "status": {
       "state": "executable",
       "tests": [
@@ -1746,7 +1754,7 @@ export const TE = [
     "steps": [
       "Comparer les SHA-256 des deux constructions et les fichiers de la page ; vérifier dans chaque navigateur chacun des dossiers de `spec/vecteurs/ct-1/dossiers` et de `spec/vecteurs/ct-6/dossiers`, avec et sans fichier d'ancres, d'en-têtes Bitcoin et options ; servir un artefact dont un octet est changé ; relever les requêtes réseau de la page."
     ],
-    "oracle": "Deux constructions aux mêmes octets (EX-18.4) ; rapport lisible, rapport JSON, sortie d'erreur et code égaux, octet pour octet, à ceux du binaire sur les mêmes entrées (EX-18.10) ; un artefact altéré n'est pas compilé et aucun rapport n'est affiché (EX-18.5) ; aucune requête ne quitte l'origine et aucun fichier choisi n'est envoyé (EX-18.11, EX-18.12) ; les trois moteurs donnent le même résultat (EX-18.13).",
+    "oracle": "Deux constructions aux mêmes octets (EX-18.4) ; rapport lisible, rapport JSON, sortie d'erreur et code égaux, octet pour octet, à ceux du binaire sur les mêmes entrées (EX-18.10) ; un artefact altéré n'est pas compilé et aucun rapport n'est affiché (EX-18.5) ; aucune requête ne quitte l'origine et aucun fichier choisi n'est envoyé (EX-18.11, EX-18.12) ; les trois moteurs donnent le même résultat (EX-18.13). Écrans (complément du 2026-11-18 de CT-6 EX-18.2, EX-18.5, EX-18.7 et EX-18.9) : la phrase courante de chaque code de retour, celle de chaque avertissement et les lignes « ce que ce résultat ne dit pas » sont, mot pour mot et dans les deux langues, celles des tables d'EX-18.9 ; le code et son sens, l'énoncé et le texte de chaque avertissement restent affichés en entier ; la page ne calcule aucun statut ; la phrase d'EX-18.2 reste affichée, hors de tout bloc replié.",
     "status": {
       "state": "executable",
       "tests": [

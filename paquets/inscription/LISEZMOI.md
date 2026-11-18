@@ -25,6 +25,17 @@ navigateur, toute valeur autre que `clair` vaut `sombre`), récrit dans
 `src/web/lib/theme.mjs`. Aucune police, aucune image, aucune dépendance
 n'est ajoutée. Le détail est dans `INTERFACES.md` 2.4.
 
+Complément du 2026-11-18, décision du porteur (langage des écrans) : les
+textes de l'interface sont écrits pour la personne de l'équipe qui inscrit
+un client et qui n'est pas développeuse : nom courant et explication de
+chaque étape, prochaine action écrite comme une consigne, erreurs qui
+disent quoi faire, valeurs exactes gardées dans le détail replié. Trois
+aides de saisie remplissent un champ dans la page sans rien envoyer
+(empreinte de la pièce d'une confirmation, date et heure, nom court tiré au
+hasard). Le compte qui envoie une demande signée se choisit, sans
+présélection. Les routes, l'agent et la forme du dossier ne changent pas.
+Le détail est dans `INTERFACES.md` 2.5.
+
 ## Arborescence
 
 ```text
@@ -351,8 +362,8 @@ l'installation) et n'entrent dans aucune image (étape 7) :
 | `test/inscription-application.test.js` | TE-22 : interface construite et lancée, agent réel derrière |
 | `test/inscription-paquet.test.js` | TE-21 : paquet produit, recherche d'EX-7.21, `controlerPaquet`, exemples de CT-4 7.13 ; pas 10 |
 | `test/inscription-reseau.test.js` | réseau de développement 2124 (en attente s'il n'est pas debout) : client fictif, épreuve d'EX-7.24 |
-| `test/inscription-presentation.test.js` | présentation (INTERFACES.md 2.4), sans navigateur : bloc de jetons commun et règles propres de la feuille, libellé de chaque étape, de chaque état, de chaque commande et de chaque erreur des schémas, prochaine action, détail technique aux valeurs exactes, bascule de thème ; mutants du module du parcours tués |
-| `test/inscription-presentation-chromium.test.js` | présentation dans Chromium par Playwright, interface construite et servie sur des données fictives (sans agent) : connexion et barre haute, bascule de thème et sa mémoire, liste, fiche et ses étapes à cinq états, blocs repliés et valeurs exactes, confirmations et paquet, formulaire et saisie refusée, 390 px et 1280 px |
+| `test/inscription-presentation.test.js` | présentation (INTERFACES.md 2.4), sans navigateur : bloc de jetons commun et règles propres de la feuille, libellé de chaque étape, de chaque état, de chaque commande et de chaque erreur des schémas, prochaine action, détail technique aux valeurs exactes, bascule de thème ; mutants du module du parcours tués ; complément du 2026-11-18 (INTERFACES.md 2.5) : libellés du langage courant, consigne de chaque prochaine action, envoi resté sans réponse avant toute autre consigne, erreurs (ce qui s'est passé, ce qui a été dépensé, quoi faire), travail « réussi » avec une étape en échec, aucun mot de technicien dans les textes du module |
+| `test/inscription-presentation-chromium.test.js` | présentation dans Chromium par Playwright, interface construite et servie sur des données fictives (sans agent) : connexion et barre haute, bascule de thème et sa mémoire, liste, fiche et ses étapes à cinq états, blocs repliés et valeurs exactes, confirmations et paquet, formulaire et saisie refusée, 390 px et 1280 px ; complément du 2026-11-18 (INTERFACES.md 2.5) : aucun mot de technicien au premier niveau de chaque écran et de chaque état, aides de saisie de la confirmation et du nom court, choix sans présélection du compte qui envoie, erreurs en clair, états cohérents et premier écran de la fiche |
 | `test/inscription-revue.test.js` | revue de l'étape 8 : comptes distincts (EX-7.28), production sans clé en clair (EX-7.3), points `http://` (EX-7.1), répertoire de clés et alias (EX-7.25), interface en production, verrou, sessions, hôte (CT-7 CLE-37), plafond nul et budget, instance relue, bornes ; un mutant sur copie du paquet par règle |
 
 Outils : `test/fixtures/inscription/` (réseau Hardhat et pont noorcore,

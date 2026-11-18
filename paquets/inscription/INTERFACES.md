@@ -339,6 +339,210 @@ de sécurité du contenu, ni les types de champ de 2.1.
 - **Accessibilité.** Focus visible, cibles de 44 px au toucher, lisible de
   390 px à 1280 px de large sans défilement horizontal.
 
+### 2.5 Langage des écrans
+
+Complément du 2026-11-18, décision du porteur (langage des écrans).
+L'interface parle à la personne de l'équipe qui inscrit un client et qui
+n'est pas développeuse. Ce complément ne change ni les pages de 2.2, ni les
+routes, ni la politique de sécurité du contenu, ni les types de champ de
+2.1, ni l'agent, ni la forme du dossier. Il remplace, en 2.4, les libellés
+cités (« Incluse », « Réseau d'essai »), l'affichage de l'identité de
+session, la disposition de la fiche et l'ordre de la prochaine action quand
+un envoi est resté sans réponse ; le reste de 2.4 tient.
+
+- **Premier niveau.** Tout ce qui se lit sans rien ouvrir se comprend sans
+  avoir lu la spécification : ni code, ni nom de champ, ni terme de
+  technicien. La liste publiée de ces termes est dans
+  `test/fixtures/inscription/langage.mjs` ; un essai lit chaque écran et
+  chaque état et n'en trouve aucun. Les valeurs exactes ne disparaissent
+  pas : codes, hachages, identifiants, sortie d'un travail et message d'une
+  erreur restent dans le détail replié de l'écran ; un nom qui vient des
+  données (client, enregistreur, adresse, empreinte, identité, exemple de
+  saisie) s'affiche tel quel, dans un élément marqué `data-valeur`.
+- **Vocabulaire** (`src/web/lib/parcours.mjs`, `LEXIQUE`). « registre
+  public », « empreinte », « journal », « enregistreur », « preuve de
+  date », « signature », « adresse de signature », « nombre d'approbations
+  requises » sont les mots du glossaire commun aux écrans NOORTRACE. Mots
+  propres à cet outil : « compte technique » (la clé de chaîne d'un
+  enregistreur), « crédits d'écriture » (ce qui paie une écriture sur le
+  registre), « liste des approbateurs » (le jeu), « responsable des
+  approbateurs » (la clé de gouvernance), « service d'inscription »
+  (l'agent), « confirmation du client » (la confirmation hors bande),
+  « paquet du client ». Chaque écran porte, replié, le lexique « Les mots
+  de cet outil ».
+- **Étapes.** Chaque étape a un nom courant en verbe et une phrase :
+  « Préparer le dossier », « Enregistrer les approbateurs »
+  (`jeu_approbateurs`), « Rattacher les approbateurs au client »
+  (`assignation`), « Contrôler les approbateurs » (`lecture_jeu`),
+  « Alimenter le compte technique » (`approvisionnement`), « Inscrire
+  l'enregistreur » (`inscription`), « Déposer la première preuve de date »
+  (`premiere_ancre`), « Clore la première période » (`premiere_cloture`).
+  Chaque état d'EX-7.16 a un mot et une phrase : `a_faire` « À faire »,
+  `envoyee` « Envoyée », `incluse` « Inscrite », `capturee` et `faite`
+  « Fait », `echec` « Échec ».
+- **Écran d'accueil.** `/clients` dit à quoi il sert et porte deux blocs
+  repliés : « Comment ça marche » (cinq lignes) et « Les huit étapes, une
+  par une ».
+- **Prochaine action.** C'est une consigne : ce qu'il faut faire (titre à
+  l'impératif), pourquoi, ce qu'il faut avoir sous la main, le bouton, et ce
+  qui se passera après le clic. Pour une confirmation à noter, la consigne
+  dit ce que le client doit confirmer : le montant du versement, le nom de
+  l'enregistreur et l'adresse exacte du compte technique. « Commencer » se
+  dit quand rien n'a été tenté, « Continuer » après un arrêt sans échec,
+  « Reprendre » seulement après un échec ou un envoi resté sans réponse.
+  Un client inscrit dont le paquet est produit n'a plus de « prochaine
+  action » : l'intitulé devient « Inscription terminée ».
+- **Envoi resté sans réponse.** Tant qu'une étape est `envoyee` ou
+  `incluse`, la consigne est de reprendre cet envoi, avant toute autre
+  (confirmation du client comprise) : le bouton remet le travail `capturer`
+  avec le hachage de l'étape (`envoi` pour `envoyee`, `transaction` pour
+  `incluse`), sans champ à remplir. C'est la reprise d'EX-7.13 : jamais une
+  nouvelle transaction, et aucune confirmation n'est exigée pour elle.
+  L'écran ne propose alors aucune autre action à côté de la consigne.
+  La reprise n'est proposée que pour une étape dont l'agent envoie
+  lui-même la transaction (pas 2, 3, 5 et 6) : il a écrit l'envoi dans les
+  captures du client avant de marquer l'étape `envoyee`, et `capturer` le
+  relit. Pour la première ancre et la première clôture, faites chez le
+  client avec ses propres outils, l'envoi n'est pas dans les données de
+  l'agent : la consigne reste neutre, sans action. Elle dit d'abord que
+  l'étape se fait chez le client, puis qu'elle est notée « Envoyée »
+  depuis tel instant et attend la réponse du registre public, puis :
+  « si la fiche n'a pas changé à votre prochaine visite, prévenez
+  l'équipe technique ».
+- **Fiche courte.** Le premier écran montre l'avancement, la consigne et
+  son bouton. Une étape faite ou à venir tient en une ligne (« Fait le … »),
+  son détail replié ; seules l'étape où l'on en est et une étape en échec
+  sont développées. Les actions de 2.2 qui ne servent pas dans l'état
+  courant restent accessibles dans un bloc replié « Actions rarement
+  utiles », chacune avec ce qu'elle fait et quand s'en servir.
+  L'historique des travaux est replié ; sa ligne de titre dit la dernière
+  action.
+- **Jamais deux choses contraires.** Le dernier travail d'une commande dont
+  la sortie dit `reussi` ou `deja_fait` alors qu'une étape qu'elle conduit
+  est `echec` dans le dossier se lit « Terminé, avec une étape en échec »,
+  sur la liste comme dans l'historique ; sa sortie exacte n'est pas
+  retouchée. Une étape en échec se dit une fois, en bandeau (ce qui s'est
+  passé, ce qui a été dépensé) ; la conduite à tenir est dans la consigne.
+- **Erreurs.** Chaque refus et chaque `error.code` dit ce qui s'est passé,
+  si quelque chose a été envoyé ou dépensé, et quoi faire (recommencer,
+  attendre, prévenir l'équipe technique) ; le code et le message exacts
+  sont dans « Détail à transmettre à l'équipe technique ». `agent_injoignable`
+  se dit « Le service d'inscription ne répond pas », `session_absente`
+  « Votre connexion à l'outil a pris fin », un travail `en_attente` « En
+  attente de son tour ». Le refus `confirmation_absente` affiche une phrase
+  courante, puis la mention de CT-4 EX-7.26, mot pour mot : « confirmation
+  hors bande absente ». Un client inconnu et une panne de préparation d'un
+  écran ont leur page (`app/not-found.js`, `app/error.js`).
+- **Barre.** « Connecté : » et le nom du compte ; l'identité de session
+  entière reste dans l'attribut `data-identite` et l'info-bulle. Hors
+  production, le bandeau dit « Mode essai : rien de ce que vous faites ici
+  ne touche le registre réel. »
+- **Formulaires.** L'aide de chaque champ dit ce qu'on attend, d'où vient
+  l'information (le client la donne par écrit, ou le champ se laisse vide)
+  et, pour une adresse, ce qui se passe si elle est fausse (CT-4 EX-7.8).
+  L'exemple s'écrit sous le champ (« Exemple : … »), jamais dans le champ.
+  Le budget d'écriture par jour et la référence du compte de paiement
+  (pas 1) sont rangés dans « Réglages avancés », replié : laissés vides,
+  ils valent le budget par défaut et la trésorerie de l'agent, que l'agent
+  recalcule et contrôle (EX-4.19, EX-8.20).
+- **Le mot « demande ».** À l'écran, le document `demande_signature` que
+  le client fait signer se dit « document à faire signer par le client »,
+  puis « document signé » : « demande » est le mot de la console
+  d'approbation pour ce qu'un approbateur doit décider, et un même mot
+  n'a pas deux sens d'un outil à l'autre. Le nom « demande » ne paraît
+  donc pas au premier niveau des écrans (l'essai le refuse) ; le verbe
+  reste. Les noms de fichier, de commande et de paramètre (`demande`,
+  `demandes/`) ne changent pas.
+- **Qui envoie le document signé.** Pour `inscrire-cle` et
+  `administrer-jeu`, les deux choix sont montrés, chacun avec sa phrase :
+  « Notre compte d'envoi » (cas habituel : le relayeur de l'exploitant) et
+  « Le compte désigné par une référence » (essais seulement). **Aucun n'est
+  présélectionné** : un envoi sur le registre ne part pas d'un choix fait à
+  la place de la personne. Sans choix, la page refuse l'envoi et le dit.
+  La référence n'est demandée qu'avec le second choix. Ce que la route
+  reçoit ne change pas : `relayeur: true` pour le premier, la référence
+  seule (`cle_chaine` ou `expediteur`) pour le second.
+- **Aides de saisie** (CT-4 EX-7.25, complément du 2026-11-18). Elles
+  remplissent un champ d'un type déclaré, n'ont pas de nom de champ et
+  n'envoient rien. `/clients/<slug>/confirmations` : « Choisir la pièce »
+  lit le fichier dans la page et écrit son SHA-256
+  (`crypto.subtle.digest`) dans le champ de l'empreinte, sans envoyer ni
+  garder le fichier ; « Date et heure » et « Maintenant » écrivent
+  l'instant en UTC, à la forme de 3.5, dans le champ de l'instant ; sous
+  le champ, l'aide dit « Heure de votre poste ; l'outil la convertit »,
+  et la valeur convertie s'affiche en clair dès qu'elle est connue, pour
+  que l'heure du poste et l'heure enregistrée ne se confondent pas.
+  `/clients/nouveau` : « Tirer un nom au hasard » écrit un slug de la forme
+  de production (`crypto.getRandomValues`). La saisie à la main reste
+  possible. Sur la fiche, « Copier le document » met dans le
+  presse-papiers le texte exact du document à remettre au client.
+- **Paquet.** L'écran dit ce que le paquet contient (EX-7.18), que son
+  empreinte, celle de `paquet-client.json`, se donne au client par un autre
+  moyen que le paquet, et que le client contrôle le paquet à la réception
+  (EX-7.17, EX-7.22). Quatre lignes, hors de tout bloc replié : ce qu'il
+  contient ; ce qu'il ne contient pas (aucune clé secrète, aucun mot de
+  passe ; l'outil y a cherché les clés de l'exploitant qui ont servi à
+  l'inscription, `secrets_checked` d'EX-7.21, et dit combien) ; à qui le
+  remettre (au client seul : le paquet porte les reçus d'autres
+  organisations des mêmes blocs, EX-7.21) ; ce que le client vérifie. Le téléchargement passe par la page quand le script
+  tourne (le lien reste un lien) : un refus du contrôle (409) se lit sur
+  l'écran, en clair. Un paquet déjà produit ne se refait que sur une raison
+  dite ; son formulaire est replié.
+- **Seconde lecture** (même complément, après une lecture des écrans par
+  une personne sans formation). Rien de ce qui suit ne change une route,
+  un corps envoyé, l'agent ni le dossier.
+  - *Ce qui a été fait.* Une carte de la liste sans travail dit « Vous
+    n'avez encore rien lancé pour ce client. » L'historique s'intitule
+    « Historique des actions lancées depuis cet outil » et renvoie aux
+    étapes pour l'état du client. La fiche dit des confirmations ce
+    qu'elles sont devenues : « 1 notée, utilisée pour le versement du … »,
+    « 1 notée, prête à servir » ; un versement fait sans aucune
+    confirmation au registre, que l'agent ne permet pas (3.5), est dit
+    anormal, avec « prévenez l'équipe technique ».
+  - *Dates.* Chaque date porte son libellé : « Dossier préparé le … »,
+    « Dernière action : …, le … ».
+  - *Une étiquette, un sens.* « Réponse à aller chercher » : un envoi de
+    l'agent attend sa reprise, une action attend la personne. « En attente
+    du registre » : une étape envoyée par le client attend sa réponse.
+    « En attente chez le client » : la suite se fait chez lui. Dans ces
+    deux cas la personne n'a rien à faire. Une étape `a_faire` que le
+    client fait lui-même (`premiere_ancre`, `premiere_cloture`) se dit
+    « À faire par le client ».
+  - *Durées.* Aucune durée chiffrée : la reprise d'un envoi attend la
+    réponse « quelques minutes d'ordinaire », parce que l'interface ne lit
+    pas le réglage de l'agent qui la borne (`delai_s`, 120 par défaut,
+    3.1) et qu'un chiffre écrit ne le suivrait pas. Les autres attentes
+    n'en ont pas :
+    l'écran dit à partir de quand s'inquiéter (« si la fiche n'a pas
+    changé à votre prochaine visite »), sans chiffre.
+  - *Ce que le client confirme.* La consigne et le formulaire disent ce que
+    sont les crédits d'écriture (CT-4 EX-4.16, EX-4.19 : ils paient les
+    écritures de l'enregistreur, ne s'achètent ni ne se vendent, et c'est
+    la trésorerie de l'exploitant qui les verse) et comment faire
+    confirmer l'adresse du compte : par écrit et en entier, jamais dictée
+    ni comparée en partie (EX-7.26 : la confirmation porte sur le compte).
+  - *Relecture avant de noter.* Le formulaire de confirmation redit en
+    haut ce que le client confirme (montant et compte, ou document). Son
+    bouton, « Relire avant de noter », contrôle la saisie et affiche un
+    récapitulatif (ce qui est confirmé, la personne, le moyen, la date à
+    l'heure du poste et en UTC, la pièce et le début et la fin de son
+    empreinte) ; rien n'est envoyé. Seul « C'est exact, noter la
+    confirmation » envoie, et il envoie l'objet relu, celui de 2.3. Toute
+    retouche d'un champ annule la relecture.
+  - *Date.* Le champ natif s'affiche dans la langue du navigateur : sous
+    le champ, la date choisie est redite en toutes lettres, en français
+    (« 18 novembre 2026 à 10 h 12, heure de votre poste »), au-dessus de
+    l'instant converti.
+  - *Qui envoie.* Toujours aucune présélection. Le choix habituel est mis
+    en avant sans être coché : il vient le premier, il est plus large, et
+    son bouton porte « — cas habituel » (l'autre, « — essais seulement ») ;
+    une ligne dit au-dessus : « Choisissez qui envoie : rien n'est choisi
+    d'avance. »
+  - *Nom tiré au hasard.* Sous le champ du nom court, et sur la fiche d'un
+    client dont le nom a la forme de production d'EX-6.2 : « Ce nom ne dit
+    pas qui est le client : notez la correspondance dans votre fichier des
+    clients. » Aucun champ n'est ajouté ; le dossier ne change pas.
+
 ## 3. Agent (`src/agent/`, `bin/noortrace-inscription-agent`)
 
 ### 3.1 Configuration et ligne de commande
@@ -589,6 +793,14 @@ parcours, prochaine action, détail technique, bascule de thème ; sans
 navigateur) et `test/inscription-presentation-chromium.test.js` (les écrans
 dans Chromium par Playwright, sur des données fictives sans agent ; en
 attente si Chromium manque, en échec sous `NOORTRACE_EXIGER_CHROMIUM=1`).
+Complément du 2026-11-18 (2.5) : les mêmes fichiers portent les libellés du
+langage courant, l'essai « aucun mot de technicien au premier niveau » sur
+chaque écran et chaque état, les aides de saisie (empreinte égale à celle
+de `sha256sum`, aucune requête au choix du fichier, instant accepté par le
+contrôle de la route), le choix sans présélection du compte qui envoie,
+la consigne unique d'un envoi resté sans réponse, les erreurs en clair et
+la cohérence des états ; `test/fixtures/inscription/langage.mjs` publie la
+liste des mots.
 
 ## 6. Précisions de la construction (étape 6)
 

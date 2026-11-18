@@ -44,8 +44,20 @@ export function aCle(cle) {
  * @returns {string}
  */
 export function texteCode(code, prefixes) {
+  const cle = cleCode(code, prefixes);
+  return `${t(cle ?? "erreur.inconnue")} (${code})`;
+}
+
+/**
+ * La clé du texte d'un code : la première présente parmi les préfixes
+ * donnés, dans l'ordre, ou `null`.
+ * @param {string} code
+ * @param {string[]} prefixes
+ * @returns {string|null}
+ */
+export function cleCode(code, prefixes) {
   for (const p of prefixes) {
-    if (aCle(p + code)) return `${t(p + code)} (${code})`;
+    if (aCle(p + code)) return p + code;
   }
-  return `${t("erreur.inconnue")} (${code})`;
+  return null;
 }

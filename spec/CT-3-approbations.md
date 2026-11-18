@@ -584,6 +584,39 @@ signature :
    réglage du système et ne mémorise aucun choix (13.1). Aucune règle de
    contrôle, aucun schéma, aucune bibliothèque ni aucun vecteur ne change ;
    seules les pages de la console d'exploitation changent.
+16. langage des écrans de la console (complément du 2026-11-18, décision du
+   porteur : langage des écrans) : le résumé qui ouvre l'écran d'un ticket
+   est fait d'une phrase, composée des seules valeurs vérifiées, et de la
+   liste de tous les arguments, chacun une fois, avec sa valeur et sa
+   marque ; un argument que la console ne peut pas vérifier y figure
+   désormais, avec sa valeur, dans un groupe distinct « à contrôler par
+   vous-même », et jamais ailleurs ni sans sa marque (l'alinéa du
+   complément du 2026-11-17 qui le tenait hors du résumé est remplacé) ;
+   chaque argument reçoit un libellé courant tiré d'une table fixe, son
+   chemin exact restant affiché (EX-9.4) ; la console peut dire en mots
+   qui est connecté, l'identité de session canonique restant lisible en
+   entier (EX-13.7) ; chaque texte visible sans interaction est écrit pour
+   une personne qui n'a pas lu cette spécification, une phrase fixée
+   restant mot pour mot (13.1) ; dans la liste, la contestation d'un
+   ticket se dit en mots, et un ticket sans délai de contestation n'en
+   dit rien (EX-12.21) ; après la décision confirmée, la console peut
+   amener l'approbateur au choix du portefeuille, sans en choisir aucun
+   pour lui, et rappeler à l'approbateur la décision qu'il a déjà donnée
+   sur un ticket encore ouvert, les deux décisions restant offertes
+   (EX-9.4) ; sur l'écran de signature, quatre consignes en langage
+   courant, fixées mot pour mot, précèdent le bouton, les sept consignes
+   d'origine restant entières dans un bloc de référence (EX-9.20), et
+   l'empreinte de `D_A` avec `D_A` en entier restent affichées sans
+   interaction, les groupes et le condensé EIP-191 pouvant rejoindre ce
+   bloc (EX-9.18) ; la liste peut montrer le montant vérifié des dix
+   premiers tickets à décider, par des lectures seulement, dit ce qu'est
+   chaque instant, et range à part un ticket que l'approbateur a déjà
+   décidé (EX-13.3) ; le code d'un état attendu ou d'un avertissement,
+   qui n'est pas une panne, se lit au détail technique, celui d'une panne
+   restant à la fin de sa phrase (EX-13.29). Aucune règle de contrôle,
+   aucun schéma, aucune bibliothèque ni aucun vecteur ne change ; le
+   modèle d'affichage et le calcul des marques ne changent pas ; seules
+   les pages de la console d'exploitation changent.
 
 - Règles ajoutées : EX-A.20 (A.12), EX-A.21 (A.13).
 - Règles modifiées : EX-7.8, EX-7.22, EX-7.24, EX-7.30 (table), EX-8.1, EX-8.5,
@@ -603,7 +636,9 @@ signature :
   2026-11-16 (point 13) : EX-13.19 (points 4 et 6), EX-A.10 ; sections 15.2
   (table), A.3 ; complément du 2026-11-16 (point 14) : EX-7.30, EX-A.10,
   EX-A.13 (table) ; section 15.2 (table) ; complément du 2026-11-17
-  (point 15) : EX-9.4 ; section 13.1 (table).
+  (point 15) : EX-9.4 ; section 13.1 (table) ; complément du 2026-11-18
+  (point 16) : EX-9.4, EX-9.18, EX-9.20, EX-12.21, EX-13.3, EX-13.7,
+  EX-13.29 ; section 13.1 (table).
 - Règles retirées : aucune ; aucun numéro réattribué.
 - Schémas : `ticket-v0` (`$defs/reponse_evaluer` : trois membres obligatoires
   de plus, `policy_version`, `policy_sha256`, `approval_sha256` ; extension
@@ -642,7 +677,8 @@ signature :
   et `remplacement-instants-indecodables.json` (`exports/attendu.json`
   suit) ; `INDEX.md` gagne la section « Cas nommés » ; aucun autre vecteur
   ne change ; complément du 2026-11-16 (point 14) : aucun vecteur ne change ;
-  complément du 2026-11-17 (point 15) : aucun vecteur ne change.
+  complément du 2026-11-17 (point 15) : aucun vecteur ne change ;
+  complément du 2026-11-18 (point 16) : aucun vecteur ne change.
 
 ## 1. Objet, périmètre et relations
 
@@ -3008,26 +3044,122 @@ d'un instant qu'elle affiche en mots, dans le fuseau du navigateur et avec
 son décalage ; le `seq` et le `ts` de l'événement `retenue` restent affichés
 tels quels.
 
-Une console PEUT ouvrir l'écran par un résumé en langage courant de la
-demande. Ce résumé NE DOIT se composer que de valeurs que les contrôles
-d'EX-9.15 ont vérifiées : un argument dont la feuille a l'état `verifie`
-(EX-9.16) ; le nom annoncé de l'outil, `launched_by` et `policy.rule` quand
-les contrôles 2 et 4 passent. Il NE DOIT reprendre ni une feuille
-`non_verifiable` ou `different`, ni un effet déclaré, ni l'intention, ni
-aucune valeur que le service donne seul ; il DOIT dire en clair que des
-feuilles n'y sont pas reprises, en les nommant avec leur marque (au-delà de
-six, en nommant les six premières, en donnant le nombre des autres et en
-renvoyant à la liste des arguments). Une valeur reprise au résumé reste
-affichée telle quelle, avec sa marque, à sa place dans la liste des
-arguments ; une forme lisible, comme les séparateurs d'un montant, ne
-remplace jamais la valeur de la demande, que le résumé donne à côté. Le
-résumé n'est pas un contrôle : il n'ajoute rien à `blocking` et ne change
-pas le modèle d'affichage.
-
 Avant le choix de la décision, les consignes d'EX-9.20 PEUVENT être
 offertes dans un bloc replié ; l'écran de signature les affiche toujours en
-entier, comme EX-9.20 l'exige. L'avertissement sur le motif (EX-13.6) est
+entier, comme EX-9.20 l'exige (depuis le complément du 2026-11-18 d'EX-9.20 :
+les consignes courantes avant le bouton de signature, et le texte
+d'EX-9.20, entier, dans un bloc ouvert sur demande). L'avertissement sur le motif (EX-13.6) est
 affiché là où le motif se saisit, avant toute signature.
+
+Complément du 2026-11-18, décision du porteur (langage des écrans). Il
+remplace l'alinéa du complément du 2026-11-17 sur le résumé, qui tenait
+hors du résumé toute feuille que la console n'avait pas vérifiée et ne
+faisait que la nommer : la personne qui approuve un paiement doit lire, là
+où elle décide, le compte qui reçoit l'argent, même quand la console ne
+peut pas le vérifier.
+
+Une console PEUT ouvrir l'écran par un résumé de la demande, fait d'une
+**phrase** en langage courant et de la **liste des arguments**.
+
+1. **La phrase** NE DOIT se composer que de valeurs que les contrôles
+   d'EX-9.15 ont vérifiées : un argument dont la feuille a l'état `verifie`
+   (EX-9.16) ; le nom annoncé de l'outil, `launched_by` et `policy.rule`
+   quand les contrôles 2 et 4 passent. Elle NE DOIT reprendre ni une
+   feuille `non_verifiable` ou `different`, ni un effet déclaré, ni
+   l'intention, ni aucune valeur que le service donne seul. Elle nomme
+   l'outil par son nom annoncé, tel quel, et NE DOIT PAS déduire de ce nom
+   la nature de l'action. Une forme lisible, comme les séparateurs d'un
+   montant, ne remplace jamais la valeur de la demande, que la liste donne
+   telle quelle.
+2. **La liste** porte chaque feuille des arguments (EX-9.16), une fois,
+   avec sa valeur sous la forme d'EX-9.16 et sa marque : c'est la liste
+   des arguments de la table ci-dessus, et une console qui la place dans
+   le résumé N'A PAS à la répéter ailleurs sur l'écran. Les feuilles
+   `verifie` sont données ensemble, dans l'ordre du modèle. Chaque feuille
+   `non_verifiable`, et toute feuille dont la console ne connaît pas
+   l'état, figure dans un groupe distinct, sous un intitulé qui dit
+   qu'elle est à contrôler par l'approbateur lui-même, avec une phrase en
+   langage courant, et une seule, qui dit que la console n'a pas pu la
+   vérifier et quoi faire : la comparer aux pièces du dossier que tient
+   l'organisation (facture, contrat, fiche du bénéficiaire), et refuser si
+   elle diffère ou ne peut pas être vérifiée (13.17, « Voter », pas 1). Une
+   feuille
+   `non_verifiable` NE DOIT paraître ni hors de ce groupe, ni sans sa
+   marque, ni dans la phrase. Une feuille `different` figure dans un
+   groupe d'alerte, avec sa marque. Au-delà de huit feuilles, la
+   présentation PEUT se resserrer ; aucune feuille n'est placée dans un
+   bloc replié.
+3. **Libellés courants.** Chaque feuille PEUT recevoir un libellé courant,
+   lu dans la table fixe ci-dessous par le dernier segment de son pointeur
+   (RFC 6901, `~1` et `~0` rendus), comparé tel quel, casse comprise. Le
+   libellé n'est qu'une aide de lecture : le pointeur exact de la feuille
+   reste affiché à côté de lui, parce que c'est lui qui désigne la valeur
+   de la demande. Hors de la table, pour le pointeur vide et pour un
+   indice de tableau, le pointeur lui-même sert de libellé. La console
+   n'en déduit rien d'autre : ni mise en forme (d'un IBAN, d'une date), ni
+   conversion, ni rapprochement de noms voisins.
+
+   | Dernier segment du pointeur | Libellé courant |
+   |---|---|
+   | `amount`, `montant` | Montant |
+   | `currency`, `devise` | Devise |
+   | `beneficiary`, `beneficiaire` | Bénéficiaire |
+   | `beneficiary_iban`, `iban` | Compte bénéficiaire (IBAN) |
+   | `beneficiary_name` | Nom du bénéficiaire |
+   | `reference`, `ref` | Référence |
+   | `claim_id` | Référence du dossier |
+   | `reason`, `motif` | Motif |
+   | `date` | Date |
+   | `recipient`, `destinataire` | Destinataire |
+   | `subject`, `objet` | Objet |
+   | `email` | Adresse électronique |
+
+4. Le nom annoncé de l'outil, `launched_by` et `policy.rule`, quand le
+   résumé les porte (contrôles 2 et 4 réussis), N'ONT PAS à être répétés
+   dans le reste de l'écran ; quand il ne les porte pas, ils restent
+   affichés à leur place, avec leurs marques.
+5. L'écran de signature PEUT reprendre en tête la phrase, les feuilles à
+   contrôler avec leur valeur et leur marque, dans un groupe de même
+   intitulé, et la décision choisie en toutes lettres ; EX-9.18 et EX-9.20
+   s'y appliquent, avec leurs compléments du 2026-11-18. Un
+   intitulé ou une consigne que cette spécification fixe mot pour mot
+   PEUT être précédé d'un titre en langage courant ; le texte fixé reste
+   affiché en entier, tel quel.
+6. Sur un ticket qui n'accepte plus de votes (contrôle 1 d'EX-9.15),
+   aucune signature n'est demandée : la console N'A PAS à afficher la
+   décision à choisir ni le temps restant ; elle dit ce qui a été décidé
+   et ce que cela implique, sans affirmer ce qu'elle ne sait pas (qu'une
+   action autorisée a été exécutée, par exemple) : pour un ticket
+   approuvé, elle dit que l'action est autorisée, qu'elle ne sait pas si
+   elle a été exécutée, et où le savoir.
+7. Une fois la décision choisie et confirmée (EX-9.5), la console PEUT
+   amener l'approbateur au choix du portefeuille, par un défilement ou
+   par le focus ; elle NE DOIT en choisir aucun pour lui (EX-13.22).
+8. Sur un ticket qui accepte encore des votes, quand la vue porte un vote
+   courant de l'adresse que l'annuaire attribue à la session, la console
+   PEUT le rappeler au-dessus du résumé : la décision de ce vote, son
+   instant, et ce que le ticket attend d'après la vue seule (son état, le
+   nombre d'approbations qui manquent au seuil effectif, une objection
+   non levée). Un nouveau vote remplaçant le précédent (EX-7.26), les
+   deux décisions restent offertes, de même poids et sans présélection
+   (EX-9.5), sous un intitulé qui dit qu'il s'agit de changer sa
+   décision et une phrase qui dit ce que cela fait : la nouvelle
+   décision, une fois signée, remplace la précédente ; la même décision
+   est sans effet (`vote_identique`, EX-9.10). La console n'affirme rien
+   que la vue ne porte pas : sans vote courant de cette adresse dans la
+   vue, elle ne dit rien. L'intitulé et l'état de l'écran disent alors
+   que l'approbateur a déjà décidé et que le ticket attend d'autres
+   approbations, et non qu'il est à décider.
+9. Les effets déclarés prévus ne sont pas liés à la signature (table
+   ci-dessus). La console le dit avec les effets, et là seulement, par une
+   phrase qui nomme ce dont elle parle (« ces effets annoncés ») : cette
+   mention ne se lit ni au-dessus ni à côté d'une valeur vérifiée du
+   résumé, pour que personne n'en déduise que la signature ne couvre pas
+   le montant vérifié.
+
+Le résumé n'est pas un contrôle : il n'ajoute rien à `blocking` et ne
+change pas le modèle d'affichage ; l'état de chaque feuille reste celui
+d'EX-9.16.
 
 **EX-9.5** La console NE DOIT présenter aucune décision par défaut ni aucune
 recommandation de l'agent comme décisive (biais d'automatisation, art. 14
@@ -3496,6 +3628,17 @@ recherche, comparer les huit groupes est la seule parade. Pour une objection
 ou une revue de montant élevé, l'approbateur DEVRAIT comparer les huit
 groupes (EX-9.9) ; CT-3 ne fixe pas de seuil de montant élevé.
 
+Complément du 2026-11-18, décision du porteur (langage des écrans). Sur
+l'écran de signature, `empreinte(D_A)`, sous son intitulé, et, juste
+au-dessous d'elle, `D_A` en entier, avec `0x`, restent affichés sans
+interaction, avant le bouton de signature (EX-9.4) : la console n'y affiche en caractères plus grands que
+cette empreinte. `groupes(D_A)`, puis, à part et sous son intitulé,
+`empreinte(H)` et `groupes(H)`, PEUVENT être placés sur le même écran dans
+le bloc ouvert sur demande qui porte le texte de référence d'EX-9.20 : la
+consigne courante 2 d'EX-9.20 y renvoie l'approbateur dont l'appareil
+montre « Message hash », et lui dit de comparer `D_A` en entier pour une
+objection ou un montant élevé.
+
 **EX-9.19** **Condensé qui est de l'UTF-8.** Si les 32 octets du `D_A` de
 la décision choisie forment de l'UTF-8 valide (RFC 3629), la console DOIT
 afficher l'avertissement `condense_utf8` : « certains portefeuilles
@@ -3606,6 +3749,60 @@ visible, un outil hors ligne indépendant n'étant pas livré par la version 0
 (section 16) ; et un condensé du registre de CT-4 dont l'attaquant a cherché
 hors ligne les extrémités, contre lequel seule la comparaison des huit
 groupes vaut (EX-9.18).
+
+Complément du 2026-11-18, décision du porteur (langage des écrans). Les
+sept consignes ci-dessus sont le **texte de référence** : elles ne
+changent pas. Une personne qui n'a pas lu cette spécification ne les lit
+pas, et signe avant de les avoir vues quand elles suivent le bouton. La
+console DOIT afficher, sur l'écran de
+signature et avant le bouton de signature, les quatre **consignes
+courantes** ci-dessous, mot pour mot, où `x[0..8]` et `x[56..64]` sont les
+deux extrémités de l'`empreinte(D_A)` de la décision choisie (EX-9.18) :
+
+1. Relisez le rappel de la demande : c'est la demande et la décision que vous
+   voulez signer. Votre application de signature (votre portefeuille) va
+   ensuite s'ouvrir et afficher un code de 64 caractères ; certains appareils
+   l'écrivent après 0x, ou entre hex( et ).
+2. Vérifiez que ce code commence par `x[0..8]` et qu'il finit par `x[56..64]`.
+   Pour contester une demande ou pour un montant élevé, comparez le code en
+   entier, écrit en petit sous le grand. Si votre appareil affiche aussi une
+   ligne « Message hash », comparez-la au second code des consignes complètes,
+   jamais à celui-ci.
+3. C'est le même : validez dans l'application.
+4. Il est différent, ou l'application affiche autre chose que ce code en
+   entier : refusez dans l'application, ne réessayez pas depuis cette page et
+   prévenez votre administrateur autrement que par la console. Refuser dans
+   l'application ne refuse pas la demande.
+
+Le texte de référence reste sur l'écran de signature, en entier et sans
+retouche, dans un bloc ouvert sur demande intitulé « Consignes complètes
+(texte de référence) ». Correspondance, pour qu'aucune vérification ne se
+perde :
+
+- la consigne courante 1 porte les points 1 et 2 : lire la demande, la
+  décision et l'adresse, que l'écran de signature rappelle en tête
+  (EX-9.4) ; elle dit aussi sous quelles formes un portefeuille écrit les
+  64 chiffres (point 3) ;
+- la 2 porte le point 3 : les deux extrémités ; `D_A` en entier pour une
+  objection ou un montant élevé ; « Message hash » comparé à
+  `empreinte(H)`, jamais à `empreinte(D_A)` ;
+- la 3 porte le point 4 ;
+- la 4 porte, du point 5, ce que l'approbateur fait devant son
+  portefeuille : refuser, ne pas réessayer depuis cette page, prévenir
+  l'administrateur par un autre canal que la console ; elle couvre le
+  portefeuille qui ne montre pas les 64 chiffres en entier, et dit que
+  refuser dans le portefeuille n'est pas voter `refuse` ;
+- le reste du point 5 (avec quel portefeuille voter ensuite, comment
+  s'opposer depuis une console saine) est une marche à suivre après un
+  écart : il reste au texte de référence, et la console dit au moment de
+  la panne ce qui s'est passé et quoi faire (13.14) ;
+- le point 6 est la réponse de la console à `empreinte_divergente`
+  (13.14) : elle n'offre alors rien à signer ;
+- le point 7 se vérifie après le vote : la console DOIT le dire en
+  langage courant avec le résultat d'un vote inscrit (vérifier que la
+  notification, si l'organisation en envoie une, annonce ce ticket, cette
+  décision et cette empreinte ; sinon prévenir l'administrateur par un
+  autre canal).
 
 ### 9.7 Contrôle local après la signature
 
@@ -5555,6 +5752,18 @@ facultatifs dans `console-service-v0`, pour qu'un document de la révision
 0.3 y reste conforme ; un service conforme à la révision 0.5 porte toujours
 `contest_ms` et `contest`, et `related` quand la requête porte `related_to`.
 
+Complément du 2026-11-18, décision du porteur (langage des écrans). Dans la
+liste, la console dit l'état de la fenêtre de contestation en mots : avant
+l'atteinte du seuil, que le ticket pourra encore être contesté pendant
+`contest_ms` ; quand une fenêtre court, jusqu'à quel instant ; les
+objections non levées, qu'elles suspendent le ticket (EX-10.7) et qu'une
+fenêtre entière suivra leur levée (EX-10.8) ; le dernier instant où le
+seuil doit être atteint (EX-10.9). Pour un ticket
+dont `contest_ms` vaut 0, il n'y a ni fenêtre ni objection (EX-5.9) : la
+console N'A PAS à en dire quoi que ce soit. Elle PEUT ranger à part les
+tickets qui n'attendent pas de vote pour atteindre leur seuil (états
+autres qu'`ouvert`), sans en retirer aucun de la liste.
+
 Requête, à l'ouverture de l'écran du ticket `apr-2201` par la session de
 l'exemple d'EX-12.14 :
 
@@ -5628,7 +5837,7 @@ systèmes d'identité et ses sessions (13.21) ; leurs réglages sont en 10.3.
 | Vérification de la signature, puis appartenance par `isCurator` **à la tête** (R1-F84) | Appartenance au **jeu figé** du ticket (section 8), pas à la tête |
 | Un vote par curateur, remplacé par le suivant ; récusation (R1-F84, `lib/validation.ts`) | Repris (EX-7.26, EX-10.4) |
 | Fenêtre N2 acceptée par défaut à son terme (`sweepExpiredWindows`, `lib/validation.ts` L291-L305) | **Exclu** (10.2) |
-| Libellés en deux langues, journal d'audit | Repris |
+| Libellés en deux langues, journal d'audit | Repris ; complément du 2026-11-18, décision du porteur (langage des écrans) : chaque texte visible sans interaction est écrit pour une personne qui n'a pas lu cette spécification, et chaque message de panne dit ce qui s'est passé et quoi faire ; une phrase que cette spécification fixe mot pour mot (marques d'EX-9.4, intitulés d'EX-9.18, consignes d'EX-9.20, textes cités par 13.14) reste telle quelle, précédée d'une phrase en langage courant qui dit la même chose ; le code d'une panne reste entre parenthèses, à la fin de sa phrase (EX-13.29) |
 | Jeton de session signé par HMAC-SHA256, vérifié en temps constant, avec identifiant et échéance (R5-F33 ; B.8) | Repris pour le cookie de session : identifiant tiré au hasard, signé par une clé tirée au démarrage et gardée en mémoire ; sessions en mémoire, sans base, bornées par `session_max_age_s` (EX-13.48) |
 | Garde d'hôte : refus (statut 421) d'une requête dont l'hôte n'est pas celui de l'origine publique (B.8) | Repris : l'hôte est celui de `console_origin` (EX-13.49) |
 | Thème clair et sombre, appliqué avant le premier affichage (B.8) | Repris, servi comme fichier avec son intégrité, sans script en ligne (EX-13.34, point 4) ; complément du 2026-11-17, décision du porteur (présentation des écrans) : deux états, l'état initial suit le réglage du système (`prefers-color-scheme`), une bascule vaut pour la page affichée, et aucun choix n'est mémorisé (ni stockage du navigateur, ni cookie) |
@@ -5706,6 +5915,30 @@ votes exprimés, et, pour un ticket, les tickets refusés ou expirés du même
 demandeur et du même outil depuis moins de `E` (une variation cosmétique
 des arguments rouvre une demande refusée, EX-7.18, 14.7) ; les réponses de
 `tickets` y suffisent (EX-12.21).
+
+Complément du 2026-11-18, décision du porteur (langage des écrans). Pour
+les dix premiers tickets `ouvert` de la liste au plus, la console PEUT lire
+en plus la vue de chaque ticket (`consulter`, et `annuaire` une fois) et
+afficher sur sa ligne le montant du résumé d'EX-9.4, composé par la même
+fonction que sur l'écran du ticket : des seules feuilles `verifie`, et
+seulement quand les contrôles 2 et 4 d'EX-9.15 passent ; rien sinon. Ce
+sont des lectures, que la réauthentification d'EX-13.8 ne concerne pas ; la
+console n'écrit rien et ne s'adresse à aucun portefeuille. La liste
+s'affiche sans attendre ces lectures ; une lecture qui échoue, ou que le
+service refuse (`session_non_autorisee` pour un demandeur qui voit son
+ticket sans en voir les arguments, EX-12.14), laisse la ligne sans
+montant, sans message d'erreur. Chaque instant de la liste porte ce qu'il
+est : pour un ticket `ouvert` dont `contest_ms` est positif, le dernier
+instant où le seuil doit être atteint (EX-10.9) est donné comme le moment
+avant lequel décider, et l'échéance comme l'expiration ; pour un ticket
+qui n'attend plus de vote pour atteindre son seuil, l'échéance est donnée
+comme l'expiration. D'après ces mêmes lectures, quand la vue d'un ticket
+`ouvert` porte un vote courant de l'adresse que l'annuaire attribue à la
+session, la console PEUT ranger ce ticket avec ceux qui n'attendent pas de
+décision de l'approbateur, en disant ce qu'il a décidé et que le ticket
+attend d'autres approbations ; le ticket reste dans la liste et garde son
+lien, un nouveau vote pouvant remplacer le précédent (EX-7.26). Sans cette
+lecture, ou au-delà des dix premiers tickets, la console n'en dit rien.
 
 **EX-13.4** Affichage et signature : EX-9.4 à EX-9.9 et EX-9.15 à
 EX-9.22. La console DOIT être servie avec une politique de sécurité du
@@ -5797,6 +6030,19 @@ entre les deux est l'alias de demandeur de l'entrée (`requester_identities`,
 13.4), posé par un administrateur (EX-13.17). Que la console et les
 connexions d'hôte d'un client utilisent le même client OIDC n'est pas
 vérifié (R5 NV-4).
+
+Complément du 2026-11-18, décision du porteur (langage des écrans). Cette
+règle fixe la forme de l'identité de session et sa comparaison, non son
+affichage. Une console PEUT dire en mots qui est connecté : le sujet ou le
+nom de la personne, puis le système qui a fourni son compte (l'émetteur
+sans son préfixe `https://`, qu'il porte toujours, ou le domaine), chaque
+jeton tel quel. La chaîne canonique DOIT rester lisible en entier, dans son
+ordre, sur le même écran, au besoin dans un bloc ouvert sur demande. Quand
+elle est placée dans un tel bloc, le sujet (ou le nom) et l'émetteur sans
+son préfixe (ou le domaine) DOIVENT rester affichés sur chaque écran, hors
+de tout bloc replié : la personne lit qui est connecté, et par quel
+système, sans rien ouvrir. Une identité qui ne se découpe pas en ses trois
+jetons s'affiche en entier, hors de tout bloc replié.
 
 Le jeton d'identité ne borne pas la session : « The ID Token expiration time
 is unrelated the lifetime of the authenticated session » (R5-F12). La partie
@@ -7293,6 +7539,21 @@ Pannes de l'inscription (13.5) :
 | Signature mal formée, ou qui recouvre une autre adresse | `signature_invalide`, `adresse_differente` | aucune requête `inscrire` | vérifie le compte choisi dans son portefeuille |
 | `inscrire` refusé : `inscription_expiree`, `nonce_inconnu` (défi remplacé par une préparation plus récente), `nonce_deja_utilise` | la raison de 12.8 | affiche la raison ; rien n'est inscrit | recommence par une nouvelle préparation, sur action explicite |
 | `inscrire` refusé : `organisation_differente`, `identite_desactivee`, `adresse_deja_attribuee`, autre raison | la raison de 12.8 | affiche la raison ; rien n'est inscrit | prévient l'administrateur |
+
+Complément du 2026-11-18, décision du porteur (langage des écrans). Le
+code entre parenthèses accompagne la réponse à une **panne**. Trois lignes
+des contrôles d'EX-9.15 et de la table des pannes d'un vote décrivent un
+état attendu du parcours, que l'approbateur rencontre sans que rien n'ait
+échoué : aucune décision n'est encore choisie (`decision_absente`), aucun
+portefeuille n'est encore choisi (`fournisseur_non_choisi`), le ticket
+n'accepte plus de votes (`ticket_clos_aux_votes`). Pour ces états, et pour
+un avertissement du modèle d'affichage, la console affiche la phrase et
+PEUT placer le code dans le bloc de détail technique de l'écran
+(complément du 2026-11-17 d'EX-9.4) au lieu de l'afficher à côté de la
+phrase : un code à côté d'une phrase fait croire à une erreur. Pour toute
+panne, le code reste entre parenthèses, à la fin de sa phrase. La réponse
+à une panne de signature ou d'envoi s'affiche en tête du bloc où
+l'approbateur vient d'agir, et la page l'y amène.
 
 **EX-13.30** **Délai.** La console attend la réponse du portefeuille au
 plus `delai_signature_ms` (configuration de la console, défaut 300 000 ms,

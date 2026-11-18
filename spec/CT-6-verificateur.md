@@ -17,7 +17,22 @@ décision du porteur (présentation des écrans) : la page de vérification met
 en avant le verdict, les huit contrôles et les avertissements, offre le
 rapport dans des blocs repliés et a deux états d'affichage (18.3, EX-18.5,
 EX-18.6, EX-18.7, EX-18.9, EX-18.11), sans changer aucune règle du
-vérificateur, aucun rapport ni aucun code de retour. Version 0.8, 2026-11-12, révision 0.8,
+vérificateur, aucun rapport ni aucun code de retour ; complément du
+2026-11-18, décision du porteur (langage des écrans) : la page de
+vérification dit chaque résultat en langage courant, par une phrase fixée
+par code de retour placée au-dessus du texte exact du vérificateur, qui
+n'est ni modifié ni abrégé, dit chaque avertissement par une phrase fixée
+par identifiant au-dessus de son texte exact, ajoute les rubriques « Ce
+que ce résultat ne dit pas » et « Et maintenant ? », et, sous le code 0,
+ne garde la présentation pleine que pour huit contrôles réussis sans
+avertissement : sinon le titre porte une mention qui restreint le mot du
+verdict, un contrôle réussi que vise un avertissement se dit « Réussi,
+avec réserve », et un bloc « En résumé » recopie quelques champs du
+rapport dans des gabarits fixes (EX-18.2, EX-18.5, EX-18.7, EX-18.9) ; la
+présentation ne peut que restreindre ce que le code de retour dit ; la
+page ne calcule toujours aucun statut, et aucune
+règle du vérificateur, aucun rapport ni aucun code de retour ne change.
+Version 0.8, 2026-11-12, révision 0.8,
 textuelle et minimale : publication
 du binaire préparée à l'étape 7 sans rien publier, image de construction et
 noms des fichiers publiés fixés, forme du commentaire de confiance, détail en
@@ -6633,6 +6648,57 @@ changements de statut sont dits en place. Sections touchées : en-tête, 4.2
   vecteur ne change ; la liste des fichiers de la page (18.3), ses en-têtes
   et l'identité d'EX-18.10 ne changent pas ; les empreintes de `index.html`,
   `page.css` et `page.js` changent avec leur contenu.
+- **Complément du 2026-11-18, décision du porteur (langage des écrans)** :
+  langage de la page de vérification (section 18). Sous le mot du verdict,
+  la page écrit une phrase en langage courant fixée par code de retour
+  (table d'EX-18.9), puis, en dessous, le code et son sens tels que 8.3
+  les fixe, entiers ; un avertissement connu de la table d'EX-18.9 est
+  dit par sa phrase, suivie de son texte exact, et un avertissement hors
+  de la table n'a que son texte exact. Une phrase de ces tables ne dit
+  jamais plus que la section qui fixe le code ou lève l'avertissement ;
+  cette section et le texte exact prévalent. L'énoncé reste affiché en
+  entier, caractère pour caractère, découpé en membres de phrase à
+  l'affichage seulement ; les rubriques « Ce que ce résultat ne dit pas »
+  (lignes tirées de 7.2 et de 7.4) et « Et maintenant ? » le suivent. La
+  phrase d'EX-18.2 reste affichée en permanence, mot pour mot, hors de
+  tout bloc replié, précédée de la même mise en garde en langage
+  courant ; après un rapport, un refus ou une vérification non faite,
+  elle est sous le résultat (EX-18.2, risque admis écrit). Les deux
+  fichiers facultatifs reçoivent un nom courant, la raison d'un refus est
+  dite en langage courant puis telle quelle, et les étapes se réduisent à
+  une ligne après un rapport (EX-18.7) ; le message d'un artefact altéré
+  est précédé d'une phrase courante (EX-18.5). Les mots de statut
+  « Échec » et « Non exécuté » du complément du 2026-11-17 deviennent
+  « Échoué » et « Non fait », et le résumé de chaque contrôle passe dans
+  un bloc replié de la liste (EX-18.9, point 8). Points 14 à 19
+  d'EX-18.9 : la présentation ne peut que restreindre, jamais étendre,
+  ce que le code de retour dit, et ce qu'elle ajoute se tire du seul
+  rapport JSON, lu exactement. Sous le code 0, la teinte pleine n'est
+  gardée que pour huit contrôles `reussi` sans avertissement ; sinon une
+  mention fixée suit le mot du verdict dans le titre (tout n'est pas
+  prouvé, des réserves, ou les deux), et une phrase dit ce que le dossier
+  ne prouve pas, par contrôle non réussi (point 14) ; un contrôle
+  `reussi` dont une vérification porte un avertissement, d'après le
+  rapport seul, se dit « Réussi, avec réserve » (point 15) ; deux
+  avertissements de même identifiant se disent une fois, leurs textes
+  exacts restant tous affichés (point 16) ; un bloc « En résumé »
+  recopie dans des gabarits fixes le numéro d'ordre de l'action, le nom
+  de l'outil appelé, la période déclarée, les signatures de
+  l'approbation et l'instant « au plus tard » de l'autorité, chaque
+  ligne seulement si son champ se lit et si son contrôle est `reussi`,
+  sous les codes 0 et 3 (point 17) ; le détail d'une vérification en
+  échec est dit sur la ligne de son contrôle (point 18) ; sous le code
+  2, la pièce en cause est dite d'après le type de l'erreur (point 19).
+  Un refus s'intitule d'après ce qui a été choisi, la mention « aucun
+  rapport » restant affichée, et la ligne d'un rapport dit « Dossier
+  examiné » (EX-18.7). La page ne calcule
+  toujours aucun statut : le mot et la phrase viennent du seul code de
+  retour, les états et les avertissements du rapport JSON. Aucune règle
+  du vérificateur, aucun contrôle, statut, verdict, code de retour,
+  schéma ni vecteur ne change ; la liste des fichiers de la page (18.3),
+  ses en-têtes, sa politique de sécurité de contenu et l'identité
+  d'EX-18.10 ne changent pas ; les empreintes de `index.html`, `page.css`
+  et `page.js` changent avec leur contenu.
 
 | Emplacement | Avant | Attendu par la révision 0.9 | État |
 |---|---|---|---|
@@ -6659,6 +6725,14 @@ Alignement du complément du 2026-11-17 avec le dépôt :
 |---|---|---|---|
 | `paquets/verification-web` (page) | résultat en un seul flot : fichiers choisis, ligne de commande, code, rapport lisible, énoncés, sortie d'erreur ; un seul état d'affichage | verdict, contrôles et avertissements d'emblée, blocs repliés, deux états d'affichage (18.3, EX-18.5, EX-18.6, EX-18.7, EX-18.9, EX-18.11) | fait (`test/verification-page-presentation.test.js` ; les essais existants de la page restent verts) |
 | `verificateur/` (binaire Go), `scripts/lib/verificateur.mjs` (référence) | — | aucun changement : la page n'ajoute rien au rapport et n'en retire rien | sans objet |
+| `spec/vecteurs/ct-6/` | — | aucun vecteur ne change | sans objet |
+
+Alignement du complément du 2026-11-18 avec le dépôt :
+
+| Emplacement | Avant | Attendu par le complément | État |
+|---|---|---|---|
+| `paquets/verification-web` (page) | verdict, code et son sens, contrôles et avertissements dans les mots du vérificateur ; mise en garde d'EX-18.2 seule, toujours en tête | phrase courante par code de retour et par avertissement au-dessus du texte exact, énoncé entier en membres de phrase, « Ce que ce résultat ne dit pas », « Et maintenant ? », noms courants des pièces complémentaires, étapes réduites après un rapport, mise en garde sous le résultat ; mention qui restreint le verdict, « Réussi, avec réserve », réserves regroupées, « En résumé » tiré du rapport (EX-18.2, EX-18.5, EX-18.7, EX-18.9, points 6 à 19) | fait (`test/verification-page-presentation.test.js` : les tables de la page sont, mot pour mot et dans les deux langues, celles d'EX-18.9 ; les essais existants de la page restent verts) |
+| `verificateur/` (binaire Go), `scripts/lib/verificateur.mjs` (référence) | — | aucun changement : la page n'ajoute rien au rapport, n'en retire rien et ne calcule aucun statut | sans objet |
 | `spec/vecteurs/ct-6/` | — | aucun vecteur ne change | sans objet |
 
 ## 17. Ce que cette version ne couvre pas
@@ -6777,7 +6851,37 @@ en dépendre, comparez les empreintes publiées ou employez le binaire. » (« T
 page runs the noortrace-verifier <version> verifier, compiled to WebAssembly,
 in your browser; no file leaves your computer. It is only as trustworthy as
 the origin serving it: to avoid depending on it, compare the published
-digests or use the binary. »). Tenu par le projet.
+digests or use the binary. »).
+Complément du 2026-11-18, décision du porteur (langage des écrans) : la phrase
+fixe reste affichée en permanence, mot pour mot, hors de tout bloc replié ;
+elle est précédée de la même mise en garde en langage courant, qui n'affirme
+rien de plus, et introduite par « Mention exacte : » (« Exact notice: »). La
+phrase qui la précède est : « Le contrôle est fait par un programme, le
+vérificateur, que cette page fait fonctionner dans votre navigateur : vous
+faites donc confiance au site qui vous fournit la page. Un spécialiste peut
+s'en passer : il compare la page aux empreintes publiées avec chaque version,
+ou refait la vérification avec le programme autonome. » (« The check is made
+by a program, the verifier, which this page runs in your browser: you are
+therefore trusting the site that gives you the page. A specialist can do
+without it, by comparing the page with the fingerprints published with each
+version, or by running the same verification with the standalone program. »).
+Sous le titre de la page, la garantie est dite seule : « La vérification se
+fait sur votre ordinateur. Aucun fichier ne quitte votre poste. » (« The
+verification runs on your computer. No file leaves your computer. »). Un bloc
+replié « Comment ça marche » (« How it works ») de cinq lignes dit ce qu'est
+un dossier de preuve, ce que la page contrôle, ce que veut dire le résultat et
+quoi faire ensuite ; il ne porte aucune affirmation sur un dossier. Place : à
+l'ouverture de la page, la mise en garde, la phrase fixe et le bloc de
+l'empreinte (EX-18.5) sont affichés avant le choix du dossier ; dès qu'un
+rapport, un refus ou une « vérification non faite » a été affiché, ils sont
+placés sous le résultat, juste avant les blocs des spécialistes (EX-18.9,
+point 12), entiers, hors de tout bloc replié, pour que le résultat se lise
+d'abord ; la garantie reste sous le titre. Ils reviennent en tête quand le
+vérificateur est altéré ou n'a pas pu se charger (EX-18.5). Cette exigence ne
+fixait pas la place de la phrase, seulement son affichage permanent. Risque
+admis : après un résultat, qui ne descend pas jusque-là ne relit pas la mise
+en garde ; il l'a eue sous les yeux avant de choisir son dossier, et la
+garantie reste en tête. Tenu par le projet.
 
 ### 18.2 Artefact WebAssembly
 
@@ -6866,7 +6970,12 @@ d'un vérificateur qui n'a pas pu se charger ne sont jamais repliés. Risque
 admis : un utilisateur qui n'ouvre pas le bloc ne voit pas l'empreinte ; elle
 est calculée par la page elle-même, ne protège pas contre l'origine (EX-18.2)
 et ne sert qu'à qui la compare à `SHA256SUMS`, ce que la phrase d'EX-18.2
-demande. Tenu par la page.
+demande.
+Complément du 2026-11-18, décision du porteur (langage des écrans) : le
+message d'un artefact altéré et celui d'un vérificateur qui n'a pas pu se
+charger restent affichés tels quels, jamais repliés, sous une phrase en
+langage courant qui dit ce qui s'est passé et quoi faire, et sous
+l'introduction « Message exact : » (« Exact message: »). Tenu par la page.
 
 ### 18.3 Fichiers de la page
 
@@ -6973,7 +7082,45 @@ bloc replié (élément `details`) dont le titre résume les choix faits. Chaque
 option y porte un libellé en langage courant, et son nom de la ligne de
 commande entre parenthèses (`--ancres`, `--entetes-bitcoin`, `--exiger`,
 `--langue`, `--detail`) ; chaque contrôle à exiger porte un nom courant et son
-numéro. Les valeurs transmises au programme ne changent pas (EX-18.8). Tenu par la page.
+numéro. Les valeurs transmises au programme ne changent pas (EX-18.8).
+Complément du 2026-11-18, décision du porteur (langage des écrans) : le
+fichier d'ancres s'appelle à l'écran « Liste des références de confiance » («
+List of trust references ») et le fichier d'en-têtes « Extrait de la chaîne
+Bitcoin » (« Bitcoin chain extract ») ; ce sont des « pièces complémentaires
+», et non des options : sous chacune, la page dit sans détour ce que son
+absence empêche (sans fichier d'ancres, les contrôles 4, 5 et 8 ne sont pas
+exécutés, table 5.1 et EX-4.9 ; sans fichier d'en-têtes, le contrôle 5,
+EX-4.5) et que le résultat le signalera. Les noms de la ligne de commande ne
+figurent plus à côté des libellés : ils sont réunis, chacun entre parenthèses
+après son libellé, dans un bloc replié placé à la fin du bloc des pièces et
+des options. Le titre du bloc résume les choix : un seul contrôle exigé y est
+écrit avec son numéro et son nom (« n° 7 (…) »), plusieurs avec leurs numéros
+(« n° 4, 5 et 8 »), pour qu'un numéro ne se lise pas comme un nombre de
+contrôles. Un refus affiche toujours la raison, « aucun rapport » et aucun
+code : la raison est écrite d'abord en langage courant, avec ce qu'il faut
+faire (une phrase par raison de refus ; une raison que la page ne connaît pas
+n'en reçoit aucune), puis telle quelle, introduite par « Raison exacte : » («
+Exact reason: »), jamais repliée. Après un rapport (codes 0 à 3), le choix du
+dossier, les pièces, les options et le bouton qui lance la vérification se
+réduisent à une ligne placée sous le titre du résultat, qui nomme le dossier
+examiné et porte le bouton « Vérifier un autre dossier » (« Verify another
+dossier ») ; ce bouton, le choix ou le dépôt d'un autre dossier les ramènent.
+Un refus et une « vérification non faite » les laissent affichés. Le bouton
+d'arrêt (EX-18.9) ne paraît que pendant une vérification. Seconde lecture,
+même date : la mention « aucun rapport » reste, introduite par « Mention fixée
+pour un refus : » (« Fixed notice for a refusal: »), sous un titre courant qui
+dit ce qui est refusé : « Fichier refusé » (« File refused ») pour un fichier,
+« Dossier de fichiers refusé » (« Folder of files refused ») pour un
+répertoire, « Choix refusé » (« Choice refused ») pour un dépôt que la page
+n'a pas pu prendre. Tant que ce refus est affiché, le choix du dossier dit que
+ce qui a été choisi est refusé, sans marque de réussite, et la page ne dit
+plus que tout est prêt. La ligne réduite nomme le « dossier examiné », et non
+« vérifié » : sous un code 1 ou 2, « vérifié » se lirait « trouvé bon ». Sous
+« Liste des références de confiance », la page dit de qui vient cette pièce
+(l'organisation qui a remis le dossier la fournit avec lui ; c'est un fichier
+dont le nom finit par .json), qu'il faut vérifier d'où elle vient, et ce qui
+se passe sans elle (les contrôles 4, 5 et 8 ne sont pas faits, et le résultat
+le dit). Tenu par la page.
 
 **EX-18.8** **Arbre présenté au programme.** Le travailleur présente au
 programme un système de fichiers en lecture seule :
@@ -7125,6 +7272,290 @@ qui étaient jusque-là dans le corps du rapport. La liste des contrôles peut
 rapport, et la page se tait quand elle ne les lit pas. L'identité d'EX-18.10
 porte sur les mêmes textes : le rapport lisible, le rapport JSON, la sortie
 d'erreur et le code.
+
+Complément du 2026-11-18, décision du porteur (langage des écrans). La page
+s'adresse à une personne qui n'a pas lu cette spécification (auditeur,
+juriste, client, autorité de contrôle). Ce qu'elle lit sans rien ouvrir est
+écrit en langage courant ; chaque texte du vérificateur et chaque phrase que
+cette section fixe mot pour mot restent affichés tels quels, sans coupe,
+précédés d'une phrase en langage courant qui n'affirme rien de plus. Le
+vérificateur, ses rapports et ses codes ne changent pas, et la page ne calcule
+toujours aucun statut. Les points 6 à 13 complètent les points 1 à 5 ; là où
+ils le disent, ils en remplacent les mots.
+
+6. **Phrase du verdict.** Sous le mot du verdict (point 1), la page écrit une
+   phrase en langage courant fixée par code de retour, table ci-dessous. Elle
+   ne se tire que du code de retour, et un code hors de la table n'en reçoit
+   aucune. Elle dit ce que le code veut dire (table de 8.3) et rien de plus :
+   « valide » n'y devient ni « authentique » ni « huit contrôles réussis »
+   (6.4, 7.1, EX-7.1). Le code et son sens restent affichés en entier, sous
+   cette phrase et sous ce que la page écrit du rapport, en plus petit,
+   introduits par « Formule exacte du vérificateur : » (« Exact wording of the
+   verifier: »).
+
+| Code de retour | Phrase de la page française | Phrase de la page anglaise |
+|---|---|---|
+| 0 | Ce dossier a passé la vérification : rien n'a échoué. Ce qui n'a pas pu être vérifié a une raison admise, indiquée ci-dessous, et tout contrôle que vous avez exigé a réussi. Ce que le dossier prouve est écrit plus bas, mot pour mot. | This dossier passed the verification: nothing failed. What could not be checked has an admitted reason, given below, and every control you required passed. What the dossier proves is written further down, word for word. |
+| 1 | Ce dossier ne prouve pas l'action qu'il présente : au moins une vérification a échoué, ou n'a pas pu être faite sans raison admise. Le détail ci-dessous dit laquelle. | This dossier does not prove the action it presents: at least one check failed, or could not be done without an admitted reason. The detail below says which one. |
+| 2 | Le vérificateur n'a pas pu examiner ce dossier : une pièce fournie est illisible ou trop volumineuse, ou le vérificateur a rencontré une erreur. Il ne dit rien de ce dossier, ni pour ni contre. Le message ci-dessous donne la cause. | The verifier could not examine this dossier: a document you supplied is unreadable or too large, or the verifier met an error. It says nothing about this dossier, neither for nor against. The message below gives the cause. |
+| 3 | Rien n'a échoué, mais un contrôle que vous avez exigé n'a pas réussi : ce dossier prouve moins que ce que vous demandiez. Ce qu'il prouve est écrit plus bas, mot pour mot. | Nothing failed, but a control you required did not pass: this dossier proves less than you asked for. What it proves is written further down, word for word. |
+
+   « vérification non faite » et « aucun rapport » (EX-18.7) gardent leurs
+   mots ; chacun est suivi de sa phrase :
+
+| Cas | Phrase de la page française | Phrase de la page anglaise |
+|---|---|---|
+| vérification non faite | La vérification n'a pas abouti : la page n'a obtenu aucun résultat sûr. Rien n'est dit de ce dossier, ni pour ni contre. La cause est indiquée ci-dessous. | The verification did not complete: the page obtained no reliable result. Nothing is said about this dossier, neither for nor against. The cause is given below. |
+| refus d'un dossier | La page n'a pas pu ouvrir ce que vous avez choisi : la vérification n'a pas commencé. Rien n'est dit de ce dossier, ni pour ni contre. | The page could not open what you chose: the verification did not start. Nothing is said about this dossier, neither for nor against. |
+
+7. **Réserves.** Sous un code 0 ou 3, quand le membre `warnings` du rapport
+   JSON porte au moins un avertissement, ou ne se lit pas, la page écrit sous
+   la phrase du verdict la ligne fixe « Attention : ce résultat a des
+   réserves. Lisez-les ci-dessous : elles limitent ce que ce dossier prouve. »
+   (« Warning: this result has reservations. Read them below: they limit what
+   this dossier proves. »). Ce n'est pas un statut calculé : c'est la présence
+   d'avertissements dans le rapport. Les avertissements suivent aussitôt le
+   verdict, avant la liste des contrôles. Chacun est écrit d'abord en langage
+   courant, par la phrase que la table ci-dessous donne à son identifiant,
+   puis tel quel (`detail`, identifiant et vérification, point 3), introduit
+   par « Texte exact du vérificateur : » (« Exact text of the verifier: »). Un
+   identifiant hors de la table ne reçoit aucune phrase : seul son texte exact
+   est affiché. Sous le code 1, les avertissements sont affichés de même, sans
+   la ligne fixe : le dossier ne prouve pas l'événement (7.4). Une phrase de
+   la table ne dit jamais plus que la section qui lève l'avertissement (5.5,
+   9.7, 9.9, 10.7, 11.6, 11.9) ; en cas de doute, cette section et le texte
+   exact prévalent.
+
+| Avertissement | Phrase de la page française | Phrase de la page anglaise |
+|---|---|---|
+| AV-T-1 | La preuve de date de l'autorité d'horodatage est écrite d'une façon inhabituelle, mais admise. Cela ne change aucun contrôle. | The proof of date from the time-stamping authority is written in an unusual but accepted way. This changes no control. |
+| AV-T-2 | Le nom de l'autorité inscrit dans la preuve de date a une forme que le vérificateur ne compare pas : ce nom n'a pas été contrôlé. | The name of the authority written in the proof of date has a form the verifier does not compare: this name was not checked. |
+| AV-T-3 | Une liste de révocation (la liste des certificats que leur émetteur a retirés) n'était pas utilisable : le vérificateur l'a écartée et ne s'en est pas servi. | A revocation list (the list of certificates withdrawn by their issuer) was not usable: the verifier set it aside and did not use it. |
+| AV-T-4 | L'heure que l'enregistreur a notée pour l'action est postérieure à l'heure attestée par l'autorité d'horodatage : l'horloge de l'enregistreur avançait, ou l'heure notée est fausse. Un écart d'horloge de quelques secondes suffit à déclencher cette réserve. | The time the recorder noted for the action is later than the time attested by the time-stamping authority: the recorder's clock was ahead, or the noted time is false. A clock gap of a few seconds is enough to trigger this reservation. |
+| AV-O-1 | La preuve de date par la chaîne Bitcoin contient une attestation qui ne concorde pas, à côté d'une autre qui concorde. | The proof of date from the Bitcoin chain holds an attestation that does not match, next to another one that does. |
+| AV-O-2 | La preuve de date par la chaîne Bitcoin contient une attestation dont le vérificateur ne s'est pas servi : elle n'est pas encore confirmée, ou sa forme n'est pas prise en charge. | The proof of date from the Bitcoin chain holds an attestation the verifier did not use: it is not confirmed yet, or its form is not supported. |
+| AV-O-3 | La preuve de date par la chaîne Bitcoin a été contrôlée sur un réseau d'essai : elle ne prouve rien en dehors d'un test. | The proof of date from the Bitcoin chain was checked on a test network: it proves nothing outside a test. |
+| AV-R-1 | Le dossier ne contient pas l'inscription de la clé de l'enregistreur au registre public : rien ne relie à un enregistreur le compte qui a inscrit la preuve de date. | The dossier does not hold the registration of the recorder's key in the public registry: nothing links the account that entered the proof of date to a recorder. |
+| AV-R-2 | Une ligne de signature d'un validateur du registre public est écrite d'une façon inhabituelle, mais admise. Cela ne change aucun contrôle. | A signature line of a validator of the public registry is written in an unusual but accepted way. This changes no control. |
+| AV-R-3 | La clé de l'enregistreur est inscrite au registre public sous deux comptes ; l'un des deux est celui qui a inscrit la preuve de date. | The recorder's key is registered in the public registry under two accounts; one of the two is the account that entered the proof of date. |
+| AV-K-1 | L'inscription au registre public de la preuve de date d'un relevé intermédiaire du journal est déclarée par le dossier, non prouvée. | The entry in the public registry of the proof of date of an intermediate statement of the log is declared by the dossier, not proven. |
+| AV-K-2 | L'heure que l'enregistreur a notée sur le relevé intermédiaire du journal est postérieure à l'heure attestée par l'autorité d'horodatage : l'horloge de l'enregistreur avançait, ou l'heure notée est fausse. | The time the recorder noted on the intermediate statement of the log is later than the time attested by the time-stamping authority: the recorder's clock was ahead, or the noted time is false. |
+| AV-K-3 | Rien, dans le dossier, ne relie à un enregistreur le compte qui a inscrit au registre public la preuve de date du relevé intermédiaire du journal. | Nothing in the dossier links to a recorder the account that entered in the public registry the proof of date of the intermediate statement of the log. |
+| AV-K-4 | La preuve de date du relevé intermédiaire du journal est postérieure de plus d'une heure à l'heure que l'enregistreur y a notée : elle a été obtenue tard, ou le relevé a été produit après coup. | The proof of date of the intermediate statement of the log is more than one hour later than the time the recorder noted on it: it was obtained late, or the statement was produced afterwards. |
+| AV-AT-1 | La déclaration de périmètre jointe au dossier (ce que l'organisation déclare faire enregistrer) n'a pas été retenue. Cela ne change ni les contrôles ni le résultat. | The scope declaration attached to the dossier (what the organisation declares it records) was not retained. This changes neither the controls nor the result. |
+| AV-AT-2 | La déclaration de périmètre et les approbations du dossier ne donnent pas la même liste d'approbateurs, ou pas le même nombre d'approbations requises. | The scope declaration and the approvals of the dossier do not give the same list of approvers, or not the same number of approvals required. |
+| AV-AT-3 | La version des règles sous laquelle l'action a été enregistrée n'est pas celle de l'inscription de la déclaration de périmètre au journal. | The version of the rules under which the action was recorded is not that of the entry of the scope declaration in the log. |
+
+8. **Contrôles.** Les mots du statut sont « Réussi », « Échoué » et « Non fait
+   » (page anglaise : « Passed », « Failed », « Not done ») ; ils remplacent
+   ceux du point 2. Chaque contrôle tient en une ligne : son statut, son
+   numéro, son nom en langage courant et ce qu'il sert à prouver (d'après
+   7.7). Sous un contrôle non fait, sa raison de 6.2 en langage courant et son
+   code entre parenthèses ; sous un contrôle échoué, une phrase qui le dit,
+   puis ce que le vérificateur en dit (point 18). Le `summary` de chaque
+   contrôle, tel quel, figure dans un bloc replié de la liste, avec ce que le
+   contrôle sert à prouver ; il n'est plus exigé sur la ligne du contrôle
+   (risque admis : qui n'ouvre pas ce bloc ne lit plus le résumé d'un contrôle
+   réussi ou non fait ; son statut, sa raison et l'énoncé restent affichés, et
+   le résumé reste dans le rapport lisible). La ligne écrite sous le code 0
+   quand un contrôle au moins n'est pas `reussi` devient « Contrôles qui n'ont
+   pas pu être faits : n° … » (« Controls that could not be done: no. … ») et
+   remplace celle du point 2, le mot du verdict portant alors la mention du
+   point 14 ; les autres règles du point 2 ne changent pas. Quand la liste ne
+   se lit pas, la page écrit « Le détail des contrôles ne peut pas être
+   affiché ; le résultat ci-dessus reste valable. » (« The detail of the
+   controls cannot be displayed; the result above still stands. »). Les
+   vérifications de `failed_checks` et de `blocking_unexecuted` sont
+   présentées comme des références utiles à un spécialiste.
+9. **Énoncé.** L'énoncé dans la langue de la page est affiché tel quel, sous
+   un titre qui dit qu'il est le texte exact du vérificateur et sous des
+   phrases qui disent où y lire l'action concernée, le journal et les preuves
+   de date, qu'il est la seule phrase du résultat à citer (7.1), et ce que
+   sont les longues suites de caractères. Avant l'énoncé, la page ne recopie
+   du rapport que les champs du point 17. Chaque membre de phrase de l'énoncé,
+   c'est-à-dire le texte coupé après chaque « ; » suivi d'une espace, est
+   rendu comme un bloc à part ; aucun caractère n'est retiré ni ajouté : le
+   texte de l'élément est l'énoncé, comme le texte que copie le bouton de
+   copie ou une sélection faite dans l'énoncé. Risque examiné : une valeur
+   venue du dossier qui porterait « ; » ferait un bloc de plus ; elle fait
+   déjà, dans la phrase elle-même, un membre de plus, « ; » étant le
+   séparateur des fragments d'EX-6.8 : la mise en blocs ne montre que la
+   ponctuation du texte, et le rapport lisible, que cette règle ne touche pas,
+   reste tel quel (EX-8.5).
+10. **Ce que ce résultat ne dit pas.** Sous les codes 0, 1 et 3, la page
+    affiche sous ce titre (« What this result does not say ») les lignes fixes
+    de la table ci-dessous, tirées de 7.2 (« Le vérificateur ne prouve pas »)
+    et, pour le code 1, de 7.4. Elles ne remplacent pas la section 7 et
+    n'ajoutent aucune portée à l'énoncé ; sous le code 2, la page n'en affiche
+    aucune.
+
+| Code de retour | Ligne de la page française | Ligne de la page anglaise |
+|---|---|---|
+| 0, 3 | Il ne dit pas que l'action a eu lieu à l'heure que l'enregistreur a notée : seule une date limite, « au plus tard », peut être prouvée. | It does not say that the action took place at the time the recorder noted: only a latest date, “no later than”, can be proven. |
+| 0, 3 | Il ne dit pas que l'agent logiciel a fait ce que l'action enregistrée décrit, ni que les effets déclarés se sont produits. | It does not say that the software agent did what the recorded action describes, nor that the declared effects occurred. |
+| 0, 3 | Il ne dit pas que toutes les actions de l'agent ont été enregistrées. | It does not say that all the agent's actions were recorded. |
+| 0, 3 | Il ne dit pas que les approbateurs nommés avaient le droit d'approuver, ni qu'ils ont lu ce qu'ils approuvaient. | It does not say that the named approvers had the right to approve, nor that they read what they approved. |
+| 0, 3 | Il ne dit pas quelle entreprise se trouve derrière l'identifiant de l'organisation. | It does not say which company stands behind the identifier of the organisation. |
+| 1 | Il ne dit pas que l'action enregistrée est fausse : il dit que ce dossier ne l'établit pas. Une erreur dans la préparation du dossier et une falsification donnent le même résultat. | It does not say that the recorded action is false: it says that this dossier does not establish it. A mistake in preparing the dossier and a forgery give the same result. |
+
+11. **Et maintenant ?** Après un rapport, un refus ou une « vérification non
+    faite », la page affiche sous ce titre (« What now? ») deux ou trois
+    lignes fixes par cas, qui disent quoi faire : conserver le dossier et le
+    résultat, citer l'énoncé sans le résumer, ne pas s'appuyer sur un dossier
+    non valide et prévenir qui l'a remis, fournir les pièces complémentaires,
+    recommencer. Ce sont des conseils d'usage, sans portée normative. Après un
+    rapport, l'explication du haut de la page (à quoi elle sert, « Comment ça
+    marche ») s'efface avec les étapes (EX-18.7) et revient avec elles ; la
+    phrase fixe d'EX-18.2 reste. Après un rapport, la page PEUT offrir
+    d'imprimer le résultat : l'impression ne fait ni requête ni stockage
+    (EX-18.11).
+12. **Pour les spécialistes.** Le rapport lisible, le rapport JSON et la ligne
+    de commande équivalente gardent leurs blocs repliés (point 4), sous ce
+    titre (« For specialists »). Le message d'erreur du code 2 reste affiché
+    tel quel, introduit par « Message exact du vérificateur : » (« Exact
+    message of the verifier: »), et la cause d'une « vérification non faite »
+    est dite en langage courant, avec les valeurs en cause.
+13. **Marques.** Tout élément dont le texte est celui du vérificateur ou une
+    phrase fixée par cette section porte l'attribut `data-exact` ; toute
+    valeur venue des données et posée dans une phrase de la page (nom de
+    fichier, code d'une raison, référence d'une vérification) est dans un
+    élément qui porte `data-valeur`. L'épreuve du langage (aucun terme de
+    technicien hors de ces éléments et des blocs repliés fermés) s'appuie sur
+    ces marques.
+
+Risque admis : la phrase du verdict, les phrases des avertissements et la
+liste « ce que ce résultat ne dit pas » peuvent être lues à la place de
+l'énoncé. Elles sont donc fixées ici, mot pour mot, ne se tirent que du code
+de retour ou de l'identifiant d'un avertissement, n'affirment rien que les
+sections 6 à 11 n'affirment, et laissent toujours visible, sans rien ouvrir,
+le texte exact qu'elles introduisent.
+
+Seconde lecture, même date, décision du porteur (langage des écrans). Une
+règle gouverne les points 14 à 19 : la présentation ne peut que restreindre,
+jamais étendre, ce que le code de retour dit. Ce qu'elle ajoute se tire du
+seul rapport JSON, lu exactement, par les tables et les gabarits fixés ici ;
+quand le rapport ne se lit pas, la page se tait.
+
+14. **Mot « Valide » restreint.** Le mot du verdict vient toujours du code de
+    retour (point 1). Sous le code 0, la teinte pleine du verdict et son signe
+    ne sont gardés que si le rapport JSON donne les huit contrôles `reussi` et
+    aucun avertissement. Si un contrôle au moins n'est pas `reussi`, ou si
+    `warnings` porte au moins un avertissement, le verdict prend la teinte et
+    le signe de l'avertissement, et une mention fixe suit le mot, dans le
+    titre, table ci-dessous. Si la liste des contrôles ou les avertissements
+    ne se lisent pas, le mot est seul, en teinte neutre, avec la ligne «
+    résumé indisponible » du point 8 ou celle des avertissements illisibles ;
+    jamais la teinte pleine. Les codes 1, 2 et 3 gardent leur présentation.
+
+| Cas, sous le code 0 | Mention de la page française | Mention de la page anglaise |
+|---|---|---|
+| un contrôle non réussi, aucun avertissement | , mais tout n'est pas prouvé | , but not everything is proven |
+| huit contrôles réussis, un avertissement | , avec des réserves | , with reservations |
+| un contrôle non réussi et un avertissement | , mais tout n'est pas prouvé, et avec des réserves | , but not everything is proven, and with reservations |
+
+    Juste sous le titre, quand un contrôle au moins n'est pas `reussi`, la
+    page dit en mots ce que le dossier ne prouve pas : pour un élément, « Ce
+    dossier ne prouve pas {liste}. » (« This dossier does not prove {liste}.
+    ») ; pour plusieurs, « Ce dossier ne prouve ni {liste}. » (« This dossier
+    does not prove {liste}. »), les éléments joints par « , ni » (page
+    anglaise : « , » puis, devant le dernier, « or »). Les éléments sont ceux
+    de la table ci-dessous, dans l'ordre des numéros ; comme dans le fragment
+    F7 de l'énoncé (EX-6.8), la date n'est dite qu'une fois quand ni le
+    contrôle 4 ni le contrôle 5 n'a réussi.
+
+| Contrôle non réussi | Élément de la page française | Élément de la page anglaise |
+|---|---|---|
+| 1 | le contenu de l'action enregistrée | the content of the recorded action |
+| 2 | la place de l'action dans le journal | the position of the action in the log |
+| 3 | son rattachement à la période close et signée | its link to the closed and signed period |
+| 4 et 5 | sa date | its date |
+| 4 seul | sa date par une autorité d'horodatage | its date from a time-stamping authority |
+| 5 seul | sa date par la chaîne Bitcoin | its date from the Bitcoin chain |
+| 6 | la signature de l'enregistreur | the recorder signature |
+| 7 | une approbation | an approval |
+| 8 | son inscription au registre public | its entry in the public registry |
+
+15. **Contrôle réussi avec réserve.** Un avertissement est rattaché à un
+    contrôle par le rapport lui-même : la vérification qu'il nomme (`check`)
+    figure dans la liste `checks` de ce contrôle (8.6). Aucune table de la
+    page n'y supplée : sans vérification nommée, ou si aucun contrôle ne la
+    porte, aucune ligne de contrôle ne change. La ligne d'un contrôle `reussi`
+    auquel un avertissement au moins est rattaché porte, à la place de «
+    Réussi », le mot « Réussi, avec réserve » (« Passed, with a reservation
+    »), dans la teinte de l'avertissement, puis l'identifiant de chaque
+    avertissement rattaché et un renvoi aux réserves. Sous le code 0, « Les
+    huit contrôles ont réussi. » devient « Les huit contrôles ont réussi, dont
+    {n} avec réserve. » (« All eight controls passed, {n} of them with a
+    reservation. »), et le décompte de la liste le dit de même. Le statut
+    reste celui du rapport : la page ne dit pas qu'un tel contrôle a échoué.
+16. **Réserve signalée plusieurs fois.** Les avertissements qui ont le même
+    identifiant de la table du point 7, donc la même phrase courante, forment
+    une seule réserve, à la place du premier : la phrase une fois, suivie de «
+    (signalée {n} fois) » (« (reported {n} times) »), puis le texte exact de
+    chacun, dans l'ordre du rapport. Aucun texte exact n'est retiré. Un
+    avertissement hors de la table reste seul.
+17. **En résumé.** Avant l'énoncé, sous ce titre (« In short »), la page
+    recopie quelques champs du rapport JSON dans les gabarits fixes de la
+    table ci-dessous, et rien d'autre. Aucune ligne hors des codes 0 et 3
+    (EX-6.13), ni si la liste des contrôles ne se lit pas. Chaque ligne ne
+    paraît que si son champ se lit exactement et si le contrôle dont elle
+    dépend est `reussi` dans le rapport. Aucune empreinte n'y figure. Un
+    instant est écrit en toutes lettres, en temps universel, sans conversion
+    de fuseau, selon le gabarit « {jour} {mois} {annee} à {heure} h {minute}
+    min {seconde} s » (« {jour} {mois} {annee} at {heure}:{minute}:{seconde}
+    »), le premier jour d'un mois s'écrivant « 1er » dans la page française ;
+    les bornes de la période, que le rapport donne en secondes, sont
+    converties par division entière ; un instant qui porte une fraction de
+    seconde n'est pas recopié, et la ligne manque. Le nombre de signatures est
+    le nombre d'adresses de `approvers`, comme dans le fragment F3. Le rapport
+    ne donne pas, pour la preuve par la chaîne Bitcoin, d'instant « au plus
+    tard » établi sans hypothèse (section 10) : la ligne renvoie à l'énoncé.
+    Le nom de l'outil de l'action (`event.tool`, EX-6.22) est recopié tel
+    quel, sans traduction, en chasse fixe ; la ligne manque s'il n'est pas une
+    chaîne de 1 à 256 caractères, ou s'il porte un caractère de commande, de
+    fin de ligne ou de sens d'écriture : c'est la désignation que le dossier
+    donne à l'outil, que le contrôle 1 lie à l'empreinte de l'action, et non
+    la preuve de ce que l'outil a fait (7.2). Le bloc se termine par « Ce
+    résumé aide à lire ; seul le texte exact ci-dessous fait foi. » (« This
+    summary helps reading; only the exact text below is authoritative. »).
+
+| Champ du rapport, contrôle dont la ligne dépend | Gabarit de la page française | Gabarit de la page anglaise |
+|---|---|---|
+| `event.seq`, contrôle 1 | Ce dossier porte sur l'action n° {seq} du journal (son numéro d'ordre). | This dossier is about action no. {seq} of the log (its sequence number). |
+| `event.tool`, contrôle 1 | Outil appelé : {outil} | Tool called: {outil} |
+| `period.period_start` et `period.period_end`, contrôle 3 | Le journal range cette action dans la période du {debut} au {fin}, temps universel. Ces deux instants sont déclarés par le journal : ils ne prouvent pas l'heure de l'action. | The log places this action in the period from {debut} to {fin}, Universal Time. These two instants are declared by the log: they do not prove the time of the action. |
+| `facts.approval`, décision `approuve`, contrôle 7 | L'action porte l'approbation d'une demande. Nombre de signatures : {n}. Nombre exigé, tel que le dossier le déclare : {requis} sur {taille} approbateurs. | The action carries the approval of a request. Number of signatures: {n}. Number required, as the dossier declares it: {requis} of {taille} approvers. |
+| `facts.approval`, décision `refuse`, contrôle 7 | L'action porte le refus d'une demande. Nombre de signatures : {n}. Nombre exigé, tel que le dossier le déclare : {requis} sur {taille} approbateurs. | The action carries the refusal of a request. Number of signatures: {n}. Number required, as the dossier declares it: {requis} of {taille} approvers. |
+| `facts.approval`, décision `expire`, contrôle 7 | L'action porte une demande d'approbation expirée sans signature. Nombre de signatures exigé, tel que le dossier le déclare : {requis} sur {taille} approbateurs. | The action carries an approval request that expired without signature. Number of signatures required, as the dossier declares it: {requis} of {taille} approvers. |
+| `facts.timestamp.upper_bound`, contrôle 4 | Preuve de date par une autorité d'horodatage : le relevé signé de cette période existait au plus tard le {limite}, temps universel. | Proof of date from a time-stamping authority: the signed statement of this period existed no later than {limite}, Universal Time. |
+| `facts.bitcoin`, contrôle 5 | Preuve de date par la chaîne Bitcoin : réussie. Ce qu'elle établit se lit dans le texte exact, ci-dessous. | Proof of date from the Bitcoin chain: passed. What it establishes is to be read in the exact text below. |
+
+    Risque admis : ce bloc peut être lu à la place de l'énoncé. Il ne recopie
+    donc que des champs du rapport, dit que les bornes de la période sont
+    déclarées par le journal et ne prouvent pas l'heure de l'action (7.2), et
+    renvoie à l'énoncé, qui seul fait foi.
+18. **Ce qui a échoué.** Sous le code 1, sur la ligne d'un contrôle `echoue`,
+    la page écrit ce que le vérificateur dit de chaque vérification en échec
+    que ce contrôle porte : le `detail` de la vérification (membre `checks` du
+    rapport), tel quel, d'abord, puis son identifiant entre parenthèses, selon
+    le gabarit « Le vérificateur dit : {detail} ({id}) » (« The verifier says:
+    {detail} ({id}) ») ; à défaut de `detail` lisible, le `summary` du
+    contrôle, tel quel. Une vérification en échec qu'aucun contrôle échoué ne
+    porte est dite de même sous le verdict. Les références du point 8 restent.
+19. **Pièce en cause.** Sous le code 2, avant le message d'erreur exact, la
+    page dit en clair quelle pièce est en cause, d'après le type de l'erreur
+    (`error.kind`, EX-4.12) et, pour `entree_illisible`, d'après `error.check`
+    ; un type hors de la table ne reçoit aucune phrase.
+
+| Type de l'erreur | Phrase de la page française | Phrase de la page anglaise |
+|---|---|---|
+| `dossier_illisible` | La pièce que le vérificateur n'a pas pu lire est le dossier lui-même, pas une pièce complémentaire. | The document the verifier could not read is the dossier itself, not a supporting document. |
+| `ancres_inutilisables` | La pièce que le vérificateur n'a pas pu employer est la liste des références de confiance, ajoutée à l'étape 2 : ce n'est pas le dossier. | The document the verifier could not use is the list of trust references, added at step 2: it is not the dossier. |
+| `entree_illisible`, vérification `N-2` | La pièce que le vérificateur n'a pas pu employer est l'extrait de la chaîne Bitcoin, ajouté à l'étape 2 : ce n'est pas le dossier. | The document the verifier could not use is the Bitcoin chain extract, added at step 2: it is not the dossier. |
+| `entree_illisible`, autre | La pièce que le vérificateur n'a pas pu employer est une pièce complémentaire : ce n'est pas le dossier. | The document the verifier could not use is a supporting document: it is not the dossier. |
+| `taille_depassee` | Une pièce dépasse la taille que le vérificateur accepte. | A document exceeds the size the verifier accepts. |
+| `usage` | Le défaut ne vient pas d'une pièce illisible : c'est la demande faite au vérificateur qui est incorrecte. | The fault does not come from an unreadable document: the request made to the verifier is incorrect. |
+| `schemas_illisibles`, `erreur_interne` | Le défaut ne vient pas d'une pièce illisible : c'est le vérificateur lui-même qui n'a pas pu travailler. | The fault does not come from an unreadable document: the verifier itself could not work. |
 
 Tenu par la page.
 

@@ -391,14 +391,19 @@ describe("inscription : application d'exploitant, interface Next.js et agent ré
       // Les étapes, dans l'ordre : la préparation puis celles du dossier, chacune avec son code et son état en attributs.
       const etapes = [...fiche.texte.matchAll(/<li class="nt-etape nt-etape-([a-z-]+)" data-etape="([a-z_]+)" data-etat="([a-z_]+)"/g)].map((m) => [m[2], m[3], m[1]]);
       expect(etapes).to.deep.equal([["preparation", "faite", "faite"], ...vue.dossier.steps.map((e) => [e.step, e.state, "faite"])]);
-      for (const mot of ["Préparer le dossier", "Créer le jeu d&#x27;approbateurs", "Assigner le jeu à l&#x27;organisation", "Relire le jeu", "Approvisionner la clé de chaîne", "Inscrire la clé d&#x27;enregistreur", "Première ancre", "Première clôture", "Fait sans transaction."]) expect(ouvert, mot).to.contain(mot);
+      // Complément du 2026-11-18 (langage des écrans) : le nom courant de chaque étape se lit sans rien ouvrir ; une étape
+      // faite tient en une ligne, et la phrase de son état est dans son détail replié.
+      for (const mot of ["Préparer le dossier", "Enregistrer les approbateurs", "Rattacher les approbateurs au client", "Contrôler les approbateurs", "Alimenter le compte technique", "Inscrire l&#x27;enregistreur", "Déposer la première preuve de date", "Clore la première période"]) expect(ouvert, mot).to.contain(mot);
+      expect(fiche.texte).to.contain("Étape faite sans rien écrire sur le registre public.");
+      expect(ouvert, "phrase d'état d'une étape faite hors de son détail").to.not.contain("Étape faite sans rien écrire sur le registre public.");
+      expect([...ouvert.matchAll(/data-developpee="(oui|non)"/g)].map((m) => m[1]), "aucune étape à développer sur un client inscrit").to.deep.equal(Array(vue.dossier.steps.length + 1).fill("non"));
       expect(ouvert).to.contain('data-etat-client="inscrit"');
       expect(ouvert).to.contain('data-prochaine-action="remettre_paquet"');
       // Demandes de signature : la demande préparée dont la copie signée a été relayée n'est plus dite « à faire signer ».
       expect([...ouvert.matchAll(/data-demande="([^"]+)"/g)].map((m) => m[1]).sort()).to.deep.equal(vue.demandes.map((x) => x.nom).sort());
-      expect(ouvert).to.contain("Préparée, depuis relayée");
-      expect(ouvert).to.contain(">Relayée<");
-      expect(ouvert).to.not.contain("À faire signer hors de l");
+      expect(ouvert).to.contain("Remplacé par sa version signée");
+      expect(ouvert).to.contain("Signé et envoyé<");
+      expect(ouvert).to.not.contain("À faire signer par le client");
       // Valeurs exactes : dans la page, et seulement dans un bloc replié.
       let n = 0;
       for (const e of vue.dossier.steps) {
@@ -417,13 +422,14 @@ describe("inscription : application d'exploitant, interface Next.js et agent ré
       const liste = await req("/clients");
       expect(liste.texte).to.match(new RegExp(`<article class="nt-carte" data-client="${slug}">`));
       expect(sansDetails(liste.texte)).to.contain(`${vue.dossier.steps.length + 1} étapes sur ${vue.dossier.steps.length + 1}`);
-      expect(sansDetails(liste.texte)).to.contain("Remettre le paquet au client");
+      expect(sansDetails(liste.texte)).to.contain("Remettez le paquet au client");
+      expect(sansDetails(liste.texte)).to.contain("Inscription terminée");
       // Confirmations : ce qui engage se lit sans rien ouvrir.
       const conf = sansDetails((await req(`/clients/${slug}/confirmations`)).texte);
       const registre = (await req(`/api/clients/${slug}/confirmations`)).json.confirmations;
       expect(registre).to.have.length(1);
       for (const v of [registre[0].piece_sha256, registre[0].instant, registre[0].canal, registre[0].exploitant, registre[0].objet.cle_chaine, registre[0].consommee_par]) expect(conf, v).to.contain(v);
-      expect(conf).to.contain("Consommée");
+      expect(conf).to.contain("Déjà utilisée");
       // Paquet : le SHA-256 du manifeste, en entier, sans rien ouvrir.
       const paquet = sansDetails((await req(`/clients/${slug}/paquet`)).texte);
       const manifeste = vue.travaux.find((t) => t.commande === "paquet").sortie.outputs.manifest_sha256;

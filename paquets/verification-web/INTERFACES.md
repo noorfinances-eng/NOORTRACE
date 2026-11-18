@@ -130,13 +130,60 @@ section 6). Identifiants stables de l'affichage, que les essais lisent :
 | `#options` | fichier d'ancres, fichier d'en-têtes, `--exiger`, `--langue`, `--detail` ; `#resume-options` résume les choix dans son titre | oui |
 | `#dossier-choisi`, `#verifier`, `#arreter` | dossier choisi, lancement, arrêt | jamais |
 | `#verdict`, `#verdict-mot`, `#code` | grand verdict : mot tiré du code de retour, phrase du code (table de CT-6 §8.3) | jamais |
-| `#tous-reussis`, `#verdict-borne`, `#exiges-non-reussis`, `#resume-indisponible` | sous le verdict : les huit contrôles réussis ; « Valide, avec des contrôles non exécutés : … » ; contrôles exigés non réussis ; liste des contrôles illisible | jamais |
+| `#tous-reussis`, `#verdict-borne`, `#exiges-non-reussis`, `#resume-indisponible` | sous le verdict : les huit contrôles réussis ; « Contrôles qui n'ont pas pu être faits : n° … » ; contrôles exigés non réussis ; liste des contrôles illisible | jamais |
 | `#avertissements`, `#sortie-erreur` | `warnings` du rapport JSON ; sortie d'erreur non vide | jamais (une sortie d'erreur vide est dite vide dans `#detail-rapport`) |
 | `#enonce-fr`, `#enonce-en` | énoncés, tels quels | celui de l'autre langue, dans `#detail-enonce-autre` |
 | `#controles` (`li[data-numero][data-statut]`) | les huit contrôles de `controls` : statut, raison de CT-6 §6.2 et son code, `summary` | jamais |
 | `#message-erreur`, `#aucune-affirmation` | code 2 : `error.message`, phrase fixe | jamais |
 | `#rapport-lisible`, `#rapport-json`, `pre.commande` | sortie standard des deux exécutions et ligne de commande équivalente, telles quelles | oui (`#detail-rapport`, `#detail-json`, `#detail-commande`) |
 | `.aucun-rapport`, `.alerte`, `.non-faite`, `.cause` | refus d'archive ; « vérification non faite » et sa cause | jamais |
+
+Langage (complément du 2026-11-18 de CT-6 §18). S'ajoutent aux identifiants
+ci-dessus, sans en retirer :
+
+| Élément | Contenu | Replié |
+|---|---|---|
+| `#garantie`, `#confiance-courante` | la garantie en clair, toujours sous le titre ; la mise en garde d'EX-18.2 en langage courant, au-dessus de `#phrase-fixe` | jamais |
+| `#confiance` | le bandeau qui porte `#confiance-courante`, `#phrase-fixe`, `#alerte-verificateur` et `#detail-empreinte` : avant `#formulaire` à l'arrivée ; dans `#resultat-contenu`, juste avant `#specialistes`, dès qu'un rapport, un refus ou une vérification non faite a été affiché ; de nouveau en tête si le vérificateur est altéré ou indisponible | jamais |
+| `#comment` | « Comment ça marche », cinq lignes | oui |
+| `#options-specialistes` | dans `#options` : le nom de la ligne de commande de chaque option | oui |
+| `#dossier-verifie`, `#nom-verifie`, `#verifier-autre` | après un rapport : le dossier examiné, et le bouton qui ramène les étapes (`#formulaire` porte alors la classe `pv-reduit`) | jamais |
+| `#phrase-courante` | sous `#verdict-mot` : la phrase en langage courant du code de retour, d'un refus ou d'une vérification non faite | jamais |
+| `#reserves` | la ligne fixe des réserves, quand `warnings` porte un avertissement ou ne se lit pas (codes 0 et 3) | jamais |
+| `#code` | inchangé (« Code de retour … »), dans une ligne `.pv-exact` introduite par « Formule exacte du vérificateur : » | jamais |
+| `#avertissements li.pv-reserve[data-id]` | `.pv-reserve-courante` (phrase de la table, absente hors table), puis `.pv-reserve-exacte` (texte du vérificateur) | jamais |
+| `#controles li` | `.nt-controle-titre`, `.pv-controle-prouve`, `.pv-controle-raison` (non fait), `.pv-controle-echec` et `.pv-controle-dit` (échoué) | jamais |
+| `#detail-controles .pv-resume-exact[data-numero]` | le `summary` de chaque contrôle, tel quel | oui |
+| `#enonce-fr .pv-membre`, `#enonce-en .pv-membre` | les membres de phrase de l'énoncé ; leur concaténation est l'énoncé | comme l'énoncé |
+| `#limites`, `#suite`, `#imprimer` | « Ce que ce résultat ne dit pas » ; « Et maintenant ? » ; impression | jamais |
+| `#refus-courant` | la raison d'un refus en langage courant, au-dessus de `.alerte` (raison exacte) | jamais |
+| `#specialistes` | titre et phrase au-dessus de `#detail-rapport`, `#detail-json`, `#detail-commande` | ses blocs, oui |
+
+Seconde lecture, même date (CT-6 §18, EX-18.9, points 14 à 19). S'ajoutent :
+
+| Élément | Contenu | Replié |
+|---|---|---|
+| `#verdict-titre` | le titre du verdict : `#verdict-mot` (le mot du code, seul dans son élément) puis, sous le code 0 restreint, `#verdict-mention` | jamais |
+| `#verdict` (classes) | `nt-verdict-valide` seulement pour huit contrôles réussis sans avertissement ; sinon `pv-verdict-reserve` (un contrôle non réussi ou un avertissement) ou `pv-verdict-neutre` (rapport qui ne se lit pas exactement) | jamais |
+| `#non-prouve` | sous le titre : ce que les contrôles non réussis laissent sans preuve, en mots | jamais |
+| `#controles li[data-reserves]` | contrôle réussi auquel le rapport rattache un avertissement : pastille « Réussi, avec réserve », identifiants dans `data-reserves`, `.pv-controle-reserve` avec un lien vers `#avertissements` | jamais |
+| `#avertissements li.pv-reserve[data-fois]` | une réserve par identifiant de la table : `.pv-reserve-fois` quand elle est signalée plusieurs fois, puis une `.pv-reserve-exacte` par avertissement | jamais |
+| `#en-resume` (`li[data-ligne]`), `#resume-fin` | « En résumé », avant `#enonce` : `action`, `periode`, `approbation`, `limite_autorite`, `limite_bitcoin` ; la phrase finale | jamais |
+| `.pv-controle-dit[data-verification]` | code 1 : ce que le vérificateur dit d'une vérification en échec (`detail`), l'identifiant à la fin ; sur la ligne du contrôle qui la porte, sinon sous le verdict | jamais |
+| `#piece-en-cause` | code 2 : la pièce en cause, d'après `error.kind` | jamais |
+| `#refus-titre` | titre courant d'un refus, au-dessus de `.aucun-rapport` (introduite par « Mention fixée pour un refus : ») | jamais |
+| `#dossier-choisi.pv-choisi-refuse` | étape 1, tant qu'un refus de ce qui a été choisi est affiché | jamais |
+
+`presentationVerdict`, `clesNonProuve`, `controlesDeLAvertissement`,
+`grouperAvertissements`, `clePieceEnCause` et `lignesEnResume` (section
+« Langage courant » d'`interface.js`) sont des fonctions sans effet, que les
+essais chargent telles qu'écrites.
+
+`data-exact` marque un élément dont le texte est celui du vérificateur ou une
+phrase fixée par CT-6 (`#phrase-fixe`, `#artefact`, `#code`, les énoncés,
+`.pv-reserve-exacte`, `#sortie-erreur`, `#message-erreur`, la raison exacte
+d'un refus, `.pv-resume-exact`, les trois textes préformatés) ; `data-valeur`
+marque une valeur venue des données posée dans une phrase de la page.
 
 Le mot du verdict ne dépend que du code de retour. La liste des contrôles ne
 montre que des valeurs du rapport JSON : `lireControles` rend `null` (aucune
@@ -208,6 +255,16 @@ Playwright ou sans navigateur, les essais de navigateur aussi, et ils
   tués), rapports intacts dans leurs blocs repliés, avertissements visibles,
   thème sans stockage ; de bout en bout avec go1.27.3 sur cinq dossiers des
   vecteurs.
+- Langage (complément du 2026-11-18), même fichier : sous Node, les tables de
+  phrases (par code de retour, par avertissement, « ce que ce résultat ne dit
+  pas ») égales à celles de CT-6 §18 dans les deux langues, aucune phrase hors
+  table, membres de phrase d'un énoncé, aucun libellé du premier niveau ne
+  porte un terme de technicien ; dans un navigateur : phrase du code et
+  d'aucun autre, formule exacte entière dessous, réserves, avertissement hors
+  table sans phrase, énoncé et texte copié intacts, réduction des étapes après
+  un rapport, mot du verdict et début de sa phrase sur le premier écran sans
+  défiler à 1280×800 et à 390×844, aucun terme de technicien au premier niveau
+  de chaque écran en français et en anglais ; neuf mutants tués.
 - Gecko et WebKit : la même suite quand Playwright les a installés, en
   attente sinon ; l'épreuve complète d'EX-18.13 dans les trois moteurs, en
   leur dernière version publiée, précède la publication d'une version.

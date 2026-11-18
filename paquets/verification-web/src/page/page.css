@@ -2102,12 +2102,6 @@ html[data-theme="clair"] .nt-case input {
    polices du système, aucune ressource d'une autre origine, aucun jeton
    redéfini. Les classes de la page portent le préfixe « pv- ». */
 
-/* Un élément masqué par l'attribut hidden le reste, quelle que soit sa mise
-   en page. */
-[hidden] {
-  display: none;
-}
-
 /* Après une vérification, le résultat vient sous la barre haute, pas dessous. */
 #resultat {
   scroll-margin-top: 5.5rem;
@@ -2126,15 +2120,72 @@ html[data-theme="clair"] .nt-case input {
   letter-spacing: 0;
 }
 
-/* Bandeau de confiance : la phrase fixe, l'état du vérificateur, puis
-   l'empreinte dans un bloc replié. */
+/* La garantie essentielle, sous le titre : une ligne forte. */
+.pv-garantie {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--nt-e-2);
+  margin-top: var(--nt-e-2);
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-l);
+}
+
+.pv-garantie .nt-icone {
+  flex: none;
+  margin-top: 0.2rem;
+  color: var(--nt-succes);
+}
+
+/* « Comment ça marche » : cinq lignes numérotées. */
+.pv-comment {
+  gap: var(--nt-e-2);
+  max-width: 56rem;
+}
+
+/* Bandeau de confiance : la phrase en langage courant, la mention exacte en
+   petit, puis l'empreinte dans un bloc replié. */
 .pv-confiance {
   gap: var(--nt-e-3);
 }
 
-#phrase-fixe {
+#confiance-courante {
   max-width: 60rem;
   color: var(--nt-encre-titre);
+}
+
+/* Texte exact (du vérificateur, ou fixé par la spécification) : en petit,
+   sous la phrase en langage courant, précédé d'une introduction. */
+.pv-exact {
+  max-width: 60rem;
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.pv-exact-intro {
+  color: var(--nt-encre);
+  font-size: var(--nt-t-s);
+  font-weight: 600;
+}
+
+/* Valeur venue des données, dans une phrase de la page. */
+.pv-valeur {
+  overflow-wrap: anywhere;
+}
+
+.pv-alerte-courante {
+  font-weight: 700;
+}
+
+.pv-alerte-verificateur .pv-exact-intro,
+.pv-alerte-verificateur #artefact {
+  font-weight: 400;
+  font-size: var(--nt-t-s);
+}
+
+.pv-alerte-verificateur .pv-exact-intro {
+  margin-top: var(--nt-e-2);
 }
 
 #artefact,
@@ -2167,6 +2218,49 @@ html[data-theme="clair"] .nt-case input {
   font-size: var(--nt-t-l);
 }
 
+.pv-depot-aide {
+  max-width: 40rem;
+  color: var(--nt-encre);
+  font-size: var(--nt-t-s);
+}
+
+/* Après un résultat, les trois étapes laissent la place à une ligne : le
+   dossier vérifié et le bouton qui les ramène. L'explication du haut de page
+   s'efface avec elles. */
+.pv-reduit {
+  display: none;
+}
+
+.pv-apres-resultat .nt-sous-titre,
+.pv-apres-resultat #comment {
+  display: none;
+}
+
+.pv-resultat-tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nt-e-2) var(--nt-e-6);
+}
+
+.pv-verifie {
+  display: flex;
+  flex: 1 1 24rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--nt-e-2) var(--nt-e-4);
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Le verdict tient sur le premier écran avec ce qui le suit : marges resserrées. */
+#verdict {
+  padding: var(--nt-e-6);
+}
+
 .pv-depot-survol {
   border-color: var(--nt-focus);
   background: var(--nt-info-fond);
@@ -2194,6 +2288,16 @@ html[data-theme="clair"] .nt-case input {
 
 .pv-choisi .nt-icone {
   color: var(--nt-succes);
+}
+
+/* Ce qui a été choisi vient d'être refusé : ni coche, ni vert. */
+.pv-choisi-refuse {
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+}
+
+.pv-choisi-refuse .nt-icone {
+  color: var(--nt-attente);
 }
 
 /* Options : le bloc replié a le poids d'une étape. */
@@ -2256,6 +2360,38 @@ html[data-theme="clair"] .nt-case input {
   max-width: 22rem;
 }
 
+/* Verdict « Valide » restreint : un contrôle non réussi ou une réserve lui ôtent
+   le vert plein ; un rapport qui ne se lit pas exactement le laisse neutre. */
+.pv-verdict-reserve {
+  border-color: var(--nt-attente-bord);
+  background: var(--nt-attente-fond);
+}
+
+.pv-verdict-reserve .nt-verdict-signe,
+.pv-verdict-reserve .nt-verdict-mot {
+  color: var(--nt-attente);
+}
+
+/* La mention fixe suit le mot, dans le titre, un ton plus bas. */
+.pv-mention {
+  font-size: var(--nt-t-xl);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Tout ce qui suit le titre du verdict reste dans la colonne du texte. */
+#verdict > .nt-verdict-phrase,
+.pv-non-prouve {
+  grid-column: 2;
+}
+
+.pv-non-prouve {
+  max-width: 46rem;
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-l);
+  font-weight: 700;
+}
+
 /* Verdict : sous le mot et la phrase du code, ce qu'il faut savoir de plus. */
 .pv-verdict-suite {
   grid-column: 2;
@@ -2294,6 +2430,23 @@ html[data-theme="clair"] .nt-case input {
   overflow-wrap: anywhere;
 }
 
+/* La phrase en langage courant du verdict : ce qu'on lit d'abord. */
+.pv-courante {
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+}
+
+/* Références de vérifications, pour un spécialiste : en petit. */
+.pv-references {
+  color: var(--nt-encre);
+  font-size: var(--nt-t-s);
+  overflow-wrap: anywhere;
+}
+
+.pv-verdict-suite .pv-exact {
+  margin-top: var(--nt-e-1);
+}
+
 /* Les phrases fixes écrites en minuscules prennent une capitale à l'écran
    seulement : leur texte ne change pas. */
 .pv-mot::first-letter {
@@ -2305,39 +2458,156 @@ html[data-theme="clair"] .nt-case input {
   overflow-wrap: anywhere;
 }
 
-/* Énoncé : le texte du vérificateur, tel quel ; les longues empreintes sont
-   en chasse fixe et se coupent où il faut. */
+/* Énoncé : le texte du vérificateur, tel quel. Chaque membre de phrase est un
+   bloc à part, marqué d'un filet ; les longues empreintes sont en chasse fixe,
+   atténuées, et se coupent où il faut. Aucun caractère n'est ajouté. */
 .enonce {
-  max-width: 56rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-3);
+  max-width: 58rem;
   color: var(--nt-encre-titre);
-  font-size: var(--nt-t-l);
-  line-height: 1.7;
+  font-size: var(--nt-t-m);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.pv-membre {
+  display: block;
+  padding-left: var(--nt-e-3);
+  border-left: 2px solid var(--nt-bord);
+}
+
+/* « En résumé » : le nom de l'outil, recopié du rapport, en chasse fixe. */
+.pv-en-resume .pv-identifiant {
+  font-family: var(--nt-police-fixe);
+  font-size: 0.92em;
   overflow-wrap: anywhere;
 }
 
 .enonce .pv-hex {
   color: var(--nt-encre-attenuee);
   font-family: var(--nt-police-fixe);
-  font-size: 0.8em;
+  font-size: 0.78em;
+  letter-spacing: 0;
 }
 
 .pv-enonce-autre .enonce {
   color: var(--nt-encre);
-  font-size: var(--nt-t-m);
 }
 
-/* Liste des contrôles : le nom, l'exigence, la raison, puis le résumé du
-   vérificateur. */
+/* Liste des contrôles, dense : l'état, puis sur une ligne le nom, l'exigence
+   et ce que le contrôle sert à prouver ; dessous, pour un contrôle non fait ou
+   échoué, la raison. */
+.pv-controle {
+  grid-template-columns: 7rem minmax(0, 1fr);
+  padding: var(--nt-e-2) 0;
+}
+
+.pv-controles-reserve .pv-controle {
+  grid-template-columns: 11.5rem minmax(0, 1fr);
+}
+
 .pv-controle-ligne {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--nt-e-1) var(--nt-e-3);
+  align-items: baseline;
+  gap: 0 var(--nt-e-3);
 }
 
-.pv-controle-raison {
+.pv-controle-ligne .nt-pastille {
+  align-self: center;
+}
+
+.pv-controle-prouve {
+  flex: 1 1 22rem;
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+}
+
+.pv-controle-raison,
+.pv-controle-reserve,
+.pv-controle-echec {
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-s);
+  font-weight: 500;
+}
+
+.pv-controle-dit {
   color: var(--nt-encre);
   font-size: var(--nt-t-s);
+  overflow-wrap: anywhere;
+}
+
+#detail-controles {
+  margin-top: var(--nt-e-3);
+}
+
+.pv-resumes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-4);
+  font-size: var(--nt-t-s);
+}
+
+.pv-resume {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-1);
+  max-width: 58rem;
+}
+
+.pv-resume-titre {
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+}
+
+/* Phrase d'introduction d'une rubrique du résultat. */
+.pv-intro {
+  max-width: 58rem;
+  color: var(--nt-encre);
+}
+
+/* Deux rubriques côte à côte quand la place le permet. */
+.pv-duo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
+  gap: var(--nt-e-6);
+  align-items: start;
+}
+
+/* Réserves : la phrase en langage courant, puis le texte exact en petit. */
+.pv-reserves {
+  gap: var(--nt-e-3);
+}
+
+.pv-reserve-courante {
+  color: var(--nt-encre-titre);
+  font-weight: 600;
+}
+
+.pv-reserve-fois {
+  color: var(--nt-encre);
+  font-weight: 500;
+}
+
+/* « En résumé » : quelques lignes courtes, avant le texte exact. */
+.pv-en-resume {
+  gap: var(--nt-e-2);
+  color: var(--nt-encre-titre);
+}
+
+#resume-fin {
+  margin-top: var(--nt-e-3);
+}
+
+/* Rubrique « Pour les spécialistes » : un titre discret au-dessus des blocs repliés. */
+.pv-specialistes {
+  margin-top: var(--nt-e-4);
+}
+
+.pv-imprimer {
+  margin-top: var(--nt-e-3);
 }
 
 .pv-liste {
@@ -2416,22 +2686,59 @@ pre.vide {
     flex: 1 1 100%;
   }
 
+  #verdict > .nt-verdict-phrase,
+  .pv-non-prouve,
   .pv-verdict-suite {
     grid-column: 1 / -1;
   }
 
-  .enonce {
+  .pv-non-prouve {
     font-size: var(--nt-t-m);
   }
 
-  /* Contrôles : l'état passe au-dessus du nom. */
-  .pv-controle {
+  .pv-mention {
+    font-size: var(--nt-t-l);
+  }
+
+  /* Contrôles : l'état, puis le nom à sa suite. Ce qu'un contrôle réussi sert à prouver se lit dans le bloc replié
+     de la liste ; il reste affiché sous un contrôle non fait ou échoué. */
+  .pv-controle,
+  .pv-controles-reserve .pv-controle {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--nt-e-1) var(--nt-e-3);
+  }
+
+  .pv-controle[data-statut="reussi"] .pv-controle-prouve {
+    display: none;
+  }
+
+  /* Contrôle réussi avec réserve : la pastille, plus longue, passe au-dessus du nom. */
+  .pv-controles-reserve .pv-controle[data-reserves] {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pv-verifie {
+    justify-content: flex-start;
+  }
+
+  #verdict {
+    padding: var(--nt-e-4);
+  }
+
+  .pv-garantie {
+    font-size: var(--nt-t-m);
   }
 
   .pv-detail > summary {
     flex-wrap: wrap;
     gap: 0 var(--nt-e-3);
+  }
+
+  /* Le titre d'un bloc replié reste sur la ligne de son chevron, et passe à la ligne en lui-même. */
+  .pv-detail > summary > span:first-of-type,
+  .pv-options > summary > .pv-etape {
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .pv-detail-note {
@@ -2450,7 +2757,16 @@ pre.vide {
   }
 
   #formulaire,
+  #comment,
+  #verifier-autre,
+  .pv-imprimer,
   .pv-copie {
     display: none;
   }
+}
+
+/* Un élément masqué par l'attribut hidden le reste, quelle que soit sa mise
+   en page : la règle vient en dernier, après toute règle qui pose un affichage. */
+[hidden] {
+  display: none;
 }

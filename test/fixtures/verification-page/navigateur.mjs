@@ -177,10 +177,26 @@ export async function choisirRepertoire(page, chemin) {
 }
 
 /**
+ * Ramène les trois étapes de la page quand un résultat les a réduites à une ligne (complément du 2026-11-18 de CT-6
+ * §18), par le bouton « Vérifier un autre dossier », comme le ferait la personne ; sans effet si elles sont affichées.
+ */
+export async function rouvrirEtapes(page) {
+  const reduit = await page.evaluate(() => {
+    const bouton = document.getElementById("verifier-autre");
+    return bouton !== null && !bouton.hidden && !document.getElementById("dossier-verifie").hidden;
+  });
+  if (!reduit) return;
+  await page.click("#verifier-autre");
+  await page.waitForFunction(() => document.getElementById("verifier-autre").hidden);
+}
+
+/**
  * Déplie le bloc des options de la page (fichiers facultatifs, contrôles à exiger, langue et détail du rapport y sont
  * repliés, complément du 2026-11-17 de CT-6 §18) par son titre, comme le ferait la personne ; sans effet s'il est ouvert.
+ * Après un résultat, les étapes sont d'abord ramenées (rouvrirEtapes).
  */
 export async function deplierOptions(page) {
+  await rouvrirEtapes(page);
   if (!(await page.evaluate(() => document.getElementById("options").open))) await page.click("#options > summary");
   await page.waitForFunction(() => document.getElementById("options").open);
 }

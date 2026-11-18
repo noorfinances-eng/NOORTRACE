@@ -111,9 +111,26 @@ export function definitions(couples, classe = "nt-definitions") {
   return dl;
 }
 
-/** Une valeur à chasse fixe. */
+/**
+ * Une valeur à chasse fixe. Elle vient des données (un identifiant, une
+ * adresse, un nom d'outil, une valeur de la demande) : elle s'affiche telle
+ * quelle et porte `data-valeur`.
+ */
 export function code(t, classe = "nt-fixe") {
-  return el("code", { classe, texte: t });
+  return el("code", { classe, texte: t, attributs: { "data-valeur": "" } });
+}
+
+/** Un texte venu des données, en caractères courants : il s'affiche tel quel et porte `data-valeur`. */
+export function donnee(t, classe) {
+  return el("span", { classe, texte: t, attributs: { "data-valeur": "" } });
+}
+
+/**
+ * Une phrase que la spécification fixe mot pour mot (CT-3 EX-9.4, EX-9.18,
+ * EX-9.20, 13.14) : elle s'affiche telle quelle et porte `data-fixe`.
+ */
+export function fixe(t, classe, nom = "span") {
+  return el(nom, { classe, texte: t, attributs: { "data-fixe": "" } });
 }
 
 // Icône d'un bandeau selon son genre.
@@ -168,7 +185,7 @@ export function marque(genre, libelle, nomIcone, attributs = {}) {
 /** Un bloc replié, ouvert sur demande ; `noteTitre` : précision à droite du titre. */
 export function detail(titre, noteTitre, ...enfants) {
   const resume = el("summary", {});
-  resume.appendChild(document.createTextNode(titre));
-  if (noteTitre) resume.appendChild(el("span", { classe: "nt-detail-note", texte: noteTitre }));
+  resume.appendChild(el("span", { texte: titre }));
+  if (noteTitre) resume.appendChild(el("span", { classe: "nt-detail-note note-detail", texte: noteTitre }));
   return el("details", { classe: "nt-detail" }, resume, el("div", { classe: "nt-detail-corps" }, ...enfants));
 }

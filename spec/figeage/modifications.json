@@ -13770,6 +13770,162 @@
           "apres": "789ebea6bd1ef5a5eed85933e0fb84aca8010085d9b1929bb90246e8cdfa4ca7"
         }
       ]
+    },
+    {
+      "id": "MC-100",
+      "date": "2026-11-18",
+      "etape": 8,
+      "motif": "langage des écrans (compléments du 2026-11-18, décision du porteur) : dans la console, valeurs non vérifiables portées dans la carte de résumé sous « À contrôler par vous-même », table des libellés courants, décision déjà donnée rappelée sur un ticket ouvert, contestation dite en mots, personne connectée dite en mots (CT-3 EX-9.4, EX-12.21, EX-13.7, 13.1) ; dans la page de vérification, phrase courante par code de retour et par avertissement au-dessus du texte exact du vérificateur, rubriques « Ce que ce résultat ne dit pas » et « Et maintenant ? », place de la mise en garde (CT-6 EX-18.2, EX-18.5, EX-18.7, EX-18.9) ; dans l'outil d'inscription, mention fixée gardée sous sa phrase courante et aides de saisie (CT-4 EX-7.25, EX-7.26) ; renvois par numéro de ligne de CT-7, CT-8 et CT-9 recollés ; catalogue de CT-9 régénéré (TE-13, TE-22, TE-23) ; aucune règle de contrôle, aucun schéma ni aucun vecteur des autres spécifications ne change",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-3-approbations.md",
+          "avant": "ee68a689aed2ed760c817d54c524f14fa3e42f02a9b1876e18ed8afd783bc722",
+          "apres": "70ad214b8239411be4ab2ae316001b8d56a6a780ec3ef3da083d1c0428bb0bf8"
+        },
+        {
+          "chemin": "spec/CT-4-registre.md",
+          "avant": "f468379850df0601fd5b7bc1def896166fe493cb4f770e42ef67e312bd3583a8",
+          "apres": "10bbf69229b3e2030389987a31748d51c3d46d3557bfb4adb6f3fe7af80996c3"
+        },
+        {
+          "chemin": "spec/CT-6-verificateur.md",
+          "avant": "fed3d7bccb91dbf5f5fd7f1f4e40f5da3b187a1ef74ded41c485ce652cf1fb4b",
+          "apres": "17bb8ef78b451ecf7490fd2699d93fb74b23f4adf55480c13de9e4b65dfce3b5"
+        },
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "d816519cb71b7cc09771e4935fc36a59a31b30440a3737fda41401b9ce805168",
+          "apres": "6a5d509fd601b80e750e7494d844673c85b5636a2f1d3ad64939456fc468a539"
+        },
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "63c34d14afe640d70275d004e76ffa61f3062df3f755632af357e52b6a8829cc",
+          "apres": "32cb6bb995344d9516340f64ec72200b0924cb239ce8836b8577f61df1003619"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "4132380cca1a0948a0fea27abf549e58332df73f81e250c8d97d6bd4c50dcfc2",
+          "apres": "1eab2b2201e9dac59a404c092d35dfbfdf766e94a0fe87dcdf527d31ec66466d"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "7af7a556695e66d904cad8002215c1ff6a3255adc576bbf7655ed713b7b04108",
+          "apres": "640745e35777d426a2addc93fc1ff2b09e217b9959d8fe8d1b37166980a591fe"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "eb29a8c3aac68a19c00c943c952b5aa9906dcc4e67bdfcdfa0010ded502419d0",
+          "apres": "c12f6fbfc0c33de6e80239d65ce113f3c3a892d24a4a81a5567df781207fdded"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "9a1689efe6c0c75a6d3fc97d55415eea0425b28c8e6565beec6f9e0e1aa3ecdb",
+          "apres": "bcac71e861f52413fefeb91952dd41a9c98e57d7d82ac5123e7d158f209eb1f3"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "1330f56d6b7d4feba2a648709d5c8823082a021f8a6c1eecd41468b6a2f3f448",
+          "apres": "645735e172f33f7cdc8df52264c1bcb84a65465a5836e2e27e016491e7d89c0d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "789ebea6bd1ef5a5eed85933e0fb84aca8010085d9b1929bb90246e8cdfa4ca7",
+          "apres": "5e6f619056c1665eca4ad3c99d75d0edcf8109efac93cd994802fed965225504"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "92b2888dff10e42978588535a29e8c2ff77056075b1961d78200ca00b76b1f44",
+          "apres": "1e379ceadccdb2390a23c283682a4e1eebb65328cbb5e26143c14dd3bac372eb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "f1b27110d217e1751a50bca919a9b623996cfb89904b18b79780aa2e44871648",
+          "apres": "98f0456dd460a94b0a78037cbd7ca4631a41c2a55a2ee78e94eee87293d7d9a2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "a1a36bd18c4425e58974b4cbf2f15c367e41fe93ab046463c43a019dec5ca6cc",
+          "apres": "f838065470114957bec1ac7f1a1c2275375937427fdcf364ff1957184ba071bc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "469b14eaf680ef89dd8b34b14d8b89f77c075ce0d17ab54a1e56c1585bc79063",
+          "apres": "fc7ebb6e0567824c0fa341680ba392380fa5709cbbbbdef6887950e2f8439618"
+        }
+      ]
+    },
+    {
+      "id": "MC-101",
+      "date": "2026-11-18",
+      "etape": 8,
+      "motif": "langage des écrans, suites de la seconde lecture (compléments du 2026-11-18, décision du porteur) : dans la console, quatre consignes courantes avant le bouton de signature et consignes d'origine entières dans un bloc de référence, montant vérifié et sens de chaque instant dans la liste, demande déjà décidée par la personne connectée rangée à part, codes des états attendus du parcours placés dans le détail technique (CT-3 EX-9.18, EX-9.20, EX-13.3, EX-13.29) ; dans la page de vérification, présentation qui ne peut que restreindre ce que le code de retour dit, mention du titre sous le code 0, « Réussi, avec réserve », avertissements de même identifiant dits une fois, bloc « En résumé » avec le nom de l'outil appelé recopié tel quel, pièce en cause sous le code 2 (CT-6 EX-18.7, EX-18.9, points 14 à 19) ; table des versions de spec/README.md ; renvois par numéro de ligne de CT-7, CT-8 et CT-9 recollés ; catalogue de CT-9 régénéré, sans entrée ni identifiant nouveau ; aucune règle de contrôle, aucun schéma, aucun rapport, aucun code de retour ni aucun vecteur des autres familles ne change",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-3-approbations.md",
+          "avant": "70ad214b8239411be4ab2ae316001b8d56a6a780ec3ef3da083d1c0428bb0bf8",
+          "apres": "2aefb1654e56147d51faf7ca2105433e24153dcac7dfecc457c010331accc20b"
+        },
+        {
+          "chemin": "spec/CT-6-verificateur.md",
+          "avant": "17bb8ef78b451ecf7490fd2699d93fb74b23f4adf55480c13de9e4b65dfce3b5",
+          "apres": "f24bc274f448ef413018fd1a41f99084a0478d1eecec227918532fd47b6e5d8c"
+        },
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "6a5d509fd601b80e750e7494d844673c85b5636a2f1d3ad64939456fc468a539",
+          "apres": "6e1833b224d5762bd6970cc39a6ef9019852afba28cae5e65518beeb0fc4d609"
+        },
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "32cb6bb995344d9516340f64ec72200b0924cb239ce8836b8577f61df1003619",
+          "apres": "47b61852c53ae6945cc6c491ccefa7fbbdac856e67a5396eefc13ce3da539305"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "1eab2b2201e9dac59a404c092d35dfbfdf766e94a0fe87dcdf527d31ec66466d",
+          "apres": "c1f5addc62f427dd9b5ee37bb311a57b40ccc4db6a9a21ae8498f08f4d3b1a86"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "640745e35777d426a2addc93fc1ff2b09e217b9959d8fe8d1b37166980a591fe",
+          "apres": "a5da96701b1e4e4573188ebe346d991363ad766a8eed954cdd4b8c207b784791"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "bcac71e861f52413fefeb91952dd41a9c98e57d7d82ac5123e7d158f209eb1f3",
+          "apres": "4f613bb51ef20cb379126efe73e111b4db413a4f9ba9509f8a9085c78cc4bb12"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "645735e172f33f7cdc8df52264c1bcb84a65465a5836e2e27e016491e7d89c0d",
+          "apres": "643a1b11977119e3ba6c4f88877a6d5cb72f0b35b324f00875a8528c19b5aaa2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "5e6f619056c1665eca4ad3c99d75d0edcf8109efac93cd994802fed965225504",
+          "apres": "c72089ed819a619bae7f177e3e2b6e157e109d401d737b0e2d5adb00ea34d4da"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "1e379ceadccdb2390a23c283682a4e1eebb65328cbb5e26143c14dd3bac372eb",
+          "apres": "f64e9526e3a59400d686b487ec43ae68b5cc79bff19c981adf863a12e5519c77"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "98f0456dd460a94b0a78037cbd7ca4631a41c2a55a2ee78e94eee87293d7d9a2",
+          "apres": "8a1c14d316d7eabc9eec9138fd4e8a1326457eda42a5706789c72d0f4083e895"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "f838065470114957bec1ac7f1a1c2275375937427fdcf364ff1957184ba071bc",
+          "apres": "0187b41d5d4d98effbd9d94272e962a4a5ac0f0b372ffd029d32e4316039de19"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "fc7ebb6e0567824c0fa341680ba392380fa5709cbbbbdef6887950e2f8439618",
+          "apres": "0320e97dabbf1692ee1400a92f1e5375581d9d408920827e4365ee833c17e8e3"
+        }
+      ]
     }
   ]
 }

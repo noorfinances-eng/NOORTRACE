@@ -565,10 +565,13 @@ jobs:
           set -o pipefail
           npx hardhat --config hardhat.config.mjs test $(ls test/exploitation-console-*-chromium.test.js) 2>&1 | tee "$RUNNER_TEMP/console-exploitation.txt"
           if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/console-exploitation.txt"; then exit 1; fi
-      # Présentation des écrans (compléments du 2026-11-17) : l'interface de l'outil
-      # d'inscription, construite par l'essai et servie sur des données fictives,
-      # sans agent ni chaîne ; les écrans de la console sont pris par l'étape
-      # précédente (test/exploitation-console-presentation-chromium.test.js).
+      # Présentation des écrans (compléments du 2026-11-17) et langage des écrans
+      # (compléments du 2026-11-18) : l'interface de l'outil d'inscription,
+      # construite par l'essai et servie sur des données fictives, sans agent ni
+      # chaîne ; les écrans de la console sont pris par l'étape précédente
+      # (test/exploitation-console-presentation-chromium.test.js et
+      # test/exploitation-console-langage-chromium.test.js, que son motif de
+      # fichiers réunit).
       - name: outil d'inscription, écrans de l'interface d'exploitant dans Chromium, aucun essai en attente
         run: |
           set -o pipefail
@@ -583,7 +586,10 @@ jobs:
       # Présentation de la page (CT-6 §18, compléments du 2026-11-17) : verdict tiré
       # du seul code, contrôles tirés du rapport JSON, blocs repliés, thème sans
       # mémoire, dans les trois moteurs ; puis de bout en bout avec l'artefact
-      # construit par go1.27.3.
+      # construit par go1.27.3. Langage de la page (compléments du 2026-11-18),
+      # dans le même fichier d'essais : phrase courante par code de retour et par
+      # avertissement égale aux tables d'EX-18.9, texte exact du vérificateur
+      # entier, mise en garde d'EX-18.2 toujours affichée, dans les trois moteurs.
       - name: page de vérification, présentation (verdict, contrôles, blocs repliés, thème) dans Chromium, Firefox et WebKit, aucun essai en attente
         run: |
           set -o pipefail

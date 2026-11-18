@@ -7,10 +7,11 @@
 // octets reçus (`Blob` et lien `download`). Une autre session : l'écran le
 // dit et n'offre rien. Le service refait chaque contrôle.
 
-import { el, actions, ajouter, bouton, code, definitions, detail, message, pastille, remplacer } from "../commun/dom.mjs";
+import { el, actions, ajouter, bouton, code, definitions, detail, donnee, message, pastille, remplacer } from "../commun/dom.mjs";
 import { t } from "../commun/libelles.mjs";
 import { appeler } from "../commun/client.mjs";
 import { afficherErreur, demarrerEcran, entete, instant, paragrapheCode, principal, texteInstant } from "../commun/cadre.mjs";
+import { texteIdentite } from "../commun/lisible.mjs";
 
 const etat = { session: null, document: null, octets: null, confirmation: null };
 
@@ -78,7 +79,8 @@ function actionAvecMotif(cle, methode, corps, avant = null) {
   return el(
     "div",
     { classe: "action confirmation nt-pile", attributs: { "data-action": methode, "data-confirmation": "" } },
-    avant,
+    // Avant de confirmer : ce que l'action fait, et si elle est définitive.
+    avant ?? message("alerte", el("p", { texte: t(`annuaire.avant.${cle}`) })),
     methode === "valider" ? null : el("div", { classe: "nt-champ" }, el("label", { classe: "nt-libelle", texte: t("annuaire.motif"), attributs: { for: id } }), champ),
     actions(
       bouton(t(`annuaire.confirmer.${cle}`), () => void agir(methode, methode === "valider" ? corps : { ...corps, reason: motif(champ) }), { genre: GENRE_ACTION[cle] }),
@@ -112,7 +114,10 @@ function rendre() {
   }
   const export_ = bouton(t("annuaire.exporter"), exporter, { icone: "dossier" });
   export_.setAttribute("id", "exporter");
+  const explications = detail(t("annuaire.actions.titre"), t("annuaire.actions.note"), el("ul", { classe: "consignes" }, ...["valider", "revoquer", "desactiver", "reactiver", "lier", "delier"].map((a) => el("li", { texte: t(`annuaire.actions.${a}`) }))));
+  explications.setAttribute("id", "actions-expliquees");
   const parties = [
+    explications,
     el(
       "section",
       { classe: "nt-carte" },
@@ -123,7 +128,7 @@ function rendre() {
         [t("annuaire.origine"), code(String(doc.console_origin))],
         [t("annuaire.revision"), String(doc.revision)],
         [t("annuaire.mise_a_jour"), doc.updated_at === null ? t("modele.vide") : instant(String(doc.updated_at))],
-        [t("annuaire.administrateurs"), el("ul", { classe: "liste-nue" }, ...doc.administrators.map((a) => el("li", {}, code(a))))],
+        [t("annuaire.administrateurs"), el("ul", { classe: "liste-nue" }, ...doc.administrators.map((a) => el("li", {}, donnee(texteIdentite(a)))))],
       ]),
       actions(export_),
       el("p", { classe: "nt-aide", texte: t("annuaire.exporter_sens") }),
@@ -145,9 +150,10 @@ function rendre() {
           "li",
           { classe: "nt-encart nt-pile adresse", attributs: { "data-adresse": a.address, "data-etat": a.state } },
           el("div", { classe: "adresse-tete" }, code(a.address), pastille(genre, t(`adresse_etat.${a.state}`), nomIcone)),
-          a.validated_at !== null ? el("p", { classe: "nt-attenue nt-petit", texte: t("annuaire.validee", { par: String(a.validated_by), le: texteInstant(a.validated_at) }) }) : null,
-          a.revoked_at !== null ? el("p", { classe: "nt-attenue nt-petit", texte: t("annuaire.revoquee", { par: String(a.revoked_by), le: texteInstant(a.revoked_at), cause: t(`revocation.${a.revocation_cause}`) }) }) : null,
-          a.revocation_reason ? el("p", { classe: "nt-attenue nt-petit", texte: t("modele.votes.motif", { motif: a.revocation_reason }) }) : null,
+          // L'auteur d'une validation ou d'une révocation et un motif viennent de l'annuaire : ils s'affichent tels quels.
+          a.validated_at !== null ? el("p", { classe: "nt-attenue nt-petit", texte: t("annuaire.validee", { par: texteIdentite(a.validated_by), le: texteInstant(a.validated_at) }), attributs: { "data-valeur": "" } }) : null,
+          a.revoked_at !== null ? el("p", { classe: "nt-attenue nt-petit", texte: t("annuaire.revoquee", { par: texteIdentite(a.revoked_by), le: texteInstant(a.revoked_at), cause: t(`revocation.${a.revocation_cause}`) }), attributs: { "data-valeur": "" } }) : null,
+          a.revocation_reason ? donnee(t("modele.votes.motif", { motif: a.revocation_reason }), "nt-attenue nt-petit") : null,
           detail(t("annuaire.preuve"), null, el("pre", { classe: "nt-pre", texte: a.proof.message }), definitions([[t("annuaire.recue"), code(a.proof.received_at)]])),
           actionsAdresse.length > 0 ? el("div", { classe: "actions-ligne" }, ...actionsAdresse) : null,
         ),
@@ -179,7 +185,7 @@ function rendre() {
         el(
           "div",
           { classe: "nt-carte-titre" },
-          el("h2", {}, e.display_name === null ? code(e.id) : el("span", { texte: String(e.display_name) }), soi ? el("span", { classe: "nt-attenue nt-petit", texte: ` ${t("annuaire.soi")}` }) : null),
+          el("h2", {}, e.display_name === null ? code(e.id) : donnee(String(e.display_name)), soi ? el("span", { classe: "nt-attenue nt-petit", texte: ` ${t("annuaire.soi")}` }) : null),
           e.active ? pastille("succes", t("inscription.entree.active"), "coche") : pastille("neutre", t("inscription.entree.desactivee"), "tiret"),
         ),
         definitions([

@@ -706,7 +706,9 @@ assemblage).
   thème ; premier module de chaque écran, servi avec son intégrité (CT-3
   13.1), et qui retient le premier affichage (`blocking="render"`, 3.3) ;
   aucun autre effet.
-- `/statique/commun/lisible.mjs` (complément du 2026-11-17) : fonctions pures
+- `/statique/commun/lisible.mjs` (complément du 2026-11-17 ; complément du
+  2026-11-18 : `groupesValeurs`, `LIBELLES_VALEURS`, `libelleValeur`,
+  `partiesIdentite`) : fonctions pures
   des formes lisibles (montant, durée, instant) et `resumeVerifie`, le résumé
   d'une demande composé des seules valeurs vérifiées (3.4).
 - `/statique/ecrans/<écran>.mjs` : module d'entrée de chaque écran.
@@ -879,6 +881,180 @@ suivante, éprouvée par `test/exploitation-console-presentation-chromium.test.j
 - **Annuaire.** Une carte par entrée ; « Révoquer » et « Désactiver » se
   confirment par un bouton de danger.
 
+Complément du 2026-11-18, décision du porteur (langage des écrans). Il
+remplace, dans la présentation ci-dessus, ce qui suit ; les comportements ne
+changent pas, ni la bibliothèque, ni le modèle d'affichage, ni le calcul des
+marques. Éprouvé par `test/exploitation-console-langage-chromium.test.js` et
+par `test/exploitation-console-presentation-chromium.test.js`.
+
+- **Langage.** Chaque texte visible sans rien ouvrir est écrit pour une
+  personne qui n'a pas lu la spécification : « demande » pour un ticket,
+  « empreinte » pour un condensé, « nombre d'approbations requises » pour
+  un seuil, « délai de contestation » et « contester » pour la fenêtre de
+  contestation et l'objection, « agent logiciel », « adresse de
+  signature », « portefeuille ». Une
+  phrase que CT-3 fixe mot pour mot reste telle quelle et porte
+  `data-fixe` ; une phrase en langage courant la précède (`sens.<clé>`,
+  `consigne_titre.<n>`, `avertissement_titre.` et `avertissement_sens.`).
+  Une valeur venue des données (identifiant, adresse, nom d'outil, valeur
+  d'argument, texte du service) s'affiche telle quelle et porte
+  `data-valeur`. Un message de panne dit ce qui s'est passé et quoi faire ;
+  son code suit entre parenthèses, à la fin (`span.code-brut`, EX-13.29).
+- **Cadre.** La barre dit qui est connecté, en mots : « Vous êtes
+  connecté : », le sujet ou le nom (`[data-personne]`), puis « compte fourni
+  par le service d'identité » et l'émetteur sans son préfixe (`oidc`) ou
+  le domaine (`utilisateur`) : un seul mot, « service d'identité », pour
+  le système qui a fourni le compte. La personne et ce système restent
+  affichés dans la barre de chaque écran, hors de tout bloc replié. La
+  chaîne canonique de l'identité de session reste lisible en entier, dans
+  son ordre, au pied de chaque écran, dans le bloc replié
+  `details#detail-connexion` (`[data-session]`) : CT-3 EX-13.7 fixe la forme
+  de l'identité, non son affichage (complément du même jour).
+- **Liste des demandes.** Titre « Demandes à décider », une phrase qui dit
+  à quoi sert l'écran, un bloc replié « Comment ça marche » (cinq lignes).
+  La liste `ul#liste-tickets` porte d'abord les demandes à décider (état
+  `ouvert`), puis, sous un second intertitre, les autres demandes en cours
+  (approbations réunies, décision en cours d'enregistrement, en
+  préparation) : une demande qui a réuni ses approbations ne figure pas
+  sous « à décider ». Le titre d'une carte est « Demande d'utiliser
+  l'outil » suivi du nom annoncé ; la réponse `tickets` ne porte pas les
+  arguments (le montant vérifié vient par des lectures : second complément,
+  plus bas). La
+  contestation (CT-3 10.2, EX-12.21) se dit en mots : « Une fois ses
+  approbations réunies, pourra encore être contestée pendant … », « Peut
+  encore être contestée pendant …, jusqu'au … », le nombre de
+  contestations en cours (lu d'abord quand aucun délai ne court : une
+  contestation l'annule, et un délai entier suit son retrait) et le
+  dernier instant où les approbations doivent être réunies ; une demande
+  sans délai de contestation
+  (`contest_ms` nul) n'en dit rien, et sa carte n'a pas ce fait.
+- **Demande.** Dans l'ordre : l'en-tête ; les raisons qui bloquent et les
+  avertissements ; la carte « essentiel » ; « Le reste de la demande »
+  (l'outil et la règle, qui demande, effets annoncés, approbation valant
+  pour plusieurs actions de l'agent, qui décide, puis les identifiants que la signature
+  engage) ; le détail technique replié ; les demandes voisines (une ligne
+  quand il n'y en a pas) ; le choix du portefeuille et, à côté, récusation,
+  retrait et consignes repliées ; l'écran de signature ; son résultat.
+  Chaque valeur signée s'affiche à un seul endroit.
+  - *Carte « essentiel »* (CT-3 EX-9.4, complément du 2026-11-18) : la
+    phrase (`#phrase-entete`, composée par `resumeVerifie` des seules
+    valeurs vérifiées), le montant en grand quand ses deux feuilles sont
+    vérifiées, puis « Ce que contient la demande » (`#arguments`) : toutes
+    les feuilles du modèle, chacune une fois (`li[data-pointeur]` : libellé
+    courant, chemin exact, valeur `code.valeur`, marque `[data-marque]`),
+    réparties par `groupesValeurs(modele)` : les feuilles vérifiées
+    (`#valeurs-verifiees`), les feuilles que la console n'a pas pu vérifier
+    dans le groupe « À contrôler par vous-même » (`#a-controler`), les
+    feuilles différentes dans un groupe d'alerte (`#valeurs-differentes`).
+    Le libellé courant vient de `libelleValeur(pointeur)` (table fixe
+    d'EX-9.4, dernier segment du chemin) ; hors table, le chemin sert de
+    libellé. Au-delà de huit feuilles, la liste se resserre ; rien n'est
+    replié. Suivent « Demandé par », « Pourquoi votre accord est demandé »
+    (la règle, telle quelle), « Approbations », « À décider avant », puis
+    la décision. Le tableau « Arguments de la demande » n'existe plus : il
+    faisait doublon.
+  - *Après la décision confirmée* : la page amène la personne au choix du
+    portefeuille : le bloc `#vote` vient en haut de la fenêtre, sous la
+    barre, et reçoit le focus (`tabindex="-1"`, nommé par son titre).
+    Aucun portefeuille n'est choisi pour elle et rien n'est demandé au
+    portefeuille (EX-13.22) ; la décision choisie reste rappelée, avec la
+    phrase « Il reste à signer : … ».
+  - *Décision déjà enregistrée, demande encore ouverte* (CT-3 EX-9.4,
+    complément du 2026-11-18, point 8) : quand la vue porte un vote
+    courant de l'adresse que l'annuaire attribue à la session, un bandeau
+    (`#deja-decide`, `data-decision`) le dit au-dessus de la carte, sous
+    les avertissements : « Vous avez approuvé cette demande le … », puis ce
+    que la demande attend d'après la vue seule (« Elle attend encore
+    1 approbation. », une contestation en cours, les approbations
+    réunies). Un nouveau vote remplaçant le précédent (EX-7.26), les deux
+    boutons restent, de même poids et sans présélection, sous l'intertitre
+    « Changer ma décision » et la phrase `#decision-changer` ; la carte des
+    identifiants dit « aucune nouvelle décision choisie : vous avez déjà
+    approuvé ». Sans vote courant de cette adresse dans la vue, rien de
+    cela ne paraît.
+  - *Demande qui n'accepte plus de décision* : un bandeau dit ce qui s'est
+    passé et ce que cela implique (`#issue`), sans affirmer ce que la
+    console ne sait pas (« L'action est autorisée ; son exécution relève de
+    l'agent logiciel. ») ; ni décision à choisir, ni temps restant, ni
+    consigne de contrôle.
+  - *Écran de signature* : en tête, « Vous allez APPROUVER cette demande. »
+    ou « Vous allez REFUSER cette demande. », le rappel de la demande (la
+    phrase vérifiée, le montant, chaque feuille à contrôler avec sa marque),
+    ce qui va se passer, l'empreinte à comparer (« Empreinte de votre
+    décision », sous son intitulé fixé « empreinte du condensé à signer »),
+    puis le bouton, visible sans défiler à 1280 × 800 quand l'écran est en
+    haut de la fenêtre ; ensuite `D_A` en entier et ses groupes, à part le
+    condensé EIP-191 sous son intitulé fixé, et les sept consignes d'EX-9.20
+    en entier, chacune sous un titre court.
+  - *Personnes* : un approbateur s'affiche par le nom que l'annuaire lu lui
+    donne (pour une adresse validée de sa fiche), « vous » pour sa propre
+    adresse, puis son adresse de signature, entière, en petit. L'annuaire
+    d'une session ordinaire ne porte que sa propre fiche : les autres
+    approbateurs y restent des adresses.
+- **Mon adresse, Annuaire, Connexion.** Chaque écran dit à quoi il sert ;
+  l'annuaire porte un bloc replié « Ce que fait chaque action », et chaque
+  confirmation dit ce que l'action fait et si elle est définitive.
+
+Second complément du 2026-11-18, décision du porteur (langage des écrans).
+Il remplace, dans le complément ci-dessus, ce qui suit ; il est éprouvé par
+les mêmes essais.
+
+- **Écran de signature** (CT-3 EX-9.18 et EX-9.20, compléments du
+  2026-11-18). Avant le bouton : « Avant de signer » et les quatre
+  consignes courantes (`ol#consignes-courantes`, clés
+  `consigne_courante.1` à `.4`, mot pour mot celles du complément
+  d'EX-9.20 ; `{debut}` et `{fin}` sont les deux extrémités de l'empreinte
+  de la décision choisie) ; une seule empreinte en grand (`#empreinte-d-a`,
+  sous son intitulé fixé) ; `D_A` en entier juste dessous, en petit. Après
+  le bouton, le bloc replié `details#consignes-completes`, « Consignes
+  complètes (texte de référence) » : les groupes de `D_A`, à part le
+  condensé EIP-191 sous son intitulé fixé, et les sept consignes d'EX-9.20,
+  entières. Après un vote inscrit, le résultat dit en langage courant ce
+  que le point 7 d'EX-9.20 demande (`#apres-decision`).
+- **Valeurs à contrôler.** Une seule explication dans l'encadré, qui dit
+  avec quoi comparer (`controle.sens`) ; la phrase gardée du complément du
+  2026-11-17 (`modele.arguments.non_verifiable_sens`) est au détail
+  technique. La mention que la signature ne porte pas sur les effets
+  annoncés est dans la carte des effets, et dit ce qu'elle désigne ; les
+  lignes de cette carte se nomment « Montant annoncé », « Devise annoncée ».
+- **Codes** (CT-3 EX-13.29, complément du 2026-11-18). Le code entre
+  parenthèses accompagne une panne. Pour un état attendu du parcours
+  (`decision_absente`, `fournisseur_non_choisi`, `ticket_clos_aux_votes` :
+  `ETATS_ATTENDUS` de `cadre.mjs`) et pour un avertissement, la phrase
+  s'affiche sans code ; l'élément garde `data-code` ou
+  `data-avertissement`, et le détail technique porte les codes (« Où en
+  est la page », « Codes des raisons », « Codes des avertissements »).
+- **Résultat d'une signature** (panne, refus, décision enregistrée) :
+  `#zone-resultat` est en tête du bloc de signature, avant `.bas-demande` ;
+  la page y amène la personne (défilement et focus), et une panne porte un
+  lien « Revenir à ma décision ».
+- **Demande où la personne a déjà décidé, encore ouverte** : le titre est
+  « Vous avez déjà décidé », la pastille « En attente d'autres
+  approbations » (`[data-deja]`), et la ligne « Aucune décision n'est
+  choisie d'avance… » ne s'affiche pas.
+- **Demande approuvée** : la console dit que l'action est autorisée,
+  qu'elle ne sait pas si elle a été exécutée, et où le savoir.
+- **Liste** (CT-3 EX-13.3, complément du 2026-11-18). Pour les dix
+  premières demandes à décider au plus, la liste lit ensuite `annuaire`
+  (une fois) puis `consulter` de chaque demande, l'une après l'autre, et
+  affiche sous le titre de la carte le montant que `montantVerifie` de
+  `lisible.mjs` rend (`[data-montant]` : le montant et la marque
+  « vérifié ») : la même porte que le montant en grand de l'écran d'une
+  demande ; rien quand le montant n'est pas vérifié. Ce sont des lectures :
+  aucune écriture, aucune requête à un portefeuille. La liste s'affiche
+  d'abord ; une lecture qui échoue laisse sa ligne sans montant, sans
+  erreur ; un identifiant hors d'EX-7.1 n'est jamais lu. Chaque date porte
+  ce qu'elle est : pour une demande à décider dont la règle prévoit un
+  délai de contestation, « À décider avant » donne le dernier moment où
+  l'approuver à temps (`[data-dernier-instant]`) et l'expiration est dite à
+  part (`[data-expiration]`) ; pour une autre demande en cours, le fait
+  s'intitule « Expire le ».
+- **Portefeuille sans icône.** L'icône qu'un portefeuille annonce est
+  affichée telle quelle ; si elle manque, ne se charge pas ou est d'une
+  seule couleur, un pictogramme neutre la remplace
+  (`.fournisseur-icone[data-icone="neutre"]`, gabarit `icone-portefeuille`
+  de la page : rien n'est chargé).
+
 - **Tickets.** `tickets` (sans `related_to`) ; pour chaque ticket :
   identifiant (lien `/tickets/<ticket>` seulement s'il satisfait EX-7.1,
   motif et 5 à 128 caractères ; sinon il est affiché comme une valeur avec
@@ -996,7 +1172,12 @@ fichier `en.mjs` de mêmes clés, sans autre changement. Chaque valeur de
 12.8 (dont `limite_annuaire`), chaque code de
 `$defs/code_serveur_console` et chaque avertissement du modèle ont une clé ;
 un essai le vérifie contre les énumérations des schémas. Le code reste
-affiché entre parenthèses après le texte (EX-13.29).
+affiché entre parenthèses après le texte (EX-13.29). Complément du
+2026-11-18, décision du porteur (langage des écrans) : le texte de chaque
+code dit ce qui s'est passé et quoi faire ; un texte que CT-3 fixe mot pour
+mot garde sa clé et sa valeur, et sa phrase en langage courant est à la clé
+`sens.<clé>` ; les libellés courants des valeurs d'une demande sont aux clés
+`valeur.<nom>`, les noms venant de `LIBELLES_VALEURS` de `lisible.mjs`.
 
 ### 3.7 Essais des pages
 

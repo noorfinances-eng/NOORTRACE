@@ -33,7 +33,7 @@ reste interdit (tout stockage, toute ressource, toute police téléchargée).
 | `icones.mjs` | tracés des icônes et du signe du logo, que `construire.mjs` écrit dans chaque écran en gabarits `<template id="icone-<nom>">` ; non servi |
 | `statique/console.css` | feuille de style : le thème commun (entre `/* noor-theme:debut */` et `/* noor-theme:fin */`), puis les règles propres à la console |
 | `statique/commun/theme.mjs` | état du thème : sombre sans attribut, clair par `data-theme="clair"` ; suit `prefers-color-scheme`, bascule pour la page affichée, aucun stockage ; premier module de chaque écran |
-| `statique/commun/lisible.mjs` | fonctions pures : `resumeVerifie` (résumé d'une demande composé des seules valeurs vérifiées), `montantLisible`, parties d'une durée et d'un instant |
+| `statique/commun/lisible.mjs` | fonctions pures : `resumeVerifie` (phrase d'une demande composée des seules valeurs vérifiées), `groupesValeurs` (feuilles vérifiées, à contrôler, différentes), `libelleValeur` et `LIBELLES_VALEURS` (libellé courant d'une valeur), `partiesIdentite`, `montantLisible`, parties d'une durée et d'un instant |
 | `statique/ecrans/<écran>.mjs` | module d'entrée de chaque écran : `tickets`, `ticket`, `inscription` (« Mon adresse »), `annuaire`, `connexion` |
 | `statique/commun/client.mjs` | client de `/v0/` (`fetch` de même origine, `credentials: "same-origin"`, JSON), lecture de la session, connexion locale, déconnexion |
 | `statique/commun/dom.mjs` | construction du DOM par `createElement` et `textContent` ; composants du thème (bouton, bandeau, pastille, marque, bloc replié) ; `icone()` clone le gabarit d'une icône |
@@ -171,3 +171,50 @@ EIP-1193 simulé, annoncé par EIP-6963, clés dérivées au moment de l'essai d
 mnémonique public de CT-3 A.2) et
 `test/fixtures/exploitation-console/pages/site.mjs` (serveur de console et
 service simulés par interception, en-têtes de 2.6, espions du stockage).
+
+## Langage (complément du 2026-11-18)
+
+Éprouvé par `test/exploitation-console-langage-chromium.test.js`.
+
+- **À qui parlent les écrans.** À une personne qui décide, pas à un
+  technicien : chaque phrase visible sans rien ouvrir se comprend sans avoir
+  lu la spécification. L'essai relève le texte visible de chaque écran, hors
+  des blocs repliés fermés, hors des valeurs venues des données
+  (`data-valeur`), des phrases fixées (`data-fixe`) et des codes entre
+  parenthèses (`code-brut`), et n'y admet aucun mot de sa liste.
+- **Phrases fixées.** Les marques, les intitulés de l'écran de signature,
+  les sept consignes et les textes que CT-3 cite restent mot pour mot ;
+  l'essai compare chaque nœud `data-fixe` à la liste des textes fixés. Une
+  phrase en langage courant les précède, qui n'affirme rien de plus.
+- **Valeurs à contrôler.** `groupesValeurs` range une feuille que la console
+  n'a pas pu vérifier dans le groupe « À contrôler par vous-même », jamais
+  avec les feuilles vérifiées ; une feuille d'un état inconnu aussi. Mutant
+  vu : la feuille rendue avec les vérifiées.
+- **Libellés courants.** `libelleValeur` ne lit que le dernier segment du
+  chemin, dans la table fixe de CT-3 EX-9.4 ; le chemin exact reste affiché.
+  Mutant vu : `beneficiary_iban` libellé « Montant ».
+- **Longueur.** L'écran d'une demande est resserré, sans rien replier de ce
+  qu'EX-9.4 demande ; un essai borne sa hauteur dans le cas simple.
+- **Après la décision confirmée.** La page amène au choix du portefeuille
+  (défilement et focus sur `#vote`), sans en choisir aucun. Mutant vu :
+  l'appel retiré.
+- **Contestation.** Dans la liste, une demande sans délai de contestation
+  n'en dit rien ; avec un délai, la carte le dit en mots.
+- **Consignes courantes.** Sur l'écran de signature, quatre consignes en
+  langage courant, fixées par le complément du 2026-11-18 de CT-3 EX-9.20,
+  précèdent le bouton ; le texte de référence d'EX-9.20 reste entier, dans
+  le bloc « Consignes complètes ». L'essai compare les quatre lignes au
+  texte du complément. Mutant vu : la quatrième consigne retirée.
+- **Codes.** Le code entre parenthèses accompagne une panne ; un état
+  attendu du parcours ou un avertissement s'affiche sans code, qui est au
+  détail technique. Le résultat d'une signature s'affiche en tête du bloc
+  de signature, et la page y amène.
+- **Montant dans la liste.** Pour dix demandes à décider au plus, la liste
+  lit la vue de chaque demande et affiche le montant vérifié
+  (`montantVerifie`), rien sinon ; des lectures seulement. Mutant vu : le
+  montant non vérifié affiché.
+- **Limites.** Dans la liste, le montant n'est affiché que pour les dix
+  premières demandes à décider, et seulement quand la console l'a vérifié
+  (la réponse `tickets` ne porte pas les arguments). Les autres approbateurs restent des adresses
+  pour une session ordinaire, dont l'annuaire ne porte que sa propre fiche.
+  Le décalage d'un instant reste écrit « UTC+1 ».

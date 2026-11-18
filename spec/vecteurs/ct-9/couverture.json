@@ -18,11 +18,11 @@
       },
       {
         "file": "spec/CT-3-approbations.md",
-        "sha256": "ee68a689aed2ed760c817d54c524f14fa3e42f02a9b1876e18ed8afd783bc722"
+        "sha256": "2aefb1654e56147d51faf7ca2105433e24153dcac7dfecc457c010331accc20b"
       },
       {
         "file": "spec/CT-4-registre.md",
-        "sha256": "f468379850df0601fd5b7bc1def896166fe493cb4f770e42ef67e312bd3583a8"
+        "sha256": "10bbf69229b3e2030389987a31748d51c3d46d3557bfb4adb6f3fe7af80996c3"
       },
       {
         "file": "spec/CT-5-ancrage.md",
@@ -30,20 +30,20 @@
       },
       {
         "file": "spec/CT-6-verificateur.md",
-        "sha256": "fed3d7bccb91dbf5f5fd7f1f4e40f5da3b187a1ef74ded41c485ce652cf1fb4b"
+        "sha256": "f24bc274f448ef413018fd1a41f99084a0478d1eecec227918532fd47b6e5d8c"
       },
       {
         "file": "spec/CT-7-securite-et-conformite.md",
-        "sha256": "d816519cb71b7cc09771e4935fc36a59a31b30440a3737fda41401b9ce805168"
+        "sha256": "6e1833b224d5762bd6970cc39a6ef9019852afba28cae5e65518beeb0fc4d609"
       },
       {
         "file": "spec/CT-8-deploiement-et-exploitation.md",
-        "sha256": "63c34d14afe640d70275d004e76ffa61f3062df3f755632af357e52b6a8829cc"
+        "sha256": "47b61852c53ae6945cc6c491ccefa7fbbdac856e67a5396eefc13ce3da539305"
       }
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "9a1689efe6c0c75a6d3fc97d55415eea0425b28c8e6565beec6f9e0e1aa3ecdb"
+      "sha256": "4f613bb51ef20cb379126efe73e111b4db413a4f9ba9509f8a9085c78cc4bb12"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -775,12 +775,16 @@
         "sha256": "7d1c740d100506bc6fc434820d3f5403fadb9e7baa92383e0390f5a36fb01b30"
       },
       {
+        "file": "test/exploitation-console-langage-chromium.test.js",
+        "sha256": "385775af70c1fda22152bd6dde25b87eaf30788307c153b1b775579e3be38155"
+      },
+      {
         "file": "test/exploitation-console-pages-chromium.test.js",
-        "sha256": "93ecbc4e53e33a643daefdf46d4eeed29c32629db68703bd454b037c7970cd6b"
+        "sha256": "07288187870624520b1f8b5f7eb447ab45d286c8313884eee1d482302eed5262"
       },
       {
         "file": "test/exploitation-console-pages.test.js",
-        "sha256": "ec696f10099bb47acd361eaf36c409e113f996ff90ab7cdfc57145e75b6c723f"
+        "sha256": "1f9395cd181710b61c3ade87b648ad6c19e8e6a970da748d8c245398e3dface1"
       },
       {
         "file": "test/exploitation-console-parcours.test.js",
@@ -788,7 +792,7 @@
       },
       {
         "file": "test/exploitation-console-presentation-chromium.test.js",
-        "sha256": "945aafb855f3f23a270ed10d986aee0a34dea962cae43e687f716cb60ca64e3e"
+        "sha256": "160bf81a7d92b4a926fbdb6d2b300bf0c848a9e592af9794ac93bb4609be7de8"
       },
       {
         "file": "test/exploitation-console-prises-unix.test.js",
@@ -796,7 +800,7 @@
       },
       {
         "file": "test/exploitation-console-revue-chromium.test.js",
-        "sha256": "d8917596148ca2f738ab431ca287501e4d2ee97eeecef05e96d28fc0e1d10035"
+        "sha256": "41b85a39e1e2cf96ceb79430641b017bf6b5ace94ece266910d9e85285737394"
       },
       {
         "file": "test/exploitation-console-revue.test.js",
@@ -848,7 +852,7 @@
       },
       {
         "file": "test/inscription-application.test.js",
-        "sha256": "18b659095f36104f8fdfd6dbf812e9df0d0baa211033ab1e6ed7a5873f9da057"
+        "sha256": "05473dc5df16c445bd11427941c692262ba6a739b498af97ffa4848d187eec0d"
       },
       {
         "file": "test/inscription-paquet.test.js",
@@ -856,11 +860,11 @@
       },
       {
         "file": "test/inscription-presentation-chromium.test.js",
-        "sha256": "6de89675bb6cae3256a4288a34e94f7c83d50137445bd808a15de7dc41344370"
+        "sha256": "f3d1204aa7a7a566d883c789ad3e6c1bbfea74b10772c3d70134c3d0c5a52a86"
       },
       {
         "file": "test/inscription-presentation.test.js",
-        "sha256": "83858f9c1eba2144a93332eecae3c9dfcbac160f081cada5647cc6b38b57826d"
+        "sha256": "f6da174196d43a66575b2b6ab21b12ce4caa89b4d4031d16fc7a1606d3546abc"
       },
       {
         "file": "test/inscription-prises-unix.test.js",
@@ -1068,7 +1072,7 @@
       },
       {
         "file": "test/verification-page-presentation.test.js",
-        "sha256": "93ed42d8cb2861ca5fee98a16c11dfd51d57adad8b45c600a09e6c25f4145e31"
+        "sha256": "debe94228e11b04508e2bd6c1ea4d68a16c0e048d29964c0c2bf8311c6ee0c07"
       },
       {
         "file": "test/verification-page-revue-navigateurs.test.js",
@@ -1345,7 +1349,7 @@
   },
   "executable": {
     "total": 302,
-    "titles_checked": 745,
+    "titles_checked": 747,
     "titles_missing": []
   },
   "text_tables": {

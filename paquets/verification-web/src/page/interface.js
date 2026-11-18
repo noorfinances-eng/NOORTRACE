@@ -9,6 +9,15 @@
 // dans le rapport JSON du vérificateur ; la page ne calcule aucun statut. Un
 // contrôle que le rapport ne dit pas « reussi » n'est jamais montré réussi,
 // et un rapport dont la liste des contrôles ne se lit pas n'est pas résumé.
+//
+// Langage (complément du 2026-11-18 de CT-6 §18) : chaque texte du
+// vérificateur, et chaque phrase que CT-6 fixe mot pour mot, reste affiché tel
+// quel, dans un élément marqué data-exact ; une phrase en langage courant le
+// précède. Ces phrases sont prises dans des tables indexées par le code de
+// retour, par l'identifiant d'un avertissement ou par la raison d'un refus :
+// hors table, aucune phrase n'est écrite. Une valeur venue des données (nom de
+// fichier, code d'une raison, référence d'une vérification) est posée dans un
+// élément marqué data-valeur.
 
 const TABLES_LIBELLES = { fr: LIBELLES_FR, en: LIBELLES_EN };
 const CODES_CONNUS = [0, 1, 2, 3];
@@ -30,6 +39,10 @@ const etat = {
   arret: false,
   attente: null,
   vue: null,
+  reduit: false,
+  refuse: false,
+  confiance: null,
+  confianceDessous: false,
   deplies: new Set(),
 };
 
@@ -64,6 +77,51 @@ function element(balise, classe, texte) {
   return e;
 }
 
+/**
+ * Écrit dans `e` le libellé `cle`. Chaque paramètre de `valeurs` est une
+ * valeur venue des données : elle est posée, neutralisée, dans un élément
+ * marqué data-valeur. Chaque paramètre de `textes` est un texte de la page
+ * (un autre libellé), ou un nœud déjà composé. Le texte de l'ensemble est
+ * celui de libelle(cle, { ...valeurs, ...textes }).
+ */
+function composer(e, cle, valeurs = {}, textes = {}) {
+  const modele = TABLES_LIBELLES[etat.langue][cle];
+  e.replaceChildren();
+  let i = 0;
+  for (const m of modele.matchAll(/\{([a-z0-9_]+)\}/g)) {
+    const estValeur = Object.hasOwn(valeurs, m[1]);
+    if (!estValeur && !Object.hasOwn(textes, m[1])) continue;
+    if (m.index > i) e.append(document.createTextNode(modele.slice(i, m.index)));
+    if (estValeur) {
+      const v = element("span", "pv-valeur", valeurs[m[1]]);
+      v.dataset.valeur = "";
+      e.append(v);
+    } else if (typeof textes[m[1]] === "object") e.append(textes[m[1]]);
+    else e.append(document.createTextNode(neutraliser(textes[m[1]])));
+    i = m.index + m[0].length;
+  }
+  if (i < modele.length) e.append(document.createTextNode(modele.slice(i)));
+  return e;
+}
+
+/** Élément dont le texte est le libellé `cle` (voir composer). */
+function elementLibelle(balise, classe, cle, valeurs, textes) {
+  return composer(element(balise, classe), cle, valeurs, textes);
+}
+
+/** Marque un élément dont le texte est celui du vérificateur, ou une phrase fixée par CT-6, tel quel. */
+function exact(e) {
+  e.dataset.exact = "";
+  return e;
+}
+
+/** Ligne en petit : une introduction en langage courant, puis le texte exact. */
+function ligneExacte(cleIntro, elementExact) {
+  const p = element("p", "pv-exact");
+  p.append(element("span", "pv-exact-intro", libelle(cleIntro)), document.createTextNode(" "), exact(elementExact));
+  return p;
+}
+
 /** Remplace le contenu d'un élément par un texte, neutralisé. */
 function ecrire(e, texte) {
   e.replaceChildren(document.createTextNode(neutraliser(texte)));
@@ -75,6 +133,7 @@ const ICONES = {
   coche: [["path", { d: "M5 12.5l4.5 4.5L19 7.5" }]],
   croix: [["path", { d: "M6.5 6.5l11 11M17.5 6.5l-11 11" }]],
   sablier: [["path", { d: "M7 4h10M7 20h10M8 4c0 4.2 4 4.6 4 8s-4 3.8-4 8M16 4c0 4.2-4 4.6-4 8s4 3.8 4 8" }]],
+  imprimante: [["path", { d: "M7.5 8.5v-4h9v4M7.5 16.5h-2a1.5 1.5 0 0 1-1.5-1.5v-5a1.5 1.5 0 0 1 1.5-1.5h13a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5h-2" }], ["path", { d: "M7.5 13.5h9v6h-9z" }]],
   alerte: [["path", { d: "M12 4.5l8.5 14.5h-17z" }], ["path", { d: "M12 10.5v3.5M12 16.6v.3" }]],
   question: [["circle", { cx: "12", cy: "12", r: "8.5" }], ["path", { d: "M9.7 9.7a2.4 2.4 0 1 1 3.5 2.2c-.8.4-1.2 1-1.2 1.8M12 16.6v.3" }]],
   bouclier: [["path", { d: "M12 3.5l7 2.5v5.5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6z" }], ["path", { d: "M8.8 12.2l2.4 2.4 4.2-4.6" }]],
@@ -195,7 +254,9 @@ function afficherArtefact() {
   const alerte = $("alerte-verificateur");
   const detail = $("detail-empreinte");
   if (alerte && detail) {
-    $(enAlerte ? "alerte-verificateur" : "hote-artefact").append(p);
+    // En alerte : la phrase en langage courant, puis le message exact ; sinon l'empreinte, dans son bloc replié.
+    if (enAlerte) alerte.replaceChildren(element("p", "pv-alerte-courante", libelle(a.genre === "altere" ? "altere_courant" : "indisponible_courant")), element("p", "pv-exact-intro", libelle("message_exact")), p);
+    else $("hote-artefact").append(p);
     alerte.hidden = !enAlerte;
     detail.hidden = a.genre !== "pret";
   }
@@ -205,7 +266,32 @@ function afficherArtefact() {
     p.classList.add("nt-pastille-grande");
     mot.replaceChildren(p);
   }
+  placerConfiance();
   majBoutons();
+}
+
+/**
+ * Place du bandeau de confiance (mise en garde en langage courant, phrase fixe
+ * d'EX-18.2, empreinte). À l'arrivée, il est en tête, avant les étapes. Dès
+ * qu'un rapport, un refus ou une vérification non faite a été affiché, il est
+ * sous le résultat, juste avant « Pour les spécialistes » : le résultat vient
+ * alors en premier. Il n'est jamais retiré de la page, replié ni abrégé, et
+ * il revient en tête quand le vérificateur est altéré ou indisponible (son
+ * alerte y est).
+ */
+function placerConfiance() {
+  const bandeau = etat.confiance;
+  const contenu = $("resultat-contenu");
+  const formulaire = $("formulaire");
+  const section = $("resultat");
+  if (!bandeau || !contenu || !formulaire || !section) return;
+  const enAlerte = etat.artefact.genre === "altere" || etat.artefact.genre === "non_faite";
+  if (etat.confianceDessous && !enAlerte && !section.hidden) {
+    const specialistes = $("specialistes");
+    if (specialistes && specialistes.parentElement === contenu) {
+      if (bandeau.nextElementSibling !== specialistes) specialistes.before(bandeau);
+    } else if (contenu.lastElementChild !== bandeau) contenu.append(bandeau);
+  } else if (bandeau.nextElementSibling !== formulaire) formulaire.before(bandeau);
 }
 
 let politiqueTravailleur = null;
@@ -340,9 +426,13 @@ function afficherDossier() {
   if (d === null) {
     p.className = "pv-choisi";
     p.textContent = libelle("aucun_dossier");
+  } else if (etat.refuse) {
+    // Le dossier choisi vient d'être refusé : ni coche, ni « dossier choisi ».
+    p.className = "pv-choisi pv-choisi-refuse";
+    p.replaceChildren(icone("alerte"), elementLibelle("span", null, d.genre === "repertoire" ? "dossier_refuse_repertoire" : "dossier_refuse_archive", { nom: d.nom }));
   } else {
     p.className = "pv-choisi pv-choisi-fait";
-    p.replaceChildren(icone("coche"), element("span", null, libelle(d.genre === "repertoire" ? "dossier_choisi_repertoire" : "dossier_choisi_archive", { nom: d.nom })));
+    p.replaceChildren(icone("coche"), elementLibelle("span", null, d.genre === "repertoire" ? "dossier_choisi_repertoire" : "dossier_choisi_archive", { nom: d.nom }));
   }
   majBoutons();
 }
@@ -353,7 +443,7 @@ function afficherEntrees() {
     const e = $(id);
     if (!e) continue;
     e.className = fichier ? "pv-fichier-nom pv-fichier-choisi" : "pv-fichier-nom";
-    e.textContent = libelle(fichier ? "fichier_choisi" : "aucun_fichier", { nom: fichier ? fichier.name : "" });
+    composer(e, fichier ? "fichier_choisi" : "aucun_fichier", { nom: fichier ? fichier.name : "" });
   }
   afficherOptions();
 }
@@ -367,7 +457,12 @@ function afficherOptions() {
   if (etat.entetes) parties.push(libelle("options_entetes"));
   const exiges = valeurExiger();
   if (exiges === "tous") parties.push(libelle("options_exiger_tous"));
-  else if (exiges !== null) parties.push(libelle("options_exiger", { liste: exiges.split(",").join(", ") }));
+  else if (exiges !== null) {
+    // Un numéro seul se lirait comme un nombre de contrôles : il est suivi du nom du contrôle.
+    const numeros = exiges.split(",");
+    if (numeros.length === 1) parties.push(libelle("options_exiger_un", { numero: numeros[0], nom: libelle(`controle_${numeros[0]}`) }));
+    else parties.push(libelle("options_exiger", { liste: `${numeros.slice(0, -1).join(", ")}${libelle("liste_et")}${numeros[numeros.length - 1]}` }));
+  }
   const langue = $("langue-rapport").value === "en" ? "en" : "fr";
   if (langue !== etat.langue) parties.push(libelle("options_langue", { langue: libelle(langue === "en" ? "langue_en" : "langue_fr") }));
   if ($("detail").checked) parties.push(libelle("options_detail"));
@@ -375,16 +470,51 @@ function afficherOptions() {
 }
 
 function cleAideVerifier() {
+  if (etat.enCours) return "aide_verifier_en_cours";
   if (etat.artefact.genre === "altere" || etat.artefact.genre === "non_faite") return "aide_verifier_indisponible";
   if (!etat.pret) return "aide_verifier_chargement";
+  if (etat.dossier !== null && etat.refuse) return "aide_verifier_refus";
   return etat.dossier === null ? "aide_verifier_dossier" : "aide_verifier_pret";
+}
+
+/**
+ * Après un résultat, les trois étapes se réduisent à une ligne, sous le titre
+ * du résultat : le dossier vérifié et « Vérifier un autre dossier ». Elles
+ * reviennent par ce bouton, ou dès qu'un autre dossier est choisi ou déposé.
+ * Un refus et une vérification non faite les laissent en place : il faut y
+ * revenir pour recommencer.
+ */
+function afficherReduction() {
+  const formulaire = $("formulaire");
+  const ligne = $("dossier-verifie");
+  if (!formulaire || !ligne) return;
+  const v = etat.vue;
+  const resultat = v !== null && v.genre === "resultat";
+  formulaire.classList.toggle("pv-reduit", etat.reduit && resultat);
+  // L'explication du haut de page (« à quoi sert cette page », « Comment ça marche ») s'efface avec les étapes.
+  const page = $("page");
+  if (page) page.classList.toggle("pv-apres-resultat", etat.reduit && resultat);
+  ligne.hidden = !resultat;
+  if (resultat) composer($("nom-verifie"), v.noms.dossier.genre === "repertoire" ? "dossier_verifie_repertoire" : "dossier_verifie_archive", { nom: v.noms.dossier.nom });
+  $("verifier-autre").hidden = !(etat.reduit && resultat);
+}
+
+function rouvrirFormulaire() {
+  etat.reduit = false;
+  // Un autre choix efface le refus du précédent.
+  etat.refuse = false;
+  afficherReduction();
 }
 
 function majBoutons() {
   const b = $("verifier");
   if (b) b.disabled = !(etat.pret && etat.dossier !== null && !etat.enCours);
   const a = $("arreter");
-  if (a) a.disabled = !(etat.enCours && !etat.arret);
+  if (a) {
+    a.disabled = !(etat.enCours && !etat.arret);
+    // « Arrêter » ne paraît que pendant une vérification.
+    a.hidden = !etat.enCours;
+  }
   const aide = $("aide-verifier");
   if (aide) aide.textContent = libelle(cleAideVerifier());
 }
@@ -445,6 +575,7 @@ function choisirRepertoire(fichiersChoisis) {
     liste.push({ chemin: rel.slice(i + 1), fichier: f });
   }
   etat.dossier = nom === null ? null : dossierDeRepertoire(nom, liste);
+  rouvrirFormulaire();
   afficherDossier();
 }
 
@@ -480,6 +611,7 @@ async function parcourirRepertoire(entree, prefixe, liste, compteur = compteurEn
 async function deposer(ev) {
   ev.preventDefault();
   if (etat.enCours) return;
+  rouvrirFormulaire();
   const elements = [];
   const items = ev.dataTransfer ? ev.dataTransfer.items : null;
   for (let i = 0; items !== null && i < items.length; i++) if (items[i].kind === "file") elements.push(items[i]);
@@ -544,6 +676,7 @@ async function verifier() {
   etat.arret = false;
   majBoutons();
   etat.vue = { genre: "en_cours" };
+  etat.reduit = false;
   etat.deplies.clear();
   afficherVue();
   const noms = {
@@ -591,7 +724,10 @@ async function verifier() {
     etat.enCours = false;
     const arrete = etat.arret;
     etat.arret = false;
-    majBoutons();
+    etat.reduit = etat.vue.genre === "resultat";
+    // Un refus de ce qui a été choisi se dit aussi à l'étape 1, à la place de « dossier choisi ».
+    etat.refuse = etat.vue.genre === "refus";
+    afficherDossier();
     afficherVue();
     montrerResultat();
     // Après un arrêt, un travailleur neuf reçoit l'artefact ; la page
@@ -643,6 +779,7 @@ function interpreter(reponse, noms) {
     const m = rapport.error && typeof rapport.error.message === "string" ? rapport.error.message : null;
     if (m === null) return { genre: "non_faite", cause: { cle: "cause_json_incoherent", parametres: {} }, noms, commandes };
     vue.messageErreur = m;
+    vue.pieceEnCause = clePieceEnCause(rapport.error.kind, rapport.error.check);
   } else {
     const s = rapport.statement;
     if (!s || typeof s.fr !== "string" || typeof s.en !== "string") {
@@ -653,6 +790,250 @@ function interpreter(reponse, noms) {
     vue.resume = resumer(rapport, lisible.code);
   }
   return vue;
+}
+
+// --- Langage courant : tables fixées (CT-6 §18, complément du 2026-11-18) -------
+
+// Phrase en langage courant d'un code de retour : une clé par code de la table
+// de CT-6 §8.3, et rien pour toute autre valeur.
+const PHRASES_COURANTES = Object.freeze({ 0: "phrase_0", 1: "phrase_1", 2: "phrase_2", 3: "phrase_3" });
+
+/** Clé de la phrase courante du code de retour `code`, ou null si le code n'est pas dans la table. */
+function clePhraseCourante(code) {
+  return Number.isInteger(code) && Object.hasOwn(PHRASES_COURANTES, code) ? PHRASES_COURANTES[code] : null;
+}
+
+/**
+ * Clé de la phrase courante d'un avertissement du rapport (`AV-O-3` →
+ * `av_o_3`), ou null si l'identifiant n'est pas dans la table des libellés :
+ * la page n'écrit alors que le texte exact du vérificateur.
+ */
+function cleAvertissement(id, table) {
+  const m = /^AV-([A-Z]{1,2})-([1-9][0-9]{0,2})$/.exec(String(id));
+  if (m === null) return null;
+  const cle = `av_${m[1].toLowerCase()}_${m[2]}`;
+  return Object.hasOwn(table, cle) ? cle : null;
+}
+
+/** Clé de la phrase courante d'une raison de refus (`r_…` → `c_r_…`), ou null hors table. */
+function cleRefusCourant(raison, table) {
+  const cle = `c_${String(raison)}`;
+  return /^r_[a-z0-9_]+$/.test(String(raison)) && Object.hasOwn(table, cle) ? cle : null;
+}
+
+// « Ce que ce résultat ne dit pas » et « Et maintenant ? » : lignes fixes par
+// code de retour ; rien pour le code 2 dans la première liste (le vérificateur
+// n'a rien examiné).
+const LIMITES = Object.freeze({ 0: ["limite_1", "limite_2", "limite_3", "limite_4", "limite_5"], 1: ["limite_invalide"], 3: ["limite_1", "limite_2", "limite_3", "limite_4", "limite_5"] });
+const SUITES = Object.freeze({
+  0: ["suite_0_1", "suite_0_2", "suite_0_3"],
+  1: ["suite_1_1", "suite_1_2", "suite_1_3"],
+  2: ["suite_2_1", "suite_2_2", "suite_2_3"],
+  3: ["suite_3_1", "suite_3_2", "suite_3_3"],
+  non_faite: ["suite_non_faite_1", "suite_non_faite_2", "suite_non_faite_3"],
+  refus: ["suite_refus_1", "suite_refus_2"],
+});
+
+/**
+ * Membres de phrase d'un énoncé : le texte coupé après chaque « ; » suivi d'une
+ * espace. Aucun caractère n'est retiré ni ajouté : la concaténation des
+ * membres est le texte.
+ */
+function membresEnonce(texte) {
+  const membres = [];
+  let debut = 0;
+  for (;;) {
+    const i = texte.indexOf("; ", debut);
+    if (i < 0) break;
+    membres.push(texte.slice(debut, i + 2));
+    debut = i + 2;
+  }
+  if (debut < texte.length || membres.length === 0) membres.push(texte.slice(debut));
+  return membres;
+}
+
+/**
+ * Le rapport porte-t-il des réserves ? Vrai si ses avertissements ne se lisent
+ * pas (null) ou s'il en porte au moins un. Ce n'est pas un statut calculé :
+ * c'est la présence d'avertissements dans le rapport.
+ */
+function aDesReserves(avertissements) {
+  return avertissements === null || avertissements.length > 0;
+}
+
+/**
+ * Présentation du verdict. Le mot vient toujours du code de retour ; la
+ * présentation ne peut que restreindre ce que le code dit, jamais l'étendre.
+ * Sous le code 0, la teinte pleine n'est gardée que si le rapport JSON, lu
+ * exactement, donne les huit contrôles réussis et aucun avertissement. Avec
+ * un contrôle non réussi ou un avertissement, la teinte est celle de
+ * l'avertissement et une mention fixe suit le mot. Si le rapport ne se lit
+ * pas exactement, la teinte est neutre, sans mention. Les autres codes
+ * gardent leur présentation.
+ */
+function presentationVerdict(code, controles, avertissements) {
+  if (code !== 0) return { teinte: "pleine", mention: null };
+  if (controles === null || avertissements === null) return { teinte: "neutre", mention: null };
+  const nonProuve = controles.some((c) => c.statut !== "reussi");
+  const reserves = avertissements.length > 0;
+  if (nonProuve && reserves) return { teinte: "reserve", mention: "mention_les_deux" };
+  if (nonProuve) return { teinte: "reserve", mention: "mention_non_prouve" };
+  if (reserves) return { teinte: "reserve", mention: "mention_reserves" };
+  return { teinte: "pleine", mention: null };
+}
+
+/**
+ * Ce que les contrôles non réussis laissent sans preuve, en clés de la table
+ * des noms courants : la date quand ni le contrôle 4 ni le contrôle 5 n'a
+ * réussi (comme le fragment F7 de l'énoncé, CT-6 §7.3), sinon une clé par
+ * contrôle non réussi, dans l'ordre des numéros.
+ */
+function clesNonProuve(controles) {
+  const non = controles.filter((c) => c.statut !== "reussi").map((c) => c.numero);
+  const cles = [];
+  for (const n of non) {
+    if ((n === 4 || n === 5) && non.includes(4) && non.includes(5)) {
+      if (n === 4) cles.push("non_prouve_4_5");
+    } else cles.push(`non_prouve_${n}`);
+  }
+  return cles;
+}
+
+/**
+ * Numéros des contrôles auxquels le rapport rattache un avertissement : ceux
+ * dont la liste `checks` porte la vérification que l'avertissement nomme
+ * (`check`). Sans vérification nommée, ou si aucun contrôle ne la porte,
+ * l'avertissement n'est rattaché à rien : aucune ligne de contrôle ne change.
+ */
+function controlesDeLAvertissement(avertissement, controles) {
+  if (avertissement.verification === null) return [];
+  return controles.filter((c) => c.verifications.includes(avertissement.verification)).map((c) => c.numero);
+}
+
+/** Identifiants des avertissements rattachés au contrôle `numero`, chacun une fois, dans l'ordre du rapport. */
+function reservesDuControle(numero, controles, avertissements) {
+  const ids = [];
+  for (const a of avertissements ?? []) {
+    if (controlesDeLAvertissement(a, controles).includes(numero) && !ids.includes(a.id)) ids.push(a.id);
+  }
+  return ids;
+}
+
+/**
+ * Avertissements regroupés pour l'affichage : ceux qui ont le même
+ * identifiant, donc la même phrase courante, forment un seul groupe, à la
+ * place du premier ; un avertissement hors de la table (`aUnePhrase` rend
+ * faux) reste seul. Aucun avertissement n'est retiré : chaque groupe garde
+ * tous les siens, dans l'ordre du rapport.
+ */
+function grouperAvertissements(avertissements, aUnePhrase) {
+  const groupes = [];
+  for (const a of avertissements) {
+    const g = aUnePhrase(a.id) ? groupes.find((x) => x.groupe && x.id === a.id) : undefined;
+    if (g) g.elements.push(a);
+    else groupes.push({ id: a.id, groupe: aUnePhrase(a.id), elements: [a] });
+  }
+  return groupes;
+}
+
+// Phrase courante qui nomme la pièce en cause d'un rapport d'erreur (code 2),
+// d'après son champ `error.kind`, et `error.check` pour une entrée à part.
+const PIECES_EN_CAUSE = Object.freeze({
+  dossier_illisible: "piece_dossier",
+  ancres_inutilisables: "piece_ancres",
+  taille_depassee: "piece_taille",
+  usage: "piece_usage",
+  schemas_illisibles: "piece_verificateur",
+  erreur_interne: "piece_verificateur",
+});
+
+/** Clé de la phrase qui nomme la pièce en cause, ou null si le rapport d'erreur ne la nomme pas d'une façon connue. */
+function clePieceEnCause(genre, verification) {
+  if (genre === "entree_illisible") return verification === "N-2" ? "piece_entetes" : "piece_entree";
+  return typeof genre === "string" && Object.hasOwn(PIECES_EN_CAUSE, genre) ? PIECES_EN_CAUSE[genre] : null;
+}
+
+/**
+ * Jour et heure, en temps universel, d'un nombre entier de secondes comptées
+ * depuis le 1er janvier 1970 ; null hors des années 1970 à 9999. Aucun fuseau
+ * n'entre dans le calcul : c'est une division entière du nombre du rapport.
+ */
+function instantDeSecondes(secondes) {
+  if (!Number.isSafeInteger(secondes) || secondes < 0 || secondes > 253402300799) return null;
+  const jours = Math.floor(secondes / 86400);
+  const reste = secondes - jours * 86400;
+  const z = jours + 719468;
+  const ere = Math.floor(z / 146097);
+  const j = z - ere * 146097;
+  const a = Math.floor((j - Math.floor(j / 1460) + Math.floor(j / 36524) - Math.floor(j / 146096)) / 365);
+  const q = j - (365 * a + Math.floor(a / 4) - Math.floor(a / 100));
+  const m = Math.floor((5 * q + 2) / 153);
+  const mois = m < 10 ? m + 3 : m - 9;
+  return { annee: a + ere * 400 + (mois <= 2 ? 1 : 0), mois, jour: q - Math.floor((153 * m + 2) / 5) + 1, heure: Math.floor(reste / 3600), minute: Math.floor((reste % 3600) / 60), seconde: reste % 60 };
+}
+
+/**
+ * Jour et heure d'un instant du rapport écrit en temps universel, à la
+ * seconde (« 2026-11-05T10:00:06Z ») ; null pour toute autre écriture, une
+ * fraction de seconde comprise, ou pour un jour qui n'existe pas. Les
+ * chiffres sont recopiés, rien n'est converti.
+ */
+function instantDeTexte(texte) {
+  const m = typeof texte === "string" ? /^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})Z$/.exec(texte) : null;
+  if (m === null) return null;
+  const [annee, mois, jour, heure, minute, seconde] = m.slice(1).map(Number);
+  const bissextile = annee % 4 === 0 && (annee % 100 !== 0 || annee % 400 === 0);
+  const longueurs = [31, bissextile ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (mois < 1 || mois > 12 || jour < 1 || jour > longueurs[mois - 1] || heure > 23 || minute > 59 || seconde > 59) return null;
+  return { annee, mois, jour, heure, minute, seconde };
+}
+
+// « En résumé » : le contrôle dont dépend chaque ligne, et le gabarit de la
+// ligne d'approbation selon la décision que le rapport donne.
+const CONTROLE_DU_RESUME = Object.freeze({ action: 1, outil: 1, periode: 3, approbation: 7, limite_autorite: 4, limite_bitcoin: 5 });
+const GABARITS_DECISION = Object.freeze({ approuve: "resume_approbation", refuse: "resume_refus", expire: "resume_expiration" });
+// Un nom d'outil recopié tel quel : au plus 256 caractères, aucun caractère de commande, de fin de ligne ni de sens d'écriture.
+const NOM_OUTIL_TEL_QUEL = /^[^\u{0}-\u{1F}\u{7F}-\u{9F}\u{61C}\u{200E}\u{200F}\u{2028}\u{2029}\u{202A}-\u{202E}\u{2066}-\u{2069}]{1,256}$/u;
+
+/**
+ * Lignes du bloc « En résumé » : des champs du rapport JSON recopiés dans des
+ * gabarits fixes, et rien d'autre. Aucune ligne hors des codes 0 et 3, ni si
+ * les contrôles ne se lisent pas (CT-6 EX-6.13 : `facts` ne s'emploie que
+ * sous les verdicts de ces deux codes, table de CT-6 §8.3).
+ * Chaque ligne ne paraît que si son champ se lit exactement et si le
+ * contrôle dont elle dépend est réussi dans le rapport. Aucune empreinte.
+ * Chaque ligne : { nom, cle, valeurs, instants }.
+ */
+function lignesEnResume(rapport, controles, code) {
+  const lignes = [];
+  if ((code !== 0 && code !== 3) || controles === null || rapport === null || typeof rapport !== "object") return lignes;
+  const reussi = (nom) => controles.some((c) => c.numero === CONTROLE_DU_RESUME[nom] && c.statut === "reussi");
+  const objet = (x) => (x !== null && typeof x === "object" && !Array.isArray(x) ? x : null);
+  const entier = (x) => Number.isSafeInteger(x) && x >= 0;
+  const evenement = objet(rapport.event);
+  if (reussi("action") && evenement !== null && entier(evenement.seq)) lignes.push({ nom: "action", cle: "resume_action", valeurs: { seq: String(evenement.seq) }, instants: {} });
+  // Le nom de l'outil de l'action, tel que le rapport le donne : recopié sans traduction, et seulement s'il
+  // s'affiche tel quel (une chaîne non vide, sans caractère que la page rendrait visible ou qui changerait la ligne).
+  if (reussi("outil") && evenement !== null && typeof evenement.tool === "string" && NOM_OUTIL_TEL_QUEL.test(evenement.tool)) lignes.push({ nom: "outil", cle: "resume_outil", valeurs: { outil: evenement.tool }, instants: {} });
+  const periode = objet(rapport.period);
+  if (reussi("periode") && periode !== null) {
+    const debut = instantDeSecondes(periode.period_start);
+    const fin = instantDeSecondes(periode.period_end);
+    if (debut !== null && fin !== null) lignes.push({ nom: "periode", cle: "resume_periode", valeurs: {}, instants: { debut, fin } });
+  }
+  const faits = objet(rapport.facts) ?? {};
+  const a = objet(faits.approval);
+  if (reussi("approbation") && a !== null && typeof a.decision === "string" && Object.hasOwn(GABARITS_DECISION, a.decision) && Array.isArray(a.approvers) && a.approvers.every((x) => typeof x === "string") && entier(a.required) && entier(a.size)) {
+    lignes.push({ nom: "approbation", cle: GABARITS_DECISION[a.decision], valeurs: { n: String(a.approvers.length), requis: String(a.required), taille: String(a.size) }, instants: {} });
+  }
+  const jeton = objet(faits.timestamp);
+  if (reussi("limite_autorite") && jeton !== null) {
+    const limite = instantDeTexte(jeton.upper_bound);
+    if (limite !== null) lignes.push({ nom: "limite_autorite", cle: "resume_limite_autorite", valeurs: {}, instants: { limite } });
+  }
+  // Le rapport ne donne pas d'instant « au plus tard » pour la preuve par la chaîne Bitcoin : la ligne renvoie au texte exact.
+  if (reussi("limite_bitcoin") && objet(faits.bitcoin) !== null) lignes.push({ nom: "limite_bitcoin", cle: "resume_limite_bitcoin", valeurs: {}, instants: {} });
+  return lignes;
 }
 
 // --- Résumé tiré du rapport JSON ---------------------------------------------
@@ -675,7 +1056,7 @@ function lireControles(rapport, code) {
     if (c === null || typeof c !== "object" || c.number !== i + 1 || !STATUTS_CONNUS.includes(c.status)) return null;
     if (c.status === "non_execute" ? typeof c.reason !== "string" : c.reason !== null && c.reason !== undefined) return null;
     if ((code === 0 || code === 3) && (c.status === "echoue" || c.reason === "prerequis_en_echec")) return null;
-    controles.push({ numero: c.number, statut: c.status, raison: c.status === "non_execute" ? c.reason : null, resume: typeof c.summary === "string" ? c.summary : "" });
+    controles.push({ numero: c.number, statut: c.status, raison: c.status === "non_execute" ? c.reason : null, resume: typeof c.summary === "string" ? c.summary : "", verifications: listeDeChaines(c.checks) ?? [] });
   }
   return controles;
 }
@@ -689,7 +1070,9 @@ function listeDeChaines(v) {
  * Ce que la page résume d'un rapport de code 0, 1 ou 3, tiré du seul rapport
  * JSON : contrôles (ou null), contrôles exigés (`inputs.required_controls`,
  * ou null), vérifications en échec et bloquantes (EX-6.7), avertissements
- * (`warnings`, ou null s'ils ne se lisent pas).
+ * (`warnings`, ou null s'ils ne se lisent pas), ce que le vérificateur dit de
+ * chaque vérification en échec (`checks`, champ `detail`), et les lignes du
+ * bloc « En résumé ».
  */
 function resumer(rapport, code) {
   const exiges = rapport.inputs && Array.isArray(rapport.inputs.required_controls) && rapport.inputs.required_controls.every((n) => Number.isInteger(n) && n >= 1 && n <= 8) ? rapport.inputs.required_controls : null;
@@ -699,12 +1082,22 @@ function resumer(rapport, code) {
     const lisibles = Array.isArray(w) && w.every((a) => a !== null && typeof a === "object" && typeof a.id === "string" && typeof a.detail === "string" && (a.check === null || a.check === undefined || typeof a.check === "string"));
     avertissements = lisibles ? w.map((a) => ({ id: a.id, verification: typeof a.check === "string" ? a.check : null, detail: a.detail })) : null;
   }
+  const controles = lireControles(rapport, code);
+  const echecs = listeDeChaines(rapport.failed_checks);
+  // Ce que le vérificateur dit de chaque vérification en échec : son champ `detail`, tel quel, quand il se lit.
+  const dits = [];
+  for (const id of echecs ?? []) {
+    const v = Array.isArray(rapport.checks) ? rapport.checks.find((x) => x !== null && typeof x === "object" && x.id === id) : undefined;
+    if (v && v.status === "echoue" && typeof v.detail === "string" && v.detail !== "") dits.push({ id, detail: v.detail });
+  }
   return {
-    controles: lireControles(rapport, code),
+    controles,
     exiges,
-    echecs: listeDeChaines(rapport.failed_checks),
+    echecs,
+    dits,
     bloquantes: listeDeChaines(rapport.blocking_unexecuted),
     avertissements,
+    enResume: lignesEnResume(rapport, controles, code),
   };
 }
 
@@ -735,14 +1128,16 @@ function texteRefus(raison, parametres) {
   return libelle("refus_archive", { raison: libelle(raison, p) });
 }
 
-function texteCause(cause) {
-  if (cause.texte !== undefined) return cause.texte;
-  return libelle(cause.cle, cause.parametres);
+/** Paragraphe de la cause d'une vérification non faite : une phrase de la page, ou le texte que le travailleur donne (valeur). */
+function paragrapheCause(cause) {
+  const p = element("p", "pv-verdict-fort cause");
+  if (cause.texte !== undefined) return composer(p, "cause", { cause: cause.texte });
+  return composer(p, "cause", {}, { cause: composer(element("span"), cause.cle, cause.parametres) });
 }
 
-/** Raison d'une non-exécution en clair, son code entre parenthèses (CT-6 §6.2). */
-function texteRaison(code) {
-  return libelle("raison", { raison: libelle(RAISONS_CONNUES.includes(code) ? `raison_${code}` : "raison_inconnue"), code });
+/** Raison d'une non-exécution en clair, son code exact entre parenthèses (CT-6 §6.2). */
+function elementRaison(code) {
+  return elementLibelle("span", "pv-controle-raison", "raison", { code }, { raison: libelle(RAISONS_CONNUES.includes(code) ? `raison_${code}` : "raison_inconnue") });
 }
 
 /**
@@ -765,12 +1160,12 @@ function blocReplie(id, titre, note) {
   return { bloc: d, corps };
 }
 
-/** Bouton « Copier » d'un texte préformaté : le texte affiché, tel quel ; rien si le navigateur ne l'offre pas. */
-function boutonCopier(pre) {
+/** Bouton qui copie le texte d'un élément, tel quel ; rien si le navigateur ne l'offre pas. */
+function boutonCopier(pre, cle = "copier") {
   const presse = globalThis.navigator && globalThis.navigator.clipboard;
   if (!presse || typeof presse.writeText !== "function") return null;
   const ligne = element("div", "pv-copie");
-  const bouton = element("button", "nt-bouton nt-bouton-petit", libelle("copier"));
+  const bouton = element("button", "nt-bouton nt-bouton-petit", libelle(cle));
   bouton.type = "button";
   const suite = element("span", "nt-petit nt-attenue");
   suite.setAttribute("role", "status");
@@ -800,7 +1195,7 @@ function blocFichiers(noms) {
  * long défile dans son cadre, que le clavier atteint.
  */
 function blocPre(corps, pre) {
-  pre.classList.add("pv-pre");
+  exact(pre).classList.add("pv-pre");
   pre.tabIndex = 0;
   pre.setAttribute("role", "group");
   pre.setAttribute("aria-label", libelle("texte_defilant"));
@@ -819,24 +1214,65 @@ function blocVerdict(variante, nomIcone) {
   return s;
 }
 
-/** Ligne d'alerte sous le verdict : ce que le verdict ne couvre pas. */
-function ligneBorne(id, texte) {
-  const p = element("p", "pv-verdict-borne");
-  p.id = id;
-  p.append(icone("alerte"), element("span", null, texte));
+/** Phrase en langage courant sous le mot du verdict. */
+function phraseCourante(cle) {
+  const p = element("p", "nt-verdict-phrase pv-courante", libelle(cle));
+  p.id = "phrase-courante";
   return p;
 }
 
-/** Énoncé du vérificateur, tel quel ; les empreintes hexadécimales sont mises en chasse fixe, sans qu'un caractère change. */
+/** Ligne d'alerte sous le verdict : ce que le verdict ne couvre pas. `valeurs` : paramètres venus du rapport. */
+function ligneBorne(id, cle, valeurs = {}) {
+  const p = element("p", "pv-verdict-borne");
+  p.id = id;
+  p.append(icone("alerte"), elementLibelle("span", null, cle, valeurs));
+  return p;
+}
+
+/** Carte à titre : une rubrique du résultat. */
+function carte(id, cleTitre) {
+  const section = element("section", "nt-carte");
+  section.id = id;
+  const titre = element("div", "nt-carte-titre");
+  titre.append(element("h3", null, libelle(cleTitre)));
+  section.append(titre);
+  return { section, titre };
+}
+
+/**
+ * Copie d'une sélection faite dans l'énoncé : le presse-papiers reçoit le
+ * texte choisi tel qu'il est dans l'énoncé, sans les sauts de ligne que le
+ * navigateur ajouterait entre deux membres de phrase affichés l'un sous l'autre.
+ */
+function copierSelectionExacte(ev) {
+  const selection = typeof globalThis.getSelection === "function" ? globalThis.getSelection() : null;
+  if (!selection || selection.rangeCount !== 1 || !ev.clipboardData) return;
+  const plage = selection.getRangeAt(0);
+  const p = ev.currentTarget;
+  if (!p.contains(plage.startContainer) || !p.contains(plage.endContainer)) return;
+  ev.clipboardData.setData("text/plain", plage.cloneContents().textContent);
+  ev.preventDefault();
+}
+
+/**
+ * Énoncé du vérificateur, tel quel : chaque membre de phrase (coupure après
+ * « ; ») est un bloc à part, et les empreintes hexadécimales sont en chasse
+ * fixe, sans qu'un caractère change ; le texte de l'élément est l'énoncé.
+ */
 function paragrapheEnonce(id, langue, texte) {
-  const p = element("p", "enonce");
+  const p = exact(element("p", "enonce"));
   p.id = id;
   p.lang = langue;
-  for (const morceau of String(texte).split(/(0x[0-9a-f]{16,})/)) {
-    if (morceau === "") continue;
-    if (/^0x[0-9a-f]{16,}$/.test(morceau)) p.append(element("span", "pv-hex", morceau));
-    else p.append(document.createTextNode(neutraliser(morceau)));
+  for (const membre of membresEnonce(String(texte))) {
+    const bloc = element("span", "pv-membre");
+    for (const morceau of membre.split(/(0x[0-9a-f]{16,})/)) {
+      if (morceau === "") continue;
+      if (/^0x[0-9a-f]{16,}$/.test(morceau)) bloc.append(element("span", "pv-hex", morceau));
+      else bloc.append(document.createTextNode(neutraliser(morceau)));
+    }
+    p.append(bloc);
   }
+  p.addEventListener("copy", copierSelectionExacte);
   return p;
 }
 
@@ -845,43 +1281,124 @@ const PASTILLES_STATUT = {
   echoue: ["refus", "croix", "statut_echoue"],
   non_execute: ["", "tiret", "statut_non_execute"],
 };
+// Contrôle réussi auquel le rapport rattache un avertissement.
+const PASTILLE_RESERVE = ["attente", "alerte", "statut_reussi_reserve"];
 
-/** Carte des huit contrôles : l'état que le rapport donne à chacun, sa raison, son résumé. */
+/** Liste en mots : éléments joints par le libellé `cleSep`, le dernier par `cleDernier`. */
+function listeEnMots(elements, cleSep, cleDernier) {
+  if (elements.length <= 1) return elements.join("");
+  return `${elements.slice(0, -1).join(libelle(cleSep))}${libelle(cleDernier)}${elements[elements.length - 1]}`;
+}
+
+/** Ce que le vérificateur dit d'une vérification en échec, tel quel, son identifiant à la fin entre parenthèses. */
+function ligneEchec(dit) {
+  const e = elementLibelle("span", "pv-controle-dit", "dit_echec", { detail: dit.detail, id: dit.id });
+  e.dataset.verification = dit.id;
+  return e;
+}
+
+/** Jour et heure en toutes lettres, d'après le gabarit `instant` de la langue de la page. */
+function instantEnLettres(i) {
+  const deux = (n) => String(n).padStart(2, "0");
+  return libelle("instant", { jour: i.jour === 1 ? libelle("jour_premier") : String(i.jour), mois: libelle(`mois_${i.mois}`), annee: String(i.annee), heure: deux(i.heure), minute: deux(i.minute), seconde: deux(i.seconde) });
+}
+
+/**
+ * Carte « En résumé », avant le texte exact : les lignes de lignesEnResume,
+ * chaque valeur venue du rapport marquée comme telle, puis la phrase qui dit
+ * que seul le texte exact fait foi. Rien si aucune ligne.
+ */
+function carteEnResume(lignes) {
+  if (lignes.length === 0) return null;
+  const { section } = carte("en-resume", "titre_en_resume");
+  const ul = element("ul", "pv-liste pv-en-resume");
+  for (const l of lignes) {
+    const valeurs = { ...l.valeurs };
+    for (const [nom, i] of Object.entries(l.instants)) valeurs[nom] = instantEnLettres(i);
+    const li = elementLibelle("li", null, l.cle, valeurs);
+    li.dataset.ligne = l.nom;
+    // Le nom d'un outil est un identifiant : en chasse fixe, pour qu'il se lise caractère par caractère.
+    if (l.nom === "outil") for (const v of li.querySelectorAll(".pv-valeur")) v.classList.add("pv-identifiant");
+    ul.append(li);
+  }
+  const fin = element("p", "pv-intro", libelle("resume_fin"));
+  fin.id = "resume-fin";
+  section.append(ul, fin);
+  return section;
+}
+
+/**
+ * Carte des huit contrôles, une ligne chacun : l'état que le rapport lui
+ * donne, son nom courant, ce qu'il sert à prouver. Sous un contrôle non fait,
+ * sa raison en clair et son code ; sous un contrôle échoué, ce que le
+ * vérificateur en dit. Le résumé que le vérificateur donne de chaque contrôle
+ * est repris tel quel dans un bloc replié de la carte.
+ */
 function carteControles(resume) {
-  const carte = element("section", "nt-carte");
-  carte.id = "controles";
-  const titre = element("div", "nt-carte-titre");
-  titre.append(element("h3", null, libelle("titre_controles")));
+  const { section, titre } = carte("controles", "titre_controles");
   const compte = (statut) => resume.controles.filter((c) => c.statut === statut).length;
-  const parties = [libelle("compte_reussis", { n: compte("reussi") })];
+  const reserves = new Map(resume.controles.map((c) => [c.numero, c.statut === "reussi" ? reservesDuControle(c.numero, resume.controles, resume.avertissements) : []]));
+  const avecReserve = [...reserves.values()].filter((ids) => ids.length > 0).length;
+  const parties = [avecReserve === 0 ? libelle("compte_reussis", { n: compte("reussi") }) : libelle("compte_reussis_reserve", { n: compte("reussi"), m: avecReserve })];
   if (compte("non_execute") > 0) parties.push(libelle("compte_non_executes", { n: compte("non_execute") }));
   if (compte("echoue") > 0) parties.push(libelle("compte_echoues", { n: compte("echoue") }));
   const note = element("span", "nt-carte-note", parties.join(" · "));
   note.id = "compte-controles";
   titre.append(note);
-  const ul = element("ul", "nt-controles");
+  // La pastille « réussi, avec réserve » est plus longue : la colonne des états s'élargit pour toute la liste.
+  const ul = element("ul", avecReserve > 0 ? "nt-controles pv-controles-reserve" : "nt-controles");
+  const resumes = element("div", "pv-resumes");
   for (const c of resume.controles) {
     const li = element("li", "nt-controle pv-controle");
     li.dataset.numero = String(c.numero);
     li.dataset.statut = c.statut;
-    const [ton, nomIcone, cle] = PASTILLES_STATUT[c.statut];
+    // Un contrôle réussi auquel le rapport rattache un avertissement n'est pas montré réussi sans plus : sa pastille le dit.
+    const ids = reserves.get(c.numero);
+    const [ton, nomIcone, cle] = ids.length > 0 ? PASTILLE_RESERVE : PASTILLES_STATUT[c.statut];
+    if (ids.length > 0) li.dataset.reserves = ids.join(" ");
     const marque = element("span");
     marque.append(pastille(ton, nomIcone, libelle(cle)));
     const texte = element("div", "nt-controle-texte");
     const ligne = element("div", "pv-controle-ligne");
-    ligne.append(element("span", "nt-controle-titre", `${c.numero}. ${libelle(`controle_${c.numero}`)}`));
+    const nom = `${c.numero}. ${libelle(`controle_${c.numero}`)}`;
+    ligne.append(element("span", "nt-controle-titre", nom));
     if (resume.exiges !== null && resume.exiges.includes(c.numero)) ligne.append(pastille("info", "alerte", libelle("controle_exige")));
+    ligne.append(element("span", "pv-controle-prouve", libelle(`prouve_${c.numero}`)));
     texte.append(ligne);
-    if (c.statut === "non_execute") texte.append(element("span", "pv-controle-raison", texteRaison(c.raison)));
-    if (c.resume !== "") texte.append(element("span", "nt-attenue nt-petit", c.resume));
+    if (c.statut === "non_execute") texte.append(elementRaison(c.raison));
+    if (ids.length > 0) {
+      const renvoi = element("a", null, libelle("renvoi_reserves"));
+      renvoi.href = "#avertissements";
+      texte.append(elementLibelle("span", "pv-controle-reserve", "controle_reserve", { ids: ids.join(", ") }, { renvoi }));
+    }
+    if (c.statut === "echoue") {
+      texte.append(element("span", "pv-controle-echec", libelle("echec_suite")));
+      // Ce que le vérificateur dit de ce qui a échoué, d'abord ; l'identifiant de la vérification à la fin, entre parenthèses.
+      const dits = resume.dits.filter((d) => c.verifications.includes(d.id));
+      for (const d of dits) texte.append(ligneEchec(d));
+      if (dits.length === 0 && c.resume !== "") texte.append(elementLibelle("span", "pv-controle-dit", "dit_verificateur", { resume: c.resume }));
+    }
     li.append(marque, texte);
     ul.append(li);
+    // Dans le bloc replié : ce que le contrôle sert à prouver, en entier, puis le résumé du vérificateur, tel quel.
+    const detail = element("div", "pv-resume");
+    const dit = element("span", "pv-resume-exact", c.resume);
+    dit.dataset.numero = String(c.numero);
+    detail.append(element("p", "pv-resume-titre", nom), element("p", null, libelle(`prouve_long_${c.numero}`)), ligneExacte("texte_exact", dit));
+    resumes.append(detail);
   }
-  carte.append(titre, ul);
-  return carte;
+  section.append(ul);
+  const { bloc, corps } = blocReplie("detail-controles", libelle("titre_detail_controles"), null);
+  corps.append(resumes);
+  section.append(bloc);
+  return section;
 }
 
-/** Bandeau des avertissements : ceux du rapport JSON, puis la sortie d'erreur si elle n'est pas vide. */
+/**
+ * Bandeau des réserves : chaque avertissement du rapport JSON, en langage
+ * courant quand son identifiant est dans la table, puis son texte exact avec
+ * son identifiant ; ensuite la sortie d'erreur si elle n'est pas vide.
+ */
 function bandeauAvertissements(v) {
   const avertissements = v.resume ? v.resume.avertissements : [];
   if (v.erreur === "" && avertissements !== null && avertissements.length === 0) return null;
@@ -892,15 +1409,30 @@ function bandeauAvertissements(v) {
   if (avertissements === null) texte.append(element("p", "nt-bandeau-titre", libelle("avertissements_illisibles")));
   else if (avertissements.length > 0) {
     texte.append(element("p", "nt-bandeau-titre", libelle("titre_avertissements")));
-    const ul = element("ul", "pv-liste");
-    for (const a of avertissements) {
-      ul.append(element("li", null, a.verification === null ? libelle("avertissement_sans_verification", { detail: a.detail, id: a.id }) : libelle("avertissement", { detail: a.detail, id: a.id, check: a.verification })));
+    const ul = element("ul", "pv-liste pv-reserves");
+    // Une réserve signalée plusieurs fois sous le même identifiant n'est dite qu'une fois en langage courant ; chacun de ses textes exacts suit.
+    const table = TABLES_LIBELLES[etat.langue];
+    for (const g of grouperAvertissements(avertissements, (id) => cleAvertissement(id, table) !== null)) {
+      const li = element("li", "pv-reserve");
+      li.dataset.id = g.id;
+      li.dataset.fois = String(g.elements.length);
+      const cle = cleAvertissement(g.id, table);
+      if (cle !== null) {
+        const courante = element("p", "pv-reserve-courante", libelle(cle));
+        if (g.elements.length > 1) courante.append(document.createTextNode(" "), elementLibelle("span", "pv-reserve-fois", "reserve_fois", { n: String(g.elements.length) }));
+        li.append(courante);
+      }
+      for (const a of g.elements) {
+        const brut = a.verification === null ? libelle("avertissement_sans_verification", { detail: a.detail, id: a.id }) : libelle("avertissement", { detail: a.detail, id: a.id, check: a.verification });
+        li.append(ligneExacte("texte_exact", element("span", "pv-reserve-exacte", brut)));
+      }
+      ul.append(li);
     }
     texte.append(ul);
   }
   if (v.erreur !== "") {
     texte.append(element("p", "nt-bandeau-titre", libelle("titre_sortie_erreur")));
-    const err = element("pre", "sortie-erreur nt-pre", v.erreur);
+    const err = exact(element("pre", "sortie-erreur nt-pre", v.erreur));
     err.id = "sortie-erreur";
     texte.append(err);
   }
@@ -908,7 +1440,38 @@ function bandeauAvertissements(v) {
   return bandeau;
 }
 
-/** Bloc replié « Refaire la vérification avec le binaire » : fichiers choisis et ligne de commande équivalente. */
+/** Carte « Ce que ce résultat ne dit pas » : lignes fixes du code de retour ; rien hors table. */
+function carteLimites(code) {
+  if (!Object.hasOwn(LIMITES, code)) return null;
+  const { section } = carte("limites", "titre_limites");
+  section.append(element("p", "pv-intro", libelle("intro_limites")));
+  const ul = element("ul", "pv-liste");
+  for (const cle of LIMITES[code]) ul.append(element("li", null, libelle(cle)));
+  section.append(ul);
+  return section;
+}
+
+/** Carte « Et maintenant ? » : lignes fixes du code de retour, d'un refus ou d'une vérification non faite ; « Imprimer » après un rapport. */
+function carteSuite(genre, imprimer) {
+  if (!Object.hasOwn(SUITES, genre)) return null;
+  const { section } = carte("suite", "titre_suite");
+  const ul = element("ul", "pv-liste");
+  for (const cle of SUITES[genre]) ul.append(element("li", null, libelle(cle)));
+  section.append(ul);
+  if (imprimer && typeof globalThis.print === "function") {
+    const actions = element("div", "nt-actions pv-imprimer");
+    const bouton = element("button", "nt-bouton");
+    bouton.type = "button";
+    bouton.id = "imprimer";
+    bouton.append(icone("imprimante"), element("span", null, libelle("imprimer")));
+    bouton.addEventListener("click", () => globalThis.print());
+    actions.append(bouton);
+    section.append(actions);
+  }
+  return section;
+}
+
+/** Bloc replié « Refaire la vérification avec le programme autonome » : fichiers choisis et ligne de commande équivalente. */
 function blocCommande(v) {
   const { bloc, corps } = blocReplie("detail-commande", libelle("titre_commande"), libelle("note_commande"));
   if (v.noms) corps.append(blocNoms(v.noms));
@@ -918,10 +1481,29 @@ function blocCommande(v) {
   return bloc;
 }
 
+/** Rubrique « Pour les spécialistes » : un titre, une phrase, puis les blocs repliés donnés. */
+function rubriqueSpecialistes(blocs) {
+  const section = element("section", "nt-pile pv-specialistes");
+  section.id = "specialistes";
+  section.append(element("h3", null, libelle("titre_specialistes")), element("p", "nt-aide", libelle("intro_specialistes")), ...blocs);
+  return section;
+}
+
 function afficherVue() {
+  const contenu = $("resultat-contenu");
+  const formulaire = $("formulaire");
+  // Le bandeau de confiance sort du résultat avant que celui-ci soit réécrit : il n'est jamais détruit.
+  if (etat.confiance && contenu && formulaire && etat.confiance.parentElement === contenu) formulaire.before(etat.confiance);
+  ecrireVue();
+  if (etat.vue !== null && etat.vue.genre !== "en_cours") etat.confianceDessous = true;
+  placerConfiance();
+}
+
+function ecrireVue() {
   const section = $("resultat");
   const contenu = $("resultat-contenu");
   if (!section || !contenu) return;
+  afficherReduction();
   contenu.replaceChildren();
   const v = etat.vue;
   if (v === null) {
@@ -939,97 +1521,157 @@ function afficherVue() {
     return;
   }
   if (v.genre === "refus") {
-    // EX-18.7 : la raison, « aucun rapport » et aucun code.
+    // EX-18.7 : la raison, « aucun rapport » et aucun code. La raison en langage courant précède la raison exacte.
     const verdict = blocVerdict(null, "alerte");
-    verdict.append(element("p", "nt-verdict-mot pv-mot aucun-rapport", libelle("aucun_rapport")));
-    verdict.append(element("p", "nt-verdict-phrase pv-phrase alerte", texteRefus(v.raison, v.parametres)));
+    // Titre courant du refus, selon ce qui a été choisi : un fichier, un dossier de fichiers, ou un dépôt que la page n'a pas pu prendre.
+    const cleTitre = !v.noms ? "titre_refus_choix" : v.noms.dossier.genre === "repertoire" ? "titre_refus_repertoire" : "titre_refus";
+    const titreRefus = element("p", "nt-verdict-mot pv-mot", libelle(cleTitre));
+    titreRefus.id = "refus-titre";
+    verdict.append(titreRefus, phraseCourante("phrase_refus"));
     const suite = element("div", "pv-verdict-suite");
-    suite.append(element("p", null, libelle("refus_suite")));
+    const cle = cleRefusCourant(v.raison, TABLES_LIBELLES[etat.langue]);
+    if (cle !== null) {
+      const courant = element("p", "pv-verdict-fort", libelle(cle));
+      courant.id = "refus-courant";
+      suite.append(courant);
+    }
+    suite.append(ligneExacte("raison_exacte", element("span", "alerte", texteRefus(v.raison, v.parametres))));
+    // EX-18.7 : la mention fixée « aucun rapport » reste, sous le titre courant.
+    suite.append(ligneExacte("mention_refus", element("span", "aucun-rapport", libelle("aucun_rapport"))));
     verdict.append(suite);
-    contenu.append(verdict);
-    if (v.noms) contenu.append(blocFichiers(v.noms));
+    contenu.append(verdict, carteSuite("refus", false));
+    if (v.noms) contenu.append(rubriqueSpecialistes([blocFichiers(v.noms)]));
     return;
   }
   if (v.genre === "non_faite") {
     // EX-18.9 : « vérification non faite » avec la cause, aucun rapport, aucun énoncé.
     const verdict = blocVerdict(null, "question");
-    verdict.append(element("p", "nt-verdict-mot pv-mot alerte non-faite", libelle("non_faite")));
-    verdict.append(element("p", "nt-verdict-phrase pv-phrase cause", libelle("cause", { cause: texteCause(v.cause) })));
+    verdict.append(element("p", "nt-verdict-mot pv-mot alerte non-faite", libelle("non_faite")), phraseCourante("phrase_non_faite"));
     const suite = element("div", "pv-verdict-suite");
-    suite.append(element("p", null, libelle("non_faite_suite")));
+    suite.append(paragrapheCause(v.cause));
     verdict.append(suite);
-    contenu.append(verdict);
-    if (v.commandes) contenu.append(blocCommande(v));
-    else if (v.noms) contenu.append(blocFichiers(v.noms));
+    contenu.append(verdict, carteSuite("non_faite", false));
+    if (v.commandes) contenu.append(rubriqueSpecialistes([blocCommande(v)]));
+    else if (v.noms) contenu.append(rubriqueSpecialistes([blocFichiers(v.noms)]));
     return;
   }
 
-  // Verdict : le mot suit le code de retour ; la phrase du code (table de CT-6 §8.3) reste entière dessous.
+  // Verdict : le mot suit le code de retour, la phrase en langage courant aussi ; la phrase du code (table de CT-6
+  // §8.3) reste entière dessous, en petit.
   const variantes = { 0: ["valide", "bouclier"], 1: ["non-valide", "croix"], 2: [null, "question"], 3: ["incomplet", "alerte"] };
-  const verdict = blocVerdict(variantes[v.code][0], variantes[v.code][1]);
+  // La présentation ne peut que restreindre ce que le code dit : sous le code 0, la teinte pleine et son signe ne
+  // restent que si le rapport, lu exactement, donne huit contrôles réussis et aucun avertissement.
+  const presentation = presentationVerdict(v.code, v.code === 2 ? null : v.resume.controles, v.code === 2 ? null : v.resume.avertissements);
+  const [variante, signe] = presentation.teinte === "pleine" ? variantes[v.code] : [null, presentation.teinte === "reserve" ? "alerte" : "question"];
+  const verdict = blocVerdict(variante, signe);
+  if (presentation.teinte !== "pleine") verdict.classList.add(`pv-verdict-${presentation.teinte}`);
   verdict.dataset.code = String(v.code);
-  const mot = element("p", "nt-verdict-mot pv-mot", libelle(`mot_${v.code}`));
+  const titre = element("p", "nt-verdict-mot pv-mot");
+  titre.id = "verdict-titre";
+  const mot = element("span", null, libelle(`mot_${v.code}`));
   mot.id = "verdict-mot";
-  const code = element("p", `nt-verdict-phrase pv-phrase code code-${v.code}`, libelle("code", { code: v.code, sens: libelle(`code_${v.code}`) }));
-  code.id = "code";
+  titre.append(mot);
+  if (presentation.mention !== null) {
+    const mention = element("span", "pv-mention", libelle(presentation.mention));
+    mention.id = "verdict-mention";
+    titre.append(mention);
+  }
+  verdict.append(titre);
+  // Juste sous le titre : ce que les contrôles non réussis laissent sans preuve, en mots.
+  if (v.code === 0 && presentation.teinte === "reserve") {
+    const cles = clesNonProuve(v.resume.controles);
+    if (cles.length > 0) {
+      const p = element("p", "pv-non-prouve", libelle(cles.length === 1 ? "non_prouve_un" : "non_prouve_plusieurs", { liste: listeEnMots(cles.map((cle) => libelle(cle)), "non_prouve_sep", "non_prouve_dernier") }));
+      p.id = "non-prouve";
+      verdict.append(p);
+    }
+  }
+  const courante = clePhraseCourante(v.code);
+  if (courante !== null) verdict.append(phraseCourante(courante));
   const suite = element("div", "pv-verdict-suite");
   suite.id = "verdict-suite";
-  verdict.append(mot, code, suite);
+  verdict.append(suite);
   contenu.append(verdict);
 
   if (v.code === 2) {
     const a = element("p", "aucune-affirmation pv-verdict-fort", libelle("aucune_affirmation"));
     a.id = "aucune-affirmation";
     suite.append(a);
-    suite.append(element("p", "nt-petit nt-attenue", libelle("message_erreur")));
-    const m = element("p", "message-erreur", v.messageErreur);
+    // La pièce en cause, en clair, quand le rapport d'erreur la nomme (son champ `kind`).
+    if (v.pieceEnCause !== null) {
+      const piece = element("p", "pv-verdict-fort", libelle(v.pieceEnCause));
+      piece.id = "piece-en-cause";
+      suite.append(piece);
+    }
+    const m = element("span", "message-erreur", v.messageErreur);
     m.id = "message-erreur";
-    suite.append(m);
+    suite.append(ligneExacte("message_erreur", m));
   } else {
     const r = v.resume;
-    if (r.controles === null) suite.append(ligneBorne("resume-indisponible", libelle("resume_indisponible")));
+    // Réserves : la ligne paraît dès que le rapport porte un avertissement, sous un verdict qui affirme quelque chose.
+    if ((v.code === 0 || v.code === 3) && aDesReserves(r.avertissements)) suite.append(ligneBorne("reserves", "reserves"));
+    if (r.controles === null) suite.append(ligneBorne("resume-indisponible", "resume_indisponible"));
     else {
       const nonReussis = controlesNonReussis(r.controles);
       if (v.code === 0 && nonReussis.length === 0) {
-        const p = element("p", "pv-verdict-fort", libelle("tous_reussis"));
+        const avecReserve = r.controles.filter((c) => reservesDuControle(c.numero, r.controles, r.avertissements).length > 0).length;
+        const p = avecReserve === 0 ? element("p", "pv-verdict-fort", libelle("tous_reussis")) : elementLibelle("p", "pv-verdict-fort", "tous_reussis_reserve", { n: String(avecReserve) });
         p.id = "tous-reussis";
         suite.append(p);
-      } else if (v.code === 0) suite.append(ligneBorne("verdict-borne", libelle("valide_borne", { liste: nonReussis.join(", ") })));
+      } else if (v.code === 0) suite.append(ligneBorne("verdict-borne", "valide_borne", { liste: nonReussis.join(", ") }));
       else if (v.code === 3 && r.exiges !== null) {
-        suite.append(ligneBorne("exiges-non-reussis", libelle("exiges_non_reussis", { liste: r.exiges.filter((n) => nonReussis.includes(n)).join(", ") })));
+        suite.append(ligneBorne("exiges-non-reussis", "exiges_non_reussis", { liste: r.exiges.filter((n) => nonReussis.includes(n)).join(", ") }));
       }
     }
     if (v.code === 1) {
-      if (r.echecs !== null && r.echecs.length > 0) suite.append(element("p", "pv-verdict-fort", libelle("verifications_echec", { liste: r.echecs.join(", ") })));
-      if (r.bloquantes !== null && r.bloquantes.length > 0) suite.append(element("p", "pv-verdict-fort", libelle("verifications_bloquantes", { liste: r.bloquantes.join(", ") })));
+      // Ce que le vérificateur dit d'une vérification en échec qu'aucun contrôle ne porte : les autres sont dites sur la ligne de leur contrôle.
+      for (const d of r.dits) {
+        if (r.controles !== null && r.controles.some((c) => c.statut === "echoue" && c.verifications.includes(d.id))) continue;
+        suite.append(ligneEchec(d));
+      }
+      if (r.echecs !== null && r.echecs.length > 0) suite.append(elementLibelle("p", "pv-references", "verifications_echec", { liste: r.echecs.join(", ") }));
+      if (r.bloquantes !== null && r.bloquantes.length > 0) suite.append(elementLibelle("p", "pv-references", "verifications_bloquantes", { liste: r.bloquantes.join(", ") }));
     }
   }
+  const code = element("span", `code code-${v.code}`, libelle("code", { code: v.code, sens: libelle(`code_${v.code}`) }));
+  code.id = "code";
+  suite.append(ligneExacte("formule_exacte", code));
 
-  // Les avertissements montent sous le verdict : ils ne sont jamais repliés.
+  // Les réserves viennent aussitôt sous le verdict : elles ne sont jamais repliées.
   const avertissements = bandeauAvertissements(v);
   if (avertissements) contenu.append(avertissements);
 
   if (v.code !== 2) {
+    if (v.resume.controles !== null) contenu.append(carteControles(v.resume));
+    const enResume = carteEnResume(v.resume.enResume);
+    if (enResume) contenu.append(enResume);
     // Énoncé dans la langue de la page, tel quel ; l'autre langue dans un bloc replié de la même carte.
-    const carte = element("section", "nt-carte");
-    carte.id = "enonce";
-    const titre = element("div", "nt-carte-titre");
-    titre.append(element("h3", null, libelle(v.code === 1 ? "titre_enonce_invalide" : "titre_enonce")));
-    titre.append(element("span", "nt-carte-note", libelle("note_enonce")));
-    carte.append(titre);
+    const { section: enonce } = carte("enonce", v.code === 1 ? "titre_enonce_invalide" : "titre_enonce");
+    enonce.append(element("p", "pv-intro", libelle(v.code === 1 ? "intro_enonce_invalide" : "intro_enonce")));
+    // L'explication des empreintes ne paraît que si l'énoncé affiché en porte.
+    if (/0x[0-9a-f]{16,}/.test(etat.langue === "en" ? v.enonceEn : v.enonceFr)) enonce.append(element("p", "pv-intro", libelle("intro_empreintes")));
     const fr = paragrapheEnonce("enonce-fr", "fr", v.enonceFr);
     const en = paragrapheEnonce("enonce-en", "en", v.enonceEn);
-    const [principal, autre, cleAutre, champAutre] = etat.langue === "en" ? [en, fr, "enonce_fr", "statement.fr"] : [fr, en, "enonce_en", "statement.en"];
-    carte.append(principal);
-    const { bloc, corps } = blocReplie("detail-enonce-autre", libelle(cleAutre), champAutre);
+    const [principal, autre, cleAutre] = etat.langue === "en" ? [en, fr, "enonce_fr"] : [fr, en, "enonce_en"];
+    enonce.append(principal);
+    const copie = boutonCopier(principal, "copier_enonce");
+    if (copie) enonce.append(copie);
+    const { bloc, corps } = blocReplie("detail-enonce-autre", libelle(cleAutre), null);
     bloc.classList.add("pv-enonce-autre");
     corps.append(autre);
-    carte.append(bloc);
-    contenu.append(carte);
-    if (v.resume.controles !== null) contenu.append(carteControles(v.resume));
+    enonce.append(bloc);
+    contenu.append(enonce);
   }
+  // « Ce que ce résultat ne dit pas » et « Et maintenant ? » : côte à côte quand la place le permet.
+  const duo = element("div", "pv-duo");
+  const limites = v.code === 2 ? null : carteLimites(v.code);
+  if (limites) duo.append(limites);
+  const suiteCarte = carteSuite(v.code, true);
+  if (suiteCarte) duo.append(suiteCarte);
+  contenu.append(duo);
 
-  // Rapport complet, rapport JSON, ligne de commande : tels quels, dans des blocs repliés.
+  // Pour les spécialistes : rapport complet, rapport JSON, ligne de commande, tels quels, dans des blocs repliés.
+  const blocs = [];
   if (v.lisible !== "" || v.erreur === "") {
     const { bloc, corps } = blocReplie("detail-rapport", libelle("rapport_lisible"), libelle("note_rapport"));
     if (v.lisible !== "") {
@@ -1043,14 +1685,14 @@ function afficherVue() {
       err.id = "sortie-erreur";
       corps.append(err);
     }
-    contenu.append(bloc);
+    blocs.push(bloc);
   }
   const json = blocReplie("detail-json", libelle("rapport_json"), libelle("note_rapport_json"));
   const preJson = element("pre", "rapport-json nt-pre nt-pre-defile", v.json);
   preJson.id = "rapport-json";
   blocPre(json.corps, preJson);
-  contenu.append(json.bloc);
-  contenu.append(blocCommande(v));
+  blocs.push(json.bloc, blocCommande(v));
+  contenu.append(rubriqueSpecialistes(blocs));
 }
 
 /** Après une vérification, le résultat vient à l'écran. */
@@ -1084,6 +1726,7 @@ function lier() {
     const f = ev.target.files[0];
     etat.dossier = f ? dossierDArchive(f) : null;
     ev.target.value = "";
+    rouvrirFormulaire();
     afficherDossier();
   });
   $("entree-ancres").addEventListener("change", (ev) => {
@@ -1114,6 +1757,12 @@ function lier() {
   $("verifier").addEventListener("click", () => {
     verifier();
   });
+  $("verifier-autre").addEventListener("click", () => {
+    rouvrirFormulaire();
+    const etape = $("choix-dossier");
+    if (typeof etape.scrollIntoView === "function") etape.scrollIntoView({ block: "start" });
+    $("choisir-archive").focus();
+  });
   $("arreter").addEventListener("click", () => {
     arreter();
   });
@@ -1142,6 +1791,7 @@ function lier() {
 }
 
 function initialiser() {
+  etat.confiance = $("confiance");
   lier();
   appliquerLangue();
   demarrer();

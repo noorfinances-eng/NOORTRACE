@@ -10,7 +10,7 @@
 // `window.ethereum` n'est jamais lu.
 
 import { Decouverte, analyserComptes, codeErreurPortefeuille } from "noortrace-console/index.mjs";
-import { el, ajouter, bouton, message, pastille, remplacer } from "./dom.mjs";
+import { el, ajouter, bouton, donnee, icone, message, pastille, remplacer } from "./dom.mjs";
 import { t, texteCode } from "./libelles.mjs";
 import { paragrapheCode, phraseCode } from "./cadre.mjs";
 
@@ -52,6 +52,48 @@ export function lancerDecouverte() {
   };
 }
 
+// Vrai si l'image chargée est d'une seule couleur (ou entièrement transparente) : elle ne montre rien.
+function imageUnie(img) {
+  try {
+    const toile = document.createElement("canvas");
+    toile.width = 8;
+    toile.height = 8;
+    const trace = toile.getContext("2d");
+    trace.drawImage(img, 0, 0, 8, 8);
+    const points = trace.getImageData(0, 0, 8, 8).data;
+    for (let i = 4; i < points.length; i += 1) if (points[i] !== points[i % 4]) return false;
+    return true;
+  } catch {
+    // Image illisible par la page : elle est laissée telle que le portefeuille la fournit.
+    return false;
+  }
+}
+
+/**
+ * L'icône d'un portefeuille annoncé : celle qu'il fournit, telle quelle. Si
+ * elle manque, ne se charge pas ou est d'une seule couleur (un carré uni
+ * ressemble à une image manquante), un pictogramme neutre de portefeuille la
+ * remplace : un tracé du gabarit de la page, rien n'est chargé.
+ */
+function iconeFournisseur(f) {
+  const cadre = el("span", { classe: "fournisseur-icone", attributs: { "data-icone": "annoncee" } });
+  const neutre = () => {
+    cadre.setAttribute("data-icone", "neutre");
+    remplacer(cadre, icone("portefeuille"));
+  };
+  if (typeof f.icon !== "string" || f.icon === "") {
+    neutre();
+    return cadre;
+  }
+  const img = el("img", { attributs: { src: f.icon, alt: "", width: "32", height: "32" } });
+  img.addEventListener("error", neutre);
+  img.addEventListener("load", () => {
+    if (imageUnie(img)) neutre();
+  });
+  cadre.appendChild(img);
+  return cadre;
+}
+
 /**
  * Affiche la liste des fournisseurs annoncés (EX-13.22, points 4 à 6) et, s'il
  * y a lieu, les annonces écartées.
@@ -71,20 +113,21 @@ export function rendreFournisseurs(conteneur, decouverte, choisi, surChoix, acti
     const ul = el("ul", { classe: "liste-nue fournisseurs" });
     for (const f of liste) {
       const estChoisi = choisi !== null && choisi.provider === f.provider;
-      const img = el("img", { attributs: { src: f.icon, alt: "", width: "32", height: "32" } });
       ajouter(
         ul,
         el(
           "li",
           { classe: estChoisi ? "fournisseur choisi" : "fournisseur", attributs: { "data-uuid": f.uuid } },
-          img,
-          el("div", { classe: "fournisseur-texte" }, el("span", { classe: "fournisseur-nom", texte: f.name }), el("span", { classe: "fournisseur-rdns", texte: t("portefeuille.rdns", { rdns: f.rdns }) })),
+          iconeFournisseur(f),
+          // Le nom et l'identifiant viennent du portefeuille : ils s'affichent tels quels.
+          el("div", { classe: "fournisseur-texte" }, donnee(f.name, "fournisseur-nom"), donnee(t("portefeuille.rdns", { rdns: f.rdns }), "fournisseur-rdns")),
           estChoisi ? pastille("succes", t("portefeuille.choisi"), "coche") : bouton(t("portefeuille.choisir"), () => surChoix(f), { actif }),
         ),
       );
     }
     parties.push(ul);
-    if (choisi === null) parties.push(el("p", { classe: "discret nt-attenue nt-petit" }, ...phraseCode("fournisseur_non_choisi", ["console."])));
+    // Un portefeuille pas encore choisi n'est pas une panne : la phrase, sans code (EX-13.29, complément du 2026-11-18).
+    if (choisi === null) parties.push(el("p", { classe: "discret nt-attenue nt-petit", attributs: { "data-code": "fournisseur_non_choisi" } }, ...phraseCode("fournisseur_non_choisi", ["console."])));
   }
   const ecartees = decouverte.ecartees;
   if (ecartees.some((e) => e.reason === "annonce_en_double")) {
@@ -176,9 +219,9 @@ export function textePanne(code, erreur, prefixes) {
 }
 
 /**
- * Les nœuds d'une panne du portefeuille : la phrase, son code entre
- * parenthèses, et pour `erreur_portefeuille` le code et le message reçus,
- * comme du texte. Le texte lu est celui de `textePanne`.
+ * Les nœuds d'une panne du portefeuille : la phrase ; pour
+ * `erreur_portefeuille`, le code et le message reçus, comme du texte ; puis
+ * le code de la panne entre parenthèses, à la fin (EX-13.29).
  * @param {string} code
  * @param {{code: number|null, message: string}|null} erreur
  * @param {string[]} prefixes
@@ -187,7 +230,7 @@ export function textePanne(code, erreur, prefixes) {
 export function noeudsPanne(code, erreur, prefixes) {
   const noeuds = phraseCode(code, prefixes);
   if (code === "erreur_portefeuille" && erreur) {
-    noeuds.push(el("span", { texte: ` ${t("portefeuille.erreur_recue", { code: erreur.code === null ? t("portefeuille.sans_code") : erreur.code, message: erreur.message })}` }));
+    noeuds.splice(1, 0, donnee(` ${t("portefeuille.erreur_recue", { code: erreur.code === null ? t("portefeuille.sans_code") : erreur.code, message: erreur.message })}`));
   }
   return noeuds;
 }

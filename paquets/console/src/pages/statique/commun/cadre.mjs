@@ -3,14 +3,18 @@
 // `session_absente`, navigation vers `/connexion?retour=<chemin>` ; une
 // identité que `analyserIdentite` refuse donne le seul affichage de
 // `identite_invalide`, sans autre lecture), barre haute (logo, navigation,
-// personne connectée, déconnexion, bascule de thème) et, sous elle,
-// l'identité de session en entier ; affichage d'une erreur par son texte et
-// son code entre parenthèses ; formes lisibles (instants, durées, états).
+// la personne connectée, dite en mots (complément du 2026-11-18, langage des
+// écrans : « Vous êtes connecté : … », puis le système qui a fourni le
+// compte), déconnexion, bascule de thème) ; au pied de l'écran, dans un bloc
+// replié, l'identité de session canonique en entier, dans son ordre
+// (EX-13.7). Affichage d'une erreur : ce qui s'est passé et quoi faire, puis
+// le code entre parenthèses, à la fin ; formes lisibles (instants, durées,
+// états).
 
-import { el, ajouter, bouton, code, icone, marque, message, pastille, remplacer } from "./dom.mjs";
-import { t, texteCode } from "./libelles.mjs";
+import { el, ajouter, bouton, code, detail, fixe, icone, marque, message, pastille, remplacer } from "./dom.mjs";
+import { aCle, cleCode, t, texteCode } from "./libelles.mjs";
 import { ErreurAppel, deconnexion, erreurDeSession, lireSession } from "./client.mjs";
-import { partiesDuree, partiesInstant, texteDecalage } from "./lisible.mjs";
+import { partiesDuree, partiesIdentite, partiesInstant, texteDecalage } from "./lisible.mjs";
 import { basculerTheme, estClair, surTheme } from "./theme.mjs";
 
 /** Préfixes des clés d'une erreur du serveur ou du service. */
@@ -32,19 +36,32 @@ export function estIdentifiantTicket(id) {
  * @param {string} [classe] classe du lien
  */
 export function lienTicket(id, classe = "nt-fixe") {
-  if (estIdentifiantTicket(id)) return el("a", { classe, texte: id, attributs: { href: `/tickets/${id}` } });
+  if (estIdentifiantTicket(id)) return el("a", { classe, texte: id, attributs: { href: `/tickets/${id}`, "data-valeur": "" } });
   return el("span", { attributs: { "data-code": "reponse_service_invalide" } }, code(texteValeur(id), "nt-fixe valeur"), " ", marque("different", texteCode("reponse_service_invalide", ["console."]), "alerte"));
 }
 
-/** Le conteneur principal de l'écran. */
+// Le contenu d'un écran se pose entre la barre et le pied de l'écran.
+let zoneContenu = null;
+
+/** Le conteneur du contenu de l'écran : sa zone propre une fois le cadre posé, le conteneur du document avant. */
 export function principal() {
-  return document.getElementById("principal");
+  return zoneContenu ?? document.getElementById("principal");
+}
+
+/**
+ * La phrase en langage courant d'un code dont CT-3 fixe le texte mot pour
+ * mot (`sens.<clé>`), ou `null` : elle dit la même chose, et se place
+ * au-dessus de la phrase fixée.
+ */
+function cleSens(c, prefixes) {
+  const cle = cleCode(c, prefixes);
+  return cle !== null && aCle(`sens.${cle}`) ? `sens.${cle}` : null;
 }
 
 /**
  * Les nœuds d'un texte suivi de son code entre parenthèses (EX-13.29) : la
- * phrase, puis le code, en petit, à sa suite. Le texte lu est celui de
- * `texteCode` : « phrase (code) ».
+ * phrase, puis le code, en petit, à la fin. Le texte lu est celui de
+ * `texteCode` : « phrase (code) ». Une phrase fixée par CT-3 porte `data-fixe`.
  * @param {string} c code
  * @param {string[]} prefixes
  * @returns {HTMLElement[]}
@@ -52,12 +69,40 @@ export function principal() {
 export function phraseCode(c, prefixes) {
   const complet = texteCode(c, prefixes);
   const suffixe = ` (${c})`;
-  return [el("span", { texte: complet.slice(0, complet.length - suffixe.length) }), el("span", { classe: "code-brut", texte: suffixe })];
+  const phrase = complet.slice(0, complet.length - suffixe.length);
+  const noeud = cleSens(c, prefixes) === null ? el("span", { texte: phrase }) : fixe(phrase);
+  return estEtatAttendu(c, prefixes) ? [noeud] : [noeud, el("span", { classe: "code-brut", texte: suffixe })];
 }
 
-/** Un paragraphe « phrase (code) », qui porte `data-code`. */
+/**
+ * Les états attendus du parcours, qui ne sont pas des pannes (CT-3 EX-13.29,
+ * complément du 2026-11-18) : aucune décision choisie, aucun portefeuille
+ * choisi, demande qui n'accepte plus de décision. Leur phrase s'affiche sans
+ * son code, que le détail technique de l'écran porte ; de même pour un
+ * avertissement du modèle, qui n'est pas une panne non plus.
+ */
+export const ETATS_ATTENDUS = Object.freeze(["decision_absente", "fournisseur_non_choisi", "ticket_clos_aux_votes"]);
+export function estEtatAttendu(c, prefixes) {
+  return ETATS_ATTENDUS.includes(c) || prefixes.includes("avertissement.");
+}
+
+/**
+ * Pour un code dont le texte est fixé : le paragraphe en langage courant
+ * qui le précède (ce qui s'est passé, quoi faire), ou `null`.
+ */
+export function sensCode(c, prefixes) {
+  const cle = cleSens(c, prefixes);
+  return cle === null ? null : el("p", { classe: "nt-bandeau-titre sens-clair", texte: t(cle), attributs: { "data-sens": c } });
+}
+
+/**
+ * Le paragraphe « phrase (code) », qui porte `data-code` ; pour un code dont
+ * le texte est fixé, précédé de sa phrase en langage courant.
+ * @returns {(HTMLElement|null)[]}
+ */
 export function paragrapheCode(c, prefixes, attributs = {}) {
-  return el("p", { attributs: { "data-code": c, ...attributs } }, ...phraseCode(c, prefixes));
+  const sens = sensCode(c, prefixes);
+  return [sens, el("p", { classe: sens === null ? null : "phrase-fixee", attributs: { "data-code": c, ...attributs } }, ...phraseCode(c, prefixes))];
 }
 
 /** Texte d'une erreur d'appel : son texte et son code (EX-13.29). */
@@ -102,10 +147,23 @@ export function bascule() {
   return b;
 }
 
-/** Le dernier jeton de l'identité de session : le sujet, ou le nom, de la personne (EX-13.7). */
-function personneDe(identite) {
-  const jetons = String(identite).split(" ");
-  return jetons[jetons.length - 1];
+/**
+ * La personne connectée, en mots (complément du 2026-11-18) : « Vous êtes
+ * connecté : », le sujet ou le nom de la personne, puis le système qui a
+ * fourni son compte. Chaque jeton de l'identité de session y figure tel
+ * quel, sauf le préfixe invariable de l'adresse d'un émetteur ; la chaîne
+ * canonique, elle, est au pied de l'écran. Une identité qui ne se découpe
+ * pas s'affiche en entier.
+ */
+function personneConnectee(identite) {
+  const p = partiesIdentite(identite);
+  if (p === null) return el("p", { classe: "nt-session" }, el("span", { classe: "nt-session-libelle", texte: t("cadre.personne") }), el("code", { classe: "nt-fixe", texte: String(identite), attributs: { "data-valeur": "", "data-personne": "" } }));
+  return el(
+    "p",
+    { classe: "nt-session" },
+    el("span", {}, el("span", { classe: "nt-session-libelle", texte: t("cadre.personne") }), " ", el("strong", { classe: "personne-connectee", texte: p.personne, attributs: { "data-valeur": "", "data-personne": "" } })),
+    el("span", { classe: "nt-attenue" }, el("span", { texte: t(`cadre.compte.${p.genre}`) }), " ", el("code", { classe: "nt-fixe", texte: p.systeme, attributs: { "data-valeur": "", "data-systeme": p.genre } })),
+  );
 }
 
 /**
@@ -151,20 +209,17 @@ export async function demarrerEcran(ecran) {
       afficherErreur(zoneSortie, e);
     }
   });
-  const personne = el("p", { classe: "nt-session" }, el("span", { classe: "nt-session-libelle", texte: t("cadre.personne") }), el("span", { texte: personneDe(s.session_identity), attributs: { "data-personne": "" } }));
   const barre = el(
     "header",
     { classe: "nt-barre" },
-    el("div", { classe: "nt-barre-dedans" }, logo("/tickets"), nav, el("div", { classe: "nt-barre-fin" }, personne, sortie), el("div", { classe: "nt-barre-outils" }, bascule())),
+    el("div", { classe: "nt-barre-dedans" }, logo("/tickets"), nav, el("div", { classe: "nt-barre-fin" }, personneConnectee(s.session_identity), sortie), el("div", { classe: "nt-barre-outils" }, bascule())),
   );
-  // EX-13.7 : l'identité de session est une chaîne canonique ; elle s'affiche en entier, dans son ordre, sous la barre.
-  const identite = el(
-    "div",
-    { classe: "bande-session" },
-    el("p", { classe: "bande-session-dedans" }, el("span", { classe: "bande-session-libelle", texte: t("cadre.session") }), " ", el("code", { classe: "nt-fixe", texte: s.session_identity, attributs: { "data-session": "" } })),
-    zoneSortie,
-  );
-  remplacer(racine, barre, identite);
+  const identite = el("div", { classe: "bande-session" }, zoneSortie);
+  // EX-13.7 : l'identité de session est une chaîne canonique ; elle reste lisible en entier, dans son ordre, au pied de l'écran.
+  const exacte = detail(t("cadre.detail_connexion"), null, el("p", {}, el("span", { texte: t("cadre.identite_exacte") }), " ", el("code", { classe: "nt-fixe", texte: s.session_identity, attributs: { "data-valeur": "", "data-session": "" } })));
+  exacte.setAttribute("id", "detail-connexion");
+  zoneContenu = el("div", { classe: "contenu-ecran" });
+  remplacer(racine, barre, identite, zoneContenu, el("footer", { classe: "pied-session" }, exacte));
   return s;
 }
 
@@ -196,7 +251,7 @@ export function contientInvisibles(v) {
 
 /** Marque « contient des caractères invisibles ou de sens d'écriture » (EX-9.16). */
 export function marqueInvisibles() {
-  return marque("different", t("marque.caracteres_invisibles"), "alerte", { "data-invisibles": "" });
+  return marque("different", t("marque.caracteres_invisibles"), "alerte", { "data-invisibles": "", "data-fixe": "" });
 }
 
 /** Durée en millisecondes, exacte (« 1 h 30 min », « 45 s », « 250 ms »). */
@@ -280,8 +335,8 @@ const ETATS = Object.freeze({
 export function pastilleEtat(etat, { grande = false, court = false } = {}) {
   const connu = Object.hasOwn(ETATS, etat);
   const [genre, nomIcone] = connu ? ETATS[etat] : ["neutre", "question"];
-  const cle = court && (etat === "ouvert" || etat === "reserve") ? "etat_pastille.court" : `etat_pastille.${etat}`;
-  return pastille(genre, connu ? t(cle) : String(etat), nomIcone, { grande, attributs: { "data-etat": String(etat) } });
+  const cle = court && etat === "ouvert" ? "etat_pastille.court" : `etat_pastille.${etat}`;
+  return pastille(genre, connu ? t(cle) : String(etat), nomIcone, { grande, attributs: connu ? { "data-etat": String(etat) } : { "data-etat": String(etat), "data-valeur": "" } });
 }
 
 /** Une section titrée : une carte. */
@@ -295,11 +350,11 @@ export function carte(titre, noteTitre, ...enfants) {
 }
 
 /** L'en-tête d'un écran : sur-titre, titre, phrase, et l'état à droite. */
-export function entete({ surTitre = null, titre, sousTitre = null, etat = [] }) {
+export function entete({ surTitre = null, titre, sousTitre = null, etat = [], large = false }) {
   return el(
     "header",
     { classe: "nt-entete" },
-    el("div", { classe: "nt-entete-texte" }, ...[surTitre].flat(), el("h1", { texte: titre }), sousTitre ? el("p", { classe: "nt-sous-titre", texte: sousTitre }) : null),
+    el("div", { classe: "nt-entete-texte" }, ...[surTitre].flat(), el("h1", { texte: titre }), sousTitre ? el("p", { classe: large ? "nt-sous-titre sous-titre-large" : "nt-sous-titre", texte: sousTitre }) : null),
     etat.length > 0 ? el("div", { classe: "nt-entete-etat" }, ...etat) : null,
   );
 }

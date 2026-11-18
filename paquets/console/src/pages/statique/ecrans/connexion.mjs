@@ -53,7 +53,7 @@ function demarrer() {
     }
   });
   const barre = el("header", { classe: "nt-barre" }, el("div", { classe: "nt-barre-dedans" }, logo(null), el("div", { classe: "nt-barre-outils" }, bascule())));
-  const carte = el("section", { classe: "nt-carte carte-connexion" }, el("div", { classe: "nt-pile" }, el("h1", { texte: t("connexion.titre") }), el("p", { classe: "nt-sous-titre", texte: t("connexion.sens") })), formulaire, zone);
+  const carte = el("section", { classe: "nt-carte carte-connexion" }, el("div", { classe: "nt-pile" }, el("h1", { texte: t("connexion.titre") }), el("p", { classe: "nt-sous-titre", texte: t("connexion.sens") }), el("p", { classe: "nt-attenue nt-petit", texte: t("connexion.locale") })), formulaire, zone);
   remplacer(principal(), barre, el("main", { classe: "nt-page nt-page-etroite" }, carte));
 }
 

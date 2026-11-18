@@ -17,6 +17,15 @@
 // Aucune valeur n'est recalculée : le montant lisible ne change que les
 // séparateurs d'un nombre décimal écrit en chiffres, et la valeur signée
 // reste rendue telle quelle à côté.
+//
+// Complément du 2026-11-18, décision du porteur (langage des écrans) : la
+// carte de résumé liste chaque feuille des arguments, avec sa valeur et sa
+// marque (`groupesValeurs`) : les feuilles vérifiées d'un côté, celles que
+// la console n'a pas pu vérifier dans un groupe à part, « à contrôler par
+// vous-même », les feuilles différentes dans un groupe d'alerte. Chaque
+// feuille reçoit un libellé courant (`libelleValeur`), tiré du dernier
+// segment de son chemin par une table fixe publiée (CT-3 EX-9.4) : ce
+// libellé n'est qu'une aide de lecture, le chemin exact reste affiché.
 
 /** Couples (pointeur du montant, pointeur de la devise) reconnus, dans l'ordre d'essai. */
 export const COUPLES_MONTANT = Object.freeze([
@@ -92,6 +101,116 @@ export function resumeVerifie(modele) {
     feuilles: feuilles.length,
     verifiees: feuilles.length - reserves.length,
   };
+}
+
+/**
+ * Le montant qu'un résumé permet d'afficher : celui de `resumeVerifie`, et
+ * seulement quand l'événement est vérifié et lié à la demande (`outil` non
+ * nul). C'est la seule porte par laquelle un montant s'affiche en grand, sur
+ * l'écran d'une demande comme dans la liste.
+ * @param {ReturnType<typeof resumeVerifie>} r
+ * @returns {{texte: string, devise: string}|null}
+ */
+export function montantDuResume(r) {
+  return r.outil === null || r.montant === null ? null : r.montant;
+}
+
+/** Le montant vérifié d'un modèle d'affichage (`montantDuResume(resumeVerifie(modele))`), ou `null`. */
+export function montantVerifie(modele) {
+  return montantDuResume(resumeVerifie(modele));
+}
+
+/**
+ * Les feuilles des arguments, réparties selon leur état, chacune dans
+ * l'ordre du modèle d'affichage : `verifiees` (état `verifie`),
+ * `differentes` (état `different`), `aControler` (tout autre état, dont
+ * `non_verifiable` : une feuille dont l'état n'est pas connu se range avec
+ * celles que la console n'a pas pu vérifier, jamais avec les vérifiées).
+ * @param {object} modele `$defs/modele_affichage`
+ * @returns {{verifiees: object[], differentes: object[], aControler: object[]}}
+ */
+export function groupesValeurs(modele) {
+  const feuilles = Array.isArray(modele.arguments) ? modele.arguments : [];
+  return {
+    verifiees: feuilles.filter((f) => f.status === "verifie"),
+    differentes: feuilles.filter((f) => f.status === "different"),
+    aControler: feuilles.filter((f) => f.status !== "verifie" && f.status !== "different"),
+  };
+}
+
+/**
+ * Table fixe des libellés courants (CT-3 EX-9.4, complément du 2026-11-18) :
+ * dernier segment du chemin d'une feuille → nom du libellé (clé
+ * `valeur.<nom>` de la table des textes). Aucune autre déduction : ni mise
+ * en forme, ni conversion, ni rapprochement de noms voisins.
+ */
+export const LIBELLES_VALEURS = Object.freeze({
+  amount: "montant",
+  montant: "montant",
+  currency: "devise",
+  devise: "devise",
+  beneficiary: "beneficiaire",
+  beneficiaire: "beneficiaire",
+  beneficiary_iban: "compte_beneficiaire",
+  iban: "compte_beneficiaire",
+  beneficiary_name: "nom_beneficiaire",
+  reference: "reference",
+  ref: "reference",
+  claim_id: "reference_dossier",
+  reason: "motif",
+  motif: "motif",
+  date: "date",
+  recipient: "destinataire",
+  destinataire: "destinataire",
+  subject: "objet",
+  objet: "objet",
+  email: "adresse_electronique",
+});
+
+/**
+ * Le nom du libellé courant d'une feuille, ou `null` hors de la table : le
+ * dernier segment du pointeur (RFC 6901 : `~1` rendu en `/`, puis `~0` en
+ * `~`), cherché tel quel, casse comprise. Le pointeur vide (une valeur
+ * seule), une chaîne qui n'est pas un pointeur et un indice de tableau n'ont
+ * pas de libellé.
+ * @param {string} pointeur pointeur de la feuille (`/amount`, `/paiement/iban`)
+ * @returns {string|null}
+ */
+export function libelleValeur(pointeur) {
+  if (typeof pointeur !== "string" || !pointeur.startsWith("/")) return null;
+  const segment = pointeur.slice(pointeur.lastIndexOf("/") + 1).replace(/~1/g, "/").replace(/~0/g, "~");
+  return Object.hasOwn(LIBELLES_VALEURS, segment) ? LIBELLES_VALEURS[segment] : null;
+}
+
+/**
+ * Les trois jetons d'une identité de session canonique (CT-3 EX-13.7), ou
+ * `null` si elle n'a pas cette forme : `genre` (`oidc` ou `utilisateur`),
+ * `systeme` (pour `oidc`, l'émetteur sans son préfixe `https` et ses deux
+ * barres, qu'il porte toujours ; pour `utilisateur`, le domaine tel quel),
+ * `personne` (le sujet, ou le nom).
+ * @param {unknown} identite
+ * @returns {{genre: string, systeme: string, personne: string}|null}
+ */
+export function partiesIdentite(identite) {
+  if (typeof identite !== "string") return null;
+  const jetons = identite.split(" ");
+  if (jetons.length !== 3 || jetons.some((j) => j === "")) return null;
+  const [genre, systeme, personne] = jetons;
+  const PREFIXE = "https:" + "//";
+  if (genre === "oidc") return systeme.startsWith(PREFIXE) && systeme.length > PREFIXE.length ? { genre, systeme: systeme.slice(PREFIXE.length), personne } : null;
+  return genre === "utilisateur" ? { genre, systeme, personne } : null;
+}
+
+/**
+ * Une identité de session en mots : la personne, puis entre parenthèses le
+ * système qui a fourni son compte ; la chaîne telle quelle si elle ne se
+ * découpe pas.
+ * @param {unknown} identite
+ * @returns {string}
+ */
+export function texteIdentite(identite) {
+  const p = partiesIdentite(identite);
+  return p === null ? String(identite) : `${p.personne} (${p.systeme})`;
 }
 
 /**

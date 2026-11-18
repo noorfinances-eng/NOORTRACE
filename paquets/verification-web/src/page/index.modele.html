@@ -22,25 +22,39 @@
 </div>
 </div>
 </header>
-<main class="nt-page">
+<main class="nt-page" id="page">
 <header class="nt-entete">
 <div class="nt-entete-texte">
 <h1 data-libelle="titre_action">{{titre_action}}</h1>
 <p class="nt-sous-titre" data-libelle="sous_titre">{{sous_titre}}</p>
+<p class="pv-garantie" id="garantie"><svg class="nt-icone" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg><strong data-libelle="garantie">{{garantie}}</strong></p>
 </div>
 <div class="nt-entete-etat">
 <p id="etat-verificateur" role="status"><span class="nt-pastille nt-pastille-grande"><svg class="nt-icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10M7 20h10M8 4c0 4.2 4 4.6 4 8s-4 3.8-4 8M16 4c0 4.2-4 4.6-4 8s4 3.8 4 8"/></svg><span>{{artefact_chargement}}</span></span></p>
 </div>
 </header>
-<section id="confiance" class="nt-bandeau" aria-labelledby="phrase-fixe">
+<details class="nt-detail pv-detail" id="comment">
+<summary><span data-libelle="titre_comment">{{titre_comment}}</span></summary>
+<div class="nt-detail-corps">
+<ol class="pv-liste pv-comment">
+<li data-libelle="comment_1">{{comment_1}}</li>
+<li data-libelle="comment_2">{{comment_2}}</li>
+<li data-libelle="comment_3">{{comment_3}}</li>
+<li data-libelle="comment_4">{{comment_4}}</li>
+<li data-libelle="comment_5">{{comment_5}}</li>
+</ol>
+</div>
+</details>
+<section id="confiance" class="nt-bandeau" aria-labelledby="confiance-courante">
 <svg class="nt-icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.7v.3"/></svg>
 <div class="nt-bandeau-texte pv-confiance">
-<p id="phrase-fixe" data-libelle="phrase_fixe">{{phrase_fixe}}</p>
+<p id="confiance-courante" data-libelle="confiance_courante">{{confiance_courante}}</p>
+<p class="pv-exact"><span class="pv-exact-intro" data-libelle="mention_exacte">{{mention_exacte}}</span> <span id="phrase-fixe" data-exact data-libelle="phrase_fixe">{{phrase_fixe}}</span></p>
 <div class="pv-alerte-verificateur" id="alerte-verificateur" role="alert" hidden></div>
 <details class="nt-detail pv-detail" id="detail-empreinte">
 <summary><span data-libelle="titre_empreinte">{{titre_empreinte}}</span><span class="nt-detail-note pv-detail-note" data-libelle="note_empreinte">{{note_empreinte}}</span></summary>
 <div class="nt-detail-corps" id="hote-artefact">
-<p id="artefact">{{artefact_chargement}}</p>
+<p id="artefact" data-exact>{{artefact_chargement}}</p>
 </div>
 </details>
 </div>
@@ -51,7 +65,7 @@
 <div class="nt-depot" id="zone-depot">
 <svg class="nt-icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>
 <p class="pv-depot-titre"><strong data-libelle="deposer">{{deposer}}</strong></p>
-<p class="nt-attenue nt-petit" data-libelle="formes_admises">{{formes_admises}}</p>
+<p class="pv-depot-aide" data-libelle="formes_admises">{{formes_admises}}</p>
 <div class="nt-actions pv-actions-centrees">
 <button type="button" class="nt-bouton" id="choisir-repertoire" data-libelle="choisir_repertoire">{{choisir_repertoire}}</button>
 <input type="file" id="entree-repertoire" hidden webkitdirectory multiple>
@@ -66,8 +80,9 @@
 <div class="nt-detail-corps pv-options-corps">
 <fieldset class="nt-groupe-champs">
 <legend class="pv-legende" data-libelle="titre_entrees">{{titre_entrees}}</legend>
+<p class="nt-aide" data-libelle="intro_entrees">{{intro_entrees}}</p>
 <div class="nt-champ">
-<p class="nt-libelle" id="libelle-ancres"><span data-libelle="choisir_ancres">{{choisir_ancres}}</span><span class="nt-facultatif nt-fixe">(--ancres)</span></p>
+<p class="nt-libelle" id="libelle-ancres"><span data-libelle="choisir_ancres">{{choisir_ancres}}</span></p>
 <p class="nt-aide" id="aide-ancres" data-libelle="aide_ancres">{{aide_ancres}}</p>
 <div class="pv-fichier">
 <button type="button" class="nt-bouton nt-bouton-petit" id="choisir-ancres" aria-describedby="aide-ancres nom-ancres" data-libelle="bouton_choisir_ancres">{{bouton_choisir_ancres}}</button>
@@ -77,7 +92,7 @@
 </div>
 </div>
 <div class="nt-champ">
-<p class="nt-libelle" id="libelle-entetes"><span data-libelle="choisir_entetes">{{choisir_entetes}}</span><span class="nt-facultatif nt-fixe">(--entetes-bitcoin)</span></p>
+<p class="nt-libelle" id="libelle-entetes"><span data-libelle="choisir_entetes">{{choisir_entetes}}</span></p>
 <p class="nt-aide" id="aide-entetes" data-libelle="aide_entetes">{{aide_entetes}}</p>
 <div class="pv-fichier">
 <button type="button" class="nt-bouton nt-bouton-petit" id="choisir-entetes" aria-describedby="aide-entetes nom-entetes" data-libelle="bouton_choisir_entetes">{{bouton_choisir_entetes}}</button>
@@ -87,8 +102,9 @@
 </div>
 </div>
 </fieldset>
+<p class="pv-legende" data-libelle="titre_reglages">{{titre_reglages}}</p>
 <fieldset class="nt-groupe-champs" id="exiger">
-<legend class="pv-legende"><span data-libelle="exiger">{{exiger}}</span><span class="nt-facultatif nt-fixe">(--exiger)</span></legend>
+<legend class="nt-libelle" data-libelle="exiger">{{exiger}}</legend>
 <p class="nt-aide" data-libelle="aide_exiger">{{aide_exiger}}</p>
 <div class="pv-cases">
 <label class="nt-case"><input type="checkbox" name="exiger" value="1"><span><span data-libelle="controle_1">{{controle_1}}</span> <span class="nt-attenue">(1)</span></span></label>
@@ -99,17 +115,30 @@
 <label class="nt-case"><input type="checkbox" name="exiger" value="6"><span><span data-libelle="controle_6">{{controle_6}}</span> <span class="nt-attenue">(6)</span></span></label>
 <label class="nt-case"><input type="checkbox" name="exiger" value="7"><span><span data-libelle="controle_7">{{controle_7}}</span> <span class="nt-attenue">(7)</span></span></label>
 <label class="nt-case"><input type="checkbox" name="exiger" value="8"><span><span data-libelle="controle_8">{{controle_8}}</span> <span class="nt-attenue">(8)</span></span></label>
-<label class="nt-case"><input type="checkbox" id="exiger-tous" value="tous"><span><span data-libelle="exiger_tous">{{exiger_tous}}</span> <span class="nt-attenue nt-fixe">(tous)</span></span></label>
+<label class="nt-case"><input type="checkbox" id="exiger-tous" value="tous"><span data-libelle="exiger_tous">{{exiger_tous}}</span></label>
 </div>
 </fieldset>
 <div class="nt-champ pv-champ-court">
-<label class="nt-libelle" for="langue-rapport"><span data-libelle="langue_rapport">{{langue_rapport}}</span><span class="nt-facultatif nt-fixe">(--langue)</span></label>
+<label class="nt-libelle" for="langue-rapport" data-libelle="langue_rapport">{{langue_rapport}}</label>
 <select class="nt-saisie" id="langue-rapport">
 <option value="fr" data-libelle="langue_fr">{{langue_fr}}</option>
 <option value="en" data-libelle="langue_en">{{langue_en}}</option>
 </select>
 </div>
-<label class="nt-case"><input type="checkbox" id="detail"><span><span data-libelle="detail">{{detail}}</span> <span class="nt-attenue nt-fixe">(--detail)</span></span></label>
+<label class="nt-case"><input type="checkbox" id="detail"><span data-libelle="detail">{{detail}}</span></label>
+<details class="nt-detail pv-detail" id="options-specialistes">
+<summary><span data-libelle="titre_options_specialistes">{{titre_options_specialistes}}</span></summary>
+<div class="nt-detail-corps">
+<ul class="pv-liste nt-petit">
+<li><span data-libelle="choisir_ancres">{{choisir_ancres}}</span> <span class="nt-fixe">(--ancres)</span></li>
+<li><span data-libelle="choisir_entetes">{{choisir_entetes}}</span> <span class="nt-fixe">(--entetes-bitcoin)</span></li>
+<li><span data-libelle="exiger">{{exiger}}</span> <span class="nt-fixe">(--exiger)</span></li>
+<li><span data-libelle="exiger_tous">{{exiger_tous}}</span> <span class="nt-fixe">(--exiger tous)</span></li>
+<li><span data-libelle="langue_rapport">{{langue_rapport}}</span> <span class="nt-fixe">(--langue)</span></li>
+<li><span data-libelle="detail">{{detail}}</span> <span class="nt-fixe">(--detail)</span></li>
+</ul>
+</div>
+</details>
 </div>
 </details>
 <section class="nt-carte" id="lancer" aria-labelledby="titre-verifier">
@@ -117,12 +146,18 @@
 <p class="nt-attenue" id="aide-verifier">{{aide_verifier_chargement}}</p>
 <div class="nt-actions">
 <button type="button" class="nt-bouton nt-bouton-principal" id="verifier" disabled><svg class="nt-icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6z"/><path d="M8.8 12.2l2.4 2.4 4.2-4.6"/></svg><span data-libelle="verifier">{{verifier}}</span></button>
-<button type="button" class="nt-bouton" id="arreter" disabled data-libelle="arreter">{{arreter}}</button>
+<button type="button" class="nt-bouton" id="arreter" disabled hidden data-libelle="arreter">{{arreter}}</button>
 </div>
 </section>
 </div>
 <section id="resultat" class="nt-pile nt-pile-large" aria-live="polite" aria-labelledby="titre-resultat" hidden>
+<div class="pv-resultat-tete">
 <h2 id="titre-resultat" data-libelle="titre_resultat">{{titre_resultat}}</h2>
+<div class="pv-verifie" id="dossier-verifie" hidden>
+<p id="nom-verifie"></p>
+<button type="button" class="nt-bouton nt-bouton-petit" id="verifier-autre" data-libelle="verifier_autre">{{verifier_autre}}</button>
+</div>
+</div>
 <div id="resultat-contenu" class="nt-pile nt-pile-large"></div>
 </section>
 </main>

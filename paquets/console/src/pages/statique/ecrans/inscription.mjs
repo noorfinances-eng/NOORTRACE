@@ -18,10 +18,11 @@ import { lancerDecouverte, rendreFournisseurs, demanderComptes, appelFournisseur
 const decouverte = lancerDecouverte();
 
 import { analyserComptes, controleDefi, donneesPersonalSign, requetePersonalSign, verifierReponse, echeanceAttente, decoderInstant, utf8, entreeDeSession } from "noortrace-console/index.mjs";
-import { el, actions, ajouter, bouton, code, definitions, icone, message, pastille, remplacer, vider } from "../commun/dom.mjs";
+import { el, actions, ajouter, bouton, code, definitions, donnee, icone, message, pastille, remplacer, vider } from "../commun/dom.mjs";
 import { t } from "../commun/libelles.mjs";
 import { ErreurAppel, appeler, allerConnexion, envoiDepuis, methodesDepuis, lireSession, maintenant } from "../commun/client.mjs";
-import { afficherErreur, demarrerEcran, entete, instant, paragrapheCode, principal } from "../commun/cadre.mjs";
+import { afficherErreur, demarrerEcran, entete, instant, paragrapheCode, principal, sensCode } from "../commun/cadre.mjs";
+import { texteIdentite } from "../commun/lisible.mjs";
 
 const PREFIXES = ["inscription.", "console."];
 
@@ -144,11 +145,11 @@ function rendreEntree() {
     const libelle = (c) => ({ "data-libelle": t(`inscription.colonne.${c}`) });
     for (const a of e.addresses) {
       const lignes = [];
-      if (a.validated_at !== null) lignes.push(el("span", { classe: "fait-texte" }, t("inscription.validee_le"), " ", instant(a.validated_at)), el("span", { classe: "fait-second" }, t("inscription.par"), " ", code(String(a.validated_by))));
+      if (a.validated_at !== null) lignes.push(el("span", { classe: "fait-texte" }, t("inscription.validee_le"), " ", instant(a.validated_at)), el("span", { classe: "fait-second" }, t("inscription.par"), " ", donnee(texteIdentite(a.validated_by))));
       if (a.revoked_at !== null) {
         lignes.push(el("span", { classe: "fait-texte" }, el("span", { texte: t(`revocation.${a.revocation_cause}`) }), t("inscription.le"), instant(a.revoked_at)));
         if (a.replaced_by) lignes.push(el("span", { classe: "fait-second" }, t("inscription.remplacee_par"), " ", code(a.replaced_by)));
-        if (a.revocation_reason) lignes.push(el("span", { classe: "fait-second", texte: t("modele.votes.motif", { motif: a.revocation_reason }) }));
+        if (a.revocation_reason) lignes.push(donnee(t("modele.votes.motif", { motif: a.revocation_reason }), "fait-second"));
       }
       const historique = lignes.length === 0 ? el("span", { classe: "nt-attenue", texte: t("inscription.pas_validee") }) : el("span", {}, ...lignes);
       ajouter(
@@ -181,6 +182,7 @@ function rendreEntree() {
           [t("inscription.entree.creee"), instant(e.created_at)],
           [t("inscription.entree.alias"), e.requester_identities.length === 0 ? t("modele.vide") : el("ul", { classe: "liste-nue" }, ...e.requester_identities.map((r) => el("li", {}, code(r))))],
         ]),
+        e.requester_identities.length === 0 ? null : el("p", { classe: "nt-attenue nt-petit", texte: t("inscription.entree.alias_sens") }),
       ),
     );
   }
@@ -206,6 +208,8 @@ function actionRevocation(e, a) {
         },
         { petit: true },
       ),
+      // La conséquence se lit avant le premier clic : la révocation est définitive.
+      el("p", { classe: "nt-attenue nt-petit", texte: t("inscription.revoquer_sens") }),
     );
   }
   const id = `motif-revoquer-${a.address}`;
@@ -314,7 +318,7 @@ function surComptes(comptes) {
 
 function rendreComptes() {
   const parties = [];
-  if (etat.fournisseur !== null) parties.push(el("p", {}, t("portefeuille.courant", { nom: etat.fournisseur.name })));
+  if (etat.fournisseur !== null) parties.push(el("p", {}, donnee(t("portefeuille.courant", { nom: etat.fournisseur.name }))));
   if (etat.comptes !== null) {
     parties.push(el("h3", { texte: t("inscription.comptes") }));
     if (etat.comptes.length === 0) parties.push(el("p", { classe: "nt-attenue", texte: t("inscription.aucun_compte") }));
@@ -404,7 +408,8 @@ function rendreTexte() {
     return;
   }
   const ol = el("ol", { classe: "texte-inscription", attributs: { id: "texte-inscription" } });
-  for (const ligne of d.message.split("\n")) ajouter(ol, el("li", { texte: ligne }));
+  // Le texte à signer est celui du service, que la console a reconstruit et comparé (EX-13.13) : il s'affiche tel quel.
+  for (const ligne of d.message.split("\n")) ajouter(ol, el("li", { texte: ligne, attributs: { "data-valeur": "" } }));
   remplacer(
     zones.texte,
     el("h3", { texte: t("inscription.texte") }),
@@ -487,7 +492,8 @@ async function signer() {
   if (verdict.outcome !== "accepte") {
     abandonner();
     rendreComptes();
-    const parties = [el("p", { attributs: { "data-code": verdict.reason } }, ...noeudsPanne(verdict.reason, reponse.error ?? null, PREFIXES))];
+    const sens = sensCode(verdict.reason, PREFIXES);
+    const parties = [sens, el("p", { classe: sens === null ? null : "phrase-fixee", attributs: { "data-code": verdict.reason } }, ...noeudsPanne(verdict.reason, reponse.error ?? null, PREFIXES))];
     if (verdict.reason === "adresse_differente" && verdict.recovered) parties.push(el("p", {}, t("signature.adresse_recouvree"), " ", code(verdict.recovered)));
     remplacer(zones.resultat, message("erreur", ...parties));
     if (verdict.reason === "non_autorise") void obtenirComptes();
