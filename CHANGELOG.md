@@ -68,6 +68,19 @@ is tagged.
   waits for an event that may already have fired. When the helper has seen
   the event, the test goes on and says so on the error output; when it has
   not, the test fails with what it observed. No retry, no oracle changed.
+  Theme test of the verification page: under Firefox the browser driver
+  drops the emulated colour scheme when a document served under
+  `Cross-Origin-Opener-Policy: same-origin` is reloaded, so the reloaded page
+  saw, and rightly followed, the engine's own preference. The test now reads
+  what the engine announces to the page; when it differs from the emulated
+  preference it says so on the error output, sets the preference again and
+  requires the page to follow it. In every engine the state required after
+  the reload is the system's, opposite to the choice made before; the reload
+  is tested in both directions (light chosen under a dark system, dark
+  chosen under a light one), `window.name` is checked empty with the
+  storages, and the choice is checked to hold once the system changes have
+  reached the page. A page that would remember the choice is caught with
+  and without the loss.
 
 - Build step 8, supplements of 2026-11-17 (étape 8, compléments du
   2026-11-17). Registry (CT-4, EX-8.14): a sender never signs below the

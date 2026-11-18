@@ -13757,6 +13757,19 @@
           "apres": "0b0230699eb7e1646855dc659e290619477f5da080a8545b32fa4d40a2acc240"
         }
       ]
+    },
+    {
+      "id": "MC-99",
+      "date": "2026-11-17",
+      "etape": 8,
+      "motif": "essai du thème de la page de vérification : état du système lu dans la page après le rechargement, préférence reposée quand le pilote de Firefox l'a perdue, rechargement éprouvé dans les deux sens ; empreinte du fichier d'essai dans la couverture de CT-9",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "0b0230699eb7e1646855dc659e290619477f5da080a8545b32fa4d40a2acc240",
+          "apres": "789ebea6bd1ef5a5eed85933e0fb84aca8010085d9b1929bb90246e8cdfa4ca7"
+        }
+      ]
     }
   ]
 }

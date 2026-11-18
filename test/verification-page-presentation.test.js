@@ -628,8 +628,35 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       };
       const sombre = { theme: null, libelle: fr.theme_vers_clair, barre: "#060B16", fond: "rgb(6, 11, 22)" };
       const clair = { theme: "clair", libelle: fr.theme_vers_sombre, barre: "#F3F7FF", fond: "rgb(243, 247, 255)" };
+      const attendu = { dark: sombre, light: clair };
+      const oppose = { dark: "light", light: "dark" };
+      const systemeVu = (page) => page.evaluate(() => (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
+      const attendreSysteme = (page, schema) => page.waitForFunction((s) => matchMedia("(prefers-color-scheme: light)").matches === (s === "light"), schema, { timeout: 10000 });
+      const attendreTheme = (page, schema) => page.waitForFunction((s) => (document.documentElement.getAttribute("data-theme") === "clair") === (s === "light"), schema, { timeout: 10000 });
+      // Aucune mémoire : la page rechargée après un choix contraire au système reprend l'état du système, et le
+      // stockage est vide. Le système est celui que le moteur annonce à la page. Sous Firefox, le pilote perd la
+      // préférence émulée quand le rechargement d'un document servi sous Cross-Origin-Opener-Policy: same-origin
+      // remplace le contexte de navigation : la page voit alors la préférence du moteur, et la suit, ce qui est son
+      // comportement attendu. L'essai le constate (il ne le suppose pas), l'écrit sur la sortie d'erreur, repose la
+      // préférence et exige que la page, dont la bascule n'a pas servi depuis le rechargement, la suive. Dans tous
+      // les cas, l'état exigé après le rechargement est celui du système demandé, contraire au choix d'avant.
+      const recharger = async (page, schema) => {
+        await page.reload();
+        await attendreArtefact(page);
+        const vu = await systemeVu(page);
+        if (vu !== schema) {
+          expect(await etat(page), `rechargement, ${moteur} : le moteur annonce ${vu} et la page ne le suit pas`).to.deep.equal(attendu[vu]);
+          process.stderr.write(`page de vérification, ${moteur} : préférence de couleur émulée (${schema}) perdue au rechargement, la page a vu ${vu} et l'a suivi ; préférence reposée\n`);
+          await page.emulateMedia({ colorScheme: schema });
+          await attendreSysteme(page, schema);
+          await attendreTheme(page, schema);
+        }
+        expect(await etat(page), `après le rechargement, système ${schema}, choix d'avant ${oppose[schema]}`).to.deep.equal(attendu[schema]);
+        expect(await page.evaluate(() => [localStorage.length, sessionStorage.length, document.cookie, window.name])).to.deep.equal([0, 0, "", ""]);
+      };
       const o = await ouvrirSous("dark");
       try {
+        expect(await systemeVu(o.page)).to.equal("dark");
         expect(await etat(o.page)).to.deep.equal(sombre);
         await o.page.click("#bascule-theme");
         expect(await etat(o.page)).to.deep.equal(clair);
@@ -639,24 +666,31 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         await o.page.click("#bascule-theme");
         expect(await etat(o.page)).to.deep.equal(sombre);
         await o.page.click("#bascule-theme");
-        // Aucune mémoire : la page rechargée reprend l'état du système, et le stockage est vide.
-        await o.page.reload();
-        await attendreArtefact(o.page);
-        expect(await etat(o.page)).to.deep.equal(sombre);
-        expect(await o.page.evaluate(() => [localStorage.length, sessionStorage.length, document.cookie])).to.deep.equal([0, 0, ""]);
+        expect(await etat(o.page)).to.deep.equal(clair);
+        await recharger(o.page, "dark");
         // Tant que la bascule n'a pas servi, la page suit un changement du système.
         await o.page.emulateMedia({ colorScheme: "light" });
-        await o.page.waitForFunction(() => document.documentElement.getAttribute("data-theme") === "clair");
+        await attendreTheme(o.page, "light");
+        expect(await etat(o.page)).to.deep.equal(clair);
+        // Dès qu'elle a servi, le choix tient contre les changements du système, tant que la page est affichée.
         await o.page.click("#bascule-theme");
         await o.page.emulateMedia({ colorScheme: "dark" });
+        await attendreSysteme(o.page, "dark");
         await o.page.emulateMedia({ colorScheme: "light" });
-        expect((await etat(o.page)).theme).to.equal(null);
+        await attendreSysteme(o.page, "light");
+        await o.page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+        expect(await etat(o.page)).to.deep.equal(sombre);
       } finally {
         await o.fermer();
       }
       const c = await ouvrirSous("light");
       try {
+        expect(await systemeVu(c.page)).to.equal("light");
         expect(await etat(c.page)).to.deep.equal(clair);
+        // Le même rechargement dans l'autre sens : choix « sombre » sous un système clair.
+        await c.page.click("#bascule-theme");
+        expect(await etat(c.page)).to.deep.equal(sombre);
+        await recharger(c.page, "light");
       } finally {
         await c.fermer();
       }
