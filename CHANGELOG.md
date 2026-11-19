@@ -167,6 +167,46 @@ is tagged.
   sentences. Every browser test of the three tools is run with the fonts of
   the machine and with a simulation of the runner's fonts; no threshold is
   relaxed, and no test depends on the font.
+  After a fourth cold reading of the three tools: in the console, each block
+  of a request appears at the right moment: the wallet choice only once the
+  decision is chosen and confirmed, and no longer after a signature; once
+  the person's decision is recorded on a request still open, the page first
+  says so, that there is nothing more to do and how many approvals are
+  missing, the rest of the request reads "Ce que vous avez approuvé" (or
+  "refusé"), and recusal stays offered with what it changes to that vote
+  (EX-10.4); a reason tied to the session no longer shows in red on a closed
+  request; a signing failure (refused in the wallet, another address, time
+  out) is shown at the top of the screen, says first that the decision is
+  not recorded and removes the signing screen until "Réessayer"; "Mon
+  adresse" explains two addresses and the revocation of a pending one; in
+  the directory, each action says before the click what it does; the list
+  shows the verified amount of the first ten open requests and one deadline
+  label per case. On the verification page, a control that a warning
+  declares of no evidential value (AV-O-3, test network) reads "Sans valeur
+  de preuve" instead of "Réussi", in the warning colour, and counts among
+  what is not proven; the signature controls made with the keys or the
+  approvers that the dossier supplies itself say so, and what remains to be
+  established; step 2 says that the list of trusted references must come by
+  another channel than the dossier; "En résumé" says that the times of the
+  registry are compared with nothing (CT-6 7.1). In the onboarding tool, the
+  write credits are explained once, where they are first named (not money,
+  only used for writes on the public registry, neither bought, sold nor
+  exchanged, supplied by the operator, not paid by the client), "compte de
+  paiement" and "budget" are gone and no duration is promised; a separate
+  button computes the fingerprint of a document in the browser and compares
+  it with those already noted, sending nothing; the exact instant of a
+  confirmation is computed from the chosen date and its field moves to the
+  advanced settings, while the exact values that commit (instant, identity
+  of the operator, identifier of the action) stay readable without opening
+  anything, the review before recording included; the package screen says
+  what the package really holds, traces of other operations of the same
+  batch included, and why; a failed step gives its cause from the check that
+  failed; "Rien à réunir" replaces "Rien à préparer". The bodies sent to the
+  routes are byte-identical. Each change is red on the former screens and
+  green after, with both font sets, and mutants are killed (the wallet
+  choice offered before any decision, the signing screen left after a
+  refusal, AV-K-1 taken as of no evidential value, a fingerprint computation
+  that sends a request).
   No dependency,
   font, image or external resource is added; no content security policy,
   header or subresource-integrity rule is loosened; the console and the
@@ -176,9 +216,9 @@ is tagged.
   supplements in CT-3 (EX-9.4, EX-9.18, EX-9.20, EX-12.21, EX-13.3,
   EX-13.7, EX-13.29, 13.1), CT-6 (EX-18.2, EX-18.5, EX-18.7, EX-18.9) and
   CT-4 (EX-7.25, EX-7.26), those of CT-3 and CT-6 rewritten in place after
-  the third reading; no control rule,
-  schema, report, exit code or vector changes; the line citations of CT-7,
-  CT-8 and CT-9 follow the moved texts. Tests:
+  the third reading, and those of CT-3, CT-4 and CT-6 after the fourth;
+  no control rule, schema, report, exit code or vector changes; the line
+  citations of CT-7, CT-8 and CT-9 follow the moved texts. Tests:
   `test/exploitation-console-langage-chromium.test.js` (new), and new cases
   in `test/exploitation-console-presentation-chromium.test.js`,
   `test/verification-page-presentation.test.js`,

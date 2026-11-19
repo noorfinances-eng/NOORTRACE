@@ -59,14 +59,16 @@ const motif = (champ) => (champ.value === "" ? null : champ.value);
 const GENRE_ACTION = Object.freeze({ valider: "principal", revoquer: "danger", desactiver: "danger", reactiver: "principal" });
 
 /**
- * Une action qu'on ne peut pas défaire porte la mention « définitif » juste
- * à côté de son bouton (complément du 2026-11-18), et sa confirmation le
- * redit (EX-13.17) : révoquer une adresse ; désactiver une personne, dont
- * toutes les adresses sont révoquées ; valider une adresse quand la
- * personne en a déjà une active, qui est alors révoquée. `definitif` : la
- * clé de la mention, ou `null`.
+ * Chaque action dit en une phrase ce qu'elle fait, juste à côté de son
+ * bouton, avant le clic (complément du 2026-11-18). Une action qu'on ne peut
+ * pas défaire le dit dans cette phrase, sous la mention « définitif », et sa
+ * confirmation le redit (EX-13.17) : révoquer une adresse ; désactiver une
+ * personne, dont toutes les adresses sont révoquées ; valider une adresse
+ * quand la personne en a déjà une active, qui est alors révoquée.
+ * `definitif` : la clé de la phrase d'une action définitive ; `sens` : celle
+ * d'une autre action.
  */
-function actionAvecMotif(cle, methode, corps, avant = null, definitif = null) {
+function actionAvecMotif(cle, methode, corps, avant = null, definitif = null, sens = null) {
   const id = `motif-${methode}-${corps.entry}-${corps.address ?? ""}`;
   const confirmer = etat.confirmation === id;
   const champ = champMotif(id);
@@ -79,8 +81,13 @@ function actionAvecMotif(cle, methode, corps, avant = null, definitif = null) {
       },
       { petit: true },
     );
-    const mention = definitif === null ? null : el("span", { classe: "mention-definitif", attributs: { id: `definitif-${id}`, "data-definitif": "" } }, icone("alerte"), el("span", { texte: t(definitif) }));
-    if (mention !== null) b.setAttribute("aria-describedby", `definitif-${id}`);
+    const mention =
+      definitif !== null
+        ? el("span", { classe: "mention-definitif", attributs: { id: `definitif-${id}`, "data-definitif": "" } }, icone("alerte"), el("span", { texte: t(definitif) }))
+        : sens !== null
+          ? el("span", { classe: "action-sens", texte: t(sens), attributs: { id: `sens-${id}`, "data-sens-action": "" } })
+          : null;
+    if (mention !== null) b.setAttribute("aria-describedby", mention.getAttribute("id"));
     return el("div", { classe: "action", attributs: { "data-action": methode } }, b, mention);
   }
   return el(
@@ -121,10 +128,7 @@ function rendre() {
   }
   const export_ = bouton(t("annuaire.exporter"), exporter, { icone: "dossier" });
   export_.setAttribute("id", "exporter");
-  const explications = detail(t("annuaire.actions.titre"), t("annuaire.actions.note"), el("ul", { classe: "consignes" }, ...["valider", "revoquer", "desactiver", "reactiver", "lier", "delier"].map((a) => el("li", { texte: t(`annuaire.actions.${a}`) }))));
-  explications.setAttribute("id", "actions-expliquees");
   const parties = [
-    explications,
     el(
       "section",
       { classe: "nt-carte" },
@@ -156,10 +160,13 @@ function rendre() {
             { entry: e.id, address: a.address },
             message("alerte", el("p", { classe: "nt-bandeau-titre", texte: t("annuaire.avant_valider_titre") }), el("p", { texte: t("annuaire.avant_valider") }), remplace ? el("p", { texte: t("annuaire.avant.valider_remplace"), attributs: { "data-definitif": "" } }) : null),
             remplace ? "annuaire.definitif.valider" : null,
+            remplace ? null : "annuaire.sens.valider",
           ),
         );
       }
-      if (a.state === "en_attente" || a.state === "active") actionsAdresse.push(actionAvecMotif("revoquer", "revoquer", { entry: e.id, address: a.address }, null, "annuaire.definitif.revoquer"));
+      // Révoquer une adresse en attente, c'est refuser son inscription ; une adresse active, l'empêcher de servir.
+      if (a.state === "active") actionsAdresse.push(actionAvecMotif("revoquer", "revoquer", { entry: e.id, address: a.address }, null, "annuaire.definitif.revoquer"));
+      if (a.state === "en_attente") actionsAdresse.push(actionAvecMotif("revoquer", "revoquer", { entry: e.id, address: a.address }, null, "annuaire.definitif.revoquer_attente"));
       const [genre, nomIcone] = ETATS_ADRESSE[a.state] ?? ["neutre", "question"];
       ajouter(
         adresses,
@@ -178,7 +185,10 @@ function rendre() {
     }
     const alias = el("ul", { classe: "liste-nue alias" });
     for (const lb of e.requester_identities) {
-      ajouter(alias, el("li", { classe: "compte", attributs: { "data-alias": lb } }, code(lb), " ", bouton(t("annuaire.bouton.delier"), () => void agir("delier_demandeur", { entry: e.id, launched_by: lb }), { petit: true })));
+      const delier = bouton(t("annuaire.bouton.delier"), () => void agir("delier_demandeur", { entry: e.id, launched_by: lb }), { petit: true });
+      const idSens = `sens-delier-${e.id}-${e.requester_identities.indexOf(lb)}`;
+      delier.setAttribute("aria-describedby", idSens);
+      ajouter(alias, el("li", { classe: "compte", attributs: { "data-alias": lb } }, code(lb), el("span", { classe: "action-ligne" }, delier, el("span", { classe: "action-sens", texte: t("annuaire.sens.delier"), attributs: { id: idSens, "data-sens-action": "" } }))));
     }
     const champLier = el("input", { classe: "nt-saisie", attributs: { type: "text", maxlength: "256", id: `lier-${e.id}` } });
     const lier = el(
@@ -193,8 +203,9 @@ function rendre() {
           if (champLier.value !== "") void agir("lier_demandeur", { entry: e.id, launched_by: champLier.value });
         }),
       ),
+      el("p", { classe: "action-sens", texte: t("annuaire.sens.lier"), attributs: { "data-sens-action": "" } }),
     );
-    const entreeActions = e.active ? actionAvecMotif("desactiver", "desactiver", { entry: e.id }, null, "annuaire.definitif.desactiver") : actionAvecMotif("reactiver", "reactiver", { entry: e.id });
+    const entreeActions = e.active ? actionAvecMotif("desactiver", "desactiver", { entry: e.id }, null, "annuaire.definitif.desactiver") : actionAvecMotif("reactiver", "reactiver", { entry: e.id }, null, null, "annuaire.sens.reactiver");
     parties.push(
       el(
         "section",

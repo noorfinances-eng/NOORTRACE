@@ -2689,32 +2689,58 @@ html[data-barre="12"] { scroll-padding-top: 12.25rem; }
   border-radius: var(--nt-rayon-m);
 }
 
+/* Annuaire : une action par ligne, son bouton puis ce qu'elle fait. */
 .actions-ligne {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--nt-e-3);
 }
 
-.actions-ligne .confirmation {
-  flex: 1 1 100%;
-}
-
-/* Annuaire : une action qu'on ne peut pas défaire porte « définitif » juste à côté de son bouton. */
-.action:has(> .mention-definitif) {
+/*
+ * Annuaire : chaque action dit en une phrase ce qu'elle fait, juste à côté de son bouton, avant le clic ; une
+ * action qu'on ne peut pas défaire le dit sous la mention « définitif », en couleur d'avertissement.
+ */
+.action:not([data-action="lier_demandeur"]):has(> .mention-definitif, > .action-sens),
+.action-ligne {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--nt-e-1) var(--nt-e-2);
+  gap: var(--nt-e-1) var(--nt-e-3);
+}
+
+.mention-definitif,
+.action-sens {
+  flex: 1 1 18rem;
+  min-width: 0;
+  font-size: var(--nt-t-s);
+  line-height: 1.45;
 }
 
 .mention-definitif {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--nt-e-1);
   color: var(--nt-attente);
-  font-size: var(--nt-t-s);
-  font-weight: 700;
+  font-weight: 600;
+}
+
+.mention-definitif > svg {
+  flex: none;
+  align-self: center;
+}
+
+.action-sens {
+  color: var(--nt-encre-attenuee);
+}
+
+.action-ligne {
+  flex: 1 1 20rem;
+}
+
+/* Lier un agent : ce que cela fait, sous le champ. */
+[data-action="lier_demandeur"] > .action-sens {
+  flex: none;
 }
 
 /* « Contester » expliqué, une fois, là où le mot paraît pour la première fois. */

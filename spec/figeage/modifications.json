@@ -13979,6 +13979,74 @@
           "apres": "f15aae13a6f38ec7d4b97715ad5f1f417c1bb382023394652004fb835a90600c"
         }
       ]
+    },
+    {
+      "id": "MC-103",
+      "date": "2026-11-18",
+      "etape": 8,
+      "motif": "langage des écrans, suites de la quatrième lecture (compléments du 2026-11-18, décision du porteur) : dans la console, choix du portefeuille offert seulement après la décision confirmée et plus après une signature, décision déjà enregistrée rappelée en tête d'une demande encore ouverte avec ce qui manque et la récusation avec ce qu'elle change, panne de signature affichée en haut de l'écran et disant d'abord que la décision n'est pas enregistrée, chaque opération de l'annuaire dite avant le clic, montant vérifié des dix premières demandes en cours (CT-3 EX-9.4, EX-13.3, EX-13.29, 13.1, en-tête) ; dans la page de vérification, « Sans valeur de preuve » pour un contrôle qu'un avertissement dit sans valeur probante, contrôles des signatures faits avec les clés ou les approbateurs du dossier dits tels, liste des références de confiance à recevoir par un autre moyen que le dossier, heures du registre dites comparées à rien (CT-6 EX-18.7, EX-18.9, en-tête et section 16) ; dans l'outil d'inscription, calcul de l'empreinte d'une pièce hors du formulaire, sans rien remplir ni envoyer (CT-4 EX-7.25, en-tête et table de la section 13) ; table des versions de spec/README.md ; renvois par numéro de ligne de CT-7 et de CT-9 recollés ; catalogue de CT-9 régénéré, sans entrée ni identifiant nouveau ; aucune règle de contrôle, aucun schéma, aucun rapport, aucun code de retour ni aucun vecteur des autres familles ne change",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-3-approbations.md",
+          "avant": "f603a2d892a5d6de244bd23049f28004026c57839df7f31dc8d98b3a98522db5",
+          "apres": "17ba1a841432a408094c1b8dc79d05795f0ae7a7ceec462b186521147c182059"
+        },
+        {
+          "chemin": "spec/CT-4-registre.md",
+          "avant": "10bbf69229b3e2030389987a31748d51c3d46d3557bfb4adb6f3fe7af80996c3",
+          "apres": "1d137b79bcccf2ba385c0ccdb98caed617051f185a63a7ba1c0bfcf7336999aa"
+        },
+        {
+          "chemin": "spec/CT-6-verificateur.md",
+          "avant": "1143d0a9f4d38f2010c21d220620a7a8e995f876dd3ccc819191f1fafa78b2e4",
+          "apres": "dae0a6973bba7e395e8e29ec894d91a715cfb070a96176eccf92ea41b9b2014e"
+        },
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "81e770f1ddd538860cd1dfa598e420ddaafe7488c9b45bef8b092506ad671d86",
+          "apres": "47cfc91bbd0d72dc477f2ff962fc5741cc50c68ec21e4c8fae8917248832a0b3"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "c1f5addc62f427dd9b5ee37bb311a57b40ccc4db6a9a21ae8498f08f4d3b1a86",
+          "apres": "719be4414eb92d21ce180d2cc8f581d242c7ad66290dd9d5bbd24ebfca1d9751"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "aa6a6caea461ad3929472f07a458287bf3117b54f49fb13a2dd426a41421f3ba",
+          "apres": "f558ce3944084f7eaa08fb70b4476d2f0ffa428383f3d1f2579989f703a4acf7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "a0bc0d7a159067d6220665e268dfd839f21b5a394a98f95ab496e251bc33d3f5",
+          "apres": "9e451755cbb5f139a63b4f6e0b1fd01848aa30fb71a61220558dd5924b1fc1eb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "2a80b573db2344766e3b92dd0c95a778e28f6901e0185b025fcda155c9f54ff1",
+          "apres": "979b92c6c37de805f530f2f009036095b8c6beb8be400e6489bf0c2c760e2fd5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "cf0f9a73e73fd4fc73ab5524ffa8ac8d283b96d745bf07fbee062c094e15b68d",
+          "apres": "6c2e61ca8ed89363e57a2863f494d873ebfee02b78104c795f3aac76d0f28015"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "4aa6343e06973c343485e12370a6d39d09e00339584524f04f2aa65b7b9f7c19",
+          "apres": "99466fa88d05be0797252c21c0fec4e2ba2961df89fd358829e77d4bdea40999"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "0187b41d5d4d98effbd9d94272e962a4a5ac0f0b372ffd029d32e4316039de19",
+          "apres": "e8693cc727bf1adf441d87ea2adfc4ae2bf6353983d3e033f757ba510d42cb53"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "f15aae13a6f38ec7d4b97715ad5f1f417c1bb382023394652004fb835a90600c",
+          "apres": "9d481ab200e0dab1a345813c0b2b58d3f58d572b75ef7e005bc566ee510cbf77"
+        }
+      ]
     }
   ]
 }

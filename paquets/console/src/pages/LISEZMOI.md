@@ -207,9 +207,9 @@ service simulés par interception, en-têtes de 2.6, espions du stockage).
   texte du complément. Mutant vu : la quatrième consigne retirée.
 - **Codes.** Le code entre parenthèses accompagne une panne ; un état
   attendu du parcours ou un avertissement s'affiche sans code, qui est au
-  détail technique. Le résultat d'une signature s'affiche en tête du bloc
-  de signature, et la page y amène.
-- **Montant dans la liste.** Pour dix demandes à décider au plus, la liste
+  détail technique. Le résultat d'une signature s'affiche sous l'en-tête
+  de la demande, et la page y amène.
+- **Montant dans la liste.** Pour dix demandes en cours au plus, la liste
   lit la vue de chaque demande et affiche le montant vérifié
   (`montantVerifie`), rien sinon ; des lectures seulement. Mutant vu : le
   montant non vérifié affiché.
@@ -229,10 +229,20 @@ service simulés par interception, en-têtes de 2.6, espions du stockage).
   Mutant vu : la récusation remise à côté du portefeuille.
 - **« Contester ».** Expliqué une fois par écran, là où le mot paraît
   d'abord.
-- **Annuaire.** « définitif » à côté de chaque action qu'on ne peut pas
-  défaire, redit à la confirmation. Mutant vu : la mention retirée.
+- **Annuaire.** Chaque action dit en une phrase ce qu'elle fait, à côté de
+  son bouton ; « Définitif » en tête de la phrase d'une action qu'on ne
+  peut pas défaire, redit à la confirmation. Mutant vu : la mention retirée.
+- **Chaque bloc au bon moment.** Le choix du portefeuille ne paraît qu'une
+  fois la décision confirmée, et plus après une signature ; après sa
+  décision, la page dit qu'elle est enregistrée et qu'il n'y a plus rien à
+  faire. Un essai par état de la demande. Mutant vu : le portefeuille offert
+  avant la décision.
+- **Panne de signature.** En haut de l'écran, la page amenée dessus ; une
+  phrase dit que la décision n'est pas enregistrée ; « Réessayer ». Mutants
+  vus : l'écran de signature laissé en place ; la consigne de ne pas
+  réessayer retirée.
 - **Limites.** Dans la liste, le montant n'est affiché que pour les dix
-  premières demandes à décider, et seulement quand la console l'a vérifié
+  premières demandes en cours, et seulement quand la console l'a vérifié
   (la réponse `tickets` ne porte pas les arguments). Les autres approbateurs restent des adresses
   pour une session ordinaire, dont l'annuaire ne porte que sa propre fiche.
   Le décalage d'un instant reste écrit « UTC+1 ».

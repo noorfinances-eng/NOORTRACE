@@ -9,6 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { inscrireRepertoireTemporaire } from "../../aides/temporaires.mjs";
 
 export const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 export const VERSION = "0.1.0";
@@ -22,10 +23,14 @@ export function enAttente(ctx, condition) {
   ctx.skip();
 }
 
-/** Répertoire temporaire propre aux essais, à détruire par l'appelant. */
+/**
+ * Répertoire temporaire propre aux essais, à détruire par l'appelant. Il est aussi inscrit auprès de
+ * test/aides/temporaires.mjs : s'il reste à la fin du fichier d'essai (crochet `after` non joué, passe arrêtée par
+ * `process.exit`), il est supprimé là, ou à la sortie du processus.
+ */
 export function repertoireTemporaire(prefixe) {
   const base = process.env.NOORTRACE_TMP ?? os.tmpdir();
-  return fs.mkdtempSync(path.join(base, `${prefixe}-`));
+  return inscrireRepertoireTemporaire(fs.mkdtempSync(path.join(base, `${prefixe}-`)));
 }
 
 /**

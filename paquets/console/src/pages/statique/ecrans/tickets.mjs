@@ -17,8 +17,8 @@
 // quand la règle en prévoit une : une demande sans délai de contestation n'en
 // dit rien.
 //
-// Complément du 2026-11-18 (CT-3 EX-13.3) : pour les dix premières demandes à
-// décider au plus, la liste lit ensuite la vue de chaque demande (`consulter`,
+// Complément du 2026-11-18 (CT-3 EX-13.3) : pour les dix premières demandes en
+// cours au plus, celles à décider d'abord, la liste lit ensuite la vue de chaque demande (`consulter`,
 // et `annuaire` une fois : des lectures, les mêmes que l'écran d'une demande)
 // et affiche à côté du titre le montant que `montantVerifie` rend : celui de
 // la phrase vérifiée, et rien quand il n'est pas vérifié. La liste s'affiche
@@ -26,8 +26,8 @@
 // ligne sans montant, sans erreur. Chaque date porte ce qu'elle est : pour une
 // demande à décider dont la règle prévoit un délai de contestation, « À
 // décider avant » donne le dernier moment où l'approuver à temps (EX-10.9),
-// et l'expiration est dite à part ; pour une autre demande en cours, « Expire
-// le ».
+// et l'expiration est dite à part ; pour une demande que la personne a déjà
+// décidée, et pour une autre demande en cours, « Échéance ».
 
 import { modeleAffichage, sessionDuModele, entreeDeSession, adresseActive } from "noortrace-console/index.mjs";
 import { el, ajouter, code, detail, icone, marque, message, pastille, remplacer } from "../commun/dom.mjs";
@@ -125,14 +125,14 @@ const zonesMontant = new Map();
 const MONTANTS_MAX = 10;
 
 /**
- * Le montant vérifié des dix premières demandes à décider (complément du
- * 2026-11-18) : des lectures seulement, l'une après l'autre, après
- * l'affichage de la liste. Une lecture qui échoue, une vue d'une autre
- * demande, un montant que la console n'a pas vérifié : la ligne reste sans
- * montant, et rien d'autre n'est affiché.
+ * Le montant vérifié des dix premières demandes en cours, celles à décider
+ * d'abord (complément du 2026-11-18) : des lectures seulement, l'une après
+ * l'autre, après l'affichage de la liste. Une lecture qui échoue, une vue
+ * d'une autre demande, un montant que la console n'a pas vérifié : la ligne
+ * reste sans montant, et rien d'autre n'est affiché.
  */
-async function lireMontants(identite, aDecider) {
-  const cibles = aDecider.filter((tk) => estIdentifiantTicket(tk.ticket) && zonesMontant.has(String(tk.ticket))).slice(0, MONTANTS_MAX);
+async function lireMontants(identite, enCours) {
+  const cibles = enCours.filter((tk) => estIdentifiantTicket(tk.ticket) && zonesMontant.has(String(tk.ticket))).slice(0, MONTANTS_MAX);
   if (cibles.length === 0) return;
   let annuaire;
   try {
@@ -186,7 +186,7 @@ function carteTicket(tk) {
   const conteste = contestation(tk);
   // Le montant ne vient pas de la réponse `tickets` : son emplacement reste vide tant que la vue n'est pas lue.
   const zoneMontant = el("p", { classe: "carte-ticket-montant", attributs: { "data-montant": "" } });
-  if (tk.state === "ouvert") zonesMontant.set(id, zoneMontant);
+  zonesMontant.set(id, zoneMontant);
   return el(
     "li",
     { classe: "nt-carte carte-ticket", attributs: { "data-ticket": id } },
@@ -198,7 +198,7 @@ function carteTicket(tk) {
         { classe: "carte-ticket-titre" },
         // La réponse `tickets` ne porte pas les arguments : le titre nomme l'outil ; le montant vérifié vient ensuite.
         el("h3", { classe: "carte-ticket-nom", attributs: { "data-champ": "outil" } }, el("span", { texte: t("tickets.carte.titre") }), " ", code(String(tk.tool_announced))),
-        tk.state === "ouvert" ? zoneMontant : null,
+        zoneMontant,
         // Revue de sécurité de l'étape 8 (CT-3 EX-7.1) : lien seulement pour un identifiant d'EX-7.1.
         el("p", { classe: "nt-sur-titre" }, t("tickets.colonne.ticket"), " ", lienTicket(tk.ticket, "nt-fixe lien-carte")),
       ),
@@ -232,9 +232,15 @@ function rangerDejaDecidee(id, decision) {
   if (etat !== null) etat.replaceWith(pastille("info", t("etat_pastille.deja"), "horloge", { attributs: { "data-etat": "ouvert", "data-deja": "" } }));
   const titre = carte.querySelector(".carte-ticket-titre");
   if (titre !== null) titre.appendChild(el("p", { classe: "carte-ticket-deja", texte: t(`tickets.deja.${decision}`), attributs: { "data-deja-decide": decision } }));
-  // La date n'est plus « à décider avant » pour elle : c'est celle avant laquelle les autres approbations doivent arriver.
+  // La date n'est plus « à décider avant » pour elle : c'est l'échéance, avant laquelle les autres approbations
+  // doivent arriver ; « trop tard pour l'approuver » ne se dit plus à qui a déjà décidé.
   const libelleEcheance = carte.querySelector('[data-champ="echeance"] > dt');
   if (libelleEcheance !== null) libelleEcheance.textContent = t("tickets.echeance.deja");
+  const expiration = carte.querySelector('[data-champ="echeance"] [data-expiration]');
+  if (expiration !== null) {
+    const fin = expiration.querySelector("time");
+    remplacer(expiration, t("tickets.echeance.autres"), " ", fin, ".");
+  }
   let groupe = cartes.querySelector('li[data-groupe="autres"]');
   if (groupe === null) {
     groupe = intertitre("autres", 0, t("tickets.groupe.autres_sens"));
@@ -311,12 +317,13 @@ function rendre(conteneur, reponse) {
     ajouter(corpsResume, el("tr", { attributs: { "data-demandeur": lb } }, el("td", { classe: "nt-cellule-titre", attributs: { "data-libelle": t("tickets.colonne.demandeur") } }, code(lb)), el("td", { texte: String(n), attributs: { "data-libelle": t("tickets.colonne.ouverts") } })));
   }
   resume.appendChild(corpsResume);
-  parties.push(el("section", { classe: "nt-carte nt-carte-pleine" }, el("div", { classe: "nt-carte-titre" }, el("h2", { texte: t("tickets.par_demandeur") })), resume));
+  // Ce que ce décompte permet de voir (EX-14.2) : une rafale de demandes d'un même agent.
+  parties.push(el("section", { classe: "nt-carte nt-carte-pleine" }, el("div", { classe: "nt-carte-titre" }, el("h2", { texte: t("tickets.par_demandeur") })), resume, el("p", { classe: "nt-attenue pied-carte", texte: t("tickets.par_demandeur_sens"), attributs: { id: "par-demandeur-sens" } })));
   remplacer(conteneur, ...parties);
   // « Contester » expliqué une fois, là où le mot paraît pour la première fois : la liste n'en parle que pour une
   // demande dont la règle prévoit un délai de contestation.
   expliquerContestation(cartes, true);
-  return aDecider;
+  return [...aDecider, ...autres];
 }
 
 async function demarrer() {
@@ -326,9 +333,9 @@ async function demarrer() {
   principal().appendChild(contenu);
   try {
     const r = await appeler("tickets", { session_identity: s.session_identity });
-    const aDecider = rendre(contenu, r.valeur);
+    const enCours = rendre(contenu, r.valeur);
     // La liste est affichée ; les montants vérifiés arrivent ensuite, sans la retarder.
-    void lireMontants(s.session_identity, aDecider);
+    void lireMontants(s.session_identity, enCours);
   } catch (e) {
     remplacer(contenu);
     afficherErreur(contenu, e);

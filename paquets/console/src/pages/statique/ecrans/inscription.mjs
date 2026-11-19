@@ -170,6 +170,8 @@ function rendreEntree() {
         "section",
         { classe: "nt-carte nt-carte-pleine" },
         el("div", { classe: "nt-carte-titre" }, el("h2", { texte: t("inscription.adresses") })),
+        // Une adresse active et une adresse en attente : pourquoi deux, et avec laquelle la personne signe.
+        e.addresses.some((a) => a.state === "active") && e.addresses.some((a) => a.state === "en_attente") ? el("p", { classe: "pied-carte", texte: t("inscription.deux_adresses"), attributs: { id: "deux-adresses" } }) : null,
         e.addresses.length === 0 ? el("p", { classe: "nt-attenue pied-carte", texte: t("inscription.aucune_adresse") }) : table,
         el("p", { classe: "nt-attenue nt-petit pied-carte", texte: t("inscription.validation_sens") }),
       ),
@@ -208,8 +210,9 @@ function actionRevocation(e, a) {
         },
         { petit: true },
       ),
-      // La conséquence se lit avant le premier clic : la révocation est définitive.
-      el("p", { classe: "nt-attenue nt-petit", texte: t("inscription.revoquer_sens") }),
+      // La conséquence se lit avant le premier clic : la révocation est définitive. Pour une adresse en attente, ce
+      // n'est pas une clé perdue : c'est une inscription que la personne ne veut pas, ou n'a pas demandée.
+      el("p", { classe: "nt-attenue nt-petit", texte: t(a.state === "en_attente" ? "inscription.revoquer_sens_attente" : "inscription.revoquer_sens") }),
     );
   }
   const id = `motif-revoquer-${a.address}`;
@@ -217,7 +220,7 @@ function actionRevocation(e, a) {
   return el(
     "div",
     { classe: "action confirmation nt-pile", attributs: { "data-action": "revoquer", "data-confirmation": "" } },
-    message("alerte", el("p", { texte: t("inscription.revoquer_definitif") })),
+    message("alerte", el("p", { texte: t(a.state === "en_attente" ? "inscription.revoquer_definitif_attente" : "inscription.revoquer_definitif") })),
     el("div", { classe: "nt-champ" }, el("label", { classe: "nt-libelle", texte: t("annuaire.motif"), attributs: { for: id } }), champ),
     actions(
       bouton(t("inscription.revoquer_confirmer"), () => void revoquer(e.id, a.address, champ.value === "" ? null : champ.value), { genre: "danger" }),

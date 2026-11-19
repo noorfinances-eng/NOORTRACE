@@ -452,9 +452,10 @@ un envoi est resté sans réponse ; le reste de 2.4 tient.
   l'information (le client la donne par écrit, ou le champ se laisse vide)
   et, pour une adresse, ce qui se passe si elle est fausse (CT-4 EX-7.8).
   L'exemple s'écrit sous le champ (« Exemple : … »), jamais dans le champ.
-  Le budget d'écriture par jour et la référence du compte de paiement
-  (pas 1) sont rangés dans « Réglages avancés », replié : laissés vides,
-  ils valent le budget par défaut et la trésorerie de l'agent, que l'agent
+  La consommation prévue par jour (le budget journalier d'EX-4.19) et la
+  référence de notre réserve de crédits d'écriture (la trésorerie) (pas 1)
+  sont rangées dans « Réglages avancés », replié : laissées vides, elles
+  valent le budget par défaut et la trésorerie de l'agent, que l'agent
   recalcule et contrôle (EX-4.19, EX-8.20).
 - **Le mot « demande ».** À l'écran, le document `demande_signature` que
   le client fait signer se dit « document à faire signer par le client »,
@@ -604,6 +605,68 @@ un envoi est resté sans réponse ; le reste de 2.4 tient.
     à droite de ses phrases : le bouton reste dans le premier écran, et une
     étape faite ou à venir sur une ligne, avec une police de remplacement
     plus large que celle du thème (celle d'un poste qui n'a pas Inter).
+- **Quatrième lecture** (même complément, après une nouvelle lecture des
+  écrans par une personne sans formation). Rien de ce qui suit ne change
+  une route, un corps envoyé, l'agent ni le dossier.
+  - *Crédits d'écriture.* Chaque écran qui les nomme dit une fois, juste
+    après le premier texte qui les nomme sans rien ouvrir, ce qu'ils sont
+    (`CREDITS_EN_CLAIR`) : « Les crédits d'écriture ne sont pas de
+    l'argent : ils servent seulement à payer les écritures sur le registre
+    public, et chaque écriture en consomme. Ils ne s'achètent pas, ne se
+    vendent pas et ne s'échangent pas : c'est notre société qui les
+    fournit, et le client ne les paie pas. » (CT-4 4.5, EX-4.15, EX-4.16,
+    EX-4.19). Là où le client confirme un versement, s'y ajoute ce que
+    permet ce versement (ses preuves de date et ses clôtures de période,
+    8.1), et la fiche dit d'où vient le montant (calculé à partir de la
+    consommation prévue ; seule la différence est versée). Aucune durée
+    n'est écrite : la provision dépend de `provision_days` et de
+    `gas_limit` du manifeste du registre, que l'interface n'affiche pas, et
+    l'exemple de 30 jours d'EX-4.19 ne compte pas les preuves de date des
+    points de contrôle. Les mots « compte de paiement » et « budget » ne
+    s'écrivent plus sur aucun écran : « réserve de crédits d'écriture »,
+    « consommation prévue par jour ».
+  - *Vérifier une pièce.* Sur `/clients/<slug>/confirmations`, quand une
+    confirmation est notée, un bouton à part, « Calculer l'empreinte d'une
+    pièce — rien n'est enregistré », hors du formulaire qui note : la page
+    lit le fichier choisi, calcule son SHA-256 par le même calcul que
+    « Choisir la pièce » (`empreinteFichier`), l'affiche avec « Copier
+    l'empreinte » et dit si c'est celle de la pièce d'une confirmation de la
+    liste. Aucune requête ne part, aucun champ n'est rempli ; l'élément de
+    choix du fichier n'a pas de nom et porte le type `hachage` (CT-4
+    EX-7.25, complément du 2026-11-18).
+  - *Paquet.* Les quatre lignes disent ce que le paquet contient (la
+    description du registre seulement quand le dossier en nomme une),
+    qu'aucun de ses fichiers n'est fait pour porter une clé secrète, un
+    jeton ou un mot de passe et que l'outil y a cherché les `n` secrets dont
+    il s'est servi (`secrets_checked`, EX-7.21), et pourquoi il porte aussi
+    la trace d'autres opérations du même bloc, dont celles d'autres clients
+    (EX-7.21, EX-9.5 ; CP-3 : la preuve d'une opération se contrôle avec
+    tous les reçus de son bloc).
+  - *Valeurs brutes.* La liste de 2.4 tient : rien de ce qui engage ne se
+    replie. Sur une confirmation, la date de la confirmation et celle où
+    elle a été notée se lisent en mots, la personne qui l'a notée par le
+    nom de son compte (comme dans la barre), l'action qui l'a utilisée par
+    son nom et sa date ; sous ces mots, en petit et sans rien ouvrir,
+    l'instant exact de la confirmation, l'identité de session entière et
+    l'identifiant de l'action. Seul l'instant exact où elle a été notée
+    passe au détail technique de la carte. Dans le formulaire, l'instant
+    exact n'est plus un champ au premier niveau : il se calcule depuis la
+    date et l'heure choisies, qui se lisent en mots, et son champ (celui
+    qui part vers la route) est rangé dans « Réglages avancés », replié,
+    qui s'ouvre si l'instant est refusé ; la relecture, avant le clic qui
+    note, en donne la valeur exacte sans rien ouvrir.
+  - *Ce qui a échoué.* Une étape en échec (`transaction_annulee`) dit sa
+    cause d'après la vérification qui l'a rendue : un reçu refusé (OP-11)
+    laisse l'étape sans capture, « Le registre public a reçu l'opération,
+    mais elle n'a pas eu l'effet attendu. » ; une relecture contredite
+    (OP-12) vient après la capture, « Le registre public a inscrit
+    l'opération, mais le contrôle fait juste après ne retrouve pas ce qui
+    devait être inscrit. » ; pour un travail, la vérification est
+    `error.check` de sa sortie. Le code reste au détail. La consigne de
+    reprise dit « Vous n'avez rien à corriger d'ici ».
+  - *Rien à réunir.* Quand la consigne ne demande rien à avoir sous la
+    main, elle dit « Rien à réunir » (et non plus « Rien à préparer », qui
+    contredisait « Préparez le document »).
 
 ## 3. Agent (`src/agent/`, `bin/noortrace-inscription-agent`)
 

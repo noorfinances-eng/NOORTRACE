@@ -394,6 +394,18 @@ export function instant(iso, options = {}) {
   return el("time", { texte: texteInstant(iso, options), attributs: { datetime: String(iso), title: String(iso) } });
 }
 
+/**
+ * Un instant en mots, le décalage après une virgule (« 17 novembre 2026 à 18:05, UTC+1 ») : pour un instant écrit
+ * lui-même entre parenthèses, sans parenthèses imbriquées. Un instant qui ne se lit pas est rendu tel quel.
+ */
+export function instantCourt(iso) {
+  const p = partiesInstant(iso);
+  if (p === null) return instant(iso);
+  const deux = (n) => String(n).padStart(2, "0");
+  const texte = t("date.instant_court", { jour: p.jour, mois: t(`mois.${p.mois}`), annee: p.annee, heure: `${deux(p.heure)}:${deux(p.minute)}`, fuseau: texteDecalage(p.decalage) });
+  return el("time", { texte, attributs: { datetime: String(iso), title: String(iso) } });
+}
+
 // Pastille de chaque état d'un ticket (CT-3 7.3) : genre et icône.
 const ETATS = Object.freeze({
   reserve: ["neutre", "horloge"],

@@ -276,7 +276,8 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     const bandeau = page.locator('.nt-bandeau-erreur[role="alert"]').first();
     expect(await bandeau.locator(".nt-bandeau-titre").innerText()).to.equal("L'étape 3 a échoué : Rattacher les approbateurs au client");
     // Ce qui s'est passé, et ce qui a été dépensé ; la marche à suivre est dans la consigne, juste dessous.
-    expect(await bandeau.innerText()).to.contain("L'opération a été envoyée, mais le registre public l'a refusée, ou le contrôle fait juste après ne retrouve pas ce qui devait être inscrit. Cet envoi a coûté des crédits d'écriture.");
+    // Quatrième lecture : la cause se dit d'après la vérification qui l'a rendue (l'étape sans capture : le reçu, OP-11).
+    expect(await bandeau.innerText()).to.contain("Le registre public a reçu l'opération, mais elle n'a pas eu l'effet attendu. Cet envoi a coûté des crédits d'écriture.");
     expect(await page.locator(".nt-sous-titre").innerText()).to.equal("Inscription sur le registre public, un registre que personne ne peut modifier après coup : 2 étapes sur 8 faites. Une étape a échoué : reprenez-la pour continuer.");
     expect(await page.evaluate(() => Boolean(document.querySelector(".nt-bandeau-erreur").compareDocumentPosition(document.querySelector("ol.nt-etapes")) & Node.DOCUMENT_POSITION_FOLLOWING)), "le bandeau précède les étapes").to.equal(true);
     expect(await page.locator('li.nt-etape[data-etape="assignation"]').getAttribute("class")).to.contain("nt-etape-echec");
@@ -330,7 +331,8 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(aConfirmer).to.contain(dNeuf.recorders[0].chain_key);
     // Ce que la personne fait confirmer, elle sait l'expliquer : ce que sont ces crédits, qui les verse, ce qu'ils
     // permettent ; et l'adresse se confirme par écrit, en entier, jamais dictée.
-    expect((await neuf.locator("[data-credits-en-clair]").innerText()).replace(/\s+/g, " ")).to.equal("Les crédits d'écriture paient les écritures de l'enregistreur du client sur le registre public : chaque preuve de date, chaque clôture de période. Ils ne s'achètent pas et ne se vendent pas : c'est notre société qui les verse, depuis son compte de paiement. Le montant suit le budget d'écriture de l'enregistreur, 10 800 000 crédits par jour ; si le compte en a déjà, l'outil ne verse que la différence.");
+    expect((await neuf.locator("[data-credits-en-clair]").innerText()).replace(/\s+/g, " ")).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public, et chaque écriture en consomme. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas : c'est notre société qui les fournit, et le client ne les paie pas. Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
+    expect((await neuf.locator("[data-montant-en-clair]").innerText()).replace(/\s+/g, " ")).to.equal("Le montant est calculé à partir de la consommation prévue pour son enregistreur, réglée à 10 800 000 crédits par jour ; si le compte en a déjà, l'outil ne verse que la différence.");
     expect(await neuf.locator("[data-adresse-a-confirmer]").innerText()).to.equal("Ne la dictez pas : 42 caractères ne se lisent pas à voix haute sans erreur. Envoyez-la au client par écrit, par un autre moyen que cet outil, et demandez-lui de vous répondre par écrit qu'elle est bien, en entier, celle du compte technique de son enregistreur. Gardez sa réponse avec la pièce de la confirmation.");
     expect(aConfirmer).to.not.match(/à lui lire/);
     expect(await page.locator("[data-actions-utiles]").count(), "aucune autre action utile sur un client neuf").to.equal(0);
@@ -411,6 +413,13 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(await carte.evaluate((x) => x.closest("details") === null), "hors de tout bloc replié").to.equal(true);
     const texte = await carte.innerText();
     for (const v of [c.personne_client, c.canal, c.instant, c.piece_sha256, c.exploitant, c.objet.cle_chaine, F.travaux[1].id]) expect(texte, v).to.contain(v);
+    // Quatrième lecture des écrans : la date se lit aussi en mots et la personne qui a noté par le nom de son compte ;
+    // les valeurs exactes qui engagent restent au premier niveau, sous ces mots. Seul l'instant exact où la
+    // confirmation a été notée passe au détail technique de la carte.
+    for (const v of ["12 novembre 2026 à 07:58 UTC", "operateur-1"]) expect(texte, v).to.contain(v);
+    const detailCarte = await carte.locator("details").evaluate((x) => x.textContent);
+    expect(texte, "l'instant où elle a été notée : au détail").to.not.contain(c.recu_a);
+    expect(detailCarte, c.recu_a).to.contain(c.recu_a);
     expect(await carte.locator("[data-piece]").innerText()).to.equal(c.piece_sha256);
     expect(await carte.locator(".nt-pastille").innerText()).to.equal("Déjà utilisée");
     expect(await carte.locator("h3").innerText()).to.equal("Premier versement sur le compte technique (étape 5 de l'inscription)");
@@ -427,7 +436,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect((await autre.locator("> summary").innerText()).split("\n")[0]).to.equal("Noter une autre confirmation (rare)");
     expect(await autre.locator('form[data-formulaire="confirmation"]').count()).to.equal(1);
     expect(await page.locator("[data-confirmation-attendue]").count()).to.equal(0);
-    expect(texte).to.contain("dans le formulaire replié « Noter une autre confirmation (rare) », plus bas, sans rien noter : ce choix n'enregistre rien.");
+    expect(texte.replace(/\s+/g, " ")).to.contain("Pour la calculer sur le fichier de la pièce, servez-vous du bouton « Calculer l'empreinte d'une pièce — rien n'est enregistré », plus haut.");
     await autre.locator("> summary").click();
     // Le formulaire d'ajout : un libellé par champ, le type déclaré de chaque champ (EX-7.25).
     const lireChamps = () => page.locator('form[data-formulaire="confirmation"] [name]').evaluateAll((l) => l.map((x) => ({ nom: x.getAttribute("name"), type: x.getAttribute("data-type"), libelle: x.id ? document.querySelectorAll(`label[for="${x.id}"]`).length : 0 })));
@@ -713,7 +722,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     // Date et heure du poste, converties ; puis « Maintenant ». Sous le champ, l'aide dit de quelle heure il s'agit ;
     // la valeur convertie ne paraît qu'une fois la date donnée, en clair, et c'est celle du champ enregistré.
     const aideDate = f.locator(`#${await f.locator('[data-aide-saisie="date"]').getAttribute("aria-describedby")}`);
-    expect(await aideDate.innerText()).to.equal("Heure de votre poste ; l'outil la convertit. Donnez la date et l'heure à votre montre, ou cliquez sur « Maintenant » si le client vient de confirmer : le champ suivant se remplit pour vous.");
+    expect(await aideDate.innerText()).to.equal("Heure de votre poste ; l'outil la convertit. Donnez la date et l'heure à votre montre, ou cliquez sur « Maintenant » si le client vient de confirmer : l'heure à enregistrer se calcule pour vous.");
     expect(await f.locator("[data-instant-converti]").count(), "rien de converti avant la saisie").to.equal(0);
     await f.locator('[data-aide-saisie="date"]').fill("2026-11-17T10:12");
     expect(await f.locator('[name="instant"]').inputValue()).to.equal("2026-11-17T09:12:00.000Z");
@@ -781,6 +790,8 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(await erreur.innerText()).to.not.contain("recopiée");
     expect(requetes.length, "aucun envoi").to.equal(avantSaisie);
     await f.locator('[name="piece_sha256"]').fill(attendue);
+    // Quatrième lecture : l'instant exact se corrige à la main dans « Réglages avancés », replié.
+    await f.locator('details[data-reglages-avances="instant"] > summary').click();
     await f.locator('[name="instant"]').fill("hier vers dix heures");
     await f.locator('button[type="submit"]').click();
     await page.waitForFunction(() => /La date et l'heure n'ont pas la forme attendue/.test(document.querySelector('form[data-formulaire="confirmation"] p.nt-erreur')?.textContent ?? ""));
@@ -1127,7 +1138,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       const rappel = f.locator("[data-ce-que-confirme]");
       expect(await rappel.evaluate((x) => Boolean(x.compareDocumentPosition(x.closest("form").querySelector('[name="personne_client"]')) & Node.DOCUMENT_POSITION_FOLLOWING)), "avant les champs à remplir").to.equal(true);
       expect(plat(await rappel.innerText())).to.contain(`Le versement de 327 000 000 crédits d'écriture sur le compte technique de son enregistreur rec-client-neuf-01, dont l'adresse est ${compte}.`);
-      expect(plat(await rappel.innerText())).to.contain("c'est notre société qui les verse, depuis son compte de paiement.");
+      expect(plat(await rappel.innerText())).to.contain("c'est notre société qui les fournit, et le client ne les paie pas. Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
       expect(plat(await rappel.innerText())).to.contain("L'adresse : ne la dictez pas : 42 caractères ne se lisent pas à voix haute sans erreur.");
       await f.locator('[name="operation"]').selectOption("approvisionner");
       expect(plat(await rappel.innerText())).to.contain(`Un nouveau versement, qui complète le compte jusqu'à 327 000 000 crédits d'écriture, sur le compte technique de son enregistreur rec-client-neuf-01, dont l'adresse est ${compte}.`);
@@ -1154,7 +1165,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
         objet: `le versement de 327 000 000 crédits d'écriture sur le compte technique de son enregistreur rec-client-neuf-01, adresse ${compte}`,
         personne: "Camille Durand (personne fictive)",
         moyen: "courrier signé",
-        date: "17 novembre 2026 à 10 h 12, heure de votre poste | soit, en temps universel : 17 novembre 2026 à 09:12 UTC",
+        date: "17 novembre 2026 à 10 h 12, heure de votre poste | soit, en temps universel : 17 novembre 2026 à 09:12 UTC | valeur enregistrée : 2026-11-17T09:12:00.000Z",
         piece: "empreinte saisie à la main | son empreinte commence par 0xabababab et finit par abababab",
       });
       expect(await relu.locator("h3").innerText()).to.equal("Relisez avant de noter");
@@ -1184,7 +1195,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       const clair = page.locator("[data-paquet-en-clair]");
       expect(await clair.evaluate((x) => x.closest("details") === null), "hors de tout bloc replié").to.equal(true);
       expect(await clair.locator("dt").evaluateAll((l) => l.map((x) => x.textContent))).to.deep.equal(["Ce qu'il contient", "Ce qu'il ne contient pas", "À qui le remettre", "Ce que le client vérifie"]);
-      expect(plat(await clair.locator("[data-sans-secret]").innerText())).to.equal("Aucune clé secrète et aucun mot de passe : ni les nôtres, ni ceux du client. Avant de vous le proposer, l'outil a cherché dans chaque fichier les 2 clés secrètes de notre société qui ont servi à cette inscription : il n'en a trouvé aucune.");
+      expect(plat(await clair.locator("[data-sans-secret]").innerText())).to.equal("Aucune clé secrète, aucun jeton d'accès et aucun mot de passe : aucun de ses fichiers n'est fait pour en porter. Avant de vous le proposer, l'outil a vérifié qu'aucun de ses fichiers ne contient l'un des 2 secrets dont il s'est servi pour cette inscription : il n'en a trouvé aucun.");
       expect(await clair.locator("[data-sans-secret]").getAttribute("data-sans-secret")).to.equal(String(F.travaux[4].sortie.outputs.secrets_checked.count));
       expect(await visible()).to.not.match(/n'était à chercher|Recherche de secrets/i);
       await sansMotTechnique("paquet");
@@ -1380,6 +1391,162 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       expect(await tel.page.locator("[data-manifeste-paquet]").innerText(), "la valeur reste entière").to.equal(F.manifestePaquet);
       expect(await sansDebord()).to.equal(true);
       expect(tel.ecarts).to.deep.equal([]);
+    } finally {
+      for (const x of plus) x.retirer();
+    }
+  });
+
+  it("quatrième lecture des écrans : ce que sont les crédits d'écriture se dit une fois, juste après le premier texte qui les nomme, sur chaque écran et chaque état, et aucun écran ne parle de « compte de paiement » ni de « budget » ; « Calculer l'empreinte d'une pièce — rien n'est enregistré » calcule l'empreinte dans la page, hors du formulaire qui note, sans aucune requête, et dit si c'est la pièce d'une confirmation ; l'instant exact n'est plus un champ au premier niveau ; le paquet dit qu'il porte la trace d'autres opérations, et pourquoi ; la cause d'un échec et « Rien à réunir »", async function () {
+    const A = "a_faire";
+    const FAIT = ["capturee", "capturee", "faite", "capturee"];
+    const plus = [
+      ajouterClientFictif(donneesFictives, "essai-commencer", [A, A, A, A, A, A, A], { confirmation: true, histoire: true }),
+      ajouterClientFictif(donneesFictives, "essai-document", [...FAIT, A, A, A], { histoire: true }),
+      ajouterClientFictif(donneesFictives, "essai-periode", [...FAIT, "capturee", A, A], { histoire: true }),
+    ];
+    try {
+      const { page, ecarts, aller } = await ouvrir();
+      const plat = (x) => x.replace(/\s+/g, " ").trim();
+      const CREDITS = "Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public, et chaque écriture en consomme. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas : c'est notre société qui les fournit, et le client ne les paie pas.";
+      const VERSEMENT = "Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.";
+      // Le premier texte de l'écran (hors des blocs repliés fermés) qui nomme les crédits, et l'explication : une seule,
+      // qui le contient ou le suit immédiatement.
+      const placeCredits = () => page.evaluate(() => {
+        const ferme = (el) => {
+          for (let d = el.closest("details"); d; d = d.parentElement?.closest("details") ?? null) {
+            if (d.open) continue;
+            const t = d.querySelector(":scope > summary");
+            if (!t || !t.contains(el)) return true;
+          }
+          return false;
+        };
+        const lu = (el) => el.getClientRects().length > 0 && !ferme(el);
+        const marcheur = document.createTreeWalker(document.querySelector("main"), NodeFilter.SHOW_TEXT);
+        let premiere = null;
+        for (let n = marcheur.nextNode(); n; n = marcheur.nextNode()) {
+          const p = n.parentElement;
+          if (p && lu(p) && /crédits? d'écriture/i.test(n.nodeValue)) { premiere = p; break; }
+        }
+        const expl = [...document.querySelectorAll("main [data-credits-en-clair]")].filter(lu);
+        const bloc = expl[0] ?? null;
+        return { mention: premiere !== null, n: expl.length, texte: bloc ? bloc.textContent.replace(/\s+/g, " ").trim() : null, juste: bloc && premiere ? (bloc.contains(premiere) || Boolean(bloc.previousElementSibling?.contains(premiere))) : null };
+      });
+      // Le texte de l'écran, blocs repliés compris, hors des valeurs venues des données et des réponses exactes.
+      const contredit = () => page.evaluate(() => {
+        const c = document.querySelector("main").cloneNode(true);
+        c.querySelectorAll("pre, .nt-fixe, [data-valeur]").forEach((x) => x.remove());
+        return c.textContent.match(/compte de paiement|budget/gi) ?? [];
+      });
+      const ecrans = [
+        ["liste", "/clients", null, null],
+        ["nouveau client, réglages avancés ouverts", "/clients/nouveau", 'form[data-commande="inscrire-client-preparer"] details[data-reglages-avances] > summary', CREDITS],
+        ["fiche, confirmation à noter", "/clients/client-neuf", null, `${CREDITS} ${VERSEMENT}`],
+        ["fiche, étapes à lancer", "/clients/essai-commencer", null, CREDITS],
+        ["fiche, envoi resté sans réponse", "/clients/client-envoye", null, null],
+        ["fiche, étape en échec", "/clients/client-en-echec", null, CREDITS],
+        ["fiche, document à préparer", "/clients/essai-document", null, null],
+        ["fiche, document à faire signer", "/clients/client-en-cours", null, CREDITS],
+        ["fiche, première période attendue", "/clients/essai-periode", null, null],
+        ["fiche, inscription terminée", "/clients/client-inscrit", null, null],
+        ["confirmations, formulaire déployé", "/clients/client-neuf/confirmations", null, `${CREDITS} ${VERSEMENT}`],
+        ["confirmations, formulaire replié", "/clients/client-en-cours/confirmations", null, null],
+        ["confirmations, formulaire ouvert", "/clients/client-en-cours/confirmations", "details[data-autre-confirmation] > summary", `${CREDITS} ${VERSEMENT}`],
+        ["paquet", "/clients/client-inscrit/paquet", null, null],
+      ];
+      for (const [ecran, chemin, ouvrir_, attendu] of ecrans) {
+        await aller(chemin);
+        if (ouvrir_) await page.locator(ouvrir_).first().click();
+        const r = await placeCredits();
+        if (attendu === null) {
+          expect(r, `${ecran} : aucun mot « crédits », aucune explication`).to.deep.equal({ mention: false, n: 0, texte: null, juste: null });
+        } else {
+          expect(r, ecran).to.deep.equal({ mention: true, n: 1, texte: attendu, juste: true });
+        }
+        expect(await contredit(), ecran).to.deep.equal([]);
+      }
+      // Dans le bandeau d'une étape en échec, la cause se dit d'après la vérification (reçu refusé : OP-11).
+      await aller("/clients/client-en-echec");
+      expect(plat(await page.locator(".nt-bandeau-erreur[data-etape-en-echec] p").nth(1).innerText())).to.equal("Le registre public a reçu l'opération, mais elle n'a pas eu l'effet attendu. Cet envoi a coûté des crédits d'écriture. L'outil vérifiera ce qui est réellement inscrit avant de refaire quoi que ce soit. La marche à suivre est juste en dessous.");
+      expect(plat(await page.locator("section.nt-essentiel .ins-essentiel-texte").first().innerText())).to.equal("Vous n'avez rien à corriger d'ici : l'outil vérifie d'abord ce qui est réellement inscrit sur le registre public, puis refait les étapes 3 à 5. Les étapes déjà faites ne sont pas refaites.");
+      expect(await page.locator("details[data-detail-etape=\"assignation\"]").evaluate((x) => x.textContent), "le code reste au détail").to.contain("transaction_annulee");
+      // « Préparez le document » n'est plus suivi de « Rien à préparer ».
+      await aller("/clients/essai-document");
+      expect(await page.locator("section.nt-essentiel h2").innerText()).to.equal("Préparez le document d'inscription de l'enregistreur");
+      expect(await page.locator("section.nt-essentiel [data-a-preparer]").innerText()).to.equal("Rien à réunir : l'enregistreur concerné est déjà choisi ci-dessous ; cliquez sur « Préparer le document ».");
+      expect(await page.locator("main").innerText()).to.not.match(/Rien à préparer/);
+
+      // Calculer l'empreinte d'une pièce : hors du formulaire qui note, rien n'est envoyé, rien n'est rempli.
+      const pieceBonne = path.join(dir, "courrier-du-client.txt");
+      fs.writeFileSync(pieceBonne, "noortrace/essai/presentation/piece/2");
+      const pieceAutre = path.join(dir, "autre-courrier.txt");
+      fs.writeFileSync(pieceAutre, "un autre courrier, fictif\n");
+      const sha = (f) => {
+        const r = spawnSync("sha256sum", [f], { encoding: "utf8" });
+        expect(r.status, r.stderr).to.equal(0);
+        return `0x${r.stdout.split(" ")[0]}`;
+      };
+      expect(sha(pieceBonne), "la pièce fictive de la confirmation du client en échec").to.equal(F.confirmations[1].piece_sha256);
+      await aller("/clients/client-en-echec/confirmations");
+      const requetes = [];
+      page.on("request", (r) => requetes.push(`${r.method()} ${r.url()}`));
+      const calc = page.locator("[data-calculer-empreinte]");
+      expect(await calc.count()).to.equal(1);
+      expect(await calc.evaluate((x) => x.closest("form") === null && x.closest("details") === null), "à part, hors du formulaire, sans rien ouvrir").to.equal(true);
+      const bouton = calc.locator("button[data-calculer]");
+      expect(await bouton.innerText()).to.equal("Calculer l'empreinte d'une pièce — rien n'est enregistré");
+      expect(await calc.locator("[data-calcul-piece]").evaluate((x) => [x.getAttribute("name"), x.getAttribute("data-type"), x.type])).to.deep.equal([null, "hachage", "file"]);
+      const formulaireFerme = () => page.locator("details[data-autre-confirmation]").evaluate((x) => x.open);
+      expect(await formulaireFerme()).to.equal(false);
+      for (const [f, comparaison, phrase] of [
+        [pieceBonne, "identique", "Identique à l'empreinte de la pièce de cette confirmation : « Premier versement sur le compte technique (étape 5 de l'inscription) », notée le 12 novembre 2026 à 08:00 UTC. C'est bien la même pièce."],
+        [pieceAutre, "differente", "Elle ne correspond à la pièce d'aucune confirmation de cette liste."],
+      ]) {
+        const [choix] = await Promise.all([page.waitForEvent("filechooser"), bouton.click()]);
+        await choix.setFiles(f);
+        await page.waitForFunction((v) => document.querySelector("[data-empreinte-fichier]")?.textContent === v, sha(f));
+        expect(await calc.locator("[data-comparaison]").getAttribute("data-comparaison")).to.equal(comparaison);
+        expect(plat(await calc.locator("[data-comparaison]").innerText())).to.equal(phrase);
+        expect(plat(await calc.locator("[data-empreinte-calculee] p").first().innerText())).to.match(new RegExp(`^Empreinte de ${path.basename(f).replace(".", "\\.")} \\(moins de 1 Ko\\), calculée sur votre poste :$`));
+      }
+      expect(requetes, "aucune requête, ni au choix du fichier ni après").to.deep.equal([]);
+      expect(await formulaireFerme(), "le formulaire qui note reste replié").to.equal(false);
+      expect(await page.locator('form[data-formulaire="confirmation"] [name="piece_sha256"]').inputValue(), "aucun champ rempli").to.equal("");
+      // Aucune confirmation notée : rien à vérifier, pas de bouton.
+      await aller("/clients/client-neuf/confirmations");
+      expect(await page.locator("[data-calculer-empreinte]").count()).to.equal(0);
+
+      // L'instant exact n'est plus un champ au premier niveau : il se calcule depuis la date, qui se lit en mots, et
+      // se corrige à la main dans « Réglages avancés », qui s'ouvre si l'instant est refusé.
+      const f = page.locator('form[data-formulaire="confirmation"]');
+      const avances = f.locator('details[data-reglages-avances="instant"]');
+      expect(await avances.evaluate((x) => x.open)).to.equal(false);
+      expect(await avances.locator('[name="instant"]').count()).to.equal(1);
+      expect(await f.locator('[name="instant"]').isVisible()).to.equal(false);
+      await f.locator('[data-aide-saisie="date"]').fill("2026-11-18T10:12");
+      expect(await f.locator('[name="instant"]').inputValue()).to.match(/^2026-11-18T[0-9]{2}:12:00\.000Z$/);
+      expect(await f.locator('[name="instant"]').isVisible(), "toujours replié").to.equal(false);
+      expect(plat(await f.locator("[data-instant-converti]").innerText())).to.match(/^Converti en temps universel \(UTC\) : 18 novembre 2026 à [0-9]{2}:12 UTC\./);
+      await f.locator('[name="personne_client"]').fill("Camille Durand (personne fictive)");
+      await f.locator('[name="canal"]').fill("appel au numéro du contrat");
+      await f.locator('[name="piece_sha256"]').fill(`0x${"ab".repeat(32)}`);
+      await avances.locator("> summary").click();
+      await f.locator('[name="instant"]').fill("");
+      await avances.locator("> summary").click();
+      expect(await avances.evaluate((x) => x.open)).to.equal(false);
+      await f.locator('button[type="submit"]').click();
+      await avances.locator('p.nt-erreur[role="alert"]').waitFor();
+      expect(await avances.evaluate((x) => x.open), "le bloc s'ouvre sur l'instant refusé").to.equal(true);
+      expect(await f.locator("[data-relecture]").count()).to.equal(0);
+
+      // Paquet : ce qu'il contient, et la trace des autres opérations du même lot, dite avec sa raison.
+      await aller("/clients/client-inscrit/paquet");
+      const clair = page.locator("[data-paquet-en-clair]");
+      const description = F.clients["client-inscrit"].dossier.instance.manifest_sha256 ? " la description du registre public en vigueur ;" : "";
+      expect(plat(await clair.locator("dd").first().innerText())).to.equal(`Le dossier d'inscription terminé ; la liste des approbateurs du client, qu'il recopie dans ses réglages ; un modèle de réglages pour son service d'approbation ;${description} la preuve de chaque opération de son inscription, telle que le registre public l'a donnée ; et la liste de tous ces fichiers, avec l'empreinte de chacun.`);
+      expect(plat(await clair.locator("[data-a-qui]").innerText())).to.equal("Au client seulement : c'est son paquet. Remettez-le par le moyen convenu avec lui ; si vous ne le connaissez pas, demandez-le à l'équipe technique. Il porte aussi la trace des autres opérations que le registre public a inscrites dans le même lot que les siennes, dont celles d'autres clients. C'est voulu : le registre public ne prouve une opération qu'avec tout son lot, et le client en a besoin pour contrôler ses propres preuves. Tout dossier de preuve tiré du registre public porte de même ces traces.");
+      expect(await page.locator("main").innerText()).to.not.match(/clés secrètes de notre société/);
+      expect(motsTechniquesDans(await page.evaluate(textePremierNiveau))).to.deep.equal([]);
+      expect(ecarts).to.deep.equal([]);
     } finally {
       for (const x of plus) x.retirer();
     }

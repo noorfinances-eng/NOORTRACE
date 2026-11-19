@@ -24,11 +24,15 @@
 // change pas. L'adresse du compte technique et l'empreinte d'un document de changement se copient d'un bouton. À
 // 1280 px, la fiche prend la largeur de l'écran et la consigne sans champ met son bouton à droite de ses phrases,
 // pour que le bouton tienne dans le premier écran quelle que soit la police du poste.
+//
+// Quatrième lecture des écrans (même complément) : ce que sont les crédits d'écriture se dit une fois, juste après le
+// premier texte de la fiche qui les nomme (bandeau, consigne ou « après le clic ») ; la cause d'une étape en échec
+// se dit d'après la vérification qui l'a rendue ; le détail ne parle plus de « compte de paiement » ni de « budget ».
 
 import { notFound } from "next/navigation";
 import { client, confirmations } from "../../../lib/donnees.mjs";
 import { exigerSession, nature } from "../../../lib/page.mjs";
-import { CHERCHER_LA_REPONSE, OPERATIONS_JEU, PAR_NOTRE_COMPTE, avancement, dateLisible, etapesDuParcours, etatsTravaux, explicationErreur, jourLisible, libelleCommande, nombreLisible, prochaineAction } from "../../../lib/parcours.mjs";
+import { CHERCHER_LA_REPONSE, CREDITS_EN_CLAIR, OPERATIONS_JEU, PAR_NOTRE_COMPTE, avancement, dateLisible, etapesDuParcours, etatsTravaux, explicationErreur, jourLisible, libelleCommande, montantEnClair, nombreLisible, nommeLesCredits, prochaineAction } from "../../../lib/parcours.mjs";
 import CopierTexte, { CopierValeur } from "../../../composants/CopierTexte.js";
 import FormulaireTravail from "../../../composants/FormulaireTravail.js";
 import Icone from "../../../composants/Icone.js";
@@ -42,6 +46,17 @@ const OPERATIONS = Object.entries(OPERATIONS_JEU).map(([o, libelle]) => ({ valeu
 const NOMS_DEMANDE = { inscription: "Document d'inscription d'un enregistreur", administration_jeu: "Document de changement des approbateurs", revocation: "Document de retrait d'un enregistreur", cloture: "Document de clôture d'une période" };
 /** Codes d'erreur après lesquels « Aller chercher la réponse du registre public » est l'action à faire. */
 const ENVOI_A_REPRENDRE = new Set(["transaction_en_attente", "recu_absent", "certificat_indisponible", "certificat_elague", "certificat_invalide", "capture_incomplete"]);
+
+/** Nom du compte d'une identité de session (`exploitant <nom>`, INTERFACES.md 1), comme la barre l'affiche ; autre forme : telle quelle. */
+const nomDuCompte = (identite) => String(identite ?? "").replace(/^exploitant /, "");
+
+/**
+ * Ce que sont les crédits d'écriture, placé juste après le premier texte de l'écran qui les nomme ; `versement` : la
+ * phrase sur ce que permet le versement du compte technique s'y ajoute.
+ */
+function CreditsEnClair({ versement = null, classe = "ins-essentiel-texte" }) {
+  return <p className={`${classe} ins-credits`} data-credits-en-clair="">{CREDITS_EN_CLAIR}{versement ? ` ${versement}` : ""}</p>;
+}
 
 /** Une demande que l'agent a relayée (`demande-inscription-relayee-…`, `demande-administration-relayee-…`). */
 const estRelayee = (x) => /^demande-(inscription|administration)-relayee-/.test(x.nom);
@@ -119,7 +134,7 @@ function actions({ d, c, action, etapes }) {
       bouton: "Alimenter le compte",
       champs: [
         { nom: "cle_chaine", libelle: "Compte technique à alimenter", type: "adresse", options: cles, donnees: true, aide: "Le compte technique de l'enregistreur du client qui recevra le versement." },
-        { nom: "budget_jour", libelle: "Budget d'écriture par jour", type: "montant", facultatif: true, exemple: "10800000", aide: "Laissez vide : l'outil reprend le budget du dossier. N'écrivez une autre valeur que si l'équipe technique vous la donne." },
+        { nom: "budget_jour", libelle: "Consommation prévue par jour", type: "montant", facultatif: true, exemple: "10800000", aide: "Le nombre de crédits d'écriture que l'enregistreur devrait employer chaque jour ; le versement est calculé à partir de lui. Laissez vide : l'outil reprend la valeur du dossier. N'écrivez une autre valeur que si l'équipe technique vous la donne." },
       ],
     },
     {
@@ -278,6 +293,7 @@ export default async function PageClient({ params }) {
   const dernier = c.travaux[0] ?? null;
   const etatDernier = dernier ? etats[0] : null;
   const codeDernier = dernier?.motif?.code ?? dernier?.sortie?.error?.code ?? "";
+  const verificationDernier = dernier?.sortie?.error?.check ?? null;
   // Le dernier travail n'a pas abouti et aucune étape en échec ne le dit déjà : son explication monte en bandeau.
   // Quand ce refus renvoie à la reprise d'un envoi et que la consigne est justement de le reprendre (ou de
   // l'attendre), le bandeau se tait : l'écran ne dit qu'une chose.
@@ -310,12 +326,23 @@ export default async function PageClient({ params }) {
       ? (seule.consommee_par ? `1 notée, ${jourVersement(seule) ? `utilisée pour le versement du ${jourVersement(seule)}` : "déjà utilisée"}` : "1 notée, prête à servir")
       : `${registre.length} notées : ${[disponibles > 0 ? `${disponibles} ${disponibles > 1 ? "prêtes" : "prête"} à servir` : null, utilisees > 0 ? `${utilisees} déjà ${utilisees > 1 ? "utilisées" : "utilisée"}` : null].filter(Boolean).join(", ")}`;
   const nomTire = /^o-[0-9a-f]{32}$/.test(slug);
-  const explicationDernier = dernierRefuse ? explicationErreur(codeDernier) : null;
+  const explicationDernier = dernierRefuse ? explicationErreur(codeDernier, { verification: verificationDernier }) : null;
   // La demande préparée qui attend les signatures du client, pour l'action « faites signer, puis envoyez ».
   const aRemettre = action.code === "relayer_demande" ? c.demandes.find((x) => x.nom.startsWith(`demande-inscription-${action.keyId}-`) && !estRelayee(x)) ?? null : null;
   const montrerDemandes = c.demandes.length > 0 || action.code === "preparer_demande" || action.code === "relayer_demande";
   const nomEnregistreur = (adresse) => d.recorders.find((x) => x.chain_key === adresse)?.key_id ?? null;
   const etapeReprise = action.code === "reprendre_envoi" ? etapes.find((e) => e.numero === action.etape) ?? null : null;
+  // Le premier texte de la fiche qui nomme les crédits d'écriture, dans l'ordre de lecture : l'explication le suit.
+  const places = [
+    ...echecs.map((e) => [`echec-${e.numero}`, `${e.erreur.phrase} ${e.erreur.effet}`]),
+    ["dernier", dernierRefuse ? `${explicationDernier.phrase} ${explicationDernier.effet} ${explicationDernier.quoiFaire}` : ""],
+    ["phrase", action.phrase],
+    ["cles", action.cles ? "crédits d'écriture" : ""],
+    ["a-preparer", action.aPreparer],
+    ["apres", action.apres],
+  ];
+  const placeCredits = places.find(([, texte]) => nommeLesCredits(texte))?.[0] ?? null;
+  const credits = (place, classe) => (placeCredits === place ? <CreditsEnClair versement={action.cles ? action.versement : null} classe={classe} /> : null);
   return (
     <main className="nt-page ins-page-fiche">
       <a className="nt-fil" href="/clients"><Icone nom="retour" />Tous les clients</a>
@@ -339,6 +366,7 @@ export default async function PageClient({ params }) {
           <div className="nt-bandeau-texte">
             <p className="nt-bandeau-titre">L'étape {e.numero} a échoué : {e.titre}</p>
             <p>{e.erreur.phrase} {e.erreur.effet} La marche à suivre est juste en dessous.</p>
+            {credits(`echec-${e.numero}`, "")}
           </div>
         </div>
       ))}
@@ -349,6 +377,7 @@ export default async function PageClient({ params }) {
             <p className="nt-bandeau-titre">La dernière action n'a pas abouti : {libelleCommande(dernier.commande)} ({etatDernier.libelle.toLowerCase()})</p>
             <p>{explicationDernier.phrase} {explicationDernier.effet}</p>
             <p><strong>Que faire :</strong> {explicationDernier.quoiFaire}</p>
+            {credits("dernier", "")}
           </div>
         </div>
       ) : null}
@@ -361,6 +390,7 @@ export default async function PageClient({ params }) {
         <div className="ins-consigne-corps" data-en-colonnes={enColonnes ? "" : undefined}>
           <div className="ins-consigne">
             <p className="ins-essentiel-texte">{action.phrase}</p>
+            {credits("phrase")}
             {action.cles ? (
               <dl className="nt-faits">
                 {action.cles.map((cle) => (
@@ -374,6 +404,7 @@ export default async function PageClient({ params }) {
                 ))}
               </dl>
             ) : null}
+            {action.cles ? credits("cles") : null}
             {action.keyId ? (
               <dl className="nt-faits">
                 <div className="nt-fait"><dt>Enregistreur concerné</dt><dd><Valeur>{action.keyId}</Valeur></dd></div>
@@ -391,6 +422,7 @@ export default async function PageClient({ params }) {
               </p>
             ) : null}
             <p className="ins-essentiel-texte" data-a-preparer="">{aRemettre ? <><strong>Ensuite :</strong> </> : null}{action.aPreparer}</p>
+            {credits("a-preparer")}
           </div>
           {principale ? (
             <FormulaireTravail commande={principale.commande} slug={slug} champs={principale.champs} fixe={principale.fixe ?? {}} bouton={action.bouton} sousBouton={action.sousBouton ?? null} classe="ins-consigne-formulaire" />
@@ -401,10 +433,11 @@ export default async function PageClient({ params }) {
           )}
         </div>
         <p className="ins-essentiel-texte nt-attenue nt-petit" data-apres-clic="">{action.apres}</p>
+        {credits("apres", "ins-essentiel-texte nt-petit")}
         {action.cles ? (
           <dl className="nt-definitions ins-pour-expliquer" data-pour-expliquer="">
-            <dt>Si le client demande ce que sont ces crédits</dt>
-            <dd data-credits-en-clair=""><span>{action.credits} Le montant suit le budget d'écriture de l'enregistreur, <span data-valeur="">{nombreLisible(d.funding.daily_budget_gas)}</span> crédits par jour ; si le compte en a déjà, l'outil ne verse que la différence.</span></dd>
+            <dt>Si le client demande d'où vient ce montant</dt>
+            <dd data-montant-en-clair="">{montantEnClair(d.funding.daily_budget_gas)}</dd>
             <dt>Pour lui faire confirmer l'adresse</dt>
             <dd data-adresse-a-confirmer="">{action.adresse}</dd>
           </dl>
@@ -477,8 +510,8 @@ export default async function PageClient({ params }) {
                     </dd>
                   </div>
                 ))}
-                <dt>Notre compte de paiement (trésorerie)</dt><dd><span className="nt-fixe">{d.funding.funder}</span></dd>
-                <dt>Versement par compte technique</dt><dd><span><span className="nt-fixe">{d.funding.amount_wei}</span> wei, pour un budget de <span className="nt-fixe">{d.funding.daily_budget_gas}</span> gaz par jour</span></dd>
+                <dt>Notre réserve de crédits d'écriture (trésorerie)</dt><dd><span className="nt-fixe">{d.funding.funder}</span></dd>
+                <dt>Versement par compte technique</dt><dd><span><span className="nt-fixe">{d.funding.amount_wei}</span> wei, calculé sur une consommation prévue de <span className="nt-fixe">{d.funding.daily_budget_gas}</span> gaz par jour</span></dd>
                 <dt>Préparé par</dt><dd><span className="nt-fixe">{d.prepared_by}</span></dd>
               </dl>
             </details>
@@ -561,6 +594,7 @@ export default async function PageClient({ params }) {
               {c.travaux.map((t, k) => {
                 const e = etats[k];
                 const code = t.motif?.code ?? t.sortie?.error?.code ?? null;
+                const verification = t.sortie?.error?.check ?? null;
                 return (
                   <li key={t.id} data-travail={t.id}>
                     <div className="ins-ligne-tete">
@@ -568,8 +602,8 @@ export default async function PageClient({ params }) {
                       <Pastille ton={e.ton} icone={e.icone}>{e.libelle}</Pastille>
                     </div>
                     <p className="nt-attenue nt-petit">
-                      Le <time dateTime={t.recu_a}>{dateLisible(t.recu_a)}</time>, lancée par <Valeur>{t.exploitant}</Valeur>.
-                      {code ? ` ${explicationErreur(code).phrase}` : ` ${e.explication}`}
+                      Le <time dateTime={t.recu_a}>{dateLisible(t.recu_a)}</time>, lancée par <Valeur>{nomDuCompte(t.exploitant)}</Valeur>.
+                      {code ? ` ${explicationErreur(code, { verification }).phrase}` : ` ${e.explication}`}
                     </p>
                     <details className="ins-detail">
                       <summary>Détail technique</summary>
@@ -577,6 +611,7 @@ export default async function PageClient({ params }) {
                         <dl className="nt-definitions">
                           <dt>Travail</dt><dd><span className="nt-fixe">{t.id}</span></dd>
                           <dt>Commande</dt><dd><span className="nt-fixe">{t.commande}</span></dd>
+                          <dt>Lancée par (identité entière)</dt><dd><span className="nt-fixe">{t.exploitant}</span></dd>
                           <dt>État</dt><dd><span className="nt-fixe">{t.etat}</span></dd>
                           <dt>Reçu</dt><dd><span className="nt-fixe">{t.recu_a}</span></dd>
                         </dl>

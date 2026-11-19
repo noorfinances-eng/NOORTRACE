@@ -424,11 +424,13 @@ describe("inscription : application d'exploitant, interface Next.js et agent ré
       expect(sansDetails(liste.texte)).to.contain(`${vue.dossier.steps.length + 1} étapes sur ${vue.dossier.steps.length + 1}`);
       expect(sansDetails(liste.texte)).to.contain("Remettez le paquet au client");
       expect(sansDetails(liste.texte)).to.contain("Inscription terminée");
-      // Confirmations : ce qui engage se lit sans rien ouvrir.
+      // Confirmations : ce qui engage se lit sans rien ouvrir (INTERFACES.md 2.4) ; à la quatrième lecture des écrans,
+      // la personne qui l'a notée se lit aussi par le nom de son compte, et l'action qui l'a utilisée par son nom.
       const conf = sansDetails((await req(`/clients/${slug}/confirmations`)).texte);
       const registre = (await req(`/api/clients/${slug}/confirmations`)).json.confirmations;
       expect(registre).to.have.length(1);
       for (const v of [registre[0].piece_sha256, registre[0].instant, registre[0].canal, registre[0].exploitant, registre[0].objet.cle_chaine, registre[0].consommee_par]) expect(conf, v).to.contain(v);
+      for (const v of [registre[0].exploitant.replace(/^exploitant /, ""), "Faire les étapes 2 à 5"]) expect(conf, v).to.contain(v);
       expect(conf).to.contain("Déjà utilisée");
       // Paquet : le SHA-256 du manifeste, en entier, sans rien ouvrir.
       const paquet = sansDetails((await req(`/clients/${slug}/paquet`)).texte);

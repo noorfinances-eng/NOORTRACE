@@ -15,12 +15,21 @@
 // approbateurs préparé n'en attend), l'écran le dit et le formulaire se range dans un bloc replié, « Noter une autre
 // confirmation (rare) » : on ne note pas par mégarde une confirmation inutile, qui ne s'effacerait pas. L'adresse du
 // compte et les empreintes d'une carte se copient d'un bouton.
+//
+// Quatrième lecture des écrans (même complément) : vérifier une pièce ne passe plus par le formulaire qui note ; un
+// bouton à part, « Calculer l'empreinte d'une pièce — rien n'est enregistré », calcule l'empreinte dans la page et la
+// compare aux pièces de la liste. Sur une carte, les dates se lisent en mots, la personne qui a noté par le nom de son
+// compte (comme dans la barre), l'action qui a utilisé la confirmation par son nom et sa date. Ce qui engage ne se
+// replie pas (INTERFACES.md 2.4) : l'instant exact de la confirmation, l'identité de session entière de qui l'a notée
+// et l'identifiant de l'action qui l'a utilisée restent lisibles sans rien ouvrir, en petit, sous ces mots ; l'instant
+// exact où elle a été notée est dans le détail technique de la carte.
 
 import { notFound } from "next/navigation";
 import { client, confirmations } from "../../../../lib/donnees.mjs";
 import { exigerSession } from "../../../../lib/page.mjs";
 import { OPERATIONS_CONFIRMATION, confirmationsAttendues, dateLisible, libelleCommande } from "../../../../lib/parcours.mjs";
 import { CopierValeur } from "../../../../composants/CopierTexte.js";
+import CalculerEmpreinte from "../../../../composants/CalculerEmpreinte.js";
 import FormulaireConfirmation from "../../../../composants/FormulaireConfirmation.js";
 import Icone from "../../../../composants/Icone.js";
 import Lexique from "../../../../composants/Lexique.js";
@@ -40,6 +49,9 @@ export default async function PageConfirmations({ params }) {
   const nomDe = (adresse) => comptes.find((x) => x.adresse === adresse)?.nom ?? null;
   const attendues = confirmationsAttendues({ dossier: c.dossier, confirmations: liste, demandes: c.demandes });
   const texteAjout = "Notez ce que le client a confirmé, qui l'a confirmé, par quel moyen et quand, puis désignez la pièce qui en garde la trace. L'outil vous fait relire le tout avant de noter. Une fois notée, la confirmation rejoint la liste ci-dessus et l'opération qu'elle autorise peut être lancée depuis la fiche du client.";
+  /** Nom du compte d'une identité de session (`exploitant <nom>`), comme la barre l'affiche. */
+  const nomDuCompte = (identite) => String(identite ?? "").replace(/^exploitant /, "");
+  const pieces = liste.map((x) => ({ empreinte: x.piece_sha256, libelle: `« ${OPERATIONS_CONFIRMATION[x.operation] ?? x.operation} », notée le ${dateLisible(x.recu_a)}` }));
   const formulaire = <FormulaireConfirmation slug={slug} orgId={c.dossier.organisation.org_id} comptes={comptes} montant={c.dossier.funding?.amount_wei ?? null} />;
   return (
     <main className="nt-page">
@@ -58,6 +70,7 @@ export default async function PageConfirmations({ params }) {
       <section className="nt-pile" aria-labelledby="registre-titre">
         <h2 id="registre-titre">Confirmations déjà notées</h2>
         <p className="nt-attenue">Une confirmation « prête à servir » autorise une seule opération. Dès que l'opération est faite, elle devient « déjà utilisée » et ne peut plus servir.</p>
+        {liste.length > 0 ? <CalculerEmpreinte pieces={pieces} /> : null}
         {liste.length === 0 ? (
           <div className="nt-vide">
             <Icone nom="dossier" />
@@ -78,9 +91,9 @@ export default async function PageConfirmations({ params }) {
                 <dt>Date de la confirmation</dt><dd><time dateTime={x.instant}>{dateLisible(x.instant)}</time><span className="nt-attenue nt-petit">valeur enregistrée : <Valeur>{x.instant}</Valeur></span></dd>
                 {x.objet?.cle_chaine ? <div className="ins-contenu"><dt>Compte technique concerné</dt><dd>{nomDe(x.objet.cle_chaine) ? <span>celui de l'enregistreur <Valeur>{nomDe(x.objet.cle_chaine)}</Valeur></span> : null}<CopierValeur valeur={x.objet.cle_chaine} forme="adresse" libelle="Copier l'adresse" /></dd></div> : null}
                 {x.objet?.digest ? <div className="ins-contenu"><dt>Empreinte du document concerné</dt><dd><CopierValeur valeur={x.objet.digest} forme="empreinte" libelle="Copier l'empreinte" /></dd></div> : null}
-                <dt>Empreinte de la pièce</dt><dd><CopierValeur valeur={x.piece_sha256} forme="empreinte" libelle="Copier l'empreinte" data-piece="" /><span className="nt-attenue nt-petit">à comparer avec celle de la pièce rangée dans le dossier du client : identiques, c'est bien la même pièce. Pour la recalculer, choisissez la pièce avec « Choisir la pièce », dans le formulaire {attendues.length > 0 ? "plus bas" : "replié « Noter une autre confirmation (rare) », plus bas"}, sans rien noter : ce choix n'enregistre rien.</span></dd>
-                <dt>Notée par</dt><dd><Valeur>{x.exploitant}</Valeur></dd>
-                <dt>Notée le</dt><dd><time dateTime={x.recu_a}>{dateLisible(x.recu_a)}</time><span className="nt-attenue nt-petit">valeur enregistrée : <Valeur>{x.recu_a}</Valeur></span></dd>
+                <dt>Empreinte de la pièce</dt><dd><CopierValeur valeur={x.piece_sha256} forme="empreinte" libelle="Copier l'empreinte" data-piece="" /><span className="nt-attenue nt-petit">à comparer avec celle de la pièce rangée dans le dossier du client : identiques, c'est bien la même pièce. Pour la calculer sur le fichier de la pièce, servez-vous du bouton « Calculer l'empreinte d'une pièce — rien n'est enregistré », plus haut.</span></dd>
+                <dt>Notée par</dt><dd><Valeur>{nomDuCompte(x.exploitant)}</Valeur><span className="nt-attenue nt-petit">identité enregistrée : <Valeur>{x.exploitant}</Valeur></span></dd>
+                <dt>Notée le</dt><dd><time dateTime={x.recu_a}>{dateLisible(x.recu_a)}</time></dd>
                 <dt>À quoi elle a servi</dt>
                 <dd>
                   {x.consommee_par ? (
@@ -96,6 +109,7 @@ export default async function PageConfirmations({ params }) {
                 <dl className="nt-definitions ins-detail-corps">
                   <dt>Confirmation</dt><dd><span className="nt-fixe">{x.id}</span></dd>
                   <dt>Opération</dt><dd><span className="nt-fixe">{x.operation}</span></dd>
+                  <dt>Notée le, tel qu'enregistré</dt><dd><span className="nt-fixe">{x.recu_a}</span></dd>
                   <dt>Identifiant du client sur le registre public</dt><dd><span className="nt-fixe">{x.objet?.org_id}</span></dd>
                   <dt>Algorithme de l'empreinte de la pièce</dt><dd><span className="nt-fixe">SHA-256</span></dd>
                 </dl>

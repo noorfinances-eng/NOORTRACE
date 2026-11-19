@@ -167,8 +167,10 @@ Seconde lecture, même date (CT-6 §18, EX-18.9, points 14 à 19). S'ajoutent :
 | `#verdict` (classes) | `nt-verdict-valide` seulement pour huit contrôles réussis sans avertissement ; sinon `pv-verdict-reserve` (un contrôle non réussi ou un avertissement) ou `pv-verdict-neutre` (rapport qui ne se lit pas exactement) | jamais |
 | `#non-prouve` | sous le titre : ce que les contrôles non réussis laissent sans preuve, en mots | jamais |
 | `#controles li[data-reserves]` | contrôle réussi auquel le rapport rattache un avertissement : pastille « Réussi, avec réserve », identifiants dans `data-reserves`, `.pv-controle-reserve` avec un lien vers `#avertissements` | jamais |
+| `#controles li[data-presentation]` | quatrième lecture : `sans_valeur` (pastille « Sans valeur de preuve (…) », `.pv-controle-reserve` qui le dit), `reserve`, ou `dossier` (contrôles 6 et 7 : `.pv-controle-dossier`, phrase des clés ou des approbateurs du dossier) ; `data-statut` reste le statut du rapport | jamais |
+| `#verdict-sans-valeur` | codes 0 et 3, hors du cas des huit contrôles réussis : les contrôles sans valeur de preuve et leur raison courte | jamais |
 | `#avertissements li.pv-reserve[data-fois]` | une réserve par identifiant de la table : `.pv-reserve-fois` quand elle est signalée plusieurs fois, puis une `.pv-reserve-exacte` par avertissement | jamais |
-| `#en-resume` (`li[data-ligne]`), `#resume-fin` | « En résumé », avant `#enonce` : `action`, `periode`, `approbation`, `limite_autorite`, `limite_bitcoin` ; la phrase finale | jamais |
+| `#en-resume` (`li[data-ligne]`), `#resume-fin` | « En résumé », avant `#enonce` : `action`, `periode`, `approbation`, `limite_autorite`, `limite_bitcoin`, `registre`, ou `sans_valeur_N` à la place des lignes d'un contrôle sans valeur de preuve ; la phrase finale | jamais |
 | `.pv-controle-dit[data-verification]` | code 1 : ce que le vérificateur dit d'une vérification en échec (`detail`), l'identifiant à la fin ; sur la ligne du contrôle qui la porte, sinon sous le verdict | jamais |
 | `#piece-en-cause` | code 2 : la pièce en cause, d'après `error.kind` | jamais |
 | `#refus-titre` | titre courant d'un refus, au-dessus de `.aucun-rapport` (introduite par « Mention fixée pour un refus : ») | jamais |

@@ -10,6 +10,11 @@
 // l'empreinte affichée est celle du fichier `paquet-client.json`, qui liste tous les autres avec leur empreinte
 // (EX-7.19). Un paquet déjà produit ne se refait que sur une raison dite ; son formulaire est alors replié.
 // Troisième lecture (même complément) : l'empreinte, qui se transmet au client par écrit, se copie d'un bouton.
+// Quatrième lecture (même complément) : les quatre lignes disent ce que le paquet contient vraiment (EX-7.18 : la
+// description du registre seulement quand le dossier en nomme une), qu'aucun de ses fichiers n'est fait pour porter
+// un secret (EX-7.21) et que l'outil y a cherché ceux dont il s'est servi (`secrets_checked`), et pourquoi il porte
+// aussi la trace d'opérations d'autres clients (EX-7.21, EX-9.5 : les reçus de tout le bloc, sans lesquels la preuve
+// d'une opération ne se contrôle pas, CP-3). Rien de plus n'est affirmé.
 
 import { notFound } from "next/navigation";
 import { client } from "../../../../lib/donnees.mjs";
@@ -106,18 +111,18 @@ export default async function PagePaquet({ params }) {
           </dl>
           <dl className="nt-definitions ins-paquet-en-clair" data-paquet-en-clair="">
             <dt>Ce qu'il contient</dt>
-            <dd>Le dossier d'inscription terminé ; la liste des approbateurs du client, qu'il recopie dans ses réglages ; un modèle de réglages pour son service d'approbation ; la preuve de chaque opération inscrite sur le registre public ; et la liste de tous ces fichiers, avec l'empreinte de chacun.</dd>
+            <dd>Le dossier d'inscription terminé ; la liste des approbateurs du client, qu'il recopie dans ses réglages ; un modèle de réglages pour son service d'approbation ;{c.dossier.instance?.manifest_sha256 ? " la description du registre public en vigueur ;" : ""} la preuve de chaque opération de son inscription, telle que le registre public l'a donnée ; et la liste de tous ces fichiers, avec l'empreinte de chacun.</dd>
             <dt>Ce qu'il ne contient pas</dt>
             <dd data-sans-secret={o.secrets_checked ? o.secrets_checked.count : undefined}>
               <span>
-                Aucune clé secrète et aucun mot de passe : ni les nôtres, ni ceux du client.
+                Aucune clé secrète, aucun jeton d'accès et aucun mot de passe : aucun de ses fichiers n'est fait pour en porter.
                 {o.secrets_checked ? (o.secrets_checked.count > 0
-                  ? ` Avant de vous le proposer, l'outil a cherché dans chaque fichier ${o.secrets_checked.count > 1 ? `les ${o.secrets_checked.count} clés secrètes de notre société qui ont servi` : "la clé secrète de notre société qui a servi"} à cette inscription : il n'en a trouvé aucune.`
-                  : " L'outil n'a eu aucune clé secrète de notre société à y chercher : aucune n'a servi à cette inscription depuis cet outil.") : ""}
+                  ? ` Avant de vous le proposer, l'outil a vérifié qu'aucun de ses fichiers ne contient ${o.secrets_checked.count > 1 ? `l'un des ${o.secrets_checked.count} secrets dont il s'est servi` : "le secret dont il s'est servi"} pour cette inscription : il n'en a trouvé aucun.`
+                  : " L'outil ne s'est servi d'aucun secret pour cette inscription : il n'en avait aucun à y chercher.") : ""}
               </span>
             </dd>
             <dt>À qui le remettre</dt>
-            <dd>Au client, et à lui seul : le paquet n'a rien de secret pour lui, mais il porte aussi la trace d'opérations d'autres clients inscrites au même moment sur le registre public. Remettez-le par le moyen convenu avec lui ; si vous ne le connaissez pas, demandez-le à l'équipe technique.</dd>
+            <dd data-a-qui="">Au client seulement : c'est son paquet. Remettez-le par le moyen convenu avec lui ; si vous ne le connaissez pas, demandez-le à l'équipe technique. Il porte aussi la trace des autres opérations que le registre public a inscrites dans le même lot que les siennes, dont celles d'autres clients. C'est voulu : le registre public ne prouve une opération qu'avec tout son lot, et le client en a besoin pour contrôler ses propres preuves. Tout dossier de preuve tiré du registre public porte de même ces traces.</dd>
             <dt>Ce que le client vérifie</dt>
             <dd>Que l'empreinte ci-dessus est bien celle du paquet reçu, puis que les adresses du paquet (ses approbateurs, leur responsable, son enregistreur et son compte technique) sont bien les siennes. S'il relève un écart, il vous le signale, et rien ne doit être signé tant que l'écart n'est pas éclairci.</dd>
           </dl>

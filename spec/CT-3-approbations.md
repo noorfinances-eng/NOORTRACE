@@ -585,38 +585,38 @@ signature :
    contrôle, aucun schéma, aucune bibliothèque ni aucun vecteur ne change ;
    seules les pages de la console d'exploitation changent.
 16. langage des écrans de la console (complément du 2026-11-18, décision du
-   porteur : langage des écrans) : le résumé qui ouvre l'écran d'un ticket
-   est fait d'une phrase, composée des seules valeurs vérifiées, et de la
-   liste de tous les arguments, chacun une fois, avec sa valeur et sa
-   marque ; un argument que la console ne peut pas vérifier y figure
-   désormais, avec sa valeur, dans un groupe distinct « à contrôler par
-   vous-même », et jamais ailleurs ni sans sa marque (l'alinéa du complément
-   du 2026-11-17 qui le tenait hors du résumé est remplacé) ; chaque
-   argument a un libellé courant d'une table fixe, son chemin exact restant
-   affiché, et le sens de « vérifié » est dit sous ces valeurs (EX-9.4) ; la
-   console peut dire en mots qui est connecté, l'identité de session
-   canonique restant entière (EX-13.7) ; chaque texte visible sans
-   interaction s'adresse à qui n'a pas lu cette spécification, une phrase
-   fixée restant mot pour mot, « contester » est expliqué une fois par écran
-   et « définitif » marque une opération de l'annuaire qui ne se défait pas
-   (13.1) ; après la décision confirmée, la console peut amener au choix du
-   portefeuille, sans en choisir aucun, et rappeler la décision déjà donnée
-   sur un ticket encore ouvert, les deux décisions restant offertes dans un
-   bloc replié (EX-9.4) ; sur l'écran de signature, quatre consignes
-   courantes, fixées mot pour mot, précèdent le bouton, chaque ligne de
-   l'application se comparant à un seul code, les sept d'origine restant
-   entières dans un bloc de référence (EX-9.20) ; les deux codes, en grand
-   sous des intitulés courants, et `D_A` en entier restent affichés sans
-   interaction, intitulés fixés et groupes pouvant rejoindre ce bloc
-   (EX-9.18) ; la liste dit en mots la contestation (EX-12.21), peut montrer
-   le montant vérifié des dix premiers tickets à décider, par des lectures
-   seulement, dit ce qu'est chaque instant et ce qui peut encore arriver à
-   un ticket qui a réuni ses approbations, et range à part un ticket déjà
-   décidé (EX-13.3) ; le code d'un état attendu ou d'un avertissement se lit
-   au détail technique, celui d'une panne restant à la fin de sa phrase
-   (EX-13.29). Ni règle de contrôle, ni schéma, ni bibliothèque, ni vecteur,
-   ni modèle d'affichage, ni calcul des marques ne changent ; seules les
-   pages de la console d'exploitation changent.
+   porteur : langage des écrans) : le résumé qui ouvre l'écran d'un ticket est
+   fait d'une phrase, composée des seules valeurs vérifiées, et de la liste de
+   tous les arguments, chacun une fois, avec sa valeur et sa marque ; un
+   argument que la console ne peut pas vérifier y figure désormais, avec sa
+   valeur, dans un groupe distinct « à contrôler par vous-même », et jamais
+   ailleurs ni sans sa marque (l'alinéa du complément du 2026-11-17 qui le
+   tenait hors du résumé est remplacé) ; chaque argument a un libellé courant
+   d'une table fixe, son chemin exact restant affiché, et le sens de « vérifié
+   » est dit sous ces valeurs (EX-9.4) ; la console peut dire en mots qui est
+   connecté, l'identité de session canonique restant entière (EX-13.7) ;
+   chaque texte visible sans interaction s'adresse à qui n'a pas lu cette
+   spécification, une phrase fixée restant mot pour mot, « contester » est
+   expliqué une fois par écran et chaque opération de l'annuaire dit avant le
+   clic ce qu'elle fait, « définitif » marquant celle qui ne se défait pas
+   (13.1) ; le choix du portefeuille peut n'être offert qu'après la décision
+   confirmée, et plus après une signature, sans qu'aucun soit choisi ; sur un
+   ticket encore ouvert, la décision déjà enregistrée se rappelle en tête,
+   avec ce qui manque, les deux décisions restant offertes dans un bloc replié
+   et la récusation avec ce qu'elle change (EX-9.4) ; sur l'écran de
+   signature, quatre consignes courantes, fixées mot pour mot, précèdent le
+   bouton, chaque ligne de l'application se comparant à un seul code, les sept
+   d'origine restant entières dans un bloc de référence (EX-9.20) ; les deux
+   codes, sous des intitulés courants, et `D_A` en entier restent affichés
+   sans interaction (EX-9.18) ; la liste dit en mots la contestation
+   (EX-12.21), peut montrer le montant vérifié des dix premiers tickets en
+   cours, par des lectures seulement, dit ce qu'est chaque instant et range à
+   part un ticket déjà décidé (EX-13.3) ; une panne de signature s'affiche en
+   haut de l'écran et dit d'abord que la décision n'est pas enregistrée, son
+   code restant à la fin de sa phrase (EX-13.29). Ni règle de contrôle, ni
+   schéma, ni bibliothèque, ni vecteur, ni modèle d'affichage, ni calcul des
+   marques ne changent ; seules les pages de la console d'exploitation
+   changent.
 
 - Règles ajoutées : EX-A.20 (A.12), EX-A.21 (A.13).
 - Règles modifiées : EX-7.8, EX-7.22, EX-7.24, EX-7.30 (table), EX-8.1, EX-8.5,
@@ -3132,24 +3132,24 @@ Une console PEUT ouvrir l'écran par un résumé de la demande, fait d'une
    action autorisée a été exécutée, par exemple) : pour un ticket
    approuvé, elle dit que l'action est autorisée, qu'elle ne sait pas si
    elle a été exécutée, et où le savoir.
-7. Une fois la décision choisie et confirmée (EX-9.5), la console PEUT
-   amener l'approbateur au choix du portefeuille, par un défilement ou
-   par le focus ; elle NE DOIT en choisir aucun pour lui (EX-13.22).
+7. Le choix du portefeuille PEUT n'être offert qu'après la décision choisie
+   et confirmée (EX-9.5), et plus après une signature, aboutie ou non ; la
+   console PEUT y amener l'approbateur, et NE DOIT en choisir aucun (EX-13.22).
 8. Sur un ticket qui accepte encore des votes, quand la vue porte un vote
    courant de l'adresse que l'annuaire attribue à la session, la console
-   PEUT le rappeler au-dessus du résumé : la décision de ce vote, son
-   instant, et ce que le ticket attend d'après la vue seule (son état, le
-   nombre d'approbations qui manquent au seuil effectif, une objection non
-   levée). Un nouveau vote remplaçant le précédent (EX-7.26), les deux
-   décisions restent offertes, de même poids et sans présélection (EX-9.5),
-   dans un bloc ouvert sur demande, fermé à l'ouverture de l'écran, sous un
-   intitulé qui dit qu'il s'agit de changer sa décision et une phrase qui
-   dit ce que cela fait : la nouvelle décision, une fois signée, remplace la
-   précédente ; la même décision est sans effet (`vote_identique`, EX-9.10).
-   La console n'affirme rien que la vue ne porte pas : sans vote courant de
-   cette adresse dans la vue, elle ne dit rien. L'intitulé et l'état de
-   l'écran disent alors que l'approbateur a déjà décidé et que le ticket
-   attend d'autres approbations, et non qu'il est à décider.
+   PEUT le rappeler en tête de l'écran : la décision de ce vote, son instant,
+   que l'approbateur n'a plus rien à faire, et ce que le ticket attend
+   d'après la vue seule (son état, le nombre d'approbations qui manquent au
+   seuil effectif, une objection non levée). Un nouveau vote remplaçant le
+   précédent (EX-7.26), les deux décisions restent offertes, de même poids
+   et sans présélection (EX-9.5), dans un bloc fermé à l'ouverture de
+   l'écran, sous un intitulé qui dit qu'il s'agit de changer sa décision et
+   une phrase qui dit ce que cela fait : la nouvelle, une fois signée,
+   remplace la précédente ; la même est sans effet (`vote_identique`,
+   EX-9.10). La récusation reste offerte, avec ce qu'elle change à ce vote
+   (EX-10.4). Sans vote courant de cette adresse dans la vue, la console ne
+   dit rien ; avec, l'intitulé et l'état de l'écran disent que l'approbateur
+   a déjà décidé, et non que le ticket est à décider.
 9. Les effets déclarés prévus ne sont pas liés à la signature (table
    ci-dessus). La console le dit avec les effets, et là seulement, par une
    phrase qui nomme ce dont elle parle (« ces effets annoncés ») : cette
@@ -5837,7 +5837,7 @@ systèmes d'identité et ses sessions (13.21) ; leurs réglages sont en 10.3.
 | Vérification de la signature, puis appartenance par `isCurator` **à la tête** (R1-F84) | Appartenance au **jeu figé** du ticket (section 8), pas à la tête |
 | Un vote par curateur, remplacé par le suivant ; récusation (R1-F84, `lib/validation.ts`) | Repris (EX-7.26, EX-10.4) |
 | Fenêtre N2 acceptée par défaut à son terme (`sweepExpiredWindows`, `lib/validation.ts` L291-L305) | **Exclu** (10.2) |
-| Libellés en deux langues, journal d'audit | Repris ; complément du 2026-11-18, décision du porteur (langage des écrans) : chaque texte visible sans interaction est écrit pour une personne qui n'a pas lu cette spécification, et chaque message de panne dit ce qui s'est passé et quoi faire ; une phrase que cette spécification fixe mot pour mot (marques d'EX-9.4, intitulés d'EX-9.18, consignes d'EX-9.20, textes cités par 13.14) reste telle quelle, précédée d'une phrase en langage courant qui dit la même chose ; le code d'une panne reste entre parenthèses, à la fin de sa phrase (EX-13.29) ; « contester » est expliqué une fois par écran, là où le mot paraît d'abord (EX-10.6 à EX-10.8) ; la marque « vérifié » est expliquée sur chaque écran qui la montre, avec ce qu'elle n'établit pas ; une opération de l'annuaire qu'on ne peut pas défaire (EX-13.17) porte la mention « définitif » à côté de son bouton, et sa confirmation le redit |
+| Libellés en deux langues, journal d'audit | Repris ; complément du 2026-11-18, décision du porteur (langage des écrans) : chaque texte visible sans interaction est écrit pour une personne qui n'a pas lu cette spécification, et chaque message de panne dit ce qui s'est passé et quoi faire ; une phrase que cette spécification fixe mot pour mot (marques d'EX-9.4, intitulés d'EX-9.18, consignes d'EX-9.20, textes cités par 13.14) reste telle quelle, précédée d'une phrase en langage courant qui dit la même chose ; le code d'une panne reste entre parenthèses, à la fin de sa phrase (EX-13.29) ; « contester » est expliqué une fois par écran, là où le mot paraît d'abord (EX-10.6 à EX-10.8) ; la marque « vérifié » est expliquée sur chaque écran qui la montre, avec ce qu'elle n'établit pas ; chaque opération de l'annuaire dit en une phrase, à côté de son bouton et avant le clic, ce qu'elle fait ; celle qu'on ne peut pas défaire (EX-13.17) le dit sous la mention « définitif », et sa confirmation le redit |
 | Jeton de session signé par HMAC-SHA256, vérifié en temps constant, avec identifiant et échéance (R5-F33 ; B.8) | Repris pour le cookie de session : identifiant tiré au hasard, signé par une clé tirée au démarrage et gardée en mémoire ; sessions en mémoire, sans base, bornées par `session_max_age_s` (EX-13.48) |
 | Garde d'hôte : refus (statut 421) d'une requête dont l'hôte n'est pas celui de l'origine publique (B.8) | Repris : l'hôte est celui de `console_origin` (EX-13.49) |
 | Thème clair et sombre, appliqué avant le premier affichage (B.8) | Repris, servi comme fichier avec son intégrité, sans script en ligne (EX-13.34, point 4) ; complément du 2026-11-17, décision du porteur (présentation des écrans) : deux états, l'état initial suit le réglage du système (`prefers-color-scheme`), une bascule vaut pour la page affichée, et aucun choix n'est mémorisé (ni stockage du navigateur, ni cookie) |
@@ -5917,7 +5917,7 @@ des arguments rouvre une demande refusée, EX-7.18, 14.7) ; les réponses de
 `tickets` y suffisent (EX-12.21).
 
 Complément du 2026-11-18, décision du porteur (langage des écrans). Pour les
-dix premiers tickets `ouvert` de la liste au plus, la console PEUT lire en
+dix premiers tickets de la liste au plus, `ouvert` d'abord, la console PEUT lire en
 plus la vue de chaque ticket (`consulter`, et `annuaire` une fois) et afficher
 sur sa ligne le montant du résumé d'EX-9.4, composé comme sur l'écran du
 ticket : des seules feuilles `verifie`, et seulement si les contrôles 2 et 4
@@ -7552,8 +7552,8 @@ PEUT placer le code dans le bloc de détail technique de l'écran
 (complément du 2026-11-17 d'EX-9.4) au lieu de l'afficher à côté de la
 phrase : un code à côté d'une phrase fait croire à une erreur. Pour toute
 panne, le code reste entre parenthèses, à la fin de sa phrase. La réponse
-à une panne de signature ou d'envoi s'affiche en tête du bloc où
-l'approbateur vient d'agir, et la page l'y amène.
+à une panne de signature ou d'envoi s'affiche en haut de l'écran, la page
+l'y amène, et elle dit d'abord que la décision n'est pas enregistrée.
 
 **EX-13.30** **Délai.** La console attend la réponse du portefeuille au
 plus `delai_signature_ms` (configuration de la console, défaut 300 000 ms,

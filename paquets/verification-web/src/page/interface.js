@@ -905,14 +905,15 @@ function aDesReserves(avertissements) {
  * Sous le code 0, la teinte pleine n'est gardée que si le rapport JSON, lu
  * exactement, donne les huit contrôles réussis et aucun avertissement. Avec
  * un contrôle non réussi ou un avertissement, la teinte est celle de
- * l'avertissement et une mention fixe suit le mot. Si le rapport ne se lit
- * pas exactement, la teinte est neutre, sans mention. Les autres codes
- * gardent leur présentation.
+ * l'avertissement et une mention fixe suit le mot ; un contrôle réussi que
+ * le rapport dit sans valeur de preuve compte comme non prouvé. Si le rapport
+ * ne se lit pas exactement, la teinte est neutre, sans mention. Les autres
+ * codes gardent leur présentation.
  */
 function presentationVerdict(code, controles, avertissements) {
   if (code !== 0) return { teinte: "pleine", mention: null };
   if (controles === null || avertissements === null) return { teinte: "neutre", mention: null };
-  const nonProuve = controles.some((c) => c.statut !== "reussi");
+  const nonProuve = controles.some((c) => c.statut !== "reussi" || sansValeurDuControle(c.numero, controles, avertissements).length > 0);
   const reserves = avertissements.length > 0;
   if (nonProuve && reserves) return { teinte: "reserve", mention: "mention_les_deux" };
   if (nonProuve) return { teinte: "reserve", mention: "mention_non_prouve" };
@@ -924,10 +925,12 @@ function presentationVerdict(code, controles, avertissements) {
  * Ce que les contrôles non réussis laissent sans preuve, en clés de la table
  * des noms courants : la date quand ni le contrôle 4 ni le contrôle 5 n'a
  * réussi (comme le fragment F7 de l'énoncé, CT-6 §7.3), sinon une clé par
- * contrôle non réussi, dans l'ordre des numéros.
+ * contrôle non réussi, dans l'ordre des numéros. Un contrôle réussi que le
+ * rapport dit sans valeur de preuve (sansValeurDuControle) ne prouve rien non
+ * plus : il compte comme non réussi.
  */
-function clesNonProuve(controles) {
-  const non = controles.filter((c) => c.statut !== "reussi").map((c) => c.numero);
+function clesNonProuve(controles, avertissements = []) {
+  const non = controles.filter((c) => c.statut !== "reussi" || sansValeurDuControle(c.numero, controles, avertissements).length > 0).map((c) => c.numero);
   const cles = [];
   for (const n of non) {
     if ((n === 4 || n === 5) && non.includes(4) && non.includes(5)) {
@@ -955,6 +958,62 @@ function reservesDuControle(numero, controles, avertissements) {
     if (controlesDeLAvertissement(a, controles).includes(numero) && !ids.includes(a.id)) ids.push(a.id);
   }
   return ids;
+}
+
+// Avertissements dont le texte dit que le contrôle auquel le rapport les rattache est sans valeur de preuve (table de
+// CT-6 §18, point 15), et la clé de la raison courte de chacun. AV-O-3 : « réseau d'essai, sans valeur probante hors
+// des tests » (CT-6 §10.7). Aucun autre : les seize autres limitent une partie de ce que le contrôle établit, ou rien.
+const SANS_VALEUR = Object.freeze({ "AV-O-3": "sans_valeur_av_o_3" });
+
+/**
+ * Clés des raisons courtes qui rendent le contrôle `numero` sans valeur de preuve : celles des avertissements de la
+ * table SANS_VALEUR que le rapport rattache à ce contrôle (reservesDuControle), chacune une fois. Vide si le contrôle
+ * n'est pas réussi : un contrôle non fait ou échoué garde sa ligne. Ce n'est pas un statut calculé : le statut reste
+ * celui du rapport, et la page ne fait que restreindre ce qu'elle en dit.
+ */
+function sansValeurDuControle(numero, controles, avertissements) {
+  const c = controles.find((x) => x.numero === numero);
+  if (c === undefined || c.statut !== "reussi") return [];
+  const cles = [];
+  for (const id of reservesDuControle(numero, controles, avertissements)) {
+    if (Object.hasOwn(SANS_VALEUR, id) && !cles.includes(SANS_VALEUR[id])) cles.push(SANS_VALEUR[id]);
+  }
+  return cles;
+}
+
+const PROVENANCES_CONNUES = ["dossier", "ancres", "registre"];
+
+/**
+ * Les clés que le contrôle 6 a employées viennent-elles du dossier lui-même ? Lu dans `facts.recorder_keys`
+ * (provenance de la clé de l'événement et de celle du manifeste, CT-6 EX-6.8) et, s'il y en a un, dans
+ * `facts.checkpoint.key_source` (clé du point de contrôle du journal, EX-6.16). « toutes » si chaque clé employée a la
+ * provenance `dossier`, « partie » si l'une au moins l'a, null sinon, ou si la provenance des deux premières ne se lit
+ * pas. Rien hors des codes 0 et 3 : `facts` ne s'emploie que sous ces verdicts (EX-6.13).
+ */
+function clesDuDossier(rapport, code) {
+  if (code !== 0 && code !== 3) return null;
+  const objet = (x) => (x !== null && typeof x === "object" && !Array.isArray(x) ? x : null);
+  const faits = objet(rapport.facts);
+  const cles = faits === null ? null : objet(faits.recorder_keys);
+  if (cles === null) return null;
+  const sources = [cles.event_key_source, cles.manifest_key_source];
+  if (!sources.every((s) => PROVENANCES_CONNUES.includes(s))) return null;
+  const point = objet(faits.checkpoint);
+  if (point !== null && PROVENANCES_CONNUES.includes(point.key_source)) sources.push(point.key_source);
+  const n = sources.filter((s) => s === "dossier").length;
+  return n === 0 ? null : n === sources.length ? "toutes" : "partie";
+}
+
+/**
+ * Le jeu d'approbateurs dont le contrôle 7 a compté les signatures est-il celui que le dossier déclare lui-même
+ * (`facts.approval.set_source` = `dossier`, CT-6 EX-6.8 ; seule valeur de la version 0, qui n'a pas d'ancre
+ * d'approbateurs) ? Rien hors des codes 0 et 3 (EX-6.13).
+ */
+function approbateursDuDossier(rapport, code) {
+  if (code !== 0 && code !== 3) return false;
+  const faits = rapport.facts !== null && typeof rapport.facts === "object" ? rapport.facts : null;
+  const a = faits !== null && faits.approval !== null && typeof faits.approval === "object" ? faits.approval : null;
+  return a !== null && a.set_source === "dossier";
 }
 
 /**
@@ -1028,7 +1087,7 @@ function instantDeTexte(texte) {
 
 // « En résumé » : le contrôle dont dépend chaque ligne, et le gabarit de la
 // ligne d'approbation selon la décision que le rapport donne.
-const CONTROLE_DU_RESUME = Object.freeze({ action: 1, outil: 1, periode: 3, approbation: 7, limite_autorite: 4, limite_bitcoin: 5 });
+const CONTROLE_DU_RESUME = Object.freeze({ action: 1, outil: 1, periode: 3, approbation: 7, limite_autorite: 4, limite_bitcoin: 5, registre: 8 });
 const GABARITS_DECISION = Object.freeze({ approuve: "resume_approbation", refuse: "resume_refus", expire: "resume_expiration" });
 // Un nom d'outil recopié tel quel : au plus 256 caractères, aucun caractère de commande, de fin de ligne ni de sens d'écriture.
 const NOM_OUTIL_TEL_QUEL = /^[^\u{0}-\u{1F}\u{7F}-\u{9F}\u{61C}\u{200E}\u{200F}\u{2028}\u{2029}\u{202A}-\u{202E}\u{2066}-\u{2069}]{1,256}$/u;
@@ -1040,37 +1099,50 @@ const NOM_OUTIL_TEL_QUEL = /^[^\u{0}-\u{1F}\u{7F}-\u{9F}\u{61C}\u{200E}\u{200F}\
  * sous les verdicts de ces deux codes, table de CT-6 §8.3).
  * Chaque ligne ne paraît que si son champ se lit exactement et si le
  * contrôle dont elle dépend est réussi dans le rapport. Aucune empreinte.
- * Chaque ligne : { nom, cle, valeurs, instants }.
+ * Une ligne dont le contrôle est réussi mais que le rapport dit sans valeur
+ * de preuve (sansValeurDuControle) est remplacée par une ligne qui le dit,
+ * une seule par contrôle : le résumé n'écrit jamais « réussie » pour lui.
+ * Chaque ligne : { nom, cle, valeurs, instants } ; une ligne « sans valeur »
+ * porte en plus `libelles`, paramètres écrits avec des libellés de la page
+ * (des clés), non avec des valeurs du rapport.
  */
-function lignesEnResume(rapport, controles, code) {
+function lignesEnResume(rapport, controles, code, avertissements = []) {
   const lignes = [];
   if ((code !== 0 && code !== 3) || controles === null || rapport === null || typeof rapport !== "object") return lignes;
   const reussi = (nom) => controles.some((c) => c.numero === CONTROLE_DU_RESUME[nom] && c.statut === "reussi");
+  const poser = (ligne) => {
+    const n = CONTROLE_DU_RESUME[ligne.nom];
+    const raisons = sansValeurDuControle(n, controles, avertissements);
+    if (raisons.length === 0) lignes.push(ligne);
+    else if (!lignes.some((l) => l.nom === `sans_valeur_${n}`)) lignes.push({ nom: `sans_valeur_${n}`, cle: "resume_sans_valeur", valeurs: {}, instants: {}, libelles: { controle: [`controle_${n}`], raisons } });
+  };
   const objet = (x) => (x !== null && typeof x === "object" && !Array.isArray(x) ? x : null);
   const entier = (x) => Number.isSafeInteger(x) && x >= 0;
   const evenement = objet(rapport.event);
-  if (reussi("action") && evenement !== null && entier(evenement.seq)) lignes.push({ nom: "action", cle: "resume_action", valeurs: { seq: String(evenement.seq) }, instants: {} });
+  if (reussi("action") && evenement !== null && entier(evenement.seq)) poser({ nom: "action", cle: "resume_action", valeurs: { seq: String(evenement.seq) }, instants: {} });
   // Le nom de l'outil de l'action, tel que le rapport le donne : recopié sans traduction, et seulement s'il
   // s'affiche tel quel (une chaîne non vide, sans caractère que la page rendrait visible ou qui changerait la ligne).
-  if (reussi("outil") && evenement !== null && typeof evenement.tool === "string" && NOM_OUTIL_TEL_QUEL.test(evenement.tool)) lignes.push({ nom: "outil", cle: "resume_outil", valeurs: { outil: evenement.tool }, instants: {} });
+  if (reussi("outil") && evenement !== null && typeof evenement.tool === "string" && NOM_OUTIL_TEL_QUEL.test(evenement.tool)) poser({ nom: "outil", cle: "resume_outil", valeurs: { outil: evenement.tool }, instants: {} });
   const periode = objet(rapport.period);
   if (reussi("periode") && periode !== null) {
     const debut = instantDeSecondes(periode.period_start);
     const fin = instantDeSecondes(periode.period_end);
-    if (debut !== null && fin !== null) lignes.push({ nom: "periode", cle: "resume_periode", valeurs: {}, instants: { debut, fin } });
+    if (debut !== null && fin !== null) poser({ nom: "periode", cle: "resume_periode", valeurs: {}, instants: { debut, fin } });
   }
   const faits = objet(rapport.facts) ?? {};
   const a = objet(faits.approval);
   if (reussi("approbation") && a !== null && typeof a.decision === "string" && Object.hasOwn(GABARITS_DECISION, a.decision) && Array.isArray(a.approvers) && a.approvers.every((x) => typeof x === "string") && entier(a.required) && entier(a.size)) {
-    lignes.push({ nom: "approbation", cle: GABARITS_DECISION[a.decision], valeurs: { n: String(a.approvers.length), requis: String(a.required), taille: String(a.size) }, instants: {} });
+    poser({ nom: "approbation", cle: GABARITS_DECISION[a.decision], valeurs: { n: String(a.approvers.length), requis: String(a.required), taille: String(a.size) }, instants: {} });
   }
   const jeton = objet(faits.timestamp);
   if (reussi("limite_autorite") && jeton !== null) {
     const limite = instantDeTexte(jeton.upper_bound);
-    if (limite !== null) lignes.push({ nom: "limite_autorite", cle: "resume_limite_autorite", valeurs: {}, instants: { limite } });
+    if (limite !== null) poser({ nom: "limite_autorite", cle: "resume_limite_autorite", valeurs: {}, instants: { limite } });
   }
   // Le rapport ne donne pas d'instant « au plus tard » pour la preuve par la chaîne Bitcoin : la ligne renvoie au texte exact.
-  if (reussi("limite_bitcoin") && objet(faits.bitcoin) !== null) lignes.push({ nom: "limite_bitcoin", cle: "resume_limite_bitcoin", valeurs: {}, instants: {} });
+  if (reussi("limite_bitcoin") && objet(faits.bitcoin) !== null) poser({ nom: "limite_bitcoin", cle: "resume_limite_bitcoin", valeurs: {}, instants: {} });
+  // Les heures des blocs du registre, que le texte exact cite, ne sont comparées à rien (CT-6 §7.1) : la ligne le dit.
+  if (reussi("registre") && objet(faits.registry) !== null) poser({ nom: "registre", cle: "resume_registre", valeurs: {}, instants: {} });
   return lignes;
 }
 
@@ -1135,7 +1207,9 @@ function resumer(rapport, code) {
     dits,
     bloquantes: listeDeChaines(rapport.blocking_unexecuted),
     avertissements,
-    enResume: lignesEnResume(rapport, controles, code),
+    enResume: lignesEnResume(rapport, controles, code, avertissements ?? []),
+    clesDuDossier: clesDuDossier(rapport, code),
+    approbateursDuDossier: approbateursDuDossier(rapport, code),
   };
 }
 
@@ -1263,12 +1337,20 @@ function phraseCourante(cle) {
   return p;
 }
 
-/** Ligne d'alerte sous le verdict : ce que le verdict ne couvre pas. `valeurs` : paramètres venus du rapport. */
-function ligneBorne(id, cle, valeurs = {}) {
+/**
+ * Ligne d'alerte sous le verdict : ce que le verdict ne couvre pas. `valeurs` : paramètres venus du rapport ;
+ * `textes` : paramètres écrits avec des libellés de la page.
+ */
+function ligneBorne(id, cle, valeurs = {}, textes = {}) {
   const p = element("p", "pv-verdict-borne");
   p.id = id;
-  p.append(icone("alerte"), elementLibelle("span", null, cle, valeurs));
+  p.append(icone("alerte"), elementLibelle("span", null, cle, valeurs, textes));
   return p;
+}
+
+/** Raisons courtes (clés de libellés) écrites à la suite, chacune une fois. */
+function raisonsEnMots(cles) {
+  return [...new Set(cles)].map((c) => libelle(c)).join(", ");
 }
 
 /** Carte à titre : une rubrique du résultat. */
@@ -1325,6 +1407,22 @@ const PASTILLES_STATUT = {
 };
 // Contrôle réussi auquel le rapport rattache un avertissement.
 const PASTILLE_RESERVE = ["attente", "alerte", "statut_reussi_reserve"];
+// Contrôle réussi que le rapport dit sans valeur de preuve (sansValeurDuControle) : sa raison courte suit le mot.
+const PASTILLE_SANS_VALEUR = ["attente", "alerte", "statut_sans_valeur"];
+// Contrôle réussi avec les seules clés, ou les seuls approbateurs, que le dossier déclare lui-même.
+const PASTILLES_DOSSIER = { 6: ["attente", "alerte", "statut_reussi_cles_dossier"], 7: ["attente", "alerte", "statut_reussi_approbateurs_dossier"] };
+
+/**
+ * Phrase d'un contrôle réussi avec ce que le dossier fournit lui-même, ou null : contrôle 6, quand le rapport dit que
+ * les clés employées (toutes, ou une partie) sont celles du dossier (clesDuDossier), selon que la personne a ajouté la
+ * liste des références de confiance à l'étape 2 (un état de la page) ; contrôle 7, quand le jeu d'approbateurs est
+ * celui que le dossier déclare (approbateursDuDossier).
+ */
+function cleDuDossier(numero, resume, ancresAjoutees) {
+  if (numero === 6 && resume.clesDuDossier !== null && resume.clesDuDossier !== undefined) return `controle_cles_dossier_${resume.clesDuDossier}${ancresAjoutees ? "_liste" : ""}`;
+  if (numero === 7 && resume.approbateursDuDossier === true) return "controle_approbateurs_dossier";
+  return null;
+}
 
 /** Liste en mots : éléments joints par le libellé `cleSep`, le dernier par `cleDernier`. */
 function listeEnMots(elements, cleSep, cleDernier) {
@@ -1357,7 +1455,9 @@ function carteEnResume(lignes) {
   for (const l of lignes) {
     const valeurs = { ...l.valeurs };
     for (const [nom, i] of Object.entries(l.instants)) valeurs[nom] = instantEnLettres(i);
-    const li = elementLibelle("li", null, l.cle, valeurs);
+    const textes = {};
+    for (const [nom, cles] of Object.entries(l.libelles ?? {})) textes[nom] = raisonsEnMots(cles);
+    const li = elementLibelle("li", null, l.cle, valeurs, textes);
     li.dataset.ligne = l.nom;
     // Le nom d'un outil est un identifiant : en chasse fixe, pour qu'il se lise caractère par caractère.
     if (l.nom === "outil") for (const v of li.querySelectorAll(".pv-valeur")) v.classList.add("pv-identifiant");
@@ -1380,26 +1480,42 @@ function carteControles(resume, noms) {
   const { section, titre } = carte("controles", "titre_controles");
   const compte = (statut) => resume.controles.filter((c) => c.statut === statut).length;
   const reserves = new Map(resume.controles.map((c) => [c.numero, c.statut === "reussi" ? reservesDuControle(c.numero, resume.controles, resume.avertissements) : []]));
-  const avecReserve = [...reserves.values()].filter((ids) => ids.length > 0).length;
-  const parties = [avecReserve === 0 ? libelle("compte_reussis", { n: compte("reussi") }) : libelle("compte_reussis_reserve", { n: compte("reussi"), m: avecReserve })];
+  const sansValeur = new Map(resume.controles.map((c) => [c.numero, sansValeurDuControle(c.numero, resume.controles, resume.avertissements)]));
+  // Un contrôle sans valeur de preuve n'est pas compté parmi les réussis ; « avec réserve » ne compte que les autres.
+  const nSansValeur = [...sansValeur.values()].filter((r) => r.length > 0).length;
+  const avecReserve = resume.controles.filter((c) => reserves.get(c.numero).length > 0 && sansValeur.get(c.numero).length === 0).length;
+  const reussis = compte("reussi") - nSansValeur;
+  const parties = [avecReserve === 0 ? libelle("compte_reussis", { n: reussis }) : libelle("compte_reussis_reserve", { n: reussis, m: avecReserve })];
+  if (nSansValeur > 0) parties.push(libelle("compte_sans_valeur", { n: nSansValeur }));
   if (compte("non_execute") > 0) parties.push(libelle("compte_non_executes", { n: compte("non_execute") }));
   if (compte("echoue") > 0) parties.push(libelle("compte_echoues", { n: compte("echoue") }));
   const note = element("span", "nt-carte-note", parties.join(" · "));
   note.id = "compte-controles";
   titre.append(note);
-  // La pastille « réussi, avec réserve » est plus longue : la colonne des états s'élargit pour toute la liste.
-  const ul = element("ul", avecReserve > 0 ? "nt-controles pv-controles-reserve" : "nt-controles");
+  const ancresAjoutees = noms !== null && noms !== undefined && noms.ancres !== null;
+  const duDossier = new Map(resume.controles.map((c) => [c.numero, c.statut === "reussi" ? cleDuDossier(c.numero, resume, ancresAjoutees) : null]));
+  // Les pastilles « réussi, avec réserve », « sans valeur de preuve » et « réussi, avec … du dossier » sont plus
+  // longues : la colonne des états s'élargit pour toute la liste.
+  const longues = resume.controles.some((c) => reserves.get(c.numero).length > 0 || duDossier.get(c.numero) !== null);
+  const ul = element("ul", longues ? "nt-controles pv-controles-reserve" : "nt-controles");
   const resumes = element("div", "pv-resumes");
   for (const c of resume.controles) {
     const li = element("li", "nt-controle pv-controle");
     li.dataset.numero = String(c.numero);
     li.dataset.statut = c.statut;
-    // Un contrôle réussi auquel le rapport rattache un avertissement n'est pas montré réussi sans plus : sa pastille le dit.
+    // Un contrôle réussi auquel le rapport rattache un avertissement n'est pas montré réussi sans plus : sa pastille le
+    // dit ; s'il est sans valeur de preuve, elle le dit avec sa raison courte. Un contrôle réussi avec ce que le
+    // dossier fournit lui-même ne l'est pas non plus.
     const ids = reserves.get(c.numero);
-    const [ton, nomIcone, cle] = ids.length > 0 ? PASTILLE_RESERVE : PASTILLES_STATUT[c.statut];
+    const raisonsSansValeur = sansValeur.get(c.numero);
+    const cleDossier = duDossier.get(c.numero);
+    const [ton, nomIcone, cle] = raisonsSansValeur.length > 0 ? PASTILLE_SANS_VALEUR : ids.length > 0 ? PASTILLE_RESERVE : cleDossier !== null ? PASTILLES_DOSSIER[c.numero] : PASTILLES_STATUT[c.statut];
     if (ids.length > 0) li.dataset.reserves = ids.join(" ");
+    if (raisonsSansValeur.length > 0) li.dataset.presentation = "sans_valeur";
+    else if (ids.length > 0) li.dataset.presentation = "reserve";
+    else if (cleDossier !== null) li.dataset.presentation = "dossier";
     const marque = element("span");
-    marque.append(pastille(ton, nomIcone, libelle(cle)));
+    marque.append(pastille(ton, nomIcone, libelle(cle, { raisons: raisonsEnMots(raisonsSansValeur) })));
     const texte = element("div", "nt-controle-texte");
     const ligne = element("div", "pv-controle-ligne");
     const nom = `${c.numero}. ${libelle(`controle_${c.numero}`)}`;
@@ -1408,10 +1524,17 @@ function carteControles(resume, noms) {
     ligne.append(element("span", "pv-controle-prouve", libelle(`prouve_${c.numero}`)));
     texte.append(ligne);
     if (c.statut === "non_execute") texte.append(elementRaison(c.raison, c.numero, noms));
+    if (cleDossier !== null) texte.append(element("span", "pv-controle-dossier", libelle(cleDossier)));
     if (ids.length > 0) {
-      const renvoi = element("a", null, libelle("renvoi_reserves"));
-      renvoi.href = "#avertissements";
-      texte.append(elementLibelle("span", "pv-controle-reserve", "controle_reserve", { ids: ids.join(", ") }, { renvoi }));
+      // Les avertissements qui rendent le contrôle sans valeur de preuve, puis les autres, chacun avec son renvoi.
+      const sansValeurIds = ids.filter((id) => Object.hasOwn(SANS_VALEUR, id));
+      const autres = ids.filter((id) => !Object.hasOwn(SANS_VALEUR, id));
+      for (const [liste, cleLigne] of [[sansValeurIds, "controle_sans_valeur"], [autres, "controle_reserve"]]) {
+        if (liste.length === 0) continue;
+        const renvoi = element("a", null, libelle("renvoi_reserves"));
+        renvoi.href = "#avertissements";
+        texte.append(elementLibelle("span", "pv-controle-reserve", cleLigne, { ids: liste.join(", ") }, { renvoi }));
+      }
     }
     if (c.statut === "echoue") {
       texte.append(element("span", "pv-controle-echec", libelle("echec_suite")));
@@ -1634,7 +1757,7 @@ function ecrireVue() {
   verdict.append(titre);
   // Juste sous le titre : ce que les contrôles non réussis laissent sans preuve, en mots.
   if (v.code === 0 && presentation.teinte === "reserve") {
-    const cles = clesNonProuve(v.resume.controles);
+    const cles = clesNonProuve(v.resume.controles, v.resume.avertissements);
     if (cles.length > 0) {
       const p = element("p", "pv-non-prouve", libelle(cles.length === 1 ? "non_prouve_un" : "non_prouve_plusieurs", { liste: listeEnMots(cles.map((cle) => libelle(cle)), "non_prouve_sep", "non_prouve_dernier") }));
       p.id = "non-prouve";
@@ -1668,14 +1791,23 @@ function ecrireVue() {
     if (r.controles === null) suite.append(ligneBorne("resume-indisponible", "resume_indisponible"));
     else {
       const nonReussis = controlesNonReussis(r.controles);
+      // Contrôles réussis que le rapport dit sans valeur de preuve : jamais comptés parmi ceux qui ont réussi.
+      const sansValeur = r.controles.map((c) => [c.numero, sansValeurDuControle(c.numero, r.controles, r.avertissements)]).filter(([, raisons]) => raisons.length > 0);
+      const raisons = raisonsEnMots(sansValeur.flatMap(([, x]) => x));
       if (v.code === 0 && nonReussis.length === 0) {
-        const avecReserve = r.controles.filter((c) => reservesDuControle(c.numero, r.controles, r.avertissements).length > 0).length;
-        const p = avecReserve === 0 ? element("p", "pv-verdict-fort", libelle("tous_reussis")) : elementLibelle("p", "pv-verdict-fort", "tous_reussis_reserve", { n: String(avecReserve) });
+        const avecReserve = r.controles.filter((c) => reservesDuControle(c.numero, r.controles, r.avertissements).length > 0 && sansValeurDuControle(c.numero, r.controles, r.avertissements).length === 0).length;
+        let p;
+        if (sansValeur.length > 0) p = elementLibelle("p", "pv-verdict-fort", avecReserve === 0 ? "tous_reussis_sans_valeur" : "tous_reussis_sans_valeur_reserve", { n: String(8 - sansValeur.length), m: String(avecReserve), k: String(sansValeur.length) }, { raisons });
+        else p = avecReserve === 0 ? element("p", "pv-verdict-fort", libelle("tous_reussis")) : elementLibelle("p", "pv-verdict-fort", "tous_reussis_reserve", { n: String(avecReserve) });
         p.id = "tous-reussis";
         suite.append(p);
       } else if (v.code === 0) suite.append(ligneBorne("verdict-borne", "valide_borne", { liste: nonReussis.join(", ") }));
       else if (v.code === 3 && r.exiges !== null) {
         suite.append(ligneBorne("exiges-non-reussis", "exiges_non_reussis", { liste: r.exiges.filter((n) => nonReussis.includes(n)).join(", ") }));
+      }
+      // Sous un « Valide » borné ou un « Incomplet », les contrôles sans valeur de preuve sont dits à part.
+      if ((v.code === 0 || v.code === 3) && sansValeur.length > 0 && !(v.code === 0 && nonReussis.length === 0)) {
+        suite.append(ligneBorne("verdict-sans-valeur", "valide_sans_valeur", { liste: sansValeur.map(([n]) => n).join(", ") }, { raisons }));
       }
     }
     if (v.code === 1) {

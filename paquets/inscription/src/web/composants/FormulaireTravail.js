@@ -25,13 +25,16 @@
 // fiche, où l'on colle le contenu d'un fichier du client tel quel, et un bouton « Ajouter une autre fiche » ; la
 // page assemble la liste, la même que donnait la saisie à la main de « [ fiche, fiche ] ». Ce que la route reçoit
 // ne change pas.
+//
+// Quatrième lecture des écrans (même complément) : une section `credits` dit, sous son texte, ce que sont les crédits
+// d'écriture ; un refus `transaction_annulee` dit ce qui a échoué d'après la vérification qui l'a rendu (`check`).
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { lireChamp, lireFiches } from "./champs-page.js";
 import Icone from "./Icone.js";
 import Pastille from "./Pastille.js";
-import { etatTravail, explicationErreur, explicationFiche, explicationSaisie, libelleCommande } from "../lib/parcours.mjs";
+import { CREDITS_EN_CLAIR, etatTravail, explicationErreur, explicationFiche, explicationSaisie, libelleCommande } from "../lib/parcours.mjs";
 
 const ATTENTE_MS = 1000;
 /** Types saisis en chasse fixe : identifiants, adresses, empreintes, références, documents. */
@@ -115,8 +118,8 @@ function Champ({ champ, prefixe, erreur, regle, saisie, zones, ajouter, retirer 
  * message exacts au détail. Une phrase que CT-4 fixe mot pour mot (EX-7.26) s'affiche telle quelle sous la phrase
  * courante.
  */
-export function Refus({ code, message, slug = null, titre = null }) {
-  const x = explicationErreur(code);
+export function Refus({ code, message, slug = null, titre = null, verification = null }) {
+  const x = explicationErreur(code, { verification });
   return (
     <div className="nt-bandeau nt-bandeau-erreur" role="alert" data-refus={code}>
       <Icone nom="alerte" />
@@ -243,6 +246,7 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
       <fieldset className="nt-groupe-champs ins-section" key={s.titre}>
         <legend>{s.titre}</legend>
         {s.texte ? <p className="nt-aide">{s.texte}</p> : null}
+        {s.credits ? <p className="nt-aide ins-credits" data-credits-en-clair="">{CREDITS_EN_CLAIR}</p> : null}
         {s.champs.map(rendreChamp)}
       </fieldset>
     );
@@ -281,7 +285,7 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
         ) : null}
       </div>
       {etat.refus ? <Refus code={etat.refus.code} message={etat.refus.message} slug={slug} /> : null}
-      {echec && codeEchec ? <Refus code={codeEchec} message={messageEchec ?? ""} slug={slug} /> : null}
+      {echec && codeEchec ? <Refus code={codeEchec} message={messageEchec ?? ""} slug={slug} verification={t?.sortie?.error?.check ?? null} /> : null}
       {t?.sortie ? (
         <details className="nt-detail">
           <summary>Détail technique de l'action<span className="nt-detail-note">réponse exacte du service d'inscription</span></summary>

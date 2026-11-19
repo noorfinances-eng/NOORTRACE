@@ -66,3 +66,14 @@ export function lireFiches(champ, textes) {
   }
   return { valeur };
 }
+
+/**
+ * Empreinte SHA-256 d'un fichier choisi dans la page (CT-4 EX-7.25, complément du 2026-11-18) : le fichier est lu
+ * dans le navigateur et son empreinte calculée par `crypto.subtle.digest`, sans rien envoyer ni garder. Un seul
+ * calcul pour l'aide « Choisir la pièce » du formulaire de confirmation et pour « Calculer l'empreinte d'une pièce »,
+ * hors du formulaire (quatrième lecture des écrans). Rend `0x` suivi de 64 chiffres hexadécimaux en minuscules.
+ */
+export async function empreinteFichier(fichier) {
+  const condense = await window.crypto.subtle.digest("SHA-256", await fichier.arrayBuffer());
+  return `0x${[...new Uint8Array(condense)].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
+}

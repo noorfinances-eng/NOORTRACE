@@ -191,6 +191,7 @@ async function lireEcran(page) {
       tousReussis: t("#tous-reussis"),
       borne: t("#verdict-borne"),
       exiges: t("#exiges-non-reussis"),
+      sansValeur: t("#verdict-sans-valeur"),
       indisponible: t("#resume-indisponible"),
       suite: t("#verdict-suite"),
       compte: t("#compte-controles"),
@@ -257,18 +258,49 @@ function cleRaisonAttendue(raison, numero, { ancres = false, entetes = false } =
   return ["partie_absente", "hors_perimetre_version", "piece_hors_dossier", "prerequis_en_echec"].includes(raison) ? `raison_${raison}` : "raison_inconnue";
 }
 
+/**
+ * Quatrième lecture (CT-6 §18, point 15), écrit ici une seconde fois : les raisons courtes (clés) qui rendent un
+ * contrôle réussi sans valeur de preuve, celles des avertissements AV-O-3 que le rapport lui rattache.
+ */
+const SANS_VALEUR_ATTENDU = { "AV-O-3": "sans_valeur_av_o_3" };
+function sansValeurAttendu(json, numero) {
+  const c = json.controls[numero - 1];
+  if (c === undefined || c.status !== "reussi") return [];
+  return [...new Set(reservesAttendues(json, c).filter((id) => Object.hasOwn(SANS_VALEUR_ATTENDU, id)).map((id) => SANS_VALEUR_ATTENDU[id]))];
+}
+
+/**
+ * Clé de la phrase « clés du dossier » d'un contrôle réussi, écrite ici une seconde fois (point 15) : sous les codes 0
+ * et 3, contrôle 6 d'après la provenance des clés (`facts.recorder_keys`, et `facts.checkpoint.key_source`) et la liste
+ * ajoutée à l'étape 2 ; contrôle 7 si le jeu d'approbateurs est celui du dossier.
+ */
+function cleDossierAttendue(cas, numero, { ancres = false } = {}) {
+  const f = cas.json.facts;
+  if ((cas.code !== 0 && cas.code !== 3) || !f || cas.json.controls[numero - 1].status !== "reussi") return null;
+  if (numero === 7) return f.approval && f.approval.set_source === "dossier" ? "controle_approbateurs_dossier" : null;
+  if (numero !== 6 || !f.recorder_keys) return null;
+  const s = [f.recorder_keys.event_key_source, f.recorder_keys.manifest_key_source];
+  if (f.checkpoint && ["dossier", "ancres", "registre"].includes(f.checkpoint.key_source)) s.push(f.checkpoint.key_source);
+  const n = s.filter((x) => x === "dossier").length;
+  return n === 0 ? null : `controle_cles_dossier_${n === s.length ? "toutes" : "partie"}${ancres ? "_liste" : ""}`;
+}
+
 function attendu(cas, T, pieces = {}) {
   const mots = { 0: ["mot_0", "nt-verdict-valide"], 1: ["mot_1", "nt-verdict-non-valide"], 2: ["mot_2", ""], 3: ["mot_3", "nt-verdict-incomplet"] };
   const r = { mot: T[mots[cas.code][0]], variante: mots[cas.code][1], teinte: "", mention: null, nonProuve: null, code: libelle(T, "code", { code: cas.code, sens: T[`code_${cas.code}`] }) };
-  if (cas.code === 2) return { ...r, controles: [], pastillesReussi: 0, tousReussis: null, borne: null, exiges: null };
+  if (cas.code === 2) return { ...r, controles: [], pastillesReussi: 0, tousReussis: null, borne: null, exiges: null, sansValeur: null };
   const exiges = cas.json.inputs.required_controls;
   r.controles = cas.json.controls.map((c) => {
     const reserves = reservesAttendues(cas.json, c);
+    // Quatrième lecture (point 15) : sans valeur de preuve, puis avec réserve, puis avec ce que le dossier fournit.
+    const sansValeur = sansValeurAttendu(cas.json, c.number);
+    const dossier = cleDossierAttendue(cas, c.number, pieces);
+    const etat = sansValeur.length > 0 ? libelle(T, "statut_sans_valeur", { raisons: sansValeur.map((k) => T[k]).join(", ") }) : reserves.length > 0 ? T.statut_reussi_reserve : dossier !== null ? T[{ 6: "statut_reussi_cles_dossier", 7: "statut_reussi_approbateurs_dossier" }[c.number]] : T[`statut_${c.status}`];
     return {
       numero: c.number,
       statut: c.status,
-      etat: reserves.length > 0 ? T.statut_reussi_reserve : T[`statut_${c.status}`],
-      montreReussi: c.status === "reussi" && reserves.length === 0,
+      etat,
+      montreReussi: c.status === "reussi" && reserves.length === 0 && dossier === null,
       titre: `${c.number}. ${T[`controle_${c.number}`]}`,
       raison: c.status === "non_execute" ? libelle(T, "raison", { raison: T[cleRaisonAttendue(c.reason, c.number, pieces)], code: c.reason }) : null,
       exige: exiges.includes(c.number) ? T.controle_exige : null,
@@ -276,30 +308,36 @@ function attendu(cas, T, pieces = {}) {
     };
   });
   const nonReussis = cas.json.controls.filter((c) => c.status !== "reussi").map((c) => c.number);
-  const avecReserve = r.controles.filter((c) => c.reserves !== null).length;
+  const sansValeur = cas.json.controls.filter((c) => sansValeurAttendu(cas.json, c.number).length > 0).map((c) => c.number);
+  const raisons = [...new Set(sansValeur.flatMap((n) => sansValeurAttendu(cas.json, n)))].map((k) => T[k]).join(", ");
+  const nonProuves = cas.json.controls.filter((c) => nonReussis.includes(c.number) || sansValeur.includes(c.number)).map((c) => c.number);
+  const avecReserve = r.controles.filter((c) => c.reserves !== null && !sansValeur.includes(c.numero)).length;
+  const avecDossier = r.controles.filter((c) => c.reserves === null && cleDossierAttendue(cas, c.numero, pieces) !== null).length;
   // Sous le code 0, le vert plein ne reste que pour huit contrôles réussis sans avertissement ; sinon la teinte
   // d'avertissement et la mention fixe, et la phrase de ce qui n'est pas prouvé (point 14).
   const avertis = (cas.json.warnings ?? []).length > 0;
   if (cas.code === 0 && (nonReussis.length > 0 || avertis)) {
     r.variante = "";
     r.teinte = "pv-verdict-reserve";
-    r.mention = nonReussis.length > 0 && avertis ? T.mention_les_deux : nonReussis.length > 0 ? T.mention_non_prouve : T.mention_reserves;
-    r.nonProuve = nonProuveAttendu(nonReussis, T);
+    r.mention = nonProuves.length > 0 && avertis ? T.mention_les_deux : nonProuves.length > 0 ? T.mention_non_prouve : T.mention_reserves;
+    r.nonProuve = nonProuveAttendu(nonProuves, T);
   }
-  r.pastillesReussi = 8 - nonReussis.length - avecReserve;
-  r.tousReussis = cas.code === 0 && nonReussis.length === 0 ? (avecReserve === 0 ? T.tous_reussis : libelle(T, "tous_reussis_reserve", { n: avecReserve })) : null;
+  r.pastillesReussi = 8 - nonReussis.length - avecReserve - sansValeur.length - avecDossier;
+  const tous = sansValeur.length === 0 ? (avecReserve === 0 ? T.tous_reussis : libelle(T, "tous_reussis_reserve", { n: avecReserve })) : libelle(T, avecReserve === 0 ? "tous_reussis_sans_valeur" : "tous_reussis_sans_valeur_reserve", { n: 8 - sansValeur.length, m: avecReserve, k: sansValeur.length, raisons });
+  r.tousReussis = cas.code === 0 && nonReussis.length === 0 ? tous : null;
+  r.sansValeur = (cas.code === 0 || cas.code === 3) && sansValeur.length > 0 && !(cas.code === 0 && nonReussis.length === 0) ? libelle(T, "valide_sans_valeur", { liste: sansValeur.join(", "), raisons }) : null;
   r.borne = cas.code === 0 && nonReussis.length > 0 ? libelle(T, "valide_borne", { liste: nonReussis.join(", ") }) : null;
   r.exiges = cas.code === 3 ? libelle(T, "exiges_non_reussis", { liste: exiges.filter((n) => nonReussis.includes(n)).join(", ") }) : null;
   return r;
 }
 
 const garder = (ecran, cles) => Object.fromEntries(cles.map((k) => [k, ecran[k]]));
-const CLES_VERDICT = ["mot", "variante", "teinte", "mention", "nonProuve", "code", "controles", "pastillesReussi", "tousReussis", "borne", "exiges"];
+const CLES_VERDICT = ["mot", "variante", "teinte", "mention", "nonProuve", "code", "controles", "pastillesReussi", "tousReussis", "borne", "exiges", "sansValeur"];
 
 // --- Langage (complément du 2026-11-18 de CT-6 §18) ------------------------------
 
 /** Les fonctions et tables du langage courant d'interface.js, telles qu'écrites ; null si les sources ne les ont pas. */
-const NOMS_LANGAGE = ["clePhraseCourante", "cleAvertissement", "cleRefusCourant", "cleRaisonCourante", "membresEnonce", "aDesReserves", "PHRASES_COURANTES", "LIMITES", "SUITES", "presentationVerdict", "clesNonProuve", "controlesDeLAvertissement", "reservesDuControle", "grouperAvertissements", "clePieceEnCause", "PIECES_EN_CAUSE", "instantDeSecondes", "instantDeTexte", "lignesEnResume", "CONTROLE_DU_RESUME", "GABARITS_DECISION"];
+const NOMS_LANGAGE = ["SANS_VALEUR", "sansValeurDuControle", "clesDuDossier", "approbateursDuDossier", "clePhraseCourante", "cleAvertissement", "cleRefusCourant", "cleRaisonCourante", "membresEnonce", "aDesReserves", "PHRASES_COURANTES", "LIMITES", "SUITES", "presentationVerdict", "clesNonProuve", "controlesDeLAvertissement", "reservesDuControle", "grouperAvertissements", "clePieceEnCause", "PIECES_EN_CAUSE", "instantDeSecondes", "instantDeTexte", "lignesEnResume", "CONTROLE_DU_RESUME", "GABARITS_DECISION"];
 
 /** `transformer` : changement appliqué à la source avant de l'évaluer (mutant joué sous Node) ; il doit la changer. */
 function chargerLangage(transformer = null) {
@@ -522,7 +560,17 @@ function enResumeAttendu(json, code, T) {
   const t = json.facts.timestamp;
   if (ok(4) && t && t.upper_bound) l.push(["limite_autorite", libelle(T, "resume_limite_autorite", { limite: instantAttendu(Date.parse(t.upper_bound), T) })]);
   if (ok(5) && json.facts.bitcoin) l.push(["limite_bitcoin", T.resume_limite_bitcoin]);
-  return l;
+  if (ok(8) && json.facts.registry) l.push(["registre", T.resume_registre]);
+  // Quatrième lecture : la ligne d'un contrôle sans valeur de preuve est remplacée, une fois, par la ligne qui le dit.
+  const numeros = { action: 1, outil: 1, periode: 3, approbation: 7, limite_autorite: 4, limite_bitcoin: 5, registre: 8 };
+  const r = [];
+  for (const x of l) {
+    const n = numeros[x[0]];
+    const raisons = sansValeurAttendu(json, n);
+    if (raisons.length === 0) r.push(x);
+    else if (!r.some((y) => y[0] === `sans_valeur_${n}`)) r.push([`sans_valeur_${n}`, libelle(T, "resume_sans_valeur", { controle: T[`controle_${n}`], raisons: raisons.map((k) => T[k]).join(", ") })]);
+  }
+  return r;
 }
 
 /** Ce que la page écrit des points 15 à 19 : résumé, renvois des contrôles, échecs dits, pièce en cause. */
@@ -888,7 +936,7 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
       for (const a of [[], av]) expect(p(0, c, a).teinte === "pleine", `${m}`).to.equal(m === 0 && a.length === 0);
     }
     const mentions = tableCt6("| Cas, sous le code 0 | Mention de la page française | Mention de la page anglaise |");
-    expect(mentions).to.deep.equal([["un contrôle non réussi, aucun avertissement", fr.mention_non_prouve, en.mention_non_prouve], ["huit contrôles réussis, un avertissement", fr.mention_reserves, en.mention_reserves], ["un contrôle non réussi et un avertissement", fr.mention_les_deux, en.mention_les_deux]]);
+    expect(mentions).to.deep.equal([["un contrôle non réussi, aucun avertissement", fr.mention_non_prouve, en.mention_non_prouve], ["huit contrôles réussis, un avertissement", fr.mention_reserves, en.mention_reserves], ["un contrôle non réussi ou sans valeur de preuve, et un avertissement", fr.mention_les_deux, en.mention_les_deux]]);
     // La mention suit le mot : elle ne le remplace pas et ne dit pas « valide » à sa place.
     for (const T of [fr, en]) for (const cle of ["mention_non_prouve", "mention_reserves", "mention_les_deux"]) expect(T[cle], cle).to.match(/^, \S/).and.not.match(/valid/i);
     // Éléments non prouvés : une clé par contrôle non réussi, la date une seule fois quand 4 et 5 manquent tous deux.
@@ -898,7 +946,7 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     expect(cles([R, R, R, N, R, R, N, R])).to.deep.equal(["non_prouve_4", "non_prouve_7"]);
     expect(cles([R, R, R, R, N, R, R, R])).to.deep.equal(["non_prouve_5"]);
     expect(cles([N, N, N, N, N, N, N, N])).to.deep.equal(["non_prouve_1", "non_prouve_2", "non_prouve_3", "non_prouve_4_5", "non_prouve_6", "non_prouve_7", "non_prouve_8"]);
-    const elements = tableCt6("| Contrôle non réussi | Élément de la page française | Élément de la page anglaise |");
+    const elements = tableCt6("| Contrôle non réussi ou sans valeur de preuve | Élément de la page française | Élément de la page anglaise |");
     expect(elements).to.deep.equal([...[1, 2, 3].map((n) => [String(n), fr[`non_prouve_${n}`], en[`non_prouve_${n}`]]), ["4 et 5", fr.non_prouve_4_5, en.non_prouve_4_5], ["4 seul", fr.non_prouve_4, en.non_prouve_4], ["5 seul", fr.non_prouve_5, en.non_prouve_5], ...[6, 7, 8].map((n) => [String(n), fr[`non_prouve_${n}`], en[`non_prouve_${n}`]])]);
     // Pièce en cause : table par type d'erreur ; un type inconnu n'a pas de phrase.
     const pieces = tableCt6("| Type de l'erreur | Phrase de la page française | Phrase de la page anglaise |");
@@ -913,9 +961,10 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     // « Examiné », et non « vérifié », pour le dossier d'un résultat ; les mots d'un contrôle avec réserve ne sont pas ceux d'un contrôle réussi.
     for (const cle of ["dossier_verifie_repertoire", "dossier_verifie_archive"]) expect([fr[cle], en[cle]].join(" "), cle).to.match(/examiné.*examined/).and.not.match(/vérifié|verified/);
     for (const T of [fr, en]) expect(T.statut_reussi_reserve).to.not.equal(T.statut_reussi);
-    // Étape 2 : d'où vient la liste des références de confiance, et à quoi on la reconnaît.
-    expect(fr.aide_ancres).to.include("L'organisation qui vous a remis le dossier vous fournit cette liste avec lui ; c'est un fichier dont le nom finit par .json.").and.include("Si vous ne l'avez pas");
-    expect(en.aide_ancres).to.include("The organisation that gave you the dossier provides this list with it; it is a file whose name ends in .json.").and.include("If you do not have it");
+    // Étape 2 : d'où vient la liste des références de confiance, et à quoi on la reconnaît. Quatrième lecture : elle ne
+    // vient pas « avec » le dossier (consigne de sûreté, point 3 de cette lecture).
+    expect(fr.aide_ancres).to.include("C'est un fichier dont le nom finit par .json ; l'organisation qui vous a remis le dossier vous le fournit.").and.include("Si vous ne l'avez pas").and.not.include("avec lui");
+    expect(en.aide_ancres).to.include("It is a file whose name ends in .json; the organisation that gave you the dossier provides it.").and.include("If you do not have it").and.not.include("with it");
   });
 
   it("seconde lecture (points 15 et 16) : un avertissement n'est rattaché à un contrôle que par le rapport (sa vérification dans la liste du contrôle) ; les avertissements de même identifiant de la table forment une seule réserve, sans qu'aucun soit retiré", function () {
@@ -955,9 +1004,9 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     const r = chargerResume();
     // Gabarits : ceux de la table de CT-6, dans les deux langues, avec le contrôle dont chaque ligne dépend.
     const gabarits = tableCt6("| Champ du rapport, contrôle dont la ligne dépend | Gabarit de la page française | Gabarit de la page anglaise |");
-    const cles = [["`event.seq`, contrôle 1", "resume_action"], ["`event.tool`, contrôle 1", "resume_outil"], ["`period.period_start` et `period.period_end`, contrôle 3", "resume_periode"], ["`facts.approval`, décision `approuve`, contrôle 7", "resume_approbation"], ["`facts.approval`, décision `refuse`, contrôle 7", "resume_refus"], ["`facts.approval`, décision `expire`, contrôle 7", "resume_expiration"], ["`facts.timestamp.upper_bound`, contrôle 4", "resume_limite_autorite"], ["`facts.bitcoin`, contrôle 5", "resume_limite_bitcoin"]];
+    const cles = [["`event.seq`, contrôle 1", "resume_action"], ["`event.tool`, contrôle 1", "resume_outil"], ["`period.period_start` et `period.period_end`, contrôle 3", "resume_periode"], ["`facts.approval`, décision `approuve`, contrôle 7", "resume_approbation"], ["`facts.approval`, décision `refuse`, contrôle 7", "resume_refus"], ["`facts.approval`, décision `expire`, contrôle 7", "resume_expiration"], ["`facts.timestamp.upper_bound`, contrôle 4", "resume_limite_autorite"], ["`facts.bitcoin`, contrôle 5", "resume_limite_bitcoin"], ["`facts.registry`, contrôle 8", "resume_registre"]];
     expect(gabarits).to.deep.equal(cles.map(([t, cle]) => [t, fr[cle], en[cle]]));
-    expect({ ...f.CONTROLE_DU_RESUME }).to.deep.equal({ action: 1, outil: 1, periode: 3, approbation: 7, limite_autorite: 4, limite_bitcoin: 5 });
+    expect({ ...f.CONTROLE_DU_RESUME }).to.deep.equal({ action: 1, outil: 1, periode: 3, approbation: 7, limite_autorite: 4, limite_bitcoin: 5, registre: 8 });
     expect({ ...f.GABARITS_DECISION }).to.deep.equal({ approuve: "resume_approbation", refuse: "resume_refus", expire: "resume_expiration" });
     // Aucun gabarit ne porte d'empreinte ni de paramètre qui en recevrait une ; les bornes de la période sont dites déclarées.
     for (const T of [fr, en]) for (const [, cle] of cles) expect(T[cle], cle).to.not.match(/0x|\{hash\}|\{period_hash\}|empreinte|digest/i);
@@ -976,7 +1025,8 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     for (const texte of ["2026-11-05T10:00:06Z", "2024-02-29T23:59:59Z", "1970-01-01T00:00:00Z", "9999-12-31T23:59:59Z"]) expect({ ...f.instantDeTexte(texte) }, texte).to.deep.equal(civil(Date.parse(texte)));
     for (const texte of ["2026-11-05T10:00:06.5Z", "2026-11-05T10:00:06", "2026-11-05T10:00:06+01:00", "2026-11-05 10:00:06Z", "2026-02-29T00:00:00Z", "2026-13-01T00:00:00Z", "2026-00-10T00:00:00Z", "2026-11-31T00:00:00Z", "2026-11-05T24:00:00Z", "2026-11-05T10:60:00Z", "2026-11-05T10:00:60Z", " 2026-11-05T10:00:06Z", "", null, undefined, 1793869206]) expect(f.instantDeTexte(texte), String(texte)).to.equal(null);
     // Lignes d'un rapport : nom, gabarit, valeurs et instants égaux aux champs.
-    const lignes = (g, cas, controles = r.lireControles(cas.json, cas.code)) => g.lignesEnResume(cas.json, controles, cas.code).map((l) => ({ nom: l.nom, cle: l.cle, valeurs: { ...l.valeurs }, instants: Object.fromEntries(Object.entries(l.instants).map(([k, v]) => [k, { ...v }])) }));
+    // Quatrième lecture : les avertissements du rapport sont passés, pour qu'une ligne sans valeur de preuve soit remplacée.
+    const lignes = (g, cas, controles = r.lireControles(cas.json, cas.code)) => g.lignesEnResume(cas.json, controles, cas.code, r.resumer(cas.json, cas.code).avertissements).map((l) => ({ nom: l.nom, cle: l.cle, valeurs: { ...l.valeurs }, instants: Object.fromEntries(Object.entries(l.instants).map(([k, v]) => [k, { ...v }])), ...(l.libelles ? { libelles: JSON.parse(JSON.stringify(l.libelles)) } : {}) }));
     const attendues = (cas) => {
       const j = cas.json;
       if (cas.code !== 0 && cas.code !== 3) return [];
@@ -988,10 +1038,20 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
       if (ok(7)) l.push({ nom: "approbation", cle: { approuve: "resume_approbation", refuse: "resume_refus", expire: "resume_expiration" }[j.facts.approval.decision], valeurs: { n: String(j.facts.approval.approvers.length), requis: String(j.facts.approval.required), taille: String(j.facts.approval.size) }, instants: {} });
       if (ok(4)) l.push({ nom: "limite_autorite", cle: "resume_limite_autorite", valeurs: {}, instants: { limite: civil(Date.parse(j.facts.timestamp.upper_bound)) } });
       if (ok(5)) l.push({ nom: "limite_bitcoin", cle: "resume_limite_bitcoin", valeurs: {}, instants: {} });
-      return l;
+      if (ok(8) && j.facts.registry) l.push({ nom: "registre", cle: "resume_registre", valeurs: {}, instants: {} });
+      // Quatrième lecture : la ligne d'un contrôle sans valeur de preuve est remplacée, une fois, par la ligne qui le dit.
+      const remplacees = [];
+      for (const x of l) {
+        const n = { action: 1, outil: 1, periode: 3, approbation: 7, limite_autorite: 4, limite_bitcoin: 5, registre: 8 }[x.nom];
+        const raisons = sansValeurAttendu(j, n);
+        if (raisons.length === 0) remplacees.push(x);
+        else if (!remplacees.some((y) => y.nom === `sans_valeur_${n}`)) remplacees.push({ nom: `sans_valeur_${n}`, cle: "resume_sans_valeur", valeurs: {}, instants: {}, libelles: { controle: [`controle_${n}`], raisons } });
+      }
+      return remplacees;
     };
     for (const [nom, cas] of Object.entries(CAS_SECONDE)) expect(lignes(f, cas), nom).to.deep.equal(attendues(cas));
     expect(lignes(f, CAS_SECONDE.plein).map((l) => l.nom)).to.deep.equal(["action", "outil", "periode", "approbation", "limite_autorite", "limite_bitcoin"]);
+    expect(lignes(f, CAS_SECONDE.reserves).map((l) => l.nom)).to.deep.equal(["action", "outil", "periode", "approbation", "limite_autorite", "sans_valeur_5"]);
     expect(lignes(f, CAS_SECONDE.nonFaits).map((l) => l.nom)).to.deep.equal(["action", "outil", "periode", "approbation"]);
     expect(lignes(f, CAS_SECONDE.nonValide)).to.deep.equal([]);
     // Aucune ligne si les contrôles ne se lisent pas, ni sous les codes 1 et 2 même avec huit contrôles réussis.
@@ -1063,7 +1123,9 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     for (const T of [fr, en]) {
       for (const c of cles) expect(T[c], c).to.match(/^(?:Non fait|Not done)[ ,:]/);
       // Quand la raison met en cause le dossier, la phrase ne renvoie pas à l'étape 2 : elle renvoie à l'organisation.
-      for (const c of ["raison_partie_absente", "raison_hors_perimetre_version"]) expect(T[c], c).to.match(/pas une pièce à ajouter à l'étape 2|not a document to add at step 2/).and.match(/organisation/);
+      // Quatrième lecture : sans dire de ne rien ajouter à l'étape 2 (la liste sert aussi au contrôle 6), elle dit que la
+      // liste et l'extrait n'y changent rien.
+      for (const c of ["raison_partie_absente", "raison_hors_perimetre_version"]) expect(T[c], c).to.match(/Ajouter la liste ou l'extrait de l'étape 2 n'y change rien|Adding the list or the extract at step 2 changes nothing/).and.match(/organisation/).and.not.match(/pas une pièce à ajouter|not a document to add/);
       // La raison non admise (CT-6 6.2) le dit en mots courants, au lieu d'un « cette raison n'est pas admise » qui ne
       // dit rien à qui n'a pas lu la spécification.
       expect(T.raison_prerequis_en_echec).to.match(/(?:Le vérificateur ne l'accepte pas comme raison de ne pas faire un contrôle|The verifier does not accept this as a reason for not doing a control)\.$/).and.not.match(/; (?:cette raison|this reason)/);
@@ -1078,7 +1140,7 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
       // La consigne de sûreté de l'étape 2 n'est plus dans l'aide en petit.
       expect(T.aide_ancres).to.not.match(/Vérifiez d'où|Check where/);
     }
-    expect([fr.consigne_ancres, en.consigne_ancres]).to.deep.equal(["Vérifiez d'où vient cette liste : c'est elle qui désigne les tiers de confiance.", "Check where this list comes from: it is the list that names the trusted third parties."]);
+    expect([fr.consigne_ancres, en.consigne_ancres]).to.deep.equal(["Vérifiez d'où vient cette liste : c'est elle qui désigne les tiers de confiance. Cette liste doit vous parvenir par un autre moyen que le dossier lui-même (courrier, site de l'organisation, remise en main propre). Si elle vient avec le dossier, elle ne prouve rien de plus que lui.", "Check where this list comes from: it is the list that names the trusted third parties. This list must reach you by another means than the dossier itself (post, the organisation's website, delivery by hand). If it comes with the dossier, it proves nothing more than the dossier does."]);
     const html = lire("index.modele.html");
     expect(html).to.include('<p class="nt-aide" id="aide-ancres" data-libelle="aide_ancres">{{aide_ancres}}</p>\n<p class="pv-consigne" id="consigne-ancres" data-libelle="consigne_ancres">{{consigne_ancres}}</p>');
     expect(html).to.include('aria-describedby="aide-ancres consigne-ancres nom-ancres"');
@@ -1089,6 +1151,87 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
       { titre: "liste ajoutée ignorée : toujours dite non ajoutée", avant: '    if (!ancres) return "raison_ancre_absente";', apres: '    return "raison_ancre_absente";', vu: (g) => g.cleRaisonCourante("ancre_absente", 4, true, false) !== "raison_ancre_absente_liste" },
       { titre: "extrait mis en cause pour un autre contrôle que le 5", avant: '    return numero === 5 && entetes ?', apres: "    return entetes ?", vu: (g) => g.cleRaisonCourante("ancre_absente", 8, true, true) !== "raison_ancre_absente_liste" },
       { titre: "pièce absente du dossier renvoyée à l'étape 2", avant: "    if (numero === 5 && !entetes) return ancres ?", apres: "    if (!entetes) return ancres ?", vu: (g) => g.cleRaisonCourante("partie_absente", 2, true, false) !== "raison_partie_absente" },
+    ];
+    for (const m of mutants) {
+      expect(m.vu(f), `témoin : ${m.titre}`).to.equal(false);
+      expect(m.vu(chargerLangage((source) => source.replace(m.avant, m.apres))), `mutant vu : ${m.titre}`).to.equal(true);
+    }
+  });
+  it("quatrième lecture (complément du 2026-11-18, point 15, point 17 et étape 2) : un contrôle réussi que le rapport dit sans valeur de preuve (table de CT-6 §18) ne compte ni parmi les réussis ni comme prouvé, et « En résumé » ne le dit pas réussi ; un contrôle réussi avec les clés ou les approbateurs que le dossier déclare lui-même le dit ; la liste des références de confiance vient par un autre moyen que le dossier ; les heures du registre sont dites comparées à rien ; mutants vus", function () {
+    const { fr, en } = tables();
+    const f = chargerLangage();
+    const r = chargerResume();
+    expect(f.sansValeurDuControle, "sansValeurDuControle dans interface.js").to.be.a("function");
+    // Table de CT-6 : les avertissements qui rendent un contrôle sans valeur de preuve, et leur raison courte, mot pour mot.
+    const table = tableCt6("| Avertissement | Raison courte, page française | Raison courte, page anglaise |");
+    expect(table).to.deep.equal(Object.entries(SANS_VALEUR_ATTENDU).map(([id, cle]) => [id, fr[cle], en[cle]]));
+    expect({ ...f.SANS_VALEUR }).to.deep.equal(SANS_VALEUR_ATTENDU);
+    // AV-O-3 est le seul avertissement que CT-6 dit « sans valeur probante » (section 10.7) ; sa phrase dit qu'il ne prouve rien.
+    const ct6 = texteCt6();
+    expect([...ct6.matchAll(/^\| (AV-[A-Z]+-[0-9]+) \|.*sans valeur probante/gm)].map((m) => m[1])).to.deep.equal(["AV-O-3"]);
+    expect(fr.av_o_3).to.include("elle ne prouve rien");
+    const lus = (statuts, checks = {}) => statuts.map((s, i) => ({ numero: i + 1, statut: s, verifications: checks[i + 1] ?? [] }));
+    const av = (id, verification) => ({ id, verification, detail: "x" });
+    const VERIFS = { 4: ["T-1", "K-7"], 5: ["O-5", "K-9"], 6: ["N-3"], 8: ["K-8", "R-10"] };
+    const tous = lus([R, R, R, R, R, R, R, R], VERIFS);
+    const sv = (g, n, c, a) => [...g.sansValeurDuControle(n, c, a)];
+    expect([1, 2, 3, 4, 5, 6, 7, 8].map((n) => sv(f, n, tous, [av("AV-O-3", "O-5"), av("AV-K-1", "K-8"), av("AV-O-3", "K-9")]))).to.deep.equal([[], [], [], [], ["sans_valeur_av_o_3"], [], [], []]);
+    // Seul le rattachement que le rapport donne compte ; un contrôle non fait ou échoué garde sa ligne.
+    for (const v of [null, "Z-1", "R-10"]) expect(sv(f, 5, tous, [av("AV-O-3", v)]), String(v)).to.deep.equal([]);
+    for (const s of [N, E]) expect(sv(f, 5, lus([R, R, R, R, s, R, R, R], VERIFS), [av("AV-O-3", "O-5")]), s).to.deep.equal([]);
+    expect(sv(f, 5, tous, null)).to.deep.equal([]);
+    // Les seize autres avertissements de la table ne rendent jamais un contrôle sans valeur de preuve.
+    const autres = Object.keys(fr).filter((k) => /^av_[a-z]+_[0-9]+$/.test(k)).map((k) => `AV-${k.slice(3, k.lastIndexOf("_")).toUpperCase()}-${k.slice(k.lastIndexOf("_") + 1)}`).filter((id) => id !== "AV-O-3");
+    expect(autres).to.have.length(16);
+    for (const id of autres) for (const n of [4, 5, 6, 8]) expect(sv(f, n, tous, [av(id, VERIFS[n][0])]), `${id}, contrôle ${n}`).to.deep.equal([]);
+    // Un contrôle sans valeur de preuve compte comme non prouvé : mention et éléments non prouvés.
+    expect({ ...f.presentationVerdict(0, tous, [av("AV-O-3", "O-5")]) }).to.deep.equal({ teinte: "reserve", mention: "mention_les_deux" });
+    expect({ ...f.presentationVerdict(0, tous, [av("AV-K-1", "K-8")]) }).to.deep.equal({ teinte: "reserve", mention: "mention_reserves" });
+    expect([...f.clesNonProuve(tous, [av("AV-O-3", "O-5")])]).to.deep.equal(["non_prouve_5"]);
+    expect([...f.clesNonProuve(lus([R, R, R, N, R, R, R, N], VERIFS), [av("AV-O-3", "O-5")])]).to.deep.equal(["non_prouve_4_5", "non_prouve_8"]);
+    expect([...f.clesNonProuve(tous, [av("AV-K-1", "K-8")])]).to.deep.equal([]);
+    // « En résumé » : la ligne du contrôle sans valeur de preuve est remplacée par celle qui le dit ; jamais « réussie ».
+    const json = CAS_SECONDE.reserves.json;
+    const lignes = (g, j = json) => g.lignesEnResume(j, r.lireControles(j, 0), 0, r.resumer(j, 0).avertissements).map((l) => JSON.parse(JSON.stringify(l)));
+    expect(lignes(f).map((l) => l.nom)).to.deep.equal(["action", "outil", "periode", "approbation", "limite_autorite", "sans_valeur_5"]);
+    expect(lignes(f).at(-1)).to.deep.equal({ nom: "sans_valeur_5", cle: "resume_sans_valeur", valeurs: {}, instants: {}, libelles: { controle: ["controle_5"], raisons: ["sans_valeur_av_o_3"] } });
+    expect([fr.resume_sans_valeur, en.resume_sans_valeur].join(" ")).to.not.match(/réussi|passed/i);
+    expect([fr.statut_sans_valeur, en.statut_sans_valeur, fr.compte_sans_valeur, en.compte_sans_valeur].join(" ")).to.not.match(/réussi|passed/i);
+    // La ligne du registre (point 4 de cette lecture) : elle dit, d'après CT-6 7.1, que les heures des blocs ne sont comparées à rien.
+    const registre = JSON.parse(JSON.stringify(CAS_SECONDE.plein.json));
+    registre.facts.registry = { chain_id: "noortrace-2124-dev", entries: [] };
+    expect(lignes(f, registre).map((l) => l.nom).at(-1)).to.equal("registre");
+    expect(ct6.replace(/\s+/g, " ")).to.include("Aucune heure du registre n'est comparée aux dates de la période : une heure déclarée antérieure à la période n'est pas signalée.");
+    expect(fr.resume_registre).to.include("ne les compare pas à la période et n'en tire aucune date : une heure antérieure à la période n'est pas signalée et ne contredit aucun contrôle");
+    expect(en.resume_registre).to.include("does not compare them with the period and draws no date from them: a time earlier than the period is not reported and contradicts no control");
+    // Clés du dossier (EX-6.8) : toutes, une partie, ou aucune ; rien hors des codes 0 et 3 (EX-6.13).
+    const cles = (e, m, point) => ({ facts: { recorder_keys: { event_key_id: "rec-01", manifest_key_id: "rec-02", source: e === m ? e : "mixte", event_key_source: e, manifest_key_source: m }, checkpoint: point === undefined ? null : { key_source: point } } });
+    const cas = [[["dossier", "dossier"], 0, "toutes"], [["dossier", "dossier"], 3, "toutes"], [["dossier", "registre"], 0, "partie"], [["registre", "dossier"], 0, "partie"], [["ancres", "ancres"], 0, null], [["registre", "registre"], 0, null], [["ancres", "ancres", "dossier"], 0, "partie"], [["dossier", "dossier", "ancres"], 0, "partie"], [["dossier", "dossier", "dossier"], 0, "toutes"], [["dossier", "dossier", "autre"], 0, "toutes"], [["autre", "dossier"], 0, null], [["dossier", "dossier"], 1, null], [["dossier", "dossier"], 2, null]];
+    for (const [s, code, attendue] of cas) expect(f.clesDuDossier(cles(...s), code), `${s}, code ${code}`).to.equal(attendue);
+    for (const j of [{}, { facts: null }, { facts: { recorder_keys: null } }, { facts: [] }]) expect(f.clesDuDossier(j, 0), JSON.stringify(j)).to.equal(null);
+    const approbation = (set_source) => ({ facts: { approval: { decision: "approuve", approvers: [], required: 2, size: 3, set_source } } });
+    expect([f.approbateursDuDossier(approbation("dossier"), 0), f.approbateursDuDossier(approbation("dossier"), 3), f.approbateursDuDossier(approbation("dossier"), 1), f.approbateursDuDossier(approbation("ancres"), 0), f.approbateursDuDossier({ facts: { approval: null } }, 0), f.approbateursDuDossier({}, 0)]).to.deep.equal([true, true, false, false, false, false]);
+    // Les phrases : table de CT-6, mot pour mot ; celle demandée pour le contrôle 6 sans liste ; celle du contrôle 7 ne
+    // renvoie pas à l'étape 2 (aucune ancre d'approbateurs en version 0, table 5.1).
+    const phrases = ["controle_cles_dossier_toutes", "controle_cles_dossier_toutes_liste", "controle_cles_dossier_partie", "controle_cles_dossier_partie_liste", "controle_approbateurs_dossier"];
+    expect(tableCt6("| Contrôle, provenance, liste ajoutée à l'étape 2 | Phrase de la page française | Phrase de la page anglaise |").map((l) => [l[1], l[2]])).to.deep.equal(phrases.map((c) => [fr[c], en[c]]));
+    expect(fr.controle_cles_dossier_toutes).to.equal("Réussi, avec les clés que le dossier fournit lui-même : cela montre qu'il est cohérent, pas qui l'a signé. Pour savoir qui l'a signé, ajoutez la liste des références de confiance (étape 2).");
+    for (const T of [fr, en]) {
+      expect(T.controle_approbateurs_dossier).to.not.match(/ajoutez|add the list/);
+      for (const c of ["controle_cles_dossier_toutes_liste", "controle_cles_dossier_partie_liste"]) expect(T[c], c).to.match(/organisation/).and.not.match(/ajoutez|add the list/);
+    }
+    // Étape 2 : la consigne de sûreté, mot pour mot ; un seul discours : aucun libellé ne dit que la liste vient avec le
+    // dossier, ni qu'elle n'est pas une pièce à ajouter.
+    expect(fr.consigne_ancres).to.include("Cette liste doit vous parvenir par un autre moyen que le dossier lui-même (courrier, site de l'organisation, remise en main propre). Si elle vient avec le dossier, elle ne prouve rien de plus que lui.");
+    for (const T of [fr, en]) for (const [cle, texte] of Object.entries(T)) expect(texte, cle).to.not.match(/avec lui ;|cette liste avec lui|reçu ces pièces avec le dossier|pas une pièce à ajouter|provides this list with it|received these documents with the dossier|not a document to add/);
+    // Mutants, joués ici sur la source : chacun rend ce que l'essai refuse.
+    const mutants = [
+      { titre: "table des avertissements sans valeur de preuve vidée", avant: 'const SANS_VALEUR = Object.freeze({ "AV-O-3": "sans_valeur_av_o_3" });', apres: "const SANS_VALEUR = Object.freeze({});", vu: (g) => sv(g, 5, tous, [av("AV-O-3", "O-5")]).length === 0 },
+      { titre: "inscription « déclarée, non prouvée » (AV-K-1) prise pour un contrôle sans valeur", avant: 'const SANS_VALEUR = Object.freeze({ "AV-O-3": "sans_valeur_av_o_3" });', apres: 'const SANS_VALEUR = Object.freeze({ "AV-O-3": "sans_valeur_av_o_3", "AV-K-1": "sans_valeur_av_o_3" });', vu: (g) => sv(g, 8, tous, [av("AV-K-1", "K-8")]).length > 0 },
+      { titre: "contrôle sans valeur de preuve compté comme prouvé", avant: '  const non = controles.filter((c) => c.statut !== "reussi" || sansValeurDuControle(c.numero, controles, avertissements).length > 0).map((c) => c.numero);', apres: '  const non = controles.filter((c) => c.statut !== "reussi").map((c) => c.numero);', vu: (g) => g.clesNonProuve(tous, [av("AV-O-3", "O-5")]).length === 0 },
+      { titre: "« réussie » gardé dans le résumé pour une preuve sans valeur", avant: "    if (raisons.length === 0) lignes.push(ligne);", apres: "    if (raisons.length >= 0) lignes.push(ligne);", vu: (g) => lignes(g).some((l) => l.nom === "limite_bitcoin") },
+      { titre: "provenance des clés lue sous un code qui n'affirme rien", avant: "  if (code !== 0 && code !== 3) return null;\n  const objet", apres: "  const objet", vu: (g) => g.clesDuDossier(cles("dossier", "dossier"), 1) !== null },
+      { titre: "une clé du dossier sur deux passée sous silence", avant: '  return n === 0 ? null : n === sources.length ? "toutes" : "partie";', apres: '  return n === sources.length ? "toutes" : null;', vu: (g) => g.clesDuDossier(cles("dossier", "registre"), 0) !== "partie" },
     ];
     for (const m of mutants) {
       expect(m.vu(f), `témoin : ${m.titre}`).to.equal(false);
@@ -1758,12 +1901,20 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
             expect(lu.titre, quoi).to.equal(`${a.mot}${a.mention ?? ""}`);
             expect(lu.signe === BOUCLIER, quoi).to.equal(a.variante === "nt-verdict-valide");
             if (a.nonProuve !== null) expect(await o.page.isVisible("#non-prouve"), quoi).to.equal(true);
-            // Contrôles avec réserve : ceux que le rapport désigne, et eux seuls ; chacun renvoie aux réserves.
+            // Contrôles avec réserve : ceux que le rapport désigne, et eux seuls ; chacun renvoie aux réserves. Quatrième
+            // lecture : un contrôle sans valeur de preuve le dit d'abord, avec ses avertissements à lui ; un contrôle réussi
+            // avec ce que le dossier fournit lui-même a aussi la pastille d'avertissement.
             const reserves = a.controles.filter((c) => c.reserves !== null);
-            expect(lu.pastillesReserve, quoi).to.deep.equal(reserves.map((c) => c.numero));
-            expect(lu.renvois, quoi).to.deep.equal(reserves.map((c) => [c.numero, libelle(L, "controle_reserve", { ids: c.reserves.split(" ").join(", "), renvoi: L.renvoi_reserves }), "#avertissements"]));
-            const reussis = cas.json.controls.filter((c) => c.status === R).length;
-            expect(lu.compte.startsWith(reserves.length === 0 ? libelle(L, "compte_reussis", { n: reussis }) : libelle(L, "compte_reussis_reserve", { n: reussis, m: reserves.length })), quoi).to.equal(true);
+            expect(lu.pastillesReserve, quoi).to.deep.equal(a.controles.filter((c) => c.statut === R && !c.montreReussi).map((c) => c.numero));
+            expect(lu.renvois, quoi).to.deep.equal(reserves.flatMap((c) => {
+              const ids = c.reserves.split(" ");
+              return [[ids.filter((id) => id === "AV-O-3"), "controle_sans_valeur"], [ids.filter((id) => id !== "AV-O-3"), "controle_reserve"]].filter(([l]) => l.length > 0).map(([l, cle]) => [c.numero, libelle(L, cle, { ids: l.join(", "), renvoi: L.renvoi_reserves }), "#avertissements"]);
+            }));
+            const sansValeur = cas.json.controls.filter((c) => sansValeurAttendu(cas.json, c.number).length > 0).length;
+            const reussis = cas.json.controls.filter((c) => c.status === R).length - sansValeur;
+            const avecReserve = reserves.length - sansValeur;
+            expect(lu.compte.startsWith(avecReserve === 0 ? libelle(L, "compte_reussis", { n: reussis }) : libelle(L, "compte_reussis_reserve", { n: reussis, m: avecReserve })), quoi).to.equal(true);
+            expect(lu.compte.includes(libelle(L, "compte_sans_valeur", { n: sansValeur })), quoi).to.equal(sansValeur > 0);
             // Réserves : une ligne par identifiant de la table, « signalée N fois », tous les textes exacts.
             expect(garder(await lireLangage(o.page), ["listeReserves"]), quoi).to.deep.equal(garder(attenduLangage(cas, L), ["listeReserves"]));
             // « En résumé » : les lignes que le rapport permet, valeurs égales à ses champs ; avant le texte exact ; aucune empreinte.
@@ -1794,13 +1945,14 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
             await o.fermer();
           }
         }
-        // Ce que le cas « avec réserves » doit montrer, écrit en clair : deux contrôles avec réserve, une réserve dite deux fois.
+        // Ce que le cas « avec réserves » doit montrer, écrit en clair : un contrôle avec réserve, un contrôle sans valeur
+        // de preuve (réseau d'essai : quatrième lecture), les approbateurs du dossier, une réserve dite deux fois.
         const o = await verifierCas(CAS_SECONDE.reserves, { langue });
         try {
           const ecran = await lireEcran(o.page);
           const langage = await lireLangage(o.page);
-          expect([ecran.mention, ecran.teinte, ecran.variante, ecran.tousReussis], langue).to.deep.equal([L.mention_reserves, "pv-verdict-reserve", "", libelle(L, "tous_reussis_reserve", { n: 2 })]);
-          expect(ecran.controles.map((c) => c.etat), langue).to.deep.equal([L.statut_reussi, L.statut_reussi, L.statut_reussi, L.statut_reussi, L.statut_reussi_reserve, L.statut_reussi, L.statut_reussi, L.statut_reussi_reserve]);
+          expect([ecran.mention, ecran.teinte, ecran.variante, ecran.tousReussis, ecran.nonProuve], langue).to.deep.equal([L.mention_les_deux, "pv-verdict-reserve", "", libelle(L, "tous_reussis_sans_valeur_reserve", { n: 7, m: 1, k: 1, raisons: L.sans_valeur_av_o_3 }), libelle(L, "non_prouve_un", { liste: L.non_prouve_5 })]);
+          expect(ecran.controles.map((c) => c.etat), langue).to.deep.equal([L.statut_reussi, L.statut_reussi, L.statut_reussi, L.statut_reussi, libelle(L, "statut_sans_valeur", { raisons: L.sans_valeur_av_o_3 }), L.statut_reussi, L.statut_reussi_approbateurs_dossier, L.statut_reussi_reserve]);
           expect(langage.listeReserves.map((x) => [x.id, x.exactes.length]), langue).to.deep.equal([["AV-K-1", 1], ["AV-O-3", 2], ["AV-Z-9", 1]]);
           expect(langage.listeReserves[1].courante, langue).to.equal(`${L.av_o_3} ${libelle(L, "reserve_fois", { n: 2 })}`);
         } finally {
@@ -1897,7 +2049,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         { titre: "vert plein gardé avec un contrôle non fait", avant: '  if (nonProuve) return { teinte: "reserve", mention: "mention_non_prouve" };\n', apres: "", cas: CAS_SECONDE.nonFaits, conforme: verdict },
         { titre: "mention affichée sans contrôle non fait ni avertissement", avant: '  if (reserves) return { teinte: "reserve", mention: "mention_reserves" };\n  return { teinte: "pleine", mention: null };', apres: '  return { teinte: "reserve", mention: "mention_reserves" };', cas: CAS_SECONDE.plein, conforme: verdict },
         { titre: "rapport illisible montré en vert plein", avant: '  if (controles === null || avertissements === null) return { teinte: "neutre", mention: null };', apres: '  if (controles === null || avertissements === null) return { teinte: "pleine", mention: null };', cas: illisible, conforme: neutre },
-        { titre: "contrôle resté « Réussi » sous une réserve que le rapport lui rattache", avant: "    const [ton, nomIcone, cle] = ids.length > 0 ? PASTILLE_RESERVE : PASTILLES_STATUT[c.statut];", apres: "    const [ton, nomIcone, cle] = PASTILLES_STATUT[c.statut];", cas: CAS_SECONDE.reserves, conforme: verdict },
+        { titre: "contrôle resté « Réussi » sous une réserve que le rapport lui rattache", avant: "    const [ton, nomIcone, cle] = raisonsSansValeur.length > 0 ? PASTILLE_SANS_VALEUR : ids.length > 0 ? PASTILLE_RESERVE : cleDossier !== null ? PASTILLES_DOSSIER[c.numero] : PASTILLES_STATUT[c.statut];", apres: "    const [ton, nomIcone, cle] = PASTILLES_STATUT[c.statut];", cas: CAS_SECONDE.reserves, conforme: verdict },
         { titre: "réserve rattachée à des contrôles que le rapport ne nomme pas", avant: "  return controles.filter((c) => c.verifications.includes(avertissement.verification)).map((c) => c.numero);", apres: "  return controles.map((c) => c.numero);", cas: CAS_SECONDE.reserves, conforme: verdict },
         { titre: "réserve en double redite à chaque fois", avant: "    if (g) g.elements.push(a);\n    else groupes.push(", apres: "    groupes.push(", cas: CAS_SECONDE.reserves, conforme: reserves },
         { titre: "texte exact d'une réserve en double retiré", avant: "      for (const a of g.elements) {", apres: "      for (const a of g.elements.slice(0, 1)) {", cas: CAS_SECONDE.reserves, conforme: reserves },
@@ -2058,6 +2210,95 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       try {
         const a = attendu({ code: 0, json: rapports[0] }, T.fr, { ancres: true });
         expect(await raisonsLues(o), "mutant vu : pièces ignorées").to.not.deep.equal(a.controles.filter((c) => c.statut === N).map((c) => [c.numero, c.raison, [rapports[0].controls[c.numero - 1].reason]]));
+      } finally {
+        await o.fermer();
+        fs.rmSync(copie, { recursive: true, force: true });
+      }
+    });
+
+    it("quatrième lecture (point 15) : un contrôle réussi sans valeur de preuve le dit sur sa ligne, dans le décompte, sous le verdict et dans « En résumé », jamais « réussi » ; un contrôle réussi avec les clés ou les approbateurs du dossier le dit, selon la liste ajoutée à l'étape 2 ; rien de cela sous le code 1 ; en français et en anglais ; mutant vu", async function () {
+      if (!pret(this)) return;
+      const T = tables();
+      const faits = (json, recorder_keys) => {
+        const j = JSON.parse(JSON.stringify(json));
+        j.facts.recorder_keys = recorder_keys;
+        return j;
+      };
+      const cles = (e, m) => ({ event_key_id: "rec-test-01", manifest_key_id: "rec-test-02", source: e === m ? e : "mixte", event_key_source: e, manifest_key_source: m });
+      const cas = {
+        // Valide aux huit contrôles réussis, le 5 sur un réseau d'essai : 7 réussis, 1 sans valeur de preuve.
+        sansValeur: { code: 0, json: faits(rapportAuxFaits({ avertissements: [AV_ESSAI] }), cles("ancres", "ancres")) },
+        // Le 4 non fait et le 5 sans valeur : la date n'est pas prouvée du tout ; la ligne des contrôles sans valeur s'ajoute.
+        borne: { code: 0, json: faits(rapportAuxFaits({ statuts: [R, R, R, N, R, R, R, N], raisons: { 4: "ancre_absente", 8: "ancre_absente" }, avertissements: [AV_ESSAI] }), cles("dossier", "dossier")) },
+        partie: { code: 0, json: faits(rapportAuxFaits(), cles("registre", "dossier")) },
+        incomplet: { code: 3, json: faits(rapportAuxFaits({ code: 3, ...NON_FAITS, exiges: [4] }), cles("dossier", "dossier")) },
+        nonValide: { code: 1, json: faits(rapportAuxFaits({ code: 1, statuts: [E, R, R, N, N, R, R, N], raisons: { 4: "hors_perimetre_version", 5: "hors_perimetre_version", 8: "hors_perimetre_version" }, echecs: ["E-7"], avertissements: [AV_ESSAI] }), cles("dossier", "dossier")) },
+      };
+      const lire = (o) => o.page.evaluate(() => {
+        const t = (s) => (document.querySelector(s) === null ? null : document.querySelector(s).textContent);
+        return {
+          lignes: [...document.querySelectorAll("#controles li")].map((li) => [Number(li.dataset.numero), li.dataset.statut, li.dataset.presentation ?? null, li.querySelector(".nt-pastille").textContent, li.querySelector(".nt-pastille").classList.contains("nt-pastille-attente"), li.querySelector(".pv-controle-dossier") === null ? null : li.querySelector(".pv-controle-dossier").textContent]),
+          compte: t("#compte-controles"),
+          resume: t("#en-resume"),
+          tous: t("#tous-reussis"),
+        };
+      });
+      for (const langue of ["fr", "en"]) {
+        const L = T[langue];
+        for (const [nom, c] of Object.entries(cas)) {
+          for (const pieces of [{}, { ancres: true }]) {
+            const quoi = `${nom}, ${langue}, ${JSON.stringify(pieces)}`;
+            const o = await verifierCas(c, { langue, pieces });
+            try {
+              const a = attendu(c, L, pieces);
+              const ecran = await lireEcran(o.page);
+              expect(garder(ecran, CLES_VERDICT), quoi).to.deep.equal(garder(a, CLES_VERDICT));
+              const lu = await lire(o);
+              // Ligne par ligne : le statut du rapport reste dans data-statut ; la présentation ne fait que restreindre.
+              expect(lu.lignes.map((l) => l[1]), quoi).to.deep.equal(c.json.controls.map((x) => x.status));
+              expect(lu.lignes.map((l) => l[5]), quoi).to.deep.equal(c.json.controls.map((x) => { const k = cleDossierAttendue(c, x.number, pieces); return k === null ? null : L[k]; }));
+              const sv = c.json.controls.filter((x) => sansValeurAttendu(c.json, x.number).length > 0).map((x) => x.number);
+              expect(lu.lignes.filter((l) => l[2] === "sans_valeur").map((l) => l[0]), quoi).to.deep.equal(sv);
+              for (const n of sv) expect(lu.lignes[n - 1][3], quoi).to.equal(libelle(L, "statut_sans_valeur", { raisons: L.sans_valeur_av_o_3 }));
+              expect(lu.compte.includes(libelle(L, "compte_sans_valeur", { n: sv.length })), quoi).to.equal(sv.length > 0);
+              // Rien ne dit « réussi » d'un contrôle sans valeur de preuve, ni dans le résumé ni dans la ligne du verdict.
+              if (sv.length > 0) {
+                if (lu.resume !== null) expect(lu.resume, quoi).to.include(libelle(L, "resume_sans_valeur", { controle: L.controle_5, raisons: L.sans_valeur_av_o_3 })).and.not.include(L.resume_limite_bitcoin);
+                expect(lu.tous === null || !lu.tous.includes(L.tous_reussis), quoi).to.equal(true);
+              }
+              expect(termesTrouves((await premierNiveau(o.page)).textes), quoi).to.deep.equal([]);
+            } finally {
+              await o.fermer();
+            }
+          }
+        }
+        // Écrit en clair, pour le cas de la consigne : « 7 contrôles réussis ; 1 sans valeur de preuve (réseau d'essai). »
+        const o = await verifierCas(cas.sansValeur, { langue });
+        try {
+          const ecran = await lireEcran(o.page);
+          expect([ecran.tousReussis, ecran.mention, ecran.nonProuve], langue).to.deep.equal([langue === "fr" ? "7 contrôles réussis ; 1 sans valeur de preuve (réseau d'essai)." : "7 controls passed; 1 without evidential value (test network).", L.mention_les_deux, libelle(L, "non_prouve_un", { liste: L.non_prouve_5 })]);
+        } finally {
+          await o.fermer();
+        }
+        const b = await verifierCas(cas.borne, { langue });
+        try {
+          const ecran = await lireEcran(b.page);
+          expect([ecran.nonProuve, ecran.sansValeur], langue).to.deep.equal([libelle(L, "non_prouve_plusieurs", { liste: `${L.non_prouve_4_5}${L.non_prouve_dernier}${L.non_prouve_8}` }), libelle(L, "valide_sans_valeur", { liste: "5", raisons: L.sans_valeur_av_o_3 })]);
+        } finally {
+          await b.fermer();
+        }
+      }
+      // Mutant : la phrase des clés du dossier retirée de la ligne du contrôle 6 ; l'essai le voit.
+      const copie = path.join(dir, "mutant-cles-dossier");
+      fs.cpSync(SOURCES, path.join(copie, "src"), { recursive: true });
+      const fichier = path.join(copie, "src", "page", "interface.js");
+      const source = fs.readFileSync(fichier, "utf8");
+      const avant = '    if (cleDossier !== null) texte.append(element("span", "pv-controle-dossier", libelle(cleDossier)));';
+      expect(source.split(avant)).to.have.length(2);
+      fs.writeFileSync(fichier, source.replace(avant, ""));
+      const o = await verifierCas(cas.borne, { page: construirePageFactice(path.join(copie, "construite"), path.join(copie, "src")) });
+      try {
+        expect((await lire(o)).lignes[5][5], "mutant vu : phrase des clés du dossier retirée").to.equal(null);
       } finally {
         await o.fermer();
         fs.rmSync(copie, { recursive: true, force: true });
@@ -2268,10 +2509,10 @@ describe("page de vérification, présentation, de bout en bout dans chromium (C
     if (attente !== null) return enAttente(this, attente);
     const T = tables().fr;
     const echantillon = [
-      { titre: "valide, huit contrôles réussis", dossier: "ct-6/dossiers/valide-seq-7-complet", ancres: true, entetes: true, code: 0, nonReussis: [], resume: ["action", "outil", "periode", "approbation", "limite_autorite", "limite_bitcoin"] },
-      { titre: "valide borné, sans fichier d'ancres", dossier: "ct-6/dossiers/valide-seq-7-complet", code: 0, nonReussis: [4, 5, 8], resume: ["action", "outil", "periode", "approbation"] },
+      { titre: "valide, huit contrôles réussis", dossier: "ct-6/dossiers/valide-seq-7-complet", ancres: true, entetes: true, code: 0, nonReussis: [], resume: ["action", "outil", "periode", "approbation", "limite_autorite", "sans_valeur_5", "registre"], dossier6: null },
+      { titre: "valide borné, sans fichier d'ancres", dossier: "ct-6/dossiers/valide-seq-7-complet", code: 0, nonReussis: [4, 5, 8], resume: ["action", "outil", "periode", "approbation"], dossier6: "controle_cles_dossier_toutes" },
       { titre: "non valide", dossier: "ct-1/dossiers/invalide-hash-faux", code: 1 },
-      { titre: "incomplet, contrôles 4, 5 et 8 exigés", dossier: "ct-1/dossiers/valide-seq-7", exiger: [4, 5, 8], code: 3, nonReussis: [4, 5, 8] },
+      { titre: "incomplet, contrôles 4, 5 et 8 exigés", dossier: "ct-1/dossiers/valide-seq-7", exiger: [4, 5, 8], code: 3, nonReussis: [4, 5, 8], dossier6: "controle_cles_dossier_toutes" },
       { titre: "aucun verdict", dossier: "ct-1/dossiers/illisible-index-non-json", code: 2 },
     ];
     const o = await ouvrir(navigateur, page);
@@ -2295,7 +2536,14 @@ describe("page de vérification, présentation, de bout en bout dans chromium (C
         // La phrase d'un contrôle non fait dépend des pièces ajoutées à l'étape 2 (complément du 2026-11-18, point 8).
         const a = attendu({ code: e.code, json }, T, { ancres: e.ancres === true, entetes: e.entetes === true });
         expect(garder(ecran, CLES_VERDICT), e.titre).to.deep.equal(garder(a, CLES_VERDICT));
-        if (e.nonReussis) expect(ecran.controles.filter((c) => !c.montreReussi && c.reserves === null).map((c) => c.numero), e.titre).to.deep.equal(e.nonReussis);
+        if (e.nonReussis) expect(ecran.controles.filter((c) => c.statut !== R).map((c) => c.numero), e.titre).to.deep.equal(e.nonReussis);
+        // Quatrième lecture (point 15) : les clés du contrôle 6 viennent du dossier sans liste, du fichier d'ancres avec
+        // elle ; le jeu d'approbateurs du contrôle 7 est toujours celui du dossier ; la phrase est sur la ligne.
+        if (e.code === 0 || e.code === 3) {
+          const dossiers = await o.page.evaluate(() => [6, 7].map((n) => { const s = document.querySelector(`#controles li[data-numero="${n}"] .pv-controle-dossier`); return s === null ? null : s.textContent; }));
+          expect(dossiers, e.titre).to.deep.equal([e.dossier6 === null ? null : T[e.dossier6], T.controle_approbateurs_dossier]);
+          expect(json.facts.recorder_keys.source, e.titre).to.equal(e.dossier6 === null ? "ancres" : "dossier");
+        }
         if (e.code === 0) expect([ecran.tousReussis !== null, ecran.borne !== null], e.titre).to.deep.equal([e.nonReussis.length === 0, e.nonReussis.length > 0]);
         // Le résumé que le vérificateur donne de chaque contrôle est repris tel quel, dans le bloc replié de la liste
         // (complément du 2026-11-18 de CT-6 §18, point 8) ; sous un contrôle échoué, il est aussi sur sa ligne.

@@ -1120,6 +1120,53 @@ les mêmes essais.
   « définitif » juste à côté du bouton (`[data-definitif]`, nommée par
   `aria-describedby`) ; la confirmation le redit.
 
+Quatrième complément du 2026-11-18, décision du porteur (langage des
+écrans). Il remplace, dans les compléments ci-dessus, ce qui suit ; il est
+éprouvé par l'essai du langage (`describe` « langage des écrans de la
+console, dans Chromium ») et par les essais des pages.
+
+- **Chaque bloc au bon moment** (CT-3 EX-9.4, complément du 2026-11-18,
+  points 7 et 8). Le choix du portefeuille (`#vote`) et, à côté, les
+  consignes repliées (`#consignes-repliees`) ne paraissent qu'une fois la
+  décision choisie et confirmée ; « Changer de décision », une signature
+  aboutie ou une panne de signature les retirent. La découverte des
+  portefeuilles (EX-13.22) est posée dès l'ouverture, sans rien afficher.
+  À la confirmation, la carte de ce sur quoi porte la signature dit la
+  décision « à confirmer plus haut », et la question est suivie de ce qui
+  se passe après « Confirmer ». Après sa décision enregistrée, sur une
+  demande encore ouverte, la page dit d'abord « Votre approbation est
+  enregistrée (le …). Vous n'avez plus rien à faire. » puis ce que la
+  demande attend (« Il manque l'accord d'une autre personne. », ou « de N
+  autres personnes. ») ; le
+  sous-titre du reste de la demande devient « Ce que vous avez approuvé. »
+  (ou « refusé ») ; la récusation reste offerte (CT-3 EX-10.4), précédée de
+  ce qu'elle change à ce vote. Juste après une signature, le résultat le dit
+  dans les mêmes mots (`[data-resultat="vote_inscrit"][data-deja]`) et le
+  rappel `#deja-decide` ne le redit pas.
+- **Résultat d'une signature** (CT-3 EX-13.29, complément). `#zone-resultat`
+  est sous l'en-tête de la demande, avant la carte « essentiel » ; la page
+  l'amène en haut de la fenêtre, sous la barre, et lui donne le focus. Une
+  panne de signature dit d'abord, en une phrase, ce qui s'est passé et que
+  la décision n'est pas enregistrée (pour `refus_approbateur`, la phrase en
+  langage courant de la phrase fixée ; sinon `panne_signature.<code>`) ;
+  puis le message de la panne et son code ; pour un refus dans le
+  portefeuille, la consigne de ne pas réessayer si le code ne correspondait
+  pas (EX-9.20, point 5) ; puis « Réessayer » (`[data-reessayer]`), qui
+  reprend la décision confirmée et rouvre l'écran de signature. Plus de
+  lien « Revenir à ma décision » dans le message.
+- **Liste.** Le montant vérifié est lu pour les dix premières demandes en
+  cours, celles à décider d'abord. Une demande que la personne a déjà
+  décidée a pour date « Échéance », et la phrase « Les autres approbations
+  doivent arriver avant cette heure ; la demande expirera le … ». Une
+  phrase sous le décompte par demandeur dit ce qu'il permet de voir.
+- **Mon adresse.** Le sous-titre dit quand venir sur la page ; une adresse
+  active et une adresse en attente sont expliquées (`#deux-adresses`) ;
+  révoquer une adresse en attente a sa phrase et sa confirmation.
+- **Annuaire.** Le bloc replié « Ce que fait chaque action » est retiré :
+  chaque bouton est suivi d'une phrase qui dit ce qu'il fait, nommée par
+  `aria-describedby` ; pour une action définitive, la phrase commence par
+  « Définitif » (`[data-definitif]`).
+
 - **Tickets.** `tickets` (sans `related_to`) ; pour chaque ticket :
   identifiant (lien `/tickets/<ticket>` seulement s'il satisfait EX-7.1,
   motif et 5 à 128 caractères ; sinon il est affiché comme une valeur avec

@@ -2523,8 +2523,19 @@ html[data-theme="clair"] .nt-case input {
   padding: var(--nt-e-2) 0;
 }
 
-.pv-controles-reserve .pv-controle {
-  grid-template-columns: 11.5rem minmax(0, 1fr);
+/* Contrôle dont la pastille est longue (« Réussi, avec réserve », « Sans valeur de preuve (…) », « Réussi, avec les
+   clés du dossier »…) : la pastille passe au-dessus du nom, et son texte va à la ligne plutôt que de déborder. */
+.pv-controle[data-presentation] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pv-controle[data-presentation] > :first-child {
+  min-width: 0;
+}
+
+.pv-controle[data-presentation] .nt-pastille {
+  max-width: 100%;
+  white-space: normal;
 }
 
 .pv-controle-ligne {
@@ -2546,6 +2557,7 @@ html[data-theme="clair"] .nt-case input {
 
 .pv-controle-raison,
 .pv-controle-reserve,
+.pv-controle-dossier,
 .pv-controle-echec {
   color: var(--nt-encre-titre);
   font-size: var(--nt-t-s);
@@ -2724,8 +2736,9 @@ pre.vide {
     display: none;
   }
 
-  /* Contrôle réussi avec réserve : la pastille, plus longue, passe au-dessus du nom. */
-  .pv-controles-reserve .pv-controle[data-reserves] {
+  /* Contrôle à pastille longue : elle passe au-dessus du nom, comme sur grand écran. */
+  .pv-controle[data-presentation],
+  .pv-controles-reserve .pv-controle[data-presentation] {
     grid-template-columns: minmax(0, 1fr);
   }
 

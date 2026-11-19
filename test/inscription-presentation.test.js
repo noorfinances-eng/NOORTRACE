@@ -235,7 +235,8 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
           for (const x of l[k + 1].technique) expect(x.libelle, e.step).to.be.a("string").and.not.equal("");
         }
         // L'échec se dit en clair : ce qui s'est passé, ce qui a été dépensé, quoi faire ; son code reste au détail.
-        expect(l[2].erreur.phrase).to.equal("L'opération a été envoyée, mais le registre public l'a refusée, ou le contrôle fait juste après ne retrouve pas ce qui devait être inscrit.");
+        // Quatrième lecture : la cause se dit d'après la vérification qui l'a rendue ; l'étape sans capture vient d'un reçu refusé (OP-11).
+        expect(l[2].erreur.phrase).to.equal("Le registre public a reçu l'opération, mais elle n'a pas eu l'effet attendu.");
         expect(l[2].erreur.effet).to.equal("Cet envoi a coûté des crédits d'écriture. L'outil vérifiera ce qui est réellement inscrit avant de refaire quoi que ce soit.");
         expect(l[2].erreur.quoiFaire).to.equal("Relancez l'action une fois. Si elle échoue de nouveau, n'insistez pas : prévenez l'équipe technique en lui donnant le détail de l'étape.");
         expect(l[2].erreur.code).to.equal("transaction_annulee");
@@ -263,7 +264,8 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         expect(a.bouton).to.equal("Aller noter la confirmation");
         // Ce que la personne fait confirmer, elle sait l'expliquer : ce que sont les crédits (CT-4 EX-4.16, EX-4.19),
         // et comment faire confirmer l'adresse, en entier et par écrit (EX-7.26, EX-8.21).
-        expect(a.credits).to.equal("Les crédits d'écriture paient les écritures de l'enregistreur du client sur le registre public : chaque preuve de date, chaque clôture de période. Ils ne s'achètent pas et ne se vendent pas : c'est notre société qui les verse, depuis son compte de paiement.");
+        expect(a.credits).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public, et chaque écriture en consomme. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas : c'est notre société qui les fournit, et le client ne les paie pas.");
+        expect(a.versement).to.equal("Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
         expect(a.adresse).to.equal("Ne la dictez pas : 42 caractères ne se lisent pas à voix haute sans erreur. Envoyez-la au client par écrit, par un autre moyen que cet outil, et demandez-lui de vous répondre par écrit qu'elle est bien, en entier, celle du compte technique de son enregistreur. Gardez sa réponse avec la pièce de la confirmation.");
         expect(a.adresse, "jamais une comparaison partielle").to.not.match(/premiers|derniers|début|fin de/);
         expect(motsTechniquesDans(`${a.credits}\n${a.adresse}`)).to.deep.equal([]);
@@ -277,7 +279,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         const echec = dossierFictif("client-neuf", ["capturee", "echec", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]);
         a = M.prochaineAction(vue(echec, { confirmations: [conf(null)] }));
         expect(a).to.include({ code: "conduire_etapes", variante: "reprendre_echec", titre: "Reprenez à l'étape 3", bouton: "Reprendre à l'étape 3" });
-        expect(a.phrase).to.equal("L'outil vérifie d'abord ce qui est réellement inscrit sur le registre public, puis refait les étapes 3 à 5. Les étapes déjà faites ne sont pas refaites.");
+        expect(a.phrase).to.equal("Vous n'avez rien à corriger d'ici : l'outil vérifie d'abord ce qui est réellement inscrit sur le registre public, puis refait les étapes 3 à 5. Les étapes déjà faites ne sont pas refaites.");
         // Arrêt sur un refus préalable, sans échec : on continue à l'étape qui reste.
         const arrete = dossierFictif("client-neuf", ["capturee", "capturee", "faite", "a_faire", "a_faire", "a_faire", "a_faire"]);
         a = M.prochaineAction(vue(arrete, { confirmations: [conf(null)] }));
@@ -365,7 +367,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         for (const x of toutes) {
           expect(x.titre, x.code).to.match(/^[A-ZÀ-Ý][a-zéèêçôîû]+(?:ez|tes) /);
           expect(x.phrase, x.code).to.match(/^[A-ZÀ-Ý].{40,}\.$/);
-          expect(x.aPreparer, x.code).to.match(/^(Ayez sous la main : .+|Rien à préparer.*)\.$/);
+          expect(x.aPreparer, x.code).to.match(/^(Ayez sous la main : .+|Rien à réunir.*)\.$/);
           expect(x.apres, x.code).to.match(/^[A-ZÀ-Ý].{30,}\.$/);
           expect(x.bouton, x.code).to.match(/^[A-ZÀ-Ý][a-zéèêçôîû]+(?:er|ir|re) /);
           expect(x.surTitre, x.code).to.be.oneOf(["Prochaine action", "Inscription terminée"]);
@@ -662,6 +664,60 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       expect(P.dateLisible(F.clients["client-en-echec"].dossier.steps[1].updated_at)).to.equal(P.dateLisible(echoue.recu_a));
       const sept = JSON.parse(fs.readFileSync(path.join(d, "clients", "client-etape-7-envoyee", "dossier.json"), "utf8")).steps;
       expect(sept[5].updated_at > sept[4].updated_at, "étape 7 envoyée après l'étape 6").to.equal(true);
+    });
+
+    it("quatrième lecture des écrans : ce que sont les crédits d'écriture se dit en une explication exacte (pas de l'argent, à quoi ils servent, qui les fournit, le client ne les paie pas), sans durée ; aucun texte ne parle de « compte de paiement » ni de « budget » ; la cause d'une étape en échec se dit d'après la vérification qui l'a rendue ; « Rien à réunir » ne contredit jamais une consigne « Préparez » ; mutants : tués", async function () {
+      const verifier = (M) => {
+        // L'explication, mot pour mot, et chacune de ses affirmations (CT-4 4.5, EX-4.15, EX-4.16, EX-4.19).
+        expect(M.CREDITS_EN_CLAIR).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public, et chaque écriture en consomme. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas : c'est notre société qui les fournit, et le client ne les paie pas.");
+        for (const motif of [/ne sont pas de l'argent/, /seulement à payer les écritures/, /ne s'achètent pas, ne se vendent pas et ne s'échangent pas/, /notre société qui les fournit/, /le client ne les paie pas/]) expect(M.CREDITS_EN_CLAIR).to.match(motif);
+        // Aucune durée : elle ne se calcule pas à partir de ce que l'écran affiche.
+        for (const t of [M.CREDITS_EN_CLAIR, M.VERSEMENT_EN_CLAIR, M.montantEnClair(10800000)]) expect(t).to.not.match(/[0-9]+ ?jours?|semaines?|mois\b|environ/);
+        expect(M.montantEnClair(10800000).replace(/\s/g, " "), "milliers séparés par une espace insécable").to.equal("Le montant est calculé à partir de la consommation prévue pour son enregistreur, réglée à 10 800 000 crédits par jour ; si le compte en a déjà, l'outil ne verse que la différence.");
+        expect(M.nommeLesCredits("Cet envoi coûte des crédits d'écriture.")).to.equal(true);
+        expect(M.nommeLesCredits("Rien n'est dépensé.")).to.equal(false);
+        // Aucun mot qui contredit l'explication, dans aucun texte du module.
+        const lexique = M.LEXIQUE.map((x) => `${x.terme} ${x.explication}`);
+        const codes = schema("operations-registre-v0.schema.json").$defs.sortie.properties.error.oneOf[1].properties.code.enum;
+        const erreurs = codes.flatMap((c) => { const x = M.explicationErreur(c); return [x.phrase, x.effet, x.quoiFaire]; });
+        const etapes = Object.values(M.ETAPES).map((x) => `${x.titre} ${x.phrase}`);
+        const neuf = dossierFictif("client-neuf", ["a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]);
+        const consigne = M.prochaineAction({ slug: "client-neuf", dossier: neuf });
+        const tout = [...lexique, ...erreurs, ...etapes, M.CREDITS_EN_CLAIR, M.VERSEMENT_EN_CLAIR, M.montantEnClair(1), M.PAR_NOTRE_COMPTE.sousBouton, consigne.phrase, consigne.credits, consigne.versement].join("\n");
+        expect(tout).to.not.match(/compte de paiement|budget/i);
+        expect(lexique.find((x) => x.startsWith("crédits d'écriture"))).to.equal("crédits d'écriture ce qui paie chaque écriture sur le registre public ; ce n'est pas de l'argent : notre société les fournit, ils ne s'achètent ni ne se vendent, et le client ne les paie pas");
+        // Ce qui a échoué : d'après la vérification (OP-11 : reçu ; OP-12 : relecture) ; sans elle, la phrase générale.
+        expect(M.explicationErreur("transaction_annulee", { verification: "OP-11" }).phrase).to.equal("Le registre public a reçu l'opération, mais elle n'a pas eu l'effet attendu.");
+        expect(M.explicationErreur("transaction_annulee", { verification: "OP-12" }).phrase).to.equal("Le registre public a inscrit l'opération, mais le contrôle fait juste après ne retrouve pas ce qui devait être inscrit.");
+        expect(M.explicationErreur("transaction_annulee").phrase).to.equal("L'opération a été envoyée, mais le registre public l'a refusée, ou le contrôle fait juste après ne retrouve pas ce qui devait être inscrit.");
+        expect(M.explicationErreur("recu_absent", { verification: "OP-11" }), "les autres codes ne changent pas").to.deep.equal(M.explicationErreur("recu_absent"));
+        const echec = dossierFictif("client-en-echec", ["capturee", "echec", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]);
+        expect(echec.steps[1].capture, "reçu refusé : pas de capture").to.equal(null);
+        expect(M.etapesDuParcours(echec)[2].erreur.phrase).to.equal("Le registre public a reçu l'opération, mais elle n'a pas eu l'effet attendu.");
+        const relu = structuredClone(echec);
+        Object.assign(relu.steps[1], { capture: "capture-101-0-assignation.json", block_number: 101, block_hash: `0x${"cd".repeat(32)}` });
+        expect(M.etapesDuParcours(relu)[2].erreur.phrase).to.equal("Le registre public a inscrit l'opération, mais le contrôle fait juste après ne retrouve pas ce qui devait être inscrit.");
+        expect(M.etapesDuParcours(relu)[2].erreur.code, "le code reste au détail, inchangé").to.equal("transaction_annulee");
+        const reprise = M.prochaineAction({ slug: "client-en-echec", dossier: echec, confirmations: [{ id: "c", operation: "approvisionnement", objet: { cle_chaine: echec.recorders[0].chain_key }, consommee_par: null }] });
+        expect(reprise.phrase).to.equal("Vous n'avez rien à corriger d'ici : l'outil vérifie d'abord ce qui est réellement inscrit sur le registre public, puis refait les étapes 3 à 5. Les étapes déjà faites ne sont pas refaites.");
+        // « Rien à réunir », jamais « Rien à préparer » (qui contredisait « Préparez le document »).
+        const prep = dossierFictif("client-prep", ["capturee", "capturee", "faite", "capturee", "a_faire", "a_faire", "a_faire"]);
+        const document = M.prochaineAction({ slug: "client-prep", dossier: prep });
+        expect(document.titre).to.equal("Préparez le document d'inscription de l'enregistreur");
+        expect(document.aPreparer).to.equal("Rien à réunir : l'enregistreur concerné est déjà choisi ci-dessous ; cliquez sur « Préparer le document ».");
+        expect(fs.readFileSync(MODULE, "utf8")).to.not.contain("Rien à préparer");
+      };
+      verifier(P);
+      let tues = 0;
+      for (const [nom, ancien, nouveau] of [
+        ["credits-compte-de-paiement", "c'est notre société qui les fournit, et le client ne les paie pas.", "c'est notre société qui les verse, depuis son compte de paiement."],
+        ["cause-sans-verification", "e.capture ? \"OP-12\" : \"OP-11\"", "null"],
+        ["rien-a-preparer", "aPreparer: \"Rien à réunir : l'enregistreur concerné", "aPreparer: \"Rien à préparer : l'enregistreur concerné"],
+      ]) {
+        const m = await mutant(nom, ancien, nouveau);
+        try { verifier(m); } catch { tues++; }
+      }
+      expect(tues, "trois mutants, trois tués").to.equal(3);
     });
   });
 

@@ -54,6 +54,7 @@ import {
   entete,
   estIdentifiantTicket,
   instant,
+  instantCourt,
   legendeVerifie,
   lienTicket,
   marqueInvisibles,
@@ -70,6 +71,9 @@ import {
 import { groupesValeurs, libelleValeur, montantDuResume, resumeVerifie } from "../commun/lisible.mjs";
 
 const PREFIXES_VOTE = ["console."];
+
+// Raisons d'EX-13.18 qui tiennent à la session, et non à la demande : sans objet sur une demande décidée.
+const RAISONS_DE_SESSION = Object.freeze(["identite_inconnue", "identite_desactivee", "adresse_non_attribuee", "hors_jeu", "auto_approbation", "recuse", "session_du_demandeur"]);
 
 // États d'un ticket dont la décision est scellée, ou qui est terminé (CT-3 7.3) : plus rien à décider.
 const ETATS_DECIDES = Object.freeze(["approuve", "refuse", "expire", "consomme", "clos", "abandonne"]);
@@ -132,6 +136,9 @@ const zones = {
   recusation: el("section", { classe: "action-carte", attributs: { id: "zone-recusation" } }),
   retrait: el("section", { classe: "action-carte", attributs: { id: "zone-retrait" } }),
 };
+// Le choix du portefeuille et, à côté, les consignes repliées : offerts seulement quand une décision est choisie et
+// confirmée, et pas encore signée (complément du 2026-11-18, CT-3 EX-9.4, point 7). Vides, la feuille cache le bloc.
+const basDemande = el("div", { classe: "bas-demande" }, zones.vote, el("div", { classe: "autres-actions" }, zones.consignes));
 
 const champMotif = el("textarea", { classe: "nt-saisie", attributs: { id: "motif", rows: "3", maxlength: "4096", "aria-describedby": "motif-avertissement" } });
 
@@ -183,8 +190,13 @@ function modelePas1(vue, annuaire) {
   const approver = adresseAttribuee(annuaire);
   const modele = modeleAffichage(vue, { session, decision: null, approver, reason: null, now: maintenant() });
   const controle = controleVote(annuaire, identite(), "voter", approver ?? "", ticketDeControleVote(vue));
-  const raisons = modele.blocking.filter((c) => c !== "decision_absente");
-  if (controle.reason !== null && !raisons.includes(controle.reason)) raisons.push(controle.reason);
+  const clos = modele.blocking.includes("ticket_clos_aux_votes");
+  // Une demande qui n'accepte plus de décision n'a rien à faire signer : ce qui empêcherait cette session de voter
+  // (une session d'administrateur qui n'est pas approbateur, celle du demandeur) n'est pas une raison à afficher, et
+  // l'écran reste celui d'une demande décidée, pour qui l'ouvre (complément du 2026-11-18, quatrième lecture). Une
+  // raison qui tient à la demande elle-même (ce qui est enregistré, les empreintes) reste affichée.
+  const raisons = modele.blocking.filter((c) => c !== "decision_absente" && !(clos && RAISONS_DE_SESSION.includes(c)));
+  if (controle.reason !== null && !raisons.includes(controle.reason) && !clos) raisons.push(controle.reason);
   return { modele, controle, raisons, approver };
 }
 
@@ -196,7 +208,8 @@ async function lecturePas1() {
   } catch (e) {
     // La demande n'a pas pu être lue : le retour à la liste, puis ce qui s'est passé et quoi faire ; rien d'autre.
     const zone = el("div");
-    remplacer(zones.lecture, filTickets(), zone);
+    // Le résultat d'une signature (une décision enregistrée, une panne) reste lisible, au-dessus de l'erreur de lecture.
+    remplacer(zones.lecture, filTickets(), zones.resultat.firstChild === null ? null : zones.resultat, zone);
     etat.lectureEchouee = true;
     if (afficherErreur(zone, e)) vider(zones.lecture);
     for (const z of ["modele", "decision", "vote", "signature", "consignes", "recusation", "retrait", "lies"]) vider(zones[z]);
@@ -490,6 +503,10 @@ function rendreModele() {
     }),
   );
 
+  // Le résultat de la dernière signature (une décision enregistrée, une panne), juste sous l'en-tête : la page y amène
+  // la personne, en haut de l'écran visible (complément du 2026-11-18, CT-3 EX-13.29).
+  parties.push(zones.resultat);
+
   // Raisons qui bloquent dès la lecture du pas 1, et avertissements : au-dessus de tout le reste.
   parties.push(rendreRaisons(raisons, modele, vue));
   parties.push(...rendreAvertissements(modele.warnings, controle.warnings));
@@ -501,7 +518,11 @@ function rendreModele() {
   parties.push(rendreEssentiel(modele, clos));
 
   // Le reste de la demande : outil et règle, qui demande, effets, qui décide, ce que la signature engage.
-  parties.push(el("div", { classe: "titre-groupe" }, el("h2", { texte: t("groupe.reste") }), clos ? null : el("p", { classe: "nt-attenue", texte: t("groupe.reste_sens") })));
+  // Sous-titre : « À lire avant de signer » tant qu'une décision reste à signer ; pour qui a déjà décidé, et n'est pas
+  // en train d'en choisir une autre, ce sur quoi porte sa décision ; rien sur une demande décidée.
+  const mienne = maDecisionEnregistree();
+  const sensReste = clos ? null : mienne !== null && etat.decision === null && etat.aConfirmer === null ? t(`groupe.reste_sens_deja.${mienne.decision}`) : t("groupe.reste_sens");
+  parties.push(el("div", { classe: "titre-groupe" }, el("h2", { texte: t("groupe.reste") }), sensReste === null ? null : el("p", { classe: "nt-attenue", texte: sensReste, attributs: { id: "reste-sens" } })));
   const d = modele.delegation;
   const cartes = [];
 
@@ -604,7 +625,7 @@ function rendreModele() {
       { id: "champs-signes" },
       el("p", { classe: "nt-attenue note-carte", texte: t(clos ? "modele.signes.note_clos" : "modele.signes.note") }),
       lignes([
-        clos ? null : [t("modele.signes.decision"), etat.decision === null ? el("span", { classe: "nt-attenue", texte: maDecisionEnregistree() === null ? t("modele.signes.decision_absente") : t(`modele.signes.decision_deja.${maDecisionEnregistree().decision}`) }) : el("span", { attributs: { "data-decision": etat.decision } }, el("span", { classe: "capitale", texte: t(`decision_verbe.${etat.decision}`) }), el("span", { classe: "nt-attenue", texte: t("modele.signes.decision_forme") }), " ", code(etat.decision))],
+        clos ? null : [t("modele.signes.decision"), decisionSignee()],
         [t("modele.signes.ticket"), code(modele.ticket)],
         [t("modele.signes.org_id"), code(modele.org_id)],
         [t("modele.signes.journal_id"), code(modele.journal_id)],
@@ -760,13 +781,23 @@ function maDecisionEnregistree() {
 }
 
 /**
- * Le rappel d'une décision déjà enregistrée (CT-3 EX-9.4, complément du
- * 2026-11-18, point 8) : ce que la personne a décidé et quand, puis ce que
- * la demande attend, d'après la vue seule (état, décompte, contestations).
+ * « Votre décision » dans la carte de ce sur quoi porte la signature : la décision choisie, telle qu'elle sera
+ * signée ; celle qui attend sa confirmation, plus haut ; celle que la personne a déjà signée ; ou aucune.
  */
-function rendreDejaDecide(modele) {
-  const v = maDecisionEnregistree();
-  if (v === null) return null;
+function decisionSignee() {
+  if (etat.decision !== null) return el("span", { attributs: { "data-decision": etat.decision } }, el("span", { classe: "capitale", texte: t(`decision_verbe.${etat.decision}`) }), el("span", { classe: "nt-attenue", texte: t("modele.signes.decision_forme") }), " ", code(etat.decision));
+  if (etat.aConfirmer !== null) return el("span", { classe: "nt-attenue", texte: t(`modele.signes.decision_a_confirmer.${etat.aConfirmer}`), attributs: { "data-a-confirmer": etat.aConfirmer } });
+  const m = maDecisionEnregistree();
+  return el("span", { classe: "nt-attenue", texte: m === null ? t("modele.signes.decision_absente") : t(`modele.signes.decision_deja.${m.decision}`) });
+}
+
+/**
+ * La phrase d'une décision déjà enregistrée (CT-3 EX-9.4, complément du
+ * 2026-11-18, point 8) : ce que la personne a décidé et quand, qu'elle n'a
+ * plus rien à faire, puis ce que la demande attend, d'après la vue seule
+ * (état, décompte, contestations).
+ */
+function phraseDeja(modele, v, attributs) {
   const d = decompte(modele);
   const c = modele.contest;
   let suite;
@@ -774,7 +805,17 @@ function rendreDejaDecide(modele) {
   else if (c !== null && typeof c === "object" && Array.isArray(c.objections) && c.objections.length > 0) suite = t("deja.contestee");
   else if (Number.isInteger(d.requis) && d.requis > d.approuve) suite = pluriel(d.requis - d.approuve, "deja.attend", "deja.attendent");
   else suite = t("deja.ouvert");
-  return message("info", el("p", { classe: "nt-bandeau-titre", attributs: { id: "deja-decide", "data-decision": v.decision } }, el("span", { texte: t(`deja.${v.decision}`) }), " ", instant(v.at), ".", suite === null ? null : el("span", { texte: ` ${suite}` })));
+  return el("p", { classe: "nt-bandeau-titre", attributs: { "data-decision": v.decision, ...attributs } }, el("span", { texte: t(`deja.${v.decision}`) }), " ", instantCourt(v.at), el("span", { texte: t("deja.fin") }), suite === null ? null : el("span", { texte: ` ${suite}` }));
+}
+
+/**
+ * Le rappel d'une décision déjà enregistrée, en haut de la page ; rien quand
+ * le résultat de la signature qui vient de l'enregistrer le dit déjà.
+ */
+function rendreDejaDecide(modele) {
+  const v = maDecisionEnregistree();
+  if (v === null || zones.resultat.querySelector("[data-resultat][data-deja]") !== null) return null;
+  return message("info", phraseDeja(modele, v, { id: "deja-decide" }));
 }
 
 /**
@@ -876,7 +917,8 @@ function rendreLies(reponse) {
       ),
     );
   }
-  remplacer(zones.lies, el("section", { classe: "nt-carte carte-serree" }, titre, ul));
+  // Ce que cette liste permet de voir (CT-3 EX-14.2) : la même demande, rouverte sous une autre forme.
+  remplacer(zones.lies, el("section", { classe: "nt-carte carte-serree" }, titre, el("p", { classe: "nt-attenue", texte: t("ticket.lies.sens"), attributs: { id: "lies-sens" } }), ul));
 }
 
 // ---------------------------------------------------------------------------
@@ -912,7 +954,7 @@ function montrerResultat(...noeuds) {
 
 function amenerAuResultat() {
   if (zones.resultat.firstChild === null) return;
-  amenerSousLaBarre(zones.resultat, "center");
+  amenerSousLaBarre(zones.resultat);
   zones.resultat.focus({ preventScroll: true });
 }
 
@@ -954,6 +996,7 @@ function rendreDecision() {
             abandonner();
             rendreModele();
             rendreDecision();
+            rendreFournisseursEtComptes();
           },
           { genre: "discret" },
         ),
@@ -965,24 +1008,18 @@ function rendreDecision() {
       zones.decision,
       el("h2", { classe: "titre-decision", texte: titreDecision }),
       el("p", { classe: "decision-question", texte: t(`decision.confirmer_question.${d}`) }),
+      // Ce qui se passe après « Confirmer » : la page amène au portefeuille ; rien n'est enregistré avant la signature.
+      el("p", { classe: "nt-attenue nt-petit", texte: t("decision.confirmer_suite"), attributs: { id: "confirmer-suite" } }),
       zones.motif,
       actions(
         bouton(
           t(`decision.confirmer.${d}`),
-          () => {
-            etat.decision = d;
-            etat.aConfirmer = null;
-            champMotif.disabled = true;
-            abandonner();
-            rendreModele();
-            rendreDecision();
-            amenerAuPortefeuille();
-            void lecturePas3();
-          },
+          () => confirmerDecision(d),
           { genre: "principal" },
         ),
         bouton(t("action.annuler"), () => {
           etat.aConfirmer = null;
+          rendreModele();
           rendreDecision();
         }),
       ),
@@ -1011,6 +1048,24 @@ function rendreDecision() {
   sensContestation();
 }
 
+/**
+ * La décision confirmée (EX-9.5) : le choix du portefeuille paraît, et la page y amène la personne (complément du
+ * 2026-11-18, CT-3 EX-9.4, point 7) ; le résultat d'une signature précédente n'a plus lieu d'être. Aussi par
+ * « Réessayer », après une panne de signature, avec la décision que la personne avait confirmée.
+ */
+function confirmerDecision(d) {
+  etat.decision = d;
+  etat.aConfirmer = null;
+  champMotif.disabled = true;
+  vider(zones.resultat);
+  abandonner();
+  rendreModele();
+  rendreDecision();
+  rendreFournisseursEtComptes();
+  amenerAuPortefeuille();
+  void lecturePas3();
+}
+
 /** Les deux boutons de décision (EX-9.5) : même poids, aucun présélectionné ; chacun demande une confirmation. */
 function boutonsDecision(ouvert, libelleGroupe) {
   const groupe = el("div", { classe: "nt-actions boutons-decision", attributs: { role: "group", "aria-label": libelleGroupe } });
@@ -1019,6 +1074,8 @@ function boutonsDecision(ouvert, libelleGroupe) {
       libelleDecision(d),
       () => {
         etat.aConfirmer = d;
+        // La carte de ce sur quoi porte la signature dit la décision qui attend sa confirmation.
+        rendreModele();
         rendreDecision();
       },
       { actif: ouvert, genre: "choix", icone: d === "approuve" ? "coche" : "croix" },
@@ -1047,9 +1104,13 @@ function motif() {
 // Fournisseur et adresse (EX-13.22, EX-13.23)
 
 function rendreFournisseursEtComptes() {
-  // Sans demande lue, ou sur un ticket qui n'accepte plus de votes, il n'y a rien à signer : la section n'est pas offerte.
-  if (etat.pas1 === null || etat.pas1.raisons.includes("ticket_clos_aux_votes")) {
+  // Sans demande lue, sur un ticket qui n'accepte plus de votes, ou tant qu'aucune décision n'est choisie et confirmée
+  // (avant le choix, après une signature ou une panne), il n'y a rien à signer : la section n'est pas offerte
+  // (complément du 2026-11-18, CT-3 EX-9.4, point 7). La découverte des portefeuilles continue (EX-13.22).
+  if (etat.pas1 === null || etat.pas1.raisons.includes("ticket_clos_aux_votes") || etat.decision === null) {
     vider(zones.vote);
+    rendreConsignes();
+    majParcours();
     return;
   }
   if (zones.fournisseurs.parentNode !== zones.vote) {
@@ -1058,6 +1119,7 @@ function rendreFournisseursEtComptes() {
   }
   rendreFournisseurs(zones.fournisseurs, decouverte, etat.fournisseur, choisirFournisseur, etat.vue !== null, false);
   rendreComptes();
+  rendreConsignes();
   majParcours();
 }
 
@@ -1217,6 +1279,7 @@ async function lecturePas3() {
     champMotif.disabled = false;
     etat.lecture = null;
     rendreDecision();
+    rendreFournisseursEtComptes();
     remplacer(
       zones.signature,
       message("erreur", paragrapheCode("demande_modifiee", ["page."]), el("p", { texte: t("signature.demande_modifiee_prevenir") })),
@@ -1425,7 +1488,7 @@ async function demanderSignature() {
   if (attente <= 0) {
     etat.enCours = false;
     abandonnerApres();
-    afficherPanne("delai_depasse", null);
+    afficherPanne("delai_depasse", null, null, decision);
     return;
   }
   if (reauthentificationAvant(s.session, m, attente)) {
@@ -1449,7 +1512,7 @@ async function demanderSignature() {
     // (l'abandon change la génération).
     etat.enCours = false;
     abandonnerApres();
-    afficherPanne("delai_depasse", null);
+    afficherPanne("delai_depasse", null, null, decision);
     return;
   }
   const verdict = verifierReponse(reponse, depuisHex(d.d_a), adresse);
@@ -1457,7 +1520,7 @@ async function demanderSignature() {
     // Aucun vote ; la décision est à choisir de nouveau (les deux boutons sont offerts).
     etat.enCours = false;
     abandonnerApres();
-    afficherPanne(verdict.reason, reponse.error ?? null, verdict.recovered);
+    afficherPanne(verdict.reason, reponse.error ?? null, verdict.recovered, decision);
     if (verdict.reason === "non_autorise") {
       // 13.14 : 4100 sur personal_sign, eth_requestAccounts redemandé une fois.
       const f = etat.fournisseur;
@@ -1498,10 +1561,11 @@ async function demanderSignature() {
 
   // Pas 8 : le vote, construit une seule fois sur la vue du ticket signé.
   const corps = requeteVoter(vueSignee, decision, verdict.signature, adresse, motifSigne, identite());
-  await envoyerVote(corps, g, d.fingerprint);
+  await envoyerVote(corps, g, d.fingerprint, decision);
 }
 
-// Après une signature : l'écran de signature est retiré, la décision aussi.
+// Après une signature : l'écran de signature est retiré, la décision aussi, et le choix du portefeuille n'est plus
+// offert (complément du 2026-11-18, CT-3 EX-9.4, point 7).
 function abandonnerApres() {
   etat.decision = null;
   etat.aConfirmer = null;
@@ -1511,9 +1575,10 @@ function abandonnerApres() {
     rendreModele();
     rendreDecision();
   }
+  rendreFournisseursEtComptes();
 }
 
-async function envoyerVote(corps, g, empreinteSignee) {
+async function envoyerVote(corps, g, empreinteSignee, decision) {
   let essais = 0;
   for (;;) {
     try {
@@ -1526,8 +1591,18 @@ async function envoyerVote(corps, g, empreinteSignee) {
       const etatRendu = v && typeof v.state === "string" ? v.state : null;
       // Puis ce qu'EX-9.20, point 7, demande de vérifier après la décision : la notification indépendante, si l'organisation en envoie une.
       const notification = el("p", { classe: "nt-petit", attributs: { id: "apres-decision" } }, el("span", { texte: t("vote.notification") }), " ", code(empreinteSignee), el("span", { texte: t("vote.notification_sinon") }));
-      montrerResultat(message("succes", el("p", { classe: "nt-bandeau-titre", attributs: { "data-resultat": "vote_inscrit", "data-etat": etatRendu ?? "" } }, el("span", { texte: t("vote.inscrit") }), etatRendu !== null && aCle(`vote.suite.${etatRendu}`) ? el("span", { texte: ` ${t(`vote.suite.${etatRendu}`)}` }) : null), notification));
+      const attributs = { "data-resultat": "vote_inscrit", "data-etat": etatRendu ?? "" };
+      const generique = () => el("p", { classe: "nt-bandeau-titre", attributs }, el("span", { texte: t("vote.inscrit") }), etatRendu !== null && aCle(`vote.suite.${etatRendu}`) ? el("span", { texte: ` ${t(`vote.suite.${etatRendu}`)}` }) : null);
+      remplacer(zones.resultat, message("succes", generique(), notification));
       await lecturePas1();
+      // La demande reste ouverte et la vue relue porte cette décision : la page dit d'abord qu'elle est enregistrée,
+      // quand, que la personne n'a plus rien à faire, et ce que la demande attend (complément du 2026-11-18, CT-3
+      // EX-9.4, point 8) ; le rappel du haut de la page ne le redit pas.
+      const mienne = maDecisionEnregistree();
+      if (etat.pas1 !== null && !etat.lectureEchouee && mienne !== null && mienne.decision === decision) {
+        remplacer(zones.resultat, message("succes", phraseDeja(etat.pas1.modele, mienne, { ...attributs, "data-deja": "" }), notification));
+        rendreModele();
+      }
       amenerAuResultat();
       return;
     } catch (e) {
@@ -1571,13 +1646,25 @@ async function envoyerVote(corps, g, empreinteSignee) {
   }
 }
 
-function afficherPanne(codePanne, erreur, recouvree = null) {
+/**
+ * Une panne de signature (signature refusée dans le portefeuille, autre adresse, délai dépassé…) : en haut de
+ * l'écran, sous l'en-tête, et la page y amène la personne (complément du 2026-11-18, CT-3 EX-13.29). D'abord une
+ * phrase qui dit ce qui s'est passé et que la décision n'est pas enregistrée ; puis le message de la panne et son
+ * code. Le choix du portefeuille et l'écran de signature sont retirés jusqu'à « Réessayer », qui reprend la
+ * décision que la personne avait confirmée ; elle peut aussi en choisir une autre, plus bas.
+ */
+function afficherPanne(codePanne, erreur, recouvree, decision) {
   const sens = sensCode(codePanne, PREFIXES_VOTE);
-  const parties = [sens, el("p", { classe: sens === null ? null : "phrase-fixee", attributs: { "data-code": codePanne } }, ...noeudsPanne(codePanne, erreur, PREFIXES_VOTE))];
+  const titre = sens ?? el("p", { classe: "nt-bandeau-titre", texte: t(aCle(`panne_signature.${codePanne}`) ? `panne_signature.${codePanne}` : "panne_signature.autre"), attributs: { "data-panne": codePanne } });
+  const parties = [titre, el("p", { classe: sens === null ? null : "phrase-fixee", attributs: { "data-code": codePanne } }, ...noeudsPanne(codePanne, erreur, PREFIXES_VOTE))];
   if (codePanne === "adresse_differente" && typeof recouvree === "string") parties.push(el("p", {}, t("signature.adresse_recouvree"), " ", code(recouvree)));
-  if (codePanne === "refus_approbateur") parties.push(el("p", { texte: t("signature.refus_sens") }));
-  // La décision se choisit de nouveau en haut de la page : le lien y ramène.
-  parties.push(actions(el("a", { classe: "nt-bouton nt-bouton-discret", texte: t("signature.revenir"), attributs: { href: "#essentiel" } })));
+  // Consigne 4 d'EX-9.20 : qui a refusé parce que le code ne correspondait pas ne réessaie pas.
+  if (codePanne === "refus_approbateur") parties.push(el("p", { texte: t("panne_signature.refus_consigne"), attributs: { id: "panne-consigne" } }));
+  if (decision === "approuve" || decision === "refuse") {
+    const reessayer = bouton(t("panne_signature.reessayer"), () => confirmerDecision(decision), { genre: "principal" });
+    reessayer.setAttribute("data-reessayer", decision);
+    parties.push(actions(reessayer));
+  }
   montrerResultat(message("erreur", ...parties));
 }
 
@@ -1601,11 +1688,14 @@ function rendreConsignesElement() {
 // bouton et garde le texte d'EX-9.20, entier, dans son bloc « Consignes
 // complètes » (complément du 2026-11-18 d'EX-9.20).
 function rendreConsignes() {
-  if (etat.vue === null || etat.pas1 === null || etat.pas1.raisons.includes("ticket_clos_aux_votes")) return vider(zones.consignes);
-  if (zones.signature.querySelector("#consignes") !== null) return vider(zones.consignes);
-  const bloc = detail(t("consigne.titre"), null, rendreConsignesElement().lastChild);
-  bloc.setAttribute("id", "consignes-repliees");
-  return remplacer(zones.consignes, bloc);
+  // Avec le choix du portefeuille seulement : une décision choisie et confirmée, pas encore signée.
+  if (etat.vue === null || etat.pas1 === null || etat.pas1.raisons.includes("ticket_clos_aux_votes") || etat.decision === null || zones.signature.querySelector("#consignes") !== null) {
+    vider(zones.consignes);
+  } else {
+    const bloc = detail(t("consigne.titre"), null, rendreConsignesElement().lastChild);
+    bloc.setAttribute("id", "consignes-repliees");
+    remplacer(zones.consignes, bloc);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1622,7 +1712,11 @@ function rendreRecusation() {
   }
   // Un ticket décidé n'offre plus aucune action.
   if (c.reason === "ticket_clos_aux_votes" || estDecide(etat.vue)) return vider(zones.recusation);
-  const parties = [el("h4", { classe: "action-carte-titre", texte: t("recusation.titre") }), el("p", { classe: "nt-attenue", texte: t("recusation.sens") })];
+  // CT-3 EX-10.4, EX-13.5 : la récusation reste offerte après un vote ; elle retire une approbation, jamais un refus,
+  // qui reste compté. Après sa décision, la personne lit ce que cela change pour elle, avant le premier clic.
+  const mienne = maDecisionEnregistree();
+  const sens = mienne === null ? t("recusation.sens") : t(`recusation.sens_deja.${mienne.decision}`);
+  const parties = [el("h4", { classe: "action-carte-titre", texte: t("recusation.titre") }), el("p", { classe: "nt-attenue", texte: sens, attributs: { id: "recusation-sens" } })];
   if (etat.confirmation === "recuser") {
     parties.push(
       message("alerte", el("p", { texte: t("recusation.confirmer_texte") })),
@@ -1757,11 +1851,11 @@ async function demarrer() {
   }
   etat.ticket = segment;
   rendreMotif();
-  // Sous la demande : le résultat de la dernière signature, en tête du bloc où elle se fait ; le choix du portefeuille
-  // et, à côté, les consignes repliées ; puis l'écran de signature. La récusation et le retrait sont avec le reste de
-  // la demande (`rendreModele`) : aucun de ces deux gestes définitifs ne se trouve entre le choix du portefeuille et
-  // la signature.
-  ajouter(racine, el("main", { classe: "nt-page page-ticket" }, zones.lecture, zones.modele, zones.lies, zones.resultat, el("div", { classe: "bas-demande" }, zones.vote, el("div", { classe: "autres-actions" }, zones.consignes)), zones.signature));
+  // Sous la demande : le choix du portefeuille et, à côté, les consignes repliées, une fois la décision choisie et
+  // confirmée ; puis l'écran de signature. Le résultat de la dernière signature est sous l'en-tête (`rendreModele`).
+  // La récusation et le retrait sont avec le reste de la demande : aucun de ces deux gestes définitifs ne se trouve
+  // entre le choix du portefeuille et la signature.
+  ajouter(racine, el("main", { classe: "nt-page page-ticket" }, zones.lecture, zones.modele, zones.lies, basDemande, zones.signature));
   rendreFournisseursEtComptes();
   await Promise.all([lecturePas1(), lectureLies()]);
 }

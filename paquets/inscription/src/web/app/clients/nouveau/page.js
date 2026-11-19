@@ -8,9 +8,10 @@
 // Langage (complément du 2026-11-18, décision du porteur sur le langage des écrans) : la personne qui remplit ce
 // formulaire n'est pas développeuse. Chaque aide dit ce qu'on attend, d'où vient l'information (le client la donne
 // par écrit, ou la valeur proposée se garde) et ce qui se passe si elle est fausse (CT-4 EX-7.8 : l'outil contrôle
-// la forme, pas l'exactitude). Les exemples s'écrivent sous les champs. Le budget d'écriture et le compte de
-// paiement, dont la valeur par défaut est sûre (EX-4.19, EX-8.20 : l'agent recalcule et plafonne), sont rangés
-// dans « Réglages avancés », replié.
+// la forme, pas l'exactitude). Les exemples s'écrivent sous les champs. La consommation prévue par jour (le budget
+// journalier d'EX-4.19) et la référence de notre réserve de crédits (la trésorerie), dont la valeur par défaut est
+// sûre (EX-4.19, EX-8.20 : l'agent recalcule et plafonne), sont rangées dans « Réglages avancés », replié, sous ce
+// que sont les crédits d'écriture (quatrième lecture des écrans).
 
 import FormulaireTravail from "../../../composants/FormulaireTravail.js";
 import Icone from "../../../composants/Icone.js";
@@ -28,10 +29,12 @@ const ORG = {
 // RG-2 : noms des journaux.
 const JOURNAUX = { nom: "journaux", libelle: "Noms des journaux du client", type: "liste_noms_journal", exemple: "journal-principal", aide: "Un journal est la suite des actions enregistrées chez le client, dans l'ordre. Le client vous donne par écrit le nom de chacun de ses journaux. Un nom par ligne ; recopiez-le exactement, car son enregistreur emploie ce même nom." };
 const SEUIL = { nom: "seuil", libelle: "Nombre d'approbations requises", type: "seuil", exemple: "2", aide: "Combien d'approbateurs doivent signer pour qu'une décision du client soit valable. Le client vous donne ce nombre par écrit ; il ne dépasse pas le nombre d'approbateurs." };
-// EX-4.19 : budget journalier b_k de chaque clé de chaîne, en gaz.
-const BUDGET = { nom: "budget_jour", libelle: "Budget d'écriture par jour", type: "montant", facultatif: true, exemple: "10800000", aide: "Ce que l'enregistreur du client pourra dépenser chaque jour pour écrire sur le registre public (unité technique : le « gaz »). Laissez vide : la valeur habituelle, 10 800 000, convient à un journal qui dépose une preuve de date par heure. N'écrivez une autre valeur que si l'équipe technique vous la donne." };
-const TRESORERIE = { nom: "tresorerie", libelle: "Référence de notre compte de paiement", type: "reference_cle", facultatif: true, exemple: "alias:tresorerie", aide: "Le compte de notre société qui paiera le versement sur le compte technique du client. Laissez vide : c'est le compte habituel du service d'inscription. Ne remplissez ce champ que si l'équipe technique vous a donné une référence, qui commence par « fichier: » ou « alias: ». Une référence dit où une clé est rangée ; ce n'est jamais la clé secrète elle-même." };
-const VERSEMENT = { titre: "Le versement sur le compte technique", replie: "Réglages avancés", texte: "Ce qui sera versé au compte technique de l'enregistreur pour payer ses écritures. Les valeurs habituelles s'appliquent quand ces champs restent vides ; le service d'inscription recalcule lui-même le montant du versement.", champs: [BUDGET, TRESORERIE] };
+// EX-4.19 : budget journalier b_k de chaque clé de chaîne, en gaz (1 crédit par unité, EX-4.15) ; défaut :
+// 24 × (100 000 + 350 000), une ancre et une clôture par heure.
+const BUDGET = { nom: "budget_jour", libelle: "Consommation prévue par jour", type: "montant", facultatif: true, exemple: "10800000", aide: "Le nombre de crédits d'écriture que l'enregistreur du client devrait employer chaque jour ; le versement est calculé à partir de lui. Laissez vide : la valeur habituelle, 10 800 000, est calculée pour une preuve de date et une clôture de période par heure. N'écrivez une autre valeur que si l'équipe technique vous la donne." };
+// EX-7.3 : la trésorerie, désignée par sa référence ; défaut : celle de la configuration de l'agent.
+const TRESORERIE = { nom: "tresorerie", libelle: "Référence de notre réserve de crédits d'écriture", type: "reference_cle", facultatif: true, exemple: "alias:tresorerie", aide: "Le compte de notre société d'où partent les crédits versés sur le compte technique du client. Laissez vide : c'est la réserve habituelle du service d'inscription. Ne remplissez ce champ que si l'équipe technique vous a donné une référence, qui commence par « fichier: » ou « alias: ». Une référence dit où une clé est rangée ; ce n'est jamais la clé secrète elle-même." };
+const VERSEMENT = { titre: "Le versement sur le compte technique", replie: "Réglages avancés", texte: "Ce qui sera versé, en crédits d'écriture, sur le compte technique de l'enregistreur, pour qu'il puisse payer ses écritures. Les valeurs habituelles s'appliquent quand ces champs restent vides ; le service d'inscription recalcule lui-même le montant du versement.", credits: true, champs: [BUDGET, TRESORERIE] };
 const APRES = "Après le clic : l'outil contrôle la forme de ce que vous avez saisi et crée le dossier ; le client apparaît dans la liste, à l'étape 1 sur 8. Rien n'est envoyé au registre public, rien n'est dépensé.";
 
 export default async function PageNouveau() {

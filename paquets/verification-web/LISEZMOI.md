@@ -206,7 +206,15 @@ retour dit ; ce qu'elle ajoute vient du seul rapport JSON, lu exactement.
   liste `checks` du contrôle). La ligne du contrôle porte alors « Réussi, avec
   réserve » et renvoie aux réserves ; « Les huit contrôles ont réussi »
   devient « …, dont N avec réserve ». Sans rattachement donné par le rapport,
-  aucune ligne ne change.
+  aucune ligne ne change. Quand l'avertissement dit le contrôle sans valeur de
+  preuve (AV-O-3, réseau d'essai ; table de CT-6 §18, point 15), la ligne porte
+  « Sans valeur de preuve (réseau d'essai) » : le contrôle n'est plus compté
+  parmi les réussis, ni dans « En résumé », et compte comme non prouvé.
+- **Clés du dossier.** Sous les codes 0 et 3, quand le rapport dit que les
+  clés du contrôle 6 sont celles que le dossier déclare (`facts.recorder_keys`),
+  ou que le jeu d'approbateurs du contrôle 7 est celui du dossier
+  (`facts.approval.set_source`), la ligne le dit, en teinte d'avertissement :
+  cela montre que le dossier est cohérent, pas qui l'a signé.
 - **Réserve signalée plusieurs fois.** Même identifiant, même phrase : dite
   une fois, suivie de « Le vérificateur la signale N fois dans ce dossier. »,
   puis chacun des textes exacts.
@@ -218,7 +226,9 @@ retour dit ; ce qu'elle ajoute vient du seul rapport JSON, lu exactement.
   (`facts.timestamp.upper_bound`). Chaque ligne seulement si son champ se lit
   et si son contrôle est réussi ; aucune hors des codes 0 et 3 ; aucune
   empreinte. Le rapport ne donne pas d'instant « au plus tard » sans hypothèse
-  pour la chaîne Bitcoin : la ligne renvoie au texte exact. Le bloc finit par
+  pour la chaîne Bitcoin : la ligne renvoie au texte exact. Quand le contrôle 8
+  a réussi, une ligne dit que les heures du registre public, notées par le
+  registre lui-même, ne sont comparées à rien. Le bloc finit par
   « Ce résumé aide à lire ; seul le texte exact ci-dessous fait foi. »
 - **Non valide, aucun verdict, refus.** Sous un contrôle échoué, ce que le
   vérificateur dit de la vérification en échec, son identifiant à la fin
@@ -228,8 +238,10 @@ retour dit ; ce qu'elle ajoute vient du seul rapport JSON, lu exactement.
   « Pour les spécialistes ». L'étape 1 dit le fichier refusé, sans coche ni
   « Tout est prêt ».
 - **Étape 2.** Sous « Liste des références de confiance » : l'organisation
-  qui a remis le dossier la fournit avec lui, c'est un fichier dont le nom
-  finit par .json, et ce qui se passe sans elle.
+  qui a remis le dossier la fournit, c'est un fichier dont le nom finit par
+  .json, et ce qui se passe sans elle. Quatrième lecture : la consigne de
+  sûreté ajoute que la liste doit parvenir par un autre moyen que le dossier
+  lui-même ; venue avec lui, elle ne prouve rien de plus que lui.
 
 Troisième lecture, même date (CT-6 §18, EX-18.7 et EX-18.9) :
 
