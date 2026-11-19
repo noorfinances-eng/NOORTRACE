@@ -192,6 +192,8 @@ async function lireEcran(page) {
       borne: t("#verdict-borne"),
       exiges: t("#exiges-non-reussis"),
       sansValeur: t("#verdict-sans-valeur"),
+      exigesSansValeur: t("#exiges-sans-valeur"),
+      specialistes: t("#specialistes"),
       indisponible: t("#resume-indisponible"),
       suite: t("#verdict-suite"),
       compte: t("#compte-controles"),
@@ -240,9 +242,11 @@ function reservesAttendues(json, c) {
 }
 
 /** La phrase de ce que les contrôles non réussis laissent sans preuve, écrite ici une seconde fois (point 14). */
-function nonProuveAttendu(nonReussis, T) {
+function nonProuveAttendu(nonReussis, T, dossier = []) {
   const date = nonReussis.includes(4) && nonReussis.includes(5);
-  const noms = nonReussis.filter((n) => !(date && n === 5)).map((n) => (date && n === 4 ? T.non_prouve_4_5 : T[`non_prouve_${n}`]));
+  // Cinquième lecture : un contrôle réussi avec ce que le dossier déclare lui-même a son élément, à sa place.
+  const tous = [...new Set([...nonReussis, ...dossier])].sort((x, y) => x - y);
+  const noms = tous.filter((n) => !(date && n === 5)).map((n) => (!nonReussis.includes(n) ? T[`non_prouve_${n}_dossier`] : date && n === 4 ? T.non_prouve_4_5 : T[`non_prouve_${n}`]));
   if (noms.length === 0) return null;
   if (noms.length === 1) return libelle(T, "non_prouve_un", { liste: noms[0] });
   return libelle(T, "non_prouve_plusieurs", { liste: `${noms.slice(0, -1).join(T.non_prouve_sep)}${T.non_prouve_dernier}${noms[noms.length - 1]}` });
@@ -252,11 +256,21 @@ function nonProuveAttendu(nonReussis, T) {
  * Clé de la phrase d'un contrôle non fait, écrite ici une seconde fois d'après la table de CT-6 §18 (point 8) : la
  * raison du rapport, le numéro du contrôle, et les pièces que la personne a ajoutées à l'étape 2.
  */
-function cleRaisonAttendue(raison, numero, { ancres = false, entetes = false } = {}) {
+function cleRaisonAttendue(raison, numero, { ancres = false, entetes = false } = {}, horsPerimetre = null) {
   if (raison === "ancre_absente") return !ancres ? "raison_ancre_absente" : numero === 5 && entetes ? "raison_ancre_absente_liste_extrait" : "raison_ancre_absente_liste";
   if (raison === "partie_absente" && numero === 5 && !entetes) return ancres ? "raison_partie_absente_extrait" : "raison_partie_absente_liste_extrait";
+  // Cinquième lecture (point 8) : une partie requise déclarée absente « hors périmètre CT-1 », ou une pièce présente.
+  if (raison === "hors_perimetre_version" && horsPerimetre !== null) return PARTIES_REQUISES_ATTENDUES[numero].some((f) => horsPerimetre.includes(f)) ? "raison_hors_perimetre_absente" : "raison_hors_perimetre_forme";
   return ["partie_absente", "hors_perimetre_version", "piece_hors_dossier", "prerequis_en_echec"].includes(raison) ? `raison_${raison}` : "raison_inconnue";
 }
+
+/**
+ * Cinquième lecture (CT-6 §18, point 8), écrit ici une seconde fois : les parties requises de chaque contrôle (table
+ * 5.1, par leur fichier), et les fichiers que le rapport dit déclarés absents « hors périmètre CT-1 » (`absent_parts`),
+ * ou null sans ce membre.
+ */
+const PARTIES_REQUISES_ATTENDUES = { 1: ["evenement.json"], 2: ["voisins.json"], 3: ["chemin.json", "manifeste.json", "manifeste.sig"], 4: ["jeton-rfc3161.der"], 5: ["preuve.ots"], 6: ["cles.json", "evenement.json", "voisins.json", "manifeste.sig"], 7: ["approbations.json"], 8: ["registre.json", "certificat-commit.json"] };
+const horsPerimetreAttendu = (json) => (Array.isArray(json.absent_parts) ? json.absent_parts.filter((p) => p.reason === "hors périmètre CT-1").map((p) => p.file) : null);
 
 /**
  * Quatrième lecture (CT-6 §18, point 15), écrit ici une seconde fois : les raisons courtes (clés) qui rendent un
@@ -288,21 +302,24 @@ function cleDossierAttendue(cas, numero, { ancres = false } = {}) {
 function attendu(cas, T, pieces = {}) {
   const mots = { 0: ["mot_0", "nt-verdict-valide"], 1: ["mot_1", "nt-verdict-non-valide"], 2: ["mot_2", ""], 3: ["mot_3", "nt-verdict-incomplet"] };
   const r = { mot: T[mots[cas.code][0]], variante: mots[cas.code][1], teinte: "", mention: null, nonProuve: null, code: libelle(T, "code", { code: cas.code, sens: T[`code_${cas.code}`] }) };
-  if (cas.code === 2) return { ...r, controles: [], pastillesReussi: 0, tousReussis: null, borne: null, exiges: null, sansValeur: null };
+  if (cas.code === 2) return { ...r, controles: [], pastillesReussi: 0, tousReussis: null, borne: null, exiges: null, sansValeur: null, exigesSansValeur: null };
   const exiges = cas.json.inputs.required_controls;
+  const horsPerimetre = horsPerimetreAttendu(cas.json);
   r.controles = cas.json.controls.map((c) => {
     const reserves = reservesAttendues(cas.json, c);
-    // Quatrième lecture (point 15) : sans valeur de preuve, puis avec réserve, puis avec ce que le dossier fournit.
+    // Quatrième lecture (point 15) : sans valeur de preuve, puis avec ce que le dossier fournit (cinquième lecture :
+    // avant la réserve), puis avec réserve.
     const sansValeur = sansValeurAttendu(cas.json, c.number);
     const dossier = cleDossierAttendue(cas, c.number, pieces);
-    const etat = sansValeur.length > 0 ? libelle(T, "statut_sans_valeur", { raisons: sansValeur.map((k) => T[k]).join(", ") }) : reserves.length > 0 ? T.statut_reussi_reserve : dossier !== null ? T[{ 6: "statut_reussi_cles_dossier", 7: "statut_reussi_approbateurs_dossier" }[c.number]] : T[`statut_${c.status}`];
+    const etat = sansValeur.length > 0 ? libelle(T, "statut_sans_valeur", { raisons: sansValeur.map((k) => T[k]).join(", ") }) : dossier !== null ? T[{ 6: "statut_reussi_cles_dossier", 7: "statut_reussi_approbateurs_dossier" }[c.number]] : reserves.length > 0 ? T.statut_reussi_reserve : T[`statut_${c.status}`];
     return {
       numero: c.number,
       statut: c.status,
       etat,
       montreReussi: c.status === "reussi" && reserves.length === 0 && dossier === null,
       titre: `${c.number}. ${T[`controle_${c.number}`]}`,
-      raison: c.status === "non_execute" ? libelle(T, "raison", { raison: T[cleRaisonAttendue(c.reason, c.number, pieces)], code: c.reason }) : null,
+      // Cinquième lecture (point 8) : la phrase seule ; le code de la raison est en tête des spécialistes.
+      raison: c.status === "non_execute" ? libelle(T, "raison", { raison: T[cleRaisonAttendue(c.reason, c.number, pieces, horsPerimetre)] }) : null,
       exige: exiges.includes(c.number) ? T.controle_exige : null,
       reserves: reserves.length > 0 ? reserves.join(" ") : null,
     };
@@ -311,20 +328,33 @@ function attendu(cas, T, pieces = {}) {
   const sansValeur = cas.json.controls.filter((c) => sansValeurAttendu(cas.json, c.number).length > 0).map((c) => c.number);
   const raisons = [...new Set(sansValeur.flatMap((n) => sansValeurAttendu(cas.json, n)))].map((k) => T[k]).join(", ");
   const nonProuves = cas.json.controls.filter((c) => nonReussis.includes(c.number) || sansValeur.includes(c.number)).map((c) => c.number);
-  const avecReserve = r.controles.filter((c) => c.reserves !== null && !sansValeur.includes(c.numero)).length;
-  const avecDossier = r.controles.filter((c) => c.reserves === null && cleDossierAttendue(cas, c.numero, pieces) !== null).length;
+  // Cinquième lecture (point 15) : réussis avec ce que le dossier déclare lui-même ; ni réussis, ni prouvés, ni « avec réserve ».
+  const dossiers = r.controles.filter((c) => c.statut === "reussi" && !sansValeur.includes(c.numero) && cleDossierAttendue(cas, c.numero, pieces) !== null).map((c) => c.numero);
+  const avecReserve = r.controles.filter((c) => c.reserves !== null && !sansValeur.includes(c.numero) && !dossiers.includes(c.numero)).length;
+  // Contrôles exigés sans valeur de preuve : le vérificateur les compte réussis (CT-6 7.5) ; la page le restreint.
+  const exigesSv = sansValeur.filter((n) => exiges.includes(n));
   // Sous le code 0, le vert plein ne reste que pour huit contrôles réussis sans avertissement ; sinon la teinte
   // d'avertissement et la mention fixe, et la phrase de ce qui n'est pas prouvé (point 14).
   const avertis = (cas.json.warnings ?? []).length > 0;
-  if (cas.code === 0 && (nonReussis.length > 0 || avertis)) {
+  if (cas.code === 0 && (nonReussis.length > 0 || avertis || dossiers.length > 0)) {
+    const nonProuve = nonProuves.length > 0 || dossiers.length > 0;
     r.variante = "";
     r.teinte = "pv-verdict-reserve";
-    r.mention = nonProuves.length > 0 && avertis ? T.mention_les_deux : nonProuves.length > 0 ? T.mention_non_prouve : T.mention_reserves;
-    r.nonProuve = nonProuveAttendu(nonProuves, T);
+    r.mention = exigesSv.length > 0 ? T.mention_exige_sans_valeur : nonProuve && avertis ? T.mention_les_deux : nonProuve ? T.mention_non_prouve : T.mention_reserves;
+    r.nonProuve = nonProuveAttendu(nonProuves, T, dossiers);
   }
-  r.pastillesReussi = 8 - nonReussis.length - avecReserve - sansValeur.length - avecDossier;
-  const tous = sansValeur.length === 0 ? (avecReserve === 0 ? T.tous_reussis : libelle(T, "tous_reussis_reserve", { n: avecReserve })) : libelle(T, avecReserve === 0 ? "tous_reussis_sans_valeur" : "tous_reussis_sans_valeur_reserve", { n: 8 - sansValeur.length, m: avecReserve, k: sansValeur.length, raisons });
+  r.pastillesReussi = 8 - nonReussis.length - avecReserve - sansValeur.length - dossiers.length;
+  let tous;
+  if (sansValeur.length === 0 && dossiers.length === 0) tous = avecReserve === 0 ? T.tous_reussis : libelle(T, "tous_reussis_reserve", { n: avecReserve });
+  else {
+    const n = 8 - sansValeur.length - dossiers.length;
+    tous = avecReserve === 0 ? libelle(T, "decompte_reussis", { n }) : libelle(T, "decompte_reussis_reserve", { n, m: avecReserve });
+    if (sansValeur.length > 0) tous += T.decompte_sep + libelle(T, "decompte_sans_valeur", { k: sansValeur.length, raisons });
+    if (dossiers.length > 0) tous += T.decompte_sep + libelle(T, "decompte_dossier", { j: dossiers.length });
+    tous += T.decompte_fin;
+  }
   r.tousReussis = cas.code === 0 && nonReussis.length === 0 ? tous : null;
+  r.exigesSansValeur = (cas.code === 0 || cas.code === 3) && exigesSv.length > 0 ? libelle(T, "exiges_sans_valeur", { liste: exigesSv.join(", "), raisons: [...new Set(exigesSv.flatMap((n) => sansValeurAttendu(cas.json, n)))].map((k) => T[k]).join(", ") }) : null;
   r.sansValeur = (cas.code === 0 || cas.code === 3) && sansValeur.length > 0 && !(cas.code === 0 && nonReussis.length === 0) ? libelle(T, "valide_sans_valeur", { liste: sansValeur.join(", "), raisons }) : null;
   r.borne = cas.code === 0 && nonReussis.length > 0 ? libelle(T, "valide_borne", { liste: nonReussis.join(", ") }) : null;
   r.exiges = cas.code === 3 ? libelle(T, "exiges_non_reussis", { liste: exiges.filter((n) => nonReussis.includes(n)).join(", ") }) : null;
@@ -332,12 +362,12 @@ function attendu(cas, T, pieces = {}) {
 }
 
 const garder = (ecran, cles) => Object.fromEntries(cles.map((k) => [k, ecran[k]]));
-const CLES_VERDICT = ["mot", "variante", "teinte", "mention", "nonProuve", "code", "controles", "pastillesReussi", "tousReussis", "borne", "exiges", "sansValeur"];
+const CLES_VERDICT = ["mot", "variante", "teinte", "mention", "nonProuve", "code", "controles", "pastillesReussi", "tousReussis", "borne", "exiges", "sansValeur", "exigesSansValeur"];
 
 // --- Langage (complément du 2026-11-18 de CT-6 §18) ------------------------------
 
 /** Les fonctions et tables du langage courant d'interface.js, telles qu'écrites ; null si les sources ne les ont pas. */
-const NOMS_LANGAGE = ["SANS_VALEUR", "sansValeurDuControle", "clesDuDossier", "approbateursDuDossier", "clePhraseCourante", "cleAvertissement", "cleRefusCourant", "cleRaisonCourante", "membresEnonce", "aDesReserves", "PHRASES_COURANTES", "LIMITES", "SUITES", "presentationVerdict", "clesNonProuve", "controlesDeLAvertissement", "reservesDuControle", "grouperAvertissements", "clePieceEnCause", "PIECES_EN_CAUSE", "instantDeSecondes", "instantDeTexte", "lignesEnResume", "CONTROLE_DU_RESUME", "GABARITS_DECISION"];
+const NOMS_LANGAGE = ["SANS_VALEUR", "sansValeurDuControle", "exigesSansValeur", "numerosDuDossier", "PARTIES_REQUISES", "partiesHorsPerimetre", "clesDuDossier", "approbateursDuDossier", "clePhraseCourante", "cleAvertissement", "cleRefusCourant", "cleRaisonCourante", "membresEnonce", "aDesReserves", "PHRASES_COURANTES", "LIMITES", "SUITES", "presentationVerdict", "clesNonProuve", "controlesDeLAvertissement", "reservesDuControle", "grouperAvertissements", "clePieceEnCause", "PIECES_EN_CAUSE", "instantDeSecondes", "instantDeTexte", "lignesEnResume", "CONTROLE_DU_RESUME", "GABARITS_DECISION"];
 
 /** `transformer` : changement appliqué à la source avant de l'évaluer (mutant joué sous Node) ; il doit la changer. */
 function chargerLangage(transformer = null) {
@@ -431,7 +461,7 @@ function termesTrouves(textes) {
  * la page pose dans un élément data-exact ou dans un bloc replié « Pour les spécialistes ». Tout autre libellé est
  * soumis à la liste des termes de technicien.
  */
-const LIBELLES_EXACTS_OU_REPLIES = ["phrase_fixe", "artefact_pret", "artefact_altere", "code", "code_0", "code_1", "code_2", "code_3", "noms_choisis", "nom_dossier_repertoire", "nom_dossier_archive", "nom_ancres", "nom_entetes", "nom_interne", "commande", "sortie_erreur", "refus_archive", "avertissement", "avertissement_sans_verification"];
+const LIBELLES_EXACTS_OU_REPLIES = ["ou_empreintes", "phrase_fixe", "artefact_pret", "artefact_altere", "code", "code_0", "code_1", "code_2", "code_3", "noms_choisis", "nom_dossier_repertoire", "nom_dossier_archive", "nom_ancres", "nom_entetes", "nom_interne", "commande", "sortie_erreur", "refus_archive", "avertissement", "avertissement_sans_verification"];
 const estExactOuReplie = (cle) => LIBELLES_EXACTS_OU_REPLIES.includes(cle) || /^(r|i|type)_/.test(cle);
 
 /** Éléments qui peuvent porter data-exact : la liste est fermée, pour que la marque ne serve pas à soustraire un texte à l'épreuve. */
@@ -654,9 +684,12 @@ function attenduLangage(cas, T) {
     else groupes.push([a]);
   }
   const lignes = [1, 2, 3, 4, 5].map((n) => T[`limite_${n}`]);
+  // Cinquième lecture (points 6 et 15) : sous le code 0, un contrôle exigé sans valeur de preuve change la phrase et
+  // la troisième ligne de « Et maintenant ? ».
+  const exigeSv = cas.code === 0 && cas.json.controls.some((c) => cas.json.inputs.required_controls.includes(c.number) && sansValeurAttendu(cas.json, c.number).length > 0);
   return {
     mot: T[`mot_${cas.code}`],
-    phrase: T[`phrase_${cas.code}`],
+    phrase: exigeSv ? T.phrase_0_exige_sans_valeur : T[`phrase_${cas.code}`],
     phraseDansLeVerdict: true,
     reserves: (cas.code === 0 || cas.code === 3) && w.length > 0 ? T.reserves : null,
     code: libelle(T, "code", { code: cas.code, sens: T[`code_${cas.code}`] }),
@@ -673,7 +706,7 @@ function attenduLangage(cas, T) {
       exacteMarquee: true,
     })),
     limites: { 0: lignes, 1: [T.limite_invalide], 2: [], 3: lignes }[cas.code],
-    suite: [1, 2, 3].map((n) => T[`suite_${cas.code}_${n}`]),
+    suite: (exigeSv ? ["suite_0_1", "suite_0_2", "suite_exige_sans_valeur"] : [1, 2, 3].map((n) => `suite_${cas.code}_${n}`)).map((k) => T[k]),
   };
 }
 const CLES_LANGAGE = ["mot", "phrase", "phraseDansLeVerdict", "reserves", "code", "introCode", "codeMarqueExact", "codeReplie", "codeEnTeteSpecialistes", "listeReserves", "limites", "suite"];
@@ -748,6 +781,11 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     expect(fr.valide_borne.startsWith("Contrôles qui n'ont pas pu être faits : n° {liste}")).to.equal(true);
     expect(en.valide_borne.startsWith("Controls that could not be done: no. {liste}")).to.equal(true);
     expect([fr.statut_reussi, fr.statut_echoue, fr.statut_non_execute, en.statut_reussi, en.statut_echoue, en.statut_non_execute]).to.deep.equal(["Réussi", "Échoué", "Non fait", "Passed", "Failed", "Not done"]);
+    // Un mot, un sens dans les trois outils : ce que le registre public inscrit d'un coup est un « lot » (l'outil
+    // d'inscription dit « le même lot »), jamais un « bloc » ; « bloc » ne reste que pour la chaîne Bitcoin, nommée.
+    for (const [cle, texte] of Object.entries(fr)) if (/\bblocs?\b/i.test(texte)) expect(texte, cle).to.match(/\bbloc de la chaîne Bitcoin\b/);
+    expect(fr.prouve_long_8).to.contain("dans des lots d'opérations signés par le nombre requis de ses validateurs");
+    expect(en.prouve_long_8).to.contain("in batches of operations signed by the required number of its validators");
   });
 
   it("gabarit : la phrase fixe, l'état du vérificateur, le choix du dossier, « Vérifier », « Arrêter » et le résultat sont hors de tout bloc replié ; seuls « Comment ça marche », l'empreinte et les options sont repliés ; page.js est dans l'en-tête", function () {
@@ -879,7 +917,7 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     }
     expect([...f.membresEnonce(s.fr)]).to.have.length(5);
     // Les lignes de « Et maintenant ? » existent pour chaque code, un refus et une vérification non faite.
-    expect(Object.keys(f.SUITES).sort()).to.deep.equal(["0", "1", "2", "3", "non_faite", "refus", "refus_piece"]);
+    expect(Object.keys(f.SUITES).sort()).to.deep.equal(["0", "0_exige_sans_valeur", "1", "2", "3", "non_faite", "refus", "refus_piece"]);
     for (const cles of Object.values(f.SUITES)) for (const cle of cles) for (const T of [fr, en]) expect(typeof T[cle] === "string" && T[cle].length > 0, cle).to.equal(true);
   });
 
@@ -936,9 +974,9 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
       for (const a of [[], av]) expect(p(0, c, a).teinte === "pleine", `${m}`).to.equal(m === 0 && a.length === 0);
     }
     const mentions = tableCt6("| Cas, sous le code 0 | Mention de la page française | Mention de la page anglaise |");
-    expect(mentions).to.deep.equal([["un contrôle non réussi, aucun avertissement", fr.mention_non_prouve, en.mention_non_prouve], ["huit contrôles réussis, un avertissement", fr.mention_reserves, en.mention_reserves], ["un contrôle non réussi ou sans valeur de preuve, et un avertissement", fr.mention_les_deux, en.mention_les_deux]]);
+    expect(mentions).to.deep.equal([["un contrôle non réussi, aucun avertissement", fr.mention_non_prouve, en.mention_non_prouve], ["huit contrôles réussis, un avertissement", fr.mention_reserves, en.mention_reserves], ["un contrôle non réussi, sans valeur de preuve ou réussi avec ce que le dossier déclare, et un avertissement", fr.mention_les_deux, en.mention_les_deux], ["un contrôle exigé sans valeur de preuve (point 15)", fr.mention_exige_sans_valeur, en.mention_exige_sans_valeur]]);
     // La mention suit le mot : elle ne le remplace pas et ne dit pas « valide » à sa place.
-    for (const T of [fr, en]) for (const cle of ["mention_non_prouve", "mention_reserves", "mention_les_deux"]) expect(T[cle], cle).to.match(/^, \S/).and.not.match(/valid/i);
+    for (const T of [fr, en]) for (const cle of ["mention_non_prouve", "mention_reserves", "mention_les_deux", "mention_exige_sans_valeur"]) expect(T[cle], cle).to.match(/^, \S/).and.not.match(/valid/i);
     // Éléments non prouvés : une clé par contrôle non réussi, la date une seule fois quand 4 et 5 manquent tous deux.
     const cles = (statuts) => [...f.clesNonProuve(lus(statuts))];
     expect(cles([R, R, R, R, R, R, R, R])).to.deep.equal([]);
@@ -946,8 +984,8 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     expect(cles([R, R, R, N, R, R, N, R])).to.deep.equal(["non_prouve_4", "non_prouve_7"]);
     expect(cles([R, R, R, R, N, R, R, R])).to.deep.equal(["non_prouve_5"]);
     expect(cles([N, N, N, N, N, N, N, N])).to.deep.equal(["non_prouve_1", "non_prouve_2", "non_prouve_3", "non_prouve_4_5", "non_prouve_6", "non_prouve_7", "non_prouve_8"]);
-    const elements = tableCt6("| Contrôle non réussi ou sans valeur de preuve | Élément de la page française | Élément de la page anglaise |");
-    expect(elements).to.deep.equal([...[1, 2, 3].map((n) => [String(n), fr[`non_prouve_${n}`], en[`non_prouve_${n}`]]), ["4 et 5", fr.non_prouve_4_5, en.non_prouve_4_5], ["4 seul", fr.non_prouve_4, en.non_prouve_4], ["5 seul", fr.non_prouve_5, en.non_prouve_5], ...[6, 7, 8].map((n) => [String(n), fr[`non_prouve_${n}`], en[`non_prouve_${n}`]])]);
+    const elements = tableCt6("| Contrôle non réussi, sans valeur de preuve, ou réussi avec ce que le dossier déclare | Élément de la page française | Élément de la page anglaise |");
+    expect(elements).to.deep.equal([...[1, 2, 3].map((n) => [String(n), fr[`non_prouve_${n}`], en[`non_prouve_${n}`]]), ["4 et 5", fr.non_prouve_4_5, en.non_prouve_4_5], ["4 seul", fr.non_prouve_4, en.non_prouve_4], ["5 seul", fr.non_prouve_5, en.non_prouve_5], ...[6, 7, 8].map((n) => [String(n), fr[`non_prouve_${n}`], en[`non_prouve_${n}`]]), ["6, réussi avec les clés du dossier", fr.non_prouve_6_dossier, en.non_prouve_6_dossier], ["7, réussi avec les approbateurs du dossier", fr.non_prouve_7_dossier, en.non_prouve_7_dossier]]);
     // Pièce en cause : table par type d'erreur ; un type inconnu n'a pas de phrase.
     const pieces = tableCt6("| Type de l'erreur | Phrase de la page française | Phrase de la page anglaise |");
     const attendues = [["`dossier_illisible`", "piece_dossier"], ["`ancres_inutilisables`", "piece_ancres"], ["`entree_illisible`, vérification `N-2`", "piece_entetes"], ["`entree_illisible`, autre", "piece_entree"], ["`taille_depassee`", "piece_taille"], ["`usage`", "piece_usage"], ["`schemas_illisibles`, `erreur_interne`", "piece_verificateur"]];
@@ -1109,23 +1147,41 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     const f = chargerLangage();
     expect(f.cleRaisonCourante, "cleRaisonCourante dans interface.js").to.be.a("function");
     // Table de CT-6 §18 (point 8) : les phrases de la page, mot pour mot, dans les deux langues et dans l'ordre.
-    const cles = ["raison_ancre_absente", "raison_ancre_absente_liste", "raison_ancre_absente_liste_extrait", "raison_partie_absente_liste_extrait", "raison_partie_absente_extrait", "raison_partie_absente", "raison_hors_perimetre_version", "raison_piece_hors_dossier", "raison_prerequis_en_echec", "raison_inconnue"];
+    const cles = ["raison_ancre_absente", "raison_ancre_absente_liste", "raison_ancre_absente_liste_extrait", "raison_partie_absente_liste_extrait", "raison_partie_absente_extrait", "raison_partie_absente", "raison_hors_perimetre_absente", "raison_hors_perimetre_forme", "raison_hors_perimetre_version", "raison_piece_hors_dossier", "raison_prerequis_en_echec", "raison_inconnue"];
     const table = tableCt6("| Raison, contrôle, pièces ajoutées à l'étape 2 | Phrase de la page française | Phrase de la page anglaise |");
     expect(table.map((l) => [l[1], l[2]])).to.deep.equal(cles.map((c) => [fr[c], en[c]]));
     // Le choix de la phrase, écrit ici une seconde fois, sur toutes les raisons, tous les contrôles et toutes les pièces.
     for (const r of [...raisonsCt6(), "raison_nouvelle", "", null, undefined, "__proto__", "toString"]) {
       for (let n = 1; n <= 8; n++) for (const ancres of [false, true]) for (const entetes of [false, true]) expect(f.cleRaisonCourante(r, n, ancres, entetes), `${r}, contrôle ${n}, liste ${ancres}, extrait ${entetes}`).to.equal(cleRaisonAttendue(r, n, { ancres, entetes }));
+      // Cinquième lecture : les parties déclarées absentes « hors périmètre CT-1 » distinguent les deux causes de
+      // hors_perimetre_version ; sans ce membre lisible (null), la phrase les dit toutes deux.
+      const parties = [[], ["jeton-rfc3161.der"], ["preuve.ots"], ["registre.json"], ["certificat-commit.json"], ["validateurs.json"], ["approbations.json"], Object.values(PARTIES_REQUISES_ATTENDUES).flat()];
+      for (let n = 1; n <= 8; n++) for (const hp of parties) expect(f.cleRaisonCourante(r, n, false, false, hp), `${r}, contrôle ${n}, ${hp}`).to.equal(cleRaisonAttendue(r, n, {}, hp));
     }
+    expect({ ...f.PARTIES_REQUISES }).to.deep.equal(PARTIES_REQUISES_ATTENDUES);
+    // absent_parts : seule la raison exacte « hors périmètre CT-1 » (EX-4.3) compte ; un membre illisible vaut null.
+    const absentes = (a) => f.partiesHorsPerimetre({ absent_parts: a });
+    expect([...absentes([{ name: "preuve_ots", file: "preuve.ots", reason: "hors périmètre CT-1" }, { name: "registre", file: "registre.json", reason: "aucun registre" }, { name: "jeton_rfc3161", file: "jeton-rfc3161.der", reason: null }])]).to.deep.equal(["preuve.ots"]);
+    expect([...absentes([])]).to.deep.equal([]);
+    for (const a of [undefined, null, {}, [null], [{ file: 1, reason: "hors périmètre CT-1" }], [{ file: "preuve.ots", reason: 3 }], "preuve.ots"]) expect(absentes(a), JSON.stringify(a)).to.equal(null);
+    expect(f.partiesHorsPerimetre({})).to.equal(null);
+    // Les deux causes en mots, et ce qui ne s'y trouve pas : la pièce absente ne met pas en cause la version, la pièce
+    // présente ne dit pas que le dossier a été préparé sans elle.
+    expect(fr.raison_hors_perimetre_absente).to.include("le dossier a été préparé sans la pièce dont ce contrôle a besoin").and.not.include("version");
+    expect(fr.raison_hors_perimetre_forme).to.include("est dans le dossier, mais sous une forme que cette version du vérificateur ne sait pas contrôler").and.not.include("préparé sans");
+    expect(en.raison_hors_perimetre_absente).to.include("the dossier was prepared without the document this control needs").and.not.include("version");
+    expect(en.raison_hors_perimetre_forme).to.include("is in the dossier, but in a form this version of the verifier cannot check").and.not.include("prepared without");
     // Les phrases demandées pour une liste non ajoutée et pour une liste qui ne contient pas la référence ; la raison exacte suit, entre parenthèses.
     expect(fr.raison_ancre_absente).to.equal("Non fait : vous n'avez pas ajouté la liste des références de confiance (étape 2). Demandez-la à l'organisation qui vous a remis le dossier, puis recommencez.");
     expect(fr.raison_ancre_absente_liste).to.equal("Non fait : la liste que vous avez ajoutée ne contient pas la référence qu'il faut pour ce dossier. Demandez la bonne liste à l'organisation qui vous a remis le dossier.");
-    expect([fr.raison, en.raison]).to.deep.equal(["{raison} ({code})", "{raison} ({code})"]);
+    // Cinquième lecture : le code de la raison n'est plus sur la ligne du contrôle ; il est en tête des spécialistes.
+    expect([fr.raison, en.raison]).to.deep.equal(["{raison}", "{raison}"]);
     for (const T of [fr, en]) {
       for (const c of cles) expect(T[c], c).to.match(/^(?:Non fait|Not done)[ ,:]/);
       // Quand la raison met en cause le dossier, la phrase ne renvoie pas à l'étape 2 : elle renvoie à l'organisation.
       // Quatrième lecture : sans dire de ne rien ajouter à l'étape 2 (la liste sert aussi au contrôle 6), elle dit que la
       // liste et l'extrait n'y changent rien.
-      for (const c of ["raison_partie_absente", "raison_hors_perimetre_version"]) expect(T[c], c).to.match(/Ajouter la liste ou l'extrait de l'étape 2 n'y change rien|Adding the list or the extract at step 2 changes nothing/).and.match(/organisation/).and.not.match(/pas une pièce à ajouter|not a document to add/);
+      for (const c of ["raison_partie_absente", "raison_hors_perimetre_version", "raison_hors_perimetre_absente", "raison_hors_perimetre_forme"]) expect(T[c], c).to.match(/Ajouter la liste ou l'extrait de l'étape 2 n'y change rien|Adding the list or the extract at step 2 changes nothing/).and.match(/organisation/).and.not.match(/pas une pièce à ajouter|not a document to add/);
       // La raison non admise (CT-6 6.2) le dit en mots courants, au lieu d'un « cette raison n'est pas admise » qui ne
       // dit rien à qui n'a pas lu la spécification.
       expect(T.raison_prerequis_en_echec).to.match(/(?:Le vérificateur ne l'accepte pas comme raison de ne pas faire un contrôle|The verifier does not accept this as a reason for not doing a control)\.$/).and.not.match(/; (?:cette raison|this reason)/);
@@ -1151,6 +1207,9 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
       { titre: "liste ajoutée ignorée : toujours dite non ajoutée", avant: '    if (!ancres) return "raison_ancre_absente";', apres: '    return "raison_ancre_absente";', vu: (g) => g.cleRaisonCourante("ancre_absente", 4, true, false) !== "raison_ancre_absente_liste" },
       { titre: "extrait mis en cause pour un autre contrôle que le 5", avant: '    return numero === 5 && entetes ?', apres: "    return entetes ?", vu: (g) => g.cleRaisonCourante("ancre_absente", 8, true, true) !== "raison_ancre_absente_liste" },
       { titre: "pièce absente du dossier renvoyée à l'étape 2", avant: "    if (numero === 5 && !entetes) return ancres ?", apres: "    if (!entetes) return ancres ?", vu: (g) => g.cleRaisonCourante("partie_absente", 2, true, false) !== "raison_partie_absente" },
+      // Cinquième lecture : une pièce présente dite absente ; une raison approximative de l'index prise pour « hors périmètre CT-1 ».
+      { titre: "pièce présente d'une forme non contrôlée dite absente du dossier", avant: '    return parties.some((f) => horsPerimetre.includes(f)) ? "raison_hors_perimetre_absente" : "raison_hors_perimetre_forme";', apres: '    return "raison_hors_perimetre_absente";', vu: (g) => g.cleRaisonCourante("hors_perimetre_version", 5, true, true, []) !== "raison_hors_perimetre_forme" },
+      { titre: "raison d'absence autre que « hors périmètre CT-1 » retenue", avant: '  return a.filter((p) => p.reason === "hors périmètre CT-1").map((p) => p.file);', apres: "  return a.map((p) => p.file);", vu: (g) => g.partiesHorsPerimetre({ absent_parts: [{ name: "preuve_ots", file: "preuve.ots", reason: "en attente" }] }).length > 0 },
     ];
     for (const m of mutants) {
       expect(m.vu(f), `témoin : ${m.titre}`).to.equal(false);
@@ -1168,6 +1227,7 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     expect({ ...f.SANS_VALEUR }).to.deep.equal(SANS_VALEUR_ATTENDU);
     // AV-O-3 est le seul avertissement que CT-6 dit « sans valeur probante » (section 10.7) ; sa phrase dit qu'il ne prouve rien.
     const ct6 = texteCt6();
+    const texte5 = () => ct6.replace(/\s+/g, " ");
     expect([...ct6.matchAll(/^\| (AV-[A-Z]+-[0-9]+) \|.*sans valeur probante/gm)].map((m) => m[1])).to.deep.equal(["AV-O-3"]);
     expect(fr.av_o_3).to.include("elle ne prouve rien");
     const lus = (statuts, checks = {}) => statuts.map((s, i) => ({ numero: i + 1, statut: s, verifications: checks[i + 1] ?? [] }));
@@ -1202,8 +1262,10 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     registre.facts.registry = { chain_id: "noortrace-2124-dev", entries: [] };
     expect(lignes(f, registre).map((l) => l.nom).at(-1)).to.equal("registre");
     expect(ct6.replace(/\s+/g, " ")).to.include("Aucune heure du registre n'est comparée aux dates de la période : une heure déclarée antérieure à la période n'est pas signalée.");
-    expect(fr.resume_registre).to.include("ne les compare pas à la période et n'en tire aucune date : une heure antérieure à la période n'est pas signalée et ne contredit aucun contrôle");
-    expect(en.resume_registre).to.include("does not compare them with the period and draws no date from them: a time earlier than the period is not reported and contradicts no control");
+    // Cinquième lecture : la ligne dit honnêtement ce que la page sait, sans mot rassurant ; elle ne calcule aucun écart.
+    expect(fr.resume_registre).to.include("ne les compare pas à la période et n'en tire aucune date : un écart entre ces heures et la période, même une heure antérieure au début de la période, n'est ni signalé, ni expliqué, ni contrôlé par lui.");
+    expect(en.resume_registre).to.include("does not compare them with the period and draws no date from them: a gap between these times and the period, even a time before the start of the period, is neither reported, nor explained, nor checked by it.");
+    for (const T of [fr, en]) expect(T.resume_registre).to.not.match(/contredit aucun|contradicts no|peut venir|may come|horloge|clock/);
     // Clés du dossier (EX-6.8) : toutes, une partie, ou aucune ; rien hors des codes 0 et 3 (EX-6.13).
     const cles = (e, m, point) => ({ facts: { recorder_keys: { event_key_id: "rec-01", manifest_key_id: "rec-02", source: e === m ? e : "mixte", event_key_source: e, manifest_key_source: m }, checkpoint: point === undefined ? null : { key_source: point } } });
     const cas = [[["dossier", "dossier"], 0, "toutes"], [["dossier", "dossier"], 3, "toutes"], [["dossier", "registre"], 0, "partie"], [["registre", "dossier"], 0, "partie"], [["ancres", "ancres"], 0, null], [["registre", "registre"], 0, null], [["ancres", "ancres", "dossier"], 0, "partie"], [["dossier", "dossier", "ancres"], 0, "partie"], [["dossier", "dossier", "dossier"], 0, "toutes"], [["dossier", "dossier", "autre"], 0, "toutes"], [["autre", "dossier"], 0, null], [["dossier", "dossier"], 1, null], [["dossier", "dossier"], 2, null]];
@@ -1215,7 +1277,40 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     // renvoie pas à l'étape 2 (aucune ancre d'approbateurs en version 0, table 5.1).
     const phrases = ["controle_cles_dossier_toutes", "controle_cles_dossier_toutes_liste", "controle_cles_dossier_partie", "controle_cles_dossier_partie_liste", "controle_approbateurs_dossier"];
     expect(tableCt6("| Contrôle, provenance, liste ajoutée à l'étape 2 | Phrase de la page française | Phrase de la page anglaise |").map((l) => [l[1], l[2]])).to.deep.equal(phrases.map((c) => [fr[c], en[c]]));
-    expect(fr.controle_cles_dossier_toutes).to.equal("Réussi, avec les clés que le dossier fournit lui-même : cela montre qu'il est cohérent, pas qui l'a signé. Pour savoir qui l'a signé, ajoutez la liste des références de confiance (étape 2).");
+    // Cinquième lecture : la phrase ne commence plus par « Réussi » ; elle dit ce qui est prouvé et ce qui ne l'est pas.
+    expect(fr.controle_cles_dossier_toutes).to.equal("Le vérificateur a fait ce contrôle avec les clés que le dossier fournit lui-même : cela montre que le dossier est cohérent, pas qui l'a signé. Pour savoir qui l'a signé, ajoutez la liste des références de confiance (étape 2).");
+    for (const T of [fr, en]) for (const c of [...phrases, "statut_reussi_cles_dossier", "statut_reussi_approbateurs_dossier", "compte_dossier", "decompte_dossier"]) expect(T[c], c).to.not.match(/réussi|passed/i);
+    for (const T of [fr, en]) for (const c of ["statut_reussi_cles_dossier", "statut_reussi_approbateurs_dossier"]) expect(T[c], c).to.match(/Cohérent|Consistent/).and.match(/non prouvée|not proven/);
+    // Un contrôle réussi avec ce que le dossier déclare compte comme non prouvé : mention et éléments ; il n'entre pas dans le plein.
+    const p5 = (...a) => ({ ...f.presentationVerdict(...a) });
+    expect(p5(0, tous, [], [7])).to.deep.equal({ teinte: "reserve", mention: "mention_non_prouve" });
+    expect(p5(0, tous, [av("AV-K-1", "K-8")], [6, 7])).to.deep.equal({ teinte: "reserve", mention: "mention_les_deux" });
+    expect(p5(0, tous, [], [])).to.deep.equal({ teinte: "pleine", mention: null });
+    expect([...f.clesNonProuve(tous, [], [6, 7])]).to.deep.equal(["non_prouve_6_dossier", "non_prouve_7_dossier"]);
+    expect([...f.clesNonProuve(lus([R, R, R, N, N, R, R, R], VERIFS), [], [7])]).to.deep.equal(["non_prouve_4_5", "non_prouve_7_dossier"]);
+    expect([...f.clesNonProuve(tous, [av("AV-O-3", "O-5")], [7])]).to.deep.equal(["non_prouve_5", "non_prouve_7_dossier"]);
+    const resumeLu = (controles, clesDossier, approbateurs) => [...f.numerosDuDossier({ controles, clesDuDossier: clesDossier, approbateursDuDossier: approbateurs })];
+    expect([resumeLu(tous, "partie", true), resumeLu(tous, null, true), resumeLu(tous, "toutes", false), resumeLu(lus([R, R, R, R, R, N, N, R]), "toutes", true), resumeLu(null, "toutes", true)]).to.deep.equal([[6, 7], [7], [6], [], []]);
+    // Un contrôle exigé que le rapport dit sans valeur de preuve (CT-6 7.5 : le vérificateur rend 0) : sa mention à lui.
+    const essai = [av("AV-O-3", "O-5")];
+    expect([...f.exigesSansValeur(tous, essai, [4, 5]), ...f.exigesSansValeur(tous, essai, [4]), ...f.exigesSansValeur(tous, essai, null), ...f.exigesSansValeur(tous, [], [5]), ...f.exigesSansValeur(null, essai, [5])]).to.deep.equal([5]);
+    expect(p5(0, tous, essai, [], [5])).to.deep.equal({ teinte: "reserve", mention: "mention_exige_sans_valeur" });
+    expect(p5(0, tous, essai, [7], [1, 2, 3, 4, 5, 6, 7, 8])).to.deep.equal({ teinte: "reserve", mention: "mention_exige_sans_valeur" });
+    expect(p5(0, tous, essai, [], [4])).to.deep.equal({ teinte: "reserve", mention: "mention_les_deux" });
+    for (const code of [1, 3]) expect(p5(code, tous, essai, [], [5]), String(code)).to.deep.equal({ teinte: "pleine", mention: null });
+    // Les phrases ne disent plus l'exigence remplie, et disent que le vérificateur la compte remplie.
+    expect(fr.phrase_0_exige_sans_valeur).to.not.include("tout contrôle que vous avez exigé a réussi");
+    expect(fr.phrase_0_exige_sans_valeur).to.include("ce que vous avez exigé n'est donc pas prouvé");
+    expect(en.phrase_0_exige_sans_valeur).to.not.include("every control you required passed");
+    expect(en.phrase_0_exige_sans_valeur).to.include("what you required is therefore not proven");
+    for (const T of [fr, en]) expect(T.exiges_sans_valeur).to.match(/Le vérificateur les compte comme réussis|The verifier counts them as passed/);
+    expect(texte5()).to.include(`remplacée par « ${fr.phrase_0_exige_sans_valeur} » (« ${en.phrase_0_exige_sans_valeur} »)`).and.include("Le vérificateur rend 0 dans ce cas (7.5 : « `--exiger 5` est satisfait par un contrôle 5 réussi sur le réseau que déclare votre fichier d'ancres, `regtest` compris »)").and.include(`« ${fr.exiges_sans_valeur} » (« ${en.exiges_sans_valeur} »)`).and.include(`« ${fr.suite_exige_sans_valeur} » (« ${en.suite_exige_sans_valeur} »)`);
+    expect(ct6.replace(/\s+/g, " ")).to.include("`--exiger 5` est satisfait par un contrôle 5 réussi sur le réseau que déclare votre fichier d'ancres, `regtest` compris");
+    // Chaque renvoi du §18 à 7.5 en cite le texte mot pour mot, jamais une paraphrase.
+    const s18 = ct6.slice(ct6.indexOf("\n## 18. Page de vérification"), ct6.indexOf("\n## Annexe A")).replace(/\s+/g, " ");
+    const exact75 = "(7.5 : « `--exiger 5` est satisfait par un contrôle 5 réussi sur le réseau que déclare votre fichier d'ancres, `regtest` compris »)";
+    expect(s18.split(exact75).length - 1, "renvois exacts à 7.5").to.equal(2);
+    expect(s18, "aucune paraphrase de 7.5").to.not.include("satisfait sur `regtest`");
     for (const T of [fr, en]) {
       expect(T.controle_approbateurs_dossier).to.not.match(/ajoutez|add the list/);
       for (const c of ["controle_cles_dossier_toutes_liste", "controle_cles_dossier_partie_liste"]) expect(T[c], c).to.match(/organisation/).and.not.match(/ajoutez|add the list/);
@@ -1232,6 +1327,11 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
       { titre: "« réussie » gardé dans le résumé pour une preuve sans valeur", avant: "    if (raisons.length === 0) lignes.push(ligne);", apres: "    if (raisons.length >= 0) lignes.push(ligne);", vu: (g) => lignes(g).some((l) => l.nom === "limite_bitcoin") },
       { titre: "provenance des clés lue sous un code qui n'affirme rien", avant: "  if (code !== 0 && code !== 3) return null;\n  const objet", apres: "  const objet", vu: (g) => g.clesDuDossier(cles("dossier", "dossier"), 1) !== null },
       { titre: "une clé du dossier sur deux passée sous silence", avant: '  return n === 0 ? null : n === sources.length ? "toutes" : "partie";', apres: '  return n === sources.length ? "toutes" : null;', vu: (g) => g.clesDuDossier(cles("dossier", "registre"), 0) !== "partie" },
+      // Cinquième lecture.
+      { titre: "contrôle exigé sans valeur de preuve tenu pour une exigence remplie", avant: '  if (exigesSansValeur(controles, avertissements, exiges).length > 0) return { teinte: "reserve", mention: "mention_exige_sans_valeur" };\n', apres: "", vu: (g) => g.presentationVerdict(0, tous, essai, [], [5]).mention !== "mention_exige_sans_valeur" },
+      { titre: "approbateurs déclarés par le dossier comptés comme prouvés", avant: " || duDossier.includes(c.numero));", apres: ");", vu: (g) => g.presentationVerdict(0, tous, [], [7]).teinte === "pleine" },
+      { titre: "élément « identité des approbateurs » tu", avant: "      if (duDossier.includes(n)) cles.push(`non_prouve_${n}_dossier`);", apres: "", vu: (g) => g.clesNonProuve(tous, [], [7]).length === 0 },
+      { titre: "contrôle exigé sans valeur de preuve oublié", avant: "  return controles.filter((c) => exiges.includes(c.numero) && sansValeurDuControle(c.numero, controles, avertissements).length > 0).map((c) => c.numero);", apres: "  return [];", vu: (g) => g.exigesSansValeur(tous, essai, [5]).length === 0 },
     ];
     for (const m of mutants) {
       expect(m.vu(f), `témoin : ${m.titre}`).to.equal(false);
@@ -1322,13 +1422,18 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
           }
         }
       }
-      // Code 1 : les vérifications en échec et les vérifications bloquantes du rapport sont nommées sous le verdict.
+      // Code 1 : les vérifications en échec et les vérifications bloquantes du rapport sont nommées, comme la raison
+      // exacte de chaque contrôle non fait, en tête de la rubrique des spécialistes, hors de tout bloc replié (complément
+      // du 2026-11-18, cinquième lecture : points 8 et 12) ; ni sous le verdict ni sur la ligne du contrôle.
       const o = await verifierCas(CAS.nonValide);
       try {
         const ecran = await lireEcran(o.page);
-        expect(ecran.suite).to.include(libelle(T.fr, "verifications_echec", { liste: "E-7" }));
-        expect(ecran.suite).to.include(libelle(T.fr, "verifications_bloquantes", { liste: "T-2" }));
-        expect(ecran.controles[3].raison).to.include("(prerequis_en_echec)");
+        expect(ecran.specialistes).to.include(libelle(T.fr, "verifications_echec", { liste: "E-7" }));
+        expect(ecran.specialistes).to.include(libelle(T.fr, "verifications_bloquantes", { liste: "T-2" }));
+        expect(ecran.specialistes).to.include(libelle(T.fr, "raisons_exactes", { liste: "4 (prerequis_en_echec), 5 (partie_absente), 8 (ancre_absente)" }));
+        expect(ecran.suite).to.not.match(/E-7|T-2/);
+        expect(ecran.controles[3].raison).to.equal(T.fr.raison_prerequis_en_echec);
+        expect(await o.page.evaluate(() => [...document.querySelectorAll("#specialistes .pv-references")].every((p) => p.closest("details") === null && p.getClientRects().length > 0))).to.equal(true);
       } finally {
         await o.fermer();
       }
@@ -1910,11 +2015,15 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
               const ids = c.reserves.split(" ");
               return [[ids.filter((id) => id === "AV-O-3"), "controle_sans_valeur"], [ids.filter((id) => id !== "AV-O-3"), "controle_reserve"]].filter(([l]) => l.length > 0).map(([l, cle]) => [c.numero, libelle(L, cle, { ids: l.join(", "), renvoi: L.renvoi_reserves }), "#avertissements"]);
             }));
+            // Cinquième lecture : le renvoi ne porte plus l'identifiant de l'avertissement (il est dans son texte exact).
+            expect(lu.renvois.every(([, texte]) => !/AV-/.test(texte)), quoi).to.equal(true);
             const sansValeur = cas.json.controls.filter((c) => sansValeurAttendu(cas.json, c.number).length > 0).length;
-            const reussis = cas.json.controls.filter((c) => c.status === R).length - sansValeur;
-            const avecReserve = reserves.length - sansValeur;
+            const dossiers = a.controles.filter((c) => c.statut === R && sansValeurAttendu(cas.json, c.numero).length === 0 && cleDossierAttendue(cas, c.numero) !== null).map((c) => c.numero);
+            const reussis = cas.json.controls.filter((c) => c.status === R).length - sansValeur - dossiers.length;
+            const avecReserve = reserves.filter((c) => sansValeurAttendu(cas.json, c.numero).length === 0 && !dossiers.includes(c.numero)).length;
             expect(lu.compte.startsWith(avecReserve === 0 ? libelle(L, "compte_reussis", { n: reussis }) : libelle(L, "compte_reussis_reserve", { n: reussis, m: avecReserve })), quoi).to.equal(true);
             expect(lu.compte.includes(libelle(L, "compte_sans_valeur", { n: sansValeur })), quoi).to.equal(sansValeur > 0);
+            expect(lu.compte.includes(libelle(L, "compte_dossier", { n: dossiers.length })), quoi).to.equal(dossiers.length > 0);
             // Réserves : une ligne par identifiant de la table, « signalée N fois », tous les textes exacts.
             expect(garder(await lireLangage(o.page), ["listeReserves"]), quoi).to.deep.equal(garder(attenduLangage(cas, L), ["listeReserves"]));
             // « En résumé » : les lignes que le rapport permet, valeurs égales à ses champs ; avant le texte exact ; aucune empreinte.
@@ -1951,7 +2060,8 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         try {
           const ecran = await lireEcran(o.page);
           const langage = await lireLangage(o.page);
-          expect([ecran.mention, ecran.teinte, ecran.variante, ecran.tousReussis, ecran.nonProuve], langue).to.deep.equal([L.mention_les_deux, "pv-verdict-reserve", "", libelle(L, "tous_reussis_sans_valeur_reserve", { n: 7, m: 1, k: 1, raisons: L.sans_valeur_av_o_3 }), libelle(L, "non_prouve_un", { liste: L.non_prouve_5 })]);
+          // Cinquième lecture : le contrôle 7 (approbateurs du dossier) n'est plus compté parmi les réussis ni prouvé.
+          expect([ecran.mention, ecran.teinte, ecran.variante, ecran.tousReussis, ecran.nonProuve], langue).to.deep.equal([L.mention_les_deux, "pv-verdict-reserve", "", langue === "fr" ? "6 contrôles réussis, dont 1 avec réserve ; 1 sans valeur de preuve (réseau d'essai) ; 1 sans preuve de l'identité des signataires." : "6 controls passed, 1 of them with a reservation; 1 without evidential value (test network); 1 with no proof of the signers' identity.", libelle(L, "non_prouve_plusieurs", { liste: `${L.non_prouve_5}${L.non_prouve_dernier}${L.non_prouve_7_dossier}` })]);
           expect(ecran.controles.map((c) => c.etat), langue).to.deep.equal([L.statut_reussi, L.statut_reussi, L.statut_reussi, L.statut_reussi, libelle(L, "statut_sans_valeur", { raisons: L.sans_valeur_av_o_3 }), L.statut_reussi, L.statut_reussi_approbateurs_dossier, L.statut_reussi_reserve]);
           expect(langage.listeReserves.map((x) => [x.id, x.exactes.length]), langue).to.deep.equal([["AV-K-1", 1], ["AV-O-3", 2], ["AV-Z-9", 1]]);
           expect(langage.listeReserves[1].courante, langue).to.equal(`${L.av_o_3} ${libelle(L, "reserve_fois", { n: 2 })}`);
@@ -2041,15 +2151,20 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       contradictoire.json.facts.timestamp = { authority: "AC de test CT-6", gen_time: "2026-11-01T00:00:05Z", upper_bound: "2026-11-01T00:00:06Z" };
       const sansTimestamp = (cas) => ({ code: cas.code, json: { ...cas.json, facts: { ...cas.json.facts, timestamp: null } } });
       const illisible = { code: 0, json: { ...CAS_SECONDE.plein.json, controls: CAS_SECONDE.plein.json.controls.slice(0, 7) } };
+      // Cinquième lecture : en version 0, le jeu d'approbateurs est toujours celui du dossier, et le contrôle 7 ne compte
+      // plus comme prouvé ; le vert plein ne se voit que sur un rapport dont le jeu vient d'ailleurs (valeur que la
+      // version 0 ne rend pas, lue comme toute valeur autre que « dossier »).
+      const plein = { code: 0, json: JSON.parse(JSON.stringify(CAS_SECONDE.plein.json)) };
+      plein.json.facts.approval.set_source = "ancres";
       const neutre = async (o) => {
         const e = await lireEcran(o.page);
         return egal([e.variante, e.teinte, e.mention], ["", "pv-verdict-neutre", null]);
       };
       const mutants = [
         { titre: "vert plein gardé avec un contrôle non fait", avant: '  if (nonProuve) return { teinte: "reserve", mention: "mention_non_prouve" };\n', apres: "", cas: CAS_SECONDE.nonFaits, conforme: verdict },
-        { titre: "mention affichée sans contrôle non fait ni avertissement", avant: '  if (reserves) return { teinte: "reserve", mention: "mention_reserves" };\n  return { teinte: "pleine", mention: null };', apres: '  return { teinte: "reserve", mention: "mention_reserves" };', cas: CAS_SECONDE.plein, conforme: verdict },
+        { titre: "mention affichée sans contrôle non fait ni avertissement", avant: '  if (reserves) return { teinte: "reserve", mention: "mention_reserves" };\n  return { teinte: "pleine", mention: null };', apres: '  return { teinte: "reserve", mention: "mention_reserves" };', cas: plein, conforme: verdict },
         { titre: "rapport illisible montré en vert plein", avant: '  if (controles === null || avertissements === null) return { teinte: "neutre", mention: null };', apres: '  if (controles === null || avertissements === null) return { teinte: "pleine", mention: null };', cas: illisible, conforme: neutre },
-        { titre: "contrôle resté « Réussi » sous une réserve que le rapport lui rattache", avant: "    const [ton, nomIcone, cle] = raisonsSansValeur.length > 0 ? PASTILLE_SANS_VALEUR : ids.length > 0 ? PASTILLE_RESERVE : cleDossier !== null ? PASTILLES_DOSSIER[c.numero] : PASTILLES_STATUT[c.statut];", apres: "    const [ton, nomIcone, cle] = PASTILLES_STATUT[c.statut];", cas: CAS_SECONDE.reserves, conforme: verdict },
+        { titre: "contrôle resté « Réussi » sous une réserve que le rapport lui rattache", avant: "    const [ton, nomIcone, cle] = raisonsSansValeur.length > 0 ? PASTILLE_SANS_VALEUR : cleDossier !== null ? PASTILLES_DOSSIER[c.numero] : ids.length > 0 ? PASTILLE_RESERVE : PASTILLES_STATUT[c.statut];", apres: "    const [ton, nomIcone, cle] = PASTILLES_STATUT[c.statut];", cas: CAS_SECONDE.reserves, conforme: verdict },
         { titre: "réserve rattachée à des contrôles que le rapport ne nomme pas", avant: "  return controles.filter((c) => c.verifications.includes(avertissement.verification)).map((c) => c.numero);", apres: "  return controles.map((c) => c.numero);", cas: CAS_SECONDE.reserves, conforme: verdict },
         { titre: "réserve en double redite à chaque fois", avant: "    if (g) g.elements.push(a);\n    else groupes.push(", apres: "    groupes.push(", cas: CAS_SECONDE.reserves, conforme: reserves },
         { titre: "texte exact d'une réserve en double retiré", avant: "      for (const a of g.elements) {", apres: "      for (const a of g.elements.slice(0, 1)) {", cas: CAS_SECONDE.reserves, conforme: reserves },
@@ -2171,7 +2286,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       }
     });
 
-    it("troisième lecture (point 2) : un contrôle non fait dit quoi demander, d'après les pièces ajoutées à l'étape 2 (aucune, la liste, la liste et l'extrait, l'extrait seul) ; la raison exacte suit, entre parenthèses ; aucun terme de technicien ; en français et en anglais ; mutant vu", async function () {
+    it("troisième lecture (point 2) : un contrôle non fait dit quoi demander, d'après les pièces ajoutées à l'étape 2 (aucune, la liste, la liste et l'extrait, l'extrait seul) ; la raison exacte est en tête des spécialistes (cinquième lecture) ; aucun terme de technicien ; en français et en anglais ; mutant vu", async function () {
       if (!pret(this)) return;
       const T = tables();
       const rapports = [
@@ -2182,6 +2297,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         const r = li.querySelector(".pv-controle-raison");
         return [Number(li.dataset.numero), r.textContent, [...r.querySelectorAll("[data-valeur]")].map((v) => v.textContent)];
       }));
+      const raisonsExactes = (o) => o.page.evaluate(() => (document.querySelector("#raisons-exactes") === null ? null : document.querySelector("#raisons-exactes").textContent));
       for (const langue of ["fr", "en"]) {
         for (const pieces of [{}, { ancres: true }, { ancres: true, entetes: true }, { entetes: true }]) {
           for (const json of rapports) {
@@ -2190,7 +2306,9 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
             const o = await verifierCas(cas, { langue, pieces });
             try {
               const a = attendu(cas, T[langue], pieces);
-              expect(await raisonsLues(o), quoi).to.deep.equal(a.controles.filter((c) => c.statut === N).map((c) => [c.numero, c.raison, [json.controls[c.numero - 1].reason]]));
+              // Cinquième lecture : la ligne ne porte plus le code de la raison ; il est en tête des spécialistes.
+              expect(await raisonsLues(o), quoi).to.deep.equal(a.controles.filter((c) => c.statut === N).map((c) => [c.numero, c.raison, []]));
+              expect(await raisonsExactes(o), quoi).to.equal(libelle(T[langue], "raisons_exactes", { liste: json.controls.filter((c) => c.status === N).map((c) => `${c.number} (${c.reason})`).join(", ") }));
               expect(termesTrouves((await premierNiveau(o.page)).textes), quoi).to.deep.equal([]);
             } finally {
               await o.fermer();
@@ -2203,13 +2321,13 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       fs.cpSync(SOURCES, path.join(copie, "src"), { recursive: true });
       const fichier = path.join(copie, "src", "page", "interface.js");
       const source = fs.readFileSync(fichier, "utf8");
-      const avant = "numero, noms !== null && noms.ancres !== null, noms !== null && noms.entetes !== null);";
+      const avant = "numero, noms !== null && noms.ancres !== null, noms !== null && noms.entetes !== null, horsPerimetre);";
       expect(source.split(avant)).to.have.length(2);
-      fs.writeFileSync(fichier, source.replace(avant, "numero, false, false);"));
+      fs.writeFileSync(fichier, source.replace(avant, "numero, false, false, horsPerimetre);"));
       const o = await verifierCas({ code: 0, json: rapports[0] }, { page: construirePageFactice(path.join(copie, "construite"), path.join(copie, "src")), pieces: { ancres: true } });
       try {
         const a = attendu({ code: 0, json: rapports[0] }, T.fr, { ancres: true });
-        expect(await raisonsLues(o), "mutant vu : pièces ignorées").to.not.deep.equal(a.controles.filter((c) => c.statut === N).map((c) => [c.numero, c.raison, [rapports[0].controls[c.numero - 1].reason]]));
+        expect(await raisonsLues(o), "mutant vu : pièces ignorées").to.not.deep.equal(a.controles.filter((c) => c.statut === N).map((c) => [c.numero, c.raison, []]));
       } finally {
         await o.fermer();
         fs.rmSync(copie, { recursive: true, force: true });
@@ -2272,18 +2390,21 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
             }
           }
         }
-        // Écrit en clair, pour le cas de la consigne : « 7 contrôles réussis ; 1 sans valeur de preuve (réseau d'essai). »
+        // Écrit en clair, pour le cas de la consigne. Cinquième lecture : le contrôle 7 (approbateurs du dossier) n'est
+        // plus compté parmi les réussis.
         const o = await verifierCas(cas.sansValeur, { langue });
         try {
           const ecran = await lireEcran(o.page);
-          expect([ecran.tousReussis, ecran.mention, ecran.nonProuve], langue).to.deep.equal([langue === "fr" ? "7 contrôles réussis ; 1 sans valeur de preuve (réseau d'essai)." : "7 controls passed; 1 without evidential value (test network).", L.mention_les_deux, libelle(L, "non_prouve_un", { liste: L.non_prouve_5 })]);
+          expect([ecran.tousReussis, ecran.mention, ecran.nonProuve], langue).to.deep.equal([langue === "fr" ? "6 contrôles réussis ; 1 sans valeur de preuve (réseau d'essai) ; 1 sans preuve de l'identité des signataires." : "6 controls passed; 1 without evidential value (test network); 1 with no proof of the signers' identity.", L.mention_les_deux, libelle(L, "non_prouve_plusieurs", { liste: `${L.non_prouve_5}${L.non_prouve_dernier}${L.non_prouve_7_dossier}` })]);
         } finally {
           await o.fermer();
         }
         const b = await verifierCas(cas.borne, { langue });
         try {
           const ecran = await lireEcran(b.page);
-          expect([ecran.nonProuve, ecran.sansValeur], langue).to.deep.equal([libelle(L, "non_prouve_plusieurs", { liste: `${L.non_prouve_4_5}${L.non_prouve_dernier}${L.non_prouve_8}` }), libelle(L, "valide_sans_valeur", { liste: "5", raisons: L.sans_valeur_av_o_3 })]);
+          // Cinquième lecture : les contrôles 6 et 7, réussis avec les clés et les approbateurs du dossier, ont leur élément.
+          expect([ecran.nonProuve, ecran.sansValeur], langue).to.deep.equal([libelle(L, "non_prouve_plusieurs", { liste: `${L.non_prouve_4_5}${L.non_prouve_sep}${L.non_prouve_6_dossier}${L.non_prouve_sep}${L.non_prouve_7_dossier}${L.non_prouve_dernier}${L.non_prouve_8}` }), libelle(L, "valide_sans_valeur", { liste: "5", raisons: L.sans_valeur_av_o_3 })]);
+          if (langue === "fr") expect(ecran.nonProuve).to.equal("Ce dossier ne prouve ni sa date, ni que la signature est bien celle de l'enregistreur, ni l'identité des approbateurs, ni son inscription au registre public.");
         } finally {
           await b.fermer();
         }
@@ -2301,6 +2422,89 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         expect((await lire(o)).lignes[5][5], "mutant vu : phrase des clés du dossier retirée").to.equal(null);
       } finally {
         await o.fermer();
+        fs.rmSync(copie, { recursive: true, force: true });
+      }
+    });
+
+    it("cinquième lecture (complément du 2026-11-18, points 6, 8, 12 et 15, EX-18.5) : un contrôle exigé sans valeur de preuve n'est plus dit satisfait (titre, phrase, ligne sous le verdict, « Et maintenant ? »), alors que le vérificateur rend 0 ; les deux causes de hors_perimetre_version ; aucun code interne sur la ligne d'un contrôle ni sous le verdict ; où trouver les empreintes publiées ; en français et en anglais ; mutant vu", async function () {
+      if (!pret(this)) return;
+      const T = tables();
+      const exige = (exiges, extra = {}) => ({ code: 0, json: rapportAuxFaits({ avertissements: [AV_ESSAI], exiges, ...extra }) });
+      const cas = {
+        // La preuve de date par la chaîne Bitcoin exigée, sur un réseau d'essai : le vérificateur rend 0 (CT-6 7.5).
+        exigeCinq: exige([4, 5]),
+        exigeTous: exige([1, 2, 3, 4, 5, 6, 7, 8]),
+        // Même rapport sans exigence : la phrase du code 0 reste.
+        sansExigence: exige([]),
+        // Code 3 : le 4 exigé non fait, le 5 exigé sans valeur de preuve ; les deux lignes.
+        incomplet: { code: 3, json: rapportAuxFaits({ code: 3, statuts: [R, R, R, N, R, R, R, R], raisons: { 4: "ancre_absente" }, exiges: [4, 5], avertissements: [AV_ESSAI] }) },
+      };
+      // Les deux causes de hors_perimetre_version (6.2), d'après absent_parts (EX-4.3).
+      const absent = { code: 0, json: rapportAuxFaits({ statuts: [R, R, R, N, N, R, R, N], raisons: { 4: "hors_perimetre_version", 5: "hors_perimetre_version", 8: "hors_perimetre_version" } }) };
+      absent.json.absent_parts = ["jeton-rfc3161.der", "preuve.ots", "registre.json", "certificat-commit.json", "validateurs.json"].map((file) => ({ name: file.replace(/[.-].*$/, ""), file, reason: "hors périmètre CT-1" }));
+      const forme = { code: 0, json: rapportAuxFaits({ statuts: [R, R, R, R, N, R, R, R], raisons: { 5: "hors_perimetre_version" } }) };
+      forme.json.absent_parts = [];
+      cas.absent = absent;
+      cas.forme = forme;
+      const lire = (o) => o.page.evaluate(() => {
+        const t = (s) => (document.querySelector(s) === null ? null : document.querySelector(s).textContent);
+        return { titre: t("#verdict-titre"), verdict: t("#verdict"), lignes: [...document.querySelectorAll("#controles li.pv-controle")].map((li) => li.querySelector(".nt-controle-texte").textContent), code: t("#code") };
+      });
+      for (const langue of ["fr", "en"]) {
+        const L = T[langue];
+        for (const [nom, c] of Object.entries(cas)) {
+          const quoi = `${nom}, ${langue}`;
+          const o = await verifierCas(c, { langue });
+          try {
+            const a = attendu(c, L);
+            expect(garder(await lireEcran(o.page), CLES_VERDICT), quoi).to.deep.equal(garder(a, CLES_VERDICT));
+            expect(garder(await lireLangage(o.page), CLES_LANGAGE), quoi).to.deep.equal(attenduLangage(c, L));
+            const lu = await lire(o);
+            expect(lu.titre, quoi).to.equal(`${a.mot}${a.mention ?? ""}`);
+            // La formule exacte reste celle du code que le vérificateur a rendu : la page ne change pas le code, elle restreint ce qu'elle en dit.
+            expect(lu.code, quoi).to.equal(libelle(L, "code", { code: c.code, sens: L[`code_${c.code}`] }));
+            // Aucun code interne sur la ligne d'un contrôle ni dans le cadre du verdict (raison, identifiant d'avertissement ou de vérification).
+            for (const texte of [lu.verdict, ...lu.lignes]) expect(texte, quoi).to.not.match(/\b[a-z]+_[a-z_]+\b|\bAV-[A-Z]|\b[A-Z]{1,2}-[0-9]+\b/);
+          } finally {
+            await o.fermer();
+          }
+        }
+        // Écrit en clair, pour le cas de la consigne (preuve de date par la chaîne Bitcoin exigée, réseau d'essai).
+        const o = await verifierCas(cas.exigeCinq, { langue });
+        try {
+          const ecran = await lireEcran(o.page);
+          const langage = await lireLangage(o.page);
+          expect([ecran.mention, ecran.exigesSansValeur, langage.phrase], langue).to.deep.equal(langue === "fr" ? [", mais ce que vous avez exigé n'est pas prouvé, et avec des réserves", "Contrôles que vous avez exigés et qui sont sans valeur de preuve : n° 5 (réseau d'essai). Le vérificateur les compte comme réussis, mais ils ne prouvent pas ce que vous demandiez.", L.phrase_0_exige_sans_valeur] : [", but what you required is not proven, and with reservations", "Controls you required that are without evidential value: no. 5 (test network). The verifier counts them as passed, but they do not prove what you asked for.", L.phrase_0_exige_sans_valeur]);
+          expect(await o.page.textContent("#verdict"), langue).to.not.include(langue === "fr" ? "tout contrôle que vous avez exigé a réussi" : "every control you required passed");
+          // Où trouver les empreintes publiées : dans le bloc replié de l'empreinte, avant la phrase qui porte l'empreinte.
+          expect(await o.page.textContent("#confiance-courante"), langue).to.equal(L.confiance_courante);
+          await o.page.click("#detail-empreinte > summary");
+          expect(await o.page.evaluate(() => { const p = document.getElementById("ou-empreintes"); return [p.textContent, p.getClientRects().length > 0, (p.compareDocumentPosition(document.getElementById("artefact")) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0]; }), langue).to.deep.equal([L.ou_empreintes, true, true]);
+        } finally {
+          await o.fermer();
+        }
+      }
+      // Les deux causes, écrites en clair.
+      const o = await verifierCas(cas.absent);
+      try {
+        expect((await lireEcran(o.page)).controles.filter((c) => c.statut === N).map((c) => c.raison)).to.deep.equal([T.fr.raison_hors_perimetre_absente, T.fr.raison_hors_perimetre_absente, T.fr.raison_hors_perimetre_absente]);
+        expect(await o.page.textContent("#raisons-exactes")).to.equal(libelle(T.fr, "raisons_exactes", { liste: "4 (hors_perimetre_version), 5 (hors_perimetre_version), 8 (hors_perimetre_version)" }));
+      } finally {
+        await o.fermer();
+      }
+      // Mutant : la phrase du code 0 gardée sous une exigence sans valeur de preuve ; l'essai le voit.
+      const copie = path.join(dir, "mutant-exige-sans-valeur");
+      fs.cpSync(SOURCES, path.join(copie, "src"), { recursive: true });
+      const fichier = path.join(copie, "src", "page", "interface.js");
+      const source = fs.readFileSync(fichier, "utf8");
+      const avant = '  const courante = v.code === 0 && exigesSv.length > 0 ? "phrase_0_exige_sans_valeur" : clePhraseCourante(v.code);';
+      expect(source.split(avant)).to.have.length(2);
+      fs.writeFileSync(fichier, source.replace(avant, "  const courante = clePhraseCourante(v.code);"));
+      const m = await verifierCas(cas.exigeCinq, { page: construirePageFactice(path.join(copie, "construite"), path.join(copie, "src")) });
+      try {
+        expect((await lireLangage(m.page)).phrase, "mutant vu : phrase du code 0 sous une exigence sans valeur de preuve").to.not.equal(T.fr.phrase_0_exige_sans_valeur);
+      } finally {
+        await m.fermer();
         fs.rmSync(copie, { recursive: true, force: true });
       }
     });
@@ -2512,7 +2716,11 @@ describe("page de vérification, présentation, de bout en bout dans chromium (C
       { titre: "valide, huit contrôles réussis", dossier: "ct-6/dossiers/valide-seq-7-complet", ancres: true, entetes: true, code: 0, nonReussis: [], resume: ["action", "outil", "periode", "approbation", "limite_autorite", "sans_valeur_5", "registre"], dossier6: null },
       { titre: "valide borné, sans fichier d'ancres", dossier: "ct-6/dossiers/valide-seq-7-complet", code: 0, nonReussis: [4, 5, 8], resume: ["action", "outil", "periode", "approbation"], dossier6: "controle_cles_dossier_toutes" },
       { titre: "non valide", dossier: "ct-1/dossiers/invalide-hash-faux", code: 1 },
-      { titre: "incomplet, contrôles 4, 5 et 8 exigés", dossier: "ct-1/dossiers/valide-seq-7", exiger: [4, 5, 8], code: 3, nonReussis: [4, 5, 8], dossier6: "controle_cles_dossier_toutes" },
+      { titre: "incomplet, contrôles 4, 5 et 8 exigés", dossier: "ct-1/dossiers/valide-seq-7", exiger: [4, 5, 8], code: 3, nonReussis: [4, 5, 8], dossier6: "controle_cles_dossier_toutes", raisons: "raison_hors_perimetre_absente" },
+      // Cinquième lecture : la preuve de date par la chaîne Bitcoin exigée, sur un réseau d'essai (le vérificateur rend 0,
+      // CT-6 7.5) ; une preuve OpenTimestamps présente, d'une forme que la version 0 ne vérifie pas.
+      { titre: "valide, preuve de date par la chaîne Bitcoin exigée sur un réseau d'essai", dossier: "ct-6/dossiers/valide-seq-7-complet", ancres: true, entetes: true, exiger: [4, 5], code: 0, nonReussis: [], resume: ["action", "outil", "periode", "approbation", "limite_autorite", "sans_valeur_5", "registre"], dossier6: null, phrase: "phrase_0_exige_sans_valeur" },
+      { titre: "valide, preuve OpenTimestamps hors profil", dossier: "ct-6/dossiers/valide-o3-hors-profil-seul", ancres: true, entetes: true, code: 0, nonReussis: [5], dossier6: null, raisons: "raison_hors_perimetre_forme" },
       { titre: "aucun verdict", dossier: "ct-1/dossiers/illisible-index-non-json", code: 2 },
     ];
     const o = await ouvrir(navigateur, page);
@@ -2537,6 +2745,9 @@ describe("page de vérification, présentation, de bout en bout dans chromium (C
         const a = attendu({ code: e.code, json }, T, { ancres: e.ancres === true, entetes: e.entetes === true });
         expect(garder(ecran, CLES_VERDICT), e.titre).to.deep.equal(garder(a, CLES_VERDICT));
         if (e.nonReussis) expect(ecran.controles.filter((c) => c.statut !== R).map((c) => c.numero), e.titre).to.deep.equal(e.nonReussis);
+        // Cinquième lecture : la phrase du verdict, et la cause de hors_perimetre_version lue dans absent_parts.
+        if (e.phrase) expect((await lireLangage(o.page)).phrase, e.titre).to.equal(T[e.phrase]);
+        if (e.raisons) expect(ecran.controles.filter((c) => c.statut !== R).map((c) => c.raison), e.titre).to.deep.equal(e.nonReussis.map(() => T[e.raisons]));
         // Quatrième lecture (point 15) : les clés du contrôle 6 viennent du dossier sans liste, du fichier d'ancres avec
         // elle ; le jeu d'approbateurs du contrôle 7 est toujours celui du dossier ; la phrase est sur la ligne.
         if (e.code === 0 || e.code === 3) {

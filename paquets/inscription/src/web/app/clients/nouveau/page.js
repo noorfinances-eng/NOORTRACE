@@ -12,6 +12,13 @@
 // journalier d'EX-4.19) et la référence de notre réserve de crédits (la trésorerie), dont la valeur par défaut est
 // sûre (EX-4.19, EX-8.20 : l'agent recalcule et plafonne), sont rangées dans « Réglages avancés », replié, sous ce
 // que sont les crédits d'écriture (quatrième lecture des écrans).
+//
+// Cinquième lecture des écrans (même complément) : le mot « essai » n'a qu'un sens, celui du bandeau « Mode essai » :
+// un registre d'essai, qui n'est pas le registre réel. L'aide du nom court dit d'abord le cas habituel (tirer un
+// nom au hasard, EX-6.2) ; un nom libre n'est admis que sur un registre d'essai (EX-6.2 : « Les slugs d'essai sont
+// libres »), et l'aide ne le dit qu'en mode essai. Le second formulaire, qui prend approbateurs et enregistreur dans
+// le fichier de clés que l'équipe technique a déposé (réseau de développement seulement), s'appelle « client de
+// démonstration ». L'explication des crédits ne paraît qu'une fois sur l'écran, dans le formulaire principal.
 
 import FormulaireTravail from "../../../composants/FormulaireTravail.js";
 import Icone from "../../../composants/Icone.js";
@@ -21,11 +28,15 @@ import { exigerSession, nature } from "../../../lib/page.mjs";
 export const dynamic = "force-dynamic";
 
 // RG-1 : slug de l'organisation ; en production, « o- » et 32 chiffres hexadécimaux tirés au hasard (EX-6.2).
+const AIDE_ORG = "Pour le remplir, cliquez sur « Tirer un nom au hasard ». C'est le nom sous lequel le client sera inscrit, et il ne pourra plus changer. Il sera visible de tous sur le registre public : il ne doit donc pas permettre de reconnaître le client.";
+const AIDE_ORG_ESSAI = " En mode essai seulement, vous pouvez aussi écrire un nom libre, en minuscules, sans espace ni accent : sur le registre réel, l'outil le refuserait.";
 const ORG = {
-  nom: "org", libelle: "Nom court du client", type: "slug", exemple: "assureur-demo", tirage: "Tirer un nom au hasard",
-  aide: "Le nom sous lequel le client sera inscrit ; il ne pourra plus changer. Pour un vrai client, cliquez sur « Tirer un nom au hasard » : ce nom est visible de tous sur le registre public et ne doit pas permettre de reconnaître le client. Pour un essai, écrivez un nom libre, en minuscules, sans espace ni accent.",
-  apres: "Ce nom ne dit pas qui est le client : notez la correspondance dans votre fichier des clients.",
+  nom: "org", libelle: "Nom court du client", type: "slug", tirage: "Tirer un nom au hasard",
+  aide: AIDE_ORG,
+  apres: "Ce nom ne dit pas qui est le client : notez-le dans votre fichier des clients, à côté de son vrai nom.",
 };
+/** En mode essai, l'aide dit aussi qu'un nom libre est admis, et l'exemple en montre un. */
+const ORG_ESSAI = { ...ORG, aide: AIDE_ORG + AIDE_ORG_ESSAI, exemple: "assureur-demo" };
 // RG-2 : noms des journaux.
 const JOURNAUX = { nom: "journaux", libelle: "Noms des journaux du client", type: "liste_noms_journal", exemple: "journal-principal", aide: "Un journal est la suite des actions enregistrées chez le client, dans l'ordre. Le client vous donne par écrit le nom de chacun de ses journaux. Un nom par ligne ; recopiez-le exactement, car son enregistreur emploie ce même nom." };
 const SEUIL = { nom: "seuil", libelle: "Nombre d'approbations requises", type: "seuil", exemple: "2", aide: "Combien d'approbateurs doivent signer pour qu'une décision du client soit valable. Le client vous donne ce nombre par écrit ; il ne dépasse pas le nombre d'approbateurs." };
@@ -35,6 +46,8 @@ const BUDGET = { nom: "budget_jour", libelle: "Consommation prévue par jour", t
 // EX-7.3 : la trésorerie, désignée par sa référence ; défaut : celle de la configuration de l'agent.
 const TRESORERIE = { nom: "tresorerie", libelle: "Référence de notre réserve de crédits d'écriture", type: "reference_cle", facultatif: true, exemple: "alias:tresorerie", aide: "Le compte de notre société d'où partent les crédits versés sur le compte technique du client. Laissez vide : c'est la réserve habituelle du service d'inscription. Ne remplissez ce champ que si l'équipe technique vous a donné une référence, qui commence par « fichier: » ou « alias: ». Une référence dit où une clé est rangée ; ce n'est jamais la clé secrète elle-même." };
 const VERSEMENT = { titre: "Le versement sur le compte technique", replie: "Réglages avancés", texte: "Ce qui sera versé, en crédits d'écriture, sur le compte technique de l'enregistreur, pour qu'il puisse payer ses écritures. Les valeurs habituelles s'appliquent quand ces champs restent vides ; le service d'inscription recalcule lui-même le montant du versement.", credits: true, champs: [BUDGET, TRESORERIE] };
+/** Le même, dans le formulaire du client de démonstration : l'explication des crédits est déjà sur l'écran. */
+const VERSEMENT_DEMONSTRATION = { ...VERSEMENT, credits: false };
 const APRES = "Après le clic : l'outil contrôle la forme de ce que vous avez saisi et crée le dossier ; le client apparaît dans la liste, à l'étape 1 sur 8. Rien n'est envoyé au registre public, rien n'est dépensé.";
 
 export default async function PageNouveau() {
@@ -62,14 +75,14 @@ export default async function PageNouveau() {
         <FormulaireTravail
           commande="inscrire-client-preparer"
           sections={[
-            { titre: "Le client", champs: [ORG, JOURNAUX] },
+            { titre: "Le client", champs: [developpement ? ORG_ESSAI : ORG, JOURNAUX] },
             {
               titre: "Ses approbateurs",
               texte: "Les approbateurs sont les personnes du client qui donnent leur accord en signant. Chacun est désigné par son adresse de signature, qui n'est pas un secret.",
               champs: [
                 { nom: "approbateurs", libelle: "Adresses de signature des approbateurs", type: "liste_adresses", exemple: "0x1111111111111111111111111111111111111111", aide: "Le client vous donne par écrit l'adresse de signature de chacun de ses approbateurs : « 0x » suivi de 40 caractères. Une adresse par ligne ; copiez-les sans les retaper. Si une adresse est fausse, l'outil ne peut pas le voir, et une autre personne que prévu pourrait approuver à la place du client." },
                 SEUIL,
-                { nom: "admin_jeu", libelle: "Adresse de signature du responsable des approbateurs", type: "adresse", exemple: "0x2222222222222222222222222222222222222222", aide: "La personne du client qui pourra, plus tard, ajouter ou retirer un approbateur. Le client vous donne son adresse par écrit. C'est toujours une adresse du client, jamais une des nôtres : pour un vrai client, l'outil refuse une de nos adresses." },
+                { nom: "admin_jeu", libelle: "Adresse de signature du responsable des approbateurs", type: "adresse", exemple: "0x2222222222222222222222222222222222222222", aide: "La personne du client qui pourra, plus tard, ajouter ou retirer un approbateur. Le client vous donne son adresse par écrit. C'est toujours une adresse du client, jamais une des nôtres : sur le registre réel, l'outil refuse une de nos adresses." },
               ],
             },
             {
@@ -86,19 +99,19 @@ export default async function PageNouveau() {
         />
       </section>
       {developpement ? (
-        <details className="nt-detail" data-action="cles-essai">
-          <summary>Préparer un client d'essai<span className="nt-detail-note">réservé aux essais de l'équipe technique</span></summary>
+        <details className="nt-detail ins-replie" data-action="cles-essai">
+          <summary>Préparer un client de démonstration<span className="nt-detail-note">réservé à l'équipe technique</span></summary>
           <div className="nt-detail-corps">
-            <p className="nt-attenue">Ne vous servez pas de ce formulaire pour un vrai client. En mode essai, les approbateurs et l'enregistreur peuvent venir d'un fichier de clés d'essai que l'équipe technique a déjà déposé auprès du service d'inscription.</p>
+            <p className="nt-attenue">Un client de démonstration n'a pas de vrais approbateurs ni de vrai enregistreur : ils viennent d'un fichier de clés que l'équipe technique a déposé auprès du service d'inscription. Ne vous servez de ce formulaire que si elle vous le demande.</p>
             <FormulaireTravail
               commande="inscrire-client-preparer"
               sections={[
-                { titre: "Le client d'essai", champs: [ORG, JOURNAUX, SEUIL] },
-                { titre: "Les clés d'essai", champs: [{ nom: "cles_essai", libelle: "Fichier des clés d'essai", type: "chemin", defaut: "cles-essai.json", aide: "Le nom du fichier que l'équipe technique a déposé. Gardez la valeur proposée, sauf consigne contraire." }] },
-                VERSEMENT,
+                { titre: "Le client de démonstration", champs: [ORG_ESSAI, JOURNAUX, SEUIL] },
+                { titre: "Le fichier de clés de démonstration", champs: [{ nom: "cles_essai", libelle: "Fichier des clés de démonstration", type: "chemin", defaut: "cles-essai.json", aide: "Le nom du fichier que l'équipe technique a déposé. Gardez la valeur proposée, sauf consigne contraire." }] },
+                VERSEMENT_DEMONSTRATION,
               ]}
               note={APRES}
-              bouton="Préparer le dossier d'essai"
+              bouton="Préparer le dossier de démonstration"
               principal={false}
             />
           </div>

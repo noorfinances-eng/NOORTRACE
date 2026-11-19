@@ -28,13 +28,21 @@
 //
 // Quatrième lecture des écrans (même complément) : une section `credits` dit, sous son texte, ce que sont les crédits
 // d'écriture ; un refus `transaction_annulee` dit ce qui a échoué d'après la vérification qui l'a rendu (`check`).
+//
+// Cinquième lecture des écrans (même complément) : l'explication des crédits est un bloc replié (`CreditsEnClair`).
+// Une saisie refusée l'est en entier : la page contrôle tous les champs, signale sous chacun ce qui est à corriger
+// (pour les fiches d'enregistreur, chaque zone fautive) et nomme, sous le bouton, les champs à corriger ; elle ne
+// s'arrête plus au premier. Le contrôle natif du navigateur, qui ne montrait que le premier champ vide, est remplacé
+// par celui de la page (`noValidate`) : un champ requis laissé vide est refusé par sa phrase. Rien n'est envoyé tant
+// qu'un champ est refusé ; ce que la route reçoit ne change pas.
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { lireChamp, lireFiches } from "./champs-page.js";
+import CreditsEnClair from "./CreditsEnClair.js";
 import Icone from "./Icone.js";
 import Pastille from "./Pastille.js";
-import { CREDITS_EN_CLAIR, etatTravail, explicationErreur, explicationFiche, explicationSaisie, libelleCommande } from "../lib/parcours.mjs";
+import { CHAMP_VIDE, etatTravail, explicationErreur, explicationFiche, explicationSaisie, libelleCommande } from "../lib/parcours.mjs";
 
 const ATTENTE_MS = 1000;
 /** Types saisis en chasse fixe : identifiants, adresses, empreintes, références, documents. */
@@ -58,15 +66,16 @@ const idZone = (id, k) => (k === 0 ? id : `${id}-${k + 1}`);
  * retirer. Toutes portent le nom et le type déclaré du champ (`liste_documents`) : ce sont les éléments d'une même
  * liste. Aucune n'est requise par le navigateur : une zone vide est refusée par la page, avec sa phrase.
  */
-function ChampFiches({ champ, id, saisie, zones, ajouter, retirer }) {
-  const decrit = (k) => [`${id}-aide`, champ.exemple ? `${id}-exemple` : null, saisie?.zone === k ? `${idZone(id, k)}-erreur` : null].filter(Boolean).join(" ");
+function ChampFiches({ champ, id, saisies = [], zones, ajouter, retirer }) {
+  const erreurDe = (k) => saisies.find((x) => x.zone === k) ?? null;
+  const decrit = (k) => [`${id}-aide`, champ.exemple ? `${id}-exemple` : null, erreurDe(k) ? `${idZone(id, k)}-erreur` : null].filter(Boolean).join(" ");
   return (
     <div className="nt-champ" data-fiches={champ.nom}>
       {zones.map((cle, k) => (
         <div className="ins-fiche-zone" key={cle} data-zone={k}>
           <label className="nt-libelle" htmlFor={idZone(id, k)}>{k === 0 ? champ.libelle : `${champ.libelleAutre} (fiche ${k + 1})`}</label>
-          <textarea id={idZone(id, k)} name={champ.nom} className="nt-saisie nt-saisie-fixe" data-type={champ.type} autoComplete="off" spellCheck={false} aria-required="true" aria-describedby={decrit(k)} aria-invalid={saisie?.zone === k ? "true" : undefined} />
-          {saisie?.zone === k ? <p className="nt-erreur" id={`${idZone(id, k)}-erreur`} role="alert" data-regle={saisie.regle}><Icone nom="alerte" /><span>{saisie.message}</span></p> : null}
+          <textarea id={idZone(id, k)} name={champ.nom} className="nt-saisie nt-saisie-fixe" data-type={champ.type} autoComplete="off" spellCheck={false} aria-required="true" aria-describedby={decrit(k)} aria-invalid={erreurDe(k) ? "true" : undefined} />
+          {erreurDe(k) ? <p className="nt-erreur" id={`${idZone(id, k)}-erreur`} role="alert" data-regle={erreurDe(k).regle}><Icone nom="alerte" /><span>{erreurDe(k).message}</span></p> : null}
           {k > 0 ? <div className="nt-actions"><button type="button" className="nt-bouton nt-bouton-petit" onClick={() => retirer(cle)} data-retirer-fiche={k}>Retirer cette zone</button></div> : null}
         </div>
       ))}
@@ -81,9 +90,9 @@ function ChampFiches({ champ, id, saisie, zones, ajouter, retirer }) {
   );
 }
 
-function Champ({ champ, prefixe, erreur, regle, saisie, zones, ajouter, retirer }) {
+function Champ({ champ, prefixe, erreur, regle, saisies, zones, ajouter, retirer }) {
   const id = `${prefixe}-${champ.nom}`;
-  if (champ.fiches) return <ChampFiches champ={champ} id={id} saisie={saisie} zones={zones} ajouter={ajouter} retirer={retirer} />;
+  if (champ.fiches) return <ChampFiches champ={champ} id={id} saisies={saisies} zones={zones} ajouter={ajouter} retirer={retirer} />;
   const decrit = [champ.aide ? `${id}-aide` : null, champ.exemple ? `${id}-exemple` : null, erreur ? `${id}-erreur` : null].filter(Boolean).join(" ") || undefined;
   const classes = ["nt-saisie", TYPES_FIXES.has(champ.type) ? "nt-saisie-fixe" : ""].filter(Boolean).join(" ");
   const commun = { id, name: champ.nom, className: classes, "data-type": champ.type, required: !champ.facultatif && !champ.obligatoire, "aria-required": champ.obligatoire ? "true" : undefined, defaultValue: champ.defaut ?? undefined, autoComplete: "off", spellCheck: false, "aria-describedby": decrit, "aria-invalid": erreur ? "true" : undefined };
@@ -183,23 +192,28 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
     const formulaire = ev.currentTarget;
     const f = new FormData(formulaire);
     const parametres = {};
-    /** Refuse la saisie d'un champ (ou d'une zone du champ des fiches) : le message sous le champ, le bloc replié ouvert, le champ visé ; rien n'est envoyé. */
-    const refuser = (c, message, regle, zone = null) => {
-      setEtat({ saisie: { champ: c.nom, message, regle, zone }, refus: null, travail: null, envoi: false });
-      const fautif = document.getElementById(zone === null ? `${prefixe}-${c.nom}` : idZone(`${prefixe}-${c.nom}`, zone));
-      fautif?.closest("details")?.setAttribute("open", "");
-      fautif?.focus();
-    };
+    /**
+     * Saisies refusées : tous les champs sont contrôlés, et chaque refus est noté (le champ, ou la zone du champ des
+     * fiches, avec sa phrase) ; s'il y en a, le premier champ fautif est visé, chaque bloc replié qui en cache un
+     * s'ouvre, et rien n'est envoyé.
+     */
+    const refuses = [];
+    const refuser = (c, message, regle, zone = null) => { refuses.push({ champ: c.nom, libelle: c.libelle, message, regle, zone }); };
     for (const c of tous) {
       const brut = String(f.get(c.nom) ?? "");
       const cle = c.parametre ?? c.nom;
       if (c.fiches) {
         const v = lireFiches(c, f.getAll(c.nom));
-        if (v.erreur) return refuser(c, explicationFiche(v.regle, v.zone > 0), v.regle, v.zone);
+        if (v.erreur) {
+          for (const x of v.erreurs) refuser(c, explicationFiche(x.regle, x.zone > 0), x.regle, x.zone);
+          continue;
+        }
         parametres[cle] = v.valeur;
         continue;
       }
-      if (c.obligatoire && brut.trim() === "") return refuser(c, c.obligatoire, "obligatoire");
+      if (c.obligatoire && brut.trim() === "") { refuser(c, c.obligatoire, "obligatoire"); continue; }
+      // Un champ requis laissé vide (le navigateur ne le contrôle plus : `noValidate`).
+      if (!c.obligatoire && !c.facultatif && brut.trim() === "") { refuser(c, CHAMP_VIDE, "vide"); continue; }
       if (c.nullSiVide && brut.trim() === "") {
         parametres[cle] = null;
         continue;
@@ -209,10 +223,18 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
       if (v.erreur) {
         // La phrase dit quoi corriger et, dans une liste, la ligne fautive ; la valeur refusée n'est jamais recopiée.
         const rang = /^[^ ]*\[([0-9]+)\]/.exec(v.erreur);
-        return refuser(c, `${explicationSaisie(c.type)}${rang ? ` Regardez la ligne ${Number(rang[1]) + 1}.` : ""}`, v.erreur);
+        refuser(c, `${explicationSaisie(c.type)}${rang ? ` Regardez la ligne ${Number(rang[1]) + 1}.` : ""}`, v.erreur);
+        continue;
       }
       if (c.nullSiVide && (v.valeur === "" || (Array.isArray(v.valeur) && v.valeur.length === 0))) parametres[cle] = null;
       else parametres[cle] = v.valeur;
+    }
+    if (refuses.length > 0) {
+      setEtat({ saisie: refuses, refus: null, travail: null, envoi: false });
+      for (const x of refuses) document.getElementById(x.zone === null ? `${prefixe}-${x.champ}` : idZone(`${prefixe}-${x.champ}`, x.zone))?.closest("details")?.setAttribute("open", "");
+      const premier = refuses[0];
+      document.getElementById(premier.zone === null ? `${prefixe}-${premier.champ}` : idZone(`${prefixe}-${premier.champ}`, premier.zone))?.focus();
+      return;
     }
     // Ce que le bouton porte d'office vient après les champs, comme le paramètre que portait autrefois un champ.
     Object.assign(parametres, fixe);
@@ -240,19 +262,22 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
   const codeEchec = t?.motif?.code ?? t?.sortie?.error?.code ?? null;
   const messageEchec = t?.motif?.message ?? t?.sortie?.error?.message ?? null;
   const enCours = etat.envoi || (t !== null && !e.termine);
-  const rendreChamp = (c) => <Champ key={c.nom} champ={c} prefixe={prefixe} erreur={etat.saisie?.champ === c.nom ? etat.saisie.message : null} regle={etat.saisie?.champ === c.nom ? etat.saisie.regle : undefined} saisie={etat.saisie?.champ === c.nom ? etat.saisie : null} zones={zones} ajouter={ajouterZone} retirer={retirerZone} />;
+  const refusDe = (c) => (etat.saisie ?? []).filter((x) => x.champ === c.nom);
+  const rendreChamp = (c) => <Champ key={c.nom} champ={c} prefixe={prefixe} erreur={refusDe(c)[0]?.message ?? null} regle={refusDe(c)[0]?.regle} saisies={refusDe(c)} zones={zones} ajouter={ajouterZone} retirer={retirerZone} />;
+  // Les champs à corriger, nommés une fois chacun, dans l'ordre du formulaire.
+  const aCorriger = [...new Set((etat.saisie ?? []).map((x) => x.libelle))];
   const rendreSection = (s) => {
     const groupe = (
       <fieldset className="nt-groupe-champs ins-section" key={s.titre}>
         <legend>{s.titre}</legend>
         {s.texte ? <p className="nt-aide">{s.texte}</p> : null}
-        {s.credits ? <p className="nt-aide ins-credits" data-credits-en-clair="">{CREDITS_EN_CLAIR}</p> : null}
+        {s.credits ? <CreditsEnClair /> : null}
         {s.champs.map(rendreChamp)}
       </fieldset>
     );
     if (!s.replie) return groupe;
     return (
-      <details className="nt-detail" key={s.titre} data-reglages-avances="">
+      <details className="nt-detail ins-replie" key={s.titre} data-reglages-avances="">
         <summary>{s.replie}<span className="nt-detail-note">à laisser tels quels, sauf consigne contraire</span></summary>
         <div className="nt-detail-corps">{groupe}</div>
       </details>
@@ -260,7 +285,7 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
   };
   return (
     <div className={["nt-pile", classe].filter(Boolean).join(" ")}>
-      <form className="nt-formulaire" onSubmit={envoyer} data-commande={commande}>
+      <form className="nt-formulaire" onSubmit={envoyer} noValidate data-commande={commande}>
         {sections ? sections.map(rendreSection) : champs.map(rendreChamp)}
         {note ? <p className="nt-aide" data-apres-clic="">{note}</p> : null}
         <div className="nt-actions ins-actions-bouton">
@@ -269,7 +294,7 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
         </div>
       </form>
       <div className="nt-pile" role="status" aria-live="polite">
-        {etat.saisie ? <p className="nt-attenue nt-petit" data-saisie-refusee="">Rien n'a été envoyé : un champ est à corriger, il est signalé en rouge.</p> : null}
+        {etat.saisie ? <p className="nt-attenue nt-petit" data-saisie-refusee="">{aCorriger.length > 1 ? `Rien n'a été envoyé : ${aCorriger.length} champs sont à corriger, chacun signalé en rouge : ${aCorriger.map((x) => `« ${x} »`).join(", ")}.` : `Rien n'a été envoyé : un champ est à corriger, il est signalé en rouge : « ${aCorriger[0]} ».`}</p> : null}
         {etat.envoi ? <p className="nt-attenue nt-petit">Envoi de l'action au service d'inscription…</p> : null}
         {t && !(e.termine && e.ton === "succes") ? (
           <p className="ins-etat-travail" data-etat-travail={e.code}>
@@ -287,7 +312,7 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
       {etat.refus ? <Refus code={etat.refus.code} message={etat.refus.message} slug={slug} /> : null}
       {echec && codeEchec ? <Refus code={codeEchec} message={messageEchec ?? ""} slug={slug} verification={t?.sortie?.error?.check ?? null} /> : null}
       {t?.sortie ? (
-        <details className="nt-detail">
+        <details className="nt-detail ins-replie">
           <summary>Détail technique de l'action<span className="nt-detail-note">réponse exacte du service d'inscription</span></summary>
           <div className="nt-detail-corps"><pre className="nt-pre">{JSON.stringify(t.sortie, null, 2)}</pre></div>
         </details>

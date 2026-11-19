@@ -7,7 +7,7 @@ import { useState } from "react";
 import Icone from "./Icone.js";
 
 const REFUS = {
-  identifiants: { titre: "Nom ou mot de passe refusé.", texte: "Vérifiez le nom du compte et les majuscules du mot de passe, puis réessayez. Après cinq erreurs de suite, l'outil fait attendre avant chaque nouvel essai. Mot de passe oublié : demandez à l'équipe technique, elle seule peut le changer." },
+  identifiants: { titre: "Nom ou mot de passe refusé.", texte: "Vérifiez le nom du compte et les majuscules du mot de passe, puis réessayez. Après cinq erreurs de suite, l'outil fait attendre avant chaque nouvelle tentative. Mot de passe oublié : demandez à l'équipe technique, elle seule peut le changer." },
   injoignable: { titre: "L'outil ne répond pas.", texte: "Vérifiez que votre poste est bien relié au réseau, puis réessayez. Si cela dure, prévenez l'équipe technique." },
   autre: { titre: "La connexion n'a pas pu se faire.", texte: "Rechargez la page, puis réessayez. Si cela dure, prévenez l'équipe technique en lui donnant le détail ci-dessous." },
 };
@@ -33,7 +33,7 @@ export default function Connexion() {
     if (r.status === 429) {
       const n = corps?.error?.data?.retry_after_s;
       const delai = Number.isSafeInteger(n) ? `${n} ${n > 1 ? "secondes" : "seconde"}` : "quelques secondes";
-      setEtat({ attente: false, refus: { titre: `Trop d'essais : attendez ${delai} avant de réessayer.`, texte: "L'outil ralentit les essais après plusieurs erreurs, pour protéger votre compte. Votre compte n'est pas fermé." } });
+      setEtat({ attente: false, refus: { titre: `Trop de tentatives : attendez ${delai} avant de réessayer.`, texte: "L'outil ralentit les tentatives après plusieurs erreurs, pour protéger votre compte. Votre compte n'est pas fermé." } });
     } else if (r.status === 401) setEtat({ attente: false, refus: REFUS.identifiants });
     else setEtat({ attente: false, refus: { ...REFUS.autre, code: corps?.error?.code ?? `http_${r.status}`, message: corps?.error?.message ?? `réponse ${r.status}` } });
   };

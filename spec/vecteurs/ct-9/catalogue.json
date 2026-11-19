@@ -21361,21 +21361,21 @@
     {
       "id": "TC-30",
       "key": "CT-6 §0",
-      "line": 116,
+      "line": 121,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-31",
       "key": "CT-6 §1",
-      "line": 282,
+      "line": 287,
       "delegated": "EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`.",
       "response": "§6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10)."
     },
     {
       "id": "TC-32",
       "key": "CT-6 §6.9",
-      "line": 1958,
+      "line": 1963,
       "delegated": "Exécution des V- par comparaison du rapport à `attendu.json`.",
       "response": "TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`."
     },

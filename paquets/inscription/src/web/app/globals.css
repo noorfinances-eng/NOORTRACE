@@ -2577,6 +2577,36 @@ html[data-theme="clair"] .nt-case input {
   }
 }
 
+/* « Qu'est-ce qu'un crédit d'écriture ? » : replié, sous le texte qui nomme les crédits ; sous un bandeau d'erreur, il
+   le suit au lieu d'y entrer. Ouvert, l'explication garde une largeur de lecture. */
+.ins-credits > .ins-detail-corps {
+  max-width: 46rem;
+}
+
+/* Sous « Si le client demande d'où vient ce montant » : le calcul, puis le repère, chacun sur sa ligne. */
+.ins-pour-expliquer .ins-ligne + .ins-ligne {
+  margin-top: var(--nt-e-2);
+}
+
+.ins-credits-seul {
+  margin-top: calc(-1 * var(--nt-e-2));
+}
+
+/* Sur téléphone, la note d'un bloc replié passe sous son titre, au lieu de serrer le titre dans une colonne étroite ;
+   le chevron reste sur la ligne du titre (deux colonnes : le chevron, puis le titre et sa note). */
+@media (max-width: 37.5rem) {
+  .ins-replie > summary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 0.125rem;
+  }
+
+  .ins-replie > summary > span {
+    grid-column: 2;
+    margin-left: 0;
+  }
+}
+
 /* Au doigt, le titre d'un détail replié offre une cible de 44 px. */
 @media (pointer: coarse), (max-width: 37.5rem) {
   .ins-detail > summary {

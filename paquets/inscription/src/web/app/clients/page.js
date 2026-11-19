@@ -41,7 +41,7 @@ export default async function PageClients() {
           <a className="nt-bouton nt-bouton-principal" href="/clients/nouveau">Inscrire un nouveau client</a>
         </div>
       </header>
-      <details className="nt-detail" data-comment-ca-marche="">
+      <details className="nt-detail ins-replie" data-comment-ca-marche="">
         <summary>Comment ça marche<span className="nt-detail-note">l'inscription en cinq lignes</span></summary>
         <div className="nt-detail-corps nt-pile">
           <ol className="ins-lignes">
@@ -53,7 +53,7 @@ export default async function PageClients() {
           </ol>
         </div>
       </details>
-      <details className="nt-detail" data-les-etapes="">
+      <details className="nt-detail ins-replie" data-les-etapes="">
         <summary>Les huit étapes, une par une<span className="nt-detail-note">leur nom et ce qu'elles font</span></summary>
         <ol className="nt-detail-corps ins-lignes">
           {PARCOURS.map((e) => <li key={e.titre}><strong>{e.titre}.</strong> {e.phrase}</li>)}

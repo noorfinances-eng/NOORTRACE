@@ -207,6 +207,51 @@ is tagged.
   choice offered before any decision, the signing screen left after a
   refusal, AV-K-1 taken as of no evidential value, a fingerprint computation
   that sends a request).
+  After a fifth cold reading of the three tools: in the console, the warning
+  that the console cannot check who launched the agent is one sentence (do
+  not approve a request whose agent you launched); on a request the person
+  has already decided, the last useful instant reads "Approbations à réunir
+  avant" when a challenge period applies, with the reason; after the
+  person's own vote, each value to check keeps its place, value and mark,
+  and the group is worded with regard to that vote; the instant of the
+  journal record is given in words, its exact form beside it in small type;
+  "vous" says where the name comes from; the buttons of "Mon adresse" name
+  the address they revoke; disabling a person says that it can be undone,
+  but not the revocation of the addresses. On the verification page, a
+  required control of no evidential value (test network) is no longer said
+  to be satisfied: the verifier counts it as passed and returns 0 (CT-6
+  7.5), so the title, the sentence and a line under the verdict say that
+  what was required is not proven; the signature controls made with the keys
+  or the approvers that the dossier supplies itself read "Cohérent" with the
+  signers' identity "non prouvée" and are no longer counted as passed, so
+  that in version 0 a "Valide" whose control 7 passed never keeps the full
+  green; a control not done says whether the dossier was prepared without
+  the document it needs or holds it in a form this version cannot check;
+  reason codes and the references of failed checks move to the head of "Pour
+  les spécialistes"; the registry line says that a gap with the period is
+  neither reported nor explained; the warning names the signed file,
+  published with each version, that gives the fingerprints of the page. In
+  the onboarding tool, the package says which secret keys the onboarding
+  service used and that none is in the package, and what it shows of other
+  clients; "essai" keeps one meaning (a test environment or use, never the
+  real service): the technical team's sample client is a "client de
+  démonstration" and login attempts are "tentatives", as in the console; the
+  new client form flags every invalid field at once, the page's own check
+  replacing the browser's; a confirmation covers the funding of step 5 only,
+  and the screen says why it is needed before step 2; the write credits are
+  explained in a folded block; beside an amount, a reference gives what a
+  proof of date and a period closing consume at most and how many such pairs
+  the planned daily consumption pays, but no count for the amount itself,
+  since a sender cannot spend the part of its balance that covers its gas
+  limit (CT-4 EX-4.18); "Vous n'avez rien à rassembler avant de cliquer"; on
+  a phone, the note of a folded block goes under its title. What the public
+  registry records at once is a "lot" in both tools that name it. The bodies
+  sent to the routes are byte-identical. Each change is red on the former
+  screens and green after, with both font sets, and mutants are killed (the
+  values to check dropped after a decision, a required control of no
+  evidential value taken as satisfied, approvers declared by the dossier
+  counted as proven, a refused entry no longer stopping the send, the amount
+  to confirm folded).
   No dependency,
   font, image or external resource is added; no content security policy,
   header or subresource-integrity rule is loosened; the console and the
@@ -216,7 +261,8 @@ is tagged.
   supplements in CT-3 (EX-9.4, EX-9.18, EX-9.20, EX-12.21, EX-13.3,
   EX-13.7, EX-13.29, 13.1), CT-6 (EX-18.2, EX-18.5, EX-18.7, EX-18.9) and
   CT-4 (EX-7.25, EX-7.26), those of CT-3 and CT-6 rewritten in place after
-  the third reading, and those of CT-3, CT-4 and CT-6 after the fourth;
+  the third reading, those of CT-3, CT-4 and CT-6 after the fourth, and
+  those of CT-3 and CT-6 after the fifth;
   no control rule, schema, report, exit code or vector changes; the line
   citations of CT-7, CT-8 and CT-9 follow the moved texts. Tests:
   `test/exploitation-console-langage-chromium.test.js` (new), and new cases

@@ -339,7 +339,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         expect(a).to.include({ code: "preparer_demande", commande: "condense-inscription", keyId: cours.recorders[0].key_id, titre: "Préparez le document d'inscription de l'enregistreur" });
         a = M.prochaineAction(vue(cours, { demandes: [{ nom: `demande-inscription-${cours.recorders[0].key_id}-trv-1.json`, document: { signatures: [] } }] }));
         // Troisième lecture : le bouton dit lui-même qui envoie, et la phrase dessous dit que c'est le cas habituel.
-        expect(a).to.include({ code: "relayer_demande", commande: "inscrire-cle", titre: "Faites signer le document par les approbateurs du client, puis envoyez-le", bouton: "Envoyer par notre compte d'envoi", sousBouton: "C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi." });
+        expect(a).to.include({ code: "relayer_demande", commande: "inscrire-cle", titre: "Faites signer le document par les approbateurs du client, puis envoyez-le", bouton: "Envoyer par notre compte d'envoi", sousBouton: "C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles »." });
         expect(a.phrase).to.equal("Le document d'inscription de l'enregistreur est prêt. Remettez-le aux approbateurs du client : ils le contrôlent et le signent avec leur propre outil, jamais dans celui-ci. Quand le client vous rend le document signé, envoyez-le ici.");
         // Enregistreur inscrit : la première période se fait hors de l'outil.
         const inscrite = dossierFictif("client-neuf", ["capturee", "capturee", "faite", "capturee", "capturee", "a_faire", "a_faire"]);
@@ -367,7 +367,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         for (const x of toutes) {
           expect(x.titre, x.code).to.match(/^[A-ZÀ-Ý][a-zéèêçôîû]+(?:ez|tes) /);
           expect(x.phrase, x.code).to.match(/^[A-ZÀ-Ý].{40,}\.$/);
-          expect(x.aPreparer, x.code).to.match(/^(Ayez sous la main : .+|Rien à réunir.*)\.$/);
+          expect(x.aPreparer, x.code).to.match(/^(Ayez sous la main : .+|Vous n'avez rien à rassembler avant de cliquer.*)\.$/);
           expect(x.apres, x.code).to.match(/^[A-ZÀ-Ý].{30,}\.$/);
           expect(x.bouton, x.code).to.match(/^[A-ZÀ-Ý][a-zéèêçôîû]+(?:er|ir|re) /);
           expect(x.surTitre, x.code).to.be.oneOf(["Prochaine action", "Inscription terminée"]);
@@ -566,7 +566,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       try { formule(await mutant("reprendre-cet-envoi", "  bouton: \"Chercher la réponse\",", "  bouton: \"Reprendre cet envoi\",")); } catch { tue = true; }
       expect(tue, "mutant « Reprendre cet envoi » tué").to.equal(true);
       // 2. L'envoi d'un document signé : le bouton nomme notre compte d'envoi ; la phrase dessous dit le cas habituel.
-      expect(P.PAR_NOTRE_COMPTE).to.deep.equal({ bouton: "Envoyer par notre compte d'envoi", sousBouton: "C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi." });
+      expect(P.PAR_NOTRE_COMPTE).to.deep.equal({ bouton: "Envoyer par notre compte d'envoi", sousBouton: "C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles »." });
       // 3. Confirmation attendue : la même règle que la consigne pour le versement, et un changement des approbateurs préparé.
       const attendues = (M) => {
         const cle = neuf.recorders[0].chain_key;
@@ -700,11 +700,12 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         expect(M.etapesDuParcours(relu)[2].erreur.code, "le code reste au détail, inchangé").to.equal("transaction_annulee");
         const reprise = M.prochaineAction({ slug: "client-en-echec", dossier: echec, confirmations: [{ id: "c", operation: "approvisionnement", objet: { cle_chaine: echec.recorders[0].chain_key }, consommee_par: null }] });
         expect(reprise.phrase).to.equal("Vous n'avez rien à corriger d'ici : l'outil vérifie d'abord ce qui est réellement inscrit sur le registre public, puis refait les étapes 3 à 5. Les étapes déjà faites ne sont pas refaites.");
-        // « Rien à réunir », jamais « Rien à préparer » (qui contredisait « Préparez le document »).
+        // « Vous n'avez rien à rassembler avant de cliquer » (cinquième lecture ; avant : « Rien à réunir »), jamais
+        // « Rien à préparer » (qui contredisait « Préparez le document »).
         const prep = dossierFictif("client-prep", ["capturee", "capturee", "faite", "capturee", "a_faire", "a_faire", "a_faire"]);
         const document = M.prochaineAction({ slug: "client-prep", dossier: prep });
         expect(document.titre).to.equal("Préparez le document d'inscription de l'enregistreur");
-        expect(document.aPreparer).to.equal("Rien à réunir : l'enregistreur concerné est déjà choisi ci-dessous ; cliquez sur « Préparer le document ».");
+        expect(document.aPreparer).to.equal("Vous n'avez rien à rassembler avant de cliquer : l'enregistreur concerné est déjà choisi ci-dessous.");
         expect(fs.readFileSync(MODULE, "utf8")).to.not.contain("Rien à préparer");
       };
       verifier(P);
@@ -712,12 +713,88 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       for (const [nom, ancien, nouveau] of [
         ["credits-compte-de-paiement", "c'est notre société qui les fournit, et le client ne les paie pas.", "c'est notre société qui les verse, depuis son compte de paiement."],
         ["cause-sans-verification", "e.capture ? \"OP-12\" : \"OP-11\"", "null"],
-        ["rien-a-preparer", "aPreparer: \"Rien à réunir : l'enregistreur concerné", "aPreparer: \"Rien à préparer : l'enregistreur concerné"],
+        ["rien-a-preparer", "aPreparer: `${RIEN_A_RASSEMBLER.slice(0, -1)} : l'enregistreur concerné", "aPreparer: `Rien à préparer : l'enregistreur concerné"],
       ]) {
         const m = await mutant(nom, ancien, nouveau);
         try { verifier(m); } catch { tues++; }
       }
       expect(tues, "trois mutants, trois tués").to.equal(3);
+    });
+
+    it("cinquième lecture des écrans : la confirmation porte sur le versement de l'étape 5, et la consigne dit pourquoi elle vient avant l'étape 2 ; le repère d'un montant de crédits est un minimum vrai, sans durée ; « Vous n'avez rien à rassembler avant de cliquer » ; l'autre cas de l'envoi est dit ; l'empreinte du paquet est expliquée là où la fiche en parle ; une saisie refusée l'est en entier (chaque zone de fiche fautive) ; mutants : tués", async function () {
+      const neuf = dossierFictif("client-neuf", ["a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]);
+      const echec5 = dossierFictif("client-neuf", ["capturee", "capturee", "faite", "echec", "a_faire", "a_faire", "a_faire"]);
+      const vue = (dossier, plus = {}) => ({ slug: dossier.organisation.slug, dossier, confirmations: [], demandes: [], periodes: [], parties: [], travaux: [], paquet: { present: false, dernier: null }, ...plus });
+      const verifier = (M) => {
+        // 1. Ce que la confirmation autorise, et l'ordre réel (CT-4 EX-7.26 ; admission du travail inscrire-client).
+        let a = M.prochaineAction(vue(neuf));
+        expect(a.code).to.equal("consigner_confirmation");
+        expect(a.phrase).to.equal("L'étape 5 verse des crédits d'écriture sur le compte technique de l'enregistreur du client. Le client doit d'abord confirmer ce versement par un autre moyen que cet outil : un appel au numéro de son contrat, un courrier signé. L'outil fait les étapes 2 à 5 en une seule action : tant que cette confirmation n'est pas notée ici, il ne la commence pas, même pour les étapes qui ne versent rien.");
+        a = M.prochaineAction(vue(echec5));
+        expect(a.code).to.equal("consigner_confirmation");
+        expect(a.phrase, "versement en échec : l'action repart de l'étape 5").to.match(/^L'étape 5 verse .* L'outil fait l'étape 5 en une seule action : /);
+        a = M.prochaineAction(vue(neuf, { confirmations: [{ id: "c", operation: "approvisionnement", objet: { cle_chaine: neuf.recorders[0].chain_key }, consommee_par: null }] }));
+        expect(a.phrase).to.equal("La confirmation du client est notée : elle porte sur le versement de l'étape 5. L'outil peut maintenant enregistrer les approbateurs, les rattacher au client, contrôler le résultat, puis alimenter le compte technique.");
+        // 2. Repère : ce que consomment une preuve de date et une clôture (gaz de référence d'EX-4.19), et combien de ces
+        // paires la consommation prévue paie au moins chaque jour (⌊b / 450 000⌋). Le montant d'un versement ne donne
+        // aucun nombre : une part du solde (la limite de gaz d'un envoi, EX-4.18, que l'écran n'affiche pas) ne paie
+        // aucune écriture ; avec les réglages par défaut, 327 000 000 crédits en paient 720 paires au moins, non 726.
+        expect(M.repereEnClair("327000000", "10800000").replace(/\s/g, " ")).to.equal("Repère : d'ordinaire, une preuve de date consomme au plus 100 000 crédits et une clôture de période au plus 350 000. La consommation prévue, 10 800 000 crédits par jour, paie chaque jour au moins 24 preuves de date suivies chacune de leur clôture.");
+        expect(M.repereEnClair("327000000").replace(/\s/g, " ")).to.equal("Repère : d'ordinaire, une preuve de date consomme au plus 100 000 crédits et une clôture de période au plus 350 000.");
+        for (const m of ["450000", "327000000", "4719000000"]) expect(M.repereEnClair(m, "10800000"), "aucun nombre d'écritures tiré du montant").to.not.match(/paient|Ces [0-9 ]+ crédits/);
+        for (const m of ["450000", "899999", "327000000", "157200000", "4719000000"]) {
+          const n = M.paires(m);
+          expect(n * 450000n <= BigInt(m) && (n + 1n) * 450000n > BigInt(m), m).to.equal(true);
+        }
+        expect(M.repereEnClair("449999")).to.equal(null);
+        expect(M.repereEnClair("abc")).to.equal(null);
+        expect(M.repereEnClair("327000000"), "aucune durée").to.not.match(/[0-9]+ ?jours?|semaines?|mois\b|environ/);
+        // 3. Rien à rassembler ; l'autre cas de l'envoi ; l'empreinte du paquet expliquée.
+        expect(M.RIEN_A_RASSEMBLER).to.equal("Vous n'avez rien à rassembler avant de cliquer.");
+        expect(M.PAR_NOTRE_COMPTE.sousBouton).to.match(/L'autre cas, .* « Actions rarement utiles »\.$/);
+        const fini = dossierFictif("client-fini", ["capturee", "capturee", "faite", "capturee", "capturee", "capturee", "capturee"]);
+        a = M.prochaineAction(vue(fini, { periodes: ["p"], parties: ["x"], paquet: { present: true } }));
+        expect(a.code).to.equal("remettre_paquet");
+        expect(a.phrase).to.equal("L'inscription est faite et le paquet est produit. Si ce n'est pas déjà fait, téléchargez le paquet et remettez-le au client, avec son empreinte : une suite de 66 caractères, donnée sur l'écran du paquet, qui permet au client de vérifier qu'il a reçu exactement ce paquet.");
+        // 4. Un champ requis vide a sa phrase ; le nom court refusé renvoie d'abord au tirage.
+        expect(M.CHAMP_VIDE).to.equal("Ce champ est vide. Remplissez-le en suivant l'aide écrite dessous.");
+        expect(M.explicationSaisie("slug")).to.match(/^Le nom court n'a pas la bonne forme\. Servez-vous du bouton « Tirer un nom au hasard »/);
+        for (const t of [M.CHAMP_VIDE, M.RIEN_A_RASSEMBLER, M.PAR_NOTRE_COMPTE.sousBouton, M.repereEnClair("327000000", "10800000"), M.explicationSaisie("slug")]) expect(motsTechniquesDans(t), t).to.deep.equal([]);
+      };
+      verifier(P);
+      expect(fs.readFileSync(MODULE, "utf8")).to.not.contain("Rien à réunir");
+      let tues = 0;
+      for (const [nom, ancien, nouveau] of [
+        ["repere-sans-ancre", "export const CREDITS_PAR_PAIRE = 450000n;", "export const CREDITS_PAR_PAIRE = 350000n;"],
+        ["confirmation-sans-ordre", "L'outil fait ${jusqua} en une seule action : tant que cette confirmation n'est pas notée ici, il ne la commence pas, même pour les étapes qui ne versent rien.", "Sans cette confirmation notée ici, l'outil ne verse rien."],
+        ["autre-cas-tu", " L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles ».", ""],
+      ]) {
+        const m = await mutant(nom, ancien, nouveau);
+        try { verifier(m); } catch { tues++; }
+      }
+      expect(tues, "trois mutants du module, trois tués").to.equal(3);
+      // 5. Les fiches d'enregistreur : chaque zone fautive est rendue, pas seulement la première.
+      const CHAMPS = path.join(WEB, "composants", "champs-page.js");
+      const C = await import(pathToFileURL(CHAMPS).href);
+      const champ = { nom: "cles_enregistreur", type: "liste_documents" };
+      const fiche = JSON.stringify({ ...neuf.recorders[0], created_at: "2026-11-10T09:00:00.000Z" });
+      const lire = (Cx) => {
+        const r = Cx.lireFiches(champ, ["", fiche, "[]", "{ illisible"]);
+        expect(r.valeur).to.equal(undefined);
+        expect(r).to.include({ zone: 0, regle: "fiche_vide" });
+        expect(r.erreurs.map((x) => [x.zone, x.regle])).to.deep.equal([[0, "fiche_vide"], [2, "fiche_liste"], [3, "fiche_illisible"]]);
+        expect(Cx.lireFiches(champ, [fiche]).valeur.length).to.equal(1);
+      };
+      lire(C);
+      // Mutant : la lecture s'arrête de nouveau à la première zone fautive (copie du module, imports rendus absolus).
+      const texte = fs.readFileSync(CHAMPS, "utf8").replace(/from "\.\.\/\.\.\/commun\//g, `from "${pathToFileURL(path.join(RACINE, "paquets", "inscription", "src", "commun")).href}/`);
+      const ancien = 'if (texte === "") { refus("fiche_vide"); continue; }';
+      expect(texte.split(ancien).length - 1).to.equal(1);
+      const f = path.join(dir, "champs-page-premiere-seulement.mjs");
+      fs.writeFileSync(f, texte.replace(ancien, () => 'if (texte === "") { refus("fiche_vide"); break; }'));
+      let tue = false;
+      try { lire(await import(pathToFileURL(f).href)); } catch { tue = true; }
+      expect(tue, "mutant « première zone seulement » tué").to.equal(true);
     });
   });
 

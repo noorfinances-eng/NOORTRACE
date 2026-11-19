@@ -184,12 +184,16 @@ rien retirer ; `#code` et `.aucun-rapport` ne sont plus dans `#verdict` :
 | `#verdict-titre.pv-titre-mention` | titre dont le mot porte une mention : le mot et la mention à la même taille | jamais |
 | `#formule-exacte` | en tête de `#specialistes`, après sa phrase : la ligne qui porte `#code` | jamais |
 | `#mention-refus` | après un refus, en tête de `#specialistes` : la ligne qui porte `.aucun-rapport` (« Mention fixée pour un refus : ») | jamais |
-| `#controles .pv-controle-raison` | la phrase d'un contrôle non fait, d'après la raison, le contrôle et les pièces ajoutées à l'étape 2, puis la raison exacte (`data-valeur`) entre parenthèses | jamais |
+| `#controles .pv-controle-raison` | la phrase d'un contrôle non fait, d'après la raison, le contrôle et les pièces ajoutées à l'étape 2 (et, sous `hors_perimetre_version`, `absent_parts`) ; cinquième lecture : la raison exacte est dans `data-raison` et dans `#raisons-exactes` | jamais |
+| `#raisons-exactes`, `#specialistes .pv-references` | cinquième lecture, sous `#formule-exacte` : la raison exacte de chaque contrôle non fait (`data-valeur`) ; sous le code 1, les vérifications en échec et bloquantes | jamais |
+| `#exiges-sans-valeur` | cinquième lecture, codes 0 et 3 : les contrôles exigés que le rapport dit sans valeur de preuve | jamais |
+| `#ou-empreintes` | cinquième lecture, en tête du bloc `#detail-empreinte` : qui publie les empreintes, et dans quel fichier | avec `#detail-empreinte` |
 | `#consigne-ancres` | étape 2 : la consigne de sûreté sur la liste des références de confiance, à la taille du texte courant | avec `#options` |
 | `#nom-ancres.pv-fichier-refuse`, `#nom-entetes.pv-fichier-refuse` | étape 2, tant qu'un refus de cette pièce complémentaire est affiché | avec `#options` |
 | `#verifier` | inactif tant qu'un refus est affiché ; `#aide-verifier` dit pourquoi | jamais |
 
-`presentationVerdict`, `clesNonProuve`, `controlesDeLAvertissement`,
+`presentationVerdict`, `clesNonProuve`, `exigesSansValeur`,
+`numerosDuDossier`, `partiesHorsPerimetre`, `controlesDeLAvertissement`,
 `grouperAvertissements`, `clePieceEnCause` et `lignesEnResume` (section
 « Langage courant » d'`interface.js`) sont des fonctions sans effet, que les
 essais chargent telles qu'écrites.

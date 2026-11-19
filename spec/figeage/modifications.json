@@ -14047,6 +14047,69 @@
           "apres": "9d481ab200e0dab1a345813c0b2b58d3f58d572b75ef7e005bc566ee510cbf77"
         }
       ]
+    },
+    {
+      "id": "MC-104",
+      "date": "2026-11-18",
+      "etape": 8,
+      "motif": "langage des écrans, suites de la cinquième lecture (compléments du 2026-11-18, décision du porteur) : dans la console, groupe des valeurs à contrôler dit au regard de la décision déjà donnée, instant de l'enregistrement dit en mots avec sa forme exacte à côté (CT-3 EX-9.4, en-tête) ; dans la page de vérification, contrôle exigé sans valeur de preuve jamais dit satisfait alors que le vérificateur rend 0, renvois à 7.5 citant son texte mot pour mot, contrôles des signatures faits avec les clés ou les approbateurs du dossier dits « Cohérent » sans être comptés parmi les réussis, deux causes d'un contrôle hors du périmètre de la version, raisons exactes en tête de la rubrique des spécialistes, fichier signé des empreintes publiées nommé (CT-6 EX-18.2, EX-18.5, EX-18.9, en-tête et section 16) ; table des versions de spec/README.md ; renvois par numéro de ligne de CT-7 et de CT-9 recollés ; catalogue de CT-9 régénéré, sans entrée ni identifiant nouveau ; aucune règle de contrôle, aucun schéma, aucun rapport, aucun code de retour ni aucun vecteur des autres familles ne change",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-3-approbations.md",
+          "avant": "17ba1a841432a408094c1b8dc79d05795f0ae7a7ceec462b186521147c182059",
+          "apres": "4ff43774165899f5e5902f89f94d81fe8d85e7bedf2c393e3317a862667e46ec"
+        },
+        {
+          "chemin": "spec/CT-6-verificateur.md",
+          "avant": "dae0a6973bba7e395e8e29ec894d91a715cfb070a96176eccf92ea41b9b2014e",
+          "apres": "33550cccc43fec9e8ddd4fbafb2fe058c25189240e8f0655308f03881deb18ca"
+        },
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "47cfc91bbd0d72dc477f2ff962fc5741cc50c68ec21e4c8fae8917248832a0b3",
+          "apres": "1d5f225b52d12203407eca3698965677348d86425dc6cbcb865fbcb175c7e1f6"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "719be4414eb92d21ce180d2cc8f581d242c7ad66290dd9d5bbd24ebfca1d9751",
+          "apres": "e74f18b086f11eef57540b3cf7df966da792018a8595e8a24e74b6fbcde94c15"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "f558ce3944084f7eaa08fb70b4476d2f0ffa428383f3d1f2579989f703a4acf7",
+          "apres": "418a40018f3ba6daab7c2997425f89a91b68d375a79a642edeb99d3b49babd76"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "9e451755cbb5f139a63b4f6e0b1fd01848aa30fb71a61220558dd5924b1fc1eb",
+          "apres": "5016bfc5700eb8163f47bd29d0340c6b31af79c26f4ef6c51b68d35e25dacae5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "979b92c6c37de805f530f2f009036095b8c6beb8be400e6489bf0c2c760e2fd5",
+          "apres": "f866d13537a36971fa77ce46ed79eb37b2058adf014b4fde3fc1d0d4e6e82668"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "6c2e61ca8ed89363e57a2863f494d873ebfee02b78104c795f3aac76d0f28015",
+          "apres": "3ba2bbc6a40c3c07e811e14b9ba3aedfffea8cde41b4446efbbf9f2d4fc93ea4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "99466fa88d05be0797252c21c0fec4e2ba2961df89fd358829e77d4bdea40999",
+          "apres": "d4866a04f6f5927f5201b90425746d204f0fd9e6952b05d8a429de1b38ea241b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "e8693cc727bf1adf441d87ea2adfc4ae2bf6353983d3e033f757ba510d42cb53",
+          "apres": "96e329c6b28217c482c6adfdb132a53d261c8b0b5306f3f26543140ba36ae512"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "9d481ab200e0dab1a345813c0b2b58d3f58d572b75ef7e005bc566ee510cbf77",
+          "apres": "1decdf2c15916bd22de483aaabdb2580460ed0b9340f3f9c1af8cc2150d9d636"
+        }
+      ]
     }
   ]
 }

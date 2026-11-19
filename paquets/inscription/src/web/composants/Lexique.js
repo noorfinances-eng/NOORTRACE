@@ -6,7 +6,7 @@ import { LEXIQUE } from "../lib/parcours.mjs";
 
 export default function Lexique() {
   return (
-    <details className="nt-detail nt-sans-impression" data-lexique="">
+    <details className="nt-detail ins-replie nt-sans-impression" data-lexique="">
       <summary>Les mots de cet outil<span className="nt-detail-note">{LEXIQUE.length} mots expliqués</span></summary>
       <dl className="nt-detail-corps nt-definitions">
         {LEXIQUE.map((x) => (

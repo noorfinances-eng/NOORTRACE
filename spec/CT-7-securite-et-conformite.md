@@ -285,29 +285,29 @@ lignes, comme ceux de `spec/README.md`.
 | TR-64 | CT-5 §3.4 (l. 1143) | Ligne « Composant d'ancrage compromis » : rotation des identifiants (CT-7). | MN-63 (consolidée en 3.3) ; conduite de 4.6 pour CLE-11. |
 | TR-65 | CT-5 §5.5 (l. 2152) | Ajustement de la rétention à toute durée légale plus longue que dix ans. | 8.8, CT-7 EX-8.12 : le client porte les trois paramètres de durée à la plus longue durée légale qui s'applique ; aucune durée de plus de dix ans dans les textes lus ; durées sectorielles non recherchées (lacune L-7) ; cohérence des paramètres : CT-7 EX-8.13, PA-13. |
 | TR-66 | CT-5 §15 (l. 6205) | Garde en module de la clé du serveur interne et sa cérémonie. | Classe A à C exigée (4.3, CR-6) ; cérémonie de création (5.1) ; MN-42, RA-38. |
-| TR-67 | CT-6 « en-tête » (l. 75) | La définition de l'attestation vérifiée par la révision 0.3. | Section 7. |
-| TR-68 | CT-6 §1 (l. 238) | L'attestation que vérifie la partie facultative. | Section 7 ; vérifications : 7.7. |
-| TR-69 | CT-6 §1 (l. 283) | Ce que CT-6 reprend de CT-7 : l'attestation, `D_P`, la règle « déclaré, jamais prouvé ». | 7.2 (CT-7 EX-7.6) et CT-7 EX-7.1 ; ce que CT-7 attend du rapport : CT-7 EX-7.17. |
-| TR-70 | CT-6 §2 (l. 322) | La définition du terme. | Section 7 ; terme défini en section 2. |
-| TR-71 | CT-6 §3.2 (l. 428) | Le périmètre reste une déclaration. | CT-7 EX-7.1. |
-| TR-72 | CT-6 §3.4 (l. 509) | L'opérateur qui déclare faux. | Menace MN-78 (3.4), risque accepté RA-68 (3.5). |
-| TR-73 | CT-6 §3.4 (l. 511) | L'attestation jointe sans inscription. | Menace MN-85, risque accepté RA-72. |
-| TR-74 | CT-6 §4.2 (l. 570) | Le format de la partie. | Section 7 (7.1 à 7.6). |
-| TR-75 | CT-6 §4.5 (l. 839) | La taille de l'exemple avec inscription. | 7.5. |
-| TR-76 | CT-6 §5.5 (l. 1130) | L'attestation jointe au dossier. | Section 7. |
-| TR-77 | CT-6 §5.5 (l. 1133) | La portée des vérifications AT-. | CT-7 EX-7.1. |
-| TR-78 | CT-6 §5.5 (l. 1165) | Le motif de l'absence d'effet sur le verdict. | CT-7 EX-7.1 ; menaces MN-78 et MN-89. |
-| TR-79 | CT-6 §6.5 (l. 1677) | L'exemple du fragment FP. | 7.5 ; dossiers : annexe A.7. |
-| TR-80 | CT-6 §7.2 (l. 2254) | Le détenteur de la clé et sa classe se constatent hors du vérificateur : procès-verbal d'inscription (CT-2 EX-11.13) et cérémonie des clés. | Le réviseur vérifie le procès-verbal (CR-1 à CR-12) et n'en tire la clé publique et la classe de garde de la ligne `recorders` de son fichier d'ancres qu'aux conditions de CT-7 EX-5.10 : un signataire connu de lui par un canal indépendant du client et un `D_C` ancré en production (5.9, CT-7 EX-5.11). |
-| TR-81 | CT-6 §7.10 (l. 2873) | AT-7 ne compare que des noms de version ; un nom réannoncé avec un autre contenu la fait réussir tant que CT-2 ne l'interdit pas. | PA-9 (6.2) ; menace MN-91, risque accepté RA-75 ; CT-7 EX-7.11. |
-| TR-82 | CT-6 §7.10 (l. 2874) | Ce qu'une conformité réglementaire supposerait. | Section 8 : correspondance technique, pas un avis juridique (CT-7 EX-8.1). |
-| TR-83 | CT-6 §12.5 (l. 5804) | Ligne `recorders` : procès-verbal d'inscription de la clé et cérémonie des clés. | 5.9 (même réponse). |
-| TR-84 | CT-6 §16 (l. 6379) | Le schéma `attestation-perimetre-v0`. | 7.1 ; `spec/schemas/attestation-perimetre-v0.schema.json`. |
-| TR-85 | CT-6 §16 (l. 6381) | Les dossiers de la famille `ct-6`. | Annexe A.7 (EX-A.10). |
-| TR-86 | CT-6 « A.8 Confrontation par des implémentations tierces » (l. 8291) | Les dossiers avec la partie. | Annexe A.7. |
-| TR-87 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8741) | Les notes de recherche de CT-7. | Annexe B.1 (R7). |
-| TR-88 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8743) | Les faits R7-F51 à R7-F53. | Annexe B.1. |
-| TR-89 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8750) | Les extraits exacts des sources. | Annexe B.1, extraits cités par la section 7. |
+| TR-67 | CT-6 « en-tête » (l. 80) | La définition de l'attestation vérifiée par la révision 0.3. | Section 7. |
+| TR-68 | CT-6 §1 (l. 243) | L'attestation que vérifie la partie facultative. | Section 7 ; vérifications : 7.7. |
+| TR-69 | CT-6 §1 (l. 288) | Ce que CT-6 reprend de CT-7 : l'attestation, `D_P`, la règle « déclaré, jamais prouvé ». | 7.2 (CT-7 EX-7.6) et CT-7 EX-7.1 ; ce que CT-7 attend du rapport : CT-7 EX-7.17. |
+| TR-70 | CT-6 §2 (l. 327) | La définition du terme. | Section 7 ; terme défini en section 2. |
+| TR-71 | CT-6 §3.2 (l. 433) | Le périmètre reste une déclaration. | CT-7 EX-7.1. |
+| TR-72 | CT-6 §3.4 (l. 514) | L'opérateur qui déclare faux. | Menace MN-78 (3.4), risque accepté RA-68 (3.5). |
+| TR-73 | CT-6 §3.4 (l. 516) | L'attestation jointe sans inscription. | Menace MN-85, risque accepté RA-72. |
+| TR-74 | CT-6 §4.2 (l. 575) | Le format de la partie. | Section 7 (7.1 à 7.6). |
+| TR-75 | CT-6 §4.5 (l. 844) | La taille de l'exemple avec inscription. | 7.5. |
+| TR-76 | CT-6 §5.5 (l. 1135) | L'attestation jointe au dossier. | Section 7. |
+| TR-77 | CT-6 §5.5 (l. 1138) | La portée des vérifications AT-. | CT-7 EX-7.1. |
+| TR-78 | CT-6 §5.5 (l. 1170) | Le motif de l'absence d'effet sur le verdict. | CT-7 EX-7.1 ; menaces MN-78 et MN-89. |
+| TR-79 | CT-6 §6.5 (l. 1682) | L'exemple du fragment FP. | 7.5 ; dossiers : annexe A.7. |
+| TR-80 | CT-6 §7.2 (l. 2259) | Le détenteur de la clé et sa classe se constatent hors du vérificateur : procès-verbal d'inscription (CT-2 EX-11.13) et cérémonie des clés. | Le réviseur vérifie le procès-verbal (CR-1 à CR-12) et n'en tire la clé publique et la classe de garde de la ligne `recorders` de son fichier d'ancres qu'aux conditions de CT-7 EX-5.10 : un signataire connu de lui par un canal indépendant du client et un `D_C` ancré en production (5.9, CT-7 EX-5.11). |
+| TR-81 | CT-6 §7.10 (l. 2878) | AT-7 ne compare que des noms de version ; un nom réannoncé avec un autre contenu la fait réussir tant que CT-2 ne l'interdit pas. | PA-9 (6.2) ; menace MN-91, risque accepté RA-75 ; CT-7 EX-7.11. |
+| TR-82 | CT-6 §7.10 (l. 2879) | Ce qu'une conformité réglementaire supposerait. | Section 8 : correspondance technique, pas un avis juridique (CT-7 EX-8.1). |
+| TR-83 | CT-6 §12.5 (l. 5809) | Ligne `recorders` : procès-verbal d'inscription de la clé et cérémonie des clés. | 5.9 (même réponse). |
+| TR-84 | CT-6 §16 (l. 6384) | Le schéma `attestation-perimetre-v0`. | 7.1 ; `spec/schemas/attestation-perimetre-v0.schema.json`. |
+| TR-85 | CT-6 §16 (l. 6386) | Les dossiers de la famille `ct-6`. | Annexe A.7 (EX-A.10). |
+| TR-86 | CT-6 « A.8 Confrontation par des implémentations tierces » (l. 8384) | Les dossiers avec la partie. | Annexe A.7. |
+| TR-87 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8834) | Les notes de recherche de CT-7. | Annexe B.1 (R7). |
+| TR-88 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8836) | Les faits R7-F51 à R7-F53. | Annexe B.1. |
+| TR-89 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8843) | Les extraits exacts des sources. | Annexe B.1, extraits cités par la section 7. |
 | TR-90 | spec/README.md « Spécifications » (l. 21) | L'état de CT-7. | Ce document, version 0.4 du 2026-11-11 (version 0.3 du 2026-11-10, version 0.2 du 2026-11-03, version 0.1 du 2026-10-26). |
 | TR-91 | spec/README.md « Spécifications » (l. 21) | Le lien vers ce document. | Ce document. |
 | TR-92 | spec/README.md « Spécifications » (l. 26) | Ordre d'écriture : CT-7 après CT-3, CT-4 et CT-5. | Respecté (section 1) : CT-7 0.1 reprend CT-2 0.5, CT-3 0.3, CT-4 0.4 et CT-5 0.2 en l'état, et accompagne CT-1 0.4 et CT-6 0.3. |

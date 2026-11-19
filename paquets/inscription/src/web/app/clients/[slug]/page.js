@@ -32,8 +32,9 @@
 import { notFound } from "next/navigation";
 import { client, confirmations } from "../../../lib/donnees.mjs";
 import { exigerSession, nature } from "../../../lib/page.mjs";
-import { CHERCHER_LA_REPONSE, CREDITS_EN_CLAIR, OPERATIONS_JEU, PAR_NOTRE_COMPTE, avancement, dateLisible, etapesDuParcours, etatsTravaux, explicationErreur, jourLisible, libelleCommande, montantEnClair, nombreLisible, nommeLesCredits, prochaineAction } from "../../../lib/parcours.mjs";
+import { CHERCHER_LA_REPONSE, OPERATIONS_JEU, PAR_NOTRE_COMPTE, avancement, dateLisible, etapesDuParcours, etatsTravaux, explicationErreur, jourLisible, libelleCommande, montantEnClair, nombreLisible, nommeLesCredits, prochaineAction, repereEnClair } from "../../../lib/parcours.mjs";
 import CopierTexte, { CopierValeur } from "../../../composants/CopierTexte.js";
+import CreditsEnClair from "../../../composants/CreditsEnClair.js";
 import FormulaireTravail from "../../../composants/FormulaireTravail.js";
 import Icone from "../../../composants/Icone.js";
 import Lexique from "../../../composants/Lexique.js";
@@ -49,14 +50,6 @@ const ENVOI_A_REPRENDRE = new Set(["transaction_en_attente", "recu_absent", "cer
 
 /** Nom du compte d'une identité de session (`exploitant <nom>`, INTERFACES.md 1), comme la barre l'affiche ; autre forme : telle quelle. */
 const nomDuCompte = (identite) => String(identite ?? "").replace(/^exploitant /, "");
-
-/**
- * Ce que sont les crédits d'écriture, placé juste après le premier texte de l'écran qui les nomme ; `versement` : la
- * phrase sur ce que permet le versement du compte technique s'y ajoute.
- */
-function CreditsEnClair({ versement = null, classe = "ins-essentiel-texte" }) {
-  return <p className={`${classe} ins-credits`} data-credits-en-clair="">{CREDITS_EN_CLAIR}{versement ? ` ${versement}` : ""}</p>;
-}
 
 /** Une demande que l'agent a relayée (`demande-inscription-relayee-…`, `demande-administration-relayee-…`). */
 const estRelayee = (x) => /^demande-(inscription|administration)-relayee-/.test(x.nom);
@@ -258,7 +251,7 @@ function Etape({ e }) {
 /** Une action de la fiche, repliée : ce qu'elle fait, quand s'en servir, son formulaire. */
 function Action({ x, slug }) {
   return (
-    <details className="nt-detail" data-action={x.cle}>
+    <details className="nt-detail ins-replie" data-action={x.cle}>
       <summary>{x.titre}</summary>
       <div className="nt-detail-corps">
         <p><strong>Ce que fait cette action :</strong> {x.quoi}</p>
@@ -342,7 +335,7 @@ export default async function PageClient({ params }) {
     ["apres", action.apres],
   ];
   const placeCredits = places.find(([, texte]) => nommeLesCredits(texte))?.[0] ?? null;
-  const credits = (place, classe) => (placeCredits === place ? <CreditsEnClair versement={action.cles ? action.versement : null} classe={classe} /> : null);
+  const credits = (place, classe = "") => (placeCredits === place ? <CreditsEnClair key={`credits-${place}`} versement={action.cles ? action.versement : null} classe={classe} /> : null);
   return (
     <main className="nt-page ins-page-fiche">
       <a className="nt-fil" href="/clients"><Icone nom="retour" />Tous les clients</a>
@@ -366,10 +359,10 @@ export default async function PageClient({ params }) {
           <div className="nt-bandeau-texte">
             <p className="nt-bandeau-titre">L'étape {e.numero} a échoué : {e.titre}</p>
             <p>{e.erreur.phrase} {e.erreur.effet} La marche à suivre est juste en dessous.</p>
-            {credits(`echec-${e.numero}`, "")}
           </div>
         </div>
       ))}
+      {echecs.map((e) => credits(`echec-${e.numero}`, "ins-credits-seul"))}
       {dernierRefuse ? (
         <div className="nt-bandeau nt-bandeau-erreur" role="alert" data-derniere-action={codeDernier}>
           <Icone nom="alerte" />
@@ -377,10 +370,10 @@ export default async function PageClient({ params }) {
             <p className="nt-bandeau-titre">La dernière action n'a pas abouti : {libelleCommande(dernier.commande)} ({etatDernier.libelle.toLowerCase()})</p>
             <p>{explicationDernier.phrase} {explicationDernier.effet}</p>
             <p><strong>Que faire :</strong> {explicationDernier.quoiFaire}</p>
-            {credits("dernier", "")}
           </div>
         </div>
       ) : null}
+      {credits("dernier", "ins-credits-seul")}
 
       <section className="nt-essentiel" data-prochaine-action={action.code} aria-labelledby="prochaine-titre">
         <div className="ins-consigne-tete">
@@ -433,11 +426,14 @@ export default async function PageClient({ params }) {
           )}
         </div>
         <p className="ins-essentiel-texte nt-attenue nt-petit" data-apres-clic="">{action.apres}</p>
-        {credits("apres", "ins-essentiel-texte nt-petit")}
+        {credits("apres")}
         {action.cles ? (
           <dl className="nt-definitions ins-pour-expliquer" data-pour-expliquer="">
             <dt>Si le client demande d'où vient ce montant</dt>
-            <dd data-montant-en-clair="">{montantEnClair(d.funding.daily_budget_gas)}</dd>
+            <dd>
+              <span className="ins-ligne" data-montant-en-clair="">{montantEnClair(d.funding.daily_budget_gas)}</span>
+              {repereEnClair(d.funding.amount_wei, d.funding.daily_budget_gas) ? <span className="ins-ligne" data-repere="">{repereEnClair(d.funding.amount_wei, d.funding.daily_budget_gas)}</span> : null}
+            </dd>
             <dt>Pour lui faire confirmer l'adresse</dt>
             <dd data-adresse-a-confirmer="">{action.adresse}</dd>
           </dl>
@@ -486,7 +482,7 @@ export default async function PageClient({ params }) {
               <dt>{d.recorders.length > 1 ? "Enregistreurs" : "Enregistreur"}</dt><dd>{d.recorders.length === 0 ? "Aucun" : d.recorders.map((r) => <Valeur key={r.key_id}>{r.key_id}</Valeur>)}</dd>
               <dt>Dossier préparé</dt><dd><span>le <time dateTime={d.prepared_at}>{dateLisible(d.prepared_at)}</time></span></dd>
             </dl>
-            {nomTire ? <p className="nt-attenue nt-petit" data-nom-tire="">Ce nom ne dit pas qui est le client : notez la correspondance dans votre fichier des clients.</p> : null}
+            {nomTire ? <p className="nt-attenue nt-petit" data-nom-tire="">Ce nom ne dit pas qui est le client : notez-le dans votre fichier des clients, à côté de son vrai nom.</p> : null}
             <details className="ins-detail" data-detail-organisation>
               <summary>Détail technique</summary>
               <dl className="nt-definitions ins-detail-corps">
@@ -567,7 +563,7 @@ export default async function PageClient({ params }) {
         </section>
       ) : null}
 
-      <details className="nt-detail" data-actions-rares="">
+      <details className="nt-detail ins-replie" data-actions-rares="">
         <summary>Actions rarement utiles<span className="nt-detail-note">{rares.length} actions ; la bonne est déjà proposée en haut</span></summary>
         <div className="nt-detail-corps nt-pile">
           <p>Vous n'avez normalement pas besoin de ces actions : l'outil propose la bonne en haut de la fiche. Elles servent quand un message de l'outil vous y envoie, ou quand l'équipe technique vous le demande. Chacune dit ce qu'elle fait et quand s'en servir ; le service d'inscription refait tous ses contrôles avant d'agir.</p>
@@ -580,7 +576,7 @@ export default async function PageClient({ params }) {
         </div>
       </details>
 
-      <details className="nt-detail" data-historique="">
+      <details className="nt-detail ins-replie" data-historique="">
         <summary>
           Historique des actions lancées depuis cet outil
           <span className="nt-detail-note">

@@ -232,11 +232,12 @@ function rangerDejaDecidee(id, decision) {
   if (etat !== null) etat.replaceWith(pastille("info", t("etat_pastille.deja"), "horloge", { attributs: { "data-etat": "ouvert", "data-deja": "" } }));
   const titre = carte.querySelector(".carte-ticket-titre");
   if (titre !== null) titre.appendChild(el("p", { classe: "carte-ticket-deja", texte: t(`tickets.deja.${decision}`), attributs: { "data-deja-decide": decision } }));
-  // La date n'est plus « à décider avant » pour elle : c'est l'échéance, avant laquelle les autres approbations
-  // doivent arriver ; « trop tard pour l'approuver » ne se dit plus à qui a déjà décidé.
+  // La date n'est plus « à décider avant » pour elle ; « trop tard pour l'approuver » ne se dit plus à qui a déjà
+  // décidé. Sans délai de contestation, c'est l'échéance. Avec un délai, c'est le dernier instant où le seuil doit
+  // être atteint (EX-10.9), non l'échéance : son intitulé le dit, et l'échéance suit, dite comme l'expiration.
   const libelleEcheance = carte.querySelector('[data-champ="echeance"] > dt');
-  if (libelleEcheance !== null) libelleEcheance.textContent = t("tickets.echeance.deja");
   const expiration = carte.querySelector('[data-champ="echeance"] [data-expiration]');
+  if (libelleEcheance !== null) libelleEcheance.textContent = t(expiration === null ? "tickets.echeance.deja" : "tickets.echeance.deja_delai");
   if (expiration !== null) {
     const fin = expiration.querySelector("time");
     remplacer(expiration, t("tickets.echeance.autres"), " ", fin, ".");

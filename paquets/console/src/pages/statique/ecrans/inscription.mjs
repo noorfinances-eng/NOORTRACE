@@ -51,6 +51,11 @@ const zones = {
   resultat: el("div", { attributs: { id: "zone-resultat", "aria-live": "polite" } }),
 };
 
+// Le titre de l'inscription, et la phrase qui dit, quand une adresse attend déjà sa validation, qu'il n'y a rien de
+// plus à inscrire : posés une fois, leur texte suit l'annuaire lu.
+const titreInscription = el("h2", { attributs: { id: "inscription-titre" } });
+const attenteInscription = el("p", { classe: "inscription-attente", attributs: { id: "inscription-attente", hidden: "" } });
+
 // Les trois étapes de l'inscription : portefeuille, compte, texte à signer.
 // Chaque étape garde son élément ; `rendreEtapes` en met l'état à jour.
 const etapes = [1, 2, 3].map((n) => {
@@ -65,7 +70,9 @@ const etapes = [1, 2, 3].map((n) => {
 /** Met à jour l'état des étapes : faite, en cours ou à faire. */
 function rendreEtapes() {
   const faites = [etat.fournisseur !== null, etat.compte !== null, false];
-  const enCours = faites.indexOf(false);
+  // Une adresse attend déjà sa validation : rien n'est « en cours » tant que la personne n'a pas commencé.
+  const attente = etat.fournisseur === null && (entree()?.addresses ?? []).some((a) => a.state === "en_attente");
+  const enCours = attente ? -1 : faites.indexOf(false);
   etapes.forEach((e, k) => {
     const genre = faites[k] ? "faite" : k === enCours ? "en-cours" : "a-faire";
     e.element.setAttribute("class", `nt-etape nt-etape-${genre}`);
@@ -182,9 +189,10 @@ function rendreEntree() {
         definitions([
           [t("inscription.entree.id"), code(e.id)],
           [t("inscription.entree.creee"), instant(e.created_at)],
-          [t("inscription.entree.alias"), e.requester_identities.length === 0 ? t("modele.vide") : el("ul", { classe: "liste-nue" }, ...e.requester_identities.map((r) => el("li", {}, code(r))))],
+          [t("inscription.entree.alias"), e.requester_identities.length === 0 ? t("inscription.entree.alias_aucun") : el("ul", { classe: "liste-nue" }, ...e.requester_identities.map((r) => el("li", {}, code(r))))],
         ]),
-        e.requester_identities.length === 0 ? null : el("p", { classe: "nt-attenue nt-petit", texte: t("inscription.entree.alias_sens") }),
+        // Ce que veut dire la liste, qu'elle soit vide ou non (EX-13.17, `lier_demandeur` ; EX-9.15, contrôle 12).
+        el("p", { classe: "nt-attenue nt-petit", texte: t(e.requester_identities.length === 0 ? "inscription.entree.alias_aucun_sens" : "inscription.entree.alias_sens"), attributs: { id: "agents-sens" } }),
       ),
     );
   }
@@ -202,8 +210,9 @@ function actionRevocation(e, a) {
     return el(
       "div",
       { classe: "action", attributs: { "data-action": "revoquer" } },
+      // Chaque bouton dit quelle adresse il révoque : l'adresse active, ou l'adresse en attente de validation.
       bouton(
-        t("inscription.revoquer"),
+        t(a.state === "en_attente" ? "inscription.revoquer_attente" : "inscription.revoquer_active"),
         () => {
           etat.revocation = a.address;
           rendreEntree();
@@ -252,8 +261,15 @@ function rendreFournisseursEtComptes() {
     return;
   }
   if (etapes[0].element.parentNode === null || zones.inscription.firstChild === null) {
-    remplacer(zones.inscription, el("h2", { texte: t("inscription.nouvelle") }), el("p", { classe: "nt-attenue", texte: t("inscription.sens") }), el("ol", { classe: "nt-etapes" }, ...etapes.map((e) => e.element)));
+    remplacer(zones.inscription, titreInscription, attenteInscription, el("p", { classe: "nt-attenue", texte: t("inscription.sens") }), el("ol", { classe: "nt-etapes" }, ...etapes.map((e) => e.element)));
   }
+  // Une personne qui a déjà une adresse lit « une nouvelle adresse » ; avec une adresse en attente de validation, la
+  // page dit qu'elle n'a rien de plus à inscrire (relu à chaque lecture de l'annuaire).
+  const adresses = entree()?.addresses ?? [];
+  titreInscription.textContent = t(adresses.some((a) => a.state === "active" || a.state === "en_attente") ? "inscription.nouvelle_autre" : "inscription.nouvelle");
+  const attente = adresses.some((a) => a.state === "en_attente");
+  attenteInscription.textContent = attente ? t("inscription.attente_deja") : "";
+  attenteInscription.hidden = !attente;
   rendreFournisseurs(zones.fournisseurs, decouverte, etat.fournisseur, choisirFournisseur, true, false);
   rendreComptes();
 }

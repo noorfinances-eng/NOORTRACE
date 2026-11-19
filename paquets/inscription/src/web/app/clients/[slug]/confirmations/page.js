@@ -23,6 +23,12 @@
 // replie pas (INTERFACES.md 2.4) : l'instant exact de la confirmation, l'identité de session entière de qui l'a notée
 // et l'identifiant de l'action qui l'a utilisée restent lisibles sans rien ouvrir, en petit, sous ces mots ; l'instant
 // exact où elle a été notée est dans le détail technique de la carte.
+//
+// Cinquième lecture des écrans (même complément) : l'écran dit exactement ce qu'une confirmation autorise (EX-7.26) :
+// un versement sur un compte technique, ou un changement des approbateurs d'un client dont la liste est déjà
+// enregistrée ; une seule opération chacune. Pour l'inscription, c'est le versement de l'étape 5 ; les étapes 2 à 4
+// n'en demandent pas, mais l'action qui fait les étapes 2 à 5 ne commence pas sans elle (le service d'inscription
+// refuse de l'admettre). Les valeurs qui engagent, sur chaque carte, restent où elles sont.
 
 import { notFound } from "next/navigation";
 import { client, confirmations } from "../../../../lib/donnees.mjs";
@@ -60,7 +66,7 @@ export default async function PageConfirmations({ params }) {
         <div className="nt-entete-texte">
           <p className="nt-sur-titre">Client <Valeur>{slug}</Valeur></p>
           <h1>Confirmations du client</h1>
-          <p className="nt-sous-titre">Avant tout versement sur son compte technique, et avant tout changement de la liste de ses approbateurs, le client confirme l'opération par un autre moyen que cet outil : un appel, un courrier signé. Vous notez ici chaque confirmation ; sans elle, l'outil n'envoie rien. La liste garde tout : rien ne s'en efface.</p>
+          <p className="nt-sous-titre">Le client confirme par un autre moyen que cet outil (un appel, un courrier signé) chaque versement sur son compte technique et, une fois ses approbateurs enregistrés, chaque changement de leur liste. Vous notez ici chaque confirmation ; sans elle, l'outil n'envoie pas l'opération. La liste garde tout : rien ne s'en efface.</p>
         </div>
         <div className="nt-entete-etat">
           <Pastille ton={disponibles > 0 ? "info" : ""} icone={disponibles > 0 ? "info" : "tiret"} grande>{disponibles === 0 ? "Aucune prête à servir" : `${disponibles} ${disponibles > 1 ? "prêtes à servir" : "prête à servir"}`}</Pastille>
@@ -69,7 +75,7 @@ export default async function PageConfirmations({ params }) {
 
       <section className="nt-pile" aria-labelledby="registre-titre">
         <h2 id="registre-titre">Confirmations déjà notées</h2>
-        <p className="nt-attenue">Une confirmation « prête à servir » autorise une seule opération. Dès que l'opération est faite, elle devient « déjà utilisée » et ne peut plus servir.</p>
+        <p className="nt-attenue" data-une-operation="">Une confirmation « prête à servir » autorise une seule opération : un versement, ou un changement des approbateurs. Dès que l'opération est faite, elle devient « déjà utilisée » et ne peut plus servir. Pour l'inscription, il en faut une seule : celle du versement de l'étape 5. Les étapes 2 à 4 n'en demandent pas, mais l'outil les fait avec l'étape 5, en une seule action, qu'il ne commence pas sans cette confirmation.</p>
         {liste.length > 0 ? <CalculerEmpreinte pieces={pieces} /> : null}
         {liste.length === 0 ? (
           <div className="nt-vide">
@@ -129,7 +135,7 @@ export default async function PageConfirmations({ params }) {
         <section className="nt-pile" aria-labelledby="ajout-titre" data-aucune-attendue="">
           <h2 id="ajout-titre">Noter une confirmation</h2>
           <p className="nt-encart">Aucune confirmation n'est attendue pour ce client pour l'instant.</p>
-          <details className="nt-detail" data-autre-confirmation="">
+          <details className="nt-detail ins-replie" data-autre-confirmation="">
             <summary>Noter une autre confirmation (rare)<span className="nt-detail-note">seulement si le client a confirmé une autre opération</span></summary>
             <div className="nt-detail-corps nt-pile">
               <p className="nt-attenue">{texteAjout}</p>

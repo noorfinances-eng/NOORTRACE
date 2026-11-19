@@ -15,6 +15,16 @@
 // un secret (EX-7.21) et que l'outil y a cherché ceux dont il s'est servi (`secrets_checked`), et pourquoi il porte
 // aussi la trace d'opérations d'autres clients (EX-7.21, EX-9.5 : les reçus de tout le bloc, sans lesquels la preuve
 // d'une opération ne se contrôle pas, CP-3). Rien de plus n'est affirmé.
+// Cinquième lecture (même complément) : la recherche de secrets se dit sans contredire « aucune clé secrète n'est
+// demandée dans cet outil » : ce que l'outil a cherché, ce sont les clés secrètes et le jeton d'accès dont le service
+// d'inscription s'est servi pour ce client (EX-7.21 : chaque référence de clé employée par ses travaux, et le jeton
+// `--jeton` ; `secrets_checked` les compte par option, jamais par valeur) ; il les garde lui-même, personne ne les
+// saisit ici. Ce que le paquet porte des autres clients se dit exactement : les opérations inscrites dans les mêmes
+// lots que les siennes, telles que le registre public les a inscrites (EX-9.5 : reçus et transactions brutes de tout
+// le bloc) ; on y lit leur identifiant sur le registre (un code, `org_id = keccak256(slug)`, qui pour un client du
+// registre réel ne permet pas de le reconnaître, EX-6.2), des adresses, des empreintes, des montants de crédits, et
+// le texte libre qu'un client joint à une clôture de période (`uri`, CT-4 5.7) ; rien de ce qu'ils nous ont transmis
+// hors du registre (le paquet ne prend que le dossier de ce client et les captures de ses étapes).
 
 import { notFound } from "next/navigation";
 import { client } from "../../../../lib/donnees.mjs";
@@ -26,9 +36,27 @@ import Lexique from "../../../../composants/Lexique.js";
 import Pastille from "../../../../composants/Pastille.js";
 import TelechargerPaquet from "../../../../composants/TelechargerPaquet.js";
 import { CopierValeur } from "../../../../composants/CopierTexte.js";
+import CreditsEnClair from "../../../../composants/CreditsEnClair.js";
 import Valeur from "../../../../composants/Valeur.js";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Ce que l'outil a cherché dans le paquet (EX-7.21), dit sans contredire « aucune clé secrète n'est demandée dans cet
+ * outil » : les clés secrètes et le jeton d'accès dont le service d'inscription s'est servi pour ce client, qu'il
+ * garde lui-même. `secrets_checked` : `{ count, references: [{ option, reference }] }` ; l'option `--jeton` est le
+ * jeton d'accès au registre public, toute autre option une clé (EX-7.3, EX-7.30). Jamais une valeur.
+ */
+function phraseSecrets(sc) {
+  const refs = Array.isArray(sc.references) ? sc.references : [];
+  const jetons = refs.filter((r) => r.option === "--jeton").length;
+  const cles = refs.length > 0 ? refs.length - jetons : sc.count;
+  if (sc.count === 0) return "Pour cette inscription, le service d'inscription ne s'est servi d'aucune clé secrète ni d'aucun jeton d'accès : il n'avait rien à y chercher.";
+  const parties = [cles > 0 ? (cles > 1 ? `${cles} clés secrètes` : "1 clé secrète") : null, jetons > 0 ? "son jeton d'accès au registre public" : null].filter(Boolean).join(" et de ");
+  const pluriel = sc.count > 1;
+  const pronom = pluriel ? "les" : cles > 0 ? "la" : "le";
+  return `Pour cette inscription, le service d'inscription s'est servi de ${parties}, qu'il garde lui-même pour accéder au registre public ; personne ne ${pronom} saisit dans cet outil. Avant de vous proposer le paquet, l'outil a vérifié qu'aucun de ses fichiers n'en contient : il n'en a trouvé aucun${cles > 0 && jetons === 0 ? "e" : ""}.`;
+}
 
 export default async function PagePaquet({ params }) {
   await exigerSession();
@@ -116,16 +144,17 @@ export default async function PagePaquet({ params }) {
             <dd data-sans-secret={o.secrets_checked ? o.secrets_checked.count : undefined}>
               <span>
                 Aucune clé secrète, aucun jeton d'accès et aucun mot de passe : aucun de ses fichiers n'est fait pour en porter.
-                {o.secrets_checked ? (o.secrets_checked.count > 0
-                  ? ` Avant de vous le proposer, l'outil a vérifié qu'aucun de ses fichiers ne contient ${o.secrets_checked.count > 1 ? `l'un des ${o.secrets_checked.count} secrets dont il s'est servi` : "le secret dont il s'est servi"} pour cette inscription : il n'en a trouvé aucun.`
-                  : " L'outil ne s'est servi d'aucun secret pour cette inscription : il n'en avait aucun à y chercher.") : ""}
+                {o.secrets_checked ? ` ${phraseSecrets(o.secrets_checked)}` : ""}
               </span>
             </dd>
             <dt>À qui le remettre</dt>
-            <dd data-a-qui="">Au client seulement : c'est son paquet. Remettez-le par le moyen convenu avec lui ; si vous ne le connaissez pas, demandez-le à l'équipe technique. Il porte aussi la trace des autres opérations que le registre public a inscrites dans le même lot que les siennes, dont celles d'autres clients. C'est voulu : le registre public ne prouve une opération qu'avec tout son lot, et le client en a besoin pour contrôler ses propres preuves. Tout dossier de preuve tiré du registre public porte de même ces traces.</dd>
+            <dd data-a-qui="">Au client seulement : c'est son paquet. Remettez-le par le moyen convenu avec lui ; si vous ne le connaissez pas, demandez-le à l'équipe technique.</dd>
+            <dt>Ce qu'il montre d'autres clients</dt>
+            <dd data-autres-clients="">Les autres opérations que le registre public a inscrites dans le même lot que les siennes, telles qu'il les a inscrites. On y lit, pour chacune : l'identifiant du client sur le registre public (un code qui, pour un client du registre réel, ne permet pas de le reconnaître), des adresses, des empreintes, des montants de crédits d'écriture, et le texte qu'un client joint parfois à une clôture de période. Rien d'autre : rien de ce que ces clients nous ont transmis hors du registre public. C'est voulu : le registre public ne prouve une opération qu'avec tout son lot, et le client en a besoin pour contrôler ses propres preuves. Tout dossier de preuve tiré du registre public porte de même ces traces.</dd>
             <dt>Ce que le client vérifie</dt>
             <dd>Que l'empreinte ci-dessus est bien celle du paquet reçu, puis que les adresses du paquet (ses approbateurs, leur responsable, son enregistreur et son compte technique) sont bien les siennes. S'il relève un écart, il vous le signale, et rien ne doit être signé tant que l'écart n'est pas éclairci.</dd>
           </dl>
+          <CreditsEnClair />
           <TelechargerPaquet slug={slug} />
           <p className="nt-attenue nt-petit">Le fichier téléchargé est une archive « .tar », que le client sait ouvrir. Le paquet est contrôlé de nouveau à chaque téléchargement.</p>
         </section>
@@ -141,7 +170,7 @@ export default async function PagePaquet({ params }) {
       )}
 
       {produit ? (
-        <details className="nt-detail" data-produire-de-nouveau="">
+        <details className="nt-detail ins-replie" data-produire-de-nouveau="">
           <summary>Produire le paquet de nouveau<span className="nt-detail-note">seulement si le client vous a donné de nouvelles informations</span></summary>
           <div className="nt-detail-corps nt-pile">
             <p>Le paquet est déjà produit : vous n'avez pas à le refaire. Refaites-le seulement si le client vous a donné par écrit l'adresse de sa console ou ses administrateurs après coup, ou si un contrôle a refusé le paquet. Le nouveau paquet aura une nouvelle empreinte, à redonner au client.</p>
@@ -157,7 +186,7 @@ export default async function PagePaquet({ params }) {
       )}
 
       {dernier ? (
-        <details className="nt-detail" data-derniere-production="">
+        <details className="nt-detail ins-replie" data-derniere-production="">
           <summary>Détail technique de la dernière production<span className="nt-detail-note">réponse exacte du service d'inscription</span></summary>
           <div className="nt-detail-corps">
             <dl className="nt-definitions">

@@ -252,7 +252,8 @@ Troisième lecture, même date (CT-6 §18, EX-18.7 et EX-18.9) :
   en tête de « Pour les spécialistes », entière et jamais repliée.
 - **Contrôle non fait.** Sa phrase dit quoi demander, et à qui, d'après la
   raison du rapport, le numéro du contrôle et les pièces ajoutées à l'étape
-  2 (table de CT-6 §18, point 8) ; la raison exacte suit, entre parenthèses.
+  2 (table de CT-6 §18, point 8) ; la raison exacte suit, entre parenthèses
+  (cinquième lecture : elle est en tête de « Pour les spécialistes »).
   Une pièce absente du dossier renvoie à l'organisation qui l'a remis, non à
   l'étape 2. « Et maintenant ? » renvoie à ces lignes.
 - **Réserves.** Chaque phrase de la table dit ce qui est signalé, puis sa
@@ -266,6 +267,39 @@ Troisième lecture, même date (CT-6 §18, EX-18.7 et EX-18.9) :
 - **Barre haute.** Quand la page amène le résultat, ou l'étape 1, en haut de
   l'écran, elle lit la hauteur réelle de la barre haute (qui change avec la
   police et la largeur) et place l'élément dessous.
+
+Cinquième lecture, même date (CT-6 §18, EX-18.5 et EX-18.9) :
+
+- **Contrôle exigé sans valeur de preuve.** Le vérificateur rend 0 quand un
+  contrôle exigé est réussi sur un réseau d'essai (CT-6 7.5) ; la page ne dit
+  plus l'exigence remplie : titre « Valide, mais ce que vous avez exigé n'est
+  pas prouvé, et avec des réserves », phrase du verdict à part, ligne
+  « Contrôles que vous avez exigés et qui sont sans valeur de preuve : … »,
+  troisième ligne de « Et maintenant ? » à part. La formule exacte, en tête
+  de « Pour les spécialistes », reste celle du code 0.
+- **Clés et approbateurs du dossier.** La pastille dit « Cohérent ; identité
+  du signataire non prouvée » (contrôle 6) ou « … des approbateurs … »
+  (contrôle 7) ; ces contrôles ne sont plus comptés parmi les réussis, ni
+  dans le décompte ni dans le titre, et ce qu'ils ne prouvent pas est dit sous
+  le titre. En version 0, le jeu d'approbateurs est toujours celui du
+  dossier : sous le code 0, un rapport dont le contrôle 7 a réussi n'a donc
+  plus le vert plein.
+- **Deux causes de `hors_perimetre_version`.** D'après `absent_parts` : une
+  partie requise du contrôle déclarée absente « hors périmètre CT-1 » (le
+  dossier a été préparé sans elle), ou une pièce présente d'une forme que
+  cette version ne contrôle pas ; une phrase chacune.
+- **Codes.** La raison exacte d'un contrôle non fait (`ancre_absente`…) et
+  les références des vérifications en échec (code 1) sont en tête de « Pour
+  les spécialistes », hors de tout bloc replié, et non plus sur la ligne du
+  contrôle ou sous le verdict ; le renvoi d'un contrôle aux réserves ne porte
+  plus l'identifiant de l'avertissement, qui est dans son texte exact.
+- **Registre public.** La ligne de « En résumé » dit qu'un écart entre les
+  heures du registre et la période n'est ni signalé, ni expliqué, ni contrôlé
+  par le vérificateur, et à qui demander une explication.
+- **Empreintes publiées.** La mise en garde dit qui les publie (le projet,
+  avec chaque version, dans un fichier signé) ; le bloc de l'empreinte nomme
+  ce fichier (`SHA256SUMS`, EX-18.4). Le texte ne fixe pas l'adresse de cette
+  publication : la page ne la donne pas.
 
 ## Bornes et limites (EX-18.7 ; revue de sécurité de l'étape 8)
 

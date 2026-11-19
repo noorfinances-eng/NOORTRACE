@@ -3413,3 +3413,18 @@ html[data-barre="12"] { scroll-padding-top: 12.25rem; }
 .code-parcours + .code-parcours {
   margin-left: var(--nt-e-2);
 }
+
+/* L'instant d'un enregistrement au journal, tel qu'il est enregistré : sous l'instant dit en mots, d'un seul tenant. */
+.evenement-ts {
+  display: block;
+}
+
+.evenement-ts code {
+  white-space: nowrap;
+}
+
+/* Mon adresse : une adresse attend déjà sa validation, il n'y a rien de plus à inscrire. */
+.inscription-attente {
+  margin: 0;
+  font-weight: 600;
+}

@@ -842,10 +842,11 @@ function cleRefusCourant(raison, table) {
 /**
  * Clé de la phrase courante d'un contrôle non fait (table de CT-6 §18) : d'après la raison que le rapport donne, le
  * numéro du contrôle et ce que la personne a ajouté à l'étape 2 (`ancres`, `entetes` : vrai si la pièce a été
- * ajoutée). C'est un état de la page, pas un statut calculé : la raison exacte suit, entre parenthèses. Une raison
- * hors de la table reçoit la phrase « raison inconnue ».
+ * ajoutée). C'est un état de la page, pas un statut calculé : la raison exacte est donnée dans la rubrique des
+ * spécialistes. Sous `hors_perimetre_version`, `horsPerimetre` (partiesHorsPerimetre) distingue les deux causes ; null,
+ * la phrase les dit toutes deux. Une raison hors de la table reçoit la phrase « raison inconnue ».
  */
-function cleRaisonCourante(raison, numero, ancres, entetes) {
+function cleRaisonCourante(raison, numero, ancres, entetes, horsPerimetre = null) {
   if (raison === "ancre_absente") {
     if (!ancres) return "raison_ancre_absente";
     return numero === 5 && entetes ? "raison_ancre_absente_liste_extrait" : "raison_ancre_absente_liste";
@@ -854,8 +855,38 @@ function cleRaisonCourante(raison, numero, ancres, entetes) {
     if (numero === 5 && !entetes) return ancres ? "raison_partie_absente_extrait" : "raison_partie_absente_liste_extrait";
     return "raison_partie_absente";
   }
-  if (raison === "hors_perimetre_version" || raison === "piece_hors_dossier" || raison === "prerequis_en_echec") return `raison_${raison}`;
+  if (raison === "hors_perimetre_version") {
+    // Les deux causes de CT-6 §6.2 : une partie requise que l'index déclare absente « hors périmètre CT-1 »
+    // (EX-4.3), ou une pièce présente d'une forme que la version 0 ne vérifie pas. Rapport muet : les deux.
+    if (horsPerimetre === null) return "raison_hors_perimetre_version";
+    const parties = Object.hasOwn(PARTIES_REQUISES, numero) ? PARTIES_REQUISES[numero] : [];
+    return parties.some((f) => horsPerimetre.includes(f)) ? "raison_hors_perimetre_absente" : "raison_hors_perimetre_forme";
+  }
+  if (raison === "piece_hors_dossier" || raison === "prerequis_en_echec") return `raison_${raison}`;
   return "raison_inconnue";
+}
+
+// Parties requises de chaque contrôle (CT-6, table 5.1, colonne « Parties et entrées requises » ; les entrées à part
+// n'en sont pas, EX-4.3), par le nom de fichier que l'index et `absent_parts` leur donnent.
+const PARTIES_REQUISES = Object.freeze({
+  1: ["evenement.json"],
+  2: ["voisins.json"],
+  3: ["chemin.json", "manifeste.json", "manifeste.sig"],
+  4: ["jeton-rfc3161.der"],
+  5: ["preuve.ots"],
+  6: ["cles.json", "evenement.json", "voisins.json", "manifeste.sig"],
+  7: ["approbations.json"],
+  8: ["registre.json", "certificat-commit.json"],
+});
+
+/**
+ * Fichiers des parties que l'index déclare absentes avec la raison exacte « hors périmètre CT-1 » (membre
+ * `absent_parts` du rapport, EX-4.3), ou null si ce membre ne se lit pas exactement.
+ */
+function partiesHorsPerimetre(rapport) {
+  const a = rapport.absent_parts;
+  if (!Array.isArray(a) || !a.every((p) => p !== null && typeof p === "object" && typeof p.file === "string" && (p.reason === null || typeof p.reason === "string"))) return null;
+  return a.filter((p) => p.reason === "hors périmètre CT-1").map((p) => p.file);
 }
 
 // « Ce que ce résultat ne dit pas » et « Et maintenant ? » : lignes fixes par
@@ -864,6 +895,7 @@ function cleRaisonCourante(raison, numero, ancres, entetes) {
 const LIMITES = Object.freeze({ 0: ["limite_1", "limite_2", "limite_3", "limite_4", "limite_5"], 1: ["limite_invalide"], 3: ["limite_1", "limite_2", "limite_3", "limite_4", "limite_5"] });
 const SUITES = Object.freeze({
   0: ["suite_0_1", "suite_0_2", "suite_0_3"],
+  "0_exige_sans_valeur": ["suite_0_1", "suite_0_2", "suite_exige_sans_valeur"],
   1: ["suite_1_1", "suite_1_2", "suite_1_3"],
   2: ["suite_2_1", "suite_2_2", "suite_2_3"],
   3: ["suite_3_1", "suite_3_2", "suite_3_3"],
@@ -906,15 +938,21 @@ function aDesReserves(avertissements) {
  * exactement, donne les huit contrôles réussis et aucun avertissement. Avec
  * un contrôle non réussi ou un avertissement, la teinte est celle de
  * l'avertissement et une mention fixe suit le mot ; un contrôle réussi que
- * le rapport dit sans valeur de preuve compte comme non prouvé. Si le rapport
- * ne se lit pas exactement, la teinte est neutre, sans mention. Les autres
- * codes gardent leur présentation.
+ * le rapport dit sans valeur de preuve compte comme non prouvé, comme un
+ * contrôle réussi avec les seules clés ou les seuls approbateurs que le dossier
+ * déclare (`duDossier`, numéros des contrôles) ; un contrôle exigé
+ * (`exiges`) sans valeur de preuve a sa mention à lui. Si le rapport ne se lit
+ * pas exactement, la teinte est neutre, sans mention. Les autres codes gardent
+ * leur présentation.
  */
-function presentationVerdict(code, controles, avertissements) {
+function presentationVerdict(code, controles, avertissements, duDossier = [], exiges = null) {
   if (code !== 0) return { teinte: "pleine", mention: null };
   if (controles === null || avertissements === null) return { teinte: "neutre", mention: null };
-  const nonProuve = controles.some((c) => c.statut !== "reussi" || sansValeurDuControle(c.numero, controles, avertissements).length > 0);
+  const nonProuve = controles.some((c) => c.statut !== "reussi" || sansValeurDuControle(c.numero, controles, avertissements).length > 0 || duDossier.includes(c.numero));
   const reserves = avertissements.length > 0;
+  // Un contrôle exigé que le rapport dit sans valeur de preuve : le titre dit que l'exigence n'est pas prouvée (elle
+  // vient d'un avertissement, donc le rapport en porte au moins un).
+  if (exigesSansValeur(controles, avertissements, exiges).length > 0) return { teinte: "reserve", mention: "mention_exige_sans_valeur" };
   if (nonProuve && reserves) return { teinte: "reserve", mention: "mention_les_deux" };
   if (nonProuve) return { teinte: "reserve", mention: "mention_non_prouve" };
   if (reserves) return { teinte: "reserve", mention: "mention_reserves" };
@@ -927,13 +965,18 @@ function presentationVerdict(code, controles, avertissements) {
  * réussi (comme le fragment F7 de l'énoncé, CT-6 §7.3), sinon une clé par
  * contrôle non réussi, dans l'ordre des numéros. Un contrôle réussi que le
  * rapport dit sans valeur de preuve (sansValeurDuControle) ne prouve rien non
- * plus : il compte comme non réussi.
+ * plus : il compte comme non réussi. Un contrôle réussi avec ce que le dossier
+ * déclare lui-même (`duDossier`) a son élément à lui : ce qu'il ne prouve pas.
  */
-function clesNonProuve(controles, avertissements = []) {
+function clesNonProuve(controles, avertissements = [], duDossier = []) {
   const non = controles.filter((c) => c.statut !== "reussi" || sansValeurDuControle(c.numero, controles, avertissements).length > 0).map((c) => c.numero);
   const cles = [];
-  for (const n of non) {
-    if ((n === 4 || n === 5) && non.includes(4) && non.includes(5)) {
+  for (const c of controles) {
+    const n = c.numero;
+    if (!non.includes(n)) {
+      // Réussi avec ce que le dossier déclare lui-même : l'identité du signataire, ou des approbateurs, n'est pas prouvée.
+      if (duDossier.includes(n)) cles.push(`non_prouve_${n}_dossier`);
+    } else if ((n === 4 || n === 5) && non.includes(4) && non.includes(5)) {
       if (n === 4) cles.push("non_prouve_4_5");
     } else cles.push(`non_prouve_${n}`);
   }
@@ -979,6 +1022,26 @@ function sansValeurDuControle(numero, controles, avertissements) {
     if (Object.hasOwn(SANS_VALEUR, id) && !cles.includes(SANS_VALEUR[id])) cles.push(SANS_VALEUR[id]);
   }
   return cles;
+}
+
+/**
+ * Numéros des contrôles exigés (`inputs.required_controls`) que le rapport dit sans valeur de preuve
+ * (sansValeurDuControle), dans l'ordre des numéros ; vide sans exigence lisible. Le vérificateur les compte comme
+ * réussis (CT-6 7.5) ; la page ne fait que restreindre ce qu'elle en dit.
+ */
+function exigesSansValeur(controles, avertissements, exiges) {
+  if (controles === null || avertissements === null || exiges === null) return [];
+  return controles.filter((c) => exiges.includes(c.numero) && sansValeurDuControle(c.numero, controles, avertissements).length > 0).map((c) => c.numero);
+}
+
+/**
+ * Numéros des contrôles réussis avec les seules clés (contrôle 6, clesDuDossier) ou les seuls approbateurs
+ * (contrôle 7, approbateursDuDossier) que le dossier déclare lui-même : ils ne prouvent pas qui a signé. Vide si la
+ * liste des contrôles ne se lit pas.
+ */
+function numerosDuDossier(resume) {
+  if (resume.controles === null) return [];
+  return resume.controles.filter((c) => c.statut === "reussi" && ((c.numero === 6 && resume.clesDuDossier !== null && resume.clesDuDossier !== undefined) || (c.numero === 7 && resume.approbateursDuDossier === true))).map((c) => c.numero);
 }
 
 const PROVENANCES_CONNUES = ["dossier", "ancres", "registre"];
@@ -1210,6 +1273,7 @@ function resumer(rapport, code) {
     enResume: lignesEnResume(rapport, controles, code, avertissements ?? []),
     clesDuDossier: clesDuDossier(rapport, code),
     approbateursDuDossier: approbateursDuDossier(rapport, code),
+    horsPerimetre: partiesHorsPerimetre(rapport),
   };
 }
 
@@ -1248,12 +1312,15 @@ function paragrapheCause(cause) {
 }
 
 /**
- * Raison d'une non-exécution en clair, d'après ce que la personne a ajouté à l'étape 2 (`noms`), puis son code exact
- * entre parenthèses (CT-6 §6.2).
+ * Raison d'une non-exécution en clair, d'après ce que la personne a ajouté à l'étape 2 (`noms`) et les parties que le
+ * rapport dit déclarées hors périmètre (`horsPerimetre`). Son code exact (CT-6 §6.2) est donné en tête de la rubrique
+ * des spécialistes (lignesReferences).
  */
-function elementRaison(code, numero, noms) {
-  const cle = cleRaisonCourante(RAISONS_CONNUES.includes(code) ? code : null, numero, noms !== null && noms.ancres !== null, noms !== null && noms.entetes !== null);
-  return elementLibelle("span", "pv-controle-raison", "raison", { code }, { raison: libelle(cle) });
+function elementRaison(code, numero, noms, horsPerimetre = null) {
+  const cle = cleRaisonCourante(RAISONS_CONNUES.includes(code) ? code : null, numero, noms !== null && noms.ancres !== null, noms !== null && noms.entetes !== null, horsPerimetre);
+  const e = elementLibelle("span", "pv-controle-raison", "raison", {}, { raison: libelle(cle) });
+  e.dataset.raison = String(code);
+  return e;
 }
 
 /**
@@ -1481,12 +1548,15 @@ function carteControles(resume, noms) {
   const compte = (statut) => resume.controles.filter((c) => c.statut === statut).length;
   const reserves = new Map(resume.controles.map((c) => [c.numero, c.statut === "reussi" ? reservesDuControle(c.numero, resume.controles, resume.avertissements) : []]));
   const sansValeur = new Map(resume.controles.map((c) => [c.numero, sansValeurDuControle(c.numero, resume.controles, resume.avertissements)]));
-  // Un contrôle sans valeur de preuve n'est pas compté parmi les réussis ; « avec réserve » ne compte que les autres.
+  // Un contrôle sans valeur de preuve, ou réussi avec ce que le dossier déclare lui-même, n'est pas compté parmi les
+  // réussis ; « avec réserve » ne compte que les autres.
+  const dossier = numerosDuDossier(resume).filter((n) => sansValeur.get(n).length === 0);
   const nSansValeur = [...sansValeur.values()].filter((r) => r.length > 0).length;
-  const avecReserve = resume.controles.filter((c) => reserves.get(c.numero).length > 0 && sansValeur.get(c.numero).length === 0).length;
-  const reussis = compte("reussi") - nSansValeur;
+  const avecReserve = resume.controles.filter((c) => reserves.get(c.numero).length > 0 && sansValeur.get(c.numero).length === 0 && !dossier.includes(c.numero)).length;
+  const reussis = compte("reussi") - nSansValeur - dossier.length;
   const parties = [avecReserve === 0 ? libelle("compte_reussis", { n: reussis }) : libelle("compte_reussis_reserve", { n: reussis, m: avecReserve })];
   if (nSansValeur > 0) parties.push(libelle("compte_sans_valeur", { n: nSansValeur }));
+  if (dossier.length > 0) parties.push(libelle("compte_dossier", { n: dossier.length }));
   if (compte("non_execute") > 0) parties.push(libelle("compte_non_executes", { n: compte("non_execute") }));
   if (compte("echoue") > 0) parties.push(libelle("compte_echoues", { n: compte("echoue") }));
   const note = element("span", "nt-carte-note", parties.join(" · "));
@@ -1505,15 +1575,16 @@ function carteControles(resume, noms) {
     li.dataset.statut = c.statut;
     // Un contrôle réussi auquel le rapport rattache un avertissement n'est pas montré réussi sans plus : sa pastille le
     // dit ; s'il est sans valeur de preuve, elle le dit avec sa raison courte. Un contrôle réussi avec ce que le
-    // dossier fournit lui-même ne l'est pas non plus.
+    // dossier fournit lui-même ne l'est pas non plus : sa pastille dit ce qui est prouvé (le dossier est cohérent) et
+    // ce qui ne l'est pas (qui a signé), et passe avant celle d'une réserve, dont la ligne reste.
     const ids = reserves.get(c.numero);
     const raisonsSansValeur = sansValeur.get(c.numero);
     const cleDossier = duDossier.get(c.numero);
-    const [ton, nomIcone, cle] = raisonsSansValeur.length > 0 ? PASTILLE_SANS_VALEUR : ids.length > 0 ? PASTILLE_RESERVE : cleDossier !== null ? PASTILLES_DOSSIER[c.numero] : PASTILLES_STATUT[c.statut];
+    const [ton, nomIcone, cle] = raisonsSansValeur.length > 0 ? PASTILLE_SANS_VALEUR : cleDossier !== null ? PASTILLES_DOSSIER[c.numero] : ids.length > 0 ? PASTILLE_RESERVE : PASTILLES_STATUT[c.statut];
     if (ids.length > 0) li.dataset.reserves = ids.join(" ");
     if (raisonsSansValeur.length > 0) li.dataset.presentation = "sans_valeur";
-    else if (ids.length > 0) li.dataset.presentation = "reserve";
     else if (cleDossier !== null) li.dataset.presentation = "dossier";
+    else if (ids.length > 0) li.dataset.presentation = "reserve";
     const marque = element("span");
     marque.append(pastille(ton, nomIcone, libelle(cle, { raisons: raisonsEnMots(raisonsSansValeur) })));
     const texte = element("div", "nt-controle-texte");
@@ -1523,7 +1594,7 @@ function carteControles(resume, noms) {
     if (resume.exiges !== null && resume.exiges.includes(c.numero)) ligne.append(pastille("info", "alerte", libelle("controle_exige")));
     ligne.append(element("span", "pv-controle-prouve", libelle(`prouve_${c.numero}`)));
     texte.append(ligne);
-    if (c.statut === "non_execute") texte.append(elementRaison(c.raison, c.numero, noms));
+    if (c.statut === "non_execute") texte.append(elementRaison(c.raison, c.numero, noms, resume.horsPerimetre ?? null));
     if (cleDossier !== null) texte.append(element("span", "pv-controle-dossier", libelle(cleDossier)));
     if (ids.length > 0) {
       // Les avertissements qui rendent le contrôle sans valeur de preuve, puis les autres, chacun avec son renvoi.
@@ -1533,7 +1604,8 @@ function carteControles(resume, noms) {
         if (liste.length === 0) continue;
         const renvoi = element("a", null, libelle("renvoi_reserves"));
         renvoi.href = "#avertissements";
-        texte.append(elementLibelle("span", "pv-controle-reserve", cleLigne, { ids: liste.join(", ") }, { renvoi }));
+        // L'identifiant de l'avertissement est dans son texte exact, parmi les réserves : la ligne n'y renvoie que par le lien.
+        texte.append(elementLibelle("span", "pv-controle-reserve", cleLigne, {}, { renvoi }));
       }
     }
     if (c.statut === "echoue") {
@@ -1649,7 +1721,8 @@ function blocCommande(v) {
 /**
  * Rubrique « Pour les spécialistes » : un titre, une phrase (`cleIntro`, ou aucune), un texte exact affiché en tête
  * hors de tout bloc replié (`tete` : la formule exacte du vérificateur, ou la mention fixée pour un refus), puis les
- * blocs repliés donnés.
+ * blocs donnés : les références dans les mots du vérificateur (lignesReferences), hors de tout bloc replié, puis les
+ * blocs repliés.
  */
 function rubriqueSpecialistes(blocs, { cleIntro = "intro_specialistes", tete = null } = {}) {
   const section = element("section", "nt-pile pv-specialistes");
@@ -1737,7 +1810,9 @@ function ecrireVue() {
   const variantes = { 0: ["valide", "bouclier"], 1: ["non-valide", "croix"], 2: [null, "question"], 3: ["incomplet", "alerte"] };
   // La présentation ne peut que restreindre ce que le code dit : sous le code 0, la teinte pleine et son signe ne
   // restent que si le rapport, lu exactement, donne huit contrôles réussis et aucun avertissement.
-  const presentation = presentationVerdict(v.code, v.code === 2 ? null : v.resume.controles, v.code === 2 ? null : v.resume.avertissements);
+  const duDossier = v.code === 2 ? [] : numerosDuDossier(v.resume);
+  const exigesSv = v.code === 2 ? [] : exigesSansValeur(v.resume.controles, v.resume.avertissements, v.resume.exiges);
+  const presentation = presentationVerdict(v.code, v.code === 2 ? null : v.resume.controles, v.code === 2 ? null : v.resume.avertissements, duDossier, v.code === 2 ? null : v.resume.exiges);
   const [variante, signe] = presentation.teinte === "pleine" ? variantes[v.code] : [null, presentation.teinte === "reserve" ? "alerte" : "question"];
   const verdict = blocVerdict(variante, signe);
   if (presentation.teinte !== "pleine") verdict.classList.add(`pv-verdict-${presentation.teinte}`);
@@ -1757,14 +1832,15 @@ function ecrireVue() {
   verdict.append(titre);
   // Juste sous le titre : ce que les contrôles non réussis laissent sans preuve, en mots.
   if (v.code === 0 && presentation.teinte === "reserve") {
-    const cles = clesNonProuve(v.resume.controles, v.resume.avertissements);
+    const cles = clesNonProuve(v.resume.controles, v.resume.avertissements, duDossier);
     if (cles.length > 0) {
       const p = element("p", "pv-non-prouve", libelle(cles.length === 1 ? "non_prouve_un" : "non_prouve_plusieurs", { liste: listeEnMots(cles.map((cle) => libelle(cle)), "non_prouve_sep", "non_prouve_dernier") }));
       p.id = "non-prouve";
       verdict.append(p);
     }
   }
-  const courante = clePhraseCourante(v.code);
+  // Sous le code 0, un contrôle exigé sans valeur de preuve : la phrase ne dit plus que l'exigence est remplie.
+  const courante = v.code === 0 && exigesSv.length > 0 ? "phrase_0_exige_sans_valeur" : clePhraseCourante(v.code);
   if (courante !== null) verdict.append(phraseCourante(courante));
   const suite = element("div", "pv-verdict-suite");
   suite.id = "verdict-suite";
@@ -1794,16 +1870,29 @@ function ecrireVue() {
       // Contrôles réussis que le rapport dit sans valeur de preuve : jamais comptés parmi ceux qui ont réussi.
       const sansValeur = r.controles.map((c) => [c.numero, sansValeurDuControle(c.numero, r.controles, r.avertissements)]).filter(([, raisons]) => raisons.length > 0);
       const raisons = raisonsEnMots(sansValeur.flatMap(([, x]) => x));
+      // Réussis avec ce que le dossier déclare lui-même : jamais comptés parmi ceux qui ont réussi non plus.
+      const dossier = duDossier.filter((n) => !sansValeur.some(([m]) => m === n));
       if (v.code === 0 && nonReussis.length === 0) {
-        const avecReserve = r.controles.filter((c) => reservesDuControle(c.numero, r.controles, r.avertissements).length > 0 && sansValeurDuControle(c.numero, r.controles, r.avertissements).length === 0).length;
+        const avecReserve = r.controles.filter((c) => reservesDuControle(c.numero, r.controles, r.avertissements).length > 0 && sansValeurDuControle(c.numero, r.controles, r.avertissements).length === 0 && !dossier.includes(c.numero)).length;
         let p;
-        if (sansValeur.length > 0) p = elementLibelle("p", "pv-verdict-fort", avecReserve === 0 ? "tous_reussis_sans_valeur" : "tous_reussis_sans_valeur_reserve", { n: String(8 - sansValeur.length), m: String(avecReserve), k: String(sansValeur.length) }, { raisons });
-        else p = avecReserve === 0 ? element("p", "pv-verdict-fort", libelle("tous_reussis")) : elementLibelle("p", "pv-verdict-fort", "tous_reussis_reserve", { n: String(avecReserve) });
+        if (sansValeur.length > 0 || dossier.length > 0) {
+          // Décompte : les réussis, puis ceux sans valeur de preuve, puis ceux dont l'identité des signataires n'est pas prouvée.
+          p = element("p", "pv-verdict-fort");
+          const n = String(8 - sansValeur.length - dossier.length);
+          p.append(avecReserve === 0 ? elementLibelle("span", null, "decompte_reussis", { n }) : elementLibelle("span", null, "decompte_reussis_reserve", { n, m: String(avecReserve) }));
+          if (sansValeur.length > 0) p.append(document.createTextNode(libelle("decompte_sep")), elementLibelle("span", null, "decompte_sans_valeur", { k: String(sansValeur.length) }, { raisons }));
+          if (dossier.length > 0) p.append(document.createTextNode(libelle("decompte_sep")), elementLibelle("span", null, "decompte_dossier", { j: String(dossier.length) }));
+          p.append(document.createTextNode(libelle("decompte_fin")));
+        } else p = avecReserve === 0 ? element("p", "pv-verdict-fort", libelle("tous_reussis")) : elementLibelle("p", "pv-verdict-fort", "tous_reussis_reserve", { n: String(avecReserve) });
         p.id = "tous-reussis";
         suite.append(p);
       } else if (v.code === 0) suite.append(ligneBorne("verdict-borne", "valide_borne", { liste: nonReussis.join(", ") }));
       else if (v.code === 3 && r.exiges !== null) {
         suite.append(ligneBorne("exiges-non-reussis", "exiges_non_reussis", { liste: r.exiges.filter((n) => nonReussis.includes(n)).join(", ") }));
+      }
+      // Contrôles exigés que le rapport dit sans valeur de preuve : le vérificateur les compte comme réussis (CT-6 7.5).
+      if ((v.code === 0 || v.code === 3) && exigesSv.length > 0) {
+        suite.append(ligneBorne("exiges-sans-valeur", "exiges_sans_valeur", { liste: exigesSv.join(", ") }, { raisons: raisonsEnMots(exigesSv.flatMap((n) => sansValeurDuControle(n, r.controles, r.avertissements))) }));
       }
       // Sous un « Valide » borné ou un « Incomplet », les contrôles sans valeur de preuve sont dits à part.
       if ((v.code === 0 || v.code === 3) && sansValeur.length > 0 && !(v.code === 0 && nonReussis.length === 0)) {
@@ -1816,8 +1905,6 @@ function ecrireVue() {
         if (r.controles !== null && r.controles.some((c) => c.statut === "echoue" && c.verifications.includes(d.id))) continue;
         suite.append(ligneEchec(d));
       }
-      if (r.echecs !== null && r.echecs.length > 0) suite.append(elementLibelle("p", "pv-references", "verifications_echec", { liste: r.echecs.join(", ") }));
-      if (r.bloquantes !== null && r.bloquantes.length > 0) suite.append(elementLibelle("p", "pv-references", "verifications_bloquantes", { liste: r.bloquantes.join(", ") }));
     }
   }
   // Le code et son sens (table de CT-6 §8.3), entiers et jamais repliés, en tête de « Pour les spécialistes ».
@@ -1855,7 +1942,7 @@ function ecrireVue() {
   const duo = element("div", "pv-duo");
   const limites = v.code === 2 ? null : carteLimites(v.code);
   if (limites) duo.append(limites);
-  const suiteCarte = carteSuite(v.code, true);
+  const suiteCarte = carteSuite(v.code === 0 && exigesSv.length > 0 ? "0_exige_sans_valeur" : v.code, true);
   if (suiteCarte) duo.append(suiteCarte);
   contenu.append(duo);
 
@@ -1881,7 +1968,27 @@ function ecrireVue() {
   preJson.id = "rapport-json";
   blocPre(json.corps, preJson);
   blocs.push(json.bloc, blocCommande(v));
+  // Sous la formule exacte, hors de tout bloc replié : les références dans les mots du vérificateur.
+  if (v.code !== 2) blocs.unshift(...lignesReferences(v.resume));
   contenu.append(rubriqueSpecialistes(blocs, { tete: formule }));
+}
+
+/**
+ * Références dans les mots du vérificateur, que la rubrique des spécialistes donne hors de tout bloc replié, sous la
+ * formule exacte : le code de la raison de chaque contrôle non fait (CT-6 §6.2), les vérifications en échec et
+ * celles qui n'ont pas pu être faites sans raison admise (EX-6.7).
+ */
+function lignesReferences(r) {
+  const lignes = [];
+  const nonFaits = r.controles === null ? [] : r.controles.filter((c) => c.statut === "non_execute");
+  if (nonFaits.length > 0) {
+    const p = elementLibelle("p", "pv-references", "raisons_exactes", { liste: nonFaits.map((c) => `${c.numero} (${c.raison})`).join(", ") });
+    p.id = "raisons-exactes";
+    lignes.push(p);
+  }
+  if (r.echecs !== null && r.echecs.length > 0) lignes.push(elementLibelle("p", "pv-references", "verifications_echec", { liste: r.echecs.join(", ") }));
+  if (r.bloquantes !== null && r.bloquantes.length > 0) lignes.push(elementLibelle("p", "pv-references", "verifications_bloquantes", { liste: r.bloquantes.join(", ") }));
+  return lignes;
 }
 
 /**

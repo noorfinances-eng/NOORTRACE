@@ -196,9 +196,9 @@ les lignes.
 | TC-27 | CT-5 §9.3 (l. 5661) | Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index). | TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (§11, rapport de campagne `mesures/rapport-2026-11-13-capture-bloc-plein-clotures.json`). |
 | TC-28 | CT-5 §14 (l. 6165) | Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9). | TI-16 (§8), exécutable depuis l'étape 5 (`test/ancrage-composant-pannes.test.js` : relève de la clôture par le secours qualifié tant que la configuration n'est pas rechargée ; rechargement sans principal qualifié refusé) ; mesures en charge du planificateur : TM-17 (§11). |
 | TC-29 | CT-5 §14 (l. 6167) | Tests EX- et AN-1 à AN-61, mesures P-1 à P-6, épreuve à l'aveugle. | §6, §7, §8 (TI-16, TI-17), §9 (TE-12), §11 (TM-10 à TM-19), §12 (TR-4, TR-5) ; état « proposition » levé par ce document. |
-| TC-30 | CT-6 §0 (l. 116) | Rattachement aux EX-. | §5.1, règle (a). |
-| TC-31 | CT-6 §1 (l. 282) | EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`. | §6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10). |
-| TC-32 | CT-6 §6.9 (l. 1958) | Exécution des V- par comparaison du rapport à `attendu.json`. | TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`. |
+| TC-30 | CT-6 §0 (l. 121) | Rattachement aux EX-. | §5.1, règle (a). |
+| TC-31 | CT-6 §1 (l. 287) | EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`. | §6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10). |
+| TC-32 | CT-6 §6.9 (l. 1963) | Exécution des V- par comparaison du rapport à `attendu.json`. | TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`. |
 | TC-33 | CT-7 §0.1 (l. 118) | Rattachement aux EX-. | §5.1, règle (a). |
 | TC-34 | CT-7 §0.2 (l. 256) | Revue de code de l'enregistreur, périmètre fixé par CT-7 (3.2, 3.4). | §13 (TQ- enregistreur). |
 | TC-35 | CT-7 §0.3 (l. 384) | Ce que l'auteur de CT-9 lit dans CT-7. | Ce document ; annexe A. |
@@ -3749,7 +3749,7 @@ ancre (CT-7 annexe A.10).
 | R10-F26 | `menaces.json` : 98 menaces, préfixe fixe du membre `test`, 14 composants | `spec/vecteurs/ct-7/menaces.json` ; CT-7 §3.8 | 2026-11-01 |
 | R10-F28 | Bijection RA- ↔ MN- par `accepted_risk` (RV-8) | CT-7 §3.5 l. 956-1060 ; `menaces.json` | 2026-11-01 |
 | R10-F30 | Exécution réelle de la suite avant cette version : 844 cas, 838 réussis, 6 en attente, code 0 (résumé Hardhat « 844 passing (844 mocha) », qui compte les cas en attente) ; après elle : EX-3.11 | `npx hardhat --config hardhat.config.mjs test`, journal de R10 ; exécution du commit éprouvé | 2026-11-01 |
-| R10-F35 | Modules Go `ct-1` à `ct-5`, `ct-7`, `ct-8` ; aucun pour `ct-6` ; réserve d'indépendance de `ct-5` | `spec/vecteurs/ct-*/verificateur-independant/README.md` ; CT-6 §14 l. 5982 | 2026-11-01 |
+| R10-F35 | Modules Go `ct-1` à `ct-5`, `ct-7`, `ct-8` ; aucun pour `ct-6` ; réserve d'indépendance de `ct-5` | `spec/vecteurs/ct-*/verificateur-independant/README.md` ; CT-6 §14 l. 5987 | 2026-11-01 |
 | R10-F37 à R10-F39 | `definitions()`, `renvoiExiste()`, `occurrences()` et leurs expressions ; comptes par spécification | `scripts/conformite/verifier-renvois.mjs` l. 28-61 ; `scripts/deploiement/renvois.mjs` l. 24-80 | 2026-11-01 |
 | R10-F41 | Familles et homonymies par spécification | tables de la section 0 de CT-2 à CT-8 ; CT-1 §11.4 | 2026-11-01 |
 | R10-F43, R10-F44 | Étapes de la phase 2, cas de démonstration (plan privé ; nom du concurrent non recopié) | document interne, lecture seule | 2026-11-01 |
@@ -3837,7 +3837,7 @@ Docker Compose (2026-11-02).
 | R11-F37, R11-F38 | reproductibilité : « Results Reproduced », « Functional » | NISO RP-31-2021 (2021-01-28), annexe A | 2026-11-01 |
 | R11-F5, R11-F53 | horloge injectée de CT-5 ; minuteries simulées de Node v22.22.0 | `scripts/lib/ancrage.mjs` l. 1098 ; exécution locale | 2026-11-01 |
 | R11-NV5 | aucune source dédiée à la mesure par paire | — | non vérifié |
-| R10-F4 à R10-F15 | épreuves déléguées : participants, matériel, grilles, verdicts | `spec/CT-3-approbations.md` l. 9518-9554, 10041-10073 ; `CT-4` l. 2939-2972 ; `CT-5` l. 924, 6167 ; `CT-6` l. 1975-1999, 2612-2725 ; `CT-7` l. 4034-4110, 4763-4775 ; `CT-8` l. 8456-8597 | 2026-11-01 |
+| R10-F4 à R10-F15 | épreuves déléguées : participants, matériel, grilles, verdicts | `spec/CT-3-approbations.md` l. 9518-9554, 10041-10073 ; `CT-4` l. 2939-2972 ; `CT-5` l. 924, 6167 ; `CT-6` l. 1980-2004, 2617-2730 ; `CT-7` l. 4034-4110, 4763-4775 ; `CT-8` l. 8456-8597 | 2026-11-01 |
 | R10-F16 à R10-F25 | cibles et méthode : CT-2 §16 ; CT-5 §3.6, §7.2, §15 ; CT-8 EX-7.1, EX-8.1, §9.2, §10, EX-11.5, §12.2, EX-13.1 | `spec/CT-2-enregistreur.md` l. 12220-12313 ; `CT-5` l. 1165-1178, 2548-2569, 6221-6230 ; `CT-8` l. 3135-3144, 3534-3551, 3588-3608, 4204-4229, 4588-4594, 5645-5664, 6302-6322, 6781-6819 | 2026-11-01 |
 | exécution | tailles des lignes du segment de la démonstration | `node -e` et `awk` sur `spec/vecteurs/ct-2/evenements/journal-demo/segment.ndjson` : 9 lignes, 14 293 octets, moyenne 1 588,11 | 2026-11-01 |
 | exécution | durée de vérification d'un dossier (illustration de la méthode) | `chronometrer.mjs`, 3 échauffements, 20 répétitions, horloge monotone : p50 454,14 ms, p99 563,47 ms | 2026-11-01 |

@@ -45,26 +45,31 @@ export const MEMBRES_FICHE = Object.freeze(["key_id", "journal_id", "algorithm",
  * Lit les fiches d'enregistreur d'un champ `liste_documents` saisi en une zone par fiche (complément du 2026-11-18,
  * troisième lecture des écrans) : chaque zone porte le contenu d'un fichier du client, tel quel ; la page assemble
  * la liste, dans l'ordre des zones. Rend `{ valeur }` (la liste, celle qu'aurait donnée la saisie à la main de
- * « [ fiche, fiche ] » dans une seule zone) ou `{ erreur, zone, regle }` : la zone fautive (0 pour la première) et la
- * règle (`fiche_vide`, `fiche_liste`, `fiche_illisible`), sans la valeur refusée.
+ * « [ fiche, fiche ] » dans une seule zone) ou `{ erreur, zone, regle, erreurs }` : la première zone fautive (0 pour
+ * la première zone) et sa règle (`fiche_vide`, `fiche_liste`, `fiche_illisible`), et dans `erreurs` chaque zone
+ * fautive, sans la valeur refusée.
  */
 export function lireFiches(champ, textes) {
   const valeur = [];
+  // Chaque zone est lue ; toutes les zones fautives sont rendues dans `erreurs` (cinquième lecture des écrans : la
+  // page signale tout d'un coup), la première aussi dans `erreur`, `zone` et `regle`.
+  const erreurs = [];
   for (const [zone, brut] of textes.entries()) {
     const texte = String(brut ?? "").trim();
-    const refus = (regle) => ({ erreur: `${champ.nom}[${zone}] : ${regle}`, zone, regle });
-    if (texte === "") return refus("fiche_vide");
+    const refus = (regle) => erreurs.push({ erreur: `${champ.nom}[${zone}] : ${regle}`, zone, regle });
+    if (texte === "") { refus("fiche_vide"); continue; }
     let v;
     try {
       v = JSON.parse(texte);
     } catch {
-      return refus("fiche_illisible");
+      refus("fiche_illisible");
+      continue;
     }
-    if (Array.isArray(v)) return refus("fiche_liste");
-    if (v === null || typeof v !== "object" || MEMBRES_FICHE.some((m) => !Object.hasOwn(v, m))) return refus("fiche_illisible");
+    if (Array.isArray(v)) { refus("fiche_liste"); continue; }
+    if (v === null || typeof v !== "object" || MEMBRES_FICHE.some((m) => !Object.hasOwn(v, m))) { refus("fiche_illisible"); continue; }
     valeur.push(v);
   }
-  return { valeur };
+  return erreurs.length > 0 ? { ...erreurs[0], erreurs } : { valeur };
 }
 
 /**

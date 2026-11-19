@@ -231,7 +231,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       etape: n,
       titre: partie.state === "envoyee" ? `Attendez la réponse du registre public pour l'étape ${n}` : `Attendez que la preuve de l'étape ${n} soit rangée dans le dossier`,
       phrase: `Cette étape se fait chez le client, avec ses propres outils : vous n'avez rien à lancer d'ici. ${partie.state === "envoyee" ? `Elle est notée « Envoyée »${depuis(partie)} et attend la réponse du registre public` : `Le registre public l'a inscrite${depuis(partie)}, mais sa preuve n'est pas encore rangée dans le dossier`}. Le client a fait sa part : si la fiche n'a pas changé à votre prochaine visite, prévenez l'équipe technique.`,
-      aPreparer: "Rien à réunir.",
+      aPreparer: RIEN_A_RASSEMBLER,
       apres: "Le bouton relit seulement la fiche : rien n'est envoyé, rien n'est dépensé. Cet outil ne sait pas combien de temps le registre public mettra à répondre.",
       bouton: "Actualiser la fiche",
       lien: `/clients/${slug}`,
@@ -251,7 +251,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       phrase: envoyee
         ? "Une opération est partie vers le registre public, mais sa réponse n'est pas rangée dans le dossier. L'outil va chercher cette réponse et range la preuve de l'opération. Il ne renvoie jamais une opération déjà partie."
         : "Le registre public a inscrit l'opération, mais sa preuve n'est pas encore rangée dans le dossier. L'outil va la chercher et la range. Il ne renvoie jamais une opération déjà partie.",
-      aPreparer: "Rien à réunir : l'outil sait quelle opération est partie.",
+      aPreparer: `${RIEN_A_RASSEMBLER.slice(0, -1)} : l'outil sait quelle opération est partie.`,
       // L'attente de la réponse est réglée dans le service d'inscription (`delai_s`, 120 secondes par défaut, comme
       // `--delai` de CT-4 7.3) : la consigne dit cette durée comme l'ordinaire, pas comme une promesse.
       apres: envoyee
@@ -266,11 +266,18 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
   if (restantes.length > 0) {
     const cles = versementsSansConfirmation(dossier, confirmations);
     if (cles.length > 0) {
+      // La confirmation porte sur le versement seul (EX-7.26) ; l'action « Faire les étapes 2 à 5 » l'enchaîne avec
+      // les étapes qui le précèdent, et le service d'inscription refuse de la commencer sans elle.
+      const versement = etapes.find((e) => e.step === "approvisionnement" && e.subject === cles[0]);
+      const etapeVersement = versement ? numero(versement) : null;
+      const premiere = numero(restantes[0]);
+      const derniere = 1 + conduites.length;
+      const jusquaConduites = premiere === derniere ? `l'étape ${premiere}` : `les étapes ${premiere} à ${derniere}`;
       return {
         code: "consigner_confirmation",
         surTitre,
         titre: "Notez la confirmation du client",
-        phrase: "Avant que nous versions des crédits d'écriture sur son compte technique, le client doit confirmer l'opération par un autre moyen que cet outil : un appel au numéro de son contrat, un courrier signé. Sans cette confirmation notée ici, l'outil ne verse rien.",
+        phrase: phraseConfirmationAttendue({ etapeVersement, jusqua: jusquaConduites }),
         credits: CREDITS_EN_CLAIR,
         versement: VERSEMENT_EN_CLAIR,
         adresse: ADRESSE_A_CONFIRMER,
@@ -291,7 +298,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
         variante: "reprendre_echec",
         titre: `Reprenez à l'étape ${n}`,
         phrase: `Vous n'avez rien à corriger d'ici : l'outil vérifie d'abord ce qui est réellement inscrit sur le registre public, puis refait ${jusqua}. Les étapes déjà faites ne sont pas refaites.`,
-        aPreparer: "Rien à réunir.",
+        aPreparer: RIEN_A_RASSEMBLER,
         apres: "Après le clic : l'outil travaille seul et la fiche se met à jour. Refaire une étape coûte de nouveau des crédits d'écriture. Si l'étape échoue une deuxième fois, n'insistez pas : prévenez l'équipe technique.",
         bouton: `Reprendre à l'étape ${n}`,
       };
@@ -302,7 +309,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
         variante: "continuer",
         titre: `Continuez l'inscription à l'étape ${n}`,
         phrase: `Les étapes précédentes sont faites. L'outil fait maintenant ${jusqua}, sans refaire les autres.`,
-        aPreparer: "Rien à réunir.",
+        aPreparer: RIEN_A_RASSEMBLER,
         apres: "Après le clic : l'outil travaille seul et la fiche se met à jour. S'il rencontre un refus, il s'arrête et vous dit pourquoi. Chaque écriture sur le registre public coûte des crédits d'écriture.",
         bouton: `Continuer à l'étape ${n}`,
       };
@@ -311,8 +318,8 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       ...commun,
       variante: "commencer",
       titre: "Lancez l'inscription sur le registre public",
-      phrase: "La confirmation du client est notée. L'outil peut maintenant enregistrer les approbateurs, les rattacher au client, contrôler le résultat, puis alimenter le compte technique.",
-      aPreparer: "Rien à réunir.",
+      phrase: `La confirmation du client est notée : elle porte sur le versement de l'étape ${dernier}. L'outil peut maintenant enregistrer les approbateurs, les rattacher au client, contrôler le résultat, puis alimenter le compte technique.`,
+      aPreparer: RIEN_A_RASSEMBLER,
       apres: `Après le clic : l'outil enchaîne les étapes 2 à ${dernier} sans vous et la fiche se met à jour. S'il rencontre un refus, il s'arrête, vous dit pourquoi, et reprendra là où il s'est arrêté. Chaque écriture sur le registre public coûte des crédits d'écriture.`,
       bouton: `Commencer les étapes 2 à ${dernier}`,
     };
@@ -329,7 +336,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
         keyId,
         titre: "Préparez le document d'inscription de l'enregistreur",
         phrase: "Pour que l'enregistreur du client soit inscrit sur le registre public, les approbateurs du client doivent donner leur accord en signant un document. L'outil prépare ce document ; il ne le signe jamais.",
-        aPreparer: "Rien à réunir : l'enregistreur concerné est déjà choisi ci-dessous ; cliquez sur « Préparer le document ».",
+        aPreparer: `${RIEN_A_RASSEMBLER.slice(0, -1)} : l'enregistreur concerné est déjà choisi ci-dessous.`,
         apres: "Après le clic : le document apparaît plus bas sur cette fiche, sous « Documents à faire signer par le client », prêt à être remis à ses approbateurs. Rien n'est envoyé au registre public.",
         bouton: "Préparer le document",
       };
@@ -354,7 +361,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       surTitre,
       titre: "Attendez la première preuve de date du client",
       phrase: "Les deux dernières étapes se font chez le client, sans vous : son enregistreur dépose sa première preuve de date, puis ses approbateurs closent la première période du journal. Vous n'avez rien à lancer.",
-      aPreparer: "Rien à réunir.",
+      aPreparer: RIEN_A_RASSEMBLER,
       apres: "Cette fiche se met à jour quand ces deux étapes sont enregistrées dans le dossier. Cet outil ne sait pas quand le client les fera : si la fiche n'a pas changé à votre prochaine visite, demandez au client où il en est.",
       bouton: "Actualiser la fiche",
       lien: `/clients/${slug}`,
@@ -381,7 +388,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       commande: "exporter",
       titre: "Préparez les pièces du dossier de preuve",
       phrase: "Toutes les étapes sont faites. L'outil copie maintenant, depuis le registre public, les pièces qui entreront dans le dossier de preuve du client : l'ensemble des pièces qui prouvent ce qu'un agent logiciel a fait, et quand.",
-      aPreparer: "Rien à réunir : gardez les choix proposés.",
+      aPreparer: `${RIEN_A_RASSEMBLER.slice(0, -1)} : gardez les choix proposés.`,
       apres: "Après le clic : les pièces sont rangées avec le dossier du client. Rien n'est écrit sur le registre public, rien n'est dépensé.",
       bouton: "Préparer les pièces",
     };
@@ -393,7 +400,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       commande: "verifier",
       titre: "Contrôlez les pièces du dossier de preuve",
       phrase: "Les pièces sont prêtes. L'outil les contrôle comme le fera l'outil de vérification du client, pour que le client ne reçoive rien de faux.",
-      aPreparer: "Rien à réunir : gardez les choix proposés.",
+      aPreparer: `${RIEN_A_RASSEMBLER.slice(0, -1)} : gardez les choix proposés.`,
       apres: "Après le clic : l'outil dit si chaque contrôle a réussi. Rien n'est écrit sur le registre public, rien n'est dépensé.",
       bouton: "Contrôler les pièces",
     };
@@ -414,8 +421,8 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
     code: "remettre_paquet",
     surTitre: "Inscription terminée",
     titre: "Remettez le paquet au client",
-    phrase: "L'inscription est faite et le paquet est produit. Si ce n'est pas déjà fait, téléchargez le paquet et remettez-le au client, avec son empreinte.",
-    aPreparer: "Rien à réunir.",
+    phrase: "L'inscription est faite et le paquet est produit. Si ce n'est pas déjà fait, téléchargez le paquet et remettez-le au client, avec son empreinte : une suite de 66 caractères, donnée sur l'écran du paquet, qui permet au client de vérifier qu'il a reçu exactement ce paquet.",
+    aPreparer: RIEN_A_RASSEMBLER,
     apres: "Après le clic : vous arrivez sur l'écran du paquet, où se trouvent le bouton de téléchargement et l'empreinte à donner au client.",
     bouton: "Voir le paquet à remettre",
     lien: `/clients/${slug}/paquet`,
@@ -478,6 +485,43 @@ export const VERSEMENT_EN_CLAIR = "Ceux que nous versons sur le compte technique
 export const montantEnClair = (parJour) => `Le montant est calculé à partir de la consommation prévue pour son enregistreur, réglée à ${nombreLisible(parJour)} crédits par jour ; si le compte en a déjà, l'outil ne verse que la différence.`;
 /** Le premier écrit d'un écran qui nomme les crédits d'écriture, d'après son texte (sert à placer `CREDITS_EN_CLAIR`). */
 export const nommeLesCredits = (texte) => /crédits? d'écriture/i.test(String(texte ?? ""));
+/** Titre du bloc replié qui porte `CREDITS_EN_CLAIR`, une fois par écran au plus (cinquième lecture des écrans). */
+export const CREDITS_QUESTION = "Qu'est-ce qu'un crédit d'écriture ?";
+/**
+ * Repère pour un nombre de crédits d'écriture (cinquième lecture des écrans), calculé depuis ce que l'écran affiche :
+ * une preuve de date et une clôture de période consomment ensemble au plus 450 000 crédits, d'après le gaz de
+ * référence de CT-4 EX-4.19 (`anchor` 100 000, 96 977 mesurés au plus ; `submitPeriod` 350 000, 314 256 mesurés au
+ * plus) et EX-4.15 (1 crédit par unité de gaz ; seul le remplacement d'un envoi bloqué coûte davantage,
+ * d'où « d'ordinaire »). La consommation prévue par jour en paie donc au moins ⌊b / 450 000⌋. Le montant d'un
+ * versement, lui, n'en donne aucun nombre : un envoi exige un solde d'au moins sa limite de gaz (`gas_limit`,
+ * EX-4.17, EX-4.18), réglage que l'écran n'affiche pas, de sorte qu'une part du montant ne paie aucune écriture (avec
+ * les réglages par défaut, 327 000 000 crédits en paient 720 paires au moins, non 726). Rien n'est dit sous le seuil
+ * d'une paire. Aucune durée n'est dite : une journée de journal peut porter bien plus de preuves de date que la
+ * cadence de l'exemple (EX-4.19, note de la révision 0.3).
+ */
+export const CREDITS_PAR_PAIRE = 450000n;
+export function paires(montant) {
+  const t = String(montant ?? "");
+  return /^[0-9]+$/.test(t) ? BigInt(t) / CREDITS_PAR_PAIRE : null;
+}
+export const repereEnClair = (montant, parJour = null) => {
+  const n = paires(montant);
+  if (n === null || n < 1n) return null;
+  const j = paires(parJour);
+  const jour = j !== null && j >= 1n ? ` La consommation prévue, ${nombreLisible(parJour)} crédits par jour, paie chaque jour au moins ${nombreLisible(j)} preuves de date suivies chacune de leur clôture.` : "";
+  return `Repère : d'ordinaire, une preuve de date consomme au plus 100 000 crédits et une clôture de période au plus 350 000.${jour}`;
+};
+/** « Rien à rassembler » : la ligne « Ayez sous la main » d'une consigne qui ne demande rien (cinquième lecture des écrans). */
+export const RIEN_A_RASSEMBLER = "Vous n'avez rien à rassembler avant de cliquer.";
+/**
+ * Phrase de la consigne « confirmation à noter » (cinquième lecture des écrans) : la confirmation porte sur le seul
+ * versement (EX-7.26) ; l'action qui fait les étapes 2 à 5 l'enchaîne avec celles qui le précèdent, et le service
+ * d'inscription refuse de la commencer tant que la confirmation manque (`confirmationManquante`, admission du
+ * travail `inscrire-client`). D'où l'ordre : la confirmation avant l'étape 2.
+ */
+export function phraseConfirmationAttendue({ etapeVersement = 5, jusqua = "les étapes 2 à 5" } = {}) {
+  return `L'étape ${etapeVersement ?? 5} verse des crédits d'écriture sur le compte technique de l'enregistreur du client. Le client doit d'abord confirmer ce versement par un autre moyen que cet outil : un appel au numéro de son contrat, un courrier signé. L'outil fait ${jusqua} en une seule action : tant que cette confirmation n'est pas notée ici, il ne la commence pas, même pour les étapes qui ne versent rien.`;
+}
 /**
  * Comment faire confirmer l'adresse du compte (CT-4 EX-7.26, EX-8.21 : la confirmation porte sur l'opération et son
  * objet, le compte entier, et une pièce en garde la trace) : par écrit et en entier, jamais dictée ni comparée en partie.
@@ -492,7 +536,7 @@ export const ADRESSE_A_CONFIRMER = "Ne la dictez pas : 42 caractères ne se lise
  */
 export const PAR_NOTRE_COMPTE = Object.freeze({
   bouton: "Envoyer par notre compte d'envoi",
-  sousBouton: "C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi.",
+  sousBouton: "C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles ».",
 });
 /**
  * Reprise d'un envoi resté sans réponse (travail `capturer`) : elle ne fait que lire le registre public (le reçu
@@ -690,7 +734,7 @@ export function explicationErreur(code, { verification = null } = {}) {
 const HEXA = "chiffres et lettres de a à f";
 /** Saisie refusée dans la page (types d'EX-7.25) : ce qui ne va pas et quoi corriger, sans recopier la valeur. */
 const SAISIES = Object.freeze({
-  slug: "Le nom court n'a pas la bonne forme. Corrigez-le : de 1 à 64 caractères, seulement des lettres minuscules sans accent, des chiffres et des tirets, sans espace, sans tiret au début ni à la fin.",
+  slug: "Le nom court n'a pas la bonne forme. Servez-vous du bouton « Tirer un nom au hasard » : le nom tiré a toujours la bonne forme. Un nom écrit à la main (en mode essai seulement) ne prend que des lettres minuscules sans accent, des chiffres et des tirets : de 1 à 64 caractères, sans espace, sans tiret au début ni à la fin.",
   nom_journal: "Le nom du journal n'a pas la bonne forme. Corrigez-le : de 1 à 64 caractères, seulement des lettres minuscules sans accent, des chiffres et des tirets.",
   liste_noms_journal: "Un nom de journal n'a pas la bonne forme. Corrigez-le : de 1 à 64 caractères, seulement des lettres minuscules sans accent, des chiffres et des tirets ; un nom par ligne.",
   adresse: `Ce n'est pas une adresse de signature. Elle s'écrit « 0x » suivi de 40 caractères (${HEXA}). Copiez-la depuis le document du client au lieu de la retaper.`,
@@ -709,6 +753,8 @@ const SAISIES = Object.freeze({
 });
 
 /** Phrase d'une saisie refusée, d'après le type déclaré du champ. */
+/** Un champ requis laissé vide (cinquième lecture des écrans : la page contrôle tous les champs d'un coup). */
+export const CHAMP_VIDE = "Ce champ est vide. Remplissez-le en suivant l'aide écrite dessous.";
 export const explicationSaisie = (type) => SAISIES[type] ?? "Cette saisie n'a pas la forme attendue. Relisez l'aide écrite sous le champ.";
 
 /**

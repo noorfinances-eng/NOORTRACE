@@ -68,7 +68,7 @@ import {
   texteRestant,
   texteValeur,
 } from "../commun/cadre.mjs";
-import { groupesValeurs, libelleValeur, montantDuResume, resumeVerifie } from "../commun/lisible.mjs";
+import { groupesValeurs, libelleValeur, montantDuResume, partiesIdentite, resumeVerifie } from "../commun/lisible.mjs";
 
 const PREFIXES_VOTE = ["console."];
 
@@ -323,16 +323,22 @@ function nomDe(adresse) {
 
 /**
  * Une personne : son nom quand l'annuaire lu le donne, « vous » pour sa
- * propre adresse ; puis son adresse de signature, entière, en petit.
+ * propre adresse ; puis son adresse de signature, entière, en petit. Le nom
+ * de la personne connectée vient de sa fiche dans l'annuaire, et non du
+ * compte que la barre nomme : la mention « vous » dit d'où vient chacun.
  */
 function personne(adresse) {
   const nom = nomDe(adresse);
   const mien = etat.pas1 !== null && adresse === etat.pas1.approver;
+  const compte = () => {
+    const p = partiesIdentite(identite());
+    return p === null ? String(identite()) : p.personne;
+  };
   return el(
     "span",
     { classe: "personne" },
     nom === null ? null : donnee(nom, "personne-nom"),
-    mien ? el("span", { classe: nom === null ? "personne-nom capitale" : "nt-attenue", texte: nom === null ? t("modele.jeu.vous") : `(${t("modele.jeu.vous")})`, attributs: { "data-vous": "" } }) : null,
+    mien ? el("span", { classe: nom === null ? "personne-nom capitale" : "nt-attenue", texte: nom === null ? t("modele.jeu.vous") : t("modele.jeu.vous_nom", { compte: compte() }), attributs: { "data-vous": "" } }) : null,
     // Sans nom connu, l'adresse est présentée : « adresse de signature ».
     nom === null && !mien ? el("span", { classe: "personne-presentation", texte: t("personne.adresse") }) : null,
     code(adresse, "nt-fixe personne-adresse"),
@@ -393,12 +399,16 @@ function rendreValeurs(modele, clos) {
   // Une valeur qui cache des caractères invisibles (EX-9.16) : ce que cela veut dire, et quoi faire.
   if (modele.arguments.some((a) => contientInvisibles(a.value))) parties.push(note("alerte", el("p", { texte: t("marque_sens.caracteres_invisibles"), attributs: { id: "invisibles-sens" } })));
   if (g.aControler.length > 0) {
+    // Après la décision de la personne, sur une demande encore ouverte, l'intitulé et la phrase disent ce que le
+    // contrôle était, au regard de cette décision, et comment revenir sur elle (EX-9.4, complément, points 2 et 8).
+    const deja = clos ? null : maDecisionEnregistree();
+    const [cleTitre, cleSens] = clos ? ["controle.titre_clos", "controle.sens_clos"] : deja === null ? ["controle.titre", "controle.sens"] : deja.decision === "approuve" ? ["controle.titre_approuve", "controle.sens_approuve"] : ["controle.titre_refuse", "controle.sens_refuse"];
     parties.push(
       el(
         "div",
-        { classe: clos ? "groupe-valeurs" : "groupe-valeurs groupe-controle", attributs: { id: "a-controler", role: "note" } },
-        el("h4", { classe: "groupe-valeurs-titre" }, icone(clos ? "question" : "alerte"), el("span", { texte: t(clos ? "controle.titre_clos" : "controle.titre") })),
-        el("p", { texte: t(clos ? "controle.sens_clos" : "controle.sens"), attributs: { id: "controle-sens" } }),
+        { classe: clos ? "groupe-valeurs" : "groupe-valeurs groupe-controle", attributs: { id: "a-controler", role: "note", "data-deja": deja === null ? null : deja.decision } },
+        el("h4", { classe: "groupe-valeurs-titre" }, icone(clos ? "question" : "alerte"), el("span", { texte: t(cleTitre) })),
+        el("p", { texte: t(cleSens), attributs: { id: "controle-sens" } }),
         liste(g.aControler, "valeurs-a-controler"),
       ),
     );
@@ -635,8 +645,19 @@ function rendreModele() {
           el(
             "span",
             { classe: "valeur-et-marque" },
-            // Le numéro (`seq`) et l'instant (`ts`) de l'événement restent affichés tels quels (EX-9.4).
-            el("span", { attributs: { id: "evenement-retenu" } }, el("span", { texte: t("modele.signes.evenement_numero") }), " ", code(String(modele.request.seq)), el("span", { texte: t("modele.signes.evenement_instant") }), " ", code(String(modele.request.ts))),
+            // Le numéro (`seq`) et l'instant (`ts`) de l'événement restent affichés tels quels (EX-9.4) : l'instant se dit
+            // d'abord comme les autres, dans le fuseau du navigateur, puis tel quel, à côté, en petit.
+            el(
+              "span",
+              { attributs: { id: "evenement-retenu" } },
+              el("span", { texte: t("modele.signes.evenement_numero") }),
+              " ",
+              code(String(modele.request.seq)),
+              el("span", { texte: t("modele.signes.evenement_le") }),
+              " ",
+              instant(String(modele.request.ts), { secondes: true }),
+              el("span", { classe: "nt-petit nt-attenue evenement-ts" }, el("span", { texte: t("modele.signes.evenement_tel_quel") }), " ", code(String(modele.request.ts))),
+            ),
             evenementVerifie ? marque("verifie", t("marque.verifie"), "coche", { "data-evenement": "verifie", "data-fixe": "" }) : marque("different", t("marque.evenement_invalide"), "different", { "data-evenement": "invalide" }),
           ),
         ],

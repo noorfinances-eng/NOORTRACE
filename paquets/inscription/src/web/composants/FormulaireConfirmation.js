@@ -38,13 +38,18 @@
 // note, donne aussi la valeur exacte de l'instant qui sera enregistré, sans rien ouvrir. L'empreinte de la pièce se
 // calcule par la fonction que partage « Calculer l'empreinte d'une pièce » (`empreinteFichier`). Ce qui part vers la
 // route ne change pas.
+//
+// Cinquième lecture (même complément) : l'explication des crédits d'écriture est un bloc replié (`CreditsEnClair`),
+// une fois sur l'écran ; sous le montant, un repère vrai, calculé depuis ce que l'écran affiche (`repereEnClair`). Le
+// choix de l'opération dit qu'une confirmation ne vaut que pour une opération, et laquelle l'inscription demande.
 
 import { useId, useRef, useState } from "react";
 import { empreinteFichier, lireChamp } from "./champs-page.js";
 import Icone from "./Icone.js";
 import { Refus } from "./FormulaireTravail.js";
 import { CopierValeur } from "./CopierTexte.js";
-import { ADRESSE_A_CONFIRMER, CREDITS_EN_CLAIR, VERSEMENT_EN_CLAIR, OPERATIONS_CONFIRMATION, dateLisible, explicationSaisie, jourLisible, nombreLisible } from "../lib/parcours.mjs";
+import CreditsEnClair from "./CreditsEnClair.js";
+import { ADRESSE_A_CONFIRMER, repereEnClair, VERSEMENT_EN_CLAIR, OPERATIONS_CONFIRMATION, dateLisible, explicationSaisie, jourLisible, nombreLisible } from "../lib/parcours.mjs";
 
 const MOTIF_INSTANT = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/;
 const deux = (n) => String(n).padStart(2, "0");
@@ -170,7 +175,7 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
     <form className="nt-formulaire" onSubmit={relire} onInput={() => { if (relecture) setRelecture(null); }} data-formulaire="confirmation">
       <fieldset className="nt-groupe-champs ins-section">
         <legend>Ce que le client a confirmé</legend>
-        {champ("operation", "Opération confirmée", "Une confirmation ne vaut que pour une seule opération. Pour une inscription en cours, c'est le premier choix.", (a) => (
+        {champ("operation", "Opération confirmée", "Une confirmation ne vaut que pour une seule opération. Pour une inscription en cours, c'est le premier choix : le versement de l'étape 5, la seule étape de l'inscription qui demande une confirmation.", (a) => (
           <select {...a} className="nt-saisie" data-type="texte" value={operation} onChange={(ev) => setOperation(ev.target.value)}>
             {Object.entries(OPERATIONS_CONFIRMATION).map(([code, libelle]) => <option key={code} value={code}>{libelle}</option>)}
           </select>
@@ -191,7 +196,8 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
                 {montant ? <><span data-valeur="">{nombreLisible(montant)}</span> crédits d'écriture</> : "crédits d'écriture"}
                 {operation === "approvisionnement" ? " sur le compte technique" : ", sur le compte technique"}{choisi?.nom ? <> de son enregistreur <span className="nt-fixe" data-valeur="">{choisi.nom}</span></> : null}, dont l'adresse est <CopierValeur valeur={compte} forme="adresse" libelle="Copier l'adresse" suite="." />
               </p>
-              <p className="nt-aide ins-credits" data-credits-en-clair="">{CREDITS_EN_CLAIR} {VERSEMENT_EN_CLAIR}</p>
+              <CreditsEnClair versement={VERSEMENT_EN_CLAIR} />
+              {montant && repereEnClair(montant) ? <p className="nt-aide" data-repere="">{repereEnClair(montant)}</p> : null}
               <p className="nt-aide">L'adresse : {ADRESSE_A_CONFIRMER.charAt(0).toLowerCase()}{ADRESSE_A_CONFIRMER.slice(1)}</p>
             </>
           )}
@@ -211,7 +217,7 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
           {localEnClair(local) ? <p className="nt-aide" data-date-en-clair="" aria-live="polite">Vous avez choisi : <strong>{localEnClair(local)}</strong>, heure de votre poste.</p> : null}
           {MOTIF_INSTANT.test(instant) ? <p className="nt-aide" data-instant-converti="" aria-live="polite">Converti en temps universel (UTC) : <strong>{dateLisible(instant)}</strong>. C'est cette heure, et non celle de votre poste, que l'outil enregistre et affiche partout.</p> : null}
         </div>
-        <details className="nt-detail" ref={avances} data-reglages-avances="instant">
+        <details className="nt-detail ins-replie" ref={avances} data-reglages-avances="instant">
           <summary>Réglages avancés<span className="nt-detail-note">à laisser tels quels, sauf consigne contraire</span></summary>
           <div className="nt-detail-corps">
             {champ("instant", "Instant enregistré, valeur exacte", "Il se calcule tout seul depuis la date et l'heure choisies ci-dessus. Ne le corrigez à la main que si l'équipe technique vous le demande : en temps universel (UTC), sous la forme 2026-11-18T09:12:00.000Z.", (a) => <input {...a} className="nt-saisie nt-saisie-fixe" data-type="texte" value={instant} onChange={(ev) => setInstant(ev.target.value)} />)}

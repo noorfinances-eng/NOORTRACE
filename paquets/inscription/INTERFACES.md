@@ -667,6 +667,59 @@ un envoi est resté sans réponse ; le reste de 2.4 tient.
   - *Rien à réunir.* Quand la consigne ne demande rien à avoir sous la
     main, elle dit « Rien à réunir » (et non plus « Rien à préparer », qui
     contredisait « Préparez le document »).
+- **Cinquième lecture** (même complément, après une nouvelle lecture des
+  écrans par une personne sans formation). Rien de ce qui suit ne change
+  une route, un corps envoyé, l'agent ni le dossier ; rien de ce qui engage
+  (2.4) ne se replie.
+  - *Secrets du paquet.* La ligne « Ce qu'il ne contient pas » dit ce que
+    l'outil a cherché sans contredire « aucune clé secrète n'est demandée
+    dans cet outil » : les `n` clés secrètes et le jeton d'accès dont le
+    service d'inscription s'est servi pour ce client (EX-7.21 ;
+    `secrets_checked` les compte par option, `--jeton` pour le jeton), qu'il
+    garde lui-même et que personne ne saisit ici ; aucun fichier n'en
+    contient. Une ligne « Ce qu'il montre d'autres clients » dit exactement
+    ce que portent les reçus et les transactions des mêmes blocs (EX-9.5) :
+    l'identifiant d'un client sur le registre (un code, qui pour un client
+    du registre réel ne permet pas de le reconnaître, EX-6.2), des
+    adresses, des empreintes, des montants de crédits, le texte joint à une
+    clôture de période ; rien de ce que ces clients nous ont transmis hors
+    du registre public.
+  - *Nouveau client.* « Essai » n'a qu'un sens, celui du bandeau « Mode
+    essai » (un registre d'essai). L'aide du nom court dit d'abord le cas
+    habituel, tirer un nom au hasard (EX-6.2) ; en mode essai seulement,
+    elle ajoute qu'un nom libre est admis. Le formulaire qui prend
+    approbateurs et enregistreur dans un fichier de clés déposé par
+    l'équipe technique s'appelle « Préparer un client de démonstration ».
+    Une saisie refusée l'est en entier : la page contrôle tous les champs
+    (le contrôle natif du navigateur, qui ne montrait que le premier champ
+    vide, est remplacé par le sien), signale chaque champ et chaque zone de
+    fiche fautifs, et nomme sous le bouton les champs à corriger.
+  - *Ce qu'une confirmation autorise.* Une seule opération (EX-7.26) : un
+    versement sur un compte technique, ou un changement des approbateurs
+    déjà enregistrés. Pour l'inscription, c'est le versement de l'étape 5 ;
+    les étapes 2 à 4 n'en demandent pas, mais l'action qui fait les étapes
+    2 à 5 ne commence pas sans elle (le service d'inscription refuse de
+    l'admettre). La consigne de la fiche, l'écran des confirmations et le
+    formulaire le disent ainsi.
+  - *Crédits d'écriture.* L'explication (`CREDITS_EN_CLAIR`) est un bloc
+    replié, « Qu'est-ce qu'un crédit d'écriture ? » (`CreditsEnClair`),
+    juste après le premier texte de l'écran qui les nomme, une fois par
+    écran au plus ; sous un bandeau d'erreur, il le suit au lieu d'y
+    entrer. Le montant d'un versement et le compte qui le reçoit restent
+    écrits sans rien ouvrir. Un repère vrai accompagne le montant
+    (`repereEnClair`) : une preuve de date consomme d'ordinaire au plus
+    100 000 crédits et une clôture de période au plus 350 000 (gaz de
+    référence d'EX-4.19, 1 wei par gaz d'EX-4.15), et le nombre de preuves
+    de date suivies de leur clôture que la consommation prévue par jour paie
+    au moins (⌊b / 450 000⌋). Le montant
+    lui-même ne donne aucun nombre d'écritures : un envoi exige un solde
+    d'au moins sa limite de gaz (EX-4.18), réglage que l'écran n'affiche
+    pas. Aucune durée.
+  - *Autres.* « Rien à réunir » devient « Vous n'avez rien à rassembler
+    avant de cliquer » ; l'empreinte du paquet est dite là où la fiche en
+    parle d'abord ; sous « Envoyer par notre compte d'envoi », la phrase
+    dit l'autre cas et où il est rangé. Sur téléphone, la note d'un bloc
+    replié passe sous son titre.
 
 ## 3. Agent (`src/agent/`, `bin/noortrace-inscription-agent`)
 
