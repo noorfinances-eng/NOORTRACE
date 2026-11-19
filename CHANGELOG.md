@@ -6,6 +6,46 @@ is tagged.
 
 ## Unreleased
 
+- Recorder daemon, degraded mode "stockage" (CT-2 §14), and the fault matrix
+  test (`test/enregistreur-matrice-pannes.test.js`), which failed now and
+  then. Six causes. (1) With the segment directory writable but the piece
+  directory not, the minute timer left the "stockage" mode as soon as a new
+  segment opened, and the sealing of pending events then failed on their
+  pieces without a word: `/healthz` said `ok` while storage was still
+  failing. The pieces kept in memory for pending events are now written
+  before the new segment is opened, and the mode is left only once they are
+  (EX-14.8, EX-14.10, EX-8.9); a piece that fails to write while the queue
+  is flushed enters the "stockage" mode, as it does for a call. (2) A
+  failure that closed a segment holding only its header (opened at a
+  previous exit, before any event) made every later exit fail, the next
+  segment having the same name (same `first_seq`, same epoch, EX-12.1): the
+  daemon stayed degraded after storage came back. That segment is now kept
+  and reopened, as EX-12.10 step 3 allows. (3) The daemon opens its
+  front ends without waiting for the reply to `charger` and, until then,
+  holds the approval service unavailable for every tool (EX-15.4 step 6,
+  EX-7.15): a first call made as soon as `/healthz` said `ok` could be
+  refused with `-31010`, reason `approbation`. The test now waits for the
+  `approval_candidates` line of the operations log before its first call,
+  and after a failover; nothing it checks is weakened. (4) The health
+  endpoint and the front ends answer before the process installs its
+  signal handlers: a `SIGHUP` (reload, EX-15.5) or a `SIGUSR2` received in
+  that window took its default action and ended the daemon. Both are now
+  held from the start of `lancer` and replayed once the handlers are in
+  place. (5) On a lost lease, the daemon restarts itself as a passive
+  instance (CT-2 13.4 step 8) and stopped its MCP HTTP server by closing
+  every connection before the front end's drain: a call already refused
+  with `-31010` lost its answer ("socket hang up"). The server now stops
+  accepting connections, waits for the answers of the requests in progress
+  within `mcp.drain_timeout_ms`, then closes the remaining connections (4.2,
+  "Arrêt"). (6) In the "Bail perdu" row, the former active instance,
+  restarted after its next tick, sometimes took the freed lock before the
+  passive one, which then never became active. The test now freezes the
+  former active instance while its lock is released and the passive one
+  takes over, and accepts both refusals the text allows from it: reason
+  `bail` before its restart (EX-13.6) and `bail_non_detenu` after it (13.4
+  step 8), with health `down` (503) or `standby`. The helper that calls it
+  opens a new connection per request and retries only a refused connection.
+  CT-9 catalogue regenerated (fingerprint of the test file).
 - Build step 8, supplements of 2026-11-18: wording of the screens (étape 8,
   compléments du 2026-11-18 : langage des écrans). After the owner's
   decision of 2026-11-18, every text of the three tools that people look at,

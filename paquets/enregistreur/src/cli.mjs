@@ -264,18 +264,41 @@ export async function principal(argv, io = {}) {
   return { coeur, mcp, modele, sdk, otel };
 }
 
+/** Signaux dont l'action par défaut arrête le processus et que le démon traite une fois démarré. */
+const SIGNAUX_RETENUS = Object.freeze(["SIGHUP", "SIGUSR2"]);
+
 /** Lance le démon comme processus : signaux d'arrêt et de rechargement. */
 export async function lancer() {
-  const r = await principal(process.argv.slice(2));
+  // SIGHUP (rechargement, EX-15.5) et SIGUSR2 (EX-7.13) reçus pendant le
+  // démarrage : la santé et les frontaux répondent avant que
+  // `superviserProcessus` pose leurs gestionnaires, et l'action par défaut de
+  // ces signaux terminait alors le processus. Ils sont retenus, puis rejoués
+  // une fois les gestionnaires posés.
+  const recus = new Set();
+  const retenus = new Map(SIGNAUX_RETENUS.map((s) => [s, () => recus.add(s)]));
+  for (const [s, f] of retenus) process.on(s, f);
+  const retirer = () => {
+    for (const [s, f] of retenus) process.removeListener(s, f);
+  };
+  let r;
+  try {
+    r = await principal(process.argv.slice(2));
+  } catch (e) {
+    retirer();
+    throw e;
+  }
   if (typeof r === "number") {
     // Démarrage refusé (une relance après perte du bail comprise) : plus
     // aucune instance à arrêter, SIGTERM et SIGINT reprennent leur effet par
     // défaut.
+    retirer();
     retirerArretProcessus();
     process.exitCode = r;
     return;
   }
   superviserProcessus(r, { argv: process.argv, relancer: lancer });
+  retirer();
+  for (const s of SIGNAUX_RETENUS) if (recus.has(s)) process.emit(s, s);
 }
 
 /**

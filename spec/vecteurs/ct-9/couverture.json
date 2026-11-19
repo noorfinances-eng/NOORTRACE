@@ -572,7 +572,7 @@
       },
       {
         "file": "test/enregistreur-matrice-pannes.test.js",
-        "sha256": "0e21862ed34d26382006eaf08b39677cf81aec93d0386c9fc18c6af5de2a2614"
+        "sha256": "36be91e895b5c051d4332775d8dc869962efcde3a73f1ca899622fcb6663be19"
       },
       {
         "file": "test/enregistreur-mcp-client-reference.test.js",

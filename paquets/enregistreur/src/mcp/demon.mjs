@@ -55,7 +55,12 @@ export async function demarrerFrontalMcp(coeur, secrets, o = {}) {
     connecteurs,
     http,
     async arreter() {
-      await http?.fermer();
+      // 4.2 « Arrêt » : plus de connexion HTTP nouvelle, appels en vol drainés
+      // (borne drain_timeout_ms), leurs réponses écrites, puis connexions
+      // restantes fermées, prises des connecteurs, connexions amont.
+      http?.cesser();
+      const limite = await frontal.drainer();
+      await http?.fermer(limite);
       await connecteurs.fermer();
       await frontal.arreter();
     },

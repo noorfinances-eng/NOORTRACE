@@ -563,6 +563,10 @@ export class Ecrivain {
         });
       }
       const r = relireSegment(new Uint8Array(await fs.readFile(t.chemin)), {});
+      // Segment réduit à son seul en-tête (EX-12.10 pas 3 : « conservé tel
+      // quel (il peut recevoir des lignes) ») : c'est lui que la sortie du mode
+      // rouvrira, son nom étant celui du segment à ouvrir (_ouvrirApresPanne).
+      this.segmentEnTeteSeul = r.entete && !r.evenements.length && !r.corruption ? { nom: t.nom, chemin: t.chemin, entete: r.entete } : null;
       const dernier = r.evenements[r.evenements.length - 1];
       const seqRelu = dernier ? dernier.seq : r.entete ? r.entete.first_seq - 1 : null;
       if (seqRelu !== null && seqRelu < this.lastSeq) {
@@ -585,8 +589,44 @@ export class Ecrivain {
    */
   async _ouvrirApresPanne() {
     if (!(await this._tronquerApresPanne())) throw new ErreurEnregistreur("stockage", "noortrace: enregistreur en mode degrade (stockage)");
-    await this._ouvrirSegment(this.lastSeq + 1);
+    const seul = this.segmentEnTeteSeul;
+    if (seul && seul.nom === nomSegment(this.lastSeq + 1, this.epoque)) await this._rouvrirEnTeteSeul(seul);
+    else await this._ouvrirSegment(this.lastSeq + 1);
+    this.segmentEnTeteSeul = null;
     this.degrade.sortir("stockage");
+  }
+
+  /**
+   * Segment fermé par une panne alors qu'il n'avait reçu que son en-tête
+   * (ouvert à une sortie précédente du mode « stockage », puis fermé par une
+   * nouvelle panne avant tout événement) : le segment à ouvrir (`first_seq` =
+   * dernier `seq` valide + 1, même époque, EX-12.8) porte son nom (EX-12.1),
+   * et une création exclusive échouerait à chaque tic, laissant le démon en
+   * mode dégradé alors que le stockage répond. Il est conservé et reçoit les
+   * lignes suivantes (EX-12.10 pas 3) : relu, contrôlé (en-tête seul, même
+   * chaînage, même clé), rouvert en ajout et synchronisé (EX-14.11).
+   * @param {{nom: string, chemin: string, entete: object}} seul
+   */
+  async _rouvrirEnTeteSeul(seul) {
+    await this.pieces?.verifierEspace?.();
+    await this._verifierOuverture("segments");
+    const r = relireSegment(new Uint8Array(await fs.readFile(seul.chemin)), {});
+    const e = r.entete;
+    if (!e || r.evenements.length || r.corruption || r.tronque || e.first_seq !== this.lastSeq + 1 || e.epoch !== this.epoque || e.prev_hash !== this.lastHash || e.recorder_key_id !== this.cleCourante) {
+      throw new ErreurEnregistreur("stockage", "noortrace: enregistreur en mode degrade (stockage)");
+    }
+    const fichier = await FichierAjout.ouvrir(seul.chemin);
+    try {
+      if (fichier.taille !== ligneSegment(e).length) throw new ErreurEnregistreur("stockage", "noortrace: enregistreur en mode degrade (stockage)");
+      await fichier.synchroniser();
+    } catch (err) {
+      await fichier.fermer();
+      throw err;
+    }
+    this.segment = { fichier, entete: e, nom: seul.nom, firstSeq: e.first_seq, nb: 0, synchronise: fichier.taille };
+    this.segmentsFermes = this.segmentsFermes.filter((n) => n !== seul.nom);
+    this._noterDurable();
+    this.metriques?.jauge("noortrace_segment_bytes", {}, fichier.taille);
   }
 
   /**

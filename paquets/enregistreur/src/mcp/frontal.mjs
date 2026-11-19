@@ -209,15 +209,31 @@ export class FrontalMcp {
    * `drain_timeout_ms`, puis les connexions amont fermées dans l'ordre de 4.2.
    */
   async arreter() {
+    await this.drainer();
+    await Promise.all([...this.connexions.values()].map((c) => c.fermer().catch(() => {})));
+  }
+
+  /**
+   * Drain de l'arrêt (4.2) : minuteurs annulés, appels en vol attendus
+   * jusqu'à `drain_timeout_ms` (une fois : un second appel rend aussitôt).
+   * Rend l'instant limite du drain, que les transports reprennent pour finir
+   * d'écrire les réponses des appels drainés.
+   * @returns {Promise<number>}
+   */
+  drainer() {
+    if (this.drain) return this.drain;
     this.arrete = true;
     for (const t of this.relecturesInjoignables.values()) this.annulerMinuteur(t);
     this.relecturesInjoignables.clear();
     for (const r of this.retentions.values()) this.annulerMinuteur(r.minuteur);
     for (const t of this.relectures.values()) this.annulerMinuteur(t.minuteur);
     const limite = Date.now() + (this.config.mcp.drain_timeout_ms ?? 0);
-    while (this.appelsEnVol.size && Date.now() < limite) await new Promise((r) => setTimeout(r, 20));
-    if (this.appelsEnVol.size) this.journal.consigner("warning", "frontal_mcp", "drain_timeout", { calls: this.appelsEnVol.size });
-    await Promise.all([...this.connexions.values()].map((c) => c.fermer().catch(() => {})));
+    this.drain = (async () => {
+      while (this.appelsEnVol.size && Date.now() < limite) await new Promise((r) => setTimeout(r, 20));
+      if (this.appelsEnVol.size) this.journal.consigner("warning", "frontal_mcp", "drain_timeout", { calls: this.appelsEnVol.size });
+      return limite;
+    })();
+    return this.drain;
   }
 
   /** Normalisations des connexions d'hôte configurées (EX-4.11 règle 3). */

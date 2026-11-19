@@ -201,6 +201,8 @@ export class ServeurHttpMcp {
     this.heritees = new Map();
     this.limiteur = new LimiteurEchecs({ monotone: () => this.frontal.monotone() });
     this.compteurConnexions = 0;
+    /** Requêtes POST dont la réponse n'est pas encore terminée (drain de l'arrêt, 4.2). */
+    this.postsEnCours = new Set();
   }
 
   get journal() {
@@ -209,10 +211,16 @@ export class ServeurHttpMcp {
 
   async ecouter() {
     const [hote, port] = this.cfg.listen.split(/:(?=[0-9]+$)/);
-    const gestion = (req, res) => this._requete(req, res).catch(() => {
-      if (!res.headersSent) res.writeHead(500).end();
-      else res.end();
-    });
+    const gestion = (req, res) => {
+      if (req.method === "POST") {
+        this.postsEnCours.add(res);
+        res.once("close", () => this.postsEnCours.delete(res));
+      }
+      return this._requete(req, res).catch(() => {
+        if (!res.headersSent) res.writeHead(500).end();
+        else res.end();
+      });
+    };
     this.serveur = this.cfg.tls
       ? https.createServer({ cert: fs.readFileSync(this.cfg.tls.cert_file), key: fs.readFileSync(this.cfg.tls.key_file) }, gestion)
       : http.createServer(gestion);
@@ -226,9 +234,31 @@ export class ServeurHttpMcp {
     return this.serveur.address();
   }
 
-  async fermer() {
-    this.serveur?.closeAllConnections?.();
-    await new Promise((r) => (this.serveur ? this.serveur.close(() => r()) : r()));
+  /**
+   * Premier temps de l'arrêt (4.2, « Arrêt ») : plus aucune connexion
+   * nouvelle n'est acceptée et les connexions inactives sont fermées ; les
+   * requêtes en cours continuent.
+   */
+  cesser() {
+    if (!this.serveur || this.fermeture) return;
+    this.fermeture = new Promise((r) => this.serveur.close(() => r()));
+    this.serveur.closeIdleConnections?.();
+  }
+
+  /**
+   * Second temps : les réponses des requêtes POST en cours (appels déjà
+   * décidés compris) sont attendues jusqu'à `limite` (instant, ms ; la borne
+   * `mcp.drain_timeout_ms` du drain du frontal), puis les connexions restantes,
+   * flux d'écoute compris, sont fermées. Fermer d'abord coupait la réponse
+   * d'un appel déjà décidé.
+   * @param {number} [limite]
+   */
+  async fermer(limite = Date.now()) {
+    if (!this.serveur) return;
+    this.cesser();
+    while (this.postsEnCours.size && Date.now() < limite) await new Promise((r) => setTimeout(r, 20));
+    this.serveur.closeAllConnections?.();
+    await this.fermeture;
   }
 
   _metadonnees() {

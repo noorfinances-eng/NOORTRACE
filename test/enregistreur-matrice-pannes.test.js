@@ -162,9 +162,26 @@ async function configuration(nom, modifier = null) {
   return c;
 }
 
+/**
+ * Liste des outils susceptibles d'approbation adoptée (ligne approval_candidates,
+ * EX-7.15) : le démon ouvre ses frontaux sans attendre la réponse du `charger`
+ * (EX-15.4 pas 6) et, jusqu'à elle, tient le service pour indisponible pour
+ * tout outil, tous étant susceptibles (14.2 : -31010, approbation). Une
+ * instance passive n'envoie rien avant la prise du bail (13.4 pas 6). Seules
+ * comptent les lignes qui suivent la dernière prise du bail : un démon
+ * relancé sur la même configuration écrit dans le même journal d'exploitation.
+ */
+const chargerReussi = (p) =>
+  attendre(() => {
+    const l = p.lignes();
+    const k = l.findLastIndex((x) => x.event === "lease_acquired");
+    return k >= 0 && l.slice(k).some((x) => x.event === "approval_candidates");
+  }, 60000);
+
 async function lancerDemon(c, etat = "ok") {
   const p = await demarrer(REFERENCE, c, c.fichier, etat);
   demons.add(p);
+  if (etat === "ok") await chargerReussi(p);
   return p;
 }
 
@@ -176,6 +193,27 @@ async function arreterDemon(p) {
 
 const jetonHote = (c) => c.env.NOORTRACE_TEST_JETON_HOTE;
 const appel = (c, outil, args) => appelerOutil(c.portHttp, jetonHote(c), `demo__${outil}`, args);
+/**
+ * Appel à une instance qui peut être en train de se relancer en passive
+ * (13.4 pas 8 : frontaux fermés puis rouverts). Chaque requête prend une
+ * connexion neuve : une connexion refusée (rien n'écoute) n'est pas une
+ * réponse, et l'appel est refait ; une connexion acceptée doit recevoir sa
+ * réponse, même pendant l'arrêt des frontaux (4.2, « Arrêt »), et toute autre
+ * erreur fait échouer l'essai.
+ */
+async function appelRendu(c, outil, args) {
+  let r;
+  await attendre(async () => {
+    try {
+      r = await appelerOutil(c.portHttp, jetonHote(c), `demo__${outil}`, args, { agent: false });
+      return true;
+    } catch (e) {
+      if (e.code === "ECONNREFUSED") return false;
+      throw e;
+    }
+  }, 60000, 100);
+  return r;
+}
 const erreur = (r) => r?.corps?.error ?? null;
 const resultat = (r) => r?.corps?.result ?? null;
 
@@ -463,6 +501,7 @@ describe("CT-9 TE-16 : matrice des pannes de CT-2 §14.2 rejouée sur le démon 
     const l1 = await appel(b, "lire", { id: "L1" });
     await arreterDemon(pa);
     await attendre(async () => (await sante(b.portSante))?.corps?.status === "ok", 60000);
+    await chargerReussi(pb);
     const apres = await appel(b, "lire", { id: "APRES" });
     await arreterDemon(pb);
     const d = await dossierVerifie(b, "bail");
@@ -528,21 +567,38 @@ describe("CT-9 TE-16 : matrice des pannes de CT-2 §14.2 rejouée sur le démon 
     const pa = await lancerDemon(c);
     expect(resultat(await appel(c, "lire", { id: "AVANT" }))?.isError).to.equal(false);
     const pb = await lancerDemon(b, "standby");
-    tuerAuxiliaireBail(pa);
-    await attendre(async () => (await sante(b.portSante))?.corps?.status === "ok", 60000, 100);
-    const e1 = await appel(c, "ecrire", { id: "E1", montant: "5" });
-    const l1 = await appel(c, "lire", { id: "L1" });
+    // A est figée pendant que son verrou est rendu, comme une instance isolée
+    // (13.4 pas 2) : elle ne peut ni constater la perte ni, relancée en passive
+    // (pas 8), reprendre le verrou libre avant B, qui réessaie toutes les
+    // lease.renew_ms (pas 1). Sans cela, A relancée au tic suivant le prenait
+    // parfois la première, et B restait passive.
+    pa.kill("SIGSTOP");
+    try {
+      tuerAuxiliaireBail(pa);
+      await attendre(async () => (await sante(b.portSante))?.corps?.status === "ok", 60000, 100);
+      await chargerReussi(pb);
+    } finally {
+      pa.kill("SIGCONT");
+    }
+    const e1 = await appelRendu(c, "ecrire", { id: "E1", montant: "5" });
+    const l1 = await appelRendu(c, "lire", { id: "L1" });
     await attendre(() => lignes(pa, "lease_lost").length > 0, 30000);
-    const santeA = await sante(c.portSante);
+    let santeA = null;
+    await attendre(async () => (santeA = await sante(c.portSante)) !== null, 30000, 100);
     const apres = await appel(b, "lire", { id: "APRES" });
     await arreterDemon(pa);
     await arreterDemon(pb);
     const d = await dossierVerifie(b, "bail-perdu");
+    // L'ancienne active refuse tout : -31010 « bail » tant qu'elle n'est pas
+    // relancée (EX-13.6, 14.2 « Bail perdu »), « bail_non_detenu » une fois
+    // redevenue passive (13.4 pas 8, 14.2 « Bail non détenu ») ; sa santé est
+    // « down » avec la raison « bail » (503), puis « standby » (EX-17.1).
     for (const r of [e1, l1]) {
       expect(erreur(r)?.code, JSON.stringify(r.corps)).to.equal(-31010);
-      expect(erreur(r).data).to.deep.equal({ reason: "bail" });
+      expect([{ reason: "bail" }, { reason: "bail_non_detenu" }], JSON.stringify(r.corps)).to.deep.include(erreur(r).data);
     }
-    expect(santeA.statut).to.equal(503);
+    if (santeA.statut === 503) expect(santeA.corps.reasons, JSON.stringify(santeA)).to.include("bail");
+    else expect(santeA, JSON.stringify(santeA)).to.deep.equal({ statut: 200, corps: { status: "standby" } });
     expect(resultat(apres)?.isError, JSON.stringify(apres.corps)).to.equal(false);
     // AVANT (ancienne active) et APRES (nouvelle) ; rien de l'ancienne après la perte.
     expect(nb(d, "lire")).to.equal(2);

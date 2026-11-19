@@ -1933,6 +1933,12 @@ export class Coeur {
     }
     if (this.degrade.actif("stockage")) {
       try {
+        // Pièces gardées en mémoire avec les événements en attente (EX-14.8)
+        // écrites d'abord : le stockage ne répond pas tant qu'elles ne s'écrivent
+        // pas, et aucun de ces événements ne peut être scellé sans elles (EX-8.9,
+        // EX-14.10). Sans ce pas, le nouveau segment s'ouvrait, le mode était
+        // levé (santé « ok ») et le scellement échouait ensuite en silence.
+        await this._ecrirePiecesAttente();
         // Nouveau segment ouvert et synchronisé (EX-12.8, EX-14.11), espace libre
         // vérifié avant l'ouverture (14.2).
         await this.ecrivain.reprendreStockage();
@@ -2073,11 +2079,22 @@ export class Coeur {
   }
 
   /**
+   * Écrit les pièces gardées en mémoire de chaque événement en attente
+   * (EX-14.8), avant la sortie du mode « stockage » ; une pièce déjà présente
+   * n'est pas réécrite (EX-8.9). Une erreur d'écriture est levée telle quelle :
+   * le mode reste actif.
+   */
+  async _ecrirePiecesAttente() {
+    for (const x of [...this.attente]) for (const p of x.pieces) await this.pieces.ecrire(p);
+  }
+
+  /**
    * Scelle les événements en attente (EX-14.10), dans l'ordre de
    * `captured_at`, `ts = max(captured_at, ts précédent)`, chacun **après**
    * l'écriture des pièces gardées en mémoire qu'il référence (EX-8.9 ;
-   * révision 0.7). Une écriture de pièce qui échoue laisse cet événement et
-   * les suivants en attente, dans leur ordre, jusqu'au tic suivant : aucun
+   * révision 0.7). Une écriture de pièce qui échoue fait entrer le mode
+   * dégradé « stockage » (14.2) et laisse cet événement et les suivants en
+   * attente, dans leur ordre, jusqu'à la sortie du mode : aucun
    * n'est scellé sans ses pièces, et la pièce à deux membres des versions 0.1
    * à 0.6 n'est plus produite. (Jusqu'ici, un échec gardait l'événement fautif
    * et retirait de la file, sans les sceller, ceux qui le suivaient.)
@@ -2089,7 +2106,9 @@ export class Coeur {
     for (let i = 0; i < liste.length; i++) {
       const x = liste[i];
       try {
-        for (const p of x.pieces) await this.pieces.ecrire(p);
+        // Une pièce qui ne s'écrit pas est une panne de stockage (14.2) : mode
+        // dégradé « stockage », comme à l'écriture des pièces d'un appel.
+        for (const p of x.pieces) await this.ecrirePiece(p);
         const e = await this.ecrivain.sceller(x.partiel, { captureA: x.captured_at, leverIntention: x.intent_id ?? undefined, sorteMetrique: "attente" });
         // Scellé depuis l'attente, démon en marche : inscrit au registre de
         // recouvrement comme tout appel ou échange scellé (EX-6.34, lecture 125).

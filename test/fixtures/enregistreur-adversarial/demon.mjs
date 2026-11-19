@@ -295,14 +295,15 @@ export async function arreter(p) {
 
 /**
  * Requête JSON-RPC POST au point MCP du démon ; `jeton` null : aucun en-tête
- * d'autorisation. Rend { statut, entetes, corps (objet JSON ou null), session }.
+ * d'autorisation ; `o.agent` : agent HTTP (`false` : connexion neuve, fermée
+ * après la réponse). Rend { statut, entetes, corps (objet JSON ou null), session }.
  */
 export function poster(port, corps, o = {}) {
   return new Promise((res, rej) => {
     const entetes = { "content-type": "application/json", accept: "application/json, text/event-stream" };
     if (o.jeton) entetes.authorization = `Bearer ${o.jeton}`;
     if (o.session) entetes["mcp-session-id"] = o.session;
-    const req = http.request({ host: "127.0.0.1", port, path: "/mcp", method: "POST", headers: entetes }, (r) => {
+    const req = http.request({ host: "127.0.0.1", port, path: "/mcp", method: "POST", headers: entetes, ...(o.agent !== undefined ? { agent: o.agent } : {}) }, (r) => {
       const m = [];
       r.on("data", (k) => m.push(k));
       r.on("end", () => {
@@ -329,10 +330,11 @@ export function poster(port, corps, o = {}) {
  * aucune autorisation sur aucune requête.
  */
 export async function appelerOutil(port, jeton, nom, args, o = {}) {
-  const ini = await poster(port, { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "hote-adversarial", version: "1.0.0" } } }, { jeton });
+  const agent = o.agent;
+  const ini = await poster(port, { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "hote-adversarial", version: "1.0.0" } } }, { jeton, agent });
   if (ini.statut !== 200) return ini;
-  await poster(port, { jsonrpc: "2.0", method: "notifications/initialized" }, { jeton, session: ini.session });
+  await poster(port, { jsonrpc: "2.0", method: "notifications/initialized" }, { jeton, session: ini.session, agent });
   const params = { name: nom, arguments: args };
   if (o.meta) params._meta = o.meta;
-  return { ...(await poster(port, { jsonrpc: "2.0", id: 2, method: "tools/call", params }, { jeton, session: ini.session })), session: ini.session };
+  return { ...(await poster(port, { jsonrpc: "2.0", id: 2, method: "tools/call", params }, { jeton, session: ini.session, agent })), session: ini.session };
 }

@@ -14110,6 +14110,19 @@
           "apres": "1decdf2c15916bd22de483aaabdb2580460ed0b9340f3f9c1af8cc2150d9d636"
         }
       ]
+    },
+    {
+      "id": "MC-105",
+      "date": "2026-11-18",
+      "etape": 8,
+      "motif": "essai de la matrice des pannes du démon : première lecture faite après la réponse au chargement de la politique par le service d'approbation, attendue par condition au démarrage et après la prise du bail ; ligne du bail perdu sans course entre les deux instances, l'ancienne active étant figée pendant que la nouvelle prend le bail, et ses deux refus admis par le texte acceptés, avant et après sa relance en passive ; empreinte du fichier d'essai dans la couverture de CT-9",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "3ba2bbc6a40c3c07e811e14b9ba3aedfffea8cde41b4446efbbf9f2d4fc93ea4",
+          "apres": "c0afebaca33e73f0db3081c2e4e3009fa4c4c6016c80e7717b33bd315f55f712"
+        }
+      ]
     }
   ]
 }
